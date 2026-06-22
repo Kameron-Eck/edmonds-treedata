@@ -449,14 +449,21 @@ def _copy_to_drive(local_path, drive_path):
 #  Training-site discovery (footprints only — pixels come from per-year orthos)
 # ══════════════════════════════════════════════════════════════════════════════
 
-def discover_site_footprints():
+def discover_site_footprints(site_buffer=0.0):
     """Return [(site_label, bounds_3857, crowns_gdf_or_None)] for each training site.
 
     Footprint geometry is taken from the 2020 7.5 cm site photo's georeferenced
     bounds (cheap metadata read, no pixels). Sites without a crown shapefile are
     dedicated true negatives (kept as all-zero masks).
+
+    site_buffer pads each footprint by N map units (EPSG:3857) on every side,
+    enlarging the crop so more tiles fit. Pixels of the enlarged crop that fall
+    outside the reviewed regions are IGNORE, so usable extra tiles only appear
+    where the regions already reach (≈ the prep --buffer).
     """
     print("\n── Discovering training-site footprints ──")
+    if site_buffer:
+        print(f"  Site buffer: +{site_buffer:.0f} map units per side")
     photo_files = sorted(PHOTOS_DIR.glob("*_rgb.tif"))
     if not photo_files:
         raise FileNotFoundError(f"No *_rgb.tif training photos in {PHOTOS_DIR}")
@@ -472,7 +479,9 @@ def discover_site_footprints():
             b = BoundingBox(*rasterio.warp.transform_bounds(pcrs, CROWN_CRS, *b))
 
         crowns, is_review = load_site_crowns(label)
-        sites.append((label, BoundingBox(b.left, b.bottom, b.right, b.top), crowns))
+        sites.append((label, BoundingBox(b.left - site_buffer, b.bottom - site_buffer,
+                                         b.right + site_buffer, b.top + site_buffer),
+                      crowns))
         if crowns is None:
             tag = "— (true negative)"
         elif is_review:
@@ -1948,6 +1957,12 @@ def main():
     p.add_argument("--stride", type=int, default=None,
                    help="Override the per-tier tiling stride (smaller = more "
                         "overlapping tiles → more tiles).")
+    p.add_argument("--site-buffer", type=float, default=0.0,
+                   help="Pad each site footprint by N map units (EPSG:3857 ≈ m) "
+                        "before cropping → larger crops → more tiles. Only the "
+                        "part falling inside the reviewed regions becomes "
+                        "labeled; beyond that is IGNORE. ~200 matches the prep "
+                        "buffer.")
     args = p.parse_args(filtered)
 
     from pipeline_log import StepLogger
@@ -1989,7 +2004,7 @@ def main():
     # Site footprints are shared across years — discover once.
     sites = None
     if any(s in per_year for s in ("labels", "tile")):
-        sites = discover_site_footprints()
+        sites = discover_site_footprints(site_buffer=args.site_buffer)
 
     p3 = resolve_p3_ckpt(args.ckpt)
     if "train" in per_year:

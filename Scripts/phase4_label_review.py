@@ -737,12 +737,12 @@ a.dl{color:#58a6ff;text-decoration:none;cursor:pointer}
 <div class="stage"><div id="wrap">
   <canvas id="cv" width="512" height="512"></canvas>
   <div class="meta" id="metabox"></div>
-  <div class="hint">← Absent · → Present · ↓ Unsure · ↑ Undo · shift+scroll/+− zoom · drag pan · ,/. or scroll browse</div>
+  <div class="hint">← Present · → Absent · ↓ Unsure · ↑ Undo · shift+scroll/+− zoom · drag pan · ,/. or scroll browse</div>
 </div></div>
 
 <div class="btns">
-  <div class="btn b-present" onclick="mark('present')">Present<span class="k">→ / 1</span></div>
-  <div class="btn b-absent"  onclick="mark('absent')">Absent<span class="k">← / 2</span></div>
+  <div class="btn b-present" onclick="mark('present')">Present<span class="k">← / 1</span></div>
+  <div class="btn b-absent"  onclick="mark('absent')">Absent<span class="k">→ / 2</span></div>
   <div class="btn b-unsure"  onclick="mark('unsure')">Unsure<span class="k">↓ / 3</span></div>
 </div>
 
@@ -871,8 +871,8 @@ function csv(){
 document.addEventListener('keydown',e=>{
   if(document.getElementById('overlay').style.display==='none'){
     // arrow keys → decisions;  digits 1/2/3 still work
-    if(e.key==='ArrowRight'||e.key==='1'){e.preventDefault();mark('present');}
-    else if(e.key==='ArrowLeft'||e.key==='2'){e.preventDefault();mark('absent');}
+    if(e.key==='ArrowLeft'||e.key==='1'){e.preventDefault();mark('present');}
+    else if(e.key==='ArrowRight'||e.key==='2'){e.preventDefault();mark('absent');}
     else if(e.key==='ArrowDown'||e.key==='3'){e.preventDefault();mark('unsure');}
     else if(e.key==='ArrowUp'||e.key==='z'||e.key==='Z'){e.preventDefault();undo();}
     else if(e.key==='+'||e.key==='=')changeZoom(1.25);

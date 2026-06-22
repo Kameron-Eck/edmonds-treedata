@@ -833,12 +833,13 @@ def tile_site_native(site_label, img_path, mask_path, stride, neg_rate,
     return records
 
 
-def step_tile(label, sites, dry_run=False):
+def step_tile(label, sites, dry_run=False, max_tiles=None, stride_override=None):
     """Step 2 for one year: tile all covered site crops; write per-year index."""
     entry = entry_for(label)
     tier  = tier_of(entry["gsd_cm"])
     tp    = TIER_TILE_PARAMS[tier]
-    print(f"\n── [{label}] Step 2: Tiling ({tier}: stride={tp['stride']}, "
+    stride = int(stride_override) if stride_override else tp["stride"]
+    print(f"\n── [{label}] Step 2: Tiling ({tier}: stride={stride}, "
           f"neg_rate={tp['neg_rate']}, test={'yes' if tp['has_test'] else 'no'}) ──")
 
     year_site_dir = SITE_DIR / label
@@ -857,10 +858,23 @@ def step_tile(label, sites, dry_run=False):
         if not (ip.exists() and mp.exists()):
             continue  # uncovered/skipped in step 1
         all_records.extend(tile_site_native(
-            site_label, ip, mp, tp["stride"], tp["neg_rate"],
+            site_label, ip, mp, stride, tp["neg_rate"],
             keep_all_empty=(site_label in negative_sites)))
 
     print(f"  Total tiles: {len(all_records)}")
+
+    # Optional cap for fast test runs: keep canopy-bearing tiles first, then
+    # fill the remainder with negatives, up to max_tiles.
+    if max_tiles is not None and len(all_records) > max_tiles:
+        rng = np.random.RandomState(RANDOM_SEED)
+        pos = [r for r in all_records if r["canopy_frac"] > 0]
+        neg = [r for r in all_records if r["canopy_frac"] == 0]
+        rng.shuffle(pos); rng.shuffle(neg)
+        all_records = (pos + neg)[:max_tiles]
+        n_pos = sum(1 for r in all_records if r["canopy_frac"] > 0)
+        print(f"  Capped to {len(all_records)} tiles "
+              f"({n_pos} canopy / {len(all_records) - n_pos} negative)")
+
     if dry_run:
         print("  Dry run — not writing tiles")
         return
@@ -1928,6 +1942,12 @@ def main():
                    help="Use 6-channel RGB+VI input (must match the Phase 3 ckpt).")
     p.add_argument("--dry-run", action="store_true",
                    help="Plan only — no writes.")
+    p.add_argument("--max-tiles", type=int, default=None,
+                   help="Cap each year's tile set to N (canopy tiles kept first, "
+                        "then negatives). For fast test runs.")
+    p.add_argument("--stride", type=int, default=None,
+                   help="Override the per-tier tiling stride (smaller = more "
+                        "overlapping tiles → more tiles).")
     args = p.parse_args(filtered)
 
     from pipeline_log import StepLogger
@@ -1989,7 +2009,8 @@ def main():
                 log.finish(**_f)
         if "tile" in per_year:
             with StepLogger(SCRIPT_NAME, f"tile_{lab}", LOGS_DIR) as log:
-                r = step_tile(lab, sites, dry_run=args.dry_run)
+                r = step_tile(lab, sites, dry_run=args.dry_run,
+                              max_tiles=args.max_tiles, stride_override=args.stride)
                 _f = {"year": lab, "gsd_cm": e["gsd_cm"],
                       "dry_run": args.dry_run, "errors": 0}
                 if isinstance(r, dict): _f.update(r)

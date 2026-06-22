@@ -776,15 +776,13 @@ function draw(){
   document.getElementById('prog').style.width=(100*(idx)/crowns.length)+'%';
   const img=new Image();
   img.onload=()=>{
-    // auto-fit zoom on a fresh crown (zoom===null): enlarge small coarse-res crowns
+    // Fixed default zoom for every crown (zoom===null). Every crop is the same
+    // ~306m ground window, so a constant zoom keeps a consistent wide-context
+    // view. Coarse 2000 imagery is low-res — magnifying small crowns just blows
+    // up pixels and hides the surrounding context needed to judge them. Use
+    // +/- or shift+scroll to zoom into an individual crown when needed.
     if(zoom===null){
-      let z=1;
-      if(c.outline&&c.outline.length>2){
-        const xs=c.outline.map(p=>p[0]), ys=c.outline.map(p=>p[1]);
-        const dim=Math.max(Math.max(...xs)-Math.min(...xs),Math.max(...ys)-Math.min(...ys));
-        if(dim>0) z=Math.max(1,Math.min(5,180/dim));
-      }
-      zoom=Math.min(5,z*2); panx=256-256*zoom; pany=256-256*zoom;   // 2x in, capped at 5x, centre fixed
+      zoom=2; panx=256-256*zoom; pany=256-256*zoom;   // constant 2x, centre fixed
     }
     ctx.save();ctx.clearRect(0,0,512,512);
     ctx.translate(panx,pany);ctx.scale(zoom,zoom);

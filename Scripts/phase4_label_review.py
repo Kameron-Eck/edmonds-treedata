@@ -902,32 +902,61 @@ cv.addEventListener('mousemove',e=>{ if(drag){panx+=e.offsetX-lx;pany+=e.offsetY
 # ══════════════════════════════════════════════════════════════════════════════
 
 def main():
-    # Colab `%run` passes -f <json>; filter it out (phase1/phase4 convention).
+    from pipeline_log import StepLogger
+    LOGS_DIR = BASE / "Scripts" / "logs"
+    SCRIPT_NAME = "phase4_label_review"
+
     filtered = [a for a in sys.argv[1:] if not (a == "-f" or a.endswith(".json"))]
     p = argparse.ArgumentParser(description="Phase 4 temporal-anchor crown reviewer")
     p.add_argument("--step", choices=["prep", "serve", "compile"], required=True)
-    p.add_argument("--year", type=int, default=YEAR,
-                   help="control year under review (default 2000)")
-    p.add_argument("--sites", default=None, help="comma-separated site filter")
-    p.add_argument("--to-polygons", action="store_true",
-                   help="(compile) write straight into polygons/ instead of a staging dir")
+    p.add_argument("--year", type=int, default=YEAR)
+    p.add_argument("--sites", default=None)
+    p.add_argument("--to-polygons", action="store_true")
     args = p.parse_args(filtered)
 
     sites_filter = set(args.sites.split(",")) if args.sites else None
 
     if args.step == "prep":
-        step_prep(args.year, sites_filter)
+        with StepLogger(SCRIPT_NAME, "prep", LOGS_DIR) as log:
+            manifest = step_prep(args.year, sites_filter)
+            sites_done = sorted({m["site"] for m in manifest})
+            log.finish(
+                year=args.year,
+                crowns=len(manifest),
+                sites=sites_done,
+                manifest_mb=round(
+                    (local_root(args.year) / "manifest.json").stat().st_size / 1e6, 1
+                ),
+                errors=0,
+            )
+
     elif args.step == "serve":
+        # serve blocks; log setup only, then log shutdown
+        logger = StepLogger(SCRIPT_NAME, "serve", LOGS_DIR, capture_stdout=False)
+        logger.start()
         server = step_serve(args.year)
-        # Keep the cell alive (Colab). Ctrl-C / interrupt to stop.
+        rows_start = _csv_row_count(review_root(args.year) / CSV_NAME)
         try:
             while True:
                 time.sleep(3600)
         except KeyboardInterrupt:
             print("\n  server stopped.")
+        rows_end = _csv_row_count(review_root(args.year) / CSV_NAME)
+        logger.finish(
+            year=args.year,
+            labels_this_session=rows_end - rows_start,
+            total_labels=rows_end,
+        )
+
     elif args.step == "compile":
-        step_compile(args.year, sites_filter, to_polygons=args.to_polygons)
-
-
+        with StepLogger(SCRIPT_NAME, "compile", LOGS_DIR) as log:
+            result = step_compile(args.year, sites_filter,
+                                  to_polygons=args.to_polygons)
+            log.finish(
+                year=args.year,
+                to_polygons=args.to_polygons,
+                errors=0,
+                # step_compile should return a summary dict; adjust as needed
+            )
 if __name__ == "__main__":
     main()

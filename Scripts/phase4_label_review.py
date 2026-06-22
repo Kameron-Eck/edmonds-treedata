@@ -784,7 +784,7 @@ function draw(){
         const dim=Math.max(Math.max(...xs)-Math.min(...xs),Math.max(...ys)-Math.min(...ys));
         if(dim>0) z=Math.max(1,Math.min(5,180/dim));
       }
-      zoom=z*2; panx=256-256*zoom; pany=256-256*zoom;   // start 2x in, centre fixed
+      zoom=Math.min(5,z*2); panx=256-256*zoom; pany=256-256*zoom;   // 2x in, capped at 5x, centre fixed
     }
     ctx.save();ctx.clearRect(0,0,512,512);
     ctx.translate(panx,pany);ctx.scale(zoom,zoom);

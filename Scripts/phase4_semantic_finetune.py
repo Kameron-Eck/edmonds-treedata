@@ -1930,6 +1930,10 @@ def main():
                    help="Plan only — no writes.")
     args = p.parse_args(filtered)
 
+    from pipeline_log import StepLogger
+    LOGS_DIR = BASE / "Scripts" / "logs"
+    SCRIPT_NAME = "phase4_semantic_finetune"
+
     global USE_VI, IN_CHANNELS
     USE_VI = bool(args.vi)
     IN_CHANNELS = 3 + (len(VI_NAMES) if USE_VI else 0)
@@ -1977,24 +1981,58 @@ def main():
         print(f"\n{'#'*65}\n#  YEAR {lab}  ({e['gsd_cm']:.1f} cm, "
               f"{tier_of(e['gsd_cm'])}, {e['source']}, {e['coverage']})\n{'#'*65}")
         if "labels" in per_year:
-            step_labels(lab, sites, dry_run=args.dry_run)
+            with StepLogger(SCRIPT_NAME, f"labels_{lab}", LOGS_DIR) as log:
+                r = step_labels(lab, sites, dry_run=args.dry_run)
+                _f = {"year": lab, "gsd_cm": e["gsd_cm"],
+                      "dry_run": args.dry_run, "errors": 0}
+                if isinstance(r, dict): _f.update(r)
+                log.finish(**_f)
         if "tile" in per_year:
-            step_tile(lab, sites, dry_run=args.dry_run)
+            with StepLogger(SCRIPT_NAME, f"tile_{lab}", LOGS_DIR) as log:
+                r = step_tile(lab, sites, dry_run=args.dry_run)
+                _f = {"year": lab, "gsd_cm": e["gsd_cm"],
+                      "dry_run": args.dry_run, "errors": 0}
+                if isinstance(r, dict): _f.update(r)
+                log.finish(**_f)
         if "train" in per_year:
-            step_train(lab, batch_size=args.batch_size,
-                       p3_ckpt=args.ckpt, dry_run=args.dry_run)
+            with StepLogger(SCRIPT_NAME, f"train_{lab}", LOGS_DIR) as log:
+                r = step_train(lab, batch_size=args.batch_size,
+                               p3_ckpt=args.ckpt, dry_run=args.dry_run)
+                _f = {"year": lab, "gsd_cm": e["gsd_cm"],
+                      "dry_run": args.dry_run, "errors": 0}
+                if isinstance(r, dict): _f.update(r)
+                log.finish(**_f)
         if "evaluate" in per_year:
-            step_evaluate(lab, dry_run=args.dry_run)
+            with StepLogger(SCRIPT_NAME, f"evaluate_{lab}", LOGS_DIR) as log:
+                r = step_evaluate(lab, dry_run=args.dry_run)
+                _f = {"year": lab, "gsd_cm": e["gsd_cm"],
+                      "dry_run": args.dry_run, "errors": 0}
+                if isinstance(r, dict): _f.update(r)
+                log.finish(**_f)
         if "inference" in per_year:
-            step_inference(lab, batch_size=args.batch_size * 16
-                           if args.batch_size == BATCH_SIZE else args.batch_size,
-                           dry_run=args.dry_run)
+            with StepLogger(SCRIPT_NAME, f"inference_{lab}", LOGS_DIR) as log:
+                r = step_inference(lab, batch_size=args.batch_size * 16
+                                   if args.batch_size == BATCH_SIZE else args.batch_size,
+                                   dry_run=args.dry_run)
+                _f = {"year": lab, "gsd_cm": e["gsd_cm"],
+                      "dry_run": args.dry_run, "errors": 0}
+                if isinstance(r, dict): _f.update(r)
+                log.finish(**_f)
         if "postproc" in per_year:
-            step_postproc(lab, dry_run=args.dry_run)
+            with StepLogger(SCRIPT_NAME, f"postproc_{lab}", LOGS_DIR) as log:
+                r = step_postproc(lab, dry_run=args.dry_run)
+                _f = {"year": lab, "gsd_cm": e["gsd_cm"],
+                      "dry_run": args.dry_run, "errors": 0}
+                if isinstance(r, dict): _f.update(r)
+                log.finish(**_f)
 
     # Cross-year consistency runs once (default pipeline, or --step consistency).
     if args.step in (None, "consistency"):
-        step_consistency(dry_run=args.dry_run)
+        with StepLogger(SCRIPT_NAME, "consistency", LOGS_DIR) as log:
+            r = step_consistency(dry_run=args.dry_run)
+            _f = {"dry_run": args.dry_run, "errors": 0}
+            if isinstance(r, dict): _f.update(r)
+            log.finish(**_f)
 
     print_summary(entries)
     timer_summary()

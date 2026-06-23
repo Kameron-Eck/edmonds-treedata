@@ -258,6 +258,14 @@ SAVE_EVERY       = 5
 SPATIAL_BUFFER_PX = 512          # see phase3 note; 512 keeps all non-val train tiles
 L1_LAMBDA        = 1e-6
 
+# Segmentation loss = BCE_WEIGHT * masked_BCE + DICE_WEIGHT * masked_Dice
+# (Fix 1). Both terms are IGNORE-aware (255 pixels excluded exactly like
+# _masked_bce). Dice supplies a region-overlap gradient that BCE alone lacks,
+# which helps the compressed-probability coarse years. Tunable.
+BCE_WEIGHT       = 0.5
+DICE_WEIGHT      = 0.5
+DICE_SMOOTH      = 1.0           # Laplace smoothing on the soft-Dice ratio
+
 # Inference (same center-crop streaming as Phase 0 / Phase 3)
 INFER_BATCH_SIZE = 160
 INFER_STRIDE     = 256
@@ -1218,9 +1226,39 @@ def _masked_bce(criterion_none, logits, masks):
     return (loss_map * valid).sum() / valid.sum().clamp(min=1.0)
 
 
+def _masked_dice(logits, masks, smooth=DICE_SMOOTH):
+    """Soft-Dice loss over labeled pixels only (255 = IGNORE excluded).
+
+    IGNORE-aware exactly like `_masked_bce`: both the prediction probabilities
+    and the target are zeroed at IGNORE pixels, so those pixels contribute
+    nothing to the intersection or the denominator. Computed per-sample over the
+    batch then averaged. For legacy {0,1} masks the IGNORE mask is empty, so this
+    is a plain soft-Dice. All-background tiles → near-zero loss unless the model
+    predicts false canopy (penalised via the denominator).
+    """
+    valid  = (masks != IGNORE_LABEL).float()
+    target = torch.where(masks == IGNORE_LABEL, torch.zeros_like(masks), masks) * valid
+    probs  = torch.sigmoid(logits) * valid
+    dims   = tuple(range(1, probs.dim()))
+    inter  = (probs * target).sum(dims)
+    denom  = probs.sum(dims) + target.sum(dims)
+    dice   = (2.0 * inter + smooth) / (denom + smooth)
+    return (1.0 - dice).mean()
+
+
+def _seg_loss(criterion_none, logits, masks):
+    """Combined masked segmentation loss: BCE_WEIGHT*BCE + DICE_WEIGHT*Dice.
+
+    Returns (combined, bce_component, dice_component) — all IGNORE-aware.
+    """
+    bce  = _masked_bce(criterion_none, logits, masks)
+    dice = _masked_dice(logits, masks)
+    return BCE_WEIGHT * bce + DICE_WEIGHT * dice, bce, dice
+
+
 def _train_one_epoch(model, loader, optimizer, scaler, criterion, device):
     model.train()
-    loss_sum = bce_sum = 0.0
+    loss_sum = seg_sum = 0.0       # seg_sum tracks the combined BCE+Dice (no L1)
     n = 0
     for imgs, masks, _ in loader:
         imgs = imgs.to(device, non_blocking=True)
@@ -1228,24 +1266,24 @@ def _train_one_epoch(model, loader, optimizer, scaler, criterion, device):
         optimizer.zero_grad()
         with torch.amp.autocast("cuda"):
             logits = model(imgs)
-            bce = _masked_bce(criterion, logits, masks)
+            seg, _bce, _dice = _seg_loss(criterion, logits, masks)
         if L1_LAMBDA > 0:
             l1 = sum(p.abs().sum() for p in model.parameters() if p.requires_grad)
-            loss = bce + L1_LAMBDA * l1
+            loss = seg + L1_LAMBDA * l1
         else:
-            loss = bce
+            loss = seg
         scaler.scale(loss).backward()
         scaler.unscale_(optimizer)
         torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
         scaler.step(optimizer)
         scaler.update()
-        loss_sum += loss.item(); bce_sum += bce.item(); n += 1
-    return loss_sum / max(n, 1), bce_sum / max(n, 1)
+        loss_sum += loss.item(); seg_sum += seg.item(); n += 1
+    return loss_sum / max(n, 1), seg_sum / max(n, 1)
 
 
 def _validate(model, loader, criterion, device):
     model.eval()
-    bce_sum = iou_sum = 0.0
+    seg_sum = iou_sum = 0.0        # seg_sum = combined BCE+Dice (early-stop signal)
     n = 0
     with torch.no_grad():
         for imgs, masks, _ in loader:
@@ -1253,15 +1291,16 @@ def _validate(model, loader, criterion, device):
             masks = masks.to(device, non_blocking=True)
             with torch.amp.autocast("cuda"):
                 logits = model(imgs)
-                bce = _masked_bce(criterion, logits, masks)
-            bce_sum += bce.item()
+                seg, _bce, _dice = _seg_loss(criterion, logits, masks)
+            seg_sum += seg.item()
+            # val_iou: unchanged — thresholded IoU at 0.5 for cross-run comparability.
             valid = (masks != IGNORE_LABEL).float()
             preds = (torch.sigmoid(logits) > 0.5).float() * valid
             tgt   = (masks == 1).float() * valid
             inter = (preds * tgt).sum()
             union = preds.sum() + tgt.sum() - inter
             iou_sum += (inter / (union + 1e-8)).item(); n += 1
-    return bce_sum / max(n, 1), iou_sum / max(n, 1)
+    return seg_sum / max(n, 1), iou_sum / max(n, 1)
 
 
 def _save_ckpt(phase, epoch, model, optim, sched, history, best_val, path):

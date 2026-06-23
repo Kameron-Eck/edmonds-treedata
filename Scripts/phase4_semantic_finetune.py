@@ -212,6 +212,9 @@ NATIVE_DIR    = IMAGERY_DIR / "native"
 # Phase 3 semantic checkpoint — the fine-tune starting point for every year.
 P3_DIR        = BASE / "phase3"
 PROB_2020     = P3_DIR / "edmonds_canopy_prob_2020.tif"  # full-city 2020 canopy prob
+MASK_2020     = P3_DIR / "edmonds_canopy_mask_2020.tif"  # full-city 2020 BINARY canopy
+                                                         # mask — coarse city-wide
+                                                         # label source (Fix 3)
 P3_CKPT_CANDIDATES = [
     P3_DIR / "sem_best_2020.pt",
     P3_DIR / "checkpoints" / "sem_best_2020.pt",
@@ -245,6 +248,13 @@ DECODER_DROPOUT  = 0.3
 TILE_SIZE        = 512
 NEGATIVE_SAMPLE_RATE = 0.15      # fine/medium; coarse overridden below
 RANDOM_SEED      = 42
+
+# Coarse-tier city-wide stratified tiling (Fix 3). For coarse years the default
+# tiling path samples tiles across the whole city ortho (not just the 6 site
+# footprints), labelled from the 2020 binary canopy mask, balanced across
+# canopy-fraction bins so the set isn't all-forest or all-background.
+COARSE_CITYWIDE_TILES     = 800  # total tile budget across canopy-fraction bins
+CITYWIDE_CANDIDATE_STRIDE = 256  # candidate origin stride before stratification
 
 # Fine-tune schedule — identical values to Phase 3 / Method Pipeline.
 EPOCHS_PHASE_A   = 20            # decoder only, encoder frozen
@@ -396,7 +406,10 @@ TIER_TILE_PARAMS = {
     #          stride  neg_rate  test_frac  has_test
     "fine":   dict(stride=512, neg_rate=0.15, test_frac=0.20, has_test=True),
     "medium": dict(stride=256, neg_rate=0.15, test_frac=0.20, has_test=True),
-    "coarse": dict(stride=128, neg_rate=0.30, test_frac=0.00, has_test=False),
+    # neg_rate raised 0.30→0.60 (Fix 3) to lift negative representation. Used only
+    # by the legacy 6-site coarse path (--coarse-site-tiling); the default coarse
+    # path is now city-wide stratified tiling, which balances negatives by bin.
+    "coarse": dict(stride=128, neg_rate=0.60, test_frac=0.00, has_test=False),
 }
 
 
@@ -682,6 +695,45 @@ def anchor_mask_from_2020(dst_crs, dst_transform, h, w, prob_hi, prob_lo):
     return mask
 
 
+def canopy_label_from_2020_mask(msrc, dst_crs, dst_transform, h, w):
+    """Reproject the OPEN Phase 3 2020 binary canopy mask (``msrc``) onto a crop
+    grid. Used by the coarse city-wide tiler (Fix 3) — the 2020 canopy mask is
+    the label source for coarse years.
+
+    Returns a 0/1/255 uint8 label: 1 = 2020 canopy, 0 = 2020 background,
+    255 = IGNORE (mask nodata or outside the 2020 footprint). Nearest-neighbour
+    throughout because the mask is categorical; the fine 7.5 cm source is
+    decimated toward the coarse crop size on read. ``msrc`` is passed in already
+    open so the city-wide loop reuses one handle for thousands of crops.
+    """
+    out = np.full((h, w), IGNORE_LABEL, dtype=np.uint8)
+    dst_bounds = rasterio.transform.array_bounds(h, w, dst_transform)  # l,b,r,t
+    mcrs, mnod = msrc.crs, msrc.nodata
+    mb = rasterio.warp.transform_bounds(dst_crs, mcrs, *dst_bounds)
+    src_win = rasterio.windows.from_bounds(*mb, transform=msrc.transform)
+    src_win = src_win.round_offsets(op="floor").round_lengths(op="ceil")
+    src_win = src_win.intersection(
+        rasterio.windows.Window(0, 0, msrc.width, msrc.height))
+    if src_win.width <= 0 or src_win.height <= 0:
+        return out                                   # crop outside 2020 coverage
+    out_h = max(1, min(int(src_win.height), h))
+    out_w = max(1, min(int(src_win.width),  w))
+    raw = msrc.read(1, window=src_win, out_shape=(out_h, out_w),
+                    resampling=Resampling.nearest).astype(np.uint8)
+    win_tf = msrc.window_transform(src_win)
+    src_tf = win_tf * win_tf.scale(src_win.width / out_w, src_win.height / out_h)
+    dst_arr = np.full((h, w), 255, dtype=np.uint8)
+    rasterio.warp.reproject(
+        source=raw, destination=dst_arr,
+        src_transform=src_tf, src_crs=mcrs,
+        dst_transform=dst_transform, dst_crs=dst_crs,
+        src_nodata=(mnod if mnod is not None else 255), dst_nodata=255,
+        resampling=Resampling.nearest)
+    out[dst_arr == 0] = 0
+    out[dst_arr == 1] = 1
+    return out
+
+
 def project_and_rasterise_site(src, src_nodata, native_crs, label, site_label,
                                site_bounds_3857, crowns_3857, year_dir,
                                dry_run=False, anchor_labels=False,
@@ -814,10 +866,17 @@ def project_and_rasterise_site(src, src_nodata, native_crs, label, site_label,
 
 
 def step_labels(label, sites, dry_run=False, anchor_labels=False,
-                prob_hi=0.6, prob_lo=0.4):
+                prob_hi=0.6, prob_lo=0.4, citywide=False):
     """Step 1 for one year: build native-GSD site crops + binary masks."""
     entry = entry_for(label)
     tier  = tier_of(entry["gsd_cm"])
+    if citywide:
+        # Coarse city-wide path (Fix 3) builds its labels from the 2020 mask
+        # during Step 2 (tiling), straight off the full ortho — no site crops.
+        print(f"\n── [{label}] Step 1: Label projection — SKIPPED "
+              f"(coarse city-wide tiling labels tiles from the 2020 mask in "
+              f"Step 2) ──")
+        return None
     print(f"\n── [{label}] Step 1: Label projection "
           f"({entry['gsd_cm']:.1f} cm, {tier}, EPSG:{entry['crs_epsg']}) ──")
 
@@ -916,51 +975,229 @@ def tile_site_native(site_label, img_path, mask_path, stride, neg_rate,
     return records
 
 
-def step_tile(label, sites, dry_run=False, max_tiles=None, stride_override=None):
-    """Step 2 for one year: tile all covered site crops; write per-year index."""
+# ── Canopy-fraction stratification (Fix 3) ────────────────────────────────────
+
+def _frac_bin(f):
+    """5-bin index for a tile's canopy fraction. Bin 0 is exactly-background
+    (hard negatives: roads, rooftops, water, parking)."""
+    if f <= 0.0:
+        return 0
+    if f <= 0.25:
+        return 1
+    if f <= 0.50:
+        return 2
+    if f <= 0.75:
+        return 3
+    return 4
+
+
+def _stratified_sample(records, budget, seed=RANDOM_SEED):
+    """Sample ~balanced counts per canopy-fraction bin up to `budget` — NEVER
+    first-N (the old cap took the first N canopy tiles and dropped every
+    negative). Records flagged ``force_keep`` (true-negative-site tiles) are
+    always retained; they count against the budget but not the per-bin balance.
+    Returns a shuffled list. May exceed `budget` only if forced tiles alone do.
+    """
+    if budget is None or len(records) <= budget:
+        return list(records)
+    rng = np.random.RandomState(seed)
+    forced = [r for r in records if r.get("force_keep")]
+    pool   = [r for r in records if not r.get("force_keep")]
+    remaining = max(0, budget - len(forced))
+    bins = {}
+    for r in pool:
+        bins.setdefault(_frac_bin(r["canopy_frac"]), []).append(r)
+    per = max(1, remaining // max(1, len(bins)))
+    chosen, leftover = [], []
+    for b in sorted(bins):
+        rs = bins[b]
+        rng.shuffle(rs)
+        chosen.extend(rs[:per])
+        leftover.extend(rs[per:])
+    if len(chosen) < remaining:
+        rng.shuffle(leftover)
+        chosen.extend(leftover[:remaining - len(chosen)])
+    out = forced + chosen[:remaining]
+    rng.shuffle(out)
+    return out
+
+
+def _bin_histogram(records):
+    """'b0:120 b1:80 …' canopy-fraction bin counts, for logging."""
+    counts = {}
+    for r in records:
+        counts[_frac_bin(r["canopy_frac"])] = counts.get(_frac_bin(r["canopy_frac"]), 0) + 1
+    return "  ".join(f"b{b}:{counts.get(b, 0)}" for b in range(5))
+
+
+def _rects_overlap(a, b):
+    """Axis-aligned rectangle overlap; rects are (x0, y0, x1, y1)."""
+    return not (a[2] <= b[0] or b[2] <= a[0] or a[3] <= b[1] or b[3] <= a[1])
+
+
+def _negative_site_windows(sites, src):
+    """Pixel-space windows (col0,row0,col1,row1) in `src` for dedicated
+    true-negative sites (crowns is None) — used to force-keep their tiles."""
+    wins = []
+    for site_label, b3857, crowns in sites:
+        if crowns is not None:
+            continue
+        if src.crs is not None and src.crs.to_epsg() != 3857:
+            bn = BoundingBox(*rasterio.warp.transform_bounds(
+                CROWN_CRS, src.crs, b3857.left, b3857.bottom,
+                b3857.right, b3857.top))
+        else:
+            bn = b3857
+        w = _site_window(src, bn)
+        if w.width > 0 and w.height > 0:
+            wins.append((int(w.col_off), int(w.row_off),
+                         int(w.col_off + w.width), int(w.row_off + w.height)))
+    return wins
+
+
+def _gather_citywide_coarse(label, sites, stride_override=None, dry_run=False):
+    """Coarse-tier city-wide tiling (Fix 3).
+
+    Sample 512px tiles across the FULL city ortho for this year, labelling each
+    from the Phase 3 2020 binary canopy mask reprojected to the year's native
+    grid. Tiles overlapping a dedicated true-negative site are force-kept (hard
+    negatives). Returns a list of tile records (same schema as
+    ``tile_site_native``, plus a ``force_keep`` flag).
+    """
+    entry  = entry_for(label)
+    native = resolve_native_path(entry)
+    if not native.exists():
+        print(f"  ERROR: native ortho not found: {native}")
+        return []
+    if not MASK_2020.exists():
+        print(f"  ERROR: Phase 3 2020 canopy mask not found: {MASK_2020}\n"
+              f"        coarse city-wide tiling needs it as the label source.")
+        return []
+    stride = int(stride_override) if stride_override else CITYWIDE_CANDIDATE_STRIDE
+
+    local      = native    if dry_run else _stage_imagery_local(native)
+    mask_local = MASK_2020  if dry_run else _stage_imagery_local(MASK_2020)
+    records = []
+    try:
+        with rasterio.open(local) as src:
+            native_crs, src_nodata = src.crs, src.nodata
+            img_h, img_w, tf = src.height, src.width, src.transform
+            print(f"  Ortho: {img_w}×{img_h}px  GSD≈{tf.a*100:.1f}cm  "
+                  f"nodata={src_nodata}")
+            rows = list(range(0, max(1, img_h - TILE_SIZE + 1), stride)) or [0]
+            cols = list(range(0, max(1, img_w - TILE_SIZE + 1), stride)) or [0]
+            origins = [(r, c) for r in rows for c in cols]
+            print(f"  Candidate positions: {len(origins):,}  (stride={stride})")
+            if dry_run:
+                print("  Dry run — not reading tiles")
+                return []
+            neg_wins = _negative_site_windows(sites, src)
+            with rasterio.open(mask_local) as msrc:
+                for ro, co in tqdm(origins, desc="  City-wide scan",
+                                   mininterval=2.0):
+                    win = rasterio.windows.Window(co, ro, TILE_SIZE, TILE_SIZE)
+                    img_tile = src.read(window=win, boundless=True, fill_value=0)
+                    if src_nodata is not None:
+                        nod = np.all(img_tile == src_nodata, axis=0)
+                    else:
+                        nod = np.all(img_tile == 0, axis=0)
+                    if float(nod.mean()) > COVERAGE_NODATA_MAX:
+                        continue                       # un-imaged tile
+                    win_tf = rasterio.windows.transform(win, tf)
+                    mask_tile = canopy_label_from_2020_mask(
+                        msrc, native_crs, win_tf, TILE_SIZE, TILE_SIZE)
+                    mask_tile[nod] = IGNORE_LABEL
+                    n_lab = int((mask_tile != IGNORE_LABEL).sum())
+                    if n_lab == 0:
+                        continue                       # no 2020 label here
+                    canopy_frac = float((mask_tile == 1).sum()) / n_lab
+                    fk = any(_rects_overlap(
+                        (co, ro, co + TILE_SIZE, ro + TILE_SIZE), nw)
+                        for nw in neg_wins)
+                    records.append({
+                        "tile_name": f"city_r{ro:05d}_c{co:05d}.tif",
+                        "site": "city", "row_off": ro, "col_off": co,
+                        "canopy_frac": round(canopy_frac, 4),
+                        "crs": native_crs,
+                        "tile_transform": win_tf,
+                        "_img_tile": img_tile, "_mask_tile": mask_tile,
+                        "force_keep": fk,
+                    })
+    finally:
+        if not dry_run:
+            if local != native:
+                _unstage_imagery_local(local)
+            if mask_local != MASK_2020:
+                _unstage_imagery_local(mask_local)
+    n_force = sum(1 for r in records if r.get("force_keep"))
+    print(f"  Gathered {len(records)} labeled tiles "
+          f"({n_force} force-kept negative-site)  bins[{_bin_histogram(records)}]")
+    return records
+
+
+def step_tile(label, sites, dry_run=False, max_tiles=None, stride_override=None,
+              citywide=False):
+    """Step 2 for one year: tile site crops (or the full city for coarse) and
+    write the per-year index.
+
+    ``citywide`` (coarse default, Fix 3) samples tiles across the whole city
+    ortho labelled from the 2020 mask, balanced by canopy fraction, instead of
+    tiling the 6 site crops.
+    """
     entry = entry_for(label)
     tier  = tier_of(entry["gsd_cm"])
     tp    = TIER_TILE_PARAMS[tier]
     stride = int(stride_override) if stride_override else tp["stride"]
-    print(f"\n── [{label}] Step 2: Tiling ({tier}: stride={stride}, "
+    mode = "CITY-WIDE" if citywide else "6-site"
+    print(f"\n── [{label}] Step 2: Tiling [{mode}] ({tier}: stride={stride}, "
           f"neg_rate={tp['neg_rate']}, test={'yes' if tp['has_test'] else 'no'}) ──")
 
-    year_site_dir = SITE_DIR / label
     out_tile_dir  = TILE_DIR / label
     for split in ("train", "test"):
         (out_tile_dir / split / "images").mkdir(parents=True, exist_ok=True)
         (out_tile_dir / split / "masks").mkdir(parents=True, exist_ok=True)
 
-    negative_sites = {s for s, _, c in sites if c is None}
-
     np.random.seed(RANDOM_SEED)
-    all_records = []
-    for site_label, _, _ in sites:
-        ip = year_site_dir / f"{site_label.lower()}_img.tif"
-        mp = year_site_dir / f"{site_label.lower()}_mask.tif"
-        if not (ip.exists() and mp.exists()):
-            continue  # uncovered/skipped in step 1
-        all_records.extend(tile_site_native(
-            site_label, ip, mp, stride, tp["neg_rate"],
-            keep_all_empty=(site_label in negative_sites)))
 
-    print(f"  Total tiles: {len(all_records)}")
-
-    # Optional cap for fast test runs: keep canopy-bearing tiles first, then
-    # fill the remainder with negatives, up to max_tiles.
-    if max_tiles is not None and len(all_records) > max_tiles:
-        rng = np.random.RandomState(RANDOM_SEED)
-        pos = [r for r in all_records if r["canopy_frac"] > 0]
-        neg = [r for r in all_records if r["canopy_frac"] == 0]
-        rng.shuffle(pos); rng.shuffle(neg)
-        all_records = (pos + neg)[:max_tiles]
+    if citywide:
+        all_records = _gather_citywide_coarse(
+            label, sites, stride_override=stride_override, dry_run=dry_run)
+        if dry_run:
+            print("  Dry run — not writing tiles")
+            return
+        all_records = _stratified_sample(all_records, COARSE_CITYWIDE_TILES)
         n_pos = sum(1 for r in all_records if r["canopy_frac"] > 0)
-        print(f"  Capped to {len(all_records)} tiles "
-              f"({n_pos} canopy / {len(all_records) - n_pos} negative)")
+        print(f"  Selected {len(all_records)} tiles "
+              f"({n_pos} canopy / {len(all_records) - n_pos} background, "
+              f"budget={COARSE_CITYWIDE_TILES})  bins[{_bin_histogram(all_records)}]")
+    else:
+        year_site_dir  = SITE_DIR / label
+        negative_sites = {s for s, _, c in sites if c is None}
+        all_records = []
+        for site_label, _, _ in sites:
+            ip = year_site_dir / f"{site_label.lower()}_img.tif"
+            mp = year_site_dir / f"{site_label.lower()}_mask.tif"
+            if not (ip.exists() and mp.exists()):
+                continue  # uncovered/skipped in step 1
+            all_records.extend(tile_site_native(
+                site_label, ip, mp, stride, tp["neg_rate"],
+                keep_all_empty=(site_label in negative_sites)))
 
-    if dry_run:
-        print("  Dry run — not writing tiles")
-        return
+        print(f"  Total tiles: {len(all_records)}")
+
+        # Optional cap for fast test runs — stratified by canopy fraction, NEVER
+        # first-N (the old cap dropped all negatives).
+        if max_tiles is not None and len(all_records) > max_tiles:
+            all_records = _stratified_sample(all_records, max_tiles)
+            n_pos = sum(1 for r in all_records if r["canopy_frac"] > 0)
+            print(f"  Capped to {len(all_records)} tiles "
+                  f"({n_pos} canopy / {len(all_records) - n_pos} background, "
+                  f"stratified)  bins[{_bin_histogram(all_records)}]")
+
+        if dry_run:
+            print("  Dry run — not writing tiles")
+            return
+
     if not all_records:
         print(f"  ERROR: no tiles for {label} — skipping (run step labels first).")
         return
@@ -2128,6 +2365,10 @@ def main():
                         "part falling inside the reviewed regions becomes "
                         "labeled; beyond that is IGNORE. ~200 matches the prep "
                         "buffer.")
+    p.add_argument("--coarse-site-tiling", action="store_true",
+                   help="Coarse tier: use the legacy 6-site tiling instead of the "
+                        "default city-wide stratified tiling (Fix 3). Ignored for "
+                        "fine/medium tiers and when --anchor-labels is set.")
     p.add_argument("--anchor-labels", action="store_true",
                    help="Build masks from the 2020 full-city canopy prob raster "
                         "(phase3/edmonds_canopy_prob_2020.tif) instead of the "
@@ -2190,11 +2431,18 @@ def main():
         lab = e["label"]
         print(f"\n{'#'*65}\n#  YEAR {lab}  ({e['gsd_cm']:.1f} cm, "
               f"{tier_of(e['gsd_cm'])}, {e['source']}, {e['coverage']})\n{'#'*65}")
+        # Coarse tier defaults to city-wide stratified tiling (Fix 3); opt out
+        # with --coarse-site-tiling, and the 6-site anchor-label path takes
+        # precedence when --anchor-labels is set.
+        citywide = (tier_of(e["gsd_cm"]) == "coarse"
+                    and not args.coarse_site_tiling
+                    and not args.anchor_labels)
         if "labels" in per_year:
             with StepLogger(SCRIPT_NAME, f"labels_{lab}", LOGS_DIR) as log:
                 r = step_labels(lab, sites, dry_run=args.dry_run,
                                 anchor_labels=args.anchor_labels,
-                                prob_hi=args.prob_hi, prob_lo=args.prob_lo)
+                                prob_hi=args.prob_hi, prob_lo=args.prob_lo,
+                                citywide=citywide)
                 _f = {"year": lab, "gsd_cm": e["gsd_cm"],
                       "dry_run": args.dry_run, "errors": 0}
                 if isinstance(r, dict): _f.update(r)
@@ -2202,7 +2450,8 @@ def main():
         if "tile" in per_year:
             with StepLogger(SCRIPT_NAME, f"tile_{lab}", LOGS_DIR) as log:
                 r = step_tile(lab, sites, dry_run=args.dry_run,
-                              max_tiles=args.max_tiles, stride_override=args.stride)
+                              max_tiles=args.max_tiles, stride_override=args.stride,
+                              citywide=citywide)
                 _f = {"year": lab, "gsd_cm": e["gsd_cm"],
                       "dry_run": args.dry_run, "errors": 0}
                 if isinstance(r, dict): _f.update(r)

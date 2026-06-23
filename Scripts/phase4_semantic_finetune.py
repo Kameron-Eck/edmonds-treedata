@@ -131,6 +131,7 @@ import rasterio.transform
 import rasterio.warp
 import rasterio.windows
 from rasterio.coords import BoundingBox
+from rasterio.enums import Resampling
 from shapely.geometry import box, mapping, shape
 from sklearn.model_selection import train_test_split
 from tqdm import tqdm
@@ -210,6 +211,7 @@ NATIVE_DIR    = IMAGERY_DIR / "native"
 
 # Phase 3 semantic checkpoint — the fine-tune starting point for every year.
 P3_DIR        = BASE / "phase3"
+PROB_2020     = P3_DIR / "edmonds_canopy_prob_2020.tif"  # full-city 2020 canopy prob
 P3_CKPT_CANDIDATES = [
     P3_DIR / "sem_best_2020.pt",
     P3_DIR / "checkpoints" / "sem_best_2020.pt",
@@ -620,9 +622,56 @@ def _site_window(src, bounds_native):
     return win
 
 
+def anchor_mask_from_2020(dst_crs, dst_transform, h, w, prob_hi, prob_lo):
+    """Build a 0/1/255 training mask for one crop from the 2020 full-city canopy
+    probability raster (phase3/edmonds_canopy_prob_2020.tif).
+
+    The crop's geographic footprint is read from the 2020 prob raster (decimated
+    on read so the ~110 GB source never lands in RAM), aligned to the crop grid,
+    then thresholded:  p >= prob_hi -> canopy (1),  p <= prob_lo -> background
+    (0),  in-between or no 2020 coverage -> IGNORE (255).
+    """
+    if not PROB_2020.exists():
+        raise FileNotFoundError(
+            f"2020 canopy prob raster not found: {PROB_2020}\n"
+            f"  --anchor-labels needs phase3/edmonds_canopy_prob_2020.tif")
+    ignore = np.full((h, w), IGNORE_LABEL, dtype=np.uint8)
+    dst_bounds = rasterio.transform.array_bounds(h, w, dst_transform)  # l,b,r,t
+    with rasterio.open(PROB_2020) as psrc:
+        pcrs, pnod = psrc.crs, psrc.nodata
+        pb = rasterio.warp.transform_bounds(dst_crs, pcrs, *dst_bounds)
+        src_win = rasterio.windows.from_bounds(*pb, transform=psrc.transform)
+        src_win = src_win.round_offsets(op="floor").round_lengths(op="ceil")
+        src_win = src_win.intersection(
+            rasterio.windows.Window(0, 0, psrc.width, psrc.height))
+        if src_win.width <= 0 or src_win.height <= 0:
+            return ignore                       # crop outside 2020 coverage
+        out_h = max(1, min(int(src_win.height), h))
+        out_w = max(1, min(int(src_win.width),  w))
+        src = psrc.read(1, window=src_win, out_shape=(out_h, out_w),
+                        resampling=Resampling.average).astype(np.float32)
+        win_tf = psrc.window_transform(src_win)
+        src_tf = win_tf * win_tf.scale(src_win.width / out_w,
+                                       src_win.height / out_h)
+    if pnod is not None:
+        src[src == pnod] = np.nan
+    prob = np.full((h, w), np.nan, dtype=np.float32)
+    rasterio.warp.reproject(
+        source=src, destination=prob,
+        src_transform=src_tf, src_crs=pcrs,
+        dst_transform=dst_transform, dst_crs=dst_crs,
+        src_nodata=np.nan, dst_nodata=np.nan,
+        resampling=Resampling.average)
+    mask = np.full((h, w), IGNORE_LABEL, dtype=np.uint8)
+    mask[prob <= prob_lo] = 0
+    mask[prob >= prob_hi] = 1
+    return mask
+
+
 def project_and_rasterise_site(src, src_nodata, native_crs, label, site_label,
                                site_bounds_3857, crowns_3857, year_dir,
-                               dry_run=False):
+                               dry_run=False, anchor_labels=False,
+                               prob_hi=0.6, prob_lo=0.4):
     """Crop one site from the year's native ortho and build its binary mask.
 
     Returns (img_path, mask_path, covered, canopy_frac) or (None, None, False, 0)
@@ -657,49 +706,56 @@ def project_and_rasterise_site(src, src_nodata, native_crs, label, site_label,
     h, w = rgb.shape[1], rgb.shape[2]
 
     # ── Build the training mask: 0 = background, 1 = canopy, 255 = IGNORE ──────
-    # Review mode (interval-tagged crowns) vs legacy (all crowns = canopy).
-    is_review = (crowns_3857 is not None and "status" in crowns_3857.columns)
-    year_int  = _year_int(label)
-
-    def _to_native(gdf):
-        if gdf is None or len(gdf) == 0:
-            return gdf
-        return (gdf if (native_crs is None or native_crs.to_epsg() == 3857)
-                else gdf.to_crs(native_crs))
-
-    # Which crowns to burn as canopy this year.
-    if is_review:
-        sel = crowns_3857
-        st = sel["status"].astype(str).str.lower()
-        sel = sel[st.eq("approved")]
-        if "valid_from" in sel.columns and year_int is not None:
-            vf = pd.to_numeric(sel["valid_from"], errors="coerce")
-            sel = sel[vf.isna() | (vf <= year_int)]
-        if "valid_to" in sel.columns and year_int is not None:
-            vt = pd.to_numeric(sel["valid_to"], errors="coerce")
-            sel = sel[vt.isna() | (vt >= year_int)]
-        burn = sel
+    if anchor_labels:
+        # Import labels from the 2020 full-city canopy probability raster
+        # (labels the whole crop; crowns/regions are not used).
+        mask = anchor_mask_from_2020(native_crs, win_tf, h, w, prob_hi, prob_lo)
+        is_review = False
+        regions = None
     else:
-        burn = crowns_3857
+        # Review mode (interval-tagged crowns) vs legacy (all crowns = canopy).
+        is_review = (crowns_3857 is not None and "status" in crowns_3857.columns)
+        year_int  = _year_int(label)
 
-    regions = _load_review_regions(site_label) if is_review else None
+        def _to_native(gdf):
+            if gdf is None or len(gdf) == 0:
+                return gdf
+            return (gdf if (native_crs is None or native_crs.to_epsg() == 3857)
+                    else gdf.to_crs(native_crs))
 
-    def _rasterise(gdf):
-        if gdf is None or len(gdf) == 0:
-            return np.zeros((h, w), dtype=np.uint8)
-        return rasterio.features.rasterize(
-            ((g, 1) for g in _to_native(gdf).geometry),
-            out_shape=(h, w), transform=win_tf, fill=0, dtype=np.uint8,
-            all_touched=False)
+        # Which crowns to burn as canopy this year.
+        if is_review:
+            sel = crowns_3857
+            st = sel["status"].astype(str).str.lower()
+            sel = sel[st.eq("approved")]
+            if "valid_from" in sel.columns and year_int is not None:
+                vf = pd.to_numeric(sel["valid_from"], errors="coerce")
+                sel = sel[vf.isna() | (vf <= year_int)]
+            if "valid_to" in sel.columns and year_int is not None:
+                vt = pd.to_numeric(sel["valid_to"], errors="coerce")
+                sel = sel[vt.isna() | (vt >= year_int)]
+            burn = sel
+        else:
+            burn = crowns_3857
 
-    if regions is not None:
-        # Outside the reviewed regions → IGNORE; inside → background, then canopy.
-        mask = np.full((h, w), IGNORE_LABEL, dtype=np.uint8)
-        mask[_rasterise(regions) == 1] = 0
-        mask[_rasterise(burn) == 1] = 1
-    else:
-        # Legacy / true-negative / review-without-regions: whole crop reviewed.
-        mask = _rasterise(burn)
+        regions = _load_review_regions(site_label) if is_review else None
+
+        def _rasterise(gdf):
+            if gdf is None or len(gdf) == 0:
+                return np.zeros((h, w), dtype=np.uint8)
+            return rasterio.features.rasterize(
+                ((g, 1) for g in _to_native(gdf).geometry),
+                out_shape=(h, w), transform=win_tf, fill=0, dtype=np.uint8,
+                all_touched=False)
+
+        if regions is not None:
+            # Outside the reviewed regions → IGNORE; inside → background, then canopy.
+            mask = np.full((h, w), IGNORE_LABEL, dtype=np.uint8)
+            mask[_rasterise(regions) == 1] = 0
+            mask[_rasterise(burn) == 1] = 1
+        else:
+            # Legacy / true-negative / review-without-regions: whole crop reviewed.
+            mask = _rasterise(burn)
 
     # Imagery nodata is never a valid label → mark it IGNORE (don't train "nodata
     # is background"). For fully-covered legacy years `nod` is empty → no change.
@@ -710,8 +766,10 @@ def project_and_rasterise_site(src, src_nodata, native_crs, label, site_label,
     canopy_frac  = float((mask == 1).sum()) / n_labeled if n_labeled else 0.0
     labeled_frac = n_labeled / (h * w) if h * w else 0.0
 
-    rev = " [review]" if is_review or regions is not None else ""
-    lab = f"  labeled {labeled_frac*100:4.1f}%" if (is_review or regions is not None) else ""
+    rev = (" [anchor2020]" if anchor_labels
+           else (" [review]" if is_review or regions is not None else ""))
+    lab = (f"  labeled {labeled_frac*100:4.1f}%"
+           if (anchor_labels or is_review or regions is not None) else "")
 
     if dry_run:
         print(f"    {site_label:<22} {w}×{h}px  canopy {canopy_frac*100:4.1f}%{lab}{rev}  "
@@ -741,7 +799,8 @@ def project_and_rasterise_site(src, src_nodata, native_crs, label, site_label,
     return img_path, mask_path, True, canopy_frac
 
 
-def step_labels(label, sites, dry_run=False):
+def step_labels(label, sites, dry_run=False, anchor_labels=False,
+                prob_hi=0.6, prob_lo=0.4):
     """Step 1 for one year: build native-GSD site crops + binary masks."""
     entry = entry_for(label)
     tier  = tier_of(entry["gsd_cm"])
@@ -772,7 +831,8 @@ def step_labels(label, sites, dry_run=False):
                     continue
                 ip, mp, covered, frac = project_and_rasterise_site(
                     src, src_nodata, native_crs, label, site_label, b3857,
-                    crowns, year_dir, dry_run=dry_run)
+                    crowns, year_dir, dry_run=dry_run,
+                    anchor_labels=anchor_labels, prob_hi=prob_hi, prob_lo=prob_lo)
                 cov_rows.append(dict(year=label, site=site_label,
                                      covered=covered, canopy_frac=round(frac, 4)))
     finally:
@@ -1963,6 +2023,16 @@ def main():
                         "part falling inside the reviewed regions becomes "
                         "labeled; beyond that is IGNORE. ~200 matches the prep "
                         "buffer.")
+    p.add_argument("--anchor-labels", action="store_true",
+                   help="Build masks from the 2020 full-city canopy prob raster "
+                        "(phase3/edmonds_canopy_prob_2020.tif) instead of the "
+                        "review crowns/regions — labels the whole crop, so the "
+                        "expanded sites are fully usable.")
+    p.add_argument("--prob-hi", type=float, default=0.6,
+                   help="--anchor-labels: 2020 prob ≥ this → canopy (1).")
+    p.add_argument("--prob-lo", type=float, default=0.4,
+                   help="--anchor-labels: 2020 prob ≤ this → background (0); "
+                        "values between prob-lo and prob-hi → IGNORE.")
     args = p.parse_args(filtered)
 
     from pipeline_log import StepLogger
@@ -2017,7 +2087,9 @@ def main():
               f"{tier_of(e['gsd_cm'])}, {e['source']}, {e['coverage']})\n{'#'*65}")
         if "labels" in per_year:
             with StepLogger(SCRIPT_NAME, f"labels_{lab}", LOGS_DIR) as log:
-                r = step_labels(lab, sites, dry_run=args.dry_run)
+                r = step_labels(lab, sites, dry_run=args.dry_run,
+                                anchor_labels=args.anchor_labels,
+                                prob_hi=args.prob_hi, prob_lo=args.prob_lo)
                 _f = {"year": lab, "gsd_cm": e["gsd_cm"],
                       "dry_run": args.dry_run, "errors": 0}
                 if isinstance(r, dict): _f.update(r)

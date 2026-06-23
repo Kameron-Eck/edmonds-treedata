@@ -267,12 +267,14 @@ CITYWIDE_CANDIDATE_STRIDE = 256  # candidate origin stride before stratification
 GREEN_GRVI_THRESHOLD = 0.10
 HARD_NEG_FRACTION    = 0.10
 
-# Background share of the coarse city-wide tile budget (Fix C). Raised so
-# negatives are well represented (equal 5-bin balancing gave background only
-# ~1/5 ≈ 20%). The remaining budget is split among the canopy bins (1..4),
-# balanced among themselves. Curated negative-site tiles are added on top and
-# don't count against this fraction.
-BACKGROUND_BUDGET_FRACTION = 0.35
+# Background share of the coarse city-wide tile budget (Fix C). Raised above the
+# equal 5-bin baseline (~20%) so negatives are well represented. The remaining
+# budget is split among the canopy bins (1..4), balanced among themselves.
+# Curated negative-site tiles are added on top and don't count against this
+# fraction. Tune Fix 4: backed off 0.35→0.25 — combined with the explicit
+# negative-site injection (Tune Fix 2) and the capped pos_weight (Tune Fix 1),
+# 0.35 over-weighted background and starved the canopy bins.
+BACKGROUND_BUDGET_FRACTION = 0.25
 
 # Spatially-blocked train/val/test split for coarse city-wide tiles (Fix 4).
 # Whole geographic blocks are assigned to each split, then train tiles within

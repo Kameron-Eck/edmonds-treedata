@@ -315,6 +315,15 @@ INFER_PAD        = (TILE_SIZE - INFER_STRIDE) // 2
 
 # Post-processing (Method Pipeline "Semantic Thresholding" block)
 CANOPY_PROB_THRESHOLD = 0.5
+
+# Operating-point selection for the final mask threshold (Fix D).
+#   "best_f1"         → threshold maximising F1 on the eval PR curve (default;
+#                       nothing changes unless --thresh-mode is passed)
+#   "precision_floor" → lowest threshold whose precision ≥ PRECISION_FLOOR
+#                       (highest recall meeting the floor; trades recall for
+#                       precision to fight canopy over-prediction)
+THRESH_MODE     = "best_f1"
+PRECISION_FLOOR = 0.72
 MIN_CANOPY_PATCH      = 3.0      # m²
 MORPH_KERNEL_SIZE     = 3
 SIMPLIFY_TOLERANCE_M  = 0.5
@@ -2116,6 +2125,20 @@ def _threshold_independent_metrics(all_prob, all_gt, f1_at_default):
         bi = int(np.argmax(f1_c[:-1])) if len(thr_c) else 0
         ti["best_f1"]        = float(f1_c[bi])
         ti["best_f1_thresh"] = float(thr_c[bi]) if len(thr_c) else CANOPY_PROB_THRESHOLD
+        # Precision-floor operating point (Fix D): the lowest threshold whose
+        # precision ≥ PRECISION_FLOOR — i.e. the highest-recall point that still
+        # meets the precision target. prec_c[:-1] aligns with thr_c. Persisted to
+        # the eval CSV so step_postproc can use it under --thresh-mode.
+        meet = np.where(prec_c[:-1] >= PRECISION_FLOOR)[0] if len(thr_c) else []
+        if len(meet):
+            fi = int(meet[0])
+            ti["prec_floor_thresh"] = float(thr_c[fi])
+            ti["prec_at_floor"]     = float(prec_c[fi])
+            ti["rec_at_floor"]      = float(rec_c[fi])
+        else:                                   # floor unreachable at any threshold
+            ti["prec_floor_thresh"] = ""
+            ti["prec_at_floor"]     = ""
+            ti["rec_at_floor"]      = ""
         return ti
     except Exception as e:
         print(f"  WARNING: threshold-independent metrics failed ({e})")
@@ -2202,6 +2225,14 @@ def step_evaluate(label, dry_run=False):
               f"LogLoss={ti['log_loss']:.4f}")
         print(f"  Best-F1 @ thresh {ti['best_f1_thresh']:.3f}  "
               f"(F1={ti['best_f1']:.4f}  vs  {overall['f1']:.4f} @ {CANOPY_PROB_THRESHOLD:.2f})")
+        pf = ti.get("prec_floor_thresh", "")
+        if pf not in ("", None):
+            print(f"  Precision-floor @ thresh {pf:.3f}  "
+                  f"(P={ti.get('prec_at_floor', 0):.3f}  R={ti.get('rec_at_floor', 0):.3f}, "
+                  f"floor={PRECISION_FLOOR})")
+        else:
+            print(f"  Precision-floor {PRECISION_FLOOR} unreachable at any threshold "
+                  f"(stick with best-F1)")
 
     EVAL_DIR.mkdir(parents=True, exist_ok=True)
     rows = []
@@ -2374,31 +2405,35 @@ def step_inference(label, batch_size=INFER_BATCH_SIZE, dry_run=False):
 def _operating_threshold(label):
     """Per-year canopy probability operating threshold for post-processing.
 
-    Reads ``best_f1_thresh`` for this year's OVERALL row from
-    ``semantic_eval_report.csv`` (written by step_evaluate) and returns it as the
-    binarisation threshold; falls back to CANOPY_PROB_THRESHOLD (0.5) if the
-    report, the row, or the column is missing / NaN / out of (0,1).
+    Selects the column by THRESH_MODE (Fix D):
+      "best_f1"         → ``best_f1_thresh`` (max-F1 point; default)
+      "precision_floor" → ``prec_floor_thresh`` (lowest threshold with
+                          precision ≥ PRECISION_FLOOR)
+    Read from this year's OVERALL row of ``semantic_eval_report.csv``; falls back
+    to CANOPY_PROB_THRESHOLD (0.5) if the report, row, or column is missing /
+    NaN / out of (0,1) — e.g. when the precision floor was unreachable.
 
     Returns (threshold_float, source_str).
 
-    NOTE: step_evaluate currently computes best_f1_thresh IN-SAMPLE for coarse
-    years (no held-out test), so it is an optimistic operating point. Once
-    Fix 3/4 land a real held-out test block, this threshold should be recomputed
-    on that out-of-sample data before it is trusted for the final masks.
+    NOTE: for coarse years tiled city-wide the threshold is now read from the
+    held-out test block (Fix 3/4) and is out-of-sample; legacy 6-site / degraded
+    years remain in-sample and optimistic.
     """
+    col = ("prec_floor_thresh" if THRESH_MODE == "precision_floor"
+           else "best_f1_thresh")
     if EVAL_CSV.exists():
         try:
             df = pd.read_csv(EVAL_CSV)
             sub = df[(df["year"].astype(str) == str(label)) &
                      (df["scope"] == "OVERALL")]
-            if len(sub) and "best_f1_thresh" in sub.columns:
-                val = pd.to_numeric(sub.iloc[0]["best_f1_thresh"], errors="coerce")
+            if len(sub) and col in sub.columns:
+                val = pd.to_numeric(sub.iloc[0][col], errors="coerce")
                 if pd.notna(val) and 0.0 < float(val) < 1.0:
-                    return float(val), "best_f1_thresh (semantic_eval_report.csv)"
+                    return float(val), f"{col} ({THRESH_MODE}, semantic_eval_report.csv)"
         except Exception as e:
-            print(f"  (could not read best_f1_thresh: {e}; "
+            print(f"  (could not read {col}: {e}; "
                   f"using default {CANOPY_PROB_THRESHOLD})")
-    return CANOPY_PROB_THRESHOLD, "default 0.5"
+    return CANOPY_PROB_THRESHOLD, f"default 0.5 ({THRESH_MODE} unavailable)"
 
 
 def step_postproc(label, dry_run=False):
@@ -2676,15 +2711,22 @@ def main():
     p.add_argument("--prob-lo", type=float, default=0.4,
                    help="--anchor-labels: 2020 prob ≤ this → background (0); "
                         "values between prob-lo and prob-hi → IGNORE.")
+    p.add_argument("--thresh-mode", choices=["best_f1", "precision_floor"],
+                   default="best_f1",
+                   help="Post-processing operating point (Fix D): 'best_f1' (max-F1 "
+                        "threshold, default — nothing changes) or 'precision_floor' "
+                        f"(lowest threshold with precision ≥ PRECISION_FLOOR="
+                        f"{PRECISION_FLOOR}).")
     args = p.parse_args(filtered)
 
     from pipeline_log import StepLogger
     LOGS_DIR = BASE / "Scripts" / "logs"
     SCRIPT_NAME = "phase4_semantic_finetune"
 
-    global USE_VI, IN_CHANNELS
+    global USE_VI, IN_CHANNELS, THRESH_MODE
     USE_VI = bool(args.vi)
     IN_CHANNELS = 3 + (len(VI_NAMES) if USE_VI else 0)
+    THRESH_MODE = args.thresh_mode
 
     print("=" * 65)
     print("  PHASE 4 — Per-Year Semantic Segmentation Fine-Tuning (17 years)")

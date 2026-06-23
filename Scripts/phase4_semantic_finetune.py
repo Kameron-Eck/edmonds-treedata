@@ -1169,7 +1169,7 @@ def _is_negative_site(site_label, crowns):
     return False
 
 
-def _negative_site_records(src, sites, src_nodata):
+def _negative_site_records(src, sites, src_nodata, stride):
     """Explicit guaranteed-background tiles from curated negative sites (Fix A).
 
     Tiles each negative site's footprint straight from the year's ortho, in the
@@ -1177,9 +1177,12 @@ def _negative_site_records(src, sites, src_nodata):
     tiles), and labels every pixel background (0; IGNORE only where the imagery
     is nodata) — we do NOT trust the 2020 mask over a curated negative. Records
     are ``force_keep=True`` so they bypass the stratified cap and are pinned to
-    train. This replaces the old overlap-based force-keep, which depended on a
-    candidate tile happening to land on the footprint and missed Negative_Parking
-    entirely.
+    train.
+
+    Tune Fix 2: tiles at the coarse tiling ``stride`` (not TILE_SIZE) so a site
+    spanning a few tiles' worth of ground yields many overlapping background
+    tiles instead of one — Negative_Parking (~450 m → ~750 px at 59.7 cm) went
+    from 1 tile to dozens.
     """
     out, seen = [], set()
     img_h, img_w, tf = src.height, src.width, src.transform
@@ -1197,8 +1200,8 @@ def _negative_site_records(src, sites, src_nodata):
             continue
         r0, c0 = int(win.row_off), int(win.col_off)
         rh, rw = int(win.height), int(win.width)
-        rows = list(range(r0, r0 + max(1, rh - TILE_SIZE + 1), TILE_SIZE)) or [r0]
-        cols = list(range(c0, c0 + max(1, rw - TILE_SIZE + 1), TILE_SIZE)) or [c0]
+        rows = list(range(r0, r0 + max(1, rh - TILE_SIZE + 1), stride)) or [r0]
+        cols = list(range(c0, c0 + max(1, rw - TILE_SIZE + 1), stride)) or [c0]
         kept = 0
         for ro in rows:
             for co in cols:
@@ -1299,8 +1302,12 @@ def _gather_citywide_coarse(label, sites, stride_override=None, dry_run=False):
                         "is_green_hardneg": (canopy_frac == 0.0
                                              and grvi >= GREEN_GRVI_THRESHOLD),
                     })
-            # Curated negative sites → explicit guaranteed-background tiles (Fix A).
-            records.extend(_negative_site_records(src, sites, src_nodata))
+            # Curated negative sites → explicit guaranteed-background tiles
+            # (Fix A), tiled at the coarse tiling stride so they contribute many
+            # tiles, not one (Tune Fix 2).
+            neg_stride = TIER_TILE_PARAMS[tier_of(entry["gsd_cm"])]["stride"]
+            records.extend(_negative_site_records(src, sites, src_nodata,
+                                                  neg_stride))
     finally:
         if not dry_run:
             if local != native:

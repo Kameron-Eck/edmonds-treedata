@@ -318,6 +318,15 @@ POS_WEIGHT_MAX   = 10.0
 # pos_weight decouples it from tile-pool composition so the two knobs stop
 # fighting. Raw (pre-clamp) value is still logged.
 COARSE_POS_WEIGHT_MAX = 1.3
+# Principled fix (Edit 1): the city-wide stratified SAMPLER is the single
+# class-rebalancing channel for coarse years, so BCE pos_weight is retired for
+# coarse (forced to 1.0 / None). A sampler-balanced pool AND a ratio-derived
+# pos_weight is a double rebalance that fights itself — pos_weight drifted
+# 1.16→1.96 when the sampler's background fraction changed and crashed precision
+# (Cui et al. 2019; "Simplifying NN Training Under Class Imbalance" 2023: use one
+# channel, not two). Flip to True to restore the old capped-pos_weight behaviour
+# (COARSE_POS_WEIGHT_MAX above) without a version revert. Medium/fine unaffected.
+COARSE_USE_POS_WEIGHT = False
 
 # Inference (same center-crop streaming as Phase 0 / Phase 3)
 INFER_BATCH_SIZE = 160
@@ -1997,18 +2006,27 @@ def step_train(label, batch_size=BATCH_SIZE, p3_ckpt=None, dry_run=False):
     print(f"  ✓ Fine-tune start: {Path(p3).name}  "
           f"(P3 val_bce={ck.get('best_val', '?')})")
 
-    # pos_weight for class imbalance (Fix 2): coarse + medium tiers only; fine
-    # tier keeps 1.0 (None). Computed from the actual training split (ftr) so the
-    # held-out val tiles don't leak into the statistic. Tune Fix 1: coarse gets a
-    # tight cap (COARSE_POS_WEIGHT_MAX) so the background-fraction knob can't
-    # inflate it into over-prediction; medium keeps the wide cap.
+    # pos_weight for class imbalance. Principled Edit 1: coarse retires
+    # pos_weight (sampler owns class balance) unless COARSE_USE_POS_WEIGHT is
+    # flipped on. Medium keeps the ratio-derived, clamped pos_weight (it does not
+    # use the city-wide stratified sampler, so it is not double-rebalanced). Fine
+    # stays neutral. Computed from the actual training split (ftr) so held-out val
+    # tiles don't leak into the statistic.
     pos_weight_t = None
-    if tier in ("coarse", "medium"):
+    if tier == "coarse":
+        if COARSE_USE_POS_WEIGHT:
+            raw = _compute_pos_weight(ftr)
+            pw  = float(min(max(raw, POS_WEIGHT_MIN), COARSE_POS_WEIGHT_MAX))
+            print(f"  pos_weight (coarse): raw={raw:.3f} → {pw:.3f}  "
+                  f"(clamped to [{POS_WEIGHT_MIN}, {COARSE_POS_WEIGHT_MAX}])")
+            pos_weight_t = torch.tensor([pw], device=device)
+        else:
+            print("  pos_weight (coarse): DISABLED — sampler owns class balance (1.0)")
+    elif tier == "medium":
         raw = _compute_pos_weight(ftr)
-        hi  = COARSE_POS_WEIGHT_MAX if tier == "coarse" else POS_WEIGHT_MAX
-        pw  = float(min(max(raw, POS_WEIGHT_MIN), hi))
-        print(f"  pos_weight ({tier}): raw={raw:.3f} → {pw:.3f}  "
-              f"(clamped to [{POS_WEIGHT_MIN}, {hi}])")
+        pw  = float(min(max(raw, POS_WEIGHT_MIN), POS_WEIGHT_MAX))
+        print(f"  pos_weight (medium): raw={raw:.3f} → {pw:.3f}  "
+              f"(clamped to [{POS_WEIGHT_MIN}, {POS_WEIGHT_MAX}])")
         pos_weight_t = torch.tensor([pw], device=device)
     else:
         print(f"  pos_weight (fine): 1.0 (disabled)")

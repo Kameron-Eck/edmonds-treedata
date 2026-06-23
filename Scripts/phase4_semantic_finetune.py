@@ -1041,17 +1041,42 @@ def _bin_histogram(records):
     return "  ".join(f"b{b}:{counts.get(b, 0)}" for b in range(5))
 
 
-def _rects_overlap(a, b):
-    """Axis-aligned rectangle overlap; rects are (x0, y0, x1, y1)."""
-    return not (a[2] <= b[0] or b[2] <= a[0] or a[3] <= b[1] or b[3] <= a[1])
+def _is_negative_site(site_label, crowns):
+    """A curated negative training site (Fix A). True for: a 'Negative_*' site,
+    a site with no crown file (``crowns is None``), or a review site whose
+    approved-crown count is zero.
+
+    Negative_Parking carries a review gpkg with zero approved crowns, so the old
+    ``crowns is None`` test misclassified it as a positive site and dropped it
+    from the city-wide negative pool — the root of the precision problem.
+    """
+    if str(site_label).lower().startswith("negative"):
+        return True
+    if crowns is None:
+        return True
+    cols = getattr(crowns, "columns", [])
+    if "status" in cols:
+        return int((crowns["status"].astype(str).str.lower()
+                    == "approved").sum()) == 0
+    return False
 
 
-def _negative_site_windows(sites, src):
-    """Pixel-space windows (col0,row0,col1,row1) in `src` for dedicated
-    true-negative sites (crowns is None) — used to force-keep their tiles."""
-    wins = []
+def _negative_site_records(src, sites, src_nodata):
+    """Explicit guaranteed-background tiles from curated negative sites (Fix A).
+
+    Tiles each negative site's footprint straight from the year's ortho, in the
+    ortho's pixel space (so block/split coordinates line up with the city-wide
+    tiles), and labels every pixel background (0; IGNORE only where the imagery
+    is nodata) — we do NOT trust the 2020 mask over a curated negative. Records
+    are ``force_keep=True`` so they bypass the stratified cap and are pinned to
+    train. This replaces the old overlap-based force-keep, which depended on a
+    candidate tile happening to land on the footprint and missed Negative_Parking
+    entirely.
+    """
+    out, seen = [], set()
+    img_h, img_w, tf = src.height, src.width, src.transform
     for site_label, b3857, crowns in sites:
-        if crowns is not None:
+        if not _is_negative_site(site_label, crowns):
             continue
         if src.crs is not None and src.crs.to_epsg() != 3857:
             bn = BoundingBox(*rasterio.warp.transform_bounds(
@@ -1059,11 +1084,44 @@ def _negative_site_windows(sites, src):
                 b3857.right, b3857.top))
         else:
             bn = b3857
-        w = _site_window(src, bn)
-        if w.width > 0 and w.height > 0:
-            wins.append((int(w.col_off), int(w.row_off),
-                         int(w.col_off + w.width), int(w.row_off + w.height)))
-    return wins
+        win = _site_window(src, bn)
+        if win.width <= 0 or win.height <= 0:
+            continue
+        r0, c0 = int(win.row_off), int(win.col_off)
+        rh, rw = int(win.height), int(win.width)
+        rows = list(range(r0, r0 + max(1, rh - TILE_SIZE + 1), TILE_SIZE)) or [r0]
+        cols = list(range(c0, c0 + max(1, rw - TILE_SIZE + 1), TILE_SIZE)) or [c0]
+        kept = 0
+        for ro in rows:
+            for co in cols:
+                ro2 = min(max(0, ro), max(0, img_h - TILE_SIZE))
+                co2 = min(max(0, co), max(0, img_w - TILE_SIZE))
+                if (ro2, co2) in seen:
+                    continue
+                seen.add((ro2, co2))
+                win_t = rasterio.windows.Window(co2, ro2, TILE_SIZE, TILE_SIZE)
+                img_tile = src.read([1, 2, 3], window=win_t,
+                                    boundless=True, fill_value=0)
+                if src_nodata is not None:
+                    nod = np.all(img_tile == src_nodata, axis=0)
+                else:
+                    nod = np.all(img_tile == 0, axis=0)
+                if float(nod.mean()) > COVERAGE_NODATA_MAX:
+                    continue
+                mask_tile = np.zeros((TILE_SIZE, TILE_SIZE), dtype=np.uint8)
+                mask_tile[nod] = IGNORE_LABEL
+                out.append({
+                    "tile_name": f"neg_{site_label.lower()}_r{ro2:05d}_c{co2:05d}.tif",
+                    "site": f"neg:{site_label}", "row_off": ro2, "col_off": co2,
+                    "canopy_frac": 0.0, "crs": src.crs,
+                    "tile_transform": rasterio.windows.transform(win_t, tf),
+                    "_img_tile": img_tile, "_mask_tile": mask_tile,
+                    "force_keep": True,
+                })
+                kept += 1
+        if kept:
+            print(f"    negative site {site_label:<22} +{kept} background tile(s)")
+    return out
 
 
 def _gather_citywide_coarse(label, sites, stride_override=None, dry_run=False):
@@ -1071,9 +1129,9 @@ def _gather_citywide_coarse(label, sites, stride_override=None, dry_run=False):
 
     Sample 512px tiles across the FULL city ortho for this year, labelling each
     from the Phase 3 2020 binary canopy mask reprojected to the year's native
-    grid. Tiles overlapping a dedicated true-negative site are force-kept (hard
-    negatives). Returns a list of tile records (same schema as
-    ``tile_site_native``, plus a ``force_keep`` flag).
+    grid. Curated negative sites are then explicitly tiled as guaranteed
+    background and appended (force_keep=True, Fix A). Returns a list of tile
+    records (same schema as ``tile_site_native``, plus a ``force_keep`` flag).
     """
     entry  = entry_for(label)
     native = resolve_native_path(entry)
@@ -1102,7 +1160,6 @@ def _gather_citywide_coarse(label, sites, stride_override=None, dry_run=False):
             if dry_run:
                 print("  Dry run — not reading tiles")
                 return []
-            neg_wins = _negative_site_windows(sites, src)
             with rasterio.open(mask_local) as msrc:
                 for ro, co in tqdm(origins, desc="  City-wide scan",
                                    mininterval=2.0):
@@ -1122,9 +1179,6 @@ def _gather_citywide_coarse(label, sites, stride_override=None, dry_run=False):
                     if n_lab == 0:
                         continue                       # no 2020 label here
                     canopy_frac = float((mask_tile == 1).sum()) / n_lab
-                    fk = any(_rects_overlap(
-                        (co, ro, co + TILE_SIZE, ro + TILE_SIZE), nw)
-                        for nw in neg_wins)
                     records.append({
                         "tile_name": f"city_r{ro:05d}_c{co:05d}.tif",
                         "site": "city", "row_off": ro, "col_off": co,
@@ -1132,8 +1186,10 @@ def _gather_citywide_coarse(label, sites, stride_override=None, dry_run=False):
                         "crs": native_crs,
                         "tile_transform": win_tf,
                         "_img_tile": img_tile, "_mask_tile": mask_tile,
-                        "force_keep": fk,
+                        "force_keep": False,
                     })
+            # Curated negative sites → explicit guaranteed-background tiles (Fix A).
+            records.extend(_negative_site_records(src, sites, src_nodata))
     finally:
         if not dry_run:
             if local != native:
@@ -1302,17 +1358,25 @@ def step_tile(label, sites, dry_run=False, max_tiles=None, stride_override=None,
 
     # Split assignment.
     if citywide:
-        # Fix 4: geographically-blocked train/val/test (whole blocks per split,
-        # >520 m buffer dropping leaked train tiles). Sets rec["split"] in place.
-        st = _block_partition(all_records, gsd_m=entry["gsd_cm"] / 100.0)
-        n_drop = sum(1 for r in all_records if r["split"] == "drop")
-        all_records = [r for r in all_records if r["split"] != "drop"]
+        # Fix 4: geographically-blocked train/val/test over the SAMPLED city
+        # tiles. Fix A: curated negative-site tiles (force_keep) are pinned to
+        # train and never enter the held-out split — they are guaranteed
+        # background, not test material.
+        forced  = [r for r in all_records if r.get("force_keep")]
+        sampled = [r for r in all_records if not r.get("force_keep")]
+        st = _block_partition(sampled, gsd_m=entry["gsd_cm"] / 100.0)
+        n_drop = sum(1 for r in sampled if r["split"] == "drop")
+        sampled = [r for r in sampled if r["split"] != "drop"]
+        for r in forced:                       # curated negatives → always train
+            r["split"] = "train"
+            r.setdefault("block", "neg")
+        all_records = sampled + forced
         if st["degraded"]:
             print(f"  ⚠ blocked split DEGRADED (blocks={st['blocks']}): no held-out "
                   f"test, random val — partial coverage / too few blocks")
-        print(f"  Blocked split: train {st['train']} / val {st['val']} / "
-              f"test {st['test']}  (dropped {n_drop} buffer tiles; "
-              f"block={st['block_px']}px, buffer={CANOPY_AUTOCORR_M:.0f}m)")
+        print(f"  Blocked split: train {st['train']} (+{len(forced)} neg-site) / "
+              f"val {st['val']} / test {st['test']}  (dropped {n_drop} buffer "
+              f"tiles; block={st['block_px']}px, buffer={CANOPY_AUTOCORR_M:.0f}m)")
     else:
         # Train/test split. Coarse 6-site years have no held-out test → all train.
         tile_names = [r["tile_name"] for r in all_records]

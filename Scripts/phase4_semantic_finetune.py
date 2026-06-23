@@ -264,6 +264,13 @@ CITYWIDE_CANDIDATE_STRIDE = 256  # candidate origin stride before stratification
 GREEN_GRVI_THRESHOLD = 0.05
 HARD_NEG_FRACTION    = 0.25
 
+# Background share of the coarse city-wide tile budget (Fix C). Raised so
+# negatives are well represented (equal 5-bin balancing gave background only
+# ~1/5 ≈ 20%). The remaining budget is split among the canopy bins (1..4),
+# balanced among themselves. Curated negative-site tiles are added on top and
+# don't count against this fraction.
+BACKGROUND_BUDGET_FRACTION = 0.35
+
 # Spatially-blocked train/val/test split for coarse city-wide tiles (Fix 4).
 # Whole geographic blocks are assigned to each split, then train tiles within
 # CANOPY_AUTOCORR_M of any held-out tile are dropped so val/test are honestly
@@ -1065,10 +1072,11 @@ def _select_citywide_tiles(records, budget, seed=RANDOM_SEED):
     """City-wide coarse tile selection (Fix B).
 
     force_keep tiles (curated negative sites) are always retained and exempt
-    from the budget caps. Among background (bin 0) tiles, HARD_NEG_FRACTION of
-    the background allocation is reserved for green hard-negatives (grass) so the
-    grass/canopy boundary is represented. Canopy bins (1..4) are balanced among
-    themselves. Returns (selected_records, stats_dict).
+    from the budget caps. BACKGROUND_BUDGET_FRACTION of the remaining budget goes
+    to background (bin 0), of which HARD_NEG_FRACTION is reserved for green
+    hard-negatives (grass) so the grass/canopy boundary is represented; the rest
+    of the budget is split among canopy bins (1..4), balanced among themselves
+    (Fix B + Fix C). Returns (selected_records, stats_dict).
     """
     if budget is None or len(records) <= budget:
         return list(records), {"forced": sum(1 for r in records if r.get("force_keep")),
@@ -1087,32 +1095,35 @@ def _select_citywide_tiles(records, budget, seed=RANDOM_SEED):
     by_bin = {}
     for r in pool:
         by_bin.setdefault(_frac_bin(r["canopy_frac"]), []).append(r)
-    per = max(1, remaining // max(1, len(by_bin)))
 
-    # Background bin 0 with a reserved green-hard-negative slice.
+    # Background gets a fixed share of the budget (Fix C); canopy bins split the
+    # rest. Carry any background shortfall over to canopy so the budget is used.
     bg = by_bin.get(0, [])
-    n_bg = min(len(bg), per)
+    n_bg = min(len(bg), int(round(BACKGROUND_BUDGET_FRACTION * remaining)))
+    n_can_budget = remaining - n_bg
+
+    # Background bin 0 with a reserved green-hard-negative slice (Fix B).
     green = [r for r in bg if r.get("is_green_hardneg")]
     plain = [r for r in bg if not r.get("is_green_hardneg")]
     rng.shuffle(green); rng.shuffle(plain)
     n_green = min(len(green), int(round(HARD_NEG_FRACTION * n_bg)))
     bg_sel = green[:n_green] + plain[:max(0, n_bg - n_green)]
-    if len(bg_sel) < n_bg:                         # ran out of plain → more green
+    if len(bg_sel) < n_bg:                          # ran out of plain → more green
         bg_sel += green[n_green:n_green + (n_bg - len(bg_sel))]
 
     # Canopy bins 1..4 balanced among themselves.
+    canopy_bins = [b for b in sorted(by_bin) if b != 0]
+    per_can = max(1, n_can_budget // max(1, len(canopy_bins))) if canopy_bins else 0
     can_sel, leftover = [], []
-    for b in sorted(by_bin):
-        if b == 0:
-            continue
+    for b in canopy_bins:
         rs = by_bin[b]; rng.shuffle(rs)
-        can_sel.extend(rs[:per]); leftover.extend(rs[per:])
+        can_sel.extend(rs[:per_can]); leftover.extend(rs[per_can:])
+    if len(can_sel) < n_can_budget:                 # top up to the canopy budget
+        rng.shuffle(leftover)
+        can_sel.extend(leftover[:n_can_budget - len(can_sel)])
+    can_sel = can_sel[:n_can_budget]
 
     chosen = bg_sel + can_sel
-    if len(chosen) < remaining:
-        rng.shuffle(leftover)
-        chosen.extend(leftover[:remaining - len(chosen)])
-    chosen = chosen[:remaining]
     out = forced + chosen
     rng.shuffle(out)
     stats = dict(
@@ -1405,9 +1416,12 @@ def step_tile(label, sites, dry_run=False, max_tiles=None, stride_override=None,
             print("  Dry run — not writing tiles")
             return
         all_records, sel = _select_citywide_tiles(all_records, COARSE_CITYWIDE_TILES)
+        tot = max(1, len(all_records))
         print(f"  Selected {len(all_records)} tiles: {sel['canopy']} canopy / "
               f"{sel['background']} background ({sel['green_hardneg']} green "
               f"hard-neg) + {sel['forced']} neg-site  "
+              f"[bg target {BACKGROUND_BUDGET_FRACTION:.0%}, "
+              f"actual {(sel['background'] + sel['forced']) / tot:.0%}]  "
               f"bins[{_bin_histogram(all_records)}]")
     else:
         year_site_dir  = SITE_DIR / label

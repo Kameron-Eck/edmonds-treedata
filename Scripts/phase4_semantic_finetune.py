@@ -256,6 +256,17 @@ RANDOM_SEED      = 42
 COARSE_CITYWIDE_TILES     = 800  # total tile budget across canopy-fraction bins
 CITYWIDE_CANDIDATE_STRIDE = 256  # candidate origin stride before stratification
 
+# Spatially-blocked train/val/test split for coarse city-wide tiles (Fix 4).
+# Whole geographic blocks are assigned to each split, then train tiles within
+# CANOPY_AUTOCORR_M of any held-out tile are dropped so val/test are honestly
+# separated. 520 m is the upper bound of the canopy spatial-autocorrelation
+# range (250–520 m); the block edge is several × that so blocks aren't trivially
+# small.
+CANOPY_AUTOCORR_M    = 520.0
+SPATIAL_BLOCK_SIZE_M = 1500.0
+COARSE_VAL_FRAC      = 0.20
+COARSE_TEST_FRAC     = 0.20
+
 # Fine-tune schedule — identical values to Phase 3 / Method Pipeline.
 EPOCHS_PHASE_A   = 20            # decoder only, encoder frozen
 LR_PHASE_A       = 5e-5
@@ -1135,6 +1146,93 @@ def _gather_citywide_coarse(label, sites, stride_override=None, dry_run=False):
     return records
 
 
+def _assign_blocks(records, gsd_m, block_size_m=SPATIAL_BLOCK_SIZE_M):
+    """Tag each record with a spatial block id (Fix 4). Block edge is
+    `block_size_m` on the ground, never smaller than one tile."""
+    block_px = max(TILE_SIZE, int(round(block_size_m / gsd_m)))
+    for r in records:
+        r["block"] = f"{r['row_off'] // block_px}_{r['col_off'] // block_px}"
+    return block_px
+
+
+def _block_partition(records, gsd_m, val_frac=COARSE_VAL_FRAC,
+                     test_frac=COARSE_TEST_FRAC, buffer_m=CANOPY_AUTOCORR_M,
+                     seed=RANDOM_SEED):
+    """Geographically-blocked train/val/test split for city-wide coarse tiles
+    (Fix 4). Whole spatial blocks go to test, val, or train; then train tiles
+    within `buffer_m` of any val/test tile are dropped so the held-out sets are
+    honestly separated (canopy autocorrelation range ≈ 250–520 m).
+
+    Sets ``r['split']`` ∈ {train, val, test, drop} on each record. Falls back to
+    a degraded split (no test, random val, nothing dropped) and flags it when
+    blocking can't form non-empty val AND test (e.g. partial-coverage years with
+    too few blocks). Returns a status dict for logging.
+    """
+    block_px = _assign_blocks(records, gsd_m)
+    n = len(records)
+    rng = np.random.RandomState(seed)
+    status = {"blocks": 0, "block_px": block_px, "degraded": False,
+              "train": 0, "val": 0, "test": 0}
+
+    def _degraded():
+        status["degraded"] = True
+        idx = list(range(n)); rng.shuffle(idx)
+        n_val = max(1, int(round(val_frac * n)))
+        val_ids = set(idx[:n_val])
+        for i, r in enumerate(records):
+            r["split"] = "val" if i in val_ids else "train"
+        status["train"] = sum(r["split"] == "train" for r in records)
+        status["val"]   = sum(r["split"] == "val" for r in records)
+        status["test"]  = 0
+        return status
+
+    blocks = sorted({r["block"] for r in records})
+    rng.shuffle(blocks)
+    status["blocks"] = len(blocks)
+    if len(blocks) < 3 or n < 10:
+        return _degraded()
+
+    block_tiles = {b: [r for r in records if r["block"] == b] for b in blocks}
+    test_blocks, val_blocks = set(), set()
+    acc = 0
+    for b in blocks:
+        if acc >= test_frac * n:
+            break
+        test_blocks.add(b); acc += len(block_tiles[b])
+    acc = 0
+    for b in blocks:
+        if b in test_blocks:
+            continue
+        if acc >= val_frac * n:
+            break
+        val_blocks.add(b); acc += len(block_tiles[b])
+
+    for r in records:
+        r["split"] = ("test" if r["block"] in test_blocks
+                      else "val" if r["block"] in val_blocks else "train")
+
+    # Buffer: drop train tiles within buffer_m (Chebyshev) of any held-out tile.
+    buf_px = buffer_m / gsd_m
+    held = [(r["row_off"], r["col_off"]) for r in records
+            if r["split"] in ("val", "test")]
+    if held:
+        hp = np.asarray(held, dtype=np.float64)
+        for r in records:
+            if r["split"] != "train":
+                continue
+            d = np.maximum(np.abs(hp[:, 0] - r["row_off"]),
+                           np.abs(hp[:, 1] - r["col_off"])).min()
+            if d < buf_px:
+                r["split"] = "drop"
+
+    status["train"] = sum(r["split"] == "train" for r in records)
+    status["val"]   = sum(r["split"] == "val" for r in records)
+    status["test"]  = sum(r["split"] == "test" for r in records)
+    if status["train"] == 0 or status["val"] == 0 or status["test"] == 0:
+        return _degraded()           # partial coverage left a split empty
+    return status
+
+
 def step_tile(label, sites, dry_run=False, max_tiles=None, stride_override=None,
               citywide=False):
     """Step 2 for one year: tile site crops (or the full city for coarse) and
@@ -1153,7 +1251,7 @@ def step_tile(label, sites, dry_run=False, max_tiles=None, stride_override=None,
           f"neg_rate={tp['neg_rate']}, test={'yes' if tp['has_test'] else 'no'}) ──")
 
     out_tile_dir  = TILE_DIR / label
-    for split in ("train", "test"):
+    for split in ("train", "val", "test"):
         (out_tile_dir / split / "images").mkdir(parents=True, exist_ok=True)
         (out_tile_dir / split / "masks").mkdir(parents=True, exist_ok=True)
 
@@ -1202,19 +1300,35 @@ def step_tile(label, sites, dry_run=False, max_tiles=None, stride_override=None,
         print(f"  ERROR: no tiles for {label} — skipping (run step labels first).")
         return
 
-    # Train/test split. Coarse years have no held-out test (too few tiles) → all train.
-    tile_names = [r["tile_name"] for r in all_records]
-    site_of    = [r["site"] for r in all_records]
-    if tp["has_test"] and len(set(site_of)) > 1 and len(all_records) >= 20:
-        np.random.seed(RANDOM_SEED)
-        train_names, test_names = train_test_split(
-            tile_names, test_size=tp["test_frac"], stratify=site_of,
-            random_state=RANDOM_SEED)
-        train_set = set(train_names)
+    # Split assignment.
+    if citywide:
+        # Fix 4: geographically-blocked train/val/test (whole blocks per split,
+        # >520 m buffer dropping leaked train tiles). Sets rec["split"] in place.
+        st = _block_partition(all_records, gsd_m=entry["gsd_cm"] / 100.0)
+        n_drop = sum(1 for r in all_records if r["split"] == "drop")
+        all_records = [r for r in all_records if r["split"] != "drop"]
+        if st["degraded"]:
+            print(f"  ⚠ blocked split DEGRADED (blocks={st['blocks']}): no held-out "
+                  f"test, random val — partial coverage / too few blocks")
+        print(f"  Blocked split: train {st['train']} / val {st['val']} / "
+              f"test {st['test']}  (dropped {n_drop} buffer tiles; "
+              f"block={st['block_px']}px, buffer={CANOPY_AUTOCORR_M:.0f}m)")
     else:
-        if tp["has_test"]:
-            print("  (too few tiles/sites for a stratified test split — all train)")
-        train_set = set(tile_names)
+        # Train/test split. Coarse 6-site years have no held-out test → all train.
+        tile_names = [r["tile_name"] for r in all_records]
+        site_of    = [r["site"] for r in all_records]
+        if tp["has_test"] and len(set(site_of)) > 1 and len(all_records) >= 20:
+            np.random.seed(RANDOM_SEED)
+            train_names, _ = train_test_split(
+                tile_names, test_size=tp["test_frac"], stratify=site_of,
+                random_state=RANDOM_SEED)
+            train_set = set(train_names)
+        else:
+            if tp["has_test"]:
+                print("  (too few tiles/sites for a stratified test split — all train)")
+            train_set = set(tile_names)
+        for r in all_records:
+            r["split"] = "train" if r["tile_name"] in train_set else "test"
 
     img_base  = {"driver": "GTiff", "dtype": "uint8", "count": 3,
                  "width": TILE_SIZE, "height": TILE_SIZE, "compress": "lzw"}
@@ -1224,7 +1338,7 @@ def step_tile(label, sites, dry_run=False, max_tiles=None, stride_override=None,
 
     index_rows = []
     for rec in tqdm(all_records, desc="  Writing tiles"):
-        split = "train" if rec["tile_name"] in train_set else "test"
+        split = rec["split"]
         img_out  = out_tile_dir / split / "images" / rec["tile_name"]
         mask_out = out_tile_dir / split / "masks"  / rec["tile_name"]
         with rasterio.open(img_out, "w", **{**img_base, "crs": rec["crs"],
@@ -1236,7 +1350,7 @@ def step_tile(label, sites, dry_run=False, max_tiles=None, stride_override=None,
         index_rows.append({
             "tile_name": rec["tile_name"], "site": rec["site"], "split": split,
             "row_off": rec["row_off"], "col_off": rec["col_off"],
-            "canopy_frac": rec["canopy_frac"],
+            "canopy_frac": rec["canopy_frac"], "block": rec.get("block", ""),
             "img_path": str(img_out), "mask_path": str(mask_out),
         })
 
@@ -1244,8 +1358,10 @@ def step_tile(label, sites, dry_run=False, max_tiles=None, stride_override=None,
     index_path = out_tile_dir / f"tile_index_{label}.csv"
     index_df.to_csv(index_path, index=False)
     n_tr = (index_df["split"] == "train").sum()
+    n_va = (index_df["split"] == "val").sum()
     n_te = (index_df["split"] == "test").sum()
-    print(f"  ✓ {len(index_rows)} tiles  (train {n_tr} / test {n_te})  → {index_path.name}")
+    print(f"  ✓ {len(index_rows)} tiles  (train {n_tr} / val {n_va} / "
+          f"test {n_te})  → {index_path.name}")
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -1623,7 +1739,18 @@ def step_train(label, batch_size=BATCH_SIZE, p3_ckpt=None, dry_run=False):
     #    2020 detections.
     tier_stride = TIER_TILE_PARAMS[tier]["stride"]
     ftr = fva = None
-    if tier_stride >= TILE_SIZE and train_df["site"].nunique() > 1 and len(train_df) >= 25:
+
+    # Fix 4: if a geographically-blocked val split was carved at tiling time
+    # (coarse city-wide), use it directly — it is already >520 m from train, so
+    # no random/neighbour val tiles are needed. Replaces the leaked random-15%
+    # fallback for that path.
+    val_df = idx_df[idx_df["split"] == "val"].reset_index(drop=True)
+    if len(val_df) > 0:
+        ftr = train_df.reset_index(drop=True)
+        fva = val_df.reset_index(drop=True)
+        print(f"  Val split: BLOCKED hold-out from tile index ({len(fva)} tiles)")
+
+    if ftr is None and tier_stride >= TILE_SIZE and train_df["site"].nunique() > 1 and len(train_df) >= 25:
         folds = make_spatial_buffer_splits(
             train_df, n_folds=5, buffer_px=SPATIAL_BUFFER_PX, seed=42)
         tr_idx, val_idx = folds[0]
@@ -1936,8 +2063,12 @@ def step_evaluate(label, dry_run=False):
     if tier == "coarse":
         bf = f", best-F1 thresh={ti['best_f1_thresh']:.3f}" if ti else ""
         au = f", AUROC={ti['auroc']:.3f}" if ti else ""
+        # Fix 4: coarse city-wide years now carry a blocked held-out test block,
+        # so this is out-of-sample; legacy 6-site / degraded years stay in-sample.
+        scope_txt = ("out-of-sample" if eval_scope == "held-out test"
+                     else "in-sample")
         print(f"  ◆ DG2 note: {label} coarse-year IoU={overall['iou']:.3f} "
-              f"(in-sample){au}{bf}.")
+              f"({scope_txt}){au}{bf}.")
         if ti:
             print(f"    AUROC measures ranking independent of the 0.5 cutoff — use it "
                   f"(not in-sample IoU) to judge whether the year is usable; apply "
@@ -2320,9 +2451,12 @@ def print_summary(entries):
     print(f"""
   ◆ DECISION GATE 4 (Month 9):
     Do coarse-year masks (2000, 2002, and 50–60cm years) meet the
-    minimum IoU? IoUs above are in-sample for coarse years. For each
-    coarse year decide: include in temporal analysis / exclude / flag
-    low-confidence. See {EVAL_CSV.name}.
+    minimum IoU? Coarse years tiled city-wide (the default) now report
+    OUT-OF-SAMPLE IoU from a geographically-blocked held-out test block
+    (>520 m from train); only legacy --coarse-site-tiling runs and
+    partial-coverage years that fell back to a degraded split remain
+    in-sample (see eval_scope in {EVAL_CSV.name}). For each coarse year
+    decide: include in temporal analysis / exclude / flag low-confidence.
 
   NEXT: Phase 6 — temporal crown linking + per-crown canopy-fraction
         assessment projects the canonical crown layer onto these masks.

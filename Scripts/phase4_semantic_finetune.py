@@ -256,6 +256,14 @@ RANDOM_SEED      = 42
 COARSE_CITYWIDE_TILES     = 800  # total tile budget across canopy-fraction bins
 CITYWIDE_CANDIDATE_STRIDE = 256  # candidate origin stride before stratification
 
+# Green hard-negative mining (Fix B). Background (canopy_frac==0) tiles whose
+# mean GRVI = (G-R)/(G+R) exceeds GREEN_GRVI_THRESHOLD are vegetated-but-non-
+# canopy (grass, lawn, field) — the exact confusers driving false canopy. We
+# reserve HARD_NEG_FRACTION of the background tile budget for them so the model
+# sees the grass/canopy boundary.
+GREEN_GRVI_THRESHOLD = 0.05
+HARD_NEG_FRACTION    = 0.25
+
 # Spatially-blocked train/val/test split for coarse city-wide tiles (Fix 4).
 # Whole geographic blocks are assigned to each split, then train tiles within
 # CANOPY_AUTOCORR_M of any held-out tile are dropped so val/test are honestly
@@ -1041,6 +1049,80 @@ def _bin_histogram(records):
     return "  ".join(f"b{b}:{counts.get(b, 0)}" for b in range(5))
 
 
+def _tile_grvi(img_tile, valid):
+    """Mean GRVI = (G-R)/(G+R) over labeled pixels of an RGB tile (3×H×W uint8).
+    Positive → vegetated; near-zero / negative → pavement, roof, bare, water.
+    Used to flag green hard-negatives (Fix B)."""
+    if int(valid.sum()) == 0:
+        return 0.0
+    r = img_tile[0].astype(np.float32)
+    g = img_tile[1].astype(np.float32)
+    grvi = (g - r) / (g + r + 1e-6)
+    return float(grvi[valid].mean())
+
+
+def _select_citywide_tiles(records, budget, seed=RANDOM_SEED):
+    """City-wide coarse tile selection (Fix B).
+
+    force_keep tiles (curated negative sites) are always retained and exempt
+    from the budget caps. Among background (bin 0) tiles, HARD_NEG_FRACTION of
+    the background allocation is reserved for green hard-negatives (grass) so the
+    grass/canopy boundary is represented. Canopy bins (1..4) are balanced among
+    themselves. Returns (selected_records, stats_dict).
+    """
+    if budget is None or len(records) <= budget:
+        return list(records), {"forced": sum(1 for r in records if r.get("force_keep")),
+                               "background": sum(1 for r in records
+                                                 if not r.get("force_keep")
+                                                 and _frac_bin(r["canopy_frac"]) == 0),
+                               "green_hardneg": sum(1 for r in records
+                                                    if r.get("is_green_hardneg")),
+                               "canopy": sum(1 for r in records
+                                             if _frac_bin(r["canopy_frac"]) > 0)}
+    rng = np.random.RandomState(seed)
+    forced = [r for r in records if r.get("force_keep")]
+    pool   = [r for r in records if not r.get("force_keep")]
+    remaining = max(0, budget - len(forced))
+
+    by_bin = {}
+    for r in pool:
+        by_bin.setdefault(_frac_bin(r["canopy_frac"]), []).append(r)
+    per = max(1, remaining // max(1, len(by_bin)))
+
+    # Background bin 0 with a reserved green-hard-negative slice.
+    bg = by_bin.get(0, [])
+    n_bg = min(len(bg), per)
+    green = [r for r in bg if r.get("is_green_hardneg")]
+    plain = [r for r in bg if not r.get("is_green_hardneg")]
+    rng.shuffle(green); rng.shuffle(plain)
+    n_green = min(len(green), int(round(HARD_NEG_FRACTION * n_bg)))
+    bg_sel = green[:n_green] + plain[:max(0, n_bg - n_green)]
+    if len(bg_sel) < n_bg:                         # ran out of plain → more green
+        bg_sel += green[n_green:n_green + (n_bg - len(bg_sel))]
+
+    # Canopy bins 1..4 balanced among themselves.
+    can_sel, leftover = [], []
+    for b in sorted(by_bin):
+        if b == 0:
+            continue
+        rs = by_bin[b]; rng.shuffle(rs)
+        can_sel.extend(rs[:per]); leftover.extend(rs[per:])
+
+    chosen = bg_sel + can_sel
+    if len(chosen) < remaining:
+        rng.shuffle(leftover)
+        chosen.extend(leftover[:remaining - len(chosen)])
+    chosen = chosen[:remaining]
+    out = forced + chosen
+    rng.shuffle(out)
+    stats = dict(
+        forced=len(forced),
+        background=sum(1 for r in chosen if _frac_bin(r["canopy_frac"]) == 0),
+        green_hardneg=sum(1 for r in chosen if r.get("is_green_hardneg")),
+        canopy=sum(1 for r in chosen if _frac_bin(r["canopy_frac"]) > 0))
+    return out, stats
+
+
 def _is_negative_site(site_label, crowns):
     """A curated negative training site (Fix A). True for: a 'Negative_*' site,
     a site with no crown file (``crowns is None``), or a review site whose
@@ -1116,7 +1198,7 @@ def _negative_site_records(src, sites, src_nodata):
                     "canopy_frac": 0.0, "crs": src.crs,
                     "tile_transform": rasterio.windows.transform(win_t, tf),
                     "_img_tile": img_tile, "_mask_tile": mask_tile,
-                    "force_keep": True,
+                    "force_keep": True, "grvi": 0.0, "is_green_hardneg": False,
                 })
                 kept += 1
         if kept:
@@ -1179,6 +1261,7 @@ def _gather_citywide_coarse(label, sites, stride_override=None, dry_run=False):
                     if n_lab == 0:
                         continue                       # no 2020 label here
                     canopy_frac = float((mask_tile == 1).sum()) / n_lab
+                    grvi = _tile_grvi(img_tile, mask_tile != IGNORE_LABEL)
                     records.append({
                         "tile_name": f"city_r{ro:05d}_c{co:05d}.tif",
                         "site": "city", "row_off": ro, "col_off": co,
@@ -1186,7 +1269,9 @@ def _gather_citywide_coarse(label, sites, stride_override=None, dry_run=False):
                         "crs": native_crs,
                         "tile_transform": win_tf,
                         "_img_tile": img_tile, "_mask_tile": mask_tile,
-                        "force_keep": False,
+                        "force_keep": False, "grvi": round(grvi, 4),
+                        "is_green_hardneg": (canopy_frac == 0.0
+                                             and grvi >= GREEN_GRVI_THRESHOLD),
                     })
             # Curated negative sites → explicit guaranteed-background tiles (Fix A).
             records.extend(_negative_site_records(src, sites, src_nodata))
@@ -1319,11 +1404,11 @@ def step_tile(label, sites, dry_run=False, max_tiles=None, stride_override=None,
         if dry_run:
             print("  Dry run — not writing tiles")
             return
-        all_records = _stratified_sample(all_records, COARSE_CITYWIDE_TILES)
-        n_pos = sum(1 for r in all_records if r["canopy_frac"] > 0)
-        print(f"  Selected {len(all_records)} tiles "
-              f"({n_pos} canopy / {len(all_records) - n_pos} background, "
-              f"budget={COARSE_CITYWIDE_TILES})  bins[{_bin_histogram(all_records)}]")
+        all_records, sel = _select_citywide_tiles(all_records, COARSE_CITYWIDE_TILES)
+        print(f"  Selected {len(all_records)} tiles: {sel['canopy']} canopy / "
+              f"{sel['background']} background ({sel['green_hardneg']} green "
+              f"hard-neg) + {sel['forced']} neg-site  "
+              f"bins[{_bin_histogram(all_records)}]")
     else:
         year_site_dir  = SITE_DIR / label
         negative_sites = {s for s, _, c in sites if c is None}

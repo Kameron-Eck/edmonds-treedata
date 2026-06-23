@@ -1767,6 +1767,36 @@ def step_inference(label, batch_size=INFER_BATCH_SIZE, dry_run=False):
 #  Step 6 — Post-processing (threshold → morphology → polygonize)
 # ══════════════════════════════════════════════════════════════════════════════
 
+def _operating_threshold(label):
+    """Per-year canopy probability operating threshold for post-processing.
+
+    Reads ``best_f1_thresh`` for this year's OVERALL row from
+    ``semantic_eval_report.csv`` (written by step_evaluate) and returns it as the
+    binarisation threshold; falls back to CANOPY_PROB_THRESHOLD (0.5) if the
+    report, the row, or the column is missing / NaN / out of (0,1).
+
+    Returns (threshold_float, source_str).
+
+    NOTE: step_evaluate currently computes best_f1_thresh IN-SAMPLE for coarse
+    years (no held-out test), so it is an optimistic operating point. Once
+    Fix 3/4 land a real held-out test block, this threshold should be recomputed
+    on that out-of-sample data before it is trusted for the final masks.
+    """
+    if EVAL_CSV.exists():
+        try:
+            df = pd.read_csv(EVAL_CSV)
+            sub = df[(df["year"].astype(str) == str(label)) &
+                     (df["scope"] == "OVERALL")]
+            if len(sub) and "best_f1_thresh" in sub.columns:
+                val = pd.to_numeric(sub.iloc[0]["best_f1_thresh"], errors="coerce")
+                if pd.notna(val) and 0.0 < float(val) < 1.0:
+                    return float(val), "best_f1_thresh (semantic_eval_report.csv)"
+        except Exception as e:
+            print(f"  (could not read best_f1_thresh: {e}; "
+                  f"using default {CANOPY_PROB_THRESHOLD})")
+    return CANOPY_PROB_THRESHOLD, "default 0.5"
+
+
 def step_postproc(label, dry_run=False):
     from scipy.ndimage import binary_opening, binary_closing
     print(f"\n── [{label}] Step 6: Post-processing ──")
@@ -1783,8 +1813,10 @@ def step_postproc(label, dry_run=False):
         px, py = src.transform.a, abs(src.transform.e)
     pixel_area = px * py
     min_px = int(np.ceil(MIN_CANOPY_PATCH / pixel_area))
-    thr_u8 = int(round(CANOPY_PROB_THRESHOLD * 254))
-    print(f"  threshold={CANOPY_PROB_THRESHOLD} (u8≥{thr_u8})  "
+    # Per-year operating threshold from step_evaluate (best-F1), not the fixed 0.5.
+    thr, thr_src = _operating_threshold(label)
+    thr_u8 = int(round(thr * 254))
+    print(f"  threshold={thr:.3f} [{thr_src}] (u8≥{thr_u8})  "
           f"min_patch={MIN_CANOPY_PATCH}m²({min_px}px)  "
           f"morph={MORPH_KERNEL_SIZE}×{MORPH_KERNEL_SIZE}")
     if dry_run:

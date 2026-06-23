@@ -307,6 +307,12 @@ DICE_SMOOTH      = 1.0           # Laplace smoothing on the soft-Dice ratio
 # split can't blow up the gradient.
 POS_WEIGHT_MIN   = 1.0
 POS_WEIGHT_MAX   = 10.0
+# Coarse tier gets a much tighter cap (Tune Fix 1): the background-fraction knob
+# (Fix C) changes the tile-pool class ratio, which moved raw pos_weight
+# 1.16→1.96 and pushed the model into over-prediction. Hard-capping coarse
+# pos_weight decouples it from tile-pool composition so the two knobs stop
+# fighting. Raw (pre-clamp) value is still logged.
+COARSE_POS_WEIGHT_MAX = 1.3
 
 # Inference (same center-crop streaming as Phase 0 / Phase 3)
 INFER_BATCH_SIZE = 160
@@ -1787,11 +1793,11 @@ def _seg_loss(criterion_none, logits, masks):
     return BCE_WEIGHT * bce + DICE_WEIGHT * dice, bce, dice
 
 
-def _compute_pos_weight(df, lo=POS_WEIGHT_MIN, hi=POS_WEIGHT_MAX):
-    """BCE ``pos_weight`` = (#background labeled px) / (#canopy labeled px) over
-    the given tiles' label rasters, excluding IGNORE (255). Clamped to [lo, hi]
-    so a canopy-scarce split can't destabilise training. Returns a float; falls
-    back to ``lo`` (no-op weighting) when the split holds no canopy pixels.
+def _compute_pos_weight(df):
+    """RAW BCE ``pos_weight`` = (#background labeled px) / (#canopy labeled px)
+    over the given tiles' label rasters, excluding IGNORE (255). Unclamped — the
+    caller applies a tier-specific clamp (Tune Fix 1) and logs both values.
+    Returns 1.0 (no-op weighting) when the split holds no canopy pixels.
     """
     pos = neg = 0
     for mp in df["mask_path"]:
@@ -1800,8 +1806,8 @@ def _compute_pos_weight(df, lo=POS_WEIGHT_MIN, hi=POS_WEIGHT_MAX):
         pos += int((m == 1).sum())
         neg += int((m == 0).sum())
     if pos == 0:
-        return float(lo)
-    return float(min(max(neg / pos, lo), hi))
+        return 1.0
+    return float(neg / pos)
 
 
 def _train_one_epoch(model, loader, optimizer, scaler, criterion, device):
@@ -1979,12 +1985,16 @@ def step_train(label, batch_size=BATCH_SIZE, p3_ckpt=None, dry_run=False):
 
     # pos_weight for class imbalance (Fix 2): coarse + medium tiers only; fine
     # tier keeps 1.0 (None). Computed from the actual training split (ftr) so the
-    # held-out val tiles don't leak into the statistic.
+    # held-out val tiles don't leak into the statistic. Tune Fix 1: coarse gets a
+    # tight cap (COARSE_POS_WEIGHT_MAX) so the background-fraction knob can't
+    # inflate it into over-prediction; medium keeps the wide cap.
     pos_weight_t = None
     if tier in ("coarse", "medium"):
-        pw = _compute_pos_weight(ftr)
-        print(f"  pos_weight ({tier}): {pw:.3f}  "
-              f"(clamped to [{POS_WEIGHT_MIN}, {POS_WEIGHT_MAX}])")
+        raw = _compute_pos_weight(ftr)
+        hi  = COARSE_POS_WEIGHT_MAX if tier == "coarse" else POS_WEIGHT_MAX
+        pw  = float(min(max(raw, POS_WEIGHT_MIN), hi))
+        print(f"  pos_weight ({tier}): raw={raw:.3f} → {pw:.3f}  "
+              f"(clamped to [{POS_WEIGHT_MIN}, {hi}])")
         pos_weight_t = torch.tensor([pw], device=device)
     else:
         print(f"  pos_weight (fine): 1.0 (disabled)")

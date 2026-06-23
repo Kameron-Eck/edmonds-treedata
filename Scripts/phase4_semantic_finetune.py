@@ -266,6 +266,12 @@ BCE_WEIGHT       = 0.5
 DICE_WEIGHT      = 0.5
 DICE_SMOOTH      = 1.0           # Laplace smoothing on the soft-Dice ratio
 
+# BCE pos_weight for class imbalance (Fix 2). Applied to coarse + medium tiers
+# only (fine tier stays at 1.0 / None). Clamped to this range so a canopy-scarce
+# split can't blow up the gradient.
+POS_WEIGHT_MIN   = 1.0
+POS_WEIGHT_MAX   = 10.0
+
 # Inference (same center-crop streaming as Phase 0 / Phase 3)
 INFER_BATCH_SIZE = 160
 INFER_STRIDE     = 256
@@ -1256,6 +1262,23 @@ def _seg_loss(criterion_none, logits, masks):
     return BCE_WEIGHT * bce + DICE_WEIGHT * dice, bce, dice
 
 
+def _compute_pos_weight(df, lo=POS_WEIGHT_MIN, hi=POS_WEIGHT_MAX):
+    """BCE ``pos_weight`` = (#background labeled px) / (#canopy labeled px) over
+    the given tiles' label rasters, excluding IGNORE (255). Clamped to [lo, hi]
+    so a canopy-scarce split can't destabilise training. Returns a float; falls
+    back to ``lo`` (no-op weighting) when the split holds no canopy pixels.
+    """
+    pos = neg = 0
+    for mp in df["mask_path"]:
+        with rasterio.open(mp) as src:
+            m = src.read(1)
+        pos += int((m == 1).sum())
+        neg += int((m == 0).sum())
+    if pos == 0:
+        return float(lo)
+    return float(min(max(neg / pos, lo), hi))
+
+
 def _train_one_epoch(model, loader, optimizer, scaler, criterion, device):
     model.train()
     loss_sum = seg_sum = 0.0       # seg_sum tracks the combined BCE+Dice (no L1)
@@ -1418,7 +1441,18 @@ def step_train(label, batch_size=BATCH_SIZE, p3_ckpt=None, dry_run=False):
     print(f"  ✓ Fine-tune start: {Path(p3).name}  "
           f"(P3 val_bce={ck.get('best_val', '?')})")
 
-    criterion = nn.BCEWithLogitsLoss(reduction="none")
+    # pos_weight for class imbalance (Fix 2): coarse + medium tiers only; fine
+    # tier keeps 1.0 (None). Computed from the actual training split (ftr) so the
+    # held-out val tiles don't leak into the statistic.
+    pos_weight_t = None
+    if tier in ("coarse", "medium"):
+        pw = _compute_pos_weight(ftr)
+        print(f"  pos_weight ({tier}): {pw:.3f}  "
+              f"(clamped to [{POS_WEIGHT_MIN}, {POS_WEIGHT_MAX}])")
+        pos_weight_t = torch.tensor([pw], device=device)
+    else:
+        print(f"  pos_weight (fine): 1.0 (disabled)")
+    criterion = nn.BCEWithLogitsLoss(reduction="none", pos_weight=pos_weight_t)
     MODELS_DIR.mkdir(parents=True, exist_ok=True)
     best_ckpt   = MODELS_DIR / f"sem_best_{label}.pt"
     latest_ckpt = MODELS_DIR / f"sem_latest_{label}.pt"

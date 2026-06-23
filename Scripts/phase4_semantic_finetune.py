@@ -261,8 +261,11 @@ CITYWIDE_CANDIDATE_STRIDE = 256  # candidate origin stride before stratification
 # canopy (grass, lawn, field) — the exact confusers driving false canopy. We
 # reserve HARD_NEG_FRACTION of the background tile budget for them so the model
 # sees the grass/canopy boundary.
-GREEN_GRVI_THRESHOLD = 0.05
-HARD_NEG_FRACTION    = 0.25
+# Tune Fix 3: softened from 0.05/0.25 — GRVI≥0.05 grabbed 242 tiles (too many,
+# risk of labelling missed-tree tiles as background). Raise the greenness bar so
+# only strongly-green tiles qualify, and reserve a smaller slice.
+GREEN_GRVI_THRESHOLD = 0.10
+HARD_NEG_FRACTION    = 0.10
 
 # Background share of the coarse city-wide tile budget (Fix C). Raised so
 # negatives are well represented (equal 5-bin balancing gave background only
@@ -1315,8 +1318,10 @@ def _gather_citywide_coarse(label, sites, stride_override=None, dry_run=False):
             if mask_local != MASK_2020:
                 _unstage_imagery_local(mask_local)
     n_force = sum(1 for r in records if r.get("force_keep"))
+    n_green = sum(1 for r in records if r.get("is_green_hardneg"))
     print(f"  Gathered {len(records)} labeled tiles "
-          f"({n_force} force-kept negative-site)  bins[{_bin_histogram(records)}]")
+          f"({n_force} force-kept negative-site, {n_green} green hard-neg "
+          f"candidates @GRVI≥{GREEN_GRVI_THRESHOLD})  bins[{_bin_histogram(records)}]")
     return records
 
 

@@ -264,17 +264,21 @@ CITYWIDE_CANDIDATE_STRIDE = 256  # candidate origin stride before stratification
 # Tune Fix 3: softened from 0.05/0.25 — GRVI≥0.05 grabbed 242 tiles (too many,
 # risk of labelling missed-tree tiles as background). Raise the greenness bar so
 # only strongly-green tiles qualify, and reserve a smaller slice.
+# Re-baseline (run-5): the audit showed the green-hard-neg reservation was part of
+# the negative-emphasis stack that did NOT beat run 5. Reserve 0.0 → no forced
+# green slice (green tiles can still be picked as ordinary background; mining is
+# still computed/logged). Raise to re-enable.
 GREEN_GRVI_THRESHOLD = 0.10
-HARD_NEG_FRACTION    = 0.10
+HARD_NEG_FRACTION    = 0.0
 
 # Background share of the coarse city-wide tile budget (Fix C). Raised above the
 # equal 5-bin baseline (~20%) so negatives are well represented. The remaining
 # budget is split among the canopy bins (1..4), balanced among themselves.
 # Curated negative-site tiles are added on top and don't count against this
-# fraction. Tune Fix 4: backed off 0.35→0.25 — combined with the explicit
-# negative-site injection (Tune Fix 2) and the capped pos_weight (Tune Fix 1),
-# 0.35 over-weighted background and starved the canopy bins.
-BACKGROUND_BUDGET_FRACTION = 0.25
+# fraction. Tune Fix 4: backed off 0.35→0.25. Re-baseline (run-5): run 5 used the
+# equal 5-bin selection (~21% background); 0.20 reproduces that as the controlled
+# baseline. Raise to re-test a heavier background share.
+BACKGROUND_BUDGET_FRACTION = 0.20
 
 # Spatially-blocked train/val/test split for coarse city-wide tiles (Fix 4).
 # Whole geographic blocks are assigned to each split, then train tiles within
@@ -326,7 +330,11 @@ COARSE_POS_WEIGHT_MAX = 1.3
 # (Cui et al. 2019; "Simplifying NN Training Under Class Imbalance" 2023: use one
 # channel, not two). Flip to True to restore the old capped-pos_weight behaviour
 # (COARSE_POS_WEIGHT_MAX above) without a version revert. Medium/fine unaffected.
-COARSE_USE_POS_WEIGHT = False
+# Re-baseline (run-5): run 5 — the best honest result — used pos_weight ON
+# (raw≈1.16, below the 1.3 cap so non-binding). Set True to reproduce it. With the
+# fixed run-5 sampler the raw stays ≈1.16, so this is NOT the runaway double-
+# rebalance that hit run 6 (that came from the sampler's bg fraction moving).
+COARSE_USE_POS_WEIGHT = True
 
 # Inference (same center-crop streaming as Phase 0 / Phase 3)
 INFER_BATCH_SIZE = 160

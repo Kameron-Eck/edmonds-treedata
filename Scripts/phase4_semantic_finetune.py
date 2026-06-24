@@ -467,6 +467,14 @@ TIER_TILE_PARAMS = {
     "coarse": dict(stride=128, neg_rate=0.60, test_frac=0.00, has_test=False),
 }
 
+# Early-stop / best-checkpoint selection metric per tier.
+#   "val_bce" → minimize (fine/medium; stable log-loss with plenty of tiles)
+#   "val_iou" → MAXIMIZE (coarse): on the small blocked coarse val set, val_bce
+#     swings wildly (a few overconfident wrong pixels spike log-loss), so
+#     minimizing it crowned epoch 1 (worst IoU) as "best". val_iou rises
+#     monotonically and is the honest selection signal for coarse years.
+TIER_EARLYSTOP = {"fine": "val_bce", "medium": "val_bce", "coarse": "val_iou"}
+
 
 def remaining_entries():
     """The 17 acquisitions Phase 4 fine-tunes (everything except the 2020 anchor)."""
@@ -2034,7 +2042,15 @@ def step_train(label, batch_size=BATCH_SIZE, p3_ckpt=None, dry_run=False):
     MODELS_DIR.mkdir(parents=True, exist_ok=True)
     best_ckpt   = MODELS_DIR / f"sem_best_{label}.pt"
     latest_ckpt = MODELS_DIR / f"sem_latest_{label}.pt"
-    best_val = float("inf")
+    # Early-stop / best-checkpoint criterion is tier-dependent (coarse → val_iou
+    # maximize; fine/medium → val_bce minimize). Both metrics are still computed
+    # and logged every epoch; only the SELECTION metric changes.
+    es_metric   = TIER_EARLYSTOP.get(tier, "val_bce")
+    es_maximize = es_metric == "val_iou"
+    sched_mode  = "max" if es_maximize else "min"
+    best_val    = float("-inf") if es_maximize else float("inf")
+    print(f"  Early-stop / best-ckpt metric: {es_metric} "
+          f"({'maximize' if es_maximize else 'minimize'}), scheduler mode={sched_mode}")
     history = {"phase": [], "epoch": [], "train_bce": [], "val_bce": [], "val_iou": []}
 
     # ── Phase A: frozen encoder ──
@@ -2043,7 +2059,7 @@ def step_train(label, batch_size=BATCH_SIZE, p3_ckpt=None, dry_run=False):
     opt = torch.optim.AdamW([p for p in model.parameters() if p.requires_grad],
                             lr=LR_PHASE_A, weight_decay=1e-4)
     sched = torch.optim.lr_scheduler.ReduceLROnPlateau(
-        opt, mode="min", factor=0.5, patience=5, threshold=1e-4,
+        opt, mode=sched_mode, factor=0.5, patience=5, threshold=1e-4,
         cooldown=2, min_lr=1e-7)
     scaler = torch.amp.GradScaler("cuda")
     es = 0
@@ -2051,13 +2067,14 @@ def step_train(label, batch_size=BATCH_SIZE, p3_ckpt=None, dry_run=False):
         t0 = time.time()
         _, tr_bce = _train_one_epoch(model, train_loader, opt, scaler, criterion, device)
         v_bce, v_iou = _validate(model, val_loader, criterion, device)
-        sched.step(v_bce)
+        es_val = v_iou if es_maximize else v_bce      # tier-selected metric
+        sched.step(es_val)
         history["phase"].append("A"); history["epoch"].append(ep + 1)
         history["train_bce"].append(tr_bce); history["val_bce"].append(v_bce)
         history["val_iou"].append(v_iou)
-        best = v_bce < best_val
+        best = es_val > best_val if es_maximize else es_val < best_val
         if best:
-            best_val = v_bce; es = 0
+            best_val = es_val; es = 0
             _save_ckpt("A", ep, model, opt, sched, history, best_val, best_ckpt)
         else:
             es += 1
@@ -2069,14 +2086,14 @@ def step_train(label, batch_size=BATCH_SIZE, p3_ckpt=None, dry_run=False):
               f"{' ★' if best else f'  [{es}/{EARLY_STOP_PAT}]'}")
         if es >= EARLY_STOP_PAT:
             print("  Early stop — Phase A"); break
-    print(f"  ✓ Phase A best val BCE: {best_val:.4f}")
+    print(f"  ✓ Phase A best {es_metric}: {best_val:.4f}")
 
     # ── Phase B: full model ──
     print(f"\n  PHASE B — full model | {EPOCHS_PHASE_B} ep | LR={LR_PHASE_B}")
     _unfreeze_encoder(model)
     opt = torch.optim.AdamW(model.parameters(), lr=LR_PHASE_B, weight_decay=1e-4)
     sched = torch.optim.lr_scheduler.ReduceLROnPlateau(
-        opt, mode="min", factor=0.5, patience=5, threshold=1e-4,
+        opt, mode=sched_mode, factor=0.5, patience=5, threshold=1e-4,
         cooldown=2, min_lr=1e-7)
     scaler = torch.amp.GradScaler("cuda")
     es = 0
@@ -2084,13 +2101,14 @@ def step_train(label, batch_size=BATCH_SIZE, p3_ckpt=None, dry_run=False):
         t0 = time.time()
         _, tr_bce = _train_one_epoch(model, train_loader, opt, scaler, criterion, device)
         v_bce, v_iou = _validate(model, val_loader, criterion, device)
-        sched.step(v_bce)
+        es_val = v_iou if es_maximize else v_bce      # tier-selected metric
+        sched.step(es_val)
         history["phase"].append("B"); history["epoch"].append(ep + 1)
         history["train_bce"].append(tr_bce); history["val_bce"].append(v_bce)
         history["val_iou"].append(v_iou)
-        best = v_bce < best_val
+        best = es_val > best_val if es_maximize else es_val < best_val
         if best:
-            best_val = v_bce; es = 0
+            best_val = es_val; es = 0
             _save_ckpt("B", ep, model, opt, sched, history, best_val, best_ckpt)
         else:
             es += 1
@@ -2103,7 +2121,7 @@ def step_train(label, batch_size=BATCH_SIZE, p3_ckpt=None, dry_run=False):
         if es >= EARLY_STOP_PAT:
             print("  Early stop — Phase B"); break
 
-    print(f"  ✓ Phase B best val BCE: {best_val:.4f}  → {best_ckpt.name}")
+    print(f"  ✓ Phase B best {es_metric}: {best_val:.4f}  → {best_ckpt.name}")
     pd.DataFrame(history).to_csv(MODELS_DIR / f"sem_loss_history_{label}.csv",
                                  index=False)
     del model, opt, scaler

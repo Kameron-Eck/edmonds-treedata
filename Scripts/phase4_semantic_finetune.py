@@ -311,6 +311,16 @@ BCE_WEIGHT       = 0.5
 DICE_WEIGHT      = 0.5
 DICE_SMOOTH      = 1.0           # Laplace smoothing on the soft-Dice ratio
 
+# Focal loss for hard-negative emphasis (Edit F). Up-weights hard / misclassified
+# pixels by prediction CONFIDENCE, not class frequency, so it targets the
+# grass/developed confusers without re-coupling to the sampler. Active only when a
+# tier's loss mode is "focal_dice"; the paired Dice term is REQUIRED (focal's
+# gradient is unstable alone at this gamma). FOCAL_ALPHA=0.5 disables alpha
+# balancing; 0.25 (literature default) emphasises the background/non-canopy class.
+FOCAL_GAMMA  = 2.0
+FOCAL_ALPHA  = 0.25
+FOCAL_WEIGHT = 0.5              # paired with DICE_WEIGHT in focal_dice mode
+
 # BCE pos_weight for class imbalance (Fix 2). Applied to coarse + medium tiers
 # only (fine tier stays at 1.0 / None). Clamped to this range so a canopy-scarce
 # split can't blow up the gradient.
@@ -482,6 +492,12 @@ TIER_TILE_PARAMS = {
 #     minimizing it crowned epoch 1 (worst IoU) as "best". val_iou rises
 #     monotonically and is the honest selection signal for coarse years.
 TIER_EARLYSTOP = {"fine": "val_bce", "medium": "val_bce", "coarse": "val_iou"}
+
+# Per-tier segmentation loss mode (Edit F): "bce_dice" (default = run-5 baseline)
+# or "focal_dice". Coarse stays bce_dice by default so we reproduce run 5; the
+# --loss-mode CLI flag overrides the COARSE entry to A/B focal against the
+# baseline (loss-only change → same tiles → measurable). Fine/medium unaffected.
+TIER_LOSS_MODE = {"fine": "bce_dice", "medium": "bce_dice", "coarse": "bce_dice"}
 
 
 def remaining_entries():
@@ -740,8 +756,11 @@ def anchor_mask_from_2020(dst_crs, dst_transform, h, w, prob_hi, prob_lo):
         pb = rasterio.warp.transform_bounds(dst_crs, pcrs, *dst_bounds)
         src_win = rasterio.windows.from_bounds(*pb, transform=psrc.transform)
         src_win = src_win.round_offsets(op="floor").round_lengths(op="ceil")
-        src_win = src_win.intersection(
-            rasterio.windows.Window(0, 0, psrc.width, psrc.height))
+        try:
+            src_win = src_win.intersection(
+                rasterio.windows.Window(0, 0, psrc.width, psrc.height))
+        except rasterio.windows.WindowError:
+            return ignore                   # crop fully outside 2020 coverage
         if src_win.width <= 0 or src_win.height <= 0:
             return ignore                       # crop outside 2020 coverage
         out_h = max(1, min(int(src_win.height), h))
@@ -783,8 +802,11 @@ def canopy_label_from_2020_mask(msrc, dst_crs, dst_transform, h, w):
     mb = rasterio.warp.transform_bounds(dst_crs, mcrs, *dst_bounds)
     src_win = rasterio.windows.from_bounds(*mb, transform=msrc.transform)
     src_win = src_win.round_offsets(op="floor").round_lengths(op="ceil")
-    src_win = src_win.intersection(
-        rasterio.windows.Window(0, 0, msrc.width, msrc.height))
+    try:
+        src_win = src_win.intersection(
+            rasterio.windows.Window(0, 0, msrc.width, msrc.height))
+    except rasterio.windows.WindowError:
+        return out                                   # crop fully outside 2020 coverage
     if src_win.width <= 0 or src_win.height <= 0:
         return out                                   # crop outside 2020 coverage
     out_h = max(1, min(int(src_win.height), h))
@@ -1822,13 +1844,40 @@ def _masked_dice(logits, masks, smooth=DICE_SMOOTH):
     return (1.0 - dice).mean()
 
 
-def _seg_loss(criterion_none, logits, masks):
-    """Combined masked segmentation loss: BCE_WEIGHT*BCE + DICE_WEIGHT*Dice.
+def _masked_focal(criterion_none, logits, masks):
+    """Masked, IGNORE-aware binary focal loss (Edit F). IGNORE handling is
+    IDENTICAL to `_masked_bce` (255 zeroed in the target, excluded from the
+    average). Reuses the per-pixel BCE map from `criterion_none`
+    (BCEWithLogitsLoss, reduction='none'); for focal_dice that criterion is built
+    with pos_weight=None so focal+alpha is the sole class-balance channel.
 
-    Returns (combined, bce_component, dice_component) — all IGNORE-aware.
+        p   = sigmoid(logits);  p_t = p*t + (1-p)*(1-t)
+        focal = alpha_t * (1 - p_t)**gamma * bce_map
     """
-    bce  = _masked_bce(criterion_none, logits, masks)
+    valid   = (masks != IGNORE_LABEL).float()
+    target  = torch.where(masks == IGNORE_LABEL, torch.zeros_like(masks), masks)
+    bce_map = criterion_none(logits, target)
+    p       = torch.sigmoid(logits)
+    p_t     = p * target + (1.0 - p) * (1.0 - target)
+    focal_map = ((1.0 - p_t) ** FOCAL_GAMMA) * bce_map
+    if FOCAL_ALPHA is not None:
+        alpha_t = FOCAL_ALPHA * target + (1.0 - FOCAL_ALPHA) * (1.0 - target)
+        focal_map = alpha_t * focal_map
+    return (focal_map * valid).sum() / valid.sum().clamp(min=1.0)
+
+
+def _seg_loss(criterion_none, logits, masks, loss_mode="bce_dice"):
+    """Combined masked segmentation loss (all terms IGNORE-aware).
+
+    loss_mode "focal_dice" → FOCAL_WEIGHT*focal + DICE_WEIGHT*dice (Edit F);
+    otherwise → BCE_WEIGHT*bce + DICE_WEIGHT*dice (default, run-5 baseline).
+    Returns (combined, primary_component, dice_component).
+    """
     dice = _masked_dice(logits, masks)
+    if loss_mode == "focal_dice":
+        focal = _masked_focal(criterion_none, logits, masks)
+        return FOCAL_WEIGHT * focal + DICE_WEIGHT * dice, focal, dice
+    bce = _masked_bce(criterion_none, logits, masks)
     return BCE_WEIGHT * bce + DICE_WEIGHT * dice, bce, dice
 
 
@@ -1849,9 +1898,10 @@ def _compute_pos_weight(df):
     return float(neg / pos)
 
 
-def _train_one_epoch(model, loader, optimizer, scaler, criterion, device):
+def _train_one_epoch(model, loader, optimizer, scaler, criterion, device,
+                     loss_mode="bce_dice"):
     model.train()
-    loss_sum = seg_sum = 0.0       # seg_sum tracks the combined BCE+Dice (no L1)
+    loss_sum = seg_sum = 0.0       # seg_sum tracks the combined seg loss (no L1)
     n = 0
     for imgs, masks, _ in loader:
         imgs = imgs.to(device, non_blocking=True)
@@ -1859,7 +1909,7 @@ def _train_one_epoch(model, loader, optimizer, scaler, criterion, device):
         optimizer.zero_grad()
         with torch.amp.autocast("cuda"):
             logits = model(imgs)
-            seg, _bce, _dice = _seg_loss(criterion, logits, masks)
+            seg, _p, _dice = _seg_loss(criterion, logits, masks, loss_mode)
         if L1_LAMBDA > 0:
             l1 = sum(p.abs().sum() for p in model.parameters() if p.requires_grad)
             loss = seg + L1_LAMBDA * l1
@@ -1874,9 +1924,9 @@ def _train_one_epoch(model, loader, optimizer, scaler, criterion, device):
     return loss_sum / max(n, 1), seg_sum / max(n, 1)
 
 
-def _validate(model, loader, criterion, device):
+def _validate(model, loader, criterion, device, loss_mode="bce_dice"):
     model.eval()
-    seg_sum = iou_sum = 0.0        # seg_sum = combined BCE+Dice (early-stop signal)
+    seg_sum = iou_sum = 0.0        # seg_sum = combined seg loss (matches train objective)
     n = 0
     with torch.no_grad():
         for imgs, masks, _ in loader:
@@ -1884,7 +1934,7 @@ def _validate(model, loader, criterion, device):
             masks = masks.to(device, non_blocking=True)
             with torch.amp.autocast("cuda"):
                 logits = model(imgs)
-                seg, _bce, _dice = _seg_loss(criterion, logits, masks)
+                seg, _p, _dice = _seg_loss(criterion, logits, masks, loss_mode)
             seg_sum += seg.item()
             # val_iou: unchanged — thresholded IoU at 0.5 for cross-run comparability.
             valid = (masks != IGNORE_LABEL).float()
@@ -2028,8 +2078,13 @@ def step_train(label, batch_size=BATCH_SIZE, p3_ckpt=None, dry_run=False):
     # use the city-wide stratified sampler, so it is not double-rebalanced). Fine
     # stays neutral. Computed from the actual training split (ftr) so held-out val
     # tiles don't leak into the statistic.
+    loss_mode = TIER_LOSS_MODE.get(tier, "bce_dice")
     pos_weight_t = None
-    if tier == "coarse":
+    if loss_mode == "focal_dice":
+        # Focal + alpha is the class-balance channel; do NOT also apply pos_weight
+        # (Edit F: one rebalancing channel, not two).
+        print(f"  pos_weight ({tier}): N/A — focal+alpha owns class balance")
+    elif tier == "coarse":
         if COARSE_USE_POS_WEIGHT:
             raw = _compute_pos_weight(ftr)
             pw  = float(min(max(raw, POS_WEIGHT_MIN), COARSE_POS_WEIGHT_MAX))
@@ -2059,6 +2114,11 @@ def step_train(label, batch_size=BATCH_SIZE, p3_ckpt=None, dry_run=False):
     best_val    = float("-inf") if es_maximize else float("inf")
     print(f"  Early-stop / best-ckpt metric: {es_metric} "
           f"({'maximize' if es_maximize else 'minimize'}), scheduler mode={sched_mode}")
+    if loss_mode == "focal_dice":
+        print(f"  Loss mode: focal_dice (FOCAL_WEIGHT={FOCAL_WEIGHT} γ={FOCAL_GAMMA} "
+              f"α={FOCAL_ALPHA} + DICE_WEIGHT={DICE_WEIGHT})")
+    else:
+        print(f"  Loss mode: bce_dice (BCE_WEIGHT={BCE_WEIGHT} + DICE_WEIGHT={DICE_WEIGHT})")
     history = {"phase": [], "epoch": [], "train_bce": [], "val_bce": [], "val_iou": []}
 
     # ── Phase A: frozen encoder ──
@@ -2073,8 +2133,9 @@ def step_train(label, batch_size=BATCH_SIZE, p3_ckpt=None, dry_run=False):
     es = 0
     for ep in range(EPOCHS_PHASE_A):
         t0 = time.time()
-        _, tr_bce = _train_one_epoch(model, train_loader, opt, scaler, criterion, device)
-        v_bce, v_iou = _validate(model, val_loader, criterion, device)
+        _, tr_bce = _train_one_epoch(model, train_loader, opt, scaler, criterion,
+                                     device, loss_mode)
+        v_bce, v_iou = _validate(model, val_loader, criterion, device, loss_mode)
         es_val = v_iou if es_maximize else v_bce      # tier-selected metric
         sched.step(es_val)
         history["phase"].append("A"); history["epoch"].append(ep + 1)
@@ -2107,8 +2168,9 @@ def step_train(label, batch_size=BATCH_SIZE, p3_ckpt=None, dry_run=False):
     es = 0
     for ep in range(EPOCHS_PHASE_B):
         t0 = time.time()
-        _, tr_bce = _train_one_epoch(model, train_loader, opt, scaler, criterion, device)
-        v_bce, v_iou = _validate(model, val_loader, criterion, device)
+        _, tr_bce = _train_one_epoch(model, train_loader, opt, scaler, criterion,
+                                     device, loss_mode)
+        v_bce, v_iou = _validate(model, val_loader, criterion, device, loss_mode)
         es_val = v_iou if es_maximize else v_bce      # tier-selected metric
         sched.step(es_val)
         history["phase"].append("B"); history["epoch"].append(ep + 1)
@@ -2785,6 +2847,11 @@ def main():
                         "threshold, default — nothing changes) or 'precision_floor' "
                         f"(lowest threshold with precision ≥ PRECISION_FLOOR="
                         f"{PRECISION_FLOOR}).")
+    p.add_argument("--loss-mode", choices=["bce_dice", "focal_dice"], default=None,
+                   help="Override the COARSE-tier training loss (Edit F): 'bce_dice' "
+                        "(default = run-5 baseline) or 'focal_dice' (focal+dice "
+                        "hard-negative emphasis). Loss-only change → run on the same "
+                        "tiles to A/B against the baseline. Fine/medium unaffected.")
     args = p.parse_args(filtered)
 
     from pipeline_log import StepLogger
@@ -2795,6 +2862,10 @@ def main():
     USE_VI = bool(args.vi)
     IN_CHANNELS = 3 + (len(VI_NAMES) if USE_VI else 0)
     THRESH_MODE = args.thresh_mode
+    # Edit F: --loss-mode overrides the coarse-tier loss (focal A/B); fine/medium
+    # stay bce_dice. Mutating the dict contents (no rebind) → no `global` needed.
+    if args.loss_mode:
+        TIER_LOSS_MODE["coarse"] = args.loss_mode
 
     print("=" * 65)
     print("  PHASE 4 — Per-Year Semantic Segmentation Fine-Tuning (17 years)")

@@ -208,6 +208,10 @@ POLYGONS_DIR  = BASE / "polygons"                     # training-site crown poly
 # code kept some at the "Pipeline Imagery" root. We resolve both.
 IMAGERY_DIR   = BASE / "Full_Image/Pipeline Imagery"
 NATIVE_DIR    = IMAGERY_DIR / "native"
+# LIDAR first-return DSM hillshade (USGS Western-WA 3DEP, ~2016), EPSG:3857 @ 1 m,
+# clipped to the imagery extent. Reprojected onto each tile's native grid as a 4th
+# input channel. See fetch_lidar in the session handoff for how it was built.
+HILLSHADE_PATH = IMAGERY_DIR / "lidar_snoh_hillshade_fr.tif"
 
 # Phase 3 semantic checkpoint — the fine-tune starting point for every year.
 P3_DIR        = BASE / "phase3"
@@ -392,7 +396,17 @@ USE_VI      = False
 VI_NAMES    = ("GCC", "GRVI", "ExG")
 VI_MEAN     = [0.33, 0.00, 0.10]
 VI_STD      = [0.10, 0.30, 0.25]
-IN_CHANNELS = 3
+# LIDAR first-return hillshade as a uniform 4th input channel (structure signal
+# that separates trees from grass; one ~2016 snapshot co-registered per tile, all
+# years). Stats are /255 over non-zero hillshade pixels (measured from the raster).
+# The 3-channel Phase-3 RGB checkpoint is inflated to 4ch with the new conv-1
+# channel ZERO-initialised, so the pretrained RGB behaviour is preserved at
+# fine-tune start and hillshade weights are learned. Temporal caveat: best for
+# 2015-2017 imagery; highest drift for 2000-2012 (canopy changed since 2016).
+USE_HILLSHADE = True
+HS_MEAN     = [0.58]
+HS_STD      = [0.26]
+IN_CHANNELS = 3   # module default; set per-run from the tile/ckpt band count
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -559,6 +573,44 @@ def _copy_to_drive(local_path, drive_path):
     if Path(local_path) == drive_path:
         return
     shutil.copy2(local_path, drive_path)
+
+
+# ── LIDAR hillshade 4th-channel reader ────────────────────────────────────────
+# The hillshade master (EPSG:3857, 1 m) is reprojected on demand onto each tile's
+# native grid (orthos are in 3857/2285/26910 at 7.5-60 cm). Opened once, staged to
+# local NVMe like the orthos. read_hillshade_chip is the single source of the 4th
+# band for tiling AND inference, so RGB and hillshade are always co-registered.
+
+_HILLSHADE_DS = None
+
+def _hillshade_ds():
+    """Open + cache the (staged) hillshade master, or None if absent/disabled."""
+    global _HILLSHADE_DS
+    if _HILLSHADE_DS is not None:
+        return _HILLSHADE_DS
+    if not HILLSHADE_PATH.exists():
+        print(f"  WARNING: hillshade not found at {HILLSHADE_PATH} — "
+              f"falling back to RGB-only despite USE_HILLSHADE.")
+        return None
+    local = _stage_imagery_local(HILLSHADE_PATH)
+    _HILLSHADE_DS = rasterio.open(local)
+    return _HILLSHADE_DS
+
+
+def read_hillshade_chip(dst_crs, dst_transform, h, w):
+    """Reproject the hillshade onto an arbitrary target grid → (1,h,w) uint8.
+    Out-of-coverage (water / no first-return) reprojects to 0, matching the RGB
+    nodata fill. Returns zeros if the hillshade is unavailable."""
+    from rasterio.warp import reproject, Resampling
+    ds = _hillshade_ds()
+    if ds is None:
+        return np.zeros((1, h, w), dtype=np.uint8)
+    out = np.zeros((h, w), dtype=np.uint8)
+    reproject(source=rasterio.band(ds, 1), destination=out,
+              src_transform=ds.transform, src_crs=ds.crs,
+              dst_transform=dst_transform, dst_crs=dst_crs,
+              resampling=Resampling.bilinear, src_nodata=0, dst_nodata=0)
+    return out[np.newaxis]
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -1574,7 +1626,15 @@ def step_tile(label, sites, dry_run=False, max_tiles=None, stride_override=None,
         for r in all_records:
             r["split"] = "train" if r["tile_name"] in train_set else "test"
 
-    img_base  = {"driver": "GTiff", "dtype": "uint8", "count": 3,
+    # Bake the LIDAR hillshade as a 4th band (co-registered per tile) when enabled
+    # and the raster is present. Single injection point: every record carries crs
+    # + tile_transform, so all tiling modes (city-wide / 6-site / negative) get it.
+    add_hs = bool(USE_HILLSHADE) and _hillshade_ds() is not None
+    n_img_bands = 4 if add_hs else 3
+    if add_hs:
+        print(f"  + LIDAR hillshade band 4 from {HILLSHADE_PATH.name} "
+              f"(reprojected per tile)")
+    img_base  = {"driver": "GTiff", "dtype": "uint8", "count": n_img_bands,
                  "width": TILE_SIZE, "height": TILE_SIZE, "compress": "lzw"}
     mask_base = {"driver": "GTiff", "dtype": "uint8", "count": 1,
                  "width": TILE_SIZE, "height": TILE_SIZE, "compress": "lzw",
@@ -1585,9 +1645,14 @@ def step_tile(label, sites, dry_run=False, max_tiles=None, stride_override=None,
         split = rec["split"]
         img_out  = out_tile_dir / split / "images" / rec["tile_name"]
         mask_out = out_tile_dir / split / "masks"  / rec["tile_name"]
+        img_tile = np.asarray(rec["_img_tile"])[:3]            # RGB (C,H,W)
+        if add_hs:
+            hs = read_hillshade_chip(rec["crs"], rec["tile_transform"],
+                                     img_tile.shape[1], img_tile.shape[2])
+            img_tile = np.concatenate([img_tile, hs], axis=0)  # (4,H,W)
         with rasterio.open(img_out, "w", **{**img_base, "crs": rec["crs"],
                            "transform": rec["tile_transform"]}) as dst:
-            dst.write(rec["_img_tile"])
+            dst.write(img_tile)
         with rasterio.open(mask_out, "w", **{**mask_base, "crs": rec["crs"],
                            "transform": rec["tile_transform"]}) as dst:
             dst.write(np.asarray(rec["_mask_tile"]).squeeze(), 1)
@@ -1660,16 +1725,28 @@ def compute_vis(rgb01, eps=1e-6):
                     axis=-1).astype(np.float32)
 
 
-def _input_norm():
-    mean = list(IMAGENET_MEAN) + (VI_MEAN if USE_VI else [])
-    std  = list(IMAGENET_STD)  + (VI_STD  if USE_VI else [])
+def _input_norm(has_hs=False):
+    # Channel order: [R, G, B, (VI..), (hillshade)] — VI derived from RGB, the
+    # hillshade is the stored 4th band.
+    mean = list(IMAGENET_MEAN) + (VI_MEAN if USE_VI else []) + (HS_MEAN if has_hs else [])
+    std  = list(IMAGENET_STD)  + (VI_STD  if USE_VI else []) + (HS_STD  if has_hs else [])
     return np.asarray(mean, np.float32), np.asarray(std, np.float32)
 
 
-def rgb_to_model_input(rgb_uint8):
-    rgb01 = rgb_uint8.astype(np.float32) / 255.0
-    arr = np.concatenate([rgb01, compute_vis(rgb01)], -1) if USE_VI else rgb01
-    mean, std = _input_norm()
+def rgb_to_model_input(img_uint8):
+    """uint8 HWC tile → normalised CHW model input. A 4th band is the LIDAR
+    hillshade; VI (if --vi) is derived from RGB and inserted before it. Detects
+    the hillshade channel from band count, so 3- and 4-band tiles both work."""
+    has_hs = img_uint8.shape[-1] >= 4
+    img01 = img_uint8.astype(np.float32) / 255.0
+    rgb01 = img01[..., :3]
+    chans = [rgb01]
+    if USE_VI:
+        chans.append(compute_vis(rgb01))
+    if has_hs:
+        chans.append(img01[..., 3:4])
+    arr = np.concatenate(chans, -1) if len(chans) > 1 else rgb01
+    mean, std = _input_norm(has_hs)
     arr = (arr - mean) / std
     return np.ascontiguousarray(arr.transpose(2, 0, 1))
 
@@ -1698,9 +1775,18 @@ class SemanticDataset:
     def __init__(self, df, training=True):
         self.df = df.reset_index(drop=True)
         self.training = training
+        # Detect a stored 4th (hillshade) band straight off the tiles so the model
+        # always matches the data, regardless of the --hillshade flag at train time.
+        self.has_extra = False
+        if len(self.df):
+            with rasterio.open(self.df.iloc[0]["img_path"]) as s0:
+                self.has_extra = (s0.count >= 4)
+        # >3 channels (hillshade and/or VI) → normalise via numpy (rgb_to_model_input);
+        # albumentations A.Normalize / HueSaturationValue assume exactly 3 channels.
+        self._numpy_norm = bool(USE_VI or self.has_extra)
         if training:
             self.spatial_tf = _make_spatial_transform()
-            self.pixel_tf = (_make_pixel_transform_nonorm() if USE_VI
+            self.pixel_tf = (_make_pixel_transform_nonorm() if self._numpy_norm
                              else _make_pixel_transform())
         else:
             self.test_tf = _make_test_transform()
@@ -1717,16 +1803,24 @@ class SemanticDataset:
             mask = src.read(1).astype(np.float32)
 
         if self.training:
+            # Spatial aug applies jointly to all bands + mask (geometry only).
             out = self.spatial_tf(image=img, mask=mask)
             img, mask = out["image"], out["mask"]
-            if USE_VI:
-                img = self.pixel_tf(image=img)["image"]
+            if self._numpy_norm:
+                # Colour/appearance aug on RGB only; the hillshade band is passed
+                # through (HSV/shadow/fog assume RGB). VI is recomputed from the
+                # augmented RGB inside rgb_to_model_input.
+                rgb = self.pixel_tf(image=img[..., :3])["image"]
+                if self.has_extra:
+                    img = np.concatenate([rgb, img[..., 3:4]], axis=-1)
+                else:
+                    img = rgb
                 img = torch.from_numpy(rgb_to_model_input(img))
             else:
                 img = self.pixel_tf(image=img)["image"]
             mask = torch.from_numpy(mask).unsqueeze(0).float()
         else:
-            if USE_VI:
+            if self._numpy_norm:
                 img = torch.from_numpy(rgb_to_model_input(img))
                 mask = torch.from_numpy(mask).unsqueeze(0).float()
             else:
@@ -1762,11 +1856,43 @@ def build_model(device, compile_model=True):
     return model
 
 
+def _inflate_first_conv(state, own):
+    """Adapt a 3-channel-input checkpoint to a 4-channel model (RGB → RGB+hillshade).
+
+    Only the encoder's first conv has input-channel-dependent shape
+    ([C_out,3,k,k] → [C_out,4,k,k]). Copy the RGB weights and ZERO-init the extra
+    channel, so the pretrained RGB behaviour is exactly preserved at fine-tune
+    start and the hillshade weights are learned from scratch (vs strict=False
+    silently dropping the whole conv → random stem). No-op when channel counts
+    already match (loading a saved 4ch ckpt back for eval/inference). Returns a
+    patched copy of `state`."""
+    patched = dict(state)
+    for k, w in state.items():
+        if k not in own or own[k].dim() != 4:
+            continue
+        tw = own[k]
+        if tw.shape[1] == w.shape[1] or tw.shape[0] != w.shape[0]:
+            continue
+        if tw.shape[1] > w.shape[1]:
+            new = tw.clone(); new.zero_()
+            new[:, :w.shape[1]] = w
+            patched[k] = new
+            print(f"    • inflated input conv {k}: {tuple(w.shape)} → "
+                  f"{tuple(tw.shape)} (zero-init {tw.shape[1]-w.shape[1]} extra ch)")
+        else:
+            patched.pop(k, None)
+            print(f"    • dropped wider input conv {k}: ckpt {tuple(w.shape)} "
+                  f"> model {tuple(tw.shape)} (left random)")
+    return patched
+
+
 def load_state_into(model, ckpt_path, device):
-    """Load a checkpoint's model_state into model (handles torch.compile wrap)."""
+    """Load a checkpoint's model_state into model (handles torch.compile wrap and
+    RGB→RGB+hillshade first-conv inflation)."""
     ckpt = torch.load(ckpt_path, map_location=device)
     state = ckpt["model_state"]
     tgt = model._orig_mod if hasattr(model, "_orig_mod") else model
+    state = _inflate_first_conv(state, tgt.state_dict())
     tgt.load_state_dict(state, strict=False)
     return ckpt
 
@@ -1956,7 +2082,8 @@ def _save_ckpt(phase, epoch, model, optim, sched, history, best_val, path):
              else model.state_dict())
     torch.save({"phase": phase, "epoch": epoch, "model_state": state,
                 "optim_state": optim.state_dict(), "sched_state": sched.state_dict(),
-                "history": history, "best_val": best_val}, path)
+                "history": history, "best_val": best_val,
+                "in_channels": IN_CHANNELS}, path)   # 3=RGB, 4=RGB+hillshade
 
 
 def _freeze_encoder(model):
@@ -2051,6 +2178,15 @@ def step_train(label, batch_size=BATCH_SIZE, p3_ckpt=None, dry_run=False):
     if len(ftr) == 0:
         print("  ERROR: no training tiles after split — skipping.")
         return
+
+    # Match the model to the tiles on disk (3=RGB, 4=RGB+hillshade) so a hillshade
+    # tile set trains a 4ch model and a plain RGB set trains 3ch — no flag/tile
+    # mismatch. Phase-3 (3ch) is inflated to this in load_state_into below.
+    global IN_CHANNELS
+    with rasterio.open(ftr.iloc[0]["img_path"]) as _s0:
+        IN_CHANNELS = _s0.count
+    print(f"  Input channels: {IN_CHANNELS}  "
+          f"({'RGB+hillshade' if IN_CHANNELS >= 4 else 'RGB'})")
 
     pin = device.type == "cuda"
     counts = ftr["site"].value_counts().to_dict()
@@ -2307,6 +2443,9 @@ def step_evaluate(label, dry_run=False):
     ckpt = MODELS_DIR / f"sem_best_{label}.pt"
     if not ckpt.exists():
         print(f"  ERROR: {ckpt} not found — run step train first"); return
+    global IN_CHANNELS
+    with rasterio.open(eval_df.iloc[0]["img_path"]) as _s0:
+        IN_CHANNELS = _s0.count           # match the model to the eval tiles
     model = build_model(device, compile_model=False)
     ck = load_state_into(model, ckpt, device)
     model.eval()
@@ -2324,7 +2463,7 @@ def step_evaluate(label, dry_run=False):
                 img = src.read().transpose(1, 2, 0)
             with rasterio.open(row["mask_path"]) as src:
                 gt = src.read(1).astype(np.float32)
-            if USE_VI:
+            if USE_VI or img.shape[-1] >= 4:      # VI and/or hillshade → numpy norm
                 inp = torch.from_numpy(rgb_to_model_input(img)).unsqueeze(0).to(device)
             else:
                 inp = eval_tf(image=img)["image"].unsqueeze(0).to(device)
@@ -2445,10 +2584,20 @@ def step_inference(label, batch_size=INFER_BATCH_SIZE, dry_run=False):
         _unstage_imagery_local(local) if local != native else None
         return
 
+    # in_channels is recorded in the ckpt (3=RGB, 4=RGB+hillshade); set IN_CHANNELS
+    # before build_model so the U-Net stem matches, then load (inflation is a no-op
+    # when shapes already match). Pre-hillshade ckpts lack the field → default 3.
+    global IN_CHANNELS
+    ck = torch.load(ckpt, map_location=device)
+    IN_CHANNELS = int(ck.get("in_channels", 3))
+    has_hs = IN_CHANNELS >= 4
     model = build_model(device, compile_model=False)
-    ck = load_state_into(model, ckpt, device)
+    _tgt = model._orig_mod if hasattr(model, "_orig_mod") else model
+    _tgt.load_state_dict(_inflate_first_conv(ck["model_state"], _tgt.state_dict()),
+                         strict=False)
     model.eval()
-    print(f"  Model: {ckpt.name}  (val_bce={ck.get('best_val','?')})")
+    print(f"  Model: {ckpt.name}  (val_bce={ck.get('best_val','?')})  "
+          f"in_channels={IN_CHANNELS}{'  +hillshade' if has_hs else ''}")
 
     tf = A.Compose([A.Normalize(IMAGENET_MEAN, IMAGENET_STD, max_pixel_value=255.0),
                     ToTensorV2()])
@@ -2500,13 +2649,19 @@ def step_inference(label, batch_size=INFER_BATCH_SIZE, dry_run=False):
                 rr1, cc1 = min(img_h, r1), min(img_w, c1)
                 win = rasterio.windows.Window(cc0, rr0, cc1 - cc0, rr1 - rr0)
                 tile = read_rgb_window(src, win).transpose(1, 2, 0)
+                if has_hs:                                  # co-registered hillshade band
+                    win_tf = rasterio.windows.transform(win, src.transform)
+                    hs = read_hillshade_chip(src.crs, win_tf,
+                                             int(win.height), int(win.width))
+                    tile = np.concatenate([tile, hs.transpose(1, 2, 0)], axis=-1)
                 pt, pb = rr0 - r0, r1 - rr1
                 pl, pr = cc0 - c0, c1 - cc1
                 if any([pt, pb, pl, pr]):
                     tile = np.pad(tile, ((pt, pb), (pl, pr), (0, 0)), mode="reflect")
 
                 # Validity for the center crop (skip-write for un-imaged pixels).
-                center_rgb = tile[pad:pad+cc, pad:pad+cc, :]
+                # Judge coverage on RGB only — hillshade carries its own nodata.
+                center_rgb = tile[pad:pad+cc, pad:pad+cc, :3]
                 if src_nodata is not None:
                     valid = ~np.all(center_rgb == src_nodata, axis=-1)
                 else:
@@ -2514,8 +2669,9 @@ def step_inference(label, batch_size=INFER_BATCH_SIZE, dry_run=False):
                 if valid.all():
                     valid = None  # full-coverage tile, skip the masking work
 
-                batch_imgs.append(tf(image=tile)["image"] if not USE_VI
-                                  else torch.from_numpy(rgb_to_model_input(tile)))
+                batch_imgs.append(
+                    torch.from_numpy(rgb_to_model_input(tile)) if (USE_VI or has_hs)
+                    else tf(image=tile)["image"])
                 batch_meta.append((ro, co, valid))
                 if len(batch_imgs) == batch_size:
                     flush(dst); batch_imgs.clear(); batch_meta.clear()
@@ -2818,6 +2974,13 @@ def main():
                    help="Override the Phase 3 fine-tune-start checkpoint.")
     p.add_argument("--vi", action="store_true",
                    help="Use 6-channel RGB+VI input (must match the Phase 3 ckpt).")
+    p.add_argument("--hillshade", dest="hillshade", action="store_true", default=True,
+                   help="Bake the LIDAR first-return hillshade as a 4th input "
+                        "channel at tiling time, all years (default on). The model "
+                        "auto-matches the tile band count; Phase-3 conv-1 is "
+                        "inflated 3→4 (zero-init). Re-tile to (de)activate.")
+    p.add_argument("--no-hillshade", dest="hillshade", action="store_false",
+                   help="RGB-only tiles (no hillshade channel).")
     p.add_argument("--dry-run", action="store_true",
                    help="Plan only — no writes.")
     p.add_argument("--max-tiles", type=int, default=None,
@@ -2863,9 +3026,12 @@ def main():
     LOGS_DIR = BASE / "Scripts" / "logs"
     SCRIPT_NAME = "phase4_semantic_finetune"
 
-    global USE_VI, IN_CHANNELS, THRESH_MODE
+    global USE_VI, USE_HILLSHADE, IN_CHANNELS, THRESH_MODE
     USE_VI = bool(args.vi)
-    IN_CHANNELS = 3 + (len(VI_NAMES) if USE_VI else 0)
+    USE_HILLSHADE = bool(args.hillshade)
+    # Module-level fallback; the per-step functions (train/evaluate/inference)
+    # override IN_CHANNELS from the actual tile/ckpt band count.
+    IN_CHANNELS = 3 + (len(VI_NAMES) if USE_VI else 0) + (1 if USE_HILLSHADE else 0)
     THRESH_MODE = args.thresh_mode
     # Edit F: --loss-mode overrides the coarse-tier loss (focal A/B); fine/medium
     # stay bce_dice. Mutating the dict contents (no rebind) → no `global` needed.

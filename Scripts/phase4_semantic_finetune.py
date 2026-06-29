@@ -392,17 +392,7 @@ USE_VI      = False
 VI_NAMES    = ("GCC", "GRVI", "ExG")
 VI_MEAN     = [0.33, 0.00, 0.10]
 VI_STD      = [0.10, 0.30, 0.25]
-# NIR 4th input channel. RGBI orthos (2016/2021s Snohomish, 2019n/2022n NAIP)
-# carry a near-infrared band the RGB-only years lack. Phase 4 trains an
-# independent model per year, so the 4 RGBI years can run as 4-channel
-# (RGB+NIR) while the 14 RGB years stay 3-channel — no imputation. The
-# 3-channel Phase-3 checkpoint is inflated to 4ch at fine-tune start (the new
-# conv-1 channel is mean-initialised from the RGB weights). NIR_MEAN/STD are
-# nominal /255 stats; refine from data if a sensor's NIR is calibrated oddly.
-USE_NIR     = True
-NIR_MEAN    = [0.45]
-NIR_STD     = [0.225]
-IN_CHANNELS = 3   # module default; set per-year from year_in_channels() at runtime
+IN_CHANNELS = 3
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -483,26 +473,6 @@ def tier_of(gsd_cm):
     if gsd_cm <= 35.0:
         return "medium"    # 29.9
     return "coarse"        # 50.0, 59.7, 60.0
-
-
-# ── Per-year input-channel logic (RGB vs RGB+NIR) ─────────────────────────────
-# A year's model input is RGB (+NIR for RGBI orthos) (+VI if --vi). Driven off
-# the catalog "bands" field so RGB years are untouched and only the 4 RGBI years
-# pick up the NIR channel.
-
-def year_uses_nir(entry):
-    """True if this year's ortho carries a NIR band we ingest as a 4th channel."""
-    return bool(USE_NIR) and int(entry.get("bands", 3)) >= 4
-
-
-def model_bands(entry):
-    """1-based band indices to read from the year's ortho for the model input."""
-    return [1, 2, 3, 4] if year_uses_nir(entry) else [1, 2, 3]
-
-
-def year_in_channels(entry):
-    """in_channels for this year's U-Net: RGB(+NIR)(+VI)."""
-    return len(model_bands(entry)) + (len(VI_NAMES) if USE_VI else 0)
 
 
 TIER_TILE_PARAMS = {
@@ -879,15 +849,14 @@ def project_and_rasterise_site(src, src_nodata, native_crs, label, site_label,
     if win.width <= 0 or win.height <= 0:
         return None, None, False, 0.0  # footprint outside this ortho entirely
 
-    bands = model_bands(entry_for(label))                # [1,2,3] or [1,2,3,4]
-    rgb = src.read(bands, window=win)                    # C×h×w (RGB or RGB+NIR)
+    rgb = read_rgb_window(src, win)                       # 3×h×w
     win_tf = rasterio.windows.transform(win, src.transform)
 
-    # Coverage: a pixel is "no data" if all RGB bands equal the nodata fill (or 0).
+    # Coverage: a pixel is "no data" if all 3 bands equal the nodata fill (or 0).
     if src_nodata is not None:
-        nod = np.all(rgb[:3] == src_nodata, axis=0)
+        nod = np.all(rgb == src_nodata, axis=0)
     else:
-        nod = np.all(rgb[:3] == 0, axis=0)
+        nod = np.all(rgb == 0, axis=0)
     nod_frac = float(nod.mean())
     if nod_frac > COVERAGE_NODATA_MAX:
         print(f"    {site_label:<22} not covered ({nod_frac*100:.0f}% nodata) — skip")
@@ -971,7 +940,7 @@ def project_and_rasterise_site(src, src_nodata, native_crs, label, site_label,
     mask_path = year_dir / f"{site_label.lower()}_mask.tif"
 
     img_profile = {
-        "driver": "GTiff", "dtype": "uint8", "count": rgb.shape[0],   # 3 or 4 (RGBI)
+        "driver": "GTiff", "dtype": "uint8", "count": 3,
         "width": w, "height": h, "crs": native_crs, "transform": win_tf,
         "compress": "lzw",
     }
@@ -1252,7 +1221,7 @@ def _is_negative_site(site_label, crowns):
     return False
 
 
-def _negative_site_records(src, sites, src_nodata, stride, bands=(1, 2, 3)):
+def _negative_site_records(src, sites, src_nodata, stride):
     """Explicit guaranteed-background tiles from curated negative sites (Fix A).
 
     Tiles each negative site's footprint straight from the year's ortho, in the
@@ -1294,7 +1263,7 @@ def _negative_site_records(src, sites, src_nodata, stride, bands=(1, 2, 3)):
                     continue
                 seen.add((ro2, co2))
                 win_t = rasterio.windows.Window(co2, ro2, TILE_SIZE, TILE_SIZE)
-                img_tile = src.read(list(bands), window=win_t,
+                img_tile = src.read([1, 2, 3], window=win_t,
                                     boundless=True, fill_value=0)
                 if src_nodata is not None:
                     nod = np.all(img_tile == src_nodata, axis=0)
@@ -1328,7 +1297,6 @@ def _gather_citywide_coarse(label, sites, stride_override=None, dry_run=False):
     records (same schema as ``tile_site_native``, plus a ``force_keep`` flag).
     """
     entry  = entry_for(label)
-    bands  = model_bands(entry)          # [1,2,3] or [1,2,3,4] (RGBI → keep NIR)
     native = resolve_native_path(entry)
     if not native.exists():
         print(f"  ERROR: native ortho not found: {native}")
@@ -1359,11 +1327,11 @@ def _gather_citywide_coarse(label, sites, stride_override=None, dry_run=False):
                 for ro, co in tqdm(origins, desc="  City-wide scan",
                                    mininterval=2.0):
                     win = rasterio.windows.Window(co, ro, TILE_SIZE, TILE_SIZE)
-                    # Read RGB (+NIR for RGBI years). Reading ALL bands here used
-                    # to write a (4,H,W) tile into the count=3 profile below →
-                    # ValueError at dst.write for 2016/2021s/NAIP. `bands` keeps
-                    # exactly RGB(+NIR) so the tile band-count is explicit.
-                    img_tile = src.read(bands, window=win,
+                    # RGB only. RGBI orthos (2016/2021s Snoh, 2019n/2022n NAIP)
+                    # carry a 4th NIR band; reading all bands here wrote a (4,H,W)
+                    # tile into the count=3 profile in step_tile → ValueError. The
+                    # semantic model is RGB, so drop NIR like read_rgb_window does.
+                    img_tile = src.read([1, 2, 3], window=win,
                                         boundless=True, fill_value=0)
                     if src_nodata is not None:
                         nod = np.all(img_tile == src_nodata, axis=0)
@@ -1396,7 +1364,7 @@ def _gather_citywide_coarse(label, sites, stride_override=None, dry_run=False):
             # tiles, not one (Tune Fix 2).
             neg_stride = TIER_TILE_PARAMS[tier_of(entry["gsd_cm"])]["stride"]
             records.extend(_negative_site_records(src, sites, src_nodata,
-                                                  neg_stride, bands))
+                                                  neg_stride))
     finally:
         if not dry_run:
             if local != native:
@@ -1606,8 +1574,7 @@ def step_tile(label, sites, dry_run=False, max_tiles=None, stride_override=None,
         for r in all_records:
             r["split"] = "train" if r["tile_name"] in train_set else "test"
 
-    n_img_bands = len(model_bands(entry))   # 3 (RGB) or 4 (RGB+NIR for RGBI years)
-    img_base  = {"driver": "GTiff", "dtype": "uint8", "count": n_img_bands,
+    img_base  = {"driver": "GTiff", "dtype": "uint8", "count": 3,
                  "width": TILE_SIZE, "height": TILE_SIZE, "compress": "lzw"}
     mask_base = {"driver": "GTiff", "dtype": "uint8", "count": 1,
                  "width": TILE_SIZE, "height": TILE_SIZE, "compress": "lzw",
@@ -1693,28 +1660,16 @@ def compute_vis(rgb01, eps=1e-6):
                     axis=-1).astype(np.float32)
 
 
-def _input_norm(has_nir=False):
-    # Channel order: [R, G, B, (VI..), (NIR)] — VI derived from RGB, NIR stored.
-    mean = list(IMAGENET_MEAN) + (VI_MEAN if USE_VI else []) + (NIR_MEAN if has_nir else [])
-    std  = list(IMAGENET_STD)  + (VI_STD  if USE_VI else []) + (NIR_STD  if has_nir else [])
+def _input_norm():
+    mean = list(IMAGENET_MEAN) + (VI_MEAN if USE_VI else [])
+    std  = list(IMAGENET_STD)  + (VI_STD  if USE_VI else [])
     return np.asarray(mean, np.float32), np.asarray(std, np.float32)
 
 
-def rgb_to_model_input(img_uint8):
-    """uint8 HWC tile → normalised CHW model input. A 4th band is treated as NIR;
-    VI channels (if --vi) are derived from RGB and inserted before NIR so the
-    order matches _input_norm: [R,G,B,(VI..),(NIR)]. Detects NIR from band count
-    so a 3-band RGB tile and a 4-band RGBI tile both Just Work."""
-    has_nir = img_uint8.shape[-1] >= 4
-    img01 = img_uint8.astype(np.float32) / 255.0
-    rgb01 = img01[..., :3]
-    chans = [rgb01]
-    if USE_VI:
-        chans.append(compute_vis(rgb01))
-    if has_nir:
-        chans.append(img01[..., 3:4])
-    arr = np.concatenate(chans, -1) if len(chans) > 1 else rgb01
-    mean, std = _input_norm(has_nir)
+def rgb_to_model_input(rgb_uint8):
+    rgb01 = rgb_uint8.astype(np.float32) / 255.0
+    arr = np.concatenate([rgb01, compute_vis(rgb01)], -1) if USE_VI else rgb01
+    mean, std = _input_norm()
     arr = (arr - mean) / std
     return np.ascontiguousarray(arr.transpose(2, 0, 1))
 
@@ -1740,18 +1695,12 @@ def _make_pixel_transform_nonorm():
 class SemanticDataset:
     """Paired RGB + binary canopy mask tiles (identical contract to Phase 3)."""
 
-    def __init__(self, df, training=True, has_nir=False):
+    def __init__(self, df, training=True):
         self.df = df.reset_index(drop=True)
         self.training = training
-        self.has_nir = has_nir
-        # When the input has channels beyond RGB (NIR and/or VI), normalisation
-        # and ToTensor happen in rgb_to_model_input (numpy), not in albumentations
-        # — A.Normalize / HueSaturationValue assume exactly 3 channels. So the
-        # pixel transform must be the no-norm variant, applied to RGB only.
-        self._extra_ch = bool(USE_VI or has_nir)
         if training:
             self.spatial_tf = _make_spatial_transform()
-            self.pixel_tf = (_make_pixel_transform_nonorm() if self._extra_ch
+            self.pixel_tf = (_make_pixel_transform_nonorm() if USE_VI
                              else _make_pixel_transform())
         else:
             self.test_tf = _make_test_transform()
@@ -1768,24 +1717,16 @@ class SemanticDataset:
             mask = src.read(1).astype(np.float32)
 
         if self.training:
-            # Spatial aug applies jointly to all bands + mask (geometry only).
             out = self.spatial_tf(image=img, mask=mask)
             img, mask = out["image"], out["mask"]
-            if self._extra_ch:
-                # Colour/appearance aug on RGB only; NIR is passed through (its
-                # band statistics differ and HSV/shadow/fog assume RGB). VI is
-                # recomputed from the augmented RGB inside rgb_to_model_input.
-                rgb = self.pixel_tf(image=img[..., :3])["image"]
-                if self.has_nir:
-                    img = np.concatenate([rgb, img[..., 3:4]], axis=-1)
-                else:
-                    img = rgb
+            if USE_VI:
+                img = self.pixel_tf(image=img)["image"]
                 img = torch.from_numpy(rgb_to_model_input(img))
             else:
                 img = self.pixel_tf(image=img)["image"]
             mask = torch.from_numpy(mask).unsqueeze(0).float()
         else:
-            if self._extra_ch:
+            if USE_VI:
                 img = torch.from_numpy(rgb_to_model_input(img))
                 mask = torch.from_numpy(mask).unsqueeze(0).float()
             else:
@@ -1821,46 +1762,11 @@ def build_model(device, compile_model=True):
     return model
 
 
-def _inflate_first_conv(state, own):
-    """Adapt a checkpoint's input conv to a model with more input channels.
-
-    Fine-tuning a 4-channel (RGB+NIR) year from the 3-channel Phase-3 RGB
-    checkpoint: the only weight whose in-channels differ is the encoder's first
-    conv ([C_out, 3, k, k] → [C_out, 4, k, k]). Copy the RGB weights and
-    initialise each extra channel as the mean of the RGB weights so the initial
-    activation scale is preserved (vs. strict=False silently dropping the conv →
-    random init → losing the pretrained encoder stem). Returns a patched copy of
-    `state`. No-op when channel counts already match (e.g. loading a saved 4ch
-    per-year ckpt back into a 4ch model for eval/inference)."""
-    patched = dict(state)
-    for k, w in state.items():
-        if k not in own or own[k].dim() != 4:
-            continue
-        tw = own[k]
-        if tw.shape[1] == w.shape[1] or tw.shape[0] != w.shape[0]:
-            continue
-        if tw.shape[1] > w.shape[1]:
-            extra = tw.shape[1] - w.shape[1]
-            new = tw.clone()
-            new[:, :w.shape[1]] = w
-            new[:, w.shape[1]:] = w.mean(dim=1, keepdim=True).repeat(1, extra, 1, 1)
-            patched[k] = new
-            print(f"    • inflated input conv {k}: {tuple(w.shape)} → "
-                  f"{tuple(tw.shape)} (mean-init {extra} extra channel(s))")
-        else:                                    # fewer model channels — drop it
-            patched.pop(k, None)
-            print(f"    • dropped input conv {k}: ckpt {tuple(w.shape)} wider than "
-                  f"model {tuple(tw.shape)} (left random)")
-    return patched
-
-
 def load_state_into(model, ckpt_path, device):
-    """Load a checkpoint's model_state into model (handles torch.compile wrap and
-    RGB→RGB+NIR first-conv inflation)."""
+    """Load a checkpoint's model_state into model (handles torch.compile wrap)."""
     ckpt = torch.load(ckpt_path, map_location=device)
     state = ckpt["model_state"]
     tgt = model._orig_mod if hasattr(model, "_orig_mod") else model
-    state = _inflate_first_conv(state, tgt.state_dict())
     tgt.load_state_dict(state, strict=False)
     return ckpt
 
@@ -2071,15 +1977,9 @@ def _unfreeze_encoder(model):
 
 def step_train(label, batch_size=BATCH_SIZE, p3_ckpt=None, dry_run=False):
     _ensure_torch()
-    global IN_CHANNELS
     entry = entry_for(label)
     tier  = tier_of(entry["gsd_cm"])
-    has_nir = year_uses_nir(entry)
-    IN_CHANNELS = year_in_channels(entry)       # 3 (RGB) or 4 (RGB+NIR) [+VI]
     print(f"\n── [{label}] Step 3: Fine-tune ({tier}) ──")
-    print(f"  Input channels: {IN_CHANNELS}"
-          + ("  (RGB+NIR)" if has_nir else "  (RGB)")
-          + ("  +VI" if USE_VI else ""))
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"  Device: {device}"
@@ -2158,13 +2058,11 @@ def step_train(label, batch_size=BATCH_SIZE, p3_ckpt=None, dry_run=False):
     sampler = WeightedRandomSampler(torch.from_numpy(weights),
                                     num_samples=len(ftr), replacement=True)
     nw = min(NUM_WORKERS, max(2, len(ftr)))
-    train_loader = DataLoader(SemanticDataset(ftr, True, has_nir=has_nir),
-                              batch_size=batch_size,
+    train_loader = DataLoader(SemanticDataset(ftr, True), batch_size=batch_size,
                               sampler=sampler, num_workers=nw, pin_memory=pin,
                               drop_last=len(ftr) >= batch_size,
                               persistent_workers=True, prefetch_factor=4)
-    val_loader = DataLoader(SemanticDataset(fva, False, has_nir=has_nir),
-                            batch_size=batch_size,
+    val_loader = DataLoader(SemanticDataset(fva, False), batch_size=batch_size,
                             shuffle=False, num_workers=nw, pin_memory=pin,
                             drop_last=False, persistent_workers=True, prefetch_factor=4)
 
@@ -2384,10 +2282,8 @@ def _threshold_independent_metrics(all_prob, all_gt, f1_at_default):
 
 def step_evaluate(label, dry_run=False):
     _ensure_torch()
-    global IN_CHANNELS
     entry = entry_for(label)
     tier  = tier_of(entry["gsd_cm"])
-    IN_CHANNELS = year_in_channels(entry)   # match the saved per-year ckpt's in_ch
     has_test = TIER_TILE_PARAMS[tier]["has_test"]
     print(f"\n── [{label}] Step 4: Evaluation ({tier}) ──")
 
@@ -2428,7 +2324,7 @@ def step_evaluate(label, dry_run=False):
                 img = src.read().transpose(1, 2, 0)
             with rasterio.open(row["mask_path"]) as src:
                 gt = src.read(1).astype(np.float32)
-            if USE_VI or img.shape[-1] >= 4:        # VI and/or NIR → numpy norm path
+            if USE_VI:
                 inp = torch.from_numpy(rgb_to_model_input(img)).unsqueeze(0).to(device)
             else:
                 inp = eval_tf(image=img)["image"].unsqueeze(0).to(device)
@@ -2518,11 +2414,7 @@ def step_evaluate(label, dry_run=False):
 
 def step_inference(label, batch_size=INFER_BATCH_SIZE, dry_run=False):
     _ensure_torch()
-    global IN_CHANNELS
     entry = entry_for(label)
-    bands = model_bands(entry)              # RGB (+NIR) — must match training
-    has_nir = year_uses_nir(entry)
-    IN_CHANNELS = year_in_channels(entry)   # match the saved per-year ckpt's in_ch
     print(f"\n── [{label}] Step 5: Full-city native inference ──")
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -2607,15 +2499,14 @@ def step_inference(label, batch_size=INFER_BATCH_SIZE, dry_run=False):
                 rr0, cc0 = max(0, r0), max(0, c0)
                 rr1, cc1 = min(img_h, r1), min(img_w, c1)
                 win = rasterio.windows.Window(cc0, rr0, cc1 - cc0, rr1 - rr0)
-                tile = src.read(bands, window=win).transpose(1, 2, 0)  # RGB(+NIR)
+                tile = read_rgb_window(src, win).transpose(1, 2, 0)
                 pt, pb = rr0 - r0, r1 - rr1
                 pl, pr = cc0 - c0, c1 - cc1
                 if any([pt, pb, pl, pr]):
                     tile = np.pad(tile, ((pt, pb), (pl, pr), (0, 0)), mode="reflect")
 
                 # Validity for the center crop (skip-write for un-imaged pixels).
-                # Judge coverage on RGB only — NIR may carry a different nodata.
-                center_rgb = tile[pad:pad+cc, pad:pad+cc, :3]
+                center_rgb = tile[pad:pad+cc, pad:pad+cc, :]
                 if src_nodata is not None:
                     valid = ~np.all(center_rgb == src_nodata, axis=-1)
                 else:
@@ -2623,9 +2514,8 @@ def step_inference(label, batch_size=INFER_BATCH_SIZE, dry_run=False):
                 if valid.all():
                     valid = None  # full-coverage tile, skip the masking work
 
-                batch_imgs.append(
-                    torch.from_numpy(rgb_to_model_input(tile)) if (USE_VI or has_nir)
-                    else tf(image=tile)["image"])
+                batch_imgs.append(tf(image=tile)["image"] if not USE_VI
+                                  else torch.from_numpy(rgb_to_model_input(tile)))
                 batch_meta.append((ro, co, valid))
                 if len(batch_imgs) == batch_size:
                     flush(dst); batch_imgs.clear(); batch_meta.clear()
@@ -2928,12 +2818,6 @@ def main():
                    help="Override the Phase 3 fine-tune-start checkpoint.")
     p.add_argument("--vi", action="store_true",
                    help="Use 6-channel RGB+VI input (must match the Phase 3 ckpt).")
-    p.add_argument("--nir", dest="nir", action="store_true", default=True,
-                   help="Ingest the NIR 4th band of RGBI orthos (2016/2021s/NAIP) "
-                        "as an extra input channel (default on). RGB-only years are "
-                        "unaffected; the Phase-3 conv-1 is inflated 3→4ch.")
-    p.add_argument("--no-nir", dest="nir", action="store_false",
-                   help="Force RGB-only even for RGBI orthos (drop the NIR band).")
     p.add_argument("--dry-run", action="store_true",
                    help="Plan only — no writes.")
     p.add_argument("--max-tiles", type=int, default=None,
@@ -2979,11 +2863,8 @@ def main():
     LOGS_DIR = BASE / "Scripts" / "logs"
     SCRIPT_NAME = "phase4_semantic_finetune"
 
-    global USE_VI, USE_NIR, IN_CHANNELS, THRESH_MODE
+    global USE_VI, IN_CHANNELS, THRESH_MODE
     USE_VI = bool(args.vi)
-    USE_NIR = bool(args.nir)
-    # Module-level fallback; the per-year steps (train/evaluate/inference) override
-    # IN_CHANNELS from year_in_channels(entry) since only RGBI years carry NIR.
     IN_CHANNELS = 3 + (len(VI_NAMES) if USE_VI else 0)
     THRESH_MODE = args.thresh_mode
     # Edit F: --loss-mode overrides the coarse-tier loss (focal A/B); fine/medium

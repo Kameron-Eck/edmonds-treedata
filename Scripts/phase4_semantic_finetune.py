@@ -2151,6 +2151,16 @@ def _freeze_encoder(model):
     enc = model._orig_mod.encoder if hasattr(model, "_orig_mod") else model.encoder
     for p in enc.parameters():
         p.requires_grad = False
+    # Inflated (4ch) stem must stay trainable in Phase A: its structure channel
+    # is ZERO-INIT, and frozen-at-zero means the 4th channel contributes nothing
+    # for all of Phase A, then must learn from exact zero at LR_PHASE_B=5e-6 —
+    # it never gets off the ground (2016 ablation: struct≈fr≈rgb, channel dead).
+    # RGB behaviour is still preserved at start (the extra channel IS zero);
+    # Phase A's LR gives the new channel a real chance to learn its mixing.
+    if IN_CHANNELS > 3 and hasattr(enc, "conv1"):
+        for p in enc.conv1.parameters():
+            p.requires_grad = True
+        print(f"    (inflated {IN_CHANNELS}ch input conv kept trainable in Phase A)")
 
 
 def _unfreeze_encoder(model):

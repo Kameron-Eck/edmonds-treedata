@@ -208,10 +208,20 @@ POLYGONS_DIR  = BASE / "polygons"                     # training-site crown poly
 # code kept some at the "Pipeline Imagery" root. We resolve both.
 IMAGERY_DIR   = BASE / "Full_Image/Pipeline Imagery"
 NATIVE_DIR    = IMAGERY_DIR / "native"
-# LIDAR first-return DSM hillshade (USGS Western-WA 3DEP, ~2016), EPSG:3857 @ 1 m,
-# clipped to the imagery extent. Reprojected onto each tile's native grid as a 4th
-# input channel. See fetch_lidar in the session handoff for how it was built.
-HILLSHADE_PATH = IMAGERY_DIR / "lidar_snoh_hillshade_fr.tif"
+# LIDAR structure rasters (USGS Western-WA 3DEP, ~2016), EPSG:3857 @ 1 m, clipped
+# to the imagery extent. Reprojected onto each tile's native grid as a 4th input
+# channel. Two selectable sources (--hs-source):
+#   fr      raw first-return (DSM) hillshade — v025 original.
+#   struct  terrain-cancelled structure = clip(fr - bare_earth + 127, 1, 254).
+#           Bare-earth shading subtracts out, so slope/aspect illumination
+#           (fixed 315° sun) cancels: mowed grass → flat ~127, canopy keeps its
+#           full texture, flat rooftops are suppressed. 0 stays nodata.
+# See fetch_lidar / fetch_be_build_struct in the session handoffs for how they
+# were built.
+HS_PATHS = {
+    "fr":     IMAGERY_DIR / "lidar_snoh_hillshade_fr.tif",
+    "struct": IMAGERY_DIR / "lidar_snoh_structure.tif",
+}
 
 # Phase 3 semantic checkpoint — the fine-tune starting point for every year.
 P3_DIR        = BASE / "phase3"
@@ -396,16 +406,32 @@ USE_VI      = False
 VI_NAMES    = ("GCC", "GRVI", "ExG")
 VI_MEAN     = [0.33, 0.00, 0.10]
 VI_STD      = [0.10, 0.30, 0.25]
-# LIDAR first-return hillshade as a uniform 4th input channel (structure signal
-# that separates trees from grass; one ~2016 snapshot co-registered per tile, all
-# years). Stats are /255 over non-zero hillshade pixels (measured from the raster).
+# LIDAR structure raster as a uniform 4th input channel (structure signal that
+# separates trees from grass; one ~2016 snapshot co-registered per tile, all
+# years). Stats are /255 over non-zero pixels (measured from each raster).
 # The 3-channel Phase-3 RGB checkpoint is inflated to 4ch with the new conv-1
 # channel ZERO-initialised, so the pretrained RGB behaviour is preserved at
-# fine-tune start and hillshade weights are learned. Temporal caveat: best for
+# fine-tune start and structure weights are learned. Temporal caveat: best for
 # 2015-2017 imagery; highest drift for 2000-2012 (canopy changed since 2016).
+#
+# HS_SOURCE selects the raster (--hs-source). It is a *tiling-time* choice:
+# step_tile stamps the tag HS_SOURCE on every image tile, train/evaluate read it
+# back off the tiles, checkpoints record it, and inference reads it from the
+# ckpt — so stats/raster always match the data the model actually saw,
+# regardless of the flag on later steps (same philosophy as the band-count
+# auto-match).
+#
+# HS_DROPOUT: per-sample prob of blanking the structure channel to its mean
+# during TRAINING only (channel dropout). Keeps a strong pure-RGB pathway so
+# the model degrades gracefully where the ~2016 snapshot is stale (early years)
+# and never over-trusts structure against RGB evidence.
 USE_HILLSHADE = True
-HS_MEAN     = [0.58]
-HS_STD      = [0.26]
+HS_SOURCE   = "struct"            # 'fr' | 'struct' (see HS_PATHS)
+HS_STATS = {                      # /255 non-zero mean/std per source
+    "fr":     ([0.58],   [0.26]),
+    "struct": ([0.3867], [0.2175]),
+}
+HS_DROPOUT  = 0.25                # 0 disables; training only
 IN_CHANNELS = 3   # module default; set per-run from the tile/ckpt band count
 
 
@@ -575,26 +601,27 @@ def _copy_to_drive(local_path, drive_path):
     shutil.copy2(local_path, drive_path)
 
 
-# ── LIDAR hillshade 4th-channel reader ────────────────────────────────────────
-# The hillshade master (EPSG:3857, 1 m) is reprojected on demand onto each tile's
-# native grid (orthos are in 3857/2285/26910 at 7.5-60 cm). Opened once, staged to
-# local NVMe like the orthos. read_hillshade_chip is the single source of the 4th
-# band for tiling AND inference, so RGB and hillshade are always co-registered.
+# ── LIDAR structure 4th-channel reader ────────────────────────────────────────
+# The structure master (EPSG:3857, 1 m; source per HS_SOURCE) is reprojected on
+# demand onto each tile's native grid (orthos are in 3857/2285/26910 at 7.5-60
+# cm). Opened once per source, staged to local NVMe like the orthos.
+# read_hillshade_chip is the single source of the 4th band for tiling AND
+# inference, so RGB and structure are always co-registered.
 
-_HILLSHADE_DS = None
+_HILLSHADE_DS = {}   # source name → open dataset (cache)
 
 def _hillshade_ds():
-    """Open + cache the (staged) hillshade master, or None if absent/disabled."""
-    global _HILLSHADE_DS
-    if _HILLSHADE_DS is not None:
-        return _HILLSHADE_DS
-    if not HILLSHADE_PATH.exists():
-        print(f"  WARNING: hillshade not found at {HILLSHADE_PATH} — "
+    """Open + cache the staged HS_SOURCE master, or None if absent/disabled."""
+    if HS_SOURCE in _HILLSHADE_DS:
+        return _HILLSHADE_DS[HS_SOURCE]
+    path = HS_PATHS[HS_SOURCE]
+    if not path.exists():
+        print(f"  WARNING: --hs-source {HS_SOURCE} raster not found at {path} — "
               f"falling back to RGB-only despite USE_HILLSHADE.")
         return None
-    local = _stage_imagery_local(HILLSHADE_PATH)
-    _HILLSHADE_DS = rasterio.open(local)
-    return _HILLSHADE_DS
+    local = _stage_imagery_local(path)
+    _HILLSHADE_DS[HS_SOURCE] = rasterio.open(local)
+    return _HILLSHADE_DS[HS_SOURCE]
 
 
 def read_hillshade_chip(dst_crs, dst_transform, h, w):
@@ -1626,14 +1653,16 @@ def step_tile(label, sites, dry_run=False, max_tiles=None, stride_override=None,
         for r in all_records:
             r["split"] = "train" if r["tile_name"] in train_set else "test"
 
-    # Bake the LIDAR hillshade as a 4th band (co-registered per tile) when enabled
-    # and the raster is present. Single injection point: every record carries crs
-    # + tile_transform, so all tiling modes (city-wide / 6-site / negative) get it.
+    # Bake the LIDAR structure raster as a 4th band (co-registered per tile) when
+    # enabled and the raster is present. Single injection point: every record
+    # carries crs + tile_transform, so all tiling modes (city-wide / 6-site /
+    # negative) get it. The HS_SOURCE tag on each image tile records which raster
+    # was baked, so train/eval pick the matching normalization stats.
     add_hs = bool(USE_HILLSHADE) and _hillshade_ds() is not None
     n_img_bands = 4 if add_hs else 3
     if add_hs:
-        print(f"  + LIDAR hillshade band 4 from {HILLSHADE_PATH.name} "
-              f"(reprojected per tile)")
+        print(f"  + LIDAR hillshade band 4 from {HS_PATHS[HS_SOURCE].name} "
+              f"(source={HS_SOURCE}, reprojected per tile)")
     img_base  = {"driver": "GTiff", "dtype": "uint8", "count": n_img_bands,
                  "width": TILE_SIZE, "height": TILE_SIZE, "compress": "lzw"}
     mask_base = {"driver": "GTiff", "dtype": "uint8", "count": 1,
@@ -1653,6 +1682,8 @@ def step_tile(label, sites, dry_run=False, max_tiles=None, stride_override=None,
         with rasterio.open(img_out, "w", **{**img_base, "crs": rec["crs"],
                            "transform": rec["tile_transform"]}) as dst:
             dst.write(img_tile)
+            if add_hs:
+                dst.update_tags(HS_SOURCE=HS_SOURCE)
         with rasterio.open(mask_out, "w", **{**mask_base, "crs": rec["crs"],
                            "transform": rec["tile_transform"]}) as dst:
             dst.write(np.asarray(rec["_mask_tile"]).squeeze(), 1)
@@ -1726,11 +1757,32 @@ def compute_vis(rgb01, eps=1e-6):
 
 
 def _input_norm(has_hs=False):
-    # Channel order: [R, G, B, (VI..), (hillshade)] — VI derived from RGB, the
-    # hillshade is the stored 4th band.
-    mean = list(IMAGENET_MEAN) + (VI_MEAN if USE_VI else []) + (HS_MEAN if has_hs else [])
-    std  = list(IMAGENET_STD)  + (VI_STD  if USE_VI else []) + (HS_STD  if has_hs else [])
+    # Channel order: [R, G, B, (VI..), (structure)] — VI derived from RGB, the
+    # structure raster is the stored 4th band. Stats follow HS_SOURCE.
+    hs_mean, hs_std = HS_STATS[HS_SOURCE]
+    mean = list(IMAGENET_MEAN) + (VI_MEAN if USE_VI else []) + (hs_mean if has_hs else [])
+    std  = list(IMAGENET_STD)  + (VI_STD  if USE_VI else []) + (hs_std  if has_hs else [])
     return np.asarray(mean, np.float32), np.asarray(std, np.float32)
+
+
+def _sync_hs_source_from_tile(img_path):
+    """Adopt the HS_SOURCE baked into a tile set (tile tag → global) so the
+    normalization stats and any hillshade re-reads match the data on disk,
+    regardless of the --hs-source flag at train/eval time. Pre-v027 4-band
+    tiles carry no tag → 'fr' (they were tiled from the first-return raster)."""
+    global HS_SOURCE
+    with rasterio.open(img_path) as s0:
+        if s0.count < 4:
+            return
+        tag = s0.tags().get("HS_SOURCE", "fr")
+    if tag not in HS_STATS:
+        print(f"  WARNING: tile tag HS_SOURCE={tag!r} unknown — keeping "
+              f"{HS_SOURCE!r}")
+        return
+    if tag != HS_SOURCE:
+        print(f"  Tiles were baked with --hs-source {tag} — adopting it "
+              f"(flag said {HS_SOURCE}).")
+        HS_SOURCE = tag
 
 
 def rgb_to_model_input(img_uint8):
@@ -1816,6 +1868,14 @@ class SemanticDataset:
                 else:
                     img = rgb
                 img = torch.from_numpy(rgb_to_model_input(img))
+                # Structure-channel dropout (training only): blank the last
+                # channel to 0 in normalized space (= its mean) with prob
+                # HS_DROPOUT. Forces a strong pure-RGB pathway so the model
+                # never over-trusts the ~2016 snapshot where it is stale.
+                # torch RNG is per-worker seeded, unlike np.random under fork.
+                if self.has_extra and HS_DROPOUT > 0 \
+                        and torch.rand(()).item() < HS_DROPOUT:
+                    img[-1] = 0.0
             else:
                 img = self.pixel_tf(image=img)["image"]
             mask = torch.from_numpy(mask).unsqueeze(0).float()
@@ -2083,7 +2143,8 @@ def _save_ckpt(phase, epoch, model, optim, sched, history, best_val, path):
     torch.save({"phase": phase, "epoch": epoch, "model_state": state,
                 "optim_state": optim.state_dict(), "sched_state": sched.state_dict(),
                 "history": history, "best_val": best_val,
-                "in_channels": IN_CHANNELS}, path)   # 3=RGB, 4=RGB+hillshade
+                "in_channels": IN_CHANNELS,          # 3=RGB, 4=RGB+structure
+                "hs_source": HS_SOURCE}, path)       # which raster band 4 was
 
 
 def _freeze_encoder(model):
@@ -2179,14 +2240,17 @@ def step_train(label, batch_size=BATCH_SIZE, p3_ckpt=None, dry_run=False):
         print("  ERROR: no training tiles after split — skipping.")
         return
 
-    # Match the model to the tiles on disk (3=RGB, 4=RGB+hillshade) so a hillshade
+    # Match the model to the tiles on disk (3=RGB, 4=RGB+structure) so a structure
     # tile set trains a 4ch model and a plain RGB set trains 3ch — no flag/tile
     # mismatch. Phase-3 (3ch) is inflated to this in load_state_into below.
+    # Likewise adopt the tiles' HS_SOURCE tag (stats must match the baked band).
     global IN_CHANNELS
     with rasterio.open(ftr.iloc[0]["img_path"]) as _s0:
         IN_CHANNELS = _s0.count
+    _sync_hs_source_from_tile(ftr.iloc[0]["img_path"])
     print(f"  Input channels: {IN_CHANNELS}  "
-          f"({'RGB+hillshade' if IN_CHANNELS >= 4 else 'RGB'})")
+          f"({'RGB+structure[' + HS_SOURCE + ']' if IN_CHANNELS >= 4 else 'RGB'})"
+          + (f"  hs-dropout={HS_DROPOUT}" if IN_CHANNELS >= 4 else ""))
 
     pin = device.type == "cuda"
     counts = ftr["site"].value_counts().to_dict()
@@ -2446,6 +2510,7 @@ def step_evaluate(label, dry_run=False):
     global IN_CHANNELS
     with rasterio.open(eval_df.iloc[0]["img_path"]) as _s0:
         IN_CHANNELS = _s0.count           # match the model to the eval tiles
+    _sync_hs_source_from_tile(eval_df.iloc[0]["img_path"])
     model = build_model(device, compile_model=False)
     ck = load_state_into(model, ckpt, device)
     model.eval()
@@ -2584,20 +2649,28 @@ def step_inference(label, batch_size=INFER_BATCH_SIZE, dry_run=False):
         _unstage_imagery_local(local) if local != native else None
         return
 
-    # in_channels is recorded in the ckpt (3=RGB, 4=RGB+hillshade); set IN_CHANNELS
+    # in_channels is recorded in the ckpt (3=RGB, 4=RGB+structure); set IN_CHANNELS
     # before build_model so the U-Net stem matches, then load (inflation is a no-op
     # when shapes already match). Pre-hillshade ckpts lack the field → default 3.
-    global IN_CHANNELS
+    # hs_source is likewise adopted from the ckpt (pre-v027 4ch ckpts → 'fr') so
+    # the raster read per window and the stats match what the model trained on.
+    global IN_CHANNELS, HS_SOURCE
     ck = torch.load(ckpt, map_location=device)
     IN_CHANNELS = int(ck.get("in_channels", 3))
     has_hs = IN_CHANNELS >= 4
+    if has_hs:
+        _ck_src = str(ck.get("hs_source", "fr"))
+        if _ck_src in HS_STATS and _ck_src != HS_SOURCE:
+            print(f"  ckpt was trained with --hs-source {_ck_src} — adopting it.")
+            HS_SOURCE = _ck_src
     model = build_model(device, compile_model=False)
     _tgt = model._orig_mod if hasattr(model, "_orig_mod") else model
     _tgt.load_state_dict(_inflate_first_conv(ck["model_state"], _tgt.state_dict()),
                          strict=False)
     model.eval()
     print(f"  Model: {ckpt.name}  (val_bce={ck.get('best_val','?')})  "
-          f"in_channels={IN_CHANNELS}{'  +hillshade' if has_hs else ''}")
+          f"in_channels={IN_CHANNELS}"
+          f"{'  +structure[' + HS_SOURCE + ']' if has_hs else ''}")
 
     tf = A.Compose([A.Normalize(IMAGENET_MEAN, IMAGENET_STD, max_pixel_value=255.0),
                     ToTensorV2()])
@@ -2954,6 +3027,10 @@ def print_summary(entries):
 
 
 def main():
+    # Declared up top: HS_DROPOUT/HS_SOURCE are read below as argparse defaults,
+    # and Python forbids any use before the `global` declaration.
+    global USE_VI, USE_HILLSHADE, IN_CHANNELS, THRESH_MODE, HS_SOURCE, HS_DROPOUT
+
     filtered = [a for a in sys.argv[1:] if not (a == "-f" or a.endswith(".json"))]
     p = argparse.ArgumentParser(
         description="Phase 4 — Per-Year Semantic Segmentation Fine-Tuning")
@@ -2975,12 +3052,25 @@ def main():
     p.add_argument("--vi", action="store_true",
                    help="Use 6-channel RGB+VI input (must match the Phase 3 ckpt).")
     p.add_argument("--hillshade", dest="hillshade", action="store_true", default=True,
-                   help="Bake the LIDAR first-return hillshade as a 4th input "
-                        "channel at tiling time, all years (default on). The model "
+                   help="Bake a LIDAR structure raster as a 4th input channel at "
+                        "tiling time, all years (default on). The model "
                         "auto-matches the tile band count; Phase-3 conv-1 is "
                         "inflated 3→4 (zero-init). Re-tile to (de)activate.")
     p.add_argument("--no-hillshade", dest="hillshade", action="store_false",
-                   help="RGB-only tiles (no hillshade channel).")
+                   help="RGB-only tiles (no structure channel).")
+    p.add_argument("--hs-source", choices=sorted(HS_STATS), default="struct",
+                   help="Structure raster for band 4 (tiling-time choice, default "
+                        "struct): 'struct' = terrain-cancelled first-return minus "
+                        "bare-earth (+127) — slope illumination cancels, grass is "
+                        "flat, canopy texture kept; 'fr' = raw first-return "
+                        "hillshade (v025 behaviour). Tiles are tagged with the "
+                        "source; train/eval/inference adopt the tag/ckpt value, "
+                        "so this flag only matters at --step tile.")
+    p.add_argument("--hs-dropout", type=float, default=HS_DROPOUT,
+                   help=f"Training-only channel dropout: per-sample prob of "
+                        f"blanking the structure band to its mean (default "
+                        f"{HS_DROPOUT}). Keeps a pure-RGB pathway so stale-"
+                        f"snapshot years degrade gracefully. 0 disables.")
     p.add_argument("--dry-run", action="store_true",
                    help="Plan only — no writes.")
     p.add_argument("--max-tiles", type=int, default=None,
@@ -3026,9 +3116,10 @@ def main():
     LOGS_DIR = BASE / "Scripts" / "logs"
     SCRIPT_NAME = "phase4_semantic_finetune"
 
-    global USE_VI, USE_HILLSHADE, IN_CHANNELS, THRESH_MODE
     USE_VI = bool(args.vi)
     USE_HILLSHADE = bool(args.hillshade)
+    HS_SOURCE = args.hs_source          # tiling-time; tiles/ckpts override later
+    HS_DROPOUT = max(0.0, float(args.hs_dropout))
     # Module-level fallback; the per-step functions (train/evaluate/inference)
     # override IN_CHANNELS from the actual tile/ckpt band count.
     IN_CHANNELS = 3 + (len(VI_NAMES) if USE_VI else 0) + (1 if USE_HILLSHADE else 0)

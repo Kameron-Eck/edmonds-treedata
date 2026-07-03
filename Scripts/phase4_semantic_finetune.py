@@ -2574,24 +2574,35 @@ def step_evaluate(label, dry_run=False):
                   f"(stick with best-F1)")
 
     EVAL_DIR.mkdir(parents=True, exist_ok=True)
+    # Input-arm label so ablation rows (rgb / rgb+fr / rgb+struct) coexist in the
+    # report instead of silently overwriting each other. (VI unused in phase 4.)
+    chan_desc = f"rgb+{HS_SOURCE}" if IN_CHANNELS >= 4 else "rgb"
     rows = []
     for s in sorted(site_cm):
         m = _metrics(*site_cm[s])
         rows.append(dict(year=label, gsd_cm=entry["gsd_cm"], tier=tier,
+                         channels=chan_desc,
                          eval_scope=eval_scope, scope="site", site=s, **m))
     overall_row = dict(year=label, gsd_cm=entry["gsd_cm"], tier=tier,
+                       channels=chan_desc,
                        eval_scope=eval_scope, scope="OVERALL", site="ALL", **overall)
     overall_row.update(ti)   # auroc, ap, log_loss, best_f1, best_f1_thresh (if available)
     rows.append(overall_row)
     new = pd.DataFrame(rows)
 
-    # Append/replace this year's rows in the cumulative report.
+    # Append/replace this (year, channels) arm's rows in the cumulative report.
+    # Pre-channels rows were RGB-only — treat missing as "rgb" so a re-run still
+    # replaces them rather than duplicating.
     if EVAL_CSV.exists():
         old = pd.read_csv(EVAL_CSV)
-        old = old[old["year"].astype(str) != label]
+        if "channels" not in old.columns:
+            old["channels"] = "rgb"
+        old["channels"] = old["channels"].fillna("rgb")
+        old = old[~((old["year"].astype(str) == label) &
+                    (old["channels"] == chan_desc))]
         new = pd.concat([old, new], ignore_index=True)
     new.to_csv(EVAL_CSV, index=False)
-    print(f"  ✓ Eval rows written → {EVAL_CSV.name}")
+    print(f"  ✓ Eval rows written → {EVAL_CSV.name}  (channels={chan_desc})")
 
     if tier == "coarse":
         bf = f", best-F1 thresh={ti['best_f1_thresh']:.3f}" if ti else ""
@@ -2791,7 +2802,9 @@ def _operating_threshold(label):
             sub = df[(df["year"].astype(str) == str(label)) &
                      (df["scope"] == "OVERALL")]
             if len(sub) and col in sub.columns:
-                val = pd.to_numeric(sub.iloc[0][col], errors="coerce")
+                # Multiple ablation arms per year → take the last-appended
+                # (most recent eval, matching the current checkpoint).
+                val = pd.to_numeric(sub.iloc[-1][col], errors="coerce")
                 if pd.notna(val) and 0.0 < float(val) < 1.0:
                     return float(val), f"{col} ({THRESH_MODE}, semantic_eval_report.csv)"
         except Exception as e:

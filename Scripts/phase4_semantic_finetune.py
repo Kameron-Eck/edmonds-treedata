@@ -292,8 +292,13 @@ CITYWIDE_CANDIDATE_STRIDE = 256  # candidate origin stride before stratification
 # positives / 29.5% grass-FP rate. Reserve 30% of the bg budget for green
 # hard-negs and lower the greenness bar (0.10→0.08) so more lawn/field tiles
 # qualify. Paired with the CHM height channel + dedicated grass negative sites.
+# v032 collapse fix: 0.30/0.30 overshot — train pool hit 44% near-empty tiles
+# (canopy_frac<5%), and the per-sample dice term snowballs on empty tiles once
+# probability mass drops (grad ∝ 1/(P+1)^2) → all-background cliff at E6 in
+# THREE runs (chm/pw1.3, rgb-equiv/pw1.3, chm/pw2.774 — channel and pos_weight
+# both eliminated empirically). Soften toward the stable v029-era pool.
 GREEN_GRVI_THRESHOLD = 0.08
-HARD_NEG_FRACTION    = 0.30
+HARD_NEG_FRACTION    = 0.15
 
 # Background share of the coarse city-wide tile budget (Fix C). Raised above the
 # equal 5-bin baseline (~20%) so negatives are well represented. The remaining
@@ -304,7 +309,10 @@ HARD_NEG_FRACTION    = 0.30
 # baseline. Raise to re-test a heavier background share.
 # v030 grass-FP fix: 0.20→0.30 so background (incl. the reserved grass hard-neg
 # slice above) is better represented against the grass over-prediction.
-BACKGROUND_BUDGET_FRACTION = 0.30
+# v032 collapse fix: 0.30→0.22 (actual was 36% incl. neg-sites) — see the
+# HARD_NEG_FRACTION note above; grass emphasis stays via the reserved slice +
+# committed negative sites, just not enough empty tiles to feed the dice cliff.
+BACKGROUND_BUDGET_FRACTION = 0.22
 
 # Spatially-blocked train/val/test split for coarse city-wide tiles (Fix 4).
 # Whole geographic blocks are assigned to each split, then train tiles within

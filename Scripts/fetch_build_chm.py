@@ -145,7 +145,8 @@ def main():
     out = np.zeros((H, W), np.uint8)
     out[valid] = np.clip(dn[valid], 1, 254).astype(np.uint8)
 
-    prof.update(dtype="uint8", count=1, compress="deflate", nodata=0)
+    prof.update(dtype="uint8", count=1, compress="deflate", nodata=0,
+                tiled=True, blockxsize=256, blockysize=256)  # tiled → no BLOCKXSIZE warning
     with rasterio.open(out_path, "w", **prof) as w:
         w.write(out, 1)
 

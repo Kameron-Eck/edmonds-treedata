@@ -210,17 +210,23 @@ IMAGERY_DIR   = BASE / "Full_Image/Pipeline Imagery"
 NATIVE_DIR    = IMAGERY_DIR / "native"
 # LIDAR structure rasters (USGS Western-WA 3DEP, ~2016), EPSG:3857 @ 1 m, clipped
 # to the imagery extent. Reprojected onto each tile's native grid as a 4th input
-# channel. Two selectable sources (--hs-source):
+# channel. Three selectable sources (--hs-source):
 #   fr      raw first-return (DSM) hillshade — v025 original.
 #   struct  terrain-cancelled structure = clip(fr - bare_earth + 127, 1, 254).
 #           Bare-earth shading subtracts out, so slope/aspect illumination
 #           (fixed 315° sun) cancels: mowed grass → flat ~127, canopy keeps its
-#           full texture, flat rooftops are suppressed. 0 stays nodata.
-# See fetch_lidar / fetch_be_build_struct in the session handoffs for how they
-# were built.
+#           full texture, flat rooftops are suppressed. 0 stays nodata. WEAK: it
+#           is a hillshade DIFFERENCE (relief texture), NOT height — a flat 20 m
+#           roof reads ~127 like grass, so it can't resolve grass↔tree.
+#   chm     REAL canopy height (v030). USGS 3DEP Height-Above-Ground in metres,
+#           U8-scaled DN = 1 + round(clip(h,0,50.6)/0.2): DN 1 = 0 m (grass),
+#           DN 254 ≈ 50.6 m; 0 stays nodata. The true grass↔tree discriminator
+#           (height, not texture). Build with fetch_build_chm.py.
+# See fetch_lidar / fetch_be_build_struct / fetch_build_chm in the handoffs.
 HS_PATHS = {
     "fr":     IMAGERY_DIR / "lidar_snoh_hillshade_fr.tif",
     "struct": IMAGERY_DIR / "lidar_snoh_structure.tif",
+    "chm":    IMAGERY_DIR / "lidar_snoh_chm.tif",
 }
 
 # Phase 3 semantic checkpoint — the fine-tune starting point for every year.
@@ -282,8 +288,12 @@ CITYWIDE_CANDIDATE_STRIDE = 256  # candidate origin stride before stratification
 # the negative-emphasis stack that did NOT beat run 5. Reserve 0.0 → no forced
 # green slice (green tiles can still be picked as ordinary background; mining is
 # still computed/logged). Raise to re-enable.
-GREEN_GRVI_THRESHOLD = 0.10
-HARD_NEG_FRACTION    = 0.0
+# v030 grass-FP fix: RE-ENABLED. Diagnostics showed grass = 64% of all false
+# positives / 29.5% grass-FP rate. Reserve 30% of the bg budget for green
+# hard-negs and lower the greenness bar (0.10→0.08) so more lawn/field tiles
+# qualify. Paired with the CHM height channel + dedicated grass negative sites.
+GREEN_GRVI_THRESHOLD = 0.08
+HARD_NEG_FRACTION    = 0.30
 
 # Background share of the coarse city-wide tile budget (Fix C). Raised above the
 # equal 5-bin baseline (~20%) so negatives are well represented. The remaining
@@ -292,7 +302,9 @@ HARD_NEG_FRACTION    = 0.0
 # fraction. Tune Fix 4: backed off 0.35→0.25. Re-baseline (run-5): run 5 used the
 # equal 5-bin selection (~21% background); 0.20 reproduces that as the controlled
 # baseline. Raise to re-test a heavier background share.
-BACKGROUND_BUDGET_FRACTION = 0.20
+# v030 grass-FP fix: 0.20→0.30 so background (incl. the reserved grass hard-neg
+# slice above) is better represented against the grass over-prediction.
+BACKGROUND_BUDGET_FRACTION = 0.30
 
 # Spatially-blocked train/val/test split for coarse city-wide tiles (Fix 4).
 # Whole geographic blocks are assigned to each split, then train tiles within
@@ -426,10 +438,11 @@ VI_STD      = [0.10, 0.30, 0.25]
 # the model degrades gracefully where the ~2016 snapshot is stale (early years)
 # and never over-trusts structure against RGB evidence.
 USE_HILLSHADE = True
-HS_SOURCE   = "struct"            # 'fr' | 'struct' (see HS_PATHS)
+HS_SOURCE   = "chm"               # 'fr' | 'struct' | 'chm' (see HS_PATHS)
 HS_STATS = {                      # /255 non-zero mean/std per source
     "fr":     ([0.58],   [0.26]),
     "struct": ([0.3867], [0.2175]),
+    "chm":    ([0.2306], [0.2305]),   # 3DEP HAG U8-scaled, /255 nonzero (fetch_build_chm.py 2026-07-04)
 }
 HS_DROPOUT  = 0.25                # 0 disables; training only
 IN_CHANNELS = 3   # module default; set per-run from the tile/ckpt band count
@@ -1800,6 +1813,13 @@ def rgb_to_model_input(img_uint8):
     arr = np.concatenate(chans, -1) if len(chans) > 1 else rgb01
     mean, std = _input_norm(has_hs)
     arr = (arr - mean) / std
+    if has_hs:
+        # No-coverage LIDAR is stored as raw 0 (nodata sentinel). Left alone it
+        # normalises to (0-mean)/std ≈ -1.78 — a distinctive EXTREME the net was
+        # never taught to read as "no info". Blank it to 0 (= the channel mean),
+        # matching HS_DROPOUT, so missing coverage reads as neutral, not signal.
+        nod = (img_uint8[..., 3] == 0)
+        arr[..., -1][nod] = 0.0
     return np.ascontiguousarray(arr.transpose(2, 0, 1))
 
 
@@ -3081,9 +3101,11 @@ def main():
                         "inflated 3→4 (zero-init). Re-tile to (de)activate.")
     p.add_argument("--no-hillshade", dest="hillshade", action="store_false",
                    help="RGB-only tiles (no structure channel).")
-    p.add_argument("--hs-source", choices=sorted(HS_STATS), default="struct",
+    p.add_argument("--hs-source", choices=sorted(HS_STATS), default="chm",
                    help="Structure raster for band 4 (tiling-time choice, default "
-                        "struct): 'struct' = terrain-cancelled first-return minus "
+                        "chm): 'chm' = REAL 3DEP canopy height in metres (U8-scaled, "
+                        "the true grass/tree discriminator); "
+                        "'struct' = terrain-cancelled first-return minus "
                         "bare-earth (+127) — slope illumination cancels, grass is "
                         "flat, canopy texture kept; 'fr' = raw first-return "
                         "hillshade (v025 behaviour). Tiles are tagged with the "

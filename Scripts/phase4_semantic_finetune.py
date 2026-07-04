@@ -3072,7 +3072,8 @@ def print_summary(entries):
 def main():
     # Declared up top: HS_DROPOUT/HS_SOURCE are read below as argparse defaults,
     # and Python forbids any use before the `global` declaration.
-    global USE_VI, USE_HILLSHADE, IN_CHANNELS, THRESH_MODE, HS_SOURCE, HS_DROPOUT
+    global USE_VI, USE_HILLSHADE, IN_CHANNELS, THRESH_MODE, HS_SOURCE, HS_DROPOUT, \
+        COARSE_POS_WEIGHT_MAX, LR_PHASE_A
 
     filtered = [a for a in sys.argv[1:] if not (a == "-f" or a.endswith(".json"))]
     p = argparse.ArgumentParser(
@@ -3116,6 +3117,18 @@ def main():
                         f"blanking the structure band to its mean (default "
                         f"{HS_DROPOUT}). Keeps a pure-RGB pathway so stale-"
                         f"snapshot years degrade gracefully. 0 disables.")
+    p.add_argument("--coarse-pos-weight-max", type=float,
+                   default=COARSE_POS_WEIGHT_MAX,
+                   help=f"Clamp ceiling on the coarse-tier BCE pos_weight (default "
+                        f"{COARSE_POS_WEIGHT_MAX}). The raw pool-ratio value is "
+                        f"logged each run; raise toward it to re-weight canopy "
+                        f"against a background-heavy tile pool. Train-only — no "
+                        f"re-tile needed.")
+    p.add_argument("--lr-phase-a", type=float, default=LR_PHASE_A,
+                   help=f"Phase-A (frozen-encoder) learning rate (default "
+                        f"{LR_PHASE_A}). Lower (e.g. 2e-5) if the trainable "
+                        f"inflated input conv destabilises training on a strong "
+                        f"4th channel. Train-only.")
     p.add_argument("--dry-run", action="store_true",
                    help="Plan only — no writes.")
     p.add_argument("--max-tiles", type=int, default=None,
@@ -3165,6 +3178,10 @@ def main():
     USE_HILLSHADE = bool(args.hillshade)
     HS_SOURCE = args.hs_source          # tiling-time; tiles/ckpts override later
     HS_DROPOUT = max(0.0, float(args.hs_dropout))
+    # Collapse-fix levers (v031): flag-driven so loss/LR experiments need no
+    # script edit between runs. Defaults reproduce v030 exactly.
+    COARSE_POS_WEIGHT_MAX = float(args.coarse_pos_weight_max)
+    LR_PHASE_A = float(args.lr_phase_a)
     # Module-level fallback; the per-step functions (train/evaluate/inference)
     # override IN_CHANNELS from the actual tile/ckpt band count.
     IN_CHANNELS = 3 + (len(VI_NAMES) if USE_VI else 0) + (1 if USE_HILLSHADE else 0)

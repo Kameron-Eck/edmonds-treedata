@@ -407,6 +407,13 @@ CANOPY_PROB_THRESHOLD = 0.5
 #                       precision to fight canopy over-prediction)
 THRESH_MODE     = "best_f1"
 PRECISION_FLOOR = 0.72
+# Explicit numeric override for the postproc operating threshold. When set to a
+# value in (0,1), _operating_threshold returns it verbatim, bypassing the per-year
+# best_f1 / precision_floor lookup. Used to LOWER an off-year threshold (e.g. 2000
+# 0.513→~0.30) to recover canopy the stale-2016 CHM suppressed. Blunt lever —
+# prefer an honest reference (Phase 1 NAIP-NDVI / Phase 5 photo-interp) over
+# hand-tuning against the circular 2020-derived best-F1. Flag: --infer-thresh.
+INFER_THRESH_OVERRIDE = None
 MIN_CANOPY_PATCH      = 3.0      # m²
 MORPH_KERNEL_SIZE     = 3
 SIMPLIFY_TOLERANCE_M  = 0.5
@@ -3045,10 +3052,16 @@ def _operating_threshold(label):
 
     Returns (threshold_float, source_str).
 
+    An explicit --infer-thresh (INFER_THRESH_OVERRIDE) wins over everything: it
+    returns verbatim, bypassing the eval-CSV lookup (used to lower off-year
+    thresholds that suppress real canopy).
+
     NOTE: for coarse years tiled city-wide the threshold is now read from the
     held-out test block (Fix 3/4) and is out-of-sample; legacy 6-site / degraded
     years remain in-sample and optimistic.
     """
+    if INFER_THRESH_OVERRIDE is not None and 0.0 < float(INFER_THRESH_OVERRIDE) < 1.0:
+        return float(INFER_THRESH_OVERRIDE), f"--infer-thresh override ({float(INFER_THRESH_OVERRIDE):.3f})"
     col = ("prec_floor_thresh" if THRESH_MODE == "precision_floor"
            else "best_f1_thresh")
     if EVAL_CSV.exists():
@@ -3335,7 +3348,7 @@ def main():
     # and Python forbids any use before the `global` declaration.
     global USE_VI, USE_HILLSHADE, IN_CHANNELS, THRESH_MODE, HS_SOURCE, HS_DROPOUT, \
         COARSE_POS_WEIGHT_MAX, LR_PHASE_A, BCE_WEIGHT, DICE_WEIGHT, \
-        EPOCHS_PHASE_A, EPOCHS_PHASE_B, FREEZE_ENCODER_BN
+        EPOCHS_PHASE_A, EPOCHS_PHASE_B, FREEZE_ENCODER_BN, INFER_THRESH_OVERRIDE
 
     filtered = [a for a in sys.argv[1:] if not (a == "-f" or a.endswith(".json"))]
     p = argparse.ArgumentParser(
@@ -3460,6 +3473,12 @@ def main():
                         "threshold, default — nothing changes) or 'precision_floor' "
                         f"(lowest threshold with precision ≥ PRECISION_FLOOR="
                         f"{PRECISION_FLOOR}).")
+    p.add_argument("--infer-thresh", type=float, default=None,
+                   help="Explicit postproc operating threshold in (0,1); overrides "
+                        "--thresh-mode and the eval-CSV best_f1 lookup. Use to LOWER "
+                        "an off-year threshold to recover CHM-suppressed canopy, e.g. "
+                        "2000: --step postproc --infer-thresh 0.30. Blunt lever — "
+                        "prefer an honest reference over the 2020-label best-F1.")
     p.add_argument("--loss-mode", choices=["bce_dice", "focal_dice"], default=None,
                    help="Override the COARSE-tier training loss (Edit F): 'bce_dice' "
                         "(default = run-5 baseline) or 'focal_dice' (focal+dice "
@@ -3490,6 +3509,7 @@ def main():
     # override IN_CHANNELS from the actual tile/ckpt band count.
     IN_CHANNELS = 3 + (len(VI_NAMES) if USE_VI else 0) + (1 if USE_HILLSHADE else 0)
     THRESH_MODE = args.thresh_mode
+    INFER_THRESH_OVERRIDE = args.infer_thresh
     # Edit F: --loss-mode overrides the coarse-tier loss (focal A/B); fine/medium
     # stay bce_dice. Mutating the dict contents (no rebind) → no `global` needed.
     if args.loss_mode:

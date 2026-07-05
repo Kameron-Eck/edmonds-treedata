@@ -2400,7 +2400,25 @@ def step_train(label, batch_size=BATCH_SIZE, p3_ckpt=None, dry_run=False):
             print("  Early stop — Phase A"); break
     print(f"  ✓ Phase A best {es_metric}: {best_val:.4f}")
 
-    # ── Phase B: full model ──
+    # ── Phase B: full model ── (skipped entirely when EPOCHS_PHASE_B == 0,
+    # e.g. fast diagnostic runs — Phase B never recovers a Phase-A collapse).
+    if EPOCHS_PHASE_B == 0:
+        print("\n  PHASE B — skipped (--epochs-phase-b 0)")
+    else:
+        _run_phase_b(model, train_loader, val_loader, criterion, device, loss_mode,
+                     es_metric, es_maximize, sched_mode, best_val, best_ckpt,
+                     latest_ckpt, history)
+    pd.DataFrame(history).to_csv(MODELS_DIR / f"sem_loss_history_{label}.csv",
+                                 index=False)
+    del model
+    if device.type == "cuda":
+        torch.cuda.empty_cache()
+    gc.collect()
+
+
+def _run_phase_b(model, train_loader, val_loader, criterion, device, loss_mode,
+                 es_metric, es_maximize, sched_mode, best_val, best_ckpt,
+                 latest_ckpt, history):
     print(f"\n  PHASE B — full model | {EPOCHS_PHASE_B} ep | LR={LR_PHASE_B}")
     _unfreeze_encoder(model)
     opt = torch.optim.AdamW(model.parameters(), lr=LR_PHASE_B, weight_decay=1e-4)
@@ -2435,12 +2453,7 @@ def step_train(label, batch_size=BATCH_SIZE, p3_ckpt=None, dry_run=False):
             print("  Early stop — Phase B"); break
 
     print(f"  ✓ Phase B best {es_metric}: {best_val:.4f}  → {best_ckpt.name}")
-    pd.DataFrame(history).to_csv(MODELS_DIR / f"sem_loss_history_{label}.csv",
-                                 index=False)
-    del model, opt, scaler
-    if device.type == "cuda":
-        torch.cuda.empty_cache()
-    gc.collect()
+    del opt, scaler
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -3081,7 +3094,8 @@ def main():
     # Declared up top: HS_DROPOUT/HS_SOURCE are read below as argparse defaults,
     # and Python forbids any use before the `global` declaration.
     global USE_VI, USE_HILLSHADE, IN_CHANNELS, THRESH_MODE, HS_SOURCE, HS_DROPOUT, \
-        COARSE_POS_WEIGHT_MAX, LR_PHASE_A, BCE_WEIGHT, DICE_WEIGHT
+        COARSE_POS_WEIGHT_MAX, LR_PHASE_A, BCE_WEIGHT, DICE_WEIGHT, \
+        EPOCHS_PHASE_A, EPOCHS_PHASE_B
 
     filtered = [a for a in sys.argv[1:] if not (a == "-f" or a.endswith(".json"))]
     p = argparse.ArgumentParser(
@@ -3145,6 +3159,14 @@ def main():
                         f"(default {DICE_WEIGHT}). Dice pulls the probability "
                         f"scale down on a background-heavy pixel distribution; "
                         f"set 0.0 to isolate BCE. Train-only.")
+    p.add_argument("--epochs-phase-a", type=int, default=EPOCHS_PHASE_A,
+                   help=f"Phase-A epoch budget (default {EPOCHS_PHASE_A}). Lower "
+                        f"(e.g. 8) for fast diagnostic runs — the cliff appears by "
+                        f"E6, so a short Phase A shows stable-vs-collapse quickly.")
+    p.add_argument("--epochs-phase-b", type=int, default=EPOCHS_PHASE_B,
+                   help=f"Phase-B epoch budget (default {EPOCHS_PHASE_B}). Set 0 "
+                        f"to skip Phase B entirely (diagnostic runs don't need it "
+                        f"— it never recovers from a Phase-A collapse).")
     p.add_argument("--dry-run", action="store_true",
                    help="Plan only — no writes.")
     p.add_argument("--max-tiles", type=int, default=None,
@@ -3200,6 +3222,10 @@ def main():
     LR_PHASE_A = float(args.lr_phase_a)
     BCE_WEIGHT = float(args.bce_weight)
     DICE_WEIGHT = float(args.dice_weight)
+    # Epoch budgets (v034): flag-driven for fast diagnostic runs. Defaults =
+    # full schedule. --epochs-phase-b 0 skips Phase B (never rebuilt below).
+    EPOCHS_PHASE_A = max(1, int(args.epochs_phase_a))
+    EPOCHS_PHASE_B = max(0, int(args.epochs_phase_b))
     # Module-level fallback; the per-step functions (train/evaluate/inference)
     # override IN_CHANNELS from the actual tile/ckpt band count.
     IN_CHANNELS = 3 + (len(VI_NAMES) if USE_VI else 0) + (1 if USE_HILLSHADE else 0)

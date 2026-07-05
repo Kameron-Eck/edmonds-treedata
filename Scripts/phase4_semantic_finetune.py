@@ -3081,7 +3081,7 @@ def main():
     # Declared up top: HS_DROPOUT/HS_SOURCE are read below as argparse defaults,
     # and Python forbids any use before the `global` declaration.
     global USE_VI, USE_HILLSHADE, IN_CHANNELS, THRESH_MODE, HS_SOURCE, HS_DROPOUT, \
-        COARSE_POS_WEIGHT_MAX, LR_PHASE_A
+        COARSE_POS_WEIGHT_MAX, LR_PHASE_A, BCE_WEIGHT, DICE_WEIGHT
 
     filtered = [a for a in sys.argv[1:] if not (a == "-f" or a.endswith(".json"))]
     p = argparse.ArgumentParser(
@@ -3137,6 +3137,14 @@ def main():
                         f"{LR_PHASE_A}). Lower (e.g. 2e-5) if the trainable "
                         f"inflated input conv destabilises training on a strong "
                         f"4th channel. Train-only.")
+    p.add_argument("--bce-weight", type=float, default=BCE_WEIGHT,
+                   help=f"Weight on the BCE term of the bce_dice loss (default "
+                        f"{BCE_WEIGHT}). Train-only.")
+    p.add_argument("--dice-weight", type=float, default=DICE_WEIGHT,
+                   help=f"Weight on the soft-Dice term of the bce_dice loss "
+                        f"(default {DICE_WEIGHT}). Dice pulls the probability "
+                        f"scale down on a background-heavy pixel distribution; "
+                        f"set 0.0 to isolate BCE. Train-only.")
     p.add_argument("--dry-run", action="store_true",
                    help="Plan only — no writes.")
     p.add_argument("--max-tiles", type=int, default=None,
@@ -3186,10 +3194,12 @@ def main():
     USE_HILLSHADE = bool(args.hillshade)
     HS_SOURCE = args.hs_source          # tiling-time; tiles/ckpts override later
     HS_DROPOUT = max(0.0, float(args.hs_dropout))
-    # Collapse-fix levers (v031): flag-driven so loss/LR experiments need no
+    # Collapse-fix levers (v031/v033): flag-driven so loss/LR experiments need no
     # script edit between runs. Defaults reproduce v030 exactly.
     COARSE_POS_WEIGHT_MAX = float(args.coarse_pos_weight_max)
     LR_PHASE_A = float(args.lr_phase_a)
+    BCE_WEIGHT = float(args.bce_weight)
+    DICE_WEIGHT = float(args.dice_weight)
     # Module-level fallback; the per-step functions (train/evaluate/inference)
     # override IN_CHANNELS from the actual tile/ckpt band count.
     IN_CHANNELS = 3 + (len(VI_NAMES) if USE_VI else 0) + (1 if USE_HILLSHADE else 0)

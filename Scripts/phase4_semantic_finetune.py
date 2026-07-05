@@ -3133,24 +3133,60 @@ def step_postproc(label, dry_run=False):
     shapes_gen = rasterio.features.shapes(clean, mask=(clean == 1), transform=img_tf,
                                           connectivity=POLYGON_CONNECTIVITY)
     n = 0
+    # v039 speedup: the per-polygon Python loop (simplify preserve_topology=True +
+    # is_valid + buffer(0), one fiona write each) dominates postproc on a full-city
+    # mask (100k+ crowns). shapely 2.x runs simplify/validity/area as C ufuncs over
+    # the whole array at once, and fiona.writerecords batches the write. Fallback to
+    # the per-feature loop if shapely 2.x isn't available.
+    try:
+        import shapely as _shp
+        _vec = all(hasattr(_shp, a) for a in
+                   ("simplify", "make_valid", "is_valid", "get_parts",
+                    "get_type_id", "area"))
+    except Exception:
+        _vec = False
     with fiona.open(gpkg_out, "w", driver="GPKG", crs=img_crs.to_wkt(),
                     schema=schema) as dst:
-        for geom, _ in tqdm(shapes_gen, desc="  Polygonize", mininterval=5.0):
-            poly = shape(geom)
-            if SIMPLIFY_TOLERANCE_M > 0:
-                poly = poly.simplify(SIMPLIFY_TOLERANCE_M, preserve_topology=True)
-            if not poly.is_valid:
-                poly = poly.buffer(0)
-            if poly.is_empty:
-                continue
-            parts = list(poly.geoms) if poly.geom_type == "MultiPolygon" else [poly]
-            for part in parts:
-                if part.area < MIN_CANOPY_PATCH:
+        if _vec:
+            print("  (vectorized shapely 2.x polygonize)")
+            geoms = np.array([shape(g) for g, _ in shapes_gen], dtype=object)
+            if len(geoms):
+                if SIMPLIFY_TOLERANCE_M > 0:
+                    # preserve_topology=False = fast Douglas-Peucker; the make_valid
+                    # pass below repairs the rare self-intersection it can create.
+                    geoms = _shp.simplify(geoms, SIMPLIFY_TOLERANCE_M,
+                                          preserve_topology=False)
+                bad = ~_shp.is_valid(geoms)
+                if bad.any():
+                    geoms[bad] = _shp.make_valid(geoms[bad])
+                parts = _shp.get_parts(geoms)                     # explode multi/coll
+                parts = parts[_shp.get_type_id(parts) == 3]       # keep Polygons only
+                areas = _shp.area(parts)
+                keep = areas >= MIN_CANOPY_PATCH
+                parts = parts[keep]; areas = areas[keep]
+                dst.writerecords(
+                    {"geometry": mapping(p),
+                     "properties": {"canopy_id": f"CAN_{label}_{i:07d}",
+                                    "area_m2": round(float(a), 2)}}
+                    for i, (p, a) in enumerate(zip(parts, areas)))
+                n = len(parts)
+        else:
+            for geom, _ in tqdm(shapes_gen, desc="  Polygonize", mininterval=5.0):
+                poly = shape(geom)
+                if SIMPLIFY_TOLERANCE_M > 0:
+                    poly = poly.simplify(SIMPLIFY_TOLERANCE_M, preserve_topology=True)
+                if not poly.is_valid:
+                    poly = poly.buffer(0)
+                if poly.is_empty:
                     continue
-                dst.write({"geometry": mapping(part),
-                           "properties": {"canopy_id": f"CAN_{label}_{n:07d}",
-                                          "area_m2": round(part.area, 2)}})
-                n += 1
+                parts = list(poly.geoms) if poly.geom_type == "MultiPolygon" else [poly]
+                for part in parts:
+                    if part.area < MIN_CANOPY_PATCH:
+                        continue
+                    dst.write({"geometry": mapping(part),
+                               "properties": {"canopy_id": f"CAN_{label}_{n:07d}",
+                                              "area_m2": round(part.area, 2)}})
+                    n += 1
     tock("polygonize")
     print(f"  ✓ Canopy GeoPackage: {gpkg_out.name}  ({n:,} polygons)")
 

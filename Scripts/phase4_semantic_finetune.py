@@ -554,12 +554,19 @@ TIER_TILE_PARAMS = {
 }
 
 # Early-stop / best-checkpoint selection metric per tier.
-#   "val_bce" → minimize (fine/medium; stable log-loss with plenty of tiles)
-#   "val_iou" → MAXIMIZE (coarse): on the small blocked coarse val set, val_bce
-#     swings wildly (a few overconfident wrong pixels spike log-loss), so
-#     minimizing it crowned epoch 1 (worst IoU) as "best". val_iou rises
-#     monotonically and is the honest selection signal for coarse years.
-TIER_EARLYSTOP = {"fine": "val_bce", "medium": "val_bce", "coarse": "val_iou"}
+#   "val_bce"    → minimize (fine/medium; stable log-loss with plenty of tiles)
+#   "val_iou"    → MAXIMIZE, IoU at a FIXED 0.5 threshold.
+#   "val_iou_bt" → MAXIMIZE, IoU at the BEST threshold on a swept grid (coarse).
+#     Why coarse switched val_iou→val_iou_bt: BCE on the canopy-scarce coarse pool
+#     with clamped pos_weight calibrates predictions toward the low base rate, so
+#     the probability scale drifts BELOW 0.5 after a few epochs. val_iou@0.5 then
+#     reads a false "collapse" (→0) even though the model keeps improving and
+#     scores ~0.58 at threshold 0.3–0.4 (2016 diagnostic: E7 val_iou@0.5=0.004 but
+#     iou_bt=0.58@0.4). Selecting on val_iou@0.5 froze the checkpoint at an
+#     undertrained epoch. Best-threshold IoU is threshold-independent (== val_iou
+#     when 0.5 is optimal) and tracks true model quality. Inference still picks its
+#     own operating point via best_f1, so training + deployment agree.
+TIER_EARLYSTOP = {"fine": "val_bce", "medium": "val_bce", "coarse": "val_iou_bt"}
 
 # Per-tier segmentation loss mode (Edit F): "bce_dice" (default = run-5 baseline)
 # or "focal_dice". Coarse stays bce_dice by default so we reproduce run 5; the
@@ -2468,7 +2475,7 @@ def step_train(label, batch_size=BATCH_SIZE, p3_ckpt=None, dry_run=False):
     # maximize; fine/medium → val_bce minimize). Both metrics are still computed
     # and logged every epoch; only the SELECTION metric changes.
     es_metric   = TIER_EARLYSTOP.get(tier, "val_bce")
-    es_maximize = es_metric == "val_iou"
+    es_maximize = es_metric in ("val_iou", "val_iou_bt")
     sched_mode  = "max" if es_maximize else "min"
     best_val    = float("-inf") if es_maximize else float("inf")
     print(f"  Early-stop / best-ckpt metric: {es_metric} "
@@ -2500,7 +2507,8 @@ def step_train(label, batch_size=BATCH_SIZE, p3_ckpt=None, dry_run=False):
                                      device, loss_mode, freeze_bn=FREEZE_ENCODER_BN)
         v_bce, v_iou, v_iou_bt, v_thr = _validate(model, val_loader, criterion,
                                                   device, loss_mode)
-        es_val = v_iou if es_maximize else v_bce      # tier-selected metric
+        es_val = (v_iou_bt if es_metric == "val_iou_bt"      # tier-selected metric
+                  else v_iou if es_metric == "val_iou" else v_bce)
         sched.step(es_val)
         history["phase"].append("A"); history["epoch"].append(ep + 1)
         history["train_bce"].append(tr_bce); history["val_bce"].append(v_bce)
@@ -2556,7 +2564,8 @@ def _run_phase_b(model, train_loader, val_loader, criterion, device, loss_mode,
                                      device, loss_mode)
         v_bce, v_iou, v_iou_bt, v_thr = _validate(model, val_loader, criterion,
                                                   device, loss_mode)
-        es_val = v_iou if es_maximize else v_bce      # tier-selected metric
+        es_val = (v_iou_bt if es_metric == "val_iou_bt"      # tier-selected metric
+                  else v_iou if es_metric == "val_iou" else v_bce)
         sched.step(es_val)
         history["phase"].append("B"); history["epoch"].append(ep + 1)
         history["train_bce"].append(tr_bce); history["val_bce"].append(v_bce)

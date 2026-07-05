@@ -337,7 +337,11 @@ EARLY_STOP_PAT   = 15
 # encoder BN is pinned to its pretrained running stats for Phase A (standard
 # transfer-learning practice). Default False = legacy behaviour. See
 # _set_encoder_bn_eval for the collapse mechanism this addresses.
-FREEZE_ENCODER_BN = False
+# v039: default ON — standard transfer-learning practice; leaving frozen-encoder
+# BN in train mode let running stats drift off a background-heavy batch stream and
+# destabilised Phase A. --no-freeze-encoder-bn (or setting this False) restores the
+# legacy behaviour for A/B testing.
+FREEZE_ENCODER_BN = True
 BATCH_SIZE       = 10
 NUM_WORKERS      = 16
 SAVE_EVERY       = 5
@@ -373,19 +377,19 @@ POS_WEIGHT_MAX   = 10.0
 # pos_weight decouples it from tile-pool composition so the two knobs stop
 # fighting. Raw (pre-clamp) value is still logged.
 COARSE_POS_WEIGHT_MAX = 1.3
-# Principled fix (Edit 1): the city-wide stratified SAMPLER is the single
-# class-rebalancing channel for coarse years, so BCE pos_weight is retired for
-# coarse (forced to 1.0 / None). A sampler-balanced pool AND a ratio-derived
-# pos_weight is a double rebalance that fights itself — pos_weight drifted
-# 1.16→1.96 when the sampler's background fraction changed and crashed precision
-# (Cui et al. 2019; "Simplifying NN Training Under Class Imbalance" 2023: use one
-# channel, not two). Flip to True to restore the old capped-pos_weight behaviour
-# (COARSE_POS_WEIGHT_MAX above) without a version revert. Medium/fine unaffected.
-# Re-baseline (run-5): run 5 — the best honest result — used pos_weight ON
-# (raw≈1.16, below the 1.3 cap so non-binding). Set True to reproduce it. With the
-# fixed run-5 sampler the raw stays ≈1.16, so this is NOT the runaway double-
-# rebalance that hit run 6 (that came from the sampler's bg fraction moving).
-COARSE_USE_POS_WEIGHT = True
+# Single-rebalancing-channel rule (one channel, not two — Cui et al. 2019;
+# "Simplifying NN Training Under Class Imbalance" 2023). v039: the coarse sampler
+# is now NATURAL/instance-balanced (shuffle; preserves the true ~40% canopy prior)
+# — it no longer rebalances — so the frequency-invariant region (Dice) term of the
+# BCE+Dice loss owns class balance, and BCE pos_weight is retired to 1.0 (=None)
+# for coarse. This keeps predictions better calibrated near 0.5 (a strong
+# pos_weight shifts the operating point, which is what drove the earlier
+# probability-scale drift). Flip True (with COARSE_POS_WEIGHT_MAX) only to A/B a
+# loss-side pixel reweight. Medium/fine unaffected.
+# WATCH: per-sample Dice can under-predict on empty tiles (~29% of the balanced
+# pool); if the validation run shows low recall / under-prediction, mask the Dice
+# term to target-present tiles (audit finding, deferred from this round).
+COARSE_USE_POS_WEIGHT = False
 
 # Inference (same center-crop streaming as Phase 0 / Phase 3)
 INFER_BATCH_SIZE = 160
@@ -1811,14 +1815,21 @@ def step_tile(label, sites, dry_run=False, max_tiles=None, stride_override=None,
 
 def _make_spatial_transform():
     _ensure_torch()
+    # v039: geometric transforms fill out-of-frame borders with a CONSTANT. The
+    # image border stays 0 (black), but the MASK border must be IGNORE_LABEL (255),
+    # not 0 — otherwise rotated/warped corners become fake BACKGROUND pixels that
+    # the loss learns from (and feed the empty-tile problem). fill_mask pins them to
+    # ignore so they're excluded from loss and metrics (albumentations 2.x API).
     return A.Compose([
         A.HorizontalFlip(p=0.5), A.VerticalFlip(p=0.5), A.Transpose(p=0.5),
         A.RandomRotate90(p=0.5),
-        A.Rotate(limit=45, border_mode=0, p=0.5),
+        A.Rotate(limit=45, border_mode=0, fill_mask=IGNORE_LABEL, p=0.5),
         A.Affine(translate_percent=0.1, scale=(0.9, 1.1), rotate=0,
-                 border_mode=0, p=0.5),
-        A.GridDistortion(num_steps=5, distort_limit=0.3, p=0.4),
-        A.ElasticTransform(alpha=50, sigma=5, p=0.3),
+                 border_mode=0, fill_mask=IGNORE_LABEL, p=0.5),
+        A.GridDistortion(num_steps=5, distort_limit=0.3, border_mode=0,
+                         fill_mask=IGNORE_LABEL, p=0.4),
+        A.ElasticTransform(alpha=50, sigma=5, border_mode=0,
+                           fill_mask=IGNORE_LABEL, p=0.3),
     ], additional_targets={"mask": "mask"})
 
 
@@ -2225,18 +2236,25 @@ def _train_one_epoch(model, loader, optimizer, scaler, criterion, device,
     return loss_sum / max(n, 1), seg_sum / max(n, 1)
 
 
-# Threshold grid for the diagnostic best-threshold IoU (Diag): swept so a pure
-# probability-scale/calibration shift (val_iou@0.5 cliffs while the model still
-# ranks fine) is distinguishable from real degradation. Same per-batch-mean-IoU
-# accumulation as val_iou@0.5, just at each threshold.
+# Threshold grid for the best-threshold IoU: swept so a probability-scale/
+# calibration shift (IoU@0.5 drops while the model still ranks fine) is
+# distinguishable from real degradation, and so checkpoint selection is robust to
+# where the operating point sits. 0.5 must stay in the grid (reported separately).
 _VAL_THRESH_GRID = (0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8)
+_VAL_THRESH_I05  = _VAL_THRESH_GRID.index(0.5)
 
 
 def _validate(model, loader, criterion, device, loss_mode="bce_dice"):
     model.eval()
-    seg_sum = iou_sum = 0.0        # seg_sum = combined seg loss (matches train objective)
-    iou_grid = [0.0] * len(_VAL_THRESH_GRID)   # per-threshold IoU accumulator
+    seg_sum = 0.0        # seg_sum = combined seg loss (matches train objective)
     n = 0
+    # v039: pool inter/pred/tgt over the WHOLE val set, then compute one IoU per
+    # threshold. Global (dataset-level) IoU is the honest metric; the old per-batch
+    # mean scored target-empty batches as 0 and biased selection on a bg-heavy pool.
+    ntg = len(_VAL_THRESH_GRID)
+    inter_g = torch.zeros(ntg, device=device)
+    pred_g  = torch.zeros(ntg, device=device)
+    tgt_total = torch.zeros((), device=device)
     with torch.no_grad():
         for imgs, masks, _ in loader:
             imgs = imgs.to(device, non_blocking=True)
@@ -2244,27 +2262,20 @@ def _validate(model, loader, criterion, device, loss_mode="bce_dice"):
             with torch.amp.autocast("cuda"):
                 logits = model(imgs)
                 seg, _p, _dice = _seg_loss(criterion, logits, masks, loss_mode)
-            seg_sum += seg.item()
+            seg_sum += seg.item(); n += 1
             valid = (masks != IGNORE_LABEL).float()
-            prob  = torch.sigmoid(logits)
+            prob  = torch.sigmoid(logits.float())
             tgt   = (masks == 1).float() * valid
-            tsum  = tgt.sum()
-            # val_iou: unchanged — thresholded IoU at 0.5 for cross-run comparability.
-            preds = (prob > 0.5).float() * valid
-            inter = (preds * tgt).sum()
-            union = preds.sum() + tsum - inter
-            iou_sum += (inter / (union + 1e-8)).item()
-            # Diag: same IoU at each grid threshold (threshold-independent read).
+            tgt_total += tgt.sum()
             for i, t in enumerate(_VAL_THRESH_GRID):
                 p = (prob > t).float() * valid
-                inr = (p * tgt).sum()
-                iou_grid[i] += (inr / (p.sum() + tsum - inr + 1e-8)).item()
-            n += 1
-    nn_ = max(n, 1)
-    grid_mean = [g / nn_ for g in iou_grid]
-    bt_i = max(range(len(grid_mean)), key=lambda i: grid_mean[i])
-    return (seg_sum / nn_, iou_sum / nn_,
-            grid_mean[bt_i], _VAL_THRESH_GRID[bt_i])
+                inter_g[i] += (p * tgt).sum()
+                pred_g[i]  += p.sum()
+    union_g  = pred_g + tgt_total - inter_g
+    iou_grid = (inter_g / union_g.clamp(min=1e-8)).tolist()
+    bt_i = max(range(ntg), key=lambda i: iou_grid[i])
+    return (seg_sum / max(n, 1), iou_grid[_VAL_THRESH_I05],
+            iou_grid[bt_i], _VAL_THRESH_GRID[bt_i])
 
 
 def _save_ckpt(phase, epoch, model, optim, sched, history, best_val, path):
@@ -2366,7 +2377,8 @@ def step_train(label, batch_size=BATCH_SIZE, p3_ckpt=None, dry_run=False):
     # no random/neighbour val tiles are needed. Replaces the leaked random-15%
     # fallback for that path.
     val_df = idx_df[idx_df["split"] == "val"].reset_index(drop=True)
-    if len(val_df) > 0:
+    use_blocked_val = len(val_df) > 0     # citywide-coarse path (bin-balanced pool)
+    if use_blocked_val:
         ftr = train_df.reset_index(drop=True)
         fva = val_df.reset_index(drop=True)
         print(f"  Val split: BLOCKED hold-out from tile index ({len(fva)} tiles)")
@@ -2414,13 +2426,29 @@ def step_train(label, batch_size=BATCH_SIZE, p3_ckpt=None, dry_run=False):
           + (f"  hs-dropout={HS_DROPOUT}" if IN_CHANNELS >= 4 else ""))
 
     pin = device.type == "cuda"
-    counts = ftr["site"].value_counts().to_dict()
-    weights = ftr["site"].map(lambda s: 1.0 / counts[s]).values.astype(np.float32)
-    sampler = WeightedRandomSampler(torch.from_numpy(weights),
-                                    num_samples=len(ftr), replacement=True)
+    # Sampler (v039 fix): the citywide-coarse pool is already balanced by
+    # canopy-fraction bin in _select_citywide_tiles, so use NATURAL (instance-
+    # balanced) sampling — plain shuffle — which preserves the true canopy prior
+    # (~40% of tiles). The previous inverse-SITE weighting gave the single "city"
+    # site (which holds ALL canopy) and each tiny curated pure-negative site EQUAL
+    # total sampling mass, so batches ran ~83% pure background → recall crash +
+    # train/test prior shift + probability scale dragged below 0.5. Non-citywide
+    # (legacy 6-site) pools are NOT pre-balanced, so keep per-site balancing there.
+    if use_blocked_val:
+        sampler = None
+        train_shuffle = True
+        print("  Sampler: natural/shuffle (bin-balanced citywide pool; prior preserved)")
+    else:
+        counts = ftr["site"].value_counts().to_dict()
+        weights = ftr["site"].map(lambda s: 1.0 / counts[s]).values.astype(np.float32)
+        sampler = WeightedRandomSampler(torch.from_numpy(weights),
+                                        num_samples=len(ftr), replacement=True)
+        train_shuffle = False
+        print("  Sampler: per-site inverse-frequency (6-site pool)")
     nw = min(NUM_WORKERS, max(2, len(ftr)))
     train_loader = DataLoader(SemanticDataset(ftr, True), batch_size=batch_size,
-                              sampler=sampler, num_workers=nw, pin_memory=pin,
+                              sampler=sampler, shuffle=train_shuffle,
+                              num_workers=nw, pin_memory=pin,
                               drop_last=len(ftr) >= batch_size,
                               persistent_workers=True, prefetch_factor=4)
     val_loader = DataLoader(SemanticDataset(fva, False), batch_size=batch_size,
@@ -2551,6 +2579,13 @@ def _run_phase_b(model, train_loader, val_loader, criterion, device, loss_mode,
                  es_metric, es_maximize, sched_mode, best_val, best_ckpt,
                  latest_ckpt, history):
     print(f"\n  PHASE B — full model | {EPOCHS_PHASE_B} ep | LR={LR_PHASE_B}")
+    # v039 fix: resume from the BEST Phase-A checkpoint, not the last-epoch weights.
+    # Previously Phase B continued from whatever weights Phase A ended on (which
+    # early-stopping had already rejected), so it started behind its own best_val
+    # and could never improve on it → Phase B wasted. Reload best before unfreezing.
+    if best_ckpt.exists():
+        load_state_into(model, best_ckpt, device)
+        print(f"    (resumed from best Phase-A checkpoint: {es_metric}={best_val:.4f})")
     _unfreeze_encoder(model)
     opt = torch.optim.AdamW(model.parameters(), lr=LR_PHASE_B, weight_decay=1e-4)
     sched = torch.optim.lr_scheduler.ReduceLROnPlateau(
@@ -2680,6 +2715,16 @@ def step_evaluate(label, dry_run=False):
     idx_df = pd.read_csv(index_path)
     eval_df = idx_df[idx_df["split"] == "test"].reset_index(drop=True)
     eval_scope = "held-out test"
+    # v039: honesty caveat. Only the coarse-citywide path carves a spatially
+    # BLOCKED split (val rows present in the index, >520 m from train). Medium/fine
+    # with stride < TILE_SIZE use a RANDOM tile-level test split on 50%-overlapping
+    # tiles, so train and "test" tiles overlap → optimistic, leaked metrics. Flag
+    # it so these numbers aren't trusted as true held-out until spatial blocking is
+    # applied to those tiers.
+    has_blocked_split = bool((idx_df["split"] == "val").any())
+    tier_stride = TIER_TILE_PARAMS[tier]["stride"]
+    if len(eval_df) > 0 and not has_blocked_split and tier_stride < TILE_SIZE:
+        eval_scope = "held-out test (TILE-LEVEL split — LEAKS across overlapping tiles)"
     if len(eval_df) == 0:
         # Coarse years have no held-out test → evaluate in-sample (DG4 number).
         eval_df = idx_df.reset_index(drop=True)
@@ -2731,7 +2776,7 @@ def step_evaluate(label, dry_run=False):
             sm = site_cm.setdefault(s, [0, 0, 0, 0])
             sm[0] += a; sm[1] += b; sm[2] += c; sm[3] += d
 
-    overall = _metrics(tp, fp, fn, tn)
+    overall = _metrics(tp, fp, fn, tn)   # at the fixed 0.5 cutoff
 
     # ── Threshold-independent metrics (pooled over all eval pixels) ───────────
     # These judge the model's probability RANKING, independent of the 0.5 cutoff —
@@ -2739,6 +2784,21 @@ def step_evaluate(label, dry_run=False):
     # fixed threshold is brutally sensitive. best_f1_thresh is the per-year
     # operating point to use instead of 0.5.
     ti = _threshold_independent_metrics(all_prob, all_gt, overall["f1"])
+
+    # v039: also compute confusion metrics at the DEPLOYED operating threshold
+    # (best_f1), not just 0.5. For coarse years the probability scale drifts below
+    # 0.5, so IoU/recall@0.5 grossly understate the model and mislead the DG4 gate;
+    # inference deploys best_f1_thresh, so THIS is the honest headline number.
+    op_thr = (float(ti["best_f1_thresh"])
+              if ti.get("best_f1_thresh", "") not in ("", None)
+              else CANOPY_PROB_THRESHOLD)
+    overall_op = overall
+    if all_prob:
+        yp = np.concatenate(all_prob); yt = np.concatenate(all_gt)
+        pop = yp > op_thr
+        tp_o = int((pop & (yt == 1)).sum()); fp_o = int((pop & (yt == 0)).sum())
+        fn_o = int((~pop & (yt == 1)).sum()); tn_o = int((~pop & (yt == 0)).sum())
+        overall_op = _metrics(tp_o, fp_o, fn_o, tn_o)
     del all_prob, all_gt
 
     print(f"  {'-'*52}")
@@ -2747,9 +2807,12 @@ def step_evaluate(label, dry_run=False):
           f"Rec={overall['recall']:.4f}")
     if ti:
         print(f"  AUROC={ti['auroc']:.4f}  AP={ti['ap']:.4f}  "
-              f"LogLoss={ti['log_loss']:.4f}")
+              f"LogLoss={ti['log_loss']:.4f}   [AP is the honest headline]")
         print(f"  Best-F1 @ thresh {ti['best_f1_thresh']:.3f}  "
               f"(F1={ti['best_f1']:.4f}  vs  {overall['f1']:.4f} @ {CANOPY_PROB_THRESHOLD:.2f})")
+        print(f"  @ operating thresh {op_thr:.3f}: IoU={overall_op['iou']:.4f}  "
+              f"Dice={overall_op['dice']:.4f}  Prec={overall_op['precision']:.4f}  "
+              f"Rec={overall_op['recall']:.4f}   (vs IoU={overall['iou']:.4f} @ 0.50)")
         pf = ti.get("prec_floor_thresh", "")
         if pf not in ("", None):
             print(f"  Precision-floor @ thresh {pf:.3f}  "
@@ -2773,6 +2836,12 @@ def step_evaluate(label, dry_run=False):
                        channels=chan_desc,
                        eval_scope=eval_scope, scope="OVERALL", site="ALL", **overall)
     overall_row.update(ti)   # auroc, ap, log_loss, best_f1, best_f1_thresh (if available)
+    # v039: confusion metrics at the deployed operating threshold (best_f1), as
+    # *_op columns alongside the legacy 0.5 columns. Use these for DG decisions.
+    overall_row["op_thresh"] = round(op_thr, 4)
+    overall_row.update({f"{k}_op": overall_op[k]
+                        for k in ("iou", "dice", "precision", "recall",
+                                  "f1", "accuracy")})
     rows.append(overall_row)
     new = pd.DataFrame(rows)
 
@@ -3302,12 +3371,18 @@ def main():
                    help=f"Phase-B epoch budget (default {EPOCHS_PHASE_B}). Set 0 "
                         f"to skip Phase B entirely (diagnostic runs don't need it "
                         f"— it never recovers from a Phase-A collapse).")
-    p.add_argument("--freeze-encoder-bn", action="store_true",
+    p.add_argument("--freeze-encoder-bn", dest="freeze_encoder_bn",
+                   action="store_true", default=FREEZE_ENCODER_BN,
                    help="Pin the frozen encoder's BatchNorm to its pretrained "
                         "running stats during Phase A (stop it tracking batch "
                         "stats). Standard transfer-learning practice; addresses "
                         "the fixed-epoch val_iou cliff caused by BN drift under a "
-                        "trainable input-conv + off-distribution pool. Train-only.")
+                        f"trainable input-conv + off-distribution pool. Train-only. "
+                        f"Default {FREEZE_ENCODER_BN}.")
+    p.add_argument("--no-freeze-encoder-bn", dest="freeze_encoder_bn",
+                   action="store_false",
+                   help="Disable the frozen-encoder BN pin (legacy behaviour; for "
+                        "A/B testing the v039 default).")
     p.add_argument("--force-retile", action="store_true",
                    help="Rebuild the city-wide tile set even when a complete one "
                         "for the current sampling constants already exists. "

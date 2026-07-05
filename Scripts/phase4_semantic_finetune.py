@@ -83,6 +83,7 @@
 import argparse
 import gc
 import importlib
+import json
 import multiprocessing
 import os
 import shutil
@@ -1566,8 +1567,59 @@ def _block_partition(records, gsd_m, val_frac=COARSE_VAL_FRAC,
     return status
 
 
+# ── Idempotent tiling: skip the ~20-min city scan when a complete tile set for
+# the current sampling constants already sits on Drive. Tile SELECTION is fully
+# deterministic (seeded), so re-running the default pipeline after a lost Colab
+# session should reuse tiles, not rebuild them. The signature captures every
+# constant that changes which tiles are selected/how they're labelled+split; if
+# any differs, or a referenced tile is missing, we re-tile. --force-retile
+# overrides. Non-citywide (6-site) tiling isn't cached (fast, and its inputs are
+# the per-year site crops, not a fixed signature). ────────────────────────────
+def _tile_signature(label, stride, max_tiles, citywide):
+    return {
+        "label": label, "citywide": bool(citywide), "stride": int(stride),
+        "max_tiles": max_tiles, "tile_size": TILE_SIZE, "random_seed": RANDOM_SEED,
+        "use_hillshade": bool(USE_HILLSHADE), "hs_source": HS_SOURCE,
+        "use_vi": bool(USE_VI),
+        "citywide_tiles": COARSE_CITYWIDE_TILES,
+        "hard_neg_fraction": HARD_NEG_FRACTION,
+        "background_budget_fraction": BACKGROUND_BUDGET_FRACTION,
+        "green_grvi_threshold": GREEN_GRVI_THRESHOLD,
+        "coarse_val_frac": COARSE_VAL_FRAC, "coarse_test_frac": COARSE_TEST_FRAC,
+        "spatial_block_size_m": SPATIAL_BLOCK_SIZE_M,
+        "canopy_autocorr_m": CANOPY_AUTOCORR_M,
+    }
+
+
+def _meta_path(label):
+    return TILE_DIR / label / f"tile_index_{label}.meta.json"
+
+
+def _existing_tiles_valid(label, sig):
+    """True iff a complete tile set matching ``sig`` is already on disk: sidecar
+    meta matches the signature, the index exists, and every referenced tile file
+    is present. Any mismatch/missing file → False (re-tile)."""
+    mp = _meta_path(label)
+    idx = TILE_DIR / label / f"tile_index_{label}.csv"
+    if not (mp.exists() and idx.exists()):
+        return False
+    try:
+        if json.loads(mp.read_text()) != sig:
+            return False
+        df = pd.read_csv(idx)
+    except Exception:
+        return False
+    if len(df) == 0:
+        return False
+    for col in ("img_path", "mask_path"):
+        for p in df[col]:
+            if not Path(p).exists():
+                return False
+    return True
+
+
 def step_tile(label, sites, dry_run=False, max_tiles=None, stride_override=None,
-              citywide=False):
+              citywide=False, force_retile=False):
     """Step 2 for one year: tile site crops (or the full city for coarse) and
     write the per-year index.
 
@@ -1580,6 +1632,16 @@ def step_tile(label, sites, dry_run=False, max_tiles=None, stride_override=None,
     tp    = TIER_TILE_PARAMS[tier]
     stride = int(stride_override) if stride_override else tp["stride"]
     mode = "CITY-WIDE" if citywide else "6-site"
+
+    sig = _tile_signature(label, stride, max_tiles, citywide)
+    if citywide and not dry_run and not force_retile \
+            and _existing_tiles_valid(label, sig):
+        idx = TILE_DIR / label / f"tile_index_{label}.csv"
+        n = len(pd.read_csv(idx))
+        print(f"\n── [{label}] Step 2: Tiling [{mode}] — REUSED {n} existing "
+              f"tiles (sampling signature unchanged; --force-retile to rebuild) ──")
+        return
+
     print(f"\n── [{label}] Step 2: Tiling [{mode}] ({tier}: stride={stride}, "
           f"neg_rate={tp['neg_rate']}, test={'yes' if tp['has_test'] else 'no'}) ──")
 
@@ -1718,6 +1780,11 @@ def step_tile(label, sites, dry_run=False, max_tiles=None, stride_override=None,
     index_df = pd.DataFrame(index_rows)
     index_path = out_tile_dir / f"tile_index_{label}.csv"
     index_df.to_csv(index_path, index=False)
+    # Sidecar signature enables idempotent reuse next session (see step_tile top).
+    # Written last so an interrupted write never leaves a "valid" marker.
+    if citywide:
+        _meta_path(label).write_text(json.dumps(
+            _tile_signature(label, stride, max_tiles, citywide)))
     n_tr = (index_df["split"] == "train").sum()
     n_va = (index_df["split"] == "val").sum()
     n_te = (index_df["split"] == "test").sum()
@@ -3167,6 +3234,13 @@ def main():
                    help=f"Phase-B epoch budget (default {EPOCHS_PHASE_B}). Set 0 "
                         f"to skip Phase B entirely (diagnostic runs don't need it "
                         f"— it never recovers from a Phase-A collapse).")
+    p.add_argument("--force-retile", action="store_true",
+                   help="Rebuild the city-wide tile set even when a complete one "
+                        "for the current sampling constants already exists. "
+                        "Default: reuse existing tiles (idempotent — a re-run of "
+                        "the full pipeline after a lost session skips the ~20-min "
+                        "scan). Use after editing sampling constants if you want "
+                        "to force a rebuild without changing them.")
     p.add_argument("--dry-run", action="store_true",
                    help="Plan only — no writes.")
     p.add_argument("--max-tiles", type=int, default=None,
@@ -3297,7 +3371,7 @@ def main():
             with StepLogger(SCRIPT_NAME, f"tile_{lab}", LOGS_DIR) as log:
                 r = step_tile(lab, sites, dry_run=args.dry_run,
                               max_tiles=args.max_tiles, stride_override=args.stride,
-                              citywide=citywide)
+                              citywide=citywide, force_retile=args.force_retile)
                 _f = {"year": lab, "gsd_cm": e["gsd_cm"],
                       "dry_run": args.dry_run, "errors": 0}
                 if isinstance(r, dict): _f.update(r)

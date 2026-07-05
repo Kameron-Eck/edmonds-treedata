@@ -2218,9 +2218,17 @@ def _train_one_epoch(model, loader, optimizer, scaler, criterion, device,
     return loss_sum / max(n, 1), seg_sum / max(n, 1)
 
 
+# Threshold grid for the diagnostic best-threshold IoU (Diag): swept so a pure
+# probability-scale/calibration shift (val_iou@0.5 cliffs while the model still
+# ranks fine) is distinguishable from real degradation. Same per-batch-mean-IoU
+# accumulation as val_iou@0.5, just at each threshold.
+_VAL_THRESH_GRID = (0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8)
+
+
 def _validate(model, loader, criterion, device, loss_mode="bce_dice"):
     model.eval()
     seg_sum = iou_sum = 0.0        # seg_sum = combined seg loss (matches train objective)
+    iou_grid = [0.0] * len(_VAL_THRESH_GRID)   # per-threshold IoU accumulator
     n = 0
     with torch.no_grad():
         for imgs, masks, _ in loader:
@@ -2230,14 +2238,26 @@ def _validate(model, loader, criterion, device, loss_mode="bce_dice"):
                 logits = model(imgs)
                 seg, _p, _dice = _seg_loss(criterion, logits, masks, loss_mode)
             seg_sum += seg.item()
-            # val_iou: unchanged — thresholded IoU at 0.5 for cross-run comparability.
             valid = (masks != IGNORE_LABEL).float()
-            preds = (torch.sigmoid(logits) > 0.5).float() * valid
+            prob  = torch.sigmoid(logits)
             tgt   = (masks == 1).float() * valid
+            tsum  = tgt.sum()
+            # val_iou: unchanged — thresholded IoU at 0.5 for cross-run comparability.
+            preds = (prob > 0.5).float() * valid
             inter = (preds * tgt).sum()
-            union = preds.sum() + tgt.sum() - inter
-            iou_sum += (inter / (union + 1e-8)).item(); n += 1
-    return seg_sum / max(n, 1), iou_sum / max(n, 1)
+            union = preds.sum() + tsum - inter
+            iou_sum += (inter / (union + 1e-8)).item()
+            # Diag: same IoU at each grid threshold (threshold-independent read).
+            for i, t in enumerate(_VAL_THRESH_GRID):
+                p = (prob > t).float() * valid
+                inr = (p * tgt).sum()
+                iou_grid[i] += (inr / (p.sum() + tsum - inr + 1e-8)).item()
+            n += 1
+    nn_ = max(n, 1)
+    grid_mean = [g / nn_ for g in iou_grid]
+    bt_i = max(range(len(grid_mean)), key=lambda i: grid_mean[i])
+    return (seg_sum / nn_, iou_sum / nn_,
+            grid_mean[bt_i], _VAL_THRESH_GRID[bt_i])
 
 
 def _save_ckpt(phase, epoch, model, optim, sched, history, best_val, path):
@@ -2458,7 +2478,8 @@ def step_train(label, batch_size=BATCH_SIZE, p3_ckpt=None, dry_run=False):
               f"α={FOCAL_ALPHA} + DICE_WEIGHT={DICE_WEIGHT})")
     else:
         print(f"  Loss mode: bce_dice (BCE_WEIGHT={BCE_WEIGHT} + DICE_WEIGHT={DICE_WEIGHT})")
-    history = {"phase": [], "epoch": [], "train_bce": [], "val_bce": [], "val_iou": []}
+    history = {"phase": [], "epoch": [], "train_bce": [], "val_bce": [],
+               "val_iou": [], "val_iou_bt": [], "val_thr_bt": []}
 
     # ── Phase A: frozen encoder ──
     print(f"\n  PHASE A — frozen encoder | {EPOCHS_PHASE_A} ep | LR={LR_PHASE_A}")
@@ -2477,12 +2498,14 @@ def step_train(label, batch_size=BATCH_SIZE, p3_ckpt=None, dry_run=False):
         t0 = time.time()
         _, tr_bce = _train_one_epoch(model, train_loader, opt, scaler, criterion,
                                      device, loss_mode, freeze_bn=FREEZE_ENCODER_BN)
-        v_bce, v_iou = _validate(model, val_loader, criterion, device, loss_mode)
+        v_bce, v_iou, v_iou_bt, v_thr = _validate(model, val_loader, criterion,
+                                                  device, loss_mode)
         es_val = v_iou if es_maximize else v_bce      # tier-selected metric
         sched.step(es_val)
         history["phase"].append("A"); history["epoch"].append(ep + 1)
         history["train_bce"].append(tr_bce); history["val_bce"].append(v_bce)
         history["val_iou"].append(v_iou)
+        history["val_iou_bt"].append(v_iou_bt); history["val_thr_bt"].append(v_thr)
         best = es_val > best_val if es_maximize else es_val < best_val
         if best:
             best_val = es_val; es = 0
@@ -2493,6 +2516,7 @@ def step_train(label, batch_size=BATCH_SIZE, p3_ckpt=None, dry_run=False):
             _save_ckpt("A", ep, model, opt, sched, history, best_val, latest_ckpt)
         print(f"  A E{ep+1:>3}/{EPOCHS_PHASE_A} tr_bce={tr_bce:.4f} "
               f"val_bce={v_bce:.4f} val_iou={v_iou:.4f} "
+              f"iou_bt={v_iou_bt:.4f}@{v_thr:.1f} "
               f"lr={opt.param_groups[0]['lr']:.2e} {time.time()-t0:.0f}s"
               f"{' ★' if best else f'  [{es}/{EARLY_STOP_PAT}]'}")
         if es >= EARLY_STOP_PAT:
@@ -2530,12 +2554,14 @@ def _run_phase_b(model, train_loader, val_loader, criterion, device, loss_mode,
         t0 = time.time()
         _, tr_bce = _train_one_epoch(model, train_loader, opt, scaler, criterion,
                                      device, loss_mode)
-        v_bce, v_iou = _validate(model, val_loader, criterion, device, loss_mode)
+        v_bce, v_iou, v_iou_bt, v_thr = _validate(model, val_loader, criterion,
+                                                  device, loss_mode)
         es_val = v_iou if es_maximize else v_bce      # tier-selected metric
         sched.step(es_val)
         history["phase"].append("B"); history["epoch"].append(ep + 1)
         history["train_bce"].append(tr_bce); history["val_bce"].append(v_bce)
         history["val_iou"].append(v_iou)
+        history["val_iou_bt"].append(v_iou_bt); history["val_thr_bt"].append(v_thr)
         best = es_val > best_val if es_maximize else es_val < best_val
         if best:
             best_val = es_val; es = 0
@@ -2546,6 +2572,7 @@ def _run_phase_b(model, train_loader, val_loader, criterion, device, loss_mode,
             _save_ckpt("B", ep, model, opt, sched, history, best_val, latest_ckpt)
         print(f"  B E{ep+1:>3}/{EPOCHS_PHASE_B} tr_bce={tr_bce:.4f} "
               f"val_bce={v_bce:.4f} val_iou={v_iou:.4f} "
+              f"iou_bt={v_iou_bt:.4f}@{v_thr:.1f} "
               f"lr={opt.param_groups[0]['lr']:.2e} {time.time()-t0:.0f}s"
               f"{' ★' if best else f'  [{es}/{EARLY_STOP_PAT}]'}")
         if es >= EARLY_STOP_PAT:

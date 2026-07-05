@@ -332,6 +332,12 @@ LR_PHASE_A       = 5e-5
 EPOCHS_PHASE_B   = 30            # full model
 LR_PHASE_B       = 5e-6
 EARLY_STOP_PAT   = 15
+# Phase-A frozen-encoder BN handling. requires_grad=False does NOT stop BN from
+# updating running stats (model.train() re-enables it every epoch). When True,
+# encoder BN is pinned to its pretrained running stats for Phase A (standard
+# transfer-learning practice). Default False = legacy behaviour. See
+# _set_encoder_bn_eval for the collapse mechanism this addresses.
+FREEZE_ENCODER_BN = False
 BATCH_SIZE       = 10
 NUM_WORKERS      = 16
 SAVE_EVERY       = 5
@@ -2185,8 +2191,10 @@ def _compute_pos_weight(df):
 
 
 def _train_one_epoch(model, loader, optimizer, scaler, criterion, device,
-                     loss_mode="bce_dice"):
+                     loss_mode="bce_dice", freeze_bn=False):
     model.train()
+    if freeze_bn:
+        _set_encoder_bn_eval(model)   # re-pin frozen-encoder BN after train()
     loss_sum = seg_sum = 0.0       # seg_sum tracks the combined seg loss (no L1)
     n = 0
     for imgs, masks, _ in loader:
@@ -2262,6 +2270,27 @@ def _unfreeze_encoder(model):
     enc = model._orig_mod.encoder if hasattr(model, "_orig_mod") else model.encoder
     for p in enc.parameters():
         p.requires_grad = True
+
+
+def _set_encoder_bn_eval(model):
+    """Put the encoder's BatchNorm layers in eval mode so they USE the frozen
+    2020-pretrained running stats and STOP updating them from each batch.
+
+    `requires_grad=False` alone does NOT freeze BN: `model.train()` (called every
+    epoch) flips all BN back to train mode, where they track running stats off
+    the current batches. With a trainable input-conv shifting the input and a
+    canopy-scarce / negative-heavy pool (batch stats far from 2020), those
+    running stats drift until the FROZEN deeper weights receive out-of-distribution
+    normalised features → eval-time collapse at a fixed epoch (the E6 cliff). This
+    must be re-applied AFTER every model.train(). The trainable decoder BN is left
+    in train mode — only the frozen encoder is pinned to its pretrained stats.
+    """
+    enc = model._orig_mod.encoder if hasattr(model, "_orig_mod") else model.encoder
+    n = 0
+    for m in enc.modules():
+        if isinstance(m, torch.nn.modules.batchnorm._BatchNorm):
+            m.eval(); n += 1
+    return n
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -2434,6 +2463,9 @@ def step_train(label, batch_size=BATCH_SIZE, p3_ckpt=None, dry_run=False):
     # ── Phase A: frozen encoder ──
     print(f"\n  PHASE A — frozen encoder | {EPOCHS_PHASE_A} ep | LR={LR_PHASE_A}")
     _freeze_encoder(model)
+    if FREEZE_ENCODER_BN:
+        nbn = _set_encoder_bn_eval(model)
+        print(f"    (encoder BN pinned to pretrained running stats: {nbn} layers)")
     opt = torch.optim.AdamW([p for p in model.parameters() if p.requires_grad],
                             lr=LR_PHASE_A, weight_decay=1e-4)
     sched = torch.optim.lr_scheduler.ReduceLROnPlateau(
@@ -2444,7 +2476,7 @@ def step_train(label, batch_size=BATCH_SIZE, p3_ckpt=None, dry_run=False):
     for ep in range(EPOCHS_PHASE_A):
         t0 = time.time()
         _, tr_bce = _train_one_epoch(model, train_loader, opt, scaler, criterion,
-                                     device, loss_mode)
+                                     device, loss_mode, freeze_bn=FREEZE_ENCODER_BN)
         v_bce, v_iou = _validate(model, val_loader, criterion, device, loss_mode)
         es_val = v_iou if es_maximize else v_bce      # tier-selected metric
         sched.step(es_val)
@@ -3162,7 +3194,7 @@ def main():
     # and Python forbids any use before the `global` declaration.
     global USE_VI, USE_HILLSHADE, IN_CHANNELS, THRESH_MODE, HS_SOURCE, HS_DROPOUT, \
         COARSE_POS_WEIGHT_MAX, LR_PHASE_A, BCE_WEIGHT, DICE_WEIGHT, \
-        EPOCHS_PHASE_A, EPOCHS_PHASE_B
+        EPOCHS_PHASE_A, EPOCHS_PHASE_B, FREEZE_ENCODER_BN
 
     filtered = [a for a in sys.argv[1:] if not (a == "-f" or a.endswith(".json"))]
     p = argparse.ArgumentParser(
@@ -3234,6 +3266,12 @@ def main():
                    help=f"Phase-B epoch budget (default {EPOCHS_PHASE_B}). Set 0 "
                         f"to skip Phase B entirely (diagnostic runs don't need it "
                         f"— it never recovers from a Phase-A collapse).")
+    p.add_argument("--freeze-encoder-bn", action="store_true",
+                   help="Pin the frozen encoder's BatchNorm to its pretrained "
+                        "running stats during Phase A (stop it tracking batch "
+                        "stats). Standard transfer-learning practice; addresses "
+                        "the fixed-epoch val_iou cliff caused by BN drift under a "
+                        "trainable input-conv + off-distribution pool. Train-only.")
     p.add_argument("--force-retile", action="store_true",
                    help="Rebuild the city-wide tile set even when a complete one "
                         "for the current sampling constants already exists. "
@@ -3300,6 +3338,7 @@ def main():
     # full schedule. --epochs-phase-b 0 skips Phase B (never rebuilt below).
     EPOCHS_PHASE_A = max(1, int(args.epochs_phase_a))
     EPOCHS_PHASE_B = max(0, int(args.epochs_phase_b))
+    FREEZE_ENCODER_BN = bool(args.freeze_encoder_bn)
     # Module-level fallback; the per-step functions (train/evaluate/inference)
     # override IN_CHANNELS from the actual tile/ckpt band count.
     IN_CHANNELS = 3 + (len(VI_NAMES) if USE_VI else 0) + (1 if USE_HILLSHADE else 0)

@@ -1673,8 +1673,21 @@ def _block_partition(records, gsd_m, val_frac=COARSE_VAL_FRAC,
 # any differs, or a referenced tile is missing, we re-tile. --force-retile
 # overrides. Non-citywide (6-site) tiling isn't cached (fast, and its inputs are
 # the per-year site crops, not a fixed signature). ────────────────────────────
+def _add_canopy_mask_sig():
+    """Signature component for the ADD-ONLY corrected-label overlay. The overlay is
+    baked into tiles at tile time (in _gather_citywide_coarse), so a cached tile set
+    built WITHOUT it (or with a different additions file) must be rebuilt. Keyed on
+    path + size + mtime so rebuilding the additions raster (e.g. new NDVI/height
+    thresholds) also invalidates the cache."""
+    p = Path(ADD_CANOPY_MASK)
+    if not p.exists():
+        return {"path": str(p), "missing": True}
+    st = p.stat()
+    return {"path": str(p), "size": int(st.st_size), "mtime": int(st.st_mtime)}
+
+
 def _tile_signature(label, stride, max_tiles, citywide):
-    return {
+    sig = {
         "label": label, "citywide": bool(citywide), "stride": int(stride),
         "max_tiles": max_tiles, "tile_size": TILE_SIZE, "random_seed": RANDOM_SEED,
         "use_hillshade": bool(USE_HILLSHADE), "hs_source": HS_SOURCE,
@@ -1687,6 +1700,11 @@ def _tile_signature(label, stride, max_tiles, citywide):
         "spatial_block_size_m": SPATIAL_BLOCK_SIZE_M,
         "canopy_autocorr_m": CANOPY_AUTOCORR_M,
     }
+    # Only present when the overlay is active, so runs WITHOUT it keep matching
+    # existing (pre-v043) tile caches — no spurious retile for other years.
+    if ADD_CANOPY_MASK:
+        sig["add_canopy_mask"] = _add_canopy_mask_sig()
+    return sig
 
 
 def _meta_path(label):

@@ -28,6 +28,8 @@ reference.
 | **Session rules, drive layout, how to resume** | `Scripts/CLAUDE.md` | rules + pointers |
 | **The plan currently being executed** | the plan file named in CHATLOG STATE | one active plan at a time |
 | **Literature / citations** | `Admin/Literature_Tracker.xlsx` | 68 papers, 8 search phases |
+| **Code/doc history & rollback** | `git log` / `git diff` (repo DB on `D:\edmonds-pipeline\treedata.git`) | tags v001–v044; see CLAUDE.md rule 1 |
+| **Colab run history** | `Scripts/run_registry.csv` + `phase4/runs/{run_id}/sentinels/` | one row per run; fixed-site snapshot PNGs |
 
 **Rule of the repo:** each fact has exactly one home; other docs *link* to it rather
 than restate it. A fact written authoritatively in two places is a bug — fix the

@@ -147,6 +147,50 @@ gotcha:  scripts Colab-only for torch (rasterio+geopandas+fiona+sklearn now pip-
 
 ════════════════ LOG  (newest first) ════════════════
 
+## 2026-07-06  git adopted — version_script retired, full snapshot history imported
+goal:    replace homegrown .versions/ snapshots w/ real local git. private, NO remote.
+did:     repo LIVE. working tree = G:\My Drive\treedata (edit-in-place unchanged), git DB =
+         D:\edmonds-pipeline\treedata.git (--separate-git-dir → off FUSE mount, immune to
+         Drive-sync corruption; only tiny .git pointer file on Drive). whitelist .gitignore:
+         code+docs+2 xlsx only, 96 tracked files, git status 0.08s, zero data files. all 62
+         .versions snapshots replayed as backdated commits (2026-06-22→) + tags v001–v044.
+         OFF-BY-ONE handled: version_script saved PRE-edit → tag vN paired w/ snapshot
+         v(N+1) content. verified byte-exact (v039 blob == snap v040) + rollback drill passed.
+         CLAUDE.md rules 1+9 + drive layout rewritten for git flow.
+decided: .versions/ FROZEN on disk as git-ignored archive (not deleted); version_script.py
+         retired. git ops from local Windows ONLY, never Colab. Plainly, for safety: pause
+         Google Drive sync before any command that rewrites working files (restore, checkout,
+         reset --hard, stash pop); plain commits/status/log are safe anytime.
+killed:  clean-start-no-import — user wanted pre-git history carried over.
+         caveat: replayed history = snapshotted edits only; docs + never-snapshotted scripts
+         enter history at the 2026-07-06 "current state" commit.
+files:   .gitignore .gitattributes  D:\edmonds-pipeline\treedata.git  plan=local-git-setup.md
+next:    Part B same session: run_registry.csv + sentinel_sites.json + phase4_sentinel_snap.py.
+
+## 2026-07-06  CORRECTED-LABEL RESULT: recall .60→.85, but grass-rejection guard tripped
+goal:    full 2016 run (v044, fresh runtime) → honest qc_score vs NDVI. did the corrected
+         labels lift recall without wrecking precision?
+did:     ran clean end-to-end (v044 OOM fix WORKED: inference 21,501 tiles in 13:52 @25.8
+         tile/s, no OOM; A100-80GB this time). tiles REUSED (corrected, v043 sig match), train
+         val_iou_bt .8820, prob raster 587MB, 33,369 canopy polys. HONEST qc_score vs NDVI+CHM
+         @thr .4615: recall .605→.848 (+24pp!), precision .970→.925, GRASS-REJECTION .981→.842
+         (-14pp — GUARD TRIPPED), model canopy 23.5→34.6% (ref 37.7; gap +14.2→+3.1pp), F1
+         .745→.885. threshold sweep: precision .90-.93 across .20-.50 → grass NOT threshold-
+         fixable, it's in the labels. FN 77.5M, FP_grass 8.8M, FP_nonveg 26.4M.
+decided: recall win is real + large, but grass-FP regression = the exact thing CHM was added
+         to fix, partially back. TWO open concerns: (a) grass guard tripped; (b) CIRCULARITY —
+         labels built from NDVI+CHM, recall scored vs NDVI+CHM → recall .85 partly circular
+         (we spent the yardstick). Fable's lean: one tightening pass (additions .35/4m + re-
+         emphasize grass negs) to recover grass while holding recall. LAUNCHED multi-agent
+         review (4 lenses: measurement-integrity / canopy-domain / ml-methodology / decision-
+         pragmatics + synthesis) for perspective before deciding.
+files:   phase4/qc/qc_report.csv + qc_score_2016.txt (the result); sem_best_2016.pt,
+         edmonds_canopy_{prob,mask}_2016.tif (corrected). semantic_eval_report.csv (circular
+         IoU .82 — INFLATED, test tiles carry corrected labels; ignore for lift).
+next:    read multi-agent synthesis → decide accept / tighten / build-photo-interp-first /
+         supervision-reframe. likely: photo-interp is the only non-circular arbiter (2000
+         especially). precision guard on grass is the live blocker.
+
 ## 2026-07-06  corrected labels APPLIED (v043) but inference OOM'd → v044 hardening
 goal:    user re-ran 2016 --add-canopy-mask (v043, single-line cmd). read the log.
 did:     CONFIRMED corrected labels applied: "+ corrected-label overlay (ADD-ONLY)", full

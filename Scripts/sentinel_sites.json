@@ -1,0 +1,17 @@
+{
+  "_doc": "Fixed sentinel windows re-rendered by phase4_sentinel_snap.py after every run so model progress is visually comparable across runs. bounds_wgs84 = [W,S,E,N]; alternatively lon/lat/radius_m. Footprint-derived bounds come from photos/*_rgb.tif (static). Edit deliberately: changing a window breaks cross-run comparability for that site.",
+  "sites": [
+    {"name": "forest_1", "bounds_wgs84": [-122.361617, 47.821329, -122.354064, 47.824441], "why": "conifer training site (hand labels)"},
+    {"name": "forest_2", "bounds_wgs84": [-122.336383, 47.829397, -122.333465, 47.830664], "why": "conifer training site (hand labels)"},
+    {"name": "forest_3", "bounds_wgs84": [-122.35687, 47.780919, -122.352424, 47.783906], "why": "conifer training site (hand labels)"},
+    {"name": "forest_4", "bounds_wgs84": [-122.386725, 47.801402, -122.382278, 47.804816], "why": "conifer training site (hand labels)"},
+    {"name": "forest_6", "bounds_wgs84": [-122.391171, 47.791588, -122.389265, 47.794576], "why": "conifer training site (hand labels)"},
+    {"name": "marsh_deciduous", "lon": -122.3837, "lat": 47.8027, "radius_m": 400, "why": "Edmonds marsh deciduous stand - the known under-prediction miss (coords from phase4_qc_site.py usage)"},
+    {"name": "neg_cemetery", "bounds_wgs84": [-122.384308, 47.798157, -122.382692, 47.799243], "why": "grass/turf negative - watches grass-FP regression"},
+    {"name": "neg_civic_field", "bounds_wgs84": [-122.383008, 47.811957, -122.381392, 47.813043], "why": "grass/turf negative - watches grass-FP regression"},
+    {"name": "neg_stadium", "bounds_wgs84": [-122.360988, 47.806236, -122.359012, 47.807564], "why": "turf negative"},
+    {"name": "neg_parking", "bounds_wgs84": [-122.328286, 47.805242, -122.32638, 47.806523], "why": "impervious negative"},
+    {"name": "neg_water", "bounds_wgs84": [-122.393077, 47.815481, -122.390536, 47.81676], "why": "water / no-canopy control"},
+    {"name": "residential_mixed", "lon": -122.369, "lat": 47.8065, "radius_m": 250, "why": "PROVISIONAL mixed residential block (street trees + lawns + roofs) - adjust coords if a better block is preferred, then treat as fixed"}
+  ]
+}

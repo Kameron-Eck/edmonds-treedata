@@ -66,12 +66,15 @@ source files, ask before assuming.**
 │   ├── make_grass_negatives.py           ← stage curated grass/turf negative sites
 │   ├── fetch_build_chm.py                ← builds lidar_snoh_chm.tif (3DEP HAG height)
 │   ├── phase4_viz.py / phase4_qa_overlay.py / phase4_threshold_diagnostic.py
-│   ├── version_script.py                 ← versioning helper (see rules)
+│   ├── version_script.py                 ← RETIRED versioning helper (git replaced it)
 │   ├── pipeline_log.py                   ← write_step_log() / StepLogger
+│   ├── run_registry.csv                  ← one row per Colab run (see rule 9)
+│   ├── sentinel_sites.json / phase4_sentinel_snap.py   ← fixed-site visual progress snapshots
 │   ├── CLAUDE.md  Method_Pipeline.md  CHATLOG.md  pipeline_buildtracker.md  (../README.md)
 │   ├── _archive/                        ← retired handoffs + old workplan (NOT current)
 │   ├── logs/                             ← step run logs: {script}_{step}_{timestamp}.log
-│   └── .versions/{script}/vNNN_{date}_{tag}.py   ← script backups (version_script.py)
+│   └── .versions/                        ← FROZEN pre-git snapshot archive (git-ignored)
+├── .git (pointer file) → git repo at D:\edmonds-pipeline\treedata.git (local Windows only)
 ├── phase3/            ← 2020 semantic model + edmonds_canopy_mask_2020.tif (full-city PREDICTION)
 ├── phase4/            ← per-year semantic outputs
 │   ├── models/  masks/  eval/  qc/  labels_corrected/  qa/  tiles/  crops/  review/  sites/
@@ -127,14 +130,22 @@ source files, ask before assuming.**
 
 ## Mandatory Rules for Every Edit
 
-### 1. Version before editing an existing script; compile before writing
-Before modifying any existing phase/pipeline script, snapshot it first:
+### 1. Git is the version system; compile before writing
+Code + docs live in a **private local git repo** (working tree = this Drive folder;
+git database = `D:\edmonds-pipeline\treedata.git`, off the FUSE mount). Commit after
+every landed change; before a risky edit, make sure the tree is committed so rollback
+is one command:
 ```bash
-py -3.12 Scripts/version_script.py --script Scripts/<name>.py --tag "what you are about to change"
+git add -A && git commit -m "<what landed>"
+git restore -s vNNN -- Scripts/<name>.py    # rollback a file to a tagged version
 ```
-Writes a numbered backup to `.versions/`. **Never skip it, even for one-liners.**
-Then `PYTHONUTF8=1 py -3.12 -m py_compile <script>` before the edit is considered
-done. (New scripts need no version snapshot, but still py_compile.)
+Tag `vNNN` (annotated) whenever CHATLOG STATE records a new live finetune version.
+Then `PYTHONUTF8=1 py -3.12 -m py_compile <script>` before the edit is considered done.
+**Git ops run from local Windows only — never from Colab.** Safe anytime: status/log/
+diff/add/commit/tag (writes go to D:). **Pause Drive sync first** for anything that
+writes the working tree: checkout, restore, `reset --hard`, stash pop, branch switch.
+(`version_script.py` / `.versions/` are RETIRED 2026-07-06 — kept on disk as a frozen
+pre-git archive, git-ignored; full history was imported as backdated commits v001–v044.)
 
 ### 2. Log integration
 Every script `write_step_log()`s at the end of each `--step` →
@@ -176,9 +187,10 @@ only for spectral feature extraction under fixed 2020 crown polygons (phase1/pha
 - unsure/unreviewed → IGNORE (subtract from region polygon)
 
 ### 9. Keep the running log current (session-end checklist)
-Per landed milestone: **(a)** edit the `CHATLOG.md` STATE block in place, and **(b)**
-append one LOG entry (caveman style per the file's spec). That's it — this is how the
-next session resumes. **Do not create a new `HANDOFF_*.md`** (retired) or a duplicate
+Per landed milestone: **(a)** edit the `CHATLOG.md` STATE block in place, **(b)**
+append one LOG entry (caveman style per the file's spec), **(c)** append a row to
+`run_registry.csv` if a Colab run landed, and **(d)** `git add -A && git commit`
+(tag `vNNN` if a new model version landed). This is how the next session resumes. **Do not create a new `HANDOFF_*.md`** (retired) or a duplicate
 plan. Slow-moving docs (`pipeline_buildtracker.md`, the workplan) reconcile only on phase
 boundaries or method changes, not every session.
 

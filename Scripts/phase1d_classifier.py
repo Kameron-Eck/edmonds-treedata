@@ -844,17 +844,23 @@ if __name__ == "__main__":
                         help="Print stats without training")
     args = parser.parse_args(filtered)
 
+    from pipeline_log import StepLogger
+    LOGS_DIR = DRIVE_BASE / "Scripts" / "logs"
+    SCRIPT_NAME = "phase1d_classifier"
+
     print("=" * 60)
     print("  PHASE 1D — Correction Classifier")
     print("=" * 60)
 
-    ensure_deps()
+    with StepLogger(SCRIPT_NAME, "load", LOGS_DIR) as log:
+        ensure_deps()
 
-    gdf     = load_crowns()
-    reviews = load_reviews()
-    tick("merge labels")
-    gdf     = merge_labels(gdf, reviews)
-    tock("merge labels")
+        gdf     = load_crowns()
+        reviews = load_reviews()
+        tick("merge labels")
+        gdf     = merge_labels(gdf, reviews)
+        tock("merge labels")
+        log.finish(crowns=len(gdf), reviews=len(reviews), errors=0)
 
     if args.dry_run:
         print(f"\n  DRY RUN — no model trained")
@@ -865,20 +871,25 @@ if __name__ == "__main__":
         timer_summary()
         sys.exit(0)
 
-    print(f"\n── Computing shape + colour features ──")
-    tick("shape + colour features")
-    gdf = add_shape_and_colour_features(gdf)
-    tock("shape + colour features")
+    with StepLogger(SCRIPT_NAME, "train", LOGS_DIR) as log:
+        print(f"\n── Computing shape + colour features ──")
+        tick("shape + colour features")
+        gdf = add_shape_and_colour_features(gdf)
+        tock("shape + colour features")
 
-    tick("build feature matrix")
-    X, feature_names = build_features(gdf)
-    tock("build feature matrix")
+        tick("build feature matrix")
+        X, feature_names = build_features(gdf)
+        tock("build feature matrix")
 
-    tick("train classifier")
-    gdf, model, platt, fi, report = train_classifier(
-        gdf, X, feature_names, threshold=args.threshold)
-    tock("train classifier")
+        tick("train classifier")
+        gdf, model, platt, fi, report = train_classifier(
+            gdf, X, feature_names, threshold=args.threshold)
+        tock("train classifier")
+        log.finish(crowns=len(gdf), n_features=len(feature_names),
+                   threshold=args.threshold, errors=0)
 
-    save_outputs(gdf, model, platt, fi, report)
-    print_summary(gdf, args.threshold)
+    with StepLogger(SCRIPT_NAME, "write", LOGS_DIR) as log:
+        save_outputs(gdf, model, platt, fi, report)
+        print_summary(gdf, args.threshold)
+        log.finish(crowns=len(gdf), errors=0)
     timer_summary()

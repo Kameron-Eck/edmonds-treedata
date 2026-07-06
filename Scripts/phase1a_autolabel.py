@@ -685,28 +685,35 @@ def main():
           f"AND  n_veg_years ≥ {N_VEG_YEARS_MIN}")
     print(f"    Note: dtm_peak not used (terrain elevation, not canopy height)")
 
+    from pipeline_log import StepLogger
+    LOGS_DIR = BASE / "Scripts" / "logs"
+    SCRIPT_NAME = "phase1a_autolabel"
+
     # ── Load ───────────────────────────────────────────────────
-    print(f"\n── Loading crowns ──")
-    crowns = load_crowns()
+    with StepLogger(SCRIPT_NAME, "load", LOGS_DIR) as log:
+        print(f"\n── Loading crowns ──")
+        crowns = load_crowns()
 
-    for req in ["within_water", "bldg_dist_m", "roof_score_nearby"]:
-        if req not in crowns.columns:
-            print(f"  ERROR: missing column '{req}' — run phase 1 first")
+        for req in ["within_water", "bldg_dist_m", "roof_score_nearby"]:
+            if req not in crowns.columns:
+                print(f"  ERROR: missing column '{req}' — run phase 1 first")
+                sys.exit(1)
+
+        if not IMP_PATH.exists():
+            print(f"  ERROR: impervious raster not found: {IMP_PATH}")
             sys.exit(1)
+        log.finish(crowns=len(crowns), cols=len(crowns.columns), errors=0)
 
-    if not IMP_PATH.exists():
-        print(f"  ERROR: impervious raster not found: {IMP_PATH}")
-        sys.exit(1)
+    # ── Compute features + apply rules ─────────────────────────
+    with StepLogger(SCRIPT_NAME, "compute", LOGS_DIR) as log:
+        imp_frac = compute_impervious_fraction(crowns)
+        n_high_alpha, n_veg_years, median_vs_roof = compute_veg_year_counts(crowns)
 
-    # ── Compute features ───────────────────────────────────────
-    imp_frac = compute_impervious_fraction(crowns)
-    n_high_alpha, n_veg_years, median_vs_roof = compute_veg_year_counts(crowns)
-
-    # ── Apply rules ────────────────────────────────────────────
-    tick("apply rules")
-    crowns = apply_rules(
-        crowns, imp_frac, n_high_alpha, n_veg_years, median_vs_roof)
-    tock("apply rules")
+        tick("apply rules")
+        crowns = apply_rules(
+            crowns, imp_frac, n_high_alpha, n_veg_years, median_vs_roof)
+        tock("apply rules")
+        log.finish(crowns=len(crowns), errors=0)
 
     if args.dry_run:
         print(f"\n  DRY RUN complete — no files written")
@@ -715,27 +722,31 @@ def main():
         return
 
     # ── Write ──────────────────────────────────────────────────
-    print(f"\n── Writing output ──")
-    OUT_DIR.mkdir(parents=True, exist_ok=True)
-    write_summary(crowns)
+    with StepLogger(SCRIPT_NAME, "write", LOGS_DIR) as log:
+        print(f"\n── Writing output ──")
+        OUT_DIR.mkdir(parents=True, exist_ok=True)
+        write_summary(crowns)
 
-    # Parquet: fast working checkpoint for downstream scripts
-    tick("write parquet")
-    crowns.to_parquet(PARQUET_OUT, index=False, compression="snappy")
-    tock("write parquet")
-    print(f"  ✓ {PARQUET_OUT.name}  "
-          f"({PARQUET_OUT.stat().st_size/1e6:.0f} MB)")
+        # Parquet: fast working checkpoint for downstream scripts
+        tick("write parquet")
+        crowns.to_parquet(PARQUET_OUT, index=False, compression="snappy")
+        tock("write parquet")
+        print(f"  ✓ {PARQUET_OUT.name}  "
+              f"({PARQUET_OUT.stat().st_size/1e6:.0f} MB)")
 
-    # GPKG: archival GIS deliverable — write local first, then atomic copy
-    tick("write GPKG")
-    with keepalive("GPKG write"):
-        crowns.to_file(CROWNS_OUT_LOCAL, driver="GPKG")
-    local_mb = CROWNS_OUT_LOCAL.stat().st_size / 1e6
-    print(f"  ✓ Local write complete  ({local_mb:.0f} MB)")
-    shutil.copy2(CROWNS_OUT_LOCAL, CROWNS_OUT)
-    tock("write GPKG")
-    print(f"  ✓ {CROWNS_OUT.name}  "
-          f"({len(crowns):,} rows  {len(crowns.columns)} cols)")
+        # GPKG: archival GIS deliverable — write local first, then atomic copy
+        tick("write GPKG")
+        with keepalive("GPKG write"):
+            crowns.to_file(CROWNS_OUT_LOCAL, driver="GPKG")
+        local_mb = CROWNS_OUT_LOCAL.stat().st_size / 1e6
+        print(f"  ✓ Local write complete  ({local_mb:.0f} MB)")
+        shutil.copy2(CROWNS_OUT_LOCAL, CROWNS_OUT)
+        tock("write GPKG")
+        print(f"  ✓ {CROWNS_OUT.name}  "
+              f"({len(crowns):,} rows  {len(crowns.columns)} cols)")
+        log.finish(rows=len(crowns), cols=len(crowns.columns),
+                   parquet_mb=round(PARQUET_OUT.stat().st_size / 1e6, 1),
+                   errors=0)
 
     print(f"\n  Output: {OUT_DIR}")
     print("=" * 60)

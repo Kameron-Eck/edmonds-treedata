@@ -1,0 +1,27 @@
+# ── ignore everything at root, then whitelist ──
+/*
+!/.gitignore
+!/.gitattributes
+!/README.md
+!/Scripts/
+!/Admin/
+# Admin: only the literature tracker
+/Admin/*
+!/Admin/Literature_Tracker.xlsx
+
+# ── inside Scripts: code+docs yes, artifacts no ──
+Scripts/logs/
+Scripts/.versions/
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+*.bak*
+# data that must never sneak in
+*.tif
+*.pt
+*.pth
+*.parquet
+*.gpkg
+# Drive/Office noise
+desktop.ini
+~$*

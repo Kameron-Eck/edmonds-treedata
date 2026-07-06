@@ -3033,6 +3033,9 @@ def step_inference(label, batch_size=INFER_BATCH_SIZE, dry_run=False):
     _tgt.load_state_dict(_inflate_first_conv(ck["model_state"], _tgt.state_dict()),
                          strict=False)
     model.eval()
+    gc.collect()
+    if torch.cuda.is_available():
+        torch.cuda.empty_cache()   # release memory held from train/eval in the same process
     print(f"  Model: {ckpt.name}  (val_bce={ck.get('best_val','?')})  "
           f"in_channels={IN_CHANNELS}"
           f"{'  +structure[' + HS_SOURCE + ']' if has_hs else ''}")
@@ -3058,12 +3061,27 @@ def step_inference(label, batch_size=INFER_BATCH_SIZE, dry_run=False):
 
     batch_imgs, batch_meta = [], []
 
+    def _forward(imgs):
+        # OOM-resilient forward: on CUDA OOM, halve the batch and retry (freeing the
+        # failed alloc first). Guards the full-city pass when an oversized inference
+        # batch or leftover train/eval memory tips the GPU over.
+        try:
+            inp = torch.stack(imgs).to(device)
+            with torch.no_grad():
+                out = model(inp).squeeze(1).cpu().numpy()
+            del inp
+            return out
+        except RuntimeError as e:
+            if "out of memory" not in str(e).lower() or len(imgs) == 1:
+                raise
+            torch.cuda.empty_cache()
+            mid = len(imgs) // 2
+            return np.concatenate([_forward(imgs[:mid]), _forward(imgs[mid:])], axis=0)
+
     def flush(dst):
         if not batch_imgs:
             return
-        inp = torch.stack(batch_imgs).to(device)
-        with torch.no_grad():
-            logits = model(inp).squeeze(1).cpu().numpy()
+        logits = _forward(batch_imgs)
         probs = 1.0 / (1.0 + np.exp(-logits))
         for k, (ro, co, valid) in enumerate(batch_meta):
             center = probs[k, pad:pad+cc, pad:pad+cc]

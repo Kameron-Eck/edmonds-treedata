@@ -2247,6 +2247,13 @@ def main():
     print(f"  Upsample only   : {args.upsample_only}")
     print(f"  Force upsample  : {args.force_upsample}")
 
+    # ── Step log (whole-run) ───────────────────────────────────
+    from pipeline_log import StepLogger
+    LOGS_DIR = BASE / "Scripts" / "logs"
+    SCRIPT_NAME = "phase1_preprocess"
+    logger = StepLogger(SCRIPT_NAME, "preprocess", LOGS_DIR)
+    logger.start()
+
     # ── Step 0: Upsample ───────────────────────────────────────
     if not args.skip_upsample and not args.normalise_only:
         step_upsample(year_entries, force=args.force_upsample)
@@ -2254,6 +2261,7 @@ def main():
     if args.upsample_only:
         print("\n  --upsample-only specified — stopping here")
         timer_summary()
+        logger.finish(mode="upsample_only", years=len(year_entries), errors=0)
         return
 
     # ── Load or resume ─────────────────────────────────────────
@@ -2533,6 +2541,13 @@ def main():
     print(f"\n  Output: {OUT_DIR}")
     print("=" * 60)
 
+    logger.finish(
+        rows=len(crowns),
+        cols=len(crowns.columns),
+        years=len(year_entries),
+        normalise_only=args.normalise_only,
+        errors=0,
+    )
     timer_summary()
 
 

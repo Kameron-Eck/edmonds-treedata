@@ -77,6 +77,7 @@ class StepLogger:
         self._t0: datetime.datetime | None = None
         self._buf: io.StringIO | None = None
         self._tee: "_Tee | None" = None
+        self._finished = False   # guard: finish() must write exactly once
 
     # ── context manager (optional) ────────────────────────────────────────────
     def __enter__(self):
@@ -115,6 +116,15 @@ class StepLogger:
             Common keys: crowns, sites, tiles, epochs, iou, elapsed_s,
             manifest_mb, output_path.
         """
+        # Idempotency guard: when StepLogger is used as a context manager the
+        # caller typically invokes finish(**fields) inside the block, and then
+        # __exit__ calls finish() again. Without this guard the second (bare)
+        # call would rewrite the same minute-stamped log file with no fields
+        # and no captured stdout, clobbering the rich log. Write exactly once.
+        if self._finished:
+            return
+        self._finished = True
+
         t1 = datetime.datetime.now()
         elapsed = (t1 - self._t0).total_seconds() if self._t0 else 0.0
 

@@ -358,6 +358,10 @@ def main():
     out_dir = Path(args.out_dir) if args.out_dir else OUT_DIR
     out_dir.mkdir(parents=True, exist_ok=True)
 
+    from pipeline_log import StepLogger
+    LOGS_DIR = BASE / "Scripts" / "logs"
+    SCRIPT_NAME = "phase4_label_review_prep"
+
     print(f"\n{'='*65}")
     print(f"  PHASE 4 — Year 2000 Label Review Preparation")
     print(f"{'='*65}")
@@ -365,16 +369,18 @@ def main():
     print(f"               {neg_buffer:.0f} m (negative sites)")
     print(f"  Output:      {out_dir}")
 
-    # ── Discover sites ────────────────────────────────────────────────────────
-    sites = discover_sites(filter_sites)
-    print(f"  Sites:       {len(sites)}")
-    for s in sites:
-        tag = "(negative)" if s["is_negative"] else "(positive)"
-        print(f"    {s['name']:<20} {tag}")
+    # ── Discover sites + resolve ortho ────────────────────────────────────────
+    with StepLogger(SCRIPT_NAME, "discover", LOGS_DIR) as log:
+        sites = discover_sites(filter_sites)
+        print(f"  Sites:       {len(sites)}")
+        for s in sites:
+            tag = "(negative)" if s["is_negative"] else "(positive)"
+            print(f"    {s['name']:<20} {tag}")
 
-    # ── Resolve 2000 ortho ────────────────────────────────────────────────────
-    ortho_path = resolve_ortho()
-    print(f"  Ortho:       {ortho_path}")
+        # ── Resolve 2000 ortho ────────────────────────────────────────────────
+        ortho_path = resolve_ortho()
+        print(f"  Ortho:       {ortho_path}")
+        log.finish(sites=len(sites), errors=0)
 
     # ── Process each site ─────────────────────────────────────────────────────
     all_crowns = []
@@ -391,6 +397,8 @@ def main():
         "-" * 80,
     ]
 
+    log_extract = StepLogger(SCRIPT_NAME, "extract", LOGS_DIR)
+    log_extract.start()
     for site in sites:
         name = site["name"]
         orig_bounds = site["bounds"]
@@ -507,7 +515,12 @@ def main():
             f"{tiles:>6} {n_ht_drawn:>5} {n_mp_drawn:>6} "
             f"{n_ht_drawn+n_mp_drawn:>6}")
 
+    log_extract.finish(sites=len(region_rows),
+                       crowns=sum(len(c) for c in all_crowns), errors=0)
+
     # ── Save combined outputs ─────────────────────────────────────────────────
+    log_write = StepLogger(SCRIPT_NAME, "write", LOGS_DIR)
+    log_write.start()
     print(f"\n── Combined outputs ──")
 
     # Review regions GeoPackage
@@ -567,6 +580,8 @@ def main():
     summary_path = out_dir / "review_summary.txt"
     summary_path.write_text("\n".join(summary_lines))
     print(f"  ✓ {summary_path.name}")
+
+    log_write.finish(regions=len(region_rows), crowns=total_crowns, errors=0)
 
     print(f"\n{'='*65}")
     print(f"  Ready for review: {out_dir}")

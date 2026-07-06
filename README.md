@@ -1,0 +1,66 @@
+# Edmonds Temporal Tree-Canopy Pipeline
+
+Machine-learning pipeline mapping individual tree crowns and canopy change across
+Edmonds, WA from 18 aerial imagery acquisitions (2000–2024), anchored to a 2020
+hand-annotated dataset. Solo build for the City of Edmonds via the Climate Advisory
+Board, funded by the Sustainable Path Foundation.
+
+---
+
+## ▶ Start here
+
+**For where the project stands right now — current model, active work, next step —
+read the STATE block at the top of [`Scripts/CHATLOG.md`](Scripts/CHATLOG.md).**
+That is the single source of live truth. Everything else below is slower-moving
+reference.
+
+---
+
+## Where each kind of information lives (one home each)
+
+| If you want to know… | Read | Notes |
+|----------------------|------|-------|
+| **Current state / next step** | `Scripts/CHATLOG.md` — **STATE** block | live truth; edited in place |
+| **What happened & why (history)** | `Scripts/CHATLOG.md` — **LOG** entries | newest first; decisions + dead-ends |
+| **How the method works** (params, tiers, loss, QC) | `Scripts/Method_Pipeline.md` | the architecture spec |
+| **What's built vs pending** (per phase) | `Scripts/pipeline_buildtracker.md` | structural status |
+| **Schedule / decision gates / grant milestones** | `Scripts/edmonds_combined_workplan.xlsx` | the canonical Gantt |
+| **Session rules, drive layout, how to resume** | `Scripts/CLAUDE.md` | rules + pointers |
+| **The plan currently being executed** | the plan file named in CHATLOG STATE | one active plan at a time |
+| **Literature / citations** | `Admin/Literature_Tracker.xlsx` | 68 papers, 8 search phases |
+
+**Rule of the repo:** each fact has exactly one home; other docs *link* to it rather
+than restate it. A fact written authoritatively in two places is a bug — fix the
+source, not the copy.
+
+---
+
+## Directory map (short)
+
+```
+treedata/
+├── README.md                 ← you are here (the front door)
+├── Scripts/                  ← all code + docs (see CLAUDE.md for the full layout)
+│   ├── CLAUDE.md  CHATLOG.md  Method_Pipeline.md  pipeline_buildtracker.md
+│   ├── edmonds_combined_workplan.xlsx
+│   ├── phase0…phase4 *.py, phase4_qc_*.py, make_*.py, fetch_build_chm.py …
+│   └── _archive/             ← superseded docs (handoffs, old workplan) — NOT current
+├── Admin/                    ← Literature_Tracker.xlsx
+├── phase1/ … phase4/         ← per-phase outputs (models, masks, eval, qc, …)
+├── polygons/  photos/        ← crown labels + training-site footprints
+└── Full_Image/Pipeline Imagery/   ← orthos + lidar_snoh_chm.tif
+```
+
+Retired handoff notes and the old (Phase-4/5-swapped) workplan live in
+`Scripts/_archive/` for history only — do not treat them as current.
+
+---
+
+## Retired / consolidated (2026-07-06)
+
+The per-session `HANDOFF_*.md` files were **retired** — their role (current narrative)
+is now covered by CHATLOG STATE + the active plan file. The duplicate
+`Admin/Tree Project Work Plan.xlsx` (old scheme) was archived; the canonical schedule is
+`Scripts/edmonds_combined_workplan.xlsx`.
+
+*This README is the map. Live state → `Scripts/CHATLOG.md` STATE.*

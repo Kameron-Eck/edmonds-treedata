@@ -280,6 +280,9 @@ def main():
     parser.add_argument("--dry-run", action="store_true")
     filtered = [a for a in sys.argv[1:] if not (a=="-f" or a.endswith(".json"))]
     args = parser.parse_args(filtered)
+    from pipeline_log import StepLogger
+    LOGS_DIR = BASE / "Scripts" / "logs"
+    SCRIPT_NAME = "phase2_data_prep"
     yk = None
     if args.year:
         try: yk = int(args.year)
@@ -287,10 +290,22 @@ def main():
         if not catalog_by_key(yk): print(f"  ERROR: '{args.year}' not in catalog"); sys.exit(1)
     print("="*60); print("  PHASE 2 — Data Preparation (Validation & QA)"); print("  Edmonds Temporal Pipeline"); print("="*60)
     run_all = args.step is None
-    if run_all or args.step=="catalog": step_catalog()
-    if run_all or args.step=="validate": step_validate(dry_run=args.dry_run)
-    if run_all or args.step=="coverage": step_coverage(dry_run=args.dry_run)
-    if args.step=="overlay": step_overlay(year_filter=yk, site_filter=args.site, dry_run=args.dry_run)
+    if run_all or args.step=="catalog":
+        with StepLogger(SCRIPT_NAME, "catalog", LOGS_DIR) as log:
+            step_catalog()
+            log.finish(errors=0)
+    if run_all or args.step=="validate":
+        with StepLogger(SCRIPT_NAME, "validate", LOGS_DIR) as log:
+            step_validate(dry_run=args.dry_run)
+            log.finish(dry_run=args.dry_run, errors=0)
+    if run_all or args.step=="coverage":
+        with StepLogger(SCRIPT_NAME, "coverage", LOGS_DIR) as log:
+            step_coverage(dry_run=args.dry_run)
+            log.finish(dry_run=args.dry_run, errors=0)
+    if args.step=="overlay":
+        with StepLogger(SCRIPT_NAME, "overlay", LOGS_DIR) as log:
+            step_overlay(year_filter=yk, site_filter=args.site, dry_run=args.dry_run)
+            log.finish(year=args.year, site=args.site, dry_run=args.dry_run, errors=0)
     elif run_all: print(f"\n── Step 4: Overlay QA — use --step overlay --year YYYY --site N")
     print(f"\n{'='*60}"); print("  PHASE 2 COMPLETE"); print(f"{'='*60}")
 

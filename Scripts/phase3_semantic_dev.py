@@ -2825,6 +2825,10 @@ def main():
 
     args = parser.parse_args(filtered)
 
+    from pipeline_log import StepLogger
+    LOGS_DIR = BASE / "Scripts" / "logs"
+    SCRIPT_NAME = "phase3_semantic_dev"
+
     # Wire experiment flags into module globals (default off → baseline behavior).
     global USE_VI, IN_CHANNELS, UNFREEZE_MODE
     USE_VI        = bool(args.vi)
@@ -2861,57 +2865,75 @@ def main():
     # ── Step 1: Binary labels ─────────────────────────────────
     image_paths = shapefile_paths = site_labels = mask_paths = None
     if "labels" in steps_to_run:
-        image_paths, shapefile_paths, site_labels, mask_paths = \
-            step_labels(dry_run=args.dry_run)
+        with StepLogger(SCRIPT_NAME, "labels", LOGS_DIR) as log:
+            image_paths, shapefile_paths, site_labels, mask_paths = \
+                step_labels(dry_run=args.dry_run)
+            log.finish(dry_run=args.dry_run, errors=0)
 
     # ── Step 2: Tiling ────────────────────────────────────────
     if "tile" in steps_to_run:
-        step_tile(image_paths, shapefile_paths, site_labels,
-                  mask_paths, dry_run=args.dry_run)
+        with StepLogger(SCRIPT_NAME, "tile", LOGS_DIR) as log:
+            step_tile(image_paths, shapefile_paths, site_labels,
+                      mask_paths, dry_run=args.dry_run)
+            log.finish(dry_run=args.dry_run, errors=0)
 
     # ── Step 3: Training ──────────────────────────────────────
     if "train" in steps_to_run:
-        step_train(batch_size=args.batch_size,
-                   ckpt_path=str(ckpt_path) if ckpt_path else None,
-                   dry_run=args.dry_run)
+        with StepLogger(SCRIPT_NAME, "train", LOGS_DIR) as log:
+            step_train(batch_size=args.batch_size,
+                       ckpt_path=str(ckpt_path) if ckpt_path else None,
+                       dry_run=args.dry_run)
+            log.finish(dry_run=args.dry_run, errors=0)
 
     # ── Step 4: Evaluation ────────────────────────────────────
     if "evaluate" in steps_to_run:
-        eval_ckpt = ckpt_path
-        if eval_ckpt is None or not eval_ckpt.exists():
-            eval_ckpt = CKPT_DIR / "sem_best_2020.pt"
-        step_evaluate(ckpt_path=str(eval_ckpt) if eval_ckpt else None,
-                      dry_run=args.dry_run)
+        with StepLogger(SCRIPT_NAME, "evaluate", LOGS_DIR) as log:
+            eval_ckpt = ckpt_path
+            if eval_ckpt is None or not eval_ckpt.exists():
+                eval_ckpt = CKPT_DIR / "sem_best_2020.pt"
+            step_evaluate(ckpt_path=str(eval_ckpt) if eval_ckpt else None,
+                          dry_run=args.dry_run)
+            log.finish(dry_run=args.dry_run, errors=0)
 
     # ── Step 5: Full-city inference ───────────────────────────
     if "inference" in steps_to_run:
-        infer_ckpt = ckpt_path
-        if infer_ckpt is None or not infer_ckpt.exists():
-            infer_ckpt = CKPT_DIR / "sem_best_2020.pt"
-        step_inference(
-            ckpt_path=str(infer_ckpt) if infer_ckpt else None,
-            batch_size=args.batch_size * 16 if args.batch_size == BATCH_SIZE
-                       else args.batch_size,
-            dry_run=args.dry_run)
+        with StepLogger(SCRIPT_NAME, "inference", LOGS_DIR) as log:
+            infer_ckpt = ckpt_path
+            if infer_ckpt is None or not infer_ckpt.exists():
+                infer_ckpt = CKPT_DIR / "sem_best_2020.pt"
+            step_inference(
+                ckpt_path=str(infer_ckpt) if infer_ckpt else None,
+                batch_size=args.batch_size * 16 if args.batch_size == BATCH_SIZE
+                           else args.batch_size,
+                dry_run=args.dry_run)
+            log.finish(dry_run=args.dry_run, errors=0)
 
     # ── Step 6: Post-processing ───────────────────────────────
     if "postproc" in steps_to_run:
-        step_postproc(dry_run=args.dry_run)
+        with StepLogger(SCRIPT_NAME, "postproc", LOGS_DIR) as log:
+            step_postproc(dry_run=args.dry_run)
+            log.finish(dry_run=args.dry_run, errors=0)
 
     # ── Step 7: Cross-validation ──────────────────────────────
     if "crossval" in steps_to_run:
-        step_crossval(dry_run=args.dry_run)
+        with StepLogger(SCRIPT_NAME, "crossval", LOGS_DIR) as log:
+            step_crossval(dry_run=args.dry_run)
+            log.finish(dry_run=args.dry_run, errors=0)
 
     # ── Step 8: Spatial-honesty diagnostic (on demand) ────────
     if "spatialcheck" in steps_to_run:
-        step_spatialcheck(ckpt_path=str(ckpt_path) if ckpt_path else None,
-                          dry_run=args.dry_run)
+        with StepLogger(SCRIPT_NAME, "spatialcheck", LOGS_DIR) as log:
+            step_spatialcheck(ckpt_path=str(ckpt_path) if ckpt_path else None,
+                              dry_run=args.dry_run)
+            log.finish(dry_run=args.dry_run, errors=0)
 
     # ── Step 9: LOSO honest training + eval (on demand) ───────
     if "loso" in steps_to_run:
-        step_loso(p0_ckpt=str(ckpt_path) if ckpt_path else None,
-                  batch_size=args.batch_size, only_fold=args.fold,
-                  dry_run=args.dry_run)
+        with StepLogger(SCRIPT_NAME, "loso", LOGS_DIR) as log:
+            step_loso(p0_ckpt=str(ckpt_path) if ckpt_path else None,
+                      batch_size=args.batch_size, only_fold=args.fold,
+                      dry_run=args.dry_run)
+            log.finish(dry_run=args.dry_run, fold=args.fold, errors=0)
 
     # ── Summary ───────────────────────────────────────────────
     print_summary()

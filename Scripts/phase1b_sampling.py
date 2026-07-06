@@ -501,29 +501,38 @@ if __name__ == "__main__":
     parser.add_argument("--dry-run", action="store_true")
     args = parser.parse_args(filtered)
 
+    from pipeline_log import StepLogger
+    LOGS_DIR = DRIVE_BASE / "Scripts" / "logs"
+    SCRIPT_NAME = "phase1b_sampling"
+
     print("=" * 60)
     print("  PHASE 1B — Stratified Sampling (Classifier-Informed)")
     print("=" * 60)
 
-    queue = load_data()
+    with StepLogger(SCRIPT_NAME, "load", LOGS_DIR) as log:
+        queue = load_data()
 
-    print(f"\n── Classifier score breakdown by stratum ──")
-    print(f"  {'St':<4} {'Stratum':<38} {'N':>7} "
-          f"{'Uncertain':>10} {'Low<0.25':>10} {'High>0.75':>10}")
-    print(f"  {'─'*4} {'─'*38} {'─'*7} "
-          f"{'─'*10} {'─'*10} {'─'*10}")
-    for sid in sorted(queue["stratum_id"].unique()):
-        s = queue[queue["stratum_id"] == sid]
-        label = (s["stratum_label"].iloc[0]
-                 if "stratum_label" in s.columns else f"Stratum {sid}")
-        u = ((s["classifier_prob"] >= 0.25) &
-             (s["classifier_prob"] < 0.75)).sum()
-        l = (s["classifier_prob"] < 0.25).sum()
-        h = (s["classifier_prob"] >= 0.75).sum()
-        print(f"  {sid:<4} {label:<38} {len(s):>7,} "
-              f"{u:>10,} {l:>10,} {h:>10,}")
+        print(f"\n── Classifier score breakdown by stratum ──")
+        print(f"  {'St':<4} {'Stratum':<38} {'N':>7} "
+              f"{'Uncertain':>10} {'Low<0.25':>10} {'High>0.75':>10}")
+        print(f"  {'─'*4} {'─'*38} {'─'*7} "
+              f"{'─'*10} {'─'*10} {'─'*10}")
+        for sid in sorted(queue["stratum_id"].unique()):
+            s = queue[queue["stratum_id"] == sid]
+            label = (s["stratum_label"].iloc[0]
+                     if "stratum_label" in s.columns else f"Stratum {sid}")
+            u = ((s["classifier_prob"] >= 0.25) &
+                 (s["classifier_prob"] < 0.75)).sum()
+            l = (s["classifier_prob"] < 0.25).sum()
+            h = (s["classifier_prob"] >= 0.75).sum()
+            print(f"  {sid:<4} {label:<38} {len(s):>7,} "
+                  f"{u:>10,} {l:>10,} {h:>10,}")
+        log.finish(crowns=len(queue),
+                   strata=int(queue["stratum_id"].nunique()), errors=0)
 
-    new_queue = build_interleaved_queue(queue)
+    with StepLogger(SCRIPT_NAME, "build", LOGS_DIR) as log:
+        new_queue = build_interleaved_queue(queue)
+        log.finish(queued=len(new_queue), errors=0)
 
     if args.dry_run:
         print(f"\n  DRY RUN — no files written")
@@ -531,22 +540,24 @@ if __name__ == "__main__":
         sys.exit(0)
 
     # Write
-    print(f"\n── Writing output ──")
-    OUT_DIR.mkdir(parents=True, exist_ok=True)
+    with StepLogger(SCRIPT_NAME, "write", LOGS_DIR) as log:
+        print(f"\n── Writing output ──")
+        OUT_DIR.mkdir(parents=True, exist_ok=True)
 
-    tick("write queue GPKG")
-    new_queue.to_file(OUT_QUEUE_LOCAL, driver="GPKG")
-    shutil.copy2(OUT_QUEUE_LOCAL, OUT_QUEUE)
-    tock("write queue GPKG")
-    print(f"  ✓ {OUT_QUEUE.name}  ({len(new_queue):,} crowns)")
+        tick("write queue GPKG")
+        new_queue.to_file(OUT_QUEUE_LOCAL, driver="GPKG")
+        shutil.copy2(OUT_QUEUE_LOCAL, OUT_QUEUE)
+        tock("write queue GPKG")
+        print(f"  ✓ {OUT_QUEUE.name}  ({len(new_queue):,} crowns)")
 
-    stats = build_stats(new_queue, args.batch_size)
-    stats.to_csv(OUT_STATS, index=False)
-    print(f"  ✓ {OUT_STATS.name}")
+        stats = build_stats(new_queue, args.batch_size)
+        stats.to_csv(OUT_STATS, index=False)
+        print(f"  ✓ {OUT_STATS.name}")
 
-    if args.batch_size:
-        print(f"\n── Writing batches ({args.batch_size} crowns each) ──")
-        write_batches(new_queue, args.batch_size)
+        if args.batch_size:
+            print(f"\n── Writing batches ({args.batch_size} crowns each) ──")
+            write_batches(new_queue, args.batch_size)
+        log.finish(crowns=len(new_queue), batch_size=args.batch_size, errors=0)
 
     # Summary
     print(f"\n── Queue summary ──")

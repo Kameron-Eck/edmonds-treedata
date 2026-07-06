@@ -561,21 +561,29 @@ def _status_interval(label):
     return "uncertain", None, None
 
 
-def step_compile(year, sites_filter=None, to_polygons=False):
+def step_compile(year, sites_filter=None, to_polygons=False, accept_all=False):
     print("=" * 64)
     print(f"  PHASE 4 — Crown Reviewer  ·  COMPILE  ·  year {year}")
     print("=" * 64)
 
-    csv_drive = review_root(year) / CSV_NAME
-    csv_local = local_root(year) / "reviews_live_local.csv"
-    src_csv = csv_drive if csv_drive.exists() else csv_local
-    decisions = _final_decisions(src_csv)
-    print(f"  Reviews CSV : {src_csv}")
-    print(f"  Decisions   : {len(decisions)} crowns")
-    counts = {k: sum(1 for v in decisions.values() if v == k)
-              for k in ("present", "absent", "unsure")}
-    print(f"    present {counts['present']}  absent {counts['absent']}  "
-          f"unsure {counts['unsure']}")
+    if accept_all:
+        # Test mode: skip the review CSV entirely and treat every crown as
+        # present (→ canopy, valid_from=YEAR). No crown is unsure/unreviewed,
+        # so no footprint is cut from the regions. Lets you see the downstream
+        # result of accepting all annotations without doing a manual review.
+        decisions = {}
+        print("  ACCEPT-ALL mode: every crown → present (canopy); CSV ignored")
+    else:
+        csv_drive = review_root(year) / CSV_NAME
+        csv_local = local_root(year) / "reviews_live_local.csv"
+        src_csv = csv_drive if csv_drive.exists() else csv_local
+        decisions = _final_decisions(src_csv)
+        print(f"  Reviews CSV : {src_csv}")
+        print(f"  Decisions   : {len(decisions)} crowns")
+        counts = {k: sum(1 for v in decisions.values() if v == k)
+                  for k in ("present", "absent", "unsure")}
+        print(f"    present {counts['present']}  absent {counts['absent']}  "
+              f"unsure {counts['unsure']}")
 
     pkgs = discover_package(year, sites_filter)
     out_dir = POLYGONS_DIR if to_polygons else review_root(year) / "compiled"
@@ -593,7 +601,7 @@ def step_compile(year, sites_filter=None, to_polygons=False):
         cut_geoms = []   # unsure / unreviewed footprints → remove from region
         for i, row in crowns.iterrows():
             cid = f"{site}_{int(i):05d}"        # identical scheme to prep
-            lab = decisions.get(cid)            # None → unreviewed
+            lab = "present" if accept_all else decisions.get(cid)  # None → unreviewed
             status, vf, vt = _status_interval(lab)
             statuses.append(status); vfs.append(vf); vts.append(vt)
             geom = row.geometry
@@ -910,6 +918,9 @@ def main():
     p.add_argument("--year", type=int, default=YEAR)
     p.add_argument("--sites", default=None)
     p.add_argument("--to-polygons", action="store_true")
+    p.add_argument("--accept-all", action="store_true",
+                   help="compile: skip the CSV and treat every crown as present "
+                        "(canopy) — test the downstream effect of accepting all.")
     args = p.parse_args(filtered)
 
     sites_filter = set(args.sites.split(",")) if args.sites else None
@@ -949,10 +960,12 @@ def main():
     elif args.step == "compile":
         with StepLogger(SCRIPT_NAME, "compile", LOGS_DIR) as log:
             result = step_compile(args.year, sites_filter,
-                                  to_polygons=args.to_polygons)
+                                  to_polygons=args.to_polygons,
+                                  accept_all=args.accept_all)
             log.finish(
                 year=args.year,
                 to_polygons=args.to_polygons,
+                accept_all=args.accept_all,
                 errors=0,
                 # step_compile should return a summary dict; adjust as needed
             )

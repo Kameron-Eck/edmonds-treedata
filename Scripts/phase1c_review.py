@@ -1677,45 +1677,52 @@ def print_folder_summary(n_crowns: int):
 
 if __name__ == "__main__":
     import pandas as pd
+    from pipeline_log import StepLogger
+    LOGS_DIR = DRIVE_BASE / "Scripts" / "logs"
+    SCRIPT_NAME = "phase1c_review"
 
     print("=" * 60)
     print("  PHASE 1C — Crown Review")
     print("=" * 60)
 
-    validate()
-    LOCAL_OUT.mkdir(parents=True, exist_ok=True)
-    DRIVE_OUT.mkdir(parents=True, exist_ok=True)
+    # Setup is the loggable work; the server below runs in a background
+    # daemon thread, so it is started after the setup log is written.
+    with StepLogger(SCRIPT_NAME, "setup", LOGS_DIR) as log:
+        validate()
+        LOCAL_OUT.mkdir(parents=True, exist_ok=True)
+        DRIVE_OUT.mkdir(parents=True, exist_ok=True)
 
-    # ── Imagery ────────────────────────────────────────────────
-    print(f"\n── Checking imagery ──")
-    tick("local imagery copy")
-    ensure_local_imagery()
-    tock("local imagery copy")
+        # ── Imagery ────────────────────────────────────────────────
+        print(f"\n── Checking imagery ──")
+        tick("local imagery copy")
+        ensure_local_imagery()
+        tock("local imagery copy")
 
-    # ── Crops + manifest ───────────────────────────────────────
-    tick("load queue")
-    gdf      = load_queue()
-    tock("load queue")
+        # ── Crops + manifest ───────────────────────────────────────
+        tick("load queue")
+        gdf      = load_queue()
+        tock("load queue")
 
-    tick("extract crops")
-    manifest = extract_crops(gdf)
-    tock("extract crops")
+        tick("extract crops")
+        manifest = extract_crops(gdf)
+        tock("extract crops")
 
-    tick("compute outlines")
-    manifest = compute_outlines(gdf, manifest)
-    tock("compute outlines")
+        tick("compute outlines")
+        manifest = compute_outlines(gdf, manifest)
+        tock("compute outlines")
 
-    print(f"\n── Writing manifest + app ──")
-    tick("write manifest + app")
-    write_local(manifest, gdf)
-    tock("write manifest + app")
+        print(f"\n── Writing manifest + app ──")
+        tick("write manifest + app")
+        write_local(manifest, gdf)
+        tock("write manifest + app")
 
-    print(f"\n── Backing up to Drive ──")
-    tick("backup to Drive")
-    backup_manifest_to_drive()
-    tock("backup to Drive")
+        print(f"\n── Backing up to Drive ──")
+        tick("backup to Drive")
+        backup_manifest_to_drive()
+        tock("backup to Drive")
+        log.finish(crowns=len(gdf), manifest_items=len(manifest), errors=0)
 
-    # ── Server ─────────────────────────────────────────────────
+    # ── Server (background daemon thread — not logged) ──────────
     server = start_server()
 
     # ── Folder summary ─────────────────────────────────────

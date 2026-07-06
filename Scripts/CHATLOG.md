@@ -165,7 +165,18 @@ killed:  clean-start-no-import — user wanted pre-git history carried over.
          caveat: replayed history = snapshotted edits only; docs + never-snapshotted scripts
          enter history at the 2026-07-06 "current state" commit.
 files:   .gitignore .gitattributes  D:\edmonds-pipeline\treedata.git  plan=local-git-setup.md
-next:    Part B same session: run_registry.csv + sentinel_sites.json + phase4_sentinel_snap.py.
+         run_registry.csv (backfilled v039–v044)  sentinel_sites.json (12 windows)
+         phase4_sentinel_snap.py (+--filmstrip)  phase4/runs/{run_id}/sentinels/
+did+:    Part B landed same session. sentinel backfill v039 vs v044 marsh filmstrip WORKS:
+         marsh 41.9→56.4% canopy (recall recovery VISIBLE); grass negs light up v044
+         (cemetery 54→75%, stadium 57→67%) = grass-guard regression VISIBLE. forest_2
+         outside 2016 imagery extent (skipped). v039 backfill forest_3 0.0% — old D: mirror
+         mask likely coverage gap there, backfill artifact only.
+gotcha:  stray EMPTY C:\content\drive\MyDrive\treedata dir on local machine fools the
+         _COLAB_BASE.exists() check in pipeline scripts run locally (qc_site etc.) —
+         sentinel_snap now checks (_COLAB_BASE/"Scripts").exists(). Delete C:\content
+         manually to fix for all scripts (sandbox blocked removal).
+next:    per-run flow live: after each Colab run → registry row + sentinel snap + filmstrip.
 
 ## 2026-07-06  CORRECTED-LABEL RESULT: recall .60→.85, but grass-rejection guard tripped
 goal:    full 2016 run (v044, fresh runtime) → honest qc_score vs NDVI. did the corrected

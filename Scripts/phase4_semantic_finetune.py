@@ -414,6 +414,14 @@ PRECISION_FLOOR = 0.72
 # prefer an honest reference (Phase 1 NAIP-NDVI / Phase 5 photo-interp) over
 # hand-tuning against the circular 2020-derived best-F1. Flag: --infer-thresh.
 INFER_THRESH_OVERRIDE = None
+# Optional ADD-ONLY corrected-label overlay for the coarse city-wide path. Path to
+# a canopy_additions_{year}.tif (phase4_build_corrected_labels.py): 0=no change,
+# 1=ADD canopy, 2=IGNORE, 255=nodata. Reprojected onto each crop and layered on top
+# of the 2020 mask — 1 forces canopy, 2 forces IGNORE (never background). Teaches
+# NIR+CHM-confirmed canopy the conifer-only labels miss, without rewriting the
+# 148k×212k 2020 mask. One file (built on the 2016 grid) serves 2016 AND 2000 (most
+# trees are static). Flag: --add-canopy-mask.
+ADD_CANOPY_MASK = None
 MIN_CANOPY_PATCH      = 3.0      # m²
 MORPH_KERNEL_SIZE     = 3
 SIMPLIFY_TOLERANCE_M  = 0.5
@@ -952,6 +960,53 @@ def canopy_label_from_2020_mask(msrc, dst_crs, dst_transform, h, w):
     return out
 
 
+def additions_from_mask(asrc, dst_crs, dst_transform, h, w):
+    """Reproject the OPEN corrected-label additions raster (``asrc``) onto a crop
+    grid. Mirrors ``canopy_label_from_2020_mask`` (nearest, categorical). Returns
+    a uint8 code per pixel: 0 = no change, 1 = ADD canopy, 2 = IGNORE. Anything
+    outside the additions coverage (nodata / off-footprint) → 0 (no change), so
+    2000 crops outside the 2016 strip simply keep the plain 2020 label.
+    """
+    out = np.zeros((h, w), dtype=np.uint8)               # 0 = no change (default)
+    dst_bounds = rasterio.transform.array_bounds(h, w, dst_transform)  # l,b,r,t
+    acrs, anod = asrc.crs, (asrc.nodata if asrc.nodata is not None else 255)
+    ab = rasterio.warp.transform_bounds(dst_crs, acrs, *dst_bounds)
+    src_win = rasterio.windows.from_bounds(*ab, transform=asrc.transform)
+    src_win = src_win.round_offsets(op="floor").round_lengths(op="ceil")
+    try:
+        src_win = src_win.intersection(
+            rasterio.windows.Window(0, 0, asrc.width, asrc.height))
+    except rasterio.windows.WindowError:
+        return out                                       # crop outside additions
+    if src_win.width <= 0 or src_win.height <= 0:
+        return out
+    out_h = max(1, min(int(src_win.height), h))
+    out_w = max(1, min(int(src_win.width),  w))
+    raw = asrc.read(1, window=src_win, out_shape=(out_h, out_w),
+                    resampling=Resampling.nearest).astype(np.uint8)
+    win_tf = asrc.window_transform(src_win)
+    src_tf = win_tf * win_tf.scale(src_win.width / out_w, src_win.height / out_h)
+    dst_arr = np.full((h, w), anod, dtype=np.uint8)
+    rasterio.warp.reproject(
+        source=raw, destination=dst_arr,
+        src_transform=src_tf, src_crs=acrs,
+        dst_transform=dst_transform, dst_crs=dst_crs,
+        src_nodata=anod, dst_nodata=anod,
+        resampling=Resampling.nearest)
+    out[dst_arr == 1] = 1
+    out[dst_arr == 2] = 2
+    return out
+
+
+def apply_additions(mask_tile, add_tile):
+    """Layer an additions code array onto a 0/1/255 label tile, ADD-ONLY:
+    code 1 → force canopy (1); code 2 → force IGNORE (255) unless already canopy.
+    Never turns canopy into background."""
+    mask_tile[add_tile == 1] = 1
+    mask_tile[(add_tile == 2) & (mask_tile != 1)] = IGNORE_LABEL
+    return mask_tile
+
+
 def project_and_rasterise_site(src, src_nodata, native_crs, label, site_label,
                                site_bounds_3857, crowns_3857, year_dir,
                                dry_run=False, anchor_labels=False,
@@ -1434,6 +1489,16 @@ def _gather_citywide_coarse(label, sites, stride_override=None, dry_run=False):
 
     local      = native    if dry_run else _stage_imagery_local(native)
     mask_local = MASK_2020  if dry_run else _stage_imagery_local(MASK_2020)
+    # Optional ADD-ONLY corrected-label overlay (NIR+CHM-confirmed canopy).
+    add_path = Path(ADD_CANOPY_MASK) if ADD_CANOPY_MASK else None
+    if add_path and not add_path.exists():
+        print(f"  WARNING: --add-canopy-mask not found, ignoring: {add_path}")
+        add_path = None
+    add_local = None
+    if add_path:
+        add_local = add_path if dry_run else _stage_imagery_local(add_path)
+        print(f"  + corrected-label overlay (ADD-ONLY): {add_path.name}")
+    asrc = None
     records = []
     try:
         with rasterio.open(local) as src:
@@ -1449,6 +1514,7 @@ def _gather_citywide_coarse(label, sites, stride_override=None, dry_run=False):
                 print("  Dry run — not reading tiles")
                 return []
             with rasterio.open(mask_local) as msrc:
+                asrc = rasterio.open(add_local) if add_local else None
                 for ro, co in tqdm(origins, desc="  City-wide scan",
                                    mininterval=2.0):
                     win = rasterio.windows.Window(co, ro, TILE_SIZE, TILE_SIZE)
@@ -1467,6 +1533,10 @@ def _gather_citywide_coarse(label, sites, stride_override=None, dry_run=False):
                     win_tf = rasterio.windows.transform(win, tf)
                     mask_tile = canopy_label_from_2020_mask(
                         msrc, native_crs, win_tf, TILE_SIZE, TILE_SIZE)
+                    if asrc is not None:                 # ADD-ONLY corrected labels
+                        add_tile = additions_from_mask(
+                            asrc, native_crs, win_tf, TILE_SIZE, TILE_SIZE)
+                        mask_tile = apply_additions(mask_tile, add_tile)
                     mask_tile[nod] = IGNORE_LABEL
                     n_lab = int((mask_tile != IGNORE_LABEL).sum())
                     if n_lab == 0:
@@ -1491,11 +1561,15 @@ def _gather_citywide_coarse(label, sites, stride_override=None, dry_run=False):
             records.extend(_negative_site_records(src, sites, src_nodata,
                                                   neg_stride))
     finally:
+        if asrc is not None:
+            asrc.close()
         if not dry_run:
             if local != native:
                 _unstage_imagery_local(local)
             if mask_local != MASK_2020:
                 _unstage_imagery_local(mask_local)
+            if add_local is not None and add_local != add_path:
+                _unstage_imagery_local(add_local)
     n_force = sum(1 for r in records if r.get("force_keep"))
     n_green = sum(1 for r in records if r.get("is_green_hardneg"))
     print(f"  Gathered {len(records)} labeled tiles "
@@ -3348,7 +3422,8 @@ def main():
     # and Python forbids any use before the `global` declaration.
     global USE_VI, USE_HILLSHADE, IN_CHANNELS, THRESH_MODE, HS_SOURCE, HS_DROPOUT, \
         COARSE_POS_WEIGHT_MAX, LR_PHASE_A, BCE_WEIGHT, DICE_WEIGHT, \
-        EPOCHS_PHASE_A, EPOCHS_PHASE_B, FREEZE_ENCODER_BN, INFER_THRESH_OVERRIDE
+        EPOCHS_PHASE_A, EPOCHS_PHASE_B, FREEZE_ENCODER_BN, INFER_THRESH_OVERRIDE, \
+        ADD_CANOPY_MASK
 
     filtered = [a for a in sys.argv[1:] if not (a == "-f" or a.endswith(".json"))]
     p = argparse.ArgumentParser(
@@ -3479,6 +3554,13 @@ def main():
                         "an off-year threshold to recover CHM-suppressed canopy, e.g. "
                         "2000: --step postproc --infer-thresh 0.30. Blunt lever — "
                         "prefer an honest reference over the 2020-label best-F1.")
+    p.add_argument("--add-canopy-mask", type=str, default=None,
+                   help="Path to a canopy_additions_{year}.tif from "
+                        "phase4_build_corrected_labels.py (0=no change, 1=ADD canopy, "
+                        "2=IGNORE). Layered ADD-ONLY on the coarse 2020-mask label "
+                        "path — teaches NIR+CHM-confirmed canopy the conifer-only "
+                        "labels miss. One file (built on the 2016 grid) serves 2016 "
+                        "and 2000. Coarse-tier only; needs a retile.")
     p.add_argument("--loss-mode", choices=["bce_dice", "focal_dice"], default=None,
                    help="Override the COARSE-tier training loss (Edit F): 'bce_dice' "
                         "(default = run-5 baseline) or 'focal_dice' (focal+dice "
@@ -3510,6 +3592,7 @@ def main():
     IN_CHANNELS = 3 + (len(VI_NAMES) if USE_VI else 0) + (1 if USE_HILLSHADE else 0)
     THRESH_MODE = args.thresh_mode
     INFER_THRESH_OVERRIDE = args.infer_thresh
+    ADD_CANOPY_MASK = args.add_canopy_mask
     # Edit F: --loss-mode overrides the coarse-tier loss (focal A/B); fine/medium
     # stay bce_dice. Mutating the dict contents (no rebind) → no `global` needed.
     if args.loss_mode:

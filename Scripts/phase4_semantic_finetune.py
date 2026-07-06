@@ -422,6 +422,18 @@ INFER_THRESH_OVERRIDE = None
 # 148k×212k 2020 mask. One file (built on the 2016 grid) serves 2016 AND 2000 (most
 # trees are static). Flag: --add-canopy-mask.
 ADD_CANOPY_MASK = None
+# ── Auxiliary height-supervision reframe (--aux-height) ────────────────────────
+# Teach the model to PREDICT canopy height from RGB (a 2nd output head) instead of
+# feeding the 2016 CHM as an outvoted 4th INPUT channel. Inference stays RGB-only, so
+# "tall vs flat" is baked into the RGB features (fixes recurring grass FPs + the stale
+# 2016-snapshot problem). The CHM is repurposed as the regression TARGET (masked-L1).
+# The height head is supervised only on CHM-credible years (2020 base + near-2016);
+# other years inherit it via the shared encoder. See the plan / CHATLOG.
+AUX_HEIGHT         = False       # --aux-height: RGB-only input + height head + masked-L1
+HEIGHT_LAMBDA      = 0.2         # --height-lambda: weight of the aux height loss
+HEIGHT_SCALE_M     = 40.0        # normalise the height target: h_norm = metres / SCALE
+CHM_CREDIBLE_YEARS = {"2015", "2016", "2017", "2020"}  # write a height sidecar only here
+EMIT_HEIGHT        = False       # --emit-height: also write a predicted-height raster
 MIN_CANOPY_PATCH      = 3.0      # m²
 MORPH_KERNEL_SIZE     = 3
 SIMPLIFY_TOLERANCE_M  = 0.5
@@ -1704,6 +1716,11 @@ def _tile_signature(label, stride, max_tiles, citywide):
     # existing (pre-v043) tile caches — no spurious retile for other years.
     if ADD_CANOPY_MASK:
         sig["add_canopy_mask"] = _add_canopy_mask_sig()
+    # --aux-height writes per-tile height sidecars → a distinct tile set; keyed only
+    # when on so plain RGB-only caches are not spuriously invalidated.
+    if AUX_HEIGHT:
+        sig["aux_height"] = True
+        sig["chm_credible_years"] = sorted(CHM_CREDIBLE_YEARS)
     return sig
 
 
@@ -1765,6 +1782,8 @@ def step_tile(label, sites, dry_run=False, max_tiles=None, stride_override=None,
     for split in ("train", "val", "test"):
         (out_tile_dir / split / "images").mkdir(parents=True, exist_ok=True)
         (out_tile_dir / split / "masks").mkdir(parents=True, exist_ok=True)
+        if AUX_HEIGHT:
+            (out_tile_dir / split / "heights").mkdir(parents=True, exist_ok=True)
 
     np.random.seed(RANDOM_SEED)
 
@@ -1867,6 +1886,15 @@ def step_tile(label, sites, dry_run=False, max_tiles=None, stride_override=None,
     mask_base = {"driver": "GTiff", "dtype": "uint8", "count": 1,
                  "width": TILE_SIZE, "height": TILE_SIZE, "compress": "lzw",
                  "nodata": 255}
+    # --aux-height: write a per-tile CHM-DN height TARGET sidecar (0=nodata), but only
+    # for CHM-credible years (2015-2020); other years get no sidecar → aux loss zeros.
+    write_height = bool(AUX_HEIGHT) and str(label) in CHM_CREDIBLE_YEARS
+    height_base = {"driver": "GTiff", "dtype": "uint8", "count": 1,
+                   "width": TILE_SIZE, "height": TILE_SIZE, "compress": "lzw",
+                   "nodata": 0}
+    if AUX_HEIGHT:
+        print(f"  + aux-height sidecars: {'ON' if write_height else 'OFF'} "
+              f"(year {label}{'' if write_height else ' — not CHM-credible'})")
 
     index_rows = []
     for rec in tqdm(all_records, desc="  Writing tiles"):
@@ -1886,11 +1914,21 @@ def step_tile(label, sites, dry_run=False, max_tiles=None, stride_override=None,
         with rasterio.open(mask_out, "w", **{**mask_base, "crs": rec["crs"],
                            "transform": rec["tile_transform"]}) as dst:
             dst.write(np.asarray(rec["_mask_tile"]).squeeze(), 1)
+        height_out = ""
+        if write_height:
+            hpath = out_tile_dir / split / "heights" / rec["tile_name"]
+            hchip = read_hillshade_chip(rec["crs"], rec["tile_transform"],
+                                        TILE_SIZE, TILE_SIZE)     # CHM DN (1,H,W), 0=nodata
+            with rasterio.open(hpath, "w", **{**height_base, "crs": rec["crs"],
+                               "transform": rec["tile_transform"]}) as dst:
+                dst.write(hchip)
+            height_out = str(hpath)
         index_rows.append({
             "tile_name": rec["tile_name"], "site": rec["site"], "split": split,
             "row_off": rec["row_off"], "col_off": rec["col_off"],
             "canopy_frac": rec["canopy_frac"], "block": rec.get("block", ""),
             "img_path": str(img_out), "mask_path": str(mask_out),
+            "height_path": height_out,
         })
 
     index_df = pd.DataFrame(index_rows)
@@ -2039,6 +2077,16 @@ def _make_pixel_transform_nonorm():
     ])
 
 
+def _height_to_target(height_dn):
+    """CHM DN grid (0 = nodata) → a 1×H×W normalized-height target for the aux head:
+    metres = (DN-1)*0.2, normalized by HEIGHT_SCALE_M, with -1 as an invalid sentinel
+    (masked out of the L1 loss). Used only under --aux-height."""
+    dn = np.asarray(height_dn, dtype=np.float32)
+    h_norm = np.clip((dn - 1.0) * 0.2 / HEIGHT_SCALE_M, 0.0, 2.0)
+    tgt = np.where(dn > 0.5, h_norm, -1.0).astype(np.float32)
+    return torch.from_numpy(tgt).unsqueeze(0)
+
+
 class SemanticDataset:
     """Paired RGB + binary canopy mask tiles (identical contract to Phase 3)."""
 
@@ -2071,6 +2119,32 @@ class SemanticDataset:
             img = src.read().transpose(1, 2, 0)
         with rasterio.open(row["mask_path"]) as src:
             mask = src.read(1).astype(np.float32)
+
+        if AUX_HEIGHT:
+            # RGB-only input + a co-registered CHM-DN height TARGET. Sidecar may be
+            # absent for non-credible years → all-invalid target (loss auto-zeros).
+            hp = row.get("height_path")
+            if isinstance(hp, str) and hp and Path(hp).exists():
+                with rasterio.open(hp) as hsrc:
+                    height_dn = hsrc.read(1).astype(np.float32)     # CHM DN, 0 = nodata
+            else:
+                height_dn = np.zeros(mask.shape, dtype=np.float32)  # no sidecar → invalid
+            rgb = img[..., :3]
+            if self.training:
+                # Height rides as a 4th channel so geometry is applied jointly, then is
+                # split back out before the RGB-only colour aug.
+                stacked = np.concatenate([rgb, height_dn[..., None]], axis=-1)
+                out = self.spatial_tf(image=stacked, mask=mask)
+                stacked, mask = out["image"], out["mask"]
+                height_dn = stacked[..., 3]
+                img = self.pixel_tf(image=stacked[..., :3])["image"]
+                mask = torch.from_numpy(mask).unsqueeze(0).float()
+            else:
+                out = self.test_tf(image=rgb, mask=mask)
+                img, mask = out["image"], out["mask"]
+                mask = mask.unsqueeze(0).float() if mask.dim() == 2 else mask.float()
+            return (img, mask, _height_to_target(height_dn),
+                    {"tile_name": row["tile_name"], "site": row["site"]})
 
         if self.training:
             # Spatial aug applies jointly to all bands + mask (geometry only).
@@ -2118,12 +2192,35 @@ def _inject_dropout(module, p):
             _inject_dropout(child, p)
 
 
+def _build_unet_with_height():
+    """A subclass of smp.Unet with a parallel height-regression head off the shared
+    64-ch decoder features. Subclass (not wrapper) so the state_dict keys stay
+    encoder.*/decoder.*/segmentation_head.* — P3/P0 checkpoints load via strict=False
+    and the new height_head.* keys init random. forward returns (seg_logits, height).
+    Defined lazily because smp/nn are only importable after _ensure_torch()."""
+    class UnetWithHeight(smp.Unet):
+        def __init__(self, **kw):
+            super().__init__(**kw)
+            self.height_head = nn.Conv2d(DECODER_CHANNELS[-1], 1, kernel_size=1)
+
+        def forward(self, x):
+            feats = self.encoder(x)
+            dec = self.decoder(feats)            # smp>=0.4: decoder takes the feature list
+            return self.segmentation_head(dec), self.height_head(dec)
+
+    return UnetWithHeight(encoder_name=ENCODER, encoder_weights=None,
+                          decoder_channels=DECODER_CHANNELS, in_channels=IN_CHANNELS,
+                          classes=1, activation=None)
+
+
 def build_model(device, compile_model=True):
-    """U-Net with logits head (BCEWithLogitsLoss). Dropout injected to match P3."""
+    """U-Net with a canopy logits head. With AUX_HEIGHT, adds a parallel height head
+    so the model returns a (seg_logits, height) tuple (the --aux-height reframe)."""
     _ensure_torch()
-    model = smp.Unet(encoder_name=ENCODER, encoder_weights=None,
-                     decoder_channels=DECODER_CHANNELS, in_channels=IN_CHANNELS,
-                     classes=1, activation=None)
+    model = _build_unet_with_height() if AUX_HEIGHT else smp.Unet(
+        encoder_name=ENCODER, encoder_weights=None,
+        decoder_channels=DECODER_CHANNELS, in_channels=IN_CHANNELS,
+        classes=1, activation=None)
     _inject_dropout(model.decoder, DECODER_DROPOUT)
     model = model.to(device)
     if compile_model:
@@ -2220,6 +2317,15 @@ def make_spatial_buffer_splits(df, n_folds=5, buffer_px=512, seed=42):
     return folds
 
 
+def _masked_l1(pred, target):
+    """Mean L1 over VALID height pixels only (target >= 0; -1 = nodata/invalid
+    sentinel). pred/target are B×1×H×W. Returns 0 when no valid pixels in the batch
+    (so non-credible years, whose tiles have no height sidecar, contribute nothing)."""
+    valid = (target >= 0).float()
+    diff = (pred.float() - target.float()).abs() * valid
+    return diff.sum() / valid.sum().clamp(min=1.0)
+
+
 def _masked_bce(criterion_none, logits, masks):
     """Mean BCE over labeled pixels only (mask value 255 = IGNORE is excluded).
 
@@ -2314,18 +2420,26 @@ def _train_one_epoch(model, loader, optimizer, scaler, criterion, device,
         _set_encoder_bn_eval(model)   # re-pin frozen-encoder BN after train()
     loss_sum = seg_sum = 0.0       # seg_sum tracks the combined seg loss (no L1)
     n = 0
-    for imgs, masks, _ in loader:
+    for batch in loader:
+        if AUX_HEIGHT:
+            imgs, masks, heights, _ = batch
+            heights = heights.to(device, non_blocking=True)
+        else:
+            imgs, masks, _ = batch
+            heights = None
         imgs = imgs.to(device, non_blocking=True)
         masks = masks.to(device, non_blocking=True)
         optimizer.zero_grad()
         with torch.amp.autocast("cuda"):
-            logits = model(imgs)
+            out = model(imgs)
+            logits, height_pred = (out if isinstance(out, (tuple, list)) else (out, None))
             seg, _p, _dice = _seg_loss(criterion, logits, masks, loss_mode)
+            aux_h = (_masked_l1(height_pred, heights)
+                     if (heights is not None and height_pred is not None) else None)
+        loss = seg if aux_h is None else seg + HEIGHT_LAMBDA * aux_h
         if L1_LAMBDA > 0:
             l1 = sum(p.abs().sum() for p in model.parameters() if p.requires_grad)
-            loss = seg + L1_LAMBDA * l1
-        else:
-            loss = seg
+            loss = loss + L1_LAMBDA * l1
         scaler.scale(loss).backward()
         scaler.unscale_(optimizer)
         torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
@@ -2355,11 +2469,16 @@ def _validate(model, loader, criterion, device, loss_mode="bce_dice"):
     pred_g  = torch.zeros(ntg, device=device)
     tgt_total = torch.zeros((), device=device)
     with torch.no_grad():
-        for imgs, masks, _ in loader:
+        for batch in loader:
+            if AUX_HEIGHT:
+                imgs, masks, _heights, _ = batch
+            else:
+                imgs, masks, _ = batch
             imgs = imgs.to(device, non_blocking=True)
             masks = masks.to(device, non_blocking=True)
             with torch.amp.autocast("cuda"):
-                logits = model(imgs)
+                out = model(imgs)
+                logits, height_pred = (out if isinstance(out, (tuple, list)) else (out, None))
                 seg, _p, _dice = _seg_loss(criterion, logits, masks, loss_mode)
             seg_sum += seg.item(); n += 1
             valid = (masks != IGNORE_LABEL).float()
@@ -2384,6 +2503,7 @@ def _save_ckpt(phase, epoch, model, optim, sched, history, best_val, path):
                 "optim_state": optim.state_dict(), "sched_state": sched.state_dict(),
                 "history": history, "best_val": best_val,
                 "in_channels": IN_CHANNELS,          # 3=RGB, 4=RGB+structure
+                "aux_height_head": bool(AUX_HEIGHT), # height-prediction head present
                 "hs_source": HS_SOURCE}, path)       # which raster band 4 was
 
 
@@ -3068,7 +3188,9 @@ def step_inference(label, batch_size=INFER_BATCH_SIZE, dry_run=False):
         try:
             inp = torch.stack(imgs).to(device)
             with torch.no_grad():
-                out = model(inp).squeeze(1).cpu().numpy()
+                raw = model(inp)
+                seg = raw[0] if isinstance(raw, (tuple, list)) else raw
+                out = seg.squeeze(1).cpu().numpy()
             del inp
             return out
         except RuntimeError as e:
@@ -3459,7 +3581,7 @@ def main():
     global USE_VI, USE_HILLSHADE, IN_CHANNELS, THRESH_MODE, HS_SOURCE, HS_DROPOUT, \
         COARSE_POS_WEIGHT_MAX, LR_PHASE_A, BCE_WEIGHT, DICE_WEIGHT, \
         EPOCHS_PHASE_A, EPOCHS_PHASE_B, FREEZE_ENCODER_BN, INFER_THRESH_OVERRIDE, \
-        ADD_CANOPY_MASK
+        ADD_CANOPY_MASK, AUX_HEIGHT, HEIGHT_LAMBDA, EMIT_HEIGHT
 
     filtered = [a for a in sys.argv[1:] if not (a == "-f" or a.endswith(".json"))]
     p = argparse.ArgumentParser(
@@ -3597,6 +3719,18 @@ def main():
                         "path — teaches NIR+CHM-confirmed canopy the conifer-only "
                         "labels miss. One file (built on the 2016 grid) serves 2016 "
                         "and 2000. Coarse-tier only; needs a retile.")
+    p.add_argument("--aux-height", action="store_true",
+                   help="AUXILIARY HEIGHT reframe: RGB-only input + a 2nd output head that "
+                        "PREDICTS canopy height from RGB (masked-L1 vs the CHM), instead of "
+                        "feeding CHM as a 4th input band. Bakes tall-vs-flat into the RGB "
+                        "features (kills grass FPs, no stale-snapshot). Forces RGB-only input "
+                        "+ a retile (height sidecars). Supervised only on CHM-credible years.")
+    p.add_argument("--height-lambda", type=float, default=HEIGHT_LAMBDA,
+                   help="Weight of the auxiliary height loss (--aux-height); small = a "
+                        "regularizer. Default %(default)s.")
+    p.add_argument("--emit-height", action="store_true",
+                   help="(Reserved) With --aux-height, also write a predicted-height raster at "
+                        "inference — a bonus diagnostic; not yet wired into step_inference.")
     p.add_argument("--loss-mode", choices=["bce_dice", "focal_dice"], default=None,
                    help="Override the COARSE-tier training loss (Edit F): 'bce_dice' "
                         "(default = run-5 baseline) or 'focal_dice' (focal+dice "
@@ -3629,6 +3763,15 @@ def main():
     THRESH_MODE = args.thresh_mode
     INFER_THRESH_OVERRIDE = args.infer_thresh
     ADD_CANOPY_MASK = args.add_canopy_mask
+    # --aux-height reframe: height becomes a TARGET, so the input goes RGB-only.
+    AUX_HEIGHT = bool(args.aux_height)
+    HEIGHT_LAMBDA = max(0.0, float(args.height_lambda))
+    EMIT_HEIGHT = bool(args.emit_height)
+    if AUX_HEIGHT:
+        USE_HILLSHADE = False        # CHM is the regression target, NOT an input band
+        IN_CHANNELS = 3              # pure RGB-only input
+        print("  [--aux-height] RGB-only input + height-prediction head "
+              f"(height-lambda={HEIGHT_LAMBDA}); CHM used as target only.")
     # Edit F: --loss-mode overrides the coarse-tier loss (focal A/B); fine/medium
     # stay bce_dice. Mutating the dict contents (no rebind) → no `global` needed.
     if args.loss_mode:

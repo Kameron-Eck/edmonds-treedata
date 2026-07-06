@@ -41,7 +41,21 @@ SPACE RULES — keep always-loaded context low for continuous logging:
 ════════════════ STATE  (current — edit in place) ════════════════
 
 proj:    Edmonds temporal canopy pipeline, phase 4 (per-year semantic seg, 18 imagery yrs).
-live:    phase4_semantic_finetune.py = v044. v044 = INFERENCE OOM FIX: gc+empty_cache before
+live:    phase4_semantic_finetune.py = v045. v045 = AUX-HEIGHT REFRAME (teach height, don't feed
+         it), flag-gated (default OFF = identical to v044). --aux-height: RGB-only input + a 2nd
+         output head that PREDICTS canopy height from RGB (UnetWithHeight subclass of smp.Unet,
+         keeps encoder/decoder/segmentation_head keys → P3 ckpt loads strict=False; forward →
+         (seg, height)). Height TARGET = CHM DN sidecar per tile (masked-L1, _masked_l1;
+         _height_to_target normalizes (DN-1)*.2/40, -1 sentinel), written only for CHM_CREDIBLE_
+         YEARS {2015,2016,2017,2020}; other years → aux loss auto-zeros. Wired: build_model,
+         3 forward sites (tuple-safe), SemanticDataset.__getitem__ (height stacked thru
+         spatial_tf then split), train/val loop unpack, tile sidecar + _tile_signature (forces
+         retile) + _save_ckpt aux_height_head flag. --height-lambda [0.2], --emit-height
+         (reserved). PHASE3 base NOT yet mirrored (next step for full transfer) — but the
+         existing sem_best_2020.pt is already 3-ch RGB, so phase4 --aux-height fine-tunes fit
+         from it directly (height head trains during the 2016 fine-tune) → the 2016 ablation
+         runs NOW without touching phase3. py_compiled. plan = drifting-swinging-dolphin.md.
+         v044 = INFERENCE OOM FIX: gc+empty_cache before
          inference (frees train/eval mem in the same process) + OOM-resilient flush (_forward
          auto-halves the batch on CUDA OOM). 2026-07-06 run: corrected labels APPLIED (overlay
          printed, full retile, 566/800 canopy tiles), train great (val_iou_bt .8829) but
@@ -146,6 +160,32 @@ gotcha:  scripts Colab-only for torch (rasterio+geopandas+fiona+sklearn now pip-
          accept-all test data; 14,476-crown human review never finished.
 
 ════════════════ LOG  (newest first) ════════════════
+
+## 2026-07-06  aux-height reframe CODED in phase4 (v045) — teach height, don't feed it
+goal:    implement the approved plan (drifting-swinging-dolphin.md): height as an auxiliary
+         SUPERVISION TARGET (RGB-only inference), not a 4th input channel — the structural fix
+         for recurring grass FPs. Planned + coded HERE (2 Explore agents mapped both files).
+did:     phase4 v045, flag-gated (--aux-height default OFF = bit-identical to v044). UnetWithHeight
+         (subclass smp.Unet → keeps encoder/decoder/segmentation_head keys, adds height_head
+         Conv2d(64,1); forward→(seg,height)). RGB-only input forced (USE_HILLSHADE off, IN_CH=3).
+         Height target = per-tile CHM-DN sidecar via read_hillshade_chip, written only for
+         CHM_CREDIBLE_YEARS {2015,2016,2017,2020}; _height_to_target normalizes (DN-1)*.2/40 w/
+         -1 invalid sentinel; _masked_l1 (loss zero where no sidecar). Wired all touch points:
+         build_model, 3 forward sites (tuple-safe isinstance unpack), __getitem__ (height rides
+         spatial_tf as 4th channel then split before colour aug), train/val loop unpack,
+         _tile_signature (aux_height key → forces retile), _save_ckpt (aux_height_head).
+         py_compiled clean at each step.
+decided: KEY realization — sem_best_2020.pt is already 3-ch RGB (phase3 never used CHM input),
+         so phase4 --aux-height fine-tunes load it cleanly (strict=False, height_head random) and
+         the height head trains DURING the 2016 fine-tune. So the decisive 2016 ablation (RGB-only
+         with vs without --aux-height) runs NOW without touching phase3. phase3 base-pretraining
+         (stronger prior + transfer to non-NIR yrs) = the remaining step.
+files:   phase4_semantic_finetune.py v044→v045 (.versions v045). phase3 versioned v002 but NOT
+         yet edited (mirror pending).
+next:    (a) USER Colab 2016 ablation: fine-tune 2016 twice from the current base — RGB-only
+         plain vs --aux-height — evaluate + qc_score each; success = grass rejection back to
+         ~.98 with precision held, WITHOUT corrected labels. (b) then mirror into phase3 (base
+         height head) for full transfer. Coordinate: one session edits phase4 at a time.
 
 ## 2026-07-06  git adopted — version_script retired, full snapshot history imported
 goal:    replace homegrown .versions/ snapshots w/ real local git. private, NO remote.

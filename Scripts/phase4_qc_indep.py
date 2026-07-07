@@ -220,7 +220,17 @@ def score(year, ref_path, prob_path, thresh, ref_scheme, ref_map_path, block_row
     with rasterio.open(prob_path) as prob:
         H, W = prob.height, prob.width
         rx, ry = prob.res
-        px_area = abs(rx * ry)                       # prob-grid pixel area (CRS units²)
+        # pixel area in TRUE m² — prob CRS units may be feet (EPSG:2285 = US survey ft),
+        # so convert via the CRS unit factor before estimating independent 1 m² cells.
+        m_per_unit = 1.0
+        try:
+            from pyproj import CRS as _pyCRS
+            _c = _pyCRS.from_user_input(prob.crs)
+            if _c.is_projected:
+                m_per_unit = float(_c.axis_info[0].unit_conversion_factor)
+        except Exception:
+            pass
+        px_area = abs(rx * ry) * (m_per_unit ** 2)   # prob-grid pixel area in m²
 
         # per-group accumulators (valid px only)
         gpx = {g: 0 for g in names}                  # group px

@@ -237,6 +237,58 @@ honest accuracy instrument.
 - **No-NIR years (e.g. 2000).** Have no NDVI reference; the honest instrument there is stratified
   random **photo-interpretation** (Olofsson et al. 2014) with area-adjusted estimates and 95% CIs
   — never raw pixel counts or map-minus-map differencing.
+### Independent QC — NOAA C-CAP land cover reference (added 2026-07-07)
+The NDVI+CHM reference above is **shared-axis contaminated**: its canopy class is `NDVI ∧ CHM`,
+and two of the models being ranked (CHM-input, aux-height) learn from that same CHM, so it cannot
+rank those variants honestly. NOAA's **Coastal Change Analysis Program (C-CAP) High-Resolution
+Land Cover** is fully independent — it never saw the model, the 2020 labels, or the project CHM.
+It is the first non-circular yardstick (rigor ladder: circular proxy < C-CAP < human photo-interp).
+- **EVALUATION ONLY — never training.** C-CAP is used solely to score; never a training/label
+  source, so the pipeline stays reproducible where no C-CAP exists (training uses only aerial
+  imagery + the 2020 labels). The scorer is therefore **reference-agnostic** — C-CAP for Edmonds,
+  but equally hand-drawn validation polygons or photo-interp points elsewhere (`--ref-scheme binary`).
+- **Reference product / data.** NOAA C-CAP High-Resolution Land Cover, 1 m, uint8, EPSG:26910
+  (UTM 10N NAD83), clipped to the Edmonds AOI (7431×5952) and stored
+  `Full_Image/Pipeline Imagery/ccap_{2016,2021}_hires_lc.tif` (+ D: mirror). **2016** = Snohomish
+  County bulk `.img` (HFA), clipped via `/vsicurl` windowed range reads (never the 15.7 GB `.ige`
+  spill). **2021** = Puget Sound V2 via the Digital Coast `CCAP_High_Resolution_Landcover`
+  ImageServer `exportImage` (mosaic locked to OBJECTID 45), tiled 2×1 under the 4100-px height cap
+  and mosaicked to the 2016 grid. (C-CAP 2016→2021 is itself an independent canopy-**change**
+  reference for later.)
+- **Hi-res legend quirks (handled).** The hi-res product collapses developed intensity (2016: all
+  developed → 2 Impervious; 2021 V2 has 2 + 4) and codes forest as a single **11 Upland Forest**
+  (no 9/10/11 deciduous/evergreen/mixed split). The scorer's baked C-CAP map absorbs both (2→
+  developed, 11→forest; absent standard codes contribute 0 px). Full class→group map is printed on
+  every run for audit.
+- **Canopy definition.** The model targets tall canopy (deciduous or coniferous), sometimes
+  forested wetland, so the **primary** recall reference is `forest ∪ wetland` (codes {11,13}).
+  Two flanking definitions bracket sensitivity: `forest_only` and `forest ∪ wetland ∪ scrub`
+  (scrub is short woody). Areal nesting is monotone (ref-canopy 29.2% ⊆ 29.5% ⊆ 32.0%); recall is
+  NOT — adding scrub drops it (model rejects scrub, recall 0.25), which validates excluding it.
+- **Scoring.** `phase4_qc_indep.py` reprojects the reference onto the year's model-prob grid
+  (`WarpedVRT`, nearest — categorical-safe) and reports recall / precision / grass-rejection under
+  the three canopy definitions, plus a **per-surface delineation**: each land-cover group's
+  canopy-call rate is the model's *recall* for canopy groups and its *false-positive rate* for
+  non-canopy groups (grass / developed / barren / water / emergent wetland) — attributing both
+  under-prediction and false alarms by surface type. Outputs `phase4/qc/qc_indep_report.csv` +
+  `qc_indep_surfaces_{year}.csv` + `qc_indep_{year}.txt`, separate from the circular
+  `semantic_eval_report.csv`, the NDVI `qc_report.csv`, and `flicker_report.csv`. Scored at model
+  resolution (mirrors `phase4_qc_score.py`); the effective independent sample is the reported
+  1 m²-cell count (~31.3 M for 2016), not the raw 1.35 B valid pixels.
+- **Baseline finding (2016 model vs C-CAP 2016, deployed thr 0.4615).** Primary recall **0.684**,
+  precision **0.865**, grass-rejection **0.935**. Per surface: upland-forest recall **0.682** (the
+  under-prediction, confirmed independently), forested-wetland recall **0.899** (the model recalls
+  forested wetland *well* — the marsh confusion is mostly in **emergent/herbaceous wetland**, FP-rate
+  0.34), scrub recall 0.255. False alarms are chiefly developed (FP-rate 0.033 over 32% of area) and
+  grass (0.066); water is clean (0.006). The two independent instruments **bracket** the truth —
+  NDVI+CHM 0.59/0.96 (harsher recall, softer precision) vs C-CAP 0.68/0.87 (softer recall, harsher
+  precision) — report both, never a single number.
+- **Caveat: land COVER, not a canopy mask.** C-CAP classes are areal (forest = trees ≥5 m over
+  >20% of an area with a ~1 m MMU), so a forest polygon includes small canopy gaps and street trees
+  over roads get labeled Impervious — a definitional-disagreement floor exists in both FN and FP.
+  C-CAP is independent of the model's CHM axis, which makes it the trustworthy arbiter for **ranking**
+  CHM-based variants (via `--prob <archived_variant.tif>`); treat the absolute recall/precision as
+  bracketed by the two references, with human photo-interp (Olofsson) as the eventual tiebreaker.
 ### Deciduous / positive training coverage
 The fine/medium per-year models take positive labels from per-site hand-traced crown polygons
 (`polygons/{site}_crowns_review.gpkg`); a site **without** a crown file is demoted to a pure

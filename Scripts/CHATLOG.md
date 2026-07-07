@@ -151,12 +151,14 @@ open:    (0) [2026-07-05 ACTIVE] CORRECTED-LABEL workstream (supersedes 2015-fla
          recovered, precision UP (grass-FP signal). CHM helps once sampler honest.
          NEXT: phase4_viz grass-FP confirm → carry config to 2000 → then Phase 4.
          (2) [NOW THE PRIORITY per user] honest-accuracy INDEPENDENT yardstick.
-         RIGOR LADDER: circular proxy < C-CAP < human photo-interp. RUNG 1 BUILT
-         2026-07-07 = phase4_qc_indep.py (reference-agnostic scorer; NOAA C-CAP 2016
-         1m as EVAL-ONLY ref; validated exact vs qc_score). PENDING: Kam's C-CAP
-         raster+legend → first NON-circular ranking of the 2016 variants. RUNG 2
-         (the deliverable-grade arbiter) = random-point photo-interp (Olofsson 2014
-         stratified + area-adjusted CIs) — still unbuilt. (3) radiometric normalization +
+         RIGOR LADDER: circular proxy < C-CAP < human photo-interp. RUNG 1 DONE
+         2026-07-07 = phase4_qc_indep.py + NOAA C-CAP hi-res 1m acquired (ccap_{2016,
+         2021}_hires_lc.tif, EVAL-ONLY). FIRST non-circular number IN: 2016 model
+         recall .684 / prec .865 / grass-rej .935 (vs NDVI+CHM .59/.96 — the two refs
+         BRACKET truth). STILL PENDING = the variant RANKING (Colab-gated: only the
+         current prob_2016.tif on disk; regen aux/CHM/RGB variant rasters → --prob
+         each). RUNG 2 (deliverable-grade arbiter) = random-point photo-interp
+         (Olofsson 2014 stratified + area-adjusted CIs) — still unbuilt. (3) radiometric normalization +
          test-time BN across years (temporal domain shift) — unbuilt. (4) coarse
          labels from 2020 mask → label-circularity ceiling until (2) exists.
 blocked: none.
@@ -171,6 +173,39 @@ gotcha:  scripts Colab-only for torch (rasterio+geopandas+fiona+sklearn now pip-
          accept-all test data; 14,476-crown human review never finished.
 
 ════════════════ LOG  (newest first) ════════════════
+
+## 2026-07-07  C-CAP acquired (2016+2021) + FIRST non-circular numbers
+goal:    get the independent-yardstick raster + produce the first non-circular score (Kam: download
+         2016 AND 2021, put on Drive + local like the imagery).
+did:     DOWNLOADED NOAA C-CAP hi-res 1m land cover, clipped to Edmonds AOI, EPSG:26910 →
+         Full_Image/Pipeline Imagery/ccap_{2016,2021}_hires_lc.tif (+ D: mirror). 2016 = Snohomish
+         County bulk .img via /vsicurl windowed range-reads (dodged the 15.7GB .ige spill); 2021 =
+         Puget Sound V2 via CCAP_High_Resolution_Landcover ImageServer exportImage (mosaic lockRaster
+         OBJECTID 45), tiled 2x1 under the 4100px height cap, mosaicked to the 2016 grid. Hi-res
+         legend quirk: forest = single 11 Upland Forest (no 9/10/11 split), developed collapsed
+         (2016 all→2 Impervious; 2021 V2 has 2+4) — the baked ccap map absorbs both. Codes verified
+         vs the actual rasters.
+result:  2016 model vs C-CAP 2016 @thr .4615 = FIRST non-circular score. PRIMARY (forest_wetland)
+         recall .684 / precision .865 / grass-rej .935. Per-surface delineation: upland-forest recall
+         .682 (UNDER-PREDICTION confirmed independently), forested-WETLAND recall .899 (model recalls
+         it WELL — the marsh confusion is EMERGENT/herbaceous wetland, FP-rate .34, NOT forested
+         wetland), scrub recall .255 (correctly rejected → validates excluding scrub from primary).
+         FP sources: developed .033 (×32% of area) + grass .066; water clean .006. TWO independent
+         refs BRACKET the truth: NDVI+CHM .59/.96 (harsher recall) vs C-CAP .68/.87 (harsher
+         precision) — report both, never one number.
+decided: C-CAP EVAL-ONLY (portability); independent of the model CHM axis → the arbiter for ranking
+         CHM-based variants. CAVEAT logged: C-CAP = areal land COVER not a canopy mask (forest =
+         ≥5m over >20%, ~1m MMU; street trees → Impervious) → a definitional-disagreement floor in
+         both FN and FP; human photo-interp (Olofsson) is the eventual tiebreaker.
+fixed:   phase4_qc_indep.py indep-1m-cell count treated EPSG:2285 US-survey-FEET as metres (10.8x
+         inflation) → now converts via pyproj CRS unit factor (2016 ≈ 31.3M independent cells).
+files:   Full_Image/Pipeline Imagery/ccap_{2016,2021}_hires_lc.tif (+D:); phase4/qc/qc_indep_{report.csv,
+         surfaces_2016.csv,2016.txt}; Method_Pipeline.md (+C-CAP subsection); CLAUDE.md (layout+facts+
+         script row); phase4_qc_indep.py (unit fix).
+next:    RANKING is COLAB-GATED — only edmonds_canopy_prob_2016.tif is on disk; the aux-height/CHM-
+         input/RGB-only variant prob rasters were overwritten. Regen each variant (Colab inference) →
+         `phase4_qc_indep.py --year 2016 --prob <variant.tif>` → the first non-circular RANKING. 2021
+         C-CAP staged for a future 2021/2022 model + as an independent canopy-CHANGE reference.
 
 ## 2026-07-07  BUILT phase4_qc_indep.py — reference-agnostic independent scorer (first non-circular yardstick)
 goal:    give the model ranking a NON-circular reference. NOAA C-CAP 2016 1m land cover = free

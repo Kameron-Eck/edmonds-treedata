@@ -60,6 +60,7 @@ source files, ask before assuming.**
 │   ├── phase4_label_review_prep.py / phase4_label_review.py   ← crown review tool
 │   ├── phase4_qc_ndvi.py                 ← independent NDVI+CHM canopy REFERENCE (NIR years)
 │   ├── phase4_qc_score.py                ← score model vs the NDVI reference → qc/qc_report.csv
+│   ├── phase4_qc_indep.py                ← reference-agnostic scorer vs an INDEPENDENT ref (C-CAP) → qc/qc_indep_*
 │   ├── phase4_qc_site.py                 ← lat/lon window FN-attribution diagnostic
 │   ├── phase4_build_corrected_labels.py  ← NIR+CHM → ADD-ONLY corrected-label overlay
 │   ├── make_positive_site.py             ← stage a positive site (crowns derived from 2020 mask)
@@ -86,6 +87,7 @@ source files, ask before assuming.**
 ├── Full_Image/Pipeline Imagery/
 │   ├── {year}_{src}_rgb.tif / _rgbi.tif       ← native orthos (NIR years end _rgbi)
 │   ├── lidar_snoh_chm.tif                      ← 3DEP HAG height — CHM 4th channel + QC height
+│   ├── ccap_{2016,2021}_hires_lc.tif           ← NOAA C-CAP 1m land cover — INDEPENDENT eval ref (EVAL-ONLY, never train)
 │   ├── lidar_snoh_structure.tif / _hillshade_fr.tif   ← older struct experiments (superseded)
 │   └── upsample/                               ← reprojected to 2020 grid (phase1 spectral only)
 └── phase5/ … phase8/  ← not yet built
@@ -205,6 +207,7 @@ boundaries or method changes, not every session.
 | Phase 3 LOSO IoU / AUROC | 0.7299 ± 0.0413 / 0.9396 ± 0.0190 |
 | CHM | `lidar_snoh_chm.tif` — USGS 3DEP HAG, ~2016, U8 DN=0.2 m/DN (0=nodata), ~60% city coverage |
 | NIR-bearing years | 2016, 2019n, 2021s, 2022n (only these can build an NDVI reference) |
+| C-CAP eval ref | `ccap_{2016,2021}_hires_lc.tif` — NOAA hi-res 1m land cover, EPSG:26910, EVAL-ONLY (never train); hi-res forest=11, developed collapsed |
 | GPU (Colab) | NVIDIA RTX PRO 6000 Blackwell, ~95 GB VRAM |
 | GPU (local) | 2 GB — CPU / raster / QC only, no training |
 

@@ -278,7 +278,13 @@ RANDOM_SEED      = 42
 # footprints), labelled from the 2020 binary canopy mask, balanced across
 # canopy-fraction bins so the set isn't all-forest or all-background.
 COARSE_CITYWIDE_TILES     = 800  # total tile budget across canopy-fraction bins
-CITYWIDE_CANDIDATE_STRIDE = 256  # candidate origin stride before stratification
+CITYWIDE_CANDIDATE_STRIDE = 256  # candidate origin stride FLOOR (coarse orthos)
+# Cap the city-wide candidate scan. At the fixed 256 stride a FINE ortho
+# (74k×106k @14.9cm) yields ~120k candidates → a ~2 h scan that times out / OOMs
+# on Colab just to pick 800 tiles. Adapt the stride so the scan is bounded to
+# ~this many candidates on any GSD; coarse orthos already sit below it (stride
+# stays 256, unchanged). Makes --force-citywide feasible on fine years.
+CITYWIDE_CANDIDATE_TARGET = 8000
 
 # Green hard-negative mining (Fix B). Background (canopy_frac==0) tiles whose
 # mean GRVI = (G-R)/(G+R) exceeds GREEN_GRVI_THRESHOLD are vegetated-but-non-
@@ -1536,10 +1542,17 @@ def _gather_citywide_coarse(label, sites, stride_override=None, dry_run=False):
             img_h, img_w, tf = src.height, src.width, src.transform
             print(f"  Ortho: {img_w}×{img_h}px  GSD≈{tf.a*100:.1f}cm  "
                   f"nodata={src_nodata}")
+            # Bound the scan to ~CITYWIDE_CANDIDATE_TARGET candidates regardless of
+            # GSD (floor = CITYWIDE_CANDIDATE_STRIDE, so coarse is unchanged). An
+            # explicit --stride override is always honoured.
+            if not stride_override:
+                adaptive = int(round((img_h * img_w / CITYWIDE_CANDIDATE_TARGET) ** 0.5))
+                stride = max(CITYWIDE_CANDIDATE_STRIDE, adaptive)
             rows = list(range(0, max(1, img_h - TILE_SIZE + 1), stride)) or [0]
             cols = list(range(0, max(1, img_w - TILE_SIZE + 1), stride)) or [0]
             origins = [(r, c) for r in rows for c in cols]
-            print(f"  Candidate positions: {len(origins):,}  (stride={stride})")
+            print(f"  Candidate positions: {len(origins):,}  (stride={stride}"
+                  f"{'' if stride_override else ', adaptive'})")
             if dry_run:
                 print("  Dry run — not reading tiles")
                 return []

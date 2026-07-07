@@ -41,7 +41,13 @@ SPACE RULES — keep always-loaded context low for continuous logging:
 ════════════════ STATE  (current — edit in place) ════════════════
 
 proj:    Edmonds temporal canopy pipeline, phase 4 (per-year semantic seg, 18 imagery yrs).
-live:    phase4_semantic_finetune.py = v047. v047 = GPU-MEM + RECIPE-UNIFY + NO-OVERWRITE (Kam):
+live:    phase4_semantic_finetune.py = v048. v048 = FIX: --force-citywide crashed on FINE years —
+         the citywide candidate scan used a fixed 256px stride → a fine ortho (74k×106k @14.9cm) =
+         119,770 candidates = ~2h scan → Colab timeout/OOM (just to pick 800 tiles). Now the scan
+         stride ADAPTS to ortho size (CITYWIDE_CANDIDATE_TARGET=8000; floor 256), so fine 2013 = 8,025
+         candidates (~few min) and COARSE IS UNCHANGED (2002 still 7,592 @ stride 256). --stride
+         override still honoured. This unblocks the --force-citywide cross-sensor run.
+         v047 = GPU-MEM + RECIPE-UNIFY + NO-OVERWRITE (Kam):
          (1) --infer-batch [def 32] replaces the old BATCH_SIZE*16=160 fp32 inference batch (the
          ~76GB spike → 80GB-only); inference forward now torch.amp.autocast + logits .float() before
          sigmoid. Output batch-invariant → pure memory knob → fits a 24GB L4 (~2-3x cheaper). Training
@@ -190,6 +196,27 @@ gotcha:  scripts Colab-only for torch (rasterio+geopandas+fiona+sklearn now pip-
          accept-all test data; 14,476-crown human review never finished.
 
 ════════════════ LOG  (newest first) ════════════════
+
+## 2026-07-07  v048 FIX: --force-citywide crashed on fine years (citywide scan candidate blow-up)
+goal:    Kam's --force-citywide --run-tag citywide_rgb run crashed SILENTLY twice, both in 2013's
+         city-wide TILING scan (not inference — this run already ran --infer-batch default 32).
+cause:   the citywide candidate scan used a FIXED 256px stride. On a fine ortho (2013 = 74496×105984
+         @14.9cm) that = 119,770 candidate positions → ~2h scan (log: 49% in 18min, ETA 1:41) → Colab
+         idle/runtime timeout or host OOM. Coarse orthos are ~15x smaller so it never bit them (2002 =
+         7,592). Just to select COARSE_CITYWIDE_TILES=800.
+did:     _gather_citywide_coarse now ADAPTS the scan stride to ortho size AFTER opening it:
+         stride = max(CITYWIDE_CANDIDATE_STRIDE, round(sqrt(H*W / CITYWIDE_CANDIDATE_TARGET))), target
+         8000. Verified: coarse 2002 → stride 256 / 7,592 candidates (UNCHANGED, floor holds); fine
+         2013 → stride 993 / 8,025 candidates (~few-min scan); 7.5cm → 1987 / 8,025. --stride override
+         still exact. py_compiled.
+decided: bound the SCAN not the budget — 8000 candidates (10x the 800 budget) keeps bin-stratification
+         diversity while making the scan GSD-independent. Behavior-preserving for every existing coarse
+         run (stride floored at 256).
+files:   phase4_semantic_finetune.py (v048; CITYWIDE_CANDIDATE_TARGET const + adaptive stride in
+         _gather_citywide_coarse).
+next:    Kam RE-RUN the same command — `--year 2013,2015,2017,2022 --no-hillshade --force-citywide
+         --run-tag citywide_rgb` (fine citywide tiling now feasible). Tiles are tagged-independent, so
+         completed years persist. Then the local --years autopsy on the _citywide_rgb rasters.
 
 ## 2026-07-07  Cross-sensor forest-miss autopsy — FIRST CUT (2000/2002/2013, RGB-only, PRE-force-citywide)
 goal:    read where/why upland forest is missed across sensors (phase4_qc_forest_misses.py --years) on

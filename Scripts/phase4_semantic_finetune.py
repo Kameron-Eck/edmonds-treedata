@@ -77,6 +77,9 @@
   %run phase4_semantic_finetune.py --step consistency   # cross-year check only
   %run phase4_semantic_finetune.py --dry-run            # plan only, no writes
   %run phase4_semantic_finetune.py --ckpt <p3.pt>       # override fine-tune start
+  %run phase4_semantic_finetune.py --infer-batch 32     # inference memory (fits 24 GB; def 32)
+  %run phase4_semantic_finetune.py --force-citywide     # uniform citywide recipe on ALL tiers
+  %run phase4_semantic_finetune.py --run-tag rgbonly    # suffix outputs _rgbonly (no overwrite)
 ╚══════════════════════════════════════════════════════════════════╝
 """
 
@@ -395,6 +398,21 @@ COARSE_USE_POS_WEIGHT = False
 INFER_BATCH_SIZE = 160
 INFER_STRIDE     = 256
 INFER_PAD        = (TILE_SIZE - INFER_STRIDE) // 2
+
+# --infer-batch: full-city inference batch. The old default (BATCH_SIZE*16=160)
+# fp32 forward spikes ~76 GB → an 80 GB card only. Inference output is
+# batch-invariant (eval mode, no grad, running BN stats), so this is a pure
+# memory/speed knob; 32 + autocast fits a 24 GB card with negligible speed cost.
+INFER_BATCH = 32
+# --run-tag: when set, every per-year output (model/prob/mask/gpkg) is suffixed
+# _TAG so successive Colab runs SAVE instead of OVERWRITE — for keeping variants
+# / recipes for later analysis. Empty = legacy behaviour (overwrite).
+RUN_TAG = ""
+
+
+def _tag_sfx():
+    """Filename suffix for --run-tag ('' when unset → legacy names)."""
+    return f"_{RUN_TAG}" if RUN_TAG else ""
 
 # Post-processing (Method Pipeline "Semantic Thresholding" block)
 CANOPY_PROB_THRESHOLD = 0.5
@@ -2699,15 +2717,19 @@ def step_train(label, batch_size=BATCH_SIZE, p3_ckpt=None, dry_run=False):
         # Focal + alpha is the class-balance channel; do NOT also apply pos_weight
         # (Edit F: one rebalancing channel, not two).
         print(f"  pos_weight ({tier}): N/A — focal+alpha owns class balance")
-    elif tier == "coarse":
+    elif use_blocked_val:
+        # Citywide bin-balanced pool (coarse by default, or ANY tier under
+        # --force-citywide): the natural sampler owns class balance, so pos_weight
+        # is off unless COARSE_USE_POS_WEIGHT flips it on. Keyed on the POOL, not
+        # the GSD tier, so --force-citywide gives a fine year the identical recipe.
         if COARSE_USE_POS_WEIGHT:
             raw = _compute_pos_weight(ftr)
             pw  = float(min(max(raw, POS_WEIGHT_MIN), COARSE_POS_WEIGHT_MAX))
-            print(f"  pos_weight (coarse): raw={raw:.3f} → {pw:.3f}  "
+            print(f"  pos_weight (citywide): raw={raw:.3f} → {pw:.3f}  "
                   f"(clamped to [{POS_WEIGHT_MIN}, {COARSE_POS_WEIGHT_MAX}])")
             pos_weight_t = torch.tensor([pw], device=device)
         else:
-            print("  pos_weight (coarse): DISABLED — sampler owns class balance (1.0)")
+            print("  pos_weight (citywide): DISABLED — sampler owns class balance (1.0)")
     elif tier == "medium":
         raw = _compute_pos_weight(ftr)
         pw  = float(min(max(raw, POS_WEIGHT_MIN), POS_WEIGHT_MAX))
@@ -2718,12 +2740,13 @@ def step_train(label, batch_size=BATCH_SIZE, p3_ckpt=None, dry_run=False):
         print(f"  pos_weight (fine): 1.0 (disabled)")
     criterion = nn.BCEWithLogitsLoss(reduction="none", pos_weight=pos_weight_t)
     MODELS_DIR.mkdir(parents=True, exist_ok=True)
-    best_ckpt   = MODELS_DIR / f"sem_best_{label}.pt"
-    latest_ckpt = MODELS_DIR / f"sem_latest_{label}.pt"
-    # Early-stop / best-checkpoint criterion is tier-dependent (coarse → val_iou
-    # maximize; fine/medium → val_bce minimize). Both metrics are still computed
-    # and logged every epoch; only the SELECTION metric changes.
-    es_metric   = TIER_EARLYSTOP.get(tier, "val_bce")
+    best_ckpt   = MODELS_DIR / f"sem_best_{label}{_tag_sfx()}.pt"
+    latest_ckpt = MODELS_DIR / f"sem_latest_{label}{_tag_sfx()}.pt"
+    # Early-stop / best-checkpoint criterion follows the POOL, not the GSD tier:
+    # any citywide bin-balanced pool (coarse, or a --force-citywide fine year) uses
+    # val_iou_bt (its BCE scale drifts below 0.5); 6-site pools use val_bce. Keying
+    # on use_blocked_val makes --force-citywide fully unify the recipe.
+    es_metric   = "val_iou_bt" if use_blocked_val else TIER_EARLYSTOP.get(tier, "val_bce")
     es_maximize = es_metric in ("val_iou", "val_iou_bt")
     sched_mode  = "max" if es_maximize else "min"
     best_val    = float("-inf") if es_maximize else float("inf")
@@ -2956,7 +2979,7 @@ def step_evaluate(label, dry_run=False):
             print("  No tiles to evaluate."); 
         return
 
-    ckpt = MODELS_DIR / f"sem_best_{label}.pt"
+    ckpt = MODELS_DIR / f"sem_best_{label}{_tag_sfx()}.pt"
     if not ckpt.exists():
         print(f"  ERROR: {ckpt} not found — run step train first"); return
     global IN_CHANNELS
@@ -3114,12 +3137,12 @@ def step_inference(label, batch_size=INFER_BATCH_SIZE, dry_run=False):
     native = resolve_native_path(entry)
     if not native.exists():
         print(f"  ERROR: native ortho not found: {native}"); return
-    ckpt = MODELS_DIR / f"sem_best_{label}.pt"
+    ckpt = MODELS_DIR / f"sem_best_{label}{_tag_sfx()}.pt"
     if not ckpt.exists():
         print(f"  ERROR: {ckpt} not found — run step train first"); return
 
     MASKS_DIR.mkdir(parents=True, exist_ok=True)
-    prob_out = MASKS_DIR / f"edmonds_canopy_prob_{label}.tif"
+    prob_out = MASKS_DIR / f"edmonds_canopy_prob_{label}{_tag_sfx()}.tif"
 
     gc.collect()
     if device.type == "cuda":
@@ -3191,10 +3214,10 @@ def step_inference(label, batch_size=INFER_BATCH_SIZE, dry_run=False):
         # batch or leftover train/eval memory tips the GPU over.
         try:
             inp = torch.stack(imgs).to(device)
-            with torch.no_grad():
+            with torch.no_grad(), torch.amp.autocast("cuda"):
                 raw = model(inp)
                 seg = raw[0] if isinstance(raw, (tuple, list)) else raw
-                out = seg.squeeze(1).cpu().numpy()
+                out = seg.float().squeeze(1).cpu().numpy()  # fp32 before sigmoid
             del inp
             return out
         except RuntimeError as e:
@@ -3321,9 +3344,9 @@ def step_postproc(label, dry_run=False):
     from scipy.ndimage import binary_opening, binary_closing
     print(f"\n── [{label}] Step 6: Post-processing ──")
 
-    prob_out = MASKS_DIR / f"edmonds_canopy_prob_{label}.tif"
-    mask_out = MASKS_DIR / f"edmonds_canopy_mask_{label}.tif"
-    gpkg_out = MASKS_DIR / f"edmonds_canopy_mask_{label}.gpkg"
+    prob_out = MASKS_DIR / f"edmonds_canopy_prob_{label}{_tag_sfx()}.tif"
+    mask_out = MASKS_DIR / f"edmonds_canopy_mask_{label}{_tag_sfx()}.tif"
+    gpkg_out = MASKS_DIR / f"edmonds_canopy_mask_{label}{_tag_sfx()}.gpkg"
     if not prob_out.exists():
         print(f"  ERROR: {prob_out} not found — run inference first"); return
 
@@ -3553,8 +3576,8 @@ def print_summary(entries):
     eval_df = pd.read_csv(EVAL_CSV) if EVAL_CSV.exists() else pd.DataFrame()
     for e in entries:
         lab = e["label"]
-        model_ok = (MODELS_DIR / f"sem_best_{lab}.pt").exists()
-        mask_ok = (MASKS_DIR / f"edmonds_canopy_mask_{lab}.tif").exists()
+        model_ok = (MODELS_DIR / f"sem_best_{lab}{_tag_sfx()}.pt").exists()
+        mask_ok = (MASKS_DIR / f"edmonds_canopy_mask_{lab}{_tag_sfx()}.tif").exists()
         iou = ""
         if not eval_df.empty:
             sub = eval_df[(eval_df["year"].astype(str) == lab) &
@@ -3585,7 +3608,7 @@ def main():
     global USE_VI, USE_HILLSHADE, IN_CHANNELS, THRESH_MODE, HS_SOURCE, HS_DROPOUT, \
         COARSE_POS_WEIGHT_MAX, LR_PHASE_A, BCE_WEIGHT, DICE_WEIGHT, \
         EPOCHS_PHASE_A, EPOCHS_PHASE_B, FREEZE_ENCODER_BN, INFER_THRESH_OVERRIDE, \
-        ADD_CANOPY_MASK, AUX_HEIGHT, HEIGHT_LAMBDA, EMIT_HEIGHT
+        ADD_CANOPY_MASK, AUX_HEIGHT, HEIGHT_LAMBDA, EMIT_HEIGHT, INFER_BATCH, RUN_TAG
 
     filtered = [a for a in sys.argv[1:] if not (a == "-f" or a.endswith(".json"))]
     p = argparse.ArgumentParser(
@@ -3740,6 +3763,19 @@ def main():
                         "(default = run-5 baseline) or 'focal_dice' (focal+dice "
                         "hard-negative emphasis). Loss-only change → run on the same "
                         "tiles to A/B against the baseline. Fine/medium unaffected.")
+    p.add_argument("--infer-batch", type=int, default=INFER_BATCH,
+                   help="Full-city inference batch size (memory knob; output is "
+                        "batch-invariant). Default %(default)s fits a 24 GB card; the old "
+                        "160 needed 80 GB.")
+    p.add_argument("--force-citywide", action="store_true",
+                   help="Apply the citywide 2020-mask COARSE recipe (labels + sampler + "
+                        "selection metric) to EVERY tier, so only the sensor/GSD varies. "
+                        "Removes the tier-recipe confound for cross-year comparison. "
+                        "Fine years scan the full ortho → slower tiling; test on one first.")
+    p.add_argument("--run-tag", type=str, default=None,
+                   help="Suffix all per-year outputs (model/prob/mask/gpkg) with _TAG so "
+                        "runs SAVE instead of OVERWRITE — keep variants/recipes for later "
+                        "analysis. e.g. --run-tag rgbonly. Score with the QC tools' --prob.")
     args = p.parse_args(filtered)
 
     from pipeline_log import StepLogger
@@ -3776,6 +3812,14 @@ def main():
         IN_CHANNELS = 3              # pure RGB-only input
         print("  [--aux-height] RGB-only input + height-prediction head "
               f"(height-lambda={HEIGHT_LAMBDA}); CHM used as target only.")
+    INFER_BATCH = max(1, int(args.infer_batch))
+    RUN_TAG = ("".join(c if (c.isalnum() or c in "._-") else "_"
+                       for c in args.run_tag).strip("_") if args.run_tag else "")
+    if RUN_TAG:
+        print(f"  [--run-tag] outputs suffixed _{RUN_TAG} (SAVE, no overwrite)")
+    if args.force_citywide:
+        print("  [--force-citywide] citywide 2020-mask recipe forced on ALL tiers "
+              "(uniform recipe; only the sensor varies).")
     # Edit F: --loss-mode overrides the coarse-tier loss (focal A/B); fine/medium
     # stay bce_dice. Mutating the dict contents (no rebind) → no `global` needed.
     if args.loss_mode:
@@ -3825,8 +3869,9 @@ def main():
               f"{tier_of(e['gsd_cm'])}, {e['source']}, {e['coverage']})\n{'#'*65}")
         # Coarse tier defaults to city-wide stratified tiling (Fix 3); opt out
         # with --coarse-site-tiling, and the 6-site anchor-label path takes
-        # precedence when --anchor-labels is set.
-        citywide = (tier_of(e["gsd_cm"]) == "coarse"
+        # precedence when --anchor-labels is set. --force-citywide extends the
+        # citywide recipe to ALL tiers (uniform cross-resolution recipe).
+        citywide = ((tier_of(e["gsd_cm"]) == "coarse" or args.force_citywide)
                     and not args.coarse_site_tiling
                     and not args.anchor_labels)
         if "labels" in per_year:
@@ -3865,9 +3910,7 @@ def main():
                 log.finish(**_f)
         if "inference" in per_year:
             with StepLogger(SCRIPT_NAME, f"inference_{lab}", LOGS_DIR) as log:
-                r = step_inference(lab, batch_size=args.batch_size * 16
-                                   if args.batch_size == BATCH_SIZE else args.batch_size,
-                                   dry_run=args.dry_run)
+                r = step_inference(lab, batch_size=INFER_BATCH, dry_run=args.dry_run)
                 _f = {"year": lab, "gsd_cm": e["gsd_cm"],
                       "dry_run": args.dry_run, "errors": 0}
                 if isinstance(r, dict): _f.update(r)

@@ -41,7 +41,17 @@ SPACE RULES — keep always-loaded context low for continuous logging:
 ════════════════ STATE  (current — edit in place) ════════════════
 
 proj:    Edmonds temporal canopy pipeline, phase 4 (per-year semantic seg, 18 imagery yrs).
-live:    phase4_semantic_finetune.py = v046. v046 = AUX-HEIGHT BUGFIX (2016 aux run crashed): (1)
+live:    phase4_semantic_finetune.py = v047. v047 = GPU-MEM + RECIPE-UNIFY + NO-OVERWRITE (Kam):
+         (1) --infer-batch [def 32] replaces the old BATCH_SIZE*16=160 fp32 inference batch (the
+         ~76GB spike → 80GB-only); inference forward now torch.amp.autocast + logits .float() before
+         sigmoid. Output batch-invariant → pure memory knob → fits a 24GB L4 (~2-3x cheaper). Training
+         ALREADY had AMP (autocast+GradScaler) → untouched. (2) --force-citywide: forces the citywide
+         2020-mask coarse recipe on ALL tiers; keyed SAMPLER[already]/SELECTION-METRIC/pos_weight on
+         use_blocked_val (the POOL) not gsd-tier → fully unifies + behavior-preserving. Removes the
+         tier-recipe confound. Tile signature has citywide → auto-retiles; fine years scan full ortho
+         (slower — test one first). (3) --run-tag TAG: suffixes model/prob/mask/gpkg _TAG so runs SAVE
+         not OVERWRITE (_tag_sfx() + RUN_TAG global). py_compiled; run on Colab (torch). 
+         v046 = AUX-HEIGHT BUGFIX (2016 aux run crashed): (1)
          RGB was upcast to float32 by the height-stack in __getitem__ → colour augs (uint8-
          assuming) corrupted it → training DIVERGED (val_bce→8-10); fix = cast RGB back to uint8
          before pixel_tf. (2) 4th forward site in step_evaluate not tuple-unpacked → 'tuple has no
@@ -180,6 +190,32 @@ gotcha:  scripts Colab-only for torch (rasterio+geopandas+fiona+sklearn now pip-
          accept-all test data; 14,476-crown human review never finished.
 
 ════════════════ LOG  (newest first) ════════════════
+
+## 2026-07-07  v047: infer-batch + inference AMP (GPU↓) + --force-citywide + --run-tag
+goal:    (Kam) cut inference VRAM to run a cheaper GPU; unify the per-tier training recipe for the
+         cross-sensor study; stop overwriting Colab outputs.
+did:     phase4_semantic_finetune.py v047 — 3 features:
+         (1) GPU MEM. --infer-batch [def 32] replaces the old BATCH_SIZE*16=160 fp32 inference batch
+         (the ~76GB spike, 80GB-only). Inference forward now under torch.amp.autocast + logits cast
+         .float() before the numpy sigmoid. Batch is a pure memory/speed knob (eval/no_grad/running-BN
+         → output batch-invariant). Training ALREADY used AMP (autocast+GradScaler in _train_one_epoch/
+         _validate) → left untouched. Net: fits a 24GB L4 (~2-3x cheaper than the A100).
+         (2) --force-citywide. Forces the citywide 2020-mask COARSE recipe on EVERY tier: main citywide
+         decision `or args.force_citywide`, and keyed the SAMPLER (already), SELECTION-METRIC, and
+         pos_weight on use_blocked_val (the POOL) instead of the GSD tier → fully unified AND
+         behavior-preserving for existing coarse/medium/fine runs. Removes the tier-recipe confound Kam
+         flagged (coarse = citywide-mask + natural sampler + val_iou_bt vs fine = 6-site crowns +
+         per-site sampler + val_bce). Tile signature already includes citywide → auto-retiles. Fine
+         years scan the full ortho (slower) — test ONE first.
+         (3) --run-tag TAG. Suffixes model/prob/mask/gpkg with _TAG so successive runs SAVE not
+         OVERWRITE (variants/recipes for later analysis). _tag_sfx() helper + RUN_TAG global (matches
+         the AUX_HEIGHT config-global pattern). Eval CSV stays label-keyed (threshold lookup unaffected).
+decided: recipe keyed on POOL (use_blocked_val) not GSD tier — unifies force-citywide while preserving
+         every existing path. AMP dtype = default fp16 (matches training).
+files:   phase4_semantic_finetune.py (v047; +USAGE lines). py_compiled OK; NOT run locally (torch=Colab).
+next:    Kam: for the cheap-GPU run add --infer-batch 32 (fits L4 24GB). For the consistent cross-sensor
+         set use --force-citywide (test ONE fine year first — new combo) + --run-tag <recipe>. Then the
+         local autopsy/qc tools score via --prob on the tagged rasters.
 
 ## 2026-07-07  BUILT phase4_qc_forest_misses.py — under-prediction autopsy + finding
 goal:    understand WHY C-CAP upland-forest (recall .68) is missed → locate stands to stage as

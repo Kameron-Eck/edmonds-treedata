@@ -78,13 +78,33 @@ LOGS_DIR = BASE / "Scripts" / "logs"
 CHM_NAME = "lidar_snoh_chm.tif"
 CHM_DN_PER_M = 1.0 / 0.2
 
-# year → (imagery file, NIR band or None)
+# year(label) → (imagery file, NIR band or None). NIR only on the _rgbi orthos.
 IMG_CATALOG = {
+    "2000":  ("2000_king_rgb.tif",  None),
+    "2002":  ("2002_king_rgb.tif",  None),
+    "2005":  ("2005_king_rgb.tif",  None),
+    "2007":  ("2007_king_rgb.tif",  None),
+    "2009":  ("2009_king_rgb.tif",  None),
+    "2012":  ("2012_king_rgb.tif",  None),
+    "2013":  ("2013_king_rgb.tif",  None),
+    "2015":  ("2015_king_rgb.tif",  None),
     "2016":  ("2016_snoh_rgbi.tif", 4),
+    "2017":  ("2017_king_rgb.tif",  None),
+    "2019":  ("2019_king_rgb.tif",  None),
     "2019n": ("2019_naip_rgbi.tif", 4),
+    "2021":  ("2021_king_rgb.tif",  None),
     "2021s": ("2021_snoh_rgbi.tif", 4),
     "2022n": ("2022_naip_rgbi.tif", 4),
+    "2023":  ("2023_king_rgb.tif",  None),
 }
+# GSD (cm) + sensor per label — for the cross-sensor failure table.
+GSD_CM = {"2000": 59.7, "2002": 59.7, "2005": 29.9, "2007": 29.9, "2009": 29.9,
+          "2012": 14.9, "2013": 14.9, "2015": 14.9, "2016": 50.0, "2017": 7.5,
+          "2019": 14.9, "2019n": 60.0, "2021": 14.9, "2021s": 50.0, "2022n": 60.0,
+          "2023": 14.9}
+def sensor_of(label):
+    return IMG_CATALOG[label][0].split("_")[1]   # king / snoh / naip
+
 # default C-CAP upland-forest codes (hi-res: 11 Upland Forest; regional: 9/10/11)
 DEFAULT_FOREST_CODES = [9, 10, 11]
 
@@ -175,7 +195,8 @@ class Acc:
         return lo + (i + 0.5) * (hi - lo) / nb
 
 
-def analyse(year, ref_path, prob_path, thresh, forest_codes, block_rows, coarse):
+def analyse(year, ref_path, prob_path, thresh, forest_codes, block_rows, coarse,
+            stable_path=None):
     img_file, nir_b = IMG_CATALOG[year]
     img_path = resolve_img(img_file)
     chm_path = resolve_chm()
@@ -184,6 +205,8 @@ def analyse(year, ref_path, prob_path, thresh, forest_codes, block_rows, coarse)
     print(f"    prob    = {prob_path}")
     print(f"    ref     = {ref_path}  (forest codes {forest_codes})")
     print(f"    chm     = {chm_path}")
+    if stable_path:
+        print(f"    stable  = {stable_path}  (forest must also be forest here → isolates sensor)")
 
     thr_u8 = thresh * 254.0
     tp, fn = Acc(), Acc()
@@ -203,11 +226,15 @@ def analyse(year, ref_path, prob_path, thresh, forest_codes, block_rows, coarse)
 
         ref_ds = rasterio.open(ref_path)
         chm_ds = rasterio.open(chm_path) if chm_path else None
+        stable_ds = rasterio.open(stable_path) if stable_path else None
         ref_vrt = WarpedVRT(ref_ds, crs=prob.crs, transform=prob.transform,
                             width=W, height=H, resampling=Resampling.nearest)
         chm_vrt = (WarpedVRT(chm_ds, crs=prob.crs, transform=prob.transform,
                              width=W, height=H, resampling=Resampling.nearest,
                              src_nodata=0, nodata=0) if chm_ds else None)
+        stable_vrt = (WarpedVRT(stable_ds, crs=prob.crs, transform=prob.transform,
+                                width=W, height=H, resampling=Resampling.nearest)
+                      if stable_ds else None)
 
         n_blocks = (H + block_rows - 1) // block_rows
         for bi, row0 in enumerate(range(0, H, block_rows)):
@@ -222,6 +249,8 @@ def analyse(year, ref_path, prob_path, thresh, forest_codes, block_rows, coarse)
             rc = ref_vrt.read(1, window=win)
 
             forest = cover & (pr != 255) & np.isin(rc, forest_codes)
+            if stable_vrt is not None:
+                forest &= np.isin(stable_vrt.read(1, window=win), forest_codes)
             if not forest.any():
                 if bi % 4 == 0 or bi == n_blocks - 1:
                     print(f"    block {bi+1}/{n_blocks}", flush=True)
@@ -265,13 +294,16 @@ def analyse(year, ref_path, prob_path, thresh, forest_codes, block_rows, coarse)
         ref_vrt.close(); ref_ds.close()
         if chm_vrt:
             chm_vrt.close(); chm_ds.close()
+        if stable_vrt is not None:
+            stable_vrt.close(); stable_ds.close()
         coarse_tf = prob.transform * Affine.scale(coarse)
         coarse_crs = prob.crs
 
     _write_density(year, c_forest, c_fn, coarse_tf, coarse_crs, coarse)
     _report(year, ref_path, prob_path, thresh, forest_codes,
             tp, fn, n_tp, n_fn, forest_total)
-    return n_tp, n_fn, forest_total
+    return dict(year=year, tp=tp, fn=fn, n_tp=n_tp, n_fn=n_fn, forest_total=forest_total,
+                recall=(n_tp / (n_tp + n_fn) if (n_tp + n_fn) else float("nan")))
 
 
 def _write_density(year, c_forest, c_fn, tf, crs, coarse, min_forest=200):

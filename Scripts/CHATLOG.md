@@ -168,6 +168,30 @@ gotcha:  scripts Colab-only for torch (rasterio+geopandas+fiona+sklearn now pip-
 
 ════════════════ LOG  (newest first) ════════════════
 
+## 2026-07-07  DECISION (multi-agent review): STOP grass iteration; flicker-gate phase3
+goal:    user "hire agents to review" the phase3-base-mirror decision. 4-lens Workflow review.
+did:     review verdict (3 of 4 = validate-first; the pro-build lens defers to a cheap probe, not
+         the full build). KILLER FACTS: grass = ~2% of error, under-prediction = ~94% (@thr .4615
+         FN 206.8M vs FP_grass 4.9M); aux-height made recall WORSE (.626→.594); the +2pp is scored
+         at INCONSISTENT thresholds + on a CONTAMINATED proxy (ref IS NDVI∧CHM) → below the noise
+         floor. CHM-input's .98 DISQUALIFIED for the temporal deliverable (stale-2016-snapshot =
+         error correlated w/ the change signal). single-year grass = WRONG yardstick for a CHANGE
+         series (what matters = year-to-year FP STABILITY, never measured).
+decided: DON'T build phase3 now. SHIP aux-height v046 (RGB-only, no stale snapshot) as provisional.
+         STOP grass iteration (stop rule: <5% of error). gate phase3 behind a cheap FLICKER test;
+         redirect to the 94% (under-pred) + the Olofsson yardstick. reopen phase3 only on a PARETO
+         win (grass ≥.96 AND recall ≥.626). plan rewritten = drifting-swinging-dolphin.md.
+         BUILT phase4_qc_flicker.py (local, torch-free): false-canopy % on known-stable non-tree
+         parcels (Negative_* footprints) across years → per-parcel flicker(std) + fine/coarse
+         resolution step + verdict (static <3pp = ship/kill-phase3; flicker >5pp = ceiling probe).
+         smoke-test 2000+2016 (old masks) OK — but CAVEAT: Cemetery/Stadium footprint bboxes
+         include REAL trees (35-58% "FP" = real canopy) → NOT valid stable parcels; clean ones
+         (Civic_Field/Parking/Water) ~0-2%. real test needs tight turf-only polygons.
+files:   NEW Scripts/phase4_qc_flicker.py (committed). plan drifting-swinging-dolphin.md rewritten.
+next:    USER Colab: run RGB-only (--no-hillshade) on 2000,2013,2015,2017,2022 → masks. then local
+         phase4_qc_flicker.py (with tight turf parcels). STATIC → ship v046, kill phase3. FLICKER →
+         2020 ceiling probe. parallel: Olofsson pilot (other session). phase3 shelved (git v045/v046).
+
 ## 2026-07-07  aux-height 2016 result (v046): mechanism WORKS but WEAK (grass-rej +2pp only)
 goal:    re-run 2016 --aux-height on v046 (bugs fixed). does the height head close the grass gap?
 did:     training STABLE now (RGB dtype fix held; no divergence; val_iou_bt .7176), eval ran (tuple

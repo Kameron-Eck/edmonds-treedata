@@ -2137,7 +2137,9 @@ class SemanticDataset:
                 out = self.spatial_tf(image=stacked, mask=mask)
                 stacked, mask = out["image"], out["mask"]
                 height_dn = stacked[..., 3]
-                img = self.pixel_tf(image=stacked[..., :3])["image"]
+                # np.concatenate upcast RGB→float32; the colour augs assume uint8, so
+                # cast the RGB slice back (else HSV/brightness corrupt it → divergence).
+                img = self.pixel_tf(image=stacked[..., :3].astype(np.uint8))["image"]
                 mask = torch.from_numpy(mask).unsqueeze(0).float()
             else:
                 out = self.test_tf(image=rgb, mask=mask)
@@ -2982,7 +2984,9 @@ def step_evaluate(label, dry_run=False):
                 inp = torch.from_numpy(rgb_to_model_input(img)).unsqueeze(0).to(device)
             else:
                 inp = eval_tf(image=img)["image"].unsqueeze(0).to(device)
-            prob = 1.0 / (1.0 + np.exp(-model(inp).squeeze().cpu().numpy()))
+            _out = model(inp)
+            _seg = _out[0] if isinstance(_out, (tuple, list)) else _out   # aux-height → tuple
+            prob = 1.0 / (1.0 + np.exp(-_seg.squeeze().cpu().numpy()))
             pred = (prob > CANOPY_PROB_THRESHOLD).astype(np.uint8)
             valid = gt != IGNORE_LABEL    # drop unreviewed/nodata pixels
             all_prob.append(prob[valid].ravel().astype(np.float32))

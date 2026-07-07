@@ -41,7 +41,14 @@ SPACE RULES — keep always-loaded context low for continuous logging:
 ════════════════ STATE  (current — edit in place) ════════════════
 
 proj:    Edmonds temporal canopy pipeline, phase 4 (per-year semantic seg, 18 imagery yrs).
-live:    phase4_semantic_finetune.py = v045. v045 = AUX-HEIGHT REFRAME (teach height, don't feed
+live:    phase4_semantic_finetune.py = v046. v046 = AUX-HEIGHT BUGFIX (2016 aux run crashed): (1)
+         RGB was upcast to float32 by the height-stack in __getitem__ → colour augs (uint8-
+         assuming) corrupted it → training DIVERGED (val_bce→8-10); fix = cast RGB back to uint8
+         before pixel_tf. (2) 4th forward site in step_evaluate not tuple-unpacked → 'tuple has no
+         squeeze'; fix = unpack seg. RE-RUN 2016 --aux-height on v046. Ablation BASELINE (v045
+         --no-hillshade, RGB-only no height) landed: honest rec .626 / prec .952 / GRASS-REJECTION
+         .891 (RGB-only floor; CHM-input was .98) — that's the gap the height head must close.
+         v045 = AUX-HEIGHT REFRAME (teach height, don't feed
          it), flag-gated (default OFF = identical to v044). --aux-height: RGB-only input + a 2nd
          output head that PREDICTS canopy height from RGB (UnetWithHeight subclass of smp.Unet,
          keeps encoder/decoder/segmentation_head keys → P3 ckpt loads strict=False; forward →
@@ -160,6 +167,28 @@ gotcha:  scripts Colab-only for torch (rasterio+geopandas+fiona+sklearn now pip-
          accept-all test data; 14,476-crown human review never finished.
 
 ════════════════ LOG  (newest first) ════════════════
+
+## 2026-07-06  aux-height 2016 ablation: baseline OK, aux run CRASHED → v046 2 bugfixes
+goal:    run the 2016 aux-height ablation (RGB-only baseline vs --aux-height). read logs.
+did:     BASELINE (--no-hillshade, RGB-only, no height, no CHM) ran clean: train val_iou_bt .7179,
+         eval IoU .758; HONEST qc vs NDVI: rec .626 / prec .952 / GRASS-REJECTION .891. So the
+         pure-RGB floor is grass-rej .891 (vs CHM-input .98) — the head must close ~9pp.
+         --aux-height arm: tiling OK ("+ aux-height sidecars: ON", height sidecars written), BUT
+         TRAINING DIVERGED (Phase A val_iou .56→.05, val_bce spiking; Phase B val_bce 8-10; early
+         stop; ckpt frozen at undertrained E8) THEN step_evaluate CRASHED: AttributeError 'tuple'
+         object has no attribute 'squeeze'. qc at end = stale baseline raster (aux never inferred).
+         ROOT CAUSE (2 of MY bugs): (1) __getitem__ AUX path np.concatenate([uint8 rgb, float32
+         height]) UPCASTS rgb→float32; pixel_tf colour augs (HSV/brightness) assume uint8 → garbage
+         RGB → divergence. (2) step_evaluate has a 4TH forward site (reads eval_df directly, not via
+         loader) I missed → model(inp) returns (seg,height) tuple → .squeeze() fails.
+decided: FIX v046: (1) cast stacked[...,:3].astype(uint8) before pixel_tf; (2) tuple-unpack seg in
+         step_evaluate. py_compiled. training collapse expected to resolve once RGB uncorrupted;
+         if it still destabilizes, lower --height-lambda or add a head activation.
+files:   phase4_semantic_finetune.py v045→v046 (commit+tag v046). run_registry.csv +2 rows
+         (baseline, crashed aux).
+next:    USER Colab RE-RUN 2016 --aux-height on v046 → evaluate + qc_score. success = grass
+         rejection lifts from the .891 RGB floor toward ~.98 with recall/precision held. then
+         phase3 base mirror. keep one session editing phase4 at a time.
 
 ## 2026-07-06  aux-height reframe CODED in phase4 (v045) — teach height, don't feed it
 goal:    implement the approved plan (drifting-swinging-dolphin.md): height as an auxiliary

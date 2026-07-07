@@ -131,7 +131,14 @@ data:    Full_Image/Pipeline Imagery/: lidar_snoh_hillshade_fr.tif, _be.tif,
          W edge + S margin = water, no canopy). height p50 6.7m p90 30.9m p99 44.6m.
          stats /255 nonzero mean .2306 std .2305. HAG includes buildings (fine —
          RGB flags non-green).
-open:    (0) [2026-07-05 ACTIVE] CORRECTED-LABEL workstream (supersedes 2015-flagship +
+open:    (0) [2026-07-07 ACTIVE] ATTACK UNDER-PREDICTION via DECIDUOUS POSITIVE SITES. C-CAP autopsy
+         (phase4_qc_forest_misses.py) proved the missed upland forest is confident/OOD deciduous
+         (NDVI .35 vs .57, 11.8m vs 23.8m), NOT a threshold or sensor issue → stage positive forest
+         sites at the top-FN stands (forest_miss_stands_2016.csv) via make_positive_site.py (C-CAP
+         LOCATES only, never labels; keep a C-CAP train/eval split) → Colab retrain → re-score forest
+         recall on C-CAP. Grass iteration STAYS stopped (autopsy: FP is developed+grass ~equal, small
+         vs the FN). SUPERSEDES the corrected-label workstream below.
+         (0-old) [2026-07-05 SUPERSEDED] CORRECTED-LABEL workstream (supersedes 2015-flagship +
          deciduous-positive-site idea). user reframe: we have 2020 labels + CHM yet miss
          deciduous marsh → INVERT the QC instrument: use 2016 NIR+CHM to LABEL the misses,
          not just measure. NEW phase4_build_corrected_labels.py → canopy_additions_2016.tif
@@ -173,6 +180,29 @@ gotcha:  scripts Colab-only for torch (rasterio+geopandas+fiona+sklearn now pip-
          accept-all test data; 14,476-crown human review never finished.
 
 ════════════════ LOG  (newest first) ════════════════
+
+## 2026-07-07  BUILT phase4_qc_forest_misses.py — under-prediction autopsy + finding
+goal:    understand WHY C-CAP upland-forest (recall .68) is missed → locate stands to stage as
+         positive sites + get writeup stats on the misses (Kam: explain the "sensor issue").
+did:     NEW phase4_qc_forest_misses.py (local, torch-free). Over C-CAP forest px {9,10,11}, splits
+         recalled(TP) vs missed(FN), streams mean/std + histograms of prob / RGB / brightness /
+         saturation / NDVI / GRVI / CHM height. Outputs forest_miss_2016.{txt,csv,png} + coarse
+         FN-density raster (forest_miss_density_2016.tif, ~39m cells) + TOP-12 missed-stand shortlist
+         (lon/lat → forest_miss_stands_2016.csv) for site staging. imagery+prob share the EPSG:2285
+         grid; C-CAP + CHM reproject via WarpedVRT nearest. Auto-diagnosis built in.
+found:   misses are NOT a sensor/exposure problem (Δbrightness +2 DN, saturation flat). SPECTRAL +
+         STRUCTURAL: (1) 69% of misses prob<0.12 = CONFIDENT / out-of-distribution, NOT a threshold
+         fix; (2) NDVI .349 vs .568 recalled (Δ-.219), lower GRVI, more R/B less G = DECIDUOUS /
+         broadleaf the conifer-only training never taught; (3) height 11.8m vs 23.8m — model recalls
+         tall dark conifers, misses shorter lighter deciduous (still real trees, not scrub). Writeup
+         story = "conifer-biased spectral domain", not bad imagery.
+decided: fix = TEACH deciduous (stage POSITIVE forest sites at the top-FN stands), NOT lower threshold
+         (misses are confident). Several stands are fn_frac=1.00 (entirely missed) e.g. -122.325/
+         47.805 cluster. C-CAP only LOCATES stands — never labels (portability preserved).
+files:   phase4_qc_forest_misses.py (NEW); phase4/qc/forest_miss_{2016.txt,2016.csv,2016.png,
+         density_2016.tif,stands_2016.csv}; Method_Pipeline.md (+autopsy note); CLAUDE.md (script row).
+next:    stage top-N stands via make_positive_site.py (crowns derived from the 2020 mask; C-CAP-located)
+         → Colab retrain → re-score forest recall on C-CAP held-out stands. Keep C-CAP train/eval split.
 
 ## 2026-07-07  C-CAP acquired (2016+2021) + FIRST non-circular numbers
 goal:    get the independent-yardstick raster + produce the first non-circular score (Kam: download

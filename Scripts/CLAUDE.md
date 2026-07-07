@@ -61,6 +61,7 @@ source files, ask before assuming.**
 │   ├── phase4_qc_ndvi.py                 ← independent NDVI+CHM canopy REFERENCE (NIR years)
 │   ├── phase4_qc_score.py                ← score model vs the NDVI reference → qc/qc_report.csv
 │   ├── phase4_qc_indep.py                ← reference-agnostic scorer vs an INDEPENDENT ref (C-CAP) → qc/qc_indep_*
+│   ├── phase4_qc_forest_misses.py        ← under-prediction autopsy: why C-CAP forest is missed + stand shortlist
 │   ├── phase4_qc_site.py                 ← lat/lon window FN-attribution diagnostic
 │   ├── phase4_build_corrected_labels.py  ← NIR+CHM → ADD-ONLY corrected-label overlay
 │   ├── make_positive_site.py             ← stage a positive site (crowns derived from 2020 mask)

@@ -289,6 +289,17 @@ It is the first non-circular yardstick (rigor ladder: circular proxy < C-CAP < h
   C-CAP is independent of the model's CHM axis, which makes it the trustworthy arbiter for **ranking**
   CHM-based variants (via `--prob <archived_variant.tif>`); treat the absolute recall/precision as
   bracketed by the two references, with human photo-interp (Olofsson) as the eventual tiebreaker.
+- **Under-prediction autopsy — WHY forest is missed.** `phase4_qc_forest_misses.py` splits C-CAP
+  upland-forest pixels into recalled (TP) vs missed (FN) and compares distributions (prob, RGB,
+  brightness/saturation, NDVI, GRVI, CHM height), plus a coarse FN-density raster + a top-N
+  missed-stand shortlist (lon/lat) for site staging. C-CAP only *locates* misses — never a label
+  (portability). **2016 finding:** the misses are **not** a sensor/exposure artefact (Δbrightness
+  +2 DN, saturation flat) — they are **spectral + structural**: 69% of misses have prob<0.12
+  (confident / out-of-distribution, *not* a threshold fix), NDVI 0.35 vs 0.57 recalled (Δ−0.22,
+  lower GRVI → deciduous/broadleaf the conifer-only training under-recognises), and height 11.8 m vs
+  23.8 m (the model recalls tall dark conifers, misses shorter lighter deciduous — still real trees).
+  The write-up framing is therefore a **conifer-biased spectral domain**, and the fix is to *teach*
+  deciduous canopy (stage positive sites at the top-FN stands), not to lower the threshold.
 ### Deciduous / positive training coverage
 The fine/medium per-year models take positive labels from per-site hand-traced crown polygons
 (`polygons/{site}_crowns_review.gpkg`); a site **without** a crown file is demoted to a pure

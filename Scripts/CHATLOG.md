@@ -150,9 +150,13 @@ open:    (0) [2026-07-05 ACTIVE] CORRECTED-LABEL workstream (supersedes 2015-fla
          (vs rgb .7245/.929/.856/.773/.921; broken chm was .49/.784/.58). recall
          recovered, precision UP (grass-FP signal). CHM helps once sampler honest.
          NEXT: phase4_viz grass-FP confirm → carry config to 2000 → then Phase 4.
-         (2) [NOW THE PRIORITY per user] honest-accuracy via random-point photo-
-         interp (Olofsson 2014 stratified + area-adjusted CIs) — unbuilt; the real
-         deliverable (defensible change series). (3) radiometric normalization +
+         (2) [NOW THE PRIORITY per user] honest-accuracy INDEPENDENT yardstick.
+         RIGOR LADDER: circular proxy < C-CAP < human photo-interp. RUNG 1 BUILT
+         2026-07-07 = phase4_qc_indep.py (reference-agnostic scorer; NOAA C-CAP 2016
+         1m as EVAL-ONLY ref; validated exact vs qc_score). PENDING: Kam's C-CAP
+         raster+legend → first NON-circular ranking of the 2016 variants. RUNG 2
+         (the deliverable-grade arbiter) = random-point photo-interp (Olofsson 2014
+         stratified + area-adjusted CIs) — still unbuilt. (3) radiometric normalization +
          test-time BN across years (temporal domain shift) — unbuilt. (4) coarse
          labels from 2020 mask → label-circularity ceiling until (2) exists.
 blocked: none.
@@ -167,6 +171,31 @@ gotcha:  scripts Colab-only for torch (rasterio+geopandas+fiona+sklearn now pip-
          accept-all test data; 14,476-crown human review never finished.
 
 ════════════════ LOG  (newest first) ════════════════
+
+## 2026-07-07  BUILT phase4_qc_indep.py — reference-agnostic independent scorer (first non-circular yardstick)
+goal:    give the model ranking a NON-circular reference. NOAA C-CAP 2016 1m land cover = free
+         stand-in for hand-drawn validation polys. C-CAP is EVAL-ONLY (never a train/label source →
+         pipeline stays portable to jurisdictions w/ no C-CAP; training = imagery + 2020 labels only).
+did:     NEW phase4_qc_indep.py (local, torch-free, mirrors phase4_qc_score.py). reference-AGNOSTIC:
+         --ref <raster> + --ref-scheme ccap|binary + --ref-map JSON override. Reprojects ref onto the
+         year's prob grid (WarpedVRT nearest = categorical-safe; qc_score assumed same-grid — this is
+         the one real diff). Scores 3 NESTED canopy defs (forest_only ⊆ forest_wetland[PRIMARY] ⊆
+         forest_wetland_scrub) + a PER-SURFACE breakout: canopy-call rate = RECALL for canopy groups,
+         FP-RATE for grass/cropland/developed/barren/emergent_wetland/water → attributes both misses
+         AND false alarms by land cover (Kam ask: "evaluate grass + other surfaces too"). --prob
+         override scores archived variants. Outputs qc_indep_report.csv + qc_indep_surfaces_{year}.csv
+         + qc_indep_{year}.txt (never collide w/ qc_report / semantic_eval / flicker).
+decided: primary canopy = forest+forested-wetland (model targets tall canopy, deciduous or coniferous,
+         sometimes in wetland — Kam). Score at MODEL grid (mirror qc_score) + report ≈independent-1m-
+         cell count so pixel-inflation stays auditable. Default NOAA C-CAP 25-class map baked in +
+         PRINTED every run (VERIFY vs shipped legend) + fully overridable via --ref-map.
+valid:   VALIDATED against ndvi_ref_2016.tif (--ref-map canopy={2}/grass={1}, ref_nodata 255→ignore) →
+         recall .5937 / prec .9593 / grass-rej .9119 / TP 302,167,379 / FN 206,790,325 / full sweep =
+         EXACT match to phase4_qc_score.py → reproject+confusion path proven before real C-CAP lands.
+files:   Scripts/phase4_qc_indep.py (NEW). plan = cosmic-snacking-goblet.md.
+next:    Kam supplies C-CAP raster + legend → run --ref <ccap.tif> --year 2016; confirm printed map vs
+         legend; sanity ref_canopy_pct; then --prob each ARCHIVED 2016 variant → the FIRST non-circular
+         ranking. (prob_2016.tif is overwritten per run → only variants Kam saved are scorable.)
 
 ## 2026-07-07  DECISION (multi-agent review): STOP grass iteration; flicker-gate phase3
 goal:    user "hire agents to review" the phase3-base-mirror decision. 4-lens Workflow review.

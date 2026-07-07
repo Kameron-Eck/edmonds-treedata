@@ -469,6 +469,88 @@ def write_step_log(year, n_tp, n_fn):
         pass
 
 
+def _confident_frac(fn_acc, cut=0.12):
+    """Fraction of missed-forest px whose model prob < cut (confident/OOD misses)."""
+    nb = HIST_SPEC["prob"][2]
+    core = fn_acc.hist["prob"][1:nb + 1]
+    tot = core.sum()
+    if not tot:
+        return float("nan")
+    ncut = int(round(cut * nb))
+    return float(core[:ncut].sum()) / float(tot)
+
+
+def _compare_row(R):
+    """One cross-sensor row from an analyse() result."""
+    y, tp, fn = R["year"], R["tp"], R["fn"]
+    d = lambda m: fn.mean(m) - tp.mean(m)
+    return dict(
+        year=y, sensor=sensor_of(y), gsd_cm=GSD_CM.get(y, float("nan")),
+        forest_px=R["forest_total"], tp=R["n_tp"], fn=R["n_fn"],
+        recall=round(R["recall"], 4), confident_miss=round(_confident_frac(fn), 4),
+        ndvi_tp=round(tp.mean("NDVI"), 4), ndvi_fn=round(fn.mean("NDVI"), 4), d_ndvi=round(d("NDVI"), 4),
+        grvi_tp=round(tp.mean("GRVI"), 4), grvi_fn=round(fn.mean("GRVI"), 4), d_grvi=round(d("GRVI"), 4),
+        bright_tp=round(tp.mean("brightness"), 2), bright_fn=round(fn.mean("brightness"), 2),
+        d_bright=round(d("brightness"), 2),
+        height_tp=round(tp.mean("height_m"), 2), height_fn=round(fn.mean("height_m"), 2))
+
+
+def _write_compare(rows, ref_name, stable_path):
+    rows = sorted(rows, key=lambda r: (r["gsd_cm"], r["year"]))
+    QC_DIR.mkdir(parents=True, exist_ok=True)
+    csvp = QC_DIR / "forest_miss_sensor_compare.csv"
+    fields = ["year", "sensor", "gsd_cm", "recall", "confident_miss", "d_ndvi", "d_grvi",
+              "d_bright", "ndvi_tp", "ndvi_fn", "grvi_tp", "grvi_fn", "bright_tp", "bright_fn",
+              "height_tp", "height_fn", "forest_px", "tp", "fn"]
+    with open(csvp, "w", newline="", encoding="utf-8") as f:
+        w = csv.DictWriter(f, fieldnames=fields)
+        w.writeheader()
+        for r in rows:
+            w.writerow({k: r.get(k, "") for k in fields})
+    L = [f"CROSS-SENSOR FOREST-MISS COMPARISON  (ref={ref_name}"
+         + (f", stable∩{Path(stable_path).name}" if stable_path else "") + ")",
+         "  recall = C-CAP upland-forest recall; conf = frac of misses with prob<0.12 (OOD);",
+         "  Δgrvi/Δndvi = missed−recalled greenness (neg = misses less-green); Δbright = DN.",
+         "",
+         "  year    sensor   gsd_cm   recall   conf%   Δgrvi    Δndvi   Δbright   ht_fn/tp"]
+    for r in rows:
+        nd = "  n/a " if r["ndvi_tp"] != r["ndvi_tp"] else f"{r['d_ndvi']:+.3f}"
+        L.append(f"  {r['year']:<7} {r['sensor']:<7} {r['gsd_cm']:>5.1f}   "
+                 f"{r['recall']:>6.4f}  {100*r['confident_miss']:>5.1f}  {r['d_grvi']:>+6.3f}  "
+                 f"{nd:>7}  {r['d_bright']:>+6.1f}   {r['height_fn']:>4.1f}/{r['height_tp']:<4.1f}")
+    L += ["",
+          "  Read: recall varying with gsd/sensor at similar Δgrvi = a RESOLUTION effect;",
+          "  Δgrvi/Δbright shifting by sensor = a RADIOMETRIC (sensor) effect. Compare WITHIN",
+          "  a training recipe (use --force-citywide rasters) to avoid the tier-recipe confound."]
+    txt = "\n".join(L)
+    print("\n" + txt)
+    (QC_DIR / "forest_miss_sensor_compare.txt").write_text(txt, encoding="utf-8")
+    print(f"\n[forest-miss] wrote {csvp}")
+    print(f"[forest-miss] wrote {QC_DIR / 'forest_miss_sensor_compare.txt'}")
+
+
+def run_compare(years, ref_path, stable_path, forest_codes, thresh_arg,
+                block_rows, coarse, prob_suffix):
+    rows = []
+    for y in years:
+        if y not in IMG_CATALOG:
+            print(f"[compare] SKIP {y}: not in IMG_CATALOG"); continue
+        prob_path = MASKS / f"edmonds_canopy_prob_{y}{prob_suffix}.tif"
+        if not prob_path.exists():
+            print(f"[compare] SKIP {y}: no prob raster {prob_path.name}"); continue
+        thresh = thresh_arg if thresh_arg is not None else (deployed_threshold(y) or 0.5)
+        print(f"\n{'='*60}\n[compare] {y}  ({sensor_of(y)}, {GSD_CM.get(y,'?')}cm, thresh {thresh})\n{'='*60}")
+        try:
+            R = analyse(y, ref_path, prob_path, thresh, forest_codes, block_rows, coarse, stable_path)
+        except Exception as e:
+            print(f"[compare] {y} FAILED: {e}"); continue
+        rows.append(_compare_row(R))
+    if rows:
+        _write_compare(rows, ref_path.name, stable_path)
+    else:
+        print("[compare] no years scored (no matching prob rasters).")
+
+
 def main():
     keep, skip = [], False
     for a in sys.argv[1:]:
@@ -478,13 +560,23 @@ def main():
             skip = True; continue
         keep.append(a)
     ap = argparse.ArgumentParser(description="Autopsy of missed upland-forest (under-prediction).")
-    ap.add_argument("--year", default="2016", choices=sorted(IMG_CATALOG))
+    ap.add_argument("--year", default="2016", choices=sorted(IMG_CATALOG),
+                    help="Single year to autopsy.")
+    ap.add_argument("--years", default=None,
+                    help="Comma list → CROSS-SENSOR compare mode (one row per year + a table).")
     ap.add_argument("--ref", required=True, help="C-CAP land-cover raster (any CRS/res).")
-    ap.add_argument("--prob", default=None, help="Prob raster (default masks/edmonds_canopy_prob_{year}.tif).")
+    ap.add_argument("--stable-with", default=None,
+                    help="2nd C-CAP raster; forest must be forest in BOTH → isolates the sensor "
+                         "effect from real canopy change (e.g. the other-vintage C-CAP).")
+    ap.add_argument("--prob", default=None,
+                    help="Single-year prob override (default masks/edmonds_canopy_prob_{year}{suffix}.tif).")
+    ap.add_argument("--prob-suffix", default="",
+                    help="Suffix for --run-tag'd prob rasters, e.g. _rgbonly.")
     ap.add_argument("--forest-codes", default=None,
                     help="Comma C-CAP codes = upland forest (default 9,10,11).")
     ap.add_argument("--thresh", type=float, default=None,
-                    help="Operating threshold (default = deployed value from eval CSV).")
+                    help="Fixed operating threshold (default = per-year deployed value; a FIXED "
+                         "threshold is fairer for cross-sensor comparison).")
     ap.add_argument("--block-rows", type=int, default=2048, help="Must be a multiple of --coarse.")
     ap.add_argument("--coarse", type=int, default=256, help="FN-density cell size in prob px.")
     args = ap.parse_args(keep)
@@ -492,13 +584,26 @@ def main():
     ref_path = Path(args.ref)
     if not ref_path.exists():
         raise FileNotFoundError(f"--ref not found: {ref_path}")
-    prob_path = Path(args.prob) if args.prob else MASKS / f"edmonds_canopy_prob_{args.year}.tif"
-    if not prob_path.exists():
-        raise FileNotFoundError(f"prob raster not found: {prob_path}")
+    stable_path = None
+    if args.stable_with:
+        stable_path = Path(args.stable_with)
+        if not stable_path.exists():
+            raise FileNotFoundError(f"--stable-with not found: {stable_path}")
     forest_codes = ([int(x) for x in args.forest_codes.split(",")]
                     if args.forest_codes else DEFAULT_FOREST_CODES)
     if args.block_rows % args.coarse:
         raise SystemExit(f"--block-rows ({args.block_rows}) must be a multiple of --coarse ({args.coarse})")
+
+    if args.years:
+        years = [y.strip() for y in args.years.split(",") if y.strip()]
+        run_compare(years, ref_path, stable_path, forest_codes, args.thresh,
+                    args.block_rows, args.coarse, args.prob_suffix)
+        return
+
+    prob_path = (Path(args.prob) if args.prob
+                 else MASKS / f"edmonds_canopy_prob_{args.year}{args.prob_suffix}.tif")
+    if not prob_path.exists():
+        raise FileNotFoundError(f"prob raster not found: {prob_path}")
     thresh = args.thresh
     if thresh is None:
         thresh = deployed_threshold(args.year)
@@ -507,9 +612,9 @@ def main():
         else:
             print(f"  deployed threshold {thresh} from eval CSV")
 
-    n_tp, n_fn, _ = analyse(args.year, ref_path, prob_path, thresh,
-                            forest_codes, args.block_rows, args.coarse)
-    write_step_log(args.year, n_tp, n_fn)
+    R = analyse(args.year, ref_path, prob_path, thresh,
+                forest_codes, args.block_rows, args.coarse, stable_path)
+    write_step_log(R["year"], R["n_tp"], R["n_fn"])
 
 
 if __name__ == "__main__":

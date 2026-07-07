@@ -226,6 +226,10 @@ did:     NEW phase4_qc_forest_misses.py (local, torch-free). Over C-CAP forest p
          FN-density raster (forest_miss_density_2016.tif, ~39m cells) + TOP-12 missed-stand shortlist
          (lon/lat → forest_miss_stands_2016.csv) for site staging. imagery+prob share the EPSG:2285
          grid; C-CAP + CHM reproject via WarpedVRT nearest. Auto-diagnosis built in.
+         EXTENDED (later same day): --years CROSS-SENSOR compare mode (per-year row + table,
+         forest_miss_sensor_compare.csv) + --stable-with (forest must be forest in BOTH C-CAP vintages
+         → isolates sensor from real change) + --prob-suffix (score --run-tag'd rasters) + full 18-yr
+         IMG_CATALOG/GSD/sensor. Stable-forest control on 2016: recall .682→.762 (change noise removed).
 found:   misses are NOT a sensor/exposure problem (Δbrightness +2 DN, saturation flat). SPECTRAL +
          STRUCTURAL: (1) 69% of misses prob<0.12 = CONFIDENT / out-of-distribution, NOT a threshold
          fix; (2) NDVI .349 vs .568 recalled (Δ-.219), lower GRVI, more R/B less G = DECIDUOUS /

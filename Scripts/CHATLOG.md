@@ -191,6 +191,30 @@ gotcha:  scripts Colab-only for torch (rasterio+geopandas+fiona+sklearn now pip-
 
 ════════════════ LOG  (newest first) ════════════════
 
+## 2026-07-07  Cross-sensor forest-miss autopsy — FIRST CUT (2000/2002/2013, RGB-only, PRE-force-citywide)
+goal:    read where/why upland forest is missed across sensors (phase4_qc_forest_misses.py --years) on
+         the first inference rasters off the --no-hillshade run, before the full set lands.
+did:     scored 2000,2002,2013 vs C-CAP-2016 forest, ∩C-CAP-2021 stable-forest filter — first at each
+         year's DEPLOYED threshold, then re-run at a FIXED 0.4615.
+found:   (1) THRESHOLD CONFOUND is real: @deployed 2000 .649 vs 2002 .582 (6.7pp gap) → @fixed 0.4615
+         both = .680 / .683 (0.2pp). Adjacent King-60cm years are IDENTICAL at a common threshold →
+         temporal stability confirmed; the gap was per-year op-thresholds, NOT sensor/change. LESSON:
+         always compare years at a COMMON threshold or threshold drift masquerades as canopy change.
+         (2) BRIGHTNESS = the coarse-King failure mode, threshold-robust: missed forest is +28/+17 DN
+         brighter at 60cm (2000/2002) vs +1 at 15cm (2013); conf-miss (prob<.12) 19-24% @60cm vs 9%
+         @15cm. Coarse pixels mix canopy+bright understory/gaps + older-ortho radiometry. (Contrast
+         2016 snoh, where misses were spectral/less-green, not bright — different sensors fail
+         differently.) (3) HEIGHT bias UNIVERSAL: missed ~14m vs recalled ~25m on EVERY sensor (tall
+         recalled, shorter missed) → structural, resolution-independent.
+caveat:  the GSD→recall lift (15cm .733 vs 60cm ~.68) is RESOLUTION+RECIPE confounded (2013 = fine
+         6-site recipe; 2000/2002 = coarse citywide) → NOT clean until --force-citywide rasters. Also
+         2000/2002 recall is a LOWER bound (14-16yr of pre-C-CAP-2016 growth reads as "miss"). These
+         rasters are PRE-v047 (--no-hillshade only, per-tier recipe).
+files:   phase4/qc/forest_miss_sensor_compare.{txt,csv}; forest_miss_{2000,2002,2013}.{txt,csv,png},
+         forest_miss_density_{year}.tif, forest_miss_stands_{year}.csv.
+next:    re-run `--years` at a fixed threshold AFTER the --force-citywide rasters land (uniform recipe
+         → isolates the pure resolution axis); expand to the naip/snoh sensors as those years finish.
+
 ## 2026-07-07  v047: infer-batch + inference AMP (GPU↓) + --force-citywide + --run-tag
 goal:    (Kam) cut inference VRAM to run a cheaper GPU; unify the per-tier training recipe for the
          cross-sensor study; stop overwriting Colab outputs.

@@ -168,6 +168,27 @@ gotcha:  scripts Colab-only for torch (rasterio+geopandas+fiona+sklearn now pip-
 
 ════════════════ LOG  (newest first) ════════════════
 
+## 2026-07-07  aux-height 2016 result (v046): mechanism WORKS but WEAK (grass-rej +2pp only)
+goal:    re-run 2016 --aux-height on v046 (bugs fixed). does the height head close the grass gap?
+did:     training STABLE now (RGB dtype fix held; no divergence; val_iou_bt .7176), eval ran (tuple
+         fix held), full pipeline + qc clean. reused the aux tiles (height sidecars from the crashed
+         run; sig match). RESULT vs NDVI @thr .4615: RGB-only+aux-height rec .594 / prec .959 /
+         GRASS-REJECTION .912. vs baseline (RGB-only no height) .626/.952/.891. So the head lifted
+         grass-rejection +2.1pp (right direction, mechanism confirmed) but far short of the CHM-
+         INPUT .98; recall -3pp (slightly more conservative).
+decided: aux-height WORKS but WEAK in this test — expected, because this is the no-base-pretraining
+         version and 2016 is coarse 50cm (RGB→height hard). the head learned height only from 2016's
+         own tiles. the DECISIVE test is the phase3 base mirror: pretrain the height head on 7.5cm
+         2020 imagery (a strong, high-res RGB→height signal) so every year inherits a height-aware
+         encoder. CAVEAT: RGB-predicted height is inherently lossy, so the ceiling MAY sit below
+         CHM-input's .98 — +2pp is a hint the ceiling could be modest. Also untested: --height-lambda
+         higher (stronger shaping, risks recall/stability).
+files:   run_registry.csv +1 row. no script change (v046 stays live).
+next:    DECISION for user: build phase3 base mirror (the real test) vs the modest +2pp says the
+         RGB-only-height ceiling may be low → reconsider (e.g. keep CHM-input for grass + fix
+         corrected-label grass via two-sided negatives). recommend: do phase3 (it's the honest test
+         of the reframe; mechanism already moves the needle).
+
 ## 2026-07-06  aux-height 2016 ablation: baseline OK, aux run CRASHED → v046 2 bugfixes
 goal:    run the 2016 aux-height ablation (RGB-only baseline vs --aux-height). read logs.
 did:     BASELINE (--no-hillshade, RGB-only, no height, no CHM) ran clean: train val_iou_bt .7179,

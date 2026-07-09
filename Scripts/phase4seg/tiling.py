@@ -538,26 +538,41 @@ def _sample_manifest_sig():
     return {"path": str(p), "size": int(st.st_size), "mtime": int(st.st_mtime)}
 
 
-def _origins_from_manifest(native_crs, tf, img_h, img_w):
+def _origins_from_manifest(native_crs, tf, img_h, img_w, half=None, extent=None):
     """Fixed C-CAP-stratified tile locations (phase4_ccap_sample.py) → this ortho's
     pixel-space tile origins. Each manifest point (lon/lat) is reprojected into the
-    year's native CRS, mapped to a pixel, then centred into a TILE_SIZE origin clamped
-    to the ortho. Deduped — a coarse GSD can map several points into one tile."""
+    year's native CRS and mapped to a pixel; a patch of size ``extent`` is CENTRED on
+    it (origin = pixel − ``half``), clamped to the ortho, deduped.
+
+    Points that fall OUTSIDE this year's ortho are SKIPPED (partial-coverage sensors),
+    not clamped to an edge — clamping would silently relocate a sample to non-target
+    ground. ``half``/``extent`` default to a full TILE_SIZE tile (tiling); inference
+    passes its write-crop size so the SCORED patch centres on the point, not a
+    half-tile off."""
+    if half is None:
+        half = TILE_SIZE // 2
+    if extent is None:
+        extent = TILE_SIZE
     mp = Path(config.SAMPLE_MANIFEST)
-    if mp.suffix.lower() == ".gpkg":
+    if mp.suffix.lower() in (".gpkg", ".geojson", ".shp"):
         import geopandas as gpd
         g = gpd.read_file(mp).to_crs("EPSG:4326")
         lons, lats = g.geometry.x.tolist(), g.geometry.y.tolist()
-    else:
+    else:                                   # CSV: documented lon/lat in EPSG:4326
         df = pd.read_csv(mp)
+        if not {"lon", "lat"}.issubset(df.columns):
+            raise ValueError(f"{mp.name}: CSV manifest needs 'lon','lat' columns "
+                             f"(EPSG:4326); got {list(df.columns)}")
         lons, lats = df["lon"].tolist(), df["lat"].tolist()
     xs, ys = rasterio.warp.transform("EPSG:4326", native_crs, lons, lats)
-    inv, half = ~tf, TILE_SIZE // 2
+    inv = ~tf
     origins = set()
     for x, y in zip(xs, ys):
         col, row = inv * (x, y)
-        ro = min(max(0, int(row) - half), max(0, img_h - TILE_SIZE))
-        co = min(max(0, int(col) - half), max(0, img_w - TILE_SIZE))
+        if not (0 <= row < img_h and 0 <= col < img_w):
+            continue                        # point outside this year's coverage → skip
+        ro = min(max(0, int(row) - half), max(0, img_h - extent))
+        co = min(max(0, int(col) - half), max(0, img_w - extent))
         origins.add((ro, co))
     return sorted(origins)
 

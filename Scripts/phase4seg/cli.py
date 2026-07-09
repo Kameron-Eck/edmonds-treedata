@@ -278,6 +278,10 @@ def main():
     config.INFER_THRESH_OVERRIDE = args.infer_thresh
     config.ADD_CANOPY_MASK = args.add_canopy_mask
     config.SAMPLE_MANIFEST = args.sample_manifest
+    if config.SAMPLE_MANIFEST and not args.force_citywide:
+        print("  WARNING: --sample-manifest applies only to citywide/coarse tiers. "
+              "Fine/medium years without --force-citywide tile + infer FULL (manifest "
+              "ignored) — pass --force-citywide for a uniform sampled cross-sensor run.")
     # --aux-height reframe: height becomes a TARGET, so the input goes RGB-only.
     config.AUX_HEIGHT = bool(args.aux_height)
     config.HEIGHT_LAMBDA = max(0.0, float(args.height_lambda))
@@ -386,7 +390,8 @@ def main():
                 log.finish(**_f)
         if "inference" in per_year:
             with StepLogger(SCRIPT_NAME, f"inference_{lab}", LOGS_DIR) as log:
-                r = step_inference(lab, batch_size=config.INFER_BATCH, dry_run=args.dry_run)
+                r = step_inference(lab, batch_size=config.INFER_BATCH,
+                                   dry_run=args.dry_run, citywide=citywide)
                 _f = {"year": lab, "gsd_cm": e["gsd_cm"],
                       "dry_run": args.dry_run, "errors": 0}
                 if isinstance(r, dict): _f.update(r)

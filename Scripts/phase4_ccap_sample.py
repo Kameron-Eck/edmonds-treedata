@@ -6,26 +6,25 @@ cross-sensor experiment runs on a fraction of the imagery without a spatial-crop
 bias. C-CAP LOCATES only (never a label); the engine still labels from the 2020
 mask. Torch-free, runs locally off the D: imagery mirror.
 
-Design (per the plan):
+Design:
   • grid candidate points over the city (EPSG:26910, C-CAP's CRS);
-  • stratum = C-CAP class; FOREST (code 11) is sub-stratified by 2016 NDVI so the
-    OOD-deciduous tail (low NDVI ~.35) is its own stratum, not lumped with conifer;
-  • BALANCED allocation with forest OVERSAMPLED (esp. low-NDVI forest) — spend the
-    budget where the signal is, not where the area is;
+  • stratum = C-CAP class; FOREST (code 11) is sub-stratified by 2016 NDVI (an
+    NxN-pixel window mean) so the OOD-deciduous tail (low NDVI ~.35) is its own
+    stratum, not lumped with conifer;
+  • allocation GUARANTEES >=1 tile per nonzero stratum (so the area-adjustment is
+    unbiased), then water-fills the remainder to exactly --n by weight with forest
+    OVERSAMPLED (esp. low-NDVI), re-spreading any capped overflow;
   • each sampled tile carries an AREA WEIGHT (= candidates/sampled in its stratum)
     so city-wide estimates stay unbiased (Olofsson area-adjustment).
-
-Output: a manifest (CSV + GPKG) of tile-center points the engine will tile per year.
 
     py -3.12 phase4_ccap_sample.py --n 200 --out sample_xsensor.gpkg
 """
 import argparse
 import sys
+from collections import defaultdict
 from pathlib import Path
 
 import numpy as np
-
-# geo deps pip-install locally on import (same bootstrap as the QC scripts)
 import rasterio
 import rasterio.warp
 import geopandas as gpd
@@ -41,114 +40,156 @@ ap = argparse.ArgumentParser()
 ap.add_argument("--n", type=int, default=200, help="total tiles to sample")
 ap.add_argument("--grid-step-m", type=float, default=250.0, help="candidate grid spacing (m)")
 ap.add_argument("--forest-oversample", type=float, default=3.0,
-                help="multiply forest strata target vs proportional")
+                help="multiply forest strata target vs proportional (excludes forest_nocover)")
 ap.add_argument("--forest-lo-boost", type=float, default=2.0,
                 help="extra multiplier on the low-NDVI (deciduous) forest stratum")
 ap.add_argument("--ndvi-bins", default="0.40,0.55",
                 help="forest NDVI cut points: lo<c0<=mid<c1<=hi")
+ap.add_argument("--ndvi-window", type=int, default=3,
+                help="odd NxN pixel window to average NDVI (stabilises the forest bin)")
 ap.add_argument("--out", default="sample_ccap.gpkg", help="manifest path (.gpkg; .csv also written)")
 ap.add_argument("--seed", type=int, default=42)
-args = ap.parse_args()
+# Colab %run injects `-f <json>` — filter it (Rule 4) in case this is ever run there.
+filtered = [a for a in sys.argv[1:] if not (a == "-f" or a.endswith(".json"))]
+args = ap.parse_args(filtered)
 
 for p in (CCAP, NIR_IMG):
     if not p.exists():
         sys.exit(f"[FAILED] missing input: {p}")
-
 rng = np.random.RandomState(args.seed)
 lo_cut, hi_cut = (float(x) for x in args.ndvi_bins.split(","))
+win = max(1, args.ndvi_window | 1)               # force odd
 
-# ── 1. candidate grid over the C-CAP extent (26910) ───────────────────────────
+# ── 1. candidate grid + C-CAP class (open C-CAP once) ─────────────────────────
 with rasterio.open(CCAP) as cc:
-    b = cc.bounds
-    cc_crs = cc.crs
-step = args.grid_step_m
-xs = np.arange(b.left + step / 2, b.right, step)
-ys = np.arange(b.bottom + step / 2, b.top, step)
-pts = [(float(x), float(y)) for y in ys for x in xs]
-print(f"[1/4] candidate grid: {len(pts):,} points @ {step:.0f} m over the C-CAP extent")
-
-# ── 2. C-CAP class at each point (batch sample) ───────────────────────────────
-with rasterio.open(CCAP) as cc:
+    b, cc_crs = cc.bounds, cc.crs
+    step = args.grid_step_m
+    xs = np.arange(b.left + step / 2, b.right, step)
+    ys = np.arange(b.bottom + step / 2, b.top, step)
+    pts = [(float(x), float(y)) for y in ys for x in xs]
     classes = np.array([v[0] for v in cc.sample(pts)], dtype=np.int32)
-valid = classes > 0                                   # 0 = C-CAP nodata / background
-pts = [p for p, ok in zip(pts, valid) if ok]
-classes = classes[valid]
-print(f"[2/4] {len(pts):,} points inside C-CAP coverage "
+keep = classes > 0                                # 0 = C-CAP nodata / background
+pts = [p for p, ok in zip(pts, keep) if ok]
+classes = classes[keep]
+print(f"[1/4] {len(pts):,} candidate points @ {step:.0f} m "
       f"({int((classes == FOREST_CODE).sum()):,} forest)")
 
-# ── 3. NDVI at FOREST points only → sub-stratum ───────────────────────────────
-strata = np.empty(len(pts), dtype=object)
+# ── 2. NDVI (NxN window mean) at FOREST points → sub-stratum ───────────────────
+strata = [None] * len(pts)
 ndvi_arr = np.full(len(pts), np.nan)
-is_forest = classes == FOREST_CODE
+f_idx = np.where(classes == FOREST_CODE)[0]
 with rasterio.open(NIR_IMG) as nir:
-    nir_crs = nir.crs
-    f_idx = np.where(is_forest)[0]
+    nd = nir.nodata
+    resx, resy = nir.res
     if len(f_idx):
-        fx = [pts[i][0] for i in f_idx]
-        fy = [pts[i][1] for i in f_idx]
-        rx, ry = rasterio.warp.transform(cc_crs, nir_crs, fx, fy)
-        samp = np.array([s for s in nir.sample(list(zip(rx, ry)),
-                                               indexes=[1, NIR_BAND])], dtype=np.float32)
-        red, nirv = samp[:, 0], samp[:, 1]
+        rx, ry = rasterio.warp.transform(cc_crs, nir.crs,
+                                         [pts[i][0] for i in f_idx],
+                                         [pts[i][1] for i in f_idx])
+        off = range(-(win // 2), win // 2 + 1)
+        coords = [(x + dx * resx, y - dy * resy)
+                  for x, y in zip(rx, ry) for dy in off for dx in off]
+        samp = np.array([s for s in nir.sample(coords, indexes=[1, NIR_BAND])],
+                        dtype=np.float32).reshape(len(f_idx), win * win, 2)
+        red, nirv = samp[..., 0], samp[..., 1]
+        cover = (red + nirv) > 0 if nd is None else ~((red == nd) & (nirv == nd))
         ndvi = (nirv - red) / (nirv + red + 1e-6)
-        cover = (red + nirv) > 0                       # 0,0 = outside NIR ortho
         for k, i in enumerate(f_idx):
-            if not cover[k]:
-                strata[i] = "forest_nocover"           # forest w/o NIR coverage
+            m = cover[k]
+            if not m.any():
+                strata[i] = "forest_nocover"      # forest w/o NIR coverage
                 continue
-            ndvi_arr[i] = ndvi[k]
-            strata[i] = ("forest_lo" if ndvi[k] < lo_cut
-                         else "forest_hi" if ndvi[k] >= hi_cut else "forest_mid")
-for i in np.where(~is_forest)[0]:
+            v = float(ndvi[k][m].mean())
+            ndvi_arr[i] = v
+            strata[i] = ("forest_lo" if v < lo_cut
+                         else "forest_hi" if v >= hi_cut else "forest_mid")
+for i in np.where(classes != FOREST_CODE)[0]:
     strata[i] = f"ccap_{classes[i]}"
-print(f"[3/4] strata assigned; forest split at NDVI {lo_cut}/{hi_cut} "
-      f"(lo=deciduous-tail)")
+print(f"[2/4] strata set; forest NDVI split {lo_cut}/{hi_cut} on {win}x{win} windows "
+      f"(lo=deciduous tail)")
 
-# ── 4. balanced-with-forest-oversampled allocation + area weights ─────────────
-uniq, counts = np.unique(strata, return_counts=True)
-cand = dict(zip(uniq.tolist(), counts.tolist()))
+stratum_idx = defaultdict(list)
+for i, s in enumerate(strata):
+    stratum_idx[s].append(i)
+cand = {s: len(ix) for s, ix in stratum_idx.items()}
 
+# ── 3. allocation: guarantee >=1 per stratum, then water-fill to exactly --n ───
 def weight(s):
-    w = cand[s]                                        # proportional base
-    if s.startswith("forest"):
-        w *= args.forest_oversample
+    w = float(cand[s])                            # proportional base
+    if s.startswith("forest") and s != "forest_nocover":
+        w *= args.forest_oversample               # oversample real forest sub-strata
     if s == "forest_lo":
-        w *= args.forest_lo_boost                      # extra for the deciduous tail
+        w *= args.forest_lo_boost                 # extra for the deciduous tail
     return w
 
-wsum = sum(weight(s) for s in cand)
-alloc = {s: min(cand[s], int(round(args.n * weight(s) / wsum))) for s in cand}
+weights = {s: weight(s) for s in cand}
+alloc = {s: 0 for s in cand}
+b_left = args.n
+for s in sorted(cand, key=lambda s: -weights[s]):   # guarantee >=1, weight-priority
+    if b_left <= 0:
+        break
+    if cand[s] > 0:
+        alloc[s] = 1
+        b_left -= 1
+while b_left > 0:                                   # water-fill remainder by weight
+    room = [s for s in cand if alloc[s] < cand[s]]
+    if not room:
+        break
+    wsum = sum(weights[s] for s in room)
+    given, rema = 0, []
+    for s in room:
+        want = b_left * weights[s] / wsum
+        add = min(int(want), cand[s] - alloc[s])
+        alloc[s] += add
+        given += add
+        rema.append((want - int(want), s))
+    b_left -= given
+    if given == 0:                                 # all fractional — largest-remainder
+        for _, s in sorted(rema, reverse=True):
+            if b_left <= 0:
+                break
+            if alloc[s] < cand[s]:
+                alloc[s] += 1
+                b_left -= 1
+        if b_left > 0 and all(alloc[s] >= cand[s] for s in cand):
+            break
 
-rows = []
+# ── 4. draw + area weights + manifest (batch the final reprojection) ──────────
+chosen = []                                        # (idx, stratum, area_weight)
 for s in sorted(cand):
-    idx = np.where(strata == s)[0]
-    take = min(alloc[s], len(idx))
-    chosen = rng.choice(idx, size=take, replace=False) if take else []
-    aw = cand[s] / take if take else 0.0               # each tile stands for this many candidates
-    for i in chosen:
-        x, y = pts[i]
-        lon, lat = rasterio.warp.transform(cc_crs, "EPSG:4326", [x], [y])
-        rows.append({"tile_id": f"{s}_{i}", "stratum": s, "ccap_class": int(classes[i]),
-                     "ndvi_2016": float(ndvi_arr[i]) if np.isfinite(ndvi_arr[i]) else None,
-                     "x_26910": x, "y_26910": y, "lon": lon[0], "lat": lat[0],
-                     "area_weight": round(aw, 3),
-                     "geometry": Point(lon[0], lat[0])})
+    take = alloc[s]
+    aw = cand[s] / take if take else 0.0
+    pick = rng.choice(stratum_idx[s], size=take, replace=False) if take else []
+    chosen += [(int(i), s, aw) for i in pick]
 
+lons, lats = rasterio.warp.transform(
+    cc_crs, "EPSG:4326", [pts[i][0] for i, _, _ in chosen],
+    [pts[i][1] for i, _, _ in chosen])
+rows = [{"tile_id": f"{s}_{i}", "stratum": s, "ccap_class": int(classes[i]),
+         "ndvi_2016": float(ndvi_arr[i]) if np.isfinite(ndvi_arr[i]) else None,
+         "x_26910": pts[i][0], "y_26910": pts[i][1], "lon": lon, "lat": lat,
+         "area_weight": round(aw, 3), "geometry": Point(lon, lat)}
+        for (i, s, aw), lon, lat in zip(chosen, lons, lats)]
 gdf = gpd.GeoDataFrame(rows, crs="EPSG:4326")
 out = Path(args.out)
 gdf.to_file(out, driver="GPKG")
 gdf.drop(columns="geometry").to_csv(out.with_suffix(".csv"), index=False)
 
-print(f"[4/4] sampled {len(gdf)} tiles -> {out.name} (+ .csv)")
-print("\n  stratum        candidates  sampled  area_wt   (share of city)")
+# ── report + integrity checks ─────────────────────────────────────────────────
+print(f"[4/4] sampled {len(gdf)} tiles (target {args.n}) -> {out.name} (+ .csv)")
+print("\n  stratum         candidates  sampled  area_wt   (share of city)")
 print("  " + "-" * 62)
 tot = sum(cand.values())
 for s in sorted(cand):
-    n_s = int((gdf["stratum"] == s).sum())
+    n_s = alloc[s]
     aw = cand[s] / n_s if n_s else 0
-    print(f"  {s:<14} {cand[s]:>10,} {n_s:>8}  {aw:>6.1f}   ({100*cand[s]/tot:5.1f}%)")
-f_share_city = 100 * sum(cand[s] for s in cand if s.startswith("forest")) / tot
-f_share_samp = 100 * int(gdf["stratum"].str.startswith("forest").sum()) / max(len(gdf), 1)
-print(f"\n  forest: {f_share_city:.1f}% of the city -> {f_share_samp:.1f}% of the sample "
-      f"(oversampled {f_share_samp / max(f_share_city, 1e-6):.1f}x). "
-      f"area_weight restores the city proportion for unbiased estimates.")
+    print(f"  {s:<15} {cand[s]:>10,} {n_s:>8}  {aw:>6.1f}   ({100 * cand[s] / tot:5.1f}%)")
+f_city = 100 * sum(cand[s] for s in cand if s.startswith("forest")) / tot
+f_samp = 100 * sum(alloc[s] for s in cand if s.startswith("forest")) / max(len(gdf), 1)
+dropped = [s for s in cand if cand[s] > 0 and alloc[s] == 0]
+print(f"\n  forest: {f_city:.1f}% of the city -> {f_samp:.1f}% of the sample "
+      f"(oversampled {f_samp / max(f_city, 1e-6):.1f}x); area_weight restores the city proportion.")
+if dropped:
+    print(f"  WARNING: {len(dropped)} nonzero strata got 0 tiles (raise --n above the "
+          f"stratum count to keep the estimate unbiased): {dropped}")
+else:
+    print("  every nonzero stratum has >=1 tile -> area-adjusted city estimate is unbiased.")

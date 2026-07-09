@@ -1215,7 +1215,7 @@ def step_evaluate(label, dry_run=False):
 #  Step 5 — Full-city native inference → probability raster
 # ══════════════════════════════════════════════════════════════════════════════
 
-def step_inference(label, batch_size=INFER_BATCH_SIZE, dry_run=False):
+def step_inference(label, batch_size=INFER_BATCH_SIZE, dry_run=False, citywide=False):
     _ensure_torch()
     entry = entry_for(label)
     print(f"\n── [{label}] Step 5: Full-city native inference ──")
@@ -1277,11 +1277,17 @@ def step_inference(label, batch_size=INFER_BATCH_SIZE, dry_run=False):
                     ToTensorV2()])
     stride, pad, cc = INFER_STRIDE, INFER_PAD, INFER_STRIDE
 
-    if config.SAMPLE_MANIFEST:
+    # Only sample-restrict when the year was actually tiled from the manifest, i.e. the
+    # citywide path ran. Without this, a fine year without --force-citywide would train
+    # on full crops but emit a mostly-nodata prob raster (tiling ignores the manifest).
+    sample_mode = bool(config.SAMPLE_MANIFEST) and citywide
+    if sample_mode:
         # Sample-only inference: predict ONLY the manifest tiles (same fixed locations
         # the model tiled/trained on), everything else stays nodata. Turns a full-city
         # sweep into ~200 forwards so the forest-miss autopsy can run on the fast sample.
-        origins = _origins_from_manifest(img_crs, img_tf, img_h, img_w)
+        # half=INFER_STRIDE//2 centres the written crop on the point, not a half-tile off.
+        origins = _origins_from_manifest(img_crs, img_tf, img_h, img_w,
+                                         half=INFER_STRIDE // 2, extent=INFER_STRIDE)
         print(f"  SAMPLE inference: {len(origins):,} manifest tiles (rest → nodata)  "
               f"|  batch={batch_size}")
     else:
@@ -1338,7 +1344,7 @@ def step_inference(label, batch_size=INFER_BATCH_SIZE, dry_run=False):
 
     tick("inference")
     with rasterio.open(prob_out, "w", **prob_profile) as dst:
-        if config.SAMPLE_MANIFEST:
+        if sample_mode:
             # Pixels outside the sampled tiles must read as nodata (255), not the GTiff
             # default 0 — else the autopsy scores un-inferred forest as a miss. Fill 255
             # in row strips (memory-safe), then the sample windows overwrite it.

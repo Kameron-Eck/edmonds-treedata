@@ -81,6 +81,11 @@ def main():
     p.add_argument("--skip-inference", action="store_true",
                    help="Stop after evaluation.")
     p.add_argument("--batch-size", type=int, default=BATCH_SIZE)
+    p.add_argument("--no-compile", action="store_true",
+                   help="Skip torch.compile in training — avoids the slow first-build "
+                        "warmup (the dynamo/inductor import that can look frozen for "
+                        "1-2 min). Steadier for unattended/L4 overnight runs; slightly "
+                        "slower steady-state. Eval/inference never compile regardless.")
     p.add_argument("--ckpt", type=str, default=None,
                    help="Override the Phase 3 fine-tune-start checkpoint.")
     p.add_argument("--vi", action="store_true",
@@ -351,7 +356,8 @@ def main():
         if "train" in per_year:
             with StepLogger(SCRIPT_NAME, f"train_{lab}", LOGS_DIR) as log:
                 r = step_train(lab, batch_size=args.batch_size,
-                               p3_ckpt=args.ckpt, dry_run=args.dry_run)
+                               p3_ckpt=args.ckpt, dry_run=args.dry_run,
+                               compile_model=not args.no_compile)
                 _f = {"year": lab, "gsd_cm": e["gsd_cm"],
                       "dry_run": args.dry_run, "errors": 0}
                 if isinstance(r, dict): _f.update(r)

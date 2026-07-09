@@ -662,7 +662,7 @@ def _set_encoder_bn_eval(model):
 #  Step 3 — Per-year fine-tune (Phase A frozen + Phase B full, from P3 ckpt)
 # ══════════════════════════════════════════════════════════════════════════════
 
-def step_train(label, batch_size=BATCH_SIZE, p3_ckpt=None, dry_run=False):
+def step_train(label, batch_size=BATCH_SIZE, p3_ckpt=None, dry_run=False, compile_model=True):
     _ensure_torch()
     entry = entry_for(label)
     tier  = tier_of(entry["gsd_cm"])
@@ -787,7 +787,7 @@ def step_train(label, batch_size=BATCH_SIZE, p3_ckpt=None, dry_run=False):
         print("  ERROR: Phase 3 checkpoint (sem_best_2020.pt) not found — "
               "run Phase 3 first or pass --ckpt.")
         return
-    model = build_model(device, compile_model=True)
+    model = build_model(device, compile_model=compile_model)
     ck = load_state_into(model, p3, device)
     print(f"  ✓ Fine-tune start: {Path(p3).name}  "
           f"(P3 val_bce={ck.get('best_val', '?')})")

@@ -85,9 +85,35 @@
 
 import multiprocessing
 import pathlib
+import shutil
 import sys
 
-sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
+# Import the phase4seg package from FAST LOCAL DISK, not the Drive/FUSE mount.
+# Importing an 8-file package straight off the Colab Drive mount is slow and can
+# stall mid-read (importlib get_data latency on the FUSE layer). Copy it to
+# /content once per session (retrying transient FUSE hiccups), then import there.
+_SHIM_DIR = pathlib.Path(__file__).resolve().parent
+_PKG_SRC = _SHIM_DIR / "phase4seg"
+
+
+def _pkg_import_root():
+    local_root = pathlib.Path("/content/_phase4seg_pkg")
+    dst = local_root / "phase4seg"
+    last = None
+    for _ in range(3):
+        try:
+            if _PKG_SRC.is_dir():
+                shutil.rmtree(dst, ignore_errors=True)
+                shutil.copytree(_PKG_SRC, dst,
+                                ignore=shutil.ignore_patterns("__pycache__"))
+                return str(local_root)
+        except Exception as e:  # noqa: BLE001 — fall back to Drive import
+            last = e
+    print(f"  (phase4seg: local copy failed, importing from Drive — {last})")
+    return str(_SHIM_DIR)
+
+
+sys.path.insert(0, _pkg_import_root())
 
 from phase4seg.cli import main
 

@@ -5,6 +5,7 @@ from phase4seg.common import (
     _stage_imagery_local, _unstage_imagery_local, read_rgb_window,
     read_hillshade_chip, tick, tock,
 )
+from phase4seg.tiling import _origins_from_manifest
 
 import gc
 import time
@@ -1276,14 +1277,22 @@ def step_inference(label, batch_size=INFER_BATCH_SIZE, dry_run=False):
                     ToTensorV2()])
     stride, pad, cc = INFER_STRIDE, INFER_PAD, INFER_STRIDE
 
-    origins = [(r, c) for r in range(0, img_h, stride) for c in range(0, img_w, stride)]
-    if origins[-1][0] + stride < img_h:
-        origins += [(img_h - TILE_SIZE, c) for c in range(0, img_w, stride)]
-    if origins[-1][1] + stride < img_w:
-        origins += [(r, img_w - TILE_SIZE) for r in range(0, img_h, stride)]
-    origins.append((img_h - TILE_SIZE, img_w - TILE_SIZE))
-    origins = sorted(set(origins))
-    print(f"  Tile positions: {len(origins):,}  |  batch={batch_size}")
+    if config.SAMPLE_MANIFEST:
+        # Sample-only inference: predict ONLY the manifest tiles (same fixed locations
+        # the model tiled/trained on), everything else stays nodata. Turns a full-city
+        # sweep into ~200 forwards so the forest-miss autopsy can run on the fast sample.
+        origins = _origins_from_manifest(img_crs, img_tf, img_h, img_w)
+        print(f"  SAMPLE inference: {len(origins):,} manifest tiles (rest → nodata)  "
+              f"|  batch={batch_size}")
+    else:
+        origins = [(r, c) for r in range(0, img_h, stride) for c in range(0, img_w, stride)]
+        if origins[-1][0] + stride < img_h:
+            origins += [(img_h - TILE_SIZE, c) for c in range(0, img_w, stride)]
+        if origins[-1][1] + stride < img_w:
+            origins += [(r, img_w - TILE_SIZE) for r in range(0, img_h, stride)]
+        origins.append((img_h - TILE_SIZE, img_w - TILE_SIZE))
+        origins = sorted(set(origins))
+        print(f"  Tile positions: {len(origins):,}  |  batch={batch_size}")
 
     # uint8 prob raster; 255 reserved as a nodata sentinel (blanks un-imaged areas
     # of partial-coverage years). Real probabilities clipped to 0–254.
@@ -1329,6 +1338,15 @@ def step_inference(label, batch_size=INFER_BATCH_SIZE, dry_run=False):
 
     tick("inference")
     with rasterio.open(prob_out, "w", **prob_profile) as dst:
+        if config.SAMPLE_MANIFEST:
+            # Pixels outside the sampled tiles must read as nodata (255), not the GTiff
+            # default 0 — else the autopsy scores un-inferred forest as a miss. Fill 255
+            # in row strips (memory-safe), then the sample windows overwrite it.
+            _fill = np.full((TILE_SIZE, img_w), PROB_NODATA, dtype=np.uint8)
+            for _r0 in range(0, img_h, TILE_SIZE):
+                _rh = min(TILE_SIZE, img_h - _r0)
+                dst.write(_fill[np.newaxis, :_rh],
+                          window=rasterio.windows.Window(0, _r0, img_w, _rh))
         with rasterio.open(local) as src:
             pbar = tqdm(total=len(origins), desc="  Inference", unit="tile",
                         miniters=2000, mininterval=2.0)

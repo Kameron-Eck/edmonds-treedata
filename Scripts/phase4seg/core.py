@@ -3,7 +3,7 @@ from phase4seg import config
 from phase4seg.common import (
     _ensure_deps, _tag_sfx, entry_for, resolve_native_path,
     _stage_imagery_local, _unstage_imagery_local, read_rgb_window,
-    read_hillshade_chip,
+    read_hillshade_chip, tick, tock,
 )
 
 import gc

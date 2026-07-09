@@ -6,6 +6,7 @@ from phase4seg.config import *
 from phase4seg import config
 from phase4seg.common import (
     discover_site_footprints, entry_for, remaining_entries, _tag_sfx,
+    timer_summary,
 )
 from phase4seg.labels import step_labels
 from phase4seg.tiling import step_tile

@@ -1,6 +1,6 @@
 from phase4seg.config import *
 from phase4seg import config
-from phase4seg.common import _tag_sfx, entry_for
+from phase4seg.common import _tag_sfx, entry_for, tick, tock
 
 import gc
 import numpy as np

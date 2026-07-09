@@ -41,7 +41,12 @@ SPACE RULES — keep always-loaded context low for continuous logging:
 ════════════════ STATE  (current — edit in place) ════════════════
 
 proj:    Edmonds temporal canopy pipeline, phase 4 (per-year semantic seg, 18 imagery yrs).
-live:    phase4_semantic_finetune.py = v048. v048 = FIX: --force-citywide crashed on FINE years —
+live:    ENGINE MODULARIZED 2026-07-08 → phase4seg/ package (config/common/labels/tiling/core[all torch]/
+         postproc/cli) + 97L phase4_semantic_finetune.py SHIM (preserves `%run ... --args`). Behavior =
+         v048, BYTE-IDENTICAL (AST-verified: 89/89 defs, 106/106 consts; py_compile+torch-free-import OK).
+         NOT yet Colab-smoke-tested — GATE: `%run phase4_semantic_finetune.py --year 2000 --step tile`;
+         revert = git revert df08f89. Tag v049 after smoke passes.
+         phase4_semantic_finetune.py = v048. v048 = FIX: --force-citywide crashed on FINE years —
          the citywide candidate scan used a fixed 256px stride → a fine ortho (74k×106k @14.9cm) =
          119,770 candidates = ~2h scan → Colab timeout/OOM (just to pick 800 tiles). Now the scan
          stride ADAPTS to ortho size (CITYWIDE_CANDIDATE_TARGET=8000; floor 256), so fine 2013 = 8,025
@@ -196,6 +201,32 @@ gotcha:  scripts Colab-only for torch (rasterio+geopandas+fiona+sklearn now pip-
          accept-all test data; 14,476-crown human review never finished.
 
 ════════════════ LOG  (newest first) ════════════════
+
+## 2026-07-08  Phase-4 engine modularized → phase4seg/ package; POC notebook cleaned; experiments/ split out
+goal:    Kam: turn phase4 into modules; separate experimental data-science from the POC pipeline.
+did:     phase4_semantic_finetune.py (3953L monolith) SPLIT → phase4seg/ package: config, common, labels,
+         tiling, core (ALL torch code), postproc, cli + 97L shim (preserves `%run phase4_semantic_finetune.py
+         --args`). 20 runtime-mutated globals → config.NAME namespace; torch handles stay in core (lazy
+         _ensure_torch intact); geo bootstrap in common (acyclic import graph). VERIFIED byte-identical:
+         py_compile all; torch-free modules import w/o torch; AST-equivalence vs pre-split original =
+         89/89 defs+classes + 106/106 module consts logic-identical, 0 drops/mismatches (only allowed deltas
+         = config.-prefix + removed `global` stmts). ALSO cleaned TreeCrownInventory.ipynb (POC notebook,
+         git-UNTRACKED): backed up → TreeCrownInventory.BACKUP-2026-07-08.ipynb (95 cells, byte-identical),
+         rewrote 95→34 cells (dropped superseded phase0 prototype cells 3-51 + dead drivers 52-64; kept
+         drive-mount + current-pipeline launchers; stripped outputs 1.9MB→45KB). NEW experiments/ at repo
+         root (git-ignored per /* allowlist) + README + archive/phase0_prototype_from_notebook.py (cells
+         3-51 source w/ provenance).
+decided: pragmatic split (torch core cohesive) over full split — 20-global + lazy-torch coupling makes a
+         full split need a shared-runtime rewrite = higher risk mid-study. pkg = phase4seg (NOT phase4:
+         avoids treedata/phase4 data-dir collision; Scripts/ is git-whitelisted so pkg is tracked).
+open:    (SMOKE GATE) engine NOT run on Colab yet — CANNOT run locally (forces mp start_method 'fork').
+         Kam: run `--year 2000 --step tile` before any real study run; revert = git revert df08f89. Tag v049
+         after smoke passes. experiments/ tracking: say the word to whitelist in .gitignore (data still
+         excluded). NOTE: a few retained notebook launcher cells %run now-archived scripts
+         (proof_of_concept_colab.py, temporal_overlay.py → _archive/scripts/) — stale paths, scratch only.
+files:   phase4seg/* , phase4_semantic_finetune.py (shim), TreeCrownInventory.ipynb (+ .BACKUP-2026-07-08),
+         experiments/*. commit df08f89.
+next:    Kam Colab smoke-test the split → tag v049; decide experiments/ git-tracking; triage audit SUMMARY.md §2.
 
 ## 2026-07-08  Full-codebase audit (6 subagents) + declutter + 2 output-safe fixes
 goal:    Kam: find bugs/inefficiencies/bottlenecks; move dead scripts out; delegate heavy read to non-Fable models.

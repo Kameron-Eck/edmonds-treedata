@@ -1820,8 +1820,7 @@ def _process_chunk(args):
         if not geom_list:
             continue
 
-        geom = (geom_list[0] if len(geom_list) == 1
-                else geom_list[0].union(*geom_list[1:]))
+        geom = geom_list[0] if len(geom_list) == 1 else unary_union(geom_list)
 
         def _sc(a):
             if a <= 4.9: return "small"

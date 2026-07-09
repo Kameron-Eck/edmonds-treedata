@@ -3412,7 +3412,7 @@ def step_postproc(label, dry_run=False):
               "properties": {"canopy_id": "str", "area_m2": "float"}}
     with rasterio.open(mask_out) as src:
         data = src.read(1)
-    clean = rasterio.features.sieve(np.where(data == 1, 1, 0).astype(np.uint8),
+    clean = rasterio.features.sieve((data == 1).astype(np.uint8),
                                     size=min_px, connectivity=POLYGON_CONNECTIVITY)
     del data; gc.collect()
     shapes_gen = rasterio.features.shapes(clean, mask=(clean == 1), transform=img_tf,

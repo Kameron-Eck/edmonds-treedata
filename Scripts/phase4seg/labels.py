@@ -226,6 +226,13 @@ def project_and_rasterise_site(src, src_nodata, native_crs, label, site_label,
         else:
             burn = crowns_3857
 
+        # Guard: a Negative_* site must never contribute canopy, even if its
+        # review gpkg was corrupted with 'approved' crowns (e.g. the accept-all
+        # overwrite). Mirrors _is_negative_site's name check in the citywide
+        # tiling path — the fine/medium per-site path previously lacked it.
+        if str(site_label).lower().startswith("negative") and burn is not None:
+            burn = burn.iloc[0:0]
+
         regions = _load_review_regions(site_label) if is_review else None
 
         def _rasterise(gdf):

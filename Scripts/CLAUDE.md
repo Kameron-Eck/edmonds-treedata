@@ -209,7 +209,7 @@ boundaries or method changes, not every session.
 | CHM | `lidar_snoh_chm.tif` — USGS 3DEP HAG, ~2016, U8 DN=0.2 m/DN (0=nodata), ~60% city coverage |
 | NIR-bearing years | 2016, 2019n, 2021s, 2022n (only these can build an NDVI reference) |
 | C-CAP eval ref | `ccap_{2016,2021}_hires_lc.tif` — NOAA hi-res 1m land cover, EPSG:26910, EVAL-ONLY (never train); hi-res forest=11, developed collapsed |
-| GPU (Colab) | NVIDIA RTX PRO 6000 Blackwell, ~95 GB VRAM |
+| GPU (Colab) | Menu: **L4 24 GB** (default/cheapest, most runs) · A100 40 GB (when needed) · RTX PRO 6000 Blackwell ~95 GB (available). Memory-plan against the tier actually selected — OOM bugs bite at 24–40 GB, not 95 GB. |
 | GPU (local) | 2 GB — CPU / raster / QC only, no training |
 
 ---
@@ -234,7 +234,7 @@ boundaries or method changes, not every session.
 
 | Resource | Use |
 |----------|-----|
-| Google Colab (RTX PRO 6000) | All tiling, training, inference, heavy I/O |
+| Google Colab (L4 24GB default / A100 40GB / RTX PRO 6000 95GB) | All tiling, training, inference, heavy I/O |
 | Local machine (2 GB GPU) | Claude Code, script edits, log review, **QC + label-build + raster diagnostics** |
 
 Compute-heavy torch steps run in Colab; do not split training between local and Colab.

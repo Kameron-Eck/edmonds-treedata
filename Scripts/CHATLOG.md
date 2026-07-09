@@ -197,6 +197,23 @@ gotcha:  scripts Colab-only for torch (rasterio+geopandas+fiona+sklearn now pip-
 
 ════════════════ LOG  (newest first) ════════════════
 
+## 2026-07-08  Full-codebase audit (6 subagents) + declutter + 2 output-safe fixes
+goal:    Kam: find bugs/inefficiencies/bottlenecks; move dead scripts out; delegate heavy read to non-Fable models.
+did:     6 parallel subagents (1 Opus on live engine, 4 Sonnet, 1 classify) audited every active script.
+         Report → _audit_2026-07-08/ (SUMMARY.md + 6 detail md, git-tracked). Archived 53 dormant pre-Phase-0
+         acquisition/discovery/registration scripts → _archive/scripts/ (root .py 82→29; grep-verified NO
+         active import/%run references any). 2 VERIFIED fixes APPLIED: phase0_instance_seg.py:1823
+         .union(*geom_list[1:])→unary_union (latent crash on 3+shape crowns; anchor run never hit it, so no
+         output change); phase4_semantic_finetune.py:3415 np.where(data==1,1,0) int64 temp→(data==1).astype
+         (uint8) (BYTE-IDENTICAL, kills the fine-year postproc OOM). both py_compiled.
+decided: applied ONLY output-safe fixes. measurement/numerics/recipe changes LEFT for Kam (SUMMARY.md §2).
+         engine fix byte-identical → NOT version-bumped; Kam may tag v049.
+open:    top review items — qc_ndvi.py:169 CHM-nodata forced to grass → biases honest recall/prec; engine:3342
+         operating-threshold mis-keys on run-tag/channels (silent wrong-arm threshold). full list SUMMARY.md.
+files:   _audit_2026-07-08/*, _archive/scripts/* (53), phase0_instance_seg.py, phase4_semantic_finetune.py.
+         commits e7ee743 (archive), 3c981cb (fixes), 631810f (audit docs).
+next:    Kam triage SUMMARY.md §2 (needs-decision) → greenlight measurement/numerics fixes.
+
 ## 2026-07-07  v048 FIX: --force-citywide crashed on fine years (citywide scan candidate blow-up)
 goal:    Kam's --force-citywide --run-tag citywide_rgb run crashed SILENTLY twice, both in 2013's
          city-wide TILING scan (not inference — this run already ran --infer-batch default 32).

@@ -339,14 +339,19 @@ def _gather_citywide_coarse(label, sites, stride_override=None, dry_run=False):
             # Bound the scan to ~CITYWIDE_CANDIDATE_TARGET candidates regardless of
             # GSD (floor = CITYWIDE_CANDIDATE_STRIDE, so coarse is unchanged). An
             # explicit --stride override is always honoured.
-            if not stride_override:
-                adaptive = int(round((img_h * img_w / CITYWIDE_CANDIDATE_TARGET) ** 0.5))
-                stride = max(CITYWIDE_CANDIDATE_STRIDE, adaptive)
-            rows = list(range(0, max(1, img_h - TILE_SIZE + 1), stride)) or [0]
-            cols = list(range(0, max(1, img_w - TILE_SIZE + 1), stride)) or [0]
-            origins = [(r, c) for r in rows for c in cols]
-            print(f"  Candidate positions: {len(origins):,}  (stride={stride}"
-                  f"{'' if stride_override else ', adaptive'})")
+            if config.SAMPLE_MANIFEST:
+                origins = _origins_from_manifest(native_crs, tf, img_h, img_w)
+                print(f"  SAMPLE manifest: {Path(config.SAMPLE_MANIFEST).name} → "
+                      f"{len(origins):,} fixed C-CAP-stratified tile locations")
+            else:
+                if not stride_override:
+                    adaptive = int(round((img_h * img_w / CITYWIDE_CANDIDATE_TARGET) ** 0.5))
+                    stride = max(CITYWIDE_CANDIDATE_STRIDE, adaptive)
+                rows = list(range(0, max(1, img_h - TILE_SIZE + 1), stride)) or [0]
+                cols = list(range(0, max(1, img_w - TILE_SIZE + 1), stride)) or [0]
+                origins = [(r, c) for r in rows for c in cols]
+                print(f"  Candidate positions: {len(origins):,}  (stride={stride}"
+                      f"{'' if stride_override else ', adaptive'})")
             if dry_run:
                 print("  Dry run — not reading tiles")
                 return []
@@ -523,6 +528,40 @@ def _add_canopy_mask_sig():
     return {"path": str(p), "size": int(st.st_size), "mtime": int(st.st_mtime)}
 
 
+def _sample_manifest_sig():
+    """Signature component for a --sample-manifest tile set — path+size+mtime, so a
+    different or regenerated manifest rebuilds the cached tiles."""
+    p = Path(config.SAMPLE_MANIFEST)
+    if not p.exists():
+        return {"path": str(p), "missing": True}
+    st = p.stat()
+    return {"path": str(p), "size": int(st.st_size), "mtime": int(st.st_mtime)}
+
+
+def _origins_from_manifest(native_crs, tf, img_h, img_w):
+    """Fixed C-CAP-stratified tile locations (phase4_ccap_sample.py) → this ortho's
+    pixel-space tile origins. Each manifest point (lon/lat) is reprojected into the
+    year's native CRS, mapped to a pixel, then centred into a TILE_SIZE origin clamped
+    to the ortho. Deduped — a coarse GSD can map several points into one tile."""
+    mp = Path(config.SAMPLE_MANIFEST)
+    if mp.suffix.lower() == ".gpkg":
+        import geopandas as gpd
+        g = gpd.read_file(mp).to_crs("EPSG:4326")
+        lons, lats = g.geometry.x.tolist(), g.geometry.y.tolist()
+    else:
+        df = pd.read_csv(mp)
+        lons, lats = df["lon"].tolist(), df["lat"].tolist()
+    xs, ys = rasterio.warp.transform("EPSG:4326", native_crs, lons, lats)
+    inv, half = ~tf, TILE_SIZE // 2
+    origins = set()
+    for x, y in zip(xs, ys):
+        col, row = inv * (x, y)
+        ro = min(max(0, int(row) - half), max(0, img_h - TILE_SIZE))
+        co = min(max(0, int(col) - half), max(0, img_w - TILE_SIZE))
+        origins.add((ro, co))
+    return sorted(origins)
+
+
 def _tile_signature(label, stride, max_tiles, citywide):
     sig = {
         "label": label, "citywide": bool(citywide), "stride": int(stride),
@@ -541,6 +580,8 @@ def _tile_signature(label, stride, max_tiles, citywide):
     # existing (pre-v043) tile caches — no spurious retile for other years.
     if config.ADD_CANOPY_MASK:
         sig["add_canopy_mask"] = _add_canopy_mask_sig()
+    if config.SAMPLE_MANIFEST:
+        sig["sample_manifest"] = _sample_manifest_sig()
     # --aux-height writes per-tile height sidecars → a distinct tile set; keyed only
     # when on so plain RGB-only caches are not spuriously invalidated.
     if config.AUX_HEIGHT:

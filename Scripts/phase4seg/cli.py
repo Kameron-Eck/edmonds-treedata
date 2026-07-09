@@ -168,6 +168,12 @@ def main():
     p.add_argument("--max-tiles", type=int, default=None,
                    help="Cap each year's tile set to N (canopy tiles kept first, "
                         "then negatives). For fast test runs.")
+    p.add_argument("--sample-manifest", type=str, default=None,
+                   help="Path to a C-CAP-stratified tile manifest (.gpkg/.csv from "
+                        "phase4_ccap_sample.py). Citywide-coarse tiling then uses ONLY "
+                        "those fixed geographic locations (reprojected per year), so a "
+                        "cross-sensor run trains/infers on the same representative, "
+                        "forest-oversampled sample instead of the full city. Retiles.")
     p.add_argument("--stride", type=int, default=None,
                    help="Override the per-tier tiling stride (smaller = more "
                         "overlapping tiles → more tiles).")
@@ -271,6 +277,7 @@ def main():
     config.THRESH_MODE = args.thresh_mode
     config.INFER_THRESH_OVERRIDE = args.infer_thresh
     config.ADD_CANOPY_MASK = args.add_canopy_mask
+    config.SAMPLE_MANIFEST = args.sample_manifest
     # --aux-height reframe: height becomes a TARGET, so the input goes RGB-only.
     config.AUX_HEIGHT = bool(args.aux_height)
     config.HEIGHT_LAMBDA = max(0.0, float(args.height_lambda))

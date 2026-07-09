@@ -240,6 +240,7 @@ INFER_THRESH_OVERRIDE = None
 # 148k×212k 2020 mask. One file (built on the 2016 grid) serves 2016 AND 2000 (most
 # trees are static). Flag: --add-canopy-mask.
 ADD_CANOPY_MASK = None
+SAMPLE_MANIFEST = None  # --sample-manifest: C-CAP-stratified fixed tile locations (phase4_ccap_sample.py)
 # ── Auxiliary height-supervision reframe (--aux-height) ────────────────────────
 # Teach the model to PREDICT canopy height from RGB (a 2nd output head) instead of
 # feeding the 2016 CHM as an outvoted 4th INPUT channel. Inference stays RGB-only, so

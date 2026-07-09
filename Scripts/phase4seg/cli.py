@@ -161,6 +161,10 @@ def main():
                         "to force a rebuild without changing them.")
     p.add_argument("--dry-run", action="store_true",
                    help="Plan only — no writes.")
+    p.add_argument("--check", action="store_true",
+                   help="Local pre-flight: validate the command line, then exit 0 "
+                        "without importing torch or running any step. Used by "
+                        "phase4seg_preflight.py to catch arg/import errors off-Colab.")
     p.add_argument("--max-tiles", type=int, default=None,
                    help="Cap each year's tile set to N (canopy tiles kept first, "
                         "then negatives). For fast test runs.")
@@ -237,6 +241,10 @@ def main():
                         "runs SAVE instead of OVERWRITE — keep variants/recipes for later "
                         "analysis. e.g. --run-tag rgbonly. Score with the QC tools' --prob.")
     args = p.parse_args(filtered)
+
+    if args.check:
+        print("[preflight] arguments parsed OK — command is valid.")
+        return
 
     from pipeline_log import StepLogger
     LOGS_DIR = BASE / "Scripts" / "logs"

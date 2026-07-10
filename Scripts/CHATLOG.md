@@ -152,13 +152,23 @@ data:    Full_Image/Pipeline Imagery/: lidar_snoh_hillshade_fr.tif, _be.tif,
          W edge + S margin = water, no canopy). height p50 6.7m p90 30.9m p99 44.6m.
          stats /255 nonzero mean .2306 std .2305. HAG includes buildings (fine —
          RGB flags non-green).
-open:    (0) [2026-07-07 ACTIVE] ATTACK UNDER-PREDICTION via DECIDUOUS POSITIVE SITES. C-CAP autopsy
-         (phase4_qc_forest_misses.py) proved the missed upland forest is confident/OOD deciduous
-         (NDVI .35 vs .57, 11.8m vs 23.8m), NOT a threshold or sensor issue → stage positive forest
-         sites at the top-FN stands (forest_miss_stands_2016.csv) via make_positive_site.py (C-CAP
-         LOCATES only, never labels; keep a C-CAP train/eval split) → Colab retrain → re-score forest
-         recall on C-CAP. Grass iteration STAYS stopped (autopsy: FP is developed+grass ~equal, small
-         vs the FN). SUPERSEDES the corrected-label workstream below.
+open:    (0) [2026-07-10 ACTIVE — plan = D:\tools\claude-config\plans\cozy-skipping-jellyfish.md]
+         BUILD ONE SCALE-ROBUST RGB MODEL, LABELS-FIRST. Strategic reset: the cross-sensor/sample/fast-
+         tooling drift DEGRADED model quality (force-citywide flattens all models for fair comparison;
+         RGB-only + small sample + 2020-mask labels made fine 2015 flatline at 0.37). 3-agent synthesis:
+         labels are THE bottleneck (only 2020 hand-labeled, all high-NDVI/conifer — Forest_4 EMPIRICAL
+         2016 NDVI 0.611 ≈ conifer sites, NOT the missed 0.42 variety); deciduous under-prediction ≈ 94%
+         of error, STRUCTURAL (confident misses, ~11m shorter, NDVI .42 vs .57); CHM = biggest lever BUT
+         disqualified as a model INPUT for the temporal product (stale 2016 snapshot → error correlates
+         w/ the change signal) → CHM/NDVI go in the LABEL pipeline only, model stays RGB. ONE model spans
+         resolution (2000≡2002 @common thresh; Wang&Fan 16-100cm) via multi-scale aug + real labels at
+         ≥2 resolutions. USER 2026-07-10: one scale-robust model + targeted hand-labeling. PHASES: A
+         foundation (Forest_4 ✓; 2 measurement bugs FIXED a63e208; quarantine broken 2022/2017); B
+         hand-TRACE the top-FN deciduous stands (forest_miss_stands_{2016,2015}.csv) @ 2016 + a fine yr
+         (NOT 2020-mask-derived; C-CAP LOCATES only, keep a C-CAP eval split); C unified train (v039
+         recipe, RGB, multi-scale aug, from sem_best_2020.pt); D honest eval (C-CAP/NDVI) + BUILD the
+         Olofsson photo-interp harness; E apply all 18 native-res; F reconcile Method_Pipeline/buildtracker/
+         xlsx to the unified method. SUPERSEDES the cross-sensor-experiment framing (→ validation, later).
          (0-old) [2026-07-05 SUPERSEDED] CORRECTED-LABEL workstream (supersedes 2015-flagship +
          deciduous-positive-site idea). user reframe: we have 2020 labels + CHM yet miss
          deciduous marsh → INVERT the QC instrument: use 2016 NIR+CHM to LABEL the misses,
@@ -193,7 +203,7 @@ blocked: none.
 docs:    SOURCES OF TRUTH CENTRALIZED 2026-07-06. HANDOFFS RETIRED (5 old ones →
          Scripts/_archive/handoffs/) — this STATE + the active plan ARE the handoff now.
          Front-door doc map = treedata/README.md. To resume: read this STATE + top ~4 LOG
-         entries + the active plan (drifting-swinging-dolphin.md). Do NOT create a new
+         entries + the active plan (D:\tools\claude-config\plans\cozy-skipping-jellyfish.md). Do NOT create a new
          HANDOFF. one-fact-one-home: live state here, method=Method_Pipeline.md, build
          status=pipeline_buildtracker.md, schedule=edmonds_combined_workplan.xlsx.
 gotcha:  scripts Colab-only for torch (rasterio+geopandas+fiona+sklearn now pip-
@@ -201,6 +211,27 @@ gotcha:  scripts Colab-only for torch (rasterio+geopandas+fiona+sklearn now pip-
          accept-all test data; 14,476-crown human review never finished.
 
 ════════════════ LOG  (newest first) ════════════════
+
+## 2026-07-10  STRATEGIC RESET → one scale-robust model, labels-first (plan cozy-skipping-jellyfish.md)
+goal:    Kam: stop spinning in circles; synthesize everything into a plan for a really robust semantic
+         model; the deliverable must apply one method to all resolutions; open to hand-annotating; update workplan.
+did:     3 research subagents (history / real numbers / data+label landscape) + Method_Pipeline read →
+         PLAN D:\tools\claude-config\plans\cozy-skipping-jellyfish.md. Findings: labels are THE bottleneck
+         (only 2020 hand-labeled, all conifer/high-NDVI); deciduous under-prediction ≈ 94% of error and
+         STRUCTURAL; CHM = biggest lever but disqualified as a model INPUT (stale snapshot) → CHM/NDVI in
+         LABELS only; ONE RGB model spans 7.5-60cm via multi-scale aug + real labels @≥2 res (Wang&Fan;
+         2000≡2002 @common thresh). PHASE A LANDED: (1) Forest_4 EMPIRICAL — its 2016 canopy NDVI 0.611 ≈
+         the other conifer sites (0.59-0.62), far from the missed 0.42 → F4 does NOT cover the blind spot,
+         Phase B (add low-NDVI deciduous) confirmed. (2) fixed 2 audit measurement bugs (a63e208):
+         phase4_qc_ndvi CHM-nodata→grass (now IGNORE); postproc _operating_threshold mis-key (now filters
+         the current (year,channels) arm).
+decided: REJECT "coarse & fine need different models" — the apparent gap is the tier-recipe confound
+         (fine 2015 swings 0.26→0.62 recall on IDENTICAL data by recipe). Deliverable = ONE documented
+         method for all 18 years. Cross-sensor work demoted to validation-later, not the build path.
+next:    Phase B — stage + HAND-TRACE the top-FN deciduous stands (forest_miss_stands_{2016,2015}.csv) at
+         2016 (coarse, NIR-verifiable) + a fine year; keep a C-CAP eval split. Then Phase C unified train.
+         Also quarantine the broken 2022 (rec .004) / 2017 (qc 0 valid px) runs.
+files:   plan cozy-skipping-jellyfish.md; phase4_qc_ndvi.py; phase4seg/postproc.py. commit a63e208.
 
 ## 2026-07-08  Phase-4 engine modularized → phase4seg/ package; POC notebook cleaned; experiments/ split out
 goal:    Kam: turn phase4 into modules; separate experimental data-science from the POC pipeline.

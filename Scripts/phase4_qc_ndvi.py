@@ -166,17 +166,19 @@ def build_reference(year, veg_thresh, min_height_m, block_rows, sweep):
                 height = dn_to_height_m(chm_dn)            # NaN where no CHM
 
                 veg = coverage & (ndvi >= veg_thresh)
-                tall = np.nan_to_num(height, nan=-1.0) >= min_height_m
+                has_chm = np.isfinite(height)                    # CHM covers ~60% of the city
+                tall = has_chm & (height >= min_height_m)
                 canopy = veg & tall
 
                 out = np.full((rows, W), 255, dtype=np.uint8)   # nodata
                 out[coverage] = 0                                # non-veg
                 out[veg] = 1                                     # grass (veg, short)
-                out[canopy] = 2                                 # canopy (veg + tall)
+                out[veg & ~has_chm] = 255                        # veg but NO CHM → can't confirm tall → IGNORE (was wrongly 'grass', biasing recall/precision)
+                out[canopy] = 2                                 # canopy (veg + CHM-confirmed tall)
                 dst.write(out, 1, window=win)
 
-                # tallies
-                tot["nodata"] += int((~coverage).sum())
+                # tallies (count from out so the new IGNORE class is reflected)
+                tot["nodata"] += int((out == 255).sum())         # nodata OR veg-without-CHM (excluded)
                 tot["nonveg"] += int((out == 0).sum())
                 tot["grass"]  += int((out == 1).sum())
                 tot["canopy"] += int((out == 2).sum())

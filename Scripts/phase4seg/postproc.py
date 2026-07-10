@@ -42,17 +42,24 @@ def _operating_threshold(label):
         return float(config.INFER_THRESH_OVERRIDE), f"--infer-thresh override ({float(config.INFER_THRESH_OVERRIDE):.3f})"
     col = ("prec_floor_thresh" if config.THRESH_MODE == "precision_floor"
            else "best_f1_thresh")
+    # The channels arm being deployed — must match how step_evaluate keys its rows
+    # (core.py:1161) so a year with MULTIPLE arms (e.g. rgb and rgb+chm) picks THIS
+    # arm's threshold, not whichever row happened to be appended last.
+    chan_desc = f"rgb+{config.HS_SOURCE}" if config.IN_CHANNELS >= 4 else "rgb"
     if EVAL_CSV.exists():
         try:
             df = pd.read_csv(EVAL_CSV)
             sub = df[(df["year"].astype(str) == str(label)) &
                      (df["scope"] == "OVERALL")]
+            if len(sub) and "channels" in sub.columns:
+                arm = sub[sub["channels"].astype(str) == chan_desc]
+                if len(arm):
+                    sub = arm          # exact (year, channels) arm; else fall back below
             if len(sub) and col in sub.columns:
-                # Multiple ablation arms per year → take the last-appended
-                # (most recent eval, matching the current checkpoint).
+                # Within the matched arm, the last row is the most recent eval.
                 val = pd.to_numeric(sub.iloc[-1][col], errors="coerce")
                 if pd.notna(val) and 0.0 < float(val) < 1.0:
-                    return float(val), f"{col} ({config.THRESH_MODE}, semantic_eval_report.csv)"
+                    return float(val), f"{col} ({config.THRESH_MODE}, {chan_desc}, semantic_eval_report.csv)"
         except Exception as e:
             print(f"  (could not read {col}: {e}; "
                   f"using default {CANOPY_PROB_THRESHOLD})")

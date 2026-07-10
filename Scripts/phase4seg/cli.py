@@ -80,6 +80,10 @@ def main():
                    help="Skip fine-tuning — use existing per-year checkpoints.")
     p.add_argument("--skip-inference", action="store_true",
                    help="Stop after evaluation.")
+    p.add_argument("--skip-postproc", action="store_true",
+                   help="Skip postproc (polygonize → crown GPKG). The cross-sensor "
+                        "autopsy scores the prob raster, not the GPKG, so this avoids "
+                        "the fine-year polygonize on experimental runs.")
     p.add_argument("--batch-size", type=int, default=BATCH_SIZE)
     p.add_argument("--no-compile", action="store_true",
                    help="Skip torch.compile in training — avoids the slow first-build "
@@ -396,7 +400,7 @@ def main():
                       "dry_run": args.dry_run, "errors": 0}
                 if isinstance(r, dict): _f.update(r)
                 log.finish(**_f)
-        if "postproc" in per_year:
+        if "postproc" in per_year and not args.skip_postproc:
             with StepLogger(SCRIPT_NAME, f"postproc_{lab}", LOGS_DIR) as log:
                 r = step_postproc(lab, dry_run=args.dry_run)
                 _f = {"year": lab, "gsd_cm": e["gsd_cm"],

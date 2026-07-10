@@ -111,18 +111,30 @@ def step_postproc(label, dry_run=False):
     print(f"  Canopy: {canopy_px:,}px = {canopy_area/1e4:.1f} ha "
           f"({pct:.1f}% of imaged area)")
 
-    # ── Polygonize (sieve small components, simplify staircase) ──
+    # ── Polygonize in ROW-STRIPS (memory-safe) ──
+    # A fine year's mask is multi-GB (2013 = 74496×105984 ≈ 7.9 GB) — a single
+    # src.read(1) OOMs the host (silent kernel kill). Read ~400M-px strips, sieve +
+    # polygonize each, and collect the geometries (lightweight vs the raster). A canopy
+    # region spanning a strip edge becomes two adjacent polygons — negligible for a
+    # semantic-canopy area layer. Coarse years fit in one/two strips (unchanged).
     print("  Polygonizing…"); tick("polygonize")
     import fiona
     schema = {"geometry": "Polygon",
               "properties": {"canopy_id": "str", "area_m2": "float"}}
+    strip_rows = max(TILE_SIZE, min(img_h, int(400_000_000 / max(img_w, 1))))
+    geom_list = []
     with rasterio.open(mask_out) as src:
-        data = src.read(1)
-    clean = rasterio.features.sieve((data == 1).astype(np.uint8),
-                                    size=min_px, connectivity=POLYGON_CONNECTIVITY)
-    del data; gc.collect()
-    shapes_gen = rasterio.features.shapes(clean, mask=(clean == 1), transform=img_tf,
-                                          connectivity=POLYGON_CONNECTIVITY)
+        for _r0 in range(0, img_h, strip_rows):
+            _win = rasterio.windows.Window(0, _r0, img_w, min(strip_rows, img_h - _r0))
+            _clean = rasterio.features.sieve(
+                (src.read(1, window=_win) == 1).astype(np.uint8),
+                size=min_px, connectivity=POLYGON_CONNECTIVITY)
+            _wtf = rasterio.windows.transform(_win, img_tf)
+            geom_list.extend(shape(g) for g, _ in rasterio.features.shapes(
+                _clean, mask=(_clean == 1), transform=_wtf,
+                connectivity=POLYGON_CONNECTIVITY))
+            del _clean
+        gc.collect()
     n = 0
     # v039 speedup: the per-polygon Python loop (simplify preserve_topology=True +
     # is_valid + buffer(0), one fiona write each) dominates postproc on a full-city
@@ -140,7 +152,7 @@ def step_postproc(label, dry_run=False):
                     schema=schema) as dst:
         if _vec:
             print("  (vectorized shapely 2.x polygonize)")
-            geoms = np.array([shape(g) for g, _ in shapes_gen], dtype=object)
+            geoms = np.array(geom_list, dtype=object)
             if len(geoms):
                 if SIMPLIFY_TOLERANCE_M > 0:
                     # preserve_topology=False = fast Douglas-Peucker; the make_valid
@@ -162,8 +174,7 @@ def step_postproc(label, dry_run=False):
                     for i, (p, a) in enumerate(zip(parts, areas)))
                 n = len(parts)
         else:
-            for geom, _ in tqdm(shapes_gen, desc="  Polygonize", mininterval=5.0):
-                poly = shape(geom)
+            for poly in tqdm(geom_list, desc="  Polygonize", mininterval=5.0):
                 if SIMPLIFY_TOLERANCE_M > 0:
                     poly = poly.simplify(SIMPLIFY_TOLERANCE_M, preserve_topology=True)
                 if not poly.is_valid:

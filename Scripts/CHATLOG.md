@@ -152,23 +152,35 @@ data:    Full_Image/Pipeline Imagery/: lidar_snoh_hillshade_fr.tif, _be.tif,
          W edge + S margin = water, no canopy). height p50 6.7m p90 30.9m p99 44.6m.
          stats /255 nonzero mean .2306 std .2305. HAG includes buildings (fine —
          RGB flags non-green).
-open:    (0) [2026-07-10 ACTIVE — plan = D:\tools\claude-config\plans\cozy-skipping-jellyfish.md]
-         BUILD ONE SCALE-ROBUST RGB MODEL, LABELS-FIRST. Strategic reset: the cross-sensor/sample/fast-
-         tooling drift DEGRADED model quality (force-citywide flattens all models for fair comparison;
-         RGB-only + small sample + 2020-mask labels made fine 2015 flatline at 0.37). 3-agent synthesis:
-         labels are THE bottleneck (only 2020 hand-labeled, all high-NDVI/conifer — Forest_4 EMPIRICAL
-         2016 NDVI 0.611 ≈ conifer sites, NOT the missed 0.42 variety); deciduous under-prediction ≈ 94%
-         of error, STRUCTURAL (confident misses, ~11m shorter, NDVI .42 vs .57); CHM = biggest lever BUT
-         disqualified as a model INPUT for the temporal product (stale 2016 snapshot → error correlates
-         w/ the change signal) → CHM/NDVI go in the LABEL pipeline only, model stays RGB. ONE model spans
-         resolution (2000≡2002 @common thresh; Wang&Fan 16-100cm) via multi-scale aug + real labels at
-         ≥2 resolutions. USER 2026-07-10: one scale-robust model + targeted hand-labeling. PHASES: A
-         foundation (Forest_4 ✓; 2 measurement bugs FIXED a63e208; quarantine broken 2022/2017); B
-         hand-TRACE the top-FN deciduous stands (forest_miss_stands_{2016,2015}.csv) @ 2016 + a fine yr
-         (NOT 2020-mask-derived; C-CAP LOCATES only, keep a C-CAP eval split); C unified train (v039
-         recipe, RGB, multi-scale aug, from sem_best_2020.pt); D honest eval (C-CAP/NDVI) + BUILD the
-         Olofsson photo-interp harness; E apply all 18 native-res; F reconcile Method_Pipeline/buildtracker/
-         xlsx to the unified method. SUPERSEDES the cross-sensor-experiment framing (→ validation, later).
+open:    (0) [2026-07-10 ACTIVE — plan = cozy-skipping-jellyfish.md + AMENDMENT 2026-07-10 at top]
+         TWO-STREAM, ONE SHARED RGB BACKBONE, LABELS-FIRST, INSTANCE-ON-FINE FIRST. 3-agent architecture
+         review (instance-first champ / semantic-unified champ / adversarial referee) synthesis:
+         DELIVERABLE = ALL urban trees incl. yard/street/ornamental (3-30-300/equity). VISUAL GROUNDING:
+         8/8 missed stands (2 top-fn + 6 mid-fn 0.50-0.66) = SUBURBAN (houses+lawns+ornamental yard trees,
+         many purple-leaf LOW-NDVI), ZERO deciduous forest. So the ~0.68 honest-recall gap splits into
+         (a) C-CAP definitionally OVER-counting leafy suburbs as "Upland Forest" (NOT a model error — counts
+         lawns/roofs between yard trees) + (b) the model genuinely under-detecting SCATTERED suburban/
+         ornamental (incl. non-green) trees. → Phase B target CHANGES from "deciduous forest stands" to
+         "suburban/ornamental crowns in representative neighborhoods". 3 CONSENSUS FINDINGS (settled):
+         (a) augmentation bridges RESOLUTION only, NOT sensor/contractor/radiometry — "one model spans all
+         yrs via aug" is HALF-true (spans 8x GSD, NOT the King-contractor change / NAIP / Snoh); King-2019
+         != King-2000 radiometrically. (b) the residual miss needs REAL labels — norm/aug can't reach
+         low-NDVI ornamentals. (c) King 2000/02 = HARD FLOOR: unfalsifiable (no labeled sibling post-
+         contractor-change, no NIR, C-CAP starts 2016, CHM stale) → un-trainable AND un-measurable from
+         2020 labels; give them own labels + in-yr Olofsson, or ship LOW-CONFIDENCE. ARCH: one shared
+         U-Net ResNet-101 RGB backbone, TWO heads — instance (DTM→watershed, ≤14.9cm only, Qin 2023) +
+         semantic (BCE, all 18 yr); crowns dissolve→semantic FREE at fine res (& better: ornamental = a
+         discrete DTM object vs a greenness-keyed BCE pixel). SEQUENCING = fine-res INSTANCE-FIRST *after*
+         the label-bias fix (else you master a biased detector), coarse semantic 2nd w/ per-(sensor×era)
+         anchors + radiometric normalization. LABEL RULE: instance where ≤14.9cm, semantic where coarse.
+         ANNOTATION PLAN (merged, priority; 1-4 committed): 1) 2020 CoE 7.5cm INSTANCE +3-5 suburban/
+         ornamental/low-NDVI sites ~1-3k crowns (root fix, both heads); 2) 2015/2013 King 14.9cm INSTANCE
+         2-4 stands (anchors 5-yr King cluster); 3) 2016 Snoh 50cm SEMANTIC top-FN stands (best-
+         instrumented coarse yr); 4) 2000/2002 King 60cm SEMANTIC + in-yr Olofsson pts; 5) NAIP 2019n/22n
+         MEASURE first (C-CAP2021+NDVI), label only if gap. Olofsson harness GATES any pre-2016 number.
+         NEXT: stage item-1 package (2020 suburban/ornamental sites + Phase-0 crown draft to correct);
+         reconcile Method_Pipeline/buildtracker/xlsx to TWO-STREAM. SUPERSEDES the base plan's "semantic-
+         only, labels-at-≥2-res" framing (now: two-stream, labels-per-domain).
          (0-old) [2026-07-05 SUPERSEDED] CORRECTED-LABEL workstream (supersedes 2015-flagship +
          deciduous-positive-site idea). user reframe: we have 2020 labels + CHM yet miss
          deciduous marsh → INVERT the QC instrument: use 2016 NIR+CHM to LABEL the misses,
@@ -211,6 +223,32 @@ gotcha:  scripts Colab-only for torch (rasterio+geopandas+fiona+sklearn now pip-
          accept-all test data; 14,476-crown human review never finished.
 
 ════════════════ LOG  (newest first) ════════════════
+
+## 2026-07-10  3-agent architecture review → two-stream, instance-on-fine first, per-domain labels
+goal:    Kam: single model for all imagery forces the question — with only 2020 instance labels + King
+         contractor changes (2019 King != 2000 King radiometry) + instance dead below 14.9cm, is it
+         instance-first or semantic-first? spin up 3 architecture reasoning agents. deliverable = all trees.
+did:     Visual grounding first: side-by-side LEARNED (Forest_2/4 + hand crowns) vs MISSED stands, then 6
+         mid-fn (0.50-0.66) stands → ALL suburban (houses/lawns/ornamental yard trees, many purple-leaf
+         low-NDVI), ZERO deciduous forest. So "forest under-prediction" = C-CAP over-counting leafy suburbs
+         + genuine under-detection of scattered suburban/ornamental trees, NOT missed deciduous forest.
+         3 opus agents (instance-first champ / semantic-unified champ / adversarial referee) → synthesis.
+decided: TWO-STREAM one shared RGB backbone (instance ≤14.9cm + semantic all-18); fine-res INSTANCE-FIRST
+         after the label-bias fix, coarse semantic 2nd w/ per-(sensor×era) anchors + radiometric norm.
+         instance where ≤14.9cm, semantic where coarse. deliverable = ALL trees incl ornamentals. 3
+         consensus: aug bridges RESOLUTION not SENSOR; residual miss needs REAL labels; King 2000/02 =
+         unfalsifiable hard floor. merged annotation plan: 2020 suburban INSTANCE > King-14.9 INSTANCE >
+         Snoh-2016 SEMANTIC > 2000/02 SEMANTIC+Olofsson > NAIP measure-first.
+killed:  "instance-first is a dead-end" (referee) — REJECTED as stated: a sequencing point not a veto (fine
+         instance gives free+better semantic; coarse semantic just DEFERRED, still needs own labels).
+         "one model spans all yrs via multi-scale aug" (base-plan pillar) — DEMOTED to half-true (GSD only);
+         per-domain real-label anchors now required or sensors fail silently.
+         "hand-trace deciduous FOREST stands" (base-plan Phase B target) — WRONG target; the miss is
+         suburban ornamental → trace suburban/ornamental crowns instead.
+files:   plan cozy-skipping-jellyfish.md (AMENDMENT 2026-07-10 appended at top); CHATLOG STATE open(0)
+         rewritten; photos/_reduced/compare_learned_vs_missed.png + mid_fn_missed_stands.png (evidence).
+next:    stage item-1 annotation package (2020 suburban/ornamental sites + Phase-0 crown draft to correct);
+         reconcile Method_Pipeline/buildtracker/xlsx to two-stream; build Olofsson harness.
 
 ## 2026-07-10  STRATEGIC RESET → one scale-robust model, labels-first (plan cozy-skipping-jellyfish.md)
 goal:    Kam: stop spinning in circles; synthesize everything into a plan for a really robust semantic

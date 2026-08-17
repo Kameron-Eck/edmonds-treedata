@@ -237,6 +237,32 @@ gotcha:  scripts Colab-only for torch (rasterio+geopandas+fiona+sklearn now pip-
 
 ════════════════ LOG  (newest first) ════════════════
 
+## 2026-08-17  "can I trust forest_miss?" → NO (hidden --stable denominator); 2016 conf% is an OUTLIER
+goal:    Kam pushed back on my leaning on forest_miss_2016.txt. Audit whether that file is trustworthy.
+did:     Read phase4_qc_forest_misses.py masking + Acc; cross-checked vs phase4_qc_indep.py; ran a
+         decimated (ds=16) independent recompute locally; read the run logs + sensor_compare header.
+found:   (1) forest_miss_2016.txt says forest 309,338,104 / RECALL .7623 — but that run used
+         --stable-with ccap_2021 (proof: sensor_compare.txt header "stable∩ccap_2021_hires_lc.tif"),
+         so forest = C-CAP forest in BOTH 2016 AND 2021 = 78% STABLE SUBSET. Its OWN logs say
+         recall=0.6821 tp=268789495. _report() (~L388) NEVER writes stable_path to the per-year txt
+         (analyse() prints it L209; _write_compare records it L511) → silent denominator.
+         HONEST 2016 recall = .6821. Confirmed indep: ds=16 recompute → .6832, denom 1,538,657*256
+         = 394M = qc_indep exactly.
+         (2) DISPROVEN my own hypothesis that qc_indep is pessimistic for lacking an imagery-footprint
+         mask (valid = (gid!=ignore)&(pr!=255), L268, never opens imagery; forest_miss adds
+         cover=(r+g+b)>0, L249). Tested: 0 px dropped — 2016 ortho has NO blank inside C-CAP forest.
+         qc_indep is CORRECT — do NOT "fix" it.
+         (3) CORRECTION: "misses are confident/structural → labels not compute" was 2016-only and 2016
+         is an OUTLIER. conf% (misses prob<0.12): 2016 ~60% BUT 2013 9.3%, 2002 19.4%, 2000 24.1%.
+         For 2013, 91% of misses are NEAR-THRESHOLD → maybe recoverable by calibration, the exact
+         fix I'd said wouldn't help. CONFOUND: 2016=native NIR, others=cross-sensor RGB.
+decided: mechanics of forest_miss are SOUND (nearest-nbr warp, NaN-safe Acc, CHM dn==0→nan handled).
+         Defect is PROVENANCE not math → fix = mandatory param echo in every report, not rewrite.
+         Do NOT commit to hand-tracing stands on 2016's number alone — recompute miss-depth per year
+         on full-forest denominator + ONE recipe first.
+files:   honest-measurement-overhaul.md → new P1b (provenance) + P1c (conf% correction).
+next:    P1 as planned, now incl. P1b/P1c. Kam's instinct to distrust the file was correct.
+
 ## 2026-08-17  measurement audit → honest baseline stated, 3 silent QC failures found, 4-phase plan opened
 goal:    Kam: "too reliant on AI judgement" — wants to know how model ACTUALLY performs, plus better
          tests/measurement and visuals. Break into workplan.

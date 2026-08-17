@@ -15,6 +15,9 @@ Source: `phase4/qc/qc_indep_report.csv`.
 | year | prob raster | recall | precision | grass reject |
 |------|-------------|--------|-----------|--------------|
 | 2016 | native (NIR era)   | 0.684 | 0.865 | 0.935 |
+<!-- 2016 = 0.6821 full-forest. Any 0.7623 you see in forest_miss_2016.txt is a
+     stable∩2021 SUBSET, not comparable — see P1b. -->
+
 | 2013 | xsensor_rgb        | 0.709 | 0.855 | 0.917 |
 | 2015 | xsensor_rgb        | 0.622 | 0.884 | 0.947 |
 | 2000 | xsensor_rgb        | 0.630 | 0.775 | 0.840 |
@@ -71,6 +74,58 @@ The QC layer currently fails silently. Three confirmed defects:
 
 **Exit:** every year in `qc_indep_report.csv` has exactly one live, non-NaN row, or an
 explicit recorded reason it cannot be scored.
+
+### P1b — PROVENANCE IS MANDATORY  (found 2026-08-17 auditing "can I trust forest_miss")
+
+**Defect:** `phase4_qc_forest_misses.py::_report()` (~L388) omits `stable_path` from the
+per-year report header. `analyse()` prints it to stdout (L209) and `_write_compare()`
+records it (L511) — the per-year `.txt` does not.
+
+**Consequence:** `forest_miss_2016.txt` reports `forest px 309,338,104 / RECALL 0.7623`.
+That run used `--stable-with ccap_2021` (proven by `forest_miss_sensor_compare.txt`
+header: `stable∩ccap_2021_hires_lc.tif`), so forest = C-CAP forest in BOTH 2016 AND
+2021 = a 78% "stable" SUBSET. Its own run logs
+(`logs/phase4_qc_forest_misses_2016_*.log`) say `recall=0.6821 tp=268789495` — full
+forest, matching `qc_indep`. Two contradictory numbers, same script, same session,
+indistinguishable from the artifacts.
+
+**HONEST 2016 RECALL = 0.6821**, not 0.7623. Independently confirmed: decimated
+(ds=16) recompute → 0.6832, denominator 1,538,657 × 16² = 394M = qc_indep exactly.
+
+**Also disproven:** the hypothesis that `qc_indep` is pessimistic for lacking an
+imagery-footprint mask (it defines valid as `(gid != ignore_id) & (pr != 255)`, L268,
+never opening the imagery, while forest_miss adds `cover = (r+g+b) > 0`, L249).
+Tested: **0 px dropped** — the 2016 ortho has no blank regions inside C-CAP forest.
+`qc_indep` is CORRECT. Do not "fix" it.
+
+- [ ] `_report()` must print every mask-narrowing parameter (stable_path, forest_codes,
+      thresh, cover rule) into the per-year `.txt` AND `.csv`. No silent denominators.
+- [ ] Re-run the per-year `forest_miss_*` WITHOUT `--stable-with` so the autopsy is on
+      the same full-forest denominator as `qc_indep`, or emit both and label them.
+- [ ] Audit the other `forest_miss_{2000,2002,2013,2015}.txt` the same way — the
+      sensor_compare table used stable∩2021, so those per-year files are suspect too.
+
+### P1c — the "structural miss" claim does NOT generalize (correct the record)
+
+`conf%` = fraction of missed forest with prob < 0.12, from `forest_miss_sensor_compare.txt`:
+
+| year | recall | conf% |
+|------|--------|-------|
+| 2016 | 0.76 (stable subset) | **~60%** |
+| 2000 | 0.6803 | 24.1% |
+| 2002 | 0.6825 | 19.4% |
+| 2013 | 0.7333 | **9.3%** |
+
+2016's deep-confident-miss profile is an OUTLIER. For 2013, 91% of misses sit between
+0.12 and threshold → **near-threshold and potentially recoverable by calibration**, NOT
+the out-of-distribution structural miss diagnosed for 2016. CONFOUND: 2016 is a native
+NIR-era raster, the other three are cross-sensor RGB — recipe/sensor is tangled with
+year, as sensor_compare's own closing note warns.
+
+- [ ] Recompute the miss-depth histogram per year on the FULL-forest denominator, one
+      recipe (`--force-citywide` rasters), before concluding labels-vs-calibration.
+      This decides the NEXT workstream after P1–P4 — do not commit to hand-tracing
+      stands on 2016's number alone.
 
 ---
 

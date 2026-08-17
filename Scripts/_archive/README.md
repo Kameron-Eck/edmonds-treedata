@@ -7,6 +7,9 @@ These files are kept for history only. **Do not treat anything here as current s
 - `Tree Project Work Plan.xlsx` — the old workplan (Phase 4 = instance / Phase 5 =
   semantic scheme). Superseded by `../edmonds_combined_workplan.xlsx` (Phase 4 =
   semantic).
+- `CHATLOG_2026-06-29_to_2026-07-07.md` — the 33 LOG entries compacted out of
+  `../CHATLOG.md` on 2026-08-17, verbatim. The 1-liner index is in CHATLOG's ARCHIVE
+  section; come here when a 1-liner isn't enough.
 - `audit_2026-07-08/` — the completed 2026-07-08 codebase audit (SUMMARY.md + 6 detail
   reports + `dormant_classification.md`). Findings already actioned; kept as the record
   of WHY 53 pre-Phase-0 scripts moved to `scripts/`. Moved here 2026-08-17 (was

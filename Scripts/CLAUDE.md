@@ -82,7 +82,8 @@ source files, ask before assuming.**
 │   ├── run_registry.csv                  ← one row per Colab run (see rule 9)
 │   ├── sentinel_sites.json / phase4_sentinel_snap.py   ← fixed-site visual progress snapshots
 │   ├── CLAUDE.md  Method_Pipeline.md  CHATLOG.md  pipeline_buildtracker.md  (../README.md)
-│   ├── _archive/                        ← retired handoffs + old workplan (NOT current)
+│   ├── _archive/                        ← retired handoffs, old workplan, dormant scripts,
+│   │                                       audit_2026-07-08/ (NOT current — see _archive/README.md)
 │   ├── logs/                             ← step run logs: {script}_{step}_{timestamp}.log
 │   └── .versions/                        ← FROZEN pre-git snapshot archive (git-ignored)
 ├── .git (pointer file) → git repo at D:\edmonds-pipeline\treedata.git (local Windows only)

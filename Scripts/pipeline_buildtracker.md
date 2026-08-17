@@ -23,7 +23,7 @@ are complete; 6–8 not yet built.
 | 1A–1D | `phase1a…1d_*.py` | ✅ Complete — active-learning QA loop (auto-label → sample → review → classifier) |
 | 2 | `phase2_data_prep.py` | ✅ Complete — imagery validation, coverage matrix, overlay QA |
 | 3 | `phase3_semantic_dev.py` | ✅ Complete — 2020 base semantic model; LOSO IoU 0.7299 / AUROC 0.9396; **passed DG1** |
-| **4** | `phase4_semantic_finetune.py` | 🔄 **Active — live v042** (see below) |
+| **4** | `phase4_semantic_finetune.py` (shim) → `phase4seg/` | 🔄 **Active** — live version + state in `CHATLOG.md` STATE (see below) |
 | 5 | `phase5_instance_finetune.py` | 🔲 Not built — deferred until Phase 4 masks validated |
 | 6 | `phase6_temporal_linking.py` | 🔲 Not built |
 | 7 | `phase7_feature_extraction.py` | 🔲 Not built |
@@ -33,7 +33,7 @@ are complete; 6–8 not yet built.
 
 ## Phase 4 — per-year semantic fine-tune (ACTIVE)
 
-`phase4_semantic_finetune.py` fine-tunes the Phase-3 2020 checkpoint independently onto
+The engine fine-tunes the Phase-3 2020 checkpoint independently onto
 each of the 17 other years. **What's built diverged from the original workplan** (which
 described a single scale-robust model + i-Tree validation) — record the reality here.
 
@@ -52,15 +52,25 @@ described a single scale-robust model + i-Tree validation) — record the realit
   sampler bug + a `val_iou@0.5` metric artifact, not a training failure). 2016 RGB+CHM
   now beats the RGB baseline on held-out test (IoU 0.7725 vs 0.7245).
 - **Independent QC instrument** — `phase4_qc_ndvi.py` / `_score.py` / `_site.py`: builds
-  an NDVI+CHM canopy reference for the 4 NIR years and scores the model against it.
-  Honest 2016 recall = **0.60** at precision **0.97** (vs the circular 0.94) → the model
-  is precise but **under-predicts** ~40% of real canopy (tall green deciduous stands).
+  an NDVI+CHM canopy reference for the 4 NIR years and scores the model against it. The
+  standing read: precise but **under-predicting** — live numbers in the active plan's
+  baseline table, not here.
 - **Corrected-label workstream (v042)** — `phase4_build_corrected_labels.py` inverts the
   QC instrument to *label* the misses: `canopy_additions_2016.tif` (ADD-ONLY: NDVI≥0.3 &
   CHM≥3 m → canopy). `--add-canopy-mask` layers it on the coarse 2020-mask path; one file
   serves 2016 and 2000.
 - **Curated negative/positive sites** — `make_grass_negatives.py` (turf hard-negatives),
   `make_positive_site.py` (positive sites with crowns derived from the 2020 mask).
+- **Engine modularized 2026-07-08** — the monolith split into the `phase4seg/` package
+  (`config` / `common` / `labels` / `tiling` / `core` [all torch] / `postproc` / `cli`);
+  `phase4_semantic_finetune.py` is now a ~97-line shim that preserves the existing
+  `%run ... --args` call. Behavior-preserving (AST-verified). Local validation gained
+  `phase4seg_preflight.py` (static) and `phase4seg_smoke.py` (CPU runtime).
+- **Second independent reference (C-CAP)** — `phase4_qc_indep.py` scores against NOAA
+  C-CAP hi-res 1 m land cover (EVAL-ONLY, never trained on), so no-NIR years get an
+  honest number too. `phase4_qc_forest_misses.py` / `phase4_miss_examples.py` /
+  `phase4_qc_flicker.py` are the autopsy tools. Current honest numbers live in the
+  active plan's baseline table — not restated here.
 
 ### Pending / open
 - **Honest validation not finished.** The 14,476-crown human review was **never
@@ -69,7 +79,7 @@ described a single scale-robust model + i-Tree validation) — record the realit
   the DG2 gate** and the real credibility bottleneck.
 - **Corrected-label retrain** (Colab): retile+retrain 2016 & 2000 with `--add-canopy-mask`,
   score vs the NDVI reference, **precision guard** (grass-rejection ~0.98, precision not
-  down) — see the active plan `drifting-swinging-dolphin.md`.
+  down) — see the active plan named in CHATLOG STATE.
 - **Deferred option:** NIR+height as auxiliary supervision *targets* (RGB-only inference)
   if label-augmentation doesn't close the recall gap.
 - **Remaining 15 years** after 2016/2000 are validated.
@@ -89,9 +99,16 @@ described a single scale-robust model + i-Tree validation) — record the realit
 | `phase4_qc_ndvi.py` / `_score.py` / `_site.py` | Independent NDVI+CHM reference, scoring, FN attribution |
 | `phase4_build_corrected_labels.py` | ADD-ONLY corrected-label overlay from NIR+CHM |
 | `make_grass_negatives.py` / `make_positive_site.py` | Stage curated negative / positive training sites |
+| `phase4_qc_indep.py` | Score vs an INDEPENDENT reference (C-CAP), reference-agnostic |
+| `phase4_qc_forest_misses.py` / `phase4_miss_examples.py` | Under-prediction autopsy + visual miss chips |
+| `phase4_qc_flicker.py` | Temporal-stability (flicker) test on stable parcels |
+| `phase4_ccap_sample.py` | C-CAP-stratified FIXED tile locations for cross-sensor runs (locate-only) |
+| `phase4_sentinel_snap.py` / `sentinel_sites.json` | Fixed-site visual progress snapshots |
+| `phase4seg_preflight.py` / `phase4seg_smoke.py` | Local static + CPU-runtime validation before a Colab round-trip |
 | `phase4_viz.py` / `phase4_qa_overlay.py` / `phase4_threshold_diagnostic.py` | Diagnostics / QA overlays |
 | `phase4_label_review.py` / `_prep.py` | Crown-review web tool (review never completed) |
-| `version_script.py` / `pipeline_log.py` | Script versioning / step logging |
+| `pipeline_config.py` / `pipeline_log.py` | Shared paths + imagery catalog / step logging |
+| `version_script.py` | RETIRED — git replaced it (kept as a frozen pre-git archive) |
 
 ---
 
@@ -103,7 +120,12 @@ described a single scale-robust model + i-Tree validation) — record the realit
 - **Sources of truth were centralized 2026-07-06** — handoffs retired, the duplicate
   Admin workplan archived, and one home per kind of info (map in `../README.md`; live
   state in `CHATLOG.md` STATE). Keep it that way: one fact, one home.
-- **No git** — history/rollback rely on `.versions/` snapshots only.
+- **Versioning is git** since 2026-07-06 (working tree = the Drive folder, git database at
+  `D:/edmonds-pipeline/treedata.git`). `version_script.py` / `.versions/` are a frozen
+  pre-git archive — full history was imported as backdated commits v001–v044.
+- **Run records lag the runs.** `run_registry.csv` was 7 Colab runs behind until the
+  2026-08-17 backfill; logs are the only durable record and they do NOT stamp the engine
+  version, so a backfilled row cannot state one. Write the row when the run lands.
 
 ---
 
@@ -120,5 +142,5 @@ described a single scale-robust model + i-Tree validation) — record the realit
 
 ---
 
-*Structural tracker. Live state → `CHATLOG.md` STATE. Active plan
-→ named in CHATLOG STATE (currently `drifting-swinging-dolphin.md`).*
+*Structural tracker. Live state → `CHATLOG.md` STATE. Active plan → whichever file
+CHATLOG STATE names (do not restate the name here — it rots).*

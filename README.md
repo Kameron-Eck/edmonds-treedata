@@ -47,7 +47,8 @@ treedata/
 │   ├── CLAUDE.md  CHATLOG.md  Method_Pipeline.md  pipeline_buildtracker.md
 │   ├── edmonds_combined_workplan.xlsx
 │   ├── phase0…phase4 *.py, phase4_qc_*.py, make_*.py, fetch_build_chm.py …
-│   └── _archive/             ← superseded docs (handoffs, old workplan) — NOT current
+│   ├── phase4seg/            ← the live Phase-4 engine package (phase4_semantic_finetune.py = shim)
+│   └── _archive/             ← superseded docs + dormant scripts + the 2026-07-08 audit — NOT current
 ├── Literature_Tracker.xlsx   ← academic literature (68 papers, 8 search phases)
 ├── Reports/                  ← City of Edmonds canopy reports: dossier, inventory.csv, source PDFs
 ├── phase1/ … phase4/         ← per-phase outputs (models, masks, eval, qc, …)
@@ -55,8 +56,9 @@ treedata/
 └── Full_Image/Pipeline Imagery/   ← orthos + lidar_snoh_chm.tif
 ```
 
-Retired handoff notes and the old (Phase-4/5-swapped) workplan live in
-`Scripts/_archive/` for history only — do not treat them as current.
+Retired handoff notes, the old (Phase-4/5-swapped) workplan, 53 dormant pre-Phase-0
+scripts and the completed 2026-07-08 codebase audit live in `Scripts/_archive/`
+(indexed by `Scripts/_archive/README.md`) for history only — not current.
 
 ---
 

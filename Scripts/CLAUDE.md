@@ -56,19 +56,28 @@ source files, ask before assuming.**
 │   ├── phase1_preprocess.py … phase1d_classifier.py   ← Phase 1 spectral + active learning
 │   ├── phase2_data_prep.py
 │   ├── phase3_semantic_dev.py            ← 2020 base semantic model → sem_best_2020.pt
-│   ├── phase4_semantic_finetune.py       ← LIVE per-year fine-tune/inference engine (v042)
+│   ├── phase4_semantic_finetune.py       ← THIN SHIM (~97L) → phase4seg/ ; preserves `%run ... --args`
+│   ├── phase4seg/                        ← LIVE per-year fine-tune/inference ENGINE package
+│   │     config/common/labels/tiling/core[torch]/postproc/cli — live version = CHATLOG STATE
+│   ├── phase4seg_preflight.py            ← local static pre-flight (compile/imports/args) before a Colab run
+│   ├── phase4seg_smoke.py                ← local CPU runtime smoke test of the engine (tiny model, real tiles)
 │   ├── phase4_label_review_prep.py / phase4_label_review.py   ← crown review tool
 │   ├── phase4_qc_ndvi.py                 ← independent NDVI+CHM canopy REFERENCE (NIR years)
 │   ├── phase4_qc_score.py                ← score model vs the NDVI reference → qc/qc_report.csv
 │   ├── phase4_qc_indep.py                ← reference-agnostic scorer vs an INDEPENDENT ref (C-CAP) → qc/qc_indep_*
 │   ├── phase4_qc_forest_misses.py        ← under-prediction autopsy: why C-CAP forest is missed + stand shortlist
 │   ├── phase4_qc_site.py                 ← lat/lon window FN-attribution diagnostic
+│   ├── phase4_qc_flicker.py              ← temporal-stability (flicker) test on stable parcels
+│   ├── phase4_miss_examples.py           ← NDVI-stratified image chips of MISSED trees
+│   ├── phase4_ccap_sample.py             ← C-CAP-stratified FIXED tile locations for cross-sensor runs (locate-only)
 │   ├── phase4_build_corrected_labels.py  ← NIR+CHM → ADD-ONLY corrected-label overlay
 │   ├── make_positive_site.py             ← stage a positive site (crowns derived from 2020 mask)
 │   ├── make_grass_negatives.py           ← stage curated grass/turf negative sites
 │   ├── fetch_build_chm.py                ← builds lidar_snoh_chm.tif (3DEP HAG height)
 │   ├── phase4_viz.py / phase4_qa_overlay.py / phase4_threshold_diagnostic.py
+│   ├── phase3_make_segmentation_png.py   ← Phase 3 proof-of-concept figure (RGB|GT|prob|overlay grid)
 │   ├── version_script.py                 ← RETIRED versioning helper (git replaced it)
+│   ├── pipeline_config.py                ← shared paths + imagery catalog (import, don't hardcode)
 │   ├── pipeline_log.py                   ← write_step_log() / StepLogger
 │   ├── run_registry.csv                  ← one row per Colab run (see rule 9)
 │   ├── sentinel_sites.json / phase4_sentinel_snap.py   ← fixed-site visual progress snapshots
@@ -120,7 +129,7 @@ source files, ask before assuming.**
 | 1–1D | `phase1_*` | Complete — 18-year spectral features, `edmonds_crowns_phase1.parquet` |
 | 2 | `phase2_data_prep.py` | Complete |
 | 3 | `phase3_semantic_dev.py` | Complete — 2020 base, LOSO IoU 0.7299 / AUROC 0.9396, passed DG1 |
-| 4 | `phase4_semantic_finetune.py` | **Active — live v042.** Per-year semantic fine-tune; under-prediction / corrected-label workstream. **See `CHATLOG.md` STATE for current detail.** |
+| 4 | `phase4_semantic_finetune.py` (shim) → `phase4seg/` | **Active.** Per-year semantic fine-tune; engine modularized 2026-07-08. **Live version number + current detail live ONLY in `CHATLOG.md` STATE — never restated here.** |
 | 4 (review) | `phase4_label_review.py` | Built; the 14,476-crown human review was **never completed** (see Gotchas). |
 | 5–8 | — | Not yet built |
 
@@ -225,8 +234,9 @@ boundaries or method changes, not every session.
 - The full-city `phase3/edmonds_canopy_mask_2020.tif` is a **model prediction**, not
   hand truth (hand labels exist only for the 5 conifer sites) — it shares the model's
   blind spots (e.g. deciduous marsh).
-- `phase4_semantic_finetune.py` is **Colab-only to run** (imports use `fork` start
-  method + torch); locally it only `py_compile`s.
+- `phase4seg/` (via the `phase4_semantic_finetune.py` shim) is **Colab-only to run** (`fork` start
+  method + torch); locally, validate with `phase4seg_preflight.py` (static) and
+  `phase4seg_smoke.py` (CPU runtime) before spending a Colab round-trip.
 
 ---
 

@@ -27,7 +27,8 @@ reference.
 | **Schedule / decision gates / grant milestones** | `Scripts/edmonds_combined_workplan.xlsx` | the canonical Gantt |
 | **Session rules, drive layout, how to resume** | `Scripts/CLAUDE.md` | rules + pointers |
 | **The plan currently being executed** | the plan file named in CHATLOG STATE | one active plan at a time |
-| **Literature / citations** | `Admin/Literature_Tracker.xlsx` | 68 papers, 8 search phases |
+| **Literature / citations** | `Literature_Tracker.xlsx` (repo root) | 68 papers, 8 search phases; academic remote-sensing only |
+| **City of Edmonds canopy reports** | `Reports/Edmonds_Report_Dossier.md` + `Reports/inventory.csv` | municipal/consultant reports: data + method per report; PDFs alongside |
 | **Code/doc history & rollback** | `git log` / `git diff` (repo DB on `D:\edmonds-pipeline\treedata.git`) | tags v001–v044; see CLAUDE.md rule 1 |
 | **Colab run history** | `Scripts/run_registry.csv` + `phase4/runs/{run_id}/sentinels/` | one row per run; fixed-site snapshot PNGs |
 
@@ -47,7 +48,8 @@ treedata/
 │   ├── edmonds_combined_workplan.xlsx
 │   ├── phase0…phase4 *.py, phase4_qc_*.py, make_*.py, fetch_build_chm.py …
 │   └── _archive/             ← superseded docs (handoffs, old workplan) — NOT current
-├── Admin/                    ← Literature_Tracker.xlsx
+├── Literature_Tracker.xlsx   ← academic literature (68 papers, 8 search phases)
+├── Reports/                  ← City of Edmonds canopy reports: dossier, inventory.csv, source PDFs
 ├── phase1/ … phase4/         ← per-phase outputs (models, masks, eval, qc, …)
 ├── polygons/  photos/        ← crown labels + training-site footprints
 └── Full_Image/Pipeline Imagery/   ← orthos + lidar_snoh_chm.tif

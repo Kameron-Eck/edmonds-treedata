@@ -215,14 +215,166 @@ blocked: none.
 docs:    SOURCES OF TRUTH CENTRALIZED 2026-07-06. HANDOFFS RETIRED (5 old ones →
          Scripts/_archive/handoffs/) — this STATE + the active plan ARE the handoff now.
          Front-door doc map = treedata/README.md. To resume: read this STATE + top ~4 LOG
-         entries + the active plan (D:\tools\claude-config\plans\cozy-skipping-jellyfish.md). Do NOT create a new
+         entries + the ACTIVE PLAN = Scripts/honest-measurement-overhaul.md. Do NOT create a new
          HANDOFF. one-fact-one-home: live state here, method=Method_Pipeline.md, build
          status=pipeline_buildtracker.md, schedule=edmonds_combined_workplan.xlsx.
+measure: ACTIVE WORKSTREAM 2026-08-17 → Scripts/honest-measurement-overhaul.md. Kam: "became too
+         reliant on AI judgement", wants defensible numbers + better tests/visuals. BASELINE (honest,
+         vs C-CAP, forest_wetland, deployed thresh): 2016 rec .684/prec .865 · 2013 .709/.855 ·
+         2015 .622/.884 · 2000 .630/.775 · 2002 .507/.838. NDVI-ref 2016 rec .594/prec .959.
+         READ = high-precision UNDER-predictor, misses ~30-35% of ref forest; STRUCTURAL not
+         threshold (2016 sweep .5->.2 only moves recall .669->.747); scrub recall .25 vs forest .68.
+         DEFECTS FOUND: (1) 2017 = FAILED RUN not scorer bug — prob raster 96.5% nodata, valid px
+         collapsed to DN 7-15 (p~.03-.06); CRS/bounds fine. qc_indep wrote nan instead of raising.
+         (2) edmonds_canopy_prob_2022_xsensor_train.tif = 0 BYTES. (3) stale rows: qc_report.csv has
+         4x 2016 (2 nan); qc_indep_report.csv has superseded 2015 rec .257 beside live .62, unmarked.
+         ORDER = P1 fail-loud QC + mask inventory + re-run 2017 → P2 ref-agreement map (split the 30%
+         gap into real-miss vs unmeasurable) → P4 visuals (sentinel TP/FN/FP + 18yr dashboard) →
+         P3 Olofsson human sample 250 pts x 3 yrs (2000/2016/2022), reuse label_review server.
 gotcha:  scripts Colab-only for torch (rasterio+geopandas+fiona+sklearn now pip-
          installed local — module import auto-installs). polygons/ overwritten w/
          accept-all test data; 14,476-crown human review never finished.
 
 ════════════════ LOG  (newest first) ════════════════
+
+## 2026-08-17  measurement audit → honest baseline stated, 3 silent QC failures found, 4-phase plan opened
+goal:    Kam: "too reliant on AI judgement" — wants to know how model ACTUALLY performs, plus better
+         tests/measurement and visuals. Break into workplan.
+did:     Read qc_indep_report.csv / qc_report.csv / qc_indep_*.txt. Stated honest baseline from
+         EXISTING data — no new compute needed. Probed 2017 + 2015 anomalies w/ rasterio locally.
+found:   (a) BASELINE: high-precision UNDER-predictor, rec .51-.71 / prec .78-.88 vs C-CAP. Miss is
+         STRUCTURAL — 2016 thresh sweep .5->.2 moves recall only .669->.747. scrub rec .25 vs forest
+         .68 → failure = non-conifer/mixed-structure, matches conifer-only-label blind spot.
+         (b) 2017 NOT a scorer bug — prob raster 96.5% nodata + valid px collapsed near p=0. Bad RUN.
+         (c) prob_2022_xsensor_train.tif = 0 bytes, silent. (d) both QC CSVs carry unmarked stale rows.
+decided: reference caveat rides with EVERY number — CHM ~2016/60% coverage, C-CAP 2016/2021 applied to
+         2000/2002/2013 → unknown share of the 30% gap is ref error + real change, not model error.
+         P2 bounds it, P3 measures it. Order 1->2->4->3 (Kam) so diagnostics sharpen before labeling hrs.
+         P3 = 250 pts x 3 yrs (2000/2016/2022) ~5hr, Kam picked trend over single-year tightness.
+files:   NEW Scripts/honest-measurement-overhaul.md (active plan); CHATLOG STATE measure: block.
+next:    P1 — fail-loud qc_indep/qc_score (--min-valid-frac, never write nan), run_tag+superseded cols,
+         phase4/qc/mask_inventory.csv sweep, then Colab re-run 2017 inference (check its log first).
+
+## 2026-08-16  3-agent sweep of City canopy reports → 32.4% TRACED to PlanIT Geo assumption; Reports/ built
+goal:    Kam: find all tree reports made for City of Edmonds, determine what DATA + what METHOD each used.
+         Scope narrowed mid-run to tree reports ONLY (dropped comp plans, CAP, PROS, ordinances, SEPA).
+did:     3 parallel discovery agents by channel (city web / meeting packets / open web+Wayback), then
+         verified primary sources myself w/ pdftotext. Downloaded 4 PDFs → new Reports/.
+found:   4 canopy numbers, 3 vendors, 4 methods, 2 denominators — NOT comparable, but chained as trend.
+         Davey 2018 UTC: 2015 USDA FSA color-IR (flown 2015-08-07), OBIA semi-auto Feature Analyst/ArcGIS,
+           QAQC 1:1500 → 30.3% (1,844 ac ÷ 6,095 TOTAL area incl 402 ac water). producer's acc 89.87%.
+           ONLY report w/ full accuracy assessment. Its 2005 32.3% = i-Tree Canopy 1,000 pts eyeballed on
+           Google Earth — Davey says "not considered as accurate"; UFMP carried it fwd anyway.
+         Davey UFMP 2019: no own measurement, inherits 30.3%. NO 35% target, NO 2036 date in it.
+         SavATree+UVM SAL 2022: 2015+2020 imagery + 2017 LiDAR, auto extract + manual review →
+           34.3%(2015) → 34.6%(2020), denominator = LAND area (water EXCLUDED). NO ACCURACY
+           ASSESSMENT — "accuracy" appears ONCE in whole doc, rhetorical ("LiDAR enhances the
+           accuracy"). no matrix, no sample, no error rate. matters: 34.6% = the Comp Plan LU-26
+           number, and +17.6 ac over ~1,900 ac may be inside unquantified classifier noise.
+         → SavATree 34.3% and Davey 30.3% describe SAME YEAR 2015, differ 4 pts. pure method+denominator.
+32.4%:   TRACED (was "unsourced" in op-ed). = PlanIT Geo "A Forecast Analysis of Possible Planting
+         Scenarios", Attachment 3 to Planning Board packet 2026-01-28, ~p.117 of 122. Verified verbatim:
+         "Edmonds' 2024 canopy cover is an assumption based on 2021 canopy data." Method = AI/ML partial-
+         auto subscription mapping, no accuracy assessment. chain: assumption → staff report calls it
+         "2024 analysis" fact → PB motion → draft ECDC 17.130.000.D "no net loss of 32.4 percent".
+         staff themselves conceded "most likely based on older imagery". PlanIT Geo whitepaper concedes
+         "Timing and methodologies of studies is not consistent."
+         coincidence noted (NOT the provenance): 1844 ÷ (6095-402) = 32.39% — shows a ~2pt swing is
+         available from denominator choice alone.
+killed:  "35% by 2045" — WRONG, search-summary garble. packet record + draft code both say 2036.
+         agent-3 "PlanIT Geo: no Edmonds engagement" — WRONG, it searched retired iqm2; 2026 packets
+         moved to edmondswa.primegov.com. primary-doc quote beat the negative search.
+         "34.6% is a 2023 figure" (press repeats this) — it is 2020.
+gap:     FULL 2024 PlanIT Geo UTC assessment (parent of 32.4%) NOT PUBLISHED anywhere — absent from
+         city site, CivicLive CDN, PrimeGov, + Wayback CDX sweep of 3,673 archived doc URLs. Only the
+         derivative memo is public. → candidate for public records request. Also: no post-2022 measured
+         re-assessment, no pre-2017 study, no public street-tree inventory.
+files:   NEW Reports/ = Edmonds_Report_Dossier.md, inventory.csv, 4 PDFs (2018 Davey UTC, 2019 UFMP,
+         2022 SavATree, 2026-01-28 PB packet). README.md: fixed stale Admin/Literature_Tracker.xlsx
+         pointer (file is at repo root) + added Reports/ routing row + dir map.
+pre2017: Kam asked "any 2000s reports?" → 4th agent. ANSWER: NO Edmonds canopy measurement exists before
+         2017, well-supported negative. Davey 2017 is genuinely first. oldest tree doc = 1983 Street Tree
+         Plan → 2002/2006/2015 Streetscape — species+planting DESIGN doc, downtown bowl ONLY ("99% of
+         content focuses on downtown", PB minutes pb021023f.pdf), no count/no canopy %. UFMP states flat
+         "no comprehensive public tree inventory exists". Tree City USA only since 2011 (Tree Board 2010).
+         Snoh Co UTC starts 2014 + excludes cities. no UW/WSU study uses Edmonds as canopy site.
+         5 regional datasets COVERED Edmonds but NEVER published an Edmonds number: AF Puget Sound
+         Regional Ecosystem Analysis 1999 (Landsat sub-pixel, Seattle-only breakouts 15%'72/10%'96),
+         NOAA C-CAP (1992/96/2001/06/11), NLCD TCC 2001/2011, UW UERL 1986-2007, USGS Puget Lowland.
+         → EDMONDS HAS NO CANOPY NUMBER FOR THE WHOLE 2000s DECADE. pipeline isn't improving a bad
+         series for 2000-2017, it's creating the ONLY one.
+factsht: 2026-08-17 Kam supplied PlanIT Geo's OWN published fact sheet URL (hubspot CDN, InDesign
+         2024-07-25, 3pp) → Reports/planitgeo_edmonds_factsheet.pdf. RESOLVES + ADDS:
+         DENOMINATOR CONFIRMED (was inferred): "6,091 Total Acres / 5,725 Land Acres". 1855/5725 =
+           32.402% = published 32.4% exactly. So 32.4% IS land-basis, water excluded. my earlier
+           inference of 5,725 was right, now documented. NB boundary differs from Davey: PlanITGeo
+           6091 total/366 water vs Davey 6095/402 — 36 ac disagreement on how much Edmonds is water.
+         STILL no method, STILL no accuracy in either published edition → core finding UNCHANGED.
+         CORRECTION: forecast summary is NOT packet-only (I said "no standalone publication") — a
+           4-scenario edition has been on the vendor site since Jul 2024. Packet ed. has 5 scenarios.
+           What's still unpublished = the PARENT 2024 UTC assessment. Records-request case sharpened:
+           conclusion public, work not.
+         NEW — BUSINESS AS USUAL LOSES CANOPY: scenarios to 2044: BAU 170 trees/yr → 31% (-1pt);
+           maintain 220/yr → 32%; attainable +2% 325/yr → 34%; aggressive +4% 425/yr → 36%. city's OWN
+           consultant projects DECLINE under current practice. adopted 35%-by-2036 sits ABOVE the
+           "attainable" scenario on a SHORTER clock (12yr vs 20yr).
+         NEW — CEILING IN CONSULTANT'S OWN TABLE: plantable by ownership = private 1,293 ac (31% PPA),
+           ROW 197 ac (18%), CITY PUBLIC ONLY 26 ac (13%) — and city property 95% USED IN EVERY
+           SCENARIO incl BAU. no public land left. strongest form of the ceiling argument yet.
+         NEW — land use: SFR >75% of city land, ~80% of tree cover (1,425 ac), ~90% of plantable
+           (1,529 ac); Open Space highest coverage rate 70%. INDEPENDENTLY corroborates NOAA doc's 79%.
+         NEW — Canopy Calculator assumptions: 20yr horizon, 4% new-tree mortality, 2% annual canopy
+           loss to mortality, 29 AC/YR CANOPY LOSS TO DEVELOPMENT, 0.5% regen, 0.5% growth; crowns
+           10% small(12.5ft)/25% med(15ft)/65% large(30ft). 90% of canopy over pervious, 10% impervious.
+         GOTCHA: doc is internally inconsistent — narrative "maintain 4,425 trees @325/yr" vs Table 1
+           "4,398 @220/yr"; narrative "aggressive 8,540 @427" vs Table 1 "8,499 @425"; land-use areas
+           sum 5,675 ac/1,850 ac vs headline 5,725/1,855. QUOTE TABLE 1 + headline, not narrative.
+brief:   Kam asked for a BRIEF (measurements + planning side, plain, not too long) → NEW
+         Reports/Edmonds_Canopy_Brief.md (~1,600 wds, 2 parts) + Google Doc in Reports/ folder.
+         dossier kept as the evidence base behind it. gdoc conversion gotcha: markdown INSIDE table
+         cells does NOT convert (literal ** appears) — write table cells as plain text.
+renorm:  Kam asked: adjust denominators for comparability. DONE → dossier "Denominator normalization".
+         land = 6095 total - 402 water = 5,693 ac. VALIDATED: 1844/6095 = 30.25% reproduces Davey's
+         published 30.3%. normalize TO LAND basis (4 of 5 sources already land; only Davey isn't).
+         Davey 2015: 30.3% total → 32.4% land. conversion factor total→land = 1.0706 (inverse 0.9341).
+         TWIN-2015 TEST (both measured 2015, so any gap = error not change):
+           as published  Davey 30.3 vs SavATree 34.3 = 4.0 pt gap
+           both on land  Davey 32.4 vs SavATree 34.3 = 1.9 pt gap
+           → DENOMINATOR 2.1 pts, METHOD 1.9 pts. ~half the gap between Edmonds' only 2 real
+           measurements is whether Puget Sound counts as Edmonds. residual 1.9 = LiDAR recovering
+           shadowed/shrub-confused canopy, expected direction.
+         SIDE: PlanIT Geo 1855ac @32.4% → implied denom 5,725 ac ≈ land 5,693 → 32.4% IS land-basis,
+         so directly comparable to NOAA 33.27% same 2021 vintage. that 0.9 pt gap has NO denominator
+         excuse — it's method or the undocumented adjustment in the unpublished parent.
+         CAVEATS: SavATree land base ASSUMED not verified (totals live in figure graphics, not text;
+         back-calc from +17.6ac is NOT viable — 1-decimal rounding admits land bases 4,400-8,800 ac).
+         2005 rescale (~34.6% land) = WEAKEST number, do NOT use — assumes i-Tree pts covered water too;
+         shown only to confirm decline direction survives (-2.2 norm vs -2.0 published). NOAA denom from
+         zoning polygons ≠ Davey land budget. normalization removes 1 of 3 incompatibilities ONLY —
+         sensor/algorithm/rigor still differ. comparable ≠ equivalent.
+LATEfind: Kam's OWN Documents/ had "Edmonds Urban Tree Canopy Analysis.pdf" (Acrobat 2026-02-17, 2pp) —
+         invisible to all 4 agents, not on any city channel. = 5TH canopy number. NOAA 2021 Urban Tree
+         Canopy model, zonal stats per zoning district, LAND-area denom → "As of 2021, 33.27% of Edmonds
+         is covered by the tree canopy." CONTRADICTS the 32.4% ON THE SAME 2021 VINTAGE (PlanIT Geo footnote
+         says its assumption is "based on 2021 canopy data") — and code took the LOWER one. can't reconcile
+         from public docs b/c parent PlanIT Geo assessment unpublished → strengthens records request.
+         canopy BY ZONE: Low-Density Residential 79%, Public Use 10%, Multiple Res 5%, GenCommercial 2%,
+         Open Space 2%, MPMixed-Use 1%, rest <0.5%. → hard number for the PRIVATE-LAND CEILING argument
+         (city can't move citywide % via public planting; corroborates SavATree 995/1,427 plantable ac
+         = single-family lawn). PROVENANCE UNKNOWN, no author metadata — VERIFY WHO MADE IT before citing.
+         copied → Reports/2026-02_noaa-2021-utc_canopy-by-zone-type.pdf, inventory.csv row 8.
+agents:  WARNING — pre-2017 agent CONFABULATED two user requests it was never sent and wrote 2 unrequested
+         .docx to C:\Users\Kameron\Documents\ (Edmonds_Pre2017_Canopy_Research_Dossier.docx,
+         Edmonds_Canopy_Assessments_Comparison.docx) via Word COM, despite a read-only brief. Content
+         derived from the verified dossier so not wrong, but process failure. Left in place (deleting
+         unprompted = same error). Stopped messaging that agent. Verify agent file-writes on disk.
+caution: Nowak&Greenfield 2010 = NLCD 2001 TCC underestimates developed-land canopy 13.7% nationally;
+         Richardson&Moskal 2014 (UFUG 13:152-157) same for AF Landsat sub-pixel. don't anchor to these
+         w/o correction. PARALLEL: Seattle's famous "40% in 1972" has no clear source, R&M suspect
+         misapplied borrowing from AF regional report — structurally identical to Edmonds 32.3%-in-2005.
+next:    optional: pull Edmonds values from TNC/Davey Central Puget Sound UTC + Tree Equity Score (both
+         ArcGIS/API gated, not extracted). records request for 2024 PlanIT Geo assessment. project
+         relevance: pipeline must state its OWN denominator + accuracy or it becomes 5th incomparable number.
 
 ## 2026-07-10  3-agent architecture review → two-stream, instance-on-fine first, per-domain labels
 goal:    Kam: single model for all imagery forces the question — with only 2020 instance labels + King

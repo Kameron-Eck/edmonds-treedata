@@ -62,6 +62,9 @@ The QC layer currently fails silently. Three confirmed defects:
       One live row per year, queryable.
 - [ ] Sweep `phase4/masks/` for zero-byte and mostly-nodata rasters; report a manifest
       (`phase4/qc/mask_inventory.csv`: year, tag, size, valid-frac, CRS, bounds).
+- [ ] **COLAB SESSION (one run covers both):** re-run 2017 inference AND produce a
+      citywide 2022 prob raster. 2022 is a **Phase 3 blocker** — see below; batching it
+      here means Phase 3 never stalls waiting on GPU.
 - [ ] Re-run 2017 inference on Colab; re-score. Investigate the near-zero-probability
       collapse — likely the same class of bug as the v044 inference OOM (empty/partial
       prob raster), so check the inference log first before re-running blind.
@@ -116,6 +119,13 @@ no-NIR / off-sensor years, accepting wider CIs per year than a single-year 400.
 
 Olofsson-protocol stratified random sample. This is the ONLY measurement in the
 pipeline where neither a model nor a proxy product sits between Kam and the answer.
+
+**BLOCKER — 2022 has no citywide prob raster.** `phase4/masks/` holds only the
+0-byte `edmonds_canopy_prob_2022_xsensor_train.tif`. The sample design stratifies by
+model output, so `--step design` for 2022 CANNOT run until a citywide 2022 inference
+lands. Batched into the Phase 1 Colab session alongside the 2017 re-run — verify that
+raster exists before starting Phase 3. (2000 and 2016 are on disk and unblocked;
+2019 likewise has only a partial `_xsensor_train` raster if it is ever substituted in.)
 
 **Work:**
 - [ ] New `phase4_accuracy_sample.py`. **Reuse the `phase4_label_review.py` server

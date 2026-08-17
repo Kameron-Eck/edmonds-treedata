@@ -251,7 +251,12 @@ decided: reference caveat rides with EVERY number — CHM ~2016/60% coverage, C-
          2000/2002/2013 → unknown share of the 30% gap is ref error + real change, not model error.
          P2 bounds it, P3 measures it. Order 1->2->4->3 (Kam) so diagnostics sharpen before labeling hrs.
          P3 = 250 pts x 3 yrs (2000/2016/2022) ~5hr, Kam picked trend over single-year tightness.
+blocker: P3's 2022 leg needs a citywide 2022 prob raster — masks/ has ONLY the 0-byte
+         _xsensor_train. Batched into P1's Colab session w/ the 2017 re-run. 2000+2016 unblocked.
 files:   NEW Scripts/honest-measurement-overhaul.md (active plan); CHATLOG STATE measure: block.
+parked:  prior plan D:\tools\claude-config\plans\cozy-skipping-jellyfish.md — PARKED not deleted.
+         Its open gate (phase4seg/ modularization smoke test → tag v049) still stands in STATE live:
+         and is independent of this measurement workstream; resume it whenever Colab is next up.
 next:    P1 — fail-loud qc_indep/qc_score (--min-valid-frac, never write nan), run_tag+superseded cols,
          phase4/qc/mask_inventory.csv sweep, then Colab re-run 2017 inference (check its log first).
 

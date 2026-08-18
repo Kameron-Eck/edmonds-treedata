@@ -341,6 +341,35 @@ files:   CLAUDE.md, pipeline_buildtracker.md, ../README.md, run_registry.csv (+7
 next:    logs/ do NOT stamp the engine version → a backfilled registry row can't state one.
          cheap fix when the engine is next edited: have write_step_log() emit the version.
 
+## 2026-08-18  P1c COMPLETE — the INVARIANT is HEIGHT: model finds ~24m trees, misses ~12m trees. Every year.
+did:     Finished the full-forest miss-depth recompute for all 5 scorable years (2000/2002/2013/2015/2016).
+found:   (a) CONFIDENT-MISS SHARE VARIES WIDELY and the radiometric signature even FLIPS DIRECTION:
+           2016 69%  less-green (dNDVI -0.219)
+           2013 50%  BRIGHTER +6.7 DN
+           2015 26%  DARKER  -11.5 DN  (shadowed — OPPOSITE of the others)
+           2000 23%  BRIGHTER +31.3 DN
+           2002 22%  BRIGHTER +12.2 DN
+         So there is NO single radiometric fix: some years miss washed-out canopy, 2015 misses shadowed
+         canopy. Threshold-recoverability also varies 5x across years.
+         (b) ** THE ONE INVARIANT: HEIGHT. ** recalled vs missed mean height, every year:
+           2016 23.8 / 11.8 (d -12.0) · 2013 23.7 / 11.6 (-12.1) · 2015 24.8 / 12.6 (-12.2)
+           2000 24.2 / 13.2 (-11.0)   · 2002 25.6 / 14.7 (-10.9)
+         THE MODEL FINDS ~24 m TREES AND MISSES ~12 m TREES — every year, every sensor, every recipe,
+         d = -11 to -12.2 m. This replicates harder than recall, brightness or greenness do.
+         Consistent with scrub recall .22-.40 and with the 5 conifer training sites being MATURE stands.
+decided: THE FAILURE IS HEIGHT-STRATIFIED, i.e. a LABEL-DISTRIBUTION problem: the model learned
+         "tall = canopy" because that is what the labels contain. That supports H2 and makes the
+         QUEUED 2016c JOB (2016 + --add-canopy-mask) the decisive test — the corrected overlay is
+         NIR+CHM-derived and should carry exactly the medium-height canopy the 2020 mask lacks.
+         PREDICTION TO CHECK (state it now so it cannot be rationalised later): if H2 is right, 2016c
+         should raise recall AND shift the missed-height mean UP from ~11.8 m. If recall rises but the
+         missed-height stays ~12 m, the model just got more liberal and H2 is NOT confirmed.
+         CAVEAT: height comes from the ~2016 CHM for every year, so the ABSOLUTE numbers for non-2016
+         years are temporally offset; the CONSISTENCY of the ~12m/~24m split is the robust part, not
+         the exact values.
+files:   qc/forest_miss_{2000,2002,2013,2015,2016}.{txt,csv,png} — all full-forest, provenance-stamped.
+next:    2021s training; then 2016c = the H2 test. Score each as it lands.
+
 ## 2026-08-18  2019n DONE (queue works) — P2 REPLICATES A 3rd TIME; 2013 miss-depth 9.3% -> 50%
 queue:   phase4_train_queue.py running DETACHED is working. 2019n: labels OK 0.9min, tile OK, train,
          eval, VERIFY OK (66MB, 100% valid, max prob .949 — healthy). 2021s now training (tile 12.3min).

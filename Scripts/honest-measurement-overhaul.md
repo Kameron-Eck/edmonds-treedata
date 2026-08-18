@@ -57,18 +57,22 @@ The QC layer currently fails silently. Three confirmed defects:
    next to the live 0.62 xsensor run, with nothing marking which is current.
 
 **Work:**
-- [ ] `phase4_qc_indep.py` + `phase4_qc_score.py`: **fail loudly**. Abort with a clear
+- [x] **DONE 0020f2a** `phase4_qc_indep.py` + `phase4_qc_score.py`: **fail loudly**. Abort with a clear
       message when valid-overlap px is 0, or when the prob raster's valid fraction is
       below a floor (`--min-valid-frac`, default 0.5). Never write a NaN row.
-- [ ] Add a `run_tag` + `superseded` column to both QC CSVs; add a small helper that
+- [x] **DONE 0020f2a** (shipped as `live` + `run_tag`; both CSVs migrated, backups kept) Add a `run_tag` + `superseded` column to both QC CSVs; add a small helper that
       marks prior rows for the same (year, ref, canopy_def) superseded on new write.
       One live row per year, queryable.
-- [ ] Sweep `phase4/masks/` for zero-byte and mostly-nodata rasters; report a manifest
+- [x] **DONE** `phase4_qc_inventory.py` -> `qc/mask_inventory.csv` (d6c69b4). Real problems = 2: prob_2017_xsensor_rgb (MOSTLY_NODATA), prob_2015_citywide_rgb (SUSPECT_PARTIAL). Sweep `phase4/masks/` for zero-byte and mostly-nodata rasters; report a manifest
       (`phase4/qc/mask_inventory.csv`: year, tag, size, valid-frac, CRS, bounds).
-- [ ] **COLAB SESSION — driver: `phase4_p1_colab_run.py`** (L4 24 GB; `--stage 0` first,
-      it is free and can veto). Training is SKIPPED for all three (checkpoints exist), so
-      this is `--step inference` only.
-      - stage 1 — **2022** citywide, cheap/coarse. **Phase 3 blocker.**
+- [ ] **BLOCKING / IN PROGRESS — first attempt FAILED 2026-08-17 (~4h, zero output; registry 20260817_p1_driver_abort). Driver rewritten 9c205ab/3be1faa; stage 1 retargeted to 2022n. NOT YET RE-RUN.** **COLAB SESSION — driver: `phase4_p1_colab_run.py`** (L4 24 GB; `--stage 0` first,
+      it is free and can veto).
+      - stage 1 — **2022n** (60 cm NAIP, 0.1 Gpx, carries NIR). **Phase 3 blocker.**
+        NOT inference-only: no 2022n checkpoint exists, so this runs the FULL
+        labels->tile->train->evaluate->inference path (~20-30 min train, by analogy
+        with 2002=27.7 min / 2022=20.7 min). Chosen over label `2022`
+        (2022_coe_rgb.tif, 7.5 cm, 31.5 Gpx, 25.2 GB ortho) which is ~300x costlier;
+        60 cm also matches 2000's 59.7 cm, making the Phase-3 trend like-for-like.
       - stage 2 — **2017** citywide, costly/fine. Replaces the 96.5%-nodata failed run.
       - stage 3 — **2015** citywide, costly/fine. Replaces `edmonds_canopy_prob_2015_
         citywide_rgb.tif` (7.4% valid vs 90.8% for siblings on the SAME grid — an
@@ -105,7 +109,7 @@ never opening the imagery, while forest_miss adds `cover = (r+g+b) > 0`, L249).
 Tested: **0 px dropped** — the 2016 ortho has no blank regions inside C-CAP forest.
 `qc_indep` is CORRECT. Do not "fix" it.
 
-- [ ] `_report()` must print every mask-narrowing parameter (stable_path, forest_codes,
+- [x] **DONE e9de54b/0020f2a** `_report()` must print every mask-narrowing parameter (stable_path, forest_codes,
       thresh, cover rule) into the per-year `.txt` AND `.csv`. No silent denominators.
 - [ ] Re-run the per-year `forest_miss_*` WITHOUT `--stable-with` so the autopsy is on
       the same full-forest denominator as `qc_indep`, or emit both and label them.

@@ -341,6 +341,44 @@ files:   CLAUDE.md, pipeline_buildtracker.md, ../README.md, run_registry.csv (+7
 next:    logs/ do NOT stamp the engine version → a backfilled registry row can't state one.
          cheap fix when the engine is next edited: have write_step_log() emit the version.
 
+## 2026-08-18  ** THE LABEL SOURCE HAS THE SAME HEIGHT CURVE — AND IS WORSE THAN EVERY MODEL IT TEACHES **
+goal:    Kam asked how the Phase-3 2020 mask "matches up". It is the LABEL SOURCE for every coarse year
+         (config.MASK_2020 -> labels.canopy_label_from_2020_mask), so this is the feedback-loop test.
+built:   NEW phase4_qc_height_curve.py — decimated recall-by-height, IMAGERY-FREE (mask + C-CAP + CHM only).
+         Needed because forest_misses also reads the year's ortho, and 2020_coe_rgb.tif is 27.1 GB, NOT
+         mirrored on D:, so the read streams over FUSE and DIED mid-run while Colab was using the same
+         mount ("TIFFFillTile: got 0 bytes, expected 229412"). Dropping the imagery answers the height
+         question in seconds from a 1/8 sample instead of 31.5 Gpx.
+         ALSO FIXED: "2020" was missing from forest_misses IMG_CATALOG/GSD_CM, so the first attempt died
+         on a KeyError and wrote NOTHING — a silent failure inside the tool this workstream exists to fix.
+found:   ** 2020 LABEL SOURCE vs its 2016 STUDENT, recall by height (vs C-CAP) **
+           band        label src   2016 model
+            0-2  m       .0430       .1538
+            2-5  m       .1158       .1628
+            5-10 m       .3099       .3559
+           10-15 m       .4484       .5729
+           15-20 m       .5785       .7354
+           20-25 m       .6643       .8339
+           25-30 m       .7160       .8828
+           30+   m       .7759       .9343
+           OVERALL       .5455       .6821
+         (1) THE TEACHER HAS THE SAME MONOTONIC STAIRCASE. Coarse years are not DEVELOPING the height
+         bias during fine-tuning — they are being TAUGHT it. Independent confirmation of H2, arriving
+         BEFORE 2016c finished.
+         (2) THE STUDENTS BEAT THE TEACHER AT EVERY BAND, and the gap WIDENS with height (+.16 at 30m+).
+         Fine-tuning on each year's own imagery + the CHM channel already partially corrects bad labels.
+         Phase 4 inherits the SHAPE but improves the LEVEL.
+         (3) Even at 30m+ — mature conifer, where the 5 hand-labelled training sites live — the label
+         source only reaches .776.
+caveat:  the 2020 mask is a PREDICTION, not hand truth (hand labels = 5 conifer sites only), so "recall"
+         here means AGREEMENT WITH C-CAP. Decimated 1/8 sample; compared against ccap_2021 (-1y) while
+         the 2016 model was scored against ccap_2016. The SHAPE and the RELATIVE comparison are robust;
+         absolute values are proxy-limited (see the P2 ~16% disagreement result).
+decided: this is the strongest single piece of evidence for the label hypothesis so far, and it is
+         INDEPENDENT of 2016c. It also reframes the fix: improving the 2020 mask lifts EVERY coarse year
+         at once, because they all read it. That is a higher-leverage target than any single year.
+files:   NEW phase4_qc_height_curve.py; qc/height_curve_2020_labelsource.{txt,csv}.
+
 ## 2026-08-18  ** RECALL IS A FUNCTION OF HEIGHT ** — 0.15 at <5m rising to 0.93 at 30m+. Fixing 5-15m = .68 -> .80
 found:   Ran the new recall-by-height table on the 2016 BASELINE (needed as the like-for-like comparison
          for 2016c). It is the cleanest result of the whole investigation — a monotonic staircase:

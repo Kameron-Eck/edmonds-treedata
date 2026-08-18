@@ -341,6 +341,31 @@ files:   CLAUDE.md, pipeline_buildtracker.md, ../README.md, run_registry.csv (+7
 next:    logs/ do NOT stamp the engine version → a backfilled registry row can't state one.
          cheap fix when the engine is next edited: have write_step_log() emit the version.
 
+## 2026-08-18  2016c UPDATE — on UNCONTESTED ground the corrected model is CLEARLY better (F1 .853 -> .937)
+found:   ref_agreement on 2016c. BOTH-AGREE subset (reference noise removed):
+                                baseline   corrected
+           both-agree recall      .7613      .9486    (+.187)
+           both-agree precision   .9699      .9254    (-.045)
+           both-agree F1          .8531      .9369    (+.084)
+           FN that is UNMEASURABLE 33.1%     64.6%    (+31.5 pts)
+         => Scored against RAW C-CAP the precision drop looked severe (-.136). On ground BOTH references
+         agree about it is only -.045, while recall gains +.187. MOST OF THE APPARENT PRECISION LOSS WAS
+         THE MODEL BEING PENALISED INSIDE THE CONTESTED ~16%.
+         Also: the remaining miss is now 64.6% unmeasurable (was 33.1%) — the corrected model has cleared
+         out most misses BOTH references confirmed, leaving mainly the disputed zone.
+revised: THIS PARTIALLY REVERSES MY EARLIER CAUTION. I wrote "do not deploy 2016c on the strength of
+         recall .87". The both-agree numbers materially strengthen its case: on uncontested ground it is
+         better on BOTH axes-adjusted terms (F1 .853 -> .937). The honest summary is:
+           * on ground both proxies agree about  -> 2016c is clearly better
+           * on the contested ~16%               -> it sides with NDVI over C-CAP, and NOTHING here can
+                                                    say whether that is right
+         STILL A REAL CONCERN: grass rejection .9119 -> .7191 on C-CAP grass. Part of that may itself be
+         contested (the NDVI ref has its own grass class), but it is not explained away by the partition
+         and should be checked before any deployment decision.
+decided: 2016c is a CANDIDATE, not a regression — but the deploy/no-deploy call still needs P3, because
+         the whole difference between "better" and "over-predicting" lives in the contested zone.
+next:    Kam's call on deployment. P3 remains the blocker for adjudicating it.
+
 ## 2026-08-18  2016c VERDICT — the overlay TRANSFERRED THE NDVI REFERENCE'S DEFINITION, disagreement and all
 result:  2016 baseline -> 2016c (--add-canopy-mask), honest vs C-CAP 2016:
            recall     .6844 -> .8718   (+.187)

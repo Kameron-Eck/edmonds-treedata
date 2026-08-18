@@ -39,15 +39,34 @@
       nothing here is a 7.5cm multi-hour job.
     * --run-tag on every job, so nothing existing is overwritten.
 
-  ── USAGE (Colab, L4 24GB; ONE cell, then close the laptop) ──────────────
+  ── USAGE (Colab, L4 24GB) ───────────────────────────────────────────────
+  LAUNCH DETACHED. This is the important part for an unattended run:
+
       %cd /content/drive/MyDrive/treedata/Scripts
-      %run phase4_train_queue.py
+      !nohup python -u phase4_train_queue.py > /content/drive/MyDrive/treedata/Scripts/logs/train_queue_nohup.log 2>&1 &
 
-      %run phase4_train_queue.py --dry-run        # print the plan, spend nothing
-      %run phase4_train_queue.py --only 2019n     # a single job
-      %run phase4_train_queue.py --skip 2016c     # drop one
+  With %run the queue lives INSIDE the notebook kernel, so anything that
+  interrupts the cell kills it — and Colab sends SIGINT to the kernel whenever
+  the websocket drops. On 2026-08-18 that killed the queue 18 s in while the
+  user was nowhere near the stop button. Launched with nohup it is a separate
+  process: cell interrupts, browser close and connection blips cannot touch it,
+  and it dies only when the RUNTIME itself dies.
 
-  DO NOT append `# comments` to that line — %run passes them to argparse.
+  Watch it (either from a Colab cell or from the synced Drive copy):
+      !tail -f /content/drive/MyDrive/treedata/Scripts/logs/train_queue_nohup.log
+      phase4/qc/train_queue_status.csv          <- one row per step, on Drive
+
+  Foreground (only when you are actually watching):
+      %run phase4_train_queue.py --dry-run        print the plan, spend nothing
+      %run phase4_train_queue.py --only 2019n     a single job
+      %run phase4_train_queue.py --skip 2016c     drop one
+
+  Restarting is cheap and safe: steps a previous run recorded OK are SKIPPED
+  (--no-resume forces a full re-run), and the status table is appended to, not
+  overwritten. A stray interrupt retries (--retries, default 2); two interrupts
+  within 20 s stop the queue deliberately.
+
+  DO NOT append `# comments` to a %run line — %run passes them to argparse.
 ╚══════════════════════════════════════════════════════════════════════════╝
 """
 
@@ -79,6 +98,10 @@ STEPS = ["labels", "tile", "train", "evaluate", "inference"]
 # 255 min. Coarse years are far smaller than either.
 STEP_TIMEOUT_MIN = {"labels": 45, "tile": 90, "train": 240,
                     "evaluate": 60, "inference": 240}
+
+# Two interrupts inside this window = a human really wants out.
+DOUBLE_INT_SEC = 20
+_INT_STATE = {"last": None}
 
 # Cheapest / most informative first. Every entry is a COARSE year (~1h).
 JOBS = [
@@ -209,14 +232,36 @@ def run_step(job, step, infer_batch, rows):
             _status_write(rows)
             return False
     except KeyboardInterrupt:
+        # An UNATTENDED queue must survive a STRAY interrupt. Colab sends SIGINT
+        # to the kernel when the websocket blips, and on 2026-08-18 that killed
+        # the queue 18s in with the user nowhere near the stop button. So: a
+        # single interrupt is recorded and RETRIED; two within DOUBLE_INT_SEC
+        # means a human really is holding Ctrl-C, and we abort.
         try:
             proc.terminate(); proc.wait(timeout=30)
         except Exception:
-            pass
-        rec.update(state="INTERRUPTED", exit="sigint",
-                   minutes=round((_dt.datetime.now()-t0).total_seconds()/60, 1))
+            try:
+                proc.kill()
+            except Exception:
+                pass
+        now = _dt.datetime.now()
+        elapsed = round((now - t0).total_seconds() / 60, 1)
+        prev = _INT_STATE.get("last")
+        _INT_STATE["last"] = now
+        if prev is not None and (now - prev).total_seconds() <= DOUBLE_INT_SEC:
+            rec.update(state="ABORTED", exit="sigint x2",
+                       detail="two interrupts close together — treating as human stop",
+                       minutes=elapsed)
+            _status_write(rows)
+            print("\n  Two interrupts in quick succession — stopping the whole queue.")
+            raise
+        rec.update(state="INTERRUPTED", exit="sigint", minutes=elapsed,
+                   detail="stray SIGINT (likely a dropped Colab websocket); will retry")
         _status_write(rows)
-        raise
+        print(f"\n  ! {job['id']}/{step} got a stray interrupt after {elapsed} min. "
+              f"Interrupt AGAIN within {DOUBLE_INT_SEC}s to stop the queue; "
+              f"otherwise it retries.", flush=True)
+        return "RETRY"
     except Exception as e:                                      # noqa: BLE001
         rec.update(state="ERROR", exit="exc", detail=f"{type(e).__name__}: {e}"[:200],
                    minutes=round((_dt.datetime.now()-t0).total_seconds()/60, 1))
@@ -282,6 +327,9 @@ def main():
     ap.add_argument("--infer-batch", type=int, default=32)
     ap.add_argument("--only", default=None, help="Run just this job id.")
     ap.add_argument("--skip", default="", help="Comma-separated job ids to skip.")
+    ap.add_argument("--retries", type=int, default=2,
+                    help="Retries after a STRAY interrupt (default 2). Two interrupts "
+                         "within 20s always stop the queue.")
     ap.add_argument("--no-resume", action="store_true",
                     help="Re-run every step even if a prior run recorded it OK.")
     ap.add_argument("--dry-run", action="store_true",
@@ -333,7 +381,16 @@ def main():
             if (j["id"], st) in done:
                 print(f"  - skip {j['id']}/{st} (already OK)")
                 continue
-            if not run_step(j, st, args.infer_batch, rows):
+            res = run_step(j, st, args.infer_batch, rows)
+            tries = 0
+            while res == "RETRY" and tries < args.retries:
+                tries += 1
+                print(f"  retrying {j['id']}/{st}  (attempt {tries+1}/{args.retries+1})")
+                res = run_step(j, st, args.infer_batch, rows)
+            if res == "RETRY":
+                print(f"  ! {j['id']}/{st} kept getting interrupted; giving up on this job.")
+                res = False
+            if not res:
                 print(f"  ! {j['id']} failed at step '{st}'. "
                       f"Recording and moving to the NEXT JOB (queue is unattended).")
                 ok = False

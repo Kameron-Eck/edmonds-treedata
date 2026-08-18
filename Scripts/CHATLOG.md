@@ -341,6 +341,32 @@ files:   CLAUDE.md, pipeline_buildtracker.md, ../README.md, run_registry.csv (+7
 next:    logs/ do NOT stamp the engine version → a backfilled registry row can't state one.
          cheap fix when the engine is next edited: have write_step_log() emit the version.
 
+## 2026-08-18  2019n DONE (queue works) — P2 REPLICATES A 3rd TIME; 2013 miss-depth 9.3% -> 50%
+queue:   phase4_train_queue.py running DETACHED is working. 2019n: labels OK 0.9min, tile OK, train,
+         eval, VERIFY OK (66MB, 100% valid, max prob .949 — healthy). 2021s now training (tile 12.3min).
+         2019n eval OUT-OF-SAMPLE: IoU .6462 AUROC .953 AP .8263, best-F1 thresh .495 — near-identical
+         to 2022n (IoU .6432 AUROC .9538 AP .8257).
+found:   (a) 2019n HONEST vs C-CAP 2021 @ .495: recall .6499 / precision .8540. AGAIN inside the
+         .51-.71 band despite AUROC .953 — 3rd strong model that does NOT close the gap.
+         (b) P2 REPLICATES A THIRD TIME. Three years, three sensors:
+                                2016      2019n     2022n
+           refs disagree        15.06%    17.03%    16.00%
+           raw recall           .6844     .6499     .6564
+           BOTH-AGREE recall    .7613     .7278     .7378
+           BOTH-AGREE precision .9699     .9710     .9567
+           FN unmeasurable      33.1%     34.3%     38.7%
+         => disagreement 15-17%, both-agree precision .96-.97, ~1/3 of the miss unmeasurable, EVERY TIME.
+         This is now a solid replicated result, not a pair of datapoints.
+         (c) P1c 2013 FULL-FOREST: confident misses (prob<.12) = 50%, vs 9.3% on the stable subset.
+         A 5x change. My flag that the stable-subset conf% figures were understated was CORRECT and
+         the recompute mattered enormously.
+         CONFIDENT-MISS PICTURE, all on the full-forest denominator now:
+           2016 69%  ·  2013 50%  ·  2000 23%  ·  2002 22%      (2015 pending)
+         So NOT "2016 is an outlier" — it is a 2-vs-2 SPLIT. 2016/2013 = structural; 2000/2002 =
+         near-threshold + a radiometric (washed-out) signature.
+files:   qc/qc_indep_2019n.txt, qc/ref_agreement_2019n.{txt,csv}, qc/accuracy_dashboard.png (7 yrs + 3 P2).
+next:    2015 miss-depth finishing; 2021s training; then 2016c (THE label hypothesis test).
+
 ## 2026-08-18  2017 SCORED — I WAS WRONG: it has the HIGHEST recall in the series (.7784), not the lowest
 found:   2017 HONEST (vs C-CAP 2016, forest_wetland, thresh .4759): recall .7784 / precision .8083.
          That is the BEST recall of any year (next best 2013 .7094). Also BEST scrub recall .3981

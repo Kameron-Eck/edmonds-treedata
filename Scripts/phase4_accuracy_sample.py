@@ -307,40 +307,82 @@ def step_estimate(year):
         elif truth and not pred: a["fn"] += 1
         else: a["tn"] += 1
 
-    # population-weighted cell proportions
-    p_tp = p_fp = p_fn = p_tn = 0.0
-    var_tp = var_fn = var_fp = 0.0
+    # ── Stratified estimation with the FULL multinomial covariance ──────────
+    # Within a stratum the four confusion cells are one multinomial draw, so
+    # they are NEGATIVELY correlated:
+    #     Var(p_i)    =  p_i(1-p_i) / (n_h - 1)
+    #     Cov(p_i,p_j) = -p_i p_j    / (n_h - 1)
+    # An earlier version summed Var(tp)+Var(fn) for the canopy-area interval,
+    # which drops that covariance and OVERSTATES the CI. Carrying the whole
+    # covariance matrix is barely more code and gets area, recall and precision
+    # right from one place.
+    CELLS = ("tp", "fp", "fn", "tn")
+    P_ = {c: 0.0 for c in CELLS}
+    V = {(a, b): 0.0 for a in CELLS for b in CELLS}
     labelled = 0
+    used_strata = 0
+
     for h, m in strata_meta.items():
         a = acc[h]
-        if a["n"] == 0:
-            continue
-        labelled += a["n"]
-        W = m["cells"] / N
         n = a["n"]
-        ptp, pfp, pfn, ptn = (a["tp"]/n, a["fp"]/n, a["fn"]/n, a["tn"]/n)
-        p_tp += W * ptp; p_fp += W * pfp; p_fn += W * pfn; p_tn += W * ptn
-        # variance of a stratified proportion estimate (Cochran / Olofsson eq.)
+        if n == 0:
+            continue
+        labelled += n
+        used_strata += 1
+        W = m["cells"] / N
+        p = {c: a[c] / n for c in CELLS}
+        for c in CELLS:
+            P_[c] += W * p[c]
         if n > 1:
-            var_tp += W**2 * ptp*(1-ptp)/(n-1)
-            var_fn += W**2 * pfn*(1-pfn)/(n-1)
-            var_fp += W**2 * pfp*(1-pfp)/(n-1)
+            for i in CELLS:
+                for j in CELLS:
+                    term = (p[i] * (1 - p[i]) if i == j else -p[i] * p[j]) / (n - 1)
+                    V[(i, j)] += W * W * term
 
-    recall = p_tp / (p_tp + p_fn) if (p_tp + p_fn) else float("nan")
-    prec = p_tp / (p_tp + p_fp) if (p_tp + p_fp) else float("nan")
-    area_true = p_tp + p_fn                     # true canopy proportion
-    se_area = math.sqrt(max(var_tp + var_fn, 0.0))
-    ci = 1.96 * se_area
+    def var_of(weights):
+        """Variance of a linear combination sum(w_c * P_c)."""
+        return sum(weights.get(i, 0) * weights.get(j, 0) * V[(i, j)]
+                   for i in CELLS for j in CELLS)
+
+    def ratio_ci(num_w, den_w):
+        """Delta-method 95% half-width for (sum num) / (sum den).
+
+        Var(X/Y) ~= (1/Y^2)[Var(X) + R^2 Var(Y) - 2 R Cov(X,Y)]
+        APPROXIMATE: the strata here are defined by reference agreement and
+        height, NOT by the map classes the textbook estimators assume, so treat
+        these intervals as indicative. Resolving the exact estimator for
+        non-map strata is Search 9 of the Phase-4 literature review.
+        """
+        X = sum(w * P_[c] for c, w in num_w.items())
+        Y = sum(w * P_[c] for c, w in den_w.items())
+        if Y <= 0:
+            return float("nan"), float("nan")
+        R = X / Y
+        vX, vY = var_of(num_w), var_of(den_w)
+        cXY = sum(num_w.get(i, 0) * den_w.get(j, 0) * V[(i, j)]
+                  for i in CELLS for j in CELLS)
+        var = (vX + R * R * vY - 2 * R * cXY) / (Y * Y)
+        return R, 1.96 * math.sqrt(max(var, 0.0))
+
+    p_tp, p_fp, p_fn, p_tn = (P_["tp"], P_["fp"], P_["fn"], P_["tn"])
+
+    # true canopy area = tp + fn, WITH the covariance term
+    area_true = p_tp + p_fn
+    ci_area = 1.96 * math.sqrt(max(var_of({"tp": 1, "fn": 1}), 0.0))
+
+    recall, ci_recall = ratio_ci({"tp": 1}, {"tp": 1, "fn": 1})
+    prec, ci_prec = ratio_ci({"tp": 1}, {"tp": 1, "fp": 1})
 
     L = [f"HUMAN ACCURACY ESTIMATE — {year}   (Olofsson stratified)",
          f"  sample : {meta['n_drawn']} points, {labelled} labelled, "
          f"{sum(a['unsure'] for a in acc.values())} unsure (EXCLUDED, never coerced)",
          f"  model  : {meta['prob']} @ thresh {meta['thresh']}",
          "",
-         f"  recall     {recall:.4f}",
-         f"  precision  {prec:.4f}",
-         f"  true canopy area  {100*area_true:.2f}%  ± {100*ci:.2f}  (95% CI)",
+         f"  recall     {recall:.4f}  ± {ci_recall:.4f}   (95% CI, approx)",
+         f"  precision  {prec:.4f}  ± {ci_prec:.4f}   (95% CI, approx)",
+         f"  true canopy area  {100*area_true:.2f}%  ± {100*ci_area:.2f}  (95% CI)",
          f"  model canopy area {100*(p_tp+p_fp):.2f}%",
+         f"  strata contributing: {used_strata} of {len(strata_meta)}",
          "",
          "  PER-STRATUM (unweighted counts — the estimator re-weights these):",
          f"  {'stratum':<22}{'n':>5}{'tp':>6}{'fp':>6}{'fn':>6}{'tn':>6}{'unsure':>8}"]
@@ -350,15 +392,23 @@ def step_estimate(year):
                  f"{a['fn']:>6}{a['tn']:>6}{a['unsure']:>8}")
     L += ["",
           "  These are the only numbers in this project with no model and no proxy",
-          "  product between the estimate and the ground."]
+          "  product between the estimate and the ground.",
+          "",
+          "  CI NOTE: the area interval is exact for stratified sampling (it carries",
+          "  the full multinomial covariance). The recall/precision intervals are",
+          "  DELTA-METHOD APPROXIMATIONS, and these strata are defined by reference",
+          "  agreement and height rather than by map class, which the textbook",
+          "  estimators assume. Treat them as indicative until Search 9 of the",
+          "  Phase-4 literature review settles the exact form."]
     txt = "\n".join(L)
     print("\n" + txt)
     (QC_DIR / f"accuracy_{year}.txt").write_text(txt, encoding="utf-8")
     with io.open(QC_DIR / f"accuracy_{year}.csv", "w", encoding="utf-8", newline="") as f:
         w = csv.writer(f)
         w.writerow(["metric", "value"])
-        for k, v in (("recall", recall), ("precision", prec),
-                     ("true_canopy_frac", area_true), ("ci95_canopy_frac", ci),
+        for k, v in (("recall", recall), ("ci95_recall", ci_recall),
+                     ("precision", prec), ("ci95_precision", ci_prec),
+                     ("true_canopy_frac", area_true), ("ci95_canopy_frac", ci_area),
                      ("model_canopy_frac", p_tp + p_fp), ("n_labelled", labelled)):
             w.writerow([k, round(v, 6) if isinstance(v, float) else v])
     print(f"\n  wrote {QC_DIR / f'accuracy_{year}.txt'}")

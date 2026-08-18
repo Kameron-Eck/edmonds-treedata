@@ -218,19 +218,45 @@ docs:    SOURCES OF TRUTH CENTRALIZED 2026-07-06. HANDOFFS RETIRED (5 old ones �
          entries + the ACTIVE PLAN = Scripts/honest-measurement-overhaul.md. Do NOT create a new
          HANDOFF. one-fact-one-home: live state here, method=Method_Pipeline.md, build
          status=pipeline_buildtracker.md, schedule=edmonds_combined_workplan.xlsx.
-measure: ACTIVE WORKSTREAM 2026-08-17 → Scripts/honest-measurement-overhaul.md. Kam: "became too
-         reliant on AI judgement", wants defensible numbers + better tests/visuals. BASELINE (honest,
-         vs C-CAP, forest_wetland, deployed thresh): 2016 rec .684/prec .865 · 2013 .709/.855 ·
-         2015 .622/.884 · 2000 .630/.775 · 2002 .507/.838. NDVI-ref 2016 rec .594/prec .959.
-         READ = high-precision UNDER-predictor, misses ~30-35% of ref forest; STRUCTURAL not
-         threshold (2016 sweep .5->.2 only moves recall .669->.747); scrub recall .25 vs forest .68.
-         DEFECTS FOUND: (1) 2017 = FAILED RUN not scorer bug — prob raster 96.5% nodata, valid px
-         collapsed to DN 7-15 (p~.03-.06); CRS/bounds fine. qc_indep wrote nan instead of raising.
-         (2) edmonds_canopy_prob_2022_xsensor_train.tif = 0 BYTES. (3) stale rows: qc_report.csv has
-         4x 2016 (2 nan); qc_indep_report.csv has superseded 2015 rec .257 beside live .62, unmarked.
-         ORDER = P1 fail-loud QC + mask inventory + re-run 2017 → P2 ref-agreement map (split the 30%
-         gap into real-miss vs unmeasurable) → P4 visuals (sentinel TP/FN/FP + 18yr dashboard) →
-         P3 Olofsson human sample 250 pts x 3 yrs (2000/2016/2022), reuse label_review server.
+measure: ACTIVE WORKSTREAM (opened 2026-08-17). PLAN = Scripts/honest-measurement-overhaul.md.
+         WHY: Kam — "became too reliant on AI judgement"; wants defensible numbers + better
+         tests/visuals. FOUR PHASES, run order 1 -> 2 -> 4 -> 3 (Kam's choice).
+         ---- RESUME HERE ----
+         P1 Trust the instruments   ~60% DONE. Local half LANDED; GPU half BLOCKED.
+         P2 Ref-disagreement map    NOT STARTED. LOCAL-ONLY, needs no GPU, unblocked NOW.
+         P4 Visuals                 NOT STARTED. Local. Read phase4_viz.py / phase4_qa_overlay.py /
+                                    phase4_sentinel_snap.py FIRST — much may already exist.
+         P3 Human sample            NOT STARTED. 250 pts x 3 yrs (2000/2016/2022n), Olofsson,
+                                    reuse the phase4_label_review.py server. Needs Kam's ~5h.
+         P1 DONE: fail-loud scorers (--min-valid-frac, never a nan row; proven on 2017 -> exit 2);
+         live+run_tag cols on both QC CSVs (migrated, 22->16 live, backups *.bak_20260817);
+         phase4_qc_inventory.py -> qc/mask_inventory.csv; P1b provenance in forest_miss _report().
+         P1 TODO: (a) Colab via phase4_p1_colab_run.py — stage 1 = 2022n [Phase-3 BLOCKER], stage 2 =
+         2017, stage 3 = 2015. FIRST ATTEMPT FAILED (see 2026-08-18 LOG entry): ~4h, ZERO output.
+         Driver fixed 9c205ab/3be1faa; NOT yet re-run. Run stage 1 ONLY, verify, then 2/3.
+         (b) re-score 2017, (c) P1b re-run forest_miss WITHOUT --stable-with, (d) P1c per-year
+         miss-depth on the FULL-forest denominator + one recipe.
+         ---- HONEST BASELINE (quote ONLY live=1 rows in qc/qc_indep_report.csv) ----
+         vs C-CAP, forest_wetland, deployed thresh: 2013 .7094/.8551 · 2016 .6844/.8651 ·
+         2000 .6303/.7745 · 2015 .6222/.8835 · 2002 .5069/.8377. NDVI-ref 2016 .594/.959.
+         READ = high-precision UNDER-predictor, misses ~30-35% of C-CAP forest; scrub recall .25
+         vs forest .68 -> fails on non-conifer/mixed structure (the conifer-only-label blind spot).
+         CAVEAT that must ride with every number: BOTH refs are PROXIES (CHM ~2016 @60% coverage;
+         C-CAP 2016/2021 applied to 2000/2002/2013). Unknown share of the gap is ref error + real
+         change, NOT model error. P2 bounds it; P3 measures it.
+         ---- CORRECTIONS TO EARLIER CLAIMS (do not regress) ----
+         (1) forest_miss_2016.txt "RECALL .7623" is a stable-intersect-2021 SUBSET. HONEST 2016 =
+         .6821 (qc_indep; independently reconfirmed .6832 by decimated recompute). 
+         (2) qc_indep is CORRECT — I hypothesised it was pessimistic for lacking an imagery-footprint
+         mask and DISPROVED it (0 px dropped on 2016). Do NOT "fix" it.
+         (3) "misses are confident/structural -> labels beat compute" is 2016-ONLY. conf% (misses
+         prob<.12): 2016 ~60% BUT 2013 9.3%, 2002 19.4%, 2000 24.1% -> most cross-sensor misses are
+         NEAR-THRESHOLD, maybe calibration-recoverable. Do NOT commit to hand-tracing stands until
+         P1c recomputes this per year on one recipe.
+         (4) There is NO git remote — "git pull" CANNOT update Colab. The working tree IS
+         the Drive folder (G:/My Drive/treedata); git DB = D:/edmonds-pipeline/treedata.git,
+         local Windows only. GOOGLE DRIVE is the sync path to Colab. Verify there with:
+         !grep -c 2022n /content/drive/MyDrive/treedata/Scripts/phase4_p1_colab_run.py
 gotcha:  scripts Colab-only for torch (rasterio+geopandas+fiona+sklearn now pip-
          installed local — module import auto-installs). polygons/ overwritten w/
          accept-all test data; 14,476-crown human review never finished.

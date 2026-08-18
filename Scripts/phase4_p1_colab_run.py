@@ -286,7 +286,15 @@ def run_job(job, infer_batch, run_tag, extra=()):
 
 
 def main():
-    filtered = [a for a in sys.argv[1:] if not (a == "-f" or a.endswith(".json"))]
+    # Colab injects `-f <json>`; strip it (rule 4). ALSO strip shell-style
+    # comments: IPython's %run does NOT parse `#` as a comment, so a pasted
+    # `--stage 0   # preflight` arrives as argv and argparse dies on it.
+    argv = sys.argv[1:]
+    for i, a in enumerate(argv):
+        if a.startswith("#"):
+            argv = argv[:i]
+            break
+    filtered = [a for a in argv if not (a == "-f" or a.endswith(".json"))]
     ap = argparse.ArgumentParser(
         description="P1 Colab driver — citywide 2022 + 2017 inference, GPU-mindful.")
     ap.add_argument("--stage", default="0",

@@ -341,6 +341,36 @@ files:   CLAUDE.md, pipeline_buildtracker.md, ../README.md, run_registry.csv (+7
 next:    logs/ do NOT stamp the engine version → a backfilled registry row can't state one.
          cheap fix when the engine is next edited: have write_step_log() emit the version.
 
+## 2026-08-18  ** RECALL IS A FUNCTION OF HEIGHT ** — 0.15 at <5m rising to 0.93 at 30m+. Fixing 5-15m = .68 -> .80
+found:   Ran the new recall-by-height table on the 2016 BASELINE (needed as the like-for-like comparison
+         for 2016c). It is the cleanest result of the whole investigation — a monotonic staircase:
+           band        recall    recalled / missed
+            0-2  m     0.1538       354,554 / 1,950,038
+            2-5  m     0.1628     4,309,190 / 22,158,565
+            5-10 m     0.3559    23,383,033 / 42,317,431
+           10-15 m     0.5729    32,087,410 / 23,921,864
+           15-20 m     0.7354    40,679,724 / 14,634,548
+           20-25 m     0.8339    45,177,044 / 9,001,029
+           25-30 m     0.8828    42,534,706 / 5,647,702
+           30+   m     0.9343    80,263,834 / 5,641,178
+         On MATURE canopy the model is nearly perfect (.93 at 30m+). It degrades SMOOTHLY all the way
+         down to .15 below 5m. This is not "the model misses ~12m trees on average" — recall is
+         essentially a FUNCTION OF HEIGHT.
+         ** SIZE OF THE PRIZE ** 5-15m holds 66,239,295 of the 125,272,355 missed px = 53% OF ALL MISSES.
+         If those two bands merely reached the 20-25m rate (.8339), TP gains ~46.0M and overall recall
+         goes .6821 -> ~.799. That single band IS the gap.
+decided: this replaces every earlier framing (spectral / radiometric / threshold) as the PRIMARY
+         statement of the problem. Those were year-specific effects layered on top of this.
+         It also gives P3 a sampling instruction: STRATIFY THE HUMAN SAMPLE BY CHM HEIGHT, not just by
+         model output — the 5-15m band is where both the miss AND the uncertainty concentrate.
+         And it sharpens the 2016c test: the pre-registered prediction now has a CURVE to check, not
+         just a mean. H2 confirmed = the 5-15m bands lift while 25m+ stays put. H2 NOT confirmed = every
+         band lifts together (the model merely got more liberal) and precision falls.
+caveat:  height is CHM-derived and the CHM is a single ~2016 snapshot at ~60% city coverage, so bands are
+         only defined where CHM exists; the SHAPE is the robust part.
+files:   qc/forest_miss_2016.{txt,csv} regenerated WITH the height table.
+next:    2016c lands -> run the same table -> compare curves.
+
 ## 2026-08-18  P2 x4 — disagreement is 15-17% EVERY time; NDVI ref is systematically more liberal than C-CAP
 found:   Built ndvi_ref_2021s (local, no GPU) and ran the 4th P2 partition. Four years, three sensors:
                                 2016      2019n     2021s     2022n

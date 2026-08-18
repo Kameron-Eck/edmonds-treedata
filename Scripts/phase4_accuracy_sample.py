@@ -89,7 +89,15 @@ CCAP_CANOPY = [9, 10, 11, 13, 16]
 NDVI_CANOPY = 2
 
 # stratum id -> (name, default share of the sample)
-STRATA = {
+#
+# TWO SCHEMES. Years with NIR have a second reference (NDVI+CHM) and therefore a
+# measurable DISAGREEMENT zone — that is where the sample earns most, so it gets
+# most of the points. Years without NIR (2000, 2002, 2013, 2015, 2017) have only
+# C-CAP; there is no disagreement to adjudicate, so the sample falls back to
+# stratifying by C-CAP class crossed with canopy height. Height stays in both
+# schemes because detection is a function of height and the 5-15 m band holds
+# 53% of all misses.
+STRATA_DUAL = {
     1: ("disagree_5_15m",      0.24),
     2: ("disagree_other",      0.18),
     3: ("both_canopy_5_15m",   0.16),
@@ -97,6 +105,13 @@ STRATA = {
     5: ("both_noncanopy",      0.20),
     6: ("no_chm",              0.12),
 }
+STRATA_SINGLE = {
+    1: ("ccap_canopy_5_15m",   0.30),
+    2: ("ccap_canopy_other",   0.22),
+    3: ("ccap_noncanopy",      0.28),
+    4: ("no_chm",              0.20),
+}
+STRATA = STRATA_DUAL          # rebound per-run by build_strata()
 
 
 def resolve(name, *dirs):
@@ -124,8 +139,9 @@ def build_strata(prob_path, ccap_path, ndvi_path, thresh, decim):
                 return v.read(1), src.nodata
 
     cc, cc_nod = warp(ccap_path)
-    nd, _ = warp(ndvi_path)
     dn, _ = warp(chm_path, src_nodata=0, nodata=0)
+    dual = ndvi_path is not None and Path(ndvi_path).exists()
+    nd = warp(ndvi_path)[0] if dual else None
 
     hgt = (dn.astype(np.float32) - 1.0) / CHM_DN_PER_M
     hgt[dn == 0] = np.nan
@@ -135,24 +151,42 @@ def build_strata(prob_path, ccap_path, ndvi_path, thresh, decim):
         valid &= cc != cc_nod
     valid &= cc != 0
 
+    global STRATA
     cc_can = np.isin(cc, CCAP_CANOPY)
-    nd_can = nd == NDVI_CANOPY
-    disagree = cc_can ^ nd_can
-    both_can = cc_can & nd_can
     has_chm = np.isfinite(hgt)
     mid = has_chm & (hgt >= 5) & (hgt < 15)
-
     strata = np.zeros((H, W), dtype=np.uint8)
-    strata[valid & ~has_chm] = 6
-    strata[valid & has_chm & ~disagree & ~both_can] = 5
-    strata[valid & has_chm & both_can & ~mid] = 4
-    strata[valid & has_chm & both_can & mid] = 3
-    strata[valid & has_chm & disagree & ~mid] = 2
-    strata[valid & has_chm & disagree & mid] = 1
+
+    if dual:
+        STRATA = STRATA_DUAL
+        nd_can = nd == NDVI_CANOPY
+        disagree = cc_can ^ nd_can
+        both_can = cc_can & nd_can
+        strata[valid & ~has_chm] = 6
+        strata[valid & has_chm & ~disagree & ~both_can] = 5
+        strata[valid & has_chm & both_can & ~mid] = 4
+        strata[valid & has_chm & both_can & mid] = 3
+        strata[valid & has_chm & disagree & ~mid] = 2
+        strata[valid & has_chm & disagree & mid] = 1
+    else:
+        # No NIR for this year, so no second reference and no adjudicable
+        # disagreement. Stratify by C-CAP class x height instead, and SAY SO in
+        # the metadata — a single-reference estimate answers a narrower question
+        # and must not be reported as if it settled a contested zone.
+        STRATA = STRATA_SINGLE
+        print("  ! no NDVI reference for this year (no NIR band) — falling back to")
+        print("    SINGLE-REFERENCE strata (C-CAP class x height). This sample can")
+        print("    estimate accuracy, but it CANNOT adjudicate reference disagreement.")
+        strata[valid & ~has_chm] = 4
+        strata[valid & has_chm & ~cc_can] = 3
+        strata[valid & has_chm & cc_can & ~mid] = 2
+        strata[valid & has_chm & cc_can & mid] = 1
+
+    scheme = "dual_reference" if dual else "single_reference"
 
     model = (pr >= thresh * 254.0)
     return dict(strata=strata, model=model, transform=dt, crs=crs,
-                decim=decim, shape=(H, W))
+                decim=decim, shape=(H, W), scheme=scheme)
 
 
 def step_design(year, prob_path, ccap_path, ndvi_path, thresh, n, decim, seed):
@@ -209,8 +243,9 @@ def step_design(year, prob_path, ccap_path, ndvi_path, thresh, n, decim, seed):
         w.writerows(rows)
 
     meta = dict(year=year, seed=seed, decim=decim, thresh=thresh,
+                scheme=S["scheme"],
                 prob=Path(prob_path).name, ccap=Path(ccap_path).name,
-                ndvi=Path(ndvi_path).name, crs=str(S["crs"]),
+                ndvi=(Path(ndvi_path).name if ndvi_path else None), crs=str(S["crs"]),
                 n_requested=n, n_drawn=len(rows),
                 strata={str(sid): dict(name=STRATA[sid][0],
                                        cells=counts[sid],
@@ -492,8 +527,10 @@ def main():
         for req in ("prob", "ref", "thresh"):
             if getattr(args, req) is None:
                 raise SystemExit(f"--{req} is required for --step design")
-        ndvi = args.ndvi_ref or (QC_DIR / f"ndvi_ref_{args.year}.tif")
-        step_design(args.year, Path(args.prob), Path(args.ref), Path(ndvi),
+        ndvi = Path(args.ndvi_ref) if args.ndvi_ref else (QC_DIR / f"ndvi_ref_{args.year}.tif")
+        if not Path(ndvi).exists():
+            ndvi = None      # single-reference fallback; build_strata reports it
+        step_design(args.year, Path(args.prob), Path(args.ref), ndvi,
                     args.thresh, args.n, args.decim, args.seed)
     elif args.step == "estimate":
         step_estimate(args.year)

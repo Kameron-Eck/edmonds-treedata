@@ -91,6 +91,10 @@ IMG_CATALOG = {
     "2016":  ("2016_snoh_rgbi.tif", 4),
     "2017":  ("2017_king_rgb.tif",  None),
     "2019":  ("2019_king_rgb.tif",  None),
+    # 2020 is the ANCHOR year. It was missing from this catalog, so any attempt to
+    # autopsy the Phase-3 mask died on a KeyError and wrote nothing — a silent
+    # failure of exactly the kind this workstream exists to remove.
+    "2020":  ("2020_coe_rgb.tif",   None),
     "2019n": ("2019_naip_rgbi.tif", 4),
     "2021":  ("2021_king_rgb.tif",  None),
     "2021s": ("2021_snoh_rgbi.tif", 4),
@@ -100,7 +104,7 @@ IMG_CATALOG = {
 # GSD (cm) + sensor per label — for the cross-sensor failure table.
 GSD_CM = {"2000": 59.7, "2002": 59.7, "2005": 29.9, "2007": 29.9, "2009": 29.9,
           "2012": 14.9, "2013": 14.9, "2015": 14.9, "2016": 50.0, "2017": 7.5,
-          "2019": 14.9, "2019n": 60.0, "2021": 14.9, "2021s": 50.0, "2022n": 60.0,
+          "2019": 14.9, "2019n": 60.0, "2020": 7.5, "2021": 14.9, "2021s": 50.0, "2022n": 60.0,
           "2023": 14.9}
 def sensor_of(label):
     return IMG_CATALOG[label][0].split("_")[1]   # king / snoh / naip

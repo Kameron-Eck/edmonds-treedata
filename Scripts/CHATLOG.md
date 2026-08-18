@@ -341,6 +341,23 @@ files:   CLAUDE.md, pipeline_buildtracker.md, ../README.md, run_registry.csv (+7
 next:    logs/ do NOT stamp the engine version → a backfilled registry row can't state one.
          cheap fix when the engine is next edited: have write_step_log() emit the version.
 
+## 2026-08-18  2021s DONE — 4th strong model, SAME band. Queue delivered 3/3 unattended; 2016c training.
+queue:   phase4_train_queue.py finished 2021s unattended: VERIFY OK 439MB, 100% valid, max prob .957.
+         eval OUT-OF-SAMPLE IoU .7571 (HIGHEST of any year), AUROC .938, best-F1 thresh .499.
+         2016c (the H2 label test) now TRAINING. Queue has delivered 3/3 jobs with no human present.
+found:   2021s HONEST vs C-CAP 2021 @ .499: recall .6851 / precision .8547 / grass-reject .9412.
+         FOURTH strong model inside the same band. Full live picture (C-CAP, forest_wetland, live=1):
+           2017 .7784 · 2013 .7094 · 2021s .6851 · 2016 .6844 · 2022n .6564 · 2019n .6499 ·
+           2000 .6303 · 2015 .6222 · 2002 .5069
+         Model quality across these spans IoU .49-.76 and AUROC .938-.954, yet honest recall stays
+         pinned in a ~.51-.78 band with NO correlation to model strength. That is now 4 independent
+         confirmations that the ceiling is not the model.
+fixed:   dashboard PROVENANCE dict was MISSING 2019n and 2021s, so those two rows plotted without their
+         sensor/vintage/NIR line. Added. 9 live years now on the page.
+next:    ndvi_ref_2021s building (needed for its P2 partition — will make 4 P2 datapoints).
+         Then 2016c: check against the PRE-REGISTERED prediction — recall must rise AND missed-height
+         must move up from ~11.8m. Recall alone does NOT confirm H2.
+
 ## 2026-08-18  P1c COMPLETE — the INVARIANT is HEIGHT: model finds ~24m trees, misses ~12m trees. Every year.
 did:     Finished the full-forest miss-depth recompute for all 5 scorable years (2000/2002/2013/2015/2016).
 found:   (a) CONFIDENT-MISS SHARE VARIES WIDELY and the radiometric signature even FLIPS DIRECTION:

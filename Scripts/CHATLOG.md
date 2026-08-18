@@ -297,6 +297,40 @@ files:   CLAUDE.md, pipeline_buildtracker.md, ../README.md, run_registry.csv (+7
 next:    logs/ do NOT stamp the engine version → a backfilled registry row can't state one.
          cheap fix when the engine is next edited: have write_step_log() emit the version.
 
+## 2026-08-18  FIRST P1 COLAB RUN FAILED (~4h, zero output) — 4 driver bugs found + fixed; stage 1 → 2022n
+goal:    Kam ran the P1 driver on Colab L4. Stage 1 ran ~4h with a totally silent cell.
+outcome: ABORTED, NO raster produced. Registry row 20260817_p1_driver_abort.
+cause:   FOUR bugs, all mine:
+         (1) WRONG TARGET. Catalog label "2022" = 2022_coe_rgb.tif @ 7.5cm = 148736x211968 = 31.5 Gpx,
+         ortho file 25.2 GB. I had labelled stage 1 "cheap (coarse ~60cm)". The 60cm NAIP acquisition is
+         a SEPARATE label "2022n" = 2022_naip_rgbi.tif (0.1 Gpx, HAS NIR). Kam chose 2022n.
+         (2) SILENT BY CONSTRUCTION. Driver used subprocess.run() -> child wrote to an inherited fd that
+         IPython does NOT capture -> the cell showed nothing for 4h whether working or hung.
+         (3) INTERRUPT DID NOT STOP THE RUN. No KeyboardInterrupt handling -> after 2022 was interrupted
+         the driver still attempted 2017 (died 5.3s) and 2015 (died 0.5s), both KeyboardInterrupt inside
+         torch import. logs/phase4_semantic_finetune_inference_{2017,2015}_2026-08-18T04-59.log.
+         (4) NO 2022 LOG EXISTS for that date -> never completed a step; the 4h was _stage_imagery_local
+         copying the 25 GB ortho to local disk before inference even begins.
+fixed:   9c205ab + 3be1faa. Popen line-by-line streaming + `python -u` (progress now visible live);
+         KeyboardInterrupt terminates the child then re-raises (run stops, later stages NOT attempted);
+         stage 1 retargeted to 2022n as a FULL labels->tile->train->evaluate->inference job because NO
+         2022n CHECKPOINT EXISTS (comparable coarse trains logged 27.7min/2002, 20.7min/2022); stage 0
+         prints ortho GB + warns when a multi-GB staging copy precedes inference (2017=25.2GB,
+         2015=12.1GB); stale "2022, cheap"/"stages 1 and 2" summary strings killed.
+decided: 2022n over 2022 for Phase 3 (Kam): ~300x cheaper, carries NIR (also enables an NDVI reference
+         for P2), and 60cm matches 2000's 59.7cm so the Phase-3 temporal comparison is like-for-like.
+killed:  "git pull to update Colab" — WRONG, I said it twice. `git remote -v` is EMPTY. Working tree IS
+         G:\My Drive\treedata; git DB is D:\edmonds-pipeline\treedata.git (local only, rule 1). GOOGLE
+         DRIVE is the sync path to Colab, not git. Verify in Colab with
+         `!grep -c 2022n /content/drive/MyDrive/treedata/Scripts/phase4_p1_colab_run.py`; if 0, remount.
+gotcha:  engine stages its package to /content/_phase4seg_pkg (see the traceback) — a LOCAL copy on the
+         VM, so a stale phase4seg can persist within a session; fresh runtime is the reliable reset.
+         Also: writes to the G: FUSE mount from bash silently did not persist mid-session (had to use the
+         editor tool); and G: files can be read mid-sync (prob_2022_xsensor_train read 0 bytes at 17:00,
+         2.54 MB at 22:05) — do not trust a single size/byte reading off Drive.
+next:    Kam: verify sync, `--stage 0`, then `--stage 1` (2022n) ONLY. Verify that output before
+         spending GPU on stages 2/3. Then local qc_indep + P1b/P1c re-runs.
+
 ## 2026-08-17  P1 Colab driver + inventory false-positive fix
 goal:    Kam: give me a Colab execution script for P1's GPU work, be mindful of GPU usage.
 did:     NEW phase4_p1_colab_run.py — staged driver for the two rasters P1/P3 need (citywide 2022,

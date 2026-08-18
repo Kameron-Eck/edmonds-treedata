@@ -259,8 +259,12 @@ tested:  real Scripts/ layout — engine → v048 / 9 files; standalone QC scrip
          unset; missing script → unknown. py_compile OK. No engine file touched.
 files:   pipeline_log.py (commits 0020f2a [first half, swept in by the concurrent session's
          `git add -A`] + 2cdb53d).
-next:    optional — declare `__version__` in phase4seg/__init__.py so the version is authoritative
-         rather than parsed from its docstring. Registry rows from here on can quote sha + command.
+did+:    both loose ends CLOSED same session: (1) `__version__ = "v048"` now declared in
+         phase4seg/__init__.py (authoritative, replaces the parsed docstring marker) — verified the
+         stamp still reads v048 AND the sha moved ec890b59→9ab821d9, proving the fingerprint tracks
+         source bytes. (2) CLAUDE.md rule 1 now says stage PATHS not `git add -A` (+ new rule 1b) —
+         two sessions share one working tree; 0020f2a swallowed half of an unrelated change.
+next:    registry rows from here on quote version + code sha + command straight off the log header.
 
 ## 2026-08-17  doc/repo cleanup — CLAUDE.md + buildtracker de-staled, registry backfilled, CHATLOG compacted
 goal:    non-code housekeeping while a coding session ran on the same tree. bootstrap docs

@@ -149,7 +149,8 @@ git database = `D:\edmonds-pipeline\treedata.git`, off the FUSE mount). Commit a
 every landed change; before a risky edit, make sure the tree is committed so rollback
 is one command:
 ```bash
-git add -A && git commit -m "<what landed>"
+git status --short                          # ALWAYS first — see rule 1b
+git add <the paths you touched> && git commit -m "<what landed>"
 git restore -s vNNN -- Scripts/<name>.py    # rollback a file to a tagged version
 ```
 Tag `vNNN` (annotated) whenever CHATLOG STATE records a new live finetune version.
@@ -159,6 +160,15 @@ diff/add/commit/tag (writes go to D:). **Pause Drive sync first** for anything t
 writes the working tree: checkout, restore, `reset --hard`, stash pop, branch switch.
 (`version_script.py` / `.versions/` are RETIRED 2026-07-06 — kept on disk as a frozen
 pre-git archive, git-ignored; full history was imported as backdated commits v001–v044.)
+
+**1b. Two sessions share one working tree — stage PATHS, never `-A`.** Parallel Claude
+sessions (and Colab) edit the same Drive folder, so `git status` at the start of your
+session is already stale. `git add -A` sweeps up whatever the other session has in
+flight and commits it under YOUR message — it happened 2026-08-17 (`0020f2a` swallowed
+half of an unrelated `pipeline_log.py` change). Nothing is lost when it happens, but the
+history lies about who changed what. So: run `git status --short` immediately before
+committing, stage only the paths you edited, and if a file you did not touch shows up
+dirty, leave it — it is theirs.
 
 ### 2. Log integration
 Every script `write_step_log()`s at the end of each `--step` →

@@ -237,6 +237,31 @@ gotcha:  scripts Colab-only for torch (rasterio+geopandas+fiona+sklearn now pip-
 
 ════════════════ LOG  (newest first) ════════════════
 
+## 2026-08-17  pipeline_log stamps version + code sha + command (logs now self-identify)
+goal:    close the gap the registry backfill exposed — logs/ never said WHICH code ran, so a
+         backfilled run_registry row can't state an engine version (the 7 rows in d48b057 say
+         "v047-v048 (not stamped in log)").
+did:     pipeline_log.py — every header now carries 3 auto-resolved lines, NO caller change:
+             version:   v048
+             code sha:  ec890b59  (9 files)
+             command:   --year 2016 --step train
+         version order = explicit version= arg > __version__ > first \bvNNN\b in the file head
+         > "unset". code sha = SHA-1 over the script PLUS any sibling package it IMPORTS — the
+         phase4seg/ split means the shim's own bytes say nothing about what ran. Attachment is
+         by import parsed from the script text, NOT by name pattern (a pattern guess credited
+         phase4_qc_indep.py with the engine's v048 — caught in test). Resolution never raises;
+         failure degrades to "unknown". Also: the confirmation print no longer dies on a cp1252
+         console (local QC scripts hit it; the log was already written).
+decided: fingerprint over source bytes, not just a version string — two runs with the same sha
+         ran byte-identical code even when nobody bumped a version. That is what makes a
+         registry row reconstructable from logs/ alone.
+tested:  real Scripts/ layout — engine → v048 / 9 files; standalone QC script → 1 file, version
+         unset; missing script → unknown. py_compile OK. No engine file touched.
+files:   pipeline_log.py (commits 0020f2a [first half, swept in by the concurrent session's
+         `git add -A`] + 2cdb53d).
+next:    optional — declare `__version__` in phase4seg/__init__.py so the version is authoritative
+         rather than parsed from its docstring. Registry rows from here on can quote sha + command.
+
 ## 2026-08-17  doc/repo cleanup — CLAUDE.md + buildtracker de-staled, registry backfilled, CHATLOG compacted
 goal:    non-code housekeeping while a coding session ran on the same tree. bootstrap docs
          had rotted (both said Phase 4 = "live v042"; engine has been phase4seg/ since 07-08).

@@ -123,7 +123,14 @@ JOBS = [
 ]
 
 MIN_VALID_FRAC = 0.05      # below this a prob raster is a failed run
-MIN_MAX_PROB   = 0.50      # below this the model never confidently says canopy
+MIN_MAX_PROB   = 0.50      # below this the model never confidently says canopy — HARD FAIL
+# Above the hard floor but below this, the raster is spatially fine yet the model
+# is weakly calibrated: warn loudly rather than fail (the run already cost hours,
+# and the output IS scorable — it just will not score well). Healthy years peak at
+# 0.81-0.96 (2016 = 0.898); the 2017 xsensor_train run peaked at 0.575 and passed
+# a bare 0.5 gate with no comment, which is exactly the kind of silent pass this
+# whole workstream exists to eliminate.
+WARN_MAX_PROB  = 0.75
 
 
 # ══════════════════════════════════════════════════════════════════════════
@@ -339,6 +346,13 @@ def verify_output(year, tag):
         print(f"  ! FAIL: {1-vf:.1%} nodata — this is the 2017 failure mode repeating.")
         print("    STOP. Do not run the next stage; diagnose before spending more GPU.")
         return False
+    if mx == mx and MIN_MAX_PROB <= mx < WARN_MAX_PROB:
+        print(f"  ! WARNING: max prob is only {mx:.3f} (healthy years peak 0.81-0.96).")
+        print(f"    The raster is spatially complete and IS scorable, but the model is")
+        print(f"    weakly calibrated — prob mass sits near the operating threshold, so")
+        print(f"    expect LOW recall. That is the MODEL, not the raster. Do not read a")
+        print(f"    poor score here as another failed run; check the checkpoint's own")
+        print(f"    eval (a *_xsensor_train ckpt saw only 373 sample tiles).")
     if mx == mx and mx < MIN_MAX_PROB:
         print(f"  ! FAIL: max prob {mx:.3f} — the model never confidently predicts")
         print("    canopy anywhere. The raster is technically full but useless.")

@@ -76,9 +76,14 @@ _PROV_CACHE: dict = {}
 
 def _script_sources(script: str, logs_dir: Path):
     """
-    Locate the source that implements `script`: the .py file itself, plus a
-    same-named package directory beside it if one exists (the phase4seg/ split
-    means the shim's own bytes say nothing about what ran).
+    Locate the source that implements `script`: the .py file itself, plus any
+    sibling package it imports.
+
+    The package part matters because of the phase4seg/ split — the shim's own
+    bytes say nothing about what actually ran. Attachment is by IMPORT, read out
+    of the script text, so a package is only ever credited to a script that
+    really uses it (a name-pattern guess would fingerprint phase4_qc_indep.py
+    with the engine's version).
 
     Looks in the Scripts/ dir (logs_dir's parent) first, then beside __main__.
     """
@@ -86,24 +91,28 @@ def _script_sources(script: str, logs_dir: Path):
     scripts_dir = Path(logs_dir).parent
     cands.append(scripts_dir / f"{script}.py")
     main_file = getattr(sys.modules.get("__main__"), "__file__", None)
-    if main_file:
+    if main_file and Path(main_file).stem == script:
+        # Only trust __main__ when it IS this script — otherwise a caller run
+        # from elsewhere would fingerprint the wrong file and the sha would lie.
         cands.append(Path(main_file).resolve())
 
     for f in cands:
         try:
             if not f.is_file():
                 continue
+            src = f.read_text(encoding="utf-8", errors="replace")
         except OSError:
             continue
         files = [f]
-        # phase4_semantic_finetune.py -> phase4seg/ ; also <stem>/ verbatim.
-        for pkg_name in {script.split("_")[0] + "seg", script}:
-            pkg = f.parent / pkg_name
+        for pkg in sorted(f.parent.iterdir()):
             try:
-                if pkg.is_dir():
-                    files += sorted(q for q in pkg.glob("*.py"))
+                if not (pkg.is_dir() and (pkg / "__init__.py").is_file()):
+                    continue
             except OSError:
-                pass
+                continue
+            if re.search(r"^\s*(?:from|import)\s+" + re.escape(pkg.name) + r"\b",
+                         src, re.MULTILINE):
+                files += sorted(pkg.glob("*.py"))
         return files
     return []
 
@@ -321,7 +330,13 @@ class StepLogger:
             lines.append(stdout_capture.rstrip())
 
         path.write_text("\n".join(lines) + "\n", encoding="utf-8")
-        print(f"  ✓ log → {path}", flush=True)
+        try:
+            print(f"  ✓ log → {path}", flush=True)
+        except UnicodeEncodeError:
+            # Windows consoles default to cp1252 and the QC/label scripts run
+            # locally — the log IS written by this point, so never let the
+            # confirmation line be the thing that raises.
+            print(f"  log -> {path}", flush=True)
 
 
 # ── _Tee: write to two streams simultaneously ─────────────────────────────────

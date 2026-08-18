@@ -285,6 +285,68 @@ gotcha:  scripts Colab-only for torch (rasterio+geopandas+fiona+sklearn now pip-
 
 ════════════════ LOG  (newest first) ════════════════
 
+## 2026-08-18  LIT PHASE 4 — measurement validity, 37 papers (ID 69-105), searches 9-14
+goal:    the 8 prior searches covered architecture/resolution/temporal/labels. None asked
+         whether our numbers MEAN anything. This phase targets the validity gap: sampling,
+         reference disagreement, height bias, label propagation, CHM vintage, interpreter protocol.
+did:     Literature_Tracker.xlsx +37 rows, +6 rows on "Search Phase Reference".
+         S9 accuracy/area protocol (8) — Olofsson 2014/2013, Stehman+Foody 2019, Stehman 2014,
+           Wagner+Stehman 2015, Stehman+Wagner 2024, Radoux 2020, Pontius+Millones 2011.
+         S10 reference quality (6) — McCombs 2016 (C-CAP), Wickham 2023 (NLCD), Foody 2010,
+           Foody 2022, Gutierrez-Velez 2024, Majasalmi 2021.
+         S11 height-stratified bias (6) — Turubanova 2023, Moudry 2024, Ferraz 2016,
+           Hamraz 2017, Clark 2023, Guo 2023.
+         S12 label-noise propagation (5) — Arazo 2020, Liu+Chun 2009, Moraes 2024, Peng 2025, Tang 2025.
+         S13 CHM fusion / vintage (5) — Wagner 2024, Allred 2025, Kwong+Fung 2020, Zhang 2025, Sierra 2026.
+         S14 interpretation protocol (7) — Pengra 2020, Stehman 2022, Xing+Stehman 2024,
+           Tarko 2020, Reis 2024, Parmehr 2016, Hwang+Wiseman 2020.
+decided: every DOI verified against Crossref API or a search hit — none written from memory.
+         Unverified issue/article numbers STRIPPED rather than guessed.
+         Rows re-sorted 9->14, IDs 69-105 sequential.
+findings that BITE (papers vs our 5 empirical claims):
+  - Stehman 2014 LICENSES stratifying on the REFERENCE (CHM band, C-CAP/NDVI agreement).
+    Unbiased if you use its estimators; variance inflates. Our planned design is legal.
+  - Wickham 2023: NLCD OA 77.5% on primary label -> 87.1% if an ALTERNATE label counts.
+    10pp swing from scoring interpreter uncertainty alone > our whole model-quality range.
+    -> 250-pt protocol MUST record primary + alternate ("fuzzy"), report both.
+  - McCombs 2016 (C-CAP's OWN accuracy paper): 3x3 sample unit, 6-of-9 homogeneity rule,
+    OR/WA 84.9%. C-CAP was NEVER validated at single-pixel scale and the paper says it is a
+    SCREENING tool for local decisions. Some of our 15-17% is scale misuse, not model error.
+  - Foody 2010: 10% reference error -> producer's accuracy UNDER-est 18.5% if errors independent,
+    OVER-est 12.3% if CORRELATED. Ours are correlated (same imagery, same interpreter lineage)
+    -> our recall is probably OPTIMISTIC. Plus latent-class = accuracy with NO gold standard.
+  - Foody 2022 is the escape from finding 5: treat C-CAP + NDVI ref + model as 3 imperfect tests
+    of one latent canopy variable, solve each one's sensitivity/specificity. Disagreement stops
+    being noise and becomes the estimator's INPUT.
+  - Ferraz 2016 + Turubanova 2023: the height-monotonic recall curve REPLICATES in lidar and in
+    Landsat-Europe (error concentrates 4-6m; 25% under vs WorldCover from short/open stands).
+    Finding 1 is a PROPERTY of canopy remote sensing, not our U-Net. Supports finding 2.
+  - Hamraz 2017 CONTRADICTS the fatalist reading: stratify-then-segment lifted understory recall
+    +22.1% at -15.0% precision. Intervention = height-conditioned model, not a better single pass.
+    Precision cost matches finding 5 drifting toward the liberal NDVI ref.
+  - Guo 2023 names the trade: adding small-crown training examples RECRUITS SHRUBS. Likely what
+    our NIR+CHM overlay actually did. -> 250-pt protocol must separate short tree from shrub or
+    it cannot adjudicate finding 5 at all.
+  - Clark 2023: patch sampling under-samples small-area features by construction. CHEAP TEST
+    before more overlay work — re-sample 2020 training patches stratified by CHM band, watch low-height recall.
+  - Moudry 2024 CAUTION on finding 1: global CHM products are themselves height-biased. Sierra 2026
+    puts CHM MAE ~3m at realistic density. A 3m error BLURS our 5m-wide recall bands. Validate
+    the 2016 lidar CHM before trusting its bands as truth.
+  - Wagner 2024 is the fix for the CHM vintage problem: train U-Net to PREDICT height from imagery
+    using lidar only as supervision -> synthesize a per-year CHM for all 18 acquisitions instead of
+    smearing one 2016 snapshot across 2000-2024. Turns 60% coverage from a blocker into training data.
+  - S14 gives the 250-pt design: Wagner+Stehman 2015 / Stehman+Wagner 2024 for allocation
+    (over-sample 5-15m + disagreement strata), Stehman 2022 + Xing 2024 to fold interpreter
+    variance INTO the CI, Pengra 2020 (88% OA, tree cover high-agreement) and Hwang+Wiseman 2020
+    (chi-sq: PI == high-res IC at n>=250) as benchmarks. Reis 2024 is the warning: on HISTORICAL
+    imagery 3 interpreters fully agreed on <40% of pixels — our 2000s years may not adjudicate.
+files:   Literature_Tracker.xlsx (sheets "Literature Tracker" 69-105, "Search Phase Reference" +6)
+next:    design the ~250-pt run: strata = CHM band x C-CAP/NDVI agreement, allocation per
+         Wagner+Stehman, response design = primary + fuzzy alternate + shrub-vs-short-tree call,
+         duplicate subset for interpreter variance. Then Foody 2022 latent-class on the 3 sources.
+         Cheap pre-test first: Clark 2023 stratified patch re-sampling.
+
+
 ## 2026-08-17  pipeline_log stamps version + code sha + command (logs now self-identify)
 goal:    close the gap the registry backfill exposed — logs/ never said WHICH code ran, so a
          backfilled run_registry row can't state an engine version (the 7 rows in d48b057 say
@@ -344,6 +406,54 @@ files:   CLAUDE.md, pipeline_buildtracker.md, ../README.md, run_registry.csv (+7
          audit_2026-07-08/*, scripts/*}. 5 commits, no code touched.
 next:    logs/ do NOT stamp the engine version → a backfilled registry row can't state one.
          cheap fix when the engine is next edited: have write_step_log() emit the version.
+
+## 2026-08-18  LIT REVIEW PHASE 4 LANDED (37 papers, IDs 69-105) — TWO FINDINGS CONTRADICT MY FRAMING
+source:  Literature_Tracker.xlsx, searches 9-14 (prompt = Scripts/litreview_phase4_prompt.md).
+CONTRADICTS ME:
+  (1) FOODY 2010 — I said repeatedly "every headline number looked worse than the corrected one;
+      raw scores systematically overstate the model's faults". WRONG DIRECTION, probably. Foody
+      shows 10% reference error UNDER-estimates producer's accuracy by 18.5% when reference and map
+      errors are INDEPENDENT, but OVER-estimates it by 12.3% when they are CORRELATED. Our labels
+      and both references all come from imagery interpretation of the SAME scenes, so correlation is
+      near-certain => OUR RECALL IS LIKELY OPTIMISTIC, NOT PESSIMISTIC. Stop repeating my pattern claim.
+  (2) MOUDRY 2024 — all three global canopy-height products carry systematic HEIGHT-DEPENDENT bias.
+      The CHM is the axis we stratify recall on, so part of the monotonic curve could be CHM ERROR
+      rather than detection failure. VALIDATE the 2016 lidar CHM's height accuracy before treating
+      its bands as truth. This is a confound finding 1 does not currently account for.
+CONFIRMS (independently):
+  TURUBANOVA 2023: continental product, error concentrates at 4-6 m, 25% tree-area underestimate from
+  short/open canopy omission — our curve turns over in the same band.
+  FERRAZ 2016: same monotonic detection-vs-size shape from LIDAR, a different sensor entirely.
+  ARAZO 2020: canonical statement of our feedback loop; predicts students CANNOT correct the teacher's
+  bias from imagery alone (mitigation = a floor of genuinely independent labels per year).
+  MAJASALMI 2021: 15-17% inter-product disagreement is NORMAL, not a defect to eliminate.
+  PENG 2025: our label noise is STRUCTURED (concentrated in 5-15 m) = the worst case; off-the-shelf
+  noise-robust losses assume uncorrelated noise and will NOT help us.
+BIG OPPORTUNITY:
+  FOODY 2022 — LATENT CLASS MODELING. Treat C-CAP, the NDVI ref and the model as three imperfect tests
+  of one latent canopy variable and solve for each one's sensitivity/specificity from their AGREEMENT
+  PATTERN ALONE, no ground truth. Computable from rasters we already have, BEFORE any labelling. This
+  could partially resolve finding 5 ("cannot tell if 2016c got more correct") without P3.
+P3 MUST CHANGE:
+  * WICKHAM 2023: primary-vs-(primary-or-alternate) scoring swings accuracy 10 POINTS (77.5% -> 87.1%).
+    My sampler EXCLUDES 'unsure'. It should record a PRIMARY + ALTERNATE call and report both numbers.
+    McCombs 2016 shows C-CAP's own interpreters did exactly this.
+  * STEHMAN 2014: LICENSES our reference-derived stratification (legitimate, unbiased, variance
+    inflated) BUT requires ITS estimators — mine is a delta-method approximation. Reconcile.
+  * WAGNER & STEHMAN 2015 / 2024: objective allocation minimising summed variance; my 0.24/0.18/0.16/
+    0.10/0.20/0.12 shares were AD HOC. Redo the allocation properly.
+  * RADOUX 2020: adaptive response design cuts interpretation effort 50-75% at equal accuracy by
+    concentrating on ambiguous points — directly relevant to Kam's ~5 h budget.
+SCALE CAVEAT:
+  McCOMBS 2016 — C-CAP was validated at 3x3-pixel units with a six-of-nine homogeneity rule, NEVER at
+  single-pixel scale, and its authors call it a screening tool for local/site-specific decisions. We
+  score it PER PIXEL. Some of the 15-17% disagreement is C-CAP used outside its validated design.
+GUTIERREZ-VELEZ 2024: most cross-product disagreement is DEFINITIONAL (different thresholds on a
+  continuous cover variable), not empirical — argues for reporting continuous per-crown canopy fraction
+  with the threshold stated, rather than a binary mask.
+next:    (a) latent-class analysis on the three existing layers — cheapest possible next result;
+         (b) rework P3 unsure handling to primary/alternate BEFORE Kam labels;
+         (c) reconcile the estimator with Stehman 2014; (d) validate the CHM's height accuracy.
 
 ## 2026-08-18  GRASS CHECK — the 2016c grass regression is ~73% CONTESTED, ~27% GENUINE
 did:     Closed the one open concern from the 2016c verdict: is the grass-rejection drop (.9119 -> .7191)

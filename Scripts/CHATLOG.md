@@ -341,6 +341,33 @@ files:   CLAUDE.md, pipeline_buildtracker.md, ../README.md, run_registry.csv (+7
 next:    logs/ do NOT stamp the engine version → a backfilled registry row can't state one.
          cheap fix when the engine is next edited: have write_step_log() emit the version.
 
+## 2026-08-18  P1b VALIDATED + P1c: on the HONEST denominator the "confident miss" gets STRONGER (60% -> 69%)
+did:     Ran phase4_qc_forest_misses.py on 2016 WITHOUT --stable-with (P1b) — the first run on the
+         full-forest denominator, using the provenance-stamped version.
+found:   (a) P1b PROVENANCE FIX VALIDATED. The report now prints its DENOMINATOR block:
+         "stable-with : (none — full forest, comparable to qc_indep)" and RECALL 0.6821 — matching
+         qc_indep EXACTLY. The silent-denominator bug that produced the phantom .7623 is closed.
+         Also prints "≈ 9,152,423 independent ccap cells" vs 394,061,850 px, so nobody computes an
+         error bar off a 43x-replicated pixel count.
+         (b) P1c ON THE FULL DENOMINATOR THE MISS IS *MORE* STRUCTURAL, NOT LESS:
+                                stable subset (old)   FULL FOREST (correct)
+           prob<0.06                  24.6%                 37.5%
+           0.06-0.12                  35.8%                 31.9%
+           CONFIDENT (<0.12)          60%                   69%
+           dNDVI (FN-TP)              -0.150                -0.219
+           missed height              12.6 m                11.8 m  (d -12.0 m vs recalled)
+         Missed canopy on full forest is also BRIGHTER in R (+5.7) and B (+6.5) — on the stable subset
+         those were ~0 (R -1.9, B +0.25). Less-green, brighter, ~12 m tall = deciduous/senescent canopy
+         the conifer-trained labels never taught. Consistent with the scrub-recall collapse (.22-.25).
+decided: MY EARLIER CORRECTION NEEDS RE-EXAMINING. I told Kam "the structural-miss claim is 2016-ONLY;
+         2013 is only 9.3% confident" — but those conf% figures came from forest_miss_sensor_compare,
+         which used the STABLE∩2021 subset. 2016 went 60% -> 69% when the subset was removed, so the
+         other years' conf% are probably understated too. Recomputing 2000 + 2002 on full forest now
+         (running). DO NOT re-quote the 9.3%/19.4%/24.1% figures until they are recomputed.
+files:   qc/forest_miss_2016.{txt,csv,png} (now full-forest + provenance-stamped).
+next:    2000/2002 full-forest conf% (running); then 2013/2015 (2.3GB rasters, slower). Then decide
+         labels-vs-calibration on comparable numbers.
+
 ## 2026-08-18  P2 REPLICATES on 2016 + unattended TRAIN QUEUE built + CUDA works locally
 did:     (a) P2 on 2016 (2nd NIR year). (b) NEW phase4_train_queue.py for unattended Colab. (c) CUDA torch.
 found:   P2 REPLICATES ACROSS YEARS — 2 sensors, 2 C-CAP vintages, same answer:

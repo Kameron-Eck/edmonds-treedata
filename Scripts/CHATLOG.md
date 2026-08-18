@@ -341,6 +341,31 @@ files:   CLAUDE.md, pipeline_buildtracker.md, ../README.md, run_registry.csv (+7
 next:    logs/ do NOT stamp the engine version → a backfilled registry row can't state one.
          cheap fix when the engine is next edited: have write_step_log() emit the version.
 
+## 2026-08-18  P2 x4 — disagreement is 15-17% EVERY time; NDVI ref is systematically more liberal than C-CAP
+found:   Built ndvi_ref_2021s (local, no GPU) and ran the 4th P2 partition. Four years, three sensors:
+                                2016      2019n     2021s     2022n
+           refs disagree        15.06%    17.03%    16.00%    16.00%
+           raw recall           .6844     .6499     .6851     .6564
+           BOTH-AGREE recall    .7613     .7278     .7350     .7378
+           BOTH-AGREE precision .9699     .9710     .9876     .9567
+           FN unmeasurable      33.1%     34.3%     22.0%     38.7%
+         => disagreement ~16% EVERY TIME; both-agree recall .73-.76; both-agree precision .96-.99.
+         (a) 2021s' unmeasurable share is much LOWER (22%) because C-CAP-ONLY disagreement collapses to
+         1.93% — 2021s is the ONE year where imagery and C-CAP share a vintage exactly. ccap_only by
+         vintage distance: 2021s same-yr 1.93% · 2016 same-yr 3.40% · 2019n +2y 4.49% · 2022n -1y 5.73%.
+         So part of the C-CAP-side disagreement IS temporal, as suspected.
+         (b) ** ASYMMETRY, all four years: ndvi_only 10-14% vs ccap_only 1.9-5.7%. ** The NDVI+CHM
+         reference is SYSTEMATICALLY MORE LIBERAL than C-CAP, and the MODEL SIDES WITH C-CAP.
+         Note the 2021s NDVI ref calls 38.7% canopy vs C-CAP's 26.5% on the SAME YEAR, SAME GROUND —
+         a 12-point spread with NO vintage offset to blame. Whatever drives it is not temporal drift.
+         (c) 2021s both-agree PRECISION .9876 — the highest yet. On pixels both references confirm,
+         this model is essentially not producing false positives.
+decided: P2 is DONE as a method — 4 replications, tight numbers. The residual question ("which reference
+         is right where they disagree") is NOT answerable with more proxies. Only P3 human labels settle
+         it, and P3 must OVERSAMPLE the ~16% disagreement zone.
+files:   qc/ndvi_ref_2021s.{tif,txt}, qc/ref_agreement_2021s.{txt,csv}, dashboard refreshed (9 yrs, 4 P2).
+next:    2016c — the H2 label test. Judge ONLY against the pre-registered prediction.
+
 ## 2026-08-18  2021s DONE — 4th strong model, SAME band. Queue delivered 3/3 unattended; 2016c training.
 queue:   phase4_train_queue.py finished 2021s unattended: VERIFY OK 439MB, 100% valid, max prob .957.
          eval OUT-OF-SAMPLE IoU .7571 (HIGHEST of any year), AUROC .938, best-F1 thresh .499.

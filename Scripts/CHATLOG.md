@@ -341,6 +341,28 @@ files:   CLAUDE.md, pipeline_buildtracker.md, ../README.md, run_registry.csv (+7
 next:    logs/ do NOT stamp the engine version → a backfilled registry row can't state one.
          cheap fix when the engine is next edited: have write_step_log() emit the version.
 
+## 2026-08-18  GRASS CHECK — the 2016c grass regression is ~73% CONTESTED, ~27% GENUINE
+did:     Closed the one open concern from the 2016c verdict: is the grass-rejection drop (.9119 -> .7191)
+         a real regression, or is it the contested zone again? Decimated 1/8 cross-tab of C-CAP grass vs
+         the NDVI reference, on pixels the corrected model newly calls canopy.
+found:   C-CAP grass cells sampled 3,732,545
+           baseline  calls canopy   252,635  ( 6.77%)
+           corrected calls canopy 1,062,658  (28.47%)
+           NEW grass FP (corrected only): 825,361, and the NDVI reference calls those:
+             CANOPY   604,938  (73.3%)   <- CONTESTED: C-CAP says grass, NDVI says trees
+             grass    112,023  (13.6%)   \ GENUINE regression: neither reference
+             non-veg  108,400  (13.1%)   / supports canopy there
+         => ~73% contested, ~27% (220,423 px) genuine. In UNCONTESTED terms the grass FP rate roughly
+         DOUBLES (~6.8% -> ~12.7%), it does not quadruple as the headline .912 -> .719 implied.
+decided: the grass concern is REAL BUT BOUNDED, and it is the same contested-zone story as everything
+         else — consistent with 2016c having adopted the NDVI reference's canopy definition wholesale.
+         FINAL 2016c POSITION: a genuine candidate. On uncontested ground F1 .853 -> .937. Its costs are
+         (a) ~27% of a doubled grass FP rate that no reference supports, and (b) total dependence on the
+         NDVI reference being right in the contested ~16%. Both are P3 questions.
+files:   analysis was inline (no new script) — numbers recorded here.
+next:    P4 remaining item = sentinel TP/FN/FP overlays, colour-coded by the P2 partition. Everything
+         else in P1/P2/P4 is done. P3 blocks the deploy decision and needs Kam.
+
 ## 2026-08-18  2016c UPDATE — on UNCONTESTED ground the corrected model is CLEARLY better (F1 .853 -> .937)
 found:   ref_agreement on 2016c. BOTH-AGREE subset (reference noise removed):
                                 baseline   corrected

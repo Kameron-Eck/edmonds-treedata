@@ -1,0 +1,523 @@
+<title>Edmonds Canopy Pipeline Map</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&family=JetBrains+Mono:wght@400;600&display=swap">
+
+<style>
+  :root{
+    --surface:#f5f7f3;
+    --panel:#ffffff;
+    --panel-2:#eef1eb;
+    --ink:#14201b;
+    --ink-2:#42524a;
+    --ink-3:#6b7a72;
+    --rule:#d5ddd4;
+    --accent:#2f6b46;
+    --accent-soft:#e2ede6;
+    --warn:#b45309;
+    --warn-soft:#f7e9d8;
+    --guard:#5b6b8a;
+    --guard-soft:#e6eaf1;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --surface:#101614;
+      --panel:#182220;
+      --panel-2:#1f2b27;
+      --ink:#e4eae4;
+      --ink-2:#b0bdb5;
+      --ink-3:#84968c;
+      --rule:#2c3a35;
+      --accent:#6aab7f;
+      --accent-soft:#1e3229;
+      --warn:#e0913f;
+      --warn-soft:#33261a;
+      --guard:#94a8c8;
+      --guard-soft:#1d2634;
+    }
+  }
+  :root[data-theme="dark"]{
+    --surface:#101614;
+    --panel:#182220;
+    --panel-2:#1f2b27;
+    --ink:#e4eae4;
+    --ink-2:#b0bdb5;
+    --ink-3:#84968c;
+    --rule:#2c3a35;
+    --accent:#6aab7f;
+    --accent-soft:#1e3229;
+    --warn:#e0913f;
+    --warn-soft:#33261a;
+    --guard:#94a8c8;
+    --guard-soft:#1d2634;
+  }
+
+  *{box-sizing:border-box}
+  body{
+    background:var(--surface);
+    color:var(--ink);
+    font-family:"Source Serif 4",Georgia,serif;
+    font-size:17px; line-height:1.65;
+    margin:0; padding:0 20px 96px;
+  }
+  .wrap{max-width:1040px;margin:0 auto}
+  h1,h2,h3,.label{font-family:Archivo,"Helvetica Neue",Arial,sans-serif}
+  h1{
+    font-size:clamp(30px,4.6vw,46px); font-weight:700; line-height:1.1;
+    letter-spacing:-.02em; text-wrap:balance; margin:0 0 12px;
+  }
+  h2{
+    font-size:24px; font-weight:600; letter-spacing:-.01em; text-wrap:balance;
+    margin:0 0 6px;
+  }
+  h3{font-size:15px;font-weight:600;margin:0 0 8px;letter-spacing:-.005em}
+  .label{
+    font-size:11px; font-weight:600; text-transform:uppercase;
+    letter-spacing:.13em; color:var(--ink-3);
+  }
+  code,.mono{font-family:"JetBrains Mono",ui-monospace,Menlo,monospace;font-size:.83em}
+  code{background:var(--panel-2);padding:1px 5px;border-radius:3px;color:var(--ink)}
+  p{margin:0 0 14px;max-width:66ch}
+  a{color:var(--accent)}
+
+  header{padding:64px 0 40px;border-bottom:1px solid var(--rule);margin-bottom:44px}
+  .lede{font-size:20px;line-height:1.55;color:var(--ink-2);max-width:64ch;margin:0}
+
+  section{margin:0 0 56px}
+  .sec-head{display:flex;align-items:baseline;gap:14px;margin-bottom:20px;flex-wrap:wrap}
+  .num{
+    font-family:"JetBrains Mono",monospace;font-size:12px;font-weight:600;
+    color:var(--accent);border:1px solid var(--accent);border-radius:3px;
+    padding:2px 7px;flex:none;
+  }
+
+  figure{margin:0 0 12px}
+  .figbox{
+    background:var(--panel);border:1px solid var(--rule);border-radius:6px;
+    padding:20px;overflow-x:auto;
+  }
+  .figbox svg{display:block;min-width:860px;max-width:100%;height:auto;color:var(--ink)}
+  figcaption{font-size:14px;color:var(--ink-3);margin-top:12px;max-width:70ch}
+
+  .grid{display:grid;gap:16px}
+  @media(min-width:760px){ .grid.c2{grid-template-columns:1fr 1fr} }
+
+  .card{
+    background:var(--panel);border:1px solid var(--rule);border-radius:6px;padding:18px 20px;
+  }
+  .card.warnc{border-color:var(--warn);background:var(--warn-soft)}
+  .card.guardc{border-color:var(--guard);background:var(--guard-soft)}
+
+  table{border-collapse:collapse;width:100%;font-size:14.5px}
+  .tablewrap{overflow-x:auto;border:1px solid var(--rule);border-radius:6px;background:var(--panel)}
+  th,td{text-align:left;padding:11px 14px;border-bottom:1px solid var(--rule);vertical-align:top}
+  th{
+    font-family:Archivo,sans-serif;font-size:11px;font-weight:600;text-transform:uppercase;
+    letter-spacing:.1em;color:var(--ink-3);background:var(--panel-2);white-space:nowrap;
+  }
+  tr:last-child td{border-bottom:none}
+  td.mono,th.mono{font-family:"JetBrains Mono",monospace;font-size:12.5px}
+  .num-cell{font-variant-numeric:tabular-nums}
+
+  .flow{display:flex;flex-direction:column;gap:14px}
+  .stage{
+    background:var(--panel);border:1px solid var(--rule);border-radius:6px;
+    display:grid;gap:0;overflow:hidden;
+  }
+  @media(min-width:820px){ .stage{grid-template-columns:190px 1fr 250px} }
+  .stage > div{padding:16px 18px}
+  .stage .in{background:var(--panel-2);border-right:1px solid var(--rule)}
+  .stage .out{background:var(--panel-2);border-left:1px solid var(--rule)}
+  @media(max-width:819px){
+    .stage .in{border-right:none;border-bottom:1px solid var(--rule)}
+    .stage .out{border-left:none;border-top:1px solid var(--rule)}
+  }
+  .stage ul{margin:6px 0 0;padding-left:17px}
+  .stage li{margin-bottom:5px;font-size:14.5px;line-height:1.5}
+  .stage .proc-title{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+
+  .pill{
+    display:inline-block;font-family:Archivo,sans-serif;font-size:10.5px;font-weight:600;
+    text-transform:uppercase;letter-spacing:.09em;padding:2px 8px;border-radius:99px;
+    border:1px solid currentColor;
+  }
+  .pill.done{color:var(--accent)}
+  .pill.active{color:var(--warn)}
+  .pill.evalonly{color:var(--guard)}
+
+  .keyline{border-left:3px solid var(--accent);padding-left:16px;margin:0 0 18px}
+  ul.tight{margin:0;padding-left:18px}
+  ul.tight li{margin-bottom:7px}
+  :focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+  @media(prefers-reduced-motion:no-preference){
+    .card,.stage{transition:border-color .15s ease}
+  }
+</style>
+
+<div class="wrap">
+
+<header>
+  <div class="label" style="margin-bottom:14px">Edmonds Temporal Canopy Pipeline &middot; architecture reference</div>
+  <h1>What goes in, what runs, what comes out</h1>
+  <p class="lede">Four production phases turn 18 aerial acquisitions into per-year canopy masks. A separate
+  measurement layer scores them. The one structural feature worth knowing before you change anything:
+  Phase&nbsp;3's output is Phase&nbsp;4's training label, so a blind spot in the first becomes a blind spot in
+  every year that follows.</p>
+</header>
+
+<section>
+  <div class="sec-head"><h2>The whole system</h2></div>
+  <figure>
+    <div class="figbox">
+      <svg viewBox="0 0 900 600" role="img" aria-label="Dataflow diagram: aerial imagery, lidar CHM and crown polygons feed Phases 0 through 4, producing crowns, spectral features, a 2020 canopy mask and per-year probability rasters. The 2020 mask loops back to become the training label for coarse years. C-CAP and the NDVI reference feed only the measurement layer, never training.">
+        <defs>
+          <marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M0 0 L10 5 L0 10 z" fill="currentColor"/>
+          </marker>
+          <marker id="ahw" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M0 0 L10 5 L0 10 z" fill="#b45309"/>
+          </marker>
+          <marker id="ahg" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M0 0 L10 5 L0 10 z" fill="#5b6b8a"/>
+          </marker>
+        </defs>
+
+        <!-- column headers -->
+        <text x="20" y="24" font-family="Archivo,sans-serif" font-size="11" font-weight="600" letter-spacing="1.6" fill="currentColor" opacity=".55">INPUTS</text>
+        <text x="270" y="24" font-family="Archivo,sans-serif" font-size="11" font-weight="600" letter-spacing="1.6" fill="currentColor" opacity=".55">PRODUCTION PIPELINE</text>
+        <text x="670" y="24" font-family="Archivo,sans-serif" font-size="11" font-weight="600" letter-spacing="1.6" fill="currentColor" opacity=".55">OUTPUTS</text>
+
+        <!-- INPUTS -->
+        <rect x="20" y="42" width="185" height="52" rx="4" fill="none" stroke="currentColor" stroke-width="1.4"/>
+        <text x="32" y="62" font-size="12.5" font-weight="600" fill="currentColor">18 aerial orthos</text>
+        <text x="32" y="80" font-size="11" fill="currentColor" opacity=".7">2000–2024 · 7.5–60 cm · 3 sensors</text>
+
+        <rect x="20" y="108" width="185" height="52" rx="4" fill="none" stroke="currentColor" stroke-width="1.4"/>
+        <text x="32" y="128" font-size="12.5" font-weight="600" fill="currentColor">Lidar CHM</text>
+        <text x="32" y="146" font-size="11" fill="currentColor" opacity=".7">3DEP HAG · ~2016 · ~60% cover</text>
+
+        <rect x="20" y="174" width="185" height="52" rx="4" fill="none" stroke="currentColor" stroke-width="1.4"/>
+        <text x="32" y="194" font-size="12.5" font-weight="600" fill="currentColor">Crown polygons</text>
+        <text x="32" y="212" font-size="11" fill="currentColor" opacity=".7">2020 anchor · 5 conifer sites</text>
+
+        <!-- PIPELINE -->
+        <rect x="255" y="42" width="215" height="46" rx="4" fill="none" stroke="currentColor" stroke-width="1.4"/>
+        <text x="267" y="62" font-size="12.5" font-weight="600" fill="currentColor">Phase 0 · instance seg</text>
+        <text x="267" y="79" font-size="11" fill="currentColor" opacity=".7">DTM regression + watershed</text>
+
+        <rect x="255" y="102" width="215" height="46" rx="4" fill="none" stroke="currentColor" stroke-width="1.4"/>
+        <text x="267" y="122" font-size="12.5" font-weight="600" fill="currentColor">Phase 1 · spectral</text>
+        <text x="267" y="139" font-size="11" fill="currentColor" opacity=".7">18-yr features per crown</text>
+
+        <rect x="255" y="162" width="215" height="46" rx="4" fill="none" stroke="currentColor" stroke-width="1.4"/>
+        <text x="267" y="182" font-size="12.5" font-weight="600" fill="currentColor">Phase 2 · data prep</text>
+        <text x="267" y="199" font-size="11" fill="currentColor" opacity=".7">tiles / splits</text>
+
+        <rect x="255" y="222" width="215" height="52" rx="4" fill="var(--accent-soft)" stroke="var(--accent)" stroke-width="1.8"/>
+        <text x="267" y="243" font-size="12.5" font-weight="600" fill="currentColor">Phase 3 · base model</text>
+        <text x="267" y="261" font-size="11" fill="currentColor" opacity=".75">U-Net trained on 2020 only</text>
+
+        <rect x="255" y="330" width="215" height="52" rx="4" fill="var(--accent-soft)" stroke="var(--accent)" stroke-width="1.8"/>
+        <text x="267" y="351" font-size="12.5" font-weight="600" fill="currentColor">Phase 4 · per-year</text>
+        <text x="267" y="369" font-size="11" fill="currentColor" opacity=".75">fine-tune each acquisition</text>
+
+        <!-- OUTPUTS -->
+        <rect x="650" y="42" width="230" height="46" rx="4" fill="none" stroke="currentColor" stroke-width="1.4"/>
+        <text x="662" y="62" font-size="12.5" font-weight="600" fill="currentColor">222,435 crowns</text>
+        <text x="662" y="79" font-size="11" fill="currentColor" opacity=".7">edmonds_crowns_2020.gpkg</text>
+
+        <rect x="650" y="102" width="230" height="46" rx="4" fill="none" stroke="currentColor" stroke-width="1.4"/>
+        <text x="662" y="122" font-size="12.5" font-weight="600" fill="currentColor">Spectral table</text>
+        <text x="662" y="139" font-size="11" fill="currentColor" opacity=".7">crowns_phase1.parquet</text>
+
+        <rect x="650" y="222" width="230" height="52" rx="4" fill="var(--warn-soft)" stroke="var(--warn)" stroke-width="1.8"/>
+        <text x="662" y="243" font-size="12.5" font-weight="600" fill="currentColor">2020 canopy mask</text>
+        <text x="662" y="261" font-size="11" fill="currentColor" opacity=".75">a PREDICTION, not truth</text>
+
+        <rect x="650" y="330" width="230" height="52" rx="4" fill="none" stroke="currentColor" stroke-width="1.4"/>
+        <text x="662" y="351" font-size="12.5" font-weight="600" fill="currentColor">Per-year prob + mask</text>
+        <text x="662" y="369" font-size="11" fill="currentColor" opacity=".7">canopy_prob_{year}.tif</text>
+
+        <!-- input arrows -->
+        <line x1="205" y1="68" x2="250" y2="68" stroke="currentColor" stroke-width="1.4" marker-end="url(#ah)"/>
+        <line x1="205" y1="134" x2="250" y2="128" stroke="currentColor" stroke-width="1.4" marker-end="url(#ah)"/>
+        <line x1="205" y1="200" x2="250" y2="245" stroke="currentColor" stroke-width="1.4" marker-end="url(#ah)"/>
+        <text x="196" y="228" font-size="10.5" fill="currentColor" opacity=".7" text-anchor="end">labels</text>
+
+        <!-- pipeline chain -->
+        <line x1="362" y1="88" x2="362" y2="98" stroke="currentColor" stroke-width="1.4" marker-end="url(#ah)"/>
+        <line x1="362" y1="148" x2="362" y2="158" stroke="currentColor" stroke-width="1.4" marker-end="url(#ah)"/>
+        <line x1="362" y1="208" x2="362" y2="218" stroke="currentColor" stroke-width="1.4" marker-end="url(#ah)"/>
+        <line x1="362" y1="274" x2="362" y2="326" stroke="currentColor" stroke-width="1.4" marker-end="url(#ah)"/>
+        <text x="372" y="304" font-size="10.5" fill="currentColor" opacity=".7">warm start</text>
+
+        <!-- outputs -->
+        <line x1="470" y1="65" x2="645" y2="65" stroke="currentColor" stroke-width="1.4" marker-end="url(#ah)"/>
+        <line x1="470" y1="125" x2="645" y2="125" stroke="currentColor" stroke-width="1.4" marker-end="url(#ah)"/>
+        <line x1="470" y1="248" x2="645" y2="248" stroke="currentColor" stroke-width="1.4" marker-end="url(#ah)"/>
+        <line x1="470" y1="356" x2="645" y2="356" stroke="currentColor" stroke-width="1.4" marker-end="url(#ah)"/>
+
+        <!-- THE FEEDBACK LOOP -->
+        <path d="M650 262 L560 262 Q535 262 535 288 L535 330 Q535 356 505 356 L475 356"
+              fill="none" stroke="#b45309" stroke-width="2.2" marker-end="url(#ahw)"/>
+        <text x="545" y="308" font-size="11" font-weight="600" fill="#b45309">becomes the</text>
+        <text x="545" y="322" font-size="11" font-weight="600" fill="#b45309">training label</text>
+
+        <!-- MEASUREMENT LAYER -->
+        <line x1="20" y1="424" x2="880" y2="424" stroke="currentColor" stroke-width="1" opacity=".35"/>
+        <text x="20" y="448" font-family="Archivo,sans-serif" font-size="11" font-weight="600" letter-spacing="1.6" fill="currentColor" opacity=".55">MEASUREMENT LAYER — reads outputs, never writes labels</text>
+
+        <rect x="20" y="462" width="185" height="52" rx="4" fill="var(--guard-soft)" stroke="#5b6b8a" stroke-width="1.6" stroke-dasharray="5 3"/>
+        <text x="32" y="482" font-size="12.5" font-weight="600" fill="currentColor">C-CAP land cover</text>
+        <text x="32" y="500" font-size="11" fill="currentColor" opacity=".75">2016 / 2021 · EVAL ONLY</text>
+
+        <rect x="20" y="528" width="185" height="52" rx="4" fill="var(--guard-soft)" stroke="#5b6b8a" stroke-width="1.6" stroke-dasharray="5 3"/>
+        <text x="32" y="548" font-size="12.5" font-weight="600" fill="currentColor">NDVI + CHM ref</text>
+        <text x="32" y="566" font-size="11" fill="currentColor" opacity=".75">NIR years only</text>
+
+        <rect x="255" y="462" width="215" height="46" rx="4" fill="none" stroke="#5b6b8a" stroke-width="1.4"/>
+        <text x="267" y="482" font-size="12.5" font-weight="600" fill="currentColor">qc_indep · qc_score</text>
+        <text x="267" y="499" font-size="11" fill="currentColor" opacity=".7">recall / precision per year</text>
+
+        <rect x="255" y="522" width="215" height="46" rx="4" fill="none" stroke="#5b6b8a" stroke-width="1.4"/>
+        <text x="267" y="542" font-size="12.5" font-weight="600" fill="currentColor">ref_agreement</text>
+        <text x="267" y="559" font-size="11" fill="currentColor" opacity=".7">real vs unmeasurable miss</text>
+
+        <rect x="650" y="462" width="230" height="46" rx="4" fill="none" stroke="#5b6b8a" stroke-width="1.4"/>
+        <text x="662" y="482" font-size="12.5" font-weight="600" fill="currentColor">forest_misses</text>
+        <text x="662" y="499" font-size="11" fill="currentColor" opacity=".7">why canopy is missed</text>
+
+        <rect x="650" y="522" width="230" height="46" rx="4" fill="none" stroke="#5b6b8a" stroke-width="1.4"/>
+        <text x="662" y="542" font-size="12.5" font-weight="600" fill="currentColor">accuracy dashboard</text>
+        <text x="662" y="559" font-size="11" fill="currentColor" opacity=".7">one page, all years</text>
+
+        <line x1="205" y1="488" x2="250" y2="488" stroke="#5b6b8a" stroke-width="1.4" marker-end="url(#ahg)"/>
+        <line x1="205" y1="554" x2="250" y2="548" stroke="#5b6b8a" stroke-width="1.4" marker-end="url(#ahg)"/>
+        <line x1="470" y1="485" x2="645" y2="485" stroke="#5b6b8a" stroke-width="1.4" marker-end="url(#ahg)"/>
+        <line x1="470" y1="545" x2="645" y2="545" stroke="#5b6b8a" stroke-width="1.4" marker-end="url(#ahg)"/>
+
+        <!-- outputs feed measurement -->
+        <path d="M765 382 L765 410 Q765 424 750 424 L380 424 Q362 424 362 440 L362 458"
+              fill="none" stroke="#5b6b8a" stroke-width="1.4" stroke-dasharray="4 3" marker-end="url(#ahg)"/>
+        <text x="560" y="418" font-size="10.5" fill="#5b6b8a">scored</text>
+      </svg>
+    </div>
+    <figcaption>Solid arrows are the production path; dashed slate arrows are measurement, which reads outputs
+    and never writes a training label. The amber loop is the structural feature: the 2020 mask Phase&nbsp;3
+    predicts is re-used as the ground-truth label that supervises coarse years in Phase&nbsp;4.</figcaption>
+  </figure>
+</section>
+
+<section>
+  <div class="sec-head"><h2>Inputs</h2></div>
+  <p>Five inputs. Three train, two only measure. Each carries a limit that propagates downstream, so the limit
+  belongs next to the input rather than in a footnote.</p>
+  <div class="tablewrap">
+    <table>
+      <thead><tr><th>Input</th><th>What it is</th><th>Feeds</th><th>Known limit</th></tr></thead>
+      <tbody>
+        <tr>
+          <td class="mono">Pipeline&nbsp;Imagery/<br>{year}_{src}_rgb[i].tif</td>
+          <td>18 aerial acquisitions, 2000–2024</td>
+          <td>Phases 0, 1, 3, 4</td>
+          <td>7.5–60&nbsp;cm across three sensors; only 4 years carry NIR</td>
+        </tr>
+        <tr>
+          <td class="mono">lidar_snoh_chm.tif</td>
+          <td>3DEP height-above-ground</td>
+          <td>Phase 4 (4th channel), QC height</td>
+          <td>One ~2016 snapshot, ~60% city coverage — used for <em>every</em> year</td>
+        </tr>
+        <tr>
+          <td class="mono">polygons/*.gpkg</td>
+          <td>Crown polygons, 2020 anchor</td>
+          <td>Phase 4 fine/medium years</td>
+          <td>5 conifer sites, all mature; the 14,476-crown review was never finished</td>
+        </tr>
+        <tr>
+          <td class="mono">ccap_{2016,2021}<br>_hires_lc.tif <span class="pill evalonly">eval only</span></td>
+          <td>NOAA 1&nbsp;m land cover</td>
+          <td>Measurement only</td>
+          <td>Generalized product, two vintages stretched across 25 years</td>
+        </tr>
+        <tr>
+          <td class="mono">qc/ndvi_ref_{year}.tif <span class="pill evalonly">eval only</span></td>
+          <td>Derived NDVI + height reference</td>
+          <td>Measurement only</td>
+          <td>NIR years only; inherits the CHM's 2016 vintage</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section>
+  <div class="sec-head"><h2>Phases</h2></div>
+  <p>Numbered because they genuinely are a sequence — each consumes the previous phase's output.</p>
+
+  <div class="flow">
+
+    <div class="stage">
+      <div class="in">
+        <div class="label">In</div>
+        <ul><li>2020 ortho</li><li>Lidar DTM/CHM</li></ul>
+      </div>
+      <div>
+        <div class="proc-title">
+          <span class="num">0</span><h3>Instance segmentation</h3><span class="pill done">complete</span>
+        </div>
+        <p style="margin:8px 0 0;font-size:14.5px;color:var(--ink-2)">DTM regression plus watershed splits the
+        canopy surface into individual crowns. <code>phase0_instance_seg.py</code></p>
+      </div>
+      <div class="out">
+        <div class="label">Out</div>
+        <ul><li>222,435 crowns</li><li class="mono" style="font-size:12px">edmonds_crowns_2020.gpkg</li></ul>
+      </div>
+    </div>
+
+    <div class="stage">
+      <div class="in">
+        <div class="label">In</div>
+        <ul><li>Crowns</li><li>All 18 orthos</li></ul>
+      </div>
+      <div>
+        <div class="proc-title">
+          <span class="num">1</span><h3>Spectral features</h3><span class="pill done">complete</span>
+        </div>
+        <p style="margin:8px 0 0;font-size:14.5px;color:var(--ink-2)">Samples every year's reflectance under
+        the fixed 2020 crown polygons. <code>phase1_preprocess.py</code> → <code>phase1d_classifier.py</code></p>
+      </div>
+      <div class="out">
+        <div class="label">Out</div>
+        <ul><li>Per-crown 18-year spectra</li><li class="mono" style="font-size:12px">crowns_phase1.parquet</li></ul>
+      </div>
+    </div>
+
+    <div class="stage">
+      <div class="in">
+        <div class="label">In</div>
+        <ul><li>Site footprints</li><li>Crown labels</li></ul>
+      </div>
+      <div>
+        <div class="proc-title">
+          <span class="num">2</span><h3>Data preparation</h3><span class="pill done">complete</span>
+        </div>
+        <p style="margin:8px 0 0;font-size:14.5px;color:var(--ink-2)">Assembles tiles and the
+        geographically-blocked splits that make evaluation honest. <code>phase2_data_prep.py</code></p>
+      </div>
+      <div class="out">
+        <div class="label">Out</div>
+        <ul><li>Training tiles</li><li>Blocked train/test split</li></ul>
+      </div>
+    </div>
+
+    <div class="stage">
+      <div class="in">
+        <div class="label">In</div>
+        <ul><li>2020 ortho</li><li>Hand-labelled sites</li></ul>
+      </div>
+      <div>
+        <div class="proc-title">
+          <span class="num">3</span><h3>Base semantic model</h3><span class="pill done">complete</span>
+        </div>
+        <p style="margin:8px 0 0;font-size:14.5px;color:var(--ink-2)">A U-Net trained on 2020 alone — the only
+        year with real hand labels. LOSO IoU 0.7299 / AUROC 0.9396.
+        <code>phase3_semantic_dev.py</code></p>
+      </div>
+      <div class="out">
+        <div class="label">Out</div>
+        <ul><li class="mono" style="font-size:12px">sem_best_2020.pt</li>
+            <li class="mono" style="font-size:12px">edmonds_canopy_mask_2020.tif</li></ul>
+      </div>
+    </div>
+
+    <div class="stage" style="border-color:var(--accent);border-width:2px">
+      <div class="in">
+        <div class="label">In</div>
+        <ul>
+          <li>Year's ortho</li>
+          <li>CHM (4th channel)</li>
+          <li><strong>2020 mask</strong> — coarse years</li>
+          <li>Crown polygons — fine years</li>
+        </ul>
+      </div>
+      <div>
+        <div class="proc-title">
+          <span class="num">4</span><h3>Per-year fine-tune</h3><span class="pill active">active</span>
+        </div>
+        <p style="margin:8px 0 0;font-size:14.5px;color:var(--ink-2)">Warm-starts from the 2020 model and
+        fine-tunes each acquisition, then infers over the whole city. Two label sources by resolution tier —
+        that split drives most Phase-4 behaviour.
+        <code>phase4_semantic_finetune.py</code> → <code>phase4seg/</code></p>
+      </div>
+      <div class="out">
+        <div class="label">Out</div>
+        <ul><li class="mono" style="font-size:12px">canopy_prob_{year}.tif</li>
+            <li class="mono" style="font-size:12px">canopy_mask_{year}.tif</li>
+            <li>Per-year eval rows</li></ul>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<section>
+  <div class="sec-head"><h2>The loop that shapes everything</h2></div>
+  <div class="card warnc">
+    <p style="margin:0 0 12px"><strong>Phase 3 predicts the 2020 canopy mask. Phase 4 then uses that mask as
+    ground-truth labels for every coarse year.</strong> In code:
+    <code>MASK_2020 = P3_DIR / "edmonds_canopy_mask_2020.tif"</code> feeding
+    <code>canopy_label_from_2020_mask()</code>.</p>
+    <p style="margin:0">Hand labels exist for five conifer sites, all mature stands. So whatever the 2020 model
+    fails to see, the mask omits; whatever the mask omits, no later year is ever taught. The blind spot doesn't
+    just persist across years — it is actively re-taught to each one. This is why measured accuracy barely
+    improves when the model architecture does.</p>
+  </div>
+</section>
+
+<section>
+  <div class="sec-head"><h2>Measurement layer</h2></div>
+  <p>A separate subsystem. It reads outputs and references; it never writes a training label. That boundary is
+  what keeps evaluation honest, and it is enforced by convention rather than by code — worth remembering before
+  wiring anything new.</p>
+  <div class="grid c2">
+    <div class="card">
+      <h3>Scoring</h3>
+      <ul class="tight" style="font-size:14.5px;color:var(--ink-2)">
+        <li><code>phase4_qc_indep.py</code> — recall / precision against C-CAP</li>
+        <li><code>phase4_qc_score.py</code> — against the NDVI+CHM reference</li>
+        <li><code>phase4_qc_inventory.py</code> — catches empty or partial rasters before they are scored</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h3>Diagnosis</h3>
+      <ul class="tight" style="font-size:14.5px;color:var(--ink-2)">
+        <li><code>phase4_ref_agreement.py</code> — splits the miss into real vs unmeasurable</li>
+        <li><code>phase4_qc_forest_misses.py</code> — why canopy is missed, by height and spectrum</li>
+        <li><code>phase4_qc_dashboard.py</code> — every live number on one page</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="sec-head"><h2>Where the evidence points</h2></div>
+  <div class="keyline">
+    <p style="margin:0"><strong>Not architecture.</strong> Three models with every structural advantage
+    (4-channel RGB+CHM, NIR, out-of-sample AUROC 0.953–0.954) score honest recall 0.65–0.66 — inside the same
+    band as far weaker years. Better models do not close the gap.</p>
+  </div>
+  <div class="keyline">
+    <p style="margin:0"><strong>Partly measurement.</strong> The two references contradict each other on
+    15–17% of pixels. Scored only where they agree, recall is 0.73–0.76 and precision 0.96–0.97. About a third
+    of the apparent miss cannot be attributed to the model at all.</p>
+  </div>
+  <div class="keyline">
+    <p style="margin:0"><strong>Mostly label distribution.</strong> Across five years, three sensors and two
+    recipes, recalled canopy averages ~24&nbsp;m and missed canopy ~12&nbsp;m — every time. The model learned
+    <em>tall&nbsp;=&nbsp;canopy</em>, because that is what the labels contain. The fix is targeted labels at
+    5–15&nbsp;m and deciduous canopy, not more data of the same kind.</p>
+  </div>
+</section>
+
+</div>

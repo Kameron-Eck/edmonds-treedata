@@ -297,6 +297,35 @@ files:   CLAUDE.md, pipeline_buildtracker.md, ../README.md, run_registry.csv (+7
 next:    logs/ do NOT stamp the engine version → a backfilled registry row can't state one.
          cheap fix when the engine is next edited: have write_step_log() emit the version.
 
+## 2026-08-17  P1 Colab driver + inventory false-positive fix
+goal:    Kam: give me a Colab execution script for P1's GPU work, be mindful of GPU usage.
+did:     NEW phase4_p1_colab_run.py — staged driver for the two rasters P1/P3 need (citywide 2022,
+         citywide 2017). GPU-MINDFUL BY DESIGN: (a) TRAINING SKIPPED — sem_best_2022_xsensor_train.pt
+         + sem_best_2017_xsensor_train.pt already exist, so --step inference only; (b) --infer-batch 32
+         (L4 24GB, cheapest tier) + warns if you booked A100/Blackwell for a job that doesn't need it;
+         (c) STAGE 0 costs NO GPU and can VETO the run; (d) cheap year (2022 coarse) before expensive
+         (2017 fine) so a broken recipe shows up on the cheap job; (e) every GPU stage verified
+         immediately (valid-frac + max-prob) — a bad raster ABORTS instead of licensing the next hour.
+         Ortho resolved via phase4seg.common.entry_for/resolve_native_path (torch-free) NOT a glob —
+         matters because 2022 has BOTH 2022_coe_rgb.tif and 2022_naip_rgbi.tif; catalog picks _coe_.
+         KEY: core.step_inference keys the CKPT off --run-tag (not --ckpt), so run-tag must match the
+         existing ckpt tag. Nothing overwritten.
+         FIXED phase4_qc_inventory.py FALSE POSITIVE: *_train / *_sample rasters infer over 373 fixed
+         C-CAP-stratified sample tiles (phase4_ccap_sample.py, locate-only) so 0.3-5% valid is CORRECT
+         → new verdict SPARSE_BY_DESIGN, not MOSTLY_NODATA. 5 of my 8 "problems" were false alarms.
+         ADDED _flag_outliers(): a flat floor can't see a partial run that clears it —
+         edmonds_canopy_prob_2015_citywide_rgb.tif is 7.4% valid and passed OK while sibling 2015
+         citywide rasters are 90.8% → new verdict SUSPECT_PARTIAL (compares each raster to the best
+         coverage for its own year; no per-year constant hardcoded).
+found:   REAL failures are only: prob_2022_xsensor_train.tif = 0 BYTES, prob_2017_xsensor_rgb.tif =
+         96.5% nodata, prob_2015_citywide_rgb.tif = 7.4% (new find). Everything else OK or sparse-by-design.
+decided: driver refuses to re-run blind — 2017 already "succeeded" once (log said 173MB ✓) and produced
+         an unscorable raster. If STAGE 0 finds the 2017 ORTHO itself mostly empty, it says re-running
+         inference CANNOT help (imagery problem, not compute) and vetoes rather than burning GPU.
+files:   NEW phase4_p1_colab_run.py; phase4_qc_inventory.py. Both py_compile OK.
+next:    Kam on Colab (L4): --stage 0 first, READ it, then --stage 1, then --stage 2.
+         Then local qc_indep on both + registry rows. Then P1b/P1c re-runs.
+
 ## 2026-08-17  P1 LANDED — scorers fail loud, provenance mandatory, QC CSVs have live/run_tag
 goal:    P1 of honest-measurement-overhaul: make the instruments trustworthy before measuring anything.
 did:     (1) FAIL-LOUD. New QCUnscorableError in phase4_qc_indep.py + phase4_qc_score.py; --min-valid-frac

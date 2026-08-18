@@ -42,6 +42,7 @@ import argparse
 import csv
 import datetime as _dt
 import importlib
+import re
 import subprocess
 import sys
 from pathlib import Path
@@ -69,8 +70,15 @@ MASKS    = BASE / "phase4" / "masks"
 LOGS_DIR = BASE / "Scripts" / "logs"
 
 # verdicts, worst first — drives both sort order and the exit code
-VERDICT_ORDER = ["EMPTY", "UNREADABLE", "MOSTLY_NODATA", "NO_CONFIDENCE", "OK"]
-BAD = {"EMPTY", "UNREADABLE", "MOSTLY_NODATA", "NO_CONFIDENCE"}
+VERDICT_ORDER = ["EMPTY", "UNREADABLE", "MOSTLY_NODATA", "NO_CONFIDENCE",
+                 "SUSPECT_PARTIAL", "SPARSE_BY_DESIGN", "OK"]
+BAD = {"EMPTY", "UNREADABLE", "MOSTLY_NODATA", "NO_CONFIDENCE", "SUSPECT_PARTIAL"}
+
+# Some rasters are SUPPOSED to be mostly nodata: the *_train / *_sample runs
+# infer over a fixed set of C-CAP-stratified sample tiles (phase4_ccap_sample.py,
+# locate-only), not the whole city, so ~0.3-5% valid is CORRECT for them. Calling
+# those "failed runs" is a false alarm that trains you to ignore the tool.
+SPARSE_BY_DESIGN = ("_train", "_sample")
 
 
 def inspect(path, min_valid_frac, sample):
@@ -113,7 +121,12 @@ def inspect(path, min_valid_frac, sample):
         row["max_prob"] = round(float(v.max()), 4)
         row["mean_prob"] = round(float(v.mean()), 4)
 
-    if row["valid_frac"] < min_valid_frac:
+    sparse_ok = any(k in path.stem for k in SPARSE_BY_DESIGN)
+    if row["valid_frac"] < min_valid_frac and sparse_ok:
+        row["verdict"] = "SPARSE_BY_DESIGN"
+        row["note"] = ("sample/train tile subset — sparse is CORRECT here; "
+                       "not citywide, do not score as a year")
+    elif row["valid_frac"] < min_valid_frac:
         row["verdict"] = "MOSTLY_NODATA"
         row["note"] = (f"{100*(1-row['valid_frac']):.1f}% nodata — failed or partial "
                        f"inference run; do NOT score")
@@ -122,6 +135,38 @@ def inspect(path, min_valid_frac, sample):
         row["note"] = (f"max prob {row['max_prob']:.3f} — model never confidently "
                        f"predicts canopy; suspect a broken run")
     return row
+
+
+def _flag_outliers(rows, ratio=0.5):
+    """Catch a partial run that clears the absolute floor but not its own siblings.
+
+    A flat --min-valid-frac cannot see this: edmonds_canopy_prob_2015_citywide_rgb
+    is 7.4% valid and passed as OK, while every other citywide 2015 raster is
+    ~90.8%. Same year, same ground — one of them did not finish. Comparing each
+    citywide raster against the best coverage achieved for that same year finds
+    it without hard-coding any per-year expectation.
+    """
+    best = {}
+    for r in rows:
+        if r["verdict"] in ("EMPTY", "UNREADABLE", "SPARSE_BY_DESIGN"):
+            continue
+        m = re.search(r"prob_(\d{4})", r["file"])
+        if not m or r["valid_frac"] != r["valid_frac"]:
+            continue
+        y = m.group(1)
+        best[y] = max(best.get(y, 0.0), r["valid_frac"])
+    for r in rows:
+        if r["verdict"] != "OK":
+            continue
+        m = re.search(r"prob_(\d{4})", r["file"])
+        if not m:
+            continue
+        top = best.get(m.group(1), 0.0)
+        if top > 0 and r["valid_frac"] < ratio * top:
+            r["verdict"] = "SUSPECT_PARTIAL"
+            r["note"] = (f"valid {100*r['valid_frac']:.1f}% vs {100*top:.1f}% for another "
+                         f"{m.group(1)} raster — likely an unfinished run")
+    return rows
 
 
 def _print_table(rows):
@@ -199,6 +244,7 @@ def main():
         print(f"    [{i}/{len(paths)}] {p.name}", flush=True)
         rows.append(inspect(p, args.min_valid_frac, args.sample))
 
+    rows = _flag_outliers(rows)
     rows = _print_table(rows)
     _write_csv(rows)
     write_step_log(rows)

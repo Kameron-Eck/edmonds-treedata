@@ -18,8 +18,11 @@
       BEFORE any accelerator work, and tells you whether a re-run can even
       help. If the 2017 ORTHO is itself mostly empty, no amount of GPU fixes
       it — the answer is imagery, not compute, and stage 0 says so.
-    * Cheap year first (2022, coarse) then the expensive fine years, so a
-      broken recipe surfaces on the cheap job.
+    * !! CATALOG NOTE: label "2022" = 2022_coe_rgb.tif @ 7.5 cm = 31.5 Gpx,
+      the SAME scale as 2017 — it is NOT a cheap coarse job. The 60 cm NAIP
+      acquisition is a SEPARATE label, "2022n" (0.1 Gpx, and it carries NIR).
+      If Phase 3 can use 2022n, stage 1 becomes ~300x cheaper. Decide before
+      spending GPU here.
     * Every GPU stage is VERIFIED immediately (valid fraction + prob range).
       A bad raster aborts the run instead of licensing the next hour.
     * Stages are independent and re-runnable, so a partial session is never a
@@ -98,7 +101,8 @@ ENGINE  = SCRIPTS / "phase4_semantic_finetune.py"
 JOBS = [
     dict(year="2022", ckpt_tag="xsensor_train",
          why="Phase-3 BLOCKER: no citywide 2022 prob raster exists",
-         cost="cheap (coarse ~60 cm)", replaces=None),
+         cost="EXPENSIVE (7.5 cm, 31.5 Gpx — SAME scale as 2017, NOT cheap)",
+         replaces=None),
     dict(year="2017", ckpt_tag="xsensor_train",
          why="replaces the 96.5%-nodata failed run",
          cost="EXPENSIVE (7.5 cm, ~3.2e10 px — the biggest job here)", replaces=None),

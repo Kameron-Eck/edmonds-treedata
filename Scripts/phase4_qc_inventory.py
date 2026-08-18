@@ -122,7 +122,14 @@ def inspect(path, min_valid_frac, sample):
         row["mean_prob"] = round(float(v.mean()), 4)
 
     sparse_ok = any(k in path.stem for k in SPARSE_BY_DESIGN)
-    if row["valid_frac"] < min_valid_frac and sparse_ok:
+    if row["valid_frac"] <= 0.0:
+        # "Sparse by design" never means ZERO valid pixels. A train/sample raster
+        # with no data at all is broken, not sparse — do not let the exemption
+        # hide it (edmonds_canopy_prob_2022_xsensor_train.tif, 0.0% valid).
+        row["verdict"] = "EMPTY"
+        row["note"] = ("no valid pixels at all — broken regardless of tiling; "
+                       "if this file is on Drive, also confirm it is not still syncing")
+    elif row["valid_frac"] < min_valid_frac and sparse_ok:
         row["verdict"] = "SPARSE_BY_DESIGN"
         row["note"] = ("sample/train tile subset — sparse is CORRECT here; "
                        "not citywide, do not score as a year")

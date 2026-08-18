@@ -147,6 +147,10 @@ def dn_to_height_m(dn):
 
 
 # ── streaming accumulator (mean/std via sums; percentiles via histograms) ──────
+# Height bands for the stratified-recall table (metres, CHM DN-derived).
+# Deliberately narrow through 5-20 m, where the P1c miss concentrates.
+HEIGHT_BINS = [0, 2, 5, 10, 15, 20, 25, 30, 100]
+
 METRICS = ["prob", "R", "G", "B", "brightness", "saturation", "NDVI", "GRVI", "height_m"]
 HIST_SPEC = {              # metric -> (lo, hi, nbins)
     "prob":       (0.0, 1.0, 50),
@@ -210,6 +214,8 @@ def analyse(year, ref_path, prob_path, thresh, forest_codes, block_rows, coarse,
 
     thr_u8 = thresh * 254.0
     tp, fn = Acc(), Acc()
+    h_tp = np.zeros(len(HEIGHT_BINS) - 1, dtype=np.int64)
+    h_fn = np.zeros(len(HEIGHT_BINS) - 1, dtype=np.int64)
     n_tp = n_fn = forest_total = 0
 
     with rasterio.open(img_path) as img, rasterio.open(prob_path) as prob:
@@ -275,6 +281,22 @@ def analyse(year, ref_path, prob_path, thresh, forest_codes, block_rows, coarse,
                 acc.add("saturation", sat[mask]); acc.add("NDVI", ndvi[mask])
                 acc.add("GRVI", grvi[mask]); acc.add("height_m", hgt[mask])
 
+            # HEIGHT-STRATIFIED RECALL — the 2026-08-18 P1c result is that the
+            # ONE thing invariant across every year/sensor/recipe is height:
+            # recalled canopy ~24 m, missed ~12 m. Mean heights show that a gap
+            # exists; recall PER HEIGHT BAND shows its SHAPE, and is the only
+            # way to tell a genuine fix (the curve lifts at 5-15 m) from a model
+            # that merely got more liberal (the curve lifts everywhere).
+            for arr, mask in ((h_tp, is_tp), (h_fn, is_fn)):
+                if not mask.any():
+                    continue
+                hv = hgt[mask]
+                hv = hv[np.isfinite(hv)]
+                if hv.size:
+                    idx = np.clip(np.digitize(hv, HEIGHT_BINS) - 1,
+                                  0, len(HEIGHT_BINS) - 2)
+                    arr += np.bincount(idx, minlength=len(HEIGHT_BINS) - 1)
+
             n_tp += int(is_tp.sum()); n_fn += int(is_fn.sum())
             forest_total += int(forest.sum())
 
@@ -307,7 +329,8 @@ def analyse(year, ref_path, prob_path, thresh, forest_codes, block_rows, coarse,
     _write_density(year, c_forest, c_fn, coarse_tf, coarse_crs, coarse)
     _report(year, ref_path, prob_path, thresh, forest_codes,
             tp, fn, n_tp, n_fn, forest_total,
-            stable_path=stable_path, chm_path=chm_path, indep_cells=indep_cells)
+            stable_path=stable_path, chm_path=chm_path, indep_cells=indep_cells,
+            h_tp=h_tp, h_fn=h_fn)
     return dict(year=year, tp=tp, fn=fn, n_tp=n_tp, n_fn=n_fn, forest_total=forest_total,
                 recall=(n_tp / (n_tp + n_fn) if (n_tp + n_fn) else float("nan")))
 
@@ -412,7 +435,8 @@ def _indep_cells(px, prob_ds, ref_ds):
 
 
 def _report(year, ref_path, prob_path, thresh, forest_codes, tp, fn, n_tp, n_fn, forest_total,
-            stable_path=None, chm_path=None, indep_cells=float("nan")):
+            stable_path=None, chm_path=None, indep_cells=float("nan"),
+            h_tp=None, h_fn=None):
     recall = n_tp / (n_tp + n_fn) if (n_tp + n_fn) else float("nan")
     L = [f"FOREST-MISS AUTOPSY — year {year}  (why upland forest is under-predicted)",
          f"  ref   : {ref_path}   (forest codes {forest_codes})",
@@ -456,6 +480,18 @@ def _report(year, ref_path, prob_path, thresh, forest_codes, tp, fn, n_tp, n_fn,
     b1 = core[:3].sum() / tot; b2 = core[3:6].sum() / tot
     thr_bin = int(np.clip(thresh * nb, 0, nb))
     b3 = core[6:thr_bin].sum() / tot
+    if h_tp is not None and h_fn is not None and (h_tp.sum() + h_fn.sum()) > 0:
+        L += ["", "  RECALL BY CANOPY HEIGHT (the P1c invariant, made explicit):",
+              "    band        recall     recalled / missed"]
+        for i in range(len(HEIGHT_BINS) - 1):
+            t, f = int(h_tp[i]), int(h_fn[i])
+            if t + f == 0:
+                continue
+            lo, hi = HEIGHT_BINS[i], HEIGHT_BINS[i + 1]
+            band = f"{lo:>2}-{hi:<3}m" if hi < 100 else f"{lo:>2}+   m"
+            L.append(f"    {band:<11} {t/(t+f):.4f}    {t:>13,} / {f:<13,}")
+        L.append("    ^ A REAL fix lifts the 5-15 m bands. A model that merely got more")
+        L.append("      liberal lifts every band (and precision falls).")
     L += ["",
           "  MISS DEPTH (model confidence on missed forest):",
           f"    prob<0.06 : {100*b1:>5.1f}%     0.06–0.12 : {100*b2:>5.1f}%     "

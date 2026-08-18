@@ -323,6 +323,33 @@ files:   CLAUDE.md, pipeline_buildtracker.md, ../README.md, run_registry.csv (+7
 next:    logs/ do NOT stamp the engine version → a backfilled registry row can't state one.
          cheap fix when the engine is next edited: have write_step_log() emit the version.
 
+## 2026-08-18  P2 LANDED — 38.7% of the "miss" is UNMEASURABLE. Honest recall .6564 -> .7378.
+goal:    /loop autonomous. Build + run P2 (reference-disagreement map) — the experiment the 2022n
+         systematic-gap finding made urgent.
+did:     NEW phase4_ref_agreement.py (local, rasterio-only, fail-loud). Warps NDVI+CHM ref AND C-CAP onto
+         the prob grid; partitions every valid px into BOTH_CANOPY / BOTH_NONCANOPY / NDVI_only / CCAP_only;
+         re-scores the model inside each; splits the headline C-CAP FN into REAL vs UNMEASURABLE.
+         Ran on 2022n (ideal case: has BOTH refs + a healthy prob raster @ thresh .404).
+found:   ** REFS DISAGREE ON 16.00% OF ALL VALID PIXELS ** (NDVI-only 10.27%, C-CAP-only 5.73%).
+         MODEL ON THE BOTH-AGREE SUBSET: recall .7378 / precision .9567
+           vs raw C-CAP:                  recall .6564 / precision .8630
+           => +8.1 pts recall, +9.4 pts precision once reference noise is removed.
+         HEADLINE FN (9,624,102 px vs C-CAP) SPLITS:
+           REAL MISS   (both refs agree canopy) 5,895,445 = 61.3%
+           UNMEASURABLE(refs disagree)          3,728,657 = 38.7%
+         Model canopy-call by partition: both_canopy 73.78% · ccap_only 32.55% · ndvi_only 21.89% ·
+         both_noncanopy 1.28% (i.e. the model is VERY clean on agreed negatives — its precision was
+         being understated by reference noise nearly as much as its recall).
+decided: ~2/5 of the apparent under-prediction is NOT attributable to the model. The honest, noise-reduced
+         recall for the best model is .7378, not .6564.
+         CAVEAT (state it, never bury it): the both-agree subset is EASIER BY CONSTRUCTION — it is the
+         canopy both proxies can see. .7378 is a favourable-subset number, NOT ground truth. The 16%
+         disagreement zone stays unmeasurable until humans look at it => this is now the SHARPEST
+         argument for P3, and P3 should oversample the DISAGREE zone.
+files:   NEW phase4_ref_agreement.py; qc/ref_agreement_2022n.{txt,csv}; qc/ref_agreement_report.csv.
+next:    run P2 on 2016 + 2019n (the other NIR years with NDVI refs) to see if 16% disagreement holds;
+         then P1c miss-depth; then P4 visuals.
+
 ## 2026-08-18  KEY FINDING — the BEST model still under-predicts ~34%. Gap is SYSTEMATIC, not model quality.
 goal:    /loop autonomous. First honest score of 2022n (the year that just unblocked Phase 3).
 did:     phase4_qc_indep.py --year 2022n --ref ccap_2021_hires_lc.tif --thresh 0.404 (its best-F1).

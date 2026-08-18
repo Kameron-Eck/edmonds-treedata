@@ -323,6 +323,27 @@ files:   CLAUDE.md, pipeline_buildtracker.md, ../README.md, run_registry.csv (+7
 next:    logs/ do NOT stamp the engine version → a backfilled registry row can't state one.
          cheap fix when the engine is next edited: have write_step_log() emit the version.
 
+## 2026-08-18  KEY FINDING — the BEST model still under-predicts ~34%. Gap is SYSTEMATIC, not model quality.
+goal:    /loop autonomous. First honest score of 2022n (the year that just unblocked Phase 3).
+did:     phase4_qc_indep.py --year 2022n --ref ccap_2021_hires_lc.tif --thresh 0.404 (its best-F1).
+found:   2022n HONEST (vs C-CAP 2021, forest_wetland): recall .6564 / precision .8630 / grass-reject .9384.
+         model canopy 22.09%; ref canopy 29.04%; 34.7M independent 1m cells.
+         ** THIS IS THE POINT **: 2022n is the STRONGEST model in the project — 4-channel rgb+chm, has NIR,
+         out-of-sample IoU .6432, AUROC .9538, AP .8257, healthy calibration (max prob .972). Every advantage
+         the other years lack. Its honest recall is .6564 — squarely inside the existing .51-.71 band
+         (2013 .7094, 2016 .6844, 2000 .6303, 2015 .6222, 2002 .5069).
+         Same scrub collapse: .2246 (2016 was .2549). Same threshold ceiling: sweep .5->.2 moves recall only
+         .6199 -> .7105 (2016 was .669 -> .747).
+decided: IF the ~30-35% gap were mainly MODEL QUALITY, an AUROC-.954 model would have closed it. IT DID NOT.
+         => the gap is SYSTEMATIC. Two candidates: (a) C-CAP over-calls forest vs what is actually visible in
+         the imagery, (b) every model inherits the same blind spot from the shared 2020-mask labels.
+         P2 (ref-disagreement) is the experiment that separates these — its motivation is now much stronger
+         than when the plan was written. P3 (human sample) is what finally adjudicates (a).
+         COROLLARY: retraining 2017 to fix its .575 calibration would make 2017 comparable to the others —
+         it would NOT close the 34% gap. Do not sell a retrain as a fix for under-prediction.
+files:   qc/qc_indep_2022n.txt, qc/qc_indep_surfaces_2022n.csv, qc_indep_report.csv (live row added).
+next:    score 2017 (expect low recall — weak ckpt, max prob .575); then P2.
+
 ## 2026-08-18  P1 COLAB RUN #2 WORKED — 2022n DONE (Phase-3 unblocked), 2017 FIXED but weakly calibrated
 goal:    Re-run P1 GPU work on the rewritten driver (9c205ab/3be1faa) after the 4h zero-output failure.
 did:     Driver behaved: output STREAMED live, per-stage verify ran, overwrite warning fired before stage 3.

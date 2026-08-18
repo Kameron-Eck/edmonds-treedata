@@ -221,36 +221,40 @@ docs:    SOURCES OF TRUTH CENTRALIZED 2026-07-06. HANDOFFS RETIRED (5 old ones �
 measure: ACTIVE WORKSTREAM (opened 2026-08-17). PLAN = Scripts/honest-measurement-overhaul.md.
          WHY: Kam — "became too reliant on AI judgement"; wants defensible numbers + better
          tests/visuals. FOUR PHASES, run order 1 -> 2 -> 4 -> 3 (Kam's choice).
-         ---- RESUME HERE  (updated 2026-08-18, Kam away ~1-2 days) ----
-         P1 Trust the instruments   ~85% DONE. 2022n + 2017 rasters landed; 2017 score in flight.
-         P2 Ref-disagreement map    ** DONE for 2016 + 2022n ** (phase4_ref_agreement.py). REPLICATES.
-         P4 Visuals                 NOT STARTED. Local. Read phase4_viz.py / phase4_qa_overlay.py /
-                                    phase4_sentinel_snap.py FIRST — much may already exist.
-         P3 Human sample            NOT STARTED. REDESIGN IT: oversample the ~15-16% DISAGREE zone,
-                                    which is where neither proxy can settle the question. 250pts x
-                                    2000/2016/2022n. Needs Kam ~5h.
-         ---- THE HEADLINE RESULT (2026-08-18) ----
-         (1) THE GAP IS SYSTEMATIC. 2022n is the strongest model in the project (out-of-sample AUROC
-         .9538, AP .8257, 4-ch rgb+chm, NIR, max prob .972) and its honest recall is .6564 — INSIDE the
-         same .51-.71 band as far weaker years. A better model did NOT close the gap.
-         (2) ~1/3 OF THE "MISS" IS NOT MEASURABLE. P2 replicates across 2 sensors + 2 C-CAP vintages:
-                                2016      2022n
-           refs disagree        15.06%    16.00%   of all valid px
-           raw C-CAP recall     .6844     .6564
-           BOTH-AGREE recall    .7613     .7378
-           BOTH-AGREE precision .9699     .9567
-           FN unmeasurable      33.1%     38.7%
-           FP on agreed neg     1.05%     1.28%
-         => the model's TRUE precision is ~.96-.97, not ~.86. CAVEAT: the both-agree subset is EASIER
-         by construction, so .74-.76 is a favourable-subset number, NOT ground truth. Only P3 settles it.
-         ---- COLAB (unattended, started by Kam before leaving) ----
-         phase4_train_queue.py, LAUNCH DETACHED via nohup (with %run a websocket blip SIGINTs the kernel
-         and kills it — that happened 2026-08-18 at 18s). Queue: [2019n, 2021s] = more NIR years to test
-         whether ~15-16% disagreement generalises; [2016c] = 2016 + --add-canopy-mask = THE HYPOTHESIS
-         TEST (closes gap => LABEL problem; doesn't => labels exonerated, references carry the story).
-         MONITOR: phase4/qc/train_queue_status.csv (one row per step, on Drive) and
-         Scripts/logs/train_queue_nohup.log. Score each output LOCALLY when it lands — no GPU needed:
-         phase4_qc_indep.py then phase4_ref_agreement.py (NIR years only).
+         ---- RESUME HERE  (updated 2026-08-18 end-of-day; Kam away) ----
+         P1 Trust the instruments   DONE. Scorers fail loud; live/run_tag on QC CSVs; mask inventory;
+                                    provenance stamped; 2017 + 2022n + 2019n + 2021s rasters produced
+                                    and scored; P1b/P1c complete on the full-forest denominator.
+         P2 Ref-disagreement map    DONE + REPLICATED x4 (2016, 2019n, 2021s, 2022n).
+         P4 Visuals                 dashboard + height-curve plot DONE. REMAINING: sentinel TP/FN/FP
+                                    site overlays (needs footprint resolution from photos/ — wants Kam).
+         P3 Human sample            NOT STARTED — and it is now THE blocker for every open decision.
+                                    Stratify by BOTH the ~16% disagreement zone AND CHM height band.
+         ---- THE THREE RESULTS THAT MATTER ----
+         (1) DETECTION IS A FUNCTION OF CANOPY HEIGHT. 2016 baseline recall by band: .16 (0-2m) .16
+         (2-5) .36 (5-10) .57 (10-15) .74 (15-20) .83 (20-25) .88 (25-30) .93 (30+). 5-15m holds 53%
+         of ALL missed px. Lifting those two bands to the 20-25m rate takes recall .68 -> ~.80.
+         See qc/height_curves.png.
+         (2) THE DEFICIT IS INHERITED, NOT DEVELOPED. phase3/edmonds_canopy_mask_2020.tif — the LABEL
+         SOURCE for every coarse year — has the SAME staircase and is BELOW its own student at every
+         band (.5455 overall vs the 2016 model's .6821). Coarse years are TAUGHT the blind spot.
+         Improving that one mask lifts every coarse year at once = the highest-leverage target.
+         (3) MODEL STRENGTH DOES NOT MOVE THE NUMBER. 9 live years span IoU .49-.76 / AUROC .938-.954
+         yet honest recall stays pinned .51-.78 with NO correlation to model quality.
+         ---- WHAT IS BLOCKED ON P3 ----
+         * 2016c deploy/no-deploy. Corrected labels: recall .6844->.8718 but precision .8651->.7296.
+         On the BOTH-AGREE subset it is clearly better (F1 .853->.937, precision only -.045). The
+         overlay transferred the NDVI reference's canopy DEFINITION (model canopy 35.28% vs that
+         reference's 37.7%, vs C-CAP's 29.5%). Grass regression is ~73% contested / ~27% genuine.
+         Whether 2016c is "better" or "over-predicting" lives ENTIRELY in the contested ~16%.
+         * Which reference is right. 4 P2 runs: refs disagree on 15-17% EVERY time; NDVI ref is
+         systematically more liberal (ndvi_only 10-14% vs ccap_only 1.9-5.7%); on 2021s they differ by
+         12 points on the SAME year and ground, so it is not vintage drift.
+         ---- TOOLS BUILT THIS SESSION (all local, no GPU) ----
+         phase4_ref_agreement.py · phase4_qc_inventory.py · phase4_qc_dashboard.py ·
+         phase4_qc_height_curve.py (decimated, imagery-free) · phase4_qc_height_plot.py ·
+         phase4_train_queue.py (unattended Colab) · phase4_p1_colab_run.py ·
+         Scripts/pipeline_architecture.html (self-contained architecture map, no external deps)
          ---- LOCAL ENV ----
          CUDA now works locally: torch 2.13.0+cu126, Quadro T2000 4GB (CLAUDE.md says 2GB — STALE),
          3.45GB free, verified. Still do NOT train locally (rule: don't split training Colab/local).

@@ -233,7 +233,7 @@ measure: ACTIVE WORKSTREAM (opened 2026-08-17). PLAN = Scripts/honest-measuremen
            P1 DONE · P2 DONE + replicated x4 · P4 dashboard + height plot DONE
            P4 REMAINING: sentinel TP/FN/FP site overlays (needs footprint resolution from photos/)
            P3 TOOLING BUILT, NOT YET RUN BY A HUMAN. Samples drawn for 2016 / 2022n / 2000.
-         ---- THE FOUR RESULTS THAT MATTER ----
+         ---- THE FIVE RESULTS THAT MATTER ----
          (1) DETECTION IS A FUNCTION OF CANOPY HEIGHT. 2016: .16 (0-2m) .16 (2-5) .36 (5-10) .57
          (10-15) .74 (15-20) .83 (20-25) .88 (25-30) .93 (30+). 5-15m holds 53% of ALL misses;
          lifting those two bands to the 20-25m rate takes recall .68 -> ~.80. qc/height_curves.png
@@ -248,6 +248,32 @@ measure: ACTIVE WORKSTREAM (opened 2026-08-17). PLAN = Scripts/honest-measuremen
          the 2016 model's .6821). Improving that one mask lifts every coarse year at once.
          (4) MODEL STRENGTH DOES NOT MOVE THE NUMBER. 9 years span IoU .49-.76 / AUROC .938-.954;
          honest recall stays .51-.78 with no correlation.
+         (5) ** U2 IS A DEFINITION PROBLEM, NOT AN ACCURACY PROBLEM (2026-08-18, latent class). **
+         Foody-2022 LCA on C-CAP x NDVI-ref x model, fitted WITHIN CHM height bands.
+         4 baseline yrs give latent prevalence pi = .2912 / .2820 (2021s) / .2931 (2019n) /
+         .2863 (2022n) — i.e. ON C-CAP's total (.265-.295), NOT the NDVI ref's (.338-.387).
+         Global se/sp 2016: ccap .894/.951 · ndvi_ref .987/.873 · model .750/.992. So the NDVI
+         ref is HIGH-SENSITIVITY / LOW-SPECIFICITY (liberal) and the model is the STRICTEST of
+         the three — a new instrument reproducing "high-precision under-predictor".
+         BUT the two candidate answers are two DEFINITIONS, not a right and a wrong one: the
+         NDVI ref's surplus concentrates in the 2-5m band (its sp .78, lowest of any cell) =
+         shrubs/hedges. If U1 counts woody veg >=2m, pi ~ .35 is correct; if U1 requires tree
+         form, pi ~ .29 is correct. NO ESTIMATOR CAN SETTLE THAT — U1 does. That is the finding.
+         (5b) THE INSTRUMENT SELF-DIAGNOSED ITS OWN LIMIT. Feeding the CORRECTED 2016 model
+         instead of the baseline moves pi .2912 -> .3490 and hands that model se .948/sp .966
+         (best of the three) — because 2016c was TRAINED on the NDVI-derived overlay, so it is
+         not a third independent test. Latent prevalence must not depend on which model you
+         score; it moved 5.8pp. => LCA IS INADMISSIBLE FOR THE 2016c DEPLOY DECISION, in EITHER
+         direction. Do not quote 2016c's LCA win as evidence to deploy.
+         (5c) ADVERSARIAL TEST PASSED. Competing account: model+C-CAP are the correlated pair,
+         they out-vote the NDVI ref, truth really is .378. Simulated that world holding the
+         observed call rates fixed: NO dependence strength reproduces the observed
+         (pi .291, ndvi sp .873) pair, and rho=.7 needs the model's TRUE sensitivity to be
+         .115. The account fails. -> phase4_qc_latent_class_adversarial.py
+         CAVEATS THAT RIDE WITH (5): do NOT quote the 0-2m row (the NDVI ref requires >=2m BY
+         CONSTRUCTION); do NOT quote tall-band C-CAP sp (30+ sp .36 rides on a ~5% non-canopy
+         sliver); no goodness-of-fit exists (7 params on 7 d.f. = just-identified, fits exactly
+         by construction); 2022n ndvi se dips to .911 (the one wobble, not a finding).
          ---- LITERATURE (37 papers, IDs 69-105, searches 9-14) — TWO CORRECTIONS TO ME ----
          FOODY 2010: I claimed raw scores overstate the model's faults. Direction depends on ERROR
          CORRELATION; ours are almost certainly correlated (labels + both refs all from interpreting
@@ -271,11 +297,10 @@ measure: ACTIVE WORKSTREAM (opened 2026-08-17). PLAN = Scripts/honest-measuremen
          delta-method approximation. WAGNER & STEHMAN 2015/2024 give a principled allocation; my
          shares were ad hoc.
          ---- CHEAPEST NEXT MOVES (all local, no GPU, no labelling) ----
-         1. FOODY 2022 LATENT-CLASS on C-CAP x NDVI-ref x model — gives each source a sensitivity and
-            specificity with NO gold standard. Could partially resolve "which reference is right"
-            before any human hours. Highest value per minute.
-         2. Simulate the ACTUAL stratified design's expected CI (see (c)).
-         3. Write the canopy definition (U1).
+         1. [DONE 2026-08-18] FOODY 2022 LATENT-CLASS — see result (5) below.
+         2. Simulate the ACTUAL stratified design's expected CI (see (c)).  <-- NOW #1
+         3. Write the canopy definition (U1). Result (5) RAISED its stakes: U1 alone decides
+            whether Edmonds canopy is ~29% or ~35%. Write it against that bracket.
          4. P1c per-year miss-depth under ONE recipe (--force-citywide) for U4 (labels vs calibration).
          ---- P3 COMMANDS (tooling is built and validated) ----
          py -3.12 phase4_accuracy_sample.py --step serve --year 2016             --ortho "D:\edmonds-pipeline\Imagery6_snoh_rgbi.tif"
@@ -312,6 +337,44 @@ gotcha:  scripts Colab-only for torch (rasterio+geopandas+fiona+sklearn now pip-
          accept-all test data; 14,476-crown human review never finished.
 
 ════════════════ LOG  (newest first) ════════════════
+
+## 2026-08-18  U2 REFRAMED — the reference dispute is a DEFINITION dispute, and LCA proved its own limit
+goal:    run cheapest-next-move #1: Foody-2022 latent class on C-CAP x NDVI-ref x model.
+         Give each source a sensitivity/specificity with NO gold standard, before spending
+         human hours on P3. Local, no GPU, no labelling.
+did:     NEW Scripts/phase4_qc_latent_class.py — 2-class 3-indicator LCA by EM, fitted
+         globally AND within each CHM height band, 95% CIs from a SPATIAL BLOCK BOOTSTRAP
+         (64-cell blocks; binomial CIs on 21M autocorrelated px would be fiction).
+         Band-conditioning is not decoration: height drives every source's error rate, so
+         conditioning on it absorbs much of the shared dependence between sources.
+         Ran 5 configs -> phase4/qc/latent_class_{2016_baseline,2016_corrected,2021s,
+         2019n,2022n}.txt/.csv
+VALIDATED BEFORE TRUSTING (both committed, both runnable):
+         phase4_qc_latent_class_test.py — recovers known truth to <.002 on synthetic data,
+         stable across 12 seeds (spread 7e-11), and CONFIRMS the just-identified claim
+         (reproduces the 8-cell table to 9e-12 — so a perfect fit is arithmetic, not evidence).
+         Its rho-sweep also MEASURES the failure mode: correlate 2 sources and the odd one
+         out loses .07-.12 of sensitivity while the pair is flattered.
+         phase4_qc_latent_class_adversarial.py — see result (5c) in STATE.
+RESULT: see STATE result (5)/(5b)/(5c). Headline = pi ~ .29 across 4 baseline years, on
+         C-CAP's total, not the NDVI ref's; the NDVI ref is liberal and its surplus sits in
+         the 2-5m band (shrubs/hedges); the model is the strictest of the three.
+         The two answers are TWO DEFINITIONS. U1 decides, no estimator can.
+decided: nothing deployed, nothing in the plan edited, no §4 amendment applied (those are
+         Kam's sign-off). Measurement only, as with U3.
+killed:  "LCA can arbitrate the 2016c deploy" — DEAD, and killed empirically not in
+         principle: swapping baseline->corrected moves latent pi 5.8pp because 2016c
+         descends from the NDVI ref. Do not retry LCA on any NDVI-descended model.
+         "latent truth sits on C-CAP, so C-CAP is the better reference" — NOT claimed.
+         Prevalence agreement is not accuracy; C-CAP hits the right TOTAL while making both
+         errors (se .70 at 5-10m). Two of three sources share a strict definition and the
+         latent class inherits the majority definition (Gutierrez-Velez 2024, ID 81).
+files:   Scripts/phase4_qc_latent_class.py (new) · Scripts/phase4_qc_latent_class_test.py
+         (new) · Scripts/phase4_qc_latent_class_adversarial.py (new) ·
+         phase4/qc/latent_class_*.txt/.csv (5 pairs) · CHATLOG STATE measure: block.
+next:    U1 canopy definition, now with a number attached to it (.29 vs .35 turns on it).
+         Then cheapest-move #2 (simulate the stratified design's real CI). P3 unchanged and
+         still gated on U1.
 
 ## 2026-08-18  U3 ANSWERED — the height staircase SURVIVES reference disagreement (it is real)
 goal:    run the cheapest free instrument named in the 2026-08-18 assessment: cross P1c

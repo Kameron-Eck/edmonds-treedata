@@ -57,6 +57,7 @@ import datetime as _dt
 import io
 import subprocess
 import sys
+import threading
 from pathlib import Path
 
 _COLAB_BASE = Path("/content/drive/MyDrive/treedata")
@@ -71,6 +72,13 @@ ENGINE  = SCRIPTS / "phase4_semantic_finetune.py"
 STATUS  = QC_DIR / "train_queue_status.csv"
 
 STEPS = ["labels", "tile", "train", "evaluate", "inference"]
+
+# Per-step wall-clock ceilings, in MINUTES. Deliberately generous — these exist
+# to break a genuine hang, never to cut short a slow-but-working step. Reference
+# points from real runs: 2022n full path ~55 min total; a 7.5cm inference ran
+# 255 min. Coarse years are far smaller than either.
+STEP_TIMEOUT_MIN = {"labels": 45, "tile": 90, "train": 240,
+                    "evaluate": 60, "inference": 240}
 
 # Cheapest / most informative first. Every entry is a COARSE year (~1h).
 JOBS = [
@@ -94,6 +102,41 @@ JOBS = [
                 "re-run; the tile signature includes --add-canopy-mask, so it "
                 "auto-retiles."),
 ]
+
+
+def _completed_steps():
+    """(job_id, step) pairs already recorded OK, so a restart does not redo them.
+
+    The engine's labels/tile steps are idempotent and train/evaluate/inference
+    write tagged outputs, so skipping a previously-OK step is safe and turns a
+    dead runtime into a cheap restart instead of starting from zero.
+    """
+    done = set()
+    if not STATUS.exists():
+        return done
+    try:
+        for r in csv.DictReader(io.open(STATUS, encoding="utf-8", newline="")):
+            if r.get("state") == "OK" and r.get("step") in STEPS:
+                done.add((r.get("job"), r.get("step")))
+    except Exception as e:                                      # noqa: BLE001
+        print(f"  ! WARN could not read prior status ({e}); starting fresh.")
+    return done
+
+
+def _prior_rows():
+    """Load the existing status table so a RESTART APPENDS instead of erasing.
+
+    _status_write() rewrites the whole file, so starting from an empty list
+    would destroy the record of everything the previous runtime did — exactly
+    the history this file exists to preserve.
+    """
+    if not STATUS.exists():
+        return []
+    try:
+        return list(csv.DictReader(io.open(STATUS, encoding="utf-8", newline="")))
+    except Exception as e:                                      # noqa: BLE001
+        print(f"  ! WARN could not read prior status ({e}); starting a fresh table.")
+        return []
 
 
 def _hr(t=""):
@@ -131,13 +174,40 @@ def run_step(job, step, infer_batch, rows):
     _status_write(rows)
 
     t0 = _dt.datetime.now()
+    budget = STEP_TIMEOUT_MIN.get(step, 240)
+    timed_out = {"hit": False}
     try:
         proc = subprocess.Popen(cmd, cwd=str(SCRIPTS), stdout=subprocess.PIPE,
                                 stderr=subprocess.STDOUT, text=True,
                                 bufsize=1, errors="replace")
-        for line in proc.stdout:
-            print("    | " + line.rstrip(), flush=True)
-        rc = proc.wait()
+
+        # Watchdog: stdout is streamed in this thread, so a hung child would
+        # block forever. Kill it past the budget so the QUEUE survives one
+        # stuck step instead of stalling until the runtime dies.
+        def _kill_on_timeout():
+            timed_out["hit"] = True
+            print(f"\n  ! TIMEOUT: {job['id']}/{step} exceeded {budget} min — killing it "
+                  f"and moving on. This is a hang guard, not a normal outcome.", flush=True)
+            try:
+                proc.kill()
+            except Exception:
+                pass
+
+        wd = threading.Timer(budget * 60, _kill_on_timeout)
+        wd.daemon = True
+        wd.start()
+        try:
+            for line in proc.stdout:
+                print("    | " + line.rstrip(), flush=True)
+            rc = proc.wait()
+        finally:
+            wd.cancel()
+        if timed_out["hit"]:
+            rec.update(state="TIMEOUT", exit="killed",
+                       detail=f"exceeded {budget} min budget",
+                       minutes=round((_dt.datetime.now()-t0).total_seconds()/60, 1))
+            _status_write(rows)
+            return False
     except KeyboardInterrupt:
         try:
             proc.terminate(); proc.wait(timeout=30)
@@ -212,6 +282,8 @@ def main():
     ap.add_argument("--infer-batch", type=int, default=32)
     ap.add_argument("--only", default=None, help="Run just this job id.")
     ap.add_argument("--skip", default="", help="Comma-separated job ids to skip.")
+    ap.add_argument("--no-resume", action="store_true",
+                    help="Re-run every step even if a prior run recorded it OK.")
     ap.add_argument("--dry-run", action="store_true",
                     help="Print the plan and the exact commands; spend nothing.")
     args = ap.parse_args(filtered)
@@ -247,13 +319,20 @@ def main():
     if not ENGINE.exists():
         raise SystemExit(f"engine missing: {ENGINE}")
 
-    rows = []
+    rows = _prior_rows()
+    done = set() if args.no_resume else _completed_steps()
+    if done:
+        print(f"\n  RESUME: {len(done)} step(s) already OK in {STATUS.name} will be SKIPPED.")
+        print(f"          (pass --no-resume to force everything to re-run)")
     t_all = _dt.datetime.now()
     for j in todo:
         _hr(f"JOB {j['id']}  (year {j['year']}, tag {j['tag']})")
         print(f"  {j['why']}")
         ok = True
         for st in STEPS:
+            if (j["id"], st) in done:
+                print(f"  - skip {j['id']}/{st} (already OK)")
+                continue
             if not run_step(j, st, args.infer_batch, rows):
                 print(f"  ! {j['id']} failed at step '{st}'. "
                       f"Recording and moving to the NEXT JOB (queue is unattended).")

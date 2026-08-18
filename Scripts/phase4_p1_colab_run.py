@@ -3,9 +3,10 @@
   PHASE 4 — P1 COLAB RUN DRIVER   (honest-measurement-overhaul, Phase 1)
   Edmonds Temporal Active Learning Pipeline
 
-  ONE Colab session that produces the two prob rasters P1/P3 are blocked on:
+  ONE Colab session that produces the three prob rasters P1/P3 need:
       2022  citywide  → unblocks the Phase-3 stratified sample (250 pts × 3 yr)
       2017  citywide  → replaces the failed run (96.5% nodata)
+      2015  citywide  → replaces the unfinished run (7.4% valid vs 90.8%)
 
   ── WHY A DRIVER AND NOT JUST TWO %run LINES ──────────────────────────────
   The 2017 run ALREADY "succeeded" once: its log said "173 MB ✓, 19.3 min"
@@ -17,12 +18,14 @@
       BEFORE any accelerator work, and tells you whether a re-run can even
       help. If the 2017 ORTHO is itself mostly empty, no amount of GPU fixes
       it — the answer is imagery, not compute, and stage 0 says so.
-    * Cheap year first (2022, coarse) then expensive (2017, fine), so a
+    * Cheap year first (2022, coarse) then the expensive fine years, so a
       broken recipe surfaces on the cheap job.
     * Every GPU stage is VERIFIED immediately (valid fraction + prob range).
       A bad raster aborts the run instead of licensing the next hour.
-    * Stages are independent and re-runnable; nothing is overwritten
-      (--run-tag), so a partial session is never a lost session.
+    * Stages are independent and re-runnable, so a partial session is never a
+      lost session. Stages 1-2 write NEW filenames and overwrite nothing;
+      stage 3 DOES overwrite the broken 2015 raster it exists to replace, and
+      says so before running.
 
   ── GPU BUDGET (the point of the exercise) ────────────────────────────────
     Training is SKIPPED entirely — sem_best_2017_xsensor_train.pt and
@@ -35,9 +38,11 @@
     Do NOT select A100/Blackwell for this; there is nothing here that needs
     them.
 
-    Rough expectation: 2022 (60 cm, coarse) minutes. 2017 (≈15 cm, fine) is
-    ~30-60 min because the ortho is ~2.1e5 × 1.5e5 px. If 2017 exceeds ~90
-    min, stop and re-check rather than letting it burn.
+    Rough expectation: 2022 (60 cm, coarse) = minutes. 2017 is the big one —
+    MEASURED 148736 × 211968 px at 7.5 cm (~3.2e10 px, ~4x a 15 cm ortho of
+    the same ground), so budget accordingly; 2015 is 14.9 cm and lighter. The
+    driver prints elapsed minutes per stage. Watch the first one and stop the
+    runtime rather than letting an unexpectedly long job burn credits.
 
   ── USAGE (Colab, GPU runtime = L4) ───────────────────────────────────────
       %cd /content/drive/MyDrive/treedata/Scripts
@@ -55,11 +60,12 @@
   DO NOT append `# comments` to these lines — IPython's %run passes them
   through to argparse. (The driver now strips them, but older copies exit 2.)
 
-  Read stage 0 before running 1 or 2. If stage 0 reports a problem it will
-  refuse to continue under --stage all.
+  Read stage 0 before running any GPU stage. If stage 0 reports a problem it
+  refuses to continue under --stage all (override: --force, deliberately).
 
-  Outputs land in phase4/masks/ as edmonds_canopy_prob_{year}_{tag}.tif with
-  --run-tag p1 (default), so nothing existing is overwritten.
+  Outputs land in phase4/masks/ as edmonds_canopy_prob_{year}_{tag}.tif. The
+  tag defaults to each job's CHECKPOINT tag, because core.step_inference picks
+  the ckpt off --run-tag — change it only if you know which ckpt you want.
 ╚══════════════════════════════════════════════════════════════════════════╝
 """
 
@@ -95,14 +101,14 @@ JOBS = [
          cost="cheap (coarse ~60 cm)", replaces=None),
     dict(year="2017", ckpt_tag="xsensor_train",
          why="replaces the 96.5%-nodata failed run",
-         cost="EXPENSIVE (fine ~15 cm)", replaces=None),
+         cost="EXPENSIVE (7.5 cm, ~3.2e10 px — the biggest job here)", replaces=None),
     # Found 2026-08-17 by phase4_qc_inventory SUSPECT_PARTIAL: 7.4% valid where
     # every other 2015 citywide raster on the SAME grid (74496x105984, 14.9 cm)
     # is 90.8% — an unfinished run, not a different footprint. Lowest priority:
     # the live 2015 QC row uses _xsensor_rgb, so nothing quoted depends on it.
     dict(year="2015", ckpt_tag="citywide_rgb",
          why="unfinished run — 7.4% valid vs 90.8% for its siblings",
-         cost="EXPENSIVE (fine ~15 cm)",
+         cost="EXPENSIVE (fine 14.9 cm)",
          replaces="edmonds_canopy_prob_2015_citywide_rgb.tif"),
 ]
 
@@ -136,7 +142,11 @@ def _decimated(path, bands=(1,), h=1500):
             a = s.read(bl, out_shape=(len(bl), min(h, s.height), w),
                        resampling=Resampling.nearest)
         else:
-            n, win = 8, 512                      # 64 windows, ~16M px worst case
+            # 16 windows x 256px. The cost here is FUSE/Drive random access on a
+            # 3.2e10-px tiled TIFF, not pixel count: 8x8x512 took 8.5 min locally
+            # on the 2017 ortho. 4x4x256 is ~16x less I/O and still samples the
+            # whole footprint, which is all a coverage estimate needs.
+            n, win = 4, 256
             tiles = []
             for r in range(n):
                 row = []

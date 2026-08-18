@@ -305,7 +305,7 @@ def stage0():
                     print(f"         {p.name:<50} {mb:7.0f} MB  (unreadable)")
 
     _hr("STAGE 0 VERDICT")
-    print("  READY — stages 1 and 2 may run." if ok else
+    print("  READY — stages 1, 2 and 3 may run." if ok else
           "  NOT READY — fix the items marked ! above. Do not spend GPU.")
     return ok
 
@@ -439,7 +439,11 @@ def main():
         if stage == "0":
             if ok:
                 print("\nNext:  %run phase4_p1_colab_run.py --stage 1")
-                print("       (2022, cheap. Then --stage 2 for 2017.)")
+                print("       stage 1 = 2022n, the Phase-3 blocker (60 cm, full")
+                print("       labels->tile->train->eval->inference, ~20-30 min train).")
+                print("       STOP after stage 1 and let the output be verified before")
+                print("       committing GPU to stages 2 and 3 — those stage 25 GB and")
+                print("       12 GB orthos to local disk before inference even starts.")
             else:
                 print("\nDo NOT run --stage 1 or 2 yet. Fix the ! items above first —")
                 print("spending GPU now would repeat the failure this driver exists to stop.")

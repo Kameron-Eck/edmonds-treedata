@@ -341,6 +341,28 @@ files:   CLAUDE.md, pipeline_buildtracker.md, ../README.md, run_registry.csv (+7
 next:    logs/ do NOT stamp the engine version → a backfilled registry row can't state one.
          cheap fix when the engine is next edited: have write_step_log() emit the version.
 
+## 2026-08-18  2017 SCORED — I WAS WRONG: it has the HIGHEST recall in the series (.7784), not the lowest
+found:   2017 HONEST (vs C-CAP 2016, forest_wetland, thresh .4759): recall .7784 / precision .8083.
+         That is the BEST recall of any year (next best 2013 .7094). Also BEST scrub recall .3981
+         (others .22-.25). BUT WORST grass rejection .8834 (others .92-.95; grass FP-rate 11.66%).
+         92.0M independent 1m cells; model canopy 27.62% vs ref 28.68%.
+killed:  MY PREDICTION. I said TWICE "expect LOW recall" from 2017's max-prob .575 ceiling. WRONG —
+         a COMPRESSED probability range does not imply poor RANKING. The mass is squeezed into a narrow
+         band but the deployed .4759 sits inside that band and separates fine.
+         The calibration problem is REAL but shows up as THRESHOLD FRAGILITY, not weakness:
+           thresh .2000 -> recall 1.0000 precision .2868   <- calls the WHOLE CITY canopy
+           thresh .2500 -> recall 1.0000 precision .2871
+           thresh .3000 -> recall .8137  precision .7842
+         Below ~.28 everything is canopy. The usable window is razor-thin, so 2017 is FRAGILE to any
+         threshold change — that is the cost of the compressed distribution, not low accuracy.
+         CONFOUND to keep in mind: 2017 is 7.5cm, the FINEST imagery in the project. Higher resolution
+         may genuinely help recall, so 'best recall' is not purely a model-quality statement.
+decided: do NOT retrain 2017 to 'fix' it on the strength of the .575 ceiling — it is the best-recall
+         year as it stands. If it is ever retrained, the goal is a WIDER usable threshold window
+         (calibration), not higher recall.
+files:   qc/qc_indep_2017.txt, qc/qc_indep_surfaces_2017.csv, qc_indep_report.csv (live row).
+next:    regenerate the P4 dashboard to include 2017; 2013/2015 full-forest miss-depth still pending.
+
 ## 2026-08-18  P1b VALIDATED + P1c: on the HONEST denominator the "confident miss" gets STRONGER (60% -> 69%)
 did:     Ran phase4_qc_forest_misses.py on 2016 WITHOUT --stable-with (P1b) — the first run on the
          full-forest denominator, using the provenance-stamped version.

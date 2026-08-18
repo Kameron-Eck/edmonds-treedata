@@ -323,6 +323,37 @@ files:   CLAUDE.md, pipeline_buildtracker.md, ../README.md, run_registry.csv (+7
 next:    logs/ do NOT stamp the engine version → a backfilled registry row can't state one.
          cheap fix when the engine is next edited: have write_step_log() emit the version.
 
+## 2026-08-18  P2 REPLICATES on 2016 + unattended TRAIN QUEUE built + CUDA works locally
+did:     (a) P2 on 2016 (2nd NIR year). (b) NEW phase4_train_queue.py for unattended Colab. (c) CUDA torch.
+found:   P2 REPLICATES ACROSS YEARS — 2 sensors, 2 C-CAP vintages, same answer:
+                              2016        2022n
+           refs disagree      15.06%      16.00%   of all valid px
+           raw C-CAP recall   .6844       .6564
+           BOTH-AGREE recall  .7613       .7378    (+7.7 / +8.1 pts)
+           BOTH-AGREE prec    .9699       .9567    (+10.5 / +9.4 pts)
+           FN unmeasurable    33.1%       38.7%
+           FP on agreed neg   1.05%       1.28%
+         => ~1/3 of the apparent under-prediction is REFERENCE DISAGREEMENT, and the model's TRUE
+         precision is ~.96-.97 not ~.86. This is a reproducible result, not a one-off.
+         ASYMMETRY: NDVI ref calls 37.7% canopy vs C-CAP 29.5% in 2016, but 28.6% vs 29.0% in 2022n —
+         the refs do NOT disagree in a fixed direction, which is itself evidence neither is authoritative.
+         ndvi_only call-rate is near-identical across years (21.77% / 21.89%) but ccap_only differs a lot
+         (9.75% / 32.55%) — worth a look later.
+         CUDA: torch 2.13.0+cu126 installed (SAME version as the cpu build, so nothing else breaks).
+         cuda avail True, Quadro T2000, 3.45/4.29 GB free, gpu matmul verified. NOTE CLAUDE.md says the
+         local GPU is 2GB — it is 4GB (stale).
+built:   phase4_train_queue.py — UNATTENDED Colab queue. Runs full labels->tile->train->evaluate->inference
+         per job, cheapest-first, ALL COARSE (~1h each). A failing job does NOT stop the queue (unlike the
+         P1 driver — nobody is watching). Status flushed to phase4/qc/train_queue_status.csv after EVERY
+         step, so the record survives the runtime dying. --run-tag on every job (no overwrites).
+         QUEUE + WHY: [2019n, 2021s] = H1, more NIR years -> more independent NDVI refs to test whether the
+         ~15-16% disagreement generalises. [2016c] = H2 THE HYPOTHESIS TEST: 2016 + --add-canopy-mask
+         (canopy_additions_2016.tif exists) injects NIR+CHM canopy the 2020 mask never taught; compare vs
+         the 2016 baseline (.6844/.8651). Closes gap => LABEL problem. Does not => labels exonerated,
+         references carry the story. Either result is decisive.
+next:    Kam starts the queue before leaving; I score each output locally as it lands (qc_indep +
+         ref_agreement), no GPU needed. Then P1c miss-depth, then P4 visuals.
+
 ## 2026-08-18  P2 LANDED — 38.7% of the "miss" is UNMEASURABLE. Honest recall .6564 -> .7378.
 goal:    /loop autonomous. Build + run P2 (reference-disagreement map) — the experiment the 2022n
          systematic-gap finding made urgent.

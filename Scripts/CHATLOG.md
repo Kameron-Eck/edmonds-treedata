@@ -233,7 +233,7 @@ measure: ACTIVE WORKSTREAM (opened 2026-08-17). PLAN = Scripts/honest-measuremen
            P1 DONE · P2 DONE + replicated x4 · P4 dashboard + height plot DONE
            P4 REMAINING: sentinel TP/FN/FP site overlays (needs footprint resolution from photos/)
            P3 TOOLING BUILT, NOT YET RUN BY A HUMAN. Samples drawn for 2016 / 2022n / 2000.
-         ---- THE FIVE RESULTS THAT MATTER ----
+         ---- THE SIX RESULTS THAT MATTER ----
          (1) DETECTION IS A FUNCTION OF CANOPY HEIGHT. 2016: .16 (0-2m) .16 (2-5) .36 (5-10) .57
          (10-15) .74 (15-20) .83 (20-25) .88 (25-30) .93 (30+). 5-15m holds 53% of ALL misses;
          lifting those two bands to the 20-25m rate takes recall .68 -> ~.80. qc/height_curves.png
@@ -274,6 +274,30 @@ measure: ACTIVE WORKSTREAM (opened 2026-08-17). PLAN = Scripts/honest-measuremen
          CONSTRUCTION); do NOT quote tall-band C-CAP sp (30+ sp .36 rides on a ~5% non-canopy
          sliver); no goodness-of-fit exists (7 params on 7 d.f. = just-identified, fits exactly
          by construction); 2022n ndvi se dips to .911 (the one wobble, not a finding).
+         (6) ** n=250 IS NOT THE BINDING LIMIT — INTERPRETER FIDELITY IS (2026-08-18). **
+         Simulated the REAL design (true W_h + allocation from sample_{year}_meta.json,
+         Olofsson estimator w/ full multinomial covariance) instead of the SRS approximation.
+         2016, 1500 simulated studies per cell:
+           interp err   half-width   power(H_CCAP)  power(H_NDVI)
+                   0%      .0122          1.000          1.000    <- RIGGED, see below
+                   5%      .0346           .889          1.000
+                  10%      .0469           .436           .997
+         So §3.1's "+/-5.9pp, cannot arbitrate" was an SRS artefact — the real stratified
+         half-width is .0122-.0469 vs SRS .0620, because the allocation deliberately
+         over-samples the contested zone. CORRECTION TO THE ASSESSMENT, not to a model.
+         THE 0% ROW IS RIGGED and must never be quoted alone: truth is DEFINED as one of the
+         two references, so inside strata BUILT from those references every point shares one
+         truth and within-stratum variance collapses. The honest rows are 5%/10%.
+         ASYMMETRY WORTH KNOWING: symmetric interpreter error pulls every estimate toward .5,
+         i.e. UPWARD from both hypotheses — so sloppy interpretation systematically favours
+         the LIBERAL (higher-canopy) definition. power(H_CCAP) collapses .889 -> .436 while
+         power(H_NDVI) stays ~1.0. Interpreter error does not merely widen the CI; it BIASES
+         toward the shrub-inclusive answer.
+         YEAR CHOICE, now evidenced: reference separation 2016 = 8.24pp but 2022n = 4.65pp,
+         so 2022n is already MARGINAL at 5% error (power .340). Do 2016 DEEP rather than
+         250 x 3 spread thin — which is exactly assessment amendment 3, now with a reason.
+         => the duplicate-interpreted subset (amendment 5, Stehman 2022 ID 100) is NOT
+         optional; it measures the one quantity the whole study now turns on.
          ---- LITERATURE (37 papers, IDs 69-105, searches 9-14) — TWO CORRECTIONS TO ME ----
          FOODY 2010: I claimed raw scores overstate the model's faults. Direction depends on ERROR
          CORRELATION; ours are almost certainly correlated (labels + both refs all from interpreting
@@ -292,15 +316,20 @@ measure: ACTIVE WORKSTREAM (opened 2026-08-17). PLAN = Scripts/honest-measuremen
          (c) SAMPLE SIZE: the assessment shows n=250 gives +/-5.9pp, which COVERS BOTH references
          (27.7-39.5 vs C-CAP 29.5 / NDVI 37.7) => cannot arbitrate. NOTE: that arithmetic assumes
          SIMPLE RANDOM SAMPLING; our stratified design over-samples the contested zone and should do
-         better. NOT YET SIMULATED — do that before resizing.
+         better. [RESOLVED 2026-08-18 — SIMULATED, see result (6): the stratified design IS
+         better (half-width .0122-.0469 vs SRS .0620) and n=250 DOES arbitrate in 2016 up to
+         ~5% interpreter error. Do NOT resize n on the +/-5.9pp figure; the binding constraint
+         is interpreter fidelity, not sample size.]
          (d) STEHMAN 2014 licenses reference-derived strata but requires ITS estimators; mine is a
          delta-method approximation. WAGNER & STEHMAN 2015/2024 give a principled allocation; my
          shares were ad hoc.
          ---- CHEAPEST NEXT MOVES (all local, no GPU, no labelling) ----
          1. [DONE 2026-08-18] FOODY 2022 LATENT-CLASS — see result (5) below.
-         2. Simulate the ACTUAL stratified design's expected CI (see (c)).  <-- NOW #1
-         3. Write the canopy definition (U1). Result (5) RAISED its stakes: U1 alone decides
-            whether Edmonds canopy is ~29% or ~35%. Write it against that bracket.
+         2. [DONE 2026-08-18] Simulate the ACTUAL stratified design's CI — see result (6).
+         3. Write the canopy definition (U1). <-- NOW #1, and results (5)+(6) BOTH converge
+            on it: (5) says U1 alone decides whether Edmonds canopy is ~29% or ~35%; (6) says
+            n=250 CAN resolve that in 2016 — but only against a definition it has been given.
+            Write it against the .29/.35 bracket.
          4. P1c per-year miss-depth under ONE recipe (--force-citywide) for U4 (labels vs calibration).
          ---- P3 COMMANDS (tooling is built and validated) ----
          py -3.12 phase4_accuracy_sample.py --step serve --year 2016             --ortho "D:\edmonds-pipeline\Imagery6_snoh_rgbi.tif"
@@ -337,6 +366,36 @@ gotcha:  scripts Colab-only for torch (rasterio+geopandas+fiona+sklearn now pip-
          accept-all test data; 14,476-crown human review never finished.
 
 ════════════════ LOG  (newest first) ════════════════
+
+## 2026-08-18  SAMPLE SIZE WAS NEVER THE PROBLEM — interpreter fidelity is
+goal:    cheapest-next-move #2: the assessment's "n=250 cannot arbitrate" (§3.1) rests on
+         SIMPLE RANDOM SAMPLING arithmetic and flags itself as such (§5). The real weights
+         now exist on disk (--step design ran for 2016/2022n/2000), so stop assuming.
+did:     NEW Scripts/phase4_qc_design_power.py — Monte-Carlo of the ACTUAL design: real W_h
+         + real allocation from sample_{year}_meta.json, the design's own strata rebuilt via
+         phase4_accuracy_sample.build_strata, and the SAME Olofsson estimator with the full
+         multinomial covariance (8283232). 1500 simulated studies per cell.
+         -> phase4/qc/design_power_{2016,2022n}.txt/.csv
+RESULT: see STATE result (6). §3.1 CORRECTED — stratified half-width .0122-.0469 vs the
+         SRS .0620 the assessment assumed; n=250 DOES arbitrate in 2016 at <=5% interpreter
+         error. The binding constraint moved from SAMPLE SIZE to INTERPRETER FIDELITY.
+         Two things worth more than the headline:
+         (a) the 0%-error row is RIGGED (truth defined as a reference => no within-stratum
+             variance in strata built from that reference). Built the sweep precisely so that
+             number can never be quoted alone.
+         (b) interpreter error is not symmetric in EFFECT: flipping labels pulls estimates
+             toward .5, i.e. UP from both hypotheses, so sloppiness systematically favours the
+             shrub-inclusive definition. power(H_CCAP) .889->.436 while power(H_NDVI) stays 1.0.
+decided: nothing deployed, no plan amendment applied (Kam's sign-off). Measurement only.
+killed:  "n=250 cannot arbitrate, resize the sample" — DEAD for the wrong reason. Do not
+         re-derive n from the +/-5.9pp SRS figure; that number does not describe this design.
+         "run 250 x 3 years" — evidenced against: reference separation 2016 8.24pp vs 2022n
+         4.65pp, so 2022n is marginal at 5% error. 2016 deep, per amendment 3.
+files:   Scripts/phase4_qc_design_power.py (new) · phase4/qc/design_power_*.txt/.csv ·
+         CHATLOG STATE results (6) + item (c) + cheapest-moves list.
+next:    U1 canopy definition — now the ONLY thing between here and a defensible P3 run.
+         Then wire the duplicate-interpreted subset (amendment 5) into --step design; result
+         (6) makes it load-bearing, not a nicety.
 
 ## 2026-08-18  U2 REFRAMED — the reference dispute is a DEFINITION dispute, and LCA proved its own limit
 goal:    run cheapest-next-move #1: Foody-2022 latent class on C-CAP x NDVI-ref x model.

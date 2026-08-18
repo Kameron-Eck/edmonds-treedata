@@ -323,6 +323,30 @@ files:   CLAUDE.md, pipeline_buildtracker.md, ../README.md, run_registry.csv (+7
 next:    logs/ do NOT stamp the engine version → a backfilled registry row can't state one.
          cheap fix when the engine is next edited: have write_step_log() emit the version.
 
+## 2026-08-18  P1 COLAB RUN #2 WORKED — 2022n DONE (Phase-3 unblocked), 2017 FIXED but weakly calibrated
+goal:    Re-run P1 GPU work on the rewritten driver (9c205ab/3be1faa) after the 4h zero-output failure.
+did:     Driver behaved: output STREAMED live, per-stage verify ran, overwrite warning fired before stage 3.
+         STAGE 1 — 2022n FULL PATH labels->tile->train->evaluate->inference, ~55min on L4 (train ~48min,
+         inference 2.1min). eval OUT-OF-SAMPLE (blocked test, 169 tiles): IoU .6432 Dice .7829 Prec .7605
+         Rec .8067 AUROC .9538 AP .8257; best-F1 thresh .404. Raster edmonds_canopy_prob_2022n.tif 64.8 MB,
+         9722x15368 @60cm EPSG:26910, 100% VALID, max prob .972, mean .181, 20.0% canopy @.404.
+         => PHASE-3 BLOCKER CLEARED. Model is 4-ch rgb+chm. 2022n carries NIR -> can also seed an NDVI ref for P2.
+         STAGE 2 — 2017 inference only (reused sem_best_2017_xsensor_train.pt). 254.9min (4h15m), 481,068
+         tiles @~33 tile/s. Raster 2972 MB, 148736x211968 @7.5cm, 93.8% VALID (was 3.5% nodata-ridden).
+         => the 96.5%-nodata failure is FIXED.
+         STAGE 3 — 2015 citywide_rgb running at hand-off (120,474 tiles, ~1/4 the size of 2017).
+found:   2017 max prob = 0.575 ONLY. Healthy years peak .81-.96 (2016 .898); 2022n .972. The ckpt saw just
+         373 sample tiles (circular IoU .489) and prob mass sits near the .4759 operating threshold ->
+         EXPECT LOW RECALL, and read that as the MODEL not the raster. My verify gate (MIN_MAX_PROB=.50)
+         passed it silently at .575 — too lenient. FIXED b8f2722: WARN_MAX_PROB=.75 prints a loud
+         weak-calibration warning between the hard floor and .75 (warn, don't fail — the raster IS scorable).
+killed:  my claim "you skipped stage 1 (2022n)" — WRONG. Logs prove the full 2022n path ran 01:29-02:24.
+decided: if 2017 scores poorly, the fix is a BETTER 2017 CHECKPOINT (a training job), not another inference
+         run. Get the honest score first before proposing that spend.
+files:   run_registry.csv +2 rows (20260818_2022n_p1, 20260818_2017_p1); phase4_p1_colab_run.py (b8f2722).
+next:    when 2015 lands: phase4_qc_inventory.py sweep, then qc_indep on 2022n + 2017 (+2015), registry row
+         for 2015. Then P1b/P1c re-runs. P2 is local and unblocked whenever.
+
 ## 2026-08-18  FIRST P1 COLAB RUN FAILED (~4h, zero output) — 4 driver bugs found + fixed; stage 1 → 2022n
 goal:    Kam ran the P1 driver on Colab L4. Stage 1 ran ~4h with a totally silent cell.
 outcome: ABORTED, NO raster produced. Registry row 20260817_p1_driver_abort.

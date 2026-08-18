@@ -64,6 +64,7 @@ from pathlib import Path
 import numpy as np
 import rasterio
 from rasterio.enums import Resampling
+from rasterio.windows import Window
 
 _COLAB_BASE = Path("/content/drive/MyDrive/treedata")
 _LOCAL_BASE = Path(r"G:\My Drive\treedata")
@@ -101,10 +102,33 @@ def _hr(title=""):
 
 
 def _decimated(path, bands=(1,), h=1500):
+    """Sample a raster cheaply.
+
+    Whole-extent `out_shape` decimation still walks every block when the file
+    has no overviews, which on a fine ortho (2.1e5 x 1.5e5 px) takes many
+    minutes over Drive — unacceptable for a preflight whose whole selling point
+    is being fast and free. Use overviews when present, otherwise read a grid of
+    small windows, which is O(windows) rather than O(raster).
+    """
     with rasterio.open(path) as s:
-        w = max(1, int(s.width * h / s.height))
-        a = s.read(list(bands), out_shape=(len(bands), min(h, s.height), w),
-                   resampling=Resampling.nearest)
+        bl = list(bands)
+        if s.overviews(1):
+            w = max(1, int(s.width * h / s.height))
+            a = s.read(bl, out_shape=(len(bl), min(h, s.height), w),
+                       resampling=Resampling.nearest)
+        else:
+            n, win = 8, 512                      # 64 windows, ~16M px worst case
+            tiles = []
+            for r in range(n):
+                row = []
+                for c in range(n):
+                    r0 = min(int((r + 0.5) * s.height / n), max(s.height - win, 0))
+                    c0 = min(int((c + 0.5) * s.width / n), max(s.width - win, 0))
+                    row.append(s.read(bl, window=Window(c0, r0,
+                                                        min(win, s.width),
+                                                        min(win, s.height))))
+                tiles.append(np.concatenate(row, axis=2))
+            a = np.concatenate(tiles, axis=1)
         return a, s.nodata, s.width, s.height, (s.transform.a * 100.0), str(s.crs)
 
 
@@ -116,15 +140,25 @@ def _ortho_for(year):
     2022_naip_rgbi.tif in the imagery folder, and only the catalog knows which
     one the engine will actually infer over.
     """
+    name = None
     try:
-        from phase4seg.common import entry_for, resolve_native_path
-        p = resolve_native_path(entry_for(str(year)))
-        return p if p else None
+        from phase4seg.common import entry_for
+        name = entry_for(str(year))["native_file"]
     except Exception as e:                                      # noqa: BLE001
-        print(f"  ! could not resolve ortho via phase4seg.common ({e}); "
-              f"falling back to a glob — VERIFY the filename below.")
+        print(f"  ! could not read the catalog ({e}); falling back to a glob — "
+              f"VERIFY the filename below.")
         hits = sorted(IMAGERY.glob(f"{year}*_rgb*.tif"))
         return hits[0] if hits else None
+
+    # Take the FILENAME from the catalog (authoritative) but the ROOT from this
+    # script's BASE. phase4seg.config is Colab-rooted, so resolve_native_path()
+    # returns /content/... and reports MISSING when preflight is exercised on the
+    # local Windows mount — a false alarm that would train you to ignore stage 0.
+    for d in (IMAGERY / "native", IMAGERY):
+        p = d / name
+        if p.exists():
+            return p
+    return IMAGERY / name          # canonical path, for a clear error message
 
 
 def gpu_report():
@@ -316,7 +350,12 @@ def main():
     if stage in ("0", "all"):
         ok = stage0()
         if stage == "0":
-            print("\nNext: %run phase4_p1_colab_run.py --stage 1   (after reading the above)")
+            if ok:
+                print("\nNext:  %run phase4_p1_colab_run.py --stage 1")
+                print("       (2022, cheap. Then --stage 2 for 2017.)")
+            else:
+                print("\nDo NOT run --stage 1 or 2 yet. Fix the ! items above first —")
+                print("spending GPU now would repeat the failure this driver exists to stop.")
             return
         if not ok and not args.force:
             print("\n[p1-run] STOPPING — preflight failed. Re-run with --force only if "

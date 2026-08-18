@@ -57,10 +57,14 @@ r"""
 
 import argparse
 import csv
+import datetime
+import http.server
 import io
 import json
 import math
+import socketserver
 import sys
+import threading
 from pathlib import Path
 
 import numpy as np
@@ -325,6 +329,147 @@ def step_estimate(year):
     print(f"\n  wrote {QC_DIR / f'accuracy_{year}.txt'}")
 
 
+
+def _chip(src, x, y, span_m, px=430):
+    """One square chip centred on (x, y) in the raster CRS, with a crosshair.
+
+    The crosshair is four ticks pointing AT the centre rather than a cross
+    drawn over it — the interpreter has to judge the pixel under the mark, so
+    the mark must not cover it.
+    """
+    from PIL import Image, ImageDraw
+    res = abs(src.transform.a)
+    half = (span_m / 2.0) / res
+    r, c = ~src.transform * (x, y)
+    win = rasterio.windows.Window(int(c - half), int(r - half),
+                                  max(int(2 * half), 2), max(int(2 * half), 2))
+    bands = [1, 2, 3] if src.count >= 3 else [1, 1, 1]
+    # NEVER upscale in the chip. At 50-60 cm GSD a 40 m window is only ~70-80
+    # native pixels; bilinear-stretching that to 430 px invents detail the
+    # imagery does not contain, which is exactly the wrong failure for an
+    # instrument built to make honest judgements possible. Render at native
+    # resolution (capped) and let the browser scale it with pixelated
+    # rendering, so the interpreter sees real pixels and knows it.
+    native = max(int(2 * half), 2)
+    out = min(px, native)
+    a = src.read(bands, window=win, boundless=True, fill_value=0,
+                 out_shape=(3, out, out), resampling=Resampling.nearest)
+    px = out
+    img = Image.fromarray(np.transpose(a, (1, 2, 0)).astype(np.uint8), "RGB")
+    d = ImageDraw.Draw(img)
+    m = px // 2
+    gap, ln = px // 26, px // 11
+    for dx, dy in ((0, 1), (0, -1), (1, 0), (-1, 0)):
+        d.line([(m + dx * gap, m + dy * gap),
+                (m + dx * (gap + ln), m + dy * (gap + ln))],
+               fill=(255, 232, 66), width=3)
+    return img
+
+
+def step_serve(year, ortho_path, port, ctx_m, det_m):
+    samp_p = QC_DIR / f"sample_{year}.csv"
+    if not samp_p.exists():
+        raise SystemExit(f"missing {samp_p} - run --step design first")
+    rows = list(csv.DictReader(io.open(samp_p, encoding="utf-8", newline="")))
+
+    root = QC_DIR / f"review_{year}"
+    chips = root / "chips"
+    chips.mkdir(parents=True, exist_ok=True)
+
+    todo = [r for r in rows if not (chips / f"{r['point_id']}_det.jpg").exists()]
+    if todo:
+        print(f"  cutting chips for {len(todo)} points from {Path(ortho_path).name} ...")
+        with rasterio.open(ortho_path) as src:
+            for k, r in enumerate(todo, 1):
+                x, y = float(r["x"]), float(r["y"])
+                _chip(src, x, y, det_m).save(chips / f"{r['point_id']}_det.jpg", quality=88)
+                _chip(src, x, y, ctx_m).save(chips / f"{r['point_id']}_ctx.jpg", quality=85)
+                if k % 25 == 0 or k == len(todo):
+                    print(f"    {k}/{len(todo)}", flush=True)
+    else:
+        print("  chips already present - reusing them.")
+
+    manifest = dict(year=year, ctx_m=ctx_m, det_m=det_m, points=[
+        dict(id=int(r["point_id"]), stratum=r["stratum_name"],
+             lat=r["lat"], lon=r["lon"], ctx_m=ctx_m, det_m=det_m) for r in rows])
+    (root / "manifest.json").write_text(json.dumps(manifest), encoding="utf-8")
+
+    # The UI is a sibling asset, refreshed every serve so edits land without
+    # re-cutting chips.
+    app_src = Path(__file__).with_name("phase4_accuracy_review.html")
+    if not app_src.exists():
+        raise SystemExit(f"missing UI asset {app_src}")
+    (root / "review_app.html").write_text(
+        app_src.read_text(encoding="utf-8"), encoding="utf-8")
+
+    labels_csv = QC_DIR / f"sample_{year}_labels.csv"
+
+    def _final():
+        """Latest decision per point, honouring undo."""
+        out = {}
+        if labels_csv.exists():
+            for r in csv.DictReader(io.open(labels_csv, encoding="utf-8", newline="")):
+                if r["label"] == "undo":
+                    out.pop(int(r["point_id"]), None)
+                else:
+                    out[int(r["point_id"])] = r["label"]
+        return out
+
+    class H(http.server.SimpleHTTPRequestHandler):
+        def __init__(self, *a, **k):
+            super().__init__(*a, directory=str(root), **k)
+
+        def log_message(self, *a):
+            pass
+
+        def _json(self, obj):
+            b = json.dumps(obj).encode()
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Content-Length", str(len(b)))
+            self.end_headers()
+            self.wfile.write(b)
+
+        def do_GET(self):
+            if self.path.rstrip("/") == "/progress":
+                self._json({"done": {str(k): v for k, v in _final().items()}})
+                return
+            super().do_GET()
+
+        def do_POST(self):
+            if self.path.rstrip("/") != "/label":
+                self.send_response(404)
+                self.end_headers()
+                return
+            n = int(self.headers.get("Content-Length", 0))
+            pl = json.loads(self.rfile.read(n))
+            new = not labels_csv.exists()
+            with io.open(labels_csv, "a", encoding="utf-8", newline="") as f:
+                w = csv.writer(f)
+                if new:
+                    w.writerow(["ts", "point_id", "label"])
+                w.writerow([datetime.datetime.now().isoformat(timespec="seconds"),
+                            pl.get("point_id"), pl.get("label")])
+            self._json({"ok": True})
+
+    srv = socketserver.ThreadingTCPServer(("", port), H)
+    srv.allow_reuse_address = True
+    threading.Thread(target=srv.serve_forever, daemon=True).start()
+    done = len(_final())
+    print("\n  -- Point reviewer running --")
+    print(f"  OPEN:  http://localhost:{port}/review_app.html")
+    print(f"  {done} of {len(rows)} already labelled; it resumes where you left off.")
+    print("  Keys: 1 canopy - 2 not canopy - 3 unsure - z undo")
+    print(f"  Decisions append to {labels_csv}")
+    print("  Leave this running while you review; Ctrl-C when done.")
+    try:
+        while True:
+            threading.Event().wait(3600)
+    except KeyboardInterrupt:
+        print("\n  stopped - progress is saved.")
+    return srv
+
+
 def main():
     argv = [a for a in sys.argv[1:] if not (a == "-f" or a.endswith(".json"))]
     ap = argparse.ArgumentParser(description="Human accuracy sample (Olofsson).")
@@ -337,6 +482,10 @@ def main():
     ap.add_argument("--n", type=int, default=250)
     ap.add_argument("--decim", type=int, default=4)
     ap.add_argument("--seed", type=int, default=20260818)
+    ap.add_argument("--ortho", default=None, help="Native ortho, for --step serve.")
+    ap.add_argument("--port", type=int, default=8731)
+    ap.add_argument("--ctx-m", type=float, default=160.0, help="Context chip width (m).")
+    ap.add_argument("--det-m", type=float, default=40.0, help="Detail chip width (m).")
     args = ap.parse_args(argv)
 
     if args.step == "design":
@@ -349,9 +498,10 @@ def main():
     elif args.step == "estimate":
         step_estimate(args.year)
     else:
-        raise SystemExit("--step serve is not built yet (design + estimate are). "
-                         "Label the CSV by hand in the meantime if you need to: "
-                         "add a 'label' column with canopy / noncanopy / unsure.")
+        if args.ortho is None:
+            raise SystemExit("--ortho is required for --step serve (the year's native "
+                             "ortho, e.g. D:/edmonds-pipeline/Imagery/2016_snoh_rgbi.tif)")
+        step_serve(args.year, Path(args.ortho), args.port, args.ctx_m, args.det_m)
 
 
 if __name__ == "__main__":

@@ -1,0 +1,125 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Canopy point review</title>
+<!--
+  Photo-interpretation UI for phase4_accuracy_sample.py --step serve.
+  Kept deliberately plain: this is the one instrument in the project with no
+  model between the estimate and the ground, so it must be boring and obvious.
+  Served as a static file; decisions POST to /label and append to
+  qc/sample_{year}_labels.csv. Progress is recovered from that CSV on load, so
+  closing the tab loses nothing.
+-->
+<style>
+  :root{ --bg:#14181a; --panel:#1e2529; --line:#2a3236; --ink:#e8ece9;
+         --muted:#8fa39a; --canopy:#2f6b46; --not:#b4553a; }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+       font:15px/1.55 system-ui,-apple-system,Segoe UI,sans-serif}
+  header{padding:12px 20px;border-bottom:1px solid var(--line);
+         display:flex;gap:22px;align-items:baseline;flex-wrap:wrap}
+  h1{font-size:15px;margin:0;font-weight:600;letter-spacing:.01em}
+  #prog{color:var(--muted);font-variant-numeric:tabular-nums}
+  .hint{color:var(--muted);font-size:13px}
+  kbd{font:12px ui-monospace,Consolas,monospace;background:var(--line);
+      padding:1px 6px;border-radius:3px}
+  #wrap{display:flex;gap:20px;padding:20px;flex-wrap:wrap}
+  figure{margin:0}
+  figcaption{font-size:12px;color:var(--muted);margin-bottom:6px;
+             text-transform:uppercase;letter-spacing:.08em}
+  img{display:block;width:min(44vw,430px);height:min(44vw,430px);image-rendering:pixelated;
+      border:1px solid var(--line);border-radius:5px;background:#000}
+  #panel{padding:0 20px 28px}
+  #meta{color:var(--muted);font-size:13px;margin:6px 0 16px;
+        font-variant-numeric:tabular-nums}
+  button{font:600 15px system-ui;padding:12px 22px;margin:0 10px 10px 0;
+         border-radius:5px;border:1px solid var(--line);
+         background:var(--panel);color:var(--ink);cursor:pointer}
+  button:hover{background:#28353a}
+  button:focus-visible{outline:2px solid #6aab7f;outline-offset:2px}
+  .c{border-color:var(--canopy)} .n{border-color:var(--not)}
+  #done{padding:48px 20px;font-size:17px;max-width:60ch}
+  code{background:var(--line);padding:2px 6px;border-radius:3px;
+       font:13px ui-monospace,Consolas,monospace}
+</style>
+
+<header>
+  <h1>Canopy point review</h1>
+  <span id="prog">loading…</span>
+  <span class="hint"><kbd>1</kbd> canopy &middot; <kbd>2</kbd> not canopy &middot;
+    <kbd>3</kbd> unsure &middot; <kbd>z</kbd> undo</span>
+</header>
+<div id="app"></div>
+
+<script>
+  let pts = [], i = 0, done = {};
+
+  function load() {
+    fetch("manifest.json").then(r => r.json()).then(m => {
+      pts = m.points;
+      return fetch("progress").then(r => r.json()).then(d => {
+        done = d.done || {};
+        i = pts.findIndex(p => !(String(p.id) in done));
+        if (i < 0) i = pts.length;
+        render();
+      });
+    }).catch(e => {
+      document.getElementById("app").innerHTML =
+        "<div id='done'>Could not load the sample: " + e + "</div>";
+    });
+  }
+
+  function render() {
+    const app = document.getElementById("app");
+    document.getElementById("prog").textContent =
+      Object.keys(done).length + " / " + pts.length + " labelled";
+
+    if (i >= pts.length) {
+      app.innerHTML = "<div id='done'>Every point is labelled." +
+        "<br><br>Now run <code>--step estimate</code> to get unbiased recall, " +
+        "precision and canopy area with confidence intervals.</div>";
+      return;
+    }
+
+    const p = pts[i];
+    app.innerHTML =
+      "<div id='wrap'>" +
+        "<figure><figcaption>Context &mdash; " + p.ctx_m + " m across</figcaption>" +
+        "<img alt='context view' src='chips/" + p.id + "_ctx.jpg'></figure>" +
+        "<figure><figcaption>Detail &mdash; " + p.det_m + " m across</figcaption>" +
+        "<img alt='detail view' src='chips/" + p.id + "_det.jpg'></figure>" +
+      "</div>" +
+      "<div id='panel'>" +
+        "<div id='meta'>point " + p.id + " &middot; stratum <b>" + p.stratum +
+          "</b> &middot; " + p.lat + ", " + p.lon + "</div>" +
+        "<button class='c' onclick=\"send('canopy')\">1 &middot; Canopy</button>" +
+        "<button class='n' onclick=\"send('noncanopy')\">2 &middot; Not canopy</button>" +
+        "<button onclick=\"send('unsure')\">3 &middot; Unsure</button>" +
+        "<button onclick=\"undo()\">z &middot; Undo</button>" +
+      "</div>";
+  }
+
+  function send(lab) {
+    const p = pts[i];
+    fetch("label", { method: "POST",
+                     body: JSON.stringify({ point_id: p.id, label: lab }) })
+      .then(() => { done[String(p.id)] = lab; i++; render(); });
+  }
+
+  function undo() {
+    if (i <= 0) return;
+    i--;
+    const p = pts[i];
+    fetch("label", { method: "POST",
+                     body: JSON.stringify({ point_id: p.id, label: "undo" }) })
+      .then(() => { delete done[String(p.id)]; render(); });
+  }
+
+  document.addEventListener("keydown", e => {
+    if (e.key === "1") send("canopy");
+    else if (e.key === "2") send("noncanopy");
+    else if (e.key === "3") send("unsure");
+    else if (e.key.toLowerCase() === "z") undo();
+  });
+
+  load();
+</script>

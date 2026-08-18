@@ -341,6 +341,46 @@ files:   CLAUDE.md, pipeline_buildtracker.md, ../README.md, run_registry.csv (+7
 next:    logs/ do NOT stamp the engine version → a backfilled registry row can't state one.
          cheap fix when the engine is next edited: have write_step_log() emit the version.
 
+## 2026-08-18  2016c VERDICT — the overlay TRANSFERRED THE NDVI REFERENCE'S DEFINITION, disagreement and all
+result:  2016 baseline -> 2016c (--add-canopy-mask), honest vs C-CAP 2016:
+           recall     .6844 -> .8718   (+.187)
+           precision  .8651 -> .7296   (-.136)
+           grass-rej  .9119 -> .7191   (-.193)
+           canopy frac 23.36% -> 35.28%   (C-CAP ref says 29.53%)
+           F1         .7642 -> .7944   (modest net gain)
+         HEIGHT CURVE (same tool, same decimation, ccap_2016):
+           band      base    corr     delta
+            0-2  m   .1559   .3055   +.150
+            2-5  m   .1634   .5028   +.339
+            5-10 m   .3569   .6932   +.336
+           10-15 m   .5739   .8447   +.271
+           15-20 m   .7362   .9228   +.187
+           20-25 m   .8329   .9580   +.125
+           25-30 m   .8824   .9751   +.093
+           30+   m   .9347   .9894   +.055
+           OVERALL   .6826   .8675   +.185
+predict: MY PRE-REGISTERED PREDICTION DID NOT CLEANLY RESOLVE. I framed it binary — either "5-15m lifts
+         while 25m+ stays put" (H2) or "every band lifts together" (liberalisation). What happened is a
+         THIRD outcome I did not enumerate: EVERY band lifted, but with a STEEP HEIGHT GRADIENT (6x
+         bigger at 2-5m than at 30m+). Do not retrofit the test to the result — record it as partial.
+verdict: ** THE OVERLAY WORKED EXACTLY AS DESIGNED, AND THAT IS THE PROBLEM. ** The corrected overlay is
+         NIR+CHM-derived, so it carries the NDVI reference's canopy DEFINITION. P2 already established
+         that reference is systematically more liberal than C-CAP, and that for 2016 it calls 37.7%
+         canopy vs C-CAP's 29.5%. The corrected model landed at 35.28% — right next to 37.7%, not next
+         to 29.5%. It learned the NDVI reference's definition, including its disagreement with C-CAP.
+         => Scoring labels built from proxy A against proxy B CANNOT adjudicate. The experiment
+         converged on exactly the ~16% disagreement P2 quantified.
+         H2 STATUS: the height-graded lift is real evidence that the deficit IS label-shaped and IS
+         addressable. But "does this make the model MORE CORRECT" is UNANSWERABLE with proxies alone.
+         If the NDVI ref is right, 2016c is now more accurate and C-CAP is penalising it. If C-CAP is
+         right, 2016c over-predicts. NOTHING IN THE PROXY DATA DISTINGUISHES THESE.
+decided: this is now the single strongest argument for P3, and it is an EMPIRICAL one rather than a
+         methodological preference: a real experiment ran, produced a large effect, and could not be
+         scored. P3 must stratify by BOTH the disagreement zone AND CHM height.
+         DO NOT deploy 2016c over the baseline on the strength of recall .87 — grass rejection fell to
+         .719, i.e. it now calls grass canopy ~28% of the time vs ~9% before.
+next:    ref_agreement on 2016c (running) — the both-agree subset is the fairest available comparison.
+
 ## 2026-08-18  ** THE LABEL SOURCE HAS THE SAME HEIGHT CURVE — AND IS WORSE THAN EVERY MODEL IT TEACHES **
 goal:    Kam asked how the Phase-3 2020 mask "matches up". It is the LABEL SOURCE for every coarse year
          (config.MASK_2020 -> labels.canopy_label_from_2020_mask), so this is the feedback-loop test.

@@ -99,18 +99,24 @@ ENGINE  = SCRIPTS / "phase4_semantic_finetune.py"
 # (sem_best_{year}_{tag}.pt) and the output name — see core.step_inference,
 # which keys the ckpt off --run-tag, not off --ckpt.
 JOBS = [
-    dict(year="2022", ckpt_tag="xsensor_train",
-         why="Phase-3 BLOCKER: no citywide 2022 prob raster exists",
-         cost="EXPENSIVE (7.5 cm, 31.5 Gpx — SAME scale as 2017, NOT cheap)",
+    # 2022n = the 60 cm NAIP acquisition (2022_naip_rgbi.tif, 0.1 Gpx, CARRIES NIR).
+    # This is a DIFFERENT catalog entry from "2022" (2022_coe_rgb.tif, 7.5 cm,
+    # 31.5 Gpx, a 25 GB file whose staging alone ran 4 h with no output on
+    # 2026-08-17). Kam chose 2022n for Phase 3: ~300x cheaper, NIR enables an
+    # independent NDVI reference, and 60 cm matches 2000's 59.7 cm so the
+    # Phase-3 temporal comparison is like-for-like.
+    #   NO CHECKPOINT EXISTS for 2022n -> full path, not inference-only.
+    #   Comparable coarse trainings logged 27.7 min (2002) and 20.7 min (2022).
+    dict(year="2022n", ckpt_tag=None,
+         steps=["labels", "tile", "train", "evaluate", "inference"],
+         why="Phase-3 BLOCKER: no 2022n prob raster and no 2022n checkpoint",
+         cost="moderate (60 cm, 0.1 Gpx; ~20-30 min train + fast inference)",
          replaces=None),
-    dict(year="2017", ckpt_tag="xsensor_train",
+    dict(year="2017", ckpt_tag="xsensor_train", steps=["inference"],
          why="replaces the 96.5%-nodata failed run",
-         cost="EXPENSIVE (7.5 cm, ~3.2e10 px — the biggest job here)", replaces=None),
-    # Found 2026-08-17 by phase4_qc_inventory SUSPECT_PARTIAL: 7.4% valid where
-    # every other 2015 citywide raster on the SAME grid (74496x105984, 14.9 cm)
-    # is 90.8% — an unfinished run, not a different footprint. Lowest priority:
-    # the live 2015 QC row uses _xsensor_rgb, so nothing quoted depends on it.
-    dict(year="2015", ckpt_tag="citywide_rgb",
+         cost="EXPENSIVE (7.5 cm, 31.5 Gpx, 25 GB ortho to stage first)",
+         replaces=None),
+    dict(year="2015", ckpt_tag="citywide_rgb", steps=["inference"],
          why="unfinished run — 7.4% valid vs 90.8% for its siblings",
          cost="EXPENSIVE (fine 14.9 cm)",
          replaces="edmonds_canopy_prob_2015_citywide_rgb.tif"),
@@ -240,18 +246,22 @@ def stage0():
         ok = False
 
     for job in JOBS:
-        y, tag = job["year"], job["ckpt_tag"]
+        y, tag = job["year"], job.get("ckpt_tag")
         _hr(f"{y} — {job['why']}   [{job['cost']}]")
 
-        ck = MODELS / f"sem_best_{y}_{tag}.pt"
-        if ck.exists():
-            print(f"  ckpt   OK   {ck.name}  ({ck.stat().st_size/1e6:.0f} MB)")
-            print(f"         → training will be SKIPPED (this is the GPU saving)")
+        steps = job.get("steps", ["inference"])
+        if tag:
+            ck = MODELS / f"sem_best_{y}_{tag}.pt"
+            if ck.exists():
+                print(f"  ckpt   OK   {ck.name}  ({ck.stat().st_size/1e6:.0f} MB)")
+                print(f"         → training SKIPPED (this is the GPU saving)")
+            else:
+                print(f"  ckpt   MISSING  {ck}")
+                print(f"         → inference-only job cannot run. Do not proceed blind.")
+                ok = False
+                continue
         else:
-            print(f"  ckpt   MISSING  {ck}")
-            print(f"         → would require a full --step train. Do not proceed blind.")
-            ok = False
-            continue
+            print(f"  ckpt   none for {y} → FULL PATH {' -> '.join(steps)}")
 
         ortho = _ortho_for(y)
         if ortho is None or not ortho.exists():
@@ -261,8 +271,13 @@ def stage0():
         try:
             a, nd, W, H, gsd, crs = _decimated(ortho, bands=(1, 2, 3))
             cover = float(((a[0].astype(np.int32) + a[1] + a[2]) > 0).mean())
-            print(f"  ortho  {ortho.name}  {W}×{H}  GSD≈{gsd:.1f}cm  {crs}")
+            gb = ortho.stat().st_size / 1e9
+            print(f"  ortho  {ortho.name}  {W}×{H}  GSD≈{gsd:.1f}cm  {crs}  {gb:.1f} GB")
             print(f"         imagery cover {cover:.1%}")
+            if gb > 5:
+                print(f"  ! {gb:.1f} GB — the engine stages the ortho to local disk BEFORE")
+                print(f"    inference starts. Expect a long silent-looking copy first;")
+                print(f"    this is what made the 2026-08-17 run appear hung for 4 h.")
             if cover < 0.20:
                 print(f"  ! THE ORTHO ITSELF IS {1-cover:.0%} EMPTY.")
                 print(f"    Re-running inference CANNOT fix this — the model would be")
@@ -300,7 +315,8 @@ def stage0():
 # ══════════════════════════════════════════════════════════════════════════
 def verify_output(year, tag):
     """Immediately check what the GPU produced. Bad raster ⇒ abort the run."""
-    out = MASKS / f"edmonds_canopy_prob_{year}_{tag}.tif"
+    out = MASKS / (f"edmonds_canopy_prob_{year}_{tag}.tif" if tag
+                   else f"edmonds_canopy_prob_{year}.tif")
     print(f"\n  verifying {out.name}")
     if not out.exists():
         print("  ! FAIL: no output raster written.")
@@ -332,26 +348,59 @@ def verify_output(year, tag):
 
 
 def run_job(job, infer_batch, run_tag, extra=()):
-    y, tag = job["year"], job["ckpt_tag"]
-    _hr(f"{y} — citywide inference   [{job['cost']}]")
+    y, tag = job["year"], job.get("ckpt_tag")
+    steps = job.get("steps", ["inference"])
+    _hr(f"{y} — {'+'.join(steps)}   [{job['cost']}]")
     print(f"  {job['why']}")
-    print(f"  training SKIPPED (reusing sem_best_{y}_{tag}.pt)")
+    if tag and steps == ["inference"]:
+        print(f"  training SKIPPED (reusing sem_best_{y}_{tag}.pt)")
+    else:
+        print(f"  FULL PATH: {' -> '.join(steps)} (no checkpoint exists for {y})")
     if job.get("replaces"):
         print(f"  ! this OVERWRITES {job['replaces']} — intended: that file is the")
         print(f"    broken one being replaced. Its recorded state is preserved in")
         print(f"    phase4/qc/mask_inventory.csv if you need the evidence later.")
 
-    # NOTE: core.step_inference keys the CHECKPOINT off --run-tag, so the tag
-    # must match the existing ckpt. Output therefore also carries that tag.
-    cmd = [sys.executable, str(ENGINE), "--year", y, "--step", "inference",
-           "--infer-batch", str(infer_batch), "--run-tag", tag, *extra]
-    print(f"  $ {' '.join(cmd[1:])}")
-    t0 = _dt.datetime.now()
-    r = subprocess.run(cmd, cwd=str(SCRIPTS))
-    mins = (_dt.datetime.now() - t0).total_seconds() / 60
-    print(f"\n  exit={r.returncode}  elapsed {mins:.1f} min")
-    if r.returncode != 0:
-        print("  ! engine returned non-zero — not verifying, not continuing.")
+    ok_all = True
+    for step in steps:
+        cmd = [sys.executable, "-u", str(ENGINE), "--year", y, "--step", step,
+               "--infer-batch", str(infer_batch)]
+        if tag:
+            cmd += ["--run-tag", tag]
+        cmd += list(extra)
+        print(f"\n  $ {' '.join(cmd[1:])}", flush=True)
+        t0 = _dt.datetime.now()
+
+        # STREAM the child's output. subprocess.run() lets the child write to an
+        # inherited fd, which IPython does NOT capture into the notebook — on
+        # 2026-08-17 that made a 4-hour job look completely silent. Read the pipe
+        # line by line and print it ourselves so progress is visible live.
+        try:
+            proc = subprocess.Popen(cmd, cwd=str(SCRIPTS), stdout=subprocess.PIPE,
+                                    stderr=subprocess.STDOUT, text=True,
+                                    bufsize=1, errors="replace")
+            for line in proc.stdout:
+                print("    | " + line.rstrip(), flush=True)
+            rc = proc.wait()
+        except KeyboardInterrupt:
+            proc.terminate()
+            try:
+                proc.wait(timeout=30)
+            except Exception:
+                proc.kill()
+            print(f"\n  INTERRUPTED during {y}/{step}. Stopping the whole run —")
+            print("  later stages will NOT be attempted. Re-run this stage when ready.")
+            raise
+
+        mins = (_dt.datetime.now() - t0).total_seconds() / 60
+        print(f"  [{y}/{step}] exit={rc}  elapsed {mins:.1f} min", flush=True)
+        if rc != 0:
+            print(f"  ! {y}/{step} returned non-zero — stopping this job.")
+            print(f"    Read Scripts/logs/phase4_semantic_finetune_{step}_{y}_*.log")
+            ok_all = False
+            break
+
+    if not ok_all:
         return False
     return verify_output(y, tag)
 

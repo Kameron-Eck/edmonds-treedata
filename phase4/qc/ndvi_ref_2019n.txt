@@ -1,0 +1,28 @@
+NDVI canopy reference — year 2019n
+  imagery      : D:\edmonds-pipeline\Imagery\2019_naip_rgbi.tif
+  chm          : D:\edmonds-pipeline\Imagery\lidar_snoh_chm.tif  (temporally matched = False)
+  output       : G:\My Drive\treedata\phase4\qc\ndvi_ref_2019n.tif
+  veg_thresh   : NDVI >= 0.2
+  min_height   : 2.0 m  (canopy = vegetated AND tall)
+  CAVEAT       : CHM is the 2016 snapshot; height for this year is
+                 temporally offset — canopy class is approximate.
+
+  total px     : 149,407,696
+  imaged px    : 149,407,696  (100.0% of raster)
+  nodata px    : 0  (0.0%)
+  — over imaged pixels —
+  non-veg (0)  : 96,406,202  (64.5%)
+  grass   (1)  : 5,836,209  (3.9%)
+  canopy  (2)  : 47,165,285  (31.6%)  <-- recall reference
+
+  NDVI over imaged px: p10=-0.600 p50=-0.140 p90=0.520
+
+  THRESHOLD SWEEP (canopy % of imaged px):
+    veg_thr \ height    1.0m    2.0m    3.0m    5.0m
+    NDVI>=0.1          36.21   34.84   33.12   29.01
+    NDVI>=0.15         34.50   33.24   31.65   27.89
+    NDVI>=0.2          32.72   31.57   30.12   26.70
+    NDVI>=0.25         30.47   29.46   28.18   25.14
+    NDVI>=0.3          27.79   26.94   25.84   23.24
+
+  (veg-only % of imaged, by NDVI thr: 0.1=39.4%, 0.15=37.5%, 0.2=35.5%, 0.25=33.0%, 0.3=30.0%)

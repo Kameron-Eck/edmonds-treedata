@@ -1,0 +1,5 @@
+partition,px,pct_of_valid,model_canopy_px,model_canopy_rate
+both_canopy,22481133,23.3105,16585688,0.7378
+both_noncanopy,58528571,60.6877,750174,0.0128
+ndvi_only,9904705,10.2701,2168415,0.2189
+ccap_only,5527831,5.7318,1799174,0.3255

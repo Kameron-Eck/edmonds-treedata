@@ -1,0 +1,5 @@
+year,thresh,ref_canopy_pct,model_canopy_pct,gap_pp,recall,precision,grass_reject,tp,fn,fp_grass,fp_nonveg,valid,ref,prob,live,run_tag,ts
+2016,0.3767,37.739,23.543,14.195,0.6049,0.9696,0.9814,307864373,201093331,1038355,8612146,1348637499,ndvi_ref_2016.tif,edmonds_canopy_prob_2016.tif,0,,2026-07-06 12:16:17
+2016,0.3736,nan,nan,nan,nan,nan,nan,0,0,0,0,0,ndvi_ref_2016.tif,edmonds_canopy_prob_2016.tif,0,UNSCORABLE-failed-inference,2026-07-06 13:26:01
+2016,0.548,nan,nan,nan,nan,nan,nan,0,0,0,0,0,ndvi_ref_2016.tif,edmonds_canopy_prob_2016.tif,0,UNSCORABLE-failed-inference,2026-07-06 14:40:17
+2016,0.4615,37.739,23.356,14.383,0.5937,0.9593,0.9119,302167379,206790325,4905579,7914864,1348637499,ndvi_ref_2016.tif,edmonds_canopy_prob_2016.tif,1,,2026-07-07 01:31:07

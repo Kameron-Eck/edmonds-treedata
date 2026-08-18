@@ -1,0 +1,21 @@
+#param,value
+#ref,D:\edmonds-pipeline\Imagery\ccap_2016_hires_lc.tif
+#prob,G:\My Drive\treedata\phase4\masks\edmonds_canopy_prob_2002_xsensor_rgb.tif
+#thresh,0.57
+#forest_codes,9 10 11
+#stable_with,
+#denominator,full_forest
+#chm,D:\edmonds-pipeline\Imagery\lidar_snoh_chm.tif
+
+metric,tp_mean,tp_std,fn_mean,fn_std,delta,n_tp,n_fn
+prob,0.695,0.0718,0.2663,0.168,-0.4287,36908833,36343216
+R,82.4699,34.5011,97.5026,45.6203,15.0327,36908833,36343216
+G,93.2843,37.1038,101.9475,45.4733,8.6632,36908833,36343216
+B,72.8988,27.5835,85.8266,39.2846,12.9279,36908833,36343216
+brightness,82.8843,32.873,95.0922,43.1221,12.2079,36908833,36343216
+saturation,0.2403,0.0835,0.1963,0.0911,-0.044,36908833,36343216
+NDVI,nan,nan,nan,nan,nan,0,0
+GRVI,0.0675,0.0489,0.0284,0.0529,-0.0391,36908833,36343216
+height_m,25.5459,10.4554,14.6618,9.2844,-10.8841,36908833,36343216
+
+forest_px,73252049,tp,36908833,fn,36343216,recall,0.5039,indep_cells,26122060,denominator,full_forest

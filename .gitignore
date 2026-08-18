@@ -25,3 +25,22 @@ __pycache__/
 # Drive/Office noise
 desktop.ini
 ~$*
+
+# ── phase4/qc: track the FINDINGS, never the rasters ──────────────────────
+# Added 2026-08-18. These are small text artefacts (~155 KB total) that ARE the
+# results of the measurement work: honest scores, reference-agreement
+# partitions, height curves, the mask inventory. Two reasons to version them:
+#   1. sample_{year}_labels.csv holds HUMAN photo-interpretation — hours of
+#      irreplaceable effort that no script can regenerate.
+#   2. Everything else can be regenerated, but only from the exact code + input
+#      state; having the outputs in git makes results diffable over time and
+#      survives loss of the Drive mount.
+# Rasters stay out: *.tif is ignored globally, and chip/subdirectory contents
+# are excluded because only files at the qc/ level are whitelisted.
+!/phase4/
+/phase4/*
+!/phase4/qc/
+/phase4/qc/*
+!/phase4/qc/*.txt
+!/phase4/qc/*.csv
+!/phase4/qc/*.json

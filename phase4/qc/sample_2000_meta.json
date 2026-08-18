@@ -1,0 +1,39 @@
+{
+  "year": "2000",
+  "seed": 20260818,
+  "decim": 2,
+  "thresh": 0.5133,
+  "scheme": "single_reference",
+  "prob": "edmonds_canopy_prob_2000_xsensor_rgb.tif",
+  "ccap": "ccap_2016_hires_lc.tif",
+  "ndvi": null,
+  "crs": "EPSG:3857",
+  "n_requested": 250,
+  "n_drawn": 250,
+  "strata": {
+    "1": {
+      "name": "ccap_canopy_5_15m",
+      "cells": 5647023,
+      "sampled": 75,
+      "area_share": 0.10314144700522895
+    },
+    "2": {
+      "name": "ccap_canopy_other",
+      "cells": 12793228,
+      "sampled": 55,
+      "area_share": 0.23366507410857212
+    },
+    "3": {
+      "name": "ccap_noncanopy",
+      "cells": 33479025,
+      "sampled": 70,
+      "area_share": 0.6114859250306286
+    },
+    "4": {
+      "name": "no_chm",
+      "cells": 2831003,
+      "sampled": 50,
+      "area_share": 0.051707553855570305
+    }
+  }
+}

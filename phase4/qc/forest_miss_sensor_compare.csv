@@ -1,0 +1,4 @@
+year,sensor,gsd_cm,recall,confident_miss,d_ndvi,d_grvi,d_bright,ndvi_tp,ndvi_fn,grvi_tp,grvi_fn,bright_tp,bright_fn,height_tp,height_fn,forest_px,tp,fn
+2013,king,14.9,0.7333,0.0926,nan,-0.0249,1.21,nan,nan,0.0863,0.0614,71.05,72.25,24.69,13.79,923856379,677506835,246349544
+2000,king,59.7,0.6803,0.2408,nan,-0.047,28.06,nan,nan,0.126,0.0791,67.36,95.42,25.15,14.58,57563266,39163109,18400157
+2002,king,59.7,0.6825,0.1939,nan,-0.0426,16.65,nan,nan,0.0658,0.0232,81.5,98.15,25.15,14.54,57740965,39405901,18335064

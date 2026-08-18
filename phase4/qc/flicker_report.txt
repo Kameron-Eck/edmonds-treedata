@@ -1,0 +1,17 @@
+Temporal-stability (flicker) test — false canopy on known-unchanged parcels
+  years  : 2000, 2016
+  parcels: Cemetery, Civic_Field, Edmonds_Stadium, Parking, Water
+
+  false-canopy % (any canopy on these non-tree parcels = false positive):
+    parcel                   2000     2016   flicker(std)
+    Cemetery                35.55    56.23    10.34 pp
+    Civic_Field              0.00     1.72     0.86 pp
+    Edmonds_Stadium         53.42    58.34     2.46 pp
+    Parking                  0.00     0.03     0.01 pp
+    Water                     n/a     0.00      nan pp
+
+  MEAN FLICKER (avg per-parcel std across years): 3.42 pp
+  resolution step: fine(≤15cm) nan% vs coarse(≥45cm) 22.81%  → step +nan pp
+    fine years=[]  coarse years=['2000', '2016']
+
+  VERDICT: BORDERLINE (3–5 pp) → judge against the smallest real canopy change the study must detect; lean ship if the target effect is larger than this flicker.

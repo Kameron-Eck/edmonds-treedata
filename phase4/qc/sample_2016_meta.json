@@ -1,0 +1,51 @@
+{
+  "year": "2016",
+  "seed": 20260818,
+  "decim": 4,
+  "thresh": 0.4615,
+  "scheme": "dual_reference",
+  "prob": "edmonds_canopy_prob_2016.tif",
+  "ccap": "ccap_2016_hires_lc.tif",
+  "ndvi": "ndvi_ref_2016.tif",
+  "crs": "EPSG:2285",
+  "n_requested": 250,
+  "n_drawn": 250,
+  "strata": {
+    "1": {
+      "name": "disagree_5_15m",
+      "cells": 5892696,
+      "sampled": 60,
+      "area_share": 0.06991303321507855
+    },
+    "2": {
+      "name": "disagree_other",
+      "cells": 6763653,
+      "sampled": 45,
+      "area_share": 0.0802463756562812
+    },
+    "3": {
+      "name": "both_canopy_5_15m",
+      "cells": 6244165,
+      "sampled": 40,
+      "area_share": 0.07408298596184683
+    },
+    "4": {
+      "name": "both_canopy_other",
+      "cells": 15783655,
+      "sampled": 25,
+      "area_share": 0.187262875307048
+    },
+    "5": {
+      "name": "both_noncanopy",
+      "cells": 35683028,
+      "sampled": 50,
+      "area_share": 0.42335608722706514
+    },
+    "6": {
+      "name": "no_chm",
+      "cells": 13918890,
+      "sampled": 30,
+      "area_share": 0.1651386426326803
+    }
+  }
+}

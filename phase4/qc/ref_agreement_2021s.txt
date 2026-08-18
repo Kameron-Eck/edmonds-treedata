@@ -1,0 +1,39 @@
+REFERENCE DISAGREEMENT MAP — year 2021s
+  ndvi ref : ndvi_ref_2021s.tif
+  ccap ref : ccap_2021_hires_lc.tif
+  prob     : edmonds_canopy_prob_2021s_p2nir.tif   @ thresh 0.499
+
+  valid px (prob + both refs present) : 1,403,039,372
+
+  AGREEMENT PARTITION:
+    BOTH say canopy            344,765,232  (24.57%)  <- trustworthy positive
+    BOTH say non-canopy        833,825,079  (59.43%)  <- trustworthy negative
+    NDVI only                  197,414,372  (14.07%)  \
+    C-CAP only                  27,034,689  ( 1.93%)  / DISAGREE = UNMEASURABLE
+    -> refs disagree on        224,449,061  (16.00%) of all valid pixels
+
+  MODEL SCORED ON THE BOTH-AGREE SUBSET ONLY (reference noise removed):
+    recall    0.7350
+    precision 0.9876
+    TP 253,387,549  FN 91,377,683  FP 3,184,776
+
+  WHERE THE HEADLINE C-CAP MISS ACTUALLY LIVES:
+    C-CAP canopy px         371,799,921
+    model missed (FN)       117,095,171
+      ...of which BOTH refs agree it IS canopy : 91,377,683 (78.0%)  <- REAL MISS
+      ...of which refs DISAGREE                : 25,717,488 (22.0%)  <- UNMEASURABLE
+
+  MODEL CANOPY-CALL RATE BY PARTITION (diagnostic):
+    both_canopy         73.50%   (253,387,549 / 344,765,232)
+    ndvi_only           20.32%   (40,106,976 / 197,414,372)
+    ccap_only            4.87%   (1,317,201 / 27,034,689)
+    both_noncanopy       0.38%   (3,184,776 / 833,825,079)
+
+  READ:
+    * The BOTH-AGREE recall is the honest number with most reference
+      noise removed. If it is much higher than the raw C-CAP recall,
+      the references — not the model — carry a large share of the gap.
+    * A high 'ccap_only' canopy-call rate means the model sides with
+      NDVI; a high 'ndvi_only' rate means it sides with C-CAP.
+    * CAVEAT: the NDVI reference uses a ~2016 CHM regardless of year,
+      so its height test is temporally offset (see ndvi_ref_*.txt).

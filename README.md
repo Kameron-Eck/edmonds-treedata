@@ -26,7 +26,7 @@ reference.
 | **What's built vs pending** (per phase) | `Scripts/pipeline_buildtracker.md` | structural status |
 | **Schedule / decision gates / grant milestones** | `Scripts/edmonds_combined_workplan.xlsx` | the canonical Gantt |
 | **Session rules, drive layout, how to resume** | `Scripts/CLAUDE.md` | rules + pointers |
-| **Pipeline architecture at a glance** (inputs / processes / outputs, the Phase-3→4 label loop) | `Scripts/pipeline_architecture.html` | open locally, or the published copy: https://claude.ai/code/artifact/e446cce0-449a-468d-88f9-ce31c91ba119 |
+| **Pipeline architecture at a glance** (inputs / processes / outputs, the Phase-3→4 label loop) | `Scripts/pipeline_architecture.html` | SELF-CONTAINED — double-click to open in any browser; no webfonts, no scripts, no network. Git-tracked. |
 | **The plan currently being executed** | the plan file named in CHATLOG STATE | one active plan at a time |
 | **Literature / citations** | `Literature_Tracker.xlsx` (repo root) | 68 papers, 8 search phases; academic remote-sensing only |
 | **City of Edmonds canopy reports** | `Reports/Edmonds_Report_Dossier.md` + `Reports/inventory.csv` | municipal/consultant reports: data + method per report; PDFs alongside |

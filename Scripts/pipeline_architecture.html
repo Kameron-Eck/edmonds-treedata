@@ -1,7 +1,5 @@
 <title>Edmonds Canopy Pipeline Map</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&family=JetBrains+Mono:wght@400;600&display=swap">
+<!-- Self-contained: no webfonts, no scripts, no external requests. -->
 
 <style>
   :root{
@@ -56,12 +54,12 @@
   body{
     background:var(--surface);
     color:var(--ink);
-    font-family:"Source Serif 4",Georgia,serif;
+    font-family:Georgia,"Iowan Old Style","Palatino Linotype",serif;
     font-size:17px; line-height:1.65;
     margin:0; padding:0 20px 96px;
   }
   .wrap{max-width:1040px;margin:0 auto}
-  h1,h2,h3,.label{font-family:Archivo,"Helvetica Neue",Arial,sans-serif}
+  h1,h2,h3,.label{font-family:"Segoe UI Semibold","Segoe UI",-apple-system,BlinkMacSystemFont,"Helvetica Neue",Arial,sans-serif}
   h1{
     font-size:clamp(30px,4.6vw,46px); font-weight:700; line-height:1.1;
     letter-spacing:-.02em; text-wrap:balance; margin:0 0 12px;
@@ -75,7 +73,7 @@
     font-size:11px; font-weight:600; text-transform:uppercase;
     letter-spacing:.13em; color:var(--ink-3);
   }
-  code,.mono{font-family:"JetBrains Mono",ui-monospace,Menlo,monospace;font-size:.83em}
+  code,.mono{font-family:Consolas,"SF Mono",Menlo,ui-monospace,monospace;font-size:.83em}
   code{background:var(--panel-2);padding:1px 5px;border-radius:3px;color:var(--ink)}
   p{margin:0 0 14px;max-width:66ch}
   a{color:var(--accent)}
@@ -86,7 +84,7 @@
   section{margin:0 0 56px}
   .sec-head{display:flex;align-items:baseline;gap:14px;margin-bottom:20px;flex-wrap:wrap}
   .num{
-    font-family:"JetBrains Mono",monospace;font-size:12px;font-weight:600;
+    font-family:Consolas,"SF Mono",Menlo,monospace;font-size:12px;font-weight:600;
     color:var(--accent);border:1px solid var(--accent);border-radius:3px;
     padding:2px 7px;flex:none;
   }
@@ -112,11 +110,11 @@
   .tablewrap{overflow-x:auto;border:1px solid var(--rule);border-radius:6px;background:var(--panel)}
   th,td{text-align:left;padding:11px 14px;border-bottom:1px solid var(--rule);vertical-align:top}
   th{
-    font-family:Archivo,sans-serif;font-size:11px;font-weight:600;text-transform:uppercase;
+    font-family:"Segoe UI","Segoe UI Semibold",-apple-system,sans-serif;font-size:11px;font-weight:600;text-transform:uppercase;
     letter-spacing:.1em;color:var(--ink-3);background:var(--panel-2);white-space:nowrap;
   }
   tr:last-child td{border-bottom:none}
-  td.mono,th.mono{font-family:"JetBrains Mono",monospace;font-size:12.5px}
+  td.mono,th.mono{font-family:Consolas,"SF Mono",Menlo,monospace;font-size:12.5px}
   .num-cell{font-variant-numeric:tabular-nums}
 
   .flow{display:flex;flex-direction:column;gap:14px}
@@ -137,7 +135,7 @@
   .stage .proc-title{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
 
   .pill{
-    display:inline-block;font-family:Archivo,sans-serif;font-size:10.5px;font-weight:600;
+    display:inline-block;font-family:"Segoe UI",-apple-system,sans-serif;font-size:10.5px;font-weight:600;
     text-transform:uppercase;letter-spacing:.09em;padding:2px 8px;border-radius:99px;
     border:1px solid currentColor;
   }
@@ -183,9 +181,9 @@
         </defs>
 
         <!-- column headers -->
-        <text x="20" y="24" font-family="Archivo,sans-serif" font-size="11" font-weight="600" letter-spacing="1.6" fill="currentColor" opacity=".55">INPUTS</text>
-        <text x="270" y="24" font-family="Archivo,sans-serif" font-size="11" font-weight="600" letter-spacing="1.6" fill="currentColor" opacity=".55">PRODUCTION PIPELINE</text>
-        <text x="670" y="24" font-family="Archivo,sans-serif" font-size="11" font-weight="600" letter-spacing="1.6" fill="currentColor" opacity=".55">OUTPUTS</text>
+        <text x="20" y="24" font-family="Segoe UI,Helvetica,Arial,sans-serif" font-size="11" font-weight="600" letter-spacing="1.6" fill="currentColor" opacity=".55">INPUTS</text>
+        <text x="270" y="24" font-family="Segoe UI,Helvetica,Arial,sans-serif" font-size="11" font-weight="600" letter-spacing="1.6" fill="currentColor" opacity=".55">PRODUCTION PIPELINE</text>
+        <text x="670" y="24" font-family="Segoe UI,Helvetica,Arial,sans-serif" font-size="11" font-weight="600" letter-spacing="1.6" fill="currentColor" opacity=".55">OUTPUTS</text>
 
         <!-- INPUTS -->
         <rect x="20" y="42" width="185" height="52" rx="4" fill="none" stroke="currentColor" stroke-width="1.4"/>
@@ -265,7 +263,7 @@
 
         <!-- MEASUREMENT LAYER -->
         <line x1="20" y1="424" x2="880" y2="424" stroke="currentColor" stroke-width="1" opacity=".35"/>
-        <text x="20" y="448" font-family="Archivo,sans-serif" font-size="11" font-weight="600" letter-spacing="1.6" fill="currentColor" opacity=".55">MEASUREMENT LAYER — reads outputs, never writes labels</text>
+        <text x="20" y="448" font-family="Segoe UI,Helvetica,Arial,sans-serif" font-size="11" font-weight="600" letter-spacing="1.6" fill="currentColor" opacity=".55">MEASUREMENT LAYER — reads outputs, never writes labels</text>
 
         <rect x="20" y="462" width="185" height="52" rx="4" fill="var(--guard-soft)" stroke="#5b6b8a" stroke-width="1.6" stroke-dasharray="5 3"/>
         <text x="32" y="482" font-size="12.5" font-weight="600" fill="currentColor">C-CAP land cover</text>

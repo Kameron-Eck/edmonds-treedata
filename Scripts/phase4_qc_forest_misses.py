@@ -291,6 +291,11 @@ def analyse(year, ref_path, prob_path, thresh, forest_codes, block_rows, coarse,
             if bi % 4 == 0 or bi == n_blocks - 1:
                 print(f"    block {bi+1}/{n_blocks}", flush=True)
 
+        # How many INDEPENDENT reference cells do those px represent? The ref is
+        # nearest-warped onto the (much finer) prob grid, so each ref cell is
+        # replicated across many px. Counts are px; the honest N is this.
+        indep_cells = _indep_cells(forest_total, prob, ref_ds)
+
         ref_vrt.close(); ref_ds.close()
         if chm_vrt:
             chm_vrt.close(); chm_ds.close()
@@ -301,7 +306,8 @@ def analyse(year, ref_path, prob_path, thresh, forest_codes, block_rows, coarse,
 
     _write_density(year, c_forest, c_fn, coarse_tf, coarse_crs, coarse)
     _report(year, ref_path, prob_path, thresh, forest_codes,
-            tp, fn, n_tp, n_fn, forest_total)
+            tp, fn, n_tp, n_fn, forest_total,
+            stable_path=stable_path, chm_path=chm_path, indep_cells=indep_cells)
     return dict(year=year, tp=tp, fn=fn, n_tp=n_tp, n_fn=n_fn, forest_total=forest_total,
                 recall=(n_tp / (n_tp + n_fn) if (n_tp + n_fn) else float("nan")))
 
@@ -385,22 +391,66 @@ def _diagnosis(tp, fn):
     return lines
 
 
-def _report(year, ref_path, prob_path, thresh, forest_codes, tp, fn, n_tp, n_fn, forest_total):
+def _px_area_m2(ds):
+    """Pixel area in m², honouring non-metric CRS units (e.g. EPSG:2285 = US ft)."""
+    try:
+        f = ds.crs.linear_units_factor[1]
+    except Exception:
+        f = 1.0
+    return abs(ds.transform.a * ds.transform.e) * f * f
+
+
+def _indep_cells(px, prob_ds, ref_ds):
+    """px on the prob grid → equivalent count of native reference cells."""
+    try:
+        a_prob, a_ref = _px_area_m2(prob_ds), _px_area_m2(ref_ds)
+        if a_prob <= 0 or a_ref <= 0:
+            return float("nan")
+        return px * a_prob / a_ref
+    except Exception:
+        return float("nan")
+
+
+def _report(year, ref_path, prob_path, thresh, forest_codes, tp, fn, n_tp, n_fn, forest_total,
+            stable_path=None, chm_path=None, indep_cells=float("nan")):
     recall = n_tp / (n_tp + n_fn) if (n_tp + n_fn) else float("nan")
     L = [f"FOREST-MISS AUTOPSY — year {year}  (why upland forest is under-predicted)",
          f"  ref   : {ref_path}   (forest codes {forest_codes})",
          f"  prob  : {prob_path}",
          f"  thresh: {thresh}",
          "",
-         f"  C-CAP upland-forest px : {forest_total:,}",
+         "  DENOMINATOR (every mask that narrows what is scored — read before quoting):",
+         f"    forest codes   : {forest_codes}",
+         f"    imagery cover  : (R+G+B) > 0            [always on]",
+         f"    prob valid     : prob != 255            [always on]",
+         "    stable-with    : " + (f"{stable_path}\n"
+                                    "                     ^^ FOREST MUST ALSO BE FOREST HERE — this is a"
+                                    " SUBSET,\n                        NOT full-forest recall. NOT comparable"
+                                    " to qc_indep."
+                                    if stable_path else "(none — full forest, comparable to qc_indep)"),
+         f"    chm (height)   : {chm_path or '(none — height_m is nan)'}",
+         "",
+         f"  upland-forest px : {forest_total:,}"
+         + (f"   (≈ {indep_cells:,.0f} independent {Path(str(ref_path)).name} cells)"
+            if indep_cells == indep_cells else ""),
          f"  recalled (TP) : {n_tp:,}   missed (FN) : {n_fn:,}   RECALL {recall:.4f}",
          "",
-         f"  metric          recalled(TP)         missed(FN)          Δ(FN−TP)",
+         "  NOTE: px counts are on the fine prob grid; the reference is nearest-warped up,",
+         "        so px are NOT independent samples. Means are unbiased; any error bar",
+         "        computed from the px count is not. Use the independent-cell count.",
+         "",
+         f"  metric          recalled(TP)         missed(FN)          Δ(FN−TP)      n(TP/FN)",
          f"                  mean ± std           mean ± std"]
     for m in METRICS:
         tm, ts, fm, fs = tp.mean(m), tp.std(m), fn.mean(m), fn.std(m)
         d = fm - tm
-        L.append(f"  {m:<13}  {tm:>7.3f} ± {ts:<7.3f}   {fm:>7.3f} ± {fs:<7.3f}   {d:>+7.3f}")
+        L.append(f"  {m:<13}  {tm:>7.3f} ± {ts:<7.3f}   {fm:>7.3f} ± {fs:<7.3f}   {d:>+7.3f}"
+                 f"   {tp.n[m]:,}/{fn.n[m]:,}")
+    if chm_path and fn.n["height_m"] < n_fn:
+        L.append(f"  ^ height_m is measured ONLY where the CHM has data "
+                 f"({100*fn.n['height_m']/max(n_fn,1):.0f}% of FN, "
+                 f"{100*tp.n['height_m']/max(n_tp,1):.0f}% of TP) — and the CHM is ~2016,")
+        L.append(f"    so height for any non-2016 year compares that year's imagery to 2016 structure.")
     # prob-depth of misses
     ph = fn.hist["prob"]; nb = HIST_SPEC["prob"][2]; core = ph[1:nb + 1]; tot = max(core.sum(), 1)
     b1 = core[:3].sum() / tot; b2 = core[3:6].sum() / tot
@@ -422,13 +472,25 @@ def _report(year, ref_path, prob_path, thresh, forest_codes, tp, fn, n_tp, n_fn,
     csvp = QC_DIR / f"forest_miss_{year}.csv"
     with open(csvp, "w", newline="", encoding="utf-8") as f:
         w = csv.writer(f)
-        w.writerow(["metric", "tp_mean", "tp_std", "fn_mean", "fn_std", "delta"])
+        # provenance FIRST — a denominator-narrowing flag must never be implicit
+        w.writerow(["#param", "value"])
+        w.writerow(["#ref", ref_path])
+        w.writerow(["#prob", prob_path])
+        w.writerow(["#thresh", thresh])
+        w.writerow(["#forest_codes", " ".join(str(c) for c in forest_codes)])
+        w.writerow(["#stable_with", stable_path or ""])
+        w.writerow(["#denominator", "stable_subset" if stable_path else "full_forest"])
+        w.writerow(["#chm", chm_path or ""])
+        w.writerow([])
+        w.writerow(["metric", "tp_mean", "tp_std", "fn_mean", "fn_std", "delta", "n_tp", "n_fn"])
         for m in METRICS:
             w.writerow([m, round(tp.mean(m), 4), round(tp.std(m), 4),
                         round(fn.mean(m), 4), round(fn.std(m), 4),
-                        round(fn.mean(m) - tp.mean(m), 4)])
+                        round(fn.mean(m) - tp.mean(m), 4), tp.n[m], fn.n[m]])
         w.writerow([])
-        w.writerow(["forest_px", forest_total, "tp", n_tp, "fn", n_fn, "recall", round(recall, 4)])
+        w.writerow(["forest_px", forest_total, "tp", n_tp, "fn", n_fn, "recall", round(recall, 4),
+                    "indep_cells", (round(indep_cells) if indep_cells == indep_cells else ""),
+                    "denominator", "stable_subset" if stable_path else "full_forest"])
     _plot(year, tp, fn)
     print(f"[forest-miss] wrote {QC_DIR / f'forest_miss_{year}.txt'}")
     print(f"[forest-miss] wrote {csvp}")
@@ -457,14 +519,16 @@ def _plot(year, tp, fn):
         print(f"[forest-miss] WARN plot: {e}")
 
 
-def write_step_log(year, n_tp, n_fn):
+def write_step_log(year, n_tp, n_fn, stable_path=None):
     try:
         LOGS_DIR.mkdir(parents=True, exist_ok=True)
         ts = _dt.datetime.now().strftime("%Y%m%d_%H%M%S")
         rec = n_tp / (n_tp + n_fn) if (n_tp + n_fn) else float("nan")
+        denom = "stable_subset" if stable_path else "full_forest"
         (LOGS_DIR / f"phase4_qc_forest_misses_{year}_{ts}.log").write_text(
             f"phase4_qc_forest_misses.py year={year} recall={rec:.4f} "
-            f"tp={n_tp} fn={n_fn}\n", encoding="utf-8")
+            f"tp={n_tp} fn={n_fn} denominator={denom} "
+            f"stable_with={stable_path or ''}\n", encoding="utf-8")
     except Exception:
         pass
 
@@ -614,7 +678,7 @@ def main():
 
     R = analyse(args.year, ref_path, prob_path, thresh,
                 forest_codes, args.block_rows, args.coarse, stable_path)
-    write_step_log(R["year"], R["n_tp"], R["n_fn"])
+    write_step_log(R["year"], R["n_tp"], R["n_fn"], stable_path)
 
 
 if __name__ == "__main__":

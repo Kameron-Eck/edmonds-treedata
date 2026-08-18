@@ -268,6 +268,34 @@ files:   CLAUDE.md, pipeline_buildtracker.md, ../README.md, run_registry.csv (+7
 next:    logs/ do NOT stamp the engine version → a backfilled registry row can't state one.
          cheap fix when the engine is next edited: have write_step_log() emit the version.
 
+## 2026-08-17  P1 LANDED — scorers fail loud, provenance mandatory, QC CSVs have live/run_tag
+goal:    P1 of honest-measurement-overhaul: make the instruments trustworthy before measuring anything.
+did:     (1) FAIL-LOUD. New QCUnscorableError in phase4_qc_indep.py + phase4_qc_score.py; --min-valid-frac
+         [def 0.05]; zero-valid or below-floor => raise + SystemExit(2), NEVER a nan row. Plus
+         _preflight_prob() in qc_indep = decimated read BEFORE the block scan, so a dead raster costs
+         seconds not an hour; also WARNs if max prob anywhere < 0.5.
+         VERIFIED on 2017: exits 2, "prob raster is 96.5% NODATA ... FAILED INFERENCE RUN", no row.
+         (2) PROVENANCE (the forest_miss defect). _report() now prints a DENOMINATOR block naming every
+         narrowing mask incl. stable-with, with an explicit "this is a SUBSET, NOT comparable to
+         qc_indep" warning when set. CSV gets #param header rows + per-metric n_tp/n_fn. Step log gets
+         denominator=full_forest|stable_subset. Added _indep_cells()/_px_area_m2() (CRS-unit aware, EPSG:
+         2285=ft) so px counts carry an honest N. Height rows now state CHM coverage % + the ~2016-vintage
+         anachronism for non-2016 years.
+         (3) STALE ROWS. qc_indep_report.csv gains live + run_tag. Old de-dupe keyed (year,ref,prob,
+         thresh) => a re-run w/ a different prob or thresh ADDED a row (how 2015 .257 sat beside .62 and
+         2016 kept 4 rows, 2 nan). Now: identical run replaces; same year+ref different run => kept as
+         history w/ live=0. MIGRATED both CSVs (backups *.bak_20260817): qc_indep 22 rows -> 16 live;
+         qc_report 4 -> 1 live. 2017 nan rows tagged run_tag=UNSCORABLE-failed-inference.
+         (4) NEW phase4_qc_inventory.py — sweeps masks/, verdicts EMPTY / UNREADABLE / MOSTLY_NODATA /
+         NO_CONFIDENCE / OK -> qc/mask_inventory.csv, --strict exits 2. Catches a bad raster BEFORE
+         anyone scores it.
+decided: keep history, don't delete rows — the failure was ambiguity not volume. live=1 is the contract.
+files:   phase4_qc_indep.py, phase4_qc_score.py, phase4_qc_forest_misses.py, NEW phase4_qc_inventory.py.
+         All py_compile OK. LIVE honest numbers unchanged: 2016 .6844/.8651, 2013 .7094/.8551,
+         2015 .6222/.8835, 2000 .6303/.7745, 2002 .5069/.8377 (forest_wetland, live=1).
+next:    inventory sweep finishing (bg). Then P1 Colab: re-run 2017 inference + build citywide 2022
+         prob raster. Then P1b re-run forest_miss WITHOUT --stable-with, and P1c per-year miss depth.
+
 ## 2026-08-17  "can I trust forest_miss?" → NO (hidden --stable denominator); 2016 conf% is an OUTLIER
 goal:    Kam pushed back on my leaning on forest_miss_2016.txt. Audit whether that file is trustworthy.
 did:     Read phase4_qc_forest_misses.py masking + Acc; cross-checked vs phase4_qc_indep.py; ran a

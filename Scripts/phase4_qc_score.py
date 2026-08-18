@@ -95,7 +95,11 @@ def deployed_threshold(year, channels_pref=("rgb+chm", "rgb+struct", "rgb")):
     return None
 
 
-def score(year, thresh, block_rows):
+class QCUnscorableError(RuntimeError):
+    """The inputs cannot yield an honest score. NEVER downgrade this to a nan row."""
+
+
+def score(year, thresh, block_rows, min_valid_frac=0.05):
     ref_path  = QC_DIR / f"ndvi_ref_{year}.tif"
     prob_path = resolve_prob(year)
     if not ref_path.exists():
@@ -150,6 +154,25 @@ def score(year, thresh, block_rows):
 
             if bi % 5 == 0 or bi == n_blocks - 1:
                 print(f"    block {bi+1}/{n_blocks}", flush=True)
+
+    # ── FAIL LOUD (see phase4_qc_indep.py for the rationale) ─────────────────
+    # qc_report.csv currently holds 2016 rows with valid=0 and every metric nan.
+    # Those are failures wearing the costume of measurements. Refuse instead.
+    total_px = H * W
+    frac = C["valid"] / total_px if total_px else 0.0
+    if C["valid"] == 0:
+        raise QCUnscorableError(
+            f"year {year}: ZERO valid px — ref and prob never both valid.\n"
+            f"    ref  = {ref_path}\n    prob = {prob_path}\n"
+            f"  Usually a failed inference run (all-nodata prob raster).\n"
+            f"  No row written — an unscorable year must not look like a scored one.")
+    if frac < min_valid_frac:
+        raise QCUnscorableError(
+            f"year {year}: only {frac:.2%} valid ({C['valid']:,} / {total_px:,} px), "
+            f"below --min-valid-frac {min_valid_frac:.2%}.\n"
+            f"    prob = {prob_path}\n"
+            f"  Re-run inference, or pass --min-valid-frac to score it deliberately.")
+    print(f"[qc-score] valid {C['valid']:,} / {total_px:,} px ({frac:.1%}) — OK")
 
     _report(year, thresh, C, sweep, ref_path, prob_path)
     return year, thresh, C
@@ -250,6 +273,9 @@ def main():
     ap.add_argument("--thresh", type=float, default=None,
                     help="Operating threshold; default = deployed value from eval CSV.")
     ap.add_argument("--block-rows", type=int, default=2048)
+    ap.add_argument("--min-valid-frac", type=float, default=0.05,
+                    help="Abort if less than this fraction of the grid is valid "
+                         "(default 0.05). Guards against scoring a failed inference run.")
     args = ap.parse_args(filtered)
 
     thresh, ch = (args.thresh, None), None
@@ -264,7 +290,12 @@ def main():
             thresh, ch = got
             print(f"  deployed threshold {thresh} (channels={ch}) from eval CSV")
 
-    _, _, C = score(args.year, thresh, args.block_rows)
+    try:
+        _, _, C = score(args.year, thresh, args.block_rows,
+                        min_valid_frac=args.min_valid_frac)
+    except QCUnscorableError as e:
+        print(f"\n[qc-score] UNSCORABLE — no row written\n{e}\n", file=sys.stderr)
+        raise SystemExit(2)
     write_step_log(args.year, thresh, C)
 
 

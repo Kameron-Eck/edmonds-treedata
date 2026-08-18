@@ -200,7 +200,42 @@ def canopy_definitions(canopy_order):
 
 
 # ── core scoring ──────────────────────────────────────────────────────────────
-def score(year, ref_path, prob_path, thresh, ref_scheme, ref_map_path, block_rows):
+class QCUnscorableError(RuntimeError):
+    """The inputs cannot yield an honest score. NEVER downgrade this to a nan row."""
+
+
+def _preflight_prob(year, prob_path, min_valid_frac, sample=2000):
+    """Cheap decimated check that the prob raster holds real predictions.
+
+    Catches the 2017 failure mode (96.5% nodata + probabilities collapsed near 0)
+    in seconds instead of after a full block scan.
+    """
+    with rasterio.open(prob_path) as p:
+        if p.count < 1 or p.width == 0 or p.height == 0:
+            raise QCUnscorableError(f"year {year}: {prob_path} is empty/unreadable.")
+        h = min(sample, p.height)
+        w = max(1, int(p.width * h / p.height))
+        a = p.read(1, out_shape=(h, w), resampling=Resampling.nearest)
+    valid = a != 255
+    frac = float(valid.mean())
+    if frac < min_valid_frac:
+        raise QCUnscorableError(
+            f"year {year}: prob raster is {100*(1-frac):.1f}% NODATA "
+            f"(only {frac:.2%} valid, below --min-valid-frac {min_valid_frac:.2%}).\n"
+            f"    prob = {prob_path}\n"
+            f"  This is a FAILED INFERENCE RUN, not a scoring problem. Re-run inference.\n"
+            f"  (Detected on a decimated preflight — no full scan was wasted.)")
+    if valid.any():
+        mx = float(a[valid].max()) / 254.0
+        if mx < 0.5:
+            print(f"[qc-indep] WARNING: max probability anywhere is {mx:.3f} — the model "
+                  f"never confidently predicts canopy in {year}. Suspect a broken run.",
+                  file=sys.stderr)
+    print(f"[qc-indep] preflight: prob {frac:.1%} valid — OK")
+
+
+def score(year, ref_path, prob_path, thresh, ref_scheme, ref_map_path, block_rows,
+          min_valid_frac=0.05):
     names, canopy_order, grass_group, code_to_group = load_ref_map(ref_scheme, ref_map_path)
     ignore_id = names.index("ignore")
     lut = build_lut(names, code_to_group) if ref_scheme != "binary" else None
@@ -212,6 +247,10 @@ def score(year, ref_path, prob_path, thresh, ref_scheme, ref_map_path, block_row
     print(f"    canopy definitions: {[d[0] for d in defs]}")
 
     thr_u8 = thresh * 254.0
+
+    # PREFLIGHT — estimate the prob raster's valid fraction from a decimated read
+    # BEFORE spending an hour block-scanning a raster that is mostly nodata.
+    _preflight_prob(year, prob_path, min_valid_frac)
 
     with rasterio.open(ref_path) as _r:
         ref_nodata = _r.nodata
@@ -292,6 +331,29 @@ def score(year, ref_path, prob_path, thresh, ref_scheme, ref_map_path, block_row
                     print(f"    block {bi+1}/{n_blocks}", flush=True)
 
     ref_src.close()
+
+    # ── FAIL LOUD ────────────────────────────────────────────────────────────
+    # A scorer that writes `nan` on empty overlap manufactures the illusion of a
+    # measurement. 2017 did exactly that: a 96.5%-nodata prob raster (a failed
+    # inference run) was reported as a nan row instead of an error, and sat in
+    # qc_indep_report.csv looking like a scored year. Refuse instead.
+    total_px = H * W
+    frac = valid_total / total_px if total_px else 0.0
+    if valid_total == 0:
+        raise QCUnscorableError(
+            f"year {year}: ZERO valid px — nothing overlaps between\n"
+            f"    prob = {prob_path}\n    ref  = {ref_path}\n"
+            f"  Check (a) the prob raster is not all-nodata (a failed inference run),\n"
+            f"        (b) the two rasters actually overlap on the ground.\n"
+            f"  No row written — an unscorable year must not look like a scored one.")
+    if frac < min_valid_frac:
+        raise QCUnscorableError(
+            f"year {year}: only {frac:.2%} of the prob raster is valid "
+            f"({valid_total:,} / {total_px:,} px), below --min-valid-frac "
+            f"{min_valid_frac:.2%}.\n    prob = {prob_path}\n"
+            f"  This usually means the inference run failed or covered only a strip.\n"
+            f"  Re-run inference, or pass --min-valid-frac to score it deliberately.")
+    print(f"[qc-indep] valid {valid_total:,} / {total_px:,} px ({frac:.1%}) — OK")
 
     indep_cells = valid_total * px_area / 1.0        # ≈ independent 1 m² C-CAP cells
     result = dict(names=names, defs=defs, primary_idx=primary_idx,
@@ -378,13 +440,20 @@ def _report(year, ref_path, prob_path, thresh, ref_scheme, R, sweep):
     print(f"\n[qc-indep] wrote {QC_DIR / f'qc_indep_{year}.txt'}")
 
 
-def _write_csvs(year, ref_path, prob_path, thresh, def_rows, surf_rows, R):
+def _write_csvs(year, ref_path, prob_path, thresh, def_rows, surf_rows, R, run_tag=""):
     ts = _dt.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    # main per-definition CSV (append/de-dupe on year+ref+def+thresh)
+    # Main per-definition CSV.
+    #
+    # HISTORY IS KEPT, but exactly one row per (year, ref, canopy_def) is LIVE.
+    # The old de-dupe keyed on (year, ref, prob, thresh), so a re-run against a
+    # different prob raster or threshold ADDED a row instead of replacing one —
+    # which is how 2015 ended up showing recall .257 beside .62, and 2016 four
+    # rows (two of them nan), with nothing saying which to quote. Superseding is
+    # now explicit: live=1 on the newest, live=0 on everything it replaces.
     main = QC_DIR / "qc_indep_report.csv"
     fields = ["year", "ref", "prob", "canopy_def", "thresh", "recall", "precision",
               "grass_reject", "tp", "fn", "fp", "ref_canopy", "valid",
-              "indep_1m_cells", "primary", "ts"]
+              "indep_1m_cells", "primary", "live", "run_tag", "ts"]
     new = []
     for r in def_rows:
         new.append(dict(year=year, ref=ref_path.name, prob=prob_path.name,
@@ -393,21 +462,33 @@ def _write_csvs(year, ref_path, prob_path, thresh, def_rows, surf_rows, R):
                         grass_reject=round(r["grass_reject"], 4),
                         tp=r["tp"], fn=r["fn"], fp=r["fp"], ref_canopy=r["ref_canopy"],
                         valid=R["valid"], indep_1m_cells=round(R["indep_cells"]),
-                        primary=int(r["primary"]), ts=ts))
-    keep = []
+                        primary=int(r["primary"]), live=1, run_tag=run_tag, ts=ts))
+    keep, n_sup = [], 0
     if main.exists():
-        keep = [row for row in csv.DictReader(open(main, encoding="utf-8"))
-                if not (row.get("year") == str(year)
-                        and row.get("ref") == ref_path.name
-                        and row.get("prob") == prob_path.name
-                        and row.get("thresh") == str(thresh))]
+        for row in csv.DictReader(open(main, encoding="utf-8")):
+            # identical run (same prob AND thresh) → replace outright, don't stack
+            if (row.get("year") == str(year) and row.get("ref") == ref_path.name
+                    and row.get("prob") == prob_path.name
+                    and row.get("thresh") == str(thresh)):
+                continue
+            # same year+ref+definition, different run → keep as history, mark dead
+            if (row.get("year") == str(year) and row.get("ref") == ref_path.name
+                    and row.get("live", "1") != "0"):
+                row["live"] = "0"
+                n_sup += 1
+            keep.append(row)
     with open(main, "w", newline="", encoding="utf-8") as f:
         w = csv.DictWriter(f, fieldnames=fields)
         w.writeheader()
         for row in keep:
+            row.setdefault("live", "1")          # pre-existing rows for OTHER years
             w.writerow({k: row.get(k, "") for k in fields})
         for row in new:
             w.writerow(row)
+    if n_sup:
+        print(f"[qc-indep] superseded {n_sup} earlier row(s) for {year}/{ref_path.name} "
+              f"(live=0; history kept)")
+    print(f"[qc-indep] wrote {main}  — quote live=1 rows ONLY")
 
     # per-surface breakout CSV (one file per year, overwritten)
     surf = QC_DIR / f"qc_indep_surfaces_{year}.csv"
@@ -462,6 +543,9 @@ def main():
     ap.add_argument("--thresh", type=float, default=None,
                     help="Operating threshold; default = deployed value from eval CSV.")
     ap.add_argument("--block-rows", type=int, default=2048)
+    ap.add_argument("--min-valid-frac", type=float, default=0.05,
+                    help="Abort if less than this fraction of the prob raster is valid "
+                         "(default 0.05). Guards against scoring a failed inference run.")
     args = ap.parse_args(keep)
 
     ref_path = Path(args.ref)
@@ -480,8 +564,13 @@ def main():
             thresh, ch = got
             print(f"  deployed threshold {thresh} (channels={ch}) from eval CSV")
 
-    R = score(args.year, ref_path, prob_path, thresh,
-              args.ref_scheme, args.ref_map, args.block_rows)
+    try:
+        R = score(args.year, ref_path, prob_path, thresh,
+                  args.ref_scheme, args.ref_map, args.block_rows,
+                  min_valid_frac=args.min_valid_frac)
+    except QCUnscorableError as e:
+        print(f"\n[qc-indep] UNSCORABLE — no row written\n{e}\n", file=sys.stderr)
+        raise SystemExit(2)
     write_step_log(args.year, R)
 
 

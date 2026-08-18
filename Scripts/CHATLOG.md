@@ -221,21 +221,39 @@ docs:    SOURCES OF TRUTH CENTRALIZED 2026-07-06. HANDOFFS RETIRED (5 old ones �
 measure: ACTIVE WORKSTREAM (opened 2026-08-17). PLAN = Scripts/honest-measurement-overhaul.md.
          WHY: Kam — "became too reliant on AI judgement"; wants defensible numbers + better
          tests/visuals. FOUR PHASES, run order 1 -> 2 -> 4 -> 3 (Kam's choice).
-         ---- RESUME HERE ----
-         P1 Trust the instruments   ~60% DONE. Local half LANDED; GPU half BLOCKED.
-         P2 Ref-disagreement map    NOT STARTED. LOCAL-ONLY, needs no GPU, unblocked NOW.
+         ---- RESUME HERE  (updated 2026-08-18, Kam away ~1-2 days) ----
+         P1 Trust the instruments   ~85% DONE. 2022n + 2017 rasters landed; 2017 score in flight.
+         P2 Ref-disagreement map    ** DONE for 2016 + 2022n ** (phase4_ref_agreement.py). REPLICATES.
          P4 Visuals                 NOT STARTED. Local. Read phase4_viz.py / phase4_qa_overlay.py /
                                     phase4_sentinel_snap.py FIRST — much may already exist.
-         P3 Human sample            NOT STARTED. 250 pts x 3 yrs (2000/2016/2022n), Olofsson,
-                                    reuse the phase4_label_review.py server. Needs Kam's ~5h.
-         P1 DONE: fail-loud scorers (--min-valid-frac, never a nan row; proven on 2017 -> exit 2);
-         live+run_tag cols on both QC CSVs (migrated, 22->16 live, backups *.bak_20260817);
-         phase4_qc_inventory.py -> qc/mask_inventory.csv; P1b provenance in forest_miss _report().
-         P1 TODO: (a) Colab via phase4_p1_colab_run.py — stage 1 = 2022n [Phase-3 BLOCKER], stage 2 =
-         2017, stage 3 = 2015. FIRST ATTEMPT FAILED (see 2026-08-18 LOG entry): ~4h, ZERO output.
-         Driver fixed 9c205ab/3be1faa; NOT yet re-run. Run stage 1 ONLY, verify, then 2/3.
-         (b) re-score 2017, (c) P1b re-run forest_miss WITHOUT --stable-with, (d) P1c per-year
-         miss-depth on the FULL-forest denominator + one recipe.
+         P3 Human sample            NOT STARTED. REDESIGN IT: oversample the ~15-16% DISAGREE zone,
+                                    which is where neither proxy can settle the question. 250pts x
+                                    2000/2016/2022n. Needs Kam ~5h.
+         ---- THE HEADLINE RESULT (2026-08-18) ----
+         (1) THE GAP IS SYSTEMATIC. 2022n is the strongest model in the project (out-of-sample AUROC
+         .9538, AP .8257, 4-ch rgb+chm, NIR, max prob .972) and its honest recall is .6564 — INSIDE the
+         same .51-.71 band as far weaker years. A better model did NOT close the gap.
+         (2) ~1/3 OF THE "MISS" IS NOT MEASURABLE. P2 replicates across 2 sensors + 2 C-CAP vintages:
+                                2016      2022n
+           refs disagree        15.06%    16.00%   of all valid px
+           raw C-CAP recall     .6844     .6564
+           BOTH-AGREE recall    .7613     .7378
+           BOTH-AGREE precision .9699     .9567
+           FN unmeasurable      33.1%     38.7%
+           FP on agreed neg     1.05%     1.28%
+         => the model's TRUE precision is ~.96-.97, not ~.86. CAVEAT: the both-agree subset is EASIER
+         by construction, so .74-.76 is a favourable-subset number, NOT ground truth. Only P3 settles it.
+         ---- COLAB (unattended, started by Kam before leaving) ----
+         phase4_train_queue.py, LAUNCH DETACHED via nohup (with %run a websocket blip SIGINTs the kernel
+         and kills it — that happened 2026-08-18 at 18s). Queue: [2019n, 2021s] = more NIR years to test
+         whether ~15-16% disagreement generalises; [2016c] = 2016 + --add-canopy-mask = THE HYPOTHESIS
+         TEST (closes gap => LABEL problem; doesn't => labels exonerated, references carry the story).
+         MONITOR: phase4/qc/train_queue_status.csv (one row per step, on Drive) and
+         Scripts/logs/train_queue_nohup.log. Score each output LOCALLY when it lands — no GPU needed:
+         phase4_qc_indep.py then phase4_ref_agreement.py (NIR years only).
+         ---- LOCAL ENV ----
+         CUDA now works locally: torch 2.13.0+cu126, Quadro T2000 4GB (CLAUDE.md says 2GB — STALE),
+         3.45GB free, verified. Still do NOT train locally (rule: don't split training Colab/local).
          ---- HONEST BASELINE (quote ONLY live=1 rows in qc/qc_indep_report.csv) ----
          vs C-CAP, forest_wetland, deployed thresh: 2013 .7094/.8551 · 2016 .6844/.8651 ·
          2000 .6303/.7745 · 2015 .6222/.8835 · 2002 .5069/.8377. NDVI-ref 2016 .594/.959.

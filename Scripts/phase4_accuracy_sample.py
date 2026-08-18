@@ -1,0 +1,358 @@
+r"""
+╔══════════════════════════════════════════════════════════════════╗
+  PHASE 4 — HUMAN ACCURACY SAMPLE  (honest-measurement-overhaul, P3)
+  Edmonds Temporal Active Learning Pipeline
+
+  The ONLY measurement in this project with no model and no proxy product
+  standing between Kam and the answer. Everything else — C-CAP, the NDVI+CHM
+  reference, the 2020 mask — is a stand-in that carries its own bias.
+
+  WHY IT IS NOW THE BLOCKER (2026-08-18)
+  --------------------------------------
+    * The two references DISAGREE ON 15-17% OF PIXELS, replicated across four
+      years and three sensors. On 2021s they differ by 12 points on the SAME
+      year and ground, so it is not vintage drift.
+    * The corrected-label experiment (2016c) lifted recall .684 -> .872 but
+      adopted the NDVI reference's canopy DEFINITION. Whether that made the
+      model more CORRECT or merely more LIBERAL lives entirely inside the
+      contested zone. No proxy can adjudicate it.
+    * Detection is a function of canopy height: recall .16 below 5 m rising to
+      .93 above 30 m, with 5-15 m holding 53% of all missed pixels.
+
+  STRATIFICATION — CHANGED FROM THE ORIGINAL PLAN, DELIBERATELY
+  ------------------------------------------------------------
+  The plan first proposed stratifying by MODEL OUTPUT (canopy / non-canopy /
+  near-threshold). The findings superseded that: uniform strata would spend
+  most of the sample on ground both references already agree about, which
+  needs no adjudication. Instead the strata cross REFERENCE AGREEMENT with
+  CANOPY HEIGHT, so points land where the information is:
+
+      1  DISAGREE      x  5-15 m      <- contested AND the worst-recall band
+      2  DISAGREE      x  other       <- contested
+      3  BOTH_CANOPY   x  5-15 m      <- the band the model actually misses
+      4  BOTH_CANOPY   x  other
+      5  BOTH_NONCANOPY               <- needed for precision + area estimates
+      6  NO CHM                       <- CHM covers only ~60% of the city;
+                                         excluding it would bias the estimate
+
+  Every stratum keeps its true area, so the Olofsson estimators correct the
+  over-sampling back to unbiased city-wide numbers. Over-sampling the
+  interesting strata costs precision NOWHERE — it buys precision where the
+  question is.
+
+  STEPS
+    --step design    draw the sample            -> qc/sample_{year}.gpkg + .csv
+    --step serve     browser photo-interpreter  -> qc/sample_{year}_labels.csv
+    --step estimate  Olofsson estimators        -> qc/accuracy_{year}.txt + .csv
+
+  Unsure is a first-class answer and is EXCLUDED from estimation, never
+  coerced — the same three-state discipline as the mask labels (rule 6).
+
+  USAGE
+    py -3.12 phase4_accuracy_sample.py --step design --year 2016 --n 250
+    py -3.12 phase4_accuracy_sample.py --step serve  --year 2016
+    py -3.12 phase4_accuracy_sample.py --step estimate --year 2016
+╚══════════════════════════════════════════════════════════════════╝
+"""
+
+import argparse
+import csv
+import io
+import json
+import math
+import sys
+from pathlib import Path
+
+import numpy as np
+import rasterio
+from rasterio.vrt import WarpedVRT
+from rasterio.enums import Resampling
+from rasterio.transform import Affine, xy
+from rasterio.warp import transform as warp_transform
+
+_COLAB_BASE = Path("/content/drive/MyDrive/treedata")
+_LOCAL_BASE = Path(r"G:\My Drive\treedata")
+BASE = _COLAB_BASE if _COLAB_BASE.exists() else _LOCAL_BASE
+QC_DIR = BASE / "phase4" / "qc"
+MASKS = BASE / "phase4" / "masks"
+
+_LOCAL_IMG = Path(r"D:\edmonds-pipeline\Imagery")
+_DRIVE_IMG = BASE / "Full_Image" / "Pipeline Imagery"
+CHM_NAME = "lidar_snoh_chm.tif"
+CHM_DN_PER_M = 1.0 / 0.2
+
+CCAP_CANOPY = [9, 10, 11, 13, 16]
+NDVI_CANOPY = 2
+
+# stratum id -> (name, default share of the sample)
+STRATA = {
+    1: ("disagree_5_15m",      0.24),
+    2: ("disagree_other",      0.18),
+    3: ("both_canopy_5_15m",   0.16),
+    4: ("both_canopy_other",   0.10),
+    5: ("both_noncanopy",      0.20),
+    6: ("no_chm",              0.12),
+}
+
+
+def resolve(name, *dirs):
+    for d in dirs:
+        p = Path(d) / name
+        if p.exists():
+            return p
+    raise FileNotFoundError(name)
+
+
+def build_strata(prob_path, ccap_path, ndvi_path, thresh, decim):
+    """Strata map on a decimated lattice + true area weight per cell."""
+    chm_path = resolve(CHM_NAME, _LOCAL_IMG, _DRIVE_IMG)
+    with rasterio.open(prob_path) as p:
+        H, W = p.height // decim, p.width // decim
+        dt = p.transform * Affine.scale(decim)
+        crs = p.crs
+        nod = 255 if p.nodata is None else p.nodata
+        pr = p.read(1, out_shape=(H, W), resampling=Resampling.nearest)
+
+    def warp(path, **kw):
+        with rasterio.open(path) as src:
+            with WarpedVRT(src, crs=crs, transform=dt, width=W, height=H,
+                           resampling=Resampling.nearest, **kw) as v:
+                return v.read(1), src.nodata
+
+    cc, cc_nod = warp(ccap_path)
+    nd, _ = warp(ndvi_path)
+    dn, _ = warp(chm_path, src_nodata=0, nodata=0)
+
+    hgt = (dn.astype(np.float32) - 1.0) / CHM_DN_PER_M
+    hgt[dn == 0] = np.nan
+
+    valid = pr != nod
+    if cc_nod is not None:
+        valid &= cc != cc_nod
+    valid &= cc != 0
+
+    cc_can = np.isin(cc, CCAP_CANOPY)
+    nd_can = nd == NDVI_CANOPY
+    disagree = cc_can ^ nd_can
+    both_can = cc_can & nd_can
+    has_chm = np.isfinite(hgt)
+    mid = has_chm & (hgt >= 5) & (hgt < 15)
+
+    strata = np.zeros((H, W), dtype=np.uint8)
+    strata[valid & ~has_chm] = 6
+    strata[valid & has_chm & ~disagree & ~both_can] = 5
+    strata[valid & has_chm & both_can & ~mid] = 4
+    strata[valid & has_chm & both_can & mid] = 3
+    strata[valid & has_chm & disagree & ~mid] = 2
+    strata[valid & has_chm & disagree & mid] = 1
+
+    model = (pr >= thresh * 254.0)
+    return dict(strata=strata, model=model, transform=dt, crs=crs,
+                decim=decim, shape=(H, W))
+
+
+def step_design(year, prob_path, ccap_path, ndvi_path, thresh, n, decim, seed):
+    S = build_strata(prob_path, ccap_path, ndvi_path, thresh, decim)
+    strata, model = S["strata"], S["model"]
+    rng = np.random.default_rng(seed)
+
+    counts = {sid: int((strata == sid).sum()) for sid in STRATA}
+    total = sum(counts.values())
+    if total == 0:
+        raise SystemExit("no valid cells — check the inputs overlap")
+
+    # allocation: the configured share, but never more points than cells
+    alloc = {}
+    for sid, (name, share) in STRATA.items():
+        alloc[sid] = min(counts[sid], int(round(n * share)))
+    # top up / trim to exactly n using the largest strata
+    while sum(alloc.values()) < n:
+        sid = max(STRATA, key=lambda k: counts[k] - alloc[k])
+        if counts[sid] - alloc[sid] <= 0:
+            break
+        alloc[sid] += 1
+    while sum(alloc.values()) > n:
+        sid = max(alloc, key=lambda k: alloc[k])
+        alloc[sid] -= 1
+
+    rows = []
+    pid = 0
+    for sid, (name, _) in STRATA.items():
+        k = alloc[sid]
+        if k <= 0:
+            continue
+        idx = np.flatnonzero(strata.ravel() == sid)
+        pick = rng.choice(idx, size=k, replace=False)
+        rr, cc_ = np.unravel_index(pick, S["shape"])
+        xs, ys = xy(S["transform"], rr, cc_, offset="center")
+        lon, lat = warp_transform(S["crs"], "EPSG:4326", list(np.atleast_1d(xs)),
+                                  list(np.atleast_1d(ys)))
+        for i in range(k):
+            pid += 1
+            rows.append(dict(
+                point_id=pid, stratum=sid, stratum_name=name,
+                row=int(rr[i]), col=int(cc_[i]),
+                x=float(np.atleast_1d(xs)[i]), y=float(np.atleast_1d(ys)[i]),
+                lon=round(float(lon[i]), 7), lat=round(float(lat[i]), 7),
+                model_canopy=int(model[rr[i], cc_[i]]),
+            ))
+
+    QC_DIR.mkdir(parents=True, exist_ok=True)
+    out_csv = QC_DIR / f"sample_{year}.csv"
+    with io.open(out_csv, "w", encoding="utf-8", newline="") as f:
+        w = csv.DictWriter(f, fieldnames=list(rows[0].keys()))
+        w.writeheader()
+        w.writerows(rows)
+
+    meta = dict(year=year, seed=seed, decim=decim, thresh=thresh,
+                prob=Path(prob_path).name, ccap=Path(ccap_path).name,
+                ndvi=Path(ndvi_path).name, crs=str(S["crs"]),
+                n_requested=n, n_drawn=len(rows),
+                strata={str(sid): dict(name=STRATA[sid][0],
+                                       cells=counts[sid],
+                                       sampled=alloc[sid],
+                                       area_share=counts[sid] / total)
+                        for sid in STRATA})
+    (QC_DIR / f"sample_{year}_meta.json").write_text(
+        json.dumps(meta, indent=2), encoding="utf-8")
+
+    print(f"\n  STRATIFIED SAMPLE — {year}   (seed {seed}, lattice 1/{decim})")
+    print(f"  {'stratum':<22}{'cells':>14}{'area %':>9}{'points':>8}")
+    for sid, (name, _) in STRATA.items():
+        print(f"  {name:<22}{counts[sid]:>14,}{100*counts[sid]/total:>8.2f}%{alloc[sid]:>8}")
+    print(f"  {'TOTAL':<22}{total:>14,}{100:>8.2f}%{sum(alloc.values()):>8}")
+    print(f"\n  wrote {out_csv}")
+    print(f"  wrote {QC_DIR / f'sample_{year}_meta.json'}")
+    print(f"\n  Next: --step serve --year {year}   (photo-interpret each point)")
+
+
+def step_estimate(year):
+    meta_p = QC_DIR / f"sample_{year}_meta.json"
+    lab_p = QC_DIR / f"sample_{year}_labels.csv"
+    samp_p = QC_DIR / f"sample_{year}.csv"
+    for p in (meta_p, samp_p):
+        if not p.exists():
+            raise SystemExit(f"missing {p} — run --step design first")
+    if not lab_p.exists():
+        raise SystemExit(f"missing {lab_p} — run --step serve and label the points first")
+
+    meta = json.loads(meta_p.read_text(encoding="utf-8"))
+    samp = {int(r["point_id"]): r for r in
+            csv.DictReader(io.open(samp_p, encoding="utf-8", newline=""))}
+    labels = {}
+    for r in csv.DictReader(io.open(lab_p, encoding="utf-8", newline="")):
+        labels[int(r["point_id"])] = r["label"].strip().lower()
+
+    # Olofsson stratified estimation. Population units are lattice cells; each
+    # stratum h has known weight W_h = N_h / N. Within-stratum sample means of
+    # the indicator variables give the confusion cells, and the estimator
+    # re-weights them back to the population.
+    strata_meta = {int(k): v for k, v in meta["strata"].items()}
+    N = sum(v["cells"] for v in strata_meta.values())
+
+    acc = {h: dict(n=0, tp=0, fp=0, fn=0, tn=0, unsure=0) for h in strata_meta}
+    for pid, row in samp.items():
+        lab = labels.get(pid)
+        if lab is None:
+            continue
+        h = int(row["stratum"])
+        a = acc[h]
+        if lab in ("unsure", "u", ""):
+            a["unsure"] += 1
+            continue
+        truth = lab in ("canopy", "c", "yes", "1")
+        pred = row["model_canopy"] == "1"
+        a["n"] += 1
+        if truth and pred:   a["tp"] += 1
+        elif not truth and pred: a["fp"] += 1
+        elif truth and not pred: a["fn"] += 1
+        else: a["tn"] += 1
+
+    # population-weighted cell proportions
+    p_tp = p_fp = p_fn = p_tn = 0.0
+    var_tp = var_fn = var_fp = 0.0
+    labelled = 0
+    for h, m in strata_meta.items():
+        a = acc[h]
+        if a["n"] == 0:
+            continue
+        labelled += a["n"]
+        W = m["cells"] / N
+        n = a["n"]
+        ptp, pfp, pfn, ptn = (a["tp"]/n, a["fp"]/n, a["fn"]/n, a["tn"]/n)
+        p_tp += W * ptp; p_fp += W * pfp; p_fn += W * pfn; p_tn += W * ptn
+        # variance of a stratified proportion estimate (Cochran / Olofsson eq.)
+        if n > 1:
+            var_tp += W**2 * ptp*(1-ptp)/(n-1)
+            var_fn += W**2 * pfn*(1-pfn)/(n-1)
+            var_fp += W**2 * pfp*(1-pfp)/(n-1)
+
+    recall = p_tp / (p_tp + p_fn) if (p_tp + p_fn) else float("nan")
+    prec = p_tp / (p_tp + p_fp) if (p_tp + p_fp) else float("nan")
+    area_true = p_tp + p_fn                     # true canopy proportion
+    se_area = math.sqrt(max(var_tp + var_fn, 0.0))
+    ci = 1.96 * se_area
+
+    L = [f"HUMAN ACCURACY ESTIMATE — {year}   (Olofsson stratified)",
+         f"  sample : {meta['n_drawn']} points, {labelled} labelled, "
+         f"{sum(a['unsure'] for a in acc.values())} unsure (EXCLUDED, never coerced)",
+         f"  model  : {meta['prob']} @ thresh {meta['thresh']}",
+         "",
+         f"  recall     {recall:.4f}",
+         f"  precision  {prec:.4f}",
+         f"  true canopy area  {100*area_true:.2f}%  ± {100*ci:.2f}  (95% CI)",
+         f"  model canopy area {100*(p_tp+p_fp):.2f}%",
+         "",
+         "  PER-STRATUM (unweighted counts — the estimator re-weights these):",
+         f"  {'stratum':<22}{'n':>5}{'tp':>6}{'fp':>6}{'fn':>6}{'tn':>6}{'unsure':>8}"]
+    for h, m in strata_meta.items():
+        a = acc[h]
+        L.append(f"  {m['name']:<22}{a['n']:>5}{a['tp']:>6}{a['fp']:>6}"
+                 f"{a['fn']:>6}{a['tn']:>6}{a['unsure']:>8}")
+    L += ["",
+          "  These are the only numbers in this project with no model and no proxy",
+          "  product between the estimate and the ground."]
+    txt = "\n".join(L)
+    print("\n" + txt)
+    (QC_DIR / f"accuracy_{year}.txt").write_text(txt, encoding="utf-8")
+    with io.open(QC_DIR / f"accuracy_{year}.csv", "w", encoding="utf-8", newline="") as f:
+        w = csv.writer(f)
+        w.writerow(["metric", "value"])
+        for k, v in (("recall", recall), ("precision", prec),
+                     ("true_canopy_frac", area_true), ("ci95_canopy_frac", ci),
+                     ("model_canopy_frac", p_tp + p_fp), ("n_labelled", labelled)):
+            w.writerow([k, round(v, 6) if isinstance(v, float) else v])
+    print(f"\n  wrote {QC_DIR / f'accuracy_{year}.txt'}")
+
+
+def main():
+    argv = [a for a in sys.argv[1:] if not (a == "-f" or a.endswith(".json"))]
+    ap = argparse.ArgumentParser(description="Human accuracy sample (Olofsson).")
+    ap.add_argument("--step", required=True, choices=["design", "serve", "estimate"])
+    ap.add_argument("--year", required=True)
+    ap.add_argument("--prob", default=None)
+    ap.add_argument("--ref", default=None, help="C-CAP raster.")
+    ap.add_argument("--ndvi-ref", default=None)
+    ap.add_argument("--thresh", type=float, default=None)
+    ap.add_argument("--n", type=int, default=250)
+    ap.add_argument("--decim", type=int, default=4)
+    ap.add_argument("--seed", type=int, default=20260818)
+    args = ap.parse_args(argv)
+
+    if args.step == "design":
+        for req in ("prob", "ref", "thresh"):
+            if getattr(args, req) is None:
+                raise SystemExit(f"--{req} is required for --step design")
+        ndvi = args.ndvi_ref or (QC_DIR / f"ndvi_ref_{args.year}.tif")
+        step_design(args.year, Path(args.prob), Path(args.ref), Path(ndvi),
+                    args.thresh, args.n, args.decim, args.seed)
+    elif args.step == "estimate":
+        step_estimate(args.year)
+    else:
+        raise SystemExit("--step serve is not built yet (design + estimate are). "
+                         "Label the CSV by hand in the meantime if you need to: "
+                         "add a 'label' column with canopy / noncanopy / unsure.")
+
+
+if __name__ == "__main__":
+    main()

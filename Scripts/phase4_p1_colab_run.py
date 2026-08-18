@@ -41,10 +41,19 @@
 
   ── USAGE (Colab, GPU runtime = L4) ───────────────────────────────────────
       %cd /content/drive/MyDrive/treedata/Scripts
-      %run phase4_p1_colab_run.py --stage 0            # free; ALWAYS run first
-      %run phase4_p1_colab_run.py --stage 1            # 2022 inference (cheap)
-      %run phase4_p1_colab_run.py --stage 2            # 2017 inference (costly)
-      %run phase4_p1_colab_run.py --stage all          # 0 → 1 → 2, gated
+      %run phase4_p1_colab_run.py --stage 0
+      %run phase4_p1_colab_run.py --stage 1
+      %run phase4_p1_colab_run.py --stage 2
+      %run phase4_p1_colab_run.py --stage 3
+
+    stage 0 = preflight, free, ALWAYS run first
+    stage 1 = 2022 inference (cheap, coarse)   — Phase-3 blocker
+    stage 2 = 2017 inference (costly, fine)    — replaces the failed run
+    stage 3 = 2015 inference (costly, fine)    — replaces the unfinished run
+    stage all = 0 → 1 → 2 → 3, gated on preflight
+
+  DO NOT append `# comments` to these lines — IPython's %run passes them
+  through to argparse. (The driver now strips them, but older copies exit 2.)
 
   Read stage 0 before running 1 or 2. If stage 0 reports a problem it will
   refuse to continue under --stage all.
@@ -81,10 +90,20 @@ ENGINE  = SCRIPTS / "phase4_semantic_finetune.py"
 # (sem_best_{year}_{tag}.pt) and the output name — see core.step_inference,
 # which keys the ckpt off --run-tag, not off --ckpt.
 JOBS = [
-    dict(year="2022", ckpt_tag="xsensor_train", why="Phase-3 BLOCKER: no citywide 2022 prob raster exists",
-         cost="cheap (coarse ~60 cm)"),
-    dict(year="2017", ckpt_tag="xsensor_train", why="replaces the 96.5%-nodata failed run",
-         cost="EXPENSIVE (fine ~15 cm)"),
+    dict(year="2022", ckpt_tag="xsensor_train",
+         why="Phase-3 BLOCKER: no citywide 2022 prob raster exists",
+         cost="cheap (coarse ~60 cm)", replaces=None),
+    dict(year="2017", ckpt_tag="xsensor_train",
+         why="replaces the 96.5%-nodata failed run",
+         cost="EXPENSIVE (fine ~15 cm)", replaces=None),
+    # Found 2026-08-17 by phase4_qc_inventory SUSPECT_PARTIAL: 7.4% valid where
+    # every other 2015 citywide raster on the SAME grid (74496x105984, 14.9 cm)
+    # is 90.8% — an unfinished run, not a different footprint. Lowest priority:
+    # the live 2015 QC row uses _xsensor_rgb, so nothing quoted depends on it.
+    dict(year="2015", ckpt_tag="citywide_rgb",
+         why="unfinished run — 7.4% valid vs 90.8% for its siblings",
+         cost="EXPENSIVE (fine ~15 cm)",
+         replaces="edmonds_canopy_prob_2015_citywide_rgb.tif"),
 ]
 
 MIN_VALID_FRAC = 0.05      # below this a prob raster is a failed run
@@ -303,6 +322,10 @@ def run_job(job, infer_batch, run_tag, extra=()):
     _hr(f"{y} — citywide inference   [{job['cost']}]")
     print(f"  {job['why']}")
     print(f"  training SKIPPED (reusing sem_best_{y}_{tag}.pt)")
+    if job.get("replaces"):
+        print(f"  ! this OVERWRITES {job['replaces']} — intended: that file is the")
+        print(f"    broken one being replaced. Its recorded state is preserved in")
+        print(f"    phase4/qc/mask_inventory.csv if you need the evidence later.")
 
     # NOTE: core.step_inference keys the CHECKPOINT off --run-tag, so the tag
     # must match the existing ckpt. Output therefore also carries that tag.
@@ -332,7 +355,8 @@ def main():
     ap = argparse.ArgumentParser(
         description="P1 Colab driver — citywide 2022 + 2017 inference, GPU-mindful.")
     ap.add_argument("--stage", default="0",
-                    help="0 = preflight (free), 1 = 2022, 2 = 2017, all = gated 0→1→2.")
+                    help="0 = preflight (free), 1 = 2022 (cheap), 2 = 2017 (costly), "
+                         "3 = 2015 (costly), all = gated 0→1→2→3.")
     ap.add_argument("--infer-batch", type=int, default=32,
                     help="Inference batch (default 32, sized for a 24 GB L4). "
                          "Pure memory knob — output is batch-invariant.")
@@ -362,7 +386,7 @@ def main():
                   "you have read why and still want to spend the GPU.")
             raise SystemExit(2)
 
-    todo = {"1": [JOBS[0]], "2": [JOBS[1]], "all": JOBS}.get(stage)
+    todo = {"1": [JOBS[0]], "2": [JOBS[1]], "3": [JOBS[2]], "all": JOBS}.get(stage)
     if todo is None:
         raise SystemExit(f"unknown --stage {args.stage!r} (use 0, 1, 2 or all)")
 

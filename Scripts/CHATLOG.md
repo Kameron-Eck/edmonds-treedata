@@ -323,8 +323,19 @@ decided: driver refuses to re-run blind — 2017 already "succeeded" once (log s
          an unscorable raster. If STAGE 0 finds the 2017 ORTHO itself mostly empty, it says re-running
          inference CANNOT help (imagery problem, not compute) and vetoes rather than burning GPU.
 files:   NEW phase4_p1_colab_run.py; phase4_qc_inventory.py. Both py_compile OK.
-next:    Kam on Colab (L4): --stage 0 first, READ it, then --stage 1, then --stage 2.
-         Then local qc_indep on both + registry rows. Then P1b/P1c re-runs.
+next:    Kam on Colab (L4): --stage 0 first, READ it, then --stage 1, 2, 3.
+         Then local qc_indep on each + registry rows. Then P1b/P1c re-runs.
+fixups:  (a) %run does NOT strip `#` — my pasted "--stage 0  # free" died at argparse
+         (exit 2, no GPU spent). Driver now truncates argv at the first `#` token.
+         (b) Ran stage 0 for real -> 3 preflight defects: resolve_native_path() is
+         Colab-rooted so BOTH orthos read MISSING on the local mount (now: filename from
+         catalog, ROOT from driver BASE); whole-extent decimation walks every block with no
+         overviews (fine 2017 ortho = minutes over Drive) -> now overviews-if-present else a
+         grid of 64 windows; stage 0 printed "Next: --stage 1" even after NOT READY.
+         (c) 2015 ADDED as stage 3 per Kam. edmonds_canopy_prob_2015_citywide_rgb.tif is
+         7.4% valid vs 90.8% for siblings on the SAME grid (74496x105984 @14.9cm) = genuinely
+         unfinished. sem_best_2015_citywide_rgb.pt exists -> inference-only. Stage 3
+         OVERWRITES the broken file by design; its state is preserved in mask_inventory.csv.
 
 ## 2026-08-17  P1 LANDED — scorers fail loud, provenance mandatory, QC CSVs have live/run_tag
 goal:    P1 of honest-measurement-overhaul: make the instruments trustworthy before measuring anything.

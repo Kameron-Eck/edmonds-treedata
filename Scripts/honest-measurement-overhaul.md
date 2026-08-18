@@ -65,9 +65,16 @@ The QC layer currently fails silently. Three confirmed defects:
       One live row per year, queryable.
 - [ ] Sweep `phase4/masks/` for zero-byte and mostly-nodata rasters; report a manifest
       (`phase4/qc/mask_inventory.csv`: year, tag, size, valid-frac, CRS, bounds).
-- [ ] **COLAB SESSION (one run covers both):** re-run 2017 inference AND produce a
-      citywide 2022 prob raster. 2022 is a **Phase 3 blocker** — see below; batching it
-      here means Phase 3 never stalls waiting on GPU.
+- [ ] **COLAB SESSION — driver: `phase4_p1_colab_run.py`** (L4 24 GB; `--stage 0` first,
+      it is free and can veto). Training is SKIPPED for all three (checkpoints exist), so
+      this is `--step inference` only.
+      - stage 1 — **2022** citywide, cheap/coarse. **Phase 3 blocker.**
+      - stage 2 — **2017** citywide, costly/fine. Replaces the 96.5%-nodata failed run.
+      - stage 3 — **2015** citywide, costly/fine. Replaces `edmonds_canopy_prob_2015_
+        citywide_rgb.tif` (7.4% valid vs 90.8% for siblings on the SAME grid — an
+        unfinished run, found by `phase4_qc_inventory` SUSPECT_PARTIAL 2026-08-17).
+        Lowest priority: the live 2015 QC row uses `_xsensor_rgb`, so nothing currently
+        quoted depends on it. Note this stage OVERWRITES the broken file by design.
 - [ ] Re-run 2017 inference on Colab; re-score. Investigate the near-zero-probability
       collapse — likely the same class of bug as the v044 inference OOM (empty/partial
       prob raster), so check the inference log first before re-running blind.

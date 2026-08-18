@@ -221,40 +221,68 @@ docs:    SOURCES OF TRUTH CENTRALIZED 2026-07-06. HANDOFFS RETIRED (5 old ones �
 measure: ACTIVE WORKSTREAM (opened 2026-08-17). PLAN = Scripts/honest-measurement-overhaul.md.
          WHY: Kam — "became too reliant on AI judgement"; wants defensible numbers + better
          tests/visuals. FOUR PHASES, run order 1 -> 2 -> 4 -> 3 (Kam's choice).
-         ---- RESUME HERE  (updated 2026-08-18 end-of-day; Kam away) ----
-         P1 Trust the instruments   DONE. Scorers fail loud; live/run_tag on QC CSVs; mask inventory;
-                                    provenance stamped; 2017 + 2022n + 2019n + 2021s rasters produced
-                                    and scored; P1b/P1c complete on the full-forest denominator.
-         P2 Ref-disagreement map    DONE + REPLICATED x4 (2016, 2019n, 2021s, 2022n).
-         P4 Visuals                 dashboard + height-curve plot DONE. REMAINING: sentinel TP/FN/FP
-                                    site overlays (needs footprint resolution from photos/ — wants Kam).
-         P3 Human sample            NOT STARTED — and it is now THE blocker for every open decision.
-                                    Stratify by BOTH the ~16% disagreement zone AND CHM height band.
-         ---- THE THREE RESULTS THAT MATTER ----
-         (1) DETECTION IS A FUNCTION OF CANOPY HEIGHT. 2016 baseline recall by band: .16 (0-2m) .16
-         (2-5) .36 (5-10) .57 (10-15) .74 (15-20) .83 (20-25) .88 (25-30) .93 (30+). 5-15m holds 53%
-         of ALL missed px. Lifting those two bands to the 20-25m rate takes recall .68 -> ~.80.
-         See qc/height_curves.png.
-         (2) THE DEFICIT IS INHERITED, NOT DEVELOPED. phase3/edmonds_canopy_mask_2020.tif — the LABEL
-         SOURCE for every coarse year — has the SAME staircase and is BELOW its own student at every
-         band (.5455 overall vs the 2016 model's .6821). Coarse years are TAUGHT the blind spot.
-         Improving that one mask lifts every coarse year at once = the highest-leverage target.
-         (3) MODEL STRENGTH DOES NOT MOVE THE NUMBER. 9 live years span IoU .49-.76 / AUROC .938-.954
-         yet honest recall stays pinned .51-.78 with NO correlation to model quality.
-         ---- WHAT IS BLOCKED ON P3 ----
-         * 2016c deploy/no-deploy. Corrected labels: recall .6844->.8718 but precision .8651->.7296.
-         On the BOTH-AGREE subset it is clearly better (F1 .853->.937, precision only -.045). The
-         overlay transferred the NDVI reference's canopy DEFINITION (model canopy 35.28% vs that
-         reference's 37.7%, vs C-CAP's 29.5%). Grass regression is ~73% contested / ~27% genuine.
-         Whether 2016c is "better" or "over-predicting" lives ENTIRELY in the contested ~16%.
-         * Which reference is right. 4 P2 runs: refs disagree on 15-17% EVERY time; NDVI ref is
-         systematically more liberal (ndvi_only 10-14% vs ccap_only 1.9-5.7%); on 2021s they differ by
-         12 points on the SAME year and ground, so it is not vintage drift.
-         ---- TOOLS BUILT THIS SESSION (all local, no GPU) ----
-         phase4_ref_agreement.py · phase4_qc_inventory.py · phase4_qc_dashboard.py ·
-         phase4_qc_height_curve.py (decimated, imagery-free) · phase4_qc_height_plot.py ·
-         phase4_train_queue.py (unattended Colab) · phase4_p1_colab_run.py ·
-         Scripts/pipeline_architecture.html (self-contained architecture map, no external deps)
+         ---- RESUME HERE  (2026-08-18 end of session; context exhausted, new session starting) ----
+         READ FIRST, IN THIS ORDER:
+           1. this STATE block
+           2. Reports/Measurement_Validity_Assessment_2026-08-18.md  <- 351-line assessment; it is
+              SHARPER THAN THE PLAN on what P3 can and cannot answer. Its U1-U8 are the live question
+              list. Treat it as the agenda.
+           3. Scripts/honest-measurement-overhaul.md (the 4-phase plan)
+           4. Scripts/pipeline_architecture.html (self-contained; open in a browser)
+         PHASE STATUS
+           P1 DONE · P2 DONE + replicated x4 · P4 dashboard + height plot DONE
+           P4 REMAINING: sentinel TP/FN/FP site overlays (needs footprint resolution from photos/)
+           P3 TOOLING BUILT, NOT YET RUN BY A HUMAN. Samples drawn for 2016 / 2022n / 2000.
+         ---- THE FOUR RESULTS THAT MATTER ----
+         (1) DETECTION IS A FUNCTION OF CANOPY HEIGHT. 2016: .16 (0-2m) .16 (2-5) .36 (5-10) .57
+         (10-15) .74 (15-20) .83 (20-25) .88 (25-30) .93 (30+). 5-15m holds 53% of ALL misses;
+         lifting those two bands to the 20-25m rate takes recall .68 -> ~.80. qc/height_curves.png
+         (2) ** IT SURVIVES THE CONFOUND TEST (2026-08-18). ** Inside the P2 BOTH-AGREE partition the
+         staircase is intact: .2278 (2-5m) -> .9496 (30+m), overall .7611 on n=22.0M. So it is NOT
+         C-CAP suburban over-counting in disguise. In the CONTESTED zone the model calls canopy only
+         9.2% of the time — it sides with the NDVI ref against C-CAP almost completely.
+         CAVEAT: the NDVI ref requires height >= 2m BY CONSTRUCTION, so the both-agree 0-2m band is
+         near-empty and MUST NOT be quoted. Finding holds above 2m.
+         (3) THE DEFICIT IS INHERITED. phase3/edmonds_canopy_mask_2020.tif — the label source for all
+         coarse years — has the same staircase and sits BELOW its own students at every band (.5455 vs
+         the 2016 model's .6821). Improving that one mask lifts every coarse year at once.
+         (4) MODEL STRENGTH DOES NOT MOVE THE NUMBER. 9 years span IoU .49-.76 / AUROC .938-.954;
+         honest recall stays .51-.78 with no correlation.
+         ---- LITERATURE (37 papers, IDs 69-105, searches 9-14) — TWO CORRECTIONS TO ME ----
+         FOODY 2010: I claimed raw scores overstate the model's faults. Direction depends on ERROR
+         CORRELATION; ours are almost certainly correlated (labels + both refs all from interpreting
+         the same imagery) => OUR RECALL IS LIKELY OPTIMISTIC. Do not repeat my old pattern claim.
+         MOUDRY 2024 + SIERRA 2026: canopy-height products are height-biased, realistic CHM MAE ~3m,
+         which would blur 5m bands. Part of the staircase could be CHM error. UNVALIDATED (U6).
+         Confirmed independently: TURUBANOVA 2023 (error concentrates 4-6m), FERRAZ 2016 (same shape
+         from lidar), ARAZO 2020 (our feedback loop is canonical pseudo-label confirmation bias),
+         MAJASALMI 2021 (15-17% disagreement is NORMAL).
+         ---- P3 MUST CHANGE BEFORE KAM LABELS ----
+         (a) U1 NO WRITTEN CANOPY DEFINITION EXISTS. Min height? Min crown area? Shrub vs short tree?
+         Lawn under a yard tree? Without it 250 points produce A THIRD OPINION, not an arbitration.
+         ONE PAGE, written first, committed. THIS IS THE TOP BLOCKER.
+         (b) UNSURE HANDLING: my sampler EXCLUDES unsure. WICKHAM 2023 shows primary-vs-alternate
+         scoring swings accuracy 10 POINTS (77.5 -> 87.1). Record PRIMARY + ALTERNATE, report both.
+         (c) SAMPLE SIZE: the assessment shows n=250 gives +/-5.9pp, which COVERS BOTH references
+         (27.7-39.5 vs C-CAP 29.5 / NDVI 37.7) => cannot arbitrate. NOTE: that arithmetic assumes
+         SIMPLE RANDOM SAMPLING; our stratified design over-samples the contested zone and should do
+         better. NOT YET SIMULATED — do that before resizing.
+         (d) STEHMAN 2014 licenses reference-derived strata but requires ITS estimators; mine is a
+         delta-method approximation. WAGNER & STEHMAN 2015/2024 give a principled allocation; my
+         shares were ad hoc.
+         ---- CHEAPEST NEXT MOVES (all local, no GPU, no labelling) ----
+         1. FOODY 2022 LATENT-CLASS on C-CAP x NDVI-ref x model — gives each source a sensitivity and
+            specificity with NO gold standard. Could partially resolve "which reference is right"
+            before any human hours. Highest value per minute.
+         2. Simulate the ACTUAL stratified design's expected CI (see (c)).
+         3. Write the canopy definition (U1).
+         4. P1c per-year miss-depth under ONE recipe (--force-citywide) for U4 (labels vs calibration).
+         ---- P3 COMMANDS (tooling is built and validated) ----
+         py -3.12 phase4_accuracy_sample.py --step serve --year 2016             --ortho "D:\edmonds-pipeline\Imagery6_snoh_rgbi.tif"
+         then open http://localhost:8731/review_app.html  (1 canopy / 2 not / 3 unsure / z undo)
+         then --step estimate --year 2016
+         Estimator validated twice; a covariance bug was found and fixed 2026-08-18 (8283232) — the
+         old version overstated every CI.
          ---- LOCAL ENV ----
          CUDA now works locally: torch 2.13.0+cu126, Quadro T2000 4GB (CLAUDE.md says 2GB — STALE),
          3.45GB free, verified. Still do NOT train locally (rule: don't split training Colab/local).
@@ -284,6 +312,45 @@ gotcha:  scripts Colab-only for torch (rasterio+geopandas+fiona+sklearn now pip-
          accept-all test data; 14,476-crown human review never finished.
 
 ════════════════ LOG  (newest first) ════════════════
+
+## 2026-08-18  U3 ANSWERED — the height staircase SURVIVES reference disagreement (it is real)
+goal:    run the cheapest free instrument named in the 2026-08-18 assessment: cross P1c
+         (recall-by-height) with P2 (ref agreement). Never been crossed. Local, no GPU.
+did:     NEW Scripts/phase4_qc_height_by_agreement.py — recall by CHM band computed SEPARATELY
+         inside each agreement partition. Ran 2016 baseline, decim 8, thresh .509,
+         21,066,144 valid cells. -> phase4/qc/height_by_agreement_2016_baseline.txt/.csv
+RESULT — THE STAIRCASE IS REAL:
+         both_canopy (both refs agree = ref noise removed), n=5,505,444, overall recall .7374:
+           0-2m .1608 · 2-5m .2010 · 5-10m .4181 · 10-15m .6220 · 15-20m .7668 ·
+           20-25m .8535 · 25-30m .8971 · 30+m .9404
+         THE TEST: 5-15m .5172 vs 20m+ .9049 -> spread +0.3877.
+         -> the 5-15m deficit is a MODEL problem, NOT C-CAP counting lawns between yard trees.
+         -> height-conditioned training (stratify-then-segment, Hamraz lit ID 86) IS the lever.
+         -> the suburban visual grounding and the height curve are BOTH true; they are not
+            the same finding, and the height one is not an artifact of the other.
+contested partitions (no truth there -> CALL RATE, not recall):
+         ccap_only n=713,884, call rate .0814. MASS SITS LOW (2-15m ~478k of 714k cells).
+           C-CAP forest that is tall enough but NOT green (ndvi<.2). AMBIGUOUS between
+           lawn/roof-between-yard-trees AND low-NDVI purple-leaf ornamentals — and if it is
+           the latter, the model AND the NDVI ref BOTH miss them. Worth a look before P3.
+         ndvi_only n=2,448,603, call rate .2036, climbing .0855 (2-5m) -> .7764 (30+m).
+           Green and >=2m but not C-CAP forest = shrubs/hedges at low height. Model refuses
+           8.5% of the 2-5m band — consistent with the known scrub recall .25.
+decided: nothing deployed, nothing in the plan edited. This is measurement only.
+files:   Scripts/phase4_qc_height_by_agreement.py (new)
+         phase4/qc/height_by_agreement_2016_baseline.txt / .csv (new)
+         Reports/Measurement_Validity_Assessment_2026-08-18.md (prior entry; 7 amendments
+         still PENDING Kam's sign-off — none applied)
+next:    ONE COMMAND, not yet run (session ended first) — the 2016c deploy comparison:
+           py -3.12 Scripts/phase4_qc_height_by_agreement.py              --prob phase4/masks/edmonds_canopy_prob_2016_corrected.tif              --ccap D:/edmonds-pipeline/Imagery/ccap_2016_hires_lc.tif              --ndvi phase4/qc/ndvi_ref_2016.tif              --thresh 0.509 --label 2016_corrected --decim 8
+         Read: did the overlay lift the 5-15m bands INSIDE both-agree (real fix), or only
+         in ndvi_only (it just adopted the NDVI ref's definition)? That is the 2016c
+         deploy/no-deploy question in one number.
+         Then the other free instruments from the assessment: miss-depth per yr on one
+         recipe (U4) · Foody-2022 latent class on ccap x ndvi x model (U2) · Clark-2023
+         stratified patch re-sample (U5).
+gotcha:  console here is cp1252 — keep report bodies ASCII (box-drawing chars crash print()
+         before the file write, so a crash means NO output file, not a partial one).
 
 ## 2026-08-18  ASSESSMENT — P3 AS SCOPED CANNOT ANSWER THE BLOCKING QUESTIONS (250 pts too few)
 goal:    Kam asked: assess what we know / what we need to know. Synthesis over STATE +

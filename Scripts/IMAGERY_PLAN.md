@@ -4,6 +4,11 @@
 measurement work). This one covers the *inputs*: getting every acquisition lined up,
 documenting what each one actually is, and testing our way to a defensible common recipe.
 
+**Scope: 2000-2024 only** (fixed 2026-08-19). 1936 and 1998 are out of scope; the A2/A3
+items below that concern them are closed by that decision, not by work.
+**What is already known about the imagery is consolidated in `Scripts/IMAGERY_FACTS.md`** —
+read that first; this file is the plan of work that follows from it.
+
 **Why now.** Every cross-year claim this project has made has been confounded by something
 about the imagery that nobody had measured — nominal GSD that was wrong by up to 6×, a
 colour cast that drifts .80 → .11 across the King series, footprints that differ by 2×,

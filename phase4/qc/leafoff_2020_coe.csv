@@ -1,0 +1,2 @@
+label,imagery,n_px,windows_kept,windows_tried,p05,p25,p50,p75,p95,mean,sd,frac_lt_002,frac_negative
+2020_coe,2020_coe_rgb.tif,1046712,2,16,-0.0354,0.0127,0.033,0.0588,0.1429,0.0378,0.0685,0.3302,0.1306

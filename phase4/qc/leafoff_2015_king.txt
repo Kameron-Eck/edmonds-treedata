@@ -1,0 +1,29 @@
+LEAF-OFF TEST - 2015_king
+  imagery : 2015_king_rgb.tif
+  canopy pixels sampled : 1,044,827  (2 of 16 windows kept)
+
+  GRVI = (G-R)/(G+R) over pixels the 2020 canopy mask calls CANOPY
+    p05 -0.0233   p10 -0.0066   p25 +0.0138
+    p50 +0.0360   p75 +0.1053   p90 +0.2558   p95 +0.3636
+    mean +0.0846   sd 0.1275
+
+  LOW-GREENNESS FRACTION (GRVI < 0.02) :  31.22%
+  NEGATIVE  fraction     (GRVI < 0)    :  11.79%
+
+  HOW TO READ
+    LEAF-ON  -> canopy is green: unimodal, positive, small low-fraction.
+    LEAF-OFF -> conifers stay green but deciduous crowns are bare:
+                BIMODAL, with a substantial low/negative mode.
+    The low-greenness fraction is the signature. Compare it against a
+    known LEAF-ON acquisition (NAIP is leaf-on BY SPECIFICATION) rather
+    than against an absolute threshold - colour balance differs by sensor.
+
+  CAVEATS
+    * The canopy mask is itself a MODEL OUTPUT with the very blind spot
+      under investigation. If it already omits bare deciduous crowns, this
+      test UNDERSTATES the low-greenness fraction - i.e. it is biased
+      AGAINST finding leaf-off. A positive result is therefore strong.
+    * Deep shadow is excluded (R+G <= 12) but thin shadow is not, and
+      leaf-off flights have LOW SUN ANGLE, so shadow and phenology are
+      correlated. Do not read the low mode as purely deciduous.
+    * Grid windows, not a probability sample. Indicative, not an estimate.

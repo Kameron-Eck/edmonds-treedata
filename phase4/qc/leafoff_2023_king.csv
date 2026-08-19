@@ -1,0 +1,2 @@
+label,imagery,n_px,windows_kept,windows_tried,p05,p25,p50,p75,p95,mean,sd,frac_lt_002,frac_negative
+2023_king,2023_king_rgb.tif,1046209,2,16,-0.0412,-0.0039,0.0102,0.0275,0.1034,0.017,0.0474,0.6553,0.2714

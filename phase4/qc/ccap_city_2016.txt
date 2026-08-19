@@ -1,0 +1,29 @@
+CITY-CLIPPED C-CAP REFERENCE - 2016
+  source   : ccap_2016_hires_lc_snohfull.tif
+  boundary : Edmonds Boundry.shp
+  output   : D:\edmonds-pipeline\Imagery\ccap_2016_edmonds.tif
+  grid     : 5825 x 9122  @ 1.00 m  EPSG:26910
+
+  city cells inside boundary : 24,647,946  = 24.65 km2
+  CANOPY FRACTION, WHOLE CITY: 36.05%
+
+  SPLIT AT THE OLD CLIP'S NORTHERN EDGE (N 5,297,858)
+    SOUTH - the area we have been evaluating
+        cells 20,093,588 = 20.09 km2 (81.5% of city)
+        canopy 32.30%
+    NORTH - the omitted fifth
+        cells 4,554,358 = 4.55 km2 (18.5% of city)
+        canopy 52.58%
+
+  DIFFERENCE (north - south) : +20.28 pp
+
+  HOW TO READ
+    If north and south have similar canopy fractions, the old clip was a
+    SMALLER sample but not a biased one, and citywide figures shift only
+    slightly. If they differ, the omission was BIASED and every stratified
+    design built on the old footprint inherits it.
+
+  CAVEAT
+    C-CAP carries its own error (~84% OA regionally, lit ID 77) and the
+    hi-res product was never validated at single-pixel scale (lit ID 77).
+    These fractions are the reference's opinion, not ground truth.

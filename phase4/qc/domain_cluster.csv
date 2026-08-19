@@ -1,0 +1,18 @@
+year,agency,gsd_cm,nbands,Red_mean,Red_std,Green_mean,Green_std,Blue_mean,Blue_std,nearest,nearest_agency,dist,same_agency
+2000,King County,59.7,3,65.1,61.1,77.2,67.8,76.3,69.3,2020,City of Edmonds,1.655,False
+2005,King County,29.9,3,100.5,52.2,112.6,42.1,98.8,39.3,2009,King County,1.133,True
+2007,King County,29.9,3,113.4,44.9,125.8,37.4,103.5,36.8,2005,King County,1.295,True
+2009,King County,29.9,3,94.3,57.9,119.7,49.2,101.5,46.7,2022n,NAIP,1.094,False
+2013,King County,14.9,3,80.5,59.7,93.9,51.6,81.7,47.7,2015,King County,0.622,True
+2015,King County,14.9,3,86.0,62.7,97.7,55.2,86.8,48.0,2013,King County,0.622,True
+2016,Snohomish Co.,50.0,4,70.4,58.0,83.9,51.9,85.3,41.4,2013,King County,0.919,False
+2017,City of Edmonds,7.5,3,94.6,60.3,99.3,56.9,81.1,52.8,2019,King County,0.341,False
+2019,King County,14.9,3,95.9,59.2,100.3,55.6,82.7,49.3,2017,City of Edmonds,0.341,False
+2019n,NAIP,60.0,4,56.6,44.4,76.9,38.5,80.5,31.6,2021s,Snohomish Co.,1.076,False
+2020,City of Edmonds,7.5,3,85.8,71.7,90.2,70.1,77.0,65.3,2022,City of Edmonds,0.546,True
+2021,King County,14.9,3,103.7,64.7,111.4,58.2,96.6,54.3,2023,King County,0.793,True
+2021s,Snohomish Co.,50.0,4,73.2,41.1,84.0,35.3,74.4,34.0,2019n,NAIP,1.076,False
+2022,City of Edmonds,7.5,3,87.8,70.7,96.8,71.7,82.9,67.1,2020,City of Edmonds,0.546,True
+2022n,NAIP,60.0,4,92.1,64.1,108.3,55.3,108.1,44.4,2009,King County,1.094,False
+2023,King County,14.9,3,114.1,60.1,117.4,57.9,100.6,53.4,2021,King County,0.793,True
+2024,City of Edmonds,7.5,3,144.3,83.8,153.9,75.7,146.0,78.1,2023,King County,4.956,False

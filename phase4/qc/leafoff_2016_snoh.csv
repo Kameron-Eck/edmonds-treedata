@@ -1,0 +1,2 @@
+label,imagery,n_px,windows_kept,windows_tried,p05,p25,p50,p75,p95,mean,sd,frac_lt_002,frac_negative
+2016_snoh,2016_snoh_rgbi.tif,549640,1,16,0.0887,0.1597,0.2079,0.2542,0.3165,0.2052,0.074,0.0195,0.0151

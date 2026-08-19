@@ -1,0 +1,2 @@
+label,imagery,n_px,windows_kept,windows_tried,p05,p25,p50,p75,p95,mean,sd,frac_lt_002,frac_negative
+2013_king,2013_king_rgb.tif,1039213,2,16,-0.0235,0.0228,0.0455,0.1139,0.2973,0.0818,0.1113,0.2246,0.0903

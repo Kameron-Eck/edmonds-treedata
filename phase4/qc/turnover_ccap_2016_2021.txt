@@ -1,0 +1,33 @@
+MEASURED CANOPY TURNOVER - ccap_2016_2021
+  date A : ccap_2016_hires_lc.tif
+  date B : ccap_2021_hires_lc.tif    (gap 5.0 years)
+  sample : 1/8 decimation, 690,432 valid cells
+
+  FOUR-WAY PARTITION
+    stable canopy           141,301   20.47%
+    stable non-canopy       472,093   68.38%
+    LOSS  (A can -> B non)   44,467    6.44%
+    GAIN  (A non -> B can)   32,571    4.72%
+
+  DISCORDANCE (loss+gain)        77,038   11.16%   <- drives paired precision
+  net change                               -1.72 pp
+  loss as % of date-A canopy               23.94%
+  implied ANNUALISED loss rate              5.33%/yr
+
+  WHAT THIS IS FOR
+    * paired-sample sizing (lit ID 170): the DISCORDANCE rate is the
+      only quantity that matters. Higher discordance -> more points needed.
+    * weak temporal supervision (lit ID 193): the assumption is that
+      same-location pairs are 'predominantly unchanged'. Discordance IS
+      the violation rate of that assumption at this gap.
+
+  CAVEATS - READ BEFORE USING THE NUMBER
+    * This is REFERENCE-vs-REFERENCE, not truth. C-CAP has its own error
+      (~84% OA regionally, lit ID 77), and product error INFLATES apparent
+      turnover. Treat this as an UPPER BOUND on real turnover.
+    * Upper-bound is CONSERVATIVE for sample sizing (you will size up) and
+      ANTI-conservative for the weak-supervision assumption (real pairs are
+      more 'unchanged' than this suggests). State which use you are making.
+    * C-CAP 2016 and 2021 are different vintages of the same product; some
+      apparent change is method revision, not trees (cf lit ID 167, Seattle).
+    * Decimated sample; proportions are robust, exact counts are not.

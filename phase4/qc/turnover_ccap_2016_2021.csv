@@ -1,0 +1,2 @@
+label,date_a,date_b,gap_years,n_valid,stable_canopy,stable_non,loss,gain,discordance_pct,net_change_pp,annualised_loss_pct
+ccap_2016_2021,ccap_2016_hires_lc.tif,ccap_2021_hires_lc.tif,5.0,690432,141301,472093,44467,32571,11.158,-1.723,5.325

@@ -1,0 +1,21 @@
+RECALL BY CANOPY HEIGHT — 2013_LEAFOFF
+  prob   : edmonds_canopy_prob_2013_xsensor_rgb.tif   @ thresh 0.5209
+  ref    : ccap_2016_hires_lc.tif   (canopy = forest + forested wetland)
+  sample : 1/8 decimation · 64,507,101 valid cells
+
+  overall recall on sampled C-CAP canopy : 0.7094
+  (13,117,854 of 18,492,463)
+
+  band        recall     recalled / missed
+   0-2  m     0.2090         22,230 / 84,111     
+   2-5  m     0.1955        236,340 / 972,698    
+   5-10 m     0.3869      1,167,170 / 1,849,818  
+  10-15 m     0.6070      1,600,843 / 1,036,571  
+  15-20 m     0.7700      2,030,359 / 606,343    
+  20-25 m     0.8562      2,192,910 / 368,430    
+  25-30 m     0.8968      2,013,077 / 231,640    
+  30+   m     0.9449      3,854,925 / 224,993    
+
+  CHM-covered sample: 18,492,458 of 18,492,463 canopy cells (100%) — the CHM covers ~60% of the city.
+  A rising staircase means detection is height-dependent.
+  A flat line means it is not.

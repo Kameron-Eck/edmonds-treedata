@@ -1,0 +1,85 @@
+DO OUR ACQUISITIONS SEPARATE INTO DOMAINS? (Q5 screen)
+  source   : G:\My Drive\treedata\imagery_stats\imagery_summary.txt
+  features : mean+std of R,G,B (standardised) - 17 acquisitions
+
+  NEAREST NEIGHBOUR BY RADIOMETRIC SIGNATURE
+  (does the nearest year share the same AGENCY?)
+
+  year    agency                GSD   nearest nearest agency      dist  same?
+  2000    King County         59.7   2020    City of Edmonds     1.65  no
+  2005    King County         29.9   2009    King County         1.13  YES
+  2007    King County         29.9   2005    King County         1.30  YES
+  2009    King County         29.9   2022n   NAIP                1.09  no
+  2013    King County         14.9   2015    King County         0.62  YES
+  2015    King County         14.9   2013    King County         0.62  YES
+  2016    Snohomish Co.       50.0   2013    King County         0.92  no
+  2017    City of Edmonds      7.5   2019    King County         0.34  no
+  2019    King County         14.9   2017    City of Edmonds     0.34  no
+  2019n   NAIP                60.0   2021s   Snohomish Co.       1.08  no
+  2020    City of Edmonds      7.5   2022    City of Edmonds     0.55  YES
+  2021    King County         14.9   2023    King County         0.79  YES
+  2021s   Snohomish Co.       50.0   2019n   NAIP                1.08  no
+  2022    City of Edmonds      7.5   2020    City of Edmonds     0.55  YES
+  2022n   NAIP                60.0   2009    King County         1.09  no
+  2023    King County         14.9   2021    King County         0.79  YES
+  2024    City of Edmonds      7.5   2023    King County         4.96  no
+
+  nearest neighbour shares agency: 8/17 (47%)
+  If this is near chance, AGENCY IS NOT THE DOMAIN AXIS.
+
+  --- 3 CLUSTERS ----------------------------------------
+    2000, 2013, 2015, 2016, 2017, 2019, 2020, 2022
+        agencies: City of Edmonds, King County, Snohomish Co.
+        GSDs    : 7.5cm, 14.9cm, 50cm, 59.7cm
+    2005, 2007, 2009, 2019n, 2021, 2021s, 2022n, 2023
+        agencies: King County, NAIP, Snohomish Co.
+        GSDs    : 14.9cm, 29.9cm, 50cm, 60cm
+    2024
+        agencies: City of Edmonds
+        GSDs    : 7.5cm
+
+  --- 4 CLUSTERS ----------------------------------------
+    2000, 2013, 2015, 2016, 2017, 2019, 2020, 2022
+        agencies: City of Edmonds, King County, Snohomish Co.
+        GSDs    : 7.5cm, 14.9cm, 50cm, 59.7cm
+    2005, 2007, 2009, 2021, 2022n, 2023
+        agencies: King County, NAIP
+        GSDs    : 14.9cm, 29.9cm, 60cm
+    2019n, 2021s
+        agencies: NAIP, Snohomish Co.
+        GSDs    : 50cm, 60cm
+    2024
+        agencies: City of Edmonds
+        GSDs    : 7.5cm
+
+  --- 5 CLUSTERS ----------------------------------------
+    2000, 2013, 2015, 2016, 2017, 2019, 2020, 2022
+        agencies: City of Edmonds, King County, Snohomish Co.
+        GSDs    : 7.5cm, 14.9cm, 50cm, 59.7cm
+    2005, 2007
+        agencies: King County
+        GSDs    : 29.9cm
+    2009, 2021, 2022n, 2023
+        agencies: King County, NAIP
+        GSDs    : 14.9cm, 29.9cm, 60cm
+    2019n, 2021s
+        agencies: NAIP, Snohomish Co.
+        GSDs    : 50cm, 60cm
+    2024
+        agencies: City of Edmonds
+        GSDs    : 7.5cm
+
+  CAVEATS - READ BEFORE BELIEVING ANY OF THIS
+    * Band statistics are a WEAK, CONFOUNDED proxy for 'sensor'.
+      Footprint, season, sun angle and scene content all move them.
+      2016/2021s cover 66.7% of the city and the NAIP frames cover
+      53.8 km2 vs 176 km2 - so those means are not measured over the
+      same ground as the rest and are NOT strictly comparable.
+    * This is a SCREEN, not a verdict. A negative result (no clean
+      separation) is more informative than a positive one.
+    * The proper instrument is the low-frequency AMPLITUDE signature
+      (Literature_Tracker ID 136, Yang & Soatto, FDA, CVPR 2020):
+      amplitude carries style, phase carries content. That needs the
+      imagery but is still label-free and GPU-free.
+    * Ground truth for sensor/contractor is acquisition METADATA, not
+      pixels. If that metadata exists, it beats this entirely.

@@ -1,0 +1,2 @@
+label,imagery,n_px,windows_kept,windows_tried,p05,p25,p50,p75,p95,mean,sd,frac_lt_002,frac_negative
+2019n_naip,2019_naip_rgbi.tif,549640,1,16,0.1688,0.2397,0.2745,0.3084,0.3548,0.2703,0.058,0.0,0.0

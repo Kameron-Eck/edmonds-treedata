@@ -1,0 +1,2 @@
+label,date_a,date_b,gap_years,n_valid,stable_canopy,stable_non,loss,gain,discordance_pct,net_change_pp,annualised_loss_pct
+ndvi_2016_2021s,ndvi_ref_2016.tif,ndvi_ref_2021s.tif,5.0,21058808,7037135,11676351,914256,1431066,11.137,2.454,2.413

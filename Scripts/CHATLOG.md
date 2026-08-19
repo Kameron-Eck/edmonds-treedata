@@ -990,6 +990,17 @@ gotcha:  scripts Colab-only for torch (rasterio+geopandas+fiona+sklearn now pip-
 
 ════════════════ LOG  (newest first) ════════════════
 
+## 2026-08-19  .gitignore fixes — Literature_Tracker whitelist bug + npz caches
+goal:    close two .gitignore gaps found during the cleanup pass.
+did:     whitelist bug: `!/Admin/Literature_Tracker.xlsx` matched nothing - the file
+         lives at REPO ROOT (README.md line ~31), not Admin/. Result: the 68-paper
+         tracker, actively used, modified 2026-08-19, was NEVER version-controlled.
+         Added `!/Literature_Tracker.xlsx` at root, kept the old Admin rule as-is.
+         Added `*.npz` to the Scripts binary-data excludes (alongside *.tif/*.pt/
+         *.pth/*.parquet/*.gpkg) - covers the regenerable caches in litwatch_scratch/.
+files:   .gitignore
+next:    -
+
 ## 2026-08-19  ecosystem cleanup — GitHub connected, worktrees pruned, ~35 GB legacy deleted
 goal:    repo hygiene pass (worktree worktree-ecosystem-cleanup) — GitHub backup, dead
          worktrees, orphan dirs, safe-tier legacy bloat.

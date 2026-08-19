@@ -8,6 +8,9 @@
 # Admin: only the literature tracker
 /Admin/*
 !/Admin/Literature_Tracker.xlsx
+# Fixed 2026-08-19: the file actually lives at repo root (README.md line ~31), not
+# Admin/ - the rule above matched nothing and the tracker was never version-controlled.
+!/Literature_Tracker.xlsx
 
 # ── inside Scripts: code+docs yes, artifacts no ──
 Scripts/logs/
@@ -22,6 +25,7 @@ __pycache__/
 *.pth
 *.parquet
 *.gpkg
+*.npz
 # Drive/Office noise
 desktop.ini
 ~$*

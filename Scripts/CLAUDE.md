@@ -107,7 +107,7 @@ source files, ask before assuming.**
 │   ├── ccap_{2016,2021}_hires_lc.tif           ← NOAA C-CAP 1m land cover — INDEPENDENT eval ref (EVAL-ONLY, never train)
 │   ├── lidar_snoh_structure.tif / _hillshade_fr.tif   ← older struct experiments (superseded)
 │   └── upsample/                               ← reprojected to 2020 grid (phase1 spectral only)
-└── phase5/ … phase8/  ← not yet built
+└── phase5/            ← abandoned forward-experiment (kept: 3 QC scripts read it); phase6 deleted 2026-08-19; 7/8 never built
 ```
 
 ---

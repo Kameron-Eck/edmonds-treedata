@@ -515,6 +515,44 @@ measure: ACTIVE WORKSTREAM (opened 2026-08-17). PLAN = Scripts/honest-measuremen
          .5670/.5086. The finding was right; the axis was mislabelled.
          NOT FIXED HERE: config.py is untouched — changing gsd_cm changes TIER and would
          silently re-recipe every year. That is a deliberate decision for Kam, not a typo fix.
+         (13) ** OUR C-CAP WAS A BADLY CLIPPED COPY. THE REAL ONE COVERS 91%. AND A DEDICATED
+         CANOPY PRODUCT EXISTS (2026-08-18, Kam). ** Kam: "ccap data should encompass the
+         entire area, check my arcgis folder" — RIGHT ON BOTH COUNTS.
+         SOURCE: C:\Users\Kameron\Documents\ArcGIS\NOAA\{Land Cover,Tree Canopy,Impervious,Water}
+         (a) COVERAGE. Over the study-area grid, DATA cells:
+             ccap_2016_hires_lc.tif  (what we score against today)  51.9%
+             "2016 land cover snohomish.tif"  (the real source)     91.0%   <- SAME class
+             scheme (forest 9/10/11 = 25.81% of data cells vs the clipped copy's 28.19%).
+         So the "C-CAP only covers ~53%" ceiling — which I recorded as a hard limit in
+         result (12) — is an ARTEFACT OF OUR CLIP, not a property of C-CAP. Re-clipping lifts
+         every C-CAP-scored number to ~91% of the city for the full-coverage years.
+         (b) ** A DEDICATED TREE-CANOPY LAYER EXISTS AND WE NEVER USED IT. **
+         wa_2021_ccap_v2_hires_canopy.tif — statewide WA, EPSG:5070, ~1.14 m, 3.07 GB,
+         100% of the study bbox. Values 0/1/2 with STATISTICS_VALID_PERCENT=100, so 0 is a
+         real "not canopy", NOT nodata. Canopy (1|2) = 26.0% of the study grid; over LAND
+         (excluding the ~9% that is Puget Sound) ~28.6%.
+         WHY THIS MATTERS FOR U2/U1: every C-CAP number in this project scores against FOREST
+         LAND-COVER CLASSES, which are stand-based and drop isolated crowns BY KIND — the
+         exact objection in result (9c). A purpose-built CANOPY product does not have that
+         defect, and it lands at ~26-29%, i.e. NEXT TO the latent-class pi ~.29 and C-CAP
+         forest 25.8%, and FAR from the NDVI ref's 37.7%. That is a THIRD, independent,
+         definitionally-appropriate estimate agreeing with the low number.
+         CAVEAT: it is 2021 vintage and a different product generation (v2), so it is a
+         cross-check for the NIR years, not a drop-in reference for 2000/2013/2016.
+         (c) ALSO SURFACED: imagery years on disk that are NOT in the catalog — 1936, 1998,
+         2005, 2007, 2009, 2012, 2017, 2019, 2021, 2023 king_rgb. Unassessed.
+         (14) ** METADATA MANAGEMENT — NEW phase4_data_inventory.py (Kam asked for it). **
+         Three metadata bugs surfaced in one day (12a footprint, 12d gsd_cm units, 13a clipped
+         reference) and none were hard to detect — nothing was looking. The inventory opens
+         every raster HEADER and records role · CRS · CRS LINEAR UNIT · px in CRS units ·
+         TRUE GROUND GSD (derived from the WGS84 span / pixel count, so feet-vs-metres and
+         Web-Mercator inflation cannot fool it) · bounds · % of study area · dtype · nodata.
+         FIRST RUN FLAGS: 50 rasters where px*100 misstates ground resolution — EVERY
+         EPSG:3857 file by 1.49x and EVERY EPSG:2285 file by 3.24x, i.e. the error is
+         SYSTEMATIC AND CRS-DETERMINED, not a typo — and 12 rasters not covering the study
+         area (2016/2021s 41.9%, C-CAP 53.1%, NAIP 69.2%).
+         RULE IT ENFORCES: true GSD and coverage are MEASURED from the file, never copied
+         from a config. A config value is a claim; this is a measurement.
          ---- LITERATURE (37 papers, IDs 69-105, searches 9-14) — TWO CORRECTIONS TO ME ----
          FOODY 2010: I claimed raw scores overstate the model's faults. Direction depends on ERROR
          CORRELATION; ours are almost certainly correlated (labels + both refs all from interpreting

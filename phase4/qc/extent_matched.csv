@@ -1,0 +1,6 @@
+year,prob,recall,deep_lt_012,deep_lt_006,forest_cells,valid_cells,deep_full_extent,cell_m,thresh
+2000,edmonds_canopy_prob_2000_citywide_rgb.tif,0.5025,0.2744,0.0642,2370293,7201290,0.277,2.0,0.5
+2002,edmonds_canopy_prob_2002_citywide_rgb.tif,0.5654,0.3172,0.0945,2377346,8087733,0.318,2.0,0.5
+2013,edmonds_canopy_prob_2013_citywide_rgb.tif,0.7101,0.3082,0.0317,2377396,8420287,0.308,2.0,0.5
+2015,edmonds_canopy_prob_2015_citywide_rgb.tif,0.7027,0.4814,0.1701,2377393,8420273,0.482,2.0,0.5
+2016,edmonds_canopy_prob_2016.tif,0.667,0.6606,0.3556,2286924,7825650,0.662,2.0,0.5

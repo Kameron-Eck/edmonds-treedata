@@ -1,0 +1,32 @@
+EVERY YEAR SCORED ON THE SAME GROUND (the 2016 footprint)
+  grid 3410x2527 @ 2.0 m · EPSG:26910 · thresh 0.5
+  C-CAP forest codes [9, 10, 11]
+  WHY: 2016 covers 41.9% of the study area, the others 100%, so the
+  cross-year comparison in STATE (7) used different ground per year.
+
+  year     recall  deep<.12    <.06   forest cells  deep FULL-extent    shift
+  2000     0.5025     27.4%    6.4%      2,370,293             27.7%    -0.3
+  2002     0.5654     31.7%    9.4%      2,377,346             31.8%    -0.1
+  2013     0.7101     30.8%    3.2%      2,377,396             30.8%    +0.0
+  2015     0.7027     48.1%   17.0%      2,377,393             48.2%    -0.1
+  2016     0.6670     66.1%   35.6%      2,286,924             66.2%    -0.1
+
+  -- THE TEST ----------------------------------------------
+     2016 minus the next-deepest year:
+       full extent      +18.0 pp
+       extent-matched   +17.9 pp
+
+     -> THE GAP SURVIVES. 2016 is structurally different, not just
+        differently framed. STATE (7e) stands; retire the geography
+        caveat but keep the footprint note for AREA-based claims.
+
+  -- CAVEATS -----------------------------------------------
+     * Restricting to a common footprint does NOT make the years
+       equivalent: they still differ in sensor, season and radiometry.
+       It removes ONE confound, the biggest and the most avoidable.
+     * C-CAP 2016 is applied to 2000/2002/2013/2015, so real canopy
+       change between those dates still counts as model error.
+     * Nearest-neighbour warp onto a 2 m grid; the fine years are
+       down-sampled, which slightly smooths their probability field.
+     * The 2016 raster is 15.4 cm imagery trained as a coarse year
+       (STATE 12d) — that difference is NOT removed here.

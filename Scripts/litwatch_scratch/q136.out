@@ -1,0 +1,14 @@
+162,786 usable points; reference canopy prevalence = 35.97%
+
+ thresh  MAP-COUNT %  map bias pp  STRAT %(full)  strat bias pp  n=250 mean  n=250 SD  95% halfwidth
+   0.30        33.56        -2.40          35.97          +0.00       35.98      2.25           4.42
+   0.40        31.96        -4.00          35.97          +0.00       36.01      2.26           4.42
+   0.45        31.24        -4.73          35.97          +0.00       35.99      2.23           4.38
+   0.50        30.25        -5.71          35.97          +0.00       35.96      2.27           4.46
+   0.55        26.22        -9.75          35.97          +0.00       35.98      2.37           4.65
+   0.60        23.72       -12.25          35.97          +0.00       35.95      2.37           4.64
+   0.70        16.24       -19.72          35.97          +0.00       35.87      2.60           5.09
+
+READ: "map bias pp" is how far the pipeline's own area number sits from the reference,
+purely as a function of where the threshold was put. "strat bias pp" is the same for the
+Olofsson estimator. The n=250 columns say whether P3's planned budget is enough to use it.

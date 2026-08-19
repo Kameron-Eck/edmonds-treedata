@@ -1,0 +1,17 @@
+C:\Users\Kameron\AppData\Local\Temp\claude\C--Users-Kameron\c7464206-58af-4d13-a789-93a4082439c5\scratchpad\q137.py:49: DeprecationWarning: Setting the shape on a NumPy array has been deprecated in NumPy 2.5.
+As an alternative, you can create a new view using np.reshape (with copy=False if needed).
+  a = r.read(1, window=Window(c0, r0, px, px)).astype(np.float32)
+6 sites, 256px windows at a common 40 cm scale
+
+source                    n  HF share      sd
+2013 at native 10cm       6    0.0333  0.0392
+2013 native 10cm->40      6    0.0477  0.0182
+2019 native 10cm->40      6    0.0596  0.0167
+2005 native 20cm->40      6    0.0063  0.0030
+2002 native 40cm          6    0.0086  0.0028
+2000 native 40cm          6    0.0055  0.0019
+
+READ: all rows except the first are resampled to the SAME 40 cm scale, so they are
+directly comparable. If 2000 sits well BELOW the degraded 2013/2019 rows, its effective
+resolution is worse than its nominal 40 cm and the pre-2005 deficit is partly image
+QUALITY - which no amount of retraining at 40 cm would recover.

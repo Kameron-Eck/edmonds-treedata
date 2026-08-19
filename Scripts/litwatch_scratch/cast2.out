@@ -1,0 +1,26 @@
+window 2400x2400 px centred on 47.81214, -122.35440 in every raster
+
+file                     nb   meanR   meanG   meanB  GRVI mu  GRVI sd  frac>.02  satur%
+1936_king_rgb.tif         1   253.0       -       -SINGLE BAND                       0.00
+1998_king_rgb.tif         1   140.2       -       -SINGLE BAND                       0.48
+2000_king_rgb.tif         3    83.3    96.9    92.7  +0.0875   0.1750    0.8027    1.83
+2002_king_rgb.tif         3   102.1   105.9    89.5  +0.0241   0.0549    0.5029    0.17
+2005_king_rgb.tif         3   118.0   123.1   106.4  +0.0310   0.0481    0.4782    0.07
+2007_king_rgb.tif         3   104.9   104.7    78.0  +0.0237   0.1073    0.4016    0.10
+2009_king_rgb.tif         3   107.8   118.6    91.1  +0.0848   0.1355    0.6237    0.29
+2012_king_rgb.tif         3    83.9    92.6    81.0  +0.1009   0.1322    0.6268    0.01
+2013_king_rgb.tif         3   109.6   108.8    86.2  +0.0146   0.0768    0.3463    0.02
+2015_king_rgb.tif         3   119.5   118.1    99.8  +0.0171   0.0770    0.2745    0.10
+2017_king_rgb.tif         3   115.1   112.0    82.8  -0.0082   0.0483    0.1877    0.08
+2019_king_rgb.tif         3   122.5   118.5    94.3  -0.0182   0.0580    0.1146    0.21
+2021_king_rgb.tif         3   139.7   134.7   107.9  -0.0123   0.0380    0.1344    0.18
+2023_king_rgb.tif         3   139.4   136.2   109.1  -0.0061   0.0376    0.1541    0.25
+2016_snoh_rgbi.tif        4    81.5    94.2    90.7  +0.1264   0.1191    0.6928    0.00
+2021_snoh_rgbi.tif        4    75.6    83.4    71.8  +0.0781   0.0917    0.6157    0.00
+2019_naip_rgbi.tif        4    66.0    85.2    84.1  +0.1779   0.1123    0.8919    0.00
+2022_naip_rgbi.tif        4   102.0   118.4   111.5  +0.1106   0.0897    0.7822    0.04
+
+READ: frac>.02 is the share of pixels a naive GRVI vegetation test calls green, over the
+SAME ground in every year. Values near 1.0 mean a global colour cast, not vegetation - the
+index is not discriminating there. Wide variation across years means GRVI is not
+comparable between them without per-year normalisation.

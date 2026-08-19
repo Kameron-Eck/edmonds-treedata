@@ -1,0 +1,38 @@
+CRS EPSG:26910   rotation terms b=0 d=0  (must be 0 for north-up)
+cell size 4.000 CRS units
+
+--- canopy within 10 m of a building  (n=135,941) ---
+sector       recall         n
+N            0.5071    18,688
+NE           0.6126    12,459
+E            0.4678    24,228
+SE           0.5897    13,723
+S            0.4401    23,955
+SW           0.5816    12,677
+W            0.4755    19,522
+NW           0.5979    10,689
+
+  NORTH side (NW,N,NE) mean recall : 0.5725
+  SOUTH side (SE,S,SW) mean recall : 0.5371
+  NORTH minus SOUTH                : +0.0354
+  max-min across all 8 sectors     : 0.1726
+
+--- canopy within 20 m of a building  (n=235,295) ---
+sector       recall         n
+N            0.5888    32,138
+NE           0.6641    22,406
+E            0.5662    42,074
+SE           0.6474    23,662
+S            0.5409    38,478
+SW           0.6432    22,284
+W            0.5698    34,971
+NW           0.6450    19,282
+
+  NORTH side (NW,N,NE) mean recall : 0.6326
+  SOUTH side (SE,S,SW) mean recall : 0.6105
+  NORTH minus SOUTH                : +0.0221
+  max-min across all 8 sectors     : 0.1231
+
+READ: a clearly NEGATIVE north-minus-south (north side worse) supports SHADOW.
+A near-zero difference and a small 8-sector spread supports CONTRAST, and means
+the fix must be structural (height/NIR) rather than radiometric.

@@ -1,0 +1,43 @@
+162,829 sample points
+C-CAP sampled
+  2000: sampled, valid 161,105
+  2002: sampled, valid 162,819
+  2005: sampled, valid 162,829
+  2007: sampled, valid 162,829
+  2009: sampled, valid 162,829
+  2013: sampled, valid 162,828
+  2015: sampled, valid 162,829
+  2021: sampled, valid 162,829
+
+COMMON footprint 161,052 of 162,829 points (98.9%); C-CAP canopy 58,375 (36.2% prevalence)
+
+(A) RECALL AT A COMMON CALL RATE  -- recipe AND operating point both held constant
+year      cr=0.20   cr=0.25   cr=0.30   cr=0.35
+2000       0.4737    0.5652    0.6454    0.7188
+2002       0.4763    0.5718    0.6541    0.7290
+2005       0.5204    0.6215    0.7086    0.7816
+2007       0.6189    0.6189    0.6974    0.7640
+2009       0.5127    0.6374    0.7052    0.7788
+2013       0.5018    0.6122    0.7069    0.7823
+2015       0.5149    0.6235    0.7174    0.7919
+2021       0.5125    0.6228    0.7155    0.7829
+SPREAD     0.1452    0.0722    0.0721    0.0731
+
+(B) THE SAME YEARS AT A FIXED THRESHOLD 0.5  -- recipe held, operating point NOT
+year     call rate    recall
+2000        0.2313    0.5303
+2002        0.2599    0.5853
+2005        0.2298    0.5806
+2007        0.2991    0.6915
+2009        0.2851    0.6801
+2013        0.3046    0.7123
+2015        0.2978    0.7130
+2021        0.2198    0.5577
+SPREAD      0.0847    0.1827
+
+SPREAD at fixed threshold 0.5      : 0.1827
+SPREAD at matched call rate 0.30   : 0.0721
+reduction                          : +0.1107
+
+READ: finding 3 quotes a cross-year honest-recall spread of about 0.28 (.50-.78).
+If (A) is much tighter than (B), the operating point was carrying part of that wander.

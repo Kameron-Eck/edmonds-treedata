@@ -1,0 +1,36 @@
+=== 1936_king_rgb.tif  18944x26880  bounds ok ===
+C:\Users\Kameron\AppData\Local\Temp\claude\C--Users-Kameron\c7464206-58af-4d13-a789-93a4082439c5\scratchpad\chk1936.py:25: DeprecationWarning: Setting the shape on a NumPy array has been deprecated in NumPy 2.5.
+As an alternative, you can create a new view using np.reshape (with copy=False if needed).
+  a = r.read(1, window=Window(c0, r0, S, S)).astype(np.float32)
+   47.7982,-122.3783  mean   253.0  std   0.00  min   253  max   253  frac==255 0.000  frac==0 0.000
+   47.8187,-122.3783  mean   253.0  std   0.00  min   253  max   253  frac==255 0.000  frac==0 0.000
+   47.8391,-122.3783  mean     0.0  std   0.00  min     0  max     0  frac==255 0.000  frac==0 1.000
+   47.7982,-122.3587  mean   253.0  std   0.00  min   253  max   253  frac==255 0.000  frac==0 0.000
+   47.8187,-122.3587  mean   253.0  std   0.00  min   253  max   253  frac==255 0.000  frac==0 0.000
+   47.8391,-122.3587  mean     0.0  std   0.00  min     0  max     0  frac==255 0.000  frac==0 1.000
+   47.7982,-122.3391  mean   253.0  std   0.00  min   253  max   253  frac==255 0.000  frac==0 0.000
+   47.8187,-122.3391  mean   253.0  std   0.00  min   253  max   253  frac==255 0.000  frac==0 0.000
+   47.8391,-122.3391  mean     0.0  std   0.00  min     0  max     0  frac==255 0.000  frac==0 1.000
+
+=== 1998_king_rgb.tif  18944x26880  bounds ok ===
+   47.7982,-122.3783  mean   115.7  std  39.66  min    48  max   255  frac==255 0.003  frac==0 0.000
+   47.8187,-122.3783  mean   105.4  std  31.63  min    57  max   255  frac==255 0.001  frac==0 0.000
+   47.8391,-122.3783  mean    99.5  std   4.04  min    84  max   174  frac==255 0.000  frac==0 0.000
+   47.7982,-122.3587  mean   134.6  std  43.51  min    45  max   255  frac==255 0.004  frac==0 0.000
+   47.8187,-122.3587  mean   141.0  std  37.76  min    44  max   255  frac==255 0.005  frac==0 0.000
+   47.8391,-122.3587  mean   121.7  std  15.21  min    87  max   232  frac==255 0.000  frac==0 0.000
+   47.7982,-122.3391  mean   130.7  std  38.99  min    54  max   255  frac==255 0.002  frac==0 0.000
+   47.8187,-122.3391  mean   134.1  std  40.26  min    51  max   255  frac==255 0.008  frac==0 0.000
+   47.8391,-122.3391  mean   130.0  std  29.31  min    67  max   255  frac==255 0.002  frac==0 0.000
+
+=== 2000_king_rgb.tif  18944x26880  bounds ok ===
+   47.7982,-122.3783  mean    78.5  std  46.82  min     0  max   255  frac==255 0.005  frac==0 0.037
+   47.8187,-122.3783  mean    96.4  std  64.77  min     0  max   255  frac==255 0.010  frac==0 0.035
+   47.8391,-122.3783  mean     0.0  std   0.00  min     0  max     0  frac==255 0.000  frac==0 1.000
+   47.7982,-122.3587  mean    87.7  std  45.65  min     0  max   255  frac==255 0.007  frac==0 0.001
+   47.8187,-122.3587  mean    95.7  std  52.21  min     0  max   255  frac==255 0.018  frac==0 0.006
+   47.8391,-122.3587  mean    20.0  std  49.68  min     0  max   255  frac==255 0.007  frac==0 0.592
+   47.7982,-122.3391  mean    80.7  std  38.13  min     0  max   255  frac==255 0.003  frac==0 0.001
+   47.8187,-122.3391  mean    79.4  std  51.87  min     0  max   255  frac==255 0.014  frac==0 0.012
+   47.8391,-122.3391  mean    92.8  std  59.42  min     0  max   255  frac==255 0.009  frac==0 0.032
+

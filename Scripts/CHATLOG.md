@@ -569,13 +569,16 @@ measure: ACTIVE WORKSTREAM (opened 2026-08-17). PLAN = Scripts/honest-measuremen
          "coverage" also corrected to MEASURED values (snoh 42%, NAIP 69%).
          phase4seg_preflight.py PASSES (compile · undefined-name sweep · torch-free import ·
          argparse). NOT yet Colab-smoke-tested.
-         (b) FULL-COVERAGE C-CAP PAYS OFF IMMEDIATELY. 2013 scored vs the un-clipped
-         ccap_2016_hires_lc_snohfull.tif (91% vs 51.9% of the study area):
-             recall .7094 -> .7422 · precision .8551 -> .8672
-         Both ROSE. Note the thresholds differ (.5209 old vs .5000 new), and a LOWER threshold
-         should COST precision — precision rose anyway, so the fuller reference genuinely
-         flatters the model: the clipped half was NOT representative. Every honest number in
-         the baseline table is pessimistic for this reason and should be re-run.
+         (b) FULL-COVERAGE C-CAP: FIRST LOOK, THEN A CORRECTION TO MY OWN TEST.
+         2013 vs the un-clipped ccap_2016_hires_lc_snohfull.tif (91% vs 51.9% of the study
+         area) read recall .7094 -> .7422, precision .8551 -> .8672.
+         ** THAT COMPARISON WAS CONFOUNDED — I changed THREE things at once: the reference
+         (clipped -> full), the prob raster (_xsensor_rgb -> _citywide_rgb) and the threshold
+         (.5209 -> .5000). It cannot attribute the movement to the reference. ** Do not quote
+         the +3.3 pp. Re-running properly (same prob, same deployed threshold as each live
+         row, ONLY the reference swapped) for 2000 .5133 · 2002 .57 · 2013 .5209 · 2015 .576.
+         The DIRECTION is still expected to be favourable — the clipped half is not
+         representative — but the size is unmeasured until those land.
          (c) ** THE CANOPY PRODUCT SEPARATES TREE FROM SHRUB — AND HEIGHT DOES NOT. **
          Kam: "1 and 2 mean shrub or tree, cant recall". Settled with our own CHM:
              class 1 = TREE   24.79% of grid · median 21.6 m · 97.6% >=3 m

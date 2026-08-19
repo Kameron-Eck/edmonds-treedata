@@ -668,9 +668,32 @@ measure: ACTIVE WORKSTREAM (opened 2026-08-17). PLAN = Scripts/honest-measuremen
          ---- LOCAL ENV ----
          CUDA now works locally: torch 2.13.0+cu126, Quadro T2000 4GB (CLAUDE.md says 2GB — STALE),
          3.45GB free, verified. Still do NOT train locally (rule: don't split training Colab/local).
-         ---- HONEST BASELINE (quote ONLY live=1 rows in qc/qc_indep_report.csv) ----
-         vs C-CAP, forest_wetland, deployed thresh: 2013 .7094/.8551 · 2016 .6844/.8651 ·
-         2000 .6303/.7745 · 2015 .6222/.8835 · 2002 .5069/.8377. NDVI-ref 2016 .594/.959.
+         ---- HONEST BASELINE — RESTATED 2026-08-18 ON THE FULL-COVERAGE REFERENCE ----
+         The old table was scored against ccap_2016_hires_lc.tif, a CLIPPED copy covering
+         51.9% of the study area (result 13a). Rescored against the un-clipped source
+         ccap_2016_hires_lc_snohfull.tif (91.0%), changing ONLY the reference — same prob
+         raster, same deployed threshold, forest_wetland:
+             year   clipped ref     FULL ref        d recall   imagery coverage
+             2000   .6303/.7745  -> .6749/.7975      +4.5 pp   100%
+             2002   .5069/.8377  -> .5580/.8563      +5.1 pp   100%
+             2013   .7094/.8551  -> .7395/.8666      +3.0 pp   100%
+             2015   .6222/.8835  -> .6629/.8989      +4.1 pp   100%
+             2016   .6844/.8651  -> .6636/.8736      -2.1 pp    41.9%
+             2017   PENDING — rescore was still running at 20:5x 2026-08-18. Old (clipped)
+                    value was .7784/.8083. Re-run if no snohfull row appears in
+                    qc_indep_report.csv.
+         ** QUOTE THE FULL-REF COLUMN. ** Precision rose in all five completed years.
+         ** THE ASYMMETRY IS THE FINDING: ** every year with 100% imagery coverage got
+         BETTER; 2016 — the only one at 41.9% — got WORSE. So the clipped reference was
+         FLATTERING 2016 specifically and PENALISING the full-coverage years. That matters
+         because 2016 is the most-cited year in the project (the only NIR year with a
+         matched CHM, and the year the corrected labels were built for).
+         ** 2016 HONEST RECALL IS NOW .6636, NOT .6844. ** Anywhere this file or a report
+         says "2016 recall .6844" against C-CAP, it is superseded — including the framing
+         in results (3) and (5). The DIRECTION of every finding is unchanged; the level is.
+         UNAFFECTED: NDVI-ref 2016 .594/.959 (different reference entirely). STILL TRUE:
+         every 2016-derived analysis remains bounded by the 41.9% footprint no matter which
+         C-CAP is used (result 12b) — a fuller reference does not widen the imagery.
          READ = high-precision UNDER-predictor, misses ~30-35% of C-CAP forest; scrub recall .25
          vs forest .68 -> fails on non-conifer/mixed structure (the conifer-only-label blind spot).
          CAVEAT that must ride with every number: BOTH refs are PROXIES (CHM ~2016 @60% coverage;

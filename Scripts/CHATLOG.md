@@ -687,17 +687,24 @@ measure: ACTIVE WORKSTREAM (opened 2026-08-17). PLAN = Scripts/honest-measuremen
              2021k  King      10.0 cm  citywide recipe thresh .4013  .6059 / .8778
          Naively: the COARSER sensor wins recall by 7.9 pp, which would contradict the
          recipe-matched resolution trend above (10 cm ~.741). ** DO NOT READ IT THAT WAY. **
-         TWO uncontrolled confounds, each as large as the effect:
-           (1) RECIPE — p2nir vs citywide. Measured today at 5.6-12.7 pp, sign varying by
-               year. That alone can produce the whole 7.9 pp.
+         TWO uncontrolled confounds:
+           (1) TILING PARAMS — 2021s is coarse tier, 2021k is fine, so stride / neg-rate /
+               test-split differ (TIER_TILE_PARAMS).
            (2) FOOTPRINT — 2021s covers 41.9% of the study area, 2021k 100%, so they are
                scored on different ground (result 12c).
-         Change is the ONLY thing this pair controls. Extent-matching would fix (2) locally,
-         but (1) cannot be removed without a retrain, so even that would not settle it.
-         WHAT WOULD SETTLE IT: retrain 2021k under the p2nir recipe, or 2021s under
-         --force-citywide, then compare on 2021s's footprint. ONE Colab job — the cleanest
-         sensor experiment available in this project, and now precisely specified.
-         Recorded as OPEN, not as a finding.
+         ** CORRECTION 2026-08-19 to what I first wrote here. ** I said the two used
+         DIFFERENT LABEL RECIPES (p2nir vs citywide) and that a retrain would settle it.
+         WRONG on both counts, found by reading cli.py rather than the run tags: "p2nir" is
+         only a RUN TAG. 2021s is COARSE tier, and coarse years take the citywide 2020-mask
+         label path BY DEFAULT — the same path --force-citywide gave 2021k. Their LABEL
+         SOURCE already matches; what differs is the TIER TILING PARAMETERS.
+         AND THAT CANNOT BE RETRAINED AWAY: tiling params are keyed to tier, tier is keyed to
+         resolution, so "sensor" and "tiling regime" are entangled BY DESIGN. There is no
+         Colab job that isolates the sensor here. DO NOT SPEND A 5 cm RUN ON IT — the earlier
+         entry proposing exactly that is withdrawn.
+         Recorded as OPEN AND PROBABLY NOT ANSWERABLE by retraining. A real answer needs a
+         deliberate ablation (same year, same footprint, tiling params forced equal), which
+         is an engine change, not a queue entry.
 
          ---- QUEUE 2 (Colab, overnight 2026-08-18/19) — FIRST TWO YEARS SCORED ----
          2005 and 2007 trained + inferred OK (VERIFY 100% valid). Scored vs the FULL-coverage

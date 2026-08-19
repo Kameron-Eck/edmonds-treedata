@@ -221,8 +221,21 @@ docs:    SOURCES OF TRUTH CENTRALIZED 2026-07-06. HANDOFFS RETIRED (5 old ones �
 measure: ACTIVE WORKSTREAM (opened 2026-08-17). PLAN = Scripts/honest-measurement-overhaul.md.
          WHY: Kam — "became too reliant on AI judgement"; wants defensible numbers + better
          tests/visuals. FOUR PHASES, run order 1 -> 2 -> 4 -> 3 (Kam's choice).
-         ---- RESUME HERE  (2026-08-18 end of session; context exhausted, new session starting) ----
+         ---- RESUME HERE  (REWRITTEN 2026-08-19 — a long session ended, a fresh one starts) ----
+         WHAT HAPPENED 2026-08-18/19, in one paragraph: a measurement session ran U1-U6 to
+         answer, corrected several of its own published numbers, found and fixed three
+         METADATA bugs (config gsd_cm was CRS-units x100 not ground cm; the 2016 imagery
+         covers only 41.9% of the study area; the C-CAP reference we score against was a
+         CLIPPED copy at 51.9% — the real source covers 91%), rebuilt the honest baseline on
+         the full reference, and completed a recipe-matched series. In parallel a second
+         session ran a 4,660-line lit-watch, then was stopped; its literature is sound, its
+         empirical numbers are NOT REPRODUCIBLE (its scratchpad is gone) but several of its
+         arguments are strong enough to overturn results here. See LIT-WATCH INTAKE below.
+         THE ONE-LINE STATE: the pipeline can now MEASURE honestly; what blocks it is U1, a
+         written canopy definition, which is a human judgment call and Kam's to make.
          READ FIRST, IN THIS ORDER:
+           0. LIT-WATCH INTAKE (below in this block) — six items that CHANGE results 1-17.
+              Read it before quoting any number in this file.
            1. this STATE block
            2. Reports/Measurement_Validity_Assessment_2026-08-18.md  <- 351-line assessment; it is
               SHARPER THAN THE PLAN on what P3 can and cannot answer. Its U1-U8 are the live question
@@ -629,7 +642,27 @@ measure: ACTIVE WORKSTREAM (opened 2026-08-17). PLAN = Scripts/honest-measuremen
          LOW-GREENNESS FRACTION (GRVI<0.02) over 2020-mask canopy pixels:
              2015 31.22% · 2013 22.46% · 2000 16.86% · 2002 13.58% · 2005 10.98% ·
              2022n(NAIP, leaf-on BY SPEC) 5.23% · 2016 1.95%
-         (a) THE CONVERGENCE. 2015 is the MOST leaf-off year in the series, and 2015 is the
+         ** [WITHDRAWN 2026-08-19, SAME DAY — see LIT-WATCH INTAKE item 1 below.] ** The
+         cross-year GRVI ranking this result rests on IS NOT SAFE. litwatch_robustness.md
+         proves it with an unarguable pair: 2019 KING reads frac(GRVI>.02)=0.1146 and 2019
+         NAIP reads 0.8919 — SAME YEAR, SAME GROUND, SAME SEASON, differing by 0.78. That is
+         sensor/processing colour balance, not vegetation. The King series also drifts
+         monotonically .80 (2000) -> .11 (2019). So "2015 is the most leaf-off year" is NOT
+         established: 2015 King vs 2016 Snoh is a CROSS-SENSOR comparison and the index
+         itself moves more than any leaf-on/off effect.
+         WHAT SURVIVES: (i) the 2015 ANOMALY itself — 48.2% deep misses, misses darker and
+         relatively bluer — because result (11) measured that WITHIN each year (missed vs
+         recalled forest in the SAME image), and a global colour cast cancels in a
+         within-year contrast. That is exactly the use litwatch says is unaffected.
+         (ii) the reasoning that leaf-off and low sun angle co-occur.
+         WHAT FALLS: the attribution of 2015's anomaly TO leaf-off via the cross-year
+         ranking. 2015 may still be leaf-off — it is no longer EVIDENCE that it is.
+         LESSON FOR THE NEXT SESSION: I cross-checked two instruments and treated agreement
+         as confirmation without checking whether the second instrument was comparable
+         across the axis I was comparing on. Agreement between two contaminated readings is
+         not corroboration.
+
+         (a) THE CONVERGENCE [now withdrawn, see above]. 2015 is the MOST leaf-off year in the series, and 2015 is the
          year result (11) singled out on completely different evidence: 48.2% DEEP misses vs
          ~30% elsewhere, with misses DARKER and relatively BLUER — which I read as shadow.
          Leaf-off flights fly at LOW SUN ANGLE, so bare crowns and long shadows arrive
@@ -649,6 +682,55 @@ measure: ACTIVE WORKSTREAM (opened 2026-08-17). PLAN = Scripts/honest-measuremen
          CAVEAT: the sweep samples pixels the 2020 MASK calls canopy, so it inherits that
          mask's conifer bias — which biases AGAINST detecting leaf-off, making 2015's 31.22%
          a floor rather than an estimate.
+         ════ LIT-WATCH INTAKE (2026-08-19) — READ THIS BEFORE TRUSTING RESULTS 1-17 ════
+         SOURCE: Scripts/litwatch_robustness.md, 4,660 lines, searches 15-45+, IDs 106-178+,
+         written by the now-STOPPED parallel session. STATUS OF ITS NUMBERS: the empirical
+         sections were computed with the same scratchpad that no longer exists, so treat
+         every FIGURE as unverified. Treat the REASONING as usable — several items below
+         carry their own internal proof and need no code to be persuasive.
+         SIX ITEMS THAT CHANGE WHAT THIS FILE ALREADY SAYS:
+         1. ** GRVI IS NOT COMPARABLE ACROSS SENSORS. ** 2019 King frac(GRVI>.02)=0.1146 vs
+            2019 NAIP 0.8919 — same year, same ground, same season. King drifts .80->.11
+            across 2000->2019. ANY cross-year GRVI diagnostic reports a large steady canopy
+            decline that is pure processing artefact. WITHIN-year use is unaffected.
+            -> WITHDRAWS result (17); see the note on it. Also means the leaf-off sweep's
+            cross-year table must not be quoted.
+         2. ** EFFECTIVE RESOLUTION != NOMINAL GSD, by up to 6x. ** Edge-spread measurement,
+            12 fixed sites, 11 years: 1998 nominal 40 cm resolves at 245 cm (6.1x); 2005
+            nominal 20 cm resolves at 81 cm (4.0x) — COARSER THAN 2000's nominal 40; 2000
+            resolves at 111 cm (2.8x). The other 8 years are properly sampled at 1.26-1.42 px.
+            -> QUALIFIES my "resolution is worth ~16 pp" (result 15/recipe-matched table).
+            The nominal tiering happened to give a clean trend, but 2005 sits at 81 cm
+            effective and still scores .6346, near 2007/2009 at ~26 cm. Effective resolution
+            REORDERS the years and does NOT reproduce the trend, so the mechanism is not
+            settled. Their own words: three attempts to explain the 2000/2002 deficit have
+            failed (nominal GSD, spectral sharpness, effective resolution).
+            -> ALSO: my gsd_cm fix corrected UNITS (CRS->ground) but tier is still keyed to
+            a number that is wrong by up to 6x as a measure of real detail. Worth revisiting
+            tier_for() with effective resolution if 2005/2000 are ever retrained.
+            -> AND A LEAD WORTH CHASING: every King file is EPSG:3857, and reprojection to
+            Web Mercator is itself a blurring resample. The softness may be OURS, introduced
+            by mosaicking, not the original acquisition. If so, re-deriving early years from
+            native-projection sources recovers detail no retraining can.
+         3. ** THE CONTESTED BAND IS MOSTLY REAL MISS, NOT REFERENCE DISAGREEMENT. ** Against
+            rasterised per-building heights, canopy over roofs: 88-93% of the tall contested
+            band is genuine model failure under both a liberal and a conservative reading of
+            the building heights. P2 implied ~35%. -> This attacks the "38.7% is unmeasurable"
+            framing that results (5) and (12) lean on. If it holds, the honest recall numbers
+            are TOO KIND, not too harsh. HIGH PRIORITY TO RE-DERIVE with tracked code.
+         4. ** RECALL HALVES ON CANOPY OVER IMPERVIOUS ** (Q116) and two independent deficits
+            COMPOUND (Q118). Consistent with my edge/perimeter result (8) — overhang above
+            roofs and driveways is exactly perimeter canopy.
+         5. ** SHADOW REFUTED AS THE OVERHANG MECHANISM ** (Q122) — bears on result (11)'s
+            shadow reading; their test is of overhang specifically, mine was of 2015's
+            per-channel signature, so these are not the same claim, but do not merge them.
+         6. ** INVENTORY DEFECTS: ** 1936_king_rgb.tif is an EMPTY SHELL (uniform 253/0 fill —
+            King County survey does not reach into Snohomish); 1998 and 1936 are SINGLE-BAND
+            despite _rgb filenames; there are TWO DIFFERENT 2017 ACQUISITIONS; no acquisition
+            metadata exists in any raster. -> Cross-check against my phase4_data_inventory.py,
+            which measures geometry but NOT band count or fill — worth extending.
+         WHAT IT DOES NOT TOUCH: the literature itself, which is the durable asset — DOIs
+         verified against Crossref, explicit inclusion bar, covered/queued discipline.
          ---- LITERATURE (37 papers, IDs 69-105, searches 9-14) — TWO CORRECTIONS TO ME ----
          FOODY 2010: I claimed raw scores overstate the model's faults. Direction depends on ERROR
          CORRELATION; ours are almost certainly correlated (labels + both refs all from interpreting

@@ -235,7 +235,7 @@ measure: ACTIVE WORKSTREAM (opened 2026-08-17). PLAN = Scripts/honest-measuremen
            The photos/ footprint blocker was STALE — sentinel_sites.json already carries explicit
            bounds_wgs84 for every site. P1/P2/P4 ALL COMPLETE. Only P3 remains, gated on U1.
            P3 TOOLING BUILT, NOT YET RUN BY A HUMAN. Samples drawn for 2016 / 2022n / 2000.
-         ---- THE TEN RESULTS THAT MATTER ----
+         ---- THE ELEVEN RESULTS THAT MATTER ----
          (1) DETECTION IS A FUNCTION OF CANOPY HEIGHT. 2016: .16 (0-2m) .16 (2-5) .36 (5-10) .57
          (10-15) .74 (15-20) .83 (20-25) .88 (25-30) .93 (30+). 5-15m holds 53% of ALL misses;
          lifting those two bands to the 20-25m rate takes recall .68 -> ~.80. qc/height_curves.png
@@ -318,7 +318,9 @@ measure: ACTIVE WORKSTREAM (opened 2026-08-17). PLAN = Scripts/honest-measuremen
          (c) 2015 IS THE REAL OUTLIER at 48.2% deep, and its signature INVERTS: misses are
          DARKER (dbright -3.8) and slightly GREENER (dgrvi +0.011) where every other year's
          misses are brighter and less green. 2015 is a different failure, not more of the same.
-         (d) RECALL TRACKS GSD, NOT CONF%: 14.9cm -> .71/.71 vs 59.7cm -> .51/.57. A RESOLUTION
+         (d) [PARTLY SUPERSEDED by result (11b) — the "dbright scales with sensor era" half is
+         WRONG, 2015 breaks it. The GSD half stands.]
+         RECALL TRACKS GSD, NOT CONF%: 14.9cm -> .71/.71 vs 59.7cm -> .51/.57. A RESOLUTION
          effect on top of the radiometric one (dbright scales with sensor era, +27 in 2000 down
          to +6 in 2013 = the King contractor change).
          (e) misses are TALL — mean 11.3-14.5 m vs recalled 23.7-25.6 m. Not scrub. Sits exactly
@@ -426,6 +428,36 @@ measure: ACTIVE WORKSTREAM (opened 2026-08-17). PLAN = Scripts/honest-measuremen
          biased, so this brackets attenuation rather than modelling it. And if CHM error and
          detection failure share a cause (both worse in dense mixed stands) the correction in
          (c) is optimistic.
+         (11) ** THE 2015 OUTLIER EXPLAINED — AND IT CORRECTS (7d). MISSES ARE DEFINED BY
+         LOSS OF COLOUR CONTRAST, NOT BY BRIGHTNESS (2026-08-18). ** No new code: re-read the
+         per-channel tables already in forest_miss_{2000,2002,2013,2015}.txt.
+           year   dR      dG      dB     blue-excess*  d_sat    d_bright   deep%
+           2000  +25.5   +23.2   +32.4     +8.1       -0.075    +27.1      27.7
+           2002  +18.6   +11.9   +15.8     +0.6       -0.048    +15.4      31.8
+           2013   +6.6    -0.9   +13.3    +10.4       -0.090     +6.3      30.8
+           2015   -6.4    -6.4    +1.6     +8.0       -0.006     -3.8      48.2
+           *blue-excess = dB - mean(dR,dG); all deltas are missed MINUS recalled.
+         (a) CORRECTION TO (7d). I wrote "missed forest is BRIGHTER, and dbright scales with
+         sensor era (+27 in 2000 -> +6 in 2013 = the King contractor change)". 2015 BREAKS
+         that: its misses are DARKER (-3.8) and it sits BETWEEN 2013 and 2016 in time. The
+         era-scaling story was pattern-matching on three points. Do not repeat it.
+         (b) WHAT IS ACTUALLY INVARIANT: SATURATION FALLS IN ALL FOUR YEARS (misses are
+         greyer/flatter) and BLUE-EXCESS IS POSITIVE IN ALL FOUR. Missed crowns have LOW
+         COLOUR CONTRAST — washed toward grey-blue — whether they got there by haze/
+         over-exposure (2000/2002/2013, brighter) or by SHADOW (2015, darker; R and G drop
+         while B rises = the classic skylight-shadow signature). Two mechanisms, ONE
+         appearance, and the model keys on the appearance.
+         (c) WHY 2015 IS ALSO THE DEEP-MISS OUTLIER (48.2% vs ~30%): shadowed crowns are not
+         near-threshold, they are confidently rejected — a shadowed crown looks like nothing
+         the conifer training sites contain. Consistent with (a): the deep/near split tracks
+         the MECHANISM, not the year.
+         (d) ACTIONABLE: this re-specifies open item (3) radiometric normalization. A
+         BRIGHTNESS-matching normalization would do nothing for 2015 (its dbright is -3.8 and
+         small) — normalize per-image SATURATION + CHANNEL BALANCE instead. That is now a
+         concrete target rather than "radiometric normalization, unbuilt".
+         CAVEAT: 2002's blue-excess is +0.6 = essentially nil, so "all four" is carried by
+         saturation, not by blue. And these are FN-vs-TP contrasts within a year, which
+         confound illumination with WHAT KIND OF STAND gets missed.
          ---- LITERATURE (37 papers, IDs 69-105, searches 9-14) — TWO CORRECTIONS TO ME ----
          FOODY 2010: I claimed raw scores overstate the model's faults. Direction depends on ERROR
          CORRELATION; ours are almost certainly correlated (labels + both refs all from interpreting

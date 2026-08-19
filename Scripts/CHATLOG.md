@@ -325,9 +325,25 @@ measure: ACTIVE WORKSTREAM (opened 2026-08-17). PLAN = Scripts/honest-measuremen
          to +6 in 2013 = the King contractor change).
          (e) misses are TALL — mean 11.3-14.5 m vs recalled 23.7-25.6 m. Not scrub. Sits exactly
          in the 5-15 m band result (1) says holds 53% of all misses. Results (1) and (7) agree.
-         STILL OPEN: 2016 has NO _citywide_rgb raster, so its ~60%-deep figure is STILL NOT
-         COMPARABLE. Given (b) moved 2013 by 22 points, do NOT assert "2016 is the outlier"
-         until it is measured on this recipe. That is now the open question.
+         (e) [RESOLVED 2026-08-18, same day, NO Colab needed] I had recorded that 2016 was
+         not comparable for lack of a _citywide_rgb raster. WRONG PREMISE, caught by reading
+         config.py instead of the file listing: 2016 is 50.0 cm = COARSE tier, and coarse
+         years ALREADY train on the citywide 2020 mask — the exact recipe --force-citywide
+         forces onto the FINE years (2013/2015). The recipes always matched; only the
+         SCORING settings differed. Rescored 2016 at the same fixed thresh 0.5, no
+         --stable-with: 
+           deep(<.12)%  2000 27.7 · 2013 30.8 · 2002 31.8 · 2015 48.2 · 2016 66.2
+         ** 2016 IS THE OUTLIER AFTER ALL — and by MORE than the old ~60% suggested, not
+         less. ** So the caution in (b) was right to demand the test and wrong about the
+         answer; the original 2016 figure was not a recipe artefact.
+         (f) THE IMPLICATION THAT MATTERS: 2016 is our DEFAULT TEST YEAR — the only NIR year
+         with matched CHM, the year the corrected labels were built for, the year most
+         results are measured on — and it is the LEAST calibration-recoverable of the five.
+         Conclusions drawn on 2016 SYSTEMATICALLY UNDERSTATE how much the operating point can
+         help elsewhere. "Labels or calibration" has no single answer: 2016 says labels
+         (66% deep), 2000/2002/2013 say calibration is a real lever (~70% near-threshold).
+         Do not generalise either way from one year — that is the mistake correction (3)
+         warned about, and it very nearly repeated here in the opposite direction.
          (8) ** ~42% OF MISSES ARE CROWN PERIMETER — AND THE HEIGHT STAIRCASE SURVIVES ANYWAY
          (2026-08-18). ** Tested the sentinel ring pattern by eroding the agreed-canopy mask
          (2016, decim 4 = 2 m lattice). BOTH halves of the question came back positive:

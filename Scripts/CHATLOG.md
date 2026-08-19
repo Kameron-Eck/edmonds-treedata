@@ -235,7 +235,7 @@ measure: ACTIVE WORKSTREAM (opened 2026-08-17). PLAN = Scripts/honest-measuremen
            The photos/ footprint blocker was STALE — sentinel_sites.json already carries explicit
            bounds_wgs84 for every site. P1/P2/P4 ALL COMPLETE. Only P3 remains, gated on U1.
            P3 TOOLING BUILT, NOT YET RUN BY A HUMAN. Samples drawn for 2016 / 2022n / 2000.
-         ---- THE NINE RESULTS THAT MATTER ----
+         ---- THE TEN RESULTS THAT MATTER ----
          (1) DETECTION IS A FUNCTION OF CANOPY HEIGHT. 2016: .16 (0-2m) .16 (2-5) .36 (5-10) .57
          (10-15) .74 (15-20) .83 (20-25) .88 (25-30) .93 (30+). 5-15m holds 53% of ALL misses;
          lifting those two bands to the 20-25m rate takes recall .68 -> ~.80. qc/height_curves.png
@@ -400,11 +400,39 @@ measure: ACTIVE WORKSTREAM (opened 2026-08-17). PLAN = Scripts/honest-measuremen
          Also note the "~60% CHM coverage" figure in CLAUDE.md is of the RASTER; over the
          IMAGED/analysis area it is 83.5%, and the remainder is water. Both true, different
          denominators — quote the 83.5% when talking about the analysis area.
+         (10) ** U6 ANSWERED — CHM ERROR CANNOT HAVE MADE THE STAIRCASE; IT BARELY DENTS IT
+         (2026-08-18). ** NEW phase4_qc_chm_noise.py, 2016 agreed-canopy px, decim 8.
+         (a) NULL TEST (the one that validates the whole method): shuffle each pixel's
+         detection outcome to be INDEPENDENT of height at the same overall rate -> spread
+         +0.0001. Binning by height CANNOT manufacture a staircase. Every height result in
+         this project rests on that and it had never been checked.
+         (b) ATTENUATION: add Gaussian error to the BINNING variable and re-bin —
+             sigma   0m      1m      2m      3m      5m
+             spread  .3877   .3833   .3790   .3697   .3400
+             ratio   1.00    .99     .98     .95     .88
+         The literature's ~3 m MAE (Moudry 2024 ID 82) costs only 5% of the spread, because
+         the headline contrast (5-15 m vs 20 m+) spans a WIDE, well-separated gap that 3 m of
+         noise rarely crosses.
+         (c) THE DIRECTION IS THE POINT: error in a STRATIFICATION variable attenuates —
+         regression dilution — it flattens a real curve and cannot build one from a flat
+         truth. So the observed .3877 is an ATTENUATED copy; true spread plausibly ~.4065.
+         RESULT (1) IS SAFE AND IF ANYTHING CONSERVATIVE. U6 closed for the headline claim.
+         (d) WHAT CHM ERROR *DOES* BREAK: individual 5 m BAND EDGES. At ~3 m error a pixel
+         binned 5-10 m often belongs in 2-5 or 10-15. Do NOT quote one band's recall as if
+         its boundary were sharp, and do NOT design a height-conditioned model around a hard
+         5 m cut without allowing for the smearing (bears on Hamraz ID 86 stratify-then-
+         segment: pick wide strata, not 5 m ones).
+         CAVEAT: added error is Gaussian/homoscedastic; real CHM error is height-dependent and
+         biased, so this brackets attenuation rather than modelling it. And if CHM error and
+         detection failure share a cause (both worse in dense mixed stands) the correction in
+         (c) is optimistic.
          ---- LITERATURE (37 papers, IDs 69-105, searches 9-14) — TWO CORRECTIONS TO ME ----
          FOODY 2010: I claimed raw scores overstate the model's faults. Direction depends on ERROR
          CORRELATION; ours are almost certainly correlated (labels + both refs all from interpreting
          the same imagery) => OUR RECALL IS LIKELY OPTIMISTIC. Do not repeat my old pattern claim.
          MOUDRY 2024 + SIERRA 2026: canopy-height products are height-biased, realistic CHM MAE ~3m,
+         [U6 RESOLVED 2026-08-18 — see result (10). The ~3m error costs only 5% of the height
+         spread and can only ATTENUATE, never create it. Band EDGES stay smeared.]
          which would blur 5m bands. Part of the staircase could be CHM error. UNVALIDATED (U6).
          Confirmed independently: TURUBANOVA 2023 (error concentrates 4-6m), FERRAZ 2016 (same shape
          from lidar), ARAZO 2020 (our feedback loop is canonical pseudo-label confirmation bias),

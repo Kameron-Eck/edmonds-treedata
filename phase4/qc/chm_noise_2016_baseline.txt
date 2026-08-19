@@ -1,0 +1,45 @@
+COULD CHM ERROR HAVE MANUFACTURED THE HEIGHT STAIRCASE? — 2016_baseline
+  prob : edmonds_canopy_prob_2016.tif @ thresh 0.509 · decim 1/8
+  agreed-canopy pixels with CHM: 5,505,444 · overall recall 0.7374
+
+  -- 1. NULL TEST: can binning invent a staircase? ----------
+     outcome shuffled to be INDEPENDENT of height, same overall rate
+     5-15 m 0.7378   20 m+ 0.7379   spread +0.0001
+
+     -> spread collapses to ~0, as it must. Binning by height CANNOT
+        manufacture a staircase; the observed one comes from the data.
+
+  -- 2. ATTENUATION: what extra CHM error does to the curve -
+      added sigma    5-15 m     20 m+    spread    vs obs
+            0.0 m    0.5172    0.9049    0.3877     1.00x  <- observed
+            1.0 m    0.5216    0.9049    0.3833     0.99x
+            2.0 m    0.5245    0.9035    0.3790     0.98x
+            3.0 m    0.5313    0.9011    0.3697     0.95x
+            5.0 m    0.5531    0.8931    0.3400     0.88x
+
+     Adding the ~3 m error the literature reports (Moudry 2024) shrinks the
+     spread to 0.95x of observed. Measurement error in the BINNING
+     variable attenuates one way only — it flattens, it cannot steepen.
+     The CHM already contains error of about that size, so the observed
+     curve is itself an ATTENUATED copy of the truth: the real spread is
+     plausibly ~0.4065 rather than 0.3877.
+
+     => U6 ANSWERED IN THE DIRECTION THAT MATTERS. CHM error cannot have
+        created the staircase; it can only have UNDERSTATED it. The height
+        finding is safe, and if anything conservative.
+     => What CHM error DOES damage is the BAND EDGES: with ~3 m error a
+        pixel labelled 5-10 m routinely belongs in 2-5 m or 10-15 m. Do not
+        quote a single band's recall as if the boundary were sharp, and do
+        not design a height-conditioned model around a 5 m cut without
+        allowing for that smearing.
+
+  -- CAVEATS -----------------------------------------------
+     * The added error is Gaussian and homoscedastic. Real CHM error is
+       height-DEPENDENT and biased (Moudry 2024), so this brackets the
+       magnitude of attenuation, it does not model the true error process.
+     * The attenuation correction assumes the existing error is ~3 m and
+       independent of the model's behaviour. If CHM error and detection
+       failure share a cause (both worse in dense mixed stands) the
+       correction is optimistic.
+     * Agreed-canopy pixels only, so this says nothing about contested ground.
+     * Decimated sample; the ratio between rows is the robust quantity.

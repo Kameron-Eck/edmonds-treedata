@@ -24,7 +24,7 @@ def _resolve_years(args):
         return [entry_for(lab) for lab in labels]
     entries = remaining_entries()
     if args.tier:
-        entries = [e for e in entries if tier_of(e["gsd_cm"]) == args.tier]
+        entries = [e for e in entries if tier_for(e) == args.tier]
     return entries
 
 
@@ -43,7 +43,7 @@ def print_summary(entries):
                           (eval_df["scope"] == "OVERALL")]
             if len(sub):
                 iou = f"{float(sub.iloc[0]['iou']):.3f}"
-        print(f"  {lab:<7}{e['gsd_cm']:>6.1f}{tier_of(e['gsd_cm']):>8}"
+        print(f"  {lab:<7}{e['gsd_cm']:>6.1f}{tier_for(e):>8}"
               f"{'✓' if model_ok else '—':>8}{'✓' if mask_ok else '—':>7}{iou:>8}")
     print(f"""
   ◆ DECISION GATE 4 (Month 9):
@@ -349,12 +349,12 @@ def main():
     for e in entries:
         lab = e["label"]
         print(f"\n{'#'*65}\n#  YEAR {lab}  ({e['gsd_cm']:.1f} cm, "
-              f"{tier_of(e['gsd_cm'])}, {e['source']}, {e['coverage']})\n{'#'*65}")
+              f"{tier_for(e)}, {e['source']}, {e['coverage']})\n{'#'*65}")
         # Coarse tier defaults to city-wide stratified tiling (Fix 3); opt out
         # with --coarse-site-tiling, and the 6-site anchor-label path takes
         # precedence when --anchor-labels is set. --force-citywide extends the
         # citywide recipe to ALL tiers (uniform cross-resolution recipe).
-        citywide = ((tier_of(e["gsd_cm"]) == "coarse" or args.force_citywide)
+        citywide = ((tier_for(e) == "coarse" or args.force_citywide)
                     and not args.coarse_site_tiling
                     and not args.anchor_labels)
         if "labels" in per_year:

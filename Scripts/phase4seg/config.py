@@ -320,59 +320,72 @@ IN_CHANNELS = 3   # module default; set per-run from the tile/ckpt band count
 SEG_INSTANCE_SEMANTIC = "instance+semantic"
 SEG_SEMANTIC_ONLY     = "semantic_only"
 
+# ── gsd_cm CORRECTED 2026-08-18 — it was CRS units x 100, not ground cm ──────
+# The old values assumed every CRS was metric. They were not:
+#   EPSG:3857  Web Mercator inflates distance by 1/cos(lat) = 1.49 at Edmonds
+#              -> King County years were overstated by 49%
+#   EPSG:2285  NAD83 / Washington North is US SURVEY FEET, not metres
+#              -> the Snohomish years were overstated by 3.24x (50.0 vs 15.4)
+#   EPSG:26910 UTM 10N is metric -> the NAIP years were already right
+# TRUE values below are measured from each file's WGS84 span and pixel count
+# (phase4_data_inventory.py), so they cannot be fooled by either effect.
+#   2000/2002 59.7->40.1 · 2005/07/09 29.9->20.1 · King 14.9->10.0
+#   CoE 7.5->5.0 · NAIP 60.0->60.7 · SNOH 50.0->15.4
+# TIER is unchanged for every year: see tier_for() for why 2016/2021s pin it.
+# "coverage" is now the MEASURED share of the phase3 2020-mask study area.
 YEAR_CATALOG = [
-    {"key": 2000, "label": "2000", "source": "King County", "gsd_cm": 59.7,
+    {"key": 2000, "label": "2000", "source": "King County", "gsd_cm": 40.1,
      "bands": 3, "crs_epsg": 3857, "coverage": "full",
      "seg_tier": SEG_SEMANTIC_ONLY, "native_file": "2000_king_rgb.tif"},
-    {"key": 2002, "label": "2002", "source": "King County", "gsd_cm": 59.7,
+    {"key": 2002, "label": "2002", "source": "King County", "gsd_cm": 40.1,
      "bands": 3, "crs_epsg": 3857, "coverage": "full",
      "seg_tier": SEG_SEMANTIC_ONLY, "native_file": "2002_king_rgb.tif"},
-    {"key": 2005, "label": "2005", "source": "King County", "gsd_cm": 29.9,
+    {"key": 2005, "label": "2005", "source": "King County", "gsd_cm": 20.1,
      "bands": 3, "crs_epsg": 3857, "coverage": "full",
      "seg_tier": SEG_SEMANTIC_ONLY, "native_file": "2005_king_rgb.tif"},
-    {"key": 2007, "label": "2007", "source": "King County", "gsd_cm": 29.9,
+    {"key": 2007, "label": "2007", "source": "King County", "gsd_cm": 20.1,
      "bands": 3, "crs_epsg": 3857, "coverage": "full",
      "seg_tier": SEG_SEMANTIC_ONLY, "native_file": "2007_king_rgb.tif"},
-    {"key": 2009, "label": "2009", "source": "King County", "gsd_cm": 29.9,
+    {"key": 2009, "label": "2009", "source": "King County", "gsd_cm": 20.1,
      "bands": 3, "crs_epsg": 3857, "coverage": "full",
      "seg_tier": SEG_SEMANTIC_ONLY, "native_file": "2009_king_rgb.tif"},
-    {"key": 2013, "label": "2013", "source": "King County", "gsd_cm": 14.9,
+    {"key": 2013, "label": "2013", "source": "King County", "gsd_cm": 10.0,
      "bands": 3, "crs_epsg": 3857, "coverage": "full",
      "seg_tier": SEG_INSTANCE_SEMANTIC, "native_file": "2013_king_rgb.tif"},
-    {"key": 2015, "label": "2015", "source": "King County", "gsd_cm": 14.9,
+    {"key": 2015, "label": "2015", "source": "King County", "gsd_cm": 10.0,
      "bands": 3, "crs_epsg": 3857, "coverage": "full",
      "seg_tier": SEG_INSTANCE_SEMANTIC, "native_file": "2015_king_rgb.tif"},
-    {"key": 2016, "label": "2016", "source": "Snohomish Co.", "gsd_cm": 50.0,
-     "bands": 4, "crs_epsg": 2285, "coverage": "67%",
+    {"key": 2016, "label": "2016", "source": "Snohomish Co.", "gsd_cm": 15.4, "tier": "coarse",
+     "bands": 4, "crs_epsg": 2285, "coverage": "42% of study area (measured 2026-08-18)",
      "seg_tier": SEG_SEMANTIC_ONLY, "native_file": "2016_snoh_rgbi.tif"},
-    {"key": 2017, "label": "2017", "source": "City of Edmonds", "gsd_cm": 7.5,
+    {"key": 2017, "label": "2017", "source": "City of Edmonds", "gsd_cm": 5.0,
      "bands": 3, "crs_epsg": 3857, "coverage": "full",
      "seg_tier": SEG_INSTANCE_SEMANTIC, "native_file": "2017_coe_rgb.tif"},
-    {"key": 2019, "label": "2019", "source": "King County", "gsd_cm": 14.9,
+    {"key": 2019, "label": "2019", "source": "King County", "gsd_cm": 10.0,
      "bands": 3, "crs_epsg": 3857, "coverage": "full",
      "seg_tier": SEG_INSTANCE_SEMANTIC, "native_file": "2019_king_rgb.tif"},
-    {"key": "2019n", "label": "2019n", "source": "NAIP", "gsd_cm": 60.0,
-     "bands": 4, "crs_epsg": 26910, "coverage": "full",
+    {"key": "2019n", "label": "2019n", "source": "NAIP", "gsd_cm": 60.7,
+     "bands": 4, "crs_epsg": 26910, "coverage": "69% of study area (measured 2026-08-18)",
      "seg_tier": SEG_SEMANTIC_ONLY, "native_file": "2019_naip_rgbi.tif"},
-    {"key": 2020, "label": "2020", "source": "City of Edmonds", "gsd_cm": 7.5,
+    {"key": 2020, "label": "2020", "source": "City of Edmonds", "gsd_cm": 5.0,
      "bands": 3, "crs_epsg": 3857, "coverage": "full",
      "seg_tier": SEG_INSTANCE_SEMANTIC, "native_file": "2020_coe_rgb.tif"},
-    {"key": 2021, "label": "2021", "source": "King County", "gsd_cm": 14.9,
+    {"key": 2021, "label": "2021", "source": "King County", "gsd_cm": 10.0,
      "bands": 3, "crs_epsg": 3857, "coverage": "full",
      "seg_tier": SEG_INSTANCE_SEMANTIC, "native_file": "2021_king_rgb.tif"},
-    {"key": "2021s", "label": "2021s", "source": "Snohomish Co.", "gsd_cm": 50.0,
-     "bands": 4, "crs_epsg": 2285, "coverage": "67%",
+    {"key": "2021s", "label": "2021s", "source": "Snohomish Co.", "gsd_cm": 15.4, "tier": "coarse",
+     "bands": 4, "crs_epsg": 2285, "coverage": "42% of study area (measured 2026-08-18)",
      "seg_tier": SEG_SEMANTIC_ONLY, "native_file": "2021_snoh_rgbi.tif"},
-    {"key": 2022, "label": "2022", "source": "City of Edmonds", "gsd_cm": 7.5,
+    {"key": 2022, "label": "2022", "source": "City of Edmonds", "gsd_cm": 5.0,
      "bands": 3, "crs_epsg": 3857, "coverage": "full",
      "seg_tier": SEG_INSTANCE_SEMANTIC, "native_file": "2022_coe_rgb.tif"},
-    {"key": "2022n", "label": "2022n", "source": "NAIP", "gsd_cm": 60.0,
-     "bands": 4, "crs_epsg": 26910, "coverage": "full",
+    {"key": "2022n", "label": "2022n", "source": "NAIP", "gsd_cm": 60.7,
+     "bands": 4, "crs_epsg": 26910, "coverage": "69% of study area (measured 2026-08-18)",
      "seg_tier": SEG_SEMANTIC_ONLY, "native_file": "2022_naip_rgbi.tif"},
-    {"key": 2023, "label": "2023", "source": "King County", "gsd_cm": 14.9,
+    {"key": 2023, "label": "2023", "source": "King County", "gsd_cm": 10.0,
      "bands": 3, "crs_epsg": 3857, "coverage": "full",
      "seg_tier": SEG_INSTANCE_SEMANTIC, "native_file": "2023_king_rgb.tif"},
-    {"key": 2024, "label": "2024", "source": "City of Edmonds", "gsd_cm": 7.5,
+    {"key": 2024, "label": "2024", "source": "City of Edmonds", "gsd_cm": 5.0,
      "bands": 3, "crs_epsg": 3857, "coverage": "full",
      "seg_tier": SEG_INSTANCE_SEMANTIC, "native_file": "2024_coe_rgb.tif"},
 ]
@@ -387,10 +400,34 @@ ANCHOR_LABEL = "2020"
 
 def tier_of(gsd_cm):
     if gsd_cm <= 15.0:
-        return "fine"      # 7.5, 14.9
+        return "fine"      # 5.0, 10.0
     if gsd_cm <= 35.0:
-        return "medium"    # 29.9
-    return "coarse"        # 50.0, 59.7, 60.0
+        return "medium"    # 20.1
+    return "coarse"        # 40.1, 60.7
+
+
+def tier_for(entry):
+    """Tier for a catalog entry: an EXPLICIT "tier" wins over the derived one.
+
+    gsd_cm was corrected to TRUE GROUND RESOLUTION on 2026-08-18 (see the note
+    on YEAR_CATALOG). Re-deriving tier from the corrected numbers moves ONLY the
+    two Snohomish years, 2016 and 2021s, from coarse to medium — and that is not
+    a harmless reclassification:
+
+        citywide = (tier == "coarse" or --force-citywide)      [cli.py]
+
+    so "medium" would switch them off the citywide 2020-mask label path and onto
+    per-site CROWN POLYGONS — the ones CLAUDE.md records as overwritten with
+    accept-all test data. It would also silently invalidate every 2016 result in
+    CHATLOG STATE, all of which were produced under the coarse recipe.
+
+    So those two carry "tier": "coarse" explicitly. The metadata is now true AND
+    the behaviour is unchanged; re-tiering them becomes a deliberate one-line
+    edit, taken when the crown polygons are trustworthy, rather than a side
+    effect of fixing a units bug.
+    """
+    t = entry.get("tier")
+    return t if t else tier_of(entry["gsd_cm"])
 TIER_TILE_PARAMS = {
     #          stride  neg_rate  test_frac  has_test
     "fine":   dict(stride=512, neg_rate=0.15, test_frac=0.20, has_test=True),

@@ -553,6 +553,44 @@ measure: ACTIVE WORKSTREAM (opened 2026-08-17). PLAN = Scripts/honest-measuremen
          area (2016/2021s 41.9%, C-CAP 53.1%, NAIP 69.2%).
          RULE IT ENFORCES: true GSD and coverage are MEASURED from the file, never copied
          from a config. A config value is a claim; this is a measurement.
+         (15) ** CONFIG CORRECTED + FULL-COVERAGE REF + THE CANOPY PRODUCT READ (2026-08-18,
+         Kam: "Change the config. Yes to all 3"). **
+         (a) phase4seg/config.py gsd_cm NOW TRUE GROUND cm (was CRS units x 100):
+             2000/2002 59.7->40.1 · 2005/07/09 29.9->20.1 · King fine 14.9->10.0 ·
+             CoE 7.5->5.0 · NAIP 60.0->60.7 · SNOH 50.0->15.4
+         TIER IS UNCHANGED FOR EVERY YEAR. Re-deriving tier from the true numbers moves ONLY
+         2016/2021s coarse->medium, and that is NOT harmless: `citywide = (tier=="coarse" or
+         --force-citywide)`, so medium would switch them off the citywide 2020-mask labels
+         onto the CROWN POLYGONS — the ones CLAUDE.md records as overwritten with accept-all
+         test data — and would invalidate every 2016 result here. So those two carry an
+         explicit "tier":"coarse", read by a NEW config.tier_for(entry) which prefers an
+         explicit tier over tier_of(gsd_cm). cli.py's 4 call sites now use tier_for.
+         => metadata TRUE, behaviour UNCHANGED, re-tiering is now a deliberate 1-line edit.
+         "coverage" also corrected to MEASURED values (snoh 42%, NAIP 69%).
+         phase4seg_preflight.py PASSES (compile · undefined-name sweep · torch-free import ·
+         argparse). NOT yet Colab-smoke-tested.
+         (b) FULL-COVERAGE C-CAP PAYS OFF IMMEDIATELY. 2013 scored vs the un-clipped
+         ccap_2016_hires_lc_snohfull.tif (91% vs 51.9% of the study area):
+             recall .7094 -> .7422 · precision .8551 -> .8672
+         Both ROSE. Note the thresholds differ (.5209 old vs .5000 new), and a LOWER threshold
+         should COST precision — precision rose anyway, so the fuller reference genuinely
+         flatters the model: the clipped half was NOT representative. Every honest number in
+         the baseline table is pessimistic for this reason and should be re-run.
+         (c) ** THE CANOPY PRODUCT SEPARATES TREE FROM SHRUB — AND HEIGHT DOES NOT. **
+         Kam: "1 and 2 mean shrub or tree, cant recall". Settled with our own CHM:
+             class 1 = TREE   24.79% of grid · median 21.6 m · 97.6% >=3 m
+             class 2 = SHRUB   1.25% of grid · median  4.0 m · 65.6% >=3 m
+         A HEIGHT CUT IS A POOR PROXY FOR THE TREE/SHRUB CALL: >=3 m keeps 97.6% of tree but
+         ALSO 65.6% of shrub; >=5 m still keeps 38.1% of shrub while losing 6.6% of tree.
+         D1/D2 in canopy_definition_PROPOSAL.md both assume height can stand in for form.
+         IT CANNOT, cleanly — that assumption needs stating as a limitation.
+         AND THE STAKES SHRINK: I framed shrub-vs-tree as worth ~6 pp of canopy. On NOAA's
+         accounting shrub is 1.25% of the grid, so it is worth ~1 pp. The .29-vs-.35 gap is
+         therefore NOT mostly shrubs — which weakens result (5)'s "2-5 m band = shrubs and
+         hedges" reading and re-opens what the NDVI ref's surplus actually is.
+         CAVEAT: NOAA's shrub class may simply be conservative; 2021 vintage; and its 24.79%
+         tree share is over the FULL study grid (incl. ~9% water) whereas our 31.97% is over
+         2016's 41.9% band — DIFFERENT DENOMINATORS, do not subtract them.
          ---- LITERATURE (37 papers, IDs 69-105, searches 9-14) — TWO CORRECTIONS TO ME ----
          FOODY 2010: I claimed raw scores overstate the model's faults. Direction depends on ERROR
          CORRELATION; ours are almost certainly correlated (labels + both refs all from interpreting

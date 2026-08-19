@@ -680,6 +680,25 @@ measure: ACTIVE WORKSTREAM (opened 2026-08-17). PLAN = Scripts/honest-measuremen
              2015   .6222/.8835  -> .6629/.8989      +4.1 pp   100%
              2017   .7784/.8083  -> .7986/.8274      +2.0 pp   100%
              2016   .6844/.8651  -> .6636/.8736      -2.1 pp    41.9%
+         ---- 2021 SAME-YEAR CROSS-SENSOR PAIR — CANNOT BE READ YET (2026-08-19) ----
+         The job queued specifically to isolate the sensor effect, because real canopy change
+         between two 2021 acquisitions is ~zero:
+             2021s  Snohomish 15.4 cm  p2nir recipe    thresh .499   .6851 / .8547
+             2021k  King      10.0 cm  citywide recipe thresh .4013  .6059 / .8778
+         Naively: the COARSER sensor wins recall by 7.9 pp, which would contradict the
+         recipe-matched resolution trend above (10 cm ~.741). ** DO NOT READ IT THAT WAY. **
+         TWO uncontrolled confounds, each as large as the effect:
+           (1) RECIPE — p2nir vs citywide. Measured today at 5.6-12.7 pp, sign varying by
+               year. That alone can produce the whole 7.9 pp.
+           (2) FOOTPRINT — 2021s covers 41.9% of the study area, 2021k 100%, so they are
+               scored on different ground (result 12c).
+         Change is the ONLY thing this pair controls. Extent-matching would fix (2) locally,
+         but (1) cannot be removed without a retrain, so even that would not settle it.
+         WHAT WOULD SETTLE IT: retrain 2021k under the p2nir recipe, or 2021s under
+         --force-citywide, then compare on 2021s's footprint. ONE Colab job — the cleanest
+         sensor experiment available in this project, and now precisely specified.
+         Recorded as OPEN, not as a finding.
+
          ---- QUEUE 2 (Colab, overnight 2026-08-18/19) — FIRST TWO YEARS SCORED ----
          2005 and 2007 trained + inferred OK (VERIFY 100% valid). Scored vs the FULL-coverage
          ref, forest_wetland, tool-chosen threshold:

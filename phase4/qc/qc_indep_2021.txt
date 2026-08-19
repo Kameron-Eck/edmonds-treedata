@@ -1,0 +1,38 @@
+QC score vs INDEPENDENT reference — year 2021
+  ref  : D:\edmonds-pipeline\Imagery\ccap_2021_hires_lc.tif   (scheme=ccap)
+  prob : G:\My Drive\treedata\phase4\masks\edmonds_canopy_prob_2021_citywide_rgb.tif
+  deployed threshold : 0.4013
+  valid px           : 4,126,412,697   (≈ 91,968,759 independent 1 m² cells)
+  model canopy frac  : 18.50%
+
+  CANOPY DEFINITIONS (nested):
+    definition             recall   precision   grass_rej   ref_canopy%   TP / FN(missed)
+    forest_only            0.6028    0.8620    0.9664       26.46%   658,163,214 / 433,739,921
+    forest_wetland         0.6059    0.8778    0.9664       26.81%   670,243,285 / 435,881,020  <-- PRIMARY
+    forest_wetland_scrub   0.5926    0.8938    0.9664       27.91%   682,477,619 / 469,221,081
+
+  PER-SURFACE DELINEATION (canopy-call rate = recall for canopy, FP-rate otherwise):
+    group                kind         px          area%    canopy-call
+    forest               canopy       1,091,903,135   26.46%    0.6028 (recall)
+    wetland              canopy         14,221,170    0.34%    0.8494 (recall)
+    scrub                canopy         45,574,395    1.10%    0.2684 (recall)
+    grass                non-canopy    667,095,323   16.17%    0.0336 (FP-rate)
+    cropland             non-canopy        140,847    0.00%    0.0000 (FP-rate)
+    developed            non-canopy   1,413,678,182   34.26%    0.0343 (FP-rate)
+    barren               non-canopy     38,334,940    0.93%    0.0459 (FP-rate)
+    emergent_wetland     non-canopy      7,258,771    0.18%    0.4379 (FP-rate)
+    water                non-canopy    848,205,934   20.56%    0.0061 (FP-rate)
+    other                non-canopy              0    0.00%       nan (FP-rate)
+
+  THRESHOLD SWEEP (primary def = forest_wetland):
+    thresh    recall   precision   TP / missed
+    0.2000   0.6833    0.8460     755,845,675 / 350,278,630
+    0.2500   0.6604    0.8568     730,509,166 / 375,615,139
+    0.3000   0.6407    0.8652     708,727,907 / 397,396,398
+    0.3767   0.6139    0.8752     679,084,401 / 427,039,904
+    0.4500   0.5887    0.8830     651,226,775 / 454,897,530
+    0.5000   0.5685    0.8886     628,852,748 / 477,271,557
+
+  CLASS MAP USED (audit — VERIFY vs the reference's own legend):
+    canopy order : ['forest_only', 'forest_wetland', 'forest_wetland_scrub']
+    grass group  : grass

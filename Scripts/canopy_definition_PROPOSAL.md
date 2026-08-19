@@ -42,6 +42,26 @@ on a rule nobody has written down.
 
 Each has a recommendation and its consequence. Accept, or strike and replace.
 
+> ### ⚠ D1 IS MIS-POSED — read this before deciding it (added 2026-08-18)
+>
+> D1 below asks for a **minimum height**. New evidence says height cannot decide the
+> question it is being asked to decide.
+>
+> Crossing the NDVI reference against NOAA's purpose-built tree/shrub product,
+> vintage-matched (`phase4/qc/ndvi_vs_tree_2021s.txt`): the entire .29-vs-.38 gap is **one
+> population** — the 33% of NDVI-reference canopy that NOAA calls neither tree nor shrub.
+> Its median height is **6.0 m**, **88.7% of it is ≥3 m** and **61.1% is ≥5 m**.
+>
+> So the recommended ≥3 m rule keeps ~89% of the disputed population and lands near the
+> NDVI reference's number, not near .29. **No plausible height cut separates it.** And the
+> same product shows height is a poor proxy for tree-vs-shrub in general: ≥3 m keeps 97.6%
+> of tree but also 65.6% of shrub.
+>
+> The real decision is about **crown form / minimum crown size** — is a 6 m ornamental,
+> hedgerow or understory crown a tree? — and that is what D2 asks, not D1. **Decide D2
+> first and treat D1 as a secondary cleanup.** The table below is still correct arithmetic
+> and still worth reading; it simply cannot arbitrate the reference dispute on its own.
+
 ### D1 — The two thresholds  ← **these move the headline number**
 
 **These are measured, not estimated.** `phase4_qc_ndvi.py` already sweeps both cutoffs and

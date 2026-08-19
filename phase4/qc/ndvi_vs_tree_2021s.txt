@@ -1,0 +1,36 @@
+WHAT IS THE NDVI REFERENCE OVER-CALLING? — 2021s
+  ndvi ref : ndvi_ref_2021s.tif
+  tree/shrub: wa_2021_ccap_v2_hires_canopy.tif  (class 1 = tree, 2 = shrub)
+  grid 3410x2527 @ 2.0 m · 8,138,431 valid cells
+  VINTAGE: MATCHED (both 2021) — canopy change cannot explain the gap.
+
+  -- WHAT EACH SOURCE CALLS CANOPY -------------------------
+     NDVI ref canopy       38.61%
+     NOAA tree             26.20%
+     NOAA tree+shrub       27.75%
+
+  -- WHERE THE NDVI REF'S CANOPY LANDS ---------------------
+     NOAA says       % of NDVI canopy   CHM p50    >=3m
+     tree                      63.84%     20.60   98.9%
+     shrub                      2.87%      4.80   83.5%
+     NEITHER                   33.28%      6.00   88.7%
+
+  -- THE DECISIVE CELL: NDVI says canopy, NOAA says neither -
+     1,045,705 cells = 12.85% of the grid, 33.3% of NDVI canopy
+     CHM height p10/p50/p90 : 2.80 / 6.00 / 18.40 m
+     share >= 3 m           : 88.7%
+     share >= 5 m           : 61.1%
+
+     -> MID-HEIGHT. Neither clean trees nor ground: hedges, garden beds,
+        young/ornamental crowns. This is the population U1 has to rule on
+        explicitly — it is exactly what a written definition decides.
+
+  -- CAVEATS -----------------------------------------------
+     * NOAA canopy is a MODEL PRODUCT too, not truth. Where it and the NDVI
+       ref disagree, this says WHAT the disagreement looks like, not who wins.
+     * The NDVI ref requires CHM >= 2 m by construction, so it cannot call
+       canopy below 2 m at all — the disputed set is 2 m+ by definition.
+     * CHM is ~2016 and covers ~83% of the analysis area; height rows are
+       conditioned on CHM presence.
+     * 2 m grid, nearest-neighbour: thin features (hedgerows) are under-
+       represented relative to their true area.

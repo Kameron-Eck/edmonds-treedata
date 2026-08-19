@@ -591,6 +591,34 @@ measure: ACTIVE WORKSTREAM (opened 2026-08-17). PLAN = Scripts/honest-measuremen
          CAVEAT: NOAA's shrub class may simply be conservative; 2021 vintage; and its 24.79%
          tree share is over the FULL study grid (incl. ~9% water) whereas our 31.97% is over
          2016's 41.9% band — DIFFERENT DENOMINATORS, do not subtract them.
+         (16) ** ANSWERED: WHAT THE NDVI REF OVER-CALLS IS MID-HEIGHT WOODY VEG, NOT SHRUBS —
+         AND A HEIGHT CUT CANNOT SETTLE IT (2026-08-18). ** NEW phase4_qc_ndvi_vs_tree.py.
+         VINTAGE-MATCHED: ndvi_ref_2021s vs the 2021 NOAA canopy product, so canopy CHANGE
+         cannot explain any of it. 2 m grid, 8.1M valid cells.
+           NDVI ref canopy 38.61% · NOAA tree 26.20% · NOAA tree+shrub 27.75%
+           of NDVI-ref canopy:  63.84% NOAA TREE (CHM p50 20.6 m, 98.9% >=3 m)
+                                 2.87% NOAA SHRUB (p50 4.8 m)
+                                33.28% NOAA NEITHER (p50 6.0 m, 88.7% >=3 m, 61.1% >=5 m)
+         (a) ** CORRECTS RESULT (5). ** I read the ~8 pp surplus as "shrubs and hedges in the
+         2-5 m band" because the NDVI ref's specificity was lowest there. WRONG on both
+         halves: only 2.87% of NDVI canopy is NOAA shrub, and the disputed population's
+         MEDIAN is 6.0 m with p90 18.4 m — mid-height, not 2-5 m. Do not repeat the shrub
+         reading.
+         (b) THE GAP IS ONE POPULATION. 38.61 - 26.20 = 12.4 pp, and the disputed cell is
+         12.85% of the grid. So essentially the WHOLE .29-vs-.38 disagreement is this single
+         mid-height class, not a scatter of small definitional differences.
+         (c) ** THIS BREAKS D1 AS POSED. ** canopy_definition_PROPOSAL.md frames the decision
+         as a MINIMUM HEIGHT. But 88.7% of the disputed population is >=3 m and 61.1% is
+         >=5 m, so NO plausible height cut removes it: the recommended >=3 m rule KEEPS ~89%
+         of it and therefore lands near the NDVI ref's number, NOT near .29. Combined with
+         (15c) — height is also a poor proxy for tree-vs-shrub — the real U1 decision is
+         about CROWN FORM / MINIMUM CROWN SIZE, not height. D1 must be re-posed.
+         (d) WHAT THE DISPUTED CLASS PROBABLY IS: young/ornamental crowns, hedgerows,
+         understory and yard trees — i.e. exactly the SUBURBAN population the 8/8 visual
+         grounding found, and exactly what a stand-based product declines to call "tree".
+         WHICH SIDE IS RIGHT IS STILL UNDECIDED: NOAA canopy is a MODEL PRODUCT, not truth.
+         P3 photo-interpretation against a written definition is still what settles it — but
+         it now has a SPECIFIC population to rule on rather than a vague 8 pp.
          ---- LITERATURE (37 papers, IDs 69-105, searches 9-14) — TWO CORRECTIONS TO ME ----
          FOODY 2010: I claimed raw scores overstate the model's faults. Direction depends on ERROR
          CORRELATION; ours are almost certainly correlated (labels + both refs all from interpreting

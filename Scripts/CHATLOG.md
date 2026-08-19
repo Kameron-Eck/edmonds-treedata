@@ -990,6 +990,27 @@ gotcha:  scripts Colab-only for torch (rasterio+geopandas+fiona+sklearn now pip-
 
 ════════════════ LOG  (newest first) ════════════════
 
+## 2026-08-19  litwatch_scratch/README.md — new, documents INSTRUMENTS vs WRITERS split
+goal:    litwatch_scratch/ (recovered lit-watch scratchpad) had no README - risk of
+         someone re-running a one-shot ledger appender and duplicating entries.
+did:     New README.md. Two populations: INSTRUMENTS (29 analysis scripts, safe to
+         run, several verified/cited by project docs - buildings, cast, cast2*,
+         chk1936, cr, height_by_surface, hist, overcount, overhang*, overhang_recall,
+         q119, q121, q121b, q121c, q122, q128, q131, q131b, q134, q135, q136*, q137,
+         q137b, q138, q138b*, refcompare, rescore, sampler*, unmeasurable - * = re-run
+         and verified 2026-08-19); WRITERS (77 one-shot ledger appenders, NEVER
+         RE-RUN - upd11-upd80 append to litwatch_robustness.md, chat69/chat72/chat77,
+         entry3/4/5, append.py appends rows to Literature_Tracker.xlsx w/ auto-
+         incrementing IDs - non-idempotent by design, output is the authoritative
+         artifact). Also notes *.json = cached search results, *.out = captured
+         outputs, *.npz = regenerable caches (git-ignored per this session's
+         .gitignore commit).
+         COUNT CORRECTION: task spec said 229 files; `find litwatch_scratch -type f`
+         measured 227. Used the measured number per this project's honest-measurement
+         rule rather than transcribing the unverified figure.
+files:   litwatch_scratch/README.md (NEW)
+next:    -
+
 ## 2026-08-19  Method_Pipeline.md imagery-stack table replaced with IMAGERY_FACTS.md pointer
 goal:    stop Method_Pipeline.md's Imagery Stack table drifting from measured reality.
 did:     Table listed 18 acquisitions with nominal GSDs - stale twice over (19 in-scope

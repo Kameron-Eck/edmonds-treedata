@@ -3,27 +3,13 @@
 Individual tree crown detection and temporal monitoring across 24 years (2000–2024) for the City of Edmonds, Washington. The pipeline produces per-year semantic canopy masks (canopy/non-canopy classification) for all 18 imagery acquisitions at their native resolution. For the 9 acquisitions at 7.5cm and 14.9cm GSD — the only resolutions where individual crowns are reliably separable — the pipeline additionally produces individual crown polygons via instance segmentation using distance transform regression and watershed. A temporal tracking framework anchored to the 2020 detection links outputs across years.
 ---
 ## Imagery Stack
-18 ortho-imagery acquisitions spanning 15 unique calendar years from 4 sources:
-| Year | Source | GSD (cm) | Bands | CRS | Coverage | Seg Tier |
-|------|--------|----------|-------|-----|----------|----------|
-| 2000 | King County | 59.7 | RGB | EPSG:3857 | Full | Semantic only |
-| 2002 | King County | 59.7 | RGB | EPSG:3857 | Full | Semantic only |
-| 2005 | King County | 29.9 | RGB | EPSG:3857 | Full | Semantic only |
-| 2007 | King County | 29.9 | RGB | EPSG:3857 | Full | Semantic only |
-| 2009 | King County | 29.9 | RGB | EPSG:3857 | Full | Semantic only |
-| 2013 | King County | 14.9 | RGB | EPSG:3857 | Full | Instance + Semantic |
-| 2015 | King County | 14.9 | RGB | EPSG:3857 | Full | Instance + Semantic |
-| 2016 | Snohomish Co. | 50.0 | RGBI | EPSG:2285 | 67% | Semantic only |
-| 2017 | City of Edmonds | 7.5 | RGB | EPSG:3857 | Full | Instance + Semantic |
-| 2019 | King County | 14.9 | RGB | EPSG:3857 | Full | Instance + Semantic |
-| 2019n | NAIP | 60.0 | RGBI | EPSG:26910 | Full | Semantic only |
-| 2020 | City of Edmonds | 7.5 | RGB | EPSG:3857 | Full | Instance + Semantic (anchor) |
-| 2021 | King County | 14.9 | RGB | EPSG:3857 | Full | Instance + Semantic |
-| 2021s | Snohomish Co. | 50.0 | RGBI | EPSG:2285 | 67% | Semantic only |
-| 2022 | City of Edmonds | 7.5 | RGB | EPSG:3857 | Full | Instance + Semantic |
-| 2022n | NAIP | 60.0 | RGBI | EPSG:26910 | Full | Semantic only |
-| 2023 | King County | 14.9 | RGB | EPSG:3857 | Full | Instance + Semantic |
-| 2024 | City of Edmonds | 7.5 | RGB | EPSG:3857 | Full | Instance + Semantic |
+The measured imagery characterisation (rasters, sources, resolution, coverage, colour
+comparability) now lives in one home: `Scripts/IMAGERY_FACTS.md` (updated 2026-08-19).
+The table this section used to carry was stale twice over — 18 acquisitions listed vs.
+19 in-scope rasters on Drive, and nominal GSDs wrong by up to 6× — so it has been
+replaced with this pointer rather than re-listed and left to drift again.
+Summary: 19 rasters, 2000–2024, from 4 sources — King County, City of Edmonds,
+Snohomish Co., NAIP.
 **Semantic segmentation (all 18 acquisitions, all resolutions):** Binary canopy mask and canopy polygons produced for every year at native GSD. No upscaling is applied; all imagery is processed at its original resolution.
 **Instance segmentation (9 acquisitions at 7.5cm and 14.9cm only):** Individual crown polygons produced via DTM regression + watershed, in addition to the semantic mask. Instance segmentation is not applied to imagery coarser than 14.9cm because crown boundaries are not reliably separable at those resolutions (Qin et al., 2023). The 7 acquisitions at 29.9–60.0cm receive semantic segmentation only.
 | Resolution | Years | Tile ground area | Outputs |

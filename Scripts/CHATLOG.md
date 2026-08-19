@@ -990,6 +990,17 @@ gotcha:  scripts Colab-only for torch (rasterio+geopandas+fiona+sklearn now pip-
 
 ════════════════ LOG  (newest first) ════════════════
 
+## 2026-08-19  Method_Pipeline.md imagery-stack table replaced with IMAGERY_FACTS.md pointer
+goal:    stop Method_Pipeline.md's Imagery Stack table drifting from measured reality.
+did:     Table listed 18 acquisitions with nominal GSDs - stale twice over (19 in-scope
+         rasters on Drive, nominal GSDs wrong by up to 6x, per IMAGERY_FACTS.md).
+         Replaced the table's content with a pointer to Scripts/IMAGERY_FACTS.md (one
+         home, updated 2026-08-19) plus a one-line summary: 19 rasters, 2000-2024, 4
+         sources (King County, City of Edmonds, Snohomish Co., NAIP). Rest of the file
+         (tier logic, hyperparameters, etc.) untouched.
+files:   Method_Pipeline.md
+next:    -
+
 ## 2026-08-19  two stale-claim fixes — Reports/ tracking status, work-plan xlsx path
 goal:    fix two outdated pointers found during the doc pass.
 did:     canopy_definition_PROPOSAL.md said Reports/ is git-ignored so

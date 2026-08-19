@@ -1,0 +1,38 @@
+WHAT IS HIDING IN THE NO-LIDAR ZONE? — 2016
+  imagery : 2016_snoh_rgbi.tif · decim 1/8
+  imaged pixels 21,066,913
+
+  -- COVERAGE ----------------------------------------------
+     with CHM        17,587,495  ( 83.5%)
+     NO CHM           3,479,418  ( 16.5%)  <- forced to non-canopy
+
+  -- IS THE NO-CHM ZONE WATER, AS STATE ASSUMES? -----------
+     zone        NDVI p10  NDVI p50  NDVI p90  % NDVI<0
+     has CHM       -0.068     0.211     0.648     19.6%
+     NO CHM        -0.440    -0.357    -0.310     99.8%
+
+     green share of each zone      NDVI>=0.20  NDVI>=0.25  NDVI>=0.30
+     has CHM                           50.9%      47.3%      43.8%
+     NO CHM                             0.1%       0.1%       0.1%
+
+  -- HOW MUCH CANOPY COULD BE HIDING THERE? ---------------
+     UPPER BOUND — every green no-CHM pixel counted as canopy.
+     Deliberately generous: lawns are green too, so the truth is lower.
+
+     at NDVI>=0.20:  up to +0.02 pp of imaged area
+     at NDVI>=0.25:  up to +0.02 pp of imaged area
+     at NDVI>=0.30:  up to +0.02 pp of imaged area
+
+     -> THE NO-CHM ZONE IS MOSTLY WATER (majority negative NDVI), which is
+        what STATE assumed. The assumption is now CHECKED, not asserted.
+     -> worst-case understatement of city canopy: 0.02 pp.
+
+  -- CAVEATS -----------------------------------------------
+     * NDVI here is computed on decimated, AVERAGED reflectance, so mixed
+       pixels are smoothed; percentiles are indicative.
+     * 'imaged' = R+NIR > 0. Genuine black pixels inside the footprint would
+       be misread as unimaged (rare, and it shrinks both zones equally).
+     * Water bodies can read slightly positive when turbid or sun-glinted, so
+       '% NDVI<0' understates water a little.
+     * This bounds the CHM-coverage bias only. It says nothing about whether
+       the CHM is ACCURATE where it does exist (that is U6).

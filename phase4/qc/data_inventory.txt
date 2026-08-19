@@ -1,0 +1,142 @@
+DATA INVENTORY — true geometry, measured from the files themselves
+  study area : edmonds_canopy_mask_2020.tif
+  generated  : 2026-08-18T19:04:18
+  rasters    : 57
+
+  TRUE GSD is derived from the WGS84 span and the pixel count, so it is
+  immune to feet-vs-metres and Web-Mercator inflation. 'stated_cm' is what
+  a naive px*100 would give — which is what config.py records.
+
+  role        file                                       unit         stated  TRUE m     x  bbox%
+  height      lidar_snoh_chm.tif                         metre         100.0   0.671  1.49  100.0
+  height      lidar_snoh_hillshade_fr.tif                metre         100.0   0.671  1.49  100.0
+  height      lidar_snoh_structure.tif                   metre         100.0   0.671  1.49  100.0
+  mask        edmonds_canopy_mask_2000.tif               metre          59.7   0.401  1.49  100.0
+  mask        edmonds_canopy_mask_2016.tif               US survey f    50.0   0.154  3.24   41.9
+  model-out   edmonds_canopy_prob_2000.tif               metre          59.7   0.401  1.49  100.0
+  model-out   edmonds_canopy_prob_2000_citywide_rgb.tif  metre          59.7   0.401  1.49  100.0
+  model-out   edmonds_canopy_prob_2000_xsensor_rgb.tif   metre          59.7   0.401  1.49  100.0
+  model-out   edmonds_canopy_prob_2000_xsensor_sample.ti metre          59.7   0.401  1.49  100.0
+  model-out   edmonds_canopy_prob_2000_xsensor_train.tif metre          59.7   0.401  1.49  100.0
+  model-out   edmonds_canopy_prob_2002.tif               metre          59.7   0.401  1.49  100.0
+  model-out   edmonds_canopy_prob_2002_citywide_rgb.tif  metre          59.7   0.401  1.49  100.0
+  model-out   edmonds_canopy_prob_2002_xsensor_rgb.tif   metre          59.7   0.401  1.49  100.0
+  model-out   edmonds_canopy_prob_2002_xsensor_train.tif metre          59.7   0.401  1.49  100.0
+  model-out   edmonds_canopy_prob_2013.tif               metre          14.9   0.100  1.49  100.0
+  model-out   edmonds_canopy_prob_2013_citywide_rgb.tif  metre          14.9   0.100  1.49  100.0
+  model-out   edmonds_canopy_prob_2013_xsensor_rgb.tif   metre          14.9   0.100  1.49  100.0
+  model-out   edmonds_canopy_prob_2013_xsensor_train.tif metre          14.9   0.100  1.49  100.0
+  model-out   edmonds_canopy_prob_2015.tif               metre          14.9   0.100  1.49  100.0
+  model-out   edmonds_canopy_prob_2015_citywide_rgb.tif  metre          14.9   0.100  1.49  100.0
+  model-out   edmonds_canopy_prob_2015_xsensor_rgb.tif   metre          14.9   0.100  1.49  100.0
+  model-out   edmonds_canopy_prob_2015_xsensor_train.tif metre          14.9   0.100  1.49  100.0
+  model-out   edmonds_canopy_prob_2016.tif               US survey f    50.0   0.154  3.24   41.9
+  model-out   edmonds_canopy_prob_2016_corrected.tif     US survey f    50.0   0.154  3.24   41.9
+  model-out   edmonds_canopy_prob_2017_xsensor_rgb.tif   metre           7.5   0.050  1.49  100.0
+  model-out   edmonds_canopy_prob_2017_xsensor_train.tif metre           7.5   0.050  1.49  100.0
+  model-out   edmonds_canopy_prob_2019_xsensor_train.tif metre          14.9   0.100  1.49  100.0
+  model-out   edmonds_canopy_prob_2019n_p2nir.tif        metre          60.0   0.607  0.99   69.2
+  model-out   edmonds_canopy_prob_2021s_p2nir.tif        US survey f    50.0   0.154  3.24   41.9
+  model-out   edmonds_canopy_prob_2022_xsensor_train.tif metre           7.5   0.050  1.49  100.0
+  model-out   edmonds_canopy_prob_2022n.tif              metre          60.0   0.607  0.99   69.2
+  noaa-src    2016 land cover snohomish.tif              metre         100.0   1.008  0.99  100.0
+  noaa-src    2021 land cover.tif                        metre        3000.0  36.069  0.83  100.0
+  noaa-src    wa_2021_ccap_v2_hires_canopy.tif           metre         100.0   1.148  0.87  100.0
+  noaa-src    wa_2021_ccap_v2_hires_impervious_20250407. metre         100.0   1.148  0.87  100.0
+  noaa-src    wa_2021_ccap_v2_hires_water_20250407.tif   metre         100.0   1.148  0.87  100.0
+  ortho       1936_king_rgb.tif                          metre          59.7   0.401  1.49  100.0
+  ortho       1998_king_rgb.tif                          metre          59.7   0.401  1.49  100.0
+  ortho       2000_king_rgb.tif                          metre          59.7   0.401  1.49  100.0
+  ortho       2002_king_rgb.tif                          metre          59.7   0.401  1.49  100.0
+  ortho       2005_king_rgb.tif                          metre          29.9   0.201  1.49  100.0
+  ortho       2007_king_rgb.tif                          metre          29.9   0.201  1.49  100.0
+  ortho       2009_king_rgb.tif                          metre          29.9   0.201  1.49  100.0
+  ortho       2012_king_rgb.tif                          metre          29.9   0.201  1.49  100.0
+  ortho       2013_king_rgb.tif                          metre          14.9   0.100  1.49  100.0
+  ortho       2015_king_rgb.tif                          metre          14.9   0.100  1.49  100.0
+  ortho       2016_snoh_rgbi.tif                         US survey f    50.0   0.154  3.24   41.9
+  ortho       2017_king_rgb.tif                          metre          14.9   0.100  1.49  100.0
+  ortho       2019_king_rgb.tif                          metre          14.9   0.100  1.49  100.0
+  ortho       2019_naip_rgbi.tif                         metre          60.0   0.607  0.99   69.2
+  ortho       2021_king_rgb.tif                          metre          14.9   0.100  1.49  100.0
+  ortho       2021_snoh_rgbi.tif                         US survey f    50.0   0.154  3.24   41.9
+  ortho       2022_naip_rgbi.tif                         metre          60.0   0.607  0.99   69.2
+  ortho       2023_king_rgb.tif                          metre          14.9   0.100  1.49  100.0
+  reference   ccap_2016_hires_lc.tif                     metre         100.0   1.005  0.99   53.1
+  reference   ccap_2021_hires_lc.tif                     metre         100.0   1.005  0.99   53.1
+  study-area  edmonds_canopy_mask_2020.tif               metre           7.5   0.050  1.49  100.0
+
+  -- FLAGS -------------------------------------------------
+  50 raster(s) where px*100 MISSTATES ground resolution:
+     2016_snoh_rgbi.tif                           stated   50.0 cm vs true   15.4 cm  (3.24x)
+     2021_snoh_rgbi.tif                           stated   50.0 cm vs true   15.4 cm  (3.24x)
+     edmonds_canopy_mask_2016.tif                 stated   50.0 cm vs true   15.4 cm  (3.24x)
+     edmonds_canopy_prob_2016.tif                 stated   50.0 cm vs true   15.4 cm  (3.24x)
+     edmonds_canopy_prob_2016_corrected.tif       stated   50.0 cm vs true   15.4 cm  (3.24x)
+     edmonds_canopy_prob_2021s_p2nir.tif          stated   50.0 cm vs true   15.4 cm  (3.24x)
+     1936_king_rgb.tif                            stated   59.7 cm vs true   40.1 cm  (1.49x)
+     1998_king_rgb.tif                            stated   59.7 cm vs true   40.1 cm  (1.49x)
+     2000_king_rgb.tif                            stated   59.7 cm vs true   40.1 cm  (1.49x)
+     2002_king_rgb.tif                            stated   59.7 cm vs true   40.1 cm  (1.49x)
+     2005_king_rgb.tif                            stated   29.9 cm vs true   20.1 cm  (1.49x)
+     2007_king_rgb.tif                            stated   29.9 cm vs true   20.1 cm  (1.49x)
+     2009_king_rgb.tif                            stated   29.9 cm vs true   20.1 cm  (1.49x)
+     2012_king_rgb.tif                            stated   29.9 cm vs true   20.1 cm  (1.49x)
+     2013_king_rgb.tif                            stated   14.9 cm vs true   10.0 cm  (1.49x)
+     2015_king_rgb.tif                            stated   14.9 cm vs true   10.0 cm  (1.49x)
+     2017_king_rgb.tif                            stated   14.9 cm vs true   10.0 cm  (1.49x)
+     2019_king_rgb.tif                            stated   14.9 cm vs true   10.0 cm  (1.49x)
+     2021_king_rgb.tif                            stated   14.9 cm vs true   10.0 cm  (1.49x)
+     2023_king_rgb.tif                            stated   14.9 cm vs true   10.0 cm  (1.49x)
+     lidar_snoh_chm.tif                           stated  100.0 cm vs true   67.2 cm  (1.49x)
+     lidar_snoh_hillshade_fr.tif                  stated  100.0 cm vs true   67.2 cm  (1.49x)
+     lidar_snoh_structure.tif                     stated  100.0 cm vs true   67.2 cm  (1.49x)
+     edmonds_canopy_mask_2000.tif                 stated   59.7 cm vs true   40.1 cm  (1.49x)
+     edmonds_canopy_prob_2000.tif                 stated   59.7 cm vs true   40.1 cm  (1.49x)
+     edmonds_canopy_prob_2000_citywide_rgb.tif    stated   59.7 cm vs true   40.1 cm  (1.49x)
+     edmonds_canopy_prob_2000_xsensor_rgb.tif     stated   59.7 cm vs true   40.1 cm  (1.49x)
+     edmonds_canopy_prob_2000_xsensor_sample.tif  stated   59.7 cm vs true   40.1 cm  (1.49x)
+     edmonds_canopy_prob_2000_xsensor_train.tif   stated   59.7 cm vs true   40.1 cm  (1.49x)
+     edmonds_canopy_prob_2002.tif                 stated   59.7 cm vs true   40.1 cm  (1.49x)
+     edmonds_canopy_prob_2002_citywide_rgb.tif    stated   59.7 cm vs true   40.1 cm  (1.49x)
+     edmonds_canopy_prob_2002_xsensor_rgb.tif     stated   59.7 cm vs true   40.1 cm  (1.49x)
+     edmonds_canopy_prob_2002_xsensor_train.tif   stated   59.7 cm vs true   40.1 cm  (1.49x)
+     edmonds_canopy_prob_2013.tif                 stated   14.9 cm vs true   10.0 cm  (1.49x)
+     edmonds_canopy_prob_2013_citywide_rgb.tif    stated   14.9 cm vs true   10.0 cm  (1.49x)
+     edmonds_canopy_prob_2013_xsensor_rgb.tif     stated   14.9 cm vs true   10.0 cm  (1.49x)
+     edmonds_canopy_prob_2013_xsensor_train.tif   stated   14.9 cm vs true   10.0 cm  (1.49x)
+     edmonds_canopy_prob_2015.tif                 stated   14.9 cm vs true   10.0 cm  (1.49x)
+     edmonds_canopy_prob_2015_citywide_rgb.tif    stated   14.9 cm vs true   10.0 cm  (1.49x)
+     edmonds_canopy_prob_2015_xsensor_rgb.tif     stated   14.9 cm vs true   10.0 cm  (1.49x)
+     edmonds_canopy_prob_2015_xsensor_train.tif   stated   14.9 cm vs true   10.0 cm  (1.49x)
+     edmonds_canopy_prob_2017_xsensor_rgb.tif     stated    7.5 cm vs true    5.0 cm  (1.49x)
+     edmonds_canopy_prob_2017_xsensor_train.tif   stated    7.5 cm vs true    5.0 cm  (1.49x)
+     edmonds_canopy_prob_2019_xsensor_train.tif   stated   14.9 cm vs true   10.0 cm  (1.49x)
+     edmonds_canopy_prob_2022_xsensor_train.tif   stated    7.5 cm vs true    5.0 cm  (1.49x)
+     edmonds_canopy_mask_2020.tif                 stated    7.5 cm vs true    5.0 cm  (1.49x)
+     2021 land cover.tif                          stated 3000.0 cm vs true 3606.8 cm  (0.83x)
+     wa_2021_ccap_v2_hires_impervious_20250407.ti stated  100.0 cm vs true  114.8 cm  (0.87x)
+     wa_2021_ccap_v2_hires_canopy.tif             stated  100.0 cm vs true  114.8 cm  (0.87x)
+     wa_2021_ccap_v2_hires_water_20250407.tif     stated  100.0 cm vs true  114.8 cm  (0.87x)
+     -> config.py gsd_cm is derived this way. TIER comes from gsd_cm.
+  12 raster(s) NOT covering the full study area:
+     2016_snoh_rgbi.tif                            41.9% of study bbox
+     2021_snoh_rgbi.tif                            41.9% of study bbox
+     edmonds_canopy_mask_2016.tif                  41.9% of study bbox
+     edmonds_canopy_prob_2016.tif                  41.9% of study bbox
+     edmonds_canopy_prob_2016_corrected.tif        41.9% of study bbox
+     edmonds_canopy_prob_2021s_p2nir.tif           41.9% of study bbox
+     ccap_2016_hires_lc.tif                        53.1% of study bbox
+     ccap_2021_hires_lc.tif                        53.1% of study bbox
+     2019_naip_rgbi.tif                            69.2% of study bbox
+     2022_naip_rgbi.tif                            69.2% of study bbox
+     edmonds_canopy_prob_2019n_p2nir.tif           69.2% of study bbox
+     edmonds_canopy_prob_2022n.tif                 69.2% of study bbox
+     -> any 'citywide' number from these is scoped to their footprint.
+
+  -- HOW TO USE THIS ---------------------------------------
+     * Before quoting a CITY number, check the source's bbox%/data%.
+     * Before comparing two years, check they share a footprint
+       (phase4_qc_extent_matched.py scores them on one grid).
+     * Before trusting a resolution, read TRUE m, not config.py.
+     * Re-run after adding any raster. It is header-only and cheap.

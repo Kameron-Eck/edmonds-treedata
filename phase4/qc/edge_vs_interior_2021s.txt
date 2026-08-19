@@ -1,0 +1,55 @@
+ARE THE MISSES CROWN PERIMETERS? — 2021s
+  prob : edmonds_canopy_prob_2021s_p2nir.tif @ thresh 0.499
+  lattice 2.00 m/cell · EDGE = outer 2.00 m (1 cell erosion) of agreed canopy
+  agreed-canopy cells 21,562,004
+
+  -- THE HEADLINE ------------------------------------------
+     edge is 16.1% of agreed-canopy AREA
+     but carries 42.8% of ALL MISSES
+     interior recall 0.8191   edge recall 0.2946
+
+     -> MISSES ARE DISPROPORTIONATELY PERIMETER. The ring pattern in the
+        sentinel overlays is real and general, not two cherry-picked windows.
+
+  -- THE DECIDING TABLE: recall by height, INTERIOR vs EDGE ----
+     band          interior       edge          int n         edge n
+      0-2  m            nan     0.0704              0          9,584
+      2-5  m         0.2307     0.0568        852,858        664,926
+      5-10 m         0.4758     0.1427      2,397,621      1,024,212
+     10-15 m         0.6938     0.2739      2,259,504        597,944
+     15-20 m         0.8495     0.4142      2,542,885        412,806
+     20-25 m         0.9338     0.5446      2,697,976        300,439
+     25-30 m         0.9714     0.6692      2,526,739        211,604
+     30+   m         0.9929     0.8002      4,816,627        246,279
+
+  -- DOES THE HEIGHT STAIRCASE SURVIVE INSIDE CROWNS? ---------
+     INTERIOR  5-15 m 0.5816   20 m+ 0.9716   spread +0.3900
+     EDGE      5-15 m 0.1911   20 m+ 0.6624   spread +0.4713
+
+     -> THE STAIRCASE SURVIVES IN CROWN INTERIORS. Height is a real
+        detection axis; it is NOT an artefact of crown geometry.
+        RESULT (1) STANDS and the U3 confound test is reinforced.
+
+  -- IS THE PERIMETER LOSS RECOVERABLE, AND IS IT REAL CANOPY? -
+     part        deep<.06   .06-.12   .12-thr  CHM miss   CHM hit  miss>=3m
+     interior       0.382     0.236     0.382     10.2m     24.6m     0.969
+     edge           0.633     0.175     0.192     10.0m     20.3m     0.928
+
+     -> 63% of EDGE misses are DEEP (prob<0.06): the model is
+        confidently wrong at crown boundaries. A threshold will not fix this;
+        it needs boundary-aware supervision.
+     -> 93% of edge misses carry CHM >= 3 m, i.e. they are
+        REAL CANOPY the model lost — not the reference bleeding onto bare
+        ground. The reference-error caveat is therefore BOUNDED, not fatal.
+
+  -- CAVEATS -----------------------------------------------
+     * 'Edge' is defined on a 2.00 m lattice. A different decim
+       changes the edge width and therefore every number above.
+     * Erosion cannot tell a crown perimeter from the boundary of a CLUMP of
+       adjacent crowns; both are 'edge' here.
+     * The agreed-canopy mask itself comes from two references that disagree
+       most at boundaries, so the edge band is also where reference error is
+       highest. Some edge FN is reference error, not model error.
+     * CHM at crown edges is genuinely lower AND noisier (mixed ground/canopy
+       returns), which is the mechanism under test — not a flaw in the test.
+     * Decimated sample; shape over exact counts.

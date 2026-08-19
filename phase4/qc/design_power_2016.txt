@@ -1,0 +1,61 @@
+EXPECTED CI OF THE ACTUAL STRATIFIED DESIGN — 2016
+  scheme  : dual_reference · n = 250 · 1,500 simulated studies
+  weights : the REAL area shares from sample_2016_meta.json
+  estimator: Olofsson stratified, full multinomial covariance (as fixed in 8283232)
+  interpreter error swept: 0%, 5%, 10%  (blocks below are the 0% case)
+  -- ALLOCATION (what --step design actually drew) --------------
+     stratum                 area share  points  pts/share
+     disagree_5_15m              0.0699      60       3.43
+     disagree_other              0.0802      45       2.24
+     both_canopy_5_15m           0.0741      40       2.16
+     both_canopy_other           0.1873      25       0.53
+     both_noncanopy              0.4234      50       0.47
+     no_chm                      0.1651      30       0.73
+     (pts/share > 1 = over-sampled relative to area — that is the
+      contested zone being bought precision on purpose)
+  -- H_CCAP  (truth = C-CAP's tree-form definition) ----
+     true canopy share under this definition : 0.2952
+     mean estimate                           : 0.2952
+     empirical SD of the estimate            : 0.0062
+     mean 95% half-width (the CI we report)  : +/-0.0122  (1.22 pp)
+     empirical coverage of that CI           : 0.945
+     mean recall estimate                    : 0.6830 +/-0.1013
+  -- H_NDVI  (truth = woody veg >=2 m) -----------
+     true canopy share under this definition : 0.3776
+     mean estimate                           : 0.3775
+     empirical SD of the estimate            : 0.0061
+     mean 95% half-width (the CI we report)  : +/-0.0122  (1.22 pp)
+     empirical coverage of that CI           : 0.947
+     mean recall estimate                    : 0.5928 +/-0.0824
+  -- CAN n=250 TELL THE TWO DEFINITIONS APART? ------------
+     separation between the hypotheses      : 0.0824 (8.24 pp)
+     half-width the assessment assumed (SRS)  : +/-0.0620 (6.20 pp)
+     ** THE ANSWER TURNS ENTIRELY ON INTERPRETER FIDELITY. **
+     At 0% interpreter error the question is rigged: truth is DEFINED as
+     one of the two references, so inside strata built from those same
+     references every point has the same truth and the within-stratum
+     variance collapses to almost nothing.  That is an artefact of the
+     idealisation, not a property of the design.  The rows below let the
+     interpreter disagree with the reference and show what survives.
+     interp err   half-width  power(C)  power(N)  verdict     
+             0%      0.0122     1.000     1.000  arbitrates  
+             5%      0.0346     0.889     1.000  arbitrates  
+            10%      0.0469     0.436     0.997  marginal    
+     -> CONDITIONAL. The design arbitrates only while interpreter error
+        stays low; by 10% it is marginal or gone. The
+        duplicate-interpreted subset (amendment 5) stops being optional —
+        it is what decides whether the headline number means anything.
+  -- CAVEATS -----------------------------------------------
+     * The hypotheses are DEFINITIONS, not a right and a wrong answer
+       (CHATLOG STATE result 5). Power here = can the sample TELL THEM
+       APART; it does not say which one U1 should adopt.
+     * Points are treated as independent within a stratum. For 250 points
+       scattered over millions of cells that is safe — unlike the pixel
+       counts elsewhere in this pipeline, where it would not be.
+     * Interpreter error is simulated as a symmetric flip. Real error is
+       biased and correlated with difficulty, so the --interp-error rows
+       are a FLOOR on the damage, not an estimate of it.
+     * 'unsure' is not modelled because the current sampler excludes it.
+       Assessment amendment 4 (primary + alternate) would change this.
+     * The ratio estimator's CI is delta-method and the strata are not map
+       classes, so the recall interval stays indicative (assessment (d)).

@@ -1,0 +1,71 @@
+RECALL BY HEIGHT *WITHIN* EACH REFERENCE-AGREEMENT PARTITION — 2016_baseline
+  prob : edmonds_canopy_prob_2016.tif   @ thresh 0.509
+  ccap : ccap_2016_hires_lc.tif
+  ndvi : ndvi_ref_2016.tif
+  sample : 1/8 decimation · 21,066,144 valid cells (model + BOTH refs present)
+
+  -- both_canopy  (recall) -----------------------------
+     partition size 5,505,444 cells · overall recall 0.7374
+     CHM-covered 5,505,444 (100%)
+
+     band        recall     called / not
+      0-2  m     0.1608            186 / 971       
+      2-5  m     0.2010         58,837 / 233,915   
+      5-10 m     0.4181        335,349 / 466,726   
+     10-15 m     0.6220        472,037 / 286,843   
+     15-20 m     0.7668        611,076 / 185,888   
+     20-25 m     0.8535        686,118 / 117,803   
+     25-30 m     0.8971        651,134 / 74,649    
+     30+   m     0.9404      1,244,976 / 78,936    
+
+  -- ccap_only  (call rate) ----------------------------
+     partition size 713,884 cells · overall call rate 0.0814
+     CHM-covered 713,884 (100%)
+
+     band        call rate  called / not
+      0-2  m     0.1378          4,872 / 30,493    
+      2-5  m     0.0103          1,258 / 121,117   
+      5-10 m     0.0280          6,528 / 226,517   
+     10-15 m     0.0789         10,179 / 118,866   
+     15-20 m     0.1406         11,227 / 68,647    
+     20-25 m     0.1831          9,462 / 42,210    
+     25-30 m     0.2013          6,495 / 25,773    
+     30+   m     0.2677          8,096 / 22,144    
+
+  -- ndvi_only  (call rate) ----------------------------
+     partition size 2,448,603 cells · overall call rate 0.2036
+     CHM-covered 2,448,603 (100%)
+
+     band        call rate  called / not
+      0-2  m     0.0610            683 / 10,507    
+      2-5  m     0.0855         84,569 / 904,812   
+      5-10 m     0.1728        142,650 / 682,701   
+     10-15 m     0.2685         76,411 / 208,205   
+     15-20 m     0.4425         61,236 / 77,135    
+     20-25 m     0.5835         51,663 / 36,870    
+     25-30 m     0.6913         39,722 / 17,738    
+     30+   m     0.7764         41,696 / 12,005    
+
+  -- THE TEST ----------------------------------------------
+     both-agree recall  5-15 m : 0.5172
+     both-agree recall  20 m+  : 0.9049
+     spread                    : +0.3877
+
+     A large spread means detection really IS height-dependent even
+     where both references agree -> the 5-15 m deficit is a MODEL
+     problem; height-conditioned training is the lever.
+
+     A small spread means the raw height staircase was largely
+     C-CAP's suburban over-count -> the lever is the canopy
+     DEFINITION and suburban/ornamental labels, not height.
+
+     Cross-check: if ccap_only concentrates at LOW height, that is
+     the lawn-and-roof-between-yard-trees hypothesis confirmed.
+
+  CAVEATS
+     * decimated sample; shape is robust, exact counts are not.
+     * the CHM is ~2016 vintage at ~60% city coverage, so every
+       band is conditioned on CHM presence (see coverage % above).
+     * the NDVI reference's own height test uses the SAME CHM, so
+       ndvi_only / both_canopy are not independent of the height axis.
+       Read the ccap_only curve as the cleaner suburban probe.

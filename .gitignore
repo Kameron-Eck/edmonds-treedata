@@ -44,3 +44,20 @@ desktop.ini
 !/phase4/qc/*.txt
 !/phase4/qc/*.csv
 !/phase4/qc/*.json
+
+# ── Reports: track the WRITING, never the source PDFs ─────────────────────
+# Added 2026-08-18. Reports/ was ignored wholesale by the /* rule, which meant
+# Measurement_Validity_Assessment_2026-08-18.md — the document CHATLOG STATE
+# names as the live agenda, and whose U1-U8 are the open question list — was
+# NOT version-controlled. Neither were the canopy brief or the report dossier.
+# That contradicts the same reasoning written above for phase4/qc: these are
+# hand-written analysis that no script regenerates, and they are exactly what
+# should survive loss of the Drive mount.
+#
+# Only prose and small tables are tracked. The source PDFs stay out — the
+# planning-board packet alone is 16 MB, and they are external documents that
+# can be re-downloaded, not work product.
+!/Reports/
+/Reports/*
+!/Reports/*.md
+!/Reports/*.csv

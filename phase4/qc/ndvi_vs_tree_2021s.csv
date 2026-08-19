@@ -1,0 +1,4 @@
+year,group,share_of_ndvi_canopy,chm_p50,pct_ge_3m,n
+2021s,ndvi_canopy_and_noaa_tree,63.84,20.6,98.9,2006004
+2021s,ndvi_canopy_and_noaa_shrub,2.87,4.8,83.5,90297
+2021s,ndvi_canopy_and_noaa_NEITHER,33.28,6.0,88.7,1045705

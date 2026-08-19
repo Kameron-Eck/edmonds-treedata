@@ -1,7 +1,7 @@
 FOREST-MISS AUTOPSY — year 2016  (why upland forest is under-predicted)
   ref   : D:\edmonds-pipeline\Imagery\ccap_2016_hires_lc.tif   (forest codes [9, 10, 11])
   prob  : G:\My Drive\treedata\phase4\masks\edmonds_canopy_prob_2016.tif
-  thresh: 0.4615
+  thresh: 0.5
 
   DENOMINATOR (every mask that narrows what is scored — read before quoting):
     forest codes   : [9, 10, 11]
@@ -11,7 +11,7 @@ FOREST-MISS AUTOPSY — year 2016  (why upland forest is under-predicted)
     chm (height)   : D:\edmonds-pipeline\Imagery\lidar_snoh_chm.tif
 
   upland-forest px : 394,061,850   (≈ 9,152,423 independent ccap_2016_hires_lc.tif cells)
-  recalled (TP) : 268,789,495   missed (FN) : 125,272,355   RECALL 0.6821
+  recalled (TP) : 262,910,887   missed (FN) : 131,150,963   RECALL 0.6672
 
   NOTE: px counts are on the fine prob grid; the reference is nearest-warped up,
         so px are NOT independent samples. Means are unbiased; any error bar
@@ -19,33 +19,33 @@ FOREST-MISS AUTOPSY — year 2016  (why upland forest is under-predicted)
 
   metric          recalled(TP)         missed(FN)          Δ(FN−TP)      n(TP/FN)
                   mean ± std           mean ± std
-  prob             0.708 ± 0.086       0.125 ± 0.115      -0.583   268,789,495/125,272,355
-  R               52.955 ± 33.040     58.661 ± 49.161     +5.706   268,789,495/125,272,355
-  G               76.821 ± 37.226     70.881 ± 43.404     -5.940   268,789,495/125,272,355
-  B               69.569 ± 16.700     76.087 ± 29.134     +6.518   268,789,495/125,272,355
-  brightness      66.448 ± 28.499     68.543 ± 39.887     +2.095   268,789,495/125,272,355
-  saturation       0.435 ± 0.148       0.431 ± 0.201      -0.004   268,789,495/125,272,355
-  NDVI             0.568 ± 0.156       0.349 ± 0.257      -0.219   268,789,495/125,272,355
-  GRVI             0.218 ± 0.088       0.165 ± 0.125      -0.053   268,789,495/125,272,355
-  height_m        23.813 ± 10.399     11.802 ± 8.290     -12.011   268,789,495/125,272,355
+  prob             0.713 ± 0.080       0.141 ± 0.134      -0.572   262,910,887/131,150,963
+  R               53.257 ± 32.968     57.800 ± 48.729     +4.544   262,910,887/131,150,963
+  G               77.273 ± 37.160     70.241 ± 43.145     -7.032   262,910,887/131,150,963
+  B               69.725 ± 16.653     75.483 ± 28.843     +5.758   262,910,887/131,150,963
+  brightness      66.751 ± 28.438     67.841 ± 39.561     +1.090   262,910,887/131,150,963
+  saturation       0.433 ± 0.147       0.434 ± 0.200      +0.001   262,910,887/131,150,963
+  NDVI             0.569 ± 0.154       0.357 ± 0.257      -0.213   262,910,887/131,150,963
+  GRVI             0.218 ± 0.088       0.168 ± 0.124      -0.050   262,910,887/131,150,963
+  height_m        23.974 ± 10.367     12.017 ± 8.393     -11.957   262,910,887/131,150,963
 
   RECALL BY CANOPY HEIGHT (the P1c invariant, made explicit):
     band        recall     recalled / missed
-     0-2  m     0.1538          354,554 / 1,950,038    
-     2-5  m     0.1628        4,309,190 / 22,158,565   
-     5-10 m     0.3559       23,383,033 / 42,317,431   
-    10-15 m     0.5729       32,087,410 / 23,921,864   
-    15-20 m     0.7354       40,679,724 / 14,634,548   
-    20-25 m     0.8339       45,177,044 / 9,001,029    
-    25-30 m     0.8828       42,534,706 / 5,647,702    
-    30+   m     0.9343       80,263,834 / 5,641,178    
+     0-2  m     0.1416          326,340 / 1,978,252    
+     2-5  m     0.1496        3,960,204 / 22,507,551   
+     5-10 m     0.3366       22,115,857 / 43,584,607   
+    10-15 m     0.5507       30,845,688 / 25,163,586   
+    15-20 m     0.7160       39,603,202 / 15,711,070   
+    20-25 m     0.8192       44,380,771 / 9,797,302    
+    25-30 m     0.8718       42,004,643 / 6,177,765    
+    30+   m     0.9275       79,674,182 / 6,230,830    
     ^ A REAL fix lifts the 5-15 m bands. A model that merely got more
       liberal lifts every band (and precision falls).
 
   MISS DEPTH (model confidence on missed forest):
-    prob<0.06 :  37.5%     0.06–0.12 :  31.9%     0.12–thr :  30.2%
+    prob<0.06 :  35.8%     0.06–0.12 :  30.4%     0.12–thr :  33.7%
 
   AUTO-DIAGNOSIS:
-  • 69% of misses have prob<0.12 → CONFIDENT misses (structural / out-of-distribution, NOT a threshold fix).
-  • missed forest is LESS green (ΔNDVI -0.219) → deciduous / senescent / off-spectral canopy the conifer-trained model under-recognises.
-  • missed forest mean height 11.8 m (Δ -12.0 m vs recalled) → real tall trees, not scrub.
+  • 66% of misses have prob<0.12 → CONFIDENT misses (structural / out-of-distribution, NOT a threshold fix).
+  • missed forest is LESS green (ΔNDVI -0.213) → deciduous / senescent / off-spectral canopy the conifer-trained model under-recognises.
+  • missed forest mean height 12.0 m (Δ -12.0 m vs recalled) → real tall trees, not scrub.

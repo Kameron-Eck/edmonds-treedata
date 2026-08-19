@@ -1,7 +1,7 @@
 FOREST-MISS AUTOPSY — year 2002  (why upland forest is under-predicted)
   ref   : D:\edmonds-pipeline\Imagery\ccap_2016_hires_lc.tif   (forest codes [9, 10, 11])
-  prob  : G:\My Drive\treedata\phase4\masks\edmonds_canopy_prob_2002_xsensor_rgb.tif
-  thresh: 0.57
+  prob  : G:\My Drive\treedata\phase4\masks\edmonds_canopy_prob_2002_citywide_rgb.tif
+  thresh: 0.5
 
   DENOMINATOR (every mask that narrows what is scored — read before quoting):
     forest codes   : [9, 10, 11]
@@ -11,7 +11,7 @@ FOREST-MISS AUTOPSY — year 2002  (why upland forest is under-predicted)
     chm (height)   : D:\edmonds-pipeline\Imagery\lidar_snoh_chm.tif
 
   upland-forest px : 73,252,049   (≈ 26,122,060 independent ccap_2016_hires_lc.tif cells)
-  recalled (TP) : 36,908,833   missed (FN) : 36,343,216   RECALL 0.5039
+  recalled (TP) : 41,530,958   missed (FN) : 31,721,091   RECALL 0.5670
 
   NOTE: px counts are on the fine prob grid; the reference is nearest-warped up,
         so px are NOT independent samples. Means are unbiased; any error bar
@@ -19,20 +19,33 @@ FOREST-MISS AUTOPSY — year 2002  (why upland forest is under-predicted)
 
   metric          recalled(TP)         missed(FN)          Δ(FN−TP)      n(TP/FN)
                   mean ± std           mean ± std
-  prob             0.695 ± 0.072       0.266 ± 0.168      -0.429   36,908,833/36,343,216
-  R               82.470 ± 34.501     97.503 ± 45.620    +15.033   36,908,833/36,343,216
-  G               93.284 ± 37.104    101.947 ± 45.473     +8.663   36,908,833/36,343,216
-  B               72.899 ± 27.584     85.827 ± 39.285    +12.928   36,908,833/36,343,216
-  brightness      82.884 ± 32.873     95.092 ± 43.122    +12.208   36,908,833/36,343,216
-  saturation       0.240 ± 0.084       0.196 ± 0.091      -0.044   36,908,833/36,343,216
+  prob             0.677 ± 0.096       0.200 ± 0.128      -0.477   41,530,958/31,721,091
+  R               81.894 ± 35.061    100.447 ± 45.775    +18.552   41,530,958/31,721,091
+  G               92.427 ± 37.649    104.332 ± 45.586    +11.905   41,530,958/31,721,091
+  B               72.473 ± 27.866     88.268 ± 39.898    +15.795   41,530,958/31,721,091
+  brightness      82.265 ± 33.333     97.682 ± 43.410    +15.417   41,530,958/31,721,091
+  saturation       0.239 ± 0.085       0.191 ± 0.089      -0.048   41,530,958/31,721,091
   NDVI               nan ± nan           nan ± nan          +nan   0/0
-  GRVI             0.068 ± 0.049       0.028 ± 0.053      -0.039   36,908,833/36,343,216
-  height_m        25.546 ± 10.455     14.662 ± 9.284     -10.884   36,908,833/36,343,216
+  GRVI             0.067 ± 0.050       0.024 ± 0.051      -0.043   41,530,958/31,721,091
+  height_m        24.914 ± 10.548     13.903 ± 8.940     -11.011   41,530,958/31,721,091
+
+  RECALL BY CANOPY HEIGHT (the P1c invariant, made explicit):
+    band        recall     recalled / missed
+     0-2  m     0.3196          133,279 / 283,738      
+     2-5  m     0.2027          974,128 / 3,831,974    
+     5-10 m     0.2381        2,838,635 / 9,085,632    
+    10-15 m     0.3637        3,785,780 / 6,623,330    
+    15-20 m     0.5546        5,771,605 / 4,635,511    
+    20-25 m     0.6985        7,092,296 / 3,060,791    
+    25-30 m     0.7779        6,944,565 / 1,983,062    
+    30+   m     0.8632       13,990,670 / 2,217,053    
+    ^ A REAL fix lifts the 5-15 m bands. A model that merely got more
+      liberal lifts every band (and precision falls).
 
   MISS DEPTH (model confidence on missed forest):
-    prob<0.06 :   5.5%     0.06–0.12 :  16.8%     0.12–thr :  74.5%
+    prob<0.06 :   9.6%     0.06–0.12 :  22.1%     0.12–thr :  68.2%
 
   AUTO-DIAGNOSIS:
-  • only 22% of misses are deep (prob<0.12) → a chunk sit near threshold; lowering the operating point recovers some.
-  • missed forest is BRIGHTER (washed-out / over-exposed) — Δbrightness +12.2 DN → a radiometric/sensor signature separates the misses.
-  • missed forest mean height 14.7 m (Δ -10.9 m vs recalled) → real tall trees, not scrub.
+  • only 32% of misses are deep (prob<0.12) → a chunk sit near threshold; lowering the operating point recovers some.
+  • missed forest is BRIGHTER (washed-out / over-exposed) — Δbrightness +15.4 DN → a radiometric/sensor signature separates the misses.
+  • missed forest mean height 13.9 m (Δ -11.0 m vs recalled) → real tall trees, not scrub.

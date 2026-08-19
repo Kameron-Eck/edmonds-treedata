@@ -161,6 +161,28 @@ writes the working tree: checkout, restore, `reset --hard`, stash pop, branch sw
 (`version_script.py` / `.versions/` are RETIRED 2026-07-06 — kept on disk as a frozen
 pre-git archive, git-ignored; full history was imported as backdated commits v001–v044.)
 
+**1c. The git DB has NO redundancy — mirror it.** `D:\edmonds-pipeline\treedata.git` is a
+single copy on a single disk with no remote (see CHATLOG STATE correction 4). The whole
+argument for versioning findings is that they "survive loss of the Drive mount" — but
+nothing protects against loss of **D:**. An empty bare mirror is staged at
+`G:\My Drive\_treedata_git_mirror.git` (on Drive, so it syncs to the cloud; the live DB
+stays off FUSE for speed). To arm and use it — **run these yourself, Claude Code's
+permission layer blocks remote/push operations**:
+```bash
+git remote add drive-mirror "G:/My Drive/_treedata_git_mirror.git"   # once
+git push --mirror drive-mirror                                       # after each session
+```
+`--mirror` makes the backup an exact copy including tags, and deletes refs there that are
+gone here — which is what a backup should do, but it means never commit *into* the mirror.
+
+**1d. Housekeeping.** The repo had 1018 loose objects and zero packs (never gc'd) plus a
+stale `worktrees/*/refs` garbage entry. Run `git gc` occasionally — it is safe, writes only
+to D:, and needs no Drive pause. Note that `git status` on this tree reports ~40 files as
+modified with **empty diffs**: Google Drive rewrites file mtimes constantly, so the stat
+cache is permanently stale. `core.trustctime=false` does NOT fix it (tried 2026-08-18).
+Treat a bare `M` with an empty `git diff` as noise — which is another reason rule 1b's
+"stage explicit paths" is not optional here.
+
 **1b. Two sessions share one working tree — stage PATHS, never `-A`.** Parallel Claude
 sessions (and Colab) edit the same Drive folder, so `git status` at the start of your
 session is already stale. `git add -A` sweeps up whatever the other session has in
@@ -212,7 +234,9 @@ only for spectral feature extraction under fixed 2020 crown polygons (phase1/pha
 ### 9. Keep the running log current (session-end checklist)
 Per landed milestone: **(a)** edit the `CHATLOG.md` STATE block in place, **(b)**
 append one LOG entry (caveman style per the file's spec), **(c)** append a row to
-`run_registry.csv` if a Colab run landed, and **(d)** `git add -A && git commit`
+`run_registry.csv` if a Colab run landed, and **(d)** `git add <the paths you touched>
+&& git commit` — **never `-A`**, see rule 1b; this line used to say `-A` and that is the
+habit that produced the `0020f2a` mis-attribution
 (tag `vNNN` if a new model version landed). This is how the next session resumes. **Do not create a new `HANDOFF_*.md`** (retired) or a duplicate
 plan. Slow-moving docs (`pipeline_buildtracker.md`, the workplan) reconcile only on phase
 boundaries or method changes, not every session.

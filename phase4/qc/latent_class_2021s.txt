@@ -1,0 +1,79 @@
+LATENT-CLASS ACCURACY WITHOUT A GOLD STANDARD (Foody 2022, ID 80) — 2021s
+  prob : edmonds_canopy_prob_2021s_p2nir.tif   @ thresh 0.499
+  ccap : ccap_2021_hires_lc.tif
+  ndvi : ndvi_ref_2021s.tif
+  sample : 1/8 decimation · 21,908,871 valid cells · 17,587,464 with CHM
+  intervals : 95% spatial block bootstrap, 64-cell blocks, 200 usable reps
+
+  -- OBSERVED (what each source simply says) --------------------
+     ccap       calls canopy on 0.2651 of valid cells
+     ndvi_ref   calls canopy on 0.3865 of valid cells
+     model      calls canopy on 0.2125 of valid cells
+
+  -- GLOBAL LATENT FIT (pooled; see the caveat below) -----------
+     latent canopy prevalence pi = 0.2820 [0.276,0.289]
+
+     source     sensitivity            specificity           
+     ccap       0.8660 [0.862,0.870]   0.9710 [0.970,0.972]  
+     ndvi_ref   0.9949 [0.994,0.995]   0.8524 [0.850,0.856]  
+     model      0.7443 [0.738,0.751]   0.9964 [0.996,0.997]  
+
+  -- BAND-CONDITIONED FIT (the defensible one) ------------------
+     Fitted separately inside each CHM height band, because height is
+     the dominant driver of every source's error rate and conditioning
+     on it absorbs much of the shared dependence between sources.
+
+     band                   n      pi |   ccap se   ccap sp | ndvi_ref se ndvi_ref sp |  model se  model sp
+      0-2  m        3,545,447  0.0553 |    0.3971    0.9977 |    0.0309    0.9974 |    0.0895    0.9964
+                                      | 0.34-0.47 0.99-1.00 | 0.03-0.04 1.00-1.00 | 0.08-0.11 0.99-1.00
+      2-5  m        3,574,482  0.1975 |    0.4958    0.9616 |    0.9960    0.7183 |    0.1707    0.9998
+                                      | 0.48-0.52 0.96-0.96 | 1.00-1.00 0.71-0.73 | 0.16-0.18 1.00-1.00
+      5-10 m        4,269,682  0.2721 |    0.7080    0.9499 |    0.9976    0.7833 |    0.3952    0.9992
+                                      | 0.70-0.72 0.95-0.95 | 1.00-1.00 0.78-0.79 | 0.39-0.40 1.00-1.00
+     10-15 m        1,776,496  0.4827 |    0.8117    0.9194 |    0.9973    0.7218 |    0.6251    0.9968
+                                      | 0.80-0.82 0.92-0.92 | 1.00-1.00 0.71-0.73 | 0.62-0.63 1.00-1.00
+     15-20 m        1,155,542  0.7202 |    0.8688    0.8608 |    0.9973    0.6157 |    0.8055    0.9847
+                                      | 0.86-0.87 0.86-0.87 | 1.00-1.00 0.60-0.63 | 0.80-0.81 0.98-0.99
+     20-25 m        1,006,583  0.8246 |    0.8932    0.8391 |    0.9973    0.6103 |    0.9054    0.9536
+                                      | 0.89-0.90 0.83-0.85 | 1.00-1.00 0.60-0.62 | 0.90-0.91 0.95-0.96
+     25-30 m          837,811  0.8925 |    0.9090    0.8097 |    0.9975    0.6039 |    0.9551    0.8806
+                                      | 0.90-0.91 0.80-0.82 | 1.00-1.00 0.59-0.62 | 0.95-0.96 0.87-0.89
+     30+   m        1,421,421  0.9460 |    0.9399    0.8043 |    0.9977    0.6734 |    0.9862    0.7757
+                                      | 0.94-0.94 0.78-0.83 | 1.00-1.00 0.65-0.70 | 0.99-0.99 0.75-0.80
+
+  -- WHAT THIS SAYS ABOUT U2 -----------------------------------
+     C-CAP calls canopy on            0.2651
+     NDVI+CHM calls canopy on         0.3865
+     latent prevalence estimate is    0.2820
+
+     -> the latent prevalence sits closer to C-CAP (|d| 0.0169 vs 0.1045).
+        Prevalence agreement is NOT accuracy — read it with the
+        se/sp table, where a source can hit the right total by
+        trading false positives against false negatives.
+
+     -> highest Youden J (se+sp-1): ndvi_ref at 0.8473.
+
+  -- HOW THIS CAN BE WRONG (read before quoting) ----------------
+     1. CONDITIONAL INDEPENDENCE IS THE WHOLE MODEL, and ours is
+        doubtful.  The model was trained on labels descended from the
+        NDVI reference and sides with it on 90.8% of contested pixels
+        (phase4_qc_height_by_agreement).  Two correlated sources out-vote
+        the third, so LCA will flatter the model/NDVI pair and understate
+        C-CAP's specificity.  IF THAT DEPENDENCE IS REAL, the conclusion
+        'C-CAP over-calls canopy' is the first thing to fall — it is
+        exactly what a 2-vs-1 vote manufactures.  Treat the band table as
+        a sensitivity analysis bracketing P2, not as an arbitration.
+     2. NO FIT STATISTIC IS REPORTED because none exists here: 7 free
+        parameters on a 7-d.f. table is just-identified and reproduces the
+        observed counts exactly.  Perfect fit is arithmetic, not evidence.
+     3. Every band is conditioned on CHM presence (~60% of the city) and
+        the CHM is ~2016 vintage with a realistic MAE ~3 m (Moudry 2024,
+        ID 82), which blurs adjacent 5 m bands.
+     4. The NDVI reference requires height >= 2 m BY CONSTRUCTION, so its
+        se in the 0-2 m band is not an error rate — it is the definition.
+        Do not quote the 0-2 m row.
+     5. Decimated sample; the shape across bands is the robust part.
+
+     RESOLVES NOTHING BY ITSELF.  U2 is settled by human photo-interpretation
+     (P3) against a written canopy definition (U1), which does not exist yet.
+     This narrows what that sample has to decide.

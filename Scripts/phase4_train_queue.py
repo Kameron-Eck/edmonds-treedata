@@ -123,6 +123,36 @@ _INT_STATE = {"last": None}
 # Cheapest first. The three King 20 cm years are the smallest rasters; 2024 is
 # City-of-Edmonds 5 cm and by far the most expensive, so it sits last and can
 # be dropped with --skip 2024 without affecting the others.
+# ── QUEUE 3, 2026-08-19: THE LAST THREE YEARS OFF-RECIPE ──────────────────
+# Swap JOBS to QUEUE3 below once queue 2 finishes. Rationale: 2026-08-19
+# measured that recipe changes recall by 5.6-12.7 pp with the SIGN VARYING BY
+# YEAR, so any table mixing recipes is uninterpretable. After queue 2 the only
+# catalog years still lacking a citywide-recipe raster are 2017, 2019 and 2022.
+# Running these three completes a fully recipe-matched 18-year series — the
+# thing every cross-year claim in this project has been missing.
+#
+# Note which years do NOT need re-running: every coarse-tier year (2000, 2002,
+# 2016, 2019n, 2021s, 2022n) already trains on the citywide 2020-mask path by
+# default, so their existing rasters ARE recipe-matched. Only fine/medium years
+# ever needed the flag.
+#
+# 2017 and 2022 are City-of-Edmonds 5 cm — the most expensive jobs in the
+# project. Run 2019 first (King 10 cm, ~2013-sized) so a short runtime still
+# delivers something.
+QUEUE3 = [
+    dict(id="2019", year="2019", tag="citywide_rgb", extra=["--force-citywide"],
+         why="King 10 cm. Cheapest of the three and pairs with 2019n (NAIP 60.7 cm) "
+             "as a second same-year cross-sensor pair.",
+         expect="prob raster; completes the 10 cm tier alongside 2013/2015/2021/2023."),
+    dict(id="2017", year="2017", tag="citywide_rgb", extra=["--force-citywide"],
+         why="City of Edmonds 5 cm. Currently scored off-recipe (_xsensor_train), and it "
+             "is the series recall high (.7986), so its recipe matters to any claim.",
+         expect="prob raster on the shared recipe, making the .7986 comparable."),
+    dict(id="2022", year="2022", tag="citywide_rgb", extra=["--force-citywide"],
+         why="City of Edmonds 5 cm. Last year off-recipe; pairs with 2022n (NAIP).",
+         expect="prob raster; completes the recipe-matched series."),
+]
+
 JOBS = [
     dict(id="2005", year="2005", tag="citywide_rgb", extra=["--force-citywide"],
          why="Fills a hole in the series. 20.1 cm true GSD (config said 29.9 "

@@ -622,6 +622,33 @@ measure: ACTIVE WORKSTREAM (opened 2026-08-17). PLAN = Scripts/honest-measuremen
          WHICH SIDE IS RIGHT IS STILL UNDECIDED: NOAA canopy is a MODEL PRODUCT, not truth.
          P3 photo-interpretation against a written definition is still what settles it — but
          it now has a SPECIFIC population to rule on rather than a vague 8 pp.
+         (17) ** 2015 IS A LEAF-OFF ACQUISITION — TWO SESSIONS, TWO INSTRUMENTS, SAME YEAR
+         (2026-08-19). ** Cross-checked the stopped session's leaf-off sweep (committed
+         58ee67c, its numbers otherwise UNVERIFIED per the audit) against result (11), which
+         this session derived independently from per-channel forest-miss statistics.
+         LOW-GREENNESS FRACTION (GRVI<0.02) over 2020-mask canopy pixels:
+             2015 31.22% · 2013 22.46% · 2000 16.86% · 2002 13.58% · 2005 10.98% ·
+             2022n(NAIP, leaf-on BY SPEC) 5.23% · 2016 1.95%
+         (a) THE CONVERGENCE. 2015 is the MOST leaf-off year in the series, and 2015 is the
+         year result (11) singled out on completely different evidence: 48.2% DEEP misses vs
+         ~30% elsewhere, with misses DARKER and relatively BLUER — which I read as shadow.
+         Leaf-off flights fly at LOW SUN ANGLE, so bare crowns and long shadows arrive
+         together. So the better account of 2015 is: BARE DECIDUOUS CROWNS the green-trained
+         model confidently rejects, with shadow as a CORRELATE rather than the cause.
+         That explains why 2015's misses are deep rather than near-threshold: a leafless
+         crown is not a marginal call, it looks like nothing in the training set.
+         (b) ** IT DOES NOT GENERALISE, AND 2016 KILLS ANY SIMPLE RULE. ** 2016 is the most
+         LEAF-ON year measured (1.95%) and yet has the HIGHEST deep-miss share in the project
+         (66.2%, result 7e). 2013 is 2nd most leaf-off (22.46%) but sits at an ordinary 30.8%
+         deep. So phenology explains 2015 SPECIFICALLY; it is NOT the axis behind the series.
+         Do not build a leaf-off correction for the whole record on this.
+         (c) STATUS OF THE SOURCE: this raises confidence in the leaf-off SCRIPT (its output
+         agrees with an independent instrument on the one year both cover) WITHOUT rescuing
+         the stopped session's headline entry, whose code is gone. Corroboration of one claim
+         is not reproducibility of the rest.
+         CAVEAT: the sweep samples pixels the 2020 MASK calls canopy, so it inherits that
+         mask's conifer bias — which biases AGAINST detecting leaf-off, making 2015's 31.22%
+         a floor rather than an estimate.
          ---- LITERATURE (37 papers, IDs 69-105, searches 9-14) — TWO CORRECTIONS TO ME ----
          FOODY 2010: I claimed raw scores overstate the model's faults. Direction depends on ERROR
          CORRELATION; ours are almost certainly correlated (labels + both refs all from interpreting

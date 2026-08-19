@@ -208,7 +208,7 @@ def step_postproc(label, dry_run=False):
 def _append_area_summary(label, entry, canopy_area_m2, canopy_pct, valid_px,
                          pixel_area):
     EVAL_DIR.mkdir(parents=True, exist_ok=True)
-    row = dict(year=label, gsd_cm=entry["gsd_cm"], tier=tier_of(entry["gsd_cm"]),
+    row = dict(year=label, gsd_cm=entry["gsd_cm"], tier=tier_for(entry),
                coverage=entry["coverage"],
                canopy_ha=round(canopy_area_m2 / 1e4, 2),
                canopy_pct_of_imaged=round(canopy_pct, 2),

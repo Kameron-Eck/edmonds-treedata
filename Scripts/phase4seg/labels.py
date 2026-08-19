@@ -298,7 +298,7 @@ def step_labels(label, sites, dry_run=False, anchor_labels=False,
                 prob_hi=0.6, prob_lo=0.4, citywide=False):
     """Step 1 for one year: build native-GSD site crops + binary masks."""
     entry = entry_for(label)
-    tier  = tier_of(entry["gsd_cm"])
+    tier  = tier_for(entry)
     if citywide:
         # Coarse city-wide path (Fix 3) builds its labels from the 2020 mask
         # during Step 2 (tiling), straight off the full ortho — no site crops.

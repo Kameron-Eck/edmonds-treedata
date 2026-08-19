@@ -990,6 +990,24 @@ gotcha:  scripts Colab-only for torch (rasterio+geopandas+fiona+sklearn now pip-
 
 ════════════════ LOG  (newest first) ════════════════
 
+## 2026-08-19  CLAUDE.md entry-point chain fixed — WORKPLAN first, phase5/6 annotated
+goal:    fix stale routing in Scripts/CLAUDE.md - it still pointed readers at CHATLOG
+         STATE as "the single source of live truth", but WORKPLAN_2026-08-19.md and
+         CHATLOG STATE itself have since agreed WORKPLAN is the entry point and wins
+         on disagreement.
+did:     Updated the top blockquote and the "Sources of truth" bullets to: read
+         WORKPLAN_2026-08-19.md FIRST (entry point, wins on disagreement), then
+         CHATLOG STATE for live log/state. Surgical - routing sentences only.
+         Phase table: 5-8 row said "Not yet built" with no context. Annotated -
+         phase5/ (3.8GB, model.pkl) and the now-deleted phase6/ were abandoned
+         forward-experiments (Kam confirmed 2026-08-19); phase5/ stays because
+         phase4_qc_score.py, phase4_qc_indep.py, phase4_threshold_diagnostic.py still
+         read its outputs.
+files:   CLAUDE.md
+next:    Drive-Layout ASCII tree (line ~109) still says "phase5/…phase8/ not yet built"
+         and lists phase6/ (now deleted) - same stale claim, different section, not
+         in scope here.
+
 ## 2026-08-19  .gitignore fixes — Literature_Tracker whitelist bug + npz caches
 goal:    close two .gitignore gaps found during the cleanup pass.
 did:     whitelist bug: `!/Admin/Literature_Tracker.xlsx` matched nothing - the file

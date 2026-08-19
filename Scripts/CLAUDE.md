@@ -1,10 +1,10 @@
 # Edmonds Temporal Active Learning Pipeline — Claude Code Instructions
 
-> Read this file at the start of every session, then **read the STATE block at the top
-> of `CHATLOG.md`** to see where the work actually stands — that is the single source of
-> live truth. `../README.md` is the map of every doc. Read the live source files before
-> touching any code; do not rely on memory or this file for specific parameters — always
-> read the source.
+> Read this file at the start of every session, then **read `WORKPLAN_2026-08-19.md`
+> FIRST** — it is the entry point / reference and wins on any disagreement — then
+> **the STATE block at the top of `CHATLOG.md`** for the live log/state. `../README.md`
+> is the map of every doc. Read the live source files before touching any code; do not
+> rely on memory or this file for specific parameters — always read the source.
 
 ---
 
@@ -29,7 +29,8 @@ real hand labels**; all other years borrow them.
 **The full doc map lives in `../README.md`** — don't restate it here. The homes that
 matter before editing:
 
-- **Live state / next step →** `CHATLOG.md` **STATE** block (read first to resume).
+- **Entry point / reference, wins on disagreement →** `WORKPLAN_2026-08-19.md` (read first).
+- **Live log / state →** `CHATLOG.md` **STATE** block (read after WORKPLAN to resume).
 - **Method / params / tiers / loss / QC →** `Method_Pipeline.md`.
 - **What's built vs pending →** `pipeline_buildtracker.md`.
 - **Schedule / decision gates →** `edmonds_combined_workplan.xlsx`.
@@ -137,7 +138,7 @@ source files, ask before assuming.**
 | 3 | `phase3_semantic_dev.py` | Complete — 2020 base, LOSO IoU 0.7299 / AUROC 0.9396, passed DG1 |
 | 4 | `phase4_semantic_finetune.py` (shim) → `phase4seg/` | **Active.** Per-year semantic fine-tune; engine modularized 2026-07-08. **Live version number + current detail live ONLY in `CHATLOG.md` STATE — never restated here.** |
 | 4 (review) | `phase4_label_review.py` | Built; the 14,476-crown human review was **never completed** (see Gotchas). |
-| 5–8 | — | Not yet built |
+| 5–8 | — | Not yet built. phase5/ (3.8GB, model.pkl) and the deleted phase6/ were abandoned forward-experiments (Kam confirmed 2026-08-19). phase5/ stays — its outputs are still read by phase4_qc_score.py, phase4_qc_indep.py, phase4_threshold_diagnostic.py. |
 
 > The per-year fine-tune path has resolution **tiers** (fine ≤15 cm / medium 29.9 cm
 > / coarse 50–60 cm) and **two label sources**: coarse years train on the citywide

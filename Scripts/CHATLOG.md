@@ -235,7 +235,7 @@ measure: ACTIVE WORKSTREAM (opened 2026-08-17). PLAN = Scripts/honest-measuremen
            The photos/ footprint blocker was STALE — sentinel_sites.json already carries explicit
            bounds_wgs84 for every site. P1/P2/P4 ALL COMPLETE. Only P3 remains, gated on U1.
            P3 TOOLING BUILT, NOT YET RUN BY A HUMAN. Samples drawn for 2016 / 2022n / 2000.
-         ---- THE SEVEN RESULTS THAT MATTER ----
+         ---- THE EIGHT RESULTS THAT MATTER ----
          (1) DETECTION IS A FUNCTION OF CANOPY HEIGHT. 2016: .16 (0-2m) .16 (2-5) .36 (5-10) .57
          (10-15) .74 (15-20) .83 (20-25) .88 (25-30) .93 (30+). 5-15m holds 53% of ALL misses;
          lifting those two bands to the 20-25m rate takes recall .68 -> ~.80. qc/height_curves.png
@@ -326,6 +326,23 @@ measure: ACTIVE WORKSTREAM (opened 2026-08-17). PLAN = Scripts/honest-measuremen
          STILL OPEN: 2016 has NO _citywide_rgb raster, so its ~60%-deep figure is STILL NOT
          COMPARABLE. Given (b) moved 2013 by 22 points, do NOT assert "2016 is the outlier"
          until it is measured on this recipe. That is now the open question.
+         (8) ** ~42% OF MISSES ARE CROWN PERIMETER — AND THE HEIGHT STAIRCASE SURVIVES ANYWAY
+         (2026-08-18). ** Tested the sentinel ring pattern by eroding the agreed-canopy mask
+         (2016, decim 4 = 2 m lattice). BOTH halves of the question came back positive:
+         (a) PERIMETER EFFECT IS REAL AND GENERAL. Edge = outer 2 m = 16.3% of agreed-canopy
+         AREA but carries 41.8% OF ALL MISSES. interior recall .8191 vs edge recall .3306.
+         At a 4 m edge: 29.3% of area, 65.5% of misses, interior .8729 / edge .4176. So the
+         ring pattern was not two cherry-picked windows — it is how this model fails.
+         => A SECOND LEVER exists that is not labels and not the threshold: boundary/soft-label
+         handling. Suburban recall .575 is substantially UNDER-SEGMENTATION, not blindness.
+         (b) BUT IT DOES NOT EXPLAIN AWAY RESULT (1). Inside crown INTERIORS the staircase is
+         intact: 5-15 m .6218 -> 20 m+ .9333, spread +0.3115 — essentially IDENTICAL to the
+         edge spread +0.3105. The two effects are INDEPENDENT AND ADDITIVE, not a confound.
+         Robustness: at a 4 m edge the interior spread is still +0.2528, so a modest part of
+         the staircase is edge-associated but HEIGHT DOMINATES. Result (1) STANDS; U3 reinforced.
+         CAVEAT: the two references disagree most at boundaries, so some edge FN is REFERENCE
+         error, not model error. That inflates (a) by an unknown amount — it does NOT touch (b),
+         which is measured inside interiors.
          ---- LITERATURE (37 papers, IDs 69-105, searches 9-14) — TWO CORRECTIONS TO ME ----
          FOODY 2010: I claimed raw scores overstate the model's faults. Direction depends on ERROR
          CORRELATION; ours are almost certainly correlated (labels + both refs all from interpreting
@@ -399,6 +416,31 @@ gotcha:  scripts Colab-only for torch (rasterio+geopandas+fiona+sklearn now pip-
          accept-all test data; 14,476-crown human review never finished.
 
 ════════════════ LOG  (newest first) ════════════════
+
+## 2026-08-18  EDGE TEST — the perimeter hypothesis is TRUE, and the height staircase survives it
+goal:    test the crown-perimeter hypothesis raised by the sentinel overlays, BEFORE it could
+         reach the annotation plan. It threatened result (1), so it had to be measured.
+did:     NEW Scripts/phase4_qc_edge_vs_interior.py — erodes the agreed-canopy mask (numpy-only
+         8-connected erosion, no scipy) to split misses into crown INTERIOR vs EDGE, then
+         recomputes recall by height band for each. Ran 2016 at decim 4 (2 m lattice), erosion
+         1 and 2 cells. -> phase4/qc/edge_vs_interior_{2016_baseline,2016_erode2}.txt/.csv
+RESULT: BOTH halves positive — see STATE result (8).
+         (a) edge (outer 2 m) = 16.3% of agreed-canopy AREA but 41.8% OF ALL MISSES;
+             interior recall .8191 vs edge .3306. At 4 m: 29.3% area / 65.5% misses.
+             The sentinel ring pattern GENERALISES. Suburban recall .575 is substantially
+             UNDER-SEGMENTATION, not blindness => a second lever: boundary/soft-label handling.
+         (b) the staircase SURVIVES inside crowns: interior 5-15 m .6218 -> 20 m+ .9333,
+             spread +.3115 vs edge +.3105 — the two effects are INDEPENDENT AND ADDITIVE.
+             Robust at 4 m erosion (interior spread still +.2528).
+decided: nothing deployed. Result (1) stands unchanged; the new finding is ADDITIVE to it,
+         not a replacement. Two distinct levers now on the table (height-conditioned training,
+         boundary handling) plus the operating point from result (7).
+killed:  "the height staircase might be crown geometry" — TESTED AND REJECTED. Do not re-raise
+         without new evidence; the interior-only spread is the number that settles it.
+files:   Scripts/phase4_qc_edge_vs_interior.py (new) · phase4/qc/edge_vs_interior_*.txt/.csv ·
+         CHATLOG STATE result (8).
+next:    U1 (Kam). Local options remaining are thin: replicate (8) on 2021s/2022n, or measure
+         how much of the edge FN is reference error rather than model error.
 
 ## 2026-08-18  P4 CLOSED — sentinel error overlays, and a NEW hypothesis: the misses are CROWN EDGES
 goal:    last open P4 item = sentinel TP/FN/FP overlays colour-coded by the P2 partition.

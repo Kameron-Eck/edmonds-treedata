@@ -1,0 +1,43 @@
+ARE THE MISSES CROWN PERIMETERS? — 2016_erode2
+  prob : edmonds_canopy_prob_2016.tif @ thresh 0.509
+  lattice 2.00 m/cell · EDGE = outer 4.00 m (2 cell erosion) of agreed canopy
+  agreed-canopy cells 22,027,820
+
+  -- THE HEADLINE ------------------------------------------
+     edge is 29.3% of agreed-canopy AREA
+     but carries 65.5% of ALL MISSES
+     interior recall 0.8729   edge recall 0.4176
+
+     -> MISSES ARE DISPROPORTIONATELY PERIMETER. The ring pattern in the
+        sentinel overlays is real and general, not two cherry-picked windows.
+
+  -- THE DECIDING TABLE: recall by height, INTERIOR vs EDGE ----
+     band          interior       edge          int n         edge n
+      0-2  m            nan     0.1604              0          4,507
+      2-5  m         0.3876     0.1258        348,144        822,857
+      5-10 m         0.6103     0.2609      1,482,432      1,726,076
+     10-15 m         0.7698     0.4183      1,794,273      1,241,384
+     15-20 m         0.8682     0.5364      2,244,558        947,938
+     20-25 m         0.9217     0.6115      2,532,618        681,795
+     25-30 m         0.9470     0.6499      2,427,691        476,363
+     30+   m         0.9675     0.7040      4,753,899        543,285
+
+  -- DOES THE HEIGHT STAIRCASE SURVIVE INSIDE CROWNS? ---------
+     INTERIOR  5-15 m 0.6977   20 m+ 0.9504   spread +0.2528
+     EDGE      5-15 m 0.3268   20 m+ 0.6518   spread +0.3250
+
+     -> THE STAIRCASE SURVIVES IN CROWN INTERIORS. Height is a real
+        detection axis; it is NOT an artefact of crown geometry.
+        RESULT (1) STANDS and the U3 confound test is reinforced.
+
+  -- CAVEATS -----------------------------------------------
+     * 'Edge' is defined on a 2.00 m lattice. A different decim
+       changes the edge width and therefore every number above.
+     * Erosion cannot tell a crown perimeter from the boundary of a CLUMP of
+       adjacent crowns; both are 'edge' here.
+     * The agreed-canopy mask itself comes from two references that disagree
+       most at boundaries, so the edge band is also where reference error is
+       highest. Some edge FN is reference error, not model error.
+     * CHM at crown edges is genuinely lower AND noisier (mixed ground/canopy
+       returns), which is the mechanism under test — not a flaw in the test.
+     * Decimated sample; shape over exact counts.

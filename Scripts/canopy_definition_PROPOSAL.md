@@ -9,8 +9,8 @@ project has *no* written canopy definition, which is exactly the problem.
 
 ## Why this blocks everything
 
-U1 is the top blocker in `Reports/Measurement_Validity_Assessment_2026-08-18.md` (NOTE: Reports/ is git-ignored, so
-that file is NOT version-controlled), and the
+U1 is the top blocker in `Reports/Measurement_Validity_Assessment_2026-08-18.md` (NOTE: since
+2026-08-18 Reports/*.md and *.csv are tracked, so that file IS version-controlled), and the
 work done since has raised its stakes rather than lowered them:
 
 - **The definition is worth ~6 points of city canopy.** Latent-class modelling across four

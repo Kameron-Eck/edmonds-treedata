@@ -990,6 +990,18 @@ gotcha:  scripts Colab-only for torch (rasterio+geopandas+fiona+sklearn now pip-
 
 ════════════════ LOG  (newest first) ════════════════
 
+## 2026-08-19  two stale-claim fixes — Reports/ tracking status, work-plan xlsx path
+goal:    fix two outdated pointers found during the doc pass.
+did:     canopy_definition_PROPOSAL.md said Reports/ is git-ignored so
+         Measurement_Validity_Assessment_2026-08-18.md is NOT version-controlled -
+         outdated since 2026-08-18, when Reports/*.md and *.csv started being tracked.
+         Fixed the sentence to say it IS tracked.
+         pipeline_buildtracker.md pointed at `Admin/Tree Project Work Plan.xlsx` -
+         that file now lives at `Scripts/_archive/Tree Project Work Plan.xlsx`. Fixed
+         the path.
+files:   canopy_definition_PROPOSAL.md · pipeline_buildtracker.md
+next:    -
+
 ## 2026-08-19  honest-measurement-overhaul.md demoted — superseded by WORKPLAN
 goal:    stop honest-measurement-overhaul.md reading as live when WORKPLAN_2026-08-19.md
          already superseded it.

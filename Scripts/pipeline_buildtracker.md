@@ -12,7 +12,7 @@ state. (Doc map: `../README.md`.)*
 
 Phase 4 = **semantic** per-year fine-tune (17 years); Phase 5 = **instance** per-year
 fine-tune (9 high-res years). (This is swapped from the original scheme — the old
-`Admin/Tree Project Work Plan.xlsx` still shows Phase 4 = instance and is
+`Scripts/_archive/Tree Project Work Plan.xlsx` still shows Phase 4 = instance and is
 **superseded**; `edmonds_combined_workplan.xlsx` is canonical.) Phases 0/1/1A–1D/2/3
 are complete; 6–8 not yet built.
 

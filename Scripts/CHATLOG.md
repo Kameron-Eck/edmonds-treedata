@@ -678,13 +678,13 @@ measure: ACTIVE WORKSTREAM (opened 2026-08-17). PLAN = Scripts/honest-measuremen
              2002   .5069/.8377  -> .5580/.8563      +5.1 pp   100%
              2013   .7094/.8551  -> .7395/.8666      +3.0 pp   100%
              2015   .6222/.8835  -> .6629/.8989      +4.1 pp   100%
+             2017   .7784/.8083  -> .7986/.8274      +2.0 pp   100%
              2016   .6844/.8651  -> .6636/.8736      -2.1 pp    41.9%
-             2017   PENDING — rescore was still running at 20:5x 2026-08-18. Old (clipped)
-                    value was .7784/.8083. Re-run if no snohfull row appears in
-                    qc_indep_report.csv.
-         ** QUOTE THE FULL-REF COLUMN. ** Precision rose in all five completed years.
-         ** THE ASYMMETRY IS THE FINDING: ** every year with 100% imagery coverage got
-         BETTER; 2016 — the only one at 41.9% — got WORSE. So the clipped reference was
+         ** QUOTE THE FULL-REF COLUMN. ** Precision rose in ALL SIX years. Complete.
+         ** THE ASYMMETRY IS THE FINDING, AND IT IS NOW 5-FOR-5: ** every year with 100%
+         imagery coverage got BETTER (2000 +4.5, 2002 +5.1, 2013 +3.0, 2015 +4.1, 2017
+         +2.0); 2016 — the ONLY one at 41.9% — got WORSE. Coverage, not year or sensor,
+         predicts the sign. 2017 remains the highest recall in the series at .7986. So the clipped reference was
          FLATTERING 2016 specifically and PENALISING the full-coverage years. That matters
          because 2016 is the most-cited year in the project (the only NIR year with a
          matched CHM, and the year the corrected labels were built for).

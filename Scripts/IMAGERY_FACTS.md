@@ -1,7 +1,18 @@
 # What We Know About the Imagery — 2000–2024
 
-**Scope fixed 2026-08-19: 2000–2024 only.** 1936 and 1998 are out of scope and need no
-further thought (1936 was an empty shell of uniform fill in any case).
+**Scope fixed 2026-08-19: 2000–2024 only.** 1936 and 1998 sit outside that window, so no
+number in this document covers them.
+
+> **Correction, 2026-08-19 (later the same day): 1936 is NOT an empty shell.** This section
+> originally said so, inheriting a CHATLOG finding that was drawn from nine probe windows —
+> all of which missed the data. The content band starts **74.8% of the way down the file**
+> (row 20094 of 26880). A full-extent read plus a rendered crop shows **real panchromatic
+> aerial photography** — shoreline, street grid, forest stands, a lake, field boundaries —
+> across the southern quarter, covering **24.4% of the study area** (lat 47.768–47.792).
+> 89.9% of the canvas is fill; the other 10.1% is imagery. **Do not delete the file.**
+> Out of scope is a decision about the study window, not a claim that the file is empty.
+> Renamed `1936_king_pan.tif` / `1998_king_pan.tif` — both are single-band (IMAGERY_PLAN A3).
+> See IMAGERY_PLAN.md A2 and the CHATLOG retraction entry.
 
 Every number here is **measured from the files**, not read from a config. Where something has
 not been measured, the cell says so — that distinction is the point of this document.

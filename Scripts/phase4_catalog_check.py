@@ -12,10 +12,12 @@ r"""
         raised KeyError. phase4seg/config.py:YEAR_CATALOG is what the
         engine actually reads, so THAT is authoritative and this script
         is the test that keeps it honest.
-    A3  1936_king_rgb.tif and 1998_king_rgb.tif are SINGLE-BAND despite
-        _rgb filenames. A filename is a claim; band count is a
-        measurement. Any tool that infers 3 bands from the name silently
-        misreads them.
+    A3  1936 and 1998 are SINGLE-BAND despite _rgb filenames. A filename
+        is a claim; band count is a measurement. Any tool that infers 3
+        bands from the name silently misreads them. Both were renamed to
+        1936_king_pan.tif / 1998_king_pan.tif on 2026-08-19 — scripts in
+        litwatch_scratch/ still reference the OLD names and will raise
+        FileNotFoundError until updated.
     A5  The imagery lives in more than one root and lookups silently fell
         through between them. This script reports WHICH root each year
         resolved to, so a cross-root surprise is visible instead of

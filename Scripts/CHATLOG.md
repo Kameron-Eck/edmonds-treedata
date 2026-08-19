@@ -990,6 +990,40 @@ gotcha:  scripts Colab-only for torch (rasterio+geopandas+fiona+sklearn now pip-
 
 ════════════════ LOG  (newest first) ════════════════
 
+## 2026-08-19  ecosystem cleanup — GitHub connected, worktrees pruned, ~35 GB legacy deleted
+goal:    repo hygiene pass (worktree worktree-ecosystem-cleanup) — GitHub backup, dead
+         worktrees, orphan dirs, safe-tier legacy bloat.
+did:     GITHUB: gh CLI 2.97.0 installed, authed as Kameron-Eck. Private repo
+         github.com/Kameron-Eck/edmonds-treedata created. Remotes added: `drive-mirror`
+         -> G:\My Drive\edmonds-git-mirror.git (NEW bare repo, Drive-synced) and `github`.
+         Kam runs `git push --mirror` to both himself.
+         WORKTREES: 12 merged worktrees + their worktree-* branches pruned. All verified
+         merged into main first; `git branch -d` succeeded on every one (refuses on
+         unmerged) - nothing lost.
+         ORPHANS: C:\content Colab-path gotcha dir removed (verified 0 bytes first).
+         D:\edmonds-pipeline\treedata orphan dir removed; its version_script.py variant
+         (a blob not in git history) archived to
+         Scripts/_archive/orphans/version_script_D-orphan-variant.py rather than deleted.
+         SAFE-TIER DELETE (~35 GB, zero live references, Kam approved each category):
+         temporal_results/ 8.8GB, phase6/ 3.6GB (abandoned experiment, Kam confirmed),
+         clips/ 3.7GB, near_infrared/ 2.9GB, Temp/ 2.1GB, pipeline/ 940MB, Scripts_v2/
+         (zero refs, its own text says Scripts/ is canonical), checkpoints/Temp/ ~13GB
+         (superseded v5 generation; v7 root files kept), 0-byte stubs
+         checkpoints/{ddt_best_global,test}.pt, Untitled0.ipynb,
+         TreeCrownInventory.BACKUP-2026-07-08.ipynb (its extra code cells = the documented
+         phase0_instance_seg.py extraction; outputs were only streams/errors/2 PNGs), 4
+         empty dirs (NDVI, phase1c, review_data, .ipynb_checkpoints), stale ArcGIS
+         *.sr.lock files in City Boundry/.
+         PHANTOM-M: files on main showing modified with empty diffs (Drive mtime noise)
+         cleared per-file after `git diff --quiet` verification; train_queue_status.csv
+         left dirty on purpose (Colab 2024 inference RUNNING, real state).
+decided: HELD BACK for Kam's explicit call: _backup_accept_all/ (1.9GB, sole pre-accept-all
+         model snapshot) - not deleted, needs his sign-off.
+         Verify-tier left untouched, dispositions pending: inference/ 108GB, checkpoints/
+         v7 ~14GB, labels/, tiles/, impervious statewide tif, phase2 Copy-of gpkg.
+files:   (repo-level ops; see git log / gh repo view for detail)
+next:    Kam call on _backup_accept_all/. Verify-tier disposition pass.
+
 ## 2026-08-19  ** 1936 IS REAL IMAGERY ** + catalog conflict resolved (IMAGERY_PLAN A1/A3/A5)
 goal:    execute IMAGERY_PLAN.md order-of-work 1-2 (A1 catalog conflict, A2/A3 orphans).
 ** RETRACTION **  1936 IS NOT AN EMPTY SHELL. Entry "GRVI IS NOT COMPARABLE ACROSS SENSORS

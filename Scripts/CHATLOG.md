@@ -696,10 +696,28 @@ measure: ACTIVE WORKSTREAM (opened 2026-08-17). PLAN = Scripts/honest-measuremen
          measured that a recipe change moved 2013 by 22 points, so a mixed-recipe ranking is
          not interpretable. To compare, re-score the older years' _citywide_rgb rasters
          (they exist) on this same reference.
-         NOTE also that "recall tracks GSD" (result 7d) does NOT survive naively here: 2000
-         at 40 cm true (.6749) beats 2005 at 20 cm (.6346). That may be the recipe confound
-         rather than a real reversal — which is exactly why the recipe-matched re-score is
-         the next thing to run, not a new resolution claim.
+         ---- RECIPE-MATCHED SERIES (2026-08-19) — ONE RECIPE, ONE REFERENCE ----
+         Ran the re-score rather than writing the reversal claim. ALL _citywide_rgb, ALL vs
+         the FULL-coverage ref, forest_wetland, tool-chosen threshold:
+             year  TRUE gsd  recall  precision
+             2000    40.1cm  .5480     .8534
+             2002    40.1cm  .6136     .8372
+             2005    20.1cm  .6346     .9166
+             2007    20.1cm  .6605     .8813
+             2009    20.1cm  .6048     .9177   <- highest precision in the project
+             2013    10.0cm  .7422     .8672
+         ** RESULT (7d) IS VINDICATED, NOT REVERSED. ** Once recipe is held constant the
+         trend is clean: 40 cm ~ .58 · 20 cm ~ .63 · 10 cm .74. The apparent reversal in the
+         mixed-recipe table WAS the confound, exactly as suspected — which is why the rule
+         is to re-score rather than to reason about it.
+         ** AND THE RECIPE EFFECT IS LARGE AND YEAR-SPECIFIC: ** same year, same reference,
+         only the training recipe differs —
+             2000  xsensor .6749  vs  citywide .5480   -> xsensor BETTER by 12.7 pp
+             2002  xsensor .5580  vs  citywide .6136   -> citywide BETTER by  5.6 pp
+         Opposite directions. So there is NO globally better recipe, and no cross-year table
+         mixing them means anything. This is the third independent measurement of the same
+         hazard (7b moved 2013 by 22 pp; this moves 2000 by 12.7 pp in the other direction).
+         PENDING: 2015 _citywide_rgb re-score running, to complete the 10 cm pair.
          ** QUOTE THE FULL-REF COLUMN. ** Precision rose in ALL SIX years. Complete.
          ** THE ASYMMETRY IS THE FINDING, AND IT IS NOW 5-FOR-5: ** every year with 100%
          imagery coverage got BETTER (2000 +4.5, 2002 +5.1, 2013 +3.0, 2015 +4.1, 2017

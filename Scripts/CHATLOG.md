@@ -682,6 +682,49 @@ measure: ACTIVE WORKSTREAM (opened 2026-08-17). PLAN = Scripts/honest-measuremen
          CAVEAT: the sweep samples pixels the 2020 MASK calls canopy, so it inherits that
          mask's conifer bias — which biases AGAINST detecting leaf-off, making 2015's 31.22%
          a floor rather than an estimate.
+         ════ SCRATCHPAD RECOVERED AND THREE CLAIMS RE-RUN — 2026-08-19 ════
+         The lit-watch session was NOT stopped after all; Kam had it commit its scratchpad.
+         229 files now at Scripts/litwatch_scratch/ (commit d88a36b). I amended that commit
+         to drop pts.npz + rg_cache.npz — 13 of its 14 MB, both regenerable caches
+         (sampler.build_points is a deterministic np.linspace grid, no randomness despite its
+         seed arg). Repo stays 1.33 MiB packed. SUGGEST adding *.npz to .gitignore beside the
+         existing *.tif/*.pt/*.parquet "must never sneak in" list.
+         ** I RE-RAN THREE CLAIMS FROM THE RECOVERED CODE. ALL THREE REPRODUCE EXACTLY. **
+           cast2.py    GRVI cross-sensor cast — every figure matches, incl. the decisive pair
+                       2019 KING -0.0182 / frac .1146 vs 2019 NAIP +0.1779 / .8919, and the
+                       King drift .8027 (2000) -> .3463 (2013) -> .1146 (2019). Also confirms
+                       1936 is a single-band constant (mean 253.0) and 1998 single-band.
+           q138b.py    effective resolution — all 11 rows match: 1998 244.7 cm (6.10x),
+                       2005 80.7 (4.02x), 2000 110.8 (2.76x), the other 8 at 1.26-1.42 px.
+           overhang.py on-building split — 23,666 buildings, 12,271 cells, AT-roof 29.77%,
+                       ABOVE-roof 68.43%, median delta +2.10 m. Exact.
+         => ** UPGRADE THE AUDIT. ** My earlier "treat every figure as unverified" was right
+         WHEN THE CODE WAS MISSING and is now too harsh: for the three highest-value claims
+         the code exists and reproduces to the digit. Remaining figures are UNRE-RUN, not
+         unreproducible — the scripts are there, so anything can be checked before use.
+         CONSEQUENCES FOR MY OWN RESULTS:
+         (a) The result-(17) WITHDRAWAL IS CONFIRMED CORRECT. The GRVI cast is real and
+             measured, so the cross-year leaf-off ranking genuinely could not carry it.
+         (b) MY RESOLUTION FINDING NEEDS QUALIFYING, not withdrawing. Recall vs EFFECTIVE
+             resolution: 13.7cm .7422 · 12.9 .7401 · 25.5 .6605 · 26.1 .6048 · 57.1 .6136 ·
+             80.7 .6346 · 110.8 .5480. The EXTREMES still separate (~19 pp from 13 cm to
+             111 cm) but the MIDDLE IS NOT MONOTONE — 2005 at 80.7 cm beats 2009 at 26.1 cm.
+             So nominal tiers made the trend look cleaner than it is. Resolution is real at
+             the extremes; the mechanism in the middle is unexplained (their three attempts —
+             nominal GSD, spectral sharpness, effective resolution — all failed).
+         (c) OPERATIONAL, AND IT EXPLAINS MY SLOW NIGHT: cast2.py's docstring records that
+             NOTHING in this project has overviews, so a decimated whole-raster read silently
+             reads the entire multi-GB file. That is why my qc_indep rescores took 30-60 min
+             each. BUILDING OVERVIEWS (gdaladdo) would speed every full-raster QC tool here.
+         (d) NOT verified: the headline 88-93% "real miss". overhang.py reproduces the
+             ON-BUILDING SPLIT that feeds it, not the whole chain. Re-run the rest before
+             quoting that number.
+         DO NOT RUN upd*.py / chat*.py / entry*.py / append.py — they are WRITERS that append
+         to litwatch_robustness.md, CHATLOG.md and Literature_Tracker.xlsx. Re-running them
+         duplicates entries. Superseded buggy versions are kept on purpose: q138.py has the
+         np.interp monotonicity bug, cast.py predates the windowed rewrite, q121/q121b predate
+         the streaming rewrite. Use q138b / cast2 / q121c.
+
          ════ LIT-WATCH INTAKE (2026-08-19) — READ THIS BEFORE TRUSTING RESULTS 1-17 ════
          SOURCE: Scripts/litwatch_robustness.md, 4,660 lines, searches 15-45+, IDs 106-178+,
          written by the now-STOPPED parallel session. STATUS OF ITS NUMBERS: the empirical

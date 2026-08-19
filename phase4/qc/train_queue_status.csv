@@ -46,4 +46,15 @@ job,year,tag,step,state,exit,minutes,detail,ts
 2023,2023,citywide_rgb,tile,OK,0,12.8,,2026-08-19 10:59:44
 2023,2023,citywide_rgb,train,OK,0,35.9,,2026-08-19 11:12:34
 2023,2023,citywide_rgb,evaluate,OK,0,5.4,,2026-08-19 11:48:28
-2023,2023,citywide_rgb,inference,RUNNING,,,,2026-08-19 11:53:53
+2023,2023,citywide_rgb,inference,OK,0,99.5,,2026-08-19 11:53:53
+2023,2023,citywide_rgb,VERIFY,OK,,,2450MB valid=89.6% maxprob=0.953,2026-08-19 13:34:06
+2024,2024,citywide_rgb,labels,OK,0,0.1,,2026-08-19 13:34:07
+2024,2024,citywide_rgb,tile,OK,0,24.0,,2026-08-19 13:34:12
+2024,2024,citywide_rgb,train,RUNNING,,,,2026-08-19 13:58:14
+2005,2005,citywide_rgb,VERIFY,OK,,,522MB valid=100.0% maxprob=0.843,2026-08-19 19:35:31
+2007,2007,citywide_rgb,VERIFY,OK,,,496MB valid=100.0% maxprob=0.882,2026-08-19 19:35:38
+2009,2009,citywide_rgb,VERIFY,OK,,,514MB valid=94.8% maxprob=0.874,2026-08-19 19:35:43
+2021k,2021,citywide_rgb,VERIFY,OK,,,2281MB valid=89.6% maxprob=0.925,2026-08-19 19:35:48
+2023,2023,citywide_rgb,VERIFY,OK,,,2450MB valid=89.6% maxprob=0.953,2026-08-19 19:36:11
+2024,2024,citywide_rgb,train,INTERRUPTED,sigint,0.7,stray SIGINT (likely a dropped Colab websocket); will retry,2026-08-19 19:36:34
+2024,2024,citywide_rgb,train,RUNNING,,,,2026-08-19 19:37:18

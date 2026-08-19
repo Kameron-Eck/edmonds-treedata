@@ -1,5 +1,51 @@
 # Lit-watch — Robust Modelling Across Historical + Present Imagery
 
+> ## ✅ CLOSED 2026-08-19. Do not reopen as a standing loop.
+>
+> **Why closed:** the QUEUE below is now dominated by MEASUREMENT and ENGINEERING items,
+> not reading. The literature has hit diminishing returns — the last several searches
+> confirmed existing choices rather than changing them. What remains is work on our own
+> imagery, and that does not need a lit-watch to proceed.
+>
+> **What was verified before closing.** Four claims were re-run from the recovered
+> scratchpad (`Scripts/litwatch_scratch/`, 229 files). **All four reproduce exactly:**
+> `cast2.py` (GRVI cross-sensor cast), `q138b.py` (effective resolution), `overhang.py`
+> (on-building split), `q136.py` (area-estimator bias). The empirical work here is sound
+> where it has been checked; figures not listed are un-re-run rather than unreproducible.
+>
+> **The one fix worth adopting** — Q136, and it is the highest-value item this loop
+> produced: **map-count area is threshold-sensitive by up to 17.3 pp** (33.56% at 0.30 down
+> to 16.24% at 0.70) and sits **−5.71 pp** at the deployed 0.5. The Edmonds policy debate
+> turns on a 2.6 pp gap (32.4% baseline vs 35% goal), so the estimator's bias is **more than
+> twice the entire policy-relevant difference**. The Olofsson stratified reference-sample
+> estimator is threshold-free, already documented here, and unbiased in simulation.
+> Adoption is Kam's call; `phase3_semantic_dev.py:1722` is the site.
+>
+> **The joint sample-size answer, which neither session had alone.** Required n depends on
+> which question is being asked, and the two answers differ by 5x:
+> * arbitrating the **reference definitions** (a 8.24 pp gap) — **n=250 suffices**, power
+>   ~1.0 at ≤5% interpreter error (`phase4_qc_design_power.py`, CHATLOG result 6)
+> * estimating the **policy number** (a 2.6 pp gap) — **n=250 fails**; ±4.42 pp half-width
+>   cannot separate 32.4% from 35%. **~1,221 points/yr** for ±2.0 pp, and a year-to-year
+>   CHANGE needs more (Q136)
+> Both are verified. Do not quote one budget as though it settled the other.
+>
+> **What stays open, and where it goes:**
+> * **Q1 = U1, the written canopy definition.** Both threads independently ended here. It is
+>   a human judgment call. → `Scripts/canopy_definition_PROPOSAL.md`
+> * **Q139 — is the softness ours?** Every King file is EPSG:3857 and reprojection blurs.
+>   2000 is 2.8x oversampled and 2005 4.0x; if that was introduced by our mosaicking,
+>   native-projection sources recover detail no retraining can. Cheap to check, high payoff.
+> * **Q140 — what explains the 2000/2002 deficit?** Nominal GSD, spectral sharpness and
+>   effective resolution have all failed. Three failed explanations is a signal to look at
+>   the imagery rather than guess a fourth.
+> * **Channel ablation (Q98/Q135)** — needs GPU; everything else on that question is
+>   circumstantial by construction.
+>
+> **Read this file for its literature, not its ledger.** DOIs verified against Crossref, an
+> explicit inclusion bar, covered/queued discipline. The `upd*/chat*/entry*/append*` scripts
+> in the scratchpad are WRITERS — re-running them duplicates entries here.
+
 **Opened:** 2026-08-18 · **Driver:** `/loop` every 10 min (cron `*/10 * * * *`, session-only,
 job `19154a11`, auto-expires after 7 days).
 **Standing task:** deep-dive for new information on ML with historical and present imagery;

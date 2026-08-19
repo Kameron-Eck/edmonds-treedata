@@ -706,8 +706,15 @@ measure: ACTIVE WORKSTREAM (opened 2026-08-17). PLAN = Scripts/honest-measuremen
              2007    20.1cm  .6605     .8813
              2009    20.1cm  .6048     .9177   <- highest precision in the project
              2013    10.0cm  .7422     .8672
+             2015    10.0cm  .7401     .8823
          ** RESULT (7d) IS VINDICATED, NOT REVERSED. ** Once recipe is held constant the
-         trend is clean: 40 cm ~ .58 · 20 cm ~ .63 · 10 cm .74. The apparent reversal in the
+         trend is clean and the within-tier agreement is tight:
+             40 cm  .5480 .6136          mean .581
+             20 cm  .6346 .6605 .6048    mean .633
+             10 cm  .7422 .7401          mean .741   <- 0.2 pp apart, different sensors/years
+         Resolution is a REAL driver worth ~16 pp of recall across 40->10 cm, and the 10 cm
+         pair agreeing to 0.2 pp across two different years is the strongest within-tier
+         replication in the project. The apparent reversal in the
          mixed-recipe table WAS the confound, exactly as suspected — which is why the rule
          is to re-score rather than to reason about it.
          ** AND THE RECIPE EFFECT IS LARGE AND YEAR-SPECIFIC: ** same year, same reference,
@@ -717,7 +724,8 @@ measure: ACTIVE WORKSTREAM (opened 2026-08-17). PLAN = Scripts/honest-measuremen
          Opposite directions. So there is NO globally better recipe, and no cross-year table
          mixing them means anything. This is the third independent measurement of the same
          hazard (7b moved 2013 by 22 pp; this moves 2000 by 12.7 pp in the other direction).
-         PENDING: 2015 _citywide_rgb re-score running, to complete the 10 cm pair.
+         2015 also swings by recipe: xsensor .6629 vs citywide .7401 = citywide better by
+         7.7 pp — a THIRD direction-and-magnitude, reinforcing that recipe is year-specific.
          ** QUOTE THE FULL-REF COLUMN. ** Precision rose in ALL SIX years. Complete.
          ** THE ASYMMETRY IS THE FINDING, AND IT IS NOW 5-FOR-5: ** every year with 100%
          imagery coverage got BETTER (2000 +4.5, 2002 +5.1, 2013 +3.0, 2015 +4.1, 2017

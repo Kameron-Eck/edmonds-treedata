@@ -1,9 +1,30 @@
 """
-pipeline_config.py — Single source of truth for all pipeline paths and catalog
+pipeline_config.py — LEGACY paths + FROZEN legacy catalog. NOT authoritative.
 ===============================================================================
-Every script imports from here. Change a path once, it propagates everywhere.
+DO NOT ADD YEARS HERE. The authoritative imagery catalog is
 
-USAGE:
+    phase4seg/config.py : YEAR_CATALOG          <-- one home for the catalog
+    phase4seg/config.py : imagery_roots()       <-- one home for path resolution
+
+This file used to call itself the "single source of truth" while omitting every
+pre-2013 acquisition, so `raw_path(2000)` raised KeyError even though 2000 is a
+catalog year the engine trains on. Two files claiming one fact is the bug the
+repo's one-fact-one-home rule exists to prevent; demoted 2026-08-19 per
+IMAGERY_PLAN.md A1.
+
+WHAT IS STILL LIVE HERE
+    The DIRECTORY constants (DRIVE_BASE, IMAGERY_DIR, SOURCE_DIRS, ...) — the
+    Phase-0/1 download and registration scripts in `_archive/scripts/` import
+    them. Those are the only remaining importers.
+
+WHAT IS FROZEN
+    IMAGERY_CATALOG / SOURCE_CODES / TARGET_YEARS / SUPPLEMENTAL_YEARS and the
+    raw_path/registered_path/upsampled_path helpers. Kept verbatim so the
+    archived scripts still parse. They cover 2013+ only and will not be updated.
+    New code must read YEAR_CATALOG and resolve through config.imagery_roots();
+    `phase4_catalog_check.py` tests that every entry there resolves and opens.
+
+USAGE (paths only — for the catalog, import phase4seg.config):
     import sys
     sys.path.insert(0, "/content/drive/MyDrive/treedata/Scripts")
     from pipeline_config import (
@@ -45,7 +66,10 @@ REVIEW_DIR      = DRIVE_BASE / "review_data"
 CLIPS_DIR       = DRIVE_BASE / "clips"
 SCRIPTS_DIR     = DRIVE_BASE / "Scripts"
 
-# ── Imagery catalog ───────────────────────────────────────────
+# ── Imagery catalog — FROZEN LEGACY, 2013+ ONLY ───────────────
+# NOT the catalog. See phase4seg/config.py:YEAR_CATALOG (18 acquisitions,
+# 2000-2024, with measured gsd_cm / bands / crs / coverage). This dict is kept
+# only so the archived Phase-0/1 scripts still import. Do not add years.
 # Maps catalog key → filename in IMAGERY_DIR (Pipeline Imagery/)
 # Keys:
 #   int  = standard year, single source (CoE or King County)

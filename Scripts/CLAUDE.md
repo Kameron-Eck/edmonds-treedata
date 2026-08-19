@@ -35,6 +35,10 @@ matter before editing:
 - **Schedule / decision gates →** `edmonds_combined_workplan.xlsx`.
 - **Active plan →** the one plan file named in CHATLOG STATE.
 - **The script being edited →** always read it before patching.
+- **Imagery catalog + path resolution →** `phase4seg/config.py`: `YEAR_CATALOG` and
+  `imagery_roots()`. `pipeline_config.py`'s catalog is frozen legacy (2013+ only) and is
+  NOT authoritative — it kept a stale copy of this fact until 2026-08-19. Test with
+  `py -3.12 phase4_catalog_check.py`.
 
 **One fact, one home.** Each fact has exactly one authoritative location; every other
 doc *links* to it rather than restating it. A fact written authoritatively in two places
@@ -77,7 +81,8 @@ source files, ask before assuming.**
 │   ├── phase4_viz.py / phase4_qa_overlay.py / phase4_threshold_diagnostic.py
 │   ├── phase3_make_segmentation_png.py   ← Phase 3 proof-of-concept figure (RGB|GT|prob|overlay grid)
 │   ├── version_script.py                 ← RETIRED versioning helper (git replaced it)
-│   ├── pipeline_config.py                ← shared paths + imagery catalog (import, don't hardcode)
+│   ├── pipeline_config.py                ← LEGACY paths only; catalog FROZEN (archived scripts)
+│   ├── phase4_catalog_check.py           ← tests every YEAR_CATALOG entry resolves + opens + band count
 │   ├── pipeline_log.py                   ← write_step_log() / StepLogger
 │   ├── run_registry.csv                  ← one row per Colab run (see rule 9)
 │   ├── sentinel_sites.json / phase4_sentinel_snap.py   ← fixed-site visual progress snapshots

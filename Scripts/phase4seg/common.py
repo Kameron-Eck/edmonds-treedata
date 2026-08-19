@@ -90,13 +90,20 @@ def entry_for(label):
 
 
 def resolve_native_path(entry):
-    """Locate the year's native ortho, trying the phase2 native/ dir then root."""
-    for d in (NATIVE_DIR, IMAGERY_DIR):
+    """Locate the year's native ortho via the ONE resolution order.
+
+    The root list lives in config.imagery_roots() (IMAGERY_PLAN.md A5) so the
+    engine and the local QC scripts cannot disagree about which copy of a year
+    they are reading. On Colab the order is unchanged: native/ then the
+    "Pipeline Imagery" root.
+    """
+    roots = config.imagery_roots() or [NATIVE_DIR, IMAGERY_DIR]
+    for d in roots:
         p = d / entry["native_file"]
         if p.exists():
             return p
-    # Return the canonical (native/) path even if missing, for clear error text.
-    return NATIVE_DIR / entry["native_file"]
+    # Return the canonical first-root path even if missing, for clear error text.
+    return roots[0] / entry["native_file"]
 # ── Local SSD staging (phase1 pattern) ────────────────────────────────────────
 
 def _stage_imagery_local(src_path):

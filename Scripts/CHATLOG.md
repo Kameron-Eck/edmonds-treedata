@@ -990,6 +990,43 @@ gotcha:  scripts Colab-only for torch (rasterio+geopandas+fiona+sklearn now pip-
 
 ════════════════ LOG  (newest first) ════════════════
 
+## 2026-08-19  ** 1936 IS REAL IMAGERY ** + catalog conflict resolved (IMAGERY_PLAN A1/A3/A5)
+goal:    execute IMAGERY_PLAN.md order-of-work 1-2 (A1 catalog conflict, A2/A3 orphans).
+** RETRACTION **  1936 IS NOT AN EMPTY SHELL. Entry "GRVI IS NOT COMPARABLE ACROSS SENSORS
+         + 1936 is an empty file" said "CONTAINS NO IMAGE DATA OVER EDMONDS", from 9 constant
+         probe windows. WRONG. Full-extent decimated read: 89.9% fill (253/0/255), 10.1% REAL
+         panchromatic photography in the SOUTHERN QUARTER. Content band starts 74.8% down the
+         file (row 20094 of 26880) - below every probe. Rendered it: shoreline, street grid,
+         forest stands, lake, field boundaries. Content bbox = 24.4% OF STUDY AREA,
+         lat 47.768-47.792. Prize is 1936, not 1998 - 64 yrs before current earliest year.
+         METHOD RULE: a scattered-window probe proves content EXISTS, never that it is ABSENT.
+         Answer "nothing here" -> render whole extent before believing it. Second time this bit.
+did:     A1 catalog conflict RESOLVED. phase4seg/config.py:YEAR_CATALOG authoritative.
+         pipeline_config.py DEMOTED - docstring rewritten, IMAGERY_CATALOG frozen+labelled
+         (2013+ only, its KeyError on raw_path(2000) was the bug). Only importers are
+         _archive/scripts/, they still parse. Pointers fixed in CLAUDE.md + buildtracker.
+         NEW phase4_catalog_check.py - resolves every entry thru the one resolution order,
+         opens it, asserts on-disk BAND COUNT + EPSG vs catalog, lists ortho orphans, probes
+         constant fill. 18/18 PASS. exit 1 on failure so it can gate a run.
+         A5 ONE HOME: config.imagery_roots() defines root order, common.resolve_native_path()
+         reads it. Colab order UNCHANGED (native/ -> root); local = D: mirror -> Drive.
+         A3 renamed on D: 1936_king_rgb.tif -> 1936_king_pan.tif, 1998_king_rgb.tif ->
+         1998_king_pan.tif. Single-band despite _rgb. Nothing referenced either name.
+** NEW DEFECT **  D: MIRROR IS PARTIAL - holds King/Snoh/NAIP years, NONE of the 4 CoE orthos
+         (2017/2020/2022/2024, ~127 GB). phase4_data_inventory.py scans ONLY D:. So the CoE
+         acquisitions - INCLUDING 2020, THE ONE LABELLED YEAR - have NEVER been characterised
+         by the inventory. Every "measured from the file" number for those 4 needs re-checking.
+         ALSO: native/ does not exist at all (not empty - absent). Every lookup always fell
+         through to the root.
+decided: keep 1936 (real data). quarantine nothing - measurement beat assumption.
+killed:  "1936 is an empty shell / delete it" - refuted, see RETRACTION.
+files:   phase4seg/config.py (imagery_roots) · phase4seg/common.py (resolve_native_path) ·
+         pipeline_config.py (demoted) · phase4_catalog_check.py (NEW) · CLAUDE.md ·
+         pipeline_buildtracker.md · IMAGERY_PLAN.md (A1/A3 done, A2 table corrected)
+next:    IMAGERY_PLAN order 3 (B2 overviews - use gdaladdo -ro, external .ovr, do NOT mutate
+         Drive originals) then 4 (B1 merged inventory - MUST cover both roots, not just D:).
+         Open: A2 disposition for 2012_king + 2017_king; A4 dates (external).
+
 ## 2026-08-19  ** THE MODEL IS BETTER THAN ITS NUMBERS ** - calibration, not capability, is binding
 ** [AUDIT 2026-08-19 by the other session — READ BEFORE QUOTING ANY NUMBER BELOW] **
 ** THE CODE BEHIND THIS ENTRY NO LONGER EXISTS AND ITS NUMBERS CANNOT BE REPRODUCED. **

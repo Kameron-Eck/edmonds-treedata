@@ -29,7 +29,7 @@ of one acquisition date. It is currently **untestable** because no raster carrie
 Nothing here is modelling. It is finding out what is on disk and making one place tell the
 truth about it.
 
-### A1. Resolve the catalog conflict *(blocking — do first)*
+### A1. Resolve the catalog conflict *(blocking — do first)*  ✅ **DONE 2026-08-19**
 
 Two files both claim to be the imagery catalog and they disagree. The one whose comment says
 "single source of truth" is the wrong one: it contains no pre-2013 year at all, so
@@ -45,12 +45,12 @@ On disk, not in the catalog, not used by anything:
 
 | file | status | disposition |
 |---|---|---|
-| `1936_king_rgb.tif` | **empty shell** — uniform 253/0 fill, King County survey does not reach into Snohomish | **delete or quarantine.** It is not imagery |
-| `1998_king_rgb.tif` | real, **single-band**, whole-city, same grid as 2000 | keep; candidate panchromatic pilot, but see A4 |
+| `1936_king_pan.tif` | ~~empty shell~~ **WRONG — measured 2026-08-19.** 89.9% fill (253/0/255) but **10.1% is real imagery**, confined to the southern strip; content bbox covers **24.4% of the study area**. **Visually confirmed** — shoreline, street grid, forest stands, a lake, field boundaries. The King County survey does stop at the county line; it clips the *south edge* of Edmonds rather than missing it | **KEEP.** Do not delete: genuine 1936 panchromatic aerial photography, 64 years before the current earliest year. Single-band → renamed `_pan` |
+| `1998_king_pan.tif` | real, **single-band**, whole-city, same grid as 2000 | keep; candidate panchromatic pilot, but see A4. Renamed `_pan` |
 | `2017_king_rgb.tif` | real, 14.93 cm — **a second, different 2017** | **keep — this is the experiment**, see C1 |
 | `2012_king_rgb.tif` | real, on Drive, uncatalogued | assess and adopt or archive |
 
-### A3. Fix the filename lie
+### A3. Fix the filename lie  ✅ **DONE 2026-08-19**
 
 `1936` and `1998` are **single-band** despite `_rgb` filenames. Any tool that assumes three
 bands from the name will silently misread them. Rename to `_pan`, or record band count in the
@@ -169,6 +169,51 @@ matters — was the 2020 labelling imagery leaf-off, and did that create the con
 
 **Do not** run any cross-sensor greenness comparison. The cast drifts .80 → .11 across the
 King series from processing alone, which is larger than any plausible phenological effect.
+
+---
+
+## What landed — 2026-08-19
+
+**A1 catalog conflict — resolved.** `phase4seg/config.py:YEAR_CATALOG` is authoritative;
+`pipeline_config.py` demoted to legacy paths with its catalog frozen and labelled (its only
+importers are `_archive/scripts/`, which still parse). Pointers updated in `CLAUDE.md` and
+`pipeline_buildtracker.md`.
+
+**The test exists:** `phase4_catalog_check.py`. Resolves every entry through the one
+resolution order, opens it, and asserts on-disk **band count** and **EPSG** against the
+catalog — so A3's "filename is a claim, band count is a measurement" is now enforced, not
+just documented. **18/18 entries pass.** It also lists ortho orphans and probes for
+constant fill. Exit code 1 on any failure, so it can gate a run.
+
+**A5 resolution order — one home.** `config.imagery_roots()` now defines the ordered root
+list and `common.resolve_native_path()` reads it (Colab order unchanged: `native/` → root;
+locally `D:` mirror → Drive). Two findings the check surfaced immediately:
+
+- **`native/` does not exist at all** — not empty, absent. Every lookup has always fallen
+  through to the root.
+- **The D: mirror is partial.** It holds the King/Snohomish/NAIP years but **none of the
+  four City of Edmonds orthos** (2017/2020/2022/2024, ~127 GB), which resolve to Drive.
+  `phase4_data_inventory.py` scans **only D:** — so the CoE acquisitions, *including 2020,
+  the one labelled year*, have **never been characterised** by the inventory. Every
+  "measured from the file" number the project has for those four years needs re-checking.
+
+**A2 — the 1936 disposition was wrong, and so was the CHATLOG finding it came from.**
+The 2026-08-19 log entry recorded 1936 as "an EMPTY SHELL … CONTAINS NO IMAGE DATA OVER
+EDMONDS", from nine constant probe windows. A full-extent decimated read plus a rendered
+crop shows **real 1936 panchromatic photography across the southern quarter** — 89.9% of
+the canvas is fill, but the remaining 10.1% is imagery, covering 24.4% of the study area
+(lat 47.768–47.792). The nine probes missed it because the content band starts 74.8% of the
+way down the file. **Do not delete it.** See the corrected table above.
+
+Method note, because this is the second time it has bitten: a scattered-window probe can
+prove content EXISTS but never proves it is ABSENT. When the answer is "nothing here",
+render the whole extent before believing it.
+
+**A3 — renamed on the D: mirror:** `1936_king_rgb.tif` → `1936_king_pan.tif`,
+`1998_king_rgb.tif` → `1998_king_pan.tif`. Nothing referenced either name.
+
+**Still open in Phase A:** A2 dispositions for `2012_king_rgb.tif` (on both roots) and
+`2017_king_rgb.tif` (D: only — the C1 experiment), and A4 acquisition dates (external).
 
 ---
 

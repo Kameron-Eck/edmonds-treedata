@@ -61,6 +61,35 @@ LOCAL_SCRATCH = Path("/content/phase4_scratch")
 
 CROWN_CRS     = "EPSG:3857"   # the hand-traced crowns / training photos live here
 
+# ── Imagery resolution order — ONE HOME (IMAGERY_PLAN.md A5) ──────────────────
+# A catalog entry names a FILE, not a path. Every consumer — the Colab engine and
+# the local QC/diagnostic scripts alike — resolves that filename through the
+# ordered root list below; the first existing root that holds the file wins.
+#
+# Why this is centralised: local QC preferred D:\edmonds-pipeline\Imagery while
+# the engine read Drive, and NATIVE_DIR ("native/") does not exist at all, so
+# every lookup silently fell through to the Drive root. Two runs could therefore
+# read different pixels for the same year and nothing would say so. Callers MUST
+# record WHICH root they opened (see phase4_catalog_check.py) — a silent
+# cross-root fallback is the bug this ordering exists to make visible.
+#
+# NOTE: the D: mirror is PARTIAL — it holds the King/Snohomish/NAIP years but
+# none of the four City of Edmonds orthos (2017/2020/2022/2024, ~127 GB), which
+# resolve to Drive. Measured 2026-08-19.
+LOCAL_MIRROR_DIR = Path(r"D:\edmonds-pipeline\Imagery")
+LOCAL_DRIVE_DIR  = Path(r"G:\My Drive\treedata\Full_Image\Pipeline Imagery")
+
+
+def imagery_roots():
+    """Ordered imagery roots for this machine; first existing root wins.
+
+    On Colab: NATIVE_DIR -> IMAGERY_DIR (unchanged from the original
+    resolve_native_path order). Locally: the fast D: mirror -> the Drive mount.
+    """
+    if BASE.exists():                     # Colab / anywhere the Drive base mounts
+        return [NATIVE_DIR, IMAGERY_DIR]
+    return [d for d in (LOCAL_MIRROR_DIR, LOCAL_DRIVE_DIR) if d.exists()]
+
 
 # ── Hyperparameters (Method Pipeline v5.0 "Fine-Tuning" block) ────────────────
 

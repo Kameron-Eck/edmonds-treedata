@@ -143,7 +143,7 @@ results. What matters structurally:
 | `phase4seg_preflight.py` / `phase4seg_smoke.py` | Local static + CPU-runtime validation before a Colab round-trip |
 | `phase4_viz.py` / `phase4_qa_overlay.py` / `phase4_threshold_diagnostic.py` | Diagnostics / QA overlays |
 | `phase4_label_review.py` / `_prep.py` | Crown-review web tool (review never completed) |
-| `pipeline_config.py` / `pipeline_log.py` | Shared paths + imagery catalog / step logging |
+| `pipeline_config.py` / `pipeline_log.py` | Shared paths (catalog FROZEN legacy — see `phase4seg/config.py:YEAR_CATALOG`) / step logging |
 | `version_script.py` | RETIRED — git replaced it (kept as a frozen pre-git archive) |
 
 ---

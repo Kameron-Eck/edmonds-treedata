@@ -1,0 +1,25 @@
+partition,measure,band_lo_m,band_hi_m,rate,called,not_called
+both_canopy,recall,0,2,0.1608,186,971
+both_canopy,recall,2,5,0.201,58837,233915
+both_canopy,recall,5,10,0.4181,335349,466726
+both_canopy,recall,10,15,0.622,472037,286843
+both_canopy,recall,15,20,0.7668,611076,185888
+both_canopy,recall,20,25,0.8535,686118,117803
+both_canopy,recall,25,30,0.8971,651134,74649
+both_canopy,recall,30,100,0.9404,1244976,78936
+ccap_only,call rate,0,2,0.1378,4872,30493
+ccap_only,call rate,2,5,0.0103,1258,121117
+ccap_only,call rate,5,10,0.028,6528,226517
+ccap_only,call rate,10,15,0.0789,10179,118866
+ccap_only,call rate,15,20,0.1406,11227,68647
+ccap_only,call rate,20,25,0.1831,9462,42210
+ccap_only,call rate,25,30,0.2013,6495,25773
+ccap_only,call rate,30,100,0.2677,8096,22144
+ndvi_only,call rate,0,2,0.061,683,10507
+ndvi_only,call rate,2,5,0.0855,84569,904812
+ndvi_only,call rate,5,10,0.1728,142650,682701
+ndvi_only,call rate,10,15,0.2685,76411,208205
+ndvi_only,call rate,15,20,0.4425,61236,77135
+ndvi_only,call rate,20,25,0.5835,51663,36870
+ndvi_only,call rate,25,30,0.6913,39722,17738
+ndvi_only,call rate,30,100,0.7764,41696,12005

@@ -1,0 +1,3 @@
+year,zone,n,share_of_imaged,ndvi_p10,ndvi_p50,ndvi_p90,frac_ndvi_neg,frac_ndvi_ge_0.2,frac_ndvi_ge_0.25,frac_ndvi_ge_0.3
+2016,has_chm,17587495,0.8348,-0.0685,0.2107,0.6479,0.1958,0.5089,0.4731,0.4384
+2016,no_chm,3479418,0.1652,-0.44,-0.3571,-0.3103,0.9977,0.0014,0.0012,0.001

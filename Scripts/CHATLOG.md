@@ -386,10 +386,20 @@ measure: ACTIVE WORKSTREAM (opened 2026-08-17). PLAN = Scripts/honest-measuremen
          drops isolated crowns BY KIND (McCombs 2016 ID 77 — 3x3 unit, 6-of-9 rule). The gap
          is part threshold (ours to choose) + part unit-of-analysis (not ours). Do not keep
          saying a threshold choice reconciles the two references.
-         (d) CAVEAT ON ALL OF IT: the rule needs a CHM, so no-CHM pixels are FORCED
-         non-canopy. Measured: 17,587,495 / 21,066,144 valid cells have CHM -> ~16.5% of the
-         analysis area is decided by ABSENCE OF LIDAR, not by the definition. Every % above
-         is a LOWER BOUND. Unverified assumption (STATE): the uncovered strip is water/margin.
+         (d) CAVEAT ON ALL OF IT — RAISED AND THEN CLOSED THE SAME DAY. The rule needs a CHM,
+         so no-CHM pixels are FORCED non-canopy: 17,587,495 / 21,066,144 valid cells have CHM
+         -> 16.5% of the analysis area decided by ABSENCE OF LIDAR. STATE had always ASSERTED
+         that strip is Puget Sound + S margin; NEW phase4_qc_chm_gap.py CHECKED it:
+           no-CHM zone : NDVI p50 -0.357 · 99.8% NEGATIVE NDVI · 0.1% green at any cut
+           has-CHM zone: NDVI p50 +0.211 · 19.6% negative · 43.8% green at NDVI>=.30
+         It is OPEN WATER. Counting EVERY green no-CHM px as canopy adds +0.02 pp. So the D1
+         table is a lower bound in principle and EXACT in practice — DO NOT apply a coverage
+         correction. STATE's assumption is now verified, not assumed. -> qc/chm_gap_2016.txt
+         What survives: a lidar-dependent definition CANNOT be applied pre-2016 (no coverage),
+         and this says nothing about CHM ACCURACY where it exists (that is U6, still open).
+         Also note the "~60% CHM coverage" figure in CLAUDE.md is of the RASTER; over the
+         IMAGED/analysis area it is 83.5%, and the remainder is water. Both true, different
+         denominators — quote the 83.5% when talking about the analysis area.
          ---- LITERATURE (37 papers, IDs 69-105, searches 9-14) — TWO CORRECTIONS TO ME ----
          FOODY 2010: I claimed raw scores overstate the model's faults. Direction depends on ERROR
          CORRELATION; ours are almost certainly correlated (labels + both refs all from interpreting

@@ -76,15 +76,19 @@ Three things this shows that were not obvious before:
 **Recommended: NDVI ≥ 0.30 AND height ≥ 3 m → canopy; green and 2–3 m → IGNORE. City
 canopy ≈ 31.97% (2016).**
 
-> **Caveat that rides with every number in this table.** The rule requires a CHM height, so
-> any pixel with **no CHM coverage is forced to non-canopy**. The latent-class run measured
-> that directly: 17,587,495 of 21,066,144 valid cells have CHM, so **~16.5% of the analysis
-> area is decided by absence of lidar rather than by the definition**. STATE holds that the
-> uncovered strip is mostly Puget Sound and the southern margin — i.e. genuinely non-canopy —
-> but that has never been verified. **Every figure above is therefore a lower bound**, and
-> quantifying the vegetated-but-no-CHM area is the one measurement that would tighten it.
-> A definition that leans on lidar also cannot be applied to years the lidar does not cover,
-> which is the whole pre-2016 record — see "what this does not decide".
+> **The CHM-coverage worry — RAISED, MEASURED, CLOSED (2026-08-18).** The rule requires a
+> CHM height, so a pixel with no lidar is forced to non-canopy by absence of data rather than
+> by the definition, and that is 16.5% of the analysis area. STATE had always *asserted* the
+> uncovered strip was Puget Sound and the southern margin; `phase4_qc_chm_gap.py` checked it.
+> The no-CHM zone is **99.8% negative NDVI** — open water — against 19.6% in the covered
+> zone, and only **0.1%** of it is green at any threshold. Counting every green no-CHM pixel
+> as canopy would raise city canopy by **+0.02 pp**. So the table above is a lower bound in
+> principle and an exact figure in practice; **no coverage correction is needed and none
+> should be applied.** (`phase4/qc/chm_gap_2016.txt`)
+>
+> What does *not* go away: a lidar-dependent definition cannot be applied to years the lidar
+> does not cover — the whole pre-2016 record. See "what this does not decide". And this says
+> nothing about whether the CHM is *accurate* where it exists, which is U6 and still open.
 Reason: this is *already* the de facto rule — `phase4_build_corrected_labels.py` uses
 NDVI≥.3 & CHM≥3 m → canopy and green 2–3 m → IGNORE. Adopting it makes the existing
 corrected labels consistent with the definition rather than requiring them to be rebuilt,

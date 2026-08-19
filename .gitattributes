@@ -1,5 +1,38 @@
+# ── Line endings ──────────────────────────────────────────────────────────
+# `* text=auto` was already here and is doing its job: `git ls-files --eol`
+# reports i/lf for every tracked file, so the repository is uniformly LF even
+# though the Windows working copy is CRLF. Left exactly as it was.
+#
+# It matters more here than in a normal repo because ONE PHYSICAL WORKING TREE
+# is served to two operating systems — Windows (Claude Code, editors) and
+# Colab/Linux (the torch steps) — through the Google Drive mount. Without
+# normalisation a commit made from Colab could flip a file to CRLF and the next
+# diff would show every line changed, burying the real edit.
+#
+# eol= is deliberately NOT set: that would rewrite the working copy on next
+# checkout, and the current setup is already correct. Do not "fix" this.
 *       text=auto
-*.py    text
+*.py    text diff=python
 *.md    text
-*.xlsx  binary
 *.ipynb text
+*.csv   text
+*.json  text
+*.txt   text
+
+# ── Binaries: never diff, never newline-convert ───────────────────────────
+# Extended 2026-08-18. Most of these are already ignored ("data that must never
+# sneak in"), but `git add -f` bypasses .gitignore, and newline conversion on a
+# forced add would SILENTLY CORRUPT a raster, a checkpoint or a GeoPackage.
+# Declaring them means that mistake cannot destroy data.
+*.xlsx    binary
+*.tif     binary
+*.tiff    binary
+*.pt      binary
+*.pth     binary
+*.parquet binary
+*.gpkg    binary
+*.pdf     binary
+*.png     binary
+*.jpg     binary
+*.jpeg    binary
+*.gdoc    binary

@@ -794,6 +794,29 @@ gotcha:  scripts Colab-only for torch (rasterio+geopandas+fiona+sklearn now pip-
 ════════════════ LOG  (newest first) ════════════════
 
 ## 2026-08-19  ** THE MODEL IS BETTER THAN ITS NUMBERS ** - calibration, not capability, is binding
+** [AUDIT 2026-08-19 by the other session — READ BEFORE QUOTING ANY NUMBER BELOW] **
+** THE CODE BEHIND THIS ENTRY NO LONGER EXISTS AND ITS NUMBERS CANNOT BE REPRODUCED. **
+         The entry's own files: line names q121c.py, q131b.py, q134.py, q135.py, sampler.py
+         (the 162,829-pt grid), cast2.py, chk1936.py as a "scratchpad, all READ-ONLY". Those
+         live OUTSIDE the repo and vanished when the session was stopped. `find` over the
+         whole tree returns none of them. So the 61% spread-reduction, the AUC-vs-proxy table
+         and the matched-call-rate recalls have NO surviving derivation.
+         STATUS: treat every number in this entry as UNVERIFIED. Not wrong — UNCHECKABLE.
+         Do not cite it as established, and do not build a decision on it. To promote any of
+         it, re-derive with a tracked script.
+         WHAT DOES SURVIVE, and is committed (58ee67c): the four QC scripts
+         (phase4_qc_leafoff / _turnover / _domain_cluster / phase4_build_ccap_city) and their
+         outputs. Those compile and their logic reads sound. Known defects, none fatal:
+         phase4_qc_leafoff.sample() computes `bounds` and never uses it; it rebuilds a
+         WarpedVRT over the whole ortho inside the window loop; and `can = m > 0` counts
+         255=IGNORE as canopy, which violates rule 6 but is HARMLESS on
+         edmonds_canopy_mask_2020.tif specifically because that raster holds only 0 and 1
+         (checked). It would silently corrupt any mask that does carry IGNORE.
+         ALSO CORRECTED: this session repeated the "61% reduction" figure in conversation as
+         if it were established, before checking it was reproducible. It was not.
+         The LITERATURE side is a different matter and is NOT in question — DOIs verified
+         against Crossref, an explicit inclusion bar, covered/queued discipline. Use
+         litwatch_robustness.md for its literature; do not inherit its measurements.
 scope:   loop iterations 73-77. Measurement + code reading. Nothing deployed, no plan edit.
 ** FINDING 1 - MOST OF THE CROSS-YEAR RECALL WANDER IS THE OPERATING POINT (Q121). **
          One recipe (_citywide_rgb), one reference (C-CAP), one footprint (161,052 pts, 98.9%),

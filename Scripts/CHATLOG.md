@@ -231,7 +231,9 @@ measure: ACTIVE WORKSTREAM (opened 2026-08-17). PLAN = Scripts/honest-measuremen
            4. Scripts/pipeline_architecture.html (self-contained; open in a browser)
          PHASE STATUS
            P1 DONE · P2 DONE + replicated x4 · P4 dashboard + height plot DONE
-           P4 REMAINING: sentinel TP/FN/FP site overlays (needs footprint resolution from photos/)
+           P4 DONE 2026-08-18: sentinel TP/FN/FP overlays landed (phase4_sentinel_qc_overlay.py).
+           The photos/ footprint blocker was STALE — sentinel_sites.json already carries explicit
+           bounds_wgs84 for every site. P1/P2/P4 ALL COMPLETE. Only P3 remains, gated on U1.
            P3 TOOLING BUILT, NOT YET RUN BY A HUMAN. Samples drawn for 2016 / 2022n / 2000.
          ---- THE SEVEN RESULTS THAT MATTER ----
          (1) DETECTION IS A FUNCTION OF CANOPY HEIGHT. 2016: .16 (0-2m) .16 (2-5) .36 (5-10) .57
@@ -397,6 +399,43 @@ gotcha:  scripts Colab-only for torch (rasterio+geopandas+fiona+sklearn now pip-
          accept-all test data; 14,476-crown human review never finished.
 
 ════════════════ LOG  (newest first) ════════════════
+
+## 2026-08-18  P4 CLOSED — sentinel error overlays, and a NEW hypothesis: the misses are CROWN EDGES
+goal:    last open P4 item = sentinel TP/FN/FP overlays colour-coded by the P2 partition.
+did:     NEW Scripts/phase4_sentinel_qc_overlay.py — 3 panels per fixed sentinel window:
+         RGB | P2 agreement partition | model outcome. Imports phase4_sentinel_snap for the
+         window/bounds helpers so a site here is the SAME rectangle as there (cross-run
+         comparability preserved; the existing script is untouched).
+         DESIGN POINT: TP/FN/FP are drawn ONLY on ground where both references agree.
+         Contested pixels get their own colour and are NEVER scored — scoring them is the
+         single most common way this project has misled itself.
+         Ran all 11 sites for 2016 -> phase4/qc/sentinel_overlays/*.png +
+         sentinel_overlays_2016.csv
+         NOTE: the "needs footprint resolution from photos/" blocker in STATE was STALE —
+         sentinel_sites.json already had explicit bounds_wgs84 for every site.
+RESULT — recall on AGREED ground (not comparable to citywide qc_indep, which includes
+         contested px): forest_6 .955 · forest_1 .826 · forest_4 .825 · marsh_deciduous .786 ·
+         forest_3 .750 · residential_mixed .575. Precision .92-.998 EVERYWHERE.
+         The conifer-training -> mixed -> suburban gradient is now VISIBLE, not just tabular.
+** NEW HYPOTHESIS (visual, NOT yet measured) — THE FN ARE CROWN PERIMETERS. **
+         In residential_mixed and marsh_deciduous the red FN forms RINGS around the green TP
+         cores: the model finds each tree clump and loses its EDGE. If that generalises,
+         recall .575 there is largely a PERIMETER loss, not whole missed trees — a different
+         diagnosis from "the model cannot see yard trees", and it would need a different fix
+         (boundary/soft-label handling or the operating point, not new crown labels).
+         IT ALSO TOUCHES RESULT (1): crown edges have LOWER CHM than crown centres, so the
+         5-15 m band may be over-populated by EDGE pixels of tall trees rather than by short
+         trees. That would make part of the height staircase a geometry artefact.
+         TEST BEFORE BELIEVING ANY OF THIS: split FN into interior vs edge (binary erosion of
+         the agreed-canopy mask) and recompute recall by height band for each. Local, cheap.
+         Do NOT let this into the annotation plan until that runs — it is one look at two
+         windows.
+decided: nothing deployed. P1/P2/P4 now all complete; P3 is the only phase left and is gated
+         on U1, which is Kam's call.
+files:   Scripts/phase4_sentinel_qc_overlay.py (new) · phase4/qc/sentinel_overlays_2016.csv ·
+         phase4/qc/sentinel_overlays/*.png (NOT tracked — figures, per the rasters rule) ·
+         CHATLOG STATE PHASE STATUS.
+next:    the edge-vs-interior FN test above. Then U1 (Kam).
 
 ## 2026-08-18  U4 ANSWERED — calibration is a real lever, and the old per-year spread was a recipe artefact
 goal:    cheapest-next-move #4 / STATE correction (3): recompute miss-depth PER YEAR on ONE

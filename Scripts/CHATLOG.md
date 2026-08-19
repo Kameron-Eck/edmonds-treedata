@@ -40,6 +40,20 @@ SPACE RULES — keep always-loaded context low for continuous logging:
 
 ════════════════ STATE  (current — edit in place) ════════════════
 
+>>> READ Scripts/WORKPLAN_2026-08-19.md FIRST. <<<
+    This STATE block is 937 lines and has become a TRANSCRIPT, not a reference — results
+    were appended in the order they were discovered, with corrections and withdrawals
+    layered on top. That is why it is hard to follow. The WORKPLAN reorganises the same
+    material by WHAT YOU NEED TO KNOW: verified / withdrawn / blocked / next, plus the two
+    sample budgets that are the commonest source of confusion. Where the two disagree, the
+    WORKPLAN wins and STATE should be corrected.
+    Use STATE below for detail and provenance on a specific result. Do not read it start to
+    finish; that is what the WORKPLAN is for.
+    OWED: this block needs compaction to ~150 lines against the file's own SPACE RULE 5
+    ("STATE edited IN PLACE — always current, small"). Deferred deliberately — it is a
+    judgement-heavy rewrite of the project's memory and should not be done at the end of a
+    long session.
+
 proj:    Edmonds temporal canopy pipeline, phase 4 (per-year semantic seg, 18 imagery yrs).
 live:    ENGINE MODULARIZED 2026-07-08 → phase4seg/ package (config/common/labels/tiling/core[all torch]/
          postproc/cli) + 97L phase4_semantic_finetune.py SHIM (preserves `%run ... --args`). Behavior =

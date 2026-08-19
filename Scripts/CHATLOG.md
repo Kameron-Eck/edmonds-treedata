@@ -474,6 +474,47 @@ measure: ACTIVE WORKSTREAM (opened 2026-08-17). PLAN = Scripts/honest-measuremen
          CAVEAT: 2002's blue-excess is +0.6 = essentially nil, so "all four" is carried by
          saturation, not by blue. And these are FN-vs-TP contrasts within a year, which
          confound illumination with WHAT KIND OF STAND gets missed.
+         (12) ** KAM WAS RIGHT: 2016 DOES NOT COVER EDMONDS. AND config.py's gsd_cm IS WRONG
+         FOR EVERY NON-UTM YEAR (2026-08-18). ** Kam: "I believe 2016 doesn't fit the whole
+         extent of edmonds". Checked against the project's OWN study area (phase3 2020 mask,
+         7.46 x 10.55 km). Metadata only, no raster scan.
+         (a) FOOTPRINT — coverage of the 2020-mask bbox:
+             2000 · 2013 · 2015 · CHM   100%
+             2019n · 2022n               69.2%
+             C-CAP 2016                  53.1%   (missing 3.49 km at the NORTH)
+             2016 · 2021s                41.9%   (missing N 3.99 km, S 1.59 km, E 0.82 km)
+         2016 covers a CENTRAL/COASTAL BAND (lat 47.7830-47.8280), not the city. This is why
+         phase4_sentinel_qc_overlay printed "forest_2: outside 2016 imagery extent" —
+         forest_2 sits at 47.8294, just north of the edge. I saw that line and moved on.
+         (b) WHAT IT INVALIDATES — every "city" number derived from 2016 is really that
+         41.9% band: the D1 threshold sweep ("city canopy 31.97%" in canopy_definition_
+         PROPOSAL.md), latent-class prevalence pi~.29, the chm_gap "no-CHM zone is water"
+         result, and the 2016 rows of the height/edge work. They are not WRONG, they are
+         MIS-SCOPED — relabel, do not rerun.
+         (c) WHAT IT PARTLY CONFOUNDS: cross-year scores. Scoring intersects with C-CAP, so
+         2000/2013/2015 are scored on ~C-CAP's 53.1% while 2016 is scored on its own 41.9%
+         SUBSET of that. So result (7e)'s "2016 is the outlier at 66.2% deep" compares a
+         central band against a larger band. A plausible mechanism: 2016's band excludes the
+         northern forest and is proportionally more suburban = the known blind spot = more
+         STRUCTURAL misses. UNTESTED — the honest statement is that the 66.2% is partly
+         geographic. Do not quote it as a pure model property.
+         (d) SEPARATE BUG — gsd_cm IS CRS-UNITS x 100, NOT GROUND cm:
+             year        config   TRUE ground   why
+             2016/2021s   50.0 cm   15.4 cm     EPSG:2285 is US SURVEY FEET, not metres
+             2000/2002    59.7 cm   40.1 cm     EPSG:3857 inflates by 1/cos(47.8) = 1.49
+             2013/2015    14.9 cm   10.0 cm     same Web-Mercator inflation
+             2019n/2022n  60.0 cm   60.7 cm     EPSG:26910 is metres -> CORRECT
+         TIER IS DERIVED FROM THIS (cli.py:357 `tier_of(e["gsd_cm"]) == "coarse"`), so 2016
+         is trained as COARSE (citywide 2020-mask labels, coarse stride) while its imagery is
+         actually ~15 cm. Two consequences: (i) result (7e)'s recipe-comparability claim
+         SURVIVES — the engine really did use the citywide recipe for 2016 — but the REASON I
+         gave ("2016 is 50 cm coarse imagery") is wrong; (ii) a 512 px tile on 2016 covers
+         79 m of ground, not the 256 m the coarse settings assume.
+         (e) RESULT (7d) SURVIVES WITH BETTER LABELS. On TRUE gsd the recall-vs-resolution
+         trend is intact and cleaner: 10 cm -> .7107/.7075 · 15 cm -> .6844 · 40 cm ->
+         .5670/.5086. The finding was right; the axis was mislabelled.
+         NOT FIXED HERE: config.py is untouched — changing gsd_cm changes TIER and would
+         silently re-recipe every year. That is a deliberate decision for Kam, not a typo fix.
          ---- LITERATURE (37 papers, IDs 69-105, searches 9-14) — TWO CORRECTIONS TO ME ----
          FOODY 2010: I claimed raw scores overstate the model's faults. Direction depends on ERROR
          CORRELATION; ours are almost certainly correlated (labels + both refs all from interpreting

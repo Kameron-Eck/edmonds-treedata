@@ -73,8 +73,18 @@ Three things this shows that were not obvious before:
    choice to reconcile the two references**; that was the assumption behind reading ~.29 as
    "the strict definition", and this table weakens it.
 
-**Recommended: NDVI ≥ 0.30 AND height ≥ 3 m → canopy; green and 2–3 m → IGNORE. City
-canopy ≈ 31.97% (2016).**
+**Recommended: NDVI ≥ 0.30 AND height ≥ 3 m → canopy; green and 2–3 m → IGNORE.
+Canopy ≈ 31.97% of the 2016 imaged area (2016).**
+
+> **⚠ SCOPE CORRECTION 2026-08-18 — these are NOT citywide figures.** The 2016 ortho covers
+> only **41.9% of the project's study area** (the phase3 2020-mask extent): a central/coastal
+> band, lat 47.7830–47.8280, missing 3.99 km at the north, 1.59 km at the south and 0.82 km
+> at the east. Every percentage in the table above is over that band, not over Edmonds.
+> C-CAP is not much better at 53.1%. The *relative* comparisons between threshold pairs are
+> unaffected — they all share one denominator — so **D1 remains decidable on this evidence**.
+> But the absolute number must not be published as a city canopy figure, and a citywide
+> figure cannot be produced from 2016 at all. The years with full coverage are 2000, 2013,
+> 2015 and the CHM.
 
 > **The CHM-coverage worry — RAISED, MEASURED, CLOSED (2026-08-18).** The rule requires a
 > CHM height, so a pixel with no lidar is forced to non-canopy by absence of data rather than

@@ -668,9 +668,104 @@ measure: ACTIVE WORKSTREAM (opened 2026-08-17). PLAN = Scripts/honest-measuremen
          ---- LOCAL ENV ----
          CUDA now works locally: torch 2.13.0+cu126, Quadro T2000 4GB (CLAUDE.md says 2GB — STALE),
          3.45GB free, verified. Still do NOT train locally (rule: don't split training Colab/local).
-         ---- HONEST BASELINE (quote ONLY live=1 rows in qc/qc_indep_report.csv) ----
-         vs C-CAP, forest_wetland, deployed thresh: 2013 .7094/.8551 · 2016 .6844/.8651 ·
-         2000 .6303/.7745 · 2015 .6222/.8835 · 2002 .5069/.8377. NDVI-ref 2016 .594/.959.
+         ---- HONEST BASELINE — RESTATED 2026-08-18 ON THE FULL-COVERAGE REFERENCE ----
+         The old table was scored against ccap_2016_hires_lc.tif, a CLIPPED copy covering
+         51.9% of the study area (result 13a). Rescored against the un-clipped source
+         ccap_2016_hires_lc_snohfull.tif (91.0%), changing ONLY the reference — same prob
+         raster, same deployed threshold, forest_wetland:
+             year   clipped ref     FULL ref        d recall   imagery coverage
+             2000   .6303/.7745  -> .6749/.7975      +4.5 pp   100%
+             2002   .5069/.8377  -> .5580/.8563      +5.1 pp   100%
+             2013   .7094/.8551  -> .7395/.8666      +3.0 pp   100%
+             2015   .6222/.8835  -> .6629/.8989      +4.1 pp   100%
+             2017   .7784/.8083  -> .7986/.8274      +2.0 pp   100%
+             2016   .6844/.8651  -> .6636/.8736      -2.1 pp    41.9%
+         ---- 2021 SAME-YEAR CROSS-SENSOR PAIR — CANNOT BE READ YET (2026-08-19) ----
+         The job queued specifically to isolate the sensor effect, because real canopy change
+         between two 2021 acquisitions is ~zero:
+             2021s  Snohomish 15.4 cm  p2nir recipe    thresh .499   .6851 / .8547
+             2021k  King      10.0 cm  citywide recipe thresh .4013  .6059 / .8778
+         Naively: the COARSER sensor wins recall by 7.9 pp, which would contradict the
+         recipe-matched resolution trend above (10 cm ~.741). ** DO NOT READ IT THAT WAY. **
+         TWO uncontrolled confounds:
+           (1) TILING PARAMS — 2021s is coarse tier, 2021k is fine, so stride / neg-rate /
+               test-split differ (TIER_TILE_PARAMS).
+           (2) FOOTPRINT — 2021s covers 41.9% of the study area, 2021k 100%, so they are
+               scored on different ground (result 12c).
+         ** CORRECTION 2026-08-19 to what I first wrote here. ** I said the two used
+         DIFFERENT LABEL RECIPES (p2nir vs citywide) and that a retrain would settle it.
+         WRONG on both counts, found by reading cli.py rather than the run tags: "p2nir" is
+         only a RUN TAG. 2021s is COARSE tier, and coarse years take the citywide 2020-mask
+         label path BY DEFAULT — the same path --force-citywide gave 2021k. Their LABEL
+         SOURCE already matches; what differs is the TIER TILING PARAMETERS.
+         AND THAT CANNOT BE RETRAINED AWAY: tiling params are keyed to tier, tier is keyed to
+         resolution, so "sensor" and "tiling regime" are entangled BY DESIGN. There is no
+         Colab job that isolates the sensor here. DO NOT SPEND A 5 cm RUN ON IT — the earlier
+         entry proposing exactly that is withdrawn.
+         Recorded as OPEN AND PROBABLY NOT ANSWERABLE by retraining. A real answer needs a
+         deliberate ablation (same year, same footprint, tiling params forced equal), which
+         is an engine change, not a queue entry.
+
+         ---- QUEUE 2 (Colab, overnight 2026-08-18/19) — FIRST TWO YEARS SCORED ----
+         2005 and 2007 trained + inferred OK (VERIFY 100% valid). Scored vs the FULL-coverage
+         ref, forest_wetland, tool-chosen threshold:
+             2005  thresh .4659   recall .6346   precision .9166   <- HIGHEST precision in
+             2007  thresh .5026   recall .6605   precision .8813      the whole project
+         ** THE max-prob WARNING WAS AGAIN A RED HERRING. ** Their inference max-prob was
+         .843/.882, well under 2019n .949 / 2021s .957, i.e. the same COMPRESSED RANGE that
+         made a previous session predict low recall for 2017 TWICE — wrongly, 2017 is the
+         series high. I withheld the prediction this time and the numbers are mid-series.
+         A compressed probability range means THRESHOLD FRAGILITY, not weak ranking. This is
+         now 2-for-2; treat it as settled.
+         ** RECIPE CAVEAT — DO NOT RANK THESE AGAINST THE TABLE BELOW. ** 2005/2007 are
+         _citywide_rgb; the 2000/2002/2013/2015 rows below are _xsensor_rgb. Result (7b)
+         measured that a recipe change moved 2013 by 22 points, so a mixed-recipe ranking is
+         not interpretable. To compare, re-score the older years' _citywide_rgb rasters
+         (they exist) on this same reference.
+         ---- RECIPE-MATCHED SERIES (2026-08-19) — ONE RECIPE, ONE REFERENCE ----
+         Ran the re-score rather than writing the reversal claim. ALL _citywide_rgb, ALL vs
+         the FULL-coverage ref, forest_wetland, tool-chosen threshold:
+             year  TRUE gsd  recall  precision
+             2000    40.1cm  .5480     .8534
+             2002    40.1cm  .6136     .8372
+             2005    20.1cm  .6346     .9166
+             2007    20.1cm  .6605     .8813
+             2009    20.1cm  .6048     .9177   <- highest precision in the project
+             2013    10.0cm  .7422     .8672
+             2015    10.0cm  .7401     .8823
+         ** RESULT (7d) IS VINDICATED, NOT REVERSED. ** Once recipe is held constant the
+         trend is clean and the within-tier agreement is tight:
+             40 cm  .5480 .6136          mean .581
+             20 cm  .6346 .6605 .6048    mean .633
+             10 cm  .7422 .7401          mean .741   <- 0.2 pp apart, different sensors/years
+         Resolution is a REAL driver worth ~16 pp of recall across 40->10 cm, and the 10 cm
+         pair agreeing to 0.2 pp across two different years is the strongest within-tier
+         replication in the project. The apparent reversal in the
+         mixed-recipe table WAS the confound, exactly as suspected — which is why the rule
+         is to re-score rather than to reason about it.
+         ** AND THE RECIPE EFFECT IS LARGE AND YEAR-SPECIFIC: ** same year, same reference,
+         only the training recipe differs —
+             2000  xsensor .6749  vs  citywide .5480   -> xsensor BETTER by 12.7 pp
+             2002  xsensor .5580  vs  citywide .6136   -> citywide BETTER by  5.6 pp
+         Opposite directions. So there is NO globally better recipe, and no cross-year table
+         mixing them means anything. This is the third independent measurement of the same
+         hazard (7b moved 2013 by 22 pp; this moves 2000 by 12.7 pp in the other direction).
+         2015 also swings by recipe: xsensor .6629 vs citywide .7401 = citywide better by
+         7.7 pp — a THIRD direction-and-magnitude, reinforcing that recipe is year-specific.
+         ** QUOTE THE FULL-REF COLUMN. ** Precision rose in ALL SIX years. Complete.
+         ** THE ASYMMETRY IS THE FINDING, AND IT IS NOW 5-FOR-5: ** every year with 100%
+         imagery coverage got BETTER (2000 +4.5, 2002 +5.1, 2013 +3.0, 2015 +4.1, 2017
+         +2.0); 2016 — the ONLY one at 41.9% — got WORSE. Coverage, not year or sensor,
+         predicts the sign. 2017 remains the highest recall in the series at .7986. So the clipped reference was
+         FLATTERING 2016 specifically and PENALISING the full-coverage years. That matters
+         because 2016 is the most-cited year in the project (the only NIR year with a
+         matched CHM, and the year the corrected labels were built for).
+         ** 2016 HONEST RECALL IS NOW .6636, NOT .6844. ** Anywhere this file or a report
+         says "2016 recall .6844" against C-CAP, it is superseded — including the framing
+         in results (3) and (5). The DIRECTION of every finding is unchanged; the level is.
+         UNAFFECTED: NDVI-ref 2016 .594/.959 (different reference entirely). STILL TRUE:
+         every 2016-derived analysis remains bounded by the 41.9% footprint no matter which
+         C-CAP is used (result 12b) — a fuller reference does not widen the imagery.
          READ = high-precision UNDER-predictor, misses ~30-35% of C-CAP forest; scrub recall .25
          vs forest .68 -> fails on non-conifer/mixed structure (the conifer-only-label blind spot).
          CAVEAT that must ride with every number: BOTH refs are PROXIES (CHM ~2016 @60% coverage;

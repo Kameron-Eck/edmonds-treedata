@@ -666,7 +666,7 @@ def _set_encoder_bn_eval(model):
 def step_train(label, batch_size=BATCH_SIZE, p3_ckpt=None, dry_run=False, compile_model=True):
     _ensure_torch()
     entry = entry_for(label)
-    tier  = tier_of(entry["gsd_cm"])
+    tier  = tier_for(entry)
     print(f"\n── [{label}] Step 3: Fine-tune ({tier}) ──")
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -1036,7 +1036,7 @@ def _threshold_independent_metrics(all_prob, all_gt, f1_at_default):
 def step_evaluate(label, dry_run=False):
     _ensure_torch()
     entry = entry_for(label)
-    tier  = tier_of(entry["gsd_cm"])
+    tier  = tier_for(entry)
     has_test = TIER_TILE_PARAMS[tier]["has_test"]
     print(f"\n── [{label}] Step 4: Evaluation ({tier}) ──")
 

@@ -399,7 +399,7 @@ def _gather_citywide_coarse(label, sites, stride_override=None, dry_run=False):
             # Curated negative sites → explicit guaranteed-background tiles
             # (Fix A), tiled at the coarse tiling stride so they contribute many
             # tiles, not one (Tune Fix 2).
-            neg_stride = TIER_TILE_PARAMS[tier_of(entry["gsd_cm"])]["stride"]
+            neg_stride = TIER_TILE_PARAMS[tier_for(entry)]["stride"]
             records.extend(_negative_site_records(src, sites, src_nodata,
                                                   neg_stride))
     finally:
@@ -642,7 +642,7 @@ def step_tile(label, sites, dry_run=False, max_tiles=None, stride_override=None,
     tiling the 6 site crops.
     """
     entry = entry_for(label)
-    tier  = tier_of(entry["gsd_cm"])
+    tier  = tier_for(entry)
     tp    = TIER_TILE_PARAMS[tier]
     stride = int(stride_override) if stride_override else tp["stride"]
     mode = "CITY-WIDE" if citywide else "6-site"

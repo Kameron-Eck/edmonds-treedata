@@ -496,7 +496,7 @@ measure: ACTIVE WORKSTREAM (opened 2026-08-17). PLAN = Scripts/honest-measuremen
          5. NEW: rerun 2016 forest-miss on the _citywide_rgb recipe so its ~60%-deep figure
             becomes comparable (needs a 2016 --force-citywide inference on Colab).
          ---- P3 COMMANDS (tooling is built and validated) ----
-         py -3.12 phase4_accuracy_sample.py --step serve --year 2016             --ortho "D:\edmonds-pipeline\Imagery6_snoh_rgbi.tif"
+         py -3.12 phase4_accuracy_sample.py --step serve --year 2016             --ortho "D:\edmonds-pipeline\Imagery\2016_snoh_rgbi.tif"
          then open http://localhost:8731/review_app.html  (1 canopy / 2 not / 3 unsure / z undo)
          then --step estimate --year 2016
          Estimator validated twice; a covariance bug was found and fixed 2026-08-18 (8283232) — the

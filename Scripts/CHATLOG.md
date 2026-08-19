@@ -233,7 +233,7 @@ measure: ACTIVE WORKSTREAM (opened 2026-08-17). PLAN = Scripts/honest-measuremen
            P1 DONE · P2 DONE + replicated x4 · P4 dashboard + height plot DONE
            P4 REMAINING: sentinel TP/FN/FP site overlays (needs footprint resolution from photos/)
            P3 TOOLING BUILT, NOT YET RUN BY A HUMAN. Samples drawn for 2016 / 2022n / 2000.
-         ---- THE SIX RESULTS THAT MATTER ----
+         ---- THE SEVEN RESULTS THAT MATTER ----
          (1) DETECTION IS A FUNCTION OF CANOPY HEIGHT. 2016: .16 (0-2m) .16 (2-5) .36 (5-10) .57
          (10-15) .74 (15-20) .83 (20-25) .88 (25-30) .93 (30+). 5-15m holds 53% of ALL misses;
          lifting those two bands to the 20-25m rate takes recall .68 -> ~.80. qc/height_curves.png
@@ -298,6 +298,32 @@ measure: ACTIVE WORKSTREAM (opened 2026-08-17). PLAN = Scripts/honest-measuremen
          250 x 3 spread thin — which is exactly assessment amendment 3, now with a reason.
          => the duplicate-interpreted subset (amendment 5, Stehman 2022 ID 100) is NOT
          optional; it measures the one quantity the whole study now turns on.
+         (7) ** U4 ANSWERED — CALIBRATION IS A REAL LEVER, AND THE OLD PER-YEAR SPREAD WAS A
+         RECIPE ARTEFACT (2026-08-18). ** Reran phase4_qc_forest_misses.py --years
+         2000,2002,2013,2015 --prob-suffix _citywide_rgb --thresh 0.5 (ONE recipe, FIXED
+         threshold — the confound the tool's own footer warns about). NO NEW CODE.
+           year  gsd_cm  recall   conf%(deep, prob<.12)  near-thresh  dbright  ht_fn/tp
+           2013   14.9   .7107          30.8               69.2       + 6.3   11.4/23.7
+           2015   14.9   .7075          48.2               51.8       - 3.8   11.3/23.8
+           2000   59.7   .5086          27.7               72.3       +27.1   14.5/25.6
+           2002   59.7   .5670          31.8               68.2       +13.9   13.9/24.9
+         (a) MOST MISSES ARE NEAR-THRESHOLD IN ALL FOUR YEARS (52-72%) -> the operating point is
+         a genuine lever; hand-tracing stands is NOT the only option. But threshold-lowering is
+         NOT free: it lifts every band and costs precision (the tool says so in its own output).
+         (b) THE OLD SPREAD DISSOLVED. Mixed-recipe conf% was 24.1/19.4/9.3; on one recipe it is
+         27.7/31.8/30.8 — three years now agree. A recipe change moved 2013 by 22 POINTS. The
+         cross-year variation that motivated the question was mostly the tier-recipe confound.
+         (c) 2015 IS THE REAL OUTLIER at 48.2% deep, and its signature INVERTS: misses are
+         DARKER (dbright -3.8) and slightly GREENER (dgrvi +0.011) where every other year's
+         misses are brighter and less green. 2015 is a different failure, not more of the same.
+         (d) RECALL TRACKS GSD, NOT CONF%: 14.9cm -> .71/.71 vs 59.7cm -> .51/.57. A RESOLUTION
+         effect on top of the radiometric one (dbright scales with sensor era, +27 in 2000 down
+         to +6 in 2013 = the King contractor change).
+         (e) misses are TALL — mean 11.3-14.5 m vs recalled 23.7-25.6 m. Not scrub. Sits exactly
+         in the 5-15 m band result (1) says holds 53% of all misses. Results (1) and (7) agree.
+         STILL OPEN: 2016 has NO _citywide_rgb raster, so its ~60%-deep figure is STILL NOT
+         COMPARABLE. Given (b) moved 2013 by 22 points, do NOT assert "2016 is the outlier"
+         until it is measured on this recipe. That is now the open question.
          ---- LITERATURE (37 papers, IDs 69-105, searches 9-14) — TWO CORRECTIONS TO ME ----
          FOODY 2010: I claimed raw scores overstate the model's faults. Direction depends on ERROR
          CORRELATION; ours are almost certainly correlated (labels + both refs all from interpreting
@@ -330,7 +356,9 @@ measure: ACTIVE WORKSTREAM (opened 2026-08-17). PLAN = Scripts/honest-measuremen
             on it: (5) says U1 alone decides whether Edmonds canopy is ~29% or ~35%; (6) says
             n=250 CAN resolve that in 2016 — but only against a definition it has been given.
             Write it against the .29/.35 bracket.
-         4. P1c per-year miss-depth under ONE recipe (--force-citywide) for U4 (labels vs calibration).
+         4. [DONE 2026-08-18] P1c per-year miss-depth under ONE recipe — see result (7).
+         5. NEW: rerun 2016 forest-miss on the _citywide_rgb recipe so its ~60%-deep figure
+            becomes comparable (needs a 2016 --force-citywide inference on Colab).
          ---- P3 COMMANDS (tooling is built and validated) ----
          py -3.12 phase4_accuracy_sample.py --step serve --year 2016             --ortho "D:\edmonds-pipeline\Imagery6_snoh_rgbi.tif"
          then open http://localhost:8731/review_app.html  (1 canopy / 2 not / 3 unsure / z undo)
@@ -357,6 +385,9 @@ measure: ACTIVE WORKSTREAM (opened 2026-08-17). PLAN = Scripts/honest-measuremen
          prob<.12): 2016 ~60% BUT 2013 9.3%, 2002 19.4%, 2000 24.1% -> most cross-sensor misses are
          NEAR-THRESHOLD, maybe calibration-recoverable. Do NOT commit to hand-tracing stands until
          P1c recomputes this per year on one recipe.
+         [SUPERSEDED 2026-08-18 by result (7) — recomputed on ONE recipe. The near-threshold
+         conclusion HOLDS, but every per-year conf% above was a RECIPE ARTEFACT and must not be
+         re-quoted: 2013 moved 9.3% -> 30.8%. Use the result-(7) table.]
          (4) There is NO git remote — "git pull" CANNOT update Colab. The working tree IS
          the Drive folder (G:/My Drive/treedata); git DB = D:/edmonds-pipeline/treedata.git,
          local Windows only. GOOGLE DRIVE is the sync path to Colab. Verify there with:
@@ -366,6 +397,32 @@ gotcha:  scripts Colab-only for torch (rasterio+geopandas+fiona+sklearn now pip-
          accept-all test data; 14,476-crown human review never finished.
 
 ════════════════ LOG  (newest first) ════════════════
+
+## 2026-08-18  U4 ANSWERED — calibration is a real lever, and the old per-year spread was a recipe artefact
+goal:    cheapest-next-move #4 / STATE correction (3): recompute miss-depth PER YEAR on ONE
+         recipe, so the "labels vs calibration" call stops resting on 2016 alone.
+did:     NO NEW CODE — phase4_qc_forest_misses.py already takes --years + --prob-suffix, and
+         its own footer says to compare within one recipe (--force-citywide) to avoid the
+         tier-recipe confound. Ran --years 2000,2002,2013,2015 --prob-suffix _citywide_rgb
+         --thresh 0.5 (fixed threshold = the fair cross-sensor choice). ~55 min, local, no GPU.
+         -> forest_miss_{2000,2002,2013,2015}.txt/.csv + forest_miss_sensor_compare.txt/.csv
+RESULT: see STATE result (7). Headline = 52-72% of missed forest sits NEAR THRESHOLD in all
+         four years, so the operating point is a genuine lever and hand-tracing is not the only
+         option — but lowering it lifts every band and costs precision, so it is not free.
+         THE FINDING BEHIND THE FINDING: the per-year spread that motivated the question
+         (24.1/19.4/9.3) DISSOLVED on one recipe (27.7/31.8/30.8). A recipe change moved 2013
+         by 22 POINTS. Most of that "cross-year variation" was never about the year.
+decided: nothing deployed, no plan edit, no annotation commitment. Measurement only.
+killed:  every per-year conf% in STATE correction (3) — recipe artefacts, do not re-quote.
+         "2016 is the outlier at ~60% deep" — NOT ESTABLISHED. 2016 has no _citywide_rgb
+         raster, so it was never measured on this recipe; after (b) that comparison is
+         unsafe. Do not build an annotation plan on it.
+files:   phase4/qc/forest_miss_{2000,2002,2013,2015}.txt/.csv (updated) ·
+         forest_miss_sensor_compare.txt/.csv · forest_miss_stands_*.csv ·
+         CHATLOG STATE result (7) + correction (3) marked SUPERSEDED + cheapest-moves list.
+next:    U1 still the blocker. New queued item: 2016 --force-citywide inference on Colab so
+         its miss-depth becomes comparable — that is the one number that would decide whether
+         2016 genuinely differs or just had a different recipe.
 
 ## 2026-08-18  SAMPLE SIZE WAS NEVER THE PROBLEM — interpreter fidelity is
 goal:    cheapest-next-move #2: the assessment's "n=250 cannot arbitrate" (§3.1) rests on

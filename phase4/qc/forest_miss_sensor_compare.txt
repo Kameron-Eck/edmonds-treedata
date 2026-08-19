@@ -1,11 +1,12 @@
-CROSS-SENSOR FOREST-MISS COMPARISON  (ref=ccap_2016_hires_lc.tif, stable∩ccap_2021_hires_lc.tif)
+CROSS-SENSOR FOREST-MISS COMPARISON  (ref=ccap_2016_hires_lc.tif)
   recall = C-CAP upland-forest recall; conf = frac of misses with prob<0.12 (OOD);
   Δgrvi/Δndvi = missed−recalled greenness (neg = misses less-green); Δbright = DN.
 
   year    sensor   gsd_cm   recall   conf%   Δgrvi    Δndvi   Δbright   ht_fn/tp
-  2013    king     14.9   0.7333    9.3  -0.025     n/a     +1.2   13.8/24.7
-  2000    king     59.7   0.6803   24.1  -0.047     n/a    +28.1   14.6/25.1
-  2002    king     59.7   0.6825   19.4  -0.043     n/a    +16.6   14.5/25.1
+  2013    king     14.9   0.7107   30.8  -0.042     n/a     +6.3   11.4/23.7
+  2015    king     14.9   0.7075   48.2  +0.011     n/a     -3.8   11.3/23.8
+  2000    king     59.7   0.5086   27.7  -0.044     n/a    +27.1   14.5/25.6
+  2002    king     59.7   0.5670   31.8  -0.043     n/a    +15.4   13.9/24.9
 
   Read: recall varying with gsd/sensor at similar Δgrvi = a RESOLUTION effect;
   Δgrvi/Δbright shifting by sensor = a RADIOMETRIC (sensor) effect. Compare WITHIN

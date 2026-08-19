@@ -23,6 +23,11 @@ work done since has raised its stakes rather than lowered them:
   "which source is internally most consistent", not "which definition is right".
   Gutiérrez-Vélez 2024 (ID 81) is the general statement: most cross-product forest
   disagreement is manufactured by thresholding one continuous variable at different points.
+- **…but here it is probably NOT only a threshold difference.** The D1 sweep below shows no
+  plausible NDVI/height pair reproduces C-CAP's ~.29 except the strictest corner. C-CAP's
+  forest classes are stand-based and exclude isolated crowns *by kind* (McCombs 2016, ID 77:
+  3×3 unit, six-of-nine homogeneity rule, sold as a screening product). So the gap is part
+  threshold and part unit-of-analysis, and only the threshold part is ours to choose.
 - **A 250-point human sample *can* settle it** — `phase4/qc/design_power_2016` shows the real
   stratified design separates .29 from .35 with power ~1.0 at ≤5% interpreter error. But it
   can only reproduce a definition it has been given. Without this page, 250 points produce a
@@ -37,15 +42,49 @@ on a rule nobody has written down.
 
 Each has a recommendation and its consequence. Accept, or strike and replace.
 
-### D1 — Minimum height  ← **the one that moves the headline number**
+### D1 — The two thresholds  ← **these move the headline number**
 
-| Option | Effect on city canopy | Notes |
-|---|---|---|
-| ≥ 2 m | ~.35 | matches the NDVI reference; counts hedges and large shrubs |
-| **≥ 3 m, with 2–3 m as IGNORE** | ~.29–.31 | **RECOMMENDED** |
-| ≥ 5 m | below .29 | discards genuine small/young street trees |
+**These are measured, not estimated.** `phase4_qc_ndvi.py` already sweeps both cutoffs and
+wrote the table below to `phase4/qc/ndvi_ref_2016.txt` — canopy as % of imaged 2016 pixels:
 
-**Recommended: ≥ 3 m canopy, 2–3 m IGNORE.**
+| | height ≥1 m | **≥2 m** | **≥3 m** | ≥5 m |
+|---|---|---|---|---|
+| NDVI ≥0.10 | 45.08 | 43.26 | 40.97 | 35.06 |
+| NDVI ≥0.15 | 41.67 | 40.17 | 38.23 | 33.14 |
+| **NDVI ≥0.20** | 39.00 | **37.74** ← NDVI ref | 36.07 | 31.59 |
+| NDVI ≥0.25 | 36.58 | 35.49 | 34.05 | 30.10 |
+| **NDVI ≥0.30** | 34.15 | 33.22 | **31.97** ← corrected labels | 28.50 |
+
+Three things this shows that were not obvious before:
+
+1. **The greenness cutoff matters as much as the height cutoff — arguably more.** Holding
+   height at 2 m, moving NDVI .10→.30 costs **10.0 points**; holding NDVI at .20, moving
+   height 1→5 m costs **7.4 points**. Earlier drafts of this page treated D1 as a height
+   question. It is two questions, and the greenness one has been invisible because every
+   document quotes a height but few quote the NDVI cut.
+2. **Height is cheap in the 2→3 m step.** At NDVI ≥.20 it costs only 1.7 points
+   (37.74 → 36.07). The IGNORE band therefore buys honesty about the contested zone at a
+   small cost in area — that is a good trade.
+3. **No cell on this table equals the latent-class estimate of ~.29** except the strictest
+   corner (NDVI ≥.30 & ≥5 m = 28.50). The recommended rule lands at **31.97**, about
+   3 points above. So C-CAP's total is probably **not** reproducible by any threshold pair
+   here — its forest classes are *stand-based* and exclude isolated crowns as a matter of
+   kind, not degree (McCombs 2016: 3×3 unit, six-of-nine rule). **Do not expect a threshold
+   choice to reconcile the two references**; that was the assumption behind reading ~.29 as
+   "the strict definition", and this table weakens it.
+
+**Recommended: NDVI ≥ 0.30 AND height ≥ 3 m → canopy; green and 2–3 m → IGNORE. City
+canopy ≈ 31.97% (2016).**
+
+> **Caveat that rides with every number in this table.** The rule requires a CHM height, so
+> any pixel with **no CHM coverage is forced to non-canopy**. The latent-class run measured
+> that directly: 17,587,495 of 21,066,144 valid cells have CHM, so **~16.5% of the analysis
+> area is decided by absence of lidar rather than by the definition**. STATE holds that the
+> uncovered strip is mostly Puget Sound and the southern margin — i.e. genuinely non-canopy —
+> but that has never been verified. **Every figure above is therefore a lower bound**, and
+> quantifying the vegetated-but-no-CHM area is the one measurement that would tighten it.
+> A definition that leans on lidar also cannot be applied to years the lidar does not cover,
+> which is the whole pre-2016 record — see "what this does not decide".
 Reason: this is *already* the de facto rule — `phase4_build_corrected_labels.py` uses
 NDVI≥.3 & CHM≥3 m → canopy and green 2–3 m → IGNORE. Adopting it makes the existing
 corrected labels consistent with the definition rather than requiring them to be rebuilt,

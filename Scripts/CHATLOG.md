@@ -235,7 +235,7 @@ measure: ACTIVE WORKSTREAM (opened 2026-08-17). PLAN = Scripts/honest-measuremen
            The photos/ footprint blocker was STALE — sentinel_sites.json already carries explicit
            bounds_wgs84 for every site. P1/P2/P4 ALL COMPLETE. Only P3 remains, gated on U1.
            P3 TOOLING BUILT, NOT YET RUN BY A HUMAN. Samples drawn for 2016 / 2022n / 2000.
-         ---- THE EIGHT RESULTS THAT MATTER ----
+         ---- THE NINE RESULTS THAT MATTER ----
          (1) DETECTION IS A FUNCTION OF CANOPY HEIGHT. 2016: .16 (0-2m) .16 (2-5) .36 (5-10) .57
          (10-15) .74 (15-20) .83 (20-25) .88 (25-30) .93 (30+). 5-15m holds 53% of ALL misses;
          lifting those two bands to the 20-25m rate takes recall .68 -> ~.80. qc/height_curves.png
@@ -365,6 +365,31 @@ measure: ACTIVE WORKSTREAM (opened 2026-08-17). PLAN = Scripts/honest-measuremen
          recoverable" number across years — 2016 says a third, 2021s says a fifth.
          (Interior recall reads .8191 in BOTH years — a coincidence in that one aggregate;
          the per-band tables differ substantially. Not a bug, but do not read meaning into it.)
+         (9) ** THE DEFINITION SWEEP ALREADY EXISTED, AND IT CORRECTS RESULT (5)'s FRAMING
+         (2026-08-18). ** phase4_qc_ndvi.py has ALWAYS written a (NDVI x height) canopy-%
+         table; it sits in phase4/qc/ndvi_ref_2016.txt and nobody had read it as the U1
+         instrument it is. Canopy % of imaged 2016 px:
+                        h>=1m   h>=2m   h>=3m   h>=5m
+           NDVI>=0.10   45.08   43.26   40.97   35.06
+           NDVI>=0.20   39.00   37.74   36.07   31.59     <- 37.74 = the NDVI ref
+           NDVI>=0.30   34.15   33.22   31.97   28.50     <- 31.97 = corrected labels
+         (a) THE GREENNESS CUT MOVES THE NUMBER AS MUCH AS HEIGHT DOES: at h>=2m, NDVI
+         .10->.30 costs 10.0 pp; at NDVI>=.20, h 1->5 m costs 7.4 pp. Every doc quotes a
+         HEIGHT and almost none quote the NDVI cut — so half of the definition has been
+         invisible. U1 is TWO thresholds, not one.
+         (b) h 2->3 m is CHEAP (1.7 pp at NDVI>=.20) -> the 2-3 m IGNORE band buys honesty
+         about the contested zone for very little area. Good trade.
+         (c) ** CORRECTS (5). ** NO cell reproduces the latent ~.29 except the strictest
+         corner (.30/5m = 28.50); the recommended .30/3m lands at 31.97, ~3 pp ABOVE. So
+         C-CAP's total is probably NOT reachable by ANY threshold pair, and the "two
+         definitions, pick one" framing in (5) is INCOMPLETE: C-CAP forest is STAND-BASED and
+         drops isolated crowns BY KIND (McCombs 2016 ID 77 — 3x3 unit, 6-of-9 rule). The gap
+         is part threshold (ours to choose) + part unit-of-analysis (not ours). Do not keep
+         saying a threshold choice reconciles the two references.
+         (d) CAVEAT ON ALL OF IT: the rule needs a CHM, so no-CHM pixels are FORCED
+         non-canopy. Measured: 17,587,495 / 21,066,144 valid cells have CHM -> ~16.5% of the
+         analysis area is decided by ABSENCE OF LIDAR, not by the definition. Every % above
+         is a LOWER BOUND. Unverified assumption (STATE): the uncovered strip is water/margin.
          ---- LITERATURE (37 papers, IDs 69-105, searches 9-14) — TWO CORRECTIONS TO ME ----
          FOODY 2010: I claimed raw scores overstate the model's faults. Direction depends on ERROR
          CORRELATION; ours are almost certainly correlated (labels + both refs all from interpreting

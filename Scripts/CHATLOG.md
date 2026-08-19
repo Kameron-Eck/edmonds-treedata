@@ -990,6 +990,18 @@ gotcha:  scripts Colab-only for torch (rasterio+geopandas+fiona+sklearn now pip-
 
 ════════════════ LOG  (newest first) ════════════════
 
+## 2026-08-19  honest-measurement-overhaul.md demoted — superseded by WORKPLAN
+goal:    stop honest-measurement-overhaul.md reading as live when WORKPLAN_2026-08-19.md
+         already superseded it.
+did:     Added SUPERSEDED 2026-08-19 banner under the title, pointing to
+         WORKPLAN_2026-08-19.md (wins on disagreement; this file kept for provenance).
+         Status line changed ACTIVE -> SUPERSEDED. §0 baseline table's 2016 recall
+         0.684 (used the clipped reference) got an inline correction note - honest
+         figure is .6636 per WORKPLAN §1.1 - number left as originally measured, not
+         silently rewritten.
+files:   honest-measurement-overhaul.md
+next:    -
+
 ## 2026-08-19  CLAUDE.md entry-point chain fixed — WORKPLAN first, phase5/6 annotated
 goal:    fix stale routing in Scripts/CLAUDE.md - it still pointed readers at CHATLOG
          STATE as "the single source of live truth", but WORKPLAN_2026-08-19.md and

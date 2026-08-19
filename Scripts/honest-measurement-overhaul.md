@@ -1,6 +1,9 @@
 # Plan — Honest Measurement Overhaul (Phase 4 evaluation)
 
-**Status:** ACTIVE — opened 2026-08-17. Named by `CHATLOG.md` STATE.
+**SUPERSEDED 2026-08-19** — this plan's live content moved to
+`Scripts/WORKPLAN_2026-08-19.md`, which wins on any disagreement. Kept for provenance.
+
+**Status:** SUPERSEDED 2026-08-19 (was ACTIVE — opened 2026-08-17). Named by `CHATLOG.md` STATE.
 **Goal:** replace "the AI says it's fine" with numbers Kam can defend, and visuals that
 show where the model actually fails. Four phases; order = 1 → 2 → 4 → 3.
 
@@ -15,6 +18,8 @@ Source: `phase4/qc/qc_indep_report.csv`.
 | year | prob raster | recall | precision | grass reject |
 |------|-------------|--------|-----------|--------------|
 | 2016 | native (NIR era)   | 0.684 | 0.865 | 0.935 |
+<!-- Correction 2026-08-19: 0.684 used the clipped reference. Honest figure is .6636
+     — see WORKPLAN_2026-08-19.md §1.1. Left as originally measured, not rewritten. -->
 <!-- 2016 = 0.6821 full-forest. Any 0.7623 you see in forest_miss_2016.txt is a
      stable∩2021 SUBSET, not comparable — see P1b. -->
 

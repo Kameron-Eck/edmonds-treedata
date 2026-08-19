@@ -682,6 +682,37 @@ measure: ACTIVE WORKSTREAM (opened 2026-08-17). PLAN = Scripts/honest-measuremen
          CAVEAT: the sweep samples pixels the 2020 MASK calls canopy, so it inherits that
          mask's conifer bias — which biases AGAINST detecting leaf-off, making 2015's 31.22%
          a floor rather than an estimate.
+         ════ LIT-WATCH THREAD CLOSED — 2026-08-19 ════
+         Scripts/litwatch_robustness.md now carries a CLOSED banner. Closed because its queue
+         is dominated by MEASUREMENT and ENGINEERING items, not reading: the last searches
+         confirmed existing choices rather than changing them. FOUR of four re-run claims
+         reproduced EXACTLY (cast2 / q138b / overhang / q136), so the empirical work is sound
+         where checked.
+         ** THE ONE FIX WORTH ADOPTING (Q136, verified by re-run today): the AREA NUMBER. **
+         Map-count area — counting thresholded pixels, phase3_semantic_dev.py:1722 — is
+         THRESHOLD-SENSITIVE BY 17.3 pp (33.56% @ .30 down to 16.24% @ .70) and sits -5.71 pp
+         at the deployed .5, measured on 162,786 points in 2013 against C-CAP at 35.97%.
+         THE EDMONDS POLICY DEBATE TURNS ON 2.6 pp (32.4% baseline vs 35% goal). The
+         estimator's bias is MORE THAN TWICE THE ENTIRE POLICY GAP, and it moves with a
+         parameter calibrated separately per year. The Olofsson stratified reference-sample
+         estimator is threshold-free and unbiased in simulation. ADOPTION IS KAM'S CALL.
+         NOT claimed: that published percentages are wrong by 5.71 pp (different thresholds,
+         different footprints, and C-CAP is not truth). Claimed: the estimator in use is
+         threshold-sensitive by up to 17 pp and a threshold-free alternative already exists.
+         ** THE JOINT SAMPLE-SIZE ANSWER — neither session had this alone, and the two
+         budgets differ 5x: **
+           arbitrating the REFERENCE DEFINITIONS (8.24 pp gap) -> n=250 SUFFICES, power ~1.0
+             at <=5% interpreter error  [my result (6), phase4_qc_design_power.py]
+           estimating the POLICY NUMBER (2.6 pp gap)          -> n=250 FAILS, +/-4.42 pp
+             cannot separate 32.4% from 35%; ~1,221 pts/yr for +/-2.0 pp, and year-to-year
+             CHANGE needs more  [their Q136]
+         Both verified. DO NOT quote one budget as though it settled the other. This also
+         re-frames U1/P3: the definition question is cheap, the deliverable number is not.
+         STILL OPEN, carried forward: Q1=U1 canopy definition (Kam) · Q139 is the softness
+         OURS (EPSG:3857 reprojection blur — 2000 2.8x, 2005 4.0x oversampled; cheap to
+         check, could recover detail no retraining can) · Q140 the 2000/2002 deficit
+         (3 explanations failed — stop guessing, look at the imagery) · channel ablation (GPU).
+
          ════ SCRATCHPAD RECOVERED AND THREE CLAIMS RE-RUN — 2026-08-19 ════
          The lit-watch session was NOT stopped after all; Kam had it commit its scratchpad.
          229 files now at Scripts/litwatch_scratch/ (commit d88a36b). I amended that commit

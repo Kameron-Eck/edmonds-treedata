@@ -1,30 +1,30 @@
-ARE THE MISSES CROWN PERIMETERS? — 2016_baseline
-  prob : edmonds_canopy_prob_2016.tif @ thresh 0.509
+ARE THE MISSES CROWN PERIMETERS? — 2021s
+  prob : edmonds_canopy_prob_2021s_p2nir.tif @ thresh 0.499
   lattice 2.00 m/cell · EDGE = outer 2.00 m (1 cell erosion) of agreed canopy
-  agreed-canopy cells 22,027,820
+  agreed-canopy cells 21,562,004
 
   -- THE HEADLINE ------------------------------------------
-     edge is 16.3% of agreed-canopy AREA
-     but carries 41.8% of ALL MISSES
-     interior recall 0.8191   edge recall 0.3306
+     edge is 16.1% of agreed-canopy AREA
+     but carries 42.8% of ALL MISSES
+     interior recall 0.8191   edge recall 0.2946
 
      -> MISSES ARE DISPROPORTIONATELY PERIMETER. The ring pattern in the
         sentinel overlays is real and general, not two cherry-picked windows.
 
   -- THE DECIDING TABLE: recall by height, INTERIOR vs EDGE ----
      band          interior       edge          int n         edge n
-      0-2  m            nan     0.1604              0          4,507
-      2-5  m         0.2914     0.0958        645,651        525,350
-      5-10 m         0.5254     0.1982      2,197,889      1,010,619
-     10-15 m         0.7121     0.3347      2,343,467        692,190
-     15-20 m         0.8303     0.4452      2,690,035        502,461
-     20-25 m         0.8967     0.5223      2,864,350        350,063
-     25-30 m         0.9284     0.5617      2,665,546        238,508
-     30+   m         0.9567     0.6235      5,039,846        257,338
+      0-2  m            nan     0.0704              0          9,584
+      2-5  m         0.2307     0.0568        852,858        664,926
+      5-10 m         0.4758     0.1427      2,397,621      1,024,212
+     10-15 m         0.6938     0.2739      2,259,504        597,944
+     15-20 m         0.8495     0.4142      2,542,885        412,806
+     20-25 m         0.9338     0.5446      2,697,976        300,439
+     25-30 m         0.9714     0.6692      2,526,739        211,604
+     30+   m         0.9929     0.8002      4,816,627        246,279
 
   -- DOES THE HEIGHT STAIRCASE SURVIVE INSIDE CROWNS? ---------
-     INTERIOR  5-15 m 0.6218   20 m+ 0.9333   spread +0.3115
-     EDGE      5-15 m 0.2537   20 m+ 0.5642   spread +0.3105
+     INTERIOR  5-15 m 0.5816   20 m+ 0.9716   spread +0.3900
+     EDGE      5-15 m 0.1911   20 m+ 0.6624   spread +0.4713
 
      -> THE STAIRCASE SURVIVES IN CROWN INTERIORS. Height is a real
         detection axis; it is NOT an artefact of crown geometry.
@@ -32,12 +32,13 @@ ARE THE MISSES CROWN PERIMETERS? — 2016_baseline
 
   -- IS THE PERIMETER LOSS RECOVERABLE, AND IS IT REAL CANOPY? -
      part        deep<.06   .06-.12   .12-thr  CHM miss   CHM hit  miss>=3m
-     interior       0.148     0.314     0.538     13.4m     24.5m     0.980
-     edge           0.329     0.345     0.326     11.6m     18.4m     0.954
+     interior       0.382     0.236     0.382     10.2m     24.6m     0.969
+     edge           0.633     0.175     0.192     10.0m     20.3m     0.928
 
-     -> edge misses are spread across the confidence range; part is reachable
-        by the operating point and part is not.
-     -> 95% of edge misses carry CHM >= 3 m, i.e. they are
+     -> 63% of EDGE misses are DEEP (prob<0.06): the model is
+        confidently wrong at crown boundaries. A threshold will not fix this;
+        it needs boundary-aware supervision.
+     -> 93% of edge misses carry CHM >= 3 m, i.e. they are
         REAL CANOPY the model lost — not the reference bleeding onto bare
         ground. The reference-error caveat is therefore BOUNDED, not fatal.
 

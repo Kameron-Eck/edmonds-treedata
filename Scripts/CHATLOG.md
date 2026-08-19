@@ -340,9 +340,31 @@ measure: ACTIVE WORKSTREAM (opened 2026-08-17). PLAN = Scripts/honest-measuremen
          edge spread +0.3105. The two effects are INDEPENDENT AND ADDITIVE, not a confound.
          Robustness: at a 4 m edge the interior spread is still +0.2528, so a modest part of
          the staircase is edge-associated but HEIGHT DOMINATES. Result (1) STANDS; U3 reinforced.
-         CAVEAT: the two references disagree most at boundaries, so some edge FN is REFERENCE
-         error, not model error. That inflates (a) by an unknown amount — it does NOT touch (b),
-         which is measured inside interiors.
+         (c) THE CAVEAT IS NOW BOUNDED, AND THE LOSS IS ONLY PARTLY CHEAP. Added a miss-depth
+         + CHM diagnostic to the same tool:
+           part       deep<.06  .06-.12  .12-thr   CHM miss  CHM hit  miss>=3m
+           interior      .148     .314     .538      13.4 m   24.5 m    .980
+           edge          .329     .345     .326      11.6 m   18.4 m    .954
+         * 95% OF EDGE MISSES CARRY CHM >= 3 m -> they are REAL CANOPY the model lost, NOT the
+           reference bleeding onto bare ground. The reference-error caveat is bounded, not fatal.
+         * BUT only ~33% of edge misses are near-threshold vs 54% of interior misses, and edge
+           misses are TWICE as often DEEP (.329 vs .148). The model is MORE CONFIDENTLY WRONG at
+           crown boundaries than inside them. So the operating point recovers roughly a third of
+           the perimeter loss; the rest needs BOUNDARY-AWARE SUPERVISION (soft//distance-weighted
+           edge labels), which is a real engineering item, not a threshold tweak.
+         REMAINING CAVEAT: reference disagreement still concentrates at boundaries; CHM>=3m
+         bounds how much of that is ground-bleed but cannot rule out mis-registration.
+         (d) REPLICATED ON 2021s (different year, sensor, C-CAP epoch). Three of the four
+         findings replicate almost exactly; ONE DOES NOT:
+           edge share of area/misses  2016 16.3%/41.8%  ·  2021s 16.1%/42.8%   REPLICATES
+           interior staircase spread  2016 +.3115      ·  2021s +.3900         REPLICATES
+           edge misses w/ CHM>=3m     2016 .954        ·  2021s .928           REPLICATES
+           edge misses DEEP (<.06)    2016 .329        ·  2021s .633           DOES NOT
+         => the SIZE and REALITY of the perimeter loss are stable properties of the model;
+         HOW RECOVERABLE it is is YEAR-SPECIFIC. Do not quote a single "x% is threshold-
+         recoverable" number across years — 2016 says a third, 2021s says a fifth.
+         (Interior recall reads .8191 in BOTH years — a coincidence in that one aggregate;
+         the per-band tables differ substantially. Not a bug, but do not read meaning into it.)
          ---- LITERATURE (37 papers, IDs 69-105, searches 9-14) — TWO CORRECTIONS TO ME ----
          FOODY 2010: I claimed raw scores overstate the model's faults. Direction depends on ERROR
          CORRELATION; ours are almost certainly correlated (labels + both refs all from interpreting
@@ -439,8 +461,9 @@ killed:  "the height staircase might be crown geometry" — TESTED AND REJECTED.
          without new evidence; the interior-only spread is the number that settles it.
 files:   Scripts/phase4_qc_edge_vs_interior.py (new) · phase4/qc/edge_vs_interior_*.txt/.csv ·
          CHATLOG STATE result (8).
-next:    U1 (Kam). Local options remaining are thin: replicate (8) on 2021s/2022n, or measure
-         how much of the edge FN is reference error rather than model error.
+next:    [both done same session] replicated on 2021s + bounded the reference-error caveat
+         via CHM — see result (8c)/(8d). U1 (Kam) is now the only blocker; remaining local
+         work is thin.
 
 ## 2026-08-18  P4 CLOSED — sentinel error overlays, and a NEW hypothesis: the misses are CROWN EDGES
 goal:    last open P4 item = sentinel TP/FN/FP overlays colour-coded by the P2 partition.

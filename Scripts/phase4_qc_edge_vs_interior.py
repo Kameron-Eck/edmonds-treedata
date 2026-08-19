@@ -162,9 +162,28 @@ def analyse(prob_path, ccap_path, ndvi_path, thresh, decim, erode_iters):
             if hv.size:
                 idx = np.clip(np.digitize(hv, HEIGHT_BINS) - 1, 0, n_bins - 1)
                 arr += np.bincount(idx, minlength=n_bins)
+
+        # IS THE LOSS RECOVERABLE, AND IS IT REAL CANOPY?
+        # miss depth: deep misses need labels/architecture; near-threshold ones
+        # are reachable by moving the operating point (cf. result 7).
+        mv = pr[m & ~called].astype(np.float32)
+        deep = float((mv < 0.06 * 254).mean()) if mv.size else float("nan")
+        mid = float(((mv >= 0.06 * 254) & (mv < 0.12 * 254)).mean()) if mv.size else float("nan")
+        near = float((mv >= 0.12 * 254).mean()) if mv.size else float("nan")
+        # CHM on missed vs recalled: if missed edge pixels carry canopy-height
+        # returns, they are real canopy the model lost — not reference bleed
+        # onto bare ground.
+        h_miss = hgt[m & ~called]
+        h_hit = hgt[m & called]
+        h_miss = h_miss[np.isfinite(h_miss)]
+        h_hit = h_hit[np.isfinite(h_hit)]
         R["parts"][name] = {"hit": hit, "miss": miss, "n": int(m.sum()),
                             "n_called": int((m & called).sum()),
-                            "n_miss": int((m & ~called).sum())}
+                            "n_miss": int((m & ~called).sum()),
+                            "deep": deep, "mid": mid, "near": near,
+                            "chm_miss": float(h_miss.mean()) if h_miss.size else float("nan"),
+                            "chm_hit": float(h_hit.mean()) if h_hit.size else float("nan"),
+                            "miss_ge3m": float((h_miss >= 3).mean()) if h_miss.size else float("nan")}
     return R
 
 
@@ -237,6 +256,37 @@ def report(R, label):
         L += ["     -> PARTIAL. The staircase weakens but does not vanish inside crowns;",
               "        height and geometry are BOTH contributing. Neither the pure",
               "        height reading nor the pure geometry reading is safe."]
+
+    L += ["",
+          "  -- IS THE PERIMETER LOSS RECOVERABLE, AND IS IT REAL CANOPY? " + "-" * 1,
+          f"     {'part':<10} {'deep<.06':>9} {'.06-.12':>9} {'.12-thr':>9}"
+          f" {'CHM miss':>9} {'CHM hit':>9} {'miss>=3m':>9}"]
+    for name in ("interior", "edge"):
+        P = R["parts"][name]
+        L.append(f"     {name:<10} {P['deep']:>9.3f} {P['mid']:>9.3f} {P['near']:>9.3f}"
+                 f" {P['chm_miss']:>8.1f}m {P['chm_hit']:>8.1f}m {P['miss_ge3m']:>9.3f}")
+    E_near, E_deep = E["near"], E["deep"]
+    L.append("")
+    if E_near > 0.5:
+        L += [f"     -> {100*E_near:.0f}% of EDGE misses sit above 0.12 and below the operating",
+              "        threshold — the perimeter loss is largely NEAR-THRESHOLD, so a lower",
+              "        operating point recovers much of it (at a precision cost). It is a",
+              "        CALIBRATION/BOUNDARY problem, not missing knowledge."]
+    elif E_deep > 0.5:
+        L += [f"     -> {100*E_deep:.0f}% of EDGE misses are DEEP (prob<0.06): the model is",
+              "        confidently wrong at crown boundaries. A threshold will not fix this;",
+              "        it needs boundary-aware supervision."]
+    else:
+        L += ["     -> edge misses are spread across the confidence range; part is reachable",
+              "        by the operating point and part is not."]
+    if E["miss_ge3m"] > 0.7:
+        L += [f"     -> {100*E['miss_ge3m']:.0f}% of edge misses carry CHM >= 3 m, i.e. they are",
+              "        REAL CANOPY the model lost — not the reference bleeding onto bare",
+              "        ground. The reference-error caveat is therefore BOUNDED, not fatal."]
+    else:
+        L += [f"     -> only {100*E['miss_ge3m']:.0f}% of edge misses carry CHM >= 3 m, so a large",
+              "        share may be reference over-reach onto ground rather than model error.",
+              "        Discount the perimeter share accordingly."]
 
     L += ["",
           "  -- CAVEATS " + "-" * 47,

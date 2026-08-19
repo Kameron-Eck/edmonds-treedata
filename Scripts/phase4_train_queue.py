@@ -104,26 +104,50 @@ DOUBLE_INT_SEC = 20
 _INT_STATE = {"last": None}
 
 # Cheapest / most informative first. Every entry is a COARSE year (~1h).
+# ── QUEUE 2, 2026-08-18: COMPLETE THE SERIES ON ONE RECIPE ────────────────
+# Queue 1 (2019n · 2021s · 2016c) is DONE — all three have prob rasters and
+# their results are in CHATLOG STATE. This queue fills the six catalog years
+# that have imagery on Drive but NO model, so the temporal series stops having
+# holes in it.
+#
+# EVERY JOB USES --force-citywide. Two reasons, both load-bearing:
+#   1. It avoids polygons/. Those crown polygons are the ones CLAUDE.md records
+#      as overwritten with accept-all test data, and fine/medium years would
+#      otherwise train on them. Training on labels we know are bad is worse
+#      than not training.
+#   2. It puts these years on the SAME recipe as 2000/2002/2013/2015 (the
+#      _citywide_rgb family). STATE result (7b) measured why that matters: a
+#      recipe change moved 2013's deep-miss share by 22 POINTS, so cross-year
+#      comparisons are only meaningful within one recipe.
+#
+# Cheapest first. The three King 20 cm years are the smallest rasters; 2024 is
+# City-of-Edmonds 5 cm and by far the most expensive, so it sits last and can
+# be dropped with --skip 2024 without affecting the others.
 JOBS = [
-    dict(id="2019n", year="2019n", tag="p2nir", extra=[],
-         why="H1: 3rd NIR year -> 3rd independent NDVI reference for the P2 "
-             "disagreement test. 60cm, cheapest job here.",
-         expect="A prob raster + (later) an NDVI ref, so P2 can check whether "
-                "the 16.0% reference-disagreement rate generalises."),
-    dict(id="2021s", year="2021s", tag="p2nir", extra=[],
-         why="H1: 4th NIR year. 50cm, still coarse.",
-         expect="Same as 2019n. Two more NIR years turns P2 from one datapoint "
-                "into a trend."),
-    dict(id="2016c", year="2016", tag="corrected", extra=[
-            "--add-canopy-mask", str(LABELS / "canopy_additions_2016.tif")],
-         why="H2 THE HYPOTHESIS TEST: train 2016 on the ADD-ONLY corrected-label "
-             "overlay, which injects NIR+CHM canopy the 2020 mask never taught.",
-         expect="Compare honest recall vs the 2016 baseline (recall .6844 / "
-                "precision .8651 vs C-CAP). Closes the gap => LABEL problem. "
-                "Does not => labels exonerated, references carry the story. "
-                "NOTE v043: the overlay is baked at tile time, so tiling MUST "
-                "re-run; the tile signature includes --add-canopy-mask, so it "
-                "auto-retiles."),
+    dict(id="2005", year="2005", tag="citywide_rgb", extra=["--force-citywide"],
+         why="Fills a hole in the series. 20.1 cm true GSD (config said 29.9 "
+             "before the 2026-08-18 units fix), medium tier forced to citywide.",
+         expect="prob + mask raster, scorable against C-CAP with qc_indep."),
+    dict(id="2007", year="2007", tag="citywide_rgb", extra=["--force-citywide"],
+         why="As 2005. Same sensor family, so it also extends the King-County "
+             "radiometric series the forest-miss work characterised.",
+         expect="As 2005."),
+    dict(id="2009", year="2009", tag="citywide_rgb", extra=["--force-citywide"],
+         why="As 2005. Completes the 2005-2009 King 20 cm block.",
+         expect="As 2005."),
+    dict(id="2021k", year="2021", tag="citywide_rgb", extra=["--force-citywide"],
+         why="King 10 cm. Pairs with 2021s (Snohomish, same calendar year) — a "
+             "SAME-YEAR CROSS-SENSOR pair, which is the cleanest possible test "
+             "of the sensor effect because real canopy change is ~zero.",
+         expect="prob raster. The 2021k-vs-2021s comparison isolates sensor and "
+                "resolution from change — nothing else in the series does."),
+    dict(id="2023", year="2023", tag="citywide_rgb", extra=["--force-citywide"],
+         why="King 10 cm, most recent King year. Extends the series forward.",
+         expect="prob raster."),
+    dict(id="2024", year="2024", tag="citywide_rgb", extra=["--force-citywide"],
+         why="City of Edmonds 5 cm — the finest imagery in the project and the "
+             "most expensive job here. LAST on purpose.",
+         expect="prob raster. Skip with --skip 2024 if the runtime is short."),
 ]
 
 

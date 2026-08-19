@@ -698,6 +698,261 @@ gotcha:  scripts Colab-only for torch (rasterio+geopandas+fiona+sklearn now pip-
 
 ════════════════ LOG  (newest first) ════════════════
 
+## 2026-08-19  ** THE MODEL IS BETTER THAN ITS NUMBERS ** - calibration, not capability, is binding
+scope:   loop iterations 73-77. Measurement + code reading. Nothing deployed, no plan edit.
+** FINDING 1 - MOST OF THE CROSS-YEAR RECALL WANDER IS THE OPERATING POINT (Q121). **
+         One recipe (_citywide_rgb), one reference (C-CAP), one footprint (161,052 pts, 98.9%),
+         8 years. Only the operating point is varied.
+           recall spread @ FIXED thr 0.5      0.1827
+           recall spread @ MATCHED call .30   0.0721      = 61% REDUCTION
+         Mechanism: thr 0.5 calls 22.0%-30.5% of the city depending on year. A fixed threshold
+         is NOT a fixed operating point.
+         RESIDUAL IS INTERPRETABLE where finding 3's 0.28 wander was not:
+           2000 .6454 · 2002 .6541          <- the two coarsest (~40 cm true GSD)
+           2005-2021 .6974 .7052 .7069 .7174 .7155 .7086   <- ALL WITHIN 0.020
+         across 16 years, 3 providers and a 4x resolution change.
+         CREDIT: the 2026-08-18 recipe-controlled run is column two here. This adds the SECOND
+         control, not the first. The two together account for most of finding 3.
+         ANOMALY: 2007 gives IDENTICAL recall at cr .20 and .25 (.6189) -> degenerate/saturated
+         raster. DO NOT quote the cr=.20 row until understood (Q133).
+** FINDING 2 - THE MODEL DOES NOT RELY ON COLOUR, AND IS MORE STABLE THAN ITS INPUTS (Q135). **
+           year  AUCmodel  AUCbright  AUCgrvi  gain   corr(m,grvi)
+           2000    .8760     .6333     .5927  +.2427     +.1882
+           2005    .9134     .7170     .6941  +.1964     +.4737
+           2009    .9195     .6847     .7061  +.2348     +.4745
+           2013    .9125     .6881     .7273  +.2243     +.5428
+           2021    .9150     .6662     .5453  +.2488     +.0755
+           RANGE   0.044     0.084     0.182
+         MODEL AUC VARIES 4x LESS THAN THE COLOUR STATISTICS OF ITS OWN INPUTS. Threshold-free,
+         so no calibration choice is doing the work.
+         2021 IS DECISIVE: worst GRVI of any year AND lowest model-GRVI correlation (+.0755,
+         ~zero), yet model AUC .9150 - its second best. With 2000 (colour saturated, model still
+         .8760) that is TWO independent extreme cases, not an inference from correlations.
+         ONLY DIP IS 2000 = THE COARSEST YEAR. 2021's colour is worse and does not dip.
+         => RESOLUTION separates the years, COLOUR DOES NOT. Same asymmetry finding 1 found.
+** FINDING 3 - THE REFRAMING NUMBER: AUC .876-.920 vs MATCHED RECALL .645-.717. **
+         The model's RANKING is strong and stable; only WHERE THE LINE IS DRAWN is weak.
+         Q132 PREMISE CONFIRMED IN CODE: phase3_semantic_dev.py:1722
+           canopy_area = total_canopy_px * pixel_area
+         The AREA SERIES - the deliverable - is MAP-COUNT off a thresholded mask, with
+         binary_closing applied first, which inflates it further by a threshold-dependent amount.
+         phase4_qc_score.py:83 already calls its threshold source "the (circular) eval CSV".
+         THREE INDEPENDENT LINES CONVERGE (GRVI drift it.72, operating point it.73, AUC gap
+         it.76/77): THIS PROJECT'S MODEL IS BETTER THAN ITS NUMBERS, AND THE NUMBERS ARE
+         DOMINATED BY CALIBRATION AND A MAP-COUNT ESTIMATOR.
+decided: nothing deployed. Highest-value fix identified (Q136): estimate area from a REFERENCE
+         SAMPLE, not by counting thresholded pixels. NOT new research - the Olofsson/CEOS
+         machinery is already in the tracker and P3's sample design already exists.
+         Colour-comparability problems (it.72/74/75) are REAL BUT NOT BINDING - the model
+         already largely ignores the channel they damage.
+lit:     +6 papers, IDs 204-209, searches 59-60, DOI/arXiv verified.
+           204 Canty & Nielsen 2008 RSE - IR-MAD, invariant to gain/offset
+           205 Ryadi 2023 Sensors - cross-sensor relaxation-based normalisation
+           206 Chen 2023 Appl.Sci - pseudo-invariant POLYGONS (we have roofs + impervious)
+           207 Geirhos 2019 ICLR - CNNs texture-biased. Unifies transfer-vs-resolution asymmetry.
+           208 arXiv 2509.20234 (2025) - DIRECTLY CONTRADICTS 207. Read BEFORE leaning on it.
+           209 arXiv 2509.11355 (2025) - frequency regularisation for shape bias (conditional)
+         NOTE Q130/Q134 ANSWERED NEGATIVE BY MEASUREMENT: AUC is invariant under ANY monotone
+         transform, so IR-MAD/histogram matching CANNOT rescue GRVI where AUC ~ 0.5 - and that
+         is 2000 (.5927), 2019 King (.5835) and 2021 King (.5453). Normalisation is still worth
+         doing for cross-year THRESHOLD comparability, but NOT to make greenness work.
+files:   Scripts/litwatch_robustness.md (it.73-77 + Q131-Q136)
+         Literature_Tracker.xlsx (210 papers, 60 searches)
+         scratchpad, all READ-ONLY: sampler.py (162,829-pt grid), q121c.py, q131b.py, q134.py,
+         q135.py, cast2.py, chk1936.py
+next:    Q136 area-from-reference-sample. Then channel ablation (needs GPU) for Q98.
+gotcha:  NO RASTER IN THIS PROJECT HAS OVERVIEWS (ovr=[] everywhere) and the prob rasters are
+         ROW-STRIPED (block=(1,18944)), so every out_shape/decimated read silently reads the
+         WHOLE file. Two runs stalled ~40 min at 3.5 GB before this was found. Use
+         scratchpad/sampler.py point sampling instead - seconds, not tens of minutes.
+         Building overviews would speed every future QC run but writes GB of sidecars on G:,
+         so that is Kam's call.
+
+## 2026-08-19  ** GRVI IS NOT COMPARABLE ACROSS SENSORS ** + 1936 is an empty file
+scope:   loop iterations 70-72. Measurement + inventory. Nothing deployed, no plan edit.
+** THE FINDING **  GRVI over the SAME GROUND in every acquisition, 2400 px window:
+           frac>.02 = share of pixels a naive GRVI vegetation test calls green
+           2000 King .8027 | 2002 .5029 | 2005 .4782 | 2007 .4016 | 2009 .6237
+           2012 .6268 | 2013 .3463 | 2015 .2745 | 2017 .1877 | 2019 .1146
+           2021 .1344 | 2023 .1541 | 2016 Snoh .6928 | 2019 NAIP .8919 | 2022 NAIP .7822
+         DECISIVE PAIR: 2019 King .1146 vs 2019 NAIP .8919. SAME YEAR, SAME GROUND, SAME
+         SEASON, differing by 0.78. Cannot be vegetation, phenology, growth or loss. It is
+         sensor + processing colour balance and nothing else.
+         AND THE KING SERIES DRIFTS MONOTONICALLY: .80 (2000) -> .35 (2013) -> .11 (2019),
+         GRVI mean crossing positive-to-negative around 2017. ANY cross-year GRVI diagnostic
+         on this series reports a large steady CANOPY DECLINE THAT IS PURE ARTEFACT.
+         DAMAGES OUR OWN WORK: the leaf-off / canopy-rendering signature compared low-
+         greenness fractions BETWEEN years. Those comparisons are NOT SAFE. The WITHIN-year
+         use (canopy-masked pixels vs the rest of the same image) survives, because the cast
+         is global. That distinction is the whole of what is left standing.
+killed:  cross-year GRVI comparisons. Do not re-quote them (Q129 = trace what used them).
+** CORRECTION **  1936_king_rgb.tif CONTAINS NO IMAGE DATA OVER EDMONDS.
+         I reported it in it.71 as "clipped at the bright end, bright detail destroyed".
+         WRONG. Nine probe windows across the city are ALL CONSTANT: mean 253.0 std 0.00
+         min=max=253 in the south/centre, 0.0 in the north. A georeferenced EMPTY SHELL.
+         The "p99=255 clipping" was fill value in a whole-raster downsample.
+         WHY: these are KING COUNTY mosaics and EDMONDS IS IN SNOHOMISH COUNTY. A 1936 King
+         survey does not reach this far north. INDEPENDENT BONUS: 2000's northern probes are
+         also all-zero, so the known north-coverage gap is A COUNTY LINE, not a footprint quirk.
+         1998 IS REAL (std 29-44 at all nine probes, whole city) and single-band, on the
+         IDENTICAL grid to 2000 -> still the clean panchromatic pilot with a near-
+         contemporaneous RGB control. Prize is 2 extra years, not 60.
+did:     also (it.71) 1936/1998 are SINGLE-BAND despite _king_rgb names; every other
+         _king_rgb is 3-band and phase1_preprocess.py assumes it. Dormant only because grep
+         finds 1936/1998 in NO config. They share the 2000 grid exactly (18944x26880) so
+         co-registration looks already done - but their GSD is INHERITED FROM THAT GRID, not
+         measured from film. Do not quote grid spacing as resolution.
+         (it.70) RELIEF DISPLACEMENT, 0 of 197 papers covered it. A conventional ortho is
+         rectified on a BARE-EARTH DTM, so only the BASE of a tree lands correctly; everything
+         above ground is displaced radially PROPORTIONAL TO HEIGHT. d=(h/H)*r -> a 20 m crown
+         500 m off nadir at 3 km = 3.3 m = 33 px at King's true 10 cm GSD. Runs along the SAME
+         axis as our staircase but CUTS AGAINST it (tall-band recall is our highest, .9421), so
+         it cannot be manufacturing the staircase. BIGGER RISK IS THE DELIVERABLE: 17
+         acquisitions = 17 frame layouts = 17 displacement fields -> SPURIOUS CHANGE on tall
+         crowns near buildings (Q125).
+** INFRASTRUCTURE **  NO RASTER IN THIS PROJECT HAS OVERVIEWS (ovr=[] on every file checked),
+         so every out_shape / decimated read silently reads the ENTIRE file. The prob rasters
+         are also ROW-STRIPED, block=(1,18944), not tiled. Two QC runs stalled at 3.5-3.7 GB
+         for ~40 min before I found this. FIX ADOPTED: scratchpad/sampler.py builds a 162,829-
+         point systematic grid inside the city and samples rasters at points - seconds, not
+         tens of minutes. Building overviews would help every future QC run but creates GB of
+         sidecar files on G:, so that is Kam's call, not mine.
+lit:     +9 papers, IDs 195-203, Phase 6 searches 56-58, all DOI-verified via Crossref.
+           195 Techapinyawat 2024 CACAIE - retrieves CANOPY-COVERED IMPERVIOUS SURFACES
+           196 Liu 2023 RS 15:519 - U-Net specifically suffers SHADOW omission (tested, refuted)
+           197 Yoo 2026 RS 18:1899 - transferable NAIP canopy framework (NAIP = our 2019n/2022n)
+           198 Gharibi 2018 RS 10:581 - true ortho from frames + LiDAR; names the DTM defect
+           199 Wagner 2024 RSE 302:114099 - U-Net regression, 60 cm NAIP -> LiDAR CHM, statewide.
+               This is our v045/v046 aux-height experiment ALREADY DONE at scale.
+           200 Chen 2014 ISPRS XL-3:67 - double-mapping; spurious multitemporal change
+           201 Mboga 2020 ISPRS J 167:385 - FCN land cover from PANCHROMATIC historical frames
+           202 Tian 2025 ISPRS Ann X-G:885 - NO method works on panchromatic alone; uses DL
+               COLORIZATION as the bridge. Absent from all 200 prior rows.
+           203 Kostrzewa 2025 PE&RS - CNN LULC from historical aerial (provisional, abstract unread)
+files:   Scripts/litwatch_robustness.md (it.70, 70c, 71, 72 + Q123-Q130)
+         Literature_Tracker.xlsx (204 papers, 58 searches)
+         scratchpad only, all READ-ONLY: sampler.py, cast2.py, chk1936.py, q119.py, q122.py,
+         height_by_surface.py, q121c.py, q128.py
+next:    Q121 running (cross-year recall at MATCHED CALL RATE, point-sampled). Then Q128 -
+         model DISAGREEMENT as a label-free reliability proxy: 2000/2002/2013/2015 each carry
+         4-5 independently trained variants, and Baek 2022 (ID 153) says mutual agreement
+         estimates OOD accuracy. Validate against measured recall before trusting it.
+gotcha:  a substring match on a filename is NOT evidence - EDM_0001936.jpg is crown 0001936,
+         not the year 1936, and I briefly claimed 1936 crops existed on that basis.
+         piping a background job through grep BUFFERS all output until exit; use `py -3 -u
+         script.py > out.txt 2>&1` instead so partial progress is readable.
+         `python` is not on PATH, only `py -3`.
+
+## 2026-08-19  TWO REFUTATIONS AND A DEPLOY WARNING - what is NOT causing the overhang gap
+scope:   loop iterations 67-69, all measurement, nothing deployed, no plan file edited.
+did:     (1) Q118 HEIGHT AND OVERHANG ARE INDEPENDENT, NOT THE SAME THING.
+           Recall by CHM band split by surface beneath, 2016 vs C-CAP city.
+           staircase SURVIVES on pervious alone: 0-2m .1206 -> 30+m .9421, spread +.8215
+           staircase on impervious:              2-5m .0282 -> 30+m .7509, spread +.7227
+           impervious penalty is roughly CONSTANT above 5 m (-.19 to -.29), so the two
+           deficits are ~ADDITIVE. Both need fixing separately.
+           WORST CELL: 2-5 m OVER IMPERVIOUS = .0282. Model finds under 3% of it. That is
+           street/yard trees beside driveways - the canopy a tree ordinance is about.
+           And the impervious penalty is NOT a short-tree artefact: -.19 even above 30 m.
+         (2) Q119 THE CORRECTED MODEL'S OVERHANG GAIN IS AN OPERATING-POINT ARTEFACT.
+           prob_2016 vs prob_2016_corrected, COMMON footprint, 321,651 C-CAP canopy cells.
+           at thr .509      recall .6279 -> .8533   over-imp .3183 -> .5612   LOOKS GREAT
+             but call rate on C-CAP non-canopy .0493 -> .1725  (TRIPLES)
+           at MATCHED overall recall (thr .835)
+                            recall .6279 -> .6296   over-imp .3183 -> .3070   GAIN REVERSES
+             gap -.3739 -> -.3895 (WIDER); worst cell .0282 -> .0366 (nothing)
+             matched gap WORSE where it matters: -.076 at 2-5m, -.050 at 5-10m
+           IT MOVED ITS OPERATING POINT, IT DID NOT LEARN OVERHANG.
+           CAVEAT STATED, not buried: corrected from NIR+CHM but scored against C-CAP, so
+           this is an AGREEMENT statement not a TRUTH statement. Q120 settles it.
+         (3) Q122 SHADOW REFUTED AS THE MECHANISM.
+           Liu 2023 RS 15:519 says U-Net specifically suffers shadow omission - our arch,
+           our symptom. Shadow falls NORTH, contrast is isotropic -> separable by geometry.
+           bearing from nearest building, 2016:  N-S = +.0354 (10m) / +.0221 (20m)
+           north is BETTER. Holds within matched geometry: faces N .5071 vs S .4401,
+           corners +.020, E-W control flat. SIGN ERROR against the hypothesis.
+           FLAGGED NOT READ INTO: cardinal .44-.51 vs diagonal .58-.61, spread .123 = 5x
+           the N-S effect. Axis-aligned footprints, wall faces vs corner wedges. Artefact.
+decided: nothing deployed. RADIOMETRIC FIXES RULED OUT (shadow compensation, histogram
+         matching, illumination normalisation). With corrected labels also ruled out, the
+         candidate list is down to HEIGHT CHANNEL or NIR BAND - v045/v046 aux-height on the
+         impervious split is now the leading untested experiment.
+lit:     +3 papers, IDs 195-197, Phase 6 Search 56, all DOI-verified via Crossref:
+           195 Techapinyawat 2024 CACAIE 10.1111/mice.13277 - retrieves CANOPY-COVERED
+               IMPERVIOUS SURFACES by post-classification. Exact inverse of our failure mode.
+           196 Liu 2023 RS 15(2):519 10.3390/rs15020519 - the U-Net shadow claim above.
+           197 Yoo 2026 RS 18(12):1899 10.3390/rs18121899 - transferable NAIP canopy
+               framework. NAIP is our 2019n/2022n. External benchmark we currently lack.
+files:   Scripts/litwatch_robustness.md (it.67-69 + Q120-Q123)
+         Literature_Tracker.xlsx (197 papers, 56 searches)
+         scratchpad only: height_by_surface.py, q119.py, q122.py - all READ-ONLY, none
+         write to phase4/qc
+next:    Q123 RELIEF DISPLACEMENT - a genuine blind spot. Ortho displaces elevated objects
+         radially from nadir AND THE DISPLACEMENT SCALES WITH HEIGHT, which is the exact
+         axis our staircase runs along. C-CAP is stereo-DSM derived and may be nearer
+         true-ortho, so mask and reference may be misregistered AS A FUNCTION OF HEIGHT.
+         Tracker search for off-nadir / view angle / BRDF / orthorectif returns 0 of 197.
+         Then Q121 (running): re-score the cross-year series at MATCHED CALL RATE. Finding
+         3's .50-.78 wander has never been checked against the it.68 artefact.
+gotcha:  Q121 EVERY per-year threshold is calibrated separately, so ANY cross-year recall
+         comparison in this pipeline is confounded until re-scored at matched operating
+         point. it.68 shows the size of the effect: +0.225 of pure nothing.
+         `python` is not on PATH here, only `py -3` - a heredoc starting `python -` fails
+         silently mid-chain and the NEXT command still runs, so check for the alias error.
+         Crossref titles carry U+2010; console is cp1252; sanitize to ASCII before print.
+
+## 2026-08-19  ** LEAF-OFF ** - the acquisition SPEC may explain the conifer-only blind spot
+goal:    lit-watch loop, iteration 45. Standing top action was "recover acquisition dates".
+         Found something better: the published acquisition SPECIFICATIONS.
+did:     Searched King County / Puget Sound consortium and NAIP acquisition specs.
+         -> Literature_Tracker ID 194. Re-read the iteration-18 GRVI screen against them.
+THE TWO SPECS ARE OPPOSITE:
+  * PUGET SOUND REGIONAL ORTHOPHOTO CONSORTIUM (88 participants, King County lead manager -
+    the source of our King imagery): "acquisition was to occur during LEAF-OFF season while
+    ground conditions were free of snow and smoke". 2012 flown March-May "with the intent of
+    representing leaf-off conditions". 2015 acquired "in the spring".
+  * NAIP: flown "during the agricultural growing season, or LEAF-ON conditions".
+  -> OUR ARCHIVE MIXES LEAF-OFF AND LEAF-ON AND NOTHING IN THE PIPELINE ACCOUNTS FOR IT.
+IF 2020 CoE FOLLOWED REGIONAL PRACTICE (not yet confirmed), our ONE hand-labelled year was
+labelled on imagery where DECIDUOUS CROWNS ARE BARE. Physical explanation for findings we have
+treated as modelling defects:
+  * "conifer-only-label blind spot" -> deciduous crowns not in the labelling imagery at all
+  * scrub recall .25 vs forest .68  -> deciduous scrub bare, conifer forest visible
+  * recall .16 (0-5m) -> .93 (30m+) -> short crowns skew deciduous yard/ornamental
+  * 8/8 missed stands suburban, "purple-leaf LOW-NDVI" -> purple-leaf = deciduous = bare in spring
+  * FINDING 3 IS THE TELL: 9 years span IoU .49-.76 yet recall stays pinned .51-.78. That is
+    what you see when the limit is WHAT THE IMAGERY CONTAINS, not the model.
+INDEPENDENT SUPPORT - iteration-18 GRVI screen re-read: both NAIP years (spec LEAF-ON) rank
+  top-5 of 17 by green-excess; the bottom SIX are all King County or City of Edmonds
+  (consortium, spec LEAF-OFF); 2020 is 4th LOWEST of 17.
+NOT PROVEN: confirmed = the consortium SPEC, and that KC 2012/2015 were spring flights.
+         NOT confirmed = that 2020 CoE followed it, nor the season of Snoh 2016/2021s.
+         GRVI stays confounded with colour balance (iteration-18 caveat stands).
+         RECOVERABLE: King County photo-centre index carries per-exposure ACQ_DATE + UTC_TIME.
+IF IT HOLDS, IT REORDERS THE PROJECT:
+  * blind spot is a DATA problem not a model problem - no architecture, augmentation, domain
+    generalization or foundation model recovers deciduous crowns from leaf-off pixels.
+  * right fix = LABELS ON LEAF-ON IMAGERY (NAIP years, or Snoh if leaf-on), NOT better training
+    on 2020.
+  * any cross-era comparison mixing leaf-off with leaf-on measures PHENOLOGY, not canopy.
+  * the height curve may be substantially a DECIDUOUS-FRACTION curve.
+also this session (lit-watch iterations 43-44), NEW Scripts/phase4_qc_turnover.py:
+  * C-CAP 2016 vs 2021: discordance 11.16%, net -1.72pp LOSS, implied 5.33%/yr canopy loss -
+    which EXCEEDS published street-tree mortality, so most of it is product revision not trees.
+  * NDVI ref 2016 vs 2021s (same source, same sensor): discordance 11.14%, net +2.45pp GAIN.
+  * -> THE TWO REFERENCES DISAGREE ON THE SIGN OF CHANGE. Neither can say whether Edmonds
+    gained or lost canopy 2016-2021. C-CAP dominated by vintage revision, NDVI by phenology
+    (its CHM is static across both dates, so the whole signal is greenness).
+  * BUG FOUND+FIXED in that script: 0 = nodata in C-CAP but NON-VEGETATED in the NDVI refs.
+    First run gave a false 0.97% discordance / 90.6% stable-canopy. --zero-is-data flag added.
+files:   Scripts/litwatch_robustness.md (iterations 43-45) - Literature_Tracker.xlsx ID 194
+         Scripts/phase4_qc_turnover.py - phase4/qc/turnover_{ccap_2016_2021,ndvi_2016_2021s}.txt
+next:    (1) CONFIRM THE 2020 SEASON - photo-centre index, ortho metadata, or ask the City.
+         Everything else is downstream. (2) season-label all 18 acquisitions. (3) recall-by-height
+         on a LEAF-ON year (2019n/2022n, rasters already scored) vs a leaf-off year.
+gotcha:  leaf-off flights are also LOW SUN ANGLE, so the shadow axis and the phenology axis are
+         CORRELATED, not independent. Do not treat them as separate confounds.
+
 ## 2026-08-18  EDGE TEST — the perimeter hypothesis is TRUE, and the height staircase survives it
 goal:    test the crown-perimeter hypothesis raised by the sentinel overlays, BEFORE it could
          reach the annotation plan. It threatened result (1), so it had to be measured.

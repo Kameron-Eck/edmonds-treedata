@@ -167,19 +167,18 @@ writes the working tree: checkout, restore, `reset --hard`, stash pop, branch sw
 (`version_script.py` / `.versions/` are RETIRED 2026-07-06 — kept on disk as a frozen
 pre-git archive, git-ignored; full history was imported as backdated commits v001–v044.)
 
-**1c. The git DB has NO redundancy — mirror it.** `D:\edmonds-pipeline\treedata.git` is a
-single copy on a single disk with no remote (see CHATLOG STATE correction 4). The whole
-argument for versioning findings is that they "survive loss of the Drive mount" — but
-nothing protects against loss of **D:**. An empty bare mirror is staged at
-`G:\My Drive\_treedata_git_mirror.git` (on Drive, so it syncs to the cloud; the live DB
-stays off FUSE for speed). To arm and use it — **run these yourself, Claude Code's
-permission layer blocks remote/push operations**:
+**1c. Mirror the git DB after each session.** `D:\edmonds-pipeline\treedata.git` is the
+only full copy of the history; the Drive mount syncs files, not refs. Two remotes exist
+(added 2026-08-19; the never-armed `_treedata_git_mirror.git` skeleton was deleted):
+`drive-mirror` → `G:\My Drive\edmonds-git-mirror.git` (bare, Drive-synced) and
+`github` → private `github.com/Kameron-Eck/edmonds-treedata` (gh CLI authed).
+**Kam runs the pushes himself — Claude Code's permission layer blocks push:**
 ```bash
-git remote add drive-mirror "G:/My Drive/_treedata_git_mirror.git"   # once
-git push --mirror drive-mirror                                       # after each session
+git push --mirror drive-mirror   # after each session
+git push --mirror github
 ```
-`--mirror` makes the backup an exact copy including tags, and deletes refs there that are
-gone here — which is what a backup should do, but it means never commit *into* the mirror.
+`--mirror` makes each backup an exact copy including tags, and deletes refs there that are
+gone here — which is what a backup should do, but it means never commit *into* a mirror.
 
 **1d. Housekeeping.** The repo had 1018 loose objects and zero packs (never gc'd) plus a
 stale `worktrees/*/refs` garbage entry. Run `git gc` occasionally — it is safe, writes only

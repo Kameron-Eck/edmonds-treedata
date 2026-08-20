@@ -55,7 +55,7 @@ the copy.
 | `Scripts/` | 26 MB | live | All code + docs. `phase4seg/` is the live engine package; `litwatch_scratch/` has its own README (29 instruments vs 77 never-re-run writers); `_archive/` = retired scripts/docs, own README |
 | `phase4/` | ~100k files | live | Active engine output: `models/ masks/ eval/ qc/`. `qc/` holds the honest numbers (`qc_indep_report.csv`, `live=1` rows) |
 | `phase3/` | ~105 GB | live | 2020 base model + full-city 2020 prob/mask. Phase 4 depends on it |
-| `Full_Image/` | 1.2 TB | live | Imagery master. `Pipeline Imagery/` = the 19 in-scope rasters (2000–2024; King County, City of Edmonds, Snohomish, NAIP) + lidar CHM + C-CAP refs. `KingCo/ USGS/ WA_NAIP/ USDA_NRCS/` = raw source archives. `temp/` + `Image_Scripts/` pending review |
+| `Full_Image/` | 1.2 TB | live | Imagery master. `Pipeline Imagery/` = the 19 in-scope rasters (2000–2024; King County, City of Edmonds, Snohomish, NAIP) + lidar CHM + C-CAP refs. `KingCo/ USGS/ WA_NAIP/ USDA_NRCS/` = raw source archives. (`temp/` was empty, removed; `Image_Scripts/` moved to `Scripts/_archive/Image_Scripts/` — both 2026-08-19) |
 | `photos/` | 1.4 GB | live | Training-site footprint GeoTIFFs (`Forest_*` / `Negative_*`) |
 | `polygons/` | 102 MB | live | Hand-traced crown polygons (EPSG:3857) — the instance-training labels |
 | `phase2/` | 1.5 GB | partly live | Only `training_site_coverage.csv` is live; the 1.5 GB `Copy of edmonds_crowns_phase1.gpkg` is a duplicate, disposition pending |
@@ -64,7 +64,7 @@ the copy.
 | `imagery_stats/` | 12 KB | live | `imagery_catalog.csv`, read by one QC script |
 | `City Boundry/` | small | live | Edmonds boundary shapefile. **Misspelling is load-bearing** — scripts reference the path |
 | `bathology/` | small | live | Waterbody shapefile — actually hydrography, not bathymetry; **name kept** because scripts reference it |
-| `impervious/` | 1.5 GB | partly live | `impervious_edmonds.tif` (4.9 MB clip) is live; the 1.48 GB statewide source is re-downloadable, disposition pending |
+| `impervious/` | 4.9 MB | live | `impervious_edmonds.tif` (the clip the scripts read); the 1.48 GB statewide source deleted 2026-08-19 (re-downloadable) |
 | `experiments/` | — | live, git-IGNORED | Documented sandbox, own README |
 | `Admin/` | 181 KB | live | Business records (contracts, contractor tracking) — not pipeline |
 | `.claude/worktrees/` | — | live | Session worktrees; 12 stale ones pruned 2026-08-19, `ecosystem-cleanup` active |
@@ -76,9 +76,9 @@ the copy.
 | `phase1/` `phase1a/` | 2.2 GB each | archival | Completed Phase-1 deliverables |
 | `phase1b/` | 845 MB | archival | Completed Phase-1 deliverable |
 | `phase5/` | 3.8 GB | archival, still read | Abandoned forward-experiment; kept because `phase4_qc_score.py`, `phase4_qc_indep.py`, `phase4_threshold_diagnostic.py` read it |
-| `inference/` | 108 GB | archival, keep | Holds `edmonds_crowns_2020.gpkg` — **THE Phase-0 deliverable** (222k crowns). Its two DTM tifs (112 GB) are regenerable, disposition pending |
+| `inference/` | 108 GB | archival, keep | Holds `edmonds_crowns_2020.gpkg` — **THE Phase-0 deliverable** (222k crowns) — plus its two DTM tifs, kept for ready analysis access (Kam, 2026-08-19) |
 | `checkpoints/` | ~14 GB | archival | v7 detection-model weights (Feb era) plus earlier unversioned fold files; superseded v5 subfolder deleted 2026-08-19 |
-| `labels/` `tiles/` | 346 MB / — | legacy-leaning | Phase-0/3-era caches, disposition pending |
+| `labels/` | 346 MB | archival, keep | Distance-transform GeoTIFFs per training site — Phase-0 training targets derived from `polygons/`; regenerable but kept (Kam, 2026-08-19). Not hand labels — those are `polygons/`, `photos/`, and the 2020 mask |
 | `TreeCrownInventory.ipynb` | 71 KB | archival | The project's origin notebook, kept for provenance (code extracted to `phase0_instance_seg.py`) |
 | `flicker_viewer/` | 16 MB | archival | Standalone HTML temporal viewers, still openable |
 | `temporal_overlays/` | 24 MB | archival | One leftover figure |
@@ -92,9 +92,10 @@ the copy.
 |---|---|---|---|
 | `_backup_accept_all/` | 1.9 GB | HELD | Sole pre-accept-all model snapshot (2026-06-22), byte-different from live weights. **Delete only on Kam's explicit call** |
 
-A 2026-08-19 cleanup removed ~35 GB of zero-reference legacy (`temporal_results`,
-`phase6`, `clips`, `near_infrared`, `Temp`, `pipeline`, `Scripts_v2`, v5 checkpoints,
-stray notebooks, empty dirs). Deleted items are not listed in the map above.
+A 2026-08-19 cleanup removed ~37 GB of zero-reference legacy (`temporal_results`,
+`phase6`, `clips`, `near_infrared`, `Temp`, `pipeline`, `Scripts_v2`, `tiles`, v5
+checkpoints, the statewide `impervious.tif`, stray notebooks, empty dirs). Deleted
+items are not listed in the map above.
 
 ---
 

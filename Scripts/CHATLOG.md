@@ -990,6 +990,27 @@ gotcha:  scripts Colab-only for torch (rasterio+geopandas+fiona+sklearn now pip-
 
 ════════════════ LOG  (newest first) ════════════════
 
+## 2026-08-19  verify-tier dispositions DECIDED by Kam — 3 more deletes, 3 keeps, README updated
+goal:    close the "disposition pending" rows the cleanup left open.
+did:     DELETED (Kam approved): tiles/ (phase-0/3 tile cache), impervious/impervious.tif
+         (1.48 GB statewide source, re-downloadable; the edmonds clip stays and is the
+         only file scripts read), Full_Image/temp/ (empty), stale empty bare mirror
+         G:\My Drive\_treedata_git_mirror.git (0 refs, never armed). MOVED:
+         Full_Image/Image_Scripts/ (4 March-era acquisition notebooks + arcgis_agent.py)
+         -> Scripts/_archive/Image_Scripts/, now git-tracked (commit 1dcdecb).
+         KEPT (Kam decided): inference/ DTM tifs (112 GB) — "readily access those for
+         analysis"; labels/ (346 MB) — per-site distance-transform GeoTIFFs, phase-0
+         training targets derived from polygons/, regenerable but kept. checkpoints/ v7
+         kept (provenance for the 222k-crown deliverable). _backup_accept_all/ still
+         HELD (recommend: keep until U1 + 2016c decisions close, then delete).
+decided: labels/ are NOT hand labels — phase0_instance_seg.py header confirms
+         "Distance transform GeoTIFFs per training site"; the hand-made assets are
+         polygons/, photos/, and the 2020 mask. My permission layer blocked the labels/
+         delete twice before Kam decided to keep it anyway.
+files:   README.md (4 rows + cleanup line -> ~37 GB) · CHATLOG.md (this entry)
+next:    phase2/"Copy of edmonds_crowns_phase1.gpkg" review still pending — layer-count
+         comparison vs phase1 original was running in the background when this landed.
+
 ## 2026-08-19  README.md rewritten — full ecosystem map, every top-level item has a line
 goal:    Kam must be able to walk a stranger through the whole tree and say what each
          thing does. Old README's directory map covered 8 of 51 top-level items;

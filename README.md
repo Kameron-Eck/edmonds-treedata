@@ -58,7 +58,7 @@ the copy.
 | `Full_Image/` | 1.2 TB | live | Imagery master. `Pipeline Imagery/` = the 19 in-scope rasters (2000–2024; King County, City of Edmonds, Snohomish, NAIP) + lidar CHM + C-CAP refs. `KingCo/ USGS/ WA_NAIP/ USDA_NRCS/` = raw source archives. (`temp/` was empty, removed; `Image_Scripts/` moved to `Scripts/_archive/Image_Scripts/` — both 2026-08-19) |
 | `photos/` | 1.4 GB | live | Training-site footprint GeoTIFFs (`Forest_*` / `Negative_*`) |
 | `polygons/` | 102 MB | live | Hand-traced crown polygons (EPSG:3857) — the instance-training labels |
-| `phase2/` | 1.5 GB | partly live | Only `training_site_coverage.csv` is live; the 1.5 GB `Copy of edmonds_crowns_phase1.gpkg` is a duplicate, disposition pending |
+| `phase2/` | 12 KB | live | 3 CSVs; `training_site_coverage.csv` is the live one. The 1.5 GB "Copy of…gpkg" was deleted 2026-08-20 after a measured review — same 222,435 crowns, every column preserved in `phase1a/edmonds_crowns_phase1a.gpkg` |
 | `Reports/` | 36 MB | live | The written deliverables — 4 tracked `.md` since 2026-08-18 (Verified_Results, Report_Dossier, Canopy_Brief, Measurement_Validity_Assessment) + 6 consultant/city source PDFs (untracked, deliberately) |
 | `Literature_Tracker.xlsx` | 75 KB | live | 68 papers. Now git-tracked (whitelist bug fixed 2026-08-19) |
 | `imagery_stats/` | 12 KB | live | `imagery_catalog.csv`, read by one QC script |

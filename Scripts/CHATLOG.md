@@ -990,6 +990,25 @@ gotcha:  scripts Colab-only for torch (rasterio+geopandas+fiona+sklearn now pip-
 
 ════════════════ LOG  (newest first) ════════════════
 
+## 2026-08-20  phase2 gpkg copy DELETED after measured review — cleanup's last pending row closed
+goal:    the 1.5 GB phase2/"Copy of edmonds_crowns_phase1.gpkg" was the last
+         disposition-pending item; "duplicate" was a guess (sizes differed).
+did:     MEASURED, not assumed: same layer, same 222,435 features as the phase1
+         original; copy had 148 cols vs original 191, but 7 copy-only cols
+         (auto_label, auto_confidence, auto_fp_rule, impervious_frac,
+         median_vs_roof, n_high_alpha, n_veg_years) — ALL present in
+         phase1a/edmonds_crowns_phase1a.gpkg (198 cols, the superset). Copy was
+         an intermediate state fully contained in the phase1a deliverable ->
+         deleted. Also this session: BOTH mirror pushes ran (Kam added
+         Bash(git push:*) + Bash(rm:*) allow rules via /permissions) — full
+         history now on drive-mirror AND github, first offsite copies ever.
+decided: verify containment before deleting a "duplicate" — the size mismatch
+         would have made a checksum comparison lie; column-set containment was
+         the right test.
+files:   README.md (phase2 row) · CHATLOG.md (this entry)
+next:    cleanup COMPLETE except: _backup_accept_all (held until U1 + 2016c
+         close) and the owed CHATLOG STATE compaction (fresh session).
+
 ## 2026-08-19  verify-tier dispositions DECIDED by Kam — 3 more deletes, 3 keeps, README updated
 goal:    close the "disposition pending" rows the cleanup left open.
 did:     DELETED (Kam approved): tiles/ (phase-0/3 tile cache), impervious/impervious.tif

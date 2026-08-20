@@ -990,6 +990,31 @@ gotcha:  scripts Colab-only for torch (rasterio+geopandas+fiona+sklearn now pip-
 
 ════════════════ LOG  (newest first) ════════════════
 
+## 2026-08-19  README.md rewritten — full ecosystem map, every top-level item has a line
+goal:    Kam must be able to walk a stranger through the whole tree and say what each
+         thing does. Old README's directory map covered 8 of 51 top-level items;
+         ~155 GB (inference/, phase3/, Full_Image/, checkpoints/, phase5/, labels/,
+         tiles/, _backup_accept_all/ ...) was undocumented.
+did:     Rewrote README as the map. New sections: entry-point chain (WORKPLAN_2026-08-19
+         wins -> CHATLOG STATE live log -> README map; retired the "STATE is the single
+         source of live truth" line), git architecture (tree on G:, DB on D:, tags
+         v001-v048, whitelist .gitignore => everything else has NO git safety net, both
+         remotes drive-mirror + github, Kam pushes --mirror himself), top-level map as
+         3 tables LIVE / ARCHIVAL / HELD (name | size | status | what it is), data-flow
+         prose imagery+labels -> Colab phase4seg -> masks -> QC vs independent refs ->
+         Reports -> city deliverable, plus D:\edmonds-pipeline\Imagery 83GB mirror.
+         Doc map now lists all 12 Scripts/*.md + 2 HTMLs + workplan xlsx + Reports/*.md
+         + _archive/README with one-line purposes. Kept "Rule of the repo" one-home
+         paragraph near top. Sizes flagged approximate (du on FUSE is slow).
+         One cleanup line notes ~35 GB removed 2026-08-19; deleted items NOT in the map.
+decided: load-bearing misspellings `City Boundry/` and `bathology/` documented as
+         intentional (scripts reference the paths) instead of quietly renamed.
+files:   README.md · CHATLOG.md (this entry)
+next:    STALE, out of this worktree's write scope: CLAUDE.md rule 1c still names the
+         mirror `G:\My Drive\_treedata_git_mirror.git` and says "no remote" - actual is
+         `drive-mirror -> G:/My Drive/edmonds-git-mirror.git` + `github`. Also CLAUDE.md
+         Drive-Layout ASCII still lists deleted phase6/.
+
 ## 2026-08-19  litwatch_scratch/README.md — new, documents INSTRUMENTS vs WRITERS split
 goal:    litwatch_scratch/ (recovered lit-watch scratchpad) had no README - risk of
          someone re-running a one-shot ledger appender and duplicating entries.

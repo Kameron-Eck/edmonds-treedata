@@ -1,6 +1,7 @@
 from phase4seg.config import *
 from phase4seg import config
-from phase4seg.common import _tag_sfx, entry_for, tick, tock
+from phase4seg.common import (_tag_sfx, entry_for, tick, tock,
+                              _copy_to_drive, _local_artifact_path)
 
 import gc
 import numpy as np
@@ -71,8 +72,13 @@ def step_postproc(label, dry_run=False):
     print(f"\n── [{label}] Step 6: Post-processing ──")
 
     prob_out = MASKS_DIR / f"edmonds_canopy_prob_{label}{_tag_sfx()}.tif"
-    mask_out = MASKS_DIR / f"edmonds_canopy_mask_{label}{_tag_sfx()}.tif"
-    gpkg_out = MASKS_DIR / f"edmonds_canopy_mask_{label}{_tag_sfx()}.gpkg"
+    mask_final = MASKS_DIR / f"edmonds_canopy_mask_{label}{_tag_sfx()}.tif"
+    gpkg_final = MASKS_DIR / f"edmonds_canopy_mask_{label}{_tag_sfx()}.gpkg"
+    # verified write path (P4.1): heavy outputs land on local NVMe first, then a
+    # size+sha256-verified copy moves each to Drive (also makes the polygonize
+    # read-back local instead of a multi-GB FUSE read).
+    mask_out = _local_artifact_path(mask_final)
+    gpkg_out = _local_artifact_path(gpkg_final)
     if not prob_out.exists():
         print(f"  ERROR: {prob_out} not found — run inference first"); return
 
@@ -114,7 +120,7 @@ def step_postproc(label, dry_run=False):
 
     canopy_area = canopy_px * pixel_area
     pct = 100 * canopy_px / valid_px if valid_px else 0
-    print(f"  ✓ Mask: {mask_out.name} ({mask_out.stat().st_size/1e6:.0f} MB)")
+    print(f"  ✓ Mask (local): {mask_out.name} ({mask_out.stat().st_size/1e6:.0f} MB)")
     print(f"  Canopy: {canopy_px:,}px = {canopy_area/1e4:.1f} ha "
           f"({pct:.1f}% of imaged area)")
 
@@ -198,6 +204,14 @@ def step_postproc(label, dry_run=False):
                     n += 1
     tock("polygonize")
     print(f"  ✓ Canopy GeoPackage: {gpkg_out.name}  ({n:,} polygons)")
+
+    for _local, _final in ((mask_out, mask_final), (gpkg_out, gpkg_final)):
+        if _local != _final:
+            _copy_to_drive(_local, _final)     # raises loudly on size/sha mismatch
+            try:
+                _local.unlink()
+            except OSError:
+                pass
 
     # Record a one-line area summary for the cross-year consistency step.
     _append_area_summary(label, entry_for(label), canopy_area, pct, valid_px,

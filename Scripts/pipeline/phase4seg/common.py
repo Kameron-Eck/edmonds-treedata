@@ -1,3 +1,4 @@
+import hashlib
 import importlib
 import subprocess
 import sys
@@ -134,13 +135,66 @@ def _unstage_imagery_local(local_path):
         pass
 
 
-def _copy_to_drive(local_path, drive_path):
-    """Local-then-copy write: ensures the heavy file is written to NVMe first."""
-    drive_path = Path(drive_path)
+def _sha256(path, chunk=1 << 20):
+    h = hashlib.sha256()
+    with open(path, "rb") as f:
+        for b in iter(lambda: f.read(chunk), b""):
+            h.update(b)
+    return h.hexdigest()
+
+
+def _local_artifact_path(final_path):
+    """Where to WRITE a heavy artifact destined for `final_path`.
+
+    On Colab (final under /content/drive) → a scratch path on local NVMe, so the
+    multi-GB write never streams over FUSE; the caller then _copy_to_drive()s it.
+    Anywhere else → final_path unchanged (already local disk).
+    """
+    final_path = Path(final_path)
+    if str(final_path).startswith("/content/drive"):
+        LOCAL_SCRATCH.mkdir(parents=True, exist_ok=True)
+        return LOCAL_SCRATCH / final_path.name
+    return final_path
+
+
+def _copy_to_drive(local_path, drive_path, checksum=True, retries=1):
+    """VERIFIED local-then-copy write.
+
+    The unverified direct-to-Drive write has produced three broken artifacts
+    (2022 xsensor 0-byte, 2017 xsensor 96.5%-nodata, 2024 truncated stub) that
+    each cost a GPU run before anyone noticed. This copy refuses to be silent:
+    size must match, and (checksum=True) the Drive copy must hash identical to
+    the local one. On mismatch the bad Drive copy is removed and the copy is
+    retried; if it still mismatches, RAISE — a loud failure at write time is the
+    entire point.
+    """
+    local_path, drive_path = Path(local_path), Path(drive_path)
     drive_path.parent.mkdir(parents=True, exist_ok=True)
-    if Path(local_path) == drive_path:
-        return
-    shutil.copy2(local_path, drive_path)
+    if local_path == drive_path:
+        return drive_path
+    want_size = local_path.stat().st_size
+    want_sha = _sha256(local_path) if checksum else None
+    for attempt in range(retries + 1):
+        tick(f"copy {drive_path.name}")
+        shutil.copy2(local_path, drive_path)
+        tock(f"copy {drive_path.name}")
+        got_size = drive_path.stat().st_size
+        if got_size != want_size:
+            problem = f"size {got_size} != {want_size}"
+        elif checksum and _sha256(drive_path) != want_sha:
+            problem = "sha256 mismatch"
+        else:
+            print(f"  ✓ verified write: {drive_path.name} "
+                  f"({want_size/1e6:.0f} MB{', sha256 ok' if checksum else ''})")
+            return drive_path
+        print(f"  ! verified write FAILED ({problem}) for {drive_path.name} "
+              f"[attempt {attempt + 1}/{retries + 1}]")
+        try:
+            drive_path.unlink()
+        except OSError:
+            pass
+    raise RuntimeError(f"verified write failed after {retries + 1} attempts: "
+                       f"{drive_path} ({problem})")
 
 # ── LIDAR structure 4th-channel reader ────────────────────────────────────────
 # The structure master (EPSG:3857, 1 m; source per HS_SOURCE) is reprojected on

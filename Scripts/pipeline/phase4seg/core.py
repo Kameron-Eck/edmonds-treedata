@@ -4,6 +4,7 @@ from phase4seg.common import (
     _ensure_deps, _tag_sfx, entry_for, resolve_native_path,
     _stage_imagery_local, _unstage_imagery_local, read_rgb_window,
     read_hillshade_chip, tick, tock,
+    _copy_to_drive, _local_artifact_path,
 )
 from phase4seg.tiling import _origins_from_manifest
 
@@ -608,12 +609,24 @@ def _validate(model, loader, criterion, device, loss_mode="bce_dice"):
 def _save_ckpt(phase, epoch, model, optim, sched, history, best_val, path):
     state = (model._orig_mod.state_dict() if hasattr(model, "_orig_mod")
              else model.state_dict())
+    # verified write (P4.1): torch.save to local NVMe, then size-verified copy to
+    # Drive. Size-only (no sha) because this runs many times per training and the
+    # observed failure class is truncation, which size catches; the once-per-run
+    # rasters get the full sha256 treatment instead.
+    path = Path(path)
+    local = _local_artifact_path(path)
     torch.save({"phase": phase, "epoch": epoch, "model_state": state,
                 "optim_state": optim.state_dict(), "sched_state": sched.state_dict(),
                 "history": history, "best_val": best_val,
                 "in_channels": config.IN_CHANNELS,          # 3=RGB, 4=RGB+structure
                 "aux_height_head": bool(config.AUX_HEIGHT), # height-prediction head present
-                "hs_source": config.HS_SOURCE}, path)       # which raster band 4 was
+                "hs_source": config.HS_SOURCE}, local)      # which raster band 4 was
+    if local != path:
+        _copy_to_drive(local, path, checksum=False)
+        try:
+            local.unlink()
+        except OSError:
+            pass
 
 
 def _freeze_encoder(model):
@@ -1229,7 +1242,10 @@ def step_inference(label, batch_size=INFER_BATCH_SIZE, dry_run=False, citywide=F
         print(f"  ERROR: {ckpt} not found — run step train first"); return
 
     MASKS_DIR.mkdir(parents=True, exist_ok=True)
-    prob_out = MASKS_DIR / f"edmonds_canopy_prob_{label}{_tag_sfx()}.tif"
+    prob_final = MASKS_DIR / f"edmonds_canopy_prob_{label}{_tag_sfx()}.tif"
+    # verified write path (P4.1): write the multi-GB raster to local NVMe, then
+    # size+sha256-verified copy to Drive — the 2017/2022/2024 failure class dies here
+    prob_out = _local_artifact_path(prob_final)
 
     gc.collect()
     if device.type == "cuda":
@@ -1393,8 +1409,14 @@ def step_inference(label, batch_size=INFER_BATCH_SIZE, dry_run=False, citywide=F
             pbar.close()
             flush(dst)
     tock("inference")
-    print(f"  ✓ Probability raster: {prob_out.name} "
-          f"({prob_out.stat().st_size/1e6:.0f} MB)")
+    if prob_out != prob_final:
+        _copy_to_drive(prob_out, prob_final)      # raises loudly on size/sha mismatch
+        try:
+            prob_out.unlink()
+        except OSError:
+            pass
+    print(f"  ✓ Probability raster: {prob_final.name} "
+          f"({prob_final.stat().st_size/1e6:.0f} MB)")
 
     if local != native:
         _unstage_imagery_local(local)

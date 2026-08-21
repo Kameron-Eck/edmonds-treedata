@@ -62,13 +62,19 @@ overhaul: ** ACTIVE WORKSTREAM 2026-08-20 — OPTION A OVERHAUL. PLAN = Scripts/
          sessions THERE; Drive Scripts now FROZEN fallback) · P3 reorg (pipeline/qc/scratch/archive,
          299 renames, all gates green) · P4 run-protection (verified writes, tile staging, per-step
          VERIFY) · P5 cockpit notebook · P6 manifests+seeds+queue-as-data · P7 harvest + overwrite gate.
-         P1 STATUS 2026-08-21 ~08:00: ~222GB landed + sha256-manifested on D: (prob_2020 102GiB
-         byte-verified; models 58f/35GB; masks 61f/29GB; phase3 1871f/112.7GB; crowns, polygons,
-         parquets, eval, runs, small sources — MANIFEST.sha256 in each dir). REMAINING: the 4 CoE
-         orthos (~128GB) — Google account DOWNLOAD-THROTTLED after ~300GB pulled (measured 390kB/s
-         uncached vs ~5MB/s healthy); loop probes each tick and auto-relaunches the CoE robocopy
-         legs when the quota window rolls. One benign skip: USGS M2M Documentation.gdoc (cloud-
-         native pointer, uncopyable). GitHub pushed through 4320839.
+         ** P1 COMPLETE 2026-08-21 15:53 ** — ~313GB on D:\edmonds-pipeline\backup, every dir
+         sha256-manifested (mirror_sync.py MANIFEST.sha256) + size-verified 0 mismatches:
+         phase3 1871f/112.7GB (prob_2020 102GiB byte-verified, 5h37m copy); models 58f/35GB;
+         masks 61f/29GB; Full_Image 17f/130.4GB (all 4 CoE orthos BYTE-VERIFIED vs source —
+         2017 48,377,405,327B exact); crowns/polygons/parquets/eval/runs/small-sources.
+         Trims per plan: sem_latest twins, crops, phase5, KingCo(75GB raw, flagged), upsample
+         skipped; dedupe vs D:\Imagery. Battle notes: Google download-throttle hit twice after
+         ~300GB pulled (measured 390kB/s vs 5MB/s healthy; recovers on rolling window); Drive
+         client wedged once (restart fixed); 2020/2022/2024 landed via Kam's browser downloads
+         (byte-verified), 2017 via robocopy. One benign skip: USGS M2M Documentation.gdoc
+         (cloud-native pointer, uncopyable). GitHub pushed through 4320839; 62016ea+ unpushed.
+         DEFERRED to next session (explicitly): registry generator (needs real run manifests —
+         first appears at the canary), QC provenance headers, P9 sync mode in mirror_sync.py.
          DRIVE DETACHED (Kam ran the rm, 2026-08-20) — G: has no .git; D: repo is the only git.
          D2 DECIDED (Kam "Adopt", 2026-08-20): mid-height woody COUNTS as canopy, own interpreter
          class, reversible — recorded in canopy_definition_PROPOSAL.md + WORKPLAN §3. D1/D3-D6 open.

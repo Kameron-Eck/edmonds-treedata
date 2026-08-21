@@ -56,10 +56,19 @@ SPACE RULES — keep always-loaded context low for continuous logging:
 
 overhaul: ** ACTIVE WORKSTREAM 2026-08-20 — OPTION A OVERHAUL. PLAN = Scripts/OVERHAUL_PLAN_2026-08-20.md **
          Adopted by Kam. Re-plumb planes: code → normal git repo on D: + GitHub live remote; Colab
-         clones code; Drive = data lake ONLY. Run-protection (P4) lands before next GPU dollar.
-         P0 bookkeeping DONE 2026-08-20. 2024 inference DEAD (2.5MB stub, set aside
-         .stub-20260819) — re-run rides next Colab window. D2 recording awaits Kam polarity
-         confirmation. Read the plan file; do not restate it here.
+         clones code; Drive = data lake ONLY.
+         DONE 2026-08-20: P0 bookkeeping · P1 backup STARTED (robocopy Drive→D:\edmonds-pipeline\
+         backup, ~310GB after trims) · P2 clone at D:\edmonds-pipeline\treedata (CANONICAL — open
+         sessions THERE; Drive Scripts now FROZEN fallback) · P3 reorg (pipeline/qc/scratch/archive,
+         299 renames, all gates green) · P4 run-protection (verified writes, tile staging, per-step
+         VERIFY) · P5 cockpit notebook · P6 manifests+seeds+queue-as-data · P7 harvest + overwrite gate.
+         KAM OWES: delete G:\My Drive\treedata\.git (40-byte pointer; classifier blocked Claude) ·
+         git push github main --tags · PAT → Colab Secrets · D2 polarity confirmation · canary +
+         queue_2024_finish.yaml + queue3.yaml GPU windows.
+         2024 inference DEAD (2.5MB stub, set aside .stub-20260819) — queue_2024_finish.yaml re-runs it.
+         DEFERRED: registry-generator from manifests, QC-provenance headers, pipeline_status.py,
+         watch_queue.py, dag.yaml (P8), mirror_sync.py (P9), P10 cleanups.
+         Read the plan file; do not restate it here.
 proj:    Edmonds temporal canopy pipeline, phase 4 (per-year semantic seg, 18 imagery yrs).
 live:    ENGINE MODULARIZED 2026-07-08 → phase4seg/ package (config/common/labels/tiling/core[all torch]/
          postproc/cli) + 97L phase4_semantic_finetune.py SHIM (preserves `%run ... --args`). Behavior =
@@ -995,6 +1004,42 @@ gotcha:  scripts Colab-only for torch (rasterio+geopandas+fiona+sklearn now pip-
          accept-all test data; 14,476-crown human review never finished.
 
 ════════════════ LOG  (newest first) ════════════════
+
+## 2026-08-20  OVERHAUL P1–P7 EXECUTED — code moved home, engine hardened, Colab cutover staged
+goal:    execute OVERHAUL_PLAN_2026-08-20.md same session as adoption.
+did:     P1: robocopy Drive→D:\edmonds-pipeline\backup launched (prob_2020 102GiB solo /Z first,
+         then models[sem_best]/masks/gpkg/parquet/phase3/CoE-orthos legs; ~310GB after trims:
+         skip sem_latest twins, crops [3.6GB, regenerable], phase5, KingCo 75GB raw [flagged],
+         upsample [skip, regenerable]; dedupe vs D:\Imagery). P2: git clone --no-hardlinks →
+         D:\edmonds-pipeline\treedata, remotes github+drive-mirror, 48 tags, identity set.
+         P3: reorg pipeline(20)/qc(38+html)/scratch/_archive, 299 renames, zero untracked
+         (gitignore whitelist admits Scripts subtree — no edit needed); path fixes: LOGS_DIR→
+         phase4/logs (35 files), SCRIPTS→__file__ (train_queue/p1 — clone runs CLONED code),
+         sentinel probe→Full_Image, pipeline_log provenance re-anchored __file__ (was hashing
+         Drive copy), viz/smoke/catalog_check/latent_adversarial path fixes, queue false-MISSING
+         fix, docstrings→clone paths; requirements-colab/local.txt (phase0 pins frozen-legacy);
+         CLAUDE.md REWRITTEN (two-planes), README git section, doc path refs. VERIFIED: 66
+         py_compile, catalog 18/18, preflight, smoke CPU end-to-end, dry-run, data_inventory.
+         P4: (1) _copy_to_drive resurrected w/ size+sha256+retry; prob/mask/gpkg full-sha,
+         ckpt size-verify — 2022-0-byte/2017-nodata/2024-stub class dies loudly; (2)
+         _stage_tiles_local — epochs read NVMe not FUSE (tile_index abs paths rewritten);
+         (3) per-step VERIFY:{step} rows, hard-fail aborts job before next GPU dollar.
+         P5: colab_launch.ipynb cockpit (clone via GH_TOKEN secret, check cells, nohup launch,
+         monitor). P6: run manifests phase4/runs/{run_id}/manifest.json (git sha+dirty, pip
+         freeze, seed, argv, resolved imagery), run_id in log fields; training seeded (cudnn/
+         AMP nondeterminism accepted); --queue YAML (queue3.yaml, queue_2024_finish.yaml);
+         loss-history tagged; area CSV keyed (year,run_tag); tile signature + ortho name+size
+         (mtime excluded — phantom-M lesson; legacy caches grandfathered). P7: harvest_results.py
+         (first harvest: 3 files) + untagged-overwrite gate (--allow-overwrite).
+decided: gates green per commit (preflight+smoke each engine change). mtime NEVER in signatures.
+         Ckpt verify = size-only (per-epoch cost); rasters = full sha.
+killed:  running engine cli locally for manifest test — would recreate stray C:\content dir.
+files:   commits af28526..505b9ab on main (D: repo). Key: 2b622f2 reorg, a052f52 verified
+         writes, 5acf16d tile staging, 3e615c9 per-step VERIFY, abf6d96 manifests+seeds,
+         04f535a queue-as-data, 2b2edb0 harvest, 505b9ab overwrite gate.
+next:    Kam: .git pointer delete, push, PAT, D2, canary → queue_2024_finish → queue3 windows.
+         Claude next session: P1 sha manifests+verify (if not done), registry generator,
+         QC provenance, pipeline_status.py, watch_queue.py, dag.yaml, mirror_sync.py.
 
 ## 2026-08-20  OPTION A OVERHAUL adopted — master plan landed; P0 bookkeeping done
 goal:    Kam adopted Option A (re-plumb planes) after 4-env audit. Make plan + decisions durable.

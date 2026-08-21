@@ -602,6 +602,17 @@ def _tile_signature(label, stride, max_tiles, citywide):
     if config.AUX_HEIGHT:
         sig["aux_height"] = True
         sig["chm_credible_years"] = sorted(CHM_CREDIBLE_YEARS)
+    # P6.6: the ortho the tiles were cut from. A replaced/re-mosaicked ortho used
+    # to reuse stale tiles silently (the v042 failure class, but for imagery).
+    # name+size only — mtime is deliberately EXCLUDED (Drive rewrites mtimes; the
+    # phantom-M lesson). Legacy caches without this key are grandfathered in
+    # _existing_tiles_valid, so nothing spuriously retiles.
+    try:
+        _ortho = resolve_native_path(entry_for(label))
+        sig["ortho"] = {"name": _ortho.name,
+                        "size": int(_ortho.stat().st_size) if _ortho.exists() else None}
+    except Exception:
+        pass
     return sig
 
 
@@ -618,7 +629,11 @@ def _existing_tiles_valid(label, sig):
     if not (mp.exists() and idx.exists()):
         return False
     try:
-        if json.loads(mp.read_text()) != sig:
+        stored = json.loads(mp.read_text())
+        want = dict(sig)
+        if "ortho" not in stored:
+            want.pop("ortho", None)   # legacy (pre-P6.6) cache: honored, ortho unchecked
+        if stored != want:
             return False
         df = pd.read_csv(idx)
     except Exception:

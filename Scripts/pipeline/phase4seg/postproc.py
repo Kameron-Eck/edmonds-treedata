@@ -222,15 +222,21 @@ def step_postproc(label, dry_run=False):
 def _append_area_summary(label, entry, canopy_area_m2, canopy_pct, valid_px,
                          pixel_area):
     EVAL_DIR.mkdir(parents=True, exist_ok=True)
-    row = dict(year=label, gsd_cm=entry["gsd_cm"], tier=tier_for(entry),
-               coverage=entry["coverage"],
+    # P6.4: rows are keyed (year, run_tag) — two tagged runs of one year used to
+    # silently overwrite each other's area row.
+    row = dict(year=label, run_tag=config.RUN_TAG or "", gsd_cm=entry["gsd_cm"],
+               tier=tier_for(entry), coverage=entry["coverage"],
                canopy_ha=round(canopy_area_m2 / 1e4, 2),
                canopy_pct_of_imaged=round(canopy_pct, 2),
                imaged_ha=round(valid_px * pixel_area / 1e4, 2))
     path = EVAL_DIR / "_per_year_canopy_area.csv"
     if path.exists():
         df = pd.read_csv(path)
-        df = df[df["year"].astype(str) != label]
+        if "run_tag" not in df.columns:
+            df["run_tag"] = ""                 # legacy rows = untagged
+        df["run_tag"] = df["run_tag"].fillna("")
+        df = df[~((df["year"].astype(str) == label)
+                  & (df["run_tag"].astype(str) == row["run_tag"]))]
         df = pd.concat([df, pd.DataFrame([row])], ignore_index=True)
     else:
         df = pd.DataFrame([row])
@@ -258,6 +264,13 @@ def step_consistency(dry_run=False):
     df = pd.read_csv(area_path)
     if df.empty:
         print("  No rows."); return
+    if "run_tag" in df.columns:
+        # One row per year for the trend: prefer the recipe-matched citywide_rgb
+        # row when a year has been postproc'd under more than one tag (P6.4).
+        df["_pref"] = (df["run_tag"].astype(str) == "citywide_rgb").astype(int)
+        df = (df.sort_values("_pref", ascending=False)
+                .drop_duplicates(subset="year", keep="first")
+                .drop(columns="_pref").reset_index(drop=True))
 
     # Full-coverage years only for the trend (partial-coverage 67% years aren't
     # directly comparable in absolute hectares).

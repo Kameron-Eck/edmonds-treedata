@@ -1,0 +1,28 @@
+# QUEUE 3 — the last three years off-recipe (staged 2026-08-19, made data 2026-08-20).
+# Launch:  python -u phase4_train_queue.py --queue queue3.yaml   (via colab_launch.ipynb)
+# Rationale: recipe swings recall 5.6-12.7 pp with the sign varying by year, so any
+# table mixing recipes is uninterpretable. These three complete the fully
+# recipe-matched 18-year series. 2019 first (cheapest) so a short runtime still
+# delivers; 2017/2022 are City-of-Edmonds 5 cm, the most expensive jobs in the project.
+- id: "2019"
+  year: "2019"
+  tag: citywide_rgb
+  extra: ["--force-citywide"]
+  why: >-
+    King 10 cm. Cheapest of the three and pairs with 2019n (NAIP 60.7 cm) as a
+    second same-year cross-sensor pair.
+  expect: prob raster; completes the 10 cm tier alongside 2013/2015/2021/2023.
+- id: "2017"
+  year: "2017"
+  tag: citywide_rgb
+  extra: ["--force-citywide"]
+  why: >-
+    City of Edmonds 5 cm. Currently scored off-recipe (_xsensor_train), and it is
+    the series recall high (.7986), so its recipe matters to any claim.
+  expect: prob raster on the shared recipe, making the .7986 comparable.
+- id: "2022"
+  year: "2022"
+  tag: citywide_rgb
+  extra: ["--force-citywide"]
+  why: City of Edmonds 5 cm. Last year off-recipe; pairs with 2022n (NAIP).
+  expect: prob raster; completes the recipe-matched series.

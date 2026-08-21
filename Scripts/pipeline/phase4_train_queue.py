@@ -436,6 +436,32 @@ def verify_step(job, step, rows):
     return state not in _VERIFY_HARD_FAIL
 
 
+def _load_queue(path):
+    """P6.3 queue-as-data: load the job list from a YAML file.
+
+    Ends the pick-jobs-by-editing-source era: a queue is a reviewable artifact
+    (id, year, tag, extra, why, expect per job), and the launch line names it.
+    """
+    import yaml
+    p = Path(path)
+    if not p.is_absolute():
+        p = Path(__file__).resolve().parent / p     # queue files live beside the code
+    with open(p, encoding="utf-8") as f:
+        jobs = yaml.safe_load(f)
+    if not isinstance(jobs, list) or not jobs:
+        sys.exit(f"queue file {p} must be a non-empty YAML list of jobs")
+    for i, j in enumerate(jobs):
+        missing = [k for k in ("id", "year", "tag") if not j.get(k)]
+        if missing:
+            sys.exit(f"queue file {p}: job #{i} missing {missing}")
+        j.setdefault("extra", [])
+        j.setdefault("why", "")
+        j.setdefault("expect", "")
+        j["year"] = str(j["year"])
+        j["id"] = str(j["id"])
+    return jobs
+
+
 def verify(job, rows):
     """Job-end raster check (the historical VERIFY row scoring flows expect).
     Never raises — this is unattended."""
@@ -463,6 +489,10 @@ def main():
 
     ap = argparse.ArgumentParser(description="Unattended Phase-4 training queue.")
     ap.add_argument("--infer-batch", type=int, default=32)
+    ap.add_argument("--queue", default=None,
+                    help="P6.3 queue-as-data: YAML file of jobs (id, year, tag, "
+                         "extra, why, expect). Replaces editing JOBS in source. "
+                         "e.g. --queue queue3.yaml")
     ap.add_argument("--only", default=None, help="Run just this job id.")
     ap.add_argument("--skip", default="", help="Comma-separated job ids to skip.")
     ap.add_argument("--retries", type=int, default=2,
@@ -474,14 +504,17 @@ def main():
                     help="Print the plan and the exact commands; spend nothing.")
     args = ap.parse_args(filtered)
 
+    jobs = _load_queue(args.queue) if args.queue else JOBS
+
     skip = {s.strip() for s in args.skip.split(",") if s.strip()}
-    todo = [j for j in JOBS if j["id"] not in skip
+    todo = [j for j in jobs if j["id"] not in skip
             and (args.only is None or j["id"] == args.only)]
 
     _hr("PHASE 4 — UNATTENDED TRAIN QUEUE")
     print(f"  BASE   : {BASE}")
+    print(f"  queue  : {args.queue or 'JOBS (in-source)'}")
     print(f"  status : {STATUS}   (flushed after EVERY step)")
-    print(f"  jobs   : {len(todo)} of {len(JOBS)}")
+    print(f"  jobs   : {len(todo)} of {len(jobs)}")
     for j in todo:
         print(f"\n  [{j['id']}] year={j['year']} tag={j['tag']}")
         print(f"      why    : {j['why']}")

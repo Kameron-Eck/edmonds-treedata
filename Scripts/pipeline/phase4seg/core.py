@@ -991,7 +991,7 @@ def step_train(label, batch_size=BATCH_SIZE, p3_ckpt=None, dry_run=False, compil
         _run_phase_b(model, train_loader, val_loader, criterion, device, loss_mode,
                      es_metric, es_maximize, sched_mode, best_val, best_ckpt,
                      latest_ckpt, history)
-    pd.DataFrame(history).to_csv(MODELS_DIR / f"sem_loss_history_{label}.csv",
+    pd.DataFrame(history).to_csv(MODELS_DIR / f"sem_loss_history_{label}{_tag_sfx()}.csv",
                                  index=False)
     del model
     if device.type == "cuda":

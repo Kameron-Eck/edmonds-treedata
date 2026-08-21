@@ -1,0 +1,112 @@
+# The pipeline DAG, as data (overhaul P8). One node per stage: script, inputs,
+# outputs, where it runs. {y} = year label (e.g. 2016, 2019n), {tag} = run tag.
+# Validated / rendered by qc/pipeline_status.py (--mermaid). Restores the clean
+# 0→4 architecture as an artifact instead of prose.
+#
+# Path roots: data = the Drive data lake (G:\My Drive\treedata / /content/drive/
+# MyDrive/treedata); code = this repo. All inputs/outputs below are data-plane
+# unless marked repo:.
+
+stages:
+  phase0_instance_seg:
+    script: pipeline/phase0_instance_seg.py
+    runs_on: colab
+    status: complete
+    inputs: ["Full_Image/Pipeline Imagery/2020_coe_rgb.tif", "labels/*_dtm.tif"]
+    outputs: ["inference/edmonds_crowns_2020.gpkg"]
+    note: 222,435 crowns; DTM regression + watershed. Deps FROZEN-LEGACY.
+
+  phase1_spectral:
+    script: pipeline/phase1_preprocess.py … phase1d_classifier.py
+    runs_on: colab
+    status: complete
+    inputs: ["inference/edmonds_crowns_2020.gpkg", "Full_Image/Pipeline Imagery/upsample/"]
+    outputs: ["phase1/edmonds_crowns_phase1.parquet"]
+
+  phase2_data_prep:
+    script: pipeline/phase2_data_prep.py
+    runs_on: colab
+    status: complete
+    inputs: ["phase1/edmonds_crowns_phase1.parquet", "polygons/", "photos/"]
+    outputs: ["phase2/training_site_coverage.csv"]
+
+  phase3_base_2020:
+    script: pipeline/phase3_semantic_dev.py
+    runs_on: colab
+    status: complete
+    inputs: ["photos/", "polygons/", "Full_Image/Pipeline Imagery/2020_coe_rgb.tif"]
+    outputs: ["phase3/sem_best_2020.pt", "phase3/edmonds_canopy_mask_2020.tif", "phase3/edmonds_canopy_prob_2020.tif"]
+    note: LOSO IoU .7299 / AUROC .9396. The citywide mask is a PREDICTION, not truth.
+
+  phase4_labels:
+    script: pipeline/phase4_semantic_finetune.py --year {y} --step labels
+    runs_on: colab
+    inputs: ["Full_Image/Pipeline Imagery/{y}_ortho", "polygons/", "photos/"]
+    outputs: ["phase4/sites/{y}/"]
+    note: SKIPPED on the citywide path (labels built at tile time from the 2020 mask).
+
+  phase4_tile:
+    script: pipeline/phase4_semantic_finetune.py --year {y} --step tile
+    runs_on: colab
+    inputs: ["Full_Image/Pipeline Imagery/{y}_ortho", "phase3/edmonds_canopy_mask_2020.tif", "phase4/labels_corrected/canopy_additions_{y}.tif?"]
+    outputs: ["phase4/tiles/{y}/", "phase4/tiles/{y}/tile_index_{y}.csv", "phase4/tiles/{y}/tile_index_{y}.meta.json"]
+
+  phase4_train:
+    script: pipeline/phase4_semantic_finetune.py --year {y} --step train --run-tag {tag}
+    runs_on: colab
+    inputs: ["phase4/tiles/{y}/", "phase3/sem_best_2020.pt"]
+    outputs: ["phase4/models/sem_best_{y}_{tag}.pt", "phase4/models/sem_latest_{y}_{tag}.pt", "phase4/models/sem_loss_history_{y}_{tag}.csv", "phase4/runs/{run_id}/manifest.json"]
+
+  phase4_evaluate:
+    script: pipeline/phase4_semantic_finetune.py --year {y} --step evaluate --run-tag {tag}
+    runs_on: colab
+    inputs: ["phase4/tiles/{y}/", "phase4/models/sem_best_{y}_{tag}.pt"]
+    outputs: ["phase4/eval/semantic_eval_report.csv"]
+    note: CIRCULAR metric (2020-borrowed labels) — never the headline (CLAUDE.md rule 5).
+
+  phase4_inference:
+    script: pipeline/phase4_semantic_finetune.py --year {y} --step inference --run-tag {tag}
+    runs_on: colab
+    inputs: ["Full_Image/Pipeline Imagery/{y}_ortho", "phase4/models/sem_best_{y}_{tag}.pt"]
+    outputs: ["phase4/masks/edmonds_canopy_prob_{y}_{tag}.tif"]
+
+  phase4_postproc:
+    script: pipeline/phase4_semantic_finetune.py --year {y} --step postproc --run-tag {tag}
+    runs_on: local
+    inputs: ["phase4/masks/edmonds_canopy_prob_{y}_{tag}.tif", "phase4/eval/semantic_eval_report.csv"]
+    outputs: ["phase4/masks/edmonds_canopy_mask_{y}_{tag}.tif", "phase4/masks/edmonds_canopy_mask_{y}_{tag}.gpkg", "phase4/eval/_per_year_canopy_area.csv"]
+
+  qc_ndvi_reference:
+    script: qc/phase4_qc_ndvi.py
+    runs_on: local
+    inputs: ["Full_Image/Pipeline Imagery/{y}_rgbi.tif", "Full_Image/Pipeline Imagery/lidar_snoh_chm.tif"]
+    outputs: ["phase4/qc/ndvi_ref_{y}.tif", "phase4/qc/ndvi_ref_{y}.txt"]
+    note: NIR years only (2016, 2019n, 2021s, 2022n).
+
+  qc_honest_score:
+    script: qc/phase4_qc_indep.py
+    runs_on: local
+    inputs: ["phase4/masks/edmonds_canopy_prob_{y}_{tag}.tif", "Full_Image/Pipeline Imagery/ccap_*_hires_lc*.tif"]
+    outputs: ["phase4/qc/qc_indep_report.csv", "phase4/qc/qc_indep_surfaces_{y}.csv", "phase4/qc/qc_indep_{y}.txt"]
+    note: THE honest number (live=1 rows). qc/phase4_qc_score.py = the NDVI-side twin.
+
+  qc_ref_agreement:
+    script: qc/phase4_ref_agreement.py
+    runs_on: local
+    inputs: ["phase4/qc/ndvi_ref_{y}.tif", "Full_Image/Pipeline Imagery/ccap_*_hires_lc*.tif"]
+    outputs: ["phase4/qc/ref_agreement_{y}.txt", "phase4/qc/ref_agreement_report.csv"]
+    note: references disagree on 15-17% of pixels — never score contested ground.
+
+edges:
+  - phase0_instance_seg -> phase1_spectral
+  - phase1_spectral -> phase2_data_prep
+  - phase2_data_prep -> phase3_base_2020
+  - phase3_base_2020 -> phase4_labels
+  - phase4_labels -> phase4_tile
+  - phase4_tile -> phase4_train
+  - phase4_train -> phase4_evaluate
+  - phase4_evaluate -> phase4_inference
+  - phase4_inference -> phase4_postproc
+  - phase4_inference -> qc_honest_score
+  - qc_ndvi_reference -> qc_ref_agreement
+  - qc_ndvi_reference -> qc_honest_score

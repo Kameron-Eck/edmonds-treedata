@@ -331,39 +331,121 @@ def run_step(job, step, infer_batch, rows):
     return rc == 0
 
 
+def _check_prob_raster(out):
+    """Decimated sanity read of a prob raster → (state, detail)."""
+    if not out.exists():
+        return "MISSING", f"no raster at {out.name}"
+    mb = out.stat().st_size / 1e6
+    import rasterio
+    from rasterio.enums import Resampling
+    with rasterio.open(out) as s:
+        h = min(1200, s.height)
+        w = max(1, int(s.width * h / s.height))
+        a = s.read(1, out_shape=(h, w), resampling=Resampling.nearest)
+        nd = 255 if s.nodata is None else s.nodata
+    v = a != nd
+    vf = float(v.mean())
+    mx = float(a[v].max()) / 254.0 if v.any() else float("nan")
+    state = "OK"
+    if mb == 0 or not v.any():
+        state = "EMPTY"
+    elif vf < 0.05:
+        state = "MOSTLY_NODATA"
+    elif mx < 0.50:
+        state = "NO_CONFIDENCE"
+    elif mx < 0.75:
+        state = "WEAK_CALIBRATION"
+    return state, f"{mb:.0f}MB valid={vf:.1%} maxprob={mx:.3f}"
+
+
+# P4.3: states that mean "the artifact this step just paid for is broken" —
+# the queue must stop spending on this job, not sail into the next GPU hour.
+_VERIFY_HARD_FAIL = {"MISSING", "EMPTY", "MOSTLY_NODATA", "NO_CONFIDENCE",
+                     "BAD_CKPT", "NO_TILES", "BAD_INDEX"}
+
+
+def verify_step(job, step, rows):
+    """P4.3: per-step artifact check, recorded as a VERIFY:{step} row.
+
+    The old job-end-only VERIFY let a broken artifact license every later step
+    (the 2024 stub trained+evaluated fine and then died at inference; 2017's
+    bad raster was only caught by a human a day later). Never raises; returns
+    False on a hard failure so the caller aborts the job.
+    """
+    y, tag = job["year"], job["tag"]
+    state, detail = "OK", ""
+    try:
+        if step == "labels":
+            if "--force-citywide" in job.get("extra", []):
+                detail = "citywide: labels step is skipped by design"
+            else:
+                site_dir = BASE / "phase4" / "sites" / y
+                n = len(list(site_dir.glob("*_mask.tif"))) if site_dir.exists() else 0
+                state, detail = ("OK", f"{n} site masks") if n else \
+                                ("MISSING", f"no site masks in {site_dir}")
+        elif step == "tile":
+            import pandas as pd
+            idx = BASE / "phase4" / "tiles" / y / f"tile_index_{y}.csv"
+            if not idx.exists():
+                state, detail = "MISSING", f"no {idx.name}"
+            else:
+                df = pd.read_csv(idx)
+                if not len(df):
+                    state, detail = "NO_TILES", "index has 0 rows"
+                else:
+                    probe = pd.concat([df.head(10), df.tail(10)])
+                    n_miss = sum(1 for p in probe["img_path"]
+                                 if not Path(str(p)).exists())
+                    state = "BAD_INDEX" if n_miss else "OK"
+                    detail = (f"{len(df)} tiles indexed; probed {len(probe)} "
+                              f"paths, {n_miss} missing")
+        elif step == "train":
+            import zipfile
+            ck = BASE / "phase4" / "models" / f"sem_best_{y}_{tag}.pt"
+            if not ck.exists():
+                state, detail = "MISSING", f"no {ck.name}"
+            else:
+                mb = ck.stat().st_size / 1e6
+                if mb < 50:
+                    state, detail = "BAD_CKPT", f"{mb:.0f}MB — truncated?"
+                elif not zipfile.is_zipfile(ck):
+                    state, detail = "BAD_CKPT", f"{mb:.0f}MB, not a zip archive"
+                else:
+                    state, detail = "OK", f"{mb:.0f}MB, zip magic ok"
+        elif step == "evaluate":
+            import pandas as pd
+            rep = BASE / "phase4" / "eval" / "semantic_eval_report.csv"
+            if not rep.exists():
+                state, detail = "MISSING", f"no {rep.name}"
+            else:
+                df = pd.read_csv(rep)
+                n = int((df["year"].astype(str) == str(y)).sum())
+                state = "OK" if n else "MISSING"
+                detail = f"{n} rows for year {y} in {rep.name}"
+        elif step == "inference":
+            out = MASKS / f"edmonds_canopy_prob_{y}_{tag}.tif"
+            state, detail = _check_prob_raster(out)
+    except Exception as e:                                      # noqa: BLE001
+        state, detail = "UNCHECKED", f"{type(e).__name__}: {e}"[:200]
+    rec = dict(job=job["id"], year=y, tag=tag, step=f"VERIFY:{step}",
+               state=state, exit="", minutes="", detail=detail,
+               ts=_dt.datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+    rows.append(rec)
+    _status_write(rows)
+    print(f"  VERIFY:{step} {job['id']}: {state}  {detail}")
+    return state not in _VERIFY_HARD_FAIL
+
+
 def verify(job, rows):
-    """Record what the job actually produced. Never raises — this is unattended."""
+    """Job-end raster check (the historical VERIFY row scoring flows expect).
+    Never raises — this is unattended."""
     out = MASKS / f"edmonds_canopy_prob_{job['year']}_{job['tag']}.tif"
     rec = dict(job=job["id"], year=job["year"], tag=job["tag"], step="VERIFY",
                state="", exit="", minutes="", detail="",
                ts=_dt.datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
     try:
-        if not out.exists():
-            rec.update(state="MISSING", detail=f"no raster at {out.name}")
-        else:
-            mb = out.stat().st_size / 1e6
-            import rasterio
-            from rasterio.enums import Resampling
-            import numpy as np
-            with rasterio.open(out) as s:
-                h = min(1200, s.height)
-                w = max(1, int(s.width * h / s.height))
-                a = s.read(1, out_shape=(h, w), resampling=Resampling.nearest)
-                nd = 255 if s.nodata is None else s.nodata
-            v = a != nd
-            vf = float(v.mean())
-            mx = float(a[v].max()) / 254.0 if v.any() else float("nan")
-            state = "OK"
-            if mb == 0 or not v.any():
-                state = "EMPTY"
-            elif vf < 0.05:
-                state = "MOSTLY_NODATA"
-            elif mx < 0.50:
-                state = "NO_CONFIDENCE"
-            elif mx < 0.75:
-                state = "WEAK_CALIBRATION"
-            rec.update(state=state,
-                       detail=f"{mb:.0f}MB valid={vf:.1%} maxprob={mx:.3f}")
+        state, detail = _check_prob_raster(out)
+        rec.update(state=state, detail=detail)
     except Exception as e:                                      # noqa: BLE001
         rec.update(state="UNCHECKED", detail=f"{type(e).__name__}: {e}"[:200])
     rows.append(rec)
@@ -452,6 +534,11 @@ def main():
             if not res:
                 print(f"  ! {j['id']} failed at step '{st}'. "
                       f"Recording and moving to the NEXT JOB (queue is unattended).")
+                ok = False
+                break
+            if not verify_step(j, st, rows):
+                print(f"  ! {j['id']} step '{st}' exited 0 but its ARTIFACT failed "
+                      f"verification. Stopping this job before spending more GPU.")
                 ok = False
                 break
         if ok:

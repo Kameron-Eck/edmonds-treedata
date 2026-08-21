@@ -86,8 +86,8 @@ than copied from a config. Two of these instruments already exist and were re-ve
 | CRS, transform, bounds, dtype, nodata | `phase4_data_inventory.py` | **built** |
 | footprint as % of study area | `phase4_data_inventory.py` | **built** |
 | true ground GSD (unit-safe) | `phase4_data_inventory.py` | **built** |
-| **effective** resolution (edge response) | `litwatch_scratch/q138b.py` | **built, verified** |
-| per-band radiometry + colour cast | `litwatch_scratch/cast2.py` | **built, verified** |
+| **effective** resolution (edge response) | `scratch/litwatch_scratch/q138b.py` | **built, verified** |
+| per-band radiometry + colour cast | `scratch/litwatch_scratch/cast2.py` | **built, verified** |
 | band count, fill/constant detection | — | **to add to the inventory** |
 | overviews present | — | **to add**, and see B2 |
 | acquisition date | — | blocked on A4 |

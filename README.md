@@ -25,22 +25,25 @@ the copy.
 
 ---
 
-## Git architecture
+## Git architecture (re-plumbed 2026-08-20 — see `Scripts/OVERHAUL_PLAN_2026-08-20.md`)
 
-- **Working tree** = `G:\My Drive\treedata` (Google-Drive-synced). **Git DB** =
-  `D:\edmonds-pipeline\treedata.git` (off the FUSE mount); the repo's `.git` is a
-  pointer file. Tags **v001–v048**.
-- **Two remotes** (added 2026-08-19): `drive-mirror` → `G:\My Drive\edmonds-git-mirror.git`
-  (bare, Drive-synced) and `github` → private `github.com/Kameron-Eck/edmonds-treedata`.
-  **Kam runs `git push --mirror` to both himself** — Claude's permission layer blocks
-  push.
+- **The repo lives at `D:\edmonds-pipeline\treedata`** — a normal git working tree on
+  local disk. Sessions open in `D:\edmonds-pipeline\treedata\Scripts`. Tags **v001–v048+**.
+- **Drive is detached from git and serves data only.** `G:\My Drive\treedata\Scripts\`
+  is a FROZEN pre-reorg copy kept as the Colab launch fallback until the cutover proves
+  out — never edit it. (Its `.git` pointer file is deleted; the old detached DB
+  `D:\edmonds-pipeline\treedata.git` is retained until overhaul P10.)
+- **Remotes**: `github` → private `github.com/Kameron-Eck/edmonds-treedata` (the live
+  mirror — push `main --tags` after each session; **Kam runs pushes**, Claude's
+  permission layer blocks them) and `drive-mirror` → `G:\My Drive\edmonds-git-mirror.git`
+  (legacy, retired at P10).
 - **`.gitignore` is a whitelist** (`/*`, then re-admit). Tracked: `Scripts/`,
   `phase4/qc/` text outputs, `Reports/*.md` + `*.csv`, `README.md`,
   `Literature_Tracker.xlsx`, a few root files. **Everything else on this list has NO git
-  safety net** — imagery, models, rasters, GPKGs are on disk only.
-- Two sessions share one working tree: **stage explicit paths, never `-A`** (see
-  `Scripts/CLAUDE.md` rule 1b). Drive rewrites mtimes, so bare `M` with an empty diff is
-  noise.
+  safety net** — imagery, models, rasters, GPKGs are on disk (+ the
+  `D:\edmonds-pipeline\backup\` checksum mirror, overhaul P1).
+- Parallel sessions may share the working tree: **stage explicit paths, never `-A`**
+  (see `Scripts/CLAUDE.md` rule 1b).
 
 ---
 
@@ -52,7 +55,7 @@ the copy.
 
 | Item | Size | Status | What it is |
 |---|---|---|---|
-| `Scripts/` | 26 MB | live | All code + docs. `phase4seg/` is the live engine package; `litwatch_scratch/` has its own README (29 instruments vs 77 never-re-run writers); `_archive/` = retired scripts/docs, own README |
+| `Scripts/` | 26 MB | live | All code + docs. `pipeline/phase4seg/` is the live engine package (layout since 2026-08-20: `pipeline/` engine+drivers, `qc/` measurement, `scratch/`, `_archive/`); `scratch/litwatch_scratch/` has its own README (29 instruments vs 77 never-re-run writers); `_archive/` = retired scripts/docs, own README |
 | `phase4/` | ~100k files | live | Active engine output: `models/ masks/ eval/ qc/`. `qc/` holds the honest numbers (`qc_indep_report.csv`, `live=1` rows) |
 | `phase3/` | ~105 GB | live | 2020 base model + full-city 2020 prob/mask. Phase 4 depends on it |
 | `Full_Image/` | 1.2 TB | live | Imagery master. `Pipeline Imagery/` = the 19 in-scope rasters (2000–2024; King County, City of Edmonds, Snohomish, NAIP) + lidar CHM + C-CAP refs. `KingCo/ USGS/ WA_NAIP/ USDA_NRCS/` = raw source archives. (`temp/` was empty, removed; `Image_Scripts/` moved to `Scripts/_archive/Image_Scripts/` — both 2026-08-19) |
@@ -127,11 +130,11 @@ per its `MANIFEST.md`, no City-of-Edmonds years) serves fast local QC off the FU
 | `Scripts/honest-measurement-overhaul.md` | **SUPERSEDED 2026-08-19** by the WORKPLAN; kept for provenance only |
 | `Scripts/litwatch_robustness.md` | CLOSED literature-watch ledger (4,706 lines) |
 | `Scripts/litreview_phase4_prompt.md` | Literature-search prompt template |
-| `Scripts/litwatch_scratch/README.md` | The scratchpad's own map: 29 instruments (safe to re-run) vs 77 one-shot writers (never re-run) |
+| `Scripts/scratch/litwatch_scratch/README.md` | The scratchpad's own map: 29 instruments (safe to re-run) vs 77 one-shot writers (never re-run) |
 | `Scripts/_archive/README.md` | Index of retired docs, dormant scripts, the 2026-07-08 audit — never current |
 | `Scripts/edmonds_combined_workplan.xlsx` | The canonical schedule / Gantt / grant milestones (distinct from the WORKPLAN `.md`) |
 | `Scripts/pipeline_architecture.html` | Self-contained architecture diagram — double-click to open, no network |
-| `Scripts/phase4_accuracy_review.html` | Photo-interpretation review UI for `phase4_accuracy_sample.py --step serve` |
+| `Scripts/qc/phase4_accuracy_review.html` | Photo-interpretation review UI for `phase4_accuracy_sample.py --step serve` |
 | `Scripts/run_registry.csv` + `phase4/runs/{run_id}/sentinels/` | Colab run history, one row per run + fixed-site snapshot PNGs |
 | `Reports/Edmonds_Verified_Results_2026-08-19.md` | The numbers this project will stand behind |
 | `Reports/Measurement_Validity_Assessment_2026-08-18.md` | What the numbers can and cannot support (U1–U8) |

@@ -250,6 +250,10 @@ def main():
                    help="Suffix all per-year outputs (model/prob/mask/gpkg) with _TAG so "
                         "runs SAVE instead of OVERWRITE — keep variants/recipes for later "
                         "analysis. e.g. --run-tag rgbonly. Score with the QC tools' --prob.")
+    p.add_argument("--allow-overwrite", action="store_true",
+                   help="P7 gate: an UNTAGGED run that would overwrite existing "
+                        "model/raster artifacts is refused unless this is passed "
+                        "(prefer --run-tag).")
     args = p.parse_args(filtered)
 
     if args.check:
@@ -384,6 +388,7 @@ def main():
     print(f"  Years ({len(labels)}): {', '.join(labels)}")
     run_id = _write_run_manifest(args, entries)
     config.RUN_ID = run_id
+
     if args.dry_run:
         print("  Dry run: True")
 
@@ -400,6 +405,24 @@ def main():
             per_year = [s for s in per_year if s not in ("inference", "postproc")]
     if per_year:
         print(f"  Steps: {', '.join(per_year)}")
+
+    # P7 gate: an untagged run writes the LEGACY artifact names — refuse to
+    # clobber silently. (Every queue job passes --run-tag, so this only fires on
+    # hand-typed runs, which is exactly where the accidents happen.)
+    if not config.RUN_TAG and not args.allow_overwrite and not args.dry_run:
+        _danger = [s for s in per_year if s in ("train", "inference", "postproc")]
+        _clobber = []
+        if _danger:
+            for _e in entries:
+                _lab = _e["label"]
+                for _p in (MODELS_DIR / f"sem_best_{_lab}.pt",
+                           MASKS_DIR / f"edmonds_canopy_prob_{_lab}.tif",
+                           MASKS_DIR / f"edmonds_canopy_mask_{_lab}.tif"):
+                    if _p.exists():
+                        _clobber.append(_p.name)
+        if _clobber:
+            sys.exit("REFUSING untagged overwrite of: " + ", ".join(_clobber)
+                     + "\n  Pass --run-tag TAG (preferred) or --allow-overwrite.")
 
     for d in (OUT_DIR, SITE_DIR, TILE_DIR, MODELS_DIR, MASKS_DIR, EVAL_DIR):
         d.mkdir(parents=True, exist_ok=True)

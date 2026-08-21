@@ -62,6 +62,13 @@ overhaul: ** ACTIVE WORKSTREAM 2026-08-20 — OPTION A OVERHAUL. PLAN = Scripts/
          sessions THERE; Drive Scripts now FROZEN fallback) · P3 reorg (pipeline/qc/scratch/archive,
          299 renames, all gates green) · P4 run-protection (verified writes, tile staging, per-step
          VERIFY) · P5 cockpit notebook · P6 manifests+seeds+queue-as-data · P7 harvest + overwrite gate.
+         P1 STATUS 2026-08-21 ~08:00: ~222GB landed + sha256-manifested on D: (prob_2020 102GiB
+         byte-verified; models 58f/35GB; masks 61f/29GB; phase3 1871f/112.7GB; crowns, polygons,
+         parquets, eval, runs, small sources — MANIFEST.sha256 in each dir). REMAINING: the 4 CoE
+         orthos (~128GB) — Google account DOWNLOAD-THROTTLED after ~300GB pulled (measured 390kB/s
+         uncached vs ~5MB/s healthy); loop probes each tick and auto-relaunches the CoE robocopy
+         legs when the quota window rolls. One benign skip: USGS M2M Documentation.gdoc (cloud-
+         native pointer, uncopyable). GitHub pushed through 4320839.
          DRIVE DETACHED (Kam ran the rm, 2026-08-20) — G: has no .git; D: repo is the only git.
          D2 DECIDED (Kam "Adopt", 2026-08-20): mid-height woody COUNTS as canopy, own interpreter
          class, reversible — recorded in canopy_definition_PROPOSAL.md + WORKPLAN §3. D1/D3-D6 open.

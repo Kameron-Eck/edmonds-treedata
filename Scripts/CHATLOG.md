@@ -62,8 +62,10 @@ overhaul: ** ACTIVE WORKSTREAM 2026-08-20 — OPTION A OVERHAUL. PLAN = Scripts/
          sessions THERE; Drive Scripts now FROZEN fallback) · P3 reorg (pipeline/qc/scratch/archive,
          299 renames, all gates green) · P4 run-protection (verified writes, tile staging, per-step
          VERIFY) · P5 cockpit notebook · P6 manifests+seeds+queue-as-data · P7 harvest + overwrite gate.
-         KAM OWES: delete G:\My Drive\treedata\.git (40-byte pointer; classifier blocked Claude) ·
-         git push github main --tags · PAT → Colab Secrets · D2 polarity confirmation · canary +
+         DRIVE DETACHED (Kam ran the rm, 2026-08-20) — G: has no .git; D: repo is the only git.
+         D2 DECIDED (Kam "Adopt", 2026-08-20): mid-height woody COUNTS as canopy, own interpreter
+         class, reversible — recorded in canopy_definition_PROPOSAL.md + WORKPLAN §3. D1/D3-D6 open.
+         KAM OWES: git push github main --tags · PAT → Colab Secrets · canary +
          queue_2024_finish.yaml + queue3.yaml GPU windows.
          2024 inference DEAD (2.5MB stub, set aside .stub-20260819) — queue_2024_finish.yaml re-runs it.
          DEFERRED: registry-generator from manifests, QC-provenance headers, pipeline_status.py,

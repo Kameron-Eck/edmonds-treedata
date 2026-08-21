@@ -1,9 +1,10 @@
 # What counts as canopy? — PROPOSAL for sign-off (U1)
 
-**STATUS: DRAFT. NOT ADOPTED. NOTHING IN THIS FILE IS IN FORCE.**
-Kam signs off (or overrules) each decision below. On sign-off the adopted text moves to
-`Method_Pipeline.md` — the one home for method — and this file is archived. Until then the
-project has *no* written canopy definition, which is exactly the problem.
+**STATUS: DRAFT except D2, which is DECIDED (Kam, 2026-08-20 — see the DECIDED block at D2;
+it OVERRULES the draft recommendation there).** Kam signs off (or overrules) each remaining
+decision below. When all of U1 is signed off the adopted text moves to `Method_Pipeline.md`
+— the one home for method — and this file is archived. Until then the project has no
+*complete* written canopy definition.
 
 ---
 
@@ -129,7 +130,28 @@ openly is better than leaving it implicit, which is the current state.
 
 ### D2 — Shrub versus short tree
 
-**Recommended:** canopy requires **tree form** — a single identifiable stem/crown structure.
+> **DECIDED — Kam, 2026-08-20. OVERRULES the recommendation below.**
+>
+> **Mid-height woody vegetation COUNTS as canopy**: ornamentals, hedgerows, laurel
+> walls, mass shrub plantings, understory crowns — the ~6 m-median disputed
+> population — are canopy. The interpreter still **records them as their own
+> distinct class** (the D6 item-3 flag stays mandatory), so the call remains
+> reversible and can be re-scored later without re-interpreting.
+>
+> Consequences, stated openly:
+> - The definitional side of the .29-vs-.38 dispute lands on the **NDVI-reference
+>   side (~.38-family)**; C-CAP's stand-based forest classes under-cover this
+>   definition *by kind* (its screening MMU drops isolated crowns), so C-CAP
+>   recall/precision numbers are now read as a strict LOWER bound on agreement,
+>   not as the definition.
+> - The 5–15 m band's misses — **53% of all model misses** — count **fully
+>   against the model**. Nothing in the honest scores is excused by definition.
+> - D1's threshold question is now a calibration detail under this ruling
+>   (which NDVI/height pair best operationalises "woody vegetation counts"),
+>   not an arbitration between products.
+
+**Recommended** *(the draft's original text, retained for the record — overruled above)*:
+canopy requires **tree form** — a single identifiable stem/crown structure.
 Hedges, laurel walls, and mass shrub plantings are **not** canopy even above 3 m.
 **But the interpreter records them as a distinct class**, so the decision stays reversible
 and can be re-scored later without re-interpreting (Guo 2023, ID 88: adding small-crown

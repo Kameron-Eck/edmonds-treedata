@@ -54,6 +54,12 @@ SPACE RULES — keep always-loaded context low for continuous logging:
     judgement-heavy rewrite of the project's memory and should not be done at the end of a
     long session.
 
+overhaul: ** ACTIVE WORKSTREAM 2026-08-20 — OPTION A OVERHAUL. PLAN = Scripts/OVERHAUL_PLAN_2026-08-20.md **
+         Adopted by Kam. Re-plumb planes: code → normal git repo on D: + GitHub live remote; Colab
+         clones code; Drive = data lake ONLY. Run-protection (P4) lands before next GPU dollar.
+         P0 bookkeeping DONE 2026-08-20. 2024 inference DEAD (2.5MB stub, set aside
+         .stub-20260819) — re-run rides next Colab window. D2 recording awaits Kam polarity
+         confirmation. Read the plan file; do not restate it here.
 proj:    Edmonds temporal canopy pipeline, phase 4 (per-year semantic seg, 18 imagery yrs).
 live:    ENGINE MODULARIZED 2026-07-08 → phase4seg/ package (config/common/labels/tiling/core[all torch]/
          postproc/cli) + 97L phase4_semantic_finetune.py SHIM (preserves `%run ... --args`). Behavior =
@@ -229,10 +235,10 @@ blocked: none.
 docs:    SOURCES OF TRUTH CENTRALIZED 2026-07-06. HANDOFFS RETIRED (5 old ones →
          Scripts/_archive/handoffs/) — this STATE + the active plan ARE the handoff now.
          Front-door doc map = treedata/README.md. To resume: read this STATE + top ~4 LOG
-         entries + the ACTIVE PLAN = Scripts/honest-measurement-overhaul.md. Do NOT create a new
+         entries + the ACTIVE PLAN = Scripts/OVERHAUL_PLAN_2026-08-20.md. Do NOT create a new
          HANDOFF. one-fact-one-home: live state here, method=Method_Pipeline.md, build
          status=pipeline_buildtracker.md, schedule=edmonds_combined_workplan.xlsx.
-measure: ACTIVE WORKSTREAM (opened 2026-08-17). PLAN = Scripts/honest-measurement-overhaul.md.
+measure: WORKSTREAM (opened 2026-08-17; its plan demoted 2026-08-19 → WORKPLAN_2026-08-19.md wins).
          WHY: Kam — "became too reliant on AI judgement"; wants defensible numbers + better
          tests/visuals. FOUR PHASES, run order 1 -> 2 -> 4 -> 3 (Kam's choice).
          ---- RESUME HERE  (REWRITTEN 2026-08-19 — a long session ended, a fresh one starts) ----
@@ -254,7 +260,7 @@ measure: ACTIVE WORKSTREAM (opened 2026-08-17). PLAN = Scripts/honest-measuremen
            2. Reports/Measurement_Validity_Assessment_2026-08-18.md  <- 351-line assessment; it is
               SHARPER THAN THE PLAN on what P3 can and cannot answer. Its U1-U8 are the live question
               list. Treat it as the agenda.
-           3. Scripts/honest-measurement-overhaul.md (the 4-phase plan)
+           3. Scripts/WORKPLAN_2026-08-19.md (supersedes honest-measurement-overhaul.md, demoted 08-19)
            4. Scripts/pipeline_architecture.html (self-contained; open in a browser)
          PHASE STATUS
            P1 DONE · P2 DONE + replicated x4 · P4 dashboard + height plot DONE
@@ -989,6 +995,21 @@ gotcha:  scripts Colab-only for torch (rasterio+geopandas+fiona+sklearn now pip-
          accept-all test data; 14,476-crown human review never finished.
 
 ════════════════ LOG  (newest first) ════════════════
+
+## 2026-08-20  OPTION A OVERHAUL adopted — master plan landed; P0 bookkeeping done
+goal:    Kam adopted Option A (re-plumb planes) after 4-env audit. Make plan + decisions durable.
+did:     OVERHAUL_PLAN_2026-08-20.md written (phases P0-P10 + verified ground truth from 3-agent
+         familiarization sweep: docs, engine, data/infra). 2024 inference found DEAD not RUNNING:
+         prob raster = 2.5MB truncated stub (3rd unverified-write failure after 2022 0-byte, 2017
+         96.5%-nodata). Stub set aside .stub-20260819; status CSV row closed FAIL; registry
+         backfilled 6 rows for the 08-19 QUEUE2 runs (2005/2007/2009/2021k/2023 + 2024 partial).
+         STATE active-plan pointers fixed (still named honest-measurement-overhaul.md, demoted 08-19).
+decided: Option A adopted (Kam). B declined — no scheduler reaches a human-launched Colab. C later.
+         No forwarding shims. Backup trims: skip sem_latest twins/crops/phase5, dedupe vs D:\Imagery.
+         D2 polarity NOT recorded — awaits Kam confirmation (adopted ruling reverses draft rec).
+files:   Scripts/OVERHAUL_PLAN_2026-08-20.md (new), run_registry.csv, WORKPLAN_2026-08-19.md,
+         phase4/qc/train_queue_status.csv, phase4/masks/*2024*.stub-20260819, CHATLOG.md
+next:    P1 backup robocopy (measure-first) → P2 clone to D: + detach Drive → P3 reorg.
 
 ## 2026-08-20  phase2 gpkg copy DELETED after measured review — cleanup's last pending row closed
 goal:    the 1.5 GB phase2/"Copy of edmonds_crowns_phase1.gpkg" was the last

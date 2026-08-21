@@ -1,0 +1,11 @@
+group,kind,px,area_pct,canopy_call_rate,ref,prob,thresh,ts
+forest,canopy,1091902053,26.461,0.6478,ccap_2021_hires_lc.tif,edmonds_canopy_prob_2023_citywide_rgb.tif,0.5103,2026-08-19 12:45:34
+wetland,canopy,14221161,0.345,0.8921,ccap_2021_hires_lc.tif,edmonds_canopy_prob_2023_citywide_rgb.tif,0.5103,2026-08-19 12:45:34
+scrub,canopy,45574347,1.104,0.3756,ccap_2021_hires_lc.tif,edmonds_canopy_prob_2023_citywide_rgb.tif,0.5103,2026-08-19 12:45:34
+grass,non-canopy,667095113,16.167,0.0644,ccap_2021_hires_lc.tif,edmonds_canopy_prob_2023_citywide_rgb.tif,0.5103,2026-08-19 12:45:34
+cropland,non-canopy,140847,0.003,0.0032,ccap_2021_hires_lc.tif,edmonds_canopy_prob_2023_citywide_rgb.tif,0.5103,2026-08-19 12:45:34
+developed,non-canopy,1413677937,34.259,0.0394,ccap_2021_hires_lc.tif,edmonds_canopy_prob_2023_citywide_rgb.tif,0.5103,2026-08-19 12:45:34
+barren,non-canopy,38334824,0.929,0.0603,ccap_2021_hires_lc.tif,edmonds_canopy_prob_2023_citywide_rgb.tif,0.5103,2026-08-19 12:45:34
+emergent_wetland,non-canopy,7258771,0.176,0.7165,ccap_2021_hires_lc.tif,edmonds_canopy_prob_2023_citywide_rgb.tif,0.5103,2026-08-19 12:45:34
+water,non-canopy,848193637,20.555,0.0039,ccap_2021_hires_lc.tif,edmonds_canopy_prob_2023_citywide_rgb.tif,0.5103,2026-08-19 12:45:34
+other,non-canopy,0,0.0,nan,ccap_2021_hires_lc.tif,edmonds_canopy_prob_2023_citywide_rgb.tif,0.5103,2026-08-19 12:45:34

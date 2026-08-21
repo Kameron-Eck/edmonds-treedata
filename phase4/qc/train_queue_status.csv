@@ -57,4 +57,7 @@ job,year,tag,step,state,exit,minutes,detail,ts
 2021k,2021,citywide_rgb,VERIFY,OK,,,2281MB valid=89.6% maxprob=0.925,2026-08-19 19:35:48
 2023,2023,citywide_rgb,VERIFY,OK,,,2450MB valid=89.6% maxprob=0.953,2026-08-19 19:36:11
 2024,2024,citywide_rgb,train,INTERRUPTED,sigint,0.7,stray SIGINT (likely a dropped Colab websocket); will retry,2026-08-19 19:36:34
-2024,2024,citywide_rgb,train,RUNNING,,,,2026-08-19 19:37:18
+2024,2024,citywide_rgb,train,OK,0,48.1,,2026-08-19 19:37:18
+2024,2024,citywide_rgb,evaluate,OK,0,1.6,,2026-08-19 20:25:23
+2024,2024,citywide_rgb,inference,RUNNING,,,,2026-08-19 20:27:02
+2024,2024,citywide_rgb,inference,FAIL,,,DEAD not running: Colab runtime lost; last raster write 2026-08-19 20:38 UTC; prob raster a 2.5MB truncated stub (2023 twin = 2450MB) - set aside as .stub-20260819; re-run inference next Colab window. Row closed by local audit 2026-08-20,2026-08-21 03:41:00

@@ -6,7 +6,7 @@ from phase4seg.config import *
 from phase4seg import config
 from phase4seg.common import (
     discover_site_footprints, entry_for, remaining_entries, _tag_sfx,
-    timer_summary,
+    timer_summary, resolve_native_path,
 )
 from phase4seg.labels import step_labels
 from phase4seg.tiling import step_tile
@@ -257,6 +257,72 @@ def main():
         return
 
     from pipeline_log import StepLogger
+
+    def _write_run_manifest(args, entries):
+        """P6.1: one manifest per engine invocation → phase4/runs/{run_id}/manifest.json.
+
+        Records what no log used to record: the commit that ran (+ dirty flag),
+        the installed packages, the seed, the full argv, and which imagery file
+        each year actually resolved to. Never raises — provenance must not be
+        able to kill a run.
+        """
+        import datetime as _dtm
+        import json as _json
+        import subprocess as _sp
+        try:
+            import phase4seg as _pkg
+            ts = _dtm.datetime.now(_dtm.timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+            tag = config.RUN_TAG or "untagged"
+            lbls = "-".join(e["label"] for e in entries) or "none"
+            step0 = args.step or "full"
+            run_id = f"{ts}_{lbls}_{tag}_{step0}"
+            # repo root: walk up from the RUNNING entrypoint (the shim copies
+            # phase4seg/ off to /content/_phase4seg_pkg, so __file__ here may
+            # not live in the repo — the shim does).
+            main_file = getattr(sys.modules.get("__main__"), "__file__", None)
+            anchor = Path(main_file).resolve() if main_file else Path(__file__).resolve()
+            repo_root = next((p for p in anchor.parents if (p / ".git").exists()), None)
+            sha, dirty = "unknown", None
+            if repo_root is not None:
+                try:
+                    sha = _sp.run(["git", "-C", str(repo_root), "rev-parse", "HEAD"],
+                                  capture_output=True, text=True, timeout=20
+                                  ).stdout.strip() or "unknown"
+                    dirty = bool(_sp.run(["git", "-C", str(repo_root), "status",
+                                          "--porcelain"], capture_output=True,
+                                         text=True, timeout=20).stdout.strip())
+                except Exception:
+                    pass
+            try:
+                freeze = _sp.run([sys.executable, "-m", "pip", "freeze"],
+                                 capture_output=True, text=True,
+                                 timeout=120).stdout.splitlines()
+            except Exception:
+                freeze = []
+            man = {
+                "run_id": run_id, "ts_utc": ts,
+                "engine_version": getattr(_pkg, "__version__", "unset"),
+                "git_sha": sha, "git_dirty": dirty,
+                "repo_root": str(repo_root) if repo_root else None,
+                "argv": sys.argv[1:],
+                "run_tag": config.RUN_TAG, "step": step0,
+                "seed": int(RANDOM_SEED),
+                "years": {e["label"]: {"native": str(resolve_native_path(e)),
+                                       "gsd_cm": e.get("gsd_cm")}
+                          for e in entries},
+                "python": sys.version.split()[0],
+                "pip_freeze": freeze,
+            }
+            out = OUT_DIR / "runs" / run_id
+            out.mkdir(parents=True, exist_ok=True)
+            (out / "manifest.json").write_text(_json.dumps(man, indent=2),
+                                               encoding="utf-8")
+            print(f"  run_id: {run_id}  (git {sha[:8]}"
+                  f"{' DIRTY' if dirty else ''})  → runs/{run_id}/manifest.json")
+            return run_id
+        except Exception as e:                                  # noqa: BLE001
+            print(f"  WARNING: run manifest not written ({e})")
+            return "unrecorded"
     LOGS_DIR = BASE / "phase4" / "logs"
     SCRIPT_NAME = "phase4_semantic_finetune"
 
@@ -316,6 +382,8 @@ def main():
     entries = _resolve_years(args)
     labels = [e["label"] for e in entries]
     print(f"  Years ({len(labels)}): {', '.join(labels)}")
+    run_id = _write_run_manifest(args, entries)
+    config.RUN_ID = run_id
     if args.dry_run:
         print("  Dry run: True")
 
@@ -363,7 +431,7 @@ def main():
                                 anchor_labels=args.anchor_labels,
                                 prob_hi=args.prob_hi, prob_lo=args.prob_lo,
                                 citywide=citywide)
-                _f = {"year": lab, "gsd_cm": e["gsd_cm"],
+                _f = {"year": lab, "gsd_cm": e["gsd_cm"], "run_id": run_id,
                       "dry_run": args.dry_run, "errors": 0}
                 if isinstance(r, dict): _f.update(r)
                 log.finish(**_f)
@@ -372,7 +440,7 @@ def main():
                 r = step_tile(lab, sites, dry_run=args.dry_run,
                               max_tiles=args.max_tiles, stride_override=args.stride,
                               citywide=citywide, force_retile=args.force_retile)
-                _f = {"year": lab, "gsd_cm": e["gsd_cm"],
+                _f = {"year": lab, "gsd_cm": e["gsd_cm"], "run_id": run_id,
                       "dry_run": args.dry_run, "errors": 0}
                 if isinstance(r, dict): _f.update(r)
                 log.finish(**_f)
@@ -381,14 +449,14 @@ def main():
                 r = step_train(lab, batch_size=args.batch_size,
                                p3_ckpt=args.ckpt, dry_run=args.dry_run,
                                compile_model=not args.no_compile)
-                _f = {"year": lab, "gsd_cm": e["gsd_cm"],
+                _f = {"year": lab, "gsd_cm": e["gsd_cm"], "run_id": run_id,
                       "dry_run": args.dry_run, "errors": 0}
                 if isinstance(r, dict): _f.update(r)
                 log.finish(**_f)
         if "evaluate" in per_year:
             with StepLogger(SCRIPT_NAME, f"evaluate_{lab}", LOGS_DIR) as log:
                 r = step_evaluate(lab, dry_run=args.dry_run)
-                _f = {"year": lab, "gsd_cm": e["gsd_cm"],
+                _f = {"year": lab, "gsd_cm": e["gsd_cm"], "run_id": run_id,
                       "dry_run": args.dry_run, "errors": 0}
                 if isinstance(r, dict): _f.update(r)
                 log.finish(**_f)
@@ -396,14 +464,14 @@ def main():
             with StepLogger(SCRIPT_NAME, f"inference_{lab}", LOGS_DIR) as log:
                 r = step_inference(lab, batch_size=config.INFER_BATCH,
                                    dry_run=args.dry_run, citywide=citywide)
-                _f = {"year": lab, "gsd_cm": e["gsd_cm"],
+                _f = {"year": lab, "gsd_cm": e["gsd_cm"], "run_id": run_id,
                       "dry_run": args.dry_run, "errors": 0}
                 if isinstance(r, dict): _f.update(r)
                 log.finish(**_f)
         if "postproc" in per_year and not args.skip_postproc:
             with StepLogger(SCRIPT_NAME, f"postproc_{lab}", LOGS_DIR) as log:
                 r = step_postproc(lab, dry_run=args.dry_run)
-                _f = {"year": lab, "gsd_cm": e["gsd_cm"],
+                _f = {"year": lab, "gsd_cm": e["gsd_cm"], "run_id": run_id,
                       "dry_run": args.dry_run, "errors": 0}
                 if isinstance(r, dict): _f.update(r)
                 log.finish(**_f)

@@ -607,6 +607,36 @@ def _validate(model, loader, criterion, device, loss_mode="bce_dice"):
             iou_grid[bt_i], _VAL_THRESH_GRID[bt_i])
 
 
+def _seed_everything(seed):
+    """P6.2: make a training run repeatable-in-principle and RECORD the seed.
+
+    Python/numpy/torch(+cuda) are seeded; DataLoader workers get a derived seed
+    via _worker_init/_loader_generator. cudnn.benchmark stays ON and AMP stays
+    nondeterministic — accepted and documented (the manifest records the seed;
+    bitwise reproducibility is not the goal, bounded variation is).
+    """
+    import random
+    random.seed(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    if torch.cuda.is_available():
+        torch.cuda.manual_seed_all(seed)
+    print(f"  Seeds: python/numpy/torch(+cuda) = {seed}  "
+          f"(cudnn.benchmark + AMP nondeterminism accepted)")
+
+
+def _worker_init(worker_id):
+    import random
+    random.seed(RANDOM_SEED + worker_id)
+    np.random.seed(RANDOM_SEED + worker_id)
+
+
+def _loader_generator():
+    g = torch.Generator()
+    g.manual_seed(RANDOM_SEED)
+    return g
+
+
 def _stage_tiles_local(idx_df, label):
     """P4.2: stage the year's tile set to local NVMe at train start.
 
@@ -830,15 +860,19 @@ def step_train(label, batch_size=BATCH_SIZE, p3_ckpt=None, dry_run=False, compil
                                         num_samples=len(ftr), replacement=True)
         train_shuffle = False
         print("  Sampler: per-site inverse-frequency (6-site pool)")
+    _seed_everything(RANDOM_SEED)                              # P6.2
     nw = min(NUM_WORKERS, max(2, len(ftr)))
     train_loader = DataLoader(SemanticDataset(ftr, True), batch_size=batch_size,
                               sampler=sampler, shuffle=train_shuffle,
                               num_workers=nw, pin_memory=pin,
                               drop_last=len(ftr) >= batch_size,
-                              persistent_workers=True, prefetch_factor=4)
+                              persistent_workers=True, prefetch_factor=4,
+                              worker_init_fn=_worker_init,
+                              generator=_loader_generator())
     val_loader = DataLoader(SemanticDataset(fva, False), batch_size=batch_size,
                             shuffle=False, num_workers=nw, pin_memory=pin,
-                            drop_last=False, persistent_workers=True, prefetch_factor=4)
+                            drop_last=False, persistent_workers=True, prefetch_factor=4,
+                            worker_init_fn=_worker_init)
 
     # Fine-tune START = Phase 3 2020 semantic checkpoint (every year, independently).
     p3 = resolve_p3_ckpt(p3_ckpt)

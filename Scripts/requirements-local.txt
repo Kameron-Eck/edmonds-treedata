@@ -1,0 +1,13 @@
+# Local (Windows, py -3.12) dependency spec — QC, label-build, raster diagnostics.
+# torch is NOT required locally (training/inference are Colab-only; the local GPU
+# is a 4 GB T2000 — CUDA works but is never used for training).
+geopandas
+rasterio
+shapely
+fiona
+scikit-learn
+scipy
+tqdm
+pandas
+numpy
+matplotlib

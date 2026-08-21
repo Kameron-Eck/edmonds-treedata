@@ -1,0 +1,28 @@
+# Colab (GPU) dependency spec — Edmonds pipeline, LIVE profile (phase3 + phase4seg).
+# AUTHORITY: this file. The in-script bootstraps (_ensure_torch in
+# pipeline/phase4seg/core.py and pipeline/phase3_semantic_dev.py) must agree with it;
+# a pin changed here must be changed there in the same commit.
+#
+# torch itself is preinstalled on Colab — never pin it here; the runtime image wins.
+segmentation-models-pytorch
+albumentations>=2.0,<3
+timm
+geopandas
+rasterio
+shapely
+fiona
+scikit-learn
+scipy
+tqdm
+pandas
+numpy
+
+# ── FROZEN LEGACY (do not install for phase 3/4 work) ────────────────────────
+# pipeline/phase0_instance_seg.py (phase COMPLETE, 2026-04) pins:
+#   segmentation-models-pytorch==0.3.4
+#   timm==0.9.7
+#   albumentations           (unpinned — 1.x-era transforms; installing 2.x there
+#                             is a latent bug, another reason not to re-run phase0
+#                             in a phase-3/4 session)
+# Running phase0 in the SAME Colab session as phase3/phase4seg downgrades smp and
+# breaks the live profile. If phase0 must ever re-run, give it its own runtime.

@@ -167,7 +167,7 @@ addressable.
 ## 7. What follows
 
 1. **Extend §2.2 and §3 to the missing nine acquisitions** — especially 2020. Both
-   instruments exist and are verified (`litwatch_scratch/q138b.py`, `cast2.py`).
+   instruments exist and are verified (`scratch/litwatch_scratch/q138b.py`, `cast2.py`).
 2. **Recover acquisition dates** from the four source archives. External, long lead time,
    and it unblocks §6.
 3. **Build overviews.** Cheapest performance win available.

@@ -9,6 +9,7 @@ from phase4seg.common import (
 from phase4seg.tiling import _origins_from_manifest
 
 import gc
+import shutil
 import time
 import numpy as np
 import pandas as pd
@@ -606,6 +607,49 @@ def _validate(model, loader, criterion, device, loss_mode="bce_dice"):
             iou_grid[bt_i], _VAL_THRESH_GRID[bt_i])
 
 
+def _stage_tiles_local(idx_df, label):
+    """P4.2: stage the year's tile set to local NVMe at train start.
+
+    Training used to re-read every tile over the Drive FUSE mount EVERY EPOCH.
+    Copy the set once (a few GB — same pattern as _stage_imagery_local), rewrite
+    the index's baked-absolute paths (see tiling.py: they are written as
+    /content/drive/... strings), and let the epochs read NVMe. Any failure falls
+    back to the original Drive paths, unchanged.
+    """
+    first = str(idx_df.iloc[0]["img_path"]) if len(idx_df) else ""
+    if not first.startswith("/content/drive"):
+        return idx_df                       # already local (or not on Colab)
+    kinds = {"img_path": "images", "mask_path": "masks", "height_path": "heights"}
+    cols = [c for c in kinds if c in idx_df.columns]
+    dst_root = LOCAL_SCRATCH / "tiles" / str(label)
+    try:
+        tick(f"stage tiles {label}")
+        n_copied = 0
+        new_cols = {c: [] for c in cols}
+        for _, row in idx_df.iterrows():
+            for c in cols:
+                p = row[c]
+                if not (isinstance(p, str) and p):
+                    new_cols[c].append(p)
+                    continue
+                src = Path(p)
+                dst = dst_root / str(row["split"]) / kinds[c] / str(row["tile_name"])
+                if not dst.exists() or dst.stat().st_size != src.stat().st_size:
+                    dst.parent.mkdir(parents=True, exist_ok=True)
+                    shutil.copy2(src, dst)
+                    n_copied += 1
+                new_cols[c].append(str(dst))
+        out = idx_df.copy()
+        for c in cols:
+            out[c] = new_cols[c]
+        tock(f"stage tiles {label}")
+        print(f"  Tiles staged local: {n_copied} files copied → {dst_root}")
+        return out
+    except Exception as e:
+        print(f"  WARNING: tile staging failed ({e}); training reads from Drive")
+        return idx_df
+
+
 def _save_ckpt(phase, epoch, model, optim, sched, history, best_val, path):
     state = (model._orig_mod.state_dict() if hasattr(model, "_orig_mod")
              else model.state_dict())
@@ -691,6 +735,7 @@ def step_train(label, batch_size=BATCH_SIZE, p3_ckpt=None, dry_run=False, compil
         print(f"  ERROR: {index_path} not found — run step tile first")
         return
     idx_df = pd.read_csv(index_path)
+    idx_df = _stage_tiles_local(idx_df, label)     # P4.2: epochs read NVMe, not FUSE
     train_df = idx_df[idx_df["split"] == "train"].reset_index(drop=True)
     test_df  = idx_df[idx_df["split"] == "test"].reset_index(drop=True)
     print(f"  Train tiles: {len(train_df)}  |  held-out test: {len(test_df)}")

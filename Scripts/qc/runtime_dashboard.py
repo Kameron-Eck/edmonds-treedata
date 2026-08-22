@@ -543,6 +543,7 @@ class Collector(threading.Thread):
     def __init__(self, sessions, exec_interval, local_interval, no_exec):
         super().__init__(daemon=True)
         self.sessions = sessions
+        self.pinned = bool(sessions)     # --sessions given? then follow exactly that list
         self.exec_interval = exec_interval
         self.local_interval = local_interval
         self.no_exec = no_exec
@@ -599,7 +600,10 @@ class Collector(threading.Thread):
             self._sess_rows, self._sess_err = colab_sessions()
         except Exception as e:  # noqa: BLE001
             self._sess_err = repr(e)
-        if not self.sessions:
+        if not self.pinned:
+            # AUTO-FOLLOW: without --sessions, track whatever is in the CLI store, so a VM
+            # created after the dashboard started (or re-adopted under a new name by the
+            # self-healer) appears on its own instead of silently going unwatched.
             self.sessions = [r["name"] for r in self._sess_rows if r["name"] != "?"]
 
     def probe_all(self):
@@ -660,6 +664,7 @@ class Collector(threading.Thread):
                  "heal_log": self._heal_log,
                  "locks": read_locks(), "manifests": read_manifests(),
                  "errors": errors, "exec_interval": self.exec_interval, "no_exec": self.no_exec,
+                 "pinned": self.pinned,
                  "base": str(BASE)}
         hist_json = json.dumps({k: list(v) for k, v in self._hist.items()})
         with self._lock:
@@ -764,7 +769,8 @@ function spark(id,pts,color,ymax,win){const el=document.getElementById(id);if(!e
            y:{min:0,max:ymax,ticks:{stepSize:ymax/4,color:'#8696ab',font:{size:10}},grid:{color:'#24303f'}}}}});}
 let lastHtml='';
 async function tick(){try{const [st,hi]=await Promise.all([fetch('/api/state',{cache:'no-store'}).then(r=>r.json()),fetch('/api/history',{cache:'no-store'}).then(r=>r.json())]);
- document.getElementById('gen').textContent=`${st.generated||'…'} · probe target ${st.exec_interval}s${st.no_exec?' (exec OFF)':''}`;
+ const unwatched=(st.colab_sessions||[]).map(c=>c.name).filter(n=>!(st.sessions||[]).some(x=>x.name===n));
+ document.getElementById('gen').textContent=`${st.generated||'…'} · probe target ${st.exec_interval}s${st.no_exec?' (exec OFF)':''}${st.pinned?' · pinned':' · auto-follow'}`+(unwatched.length?` · NOT WATCHED: ${unwatched.join(', ')} — restart without --sessions`:'');
  const e=document.getElementById('errs');e.textContent=(st.errors||[]).join(' · ');e.style.display=st.errors&&st.errors.length?'':'none';
  const html=(st.sessions||[]).map(card).join('')||'<div class="muted p-3">no sessions yet</div>';
  if(html!==lastHtml){document.getElementById('cards').innerHTML=html;lastHtml=html;Object.keys(charts).forEach(k=>{charts[k].destroy();delete charts[k]});}

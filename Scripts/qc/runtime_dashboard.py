@@ -828,6 +828,17 @@ def main():
     args.local_interval = max(2, min(args.local_interval, args.exec_interval))
     col = Collector(sessions, args.exec_interval, args.local_interval, args.no_exec)
     if args.once:
+        # HEAL FIRST. Session tokens live 1 h, and the CLI prunes a session (killing its
+        # keep-alive daemon, after which Colab reclaims the VM mid-run) on the 401 that a
+        # stale token produces. A --once check run on a long interval would therefore
+        # injure the very VM it is checking on, every time, before healing anything.
+        if not args.no_exec:
+            acted, herr = heal_sessions()
+            for line in acted:
+                print(f"HEAL {line}", file=sys.stderr)
+            col._heal_log = acted[-10:]
+            if herr:
+                col._assign_err = herr
         col.refresh_sessions()
         col._assign, col._assign_err = live_assignments()
         if not args.no_exec:

@@ -85,8 +85,8 @@ overhaul: ** ACTIVE WORKSTREAM 2026-08-20 — OPTION A OVERHAUL. PLAN = Scripts/
          watch_queue.py, dag.yaml (P8), mirror_sync.py (P9), P10 cleanups.
          Read the plan file; do not restate it here.
          ** 2026-08-22 01:50Z RESUME (local 08-21 eve) ** — colab-mcp: last session's LOCAL-scope entry (`uvx` by name) never
-         connected — uvx not on PATH; re-registered USER scope w/ absolute uvx.exe path 02:10Z; first spawn
-         times out at 30 s (uvx builds from git) — warm-up owed (see LOG). 2024-finish + queue3 runtimes (both cloned 57bc07b = pre-P11.1 clobber-prone status
+         connected — uvx not on PATH; re-registered USER scope w/ absolute uvx.exe path 02:10Z; CONNECTED
+         02:20Z after cache warm-up; read-only tool inventory owed in a fresh session (see LOG). 2024-finish + queue3 runtimes (both cloned 57bc07b = pre-P11.1 clobber-prone status
          writer) SILENT since 01:12Z: Drive API shows no write from either after 01:12:52Z / 01:03:07Z; both
          stuck in ortho staging (parallel-staging throttle) or dead — only Kam's tab decides. Nothing newly
          VERIFIED → nothing scored. d038f34 + f4601c4 UNPUSHED — push before ANY relaunch. 2013 citywide .7422
@@ -1031,13 +1031,13 @@ gotcha:  scripts Colab-only for torch (rasterio+geopandas+fiona+sklearn now pip-
 goal:    resume after P11: verify colab-mcp read-only; locate GPU work from ARTIFACTS; score newly-VERIFIED years;
          harvest; re-arm watch.
 did:     colab-mcp: first read "not registered" was WRONG IN DETAIL — I scanned ~/.claude.json but this install's
-         config is D:	ools\claude-config\.claude.json. Truth: last session registered it at LOCAL scope
-         (project G:\My Drive	reedata\Scripts, command `uvx` by name); it never connected because
+         config is D:\tools\claude-config\.claude.json. Truth: last session registered it at LOCAL scope
+         (project G:\My Drive\treedata\Scripts, command `uvx` by name); it never connected because
          Python312\Scripts is on neither user nor machine PATH (uv 0.12.5 installed 18:33 local). Tonight
          (Kam's commands, 02:00-02:12Z): user-scope entry with absolute uvx.exe path; local duplicate removed;
-         health check now spawns but times out at 30 s — uvx builds the package from git on first run.
-         Warm-up owed: run uvx.exe git+https://github.com/googlecolab/colab-mcp once (or MCP_TIMEOUT=240000
-         claude mcp list), then verify read-only. Nothing launched, nothing exposed yet.
+         first health check timed out at 30 s (uvx building from git); MCP_TIMEOUT=240000 claude mcp list ->
+         ✔ Connected 02:20Z (11 s, cache warm). Read-only tool inventory owed — server tools load at session
+         start. Nothing launched.
          GPU state from artifacts (Drive API, server-side mtimes — not local sync): train_queue_status.csv
          01:12:36Z, train_queue_nohup.log 01:12:52Z, 2000-canary manifest 01:29:11Z (cell-5 re-run, no status
          row). queue3 runtime: NOTHING after its 2019 tile manifest 01:03:07Z — tiles write straight to Drive
@@ -1063,9 +1063,8 @@ next:    KAM (in order): (1) `git push github main --tags` — d038f34 (P11.1) +
          UNPUSHED; every runtime tonight cloned 57bc07b; any relaunch must clone HEAD. (2) Colab tab(s):
          alive-throttled vs dead. Dead → relaunch is a NEW ask (queue3.yaml, L4, 1 runtime, ~13.5 h → 2
          windows; queue_2024_finish.yaml ~4.5 h). Never stage two orthos concurrently again — stagger.
-         (3) DONE 02:12Z except warm-up: colab-mcp registered USER scope, absolute uvx.exe path. Owed: one
-         cache-warming spawn (first git build > 30 s connect timeout), then read-only verify (list tools; README
-         documents no auth flow — expect a browser step). Then a new session picks the server up.
+         (3) DONE 02:20Z: colab-mcp registered USER scope, absolute uvx.exe path, ✔ Connected. Owed: read-only
+         tool inventory in a fresh session (README documents no auth flow — expect a browser step).
          CLAUDE when rasters land: qc_indep 2024 + 2019 vs clipped ccap_2021_hires_lc.tif (T3 footing), 2017
          vs ccap_2016_hires_lc_snohfull.tif, 2022 vs clipped ccap_2021 (2021-epoch); re-score 2013 citywide;
          harvest --commit; registry rows from manifests (generator still deferred).

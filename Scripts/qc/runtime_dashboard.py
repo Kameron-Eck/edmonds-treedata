@@ -520,6 +520,7 @@ body{background:#0f1419}.card{background:#151c26;border-color:#24303f}.card-head
   <div class="ms-auto d-flex align-items-center gap-3 small">
    <span id="gen" class="muted"></span>
    <span id="errs" class="badge bg-red-lt" style="display:none"></span>
+   <label class="muted">window&nbsp;<select id="win" class="form-select form-select-sm d-inline-block" style="width:84px"><option value="60">1 h</option><option value="120">2 h</option><option value="360">6 h</option><option value="720">12 h</option></select></label>
    <label class="muted">rate&nbsp;<input id="rate" class="form-control form-control-sm d-inline-block" style="width:90px" placeholder="CU or $ /h"></label>
   </div>
  </div>
@@ -551,23 +552,32 @@ function card(s){
   h+=`<div class="mt-3"><div class="d-flex justify-content-between"><div><strong>${esc(c.job)} / ${esc(c.step)}</strong> <span class="muted">${esc(c.title||'')}</span></div><div class="muted small">${c.elapsed_min??'?'} / ${c.ceiling_min??'?'} min</div></div>
   <div class="progress mt-1" style="height:16px"><div class="progress-bar ${p?'bg-primary':'bg-secondary'}" style="width:${pct.toFixed(0)}%">${p?pct+'%':''}</div></div>
   <div class="small muted mt-1">${p?`${esc(p.desc)} ${p.n.toLocaleString()} / ${p.total.toLocaleString()} · ${esc(p.elapsed)} elapsed · ETA ${esc(p.eta)} · ${esc(p.rate)}`:(c.staging?esc(c.staging):'no progress bar for this step (train prints per epoch) — bar = elapsed vs ceiling')}</div></div>`;}
- h+=`<div class="row mt-3"><div class="col-6"><div class="muted small">GPU util %</div><canvas id="u_${esc(s.name)}" class="spark"></canvas></div><div class="col-6"><div class="muted small">throughput (tiles/s)</div><canvas id="r_${esc(s.name)}" class="spark"></canvas></div></div>`;
+ h+=`<div class="row mt-3"><div class="col-6"><div class="muted small">GPU util % · fixed 0–100, minutes before now</div><canvas id="u_${esc(s.name)}" class="spark"></canvas></div><div class="col-6"><div class="muted small">throughput tiles/s · fixed 0–100</div><canvas id="r_${esc(s.name)}" class="spark"></canvas></div></div>`;
  (s.jobs||[]).forEach(j=>{h+=`<div class="mt-3"><strong>${esc(j.id)}</strong> <span class="muted small">${esc(j.tag)}</span>${j.job_end?` <span class="chip ${esc(j.job_end.state)}">job-end VERIFY ${esc(j.job_end.state)}</span>`:''}<div>${stepsHtml(j)}</div></div>`;});
  if(s.scratch&&s.scratch.length)h+=`<div class="muted small mt-3">scratch: ${s.scratch.map(f=>`${esc(f.name)} ${fmtB(f.size)}`).join(' · ')}</div>`;
  if(s.procs&&s.procs.length)h+=`<div class="muted small mono">${s.procs.map(p=>`${p.pid} ${Math.floor(p.etimes/60)}m ${esc(p.args.replace(/.*phase4_/,'phase4_').slice(0,80))}`).join('<br>')}</div>`;
  if(s.log)h+=`<details class="mt-2"><summary class="muted small">log ${esc(s.log.path.split('/').pop())} · ${fmtB(s.log.size)} · ${s.log.age_s}s old</summary><div class="logbox mono mt-1">${esc(s.log.tail.join('\n'))}</div></details>`;
  return h+`</div></div></div>`;}
-function spark(id,xs,ys,color){const el=document.getElementById(id);if(!el||!window.Chart)return;
- if(charts[id]){charts[id].data.labels=xs;charts[id].data.datasets[0].data=ys;charts[id].update('none');return;}
- charts[id]=new Chart(el,{type:'line',data:{labels:xs,datasets:[{data:ys,borderColor:color,borderWidth:1.5,pointRadius:0,fill:true,backgroundColor:color+'22',tension:.3}]},
-  options:{animation:false,responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{enabled:true}},scales:{x:{display:false},y:{beginAtZero:true,ticks:{color:'#8696ab',font:{size:10}},grid:{color:'#24303f'}}}}});}
+const winEl=document.getElementById('win');try{winEl.value=localStorage.getItem('edm_win')||'120'}catch(e){}
+winEl.addEventListener('change',()=>{try{localStorage.setItem('edm_win',winEl.value)}catch(e){};tick();});
+// stationary axes: x = minutes before now over a fixed window (constant tick spacing), y = fixed 0..ymax
+function spark(id,pts,color,ymax,win){const el=document.getElementById(id);if(!el||!window.Chart)return;
+ if(charts[id]){const ch=charts[id];ch.data.datasets[0].data=pts;ch.options.scales.x.min=-win;ch.options.scales.x.ticks.stepSize=win/4;ch.update('none');return;}
+ charts[id]=new Chart(el,{type:'line',data:{datasets:[{data:pts,borderColor:color,borderWidth:1.5,pointRadius:0,fill:true,backgroundColor:color+'22',tension:0}]},
+  options:{animation:false,responsive:true,maintainAspectRatio:false,parsing:false,normalized:true,
+   plugins:{legend:{display:false},tooltip:{callbacks:{title:i=>`${(-i[0].parsed.x).toFixed(0)} min ago`}}},
+   scales:{x:{type:'linear',min:-win,max:0,ticks:{stepSize:win/4,color:'#8696ab',font:{size:10},callback:v=>v===0?'now':`${-v}m`},grid:{color:'#24303f'}},
+           y:{min:0,max:ymax,ticks:{stepSize:ymax/4,color:'#8696ab',font:{size:10}},grid:{color:'#24303f'}}}}});}
 let lastHtml='';
 async function tick(){try{const [st,hi]=await Promise.all([fetch('/api/state',{cache:'no-store'}).then(r=>r.json()),fetch('/api/history',{cache:'no-store'}).then(r=>r.json())]);
  document.getElementById('gen').textContent=`${st.generated||'…'} · probes every ${st.exec_interval}s${st.no_exec?' (exec OFF)':''}`;
  const e=document.getElementById('errs');e.textContent=(st.errors||[]).join(' · ');e.style.display=st.errors&&st.errors.length?'':'none';
  const html=(st.sessions||[]).map(card).join('')||'<div class="muted p-3">no sessions yet</div>';
  if(html!==lastHtml){document.getElementById('cards').innerHTML=html;lastHtml=html;Object.keys(charts).forEach(k=>{charts[k].destroy();delete charts[k]});}
- (st.sessions||[]).forEach(s=>{const H=(hi[s.name]||[]);const xs=H.map(p=>p.t.slice(11,16));spark('u_'+s.name,xs,H.map(p=>p.util),'#2fb344');spark('r_'+s.name,xs,H.map(p=>p.rate),'#4299e1');});
+ const win=+(winEl.value||120),now=Date.now(),px=p=>(Date.parse(p.t)-now)/60000;
+ (st.sessions||[]).forEach(s=>{const H=(hi[s.name]||[]).filter(p=>px(p)>=-win);
+  spark('u_'+s.name,H.filter(p=>p.util!=null).map(p=>({x:px(p),y:p.util})),'#2fb344',100,win);
+  spark('r_'+s.name,H.filter(p=>p.rate!=null).map(p=>({x:px(p),y:Math.min(p.rate,100)})),'#4299e1',100,win);});
  let x=`<div class="row"><div class="col-md-4"><table class="table table-sm"><thead><tr><th>session</th><th>endpoint</th><th>hw</th></tr></thead><tbody>${(st.colab_sessions||[]).map(s=>`<tr><td>${esc(s.name)}</td><td class="mono small">${esc(s.endpoint)}</td><td>${esc(s.hardware)}</td></tr>`).join('')}</tbody></table>
  <div class="small muted">locks: ${(st.locks||[]).map(esc).join(', ')||'(none)'}</div></div>
  <div class="col-md-8"><table class="table table-sm"><thead><tr><th>run</th><th>step</th><th>branch@sha</th><th>gpu</th></tr></thead><tbody>${(st.manifests||[]).slice().reverse().map(m=>`<tr><td class="mono small">${esc(m.run_id)}</td><td>${esc(m.step)}</td><td class="mono small">${esc(m.branch)}@${esc(m.sha)}</td><td class="small">${esc(m.gpu)}</td></tr>`).join('')}</tbody></table></div></div>`;

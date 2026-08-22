@@ -482,20 +482,46 @@ def _copy_to_drive(local_path, drive_path, checksum=True, retries=1):
 # read_hillshade_chip is the single source of the 4th band for tiling AND
 # inference, so RGB and structure are always co-registered.
 
-_HILLSHADE_DS = {}   # source name → open dataset (cache)
+_HILLSHADE_DS = {}   # source name → staged local PATH (handles are per-thread, below)
+
+_HS_TLS = threading.local()          # one open handle PER THREAD (see below)
+
 
 def _hillshade_ds():
-    """Open + cache the staged HS_SOURCE master, or None if absent/disabled."""
-    if config.HS_SOURCE in _HILLSHADE_DS:
-        return _HILLSHADE_DS[config.HS_SOURCE]
-    path = HS_PATHS[config.HS_SOURCE]
+    """Open + cache the staged HS_SOURCE master, or None if absent/disabled.
+
+    THREAD SAFETY (P11.6, 2026-08-22): a rasterio/GDAL DatasetReader must not be read
+    from several threads at once — concurrent block decodes race in the per-dataset
+    cache and raise `IReadBlock failed ... TIFFReadEncodedTile() failed`. Threaded
+    inference therefore keeps ONE handle per thread; the staging (a Drive->NVMe copy,
+    guarded by the cross-runtime lock) still happens once, on the first caller.
+    """
+    key = config.HS_SOURCE
+    cache = getattr(_HS_TLS, "ds", None)
+    if cache is None:
+        cache = _HS_TLS.ds = {}
+    if key in cache:
+        return cache[key]
+    path = HS_PATHS[key]
     if not path.exists():
-        print(f"  WARNING: --hs-source {config.HS_SOURCE} raster not found at {path} — "
+        print(f"  WARNING: --hs-source {key} raster not found at {path} — "
               f"falling back to RGB-only despite USE_HILLSHADE.")
         return None
-    local = _stage_imagery_local(path)
-    _HILLSHADE_DS[config.HS_SOURCE] = rasterio.open(local)
-    return _HILLSHADE_DS[config.HS_SOURCE]
+    local = _stage_imagery_local(path)          # idempotent; returns the staged copy
+    _HILLSHADE_DS[key] = local                  # remembered for _unstage/teardown
+    cache[key] = rasterio.open(local)
+    return cache[key]
+
+
+def close_thread_hillshade():
+    """Close this thread's hillshade handle (threaded inference teardown)."""
+    cache = getattr(_HS_TLS, "ds", None) or {}
+    for ds in cache.values():
+        try:
+            ds.close()
+        except Exception:                                   # noqa: BLE001
+            pass
+    _HS_TLS.ds = {}
 
 
 def read_hillshade_chip(dst_crs, dst_transform, h, w):

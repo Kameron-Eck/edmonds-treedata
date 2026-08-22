@@ -3,7 +3,7 @@ from phase4seg import config
 from phase4seg.common import (
     _ensure_deps, _tag_sfx, entry_for, resolve_native_path,
     _stage_imagery_local, _unstage_imagery_local, read_rgb_window,
-    read_hillshade_chip, tick, tock,
+    read_hillshade_chip, close_thread_hillshade, tick, tock,
     _copy_to_drive, _local_artifact_path, _StagingLock, STAGE_LOCK_MIN_BYTES,
 )
 from phase4seg.tiling import _origins_from_manifest
@@ -12,6 +12,7 @@ import contextlib
 import gc
 import os
 import shutil
+import threading
 import time
 import numpy as np
 import pandas as pd
@@ -1485,6 +1486,19 @@ def step_inference(label, batch_size=INFER_BATCH_SIZE, dry_run=False, citywide=F
                 dst.write(_fill[np.newaxis, :_rh],
                           window=rasterio.windows.Window(0, _r0, img_w, _rh))
         with rasterio.open(local) as src:
+            # One ortho handle PER READER THREAD. A GDAL DatasetReader is not
+            # thread-safe: sharing `src` across the pool raced in the block cache and
+            # died with "IReadBlock failed at X offset 0, Y offset 0:
+            # TIFFReadEncodedTile() failed" on the very first batch (2026-08-22). The
+            # main thread keeps `src` for the geometry it already read.
+            _tls = threading.local()
+
+            def _src():
+                ds = getattr(_tls, "ds", None)
+                if ds is None:
+                    ds = _tls.ds = rasterio.open(local)
+                return ds
+
             def _prep(rc):
                 """Read + preprocess ONE tile. Runs in reader threads: rasterio reads and
                 the hillshade warp release the GIL, so this overlaps with GPU work.
@@ -1495,10 +1509,11 @@ def step_inference(label, batch_size=INFER_BATCH_SIZE, dry_run=False, citywide=F
                 rr0, cc0 = max(0, r0), max(0, c0)
                 rr1, cc1 = min(img_h, r1), min(img_w, c1)
                 win = rasterio.windows.Window(cc0, rr0, cc1 - cc0, rr1 - rr0)
-                tile = read_rgb_window(src, win).transpose(1, 2, 0)
+                _s = _src()
+                tile = read_rgb_window(_s, win).transpose(1, 2, 0)
                 if has_hs:                                  # co-registered hillshade band
-                    win_tf = rasterio.windows.transform(win, src.transform)
-                    hs = read_hillshade_chip(src.crs, win_tf,
+                    win_tf = rasterio.windows.transform(win, _s.transform)
+                    hs = read_hillshade_chip(_s.crs, win_tf,
                                              int(win.height), int(win.width))
                     tile = np.concatenate([tile, hs.transpose(1, 2, 0)], axis=-1)
                 pt, pb = rr0 - r0, r1 - rr1
@@ -1519,6 +1534,21 @@ def step_inference(label, batch_size=INFER_BATCH_SIZE, dry_run=False, citywide=F
                 img = (torch.from_numpy(rgb_to_model_input(tile))
                        if (config.USE_VI or has_hs) else tf(image=tile)["image"])
                 return img, (ro, co, valid)
+
+            def _close_thread_datasets(pool):
+                """Close each worker's private handles (ortho + hillshade) in its own
+                thread, so no dataset outlives the pool."""
+                def _shut():
+                    ds = getattr(_tls, "ds", None)
+                    if ds is not None:
+                        ds.close(); _tls.ds = None
+                    close_thread_hillshade()
+                futs = [pool.submit(_shut) for _ in range(INFER_READ_WORKERS)]
+                for f in futs:
+                    try:
+                        f.result(timeout=30)
+                    except Exception:                      # noqa: BLE001
+                        pass
 
             pbar = tqdm(total=len(origins), desc="  Inference", unit="tile",
                         miniters=2000, mininterval=2.0)
@@ -1547,6 +1577,7 @@ def step_inference(label, batch_size=INFER_BATCH_SIZE, dry_run=False, citywide=F
                     if len(batch_imgs) == batch_size:
                         flush(dst); batch_imgs.clear(); batch_meta.clear()
                     pbar.update(1)
+                _close_thread_datasets(pool)
             pbar.close()
             flush(dst)
     tock("inference")

@@ -183,39 +183,47 @@ JOBS = [
 ]
 
 
+# P11.1 concurrency-safe status: each queue LAUNCH writes its own file
+# (train_queue_status_{queue}_{launchts}.csv) and never touches anyone else's.
+# The old single-file rewrite made two concurrent queues clobber each other's
+# rows (observed 2026-08-22 01:00-01:03Z). Readers — resume here, and the
+# pipeline_status/watch_queue tools — merge ALL status files, so history is the
+# union. The legacy train_queue_status.csv remains as read-only history.
+STATUS_OUT = None    # set per launch in main()
+
+
+def _status_files():
+    """Every status file, legacy single-file first, then per-launch files."""
+    files = sorted(QC_DIR.glob("train_queue_status*.csv"))
+    return files
+
+
+def _merged_rows():
+    """Union of all status files' rows, sorted by ts (UTC, lexically sortable)."""
+    rows = []
+    for f in _status_files():
+        try:
+            rows.extend(csv.DictReader(io.open(f, encoding="utf-8", newline="")))
+        except Exception as e:                                  # noqa: BLE001
+            print(f"  ! WARN could not read {f.name} ({e}); skipping it.")
+    rows.sort(key=lambda r: str(r.get("ts", "")))
+    return rows
+
+
 def _completed_steps():
-    """(job_id, step) pairs already recorded OK, so a restart does not redo them.
+    """(job_id, step) pairs already recorded OK — across ALL status files — so a
+    restart does not redo them, even when the prior attempt ran as a different
+    queue launch.
 
     The engine's labels/tile steps are idempotent and train/evaluate/inference
     write tagged outputs, so skipping a previously-OK step is safe and turns a
     dead runtime into a cheap restart instead of starting from zero.
     """
     done = set()
-    if not STATUS.exists():
-        return done
-    try:
-        for r in csv.DictReader(io.open(STATUS, encoding="utf-8", newline="")):
-            if r.get("state") == "OK" and r.get("step") in STEPS:
-                done.add((r.get("job"), r.get("step")))
-    except Exception as e:                                      # noqa: BLE001
-        print(f"  ! WARN could not read prior status ({e}); starting fresh.")
+    for r in _merged_rows():
+        if r.get("state") == "OK" and r.get("step") in STEPS:
+            done.add((r.get("job"), r.get("step")))
     return done
-
-
-def _prior_rows():
-    """Load the existing status table so a RESTART APPENDS instead of erasing.
-
-    _status_write() rewrites the whole file, so starting from an empty list
-    would destroy the record of everything the previous runtime did — exactly
-    the history this file exists to preserve.
-    """
-    if not STATUS.exists():
-        return []
-    try:
-        return list(csv.DictReader(io.open(STATUS, encoding="utf-8", newline="")))
-    except Exception as e:                                      # noqa: BLE001
-        print(f"  ! WARN could not read prior status ({e}); starting a fresh table.")
-        return []
 
 
 def _hr(t=""):
@@ -226,12 +234,17 @@ def _hr(t=""):
 
 
 def _status_write(rows):
-    """Flush the whole status table to Drive. Called after EVERY step."""
+    """Flush THIS LAUNCH's rows to its own status file. Called after EVERY step.
+
+    Rewriting only our per-launch file means concurrent queues can never erase
+    each other's records (P11.1); readers merge across files.
+    """
     try:
         QC_DIR.mkdir(parents=True, exist_ok=True)
+        out = STATUS_OUT if STATUS_OUT is not None else STATUS
         cols = ["job", "year", "tag", "step", "state", "exit", "minutes",
                 "detail", "ts"]
-        with io.open(STATUS, "w", encoding="utf-8", newline="") as f:
+        with io.open(out, "w", encoding="utf-8", newline="") as f:
             w = csv.DictWriter(f, fieldnames=cols)
             w.writeheader()
             for r in rows:
@@ -513,7 +526,8 @@ def main():
     _hr("PHASE 4 — UNATTENDED TRAIN QUEUE")
     print(f"  BASE   : {BASE}")
     print(f"  queue  : {args.queue or 'JOBS (in-source)'}")
-    print(f"  status : {STATUS}   (flushed after EVERY step)")
+    print(f"  status : {QC_DIR}\\train_queue_status_*.csv   "
+          f"(per-launch file, flushed after EVERY step; readers merge all)")
     print(f"  jobs   : {len(todo)} of {len(jobs)}")
     for j in todo:
         print(f"\n  [{j['id']}] year={j['year']} tag={j['tag']}")
@@ -541,10 +555,18 @@ def main():
     if not ENGINE.exists():
         raise SystemExit(f"engine missing: {ENGINE}")
 
-    rows = _prior_rows()
+    global STATUS_OUT
+    _stem = Path(args.queue).stem if args.queue else "jobs"
+    _launch_ts = _dt.datetime.utcnow().strftime("%Y%m%dT%H%M%SZ")
+    STATUS_OUT = QC_DIR / f"train_queue_status_{_stem}_{_launch_ts}.csv"
+    print(f"  writing status to {STATUS_OUT.name}  (readers merge all "
+          f"train_queue_status*.csv)")
+
+    rows = []                       # per-launch file holds only THIS launch's rows
     done = set() if args.no_resume else _completed_steps()
     if done:
-        print(f"\n  RESUME: {len(done)} step(s) already OK in {STATUS.name} will be SKIPPED.")
+        print(f"\n  RESUME: {len(done)} step(s) already OK across all status files "
+              f"will be SKIPPED.")
         print(f"          (pass --no-resume to force everything to re-run)")
     t_all = _dt.datetime.now()
     for j in todo:

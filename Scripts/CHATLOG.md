@@ -1020,6 +1020,22 @@ gotcha:  scripts Colab-only for torch (rasterio+geopandas+fiona+sklearn now pip-
 
 ════════════════ LOG  (newest first) ════════════════
 
+## 2026-08-21  P11 ADOPTED — Kam hands Claude the GPU keys, ask-first ALWAYS; status clobber fixed
+goal:    Kam ruling: Claude may drive Colab via MCP server; MUST ask permission before EVERY
+         launch (queue, tier, runtime count, cost); cap 2 concurrent runtimes.
+did:     P11.1 landed: per-launch status files train_queue_status_{queue}_{ts}.csv (concurrent
+         queues clobbered the single CSV — observed 2026-08-22 01:00-01:03Z when 2024-finish +
+         queue3 ran together); readers merge all train_queue_status*.csv (resume, pipeline_status,
+         watch_queue). CLAUDE.md spend-gate rewritten; OVERHAUL_PLAN updated w/ P11 + status.
+         Windows: canary DONE (manifest 20260822T005611Z, git 57bc07b — provenance LIVE);
+         2024 inference relaunched cleanly after 2nd runtime death (verified writes = NO stub
+         this time); queue3 to follow. P1 backup COMPLETE earlier today.
+decided: keys-with-permission > human-paste (Kam). One queue per runtime. 2-runtime cap until
+         Drive-throttle interplay measured (account throttle hit 2x on 2026-08-21).
+next:    Kam connects Colab MCP server → Claude verifies read-only → two-runtime trial on next
+         real workload (per-launch yes). Deferred still: registry generator, QC provenance,
+         P9 sync, P10 cleanups.
+
 ## 2026-08-20  OVERHAUL P1–P7 EXECUTED — code moved home, engine hardened, Colab cutover staged
 goal:    execute OVERHAUL_PLAN_2026-08-20.md same session as adoption.
 did:     P1: robocopy Drive→D:\edmonds-pipeline\backup launched (prob_2020 102GiB solo /Z first,

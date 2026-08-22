@@ -28,7 +28,16 @@ phantom-M mtime lore, two-sessions-one-tree hazards. Git ops are normal now.
   harvested into the repo by script (manual explicit-path copy until
   `harvest_results.py` lands).
 - **Deterministic core, agentic shell:** scripts execute; Claude prepares/verifies/
-  records; GPU launches are human-paste only; untagged overwrites are refused (P4+).
+  records; untagged overwrites are refused (P4+).
+- **GPU spend gate (REVISED by Kam 2026-08-21, overhaul P11):** Claude MAY drive Colab
+  runtimes via the Colab MCP server, but **must ask Kam for explicit permission before
+  EVERY launch** — stating queue file, GPU tier, number of runtimes, expected
+  wall-clock, and rough cost — and may never launch, relaunch, retry-with-spend, or
+  add runtimes un-asked. Cap: **2 concurrent runtimes** (the Drive download quota is
+  account-wide; parallel ortho staging re-triggers the throttle). Until the MCP server
+  is connected, launches remain human-paste via `pipeline/colab_launch.ipynb`.
+  **One queue per runtime**; queues write per-launch status files
+  (`train_queue_status_{queue}_{ts}.csv`) and readers merge all of them.
 - **The frozen Drive copy** `G:\My Drive\treedata\Scripts\` is the pre-reorg emergency
   fallback until the Colab cutover proves out. **Never edit it.** Deleted at P10.
 

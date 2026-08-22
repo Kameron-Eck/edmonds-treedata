@@ -63,11 +63,17 @@ def year_rows():
     qdir, mdir, tdir = BASE / "phase4" / "qc", BASE / "phase4" / "masks", BASE / "phase4" / "tiles"
     models = BASE / "phase4" / "models"
 
-    # queue VERIFY states (job-end rows), newest wins
+    # queue VERIFY states (job-end rows), newest wins. P11.1: queues write
+    # per-launch status files — merge every train_queue_status*.csv.
     vstate = {}
-    scsv = qdir / "train_queue_status.csv"
-    if scsv.exists():
-        sdf = pd.read_csv(scsv)
+    frames = []
+    for scsv in sorted(qdir.glob("train_queue_status*.csv")):
+        try:
+            frames.append(pd.read_csv(scsv))
+        except Exception:
+            pass
+    if frames:
+        sdf = pd.concat(frames, ignore_index=True).sort_values("ts")
         for _, r in sdf[sdf["step"].astype(str).str.startswith("VERIFY")].iterrows():
             vstate[(str(r["year"]), str(r["tag"]))] = str(r["state"])
 

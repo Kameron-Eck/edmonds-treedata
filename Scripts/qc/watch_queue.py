@@ -29,10 +29,17 @@ BAD = {"FAIL", "ERROR", "TIMEOUT", "ABORTED", "EMPTY", "MOSTLY_NODATA",
 
 
 def _rows():
-    if not STATUS.exists():
-        return []
-    with open(STATUS, encoding="utf-8", newline="") as f:
-        return list(csv.DictReader(f))
+    """Merged rows across every status file, sorted by ts (P11.1: queues write
+    per-launch train_queue_status_{queue}_{ts}.csv files)."""
+    rows = []
+    for f in sorted(STATUS.parent.glob("train_queue_status*.csv")):
+        try:
+            with open(f, encoding="utf-8", newline="") as fh:
+                rows.extend(csv.DictReader(fh))
+        except OSError:
+            pass
+    rows.sort(key=lambda r: str(r.get("ts", "")))
+    return rows
 
 
 def main():

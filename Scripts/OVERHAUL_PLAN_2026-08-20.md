@@ -1,6 +1,16 @@
 # MASTER PLAN — Option A Overhaul: Re-plumb the Planes
 *(adopted by Kam 2026-08-20; supersedes the crashed-session draft `sleepy-rolling-pizza.md`; committed as `Scripts/OVERHAUL_PLAN_2026-08-20.md` in P0, becoming the active plan named by CHATLOG STATE)*
 
+## EXECUTION STATUS (2026-08-21)
+P0 ✔ · P1 ✔ (313 GB backed up + sha256-manifested; CoE orthos byte-verified) · P2 ✔
+(Drive detached; D: repo canonical; GitHub current) · P3 ✔ (all gates green) · P4 ✔
+(verified writes proved in production — the 2nd 2024 runtime death left NO stub) ·
+P5 ✔ canary + cutover proven (run manifests live at git 57bc07b); 2024-finish + QUEUE3
+in flight · P6 partial (manifests+seeds+queue-as-data ✔; registry generator deferred) ·
+P7 partial (harvest, gates, status, watcher ✔; QC provenance deferred) · P8 ✔ ·
+P9/P10 pending. **NEW: P11 below (adopted 2026-08-21) — agentic GPU driving via
+Colab MCP, ask-first always.**
+
 ## Context — why
 
 A first-principles audit of the four-environment workflow (local Windows / Colab GPU /
@@ -97,7 +107,13 @@ file mtimes local (−7 h) — freshness checks must normalise.
    script. Reports default harvested (Kam may edit via Drive/Docs; edits harvested).
 3. **Deterministic core, agentic shell**: agent output is a reviewable artifact
    (queue.yaml, prepared cell, proposal); scripts execute it verbatim; structural gates
-   on spend (GPU launch = human paste) and mutation (untagged overwrite refused).
+   on spend and mutation (untagged overwrite refused).
+   **Spend gate — REVISED by Kam 2026-08-21**: GPU launches were human-paste only;
+   now Claude MAY drive Colab runtimes through the Colab MCP server, but **must ask
+   Kam for explicit permission before every launch** — naming the queue file, GPU
+   tier, number of runtimes, and rough cost — and may never launch, extend, or add
+   runtimes un-asked. Kam still holds the keys; Claude may now turn them when handed
+   over, one launch at a time.
 4. Parallel sessions share the D: tree → explicit-path staging stays law; worktrees
    stay available (now cheap — no FUSE).
 
@@ -112,7 +128,9 @@ file mtimes local (−7 h) — freshness checks must normalise.
   `sem_best_*` is the deliverable), skip `phase4/crops/` (regenerable JPGs; measure
   first, include only if headroom allows), skip `phase5/` (abandoned), dedupe imagery
   against existing `D:\Imagery` byte-identical files.
-- **D2 polarity — requires Kam's explicit confirmation, blocks only the P0 D2 block**:
+- **GPU keys — RULED by Kam 2026-08-21**: Claude may drive Colab via MCP, ask-first
+  always, per-launch permission, cap 2 runtimes (see P11 and design rule 3).
+- **D2 polarity — RULED by Kam 2026-08-20 ("Adopt")**; historical text below:
   adopted ruling per the crashed session = mid-height woody vegetation (ornamentals,
   hedgerows, ~6 m crowns) **COUNTS as canopy**, recorded as its own interpreter class
   (reversible). This REVERSES the draft recommendation
@@ -327,6 +345,49 @@ Isolated, revertable commits, gated by preflight+smoke:
   (`sem_latest_*` on Drive, `_bce`/`xsensor_sample` families, phase5) → Kam's call.
 - **Option C revisit trigger**: after A completes and the next GPU billing cycle.
 
+### P11 — Agentic GPU driving via Colab MCP (adopted by Kam 2026-08-21)
+
+**Ruling:** Kam hands Claude the option to drive Colab directly ("the keys"), with one
+inviolable rule: **Claude always asks permission before driving.** Every launch is
+proposed first — queue file, GPU tier, runtime count, rough cost — and executes only on
+Kam's explicit yes in that conversation. No standing authorization, no silent re-launch
+after a death, no adding runtimes mid-window. This supersedes "human-paste only" while
+keeping its intent: spend passes through Kam's hands every time.
+
+1. **Concurrency-safe queue status (prerequisite, code)** — today two concurrent queues
+   clobber `train_queue_status.csv` (each `_status_write` rewrites the whole file from
+   its own snapshot; observed 2026-08-22 01:00–01:03Z). Fix in
+   `pipeline/phase4_train_queue.py`: each queue writes its own
+   `phase4/qc/train_queue_status_{queue-stem}_{launch-ts}.csv`; a merged view is
+   produced by `qc/pipeline_status.py` and `qc/watch_queue.py` (glob
+   `train_queue_status*.csv`, concat, sort by ts; resume's `_completed_steps` reads the
+   merged view so cross-queue resume still works). The legacy single-file path stays
+   the default when only one queue runs — merged-reader change is what matters.
+2. **Colab MCP connection (Kam, one-time)** — connect the Colab MCP server to Claude
+   Code (`claude mcp add …` per the server's docs, or paste its config into
+   `.claude/settings`/`.mcp.json`). Claude then verifies the connection read-only
+   (list runtimes/notebooks) before any driving is proposed.
+3. **The permission protocol (codified in CLAUDE.md)** — before any MCP launch Claude
+   states: queue file · GPU tier · # runtimes · expected wall-clock and rough cost ·
+   what VERIFY success looks like; waits for Kam's yes; after launch, monitors and
+   reports, and **asks again** before any relaunch/retry that costs GPU. Runtime cap
+   **2 concurrent** until the Drive-throttle interaction is characterized — the
+   account-level download quota (measured 390 kB/s throttled vs ~5 MB/s healthy,
+   2026-08-21) is shared across all runtimes, and parallel ortho staging is the
+   most likely re-trigger; stagger stage-heavy jobs.
+4. **Trial (after QUEUE3 lands, with Kam's per-launch yes)** — two runtimes in
+   parallel on the next real workload (e.g., channel ablation or boundary-aware
+   supervision runs from WORKPLAN Tier 3), Claude driving via MCP end-to-end:
+   propose → approved launch → monitor → score → report. Compare wall-clock vs
+   serial; decide whether to raise the cap.
+5. **Docs** — CLAUDE.md two-planes section + design rule 3 updated (ask-first
+   protocol, runtime cap); CHATLOG LOG entry recording the ruling; this plan is the
+   ruling's home until then.
+
+**Relation to Option C:** MCP driving is the middle rung of the ladder (human-paste →
+MCP-with-permission → owned/rented GPU with SSH). If MCP driving proves out and spend
+still hurts, C's case strengthens; everything here carries over.
+
 ### Parallel track (any time after P3)
 Imagery items 1–4 (per IMAGERY_FACTS/PLAN): q138b/cast2 wrappers for the nine
 unmeasured acquisitions — 2020 first (wrappers in `qc/`, results → phase4/qc CSVs;
@@ -337,12 +398,11 @@ copy unblocks the 2020 characterization that `phase4_data_inventory.py`'s D:-onl
 has never been able to do.
 
 ## Human checklist (everything Kam does, in order)
-1. Confirm or flip the **D2 polarity** (see Open rulings — the one thing needing your
-   word before P0 writes it). Override any other default if desired.
-2. Create fine-grained PAT + add to Colab Secrets (before P5; ~5 min).
-3. Canary window; then the 2024-finish window; then QUEUE3 window (paste the prepared
-   cell, select GPU, walk away).
-4. That's all — GitHub pushes are Claude's under this session's permissions.
+1. ~~Confirm or flip the **D2 polarity**~~ ✔ DECIDED 2026-08-20 ("Adopt").
+2. ~~Create fine-grained PAT + add to Colab Secrets~~ ✔ done 2026-08-21.
+3. Windows: canary ✔ · 2024-finish + QUEUE3 in flight (keep the tab open until done).
+4. **P11**: connect the Colab MCP server to Claude Code (one-time), then answer
+   Claude's per-launch permission asks. Pushes to GitHub run on your say-so.
 
 ## Risk register
 - Clone path fails in a Colab window → frozen Drive Scripts + old launch line (to P10).
@@ -358,6 +418,11 @@ has never been able to do.
 - History loss → 4 copies until P10 (old DB, clone, GitHub, drive-mirror).
 - Muscle memory opens G:\Scripts → README pointer; frozen copy read-only in practice.
 - Harvest forgotten → session-end contract; idempotent script.
+- Agent-driven GPU spend (P11) → per-launch permission is inviolable; 2-runtime cap;
+  every launch stamps a run manifest so spend is always attributable; any relaunch
+  after a failure is a NEW ask, never automatic.
+- Concurrent queues clobber the status CSV → per-queue status files + merged reader
+  (P11.1); until that lands, one queue at a time.
 
 ## Definition of done
 Single canonical repo on D: pushed to GitHub; Drive detached from git, serving data

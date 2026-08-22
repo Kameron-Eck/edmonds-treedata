@@ -304,6 +304,19 @@ overhaul: ** ACTIVE WORKSTREAM 2026-08-20 — OPTION A OVERHAUL. PLAN = Scripts/
          DRIVEMOUNT NOTE for the runbook: approve the URL within ~a minute and press Enter promptly; a slow
          approval yields "Error propagating: 400" and the mount silently does not happen (verify with a
          colab exec listing before spending GPU).
+         ** P6 CLOSED (plan work done while the queues ran): pipeline/registry_from_manifests.py **
+         Generates run_registry.csv rows from phase4/runs/*/manifest.json, joining held-out metrics (the
+         eval report's OVERALL row, incl. its channels tag = the rgb+chm scoring gate), honest live=1
+         numbers (qc_indep_report), and per-attempt outcome/timing from the merged status CSVs; artifact
+         paths recorded only when the file exists. APPEND-ONLY: the 24 hand-written rows are untouched
+         (verified 20 insertions / 0 deletions; a second run reports 0 new). TWO CORRECTNESS FIXES found
+         in test: (1) each attempt must pair with its OWN status row by timestamp AND be bounded by the
+         next attempt's start - otherwise the 01:03 tile run inherited the 16:18 re-run's OK and all five
+         2024 inference attempts showed the newest state; (2) in-flight RUNNING attempts are skipped
+         (append-only could never correct them) unless --include-running. Backfilled 20 rows including
+         every failure of tonight with its real cause. ALSO FIXED (advisor caught it): runtime_dashboard
+         --once did NOT heal before probing, so an hourly check would 401 on the 1 h token and prune/kill
+         the VM it was checking on - heal now runs first on that path too.
          Session prompts: D:\tools\claude-config\plans\because-we-are-not-parallel-codd.md. NEXT SESSION =
          prompt B, CLI edition: first launch of each queue ask-first; crash-recovery per P11.5 = push the
          fix branch + re-exec on the LIVE VM (a live VM keeps its Drive mount).

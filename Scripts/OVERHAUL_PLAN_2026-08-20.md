@@ -6,7 +6,7 @@ P0 ✔ · P1 ✔ (313 GB backed up + sha256-manifested; CoE orthos byte-verified
 (Drive detached; D: repo canonical; GitHub current) · P3 ✔ (all gates green) · P4 ✔
 (verified writes proved in production — the 2nd 2024 runtime death left NO stub) ·
 P5 ✔ canary + cutover proven (run manifests live at git 57bc07b); 2024-finish + QUEUE3
-→ P11.4 (below) · P6 partial (manifests+seeds+queue-as-data ✔; registry generator deferred) ·
+→ P11.4 (below) · P6 ✔ (manifests+seeds+queue-as-data; registry generator = pipeline/registry_from_manifests.py, 2026-08-22) ·
 P7 partial (harvest, gates, status, watcher ✔; QC provenance deferred) · P8 ✔ ·
 P9/P10 pending. **NEW: P11 below (adopted 2026-08-21) — agentic GPU driving via
 Colab MCP, ask-first for the first launch of each queue (P11.5).** P11.1–11.3 ✔; **P11.5 ruled 2026-08-22** (crash-recovery autonomy, A100 default, branch

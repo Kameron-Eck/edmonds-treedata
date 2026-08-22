@@ -106,6 +106,15 @@ overhaul: ** ACTIVE WORKSTREAM 2026-08-20 — OPTION A OVERHAUL. PLAN = Scripts/
          PowerShell GAP CLOSED for this session (Kam): 28 PowerShell(...) deny twins appended to user settings
          (deny = 56, allow = 20); `git push github main` via the PowerShell tool DENIED. Kam: twins are the
          right fix -> P11.5 block CANONICALIZED to the live 56-rule list (OVERHAUL_PLAN + plan file).
+         ** MCP TOOL INVENTORY 2026-08-22 (prompt B step 2, Kam "yes both") ** both open_colab_browser_connection
+         calls -> true; each server then proxies 7 notebook tools: get_cells (read; optional outputs),
+         add_code_cell / add_text_cell / update_cell / move_cell / delete_cell (edit), run_code_cell (EXECUTE —
+         returns the output) -> the MCP path CAN run cells, so cell 3 launches and crash-recovery relaunches
+         are ACTIONS. NO tool sets the runtime type/GPU, opens a notebook file, or lists runtimes: each tab
+         opened at colab.research.google.com/notebooks/empty.ipynb (1 empty code cell, id lIYdn1woOS1n on
+         both); the GPU tier is chosen by Kam in the tab UI (Runtime > Change runtime type) and confirmed by
+         cell 2 nvidia-smi; cockpit cells are inserted through add_code_cell. Colab Secrets (the PAT) need
+         the per-notebook grant click in the browser on first use.
          Session prompts: D:\tools\claude-config\plans\because-we-are-not-parallel-codd.md. NEXT SESSION =
          the mega prompt (plan file): first launch of each queue ask-first; crash-recovery relaunches per P11.5.
 proj:    Edmonds temporal canopy pipeline, phase 4 (per-year semantic seg, 18 imagery yrs).
@@ -1064,7 +1073,12 @@ addendum: Kam: "widen the block for this session" -> 28 PowerShell(...) DENY twi
          Kam then ruled the twins permanent (a blanket PowerShell ban at user scope would break the
          PowerShell-heavy contractor-docs sessions) -> P11.5 JSON block in OVERHAUL_PLAN + plan file
          regenerated FROM the live settings file (20 allow / 56 deny) + one-sentence rationale.
-next:    prompt B (mega prompt) from this session; Kam merges/pushes work/p11-5-autonomy when approved.
+         PROMPT B STEP 1-2 (Kam "yes both"): ToolSearch cold = 1 gate tool per server; both connects -> true; 7
+         notebook tools unlocked per server (get_cells, add_code_cell, add_text_cell, update_cell, move_cell,
+         delete_cell, run_code_cell). run_code_cell returns the output -> Claude can execute; no runtime-type /
+         GPU / notebook-open / runtime-list tool. Both tabs = empty.ipynb, one empty code cell. Details: STATE.
+next:    STEP 3 zero-GPU check (insert cockpit cells 1-2 via add_code_cell, run on the CPU runtime, --dry-run);
+         STEP 4 propose launch A (A100 — Kam switches the runtime type in the tab UI first).
 
 ## 2026-08-22  P11.5 RULED — crash-recovery autonomy, A100 default, branch workflow; prep landed on work/p11-5-autonomy
 goal:    Kam: "we can coordinate GPUs and runtimes now" — larger GPU to dodge runtime limits; if a run crashes

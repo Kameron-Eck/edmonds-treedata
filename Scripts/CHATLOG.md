@@ -161,6 +161,15 @@ overhaul: ** ACTIVE WORKSTREAM 2026-08-20 — OPTION A OVERHAUL. PLAN = Scripts/
          phase4/qc/train_queue_status_queue_A_2024_2017_<ts>.csv + job-end VERIFY; first health tock =
          2024 ortho staging line within ~25 min. Token scripts deleted. Cost line: Colab's posted A100
          rate x ~5 h (rate not verified in-session). colab stop -s A when the job-end VERIFY lands.
+         ** LAUNCH B 2026-08-22 16:03:28Z (Kam: "Launch B") ** colab session B = A100-SXM4-40GB, 1 VM (created
+         15:59:21Z); Kam drivemount -s B OK; bootstrap at f148447 on work/p11-5-autonomy, BOOTSTRAP_DONE;
+         vm_launch -> pid 1712, log phase4/logs/train_queue_nohup_queue_B_2019_2022_20260822T160328Z.log;
+         7.5 min after A (lock window OK). Expected ~4 h (2019 from tile, then 2022 full path). Success =
+         VERIFY rows in train_queue_status_queue_B_2019_2022_<ts>.csv + job-end VERIFY. Token scripts
+         deleted. Two A100s live = the P11 cap. `colab url -s A` gives a browser window onto a CLI VM
+         (Kam: 'runtime not started' when opened — the page is a viewer; the nohup queue is independent).
+         HARNESS: user settings env PYTHONUTF8=1 + PYTHONIOENCODING=utf-8 (colab.exe's cp1252 stdout
+         crashed on the manifest arrow in a log tail; env avoids VAR= prefixes). Probes sanitize to ASCII.
          Session prompts: D:\tools\claude-config\plans\because-we-are-not-parallel-codd.md. NEXT SESSION =
          prompt B, CLI edition: first launch of each queue ask-first; crash-recovery per P11.5 = push the
          fix branch + re-exec on the LIVE VM (a live VM keeps its Drive mount).

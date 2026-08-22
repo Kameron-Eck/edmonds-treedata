@@ -771,6 +771,16 @@ is plausible), then `B` was cleaned up after an expired-token exec. A pruned VM 
 BILLING but `colab exec/status/stop -s NAME` can no longer reach it: it shows as a `[?]`
 orphan and only expires at the 24 h cap. **Every `colab sessions` call runs the prune**,
 so a monitoring loop that polls it is the likeliest trigger.
+**What actually triggers the prune (measured 18:20-18:45Z, third occurrence).** Not only a
+partial `list_assignments`: `commands/execution.py` deletes a session on ANY transient
+failure — a 404 from `/api/kernels` was enough — printing "appears to be lost. Cleaning
+up." And the stored `runtime_proxy_info` token lives **exactly 1 h** (measured: issued
+18:43:57Z, `exp` 19:43:57Z), so every session older than an hour 401s on its next `colab
+exec` and prunes itself. A monitoring loop that execs every minute therefore *guarantees*
+the failure on any run longer than an hour. Fix: `qc/colab_readopt.py --heal` — re-adopt
+orphans, refresh tokens with >25 min of margin, respawn dead daemons — run automatically
+by `qc/runtime_dashboard.py` every 2 min, and safe to run by hand at any time.
+
 **And the prune KILLS the VM, not just the name.** `prune_session()` also kills the
 session's keep-alive daemon (`colab_cli.cli keep-alive <endpoint> <name>`), and that
 daemon is the ONLY thing calling `keep_alive_assignment()` to refresh Colab's idle timer

@@ -269,6 +269,24 @@ overhaul: ** ACTIVE WORKSTREAM 2026-08-20 — OPTION A OVERHAUL. PLAN = Scripts/
          the fixed code. 2019 inference carries a FAIL row and needs a re-run; 2024 inference likewise.
          Both VMs re-bootstrapped to 84c935a WITHOUT interrupting the tile steps (the shim re-copies
          phase4seg per step subprocess, so the next step picks up the new code).
+         ** THIRD VM LOSS 18:20Z — A3 GONE, ROOT CAUSE COMPLETE. ** At the 18:43Z loop check both names
+         had vanished from sessions.json and only ONE assignment was live. Forensics from colab.log:
+         18:19:55Z GET/POST /api/kernels on A3's endpoint returned 404, 18:31:41Z the same on B3's.
+         execution.py deletes a session on ANY such transient error ('appears to be lost. Cleaning up.')
+         -> entry gone + keep-alive daemon killed -> Colab reclaimed A3 ~15-25 min later, mid tile step
+         (2017, ~20 min into staging the 48 GB ortho behind the staging lock; nothing on Drive, row
+         closed INTERRUPTED exit=vm_reclaimed). B3 survived only because I re-adopted it in time (now
+         B4, daemon pid 39108, 2022 train 31 min in, GPU 54%/91% - the threaded build is healthy).
+         SECOND HALF OF THE CAUSE: the stored runtime-proxy token lives EXACTLY 1 h (measured: issued
+         18:43:57Z, exp 19:43:57Z), so any session older than an hour 401s on its next exec and prunes
+         itself - a per-minute monitoring loop GUARANTEES this on runs longer than an hour. That is why
+         it happened three times tonight and never during the short probes.
+         FIX (35e77f3): qc/colab_readopt.py --heal = re-adopt orphans + refresh tokens with >25 min
+         margin + respawn dead daemons; the dashboard runs it every 2 min BEFORE reading the store, and
+         shows what it did. Kam can run it by hand any time; it is a no-op when healthy.
+         OPEN: queue A (2017 tile onward + the 2024 inference re-run) needs a NEW VM = Kam's drivemount
+         = an ASK. Queue B continues on B4 (2022 train -> evaluate -> inference, then the staged
+         queue_2019_inference.yaml).
          Session prompts: D:\tools\claude-config\plans\because-we-are-not-parallel-codd.md. NEXT SESSION =
          prompt B, CLI edition: first launch of each queue ask-first; crash-recovery per P11.5 = push the
          fix branch + re-exec on the LIVE VM (a live VM keeps its Drive mount).

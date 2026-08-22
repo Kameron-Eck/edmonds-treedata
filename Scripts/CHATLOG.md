@@ -222,6 +222,19 @@ overhaul: ** ACTIVE WORKSTREAM 2026-08-20 — OPTION A OVERHAUL. PLAN = Scripts/
          2024 inference from scratch (~3 h; the lost run left nothing) then 2017 full path (~5 h) = ~8 h A100.
          Two A100s live again (A3 + B2) = the P11 cap. RULE RESTATED to Kam: end VMs with colab stop -s NAME,
          never from the Colab UI session manager (that is what took A down with the CPU orphan).
+         ** B2 ALSO RECLAIMED ~17:22Z — ROOT CAUSE FOUND (both losses, one mechanism). ** prune_session()
+         KILLS the session's keep-alive daemon, and that daemon is the only caller of
+         keep_alive_assignment() = the idle-timer refresh for the assignment. No heartbeat -> Colab
+         reclaims the VM in ~15-25 min EVEN MID-COMPUTE. A: pruned 16:54, dead 17:08 (2024 inference 39%).
+         B: cleaned up on a 401 at 16:57, re-adopted 16:59 (name restored, daemon NOT), dead ~17:22 (2019
+         inference 40%). So Kam ending the CPU orphan did NOT kill A - the sequence only looked that way.
+         Neither wrote to Drive (verified-write keeps the raster in /content until the step ends); 2019's
+         labels/tile/train/evaluate VERIFY:OK rows STAND, so a relaunch resumes at inference (~1 h) while
+         2024 needs its full ~3 h again. Both stale RUNNING rows closed by local audit (exit=vm_gone /
+         vm_reclaimed). FIXES: colab_readopt.py now respawns the daemon on re-adoption; the dashboard
+         flags a dead keep-alive pid (~20 min of warning); GPU util sampled in a python loop (this
+         driver rejects -lms/-l alongside --query-gpu); hard-fail flags scoped to the current launch file.
+         A3 is healthy: daemon pid 4504 alive, 2024 ortho staging 11.6/26.9 GB at 17:29Z.
          Session prompts: D:\tools\claude-config\plans\because-we-are-not-parallel-codd.md. NEXT SESSION =
          prompt B, CLI edition: first launch of each queue ask-first; crash-recovery per P11.5 = push the
          fix branch + re-exec on the LIVE VM (a live VM keeps its Drive mount).

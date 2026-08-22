@@ -771,10 +771,19 @@ is plausible), then `B` was cleaned up after an expired-token exec. A pruned VM 
 BILLING but `colab exec/status/stop -s NAME` can no longer reach it: it shows as a `[?]`
 orphan and only expires at the 24 h cap. **Every `colab sessions` call runs the prune**,
 so a monitoring loop that polls it is the likeliest trigger.
+**And the prune KILLS the VM, not just the name.** `prune_session()` also kills the
+session's keep-alive daemon (`colab_cli.cli keep-alive <endpoint> <name>`), and that
+daemon is the ONLY thing calling `keep_alive_assignment()` to refresh Colab's idle timer
+for the assignment. An unheartbeated VM is reclaimed **~15–25 min later even while it is
+computing**: measured twice on 2026-08-22 — A died 14 min after its prune (2024 inference
+~39%, lost), B died ~25 min after a re-adoption that restored the name but not the daemon
+(2019 inference ~40%, lost). Neither wrote anything to Drive: the verified-write path
+keeps the raster in `/content/phase4_scratch` until the step completes.
 Recovery, no GPU spend, no new VM: `qc/colab_readopt.py` rebuilds the local entry from
-the server's own assignment list (each carries a fresh `runtime_proxy_info` url+token) —
-run it on the CLI's own interpreter, `--list` first, then `--endpoint … --name …`.
-Tonight A and B were re-adopted as **A2** and **B2** with their queues untouched.
+the server's own assignment list (each carries a fresh `runtime_proxy_info` url+token)
+**and respawns the keep-alive daemon** — run it on the CLI's own interpreter, `--list`
+first, then `--endpoint … --name …`. `qc/runtime_dashboard.py` flags a session whose
+daemon PID is dead, which is the early warning that precedes this failure by ~20 min.
 `qc/runtime_dashboard.py` therefore reads `sessions.json` directly (never `colab
 sessions`) and flags any live assignment with no local name as a billing orphan.
 

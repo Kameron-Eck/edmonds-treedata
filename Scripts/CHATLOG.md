@@ -115,6 +115,17 @@ overhaul: ** ACTIVE WORKSTREAM 2026-08-20 — OPTION A OVERHAUL. PLAN = Scripts/
          both); the GPU tier is chosen by Kam in the tab UI (Runtime > Change runtime type) and confirmed by
          cell 2 nvidia-smi; cockpit cells are inserted through add_code_cell. Colab Secrets (the PAT) need
          the per-notebook grant click in the browser on first use.
+         STEP 3 ZERO-GPU CHECK 2026-08-22 (CPU runtime, cells 1-2 inserted via the MCP tools, BRANCH =
+         work/p11-5-autonomy): tab A clone at 2bf0835, requirements installed, catalog 18/18 OK (orphan
+         2012_king_rgb.tif noted as before), --dry-run queue_A = 10 commands (2024 + 2017); tab B dry-run
+         queue_B = 10 commands (2019 + 2022). ** FINDING: both tabs share ONE runtime ** — tab B's cell 1
+         printed "Drive already mounted" + "repo already cloned" (same empty.ipynb under one account = one
+         session). Two tabs != two runtimes; tab B must be a DIFFERENT notebook to get its own VM, and the
+         MCP binding is to the page (URL fragment mcpProxyToken/mcpProxyPort), so re-pointing tab B needs
+         Kam in the browser (or human-paste for B, the runbook's fallback). No runtime-type tool: Kam sets
+         A100 per tab (Runtime > Change runtime type; the VM restarts -> cells 1-2 re-run on the GPU VM).
+         NIT: phase4_train_queue.py:603 prints "qc\train_queue_status_*.csv" (display literal only; the
+         real path, line 635, is a pathlib join) — cosmetic, not fixed tonight.
          Session prompts: D:\tools\claude-config\plans\because-we-are-not-parallel-codd.md. NEXT SESSION =
          the mega prompt (plan file): first launch of each queue ask-first; crash-recovery relaunches per P11.5.
 proj:    Edmonds temporal canopy pipeline, phase 4 (per-year semantic seg, 18 imagery yrs).
@@ -1077,8 +1088,12 @@ addendum: Kam: "widen the block for this session" -> 28 PowerShell(...) DENY twi
          notebook tools unlocked per server (get_cells, add_code_cell, add_text_cell, update_cell, move_cell,
          delete_cell, run_code_cell). run_code_cell returns the output -> Claude can execute; no runtime-type /
          GPU / notebook-open / runtime-list tool. Both tabs = empty.ipynb, one empty code cell. Details: STATE.
-next:    STEP 3 zero-GPU check (insert cockpit cells 1-2 via add_code_cell, run on the CPU runtime, --dry-run);
-         STEP 4 propose launch A (A100 — Kam switches the runtime type in the tab UI first).
+         STEP 3 done on both tabs (CPU): clone 2bf0835 on the branch, catalog 18/18, dry-run A = 10 cmds,
+         dry-run B = 10 cmds. FINDING: both tabs are on ONE runtime (tab B: "already mounted / already
+         cloned") -> tab B needs its own notebook before launch B; MCP binding is per page (token fragment).
+next:    Kam: set tab A to A100 (UI) -> Claude re-runs cells 1-2 on the GPU VM -> STEP 4 launch-A proposal;
+         decide tab B (re-point to another notebook keeping the token fragment, Chrome-MCP assist, or
+         human-paste B). Nit for later: phase4_train_queue.py:603 display backslash.
 
 ## 2026-08-22  P11.5 RULED — crash-recovery autonomy, A100 default, branch workflow; prep landed on work/p11-5-autonomy
 goal:    Kam: "we can coordinate GPUs and runtimes now" — larger GPU to dodge runtime limits; if a run crashes

@@ -103,7 +103,9 @@ overhaul: ** ACTIVE WORKSTREAM 2026-08-20 — OPTION A OVERHAUL. PLAN = Scripts/
          Prep on branch work/p11-5-autonomy (cockpit BRANCH + nvidia-smi, manifest git_branch/gpu, docs).
          ALLOWLIST INSTALLED 2026-08-22 in user settings (20 allow / 28 deny; verified: `git push github main`
          DENIED in-session, hot-reload); stray home-dir allows removed; colab-mcp + colab-mcp-b CONNECTED.
-         GAP: Bash(...) rules do not gate the PowerShell tool -> loop git/py via the Bash tool only.
+         PowerShell GAP CLOSED for this session (Kam): 28 PowerShell(...) deny twins appended to user settings
+         (deny = 56, allow = 20); `git push github main` via the PowerShell tool DENIED. Doc block NOT widened
+         (session-scoped; canonicalize or drop the twins = Kam's call).
          Session prompts: D:\tools\claude-config\plans\because-we-are-not-parallel-codd.md. NEXT SESSION =
          the mega prompt (plan file): first launch of each queue ask-first; crash-recovery relaunches per P11.5.
 proj:    Edmonds temporal canopy pipeline, phase 4 (per-year semantic seg, 18 imagery yrs).
@@ -1056,7 +1058,11 @@ decided: nothing new. FACT (docs, code.claude.com/docs/en/permissions): Bash(...
          evaluated separately -> the deny list protects main only for the Bash tool. Not widened (Kam's call).
 files:   CHATLOG.md, OVERHAUL_PLAN_2026-08-20.md (one-time item ticked) on work/p11-5-autonomy. Settings files
          are outside the repo.
-next:    Kam: decide whether to add PowerShell(...) twins (or forbid the PowerShell tool for loop git); merge/push
+addendum: Kam: "widen the block for this session" -> 28 PowerShell(...) DENY twins appended to the live user
+         settings (no allow twins; loop stays on the Bash tool). Proven: `git push github main` via the
+         PowerShell tool -> "Permission to use PowerShell with command git push github main has been denied".
+         The OVERHAUL_PLAN block is unchanged on purpose (session-scoped widening, not policy yet).
+next:    Kam: canonicalize the PowerShell twins into the P11.5 block or drop them; merge/push
          work/p11-5-autonomy when the diff is approved. Then the mega prompt, Step 1.
 
 ## 2026-08-22  P11.5 RULED — crash-recovery autonomy, A100 default, branch workflow; prep landed on work/p11-5-autonomy

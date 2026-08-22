@@ -241,6 +241,34 @@ overhaul: ** ACTIVE WORKSTREAM 2026-08-20 — OPTION A OVERHAUL. PLAN = Scripts/
          log train_queue_nohup_queue_B_2019_2022_20260822T173355Z.log. Dry-run confirms the resume: 2019 runs
          INFERENCE ONLY (~1 h; its labels/tile/train/evaluate VERIFY:OK stand), then 2022 full path (~5.5 h).
          Two A100s live (A3 2024+2017 ~8 h, B3 2019+2022 ~6.5 h).
+         ** INFERENCE THROUGHPUT (Kam: "aiming for 85% GPU utilisation ... maximize value per GPU hour") **
+         MEASURED the bottleneck on B3 (CPU-only, no GPU risk): the serial read path is 16.5 ms/tile, of
+         which ~12 ms is the PER-TILE CHM WARP (read_hillshade_chip reprojects for every tile); 8 threads
+         take it to 3.1 ms/tile (rasterio/GDAL release the GIL). The old loop ALSO ran numpy exp() over
+         8.4M fp32 values per 32-tile batch on the same thread that fed the GPU. => GPU was starved, not
+         slow: ~40 tile/s at 14-28% mean util.
+         FIX on fix/20260822-inference-throughput: (1) ThreadPoolExecutor(8) tile prefetch with bounded
+         look-ahead, consumed in submission order so write order is unchanged (EDMONDS_INFER_WORKERS=1
+         restores the serial path); (2) sigmoid + centre crop + uint8 quantisation ON THE GPU (~5x less
+         host traffic, no numpy exp); (3) cudnn.benchmark (constant shapes). Bench on the real VM+model,
+         640 tiles: 16.5 -> 108.2 tile/s (x6.55), GPU util 36% -> 73% mean / 100% peak, output
+         BYTE-IDENTICAL (max|diff|=0 over 41.9M px).
+         ** THEN IT FAILED IN PRODUCTION (17:55Z, both queues) ** 'IReadBlock failed at X offset 0, Y
+         offset 0: TIFFReadEncodedTile() failed' — a GDAL DatasetReader is NOT thread-safe and the pool
+         shared one ortho handle. The benchmark missed it because it read an INTERIOR block; production
+         starts at the raster origin where every thread hits the same first blocks. Lesson: a throughput
+         benchmark must reproduce the production access pattern, not just the code path.
+         FIXED (84c935a): one handle per reader thread for BOTH the ortho and the cached hillshade master
+         (_HS_TLS thread-local; _HILLSHADE_DS now holds the staged PATH), closed in-thread at teardown.
+         Re-verified from (0,0) with 8 threads: no failure, byte-identical, 46 -> 118 tile/s on a VM that
+         was also running a tile step. Gates: py_compile + preflight + smoke green (smoke does NOT cover
+         step_inference — that is why the equivalence bench exists).
+         COST OF THE MISS: 2024 inference (11%, ~35 min) and 2019 inference (22%) were stopped for the
+         relaunch (rows INTERRUPTED exit=perf_relaunch) and both then FAILED in ~0.2 min on the thread
+         bug; the queues moved on to 2017 tile / 2022 tile, which are CPU steps and are running fine on
+         the fixed code. 2019 inference carries a FAIL row and needs a re-run; 2024 inference likewise.
+         Both VMs re-bootstrapped to 84c935a WITHOUT interrupting the tile steps (the shim re-copies
+         phase4seg per step subprocess, so the next step picks up the new code).
          Session prompts: D:\tools\claude-config\plans\because-we-are-not-parallel-codd.md. NEXT SESSION =
          prompt B, CLI edition: first launch of each queue ask-first; crash-recovery per P11.5 = push the
          fix branch + re-exec on the LIVE VM (a live VM keeps its Drive mount).

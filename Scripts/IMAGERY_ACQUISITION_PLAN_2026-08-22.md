@@ -124,18 +124,73 @@ laplacian-falloff proxy used earlier was measuring JPEG smoothing, not a resolut
 **Standing caveat:** the cache format is MIXED (lossy JPEG). Export is a legitimate path for
 products with no download, but originals are preferred (§2 provenance rule).
 
-### 3.6 The gate that gilds or kills half the King catalog — UNTESTED
+### 3.6 The county-line gate — RESOLVED 2026-08-22, by going around it
 
-Edmonds is in **Snohomish County**; its southern boundary (47.7777 N) sits essentially on the
-King County line. King *imagery* demonstrably spills north (§3.4). King *derived* products —
-`TreeCanopy2016/2017/2021`, `TreeCanopy2021Height`, `TreeCanopy2021 TreePoints`,
-`ForestCover2019Ecopia`, `Landcover2019Ecopia`, `VegetationFeatureHeights*`, the annual LiDAR
-DGM/DSM series — are scoped "Western King County" and **probably stop at that line**.
+**The original question:** King's *derived* products (`TreeCanopy2016/2017/2021`,
+`TreeCanopy2021Height`, `TreeCanopy2021 TreePoints`, `ForestCover2019Ecopia`,
+`Landcover2019Ecopia`, `VegetationFeatureHeights*`, the annual LiDAR DGM/DSM series) are scoped
+"Western King County". Edmonds is in **Snohomish County**, its southern boundary (47.7777 N)
+essentially on the King line — so those products probably stop ~0.1 km short. King *imagery*
+demonstrably spills north (§3.4); derived products likely do not. **That specific question remains
+untested** and is now low priority, because a better instrument exists that has no county problem
+at all.
 
-This matters disproportionately: `TreeCanopy2021Height` + `TreePoints` would be a *third
-independent canopy reference carrying heights and individual tree locations*, bearing directly on
-both the 15–17% reference-disagreement problem and the per-crown deliverable. **Test coverage
-before planning around any of it** (Phase 2).
+**The bypass — a statewide equivalent, MEASURED to cover Edmonds:**
+
+`Land Cover Statewide Ecopia Data 2021-2022, 3 ft raster`
+- service: `https://imagery-public.watech.wa.gov/arcgis/rest/services/LandCover/Statewide_Ecopia_LandCover_2021_2022_3ft_1band_wsps_83h_rstr/ImageServer`
+- hub item: `fc19471352fb4a6195715cf5a7f40a0a` (owner `WAGeoservices`), created 2023-10-25, modified 2025-02-13
+- extent 598091–2570050 × 81835–1376956 in **EPSG:2927** (NAD83 HARN WA State Plane South, feet);
+  Edmonds bbox 1173981–1193579 × 896660–926579 → **COVERS EDMONDS: verified**
+- pixel 3.28 ft = **1.0 m**; 1 band, U8 class codes; **7 land-cover categories**, Ecopia
+  proprietary extraction from 2021–2022 high-resolution statewide imagery
+- capabilities `Catalog, Mensuration, Download, Image, Metadata` — **Download IS permitted**
+  (`maxDownloadSizeLimit` 2048 MB, `maxDownloadImageCount` 20); `exportTilesAllowed` false;
+  max 15000×4100 px per `exportImage`
+- raster functions render it with **C-CAP class names and colour scheme** — an independent
+  extraction presented in a familiar label scheme
+- item snippet: *"DO NOT DOWNLOAD HERE. \"View Full Details\" for download info."* — resolve the
+  real download route in Phase 1.
+
+**Why this matters more than the King derived products would have.** The project's
+`ccap_2021_hires_lc.tif` is the **clipped 53.1%** copy; that is precisely why 2021k (.6059) and
+2023 (.6510) carry the "T3 footing, understated 2–5 pp" caveat — and the pending queue scores for
+**2024, 2019 and 2022** are all slated against the same clipped reference. A full-coverage 1 m
+2021-era land cover removes the coverage limitation.
+
+**But state it correctly:** adopting Ecopia as a scoring reference is a **re-baseline, not a
+patch.** WORKPLAN §1.3 already made this ruling about the other candidate
+(`wa_2021_ccap_v2_hires_canopy.tif`, 1.14 m): a different product means a different canopy
+definition, so numbers scored against it are not comparable to the existing C-CAP series. Ecopia
+is a second such candidate and inherits the same rule. Its highest-confidence uses are therefore:
+1. **A third independent instrument** for the reference-disagreement problem (the two current
+   references disagree on 15–17% of pixels with no tiebreaker; the project's Foody-2022 latent-class
+   work explicitly needs independent instruments, and this one shares no method with C-CAP or the
+   NDVI+CHM reference).
+2. **A full-coverage 2021-epoch reference** for the T3 years — as a declared re-baseline, reported
+   alongside the clipped-C-CAP numbers, never silently substituted for them.
+
+**Also on that server** (`imagery-public.watech.wa.gov`, folders `County`, `ImageServices`,
+`LandCover`, `Municipality`, `NAIP`, `Regional`, `Utilities`, `WSDOT`): `County` holds 17
+ImageServers including `SnohomishCo_2002_1ft_color` and `SnohomishCo_2007_1ft_color` — duplicates
+of what Snohomish's own server serves, so low value. `LandCover` holds only the Ecopia service.
+`ImageServices` is empty. `NAIP`, `Municipality` and `Regional` are unexplored (Phase 1).
+
+### 3.6b Where the metadata lives — the map
+
+| source | metadata endpoint | contents | format |
+|---|---|---|---|
+| **King County products** (the catalog file names: `Ortho*`, `TreeCanopy*`, `LiDAR*`, `Landcover*`) | `https://www5.kingcounty.gov/sdc/?Layer=<NAME>` | vendor, acquisition dates, native GSD, projection, accuracy, licence | HTML page per layer |
+| **King County REST** | `.../BaseMaps/<service>/MapServer?f=json` | `serviceDescription` (vendor + window + res-by-zone), `tileInfo.lods` (exact cache resolutions), extents | JSON |
+| **Snohomish County REST** | `https://gis.snoco.org/img/rest/services/Imagery/Aerial_<YYYY>/ImageServer?f=json` | extent, `pixelSizeX/Y` (**FEET**), `bandCount`, `pixelType`, capabilities | JSON — sparse; **no vendor or acquisition date** |
+| **WA statewide public imagery** | `https://imagery-public.watech.wa.gov/arcgis/rest/services/<folder>/<svc>/ImageServer?f=json` | extent, pixel size, bands, capabilities, raster functions | JSON |
+| **WA Geoservices hub** | `https://geo.wa.gov/datasets/<slug>` → item API `https://www.arcgis.com/sharing/rest/content/items/<id>?f=json` | title, description, tags, extent, **licenseInfo**, `accessInformation`, service `url`, created/modified | JSON — **best licence source** |
+| **NAIP (NOAA Digital Coast)** | `<blob prefix>/<dataset>_met.xml`, `metadata_*forHumans.html`, `stac/catalog.json` | full FGDC lineage, dates, accuracy, class/band detail | FGDC XML + HTML + STAC JSON |
+| **Lidar (PSLC 2005 / USGS 2016)** | NOAA InPort item pages (50149 / 51853) + `metadata_*.xml` in the S3 prefix | collection dates, density, accuracy, classes, lineage, constraints | HTML + FGDC XML |
+
+**Gaps this map exposes:** Snohomish's REST metadata carries **no vendor and no acquisition
+date** — the two fields most needed to interpret a year. Phase 1 must find Snohomish's own
+metadata portal or contact the county; do not infer dates from the service name.
 
 ### 3.7 What this does NOT overturn
 
@@ -197,23 +252,28 @@ For every candidate product, establish Edmonds coverage *empirically*, not from 
 1. Full-extent Snohomish **2016** (0.5 ft, 4-band) — replaces the clipped `2016_snoh_rgbi.tif`.
 2. Full-extent Snohomish **2021s**, same treatment (verify the clip first, §3.1 method).
 
+3. **Statewide Ecopia land cover 2021-2022** (1 m, covers Edmonds, Download permitted) — a
+   THIRD independent reference and a full-coverage 2021-epoch alternative to the clipped
+   `ccap_2021_hires_lc.tif`. Acquire the Edmonds clip; treat any score against it as a declared
+   **re-baseline** reported alongside the existing C-CAP numbers (§3.6), never a silent swap.
+
 **Tier B — NIR expansion (attacks the reference problem)**
-3. NAIP **2015, 2017, 2021** — cleanest downloads, tileindex-driven, ~200–700 MB/yr.
-4. Snohomish **2015, 2017, 2019** (30.5 cm, 4-band) — double NAIP's resolution.
-5. King CIR **2010, 2023** (3–6 in) — finest NIR available anywhere in this inventory; then
+4. NAIP **2015, 2017, 2021** — cleanest downloads, tileindex-driven, ~200–700 MB/yr.
+5. Snohomish **2015, 2017, 2019** (30.5 cm, 4-band) — double NAIP's resolution.
+6. King CIR **2010, 2023** (3–6 in) — finest NIR available anywhere in this inventory; then
    `Ortho2000DAISCIR` / `Ortho2000EmergeCIR` / `Ortho2009AerialsExpressCIR` / `Ortho2015CITYCIR`.
 
 **Tier C — years not held at all**
-6. King **2025**, Snohomish **1990/1996/2003/2011/2013/2020/2022/2024**, and any 1993/2000/2005
+7. King **2025**, Snohomish **1990/1996/2003/2011/2013/2020/2022/2024**, and any 1993/2000/2005
    services that resolve in Phase 1.
 
 **Tier D — better versions of years already held**
-7. Only where Phase 0 marks `better_than_held = yes` on *measured* native GSD, and only from an
+8. Only where Phase 0 marks `better_than_held = yes` on *measured* native GSD, and only from an
    original-download path (§2 provenance rule). **Never overwrite** — new filename, new catalog
    entry, and `IMAGERY_FACTS.md` records both.
 
 **Tier E — second acquisitions of years already covered**
-8. Same-year alternates (e.g. Snohomish 2020 at 7.6 cm alongside `2020_coe_rgb.tif`; King vs
+9. Same-year alternates (e.g. Snohomish 2020 at 7.6 cm alongside `2020_coe_rgb.tif`; King vs
    Snohomish for any shared year). Value is cross-source comparison, **not** the sensor control
    (§3.7). Catalogue them as distinct acquisitions with distinct labels.
 

@@ -15,6 +15,10 @@
 # ── inside Scripts: code+docs yes, artifacts no ──
 Scripts/logs/
 Scripts/.versions/
+# Permission rules live in USER settings (P11.5), never in the repo: the whitelist above
+# un-ignores all of Scripts/, so a Scripts/.claude/ written by /permissions would otherwise
+# be swept into a commit.
+Scripts/.claude/
 __pycache__/
 *.pyc
 .ipynb_checkpoints/

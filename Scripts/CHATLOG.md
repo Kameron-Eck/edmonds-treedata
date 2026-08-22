@@ -87,13 +87,15 @@ overhaul: ** ACTIVE WORKSTREAM 2026-08-20 — OPTION A OVERHAUL. PLAN = Scripts/
          ** 2026-08-22 01:50Z RESUME (local 08-21 eve) ** — colab-mcp: last session's LOCAL-scope entry (`uvx` by name) never
          connected — uvx not on PATH; re-registered USER scope w/ absolute uvx.exe path 02:10Z; CONNECTED
          02:20Z after cache warm-up; read-only tool inventory owed in a fresh session (see LOG). 2024-finish + queue3 runtimes (both cloned 57bc07b = pre-P11.1 clobber-prone status
-         writer) SILENT since 01:12Z: Drive API shows no write from either after 01:12:52Z / 01:03:07Z; both
-         stuck in ortho staging (parallel-staging throttle) or dead — only Kam's tab decides. Nothing newly
+         writer) SILENT since 01:12Z: Drive API shows no write from either after 01:12:52Z / 01:03:07Z; cause
+         NOT established (throttle suspected — measured 08-21 — but unproven; wedged Drive mount or dead VMs fit too). Nothing newly
          VERIFIED → nothing scored. d038f34 + f4601c4 UNPUSHED — push before ANY relaunch. 2013 citywide .7422
          row is live=0 in qc_indep_report.csv (re-score owed; see LOG). 02:05Z Kam STOPPED both runtimes — nothing landed; stale RUNNING rows closed
          INTERRUPTED + harvested; monitor stopped. NO relaunch tonight — Kam: wait for the agentic MCP path and launch the
-         queues in PARALLEL (P11.4). Prereqs: fresh-session read-only tool inventory; engine staging LOCK so N
-         runtimes never stage orthos concurrently (tonight's throttle); per-runtime nohup log; 2-way queue split.
+         queues in PARALLEL (P11.4). Prereqs LANDED 2026-08-22 (staging lock,
+         ceilings, resume fix, per-queue logs, queue_A_2024_2017 / queue_B_2019_2022, runbook = OVERHAUL_PLAN P11);
+         MCP inventory done (1 gate tool; notebook tools unlock after the browser connect). NEXT SESSION =
+         the runbook's 7-step sequence, every launch its own ask.
 proj:    Edmonds temporal canopy pipeline, phase 4 (per-year semantic seg, 18 imagery yrs).
 live:    ENGINE MODULARIZED 2026-07-08 → phase4seg/ package (config/common/labels/tiling/core[all torch]/
          postproc/cli) + 97L phase4_semantic_finetune.py SHIM (preserves `%run ... --args`). Behavior =
@@ -1030,6 +1032,51 @@ gotcha:  scripts Colab-only for torch (rasterio+geopandas+fiona+sklearn now pip-
 
 ════════════════ LOG  (newest first) ════════════════
 
+## 2026-08-22  P11.4 PREREQS LANDED — staging lock, ceilings, resume fix, per-queue logs, balanced queues; MCP inventory done
+goal:    Kam: no hand launches; get everything in place so the next session runs the agentic two-runtime workflow.
+did:     MCP INVENTORY (read-only stdio probe; server tools load only at session start): ColabMCP (colab_mcp 1.0.1,
+         FastMCP 2.14.5) exposes ONE tool cold — open_colab_browser_connection. It opens the browser at
+         colab.research.google.com/notebooks/empty.ipynb#mcpProxyToken=..&mcpProxyPort=..; the Colab page connects
+         back over a localhost websocket and the server PROXIES the Colab frontend's notebook tools (listChanged).
+         One tab = one session = one runtime per connection; tools not enumerable until attached; no Google auth in
+         the package — the browser tab is the credential. Nothing called.
+         CODE (gates green: py_compile; preflight 2024/inference + 2019/tile; CPU smoke PASSED; --dry-run both
+         queues; 6-case local unit test of the lock):
+         (1) phase4seg/common.py _StagingLock — Drive lock phase4/locks/staging.lock (O_EXCL create, 60 s
+             heartbeat, 15 min stale-break, 240 min max-wait then proceed+warn) around ortho staging; core.py tile
+             staging under the same lock; guard tests the real mount (config.BASE is the Colab path everywhere).
+         (2) phase4_train_queue.py STEP_TIMEOUT_MIN inference 240->480, tile 90->180, train 240->300: 2017's
+             CoE-grid inference took 254.9 min, so the old ceiling would have killed every 2024/2017/2022
+             inference 15 min short (audit finding; ~4 h GPU would have burned tonight had staging completed).
+         (3) resume (_completed_steps) drops (job,step) whose latest VERIFY:{step} hard-failed — a step that exits
+             0 without its artifact is no longer skipped on relaunch (audit finding).
+         (4) per-queue nohup logs train_queue_nohup_{queue}_{ts}.log (cockpit cell 3; cell 4 merges all status
+             files; cell 6 updated) — the shared path lost queue3's stdout tonight.
+         (5) queue_A_2024_2017.yaml (~10 h L4) + queue_B_2019_2022.yaml (~8 h L4): balanced two-runtime split;
+             merged-reader resume skips 2024 labels/tile/train/evaluate + 2019 labels (verified locally).
+         (6) OVERHAUL_PLAN P11 runbook: mechanism, prereqs, 7-step next-session sequence (every launch its own ask).
+         AUDIT (4-agent workflow, refuted where wrong): pre-P11.1 clobber semantics confirmed (last writer wins;
+         both tonight's runtimes ran 57bc07b). SCORING PRE-STAGED: --prob is MANDATORY (resolve_prob is
+         suffix-blind); deployed_threshold takes the rgb+chm OVERALL row of semantic_eval_report.csv, which for
+         2019/2017/2022 does NOT exist until the queue's evaluate step lands — today it would silently use the
+         stale July rgb rows .5003/.4997/.4822, so the scorer console MUST say channels=rgb+chm; 2024's row exists
+         (.5043). Refs: 2024/2019/2022 vs D:\edmonds-pipeline\Imagery\ccap_2021_hires_lc.tif (T3 clipped);
+         2017 vs ccap_2016_hires_lc_snohfull.tif (full; demotes the xsensor .7986 row — intended). Each score =
+         two full passes over a Drive raster: ~20 min (2019), ~50-60 min (CoE years); run sequentially.
+         CORRECTION (Kam 02:50Z, "not proven"): every "stalled under the throttle" statement reworded to "went
+         silent; cause not established" — CHATLOG, plan, queues, notebook, code comments, status rows, memory.
+decided: lock = precaution against ONE candidate cause, not the fix; ceilings sized for a foreign staging wait;
+         A/B balance 2024+2017 / 2019+2022 (10 h / 8 h) over 2024+2019 / 2017+2022 (7 h / 11 h).
+killed:  editing files through bash heredoc python with double backslashes (the tool transport collapses them) and
+         without CRLF handling (common.py, train_queue.py, CHATLOG are CRLF) — write the script to a file instead.
+files:   pipeline/phase4seg/common.py, pipeline/phase4seg/core.py, pipeline/phase4_train_queue.py,
+         pipeline/colab_launch.ipynb, pipeline/queue_A_2024_2017.yaml, pipeline/queue_B_2019_2022.yaml,
+         OVERHAUL_PLAN_2026-08-20.md, CHATLOG.md; scratch unit test test_staging_lock.py (session scratchpad only).
+next:    NEXT SESSION = OVERHAUL_PLAN P11 runbook: claude mcp list -> open_colab_browser_connection (Kam's yes) ->
+         tool inventory -> cells 1-2 on a CPU runtime -> propose launch A (queue_A, L4, 1 runtime, ~10 h) ->
+         launch B if a second connection works (>= 1 min later) -> monitor ARTIFACTS -> score (threshold gate) ->
+         harvest -> registry rows. Kam: git push github main --tags after this session's commits.
+
 ## 2026-08-21  RESUME on D: — colab-mcp NOT registered; 2024-finish + queue3 SILENT since 01:12Z; nothing new to score
 goal:    resume after P11: verify colab-mcp read-only; locate GPU work from ARTIFACTS; score newly-VERIFIED years;
          harvest; re-arm watch.
@@ -1047,8 +1094,12 @@ did:     colab-mcp: first read "not registered" was WRONG IN DETAIL — I scanne
          (tiling.py rasterio.open(img_out,"w")), so a live tile step leaves files; tiles/2019 = 668 July files,
          unchanged 47 min. 2024 runtime: nohup ends at the "Step 5" header; next print is the staging ⏱ tock
          (core.py step_inference → _stage_imagery_local); none after 36 min vs 214 s for 2017's 48 GB ortho in
-         a healthy window. => BOTH stalled in ortho staging (11.7 GB 2019 @01:03Z + 26.9 GB 2024 @01:12Z =
-         the parallel-staging throttle P11 named) or dead. Cannot distinguish without the tab/MCP.
+         a healthy window. Both went silent ~10 min into concurrent ortho stagings (11.7 GB 2019 @01:03Z + 26.9 GB 2024
+         @01:12Z); a cell-5 canary started 01:29:11Z on one of them wrote its manifest but never its
+         step log (a 0-s step) — that VM's Drive writes stopped too. CAUSE NOT ESTABLISHED (Kam, 02:50Z:
+         'not proven'): download throttle during parallel staging (measured 08-21) is one candidate;
+         a wedged Drive mount or VM death fit the evidence equally. Staging lock = precaution against
+         the first only.
          No new VERIFY row, no new prob raster → nothing scorable tonight. Sizes: 2024 ortho = same 31.53 Gpx
          grid as 2017 → inference ≈ 4h15m L4 AFTER staging; queue3 ≈ 13.5 h L4 (2019 ~2.5 h, 2017/2022 ~5.5 h
          each) → two windows.
@@ -1059,19 +1110,19 @@ did:     colab-mcp: first read "not registered" was WRONG IN DETAIL — I scanne
          flag keyed (year, ref) cannot hold two series), and scored at fallback thresh 0.5, not tool-chosen.
          Quote .7422 with footnote until re-scored (WORKPLAN wins). Scoring 2017 citywide will likewise demote
          the xsensor .7986 row — INTENDED (queue3 exists to replace it), not data loss.
-decided: report "both stalled or dead", not "A fine / B stuck" — A's missing stage tock is evidence too.
+decided: report "both silent, cause unknown" — A's missing stage tock is evidence of silence, not of a throttle.
          Fix 2013 by re-score (newest → live=1), no scorer change tonight.
 files:   phase4/qc/train_queue_status.csv (f4601c4), CHATLOG.md (STATE + this entry)
 next:    KAM (in order): (1) `git push github main --tags` — d038f34 (P11.1) + f4601c4 + this commit are
          UNPUSHED; every runtime tonight cloned 57bc07b; any relaunch must clone HEAD. (2) DONE: Kam
-         stopped both runtimes ~02:05Z (silent 55+ min, staging throttle). Rows closed INTERRUPTED + harvested.
+         stopped both runtimes ~02:05Z (silent 55+ min; cause unproven). Rows closed INTERRUPTED + harvested.
          Relaunch = NEW ask, proposed: queue_2024_finish.yaml, 1 runtime, L4, ~4.5 h (stage ~4 min healthy +
          ~255 min inference per the 2017 precedent); then queue3.yaml in its own window (~13.5 h: 2019 2.5 h,
          2017/2022 5.5 h each). Never stage two orthos at once. A new VM clones HEAD -> per-queue status files.
          KAM 02:15Z: NOT relaunching by hand — waiting for the agentic MCP path to launch queues in PARALLEL.
          Prereqs before that trial: (a) fresh session, colab-mcp read-only inventory (auth step expected);
          (b) engine staging LOCK (Drive lock file + stale timeout) so concurrent runtimes serialize ortho
-         staging — the throttle is account-wide, tonight two stagings overlapped and both stalled; (c) per-
+         staging — removes the throttle candidate (account-wide quota; two stagings overlapped tonight); (c) per-
          runtime nohup log (cell 3 path is shared; queue3's stdout was lost when 2024 relaunched with >);
          (d) split queue3+2024 into two balanced queue files (~9 h each: 2024+2019 / 2017+2022).
          (3) DONE 02:20Z: colab-mcp registered USER scope, absolute uvx.exe path, ✔ Connected. Owed: read-only

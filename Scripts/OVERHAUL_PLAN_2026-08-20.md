@@ -9,7 +9,12 @@ P5 ✔ canary + cutover proven (run manifests live at git 57bc07b); 2024-finish 
 in flight · P6 partial (manifests+seeds+queue-as-data ✔; registry generator deferred) ·
 P7 partial (harvest, gates, status, watcher ✔; QC provenance deferred) · P8 ✔ ·
 P9/P10 pending. **NEW: P11 below (adopted 2026-08-21) — agentic GPU driving via
-Colab MCP, ask-first always.**
+Colab MCP, ask-first always.** P11.1–11.3 ✔; P11.4 two-runtime trial pending —
+prerequisites (staging lock, ceilings, resume fix, per-queue logs, balanced queues)
+landed 2026-08-22; see the P11 runbook. 2024-finish + QUEUE3 did NOT land on
+2026-08-22 (both runtimes went silent ~10 min into concurrent ortho stagings; cause not
+established — throttle suspected, wedged mount / VM death equally consistent; stopped by
+Kam) — they are the P11.4 workload.
 
 ## Context — why
 
@@ -383,6 +388,59 @@ keeping its intent: spend passes through Kam's hands every time.
 5. **Docs** — CLAUDE.md two-planes section + design rule 3 updated (ask-first
    protocol, runtime cap); CHATLOG LOG entry recording the ruling; this plan is the
    ruling's home until then.
+
+**P11 runbook (added 2026-08-22, after the first two-runtime attempt went silent):**
+
+*Status:* P11.1 ✔ (per-launch status files) · P11.2 ✔ 2026-08-22 (`claude mcp list`
+→ colab-mcp ✔ Connected; user scope, absolute `uvx.exe` path because
+`Python312\Scripts` is on neither PATH) · P11.3 ✔ (CLAUDE.md) · **P11.4 trial pending**.
+
+*Mechanism (read from the server source, colab_mcp 1.0.1 on FastMCP 2.14.5):* cold,
+the server exposes ONE tool — `open_colab_browser_connection`. Calling it opens the
+default browser at `colab.research.google.com/notebooks/empty.ipynb#mcpProxyToken=…
+&mcpProxyPort=…`; the Colab page connects back over a localhost websocket, and the
+server then PROXIES the Colab frontend's own notebook tools (create/edit/run cells)
+to the agent (`tools.listChanged`). So one browser tab = one Colab session = one
+runtime per connection, and the notebook tools cannot be enumerated until a tab is
+attached. Nothing in the package authenticates to Google itself — the browser tab is
+the credential.
+
+*Prerequisites landed 2026-08-22 (code, no GPU):* Drive staging lock
+`phase4/locks/staging.lock` (`phase4seg/common.py _StagingLock`: O_EXCL create,
+60 s heartbeat, 15 min stale-break, 240 min max wait) around every ortho and tile
+copy — GPU work overlaps across runtimes, Drive copies queue up (this removes ONE
+suspected cause of the 08-22 silence, the account-wide download throttle; it does
+nothing for a wedged mount or a dead VM, which the evidence fits equally); step ceilings
+tile 180 / train 300 / inference 480 min (the old inference 240 would have killed
+every CoE-grid inference — 2017's took 254.9 min); resume honours `VERIFY:{step}`
+hard-fails (a step that exits 0 without its artifact is no longer skipped on
+relaunch); per-queue nohup logs `train_queue_nohup_{queue}_{ts}.log` (a shared path
+lost queue3's stdout on 2026-08-22); balanced queues `queue_A_2024_2017.yaml`
+(~10 h L4) + `queue_B_2019_2022.yaml` (~8 h L4); cockpit cells 3/4/6 rewritten.
+
+*Next-session sequence — every GPU launch is its own ask:*
+1. `claude mcp list` → colab-mcp connected; ToolSearch shows
+   `open_colab_browser_connection` and nothing else.
+2. Kam's yes → call it once; a Colab tab opens; **list the unlocked tools** (read-only
+   inventory → CHATLOG). Nothing runs.
+3. Zero-GPU check on that tab (CPU runtime): open `pipeline/colab_launch.ipynb`
+   (Colab's GitHub opener on the private repo, or a Drive copy) → cells 1–2
+   (`--dry-run`), confirming the clone is at HEAD.
+4. Propose launch A (`queue_A_2024_2017.yaml`, L4, 1 runtime, ~10 h, Colab's posted
+   L4 rate) → yes → cell 3 → within ~15 min the nohup log must show the staging ⏱
+   line; if not, something is wrong (throttle, mount, VM — check the tab's runtime
+   state and `!ls -la /content/phase4_scratch` for a growing copy before concluding):
+   stop the runtime (it burns GPU while copying) and ask before any relaunch.
+5. Unknown until tried: whether a second `open_colab_browser_connection` (second tab)
+   yields a second runtime through the same server instance. If yes → propose launch B
+   (`queue_B_2019_2022.yaml`, ≥1 min after A so the lock ordering is clean). If no → B
+   runs after A, or by human-paste in a second tab.
+6. Monitor ARTIFACTS, not CSV content: per-launch status files, run manifests, tile
+   files, prob rasters. `VERIFY:inference OK` → local scoring per the staged commands
+   in CHATLOG (threshold gate: the scorer's console line must say
+   `channels=rgb+chm`, else the eval row for that year has not landed — do not score).
+7. After the window: harvest, registry rows, CHATLOG; compare wall-clock vs serial and
+   decide whether to raise the 2-runtime cap.
 
 **Relation to Option C:** MCP driving is the middle rung of the ladder (human-paste →
 MCP-with-permission → owned/rented GPU with SSH). If MCP driving proves out and spend

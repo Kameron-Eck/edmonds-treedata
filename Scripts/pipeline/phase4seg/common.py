@@ -1,8 +1,12 @@
 import hashlib
 import importlib
+import json
+import os
+import socket
 import subprocess
 import sys
 import shutil
+import threading
 import time
 import warnings
 from pathlib import Path
@@ -107,6 +111,126 @@ def resolve_native_path(entry):
     return roots[0] / entry["native_file"]
 # ── Local SSD staging (phase1 pattern) ────────────────────────────────────────
 
+# ── Cross-runtime staging lock (overhaul P11.4) ───────────────────────────────
+# Google Drive's download quota is ACCOUNT-wide, not per-runtime (throttle measured
+# 2026-08-21). On 2026-08-22 two Colab runtimes began staging orthos (11.7 GB +
+# 26.9 GB) within ten minutes of each other and both went silent with nothing
+# written; the cause was NOT established (throttle suspected; a wedged Drive mount
+# or VM death fit equally). Precaution: parallel runtimes serialize their bulk
+# Drive→NVMe copies through one lock file on Drive — GPU work still overlaps,
+# only the copying queues. It removes one candidate cause, not all of them.
+# The holder re-stamps the lock every STAGE_LOCK_BEAT_SEC so a live holder never
+# looks stale; a lock whose stamp is older than STAGE_LOCK_STALE_MIN is broken.
+# Non-Colab paths (local smoke/QC) never lock. Waiting counts toward the queue's
+# per-step ceiling (phase4_train_queue.STEP_TIMEOUT_MIN) — sized accordingly.
+STAGE_LOCK_DIR          = BASE / "phase4" / "locks"
+STAGE_LOCK_STALE_MIN    = 15       # no heartbeat this long = holder presumed dead
+STAGE_LOCK_POLL_SEC     = 30
+STAGE_LOCK_BEAT_SEC     = 60
+STAGE_LOCK_MAX_WAIT_MIN = 240      # never wedge a GPU forever; proceed + warn
+
+
+def _lock_enabled():
+    """Only a Colab VM with Drive mounted takes the lock. config.BASE is the
+    hard-coded Colab path on every platform, so test the MOUNT, not BASE —
+    locally (Windows smoke/QC) this is always False and nothing is created."""
+    return os.name == "posix" and Path("/content/drive/MyDrive/treedata").is_dir()
+
+
+class _StagingLock:
+    """`with _StagingLock("2024_coe_rgb.tif"):` around any bulk copy from Drive."""
+
+    def __init__(self, what):
+        self.what = what
+        self.path = STAGE_LOCK_DIR / "staging.lock"
+        self.held = False
+        self._stop = threading.Event()
+        self._beat = None
+
+    def _stamp(self):
+        return json.dumps({"host": socket.gethostname(), "pid": os.getpid(),
+                           "what": self.what, "ts": time.time()})
+
+    def _holder_age_min(self):
+        """(minutes since the holder last stamped the lock, holder text), or None
+        if the lock vanished between checks (payload ts, else file mtime)."""
+        raw, ts = "", None
+        try:
+            raw = self.path.read_text()
+            ts = json.loads(raw).get("ts")
+        except Exception:                                   # noqa: BLE001
+            pass
+        if ts is None:
+            try:
+                ts = self.path.stat().st_mtime
+            except OSError:
+                return None
+        return (time.time() - float(ts)) / 60.0, raw[:160]
+
+    def _heartbeat(self):
+        while not self._stop.wait(STAGE_LOCK_BEAT_SEC):
+            try:
+                self.path.write_text(self._stamp())
+            except OSError:
+                pass
+
+    def __enter__(self):
+        if not _lock_enabled():
+            return self                                     # local: no lock
+        STAGE_LOCK_DIR.mkdir(parents=True, exist_ok=True)
+        t0 = time.time()
+        announced = False
+        while True:
+            try:
+                fd = os.open(self.path, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
+                with os.fdopen(fd, "w") as f:
+                    f.write(self._stamp())
+                self.held = True
+                self._beat = threading.Thread(target=self._heartbeat, daemon=True)
+                self._beat.start()
+                if announced:
+                    print(f"  staging lock acquired after {(time.time() - t0) / 60:.1f} min")
+                return self
+            except FileExistsError:
+                pass
+            info = self._holder_age_min()
+            if info is None:
+                continue
+            age_min, holder = info
+            if age_min > STAGE_LOCK_STALE_MIN:
+                print(f"  staging lock STALE ({age_min:.0f} min since heartbeat; {holder}) — breaking it")
+                try:
+                    self.path.unlink()
+                except OSError:
+                    pass
+                continue
+            if (time.time() - t0) / 60 > STAGE_LOCK_MAX_WAIT_MIN:
+                print(f"  WARNING: waited {STAGE_LOCK_MAX_WAIT_MIN} min for the staging lock; "
+                      f"proceeding WITHOUT it (holder: {holder})")
+                return self
+            if not announced:
+                print(f"  staging lock held by {holder}; waiting for {self.what} "
+                      f"(poll {STAGE_LOCK_POLL_SEC}s) …", flush=True)
+                announced = True
+            time.sleep(STAGE_LOCK_POLL_SEC)
+
+    def __exit__(self, *exc):
+        if self.held:
+            self._stop.set()
+            if self._beat is not None:
+                self._beat.join(timeout=10)          # never unlink under a live re-stamp
+            for _ in range(3):
+                try:
+                    self.path.unlink()
+                    break
+                except FileNotFoundError:
+                    break
+                except OSError:
+                    time.sleep(1)
+            self.held = False
+        return False
+
+
 def _stage_imagery_local(src_path):
     """Copy a Drive ortho to local NVMe; return the local path (or src on failure)."""
     src_path = Path(src_path)
@@ -117,9 +241,10 @@ def _stage_imagery_local(src_path):
     try:
         if dst.exists() and dst.stat().st_size == src_path.stat().st_size:
             return dst
-        tick(f"stage {src_path.name}")
-        shutil.copy2(src_path, dst)
-        tock(f"stage {src_path.name}")
+        with _StagingLock(src_path.name):          # P11.4: one Drive copy at a time
+            tick(f"stage {src_path.name}")
+            shutil.copy2(src_path, dst)
+            tock(f"stage {src_path.name}")
         return dst
     except Exception as e:
         print(f"  WARNING: local staging failed ({e}); reading from Drive")

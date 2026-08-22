@@ -32,7 +32,9 @@
     * A failing job does NOT stop the queue (unlike the P1 driver, which
       aborts because a human was watching). Throughput matters more here;
       every outcome is recorded instead.
-    * Status is flushed to Drive after every step: phase4/qc/train_queue_status.csv
+    * Status is flushed to Drive after every step, to THIS launch's own file
+      phase4/qc/train_queue_status_{queue}_{launchts}.csv (P11.1: concurrent
+      queues never clobber each other; readers merge all train_queue_status*.csv).
       That file is the monitoring hook — it survives the runtime dying.
     * Cheapest-first, so a runtime that dies early still delivers the most
       informative results. All queued years are COARSE (50-60cm, ~1h each);
@@ -45,7 +47,10 @@
   LAUNCH DETACHED. This is the important part for an unattended run:
 
       %cd /content/repo/Scripts/pipeline
-      !nohup python -u phase4_train_queue.py > /content/drive/MyDrive/treedata/phase4/logs/train_queue_nohup.log 2>&1 &
+      !nohup python -u phase4_train_queue.py --queue QUEUE.yaml > /content/drive/MyDrive/treedata/phase4/logs/train_queue_nohup_QUEUE_TS.log 2>&1 &
+      (one log per queue launch — a shared path was truncated by a second
+       runtime's `>` on 2026-08-22 and queue3's stdout was lost; cell 3 of the
+       cockpit builds the name from the queue stem + UTC launch timestamp)
 
   With %run the queue lives INSIDE the notebook kernel, so anything that
   interrupts the cell kills it — and Colab sends SIGINT to the kernel whenever
@@ -55,8 +60,9 @@
   and it dies only when the RUNTIME itself dies.
 
   Watch it (either from a Colab cell or from the synced Drive copy):
-      !tail -f /content/drive/MyDrive/treedata/phase4/logs/train_queue_nohup.log
-      phase4/qc/train_queue_status.csv          <- one row per step, on Drive
+      !tail -f "$(ls -t /content/drive/MyDrive/treedata/phase4/logs/train_queue_nohup*.log | head -1)"
+      phase4/qc/train_queue_status_{queue}_{launchts}.csv   <- one row per step, on
+                                     Drive; readers merge every train_queue_status*.csv
 
   Foreground (only when you are actually watching):
       %run phase4_train_queue.py --dry-run        print the plan, spend nothing
@@ -96,10 +102,14 @@ STEPS = ["labels", "tile", "train", "evaluate", "inference"]
 
 # Per-step wall-clock ceilings, in MINUTES. Deliberately generous — these exist
 # to break a genuine hang, never to cut short a slow-but-working step. Reference
-# points from real runs: 2022n full path ~55 min total; a 7.5cm inference ran
-# 255 min. Coarse years are far smaller than either.
-STEP_TIMEOUT_MIN = {"labels": 45, "tile": 90, "train": 240,
-                    "evaluate": 60, "inference": 240}
+# points from real runs: 2022n full path ~55 min total; the 2017 CoE-grid
+# inference ran 254.9 min on L4 — the old 240-min inference ceiling would have
+# killed 2024/2017/2022 fifteen minutes short (found 2026-08-22). Since P11.4
+# a step may also WAIT for another runtime's ortho staging (the Drive staging
+# lock, phase4seg/common.py) before its own work starts, so tile/train/inference
+# carry headroom for one full foreign staging (~5-10 min healthy; more if Drive is slow).
+STEP_TIMEOUT_MIN = {"labels": 45, "tile": 180, "train": 300,
+                    "evaluate": 60, "inference": 480}
 
 # Two interrupts inside this window = a human really wants out.
 DOUBLE_INT_SEC = 20
@@ -219,11 +229,22 @@ def _completed_steps():
     write tagged outputs, so skipping a previously-OK step is safe and turns a
     dead runtime into a cheap restart instead of starting from zero.
     """
-    done = set()
-    for r in _merged_rows():
-        if r.get("state") == "OK" and r.get("step") in STEPS:
-            done.add((r.get("job"), r.get("step")))
-    return done
+    done, bad_verify = set(), set()
+    for r in _merged_rows():                       # sorted by ts: later rows win
+        job, step, state = r.get("job"), str(r.get("step", "")), r.get("state")
+        if state == "OK" and step in STEPS:
+            done.add((job, step))
+            bad_verify.discard((job, step))        # a fresh OK supersedes an old fail
+        elif step.startswith("VERIFY:") and step[7:] in STEPS:
+            # A step can exit 0 without its artifact (e.g. step_tile's "no tiles"
+            # early return) — its OK row must not license a skip if VERIFY:{step}
+            # then hard-failed. Pre-P4.3 history has no VERIFY:{step} rows and is
+            # unaffected. (Audit finding 2026-08-22.)
+            if state in _VERIFY_HARD_FAIL:
+                bad_verify.add((job, step[7:]))
+            else:
+                bad_verify.discard((job, step[7:]))
+    return done - bad_verify
 
 
 def _hr(t=""):

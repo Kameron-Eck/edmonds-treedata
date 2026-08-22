@@ -4,7 +4,7 @@ from phase4seg.common import (
     _ensure_deps, _tag_sfx, entry_for, resolve_native_path,
     _stage_imagery_local, _unstage_imagery_local, read_rgb_window,
     read_hillshade_chip, tick, tock,
-    _copy_to_drive, _local_artifact_path,
+    _copy_to_drive, _local_artifact_path, _StagingLock,
 )
 from phase4seg.tiling import _origins_from_manifest
 
@@ -656,19 +656,20 @@ def _stage_tiles_local(idx_df, label):
         tick(f"stage tiles {label}")
         n_copied = 0
         new_cols = {c: [] for c in cols}
-        for _, row in idx_df.iterrows():
-            for c in cols:
-                p = row[c]
-                if not (isinstance(p, str) and p):
-                    new_cols[c].append(p)
-                    continue
-                src = Path(p)
-                dst = dst_root / str(row["split"]) / kinds[c] / str(row["tile_name"])
-                if not dst.exists() or dst.stat().st_size != src.stat().st_size:
-                    dst.parent.mkdir(parents=True, exist_ok=True)
-                    shutil.copy2(src, dst)
-                    n_copied += 1
-                new_cols[c].append(str(dst))
+        with _StagingLock(f"tiles {label}"):        # P11.4: one Drive copy at a time
+            for _, row in idx_df.iterrows():
+                for c in cols:
+                    p = row[c]
+                    if not (isinstance(p, str) and p):
+                        new_cols[c].append(p)
+                        continue
+                    src = Path(p)
+                    dst = dst_root / str(row["split"]) / kinds[c] / str(row["tile_name"])
+                    if not dst.exists() or dst.stat().st_size != src.stat().st_size:
+                        dst.parent.mkdir(parents=True, exist_ok=True)
+                        shutil.copy2(src, dst)
+                        n_copied += 1
+                    new_cols[c].append(str(dst))
         out = idx_df.copy()
         for c in cols:
             out[c] = new_cols[c]

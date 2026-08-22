@@ -92,11 +92,11 @@ out["gpu"] = [x.strip() for x in g.split(",")] if g and not g.startswith("ERR") 
 # reading is 0 most of the time even at full tilt. Sample ~3 s and report mean/max.
 if out["gpu"]:
     vals = []                       # -l/-lms are rejected alongside --query-gpu here: loop instead
-    for _ in range(12):
+    for _ in range(__NSAMP__):
         v = sh("nvidia-smi --query-gpu=utilization.gpu --format=csv,noheader,nounits", t=8).strip()
         if v.isdigit():
             vals.append(int(v))
-        time.sleep(0.25)
+        time.sleep(__SLEEP__)
     if vals:
         out["gpu_util_mean"] = round(sum(vals) / len(vals))
         out["gpu_util_max"] = max(vals)
@@ -133,6 +133,8 @@ if logs:
     # (tens of KB .. a few MB) for the last step header / staging-lock line
     last_step = last_lock = None
     try:
+        if not __FULLSCAN__:
+            raise StopIteration                 # tail-only probe: the cheap path
         with open(lg, "rb") as f:
             for raw in re.split(rb"[\r\n]+", f.read()):
                 if b"] Step " in raw:
@@ -140,7 +142,7 @@ if logs:
                     last_lock = None                      # lock lines belong to the current step only
                 elif re.search(rb"\b(staging|lock)\b", raw):
                     last_lock = raw.decode("utf-8", "replace")[:200]
-    except OSError:
+    except (OSError, StopIteration):
         pass
     out["log"] = {"path": lg, "size": size, "mtime": int(mt), "age_s": int(time.time() - mt), "tail": tail,
                   "last_step": last_step, "last_lock": last_lock}
@@ -186,6 +188,27 @@ READOPT = HERE / "colab_readopt.py"
 ASSIGN_RE = re.compile(r"^\s*(\S+)\s+(\S+)\s+(\S+)\s+\[(.+?)\]\s*$")
 
 
+def heal_sessions():
+    """Run colab_readopt --heal: re-adopt orphans, refresh tokens before their 1 h
+    expiry, respawn dead keep-alive daemons. Returns the list of actions taken.
+
+    This is the safety net for the failure that cost three A100s on 2026-08-22: the
+    CLI prunes a session on any transient error (a 404 from /api/kernels sufficed),
+    which deletes the entry AND kills the heartbeat, and Colab then reclaims the
+    still-computing VM ~15-25 min later. Healing on a schedule closes that window.
+    """
+    if not (Path(TOOL_PY).exists() and READOPT.exists()):
+        return [], "colab_readopt.py or the CLI interpreter not found"
+    try:
+        r = subprocess.run([TOOL_PY, str(READOPT), "--heal"], capture_output=True, text=True,
+                           encoding="utf-8", errors="replace", timeout=180)
+    except (OSError, subprocess.SubprocessError) as e:
+        return [], f"heal: {e}"
+    acted = [ln[len("HEAL "):] for ln in (r.stdout or "").splitlines()
+             if ln.startswith("HEAL ") and not ln.startswith("HEAL nothing")]
+    return acted, ("" if r.returncode == 0 else (r.stderr or "")[-200:])
+
+
 def live_assignments():
     """Every live server-side assignment + whether it has a local name.
 
@@ -210,20 +233,36 @@ def live_assignments():
     return rows, ("" if rows else (r.stderr or "")[-200:])
 
 
-_PROBE_PATH = None
+_PROBE_CACHE = {}
 
 
-def probe_session(name):
-    global _PROBE_PATH
-    if _PROBE_PATH is None:
+def _probe_path(nsamp, sleep_s, fullscan):
+    """One probe file per cost variant. Fast cadences sample the GPU briefly and skip
+    the whole-log scan; a full scan runs occasionally to refresh the step header and
+    staging line, which the tqdm flood pushes out of the 6 KB tail."""
+    key = (nsamp, sleep_s, fullscan)
+    if key not in _PROBE_CACHE:
         d = Path(tempfile.gettempdir()) / "edmonds_runtime_dashboard"
         d.mkdir(exist_ok=True)
-        _PROBE_PATH = d / "probe.py"
-        _PROBE_PATH.write_text(PROBE, encoding="utf-8")
-    rc, out, err = run_colab(["exec", "-s", name, "-f", str(_PROBE_PATH), "--timeout", "60"], timeout=120)
+        f = d / f"probe_{nsamp}_{int(sleep_s * 1000)}_{int(fullscan)}.py"
+        f.write_text(PROBE.replace("__NSAMP__", str(nsamp))
+                          .replace("__SLEEP__", repr(sleep_s))
+                          .replace("__FULLSCAN__", "True" if fullscan else "False"),
+                     encoding="utf-8")
+        _PROBE_CACHE[key] = f
+    return _PROBE_CACHE[key]
+
+
+def probe_session(name, nsamp=12, sleep_s=0.25, fullscan=True):
+    path = _probe_path(nsamp, sleep_s, fullscan)
+    t0 = time.time()
+    rc, out, err = run_colab(["exec", "-s", name, "-f", str(path), "--timeout", "60"], timeout=120)
+    dt = time.time() - t0
     for ln in out.splitlines():
         if ln.startswith("DASH_JSON "):
-            return json.loads(ln[len("DASH_JSON "):]), None
+            d = json.loads(ln[len("DASH_JSON "):])
+            d["probe_secs"] = round(dt, 1)
+            return d, None
     return None, (err.strip() or out.strip() or "no DASH_JSON line")[-400:]
 
 
@@ -504,6 +543,7 @@ class Collector(threading.Thread):
     def __init__(self, sessions, exec_interval, local_interval, no_exec):
         super().__init__(daemon=True)
         self.sessions = sessions
+        self.pinned = bool(sessions)     # --sessions given? then follow exactly that list
         self.exec_interval = exec_interval
         self.local_interval = local_interval
         self.no_exec = no_exec
@@ -515,6 +555,8 @@ class Collector(threading.Thread):
         self._hist = {}          # session -> deque of {t, util, mem, n, total, rate}
         self._assign = []        # live server-side assignments (orphan detection)
         self._assign_err = ""
+        self._heal_log = []      # recent self-healing actions (token/daemon/orphan)
+        self._last_fullscan = 0.0
         self._hist_json = "{}"
 
     def snapshot(self):
@@ -558,13 +600,32 @@ class Collector(threading.Thread):
             self._sess_rows, self._sess_err = colab_sessions()
         except Exception as e:  # noqa: BLE001
             self._sess_err = repr(e)
-        if not self.sessions:
+        if not self.pinned:
+            # AUTO-FOLLOW: without --sessions, track whatever is in the CLI store, so a VM
+            # created after the dashboard started (or re-adopted under a new name by the
+            # self-healer) appears on its own instead of silently going unwatched.
             self.sessions = [r["name"] for r in self._sess_rows if r["name"] != "?"]
 
     def probe_all(self):
+        # A probe is a real round trip (kernel call + GPU sampling + log read), so a
+        # short --exec-interval means "probe back to back", not "probe every N s".
+        # Below ~20 s the probe is trimmed: 4 GPU samples over ~0.6 s and a tail-only
+        # log read, with a full log scan every 60 s to refresh the step header.
+        fast = self.exec_interval < 20
+        nsamp, sleep_s = (4, 0.15) if fast else (12, 0.25)
+        _now = time.time()
+        fullscan = (not fast) or (_now - self._last_fullscan >= 60)
+        if fullscan:
+            self._last_fullscan = _now
         for name in list(self.sessions):
             try:
-                p, err = probe_session(name)
+                p, err = probe_session(name, nsamp=nsamp, sleep_s=sleep_s, fullscan=fullscan)
+                if p is not None and not fullscan:      # carry the cached header forward
+                    prev = (self._probes.get(name) or (None,))[0]
+                    if prev and prev.get("log") and p.get("log"):
+                        for _k in ("last_step", "last_lock"):
+                            if p["log"].get(_k) is None:
+                                p["log"][_k] = (prev.get("log") or {}).get(_k)
             except Exception as e:  # noqa: BLE001
                 p, err = None, repr(e)
             self._probes[name] = (p, err, time.time())
@@ -588,6 +649,7 @@ class Collector(threading.Thread):
             except Exception as e:  # noqa: BLE001
                 card = {"name": name, "flags": [f"card build error: {e!r}"]}
             card["probe_age_s"] = int(time.time() - ts) if ts else None
+            card["probe_secs"] = (p or {}).get("probe_secs")
             card["hours_billed"] = hours_since_launch(card)
             self._record_history(card, now)
             cards.append(card)
@@ -599,8 +661,10 @@ class Collector(threading.Thread):
             errors.append(self._assign_err)
         state = {"generated": now.strftime("%Y-%m-%dT%H:%M:%SZ"), "sessions": cards,
                  "colab_sessions": self._sess_rows, "assignments": self._assign, "orphans": orphans,
+                 "heal_log": self._heal_log,
                  "locks": read_locks(), "manifests": read_manifests(),
                  "errors": errors, "exec_interval": self.exec_interval, "no_exec": self.no_exec,
+                 "pinned": self.pinned,
                  "base": str(BASE)}
         hist_json = json.dumps({k: list(v) for k, v in self._hist.items()})
         with self._lock:
@@ -614,6 +678,12 @@ class Collector(threading.Thread):
             t = time.time()
             try:
                 if t - last_sess >= 120:
+                    if not self.no_exec:
+                        acted, herr = heal_sessions()   # BEFORE reading the store
+                        if acted:
+                            self._heal_log = (self._heal_log + acted)[-10:]
+                        if herr:
+                            self._assign_err = herr
                     self.refresh_sessions()
                     self._assign, self._assign_err = live_assignments()
                     last_sess = t
@@ -671,7 +741,7 @@ function card(s){
  const hours=s.hours_billed??null,rate=parseFloat(rateEl.value);
  let h=`<div class="col-lg-6"><div class="card">
  <div class="card-header"><div><h3 class="card-title mb-0">Session ${esc(s.name)} <span class="muted fw-normal">· ${esc(s.queue||'no queue process')}</span></h3>
- <div class="muted small">host ${esc(s.host||'?')} · probe ${s.probe_age_s??'?'}s ago${hours!=null?` · ${hours.toFixed(2)} h billed${rate?` ≈ ${(hours*rate).toFixed(1)}`:''}`:''}</div></div>
+ <div class="muted small">host ${esc(s.host||'?')} · probe ${s.probe_age_s??'?'}s ago${s.probe_secs?` (${s.probe_secs}s round trip)`:''}${hours!=null?` · ${hours.toFixed(2)} h billed${rate?` ≈ ${(hours*rate).toFixed(1)}`:''}`:''}</div></div>
  <div class="card-actions"><span class="badge bg-azure-lt">${esc(g?g.name:(s.hardware||'?'))}</span></div></div>
  <div class="card-body">`;
  if(s.flags&&s.flags.length)h+=s.flags.map(f=>`<div class="alert ${f.startsWith('note:')?'alert-info':'alert-danger'} py-2 mb-2">${esc(f)}</div>`).join('');
@@ -699,7 +769,8 @@ function spark(id,pts,color,ymax,win){const el=document.getElementById(id);if(!e
            y:{min:0,max:ymax,ticks:{stepSize:ymax/4,color:'#8696ab',font:{size:10}},grid:{color:'#24303f'}}}}});}
 let lastHtml='';
 async function tick(){try{const [st,hi]=await Promise.all([fetch('/api/state',{cache:'no-store'}).then(r=>r.json()),fetch('/api/history',{cache:'no-store'}).then(r=>r.json())]);
- document.getElementById('gen').textContent=`${st.generated||'…'} · probes every ${st.exec_interval}s${st.no_exec?' (exec OFF)':''}`;
+ const unwatched=(st.colab_sessions||[]).map(c=>c.name).filter(n=>!(st.sessions||[]).some(x=>x.name===n));
+ document.getElementById('gen').textContent=`${st.generated||'…'} · probe target ${st.exec_interval}s${st.no_exec?' (exec OFF)':''}${st.pinned?' · pinned':' · auto-follow'}`+(unwatched.length?` · NOT WATCHED: ${unwatched.join(', ')} — restart without --sessions`:'');
  const e=document.getElementById('errs');e.textContent=(st.errors||[]).join(' · ');e.style.display=st.errors&&st.errors.length?'':'none';
  const html=(st.sessions||[]).map(card).join('')||'<div class="muted p-3">no sessions yet</div>';
  if(html!==lastHtml){document.getElementById('cards').innerHTML=html;lastHtml=html;Object.keys(charts).forEach(k=>{charts[k].destroy();delete charts[k]});}
@@ -712,7 +783,7 @@ async function tick(){try{const [st,hi]=await Promise.all([fetch('/api/state',{c
  <table class="table table-sm mt-2"><thead><tr><th>live assignment</th><th>acc</th><th>name</th></tr></thead><tbody>${(st.assignments||[]).map(x=>`<tr class="${x.name?'':'text-danger'}"><td class="mono small">${esc(x.endpoint)}</td><td>${esc(x.accelerator)}</td><td>${x.name?esc(x.name):'ORPHAN — billing, no name'}</td></tr>`).join('')}</tbody></table></div>
  <div class="col-md-8"><table class="table table-sm"><thead><tr><th>run</th><th>step</th><th>branch@sha</th><th>gpu</th></tr></thead><tbody>${(st.manifests||[]).slice().reverse().map(m=>`<tr><td class="mono small">${esc(m.run_id)}</td><td>${esc(m.step)}</td><td class="mono small">${esc(m.branch)}@${esc(m.sha)}</td><td class="small">${esc(m.gpu)}</td></tr>`).join('')}</tbody></table></div></div>`;
  document.getElementById('extra').innerHTML=x;}catch(err){const e=document.getElementById('errs');e.textContent='fetch failed: '+err;e.style.display='';}}
-tick();setInterval(tick,15000);
+tick();setInterval(tick,3000);
 </script></body></html>"""
 
 
@@ -744,15 +815,30 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--sessions", default=None, help="comma list, e.g. A,B (default: named `colab sessions`)")
     ap.add_argument("--port", type=int, default=8765)
-    ap.add_argument("--exec-interval", type=int, default=60, help="seconds between per-VM probes")
+    ap.add_argument("--exec-interval", type=int, default=60,
+                    help="target seconds between per-VM probes (floor 5; a probe is a real round "
+                         "trip, so a target below its measured duration means back-to-back probing)")
     ap.add_argument("--local-interval", type=int, default=15, help="seconds between local (G:) reads")
     ap.add_argument("--no-exec", action="store_true", help="never call colab exec (G:-only view)")
     ap.add_argument("--once", action="store_true", help="print one JSON snapshot and exit")
     ap.add_argument("--open", action="store_true", help="open the page in the default browser")
     args = ap.parse_args([a for a in sys.argv[1:] if not (a == "-f" or a.endswith(".json"))])
     sessions = [s.strip() for s in args.sessions.split(",") if s.strip()] if args.sessions else []
+    args.exec_interval = max(5, args.exec_interval)
+    args.local_interval = max(2, min(args.local_interval, args.exec_interval))
     col = Collector(sessions, args.exec_interval, args.local_interval, args.no_exec)
     if args.once:
+        # HEAL FIRST. Session tokens live 1 h, and the CLI prunes a session (killing its
+        # keep-alive daemon, after which Colab reclaims the VM mid-run) on the 401 that a
+        # stale token produces. A --once check run on a long interval would therefore
+        # injure the very VM it is checking on, every time, before healing anything.
+        if not args.no_exec:
+            acted, herr = heal_sessions()
+            for line in acted:
+                print(f"HEAL {line}", file=sys.stderr)
+            col._heal_log = acted[-10:]
+            if herr:
+                col._assign_err = herr
         col.refresh_sessions()
         col._assign, col._assign_err = live_assignments()
         if not args.no_exec:

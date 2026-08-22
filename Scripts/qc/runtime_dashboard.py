@@ -354,14 +354,21 @@ def build_card(sess, probe, probe_err, merged_latest, now):
         card["log"] = None
         card["flags"].append("no nohup log for this queue on the VM")
     card["flags"].extend(parsed["flags"])
-    # GPU idle during GPU steps
+    # GPU idle during GPU steps — nvidia-smi is an instantaneous sample (0% between
+    # batches is normal), so require two consecutive zero samples before flagging
     if card["gpu"] and cur and cur["step"] in ("train", "inference") and not cur.get("staging"):
         try:
-            if int(card["gpu"]["util"]) == 0 and cur.get("progress"):
-                card["flags"].append("GPU 0% while a GPU step reports progress")
+            zero = int(card["gpu"]["util"]) == 0
+            prev = _LAST_UTIL_ZERO.get(sess["name"], False)
+            if zero and prev and cur.get("progress"):
+                card["flags"].append("GPU 0% on two consecutive probes while a GPU step reports progress")
+            _LAST_UTIL_ZERO[sess["name"]] = zero
         except ValueError:
             pass
     return card
+
+
+_LAST_UTIL_ZERO = {}     # session name -> was the previous probe's GPU util 0%
 
 
 # ── collector thread ───────────────────────────────────────────────────────────

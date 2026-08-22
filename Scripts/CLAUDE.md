@@ -33,9 +33,12 @@ phantom-M mtime lore, two-sessions-one-tree hazards. Git ops are normal now.
   runtimes via the Colab MCP server, but **must ask Kam for explicit permission before
   EVERY launch** — stating queue file, GPU tier, number of runtimes, expected
   wall-clock, and rough cost — and may never launch, relaunch, retry-with-spend, or
-  add runtimes un-asked. Cap: **2 concurrent runtimes** (the Drive download quota is
-  account-wide; parallel ortho staging re-triggers the throttle). Until the MCP server
-  is connected, launches remain human-paste via `pipeline/colab_launch.ipynb`.
+  add runtimes un-asked. Cap: **2 concurrent runtimes** (a Drive download throttle was
+  measured from one client on 2026-08-21 — its scope is not established, and the
+  2026-08-22 double-runtime silence is unexplained; bulk Drive copies are serialized by
+  the staging lock as a precaution). The MCP server is connected (2026-08-22); one
+  server instance = one Colab tab, so a second runtime needs a second server entry —
+  see the P11 runbook in the active plan.
   **One queue per runtime**; queues write per-launch status files
   (`train_queue_status_{queue}_{ts}.csv`) and readers merge all of them.
 - **The frozen Drive copy** `G:\My Drive\treedata\Scripts\` is the pre-reorg emergency

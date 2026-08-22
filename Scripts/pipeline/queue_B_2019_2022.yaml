@@ -2,8 +2,8 @@
 # queue_A_2024_2017.yaml on the FIRST runtime. Balanced ~8 h / ~10 h on L4.
 # Launch (one queue per runtime, via colab_launch.ipynb cell 3):
 #     python -u phase4_train_queue.py --queue queue_B_2019_2022.yaml
-# 2019 first: cheapest job, lands a result in ~2.5 h. Ortho staging is
-# serialized across runtimes by the Drive lock (phase4/locks/staging.lock).
+# 2019 first: cheapest job, lands a result in ~2.5 h. Bulk Drive copies are
+# serialized across runtimes by the staging lock (phase4/locks/, phase4seg/common.py).
 - id: "2019"
   year: "2019"
   tag: citywide_rgb
@@ -19,7 +19,7 @@
   year: "2022"
   tag: citywide_rgb
   extra: ["--force-citywide"]
-  why: City of Edmonds 7.5 cm. Last year off-recipe; pairs with 2022n (NAIP).
+  why: City of Edmonds 5 cm (same grid as 2017/2024). Last year off-recipe; pairs with 2022n (NAIP).
   expect: >-
     prob raster (~5.5 h like 2017); completes the recipe-matched series.
     Scored vs clipped ccap_2021 (2021-epoch year, T3 footing).

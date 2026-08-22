@@ -37,8 +37,8 @@
       queues never clobber each other; readers merge all train_queue_status*.csv).
       That file is the monitoring hook — it survives the runtime dying.
     * Cheapest-first, so a runtime that dies early still delivers the most
-      informative results. All queued years are COARSE (50-60cm, ~1h each);
-      nothing here is a 7.5cm multi-hour job.
+      informative results. (Queues 1-2 were coarse ~1 h jobs; the P11.4 queues
+      carry 5 cm CoE years whose inference alone runs ~4.5 h — see the ceilings.)
     * --run-tag on every job, so nothing existing is overwritten.
 
   ── USAGE (Colab, L4 24GB) ───────────────────────────────────────────────
@@ -105,9 +105,11 @@ STEPS = ["labels", "tile", "train", "evaluate", "inference"]
 # points from real runs: 2022n full path ~55 min total; the 2017 CoE-grid
 # inference ran 254.9 min on L4 — the old 240-min inference ceiling would have
 # killed 2024/2017/2022 fifteen minutes short (found 2026-08-22). Since P11.4
-# a step may also WAIT for another runtime's ortho staging (the Drive staging
-# lock, phase4seg/common.py) before its own work starts, so tile/train/inference
-# carry headroom for one full foreign staging (~5-10 min healthy; more if Drive is slow).
+# a step may also WAIT for another runtime's bulk copy (the Drive staging lock,
+# phase4seg/common.py, which gives up after STAGE_LOCK_MAX_WAIT_MIN = 60 and
+# proceeds unlocked). Invariant, per step that takes the lock once:
+#   ceiling > STAGE_LOCK_MAX_WAIT_MIN + own staging + largest observed work
+#   tile 180 > 60 + 20 + 24 · train 300 > 60 + 5 + 60 · inference 480 > 60 + 20 + 255 + copy.
 STEP_TIMEOUT_MIN = {"labels": 45, "tile": 180, "train": 300,
                     "evaluate": 60, "inference": 480}
 
@@ -229,22 +231,31 @@ def _completed_steps():
     write tagged outputs, so skipping a previously-OK step is safe and turns a
     dead runtime into a cheap restart instead of starting from zero.
     """
-    done, bad_verify = set(), set()
+    done, bad = set(), set()
     for r in _merged_rows():                       # sorted by ts: later rows win
         job, step, state = r.get("job"), str(r.get("step", "")), r.get("state")
-        if state == "OK" and step in STEPS:
-            done.add((job, step))
-            bad_verify.discard((job, step))        # a fresh OK supersedes an old fail
+        key = (job, step)
+        if step in STEPS:
+            if state == "OK":
+                done.add(key)
+                bad.discard(key)                   # a fresh OK supersedes an old fail
+            elif state in ("FAIL", "ERROR", "TIMEOUT", "INTERRUPTED", "RUNNING"):
+                # a LATER attempt that failed, or started and never reported (the
+                # runtime died; a mid-copy kill can leave a partial artifact),
+                # revokes an earlier OK — re-running an idempotent step is cheap.
+                bad.add(key)
         elif step.startswith("VERIFY:") and step[7:] in STEPS:
             # A step can exit 0 without its artifact (e.g. step_tile's "no tiles"
             # early return) — its OK row must not license a skip if VERIFY:{step}
             # then hard-failed. Pre-P4.3 history has no VERIFY:{step} rows and is
             # unaffected. (Audit finding 2026-08-22.)
             if state in _VERIFY_HARD_FAIL:
-                bad_verify.add((job, step[7:]))
+                bad.add((job, step[7:]))
             else:
-                bad_verify.discard((job, step[7:]))
-    return done - bad_verify
+                bad.discard((job, step[7:]))
+        elif step == "VERIFY" and state in _VERIFY_HARD_FAIL:
+            bad.add((job, "inference"))          # job-end raster check failed
+    return done - bad
 
 
 def _hr(t=""):
@@ -578,8 +589,10 @@ def main():
 
     global STATUS_OUT
     _stem = Path(args.queue).stem if args.queue else "jobs"
-    _launch_ts = _dt.datetime.utcnow().strftime("%Y%m%dT%H%M%SZ")
+    _launch_ts = _dt.datetime.now(_dt.timezone.utc).strftime("%Y%m%dT%H%M%SZ")
     STATUS_OUT = QC_DIR / f"train_queue_status_{_stem}_{_launch_ts}.csv"
+    if _COLAB_BASE.exists():            # P11.4: the staging-lock dir must pre-exist —
+        (BASE / "phase4" / "locks").mkdir(parents=True, exist_ok=True)   # never let two VMs race to create it
     print(f"  writing status to {STATUS_OUT.name}  (readers merge all "
           f"train_queue_status*.csv)")
 
@@ -626,7 +639,8 @@ def main():
     for r in rows:
         if r["step"] == "VERIFY" or r["state"] in ("FAIL", "ERROR", "INTERRUPTED"):
             print(f"    {r['job']:<7} {r['step']:<10} {r['state']:<16} {r['detail']}")
-    print(f"\n  Status table: {STATUS}")
+    print(f"\n  Status table: {STATUS_OUT if STATUS_OUT is not None else STATUS}"
+          "  (readers merge all train_queue_status*.csv)")
     print("  Scoring happens LOCALLY afterwards (no GPU): phase4_qc_indep.py,")
     print("  then phase4_ref_agreement.py for the NIR years.")
 

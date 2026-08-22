@@ -2,26 +2,26 @@
 # queue_B_2019_2022.yaml on a SECOND runtime. Balanced ~10 h / ~8 h on L4.
 # Launch (one queue per runtime, via colab_launch.ipynb cell 3):
 #     python -u phase4_train_queue.py --queue queue_A_2024_2017.yaml
-# Ortho staging is serialized across runtimes by the Drive lock
-# (phase4/locks/staging.lock): on 2026-08-22 two runtimes went silent ~10 min into
-# concurrent stagings. Cause unproven (throttle suspected); the lock is a precaution.
+# Bulk Drive copies are serialized across runtimes by the staging lock
+# (phase4/locks/, phase4seg/common.py) — precaution after the 2026-08-22 silence;
+# narrative and runbook in OVERHAUL_PLAN_2026-08-20.md P11.
 - id: "2024"
   year: "2024"
   tag: citywide_rgb
   extra: ["--force-citywide"]
   why: >-
-    City of Edmonds 5 cm, finest imagery in the project. labels/tile/train/
+    City of Edmonds 5 cm (same 148736x211968 grid as 2017/2022). labels/tile/train/
     evaluate OK 2026-08-19 (held-out IoU .7142 @5 cm); inference died twice
     (stub 08-19; silent runtime stopped 08-22). Resume re-runs only inference.
   expect: >-
-    prob raster ~2.5-3 GB (2017 twin = 2972 MB at 7.5 cm, ~255 min on L4);
+    prob raster ~2.5-3 GB (2017 twin = 2972 MB on the same 5 cm grid, ~255 min on L4);
     VERIFY OK. Then score locally vs the clipped ccap_2021 reference (T3 footing).
 - id: "2017"
   year: "2017"
   tag: citywide_rgb
   extra: ["--force-citywide"]
   why: >-
-    City of Edmonds 7.5 cm. Currently scored off-recipe (_xsensor_train) and it
+    City of Edmonds 5 cm (same grid as 2024). Currently scored off-recipe (_xsensor_train) and it
     is the series recall high (.7986), so its recipe matters to any claim.
   expect: >-
     prob raster on the shared recipe (~5.5 h: tile 24 + train 48 + eval 2 +

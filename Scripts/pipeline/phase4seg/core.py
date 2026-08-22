@@ -4,10 +4,11 @@ from phase4seg.common import (
     _ensure_deps, _tag_sfx, entry_for, resolve_native_path,
     _stage_imagery_local, _unstage_imagery_local, read_rgb_window,
     read_hillshade_chip, tick, tock,
-    _copy_to_drive, _local_artifact_path, _StagingLock,
+    _copy_to_drive, _local_artifact_path, _StagingLock, STAGE_LOCK_MIN_BYTES,
 )
 from phase4seg.tiling import _origins_from_manifest
 
+import contextlib
 import gc
 import shutil
 import time
@@ -645,6 +646,9 @@ def _stage_tiles_local(idx_df, label):
     the index's baked-absolute paths (see tiling.py: they are written as
     /content/drive/... strings), and let the epochs read NVMe. Any failure falls
     back to the original Drive paths, unchanged.
+    P11.4: the exists/size pass runs OUTSIDE the staging lock (thousands of FUSE
+    stats, nothing copied on a resume); only a >= STAGE_LOCK_MIN_BYTES copy set
+    takes the lock, and tick/tock wrap the copy alone (parity with common.py).
     """
     first = str(idx_df.iloc[0]["img_path"]) if len(idx_df) else ""
     if not first.startswith("/content/drive"):
@@ -653,28 +657,36 @@ def _stage_tiles_local(idx_df, label):
     cols = [c for c in kinds if c in idx_df.columns]
     dst_root = LOCAL_SCRATCH / "tiles" / str(label)
     try:
-        tick(f"stage tiles {label}")
-        n_copied = 0
         new_cols = {c: [] for c in cols}
-        with _StagingLock(f"tiles {label}"):        # P11.4: one Drive copy at a time
-            for _, row in idx_df.iterrows():
-                for c in cols:
-                    p = row[c]
-                    if not (isinstance(p, str) and p):
-                        new_cols[c].append(p)
-                        continue
-                    src = Path(p)
-                    dst = dst_root / str(row["split"]) / kinds[c] / str(row["tile_name"])
-                    if not dst.exists() or dst.stat().st_size != src.stat().st_size:
-                        dst.parent.mkdir(parents=True, exist_ok=True)
-                        shutil.copy2(src, dst)
-                        n_copied += 1
-                    new_cols[c].append(str(dst))
+        todo, todo_bytes = [], 0
+        for _, row in idx_df.iterrows():
+            for c in cols:
+                p = row[c]
+                if not (isinstance(p, str) and p):
+                    new_cols[c].append(p)
+                    continue
+                src = Path(p)
+                dst = dst_root / str(row["split"]) / kinds[c] / str(row["tile_name"])
+                src_size = src.stat().st_size
+                if not dst.exists() or dst.stat().st_size != src_size:
+                    todo.append((src, dst))
+                    todo_bytes += src_size
+                new_cols[c].append(str(dst))
+        n_copied = 0
+        if todo:
+            lock = (_StagingLock(f"tiles {label}") if todo_bytes >= STAGE_LOCK_MIN_BYTES
+                    else contextlib.nullcontext())
+            with lock:                      # P11.4: one bulk Drive copy at a time
+                tick(f"stage tiles {label}")
+                for src, dst in todo:
+                    dst.parent.mkdir(parents=True, exist_ok=True)
+                    shutil.copy2(src, dst)
+                    n_copied += 1
+                tock(f"stage tiles {label}")
         out = idx_df.copy()
         for c in cols:
             out[c] = new_cols[c]
-        tock(f"stage tiles {label}")
-        print(f"  Tiles staged local: {n_copied} files copied → {dst_root}")
+        print(f"  Tiles staged local: {n_copied} files copied ({todo_bytes / 1e9:.2f} GB) → {dst_root}")
         return out
     except Exception as e:
         print(f"  WARNING: tile staging failed ({e}); training reads from Drive")

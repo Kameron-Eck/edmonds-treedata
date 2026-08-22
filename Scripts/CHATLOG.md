@@ -1043,9 +1043,11 @@ did:     MCP INVENTORY (read-only stdio probe; server tools load only at session
          the package — the browser tab is the credential. Nothing called.
          CODE (gates green: py_compile; preflight 2024/inference + 2019/tile; CPU smoke PASSED; --dry-run both
          queues; 6-case local unit test of the lock):
-         (1) phase4seg/common.py _StagingLock — Drive lock phase4/locks/staging.lock (O_EXCL create, 60 s
-             heartbeat, 15 min stale-break, 240 min max-wait then proceed+warn) around ortho staging; core.py tile
-             staging under the same lock; guard tests the real mount (config.BASE is the Colab path everywhere).
+         (1) phase4seg/common.py _StagingLock — per-claimant files in phase4/locks/ (NO O_EXCL: Drive is not
+             POSIX), oldest live claim holds, 60 s heartbeat, 15 min stale-break, dead-pid check, 60 min max-wait
+             then proceed unlocked + warn, >= 1 GiB copies only; core.py tile staging same lock, stat pass outside
+             it; guard tests the real mount (config.BASE is the Colab path everywhere). REWRITTEN after review
+             (first version used O_EXCL + 240 min max-wait + unbounded continue paths + raised out of __enter__).
          (2) phase4_train_queue.py STEP_TIMEOUT_MIN inference 240->480, tile 90->180, train 240->300: 2017's
              CoE-grid inference took 254.9 min, so the old ceiling would have killed every 2024/2017/2022
              inference 15 min short (audit finding; ~4 h GPU would have burned tonight had staging completed).
@@ -1073,9 +1075,16 @@ killed:  editing files through bash heredoc python with double backslashes (the 
 files:   pipeline/phase4seg/common.py, pipeline/phase4seg/core.py, pipeline/phase4_train_queue.py,
          pipeline/colab_launch.ipynb, pipeline/queue_A_2024_2017.yaml, pipeline/queue_B_2019_2022.yaml,
          OVERHAUL_PLAN_2026-08-20.md, CHATLOG.md; scratch unit test test_staging_lock.py (session scratchpad only).
+         REVIEW (3-lens adversarial workflow, 33 verified): 29 confirmed / 4 refuted -> all 29 addressed:
+         lock rewritten (above); lock dir pre-created on Drive + at queue launch + cockpit cell 1 (two VMs racing
+         mkdir = two same-named folders); resume also revokes on later FAIL/TIMEOUT/INTERRUPTED/RUNNING and job-end
+         VERIFY; footer/utcnow nits; cockpit cell 2 dry-runs the launch YAML; cell 4 guards empty; docs: 214 s ->
+         12-26 min, 7.5 cm -> 5 cm true GSD (IMAGERY_FACTS), "~10 min into" -> "~10 min apart", ONE SERVER
+         INSTANCE = ONE COLAB TAB (websocket_server.py:113-118 rejects a 2nd socket) -> 2nd runtime needs a 2nd
+         mcp entry colab-mcp-b (command in the runbook), P11.1/2/3/4 text reconciled, CLAUDE.md spend-gate wording.
 next:    NEXT SESSION = OVERHAUL_PLAN P11 runbook: claude mcp list -> open_colab_browser_connection (Kam's yes) ->
          tool inventory -> cells 1-2 on a CPU runtime -> propose launch A (queue_A, L4, 1 runtime, ~10 h) ->
-         launch B if a second connection works (>= 1 min later) -> monitor ARTIFACTS -> score (threshold gate) ->
+         Kam registers colab-mcp-b -> launch B (>= 1 min later) -> monitor ARTIFACTS -> score (threshold gate) ->
          harvest -> registry rows. Kam: git push github main --tags after this session's commits.
 
 ## 2026-08-21  RESUME on D: — colab-mcp NOT registered; 2024-finish + queue3 SILENT since 01:12Z; nothing new to score
@@ -1094,9 +1103,10 @@ did:     colab-mcp: first read "not registered" was WRONG IN DETAIL — I scanne
          row). queue3 runtime: NOTHING after its 2019 tile manifest 01:03:07Z — tiles write straight to Drive
          (tiling.py rasterio.open(img_out,"w")), so a live tile step leaves files; tiles/2019 = 668 July files,
          unchanged 47 min. 2024 runtime: nohup ends at the "Step 5" header; next print is the staging ⏱ tock
-         (core.py step_inference → _stage_imagery_local); none after 36 min vs 214 s for 2017's 48 GB ortho in
-         a healthy window. Both went silent ~10 min into concurrent ortho stagings (11.7 GB 2019 @01:03Z + 26.9 GB 2024
-         @01:12Z); a cell-5 canary started 01:29:11Z on one of them wrote its manifest but never its
+         (core.py step_inference → _stage_imagery_local); none after 36 min. CORRECTED 03:10Z: I wrote "214 s"
+         for 2017's staging — the logs show 12-26 min (six stagings) and 19.1 min for 2024, so A's silence was
+         only MILDLY anomalous; B's 55 min (King orthos stage in <= 2.5 min) clearly was. The stagings began ~10 min apart (11.7 GB 2019 @01:03Z, 26.9 GB 2024 @01:12Z) and each runtime
+         went silent seconds after its own began; a cell-5 canary started 01:29:11Z on one of them wrote its manifest but never its
          step log (a 0-s step) — that VM's Drive writes stopped too. CAUSE NOT ESTABLISHED (Kam, 02:50Z:
          'not proven'): download throttle during parallel staging (measured 08-21) is one candidate;
          a wedged Drive mount or VM death fit the evidence equally. Staging lock = precaution against

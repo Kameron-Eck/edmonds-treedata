@@ -1,20 +1,20 @@
 # MASTER PLAN — Option A Overhaul: Re-plumb the Planes
 *(adopted by Kam 2026-08-20; supersedes the crashed-session draft `sleepy-rolling-pizza.md`; committed as `Scripts/OVERHAUL_PLAN_2026-08-20.md` in P0, becoming the active plan named by CHATLOG STATE)*
 
-## EXECUTION STATUS (2026-08-21)
+## EXECUTION STATUS (2026-08-22)
 P0 ✔ · P1 ✔ (313 GB backed up + sha256-manifested; CoE orthos byte-verified) · P2 ✔
 (Drive detached; D: repo canonical; GitHub current) · P3 ✔ (all gates green) · P4 ✔
 (verified writes proved in production — the 2nd 2024 runtime death left NO stub) ·
 P5 ✔ canary + cutover proven (run manifests live at git 57bc07b); 2024-finish + QUEUE3
-in flight · P6 partial (manifests+seeds+queue-as-data ✔; registry generator deferred) ·
+→ P11.4 (below) · P6 partial (manifests+seeds+queue-as-data ✔; registry generator deferred) ·
 P7 partial (harvest, gates, status, watcher ✔; QC provenance deferred) · P8 ✔ ·
 P9/P10 pending. **NEW: P11 below (adopted 2026-08-21) — agentic GPU driving via
 Colab MCP, ask-first always.** P11.1–11.3 ✔; P11.4 two-runtime trial pending —
 prerequisites (staging lock, ceilings, resume fix, per-queue logs, balanced queues)
 landed 2026-08-22; see the P11 runbook. 2024-finish + QUEUE3 did NOT land on
-2026-08-22 (both runtimes went silent ~10 min into concurrent ortho stagings; cause not
-established — throttle suspected, wedged mount / VM death equally consistent; stopped by
-Kam) — they are the P11.4 workload.
+2026-08-22 (the two runtimes began ortho stagings ~10 min apart and each went silent
+seconds after its own staging began; cause not established — throttle suspected, wedged
+mount / VM death equally consistent; stopped by Kam) — they are the P11.4 workload.
 
 ## Context — why
 
@@ -366,25 +366,30 @@ keeping its intent: spend passes through Kam's hands every time.
    `phase4/qc/train_queue_status_{queue-stem}_{launch-ts}.csv`; a merged view is
    produced by `qc/pipeline_status.py` and `qc/watch_queue.py` (glob
    `train_queue_status*.csv`, concat, sort by ts; resume's `_completed_steps` reads the
-   merged view so cross-queue resume still works). The legacy single-file path stays
-   the default when only one queue runs — merged-reader change is what matters.
+   merged view so cross-queue resume still works). Every launch — single or concurrent — writes
+   its own per-launch file; the legacy `train_queue_status.csv` is frozen read-only
+   history; readers merge all `train_queue_status*.csv`.
 2. **Colab MCP connection (Kam, one-time)** — connect the Colab MCP server to Claude
    Code (`claude mcp add …` per the server's docs, or paste its config into
    `.claude/settings`/`.mcp.json`). Claude then verifies the connection read-only
-   (list runtimes/notebooks) before any driving is proposed.
+   (`claude mcp list` → Connected; a cold `tools/list` returns only
+   `open_colab_browser_connection` — runtimes/notebooks are NOT listable before a
+   tab is attached, see the runbook) before any driving is proposed.
 3. **The permission protocol (codified in CLAUDE.md)** — before any MCP launch Claude
    states: queue file · GPU tier · # runtimes · expected wall-clock and rough cost ·
    what VERIFY success looks like; waits for Kam's yes; after launch, monitors and
    reports, and **asks again** before any relaunch/retry that costs GPU. Runtime cap
-   **2 concurrent** until the Drive-throttle interaction is characterized — the
-   account-level download quota (measured 390 kB/s throttled vs ~5 MB/s healthy,
-   2026-08-21) is shared across all runtimes, and parallel ortho staging is the
-   most likely re-trigger; stagger stage-heavy jobs.
-4. **Trial (after QUEUE3 lands, with Kam's per-launch yes)** — two runtimes in
-   parallel on the next real workload (e.g., channel ablation or boundary-aware
-   supervision runs from WORKPLAN Tier 3), Claude driving via MCP end-to-end:
-   propose → approved launch → monitor → score → report. Compare wall-clock vs
-   serial; decide whether to raise the cap.
+   **2 concurrent** until the Drive-throttle interaction is characterized — a
+   Drive download throttle was measured from one client (390 kB/s vs ~5 MB/s healthy,
+   2026-08-21); whether it is per-account or per-client is not established, and the
+   2026-08-22 double-runtime silence is unexplained — bulk copies are serialized by
+   the staging lock as a precaution; stagger stage-heavy jobs.
+4. **Trial (P11.4, with Kam's per-launch yes)** — the remaining series work itself:
+   `queue_A_2024_2017.yaml` + `queue_B_2019_2022.yaml` on two runtimes (runbook
+   below); later channel-ablation / boundary-aware-supervision runs (WORKPLAN Tier 3)
+   reuse the protocol. Claude driving via MCP end-to-end: propose → approved launch →
+   monitor → score → report. Compare wall-clock vs serial; decide whether to raise
+   the cap.
 5. **Docs** — CLAUDE.md two-planes section + design rule 3 updated (ask-first
    protocol, runtime cap); CHATLOG LOG entry recording the ruling; this plan is the
    ruling's home until then.
@@ -399,27 +404,32 @@ keeping its intent: spend passes through Kam's hands every time.
 the server exposes ONE tool — `open_colab_browser_connection`. Calling it opens the
 default browser at `colab.research.google.com/notebooks/empty.ipynb#mcpProxyToken=…
 &mcpProxyPort=…`; the Colab page connects back over a localhost websocket, and the
-server then PROXIES the Colab frontend's own notebook tools (create/edit/run cells)
-to the agent (`tools.listChanged`). So one browser tab = one Colab session = one
+server then PROXIES the Colab frontend's own tools ("notebook editing tools" is all
+`session.py:177` says — exact names come from the runbook's step 2 inventory) to the
+agent (`tools.listChanged`). So one browser tab = one Colab session = one
 runtime per connection, and the notebook tools cannot be enumerated until a tab is
 attached. Nothing in the package authenticates to Google itself — the browser tab is
 the credential.
 
-*Prerequisites landed 2026-08-22 (code, no GPU):* Drive staging lock
-`phase4/locks/staging.lock` (`phase4seg/common.py _StagingLock`: O_EXCL create,
-60 s heartbeat, 15 min stale-break, 240 min max wait) around every ortho and tile
-copy — GPU work overlaps across runtimes, Drive copies queue up (this removes ONE
-suspected cause of the 08-22 silence, the account-wide download throttle; it does
-nothing for a wedged mount or a dead VM, which the evidence fits equally); step ceilings
-tile 180 / train 300 / inference 480 min (the old inference 240 would have killed
-every CoE-grid inference — 2017's took 254.9 min); resume honours `VERIFY:{step}`
-hard-fails (a step that exits 0 without its artifact is no longer skipped on
-relaunch); per-queue nohup logs `train_queue_nohup_{queue}_{ts}.log` (a shared path
-lost queue3's stdout on 2026-08-22); balanced queues `queue_A_2024_2017.yaml`
-(~10 h L4) + `queue_B_2019_2022.yaml` (~8 h L4); cockpit cells 3/4/6 rewritten.
-Residual risk, accepted: `O_EXCL` atomicity across two VMs on drivefs is not proven
-(the unit test is single-process); mitigations are the ≥1 min launch stagger, the
-15-min stale-break, and the 240-min max-wait fallthrough (= tonight's behaviour).
+*Prerequisites landed 2026-08-22 (code, no GPU; adversarially reviewed, 29 findings
+fixed):* Drive staging lock (`phase4seg/common.py _StagingLock` — the design, the
+constants `STAGE_LOCK_*` and their rationale live there): bulk (≥1 GiB) Drive→NVMe
+copies serialize across runtimes via per-claimant files in `phase4/locks/` (no
+`O_EXCL` — Drive is not POSIX), oldest live claim holds, bounded wait then proceed
+unlocked with a warning; small copies (CHM, masks) never wait. This removes ONE
+suspected cause of the 08-22 silence; a wedged mount or a dead VM is untouched. Step
+ceilings per `phase4_train_queue.STEP_TIMEOUT_MIN` (its comment carries the
+invariant; the old inference 240 would have killed every CoE-grid inference —
+2017's took 254.9 min); resume revokes an OK when a later attempt failed/never
+reported or its `VERIFY` hard-failed; per-queue nohup logs
+`train_queue_nohup_{queue}_{ts}.log`; balanced queues `queue_A_2024_2017.yaml` +
+`queue_B_2019_2022.yaml` (hours in their headers); cockpit cells 1–4/6 rewritten
+(`phase4/locks/` pre-created at bootstrap and at queue launch — Drive keeps two
+same-named folders if two VMs race to create one).
+Residual risk, accepted: if a peer's claim propagates slower than
+`STAGE_LOCK_SETTLE_SEC`, both runtimes hold; the holder's heartbeat prints a WARNING
+when an older claim appears, so the nohup log records it. Mitigation: launch B ≥1 min
+after A.
 
 *Next-session sequence — every GPU launch is its own ask:*
 1. `claude mcp list` → colab-mcp connected; ToolSearch shows
@@ -430,14 +440,21 @@ Residual risk, accepted: `O_EXCL` atomicity across two VMs on drivefs is not pro
    (Colab's GitHub opener on the private repo, or a Drive copy) → cells 1–2
    (`--dry-run`), confirming the clone is at HEAD.
 4. Propose launch A (`queue_A_2024_2017.yaml`, L4, 1 runtime, ~10 h, Colab's posted
-   L4 rate) → yes → cell 3 → within ~15 min the nohup log must show the staging ⏱
-   line; if not, something is wrong (throttle, mount, VM — check the tab's runtime
-   state and `!ls -la /content/phase4_scratch` for a growing copy before concluding):
-   stop the runtime (it burns GPU while copying) and ask before any relaunch.
-5. Unknown until tried: whether a second `open_colab_browser_connection` (second tab)
-   yields a second runtime through the same server instance. If yes → propose launch B
-   (`queue_B_2019_2022.yaml`, ≥1 min after A so the lock ordering is clean). If no → B
-   runs after A, or by human-paste in a second tab.
+   L4 rate) → yes → cell 3. The staging ⏱ line is a COMPLETION tock: measured
+   stagings are 12–26 min for the 48 GB 2017 ortho (six logs), 19.1 min for 2024,
+   2–14 min for 2022, ≤2.5 min for King orthos. Health within the first 15 min =
+   `!ls -la /content/phase4_scratch` showing the ortho growing, or the log's
+   "staging lock held by … waiting" line. No growth and no tock past ~2× the
+   precedent → something is wrong (throttle, mount, VM): stop the runtime (it burns
+   GPU while copying) and ask before any relaunch.
+5. One server instance = ONE Colab connection (colab_mcp 1.0.1
+   `websocket_server.py:113-118` rejects a second websocket with 1013 "Server is busy";
+   `session.py:166-167` returns `true` without opening a tab when already connected).
+   A second runtime therefore needs a SECOND server entry — Kam, one-time:
+   `claude mcp add --scope user colab-mcp-b -- "C:\Users\Kameron\AppData\Local\Programs\Python\Python312\Scripts\uvx.exe" git+https://github.com/googlecolab/colab-mcp`
+   → its own `open_colab_browser_connection` → second tab → propose launch B
+   (`queue_B_2019_2022.yaml`, ≥1 min after A so the lock ordering is clean). Until
+   that entry exists, B runs after A or by human-paste in a second tab.
 6. Monitor ARTIFACTS, not CSV content: per-launch status files, run manifests, tile
    files, prob rasters. `VERIFY:inference OK` → local scoring per the staged commands
    in CHATLOG (threshold gate: the scorer's console line must say

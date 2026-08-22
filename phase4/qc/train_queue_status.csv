@@ -66,5 +66,5 @@ job,year,tag,step,state,exit,minutes,detail,ts
 2019,2019,citywide_rgb,VERIFY:labels,OK,,,citywide: labels step is skipped by design,2026-08-22 01:03:05
 2019,2019,citywide_rgb,tile,RUNNING,,,,2026-08-22 01:03:05
 2024,2024,citywide_rgb,inference,RUNNING,,,,2026-08-22 01:12:27
-2024,2024,citywide_rgb,inference,INTERRUPTED,,,"runtime stopped by Kam ~02:05Z; silent since 01:12:52Z (26.9GB ortho staging under Drive throttle, parallel with 2019 staging); no raster written (verified-write path, no stub); re-run = queue_2024_finish.yaml. Row closed by local audit 2026-08-22",2026-08-22 02:08:00
-2019,2019,citywide_rgb,tile,INTERRUPTED,,,"runtime stopped by Kam ~02:05Z; silent since 01:03:07Z (11.7GB ortho staging under Drive throttle); no tiles written (tiles/2019 unchanged); re-run = queue3.yaml. Row closed by local audit 2026-08-22",2026-08-22 02:08:00
+2024,2024,citywide_rgb,inference,INTERRUPTED,,,"runtime stopped by Kam ~02:05Z; silent since 01:12:52Z, ~10 min into 26.9GB ortho staging (parallel with 2019 staging) - cause not established (throttle suspected, unproven); no raster written (verified-write path, no stub); re-run = queue_2024_finish.yaml. Row closed by local audit 2026-08-22",2026-08-22 02:08:00
+2019,2019,citywide_rgb,tile,INTERRUPTED,,,"runtime stopped by Kam ~02:05Z; silent since 01:03:07Z, during 11.7GB ortho staging - cause not established (throttle suspected, unproven); no tiles written (tiles/2019 unchanged); re-run = queue3.yaml. Row closed by local audit 2026-08-22",2026-08-22 02:08:00

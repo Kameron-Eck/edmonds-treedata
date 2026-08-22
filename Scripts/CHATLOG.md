@@ -1256,6 +1256,59 @@ next:    Kam: set tab A to A100 (UI) -> Claude re-runs cells 1-2 on the GPU VM -
          decide tab B (re-point to another notebook keeping the token fragment, Chrome-MCP assist, or
          human-paste B). Nit for later: phase4_train_queue.py:603 display backslash.
 
+## 2026-08-22  LIDAR ACQUIRED — era-matched 2005 + full-density 2016; the CHM in use is a degraded product
+goal:    Kam: get the Edmonds-area lidar for BOTH vintages into the data lake and record the find. Local only,
+         no GPU, between queue steps. 2005 is the FIRST pre-2016 height data this project has ever had.
+did:     Both datasets are public NOAA COPC, same bucket, same CRS (NAD83(HARN) UTM 10N / NAVD88 GEOID18), same
+         q47122#### quad grid -> tiles ALIGN between eras and one selection routine served both. Helper set
+         (tileindex gpkg/zip, urllist, minmax, ISO xml + forHumans html, and the 67.5 MB west_wash_breaklines.zip)
+         downloaded for both. SELECTION: Edmonds Boundry.shp reprojected per tileindex CRS, buffered 600 m (Kam
+         raised it from the briefed 200 m), intersecting tiles -> 2005: 47 tiles / 407.5 MB; 2016: 41 tiles /
+         5,907.2 MB. At 200 m it was 41 + 35 tiles, so the wider margin cost 12 tiles; buffer exists so
+         boundary-straddling crowns keep their points and derived rasters do not degrade at the edge.
+         SIZE GATE tripped as briefed (2016 alone 4.68 GiB at 200 m, over the 4 GiB per-set limit) -> STOPPED and
+         asked; Kam: "hard drive space is not an issue" -> proceeded, then raised the buffer to 600 m (5.88 GiB
+         combined). Downloaded to D: first (rule 3), each file verified against its S3 Content-Length, then
+         MANIFEST.sha256 per directory, then copied to the data lake.
+decided: IMAGERY_FACTS is the right home for the specs (it is the measured-facts doc for source data); the CHM
+         provenance detail expands the one-line CLAUDE.md row rather than duplicating it.
+found:   ** THE CHM IN USE IS DEGRADED. ** lidar_snoh_chm.tif is NOT county data (the county files are the
+         hillshades lidar_snoh_hillshade_fr/be.tif and the retired lidar_snoh_structure.tif). It is USGS 3DEP HAG
+         from Planetary Computer: a ~2 m raster BILINEAR-UPSAMPLED to 1 m EPSG:3857, quantised uint8 at 0.2 m/DN,
+         CAPPED at 50.6 m (p99 44.6 m; western WA Douglas-fir exceeds 50 m). Bilinear upsampling SMOOTHS local
+         maxima and a canopy apex IS a local maximum -> it reads systematically LOW, worst on narrow conical
+         crowns = the conifer training sites. CAVEAT ON THE CAVEAT: U6 ("CHM error cannot have made the
+         staircase") injected RANDOM Gaussian error; smoothing bias is SYSTEMATIC and one-directional, so U6 does
+         NOT cover this case - do not cite it as clearing this.
+         ** THE DENSITY GAP IS THE GOVERNING FACT: ~16-29x. ** 2005 is 0.25 pts/m² stated / ~0.17 cross-checked
+         from class counts; 2016 is 4 stated / ~5 cross-checked. 2005 also has only 3 classes (Unclassified /
+         Ground / Low Point - VEGETATION IS UNCLASSIFIED) against 2016's 6. Two accuracy metrics exist for 2005
+         and are NOT the same thing: 6.3 cm fundamental vertical (95th pct, Digital Coast) vs InPort's 25 cm avg /
+         15-25 cm soft-vegetated - both recorded, never averaged.
+         ** OVERTURNED: ** the CHATLOG line "a lidar-dependent definition CANNOT be applied pre-2016 (no
+         coverage)" is wrong. Pre-2016 height data EXISTS, at stand scale.
+ranking: CORRECTED mid-assessment. Change-detection was ranked FIRST until the density figure arrived; it is not.
+         (1) USABLE, best use: an independent ERA-MATCHED STAND-scale 2005 canopy mask (~5 m cells; at 0.25 pts/m²
+         a 2 m cell holds ~1 point - presence does not need the apex). Value = a THIRD reference sharing no
+         failure mode with C-CAP or the NDVI reference, aimed at the 15-17% reference-disagreement problem, and
+         contemporaneous rather than 2016-projected. (2) CONDITIONAL: bounding real 2005->2016 change, ONLY after
+         a written DECIMATION PROTOCOL (thin 2016 to ~0.25 pts/m², rebuild BOTH CHMs identically, then difference
+         - sparse lidar under-samples apexes and reads low, so a naive difference MANUFACTURES growth everywhere)
+         AND class harmonisation (2016's Water/Bridge Deck/Ignored Ground must be reconciled with 2005's three
+         classes). Same failure class as cross-sensor GRVI and the clipped reference. (3) DROP: re-testing the
+         height staircase on 2005 - a 1-2 m low bias shifts crowns down a band and the 5-15 m bands hold 53% of
+         all misses. Overall 2005 is a STAND-scale instrument, not crown-scale; the hardest miss population is
+         scattered suburban/ornamental crowns (8/8 inspected missed stands were suburban) which 0.25 pts/m²
+         cannot resolve. A from-points 2016 CHM is worth building ONLY as part of (2), where it comes free.
+         NOT reopened: coverage. qc/chm_gap_2016.txt closed that (83.5% of the analysis area has CHM, the rest is
+         open water at 99.8% negative NDVI; counting every green no-CHM pixel as canopy moves it +0.02 pp).
+next:    step one of ANY of this work = measure realised pts/m² on a central Edmonds tile (stated and
+         cross-checked densities disagree ~30% for 2005; do not size cells off either until the local number is
+         known). Nothing processed tonight: no CHM built, no points touched, phase4seg untouched.
+files:   IMAGERY_FACTS.md (new section 8), WORKPLAN_2026-08-19.md (section 4 Tier 2 item 8), CHATLOG.md;
+         data: D:\edmonds-pipeline\Imagery\{PSLC_2005,USGS_2016}\ and Full_Image\{PSLC_2005,USGS_2016}\.
+         run_registry.csv NOT touched - it is for Colab runs.
+
 ## 2026-08-22  P11.5 RULED — crash-recovery autonomy, A100 default, branch workflow; prep landed on work/p11-5-autonomy
 goal:    Kam: "we can coordinate GPUs and runtimes now" — larger GPU to dodge runtime limits; if a run crashes
          Claude may pull, fix, test on a smaller GPU and rerun on the larger GPU without asking; nothing to

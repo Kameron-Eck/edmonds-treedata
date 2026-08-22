@@ -176,3 +176,81 @@ addressable.
 5. **Assess and adopt 2012**, or archive it deliberately.
 
 Detail and sequencing: `Scripts/IMAGERY_PLAN.md`.
+
+---
+
+## 8. Lidar — the height layer (added 2026-08-22)
+
+**Scope note.** Sections 1–7 cover the optical rasters. Lidar is here because the height
+channel the model actually trains on is derived from it, and because the two facts below
+change what heights the project can claim. The one-line CHM row in `CLAUDE.md` stays the
+pointer; this is the measured detail behind it.
+
+### 8.1 Two vintages exist, and one of them is era-matched to 2005
+
+Both are public, credential-free, in the same NOAA bucket, same CRS, same tile grid
+(`q47122####` quads), so tiles align between eras and one selection routine serves both.
+
+| | **PSLC 2005** | **USGS 2016** |
+|---|---|---|
+| InPort | [item 50149](https://www.fisheries.noaa.gov/inport/item/50149), dataset 2579 | [item 51853](https://www.fisheries.noaa.gov/inport/item/51853), dataset 6331 |
+| bucket prefix | `laz/geoid18/2579/` | `laz/geoid18/6331/` (`north/`, `south/`) |
+| collected | 2004-11-11 … 2005-07-15 | 2016-03-17 … 2017-06-06 (Quantum Spatial for USGS/WADNR) |
+| whole dataset | 1,444 files / 14 GB (5–17 MB per tile) | 13,205 files / 2.9 TB (50–272 MB per tile) |
+| **density, stated** | 2 m spacing ⇒ **0.25 pts/m²** | 0.7 m spacing, **4 pts/m²** |
+| **density, cross-checked** | ~2.38 B pts ⇒ **~0.17 pts/m²** | ~457 B pts ⇒ **~5 pts/m²** |
+| vertical accuracy | **6.3 cm** fundamental vertical, 95th pct, mixed land covers (Digital Coast) — InPort *separately* states **25 cm avg / 15–25 cm soft-vegetated**. Different metrics: **record both, never average.** Horizontal 60 cm. | **8 cm** NVA |
+| classes | **3 only** — Unclassified / Ground / Low Point. **Vegetation is left UNCLASSIFIED.** | **6** — Unclassified 410 B / Ground 39.5 B / Low Point 5.9 B / Water 953 M / Ignored Ground 19.8 M / Bridge Deck 10.8 M |
+| format | COPC (`.copc.laz`) — PDAL can bbox-query over HTTP without bulk download | COPC |
+| CRS / datum | NAD83(HARN) / UTM 10N; NAVD88 **GEOID18**, metres | same |
+
+> **The governing fact: the density gap is ~16–29×** (0.17–0.25 vs 4–5 pts/m²). Every
+> downstream use of the pair is constrained by it, and no comparison between the vintages is
+> valid until it is handled — see WORKPLAN §4 Tier 2.
+
+### 8.2 What was acquired (2026-08-22)
+
+Selection: the Edmonds boundary (`City Boundry/Edmonds Boundry.shp` — both misspellings are
+load-bearing) reprojected to each tile index's CRS and buffered **600 m**, then every
+intersecting tile. The buffer keeps boundary-straddling crowns whole and stops derived
+rasters degrading at the edge; at 200 m the selection was 41 + 35 tiles, so the wider margin
+cost 12 tiles.
+
+| | tiles | bytes | local plane | data lake |
+|---|---|---|---|---|
+| PSLC 2005 | 47 | 407.5 MB | `D:\edmonds-pipeline\Imagery\PSLC_2005\` | `Full_Image\PSLC_2005\` |
+| USGS 2016 | 41 | 5,907.2 MB | `D:\edmonds-pipeline\Imagery\USGS_2016\` | `Full_Image\USGS_2016\` |
+
+Every file verified against its S3 `Content-Length`; `MANIFEST.sha256` per directory
+(the `mirror_sync.py` convention). Helper/metadata files — tile index `.gpkg`/`.zip`,
+`urllist`, `minmax`, ISO metadata `.xml` + `forHumans.html`, and the 67.5 MB
+`west_wash_breaklines.zip` — are on **both** planes. Any raster derived from these points
+belongs in `Full_Image/Pipeline Imagery/` beside `lidar_snoh_chm.tif`, **not** in these
+source directories.
+
+### 8.3 The CHM in use is a degraded convenience product
+
+`lidar_snoh_chm.tif` is **not** county data. The county files are the hillshades
+`lidar_snoh_hillshade_fr/be.tif` and the retired `lidar_snoh_structure.tif`. The CHM is
+**USGS 3DEP HAG from Planetary Computer**: a ~2 m derived raster, **bilinear-upsampled** to a
+1 m EPSG:3857 grid, quantised to **uint8 at 0.2 m/DN**, and **capped at 50.6 m** (CHATLOG
+records p99 = 44.6 m; western Washington Douglas-fir exceeds 50 m).
+
+Bilinear upsampling **smooths local maxima**, and a canopy apex *is* a local maximum — so the
+raster reads **systematically low**, worst on narrow conical crowns, which is exactly what the
+conifer training sites are.
+
+> **Caveat on the caveat.** U6 ("CHM error cannot have made the staircase; it barely dents
+> it") injected **random Gaussian** error. Smoothing bias is **systematic and one-directional**,
+> so U6 does **not** cover this case. Do not cite U6 as clearing it.
+
+This does **not** reopen the coverage question: `qc/chm_gap_2016.txt` closed that — 83.5% of
+the analysis area has CHM, the remainder is open water (99.8% negative NDVI), and counting
+every green no-CHM pixel as canopy moves the number by **+0.02 pp**.
+
+### 8.4 What this overturns
+
+The CHATLOG line that **"a lidar-dependent definition cannot be applied pre-2016 (no
+coverage)"** is **wrong**: pre-2016 height data exists, at **stand scale**, for the 2005
+imagery year. What it cannot do is resolve individual suburban crowns — see the three-way
+verdict in WORKPLAN §4 Tier 2.

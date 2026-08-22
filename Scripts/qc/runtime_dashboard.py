@@ -1,6 +1,7 @@
 r"""runtime_dashboard.py — local progress dashboard for the headless Colab queues (overhaul P11.6).
 
-One browser page (http://127.0.0.1:8765) with a card per Colab CLI session: GPU
+One browser page (http://127.0.0.1:8765; Tabler CSS + Chart.js from jsDelivr for the
+chrome — the page still renders plain without internet) with a card per Colab CLI session: GPU
 tier + utilisation, the queue it runs, per-job step chips (OK / RUNNING / FAIL …
 from the merged status CSVs), the live tqdm progress bar of the current step with
 ETA, elapsed vs the step ceiling (`phase4_train_queue.STEP_TIMEOUT_MIN`), staging /
@@ -361,7 +362,8 @@ def build_card(sess, probe, probe_err, merged_latest, now):
             zero = int(card["gpu"]["util"]) == 0
             prev = _LAST_UTIL_ZERO.get(sess["name"], False)
             if zero and prev and cur.get("progress"):
-                card["flags"].append("GPU 0% on two consecutive probes while a GPU step reports progress")
+                card["flags"].append("note: GPU 0% on two consecutive probes while progress advances "
+                                     "(I/O-bound phase, or a stall if the bar stops moving)")
             _LAST_UTIL_ZERO[sess["name"]] = zero
         except ValueError:
             pass
@@ -369,6 +371,19 @@ def build_card(sess, probe, probe_err, merged_latest, now):
 
 
 _LAST_UTIL_ZERO = {}     # session name -> was the previous probe's GPU util 0%
+
+
+def hours_since_launch(card):
+    """Hours since this queue's first status row (≈ VM billing minus ~3 min of bootstrap)."""
+    q = card.get("queue")
+    stem = q[:-5] if q and q.endswith(".yaml") else None
+    if not stem:
+        return None
+    rows = status_rows_for(stem)
+    t0 = parse_ts(rows[0]["ts"]) if rows else None
+    if not t0:
+        return None
+    return round((_dt.datetime.now(_dt.timezone.utc) - t0).total_seconds() / 3600, 2)
 
 
 # ── collector thread ───────────────────────────────────────────────────────────
@@ -384,10 +399,43 @@ class Collector(threading.Thread):
         self._sess_rows = []
         self._sess_err = ""
         self._lock = threading.Lock()
+        self._hist = {}          # session -> deque of {t, util, mem, n, total, rate}
+        self._hist_json = "{}"
 
     def snapshot(self):
         with self._lock:
             return json.dumps(self.state)
+
+    def history(self):
+        with self._lock:
+            return self._hist_json
+
+    def _record_history(self, card, now):
+        from collections import deque
+        name = card.get("name")
+        if not name or card.get("probe_err") or card.get("probe_age_s") is None:
+            return
+        d = self._hist.setdefault(name, deque(maxlen=720))      # 12 h at 60 s
+        g = card.get("gpu") or {}
+        pr = ((card.get("current") or {}).get("progress")) or {}
+        rate = None
+        if pr.get("rate"):
+            try:
+                rate = float(pr["rate"].split()[0])
+            except ValueError:
+                rate = None
+        try:
+            util = int(g.get("util")) if g else None
+            mem = int(g.get("mem_used")) if g else None
+        except ValueError:
+            util = mem = None
+        pt = {"t": now.strftime("%Y-%m-%dT%H:%M:%SZ"), "util": util, "mem": mem,
+              "n": pr.get("n"), "total": pr.get("total"), "rate": rate}
+        if d and d[-1]["t"] == pt["t"]:
+            return
+        if d and (pt["util"], pt["n"]) == (d[-1]["util"], d[-1]["n"]) and card.get("probe_age_s", 0) > 5:
+            return                                           # same probe, nothing new
+        d.append(pt)
 
     def refresh_sessions(self):
         try:
@@ -424,13 +472,17 @@ class Collector(threading.Thread):
             except Exception as e:  # noqa: BLE001
                 card = {"name": name, "flags": [f"card build error: {e!r}"]}
             card["probe_age_s"] = int(time.time() - ts) if ts else None
+            card["hours_billed"] = hours_since_launch(card)
+            self._record_history(card, now)
             cards.append(card)
         state = {"generated": now.strftime("%Y-%m-%dT%H:%M:%SZ"), "sessions": cards,
                  "colab_sessions": self._sess_rows, "locks": read_locks(), "manifests": read_manifests(),
                  "errors": errors, "exec_interval": self.exec_interval, "no_exec": self.no_exec,
                  "base": str(BASE)}
+        hist_json = json.dumps({k: list(v) for k, v in self._hist.items()})
         with self._lock:
             self.state = state
+            self._hist_json = hist_json
 
     def run(self):
         last_exec = 0.0
@@ -450,63 +502,76 @@ class Collector(threading.Thread):
 
 
 # ── HTTP ───────────────────────────────────────────────────────────────────────
-HTML = r"""<!doctype html><html><head><meta charset="utf-8"><title>Edmonds runtimes</title>
+HTML = r"""<!doctype html><html lang="en" data-bs-theme="dark"><head><meta charset="utf-8"><title>Edmonds runtimes</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/core@1.0.0/dist/css/tabler.min.css">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <style>
-body{margin:0;background:#0f1115;color:#e6e6e6;font:14px/1.4 system-ui,Segoe UI,sans-serif}
-header{padding:10px 16px;background:#161a22;border-bottom:1px solid #262b36;display:flex;gap:16px;align-items:baseline}
-header h1{font-size:16px;margin:0}.muted{color:#8b93a7}.err{color:#ff6b6b}
-main{display:grid;grid-template-columns:repeat(auto-fit,minmax(520px,1fr));gap:14px;padding:14px}
-.card{background:#161a22;border:1px solid #262b36;border-radius:10px;padding:14px}
-.card h2{margin:0 0 6px;font-size:18px;display:flex;justify-content:space-between;align-items:center}
-.badge{font-size:12px;padding:2px 8px;border-radius:999px;background:#262b36;color:#c8cfdd}
-.flags{margin:6px 0}.flag{background:#3a1d1d;border:1px solid #7a2e2e;color:#ffb3b3;border-radius:6px;padding:4px 8px;margin:3px 0;font-size:12px}
-.job{margin:8px 0;padding:8px;background:#111419;border-radius:8px}
-.chips{display:flex;gap:6px;flex-wrap:wrap;margin-top:4px}
-.chip{padding:2px 8px;border-radius:6px;font-size:12px;background:#262b36;color:#aab2c5}
-.chip.OK{background:#173d26;color:#8fe3a8}.chip.RUNNING{background:#1d2f4d;color:#9cc4ff;animation:pulse 1.6s infinite}
-.chip.FAIL,.chip.ERROR,.chip.TIMEOUT,.chip.INTERRUPTED{background:#4d1d1d;color:#ffb3b3}.chip.prior{opacity:.7}
-@keyframes pulse{50%{opacity:.6}}
-.bar{height:14px;background:#262b36;border-radius:7px;overflow:hidden;margin:6px 0}
-.bar>div{height:100%;background:linear-gradient(90deg,#3b82f6,#22c55e)}
-.kv{display:grid;grid-template-columns:max-content 1fr;gap:2px 10px;font-size:13px}
-pre{background:#0b0d11;border:1px solid #262b36;border-radius:8px;padding:8px;font-size:11.5px;max-height:260px;overflow:auto;white-space:pre-wrap;word-break:break-all}
-details summary{cursor:pointer;color:#8b93a7}
-table{border-collapse:collapse;font-size:12px}td,th{padding:2px 8px;border-bottom:1px solid #262b36;text-align:left}
+body{background:#0f1419}.card{background:#151c26;border-color:#24303f}.card-header{background:#121a23;border-color:#24303f}
+.mono{font-family:ui-monospace,Consolas,monospace}.logbox{background:#0a0e13;border:1px solid #24303f;border-radius:6px;padding:10px;font-size:11.5px;max-height:280px;overflow:auto;white-space:pre-wrap;word-break:break-all;color:#b8c2d0}
+.spark{height:70px}.steps .step-item{font-size:12px}.chip{display:inline-block;padding:2px 8px;border-radius:6px;font-size:12px;margin:2px 4px 2px 0;background:#24303f;color:#9fb0c5}
+.chip.OK{background:#0f3d24;color:#7ee2a3}.chip.RUNNING{background:#15325a;color:#8fc3ff;animation:pulse 1.6s infinite}.chip.FAIL,.chip.ERROR,.chip.TIMEOUT,.chip.INTERRUPTED{background:#4a1a1a;color:#ffb0b0}.chip.prior{opacity:.65}
+@keyframes pulse{50%{opacity:.55}}.kv dt{color:#8696ab;font-weight:500}.muted{color:#8696ab}
 </style></head><body>
-<header><h1>Edmonds Colab runtimes</h1><span id="gen" class="muted"></span><span id="errs" class="err"></span></header>
-<main id="main"></main>
-<section style="padding:0 14px 20px"><details><summary>sessions · locks · manifests</summary><div id="extra"></div></details></section>
+<div class="page">
+<header class="navbar navbar-expand-md d-print-none" style="background:#121a23;border-bottom:1px solid #24303f">
+ <div class="container-xl">
+  <h1 class="navbar-brand mb-0"><span class="text-primary">●</span>&nbsp;Edmonds Colab runtimes</h1>
+  <div class="ms-auto d-flex align-items-center gap-3 small">
+   <span id="gen" class="muted"></span>
+   <span id="errs" class="badge bg-red-lt" style="display:none"></span>
+   <label class="muted">rate&nbsp;<input id="rate" class="form-control form-control-sm d-inline-block" style="width:90px" placeholder="CU or $ /h"></label>
+  </div>
+ </div>
+</header>
+<div class="page-body"><div class="container-xl">
+ <div class="row row-cards" id="cards"></div>
+ <div class="card mt-3"><div class="card-header"><h3 class="card-title">Sessions · locks · manifests</h3></div><div class="card-body" id="extra"></div></div>
+</div></div></div>
 <script>
 const fmtB=b=>b>=1e9?(b/1e9).toFixed(2)+' GB':b>=1e6?(b/1e6).toFixed(1)+' MB':b+' B';
 const esc=s=>String(s??'').replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+const charts={};
+const rateEl=document.getElementById('rate');try{rateEl.value=localStorage.getItem('edm_rate')||''}catch(e){}
+rateEl.addEventListener('change',()=>{try{localStorage.setItem('edm_rate',rateEl.value)}catch(e){};tick();});
+function stepsHtml(j){return (j.steps||[]).map(st=>{const cls=(st.state||'')+(st.src==='prior'?' prior':'');
+ return `<span class="chip ${cls}" title="${esc(st.ts||'')}${st.verify?' · VERIFY '+esc(st.verify):''}">${esc(st.step)}${st.state?' · '+esc(st.state):''}${st.minutes?' · '+esc(st.minutes)+'m':''}${st.verify&&st.verify!=='OK'?' ⚠':''}</span>`}).join('');}
 function card(s){
- let h=`<div class="card"><h2><span>${esc(s.name)} <span class="muted">${esc(s.queue||'')}</span></span><span class="badge">${esc(s.gpu?s.gpu.name:(s.hardware||'?'))}</span></h2>`;
- h+=`<div class="muted">host ${esc(s.host||'?')} · VM ${esc(s.vm_utc||'')} · probe ${s.probe_age_s??'?'}s ago${s.gpu?` · GPU ${esc(s.gpu.util)}% ${esc(s.gpu.mem_used)}/${esc(s.gpu.mem_total)} MiB`:''}</div>`;
- if(s.flags&&s.flags.length)h+=`<div class="flags">`+s.flags.map(f=>`<div class="flag">${esc(f)}</div>`).join('')+`</div>`;
- const c=s.current;
- if(c){h+=`<div class="job"><b>${esc(c.job)} / ${esc(c.step)}</b> <span class="muted">${esc(c.title||'')}</span>`;
-  h+=`<div class="kv"><span>elapsed</span><span>${c.elapsed_min??'?'} min of ${c.ceiling_min??'?'} ceiling (started ${esc(c.started||'')})</span>`;
-  if(c.staging)h+=`<span>staging</span><span>${esc(c.staging)}</span>`;
-  if(c.progress){const p=c.progress;h+=`<span>${esc(p.desc)}</span><span>${p.n.toLocaleString()} / ${p.total.toLocaleString()} · ${esc(p.elapsed)} elapsed · ETA ${esc(p.eta)} · ${esc(p.rate)}</span>`;}
-  h+=`</div>`;
-  if(c.progress)h+=`<div class="bar"><div style="width:${c.progress.pct}%"></div></div><div class="muted">${c.progress.pct}%</div>`;
-  else{const pct=c.elapsed_min&&c.ceiling_min?Math.min(100,100*c.elapsed_min/c.ceiling_min):0;h+=`<div class="bar" title="elapsed vs ceiling"><div style="width:${pct.toFixed(0)}%;background:#555f73"></div></div>`;}
-  h+=`</div>`;}
- (s.jobs||[]).forEach(j=>{h+=`<div class="job"><b>${esc(j.id)}</b> <span class="muted">${esc(j.tag)}</span>${j.job_end?` <span class="chip ${esc(j.job_end.state)}">job-end VERIFY ${esc(j.job_end.state)}</span>`:''}<div class="chips">`;
-  (j.steps||[]).forEach(st=>{const cls=(st.state||'')+(st.src==='prior'?' prior':'');h+=`<span class="chip ${cls}" title="${esc(st.ts||'')}${st.verify?' · VERIFY '+esc(st.verify):''}">${esc(st.step)}${st.state?' '+esc(st.state):''}${st.minutes?' '+esc(st.minutes)+'m':''}${st.verify&&st.verify!=='OK'?' ⚠':''}</span>`;});
-  h+=`</div></div>`;});
- if(s.scratch&&s.scratch.length)h+=`<div class="muted">scratch: `+s.scratch.map(f=>`${esc(f.name)} ${fmtB(f.size)}`).join(' · ')+`</div>`;
- if(s.procs&&s.procs.length)h+=`<div class="muted">procs: `+s.procs.map(p=>`${p.pid} ${Math.floor(p.etimes/60)}m ${esc(p.args.replace(/.*phase4_/,'phase4_').slice(0,90))}`).join(' | ')+`</div>`;
- if(s.log)h+=`<details open><summary>log ${esc(s.log.path.split('/').pop())} · ${fmtB(s.log.size)} · ${s.log.age_s}s old</summary><pre>${esc(s.log.tail.join('\n'))}</pre></details>`;
- return h+`</div>`;}
-async function tick(){try{const r=await fetch('/api/state',{cache:'no-store'});const st=await r.json();
- document.getElementById('gen').textContent=`generated ${st.generated||'…'} · probes every ${st.exec_interval}s${st.no_exec?' (exec OFF)':''} · ${st.base||''}`;
- document.getElementById('errs').textContent=(st.errors||[]).join(' · ');
- document.getElementById('main').innerHTML=(st.sessions||[]).map(card).join('')||'<div class="muted" style="padding:20px">no sessions yet</div>';
- let x=`<table><tr><th>session</th><th>endpoint</th><th>hw</th></tr>`+(st.colab_sessions||[]).map(s=>`<tr><td>${esc(s.name)}</td><td>${esc(s.endpoint)}</td><td>${esc(s.hardware)}</td></tr>`).join('')+`</table>`;
- x+=`<p>locks: ${(st.locks||[]).map(esc).join(', ')||'(none)'}</p>`;
- x+=`<table><tr><th>run</th><th>step</th><th>branch@sha</th><th>gpu</th></tr>`+(st.manifests||[]).slice().reverse().map(m=>`<tr><td>${esc(m.run_id)}</td><td>${esc(m.step)}</td><td>${esc(m.branch)}@${esc(m.sha)}</td><td>${esc(m.gpu)}</td></tr>`).join('')+`</table>`;
- document.getElementById('extra').innerHTML=x;}catch(e){document.getElementById('errs').textContent='fetch failed: '+e;}}
+ const g=s.gpu,c=s.current,util=g?+g.util:0,mem=g?100*g.mem_used/g.mem_total:0;
+ const hours=s.hours_billed??null,rate=parseFloat(rateEl.value);
+ let h=`<div class="col-lg-6"><div class="card">
+ <div class="card-header"><div><h3 class="card-title mb-0">Session ${esc(s.name)} <span class="muted fw-normal">· ${esc(s.queue||'no queue process')}</span></h3>
+ <div class="muted small">host ${esc(s.host||'?')} · probe ${s.probe_age_s??'?'}s ago${hours!=null?` · ${hours.toFixed(2)} h billed${rate?` ≈ ${(hours*rate).toFixed(1)}`:''}`:''}</div></div>
+ <div class="card-actions"><span class="badge bg-azure-lt">${esc(g?g.name:(s.hardware||'?'))}</span></div></div>
+ <div class="card-body">`;
+ if(s.flags&&s.flags.length)h+=s.flags.map(f=>`<div class="alert ${f.startsWith('note:')?'alert-info':'alert-danger'} py-2 mb-2">${esc(f)}</div>`).join('');
+ h+=`<div class="row g-3"><div class="col-6"><div class="d-flex justify-content-between small"><span class="muted">GPU util</span><span>${g?esc(g.util)+'%':'–'}</span></div><div class="progress progress-sm"><div class="progress-bar bg-green" style="width:${util}%"></div></div></div>
+ <div class="col-6"><div class="d-flex justify-content-between small"><span class="muted">GPU memory</span><span>${g?`${(g.mem_used/1024).toFixed(1)} / ${(g.mem_total/1024).toFixed(0)} GB`:'–'}</span></div><div class="progress progress-sm"><div class="progress-bar bg-azure" style="width:${mem}%"></div></div></div></div>`;
+ if(c){const p=c.progress,pct=p?p.pct:(c.elapsed_min&&c.ceiling_min?Math.min(100,100*c.elapsed_min/c.ceiling_min):0);
+  h+=`<div class="mt-3"><div class="d-flex justify-content-between"><div><strong>${esc(c.job)} / ${esc(c.step)}</strong> <span class="muted">${esc(c.title||'')}</span></div><div class="muted small">${c.elapsed_min??'?'} / ${c.ceiling_min??'?'} min</div></div>
+  <div class="progress mt-1" style="height:16px"><div class="progress-bar ${p?'bg-primary':'bg-secondary'}" style="width:${pct.toFixed(0)}%">${p?pct+'%':''}</div></div>
+  <div class="small muted mt-1">${p?`${esc(p.desc)} ${p.n.toLocaleString()} / ${p.total.toLocaleString()} · ${esc(p.elapsed)} elapsed · ETA ${esc(p.eta)} · ${esc(p.rate)}`:(c.staging?esc(c.staging):'no progress bar for this step (train prints per epoch) — bar = elapsed vs ceiling')}</div></div>`;}
+ h+=`<div class="row mt-3"><div class="col-6"><div class="muted small">GPU util %</div><canvas id="u_${esc(s.name)}" class="spark"></canvas></div><div class="col-6"><div class="muted small">throughput (tiles/s)</div><canvas id="r_${esc(s.name)}" class="spark"></canvas></div></div>`;
+ (s.jobs||[]).forEach(j=>{h+=`<div class="mt-3"><strong>${esc(j.id)}</strong> <span class="muted small">${esc(j.tag)}</span>${j.job_end?` <span class="chip ${esc(j.job_end.state)}">job-end VERIFY ${esc(j.job_end.state)}</span>`:''}<div>${stepsHtml(j)}</div></div>`;});
+ if(s.scratch&&s.scratch.length)h+=`<div class="muted small mt-3">scratch: ${s.scratch.map(f=>`${esc(f.name)} ${fmtB(f.size)}`).join(' · ')}</div>`;
+ if(s.procs&&s.procs.length)h+=`<div class="muted small mono">${s.procs.map(p=>`${p.pid} ${Math.floor(p.etimes/60)}m ${esc(p.args.replace(/.*phase4_/,'phase4_').slice(0,80))}`).join('<br>')}</div>`;
+ if(s.log)h+=`<details class="mt-2"><summary class="muted small">log ${esc(s.log.path.split('/').pop())} · ${fmtB(s.log.size)} · ${s.log.age_s}s old</summary><div class="logbox mono mt-1">${esc(s.log.tail.join('\n'))}</div></details>`;
+ return h+`</div></div></div>`;}
+function spark(id,xs,ys,color){const el=document.getElementById(id);if(!el||!window.Chart)return;
+ if(charts[id]){charts[id].data.labels=xs;charts[id].data.datasets[0].data=ys;charts[id].update('none');return;}
+ charts[id]=new Chart(el,{type:'line',data:{labels:xs,datasets:[{data:ys,borderColor:color,borderWidth:1.5,pointRadius:0,fill:true,backgroundColor:color+'22',tension:.3}]},
+  options:{animation:false,responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{enabled:true}},scales:{x:{display:false},y:{beginAtZero:true,ticks:{color:'#8696ab',font:{size:10}},grid:{color:'#24303f'}}}}});}
+let lastHtml='';
+async function tick(){try{const [st,hi]=await Promise.all([fetch('/api/state',{cache:'no-store'}).then(r=>r.json()),fetch('/api/history',{cache:'no-store'}).then(r=>r.json())]);
+ document.getElementById('gen').textContent=`${st.generated||'…'} · probes every ${st.exec_interval}s${st.no_exec?' (exec OFF)':''}`;
+ const e=document.getElementById('errs');e.textContent=(st.errors||[]).join(' · ');e.style.display=st.errors&&st.errors.length?'':'none';
+ const html=(st.sessions||[]).map(card).join('')||'<div class="muted p-3">no sessions yet</div>';
+ if(html!==lastHtml){document.getElementById('cards').innerHTML=html;lastHtml=html;Object.keys(charts).forEach(k=>{charts[k].destroy();delete charts[k]});}
+ (st.sessions||[]).forEach(s=>{const H=(hi[s.name]||[]);const xs=H.map(p=>p.t.slice(11,16));spark('u_'+s.name,xs,H.map(p=>p.util),'#2fb344');spark('r_'+s.name,xs,H.map(p=>p.rate),'#4299e1');});
+ let x=`<div class="row"><div class="col-md-4"><table class="table table-sm"><thead><tr><th>session</th><th>endpoint</th><th>hw</th></tr></thead><tbody>${(st.colab_sessions||[]).map(s=>`<tr><td>${esc(s.name)}</td><td class="mono small">${esc(s.endpoint)}</td><td>${esc(s.hardware)}</td></tr>`).join('')}</tbody></table>
+ <div class="small muted">locks: ${(st.locks||[]).map(esc).join(', ')||'(none)'}</div></div>
+ <div class="col-md-8"><table class="table table-sm"><thead><tr><th>run</th><th>step</th><th>branch@sha</th><th>gpu</th></tr></thead><tbody>${(st.manifests||[]).slice().reverse().map(m=>`<tr><td class="mono small">${esc(m.run_id)}</td><td>${esc(m.step)}</td><td class="mono small">${esc(m.branch)}@${esc(m.sha)}</td><td class="small">${esc(m.gpu)}</td></tr>`).join('')}</tbody></table></div></div>`;
+ document.getElementById('extra').innerHTML=x;}catch(err){const e=document.getElementById('errs');e.textContent='fetch failed: '+err;e.style.display='';}}
 tick();setInterval(tick,15000);
 </script></body></html>"""
 
@@ -519,6 +584,9 @@ def make_handler(collector):
         def do_GET(self):
             if self.path.startswith("/api/state"):
                 body = collector.snapshot().encode("utf-8")
+                ctype = "application/json"
+            elif self.path.startswith("/api/history"):
+                body = collector.history().encode("utf-8")
                 ctype = "application/json"
             else:
                 body = HTML.encode("utf-8")

@@ -80,10 +80,22 @@ def held_out_metrics(year, tag):
     return f"{', '.join(bits)} [{ch}]" if ch else ", ".join(bits)
 
 
-def honest_metrics(year):
-    """Independent (live=1) recall/precision — CLAUDE.md rule 5's primary number."""
+def honest_metrics(year, run_ts=None):
+    """Independent (live=1) recall/precision — CLAUDE.md rule 5's primary number.
+
+    Only rows scored AT OR AFTER this run: qc_indep_report carries every past scoring of
+    the year, so taking the newest row unconditionally staples the PREVIOUS raster's
+    number onto a fresh run whose own scoring has not happened yet (observed 2026-08-22:
+    tonight's 2017 inference row picked up the off-recipe _xsensor scoring from August).
+    A run whose scoring has not landed gets no honest number — which is correct, and the
+    row is skipped until it does.
+    """
     live = [r for r in _rows(INDEP_REPORT)
             if r.get("year") == year and str(r.get("live", "")).strip() == "1"]
+    if run_ts is not None:
+        live = [r for r in live
+                if (_parse_status_ts(r.get("ts")) or _dt.datetime.min.replace(
+                    tzinfo=_dt.timezone.utc)) >= run_ts]
     if not live:
         return ""
     r = live[-1]
@@ -183,7 +195,8 @@ def build_row(mf):
     script_version = f"{ver} ({sha} on {branch}{'; DIRTY' if m.get('git_dirty') else ''})"
 
     metrics = [x for x in (held_out_metrics(year, tag) if step in ("train", "evaluate") else "",
-                           honest_metrics(year) if step == "inference" else "") if x]
+                           honest_metrics(year, _parse_manifest_ts(ts))
+                           if step == "inference" else "") if x]
     run_ts = _parse_manifest_ts(ts)
     row_status, row_verify = status_for(year, tag, step, run_ts)
 
@@ -208,6 +221,8 @@ def build_row(mf):
     mask = MASKS / f"edmonds_canopy_prob_{year}{sfx}.tif"
     return {
         "_state": (row_status or {}).get("state", ""),
+        "_unscored": step == "inference" and not metrics
+        and (row_status or {}).get("state") == "OK",
         "run_id": m.get("run_id", mf.parent.name),
         "date": date,
         "year": year,
@@ -243,7 +258,7 @@ def main():
     if a.since:
         manifests = [p for p in manifests if p.parent.name[:8] >= a.since]
 
-    new, running = [], []
+    new, running, unscored = [], [], []
     for mf in manifests:
         try:
             row = build_row(mf)
@@ -255,13 +270,18 @@ def main():
         if row.pop("_state", "") == "RUNNING" and not a.include_running:
             running.append(row["run_id"])
             continue
-        row.pop("_state", None)
+        if row.pop("_unscored", False) and not a.include_running:
+            unscored.append(row["run_id"])       # append-only: wait for the honest number
+            continue
+        row.pop("_state", None); row.pop("_unscored", None)
         new.append(row)
         have.add(row["run_id"])
 
     print(f"{len(manifests)} manifest(s) considered, {len(existing)} registry row(s) already "
           f"present, {len(new)} new"
           + (f", {len(running)} still RUNNING (skipped; re-run when they finish)" if running else "")
+          + (f", {len(unscored)} finished but not yet scored (skipped; re-run after "
+             f"qc_indep)" if unscored else "")
           + ".")
     for r in new:
         print(f"  + {r['run_id']:52s} {r['step']:10s} {r['headline_metrics'] or r['notes'][:70]}")

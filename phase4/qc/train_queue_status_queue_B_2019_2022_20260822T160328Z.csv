@@ -1,0 +1,9 @@
+job,year,tag,step,state,exit,minutes,detail,ts
+2019,2019,citywide_rgb,tile,OK,0,14.6,,2026-08-22 16:03:29
+2019,2019,citywide_rgb,VERIFY:tile,OK,,,"592 tiles indexed; probed 20 paths, 0 missing",2026-08-22 16:18:03
+2019,2019,citywide_rgb,train,OK,0,31.4,,2026-08-22 16:18:03
+2019,2019,citywide_rgb,VERIFY:train,OK,,,"1113MB, zip magic ok",2026-08-22 16:49:25
+2019,2019,citywide_rgb,evaluate,OK,0,1.7,,2026-08-22 16:49:25
+2019,2019,citywide_rgb,VERIFY:evaluate,OK,,,4 rows for year 2019 in semantic_eval_report.csv,2026-08-22 16:51:07
+2019,2019,citywide_rgb,inference,RUNNING,,,,2026-08-22 16:51:07
+2019,2019,citywide_rgb,inference,INTERRUPTED,vm_reclaimed,,"VM reclaimed by Colab ~17:22Z: its keep-alive daemon was killed by prune_session when the CLI dropped the session at 16:57Z, and the re-adoption restored the name but not the daemon, so the idle timer was never refreshed. 2019 inference was ~40% of 120,474 tiles; prob raster existed only in /content/phase4_scratch, nothing on Drive. 2019 labels/tile/train/evaluate VERIFY:OK rows stand — a relaunch resumes at inference. Row closed by local audit.",2026-08-22 17:26:50

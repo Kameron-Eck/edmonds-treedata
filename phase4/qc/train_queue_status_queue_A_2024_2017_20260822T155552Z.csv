@@ -1,0 +1,3 @@
+job,year,tag,step,state,exit,minutes,detail,ts
+2024,2024,citywide_rgb,inference,RUNNING,,,,2026-08-22 15:55:53
+2024,2024,citywide_rgb,inference,INTERRUPTED,vm_gone,,"VM terminated 2026-08-22 ~17:08Z (colab assignment gone; the A100 disappeared from list_assignments together with the CPU orphan). Inference was ~39% of 481,068 tiles after ~1.2 h; the prob raster lived only in /content/phase4_scratch (verified-write path -> nothing on Drive, no stub). Row closed by local audit; resume treats RUNNING as not-OK and re-runs the step.",2026-08-22 17:15:19

@@ -1,0 +1,4 @@
+job,year,tag,step,state,exit,minutes,detail,ts
+2019,2019,citywide_rgb,inference,OK,0,18.3,,2026-08-22 20:01:06
+2019,2019,citywide_rgb,VERIFY:inference,OK,,,2289MB valid=89.6% maxprob=0.965,2026-08-22 20:19:22
+2019,2019,citywide_rgb,VERIFY,OK,,,2289MB valid=89.6% maxprob=0.965,2026-08-22 20:19:22

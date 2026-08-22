@@ -337,6 +337,17 @@ overhaul: ** ACTIVE WORKSTREAM 2026-08-20 — OPTION A OVERHAUL. PLAN = Scripts/
          against ccap_2021_hires_lc.tif; the gate is satisfied - the scorer printed "deployed threshold
          0.4988 (channels=rgb+chm)". 2019 scores next, serially, so two multi-GB readers do not fight for
          the disk.
+         ** 2024 CITYWIDE DONE 20:46:12Z: ** VERIFY OK 4652 MB valid=100.0% maxprob=0.783 (A5 still on the
+         pre-fix checker, so this passed the old max<0.75 rule by a whisker - under the fixed sampler it is
+         comfortably OK). A5 moves to 2017 (tile -> train -> evaluate -> inference).
+         ** FIRST HONEST NUMBER OF THE NIGHT - 2022 (independent, live=1, thresh 0.4988, rgb+chm gate met) **
+         PRIMARY forest_wetland: recall .6818 precision .8012, grass_reject .9256, ref_canopy 27.85%.
+         forest_only .6797/.7891; forest_wetland_scrub .6686/.8186. Per-surface: forest .6797, wetland
+         .8578, scrub .3542 (the usual scrub weakness); FP-rates grass .0744, developed .0607, water .0397,
+         emergent_wetland .5558 (the one bad non-canopy group). Threshold sweep: recall climbs to .7355 at
+         0.20 for precision .7677 - i.e. ~5 pp of recall is available for ~3 pp of precision, consistent
+         with the thin upper tail measured in the calibration check. Sits inside the series range
+         (.55-.80). 2019 scoring started next.
          Session prompts: D:\tools\claude-config\plans\because-we-are-not-parallel-codd.md. NEXT SESSION =
          prompt B, CLI edition: first launch of each queue ask-first; crash-recovery per P11.5 = push the
          fix branch + re-exec on the LIVE VM (a live VM keeps its Drive mount).

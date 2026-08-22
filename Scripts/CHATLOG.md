@@ -126,8 +126,16 @@ overhaul: ** ACTIVE WORKSTREAM 2026-08-20 — OPTION A OVERHAUL. PLAN = Scripts/
          A100 per tab (Runtime > Change runtime type; the VM restarts -> cells 1-2 re-run on the GPU VM).
          NIT: phase4_train_queue.py:603 prints "qc\train_queue_status_*.csv" (display literal only; the
          real path, line 635, is a pathlib join) — cosmetic, not fixed tonight.
+         ** P11.6 ADOPTED (Kam, 2026-08-22): ** GPU work runs HEADLESS via google-colab-cli
+         (colab new -s A --gpu A100 / colab exec / colab stop); the MCP tabs are FALLBACK (both server
+         instances open the same scratch notebook -> ONE shared runtime). Probed on CPU sessions: auth
+         once, exec + detached nohup + named GPU VMs are all agent-drivable; drivemount is KAM's terminal,
+         once per VM (per-VM Drive consent; verified NOT to carry to a new VM). Machine-local CLI fixes
+         (termios stub, jupyter-kernel-client<1.0 pin), the generator pipeline/colab_cli_vmgen.py, the
+         flow and the permission notes = OVERHAUL_PLAN P11.6.
          Session prompts: D:\tools\claude-config\plans\because-we-are-not-parallel-codd.md. NEXT SESSION =
-         the mega prompt (plan file): first launch of each queue ask-first; crash-recovery relaunches per P11.5.
+         prompt B, CLI edition: first launch of each queue ask-first; crash-recovery per P11.5 = push the
+         fix branch + re-exec on the LIVE VM (a live VM keeps its Drive mount).
 proj:    Edmonds temporal canopy pipeline, phase 4 (per-year semantic seg, 18 imagery yrs).
 live:    ENGINE MODULARIZED 2026-07-08 → phase4seg/ package (config/common/labels/tiling/core[all torch]/
          postproc/cli) + 97L phase4_semantic_finetune.py SHIM (preserves `%run ... --args`). Behavior =
@@ -1063,6 +1071,43 @@ gotcha:  scripts Colab-only for torch (rasterio+geopandas+fiona+sklearn now pip-
          accept-all test data; 14,476-crown human review never finished.
 
 ════════════════ LOG  (newest first) ════════════════
+
+## 2026-08-22  P11.6 — headless Colab CLI probed + adopted; MCP tabs demoted to fallback
+goal:    make the NEXT session agentic for GPU runs. MCP-tab path hit its wall: both server instances open the
+         same scratch notebook (SCRATCH_PATH hard-coded) -> ONE shared runtime; moving a tab = manual fragment
+         surgery in the browser.
+did:     found Google's official google-colab-cli (PyPI 0.6.0). PROBED on CPU sessions (no compute units):
+         one-time OAuth via a two-phase helper (D:\tools\colab-cli\auth_twophase.py — the CLI's own flow blocks
+         on input(); split URL-print / code-exchange so an agent can drive it; token + refresh cached at
+         ~/.config/colab-cli/token.json). colab new -s A --gpu A100 -> READY in ~1 min (proved, then stopped when
+         scope drifted; cost = minutes of idle A100). exec runs on the VM with persistent kernel state; detached
+         nohup survives; sessions/status/log/stop all work from the agent shell. WINDOWS is unsupported upstream;
+         two machine-local fixes make every non-interactive command work: termios stub in the tool venv
+         (console.py imports it unconditionally; only console/repl need it) + jupyter-kernel-client<1.0 pin
+         (unpinned dep; 1.0 renamed KernelClient -> JupyterKernelClient, breaking exec/drivemount).
+         DRIVEMOUNT is NOT agent-runnable: per-VM Google consent, URL -> approve -> Enter on a real TTY
+         (/dev/tty) -> Kam's terminal, ~1 min per VM; grant verified NOT to carry to a new VM. So crash recovery
+         = push the fix branch + re-exec vm_bootstrap on the LIVE VM (mount intact); only a dead VM costs a mount.
+         BUILT pipeline/colab_cli_vmgen.py: generates vm_bootstrap.py (clone at BRANCH with the gh token
+         templated at send time and scrubbed from .git/config; Drive assert; logs+locks mkdir; pip install; GPU
+         print; queue dry-run) + vm_launch.py (nohup the queue, per-queue log) into LOCAL scratch only (refuses
+         repo/Drive outdirs).
+         PERMISSIONS (user scope, Kam): colab.exe * + tool-venv python * allow rules. LESSON: a command must
+         START with the literal allowed prefix — a leading VAR=... assignment falls back to the auto-mode
+         classifier (hit repeatedly tonight). Probes cleaned: probe/probe2/A stopped; one browser-era [?] CPU
+         orphan has no local record and expires at the 24 h cap.
+decided: CLI path adopted (Kam: "Lets do 1"); MCP entries kept as fallback only. Scope discipline restated by
+         Kam mid-session: THIS session DESIGNS the agentic path; the D: session RUNS it.
+killed:  reverse-engineering the CLI's Drive credential-propagation to force drivemount headless — that is a fork
+         of a tool unsupported on Windows, and it would break silently later.
+files:   pipeline/colab_cli_vmgen.py (new), OVERHAUL_PLAN_2026-08-20.md (P11.6), CHATLOG.md; machine-local (not
+         in the repo, documented in P11.6): D:\tools\colab-cli\auth_twophase.py, termios stub + jkc pin in the
+         uv tool venv, colab CLI OAuth token.
+next:    OTHER SESSION (D:): prompt B, CLI edition (plan file). vmgen -> ask Kam -> colab new -s A --gpu A100 ->
+         KAM drivemount -s A -> exec bootstrap (expect BOOTSTRAP_DONE on work/p11-5-autonomy) -> exec launch ->
+         same for B (>= 2 min later) -> monitor artifacts + colab status/log -> score (channels=rgb+chm gate) ->
+         harvest on the branch -> colab stop when the job-end VERIFY rows land. Kam: merge work/p11-5-autonomy
+         when the diff is approved, or keep launching from the branch.
 
 ## 2026-08-22  P11.5 ALLOWLIST INSTALLED — user settings gained permissions; main-push deny PROVEN in-session
 goal:    Kam: install the P11.5 permissions block (OVERHAUL_PLAN P11.5 == plan file, diff-identical) into

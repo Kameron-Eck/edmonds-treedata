@@ -10,7 +10,8 @@ P5 ✔ canary + cutover proven (run manifests live at git 57bc07b); 2024-finish 
 P7 partial (harvest, gates, status, watcher ✔; QC provenance deferred) · P8 ✔ ·
 P9/P10 pending. **NEW: P11 below (adopted 2026-08-21) — agentic GPU driving via
 Colab MCP, ask-first for the first launch of each queue (P11.5).** P11.1–11.3 ✔; **P11.5 ruled 2026-08-22** (crash-recovery autonomy, A100 default, branch
-workflow — prep on `work/p11-5-autonomy`); P11.4 two-runtime trial pending —
+workflow — prep on `work/p11-5-autonomy`); **P11.6 adopted 2026-08-22** (headless Colab
+via google-colab-cli; MCP tabs = fallback); P11.4 two-runtime trial pending —
 prerequisites (staging lock, ceilings, resume fix, per-queue logs, balanced queues)
 landed 2026-08-22; see the P11 runbook. 2024-finish + QUEUE3 did NOT land on
 2026-08-22 (the two runtimes began ortho stagings ~10 min apart and each went silent
@@ -649,6 +650,70 @@ _write_run_manifest`, torch-free via `nvidia-smi`); queue header GPU line
 (`phase4_train_queue.py _gpu_line`); queue YAML hours on A100; CLAUDE.md spend gate +
 rule 1c; this section. The session-start and `/loop` prompts live in
 `D:\tools\claude-config\plans\because-we-are-not-parallel-codd.md`.
+
+### P11.6 — Headless Colab via google-colab-cli (adopted by Kam 2026-08-22; supersedes the MCP-tab launch path, which becomes fallback)
+
+**Why.** The MCP browser path hit a structural wall: every server instance opens the same
+scratch notebook (`SCRATCH_PATH = "/notebooks/empty.ipynb"`, hard-coded), Colab hands out
+runtimes per notebook, so two tabs shared ONE runtime; moving a tab is a manual fragment
+dance. Google's official `google-colab-cli` (PyPI, v0.6.0) is fully headless: named VMs
+with the GPU chosen by flag, code exec over websocket, no browser.
+
+**Probe results (2026-08-22, CPU sessions, no compute units).** Verified working from an
+agent shell on Windows: auth (one-time OAuth, token + refresh at
+`~/.config/colab-cli/token.json`); `colab new -s A --gpu A100` (A100 allocated READY in
+~1 min); `colab exec -s NAME -f script.py` (kernel state persists across execs;
+detached `nohup` survives); `colab sessions/status/log/stop`. NOT agent-runnable:
+`colab drivemount` — Colab's per-VM Drive consent prints a URL and then requires Enter
+on a real TTY (`/dev/tty`), so it is a KAM step, in his own terminal, once per VM
+(~1 min: URL → approve → Enter). The Drive grant does NOT carry across VMs (verified:
+a fresh VM asked again). `console`/`repl` need a TTY — never used.
+
+**Machine-local CLI fixes (this Windows box; re-apply after any `uv tool upgrade`
+google-colab-cli — documented here because they live OUTSIDE the repo):**
+1. Installed via `uv tool install google-colab-cli --with "jupyter-kernel-client<1.0"` —
+   the CLI's dep is UNPINNED and jupyter-kernel-client 1.0 renamed `KernelClient` →
+   `JupyterKernelClient`, breaking `exec`/`drivemount`.
+2. Windows `termios` stub at
+   `%APPDATA%\..\Roaming\uv\tools\google-colab-cli\Lib\site-packages\termios.py`
+   (constants so stdlib `tty.py` imports; functions raise) — the CLI is "Linux/macOS
+   only" solely because `console.py` imports termios unconditionally.
+3. Two-phase OAuth helper (agent-drivable sign-in): `D:\tools\colab-cli\auth_twophase.py`.
+
+**The flow (one queue per VM; first launch of each queue = Kam's yes, per P11.5):**
+1. Agent: `py -3.12 pipeline/colab_cli_vmgen.py --branch <branch> --queue <q>.yaml
+   --outdir <local scratch>` → writes `vm_bootstrap.py` (clone at BRANCH with the
+   gh-token templated in — token stays local + VM kernel memory, scrubbed from
+   .git/config; Drive-mount assert; mkdir logs+locks; pip install; GPU print; queue
+   dry-run) and `vm_launch.py` (nohup the queue, log to
+   `phase4/logs/train_queue_nohup_{queue}_{ts}.log`).
+2. Agent (ask-first): `colab new -s A --gpu A100`.
+3. **Kam:** `colab drivemount -s A` in his terminal (URL → approve → Enter).
+4. Agent: `colab exec -s A -f vm_bootstrap.py --timeout 900` → expect `BOOTSTRAP_DONE`;
+   then `colab exec -s A -f vm_launch.py --timeout 60` → pid + log path. Delete the
+   generated scripts (token).
+5. Same for B (`colab new -s B --gpu A100`, ≥2 min after A's launch for lock ordering).
+6. Monitor: Drive artifacts (per-launch status files, manifests, rasters) as always,
+   plus `colab status -s A` / `colab log -s A -n 20`. `colab stop -s <name>` when a
+   queue's job-end VERIFY rows land — idle VMs bill until stopped (24 h hard cap).
+7. **Crash recovery (P11.5 protocol, CLI edition):** a fix is code — push the fix
+   branch, re-generate with `--branch fix/…`, re-run `vm_bootstrap` + `vm_launch` on
+   the SAME live VM (no new consent). Canary per P11.5 = a one-job queue YAML on a
+   small GPU: `colab new -s canary --gpu L4` (this DOES need one Kam drivemount).
+   Only a dead VM forces `colab new` + Kam's mount again.
+
+**Permission notes (user scope, already granted 2026-08-22):**
+`Bash(C:\Users\Kameron\.local\bin\colab.exe *)` and
+`Bash(C:\Users\Kameron\AppData\Roaming\uv\tools\google-colab-cli\Scripts\python.exe *)`,
+alongside the P11.5 lists. Discipline: commands must START with the literal allowed
+prefix — a leading `VAR=…;` assignment breaks rule matching and falls back to the
+auto-mode classifier (observed repeatedly tonight).
+
+**Facts for cost/monitoring:** a session is a billable VM until `colab stop`; keep-alive
+daemon runs locally (has a Windows branch; laptop never sleeps); CLI sessions appear in
+`colab sessions`; the browser-era orphan `[?]`-entries cannot be stopped by name and
+expire at the 24 h cap. MCP entries `colab-mcp`/`colab-mcp-b` stay registered as the
+fallback path only.
 
 **Relation to Option C:** MCP driving is the middle rung of the ladder (human-paste →
 MCP-with-permission → owned/rented GPU with SSH). If MCP driving proves out and spend

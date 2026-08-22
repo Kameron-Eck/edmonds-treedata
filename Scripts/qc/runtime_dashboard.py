@@ -686,8 +686,16 @@ def main():
         col.assemble()
         print(col.snapshot())
         return 0
+    try:                      # bind BEFORE any probing, so a busy port costs nothing
+        srv = ThreadingHTTPServer(("127.0.0.1", args.port), make_handler(col))
+    except OSError as e:
+        # An older dashboard still holding the port serves ITS baked-in HTML, so edits to
+        # this file appear to do nothing in the browser. Say so instead of dying quietly.
+        sys.exit(f"cannot bind 127.0.0.1:{args.port} — {e}\n"
+                 f"An earlier dashboard is probably still running and serving the OLD page.\n"
+                 f"Stop it (Ctrl-C in its terminal, or: taskkill /F /IM python.exe on the right PID) "
+                 f"or start this one with --port {args.port + 1}.")
     col.start()
-    srv = ThreadingHTTPServer(("127.0.0.1", args.port), make_handler(col))
     url = f"http://127.0.0.1:{args.port}/"
     print(f"runtime dashboard: {url}   sessions={sessions or 'auto'}  probes every {args.exec_interval}s  "
           f"(Ctrl-C to stop; read-only)")

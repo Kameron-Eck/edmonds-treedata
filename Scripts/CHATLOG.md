@@ -150,6 +150,9 @@ overhaul: ** ACTIVE WORKSTREAM 2026-08-20 — OPTION A OVERHAUL. PLAN = Scripts/
          try/except OSError -> sys.stdin.readline() (backup automation.py.orig; documented OVERHAUL_PLAN P11.6
          fix 4). Kam's PowerShell drivemount -> Mounted; agent exec on the SAME VM fb2becee74e3 listed treedata
          (35 entries, phase4/locks + logs present). Both unknowns proven. mounttest STOPPED. GATE OPEN for A100.
+         PERMISSIONS LOOSENED (Kam: policy C stays; back off rules for harness dev): +18 allow (read-only git,
+         shell readers, cp/mkdir, Edit on the jobs scratchpad) -> user settings 42 allow / 56 deny; doc
+         blocks re-canonicalized from the live file. No rm rule (py does deletions); no VAR= prefixes.
          Session prompts: D:\tools\claude-config\plans\because-we-are-not-parallel-codd.md. NEXT SESSION =
          prompt B, CLI edition: first launch of each queue ask-first; crash-recovery per P11.5 = push the
          fix branch + re-exec on the LIVE VM (a live VM keeps its Drive mount).

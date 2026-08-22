@@ -557,6 +557,11 @@ laptop never sleeps (the browser-based MCP bridge persists).
    the PowerShell tool is a separate tool with separate rules — `Bash(...)` rules never
    gate it — so without them `main` was protected for Bash only; the loop itself uses the
    Bash tool only (no PowerShell allows). Canonicalized 2026-08-22 (Kam) to the live list.
+   Loosened 2026-08-22 (Kam, "back off permissions to streamline the agentic harness"; policy
+   unchanged): read-only git, shell readers, `cp`/`mkdir`, and `Edit` on the session scratchpad
+   are allowed so an unattended loop never waits on the auto-mode classifier. Still no `rm`
+   rule — deletions go through `py -3.12`. Leading `VAR=` assignments still fall through:
+   use `py -3.12 -X utf8 …`, never `PYTHONUTF8=1 py …`.
 
 ```json
 {
@@ -581,7 +586,29 @@ laptop never sleeps (the browser-based MCP bridge persists).
       "mcp__claude_ai_Google_Drive__get_file_metadata",
       "mcp__claude_ai_Google_Drive__list_recent_files",
       "WebFetch(domain:github.com)",
-      "WebFetch(domain:code.claude.com)"
+      "WebFetch(domain:code.claude.com)",
+      "Bash(C:\\Users\\Kameron\\.local\\bin\\colab.exe *)",
+      "Bash(\"C:\\Users\\Kameron\\.local\\bin\\colab.exe\" *)",
+      "Bash(C:\\Users\\Kameron\\AppData\\Roaming\\uv\\tools\\google-colab-cli\\Scripts\\python.exe *)",
+      "Bash(\"C:\\Users\\Kameron\\AppData\\Roaming\\uv\\tools\\google-colab-cli\\Scripts\\python.exe\" *)",
+      "Bash(git status *)",
+      "Bash(git log *)",
+      "Bash(git diff *)",
+      "Bash(git rev-parse *)",
+      "Bash(git show *)",
+      "Bash(git ls-files *)",
+      "Bash(cat *)",
+      "Bash(ls *)",
+      "Bash(grep *)",
+      "Bash(sed -n *)",
+      "Bash(head *)",
+      "Bash(tail *)",
+      "Bash(wc *)",
+      "Bash(diff *)",
+      "Bash(find *)",
+      "Bash(cp *)",
+      "Bash(mkdir *)",
+      "Edit(//D/tools/claude-config/jobs/**)"
     ],
     "deny": [
       "Bash(git push github main*)",

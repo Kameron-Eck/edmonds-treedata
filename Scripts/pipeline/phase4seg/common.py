@@ -127,26 +127,36 @@ def resolve_native_path(entry):
 # GPU work still overlaps, only the big copies queue. It removes one candidate
 # cause, not all of them.
 #
-# Drive is not POSIX: O_EXCL is only atomic against each VM's own drivefs cache and
-# Drive allows duplicate names, so the lock does NOT rely on exclusive create. Each
-# holder writes its OWN uniquely named claim file, waits STAGE_LOCK_SETTLE_SEC for
-# peers' claims to propagate, lists the directory, and holds only while its claim is
-# the OLDEST live one (ties broken by name). Live = re-stamped within
-# STAGE_LOCK_STALE_MIN (holders and waiters re-stamp every beat/poll); a same-host
-# claim whose pid is dead is stale at once. Waiting is bounded by
-# STAGE_LOCK_MAX_WAIT_MIN, after which the copy proceeds UNLOCKED with a warning, so
-# the queue's per-step ceiling (phase4_train_queue.STEP_TIMEOUT_MIN) must exceed
-# MAX_WAIT + the step's own work. Non-Colab runs (local smoke/QC) never lock.
-# phase4/locks/ must exist BEFORE two runtimes start (the queue creates it at launch
-# and the cockpit's bootstrap cell mkdir's it) so two VMs never race to create it —
-# Drive would happily keep two folders of the same name.
+# This is a BEST-EFFORT lock on a non-POSIX substrate. Drive has no cross-client
+# atomic primitive: O_EXCL is only atomic against each VM's own drivefs cache, Drive
+# keeps duplicate names, and cross-VM visibility of creates/updates lags by seconds.
+# So: each claimant writes its OWN uniquely named claim file and holds only while its
+# claim is the OLDEST live one (by self-reported t_acq, ties by name), confirmed on a
+# listing taken ≥ STAGE_LOCK_CONFIRM_SEC after the claim was written (longer than any
+# plausible propagation lag), with a one-poll hysteresis when a peer's claim
+# disappears. Liveness is judged in the READER's clock (time since a peer's stamp was
+# last seen to change — immune to clock skew); a same-host claim with a dead pid is
+# stale at once. Re-stamps are in place (same Drive file, never a rename-over).
+# Waiting is bounded by STAGE_LOCK_MAX_WAIT_MIN; after that the copy proceeds
+# UNLOCKED with a warning but the claim stays live so later claimants still queue
+# behind it. Unknown states fail CLOSED (assume a peer is older; assume a file is
+# bulk). Every lost race is logged by the holder's heartbeat. Non-Colab runs never
+# lock. phase4/locks/ must exist BEFORE two runtimes start (the queue creates it at
+# launch, the cockpit's bootstrap cell mkdir's it) — two VMs racing to create it would
+# leave Drive with two same-named folders and an inert lock.
+# Residual exposure: propagation lag > STAGE_LOCK_CONFIRM_SEC, or a wedged mount.
+# The queue's per-step ceilings (phase4_train_queue.STEP_TIMEOUT_MIN) must exceed
+# STAGE_LOCK_MAX_WAIT_MIN + own staging + the step's work.
 STAGE_LOCK_DIR          = BASE / "phase4" / "locks"
-STAGE_LOCK_MIN_BYTES    = 1 << 30  # only copies ≥ 1 GiB contend (orthos, tile sets)
-STAGE_LOCK_SETTLE_SEC   = 10       # let peers' claim files propagate before listing
-STAGE_LOCK_STALE_MIN    = 15       # no re-stamp this long = claimant presumed dead
+STAGE_LOCK_MIN_BYTES    = 1 << 30  # ≥ 1 GiB copies contend: orthos (11-48 GB). Tile
+                                   # sets (0.2-0.7 GiB measured), CHM, masks copy unlocked.
+STAGE_LOCK_SETTLE_SEC   = 10       # first listing waits this long after our claim
+STAGE_LOCK_CONFIRM_SEC  = 60       # a fresh claim must STILL be oldest ≥ this long after
+                                   # it was written (drivefs cross-VM lag is "seconds")
+STAGE_LOCK_STALE_MIN    = 15       # a peer's stamp unchanged this long (our clock) = dead
 STAGE_LOCK_POLL_SEC     = 30
 STAGE_LOCK_BEAT_SEC     = 60
-STAGE_LOCK_MAX_WAIT_MIN = 60       # then proceed unlocked (+ warn); see the ceilings
+STAGE_LOCK_MAX_WAIT_MIN = 60       # then copy UNLOCKED (claim kept + beating, warn)
 
 
 def _lock_enabled():
@@ -176,77 +186,111 @@ class _StagingLock:
         self.what = what
         self.host = socket.gethostname()
         self.pid = os.getpid()
-        self.token = secrets.token_hex(3)              # threads/pid reuse never collide
+        self.token = secrets.token_hex(3)              # threads / pid reuse never collide
         self.t_acq = None
         self.path = STAGE_LOCK_DIR / f"staging.{self.host}.{self.pid}.{self.token}.lock"
         self.held = False
         self._stop = threading.Event()
         self._beat = None
+        self._seen = {}          # peer claim name -> (last ts value seen, when WE saw it change)
+        self._last_stamp = None  # when we last wrote our claim
+        self._broken = False     # a peer removed our claim (detected at re-stamp)
 
     # -- claim files ---------------------------------------------------------
+    def _payload(self):
+        return json.dumps({"host": self.host, "pid": self.pid, "what": self.what,
+                           "t_acq": self.t_acq, "ts": time.time()})
+
     def _write_claim(self):
-        payload = json.dumps({"host": self.host, "pid": self.pid, "what": self.what,
-                              "t_acq": self.t_acq, "ts": time.time()})
-        tmp = self.path.with_suffix(".tmp")      # atomic replace: a peer never reads a
-        tmp.write_text(payload)                  # half-written claim (found by the unit test)
-        os.replace(tmp, self.path)
+        exists = self.path.exists()
+        if self._last_stamp is not None and not exists:
+            self._broken = True                      # a peer broke us as stale: we lost our place
+        if exists:
+            self.path.write_text(self._payload())    # re-stamp IN PLACE: same Drive file, one
+        else:                                        # revision (a torn read ⇒ "older" ⇒ wait)
+            tmp = self.path.with_suffix(".tmp")
+            tmp.write_text(self._payload())
+            os.replace(tmp, self.path)               # first create only: never a half-written claim
+        self._last_stamp = time.time()
 
     def _remove_claim(self):
-        for _ in range(3):
+        err = None
+        for delay in (1, 2, 4, 8, 16, 30):           # ~1 min of backoff << STALE_MIN
             try:
                 self.path.unlink()
                 return
             except FileNotFoundError:
                 return
-            except OSError:
-                time.sleep(1)
+            except OSError as e:                     # drivefs EIO/ETIMEDOUT
+                err = e
+                time.sleep(delay)
+        print(f"  WARNING: could not remove our staging claim {self.path.name} ({err}); "
+              f"peers will wait up to {STAGE_LOCK_STALE_MIN} min", flush=True)
 
     def _claims(self):
-        """Sorted [(t_acq, name, path, payload)] of live claims; stale ones of
-        OTHER claimants are removed on the way (never our own)."""
+        """Sorted [(t_acq, name, path, payload)] of live claims. Stale claims of OTHER
+        claimants (and orphaned .tmp halves) are removed on the way — never our own."""
+        now = time.time()
+        for p in STAGE_LOCK_DIR.glob("staging.*.tmp"):        # orphaned half of a first create
+            try:
+                if (now - p.stat().st_mtime) / 60 > STAGE_LOCK_STALE_MIN:
+                    p.unlink()
+            except OSError:
+                pass
         live = []
         for p in sorted(STAGE_LOCK_DIR.glob("staging.*.lock")):
-            d = {}
+            if p == self.path:                                # ours: t_acq is in hand — never
+                live.append((self.t_acq, p.name, p, {}))      # read it back (unreadable self
+                continue                                      # must not sort to "oldest")
+            d, ts, t_acq = {}, None, 0.0                      # unknown ⇒ assume it PREDATES us
             try:
                 d = json.loads(p.read_text())
-                ts = float(d.get("ts"))
+                if not isinstance(d, dict):
+                    d = {}
+                ts = float(d["ts"])
                 t_acq = float(d.get("t_acq") or ts)
-            except Exception:                                   # noqa: BLE001
+            except Exception:                                 # noqa: BLE001  (torn/odd payload)
                 try:
-                    ts = p.stat().st_mtime                      # unreadable: staleness by mtime,
-                    t_acq = 0.0                                 # and assume it PREDATES us (wait,
-                except OSError:                                 # never jump the queue)
-                    continue                                    # vanished between list and read
-            if p == self.path:
-                live.append((t_acq, p.name, p, d))
-                continue
-            age_min = (time.time() - ts) / 60.0
+                    ts = p.stat().st_mtime
+                except OSError:
+                    ts = None                                 # listed but gone: transient — keep, older
+            prev = self._seen.get(p.name)
+            if prev is None or (ts is not None and prev[0] != ts):
+                self._seen[p.name] = (ts, now)                # stamp advanced (or first sight): live now
+            age_min = (now - self._seen[p.name][1]) / 60.0    # READER clock only — skew-immune
             dead_local = d.get("host") == self.host and not _pid_alive(d.get("pid"))
             if age_min > STAGE_LOCK_STALE_MIN or dead_local:
-                why = "dead pid" if dead_local else f"{age_min:.0f} min silent"
+                why = "dead pid" if dead_local else f"stamp unchanged {age_min:.0f} min"
                 print(f"  staging lock: breaking stale claim {p.name} ({why})", flush=True)
                 try:
                     p.unlink()
                 except OSError:
                     pass
+                self._seen.pop(p.name, None)
                 continue
             live.append((t_acq, p.name, p, d))
         return sorted(live, key=lambda c: (c[0], c[1]))
 
     def _heartbeat(self):
-        warned = False
+        warned_broken = False
         while not self._stop.wait(STAGE_LOCK_BEAT_SEC):
             try:
                 self._write_claim()
-                if not warned:
-                    claims = self._claims()
-                    if claims and claims[0][2] != self.path:
-                        print("  WARNING: an older live staging claim appeared while we hold the "
-                              "lock — two bulk copies may be running concurrently "
-                              f"({claims[0][3]})", flush=True)
-                        warned = True
-            except OSError:
-                pass
+                if self._broken and not warned_broken:
+                    print("  WARNING: a peer broke our staging claim as stale while we were "
+                          "copying — recreated; two bulk copies may be running", flush=True)
+                    warned_broken = True
+                claims = self._claims()
+                if claims and claims[0][2] != self.path:
+                    print("  WARNING: an older live staging claim is present while we copy — "
+                          f"two bulk copies may be running ({claims[0][3]})", flush=True)
+            except Exception as e:                            # noqa: BLE001
+                print(f"  staging lock: heartbeat error ({e!r}); continuing", flush=True)
+        self._remove_claim()     # program-ordered after our last write: the claim cannot outlive us
+
+    def _start_beat(self):
+        self._beat = threading.Thread(target=self._heartbeat, daemon=True)
+        self._beat.start()
 
     # -- context manager -----------------------------------------------------
     def __enter__(self):
@@ -254,13 +298,16 @@ class _StagingLock:
             return self
         t0 = time.time()
         self.t_acq = t0
-        announced = first = True
+        announce = first = True
+        prev_others = set()
         while True:
             if (time.time() - t0) / 60 > STAGE_LOCK_MAX_WAIT_MIN:
                 print(f"  WARNING: waited {STAGE_LOCK_MAX_WAIT_MIN} min for the staging lock; "
-                      f"proceeding WITHOUT it ({self.what})", flush=True)
-                self._remove_claim()
+                      f"proceeding WITHOUT it ({self.what}) — claim kept so later claimants "
+                      "still queue behind this copy", flush=True)
+                self._start_beat()                            # held stays False
                 return self
+            wait = STAGE_LOCK_POLL_SEC + random.uniform(0, STAGE_LOCK_POLL_SEC / 2)
             try:
                 STAGE_LOCK_DIR.mkdir(parents=True, exist_ok=True)
                 if first:
@@ -269,48 +316,69 @@ class _StagingLock:
                     if len(dups) > 1:
                         print(f"  WARNING: duplicate lock folders on Drive {dups} — the "
                               "staging lock may NOT be cross-runtime", flush=True)
-                self._write_claim()                  # (re)stamp ts; t_acq stays fixed
+                self._write_claim()                           # (re)stamp ts; t_acq fixed …
+                if self._broken:                              # … unless a peer broke us: re-queue
+                    self.t_acq = time.time()
+                    self._broken = False
+                    self._write_claim()
                 if first:
                     time.sleep(STAGE_LOCK_SETTLE_SEC)
                     first = False
                 claims = self._claims()
+                others = {c[1] for c in claims if c[2] != self.path}
+                vanished = prev_others - others
+                prev_others = others
                 if claims and claims[0][2] == self.path:
-                    self.held = True
-                    self._beat = threading.Thread(target=self._heartbeat, daemon=True)
-                    self._beat.start()
-                    if not announced:
-                        print(f"  staging lock acquired after {(time.time() - t0) / 60:.1f} min",
-                              flush=True)
-                    return self
-                if announced and claims:
+                    if vanished:
+                        pass        # a live peer claim just disappeared (release, or a drivefs
+                                    # visibility hiccup): trust it only if still gone next poll
+                    else:
+                        remaining = STAGE_LOCK_CONFIRM_SEC - (time.time() - self.t_acq)
+                        if remaining > 0:
+                            wait = remaining    # fresh claim: a peer's slightly-earlier claim may
+                        else:                   # not have propagated yet — confirm after the lag window
+                            self.held = True
+                            self._start_beat()
+                            if not announce:
+                                print(f"  staging lock acquired after {(time.time() - t0) / 60:.1f} min",
+                                      flush=True)
+                            return self
+                elif announce and claims:
                     h = claims[0][3]
                     print(f"  staging lock held by {h.get('host', '?')}:{h.get('pid', '?')} "
                           f"for {h.get('what', '?')}; waiting for {self.what} "
                           f"(poll {STAGE_LOCK_POLL_SEC}s) …", flush=True)
-                    announced = False
-            except OSError as e:                     # drivefs EIO/ETIMEDOUT etc.
+                    announce = False
+            except OSError as e:                              # drivefs EIO/ETIMEDOUT etc.
                 print(f"  staging lock: Drive error ({e}); retrying", flush=True)
-            time.sleep(STAGE_LOCK_POLL_SEC + random.uniform(0, STAGE_LOCK_POLL_SEC / 2))
+            except Exception as e:                            # noqa: BLE001  never raise out of here
+                print(f"  staging lock: unexpected error ({e!r}); retrying", flush=True)
+            time.sleep(wait)
 
     def __exit__(self, *exc):
-        if self.held:
+        if self._beat is not None:
             self._stop.set()
-            if self._beat is not None:
-                self._beat.join(timeout=10)          # never unlink under a live re-stamp
-            self.held = False
+            while self._beat.is_alive():                      # a re-stamp may be mid-flight on
+                self._beat.join(timeout=10)                   # FUSE: unlink only once nothing
+                if self._beat.is_alive():                     # can land after us
+                    print("  staging lock: waiting for the heartbeat's Drive write …", flush=True)
+        self.held = False
         self._remove_claim()
         return False
 
 
 def _staging_lock_for(src_path):
     """The lock for a copy of `src_path`, or a no-op for small files (CHM, masks):
-    only bulk copies contend for Drive bandwidth."""
+    only bulk copies contend for Drive bandwidth. Fails CLOSED: an unreadable size
+    (drivefs EIO/ETIMEDOUT) is treated as bulk."""
+    name = Path(src_path).name
     try:
         size = Path(src_path).stat().st_size
-    except OSError:
-        size = 0
+    except OSError as e:
+        print(f"  staging lock: stat {name} failed ({e}); assuming bulk copy", flush=True)
+        return _StagingLock(name)
     if size >= STAGE_LOCK_MIN_BYTES:
-        return _StagingLock(Path(src_path).name)
+        return _StagingLock(name)
     return contextlib.nullcontext()
 
 
@@ -322,9 +390,12 @@ def _stage_imagery_local(src_path):
     LOCAL_SCRATCH.mkdir(parents=True, exist_ok=True)
     dst = LOCAL_SCRATCH / src_path.name
     try:
-        if dst.exists() and dst.stat().st_size == src_path.stat().st_size:
+        src_size = src_path.stat().st_size
+        if dst.exists() and dst.stat().st_size == src_size:
             return dst
         with _staging_lock_for(src_path):          # P11.4: one bulk Drive copy at a time
+            if dst.exists() and dst.stat().st_size == src_size:
+                return dst                         # a same-VM peer staged it while we waited
             tick(f"stage {src_path.name}")
             shutil.copy2(src_path, dst)
             tock(f"stage {src_path.name}")

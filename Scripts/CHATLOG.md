@@ -1047,7 +1047,12 @@ did:     MCP INVENTORY (read-only stdio probe; server tools load only at session
              POSIX), oldest live claim holds, 60 s heartbeat, 15 min stale-break, dead-pid check, 60 min max-wait
              then proceed unlocked + warn, >= 1 GiB copies only; core.py tile staging same lock, stat pass outside
              it; guard tests the real mount (config.BASE is the Colab path everywhere). REWRITTEN after review
-             (first version used O_EXCL + 240 min max-wait + unbounded continue paths + raised out of __enter__).
+             (first version used O_EXCL + 240 min max-wait + unbounded continue paths + raised out of __enter__);
+             v3 after REVIEW-2: confirm-after-60 s second listing, in-place re-stamp (no rename-over), one-poll
+             hysteresis on a vanished claim, reader-clock liveness (skew-immune), fail-closed stat, claim kept on
+             max-wait fallthrough, queue sweeps a killed engine's claim, labels ceiling 45->120, malformed-JSON
+             guard, .tmp sweep. Residual (documented): propagation lag > 60 s or a wedged mount; lost races are
+             logged by the holder's heartbeat.
          (2) phase4_train_queue.py STEP_TIMEOUT_MIN inference 240->480, tile 90->180, train 240->300: 2017's
              CoE-grid inference took 254.9 min, so the old ceiling would have killed every 2024/2017/2022
              inference 15 min short (audit finding; ~4 h GPU would have burned tonight had staging completed).
@@ -1082,6 +1087,10 @@ files:   pipeline/phase4seg/common.py, pipeline/phase4seg/core.py, pipeline/phas
          12-26 min, 7.5 cm -> 5 cm true GSD (IMAGERY_FACTS), "~10 min into" -> "~10 min apart", ONE SERVER
          INSTANCE = ONE COLAB TAB (websocket_server.py:113-118 rejects a 2nd socket) -> 2nd runtime needs a 2nd
          mcp entry colab-mcp-b (command in the runbook), P11.1/2/3/4 text reconciled, CLAUDE.md spend-gate wording.
+         REVIEW-2 (lock only, 2 lenses, 22 verified): 19 confirmed / 3 refuted -> lock v3 above; the unit test grew
+         a two-view lagged-propagation simulation (exclusion must hold for lag < confirm; FIFO after release) —
+         the harness that proved v2 lost exclusion whenever drivefs lag exceeded the 10 s settle. A Drive-file
+         lock is best-effort by nature; v3 bounds the exposure and LOGS every lost race. No third round.
 next:    NEXT SESSION = OVERHAUL_PLAN P11 runbook: claude mcp list -> open_colab_browser_connection (Kam's yes) ->
          tool inventory -> cells 1-2 on a CPU runtime -> propose launch A (queue_A, L4, 1 runtime, ~10 h) ->
          Kam registers colab-mcp-b -> launch B (>= 1 min later) -> monitor ARTIFACTS -> score (threshold gate) ->

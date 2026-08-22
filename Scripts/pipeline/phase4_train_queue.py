@@ -82,6 +82,7 @@ import argparse
 import csv
 import datetime as _dt
 import io
+import socket
 import subprocess
 import sys
 import threading
@@ -109,8 +110,11 @@ STEPS = ["labels", "tile", "train", "evaluate", "inference"]
 # phase4seg/common.py, which gives up after STAGE_LOCK_MAX_WAIT_MIN = 60 and
 # proceeds unlocked). Invariant, per step that takes the lock once:
 #   ceiling > STAGE_LOCK_MAX_WAIT_MIN + own staging + largest observed work
-#   tile 180 > 60 + 20 + 24 · train 300 > 60 + 5 + 60 · inference 480 > 60 + 20 + 255 + copy.
-STEP_TIMEOUT_MIN = {"labels": 45, "tile": 180, "train": 300,
+#   labels 120 > 60 + 26 + 27 (non-citywide only: it stages the native ortho, up to
+#   48 GB; every --force-citywide job skips it) · tile 180 > 60 + 26 + 24 ·
+#   train 300 > 60 + 60 (tile sets are 0.2-0.7 GiB, below the lock's floor, so the
+#   wait term is slack) · inference 480 > 60 + 26 + 255 + verified copy.
+STEP_TIMEOUT_MIN = {"labels": 120, "tile": 180, "train": 300,
                     "evaluate": 60, "inference": 480}
 
 # Two interrupts inside this window = a human really wants out.
@@ -285,6 +289,22 @@ def _status_write(rows):
         print(f"  ! WARN could not write status: {e}")
 
 
+def _sweep_child_claims(pid):
+    """Best-effort: remove the staging-lock claim(s) an engine we just KILLED left on
+    Drive (its heartbeat died with it; __exit__ never ran). Call only after the
+    child is reaped, so no re-stamp can land after the unlink. Without this a
+    cross-VM peer waits STAGE_LOCK_STALE_MIN for a claim we know is dead."""
+    try:
+        for p in (BASE / "phase4" / "locks").glob(f"staging.{socket.gethostname()}.{pid}.*"):
+            try:
+                p.unlink()
+                print(f"  swept dead staging claim {p.name}", flush=True)
+            except OSError:
+                pass
+    except OSError:
+        pass
+
+
 def run_step(job, step, infer_batch, rows):
     y, tag = job["year"], job["tag"]
     cmd = [sys.executable, "-u", str(ENGINE), "--year", y, "--step", step,
@@ -327,6 +347,7 @@ def run_step(job, step, infer_batch, rows):
         finally:
             wd.cancel()
         if timed_out["hit"]:
+            _sweep_child_claims(proc.pid)          # child is reaped (proc.wait above)
             rec.update(state="TIMEOUT", exit="killed",
                        detail=f"exceeded {budget} min budget",
                        minutes=round((_dt.datetime.now()-t0).total_seconds()/60, 1))
@@ -345,6 +366,11 @@ def run_step(job, step, infer_batch, rows):
                 proc.kill()
             except Exception:
                 pass
+        try:
+            proc.wait(timeout=10)                  # reap before sweeping its claim
+        except Exception:
+            pass
+        _sweep_child_claims(proc.pid)
         now = _dt.datetime.now()
         elapsed = round((now - t0).total_seconds() / 60, 1)
         prev = _INT_STATE.get("last")

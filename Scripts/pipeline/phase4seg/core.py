@@ -642,13 +642,14 @@ def _stage_tiles_local(idx_df, label):
     """P4.2: stage the year's tile set to local NVMe at train start.
 
     Training used to re-read every tile over the Drive FUSE mount EVERY EPOCH.
-    Copy the set once (a few GB — same pattern as _stage_imagery_local), rewrite
-    the index's baked-absolute paths (see tiling.py: they are written as
-    /content/drive/... strings), and let the epochs read NVMe. Any failure falls
-    back to the original Drive paths, unchanged.
+    Copy the set once (0.2-0.7 GB measured per year — same pattern as
+    _stage_imagery_local), rewrite the index's baked-absolute paths (see
+    tiling.py: they are written as /content/drive/... strings), and let the
+    epochs read NVMe. Any failure falls back to the original Drive paths, unchanged.
     P11.4: the exists/size pass runs OUTSIDE the staging lock (thousands of FUSE
-    stats, nothing copied on a resume); only a >= STAGE_LOCK_MIN_BYTES copy set
-    takes the lock, and tick/tock wrap the copy alone (parity with common.py).
+    stats, nothing copied on a resume); only a >= STAGE_LOCK_MIN_BYTES (1 GiB)
+    copy set takes the lock — no existing tile set reaches that, so today this
+    copy runs unlocked by design of the floor; tick/tock wrap the copy alone.
     """
     first = str(idx_df.iloc[0]["img_path"]) if len(idx_df) else ""
     if not first.startswith("/content/drive"):

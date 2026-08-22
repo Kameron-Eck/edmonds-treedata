@@ -411,13 +411,17 @@ runtime per connection, and the notebook tools cannot be enumerated until a tab 
 attached. Nothing in the package authenticates to Google itself — the browser tab is
 the credential.
 
-*Prerequisites landed 2026-08-22 (code, no GPU; adversarially reviewed, 29 findings
-fixed):* Drive staging lock (`phase4seg/common.py _StagingLock` — the design, the
-constants `STAGE_LOCK_*` and their rationale live there): bulk (≥1 GiB) Drive→NVMe
+*Prerequisites landed 2026-08-22 (code, no GPU; two adversarial review rounds, 29 + 19
+findings fixed):* Drive staging lock (`phase4seg/common.py _StagingLock` — the design,
+the constants `STAGE_LOCK_*` and their rationale live there): bulk (≥1 GiB) Drive→NVMe
 copies serialize across runtimes via per-claimant files in `phase4/locks/` (no
-`O_EXCL` — Drive is not POSIX), oldest live claim holds, bounded wait then proceed
-unlocked with a warning; small copies (CHM, masks) never wait. This removes ONE
-suspected cause of the 08-22 silence; a wedged mount or a dead VM is untouched. Step
+`O_EXCL` — Drive is not POSIX); the oldest live claim holds, confirmed on a second
+listing ≥60 s after the claim was written; liveness is judged in the reader's clock;
+bounded wait then proceed unlocked with a warning (claim kept so later claimants still
+queue); unknown states fail closed; every lost race is logged by the holder's
+heartbeat; the queue sweeps the claim of an engine it kills. Small copies (CHM, masks,
+tile sets) never wait. This removes ONE suspected cause of the 08-22 silence; a wedged
+mount or a dead VM is untouched. Step
 ceilings per `phase4_train_queue.STEP_TIMEOUT_MIN` (its comment carries the
 invariant; the old inference 240 would have killed every CoE-grid inference —
 2017's took 254.9 min); resume revokes an OK when a later attempt failed/never
@@ -426,10 +430,12 @@ reported or its `VERIFY` hard-failed; per-queue nohup logs
 `queue_B_2019_2022.yaml` (hours in their headers); cockpit cells 1–4/6 rewritten
 (`phase4/locks/` pre-created at bootstrap and at queue launch — Drive keeps two
 same-named folders if two VMs race to create one).
-Residual risk, accepted: if a peer's claim propagates slower than
-`STAGE_LOCK_SETTLE_SEC`, both runtimes hold; the holder's heartbeat prints a WARNING
-when an older claim appears, so the nohup log records it. Mitigation: launch B ≥1 min
-after A.
+Residual risk, accepted: a Drive-file lock cannot be more than best-effort — if a
+peer's claim propagates slower than `STAGE_LOCK_CONFIRM_SEC` (60 s), or the mount
+wedges, both runtimes copy; the holder's heartbeat prints a WARNING so the nohup log
+records it. Mitigation: launch B ≥2 min after A. Tests: a 10-case local unit test plus
+a two-view lagged-propagation simulation (the harness the review used to prove the
+earlier version lost exclusion).
 
 *Next-session sequence — every GPU launch is its own ask:*
 1. `claude mcp list` → colab-mcp connected; ToolSearch shows
@@ -453,8 +459,11 @@ after A.
    A second runtime therefore needs a SECOND server entry — Kam, one-time:
    `claude mcp add --scope user colab-mcp-b -- "C:\Users\Kameron\AppData\Local\Programs\Python\Python312\Scripts\uvx.exe" git+https://github.com/googlecolab/colab-mcp`
    → its own `open_colab_browser_connection` → second tab → propose launch B
-   (`queue_B_2019_2022.yaml`, ≥1 min after A so the lock ordering is clean). Until
-   that entry exists, B runs after A or by human-paste in a second tab.
+   (`queue_B_2019_2022.yaml`, ≥2 min after A — the lock confirms a fresh claim 60 s
+   after it is written). Until that entry exists, B runs after A or by human-paste in
+   a second tab. Lock lines to expect in the nohup logs: "staging lock held by … ;
+   waiting", "staging lock acquired after N min"; any "WARNING: … two bulk copies"
+   line = a lost race — record it in CHATLOG.
 6. Monitor ARTIFACTS, not CSV content: per-launch status files, run manifests, tile
    files, prob rasters. `VERIFY:inference OK` → local scoring per the staged commands
    in CHATLOG (threshold gate: the scorer's console line must say

@@ -89,7 +89,8 @@ overhaul: ** ACTIVE WORKSTREAM 2026-08-20 — OPTION A OVERHAUL. PLAN = Scripts/
          02:20Z after cache warm-up; read-only tool inventory owed in a fresh session (see LOG). 2024-finish + queue3 runtimes (both cloned 57bc07b = pre-P11.1 clobber-prone status
          writer) SILENT since 01:12Z: Drive API shows no write from either after 01:12:52Z / 01:03:07Z; cause
          NOT established (throttle suspected — measured 08-21 — but unproven; wedged Drive mount or dead VMs fit too). Nothing newly
-         VERIFIED → nothing scored. d038f34 + f4601c4 UNPUSHED — push before ANY relaunch. 2013 citywide .7422
+         VERIFIED → nothing scored. Everything after 954cb41 (harvests, chatlog, P11.4 prereqs e5b8171+) is UNPUSHED —
+         Colab clones GitHub, so PUSH BEFORE ANY LAUNCH (cell 3 needs queue_A/queue_B; the lock/ceiling/resume fixes live there). 2013 citywide .7422
          row is live=0 in qc_indep_report.csv (re-score owed; see LOG). 02:05Z Kam STOPPED both runtimes — nothing landed; stale RUNNING rows closed
          INTERRUPTED + harvested; monitor stopped. NO relaunch tonight — Kam: wait for the agentic MCP path and launch the
          queues in PARALLEL (P11.4). Prereqs LANDED 2026-08-22 (staging lock,

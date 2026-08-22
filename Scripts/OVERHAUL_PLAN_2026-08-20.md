@@ -417,6 +417,9 @@ hard-fails (a step that exits 0 without its artifact is no longer skipped on
 relaunch); per-queue nohup logs `train_queue_nohup_{queue}_{ts}.log` (a shared path
 lost queue3's stdout on 2026-08-22); balanced queues `queue_A_2024_2017.yaml`
 (~10 h L4) + `queue_B_2019_2022.yaml` (~8 h L4); cockpit cells 3/4/6 rewritten.
+Residual risk, accepted: `O_EXCL` atomicity across two VMs on drivefs is not proven
+(the unit test is single-process); mitigations are the ≥1 min launch stagger, the
+15-min stale-break, and the 240-min max-wait fallthrough (= tonight's behaviour).
 
 *Next-session sequence — every GPU launch is its own ask:*
 1. `claude mcp list` → colab-mcp connected; ToolSearch shows
@@ -439,6 +442,9 @@ lost queue3's stdout on 2026-08-22); balanced queues `queue_A_2024_2017.yaml`
    files, prob rasters. `VERIFY:inference OK` → local scoring per the staged commands
    in CHATLOG (threshold gate: the scorer's console line must say
    `channels=rgb+chm`, else the eval row for that year has not landed — do not score).
+   Also re-score 2013 citywide in the same batch: its quoted .7422 is a live=0 row
+   scored at the fallback 0.5, so a tool-chosen re-score WILL move it — expected,
+   not regression.
 7. After the window: harvest, registry rows, CHATLOG; compare wall-clock vs serial and
    decide whether to raise the 2-runtime cap.
 

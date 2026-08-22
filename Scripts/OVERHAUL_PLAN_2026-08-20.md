@@ -457,7 +457,9 @@ earlier version lost exclusion).
 5. One server instance = ONE Colab connection (colab_mcp 1.0.1
    `websocket_server.py:113-118` rejects a second websocket with 1013 "Server is busy";
    `session.py:166-167` returns `true` without opening a tab when already connected).
-   A second runtime therefore needs a SECOND server entry — Kam, one-time:
+   A second runtime therefore needs a SECOND server entry — DONE 2026-08-22 03:40Z
+   (`colab-mcp` + `colab-mcp-b` both ✔ Connected in `claude mcp list`); the command, for
+   the record:
    `claude mcp add --scope user colab-mcp-b -- "C:\Users\Kameron\AppData\Local\Programs\Python\Python312\Scripts\uvx.exe" git+https://github.com/googlecolab/colab-mcp`
    → its own `open_colab_browser_connection` → second tab → propose launch B
    (`queue_B_2019_2022.yaml`, ≥2× `STAGE_LOCK_CONFIRM_SEC` after A — ≥2 min at today's

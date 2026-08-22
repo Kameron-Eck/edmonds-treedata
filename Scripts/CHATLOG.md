@@ -95,7 +95,8 @@ overhaul: ** ACTIVE WORKSTREAM 2026-08-20 — OPTION A OVERHAUL. PLAN = Scripts/
          INTERRUPTED + harvested; monitor stopped. NO relaunch tonight — Kam: wait for the agentic MCP path and launch the
          queues in PARALLEL (P11.4). Prereqs LANDED 2026-08-22 (staging lock,
          ceilings, resume fix, per-queue logs, queue_A_2024_2017 / queue_B_2019_2022, runbook = OVERHAUL_PLAN P11);
-         MCP inventory done (1 gate tool; notebook tools unlock after the browser connect). NEXT SESSION =
+         MCP inventory done (1 gate tool; notebook tools unlock after the browser connect); colab-mcp +
+         colab-mcp-b both CONNECTED 03:40Z (runtime B possible). NEXT SESSION =
          the runbook's 7-step sequence, every launch its own ask.
 proj:    Edmonds temporal canopy pipeline, phase 4 (per-year semantic seg, 18 imagery yrs).
 live:    ENGINE MODULARIZED 2026-07-08 → phase4seg/ package (config/common/labels/tiling/core[all torch]/
@@ -1093,7 +1094,7 @@ files:   pipeline/phase4seg/common.py, pipeline/phase4seg/core.py, pipeline/phas
          lock is best-effort by nature; v3 bounds the exposure and LOGS every lost race. No third round.
 next:    NEXT SESSION = OVERHAUL_PLAN P11 runbook: claude mcp list -> open_colab_browser_connection (Kam's yes) ->
          tool inventory -> cells 1-2 on a CPU runtime -> propose launch A (queue_A, L4, 1 runtime, ~10 h) ->
-         Kam registers colab-mcp-b -> launch B (>= 1 min later) -> monitor ARTIFACTS -> score (threshold gate) ->
+         launch B via colab-mcp-b (registered + connected 03:40Z; >= 2 min after A) -> monitor ARTIFACTS -> score (threshold gate) ->
          harvest -> registry rows. Kam: git push github main --tags after this session's commits.
 
 ## 2026-08-21  RESUME on D: — colab-mcp NOT registered; 2024-finish + queue3 SILENT since 01:12Z; nothing new to score

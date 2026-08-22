@@ -66,7 +66,7 @@ YEAR_CATALOG = [
     {"key": 2021,    "label": "2021",    "source": "King County",     "gsd_cm": 14.9, "bands": 3, "crs_epsg": 3857,  "coverage": "full", "seg_tier": SEG_INST, "native_file": "2021_king_rgb.tif",    "aligned_file": "2021_king_rgb_upsampled.tif"},
     {"key": "2021s", "label": "2021s",   "source": "Snohomish Co.",   "gsd_cm": 50.0, "bands": 4, "crs_epsg": 2285,  "coverage": "67%",  "seg_tier": SEG_SEM,  "native_file": "2021_snoh_rgbi.tif",   "aligned_file": "2021_snoh_rgbi_upsampled.tif"},
     {"key": 2022,    "label": "2022",    "source": "City of Edmonds", "gsd_cm": 7.5,  "bands": 3, "crs_epsg": 3857,  "coverage": "full", "seg_tier": SEG_INST, "native_file": "2022_coe_rgb.tif",     "aligned_file": "2022_coe_rgb.tif"},
-    {"key": "2022n", "label": "2022n",   "source": "NAIP",            "gsd_cm": 60.0, "bands": 4, "crs_epsg": 26910, "coverage": "full", "seg_tier": SEG_SEM,  "native_file": "2022_naip_rgbi.tif",   "aligned_file": "2022_naip_rgbi_upsampled.tif"},
+    {"key": "2023n", "label": "2023n",   "source": "NAIP",            "gsd_cm": 60.0, "bands": 4, "crs_epsg": 26910, "coverage": "full", "seg_tier": SEG_SEM,  "native_file": "2023_naip_rgbi.tif",   "aligned_file": "2023_naip_rgbi_upsampled.tif"},
     {"key": 2023,    "label": "2023",    "source": "King County",     "gsd_cm": 14.9, "bands": 3, "crs_epsg": 3857,  "coverage": "full", "seg_tier": SEG_INST, "native_file": "2023_king_rgb.tif",    "aligned_file": "2023_king_rgb_upsampled.tif"},
     {"key": 2024,    "label": "2024",    "source": "City of Edmonds", "gsd_cm": 7.5,  "bands": 3, "crs_epsg": 3857,  "coverage": "full", "seg_tier": SEG_INST, "native_file": "2024_coe_rgb.tif",     "aligned_file": "2024_coe_rgb.tif"},
 ]

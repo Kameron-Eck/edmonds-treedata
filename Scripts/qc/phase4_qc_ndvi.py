@@ -9,7 +9,7 @@
     as model "error"). To tell whether the model UNDER-predicts we need a
     reference that never saw the model or the 2020 labels.
 
-    The NIR-bearing years (2016 snoh, 2019n/2022n NAIP) give us that for
+    The NIR-bearing years (2016 snoh, 2019n/2023n NAIP) give us that for
     free: NDVI = (NIR - R) / (NIR + R) flags live vegetation independently.
     But raw NDVI counts GRASS as vegetation — the model rejects grass on
     purpose — so an honest CANOPY reference is:
@@ -87,7 +87,7 @@ CHM_DN_PER_M = 1.0 / 0.2                  # DN = 1 + round(height_m / 0.2)
 NIR_CATALOG = {
     "2016":  {"file": "2016_snoh_rgbi.tif", "nir": 4, "chm_matched": True},
     "2019n": {"file": "2019_naip_rgbi.tif", "nir": 4, "chm_matched": False},
-    "2022n": {"file": "2022_naip_rgbi.tif", "nir": 4, "chm_matched": False},
+    "2023n": {"file": "2023_naip_rgbi.tif", "nir": 4, "chm_matched": False},
     "2021s": {"file": "2021_snoh_rgbi.tif", "nir": 4, "chm_matched": False},
 }
 

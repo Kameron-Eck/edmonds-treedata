@@ -32,7 +32,7 @@
   Reads a modest grid of windows rather than the whole 27 GB ortho.
 
   USAGE
-    py -3.12 phase4_qc_leafoff.py                        # 2020 vs 2022n NAIP
+    py -3.12 phase4_qc_leafoff.py                        # 2020 vs 2023n NAIP
     py -3.12 phase4_qc_leafoff.py --img <tif> --label X
 
   OUTPUT

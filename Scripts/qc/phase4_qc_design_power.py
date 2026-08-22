@@ -14,7 +14,7 @@
        should be done before committing."
 
   The weights ARE now known — phase4_accuracy_sample.py --step design has
-  been run for 2016 / 2022n / 2000 and wrote sample_{year}_meta.json.  Our
+  been run for 2016 / 2023n / 2000 and wrote sample_{year}_meta.json.  Our
   design deliberately over-samples the contested zone, which should beat
   SRS.  This script measures by how much, instead of assuming.
 
@@ -354,7 +354,7 @@ def main():
     if meta["scheme"] != "dual_reference":
         raise SystemExit(
             f"{args.year} is a {meta['scheme']} design — it has only ONE reference, so "
-            "there are no two definitions to tell apart. Run a NIR year (2016/2022n).")
+            "there are no two definitions to tell apart. Run a NIR year (2016/2023n).")
 
     print(f"[design-power] rebuilding the design's own strata for {args.year} "
           f"(decim {meta['decim']}, thresh {meta['thresh']})")

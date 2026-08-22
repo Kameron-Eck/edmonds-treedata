@@ -78,9 +78,9 @@ PROVENANCE = {
     "2017":  dict(sensor="CoE 7.5cm",       nir=False, ccap="2016 (-1y)"),
     "2019n": dict(sensor="NAIP 60cm",       nir=True,  ccap="2021 (+2y)"),
     "2021s": dict(sensor="Snohomish 50cm",  nir=True,  ccap="2021 (same)"),
-    "2022n": dict(sensor="NAIP 60cm",       nir=True,  ccap="2021 (-1y)"),
+    "2023n": dict(sensor="NAIP 60cm",       nir=True,  ccap="2021 (-1y)"),
 }
-YEAR_ORDER = ["2000", "2002", "2013", "2015", "2016", "2017", "2019n", "2021s", "2022n"]
+YEAR_ORDER = ["2000", "2002", "2013", "2015", "2016", "2017", "2019n", "2021s", "2023n"]
 
 
 def _rows(path):

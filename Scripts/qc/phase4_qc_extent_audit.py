@@ -24,7 +24,7 @@ ORTHOS = [
     ("2016", IMG / "2016_snoh_rgbi.tif"),
     ("2021s", IMG / "2021_snoh_rgbi.tif"),
     ("2019n", IMG / "2019_naip_rgbi.tif"),
-    ("2022n", IMG / "2022_naip_rgbi.tif"),
+    ("2023n", IMG / "2023_naip_rgbi.tif"),
     ("ccap2016", IMG / "ccap_2016_hires_lc.tif"),
     ("chm", IMG / "lidar_snoh_chm.tif"),
 ]

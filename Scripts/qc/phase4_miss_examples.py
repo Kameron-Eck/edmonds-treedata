@@ -93,7 +93,7 @@ NIR_CATALOG = {
     "2019n": ("2019_naip_rgbi.tif", 4),
     "2021s": ("2021_snoh_rgbi.tif", 4),
     "2021":  ("2021_snoh_rgbi.tif", 4),      # alias
-    "2022n": ("2022_naip_rgbi.tif", 4),
+    "2023n": ("2023_naip_rgbi.tif", 4),
 }
 
 STRATA = ("low_ndvi", "mid_ndvi", "other_highndvi")

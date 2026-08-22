@@ -194,7 +194,7 @@ YEAR_CATALOG = [
     {"key": 2021,    "season_alpha": 0.70},
     {"key": "2021s", "season_alpha": 0.65},
     {"key": 2022,    "season_alpha": 0.90},
-    {"key": "2022n", "season_alpha": 0.85},
+    {"key": "2023n", "season_alpha": 0.85},
     {"key": 2023,    "season_alpha": 0.70},
     {"key": 2024,    "season_alpha": 0.90},
 ]

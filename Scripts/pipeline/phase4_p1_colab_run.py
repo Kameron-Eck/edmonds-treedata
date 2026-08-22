@@ -20,8 +20,8 @@
       it — the answer is imagery, not compute, and stage 0 says so.
     * !! CATALOG NOTE: label "2022" = 2022_coe_rgb.tif @ 7.5 cm = 31.5 Gpx,
       the SAME scale as 2017 — it is NOT a cheap coarse job. The 60 cm NAIP
-      acquisition is a SEPARATE label, "2022n" (0.1 Gpx, and it carries NIR).
-      If Phase 3 can use 2022n, stage 1 becomes ~300x cheaper. Decide before
+      acquisition is a SEPARATE label, "2023n" (0.1 Gpx, and it carries NIR).
+      If Phase 3 can use 2023n, stage 1 becomes ~300x cheaper. Decide before
       spending GPU here.
     * Every GPU stage is VERIFIED immediately (valid fraction + prob range).
       A bad raster aborts the run instead of licensing the next hour.
@@ -99,17 +99,17 @@ ENGINE  = SCRIPTS / "phase4_semantic_finetune.py"
 # (sem_best_{year}_{tag}.pt) and the output name — see core.step_inference,
 # which keys the ckpt off --run-tag, not off --ckpt.
 JOBS = [
-    # 2022n = the 60 cm NAIP acquisition (2022_naip_rgbi.tif, 0.1 Gpx, CARRIES NIR).
+    # 2023n = the 60 cm NAIP acquisition (2023_naip_rgbi.tif, 0.1 Gpx, CARRIES NIR).
     # This is a DIFFERENT catalog entry from "2022" (2022_coe_rgb.tif, 7.5 cm,
     # 31.5 Gpx, a 25 GB file whose staging alone ran 4 h with no output on
-    # 2026-08-17). Kam chose 2022n for Phase 3: ~300x cheaper, NIR enables an
+    # 2026-08-17). Kam chose 2023n for Phase 3: ~300x cheaper, NIR enables an
     # independent NDVI reference, and 60 cm matches 2000's 59.7 cm so the
     # Phase-3 temporal comparison is like-for-like.
-    #   NO CHECKPOINT EXISTS for 2022n -> full path, not inference-only.
+    #   NO CHECKPOINT EXISTS for 2023n -> full path, not inference-only.
     #   Comparable coarse trainings logged 27.7 min (2002) and 20.7 min (2022).
-    dict(year="2022n", ckpt_tag=None,
+    dict(year="2023n", ckpt_tag=None,
          steps=["labels", "tile", "train", "evaluate", "inference"],
-         why="Phase-3 BLOCKER: no 2022n prob raster and no 2022n checkpoint",
+         why="Phase-3 BLOCKER: no 2023n prob raster and no 2023n checkpoint",
          cost="moderate (60 cm, 0.1 Gpx; ~20-30 min train + fast inference)",
          replaces=None),
     dict(year="2017", ckpt_tag="xsensor_train", steps=["inference"],
@@ -183,7 +183,7 @@ def _ortho_for(year):
 
     phase4seg.common is torch-free, so this works in preflight without an
     accelerator. Guessing by glob is wrong: 2022 has both 2022_coe_rgb.tif and
-    2022_naip_rgbi.tif in the imagery folder, and only the catalog knows which
+    2023_naip_rgbi.tif in the imagery folder, and only the catalog knows which
     one the engine will actually infer over.
     """
     name = None
@@ -453,7 +453,7 @@ def main():
         if stage == "0":
             if ok:
                 print("\nNext:  %run phase4_p1_colab_run.py --stage 1")
-                print("       stage 1 = 2022n, the Phase-3 blocker (60 cm, full")
+                print("       stage 1 = 2023n, the Phase-3 blocker (60 cm, full")
                 print("       labels->tile->train->eval->inference, ~20-30 min train).")
                 print("       STOP after stage 1 and let the output be verified before")
                 print("       committing GPU to stages 2 and 3 — those stage 25 GB and")

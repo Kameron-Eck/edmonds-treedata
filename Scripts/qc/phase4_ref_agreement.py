@@ -12,7 +12,7 @@
   Neither is ground truth. So when the model "misses" 30-35% of C-CAP forest,
   an unknown share of that is REFERENCE ERROR, not model error.
 
-  The 2026-08-18 result made separating these urgent: 2022n is the strongest
+  The 2026-08-18 result made separating these urgent: 2023n is the strongest
   model in the project (4-ch rgb+chm, NIR, out-of-sample AUROC .9538, healthy
   calibration, max prob .972) and it STILL scores recall .6564 — squarely
   inside the .51-.71 band of much weaker years. If the gap were mainly model
@@ -41,10 +41,10 @@
   Reads only. Local-safe (rasterio, no torch).
 
   USAGE
-    py -3.12 phase4_ref_agreement.py --year 2022n \\
-        --ndvi-ref phase4/qc/ndvi_ref_2022n.tif \\
+    py -3.12 phase4_ref_agreement.py --year 2023n \\
+        --ndvi-ref phase4/qc/ndvi_ref_2023n.tif \\
         --ref  D:/edmonds-pipeline/Imagery/ccap_2021_hires_lc.tif \\
-        --prob phase4/masks/edmonds_canopy_prob_2022n.tif --thresh 0.404
+        --prob phase4/masks/edmonds_canopy_prob_2023n.tif --thresh 0.404
 
   OUTPUT
     phase4/qc/ref_agreement_{year}.txt   human-readable

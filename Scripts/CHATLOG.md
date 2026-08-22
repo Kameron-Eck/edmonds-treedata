@@ -1299,6 +1299,45 @@ gotcha:  scripts Colab-only for torch (rasterio+geopandas+fiona+sklearn now pip-
 
 ════════════════ LOG  (newest first) ════════════════
 
+## 2026-08-22  CLEANUP BEFORE MERGE — 2022n relabelled 2023n; upsample/ (1,009 GB) deleted
+goal:    Kam: "Delete upsample, its not importnat anymore. rename 2022n... I need to clean up before that
+         merge can happen."
+did:     (1) THE 2022n MISLABEL IS FIXED. The file was byte-verified as NAIP 2023-10-07: bands 1-3
+         identical to WA_NAIP/rgb_2023.tif and band 4 to ir_2023.tif on 3 independent windows, and NOT
+         equal to rgb_2019; Edmonds_Optimal_Scenes.xlsx lists NO 2021/2022 NAIP over Edmonds; an archived
+         cleanup script explicitly handled "misplaced 2023 files" inside WA_NAIP/2019/. Relabelled to
+         2023n (follows the existing 2019n convention: NAIP alongside King's same-year ortho).
+         Renamed atomically: 2022_naip_rgbi.tif -> 2023_naip_rgbi.tif on BOTH planes (501 MB each);
+         20 artefacts (prob raster, sem_best/sem_latest/loss_history, ndvi_ref, latent_class,
+         height_curve, design_power, ref_agreement, sample, qc_indep, leafoff); the year column in
+         qc_indep_report.csv (3), semantic_eval_report.csv (2) and run_registry.csv (1); and 26 live
+         code files (10 pipeline + 14 qc + 2 queue YAMLs), 32+15 refs total.
+         KEPT VERBATIM ON PURPOSE: CHATLOG history, run_registry args/notes (they record what was
+         actually executed as 2022n - annotated instead), and Scripts/scratch/litwatch_scratch/*
+         (historical analysis records). Rewriting a log would falsify it.
+         GATES: every touched file py_compiles (42/42 in qc/); phase4_catalog_check 18/18 OK.
+         (2) upsample/ DELETED - 19 files, 1,009 GB, the largest object in the data lake. Its only
+         consumer (phase-1 spectral extraction) is complete: edmonds_crowns_phase1.parquet (2026-05-27
+         19:06) postdates every input (newest 2026-05-26 23:22). CLAUDE.md rule 7 scopes upsample to
+         phase1/phase7; phase 7 was never built. Regenerable via phase1_preprocess.py --upsample-only
+         (~20-25 h Colab). Frees ~1 TB of Google DRIVE CLOUD quota - the local G: mount figure did NOT
+         rise because those files were cloud-resident, not locally cached (which is how 1 TB "fit" on a
+         511 GB volume); local free actually fell 52.1 -> 44.3 GB as tonight's GPU output synced down.
+         Google Drive Trash holds them ~30 days if this needs undoing.
+decided: relabel rather than re-download - the pixels are fine, only the name was wrong. Historical
+         records stay verbatim and get an explanatory annotation; current-state code and data get the
+         corrected label.
+watch:   phase1c_review.py:90 still hardcodes upsample/2020_coe_rgb.tif and is now BROKEN if re-run.
+         Phase 1 is complete so nothing calls it, but it needs repointing or archiving.
+         The "2022 CoE vs 2022n NAIP same-year natural experiment" in litwatch_robustness.md is
+         CROSS-year (2022 vs 2023) and still needs correcting. Both NAIP flights over Edmonds are
+         OCTOBER (2019-10-11, 2023-10-07), so "NAIP is leaf-on by specification" is weakened.
+files:   26 live code files, 2 imagery files (both planes), 20 artefacts, 3 measured-text files,
+         run_registry.csv annotations, CHATLOG.md
+next:    the two IMAGERY_FACTS.md errors (2017_king is on BOTH planes, not D: only; its "14.93 cm" is
+         the uncorrected CRS-unit figure, true GSD 10.0 cm) are still unrecorded. Then the branch merge:
+         work/p11-5-autonomy and fix/20260822-inference-throughput diverged at f8949f6f.
+
 ## 2026-08-22  P11.6 — headless Colab CLI probed + adopted; MCP tabs demoted to fallback
 goal:    make the NEXT session agentic for GPU runs. MCP-tab path hit its wall: both server instances open the
          same scratch notebook (SCRATCH_PATH hard-coded) -> ONE shared runtime; moving a tab = manual fragment

@@ -20,7 +20,7 @@
   year: "2022"
   tag: citywide_rgb
   extra: ["--force-citywide"]
-  why: City of Edmonds 5 cm (same grid as 2017/2024). Last year off-recipe; pairs with 2022n (NAIP).
+  why: City of Edmonds 5 cm (same grid as 2017/2024). Last year off-recipe; pairs with 2023n (NAIP).
   expect: >-
     prob raster (~5.5 h like 2017); completes the recipe-matched series.
     Scored vs clipped ccap_2021 (2021-epoch year, T3 footing).

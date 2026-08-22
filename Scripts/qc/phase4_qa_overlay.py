@@ -76,7 +76,7 @@ NATIVE_FILE = {
     "2017": "2017_coe_rgb.tif",   "2019": "2019_king_rgb.tif",
     "2019n": "2019_naip_rgbi.tif", "2020": "2020_coe_rgb.tif",
     "2021": "2021_king_rgb.tif",  "2021s": "2021_snoh_rgbi.tif",
-    "2022": "2022_coe_rgb.tif",   "2022n": "2022_naip_rgbi.tif",
+    "2022": "2022_coe_rgb.tif",   "2023n": "2023_naip_rgbi.tif",
     "2023": "2023_king_rgb.tif",  "2024": "2024_coe_rgb.tif",
 }
 

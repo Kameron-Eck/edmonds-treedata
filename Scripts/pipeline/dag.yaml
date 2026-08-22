@@ -81,7 +81,7 @@ stages:
     runs_on: local
     inputs: ["Full_Image/Pipeline Imagery/{y}_rgbi.tif", "Full_Image/Pipeline Imagery/lidar_snoh_chm.tif"]
     outputs: ["phase4/qc/ndvi_ref_{y}.tif", "phase4/qc/ndvi_ref_{y}.txt"]
-    note: NIR years only (2016, 2019n, 2021s, 2022n).
+    note: NIR years only (2016, 2019n, 2021s, 2023n).
 
   qc_honest_score:
     script: qc/phase4_qc_indep.py

@@ -74,7 +74,7 @@ IMG_CATALOG = {
     "2016": "2016_snoh_rgbi.tif",
     "2019n": "2019_naip_rgbi.tif",
     "2021s": "2021_snoh_rgbi.tif",
-    "2022n": "2022_naip_rgbi.tif",
+    "2023n": "2023_naip_rgbi.tif",
 }
 
 

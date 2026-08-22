@@ -70,7 +70,7 @@ CCAP_FOR_YEAR = {
     "2013": "ccap_2016_hires_lc.tif", "2015": "ccap_2016_hires_lc.tif",
     "2016": "ccap_2016_hires_lc.tif", "2017": "ccap_2016_hires_lc.tif",
     "2019n": "ccap_2021_hires_lc.tif", "2021s": "ccap_2021_hires_lc.tif",
-    "2022n": "ccap_2021_hires_lc.tif",
+    "2023n": "ccap_2021_hires_lc.tif",
 }
 
 PART_COLOURS = {

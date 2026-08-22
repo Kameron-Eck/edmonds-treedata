@@ -213,10 +213,10 @@ YEAR_CATALOG = [
      "needs_upsample": False,
      "label": "2022",    "season_alpha": 0.90},
 
-    {"key": "2022n", "file": "2022_naip_rgbi_upsampled.tif",
-     "native_file": "2022_naip_rgbi.tif",
+    {"key": "2023n", "file": "2023_naip_rgbi_upsampled.tif",
+     "native_file": "2023_naip_rgbi.tif",
      "needs_upsample": True,
-     "label": "2022n",   "season_alpha": 0.85},
+     "label": "2023n",   "season_alpha": 0.85},
 
     {"key": 2023,    "file": "2023_king_rgb_upsampled.tif",
      "native_file": "2023_king_rgb.tif",

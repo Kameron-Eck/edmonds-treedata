@@ -201,7 +201,7 @@ DEFAULT_THRESHOLD = 0.75
 # Year keys in the imagery stack
 YEAR_KEYS = [
     "2013", "2015", "2016", "2017", "2019", "2019n",
-    "2020", "2021", "2021s", "2022", "2022n", "2023", "2024"
+    "2020", "2021", "2021s", "2022", "2023n", "2023", "2024"
 ]
 
 # Label mapping from 4-class to binary
@@ -404,7 +404,7 @@ def add_shape_and_colour_features(
     rg_ratio_{yr}  rgb_mean_r / rgb_mean_g per year
                    Purple ornamentals: >1.1  Green trees: <1.0
     rg_max_summer  Max R/G across confirmed summer years
-                   (2019n, 2022n, 2022, 2024)
+                   (2019n, 2023n, 2022, 2024)
     rg_circularity rg_max_summer × circularity  interaction term
 
     Background: Phase 4 found 9,442 crowns with rg_max_summer > 1.10
@@ -429,7 +429,7 @@ def add_shape_and_colour_features(
 
     # R/G ratio per year
     print(f"  Colour features...")
-    summer_years = ["2019n", "2022n", "2022", "2024"]
+    summer_years = ["2019n", "2023n", "2022", "2024"]
     rg_summer    = []
     for yr in YEAR_KEYS:
         r = f"rgb_mean_r_{yr}"; g = f"rgb_mean_g_{yr}"

@@ -99,7 +99,7 @@ CHM_DN_PER_M = 1.0 / 0.2
 NIR_CATALOG = {
     "2016":  {"file": "2016_snoh_rgbi.tif", "nir": 4},
     "2019n": {"file": "2019_naip_rgbi.tif", "nir": 4},
-    "2022n": {"file": "2022_naip_rgbi.tif", "nir": 4},
+    "2023n": {"file": "2023_naip_rgbi.tif", "nir": 4},
     "2021s": {"file": "2021_snoh_rgbi.tif", "nir": 4},
 }
 

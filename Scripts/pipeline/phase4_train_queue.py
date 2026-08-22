@@ -10,7 +10,7 @@
 
   ── WHY THESE JOBS ────────────────────────────────────────────────────────
   2026-08-18 findings that set the queue order:
-    * The best model in the project (2022n: out-of-sample AUROC .9538, NIR +
+    * The best model in the project (2023n: out-of-sample AUROC .9538, NIR +
       CHM, healthy calibration) still scores honest recall .6564 — inside the
       same .51-.71 band as far weaker years. Better models do NOT close the
       gap, so the gap is SYSTEMATIC.
@@ -20,7 +20,7 @@
   Two live hypotheses for the systematic part, and one job each:
     H1  the REFERENCES over-call canopy      -> needs more NIR years, because
         only NIR years can build an NDVI reference and be P2-partitioned.
-        JOBS: 2019n, 2021s  (2016 and 2022n already have refs)
+        JOBS: 2019n, 2021s  (2016 and 2023n already have refs)
     H2  every model inherits ONE BLIND SPOT from the shared 2020-mask labels
         -> test by training a year on labels the 2020 mask never provided.
         JOB: 2016 with --add-canopy-mask (canopy_additions_2016.tif), scored
@@ -103,7 +103,7 @@ STEPS = ["labels", "tile", "train", "evaluate", "inference"]
 
 # Per-step wall-clock ceilings, in MINUTES. Deliberately generous — these exist
 # to break a genuine hang, never to cut short a slow-but-working step. Reference
-# points from real runs: 2022n full path ~55 min total; the 2017 CoE-grid
+# points from real runs: 2023n full path ~55 min total; the 2017 CoE-grid
 # inference ran 254.9 min on L4 — the old 240-min inference ceiling would have
 # killed 2024/2017/2022 fifteen minutes short (found 2026-08-22). Since P11.4
 # a step may also WAIT for another runtime's bulk copy (the Drive staging lock,
@@ -150,7 +150,7 @@ _INT_STATE = {"last": None}
 # thing every cross-year claim in this project has been missing.
 #
 # Note which years do NOT need re-running: every coarse-tier year (2000, 2002,
-# 2016, 2019n, 2021s, 2022n) already trains on the citywide 2020-mask path by
+# 2016, 2019n, 2021s, 2023n) already trains on the citywide 2020-mask path by
 # default, so their existing rasters ARE recipe-matched. Only fine/medium years
 # ever needed the flag.
 #
@@ -167,7 +167,7 @@ QUEUE3 = [
              "is the series recall high (.7986), so its recipe matters to any claim.",
          expect="prob raster on the shared recipe, making the .7986 comparable."),
     dict(id="2022", year="2022", tag="citywide_rgb", extra=["--force-citywide"],
-         why="City of Edmonds 5 cm. Last year off-recipe; pairs with 2022n (NAIP).",
+         why="City of Edmonds 5 cm. Last year off-recipe; pairs with 2023n (NAIP).",
          expect="prob raster; completes the recipe-matched series."),
 ]
 

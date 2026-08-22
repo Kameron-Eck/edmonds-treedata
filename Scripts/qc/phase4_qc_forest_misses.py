@@ -98,13 +98,13 @@ IMG_CATALOG = {
     "2019n": ("2019_naip_rgbi.tif", 4),
     "2021":  ("2021_king_rgb.tif",  None),
     "2021s": ("2021_snoh_rgbi.tif", 4),
-    "2022n": ("2022_naip_rgbi.tif", 4),
+    "2023n": ("2023_naip_rgbi.tif", 4),
     "2023":  ("2023_king_rgb.tif",  None),
 }
 # GSD (cm) + sensor per label — for the cross-sensor failure table.
 GSD_CM = {"2000": 59.7, "2002": 59.7, "2005": 29.9, "2007": 29.9, "2009": 29.9,
           "2012": 14.9, "2013": 14.9, "2015": 14.9, "2016": 50.0, "2017": 7.5,
-          "2019": 14.9, "2019n": 60.0, "2020": 7.5, "2021": 14.9, "2021s": 50.0, "2022n": 60.0,
+          "2019": 14.9, "2019n": 60.0, "2020": 7.5, "2021": 14.9, "2021s": 50.0, "2023n": 60.0,
           "2023": 14.9}
 def sensor_of(label):
     return IMG_CATALOG[label][0].split("_")[1]   # king / snoh / naip

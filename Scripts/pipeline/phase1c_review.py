@@ -112,7 +112,7 @@ FIELDNAMES    = [
 
 HIGH_ALPHA_YEARS = [
     "2016", "2017", "2019", "2019n", "2020",
-    "2021", "2021s", "2022", "2022n", "2023", "2024"
+    "2021", "2021s", "2022", "2023n", "2023", "2024"
 ]
 
 # Set at runtime by ensure_local_imagery()
@@ -409,7 +409,7 @@ def extract_crops(gdf: gpd.GeoDataFrame) -> list:
 
             # R/G ratio for reddish ornamental detection
             # Compute max across confirmed summer years
-            summer_rg_years = ["2019n", "2022n", "2022", "2024"]
+            summer_rg_years = ["2019n", "2023n", "2022", "2024"]
             rg_vals = []
             for yr in summer_rg_years:
                 r_col = f"rgb_mean_r_{yr}"

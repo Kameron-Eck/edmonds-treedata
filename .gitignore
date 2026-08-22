@@ -65,3 +65,6 @@ desktop.ini
 /Reports/*
 !/Reports/*.md
 !/Reports/*.csv
+
+# never track per-session Claude Code settings (the Scripts/ whitelist would otherwise catch them)
+Scripts/.claude/

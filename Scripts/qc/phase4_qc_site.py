@@ -15,7 +15,7 @@
         reference noise or short scrub.
       • saves an RGB | NDVI | CHM | prob | FN-map panel.
 
-    Works for years WITH an NDVI ref (2016, 2019n, 2022n) and, in prob-only
+    Works for years WITH an NDVI ref (2016, 2019n, 2023n) and, in prob-only
     mode, for years WITHOUT NIR (2000) — there it reports model canopy vs
     CHM height only (no independent veg truth).
 
@@ -80,7 +80,7 @@ IMG_CATALOG = {
     "2015": ("2015_king_rgb.tif", None),
     "2016": ("2016_snoh_rgbi.tif", 4),
     "2019n": ("2019_naip_rgbi.tif", 4),
-    "2022n": ("2022_naip_rgbi.tif", 4),
+    "2023n": ("2023_naip_rgbi.tif", 4),
 }
 
 

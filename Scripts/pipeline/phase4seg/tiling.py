@@ -360,7 +360,7 @@ def _gather_citywide_coarse(label, sites, stride_override=None, dry_run=False):
                 for ro, co in tqdm(origins, desc="  City-wide scan",
                                    mininterval=2.0):
                     win = rasterio.windows.Window(co, ro, TILE_SIZE, TILE_SIZE)
-                    # RGB only. RGBI orthos (2016/2021s Snoh, 2019n/2022n NAIP)
+                    # RGB only. RGBI orthos (2016/2021s Snoh, 2019n/2023n NAIP)
                     # carry a 4th NIR band; reading all bands here wrote a (4,H,W)
                     # tile into the count=3 profile in step_tile → ValueError. The
                     # semantic model is RGB, so drop NIR like read_rgb_window does.

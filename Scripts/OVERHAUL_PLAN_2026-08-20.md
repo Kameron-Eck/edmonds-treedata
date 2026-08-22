@@ -508,11 +508,14 @@ laptop never sleeps (the browser-based MCP bridge persists).
      `pipeline/phase4seg_preflight.py`, `pipeline/phase4seg_smoke.py`, the lock unit test
      if the lock is touched); commit with explicit paths;
    - push the BRANCH to GitHub (`git push -u github fix/…`) — Colab clones from GitHub;
-   - **canary on a small GPU (L4/T4), through cockpit cell 3 with a ONE-JOB queue YAML**
-     committed on the fix branch (`pipeline/queue_canary_<slug>.yaml`): the failing job
-     itself when its remaining steps — resume skips the OK ones — are expected to run
-     ≤ ~1.5 h, else a coarse proxy year (2000/2002, ~1 h for the full path); cell 1
-     `BRANCH = 'fix/…'`. Success = the canary job's `VERIFY:<step>` rows all OK — only the
+   - **canary on a small GPU (L4/T4) with a ONE-JOB queue YAML** committed on the fix
+     branch (`pipeline/queue_canary_<slug>.yaml`): the failing job itself when its
+     remaining steps — resume skips the OK ones — are expected to run ≤ ~1.5 h, else a
+     coarse proxy year (2000/2002, ~1 h for the full path). **CLI edition (P11.6, the
+     live path): `colab new -s canary --gpu L4` → ask Kam for `colab drivemount -s
+     canary` (every fresh VM needs one) → `colab_cli_vmgen.py --branch fix/…` → exec
+     bootstrap + launch.** (Browser fallback: cockpit cell 1 `BRANCH = 'fix/…'`, cell 3.)
+     Success = the canary job's `VERIFY:<step>` rows all OK — only the
      queue writes VERIFY rows, so a cell-5 single-step run (`!python -u …`, fresh
      interpreter) is a code-path smoke (exit 0 + the manifest line `on fix/<branch>`),
      never the protocol's canary;
@@ -658,6 +661,16 @@ scratch notebook (`SCRATCH_PATH = "/notebooks/empty.ipynb"`, hard-coded), Colab 
 runtimes per notebook, so two tabs shared ONE runtime; moving a tab is a manual fragment
 dance. Google's official `google-colab-cli` (PyPI, v0.6.0) is fully headless: named VMs
 with the GPU chosen by flag, code exec over websocket, no browser.
+
+**MOUNT TEST IS THE FIRST GPU-FREE STEP OF ANY SESSION.** `colab drivemount` had NOT
+completed successfully anywhere as of 2026-08-22 (the agent shell cannot: no TTY; and
+"it works in Kam's terminal" is a hypothesis, never measured). So a session proves it on
+a CPU VM before allocating a GPU: `colab new -s mounttest` → Kam runs `colab drivemount
+-s mounttest` in his terminal → the AGENT verifies with a `colab exec` listing of
+/content/drive/MyDrive/treedata (this also proves the mount is visible across the
+Kam-terminal / agent-shell boundary, shared `~/.config/colab-cli` state) → `colab stop`.
+If it fails: no A100, report, and the fallback is the MCP-tab path or an
+rclone/service-account mount — Kam's call. Record the outcome in CHATLOG either way.
 
 **Probe results (2026-08-22, CPU sessions, no compute units).** Verified working from an
 agent shell on Windows: auth (one-time OAuth, token + refresh at

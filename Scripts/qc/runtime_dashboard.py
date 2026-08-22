@@ -560,7 +560,11 @@ HTML = r"""<!doctype html><html lang="en" data-bs-theme="dark"><head><meta chars
 <style>
 body{background:#0f1419}.card{background:#151c26;border-color:#24303f}.card-header{background:#121a23;border-color:#24303f}
 .mono{font-family:ui-monospace,Consolas,monospace}.logbox{background:#0a0e13;border:1px solid #24303f;border-radius:6px;padding:10px;font-size:11.5px;max-height:280px;overflow:auto;white-space:pre-wrap;word-break:break-all;color:#b8c2d0}
-.spark{height:70px}.steps .step-item{font-size:12px}.chip{display:inline-block;padding:2px 8px;border-radius:6px;font-size:12px;margin:2px 4px 2px 0;background:#24303f;color:#9fb0c5}
+/* Chart.js with maintainAspectRatio:false must live in a fixed-height, position:relative
+   box with the canvas taken OUT of flow — otherwise each resize grows the parent, which
+   resizes the canvas again: the page scrolls away downwards forever. */
+.chartbox{position:relative;height:80px;width:100%;overflow:hidden}
+.chartbox>canvas{position:absolute!important;top:0;left:0;width:100%!important;height:100%!important;display:block}.steps .step-item{font-size:12px}.chip{display:inline-block;padding:2px 8px;border-radius:6px;font-size:12px;margin:2px 4px 2px 0;background:#24303f;color:#9fb0c5}
 .chip.OK{background:#0f3d24;color:#7ee2a3}.chip.RUNNING{background:#15325a;color:#8fc3ff;animation:pulse 1.6s infinite}.chip.FAIL,.chip.ERROR,.chip.TIMEOUT,.chip.INTERRUPTED{background:#4a1a1a;color:#ffb0b0}.chip.prior{opacity:.65}
 @keyframes pulse{50%{opacity:.55}}.kv dt{color:#8696ab;font-weight:500}.muted{color:#8696ab}
 </style></head><body>
@@ -603,7 +607,7 @@ function card(s){
   h+=`<div class="mt-3"><div class="d-flex justify-content-between"><div><strong>${esc(c.job)} / ${esc(c.step)}</strong> <span class="muted">${esc(c.title||'')}</span></div><div class="muted small">${c.elapsed_min??'?'} / ${c.ceiling_min??'?'} min</div></div>
   <div class="progress mt-1" style="height:16px"><div class="progress-bar ${p?'bg-primary':'bg-secondary'}" style="width:${pct.toFixed(0)}%">${p?pct+'%':''}</div></div>
   <div class="small muted mt-1">${p?`${esc(p.desc)} ${p.n.toLocaleString()} / ${p.total.toLocaleString()} · ${esc(p.elapsed)} elapsed · ETA ${esc(p.eta)} · ${esc(p.rate)}`:(c.staging?esc(c.staging):'no progress bar for this step (train prints per epoch) — bar = elapsed vs ceiling')}</div></div>`;}
- h+=`<div class="row mt-3"><div class="col-6"><div class="muted small">GPU util % · fixed 0–100, minutes before now</div><canvas id="u_${esc(s.name)}" class="spark"></canvas></div><div class="col-6"><div class="muted small">throughput tiles/s · fixed 0–100</div><canvas id="r_${esc(s.name)}" class="spark"></canvas></div></div>`;
+ h+=`<div class="row mt-3"><div class="col-6"><div class="muted small">GPU util % · fixed 0–100, minutes before now</div><div class="chartbox"><canvas id="u_${esc(s.name)}"></canvas></div></div><div class="col-6"><div class="muted small">throughput tiles/s · fixed 0–100</div><div class="chartbox"><canvas id="r_${esc(s.name)}"></canvas></div></div></div>`;
  (s.jobs||[]).forEach(j=>{h+=`<div class="mt-3"><strong>${esc(j.id)}</strong> <span class="muted small">${esc(j.tag)}</span>${j.job_end?` <span class="chip ${esc(j.job_end.state)}">job-end VERIFY ${esc(j.job_end.state)}</span>`:''}<div>${stepsHtml(j)}</div></div>`;});
  if(s.scratch&&s.scratch.length)h+=`<div class="muted small mt-3">scratch: ${s.scratch.map(f=>`${esc(f.name)} ${fmtB(f.size)}`).join(' · ')}</div>`;
  if(s.procs&&s.procs.length)h+=`<div class="muted small mono">${s.procs.map(p=>`${p.pid} ${Math.floor(p.etimes/60)}m ${esc(p.args.replace(/.*phase4_/,'phase4_').slice(0,80))}`).join('<br>')}</div>`;
@@ -615,7 +619,7 @@ winEl.addEventListener('change',()=>{try{localStorage.setItem('edm_win',winEl.va
 function spark(id,pts,color,ymax,win){const el=document.getElementById(id);if(!el||!window.Chart)return;
  if(charts[id]){const ch=charts[id];ch.data.datasets[0].data=pts;ch.options.scales.x.min=-win;ch.options.scales.x.ticks.stepSize=win/4;ch.update('none');return;}
  charts[id]=new Chart(el,{type:'line',data:{datasets:[{data:pts,borderColor:color,borderWidth:1.5,pointRadius:0,fill:true,backgroundColor:color+'22',tension:0}]},
-  options:{animation:false,responsive:true,maintainAspectRatio:false,parsing:false,normalized:true,
+  options:{animation:false,responsive:true,maintainAspectRatio:false,resizeDelay:200,parsing:false,normalized:true,
    plugins:{legend:{display:false},tooltip:{callbacks:{title:i=>`${(-i[0].parsed.x).toFixed(0)} min ago`}}},
    scales:{x:{type:'linear',min:-win,max:0,ticks:{stepSize:win/4,color:'#8696ab',font:{size:10},callback:v=>v===0?'now':`${-v}m`},grid:{color:'#24303f'}},
            y:{min:0,max:ymax,ticks:{stepSize:ymax/4,color:'#8696ab',font:{size:10}},grid:{color:'#24303f'}}}}});}

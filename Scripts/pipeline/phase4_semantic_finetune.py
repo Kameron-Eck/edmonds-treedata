@@ -115,6 +115,15 @@ def _pkg_import_root():
 
 sys.path.insert(0, _pkg_import_root())
 
+# P11.5: a kernel-side `%run` of this shim would otherwise serve the phase4seg that
+# was imported EARLIER in the same kernel (sys.modules), i.e. stale code after a
+# BRANCH switch in the cockpit — while the manifest stamps the new branch. Purge it
+# so every run imports the package just copied above. (The queue spawns a fresh
+# interpreter per step and never hits this; the cockpit's one-off cell uses
+# `!python -u …` for the same reason.)
+for _m in [k for k in list(sys.modules) if k == "phase4seg" or k.startswith("phase4seg.")]:
+    del sys.modules[_m]
+
 from phase4seg.cli import main
 
 

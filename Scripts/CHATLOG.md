@@ -89,8 +89,9 @@ overhaul: ** ACTIVE WORKSTREAM 2026-08-20 — OPTION A OVERHAUL. PLAN = Scripts/
          02:20Z after cache warm-up; read-only tool inventory owed in a fresh session (see LOG). 2024-finish + queue3 runtimes (both cloned 57bc07b = pre-P11.1 clobber-prone status
          writer) SILENT since 01:12Z: Drive API shows no write from either after 01:12:52Z / 01:03:07Z; cause
          NOT established (throttle suspected — measured 08-21 — but unproven; wedged Drive mount or dead VMs fit too). Nothing newly
-         VERIFIED → nothing scored. Everything after 954cb41 (harvests, chatlog, P11.4 prereqs e5b8171+) is UNPUSHED —
-         Colab clones GitHub, so PUSH BEFORE ANY LAUNCH (cell 3 needs queue_A/queue_B; the lock/ceiling/resume fixes live there). 2013 citywide .7422
+         VERIFIED → nothing scored. main PUSHED through b1b8516 == github/main (P11.4 prereqs incl. lock/ceiling/resume fixes +
+         queue_A/queue_B are on GitHub). work/p11-5-autonomy PUSHED, NOT merged — launch from it via cockpit cell 1
+         BRANCH, or Kam merges to main first. 2013 citywide .7422
          row is live=0 in qc_indep_report.csv (re-score owed; see LOG). 02:05Z Kam STOPPED both runtimes — nothing landed; stale RUNNING rows closed
          INTERRUPTED + harvested; monitor stopped. NO relaunch tonight — Kam: wait for the agentic MCP path and launch the
          queues in PARALLEL (P11.4). Prereqs LANDED 2026-08-22 (staging lock,
@@ -101,7 +102,7 @@ overhaul: ** ACTIVE WORKSTREAM 2026-08-20 — OPTION A OVERHAUL. PLAN = Scripts/
          tonight; every launch logged); main PROTECTED (deny rules); A100 default; loop backoff 10->60 min.
          Prep on branch work/p11-5-autonomy (cockpit BRANCH + nvidia-smi, manifest git_branch/gpu, docs).
          Session prompts: D:\tools\claude-config\plans\because-we-are-not-parallel-codd.md. NEXT SESSION =
-         the runbook's 7-step sequence, every launch its own ask.
+         the mega prompt (plan file): first launch of each queue ask-first; crash-recovery relaunches per P11.5.
 proj:    Edmonds temporal canopy pipeline, phase 4 (per-year semantic seg, 18 imagery yrs).
 live:    ENGINE MODULARIZED 2026-07-08 → phase4seg/ package (config/common/labels/tiling/core[all torch]/
          postproc/cli) + 97L phase4_semantic_finetune.py SHIM (preserves `%run ... --args`). Behavior =
@@ -1054,6 +1055,14 @@ did:     Plan + prompts -> D:\tools\claude-config\plans\because-we-are-not-paral
          cell 1 BRANCH (clone --branch; fetch --depth 1 + checkout -B FETCH_HEAD on re-run), cell 0/6 A100 +
          branch text, cell 2 nvidia-smi; manifest git_branch/gpu/gpu_mem_gb (torch-free nvidia-smi);
          queue header GPU line; queue YAML hours on A100.
+         VERIFIED (2-lens workflow, 16 verified, 14 confirmed -> all fixed, 2nd commit): cell 5 %run reused the
+         kernel's imported phase4seg (stale after a BRANCH switch while the manifest stamped the new branch) ->
+         !python -u + shim purges sys.modules; canary redefined = one-job queue YAML via cell 3 (only the queue
+         writes VERIFY rows); deny list gained refspec/flag-position/branch-mutation/git -C forms (fix/x:main
+         slipped through); docs: Kam pushes main in his OWN shell (deny = blocked outright, not promptable);
+         harvest_results.py refuses --commit on main (--on-main override); cell 1 re-points origin at the
+         current token; _gpu_line checks the exit code; manifest keeps the GPU name when memory is [N/A];
+         CLAUDE.md GPU rows -> A100; stale UNPUSHED/ask-first lines corrected.
 decided: permissions = user settings only (repo would track them); deny rules protect main regardless of
          prompt wording; canary = smallest job exercising the fix (<= ~1.5 h) on L4/T4.
 files:   OVERHAUL_PLAN_2026-08-20.md, CLAUDE.md, pipeline/colab_launch.ipynb, pipeline/phase4seg/cli.py,

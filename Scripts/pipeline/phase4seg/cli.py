@@ -304,12 +304,17 @@ def main():
             # so the manifest never forces an import. None on CPU/local.
             gpu, gpu_mem_gb = None, None
             try:
-                q = _sp.run(["nvidia-smi", "--query-gpu=name,memory.total",
+                r = _sp.run(["nvidia-smi", "--query-gpu=name,memory.total",
                              "--format=csv,noheader,nounits"],
-                            capture_output=True, text=True, timeout=20).stdout.strip()
-                if q:
+                            capture_output=True, text=True, timeout=20)
+                q = r.stdout.strip()
+                if r.returncode == 0 and q:
                     name, mem = [s.strip() for s in q.splitlines()[0].split(",")[:2]]
-                    gpu, gpu_mem_gb = name, round(float(mem) / 1024, 1)
+                    gpu = name or None                 # keep the name even if the
+                    try:                               # memory field is "[N/A]"
+                        gpu_mem_gb = round(float(mem) / 1024, 1)
+                    except ValueError:
+                        pass
             except Exception:
                 pass
             try:

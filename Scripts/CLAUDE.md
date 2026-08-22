@@ -190,8 +190,10 @@ For risky/parallel work, worktrees are cheap now — use them.
 ```bash
 git push github main --tags
 ```
-**Claude's permission layer blocks push to `main` — Kam runs it** (or approves it
-per-command). Work branches (`work/…`, `fix/…`) may be pushed by Claude (P11.5).
+**Pushing, merging, tagging or resetting `main` is a P11.5 DENY rule for Claude —
+blocked outright, never prompted — so Kam runs it in his own shell.** Work branches
+(`work/…`, `fix/…`) may be pushed by Claude (P11.5); git commands run in plain
+`git <verb> …` form from the repo cwd (the allow/deny rules are prefix patterns).
 `drive-mirror` (`G:\My Drive\edmonds-git-mirror.git`) is retained until P10; pushing
 it is optional and Kam's.
 
@@ -258,7 +260,7 @@ on phase boundaries or method changes.
 | CHM | `lidar_snoh_chm.tif` — USGS 3DEP HAG, ~2016, U8 DN=0.2 m/DN (0=nodata), ~60% city coverage |
 | NIR-bearing years | 2016, 2019n, 2021s, 2022n (only these can build an NDVI reference) |
 | C-CAP eval ref | `ccap_{2016,2021}_hires_lc.tif` — EVAL-ONLY (never train); 2016 full-coverage variant = `_snohfull` |
-| GPU (Colab) | **L4 24 GB** (default/cheapest) · A100 40 GB · RTX PRO 6000 ~95 GB. Memory-plan against the tier actually selected. |
+| GPU (Colab) | **A100 40 GB** for real queue runs · L4 24 GB / T4 for canaries · RTX PRO 6000 ~95 GB only when memory-bound (ask). Tiers: OVERHAUL_PLAN P11.5 rule 4. Memory-plan against the tier actually selected. |
 | GPU (local) | 4 GB T2000 — CPU / raster / QC / smoke only, no training |
 
 ---
@@ -288,7 +290,7 @@ on phase boundaries or method changes.
 
 | Resource | Use |
 |----------|-----|
-| Google Colab (L4 default / A100 / RTX PRO 6000) | All tiling, training, inference, heavy I/O — launched from the cloned repo |
+| Google Colab (A100 real runs / L4-T4 canaries / RTX PRO 6000 memory-bound only — OVERHAUL_PLAN P11.5 rule 4) | All tiling, training, inference, heavy I/O — launched from the cloned repo |
 | Local machine (4 GB T2000) | Claude Code, script edits, log review, **QC + label-build + raster diagnostics + preflight/smoke** |
 
 Compute-heavy torch steps run in Colab; do not split training between local and Colab.

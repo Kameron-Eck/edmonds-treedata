@@ -45,6 +45,9 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--dry-run", action="store_true")
     ap.add_argument("--commit", action="store_true")
+    ap.add_argument("--on-main", action="store_true",
+                    help="P11.5: commits normally land on a work branch; pass this only "
+                         "when Kam has said the harvest may go straight onto main.")
     args = ap.parse_args([a for a in sys.argv[1:]
                           if not (a == "-f" or a.endswith(".json"))])
 
@@ -77,6 +80,12 @@ def main():
         return
     print(f"harvest: {len(changed)} file(s) {'would change' if args.dry_run else 'copied'}.")
     if args.commit and not args.dry_run:
+        branch = subprocess.run(["git", "-C", str(REPO), "rev-parse", "--abbrev-ref", "HEAD"],
+                                capture_output=True, text=True).stdout.strip()
+        if branch == "main" and not args.on_main:
+            sys.exit("harvest: checked out on main — P11.5 says main never moves without Kam. "
+                     "Switch to a work branch (git checkout -b work/<slug> main) and re-run, "
+                     "or pass --on-main when Kam has approved it. Files were copied, not committed.")
         subprocess.run(["git", "-C", str(REPO), "add", "--", *changed], check=True)
         subprocess.run(["git", "-C", str(REPO), "commit",
                         "-m", f"harvest: measured text ({len(changed)} files)"],

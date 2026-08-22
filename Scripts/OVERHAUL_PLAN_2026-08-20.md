@@ -9,7 +9,7 @@ P5 ✔ canary + cutover proven (run manifests live at git 57bc07b); 2024-finish 
 → P11.4 (below) · P6 partial (manifests+seeds+queue-as-data ✔; registry generator deferred) ·
 P7 partial (harvest, gates, status, watcher ✔; QC provenance deferred) · P8 ✔ ·
 P9/P10 pending. **NEW: P11 below (adopted 2026-08-21) — agentic GPU driving via
-Colab MCP, ask-first always.** P11.1–11.3 ✔; **P11.5 ruled 2026-08-22** (crash-recovery autonomy, A100 default, branch
+Colab MCP, ask-first for the first launch of each queue (P11.5).** P11.1–11.3 ✔; **P11.5 ruled 2026-08-22** (crash-recovery autonomy, A100 default, branch
 workflow — prep on `work/p11-5-autonomy`); P11.4 two-runtime trial pending —
 prerequisites (staging lock, ceilings, resume fix, per-queue logs, balanced queues)
 landed 2026-08-22; see the P11 runbook. 2024-finish + QUEUE3 did NOT land on
@@ -138,7 +138,8 @@ file mtimes local (−7 h) — freshness checks must normalise.
   first, include only if headroom allows), skip `phase5/` (abandoned), dedupe imagery
   against existing `D:\Imagery` byte-identical files.
 - **GPU keys — RULED by Kam 2026-08-21**: Claude may drive Colab via MCP, ask-first
-  always, per-launch permission, cap 2 runtimes (see P11 and design rule 3).
+  for the first launch of each queue (amended by P11.5), cap 2 runtimes (see P11 and
+  design rule 3).
 - **Crash-recovery autonomy — RULED by Kam 2026-08-22**: see P11.5 (first launches
   ask-first; autonomous fix → canary → A100 rerun; `main` protected; no cap tonight).
 - **D2 polarity — RULED by Kam 2026-08-20 ("Adopt")**; historical text below:
@@ -446,7 +447,8 @@ today's value — `phase4seg/common.py` is the home of every `STAGE_LOCK_*` valu
 a two-view lagged-propagation simulation (the harness the review used to prove the
 earlier version lost exclusion).
 
-*Next-session sequence — every GPU launch is its own ask:*
+*Next-session sequence — the FIRST launch of each queue is its own ask; crash-recovery
+relaunches follow P11.5:*
 1. `claude mcp list` → colab-mcp connected; ToolSearch shows
    `open_colab_browser_connection` and nothing else.
 2. Kam's yes → call it once; a Colab tab opens; **list the unlocked tools** (read-only
@@ -505,10 +507,14 @@ laptop never sleeps (the browser-based MCP bridge persists).
      `pipeline/phase4seg_preflight.py`, `pipeline/phase4seg_smoke.py`, the lock unit test
      if the lock is touched); commit with explicit paths;
    - push the BRANCH to GitHub (`git push -u github fix/…`) — Colab clones from GitHub;
-   - **canary on a small GPU (L4/T4)**: the smallest job that exercises the fix — the
-     failing step on the failing year if it is expected to run ≤ ~1.5 h, else a proxy
-     (coarse year 2000/2002, or `--year <y> --step tile`); cockpit cell 1 `BRANCH =
-     'fix/…'`; success = that step's `VERIFY:<step> OK` row;
+   - **canary on a small GPU (L4/T4), through cockpit cell 3 with a ONE-JOB queue YAML**
+     committed on the fix branch (`pipeline/queue_canary_<slug>.yaml`): the failing job
+     itself when its remaining steps — resume skips the OK ones — are expected to run
+     ≤ ~1.5 h, else a coarse proxy year (2000/2002, ~1 h for the full path); cell 1
+     `BRANCH = 'fix/…'`. Success = the canary job's `VERIFY:<step>` rows all OK — only the
+     queue writes VERIFY rows, so a cell-5 single-step run (`!python -u …`, fresh
+     interpreter) is a code-path smoke (exit 0 + the manifest line `on fix/<branch>`),
+     never the protocol's canary;
    - **if the canary passes: relaunch the real queue on the A100 from the fix branch**,
      no further ask; every launch writes a run manifest (now with `git_branch`, `gpu`,
      `gpu_mem_gb`) and a CHATLOG line with tier, start time, expected hours;
@@ -517,7 +523,11 @@ laptop never sleeps (the browser-based MCP bridge persists).
    explicit approval — enforced by deny rules (below), not only by prompt. Work branches
    (`work/…`, `fix/…`) are free to create, commit and push. At session end or loop stop,
    Claude presents `git log main..<branch> --oneline` + `git diff main...<branch> --stat`
-   and asks; Kam merges/pushes `main` (or says "merge and push").
+   and asks. **Kam merges, tags (`vNNN` if a new live version landed) and pushes `main`
+   in his own shell** — `git merge`, `git tag`, `git reset` and any push that could reach
+   `main` are DENY rules for Claude: blocked outright, never prompted, so they cannot be
+   approved per-command. To delegate for one session, Kam moves those rules from `deny`
+   to `ask`.
 4. **GPU tiers.** A100 40 GB for real queue runs (queue A ≈ 5 h, B ≈ 4 h; ~10 / ~8 h on
    L4); L4/T4 for canaries; RTX PRO 6000 only when memory-bound (ask). The step ceilings
    (`phase4_train_queue.STEP_TIMEOUT_MIN`) were sized on L4 and stay valid (a faster GPU
@@ -533,7 +543,14 @@ laptop never sleeps (the browser-based MCP bridge persists).
    opened from D: or G:). Never in the repo: the root `.gitignore` whitelists all of
    `Scripts/`, so a `Scripts/.claude/settings.json` would be TRACKED. Rules are enforced by
    Claude Code (deny → ask → allow, first match wins), so `main` stays protected even
-   though branch pushes are allowed.
+   though branch pushes are allowed. Loop git commands run from the repo cwd in plain
+   `git <verb> …` form — never `git -C <repo> …`, never `cd … && git …` — because both
+   allow and deny rules are word-bounded prefix patterns; the `git -C …` deny twins below
+   exist only so that form cannot escape the protection. Also Kam, one-time: remove the
+   stray `Bash(git push:*)` and `Bash(rm:*)` allows from `C:\Users\Kameron\.claude\
+   settings.json` (it is the project file for sessions opened from the home directory
+   and would pre-approve a main push there); the user settings file currently has NO
+   `permissions` object — the approval prompt creates it.
 
 ```json
 {
@@ -563,14 +580,32 @@ laptop never sleeps (the browser-based MCP bridge persists).
     "deny": [
       "Bash(git push github main*)",
       "Bash(git push * main*)",
-      "Bash(git push --mirror *)",
-      "Bash(git push * --tags*)",
-      "Bash(git push --force *)",
+      "Bash(git push *:*)",
+      "Bash(git push *refs/heads/*)",
+      "Bash(git push *--mirror*)",
+      "Bash(git push *--tags*)",
+      "Bash(git push *--force*)",
       "Bash(git push -f *)",
+      "Bash(git push * -f)",
+      "Bash(git push *--delete*)",
       "Bash(git merge *)",
       "Bash(git rebase *)",
-      "Bash(git reset --hard *)",
-      "Bash(git tag *)"
+      "Bash(git reset *)",
+      "Bash(git tag *)",
+      "Bash(git switch main*)",
+      "Bash(git checkout main*)",
+      "Bash(git branch -f *)",
+      "Bash(git branch -D *)",
+      "Bash(git branch -M *)",
+      "Bash(git branch -m *)",
+      "Bash(git -C * push *)",
+      "Bash(git -C * merge *)",
+      "Bash(git -C * tag *)",
+      "Bash(git -C * switch *)",
+      "Bash(git -C * checkout *)",
+      "Bash(git -C * reset *)",
+      "Bash(git -C * branch *)",
+      "Bash(git -C * rebase *)"
     ]
   }
 }
@@ -619,9 +654,11 @@ has never been able to do.
 - History loss → 4 copies until P10 (old DB, clone, GitHub, drive-mirror).
 - Muscle memory opens G:\Scripts → README pointer; frozen copy read-only in practice.
 - Harvest forgotten → session-end contract; idempotent script.
-- Agent-driven GPU spend (P11) → per-launch permission is inviolable; 2-runtime cap;
-  every launch stamps a run manifest so spend is always attributable; any relaunch
-  after a failure is a NEW ask, never automatic.
+- Agent-driven GPU spend (P11/P11.5) → the first launch of each queue needs Kam's yes;
+  2-runtime cap; every launch stamps a run manifest (`git_branch`/`gpu`/`gpu_mem_gb`) so
+  spend is always attributable; a relaunch after a failure is autonomous ONLY via the
+  P11.5 protocol (fix branch → small-GPU canary with VERIFY rows → A100), logged; no cap
+  tonight by Kam's ruling.
 - Concurrent queues clobber the status CSV → per-queue status files + merged reader
   (P11.1); until that lands, one queue at a time.
 

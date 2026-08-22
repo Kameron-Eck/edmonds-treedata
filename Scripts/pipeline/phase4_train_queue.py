@@ -293,10 +293,13 @@ def _gpu_line():
     """P11.5: name the GPU tier in the queue header (tier attribution for cost and
     timing; the ceilings were sized on L4). Torch-free, best-effort."""
     try:
-        q = subprocess.run(["nvidia-smi", "--query-gpu=name,memory.total",
+        r = subprocess.run(["nvidia-smi", "--query-gpu=name,memory.total",
                             "--format=csv,noheader"], capture_output=True, text=True,
-                           timeout=20).stdout.strip()
-        return q.splitlines()[0] if q else "none (CPU runtime)"
+                           timeout=20)
+        q = r.stdout.strip()
+        if r.returncode != 0 or not q:       # a CPU runtime prints a driver banner + rc!=0
+            return "none (CPU runtime or no driver)"
+        return q.splitlines()[0]
     except Exception:                                           # noqa: BLE001
         return "unknown (nvidia-smi unavailable)"
 

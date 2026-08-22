@@ -216,6 +216,12 @@ overhaul: ** ACTIVE WORKSTREAM 2026-08-20 — OPTION A OVERHAUL. PLAN = Scripts/
          with the engine at 105% CPU/55 threads and 21 GB VRAM held; ~34-40 tile/s is the same order as the
          L4-era estimate, i.e. the A100 buys little on inference (it earns its keep on train). Dashboard now
          samples utilisation (15 reads over 3 s, mean/peak) instead of one instantaneous read.
+         ** RELAUNCH A 2026-08-22 17:20:57Z (Kam: "yes") ** colab session A3 = A100-SXM4-40GB (created ~17:19Z,
+         host 96266dad3f53), Kam drivemount OK, bootstrap at d2d6e65 on work/p11-5-autonomy, BOOTSTRAP_DONE,
+         vm_launch -> pid 8496, log train_queue_nohup_queue_A_2024_2017_20260822T172057Z.log. Resume re-runs
+         2024 inference from scratch (~3 h; the lost run left nothing) then 2017 full path (~5 h) = ~8 h A100.
+         Two A100s live again (A3 + B2) = the P11 cap. RULE RESTATED to Kam: end VMs with colab stop -s NAME,
+         never from the Colab UI session manager (that is what took A down with the CPU orphan).
          Session prompts: D:\tools\claude-config\plans\because-we-are-not-parallel-codd.md. NEXT SESSION =
          prompt B, CLI edition: first launch of each queue ask-first; crash-recovery per P11.5 = push the
          fix branch + re-exec on the LIVE VM (a live VM keeps its Drive mount).

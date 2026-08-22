@@ -133,6 +133,19 @@ overhaul: ** ACTIVE WORKSTREAM 2026-08-20 — OPTION A OVERHAUL. PLAN = Scripts/
          once per VM (per-VM Drive consent; verified NOT to carry to a new VM). Machine-local CLI fixes
          (termios stub, jupyter-kernel-client<1.0 pin), the generator pipeline/colab_cli_vmgen.py, the
          flow and the permission notes = OVERHAUL_PLAN P11.6.
+         ** MOUNT TEST 2026-08-22 15:22Z: FAILED, CAUSE FOUND (D: session). ** colab new -s mounttest (CPU) READY;
+         Kam ran `colab drivemount -s mounttest` in PowerShell: URL printed, consent granted, then
+         `ValueError: mount failed` (google/colab/drive.py:272, the drive-timeout branch) after 120 s with NO
+         '[colab] Authorizing VM...' line. ROOT CAUSE = the CLI, not Google: colab_cli/commands/automation.py
+         drivefs_hook reads the Enter via open('/dev/tty'), which does not exist on Windows ->
+         FileNotFoundError, swallowed by runtime.py:81 (logging.debug: colab.log 08:22:48 'Error in
+         colab_request hook: [Errno 2] No such file or directory: /dev/tty') -> the credentials-propagation
+         POST (dryrun=false) and the kernel input_reply never happen -> DriveFS times out. Same failure is in
+         the other session's history/probe2.jsonl. So 'works in Kam's terminal' was false for the SAME reason
+         the agent shell fails: both are Windows. FIX CANDIDATE (machine-local, same class as the termios
+         stub): replace the /dev/tty readline with a stdin read when /dev/tty is absent (Kam still consents
+         in the browser and presses Enter) -> retry on mounttest -> agent-side exec listing. NO A100 until
+         the mount is proven. Fallbacks: MCP-tab path, rclone/service-account mount. mounttest left READY.
          Session prompts: D:\tools\claude-config\plans\because-we-are-not-parallel-codd.md. NEXT SESSION =
          prompt B, CLI edition: first launch of each queue ask-first; crash-recovery per P11.5 = push the
          fix branch + re-exec on the LIVE VM (a live VM keeps its Drive mount).
@@ -1103,6 +1116,12 @@ killed:  reverse-engineering the CLI's Drive credential-propagation to force dri
 files:   pipeline/colab_cli_vmgen.py (new), OVERHAUL_PLAN_2026-08-20.md (P11.6), CHATLOG.md; machine-local (not
          in the repo, documented in P11.6): D:\tools\colab-cli\auth_twophase.py, termios stub + jkc pin in the
          uv tool venv, colab CLI OAuth token.
+addendum (D: session, 15:20-15:30Z): prompt B CLI edition started. vmgen for queue A -> scratch OK (token local);
+         colab sessions authed; colab new -s mounttest READY; agent exec works (host fb2becee74e3). Kam's
+         `colab drivemount -s mounttest` (PowerShell): consent OK, then ValueError mount failed (drive-timeout)
+         with no 'Authorizing VM' line. ROOT CAUSE: automation.py drivefs_hook opens /dev/tty for the Enter ->
+         FileNotFoundError on Windows, swallowed at runtime.py:81 (colab.log 08:22:48) -> propagation POST +
+         input_reply never sent -> DriveFS times out. Details + fix candidate: STATE. GATE HELD: no A100.
 next:    OTHER SESSION (D:): prompt B, CLI edition (plan file). vmgen -> ask Kam -> colab new -s A --gpu A100 ->
          KAM drivemount -s A -> exec bootstrap (expect BOOTSTRAP_DONE on work/p11-5-autonomy) -> exec launch ->
          same for B (>= 2 min later) -> monitor artifacts + colab status/log -> score (channels=rgb+chm gate) ->

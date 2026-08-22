@@ -146,6 +146,10 @@ overhaul: ** ACTIVE WORKSTREAM 2026-08-20 — OPTION A OVERHAUL. PLAN = Scripts/
          stub): replace the /dev/tty readline with a stdin read when /dev/tty is absent (Kam still consents
          in the browser and presses Enter) -> retry on mounttest -> agent-side exec listing. NO A100 until
          the mount is proven. Fallbacks: MCP-tab path, rclone/service-account mount. mounttest left READY.
+         ** MOUNT TEST PASSED 15:4xZ after fix #4 (Kam: "patch") ** — automation.py /dev/tty read wrapped in
+         try/except OSError -> sys.stdin.readline() (backup automation.py.orig; documented OVERHAUL_PLAN P11.6
+         fix 4). Kam's PowerShell drivemount -> Mounted; agent exec on the SAME VM fb2becee74e3 listed treedata
+         (35 entries, phase4/locks + logs present). Both unknowns proven. mounttest STOPPED. GATE OPEN for A100.
          Session prompts: D:\tools\claude-config\plans\because-we-are-not-parallel-codd.md. NEXT SESSION =
          prompt B, CLI edition: first launch of each queue ask-first; crash-recovery per P11.5 = push the
          fix branch + re-exec on the LIVE VM (a live VM keeps its Drive mount).
@@ -1121,7 +1125,9 @@ addendum (D: session, 15:20-15:30Z): prompt B CLI edition started. vmgen for que
          `colab drivemount -s mounttest` (PowerShell): consent OK, then ValueError mount failed (drive-timeout)
          with no 'Authorizing VM' line. ROOT CAUSE: automation.py drivefs_hook opens /dev/tty for the Enter ->
          FileNotFoundError on Windows, swallowed at runtime.py:81 (colab.log 08:22:48) -> propagation POST +
-         input_reply never sent -> DriveFS times out. Details + fix candidate: STATE. GATE HELD: no A100.
+         input_reply never sent -> DriveFS times out. Kam: "patch" -> fix #4 (try/except OSError ->
+         sys.stdin.readline(), backup .orig) -> retry: Mounted; agent exec lists treedata on the same VM ->
+         MOUNT TEST PASSED, mounttest stopped, gate OPEN. Details: STATE + OVERHAUL_PLAN P11.6 fix 4.
 next:    OTHER SESSION (D:): prompt B, CLI edition (plan file). vmgen -> ask Kam -> colab new -s A --gpu A100 ->
          KAM drivemount -s A -> exec bootstrap (expect BOOTSTRAP_DONE on work/p11-5-autonomy) -> exec launch ->
          same for B (>= 2 min later) -> monitor artifacts + colab status/log -> score (channels=rgb+chm gate) ->

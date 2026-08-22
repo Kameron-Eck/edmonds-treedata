@@ -662,9 +662,12 @@ runtimes per notebook, so two tabs shared ONE runtime; moving a tab is a manual 
 dance. Google's official `google-colab-cli` (PyPI, v0.6.0) is fully headless: named VMs
 with the GPU chosen by flag, code exec over websocket, no browser.
 
-**MOUNT TEST IS THE FIRST GPU-FREE STEP OF ANY SESSION.** `colab drivemount` had NOT
-completed successfully anywhere as of 2026-08-22 (the agent shell cannot: no TTY; and
-"it works in Kam's terminal" is a hypothesis, never measured). So a session proves it on
+**MOUNT TEST IS THE FIRST GPU-FREE STEP OF ANY SESSION.** ✔ PASSED 2026-08-22 15:4xZ
+after machine-local fix #4 (below): Kam's PowerShell `colab drivemount -s mounttest`
+completed (`Mounted at /content/drive`) and the agent's `colab exec` listed
+`/content/drive/MyDrive/treedata` on the same VM — both unknowns proven. Before the fix
+it had NOT completed anywhere (the `/dev/tty` read fails on every Windows terminal, not
+only the agent shell). The rule stands for every future session: prove it on
 a CPU VM before allocating a GPU: `colab new -s mounttest` → Kam runs `colab drivemount
 -s mounttest` in his terminal → the AGENT verifies with a `colab exec` listing of
 /content/drive/MyDrive/treedata (this also proves the mount is visible across the
@@ -692,6 +695,15 @@ google-colab-cli — documented here because they live OUTSIDE the repo):**
    (constants so stdlib `tty.py` imports; functions raise) — the CLI is "Linux/macOS
    only" solely because `console.py` imports termios unconditionally.
 3. Two-phase OAuth helper (agent-drivable sign-in): `D:\tools\colab-cli\auth_twophase.py`.
+4. `colab drivemount` Enter-read (2026-08-22, D: session): `colab_cli/commands/automation.py`
+   `drivefs_hook` read the post-consent Enter via `open("/dev/tty")`, which does not exist on
+   Windows; the `FileNotFoundError` was swallowed by `runtime.py` (`except Exception:
+   logging.debug`), so the `dryrun=false` credentials-propagation POST and the kernel
+   `input_reply` never ran and DriveFS timed out (`ValueError: mount failed`, the
+   drive-timeout branch) — on EVERY Windows terminal, Kam's included. Patch: wrap the
+   `/dev/tty` read in `try/except OSError` and fall back to `sys.stdin.readline()`; the
+   human still consents in the browser and presses Enter. Backup beside it:
+   `automation.py.orig`.
 
 **The flow (one queue per VM; first launch of each queue = Kam's yes, per P11.5):**
 1. Agent: `py -3.12 pipeline/colab_cli_vmgen.py --branch <branch> --queue <q>.yaml

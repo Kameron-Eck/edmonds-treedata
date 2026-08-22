@@ -186,6 +186,27 @@ READOPT = HERE / "colab_readopt.py"
 ASSIGN_RE = re.compile(r"^\s*(\S+)\s+(\S+)\s+(\S+)\s+\[(.+?)\]\s*$")
 
 
+def heal_sessions():
+    """Run colab_readopt --heal: re-adopt orphans, refresh tokens before their 1 h
+    expiry, respawn dead keep-alive daemons. Returns the list of actions taken.
+
+    This is the safety net for the failure that cost three A100s on 2026-08-22: the
+    CLI prunes a session on any transient error (a 404 from /api/kernels sufficed),
+    which deletes the entry AND kills the heartbeat, and Colab then reclaims the
+    still-computing VM ~15-25 min later. Healing on a schedule closes that window.
+    """
+    if not (Path(TOOL_PY).exists() and READOPT.exists()):
+        return [], "colab_readopt.py or the CLI interpreter not found"
+    try:
+        r = subprocess.run([TOOL_PY, str(READOPT), "--heal"], capture_output=True, text=True,
+                           encoding="utf-8", errors="replace", timeout=180)
+    except (OSError, subprocess.SubprocessError) as e:
+        return [], f"heal: {e}"
+    acted = [ln[len("HEAL "):] for ln in (r.stdout or "").splitlines()
+             if ln.startswith("HEAL ") and not ln.startswith("HEAL nothing")]
+    return acted, ("" if r.returncode == 0 else (r.stderr or "")[-200:])
+
+
 def live_assignments():
     """Every live server-side assignment + whether it has a local name.
 
@@ -515,6 +536,7 @@ class Collector(threading.Thread):
         self._hist = {}          # session -> deque of {t, util, mem, n, total, rate}
         self._assign = []        # live server-side assignments (orphan detection)
         self._assign_err = ""
+        self._heal_log = []      # recent self-healing actions (token/daemon/orphan)
         self._hist_json = "{}"
 
     def snapshot(self):
@@ -599,6 +621,7 @@ class Collector(threading.Thread):
             errors.append(self._assign_err)
         state = {"generated": now.strftime("%Y-%m-%dT%H:%M:%SZ"), "sessions": cards,
                  "colab_sessions": self._sess_rows, "assignments": self._assign, "orphans": orphans,
+                 "heal_log": self._heal_log,
                  "locks": read_locks(), "manifests": read_manifests(),
                  "errors": errors, "exec_interval": self.exec_interval, "no_exec": self.no_exec,
                  "base": str(BASE)}
@@ -614,6 +637,12 @@ class Collector(threading.Thread):
             t = time.time()
             try:
                 if t - last_sess >= 120:
+                    if not self.no_exec:
+                        acted, herr = heal_sessions()   # BEFORE reading the store
+                        if acted:
+                            self._heal_log = (self._heal_log + acted)[-10:]
+                        if herr:
+                            self._assign_err = herr
                     self.refresh_sessions()
                     self._assign, self._assign_err = live_assignments()
                     last_sess = t

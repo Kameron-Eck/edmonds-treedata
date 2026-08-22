@@ -170,6 +170,14 @@ overhaul: ** ACTIVE WORKSTREAM 2026-08-20 — OPTION A OVERHAUL. PLAN = Scripts/
          (Kam: 'runtime not started' when opened — the page is a viewer; the nohup queue is independent).
          HARNESS: user settings env PYTHONUTF8=1 + PYTHONIOENCODING=utf-8 (colab.exe's cp1252 stdout
          crashed on the manifest arrow in a log tail; env avoids VAR= prefixes). Probes sanitize to ASCII.
+         ** STEP 6 16:05Z: BOTH HEALTHY, MONITOR ARMED, /loop HANDED TO KAM. ** A: pid 1881 + engine pid 1889
+         (2024 inference), 2024_coe_rgb.tif staging 16.0/26.9 GB at 16:04Z (~33 MB/s -> tock ~16:10Z), GPU
+         idle as expected. B: pid 1712 + engine 1716 (2019 tile), log says 'staging lock held by
+         ba5d4bc9133a:1889 for 2024_coe_rgb.tif; waiting for 2019_king_rgb.tif (poll 30s)' = FIRST IN-THE-WILD
+         PROOF of the P11.4 cross-runtime staging lock. Monitor = per-VM probe_live (procs, GPU, scratch, log
+         tails, ASCII-sanitized) via colab exec + local G: reads of train_queue_status_*.csv, run manifests,
+         masks, nohup logs + lock WARNING grep + colab status/log. Loop prompt = plan file prompt C.
+         Session A url (viewer only): colab url -s A.
          Session prompts: D:\tools\claude-config\plans\because-we-are-not-parallel-codd.md. NEXT SESSION =
          prompt B, CLI edition: first launch of each queue ask-first; crash-recovery per P11.5 = push the
          fix branch + re-exec on the LIVE VM (a live VM keeps its Drive mount).

@@ -202,6 +202,20 @@ overhaul: ** ACTIVE WORKSTREAM 2026-08-20 — OPTION A OVERHAUL. PLAN = Scripts/
          Dashboard hardened: reads sessions.json directly (never `colab sessions`, which prunes) and flags
          any live assignment with no local name as a billing orphan (the CPU [?] from the browser tab shows
          up that way now). LOOP NAMES ARE NOW A2/B2. Doc: OVERHAUL_PLAN P11.6 'Lost-session hazard'.
+         ** VM A TERMINATED ~17:08Z — 2024 inference LOST (no raster). ** Kam ended the CPU [?] orphan in the
+         browser; A2's A100 assignment vanished at the same moment (list_assignments now shows only B2), so
+         both went together — most likely both were ended from Colab's own session manager, which lists
+         CLI VMs as unnamed runtimes. State at death: 2024 inference ~39% of 481,068 tiles after ~1.2 h of
+         A100 (15:53-17:08Z); the prob raster existed only in /content/phase4_scratch (472 MB at 16:57Z), so
+         the verified-write path left NOTHING on Drive - no stub, no partial. Stale RUNNING row closed by
+         local audit -> INTERRUPTED exit=vm_gone (resume already treats RUNNING as not-OK). Queue A's other
+         job (2017) never started. B2 UNAFFECTED: 2019 inference 39% at 17:15Z, ETA ~17:55Z. Per the loop
+         rule a DEAD VM needs Kam (fresh colab new + drivemount), so the relaunch of queue A is an ASK, not
+         autonomous. MEASURED while diagnosing: inference is INPUT-BOUND on the A100 - nvidia-smi dmon over
+         20 s on B2 read sm% 0,0,47,0,28,56,0,...,77,7,0 (mean 16%, peak 79%, 12/20 point samples exactly 0)
+         with the engine at 105% CPU/55 threads and 21 GB VRAM held; ~34-40 tile/s is the same order as the
+         L4-era estimate, i.e. the A100 buys little on inference (it earns its keep on train). Dashboard now
+         samples utilisation (15 reads over 3 s, mean/peak) instead of one instantaneous read.
          Session prompts: D:\tools\claude-config\plans\because-we-are-not-parallel-codd.md. NEXT SESSION =
          prompt B, CLI edition: first launch of each queue ask-first; crash-recovery per P11.5 = push the
          fix branch + re-exec on the LIVE VM (a live VM keeps its Drive mount).

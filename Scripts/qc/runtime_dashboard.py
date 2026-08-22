@@ -87,6 +87,16 @@ out["procs"] = procs
 g = sh("nvidia-smi --query-gpu=name,utilization.gpu,memory.used,memory.total "
        "--format=csv,noheader,nounits").strip()
 out["gpu"] = [x.strip() for x in g.split(",")] if g and not g.startswith("ERR") and "," in g else None
+# utilization.gpu is an INSTANTANEOUS sample: inference is input-bound (a 32-tile
+# forward pass, then a wait while the next window is read off the ortho), so a single
+# reading is 0 most of the time even at full tilt. Sample ~3 s and report mean/max.
+if out["gpu"]:
+    s = sh("nvidia-smi --query-gpu=utilization.gpu --format=csv,noheader,nounits -lms 200 -c 15", t=25)
+    vals = [int(v) for v in s.split() if v.strip().isdigit()]
+    if vals:
+        out["gpu_util_mean"] = round(sum(vals) / len(vals))
+        out["gpu_util_max"] = max(vals)
+        out["gpu_util_n"] = len(vals)
 sc = []
 for p in sorted(glob.glob("/content/phase4_scratch/*")):
     try:
@@ -331,7 +341,9 @@ def build_card(sess, probe, probe_err, merged_latest, now):
                 scratch=probe.get("scratch", []), queue=probe.get("queue"))
     g = probe.get("gpu")
     if g and len(g) >= 4:
-        card["gpu"] = {"name": g[0], "util": g[1], "mem_used": g[2], "mem_total": g[3]}
+        card["gpu"] = {"name": g[0], "util": g[1], "mem_used": g[2], "mem_total": g[3],
+                       "util_mean": probe.get("gpu_util_mean"), "util_max": probe.get("gpu_util_max"),
+                       "util_n": probe.get("gpu_util_n")}
     else:
         card["gpu"] = None
     if not card["procs"]:
@@ -399,11 +411,12 @@ def build_card(sess, probe, probe_err, merged_latest, now):
     # batches is normal), so require two consecutive zero samples before flagging
     if card["gpu"] and cur and cur["step"] in ("train", "inference") and not cur.get("staging"):
         try:
-            zero = int(card["gpu"]["util"]) == 0
+            gg = card["gpu"]
+            zero = (gg.get("util_max") == 0 if gg.get("util_max") is not None else int(gg["util"]) == 0)
             prev = _LAST_UTIL_ZERO.get(sess["name"], False)
             if zero and prev and cur.get("progress"):
-                card["flags"].append("note: GPU 0% on two consecutive probes while progress advances "
-                                     "(I/O-bound phase, or a stall if the bar stops moving)")
+                card["flags"].append("note: GPU idle across two full sampling windows while progress "
+                                     "advances (input-bound step, or a stall if the bar stops moving)")
             _LAST_UTIL_ZERO[sess["name"]] = zero
         except ValueError:
             pass
@@ -467,7 +480,8 @@ class Collector(threading.Thread):
             except ValueError:
                 rate = None
         try:
-            util = int(g.get("util")) if g else None
+            util = (g.get("util_mean") if g and g.get("util_mean") is not None
+                    else (int(g.get("util")) if g else None))
             mem = int(g.get("mem_used")) if g else None
         except ValueError:
             util = mem = None
@@ -593,7 +607,7 @@ rateEl.addEventListener('change',()=>{try{localStorage.setItem('edm_rate',rateEl
 function stepsHtml(j){return (j.steps||[]).map(st=>{const cls=(st.state||'')+(st.src==='prior'?' prior':'');
  return `<span class="chip ${cls}" title="${esc(st.ts||'')}${st.verify?' · VERIFY '+esc(st.verify):''}">${esc(st.step)}${st.state?' · '+esc(st.state):''}${st.minutes?' · '+esc(st.minutes)+'m':''}${st.verify&&st.verify!=='OK'?' ⚠':''}</span>`}).join('');}
 function card(s){
- const g=s.gpu,c=s.current,util=g?+g.util:0,mem=g?100*g.mem_used/g.mem_total:0;
+ const g=s.gpu,c=s.current,util=g?(g.util_mean!=null?g.util_mean:+g.util):0,mem=g?100*g.mem_used/g.mem_total:0;
  const hours=s.hours_billed??null,rate=parseFloat(rateEl.value);
  let h=`<div class="col-lg-6"><div class="card">
  <div class="card-header"><div><h3 class="card-title mb-0">Session ${esc(s.name)} <span class="muted fw-normal">· ${esc(s.queue||'no queue process')}</span></h3>
@@ -601,13 +615,13 @@ function card(s){
  <div class="card-actions"><span class="badge bg-azure-lt">${esc(g?g.name:(s.hardware||'?'))}</span></div></div>
  <div class="card-body">`;
  if(s.flags&&s.flags.length)h+=s.flags.map(f=>`<div class="alert ${f.startsWith('note:')?'alert-info':'alert-danger'} py-2 mb-2">${esc(f)}</div>`).join('');
- h+=`<div class="row g-3"><div class="col-6"><div class="d-flex justify-content-between small"><span class="muted">GPU util</span><span>${g?esc(g.util)+'%':'–'}</span></div><div class="progress progress-sm"><div class="progress-bar bg-green" style="width:${util}%"></div></div></div>
+ h+=`<div class="row g-3"><div class="col-6"><div class="d-flex justify-content-between small"><span class="muted">GPU util${g&&g.util_n?' <span title="mean / peak over the sampling window — inference is input-bound, so a single reading is 0 most of the time">(mean/peak)</span>':''}</span><span>${g?(g.util_mean!=null?`${g.util_mean}% / ${g.util_max}%`:esc(g.util)+'%'):'–'}</span></div><div class="progress progress-sm"><div class="progress-bar bg-green" style="width:${util}%"></div><div class="progress-bar bg-green-lt" style="width:${Math.max(0,(g&&g.util_max!=null?g.util_max:util)-util)}%"></div></div></div>
  <div class="col-6"><div class="d-flex justify-content-between small"><span class="muted">GPU memory</span><span>${g?`${(g.mem_used/1024).toFixed(1)} / ${(g.mem_total/1024).toFixed(0)} GB`:'–'}</span></div><div class="progress progress-sm"><div class="progress-bar bg-azure" style="width:${mem}%"></div></div></div></div>`;
  if(c){const p=c.progress,pct=p?p.pct:(c.elapsed_min&&c.ceiling_min?Math.min(100,100*c.elapsed_min/c.ceiling_min):0);
   h+=`<div class="mt-3"><div class="d-flex justify-content-between"><div><strong>${esc(c.job)} / ${esc(c.step)}</strong> <span class="muted">${esc(c.title||'')}</span></div><div class="muted small">${c.elapsed_min??'?'} / ${c.ceiling_min??'?'} min</div></div>
   <div class="progress mt-1" style="height:16px"><div class="progress-bar ${p?'bg-primary':'bg-secondary'}" style="width:${pct.toFixed(0)}%">${p?pct+'%':''}</div></div>
   <div class="small muted mt-1">${p?`${esc(p.desc)} ${p.n.toLocaleString()} / ${p.total.toLocaleString()} · ${esc(p.elapsed)} elapsed · ETA ${esc(p.eta)} · ${esc(p.rate)}`:(c.staging?esc(c.staging):'no progress bar for this step (train prints per epoch) — bar = elapsed vs ceiling')}</div></div>`;}
- h+=`<div class="row mt-3"><div class="col-6"><div class="muted small">GPU util % · fixed 0–100, minutes before now</div><div class="chartbox"><canvas id="u_${esc(s.name)}"></canvas></div></div><div class="col-6"><div class="muted small">throughput tiles/s · fixed 0–100</div><div class="chartbox"><canvas id="r_${esc(s.name)}"></canvas></div></div></div>`;
+ h+=`<div class="row mt-3"><div class="col-6"><div class="muted small">GPU util % (sampled mean) · fixed 0–100, minutes before now</div><div class="chartbox"><canvas id="u_${esc(s.name)}"></canvas></div></div><div class="col-6"><div class="muted small">throughput tiles/s · fixed 0–100</div><div class="chartbox"><canvas id="r_${esc(s.name)}"></canvas></div></div></div>`;
  (s.jobs||[]).forEach(j=>{h+=`<div class="mt-3"><strong>${esc(j.id)}</strong> <span class="muted small">${esc(j.tag)}</span>${j.job_end?` <span class="chip ${esc(j.job_end.state)}">job-end VERIFY ${esc(j.job_end.state)}</span>`:''}<div>${stepsHtml(j)}</div></div>`;});
  if(s.scratch&&s.scratch.length)h+=`<div class="muted small mt-3">scratch: ${s.scratch.map(f=>`${esc(f.name)} ${fmtB(f.size)}`).join(' · ')}</div>`;
  if(s.procs&&s.procs.length)h+=`<div class="muted small mono">${s.procs.map(p=>`${p.pid} ${Math.floor(p.etimes/60)}m ${esc(p.args.replace(/.*phase4_/,'phase4_').slice(0,80))}`).join('<br>')}</div>`;

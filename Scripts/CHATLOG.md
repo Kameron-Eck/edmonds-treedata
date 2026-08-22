@@ -84,6 +84,12 @@ overhaul: ** ACTIVE WORKSTREAM 2026-08-20 — OPTION A OVERHAUL. PLAN = Scripts/
          DEFERRED: registry-generator from manifests, QC-provenance headers, pipeline_status.py,
          watch_queue.py, dag.yaml (P8), mirror_sync.py (P9), P10 cleanups.
          Read the plan file; do not restate it here.
+         ** 2026-08-22 01:50Z RESUME (local 08-21 eve) ** — colab-mcp NOT registered in any scope (redo, USER
+         scope — see LOG). 2024-finish + queue3 runtimes (both cloned 57bc07b = pre-P11.1 clobber-prone status
+         writer) SILENT since 01:12Z: Drive API shows no write from either after 01:12:52Z / 01:03:07Z; both
+         stuck in ortho staging (parallel-staging throttle) or dead — only Kam's tab decides. Nothing newly
+         VERIFIED → nothing scored. d038f34 + f4601c4 UNPUSHED — push before ANY relaunch. 2013 citywide .7422
+         row is live=0 in qc_indep_report.csv (re-score owed; see LOG). Artifact monitor armed (this session only).
 proj:    Edmonds temporal canopy pipeline, phase 4 (per-year semantic seg, 18 imagery yrs).
 live:    ENGINE MODULARIZED 2026-07-08 → phase4seg/ package (config/common/labels/tiling/core[all torch]/
          postproc/cli) + 97L phase4_semantic_finetune.py SHIM (preserves `%run ... --args`). Behavior =
@@ -1019,6 +1025,45 @@ gotcha:  scripts Colab-only for torch (rasterio+geopandas+fiona+sklearn now pip-
          accept-all test data; 14,476-crown human review never finished.
 
 ════════════════ LOG  (newest first) ════════════════
+
+## 2026-08-21  RESUME on D: — colab-mcp NOT registered; 2024-finish + queue3 SILENT since 01:12Z; nothing new to score
+goal:    resume after P11: verify colab-mcp read-only; locate GPU work from ARTIFACTS; score newly-VERIFIED years;
+         harvest; re-arm watch.
+did:     colab-mcp: NOT registered anywhere — `claude mcp list` = claude.ai Drive/Gmail/Calendar/HF only;
+         ~/.claude.json mcpServers {} and no project entries; no .mcp.json on D: or G:; ToolSearch 'colab' = 0
+         tools. Last session's registration never persisted. Nothing launched, nothing exposed.
+         GPU state from artifacts (Drive API, server-side mtimes — not local sync): train_queue_status.csv
+         01:12:36Z, train_queue_nohup.log 01:12:52Z, 2000-canary manifest 01:29:11Z (cell-5 re-run, no status
+         row). queue3 runtime: NOTHING after its 2019 tile manifest 01:03:07Z — tiles write straight to Drive
+         (tiling.py rasterio.open(img_out,"w")), so a live tile step leaves files; tiles/2019 = 668 July files,
+         unchanged 47 min. 2024 runtime: nohup ends at the "Step 5" header; next print is the staging ⏱ tock
+         (core.py step_inference → _stage_imagery_local); none after 36 min vs 214 s for 2017's 48 GB ortho in
+         a healthy window. => BOTH stalled in ortho staging (11.7 GB 2019 @01:03Z + 26.9 GB 2024 @01:12Z =
+         the parallel-staging throttle P11 named) or dead. Cannot distinguish without the tab/MCP.
+         No new VERIFY row, no new prob raster → nothing scorable tonight. Sizes: 2024 ortho = same 31.53 Gpx
+         grid as 2017 → inference ≈ 4h15m L4 AFTER staging; queue3 ≈ 13.5 h L4 (2019 ~2.5 h, 2017/2022 ~5.5 h
+         each) → two windows.
+         Harvest: train_queue_status.csv (01:00–01:12Z rows) → f4601c4. Monitor armed: new status rows / run
+         dirs / 2024-2019-2017-2022 prob+mask rasters / tile counts / STALE alerts at 120-600 min.
+         FOUND: 2013 citywide_rgb .7422/.8672 (quoted in CHATLOG recipe-matched table AND WORKPLAN §1.3) is
+         live=0 in qc_indep_report.csv line 40 — superseded by the 2013 xsensor re-score 19:57Z same ref (live
+         flag keyed (year, ref) cannot hold two series), and scored at fallback thresh 0.5, not tool-chosen.
+         Quote .7422 with footnote until re-scored (WORKPLAN wins). Scoring 2017 citywide will likewise demote
+         the xsensor .7986 row — INTENDED (queue3 exists to replace it), not data loss.
+decided: report "both stalled or dead", not "A fine / B stuck" — A's missing stage tock is evidence too.
+         Fix 2013 by re-score (newest → live=1), no scorer change tonight.
+files:   phase4/qc/train_queue_status.csv (f4601c4), CHATLOG.md (STATE + this entry)
+next:    KAM (in order): (1) `git push github main --tags` — d038f34 (P11.1) + f4601c4 + this commit are
+         UNPUSHED; every runtime tonight cloned 57bc07b; any relaunch must clone HEAD. (2) Colab tab(s):
+         alive-throttled vs dead. Dead → relaunch is a NEW ask (queue3.yaml, L4, 1 runtime, ~13.5 h → 2
+         windows; queue_2024_finish.yaml ~4.5 h). Never stage two orthos concurrently again — stagger.
+         (3) one-time: `py -3.12 -m pip install uv` (uvx not on PATH) then
+         `claude mcp add --scope user colab-mcp -- uvx git+https://github.com/googlecolab/colab-mcp`
+         (USER scope: sessions open in both D: and G:; local scope binds one cwd). README documents no auth
+         flow — expect a browser step on first use; Claude verifies read-only next session.
+         CLAUDE when rasters land: qc_indep 2024 + 2019 vs clipped ccap_2021_hires_lc.tif (T3 footing), 2017
+         vs ccap_2016_hires_lc_snohfull.tif, 2022 vs clipped ccap_2021 (2021-epoch); re-score 2013 citywide;
+         harvest --commit; registry rows from manifests (generator still deferred).
 
 ## 2026-08-21  P11 ADOPTED — Kam hands Claude the GPU keys, ask-first ALWAYS; status clobber fixed
 goal:    Kam ruling: Claude may drive Colab via MCP server; MUST ask permission before EVERY

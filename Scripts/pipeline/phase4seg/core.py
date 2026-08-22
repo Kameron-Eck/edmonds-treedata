@@ -10,12 +10,15 @@ from phase4seg.tiling import _origins_from_manifest
 
 import contextlib
 import gc
+import os
 import shutil
 import time
 import numpy as np
 import pandas as pd
 import rasterio
 import rasterio.windows
+from collections import deque
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from sklearn.model_selection import train_test_split
 from tqdm import tqdm
@@ -142,6 +145,14 @@ def _sync_hs_source_from_tile(img_path):
         print(f"  Tiles were baked with --hs-source {tag} — adopting it "
               f"(flag said {config.HS_SOURCE}).")
         config.HS_SOURCE = tag
+
+
+# Reader threads for full-city inference (P11.6). rasterio window reads and the
+# per-tile hillshade warp release the GIL, so threads — not processes — overlap the
+# read path with GPU compute. 8 measured best on a Colab A100 VM (16.5 -> 3.1 ms/tile;
+# 12 threads was no better). Override with EDMONDS_INFER_WORKERS; 1 restores the old
+# fully serial path for a bisect.
+INFER_READ_WORKERS = max(1, int(os.environ.get("EDMONDS_INFER_WORKERS", "8")))
 
 
 def rgb_to_model_input(img_uint8):
@@ -1375,6 +1386,10 @@ def step_inference(label, batch_size=INFER_BATCH_SIZE, dry_run=False, citywide=F
     _tgt.load_state_dict(_inflate_first_conv(ck["model_state"], _tgt.state_dict()),
                          strict=False)
     model.eval()
+    if device.type == "cuda":
+        # every inference forward has the same shape, so cuDNN's autotuner pays for
+        # itself on the first batch and is free for the remaining hundreds of thousands
+        torch.backends.cudnn.benchmark = True
     gc.collect()
     if torch.cuda.is_available():
         torch.cuda.empty_cache()   # release memory held from train/eval in the same process
@@ -1421,13 +1436,22 @@ def step_inference(label, batch_size=INFER_BATCH_SIZE, dry_run=False, citywide=F
         # OOM-resilient forward: on CUDA OOM, halve the batch and retry (freeing the
         # failed alloc first). Guards the full-city pass when an oversized inference
         # batch or leftover train/eval memory tips the GPU over.
+        #
+        # P11.6 throughput: sigmoid, the centre crop and the uint8 quantisation all run
+        # ON THE GPU. The old path pulled (B,512,512) fp32 logits to the host and ran
+        # numpy exp() over 8.4M values per 32-tile batch (~60-100 ms of single-threaded
+        # CPU inside the serial loop), then cropped. Doing it on device leaves only the
+        # (B,cc,cc) uint8 crop to transfer — ~5x less traffic — and frees the CPU for
+        # the tile readers. Numerically identical to within 1 LSB: the same fp32
+        # sigmoid, the same *254/round/clip.
         try:
-            inp = torch.stack(imgs).to(device)
+            inp = torch.stack(imgs).to(device, non_blocking=True)
             with torch.no_grad(), torch.amp.autocast("cuda"):
                 raw = model(inp)
                 seg = raw[0] if isinstance(raw, (tuple, list)) else raw
-                out = seg.float().squeeze(1).cpu().numpy()  # fp32 before sigmoid
-            del inp
+            p = torch.sigmoid(seg.float().squeeze(1))[:, pad:pad + cc, pad:pad + cc]
+            out = (p * 254.0).round().clamp_(0, 254).to(torch.uint8).cpu().numpy()
+            del inp, raw, seg, p
             return out
         except RuntimeError as e:
             if "out of memory" not in str(e).lower() or len(imgs) == 1:
@@ -1439,13 +1463,11 @@ def step_inference(label, batch_size=INFER_BATCH_SIZE, dry_run=False, citywide=F
     def flush(dst):
         if not batch_imgs:
             return
-        logits = _forward(batch_imgs)
-        probs = 1.0 / (1.0 + np.exp(-logits))
+        crops = _forward(batch_imgs)          # (B, cc, cc) uint8, already sigmoid+quantised
         for k, (ro, co, valid) in enumerate(batch_meta):
-            center = probs[k, pad:pad+cc, pad:pad+cc]
             cr_end = min(ro + cc, img_h); cc_end = min(co + cc, img_w)
             ch, cw = cr_end - ro, cc_end - co
-            crop = (center[:ch, :cw] * 254.0).round().clip(0, 254).astype(np.uint8)
+            crop = np.ascontiguousarray(crops[k, :ch, :cw])   # view -> own buffer
             if valid is not None:                       # blank no-data pixels
                 crop[~valid[:ch, :cw]] = PROB_NODATA
             win = rasterio.windows.Window(co, ro, cw, ch)
@@ -1463,9 +1485,11 @@ def step_inference(label, batch_size=INFER_BATCH_SIZE, dry_run=False, citywide=F
                 dst.write(_fill[np.newaxis, :_rh],
                           window=rasterio.windows.Window(0, _r0, img_w, _rh))
         with rasterio.open(local) as src:
-            pbar = tqdm(total=len(origins), desc="  Inference", unit="tile",
-                        miniters=2000, mininterval=2.0)
-            for ro, co in origins:
+            def _prep(rc):
+                """Read + preprocess ONE tile. Runs in reader threads: rasterio reads and
+                the hillshade warp release the GIL, so this overlaps with GPU work.
+                Byte-for-byte the same tile the serial loop produced."""
+                ro, co = rc
                 r0, c0 = ro - pad, co - pad
                 r1, c1 = r0 + TILE_SIZE, c0 + TILE_SIZE
                 rr0, cc0 = max(0, r0), max(0, c0)
@@ -1492,13 +1516,37 @@ def step_inference(label, batch_size=INFER_BATCH_SIZE, dry_run=False, citywide=F
                 if valid.all():
                     valid = None  # full-coverage tile, skip the masking work
 
-                batch_imgs.append(
-                    torch.from_numpy(rgb_to_model_input(tile)) if (config.USE_VI or has_hs)
-                    else tf(image=tile)["image"])
-                batch_meta.append((ro, co, valid))
-                if len(batch_imgs) == batch_size:
-                    flush(dst); batch_imgs.clear(); batch_meta.clear()
-                pbar.update(1)
+                img = (torch.from_numpy(rgb_to_model_input(tile))
+                       if (config.USE_VI or has_hs) else tf(image=tile)["image"])
+                return img, (ro, co, valid)
+
+            pbar = tqdm(total=len(origins), desc="  Inference", unit="tile",
+                        miniters=2000, mininterval=2.0)
+            # Bounded look-ahead: keep ~3 batches of tiles in flight so the GPU never
+            # waits on a read, without materialising the whole city in RAM. Results are
+            # consumed in submission order, so the write order is unchanged. Measured
+            # 2026-08-22 on the 2019 ortho: 16.5 ms/tile serial (12 ms of it the per-tile
+            # CHM warp) vs 3.1 ms/tile at 8 threads — the serial read path, not the GPU,
+            # was the ceiling (~40 tile/s at ~20% GPU).
+            inflight = deque()
+            max_inflight = max(batch_size * 3, 64)
+            it = iter(origins)
+            with ThreadPoolExecutor(max_workers=INFER_READ_WORKERS) as pool:
+                def _pump():
+                    while len(inflight) < max_inflight:
+                        try:
+                            inflight.append(pool.submit(_prep, next(it)))
+                        except StopIteration:
+                            break
+                _pump()
+                while inflight:
+                    img, meta = inflight.popleft().result()
+                    _pump()
+                    batch_imgs.append(img)
+                    batch_meta.append(meta)
+                    if len(batch_imgs) == batch_size:
+                        flush(dst); batch_imgs.clear(); batch_meta.clear()
+                    pbar.update(1)
             pbar.close()
             flush(dst)
     tock("inference")

@@ -1,0 +1,20 @@
+# ONE-JOB QUEUE — 2019 full-city inference only (staged 2026-08-22, overhaul P11.6).
+# Runs on the VM that finished queue_B_2019_2022's 2022 job:
+#     python -u phase4_train_queue.py --queue queue_2019_inference.yaml
+# 2019's labels/tile/train/evaluate all carry VERIFY:OK rows from tonight
+# (train 31.4 min, val_iou .6448@0.4), so resume skips them and this queue is
+# exactly one step. Its first inference reached 40% before the VM was reclaimed
+# (keep-alive daemon killed by a session prune); the retry hit the shared-GDAL-handle
+# race in the first threaded build. Neither wrote to Drive.
+# Expect ~15-20 min on an A100 with the threaded reader (was ~1 h serial).
+- id: "2019"
+  year: "2019"
+  tag: citywide_rgb
+  extra: ["--force-citywide"]
+  why: >-
+    King 10 cm. Pairs with 2019n (NAIP 60.7 cm) as a second same-year cross-sensor
+    pair and completes the 10 cm tier alongside 2013/2015/2021/2023.
+  expect: >-
+    prob raster ~2.3 GB, VERIFY:inference OK, then a job-end VERIFY. Score locally
+    vs the clipped ccap_2021 reference (T3 footing) once the scorer says
+    channels=rgb+chm.

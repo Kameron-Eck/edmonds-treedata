@@ -294,6 +294,16 @@ overhaul: ** ACTIVE WORKSTREAM 2026-08-20 — OPTION A OVERHAUL. PLAN = Scripts/
          12 of the 16.5 ms serial read cost - pre-warping the CHM onto each ortho grid once per year would
          remove it and should take GPU util past 85%; EDMONDS_INFER_WORKERS>8 did NOT help the read path in
          the bench (326 tile/s at 8 vs 305 at 12).
+         ** RELAUNCH A 2026-08-22 19:32:10Z (Kam: "Start A") ** colab session A5 = A100-SXM4-40GB (host
+         1b6ab59ed0dc, keep-alive pid 9636); FIRST drivemount attempt failed with "Error propagating: 400"
+         (the auth URL's state token had gone stale between print and Enter) — the retry, approved promptly,
+         worked. Bootstrap at 87391aa on fix/20260822-inference-throughput, BOOTSTRAP_DONE, vm_launch -> pid
+         3562, log train_queue_nohup_queue_A_2024_2017_20260822T193210Z.log. Queue A resumes 2017 at TILE
+         (its 18:20Z attempt died with the VM) then train/evaluate/inference; the 2024 inference re-run
+         follows via queue_2024_inference.yaml. Two A100s live again (A5 + B4).
+         DRIVEMOUNT NOTE for the runbook: approve the URL within ~a minute and press Enter promptly; a slow
+         approval yields "Error propagating: 400" and the mount silently does not happen (verify with a
+         colab exec listing before spending GPU).
          Session prompts: D:\tools\claude-config\plans\because-we-are-not-parallel-codd.md. NEXT SESSION =
          prompt B, CLI edition: first launch of each queue ask-first; crash-recovery per P11.5 = push the
          fix branch + re-exec on the LIVE VM (a live VM keeps its Drive mount).

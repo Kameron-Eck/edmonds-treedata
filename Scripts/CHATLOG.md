@@ -1180,6 +1180,55 @@ gotcha:  scripts Colab-only for torch (rasterio+geopandas+fiona+sklearn now pip-
 
 ════════════════ LOG  (newest first) ════════════════
 
+## 2026-08-22  COUNTY IMAGERY + 2005 LIDAR FOUND — acquisition plan written; the 41.9% ceiling is self-inflicted
+goal:    Kam found the county imagery portals and 2005/2016 lidar metadata; "I want to go all out" — new years,
+         better versions of held years, metadata, and second acquisitions of covered years.
+did:     PLAN ONLY, nothing acquired. New doc IMAGERY_ACQUISITION_PLAN_2026-08-22.md (sources, measured
+         analysis, 5 phases, gates, risks); WORKPLAN Tier 2 item 7 points at it (old 7 -> 8).
+         ** MEASURED, not assumed: **
+         (1) THE 41.9% CEILING IS A PROPERTY OF OUR FILE, NOT THE SOURCE. Snohomish Aerial_2016 ImageServer
+         extent = 45x55 km and contains ALL of Edmonds; 2016_snoh_rgbi.tif is 6.7x4.9 km, cut off 3.5 km
+         short at the north. Probed the missing strip vs a control inside the file: control 100% non-black
+         (85.3% in-city), missing north-east 100% non-black (87.3% in-city), and black fraction tracks being
+         OUTSIDE the city polygon (water), not missing data. So full-extent 2016 is available -> removes the
+         caveat riding on the project's most-cited year. Same expected for 2021s (verify first).
+         (2) SNOHOMISH PUBLISHES 23 ANNUAL SERVICES 1990-2024, surveyed via REST: 1990 3.05m 1-band; 1996 1m;
+         2003/2007/2009/2011 30.5cm 3-band; 2013 1m; 2015 30.5cm 4-BAND; 2016 15.2cm 4-BAND; 2017 30.5cm
+         4-BAND; 2019 30.5cm 4-BAND; 2020 7.6cm 3-band; 2021 15.2cm 4-BAND. All contain Edmonds. Pixel sizes
+         are FEET (EPSG:2285) — the same units trap that caused the gsd_cm defect.
+         (3) NIR YEARS COULD GO 4 -> ~11 (King CIR 2000/2009/2010/2015/2023/2025 + Snohomish 4-band
+         2015-2021 + NAIP 2015/2017/2021). Only NIR years can carry an independent NDVI reference; it
+         currently exists at 4 points in an 18-acquisition series.
+         (4) KING METADATA RESOLVES TWO ORPHANS. KingCo_Aerial_2017 description gives vendor (Pictometry),
+         window (Feb-Oct 2017) and 3in/px over "King County AND southwestern Snohomish County" — i.e. King
+         flights do cover Edmonds. Closes 2012_king_rgb.tif and the second 2017_king_rgb.tif.
+         (5) ACCESS: Snohomish ImageServer exportImage, native, max 15000x4100/request. King BaseMaps
+         /export DOES work (capabilities omits it) but is a cached MIXED=lossy-JPEG service, max
+         4096x4096/request; King ORIGINALS come from the data catalog (www5.kingcounty.gov/sdc/?Layer=NAME)
+         + Open Data/FTP portal. NAIP via NOAA Digital Coast with tileindex+urllist+VRT+STAC = cleanest.
+         (6) 2005 PSLC lidar (dataset 2579, COPC, 0.25 pts/m2 vs 2016's ~4-5) — stand-scale only; overturns
+         "a lidar-dependent definition CANNOT be applied pre-2016". Change-detection use needs a DECIMATION
+         protocol or it manufactures growth. Details in the plan + the 2005/2016 InPort records.
+decided: order by CONSTRAINT REMOVED, not pixels acquired — full-extent 2016 first (removes an existing
+         caveat, adds nothing to reconcile). Prefer original downloads over REST export (double-JPEG).
+         Never overwrite a held file; new name + catalog entry. Re-MEASURE every GSD from the delivered
+         file — never copy a service's advertised resolution.
+killed:  my own claim that King's export "plateaus at ~20cm" — RETRACTED. Controlled test (312m box, 4096px
+         request vs 1024px upsampled to the same grid) gives 2.16x the HF energy for the native request, and
+         the cache carries LODs to level 21 ~ 5.0 cm ground. The laplacian-falloff proxy was measuring JPEG
+         smoothing, not a resolution ceiling.
+         ALSO NOT REVIVED: WORKPLAN 2's withdrawal of "the 2021 pair isolates the sensor effect" STANDS —
+         after true-GSD correction no same-tier same-year pair exists (Snohomish 30.5cm sits just above the
+         29.9cm medium boundary; 2021 pairs 10cm fine vs 15.2cm; 2021s is pinned coarse). The better prize
+         is that Snohomish 2015-2021 is one contractor lineage = a self-consistent multi-year 4-band series.
+files:   IMAGERY_ACQUISITION_PLAN_2026-08-22.md (new), WORKPLAN_2026-08-19.md (Tier 2 item 7), CHATLOG.md
+next:    UNTESTED GATE that decides half the King catalog: do King DERIVED products (TreeCanopy2016/2017/2021,
+         TreeCanopy2021Height, TreeCanopy2021 TreePoints, ForestCover2019Ecopia, VegetationFeatureHeights*,
+         the annual LiDAR DGM/DSM series) extend into Edmonds, or stop at the county line ~0.1 km south?
+         TreeCanopy2021Height + TreePoints would be a THIRD independent canopy reference with heights and
+         individual tree locations. Phase 2 of the plan settles it. Then Phase 0 cross-ref -> Phase 1
+         metadata -> Phase 3 Tier A (full-extent 2016). None of this is on the critical path to U1.
+
 ## 2026-08-22  P11.6 — headless Colab CLI probed + adopted; MCP tabs demoted to fallback
 goal:    make the NEXT session agentic for GPU runs. MCP-tab path hit its wall: both server instances open the
          same scratch notebook (SCRATCH_PATH hard-coded) -> ONE shared runtime; moving a tab = manual fragment

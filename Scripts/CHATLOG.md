@@ -317,6 +317,20 @@ overhaul: ** ACTIVE WORKSTREAM 2026-08-20 — OPTION A OVERHAUL. PLAN = Scripts/
          every failure of tonight with its real cause. ALSO FIXED (advisor caught it): runtime_dashboard
          --once did NOT heal before probing, so an hourly check would 401 on the 1 h token and prune/kill
          the VM it was checking on - heal now runs first on that path too.
+         ** 2022 CITYWIDE DONE 19:58:50Z (3927 MB, valid 74.7%) - and its WEAK_CALIBRATION VERIFY was a
+         FALSE ALARM IN THE CHECK. ** _check_prob_raster read a fixed 1200-ROW overview, which is ~1:45 of a
+         10 cm raster but ~1:177 of a 5 cm CoE raster (211,968 rows), so the 5 cm years sample ~15x sparser
+         and miss their rare high-confidence pixels. Measured on the SAME raster: max 0.728 at 1200 rows,
+         1.000 at 4800 rows, 1.000 on a full block-wise pass. 2022 was the first 5 cm citywide raster to
+         reach this check; 2024 and 2017 would have repeated it. FIX (this branch): sample a fixed 4M-PIXEL
+         budget (floor 1200 rows) so density is comparable across tiers, and report p99.9 + the sample shape
+         beside maxprob - max is one pixel and hides the tail. Re-check now returns OK maxprob=0.909
+         p99.9=0.665. Corrected VERIFY rows appended by audit; the original rows stay as history.
+         REAL FINDING KEPT: 2022's confidence IS compressed - full-raster histogram p50 0.087, p99 0.614,
+         p99.9 0.665, only 0.014% of valid pixels >0.7 and 1,627 >0.9 out of 23.5e9. Discrimination is fine
+         (held-out IoU .73 rgb+chm); it is the upper tail that is thin, which matters when the scorer
+         searches an operating threshold. 23.7% of valid pixels exceed 0.5 - a plausible canopy fraction.
+         B4 relaunched 20:01:01Z on queue_2019_inference.yaml (pid 46969, ~15-20 min) so it did not idle.
          Session prompts: D:\tools\claude-config\plans\because-we-are-not-parallel-codd.md. NEXT SESSION =
          prompt B, CLI edition: first launch of each queue ask-first; crash-recovery per P11.5 = push the
          fix branch + re-exec on the LIVE VM (a live VM keeps its Drive mount).

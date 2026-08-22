@@ -417,6 +417,15 @@ def run_step(job, step, infer_batch, rows):
     return rc == 0
 
 
+# Sanity-read budget in PIXELS, not rows. A fixed row count made the check
+# resolution-dependent: 1200 rows is ~1:45 of a 10 cm raster but ~1:177 of a 5 cm CoE
+# raster (211,968 rows), so the 5 cm years sampled ~15x more sparsely and missed their
+# rare high-confidence pixels. 2022 measured max 0.728 at 1200 rows and 1.000 at 4800
+# rows or a full pass — a WEAK_CALIBRATION false alarm that 2024 and 2017 would have
+# repeated. A fixed pixel budget keeps the sampling density comparable across tiers.
+_PROB_SAMPLE_PX = 4_000_000
+
+
 def _check_prob_raster(out):
     """Decimated sanity read of a prob raster → (state, detail)."""
     if not out.exists():
@@ -425,7 +434,8 @@ def _check_prob_raster(out):
     import rasterio
     from rasterio.enums import Resampling
     with rasterio.open(out) as s:
-        h = min(1200, s.height)
+        scale = min(1.0, (_PROB_SAMPLE_PX / float(s.width * s.height)) ** 0.5)
+        h = max(1200, min(s.height, int(s.height * scale)))
         w = max(1, int(s.width * h / s.height))
         a = s.read(1, out_shape=(h, w), resampling=Resampling.nearest)
         nd = 255 if s.nodata is None else s.nodata
@@ -441,7 +451,13 @@ def _check_prob_raster(out):
         state = "NO_CONFIDENCE"
     elif mx < 0.75:
         state = "WEAK_CALIBRATION"
-    return state, f"{mb:.0f}MB valid={vf:.1%} maxprob={mx:.3f}"
+    # p99.9 travels with the state: max is one pixel and says nothing about the shape of
+    # the tail. 2022 read max 1.000 but p99.9 0.665 with only 0.014% of pixels above 0.7 —
+    # a compressed upper tail the max alone would have hidden from the scoring step.
+    import numpy as _np
+    p999 = float(_np.percentile(a[v], 99.9)) / 254.0 if v.any() else float("nan")
+    return state, (f"{mb:.0f}MB valid={vf:.1%} maxprob={mx:.3f} p99.9={p999:.3f} "
+                   f"[{h}x{w} sample]")
 
 
 # P4.3: states that mean "the artifact this step just paid for is broken" —

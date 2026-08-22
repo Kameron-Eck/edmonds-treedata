@@ -413,6 +413,31 @@ def build_card(sess, probe, probe_err, merged_latest, now):
         # engine proc for this step?
         if not any("phase4_semantic_finetune" in p["args"] for p in card["procs"]):
             card["flags"].append("queue RUNNING row but no engine process on the VM")
+    # What the step is actually DOING right now — "inference RUNNING" with an idle GPU is
+    # normal during staging and model load; only the tile loop is GPU work (and even then it
+    # is input-bound and bursty). Spell it out so an idle GPU is not read as a stall.
+    if cur:
+        if cur.get("progress"):
+            cur["phase"] = "computing — GPU bursts between tile reads (input-bound, 0% is normal between batches)"
+        elif cur.get("staging"):
+            cur["phase"] = "waiting on the cross-runtime staging lock"
+        else:
+            fresh = [f for f in card.get("scratch", [])
+                     if probe.get("utc") and f.get("mtime") and
+                     (time.time() - f["mtime"]) < 180 and f.get("size", 0) > 1e8]
+            memmb = 0
+            try:
+                memmb = int((card.get("gpu") or {}).get("mem_used") or 0)
+            except ValueError:
+                pass
+            if fresh:
+                f = max(fresh, key=lambda x: x["size"])
+                cur["phase"] = (f"staging {f['name']} ({f['size'] / 1e9:.1f} GB copied) — disk I/O, "
+                                f"GPU idle by design")
+            elif memmb > 1000:
+                cur["phase"] = f"model loaded ({memmb / 1024:.1f} GB VRAM) — tile loop starting"
+            else:
+                cur["phase"] = "starting up (no GPU work yet)"
     card["current"] = cur
     if lg:
         card["log"] = {"path": lg["path"], "size": lg["size"], "age_s": lg["age_s"], "tail": parsed["tail"],
@@ -650,12 +675,12 @@ function card(s){
  <div class="card-actions"><span class="badge bg-azure-lt">${esc(g?g.name:(s.hardware||'?'))}</span></div></div>
  <div class="card-body">`;
  if(s.flags&&s.flags.length)h+=s.flags.map(f=>`<div class="alert ${f.startsWith('note:')?'alert-info':'alert-danger'} py-2 mb-2">${esc(f)}</div>`).join('');
- h+=`<div class="row g-3"><div class="col-6"><div class="d-flex justify-content-between small"><span class="muted">GPU util${g&&g.util_n?' <span title="mean / peak over the sampling window — inference is input-bound, so a single reading is 0 most of the time">(mean/peak)</span>':''}</span><span>${g?(g.util_mean!=null?`${g.util_mean}% / ${g.util_max}%`:esc(g.util)+'%'):'–'}</span></div><div class="progress progress-sm"><div class="progress-bar bg-green" style="width:${util}%"></div><div class="progress-bar bg-green-lt" style="width:${Math.max(0,(g&&g.util_max!=null?g.util_max:util)-util)}%"></div></div></div>
+ h+=`<div class="row g-3"><div class="col-6"><div class="d-flex justify-content-between small"><span class="muted">${c&&c.phase&&!c.progress?'GPU util <span class="text-warning" title="the step is not in its GPU loop yet">(idle: '+esc(c.phase.split(' — ')[0])+')</span>':'GPU util'}${g&&g.util_n?' <span title="mean / peak over the sampling window — inference is input-bound, so a single reading is 0 most of the time">(mean/peak)</span>':''}</span><span>${g?(g.util_mean!=null?`${g.util_mean}% / ${g.util_max}%`:esc(g.util)+'%'):'–'}</span></div><div class="progress progress-sm"><div class="progress-bar bg-green" style="width:${util}%"></div><div class="progress-bar bg-green-lt" style="width:${Math.max(0,(g&&g.util_max!=null?g.util_max:util)-util)}%"></div></div></div>
  <div class="col-6"><div class="d-flex justify-content-between small"><span class="muted">GPU memory</span><span>${g?`${(g.mem_used/1024).toFixed(1)} / ${(g.mem_total/1024).toFixed(0)} GB`:'–'}</span></div><div class="progress progress-sm"><div class="progress-bar bg-azure" style="width:${mem}%"></div></div></div></div>`;
  if(c){const p=c.progress,pct=p?p.pct:(c.elapsed_min&&c.ceiling_min?Math.min(100,100*c.elapsed_min/c.ceiling_min):0);
   h+=`<div class="mt-3"><div class="d-flex justify-content-between"><div><strong>${esc(c.job)} / ${esc(c.step)}</strong> <span class="muted">${esc(c.title||'')}</span></div><div class="muted small">${c.elapsed_min??'?'} / ${c.ceiling_min??'?'} min</div></div>
   <div class="progress mt-1" style="height:16px"><div class="progress-bar ${p?'bg-primary':'bg-secondary'}" style="width:${pct.toFixed(0)}%">${p?pct+'%':''}</div></div>
-  <div class="small muted mt-1">${p?`${esc(p.desc)} ${p.n.toLocaleString()} / ${p.total.toLocaleString()} · ${esc(p.elapsed)} elapsed · ETA ${esc(p.eta)} · ${esc(p.rate)}`:(c.staging?esc(c.staging):'no progress bar for this step (train prints per epoch) — bar = elapsed vs ceiling')}</div></div>`;}
+  <div class="small muted mt-1">${p?`${esc(p.desc)} ${p.n.toLocaleString()} / ${p.total.toLocaleString()} · ${esc(p.elapsed)} elapsed · ETA ${esc(p.eta)} · ${esc(p.rate)}`:(c.phase?esc(c.phase):'no progress bar for this step (train prints per epoch) — bar = elapsed vs ceiling')}</div></div>`;}
  h+=`<div class="row mt-3"><div class="col-6"><div class="muted small">GPU util % (sampled mean) · fixed 0–100, minutes before now</div><div class="chartbox"><canvas id="u_${esc(s.name)}"></canvas></div></div><div class="col-6"><div class="muted small">throughput tiles/s · fixed 0–100</div><div class="chartbox"><canvas id="r_${esc(s.name)}"></canvas></div></div></div>`;
  (s.jobs||[]).forEach(j=>{h+=`<div class="mt-3"><strong>${esc(j.id)}</strong> <span class="muted small">${esc(j.tag)}</span>${j.job_end?` <span class="chip ${esc(j.job_end.state)}">job-end VERIFY ${esc(j.job_end.state)}</span>`:''}<div>${stepsHtml(j)}</div></div>`;});
  if(s.scratch&&s.scratch.length)h+=`<div class="muted small mt-3">scratch: ${s.scratch.map(f=>`${esc(f.name)} ${fmtB(f.size)}`).join(' · ')}</div>`;

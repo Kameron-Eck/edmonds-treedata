@@ -177,7 +177,10 @@ overhaul: ** ACTIVE WORKSTREAM 2026-08-20 — OPTION A OVERHAUL. PLAN = Scripts/
          PROOF of the P11.4 cross-runtime staging lock. Monitor = per-VM probe_live (procs, GPU, scratch, log
          tails, ASCII-sanitized) via colab exec + local G: reads of train_queue_status_*.csv, run manifests,
          masks, nohup logs + lock WARNING grep + colab status/log. Loop prompt = plan file prompt C.
-         Session A url (viewer only): colab url -s A.
+         `colab url -s A` DOES NOT attach the Colab UI to a CLI VM: the page opened idle; 'Connect to a hosted
+         runtime' allocated a NEW CPU runtime (hostname 4476d385f348 != A's ba5d4bc9133a; appears as a [?]
+         orphan m-s-kkb-usc1a0-14k5a40t66s1b, no compute units, Kam deletes it from the tab; CLI cannot stop
+         [?] entries by name). Watching = colab exec probes / colab ls / log tails, not a browser.
          Session prompts: D:\tools\claude-config\plans\because-we-are-not-parallel-codd.md. NEXT SESSION =
          prompt B, CLI edition: first launch of each queue ask-first; crash-recovery per P11.5 = push the
          fix branch + re-exec on the LIVE VM (a live VM keeps its Drive mount).

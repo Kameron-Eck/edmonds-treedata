@@ -347,7 +347,19 @@ overhaul: ** ACTIVE WORKSTREAM 2026-08-20 — OPTION A OVERHAUL. PLAN = Scripts/
          emergent_wetland .5558 (the one bad non-canopy group). Threshold sweep: recall climbs to .7355 at
          0.20 for precision .7677 - i.e. ~5 pp of recall is available for ~3 pp of precision, consistent
          with the thin upper tail measured in the calibration check. Sits inside the series range
-         (.55-.80). 2019 scoring started next.
+         (.55-.80).
+         ** 2019 HONEST (independent, live=1, thresh 0.332, gate met: channels=rgb+chm) ** PRIMARY
+         forest_wetland: recall .6346 precision .8242, grass_reject .9291, ref_canopy 26.81%.
+         forest_only .6314/.8094; forest_wetland_scrub .6259/.8464. Per-surface FP-rates: grass .0709,
+         developed .0429, water .0159, emergent_wetland .4929 (same weak group as 2022); scrub recall
+         .4138. Threshold sweep: .6772/.8084 at 0.20 vs .5762/.8410 at 0.50 - about 12 pp of recall for
+         3 pp of precision across that span, a steeper trade than 2022's. NOTE the deployed thresholds
+         differ by year (2019 0.332 vs 2022 0.4988), so the two recalls are NOT read side by side as a
+         model comparison - they are each that year's deployed operating point.
+         2024 scoring started next. Kam's field note (2026-08-22, recorded, no action taken): of the five
+         curated negative sites only PARKING and WATER are clean negatives; the others are contaminated,
+         and even Parking holds a sliver of an unnoticed street tree. Relevant to the standing
+         under-prediction question - a contaminated negative teaches the model to suppress real canopy.
          Session prompts: D:\tools\claude-config\plans\because-we-are-not-parallel-codd.md. NEXT SESSION =
          prompt B, CLI edition: first launch of each queue ask-first; crash-recovery per P11.5 = push the
          fix branch + re-exec on the LIVE VM (a live VM keeps its Drive mount).

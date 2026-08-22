@@ -153,6 +153,14 @@ overhaul: ** ACTIVE WORKSTREAM 2026-08-20 — OPTION A OVERHAUL. PLAN = Scripts/
          PERMISSIONS LOOSENED (Kam: policy C stays; back off rules for harness dev): +18 allow (read-only git,
          shell readers, cp/mkdir, Edit on the jobs scratchpad) -> user settings 42 allow / 56 deny; doc
          blocks re-canonicalized from the live file. No rm rule (py does deletions); no VAR= prefixes.
+         ** LAUNCH A 2026-08-22 15:55:52Z (Kam: "Yes" 15:5xZ) ** colab session A = A100-SXM4-40GB, 1 VM
+         (created 15:53:22Z, billing from then); Kam drivemount -s A OK (fix #4); bootstrap at cce075f on
+         work/p11-5-autonomy, BOOTSTRAP_DONE; vm_launch -> pid 1881, log
+         phase4/logs/train_queue_nohup_queue_A_2024_2017_20260822T155552Z.log; header shows the A100.
+         Expected ~5 h (2024 inference-only resume, then 2017 full path). Success = VERIFY rows in
+         phase4/qc/train_queue_status_queue_A_2024_2017_<ts>.csv + job-end VERIFY; first health tock =
+         2024 ortho staging line within ~25 min. Token scripts deleted. Cost line: Colab's posted A100
+         rate x ~5 h (rate not verified in-session). colab stop -s A when the job-end VERIFY lands.
          Session prompts: D:\tools\claude-config\plans\because-we-are-not-parallel-codd.md. NEXT SESSION =
          prompt B, CLI edition: first launch of each queue ask-first; crash-recovery per P11.5 = push the
          fix branch + re-exec on the LIVE VM (a live VM keeps its Drive mount).

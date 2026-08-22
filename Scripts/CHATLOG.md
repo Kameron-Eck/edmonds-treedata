@@ -1318,7 +1318,9 @@ did:     Both datasets are public NOAA COPC, same bucket, same CRS (NAD83(HARN) 
          SIZE GATE tripped as briefed (2016 alone 4.68 GiB at 200 m, over the 4 GiB per-set limit) -> STOPPED and
          asked; Kam: "hard drive space is not an issue" -> proceeded, then raised the buffer to 600 m (5.88 GiB
          combined). Downloaded to D: first (rule 3), each file verified against its S3 Content-Length, then
-         MANIFEST.sha256 per directory, then copied to the data lake.
+         MANIFEST.sha256 per directory (54 / 48 entries), then copied to the data lake and size-verified
+         there: PSLC_2005 55 files / 408.9 MB, USGS_2016 50 files / 5,986.3 MB, both == local. Drive still has
+         45.8 GiB free. Nothing processed: no CHM built, no points read, phase4seg untouched.
 decided: IMAGERY_FACTS is the right home for the specs (it is the measured-facts doc for source data); the CHM
          provenance detail expands the one-line CLAUDE.md row rather than duplicating it.
 found:   ** THE CHM IN USE IS DEGRADED. ** lidar_snoh_chm.tif is NOT county data (the county files are the

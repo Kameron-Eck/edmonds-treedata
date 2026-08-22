@@ -221,8 +221,11 @@ cost 12 tiles.
 | PSLC 2005 | 47 | 407.5 MB | `D:\edmonds-pipeline\Imagery\PSLC_2005\` | `Full_Image\PSLC_2005\` |
 | USGS 2016 | 41 | 5,907.2 MB | `D:\edmonds-pipeline\Imagery\USGS_2016\` | `Full_Image\USGS_2016\` |
 
-Every file verified against its S3 `Content-Length`; `MANIFEST.sha256` per directory
-(the `mirror_sync.py` convention). Helper/metadata files — tile index `.gpkg`/`.zip`,
+**Landed and verified 2026-08-22:** every file byte-checked against its S3
+`Content-Length` on D: (405 laz + helpers; totals matched the Content-Length sum exactly,
+no retries), `MANIFEST.sha256` written per directory (the `mirror_sync.py` convention:
+54 entries for 2005, 48 for 2016), then copied to the data lake and size-verified there —
+408.9 MB / 55 files and 5,986.3 MB / 50 files, both equal to local. Helper/metadata files — tile index `.gpkg`/`.zip`,
 `urllist`, `minmax`, ISO metadata `.xml` + `forHumans.html`, and the 67.5 MB
 `west_wash_breaklines.zip` — are on **both** planes. Any raster derived from these points
 belongs in `Full_Image/Pipeline Imagery/` beside `lidar_snoh_chm.tif`, **not** in these

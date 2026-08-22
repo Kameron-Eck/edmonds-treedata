@@ -181,6 +181,16 @@ overhaul: ** ACTIVE WORKSTREAM 2026-08-20 — OPTION A OVERHAUL. PLAN = Scripts/
          runtime' allocated a NEW CPU runtime (hostname 4476d385f348 != A's ba5d4bc9133a; appears as a [?]
          orphan m-s-kkb-usc1a0-14k5a40t66s1b, no compute units, Kam deletes it from the tab; CLI cannot stop
          [?] entries by name). Watching = colab exec probes / colab ls / log tails, not a browser.
+         ** LOCAL DASHBOARD BUILT 16:23Z (Kam: 'a local interface that tracks those runtimes'): **
+         qc/runtime_dashboard.py — stdlib http.server on 127.0.0.1:8765; per-session card (GPU tier/util,
+         queue, per-job step chips from the merged status CSVs incl. VERIFY:<step>, live tqdm bar + ETA,
+         elapsed vs STEP_TIMEOUT_MIN, staging/lock line, scratch dir, log tail, flags). Fresh data = a
+         VM-side probe via `colab exec` every 60 s (ps, nvidia-smi, scratch, the VM's OWN log tail + whole-
+         file scan for the last step/lock line); G: for CSVs/manifests/locks every 15 s (the G: mirror of a
+         growing log lags minutes). Read-only, no torch on the VM. Kam runs it in his own terminal:
+         py -3.12 qc/runtime_dashboard.py --sessions A,B --open. Snapshot 16:23Z: A 2024 inference 7%
+         (31.9k/481k, 39 tile/s, ETA 3:10 -> ~19:35Z, GPU 37%); B 2019 tile OK + VERIFY:tile OK (done
+         ~16:18Z incl. 7.1 min lock wait), train started 16:18:03Z (GPU warming). No flags.
          Session prompts: D:\tools\claude-config\plans\because-we-are-not-parallel-codd.md. NEXT SESSION =
          prompt B, CLI edition: first launch of each queue ask-first; crash-recovery per P11.5 = push the
          fix branch + re-exec on the LIVE VM (a live VM keeps its Drive mount).

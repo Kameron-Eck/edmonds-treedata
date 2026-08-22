@@ -96,7 +96,11 @@ overhaul: ** ACTIVE WORKSTREAM 2026-08-20 — OPTION A OVERHAUL. PLAN = Scripts/
          queues in PARALLEL (P11.4). Prereqs LANDED 2026-08-22 (staging lock,
          ceilings, resume fix, per-queue logs, queue_A_2024_2017 / queue_B_2019_2022, runbook = OVERHAUL_PLAN P11);
          MCP inventory done (1 gate tool; notebook tools unlock after the browser connect); colab-mcp +
-         colab-mcp-b both CONNECTED 03:40Z (runtime B possible). NEXT SESSION =
+         colab-mcp-b both CONNECTED 03:40Z (runtime B possible). ** P11.5 RULED 03:55Z (Kam): ** first
+         launches ask-first; crash-recovery AUTONOMOUS (fix branch -> small-GPU canary -> A100 rerun; no cap
+         tonight; every launch logged); main PROTECTED (deny rules); A100 default; loop backoff 10->60 min.
+         Prep on branch work/p11-5-autonomy (cockpit BRANCH + nvidia-smi, manifest git_branch/gpu, docs).
+         Session prompts: D:\tools\claude-config\plans\because-we-are-not-parallel-codd.md. NEXT SESSION =
          the runbook's 7-step sequence, every launch its own ask.
 proj:    Edmonds temporal canopy pipeline, phase 4 (per-year semantic seg, 18 imagery yrs).
 live:    ENGINE MODULARIZED 2026-07-08 → phase4seg/ package (config/common/labels/tiling/core[all torch]/
@@ -1033,6 +1037,31 @@ gotcha:  scripts Colab-only for torch (rasterio+geopandas+fiona+sklearn now pip-
          accept-all test data; 14,476-crown human review never finished.
 
 ════════════════ LOG  (newest first) ════════════════
+
+## 2026-08-22  P11.5 RULED — crash-recovery autonomy, A100 default, branch workflow; prep landed on work/p11-5-autonomy
+goal:    Kam: "we can coordinate GPUs and runtimes now" — larger GPU to dodge runtime limits; if a run crashes
+         Claude may pull, fix, test on a smaller GPU and rerun on the larger GPU without asking; nothing to
+         main without approval; work branches free; a permissions prompt; a mega prompt for next session.
+did:     Plan + prompts -> D:\tools\claude-config\plans\because-we-are-not-parallel-codd.md (session-start
+         mega prompt, /loop prompt, permission-approval prompt). Kam's answers: first launch of each queue
+         ask-first; NO spend cap tonight ("we are learning") but loop intervals back off 10->60 min; A100 40 GB
+         for real runs, L4/T4 for canaries. Explore agent facts: cockpit clone is --depth 1 = single-branch
+         (checkout of a work branch fails on a reused runtime); manifest records no branch/GPU; the repo's
+         .gitignore whitelists Scripts/ so a Scripts/.claude/settings.json would be TRACKED -> permission
+         rules live in user settings only. STEP 0 (this branch): OVERHAUL_PLAN P11.5 (ruling, canary
+         definition, branch rule, GPU tiers, loop pacing, allowlist JSON), rule 3 + open rulings + P11 header
+         amended, runbook steps 3-5 (A100, BRANCH, no-ask relaunch); CLAUDE.md spend gate + rule 1c; cockpit
+         cell 1 BRANCH (clone --branch; fetch --depth 1 + checkout -B FETCH_HEAD on re-run), cell 0/6 A100 +
+         branch text, cell 2 nvidia-smi; manifest git_branch/gpu/gpu_mem_gb (torch-free nvidia-smi);
+         queue header GPU line; queue YAML hours on A100.
+decided: permissions = user settings only (repo would track them); deny rules protect main regardless of
+         prompt wording; canary = smallest job exercising the fix (<= ~1.5 h) on L4/T4.
+files:   OVERHAUL_PLAN_2026-08-20.md, CLAUDE.md, pipeline/colab_launch.ipynb, pipeline/phase4seg/cli.py,
+         pipeline/phase4_train_queue.py, pipeline/queue_A_2024_2017.yaml, pipeline/queue_B_2019_2022.yaml,
+         CHATLOG.md — all on work/p11-5-autonomy (NOT main).
+next:    Kam: paste the permission prompt (plan file, prompt A) -> user settings; merge/push
+         work/p11-5-autonomy to main when the diff is approved (or run next session from the branch:
+         cockpit BRANCH = 'work/p11-5-autonomy'). Next session = the mega prompt, Step 1 onward.
 
 ## 2026-08-22  P11.4 PREREQS LANDED — staging lock, ceilings, resume fix, per-queue logs, balanced queues; MCP inventory done
 goal:    Kam: no hand launches; get everything in place so the next session runs the agentic two-runtime workflow.

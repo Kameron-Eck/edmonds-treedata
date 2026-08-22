@@ -41,7 +41,7 @@
       carry 5 cm CoE years whose inference alone runs ~4.5 h — see the ceilings.)
     * --run-tag on every job, so nothing existing is overwritten.
 
-  ── USAGE (Colab, L4 24GB) ───────────────────────────────────────────────
+  ── USAGE (Colab; P11.5: A100 40 GB for real runs, L4/T4 for canaries) ──
   Code is CLONED from GitHub since 2026-08-20 (see pipeline/colab_launch.ipynb —
   that notebook is the standing cockpit; the recipe below is what it runs).
   LAUNCH DETACHED. This is the important part for an unattended run:
@@ -287,6 +287,18 @@ def _status_write(rows):
                 w.writerow({k: r.get(k, "") for k in cols})
     except Exception as e:                                      # noqa: BLE001
         print(f"  ! WARN could not write status: {e}")
+
+
+def _gpu_line():
+    """P11.5: name the GPU tier in the queue header (tier attribution for cost and
+    timing; the ceilings were sized on L4). Torch-free, best-effort."""
+    try:
+        q = subprocess.run(["nvidia-smi", "--query-gpu=name,memory.total",
+                            "--format=csv,noheader"], capture_output=True, text=True,
+                           timeout=20).stdout.strip()
+        return q.splitlines()[0] if q else "none (CPU runtime)"
+    except Exception:                                           # noqa: BLE001
+        return "unknown (nvidia-smi unavailable)"
 
 
 def _sweep_child_claims(pid):
@@ -583,6 +595,7 @@ def main():
 
     _hr("PHASE 4 — UNATTENDED TRAIN QUEUE")
     print(f"  BASE   : {BASE}")
+    print(f"  GPU    : {_gpu_line()}   (ceilings sized on L4; P11.5 default = A100 for real runs)")
     print(f"  queue  : {args.queue or 'JOBS (in-source)'}")
     print(f"  status : {QC_DIR}\\train_queue_status_*.csv   "
           f"(per-launch file, flushed after EVERY step; readers merge all)")

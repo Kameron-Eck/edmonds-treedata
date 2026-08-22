@@ -9,7 +9,8 @@ P5 ✔ canary + cutover proven (run manifests live at git 57bc07b); 2024-finish 
 → P11.4 (below) · P6 partial (manifests+seeds+queue-as-data ✔; registry generator deferred) ·
 P7 partial (harvest, gates, status, watcher ✔; QC provenance deferred) · P8 ✔ ·
 P9/P10 pending. **NEW: P11 below (adopted 2026-08-21) — agentic GPU driving via
-Colab MCP, ask-first always.** P11.1–11.3 ✔; P11.4 two-runtime trial pending —
+Colab MCP, ask-first always.** P11.1–11.3 ✔; **P11.5 ruled 2026-08-22** (crash-recovery autonomy, A100 default, branch
+workflow — prep on `work/p11-5-autonomy`); P11.4 two-runtime trial pending —
 prerequisites (staging lock, ceilings, resume fix, per-queue logs, balanced queues)
 landed 2026-08-22; see the P11 runbook. 2024-finish + QUEUE3 did NOT land on
 2026-08-22 (the two runtimes began ortho stagings ~10 min apart and each went silent
@@ -119,6 +120,9 @@ file mtimes local (−7 h) — freshness checks must normalise.
    tier, number of runtimes, and rough cost — and may never launch, extend, or add
    runtimes un-asked. Kam still holds the keys; Claude may now turn them when handed
    over, one launch at a time.
+   **Amended by P11.5 (Kam 2026-08-22)**: first launches stay ask-first; a crashed run
+   is recovered autonomously (fix branch → small-GPU canary → A100 rerun, every launch
+   logged, no cap tonight); `main` never moves without Kam — see P11.5.
 4. Parallel sessions share the D: tree → explicit-path staging stays law; worktrees
    stay available (now cheap — no FUSE).
 
@@ -135,6 +139,8 @@ file mtimes local (−7 h) — freshness checks must normalise.
   against existing `D:\Imagery` byte-identical files.
 - **GPU keys — RULED by Kam 2026-08-21**: Claude may drive Colab via MCP, ask-first
   always, per-launch permission, cap 2 runtimes (see P11 and design rule 3).
+- **Crash-recovery autonomy — RULED by Kam 2026-08-22**: see P11.5 (first launches
+  ask-first; autonomous fix → canary → A100 rerun; `main` protected; no cap tonight).
 - **D2 polarity — RULED by Kam 2026-08-20 ("Adopt")**; historical text below:
   adopted ruling per the crashed session = mid-height woody vegetation (ornamentals,
   hedgerows, ~6 m crowns) **COUNTS as canopy**, recorded as its own interpreter class
@@ -358,6 +364,8 @@ proposed first — queue file, GPU tier, runtime count, rough cost — and execu
 Kam's explicit yes in that conversation. No standing authorization, no silent re-launch
 after a death, no adding runtimes mid-window. This supersedes "human-paste only" while
 keeping its intent: spend passes through Kam's hands every time.
+*Amended 2026-08-22 by P11.5 (below): the ask-first rule now covers the FIRST launch of
+each queue; crash-recovery relaunches are autonomous under the protocol there.*
 
 1. **Concurrency-safe queue status (prerequisite, code)** — today two concurrent queues
    clobber `train_queue_status.csv` (each `_status_write` rewrites the whole file from
@@ -445,15 +453,17 @@ earlier version lost exclusion).
    inventory → CHATLOG). Nothing runs.
 3. Zero-GPU check on that tab (CPU runtime): open `pipeline/colab_launch.ipynb`
    (Colab's GitHub opener on the private repo, or a Drive copy) → cells 1–2
-   (`--dry-run`), confirming the clone is at HEAD.
-4. Propose launch A (`queue_A_2024_2017.yaml`, L4, 1 runtime, ~10 h, Colab's posted
-   L4 rate) → yes → cell 3. The staging ⏱ line is a COMPLETION tock: measured
+   (`--dry-run`), with cell 1's `BRANCH` set to the code to run and cell 2's
+   `nvidia-smi` confirming the tier; the clone is at that branch's HEAD.
+4. Propose launch A (`queue_A_2024_2017.yaml`, A100 40 GB, 1 runtime, ~5 h (~10 h on
+   L4), Colab's posted rate) → yes → cell 3. The staging ⏱ line is a COMPLETION tock: measured
    stagings are 12–26 min for the 48 GB 2017 ortho (six logs), 19.1 min for 2024,
    2–14 min for 2022, ≤2.5 min for King orthos. Health within the first 15 min =
    `!ls -la /content/phase4_scratch` showing the ortho growing, or the log's
    "staging lock held by … waiting" line. No growth and no tock past ~2× the
    precedent → something is wrong (throttle, mount, VM): stop the runtime (it burns
-   GPU while copying) and ask before any relaunch.
+   GPU while copying); under P11.5 the relaunch follows the crash-recovery protocol
+   (fix branch → small-GPU canary → A100 rerun) with no further ask.
 5. One server instance = ONE Colab connection (colab_mcp 1.0.1
    `websocket_server.py:113-118` rejects a second websocket with 1013 "Server is busy";
    `session.py:166-167` returns `true` without opening a tab when already connected).
@@ -462,7 +472,7 @@ earlier version lost exclusion).
    the record:
    `claude mcp add --scope user colab-mcp-b -- "C:\Users\Kameron\AppData\Local\Programs\Python\Python312\Scripts\uvx.exe" git+https://github.com/googlecolab/colab-mcp`
    → its own `open_colab_browser_connection` → second tab → propose launch B
-   (`queue_B_2019_2022.yaml`, ≥2× `STAGE_LOCK_CONFIRM_SEC` after A — ≥2 min at today's
+   (`queue_B_2019_2022.yaml`, A100, ≥2× `STAGE_LOCK_CONFIRM_SEC` after A — ≥2 min at today's
    value; the lock confirms a fresh claim only after that window). Until that entry exists, B runs after A or by human-paste in
    a second tab. Lock lines to expect in the nohup logs: "staging lock held by … ;
    waiting", "staging lock acquired after N min"; any "WARNING: … two bulk copies"
@@ -476,6 +486,104 @@ earlier version lost exclusion).
    not regression.
 7. After the window: harvest, registry rows, CHATLOG; compare wall-clock vs serial and
    decide whether to raise the 2-runtime cap.
+
+### P11.5 — Crash-recovery autonomy, A100 default, branch workflow (ruled by Kam 2026-08-22)
+
+**Ruling.** Kam's answers of 2026-08-22: the FIRST launch of each queue stays
+**ask-first**; a launched run that crashes is recovered **autonomously**; **no spend cap
+tonight** ("we are learning") — the launch log is the control; loop intervals **back
+off to a 60-min ceiling**; **A100 40 GB** for real runs, **L4/T4** for canaries; the
+laptop never sleeps (the browser-based MCP bridge persists).
+
+1. **First launch of each queue** (A, B): propose queue file · GPU tier · runtime count ·
+   hours · cost line · what VERIFY success looks like; wait for Kam's yes.
+2. **Crash-recovery protocol (autonomous).** Trigger = a FAIL/TIMEOUT/ERROR row, a dead
+   runtime, a traceback in the nohup/step log, a status older than 2× the expected step
+   time, or a "two bulk copies" lock WARNING. Then, without asking:
+   - diagnose from artifacts (per-launch status files, run manifests, step logs, nohup);
+   - branch `fix/<YYYYMMDD>-<slug>` from `main`; fix; local gates (`py_compile`,
+     `pipeline/phase4seg_preflight.py`, `pipeline/phase4seg_smoke.py`, the lock unit test
+     if the lock is touched); commit with explicit paths;
+   - push the BRANCH to GitHub (`git push -u github fix/…`) — Colab clones from GitHub;
+   - **canary on a small GPU (L4/T4)**: the smallest job that exercises the fix — the
+     failing step on the failing year if it is expected to run ≤ ~1.5 h, else a proxy
+     (coarse year 2000/2002, or `--year <y> --step tile`); cockpit cell 1 `BRANCH =
+     'fix/…'`; success = that step's `VERIFY:<step> OK` row;
+   - **if the canary passes: relaunch the real queue on the A100 from the fix branch**,
+     no further ask; every launch writes a run manifest (now with `git_branch`, `gpu`,
+     `gpu_mem_gb`) and a CHATLOG line with tier, start time, expected hours;
+   - if the canary fails, or the same failure recurs after a fix: stop and ask.
+3. **`main` is protected.** No push, merge, rebase or tag on `main` without Kam's
+   explicit approval — enforced by deny rules (below), not only by prompt. Work branches
+   (`work/…`, `fix/…`) are free to create, commit and push. At session end or loop stop,
+   Claude presents `git log main..<branch> --oneline` + `git diff main...<branch> --stat`
+   and asks; Kam merges/pushes `main` (or says "merge and push").
+4. **GPU tiers.** A100 40 GB for real queue runs (queue A ≈ 5 h, B ≈ 4 h; ~10 / ~8 h on
+   L4); L4/T4 for canaries; RTX PRO 6000 only when memory-bound (ask). The step ceilings
+   (`phase4_train_queue.STEP_TIMEOUT_MIN`) were sized on L4 and stay valid (a faster GPU
+   only adds headroom). `nvidia-smi` is printed by cockpit cell 2 and in the queue header;
+   the manifest records the tier. Note: the retired P1 driver
+   (`pipeline/phase4_p1_colab_run.py:38-42, 210-224`) still tells users to switch DOWN
+   from A100 — that is its own legacy advice, not policy, and it is not on the queue path.
+5. **Loop pacing.** After the launches the `/loop` self-paces: 10 → 15 → 25 → 40 → 60 min
+   while nothing changes (60-min ceiling); reset to 10 min after any event (new status
+   row, artifact, lock WARNING, a scoring run). First check after a launch at ~15 min.
+6. **Permission allowlist** — the unattended loop must never block on a prompt. Home =
+   **user settings only** (`D:\tools\claude-config\settings.json`; applies to sessions
+   opened from D: or G:). Never in the repo: the root `.gitignore` whitelists all of
+   `Scripts/`, so a `Scripts/.claude/settings.json` would be TRACKED. Rules are enforced by
+   Claude Code (deny → ask → allow, first match wins), so `main` stays protected even
+   though branch pushes are allowed.
+
+```json
+{
+  "permissions": {
+    "allow": [
+      "Bash(py -3.12 *)",
+      "Bash(git add *)",
+      "Bash(git commit *)",
+      "Bash(git checkout -b *)",
+      "Bash(git switch *)",
+      "Bash(git branch *)",
+      "Bash(git fetch *)",
+      "Bash(git stash *)",
+      "Bash(git push github fix/*)",
+      "Bash(git push -u github fix/*)",
+      "Bash(git push github work/*)",
+      "Bash(git push -u github work/*)",
+      "Bash(claude mcp list)",
+      "mcp__colab-mcp__*",
+      "mcp__colab-mcp-b__*",
+      "mcp__claude_ai_Google_Drive__search_files",
+      "mcp__claude_ai_Google_Drive__get_file_metadata",
+      "mcp__claude_ai_Google_Drive__list_recent_files",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:code.claude.com)"
+    ],
+    "deny": [
+      "Bash(git push github main*)",
+      "Bash(git push * main*)",
+      "Bash(git push --mirror *)",
+      "Bash(git push * --tags*)",
+      "Bash(git push --force *)",
+      "Bash(git push -f *)",
+      "Bash(git merge *)",
+      "Bash(git rebase *)",
+      "Bash(git reset --hard *)",
+      "Bash(git tag *)"
+    ]
+  }
+}
+```
+
+*Prep landed 2026-08-22 on `work/p11-5-autonomy`:* cockpit cell 1 `BRANCH` (clone
+`--branch`; on re-run `fetch --depth 1 origin BRANCH` + `checkout -B BRANCH FETCH_HEAD`,
+because the `--depth 1` clone is single-branch), cell 0/6 A100 + branch text, cell 2
+`nvidia-smi`; manifest `git_branch`/`gpu`/`gpu_mem_gb` (`phase4seg/cli.py
+_write_run_manifest`, torch-free via `nvidia-smi`); queue header GPU line
+(`phase4_train_queue.py _gpu_line`); queue YAML hours on A100; CLAUDE.md spend gate +
+rule 1c; this section. The session-start and `/loop` prompts live in
+`D:\tools\claude-config\plans\because-we-are-not-parallel-codd.md`.
 
 **Relation to Option C:** MCP driving is the middle rung of the ladder (human-paste →
 MCP-with-permission → owned/rented GPU with SSH). If MCP driving proves out and spend

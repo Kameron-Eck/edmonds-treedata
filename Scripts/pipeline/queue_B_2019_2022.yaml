@@ -1,5 +1,6 @@
 # QUEUE B of the two-runtime split (P11.4, staged 2026-08-22). Pairs with
-# queue_A_2024_2017.yaml on the FIRST runtime. Balanced ~8 h / ~10 h on L4.
+# queue_A_2024_2017.yaml on the FIRST runtime. Balanced ~4 h / ~5 h on A100
+# (P11.5 default; ~8 h / ~10 h on L4).
 # Launch (one queue per runtime, via colab_launch.ipynb cell 3):
 #     python -u phase4_train_queue.py --queue queue_B_2019_2022.yaml
 # 2019 first: cheapest job, lands a result in ~2.5 h. Bulk Drive copies are

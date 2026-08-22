@@ -38,7 +38,11 @@ phantom-M mtime lore, two-sessions-one-tree hazards. Git ops are normal now.
   2026-08-22 double-runtime silence is unexplained; bulk Drive copies are serialized by
   the staging lock as a precaution). The MCP server is connected (2026-08-22); one
   server instance = one Colab tab, so a second runtime needs a second server entry —
-  see the P11 runbook in the active plan.
+  see the P11 runbook in the active plan. **P11.5 (Kam 2026-08-22):** the ask-first rule
+  covers the FIRST launch of each queue; after a crash Claude may fix on a `fix/…` branch,
+  canary on a small GPU and rerun on the A100 without asking (no cap tonight; every
+  launch logged with tier and hours); `main` never moves without Kam's approval. Protocol
+  + permission allowlist: OVERHAUL_PLAN P11.5.
   **One queue per runtime**; queues write per-launch status files
   (`train_queue_status_{queue}_{ts}.csv`) and readers merge all of them.
 - **The frozen Drive copy** `G:\My Drive\treedata\Scripts\` is the pre-reorg emergency
@@ -186,7 +190,8 @@ For risky/parallel work, worktrees are cheap now — use them.
 ```bash
 git push github main --tags
 ```
-**Claude's permission layer blocks push — Kam runs it** (or approves it per-command).
+**Claude's permission layer blocks push to `main` — Kam runs it** (or approves it
+per-command). Work branches (`work/…`, `fix/…`) may be pushed by Claude (P11.5).
 `drive-mirror` (`G:\My Drive\edmonds-git-mirror.git`) is retained until P10; pushing
 it is optional and Kam's.
 

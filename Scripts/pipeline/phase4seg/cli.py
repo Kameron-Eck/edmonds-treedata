@@ -286,7 +286,7 @@ def main():
             main_file = getattr(sys.modules.get("__main__"), "__file__", None)
             anchor = Path(main_file).resolve() if main_file else Path(__file__).resolve()
             repo_root = next((p for p in anchor.parents if (p / ".git").exists()), None)
-            sha, dirty = "unknown", None
+            sha, dirty, branch = "unknown", None, None
             if repo_root is not None:
                 try:
                     sha = _sp.run(["git", "-C", str(repo_root), "rev-parse", "HEAD"],
@@ -295,8 +295,23 @@ def main():
                     dirty = bool(_sp.run(["git", "-C", str(repo_root), "status",
                                           "--porcelain"], capture_output=True,
                                          text=True, timeout=20).stdout.strip())
+                    branch = _sp.run(["git", "-C", str(repo_root), "rev-parse",
+                                      "--abbrev-ref", "HEAD"], capture_output=True,
+                                     text=True, timeout=20).stdout.strip() or None
                 except Exception:
                     pass
+            # P11.5: which GPU ran this (tier attribution for cost + timing); torch-free
+            # so the manifest never forces an import. None on CPU/local.
+            gpu, gpu_mem_gb = None, None
+            try:
+                q = _sp.run(["nvidia-smi", "--query-gpu=name,memory.total",
+                             "--format=csv,noheader,nounits"],
+                            capture_output=True, text=True, timeout=20).stdout.strip()
+                if q:
+                    name, mem = [s.strip() for s in q.splitlines()[0].split(",")[:2]]
+                    gpu, gpu_mem_gb = name, round(float(mem) / 1024, 1)
+            except Exception:
+                pass
             try:
                 freeze = _sp.run([sys.executable, "-m", "pip", "freeze"],
                                  capture_output=True, text=True,
@@ -306,7 +321,8 @@ def main():
             man = {
                 "run_id": run_id, "ts_utc": ts,
                 "engine_version": getattr(_pkg, "__version__", "unset"),
-                "git_sha": sha, "git_dirty": dirty,
+                "git_sha": sha, "git_dirty": dirty, "git_branch": branch,
+                "gpu": gpu, "gpu_mem_gb": gpu_mem_gb,
                 "repo_root": str(repo_root) if repo_root else None,
                 "argv": sys.argv[1:],
                 "run_tag": config.RUN_TAG, "step": step0,
@@ -321,8 +337,9 @@ def main():
             out.mkdir(parents=True, exist_ok=True)
             (out / "manifest.json").write_text(_json.dumps(man, indent=2),
                                                encoding="utf-8")
-            print(f"  run_id: {run_id}  (git {sha[:8]}"
-                  f"{' DIRTY' if dirty else ''})  → runs/{run_id}/manifest.json")
+            print(f"  run_id: {run_id}  (git {sha[:8]}{' DIRTY' if dirty else ''}"
+                  f" on {branch or '?'}; GPU {gpu or 'none'}"
+                  f"{f' {gpu_mem_gb} GB' if gpu_mem_gb else ''})  → runs/{run_id}/manifest.json")
             return run_id
         except Exception as e:                                  # noqa: BLE001
             print(f"  WARNING: run manifest not written ({e})")

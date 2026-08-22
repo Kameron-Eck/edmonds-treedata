@@ -761,6 +761,23 @@ alongside the P11.5 lists. Discipline: commands must START with the literal allo
 prefix — a leading `VAR=…;` assignment breaks rule matching and falls back to the
 auto-mode classifier (observed repeatedly tonight).
 
+**Lost-session hazard + recovery (measured 2026-08-22, mid-run, both A100s live).**
+`colab_cli.common.sync_sessions()` PRUNES every local session whose endpoint is absent
+from the CURRENT `list_assignments()` response, and `execution.py` deletes a session on
+a 401/404 ("appears to be lost. Cleaning up."). Both happened tonight: session `A`
+vanished from `~/.config/colab-cli/sessions.json` while its A100 kept running the queue
+(the VMs sit in different regions — A asia-southeast1, B us-central1 — so a partial list
+is plausible), then `B` was cleaned up after an expired-token exec. A pruned VM keeps
+BILLING but `colab exec/status/stop -s NAME` can no longer reach it: it shows as a `[?]`
+orphan and only expires at the 24 h cap. **Every `colab sessions` call runs the prune**,
+so a monitoring loop that polls it is the likeliest trigger.
+Recovery, no GPU spend, no new VM: `qc/colab_readopt.py` rebuilds the local entry from
+the server's own assignment list (each carries a fresh `runtime_proxy_info` url+token) —
+run it on the CLI's own interpreter, `--list` first, then `--endpoint … --name …`.
+Tonight A and B were re-adopted as **A2** and **B2** with their queues untouched.
+`qc/runtime_dashboard.py` therefore reads `sessions.json` directly (never `colab
+sessions`) and flags any live assignment with no local name as a billing orphan.
+
 **Facts for cost/monitoring:** a session is a billable VM until `colab stop`; keep-alive
 daemon runs locally (has a Windows branch; laptop never sleeps); CLI sessions appear in
 `colab sessions`; the browser-era orphan `[?]`-entries cannot be stopped by name and

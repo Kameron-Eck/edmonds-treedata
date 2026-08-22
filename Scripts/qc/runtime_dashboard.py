@@ -144,15 +144,55 @@ def run_colab(args, timeout=90):
     return r.returncode, r.stdout or "", r.stderr or ""
 
 
+SESSIONS_JSON = Path(os.path.expanduser("~/.config/colab-cli/sessions.json"))
+
+
 def colab_sessions():
-    rc, out, err = run_colab(["sessions"], timeout=60)
+    """Session names from the CLI's own store file — deliberately NOT `colab sessions`.
+
+    That command runs sync_sessions(), which PRUNES any local session whose endpoint
+    is missing from the current list_assignments() response; one partial list (the VMs
+    are in different regions) permanently orphans a running, billing VM. Observed
+    2026-08-22 mid-run: session A vanished from the store while its A100 kept working.
+    Recover such a VM with qc/colab_readopt.py. Reading the file has no side effects.
+    """
+    try:
+        data = json.loads(SESSIONS_JSON.read_text(encoding="utf-8"))
+    except (OSError, ValueError) as e:
+        return [], f"sessions.json unreadable: {e}"
+    rows = [{"name": k, "endpoint": v.get("endpoint"), "hardware": v.get("accelerator"),
+             "variant": v.get("variant")} for k, v in sorted(data.items())]
+    return rows, ""
+
+
+TOOL_PY = os.environ.get("COLAB_TOOL_PY") or os.path.expanduser(
+    r"~\AppData\Roaming\uv\tools\google-colab-cli\Scripts\python.exe")
+READOPT = HERE / "colab_readopt.py"
+ASSIGN_RE = re.compile(r"^\s*(\S+)\s+(\S+)\s+(\S+)\s+\[(.+?)\]\s*$")
+
+
+def live_assignments():
+    """Every live server-side assignment + whether it has a local name.
+
+    Uses qc/colab_readopt.py --list on the CLI's own interpreter: it calls
+    list_assignments() directly, so unlike `colab sessions` it never prunes the
+    store. An assignment with no local name is a VM that BILLS but cannot be
+    stopped by name — the dashboard flags it loudly; recover it with colab_readopt.
+    """
+    if not (Path(TOOL_PY).exists() and READOPT.exists()):
+        return [], ""
+    try:
+        r = subprocess.run([TOOL_PY, str(READOPT), "--list"], capture_output=True, text=True,
+                           encoding="utf-8", errors="replace", timeout=90)
+    except (OSError, subprocess.SubprocessError) as e:
+        return [], f"list_assignments: {e}"
     rows = []
-    for ln in out.splitlines():
-        m = SESS_RE.match(ln.strip())
-        if m:
-            rows.append({"name": m.group(1), "endpoint": m.group(2), "hardware": m.group(3),
-                         "variant": m.group(4)})
-    return rows, (err.strip() if rc else "")
+    for ln in (r.stdout or "").splitlines():
+        m = ASSIGN_RE.match(ln)
+        if m and m.group(1) != "live":
+            rows.append({"endpoint": m.group(1), "accelerator": m.group(2), "variant": m.group(3),
+                         "name": None if m.group(4).startswith("ORPHAN") else m.group(4)})
+    return rows, ("" if rows else (r.stderr or "")[-200:])
 
 
 _PROBE_PATH = None
@@ -400,6 +440,8 @@ class Collector(threading.Thread):
         self._sess_err = ""
         self._lock = threading.Lock()
         self._hist = {}          # session -> deque of {t, util, mem, n, total, rate}
+        self._assign = []        # live server-side assignments (orphan detection)
+        self._assign_err = ""
         self._hist_json = "{}"
 
     def snapshot(self):
@@ -475,8 +517,15 @@ class Collector(threading.Thread):
             card["hours_billed"] = hours_since_launch(card)
             self._record_history(card, now)
             cards.append(card)
+        orphans = [a for a in self._assign if not a.get("name")]
+        if orphans:
+            errors.append(f"{len(orphans)} live assignment(s) with NO local name — billing but not "
+                          f"stoppable by name; recover with qc/colab_readopt.py")
+        if self._assign_err:
+            errors.append(self._assign_err)
         state = {"generated": now.strftime("%Y-%m-%dT%H:%M:%SZ"), "sessions": cards,
-                 "colab_sessions": self._sess_rows, "locks": read_locks(), "manifests": read_manifests(),
+                 "colab_sessions": self._sess_rows, "assignments": self._assign, "orphans": orphans,
+                 "locks": read_locks(), "manifests": read_manifests(),
                  "errors": errors, "exec_interval": self.exec_interval, "no_exec": self.no_exec,
                  "base": str(BASE)}
         hist_json = json.dumps({k: list(v) for k, v in self._hist.items()})
@@ -491,7 +540,9 @@ class Collector(threading.Thread):
             t = time.time()
             try:
                 if t - last_sess >= 120:
-                    self.refresh_sessions(); last_sess = t
+                    self.refresh_sessions()
+                    self._assign, self._assign_err = live_assignments()
+                    last_sess = t
                 if not self.no_exec and t - last_exec >= self.exec_interval:
                     self.probe_all(); last_exec = time.time()
                 self.assemble()
@@ -579,7 +630,8 @@ async function tick(){try{const [st,hi]=await Promise.all([fetch('/api/state',{c
   spark('u_'+s.name,H.filter(p=>p.util!=null).map(p=>({x:px(p),y:p.util})),'#2fb344',100,win);
   spark('r_'+s.name,H.filter(p=>p.rate!=null).map(p=>({x:px(p),y:Math.min(p.rate,100)})),'#4299e1',100,win);});
  let x=`<div class="row"><div class="col-md-4"><table class="table table-sm"><thead><tr><th>session</th><th>endpoint</th><th>hw</th></tr></thead><tbody>${(st.colab_sessions||[]).map(s=>`<tr><td>${esc(s.name)}</td><td class="mono small">${esc(s.endpoint)}</td><td>${esc(s.hardware)}</td></tr>`).join('')}</tbody></table>
- <div class="small muted">locks: ${(st.locks||[]).map(esc).join(', ')||'(none)'}</div></div>
+ <div class="small muted">locks: ${(st.locks||[]).map(esc).join(', ')||'(none)'}</div>
+ <table class="table table-sm mt-2"><thead><tr><th>live assignment</th><th>acc</th><th>name</th></tr></thead><tbody>${(st.assignments||[]).map(x=>`<tr class="${x.name?'':'text-danger'}"><td class="mono small">${esc(x.endpoint)}</td><td>${esc(x.accelerator)}</td><td>${x.name?esc(x.name):'ORPHAN — billing, no name'}</td></tr>`).join('')}</tbody></table></div>
  <div class="col-md-8"><table class="table table-sm"><thead><tr><th>run</th><th>step</th><th>branch@sha</th><th>gpu</th></tr></thead><tbody>${(st.manifests||[]).slice().reverse().map(m=>`<tr><td class="mono small">${esc(m.run_id)}</td><td>${esc(m.step)}</td><td class="mono small">${esc(m.branch)}@${esc(m.sha)}</td><td class="small">${esc(m.gpu)}</td></tr>`).join('')}</tbody></table></div></div>`;
  document.getElementById('extra').innerHTML=x;}catch(err){const e=document.getElementById('errs');e.textContent='fetch failed: '+err;e.style.display='';}}
 tick();setInterval(tick,15000);
@@ -624,6 +676,7 @@ def main():
     col = Collector(sessions, args.exec_interval, args.local_interval, args.no_exec)
     if args.once:
         col.refresh_sessions()
+        col._assign, col._assign_err = live_assignments()
         if not args.no_exec:
             col.probe_all()
         col.assemble()

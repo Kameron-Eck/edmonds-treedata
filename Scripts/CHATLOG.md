@@ -191,6 +191,17 @@ overhaul: ** ACTIVE WORKSTREAM 2026-08-20 — OPTION A OVERHAUL. PLAN = Scripts/
          py -3.12 qc/runtime_dashboard.py --sessions A,B --open. Snapshot 16:23Z: A 2024 inference 7%
          (31.9k/481k, 39 tile/s, ETA 3:10 -> ~19:35Z, GPU 37%); B 2019 tile OK + VERIFY:tile OK (done
          ~16:18Z incl. 7.1 min lock wait), train started 16:18:03Z (GPU warming). No flags.
+         ** LOST-SESSION INCIDENT + RECOVERY 16:54-17:00Z (loop, autonomous). ** Session A disappeared from
+         sessions.json while its A100 kept running (probe: 'Session A not found'; colab sessions showed a
+         [?] orphan). CAUSE: common.sync_sessions() prunes any local session whose endpoint is missing
+         from the CURRENT list_assignments() (regions differ: A asia-southeast1, B us-central1); a 401/404
+         exec also triggers execution.py's 'appears to be lost. Cleaning up.' — B hit that minutes later.
+         A pruned VM BILLS but cannot be stopped by name. FIX (new): qc/colab_readopt.py rebuilds the entry
+         from list_assignments() (fresh url+token per assignment) -> A re-adopted as A2, B as B2, both
+         queues verified untouched (A2 pid 1889 2024 inference 25%; B2 pid 15090 2019 inference 14%).
+         Dashboard hardened: reads sessions.json directly (never `colab sessions`, which prunes) and flags
+         any live assignment with no local name as a billing orphan (the CPU [?] from the browser tab shows
+         up that way now). LOOP NAMES ARE NOW A2/B2. Doc: OVERHAUL_PLAN P11.6 'Lost-session hazard'.
          Session prompts: D:\tools\claude-config\plans\because-we-are-not-parallel-codd.md. NEXT SESSION =
          prompt B, CLI edition: first launch of each queue ask-first; crash-recovery per P11.5 = push the
          fix branch + re-exec on the LIVE VM (a live VM keeps its Drive mount).

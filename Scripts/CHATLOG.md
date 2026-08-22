@@ -331,6 +331,12 @@ overhaul: ** ACTIVE WORKSTREAM 2026-08-20 — OPTION A OVERHAUL. PLAN = Scripts/
          (held-out IoU .73 rgb+chm); it is the upper tail that is thin, which matters when the scorer
          searches an operating threshold. 23.7% of valid pixels exceed 0.5 - a plausible canopy fraction.
          B4 relaunched 20:01:01Z on queue_2019_inference.yaml (pid 46969, ~15-20 min) so it did not idle.
+         ** 2019 CITYWIDE DONE 20:19:22Z: inference OK in 18.3 min ** (vs ~1 h serial), VERIFY:inference OK
+         2289 MB valid=89.6% maxprob=0.965 - a healthy tail, unlike 2022. B4 had nothing left queued ->
+         colab stop -s B4 at 20:20Z (only A5 still live, on 2024 then 2017). SCORING: 2022 started locally
+         against ccap_2021_hires_lc.tif; the gate is satisfied - the scorer printed "deployed threshold
+         0.4988 (channels=rgb+chm)". 2019 scores next, serially, so two multi-GB readers do not fight for
+         the disk.
          Session prompts: D:\tools\claude-config\plans\because-we-are-not-parallel-codd.md. NEXT SESSION =
          prompt B, CLI edition: first launch of each queue ask-first; crash-recovery per P11.5 = push the
          fix branch + re-exec on the LIVE VM (a live VM keeps its Drive mount).

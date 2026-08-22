@@ -90,7 +90,9 @@ overhaul: ** ACTIVE WORKSTREAM 2026-08-20 — OPTION A OVERHAUL. PLAN = Scripts/
          writer) SILENT since 01:12Z: Drive API shows no write from either after 01:12:52Z / 01:03:07Z; both
          stuck in ortho staging (parallel-staging throttle) or dead — only Kam's tab decides. Nothing newly
          VERIFIED → nothing scored. d038f34 + f4601c4 UNPUSHED — push before ANY relaunch. 2013 citywide .7422
-         row is live=0 in qc_indep_report.csv (re-score owed; see LOG). Artifact monitor armed (this session only).
+         row is live=0 in qc_indep_report.csv (re-score owed; see LOG). 02:05Z Kam STOPPED both runtimes — nothing landed; stale RUNNING rows closed
+         INTERRUPTED + harvested; monitor stopped. NEXT GPU = relaunch on Kam's yes: queue_2024_finish.yaml
+         (1 runtime, L4, ~4.5 h) then queue3.yaml (~13.5 h, own window); never two ortho stagings at once.
 proj:    Edmonds temporal canopy pipeline, phase 4 (per-year semantic seg, 18 imagery yrs).
 live:    ENGINE MODULARIZED 2026-07-08 → phase4seg/ package (config/common/labels/tiling/core[all torch]/
          postproc/cli) + 97L phase4_semantic_finetune.py SHIM (preserves `%run ... --args`). Behavior =
@@ -1060,9 +1062,11 @@ decided: report "both stalled or dead", not "A fine / B stuck" — A's missing s
          Fix 2013 by re-score (newest → live=1), no scorer change tonight.
 files:   phase4/qc/train_queue_status.csv (f4601c4), CHATLOG.md (STATE + this entry)
 next:    KAM (in order): (1) `git push github main --tags` — d038f34 (P11.1) + f4601c4 + this commit are
-         UNPUSHED; every runtime tonight cloned 57bc07b; any relaunch must clone HEAD. (2) Colab tab(s):
-         alive-throttled vs dead. Dead → relaunch is a NEW ask (queue3.yaml, L4, 1 runtime, ~13.5 h → 2
-         windows; queue_2024_finish.yaml ~4.5 h). Never stage two orthos concurrently again — stagger.
+         UNPUSHED; every runtime tonight cloned 57bc07b; any relaunch must clone HEAD. (2) DONE: Kam
+         stopped both runtimes ~02:05Z (silent 55+ min, staging throttle). Rows closed INTERRUPTED + harvested.
+         Relaunch = NEW ask, proposed: queue_2024_finish.yaml, 1 runtime, L4, ~4.5 h (stage ~4 min healthy +
+         ~255 min inference per the 2017 precedent); then queue3.yaml in its own window (~13.5 h: 2019 2.5 h,
+         2017/2022 5.5 h each). Never stage two orthos at once. A new VM clones HEAD -> per-queue status files.
          (3) DONE 02:20Z: colab-mcp registered USER scope, absolute uvx.exe path, ✔ Connected. Owed: read-only
          tool inventory in a fresh session (README documents no auth flow — expect a browser step).
          CLAUDE when rasters land: qc_indep 2024 + 2019 vs clipped ccap_2021_hires_lc.tif (T3 footing), 2017

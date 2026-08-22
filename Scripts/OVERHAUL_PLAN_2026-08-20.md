@@ -416,7 +416,7 @@ findings fixed):* Drive staging lock (`phase4seg/common.py _StagingLock` — the
 the constants `STAGE_LOCK_*` and their rationale live there): bulk (≥1 GiB) Drive→NVMe
 copies serialize across runtimes via per-claimant files in `phase4/locks/` (no
 `O_EXCL` — Drive is not POSIX); the oldest live claim holds, confirmed on a second
-listing ≥60 s after the claim was written; liveness is judged in the reader's clock;
+listing taken after `STAGE_LOCK_CONFIRM_SEC`; liveness is judged in the reader's clock;
 bounded wait then proceed unlocked with a warning (claim kept so later claimants still
 queue); unknown states fail closed; every lost race is logged by the holder's
 heartbeat; the queue sweeps the claim of an engine it kills. Small copies (CHM, masks,
@@ -431,9 +431,10 @@ reported or its `VERIFY` hard-failed; per-queue nohup logs
 (`phase4/locks/` pre-created at bootstrap and at queue launch — Drive keeps two
 same-named folders if two VMs race to create one).
 Residual risk, accepted: a Drive-file lock cannot be more than best-effort — if a
-peer's claim propagates slower than `STAGE_LOCK_CONFIRM_SEC` (60 s), or the mount
+peer's claim propagates slower than `STAGE_LOCK_CONFIRM_SEC`, or the mount
 wedges, both runtimes copy; the holder's heartbeat prints a WARNING so the nohup log
-records it. Mitigation: launch B ≥2 min after A. Tests: a 10-case local unit test plus
+records it. Mitigation: launch B ≥2× `STAGE_LOCK_CONFIRM_SEC` after A (≥2 min at
+today's value — `phase4seg/common.py` is the home of every `STAGE_LOCK_*` value). Tests: a 10-case local unit test plus
 a two-view lagged-propagation simulation (the harness the review used to prove the
 earlier version lost exclusion).
 
@@ -459,8 +460,8 @@ earlier version lost exclusion).
    A second runtime therefore needs a SECOND server entry — Kam, one-time:
    `claude mcp add --scope user colab-mcp-b -- "C:\Users\Kameron\AppData\Local\Programs\Python\Python312\Scripts\uvx.exe" git+https://github.com/googlecolab/colab-mcp`
    → its own `open_colab_browser_connection` → second tab → propose launch B
-   (`queue_B_2019_2022.yaml`, ≥2 min after A — the lock confirms a fresh claim 60 s
-   after it is written). Until that entry exists, B runs after A or by human-paste in
+   (`queue_B_2019_2022.yaml`, ≥2× `STAGE_LOCK_CONFIRM_SEC` after A — ≥2 min at today's
+   value; the lock confirms a fresh claim only after that window). Until that entry exists, B runs after A or by human-paste in
    a second tab. Lock lines to expect in the nohup logs: "staging lock held by … ;
    waiting", "staging lock acquired after N min"; any "WARNING: … two bulk copies"
    line = a lost race — record it in CHATLOG.

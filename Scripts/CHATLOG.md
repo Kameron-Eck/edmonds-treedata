@@ -104,8 +104,8 @@ overhaul: ** ACTIVE WORKSTREAM 2026-08-20 — OPTION A OVERHAUL. PLAN = Scripts/
          ALLOWLIST INSTALLED 2026-08-22 in user settings (20 allow / 28 deny; verified: `git push github main`
          DENIED in-session, hot-reload); stray home-dir allows removed; colab-mcp + colab-mcp-b CONNECTED.
          PowerShell GAP CLOSED for this session (Kam): 28 PowerShell(...) deny twins appended to user settings
-         (deny = 56, allow = 20); `git push github main` via the PowerShell tool DENIED. Doc block NOT widened
-         (session-scoped; canonicalize or drop the twins = Kam's call).
+         (deny = 56, allow = 20); `git push github main` via the PowerShell tool DENIED. Kam: twins are the
+         right fix -> P11.5 block CANONICALIZED to the live 56-rule list (OVERHAUL_PLAN + plan file).
          Session prompts: D:\tools\claude-config\plans\because-we-are-not-parallel-codd.md. NEXT SESSION =
          the mega prompt (plan file): first launch of each queue ask-first; crash-recovery relaunches per P11.5.
 proj:    Edmonds temporal canopy pipeline, phase 4 (per-year semantic seg, 18 imagery yrs).
@@ -1061,9 +1061,10 @@ files:   CHATLOG.md, OVERHAUL_PLAN_2026-08-20.md (one-time item ticked) on work/
 addendum: Kam: "widen the block for this session" -> 28 PowerShell(...) DENY twins appended to the live user
          settings (no allow twins; loop stays on the Bash tool). Proven: `git push github main` via the
          PowerShell tool -> "Permission to use PowerShell with command git push github main has been denied".
-         The OVERHAUL_PLAN block is unchanged on purpose (session-scoped widening, not policy yet).
-next:    Kam: canonicalize the PowerShell twins into the P11.5 block or drop them; merge/push
-         work/p11-5-autonomy when the diff is approved. Then the mega prompt, Step 1.
+         Kam then ruled the twins permanent (a blanket PowerShell ban at user scope would break the
+         PowerShell-heavy contractor-docs sessions) -> P11.5 JSON block in OVERHAUL_PLAN + plan file
+         regenerated FROM the live settings file (20 allow / 56 deny) + one-sentence rationale.
+next:    prompt B (mega prompt) from this session; Kam merges/pushes work/p11-5-autonomy when approved.
 
 ## 2026-08-22  P11.5 RULED — crash-recovery autonomy, A100 default, branch workflow; prep landed on work/p11-5-autonomy
 goal:    Kam: "we can coordinate GPUs and runtimes now" — larger GPU to dodge runtime limits; if a run crashes

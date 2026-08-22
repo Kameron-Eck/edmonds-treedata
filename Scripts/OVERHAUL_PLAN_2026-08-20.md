@@ -549,8 +549,10 @@ laptop never sleeps (the browser-based MCP bridge persists).
    exist only so that form cannot escape the protection. ✔ INSTALLED 2026-08-22: the block
    below is live in user settings (verified in-session: `git push github main` denied,
    hot-reload); the stray `Bash(git push:*)` and `Bash(rm:*)` allows were removed from
-   `C:\Users\Kameron\.claude\settings.json`. Known gap: `Bash(...)` rules do not gate the
-   PowerShell tool (separate `PowerShell(...)` rules) — loop git commands go through Bash.
+   `C:\Users\Kameron\.claude\settings.json`. The `PowerShell(...)` deny twins exist because
+   the PowerShell tool is a separate tool with separate rules — `Bash(...)` rules never
+   gate it — so without them `main` was protected for Bash only; the loop itself uses the
+   Bash tool only (no PowerShell allows). Canonicalized 2026-08-22 (Kam) to the live list.
 
 ```json
 {
@@ -605,7 +607,35 @@ laptop never sleeps (the browser-based MCP bridge persists).
       "Bash(git -C * checkout *)",
       "Bash(git -C * reset *)",
       "Bash(git -C * branch *)",
-      "Bash(git -C * rebase *)"
+      "Bash(git -C * rebase *)",
+      "PowerShell(git push github main*)",
+      "PowerShell(git push * main*)",
+      "PowerShell(git push *:*)",
+      "PowerShell(git push *refs/heads/*)",
+      "PowerShell(git push *--mirror*)",
+      "PowerShell(git push *--tags*)",
+      "PowerShell(git push *--force*)",
+      "PowerShell(git push -f *)",
+      "PowerShell(git push * -f)",
+      "PowerShell(git push *--delete*)",
+      "PowerShell(git merge *)",
+      "PowerShell(git rebase *)",
+      "PowerShell(git reset *)",
+      "PowerShell(git tag *)",
+      "PowerShell(git switch main*)",
+      "PowerShell(git checkout main*)",
+      "PowerShell(git branch -f *)",
+      "PowerShell(git branch -D *)",
+      "PowerShell(git branch -M *)",
+      "PowerShell(git branch -m *)",
+      "PowerShell(git -C * push *)",
+      "PowerShell(git -C * merge *)",
+      "PowerShell(git -C * tag *)",
+      "PowerShell(git -C * switch *)",
+      "PowerShell(git -C * checkout *)",
+      "PowerShell(git -C * reset *)",
+      "PowerShell(git -C * branch *)",
+      "PowerShell(git -C * rebase *)"
     ]
   }
 }

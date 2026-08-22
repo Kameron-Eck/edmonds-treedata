@@ -287,6 +287,13 @@ overhaul: ** ACTIVE WORKSTREAM 2026-08-20 — OPTION A OVERHAUL. PLAN = Scripts/
          OPEN: queue A (2017 tile onward + the 2024 inference re-run) needs a NEW VM = Kam's drivemount
          = an ASK. Queue B continues on B4 (2022 train -> evaluate -> inference, then the staged
          queue_2019_inference.yaml).
+         ** THREADED INFERENCE VALIDATED IN PRODUCTION 19:13Z: ** 2022 citywide (481,068 tiles, 5 cm grid) at
+         122.3 tile/s, GPU 63% mean / 79% peak, 30% in 20 min -> ~66 min total vs ~3.3 h on the serial path
+         (~3x end-to-end; the x6.55 bench compared against a serial run that was itself contending). Byte
+         equivalence was proven before the deploy. NEXT LEVER if more is wanted: the per-tile CHM warp is
+         12 of the 16.5 ms serial read cost - pre-warping the CHM onto each ortho grid once per year would
+         remove it and should take GPU util past 85%; EDMONDS_INFER_WORKERS>8 did NOT help the read path in
+         the bench (326 tile/s at 8 vs 305 at 12).
          Session prompts: D:\tools\claude-config\plans\because-we-are-not-parallel-codd.md. NEXT SESSION =
          prompt B, CLI edition: first launch of each queue ask-first; crash-recovery per P11.5 = push the
          fix branch + re-exec on the LIVE VM (a live VM keeps its Drive mount).

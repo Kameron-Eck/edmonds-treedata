@@ -101,6 +101,9 @@ overhaul: ** ACTIVE WORKSTREAM 2026-08-20 — OPTION A OVERHAUL. PLAN = Scripts/
          launches ask-first; crash-recovery AUTONOMOUS (fix branch -> small-GPU canary -> A100 rerun; no cap
          tonight; every launch logged); main PROTECTED (deny rules); A100 default; loop backoff 10->60 min.
          Prep on branch work/p11-5-autonomy (cockpit BRANCH + nvidia-smi, manifest git_branch/gpu, docs).
+         ALLOWLIST INSTALLED 2026-08-22 in user settings (20 allow / 28 deny; verified: `git push github main`
+         DENIED in-session, hot-reload); stray home-dir allows removed; colab-mcp + colab-mcp-b CONNECTED.
+         GAP: Bash(...) rules do not gate the PowerShell tool -> loop git/py via the Bash tool only.
          Session prompts: D:\tools\claude-config\plans\because-we-are-not-parallel-codd.md. NEXT SESSION =
          the mega prompt (plan file): first launch of each queue ask-first; crash-recovery relaunches per P11.5.
 proj:    Edmonds temporal canopy pipeline, phase 4 (per-year semantic seg, 18 imagery yrs).
@@ -1038,6 +1041,23 @@ gotcha:  scripts Colab-only for torch (rasterio+geopandas+fiona+sklearn now pip-
          accept-all test data; 14,476-crown human review never finished.
 
 ════════════════ LOG  (newest first) ════════════════
+
+## 2026-08-22  P11.5 ALLOWLIST INSTALLED — user settings gained permissions; main-push deny PROVEN in-session
+goal:    Kam: install the P11.5 permissions block (OVERHAUL_PLAN P11.5 == plan file, diff-identical) into
+         D:\tools\claude-config\settings.json, strip the stray allows from C:\Users\Kameron\.claude\settings.json,
+         prove the guard, confirm both Colab MCP servers.
+did:     Block merged by script (no retyping): 20 allow / 28 deny; all 8 prior keys kept, permissions byte-equal
+         to the doc block. Home file -> {"permissions":{"allow":[]}} (Bash(git push:*) + Bash(rm:*) gone).
+         Guard: one standalone `git push github main` (main == github/main at b1b8516, so a leak would have been
+         a no-op) -> "Permission to use Bash with command git push github main has been denied" — the edit
+         hot-reloaded into the running session (docs: settings are watched; permissions/hooks reload live).
+         `claude mcp list`: colab-mcp + colab-mcp-b Connected (Drive/Gmail/Calendar connected, HF needs auth).
+decided: nothing new. FACT (docs, code.claude.com/docs/en/permissions): Bash(...) and PowerShell(...) rules are
+         evaluated separately -> the deny list protects main only for the Bash tool. Not widened (Kam's call).
+files:   CHATLOG.md, OVERHAUL_PLAN_2026-08-20.md (one-time item ticked) on work/p11-5-autonomy. Settings files
+         are outside the repo.
+next:    Kam: decide whether to add PowerShell(...) twins (or forbid the PowerShell tool for loop git); merge/push
+         work/p11-5-autonomy when the diff is approved. Then the mega prompt, Step 1.
 
 ## 2026-08-22  P11.5 RULED — crash-recovery autonomy, A100 default, branch workflow; prep landed on work/p11-5-autonomy
 goal:    Kam: "we can coordinate GPUs and runtimes now" — larger GPU to dodge runtime limits; if a run crashes

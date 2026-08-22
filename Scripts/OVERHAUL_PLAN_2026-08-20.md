@@ -546,11 +546,11 @@ laptop never sleeps (the browser-based MCP bridge persists).
    though branch pushes are allowed. Loop git commands run from the repo cwd in plain
    `git <verb> …` form — never `git -C <repo> …`, never `cd … && git …` — because both
    allow and deny rules are word-bounded prefix patterns; the `git -C …` deny twins below
-   exist only so that form cannot escape the protection. Also Kam, one-time: remove the
-   stray `Bash(git push:*)` and `Bash(rm:*)` allows from `C:\Users\Kameron\.claude\
-   settings.json` (it is the project file for sessions opened from the home directory
-   and would pre-approve a main push there); the user settings file currently has NO
-   `permissions` object — the approval prompt creates it.
+   exist only so that form cannot escape the protection. ✔ INSTALLED 2026-08-22: the block
+   below is live in user settings (verified in-session: `git push github main` denied,
+   hot-reload); the stray `Bash(git push:*)` and `Bash(rm:*)` allows were removed from
+   `C:\Users\Kameron\.claude\settings.json`. Known gap: `Bash(...)` rules do not gate the
+   PowerShell tool (separate `PowerShell(...)` rules) — loop git commands go through Bash.
 
 ```json
 {

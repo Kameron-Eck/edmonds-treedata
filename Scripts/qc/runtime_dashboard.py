@@ -91,8 +91,12 @@ out["gpu"] = [x.strip() for x in g.split(",")] if g and not g.startswith("ERR") 
 # forward pass, then a wait while the next window is read off the ortho), so a single
 # reading is 0 most of the time even at full tilt. Sample ~3 s and report mean/max.
 if out["gpu"]:
-    s = sh("nvidia-smi --query-gpu=utilization.gpu --format=csv,noheader,nounits -lms 200 -c 15", t=25)
-    vals = [int(v) for v in s.split() if v.strip().isdigit()]
+    vals = []                       # -l/-lms are rejected alongside --query-gpu here: loop instead
+    for _ in range(12):
+        v = sh("nvidia-smi --query-gpu=utilization.gpu --format=csv,noheader,nounits", t=8).strip()
+        if v.isdigit():
+            vals.append(int(v))
+        time.sleep(0.25)
     if vals:
         out["gpu_util_mean"] = round(sum(vals) / len(vals))
         out["gpu_util_max"] = max(vals)
@@ -171,7 +175,8 @@ def colab_sessions():
     except (OSError, ValueError) as e:
         return [], f"sessions.json unreadable: {e}"
     rows = [{"name": k, "endpoint": v.get("endpoint"), "hardware": v.get("accelerator"),
-             "variant": v.get("variant")} for k, v in sorted(data.items())]
+             "variant": v.get("variant"), "keep_alive_pid": v.get("keep_alive_pid")}
+            for k, v in sorted(data.items())]
     return rows, ""
 
 
@@ -348,6 +353,12 @@ def build_card(sess, probe, probe_err, merged_latest, now):
         card["gpu"] = None
     if not card["procs"]:
         card["flags"].append("no queue/engine process on the VM")
+    ka = sess.get("keep_alive_pid")
+    if keepalive_alive(ka) is False:
+        card["flags"].append(f"KEEP-ALIVE DAEMON DEAD (pid {ka or 'none'}) — Colab reclaims an "
+                             f"unheartbeated VM in ~15-25 min even mid-run; re-adopt with "
+                             f"qc/colab_readopt.py to respawn it")
+    card["keep_alive_pid"] = ka
     queue = card["queue"]
     stem = queue[:-5] if queue and queue.endswith(".yaml") else None
     # jobs + step chips
@@ -370,9 +381,15 @@ def build_card(sess, probe, probe_err, merged_latest, now):
         j["job_end"] = {"state": (jend or {}).get("state"), "detail": (jend or {}).get("detail")} if jend else None
     card["jobs"] = jobs
     # hard-fail rows in this queue's files
+    cur_file = None                 # the status file of the launch that is running NOW
+    if card["procs"] and qrows:
+        cur_file = qrows[-1].get("_file")
     for r in qrows:
-        if r.get("state") in BAD_STATES or r.get("state") in ("INTERRUPTED",):
-            card["flags"].append(f"{r.get('job')}/{r.get('step')} {r.get('state')} {str(r.get('detail') or '')[:120]}")
+        if r.get("_file") != cur_file:
+            continue                # a previous launch's failures are history, not this run's
+        if r.get("state") in BAD_STATES or r.get("state") == "INTERRUPTED":
+            card["flags"].append(f"{r.get('job')}/{r.get('step')} {r.get('state')} "
+                                 f"{str(r.get('detail') or '')[:120]}")
     # current step: elapsed vs ceiling, progress
     lg = probe.get("log")
     parsed = parse_log_tail(lg["tail"]) if lg else parse_log_tail("")
@@ -424,6 +441,24 @@ def build_card(sess, probe, probe_err, merged_latest, now):
 
 
 _LAST_UTIL_ZERO = {}     # session name -> was the previous probe's GPU util 0%
+
+
+def keepalive_alive(pid):
+    """Is this session's keep-alive daemon still running?
+
+    That daemon is the ONLY thing refreshing Colab's idle timer for the assignment;
+    prune_session() kills it, and a session without it is reclaimed by Colab ~15-25
+    min later even mid-computation (measured twice, 2026-08-22 — two lost inferences).
+    Restore it with qc/colab_readopt.py, which re-adopts AND respawns the daemon.
+    """
+    if not pid:
+        return False
+    try:
+        out = subprocess.run(["tasklist", "/FI", f"PID eq {int(pid)}", "/NH"],
+                             capture_output=True, text=True, timeout=20).stdout
+        return str(pid) in out
+    except (OSError, ValueError, subprocess.SubprocessError):
+        return None          # unknown — do not cry wolf
 
 
 def hours_since_launch(card):

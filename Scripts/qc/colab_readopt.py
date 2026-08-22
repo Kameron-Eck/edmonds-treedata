@@ -65,10 +65,22 @@ def main():
                      accelerator=str(getattr(x.accelerator, "name", x.accelerator)))
     if a.dry_run:
         print("DRY RUN — would store:", s.model_dump_json(indent=2)[:300], "...")
+        print("DRY RUN — would spawn the keep-alive daemon for", x.endpoint)
         return 0
     state.store.add(s)
-    print(f"READOPTED {a.name} -> {x.endpoint}   (verify: colab exec -s {a.name} ...; "
-          f"end billing with: colab stop -s {a.name})")
+
+    # THE PART THAT MATTERS: prune_session() kills the session's keep-alive daemon, and
+    # that daemon is the only thing refreshing Colab's idle timer for the assignment.
+    # Without it Colab reclaims the VM ~15-25 min later EVEN WHILE IT IS COMPUTING —
+    # measured twice on 2026-08-22 (A died 14 min after its prune; B died ~25 min after a
+    # re-adoption that restored the name but not the daemon, losing a 40%-done inference).
+    # So re-adoption must restart the heartbeat, not just the name.
+    from colab_cli.commands.session import spawn_keep_alive
+    pid = spawn_keep_alive(x.endpoint, a.name, auth_provider=state.auth_provider)
+    s.keep_alive_pid = pid
+    state.store.add(s)
+    print(f"READOPTED {a.name} -> {x.endpoint}   keep-alive daemon pid {pid}")
+    print(f"  verify: colab exec -s {a.name} ... ; end billing with: colab stop -s {a.name}")
     return 0
 
 

@@ -235,6 +235,12 @@ overhaul: ** ACTIVE WORKSTREAM 2026-08-20 — OPTION A OVERHAUL. PLAN = Scripts/
          flags a dead keep-alive pid (~20 min of warning); GPU util sampled in a python loop (this
          driver rejects -lms/-l alongside --query-gpu); hard-fail flags scoped to the current launch file.
          A3 is healthy: daemon pid 4504 alive, 2024 ortho staging 11.6/26.9 GB at 17:29Z.
+         ** RELAUNCH B 2026-08-22 17:33:55Z (Kam: "Remount B") ** colab session B3 = A100-SXM4-40GB (host
+         dff1f387a881), keep-alive pid 38184 (A3: 4504 — both heartbeating, the reclaim mechanism is closed);
+         Kam drivemount OK, bootstrap at bcdd4c6 on work/p11-5-autonomy, BOOTSTRAP_DONE, vm_launch -> pid 5005,
+         log train_queue_nohup_queue_B_2019_2022_20260822T173355Z.log. Dry-run confirms the resume: 2019 runs
+         INFERENCE ONLY (~1 h; its labels/tile/train/evaluate VERIFY:OK stand), then 2022 full path (~5.5 h).
+         Two A100s live (A3 2024+2017 ~8 h, B3 2019+2022 ~6.5 h).
          Session prompts: D:\tools\claude-config\plans\because-we-are-not-parallel-codd.md. NEXT SESSION =
          prompt B, CLI edition: first launch of each queue ask-first; crash-recovery per P11.5 = push the
          fix branch + re-exec on the LIVE VM (a live VM keeps its Drive mount).

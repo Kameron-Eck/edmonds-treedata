@@ -8,7 +8,8 @@ everything else is authored here with its source URL and verbatim quote. Rules (
   CONTESTED rows carry both readings (alt_* columns) and are never collapsed to one.
 Run:  PYTHONUTF8=1 py -3.12 scratch/imagery_pixelsize_date_build.py
 """
-import csv, math, pathlib
+import csv, math, pathlib, sys
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
 HERE = pathlib.Path(__file__).resolve().parent
 OUT = HERE.parent / "qc" / "imagery_pixelsize_and_date.csv"
 LAT = 47.81                      # Edmonds; cos = 0.67159
@@ -371,6 +372,13 @@ ROWS = [
       alt_date_shot="2018-08-01T16:22:13+00:00 to 16:52:13 (Marsh)", alt_source_url=COE % "Edmonds_Marsh_2018/ImageServer/keyProperties?f=json",
       alt_verbatim_quote="\"acquisitionEndDate\":\"2018-08-01T16:52:13+00:00\",\"acquisitionStartDate\":\"2018-08-01T16:22:13+00:00\""),
 ]
+try:
+    from imagery_pixelsize_date_campaign import build_campaign_rows
+    ROWS += build_campaign_rows({r["file"] for r in ROWS})
+except Exception as _e:                      # the campaign module is optional at build time
+    print(f"campaign rows skipped: {_e}")
+
+
 def gate(r):
     """A date that claims PUBLISHED must carry a fetched URL and a quote; otherwise downgrade."""
     if r.get("evidence_grade") == "PUBLISHED":

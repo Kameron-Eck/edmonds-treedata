@@ -392,8 +392,10 @@ acquire: ** IMAGERY ACQUISITION CAMPAIGN (2026-08-23, ACTIVE) ** — engine pipe
          ccap_2021_hires_lc_pugetfull.tif EPSG:5070 (v2 CONUS = Albers, byte-equality impossible) → gate 99.794%
          class agreement on held 26910 grid, diffs = symmetric boundary jitter → PATCH verdict; file QUARANTINED
          until NOAA ask (d) answered, read by no script (IMAGERY_FACTS §10.9). Table 39 rows gate 0 misses; check
-         24/24 + ADOPTED_NON_YEAR heading (M18). DEFERRED: Drive mirrors batch 3+
-         until Kam empties Drive trash (upsample/ 1,009 GB still counted; free ~42 GB). NEXT: batches 4-6 (S18, pan
+         24/24 + ADOPTED_NON_YEAR heading (M18). Kam EMPTIED Drive trash (msg 2026-08-23 ~12:45); batch-3 + CC21
+         mirrors LANDED size-exact (S21+S15 -> Pipeline Imagery; CC21 raster+clip -> Full_Image/CCAP/_quarantine/,
+         NEVER Pipeline Imagery); Drive free 41.5 GB, quota reconciliation may still be running — later mirrors
+         re-check the 25 GB floor themselves. NEXT: batches 4-6 (S18, pan
          years, N19f/N23f full-extent NAIP, snoco RGB years), 3-inch pilots S20/S22/S24 (per-year OK, ~23 GB each,
          anchor NEVER flipped), K00 ★ EmergeCIR on King reply. Kam sends: 4 asks in
          IMAGERY_ACQUISITION_ASKS_2026-08-23.md; decisions (e): Drive trash, 2017 duplicate, CONNECTExplorer.

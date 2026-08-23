@@ -1,0 +1,31 @@
+AGOL search hits: 10000
+  Statewide Imagery Consortium 2017 1 ft Flight Areas (Dates and Times) | WAGeoservices | https://services.arcgis.com/jsIt88o09Q0r1j8h/arcgis/rest/services/Statewide_Imagery_2017_Consortium_1_ft_Footprints_(Dates_and_Times)/FeatureServer
+  Statewide Imagery Consortium 2015 1 ft  Footprints (Dates and Times) | WAGeoservices | https://services.arcgis.com/jsIt88o09Q0r1j8h/arcgis/rest/services/NAIP_2015_1ft_Ortho_Dates_and_Times_83s/FeatureServer
+  Statewide Imagery Consortium 2016 6in Footprints (Dates and Times) | WAGeoservices | https://services.arcgis.com/jsIt88o09Q0r1j8h/arcgis/rest/services/NAIP_2016_6in_Ortho_Dates_and_Times_83s/FeatureServer
+  2018 statewide imagery consortium 6 inch flight areas | WAGeoservices | https://services.arcgis.com/jsIt88o09Q0r1j8h/arcgis/rest/services/2018FlightAreas/FeatureServer
+
+== Statewide Imagery Consortium 2017 1 ft Flight Areas (Dates and Times): 2 features over Edmonds
+    {'IDATE': '2017-08-21'}
+    {'IDATE': '2017-08-15'}
+
+== Statewide Imagery Consortium 2015 1 ft  Footprints (Dates and Times): 4 features over Edmonds
+    {'THEMENAME': 'hxip_m_4712213_se_10_30', 'SDATE': '08/07/2015 15:31', 'SUNEL': 46, 'ACCURACY': '0.72m (ce 95%)'}
+    {'THEMENAME': 'hxip_m_4712214_sw_10_30', 'SDATE': '08/07/2015 15:31', 'SUNEL': 46, 'ACCURACY': '0.72m (ce 95%)'}
+    {'THEMENAME': 'hxip_m_4712213_ne_10_30', 'SDATE': '08/07/2015 15:31', 'SUNEL': 46, 'ACCURACY': '0.72m (ce 95%)'}
+    {'THEMENAME': 'hxip_m_4712214_nw_10_30', 'SDATE': '08/07/2015 15:31', 'SUNEL': 46, 'ACCURACY': '0.72m (ce 95%)'}
+
+== Statewide Imagery Consortium 2016 6in Footprints (Dates and Times): 11 features over Edmonds
+    {'THEMENAME': 'hxip_m_4712213_se4_10_15', 'SDATE': '08/12/2016 09:30', 'SUNEL': 37, 'ACCURACY': '0.68m (ce 95%)'}
+    {'THEMENAME': 'hxip_m_4712214_nw2_10_15', 'SDATE': '08/11/2016 16:52', 'SUNEL': 31, 'ACCURACY': '0.68m (ce 95%)'}
+    {'THEMENAME': 'hxip_m_4712214_nw4_10_15', 'SDATE': '08/11/2016 16:52', 'SUNEL': 31, 'ACCURACY': '0.68m (ce 95%)'}
+    {'THEMENAME': 'hxip_m_4712214_nw1_10_15', 'SDATE': '08/12/2016 09:05', 'SUNEL': 34, 'ACCURACY': '0.68m (ce 95%)'}
+    {'THEMENAME': 'hxip_m_4712214_sw2_10_15', 'SDATE': '08/11/2016 16:52', 'SUNEL': 31, 'ACCURACY': '0.68m (ce 95%)'}
+    {'THEMENAME': 'hxip_m_4712213_ne4_10_15', 'SDATE': '08/12/2016 09:30', 'SUNEL': 37, 'ACCURACY': '0.68m (ce 95%)'}
+    {'THEMENAME': 'hxip_m_4712214_sw1_10_15', 'SDATE': '08/12/2016 09:05', 'SUNEL': 34, 'ACCURACY': '0.68m (ce 95%)'}
+    {'THEMENAME': 'hxip_m_4712214_nw3_10_15', 'SDATE': '08/12/2016 09:05', 'SUNEL': 34, 'ACCURACY': '0.68m (ce 95%)'}
+    {'THEMENAME': 'hxip_m_4712214_sw4_10_15', 'SDATE': '08/11/2016 16:52', 'SUNEL': 31, 'ACCURACY': '0.68m (ce 95%)'}
+    {'THEMENAME': 'hxip_m_4712213_se2_10_15', 'SDATE': '08/12/2016 09:30', 'SUNEL': 37, 'ACCURACY': '0.68m (ce 95%)'}
+    {'THEMENAME': 'hxip_m_4712214_sw3_10_15', 'SDATE': '08/12/2016 09:05', 'SUNEL': 34, 'ACCURACY': '0.68m (ce 95%)'}
+
+== 2018 statewide imagery consortium 6 inch flight areas: 1 features over Edmonds
+    {'IDATE': '2018-08-07'}

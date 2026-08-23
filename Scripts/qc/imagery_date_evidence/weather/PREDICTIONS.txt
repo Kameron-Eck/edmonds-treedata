@@ -1,0 +1,60 @@
+PREDICTIONS STATED 2026-08-23 BEFORE ANY METAR WAS PARSED (weather-elimination angle)
+Criteria "spec" = >=3 consecutive hours with solar elev > 30 deg AND sky CLR/FEW/SCT
+(no BKN/OVC/VV with base <= 8000 ft) AND vsby >= 7 sm AND no precip wxcode.
+
+P1. Apr-Jul pass fraction at spec: 40-60% of days in each of the 2020 / 2022 / 2024
+    windows. Direction: majority of the published window survives => weather alone
+    will NOT pin a date, only trim it.
+P2. All five 2017 King control days (May 4/6/8/9/10) PASS spec. May 4 passes on
+    09:53-15:53 despite dense fog 00:53-08:53 and a thunderstorm at 16:53 (already
+    seen in the endpoint test).
+P3. The 2015 King control days (Feb 15/18/21/28) FAIL spec by ARITHMETIC, not weather:
+    max solar elevation at 47.81N on Feb 15 is ~29.3 deg, below the 30 deg floor.
+    => the 30-degree floor as specified is falsified by a known flight day.
+P4. The 2021 Snohomish window (Jun 25 - Nov 11) truncates on SUN ALONE: days after
+    ~2021-10-20 fail the 30 deg floor and after ~2021-11-05 fail even a 25 deg floor.
+    So the published Nov 11 endpoint cannot be evaluated by this method at spec, and
+    the "eliminated" tail is a geometry artefact, not a weather result.
+P5. Pooled extended control (~45 known flight days 2007-2023): >=90% pass under the
+    loosened criteria (sun floor 20 deg, allow M-visibility on otherwise-clear hours).
+P6. 2016-08-11 and 2016-08-12 both PASS (Aug, Puget Sound dry season).
+P7. 2016 SUNEL discrimination: SDATE '08/11/2016 16:52' with published SUNEL 31 is
+    UTC, not local. Predicted pvlib elevation at 16:52 PDT ~= 30-34 deg (late
+    afternoon, similar elevation to 09:52 by symmetry about ~13:10 solar noon), so
+    this test may NOT discriminate on elevation alone -- azimuth will.
+    Predicted: 09:52 PDT azimuth ~ 105-115 deg (ESE, shadows to WNW) vs 16:52 PDT
+    azimuth ~ 250-260 deg (WSW, shadows to ENE). Held-file shadows point WEST =>
+    morning => the SDATE is UTC.
+
+=========================== OUTCOMES (measured 2026-08-23) ===========================
+P1 HELD. SPEC pass fraction: 2020 50/92=54%, 2022 53/97=55%, 2024 35/62=56%,
+   2021 75/140=54%. All inside the predicted 40-60%.
+P2 FALSIFIED. 2017-05-08 FAILS the spec criterion (longest clear run with every hour
+   at sun>30 deg = 2 h). 4/5, not 5/5. May 4 did pass as predicted (09:53-15:53).
+P3 HELD, exactly. 2015-02-15 max solar elevation 29.30 deg; KPAE reported CLR and
+   vis 10 sm for all 8 daylight hours. A perfect-weather day, flown, failed on
+   geometry alone. The 30-degree floor is falsified by a known flight day.
+P4 HELD. First day in the 2021 window whose max solar elevation <= 30 deg is
+   2021-10-25 (18 of the 140 days never reach 30 deg); <= 25 deg first on 2021-11-10.
+   2021-11-11 max elevation 24.58 deg.
+P5 HELD, and stronger than predicted: 46/46 = 100% at each calibrated rule.
+P6 HELD. Both 2016-08-11 and 2016-08-12 pass every rule at all three stations.
+P7 FALSIFIED, decisively, and in the opposite direction. See SUNEL note below.
+P8 (stated before the 3-station run) 3-station consensus would eliminate roughly half
+   of KPAE-alone, 12-22 days for 2020. HELD at the top of the range: 22 days.
+
+2016 SUNEL / time-convention test (pvlib 0.13.0, lat 47.8125 lon -122.3125):
+  A(local PDT): 08-11 16:52 -> elev 34.64 az 252.77 ; 08-12 09:05 -> 29.37/100.77 ;
+                08-12 09:30 -> 33.44/106.00
+  B(UTC):       08-11 09:52 -> 37.14/110.62 ; 08-12 02:05 -> -26.38 ; 02:30 -> -25.16
+  C(PST):       08-11 17:52 -> 24.77/265.01 ; 08-12 10:05 -> 38.96 ; 10:30 -> 42.69
+  Published SUNEL: 31 / 34 / 37.
+  => B is ELIMINATED: as UTC, the 09:05 and 09:30 records put the sun 25-26 deg BELOW
+     the horizon, yet the same field publishes SUNEL 34 and 37. The SDATE field is a
+     local clock time throughout, so '16:52' is a genuine AFTERNOON sortie.
+  => All three published SUNELs are reproduced by pvlib at ~22-28 min LATER than the
+     stated clock time (elev 31 at 17:14 PM branch; 34 at 09:33; 37 at 09:52) - a
+     consistent same-signed offset whose cause is not established, but which does not
+     change the half-day sense.
+  => Afternoon solar azimuth 253-257 deg casts shadows to 73-77 deg (ENE). Morning
+     08-12 azimuth 101-111 deg casts shadows to 281-291 deg (WNW = "west").

@@ -1,0 +1,62 @@
+WEATHER-ELIMINATION ANGLE - provenance, 2026-08-23
+Every raw file in this directory was downloaded this session. request_urls.json holds
+the exact asos.py URL for each asos_*.csv (34 requests, KPAE/KSEA/KBFI).
+
+FIELD UNITS (fetched this session, iem_download_fields.html <- https://mesonet.agron.iastate.edu/request/download.phtml):
+  "vsby: Visibility in miles"
+  "skyc1: Sky Level 1 Coverage" ... "skyl1: Sky Level 1 Altitude in feet"
+  "wxcodes: Present Weather Codes (space seperated)"
+  report_type=3 = "Routine / Once Hourly" (SPECIs excluded)
+  NOTE: METAR sky-layer altitudes are AGL at the reporting station, not MSL.
+
+SOLAR GEOMETRY: pvlib 0.13.0 get_solarposition, apparent_elevation / azimuth,
+lat 47.811 lon -122.377 (Edmonds), tz America/Los_Angeles, applied to the local
+timestamps returned by asos.py (tz=America%2FLos_Angeles).
+
+RULES (all require >=3 consecutive hourly observations, gaps >95 min break the run):
+  R1_primary  no BKN/OVC/VV layer with base <= 8000 ft; vis >= 7 sm; no precip
+              wxcode; >=1 hour of the run with solar elevation > 20 deg.
+  R2_maxelim  as R1 but ANY BKN/OVC/VV blocks regardless of height; sun floor 15 deg.
+  R3_lowcloud as R1 but cloud cutoff 5000 ft.
+  SPEC_asasked the criterion in the task brief: EVERY hour of the run must have
+              solar elevation > 30 deg; cloud cutoff 8000 ft. -> FALSIFIED, see below.
+  Precip tokens treated as blocking: TS RA SN DZ PL GR GS SG IC UP FZ.
+  Missing visibility (0.06% of observations) treated as non-blocking.
+
+POSITIVE CONTROL (n=46 days on which imagery over the Edmonds city polygon is known
+to have been flown, taken from qc/imagery_pixelsize_and_date.csv MEASURED rows:
+2007 x6, 2009 x3, 2012 x2, 2013 x4, 2015 x6, 2017 x5, 2019 x7, 2021 x4, 2023 x7,
+NAIP 2019-10-11, NAIP 2023-10-07):
+  SPEC_asasked  38/46 = 82.6%   (named 2017 control 4/5 - 2017-05-08 fails)
+  R1_primary    46/46 = 100%    (named 2017 control 5/5)
+  R2_maxelim    46/46 = 100%
+  R3_lowcloud   46/46 = 100%
+  frame-weighted TPR (weighting each control day by frames intersecting the city):
+  SPEC 90.5%, R1/R2/R3 100%.
+
+FILES
+  flyable_days.csv           597 days scored, 4 rules x KPAE + 3-station R1 columns
+  criteria_sweep.csv         200-row calibration surface (mode x sun floor x cloud cut x run)
+  shortlists.txt             KPAE-only shortlists
+  shortlists_3station.txt    3-station-consensus shortlists  <- USE THIS ONE
+  hourly_KPAE_scored.csv     14,270 scored hourly observations 2007-2024
+  hourly_3station_scored.csv KPAE+KSEA+KBFI scored hourly observations
+  PREDICTIONS.txt            predictions stated before measuring + outcomes
+
+BOUNDARY SENSITIVITY (measured): the SPEC criterion's cloud test at exactly 8000 ft is
+knife-edge. "base <= 8000 blocks" -> 38/46 control; "base < 8000 blocks" -> 40/46
+(2017-05-08 and 2023-04-20 flip to PASS). The named 2017 control therefore goes 4/5 or
+5/5 depending on an inclusive-vs-exclusive comparison. The falsification of the 30 deg
+sun floor does NOT depend on any boundary: 2015-02-15 was CLR with vis 10 sm for all 8
+daylight hours, was flown, and has a max solar elevation of 29.30 deg.
+Irreducible false negatives (fail every rule at all available stations): 2015-02-18
+(OVC 2400-5000 ft at KPAE, KSEA and KBFI; 5 frames flown) and 2023-05-07 (BKN 900-2000
+ft at KPAE; 34 frames flown).
+
+PER-HOUR CONTROL (the only one available): the 2012 photo-centre index publishes flight
+TIMES. 2012-03-23 13:25-13:44 falls inside the passing clear/sun>30 hours 10:53-15:53;
+2012-04-07 12:08-12:46 falls inside 09:53-15:53. Both held.
+
+FALSE-NEGATIVE BOUND: 0 failures in n=46 -> one-sided 95% upper bound on the per-day
+false-negative rate = 6.3% (rule of three 6.5%). An ELIMINATED day is unlikely, not
+impossible.

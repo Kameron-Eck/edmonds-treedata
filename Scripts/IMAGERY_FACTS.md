@@ -616,3 +616,21 @@ pixels. The 0.148 px (9 cm at 60 cm GSD) is the original product's true band ali
 hidden in the held file. Waiver recorded in the manifest and decision.json (original verdict preserved).
 This is the registration twin of the §10.1 effective-resolution lesson: **metrics measured on processed
 copies flatter the copy — compare on common footing or waive with a measurement, never by argument.**
+
+### 10.15 Batch 6 — S09/S11/S12/S96/S06/S13: two more new years; the sellable 2012 exported free
+
+Six county products, all COMPLEMENT, all dates NOT FOUND (SCOPI starts at 2017), all JPEG-signature-free:
+
+| | key | grid/true | effective | city / study | note |
+|---|---|---|---|---|---|
+| `2009_snoh_1ft_rgb.tif` | `2009s` | 1 ft / 30.48 | 39.7 | 100 / 98.4% | Aerials Express per the service; sharper than the King cache on a common grid (HF 1.13, no block signature) but complement per plan |
+| `2011_snoh_1ft_rgb.tif` | `2011s` | 1 ft / 30.48 | 38.1 | 99.6 / 79.9% | **a calendar year the project had NO imagery for**; EPSG:2926 (HARN) as delivered |
+| `2012_snoh_9in_rgb.tif` | `2012s` | 0.75 ft / 22.86 | 29.8 | 99.6 / 82.3% | **the year the county sells on media, exported from the free public service**; common-grid 29.6 vs the 2012_king orphan's 38.9 cm, HF 1.57 — sharper but partial → complement; the King-orphan adoption stays a pending decision; EPSG:2926 |
+| `1996_snoh_1m_rgb.tif` | — (non-year) | 1 m / 100 | 136 | 100 / 94.1% | **earliest color imagery of Edmonds held**; outside the 2000–2024 span → HELD WITHOUT A YEAR KEY; extending the span is Kam's decision |
+| `2006_snoh_1m_rgb.tif` | `2006s` | 1 m / 100 | 145 | 100 / 100% | **a new project year** (likely the NAIP 2006 republish; untested) |
+| `2013_snoh_1m_rgb.tif` | `2013s` | 1 m / 100 | 137.5 | 100 / 100% | complement to 2013_king |
+
+With batch 6 the campaign's self-serve programme totals **26 rasters landed, 5 REPLACES (2016, 2002,
+2021s, 2019n, 2023n), 4 new calendar years (2003, 2006, 2011 + the non-year 1996)**, and the year keys
+run 28 → 33 catalog entries, 33/33 green. Remaining self-serve: the 3-inch years S20/S22/S24 (pilots,
+then ~23 GB each). Everything else arrives by reply (King ★, consortium, NOAA) or not at all.

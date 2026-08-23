@@ -151,6 +151,8 @@ ADOPTED_NON_YEAR = {
     "1990_snoh_10ft_pan.tif": "2026-08-23 S90: county 10-ft b/w - historical context outside the project span; 1-band, never tiled",
     "1998_snoh_3ft_pan.tif": "2026-08-23 S98: DNR 3-ft b/w scan via county service - pairs with 1998_king_pan; 1-band, never tiled",
     "2001_snoh_1ft_pan.tif": "2026-08-23 S01: county 1-ft b/w (eff 105 cm, scanned film) - 1-band, never tiled",
+    "1996_snoh_1m_rgb.tif": "2026-08-23 S96: earliest COLOR imagery of Edmonds held (1-m) - outside the 2000-2024 span; "
+                            "extending the span is Kam's decision, not the catalog's",
     "1936_king_pan.tif": "pre-campaign holding (renamed from _rgb 2026-08-19) - historical 1-band scan, never tiled",
     "1998_king_pan.tif": "pre-campaign holding (renamed from _rgb 2026-08-19) - historical 1-band scan, never tiled",
 }

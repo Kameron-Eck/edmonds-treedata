@@ -387,6 +387,11 @@ YEAR_CATALOG = [
     {"key": 2005, "label": "2005", "source": "King County", "gsd_cm": 20.1,
      "bands": 3, "crs_epsg": 3857, "coverage": "full",
      "seg_tier": SEG_SEMANTIC_ONLY, "native_file": "2005_king_rgb.tif"},
+    # 2026-08-23 campaign S06: 2006 — a calendar year the project had NO imagery for (likely the NAIP 2006
+    # republished by the county; untested). Date NOT FOUND. 1-m RGB.
+    {"key": "2006s", "label": "2006s", "source": "Snohomish Co. (1 m; likely NAIP 2006 republish)", "gsd_cm": 100.0,
+     "bands": 3, "crs_epsg": 2285, "coverage": "100% of study extent (measured 2026-08-23)",
+     "seg_tier": SEG_SEMANTIC_ONLY, "native_file": "2006_snoh_1m_rgb.tif"},
     {"key": 2007, "label": "2007", "source": "King County", "gsd_cm": 20.1,
      "bands": 3, "crs_epsg": 3857, "coverage": "full",
      "seg_tier": SEG_SEMANTIC_ONLY, "native_file": "2007_king_rgb.tif"},
@@ -399,9 +404,29 @@ YEAR_CATALOG = [
     {"key": 2009, "label": "2009", "source": "King County", "gsd_cm": 20.1,
      "bands": 3, "crs_epsg": 3857, "coverage": "full",
      "seg_tier": SEG_SEMANTIC_ONLY, "native_file": "2009_king_rgb.tif"},
+    # 2026-08-23 campaign S09: the county's 2009 (Aerials Express product per the service). Sharper than the
+    # King cache on a common grid (HF 1.13, no JPEG signature) but held as COMPLEMENT per plan. Date NOT FOUND.
+    {"key": "2009s", "label": "2009s", "source": "Snohomish Co. (Aerials Express)", "gsd_cm": 30.5,
+     "bands": 3, "crs_epsg": 2285, "coverage": "98.4% of study extent (measured 2026-08-23)",
+     "seg_tier": SEG_SEMANTIC_ONLY, "native_file": "2009_snoh_1ft_rgb.tif"},
+    # 2026-08-23 campaign S11: 2011 — a calendar year the project had NO imagery for. Date NOT FOUND.
+    {"key": "2011s", "label": "2011s", "source": "Snohomish Co.", "gsd_cm": 30.5,
+     "bands": 3, "crs_epsg": 2926, "coverage": "99.6% of city, 79.9% of study extent (measured 2026-08-23; NW water)",
+     "seg_tier": SEG_SEMANTIC_ONLY, "native_file": "2011_snoh_1ft_rgb.tif"},
+    # 2026-08-23 campaign S12: the county 9-in 2012 (the year the county sells on media — exported from the
+    # free public service). SHARPER than the 2012_king orphan on a common grid (29.6 vs 38.9 cm, HF 1.57, no
+    # JPEG signature) but partial coverage (82.3%) -> COMPLEMENT; the King orphan adoption stays a pending
+    # decision. Date NOT FOUND.
+    {"key": "2012s", "label": "2012s", "source": "Snohomish Co. (9-in)", "gsd_cm": 22.9,
+     "bands": 3, "crs_epsg": 2926, "coverage": "99.6% of city, 82.3% of study extent (measured 2026-08-23)",
+     "seg_tier": SEG_SEMANTIC_ONLY, "native_file": "2012_snoh_9in_rgb.tif"},
     {"key": 2013, "label": "2013", "source": "King County", "gsd_cm": 10.0,
      "bands": 3, "crs_epsg": 3857, "coverage": "full",
      "seg_tier": SEG_INSTANCE_SEMANTIC, "native_file": "2013_king_rgb.tif"},
+    # 2026-08-23 campaign S13: the county 1-m 2013. COMPLEMENT to 2013_king. Date NOT FOUND.
+    {"key": "2013s", "label": "2013s", "source": "Snohomish Co. (1 m)", "gsd_cm": 100.0,
+     "bands": 3, "crs_epsg": 2285, "coverage": "100% of study extent (measured 2026-08-23)",
+     "seg_tier": SEG_SEMANTIC_ONLY, "native_file": "2013_snoh_1m_rgb.tif"},
     {"key": 2015, "label": "2015", "source": "King County", "gsd_cm": 10.0,
      "bands": 3, "crs_epsg": 3857, "coverage": "full",
      "seg_tier": SEG_INSTANCE_SEMANTIC, "native_file": "2015_king_rgb.tif"},

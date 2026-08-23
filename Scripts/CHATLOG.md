@@ -419,7 +419,13 @@ acquire: ** IMAGERY ACQUISITION CAMPAIGN (2026-08-23, ACTIVE) ** — engine pipe
          registration_blur_test.json: sigma-1 smoothing of the new file drops the metric 0.148 -> 0.06, held
          smoothed re-export reads 0.001 — waiver recorded, original verdict preserved in decision.json; the
          registration twin of the S16 rise-metric lesson). Catalog 28/28, 5 REPLACES total, table 48 rows.
-         IN FLIGHT: batch 6 (S09/S11/S12/S96/S06/S13), mirror retries (S02/S03/S07 + N19f behind the C: cache drain).
+         BATCH 6 LANDED (all COMPLEMENT, dates NOT FOUND): keys 2009s, 2011s (NEW year), 2012s (the
+         sellable 9-in year exported free; common-grid 29.6 vs 2012_king 38.9 cm HF 1.57 but 82.3% coverage — King
+         orphan adoption still pending), 2006s (NEW year), 2013s; 1996 = earliest color, outside span -> held
+         WITHOUT a year key (span extension = Kam's call). 2011s/2012s are EPSG:2926 HARN as delivered. Campaign:
+         26 rasters, 5 REPLACES, 4 new years; catalog 33/33; table 54 rows gate 0 misses.
+         IN FLIGHT: mirror retries behind the C: cache drain; NEXT: 3-inch pilots S20/S22/S24 then ~23 GB each
+         (Kam's per-year OK given 2026-08-23; anchor never flips).
          NEXT: 3-inch pilots S20/S22/S24
          (per-year OK, ~23 GB each, anchor NEVER flipped), K00 ★ EmergeCIR on King reply. Kam sends: 4 asks in
          IMAGERY_ACQUISITION_ASKS_2026-08-23.md; decisions (e): 2017 duplicate, CONNECTExplorer (trash DONE).

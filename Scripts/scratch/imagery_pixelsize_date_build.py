@@ -309,7 +309,7 @@ ROWS = [
       date_shot="2019-10-11", date_precision="single day", single_or_multi_date="single (all Edmonds DOQQs carry 20191011; consortium flight-area IDATE '2019 -10-11' at the city centroid)",
       evidence_grade="PUBLISHED", source_url=NAIP19,
       verbatim_quote="Time_Period_of_Content: Time_Period_Information: Single_Date/Time: Calendar_Date: 20191011 Currentness_Reference: Ground Condition",
-      notes="OCTOBER. No NAIP metadata record (2015/2017/2021 Digital Coast) contains any leaf-on/leaf-off statement - only 'peak crop growing conditions'; the 'NAIP is leaf-on by spec' assumption has no documentary basis.",
+      notes="*** SUPERSEDED 2026-08-23 by 2019_naip_60cm_rgbi.tif (the 8 original Azure DOQQs, full study extent; this 69% smoothed re-export is kept for provenance) *** OCTOBER. No NAIP metadata record (2015/2017/2021 Digital Coast) contains any leaf-on/leaf-off statement - only 'peak crop growing conditions'; the 'NAIP is leaf-on by spec' assumption has no documentary basis.",
       px_evidence="grid/true MEASURED; effective MEASURED; native PUBLISHED",
       alt_date_shot="2019-10-11", alt_source_url="https://services.arcgis.com/jsIt88o09Q0r1j8h/arcgis/rest/services/2019_Statewide_imagery_consortium_1_foot_flight_areas/FeatureServer/0/query",
       alt_verbatim_quote="\"IDATE\":\"2019 -10-11\" (stray space verbatim; city-centroid point query, raw response qc/imagery_date_evidence/raw_records/wa_2019_1ft_citycentroid.json)"),

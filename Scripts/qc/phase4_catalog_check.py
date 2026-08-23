@@ -159,6 +159,7 @@ SUPERSEDED_FILES = {
     "2002_king_rgb.tif": "2026-08-23 -> 2002_usgs_30cm_rgb.tif (acquire_imagery U02: original USGS HRO tiles, no JPEG cache)",
     "2021_snoh_rgbi.tif": "2026-08-23 -> 2021_snoh_6in_rgbi.tif (acquire_imagery S21: full extent, snapped grid + nearest, HF 1.43x)",
     "2023_naip_rgbi.tif": "2026-08-23 -> 2023_naip_60cm_rgbi.tif (acquire_imagery N23f: original DOQQs, coverage 100 vs 67%, HF 1.41x)",
+    "2019_naip_rgbi.tif": "2026-08-23 -> 2019_naip_60cm_rgbi.tif (acquire_imagery N19f: original DOQQs, coverage 100 vs 67%; reg-loss waived as blur artifact)",
 }
 
 

@@ -602,3 +602,17 @@ filling with staged uploads, and the floor gate is still correct operationally (
 C: fills) — it guards the cache disk. The client refuses to relocate its cache while uploads are pending;
 the move to `D:\DriveFS-cache` happens after the queue flushes. `imagery_measure.CITY_SHP` now resolves
 a **local D: mirror of the city shapefile first** so a Drive outage can never blank a measurement again.
+
+### 10.14 N19f — `2019_naip_60cm_rgbi.tif` REPLACES `2019_naip_rgbi.tif` (batch 5) — REPLACE #5, with a measured waiver
+
+Same replacement as N23f (original Azure DOQQs vs a 69% smoothed re-export: coverage **100% vs 67%**, HF
+**1.358**, all 8 quads **2019-10-11** — the same Hexagon flight the S19/HXIP evidence dates). One clause
+initially blocked it: the new file measured blue registration 0.148 px vs the held clip's 0.000, a formal
+"loss" under the no-loss rule. **The loss was proven a metric artifact before overriding**
+(`registration_blur_test.json`): smoothing the NEW file with a mild σ=1 gaussian collapses its measured
+registration 0.148 → 0.06 px, and the held re-export (heavier processing) reads 0.001 px — phase
+correlation under blur reads LOW, so a smoothed copy always "wins" registration against its own source
+pixels. The 0.148 px (9 cm at 60 cm GSD) is the original product's true band alignment, present but
+hidden in the held file. Waiver recorded in the manifest and decision.json (original verdict preserved).
+This is the registration twin of the §10.1 effective-resolution lesson: **metrics measured on processed
+copies flatter the copy — compare on common footing or waive with a measurement, never by argument.**

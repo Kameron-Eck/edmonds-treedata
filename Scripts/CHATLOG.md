@@ -414,7 +414,12 @@ acquire: ** IMAGERY ACQUISITION CAMPAIGN (2026-08-23, ACTIVE) ** — engine pipe
          DriveFS cache to D:\DriveFS-cache (client refuses until uploads flush; a mid-move wrong setting briefly
          remounted My Drive as a folder — reverted to G:). imagery_measure.CITY_SHP now local-first
          (D:\edmonds-pipeline\Imagery\City Boundry mirror) so a Drive outage can't blank city coverage.
-         IN FLIGHT: N19f refetch (folder fixed), batch 6 (S09/S11/S12/S96/S06/S13), mirror retries.
+         N19f LANDED = REPLACE #5 (2019_naip_60cm_rgbi.tif: coverage 100 vs 67%, HF 1.358, all quads
+         2019-10-11 = the S19 Hexagon flight; the 0.148-px blue reg 'loss' vs held PROVEN a blur artifact —
+         registration_blur_test.json: sigma-1 smoothing of the new file drops the metric 0.148 -> 0.06, held
+         smoothed re-export reads 0.001 — waiver recorded, original verdict preserved in decision.json; the
+         registration twin of the S16 rise-metric lesson). Catalog 28/28, 5 REPLACES total, table 48 rows.
+         IN FLIGHT: batch 6 (S09/S11/S12/S96/S06/S13), mirror retries (S02/S03/S07 + N19f behind the C: cache drain).
          NEXT: 3-inch pilots S20/S22/S24
          (per-year OK, ~23 GB each, anchor NEVER flipped), K00 ★ EmergeCIR on King reply. Kam sends: 4 asks in
          IMAGERY_ACQUISITION_ASKS_2026-08-23.md; decisions (e): 2017 duplicate, CONNECTExplorer (trash DONE).

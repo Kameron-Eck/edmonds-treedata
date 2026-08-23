@@ -450,9 +450,15 @@ YEAR_CATALOG = [
     {"key": "2018s", "label": "2018s", "source": "Snohomish Co. (HXIP 6-in, acquired 2018-08-07)", "gsd_cm": 15.2,
      "bands": 4, "crs_epsg": 2285, "coverage": "100% of study extent (measured 2026-08-23)",
      "seg_tier": SEG_SEMANTIC_ONLY, "native_file": "2018_snoh_6in_rgbi.tif"},
-    {"key": "2019n", "label": "2019n", "source": "NAIP", "gsd_cm": 60.7,
-     "bands": 4, "crs_epsg": 26910, "coverage": "69% of study area (measured 2026-08-18)",
-     "seg_tier": SEG_SEMANTIC_ONLY, "native_file": "2019_naip_rgbi.tif"},
+    # 2026-08-23 REPLACED: 2019_naip_rgbi.tif (69% clip, smoothed re-export) -> 2019_naip_60cm_rgbi.tif
+    # (the 8 original Azure DOQQs; acquire_imagery N19f: coverage 100% vs 67%, HF 1.36x common grid, all
+    # quads flown 2019-10-11 per the container listing = the S19/HXIP date). The recorded 0.148-px blue
+    # registration "loss" vs held was PROVEN a blur artifact of the metric (registration_blur_test.json:
+    # smoothing the new file sigma=1 drops it to 0.06; the held re-export reads 0.001) - waiver in the
+    # manifest. Old file stays on disk (SUPERSEDED_FILES).
+    {"key": "2019n", "label": "2019n", "source": "NAIP (acquired 2019-10-11)", "gsd_cm": 60.0,
+     "bands": 4, "crs_epsg": 26910, "coverage": "100% of study extent (measured 2026-08-23)",
+     "seg_tier": SEG_SEMANTIC_ONLY, "native_file": "2019_naip_60cm_rgbi.tif"},
     {"key": 2020, "label": "2020", "source": "City of Edmonds", "gsd_cm": 5.0,
      "bands": 3, "crs_epsg": 3857, "coverage": "full",
      "seg_tier": SEG_INSTANCE_SEMANTIC, "native_file": "2020_coe_rgb.tif"},

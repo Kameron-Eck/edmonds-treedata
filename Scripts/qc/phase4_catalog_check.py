@@ -142,9 +142,17 @@ def check_entry(entry, roots, probe_fill):
 NON_ORTHO_PREFIXES = ("ccap_", "lidar_", "edmonds_canopy_mask_", "2016 land cover")
 # Rasters a campaign acquisition has REPLACED in YEAR_CATALOG. Kept on disk for provenance (never deleted,
 # never overwritten); listed under their own heading, never as orphans. One line per replacement, with date.
+# Campaign rasters held DELIBERATELY without a YEAR_CATALOG key: not per-year citywide acquisitions, so
+# the per-year machinery must never tile them — but they are catalogued in qc/imagery_pixelsize_and_date.csv
+# and are not "orphans" in the adopt-or-quarantine sense. Own heading below.
+ADOPTED_NON_YEAR = {
+    "2018_coe_marsh2cm_rgb.tif": "2026-08-23 M18: Edmonds Marsh drone survey 2018-08-01, ~1 km^2 footprint (1% of city) - "
+                                 "site-scale reference, not a year; see IMAGERY_FACTS 10.6",
+}
 SUPERSEDED_FILES = {
     "2016_snoh_rgbi.tif": "2026-08-23 -> 2016_snoh_1ft_rgbi.tif (acquire_imagery S16: full extent, native 1 ft)",
     "2002_king_rgb.tif": "2026-08-23 -> 2002_usgs_30cm_rgb.tif (acquire_imagery U02: original USGS HRO tiles, no JPEG cache)",
+    "2021_snoh_rgbi.tif": "2026-08-23 -> 2021_snoh_6in_rgbi.tif (acquire_imagery S21: full extent, snapped grid + nearest, HF 1.43x)",
 }
 
 
@@ -159,7 +167,7 @@ def orphans(roots, catalog_files):
         for p in sorted(d.glob("*.tif")):
             if p.name in catalog_files:
                 continue
-            if p.name.startswith(NON_ORTHO_PREFIXES) or p.name in SUPERSEDED_FILES:
+            if p.name.startswith(NON_ORTHO_PREFIXES) or p.name in SUPERSEDED_FILES or p.name in ADOPTED_NON_YEAR:
                 continue
             found.setdefault(p.name, ([], p))[0].append(d.drive or str(d))
     return [(n, ds, p) for n, (ds, p) in sorted(found.items())]
@@ -216,6 +224,12 @@ def main():
             print(f"     {name:<26} {'/'.join(drives):<6} "
                   f"{round(p.stat().st_size/1e9, 2):>7} GB  {detail}")
         print("     -> adopt into YEAR_CATALOG or quarantine; see IMAGERY_PLAN.md A2.")
+
+    ado = [(n, why, [d for d in roots if (d / n).exists()]) for n, why in ADOPTED_NON_YEAR.items()]
+    if ado:
+        print("\n  -- HELD WITHOUT A YEAR KEY (deliberate; catalogued in the pixel-size table) " + "-" * 2)
+        for n, why, where in ado:
+            print(f"     {n:<26} {'/'.join(d.drive or str(d) for d in where) or 'absent':<6} {why}")
 
     sup = [(n, why, [d for d in roots if (d / n).exists()]) for n, why in SUPERSEDED_FILES.items()]
     if sup:

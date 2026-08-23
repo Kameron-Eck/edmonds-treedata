@@ -385,9 +385,14 @@ acquire: ** IMAGERY ACQUISITION CAMPAIGN (2026-08-23, ACTIVE) ** — engine pipe
          _rgb, display-cache waiver). CC16 closed ZERO-download (vsicurl header+3 windows == held _snohfull). NIR
          acquisitions 4 → 8. Records: IMAGERY_FACTS §10.1-10.6; table 37 rows quote-gate 0 misses; catalog_check 23/23
          + SUPERSEDED_FILES. Ops facts: NOAA blob hosts cap ~1.3-2 MB/s/client regardless of streams; snoco ignores
-         compression=LZ77, 15000-px strips → HTTP 500; WAGDA uncapped 8.3 MB/s. IN FLIGHT: batch 3 (S21 full-extent
-         0.5-ft REPLACE candidate + S15 band4=ALPHA → 3-band), CC21 1.43 GB → CCAP/_quarantine (ML-clause gate — ask
-         (d) unanswered; clip+class-equality gate vs held, then UNREAD by any script). DEFERRED: Drive mirrors batch 3+
+         compression=LZ77, 15000-px strips → HTTP 500; WAGDA uncapped 8.3 MB/s. BATCH 3 LANDED: S21 REPLACE #3
+         (2021_snoh_6in_rgbi.tif 10.76 GB, coverage 100 vs 39.5%, common-grid 20.05 vs 21.09 cm HF 1.432 — old serving
+         path blurred it; NIR real; reg 0.006 px; 875 chunks 0 fail) + S15 COMPLEMENT key 2015s (3-band, band4=ALPHA
+         both renderings; 2015-08-07 15:31 sortie PUBLISHED). CC21 CLOSED: landed 1,432,994,003 B exact → clip
+         ccap_2021_hires_lc_pugetfull.tif EPSG:5070 (v2 CONUS = Albers, byte-equality impossible) → gate 99.794%
+         class agreement on held 26910 grid, diffs = symmetric boundary jitter → PATCH verdict; file QUARANTINED
+         until NOAA ask (d) answered, read by no script (IMAGERY_FACTS §10.9). Table 39 rows gate 0 misses; check
+         24/24 + ADOPTED_NON_YEAR heading (M18). DEFERRED: Drive mirrors batch 3+
          until Kam empties Drive trash (upsample/ 1,009 GB still counted; free ~42 GB). NEXT: batches 4-6 (S18, pan
          years, N19f/N23f full-extent NAIP, snoco RGB years), 3-inch pilots S20/S22/S24 (per-year OK, ~23 GB each,
          anchor NEVER flipped), K00 ★ EmergeCIR on King reply. Kam sends: 4 asks in

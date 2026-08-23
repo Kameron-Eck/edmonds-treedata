@@ -240,7 +240,8 @@ ROWS = [
       date_shot="2021-06-25 to 2021-11-11", date_precision="window of 140 days (weather trims to 108 feasible days; 18 late days never reach 30 deg sun)", single_or_multi_date="unknown; held crop flown in the AFTERNOON (shadow azimuth 67-91 deg = sun at 247-256 deg, uniform over 24 windows) - a time-of-day constraint, not a date",
       evidence_grade="PUBLISHED", source_url=SCOPI,
       verbatim_quote="The 2021 aerial photos are 6 inch resolution and cover mainly the urban areas. The imagery was collected between June 25, 2021 and November 11, 2021.",
-      notes=("CLOSED LEADS: no WA consortium flight-date layer exists for 2021 or later (all 68 WAGeoservices services + 225 items enumerated; series ends 2020); the mosaic-catalog schema has no date field at all; WA NAIP 2021 does not cover quad 47122 (eastern WA only), so no NAIP ride-along date. "
+      notes=("*** SUPERSEDED 2026-08-23 by 2021_snoh_6in_rgbi.tif (full study extent on the native 0.5-ft lattice, nearest; this 53.4% clip was served bilinear on an unsnapped grid and is kept for provenance) *** "
+             "CLOSED LEADS: no WA consortium flight-date layer exists for 2021 or later (all 68 WAGeoservices services + 225 items enumerated; series ends 2020); the mosaic-catalog schema has no date field at all; WA NAIP 2021 does not cover quad 47122 (eastern WA only), so no NAIP ride-along date. "
              "Remaining route: the Hexagon flight log via Snohomish County DoIT, or the consortium contact (Joanne Markert, WA OCIO). " + WX_NOTE % ("2021-06-25..11-11", "32 of 140 days eliminated; longest feasible blocks Jul 22-Aug 6, Jul 2-15, Aug 9-19")),
       px_evidence="grid/true MEASURED; effective MEASURED; native MEASURED (service catalog)"),
  # ---------------- City of Edmonds ----------------

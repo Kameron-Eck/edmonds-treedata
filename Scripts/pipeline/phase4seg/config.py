@@ -390,7 +390,8 @@ YEAR_CATALOG = [
      "seg_tier": SEG_INSTANCE_SEMANTIC, "native_file": "2015_king_rgb.tif"},
     # 2026-08-23 REPLACED: 2016_snoh_rgbi.tif (0.5 ft served upsample, 53.4% clip) -> 2016_snoh_1ft_rgbi.tif
     # (native 1 ft = 30.5 cm, full study extent; acquire_imagery S16: 100% of the city polygon, 82% of the
-    # study extent (rest is Puget Sound), HF energy 1.14x the old file on a common grid, NIR real). The old
+    # study extent (rest is Puget Sound), HF energy 1.01x on a common grid = same source pixels; the wins
+    # are coverage + provenance, NIR real). The old
     # file stays on disk for provenance (SUPERSEDED_FILES in qc/phase4_catalog_check.py). Tier stays pinned.
     {"key": 2016, "label": "2016", "source": "Snohomish Co. (HXIP 2016, county 1-ft delivery)", "gsd_cm": 30.5, "tier": "coarse",
      "bands": 4, "crs_epsg": 2285, "coverage": "100% of city polygon, 82.3% of study extent (measured 2026-08-23; remainder is Puget Sound)",
@@ -406,6 +407,12 @@ YEAR_CATALOG = [
     {"key": "2015n", "label": "2015n", "source": "NAIP (acquired 2015-08-07)", "gsd_cm": 100.0,
      "bands": 4, "crs_epsg": 26910, "coverage": "100% of study extent (measured 2026-08-23)",
      "seg_tier": SEG_SEMANTIC_ONLY, "native_file": "2015_naip_1m_rgbi.tif"},
+    # 2026-08-23 campaign S15: the same 2015-08-07 HXIP 1-ft flight the county serves (flown 15:31, sun el
+    # 46°) — 3.3x the NAIP grid, same day. Band 4 is a CONSTANT ALPHA under both rendering modes (pilot), so
+    # exported 3-band; the year's NIR remains 2015n only. COMPLEMENT (new key).
+    {"key": "2015s", "label": "2015s", "source": "Snohomish Co. (HXIP, acquired 2015-08-07)", "gsd_cm": 30.5,
+     "bands": 3, "crs_epsg": 2285, "coverage": "100% of study extent (measured 2026-08-23)",
+     "seg_tier": SEG_SEMANTIC_ONLY, "native_file": "2015_snoh_1ft_rgb.tif"},
     # 2026-08-23 campaign S17/S19: Snohomish County's own HXIP 1-ft 4-band flights (Aug 2017-08-15/21 and
     # 2019) — genuinely different acquisitions from the May Pictometry mosaics held for those years, with NIR
     # at 2x NAIP resolution. COMPLEMENT keys; 100% coverage incl. water (statewide product).
@@ -429,9 +436,14 @@ YEAR_CATALOG = [
     {"key": 2021, "label": "2021", "source": "King County", "gsd_cm": 10.0,
      "bands": 3, "crs_epsg": 3857, "coverage": "full",
      "seg_tier": SEG_INSTANCE_SEMANTIC, "native_file": "2021_king_rgb.tif"},
-    {"key": "2021s", "label": "2021s", "source": "Snohomish Co.", "gsd_cm": 15.4, "tier": "coarse",
-     "bands": 4, "crs_epsg": 2285, "coverage": "42% of study area (measured 2026-08-18)",
-     "seg_tier": SEG_SEMANTIC_ONLY, "native_file": "2021_snoh_rgbi.tif"},
+    # 2026-08-23 REPLACED: 2021_snoh_rgbi.tif (53.4% clip served bilinear on an unsnapped grid) ->
+    # 2021_snoh_6in_rgbi.tif (native 0.5 ft lattice, nearest, full study extent; acquire_imagery S21:
+    # coverage 100% vs 39.5%, common-grid effective 20.05 vs 21.09 cm, HF energy 1.43x = the old serving
+    # path blurred it, NIR real, registration 0.006 px, PSNR 37.6 = same flight). Old file stays on disk
+    # (SUPERSEDED_FILES in qc/phase4_catalog_check.py). Tier stays pinned per tier_for().
+    {"key": "2021s", "label": "2021s", "source": "Snohomish Co.", "gsd_cm": 15.2, "tier": "coarse",
+     "bands": 4, "crs_epsg": 2285, "coverage": "100% of study extent (measured 2026-08-23)",
+     "seg_tier": SEG_SEMANTIC_ONLY, "native_file": "2021_snoh_6in_rgbi.tif"},
     # 2026-08-23 campaign N21: NAIP 2021 (flown 2021-07-13, mid-July leaf-on), 8 DOQQ quads at 60 cm —
     # the third NAIP epoch, between the held October 2019n and 2023n. COMPLEMENT (new year key).
     {"key": "2021n", "label": "2021n", "source": "NAIP (acquired 2021-07-13)", "gsd_cm": 60.0,

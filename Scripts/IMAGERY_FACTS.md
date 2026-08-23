@@ -490,3 +490,49 @@ the file is 3-band `_rgb`, not the hoped `_rgbi`; and the source is a `singleFus
 that re-renders on export (stitch-vs-direct ≠ 0 on every lattice tried; `pilot_waiver` in the manifest) —
 a display-cache copy, the best obtainable without the source frames. JPEG signature: absent. Decision
 COMPLEMENT (no incumbent for 2018).
+
+### 10.7 S21 — `2021_snoh_6in_rgbi.tif` REPLACES `2021_snoh_rgbi.tif` (batch 3)
+
+The third and largest REPLACE. Same county service, same flight — but the old copy was a 53.4% clip
+served through the March-2026 tool (bilinear, unsnapped grid), and the difference is measurable:
+
+| | old (`2021_snoh_rgbi.tif`) | **new (`2021_snoh_6in_rgbi.tif`)** |
+|---|---|---|
+| coverage | 39.5% of the study extent, 66.7% of the city | **100% / 100%** |
+| grid / true GSD | 0.5 ftUS = 15.24 cm | same (native 0.5 ft lattice, snapped, nearest) |
+| size | 3.4 GB | 50,232 × 70,518 px, **10,764,289,402 B** |
+| effective (5 sites) | 20.61 cm | 20.06 cm. **Common 15.24 cm grid: 20.05 vs 21.09 cm, HF-energy ratio 1.432** — the old serving path (server bilinear on an unsnapped grid) blurred it |
+| bands | 4, NIR real | 4, NIR real (std 59, NDVI p90 0.62) |
+| registration B–G / R–G | 0.007 / 0.010 px | **0.006 / 0.005 px** |
+| similarity | — | PSNR 37.6 dB, r 0.9965 — same flight, cleaner serving path |
+| JPEG signature | absent | absent (a y-only mod-8 periodicity z 22 without the boundary ratio — service-internal row tiling, recorded as on S17/S19) |
+| fetch | — | 875 chunks, **0 failures, 0 empty**, 6.4 MB/s sustained (43 min); assemble 923 s, 12-chunk spot-verify |
+| decision | — | **REPLACE** — wins: coverage 100 vs 39.5, HF 1.432; losses: none. All four manifest test clauses pass (effective 20.06 ≤ 22.7; NIR; registration ≤ held; coverage) |
+
+Date evidence inherits the held row's SCOPI window (2021-06-25..11-11; the superseded clip's afternoon
+shadow constraint applies to its own pixels only). `YEAR_CATALOG` `2021s` → new file (`gsd_cm` 15.2,
+tier still pinned `coarse`); old file in `SUPERSEDED_FILES`, kept. 2021s re-tiles on the next Colab run.
+
+### 10.8 S15 — `2015_snoh_1ft_rgb.tif`, the county 2015 HXIP flight (batch 3)
+
+Third acquisition of the 2015-08-07 flight day, at 3.3× the NAIP grid: the WA consortium footprint layer
+pins the city sortie to **2015-08-07 15:31, sun elevation 46°** (PUBLISHED — the finest 2015 time evidence
+held). 1 ftUS grid = 30.48 cm true; effective 41.39 cm (1.36×); coverage 100/100; registration ≤ 0.001 px;
+no JPEG signature. **Band 4 is a constant ALPHA under both default rendering and `renderingRule` None**
+(pilot) — matches the recon's constant-255 — so the export is 3-band `_rgb` and the year's NIR remains
+`2015n` (NAIP) only. COMPLEMENT, new key `2015s`. The 2015 stable now holds: Feb–Mar leaf-off 3-in King
+(`2015`), Aug leaf-on 1-m NAIP NIR (`2015n`), Aug leaf-on 1-ft county RGB (`2015s`) — same summer day as
+`2015n`, 11× the ground sampling of the King file's season opposite.
+
+### 10.9 CC21 — v2 class-equality gate PASSED; file stays quarantined (batch 1, closed 2026-08-23)
+
+`wa_puget_2021_ccap_v2_hires_landcover.tif` (1,432,994,003 B, Content-Length exact) landed in
+`Imagery/CCAP/_quarantine/` and was clipped to `ccap_2021_hires_lc_pugetfull.tif` (12,176 × 10,099,
+**EPSG:5070 CONUS Albers** — the v2 CONUS distribution is Albers, so byte equality with the held
+EPSG:26910 clip is impossible by construction). Gate (nearest-reproject onto the held 26910 1-m grid):
+**99.794% class agreement** over 44.2 M pixels; the 0.206% differing are symmetric boundary-pair swaps
+(2↔5, 2↔11, 5↔11 …) — nearest-resampling jitter between two projection paths, not a class revision.
+Verdict: the held clip is consistent with the current v2 product → **patch (keep held as the eval ref;
+pugetfull adds extent + provenance)**, effective only if/when the NOAA ML-clause answer (ask d) clears
+use. Until then both files sit in quarantine, read by no script; gate JSON:
+`Imagery/CCAP/_quarantine/_acq/CC21/class_equality.json`. Drive mirror deferred with batch 3+ (trash).

@@ -257,3 +257,99 @@ The CHATLOG line that **"a lidar-dependent definition cannot be applied pre-2016
 coverage)"** is **wrong**: pre-2016 height data exists, at **stand scale**, for the 2005
 imagery year. What it cannot do is resolve individual suburban crowns — see the three-way
 verdict in WORKPLAN §4 Tier 2.
+
+---
+
+## 9. Provenance of record (added 2026-08-23) — and two corrections to this document
+
+Harvested 2026-08-22/23 by four Opus agents against provider metadata. **Every date below carries
+the URL it came from; anything without one was downgraded to unknown by a citation gate (31 dates
+were dropped that way).** Full record: `imagery_catalog_2026-08-22.xlsx`, sheets MASTER and
+KingCo_SDC_Catalog.
+
+### 9.1 The City of Edmonds "5 cm" is a SERVICE GRID, not a resolution — MEASURED
+
+All four CoE ImageServers report **byte-identical** `pixelSizeX = 0.07620015240030481`. That is
+exactly **3 inches applied as WEB MERCATOR units**, which at this latitude is **5.12 cm ground** —
+while the flights themselves were **3 inch = 7.62 cm GROUND**.
+
+```
+served grid 5.12 cm  vs  native flight 7.62 cm   →  1.4887× oversampled
+1.4887 == 1/cos(47.8°)
+```
+
+One 0.25 ft grid is stamped across four different flights from two different counties, so the
+pixel size proves nothing about any of them. **This is the same units error that produced the
+original `gsd_cm` defect (§2.1), this time baked into the city's own service grid.** The held CoE
+files genuinely measure 5.0 cm — but that is the grid, not the resolution, which is exactly the
+distinction §2.2 already draws for the King years. Treat the four CoE years as **7.62 cm native,
+~1.49× oversampled**. `2020_coe_rgb.tif`, the anchor, is natively a 3-inch product.
+
+### 9.2 Acquisition dates — what is known, and how well
+
+| file | window | confidence |
+|---|---|---|
+| `2020_coe_rgb.tif` **(ANCHOR)** | **2020-04-13 → 2020-07-13**, Pictometry via Snohomish Co., 3 in urban — **fully leaf-on** | **INFERRED** |
+| `2017_coe_rgb.tif` | **2017-02-17 → 2017-10-30**, Pictometry via King Co., 3 in over "southwestern Snohomish County" | **INFERRED** |
+| `2019_naip_rgbi.tif` | 2019-10-11 | CONFIRMED |
+| `2023_naip_rgbi.tif` (was `2022n`) | 2023-10-07 | CONFIRMED |
+| King years 2000–2023 | seasons/windows per SDC | mostly CONFIRMED |
+| Snohomish years | 8 of 10 CONFIRMED | — |
+
+**The anchor year's date is INFERRED, not confirmed, and that matters.** The city publishes *no*
+metadata: `serviceDescription`, `copyrightText`, `licenseInfo` and `documentInfo` are empty on
+every Edmonds imagery service; `keyProperties` carries **no** `acquisitionStartDate`; the only
+date anywhere is a service-creation stamp (2021-08-11) which is a publication upper bound. The
+inference rests on Snohomish flying 3-inch urban in exactly 2020/2022/2024, King not flying in
+2020, and Edmonds sitting inside the county's urban footprint. **Only the city or county can
+confirm it.**
+
+Two consequences worth carrying: the **2020 window is fully leaf-on**, which bears directly on the
+deciduous under-prediction problem; and **2017's 8.5-month window spans leaf-off to leaf-on**,
+which is a real phenology hazard for a canopy model.
+
+This also explains the odd/even supplier pattern: **odd years come from King County's cycle, even
+years from Snohomish's** — Edmonds buys from whichever consortium flew high-resolution urban
+imagery that year, having switched supplier around 2018–2020.
+
+### 9.3 The two C-CAP references are DIFFERENT CLASS-SCHEME GENERATIONS — CONFIRMED
+
+`ccap_2016_hires_lc_snohfull.tif` (behind 2000, 2002, 2013, 2015, 2016, **2017**) is a different
+generation from the v2 2021 family (behind 2019, 2021k, 2022, 2023, 2024). Three independent
+proofs:
+
+1. class 4 *"Developed Impervious under Tree Canopy"* has a count of **exactly zero** across all of
+   Snohomish County in the 2016 file's own GDAL histogram — impossible if the class existed;
+2. its 256-entry palette is **undefined (0,0,0) at index 4** where v2 has (143,117,130), and
+   differs at indices 11 and 25;
+3. **two different class-scheme PDFs exist** — a 3-page one (md5 `ce2c38dd10a96e2a1ed3fe8e3dc4a90a`)
+   whose class list has no class 4, and the 8-page one shipped in the Refined folder
+   (md5 `ce2eaecb55172c900bbd5ff39828e864`).
+
+**So cross-year recall comparisons that span the two reference groups are not merely a coverage
+difference — they are two different definitions of canopy.** The existing "2-5 pp for the clip"
+caveat (WORKPLAN §1.3) understates the problem. Note also that InPort 53263, the governing record
+for the 2016 file, has been **withdrawn** (HTTP 403, "previously available, but has been
+withdrawn"), so its source-imagery date may not be publicly recoverable.
+
+**The mechanism is partly our own bug.** `qc/phase4_qc_indep.py:109` maps `"developed": [2, 3, 4]`
+with the comment *"High / Medium / Low Intensity Developed"* — which describes the **older 30 m
+C-CAP scheme**. Under **v2 hi-res, class 4 is "Developed Impervious under Tree Canopy"**: pixels
+that ARE under a tree. So on the v2 reference the scorer charges canopy-over-pavement as a **false
+positive**; on the 2016 reference the class does not exist (count 0) and those pixels are not
+penalised the same way. Measured: class 4 is **480,208 px = 2.40% of valid** in
+`ccap_2021_hires_lc.tif`. Consistent with the observed split — precision .9007 (2016 ref) vs
+.8012–.8242 (v2 ref), developed FP-rate .0355 vs .0429–.0607.
+
+Under the adopted **D2 ruling** (mid-height woody counts as canopy) *a tree over pavement is
+canopy*, so class 4 belongs in the canopy groups or in `ignore` — **not** in `developed`. That is a
+one-line `CCAP_DEFAULT` change plus a local re-score (no GPU). **Until it is decided and re-run,
+every v2-scored number is provisional.** The file's own safeguard did not catch this because it
+verifies which codes are *present*, not what they *mean*.
+
+### 9.4 Corrections to this document
+
+- §1 said `2017_king_rgb.tif` is "on `D:` only". **It is on BOTH planes**, identical byte sizes.
+- §1 and IMAGERY_PLAN C1 quote it as "14.93 cm". That is the **uncorrected CRS-unit** figure; the
+  true GSD is **10.0 cm** (`data_inventory.csv` true_gsd_m 0.1003). The C1 matched pair is
+  **10.0 cm King vs 5.0 cm CoE**, not 14.93 vs 7.46.

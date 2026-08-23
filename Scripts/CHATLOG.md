@@ -1299,6 +1299,50 @@ gotcha:  scripts Colab-only for torch (rasterio+geopandas+fiona+sklearn now pip-
 
 ════════════════ LOG  (newest first) ════════════════
 
+## 2026-08-22  PRE-MERGE CROSS-CHECK — both sessions verify SAFE TO MERGE; two durable hazards recorded
+goal:    Kam: "I want to push everything to main, but I need ensure it won't break everything."
+did:     Two independent verifications agree. MY gates on the fix/ tree: py_compile 180/180 ·
+         phase4_catalog_check 18/18 · phase4seg_preflight PASSED · phase4seg_smoke PASSED end-to-end ·
+         both queue YAMLs dry-run. The OTHER SESSION re-ran the same gates on the same tree and matched
+         line for line, and added dry-runs of queue_2019_inference (5) and queue_2024_inference (5) plus
+         harvest --dry-run clean.
+         READ-ONLY `git merge-tree` of work/p11-5-autonomy x fix/20260822-inference-throughput: the
+         MERGED tree contains ZERO "2022n" in live code — the relabel survives the merge rather than
+         being reintroduced by work/'s older copies. Exactly 3 conflicts, all agreed by both sessions:
+           CHATLOG.md            -> keep BOTH entry sets, interleave by timestamp (insertion points are
+                                    ~1000 lines apart, so the risk is low)
+           imagery_catalog.xlsx  -> take fix/ (209,669 B, 13 sheets; newer than work/'s 205,631 B)
+           registry_from_manifests.py -> take fix/ (305 vs 285 lines). NOT merely longer: fix/ = work/
+                                    PLUS honest_metrics(year, run_ts) date-filtering, the _unscored skip
+                                    and the unscored counter. Taking work/ would REINTRODUCE a bug that
+                                    stapled August's off-recipe 2017 number onto tonight's fresh run.
+         State at cross-check: no Colab VM billing, zero RUNNING rows, no stale lock/claim files, both
+         sessions' trees clean. Branches diverged at f8949f6f; main untouched at b1b8516.
+rules:   ** RELABELLING A YEAR THAT HAS MANIFESTS REQUIRES REWRITING THE MANIFESTS TOO. **
+         registry_from_manifests.py keys on the year label and builds sem_best_{year}.pt /
+         edmonds_canopy_prob_{year}.tif from it. If a relabelled year has run manifests recording the OLD
+         label, that run loses its metrics and artefact paths, and the "unscored inference" rule then
+         SKIPS IT SILENTLY AND PERMANENTLY. Tonight's 2022n->2023n rename was safe ONLY because that
+         acquisition had ZERO manifests (verified). Any future relabel must check manifests FIRST.
+         ** THE THREADED-INFERENCE PATH IS NOT COVERED BY ANY LOCAL GATE. ** phase4seg_smoke does not
+         exercise step_inference. Local gates passing says NOTHING about it. What backs it is a
+         byte-equivalence benchmark on a live VM (max|diff| = 0 over 41.9M px) plus four completed
+         citywide rasters. The first threaded build passed every local gate and died instantly in
+         production on a shared GDAL handle. If that loop is edited, re-run the benchmark FROM THE RASTER
+         ORIGIN — an interior-block test passes while production fails.
+watch:   Colab session tokens live OUTSIDE the repo (~/.config/colab-cli) and expire after exactly 1 h;
+         the CLI prunes a session on any transient error, killing its keep-alive daemon and letting Colab
+         reclaim the VM mid-run (cost three A100s on 2026-08-22). The mitigation, qc/colab_readopt.py
+         --heal, exists ONLY on fix/ — so a session standing on work/ has no self-healing. One more
+         reason the merge matters.
+         Phases 1-3 scripts now point at the deleted upsample/ (phase1_preprocess 85 refs,
+         phase2_data_prep 16, phase3_semantic_dev 2, phase1c_review 1). Not on the Phase 4 path, which is
+         why every gate still passes. Kam has accepted this: Phase 1 gets rewritten later, not today.
+next:    Kam runs the merge (git merge and git tag are denied in this session). Recommended order: tag
+         main first, then merge fix/ (carries the newer copy of all three conflicted files), then work/.
+         The other session OWNS the post-merge harvest_results + registry_from_manifests commit on a
+         fresh branch off the new main; this session will not duplicate it.
+
 ## 2026-08-22  CLEANUP BEFORE MERGE — 2022n relabelled 2023n; upsample/ (1,009 GB) deleted
 goal:    Kam: "Delete upsample, its not importnat anymore. rename 2022n... I need to clean up before that
          merge can happen."

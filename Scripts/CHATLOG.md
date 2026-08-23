@@ -1395,6 +1395,55 @@ next:    the two IMAGERY_FACTS.md errors (2017_king is on BOTH planes, not D: on
          the uncorrected CRS-unit figure, true GSD 10.0 cm) are still unrecorded. Then the branch merge:
          work/p11-5-autonomy and fix/20260822-inference-throughput diverged at f8949f6f.
 
+## 2026-08-22  COUNTY IMAGERY + 2005 LIDAR FOUND — acquisition plan written; the 41.9% ceiling is self-inflicted
+goal:    Kam found the county imagery portals and 2005/2016 lidar metadata; "I want to go all out" — new years,
+         better versions of held years, metadata, and second acquisitions of covered years.
+did:     PLAN ONLY, nothing acquired. New doc IMAGERY_ACQUISITION_PLAN_2026-08-22.md (sources, measured
+         analysis, 5 phases, gates, risks); WORKPLAN Tier 2 item 7 points at it (old 7 -> 8).
+         ** MEASURED, not assumed: **
+         (1) THE 41.9% CEILING IS A PROPERTY OF OUR FILE, NOT THE SOURCE. Snohomish Aerial_2016 ImageServer
+         extent = 45x55 km and contains ALL of Edmonds; 2016_snoh_rgbi.tif is 6.7x4.9 km, cut off 3.5 km
+         short at the north. Probed the missing strip vs a control inside the file: control 100% non-black
+         (85.3% in-city), missing north-east 100% non-black (87.3% in-city), and black fraction tracks being
+         OUTSIDE the city polygon (water), not missing data. So full-extent 2016 is available -> removes the
+         caveat riding on the project's most-cited year. Same expected for 2021s (verify first).
+         (2) SNOHOMISH PUBLISHES 23 ANNUAL SERVICES 1990-2024, surveyed via REST: 1990 3.05m 1-band; 1996 1m;
+         2003/2007/2009/2011 30.5cm 3-band; 2013 1m; 2015 30.5cm 4-BAND; 2016 15.2cm 4-BAND; 2017 30.5cm
+         4-BAND; 2019 30.5cm 4-BAND; 2020 7.6cm 3-band; 2021 15.2cm 4-BAND. All contain Edmonds. Pixel sizes
+         are FEET (EPSG:2285) — the same units trap that caused the gsd_cm defect.
+         (3) NIR YEARS COULD GO 4 -> ~11 (King CIR 2000/2009/2010/2015/2023/2025 + Snohomish 4-band
+         2015-2021 + NAIP 2015/2017/2021). Only NIR years can carry an independent NDVI reference; it
+         currently exists at 4 points in an 18-acquisition series.
+         (4) KING METADATA RESOLVES TWO ORPHANS. KingCo_Aerial_2017 description gives vendor (Pictometry),
+         window (Feb-Oct 2017) and 3in/px over "King County AND southwestern Snohomish County" — i.e. King
+         flights do cover Edmonds. Closes 2012_king_rgb.tif and the second 2017_king_rgb.tif.
+         (5) ACCESS: Snohomish ImageServer exportImage, native, max 15000x4100/request. King BaseMaps
+         /export DOES work (capabilities omits it) but is a cached MIXED=lossy-JPEG service, max
+         4096x4096/request; King ORIGINALS come from the data catalog (www5.kingcounty.gov/sdc/?Layer=NAME)
+         + Open Data/FTP portal. NAIP via NOAA Digital Coast with tileindex+urllist+VRT+STAC = cleanest.
+         (6) 2005 PSLC lidar (dataset 2579, COPC, 0.25 pts/m2 vs 2016's ~4-5) — stand-scale only; overturns
+         "a lidar-dependent definition CANNOT be applied pre-2016". Change-detection use needs a DECIMATION
+         protocol or it manufactures growth. Details in the plan + the 2005/2016 InPort records.
+decided: order by CONSTRAINT REMOVED, not pixels acquired — full-extent 2016 first (removes an existing
+         caveat, adds nothing to reconcile). Prefer original downloads over REST export (double-JPEG).
+         Never overwrite a held file; new name + catalog entry. Re-MEASURE every GSD from the delivered
+         file — never copy a service's advertised resolution.
+killed:  my own claim that King's export "plateaus at ~20cm" — RETRACTED. Controlled test (312m box, 4096px
+         request vs 1024px upsampled to the same grid) gives 2.16x the HF energy for the native request, and
+         the cache carries LODs to level 21 ~ 5.0 cm ground. The laplacian-falloff proxy was measuring JPEG
+         smoothing, not a resolution ceiling.
+         ALSO NOT REVIVED: WORKPLAN 2's withdrawal of "the 2021 pair isolates the sensor effect" STANDS —
+         after true-GSD correction no same-tier same-year pair exists (Snohomish 30.5cm sits just above the
+         29.9cm medium boundary; 2021 pairs 10cm fine vs 15.2cm; 2021s is pinned coarse). The better prize
+         is that Snohomish 2015-2021 is one contractor lineage = a self-consistent multi-year 4-band series.
+files:   IMAGERY_ACQUISITION_PLAN_2026-08-22.md (new), WORKPLAN_2026-08-19.md (Tier 2 item 7), CHATLOG.md
+next:    UNTESTED GATE that decides half the King catalog: do King DERIVED products (TreeCanopy2016/2017/2021,
+         TreeCanopy2021Height, TreeCanopy2021 TreePoints, ForestCover2019Ecopia, VegetationFeatureHeights*,
+         the annual LiDAR DGM/DSM series) extend into Edmonds, or stop at the county line ~0.1 km south?
+         TreeCanopy2021Height + TreePoints would be a THIRD independent canopy reference with heights and
+         individual tree locations. Phase 2 of the plan settles it. Then Phase 0 cross-ref -> Phase 1
+         metadata -> Phase 3 Tier A (full-extent 2016). None of this is on the critical path to U1.
+
 ## 2026-08-22  P11.6 — headless Colab CLI probed + adopted; MCP tabs demoted to fallback
 goal:    make the NEXT session agentic for GPU runs. MCP-tab path hit its wall: both server instances open the
          same scratch notebook (SCRATCH_PATH hard-coded) -> ONE shared runtime; moving a tab = manual fragment
@@ -1470,6 +1519,61 @@ addendum: Kam: "widen the block for this session" -> 28 PowerShell(...) DENY twi
 next:    Kam: set tab A to A100 (UI) -> Claude re-runs cells 1-2 on the GPU VM -> STEP 4 launch-A proposal;
          decide tab B (re-point to another notebook keeping the token fragment, Chrome-MCP assist, or
          human-paste B). Nit for later: phase4_train_queue.py:603 display backslash.
+
+## 2026-08-22  LIDAR ACQUIRED — era-matched 2005 + full-density 2016; the CHM in use is a degraded product
+goal:    Kam: get the Edmonds-area lidar for BOTH vintages into the data lake and record the find. Local only,
+         no GPU, between queue steps. 2005 is the FIRST pre-2016 height data this project has ever had.
+did:     Both datasets are public NOAA COPC, same bucket, same CRS (NAD83(HARN) UTM 10N / NAVD88 GEOID18), same
+         q47122#### quad grid -> tiles ALIGN between eras and one selection routine served both. Helper set
+         (tileindex gpkg/zip, urllist, minmax, ISO xml + forHumans html, and the 67.5 MB west_wash_breaklines.zip)
+         downloaded for both. SELECTION: Edmonds Boundry.shp reprojected per tileindex CRS, buffered 600 m (Kam
+         raised it from the briefed 200 m), intersecting tiles -> 2005: 47 tiles / 407.5 MB; 2016: 41 tiles /
+         5,907.2 MB. At 200 m it was 41 + 35 tiles, so the wider margin cost 12 tiles; buffer exists so
+         boundary-straddling crowns keep their points and derived rasters do not degrade at the edge.
+         SIZE GATE tripped as briefed (2016 alone 4.68 GiB at 200 m, over the 4 GiB per-set limit) -> STOPPED and
+         asked; Kam: "hard drive space is not an issue" -> proceeded, then raised the buffer to 600 m (5.88 GiB
+         combined). Downloaded to D: first (rule 3), each file verified against its S3 Content-Length, then
+         MANIFEST.sha256 per directory (54 / 48 entries), then copied to the data lake and size-verified
+         there: PSLC_2005 55 files / 408.9 MB, USGS_2016 50 files / 5,986.3 MB, both == local. Drive still has
+         45.8 GiB free. Nothing processed: no CHM built, no points read, phase4seg untouched.
+decided: IMAGERY_FACTS is the right home for the specs (it is the measured-facts doc for source data); the CHM
+         provenance detail expands the one-line CLAUDE.md row rather than duplicating it.
+found:   ** THE CHM IN USE IS DEGRADED. ** lidar_snoh_chm.tif is NOT county data (the county files are the
+         hillshades lidar_snoh_hillshade_fr/be.tif and the retired lidar_snoh_structure.tif). It is USGS 3DEP HAG
+         from Planetary Computer: a ~2 m raster BILINEAR-UPSAMPLED to 1 m EPSG:3857, quantised uint8 at 0.2 m/DN,
+         CAPPED at 50.6 m (p99 44.6 m; western WA Douglas-fir exceeds 50 m). Bilinear upsampling SMOOTHS local
+         maxima and a canopy apex IS a local maximum -> it reads systematically LOW, worst on narrow conical
+         crowns = the conifer training sites. CAVEAT ON THE CAVEAT: U6 ("CHM error cannot have made the
+         staircase") injected RANDOM Gaussian error; smoothing bias is SYSTEMATIC and one-directional, so U6 does
+         NOT cover this case - do not cite it as clearing this.
+         ** THE DENSITY GAP IS THE GOVERNING FACT: ~16-29x. ** 2005 is 0.25 pts/m² stated / ~0.17 cross-checked
+         from class counts; 2016 is 4 stated / ~5 cross-checked. 2005 also has only 3 classes (Unclassified /
+         Ground / Low Point - VEGETATION IS UNCLASSIFIED) against 2016's 6. Two accuracy metrics exist for 2005
+         and are NOT the same thing: 6.3 cm fundamental vertical (95th pct, Digital Coast) vs InPort's 25 cm avg /
+         15-25 cm soft-vegetated - both recorded, never averaged.
+         ** OVERTURNED: ** the CHATLOG line "a lidar-dependent definition CANNOT be applied pre-2016 (no
+         coverage)" is wrong. Pre-2016 height data EXISTS, at stand scale.
+ranking: CORRECTED mid-assessment. Change-detection was ranked FIRST until the density figure arrived; it is not.
+         (1) USABLE, best use: an independent ERA-MATCHED STAND-scale 2005 canopy mask (~5 m cells; at 0.25 pts/m²
+         a 2 m cell holds ~1 point - presence does not need the apex). Value = a THIRD reference sharing no
+         failure mode with C-CAP or the NDVI reference, aimed at the 15-17% reference-disagreement problem, and
+         contemporaneous rather than 2016-projected. (2) CONDITIONAL: bounding real 2005->2016 change, ONLY after
+         a written DECIMATION PROTOCOL (thin 2016 to ~0.25 pts/m², rebuild BOTH CHMs identically, then difference
+         - sparse lidar under-samples apexes and reads low, so a naive difference MANUFACTURES growth everywhere)
+         AND class harmonisation (2016's Water/Bridge Deck/Ignored Ground must be reconciled with 2005's three
+         classes). Same failure class as cross-sensor GRVI and the clipped reference. (3) DROP: re-testing the
+         height staircase on 2005 - a 1-2 m low bias shifts crowns down a band and the 5-15 m bands hold 53% of
+         all misses. Overall 2005 is a STAND-scale instrument, not crown-scale; the hardest miss population is
+         scattered suburban/ornamental crowns (8/8 inspected missed stands were suburban) which 0.25 pts/m²
+         cannot resolve. A from-points 2016 CHM is worth building ONLY as part of (2), where it comes free.
+         NOT reopened: coverage. qc/chm_gap_2016.txt closed that (83.5% of the analysis area has CHM, the rest is
+         open water at 99.8% negative NDVI; counting every green no-CHM pixel as canopy moves it +0.02 pp).
+next:    step one of ANY of this work = measure realised pts/m² on a central Edmonds tile (stated and
+         cross-checked densities disagree ~30% for 2005; do not size cells off either until the local number is
+         known). Nothing processed tonight: no CHM built, no points touched, phase4seg untouched.
+files:   IMAGERY_FACTS.md (new section 8), WORKPLAN_2026-08-19.md (section 4 Tier 2 item 8), CHATLOG.md;
+         data: D:\edmonds-pipeline\Imagery\{PSLC_2005,USGS_2016}\ and Full_Image\{PSLC_2005,USGS_2016}\.
+         run_registry.csv NOT touched - it is for Colab runs.
 
 ## 2026-08-22  P11.5 RULED — crash-recovery autonomy, A100 default, branch workflow; prep landed on work/p11-5-autonomy
 goal:    Kam: "we can coordinate GPUs and runtimes now" — larger GPU to dodge runtime limits; if a run crashes

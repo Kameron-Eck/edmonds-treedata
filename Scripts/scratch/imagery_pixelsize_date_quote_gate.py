@@ -34,7 +34,7 @@ for r in rows:
         # measured/local descriptions are not page quotes
         if re.match(r"^(SHOTDATE|ShotDate|DATE_STR|Identity MEASURED|MEASURED|\(measured|\(photo|SDATE|density)",q) and "http" not in (r["source_url"] if col=="verbatim_quote" else r["alt_source_url"]): 
             pass
-        frags=[x for x in re.split(r"\s*(?:\.\.\.|\[[^\]]*\]|\((?:first of|city|= |date-only|the DOQQ|King County|stray|also|callout)[^)]*\)|Layer description:|Dates transfer because[^.]*\.|\u2026|\[and, in Appendix[^\]]*\]|\[sic[^\]]*\]|\(callout[^)]*\)|\(stray[^)]*\)|\(photo-centre[^)]*\)|\(date field[^)]*\))\s*",q) if x.strip()]
+        frags=[x for x in re.split(r"\s*(?:\.\.\.|\[[^\]]*\]|\((?:first of|city|= |date-only|the DOQQ|King County|stray|also|callout|keyProperties|all 8)[^)]*\)|Layer description:|Dates transfer because[^.]*\.|\u2026|\[and, in Appendix[^\]]*\]|\[sic[^\]]*\]|\(callout[^)]*\)|\(stray[^)]*\)|\(photo-centre[^)]*\)|\(date field[^)]*\))\s*",q) if x.strip()]
         res=[]
         for fr in frags:
             # strip leading/trailing parenthetical commentary and quotes

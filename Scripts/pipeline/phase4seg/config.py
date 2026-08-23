@@ -427,6 +427,12 @@ YEAR_CATALOG = [
     {"key": "2017n", "label": "2017n", "source": "NAIP (acquired 2017-08-15/21)", "gsd_cm": 100.0,
      "bands": 4, "crs_epsg": 26910, "coverage": "100% of study extent (measured 2026-08-23)",
      "seg_tier": SEG_SEMANTIC_ONLY, "native_file": "2017_naip_1m_rgbi.tif"},
+    # 2026-08-23 campaign S18: the WA consortium HXIP 6-inch 2018 flight (city sortie 2018-08-07 per the
+    # consortium footprint layer) served by the county's Aerial_2018 ImageServer — the ONLY citywide 2018
+    # imagery held, 4-band with real NIR. Fills the 2017->2019 gap year. COMPLEMENT (new key).
+    {"key": "2018s", "label": "2018s", "source": "Snohomish Co. (HXIP 6-in, acquired 2018-08-07)", "gsd_cm": 15.2,
+     "bands": 4, "crs_epsg": 2285, "coverage": "100% of study extent (measured 2026-08-23)",
+     "seg_tier": SEG_SEMANTIC_ONLY, "native_file": "2018_snoh_6in_rgbi.tif"},
     {"key": "2019n", "label": "2019n", "source": "NAIP", "gsd_cm": 60.7,
      "bands": 4, "crs_epsg": 26910, "coverage": "69% of study area (measured 2026-08-18)",
      "seg_tier": SEG_SEMANTIC_ONLY, "native_file": "2019_naip_rgbi.tif"},
@@ -452,9 +458,13 @@ YEAR_CATALOG = [
     {"key": 2022, "label": "2022", "source": "City of Edmonds", "gsd_cm": 5.0,
      "bands": 3, "crs_epsg": 3857, "coverage": "full",
      "seg_tier": SEG_INSTANCE_SEMANTIC, "native_file": "2022_coe_rgb.tif"},
-    {"key": "2023n", "label": "2023n", "source": "NAIP (acquired 2023-10-07; mislabelled 2023n until 2026-08-22)", "gsd_cm": 60.7,
-     "bands": 4, "crs_epsg": 26910, "coverage": "69% of study area (measured 2026-08-18)",
-     "seg_tier": SEG_SEMANTIC_ONLY, "native_file": "2023_naip_rgbi.tif"},
+    # 2026-08-23 REPLACED: 2023_naip_rgbi.tif (69% clip; a smoothed service re-export with band 4 tagged
+    # alpha) -> 2023_naip_60cm_rgbi.tif (the 8 original Azure DOQQs mosaicked; acquire_imagery N23f:
+    # coverage 100% vs 67%, HF energy 1.41x on a common grid, NIR real NDVI p90 0.53; all 8 quads flown
+    # 2023-10-07 per the container listing). Old file stays on disk (SUPERSEDED_FILES).
+    {"key": "2023n", "label": "2023n", "source": "NAIP (acquired 2023-10-07)", "gsd_cm": 60.0,
+     "bands": 4, "crs_epsg": 26910, "coverage": "100% of study extent (measured 2026-08-23)",
+     "seg_tier": SEG_SEMANTIC_ONLY, "native_file": "2023_naip_60cm_rgbi.tif"},
     {"key": 2023, "label": "2023", "source": "King County", "gsd_cm": 10.0,
      "bands": 3, "crs_epsg": 3857, "coverage": "full",
      "seg_tier": SEG_INSTANCE_SEMANTIC, "native_file": "2023_king_rgb.tif"},

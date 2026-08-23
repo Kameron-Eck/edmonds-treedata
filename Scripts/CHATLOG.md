@@ -395,10 +395,18 @@ acquire: ** IMAGERY ACQUISITION CAMPAIGN (2026-08-23, ACTIVE) ** — engine pipe
          24/24 + ADOPTED_NON_YEAR heading (M18). Kam EMPTIED Drive trash (msg 2026-08-23 ~12:45); batch-3 + CC21
          mirrors LANDED size-exact (S21+S15 -> Pipeline Imagery; CC21 raster+clip -> Full_Image/CCAP/_quarantine/,
          NEVER Pipeline Imagery); Drive free 41.5 GB, quota reconciliation may still be running — later mirrors
-         re-check the 25 GB floor themselves. NEXT: batches 4-6 (S18, pan
-         years, N19f/N23f full-extent NAIP, snoco RGB years), 3-inch pilots S20/S22/S24 (per-year OK, ~23 GB each,
-         anchor NEVER flipped), K00 ★ EmergeCIR on King reply. Kam sends: 4 asks in
-         IMAGERY_ACQUISITION_ASKS_2026-08-23.md; decisions (e): Drive trash, 2017 duplicate, CONNECTExplorer.
+         re-check the 25 GB floor themselves. BATCH 4 + N23f LANDED: S18 = the 2018 gap year
+         (2018_snoh_6in_rgbi.tif 11.47 GB, HXIP 6-in flown 2018-08-07 PUBLISHED, NIR NDVI p90 .713, eff 20.9 cm,
+         key 2018s) + pan years S90/S98/S01 (NOT FOUND dates; 1998 = DNR scan per keyProperties leak; S01 eff 105 cm
+         scanned film, 14 water chunks accepted after chunkmap eyeball; all three ADOPTED_NON_YEAR, never tiled —
+         1936/1998 King pans moved there too; orphans now exactly 2012_king + 2017_king). N23f = REPLACE #4
+         (2023_naip_60cm_rgbi.tif from the 8 original Azure DOQQs: coverage 100 vs 67%, HF 1.406; all quads
+         2023-10-07 confirms held date; 2023n flipped). Engine fix c95b992: HTTP 4xx = per-file failure never
+         retried/never a crash (N19f 404 exposed it — Azure 2019 folder is wa_60cm_2019 NO leading zero). Azure
+         naipeuwest caps ~0.65 MB/s/client. Table 44 rows gate 0 misses; check 25/25. IN FLIGHT: N19f refetch.
+         NEXT: batch 5 snoco RGB years (S02 dup-test vs U02, S03, S07) + batch 6, 3-inch pilots S20/S22/S24
+         (per-year OK, ~23 GB each, anchor NEVER flipped), K00 ★ EmergeCIR on King reply. Kam sends: 4 asks in
+         IMAGERY_ACQUISITION_ASKS_2026-08-23.md; decisions (e): 2017 duplicate, CONNECTExplorer (trash DONE).
 proj:    Edmonds temporal canopy pipeline, phase 4 (per-year semantic seg, 18 imagery yrs).
 live:    ENGINE MODULARIZED 2026-07-08 → phase4seg/ package (config/common/labels/tiling/core[all torch]/
          postproc/cli) + 97L phase4_semantic_finetune.py SHIM (preserves `%run ... --args`). Behavior =

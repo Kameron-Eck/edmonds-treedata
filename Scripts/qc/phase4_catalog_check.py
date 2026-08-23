@@ -148,11 +148,17 @@ NON_ORTHO_PREFIXES = ("ccap_", "lidar_", "edmonds_canopy_mask_", "2016 land cove
 ADOPTED_NON_YEAR = {
     "2018_coe_marsh2cm_rgb.tif": "2026-08-23 M18: Edmonds Marsh drone survey 2018-08-01, ~1 km^2 footprint (1% of city) - "
                                  "site-scale reference, not a year; see IMAGERY_FACTS 10.6",
+    "1990_snoh_10ft_pan.tif": "2026-08-23 S90: county 10-ft b/w - historical context outside the project span; 1-band, never tiled",
+    "1998_snoh_3ft_pan.tif": "2026-08-23 S98: DNR 3-ft b/w scan via county service - pairs with 1998_king_pan; 1-band, never tiled",
+    "2001_snoh_1ft_pan.tif": "2026-08-23 S01: county 1-ft b/w (eff 105 cm, scanned film) - 1-band, never tiled",
+    "1936_king_pan.tif": "pre-campaign holding (renamed from _rgb 2026-08-19) - historical 1-band scan, never tiled",
+    "1998_king_pan.tif": "pre-campaign holding (renamed from _rgb 2026-08-19) - historical 1-band scan, never tiled",
 }
 SUPERSEDED_FILES = {
     "2016_snoh_rgbi.tif": "2026-08-23 -> 2016_snoh_1ft_rgbi.tif (acquire_imagery S16: full extent, native 1 ft)",
     "2002_king_rgb.tif": "2026-08-23 -> 2002_usgs_30cm_rgb.tif (acquire_imagery U02: original USGS HRO tiles, no JPEG cache)",
     "2021_snoh_rgbi.tif": "2026-08-23 -> 2021_snoh_6in_rgbi.tif (acquire_imagery S21: full extent, snapped grid + nearest, HF 1.43x)",
+    "2023_naip_rgbi.tif": "2026-08-23 -> 2023_naip_60cm_rgbi.tif (acquire_imagery N23f: original DOQQs, coverage 100 vs 67%, HF 1.41x)",
 }
 
 

@@ -536,3 +536,42 @@ Verdict: the held clip is consistent with the current v2 product → **patch (ke
 pugetfull adds extent + provenance)**, effective only if/when the NOAA ML-clause answer (ask d) clears
 use. Until then both files sit in quarantine, read by no script; gate JSON:
 `Imagery/CCAP/_quarantine/_acq/CC21/class_equality.json`. Drive mirror deferred with batch 3+ (trash).
+
+### 10.10 S18 — `2018_snoh_6in_rgbi.tif`, the gap year filled with NIR (batch 4)
+
+2018 had NO citywide imagery in the data lake (only the 1 km² marsh drone survey, §10.6). The county's
+`Aerial_2018` ImageServer serves the WA consortium HXIP 6-inch flight; the consortium footprint layer pins
+the city sortie to **2018-08-07** (single flight area, city-centroid and city-bbox queries agree —
+coincidentally the same day-of-month as the 2015-08-07 flight). Delivered: 50,232 × 70,518 px @ 0.5 ftUS
+(15.24 cm true), 4 bands, **NIR real** (NDVI p90 0.713), effective 20.9 cm (1.37×), 100/100 coverage,
+registration ≤ 0.01 px, no JPEG signature, 875 chunks 0 failures, 11.47 GB. COMPLEMENT, new key `2018s` —
+the year sequence 2017 → 2019 now has an August 2018 NIR acquisition between the two May/October mosaics.
+
+### 10.11 N23f — `2023_naip_60cm_rgbi.tif` REPLACES `2023_naip_rgbi.tif` (batch 5) — REPLACE #4
+
+Same pattern as the 2019/2023 clip problem the campaign was built to fix: the held file was a 69% clip and
+a ~16% smoothed service re-export. The 8 original Azure DOQQs (folder `wa_060cm_2023`, all quads capture
+**2023-10-07** + version 2024-02-09 per the container listing — single day, independently confirming the
+held row's date) mosaic to: coverage **100% vs 67%**, common-grid HF-energy ratio **1.406**, NIR real
+(NDVI p90 0.53 — October), no losses → REPLACE. `2023n` flipped; old file in `SUPERSEDED_FILES`.
+**Azure host facts:** `naipeuwest` caps ~0.65 MB/s aggregate per client (6 streams, slower than NOAA);
+and the 2019 folder is `wa_60cm_2019` — NO leading zero, unlike `wa_060cm_2023` — a guessed-path 404 that
+also exposed an engine defect, now fixed: HTTP 4xx is a recorded per-file failure, never a job crash, and
+is never retried.
+
+### 10.12 S90 / S98 / S01 — the pan years: held, tabled, deliberately NOT year-keyed (batch 4)
+
+Three 1-band historical products from the county's service stack, all with **no discoverable flight date**
+(SCOPI's per-year list starts at 2017; no footprint layers exist for them):
+
+| | `1990_snoh_10ft_pan.tif` | `1998_snoh_3ft_pan.tif` | `2001_snoh_1ft_pan.tif` |
+|---|---|---|---|
+| grid / true | 10 ftUS = 304.8 cm | 3 ftUS = 91.4 cm | 1 ftUS = 30.48 cm |
+| effective | 367 cm (1.21×) | 163 cm (1.78×, soft scan) | **105 cm (3.4× — scanned film served far below its grid)** |
+| coverage city/study | 99.0 / 86.6% | 100 / 99.7% | 99.9 / 75.1% (NW water block: 14 empty chunks, chunkmap eyeballed before `--accept-empty`) |
+| date | NOT FOUND (year only) | NOT FOUND; source leaked by keyProperties: `U:\1998\b-w\3ft_res\dnr\…` = a **WA DNR 3-ft scan** (pairs with, but differs from, `1998_king_pan`) | NOT FOUND (year only) |
+
+All three are catalogued in the table and listed under the catalog check's **HELD WITHOUT A YEAR KEY**
+heading (with the M18 marsh survey and the two pre-campaign King pans, which moved there from the orphan
+list): 1-band products the per-year machinery must never tile. The orphan list is now exactly the two
+genuine pending decisions: `2012_king_rgb.tif` (adopt?) and `2017_king_rgb.tif` (the 2017 duplicate).

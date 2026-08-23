@@ -318,7 +318,7 @@ ROWS = [
       date_shot="2023-10-07", date_precision="single day", single_or_multi_date="single (all 8 Edmonds QQs: m_47122{13,14}_*_10_060_20231007_20240209)",
       evidence_grade="PUBLISHED", source_url=NAIP23,
       verbatim_quote="<gco:CharacterString>m_4712214_sw_10_060_20231007.tif</gco:CharacterString> (the DOQQ file name in the ISO metadata record; 20231007 = acquisition date field)",
-      notes="OCTOBER. Held bands 1-3 byte-identical to rgb_2023, band 4 to ir_2023 (DataLake_Issues). Context: NAIP 2021 over Edmonds exists (all 8 QQs STAC datetime 2021-07-13, INFERRED from file names - the FGDC sidecars for quad 47122 are absent from the Azure mirror).",
+      notes="*** SUPERSEDED 2026-08-23 by 2023_naip_60cm_rgbi.tif (the 8 original Azure DOQQs mosaicked, full study extent; this 69% smoothed re-export is kept for provenance) *** OCTOBER. Held bands 1-3 byte-identical to rgb_2023, band 4 to ir_2023 (DataLake_Issues). Context: NAIP 2021 over Edmonds exists (all 8 QQs STAC datetime 2021-07-13, INFERRED from file names - the FGDC sidecars for quad 47122 are absent from the Azure mirror).",
       px_evidence="grid/true MEASURED; effective MEASURED; native PUBLISHED"),
  # ---------------- reference rasters / lidar (flagged, not imagery acquisitions) ----------------
  dict(file="lidar_snoh_chm.tif", year_label="2016 (lidar)", source="USGS 3DEP HAG via Planetary Computer, reprojected by the project; underlying lidar = USGS_LPC_WA_Western_North_2016 (QSI for USGS/WADNR)",

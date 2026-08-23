@@ -521,7 +521,7 @@
    "mode": "files",
    "source_dir": "NAIP_AZURE/2019",
    "year_label": "2019n",
-   "base_url": "https://naipeuwest.blob.core.windows.net/naip/v002/wa/2019/wa_060cm_2019/47122/",
+   "base_url": "https://naipeuwest.blob.core.windows.net/naip/v002/wa/2019/wa_60cm_2019/47122/",
    "items": [
     "m_4712213_ne_10_060_20191011.tif",
     "m_4712213_nw_10_060_20191011.tif",
@@ -552,7 +552,8 @@
     "nir": "required",
     "same_grid_as_held": true,
     "city_coverage_min_pct": 99
-   }
+   },
+   "_note": "2026-08-23: folder is wa_60cm_2019 (NO leading zero - unlike wa_060cm_2023); guessed wa_060cm_2019 404'd. Filenames confirmed by container listing: all 8 quads carry 20191011 (single day, matches the HXIP flight-area date). 2023 quads all carry 20231007_20240209 (capture+version), single day 2023-10-07 = the held 2023n date."
   },
   {
    "id": "N23f",

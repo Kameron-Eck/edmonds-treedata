@@ -621,12 +621,20 @@ def do_fetch_files(m, t, args) -> int:
         url = t["base_url"] + name
         rec = {}
         for attempt in range(1, 4):
-            rec = fetch_file(url, d / name); rec["ts"] = time.time(); rec["attempts"] = attempt
+            try:
+                rec = fetch_file(url, d / name)
+            except Exception as ex:   # 404 etc. is a per-FILE failure, never a job crash (N19f 2026-08-23)
+                code = getattr(getattr(ex, "response", None), "status_code", None)
+                rec = {"file": name, "status": "fail", "err": f"{type(ex).__name__}: {ex}"[:300], "http": code}
+            rec["ts"] = time.time(); rec["attempts"] = attempt
             with lock, open(lp, "a", encoding="utf-8") as f:
                 f.write(json.dumps(rec) + "\n")
             print(f"  {name}: {rec['status']} {rec.get('bytes',0)/1e6:.1f} MB in {rec.get('secs','?')}s {rec.get('err','')}", flush=True)
             if rec["status"] == "ok":
                 return rec
+            code = rec.get("http")
+            if isinstance(code, int) and 400 <= code < 500 and code != 429:
+                return rec            # client error: the same URL cannot succeed on retry
             time.sleep(5 * attempt)
         return rec
 

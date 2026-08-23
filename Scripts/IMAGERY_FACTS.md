@@ -575,3 +575,30 @@ All three are catalogued in the table and listed under the catalog check's **HEL
 heading (with the M18 marsh survey and the two pre-campaign King pans, which moved there from the orphan
 list): 1-band products the per-year machinery must never tile. The orphan list is now exactly the two
 genuine pending decisions: `2012_king_rgb.tif` (adopt?) and `2017_king_rgb.tif` (the 2017 duplicate).
+
+### 10.13 S02 / S03 / S07 — the county's own RGB years; S02 is NOT the USGS flight (batch 5)
+
+The planned duplicate test produced the opposite of the expected result: the county's `Aerial_2002` was
+fetched to test `r > 0.99 → EXCLUDE as a duplicate of U02`, and measured **r median 0.847** (0.828–0.889
+at the 5 sites, common 1-ft grid) — far below same-flight pairs (0.98–0.997 in this campaign). The
+county's 2002 is a **distinct second 2002 acquisition** with its own (unknown) date; both are held.
+`SnoCo/_acq/S02/dup_test_vs_U02.json`.
+
+| | `2002_snoh_1ft_rgb.tif` | `2003_snoh_1ft_rgb.tif` | `2007_snoh_1ft_rgb.tif` |
+|---|---|---|---|
+| key | `2002s` | `2003s` — **a calendar year the project had NO imagery for** | `2007s` |
+| grid / true | 1 ftUS = 30.48 cm | same | same |
+| effective (5 sites) | 42.1 cm | 41.6 cm | 38.5 cm |
+| coverage city/study | 100 / 87.6% (NW water) | 100 / 87.5% (NW water) | 100 / 100% |
+| date | NOT FOUND (and ≠ the USGS June flight) | NOT FOUND | NOT FOUND |
+| JPEG signature | absent | absent | absent |
+| decision | COMPLEMENT | COMPLEMENT (new year) | COMPLEMENT — the planned flip test vs `2007_king` **FAILED** (38.5 vs required < 25.5×0.9 = 22.95 cm): King keeps the 2007 key |
+
+**Ops correction recorded the same afternoon:** the "Drive free space" every gate reads off the G: mount
+is the **local cache disk** (Google Drive for desktop stages uploads in `%LOCALAPPDATA%\Google\DriveFS`
+on C:), not cloud quota — C: and G: report the same 510.8 GB volume. Kam's cloud quota is 808 GB of
+2 TB (~1.2 TB free); the upsample/ purge DID land. Every "Drive floor" event in this campaign was C:
+filling with staged uploads, and the floor gate is still correct operationally (writes to G: fail when
+C: fills) — it guards the cache disk. The client refuses to relocate its cache while uploads are pending;
+the move to `D:\DriveFS-cache` happens after the queue flushes. `imagery_measure.CITY_SHP` now resolves
+a **local D: mirror of the city shapefile first** so a Drive outage can never blank a measurement again.

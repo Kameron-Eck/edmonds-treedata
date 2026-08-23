@@ -268,7 +268,10 @@ def study_coverage_pct(path: Path, extent_3857, step=8) -> dict:
         return {"study_coverage_pct": round(100 * frac, 2), "extent_overlap_pct": round(100 * inter_px / full_px, 2), "decimation": step}
 
 
-CITY_SHP = "G:/My Drive/treedata/City Boundry/Edmonds Boundry.shp"      # both misspellings load-bearing
+# both misspellings load-bearing; local mirror first so a Drive outage cannot blank the measurement (2026-08-23)
+_CITY_SHP_CANDIDATES = ["D:/edmonds-pipeline/Imagery/City Boundry/Edmonds Boundry.shp",
+                        "G:/My Drive/treedata/City Boundry/Edmonds Boundry.shp"]
+CITY_SHP = next((c for c in _CITY_SHP_CANDIDATES if Path(c).exists()), _CITY_SHP_CANDIDATES[0])
 
 
 def city_coverage_pct(path: Path, step=8) -> dict:

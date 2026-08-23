@@ -373,12 +373,29 @@ YEAR_CATALOG = [
     {"key": 2002, "label": "2002", "source": "USGS HRO Seattle-Tacoma (Selkirk) via WAGDA", "gsd_cm": 30.0,
      "bands": 3, "crs_epsg": 26910, "coverage": "100% of city polygon, 80.6% of study extent (measured 2026-08-23; remainder is Puget Sound)",
      "seg_tier": SEG_SEMANTIC_ONLY, "native_file": "2002_usgs_30cm_rgb.tif"},
+    # 2026-08-23 campaign S02: the county's OWN 2002 acquisition — NOT a duplicate of the USGS HRO flight
+    # (dup test r median 0.847 at the 5 sites on a common 1-ft grid; same-flight pairs measure 0.98-0.997;
+    # dup_test_vs_U02.json beside the ledger). Date NOT FOUND (year from the service name only). COMPLEMENT.
+    {"key": "2002s", "label": "2002s", "source": "Snohomish Co.", "gsd_cm": 30.5,
+     "bands": 3, "crs_epsg": 2285, "coverage": "87.6% of study extent (measured 2026-08-23; NW water gap)",
+     "seg_tier": SEG_SEMANTIC_ONLY, "native_file": "2002_snoh_1ft_rgb.tif"},
+    # 2026-08-23 campaign S03: 2003 — a year the project had NO imagery for. Date NOT FOUND. COMPLEMENT
+    # (new calendar year; 1-ft county RGB, effective 41.6 cm).
+    {"key": "2003s", "label": "2003s", "source": "Snohomish Co.", "gsd_cm": 30.5,
+     "bands": 3, "crs_epsg": 2285, "coverage": "87.5% of study extent (measured 2026-08-23; NW water gap)",
+     "seg_tier": SEG_SEMANTIC_ONLY, "native_file": "2003_snoh_1ft_rgb.tif"},
     {"key": 2005, "label": "2005", "source": "King County", "gsd_cm": 20.1,
      "bands": 3, "crs_epsg": 3857, "coverage": "full",
      "seg_tier": SEG_SEMANTIC_ONLY, "native_file": "2005_king_rgb.tif"},
     {"key": 2007, "label": "2007", "source": "King County", "gsd_cm": 20.1,
      "bands": 3, "crs_epsg": 3857, "coverage": "full",
      "seg_tier": SEG_SEMANTIC_ONLY, "native_file": "2007_king_rgb.tif"},
+    # 2026-08-23 campaign S07: the county's 2007 1-ft RGB. The planned flip test vs 2007_king FAILED
+    # (effective 38.5 vs the required < 25.5x0.9 = 22.95 cm), so the King file KEEPS the 2007 key and this
+    # is a second-acquisition COMPLEMENT. 100% study extent (no water gap in the 2007 product).
+    {"key": "2007s", "label": "2007s", "source": "Snohomish Co.", "gsd_cm": 30.5,
+     "bands": 3, "crs_epsg": 2285, "coverage": "100% of study extent (measured 2026-08-23)",
+     "seg_tier": SEG_SEMANTIC_ONLY, "native_file": "2007_snoh_1ft_rgb.tif"},
     {"key": 2009, "label": "2009", "source": "King County", "gsd_cm": 20.1,
      "bands": 3, "crs_epsg": 3857, "coverage": "full",
      "seg_tier": SEG_SEMANTIC_ONLY, "native_file": "2009_king_rgb.tif"},

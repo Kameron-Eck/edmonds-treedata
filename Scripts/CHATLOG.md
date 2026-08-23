@@ -403,8 +403,19 @@ acquire: ** IMAGERY ACQUISITION CAMPAIGN (2026-08-23, ACTIVE) ** — engine pipe
          (2023_naip_60cm_rgbi.tif from the 8 original Azure DOQQs: coverage 100 vs 67%, HF 1.406; all quads
          2023-10-07 confirms held date; 2023n flipped). Engine fix c95b992: HTTP 4xx = per-file failure never
          retried/never a crash (N19f 404 exposed it — Azure 2019 folder is wa_60cm_2019 NO leading zero). Azure
-         naipeuwest caps ~0.65 MB/s/client. Table 44 rows gate 0 misses; check 25/25. IN FLIGHT: N19f refetch.
-         NEXT: batch 5 snoco RGB years (S02 dup-test vs U02, S03, S07) + batch 6, 3-inch pilots S20/S22/S24
+         naipeuwest caps ~0.65 MB/s/client. Table 44 rows gate 0 misses; check 25/25. BATCH 5 SNOCO LANDED:
+         S02 dup test vs U02 = NOT A DUPLICATE (r median 0.847 at 5 sites; same-flight pairs 0.98-0.997) — the
+         county 2002 is a SECOND distinct 2002 acquisition, key 2002s; S03 = key 2003s, a calendar year the project
+         had NO imagery for; S07 flip test vs 2007_king FAILED (eff 38.5 vs required <22.95) — complement key 2007s,
+         King keeps 2007. All 3: city 100%, dates NOT FOUND. Catalog 28 entries. Table 47 rows gate 0 misses.
+         DRIVE-MOUNT CORRECTION (measured): G: reports the LOCAL CACHE DISK (C:, same 510.8 GB volume), NOT cloud
+         quota — Kam's cloud = 808 GB of 2 TB, the upsample purge DID land; every 'Drive floor' event was C: filling
+         with staged uploads (gate still operationally right — writes to G: fail when C: fills). Kam moving the
+         DriveFS cache to D:\DriveFS-cache (client refuses until uploads flush; a mid-move wrong setting briefly
+         remounted My Drive as a folder — reverted to G:). imagery_measure.CITY_SHP now local-first
+         (D:\edmonds-pipeline\Imagery\City Boundry mirror) so a Drive outage can't blank city coverage.
+         IN FLIGHT: N19f refetch (folder fixed), batch 6 (S09/S11/S12/S96/S06/S13), mirror retries.
+         NEXT: 3-inch pilots S20/S22/S24
          (per-year OK, ~23 GB each, anchor NEVER flipped), K00 ★ EmergeCIR on King reply. Kam sends: 4 asks in
          IMAGERY_ACQUISITION_ASKS_2026-08-23.md; decisions (e): 2017 duplicate, CONNECTExplorer (trash DONE).
 proj:    Edmonds temporal canopy pipeline, phase 4 (per-year semantic seg, 18 imagery yrs).

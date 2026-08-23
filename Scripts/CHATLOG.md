@@ -363,6 +363,18 @@ overhaul: ** ACTIVE WORKSTREAM 2026-08-20 — OPTION A OVERHAUL. PLAN = Scripts/
          Session prompts: D:\tools\claude-config\plans\because-we-are-not-parallel-codd.md. NEXT SESSION =
          prompt B, CLI edition: first launch of each queue ask-first; crash-recovery per P11.5 = push the
          fix branch + re-exec on the LIVE VM (a live VM keeps its Drive mount).
+provenance: ** PIXEL SIZE + DATE SHOT, ONE HOME (2026-08-23) ** = Scripts/qc/imagery_pixelsize_and_date.csv (29 rows:
+         22 held imagery + 7 reference/context; catalogue sheet Pixel_Size_And_Date; evidence qc/imagery_date_evidence/;
+         builder scratch/imagery_pixelsize_date_build.py, sheet-adder _sheet.py, quote gate _quote_gate.py = 0 misses
+         vs fetched pages). Grades: 12 MEASURED, 6 PUBLISHED, 3 INFERRED (2020 ANCHOR, 2024, 2016s), 1 NOT FOUND (2002).
+         Branch work/20260823-pixelsize-date (Kam merges). Headlines: 2017_coe = SAME ORTHOMOSAIC as 2017_king ->
+         2017-05-04..05-10 MEASURED; 2000 -> 2000-06-26 (Wayback flight-date graphic); 2022_coe identity MEASURED
+         (MrSID twin with Everett) -> PUBLISHED; 2020 ANCHOR still a WINDOW (04-25..07-13) but CONSISTENT WITH ONE
+         PASS (shadow geometry, 10 sites); 2016_snoh native 1 ft (30.5 cm), date INFERRED Aug 12 2016 morning;
+         in-file metadata NULL on all 33 rasters. OPEN: anchor pin = PRR to Snohomish DoIT (RFP 1166-18-PCR /
+         PB-19-14BC) or CONNECTExplorer screenshot; 2002 Edmonds date (EarthExplorer M2M); KAM DECISION: C-CAP v2
+         Ecopia ML-use clause ('testing, evaluating ... machine learning') vs our evaluation use. Hazard: a SECOND
+         2020 acquisition (Hexagon 2020-08-27/28) exists over Edmonds - never borrow its date.
 proj:    Edmonds temporal canopy pipeline, phase 4 (per-year semantic seg, 18 imagery yrs).
 live:    ENGINE MODULARIZED 2026-07-08 → phase4seg/ package (config/common/labels/tiling/core[all torch]/
          postproc/cli) + 97L phase4_semantic_finetune.py SHIM (preserves `%run ... --args`). Behavior =
@@ -1298,6 +1310,37 @@ gotcha:  scripts Colab-only for torch (rasterio+geopandas+fiona+sklearn now pip-
          accept-all test data; 14,476-crown human review never finished.
 
 ════════════════ LOG  (newest first) ════════════════
+
+## 2026-08-23  PIXEL SIZE + DATE SHOT — one table, every acquisition, every cell cited (Fable 5 session)
+goal:    Kam: true pixel size (4 senses) + date shot for every held acquisition, each with a documenting link; lateral search.
+did:     In-file sweep first (rasterio all domains + tifffile raw tags, 33 rasters): NULL — no DateTime/Software/XMP/
+         IPTC/EXIF anywhere; grids are exact Web-Mercator LODs (tile-cache exports). City-POLYGON re-query of 9 King
+         frame indexes (2021 narrows to Apr 14-17; 2017 "May 18" = bbox artefact). Snohomish mosaic catalogs: 2016
+         native 1 ft (LowPS=1), 2021 0.5 ft, 2020/22/24 0.25 ft; held 2016 pixels = service, distinct from 2015/2017.
+         9 Opus agents (Workflow, max effort) + 7 verify agents, 870 tool uses: 2017_coe = same orthomosaic as
+         2017_king (r 0.957-0.997, 66 windows) -> dated; 2000 -> 2000-06-26 (only Wayback capture of the flight-date
+         graphic, re-read by lead); 2022_coe MrSID input-set byte-identity with Everett -> PUBLISHED; 2015 CoE contest
+         dissolved into 3 products (Aug 7 = NAIP/HXIP per Davey 2018; King leg pixel-excluded; Apr 8/17 consortium,
+         NO Apr 9); InPort 53263 recovered as XML; NAIP-2021 over Edmonds exists (2021-07-13 inferred); HXIP SDATE
+         is LOCAL (UTC hypothesis killed); weather: 30-deg sun floor falsified by 2015-02-15, calibrated rule 46/46;
+         shadow geometry: azimuth reliable (2012 control 8/10), elevation saturates -> 2020 one-pass signature, no day.
+         Table v1.1: 29 rows; quote gate 0 misses vs fetched pages only (after catching my own composed quotes).
+         IMAGERY_FACTS 9.2 -> delta + pointer; Contradictions/Provenance_Chain/Dating_Methods stamped SUPERSEDED;
+         3 Retractions added (14). Evidence harvested: qc/imagery_date_evidence/ (raw index records, weather
+         shortlists, shadow results, the 2000 graphic, agent findings + dead ends).
+decided: sheet ADDED via adder script, NOT build_master_catalog.py (a rebuild drops the 10 appended sheets) — deviation
+         from the brief, deliberate. 2022 INFERRED->PUBLISHED because identity is measured and the window is published
+         for that measured-identical product. 2020 stays INFERRED. 2016 stays INFERRED (county 1-ft <-> consortium 15 cm
+         link presumed). Reference rasters get flagged rows, not silence.
+killed:  per-frame date from the Snohomish service (catalog = 2 whole-project items; schema has no date field);
+         WA consortium flight-date layer for 2021+ (series ends 2020; all 68 services enumerated); neighbour-city 2020
+         date (Everett JPEG2000 has none; no 2024 neighbour copy); Legistar for 2020/2022 contracts (record starts
+         2023); /info/keyProperties on 10.81 servers (400s on the positive control — any earlier null via it is suspect).
+files:   qc/imagery_pixelsize_and_date.csv, qc/imagery_date_evidence/*, scratch/imagery_pixelsize_date_{build,sheet,
+         quote_gate,supersede}.py, imagery_catalog_2026-08-22.xlsx (24 sheets), IMAGERY_FACTS.md 9.2, CHATLOG STATE.
+next:    Kam: (1) PRR text ready (see session report) -> Snohomish DoIT, pins 2020/22/24; CONNECTExplorer ask to Brian
+         Tuley is faster. (2) Decide on the C-CAP v2 ML-use clause. (3) Query ORTHO_IMAGE25_AREA_3074 over the city
+         (2025 dates, free). (4) 2002 Edmonds date via EarthExplorer M2M. (5) merge work/20260823-pixelsize-date.
 
 ## 2026-08-23  SERIES COMPLETE — four years scored; registry joins on the RASTER, not the clock
 goal:    post-merge tidy-up on a branch off the new main (dff4adb): harvest, registry rows, the

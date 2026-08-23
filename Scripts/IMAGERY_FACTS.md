@@ -285,32 +285,33 @@ files genuinely measure 5.0 cm — but that is the grid, not the resolution, whi
 distinction §2.2 already draws for the King years. Treat the four CoE years as **7.62 cm native,
 ~1.49× oversampled**. `2020_coe_rgb.tif`, the anchor, is natively a 3-inch product.
 
-### 9.2 Acquisition dates — what is known, and how well
+### 9.2 Acquisition dates and true pixel size — ONE HOME NOW: `qc/imagery_pixelsize_and_date.csv`
 
-| file | window | confidence |
-|---|---|---|
-| `2020_coe_rgb.tif` **(ANCHOR)** | **2020-04-13 → 2020-07-13**, Pictometry via Snohomish Co., 3 in urban — **fully leaf-on** | **INFERRED** |
-| `2017_coe_rgb.tif` | **2017-02-17 → 2017-10-30**, Pictometry via King Co., 3 in over "southwestern Snohomish County" | **INFERRED** |
-| `2019_naip_rgbi.tif` | 2019-10-11 | CONFIRMED |
-| `2023_naip_rgbi.tif` (was `2022n`) | 2023-10-07 | CONFIRMED |
-| King years 2000–2023 | seasons/windows per SDC | mostly CONFIRMED |
-| Snohomish years | 8 of 10 CONFIRMED | — |
+**Superseded 2026-08-23.** The per-file date *and* the four pixel-size senses (grid / true ground /
+effective / native flight) now live in **`Scripts/qc/imagery_pixelsize_and_date.csv`** (built by
+`scratch/imagery_pixelsize_date_build.py`; copied into the catalogue as sheet `Pixel_Size_And_Date`;
+evidence under `qc/imagery_date_evidence/`). Every date there carries a fetched URL and a verbatim quote
+that was re-fetched and gate-checked; this section keeps only the headline deltas against what this
+document said before, so the two never disagree again.
 
-**The anchor year's date is INFERRED, not confirmed, and that matters.** The city publishes *no*
-metadata: `serviceDescription`, `copyrightText`, `licenseInfo` and `documentInfo` are empty on
-every Edmonds imagery service; `keyProperties` carries **no** `acquisitionStartDate`; the only
-date anywhere is a service-creation stamp (2021-08-11) which is a publication upper bound. The
-inference rests on Snohomish flying 3-inch urban in exactly 2020/2022/2024, King not flying in
-2020, and Edmonds sitting inside the county's urban footprint. **Only the city or county can
-confirm it.**
+| file | before (this doc) | now (the table) | how |
+|---|---|---|---|
+| `2017_coe_rgb.tif` | 2017-02-17 → 10-30, INFERRED | **2017-05-04 → 05-10, MEASURED** | it is the *same orthomosaic* as `2017_king_rgb.tif` (r 0.957–0.997 over 66 citywide windows; identical relief displacement) — King's per-frame dates transfer |
+| `2000_king_rgb.tif` | "late spring to early fall" | **2000-06-26** (township block T27N R3E/R4E) | King County's flight-date graphic, recovered from the only Wayback capture |
+| `2022_coe_rgb.tif` | window INFERRED | window **PUBLISHED**: 2022-04-06 → 07-11 | identity with the county product *measured* (same MrSID encode as Everett's copy, input set 675,609,635,568 B) |
+| `2020_coe_rgb.tif` (ANCHOR) | 2020-04-13 → 07-13, INFERRED | **still INFERRED**, head trimmed to 04-25 → 07-13; **consistent with one continuous pass** (10 sites, local times 10:22–13:39 PDT, monotone E→W) — single date NOT proven | shadow solar geometry with the 2012 index as positive control; weather eliminates 22 of 92 days |
+| `2016_snoh_rgbi.tif` | "8 of 10 CONFIRMED" | **native 1 ft (30.5 cm)**, served at 0.5 ft; date **2016-08-12 morning (INFERRED, conditional)** — the Aug 11 16:52 sortie is excluded by shadow direction | county mosaic catalog LowPS=1; WA consortium footprints (SDATE is local PDT) |
+| `2021_snoh_rgbi.tif` | — | 2021-06-25 → 11-11 PUBLISHED; flown in the **afternoon** | no consortium layer exists for 2021+ (closed) |
+| `2002_king_rgb.tif` | — | **NOT FOUND for Edmonds**; product-level 2002-06-11 CONTESTED; delivered grid 0.98 ft ≈ 30.0 cm | archived USGS FGDC; EarthExplorer M2M is the open route |
+| `lidar_snoh_chm.tif` | ~2016 | 2016-03-17 → 09-30 (North AOI); grid 1.0 m *Web Mercator* = **67 cm ground** — units trap #4 | InPort 51853 + NOAA tile index |
 
-Two consequences worth carrying: the **2020 window is fully leaf-on**, which bears directly on the
-deciduous under-prediction problem; and **2017's 8.5-month window spans leaf-off to leaf-on**,
-which is a real phenology hazard for a canopy model.
-
-This also explains the odd/even supplier pattern: **odd years come from King County's cycle, even
-years from Snohomish's** — Edmonds buys from whichever consortium flew high-resolution urban
-imagery that year, having switched supplier around 2018–2020.
+Still true and still important: the anchor's date is a **window**, the link from the city file to the
+county flight is contractual (ILA 2021, `repo=Edmonds` id 1462454), and the definitive pin is a records
+request to Snohomish County DoIT for the EagleView flight log / photo-centre index (King County RFP
+1166-18-PCR, Piggyback PB-19-14BC) or a CONNECTExplorer capture-date screenshot. Two conflation hazards
+are recorded as context rows: a **second 2020 acquisition** over Edmonds (WA consortium, Hexagon, 2020-08-27/28)
+and the 2018 consortium/Marsh pair. The odd/even supplier pattern stands: odd years King County, even years
+Snohomish County.
 
 ### 9.3 The two C-CAP references are DIFFERENT CLASS-SCHEME GENERATIONS — CONFIRMED
 

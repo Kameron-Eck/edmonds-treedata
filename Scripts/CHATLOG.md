@@ -1332,6 +1332,17 @@ numbers: ** ALL FOUR YEARS, honest, live=1, each at its OWN deployed threshold �
          .5558 / .5635) but only .1648 for 2017 on the 2016 reference - consistent with a
          reference-definition artefact rather than a model failure. NOT TESTED; worth a deliberate test.
          Scrub recall stays the weakest canopy class everywhere (.2208 / .2796 / .3542 / .4138).
+done-2013: ** 2013 CITYWIDE RE-SCORED — and the expected movement DID NOT HAPPEN. ** primary forest_wetland
+         rec .7399 prec .8681 @0.5026, grass_reject .9140, ref_canopy 29.19%, vs ccap_2016_hires_lc_snohfull.
+         The prediction was that it would move off the quoted .7422 because that was a live=0 row scored at the
+         fallback 0.5. It did not: the off-recipe xsensor raster scored .7395/.8666 and the citywide raster
+         scores .7399/.8681 — a 0.0004 difference in recall. So for 2013 the recipe change is worth nothing
+         measurable, which is itself the finding. The old rows are now live=0; the citywide rows are live=1.
+         ** 2013 IS AN RGB-ONLY MODEL ** (its only eval rows are channels=rgb, held-out IoU .4563, raster
+         2026-07-07). It scored at an rgb threshold, which is CORRECT — the rule is that the threshold must
+         match the model that produced the raster, NOT that it must always say rgb+chm. But that makes 2013 a
+         THIRD axis of incomparability on top of the two reference generations: never place it in a table with
+         the rgb+chm years (.6125-.7300 held-out IoU) without the RGB-ONLY label.
 next:    2013 citywide re-score (its live=1 row is still the off-recipe _xsensor raster) — running local,
          no GPU. Then WORKPLAN Tier 2 item 9 is the standing task: gate step_inference locally.
 files:   run_registry.csv (+4), phase4/qc/* (harvest, 21 files), WORKPLAN_2026-08-19.md (Tier 2 item 9),

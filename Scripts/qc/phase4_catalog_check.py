@@ -140,6 +140,11 @@ def check_entry(entry, roots, probe_fill):
 # their own homes in config.py (HS_PATHS, the C-CAP eval refs, derived masks).
 # Listing them as "orphans" every run would bury the ones that matter.
 NON_ORTHO_PREFIXES = ("ccap_", "lidar_", "edmonds_canopy_mask_", "2016 land cover")
+# Rasters a campaign acquisition has REPLACED in YEAR_CATALOG. Kept on disk for provenance (never deleted,
+# never overwritten); listed under their own heading, never as orphans. One line per replacement, with date.
+SUPERSEDED_FILES = {
+    "2016_snoh_rgbi.tif": "2026-08-23 -> 2016_snoh_1ft_rgbi.tif (acquire_imagery S16: full extent, native 1 ft)",
+}
 
 
 def orphans(roots, catalog_files):
@@ -153,7 +158,7 @@ def orphans(roots, catalog_files):
         for p in sorted(d.glob("*.tif")):
             if p.name in catalog_files:
                 continue
-            if p.name.startswith(NON_ORTHO_PREFIXES):
+            if p.name.startswith(NON_ORTHO_PREFIXES) or p.name in SUPERSEDED_FILES:
                 continue
             found.setdefault(p.name, ([], p))[0].append(d.drive or str(d))
     return [(n, ds, p) for n, (ds, p) in sorted(found.items())]
@@ -210,6 +215,12 @@ def main():
             print(f"     {name:<26} {'/'.join(drives):<6} "
                   f"{round(p.stat().st_size/1e9, 2):>7} GB  {detail}")
         print("     -> adopt into YEAR_CATALOG or quarantine; see IMAGERY_PLAN.md A2.")
+
+    sup = [(n, why, [d for d in roots if (d / n).exists()]) for n, why in SUPERSEDED_FILES.items()]
+    if sup:
+        print("\n  -- SUPERSEDED (kept on disk, replaced in YEAR_CATALOG) " + "-" * 8)
+        for n, why, where in sup:
+            print(f"     {n:<26} {'/'.join(d.drive or str(d) for d in where) or 'absent':<6} {why}")
 
     print(f"\n  {len(C.YEAR_CATALOG) - len(fails)}/{len(C.YEAR_CATALOG)} catalog entries OK")
     return 1 if fails else 0

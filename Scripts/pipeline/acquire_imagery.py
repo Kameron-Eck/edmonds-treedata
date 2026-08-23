@@ -76,7 +76,9 @@ def acq_dir(m, t) -> Path:
     return d
 
 
-def ledger_path(m, t) -> Path: return src_dir(m, t) / "_acq" / f"{t['id']}.chunks.jsonl"
+def ledger_path(m, t) -> Path:
+    d = src_dir(m, t) / "_acq"; d.mkdir(parents=True, exist_ok=True)
+    return d / f"{t['id']}.chunks.jsonl"
 def out_path(m, t) -> Path:
     name = t.get("out_name") or (t.get("mosaic") or t.get("clip") or {}).get("out_name")
     return src_dir(m, t) / name
@@ -607,19 +609,32 @@ def fetch_file(url: str, dest: Path, expect: int | None = None, fetcher=None) ->
 def do_fetch_files(m, t, args) -> int:
     lp = ledger_path(m, t); d = src_dir(m, t); recs = read_ledger(lp)
     done = {r["file"] for r in recs if r.get("status") == "ok" and (d / r["file"]).exists() and (d / r["file"]).stat().st_size == r.get("bytes")}
+    todo = [n for n in t["items"] if n not in done]
+    workers = int(args.workers or 4)          # files mode: parallel streams (single-stream NOAA blob ~1 MB/s, 2026-08-23)
+    lock = threading.Lock()
+
+    def one(name):
+        url = t["base_url"] + name
+        rec = {}
+        for attempt in range(1, 4):
+            rec = fetch_file(url, d / name); rec["ts"] = time.time(); rec["attempts"] = attempt
+            with lock, open(lp, "a", encoding="utf-8") as f:
+                f.write(json.dumps(rec) + "\n")
+            print(f"  {name}: {rec['status']} {rec.get('bytes',0)/1e6:.1f} MB in {rec.get('secs','?')}s {rec.get('err','')}", flush=True)
+            if rec["status"] == "ok":
+                return rec
+            time.sleep(5 * attempt)
+        return rec
+
     with open(lp, "a", encoding="utf-8") as f:
-        f.write(json.dumps({"type": "run", "ts": time.time(), "approved": args.approved, "argv": sys.argv[1:]}) + "\n")
-        for name in t["items"]:
-            if name in done:
-                continue
-            url = t["base_url"] + name
-            for attempt in range(1, 4):
-                rec = fetch_file(url, d / name); rec["ts"] = time.time(); rec["attempts"] = attempt
-                f.write(json.dumps(rec) + "\n"); f.flush()
-                print(f"  {name}: {rec['status']} {rec.get('bytes',0)/1e6:.1f} MB {rec.get('err','')}")
-                if rec["status"] == "ok":
-                    break
-                time.sleep(5 * attempt)
+        f.write(json.dumps({"type": "run", "ts": time.time(), "approved": args.approved, "argv": sys.argv[1:], "workers": workers}) + "\n")
+    if todo:
+        t0 = time.monotonic()
+        with ThreadPoolExecutor(max_workers=workers) as pool:
+            results = list(pool.map(one, todo))
+        got = sum(r.get("bytes", 0) for r in results if r.get("status") == "ok")
+        el = time.monotonic() - t0
+        print(f"[{t['id']}] {len(todo)} files, {got/1e6:.0f} MB in {el:.0f}s = {got/1e6/max(el,1e-9):.2f} MB/s aggregate ({workers} streams)", flush=True)
     recs = read_ledger(lp)
     okf = {r["file"] for r in recs if r.get("status") == "ok"}
     missing = [n for n in t["items"] if n not in okf]

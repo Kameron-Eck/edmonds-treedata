@@ -384,9 +384,13 @@ YEAR_CATALOG = [
     {"key": 2015, "label": "2015", "source": "King County", "gsd_cm": 10.0,
      "bands": 3, "crs_epsg": 3857, "coverage": "full",
      "seg_tier": SEG_INSTANCE_SEMANTIC, "native_file": "2015_king_rgb.tif"},
-    {"key": 2016, "label": "2016", "source": "Snohomish Co.", "gsd_cm": 15.4, "tier": "coarse",
-     "bands": 4, "crs_epsg": 2285, "coverage": "42% of study area (measured 2026-08-18)",
-     "seg_tier": SEG_SEMANTIC_ONLY, "native_file": "2016_snoh_rgbi.tif"},
+    # 2026-08-23 REPLACED: 2016_snoh_rgbi.tif (0.5 ft served upsample, 53.4% clip) -> 2016_snoh_1ft_rgbi.tif
+    # (native 1 ft = 30.5 cm, full study extent; acquire_imagery S16: 100% of the city polygon, 82% of the
+    # study extent (rest is Puget Sound), HF energy 1.14x the old file on a common grid, NIR real). The old
+    # file stays on disk for provenance (SUPERSEDED_FILES in qc/phase4_catalog_check.py). Tier stays pinned.
+    {"key": 2016, "label": "2016", "source": "Snohomish Co. (HXIP 2016, county 1-ft delivery)", "gsd_cm": 30.5, "tier": "coarse",
+     "bands": 4, "crs_epsg": 2285, "coverage": "100% of city polygon, 82.3% of study extent (measured 2026-08-23; remainder is Puget Sound)",
+     "seg_tier": SEG_SEMANTIC_ONLY, "native_file": "2016_snoh_1ft_rgbi.tif"},
     {"key": 2017, "label": "2017", "source": "City of Edmonds", "gsd_cm": 5.0,
      "bands": 3, "crs_epsg": 3857, "coverage": "full",
      "seg_tier": SEG_INSTANCE_SEMANTIC, "native_file": "2017_coe_rgb.tif"},

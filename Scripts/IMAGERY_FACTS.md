@@ -362,3 +362,42 @@ verifies which codes are *present*, not what they *mean*.
 - §1 and IMAGERY_PLAN C1 quote it as "14.93 cm". That is the **uncorrected CRS-unit** figure; the
   true GSD is **10.0 cm** (`data_inventory.csv` true_gsd_m 0.1003). The C1 matched pair is
   **10.0 cm King vs 5.0 cm CoE**, not 14.93 vs 7.46.
+
+---
+
+## 10. Campaign acquisitions (2026-08-23 →) — measured on arrival
+
+Every file below was acquired by `pipeline/acquire_imagery.py` from the manifest
+`pipeline/imagery_acquisition_manifest.json`, measured by `qc/imagery_measure.py`, and entered in
+`qc/imagery_pixelsize_and_date.csv` (sheet `Pixel_Size_And_Date`). Raw per-chunk ledgers, probe/pilot/
+measure/decision JSON live beside each file under `Imagery/<SOURCE>/_acq/<ID>/` on **both** planes.
+The replacement test (coverage / bands / effective resolution on a *common* grid / JPEG signature /
+provenance / registration) is in `imagery_measure.decide()`; a REPLACE flips `YEAR_CATALOG` and lists the
+old file in `qc/phase4_catalog_check.py:SUPERSEDED_FILES` — **the old file is never deleted.**
+
+### 10.1 S16 — `2016_snoh_1ft_rgbi.tif` REPLACES `2016_snoh_rgbi.tif` (batch 1)
+
+| | old (`2016_snoh_rgbi.tif`) | **new (`2016_snoh_1ft_rgbi.tif`)** |
+|---|---|---|
+| source | county `Aerial_2016` ImageServer, 0.5 ft **server upsample**, bilinear, unsnapped grid (March 2026 tool) | same service, **native 1 ft lattice** (LowPS=1), grid snapped to the service origin, nearest — pilot: nearest = bilinear to 0 differing pixels |
+| grid / true GSD | 0.5 ftUS = 15.24 cm | 1.0 ftUS = **30.48 cm** |
+| size | 43,893 × 31,965 px, 3.18 GB | **25,116 × 35,259 px, 2,586,179,492 B** (study extent) |
+| coverage | 66.7% of the city polygon, 38% of the study extent | **100% of the city polygon**, 82.3% of the study extent (the remaining 17.7% is Puget Sound — 30 of 234 chunks empty in a clean NW staircase) |
+| effective resolution (5 sites) | 35.37 cm (2.32× its grid) | 40.56 cm (1.33× its grid). **On a common 30.48 cm grid: 43.2 vs 43.0 cm, HF-energy ratio 1.01** — identical detail; the native-grid rise metric cannot read below ~1 px and flatters interpolated copies |
+| bands | 4, NIR real | 4, **NIR real** (std 66, NDVI p90 0.73) |
+| JPEG 8×8 signature | absent | absent |
+| blue–green registration (phase correlation) | 0.018 px | 0.075 px (both negligible; the catalogue's 0.224 px used a different method) |
+| fetch | — | 234 chunks of 2048 px + 64 px overlap, 0 failures, 9.5 min at 5.8 MB/s (4 streams; server ignores `compression=LZ77`; 15000-px strips → HTTP 500) |
+| verification | — | each chunk: Content-Length, rasterio decode, band count, transform vs request; stitched BigTIFF spot-verified against 12 chunks; `MANIFEST.sha256` on both planes, sizes equal |
+| decision | — | **REPLACE** — wins: coverage, provenance (no server resampling); losses: none |
+
+Date/time evidence is inherited from the superseded row (same flight, same service; INFERRED Aug 12 2016
+morning). `YEAR_CATALOG` 2016 now points at the new file (`gsd_cm` 30.5, tier still pinned `coarse`); the
+2016 tile cache re-tiles on the next Colab run (`_tile_signature` keys on name + size — intended).
+Corrected labels (`canopy_additions_2016.tif`) are reprojected per crop at tiling time and still apply over
+the old strip; the newly covered northern third has no corrected labels (plain 2020-mask labels there).
+
+**Method corrections made on this file (recorded so they are not re-derived):** the WGS84-span "true GSD"
+(phase4_data_inventory) over-reads rotated Lambert grids by ~2.5% (31.26 vs 30.48 cm) — `imagery_measure`
+now converts CRS units exactly and keeps the span figure only as `span_gsd_cm`; and the coverage floor is
+judged against the city polygon (≥ 99%) plus ≥ 80% of the study extent, because the extent is ~83% land.

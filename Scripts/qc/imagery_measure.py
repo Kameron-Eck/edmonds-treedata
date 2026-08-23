@@ -91,14 +91,36 @@ def _window_at(ds, lon, lat, size_px):
     return Window(c0, r0, min(size_px, ds.width - c0), min(size_px, ds.height - r0))
 
 
+FT_FACTORS = {"us survey foot": 0.3048006096012192, "foot_us": 0.3048006096012192, "foot": 0.3048, "international foot": 0.3048}
+
+
 def true_gsd_cm(ds) -> tuple[float, str]:
-    """Ground metres per pixel from the WGS84 span of the raster (unit-safe by construction)."""
+    """TRUE ground cm per pixel. Projected CRS in metres/feet: pixel x unit factor (exact; the conformal scale
+    factor is <0.03% here). Web Mercator (EPSG:3857): pixel x cos(latitude) (the 1/cos inflation trap).
+    The older WGS84-span method (phase4_data_inventory) over-reads rotated grids by ~2.5%: measured 31.26 vs
+    30.48 cm on the 1-ftUS 2016 file (2026-08-23); kept only as `span_gsd_cm` for cross-checks."""
     from rasterio.warp import transform_bounds
     b = transform_bounds(ds.crs, "EPSG:4326", *ds.bounds)
     mid = (b[1] + b[3]) / 2
+    unit = (ds.crs.linear_units if ds.crs else "?") or "?"
+    px = float(ds.res[0])
+    epsg = ds.crs.to_epsg() if ds.crs else None
+    if epsg == 3857:
+        return px * math.cos(math.radians(mid)) * 100, unit
+    f = FT_FACTORS.get(unit.lower())
+    if f:
+        return px * f * 100, unit
+    if unit.lower() in ("metre", "meter", "m"):
+        return px * 100, unit
     km_w = (b[2] - b[0]) * 111.320 * math.cos(math.radians(mid))
-    unit = ds.crs.linear_units if ds.crs else "?"
     return km_w * 1000 / ds.width * 100, unit
+
+
+def span_gsd_cm(ds) -> float:
+    from rasterio.warp import transform_bounds
+    b = transform_bounds(ds.crs, "EPSG:4326", *ds.bounds)
+    mid = (b[1] + b[3]) / 2
+    return (b[2] - b[0]) * 111.320 * math.cos(math.radians(mid)) * 1000 / ds.width * 100
 
 
 def describe(path: Path) -> dict:
@@ -107,7 +129,7 @@ def describe(path: Path) -> dict:
         g, unit = true_gsd_cm(ds)
         return {"file": Path(path).name, "bytes": Path(path).stat().st_size, "width": ds.width, "height": ds.height,
                 "bands": ds.count, "dtype": ds.dtypes[0], "epsg": ds.crs.to_epsg() if ds.crs else None, "units": unit,
-                "px": float(ds.res[0]), "true_gsd_cm": round(g, 3), "nodata": ds.nodata,
+                "px": float(ds.res[0]), "true_gsd_cm": round(g, 3), "span_gsd_cm": round(span_gsd_cm(ds), 3), "nodata": ds.nodata,
                 "overviews": ds.overviews(1), "descriptions": list(ds.descriptions), "tags": ds.tags()}
 
 
@@ -246,6 +268,40 @@ def study_coverage_pct(path: Path, extent_3857, step=8) -> dict:
         return {"study_coverage_pct": round(100 * frac, 2), "extent_overlap_pct": round(100 * inter_px / full_px, 2), "decimation": step}
 
 
+CITY_SHP = "G:/My Drive/treedata/City Boundry/Edmonds Boundry.shp"      # both misspellings load-bearing
+
+
+def city_coverage_pct(path: Path, step=8) -> dict:
+    """% of the Edmonds city polygon (City Boundry shapefile) with non-zero data; decimated read.
+    The study extent includes Puget Sound (~16-18% of it is water with no data in any county mosaic),
+    so the city polygon is the coverage reference that can actually reach 100%."""
+    import rasterio, geopandas as gpd
+    from rasterio.features import geometry_mask
+    from rasterio.windows import from_bounds
+    if not Path(CITY_SHP).exists():
+        return {"city_coverage_pct": None, "note": "city shapefile not reachable"}
+    g = gpd.read_file(CITY_SHP)
+    with rasterio.open(path) as ds:
+        g = g.to_crs(ds.crs); geom = g.geometry.iloc[0]
+        b = geom.bounds
+        win = from_bounds(*b, transform=ds.transform).intersection(rasterio.windows.Window(0, 0, ds.width, ds.height)).round_offsets().round_lengths()
+        if win.width <= 0 or win.height <= 0:
+            return {"city_coverage_pct": 0.0}
+        oh, ow = max(1, int(win.height // step)), max(1, int(win.width // step))
+        a = ds.read(window=win, out_shape=(ds.count, oh, ow))
+        import affine
+        wt = ds.window_transform(win)
+        tr = affine.Affine(wt.a * (win.width / ow), 0, wt.c, 0, wt.e * (win.height / oh), wt.f)
+        inside = ~geometry_mask([geom], out_shape=(oh, ow), transform=tr, invert=False)
+        data = np.any(a != (ds.nodata if ds.nodata is not None else 0), axis=0)
+        # the city polygon may extend beyond the raster window (then those pixels count as uncovered)
+        from shapely.geometry import box as _box
+        ras_box = _box(*ds.bounds); frac_in_raster = geom.intersection(ras_box).area / geom.area
+        inside_n = int(inside.sum())
+        pct = 100.0 * (data[inside].mean() if inside_n else 0.0) * frac_in_raster
+        return {"city_coverage_pct": round(pct, 2), "city_fraction_inside_raster": round(frac_in_raster, 4)}
+
+
 def compare_to_held_arrays(new_path: Path, held_path: Path, lon: float, lat: float, box_m: float) -> dict:
     """Resample both to a common grid (the coarser of the two true GSDs) and compare band 1:
     HF-energy ratio (new/held), PSNR, Pearson r. >1.0 HF ratio = new resolves more detail."""
@@ -327,7 +383,7 @@ def measure_file(path: Path, study_extent_3857, held: Path | None = None) -> dic
     bands = band_verdict_array(np.concatenate([A] + forest, axis=1) if forest else A, names=d["descriptions"])
     meas = dict(d, effective_cm=eff["effective_cm"], oversampling=eff["oversampling"], sites=eff["sites"], n_sites=eff["n_sites"],
                 band_verdict=bands, jpeg_block=jpeg_block_score(A[0]), registration=band_registration_px(A) if A.shape[0] >= 3 else {},
-                **study_coverage_pct(path, study_extent_3857))
+                **study_coverage_pct(path, study_extent_3857), **city_coverage_pct(path))
     if held is not None and Path(held).exists():
         hd = describe(held); he = effective_cm_file(held)
         with rasterio.open(held) as hs:
@@ -336,7 +392,7 @@ def measure_file(path: Path, study_extent_3857, held: Path | None = None) -> dic
         meas["held"] = {"file": hd["file"], "true_gsd_cm": hd["true_gsd_cm"], "bands": hd["bands"], "effective_cm": he["effective_cm"],
                         "jpeg_block": jpeg_block_score(H[0]) if H is not None else None,
                         "registration": band_registration_px(H) if H is not None and H.shape[0] >= 3 else {},
-                        **study_coverage_pct(held, study_extent_3857)}
+                        **study_coverage_pct(held, study_extent_3857), **city_coverage_pct(held)}
         lon, lat = SITES["S3_residential"]
         meas["compare_to_held"] = compare_to_held_arrays(path, held, lon, lat, 300)
     return meas
@@ -354,7 +410,10 @@ def decide(t: dict, meas: dict) -> dict:
         reasons.append(f"band 4 verdict {b4}, NIR required")
     cov = meas.get("study_coverage_pct")
     if test.get("coverage_min_pct") and cov is not None and cov < test["coverage_min_pct"]:
-        reasons.append(f"coverage {cov}% < {test['coverage_min_pct']}%")
+        reasons.append(f"study-extent coverage {cov}% < {test['coverage_min_pct']}% (extent is ~83.5% land; 80 = full land coverage)")
+    ccov = meas.get("city_coverage_pct")
+    if test.get("city_coverage_min_pct") and ccov is not None and ccov < test["city_coverage_min_pct"]:
+        reasons.append(f"city coverage {ccov}% < {test['city_coverage_min_pct']}%")
     eff = (meas.get("compare_to_held") or {}).get("effective_cm_common_new") or meas.get("effective_cm")
     if test.get("effective_max_cm") and eff and eff > test["effective_max_cm"] and not ((meas.get("compare_to_held") or {}).get("hf_ratio_new_over_held", 0) >= 1.0):
         reasons.append(f"effective {eff} cm > {test['effective_max_cm']} cm and not sharper on a common grid")

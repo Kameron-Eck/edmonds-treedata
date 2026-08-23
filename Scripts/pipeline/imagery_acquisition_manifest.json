@@ -275,29 +275,32 @@
    "source_dir": "CoE",
    "url": "https://maps.edmondswa.gov/gis/rest/services/Basemap/Edmonds_Marsh_2018/ImageServer",
    "native_epsg": 3857,
-   "px": 0.03359503424897864,
-   "px_units": "m (Web Mercator)",
-   "bands": 4,
+   "px": 0.03732276770595208,
+   "px_units": "m (Web Mercator, LOD 22)",
+   "bands": 3,
    "pixel_type": "U8",
    "band_names": [
     "Red",
     "Green",
-    "Blue",
-    "Band4"
+    "Blue"
    ],
    "extent": "service",
-   "out_name": "2018_coe_marsh2cm_rgbi.tif",
+   "out_name": "2018_coe_marsh2cm_rgb.tif",
    "expect_bytes": 3500000000,
    "licence": "ASK (CoE; copyrightText empty)",
    "replaces": null,
    "year_label": "2018m",
    "test": {
-    "nir": "verdict-names-file"
+    "block_signature": "recorded (JPEG q75 cache source - signature expected)"
    },
    "pilot": {
     "box_m": 200,
     "site": "centre"
-   }
+   },
+   "band_ids": "0,1,2",
+   "grid_origin": "webmercator",
+   "_note": "pilot 2026-08-23: band 4 = constant ALPHA (std 0.0), NOT NIR; service is a singleFusedMapCache -> the only faithful lattice is the cache's finest LOD (22)",
+   "pilot_waiver": "2026-08-23: stitch-vs-direct differs by 0.002% of pixels and nearest!=bilinear on every lattice tried (service extent, WM LOD 22) - a singleFusedMapCache re-renders through its own resampler, so a byte-faithful copy is unattainable. Accepted as a DISPLAY-CACHE COPY (JPEG q75 provenance recorded); seams may carry +/-decode-noise DN steps."
   },
   {
    "id": "S17",
@@ -994,7 +997,8 @@
    "product": "NOAA C-CAP 2016 Snohomish .img/.ige (15.8 GB)",
    "held": "ccap_2016_hires_lc_snohfull.tif",
    "licence": "OPEN",
-   "_note": "held file 117603x64276 @1 m uint8 with IMAGINE stats = converted from this product; compare NOAA .img header only, download only if different"
+   "_note": "held file 117603x64276 @1 m uint8 with IMAGINE stats = converted from this product; compare NOAA .img header only, download only if different",
+   "_resolved": "2026-08-23 CLOSED, zero download: NOAA .img header via /vsicurl = 117603x64276, EPSG:26910, 1.0 m, bounds 538934,5289134..656537,5353410, uint8 - IDENTICAL to held ccap_2016_hires_lc_snohfull.tif; 3 pixel windows byte-equal. Held file is the GeoTIFF conversion of this product."
   },
   {
    "id": "D17",

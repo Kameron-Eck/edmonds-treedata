@@ -153,7 +153,11 @@ def grid_spec(m, t, probe, overrides=None) -> dict:
     px = float(t["px"])
     bbox = study_bbox(m, t["native_epsg"]) if t.get("extent", "study") == "study" else \
         (probe["extent"]["xmin"], probe["extent"]["ymin"], probe["extent"]["xmax"], probe["extent"]["ymax"])
-    x0, y1, W, H = snap_grid(bbox, px, probe["extent"]["xmin"], probe["extent"]["ymax"])
+    if t.get("grid_origin") == "webmercator":
+        ox, oy = -20037508.342787, 20037508.342787
+    else:
+        ox, oy = probe["extent"]["xmin"], probe["extent"]["ymax"]
+    x0, y1, W, H = snap_grid(bbox, px, ox, oy)
     core_w = core_h = int(prof["core_px"])
     if prof.get("strip"):
         core_w, core_h = int(probe["maxImageWidth"]) - 2 * int(prof["overlap_px"]), int(probe["maxImageHeight"]) - 2 * int(prof["overlap_px"])
@@ -164,7 +168,7 @@ def grid_spec(m, t, probe, overrides=None) -> dict:
                  f"{probe['maxImageWidth']}x{probe['maxImageHeight']}")
     return {"x0": x0, "y1": y1, "px": px, "W": W, "H": H, "core_w": core_w, "core_h": core_h,
             "overlap": ov, "epsg": int(t["native_epsg"]), "bands": int(t["bands"]),
-            "pixel_type": t.get("pixel_type", "U8"), "compression": prof.get("compression"),
+            "pixel_type": t.get("pixel_type", "U8"), "compression": prof.get("compression"), "band_ids": t.get("band_ids"),
             "rendering": prof.get("rendering", "default"), "profile": prof}
 
 

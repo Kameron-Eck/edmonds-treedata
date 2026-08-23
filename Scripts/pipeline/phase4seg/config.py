@@ -406,6 +406,15 @@ YEAR_CATALOG = [
     {"key": "2015n", "label": "2015n", "source": "NAIP (acquired 2015-08-07)", "gsd_cm": 100.0,
      "bands": 4, "crs_epsg": 26910, "coverage": "100% of study extent (measured 2026-08-23)",
      "seg_tier": SEG_SEMANTIC_ONLY, "native_file": "2015_naip_1m_rgbi.tif"},
+    # 2026-08-23 campaign S17/S19: Snohomish County's own HXIP 1-ft 4-band flights (Aug 2017-08-15/21 and
+    # 2019) — genuinely different acquisitions from the May Pictometry mosaics held for those years, with NIR
+    # at 2x NAIP resolution. COMPLEMENT keys; 100% coverage incl. water (statewide product).
+    {"key": "2017s", "label": "2017s", "source": "Snohomish Co. (HXIP, acquired 2017-08-15/21)", "gsd_cm": 30.5,
+     "bands": 4, "crs_epsg": 2285, "coverage": "100% of study extent (measured 2026-08-23)",
+     "seg_tier": SEG_SEMANTIC_ONLY, "native_file": "2017_snoh_1ft_rgbi.tif"},
+    {"key": "2019s", "label": "2019s", "source": "Snohomish Co. (HXIP)", "gsd_cm": 30.5,
+     "bands": 4, "crs_epsg": 2285, "coverage": "100% of study extent (measured 2026-08-23)",
+     "seg_tier": SEG_SEMANTIC_ONLY, "native_file": "2019_snoh_1ft_rgbi.tif"},
     # 2026-08-23 campaign N17: NAIP 2017 (flown 2017-08-15/21, leaf-on), 8 DOQQ quads — an August 4-band
     # acquisition of the year held twice as the May Pictometry mosaic. COMPLEMENT (new year key).
     {"key": "2017n", "label": "2017n", "source": "NAIP (acquired 2017-08-15/21)", "gsd_cm": 100.0,
@@ -423,6 +432,11 @@ YEAR_CATALOG = [
     {"key": "2021s", "label": "2021s", "source": "Snohomish Co.", "gsd_cm": 15.4, "tier": "coarse",
      "bands": 4, "crs_epsg": 2285, "coverage": "42% of study area (measured 2026-08-18)",
      "seg_tier": SEG_SEMANTIC_ONLY, "native_file": "2021_snoh_rgbi.tif"},
+    # 2026-08-23 campaign N21: NAIP 2021 (flown 2021-07-13, mid-July leaf-on), 8 DOQQ quads at 60 cm —
+    # the third NAIP epoch, between the held October 2019n and 2023n. COMPLEMENT (new year key).
+    {"key": "2021n", "label": "2021n", "source": "NAIP (acquired 2021-07-13)", "gsd_cm": 60.0,
+     "bands": 4, "crs_epsg": 26910, "coverage": "100% of study extent (measured 2026-08-23)",
+     "seg_tier": SEG_SEMANTIC_ONLY, "native_file": "2021_naip_60cm_rgbi.tif"},
     {"key": 2022, "label": "2022", "source": "City of Edmonds", "gsd_cm": 5.0,
      "bands": 3, "crs_epsg": 3857, "coverage": "full",
      "seg_tier": SEG_INSTANCE_SEMANTIC, "native_file": "2022_coe_rgb.tif"},

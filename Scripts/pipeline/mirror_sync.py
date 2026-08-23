@@ -48,23 +48,40 @@ def write_manifest(root):
     print(f"{root}: {len(out)} files, {total/1e9:.1f} GB → {MANIFEST}")
 
 
+def _parse_manifest(text):
+    """Two formats share the MANIFEST.sha256 name: this script's `relpath<TAB>size<TAB>sha256`, and the
+    plain `sha256sum` form `<sha256>  <relpath>` the 2026-08-22 lidar directories were landed with (no
+    size column, so size checks are skipped for those lines). Returns {rel: (size|None, sha)}."""
+    want = {}
+    for line in text.splitlines():
+        if not line.strip():
+            continue
+        if "\t" in line:
+            rel, size, sha = line.split("\t")
+            want[rel] = (int(size), sha)
+        else:
+            sha, rel = line.split(None, 1)
+            want[rel.strip().lstrip("*")] = (None, sha)
+    return want
+
+
 def verify(root, sizes_only=False):
     root = Path(root)
     mf = root / MANIFEST
     if not mf.exists():
         sys.exit(f"no {MANIFEST} in {root} — run --manifest first")
-    want = {}
-    for line in mf.read_text(encoding="utf-8").splitlines():
-        rel, size, sha = line.split("\t")
-        want[rel] = (int(size), sha)
+    want = _parse_manifest(mf.read_text(encoding="utf-8"))
     bad, missing = [], []
     for rel, (size, sha) in want.items():
         p = root / rel
         if not p.exists():
             missing.append(rel)
             continue
-        if p.stat().st_size != size:
+        if size is not None and p.stat().st_size != size:
             bad.append((rel, "size"))
+            continue
+        if size is None and sizes_only:
+            bad.append((rel, "no-size-in-manifest(sha256sum form; run --verify)"))
             continue
         if not sizes_only and _sha(p) != sha:
             bad.append((rel, "sha256"))
@@ -78,7 +95,8 @@ def verify(root, sizes_only=False):
     for rel, kind in bad:
         print(f"  BAD-{kind.upper()}  {rel}")
     if missing or bad:
-        sys.exit(1)
+        return 1
+    return 0
 
 
 def main():
@@ -92,9 +110,9 @@ def main():
     if args.manifest:
         write_manifest(args.manifest)
     elif args.verify:
-        verify(args.verify)
+        sys.exit(verify(args.verify))
     else:
-        verify(args.verify_sizes, sizes_only=True)
+        sys.exit(verify(args.verify_sizes, sizes_only=True))
 
 
 if __name__ == "__main__":

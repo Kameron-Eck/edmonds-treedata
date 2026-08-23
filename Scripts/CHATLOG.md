@@ -1318,18 +1318,31 @@ did:     Two independent verifications agree. MY gates on the fix/ tree: py_comp
                                     stapled August's off-recipe 2017 number onto tonight's fresh run.
          State at cross-check: no Colab VM billing, zero RUNNING rows, no stale lock/claim files, both
          sessions' trees clean. Branches diverged at f8949f6f; main untouched at b1b8516.
-rules:   ** RELABELLING A YEAR THAT HAS MANIFESTS REQUIRES REWRITING THE MANIFESTS TOO. **
-         registry_from_manifests.py keys on the year label and builds sem_best_{year}.pt /
-         edmonds_canopy_prob_{year}.tif from it. If a relabelled year has run manifests recording the OLD
-         label, that run loses its metrics and artefact paths, and the "unscored inference" rule then
-         SKIPS IT SILENTLY AND PERMANENTLY. Tonight's 2022n->2023n rename was safe ONLY because that
-         acquisition had ZERO manifests (verified). Any future relabel must check manifests FIRST.
-         ** THE THREADED-INFERENCE PATH IS NOT COVERED BY ANY LOCAL GATE. ** phase4seg_smoke does not
-         exercise step_inference. Local gates passing says NOTHING about it. What backs it is a
-         byte-equivalence benchmark on a live VM (max|diff| = 0 over 41.9M px) plus four completed
-         citywide rasters. The first threaded build passed every local gate and died instantly in
-         production on a shared GDAL handle. If that loop is edited, re-run the benchmark FROM THE RASTER
-         ORIGIN — an interior-block test passes while production fails.
+rules:   ** A RUN MANIFEST IS IMMUTABLE PROVENANCE - NEVER REWRITE ONE TO MATCH A LATER RELABEL. **
+         (Corrected 2026-08-22 after cross-session review; an earlier draft of this entry said "rewrite
+         the manifests too" - that instruction is WRONG and would destroy the record that makes a run
+         reproducible. A manifest records what actually executed: git sha, GPU, argv, seed. Rewriting one
+         also puts it silently at odds with the nohup log and the status CSV, which nobody rewrites.)
+         The year label is a JOIN KEY in registry_from_manifests.py (held_out_metrics, honest_metrics,
+         status_for, and the sem_best_{year}.pt / edmonds_canopy_prob_{year}.tif paths), so relabelling a
+         year that HAS manifests silently breaks that join: the row loses its metrics and artefact paths,
+         and the unscored-inference rule then SKIPS IT PERMANENTLY. The remedy is an ALIAS, not a
+         rewrite - a {old_label: new_label} map the generator consults when joining. UNTIL THAT ALIAS MAP
+         EXISTS, RELABELLING A YEAR THAT HAS MANIFESTS IS A BLOCKED OPERATION, not a careful one.
+         2022n->2023n was safe ONLY because that acquisition had ZERO manifests (verified 2026-08-22).
+         ** THE THREADED-INFERENCE PATH IS COVERED BY NO LOCAL GATE - AND THAT IS FIXABLE. **
+         phase4seg_smoke does NOT exercise step_inference; local gates passing says nothing about that
+         path. What backs it today is a byte-equivalence benchmark on a live VM (max|diff| = 0 over
+         41.9M px) plus four completed citywide rasters. Any edit to that loop must re-run the benchmark
+         FROM THE RASTER ORIGIN - an interior-block test passes while production fails (measured
+         2026-08-22: the first threaded build passed every local gate, then died on the first batch with
+         "IReadBlock failed at X offset 0, Y offset 0" because the reader pool shared one GDAL handle).
+         FIX THE GATE, do not just carry the warning: phase4seg_smoke should grow a step_inference case
+         over a small synthetic raster on CPU - a few hundred tiles from (0,0), 8 reader threads,
+         asserting output identical to EDMONDS_INFER_WORKERS=1. That gates the threading, the per-thread
+         handles and the write ordering locally; only the CUDA-specific half (GPU sigmoid/quantise,
+         cudnn.benchmark) would then still need a VM. -> WORKPLAN Tier 2 (local, no GPU); the other
+         session adds it post-merge so this branch does not gain a 4th merge conflict.
 watch:   Colab session tokens live OUTSIDE the repo (~/.config/colab-cli) and expire after exactly 1 h;
          the CLI prunes a session on any transient error, killing its keep-alive daemon and letting Colab
          reclaim the VM mid-run (cost three A100s on 2026-08-22). The mitigation, qc/colab_readopt.py

@@ -144,6 +144,7 @@ NON_ORTHO_PREFIXES = ("ccap_", "lidar_", "edmonds_canopy_mask_", "2016 land cove
 # never overwritten); listed under their own heading, never as orphans. One line per replacement, with date.
 SUPERSEDED_FILES = {
     "2016_snoh_rgbi.tif": "2026-08-23 -> 2016_snoh_1ft_rgbi.tif (acquire_imagery S16: full extent, native 1 ft)",
+    "2002_king_rgb.tif": "2026-08-23 -> 2002_usgs_30cm_rgb.tif (acquire_imagery U02: original USGS HRO tiles, no JPEG cache)",
 }
 
 

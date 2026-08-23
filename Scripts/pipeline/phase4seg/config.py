@@ -366,9 +366,13 @@ YEAR_CATALOG = [
     {"key": 2000, "label": "2000", "source": "King County", "gsd_cm": 40.1,
      "bands": 3, "crs_epsg": 3857, "coverage": "full",
      "seg_tier": SEG_SEMANTIC_ONLY, "native_file": "2000_king_rgb.tif"},
-    {"key": 2002, "label": "2002", "source": "King County", "gsd_cm": 40.1,
-     "bands": 3, "crs_epsg": 3857, "coverage": "full",
-     "seg_tier": SEG_SEMANTIC_ONLY, "native_file": "2002_king_rgb.tif"},
+    # 2026-08-23 REPLACED: 2002_king_rgb.tif (JPEG tile-cache export, effective 57.8 cm, 8x8 block signature)
+    # -> 2002_usgs_30cm_rgb.tif (the 39 ORIGINAL USGS HRO Seattle-Tacoma GeoTIFF tiles via WAGDA's Download
+    # capability, mosaicked; effective 41.4 cm, no block signature; common-grid 56 vs 91 cm, HF ratio 1.54;
+    # city coverage 100%). Same flight the cache served — better provenance, not a different acquisition.
+    {"key": 2002, "label": "2002", "source": "USGS HRO Seattle-Tacoma (Selkirk) via WAGDA", "gsd_cm": 30.0,
+     "bands": 3, "crs_epsg": 26910, "coverage": "100% of city polygon, 80.6% of study extent (measured 2026-08-23; remainder is Puget Sound)",
+     "seg_tier": SEG_SEMANTIC_ONLY, "native_file": "2002_usgs_30cm_rgb.tif"},
     {"key": 2005, "label": "2005", "source": "King County", "gsd_cm": 20.1,
      "bands": 3, "crs_epsg": 3857, "coverage": "full",
      "seg_tier": SEG_SEMANTIC_ONLY, "native_file": "2005_king_rgb.tif"},
@@ -402,6 +406,11 @@ YEAR_CATALOG = [
     {"key": "2015n", "label": "2015n", "source": "NAIP (acquired 2015-08-07)", "gsd_cm": 100.0,
      "bands": 4, "crs_epsg": 26910, "coverage": "100% of study extent (measured 2026-08-23)",
      "seg_tier": SEG_SEMANTIC_ONLY, "native_file": "2015_naip_1m_rgbi.tif"},
+    # 2026-08-23 campaign N17: NAIP 2017 (flown 2017-08-15/21, leaf-on), 8 DOQQ quads — an August 4-band
+    # acquisition of the year held twice as the May Pictometry mosaic. COMPLEMENT (new year key).
+    {"key": "2017n", "label": "2017n", "source": "NAIP (acquired 2017-08-15/21)", "gsd_cm": 100.0,
+     "bands": 4, "crs_epsg": 26910, "coverage": "100% of study extent (measured 2026-08-23)",
+     "seg_tier": SEG_SEMANTIC_ONLY, "native_file": "2017_naip_1m_rgbi.tif"},
     {"key": "2019n", "label": "2019n", "source": "NAIP", "gsd_cm": 60.7,
      "bands": 4, "crs_epsg": 26910, "coverage": "69% of study area (measured 2026-08-18)",
      "seg_tier": SEG_SEMANTIC_ONLY, "native_file": "2019_naip_rgbi.tif"},

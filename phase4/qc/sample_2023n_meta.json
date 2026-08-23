@@ -1,0 +1,51 @@
+{
+  "year": "2022n",
+  "seed": 20260818,
+  "decim": 2,
+  "thresh": 0.404,
+  "scheme": "dual_reference",
+  "prob": "edmonds_canopy_prob_2022n.tif",
+  "ccap": "ccap_2021_hires_lc.tif",
+  "ndvi": "ndvi_ref_2022n.tif",
+  "crs": "EPSG:26910",
+  "n_requested": 250,
+  "n_drawn": 250,
+  "strata": {
+    "1": {
+      "name": "disagree_5_15m",
+      "cells": 1662207,
+      "sampled": 60,
+      "area_share": 0.06894103662461594
+    },
+    "2": {
+      "name": "disagree_other",
+      "cells": 2209608,
+      "sampled": 45,
+      "area_share": 0.09164482284940706
+    },
+    "3": {
+      "name": "both_canopy_5_15m",
+      "cells": 1499278,
+      "sampled": 40,
+      "area_share": 0.062183458202546935
+    },
+    "4": {
+      "name": "both_canopy_other",
+      "cells": 4128649,
+      "sampled": 25,
+      "area_share": 0.1712382043386798
+    },
+    "5": {
+      "name": "both_noncanopy",
+      "cells": 11182588,
+      "sampled": 50,
+      "area_share": 0.46380457359762695
+    },
+    "6": {
+      "name": "no_chm",
+      "cells": 3428230,
+      "sampled": 30,
+      "area_share": 0.1421879043871233
+    }
+  }
+}

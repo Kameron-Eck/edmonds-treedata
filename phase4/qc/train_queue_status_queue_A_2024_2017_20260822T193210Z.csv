@@ -2,4 +2,12 @@ job,year,tag,step,state,exit,minutes,detail,ts
 2024,2024,citywide_rgb,inference,OK,0,73.9,,2026-08-22 19:32:16
 2024,2024,citywide_rgb,VERIFY:inference,OK,,,4652MB valid=100.0% maxprob=0.783,2026-08-22 20:46:12
 2024,2024,citywide_rgb,VERIFY,OK,,,4652MB valid=100.0% maxprob=0.783,2026-08-22 20:46:12
-2017,2017,citywide_rgb,tile,RUNNING,,,,2026-08-22 20:46:13
+2017,2017,citywide_rgb,tile,OK,0,35.4,,2026-08-22 20:46:13
+2017,2017,citywide_rgb,VERIFY:tile,OK,,,"641 tiles indexed; probed 20 paths, 0 missing",2026-08-22 21:21:40
+2017,2017,citywide_rgb,train,OK,0,39.9,,2026-08-22 21:21:40
+2017,2017,citywide_rgb,VERIFY:train,OK,,,"1113MB, zip magic ok",2026-08-22 22:01:33
+2017,2017,citywide_rgb,evaluate,OK,0,0.9,,2026-08-22 22:01:33
+2017,2017,citywide_rgb,VERIFY:evaluate,OK,,,4 rows for year 2017 in semantic_eval_report.csv,2026-08-22 22:02:30
+2017,2017,citywide_rgb,inference,OK,0,80.7,,2026-08-22 22:02:30
+2017,2017,citywide_rgb,VERIFY:inference,OK,,,6718MB valid=87.8% maxprob=0.858,2026-08-22 23:23:12
+2017,2017,citywide_rgb,VERIFY,OK,,,6718MB valid=87.8% maxprob=0.858,2026-08-22 23:23:12

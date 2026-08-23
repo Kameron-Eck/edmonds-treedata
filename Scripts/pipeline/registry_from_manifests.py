@@ -80,27 +80,39 @@ def held_out_metrics(year, tag):
     return f"{', '.join(bits)} [{ch}]" if ch else ", ".join(bits)
 
 
-def honest_metrics(year, run_ts=None):
+def honest_metrics(year, tag="", run_ts=None):
     """Independent (live=1) recall/precision — CLAUDE.md rule 5's primary number.
 
-    Only rows scored AT OR AFTER this run: qc_indep_report carries every past scoring of
-    the year, so taking the newest row unconditionally staples the PREVIOUS raster's
-    number onto a fresh run whose own scoring has not happened yet (observed 2026-08-22:
-    tonight's 2017 inference row picked up the off-recipe _xsensor scoring from August).
-    A run whose scoring has not landed gets no honest number — which is correct, and the
-    row is skipped until it does.
+    MATCHED ON THE RASTER, not on time. qc_indep_report keeps every past scoring of a
+    year, so the newest row is not necessarily this run's: tonight's 2017 citywide run
+    would otherwise have inherited August's off-recipe `_xsensor_train` number. Timestamps
+    cannot arbitrate it either — the queue writes UTC on the VM while qc_indep runs
+    locally and writes LOCAL time (measured 2026-08-22: manifest 22:02:31Z vs report
+    17:29:20 local for the same run, a 7 h skew that made the scoring look older than the
+    run it came from). The `prob` column names the raster that was scored, and that IS the
+    artefact this run produced — an exact, timezone-immune join.
+
+    A run whose raster has not been scored yet gets no honest number; the row is then
+    skipped until it has one (append-only cannot correct it later).
     """
+    want = f"edmonds_canopy_prob_{year}{('_' + tag) if tag else ''}.tif"
     live = [r for r in _rows(INDEP_REPORT)
             if r.get("year") == year and str(r.get("live", "")).strip() == "1"]
-    if run_ts is not None:
-        live = [r for r in live
-                if (_parse_status_ts(r.get("ts")) or _dt.datetime.min.replace(
-                    tzinfo=_dt.timezone.utc)) >= run_ts]
+    exact = [r for r in live
+             if str(r.get("prob", "")).replace("\\", "/").split("/")[-1] == want]
+    if exact:
+        live = exact
+    elif run_ts is not None and any(r.get("prob") for r in live):
+        return ""                       # this run's raster has no live scoring yet
     if not live:
         return ""
-    r = live[-1]
+    # the report marks ONE canopy definition primary (forest_wetland); quoting the last
+    # row instead would headline forest_wetland_scrub, a different definition
+    primary = [r for r in live if str(r.get("primary", "")).strip() == "1"]
+    r = (primary or live)[-1]
     return (f"honest rec {_fmt(r.get('recall'))} prec {_fmt(r.get('precision'))} "
-            f"vs {r.get('ref', '?')} @{_fmt(r.get('thresh'))} ({r.get('canopy_def', '?')})")
+            f"vs {r.get('ref', '?')} @{_fmt(r.get('thresh'))} ({r.get('canopy_def', '?')}"
+            f"{'' if primary else ', NON-PRIMARY def'})")
 
 
 def _parse_status_ts(v):
@@ -195,7 +207,7 @@ def build_row(mf):
     script_version = f"{ver} ({sha} on {branch}{'; DIRTY' if m.get('git_dirty') else ''})"
 
     metrics = [x for x in (held_out_metrics(year, tag) if step in ("train", "evaluate") else "",
-                           honest_metrics(year, _parse_manifest_ts(ts))
+                           honest_metrics(year, tag, _parse_manifest_ts(ts))
                            if step == "inference" else "") if x]
     run_ts = _parse_manifest_ts(ts)
     row_status, row_verify = status_for(year, tag, step, run_ts)

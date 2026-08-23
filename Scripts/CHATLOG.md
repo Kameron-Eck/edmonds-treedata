@@ -1299,6 +1299,44 @@ gotcha:  scripts Colab-only for torch (rasterio+geopandas+fiona+sklearn now pip-
 
 ════════════════ LOG  (newest first) ════════════════
 
+## 2026-08-23  SERIES COMPLETE — four years scored; registry joins on the RASTER, not the clock
+goal:    post-merge tidy-up on a branch off the new main (dff4adb): harvest, registry rows, the
+         WORKPLAN task for the inference gate. Merge itself was scripts-27's; main is not mine to move.
+did:     branched work/20260823-post-merge off dff4adb, verified independently that main carries my work
+         (14e70aa, 84c935a, 5500048, ec39e32) and that registry_from_manifests.py on main is the 305-line
+         fix/ version with the date-filtering intact. Harvest copied 21 measured files (incl. the 2017
+         qc_indep outputs and the peer session's renamed 2023n artefacts). Registry: +4 rows for 2017.
+found:   ** THE REGISTRY WAS JOINING HONEST NUMBERS ON A CLOCK THAT DISAGREES WITH ITSELF. ** The queue
+         writes status rows in UTC on the VM; qc_indep runs LOCALLY and writes LOCAL time. Measured on the
+         same run: manifest ts_utc 22:02:31Z vs qc_indep ts 17:29:20 local - a 7 h skew that made tonight's
+         scoring look OLDER than the run it came from, so my date filter (added hours earlier to stop the
+         opposite bug) silently withheld 2017's row. FIX: join on the `prob` column instead - it names the
+         raster that was scored, which IS the artefact the run produced. Exact, and timezone-immune.
+         Also fixed: the join took the LAST matching row, i.e. forest_wetland_scrub; the report marks a
+         PRIMARY definition (forest_wetland) and that is the headline. It now prefers primary and labels
+         the number NON-PRIMARY if it ever has to fall back.
+         LESSON, general: two writers on two machines means two clocks. Join on identity (a filename, an
+         id), never on a timestamp, unless one writer owns both ends.
+numbers: ** ALL FOUR YEARS, honest, live=1, each at its OWN deployed threshold — NOT a model ranking **
+         2017  rec .7058  prec .9007  @0.4986  vs ccap_2016_hires_lc_snohfull (FULL coverage)
+         2019  rec .6346  prec .8242  @0.332   vs ccap_2021_hires_lc (CLIPPED)
+         2022  rec .6818  prec .8012  @0.4988  vs ccap_2021_hires_lc (CLIPPED)
+         2024  rec .6170  prec .8239  @0.5043  vs ccap_2021_hires_lc (CLIPPED)
+         TWO CAVEATS, both easy to misquote: (1) 2017 alone sits on the full-coverage reference; WORKPLAN
+         1.3 measures the clip as costing 2-5 pp of recall, so ".7058 vs .6170" is NOT a 2017-beats-2024
+         result - same failure class as the 2021k/2023 caveat already in WORKPLAN. (2) 2017 posted the BEST
+         honest numbers on the WEAKEST held-out IoU (.6125 vs 2022 .7300, 2024 .7142, 2019 .6879) - that is
+         WORKPLAN 1.1's "model strength does not predict honest recall", now reproduced on four fresh runs
+         rather than asserted from history.
+         emergent_wetland is the one reproducible weak non-canopy group on the 2021 reference (.4929 /
+         .5558 / .5635) but only .1648 for 2017 on the 2016 reference - consistent with a
+         reference-definition artefact rather than a model failure. NOT TESTED; worth a deliberate test.
+         Scrub recall stays the weakest canopy class everywhere (.2208 / .2796 / .3542 / .4138).
+next:    2013 citywide re-score (its live=1 row is still the off-recipe _xsensor raster) — running local,
+         no GPU. Then WORKPLAN Tier 2 item 9 is the standing task: gate step_inference locally.
+files:   run_registry.csv (+4), phase4/qc/* (harvest, 21 files), WORKPLAN_2026-08-19.md (Tier 2 item 9),
+         pipeline/registry_from_manifests.py, CHATLOG.md — on work/20260823-post-merge off dff4adb.
+
 ## 2026-08-22  PRE-MERGE CROSS-CHECK — both sessions verify SAFE TO MERGE; two durable hazards recorded
 goal:    Kam: "I want to push everything to main, but I need ensure it won't break everything."
 did:     Two independent verifications agree. MY gates on the fix/ tree: py_compile 180/180 ·

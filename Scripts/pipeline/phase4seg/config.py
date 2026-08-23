@@ -397,6 +397,11 @@ YEAR_CATALOG = [
     {"key": 2019, "label": "2019", "source": "King County", "gsd_cm": 10.0,
      "bands": 3, "crs_epsg": 3857, "coverage": "full",
      "seg_tier": SEG_INSTANCE_SEMANTIC, "native_file": "2019_king_rgb.tif"},
+    # 2026-08-23 campaign N15: NAIP 2015 (flown 2015-08-07, leaf-on), 8 DOQQ quads mosaicked to the study
+    # extent — the leaf-on pair to the Feb–Mar leaf-off 2015 King file. COMPLEMENT (new year key).
+    {"key": "2015n", "label": "2015n", "source": "NAIP (acquired 2015-08-07)", "gsd_cm": 100.0,
+     "bands": 4, "crs_epsg": 26910, "coverage": "100% of study extent (measured 2026-08-23)",
+     "seg_tier": SEG_SEMANTIC_ONLY, "native_file": "2015_naip_1m_rgbi.tif"},
     {"key": "2019n", "label": "2019n", "source": "NAIP", "gsd_cm": 60.7,
      "bands": 4, "crs_epsg": 26910, "coverage": "69% of study area (measured 2026-08-18)",
      "seg_tier": SEG_SEMANTIC_ONLY, "native_file": "2019_naip_rgbi.tif"},

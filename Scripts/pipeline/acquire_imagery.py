@@ -644,13 +644,79 @@ def do_fetch_files(m, t, args) -> int:
     return 0
 
 
+def do_fetch_download(m, t, args) -> int:
+    """Services with the `Download` capability (e.g. WAGDA): pull the ORIGINAL source tiles over the study extent via
+    /query (catalog) -> /download (file list with exact sizes, <= 20 per request) -> /file. Verified by the size the
+    service itself published (the /file response carries no Content-Length). Items recorded in _acq/<id>/download_items.json
+    so `assemble` can mosaic them like NAIP quads."""
+    import requests
+    B = t["url"]; d = src_dir(m, t) / "tiles"; d.mkdir(parents=True, exist_ok=True)
+    bb = study_bbox(m, int(t["native_epsg"]))
+    q = {"where": "1=1", "geometry": f"{bb[0]},{bb[1]},{bb[2]},{bb[3]}", "geometryType": "esriGeometryEnvelope", "inSR": t["native_epsg"],
+         "spatialRel": "esriSpatialRelIntersects", "outFields": "OBJECTID,Name,Category", "returnGeometry": "false", "f": "json"}
+    fs = requests.get(B + "/query", params=q, timeout=120, headers={"User-Agent": UA}).json().get("features", [])
+    prim = [f["attributes"]["OBJECTID"] for f in fs if f["attributes"].get("Category") == 1]
+    items = []
+    for i in range(0, len(prim), 20):
+        dl = requests.get(B + "/download", params={"rasterIds": ",".join(map(str, prim[i:i + 20])), "f": "json"}, timeout=120, headers={"User-Agent": UA}).json()
+        for rf in dl.get("rasterFiles", []):
+            items.append({"id": rf["id"], "bytes": int(rf["size"]), "rasterId": rf["rasterIds"][0], "filename": rf["id"].replace("\\", "/").split("/")[-1]})
+    (acq_dir(m, t) / "download_items.json").write_text(json.dumps({"n_catalog": len(fs), "n_primary": len(prim), "items": items}, indent=1), encoding="utf-8")
+    print(f"[{t['id']}] {len(prim)} primary tiles over the extent, {sum(i['bytes'] for i in items)/1e9:.2f} GB published size")
+    lp = ledger_path(m, t); recs = read_ledger(lp)
+    done = {r["file"] for r in recs if r.get("status") == "ok" and (d / r["file"]).exists() and (d / r["file"]).stat().st_size == r.get("bytes")}
+    todo = [it for it in items if it["filename"] not in done]
+    workers = int(args.workers or 4); lock = threading.Lock()
+
+    def one(it):
+        url = B + "/file?" + urllib_encode({"id": it["id"], "rasterId": it["rasterId"]})
+        rec = {}
+        for attempt in range(1, 4):
+            rec = fetch_file(url, d / it["filename"], expect=it["bytes"]); rec["ts"] = time.time(); rec["attempts"] = attempt
+            if rec["status"] == "ok" and rec["bytes"] != it["bytes"]:
+                rec["status"] = "fail"; rec["err"] = f"size {rec['bytes']} != published {it['bytes']}"; (d / it["filename"]).unlink(missing_ok=True)
+            with lock, open(lp, "a", encoding="utf-8") as f:
+                f.write(json.dumps(rec) + "\n")
+            print(f"  {it['filename']}: {rec['status']} {rec.get('bytes',0)/1e6:.1f} MB in {rec.get('secs','?')}s {rec.get('err','')}", flush=True)
+            if rec["status"] == "ok":
+                return rec
+            time.sleep(5 * attempt)
+        return rec
+
+    with open(lp, "a", encoding="utf-8") as f:
+        f.write(json.dumps({"type": "run", "ts": time.time(), "approved": args.approved, "argv": sys.argv[1:], "via": "download", "workers": workers}) + "\n")
+    if todo:
+        t0 = time.monotonic()
+        with ThreadPoolExecutor(max_workers=workers) as pool:
+            res = list(pool.map(one, todo))
+        got = sum(r.get("bytes", 0) for r in res if r.get("status") == "ok"); el = time.monotonic() - t0
+        print(f"[{t['id']}] {len(todo)} tiles, {got/1e6:.0f} MB in {el:.0f}s = {got/1e6/max(el,1e-9):.2f} MB/s aggregate ({workers} streams)", flush=True)
+    recs = read_ledger(lp); okf = {r["file"] for r in recs if r.get("status") == "ok"}
+    missing = [it["filename"] for it in items if it["filename"] not in okf]
+    if missing:
+        print(f"[{t['id']}] MISSING {missing}"); return 2
+    print(f"[{t['id']}] {len(items)}/{len(items)} source tiles ok"); return 0
+
+
+def urllib_encode(params):
+    import urllib.parse
+    return urllib.parse.urlencode(params)
+
+
 def do_mosaic(m, t) -> int:
     """NAIP quads -> one raster on the study extent (tile CRS/grid, nearest, no resampling)."""
     import numpy as np, rasterio
     from rasterio.merge import merge
     from rasterio.enums import Resampling
-    spec = t["mosaic"]; d = src_dir(m, t)
-    tifs = [d / n for n in t["items"] if n.lower().endswith(".tif")]
+    spec = t.get("mosaic") or {"out_name": t["out_name"], "epsg": t["native_epsg"], "bands": t["bands"], "band_names": t.get("band_names", [])}
+    d = src_dir(m, t)
+    dlf = acq_dir(m, t) / "download_items.json"
+    if dlf.exists():
+        items = json.loads(dlf.read_text(encoding="utf-8"))["items"]
+        tifs = [d / "tiles" / it["filename"] for it in items if it["filename"].lower().endswith(".tif")]
+        tifs = [p for p in tifs if p.exists()]
+    else:
+        tifs = [d / n for n in t["items"] if n.lower().endswith(".tif")]
     srcs = [rasterio.open(p) for p in tifs]
     try:
         epsg = srcs[0].crs.to_epsg(); res = srcs[0].res[0]
@@ -669,7 +735,7 @@ def do_mosaic(m, t) -> int:
         dst.write(arr)
         for b, name in enumerate(spec.get("band_names", []), 1):
             dst.set_band_description(b, name)
-        dst.update_tags(ACQ_ID=t["id"], SOURCE_URL=t["base_url"], SOURCE_TILES=",".join(p.name for p in tifs),
+        dst.update_tags(ACQ_ID=t["id"], SOURCE_URL=t.get("base_url") or t.get("url"), SOURCE_TILES=",".join(p.name for p in tifs),
                         FETCH_DATE=dt.date.today().isoformat(), CAMPAIGN="imagery_acquisition 2026-08-23")
     with rasterio.open(tmp, "r+") as dst:
         dst.build_overviews([2, 4, 8, 16, 32], Resampling.average)
@@ -947,7 +1013,7 @@ def main(argv=None):
     ap.add_argument("--accept-empty", action="store_true"); ap.add_argument("--mirror", action="store_true"); ap.add_argument("--head", action="store_true")
     ap.add_argument("--box-m", type=float); ap.add_argument("--site"); ap.add_argument("--rendering", choices=["default", "none"])
     ap.add_argument("--controls", action="store_true"); ap.add_argument("--geometry-sweep", action="store_true")
-    ap.add_argument("--window", type=int, default=300)
+    ap.add_argument("--window", type=int, default=300); ap.add_argument("--via", choices=["export", "download"], default="export")
     a = ap.parse_args(argv)
     if a.compression == "NONE": a.compression = None
     m = load_manifest(Path(a.manifest))
@@ -966,7 +1032,9 @@ def main(argv=None):
         elif a.cmd == "fetch":
             if not a.approved:
                 sys.exit("fetch refused: --approved \"<date> Kam: <quote>\" is required (nothing downloads without approval)")
-            if mode == "export":
+            if mode == "export" and a.via == "download":
+                rc |= do_fetch_download(m, t, a)
+            elif mode == "export":
                 rc |= do_fetch(m, t, a)
             elif mode == "files":
                 rc |= do_fetch_files(m, t, a)
@@ -974,6 +1042,8 @@ def main(argv=None):
                 print(f"[{t['id']}] mode {mode}: nothing to fetch")
         elif a.cmd == "status":
             print(json.dumps(status_report(m, t, a.window), indent=1))
+        elif a.cmd == "assemble" and mode == "export" and (acq_dir(m, t) / "download_items.json").exists():
+            rc |= do_mosaic(m, t)
         elif a.cmd == "assemble" and mode == "export":
             rc |= do_assemble(m, t, accept_empty=a.accept_empty)
         elif a.cmd in ("assemble", "mosaic") and mode == "files" and t.get("mosaic"):

@@ -334,17 +334,25 @@ withdrawn"), so its source-imagery date may not be publicly recoverable.
 
 **The mechanism is partly our own bug.** `qc/phase4_qc_indep.py:109` maps `"developed": [2, 3, 4]`
 with the comment *"High / Medium / Low Intensity Developed"* — which describes the **older 30 m
-C-CAP scheme**. Under **v2 hi-res, class 4 is "Developed Impervious under Tree Canopy"**: pixels
-that ARE under a tree. So on the v2 reference the scorer charges canopy-over-pavement as a **false
-positive**; on the 2016 reference the class does not exist (count 0) and those pixels are not
-penalised the same way. Measured: class 4 is **480,208 px = 2.40% of valid** in
-`ccap_2021_hires_lc.tif`. Consistent with the observed split — precision .9007 (2016 ref) vs
+C-CAP scheme**. In the **v2 hi-res generation class 4 is _believed_ to be "Developed Impervious
+under Tree Canopy"**: pixels that ARE under a tree. If so, the scorer charges canopy-over-pavement
+as a **false positive** on the v2 reference, while on the 2016 reference the class does not exist
+(count 0) and those pixels are not penalised the same way.
+
+**Confidence, stated precisely:** *presence* is MEASURED — class 4 is **480,208 px ≈ 2.40% of
+valid** in `ccap_2021_hires_lc.tif` (decimated 4000-row read, so approximate and scoped to that
+clip), against count 0 in the 2016 file. The *meaning* is **INFERRED — no RAT for the held clip has
+been read.** Confirm it before acting on it; acting on an unverified class meaning is what produced
+this defect. Consistent with the observed split — precision .9007 (2016 ref) vs
 .8012–.8242 (v2 ref), developed FP-rate .0355 vs .0429–.0607.
 
 Under the adopted **D2 ruling** (mid-height woody counts as canopy) *a tree over pavement is
 canopy*, so class 4 belongs in the canopy groups or in `ignore` — **not** in `developed`. That is a
 one-line `CCAP_DEFAULT` change plus a local re-score (no GPU). **Until it is decided and re-run,
-every v2-scored number is provisional.** The file's own safeguard did not catch this because it
+every v2-scored number is provisional.** Expect **precision to rise**; **recall's direction is not
+predicted** — the reference-canopy denominator grows ~2.4 pp while the numerator grows only by the
+class-4 pixels the model already calls canopy, so recall may fall. Both outcomes are consistent with
+the fix being correct. The file's own safeguard did not catch this because it
 verifies which codes are *present*, not what they *mean*.
 
 ### 9.4 Corrections to this document

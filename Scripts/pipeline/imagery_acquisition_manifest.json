@@ -397,21 +397,19 @@
    "native_epsg": 2285,
    "px": 1.0,
    "px_units": "ftUS",
-   "bands": 4,
+   "bands": 3,
    "pixel_type": "U8",
    "band_names": [
     "Red",
     "Green",
-    "Blue",
-    "Band4"
+    "Blue"
    ],
-   "out_name": "2015_snoh_1ft_rgbi.tif",
+   "out_name": "2015_snoh_1ft_rgb.tif",
    "expect_bytes": 1950000000,
    "licence": "ASK",
    "replaces": null,
    "year_label": "2015s",
    "test": {
-    "nir": "verdict-names-file",
     "coverage_min_pct": 80,
     "city_coverage_min_pct": 99
    },
@@ -422,7 +420,9 @@
      "default",
      "none"
     ]
-   }
+   },
+   "band_ids": "0,1,2",
+   "_note": "pilot 2026-08-23: band 4 = constant (std 0.0) under BOTH default rendering and renderingRule None -> ALPHA, matches the recon's constant-255; exported 3-band"
   },
   {
    "id": "S18",

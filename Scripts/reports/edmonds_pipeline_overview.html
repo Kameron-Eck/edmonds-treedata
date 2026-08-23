@@ -1,0 +1,817 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Edmonds Temporal Canopy Pipeline &mdash; Overview</title>
+<style>
+  :root{
+    --ink:#152029;
+    --muted:#4d5d6b;
+    --rule:#c9d4dd;
+    --rule-soft:#e3eaf0;
+    --bg:#ffffff;
+    --panel:#f4f8fa;
+    --panel-2:#eef4f8;
+
+    --done:#14653a;      --done-bg:#e4f2e9;    --done-rule:#7fb99a;
+    --active:#0f4d92;    --active-bg:#e4edf9;  --active-rule:#7fa4d3;
+    --todo:#4f5b66;      --todo-bg:#f1f3f5;    --todo-rule:#b6bec6;
+    --prov:#8a5000;      --prov-bg:#fcf0dd;    --prov-rule:#d9ad6a;
+    --input:#3d3160;     --input-bg:#eeeaf6;   --input-rule:#a396cc;
+  }
+  *{box-sizing:border-box}
+  html{-webkit-text-size-adjust:100%}
+  body{
+    margin:0; background:var(--bg); color:var(--ink);
+    font-family:"Segoe UI",-apple-system,BlinkMacSystemFont,Roboto,"Helvetica Neue",Arial,sans-serif;
+    font-size:17px; line-height:1.55;
+    overflow-x:hidden;
+  }
+  .wrap{max-width:1000px; margin:0 auto; padding:36px 26px 90px}
+
+  h1{font-size:2.05rem; line-height:1.18; margin:0 0 6px; letter-spacing:-0.01em}
+  h2{font-size:1.42rem; line-height:1.25; margin:0 0 4px; letter-spacing:-0.005em}
+  h3{font-size:1.12rem; margin:0; letter-spacing:-0.003em}
+  h4{font-size:0.95rem; margin:0 0 6px; text-transform:uppercase; letter-spacing:.08em; color:var(--muted)}
+  p{margin:0 0 12px}
+  ul{margin:0 0 12px; padding-left:1.15em}
+  li{margin:0 0 8px}
+  strong{font-weight:650}
+  code,.mono{font-family:ui-monospace,"Cascadia Mono",Consolas,"Liberation Mono",monospace; font-size:.92em}
+
+  /* ---------- masthead ---------- */
+  .mast{border-top:7px solid var(--ink); padding-top:18px; margin-bottom:34px}
+  .kicker{font-size:.82rem; text-transform:uppercase; letter-spacing:.14em; color:var(--muted); margin:0 0 10px}
+  .lede{font-size:1.12rem; color:var(--ink); max-width:74ch; margin-top:14px}
+  .mastmeta{margin-top:16px; padding-top:12px; border-top:1px solid var(--rule-soft);
+            font-size:.86rem; color:var(--muted)}
+
+  /* ---------- section scaffolding ---------- */
+  section.sec{margin:0 0 46px}
+  .sechead{display:flex; align-items:baseline; gap:14px; flex-wrap:wrap;
+           border-bottom:2px solid var(--ink); padding-bottom:8px; margin-bottom:20px}
+  .secnum{font-size:.82rem; font-weight:700; letter-spacing:.14em; color:var(--muted);
+          border:1px solid var(--rule); border-radius:3px; padding:2px 7px}
+  .sechead .sub{font-size:.95rem; color:var(--muted); margin-left:auto}
+
+  /* ---------- status chips ---------- */
+  .chip{display:inline-flex; align-items:center; gap:6px; white-space:nowrap;
+        font-size:.76rem; font-weight:700; letter-spacing:.07em; text-transform:uppercase;
+        padding:3px 9px; border-radius:3px; border:1.5px solid}
+  .chip .gl{font-size:.95em; line-height:1}
+  .c-done{color:var(--done);   background:var(--done-bg);   border-color:var(--done-rule)}
+  .c-act {color:var(--active); background:var(--active-bg); border-color:var(--active-rule)}
+  .c-todo{color:var(--todo);   background:var(--todo-bg);   border-color:var(--todo-rule); border-style:dashed}
+  .c-prov{color:var(--prov);   background:var(--prov-bg);   border-color:var(--prov-rule)}
+  .c-in  {color:var(--input);  background:var(--input-bg);  border-color:var(--input-rule)}
+
+  /* ---------- deliverables ---------- */
+  .deliv{border:2px solid var(--ink); border-top-width:9px; padding:22px 22px 10px; background:var(--panel)}
+  .deliv .dintro{font-size:1.05rem; max-width:76ch}
+  .dgrid{margin-top:18px}
+  .dcard{border-top:1px solid var(--rule); padding:18px 0 16px; display:grid;
+         grid-template-columns:52px 1fr; gap:16px; align-items:start}
+  .dcard:first-child{border-top:2px solid var(--ink)}
+  .dnum{font-size:2.1rem; font-weight:700; line-height:1; color:var(--muted); font-variant-numeric:tabular-nums}
+  .dtitle{display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:6px}
+  .dtitle h3{font-size:1.2rem}
+  .dbody .qual{color:var(--muted); font-size:.94rem; margin-top:6px}
+  .anchornote{margin-top:6px; border-top:2px solid var(--ink); padding-top:14px; font-size:1rem}
+
+  /* ---------- generic panels ---------- */
+  .panel{border:1px solid var(--rule); background:var(--panel); padding:18px 20px}
+  .panel + .panel{margin-top:16px}
+  .cols2{display:grid; grid-template-columns:1fr 1fr; gap:18px}
+  .cols3{display:grid; grid-template-columns:repeat(3,1fr); gap:16px}
+
+  /* ---------- rules / semantics ---------- */
+  .rulelist{list-style:none; padding:0; margin:0}
+  .rulelist li{display:grid; grid-template-columns:minmax(140px,14em) 1fr; gap:14px;
+               padding:11px 0; border-top:1px solid var(--rule-soft); align-items:baseline; margin:0}
+  .rulelist li:first-child{border-top:none}
+  .cond{font-weight:650}
+  .outcome{font-family:ui-monospace,"Cascadia Mono",Consolas,monospace; font-size:.92rem}
+  .statebox{display:inline-block; min-width:2.1em; text-align:center; font-weight:700;
+            border:1.5px solid var(--rule); padding:1px 6px; border-radius:3px; background:#fff; margin-right:8px}
+
+  /* ---------- legend ---------- */
+  .legend{display:grid; grid-template-columns:repeat(4,1fr); gap:14px; border:1px solid var(--rule);
+          background:var(--panel-2); padding:16px 18px}
+  .legend p{margin:6px 0 0; font-size:.88rem; color:var(--muted)}
+
+  /* ---------- the vertical flow ---------- */
+  .band{border:1.5px solid var(--rule); border-left-width:8px; background:#fff; padding:16px 20px 14px}
+  .band.b-in  {border-left-color:var(--input-rule);  background:var(--input-bg)}
+  .band.b-done{border-left-color:var(--done-rule)}
+  .band.b-act {border-left-color:var(--active-rule); background:var(--active-bg); border-width:2px; border-left-width:10px}
+  .band.b-todo{border-left-color:var(--todo-rule); border-style:dashed; background:#fbfcfd}
+  .band.b-out {border-left-color:var(--ink); border-color:var(--ink); border-width:2px; border-left-width:10px; background:var(--panel)}
+  .bandhead{display:flex; align-items:center; gap:12px; flex-wrap:wrap; margin-bottom:8px}
+  .bandtag{font-size:.76rem; font-weight:700; letter-spacing:.12em; text-transform:uppercase;
+           color:var(--muted); border-right:1px solid var(--rule); padding-right:12px}
+  .bandhead .chip{margin-left:auto}
+  .band p{margin:0 0 10px; max-width:84ch}
+  .band p:last-child{margin-bottom:0}
+  .band .note{font-size:.92rem; color:var(--muted)}
+  .connector{display:flex; justify-content:center; line-height:0}
+
+  .tiergrid{display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin:12px 0}
+  .tier{border:1px solid var(--rule); background:#fff; padding:12px 14px}
+  .tier .tname{font-size:.78rem; font-weight:700; letter-spacing:.1em; text-transform:uppercase; color:var(--muted)}
+  .tier .tyears{font-size:.9rem; color:var(--muted); margin:4px 0 8px}
+  .tier .tlab{font-size:.95rem}
+  .practice{border:2px solid var(--prov-rule); background:var(--prov-bg); padding:12px 14px}
+
+  .outgrid{display:grid; grid-template-columns:repeat(3,1fr); gap:14px; margin-top:10px}
+  .outgrid .o{border-top:3px solid var(--ink); padding-top:10px}
+  .outgrid .o h4{margin-bottom:4px; color:var(--ink); font-size:.8rem}
+  .outgrid .o p{font-size:.93rem; color:var(--muted); margin:0 0 8px}
+
+  /* ---------- tables ---------- */
+  .scroll{overflow-x:auto; -webkit-overflow-scrolling:touch; border:1px solid var(--rule); background:#fff}
+  table{border-collapse:collapse; width:100%; min-width:540px; font-size:.94rem}
+  th,td{text-align:left; padding:9px 12px; border-bottom:1px solid var(--rule-soft); vertical-align:top}
+  th{background:var(--panel-2); font-size:.8rem; text-transform:uppercase; letter-spacing:.06em;
+     color:var(--muted); font-weight:700}
+  tr:last-child td{border-bottom:none}
+
+  .callout{border-left:5px solid var(--ink); background:var(--panel); padding:14px 18px; margin:0 0 16px}
+  .callout p:last-child{margin-bottom:0}
+  .warn{border-left-color:var(--prov-rule); background:var(--prov-bg)}
+
+  .terms{display:grid; grid-template-columns:repeat(2,1fr); gap:0 26px}
+  .terms div{display:grid; grid-template-columns:6.4em 1fr; gap:10px; padding:8px 0;
+             border-top:1px solid var(--rule-soft); font-size:.93rem}
+  .terms b{font-weight:700}
+
+  .foot{margin-top:44px; padding-top:14px; border-top:2px solid var(--ink); font-size:.86rem; color:var(--muted)}
+
+  @media (max-width:820px){
+    body{font-size:16px}
+    .cols2,.cols3,.legend,.tiergrid,.outgrid,.terms{grid-template-columns:1fr !important}
+    .rulelist li{grid-template-columns:1fr; gap:4px}
+    .dcard{grid-template-columns:38px 1fr}
+  }
+
+  @page{ size:A4; margin:14mm }
+  @media print{
+    body{font-size:10.4pt; background:#fff}
+    .wrap{max-width:none; padding:0}
+    .band,.dcard,.panel,.callout,.tier,.legend,.connector,.scroll,.practice,.deliv,.outgrid .o{
+      break-inside:avoid; page-break-inside:avoid}
+    .sechead{break-after:avoid; page-break-after:avoid}
+    .scroll{overflow:visible}
+    table{min-width:0}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<!-- ============ MASTHEAD ============ -->
+<header class="mast">
+  <p class="kicker">City of Edmonds, Washington &middot; Briefing for an incoming contractor</p>
+  <h1>Temporal Tree-Canopy Pipeline</h1>
+  <h2 style="font-weight:400; color:var(--muted)">Twenty-four years of aerial imagery, one hand-labelled year, and per-tree histories</h2>
+  <p class="lede">This pipeline turns 18 aerial imagery acquisitions spanning 2000&ndash;2024 into per-year
+  canopy maps and, ultimately, a life history for each individual tree crown in the city. This page sets out
+  what it produces, how data moves through it, how it is measured, and&mdash;plainly&mdash;which parts are
+  finished and which are not.</p>
+  <p class="mastmeta">Every figure here is drawn from the project's own documentation and measured outputs.
+  Where the internal record is inconsistent, or a measurement has not been made, this page says so rather
+  than estimating.</p>
+</header>
+
+<!-- ============ 1. DELIVERABLES ============ -->
+<section class="sec">
+  <div class="sechead">
+    <span class="secnum">01</span>
+    <h2>What the project produces</h2>
+    <span class="sub">Three deliverables, at three different stages</span>
+  </div>
+
+  <div class="deliv">
+    <p class="dintro">The end product is not a map. It is a <strong>per-tree record of when each crown
+    existed</strong>, built from a stack of canopy maps. The two map products below feed that record and are
+    deliverables in their own right.</p>
+
+    <div class="dgrid">
+
+      <div class="dcard">
+        <div class="dnum">1</div>
+        <div>
+          <div class="dtitle">
+            <h3>Per-crown temporal validity intervals</h3>
+            <span class="chip c-todo"><span class="gl">&#9723;</span> Not built</span>
+          </div>
+          <div class="dbody">
+            <p>For each of the <strong>222,435 individual tree crowns</strong> delineated across Edmonds, a
+            pair of dates stating over what span of the record that crown can be asserted to exist. This is
+            the headline deliverable.</p>
+            <p class="qual">Produced by the temporal-linking and analysis stages (Phases 6&ndash;8), which are
+            designed and scoped but not built. The crown geometry it will attach to already exists; the
+            per-year evidence it needs is in production now.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="dcard">
+        <div class="dnum">2</div>
+        <div>
+          <div class="dtitle">
+            <h3>Binary canopy masks, one per acquisition</h3>
+            <span class="chip c-act"><span class="gl">&#9654;</span> In production</span>
+            <span class="chip c-prov"><span class="gl">&#9888;</span> Provisional</span>
+          </div>
+          <div class="dbody">
+            <p>A canopy / not-canopy raster for every one of the <strong>18 acquisitions</strong>, each at that
+            imagery's own native resolution&mdash;nothing is upscaled for segmentation. Every acquisition in the
+            established series now has a canopy surface over its full imagery footprint, and each of the 17
+            re-trained years has been scored against a reference the model never trained on. (2020, the anchor,
+            is scored against its own hand labels instead.)</p>
+            <p class="qual">Provisional rather than finished: the accuracy figures are mid-revision pending a
+            reference-definition question (section 05), and the training labels carry an open question set out
+            in the Phase 4 band.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="dcard">
+        <div class="dnum">3</div>
+        <div>
+          <div class="dtitle">
+            <h3>Per-crown instance polygons, high-resolution years</h3>
+            <span class="chip c-done"><span class="gl">&#10003;</span> 2020 complete</span>
+            <span class="chip c-todo"><span class="gl">&#9723;</span> Other 8 years not built</span>
+          </div>
+          <div class="dbody">
+            <p>Individually separated crown outlines for the <strong>9 acquisitions</strong> fine enough to
+            resolve one tree from its neighbour (2013, 2015, 2017, 2019, 2020, 2021, 2022, 2023, 2024).
+            Coarser acquisitions receive a canopy mask only&mdash;at those ground resolutions crown boundaries
+            are not reliably separable.</p>
+            <p class="qual">The 2020 layer&mdash;the 222,435 crowns&mdash;is complete and anchors everything else.
+            The other eight years are a separate per-year stage that has not been built.</p>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <p class="anchornote"><strong>All of it is anchored to 2020.</strong> 2020 is the only year with
+    human-drawn labels: roughly 3,000 hand-traced crown polygons over five training sites. Every other year in
+    the record is taught from a model's reading of 2020. That single fact drives the design of the pipeline
+    and the whole of its evaluation strategy.</p>
+  </div>
+</section>
+
+<!-- ============ 2. SEMANTICS ============ -->
+<section class="sec">
+  <div class="sechead">
+    <span class="secnum">02</span>
+    <h2>Two conventions to know before touching any label</h2>
+    <span class="sub">Non-obvious, and load-bearing</span>
+  </div>
+
+  <div class="cols2">
+    <div class="panel">
+      <h4>Validity-interval semantics</h4>
+      <p style="font-size:.95rem">What a pair of dates on a crown means. The interval is a statement about the
+      <em>evidence</em>, not a guess about the tree.</p>
+      <ul class="rulelist">
+        <li>
+          <span class="cond">Present in 2000</span>
+          <span class="outcome">valid_from = 2000<br>valid_to&nbsp;&nbsp;&nbsp;= 2020</span>
+        </li>
+        <li>
+          <span class="cond">Absent in 2000</span>
+          <span class="outcome">valid_from = 2020<br>valid_to&nbsp;&nbsp;&nbsp;= 2020<br>
+          <span style="font-family:inherit; color:var(--muted)">an out-of-interval negative</span></span>
+        </li>
+        <li>
+          <span class="cond">Unsure or unreviewed</span>
+          <span style="font-weight:650">IGNORE</span>
+        </li>
+      </ul>
+      <p style="margin-top:12px; margin-bottom:0"><strong>Ignore is not a third class of tree.</strong> An
+      unsure crown is subtracted from the region polygon entirely, so it contributes neither a positive nor a
+      negative to anything downstream.</p>
+    </div>
+
+    <div class="panel">
+      <h4>Three-state mask supervision</h4>
+      <p style="font-size:.95rem">Training masks carry three values, not two:</p>
+      <ul class="rulelist">
+        <li><span class="cond"><span class="statebox">0</span>Background</span><span>Not canopy.</span></li>
+        <li><span class="cond"><span class="statebox">1</span>Canopy</span><span>Canopy.</span></li>
+        <li><span class="cond"><span class="statebox">255</span>Ignore</span><span>Unknown &mdash; excluded from
+        the loss entirely.</span></li>
+      </ul>
+      <p style="margin-top:12px"><strong>Why it exists:</strong> a pixel nobody has verified is not evidence of
+      absence. Forcing unsure pixels into "background" would teach the model that unlabelled canopy is not
+      canopy&mdash;and that error would compound across 18 years which all inherit their labels from one.</p>
+      <p style="font-size:.92rem; color:var(--muted); margin-bottom:0">Label corrections are
+      <strong>add-only</strong>: a correction may add canopy or add ignore, but may never turn canopy into
+      background.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 3. LEGEND ============ -->
+<section class="sec">
+  <div class="sechead">
+    <span class="secnum">03</span>
+    <h2>Status legend</h2>
+    <span class="sub">Used throughout, including the diagram below</span>
+  </div>
+  <div class="legend">
+    <div>
+      <span class="chip c-done"><span class="gl">&#10003;</span> Complete</span>
+      <p>Built, run, and its outputs are in use downstream.</p>
+    </div>
+    <div>
+      <span class="chip c-act"><span class="gl">&#9654;</span> Active</span>
+      <p>The current workstream. Producing outputs now.</p>
+    </div>
+    <div>
+      <span class="chip c-prov"><span class="gl">&#9888;</span> Provisional</span>
+      <p>Output exists, but a known open question could still move it. Not to be quoted as final.</p>
+    </div>
+    <div>
+      <span class="chip c-todo"><span class="gl">&#9723;</span> Not built</span>
+      <p>Designed and scoped; no code written or run.</p>
+    </div>
+  </div>
+  <p style="font-size:.9rem; color:var(--muted); margin-top:10px">Each status carries a word and a symbol as
+  well as a colour, and "not built" stages are additionally drawn with a dashed outline&mdash;so the diagram
+  survives a poor projector or a black-and-white printer.</p>
+</section>
+
+<!-- ============ 4. ARCHITECTURE ============ -->
+<section class="sec">
+  <div class="sechead">
+    <span class="secnum">04</span>
+    <h2>The pipeline, top to bottom</h2>
+    <span class="sub">Read downward</span>
+  </div>
+
+  <div class="flow">
+
+    <!-- INPUTS -->
+    <div class="band b-in">
+      <div class="bandhead">
+        <span class="bandtag">Inputs</span>
+        <h3>What goes in</h3>
+        <span class="chip c-in"><span class="gl">&#9679;</span> Source data</span>
+      </div>
+      <div class="cols3" style="margin-top:6px">
+        <div>
+          <h4>Aerial imagery</h4>
+          <p style="font-size:.95rem; margin:0">18 acquisitions across 15 calendar years, 2000&ndash;2024, from
+          four providers: King County, City of Edmonds, Snohomish County, and NAIP (the USDA National
+          Agriculture Imagery Program). Study area roughly 7.5 &times; 10.6 km.</p>
+        </div>
+        <div>
+          <h4>Height</h4>
+          <p style="font-size:.95rem; margin:0">A lidar-derived canopy height model (CHM) from a circa-2016
+          survey, available to the model as an optional fourth input channel alongside red, green and blue.
+          It was added because grass was the dominant source of false alarms.</p>
+        </div>
+        <div>
+          <h4>References and labels</h4>
+          <p style="font-size:.95rem; margin:0">Roughly 3,000 hand-traced crowns on the 2020 imagery&mdash;the
+          only human labels in the project. Plus independent land-cover products used <strong>for evaluation
+          only</strong>; they are never a training source.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="connector" aria-hidden="true">
+      <svg width="26" height="30" viewBox="0 0 26 30" role="presentation" focusable="false">
+        <path d="M13 0 V20" stroke="#8fa2b4" stroke-width="2.4" fill="none"/>
+        <path d="M6.5 19 L13 28 L19.5 19" stroke="#8fa2b4" stroke-width="2.4" fill="none"
+              stroke-linejoin="round" stroke-linecap="round"/>
+      </svg>
+    </div>
+
+    <!-- PHASE 0 -->
+    <div class="band b-done">
+      <div class="bandhead">
+        <span class="bandtag">Phase 0</span>
+        <h3>Instance segmentation &mdash; delineate the crowns</h3>
+        <span class="chip c-done"><span class="gl">&#10003;</span> Complete</span>
+      </div>
+      <p>A U-Net (an encoder&ndash;decoder convolutional network) is trained on the hand-traced 2020 crowns to
+      predict a <strong>distance-transform</strong> surface: for each canopy pixel, how far it sits from the
+      edge of its own crown. A watershed segmentation run on that surface separates crowns that touch.</p>
+      <p><strong>Output: 222,435 individual crown polygons</strong> on the 2020 imagery. This layer is the
+      spatial backbone of every later stage.</p>
+    </div>
+
+    <div class="connector" aria-hidden="true">
+      <svg width="26" height="30" viewBox="0 0 26 30" role="presentation" focusable="false">
+        <path d="M13 0 V20" stroke="#8fa2b4" stroke-width="2.4" fill="none"/>
+        <path d="M6.5 19 L13 28 L19.5 19" stroke="#8fa2b4" stroke-width="2.4" fill="none"
+              stroke-linejoin="round" stroke-linecap="round"/>
+      </svg>
+    </div>
+
+    <!-- PHASE 1 -->
+    <div class="band b-done">
+      <div class="bandhead">
+        <span class="bandtag">Phases 1 &ndash; 1D</span>
+        <h3>Spectral features and active learning</h3>
+        <span class="chip c-done"><span class="gl">&#10003;</span> Complete</span>
+      </div>
+      <p>Under each fixed 2020 crown polygon, per-band statistics and vegetation indices are extracted from
+      <em>every</em> one of the 18 acquisitions, giving each crown a spectral time series. An active-learning
+      loop&mdash;auto-label, sample, human review, retrain a classifier&mdash;was run over those features.</p>
+      <p class="note">This is the one place upsampled imagery is used, and only so that a fixed polygon can be
+      measured on a coarse image. No segmentation anywhere in the pipeline runs on upsampled pixels.</p>
+    </div>
+
+    <div class="connector" aria-hidden="true">
+      <svg width="26" height="30" viewBox="0 0 26 30" role="presentation" focusable="false">
+        <path d="M13 0 V20" stroke="#8fa2b4" stroke-width="2.4" fill="none"/>
+        <path d="M6.5 19 L13 28 L19.5 19" stroke="#8fa2b4" stroke-width="2.4" fill="none"
+              stroke-linejoin="round" stroke-linecap="round"/>
+      </svg>
+    </div>
+
+    <!-- PHASE 2 -->
+    <div class="band b-done">
+      <div class="bandhead">
+        <span class="bandtag">Phase 2</span>
+        <h3>Data preparation</h3>
+        <span class="chip c-done"><span class="gl">&#10003;</span> Complete</span>
+      </div>
+      <p>Imagery validation, the year-by-site coverage matrix, and overlay quality assurance&mdash;establishing
+      which training sites are genuinely visible in which acquisitions before any year is trained.</p>
+    </div>
+
+    <div class="connector" aria-hidden="true">
+      <svg width="26" height="30" viewBox="0 0 26 30" role="presentation" focusable="false">
+        <path d="M13 0 V20" stroke="#8fa2b4" stroke-width="2.4" fill="none"/>
+        <path d="M6.5 19 L13 28 L19.5 19" stroke="#8fa2b4" stroke-width="2.4" fill="none"
+              stroke-linejoin="round" stroke-linecap="round"/>
+      </svg>
+    </div>
+
+    <!-- PHASE 3 -->
+    <div class="band b-done">
+      <div class="bandhead">
+        <span class="bandtag">Phase 3</span>
+        <h3>The 2020 base semantic model</h3>
+        <span class="chip c-done"><span class="gl">&#10003;</span> Complete</span>
+      </div>
+      <p>The same network, retrained with a binary canopy / not-canopy output on the hand-annotated 2020
+      imagery. This checkpoint is the parent of every per-year model that follows.</p>
+      <p>Validated by <strong>leave-one-site-out cross-validation (LOSO)</strong> &mdash; each of the five
+      training sites is held out in turn, so no site is ever scored by a model that saw it:</p>
+      <div class="scroll" style="margin:8px 0 4px">
+        <table>
+          <thead><tr><th>Metric</th><th>Value</th><th>What it measures</th></tr></thead>
+          <tbody>
+            <tr><td>IoU (intersection over union)</td>
+                <td><strong>0.7299 &plusmn; 0.0413</strong></td>
+                <td>Overlap between predicted and labelled canopy, divided by their union.</td></tr>
+            <tr><td>AUROC (area under the receiver operating characteristic curve)</td>
+                <td><strong>0.9396 &plusmn; 0.0190</strong></td>
+                <td>How well the model <em>ranks</em> canopy above non-canopy, independent of any threshold.</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="note">These are scored against the hand labels on held-out sites. They are the strongest
+      numbers in the project, because 2020 is the only year where a human drew the truth.</p>
+    </div>
+
+    <div class="connector" aria-hidden="true">
+      <svg width="26" height="30" viewBox="0 0 26 30" role="presentation" focusable="false">
+        <path d="M13 0 V20" stroke="#8fa2b4" stroke-width="2.4" fill="none"/>
+        <path d="M6.5 19 L13 28 L19.5 19" stroke="#8fa2b4" stroke-width="2.4" fill="none"
+              stroke-linejoin="round" stroke-linecap="round"/>
+      </svg>
+    </div>
+
+    <!-- PHASE 4 -->
+    <div class="band b-act">
+      <div class="bandhead">
+        <span class="bandtag">Phase 4</span>
+        <h3>Per-year semantic fine-tune &mdash; the active workstream</h3>
+        <span class="chip c-act"><span class="gl">&#9654;</span> Active</span>
+      </div>
+      <p>The 2020 checkpoint is fine-tuned <strong>independently onto each of the other 17 acquisitions</strong>,
+      in two stages: first the decoder alone with the encoder frozen, then the whole network at a lower
+      learning rate. Each year is trained and inferred at its own native resolution. The output per year is a
+      canopy probability surface covering that acquisition's full footprint, thresholded into a binary
+      mask.</p>
+
+      <p style="margin-top:14px"><strong>The pipeline branches by resolution tier.</strong> Tile density, the
+      early-stopping metric and&mdash;most consequentially&mdash;<em>the source of the training labels</em> all
+      differ by tier. That distinction drives most of the pipeline's behaviour:</p>
+
+      <div class="tiergrid">
+        <div class="tier">
+          <div class="tname">Fine</div>
+          <div class="tyears">e.g. 2013, 2017, 2020, 2022, 2024</div>
+          <div class="tlab"><strong>Designed label source:</strong> per-site hand-traced crown polygons,
+          projected onto that year's imagery.</div>
+        </div>
+        <div class="tier">
+          <div class="tname">Medium</div>
+          <div class="tyears">e.g. 2005, 2007, 2009</div>
+          <div class="tlab"><strong>Designed label source:</strong> per-site hand-traced crown polygons,
+          projected onto that year's imagery.</div>
+        </div>
+        <div class="tier">
+          <div class="tname">Coarse</div>
+          <div class="tyears">e.g. 2000, 2016, the NAIP years</div>
+          <div class="tlab"><strong>Designed label source:</strong> the citywide 2020 canopy mask&mdash;too few
+          tiles fall inside the small training sites at this ground resolution.</div>
+        </div>
+      </div>
+
+      <div class="practice">
+        <span class="chip c-prov" style="margin-bottom:8px"><span class="gl">&#9888;</span> Current practice
+        differs from the design</span>
+        <p style="margin:0"><strong>Every year is presently trained against the citywide 2020 mask</strong>,
+        coarse tier or not. The per-site crown polygons the fine and medium tiers are designed to use are not
+        currently trustworthy: a 14,476-crown human review of them was started and never completed, so those
+        labels remain provisional. Until that review is finished, the tier branch above describes the design,
+        not what is running. This is one of the two reasons the per-year results are marked provisional.</p>
+      </div>
+
+      <p style="margin-top:12px"><strong>A second caution about the labels:</strong> the citywide 2020 mask is
+      itself a <em>model prediction</em>, not hand truth. It carries the model's own blind spots forward into
+      every year that learns from it.</p>
+    </div>
+
+    <div class="connector" aria-hidden="true">
+      <svg width="26" height="30" viewBox="0 0 26 30" role="presentation" focusable="false">
+        <path d="M13 0 V20" stroke="#8fa2b4" stroke-width="2.4" fill="none"/>
+        <path d="M6.5 19 L13 28 L19.5 19" stroke="#8fa2b4" stroke-width="2.4" fill="none"
+              stroke-linejoin="round" stroke-linecap="round"/>
+      </svg>
+    </div>
+
+    <!-- PHASES 5-8 -->
+    <div class="band b-todo">
+      <div class="bandhead">
+        <span class="bandtag">Phases 5 &ndash; 8</span>
+        <h3>Instance years, temporal linking, analysis</h3>
+        <span class="chip c-todo"><span class="gl">&#9723;</span> Not built</span>
+      </div>
+      <p style="margin-bottom:12px">Designed and scoped; no code written. Outline only:</p>
+      <div class="outgrid" style="grid-template-columns:repeat(4,1fr)">
+        <div class="o">
+          <h4>5 &middot; Instance per year</h4>
+          <p style="margin-bottom:0">Repeat Phase 0's crown delineation on each of the other eight
+          high-resolution acquisitions.</p>
+        </div>
+        <div class="o">
+          <h4>6 &middot; Temporal linking</h4>
+          <p style="margin-bottom:0">Match each year's crowns to the 2020 anchor; the unmatched become
+          candidate removals and plantings. Build one canonical crown layer.</p>
+        </div>
+        <div class="o">
+          <h4>7 &middot; Feature extraction</h4>
+          <p style="margin-bottom:0">Re-extract per-crown spectra under the canonical crown set rather than
+          the 2020-only set.</p>
+        </div>
+        <div class="o">
+          <h4>8 &middot; Temporal analysis</h4>
+          <p style="margin-bottom:0">Change classification, per-year canopy statistics, lifecycle analysis,
+          and the handoff package.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="connector" aria-hidden="true">
+      <svg width="26" height="30" viewBox="0 0 26 30" role="presentation" focusable="false">
+        <path d="M13 0 V20" stroke="#8fa2b4" stroke-width="2.4" fill="none"/>
+        <path d="M6.5 19 L13 28 L19.5 19" stroke="#8fa2b4" stroke-width="2.4" fill="none"
+              stroke-linejoin="round" stroke-linecap="round"/>
+      </svg>
+    </div>
+
+    <!-- OUTPUTS -->
+    <div class="band b-out">
+      <div class="bandhead">
+        <span class="bandtag">Outputs</span>
+        <h3>What comes out</h3>
+      </div>
+      <div class="outgrid">
+        <div class="o">
+          <h4>Canopy mask per acquisition</h4>
+          <p>18 rasters, native resolution.</p>
+          <span class="chip c-act"><span class="gl">&#9654;</span> In production</span>
+          <span class="chip c-prov" style="margin-top:6px"><span class="gl">&#9888;</span> Provisional</span>
+        </div>
+        <div class="o">
+          <h4>Crown polygons, 9 fine years</h4>
+          <p>2020 done (222,435 crowns); 8 years pending.</p>
+          <span class="chip c-todo"><span class="gl">&#9723;</span> Not built</span>
+        </div>
+        <div class="o">
+          <h4>Per-crown validity intervals</h4>
+          <p>The headline deliverable, for 222,435 crowns.</p>
+          <span class="chip c-todo"><span class="gl">&#9723;</span> Not built</span>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- ============ 5. EVALUATION ============ -->
+<section class="sec">
+  <div class="sechead">
+    <span class="secnum">05</span>
+    <h2>How the results are measured</h2>
+    <span class="sub">The part that distinguishes this project</span>
+  </div>
+
+  <div class="callout">
+    <p><strong>One constraint generates all the others: only 2020 has human labels.</strong> Every other year
+    is taught from a model's prediction of 2020. So the obvious way to score a year&mdash;compare its mask to
+    the 2020 mask reprojected onto it&mdash;is <strong>circular</strong>: real canopy change between that year
+    and 2020 is counted as model error. Those numbers exist in the project's records, and they are never the
+    headline.</p>
+  </div>
+
+  <div class="panel">
+    <h4>Three rules the project holds itself to</h4>
+    <ul style="margin-bottom:0">
+      <li><strong>Leave-one-site-out is the only honest split.</strong> The effective independent sample is
+      about <strong>five forest sites</strong>, not the tile count. Tiles from one site are not independent of
+      one another, so a random tile split inflates every metric it produces.</li>
+      <li><strong>Headline accuracy is scored against an independent reference</strong> &mdash; a land-cover
+      product the model never saw and was never trained on &mdash; not against its own training labels. For the
+      near-infrared-bearing years a second, structurally different reference is also built, from NDVI
+      (normalised difference vegetation index) combined with lidar height, so that "green" alone is not
+      mistaken for "tree".</li>
+      <li><strong>Never score contested ground.</strong> The two independent references disagree with each
+      other on <strong>15&ndash;17% of pixels, every year</strong>. Inside that band there is no truth to be
+      right or wrong about, so the project reports both references and treats them as brackets rather than
+      averaging them into one number.</li>
+    </ul>
+  </div>
+
+  <div class="panel">
+    <h4>What the model gets wrong, and where</h4>
+    <p>The consistent finding is that the model is <strong>precise but under-predicts</strong>: it rarely calls
+    canopy where there is none, and it misses real canopy. Two structural drivers of those misses have been
+    measured, and both survive the confound tests run against them:</p>
+    <div class="cols2" style="margin-top:12px">
+      <div style="border-left:4px solid var(--rule); padding-left:14px">
+        <h4 style="color:var(--ink)">Height</h4>
+        <p style="margin-bottom:0">Detection rises steadily with canopy height &mdash; roughly
+        <strong>0.16 below 5 m</strong> to <strong>0.93 above 30 m</strong>. The <strong>5&ndash;15 m band alone
+        holds 53% of all misses</strong>: young, ornamental and understory trees, which is exactly the suburban
+        population a city inventory cares most about.</p>
+      </div>
+      <div style="border-left:4px solid var(--rule); padding-left:14px">
+        <h4 style="color:var(--ink)">Crown edges</h4>
+        <p style="margin-bottom:0">The outer 2 m of crowns is about <strong>16% of canopy area but carries
+        ~42% of all misses</strong>, replicated across two independent years. Most of it is genuine canopy
+        rather than reference bleed, so it calls for boundary-aware supervision, not a threshold change.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="callout warn">
+    <p><strong>Why the per-year figures are provisional, and why they are not printed here.</strong> Two
+    reference-definition issues are under review. The two vintages of the independent land-cover reference
+    turn out to belong to <em>different class-scheme generations</em>, so a cross-year comparison spanning
+    them compares two definitions of canopy, not two years of trees. And one class in the newer scheme, which
+    appears to mean "paved surface beneath a tree canopy", is currently charged against the model as a false
+    alarm &mdash; whereas under the canopy definition this project has adopted, a tree over pavement is canopy.</p>
+    <p>Resolving that is a definition change followed by a re-score. It is expected to raise precision; the
+    direction of the effect on recall is genuinely not predictable in advance, and the project has declined to
+    guess. Until it is settled, per-year accuracy figures would be quoted out of date. <strong>The honest
+    evaluation exists, it is independent, and the current numbers can be walked through in the
+    meeting.</strong></p>
+  </div>
+
+  <div class="panel">
+    <h4>The open decision that gates the strongest evidence</h4>
+    <p style="margin-bottom:0">The most rigorous instrument available &mdash; stratified human
+    photo-interpretation with area-adjusted estimates and confidence intervals, the standard method for map
+    accuracy assessment &mdash; is <strong>built and tooled but has not been run</strong>. It is blocked on a
+    written canopy definition, which is a judgment call rather than a measurement: a sample can only reproduce
+    a definition it has been given. One decision has been taken (mid-height woody vegetation counts as canopy,
+    recorded as its own interpreter class so the choice stays reversible); the rest are open. The sample design
+    itself has been simulated and is adequately powered for the definition question.</p>
+  </div>
+</section>
+
+<!-- ============ 6. IMAGERY ============ -->
+<section class="sec">
+  <div class="sechead">
+    <span class="secnum">06</span>
+    <h2>What the imagery actually is</h2>
+    <span class="sub">Characterised and documented, not assumed</span>
+  </div>
+
+  <p style="max-width:80ch">A 24-year stack from four providers is not a uniform sensor record, and it is
+  worth being explicit about that before anyone assumes otherwise. Each point below was <em>measured from the
+  files</em> rather than read off a configuration value or a metadata field. The variability is known, and it
+  is the reason the evaluation is deliberately conservative.</p>
+
+  <div class="panel">
+    <ul style="margin-bottom:0">
+      <li><strong>Ground resolution ranges from about 5 cm to 60 cm</strong> across providers and years.</li>
+      <li><strong>The grid is not the resolution.</strong> Measured by edge response, the imagery is
+      oversampled by roughly <strong>1.3&times; to 4.0&times;</strong> &mdash; the pixel spacing is finer than the
+      detail the image actually resolves. Two consequences that matter in practice: one acquisition delivered
+      on a <strong>20 cm grid resolves detail only at about 80 cm</strong>, coarser than another year sitting
+      on a 40 cm grid; and the city's four "5 cm" products were <strong>flown at 3 inches (7.6 cm)</strong>, so
+      the finer grid is a delivery choice rather than extra information. Nominal resolution tiers made this
+      series look cleaner and better ordered than it is.</li>
+      <li><strong>Colour is not comparable across providers.</strong> Over identical ground, in the same year
+      and the same season, a naive greenness index reads <strong>0.11 on one provider's imagery and 0.89 on
+      another's</strong>. Within a single provider the same index drifts by a <strong>factor of about
+      seven</strong> across the series &mdash; from processing and colour balance alone, not from vegetation. Any
+      greenness-based trend computed across this stack would report a large, steady and entirely artefactual
+      canopy decline. Within-year comparisons are unaffected, because the cast is global to an image.</li>
+      <li><strong>Four of the 18 acquisitions carry a near-infrared band</strong>; the rest are visible-only.
+      That limits how many years can carry an NDVI-based independent vegetation reference, which is the main
+      lever available on the reference-disagreement problem described above.</li>
+      <li><strong>The earliest year is not ordinary RGB.</strong> The 2000 imagery is a natural-colour
+      <em>derivative</em> of a colour-infrared capture: the sensor recorded green, red and near-infrared, blue
+      was never captured, and an algorithm synthesised a blue channel to approximate a natural-colour look.
+      This is the documented root cause of that year sitting at the extreme end of the colour drift above.</li>
+      <li><strong>Footprints differ.</strong> Historically some acquisitions covered as little as ~42% of the
+      study area while others covered all of it, so a "citywide" figure derived from one of them was in fact
+      scoped to a band. An acquisition campaign opened in August 2026 is closing those gaps by re-acquiring
+      from the providers' own source services; the most-cited short year now covers 100% of the city
+      boundary, and a fifth near-infrared acquisition has been added.</li>
+      <li><strong>Acquisition dates were not recorded in the image files at all.</strong> They have since been
+      recovered from provider archives, each with a citation and a verbatim quote, and dates without a
+      traceable source were deliberately left as unknown rather than inferred. Several years remain a
+      <em>window</em> rather than a day &mdash; including the 2020 anchor, whose flight window is bounded but not
+      pinned to a single date. Sun angle and phenology are therefore only partly controlled across the
+      record.</li>
+    </ul>
+  </div>
+</section>
+
+<!-- ============ 7. COMPUTE ============ -->
+<section class="sec">
+  <div class="sechead">
+    <span class="secnum">07</span>
+    <h2>How it runs</h2>
+    <span class="sub">Reproducible and auditable</span>
+  </div>
+  <div class="panel">
+    <ul style="margin-bottom:0">
+      <li><strong>Two planes.</strong> All code and configuration live in version control; all data &mdash;
+      imagery, models, masks, tiles, quality-control outputs &mdash; lives in a separate managed store. Compute
+      environments pull code from version control rather than from the data store, so the code that produced
+      any given result is identifiable.</li>
+      <li><strong>Where work runs.</strong> Training and full-extent inference run on cloud GPUs. Quality control,
+      label building and raster diagnostics run locally and need no GPU.</li>
+      <li><strong>Write discipline.</strong> Large outputs are written to local disk first, verified by size
+      and checksum, then copied into the data store. Every processing step writes a log, and measured outputs
+      are harvested back into version control as text, so a number in a document can be traced to the run that
+      produced it.</li>
+    </ul>
+  </div>
+</section>
+
+<!-- ============ 8. TERMS ============ -->
+<section class="sec">
+  <div class="sechead">
+    <span class="secnum">08</span>
+    <h2>Terms used above</h2>
+  </div>
+  <div class="panel terms">
+    <div><b>AUROC</b><span>Area under the receiver operating characteristic curve &mdash; a threshold-free
+      measure of how well a model ranks positives above negatives.</span></div>
+    <div><b>CHM</b><span>Canopy height model &mdash; a raster of vegetation height above ground, derived from
+      lidar.</span></div>
+    <div><b>GSD</b><span>Ground sample distance &mdash; the ground size of one pixel, which as section 06 notes
+      is not the same as the resolution an image actually achieves.</span></div>
+    <div><b>IoU</b><span>Intersection over union &mdash; overlap between predicted and reference canopy divided
+      by their union.</span></div>
+    <div><b>LOSO</b><span>Leave-one-site-out cross-validation &mdash; each training site is held out in turn, so
+      no site is scored by a model that saw it.</span></div>
+    <div><b>NAIP</b><span>The USDA National Agriculture Imagery Program &mdash; one of the four imagery
+      providers in this record.</span></div>
+    <div><b>NDVI</b><span>Normalised difference vegetation index, computed from red and near-infrared bands.
+      It detects vegetation, not specifically trees, which is why height is combined with it here.</span></div>
+    <div><b>Semantic segmentation</b><span>Classifying every pixel as canopy or not, without separating one
+      tree from another.</span></div>
+    <div><b>Instance segmentation</b><span>Delineating each individual crown as its own object.</span></div>
+    <div><b>Circular metric</b><span>A score computed against labels that were themselves derived from the
+      model's own earlier output &mdash; it measures agreement with itself, not accuracy.</span></div>
+  </div>
+</section>
+
+<p class="foot">Prepared as an overview for discussion. Statuses and provisional flags reflect the project's
+own records. Figures not stated here were omitted because they are under revision, or because the underlying
+measurement has not been made &mdash; both cases are noted in the text rather than filled with an estimate.</p>
+
+</div>
+</body>
+</html>

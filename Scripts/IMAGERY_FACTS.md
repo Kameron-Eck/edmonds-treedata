@@ -401,3 +401,92 @@ the old strip; the newly covered northern third has no corrected labels (plain 2
 (phase4_data_inventory) over-reads rotated Lambert grids by ~2.5% (31.26 vs 30.48 cm) — `imagery_measure`
 now converts CRS units exactly and keeps the span figure only as `span_gsd_cm`; and the coverage floor is
 judged against the city polygon (≥ 99%) plus ≥ 80% of the study extent, because the extent is ~83% land.
+
+### 10.2 U02 — `2002_usgs_30cm_rgb.tif` REPLACES `2002_king_rgb.tif` (batch 2)
+
+The single largest quality jump of the campaign, and the only one that changed the *provenance class*:
+WAGDA's `PugetSound_2002` ImageServer advertises the ArcGIS `Download` capability, which serves the
+**39 original USGS HRO source GeoTIFF tiles** (75,121,662 B each, exact bytes) via `/query → /download →
+/file` — the actual delivered product, not a rendering of it. `acquire_imagery.py --via download` fetched
+all 39 and mosaicked them onto the study extent.
+
+| | old (`2002_king_rgb.tif`) | **new (`2002_usgs_30cm_rgb.tif`)** |
+|---|---|---|
+| provenance | King County ArcGIS **tile cache** (JPEG-quantised LOD render) of the same USGS HRO product | **original USGS HRO tiles** (byte-exact source files, mosaicked lossless) |
+| grid / true GSD | 40 cm WM grid ⇒ ~26.8 cm true at 47.8°N | 0.3 m EPSG:26910 = **30.0 cm** true |
+| size / extent | 11.5 GB full-county | 25,112 × 35,535 px, 2,010,711,608 B (study extent) + `tiles/` (39 originals, 2.9 GB) |
+| coverage | full | 100% of the city polygon, 80.6% of the study extent (rest = Sound) |
+| effective resolution | 57.1 cm (catalogue) | 41.41 cm native (1.38× its grid). **Common 40.1 cm grid: 56.25 vs 90.86 cm, HF-energy ratio 1.538** |
+| JPEG 8×8 signature | **present** (z ≈ 10, the positive control for the detector) | **absent** (z −0.8/−1.1) |
+| similarity | — | PSNR 27.5 dB, r 0.979 vs held on the common grid — same flight, radically less processing |
+| fetch | — | 39/39 tiles, Content-Length exact on every one, 2.9 GB in ~6 min (8.3 MB/s, 4 streams — WAGDA imposes no per-host cap) |
+| decision | — | **REPLACE** — wins: common-grid effective, HF ratio, no block signature; losses: none |
+
+Date evidence is unchanged by the better copy: product-level 2002-06-11 is CONTESTED for the Edmonds
+pixels (see the `2002_king_rgb.tif` row). `YEAR_CATALOG` 2002 → new file (`gsd_cm` 30.0, `crs_epsg`
+26910); old file listed in `SUPERSEDED_FILES`, kept on disk. **Lesson recorded:** before chunk-exporting
+any ArcGIS ImageServer, check `capabilities` for `Download` — original tiles beat any export.
+
+### 10.3 CC16 — closed with ZERO download
+
+The conditional target (NOAA 2016 Snohomish C-CAP `.img`+`.ige`, 15.8 GB) was resolved by **header
+comparison over `/vsicurl`** without downloading: 117,603 × 64,276 px, EPSG:26910, identical bounds and
+dtype to the held `ccap_2016_hires_lc_snohfull.tif`, and three scattered 512² pixel windows byte-equal.
+The held file IS that product (GDAL-translated). Recorded in `Imagery/CCAP/_acq/CC16/` on D:. No
+acquisition needed; the 15.8 GB stays un-downloaded.
+
+### 10.4 N15 / N17 / N21 — NAIP complements (batches 1–2): four→eight NIR acquisitions
+
+Three federal NAIP acquisitions, fetched as original DOQQ GeoTIFFs (8 Edmonds quads each) from NOAA
+Digital Coast and mosaicked to the study extent (EPSG:26910 native, lossless):
+
+| | `2015_naip_1m_rgbi.tif` | `2017_naip_1m_rgbi.tif` | `2021_naip_60cm_rgbi.tif` |
+|---|---|---|---|
+| date shot | **2015-08-07** (single day, PUBLISHED) | **2017-08-15/21** (2 days, PUBLISHED) | **2021-07-13** (single day, PUBLISHED) |
+| grid / true GSD | 1 m = 100 cm | 1 m = 100 cm | 0.6 m = 60 cm |
+| effective (5 sites) | 133.1 cm (1.33×) | 132.4 cm (1.32×) | 81.7 cm (1.36×) |
+| band 4 | NIR (NDVI p90 0.70) | NIR (NDVI p90 0.90) | NIR (NDVI p90 0.95) |
+| coverage | 100 / 100% | 100 / 100% | 100 / 100% |
+| size | 267,712,247 B | 258,837,380 B | 706,833,908 B |
+| JPEG signature | absent | absent | absent |
+| catalogue key | `2015n` | `2017n` | `2021n` |
+
+What they add: 2015 gets a **leaf-on August pair** to the held leaf-off Feb–Mar King file; 2017 gets an
+**August 4-band acquisition** against the May Pictometry mosaic (held twice); 2021 gets a mid-July NIR
+year at 60 cm. NIR-bearing acquisitions went from four (2016, 2019n, 2021s, 2022n) to **eight** in one
+campaign day (+ 2015n, 2017n, 2017s, 2019s, 2021n — minus none; 2016 was replaced in place).
+**Operational fact:** the NOAA `coastalimagery`/`chs.coast.noaa.gov` blob hosts cap aggregate transfer at
+~1.3–2.0 MB/s per client **regardless of stream count** (6 streams measured 1.31–1.96 MB/s aggregate);
+parallelism does not multiply — plan wall-clock accordingly. WAGDA and gis.snoco.org have no such cap.
+
+### 10.5 S17 / S19 — the county's own August/October 1-ft HXIP flights (batch 2)
+
+The `Aerial_2017`/`Aerial_2019` ImageServers turn out to serve the **WA consortium HXIP 1-ft flights**
+(flight-area footprints published with dates), i.e. genuinely different acquisitions from the May
+Pictometry mosaics held as `2017_coe/2017_king`, and a same-flight sibling to `2019_naip`:
+
+| | `2017_snoh_1ft_rgbi.tif` | `2019_snoh_1ft_rgbi.tif` |
+|---|---|---|
+| date shot | **2017-08-15 + 08-21** (2 flight areas, PUBLISHED) | **2019-10-11** (PUBLISHED; October — same late-season caveat as 2019n) |
+| grid / true GSD | 1 ftUS = 30.48 cm | 1 ftUS = 30.48 cm |
+| effective (5 sites) | 40.2 cm (1.32×) | 42.6 cm (1.40×) |
+| band 4 | NIR (std 51, NDVI p90 0.67) | NIR (std 59, NDVI p90 0.61) |
+| coverage | 100 / 100% | 100 / 100% |
+| size | 2,907,364,608 B | 2,890,831,516 B |
+| fetch | 234 chunks, 0 failures, snapped grid + nearest | same |
+| catalogue key | `2017s` | `2019s` |
+
+Both carry a mild y-axis 8×8 periodicity (z_y 6.4 / 7.7) without the boundary-ratio signature — recorded,
+not hidden; likely the service's internal tiling, far below the King-cache positive control.
+
+### 10.6 M18 — `2018_coe_marsh2cm_rgb.tif`, the only 2018 imagery (batch 2)
+
+City of Edmonds `Edmonds_Marsh_2018` drone survey: **2018-08-01 16:22–16:52 UTC** (the only Edmonds layer
+with a machine-readable acquisition timestamp), ~1 km² marsh footprint only (city coverage 1.0%). Grid
+0.0373 WM m ⇒ **2.51 cm true**; effective **3.08 cm** at the marsh centre (1.23× grid) — resolves
+individual branches in the model's worst blind spot (deciduous marsh). Two honest downgrades recorded at
+acquisition: the service's 4th band is a **constant alpha**, not NIR (pilot, both rendering modes) — so
+the file is 3-band `_rgb`, not the hoped `_rgbi`; and the source is a `singleFusedMapCache` display cache
+that re-renders on export (stitch-vs-direct ≠ 0 on every lattice tried; `pilot_waiver` in the manifest) —
+a display-cache copy, the best obtainable without the source frames. JPEG signature: absent. Decision
+COMPLEMENT (no incumbent for 2018).

@@ -375,6 +375,23 @@ provenance: ** PIXEL SIZE + DATE SHOT, ONE HOME (2026-08-23) ** = Scripts/qc/ima
          PB-19-14BC) or CONNECTExplorer screenshot; 2002 Edmonds date (EarthExplorer M2M); KAM DECISION: C-CAP v2
          Ecopia ML-use clause ('testing, evaluating ... machine learning') vs our evaluation use. Hazard: a SECOND
          2020 acquisition (Hexagon 2020-08-27/28) exists over Edmonds - never borrow its date.
+acquire: ** IMAGERY ACQUISITION CAMPAIGN (2026-08-23, ACTIVE) ** — engine pipeline/acquire_imagery.py (plan/probe/
+         pilot/fetch/status/assemble/mosaic/clip/verify/manifest/mirror/register; per-chunk jsonl ledger; gap report;
+         snapped grid + nearest; --via download = original source tiles) + qc/imagery_measure.py (decide(): common-grid
+         effective + HF ratio) + manifest pipeline/imagery_acquisition_manifest.json. Branch work/20260823-acquire.
+         LANDED batches 1-2 (9 rasters): REPLACES 2016 (S16 native-1ft full extent) + 2002 (U02 = 39 ORIGINAL USGS HRO
+         tiles via WAGDA Download capability — common-grid 56 vs 91 cm, HF 1.54, no JPEG signature); COMPLEMENTS
+         2015n/2017n/2021n (NAIP), 2017s/2019s (county HXIP Aug/Oct 1-ft NIR), M18 (marsh drone 2.5 cm, band4=ALPHA →
+         _rgb, display-cache waiver). CC16 closed ZERO-download (vsicurl header+3 windows == held _snohfull). NIR
+         acquisitions 4 → 8. Records: IMAGERY_FACTS §10.1-10.6; table 37 rows quote-gate 0 misses; catalog_check 23/23
+         + SUPERSEDED_FILES. Ops facts: NOAA blob hosts cap ~1.3-2 MB/s/client regardless of streams; snoco ignores
+         compression=LZ77, 15000-px strips → HTTP 500; WAGDA uncapped 8.3 MB/s. IN FLIGHT: batch 3 (S21 full-extent
+         0.5-ft REPLACE candidate + S15 band4=ALPHA → 3-band), CC21 1.43 GB → CCAP/_quarantine (ML-clause gate — ask
+         (d) unanswered; clip+class-equality gate vs held, then UNREAD by any script). DEFERRED: Drive mirrors batch 3+
+         until Kam empties Drive trash (upsample/ 1,009 GB still counted; free ~42 GB). NEXT: batches 4-6 (S18, pan
+         years, N19f/N23f full-extent NAIP, snoco RGB years), 3-inch pilots S20/S22/S24 (per-year OK, ~23 GB each,
+         anchor NEVER flipped), K00 ★ EmergeCIR on King reply. Kam sends: 4 asks in
+         IMAGERY_ACQUISITION_ASKS_2026-08-23.md; decisions (e): Drive trash, 2017 duplicate, CONNECTExplorer.
 proj:    Edmonds temporal canopy pipeline, phase 4 (per-year semantic seg, 18 imagery yrs).
 live:    ENGINE MODULARIZED 2026-07-08 → phase4seg/ package (config/common/labels/tiling/core[all torch]/
          postproc/cli) + 97L phase4_semantic_finetune.py SHIM (preserves `%run ... --args`). Behavior =
@@ -1310,6 +1327,35 @@ gotcha:  scripts Colab-only for torch (rasterio+geopandas+fiona+sklearn now pip-
          accept-all test data; 14,476-crown human review never finished.
 
 ════════════════ LOG  (newest first) ════════════════
+
+## 2026-08-23  ACQUISITION CAMPAIGN BATCHES 1-2 — 9 rasters; 2016+2002 replaced; NIR 4->8 (Fable 5 session)
+goal:    Kam: download ALL imagery, multiple per year, upgrade to 4 bands, replace only MEASURED-better. Rewrite dead
+         unified_downloader (15-defect review in plan); agentic loop: bottleneck -> diagnose from ledger -> improve -> resume.
+did:     Engine pipeline/acquire_imagery.py ~1000L (snapped grid+nearest proven nearest==bilinear 0 diff; per-chunk sha256
+         ledger; gap report exit 2; assemble BigTIFF+overviews+provenance tags; --via download; token-bucket limiter; status
+         verdict taxonomy) + qc/imagery_measure.py (exact-unit true GSD; effective ESF; band4 ALPHA/NIR; jpeg 8x8; common-grid
+         compare; decide()) + 12 offline tests green. Batch1: S16 native-1ft full extent REPLACE (city 100%, common-grid HF
+         1.01 vs upsample = same source pixels, provenance win); N15/N17 NAIP. Batch2: U02 = WAGDA Download capability ->
+         39 ORIGINAL USGS HRO tiles (75,121,662 B each) -> mosaic 2002_usgs_30cm_rgb.tif REPLACE (common 40cm grid: eff
+         56.25 vs 90.86 cm, HF 1.538, block signature ABSENT vs held PRESENT, PSNR 27.5, r .979); M18 marsh drone (2.51 cm
+         true, eff 3.08 cm marsh-centre; band4=ALPHA -> _rgb; singleFusedMapCache re-renders -> pilot_waiver, display-cache
+         copy accepted); S17/S19 county HXIP 1-ft 4-band (Aug 2017 2-day, Oct 2019; NIR NDVI p90 .67/.61; 234 chunks 0 fail
+         each). N21 NAIP 60cm. CC16 closed ZERO download (vsicurl header + 3 windows byte-equal to held _snohfull). Catalog:
+         2016+2002 flipped (SUPERSEDED_FILES), keys 2015n/2017n/2021n/2017s/2019s added; check 23/23; table 37 rows gate 0
+         misses; IMAGERY_FACTS §10.1-10.6; catalogue sheets flipped per file. Mirrors: batch1-2 on both planes size-verified.
+decided: replacement = lexicographic decide() common-grid only (native rise metric floors ~1px, flatters upsamples);
+         coverage floor city-polygon >=99% AND study >=80% (extent ~83% land — first S16 REJECT was my bad threshold);
+         check Download capability BEFORE chunk-export (original tiles beat any render); NOAA host-cap -> don't tune streams.
+killed:  WGS84-span true-GSD (over-reads rotated grids 2.5% — exact unit conversion now, span kept as span_gsd_cm only);
+         15000px strips on snoco (HTTP 500); compression=LZ77 on snoco (ignored); byte-faithful CoE cache copy (re-renders).
+files:   pipeline/acquire_imagery.py, pipeline/imagery_acquisition_manifest.json, qc/imagery_measure.py,
+         qc/test_acquire_imagery.py, pipeline/mirror_sync.py (_parse_manifest dual-format), qc/phase4_catalog_check.py
+         (SUPERSEDED_FILES), phase4seg/config.py (2 flips + 5 keys), scratch/imagery_pixelsize_date_campaign.py,
+         scratch/imagery_catalog_flip.py, IMAGERY_FACTS.md §10, IMAGERY_ACQUISITION_ASKS_2026-08-23.md,
+         D:/edmonds-pipeline/Imagery/{SnoCo,USGS_HRO,NAIP_NOAA,CoE,CCAP}/. Branch work/20260823-acquire.
+next:    batch3 in flight (S21 REPLACE test vs 20.6cm clip + S15 3-band); CC21 clip + class-equality gate, STAYS quarantined
+         until NOAA ask (d); batches 4-6; S20/S22/S24 300m pilots then per-year OK; Kam: send 4 asks, empty Drive trash,
+         2017-dup decision; King K00 ★ on reply. Drive mirrors batch3+ AFTER trash emptied.
 
 ## 2026-08-23  PIXEL SIZE + DATE SHOT — one table, every acquisition, every cell cited (Fable 5 session)
 goal:    Kam: true pixel size (4 senses) + date shot for every held acquisition, each with a documenting link; lateral search.

@@ -487,6 +487,12 @@ YEAR_CATALOG = [
     {"key": 2020, "label": "2020", "source": "City of Edmonds", "gsd_cm": 5.0,
      "bands": 3, "crs_epsg": 3857, "coverage": "full",
      "seg_tier": SEG_INSTANCE_SEMANTIC, "native_file": "2020_coe_rgb.tif"},
+    # 2026-08-24 campaign S20: the county's own 3-inch serving of the 2020 EagleView programme (the anchor's
+    # flight family) at full study extent, source-aligned pixels, NO JPEG cache signature (the held CoE copy
+    # has one). The ANCHOR (2020_coe_rgb.tif) is NEVER flipped — this is a clean-provenance COMPLEMENT.
+    {"key": "2020s", "label": "2020s", "source": "Snohomish Co. (EagleView 3-in)", "gsd_cm": 7.6,
+     "bands": 3, "crs_epsg": 2285, "coverage": "100% of city, 98.1% of study extent (measured 2026-08-24)",
+     "seg_tier": SEG_SEMANTIC_ONLY, "native_file": "2020_snoh_3in_rgb.tif"},
     {"key": 2021, "label": "2021", "source": "King County", "gsd_cm": 10.0,
      "bands": 3, "crs_epsg": 3857, "coverage": "full",
      "seg_tier": SEG_INSTANCE_SEMANTIC, "native_file": "2021_king_rgb.tif"},
@@ -506,6 +512,10 @@ YEAR_CATALOG = [
     {"key": 2022, "label": "2022", "source": "City of Edmonds", "gsd_cm": 5.0,
      "bands": 3, "crs_epsg": 3857, "coverage": "full",
      "seg_tier": SEG_INSTANCE_SEMANTIC, "native_file": "2022_coe_rgb.tif"},
+    # 2026-08-24 campaign S22: as 2020s for 2022. COMPLEMENT to the CoE MrSID copy.
+    {"key": "2022s", "label": "2022s", "source": "Snohomish Co. (EagleView 3-in)", "gsd_cm": 7.6,
+     "bands": 3, "crs_epsg": 2285, "coverage": "100% of city, 98.1% of study extent (measured 2026-08-24)",
+     "seg_tier": SEG_SEMANTIC_ONLY, "native_file": "2022_snoh_3in_rgb.tif"},
     # 2026-08-23 REPLACED: 2023_naip_rgbi.tif (69% clip; a smoothed service re-export with band 4 tagged
     # alpha) -> 2023_naip_60cm_rgbi.tif (the 8 original Azure DOQQs mosaicked; acquire_imagery N23f:
     # coverage 100% vs 67%, HF energy 1.41x on a common grid, NIR real NDVI p90 0.53; all 8 quads flown
@@ -519,6 +529,10 @@ YEAR_CATALOG = [
     {"key": 2024, "label": "2024", "source": "City of Edmonds", "gsd_cm": 5.0,
      "bands": 3, "crs_epsg": 3857, "coverage": "full",
      "seg_tier": SEG_INSTANCE_SEMANTIC, "native_file": "2024_coe_rgb.tif"},
+    # 2026-08-24 campaign S24: as 2020s for 2024. COMPLEMENT to the CoE MrSID copy.
+    {"key": "2024s", "label": "2024s", "source": "Snohomish Co. (EagleView 3-in)", "gsd_cm": 7.6,
+     "bands": 3, "crs_epsg": 2285, "coverage": "100% of city, 98.1% of study extent (measured 2026-08-24)",
+     "seg_tier": SEG_SEMANTIC_ONLY, "native_file": "2024_snoh_3in_rgb.tif"},
 ]
 
 # 2020 is the anchor (already segmented in Phase 3); Phase 4 does the other 17.

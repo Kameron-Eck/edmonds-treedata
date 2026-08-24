@@ -634,3 +634,31 @@ With batch 6 the campaign's self-serve programme totals **26 rasters landed, 5 R
 2021s, 2019n, 2023n), 4 new calendar years (2003, 2006, 2011 + the non-year 1996)**, and the year keys
 run 28 → 33 catalog entries, 33/33 green. Remaining self-serve: the 3-inch years S20/S22/S24 (pilots,
 then ~23 GB each). Everything else arrives by reply (King ★, consortium, NOAA) or not at all.
+
+### 10.16 S20 / S22 / S24 — the 3-inch years: the download programme COMPLETE (batches 7–9, 2026-08-24)
+
+The county's own 3-inch serving of the EagleView regional programme, at full study extent with
+source-aligned pixels (pilots: stitch==direct 0 diff, nearest==bilinear on all three) and **no JPEG
+8×8 signature — the held CoE MrSID/cache copies all carry one.** The 2020 ANCHOR is untouched, as
+planned all campaign: these are clean-provenance COMPLEMENTS (keys `2020s`/`2022s`/`2024s`).
+
+| | `2020_snoh_3in_rgb.tif` | `2022_snoh_3in_rgb.tif` | `2024_snoh_3in_rgb.tif` |
+|---|---|---|---|
+| size | 31,012,508,090 B | 30.18 GB | 29,570,524,494 B |
+| grid / true | 0.25 ftUS = 7.62 cm | same | same |
+| effective (5 sites) | 9.77 cm (1.28×) | 9.52 cm | 10.2 cm |
+| coverage | 100% city / 98.1% study | same | same |
+| fetch | 3,450 chunks, 0 failed, 61 water-empties | same | same |
+| dates | inherited (county SCOPI windows; the anchor's own rows) | 2022-04-06..07-11 urban | 2024-03-31..05-31 urban |
+
+**Operational note:** the pilots' 300 m direct-request test drew HTTP 500 on all three services
+(3,937-px single requests exceed their render limit; 150 m = 1,968 px passes) — the chunked 2048-px
+path was unaffected. **Drive mirrors of these three (~91 GB) are the campaign's ONE remaining transfer**
+and are blocked by physics until the DriveFS cache moves off the ~510 GB C: disk: a 31 GB staged copy
+can never clear a 25 GB floor there. A watcher fires the mirrors automatically once G: reports > 60 GB
+free (i.e., after Kam relocates the cache to D:).
+
+**Campaign final: 29 rasters landed** (batches 1–9 all complete), **5 REPLACES, 4 new calendar years,
+NIR 4 → 10 acquisitions, YEAR_CATALOG 19 → 36 entries (36/36 green), table 57 rows, quote gate 0
+misses.** Self-serve acquisition is FINISHED; what remains arrives by reply (King ★ EmergeCIR,
+consortium, NOAA) or is Kam's to decide (2012_king orphan adoption, the 2017 duplicate).

@@ -424,8 +424,14 @@ acquire: ** IMAGERY ACQUISITION CAMPAIGN (2026-08-23, ACTIVE) ** — engine pipe
          orphan adoption still pending), 2006s (NEW year), 2013s; 1996 = earliest color, outside span -> held
          WITHOUT a year key (span extension = Kam's call). 2011s/2012s are EPSG:2926 HARN as delivered. Campaign:
          26 rasters, 5 REPLACES, 4 new years; catalog 33/33; table 54 rows gate 0 misses.
-         IN FLIGHT: mirror retries behind the C: cache drain; NEXT: 3-inch pilots S20/S22/S24 then ~23 GB each
-         (Kam's per-year OK given 2026-08-23; anchor never flips).
+         3-INCH YEARS LANDED 2026-08-24 (keys 2020s/2022s/2024s): 31.0+30.2+29.6 GB, 3,450 chunks each 0 failed,
+         eff 9.5-10.2 cm, 100% city, NO JPEG signature (all held CoE copies have one); ANCHOR untouched; pilots'
+         300m direct request = HTTP 500 on all three (render limit; 150m passes; chunked path unaffected).
+         DOWNLOAD PROGRAMME COMPLETE: 29 rasters, 5 REPLACES, 4 new years, NIR 4->10, catalog 19->36 entries
+         36/36, table 57 rows gate 0. Batches 1-6 mirrored BOTH planes. LAST TRANSFER: the three 3-in Drive
+         mirrors (~91 GB) — blocked until the DriveFS cache moves off C: (31 GB copy can't clear a 25 GB floor
+         on a 510 GB disk); watcher armed, fires at G: free > 60 GB (= cache on D:). REMAINING: King/consortium/
+         NOAA replies; Kam decisions (2012_king orphan, 2017 dup).
          NEXT: 3-inch pilots S20/S22/S24
          (per-year OK, ~23 GB each, anchor NEVER flipped), K00 ★ EmergeCIR on King reply. Kam sends: 4 asks in
          IMAGERY_ACQUISITION_ASKS_2026-08-23.md; decisions (e): 2017 duplicate, CONNECTExplorer (trash DONE).

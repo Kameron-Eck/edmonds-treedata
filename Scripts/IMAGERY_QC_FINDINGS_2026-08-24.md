@@ -94,15 +94,25 @@ into a number that would look authoritative and mean nothing.
 | OK | 2002_snoh ↔ 2002_usgs | 0.74 m | 0.05 |
 | OK | 2017_coe ↔ 2017_snoh | 0.88 m | 0.21 |
 | **WARN** | **2024_coe ↔ 2024_snoh_3in** | **1.29 m** | **0.01** |
-| **WARN** | **2013_king ↔ 2013_snoh_1m** | **2.76 m** | **0.41** |
+| **WARN** | **2013_king ↔ 2013_snoh_1m** | **2.76 m** | **0.41** | (investigated → inconclusive, below) |
 
 **Clean bill for the campaign's own georeferencing**: every pair of campaign-acquired files sits
 sub-metre with tight agreement (2019n↔2019s 0.07 m, 2021n↔2021s 0.42 m, 2017n↔2017s 0.58 m,
 2002s↔2002u 0.74 m).
 
-**A second possible displacement, weaker than 2024**: `2013_king` vs `2013_snoh_1m` reads 2.76 m
-with a 0.41 m spread — systematic enough to be suspicious, loose enough that it has not been run
-through the two experiments 2024 got. Worth the same treatment before 2013 is used positionally.
+**2013 was investigated and the answer is "we cannot tell" — not a finding.** `2013_king` vs
+`2013_snoh_1m` reads 2.76 m (spread 0.41), so it was put through the same triangulation
+(`qc/investigate_displacement.py`, generalised from the 2024 work) against four reference files.
+The first run returned a confident "2013_snoh is displaced" — from inputs whose site spreads were
+**2.1, 5.0, 9.0 and 14.8 m**, all larger than the 2.76 m question being asked. Cross-*year*
+triangulation at 1 m resolution, across six to eight years of real change, simply does not have the
+signal. The tool now applies the same agreement gate as the cross-registration summary, and with it
+**0 of 4 references on either side survive → INCONCLUSIVE**.
+
+*Positive control for that gate* (otherwise a gate that rejects everything proves nothing): re-run
+on the 2024 pair against the 2020 and 2022 county files, **2 of 2 references survive** (spreads
+0.07–0.27 m) and it independently reproduces `2024_coe_rgb.tif is displaced`, 1.27 m vs 0.26 m. The
+gate discriminates; it does not merely refuse.
 
 The ten NOISY pairs all involve either a King County web-Mercator cache product or a cross-season
 comparison; those are exactly the cases where a per-pixel correlation has least to lock onto.
@@ -190,3 +200,5 @@ Four, all caught by a number that looked wrong rather than by review:
    gap between 2015 leaf-off and leaf-on is a measured lower bound on what season costs.
 5. **Confirm the three interior-gap flags visually** before acting on them.
 6. Optional: investigate why NDVI *underperforms* ExG on `2017_naip`.
+7. 2013 needs a *same-epoch* reference to resolve (a third 2013-or-adjacent acquisition), not more
+   cross-year triangulation — that avenue is measured out.

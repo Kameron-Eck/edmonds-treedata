@@ -1,0 +1,66 @@
+{
+ "date": "2026-08-24",
+ "a": "2024_coe_rgb.tif",
+ "b": "2024_snoh_3in_rgb.tif",
+ "refs": [
+  "2020_snoh_3in_rgb.tif",
+  "2022_snoh_3in_rgb.tif"
+ ],
+ "box_m": 200.0,
+ "pairs": [
+  {
+   "pair": "2024_coe_rgb.t|2024_snoh_3in_",
+   "n_sites": 5,
+   "offset_m": 1.2896,
+   "spread_m": 0.006,
+   "median_peak": 1475.8,
+   "r_raw": 0.6819,
+   "r_shift_corrected": 0.9854
+  },
+  {
+   "pair": "A|2020_snoh_3in_rgb.tif",
+   "n_sites": 5,
+   "offset_m": 1.2832,
+   "spread_m": 0.073,
+   "median_peak": 38.8,
+   "r_raw": 0.4442,
+   "r_shift_corrected": 0.5226
+  },
+  {
+   "pair": "B|2020_snoh_3in_rgb.tif",
+   "n_sites": 5,
+   "offset_m": 0.1719,
+   "spread_m": 0.1,
+   "median_peak": 47.9,
+   "r_raw": 0.527,
+   "r_shift_corrected": 0.5249
+  },
+  {
+   "pair": "A|2022_snoh_3in_rgb.tif",
+   "n_sites": 5,
+   "offset_m": 1.263,
+   "spread_m": 0.273,
+   "median_peak": 78.7,
+   "r_raw": 0.4451,
+   "r_shift_corrected": 0.5224
+  },
+  {
+   "pair": "B|2022_snoh_3in_rgb.tif",
+   "n_sites": 5,
+   "offset_m": 0.3414,
+   "spread_m": 0.251,
+   "median_peak": 88.5,
+   "r_raw": 0.5093,
+   "r_shift_corrected": 0.5225
+  }
+ ],
+ "verdict": {
+  "a_median_offset_vs_refs_m": 1.273,
+  "b_median_offset_vs_refs_m": 0.257,
+  "a_refs_that_agreed": 2,
+  "b_refs_that_agreed": 2,
+  "n_refs": 2,
+  "same_imagery_after_shift_correction": true,
+  "displaced": "2024_coe_rgb.tif is displaced"
+ }
+}

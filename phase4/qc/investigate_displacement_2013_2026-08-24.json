@@ -1,0 +1,112 @@
+{
+ "date": "2026-08-24",
+ "a": "2013_king_rgb.tif",
+ "b": "2013_snoh_1m_rgb.tif",
+ "refs": [
+  "2021_snoh_6in_rgbi.tif",
+  "2019_snoh_1ft_rgbi.tif",
+  "2015_snoh_1ft_rgb.tif",
+  "2012_snoh_9in_rgb.tif"
+ ],
+ "box_m": 200.0,
+ "pairs": [
+  {
+   "pair": "2013_king_rgb.|2013_snoh_1m_r",
+   "n_sites": 5,
+   "offset_m": 2.7585,
+   "spread_m": 0.415,
+   "median_peak": 12.6,
+   "r_raw": 0.4628,
+   "r_shift_corrected": 0.509
+  },
+  {
+   "pair": "A|2021_snoh_6in_rgbi.tif",
+   "n_sites": 5,
+   "offset_m": 2.0742,
+   "spread_m": 2.117,
+   "median_peak": 10.7,
+   "r_raw": 0.3051,
+   "r_shift_corrected": 0.3077,
+   "excluded": "site spread 2.117 m too large for a 2.0742 m offset"
+  },
+  {
+   "pair": "B|2021_snoh_6in_rgbi.tif",
+   "n_sites": 5,
+   "offset_m": 6.0649,
+   "spread_m": 4.994,
+   "median_peak": 9.1,
+   "r_raw": 0.2034,
+   "r_shift_corrected": 0.057,
+   "excluded": "site spread 4.994 m too large for a 6.0649 m offset"
+  },
+  {
+   "pair": "A|2019_snoh_1ft_rgbi.tif",
+   "n_sites": 5,
+   "offset_m": 8.7623,
+   "spread_m": 8.952,
+   "median_peak": 10.0,
+   "r_raw": 0.4,
+   "r_shift_corrected": 0.1567,
+   "excluded": "site spread 8.952 m too large for a 8.7623 m offset"
+  },
+  {
+   "pair": "B|2019_snoh_1ft_rgbi.tif",
+   "n_sites": 5,
+   "offset_m": 18.7226,
+   "spread_m": 14.804,
+   "median_peak": 9.9,
+   "r_raw": 0.3553,
+   "r_shift_corrected": 0.2438,
+   "excluded": "site spread 14.804 m too large for a 18.7226 m offset"
+  },
+  {
+   "pair": "A|2015_snoh_1ft_rgb.tif",
+   "n_sites": 5,
+   "offset_m": 1.1623,
+   "spread_m": 0.904,
+   "median_peak": 19.6,
+   "r_raw": 0.4477,
+   "r_shift_corrected": 0.4596,
+   "excluded": "site spread 0.904 m too large for a 1.1623 m offset"
+  },
+  {
+   "pair": "B|2015_snoh_1ft_rgb.tif",
+   "n_sites": 5,
+   "offset_m": 2.8767,
+   "spread_m": 0.762,
+   "median_peak": 12.3,
+   "r_raw": 0.256,
+   "r_shift_corrected": 0.3366,
+   "excluded": "site spread 0.762 m too large for a 2.8767 m offset"
+  },
+  {
+   "pair": "A|2012_snoh_9in_rgb.tif",
+   "n_sites": 5,
+   "offset_m": 1.3679,
+   "spread_m": 1.077,
+   "median_peak": 20.7,
+   "r_raw": 0.4986,
+   "r_shift_corrected": 0.5473,
+   "excluded": "site spread 1.077 m too large for a 1.3679 m offset"
+  },
+  {
+   "pair": "B|2012_snoh_9in_rgb.tif",
+   "n_sites": 5,
+   "offset_m": 2.7486,
+   "spread_m": 1.785,
+   "median_peak": 19.5,
+   "r_raw": 0.475,
+   "r_shift_corrected": 0.5546,
+   "excluded": "site spread 1.785 m too large for a 2.7486 m offset"
+  }
+ ],
+ "verdict": {
+  "a_median_offset_vs_refs_m": null,
+  "b_median_offset_vs_refs_m": null,
+  "a_refs_that_agreed": 0,
+  "b_refs_that_agreed": 0,
+  "n_refs": 4,
+  "same_imagery_after_shift_correction": false,
+  "displaced": "INCONCLUSIVE \u2014 only 0/4 A-references and 0/4 B-references had sites that agreed; triangulation cannot resolve this pair"
+ }
+}

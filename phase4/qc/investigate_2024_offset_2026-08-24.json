@@ -1,0 +1,94 @@
+{
+ "date": "2026-08-24",
+ "box_m": 200.0,
+ "pairs": [
+  {
+   "pair": "2020_coe|2020_snoh",
+   "n_sites": 5,
+   "offset_m": 0.0015,
+   "dx_m": -0.0008,
+   "dy_m": 0.0008,
+   "r_raw": 0.9951,
+   "r_shift_corrected": 0.9951,
+   "r_gain": 0.0
+  },
+  {
+   "pair": "2022_coe|2022_snoh",
+   "n_sites": 5,
+   "offset_m": 0.0015,
+   "dx_m": -0.001,
+   "dy_m": 0.0008,
+   "r_raw": 0.9956,
+   "r_shift_corrected": 0.9956,
+   "r_gain": 0.0
+  },
+  {
+   "pair": "2024_coe|2024_snoh",
+   "n_sites": 5,
+   "offset_m": 1.2896,
+   "dx_m": -1.1176,
+   "dy_m": -0.6437,
+   "r_raw": 0.6819,
+   "r_shift_corrected": 0.9854,
+   "r_gain": 0.3035
+  },
+  {
+   "pair": "2024_coe|2020_coe",
+   "n_sites": 5,
+   "offset_m": 1.2792,
+   "dx_m": -1.0992,
+   "dy_m": -0.693,
+   "r_raw": 0.4455,
+   "r_shift_corrected": 0.5196,
+   "r_gain": 0.0741
+  },
+  {
+   "pair": "2024_coe|2020_snoh",
+   "n_sites": 5,
+   "offset_m": 1.2832,
+   "dx_m": -1.0773,
+   "dy_m": -0.6971,
+   "r_raw": 0.4442,
+   "r_shift_corrected": 0.5226,
+   "r_gain": 0.0784
+  },
+  {
+   "pair": "2024_snoh|2020_coe",
+   "n_sites": 5,
+   "offset_m": 0.1714,
+   "dx_m": 0.0143,
+   "dy_m": -0.0655,
+   "r_raw": 0.5268,
+   "r_shift_corrected": 0.5227,
+   "r_gain": -0.0041
+  },
+  {
+   "pair": "2024_snoh|2020_snoh",
+   "n_sites": 5,
+   "offset_m": 0.1719,
+   "dx_m": 0.0366,
+   "dy_m": 0.0271,
+   "r_raw": 0.527,
+   "r_shift_corrected": 0.5249,
+   "r_gain": -0.0021
+  },
+  {
+   "pair": "2022_coe|2020_coe",
+   "n_sites": 5,
+   "offset_m": 0.0043,
+   "dx_m": -0.0005,
+   "dy_m": -0.002,
+   "r_raw": 0.6068,
+   "r_shift_corrected": 0.6068,
+   "r_gain": 0.0
+  }
+ ],
+ "verdict": {
+  "same_imagery_after_shift_correction": true,
+  "r_raw": 0.6819,
+  "r_shift_corrected": 0.9854,
+  "2024_coe_offset_vs_2020_m": 1.281,
+  "2024_snoh_offset_vs_2020_m": 0.172,
+  "displaced_file": "2024_coe_rgb.tif"
+ }
+}

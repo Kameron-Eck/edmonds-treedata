@@ -1,0 +1,3 @@
+file,index,windows,windows_failed,auroc,cohens_d,n_canopy_px,n_background_px
+2020_coe_rgb.tif,ExG,40,0,0.7898,1.059,141940,434060
+2024_coe_rgb.tif,ExG,40,0,0.7339,0.798,141940,434060

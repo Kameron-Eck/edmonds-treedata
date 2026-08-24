@@ -1,0 +1,21 @@
+year,a,b,n_sites,pearson_r,hf_ratio_a_over_b,psnr_db,verdict
+2002,2002_snoh_1ft_rgb.tif,2002_usgs_30cm_rgb.tif,5,0.8231,0.962,20.12,INDEPENDENT acquisitions
+2007,2007_king_rgb.tif,2007_snoh_1ft_rgb.tif,5,0.4002,0.814,11.69,INDEPENDENT acquisitions
+2009,2009_king_rgb.tif,2009_snoh_1ft_rgb.tif,5,0.5021,1.1,13.44,INDEPENDENT acquisitions
+2013,2013_king_rgb.tif,2013_snoh_1m_rgb.tif,5,0.4628,1.315,14.38,INDEPENDENT acquisitions
+2015,2015_king_rgb.tif,2015_naip_1m_rgbi.tif,5,0.5387,2.076,13.51,INDEPENDENT acquisitions
+2015,2015_king_rgb.tif,2015_snoh_1ft_rgb.tif,5,0.4964,3.372,13.03,INDEPENDENT acquisitions
+2015,2015_naip_1m_rgbi.tif,2015_snoh_1ft_rgb.tif,5,0.9123,0.832,24.26,INDEPENDENT acquisitions
+2017,2017_coe_rgb.tif,2017_naip_1m_rgbi.tif,5,0.5212,0.92,12.09,INDEPENDENT acquisitions
+2017,2017_coe_rgb.tif,2017_snoh_1ft_rgbi.tif,5,0.4465,1.688,13.34,INDEPENDENT acquisitions
+2017,2017_naip_1m_rgbi.tif,2017_snoh_1ft_rgbi.tif,5,0.8968,1.306,20.86,INDEPENDENT acquisitions
+2019,2019_king_rgb.tif,2019_naip_60cm_rgbi.tif,5,0.5246,2.008,11.8,INDEPENDENT acquisitions
+2019,2019_king_rgb.tif,2019_snoh_1ft_rgbi.tif,5,0.4784,2.087,11.0,INDEPENDENT acquisitions
+2019,2019_naip_60cm_rgbi.tif,2019_snoh_1ft_rgbi.tif,5,0.9703,0.805,22.03,"same flight, different serving"
+2020,2020_coe_rgb.tif,2020_snoh_3in_rgb.tif,5,0.9951,0.752,35.42,SAME PIXELS (duplicate)
+2021,2021_king_rgb.tif,2021_naip_60cm_rgbi.tif,5,0.4449,1.006,9.55,INDEPENDENT acquisitions
+2021,2021_king_rgb.tif,2021_snoh_6in_rgbi.tif,5,0.4256,2.136,11.2,INDEPENDENT acquisitions
+2021,2021_naip_60cm_rgbi.tif,2021_snoh_6in_rgbi.tif,5,0.9291,1.226,18.79,INDEPENDENT acquisitions
+2022,2022_coe_rgb.tif,2022_snoh_3in_rgb.tif,5,0.9956,0.76,36.89,SAME PIXELS (duplicate)
+2023,2023_king_rgb.tif,2023_naip_60cm_rgbi.tif,5,0.4298,1.204,12.76,INDEPENDENT acquisitions
+2024,2024_coe_rgb.tif,2024_snoh_3in_rgb.tif,5,0.6819,0.902,16.22,INDEPENDENT acquisitions

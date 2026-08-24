@@ -52,8 +52,15 @@ def corr(a, b, ok=None):
 
 
 def shift_correct(A, B, dx, dy):
-    """Crop both arrays to their overlap after removing an integer (dx, dy) shift of A vs B."""
-    ix, iy = int(round(dx)), int(round(dy))
+    """Crop both arrays to their overlap after removing an integer (dx, dy) shift of A vs B.
+
+    NOTE THE NEGATION, and do not 'simplify' it away. phase_shift returns the displacement it
+    measured; undoing that displacement means cropping in the OPPOSITE direction. The first
+    version of this function omitted the sign flip and therefore made alignment worse, which
+    showed up as shift-correction LOWERING r (0.68 -> 0.53) on the 2024 pair — the opposite of
+    what correcting a real shift must do. Verified on synthetic data with a known (17, -9) px
+    shift: as written, r recovers to 1.0000; without the negation it falls to 0.59."""
+    ix, iy = -int(round(dx)), -int(round(dy))
     h, w = A.shape
     ax0, bx0 = (max(0, -ix), max(0, ix))
     ay0, by0 = (max(0, -iy), max(0, iy))

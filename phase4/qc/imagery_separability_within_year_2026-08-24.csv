@@ -1,0 +1,12 @@
+year,n,best,best_auroc,worst,worst_auroc,spread
+-,6,1998_king_pan.tif,0.6983,1936_king_pan.tif,0.466,0.2323
+2002,2,2002_snoh_1ft_rgb.tif,0.6502,2002_usgs_30cm_rgb.tif,0.6347,0.0155
+2007,2,2007_king_rgb.tif,0.8084,2007_snoh_1ft_rgb.tif,0.6531,0.1553
+2009,2,2009_king_rgb.tif,0.7449,2009_snoh_1ft_rgb.tif,0.7201,0.0248
+2013,2,2013_king_rgb.tif,0.7368,2013_snoh_1m_rgb.tif,0.7098,0.027
+2015,3,2015_naip_1m_rgbi.tif,0.8526,2015_king_rgb.tif,0.6415,0.2111
+2017,3,2017_snoh_1ft_rgbi.tif,0.8857,2017_coe_rgb.tif,0.7481,0.1376
+2019,3,2019_naip_60cm_rgbi.tif,0.8498,2019_king_rgb.tif,0.7364,0.1134
+2021,3,2021_snoh_6in_rgbi.tif,0.8837,2021_king_rgb.tif,0.7058,0.1779
+2022,2,2022_coe_rgb.tif,0.7524,2022_snoh_3in_rgb.tif,0.7523,0.0001
+2023,2,2023_naip_60cm_rgbi.tif,0.8354,2023_king_rgb.tif,0.7253,0.1101

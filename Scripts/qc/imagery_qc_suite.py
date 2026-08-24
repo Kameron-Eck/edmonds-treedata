@@ -539,7 +539,23 @@ def qc_coverage(inv, args):
             with rasterio.open(r["path"]) as ds:
                 dec = max(1, int(max(ds.width, ds.height) / 1500))
                 a = ds.read(1, out_shape=(max(1, ds.height // dec), max(1, ds.width // dec)))
-                valid = a > 0
+                # "valid" cannot just mean non-zero. Scanned historical mosaics pad with WHITE,
+                # not black: 1936_king_pan.tif is 37% value 0, 38% value 253 and 15% value 255 —
+                # only ~10% real photographic content — and a >0 test scores it a near-perfect
+                # pass (found by QC, 2026-08-24). Treat any value that dominates the frame as
+                # padding: a real ortho does not spend a quarter of its pixels on one DN.
+                # Padding is an EXTREME value that dominates, not merely a common one. A first
+                # cut flagged any DN over 20% of the frame and promptly mis-read 2009_snoh, whose
+                # most common DN is 40 — a legitimate dark-vegetation tone, 20.3% of pixels —
+                # inventing a 41 ha "interior gap" that does not exist. Requiring near-black or
+                # near-white keeps 1936's white padding (253/255) and ordinary nodata (0) while
+                # leaving real mid-tones alone.
+                counts = np.bincount(a.ravel().astype(np.uint8), minlength=256)
+                dominant = np.flatnonzero(counts > 0.20 * a.size).tolist()
+                pad = {v for v in dominant if v <= 2 or v >= 250}
+                pad.add(0)
+                valid = ~np.isin(a, list(pad))
+                row_pad = sorted(pad)
                 px_m = im.true_gsd_cm(ds)[0] / 100.0 * dec
                 # flood-fill the invalid region from the border: what remains is interior
                 inv_mask = ~valid
@@ -561,6 +577,7 @@ def qc_coverage(inv, args):
                 interior = inv_mask & ~seen
                 n_int = int(interior.sum())
                 row = dict(file=r["file"], key=r["key"], valid_frac=round(float(valid.mean()), 4),
+                           padding_values=";".join(str(v) for v in row_pad),
                            edge_gap_frac=round(float((inv_mask & seen).mean()), 4),
                            interior_gap_frac=round(float(interior.mean()), 5),
                            interior_gap_ha=round(n_int * px_m * px_m / 1e4, 2),

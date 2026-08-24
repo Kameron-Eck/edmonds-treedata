@@ -1,0 +1,14 @@
+year,a,b,n_sites,median_offset_m,max_offset_m,grade
+2002,2002_snoh_1ft_rgb.tif,2002_usgs_30cm_rgb.tif,5,0.739,0.841,OK
+2009,2009_king_rgb.tif,2009_snoh_1ft_rgb.tif,1,0.727,0.727,OK?
+2013,2013_king_rgb.tif,2013_snoh_1m_rgb.tif,1,2.55,2.55,WARN?
+2015,2015_naip_1m_rgbi.tif,2015_snoh_1ft_rgb.tif,5,0.848,1.188,OK
+2017,2017_coe_rgb.tif,2017_naip_1m_rgbi.tif,1,0.179,0.179,OK?
+2017,2017_naip_1m_rgbi.tif,2017_snoh_1ft_rgbi.tif,5,0.58,2.354,OK
+2019,2019_naip_60cm_rgbi.tif,2019_snoh_1ft_rgbi.tif,4,0.053,0.099,OK
+2020,2020_coe_rgb.tif,2020_snoh_3in_rgb.tif,5,0.001,0.005,OK
+2021,2021_king_rgb.tif,2021_snoh_6in_rgbi.tif,3,0.153,0.16,OK
+2021,2021_naip_60cm_rgbi.tif,2021_snoh_6in_rgbi.tif,5,0.424,1.908,OK
+2022,2022_coe_rgb.tif,2022_snoh_3in_rgb.tif,5,0.002,0.005,OK
+2023,2023_king_rgb.tif,2023_naip_60cm_rgbi.tif,1,0.518,0.518,OK?
+2024,2024_coe_rgb.tif,2024_snoh_3in_rgb.tif,5,1.29,1.297,WARN

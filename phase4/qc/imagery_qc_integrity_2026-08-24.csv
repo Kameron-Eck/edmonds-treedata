@@ -1,0 +1,39 @@
+file,key,kind,status,problems,bytes,width,height,bands,dtype,epsg,units,true_gsd_cm,overviews,nodata,fill,zero_frac,unique_b1
+2000_king_rgb.tif,2000,catalog,WARN,NO OVERVIEWS (decimated reads will touch every byte),1258501736,18944,26880,3,uint8,3857,metre,40.1,0,,varies,0.2872,256
+2002_usgs_30cm_rgb.tif,2002,catalog,OK,,2010711608,25112,35535,3,uint8,26910,metre,30.0,5,0.0,varies,0.1939,253
+2002_snoh_1ft_rgb.tif,2002s,catalog,OK,,1704437706,25116,35259,3,uint8,2285,US survey foot,30.48,6,,varies,0.1241,255
+2003_snoh_1ft_rgb.tif,2003s,catalog,OK,,1501046192,25116,35259,3,uint8,2285,US survey foot,30.48,6,,varies,0.124,255
+2005_king_rgb.tif,2005,catalog,WARN,NO OVERVIEWS (decimated reads will touch every byte),1955550721,37376,53248,3,uint8,3857,metre,20.05,0,,varies,0.0001,256
+2006_snoh_1m_rgb.tif,2006s,catalog,OK,,218544136,7656,10748,3,uint8,2285,US survey foot,100.0,6,,varies,0.0,253
+2007_king_rgb.tif,2007,catalog,WARN,NO OVERVIEWS (decimated reads will touch every byte),2925814135,37376,53248,3,uint8,3857,metre,20.05,0,,varies,0.0006,256
+2007_snoh_1ft_rgb.tif,2007s,catalog,OK,,1548181188,25116,35259,3,uint8,2285,US survey foot,30.48,6,,varies,0.0,249
+2009_king_rgb.tif,2009,catalog,WARN,NO OVERVIEWS (decimated reads will touch every byte),3000263130,37376,53248,3,uint8,3857,metre,20.05,0,,varies,0.0524,256
+2009_snoh_1ft_rgb.tif,2009s,catalog,OK,,2348259187,25117,35260,3,uint8,2285,US survey foot,30.48,6,,varies,0.0157,244
+2011_snoh_1ft_rgb.tif,2011s,catalog,OK,,1987295246,25117,35259,3,uint8,2926,US survey foot,30.48,6,,varies,0.2005,255
+2012_snoh_9in_rgb.tif,2012s,catalog,OK,,3237421325,33489,47012,3,uint8,2926,US survey foot,22.86,6,,varies,0.1768,256
+2013_king_rgb.tif,2013,catalog,WARN,NO OVERVIEWS (decimated reads will touch every byte),9855797426,74496,105984,3,uint8,3857,metre,10.025,0,,varies,0.0955,256
+2013_snoh_1m_rgb.tif,2013s,catalog,OK,,155772878,7655,10745,3,uint8,2285,US survey foot,100.021,6,,varies,0.0,232
+2015_king_rgb.tif,2015,catalog,WARN,NO OVERVIEWS (decimated reads will touch every byte),12092996512,74496,105984,3,uint8,3857,metre,10.025,0,,varies,0.0933,256
+2016_snoh_1ft_rgbi.tif,2016,catalog,OK,,2586179492,25116,35259,4,uint8,2285,US survey foot,30.48,6,,varies,0.1766,250
+2019_king_rgb.tif,2019,catalog,WARN,NO OVERVIEWS (decimated reads will touch every byte),11654003682,74496,105984,3,uint8,3857,metre,10.025,0,,varies,0.1039,256
+2015_naip_1m_rgbi.tif,2015n,catalog,OK,,267712247,7534,10661,4,uint8,26910,metre,100.0,5,0.0,varies,0.0,226
+2015_snoh_1ft_rgb.tif,2015s,catalog,OK,,1209251170,25116,35259,3,uint8,2285,US survey foot,30.48,6,,varies,0.0,234
+2017_snoh_1ft_rgbi.tif,2017s,catalog,OK,,2907364608,25116,35259,4,uint8,2285,US survey foot,30.48,6,,varies,0.0,221
+2019_snoh_1ft_rgbi.tif,2019s,catalog,OK,,2890831516,25116,35259,4,uint8,2285,US survey foot,30.48,6,,varies,0.0,194
+2017_naip_1m_rgbi.tif,2017n,catalog,OK,,258837380,7534,10661,4,uint8,26910,metre,100.0,5,0.0,varies,0.0,238
+2018_snoh_6in_rgbi.tif,2018s,catalog,OK,,11470030126,50232,70518,4,uint8,2285,US survey foot,15.24,6,,varies,0.0,237
+2019_naip_60cm_rgbi.tif,2019n,catalog,OK,,757507269,12556,17768,4,uint8,26910,metre,60.0,5,0.0,varies,0.0,222
+2020_snoh_3in_rgb.tif,2020s,catalog,OK,,31012508090,100463,141035,3,uint8,2285,US survey foot,7.62,6,,varies,0.0188,252
+2021_king_rgb.tif,2021,catalog,WARN,NO OVERVIEWS (decimated reads will touch every byte),11199067177,74496,105984,3,uint8,3857,metre,10.025,0,,varies,0.1038,256
+2021_snoh_6in_rgbi.tif,2021s,catalog,OK,,10764289402,50232,70518,4,uint8,2285,US survey foot,15.24,6,,varies,0.0,201
+2021_naip_60cm_rgbi.tif,2021n,catalog,OK,,706833908,12556,17768,4,uint8,26910,metre,60.0,5,0.0,varies,0.0,241
+2022_snoh_3in_rgb.tif,2022s,catalog,OK,,30182395806,100463,141035,3,uint8,2285,US survey foot,7.62,6,,varies,0.0188,245
+2023_naip_60cm_rgbi.tif,2023n,catalog,OK,,727595134,12556,17768,4,uint8,26910,metre,60.0,5,0.0,varies,0.0,244
+2023_king_rgb.tif,2023,catalog,WARN,NO OVERVIEWS (decimated reads will touch every byte),11191231117,74496,105984,3,uint8,3857,metre,10.025,0,,varies,0.1038,256
+2024_snoh_3in_rgb.tif,2024s,catalog,OK,,29570524494,100463,141035,3,uint8,2285,US survey foot,7.62,6,,varies,0.0188,247
+1990_snoh_10ft_pan.tif,-,non-year,OK,,6713257,2513,3527,1,uint8,2285,US survey foot,304.801,6,,varies,0.1451,256
+1998_snoh_3ft_pan.tif,-,non-year,OK,,79721073,8373,11754,1,uint8,2285,US survey foot,91.44,6,,varies,0.0093,227
+2001_snoh_1ft_pan.tif,-,non-year,OK,,474665129,25117,35260,1,uint8,2285,US survey foot,30.48,6,,varies,0.2366,256
+1996_snoh_1m_rgb.tif,-,non-year,OK,,221226039,7656,10748,3,uint8,2285,US survey foot,100.0,6,,varies,0.0588,255
+1936_king_pan.tif,-,non-year,WARN,NO OVERVIEWS (decimated reads will touch every byte),31944335,18944,26880,1,uint8,3857,metre,40.1,0,,varies,0.3716,224
+1998_king_pan.tif,-,non-year,WARN,NO OVERVIEWS (decimated reads will touch every byte),211117129,18944,26880,1,uint8,3857,metre,40.1,0,,varies,0.0,214

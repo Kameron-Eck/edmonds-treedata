@@ -1,0 +1,8 @@
+{
+ "date": "2026-08-24",
+ "checks": [
+  "coverage"
+ ],
+ "n_rasters": 38,
+ "fail_or_error_rows": 3
+}

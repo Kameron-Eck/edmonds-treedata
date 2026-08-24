@@ -120,9 +120,19 @@ comparison; those are exactly the cases where a per-pixel correlation has least 
 ## 4. Data integrity: the strongest evidence we have, plus one real gap
 
 **Byte verification (Drive plane, run on the VM against `MANIFEST.sha256` computed from the D:
-originals): 220 files, 60.4 GB, 0 mismatches, 0 size errors.** Every campaign raster that has
-reached Google's servers is byte-identical to its local original. This check had never been run —
-mirrors were only ever size-verified.
+originals): 336 files, 78.4 GB across every campaign source dir, 0 mismatches, 0 size errors.**
+Every campaign raster that has reached Google's servers is byte-identical to its local original.
+This check had never been run — mirrors were only ever size-verified.
+
+Two gaps that verification itself exposed, both now closed:
+
+- **`CCAP/_quarantine/` had no `MANIFEST.sha256` at all**, so the quarantined C-CAP pair had no
+  recorded hash on either plane and was unverifiable in principle. Manifest generated (6 files,
+  1.4 GB) and mirrored.
+- **The three 3-inch rasters are still not on Google's servers.** All three mirrored locally, but
+  the ~91 GB is queued in the upload cache. They are *unverified*, not verified-bad — the only
+  campaign rasters in that state. (Small files are not stuck behind them: the 39 re-mirrored USGS
+  tiles uploaded and verified promptly while the backlog drained.)
 
 **A defect in the acquisition engine, found and fixed.** `acquire_imagery.do_mirror` used a
 non-recursive `glob("*")`, so **subdirectories of a source dir were never mirrored**. The
@@ -130,7 +140,8 @@ consequence: the **39 original USGS HRO source tiles** — the delivered governm
 reason 2002 became a replacement — sat single-copy on D: with no data-lake backup, while
 `MANIFEST.sha256` listed all 45 entries as though they were there. Fixed to `rglob` (relative paths
 preserved, `chunks` still excluded); the 12 acquisition tests still pass; all 39 tiles are now
-mirrored.
+mirrored — **and re-verified from the cloud: 45/45 entries, 2.93 GB, 0 mismatches.** Found → fixed
+→ proven fixed by measurement, not by assumption.
 
 **"Mirrored" did not mean "in the cloud."** The VM sees the three 3-inch rasters as *absent* from
 Drive: the ~61 GB that reported `rc=0` today is still uploading through the local cache. The mirror's

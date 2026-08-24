@@ -100,6 +100,31 @@ def inventory(only=None):
     return out
 
 
+def local_only(inv):
+    """Drop records whose file resolves to the Drive mount.
+
+    Reading a Drive-resident raster does not just cost time: Google Drive for desktop caches
+    every byte it serves into its LOCAL cache directory, which lives on D: — the same disk that
+    holds every imagery original and the repo. Measured 2026-08-24: a full-extent integrity pass
+    over the four CoE 5 cm orthos (11-48 GB each, no overviews, so a decimated read touches all
+    of it) drove D: free down 0.4-0.6 GB/min, about an hour from filling the disk. Those files
+    are pre-campaign holdings and carry none of the new-copy risk, so the honest trade is to
+    measure what is on local disk and SAY which files were skipped.
+
+    The hazard is specific to FULL-EXTENT reads (integrity, coverage). The windowed checks —
+    crossreg, duplication, ndvi, radiometry, separability — touch a few hundred MB per file and
+    are safe on Drive-resident rasters; killing the integrity pass alone took D: free from
+    24.8 GB back to 36.2 GB in minutes. So use this flag for the full-extent checks, not as a
+    blanket rule."""
+    keep = [r for r in inv if r["path"] is not None and str(r["path"]).upper().startswith("D:")]
+    skipped = [r["file"] for r in inv if r not in keep]
+    if skipped:
+        print(f"  --local-only: skipping {len(skipped)} file(s) resolving to the Drive mount "
+              f"(cache pressure on D:): {', '.join(sorted(skipped)[:8])}"
+              + (" ..." if len(skipped) > 8 else ""))
+    return keep
+
+
 def year_of(key: str) -> str:
     return key[:4] if key[:4].isdigit() else "-"
 
@@ -563,12 +588,16 @@ def main():
     ap.add_argument("--workers", type=int, default=4)
     ap.add_argument("--box-m", type=float, default=200.0)
     ap.add_argument("--only")
+    ap.add_argument("--local-only", action="store_true",
+                    help="measure only files on local disk; skip Drive-resident ones (see local_only)")
     ap.add_argument("--outdir", type=Path, default=SCRIPTS.parent / "phase4" / "qc")
     args = ap.parse_args(argv)
     args.outdir = Path(args.outdir)
     args.outdir.mkdir(parents=True, exist_ok=True)
 
     inv = inventory(args.only)
+    if args.local_only:
+        inv = local_only(inv)
     print(f"IMAGERY QC SUITE — {len(inv)} rasters "
           f"({sum(1 for r in inv if r['kind']=='catalog')} catalog, "
           f"{sum(1 for r in inv if r['kind']=='non-year')} non-year), outdir {args.outdir}")

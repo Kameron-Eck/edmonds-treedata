@@ -848,9 +848,19 @@ def do_mirror(m, t) -> int:
             if dest.stat().st_size != out.stat().st_size:
                 print(f"SIZE MISMATCH after copy: {dest}"); return 1
             copied.append((dest, out.stat().st_size, time.monotonic() - t0))
-    for p in sorted(d.glob("*")):
+    # rglob, NOT glob: a non-recursive scan silently skipped every SUBDIRECTORY of a source dir.
+    # Measured consequence (QC, 2026-08-24): USGS_HRO/tiles/ — the 39 ORIGINAL USGS HRO source
+    # tiles, the delivered government product that made 2002 a REPLACE — were never mirrored and
+    # sat single-copy on D: with no data-lake backup, while MANIFEST.sha256 listed all 45 entries.
+    # Relative paths are preserved so tiles/ lands as tiles/ on the far side. `chunks` stays
+    # excluded (per-chunk intermediates are rebuildable and are deleted by `clean`).
+    for p in sorted(d.rglob("*")):
+        rel = p.relative_to(d)
+        if "chunks" in rel.parts or rel.parts[0] == "_acq":
+            continue                                  # _acq is handled below, chunks never mirror
         if p.is_file() and p.name != out.name and not p.name.endswith((".part", ".partial.tif")):
-            dest = dest_dir / p.name
+            dest = dest_dir / rel
+            dest.parent.mkdir(parents=True, exist_ok=True)
             if not dest.exists() or dest.stat().st_size != p.stat().st_size:
                 t0 = time.monotonic(); shutil.copy2(p, dest); copied.append((dest, p.stat().st_size, time.monotonic() - t0))
     side = d / "_acq"

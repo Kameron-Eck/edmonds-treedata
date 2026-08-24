@@ -435,6 +435,34 @@ acquire: ** IMAGERY ACQUISITION CAMPAIGN (2026-08-23, ACTIVE) ** — engine pipe
          NEXT: 3-inch pilots S20/S22/S24
          (per-year OK, ~23 GB each, anchor NEVER flipped), K00 ★ EmergeCIR on King reply. Kam sends: 4 asks in
          IMAGERY_ACQUISITION_ASKS_2026-08-23.md; decisions (e): 2017 duplicate, CONNECTExplorer (trash DONE).
+qc:      ** IMAGERY QC AFTER THE CAMPAIGN (2026-08-24) ** branch work/20260824-qc, report
+         Scripts/IMAGERY_QC_FINDINGS_2026-08-24.md, CSVs phase4/qc/imagery_qc_*. Tools: qc/imagery_qc_suite.py
+         (integrity/radiometry/ndvi/crossreg/duplication/coverage), imagery_canopy_separability.py,
+         separability_index_control.py, investigate_2024_offset.py. Ran on BOTH planes (local D: + a Colab CPU VM
+         reading Google's servers).
+         HEADLINE: resolution buys ~NOTHING for canopy DETECTION (Spearman -0.036 res vs AUROC; >=60cm files
+         median .759 vs <=10cm .737) and the NIR band is the entire advantage (+0.099 median, paired same-pixel
+         control). 3-inch years land MID-PACK (.735-.790) below 1m NAIP (.842-.855); the 2020 anchor is .790.
+         LIMIT: this is a PER-PIXEL index metric - it says nothing about texture/crown delineation, which is what
+         fine resolution is actually for. NIR not universally better: 2017n NDVI is WORSE than ExG (-0.008).
+         SEASONALITY MEASURED: 2015 same-year pair, same index - leaf-off .6415 vs leaf-on .7867 = +0.145;
+         forest NDVI runs .84 (July 2021n) to .42 (Oct 2023n). Directly relevant to borrowed-label under-prediction.
+         2024_coe_rgb.tif IS DISPLACED ~1.28 m (same imagery: shift-corrected r .682 -> .985; 2024_coe sits 1.28m
+         from both 2020 refs, 2024_snoh 0.17m; 2022_coe vs 2020_coe control = 0.004m). USE 2024s FOR POSITIONAL
+         WORK. 2013_king vs 2013_snoh 2.76m spread .41 = suspect, not yet investigated.
+         INTEGRITY: Drive bytes verified vs MANIFEST.sha256 - 220 files / 60.4 GB / 0 mismatches (never run before).
+         NIR identity 10/10 pass. Integrity 0 FAIL. ENGINE BUG FOUND+FIXED: do_mirror used non-recursive glob ->
+         39 ORIGINAL USGS HRO tiles were single-copy on D: (now rglob, tiles mirrored, 12 tests green).
+         'Mirrored' != 'in the cloud': the 3-inch 91GB is still uploading and size-verify compares the local CACHE,
+         so it cannot detect this. 1936/1998_king_pan have NO Drive copy. 11 legacy King/CoE files have NO
+         OVERVIEWS (cause of a disk incident: full-extent reads of Drive files cache every byte onto D:, -0.5
+         GB/min, ~1h from full; killed the job, 24.8 -> 36.2 GB; encoded as qc --local-only).
+         MY OWN METHOD CORRECTED 4x (all caught by a suspicious number): peak-height gate discarded 54/100 valid
+         measurements -> agreement-between-sites; shift-correction SIGN ERROR would have inverted the 2024 verdict
+         (synthetic test: r recovers to 1.0000); padding rule over-fired on 2009 (DN 40 = dark vegetation, not
+         padding) inventing a 41ha gap; --local-only. 1936_king_pan is ~90% padding, blank at all 5 QC sites.
+         NEXT: build overviews on the 11 legacy files (cheapest win); investigate 2013; visually confirm the 3
+         interior-gap flags (2001/2000/1990 pan+king); weight NIR years in retraining.
 proj:    Edmonds temporal canopy pipeline, phase 4 (per-year semantic seg, 18 imagery yrs).
 live:    ENGINE MODULARIZED 2026-07-08 → phase4seg/ package (config/common/labels/tiling/core[all torch]/
          postproc/cli) + 97L phase4_semantic_finetune.py SHIM (preserves `%run ... --args`). Behavior =

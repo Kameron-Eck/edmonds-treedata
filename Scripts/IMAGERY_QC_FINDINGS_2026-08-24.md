@@ -77,6 +77,36 @@ sites**. Two experiments settle what that means (`investigate_2024_offset.py`):
 (key `2024s`), or shift-correct the city copy. A 1.28 m error is ~17 px at 7.6 cm and would move
 every crown.
 
+### The rest of the cross-registration table
+
+All 20 same-year pairs, graded on whether the five sites *agree* (see §7.1). Ten pairs earn a
+verdict; ten are inconclusive because the sites disagree — reported as such rather than averaged
+into a number that would look authoritative and mean nothing.
+
+| grade | pair | median offset | site spread |
+|---|---|---|---|
+| OK | 2020_coe ↔ 2020_snoh_3in | 0.00 m | 0.00 |
+| OK | 2022_coe ↔ 2022_snoh_3in | 0.00 m | 0.00 |
+| OK | 2019_naip ↔ 2019_snoh | 0.07 m | 0.03 |
+| OK | 2021_king ↔ 2021_snoh_6in | 0.15 m | 0.04 |
+| OK | 2021_naip ↔ 2021_snoh_6in | 0.42 m | 0.17 |
+| OK | 2017_naip ↔ 2017_snoh | 0.58 m | 0.11 |
+| OK | 2002_snoh ↔ 2002_usgs | 0.74 m | 0.05 |
+| OK | 2017_coe ↔ 2017_snoh | 0.88 m | 0.21 |
+| **WARN** | **2024_coe ↔ 2024_snoh_3in** | **1.29 m** | **0.01** |
+| **WARN** | **2013_king ↔ 2013_snoh_1m** | **2.76 m** | **0.41** |
+
+**Clean bill for the campaign's own georeferencing**: every pair of campaign-acquired files sits
+sub-metre with tight agreement (2019n↔2019s 0.07 m, 2021n↔2021s 0.42 m, 2017n↔2017s 0.58 m,
+2002s↔2002u 0.74 m).
+
+**A second possible displacement, weaker than 2024**: `2013_king` vs `2013_snoh_1m` reads 2.76 m
+with a 0.41 m spread — systematic enough to be suspicious, loose enough that it has not been run
+through the two experiments 2024 got. Worth the same treatment before 2013 is used positionally.
+
+The ten NOISY pairs all involve either a King County web-Mercator cache product or a cross-season
+comparison; those are exactly the cases where a per-pixel correlation has least to lock onto.
+
 ## 4. Data integrity: the strongest evidence we have, plus one real gap
 
 **Byte verification (Drive plane, run on the VM against `MANIFEST.sha256` computed from the D:

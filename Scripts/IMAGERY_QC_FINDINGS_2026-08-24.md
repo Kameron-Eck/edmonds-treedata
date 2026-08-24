@@ -39,9 +39,35 @@ pixel-level canopy *detection*, resolution is not the lever and NIR is; for crow
 measurement says nothing.** It does not retroactively make the 3-inch acquisitions a mistake — it
 says they should be justified by delineation, not by detection.
 
-**And NIR is not a guaranteed win**: `2017_naip_1m_rgbi` scores −0.008 with NDVI (NDVI *worse* than
-plain ExG), `2015_naip` gains only +0.011. The mechanism deserves a look before NIR is assumed
-universally superior.
+### What "NIR is the advantage" actually means — the stronger version
+
+The apparent exception (`2017_naip` scoring −0.008 with NDVI, i.e. NDVI *worse* than plain greenness)
+dissolves on inspection, and inspecting it produced a better finding than the original. Across the
+ten four-band files:
+
+| index | range | spread | sd |
+|---|---|---|---|
+| **NDVI** | 0.835 – 0.886 | **0.050** | **0.016** |
+| ExG (RGB only) | 0.692 – 0.855 | 0.162 | 0.057 |
+
+**NDVI is nearly invariant; ExG is three and a half times more variable.** So "NDVI gain" is mostly
+a measure of *how badly RGB did on that particular acquisition*, not how well NIR did. On 2017_naip,
+ExG happened to be at its best (0.855) while NDVI sat at its usual 0.847 — nothing is wrong with
+that file's NIR band.
+
+That is a more useful claim for a *temporal* project than the average +0.099. Measuring canopy
+change across years requires an instrument whose sensitivity does not itself change year to year.
+RGB-only separability swings by 0.162 depending on which product and season you happened to get —
+that swing is indistinguishable from real canopy change. **NDVI holds ~0.86 across 2015–2023, four
+different products (NAIP 1 m, NAIP 60 cm, county 1 ft, county 6 in) and seasons from July to
+October.** NIR does not merely score higher; it makes the measurement comparable between years,
+which is the whole game here.
+
+**Corollary worth knowing:** season moves the NDVI *value* enormously but its *separability* barely.
+Within the NAIP 60 cm line, forest NDVI reads 0.842 in July 2021 and 0.441 in October 2019 — yet
+AUROC is 0.868 vs 0.850. Background NDVI falls with the canopy, so the ranking survives. A model
+keyed to absolute NDVI thresholds would be badly hurt by season; one using relative or learned
+features much less so.
 
 ## 2. Seasonality is measurable, and it is large
 
@@ -53,6 +79,12 @@ scores both and every caveat about the mask cancels:
 | `2015_king_rgb` (Feb–Mar, leaf-off) | **0.6415** |
 | `2015_snoh_1ft_rgb` (Aug 7, leaf-on) | **0.7867** |
 | difference | **+0.145** |
+
+**Caveat, added after the index-control work below:** these two files differ in *product* as well as
+season (King 10 cm web-Mercator cache vs county 1 ft State Plane), and ExG separability is itself
+product-sensitive (spread 0.162 across products). So +0.145 is an upper bound on the seasonal effect,
+not a clean estimate of it. The within-product NIR evidence puts the *separability* cost of season
+much lower (0.868 July vs 0.850 October in the NAIP 60 cm line) even though the NDVI *value* halves.
 
 The NIR values tell the same story independently: forest NDVI runs 0.84 (2021n, mid-July) down to
 0.42 (2023n, October) — **October acquisitions carry roughly half the vegetation signal of July ones**.

@@ -158,16 +158,30 @@ size-verify compares against that cache, so **it structurally cannot detect this
 - **`1936_king_pan.tif` is ~90% padding**: 37% value 0, 38% value 253, 15% value 255, leaving ~10%
   real photographic content — and **all five reference sites land in blank padding**. It contributes
   nothing to any site-based analysis.
-- **Interior-gap check flags 3 files**: `2001_snoh_1ft_pan` (251 ha), `2000_king_rgb` (71 ha),
-  `1990_snoh_10ft_pan` (67 ha) — all old scanned products. These numbers come from a rule corrected
-  minutes earlier (§7) and have **not been visually confirmed**; treat as "needs eyes", not as fact.
+- **Interior gaps: almost every file is complete over the city.** The first pass flagged
+  `2001_snoh_1ft_pan` at 251 ha, `2000_king` at 71 ha and `1990_snoh` at 67 ha. Rendering the gap
+  maps showed those were **not holes in the imagery**: the land was fully covered and the flagged
+  pixels were isolated DN-0 speckle inside near-black Puget Sound, plus the nodata margin outside
+  the flight footprint. Two corrections followed (§7.5, §7.6) — ignore interior "gaps" smaller than
+  a contiguous 64 px, and confine the whole analysis to the city polygon. Corrected result:
+
+  | file | interior gap in city |
+  |---|---|
+  | `1936_king_pan` | 1989 ha (valid 0.757) — consistent with it being ~90% padding |
+  | `2000_king_rgb` | 27.0 ha |
+  | `1990_snoh_10ft_pan` | 26.2 ha |
+  | `2011_snoh` / `2012_snoh` | 9.1 / 8.8 ha |
+  | `2001_snoh_1ft_pan` | **1.54 ha** (was "251 ha") |
+  | every other local file | **0.0 ha, valid 1.000** |
+
+  Only the historical scans have real holes where the trees are; the campaign rasters have none.
 - **Duplication across 20 same-year pairs** confirms the campaign's provenance claims by measurement:
   `2019_naip` ↔ `2019_snoh` r = **0.970**, independently corroborating that both came from the same
   Hexagon 2019-10-11 flight — a date that had been argued from filenames and footprint layers.
 
 ## 7. Corrections to my own method (recorded so they are not repeated)
 
-Four, all caught by a number that looked wrong rather than by review:
+Six, all caught by a number that looked wrong — or by rendering the map and looking at it — rather than by review:
 
 1. **Cross-registration confidence.** A first pass gated on correlation *peak height* ≥ 50 and
    discarded **54 of 100 measurements**, including valid ones. Peak height measures how *alike* two
@@ -184,7 +198,17 @@ Four, all caught by a number that looked wrong rather than by review:
    `2009_snoh`, whose most common value is 40 — a legitimate dark-vegetation tone — inventing a
    41 ha interior gap. Requiring padding to be *extreme* (≤2 or ≥250) as well as dominant fixed it:
    2009 moved to 0.74 ha and its valid fraction from 0.78 to 0.98.
-4. **Full-extent reads of Drive-resident files are hazardous.** Reading a Drive file pulls every byte
+4. **Interior-gap speckle.** Counting every isolated invalid pixel as a "gap" turned water
+   speckle into a 251 ha alarm on `2001_snoh_1ft_pan`. A real serving failure is a contiguous
+   block; gaps below 64 contiguous pixels are now ignored and counted separately.
+5. **Measuring gaps over the wrong frame.** Even after the speckle fix, the numbers were dominated
+   by Puget Sound and the nodata margin *outside* the flight footprint — visible immediately once
+   the gap maps were rendered. The question is whether imagery has holes where the trees are, so
+   the analysis is now confined to the city polygon. (The first attempt at that wrote a sentinel DN
+   into out-of-city pixels; being ~70% of the frame, the sentinel became the "dominant extreme
+   value" and the padding detector then flagged the entire outside, handing every file an identical
+   182 ha gap. Mask the analysis, not the pixel values.)
+6. **Full-extent reads of Drive-resident files are hazardous.** Reading a Drive file pulls every byte
    into the local DriveFS cache, which lives on D: — the disk holding every original. The integrity
    pass over overview-less CoE orthos drove D: free down **0.4–0.6 GB/min**, about an hour from
    filling. Killing that one job recovered 24.8 → 36.2 GB within minutes. Encoded as `--local-only`,
@@ -198,7 +222,7 @@ Four, all caught by a number that looked wrong rather than by review:
 3. **Weight the NIR years** in any retraining. The separability numbers say they carry the signal.
 4. **Treat leaf-off acquisitions as a distinct regime** when borrowing 2020 labels; the +0.145 AUROC
    gap between 2015 leaf-off and leaf-on is a measured lower bound on what season costs.
-5. **Confirm the three interior-gap flags visually** before acting on them.
+5. ~~Confirm the three interior-gap flags visually~~ — done; they were measurement artifacts (§6).
 6. Optional: investigate why NDVI *underperforms* ExG on `2017_naip`.
 7. 2013 needs a *same-epoch* reference to resolve (a third 2013-or-adjacent acquisition), not more
    cross-year triangulation — that avenue is measured out.

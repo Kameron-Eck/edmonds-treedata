@@ -74,6 +74,8 @@ import phase4_catalog_check as CK          # noqa: E402
 
 TODAY = dt.date.today().isoformat()
 SAT_HI, SAT_LO = 254, 1                    # DN treated as clipped high / low
+MIN_GAP_PX = 64                            # coverage: smallest contiguous interior hole that counts
+                                           # (below this it is speckle, not a serving failure)
 MAX_WINDOW_EDGE = 3000                     # cap the native read edge; finer rasters decimate on read
 PEAK_FLOOR = 5                             # cross-registration: garbage floor on the correlation peak/mean
                                            # ratio. NOT the confidence test — agreement between sites is
@@ -527,6 +529,24 @@ def qc_duplication(inv, args):
     return rows
 
 
+def _city_mask(ds, shape):
+    """Boolean mask of the Edmonds city polygon on a decimated full-extent grid, or None if the
+    shapefile is unreachable. Shares imagery_measure.CITY_SHP (local D: mirror preferred)."""
+    try:
+        import geopandas as gpd
+        from rasterio.features import geometry_mask
+        if not Path(im.CITY_SHP).exists():
+            return None
+        g = gpd.read_file(im.CITY_SHP).to_crs(ds.crs)
+        geom = g.union_all() if hasattr(g, "union_all") else g.unary_union
+        h, w = shape
+        tr = Affine(ds.transform.a * (ds.width / w), 0, ds.transform.c,
+                    0, ds.transform.e * (ds.height / h), ds.transform.f)
+        return ~geometry_mask([geom], out_shape=shape, transform=tr, invert=False)
+    except Exception:
+        return None
+
+
 # ----------------------------------------------------------------------------- QC 6: coverage + interior gaps
 def qc_coverage(inv, args):
     """Coverage percentages hide INTERIOR holes. This walks a decimated valid-data mask and
@@ -539,6 +559,17 @@ def qc_coverage(inv, args):
             with rasterio.open(r["path"]) as ds:
                 dec = max(1, int(max(ds.width, ds.height) / 1500))
                 a = ds.read(1, out_shape=(max(1, ds.height // dec), max(1, ds.width // dec)))
+                # Confine the whole analysis to the CITY POLYGON. Measured over the full raster
+                # extent this check is dominated by Puget Sound and the nodata margin outside the
+                # flight footprint: gap maps rendered 2026-08-24 showed every surviving "interior
+                # gap" in 1990_snoh and 2001_snoh sitting in open water, with the land complete.
+                # The question is whether the imagery has holes where the trees are, so the city
+                # polygon is the only frame in which the answer means anything.
+                # NB: mask the ANALYSIS, not the pixel values. A first attempt wrote a sentinel DN
+                # into the out-of-city pixels; since those are ~70% of the frame, the sentinel
+                # promptly became the "dominant extreme value" and the padding detector classified
+                # the entire outside as nodata, handing every file an identical 182 ha gap.
+                city = _city_mask(ds, a.shape)
                 # "valid" cannot just mean non-zero. Scanned historical mosaics pad with WHITE,
                 # not black: 1936_king_pan.tif is 37% value 0, 38% value 253 and 15% value 255 —
                 # only ~10% real photographic content — and a >0 test scores it a near-perfect
@@ -556,6 +587,8 @@ def qc_coverage(inv, args):
                 pad.add(0)
                 valid = ~np.isin(a, list(pad))
                 row_pad = sorted(pad)
+                if city is not None:
+                    valid = valid | ~city      # outside the city polygon is never a gap
                 px_m = im.true_gsd_cm(ds)[0] / 100.0 * dec
                 # flood-fill the invalid region from the border: what remains is interior
                 inv_mask = ~valid
@@ -575,12 +608,28 @@ def qc_coverage(inv, args):
                             seen[ny, nx] = True
                             stack.append((ny, nx))
                 interior = inv_mask & ~seen
+                # Keep only CONTIGUOUS interior holes. Rendering the gap map (2026-08-24) showed the
+                # flagged "251 ha interior gap" in 2001_snoh_1ft_pan was speckle in Puget Sound:
+                # isolated DN-0 pixels inside near-black water, each surrounded by DN 1-5 and so
+                # unreachable by the border flood fill. The land was fully covered. A real serving
+                # failure is a contiguous block (a missing tile), never scattered single pixels.
+                speckle_px = 0
+                if interior.any():
+                    from scipy import ndimage
+                    lab, n = ndimage.label(interior)
+                    if n:
+                        sizes = np.bincount(lab.ravel())
+                        sizes[0] = 0
+                        small = np.isin(lab, np.flatnonzero(sizes < MIN_GAP_PX))
+                        speckle_px = int((interior & small).sum())
+                        interior = interior & ~small
                 n_int = int(interior.sum())
                 row = dict(file=r["file"], key=r["key"], valid_frac=round(float(valid.mean()), 4),
                            padding_values=";".join(str(v) for v in row_pad),
                            edge_gap_frac=round(float((inv_mask & seen).mean()), 4),
                            interior_gap_frac=round(float(interior.mean()), 5),
                            interior_gap_ha=round(n_int * px_m * px_m / 1e4, 2),
+                           speckle_px_ignored=speckle_px,
                            decimation=dec)
                 row["grade"] = "OK" if row["interior_gap_ha"] < 1.0 else ("WARN" if row["interior_gap_ha"] < 25 else "FAIL")
                 return row

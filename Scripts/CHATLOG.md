@@ -461,8 +461,16 @@ qc:      ** IMAGERY QC AFTER THE CAMPAIGN (2026-08-24) ** branch work/20260824-q
          measurements -> agreement-between-sites; shift-correction SIGN ERROR would have inverted the 2024 verdict
          (synthetic test: r recovers to 1.0000); padding rule over-fired on 2009 (DN 40 = dark vegetation, not
          padding) inventing a 41ha gap; --local-only. 1936_king_pan is ~90% padding, blank at all 5 QC sites.
-         NEXT: build overviews on the 11 legacy files (cheapest win); investigate 2013; visually confirm the 3
-         interior-gap flags (2001/2000/1990 pan+king); weight NIR years in retraining.
+         COVERAGE CORRECTED TWICE + VERIFIED BY RENDERING THE MAPS: sub-64px speckle ignored, analysis
+         confined to the CITY POLYGON. 2001's '251 ha interior gap' was DN-0 speckle in Puget Sound -> 1.54 ha;
+         every campaign raster 0.0 ha / valid 1.000 over the city; only historical scans have real holes
+         (1936 1989 ha, 2000_king 27, 1990 26, 2011/2012 ~9). 2013 displacement INVESTIGATED -> INCONCLUSIVE
+         (cross-year triangulation at 1m lacks signal: site spreads 2-15m vs a 2.76m question; 0/4 refs survived
+         the agreement gate). That gate has a POSITIVE CONTROL: it still resolves 2024 (2/2 refs, spreads
+         .07-.27). Engine mirror bug fixed (rglob) + 39 USGS tiles re-mirrored; 884 stale chunks cleaned (6.4 GB).
+         All three 3-inch mirrors now local; cloud upload still draining.
+         NEXT: build overviews on the 11 legacy files (cheapest win); weight NIR years in retraining; 2013 needs
+         a SAME-EPOCH reference, not more cross-year triangulation; optional: why NDVI < ExG on 2017n.
 proj:    Edmonds temporal canopy pipeline, phase 4 (per-year semantic seg, 18 imagery yrs).
 live:    ENGINE MODULARIZED 2026-07-08 → phase4seg/ package (config/common/labels/tiling/core[all torch]/
          postproc/cli) + 97L phase4_semantic_finetune.py SHIM (preserves `%run ... --args`). Behavior =

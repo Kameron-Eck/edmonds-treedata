@@ -261,7 +261,15 @@ Six, all caught by a number that looked wrong — or by rendering the map and lo
 
 1. **Use `2024s` for positional work in 2024**, not `2024_coe`; or shift-correct the city copy by the
    measured 1.28 m.
-2. **Build overviews on the 11 legacy files** — cheapest single win for all future QC and tiling cost.
+2. **Build overviews on the legacy files — cheapest single win, now costed.** The 11 D:-resident
+   rasters without an overview pyramid total **65.4 GB** (2013/2015/2019/2021/2023_king are ~10-12 GB
+   each at 74,496 x 105,984). External `.ovr` sidecars would add roughly **21 GB** and change no
+   `.tif` byte, so `_tile_signature` is unaffected and the step is reversible by deleting the
+   sidecars. **Deliberately NOT done today**: D: had 43.8 GB free with ~91 GB of 3-inch uploads still
+   draining through the DriveFS cache on that same disk, and today already produced one
+   disk-exhaustion near-miss (§7.6). Do it once the upload backlog clears. The four CoE orthos need
+   it most and are the most dangerous to build, since generating overviews requires reading them in
+   full over the Drive mount — copy them to D: first, or build on a machine where they are local.
 3. **Weight the NIR years** in any retraining. The separability numbers say they carry the signal.
 4. **Treat leaf-off acquisitions as a distinct regime** when borrowing 2020 labels; the +0.145 AUROC
    gap between 2015 leaf-off and leaf-on is a measured lower bound on what season costs.

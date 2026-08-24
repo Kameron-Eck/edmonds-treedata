@@ -59,8 +59,10 @@ from pathlib import Path
 
 import numpy as np
 import rasterio
+from rasterio import Affine
 from rasterio.transform import from_origin
-from rasterio.warp import Resampling, reproject, transform as warp_xy
+from rasterio.warp import Resampling, reproject, transform as warp_xy, transform_bounds
+from rasterio.windows import Window, from_bounds as win_from_bounds
 
 SCRIPTS = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(SCRIPTS / "pipeline"))
@@ -72,6 +74,10 @@ import phase4_catalog_check as CK          # noqa: E402
 
 TODAY = dt.date.today().isoformat()
 SAT_HI, SAT_LO = 254, 1                    # DN treated as clipped high / low
+MAX_WINDOW_EDGE = 3000                     # cap the native read edge; finer rasters decimate on read
+PEAK_FLOOR = 5                             # cross-registration: garbage floor on the correlation peak/mean
+                                           # ratio. NOT the confidence test — agreement between sites is
+                                           # (see qc_crossreg); a soft peak is normal between seasons.
 
 
 # ----------------------------------------------------------------------------- inventory
@@ -115,6 +121,21 @@ def same_year_pairs(inv):
 
 
 # ----------------------------------------------------------------------------- shared sampling
+def _read_retry(src, band, window, out_shape, attempts=4):
+    """Windowed read with backoff. The data plane is a FUSE mount (Google Drive): under
+    concurrent load a read can fail transiently with RasterioIOError even though the file is
+    perfectly good — observed 2026-08-24 with several QC jobs reading G: at once. Retrying is
+    correct here; failing the measurement would report a data problem that does not exist."""
+    import time
+    for i in range(attempts):
+        try:
+            return src.read(band, window=window, out_shape=out_shape)
+        except Exception:
+            if i == attempts - 1:
+                raise
+            time.sleep(1.5 * (i + 1))
+
+
 def common_grid_pair(pa: Path, pb: Path, lon: float, lat: float, box_m: float, band=1):
     """Both files resampled onto ONE grid (the coarser true GSD, in B's CRS) so anything
     measured between them is measured on common footing — the campaign's standing lesson
@@ -130,13 +151,34 @@ def common_grid_pair(pa: Path, pb: Path, lon: float, lat: float, box_m: float, b
         if n < 64:
             return None, None, g
         tr = from_origin(xs[0] - n * px_b / 2, ys[0] + n * px_b / 2, px_b, px_b)
+        bounds = (tr.c, tr.f - n * px_b, tr.c + n * px_b, tr.f)
 
         def grab(src):
+            # Window-read THEN reproject the array. Handing rasterio.band() straight to
+            # reproject lets GDAL choose the source extent, and on a 100k x 140k ortho read
+            # over the Drive mount that raises "Chunk and warp failed" (2026-08-24). Reading
+            # the ~n-pixel window first bounds the work to the box we actually asked for.
+            sb = transform_bounds(b.crs, src.crs, *bounds)
+            win = win_from_bounds(*sb, transform=src.transform).round_offsets().round_lengths()
+            c0, r0 = int(win.col_off) - 2, int(win.row_off) - 2
+            cw, rh = int(win.width) + 4, int(win.height) + 4
+            c0, r0 = max(0, c0), max(0, r0)
+            cw, rh = min(cw, src.width - c0), min(rh, src.height - r0)
+            if cw < 2 or rh < 2:
+                return None
+            w2 = Window(c0, r0, cw, rh)
+            dec = max(1, int(max(cw, rh) / MAX_WINDOW_EDGE))
+            oh, ow = max(1, rh // dec), max(1, cw // dec)
+            A = _read_retry(src, min(band, src.count), w2, (oh, ow)).astype(np.float32)
+            src_tr = src.window_transform(w2) * Affine.scale(cw / ow, rh / oh)
             dst = np.zeros((n, n), dtype=np.float32)
-            reproject(rasterio.band(src, min(band, src.count)), dst,
+            reproject(A, dst, src_transform=src_tr, src_crs=src.crs,
                       dst_transform=tr, dst_crs=b.crs, resampling=Resampling.average)
             return dst
-        return grab(a), grab(b), g
+        ga_, gb_ = grab(a), grab(b)
+        if ga_ is None or gb_ is None:
+            return None, None, g
+        return ga_, gb_, g
 
 
 def phase_shift(a: np.ndarray, b: np.ndarray):
@@ -375,21 +417,53 @@ def qc_crossreg(inv, args):
     rows = _run(one, pairs, args.workers)
     write_csv(rows, args.outdir / f"imagery_qc_crossreg_{TODAY}.csv")
 
-    # per-pair summary: median offset over sites with a trustworthy peak
+    # Per-pair summary. CONFIDENCE COMES FROM AGREEMENT BETWEEN SITES, not from the peak
+    # height alone (2026-08-24, learned the hard way):
+    #   * A first pass gated on peak ratio >= 50 and threw away 54 of 100 measurements —
+    #     including parking and residential sites, whose peaks are legitimately soft whenever
+    #     the two acquisitions differ in season or resolution. Peak height measures how ALIKE
+    #     two images are; it does not measure whether the offset is right.
+    #   * What actually separates signal from garbage is whether the five sites AGREE. A real
+    #     georeferencing offset is systematic: 2024 read dx -14.31/-14.37/-14.67/-14.71/-14.73
+    #     px at five scattered sites (MAD 0.03 m). A wrong correlation peak is idiosyncratic:
+    #     the 18-24 m forest outliers agreed with nothing.
+    # So: keep every measurement above a garbage floor, report the median offset AND the spread,
+    # and let the spread decide whether the pair gets a verdict at all.
     summ = {}
     for r in rows:
-        if r.get("offset_m") is None or (r.get("peak_ratio") or 0) < 5:
+        if r.get("offset_m") is None or (r.get("peak_ratio") or 0) < PEAK_FLOOR:
             continue
-        summ.setdefault((r["year"], r["a"], r["b"]), []).append(r["offset_m"])
+        summ.setdefault((r["year"], r["a"], r["b"]), []).append(r)
+
+    def mad(v):
+        v = np.asarray(v, dtype=float)
+        return float(np.median(np.abs(v - np.median(v))))
+
     out = []
-    for (y, a, b), v in sorted(summ.items()):
-        med = float(np.median(v))
-        grade = "OK" if med <= 1.0 else ("WARN" if med <= 3.0 else "FAIL")
-        out.append(dict(year=y, a=a, b=b, n_sites=len(v), median_offset_m=round(med, 3),
-                        max_offset_m=round(max(v), 3), grade=grade))
-        print(f"  {grade:4s} {y}  {a[:26]:26s} vs {b[:26]:26s}  median {med:6.2f} m  (n={len(v)})")
+    for (y, a, b), rs in sorted(summ.items()):
+        offs = [r["offset_m"] for r in rs]
+        med = float(np.median(offs))
+        # spread of the OFFSET VECTOR across sites, in ground metres
+        gm = float(np.median([r["common_px_cm"] for r in rs])) / 100.0
+        sx, sy = mad([r["dx_px"] for r in rs]) * gm, mad([r["dy_px"] for r in rs]) * gm
+        spread = round(max(sx, sy), 3)
+        n = len(rs)
+        if n < 3:
+            grade = "THIN"                       # not enough sites to tell systematic from noise
+        elif spread > max(0.30, 0.25 * med):     # sites disagree -> no reliable offset to report
+            grade = "NOISY"
+        else:
+            grade = "OK" if med <= 1.0 else ("WARN" if med <= 3.0 else "FAIL")
+        out.append(dict(year=y, a=a, b=b, n_sites=n, median_offset_m=round(med, 3),
+                        site_spread_m=spread, max_offset_m=round(max(offs), 3),
+                        median_peak=round(float(np.median([r["peak_ratio"] for r in rs])), 1),
+                        grade=grade))
+        print(f"  {grade:5s} {y}  {a[:26]:26s} vs {b[:26]:26s}  median {med:6.2f} m  "
+              f"spread {spread:5.2f} m  (n={n})")
     write_csv(out, args.outdir / f"imagery_qc_crossreg_summary_{TODAY}.csv")
-    print(f"  cross-registration: {len(out)} same-year pairs measured")
+    ng = sum(1 for r in out if r["grade"] in ("NOISY", "THIN"))
+    print(f"  cross-registration: {len(out)} same-year pairs; {len(out)-ng} with a verdict, "
+          f"{ng} inconclusive (reported, not averaged away)")
     return out
 
 

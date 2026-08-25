@@ -261,8 +261,34 @@ Run after M01/M04 so verdicts are scored honestly. All launches Kam-gated.
 13. **Texture-bias channel ablation (IDs 207/208)** before any design decision is justified by texture bias; ID 209's shape-bias regularization is conditional on its outcome.
 14. **Written canopy definition (Q1/U1)** — strictly Kam's decision, listed because every P3 point implicitly encodes it: it gates M02's interpretation start, and both closure threads independently ended on it.
 15. **Fix CLAUDE.md rule 5's stale wording**: it still names the NDVI+CHM reference as "the independent number" for NIR years — stale for any model trained on NDVI-derived overlays (the corrected-2016 lineage, any M06 arm with `--add-canopy-mask`). Add the qualifier "independent unless the model trained on labels derived from it — then C-CAP/photo-interp is the headline referee." The reporting practice already follows this (the corrected model's primary row is C-CAP-scored); the doc should too.
-16. **Tile-seam blending + flip-TTA**: never-searched inference-time gap — TILE_SIZE 512 with INFER_STRIDE 256 implies 50% overlap whose blending scheme (flat averaging vs feathered/Gaussian windows) shapes boundary artefacts that masquerade as year-to-year flicker. Brief search + one sector A/B, judged on flicker metrics specifically (it touches M09's change product, not just aesthetics).
+16. **Flip-TTA only — the seam-blending half was a FALSE PREMISE (corrected 2026-08-25, E08).**
+    The original entry claimed 50% output overlap "whose blending scheme shapes boundary
+    artefacts". Measured: there is NO overlapping output and NO blending scheme — each 512²
+    forward writes only its center 256² crop and the crops tile the raster exactly
+    (`core.py:1460` stride/pad/cc = 256/128/256; `:1519` center-crop; `:1541` plain overwrite;
+    the 4× is INPUT redundancy). The real, documented seam sources are elsewhere: the dead
+    edge-coverage block `core.py:1477-1482` (a non-grid-aligned last-write-wins 256² block —
+    archived audit M2) and the per-strip morphology/sieve in `postproc.py:101-115` / `:129-141`
+    (archived audit L2). Those are the post-campaign seam bundle (both pixel-changing — barred
+    while sectors_v1/fullext are comparable baselines). Flip-TTA survives as its own
+    output-changing post-campaign A/B, judged on M09 flicker metrics.
 17. **Re-run qc/phase4_qc_height_curve.py once against the 8b from-points CHM** when it is built — the CHM in use reads systematically low, and whether the 5-15 m miss concentration and band boundaries survive a corrected CHM calibrates M08's stratum design.
+18. **UNCHECKED must hard-fail the queue** (found by the E-backlog verification, 2026-08-25):
+    if the prob-raster VERIFY read RAISES (a truncated GeoTIFF can), `phase4_train_queue.py`
+    :527-528 records state UNCHECKED — which is NOT in `_VERIFY_HARD_FAIL` (:465-467), so
+    `verify_step` returns True and the job sails into the next GPU hour on a broken artifact.
+    Add UNCHECKED (or a distinct BAD_RASTER) to the hard-fail set. E02's atomic publish shrinks
+    the window (truncated finals stop existing) but does not close corrupt-but-complete.
+19. **Eval-row clobber across arms** (route to M01/M04): `core.py:1299-1310` replaces
+    `semantic_eval_report.csv` rows keyed (year, channels) with NO run_tag term, and
+    `postproc.py:50-63` reads back on the same key — a tagged evaluate CLOBBERS the citywide
+    arm's row for that year, and a later untagged postproc would silently deploy the tagged
+    arm's threshold. The sector campaign is insulated only because its loop passes an explicit
+    `--infer-thresh` from qc_indep live rows. Fix belongs to M01's threshold-provenance work.
+20. **Stale `INFER_BATCH_SIZE=160` default** at `core.py:1380` (`step_inference(label,
+    batch_size=INFER_BATCH_SIZE, ...)`) — the 80 GB-card value; harmless today only because
+    cli.py always passes `config.INFER_BATCH` (32). Change the default to `config.INFER_BATCH`
+    on the next core.py edit; a programmatic caller hitting 160 OOMs any 24/40 GB card.
 
 ---
 

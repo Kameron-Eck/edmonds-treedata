@@ -292,8 +292,28 @@ The fine/medium per-year models take positive labels from per-site hand-traced c
 negative. To teach out-of-distribution canopy (deciduous marsh), a positive site's crowns can be
 **derived by polygonising the Phase-3 2020 canopy mask** inside the footprint (the 2020 anchor
 already labels it), via `make_positive_site.py` (safe staged → `--commit`). Coarse years (≥50 cm,
-e.g. 2016) instead train on the citywide 2020 mask and ignore curated positive sites, so their
-deciduous recall is addressed by substituting the high-resolution 2015 flagship product.
+e.g. 2016) instead train on the citywide 2020 mask and ignore curated positive sites. (The
+2015-flagship substitution once suggested here was KILLED — CHATLOG 2026-08.)
+
+#### Label provenance (E06, 2026-08-25)
+What each year's model was actually taught from, and where that fact is recorded:
+
+| Label source | Years / condition |
+|---|---|
+| Citywide 2020 mask (projected model prediction — the borrowed-label caveat, CLAUDE.md Gotchas) | every queue job today (`--force-citywide`) |
+| + corrected-label ADD-only overlay `canopy_additions_{y}.tif` | only when `--add-canopy-mask` is passed — **no live run to date** (0 of 56 manifests) |
+| Per-site crown polygons | fine/medium recipe when citywide is NOT forced (currently unused — see Gotchas) |
+
+Run-level provenance lives in **`phase4/runs/{run_id}/manifest.json`** (`labels` block: source
+mask path+size, overlay path/size/mtime, force_citywide) and nowhere else; the overlay artifact
+carries its own `*.lineage.json` sidecar (params, pixel counts, sha256, build date).
+Contamination status of the deployed numbers: **no `live=1` row in `qc_indep_report.csv` is
+known to be overlay-trained** — the 2016 live row (rec .5937 / prec .9593, 2026-07-06) is
+consistent with the pre-overlay baseline (.605/.970, CHATLOG:633) and the corrected run's
+inference died before producing a scorable raster (CHATLOG:530-541); stated as a
+reconstruction, since manifests postdate those July runs. Circularity mechanics live in
+`litwatch_robustness.md:1050`; the one-home caveat in CLAUDE.md ("only 2020 has real hand
+labels").
 ---
 ## Literature Basis
 This methodology is supported by:

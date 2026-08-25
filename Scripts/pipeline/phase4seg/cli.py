@@ -201,8 +201,11 @@ def main():
                         "against the repo pipeline/ dir. Other steps are unaffected; "
                         "the tile cache never re-tiles for an AOI change.")
     p.add_argument("--stride", type=int, default=None,
-                   help="Override the per-tier tiling stride (smaller = more "
-                        "overlapping tiles → more tiles).")
+                   help="Override the per-tier TILING stride ONLY (smaller = more "
+                        "overlapping tiles → more tiles). It keys the tile "
+                        "signature, so changing it triggers a ~20-min re-tile. "
+                        "There is NO inference-stride flag — INFER_STRIDE is a "
+                        "config constant (E08).")
     p.add_argument("--site-buffer", type=float, default=0.0,
                    help="Pad each site footprint by N map units (EPSG:3857 ≈ m) "
                         "before cropping → larger crops → more tiles. Only the "

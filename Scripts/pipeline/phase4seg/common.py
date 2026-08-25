@@ -436,42 +436,78 @@ def _local_artifact_path(final_path):
     return final_path
 
 
+def _sweep_part_orphans(dirpath, max_age_h=24):
+    """Remove *.part.* staging files a died process left behind (multi-GB quota
+    leaks otherwise). Age-gated generously: a live .part being written by a
+    concurrent runtime is minutes old, never a day."""
+    now = time.time()
+    try:
+        for p in Path(dirpath).glob("*.part.*"):
+            try:
+                if now - p.stat().st_mtime > max_age_h * 3600:
+                    p.unlink()
+                    print(f"  swept stale staging orphan: {p.name}")
+            except OSError:
+                pass
+    except OSError:
+        pass
+
+
 def _copy_to_drive(local_path, drive_path, checksum=True, retries=1):
-    """VERIFIED local-then-copy write.
+    """VERIFIED, ATOMIC local-then-copy write.
 
     The unverified direct-to-Drive write has produced three broken artifacts
     (2022 xsensor 0-byte, 2017 xsensor 96.5%-nodata, 2024 truncated stub) that
     each cost a GPU run before anyone noticed. This copy refuses to be silent:
     size must match, and (checksum=True) the Drive copy must hash identical to
-    the local one. On mismatch the bad Drive copy is removed and the copy is
-    retried; if it still mismatches, RAISE — a loud failure at write time is the
-    entire point.
+    the local one; on repeated mismatch, RAISE — a loud failure at write time is
+    the entire point.
+
+    E02 (2026-08-25): the copy stages to `<name>.part.<pid><token>` and only an
+    os.replace within the Drive directory publishes the final name, so a death
+    mid-copy can no longer leave a truncated file at the canonical path — and a
+    FAILED re-copy no longer unlinks the previous GOOD artifact (the old code
+    unlinked drive_path itself on mismatch). The suffix is APPENDED (never
+    with_suffix: mask .tif/.gpkg pairs share a stem) and pid+token-unique so two
+    runtimes targeting one path cannot collide; every artifact-reading glob in
+    the repo is extension-anchored, so .part.* files match none of them.
     """
     local_path, drive_path = Path(local_path), Path(drive_path)
     drive_path.parent.mkdir(parents=True, exist_ok=True)
     if local_path == drive_path:
         return drive_path
+    _sweep_part_orphans(drive_path.parent)
     want_size = local_path.stat().st_size
     want_sha = _sha256(local_path) if checksum else None
-    for attempt in range(retries + 1):
-        tick(f"copy {drive_path.name}")
-        shutil.copy2(local_path, drive_path)
-        tock(f"copy {drive_path.name}")
-        got_size = drive_path.stat().st_size
-        if got_size != want_size:
-            problem = f"size {got_size} != {want_size}"
-        elif checksum and _sha256(drive_path) != want_sha:
-            problem = "sha256 mismatch"
-        else:
-            print(f"  ✓ verified write: {drive_path.name} "
-                  f"({want_size/1e6:.0f} MB{', sha256 ok' if checksum else ''})")
-            return drive_path
-        print(f"  ! verified write FAILED ({problem}) for {drive_path.name} "
-              f"[attempt {attempt + 1}/{retries + 1}]")
-        try:
-            drive_path.unlink()
-        except OSError:
-            pass
+    part = drive_path.with_name(
+        drive_path.name + f".part.{os.getpid()}{secrets.token_hex(3)}")
+    try:
+        for attempt in range(retries + 1):
+            tick(f"copy {drive_path.name}")
+            shutil.copy2(local_path, part)
+            tock(f"copy {drive_path.name}")
+            got_size = part.stat().st_size
+            if got_size != want_size:
+                problem = f"size {got_size} != {want_size}"
+            elif checksum and _sha256(part) != want_sha:
+                problem = "sha256 mismatch"
+            else:
+                os.replace(part, drive_path)
+                print(f"  ✓ verified write: {drive_path.name} "
+                      f"({want_size/1e6:.0f} MB{', sha256 ok' if checksum else ''})")
+                return drive_path
+            print(f"  ! verified write FAILED ({problem}) for {drive_path.name} "
+                  f"[attempt {attempt + 1}/{retries + 1}]")
+            try:
+                part.unlink()
+            except OSError:
+                pass
+    finally:
+        if part.exists():
+            try:
+                part.unlink()
+            except OSError:
+                pass
     raise RuntimeError(f"verified write failed after {retries + 1} attempts: "
                        f"{drive_path} ({problem})")
 

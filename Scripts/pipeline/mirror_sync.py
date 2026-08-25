@@ -31,7 +31,8 @@ def _sha(p, chunk=1 << 20):
 
 def _files(root):
     for p in sorted(root.rglob("*")):
-        if p.is_file() and p.name != MANIFEST and not p.name.endswith(".log"):
+        if (p.is_file() and p.name != MANIFEST and not p.name.endswith(".log")
+                and ".part." not in p.name):    # E02: skip atomic-publish staging files
             yield p
 
 

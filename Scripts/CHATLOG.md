@@ -69,7 +69,7 @@ sectors: ** ACTIVE WORKSTREAM 2026-08-24/25 — SECTOR CAMPAIGN. Source of truth
          .github/workflows/ push, branch mirror 7 commits behind (SAFE: VM clones therefore
          get pre-E02 engine until the drivefs smoke passes); (4) champion designations for
          2000/2002/2013/2015/2016/2017 (pipeline/champion_arms.csv header lists arms);
-         (5) E02 drivefs os.replace smoke on next CPU VM BEFORE fullext relaunch from a
+         (5) E02 drivefs smoke (script staged: vm_e02_rename_smoke.py) BEFORE fullext relaunch from a
          pushed E02 branch. Then: S22 series → S23 crown matrix → S24 report.
 ebacklog: ** 2026-08-25 — BEST-PRACTICES REVIEW (Kam-approved plan, D:\tools\...\plans\) **
          3 research passes + 8-agent adversarial verify; every top-8 item corrected; plan =

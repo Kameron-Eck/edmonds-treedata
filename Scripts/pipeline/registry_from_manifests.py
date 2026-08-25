@@ -143,7 +143,14 @@ def status_for(year, tag, step, run_ts, window_min=10):
     cands, verifies = [], []
     for f in sorted(QC_DIR.glob(STATUS_GLOB)):
         for r in _rows(f):
-            if r.get("job") != year or r.get("tag") not in (tag, "", None):
+            # Join on the status CSV's `year` column, NOT `job`: queue job ids may
+            # carry suffixes (queue_sectors_base2020 uses id "2006s_b20" for year
+            # "2006s"), and a job-keyed join returned zero rows for the whole sector
+            # campaign. Seeded placeholder rows (write_seed / VM-side seeds) must
+            # never supply an attempt's state or minutes.
+            if r.get("year") != year or r.get("tag") not in (tag, "", None):
+                continue
+            if (r.get("detail") or "").startswith("SEEDED"):
                 continue
             if r.get("step") == step:
                 cands.append(r)

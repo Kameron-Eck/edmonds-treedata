@@ -13,8 +13,17 @@ import pytest
 
 SCRIPTS = Path(__file__).resolve().parents[1]          # …/treedata/Scripts
 
-REGISTRY_COLUMNS = ["run_id", "date", "year", "step", "script_version", "args",
-                    "headline_metrics", "model_path", "mask_path", "notes"]
+
+def _registry_columns():
+    """The schema's ONE home is registry_from_manifests.COLUMNS — importing it
+    means a future header migration updates generator and gate together (the
+    E04 migration broke a hardcoded copy of this list within hours of it being
+    written)."""
+    sys.path.insert(0, str(SCRIPTS / "pipeline"))
+    from registry_from_manifests import COLUMNS
+    return COLUMNS
+
+
 _VERSION_OPS = "<>=~!"
 _BOOTSTRAP_FILES = ["pipeline/phase4seg/common.py",
                     "pipeline/phase4seg/core.py",
@@ -105,17 +114,19 @@ def test_bootstrap_consistency():
 
 
 def test_registry_schema():
-    """run_registry.csv stays machine-readable: 10 columns, unique non-empty run_id, ISO date.
+    """run_registry.csv stays machine-readable: header == the generator's COLUMNS
+    (one home), unique non-empty run_id, ISO date.
     No run_id format check — the legacy rows predate any convention."""
+    cols = _registry_columns()
     with open(SCRIPTS / "run_registry.csv", newline="", encoding="utf-8") as f:
         rows = list(csv.reader(f))
     assert rows, "run_registry.csv is empty"
-    assert rows[0] == REGISTRY_COLUMNS, f"header drift: {rows[0]}"
+    assert rows[0] == cols, f"header drift: {rows[0]} != generator COLUMNS {cols}"
 
     seen = set()
     for lineno, row in enumerate(rows[1:], start=2):
-        assert len(row) == len(REGISTRY_COLUMNS), \
-            f"row {lineno}: {len(row)} fields, expected {len(REGISTRY_COLUMNS)}"
+        assert len(row) == len(cols), \
+            f"row {lineno}: {len(row)} fields, expected {len(cols)}"
         run_id, date = row[0].strip(), row[1].strip()
         assert run_id, f"row {lineno}: empty run_id"
         assert run_id not in seen, f"row {lineno}: duplicate run_id {run_id!r}"

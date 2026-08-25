@@ -8,11 +8,26 @@ not the local cache). Tools: `qc/imagery_qc_suite.py` (6 checks), `qc/imagery_ca
 
 **Nothing here changes the catalog or the data.** QC measures; decisions are Kam's.
 
+> **Adversarially reviewed 2026-08-24** (11-agent verify+attack workflow; 147 findings: 0 critical,
+> 6 major, 35 minor — full adjudication in `IMAGERY_QC_REVIEW_2026-08-24.md`). Every finding of
+> fact reproduced from the data; sentences the review found overstated are corrected below and
+> marked *(amended in review)*.
+
 ---
 
 ## 1. The finding that changes what the campaign was worth
 
-**Resolution buys essentially nothing for canopy detection. The NIR band is the entire advantage.**
+**At a 50 cm analysis grid, native resolution does not affect per-pixel canopy separability —
+and the NIR band is the only advantage this design can isolate.** *(amended in review; the original
+"resolution buys nothing / NIR is the entire advantage" claimed more than the design can show)*
+
+Two scope limits the review made explicit. First, every raster is resampled to a common 50 cm grid
+*before* measurement, which erases sub-50 cm information from the fine files — the design is
+structurally incapable of detecting a native-resolution advantage below the analysis scale, so this
+is a statement about 50 cm-scale colour separability, not about resolution per se. Second,
+resolution is confounded with product and season in this catalog (the coarse group is dominated by
+leaf-on summer NAIP; the fine group by King caches and CoE orthos); only the NIR gain is isolated
+by a paired same-pixel design.
 
 Measured as AUROC of a per-pixel greenness index against the 2020 canopy mask, 40 seeded citywide
 locations, 60 m boxes, all rasters resampled to one common 50 cm grid. The raw ranking is
@@ -21,16 +36,27 @@ confounded (4-band files get NDVI, 3-band get ExG, and NDVI is simply the strong
 
 | effect | measurement |
 |---|---|
-| sensor resolution → separability | **Spearman −0.036** (n=36) — no relationship |
+| sensor resolution → separability | **Spearman ≈ −0.03** (n=36) — no *detectable* relationship; 95% CI ≈ (−0.35, +0.31), so only moderate-strong effects are excluded *(amended in review)* |
 | ≤10 cm files | median ExG AUROC **0.737** (n=12) |
-| ≥60 cm files | median ExG AUROC **0.759** (n=7) — *coarser scores slightly higher* |
-| being a 4-band product, scored on ExG | +0.013 — negligible |
+| ≥60 cm files | median ExG AUROC **0.759** (n=7) — statistically indistinguishable from the fine bin (permutation p = 0.13) *(amended in review)* |
+| being a 4-band product, scored on ExG | median +0.013 (mean +0.045); unresolved at these n and confounded with season/product *(amended in review)* |
 | **actually using the NIR band** | **median +0.099** (range −0.008 … +0.159, n=10 paired) |
+
+**Precision caveat** *(added in review)*: each AUROC pools ~576k spatially autocorrelated pixels
+from ~40 windows, and no per-window values were recorded, so no uncertainty is computable from the
+published outputs — the effective sample is ~40 clusters. Paired same-pixel contrasts (the NDVI
+gain, the 2015 seasonal pair; the 2022 duplicate pair reproduces to 0.0001) are the defensible
+subset; unpaired cross-file differences below ~0.03–0.05 are unresolved. The tool should emit
+per-window AUROCs so a cluster-level SE can back every comparison.
 
 The three 3-inch years — 91 GB of download — land mid-pack (2020s 0.790, 2022s 0.752, 2024s 0.735)
 **below 1 m NAIP files** (2017n 0.855, 2015n 0.842). The 2020 anchor itself scores 0.790, mid-pack.
-Best like-for-like is 2017_naip at 0.855; the floor is `1996_snoh_1m_rgb` at 0.551 (d = −0.02,
-essentially no canopy signal) and `1936_king_pan` at 0.466, below chance.
+Top of the like-for-like ranking is 2017_naip at 0.855 — statistically indistinguishable from the
+next two (0.842, 0.840) given unmeasured per-file sampling error; the floor is `1996_snoh_1m_rgb`
+at 0.551 (d = −0.02, essentially no canopy signal). `1936_king_pan`'s 0.466 is **not a meaningful
+number** — its sample is dominated by white padding that passes the valid-pixel mask (the CSV's own
+median canopy equals median background), so it measures which class drew more padding, not
+"below-chance" signal *(amended in review)*.
 
 **The honest limit of this claim.** AUROC of a *per-pixel index* measures how separable canopy is by
 colour alone. It cannot see texture, crown shape or context — exactly what a CNN uses fine resolution
@@ -92,13 +118,16 @@ The NIR values tell the same story independently: forest NDVI runs 0.84 (2021n, 
 This bears directly on the standing under-prediction problem. Every non-2020 year borrows the 2020
 labels; where an acquisition is leaf-off, the label says "canopy" over pixels that carry little
 evidence for it, which is the regime that teaches a model to under-predict. Leaf state now has a
-number attached to it per acquisition.
+number attached to it for every four-band acquisition (10 of the 43 rasters; the 3-band and pan
+files have only the product-confounded ExG proxy) *(amended in review)*.
 
 ## 3. `2024_coe_rgb.tif` is displaced by ~1.28 m
 
 The city and county copies of 2020 and 2022 are the same pixels twice (r 0.995 / 0.996, offset
-0.00 m at every site). 2024 is not: a **1.29 m offset, systematic to 0.03 m across five scattered
-sites**. Two experiments settle what that means (`investigate_2024_offset.py`):
+0.00 m at every site). 2024 is not: a **1.29 m offset, systematic across five scattered sites**
+(per-site offsets span 1.259–1.297 m — a 0.038 m range; the offset-vector spread the summary table
+carries is 0.006 m MAD — two different statistics, both tiny) *(amended in review; the original
+presented them as one number)*. Two experiments settle what that means (`investigate_2024_offset.py`):
 
 - **Same imagery?** Yes. Removing the shift lifts correlation from 0.682 to **0.985**.
 - **Which file moved?** The city's. `2024_coe` sits **1.28 m** from both 2020 reference files;
@@ -128,15 +157,21 @@ into a number that would look authoritative and mean nothing.
 | **WARN** | **2024_coe ↔ 2024_snoh_3in** | **1.29 m** | **0.01** |
 | **WARN** | **2013_king ↔ 2013_snoh_1m** | **2.76 m** | **0.41** | (investigated → inconclusive, below) |
 
-**Clean bill for the campaign's own georeferencing**: every pair of campaign-acquired files sits
-sub-metre with tight agreement (2019n↔2019s 0.07 m, 2021n↔2021s 0.42 m, 2017n↔2017s 0.58 m,
-2002s↔2002u 0.74 m).
+**Clean bill for the campaign's own georeferencing, with one honest asterisk** *(amended in
+review)*: four campaign pairs sit sub-metre with tight agreement (2019n↔2019s 0.07 m, 2021n↔2021s
+0.42 m, 2017n↔2017s 0.58 m, 2002s↔2002u 0.74 m). The fifth campaign pair, 2015n↔2015s — the same
+2015-08-07 flight in two deliveries — reads a sub-metre 0.85 m median but fails the agreement gate
+by 2 mm (site spread 0.302 vs the 0.30 threshold), so it grades NOISY, not OK. And within two OK
+pairs a single forest site failed to lock (17.7 m and 18.5 m one-site maxima absorbed by the
+median): agreement means 4-of-5 sites, not all five.
 
 **2013 was investigated and the answer is "we cannot tell" — not a finding.** `2013_king` vs
 `2013_snoh_1m` reads 2.76 m (spread 0.41), so it was put through the same triangulation
 (`qc/investigate_displacement.py`, generalised from the 2024 work) against four reference files.
-The first run returned a confident "2013_snoh is displaced" — from inputs whose site spreads were
-**2.1, 5.0, 9.0 and 14.8 m**, all larger than the 2.76 m question being asked. Cross-*year*
+The first run returned a confident "2013_snoh is displaced" — from inputs whose site spreads
+against the 2021/2019 references were **2.1, 5.0, 9.0 and 14.8 m**, three of the four larger than
+the 2.76 m question being asked (the full 8-reference set also had four spreads below 2.76 that
+failed the per-pair gate on their own terms) *(amended in review; the original said "all larger")*. Cross-*year*
 triangulation at 1 m resolution, across six to eight years of real change, simply does not have the
 signal. The tool now applies the same agreement gate as the cross-registration summary, and with it
 **0 of 4 references on either side survive → INCONCLUSIVE**.
@@ -146,15 +181,19 @@ on the 2024 pair against the 2020 and 2022 county files, **2 of 2 references sur
 0.07–0.27 m) and it independently reproduces `2024_coe_rgb.tif is displaced`, 1.27 m vs 0.26 m. The
 gate discriminates; it does not merely refuse.
 
-The ten NOISY pairs all involve either a King County web-Mercator cache product or a cross-season
-comparison; those are exactly the cases where a per-pixel correlation has least to lock onto.
+Nine of the ten NOISY pairs involve either a King County web-Mercator cache product or a
+cross-season comparison — the cases where a per-pixel correlation has least to lock onto. The
+tenth (2015n↔2015s, above) is neither, and missed by 2 mm *(amended in review)*.
 
 ## 4. Data integrity: the strongest evidence we have, plus one real gap
 
 **Byte verification (Drive plane, run on the VM against `MANIFEST.sha256` computed from the D:
-originals): 336 files, 78.4 GB across every campaign source dir, 0 mismatches, 0 size errors.**
-Every campaign raster that has reached Google's servers is byte-identical to its local original.
-This check had never been run — mirrors were only ever size-verified.
+originals): 259 distinct files / 63.4 GB verified, 0 mismatches, 0 size errors** — measured across
+two runs totalling 336 row-checks / 78.4 GB, of which 77 files / 15.0 GB were verified twice
+*(amended in review; the original summed the overlapping runs)*. Every campaign raster that has
+reached Google's servers is byte-identical to its local original. Coverage is every campaign source
+dir EXCEPT the CCAP quarantine (whose manifest post-dates both runs) and the three 3-inch rasters
+(below). This check had never been run — mirrors were only ever size-verified.
 
 Two gaps that verification itself exposed, both now closed:
 
@@ -172,13 +211,20 @@ consequence: the **39 original USGS HRO source tiles** — the delivered governm
 reason 2002 became a replacement — sat single-copy on D: with no data-lake backup, while
 `MANIFEST.sha256` listed all 45 entries as though they were there. Fixed to `rglob` (relative paths
 preserved, `chunks` still excluded); the 12 acquisition tests still pass; all 39 tiles are now
-mirrored — **and re-verified from the cloud: 45/45 entries, 2.93 GB, 0 mismatches.** Found → fixed
-→ proven fixed by measurement, not by assumption.
+mirrored — **and re-verified from the cloud: 45/45 manifest entries OK, 0 mismatches** (the 39
+tiles are 2.93 GB of the 45 entries' 4.94 GB total) *(byte figure amended in review)*. Found →
+fixed → proven fixed by measurement, not by assumption. One caveat the review added: "the 12
+acquisition tests still pass" is regression evidence only — no test exercises `do_mirror`; the
+cloud re-verification is the actual proof. Two latent edges to fix at leisure: the tree-wide
+basename skip would silently not-mirror a subdirectory file sharing the final raster's basename
+(none exists today), and the recursive loop lacks the post-copy size check the raster copy has.
 
 **"Mirrored" did not mean "in the cloud."** The VM sees the three 3-inch rasters as *absent* from
-Drive: the ~61 GB that reported `rc=0` today is still uploading through the local cache. The mirror's
+Drive: the ~91 GB that reported `rc=0` today is still uploading through the local cache. The mirror's
 size-verify compares against that cache, so **it structurally cannot detect this**. Not a corruption
 — but the lake is not complete until the uploads drain, and no Colab work can use those files yet.
+*(Review note: verification is stickier than "pending upload" — the re-run will only see the 3-inch
+files once the regenerated SnoCo `MANIFEST.sha256` that lists them has itself uploaded.)*
 
 **Files with no data-lake copy at all:** `1936_king_pan.tif`, `1998_king_pan.tif` — single-copy on D:.
 
@@ -193,13 +239,17 @@ size-verify compares against that cache, so **it structurally cannot detect this
 
 ## 6. Other findings worth a decision
 
-- **11 files have no overview pyramid** — every one a pre-campaign King County file
-  (2000/2005/2007/2009/2013/2015/2019/2021/2023_king, both King pans) plus the CoE orthos. Every
+- **11 D:-resident files have no overview pyramid** — every one a pre-campaign King County file
+  (2000/2005/2007/2009/2013/2015/2019/2021/2023_king, both King pans); the Drive-resident CoE
+  orthos additionally lack them but were not in this measured pass *(wording amended in review)*. Every
   campaign-acquired raster has overviews. This is not cosmetic: a "decimated" read of an
   overview-less 48 GB ortho touches every byte, which is what caused today's disk incident (§7).
   Building overviews on these would make all future QC and tiling dramatically cheaper.
 - **`1936_king_pan.tif` is ~90% padding**: 37% value 0, 38% value 253, 15% value 255, leaving ~10%
-  real photographic content — and **all five reference sites land in blank padding**. It contributes
+  real photographic content *(review note: these splits come from session terminal output — no
+  preserved CSV records them; the coverage CSV's detected padding is `0;253`, with 255 sitting
+  below the 20% dominance threshold and therefore counted as valid there)* — and **all five
+  reference sites land in blank padding**. It contributes
   nothing to any site-based analysis.
 - **Interior gaps: almost every file is complete over the city.** The first pass flagged
   `2001_snoh_1ft_pan` at 251 ha, `2000_king` at 71 ha and `1990_snoh` at 67 ha. Rendering the gap
@@ -215,12 +265,15 @@ size-verify compares against that cache, so **it structurally cannot detect this
   | `1990_snoh_10ft_pan` | 26.2 ha |
   | `2011_snoh` / `2012_snoh` | 9.1 / 8.8 ha |
   | `2001_snoh_1ft_pan` | **1.54 ha** (was "251 ha") |
-  | every other local file | **0.0 ha, valid 1.000** |
+  | every other local file | **0.0 ha interior gap** (valid ≥ 0.999) |
 
   Only the historical scans have real holes where the trees are; the campaign rasters have none.
-- **Duplication across 20 same-year pairs** confirms the campaign's provenance claims by measurement:
-  `2019_naip` ↔ `2019_snoh` r = **0.970**, independently corroborating that both came from the same
-  Hexagon 2019-10-11 flight — a date that had been argued from filenames and footprint layers.
+- **Duplication across 20 same-year pairs** corroborates the campaign's provenance claims:
+  `2019_naip` ↔ `2019_snoh` r = **0.970**, consistent with both coming from the same Hexagon
+  2019-10-11 flight — a date that had been argued from filenames and footprint layers.
+  *(Amended in review: "corroborates", not "confirms" — the same-flight class boundary (r > 0.96)
+  is a single unreplicated threshold, and the same-day pair 2015n↔2015s reads r = 0.912, below it —
+  different processing chains can pull a same-flight pair under the line.)*
 
 ## 7. Corrections to my own method (recorded so they are not repeated)
 
@@ -256,6 +309,19 @@ Six, all caught by a number that looked wrong — or by rendering the map and lo
    pass over overview-less CoE orthos drove D: free down **0.4–0.6 GB/min**, about an hour from
    filling. Killing that one job recovered 24.8 → 36.2 GB within minutes. Encoded as `--local-only`,
    with the narrower true rule documented: full-extent reads are dangerous, windowed reads are fine.
+
+### 7.7 Corrections from the adversarial review (2026-08-24, after §7.1–7.6)
+
+The review workflow (`IMAGERY_QC_REVIEW_2026-08-24.md`) found the report's facts reliable and its
+confidence the thing needing correction — the same failure mode §7 documents six times. Sentences
+amended above are marked *(amended in review)*. Code fixed in the same pass: `phase_shift`'s
+docstring falsely claimed to be "the same estimator" as `band_registration_px` (it is a separate
+implementation with a Hanning window the other lacks); a crossreg comment mislabelled a 0.03 m
+range as "MAD" (measured MAD 0.006 m); and `_city_mask`'s silent fallback — missing shapefile →
+full-frame analysis with no warning — now prints a warning and records `city_confined` in the CSV.
+Outstanding tool debt the review identified: emit per-window AUROCs (fixes the pseudo-replication
+blindness), resolve the CoE GSD inconsistency (config 5.0 cm vs measured 7.62 cm), and the two
+latent `do_mirror` edges in §4.
 
 ## 8. Suggested next steps (for Kam — nothing here has been actioned beyond the fixes noted)
 

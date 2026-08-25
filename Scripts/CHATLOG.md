@@ -469,8 +469,19 @@ qc:      ** IMAGERY QC AFTER THE CAMPAIGN (2026-08-24) ** branch work/20260824-q
          the agreement gate). That gate has a POSITIVE CONTROL: it still resolves 2024 (2/2 refs, spreads
          .07-.27). Engine mirror bug fixed (rglob) + 39 USGS tiles re-mirrored; 884 stale chunks cleaned (6.4 GB).
          All three 3-inch mirrors now local; cloud upload still draining.
+         ADVERSARIALLY REVIEWED (11-agent verify+attack workflow; IMAGERY_QC_REVIEW_2026-08-24.md): 147
+         findings, 0 critical / 6 major / 35 minor. FACTS all reproduce; CONFIDENCE corrected: resolution claim
+         scoped to 'at the 50 cm analysis grid' (common-grid resampling erases sub-50cm info = the design cannot
+         see a native-res advantage) + resolution confounded with product/season; Spearman null CI (-.35,+.31);
+         '+0.013 negligible' -> unresolved; per-file AUROCs lack computable uncertainty (no per-window values
+         recorded — effective n ~40 clusters, unpaired diffs <.03-.05 unresolved); byte-verify headline
+         double-counted overlapping runs -> 259 distinct files / 63.4 GB, 0 mismatches (conclusion unchanged);
+         NDVI invariance survives at ~2.5x logit-scale (p=.019); 2024 displacement survived every attack.
+         Report amended in place (marked 'amended in review'); 3 code fixes (phase_shift docstring falsehood,
+         MAD mislabel, _city_mask silent-fallback warning + city_confined CSV column).
          NEXT: build overviews on the 11 legacy files (cheapest win); weight NIR years in retraining; 2013 needs
-         a SAME-EPOCH reference, not more cross-year triangulation; optional: why NDVI < ExG on 2017n.
+         a SAME-EPOCH reference, not more cross-year triangulation; emit per-window AUROCs; resolve the CoE GSD
+         inconsistency (config 5.0 vs measured 7.62 cm).
 proj:    Edmonds temporal canopy pipeline, phase 4 (per-year semantic seg, 18 imagery yrs).
 live:    ENGINE MODULARIZED 2026-07-08 → phase4seg/ package (config/common/labels/tiling/core[all torch]/
          postproc/cli) + 97L phase4_semantic_finetune.py SHIM (preserves `%run ... --args`). Behavior =

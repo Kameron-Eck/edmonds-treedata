@@ -210,8 +210,13 @@ def common_grid_pair(pa: Path, pb: Path, lon: float, lat: float, box_m: float, b
 
 def phase_shift(a: np.ndarray, b: np.ndarray):
     """Sub-pixel (dx, dy) of a relative to b, plus the correlation peak sharpness.
-    Same estimator as imagery_measure.band_registration_px — reused so a cross-FILE
-    offset and a cross-BAND offset are never measured two different ways."""
+
+    NOT the same estimator as imagery_measure.band_registration_px, despite sharing the
+    phase-correlation family: this one applies a 2-D Hanning window before the FFT (which
+    suppresses wrap-around edge energy but slightly shrinks large shifts — measured 16.90 px
+    for a true 17) and band_registration_px applies none. An earlier docstring claimed they
+    were "the same estimator, reused"; the 2026-08-24 review checked and they are two
+    implementations. Cross-FILE offsets in the QC outputs all come from THIS function."""
     a = a.astype(np.float32) - a.mean()
     b = b.astype(np.float32) - b.mean()
     if a.std() < 1e-6 or b.std() < 1e-6:
@@ -452,7 +457,7 @@ def qc_crossreg(inv, args):
     #     two images are; it does not measure whether the offset is right.
     #   * What actually separates signal from garbage is whether the five sites AGREE. A real
     #     georeferencing offset is systematic: 2024 read dx -14.31/-14.37/-14.67/-14.71/-14.73
-    #     px at five scattered sites (MAD 0.03 m). A wrong correlation peak is idiosyncratic:
+    #     px at five scattered sites (range 0.03 m; MAD 0.006 m). A wrong correlation peak is idiosyncratic:
     #     the 18-24 m forest outliers agreed with nothing.
     # So: keep every measurement above a garbage floor, report the median offset AND the spread,
     # and let the spread decide whether the pair gets a verdict at all.
@@ -570,6 +575,12 @@ def qc_coverage(inv, args):
                 # promptly became the "dominant extreme value" and the padding detector classified
                 # the entire outside as nodata, handing every file an identical 182 ha gap.
                 city = _city_mask(ds, a.shape)
+                if city is None:
+                    # Without the mask this check silently regresses to the full-frame analysis
+                    # that produced the Puget-Sound artifacts of 2026-08-24. Say so, loudly, and
+                    # record it in the CSV so a regressed run cannot pass for a confined one.
+                    print(f"  WARNING {r['file']}: city shapefile unavailable — "
+                          f"coverage measured over the FULL FRAME, not the city polygon", flush=True)
                 # "valid" cannot just mean non-zero. Scanned historical mosaics pad with WHITE,
                 # not black: 1936_king_pan.tif is 37% value 0, 38% value 253 and 15% value 255 —
                 # only ~10% real photographic content — and a >0 test scores it a near-perfect
@@ -630,6 +641,7 @@ def qc_coverage(inv, args):
                            interior_gap_frac=round(float(interior.mean()), 5),
                            interior_gap_ha=round(n_int * px_m * px_m / 1e4, 2),
                            speckle_px_ignored=speckle_px,
+                           city_confined=bool(city is not None),
                            decimation=dec)
                 row["grade"] = "OK" if row["interior_gap_ha"] < 1.0 else ("WARN" if row["interior_gap_ha"] < 25 else "FAIL")
                 return row

@@ -83,6 +83,25 @@ def main():
     dest = CAMP / "crown_cover_matrix.parquet"
     out.to_parquet(dest, index=False)
     print(f"-> {dest} ({dest.stat().st_size:,} B, {len(out):,} rows x {len(out.columns)} cols)")
+    # E05: column->arm map with is_champion, so the deliverable per-crown series
+    # filters by fact, not by guessing among per-(year, tag) duplicates.
+    sys.path.insert(0, str(SCRIPTS / "qc"))
+    from champion import load_champions
+    champ = load_champions()
+    colmap = {}
+    for c in out.columns:
+        if not c.startswith("cover_"):
+            continue
+        year, _, tag = c[len("cover_"):].partition("_")
+        colmap[c] = {"year": year, "tag": tag,
+                     "is_champion": (None if year not in champ
+                                     else tag == champ[year])}
+    side = CAMP / "crown_cover_matrix.columns.json"
+    side.write_text(json.dumps(colmap, indent=2), encoding="utf-8")
+    undes = sorted({v["year"] for v in colmap.values() if v["is_champion"] is None})
+    if undes:
+        print(f"  ! UNDESIGNATED years in column map (is_champion null): {undes}")
+    print(f"-> {side}")
     return 0
 
 

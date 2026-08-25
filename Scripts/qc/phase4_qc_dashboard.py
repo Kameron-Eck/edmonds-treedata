@@ -91,18 +91,34 @@ def _rows(path):
 
 def load():
     """Live, primary, C-CAP-referenced rows + whatever P2 has produced."""
+    # E05: filter to the CHAMPION arm per year — year-keyed last-wins silently
+    # plotted whichever arm was last in file order (2013 has two live arms).
+    # A year with live rows but no champion designation is SKIPPED AND LISTED,
+    # never guessed.
+    from champion import load_champions, prob_arm
+    champ = load_champions()
+    undesignated = set()
     live = {}
     for r in _rows(QC_DIR / "qc_indep_report.csv"):
         if r.get("live") != "1" or r.get("primary") != "1":
             continue
         if "ccap" not in (r.get("ref") or "").lower():
             continue        # NDVI-referenced rows are a different question
+        y = r["year"]
+        if y not in champ:
+            undesignated.add(y)
+            continue
+        if prob_arm(r.get("prob", "")) != champ[y]:
+            continue        # a non-champion arm — real, but not the deliverable
         try:
-            live[r["year"]] = dict(recall=float(r["recall"]),
-                                   precision=float(r["precision"]),
-                                   prob=r.get("prob", ""))
+            live[y] = dict(recall=float(r["recall"]),
+                           precision=float(r["precision"]),
+                           prob=r.get("prob", ""))
         except (TypeError, ValueError):
             continue        # a nan row should never exist now, but never plot one
+    if undesignated:
+        print("  ! UNDESIGNATED years skipped (live rows exist, no champion_arms.csv "
+              f"row): {sorted(undesignated)}")
 
     agree = {}
     for r in _rows(QC_DIR / "ref_agreement_report.csv"):

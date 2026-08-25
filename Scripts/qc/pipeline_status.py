@@ -77,20 +77,34 @@ def year_rows():
         for _, r in sdf[sdf["step"].astype(str).str.startswith("VERIFY")].iterrows():
             vstate[(str(r["year"]), str(r["tag"]))] = str(r["state"])
 
-    # honest numbers: qc_indep live rows, primary canopy_def
+    # honest numbers: qc_indep live rows, primary canopy_def — CHAMPION arm only
+    # (E05: year-keyed last-wins collapsed multiple live arms into whichever row
+    # came last; undesignated years are listed, never guessed).
     honest = {}
     qcsv = qdir / "qc_indep_report.csv"
     if qcsv.exists():
+        from champion import load_champions, prob_arm
+        champ = load_champions()
+        undesignated = set()
         qdf = pd.read_csv(qcsv)
         if "live" in qdf.columns:
             qdf = qdf[qdf["live"] == 1]
         if "canopy_def" in qdf.columns:
             qdf = qdf[qdf["canopy_def"] == "forest_wetland"]
         for _, r in qdf.iterrows():
+            y = str(r["year"])
+            if y not in champ:
+                undesignated.add(y)
+                continue
+            if prob_arm(str(r.get("prob", ""))) != champ[y]:
+                continue
             try:
-                honest[str(r["year"])] = f"rec {float(r['recall']):.3f} prec {float(r['precision']):.3f}"
+                honest[y] = f"rec {float(r['recall']):.3f} prec {float(r['precision']):.3f}"
             except Exception:
                 pass
+        if undesignated:
+            print("  ! UNDESIGNATED years (live rows, no champion_arms.csv row — "
+                  f"numbers withheld): {sorted(undesignated)}")
 
     rows = []
     entries = sorted(C.YEAR_CATALOG, key=lambda e: str(e.get("label", "")))

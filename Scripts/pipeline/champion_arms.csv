@@ -1,0 +1,35 @@
+# champion_arms.csv — THE machine-readable answer to "which arm is the deliverable
+# for year Y" (E05). AUTHORED decision, code plane (two-planes rule): promotion =
+# editing this file in a commit; history = git log of this file; no status column
+# anywhere. `why` cites the qc_indep live row that justified the pick — it is a
+# POINTER, not a metrics record (thresholds/metrics stay in qc_indep_report.csv
+# live=1; ckpt identity stays in the sem_best_{year}_{tag}.pt name convention).
+# Years with MULTIPLE live arms need Kam's designation and are ABSENT until he
+# names them — consumers fail loud / list them, never guess (last-wins was
+# silently plotting the wrong 2013 arm). PENDING KAM (live arms in brackets):
+#   2000 [citywide_rgb | xsensor_rgb]
+#   2002 [citywide_rgb | xsensor_rgb]
+#   2013 [citywide_rgb | xsensor_rgb]   (citywide_rgb implied by the 08-22 re-score)
+#   2015 [citywide_rgb | xsensor_rgb]
+#   2016 [<untagged citywide> | corrected]
+#   2017 [citywide_rgb | xsensor_train]
+# Single-arm years below are auto-backfilled 2026-08-25: the designation is
+# forced, not a judgment. Sector baselines are the only arm their year-label has.
+year,tag,run_id,why
+2003s,sectors_v1,,only live arm — base2020 sector baseline (not fine-tuned)
+2005,citywide_rgb,,only live arm
+2006s,sectors_v1,,only live arm — base2020 sector baseline (not fine-tuned)
+2007,citywide_rgb,,only live arm
+2009,citywide_rgb,,only live arm
+2011s,sectors_v1,,only live arm — base2020 sector baseline (not fine-tuned)
+2012s,sectors_v1,,only live arm — base2020 sector baseline (not fine-tuned)
+2018s,sectors_v1,,only live arm — base2020 sector baseline (not fine-tuned)
+2019,citywide_rgb,,only live arm
+2019n,p2nir,,only live arm
+2020s,sectors_v1,,only live arm — base2020 sector baseline (not fine-tuned)
+2021,citywide_rgb,,only live arm
+2021s,p2nir,,only live arm
+2022,citywide_rgb,,only live arm
+2023,citywide_rgb,,only live arm
+2023n,,,only live arm (untagged citywide prob)
+2024,citywide_rgb,,only live arm

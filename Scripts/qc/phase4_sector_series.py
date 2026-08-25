@@ -208,12 +208,25 @@ def main():
             dst.write(cov[np.newaxis])
 
     CAMP.mkdir(parents=True, exist_ok=True)
+    # E05: stamp is_champion so the deliverable series filters without dropping
+    # arms. A year with no champion_arms.csv row stamps "" (undesignated) —
+    # visible, never guessed.
+    from champion import load_champions
+    champ = load_champions()
+    for r in series + totals:
+        y = str(r["year"])
+        r["is_champion"] = ("" if y not in champ
+                            else int((r.get("tag") or "") == champ[y]))
+    undes = sorted({str(r["year"]) for r in series if r["is_champion"] == ""})
+    if undes:
+        print(f"  ! UNDESIGNATED years (is_champion left blank): {undes}")
     for name, rows, cols in (
             ("sector_canopy_series.csv", series,
              ["year", "tag", "sector", "p_raw", "p_adj", "thresh", "precision", "recall",
-              "valid_land_px", "gsd_cm", "canopy_ha_true"]),
+              "valid_land_px", "gsd_cm", "canopy_ha_true", "is_champion"]),
             ("city_canopy_totals_design.csv", totals,
-             ["year", "tag", "P_hat", "area_ha", "se", "ci_lo", "ci_hi", "n_sectors"])):
+             ["year", "tag", "P_hat", "area_ha", "se", "ci_lo", "ci_hi", "n_sectors",
+              "is_champion"])):
         with open(CAMP / name, "w", newline="", encoding="utf-8") as f:
             w = csv.DictWriter(f, fieldnames=cols)
             w.writeheader()

@@ -65,7 +65,21 @@ def main():
     # Declared up top: HS_DROPOUT/HS_SOURCE are read below as argparse defaults,
     # and Python forbids any use before the `global` declaration.
 
-    filtered = [a for a in sys.argv[1:] if not (a == "-f" or a.endswith(".json"))]
+    # Colab injects `-f /root/.local/.../kernel-XXX.json` into argv; strip THE PAIR,
+    # not every .json-suffixed value — the old any-.json filter silently ate the
+    # --infer-aoi value (aoi/sectors_v1.json), found 2026-08-25 on the first VM dry-run.
+    filtered, _skip = [], False
+    for a in sys.argv[1:]:
+        if _skip:
+            _skip = False
+            continue
+        if a == "-f":
+            _skip = True
+            continue
+        if a.endswith(".json") and (not filtered or not filtered[-1].startswith("--")):
+            continue          # a bare kernel-json with no owning flag (belt and braces)
+        filtered.append(a)
+
     p = argparse.ArgumentParser(
         description="Phase 4 — Per-Year Semantic Segmentation Fine-Tuning")
     p.add_argument("--year", type=str, default=None,

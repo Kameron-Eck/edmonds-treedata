@@ -587,7 +587,21 @@ def main():
         if a.startswith("#"):
             argv = argv[:i]
             break
-    filtered = [a for a in argv if not (a == "-f" or a.endswith(".json"))]
+    # Colab injects `-f /root/.local/.../kernel-XXX.json` into argv; strip THE PAIR,
+    # not every .json-suffixed value — the old any-.json filter silently ate the
+    # --infer-aoi value (aoi/sectors_v1.json), found 2026-08-25 on the first VM dry-run.
+    filtered, _skip = [], False
+    for a in argv:
+        if _skip:
+            _skip = False
+            continue
+        if a == "-f":
+            _skip = True
+            continue
+        if a.endswith(".json") and (not filtered or not filtered[-1].startswith("--")):
+            continue          # a bare kernel-json with no owning flag (belt and braces)
+        filtered.append(a)
+
 
     ap = argparse.ArgumentParser(description="Unattended Phase-4 training queue.")
     ap.add_argument("--infer-batch", type=int, default=32)

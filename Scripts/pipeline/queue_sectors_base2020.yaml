@@ -1,0 +1,43 @@
+# SECTOR BASELINE QUEUE — base-2020-model inference over sectors_v1 (2026-08-24).
+# labels/tile/train/evaluate are PRE-SEEDED OK (train_queue_status_queue_sectors_base2020_seed.csv)
+# so only inference runs. sem_best_{y}_sectors_v1.pt = a COPY of phase3/sem_best_2020.pt
+# (RGB-only, NOT fine-tuned — labelled base2020 wherever these outputs appear).
+# Cheapest first: proves the AOI path end-to-end for pennies before the expensive year.
+- id: "2006s_b20"
+  year: "2006s"
+  tag: sectors_v1
+  extra: ["--force-citywide", "--infer-aoi", "aoi/sectors_v1.json"]
+  why: "1 m county year; cheapest possible proof of the sector-AOI inference path."
+  expect: "prob raster ~9-10% valid (sector rects), rest nodata 255; minutes."
+- id: "2011s_b20"
+  year: "2011s"
+  tag: sectors_v1
+  extra: ["--force-citywide", "--infer-aoi", "aoi/sectors_v1.json"]
+  why: "new calendar year, 1-ft county RGB."
+  expect: "sector prob; ~10 min."
+- id: "2003s_b20"
+  year: "2003s"
+  tag: sectors_v1
+  extra: ["--force-citywide", "--infer-aoi", "aoi/sectors_v1.json"]
+  why: "new calendar year, 1-ft county RGB."
+  expect: "sector prob; ~10 min."
+- id: "2012s_b20"
+  year: "2012s"
+  tag: sectors_v1
+  extra: ["--force-citywide", "--infer-aoi", "aoi/sectors_v1.json"]
+  why: "new calendar year, 9-in county RGB."
+  expect: "sector prob; ~10 min."
+- id: "2018s_b20"
+  year: "2018s"
+  tag: sectors_v1
+  extra: ["--force-citywide", "--infer-aoi", "aoi/sectors_v1.json"]
+  why: "the 2017->2019 gap year, HXIP 6-in NIR imagery (model reads RGB bands)."
+  expect: "sector prob; ~20 min."
+- id: "2020s_b20"
+  year: "2020s"
+  tag: sectors_v1
+  extra: ["--force-citywide", "--infer-aoi", "aoi/sectors_v1.json"]
+  why: >-
+    ANCHOR-CONSISTENCY QC: independent same-year 3-in EagleView imagery through the 2020
+    base model vs the phase3 anchor mask. The expensive one (7.6 cm), last.
+  expect: "sector prob; ~45 min incl. 29.6 GB staging (staging unchanged by AOI)."

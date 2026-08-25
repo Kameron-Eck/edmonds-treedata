@@ -1333,6 +1333,39 @@ def step_evaluate(label, dry_run=False):
 #  Step 5 — Full-city native inference → probability raster
 # ══════════════════════════════════════════════════════════════════════════════
 
+def _aoi_pixel_rects(aoi_path, img_crs, img_tf, img_h, img_w):
+    """Sector AOI file → pixel rects [(r0, r1, c0, c1)] on this ortho, clamped to the
+    grid; empty/degenerate rects dropped. Accepts the sectors JSON written by
+    pipeline/make_sectors.py ({"crs": ..., "sectors": [{"bounds_3857": [minx,miny,maxx,maxy]}]})
+    or any vector file geopandas can read (bounds per feature). Relative paths resolve
+    against the repo pipeline/ dir so the same flag value works locally and on a VM clone."""
+    import json
+    p = Path(aoi_path)
+    if not p.is_absolute():
+        p = Path(__file__).resolve().parents[1] / p
+    rects_bounds, src_crs = [], None
+    if p.suffix.lower() == ".json":
+        d = json.loads(Path(p).read_text(encoding="utf-8"))
+        src_crs = d.get("crs", "EPSG:3857")
+        rects_bounds = [s["bounds_3857"] for s in d["sectors"]]
+    else:
+        import geopandas as gpd
+        g = gpd.read_file(p)
+        src_crs = str(g.crs)
+        rects_bounds = [list(geom.bounds) for geom in g.geometry]
+    out = []
+    for minx, miny, maxx, maxy in rects_bounds:
+        bx = rasterio.warp.transform_bounds(src_crs, img_crs, minx, miny, maxx, maxy)
+        win = rasterio.windows.from_bounds(*bx, transform=img_tf)
+        r0 = max(0, int(np.floor(win.row_off)))
+        c0 = max(0, int(np.floor(win.col_off)))
+        r1 = min(img_h, int(np.ceil(win.row_off + win.height)))
+        c1 = min(img_w, int(np.ceil(win.col_off + win.width)))
+        if r1 > r0 and c1 > c0:
+            out.append((r0, r1, c0, c1))
+    return out
+
+
 def step_inference(label, batch_size=INFER_BATCH_SIZE, dry_run=False, citywide=False):
     _ensure_torch()
     entry = entry_for(label)
@@ -1364,6 +1397,16 @@ def step_inference(label, batch_size=INFER_BATCH_SIZE, dry_run=False, citywide=F
         px = src.transform.a; py = abs(src.transform.e)
     print(f"  Ortho: {img_w}×{img_h}px  ({img_w*px/1000:.1f}×{img_h*py/1000:.1f} km)"
           f"  GSD≈{px*100:.1f}cm  nodata={src_nodata}")
+    # AOI resolution happens BEFORE the dry-run return so a dry run is a free,
+    # machine-checkable smoke of the sector geometry (no GPU, no staging).
+    aoi_rects = None
+    if config.INFER_AOI:
+        aoi_rects = _aoi_pixel_rects(config.INFER_AOI, img_crs, img_tf, img_h, img_w)
+        px_aoi = sum((r1 - r0) * (c1 - c0) for r0, r1, c0, c1 in aoi_rects)
+        print(f"  AOI: {len(aoi_rects)} rect(s) from {Path(config.INFER_AOI).name} "
+              f"(~{100 * px_aoi / (img_h * img_w):.1f}% of the grid; rest → nodata)")
+        if not aoi_rects:
+            print("  ERROR: --infer-aoi has no overlap with this ortho"); return
     if dry_run:
         print("  Dry run — not running inference")
         _unstage_imagery_local(local) if local != native else None
@@ -1406,6 +1449,7 @@ def step_inference(label, batch_size=INFER_BATCH_SIZE, dry_run=False, citywide=F
     # citywide path ran. Without this, a fine year without --force-citywide would train
     # on full crops but emit a mostly-nodata prob raster (tiling ignores the manifest).
     sample_mode = bool(config.SAMPLE_MANIFEST) and citywide
+    aoi_mode = bool(aoi_rects) and not sample_mode   # sample-manifest wins (cli warns)
     if sample_mode:
         # Sample-only inference: predict ONLY the manifest tiles (same fixed locations
         # the model tiled/trained on), everything else stays nodata. Turns a full-city
@@ -1423,7 +1467,15 @@ def step_inference(label, batch_size=INFER_BATCH_SIZE, dry_run=False, citywide=F
             origins += [(r, img_w - TILE_SIZE) for r in range(0, img_h, stride)]
         origins.append((img_h - TILE_SIZE, img_w - TILE_SIZE))
         origins = sorted(set(origins))
-        print(f"  Tile positions: {len(origins):,}  |  batch={batch_size}")
+        if aoi_rects:
+            # keep a tile iff its INFER_STRIDE write-crop intersects any sector rect —
+            # the crop is what lands in the raster, so this is the exact coverage test
+            origins = [(r, c) for (r, c) in origins
+                       if any(r < r1 and r + cc > r0 and c < c1 and c + cc > c0
+                              for (r0, r1, c0, c1) in aoi_rects)]
+            print(f"  AOI-restricted tile positions: {len(origins):,}  |  batch={batch_size}")
+        else:
+            print(f"  Tile positions: {len(origins):,}  |  batch={batch_size}")
 
     # uint8 prob raster; 255 reserved as a nodata sentinel (blanks un-imaged areas
     # of partial-coverage years). Real probabilities clipped to 0–254.
@@ -1476,8 +1528,8 @@ def step_inference(label, batch_size=INFER_BATCH_SIZE, dry_run=False, citywide=F
 
     tick("inference")
     with rasterio.open(prob_out, "w", **prob_profile) as dst:
-        if sample_mode:
-            # Pixels outside the sampled tiles must read as nodata (255), not the GTiff
+        if sample_mode or aoi_mode:
+            # Pixels outside the sampled/AOI tiles must read as nodata (255), not the GTiff
             # default 0 — else the autopsy scores un-inferred forest as a miss. Fill 255
             # in row strips (memory-safe), then the sample windows overwrite it.
             _fill = np.full((TILE_SIZE, img_w), PROB_NODATA, dtype=np.uint8)

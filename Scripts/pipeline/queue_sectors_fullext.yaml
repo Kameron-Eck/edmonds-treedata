@@ -1,0 +1,18 @@
+# SECTOR FULLEXT QUEUE — full fine-tunes on the campaign's full-extent imagery (2026-08-24).
+# Kills the 41.9%-coverage ceiling on 2016/2021s. Training/tiling = the standard citywide
+# recipe on the FULL new orthos (comparability with every prior fine-tune); ONLY inference
+# is sector-restricted. Serialized after the base2020 queue (one queue per runtime, P11).
+- id: "2016_fx"
+  year: "2016"
+  tag: fullext_sectors_v1
+  extra: ["--force-citywide", "--infer-aoi", "aoi/sectors_v1.json"]
+  why: >-
+    full-extent 2016_snoh_1ft_rgbi.tif (100% city vs the old 41.9% study clip); retile is
+    automatic (_tile_signature keys on ortho name+size).
+  expect: "train ~60-90 min A100; sector inference ~1 min; qc_indep then supersedes the live 2016 row."
+- id: "2021s_fx"
+  year: "2021s"
+  tag: fullext_sectors_v1
+  extra: ["--force-citywide", "--infer-aoi", "aoi/sectors_v1.json"]
+  why: "full-extent 2021_snoh_6in_rgbi.tif (100% study vs 39.5% clip)."
+  expect: "train ~60-90 min; sector inference ~2 min."

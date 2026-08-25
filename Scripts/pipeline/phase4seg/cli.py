@@ -178,6 +178,14 @@ def main():
                         "those fixed geographic locations (reprojected per year), so a "
                         "cross-sensor run trains/infers on the same representative, "
                         "forest-oversampled sample instead of the full city. Retiles.")
+    p.add_argument("--infer-aoi", type=str, default=None,
+                   help="Sector AOI file (pipeline/aoi/sectors_v1.json or a .gpkg). "
+                        "step_inference infers ONLY tiles whose write-crop intersects a "
+                        "sector rectangle; the rest of the full-grid prob raster stays "
+                        "PROB_NODATA (the sample-manifest output shape, which every "
+                        "downstream scorer already handles). Relative paths resolve "
+                        "against the repo pipeline/ dir. Other steps are unaffected; "
+                        "the tile cache never re-tiles for an AOI change.")
     p.add_argument("--stride", type=int, default=None,
                    help="Override the per-tier tiling stride (smaller = more "
                         "overlapping tiles → more tiles).")
@@ -374,6 +382,10 @@ def main():
     config.INFER_THRESH_OVERRIDE = args.infer_thresh
     config.ADD_CANOPY_MASK = args.add_canopy_mask
     config.SAMPLE_MANIFEST = args.sample_manifest
+    config.INFER_AOI = args.infer_aoi
+    if config.INFER_AOI and config.SAMPLE_MANIFEST:
+        print("  WARNING: both --sample-manifest and --infer-aoi given — sample-manifest "
+              "wins for citywide runs; the AOI is ignored wherever sample mode engages.")
     if config.SAMPLE_MANIFEST and not args.force_citywide:
         print("  WARNING: --sample-manifest applies only to citywide/coarse tiers. "
               "Fine/medium years without --force-citywide tile + infer FULL (manifest "

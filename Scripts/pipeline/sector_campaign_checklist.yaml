@@ -1,0 +1,168 @@
+# SECTOR CAMPAIGN CHECKLIST — the SOURCE OF TRUTH the autonomous loop executes against.
+# (sector program, 2026-08-24; plan: you-are-running-an-foamy-tulip.md)
+#
+# AUTHORED definition (this file, tracked in git). MEASURED state lives on the data plane:
+# phase4/qc/sector_campaign/state_{launchts}.jsonl — append-only, one file per loop launch,
+# merged by glob, latest-ts-wins per item (the train_queue_status pattern).
+#
+# Verify types the loop implements:
+#   file         {path, min_bytes}                 (roots: "repo:" = Scripts/, "data:" = the lake)
+#   csv_rows     {path, where, min_rows, contains_tag_any}
+#   cmd          {cmd, expect_exit, stdout_re}     (run from Scripts/; {colab} = colab.exe path,
+#                                                   {scratch} = the loop's VM-script dir)
+#   queue_verify {glob, jobs}                      (merged rows; done iff each job's end VERIFY
+#                                                   state is NOT in _VERIFY_HARD_FAIL — never ==OK,
+#                                                   WEAK_CALIBRATION/UNCHECKED must not wedge)
+# Dependencies are satisfied by state done OR skipped. blocking:false items never gate anything.
+version: sector_campaign_v1
+defaults: {retries: 1, blocking: true}
+items:
+  - id: S00_sectors_computed
+    phase: sectors
+    owner: local
+    description: 5 west-east sector AOIs, 4 block-rows tall, snapped to the anchor lattice, water extension from the bathology waterbody layer.
+    run: "py -3.12 pipeline/make_sectors.py --rows-per-sector 4 --version sectors_v1"
+    verify:
+      - {cmd: "py -3.12 -c \"import json;d=json.load(open('pipeline/aoi/sectors_v1.json'));assert len(d['sectors'])==5\"", expect_exit: 0}
+      - {file: "data:phase4/qc/sectors/sectors_v1.gpkg", min_bytes: 10000}
+      - {file: "D:/edmonds-pipeline/ARCGIS/MachineLearning/sectors/sectors_v1.gpkg", min_bytes: 10000}
+
+  - id: S01_kam_review
+    phase: sectors
+    owner: kam
+    blocking: false
+    depends_on: [S00_sectors_computed]
+    description: Kam eyeballs sectors_v1_overview.png / the gpkg in ArcGIS and drops an approval marker file. NON-BLOCKING (a WARN is recorded if queues launch unreviewed).
+    verify:
+      - {file: "data:phase4/qc/sector_campaign/KAM_APPROVED_sectors_v1.txt", min_bytes: 1}
+
+  - id: S02_engine_aoi_verified
+    phase: engine
+    owner: local
+    depends_on: [S00_sectors_computed]
+    description: "--infer-aoi landed: preflight + smoke green locally; AOI dry-run runs on the qc VM (the engine is fork/Colab-only to execute)."
+    verify:
+      - {cmd: "py -3.12 pipeline/phase4seg_preflight.py", expect_exit: 0}
+      - {cmd: "py -3.12 pipeline/phase4seg_smoke.py", expect_exit: 0}
+      - {cmd: "{colab} exec -s qc -f {scratch}/vm_aoi_dryrun.py --timeout 600", expect_exit: 0, stdout_re: "AOI: 5 rect"}
+
+  - id: S03_committed_pushed
+    phase: engine
+    owner: local
+    depends_on: [S00_sectors_computed, S02_engine_aoi_verified]
+    description: AOI json + engine diff + queues + this checklist COMMITTED AND PUSHED (VMs clone the repo; uncommitted work does not exist there).
+    verify:
+      - {cmd: "py -3.12 -c \"import yaml;a=yaml.safe_load(open('pipeline/queue_sectors_base2020.yaml'));b=yaml.safe_load(open('pipeline/queue_sectors_fullext.yaml'));assert len(a)==6 and len(b)==2\"", expect_exit: 0}
+      - {cmd: "git status --porcelain -- pipeline/aoi pipeline/queue_sectors_base2020.yaml pipeline/queue_sectors_fullext.yaml pipeline/sector_campaign_checklist.yaml pipeline/phase4seg", expect_exit: 0, stdout_re: "^$"}
+
+  - id: S04_seed_csv
+    phase: prep
+    owner: local
+    depends_on: [S03_committed_pushed]
+    description: Seed status CSV marking labels/tile/train/evaluate OK for the 6 base2020 jobs (ids must match the queue YAML exactly).
+    run: "py -3.12 qc/sector_campaign_loop.py --write-seed"
+    verify:
+      - {csv_rows: {path: "data:phase4/qc/train_queue_status_queue_sectors_base2020_seed.csv", where: {state: OK}, min_rows: 24}}
+
+  - id: S10_gpu_vm_up
+    phase: gpu
+    owner: kam
+    wait_min: 120
+    description: "Kam: the loop creates session 'gpu' (A100); Kam runs the 1-minute drivemount. Not mounted within wait_min -> skipped/SKIPPED_NO_GPU; the GPU chain cascades to skipped; the CPU chain continues."
+    verify:
+      - {cmd: "{colab} exec -s gpu -f {scratch}/vm_probe.py --timeout 240", expect_exit: 0, stdout_re: "DRIVE_MOUNTED True"}
+
+  - id: S05_base2020_ckpts
+    phase: prep
+    owner: qc-vm
+    depends_on: [S03_committed_pushed]
+    timeout_min: 60
+    description: Drive-to-Drive copies phase3/sem_best_2020.pt -> phase4/models/sem_best_{y}_sectors_v1.pt for the 6 base years (VM-side; size-verified 1,113,161,289 B each).
+    run: "{colab} exec -s qc -f {scratch}/vm_copy_ckpts.py --timeout 1800"
+    verify:
+      - {file: "data:phase4/models/sem_best_2006s_sectors_v1.pt", min_bytes: 1113161289}
+      - {file: "data:phase4/models/sem_best_2011s_sectors_v1.pt", min_bytes: 1113161289}
+      - {file: "data:phase4/models/sem_best_2003s_sectors_v1.pt", min_bytes: 1113161289}
+      - {file: "data:phase4/models/sem_best_2012s_sectors_v1.pt", min_bytes: 1113161289}
+      - {file: "data:phase4/models/sem_best_2018s_sectors_v1.pt", min_bytes: 1113161289}
+      - {file: "data:phase4/models/sem_best_2020s_sectors_v1.pt", min_bytes: 1113161289}
+
+  - id: S11_base2020_queue
+    phase: gpu
+    owner: gpu-vm
+    depends_on: [S02_engine_aoi_verified, S04_seed_csv, S05_base2020_ckpts, S10_gpu_vm_up]
+    timeout_min: 300
+    description: Launch queue_sectors_base2020 nohup-detached on the GPU VM (resume skips seeded steps -> inference only, sector-restricted). WARN recorded if S01 unreviewed at launch.
+    run: "{colab} exec -s gpu -f {scratch}/vm_launch_base2020.py --timeout 300"
+    verify:
+      - {queue_verify: {glob: "data:phase4/qc/train_queue_status_queue_sectors_base2020_2*.csv", jobs: [2006s_b20, 2011s_b20, 2003s_b20, 2012s_b20, 2018s_b20, 2020s_b20]}}
+
+  - id: S12_fullext_queue
+    phase: gpu
+    owner: gpu-vm
+    depends_on: [S03_committed_pushed, S10_gpu_vm_up, S11_base2020_queue]
+    timeout_min: 420
+    description: Launch queue_sectors_fullext (2016 + 2021s full fine-tunes, sector-restricted inference). Serialized after S11 — one queue per runtime (P11).
+    run: "{colab} exec -s gpu -f {scratch}/vm_launch_fullext.py --timeout 300"
+    verify:
+      - {queue_verify: {glob: "data:phase4/qc/train_queue_status_queue_sectors_fullext_2*.csv", jobs: [2016_fx, 2021s_fx]}}
+
+  - id: S13_stop_gpu_vm
+    phase: gpu
+    owner: local
+    blocking: false
+    depends_on: [S11_base2020_queue, S12_fullext_queue]
+    description: Cap spend — stop the GPU session once both queues are terminal.
+    run: "{colab} stop -s gpu"
+    verify:
+      - {cmd: "{colab} exec -s gpu -f {scratch}/vm_probe.py --timeout 120", expect_exit: 1}
+
+  - id: S20_qc_indep_scoring
+    phase: scoring
+    owner: local
+    depends_on: [S11_base2020_queue, S12_fullext_queue]
+    timeout_min: 240
+    description: Honest scoring of the new sector probs (threshold sweep -> live rows). RUNS BEFORE POSTPROC — base2020 arms have no eval rows, so postproc must get --infer-thresh from here (the silent 0.5 fallback is forbidden).
+    run: "py -3.12 qc/sector_campaign_loop.py --score-all"
+    verify:
+      - {csv_rows: {path: "data:phase4/qc/qc_indep_report.csv", where: {live: "1"}, min_rows: 1, contains_tag_any: [sectors_v1, fullext_sectors_v1]}}
+
+  - id: S21_postproc
+    phase: scoring
+    owner: qc-vm
+    depends_on: [S20_qc_indep_scoring]
+    timeout_min: 240
+    description: Per new arm --step postproc --run-tag {tag} --infer-thresh {live-row thr}. CPU-only on the Drive-mounted qc VM. The loop refuses any year whose live threshold row is missing.
+    run: "py -3.12 qc/sector_campaign_loop.py --postproc-all"
+    verify:
+      - {cmd: "py -3.12 qc/sector_campaign_loop.py --postproc-audit", expect_exit: 0}
+
+  - id: S22_sector_series
+    phase: series
+    owner: local
+    depends_on: [S20_qc_indep_scoring]
+    timeout_min: 360
+    description: Per-sector canopy series from PROBS at deployed thresholds (sector-POLYGON clipped, err-adjusted), incl. existing full-city years clipped to sectors; design-based city totals + successive-difference CI.
+    run: "py -3.12 qc/phase4_sector_series.py --aoi pipeline/aoi/sectors_v1.json"
+    verify:
+      - {csv_rows: {path: "data:phase4/qc/sector_campaign/sector_canopy_series.csv", min_rows: 40}}
+      - {csv_rows: {path: "data:phase4/qc/sector_campaign/city_canopy_totals_design.csv", min_rows: 8}}
+
+  - id: S23_crown_matrix
+    phase: series
+    owner: local
+    depends_on: [S21_postproc]
+    timeout_min: 240
+    description: "Per-crown cover matrix on sectors (1-m cover sidecars + rasterize/bincount; crowns from the D: mirror)."
+    run: "py -3.12 qc/phase4_crown_cover_matrix.py --aoi pipeline/aoi/sectors_v1.json"
+    verify:
+      - {file: "data:phase4/qc/sector_campaign/crown_cover_matrix.parquet", min_bytes: 200000}
+
+  - id: S24_report
+    phase: report
+    owner: local
+    depends_on: [S22_sector_series, S23_crown_matrix]
+    description: Machine report skeleton (tables, per-item outcomes, WARNs, spend log). Claude writes the narrative at the final checkpoint.
+    run: "py -3.12 qc/sector_campaign_loop.py --report"
+    verify:
+      - {file: "data:phase4/qc/sector_campaign/sector_campaign_v1_report.md", min_bytes: 2000}

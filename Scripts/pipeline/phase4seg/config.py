@@ -270,6 +270,9 @@ INFER_THRESH_OVERRIDE = None
 # trees are static). Flag: --add-canopy-mask.
 ADD_CANOPY_MASK = None
 SAMPLE_MANIFEST = None  # --sample-manifest: C-CAP-stratified fixed tile locations (phase4_ccap_sample.py)
+INFER_AOI = None        # --infer-aoi: sector AOI file (pipeline/aoi/*.json|.gpkg); step_inference is
+                        # restricted to tiles intersecting the sector rects, rest of the full-grid
+                        # raster stays PROB_NODATA (the sample-manifest output shape). 2026-08-24.
 # ── Auxiliary height-supervision reframe (--aux-height) ────────────────────────
 # Teach the model to PREDICT canopy height from RGB (a 2nd output head) instead of
 # feeding the 2016 CHM as an outvoted 4th INPUT channel. Inference stays RGB-only, so

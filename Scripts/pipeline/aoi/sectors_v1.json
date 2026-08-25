@@ -1,0 +1,214 @@
+{
+ "version": "sectors_v1",
+ "crs": "EPSG:3857",
+ "lattice": {
+  "origin_x": -13625893.973200373,
+  "origin_y": 6084272.795957603,
+  "px": 0.07464553543473991,
+  "tile_px": 512,
+  "block_tiles": 4
+ },
+ "params": {
+  "n_sectors": 5,
+  "rows_per_sector": 4,
+  "water_ext_m": 150.0
+ },
+ "generated": {
+  "ts": "2026-08-25T04:29:38+00:00",
+  "git": "cc3a94a",
+  "script": "pipeline/make_sectors.py"
+ },
+ "sectors": [
+  {
+   "id": "S1",
+   "band": 0,
+   "block_row0": 11,
+   "block_rows": 4,
+   "bounds_3857": [
+    -13618861.767,
+    6081979.685,
+    -13617027.278,
+    6082591.181
+   ],
+   "west_col": 47,
+   "east_col": 58,
+   "water_cells": 1,
+   "area_m2_true": 505963.2,
+   "land_area_m2_true": 330295.6,
+   "water_frac": 0.2869,
+   "sites": [],
+   "sites_partial": [],
+   "n_crowns": 3410,
+   "dist_shore_m": {
+    "min": 1.3,
+    "p50": 344.6,
+    "max": 493.5
+   }
+  },
+  {
+   "id": "S2",
+   "band": 1,
+   "block_row0": 29,
+   "block_rows": 4,
+   "bounds_3857": [
+    -13621460.626,
+    6079227.952,
+    -13617027.278,
+    6079839.448
+   ],
+   "west_col": 30,
+   "east_col": 58,
+   "water_cells": 1,
+   "area_m2_true": 1222744.4,
+   "land_area_m2_true": 988366.9,
+   "water_frac": 0.1349,
+   "sites": [],
+   "sites_partial": [],
+   "n_crowns": 9646,
+   "dist_shore_m": {
+    "min": 35.6,
+    "p50": 564.6,
+    "max": 962.3
+   }
+  },
+  {
+   "id": "S3",
+   "band": 2,
+   "block_row0": 46,
+   "block_rows": 4,
+   "bounds_3857": [
+    -13623906.61,
+    6076629.093,
+    -13618250.27,
+    6077240.589
+   ],
+   "west_col": 14,
+   "east_col": 50,
+   "water_cells": 1,
+   "area_m2_true": 1560053.2,
+   "land_area_m2_true": 1185942.2,
+   "water_frac": 0.1973,
+   "sites": [],
+   "sites_partial": [
+    "Forest_1"
+   ],
+   "n_crowns": 7034,
+   "dist_shore_m": {
+    "min": 19.9,
+    "p50": 1037.4,
+    "max": 1299.2
+   },
+   "ccap_2021": {
+    "forest": 0.2628,
+    "wetland": 0.0,
+    "emergent_wetland": 0.0004,
+    "grass": 0.0,
+    "developed": 0.5069,
+    "bare": 0.0061,
+    "water": 0.1977
+   },
+   "ccap_2016": {
+    "forest": 0.2715,
+    "wetland": 0.0,
+    "emergent_wetland": 0.0035,
+    "grass": 0.0024,
+    "developed": 0.4847,
+    "bare": 0.0201,
+    "water": 0.1816
+   }
+  },
+  {
+   "id": "S4",
+   "band": 3,
+   "block_row0": 64,
+   "block_rows": 4,
+   "bounds_3857": [
+    -13625435.351,
+    6073877.36,
+    -13617333.026,
+    6074488.856
+   ],
+   "west_col": 4,
+   "east_col": 56,
+   "water_cells": 1,
+   "area_m2_true": 2234670.7,
+   "land_area_m2_true": 1812501.5,
+   "water_frac": 0.0708,
+   "sites": [
+    "Forest_4"
+   ],
+   "sites_partial": [],
+   "n_crowns": 10406,
+   "dist_shore_m": {
+    "min": 7.3,
+    "p50": 738.7,
+    "max": 1389.6
+   },
+   "ccap_2021": {
+    "forest": 0.2492,
+    "wetland": 0.0073,
+    "emergent_wetland": 0.0006,
+    "grass": 0.0019,
+    "developed": 0.6512,
+    "bare": 0.0105,
+    "water": 0.0643
+   },
+   "ccap_2016": {
+    "forest": 0.2592,
+    "wetland": 0.0101,
+    "emergent_wetland": 0.004,
+    "grass": 0.0091,
+    "developed": 0.6018,
+    "bare": 0.0204,
+    "water": 0.0527
+   }
+  },
+  {
+   "id": "S5",
+   "band": 4,
+   "block_row0": 83,
+   "block_rows": 4,
+   "bounds_3857": [
+    -13623142.24,
+    6070972.753,
+    -13617791.648,
+    6071584.249
+   ],
+   "west_col": 18,
+   "east_col": 53,
+   "water_cells": 0,
+   "area_m2_true": 1475726.0,
+   "land_area_m2_true": 1312883.4,
+   "water_frac": 0.0246,
+   "sites": [],
+   "sites_partial": [
+    "Forest_3",
+    "Negative_Edmonds_Heights_K_12"
+   ],
+   "n_crowns": 8146,
+   "dist_shore_m": {
+    "min": 26.7,
+    "p50": 1256.3,
+    "max": 1860.6
+   },
+   "ccap_2021": {
+    "forest": 0.3609,
+    "wetland": 0.0009,
+    "emergent_wetland": 0.0,
+    "grass": 0.0008,
+    "developed": 0.6069,
+    "bare": 0.0003,
+    "water": 0.0251
+   },
+   "ccap_2016": {
+    "forest": 0.4006,
+    "wetland": 0.0003,
+    "emergent_wetland": 0.0083,
+    "grass": 0.004,
+    "developed": 0.532,
+    "bare": 0.0146,
+    "water": 0.0205
+   }
+  }
+ ]
+}

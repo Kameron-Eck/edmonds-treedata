@@ -54,6 +54,34 @@ SPACE RULES — keep always-loaded context low for continuous logging:
     judgement-heavy rewrite of the project's memory and should not be done at the end of a
     long session.
 
+sectors: ** ACTIVE WORKSTREAM 2026-08-24/25 — SECTOR CAMPAIGN. Source of truth =
+         pipeline/sector_campaign_checklist.yaml + state_*.jsonl + RESUME_NOTES.md in
+         data:phase4/qc/sector_campaign/. Branch work/20260824-sectors. **
+         DONE: 5 W-E sectors (sectors_v1, ~10% of px); engine --infer-aoi; base2020 queue —
+         6 arms (2003s/2006s/2011s/2012s/2018s/2020s) inference VERIFY OK on A100, scored vs
+         C-CAP (qc_indep live rows @0.5 = base-model calibration, pre-registered baseline
+         operating point), postproc masks 5/6 (2020s mask MISSING — qc VM died mid-copy).
+         DEAD: both Colab sessions (gpu ~06:37Z mid-2016_fx train epoch 2; qc ~14:2xZ
+         mid-2020s postproc). No code crash either time.
+         BLOCKED ON KAM: (1) new A100 session + drivemount → loop restart relaunches
+         fullext (2016_fx labels+tile already OK, resume skips); (2) qc VM same for 2020s
+         postproc; (3) `gh auth refresh -s workflow` or own-shell push — remote rejects
+         .github/workflows/ push, branch mirror 7 commits behind (SAFE: VM clones therefore
+         get pre-E02 engine until the drivefs smoke passes); (4) champion designations for
+         2000/2002/2013/2015/2016/2017 (pipeline/champion_arms.csv header lists arms);
+         (5) E02 drivefs os.replace smoke on next CPU VM BEFORE fullext relaunch from a
+         pushed E02 branch. Then: S22 series → S23 crown matrix → S24 report.
+ebacklog: ** 2026-08-25 — BEST-PRACTICES REVIEW (Kam-approved plan, D:\tools\...\plans\) **
+         3 research passes + 8-agent adversarial verify; every top-8 item corrected; plan =
+         E01-E10. LANDED Lane 1: E01 registry year-join+SEEDED fix · E02 atomic .part
+         publish (drivefs smoke OWED) · E03 CI gates (push blocked, see above) · E05
+         champion_arms.csv + 4 consumers fail-loud (2013 wrong-arm bug fixed) · E06
+         label lineage (manifest labels block, lineage.json stamper, Method_Pipeline
+         provenance home) · E08 audit corrections (Hygiene #16 false premise; new #18-20).
+         PENDING: E04 cost layers (agent) · E07 golden gate v1 (agent) · E09/E10 + Lane 3
+         (noise arm first GPU ask post-fullext). KEY REVERSALS: no output overlap exists
+         (blending/stride REJECTED); train resume economics inverted (0.7 GPU-min lost ever
+         vs 3+ GPU-h in tile/inference → E10 inference resume is the payer).
 overhaul: ** ACTIVE WORKSTREAM 2026-08-20 — OPTION A OVERHAUL. PLAN = Scripts/OVERHAUL_PLAN_2026-08-20.md **
          Adopted by Kam. Re-plumb planes: code → normal git repo on D: + GitHub live remote; Colab
          clones code; Drive = data lake ONLY.
@@ -1417,6 +1445,41 @@ gotcha:  scripts Colab-only for torch (rasterio+geopandas+fiona+sklearn now pip-
          accept-all test data; 14,476-crown human review never finished.
 
 ════════════════ LOG  (newest first) ════════════════
+
+## 2026-08-25  E-BACKLOG LANE 1 — 8-agent adversarial verify corrected EVERY top-8 practice item; 6 landed (Fable 5 session)
+goal:    Kam: industry best-practice review, "full inference doesnt sound smart in terms of money and time"
+did:     3 research passes (internal inventory, external sweep, 8 opus verifiers vs live code). Landed:
+         E01 registry joins status on `year` not job id (sector campaign got ZERO timing before; SEEDED rows excluded) ·
+         E02 _copy_to_drive stages .part.{pid}{token} + verify + os.replace (kills truncated-final + good-artifact-unlink bugs) ·
+         E03 CI (.github/workflows/ci.yml, qc/test_ci_gates.py, constraints-ci.txt; 16 tests green) ·
+         E05 pipeline/champion_arms.csv + qc/champion.py; dashboard/pipeline_status/series/crown-matrix fail loud, no last-wins ·
+         E06 manifest `labels` block; canopy_additions lineage.json (2016 backfilled read-only, sha256 c664c1c8…, build 2026-07-05) ·
+         E08 audit Hygiene #16 corrected (NO output overlap exists — write crops tile exactly); new #18 UNCHECKED
+         hard-fail, #19 eval-row clobber (year,channels), #20 stale INFER_BATCH_SIZE=160.
+decided: patterns-not-products (no MLflow/DVC/Lightning/Snakemake — bespoke already covers); base2020 thr=0.5 =
+         pre-registered baseline operating point (M01 owns the real protocol); champion promotion gate deferred into M04
+         behind measured noise arm.
+killed:  gaussian blending + inference stride cut (false premise: zero output overlap; breaks scored footprint mid-campaign) ·
+         tile-based golden set (circular AND inverted vs projected-2020 labels) · registry status column (append-only contract) ·
+         train-resume-by-default (0.7 GPU-min lost ever vs 3+ GPU-h in tile/inference → E10 inference resume is the payer).
+files:   commits 275511e a238264 287add8 c64a408 2288159 890e97e b917834 on work/20260824-sectors; plan file = the E01-E10 backlog.
+next:    E04 cost layers + E07 golden gate (agents, in flight) · E02 drivefs smoke + CI push + 6 champion
+         designations = Kam asks · Lane 3 noise arm = first GPU ask after fullext.
+
+## 2026-08-25  SECTOR BASELINE LANDED — 6 arms inferred+scored on A100; both VMs died; fullext at epoch 2 (Fable 5 session)
+goal:    run the approved sector campaign (base2020 baseline + fullext fine-tunes) loop-autonomously overnight
+did:     base2020 queue: seed-CSV chain fixed (col `job` not job_id; UTC ts; Drive-lag race → VM-side self-seeded
+         launch), 3rd launch clean — 6/6 inference VERIFY OK (valid 11.6-16.7%, sizes 8.8MB-563MB); scored vs
+         epoch-matched C-CAP (rec .34-.64; prec .70-.82 late years, COLLAPSES .44 on 2006s/2011s — un-adapted
+         model + 10-13yr ref gap, now quantified); postproc masks 5/6. qc_indep supersede made per-ARM (commit
+         3e7ac30) BEFORE fullext scoring could flip citywide 2016/2021s live rows — caught with zero damage.
+decided: 0.5 fallback rows stand as baseline operating points (≈phase3's 0.5026 calibration); loop NOT restarted
+         until GPU back (S12 failed-blocking by design).
+killed:  scoring-before-lineage-fix (killed task bvnarz607 ~2min in; 2006s/2011s rows were new year-keys, no flips).
+files:   train_queue_status_queue_sectors_base2020_*.csv · masks/edmonds_canopy_{prob,mask}_*_sectors_v1.tif ·
+         data:phase4/qc/sector_campaign/{state_*.jsonl,RESUME_NOTES.md} · ~8 A100-min wasted total on 2 seed runaways.
+next:    Kam 2-step GPU resume → loop restart → fullext (labels+tile OK, train restarts) → score-all AGAIN before
+         loop hits S20 (its verify passes on base rows alone) → S21-S24.
 
 ## 2026-08-23  ACQUISITION CAMPAIGN BATCHES 1-2 — 9 rasters; 2016+2002 replaced; NIR 4->8 (Fable 5 session)
 goal:    Kam: download ALL imagery, multiple per year, upgrade to 4 bands, replace only MEASURED-better. Rewrite dead

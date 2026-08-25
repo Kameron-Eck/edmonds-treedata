@@ -2,7 +2,7 @@ from phase4seg.config import *
 from phase4seg import config
 from phase4seg.common import (
     _stage_imagery_local, _unstage_imagery_local, entry_for, resolve_native_path,
-    _hillshade_ds, read_hillshade_chip, _site_window,
+    _hillshade_ds, read_hillshade_chip, _site_window, _load_review_regions,
 )
 from phase4seg.labels import (
     canopy_label_from_2020_mask, additions_from_mask, apply_additions,
@@ -251,6 +251,13 @@ def _negative_site_records(src, sites, src_nodata, stride):
     for site_label, b3857, crowns in sites:
         if not _is_negative_site(site_label, crowns):
             continue
+        # Honour the site's REGION file when one exists (2026-08-24). Before this fix the
+        # whole footprint RECTANGLE was labelled background — so any tree inside a negative
+        # site's bounds (Parking's known street-tree sliver; the traced trees in the new
+        # Edmonds Heights site) became a FALSE background label, teaching the model to
+        # suppress isolated trees. Now: inside region → 0, outside region (incl. the
+        # hole-punched cut-outs) → IGNORE. No regions file → rectangle behaviour unchanged.
+        region_gdf = _load_review_regions(site_label, target_crs=src.crs)
         if src.crs is not None and src.crs.to_epsg() != 3857:
             bn = BoundingBox(*rasterio.warp.transform_bounds(
                 CROWN_CRS, src.crs, b3857.left, b3857.bottom,
@@ -282,6 +289,15 @@ def _negative_site_records(src, sites, src_nodata, stride):
                 if float(nod.mean()) > COVERAGE_NODATA_MAX:
                     continue
                 mask_tile = np.zeros((TILE_SIZE, TILE_SIZE), dtype=np.uint8)
+                if region_gdf is not None and len(region_gdf):
+                    tile_tf = rasterio.windows.transform(win_t, tf)
+                    inside = rasterio.features.rasterize(
+                        [(geom, 1) for geom in region_gdf.geometry],
+                        out_shape=(TILE_SIZE, TILE_SIZE), transform=tile_tf,
+                        fill=0, dtype="uint8")
+                    mask_tile[inside == 0] = IGNORE_LABEL
+                    if float((inside == 1).mean()) < 0.05:
+                        continue          # tile barely touches the region — nothing to teach
                 mask_tile[nod] = IGNORE_LABEL
                 out.append({
                     "tile_name": f"neg_{site_label.lower()}_r{ro2:05d}_c{co2:05d}.tif",

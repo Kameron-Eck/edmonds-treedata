@@ -284,6 +284,14 @@ def main():
 
     from pipeline_log import StepLogger
 
+    def _stat_or_none(path, field):
+        """os.stat field for a path that may be None/absent/on a flaky FUSE
+        mount — provenance must not be able to kill a run."""
+        try:
+            return getattr(Path(path).stat(), field) if path else None
+        except OSError:
+            return None
+
     def _write_run_manifest(args, entries):
         """P6.1: one manifest per engine invocation → phase4/runs/{run_id}/manifest.json.
 
@@ -357,6 +365,22 @@ def main():
                 "years": {e["label"]: {"native": str(resolve_native_path(e)),
                                        "gsd_cm": e.get("gsd_cm")}
                           for e in entries},
+                # Configured label inputs (E06). Recorded on EVERY step (postproc
+                # consumes none — the block describes configuration, not use).
+                # path+size for the base mask, never sha256 on FUSE (the P6.6
+                # precedent); the overlay keeps mtime because it is keyed that
+                # way in the tile signature.
+                "labels": {
+                    "source_mask": str(MASK_2020),
+                    "source_mask_size": _stat_or_none(MASK_2020, "st_size"),
+                    "add_canopy_mask": (str(config.ADD_CANOPY_MASK)
+                                        if config.ADD_CANOPY_MASK else None),
+                    "add_canopy_mask_size": _stat_or_none(config.ADD_CANOPY_MASK,
+                                                          "st_size"),
+                    "add_canopy_mask_mtime": _stat_or_none(config.ADD_CANOPY_MASK,
+                                                           "st_mtime"),
+                    "force_citywide": bool(args.force_citywide),
+                },
                 "python": sys.version.split()[0],
                 "pip_freeze": freeze,
             }

@@ -175,7 +175,7 @@ def _seed_ts():
     """LATER than any real queue row so the seed wins the ts-sorted merge — a killed
     launch leaves RUNNING rows that revoke earlier OKs (phase4_train_queue.py:246-250)."""
     import datetime as _dt
-    return (_dt.datetime.now() + _dt.timedelta(minutes=5)).strftime("%Y-%m-%d %H:%M:%S")
+    return (_dt.datetime.now(_dt.timezone.utc) + _dt.timedelta(minutes=5)).strftime("%Y-%m-%d %H:%M:%S")   # queue rows are UTC
 
 
 def write_seed():

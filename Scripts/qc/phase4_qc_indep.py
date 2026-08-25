@@ -53,6 +53,7 @@
 import argparse
 import csv
 import datetime as _dt
+import re as _re
 import importlib
 import json
 import subprocess
@@ -440,6 +441,11 @@ def _report(year, ref_path, prob_path, thresh, ref_scheme, R, sweep):
     print(f"\n[qc-indep] wrote {QC_DIR / f'qc_indep_{year}.txt'}")
 
 
+def _prob_arm(name):
+    m = _re.search(r"prob_[0-9a-z]+_(.+)\.tif", name or "")
+    return m.group(1) if m else ""
+
+
 def _write_csvs(year, ref_path, prob_path, thresh, def_rows, surf_rows, R, run_tag=""):
     ts = _dt.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     # Main per-definition CSV.
@@ -471,8 +477,12 @@ def _write_csvs(year, ref_path, prob_path, thresh, def_rows, surf_rows, R, run_t
                     and row.get("prob") == prob_path.name
                     and row.get("thresh") == str(thresh)):
                 continue
-            # same year+ref+definition, different run → keep as history, mark dead
+            # same year+ref+ARM, different run → keep as history, mark dead.
+            # Arm = the run tag parsed from the prob filename (the same parse
+            # live_thresholds() uses): a sectors_v1 re-score must never kill the
+            # citywide live row for the same year — each tag is its own lineage.
             if (row.get("year") == str(year) and row.get("ref") == ref_path.name
+                    and _prob_arm(row.get("prob", "")) == _prob_arm(prob_path.name)
                     and row.get("live", "1") != "0"):
                 row["live"] = "0"
                 n_sup += 1

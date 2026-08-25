@@ -1342,7 +1342,18 @@ def _aoi_pixel_rects(aoi_path, img_crs, img_tf, img_h, img_w):
     import json
     p = Path(aoi_path)
     if not p.is_absolute():
-        p = Path(__file__).resolve().parents[1] / p
+        # The shim/queue run with cwd = Scripts/pipeline, so CWD is the primary anchor.
+        # __file__ is NOT reliable on the VM: the engine stages the package to
+        # /content/_phase4seg_pkg/, which has no aoi/ dir (found 2026-08-25).
+        for cand in (Path.cwd() / p,
+                     Path(__file__).resolve().parents[1] / p,
+                     Path("/content/repo/Scripts/pipeline") / p):
+            if cand.exists():
+                p = cand
+                break
+        else:
+            raise FileNotFoundError(f"--infer-aoi {aoi_path}: not found from cwd, "
+                                    f"the package dir, or the VM repo")
     rects_bounds, src_crs = [], None
     if p.suffix.lower() == ".json":
         d = json.loads(Path(p).read_text(encoding="utf-8"))

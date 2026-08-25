@@ -171,18 +171,31 @@ def verify_item(item, scratch):
 
 
 # ----------------------------------------------------------------------------- operations
+def _seed_ts():
+    """LATER than any real queue row so the seed wins the ts-sorted merge — a killed
+    launch leaves RUNNING rows that revoke earlier OKs (phase4_train_queue.py:246-250)."""
+    import datetime as _dt
+    return (_dt.datetime.now() + _dt.timedelta(minutes=5)).strftime("%Y-%m-%d %H:%M:%S")
+
+
 def write_seed():
     out = DATA / "phase4" / "qc" / "train_queue_status_queue_sectors_base2020_seed.csv"
-    cols = ["ts", "queue", "job_id", "year", "step", "state", "minutes", "detail"]
+    # COLUMN CONTRACT: _completed_steps reads r.get("job") — the header must be the
+    # queue's own (job,year,tag,step,state,exit,minutes,detail,ts). A first version
+    # wrote "job_id" and the seed was silently invisible: the queue started running
+    # FULL fine-tunes for the base years (caught 4 min in, 2026-08-25). Keys must
+    # match the reader, and the reader is phase4_train_queue.py:240.
+    cols = ["job", "year", "tag", "step", "state", "exit", "minutes", "detail", "ts"]
     with open(out, "w", newline="", encoding="utf-8") as f:
         w = csv.DictWriter(f, fieldnames=cols)
         w.writeheader()
         for j, y in zip(BASE_JOBS, BASE_YEARS):
             for s in SEED_STEPS:
-                w.writerow({"ts": "2026-08-24 00:00:00", "queue": "queue_sectors_base2020",
-                            "job_id": j, "year": y, "step": s, "state": "OK", "minutes": 0,
+                w.writerow({"job": j, "year": y, "tag": "sectors_v1", "step": s,
+                            "state": "OK", "exit": 0, "minutes": 0,
                             "detail": "SEEDED: base-model inference only "
-                                      "(sem_best_2020 copy; no fine-tune)"})
+                                      "(sem_best_2020 copy; no fine-tune)",
+                            "ts": _seed_ts()})
     print(f"seed CSV: {out} (24 rows)")
     return 0
 

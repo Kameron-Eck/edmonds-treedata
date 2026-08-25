@@ -1,0 +1,67 @@
+name: CI
+
+# Push + PR only. No schedule/cron: nothing here needs to run on a timer, and a cron
+# job that only ever fails on an upstream release is noise (see Scripts/constraints-ci.txt).
+on:
+  push:
+  pull_request:
+
+concurrency:
+  group: "${{ github.workflow }}-${{ github.ref }}"
+  cancel-in-progress: true
+
+jobs:
+  gates:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      PYTHONUTF8: "1"
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          # Required: setup-python's default pip-cache glob is **/requirements.txt, which
+          # matches nothing here (the specs are requirements-{colab,local}.txt under
+          # Scripts/) — and a no-match ERRORS the job rather than skipping the cache.
+          cache-dependency-path: |
+            Scripts/requirements-local.txt
+            Scripts/constraints-ci.txt
+
+      # requirements-local.txt covers the geo stack (incl. fiona), so the module-level
+      # _ensure_deps bootstraps find everything installed and never fire pip mid-import.
+      # No torch anywhere — torch is lazy in every module (test_ci_gates asserts it).
+      - name: Install deps
+        run: pip install -r Scripts/requirements-local.txt pyyaml pytest -c Scripts/constraints-ci.txt
+
+      - name: Compile sweep (pipeline, qc, scratch — excluding _archive)
+        run: |
+          python - <<'PY'
+          import pathlib, py_compile, sys
+          roots = [pathlib.Path("Scripts") / d for d in ("pipeline", "qc", "scratch")]
+          bad, n = [], 0
+          for root in roots:
+              for p in sorted(root.rglob("*.py")):
+                  if "_archive" in p.parts:      # 2 known SyntaxErrors live there, retired code
+                      continue
+                  n += 1
+                  try:
+                      py_compile.compile(str(p), doraise=True)
+                  except Exception as e:
+                      bad.append(f"{p}: {type(e).__name__}: {e}")
+          print(f"compiled {n} files, {len(bad)} failed")
+          for b in bad:
+              print("FAIL", b)
+          sys.exit(1 if bad else 0)
+          PY
+
+      - name: phase4seg preflight
+        run: cd Scripts/pipeline && python phase4seg_preflight.py
+
+      - name: CI gates
+        run: pytest Scripts/qc/test_ci_gates.py -q
+
+      - name: acquire_imagery tests
+        run: pytest Scripts/qc/test_acquire_imagery.py -q

@@ -1,0 +1,36 @@
+# DERIVED LOCKFILE — NOT a dependency spec. Used only via `pip install -c constraints-ci.txt`.
+#
+# AUTHORITY REMAINS requirements-colab.txt / requirements-local.txt. Those two files say
+# WHAT the pipeline depends on; this file only says which exact versions CI resolved to.
+# Never add a package here that is not already required by one of them, and never edit a
+# pin here to change what the pipeline uses — change the authority file instead.
+#
+# WHY IT EXISTS: without it, a new upstream geopandas/rasterio/numpy release can turn CI
+# red with zero code change in this repo. Pinning the resolution makes a red CI mean
+# "this commit broke something", not "PyPI moved".
+#
+# REGENERATE: install requirements-local.txt + pyyaml + pytest into a clean py-3.12 env,
+# run `py -3.12 -m pip freeze`, and copy the versions for the names below.
+# Frozen 2026-08-25 from the local Windows py-3.12 environment; if a pin ever lacks a
+# linux/cp312 wheel on the runner, regenerate from a Linux env rather than loosening ad hoc.
+
+# requirements-local.txt
+geopandas==1.1.4
+rasterio==1.4.3
+shapely==2.1.2
+fiona==1.10.1
+scikit-learn==1.9.0
+scipy==1.18.0
+tqdm==4.67.1
+pandas==3.0.3
+numpy==2.5.0
+matplotlib==3.11.0
+
+# principal geo deps (pulled in transitively — pinned because an upstream release here
+# is exactly the zero-code-change CI break this file guards against)
+pyproj==3.7.2
+pyogrio==0.13.0
+
+# CI-only tooling
+PyYAML==6.0.3
+pytest==9.1.1

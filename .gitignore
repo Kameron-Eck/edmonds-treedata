@@ -70,5 +70,16 @@ desktop.ini
 !/Reports/*.md
 !/Reports/*.csv
 
+# ── .github: track the CI workflow, nothing else ──────────────────────────
+# Added 2026-08-25 (overhaul E03). The /* rule at the top ignored .github/
+# wholesale, so .github/workflows/ci.yml was invisible to git — `git add` on it
+# is a silent no-op and CI would never fire. Whitelisted the same way phase4/qc
+# and Reports/ are: the directory, then only the workflow YAML inside it.
+!/.github/
+/.github/*
+!/.github/workflows/
+/.github/workflows/*
+!/.github/workflows/*.yml
+
 # never track per-session Claude Code settings (the Scripts/ whitelist would otherwise catch them)
 Scripts/.claude/

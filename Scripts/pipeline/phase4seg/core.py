@@ -1377,7 +1377,10 @@ def step_inference(label, batch_size=INFER_BATCH_SIZE, dry_run=False, citywide=F
         print(f"  ERROR: native ortho not found: {native}"); return
     ckpt = MODELS_DIR / f"sem_best_{label}{_tag_sfx()}.pt"
     if not ckpt.exists():
-        print(f"  ERROR: {ckpt} not found — run step train first"); return
+        if dry_run:
+            print(f"  (dry run: ckpt {ckpt.name} missing — geometry checks continue)")
+        else:
+            print(f"  ERROR: {ckpt} not found — run step train first"); return
 
     MASKS_DIR.mkdir(parents=True, exist_ok=True)
     prob_final = MASKS_DIR / f"edmonds_canopy_prob_{label}{_tag_sfx()}.tif"

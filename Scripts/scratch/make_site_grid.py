@@ -137,11 +137,20 @@ def main():
     # the empty drawing template — fiona so the schema exists with zero features
     schema = {"geometry": "Polygon",
               "properties": {"site": "str:32", "kind": "str:16", "role": "str:8",
-                             "quality": "str:16", "notes": "str:254"}}
-    with fiona.open(OUT / "negative_sites_draw.shp", "w",
-                    driver="ESRI Shapefile", schema=schema, crs=CRS):
-        pass
-    print("negative_sites_draw.shp: empty template written (site/kind/role/quality/notes)")
+                             "quality": "str:16", "notes": "str:254",
+                             "yr_from": "int:4", "yr_to": "int:4"}}
+    # NEVER overwrite once Kam has drawn into it: the template is his hand work, not a build product.
+    tmpl = OUT / "negative_sites_draw.shp"
+    existing = 0
+    if tmpl.exists():
+        with fiona.open(tmpl) as f:
+            existing = len(f)
+    if existing:
+        print(f"negative_sites_draw.shp: PRESERVED ({existing} hand-drawn features - not touched)")
+    else:
+        with fiona.open(tmpl, "w", driver="ESRI Shapefile", schema=schema, crs=CRS):
+            pass
+        print("negative_sites_draw.shp: empty template written (+yr_from/yr_to)")
 
     (OUT / "README.txt").write_text(README, encoding="utf-8")
 

@@ -1,0 +1,41 @@
+# colab_rates.csv — the ONLY place a Colab price may enter this pipeline (E04, 2026-08-25).
+#
+# WHY THIS FILE IS NEARLY EMPTY, ON PURPOSE.
+# Numbers like "5.4 CU/hr" and "15 CU/hr" circulate for Colab GPUs. Neither has a source
+# ANYWHERE in this repo — no invoice, no screenshot, no quoted Google page. Writing one in
+# would manufacture a MEASURED-looking figure out of hearsay, and every dollar downstream
+# would inherit that lie. So this file ships SCHEMA-ONLY for GPUs: zero GPU rate rows. Add
+# one only WITH its evidence, filling `source_url` and a VERBATIM `quote`.
+#
+# EVIDENCE TIERS (the project's vocabulary — see Method_Pipeline.md / IMAGERY_FACTS):
+#   MEASURED  — observed on THIS account: a compute-unit balance delta across a known
+#               launch, or a billing statement. The only tier that can settle a bill.
+#   PUBLISHED — stated by a citable source (a Google page, or a doc in this repo). Quote
+#               it verbatim in `quote` and point `source_url` at it.
+#   INFERRED  — derived/estimated. Must never be presented as a measurement.
+#
+# HOW cost_report.py USES IT
+#   `gpu_name_pattern` is a REGEX matched (re.search, case-insensitive) against the GPU
+#   string as recorded — manifest.json["gpu"] / the queue's "GPU : <name>, <MiB>" header,
+#   e.g. "NVIDIA A100-SXM4-40GB". First matching row wins; rows are tried top to bottom.
+#   No match  -> cost columns are BLANK, with `est_basis` naming the unmatched GPU.
+#   Match but blank cu_per_hour/usd_per_cu -> that half stays BLANK. Blank never becomes 0.
+#
+# THE BLANK-NAME GUARD (why an empty gpu_name is NOT the CPU row)
+#   cost_report.py blanks the cost of an EMPTY/whitespace gpu_name BEFORE any pattern is
+#   tried. An empty name means the probe failed or no log was found — "we do not know what
+#   this ran on" — not "it was a CPU". The `^\s*$` alternation in the CPU row below is
+#   therefore INERT by design; it is kept so the row reads as "CPU, or no GPU at all", and
+#   it can never make an unknown run look free. Silent-cheap is the exact failure this file
+#   exists to prevent.
+#
+# NOT A PER-RUN PRICE. Colab bills VM UPTIME, not engine-subprocess seconds. Measured
+# coverage of summed step-minutes against launch span ranges 0%-100% (mean ~60%), so there
+# is deliberately NO per-run est_usd anywhere in this pipeline. Rates apply to a LAUNCH
+# SPAN, and even that is a lower bound (it starts at the first step, after VM setup).
+#
+# TO SETTLE A NUMBER FOR REAL: record the compute-unit balance immediately before and
+# after a launch, put the delta in gpu_launches.csv's `measured_cu_delta`, and only then
+# add a MEASURED row here.
+as_of,gpu_name_pattern,tier_label,cu_per_hour,usd_per_cu,evidence_tier,source_url,quote,note
+2026-08-25,"^\s*$|cpu|no driver",CPU runtime (no GPU),0,,PUBLISHED,OVERHAUL_PLAN_2026-08-20.md:705,"**Probe results (2026-08-22, CPU sessions, no compute units).**","The one rate this repo can source. cu_per_hour 0 applies ONLY to an explicitly-CPU runtime string (the queue's _gpu_line() prints 'none (CPU runtime or no driver)'); the ^\s*$ alternation is inert - the blank-name guard fires first. Quote is verbatim from line 705; the plan states it as a parenthetical about the 2026-08-22 CLI probes, i.e. those CPU sessions consumed no compute units. usd_per_cu left BLANK: no invoice has been read on this account."

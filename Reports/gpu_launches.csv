@@ -1,0 +1,54 @@
+# gpu_launches.csv — one row per queue LAUNCH. DERIVED AND REGENERABLE: every run of
+# `py -3.12 pipeline/cost_report.py --launches` overwrites this file wholesale. Do not
+# hand-edit it (the one exception is `measured_cu_delta`, see below, and a hand-filled
+# value there WILL be lost on the next run until it is carried into a rate row).
+#
+# NOT the authoritative launch record. That is the CHATLOG launch line each launch must
+# carry — OVERHAUL_PLAN_2026-08-20.md P11.5 rule 2: "every launch writes a run manifest
+# (now with `git_branch`, `gpu`, `gpu_mem_gb`) and a CHATLOG line with tier, start time,
+# expected hours". This table is a HARVEST of the artefacts those launches left behind
+# (per-launch status CSVs + the queue's nohup log header); the prose log wins on conflict.
+#
+# TIMES: filename stamps (UTC) and status-row `ts` only. Drive mtimes are never read.
+#
+# COLUMN DEFINITIONS
+#   launch_id      UTC stamp parsed from the status filename (the moment the queue started).
+#   queue_file     the queue YAML, reconstructed from the same filename.
+#   gpu_name       from the matching nohup log's "GPU : <name>, <MiB>" header line; BLANK
+#                  if no log or no such line. BLANK means UNKNOWN, never "free".
+#   first_step_ts  ts of the earliest non-VERIFY row (a step START).
+#   last_row_ts    ts of the latest row of any kind in the file.
+#   span_min       last_row_ts - first_step_ts. A LOWER BOUND on billable VM uptime: it
+#                  begins after VM setup/clone/pip and ends at the last row written, so a
+#                  step still RUNNING when the VM died contributes none of its own time.
+#   sum_step_min   sum of the `minutes` column over ALL non-VERIFY, non-SEEDED rows,
+#                  retries included (a retried step burns the GPU twice and is billed twice).
+#   coverage_pct   100 * sum_step_min / span_min. THE HONESTY DIAL: it says how much of the
+#                  observed window the engine can account for. May read slightly over 100%
+#                  from the queue's 0.1-min rounding (measured: 18.3 vs an 18.27-min span);
+#                  it is NOT clamped, because clamping would hide the rounding.
+#   n_steps        distinct (job, step) pairs among non-VERIFY, non-SEEDED rows.
+#   n_ok / n_failed  by each pair's LAST row: n_ok = final state OK; n_failed = final state
+#                  neither OK nor RUNNING. A pair still RUNNING counts in n_steps but in
+#                  NEITHER of the others — the VM died and nothing ever closed the row.
+#   measured_cu_delta  ALWAYS BLANK here. The compute-unit balance before/after a launch is
+#                  the only thing that can settle a bill, and only Kam can read it. Fill it
+#                  by hand, then promote it into pipeline/colab_rates.csv as a MEASURED row.
+#   est_cu/est_usd BLANK unless pipeline/colab_rates.csv has a row matching gpu_name. It
+#                  ships with ZERO GPU rate rows on purpose (no sourced rate exists in this
+#                  repo), so today every GPU launch here is blank — correctly.
+#   est_basis      why the cost columns say what they say (which rate matched, or why none did).
+#   est_label      the standing caveat: ESTIMATE (lower bound: span starts at first step; excludes VM setup/staging/teardown/idle)
+launch_id,queue_file,gpu_name,first_step_ts,last_row_ts,span_min,sum_step_min,coverage_pct,n_steps,n_ok,n_failed,measured_cu_delta,est_cu,est_usd,est_basis,est_label
+20260822T155552Z,queue_A_2024_2017.yaml,NVIDIA A100-SXM4-40GB,2026-08-22 15:55:53,2026-08-22 17:15:19,79.4,0.0,0.0,1,0,1,,,,no rate row in colab_rates.csv matches 'NVIDIA A100-SXM4-40GB' (no sourced rate exists),ESTIMATE (lower bound: span starts at first step; excludes VM setup/staging/teardown/idle)
+20260822T160328Z,queue_B_2019_2022.yaml,NVIDIA A100-SXM4-40GB,2026-08-22 16:03:29,2026-08-22 17:26:50,83.3,47.7,57.2,4,3,1,,,,no rate row in colab_rates.csv matches 'NVIDIA A100-SXM4-40GB' (no sourced rate exists),ESTIMATE (lower bound: span starts at first step; excludes VM setup/staging/teardown/idle)
+20260822T172058Z,queue_A_2024_2017.yaml,NVIDIA A100-SXM4-40GB,2026-08-22 17:21:01,2026-08-22 17:55:16,34.2,0.0,0.0,1,0,1,,,,no rate row in colab_rates.csv matches 'NVIDIA A100-SXM4-40GB' (no sourced rate exists),ESTIMATE (lower bound: span starts at first step; excludes VM setup/staging/teardown/idle)
+20260822T173355Z,queue_B_2019_2022.yaml,NVIDIA A100-SXM4-40GB,2026-08-22 17:33:58,2026-08-22 17:55:16,21.3,0.0,0.0,1,0,1,,,,no rate row in colab_rates.csv matches 'NVIDIA A100-SXM4-40GB' (no sourced rate exists),ESTIMATE (lower bound: span starts at first step; excludes VM setup/staging/teardown/idle)
+20260822T175523Z,queue_A_2024_2017.yaml,NVIDIA A100-SXM4-40GB,2026-08-22 17:55:25,2026-08-22 18:47:07,51.7,1.5,2.9,3,1,2,,,,no rate row in colab_rates.csv matches 'NVIDIA A100-SXM4-40GB' (no sourced rate exists),ESTIMATE (lower bound: span starts at first step; excludes VM setup/staging/teardown/idle)
+20260822T175541Z,queue_B_2019_2022.yaml,NVIDIA A100-SXM4-40GB,2026-08-22 17:55:43,2026-08-22 20:14:57,139.2,123.1,88.4,6,5,1,,,,no rate row in colab_rates.csv matches 'NVIDIA A100-SXM4-40GB' (no sourced rate exists),ESTIMATE (lower bound: span starts at first step; excludes VM setup/staging/teardown/idle)
+20260822T193210Z,queue_A_2024_2017.yaml,NVIDIA A100-SXM4-40GB,2026-08-22 19:32:16,2026-08-22 23:23:12,230.9,230.8,99.9,5,5,0,,,,no rate row in colab_rates.csv matches 'NVIDIA A100-SXM4-40GB' (no sourced rate exists),ESTIMATE (lower bound: span starts at first step; excludes VM setup/staging/teardown/idle)
+20260822T200101Z,queue_2019_inference.yaml,NVIDIA A100-SXM4-40GB,2026-08-22 20:01:06,2026-08-22 20:19:22,18.3,18.3,100.2,1,1,0,,,,no rate row in colab_rates.csv matches 'NVIDIA A100-SXM4-40GB' (no sourced rate exists),ESTIMATE (lower bound: span starts at first step; excludes VM setup/staging/teardown/idle)
+20260825T054717Z,queue_sectors_base2020.yaml,NVIDIA A100-SXM4-40GB,2026-08-25 05:47:19,2026-08-25 05:47:55,0.6,0.6,100.0,2,1,0,,,,no rate row in colab_rates.csv matches 'NVIDIA A100-SXM4-40GB' (no sourced rate exists),ESTIMATE (lower bound: span starts at first step; excludes VM setup/staging/teardown/idle)
+20260825T054959Z,queue_sectors_base2020.yaml,NVIDIA A100-SXM4-40GB,2026-08-25 05:49:59,2026-08-25 05:51:51,1.9,1.9,101.8,2,1,0,,,,no rate row in colab_rates.csv matches 'NVIDIA A100-SXM4-40GB' (no sourced rate exists),ESTIMATE (lower bound: span starts at first step; excludes VM setup/staging/teardown/idle)
+20260825T055323Z,queue_sectors_base2020.yaml,NVIDIA A100-SXM4-40GB,2026-08-25 05:53:23,2026-08-25 06:18:31,25.1,25.1,99.9,6,6,0,,,,no rate row in colab_rates.csv matches 'NVIDIA A100-SXM4-40GB' (no sourced rate exists),ESTIMATE (lower bound: span starts at first step; excludes VM setup/staging/teardown/idle)
+20260825T061928Z,queue_sectors_fullext.yaml,NVIDIA A100-SXM4-40GB,2026-08-25 06:19:30,2026-08-25 06:28:10,8.7,8.6,99.2,3,2,0,,,,no rate row in colab_rates.csv matches 'NVIDIA A100-SXM4-40GB' (no sourced rate exists),ESTIMATE (lower bound: span starts at first step; excludes VM setup/staging/teardown/idle)

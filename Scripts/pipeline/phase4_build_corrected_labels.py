@@ -265,6 +265,30 @@ def _write_summary(year, out_tif, veg_thresh, min_height_m, uncertain_lo_m,
     txt.write_text("\n".join(L), encoding="utf-8")
     print("\n" + "\n".join(L))
     print(f"\n[corrected-labels] wrote {out_tif}\n[corrected-labels] wrote {txt}")
+    # E06b: machine-readable lineage sidecar — future overlays are born stamped.
+    # (The 2016 artifact predates this; qc/stamp_label_lineage.py backfills it
+    # READ-ONLY — never re-run this builder for lineage: the fixed filename +
+    # mtime bump would spuriously invalidate the overlay's tile-signature key.)
+    import datetime as _dt
+    import hashlib as _hl
+    import json as _json
+    h = _hl.sha256()
+    with open(out_tif, "rb") as f:
+        for b in iter(lambda: f.read(1 << 20), b""):
+            h.update(b)
+    lineage = {
+        "source_year": year, "imagery": str(img_path), "chm": str(chm_path),
+        "veg_thresh": veg_thresh, "min_height_m": min_height_m,
+        "uncertain_lo_m": uncertain_lo_m,
+        "holdout": {"frac": holdout_frac, "side": holdout_side},
+        "pixel_counts": dict(tot),
+        "size": out_tif.stat().st_size, "sha256": h.hexdigest(),
+        "build_date": _dt.datetime.now(_dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+        "builder_script": "phase4_build_corrected_labels.py",
+    }
+    lj = out_tif.with_suffix(".lineage.json")
+    lj.write_text(_json.dumps(lineage, indent=2), encoding="utf-8")
+    print(f"[corrected-labels] wrote {lj}")
 
 
 # ── Marsh preview ─────────────────────────────────────────────────────────────

@@ -40,10 +40,11 @@ settings file), e.g.:
 
 ## rclone mount parameters (chosen for this workload, tune only with evidence)
     rclone mount treedata-sa: /content/drive/MyDrive/treedata \
-        --daemon --allow-other \
+        --daemon \
         --vfs-cache-mode writes --vfs-cache-max-size 40G \
         --drive-pacer-min-sleep 10ms --transfers 8
-`--vfs-cache-mode writes` is REQUIRED: the engine's verified-copy pattern re-reads
+`--allow-other` is deliberately ABSENT: it needs user_allow_other in /etc/fuse.conf and
+root needs no it — MEASURED mount failure 2026-08-26. `--vfs-cache-mode writes` is REQUIRED: the engine's verified-copy pattern re-reads
 what it wrote (size+sha256) and a write-through mount fails that read-back.
 
 ## The canary (first rclone-mounted runtime only)
@@ -75,3 +76,13 @@ report. The E02 os.replace smoke already passed on drivefs; rerun it once on rcl
 - PROVEN end-to-end from the qc VM: `rclone lsd` + deep `ls` under the SA — SA_ACCESS OK.
 - Still owed: the MOUNT canary on the next fresh VM (rclone mount ≠ rclone ls; see
   the canary section). Kam's remaining step: the settings allowlist for colab.exe verbs.
+
+## STATUS 2: MOUNT CANARY PASS 2026-08-26 (the flow is fully proven)
+All four stages green on the qc VM (alternate mount point, live mount untouched):
+101 MB read hash-identical via rclone vs drivefs (4.9s vs 1.1s — cold reads slower,
+moot given local staging); the E02 atomic publish (copy -> verify -> os.replace)
+works through rclone (replace 0.00s); rasterio window reads work. Root causes fixed
+along the way, both now encoded in gen_vm_bootstrap.py: --allow-other dropped
+(fuse.conf), fuse3 auto-installed (fusermount3 absent on Colab images).
+The runtime lifecycle is now fully automatable: create -> bootstrap -> mounted ->
+repo-ready -> work -> stop, zero human clicks.

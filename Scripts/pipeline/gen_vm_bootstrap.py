@@ -52,6 +52,10 @@ MOUNT = {MOUNT!r}
 
 subprocess.run("curl -fsSL https://rclone.org/install.sh | bash",
                shell=True, capture_output=True)
+# fuse3 is NOT preinstalled on Colab images; without fusermount3 the mount dies
+# with a bare "daemon exited" (measured 2026-08-26; the canary's root cause).
+if subprocess.run(["which", "fusermount3"], capture_output=True).returncode != 0:
+    subprocess.run("apt-get install -y -qq fuse3", shell=True, capture_output=True)
 open("/content/sa.json", "w").write(SA)
 os.makedirs("/root/.config/rclone", exist_ok=True)
 open("/root/.config/rclone/rclone.conf", "w").write(
@@ -59,9 +63,13 @@ open("/root/.config/rclone/rclone.conf", "w").write(
     "service_account_file = /content/sa.json\\n"
     f"root_folder_id = {{FOLDER_ID}}\\n")
 os.makedirs(MOUNT, exist_ok=True)
-subprocess.run(["rclone", "mount", "treedata-sa:", MOUNT, "--daemon", "--allow-other",
-                "--vfs-cache-mode", "writes", "--vfs-cache-max-size", "40G",
-                "--drive-pacer-min-sleep", "10ms", "--transfers", "8"], check=True)
+r0 = subprocess.run(["rclone", "mount", "treedata-sa:", MOUNT, "--daemon",
+                     "--vfs-cache-mode", "writes", "--vfs-cache-max-size", "40G",
+                     "--drive-pacer-min-sleep", "10ms", "--transfers", "8"],
+                    capture_output=True, text=True)
+if r0.returncode != 0:
+    raise SystemExit("BOOTSTRAP FAIL: rclone mount rc=%d: %s"
+                     % (r0.returncode, (r0.stderr or "")[-400:]))
 for _ in range(30):                       # wait for the mount to answer
     if os.path.isdir(MOUNT + "/phase4"):
         break

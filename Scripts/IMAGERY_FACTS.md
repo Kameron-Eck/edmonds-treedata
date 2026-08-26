@@ -716,3 +716,9 @@ during the nir_stack build. Bimodal, clean separation:
   vegetation textures of trees."
 - **Roofs flagged as a major NIR contaminant** (operator observation) → the building-
   footprint / roof-presence workstream started the same night.
+
+### §11 lead (2026-08-26, roof-probe cross-check): 2002 vs 2003s near-identical construction state
+The Greystone subdivision shows visually near-identical construction across 2002 -> 2003s
+despite 13 assessor-dated houses landing in between; probe features are NOT pixel-identical
+(core_slope_rel 0.0120 vs 0.0012), so "same flight re-served" is ONE hypothesis among
+several. LEAD ONLY — belongs to the imagery-date evidence workstream before any conclusion.

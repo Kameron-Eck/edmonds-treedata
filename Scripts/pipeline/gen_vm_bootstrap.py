@@ -47,6 +47,7 @@ def main():
 SA = {json.dumps(json.dumps(sa))}
 FOLDER_ID = {folder_id!r}
 BR = {a.branch!r}
+SESSION = {a.session!r}
 AUTH = "https://x-access-token:{tok}@github.com/Kameron-Eck/edmonds-treedata.git"
 MOUNT = {MOUNT!r}
 
@@ -88,6 +89,14 @@ subprocess.run(["git", "-C", REPO, "remote", "set-url", "origin",
 r = subprocess.run(["git", "-C", REPO, "log", "-1", "--oneline"],
                    capture_output=True, text=True)
 print("BOOTSTRAP_READY", r.stdout.strip())
+# Oversight beacon (COLAB_AUTONOMY_SETUP.md "Oversight"): pushes a <2 KB
+# phase4/logs/heartbeat_{{session}}.json every 60 s so local `qc/runtime_health.py`
+# can check this VM with NO colab exec round-trip. Its own stdout stays on LOCAL
+# /content (never another appended file on the mount). Detached: dies with the VM.
+subprocess.Popen("cd /content/repo/Scripts/pipeline && nohup python -u vm_heartbeat.py"
+                 " --session " + SESSION + " > /content/vm_heartbeat.log 2>&1 &",
+                 shell=True)
+print("HEARTBEAT_STARTED", SESSION)
 '''
     SCRATCH.mkdir(parents=True, exist_ok=True)
     out = SCRATCH / f"vm_bootstrap_{a.session}.py"

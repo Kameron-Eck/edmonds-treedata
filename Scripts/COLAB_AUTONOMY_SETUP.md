@@ -91,3 +91,116 @@ repo-ready -> work -> stop, zero human clicks.
 create (allowlisted, no prompt) -> gen_vm_bootstrap -> exec on a VIRGIN VM ->
 BOOTSTRAP_READY @ repo HEAD, canonical mount path, zero clicks -> stop. Kam's
 allowlist is live. The agentic runtime workflow is DONE.
+
+---
+
+# Oversight — the VM pushes, the local tool judges (2026-08-26)
+
+Kam's directive: *"introduce oversight tools into the agentic GPU and CPU runtimes —
+quality feedback to show when it's working — deterministic tools to reduce active
+oversight, to reduce token usage."*
+
+**The problem this replaces.** Checking on a runtime used to cost a `colab exec`
+round-trip: slow, and token-heavy every time Claude drove it. Repeated every few
+minutes across a long queue, routine "is it still alive?" probing was the single
+largest avoidable token cost of an unattended run.
+
+**The inversion.** The VM now PUSHES its own state to the data lake once a minute;
+oversight becomes a local file read.
+
+    pipeline/vm_heartbeat.py   ON the VM, stdlib-only, launched by the bootstrap under
+                               nohup. Every 60 s it OVERWRITES (atomic tmp+rename, <2 KB)
+                                   {BASE}/phase4/logs/heartbeat_{session}.json
+                               = ts_utc, gpu {name, util_pct (mean of 3 samples),
+                               util_max_pct, mem_used_mb}, queue_proc pid, engine_proc
+                               args tail, newest_nohup {name, size, prev_size},
+                               newest_status {name, size, last_line}, scratch_gb,
+                               prev_scratch_gb, mount_ok.
+    qc/runtime_health.py       LOCAL. Reads those heartbeats off the G: mirror + the
+                               merged status CSVs (via watch_queue._rows — one home for
+                               that merge) + the colab CLI's session store FILE.
+                               One line per session, one exit code, no colab exec.
+
+## The contract
+
+- **Routine checks are `py -3.12 qc/runtime_health.py`** — near-zero tokens, no GPU
+  touched, no billing, no `colab exec`. This is what Claude runs each tick.
+- **`colab exec` probing is for DIAGNOSIS AFTER a flag fires**, never for "is it alive?".
+  A flag names what to go look at; that is when a round-trip is worth its cost.
+- The beacon **reads state and never acts on it** — no killing, no restarting, no
+  writing outside its own heartbeat file. Judgement is the reader's, action is Kam's.
+
+The one-liner Claude uses each tick (exit code IS the answer; 0 = quiet, 1 = read the
+line, 2 = go look):
+
+    py -3.12 qc/runtime_health.py
+
+## Rules (each prints its NAME when it fires — the name is the finding)
+
+| Flag | Sev | Fires when |
+|---|---|---|
+| `HEARTBEAT_STALE` | crit (2) | beat older than `--stale-min` (default 5) **for a session the CLI still lists** — VM dead, beacon dead, or mount broken |
+| `OLD_HEARTBEAT` | ok (0) | stale beat for a session the CLI no longer lists — the file a deliberately stopped VM left behind (see below); quiet by design |
+| `MOUNT_LOST` | crit (2) | a heartbeat that says `mount_ok=false` |
+| `QUEUE_DEAD` | crit (2) | beat FRESH but no queue process, while its status file still shows RUNNING steps |
+| `STALL` | warn (1) | engine process alive but its nohup log has not grown since the previous sample |
+| `GPU_IDLE_IN_TRAIN` | warn (1) | util < `--idle-pct` during `--step train` AND scratch stable (stable scratch = not staging, so the idle is real) |
+| `NO_HEARTBEAT` | warn (1) | a live CLI session with no heartbeat file (pre-beacon VM, or the nohup line never ran) |
+| `ORPHAN_HEARTBEAT` | warn (1) | a FRESH beat with no CLI session entry = the 2026-08-22 prune failure (a billing VM the CLI forgot) — `qc/colab_readopt.py` |
+| `TERMINAL` | ok (0) | every job in the launch has its job-end VERIFY row; prints the verdict. Exit 1, not 0, if any verdict is a BAD state |
+
+Also: `--json` (machine-readable), `--watch N` (poll locally, still zero `colab exec`),
+`--base` (point at another lake — how the rules are tested without a VM).
+
+**Three design points worth keeping:**
+1. **Stateless locally.** The heartbeat carries its OWN previous samples
+   (`prev_size`, `prev_scratch_gb`), so STALL and GPU_IDLE_IN_TRAIN need no local
+   history and no second poll. Both rules **no-op while a prev field is null** —
+   otherwise every beacon restart would read as a stall.
+2. **Launch-scoped, not merged.** A crashed launch leaves RUNNING rows in its status
+   file forever. QUEUE_DEAD is judged only against the status file THIS VM's heartbeat
+   names, which is what stops dead launches from flagging critical for all eternity.
+   Same reason the beacon filters its own globs by its queue stem: with 2 concurrent
+   runtimes, both write into the same Drive dirs.
+3. **The G: mirror lags the VM.** A single STALE beat is not proof of death — the tool
+   says so in its own footer. Confirm with `colab exec` before acting. QUEUE_DEAD has
+   the same transient: a queue that exits before its final rows sync shows RUNNING rows
+   with no process for a tick or two. **A CRIT that clears on the next tick was lag.**
+4. **A stopped VM must read OK, not CRITICAL.** Nothing deletes a heartbeat file when a
+   VM stops, but `colab stop` DOES delete the session entry (`state.store.remove` in the
+   CLI's `commands/session.py` — read, not guessed). Since "STOP: always autonomous"
+   makes that the state after *every* normal run, a stale beat for a session the CLI no
+   longer lists is reported as `OLD_HEARTBEAT` at severity OK. Only a **fresh** beat with
+   no session entry is a finding — that one is a live billing VM the CLI forgot.
+   HEARTBEAT_STALE therefore requires the session to still be in the store.
+
+Timestamps: heartbeat `ts_utc` is real UTC; the status CSV `ts` is the queue's naive
+`datetime.now()` on a UTC-clocked VM, so it is read as UTC (documented assumption).
+
+## Testing it without a VM
+
+    py -3.12 pipeline/vm_heartbeat.py --session test --once --base <scratch>\lake \
+        --scratch <scratch>\scratch --breadcrumb <scratch>
+    py -3.12 qc/runtime_health.py --base <scratch>\lake \
+        --sessions-json <scratch>\no_sessions.json      # {} = "no VM is running"
+
+`--sessions-json` exists so the post-shutdown case (leftover beat, no CLI entry) can be
+proven to exit 0 without stopping a live runtime. `--cycles N` on the beacon writes N
+heartbeats and exits.
+
+On Windows `ps`/`nvidia-smi`/the mount are absent — every affected field degrades to
+null instead of raising. **Never write test heartbeats into the real G: logs dir**:
+`runtime_health` globs `heartbeat_*.json` there and a stray test file becomes a
+phantom session.
+
+## Future: the dashboard reads the same beat (NOT implemented)
+
+`qc/runtime_dashboard.py` still learns freshness from its own `colab exec` probe. The
+integration point for a future PR is `probe_session()` (called from
+`Collector.probe_all`): read
+`{BASE}/phase4/logs/heartbeat_{session}.json` FIRST and skip the exec probe entirely
+while the beat is fresh (< `--stale-min`), falling back to the probe only when it is
+stale or when the tqdm tail is actually wanted — the tail is the one field the beacon
+deliberately does not carry (it would blow the 2 KB budget). That turns the dashboard
+from a per-interval spender into a near-free reader too. Deliberately left for its own
+PR; nothing in the dashboard was touched by this change.

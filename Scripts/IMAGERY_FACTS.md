@@ -722,3 +722,28 @@ The Greystone subdivision shows visually near-identical construction across 2002
 despite 13 assessor-dated houses landing in between; probe features are NOT pixel-identical
 (core_slope_rel 0.0120 vs 0.0012), so "same flight re-served" is ONE hypothesis among
 several. LEAD ONLY — belongs to the imagery-date evidence workstream before any conclusion.
+
+## 13. Radiometry fingerprint R1 (MEASURED 2026-08-26) — qc/radiometry_fingerprint.py
+
+Per-acquisition band statistics over a pseudo-invariant hardscape mask (selected ONCE
+from the 2020 anchor, applied identically to all 36 acquisitions; parking 92.5% kept,
+school 62.7%). Outputs: phase4/qc/radiometry_fingerprint.csv (705 rows) + summary (36).
+Instrument noise bounded <0.4% by the three same-flight pairs (2020/2020s, 2022/2022s,
+2024/2024s: gr_invariant deltas 0.00/0.35/0.34%).
+
+- **§11's 2007 flag RESOLVED**: 2007s carries NO greenness cast on invariant ground
+  (parking G/R +0.65% ≈ noise). It IS the darkest delivery in the record (spine
+  luminance 105.5 vs family median 152.5, −2.4σ) with genuinely greener vegetation
+  (turf +16.1%) — dark rendering + greener plants explains the operator's read.
+  CAVEAT: 2007s has no known acquisition date, so season vs vigor cannot be split.
+- **2000 King has a REAL color cast**: G/R 1.178 on invariant ground (+22.9% vs King
+  median), G−R +19 DN, and the ONLY acquisition where blue exceeds green on stable
+  ground — §3's separability outlier now localized to measured radiometry.
+- 2023n NAIP: +37.6% luminance (exposure/stretch level, colour-neutral).
+- §12 NIR floors independently reproduced on a different water window (33/25 lifted vs
+  1-10 healthy; separation, not digits, is the reproducible fact).
+- METHOD NOTE (the near-miss that matters): the first pass read the whole school
+  polygon and reported a +4.6% "cast" that was actually the GRASS FIELD's phenology —
+  killed by rendering the window across years before reporting. Vegetated targets are
+  season-confounded (Snohomish dates mostly NOT FOUND); only the hardscape spine is
+  radiometrically clean. §3's rule stands: no colour number compares across sources.

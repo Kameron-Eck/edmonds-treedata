@@ -679,3 +679,30 @@ audit (R1, proposed same day), not a conclusion.
 - Crown-label transfer: main.edmonds_crownV5 polygons "match up really well" to 2007 imagery
   (his visual check) — the basis of the proposed 2007 label-adoption pilot; NOT yet a measured
   agreement rate.
+
+## 12. NIR radiometric floors (MEASURED 2026-08-26, nir-stack build)
+
+Dark-target test on every 4-band acquisition's NIR band (p1 floor + water NDVI), run
+during the nir_stack build. Bimodal, clean separation:
+
+- **HEALTHY (8 of 10):** NIR minima 1–5 DN — 2016, 2017n, 2017s, 2018s, 2019n, 2019s,
+  2021n, 2023n. Absolute NDVI cross-comparable.
+- **LIFTED BLACK POINT (2 of 10):**
+  - **2015n**: NIR p1 = 33 DN; open water reads NDVI ≈ +0.3. Traced to the SOURCE NAIP
+    DOQQs (band-4 min 32 vs 2 for NAIP-2017) — the 2015 delivery itself is hazy.
+  - **2021s**: NIR p1 = 28 DN, confirmed on BOTH independent county servings of the 2021
+    flight (28 / 27), while 2018s from the same county 6-in programme is healthy (p01=9).
+    Flight/delivery-level, not export-path.
+- CONSEQUENCE: on 2015n and 2021s, within-band structure and vegetation LOCATION remain
+  honest; absolute NDVI and fixed 0.2/0.3 vegetation cuts DO NOT APPLY, and cross-year
+  NDVI comparisons must exclude or offset them. Nothing was auto-corrected (an offset
+  would be a guess). OPEN QUESTION flagged: ndvi_ref_2021s and every 2021s NDVI-based
+  reference/agreement partition (golden gate, corrected-label rule) inherit this floor —
+  quantify the effect before the next 2021s NDVI-referenced claim.
+- Detector provenance: a first-draft rule (NDVI < −0.3 fraction) false-positived on three
+  healthy AUGUST bands (August water ≈ −0.25 to −0.35 vs October −0.5 to −0.9) and was
+  replaced by a two-sided NIR-floor test — season-immune. Seasonal water-NDVI spread is
+  itself a measured fact to remember.
+- Products: D:\edmonds-pipeline\ARCGIS\MachineLearning\nir_stack\{nir_stack_1m.tif (10-band,
+  uint8), nir_stack_ndvi_1m.tif (int16 x1000)}, CHM-lattice-snapped, band-tagged with
+  source+date; README carries the per-band warnings. Builder: pipeline/make_nir_stack.py.

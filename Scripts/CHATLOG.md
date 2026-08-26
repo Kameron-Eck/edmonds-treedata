@@ -1446,6 +1446,29 @@ gotcha:  scripts Colab-only for torch (rasterio+geopandas+fiona+sklearn now pip-
 
 ════════════════ LOG  (newest first) ════════════════
 
+## 2026-08-26  CAMPAIGN CLOSED — fullext ran (~1h45m A100); promotion UNDECIDABLE; runtime autonomy DONE (Fable 5 session)
+goal:    finish the sector campaign + Kam's runtime-autonomy directive
+did:     fullext queue complete (2016_fx VERIFY OK 61MB/11.6%; 2021s_fx 182MB/11.0%); A100 stopped at once.
+         Scored 8/8 arms — per-ARM lineage HELD (4 pre-existing 2016/2021s live rows intact). 2016_fx rec .6163
+         prec .9119 (best grass_rej .9693); 2021s_fx .6568/.8276 vs p2nir .6851/.8547 — UNDECIDABLE (footprint +
+         operating-point confounds + no noise sigma). Fine-tunes give 2016+2021s their FIRST 5-sector totals:
+         P_hat .383 CI[.208,.558] / .385 CI[.237,.532]. All 8 arms postproc'd. S22/S23 regenerated (149-row
+         series, 28 totals, 38,642x35 matrix). S24 report = reports/SECTOR_CAMPAIGN_REPORT_2026-08.md (agent
+         draft, cross-checked: area_ha was P_hat x SAMPLED 563 ha -> renamed canopy_ha_sampled; champion
+         eligibility rule = full-footprint only; fullext rows added to registry+launches ledgers).
+         RUNTIME AUTONOMY (Kam-directed): GCP project edmonds-pipeline + SA treedata-mount, key in
+         D:\edmonds-pipeline\secrets\, treedata folder-share, Drive API — all via browser automation with
+         Kam present. rclone mount canary PASS (fuse3 auto-install + --allow-other removal = the two measured
+         root causes, encoded in pipeline/gen_vm_bootstrap.py). Full unattended lifecycle proven on a virgin
+         VM (BOOTSTRAP_READY, zero clicks). P11.6 in CLAUDE.md pending Kam merge. Kam's allowlist live.
+decided: promotion waits on the noise arm (P11.5 ask); sector arms champion-INELIGIBLE (test, not deliver);
+         city-area ha expansion deferred until city land area measured (P_hat/CIs always correct).
+killed:  "NIR-vs-RGB per-crown cover" framing (2021s_p2nir NIR medians 0.0000 too — separator is GSD>=60cm
+         OR precision<.55) · "~8 wasted A100-min" (measured 6.2).
+files:   report + harvested series/totals/columns/golden CSVs; commits through db7d8d8+.
+next:    Kam: push (2 ! commands), 6 champion picks, noise-arm approval, P11.6+branch merge. Then Pillar 3
+         (M01/M03/M06-M08/M12 arms on the proven harness).
+
 ## 2026-08-25  E-BACKLOG LANE 1 — 8-agent adversarial verify corrected EVERY top-8 practice item; 6 landed (Fable 5 session)
 goal:    Kam: industry best-practice review, "full inference doesnt sound smart in terms of money and time"
 did:     3 research passes (internal inventory, external sweep, 8 opus verifiers vs live code). Landed:

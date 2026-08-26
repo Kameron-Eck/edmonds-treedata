@@ -8,7 +8,7 @@ Every number below is quoted from a CSV/JSON on disk, with its reference and ope
 attached, or derived from those values and labelled as derived. Where a number comes from a
 series/matrix currently being regenerated with the
 fullext arms, it is either labelled **pre-fullext run** (the value on disk, citable as such)
-or marked `[[PENDING-REGEN: ...]]`. Nothing else is provisional.
+(All former [[PENDING-REGEN]] placeholders were filled 2026-08-26 after the regeneration completed. Nothing in this report is provisional.)
 
 ---
 
@@ -319,7 +319,7 @@ how much a pooled number moves between two identical runs.
 `city_canopy_totals_design.csv` 26 rows, of which **16 carry `is_champion=1`**;
 `crown_cover_matrix.parquet` **38,642 crowns × 29 cover columns** (33 columns total incl.
 `crown_id`, `sector`, `area_m2`, `n_cells`).
-`[[PENDING-REGEN: final series row count, totals row count, and matrix arm count with 2016_fx + 2021s_fx included — expect 31 arms]]`
+Final (regeneration completed 2026-08-26): `sector_canopy_series.csv` **149 rows**, `city_canopy_totals_design.csv` **28 rows**, `crown_cover_matrix.parquet` **38,642 crowns × 35 columns** (31 cover arms + 4 metadata columns). Champion-arm rows regenerated bit-consistent with the pre-fullext run (same rasters, same thresholds — e.g. 2003s P̂ 0.39041 unchanged).
 
 **Design-based city canopy fraction, champion arms only (pre-fullext run):**
 
@@ -349,7 +349,7 @@ of all sixteen intervals is [0.32533, 0.47222] — non-empty, so **every champio
 every other's**. No year-over-year change, and no trend, is statistically distinguishable at
 L = 5 strata. Reporting a canopy trend from this table would be reading noise.
 
-`[[PENDING-REGEN: final P̂ / CI table including 2016_fx and 2021s_fx; and whether 2016 and 2021s gain their FIRST 5-sector city totals — pre-fullext they had only S3/S4/S5 (the 41.9%/39.5% clips cover the three southern sectors only) and were written with series rows but no total]]`
+Final: **YES — the fine-tunes give both years their first full 5-sector design-based estimates**, the campaign's most tangible trajectory deliverable. 2016_fx: **P̂ 0.383, CI [0.208, 0.558]**, n=5. 2021s_fx: **P̂ 0.385, CI [0.237, 0.532]**, n=5. (The pre-existing 2016/2016_corrected/2021s_p2nir clips still write series rows for their 3 southern sectors and correctly receive no total.) Both fx rows carry `is_champion` 0/blank per the full-footprint eligibility rule — these are sector-footprint estimates of the city fraction, quoted with their CIs, not deliverable rasters.
 
 **`area_ha` caveat.** The `area_ha` column multiplies P̂ by the **sampled** 563.0 ha, so
 e.g. 2024's 228.6 ha is canopy *within the sample*, not city canopy. A city-scale figure would be

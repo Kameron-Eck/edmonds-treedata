@@ -1,0 +1,157 @@
+{
+  "cover_2000_citywide_rgb": {
+    "year": "2000",
+    "tag": "citywide_rgb",
+    "is_champion": null
+  },
+  "cover_2000_xsensor_rgb": {
+    "year": "2000",
+    "tag": "xsensor_rgb",
+    "is_champion": null
+  },
+  "cover_2002_citywide_rgb": {
+    "year": "2002",
+    "tag": "citywide_rgb",
+    "is_champion": null
+  },
+  "cover_2002_xsensor_rgb": {
+    "year": "2002",
+    "tag": "xsensor_rgb",
+    "is_champion": null
+  },
+  "cover_2003s_sectors_v1": {
+    "year": "2003s",
+    "tag": "sectors_v1",
+    "is_champion": true
+  },
+  "cover_2005_citywide_rgb": {
+    "year": "2005",
+    "tag": "citywide_rgb",
+    "is_champion": true
+  },
+  "cover_2006s_sectors_v1": {
+    "year": "2006s",
+    "tag": "sectors_v1",
+    "is_champion": true
+  },
+  "cover_2007_citywide_rgb": {
+    "year": "2007",
+    "tag": "citywide_rgb",
+    "is_champion": true
+  },
+  "cover_2009_citywide_rgb": {
+    "year": "2009",
+    "tag": "citywide_rgb",
+    "is_champion": true
+  },
+  "cover_2011s_sectors_v1": {
+    "year": "2011s",
+    "tag": "sectors_v1",
+    "is_champion": true
+  },
+  "cover_2012s_sectors_v1": {
+    "year": "2012s",
+    "tag": "sectors_v1",
+    "is_champion": true
+  },
+  "cover_2013_citywide_rgb": {
+    "year": "2013",
+    "tag": "citywide_rgb",
+    "is_champion": null
+  },
+  "cover_2013_xsensor_rgb": {
+    "year": "2013",
+    "tag": "xsensor_rgb",
+    "is_champion": null
+  },
+  "cover_2015_citywide_rgb": {
+    "year": "2015",
+    "tag": "citywide_rgb",
+    "is_champion": null
+  },
+  "cover_2015_xsensor_rgb": {
+    "year": "2015",
+    "tag": "xsensor_rgb",
+    "is_champion": null
+  },
+  "cover_2016": {
+    "year": "2016",
+    "tag": "",
+    "is_champion": null
+  },
+  "cover_2016_corrected": {
+    "year": "2016",
+    "tag": "corrected",
+    "is_champion": null
+  },
+  "cover_2016_fullext_sectors_v1": {
+    "year": "2016",
+    "tag": "fullext_sectors_v1",
+    "is_champion": null
+  },
+  "cover_2017_citywide_rgb": {
+    "year": "2017",
+    "tag": "citywide_rgb",
+    "is_champion": null
+  },
+  "cover_2017_xsensor_train": {
+    "year": "2017",
+    "tag": "xsensor_train",
+    "is_champion": null
+  },
+  "cover_2018s_sectors_v1": {
+    "year": "2018s",
+    "tag": "sectors_v1",
+    "is_champion": true
+  },
+  "cover_2019_citywide_rgb": {
+    "year": "2019",
+    "tag": "citywide_rgb",
+    "is_champion": true
+  },
+  "cover_2019n_p2nir": {
+    "year": "2019n",
+    "tag": "p2nir",
+    "is_champion": true
+  },
+  "cover_2020s_sectors_v1": {
+    "year": "2020s",
+    "tag": "sectors_v1",
+    "is_champion": true
+  },
+  "cover_2021_citywide_rgb": {
+    "year": "2021",
+    "tag": "citywide_rgb",
+    "is_champion": true
+  },
+  "cover_2021s_fullext_sectors_v1": {
+    "year": "2021s",
+    "tag": "fullext_sectors_v1",
+    "is_champion": false
+  },
+  "cover_2021s_p2nir": {
+    "year": "2021s",
+    "tag": "p2nir",
+    "is_champion": true
+  },
+  "cover_2022_citywide_rgb": {
+    "year": "2022",
+    "tag": "citywide_rgb",
+    "is_champion": true
+  },
+  "cover_2023_citywide_rgb": {
+    "year": "2023",
+    "tag": "citywide_rgb",
+    "is_champion": true
+  },
+  "cover_2023n": {
+    "year": "2023n",
+    "tag": "",
+    "is_champion": true
+  },
+  "cover_2024_citywide_rgb": {
+    "year": "2024",
+    "tag": "citywide_rgb",
+    "is_champion": true
+  }
+}

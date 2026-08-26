@@ -2,12 +2,23 @@ r"""runtime_dashboard.py — local progress dashboard for the headless Colab que
 
 One browser page (http://127.0.0.1:8765; Tabler CSS + Chart.js from jsDelivr for the
 chrome — the page still renders plain without internet) with a card per Colab CLI session: GPU
-tier + utilisation, the queue it runs, per-job step chips (OK / RUNNING / FAIL …
+tier + utilisation, CPU / RAM, the queue it runs, per-job step chips (OK / RUNNING / FAIL …
 from the merged status CSVs), the live tqdm progress bar of the current step with
 ETA, elapsed vs the step ceiling (`phase4_train_queue.STEP_TIMEOUT_MIN`), staging /
 lock lines, the scratch directory (the ortho growing), and the log tail. Flags
 anything a human should look at: hard-fail rows, "two bulk copies" lock WARNINGs,
 a stale log, a step past its ceiling, no queue process.
+
+DATA FLOWS (2026-08-26). Two charts per card besides the GPU/throughput sparklines:
+"CPU / RAM / GPU %" and "data flows (GB)" — scratch bytes, the rclone write cache, and
+the UPLOAD BACKLOG. The lake is an rclone FUSE mount (`--vfs-cache-mode writes`), so
+every write lands in /root/.cache/rclone first and is uploaded asynchronously; the
+backlog is what has been written but has NOT reached Drive. Total cache size is not
+that number — an uploaded item stays cached with `"Dirty": false` for the retention
+window — so the backlog is measured as the sum of `Size` over vfsMeta items whose JSON
+says `Dirty: true`. A non-zero backlog with no queue process is the 2026-08-26 hazard:
+stopping that VM discards the outputs. Same signal, token-cheap, in
+`pipeline/vm_heartbeat.py` + `qc/runtime_health.py` (UPLOAD_BACKLOG_STUCK).
 
 Read-only. Two data paths, because they have different freshness:
   * per VM, a tiny probe run through `colab exec` (ps, nvidia-smi, the scratch
@@ -69,13 +80,87 @@ FLAG_WORDS = ("two bulk copies", "WARNING", "Traceback", "FAIL", "ERROR", "TIMEO
 
 # VM-side probe: ASCII-only JSON on one line (colab.exe's stdout is cp1252 on Windows).
 PROBE = r'''
-import glob, json, os, re, subprocess, time
+import glob, json, os, re, shutil, subprocess, time
 def sh(c, t=20):
     try:
         return subprocess.run(c, shell=True, capture_output=True, text=True, timeout=t).stdout
     except Exception as e:
         return "ERR %r" % (e,)
+def cpu_snap():
+    # (busy+idle total, idle+iowait) jiffies from the aggregate "cpu" line
+    try:
+        with open("/proc/stat") as f:
+            p = f.readline().split()
+        if p and p[0] == "cpu" and len(p) > 5:
+            v = [int(x) for x in p[1:11]]
+            return sum(v), v[3] + v[4]
+    except (OSError, ValueError, IndexError):
+        pass
+    return None
+def dirb(root, cap=200000):
+    # recursive byte total via scandir (no du subprocess, no hashing). The entry cap
+    # keeps a runaway tile dir from turning the probe into a disk crawler.
+    total = seen = 0
+    stack = [root]
+    while stack:
+        try:
+            with os.scandir(stack.pop()) as it:
+                for e in it:
+                    seen += 1
+                    if seen > cap:
+                        return total
+                    try:
+                        if e.is_dir(follow_symlinks=False):
+                            stack.append(e.path)
+                        else:
+                            total += e.stat(follow_symlinks=False).st_size
+                    except OSError:
+                        pass
+        except OSError:
+            pass
+    return total
+def vfs_usage(root="/root/.cache/rclone", cap=4000):
+    # (cache_bytes, dirty_bytes|None). The mount runs --vfs-cache-mode writes, so every
+    # write lands here first and is uploaded asynchronously. TOTAL cache size is NOT the
+    # backlog: an uploaded file stays cached (Dirty:false) for the retention window, so
+    # a drained cache still measures GB. The real backlog is the sum of Size over the
+    # vfsMeta items whose JSON says Dirty:true (measured on the live VM 2026-08-26).
+    # dirty is None when the tree is unreadable or the entry cap is hit - never a guess.
+    if not os.path.isdir(root):
+        return 0, 0
+    cache = dirb(root)
+    meta = os.path.join(root, "vfsMeta")
+    if not os.path.isdir(meta):
+        return cache, 0
+    dirty = n = 0
+    ok = True
+    stack = [meta]
+    while stack and ok:
+        try:
+            with os.scandir(stack.pop()) as it:
+                for e in it:
+                    try:
+                        if e.is_dir(follow_symlinks=False):
+                            stack.append(e.path)
+                            continue
+                    except OSError:
+                        continue
+                    n += 1
+                    if n > cap:
+                        ok = False
+                        break
+                    try:
+                        with open(e.path) as fh:
+                            j = json.load(fh)
+                        if j.get("Dirty"):
+                            dirty += int(j.get("Size") or 0)
+                    except (OSError, ValueError, TypeError):
+                        pass
+        except OSError:
+            pass
+    return cache, (dirty if ok else None)
 out = {"host": sh("hostname").strip(), "utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())}
+_c0, _t0 = cpu_snap(), time.time()      # CPU delta spans the GPU sampling window (free)
 procs = []
 for ln in sh("ps -eo pid,etimes,pcpu,pmem,args").splitlines():
     if ("phase4_train_queue" in ln or "phase4_semantic_finetune" in ln) and "grep" not in ln:
@@ -101,6 +186,38 @@ if out["gpu"]:
         out["gpu_util_mean"] = round(sum(vals) / len(vals))
         out["gpu_util_max"] = max(vals)
         out["gpu_util_n"] = len(vals)
+# ---- CPU / RAM ---------------------------------------------------------------
+# The delta window is whatever the GPU loop just spent (~0.6-3 s). On a CPU runtime
+# that loop never ran, so pay an explicit 0.5 s rather than divide by ~0 jiffies.
+if time.time() - _t0 < 0.3:
+    time.sleep(0.5)
+_c1 = cpu_snap()
+out["cpu_pct"] = None
+out["cpu_window_s"] = round(time.time() - _t0, 2)
+if _c0 and _c1 and _c1[0] > _c0[0]:
+    out["cpu_pct"] = round(100.0 * (1.0 - (_c1[1] - _c0[1]) / float(_c1[0] - _c0[0])), 1)
+out["ncpu"] = os.cpu_count()
+try:
+    with open("/proc/loadavg") as f:
+        out["load1"] = float(f.read().split()[0])
+except (OSError, ValueError, IndexError):
+    out["load1"] = None
+out["ram_pct"] = out["ram_total_gb"] = None
+try:
+    mi = {}
+    with open("/proc/meminfo") as f:
+        for ln in f:
+            k, _s, v = ln.partition(":")
+            try:
+                mi[k] = int(v.split()[0])          # kB
+            except (ValueError, IndexError):
+                pass
+    if mi.get("MemTotal") and mi.get("MemAvailable") is not None:
+        out["ram_pct"] = round(100.0 * (mi["MemTotal"] - mi["MemAvailable"]) / mi["MemTotal"], 1)
+        out["ram_total_gb"] = round(mi["MemTotal"] * 1024 / 1e9, 1)
+except OSError:
+    pass
+# ---- data-flow storage (GB) ---------------------------------------------------
 sc = []
 for p in sorted(glob.glob("/content/phase4_scratch/*")):
     try:
@@ -108,6 +225,15 @@ for p in sorted(glob.glob("/content/phase4_scratch/*")):
     except OSError:
         pass
 out["scratch"] = sc
+out["scratch_gb"] = round(dirb("/content/phase4_scratch") / 1e9, 2)
+_cb, _db = vfs_usage()
+out["vfs_cache_gb"] = round(_cb / 1e9, 2)
+out["vfs_dirty_gb"] = None if _db is None else round(_db / 1e9, 2)
+try:
+    out["disk_free_gb"] = round(shutil.disk_usage("/content").free / 1e9, 2)
+    out["disk_total_gb"] = round(shutil.disk_usage("/content").total / 1e9, 2)
+except OSError:
+    out["disk_free_gb"] = out["disk_total_gb"] = None
 queue = None
 for p in procs:
     m = re.search(r"--queue\s+(\S+)", p["args"])
@@ -387,6 +513,9 @@ def build_card(sess, probe, probe_err, merged_latest, now):
         return card
     card.update(host=probe.get("host"), vm_utc=probe.get("utc"), procs=probe.get("procs", []),
                 scratch=probe.get("scratch", []), queue=probe.get("queue"))
+    card["sys"] = {k: probe.get(k) for k in
+                   ("cpu_pct", "cpu_window_s", "ncpu", "load1", "ram_pct", "ram_total_gb",
+                    "scratch_gb", "vfs_cache_gb", "vfs_dirty_gb", "disk_free_gb", "disk_total_gb")}
     g = probe.get("gpu")
     if g and len(g) >= 4:
         card["gpu"] = {"name": g[0], "util": g[1], "mem_used": g[2], "mem_total": g[3],
@@ -396,6 +525,19 @@ def build_card(sess, probe, probe_err, merged_latest, now):
         card["gpu"] = None
     if not card["procs"]:
         card["flags"].append("no queue/engine process on the VM")
+    # DATA-FLOW hazards. The undrained-upload one is the 2026-08-26 lesson: the queue
+    # exits, rclone is still pushing GB out of its write cache, the VM gets stopped, and
+    # the outputs never reach the lake. Dirty bytes (not total cache) is the backlog.
+    _sy = card["sys"]
+    _d = _sy.get("vfs_dirty_gb")
+    if _d is not None and _d > 0.5 and not card["procs"]:
+        card["flags"].append(f"UPLOAD BACKLOG {_d:.1f} GB still undrained with no queue process "
+                             f"— do NOT stop this VM until it reaches 0")
+    _fr = _sy.get("disk_free_gb")
+    if _fr is not None and _fr < 15:
+        card["flags"].append(f"VM disk nearly full: {_fr:.1f} GB free on /content "
+                             f"(scratch {_sy.get('scratch_gb')} GB, rclone cache "
+                             f"{_sy.get('vfs_cache_gb')} GB)")
     ka = sess.get("keep_alive_pid")
     if keepalive_alive(ka) is False:
         card["flags"].append(f"KEEP-ALIVE DAEMON DEAD (pid {ka or 'none'}) — Colab reclaims an "
@@ -593,8 +735,14 @@ class Collector(threading.Thread):
             mem = int(g.get("mem_used")) if g else None
         except ValueError:
             util = mem = None
+        sy = card.get("sys") or {}
         pt = {"t": now.strftime("%Y-%m-%dT%H:%M:%SZ"), "util": util, "mem": mem,
-              "n": pr.get("n"), "total": pr.get("total"), "rate": rate}
+              "n": pr.get("n"), "total": pr.get("total"), "rate": rate,
+              # utilisation + data-flow ring: one point per probe, same deque, so the
+              # window selector and the 12 h retention already apply to these too.
+              "cpu": sy.get("cpu_pct"), "ram": sy.get("ram_pct"),
+              "scr": sy.get("scratch_gb"), "cache": sy.get("vfs_cache_gb"),
+              "dirty": sy.get("vfs_dirty_gb"), "free": sy.get("disk_free_gb")}
         if d and d[-1]["t"] == pt["t"]:
             return
         if d and (pt["util"], pt["n"]) == (d[-1]["util"], d[-1]["n"]) and card.get("probe_age_s", 0) > 5:
@@ -714,6 +862,7 @@ body{background:#0f1419}.card{background:#151c26;border-color:#24303f}.card-head
    box with the canvas taken OUT of flow — otherwise each resize grows the parent, which
    resizes the canvas again: the page scrolls away downwards forever. */
 .chartbox{position:relative;height:80px;width:100%;overflow:hidden}
+.chartbox.tall{height:118px}   /* the legended CPU/RAM/GPU + data-flow charts */
 .chartbox>canvas{position:absolute!important;top:0;left:0;width:100%!important;height:100%!important;display:block}.steps .step-item{font-size:12px}.chip{display:inline-block;padding:2px 8px;border-radius:6px;font-size:12px;margin:2px 4px 2px 0;background:#24303f;color:#9fb0c5}
 .chip.OK{background:#0f3d24;color:#7ee2a3}.chip.RUNNING{background:#15325a;color:#8fc3ff;animation:pulse 1.6s infinite}.chip.FAIL,.chip.ERROR,.chip.TIMEOUT,.chip.INTERRUPTED{background:#4a1a1a;color:#ffb0b0}.chip.prior{opacity:.65}
 @keyframes pulse{50%{opacity:.55}}.kv dt{color:#8696ab;font-weight:500}.muted{color:#8696ab}
@@ -736,6 +885,8 @@ body{background:#0f1419}.card{background:#151c26;border-color:#24303f}.card-head
 </div></div></div>
 <script>
 const fmtB=b=>b>=1e9?(b/1e9).toFixed(2)+' GB':b>=1e6?(b/1e6).toFixed(1)+' MB':b+' B';
+const gbs=v=>(v==null||isNaN(v))?'–':(+v).toFixed(2)+' GB';
+const pcts=v=>(v==null||isNaN(v))?'–':(+v).toFixed(0)+'%';
 const esc=s=>String(s??'').replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
 const charts={};
 const rateEl=document.getElementById('rate');try{rateEl.value=localStorage.getItem('edm_rate')||''}catch(e){}
@@ -753,11 +904,16 @@ function card(s){
  if(s.flags&&s.flags.length)h+=s.flags.map(f=>`<div class="alert ${f.startsWith('note:')?'alert-info':'alert-danger'} py-2 mb-2">${esc(f)}</div>`).join('');
  h+=`<div class="row g-3"><div class="col-6"><div class="d-flex justify-content-between small"><span class="muted">${c&&c.phase&&!c.progress?'GPU util <span class="text-warning" title="the step is not in its GPU loop yet">(idle: '+esc(c.phase.split(' — ')[0])+')</span>':'GPU util'}${g&&g.util_n?' <span title="mean / peak over the sampling window — inference is input-bound, so a single reading is 0 most of the time">(mean/peak)</span>':''}</span><span>${g?(g.util_mean!=null?`${g.util_mean}% / ${g.util_max}%`:esc(g.util)+'%'):'–'}</span></div><div class="progress progress-sm"><div class="progress-bar bg-green" style="width:${util}%"></div><div class="progress-bar bg-green-lt" style="width:${Math.max(0,(g&&g.util_max!=null?g.util_max:util)-util)}%"></div></div></div>
  <div class="col-6"><div class="d-flex justify-content-between small"><span class="muted">GPU memory</span><span>${g?`${(g.mem_used/1024).toFixed(1)} / ${(g.mem_total/1024).toFixed(0)} GB`:'–'}</span></div><div class="progress progress-sm"><div class="progress-bar bg-azure" style="width:${mem}%"></div></div></div></div>`;
+ const sy=s.sys||{};
+ h+=`<div class="row g-3 mt-1"><div class="col-6"><div class="d-flex justify-content-between small"><span class="muted">CPU${sy.ncpu?` (${sy.ncpu} cores`+(sy.load1!=null?`, load ${sy.load1}`:'')+')':''}</span><span>${pcts(sy.cpu_pct)}</span></div><div class="progress progress-sm"><div class="progress-bar bg-orange" style="width:${+sy.cpu_pct||0}%"></div></div></div>
+ <div class="col-6"><div class="d-flex justify-content-between small"><span class="muted">RAM${sy.ram_total_gb?` of ${sy.ram_total_gb} GB`:''}</span><span>${pcts(sy.ram_pct)}</span></div><div class="progress progress-sm"><div class="progress-bar bg-purple" style="width:${+sy.ram_pct||0}%"></div></div></div></div>`;
+ h+=`<div class="small muted mt-2">data flow · scratch <strong>${gbs(sy.scratch_gb)}</strong> · <span title="rclone vfs items still marked Dirty = written but NOT yet uploaded to the lake">upload backlog</span> <strong class="${sy.vfs_dirty_gb>0.5?'text-warning':''}">${sy.vfs_dirty_gb==null?'n/a':gbs(sy.vfs_dirty_gb)}</strong> · <span title="total rclone write cache; an uploaded file stays cached (Dirty:false) for the retention window, so this is NOT the backlog">rclone cache</span> ${gbs(sy.vfs_cache_gb)} · disk free ${gbs(sy.disk_free_gb)}${sy.disk_total_gb?` / ${sy.disk_total_gb} GB`:''}</div>`;
  if(c){const p=c.progress,pct=p?p.pct:(c.elapsed_min&&c.ceiling_min?Math.min(100,100*c.elapsed_min/c.ceiling_min):0);
   h+=`<div class="mt-3"><div class="d-flex justify-content-between"><div><strong>${esc(c.job)} / ${esc(c.step)}</strong> <span class="muted">${esc(c.title||'')}</span></div><div class="muted small">${c.elapsed_min??'?'} / ${c.ceiling_min??'?'} min</div></div>
   <div class="progress mt-1" style="height:16px"><div class="progress-bar ${p?'bg-primary':'bg-secondary'}" style="width:${pct.toFixed(0)}%">${p?pct+'%':''}</div></div>
   <div class="small muted mt-1">${p?`${esc(p.desc)} ${p.n.toLocaleString()} / ${p.total.toLocaleString()} · ${esc(p.elapsed)} elapsed · ETA ${esc(p.eta)} · ${esc(p.rate)}`:(c.phase?esc(c.phase):'no progress bar for this step (train prints per epoch) — bar = elapsed vs ceiling')}</div></div>`;}
  h+=`<div class="row mt-3"><div class="col-6"><div class="muted small">GPU util % (sampled mean) · fixed 0–100, minutes before now</div><div class="chartbox"><canvas id="u_${esc(s.name)}"></canvas></div></div><div class="col-6"><div class="muted small">throughput tiles/s · fixed 0–100</div><div class="chartbox"><canvas id="r_${esc(s.name)}"></canvas></div></div></div>`;
+ h+=`<div class="row mt-2"><div class="col-6"><div class="muted small">CPU / RAM / GPU % · fixed 0–100</div><div class="chartbox tall"><canvas id="c_${esc(s.name)}"></canvas></div></div><div class="col-6"><div class="muted small">data flows (GB) · disk free ${gbs(sy.disk_free_gb)} (not plotted)</div><div class="chartbox tall"><canvas id="d_${esc(s.name)}"></canvas></div></div></div>`;
  (s.jobs||[]).forEach(j=>{h+=`<div class="mt-3"><strong>${esc(j.id)}</strong> <span class="muted small">${esc(j.tag)}</span>${j.job_end?` <span class="chip ${esc(j.job_end.state)}">job-end VERIFY ${esc(j.job_end.state)}</span>`:''}<div>${stepsHtml(j)}</div></div>`;});
  if(s.scratch&&s.scratch.length)h+=`<div class="muted small mt-3">scratch: ${s.scratch.map(f=>`${esc(f.name)} ${fmtB(f.size)}`).join(' · ')}</div>`;
  if(s.procs&&s.procs.length)h+=`<div class="muted small mono">${s.procs.map(p=>`${p.pid} ${Math.floor(p.etimes/60)}m ${esc(p.args.replace(/.*phase4_/,'phase4_').slice(0,80))}`).join('<br>')}</div>`;
@@ -773,6 +929,24 @@ function spark(id,pts,color,ymax,win){const el=document.getElementById(id);if(!e
    plugins:{legend:{display:false},tooltip:{callbacks:{title:i=>`${(-i[0].parsed.x).toFixed(0)} min ago`}}},
    scales:{x:{type:'linear',min:-win,max:0,ticks:{stepSize:win/4,color:'#8696ab',font:{size:10},callback:v=>v===0?'now':`${-v}m`},grid:{color:'#24303f'}},
            y:{min:0,max:ymax,ticks:{stepSize:ymax/4,color:'#8696ab',font:{size:10}},grid:{color:'#24303f'}}}}});}
+// multi-series variant of spark(): same stationary axes, plus a legend and a shared
+// tooltip. spark()'s update path only ever touches datasets[0], hence a second fn.
+function lines(id,sets,ymax,win,unit){const el=document.getElementById(id);if(!el||!window.Chart)return;
+ const ds=sets.map(s=>({label:s.label,data:s.data,borderColor:s.color,backgroundColor:s.color+'22',
+  borderWidth:1.5,pointRadius:0,fill:!!s.fill,tension:0}));
+ if(charts[id]){const ch=charts[id];
+  ds.forEach((d,i)=>{if(ch.data.datasets[i]){ch.data.datasets[i].data=d.data;ch.data.datasets[i].label=d.label;}else{ch.data.datasets.push(d);}});
+  ch.data.datasets.length=ds.length;
+  ch.options.scales.x.min=-win;ch.options.scales.x.ticks.stepSize=win/4;
+  ch.options.scales.y.max=ymax;ch.options.scales.y.ticks.stepSize=ymax/4;ch.update('none');return;}
+ charts[id]=new Chart(el,{type:'line',data:{datasets:ds},
+  options:{animation:false,responsive:true,maintainAspectRatio:false,resizeDelay:200,parsing:false,normalized:true,
+   interaction:{mode:'index',intersect:false},
+   plugins:{legend:{display:true,position:'top',align:'end',labels:{boxWidth:8,boxHeight:8,usePointStyle:true,padding:6,color:'#8696ab',font:{size:10}}},
+    tooltip:{callbacks:{title:i=>`${(-i[0].parsed.x).toFixed(0)} min ago`,
+                        label:c=>`${c.dataset.label}: ${c.parsed.y}${unit}`}}},
+   scales:{x:{type:'linear',min:-win,max:0,ticks:{stepSize:win/4,color:'#8696ab',font:{size:10},callback:v=>v===0?'now':`${-v}m`},grid:{color:'#24303f'}},
+           y:{min:0,max:ymax,ticks:{stepSize:ymax/4,color:'#8696ab',font:{size:10}},grid:{color:'#24303f'}}}}});}
 let lastHtml='';
 async function tick(){try{const [st,hi]=await Promise.all([fetch('/api/state',{cache:'no-store'}).then(r=>r.json()),fetch('/api/history',{cache:'no-store'}).then(r=>r.json())]);
  const unwatched=(st.colab_sessions||[]).map(c=>c.name).filter(n=>!(st.sessions||[]).some(x=>x.name===n));
@@ -783,7 +957,18 @@ async function tick(){try{const [st,hi]=await Promise.all([fetch('/api/state',{c
  const win=+(winEl.value||120),now=Date.now(),px=p=>(Date.parse(p.t)-now)/60000;
  (st.sessions||[]).forEach(s=>{const H=(hi[s.name]||[]).filter(p=>px(p)>=-win);
   spark('u_'+s.name,H.filter(p=>p.util!=null).map(p=>({x:px(p),y:p.util})),'#2fb344',100,win);
-  spark('r_'+s.name,H.filter(p=>p.rate!=null).map(p=>({x:px(p),y:Math.min(p.rate,100)})),'#4299e1',100,win);});
+  spark('r_'+s.name,H.filter(p=>p.rate!=null).map(p=>({x:px(p),y:Math.min(p.rate,100)})),'#4299e1',100,win);
+  const pick=k=>H.filter(p=>p[k]!=null).map(p=>({x:px(p),y:+p[k]}));
+  lines('c_'+s.name,[{label:'CPU',color:'#f76707',data:pick('cpu')},
+                     {label:'RAM',color:'#ae3ec9',data:pick('ram')},
+                     {label:'GPU',color:'#2fb344',data:pick('util')}],100,win,'%');
+  const scr=pick('scr'),dty=pick('dirty'),cch=pick('cache');
+  // GB axis is data-driven (scratch can be 0.1 GB or 80 GB), never a fixed 0-100
+  let mx=0;[scr,dty,cch].forEach(a=>a.forEach(p=>{if(p.y>mx)mx=p.y;}));
+  mx=Math.max(1,Math.ceil(mx*1.25));
+  lines('d_'+s.name,[{label:'scratch',color:'#4299e1',data:scr,fill:true},
+                     {label:'upload backlog',color:'#f59f00',data:dty,fill:true},
+                     {label:'rclone cache',color:'#748ffc',data:cch}],mx,win,' GB');});
  let x=`<div class="row"><div class="col-md-4"><table class="table table-sm"><thead><tr><th>session</th><th>endpoint</th><th>hw</th></tr></thead><tbody>${(st.colab_sessions||[]).map(s=>`<tr><td>${esc(s.name)}</td><td class="mono small">${esc(s.endpoint)}</td><td>${esc(s.hardware)}</td></tr>`).join('')}</tbody></table>
  <div class="small muted">locks: ${(st.locks||[]).map(esc).join(', ')||'(none)'}</div>
  <table class="table table-sm mt-2"><thead><tr><th>live assignment</th><th>acc</th><th>name</th></tr></thead><tbody>${(st.assignments||[]).map(x=>`<tr class="${x.name?'':'text-danger'}"><td class="mono small">${esc(x.endpoint)}</td><td>${esc(x.accelerator)}</td><td>${x.name?esc(x.name):'ORPHAN — billing, no name'}</td></tr>`).join('')}</tbody></table></div>

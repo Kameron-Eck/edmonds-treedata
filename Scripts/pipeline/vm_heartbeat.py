@@ -21,11 +21,17 @@ anything the queue does to the environment, and must never be the reason a run d
 It reads state, it never acts on it: no killing, no restarting, no writing anywhere
 except its own heartbeat file. Reader-side rules live in qc/runtime_health.py.
 
-Two prior samples are carried IN the JSON (`newest_nohup.prev_size`,
-`prev_scratch_gb`, `prev_ts_utc`) so the local reader can judge "stalled" and
-"idle GPU" from ONE file, with no local state to keep and nothing to poll twice.
-They are null on the first cycle after a (re)start — readers must no-op then,
-or every restart reads as a stall.
+Prior samples are carried IN the JSON (`newest_nohup.prev_size`, `prev_scratch_gb`,
+`prev_vfs_dirty_gb`, `prev_ts_utc`) so the local reader can judge "stalled", "idle
+GPU" and "uploads not draining" from ONE file, with no local state to keep and
+nothing to poll twice. They are null on the first cycle after a (re)start — readers
+must no-op then, or every restart reads as a stall.
+
+Data-flow fields (2026-08-26): `cpu_pct` (two-sample /proc/stat delta over the cycle),
+`vfs_cache_gb` (total rclone write cache) and `vfs_dirty_gb` (the UPLOAD BACKLOG —
+bytes written through the mount that have NOT reached Drive). See `_vfs_bytes` for why
+those two are different numbers; the difference is what keeps runtime_health's
+UPLOAD_BACKLOG_STUCK from crying wolf after every clean drain.
 
 Multi-VM safety: both runtimes (cap 2) write nohup logs and status CSVs into the
 SAME Drive dirs, so a plain newest-by-mtime glob can latch onto the OTHER session's
@@ -48,6 +54,7 @@ import time
 
 MOUNT = "/content/drive/MyDrive/treedata"     # the exact path every script expects
 SCRATCH = "/content/phase4_scratch"
+VFS_CACHE = "/root/.cache/rclone"             # rclone's write cache (see _vfs_bytes)
 BREADCRUMB = "/content"                       # LOCAL disk: survives a lost mount
 MAXCHARS = 200                                # cap on every free-text field (2 KB budget)
 QUEUE_RE = re.compile(r"--queue\s+(\S+)")
@@ -127,6 +134,77 @@ def _dir_bytes(root, cap=50000):
     return total
 
 
+def _cpu_snap():
+    """(busy+idle jiffies, idle+iowait jiffies) from /proc/stat's aggregate line.
+
+    None off Linux (the documented local-test override runs on Windows) — the caller
+    then reports cpu_pct null rather than raising, per the module's degrade promise."""
+    try:
+        with open("/proc/stat") as f:
+            p = f.readline().split()
+        if p and p[0] == "cpu" and len(p) > 5:
+            v = [int(x) for x in p[1:11]]
+            return sum(v), v[3] + v[4]
+    except (OSError, ValueError, IndexError):
+        pass
+    return None
+
+
+def _cpu_pct(a, b):
+    """Overall busy percent between two _cpu_snap() readings (None if either failed)."""
+    if not a or not b or b[0] <= a[0]:
+        return None
+    return round(100.0 * (1.0 - (b[1] - a[1]) / float(b[0] - a[0])), 1)
+
+
+def _vfs_bytes(root=VFS_CACHE, cap=4000):
+    """(cache_bytes, dirty_bytes|None) for the rclone write cache.
+
+    The lake is an rclone FUSE mount run with `--vfs-cache-mode writes`, so every write
+    lands in this cache first and is uploaded asynchronously. TOTAL cache size is NOT
+    the upload backlog: an item that has finished uploading STAYS cached, with
+    `"Dirty": false` in its vfsMeta JSON, for the retention window. The backlog is the
+    sum of `Size` over the vfsMeta items whose JSON says `Dirty: true` (field layout
+    read off the live A100, 2026-08-26).
+
+    dirty is None when the meta tree is unreadable or the entry cap is hit — readers
+    must no-op on None, never guess. A drivefs VM (or Windows) has no such dir -> (0,0).
+    """
+    if not os.path.isdir(root):
+        return 0, 0
+    cache = _dir_bytes(root)
+    meta = os.path.join(root, "vfsMeta")
+    if not os.path.isdir(meta):
+        return cache, 0
+    dirty = n = 0
+    ok = True
+    stack = [meta]
+    while stack and ok:
+        try:
+            with os.scandir(stack.pop()) as it:
+                for e in it:
+                    try:
+                        if e.is_dir(follow_symlinks=False):
+                            stack.append(e.path)
+                            continue
+                    except OSError:
+                        continue
+                    n += 1
+                    if n > cap:
+                        ok = False
+                        break
+                    try:
+                        with open(e.path) as fh:
+                            j = json.load(fh)
+                        if j.get("Dirty"):
+                            dirty += int(j.get("Size") or 0)
+                    except (OSError, ValueError, TypeError):
+                        pass
+        except OSError:
+            pass
+    return cache, (dirty if ok else None)
+
+
 def _newest(dirpath, prefix, suffix, stem):
     """Newest file matching prefix*suffix, filtered to THIS VM's queue stem when we
     know it (see the multi-VM note in the module docstring)."""
@@ -166,8 +244,9 @@ def _last_line(path, size, nbytes=4000):
     return None
 
 
-def sample(base, scratch, session, prev):
+def sample(base, scratch, session, prev, vfs_cache=VFS_CACHE):
     """One heartbeat dict. `prev` carries the previous cycle's samples (or {})."""
+    c0, t0 = _cpu_snap(), time.time()      # the CPU window spans this whole cycle
     logs = os.path.join(base, "phase4", "logs")
     qc = os.path.join(base, "phase4", "qc")
     mount_ok = os.path.isdir(os.path.join(base, "phase4"))
@@ -193,17 +272,27 @@ def sample(base, scratch, session, prev):
         nohup["prev_size"] = prev.get("nohup_size")
 
     sc = _dir_bytes(scratch) if os.path.isdir(scratch) else 0
+    gpu = _gpu()                                    # sleeps ~2 s: the CPU window
+    cache, dirty = _vfs_bytes(vfs_cache)
+    if time.time() - t0 < 0.3:                      # CPU runtime: _gpu() returned at once
+        time.sleep(0.5)
     return {
         "ts_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
         "session": session,
         "mount_ok": mount_ok,
-        "gpu": _gpu(),
+        "gpu": gpu,
+        "cpu_pct": _cpu_pct(c0, _cpu_snap()),
         "queue_proc": queue_proc,
         "engine_proc": engine_proc,
         "newest_nohup": nohup,
         "newest_status": status,
         "scratch_gb": round(sc / 1e9, 3),
         "prev_scratch_gb": prev.get("scratch_gb"),
+        # vfs_cache_gb = the whole rclone write cache; vfs_dirty_gb = the UPLOAD
+        # BACKLOG (written, not yet on Drive). Different numbers — see _vfs_bytes.
+        "vfs_cache_gb": round(cache / 1e9, 3),
+        "vfs_dirty_gb": None if dirty is None else round(dirty / 1e9, 3),
+        "prev_vfs_dirty_gb": prev.get("vfs_dirty_gb"),
         "prev_ts_utc": prev.get("ts_utc"),
         "beacon_pid": os.getpid(),
     }
@@ -227,6 +316,8 @@ def main():
     ap.add_argument("--cycles", type=int, default=0, help="stop after N cycles (0 = forever)")
     ap.add_argument("--base", default=MOUNT, help="data lake root (override for local tests)")
     ap.add_argument("--scratch", default=SCRATCH)
+    ap.add_argument("--vfs-cache", default=VFS_CACHE,
+                    help="rclone write-cache dir (override for local tests)")
     ap.add_argument("--breadcrumb", default=BREADCRUMB,
                     help="LOCAL dir for the final mount_ok=false heartbeat")
     a = ap.parse_args([x for x in sys.argv[1:]
@@ -238,7 +329,7 @@ def main():
     print(f"vm_heartbeat session={a.session} -> {out} every {a.interval}s (pid {os.getpid()})",
           flush=True)
     while True:
-        hb = sample(a.base, a.scratch, a.session, prev)
+        hb = sample(a.base, a.scratch, a.session, prev, a.vfs_cache)
         try:
             if not hb["mount_ok"]:
                 raise OSError("mount gone: " + a.base)
@@ -258,7 +349,8 @@ def main():
             return 0
         n += 1
         prev = {"nohup_size": (hb["newest_nohup"] or {}).get("size"),
-                "scratch_gb": hb["scratch_gb"], "ts_utc": hb["ts_utc"]}
+                "scratch_gb": hb["scratch_gb"], "vfs_dirty_gb": hb["vfs_dirty_gb"],
+                "ts_utc": hb["ts_utc"]}
         if a.once or (a.cycles and n >= a.cycles):
             print(f"vm_heartbeat: {n} cycle(s) written, exit", flush=True)
             return 0

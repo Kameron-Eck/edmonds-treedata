@@ -35,6 +35,15 @@ Deterministic rules (each prints its NAME when it fires — the name is the find
                           the previous sample (no-ops when prev_size is null).
   GPU_IDLE_IN_TRAIN warn  util < --idle-pct during `--step train` AND scratch stable
                           (stable scratch = not staging, so idle is not just I/O).
+  UPLOAD_BACKLOG_STUCK warn  vfs_dirty_gb > --backlog-gb, UNCHANGED since the previous
+                          beat, and no queue/engine process: bytes were written through
+                          the rclone mount and have not reached Drive, and nothing is
+                          still producing them. Stopping that VM discards the outputs —
+                          the 2026-08-26 failure. Keyed on DIRTY bytes, never on total
+                          cache size: with `--vfs-cache-mode writes` an uploaded file
+                          stays cached (`Dirty:false`) for the retention window, so
+                          total size would WARN after every clean drain. No-ops when
+                          the field is absent (a beacon older than 2026-08-26) or null.
   NO_HEARTBEAT      warn  a live CLI session with no heartbeat file (pre-beacon VM, or
                           the bootstrap's nohup line never ran). Degrade, never crash:
                           the status CSVs are still summarized.
@@ -181,6 +190,8 @@ def judge(sess, entry, meta, lch, args):
     d.update(hb_age_s=None if age is None else round(age), gpu=gpu or None,
              queue_proc=hb.get("queue_proc"), engine_proc=engine,
              scratch_gb=hb.get("scratch_gb"), mount_ok=hb.get("mount_ok"),
+             cpu_pct=hb.get("cpu_pct"), vfs_cache_gb=hb.get("vfs_cache_gb"),
+             vfs_dirty_gb=hb.get("vfs_dirty_gb"),
              nohup=nohup.get("name"), nohup_size=nohup.get("size"),
              nohup_prev_size=nohup.get("prev_size"))
 
@@ -219,6 +230,17 @@ def judge(sess, entry, meta, lch, args):
         flags.append(f"STALL(log flat at {nohup.get('size')}B)")
         sev = max(sev, WARN)
 
+    # Written-but-not-uploaded bytes, going nowhere, with nothing left to produce them.
+    # Every clause is required: `is not None` on both samples (an older beacon has no
+    # such field, and the first beat after a restart has no prev — either must no-op,
+    # not guess), unchanged (draining is healthy, however large), and no producer
+    # (a running engine legitimately keeps the cache full).
+    dirty, pdirty = hb.get("vfs_dirty_gb"), hb.get("prev_vfs_dirty_gb")
+    if (dirty is not None and pdirty is not None and dirty > args.backlog_gb
+            and dirty == pdirty and not hb.get("queue_proc") and not engine):
+        flags.append(f"UPLOAD_BACKLOG_STUCK({dirty:.1f}GB written, not uploaded)")
+        sev = max(sev, WARN)
+
     util, pscr = gpu.get("util_pct"), hb.get("prev_scratch_gb")
     if (util is not None and util < args.idle_pct and engine and "--step train" in engine
             and pscr is not None and pscr == hb.get("scratch_gb")):
@@ -246,6 +268,8 @@ def line(sess, sev, flags, d):
                     f"/max {g.get('util_max_pct')}% mem {g.get('mem_used_mb')}MB")
     elif d.get("hb_age_s") is not None:
         bits.append("cpu-runtime")
+    if d.get("cpu_pct") is not None:
+        bits.append(f"cpu {d['cpu_pct']:.0f}%")
     if d.get("queue_proc"):
         bits.append(f"queue pid {d['queue_proc']}")
     if d.get("engine_proc"):
@@ -256,6 +280,8 @@ def line(sess, sev, flags, d):
         bits.append(f"log +{d['nohup_size'] - d['nohup_prev_size']}B")
     if d.get("scratch_gb") is not None:
         bits.append(f"scratch {_gb(d['scratch_gb'])}")
+    if d.get("vfs_dirty_gb") is not None:
+        bits.append(f"backlog {_gb(d['vfs_dirty_gb'])}")   # written, not yet on Drive
     if d.get("launch"):
         bits.append(d["launch"])
     if d.get("error"):
@@ -302,6 +328,11 @@ def render(worst, sessions, queues, base):
               f"last row {l['last_ts']} ({_hms(l['last_age_s'])} ago)")
     print(f"[queues  ] merged: {queues['merged_rows']} rows / {queues['files']} status files"
           f"  newest {queues['newest_row_ts']}")
+    if any("UPLOAD_BACKLOG_STUCK" in f for s in sessions for f in s["flags"]):
+        print("note: do NOT stop that runtime — those bytes exist ONLY in its rclone write "
+              "cache, on the VM's local disk, and die with the VM. Wait for the backlog to "
+              "reach 0 before stopping. If it will not drain, copy the affected outputs out "
+              "by another route (`rclone copy` from the VM) rather than stopping and hoping.")
     if any(("HEARTBEAT_STALE" in f or "QUEUE_DEAD" in f)
            for s in sessions for f in s["flags"]):
         print("note: the G: mirror lags the VM. Confirm with `colab exec` before acting — "
@@ -315,6 +346,8 @@ def main():
     ap.add_argument("--stale-min", type=float, default=5.0,
                     help="heartbeat older than this many minutes = HEARTBEAT_STALE")
     ap.add_argument("--idle-pct", type=int, default=5, help="GPU_IDLE_IN_TRAIN threshold")
+    ap.add_argument("--backlog-gb", type=float, default=0.5,
+                    help="UPLOAD_BACKLOG_STUCK threshold on undrained (Dirty) rclone bytes")
     ap.add_argument("--recent-hours", type=float, default=48.0,
                     help="status launches newer than this are summarized")
     ap.add_argument("--max-launches", type=int, default=3)

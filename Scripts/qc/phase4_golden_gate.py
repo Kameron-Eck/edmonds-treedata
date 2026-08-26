@@ -434,6 +434,12 @@ def main():
     ap.add_argument("--all-scorable", action="store_true",
                     help="sweep every (year, tag) with a live threshold AND an NDVI reference")
     ap.add_argument("--note", default="", help="free-text note recorded in the history row")
+    ap.add_argument("--threshold-from", default=None, metavar="YEAR[/TAG]",
+                    help="borrow the deployed threshold of ANOTHER live arm (same year "
+                         "only) instead of requiring one for this raster's own tag. For "
+                         "golden re-runs: a checkpoint re-inferred under a new tag has no "
+                         "deployed threshold of its own; its SOURCE arm's is the honest "
+                         "one. Provenance is appended to the history note.")
     args = ap.parse_args(argv)
 
     print(BANNER)
@@ -487,6 +493,21 @@ def main():
 
     if not prob.exists():
         raise SystemExit(f"prob raster not found: {prob}")
+    if args.threshold_from:
+        parts = args.threshold_from.split("/", 1)
+        src_key = (parts[0], parts[1] if len(parts) > 1 else "")
+        if src_key[0] != year:
+            raise SystemExit(f"--threshold-from year {src_key[0]} != raster year {year} -- "
+                             "refusing to score against another year's threshold and references")
+        if src_key not in live:
+            raise SystemExit(f"--threshold-from {args.threshold_from}: no live=1 primary=1 row "
+                             "-- the source arm has no deployed threshold either")
+        thresh = live[src_key]["thresh"]
+        note = (args.note + f" [thresh {thresh} borrowed from "
+                f"{src_key[0]}{('/' + src_key[1]) if src_key[1] else ''}]").strip()
+        rc = run_one(year, tag, prob, thresh, sites, note, sha)
+        _log(f"{year}{('_' + tag) if tag else ''}")
+        return rc
     key = (year, tag)
     if key not in live:
         avail = sorted(f"{y}{('/' + t) if t else ''}" for y, t in live)

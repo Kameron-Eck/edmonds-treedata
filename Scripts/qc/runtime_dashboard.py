@@ -114,7 +114,9 @@ for p in procs:
     if m:
         queue = m.group(1)
 out["queue"] = queue
-stem = queue[:-5] if queue and queue.endswith(".yaml") else None
+stem = (os.path.basename(queue)[:-5]
+        if queue and queue.endswith(".yaml") else None)   # basename: queues may run
+        # from OUTSIDE the repo (e.g. /content/queue_x.yaml, noise arm 2026-08-26)
 logs = []
 for lg in glob.glob("/content/drive/MyDrive/treedata/phase4/logs/train_queue_nohup_*.log"):
     if stem and ("_" + stem + "_") not in os.path.basename(lg):
@@ -270,7 +272,9 @@ def probe_session(name, nsamp=12, sleep_s=0.25, fullscan=True):
 def read_queue_yaml(queue_file):
     try:
         import yaml
-        with open(QUEUE_DIR / queue_file, encoding="utf-8") as f:
+        # queue may be an absolute VM path (run from outside the repo) — resolve the
+        # local copy by BASENAME under the repo's pipeline/ dir.
+        with open(QUEUE_DIR / os.path.basename(str(queue_file)), encoding="utf-8") as f:
             jobs = yaml.safe_load(f) or []
         return [{"id": str(j.get("id")), "year": str(j.get("year")), "tag": j.get("tag", ""),
                  "expect": (j.get("expect") or "").strip()} for j in jobs if isinstance(j, dict)]
@@ -399,7 +403,9 @@ def build_card(sess, probe, probe_err, merged_latest, now):
                              f"qc/colab_readopt.py to respawn it")
     card["keep_alive_pid"] = ka
     queue = card["queue"]
-    stem = queue[:-5] if queue and queue.endswith(".yaml") else None
+    stem = (os.path.basename(queue)[:-5]
+        if queue and queue.endswith(".yaml") else None)   # basename: queues may run
+        # from OUTSIDE the repo (e.g. /content/queue_x.yaml, noise arm 2026-08-26)
     # jobs + step chips
     jobs = read_queue_yaml(queue) if queue else []
     qrows = status_rows_for(stem) if stem else []
@@ -528,7 +534,7 @@ def keepalive_alive(pid):
 def hours_since_launch(card):
     """Hours since this queue's first status row (≈ VM billing minus ~3 min of bootstrap)."""
     q = card.get("queue")
-    stem = q[:-5] if q and q.endswith(".yaml") else None
+    stem = os.path.basename(q)[:-5] if q and q.endswith(".yaml") else None
     if not stem:
         return None
     rows = status_rows_for(stem)

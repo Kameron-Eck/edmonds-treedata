@@ -73,8 +73,10 @@ sectors: ** ACTIVE WORKSTREAM 2026-08-24/25 — SECTOR CAMPAIGN. Source of truth
          2016 retile 26.8 min vs 100+ min FUSE per-file (VERIFY:tile OK, 612 tiles).
          Watchers read status CSVs in phase4/qc ONLY (live nohup invisible server-side
          until close). Buildings: citywide roof matrix 1728/1728 merged; per-year masks
-         rebuilt. BLOCKED ON KAM: champion designations 2000/2002/2013/2015/2016/2017
-         (champion_arms.csv) · main merge. Golden-v2 queue staged for next warm GPU
+         rebuilt. Champion designations RESOLVED 2026-08-26: Kam DECLINED legacy-era arms
+         (pre-workflow provenance) — six contested years stay undesignated; deliverables
+         come from post-promotion citywide re-runs under current workflow
+         (champion_arms.csv header). BLOCKED ON KAM: main merge. Golden-v2 queue staged for next warm GPU
          (golden_v2_launch_README.md).
 ebacklog: ** 2026-08-25 — BEST-PRACTICES REVIEW (Kam-approved plan, D:\tools\...\plans\) **
          3 research passes + 8-agent adversarial verify; every top-8 item corrected; plan =

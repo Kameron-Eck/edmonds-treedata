@@ -51,7 +51,9 @@ phantom-M mtime lore, two-sessions-one-tree hazards. Git ops are normal now.
   in CHATLOG with tier + purpose. Cold creation (no pre-approved queue) still asks.
   Drive mounting is automated via a folder-scoped service account + rclone — setup,
   bootstrap flow, canary requirement, and secret handling: `COLAB_AUTONOMY_SETUP.md`.
-  The 2-concurrent cap stays.
+  Concurrency cap REVISED (Kam 2026-08-26): 3-4 concurrent runtimes OK (Google
+  throttles above ~5); the old 2-cap was a Drive-throttle precaution from the
+  drivefs era — bulk copies still serialize through the staging lock.
 - **The frozen Drive copy** `G:\My Drive\treedata\Scripts\` is the pre-reorg emergency
   fallback until the Colab cutover proves out. **Never edit it.** Deleted at P10.
 

@@ -59,7 +59,8 @@ report. The E02 os.replace smoke already passed on drivefs; rerun it once on rcl
 - CREATE for a queue Kam already approved by name (the kickoff-ask pattern): autonomous,
   logged with tier + purpose in CHATLOG.
 - CREATE cold (no pre-approved queue): still asked, with tier/hours/cost.
-- The 2-concurrent-runtime cap stays.
+- Concurrency: 3-4 runtimes OK (Kam 2026-08-26; Google throttles ~5+). Bulk
+  Drive copies still serialize via the staging lock.
 
 ## Security notes
 - The SA key and gh token live ONLY in `D:\edmonds-pipeline\secrets\` and local scratch;

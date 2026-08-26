@@ -86,3 +86,8 @@ along the way, both now encoded in gen_vm_bootstrap.py: --allow-other dropped
 (fuse.conf), fuse3 auto-installed (fusermount3 absent on Colab images).
 The runtime lifecycle is now fully automatable: create -> bootstrap -> mounted ->
 repo-ready -> work -> stop, zero human clicks.
+
+## STATUS 3: FULL LIFECYCLE PROVEN UNATTENDED 2026-08-26
+create (allowlisted, no prompt) -> gen_vm_bootstrap -> exec on a VIRGIN VM ->
+BOOTSTRAP_READY @ repo HEAD, canonical mount path, zero clicks -> stop. Kam's
+allowlist is live. The agentic runtime workflow is DONE.

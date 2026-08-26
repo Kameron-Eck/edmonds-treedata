@@ -662,3 +662,20 @@ free (i.e., after Kam relocates the cache to D:).
 NIR 4 → 10 acquisitions, YEAR_CATALOG 19 → 36 entries (36/36 green), table 57 rows, quote gate 0
 misses.** Self-serve acquisition is FINISHED; what remains arrives by reply (King ★ EmergeCIR,
 consortium, NOAA) or is Kam's to decide (2012_king orphan adoption, the 2017 duplicate).
+
+## 11. Operator visual assessment (Kam, 2026-08-26) — AUTHORED observations, not measurements
+
+Kam's side-by-side reading while annotating the Development parcel timeline. Evidence tier:
+OBSERVED (one trained pair of eyes, not instrumented). Each item is a lead for the radiometry
+audit (R1, proposed same day), not a conclusion.
+
+- 2005 vs 2007: 2005 is the worse of the pair — small trees he can identify in 2007 are mostly
+  invisible in 2005 and 2006. 2007 is "pretty crisp for the time. Def better resolution."
+- **2007 snoh 1ft: suspected color anomaly** — "Snohomish looks greener… some funny business
+  with the color." Flag for radiometric comparison against neighbors (2005/2009) over stable
+  ground before 2007-based conclusions about vegetation vigor.
+- 2009: sharp. 2013: sharp. 2024: "sharp but feels so slightly out of focus" — consistent with
+  §9's effective-GSD findings; candidate for the slanted-edge measurement (audit Hygiene #10).
+- Crown-label transfer: main.edmonds_crownV5 polygons "match up really well" to 2007 imagery
+  (his visual check) — the basis of the proposed 2007 label-adoption pilot; NOT yet a measured
+  agreement rate.

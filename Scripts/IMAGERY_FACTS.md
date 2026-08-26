@@ -706,3 +706,13 @@ during the nir_stack build. Bimodal, clean separation:
 - Products: D:\edmonds-pipeline\ARCGIS\MachineLearning\nir_stack\{nir_stack_1m.tif (10-band,
   uint8), nir_stack_ndvi_1m.tif (int16 x1000)}, CHM-lattice-snapped, band-tagged with
   source+date; README carries the per-band warnings. Builder: pipeline/make_nir_stack.py.
+
+### §11 addendum (Kam, 2026-08-26 late)
+- **Shadow direction**: "a lot of the imagery is taken when the shadows go west" — a
+  directional theme visible in the NIR data (morning flights, sun in the east). Lead for
+  texture/shadow handling; not yet measured per-acquisition (flight TIMES are not in the
+  catalog — only dates).
+- **nir_stack_ndvi_1m validated by the operator**: "does a good job of extracting
+  vegetation textures of trees."
+- **Roofs flagged as a major NIR contaminant** (operator observation) → the building-
+  footprint / roof-presence workstream started the same night.

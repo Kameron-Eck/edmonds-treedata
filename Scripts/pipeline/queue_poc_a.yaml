@@ -1,0 +1,38 @@
+# PoC QUEUE A (2026-08-26, Kam-approved "Yes to the 6-9GPU" + "fire the poc
+# without my permission") — early-year third of the proof-of-concept campaign.
+# PoC = the COMPLETE product inside the sector strips (~22k crowns, 10% of city):
+# per-year SAMPLE masks -> crown-cover matrix -> validity intervals, every layer
+# with honest metrics. SAMPLE INFERENCE ONLY (sectors_v1, ~11% of grid) — no
+# full-imagery inference anywhere in this campaign (scaling-gate bookmark).
+#
+# Recipe: fullext fine-tune, tag fullext_sectors_v1 — same recipe/tag family as
+# 2016_fx / 2021s_fx so the arm rail treats the series as one arm. Recipe choice
+# for these PRE-2013 years is verdict-independent: hand-truth site eval shows
+# base2020 collapses there (recall .00-.17 vs .57-.83 fine-tuned).
+#
+# EVALUATE IS SEEDED-SKIPPED (launch script writes evaluate=OK seed rows): the
+# step costs ~40 min/job for random-split/geo-block metrics we never headline.
+# Honest scoring = local qc_indep vs C-CAP/NDVI on the sample rasters (free).
+#
+# Year ladder with existing coverage (b20 = base2020 baseline, fx = fullext):
+#   2000* 2003s(b20) 2006s(b20) 2007* 2009* 2011s(b20) 2012s(b20) 2013*
+#   2016(fx) 2018s* 2020s(b20) 2021s(fx+noise n=5) 2024*   (* = PoC-trained)
+# 2005 deliberately cut to hold the 9 A100-h budget; optional add later.
+- id: "2000_fx"
+  year: "2000"
+  tag: fullext_sectors_v1
+  extra: ["--force-citywide", "--infer-aoi", "aoi/sectors_v1.json"]
+  why: "PoC epoch anchor — earliest year (40 cm King, known +22.9% G/R cast; hand-truth pre-anchor recall .69-.77 says fine-tuning handles it)."
+  expect: "labels+tile ~35 min (fresh tile build); train ~45 min A100; sample inference ~10 min."
+- id: "2007_fx"
+  year: "2007"
+  tag: fullext_sectors_v1
+  extra: ["--force-citywide", "--infer-aoi", "aoi/sectors_v1.json"]
+  why: "PoC early-mid rung (20 cm King)."
+  expect: "~90 min total."
+- id: "2009_fx"
+  year: "2009"
+  tag: fullext_sectors_v1
+  extra: ["--force-citywide", "--infer-aoi", "aoi/sectors_v1.json"]
+  why: "PoC early-mid rung (20 cm King)."
+  expect: "~90 min total."

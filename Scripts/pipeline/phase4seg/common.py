@@ -148,7 +148,10 @@ def resolve_native_path(entry):
 # The queue's per-step ceilings (phase4_train_queue.STEP_TIMEOUT_MIN) must exceed
 # STAGE_LOCK_MAX_WAIT_MIN + own staging + the step's work.
 STAGE_LOCK_DIR          = BASE / "phase4" / "locks"
-STAGE_LOCK_MIN_BYTES    = 1 << 30  # ≥ 1 GiB copies contend: orthos (11-48 GB). Tile
+STAGE_LOCK_MIN_BYTES    = 4 << 30  # ≥ 4 GiB copies contend (RETUNED 2026-08-26: the
+                                   # rclone-user-mount era; small orthos (2016 2.6 GB)
+                                   # were paying hour-scale waits behind big ones for
+                                   # a throttle never established. Was 1 GiB). Tile
                                    # sets (0.2-0.7 GiB measured), CHM, masks copy unlocked.
 STAGE_LOCK_SETTLE_SEC   = 10       # first listing waits this long after our claim
 STAGE_LOCK_CONFIRM_SEC  = 60       # a fresh claim must STILL be oldest ≥ this long after
@@ -156,7 +159,11 @@ STAGE_LOCK_CONFIRM_SEC  = 60       # a fresh claim must STILL be oldest ≥ this
 STAGE_LOCK_STALE_MIN    = 15       # a peer's stamp unchanged this long (our clock) = dead
 STAGE_LOCK_POLL_SEC     = 30
 STAGE_LOCK_BEAT_SEC     = 60
-STAGE_LOCK_MAX_WAIT_MIN = 60       # then copy UNLOCKED (claim kept + beating, warn)
+STAGE_LOCK_MAX_WAIT_MIN = 15       # then copy UNLOCKED (claim kept + beating, warn).
+                                   # RETUNED 60->15 (2026-08-26): an hour of A100 idle
+                                   # behind the lock was measured; 15 min bounds the
+                                   # worst case at ~$0.15 while keeping serialization
+                                   # for genuinely concurrent bulk pulls.
 
 
 def _lock_enabled():

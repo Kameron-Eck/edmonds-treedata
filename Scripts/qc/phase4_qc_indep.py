@@ -437,7 +437,12 @@ def _report(year, ref_path, prob_path, thresh, ref_scheme, R, sweep):
 
     QC_DIR.mkdir(parents=True, exist_ok=True)
     (QC_DIR / f"qc_indep_{year}.txt").write_text(txt, encoding="utf-8")
-    _write_csvs(year, ref_path, prob_path, thresh, def_rows, surf_rows, R)
+    # run_tag column mirrors the arm parsed from the prob filename — before
+    # 2026-08-26 it silently defaulted to '' for --prob overrides, mislabeling
+    # tagged arms as the untagged lineage in the human-readable column (the
+    # supersede logic was unaffected: it parses the prob filename itself).
+    _write_csvs(year, ref_path, prob_path, thresh, def_rows, surf_rows, R,
+                run_tag=_prob_arm(prob_path.name))
     print(f"\n[qc-indep] wrote {QC_DIR / f'qc_indep_{year}.txt'}")
 
 

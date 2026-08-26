@@ -491,7 +491,16 @@ def _copy_to_drive(local_path, drive_path, checksum=True, retries=1):
     try:
         for attempt in range(retries + 1):
             tick(f"copy {drive_path.name}")
-            shutil.copy2(local_path, part)
+            # copyfile + BEST-EFFORT copystat, not copy2: copystat's utime on the
+            # rclone FUSE mount can raise a transient EIO on a dirty/uploading
+            # file, and that metadata nicety killed a 45-min train at epoch 24
+            # (2021s noise_r2, 2026-08-26). Data integrity is enforced below by
+            # size+sha256, never by mtime.
+            shutil.copyfile(local_path, part)
+            try:
+                shutil.copystat(local_path, part)
+            except OSError as e:
+                print(f"  (copystat skipped on {part.name}: {e})")
             tock(f"copy {drive_path.name}")
             got_size = part.stat().st_size
             if got_size != want_size:

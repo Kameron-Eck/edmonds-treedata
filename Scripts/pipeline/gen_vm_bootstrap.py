@@ -76,7 +76,11 @@ open("/root/.config/rclone/rclone.conf", "w").write(
     f"token = {{UTOK}}\\n"
     f"root_folder_id = {{FOLDER_ID}}\\n")
 os.makedirs(MOUNT, exist_ok=True)
-r0 = subprocess.run(["rclone", "mount", "treedata-user:", MOUNT, "--daemon",
+if os.path.isdir(MOUNT + "/phase4"):
+    print("mount already up — skipping (idempotent re-run)")
+    r0 = subprocess.CompletedProcess([], 0, "", "")
+else:
+    r0 = subprocess.run(["rclone", "mount", "treedata-user:", MOUNT, "--daemon",
                      "--vfs-cache-mode", "writes", "--vfs-cache-max-size", "40G",
                      "--drive-pacer-min-sleep", "10ms", "--transfers", "8"],
                     capture_output=True, text=True)
@@ -111,7 +115,9 @@ open(cpath, "wb").write(payload)
 want_md5 = hashlib.md5(payload).hexdigest()
 ok, q = False, None
 for _ in range(24):                      # up to 2 min for the async upload
-    q = subprocess.run(["rclone", "lsjson", "--hashes",
+    # md5sum, not `lsjson --hashes` — the flag doesn't exist on the VM's rclone
+    # build (measured 2026-08-26; the flagless canary false-failed a good upload)
+    q = subprocess.run(["rclone", "md5sum",
                         "treedata-sa:phase4/logs/_write_canary.bin"],
                        capture_output=True, text=True)
     if q.returncode == 0 and want_md5 in (q.stdout or ""):

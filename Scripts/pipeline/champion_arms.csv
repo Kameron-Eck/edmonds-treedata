@@ -11,10 +11,17 @@
 #   2002 [citywide_rgb | xsensor_rgb]
 #   2013 [citywide_rgb | xsensor_rgb]   (citywide_rgb implied by the 08-22 re-score)
 #   2015 [citywide_rgb | xsensor_rgb]
-#   2016 [<untagged citywide> | corrected]
+#   2016 [<untagged citywide> | corrected]  (a 3rd live arm, fullext_sectors_v1, is
+#         sector-footprint -> ineligible per the rule below until run citywide)
 #   2017 [citywide_rgb | xsensor_train]
+# ELIGIBILITY RULE (2026-08-26): only FULL-FOOTPRINT rasters are champion-eligible.
+# A sector-restricted arm (tag *sectors_v1*) tests a model but cannot be the year's
+# deliverable; its MODEL contests once a full-footprint raster exists for it — and
+# any promotion also waits on the measured noise arm (see M04, campaign report S7).
+# Sector-baseline year-labels (2003s..2020s) have no full-footprint arm at all yet;
+# their rows below point at the only raster their year-label has ever had.
 # Single-arm years below are auto-backfilled 2026-08-25: the designation is
-# forced, not a judgment. Sector baselines are the only arm their year-label has.
+# forced, not a judgment.
 year,tag,run_id,why
 2003s,sectors_v1,,only live arm — base2020 sector baseline (not fine-tuned)
 2005,citywide_rgb,,only live arm
@@ -28,7 +35,7 @@ year,tag,run_id,why
 2019n,p2nir,,only live arm
 2020s,sectors_v1,,only live arm — base2020 sector baseline (not fine-tuned)
 2021,citywide_rgb,,only live arm
-2021s,p2nir,,only live arm
+2021s,p2nir,,only full-footprint live arm (fullext_sectors_v1 is sector-footprint; its model contests after a citywide run + the noise arm)
 2022,citywide_rgb,,only live arm
 2023,citywide_rgb,,only live arm
 2023n,,,only live arm (untagged citywide prob)

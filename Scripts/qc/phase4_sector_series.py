@@ -14,8 +14,13 @@ HONESTY RAILS (from the QC campaign's lessons):
   * the err-adjusted fraction p_adj = p_raw * precision / recall from the same live row;
   * water (bathology waterbody union) and outside-city pixels are excluded from land.
 
-ESTIMATOR. Strata = the sector bands; weight W_h = band true land area / city true land
-area. City fraction P_hat = sum W_h * p_adj_h; area = P_hat * A_land_city. Variance by the
+ESTIMATOR. Strata = the sampled sector strips; weight W_h = strip true land area /
+SAMPLED true land area (563 ha total, NOT the city). P_hat = sum W_h * p_adj_h estimates
+the city land-canopy FRACTION under the design assumption (strips represent their bands).
+canopy_ha_sampled = P_hat * A_land_sampled is canopy within the SAMPLED strips only —
+the city-area expansion (P_hat * city land area) is deliberately NOT emitted until the
+city land area is measured from CITY_SHP minus waterbody (found mislabeled 'area_ha'
+by the 2026-08-26 report cross-check). Variance by the
 successive-difference estimator (systematic sample of L=5 bands):
   V = (sum W_h^2) * [ 1/(2(L-1)) * sum_{h=1..L-1} (p_{h+1}-p_h)^2 ],  CI95 = t(0.975, L-1)*sqrt(V)
 Also writes a 1-m cover sidecar per (year, tag) for the crown matrix.
@@ -23,7 +28,7 @@ Also writes a 1-m cover sidecar per (year, tag) for the crown matrix.
 OUTPUTS (data:phase4/qc/sector_campaign/)
   sector_canopy_series.csv       year, tag, sector, p_raw, p_adj, thresh, precision, recall,
                                  valid_land_px, gsd_cm, canopy_ha_true
-  city_canopy_totals_design.csv  year, tag, P_hat, area_ha, se, ci_lo, ci_hi, n_sectors
+  city_canopy_totals_design.csv  year, tag, P_hat, canopy_ha_sampled, se, ci_lo, ci_hi, n_sectors
   cover1m/cover_1m_{y}_{tag}.tif (float32, EPSG:3857, 1 m, nodata -1)
 """
 import argparse
@@ -187,7 +192,7 @@ def main():
             V = sum(W[s] ** 2 for s in sid_order) * sd
             se = float(np.sqrt(V))
             totals.append({"year": year, "tag": tag, "P_hat": round(P, 5),
-                           "area_ha": round(P * A_city / 1e4, 1),
+                           "canopy_ha_sampled": round(P * A_city / 1e4, 1),
                            "se": round(se, 5),
                            "ci_lo": round(max(0.0, P - T975_DF4 * se), 5),
                            "ci_hi": round(P + T975_DF4 * se, 5),
@@ -225,7 +230,7 @@ def main():
              ["year", "tag", "sector", "p_raw", "p_adj", "thresh", "precision", "recall",
               "valid_land_px", "gsd_cm", "canopy_ha_true", "is_champion"]),
             ("city_canopy_totals_design.csv", totals,
-             ["year", "tag", "P_hat", "area_ha", "se", "ci_lo", "ci_hi", "n_sectors",
+             ["year", "tag", "P_hat", "canopy_ha_sampled", "se", "ci_lo", "ci_hi", "n_sectors",
               "is_champion"])):
         with open(CAMP / name, "w", newline="", encoding="utf-8") as f:
             w = csv.DictWriter(f, fieldnames=cols)

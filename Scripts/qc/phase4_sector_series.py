@@ -166,10 +166,17 @@ def main():
                 ok = tgt >= 0
                 rr = slice(max(0, r0m), max(0, r0m) + dsth)
                 cc = slice(max(0, c0), max(0, c0) + dstw)
-                h2 = min(dsth, cov_h - rr.start); w2 = min(dstw, cov_w - cc.start)
+                # REGISTRATION FIX (2026-08-26): when the source plane starts west/north
+                # of the cover grid, c0/r0m go negative — the old code clamped the
+                # DESTINATION offset without trimming the SOURCE, translating the whole
+                # plane by |c0|/|r0m| (measured: a clean +458 m eastward shift on
+                # 2013/citywide_rgb; 133 of 155 sector-arm sidecars affected; p_raw/
+                # totals were never touched — separate accumulation). Trim both sides.
+                sx = -min(0, c0); sy = -min(0, r0m)
+                h2 = min(dsth - sy, cov_h - rr.start); w2 = min(dstw - sx, cov_w - cc.start)
                 if h2 > 0 and w2 > 0:
-                    sub_ok = ok[:h2, :w2]
-                    cov_sum[rr.start:rr.start+h2, cc.start:cc.start+w2][sub_ok] += tgt[:h2, :w2][sub_ok]
+                    sub_ok = ok[sy:sy+h2, sx:sx+w2]
+                    cov_sum[rr.start:rr.start+h2, cc.start:cc.start+w2][sub_ok] += tgt[sy:sy+h2, sx:sx+w2][sub_ok]
                     cov_cnt[rr.start:rr.start+h2, cc.start:cc.start+w2][sub_ok] += 1
             gsd_cm = im.true_gsd_cm(ds)[0]
         ps = {}

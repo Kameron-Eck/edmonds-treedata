@@ -61,16 +61,21 @@ sectors: ** ACTIVE WORKSTREAM 2026-08-24/25 — SECTOR CAMPAIGN. Source of truth
          6 arms (2003s/2006s/2011s/2012s/2018s/2020s) inference VERIFY OK on A100, scored vs
          C-CAP (qc_indep live rows @0.5 = base-model calibration, pre-registered baseline
          operating point), postproc masks 5/6 (2020s mask MISSING — qc VM died mid-copy).
-         DEAD: both Colab sessions (gpu ~06:37Z mid-2016_fx train epoch 2; qc ~14:2xZ
-         mid-2020s postproc). No code crash either time.
-         BLOCKED ON KAM: (1) new A100 session + drivemount → loop restart relaunches
-         fullext (2016_fx labels+tile already OK, resume skips); (2) qc VM same for 2020s
-         postproc; (3) `gh auth refresh -s workflow` or own-shell push — remote rejects
-         .github/workflows/ push, branch mirror 7 commits behind (SAFE: VM clones therefore
-         get pre-E02 engine until the drivefs smoke passes); (4) champion designations for
-         2000/2002/2013/2015/2016/2017 (pipeline/champion_arms.csv header lists arms);
-         (5) E02 drivefs smoke (script staged: vm_e02_rename_smoke.py) BEFORE fullext relaunch from a
-         pushed E02 branch. Then: S22 series → S23 crown matrix → S24 report.
+         LIVE 2026-08-26 ~18Z: campaign closed (S24 report done, promotion UNDECIDABLE
+         pending noise sigma). Runtime autonomy WORKS: user-token rclone writer mount +
+         SA server-side write canary v2 (gen_vm_bootstrap.py; SA has ZERO Drive quota —
+         SA-owned uploads silently fail, cost noise campaign v1 ~3.5 A100-h). Branch
+         pushed (workflow scope fixed), CI green. gpu = noise queue r1 OK / r2 train
+         CRASHED epoch 24 (copystat EIO on rclone mount — fixed common.py 457bc85, both
+         VMs hot-patched) / r3 running; watcher chain-launches queue_noise_2021s_b
+         (nr2r rerun + r4 + r5) on warm VM at r3 terminal → n=5 sigma → promotion
+         verdict. gpu2 = NIR M06 queue; tiling bulk-write fix (71ee388) VALIDATED live:
+         2016 retile 26.8 min vs 100+ min FUSE per-file (VERIFY:tile OK, 612 tiles).
+         Watchers read status CSVs in phase4/qc ONLY (live nohup invisible server-side
+         until close). Buildings: citywide roof matrix 1728/1728 merged; per-year masks
+         rebuilt. BLOCKED ON KAM: champion designations 2000/2002/2013/2015/2016/2017
+         (champion_arms.csv) · main merge. Golden-v2 queue staged for next warm GPU
+         (golden_v2_launch_README.md).
 ebacklog: ** 2026-08-25 — BEST-PRACTICES REVIEW (Kam-approved plan, D:\tools\...\plans\) **
          3 research passes + 8-agent adversarial verify; every top-8 item corrected; plan =
          E01-E10. LANDED Lane 1: E01 registry year-join+SEEDED fix · E02 atomic .part
@@ -1445,6 +1450,31 @@ gotcha:  scripts Colab-only for torch (rasterio+geopandas+fiona+sklearn now pip-
          accept-all test data; 14,476-crown human review never finished.
 
 ════════════════ LOG  (newest first) ════════════════
+
+## 2026-08-26  INFRASTRUCTURE DAY — writer mount fixed, transports bulked, noise n=5 in flight (Fable 5 session)
+goal:    Kam workday mandate: NIR training + radiometry + building-ID infrastructure; max
+         hardware utilization; oversight tools.
+did:     SA zero-quota diagnosis (uploads silently failed server-side; folders yes files no)
+         → user-token writer mount + write canary v2 (server-side md5 via SA) in
+         gen_vm_bootstrap.py. Oversight suite: vm_heartbeat.py + qc/runtime_health.py +
+         dashboard CPU/RAM/data-flow. Tiling bulk-write (tiling.py 71ee388): local stage →
+         one rclone copy --checksum → check --one-way → FUSE-visibility gate → meta LAST;
+         VALIDATED live 2016 retile 26.8 min. copystat EIO killed noise r2 train epoch 24
+         → copyfile + best-effort copystat (common.py 457bc85), both VMs hot-patched
+         mid-queue before next train. Staging lock retuned ≥4GiB/15min. NIR M06 arm
+         (band-4 hs-source) queued + training. Noise r1 OK, r3 running, B queue (nr2r
+         rerun+r4+r5) chain-launches on warm VM. Buildings: citywide roof matrix
+         1728/1728 → per-year masks rebuilt. CI green on pushed branch.
+decided: watchers read phase4/qc status CSVs only — live nohup files invisible server-side
+         until close (VFS uploads on close); filenames discovered by lsf glob, never
+         reconstructed (bitten ±2s thrice). Chain-launch git-fetches fixed HEAD (queue
+         boundary = code cutover; mid-queue only exact-match hot-patch of landed commit).
+killed:  lsjson --hashes canary (flag absent on VM rclone, false-failed good upload);
+         nohup-log watchers ×2; per-file FUSE tile writes (~10 s/tile).
+files:   common.py 457bc85 · tiling.py 71ee388 · gen_vm_bootstrap.py · queue_noise_2021s_b.yaml
+         272ab1c · queue_nir_m06.yaml · vm_heartbeat.py · qc/runtime_health.py
+next:    noise sigma (n=5, hardware-nondeterminism LOWER bound) → fullext promotion verdict;
+         NIR arms score C-CAP only; golden-v2 on next warm GPU; Kam: champions + main merge.
 
 ## 2026-08-26  CAMPAIGN CLOSED — fullext ran (~1h45m A100); promotion UNDECIDABLE; runtime autonomy DONE (Fable 5 session)
 goal:    finish the sector campaign + Kam's runtime-autonomy directive

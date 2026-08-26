@@ -661,7 +661,18 @@ def _load_review_regions(site_label, target_crs=CROWN_CRS):
         p = POLYGONS_DIR / f"{site_label}{ext}"
         if p.exists():
             g = gpd.read_file(p)
-            if g.crs is not None and g.crs.to_epsg() != 3857:
+            # Reproject to the CALLER's target_crs, always. The old test was
+            # `g.crs.to_epsg() != 3857` — it baked in the assumption that the
+            # target is always CROWN_CRS, so a 3857 regions file asked for in a
+            # year's native CRS came back UNPROJECTED. tiling.py's negative-site
+            # path (the 2026-08-24 region fix) passes target_crs=src.crs, which
+            # is EPSG:2285/2926/26910 for every snoh/NAIP year: the 3857 geometry
+            # then rasterised entirely outside the tile transform, `inside` was
+            # all-zero, and the <0.05 guard dropped EVERY tile — silently zeroing
+            # Negative_Parking on 2016/2006s and blocking Edmonds_Heights.
+            # to_crs is a no-op when the CRSes already match, so 3857 years (and
+            # labels.py's default-target call) are bit-identical to before.
+            if g.crs is not None and target_crs is not None:
                 g = g.to_crs(target_crs)
             g = g[~g.geometry.is_empty & g.geometry.is_valid].reset_index(drop=True)
             return g if len(g) else None

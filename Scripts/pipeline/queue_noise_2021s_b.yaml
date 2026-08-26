@@ -13,6 +13,12 @@
 # copystat EIO on the rclone mount (fixed in common.py 457bc85; the crashed run's
 # sem_*_noise_r2.pt checkpoints are overwritten by this rerun — it produced no
 # inference raster, so nothing scored is superseded).
+# nr3r: rerun of noise_r3, whose train SUCCEEDED (best val_iou_bt .7589) but whose
+# sem_best vanished: the pre-E02 in-place overwrite of a file still uploading
+# cancels the in-flight upload — Drive trashed the previous version 18:18:56Z and
+# the final content never landed (trash holds an ambiguous-epoch copy; NOT used —
+# it would bias sigma). E02's atomic .part+rename publish (this queue's HEAD)
+# does not have this race.
 #
 # Tiling: identical signature to 2021s_fx -> the existing 705-tile cache is reused
 # (no retile). Artifacts: sem_best_2021s_noise_r{2,4,5}.pt, prob rasters tagged
@@ -22,6 +28,12 @@
   tag: noise_r2
   extra: ["--force-citywide", "--infer-aoi", "aoi/sectors_v1.json"]
   why: "rerun of noise repeat 2/5 (first run crashed at epoch 24, copystat EIO)."
+  expect: "train ~45 min A100 (tile cache hit); sector inference ~7 min."
+- id: "2021s_nr3r"
+  year: "2021s"
+  tag: noise_r3
+  extra: ["--force-citywide", "--infer-aoi", "aoi/sectors_v1.json"]
+  why: "rerun of noise repeat 3/5 (sem_best lost to pre-E02 overwrite-during-upload race)."
   expect: "train ~45 min A100 (tile cache hit); sector inference ~7 min."
 - id: "2021s_nr4"
   year: "2021s"

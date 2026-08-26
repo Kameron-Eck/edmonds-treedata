@@ -204,3 +204,24 @@ stale or when the tqdm tail is actually wanted — the tail is the one field the
 deliberately does not carry (it would blow the 2 KB budget). That turns the dashboard
 from a per-interval spender into a near-free reader too. Deliberately left for its own
 PR; nothing in the dashboard was touched by this change.
+
+## STATUS 4: WRITE PATH BROKEN — SA storage quota is ZERO (measured server-side 2026-08-26)
+`drive.about.storageQuota.limit = '0'` for the service account: Google grants SAs no
+Drive storage, and files uploaded via the SA mount are OWNED BY THE SA -> every large
+file upload silently fails (folders/metadata succeed, which is why BOOTSTRAP_READY and
+run-folder creation looked healthy). The mount canary was structurally blind: it
+verified through the local vfs write-cache and deleted its test file before any
+server-side stat. MEASURED COST: the 3-repeat noise queue's artifacts (3 ckpts, 3
+rasters, eval rows, status CSVs) never reached Drive and died with the VM (~3.5 A100-h
+to re-run once fixed).
+
+RULES UNTIL FIXED: the SA-rclone mount is READ-SAFE ONLY. Any VM that WRITES uses
+Kam's manual drive.mount. Canary v2 must verify uploads SERVER-SIDE (Drive API stat of
+size+md5 with independent credentials), never through the writing mount.
+
+THE FIX (one-time, Kam ~2 min): a user-OAuth rclone token — files then owned by Kam
+(2TB quota). Locally: install rclone (winget install Rclone.Rclone), run
+`rclone authorize "drive"` (browser click), save the token JSON to
+D:\edmonds-pipeline\secrets\rclone_user_token.json; gen_vm_bootstrap then ships a
+user-token remote for WRITER VMs and keeps the SA remote for reader VMs. Shared
+Drives would be cleaner but need Workspace (personal account: unavailable).

@@ -1,0 +1,31 @@
+# Spatial-sampling CI conditional on model, threshold and calibration — common-mode per-year error is invisible to strip replicates.
+# p_adj rows are SENSITIVITY ONLY, never the headline: the calibration multiplier precision/recall is a citywide per-year constant applied identically to every strip, so it carries ZERO uncertainty into the strip replicates - the p_adj CI is not a real error bar for it. p_raw is the headline metric.
+# arm=citywide_rgb  strips=['S1', 'S2', 'S3', 'S4', 'S5']  weights=series  sampled_land_ha=563.0  t(0.975,4)=2.776
+# values are FRACTIONS of land area (0-1), not percent.
+# PAIRED consecutive-year change within one arm. D_h = p_h(year_b) - p_h(year_a); delta = sum W_h D_h; V = (sum W_h^2) * [1/(2(L-1)) sum (D_{h+1}-D_h)^2] over strips in band order.
+# A pair is significant when ci_lo and ci_hi share a sign.
+arm,metric,year_a,year_b,delta,se,ci_lo,ci_hi,n_sectors
+citywide_rgb,p_raw,2000,2002,0.034608,0.006951,0.015313,0.053903,5
+citywide_rgb,p_raw,2002,2005,-0.024478,0.015302,-0.066957,0.018002,5
+citywide_rgb,p_raw,2005,2007,0.018503,0.016983,-0.028641,0.065648,5
+citywide_rgb,p_raw,2007,2009,-0.030193,0.006961,-0.049516,-0.01087,5
+citywide_rgb,p_raw,2009,2013,0.075063,0.008904,0.050346,0.099781,5
+citywide_rgb,p_raw,2013,2015,-0.004561,0.009982,-0.032271,0.023149,5
+citywide_rgb,p_raw,2015,2017,-0.0224,0.006296,-0.039878,-0.004921,5
+citywide_rgb,p_raw,2017,2019,-0.018741,0.005532,-0.034098,-0.003385,5
+citywide_rgb,p_raw,2019,2021,-0.023556,0.004176,-0.035149,-0.011962,5
+citywide_rgb,p_raw,2021,2022,0.048367,0.005316,0.033611,0.063124,5
+citywide_rgb,p_raw,2022,2023,-0.020918,0.005648,-0.036598,-0.005238,5
+citywide_rgb,p_raw,2023,2024,0.024273,0.00806,0.001897,0.046649,5
+citywide_rgb,p_adj,2000,2002,-0.00064,0.015277,-0.043048,0.041768,5
+citywide_rgb,p_adj,2002,2005,-0.012746,0.023805,-0.07883,0.053337,5
+citywide_rgb,p_adj,2005,2007,-0.00374,0.027169,-0.079162,0.071682,5
+citywide_rgb,p_adj,2007,2009,0.004845,0.017388,-0.043424,0.053115,5
+citywide_rgb,p_adj,2009,2013,0.003235,0.026088,-0.069185,0.075656,5
+citywide_rgb,p_adj,2013,2015,0.000632,0.01224,-0.033348,0.034612,5
+citywide_rgb,p_adj,2015,2017,-0.001954,0.00677,-0.020747,0.016839,5
+citywide_rgb,p_adj,2017,2019,-0.017672,0.007498,-0.038487,0.003143,5
+citywide_rgb,p_adj,2019,2021,0.007256,0.009971,-0.020424,0.034936,5
+citywide_rgb,p_adj,2021,2022,-0.012214,0.015178,-0.054347,0.029919,5
+citywide_rgb,p_adj,2022,2023,0.012209,0.00666,-0.006278,0.030697,5
+citywide_rgb,p_adj,2023,2024,0.040452,0.011487,0.008564,0.072341,5

@@ -1,4 +1,4 @@
-year,tag,P_hat,area_ha,se,ci_lo,ci_hi,n_sectors,is_champion
+year,tag,P_hat,canopy_ha_sampled,se,ci_lo,ci_hi,n_sectors,is_champion
 2000,citywide_rgb,0.38639,217.5,0.07071,0.19009,0.58268,5,
 2000,xsensor_rgb,0.41549,233.9,0.05912,0.25137,0.57961,5,
 2002,citywide_rgb,0.38575,217.2,0.05878,0.22256,0.54893,5,

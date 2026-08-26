@@ -1,0 +1,11 @@
+# Spatial-sampling CI conditional on model, threshold and calibration — common-mode per-year error is invisible to strip replicates.
+# p_adj rows are SENSITIVITY ONLY, never the headline: the calibration multiplier precision/recall is a citywide per-year constant applied identically to every strip, so it carries ZERO uncertainty into the strip replicates - the p_adj CI is not a real error bar for it. p_raw is the headline metric.
+# arm=citywide_rgb  strips=['S1', 'S2', 'S3', 'S4', 'S5']  weights=series  sampled_land_ha=563.0  t(0.975,4)=2.776
+# values are FRACTIONS of land area (0-1), not percent.
+# STRIP-SLOPE trend: one OLS slope b_h of p on calendar year per strip; the L=5 slopes are the design replicates. slope_per_yr = sum W_h b_h; V = (sum W_h^2) * [1/(2(L-1)) sum (b_{h+1}-b_h)^2] over strips in band order. Rows tagged '_unweighted' are the robustness line: plain mean of the 5 slopes +/- t(0.975,4)*sd/sqrt(5), no area weighting.
+# slope_per_yr is a FRACTION per year; multiply by 100 for pp/yr.
+arm,metric,slope_per_yr,se,ci_lo,ci_hi,df,years_used
+citywide_rgb,p_raw,0.00126013,0.00013264,0.00089192,0.00162835,4,13
+citywide_rgb,p_raw_unweighted,0.00107346,0.00024336,0.0003979,0.00174902,4,13
+citywide_rgb,p_adj,-0.00038935,0.00051642,-0.00182292,0.00104422,4,13
+citywide_rgb,p_adj_unweighted,-0.0010254,0.00081933,-0.00329986,0.00124906,4,13

@@ -71,9 +71,14 @@ the design's "≈ 5–7 A100-hours" the campaign came in at roughly half: base i
    (6.5 pp) while the narrowest 95% CI half-width is **±0.0735** and the widest **±0.2294**. Every
    interval overlaps every other: at L = 5 strata the estimator **cannot resolve the canopy
    trajectory**. That is the honest result, not a failure of the run. (pre-fullext run)
-4. At crown scale the under-prediction is stark: **42.4%–53.5%** of 2020-vintage crowns in the
-   sectors receive **exactly zero** modelled cover in the modern years (2020s, 2021, 2022, 2024) —
-   years at or after the label anchor, where zero cannot be real change. (pre-fullext run)
+4. **CORRECTED 2026-08-26**: the first edition claimed 42.4%–53.5% of crowns at exactly zero
+   cover in modern years — that was an artifact of the cover-sidecar misregistration
+   (translation bug, found by the covariate agent, fixed at source, planes regenerated:
+   149/155 register clean, 0 shifted). Clean numbers: modern-year zero-cover is
+   **4.4%–14.4%** with median crown cover **0.94–0.99** — the model tracks 2020-vintage
+   crowns well on modern imagery. The genuinely weak surface is the un-adapted 2003s
+   baseline (median 0.008, 48.8% zero) — consistent with its measured recall collapse,
+   an honest model finding, not an artifact.
 
 **What is not yet decidable, and why.** No arm can be promoted until a **noise arm** (identical
 recipe, different seed) measures run-to-run sigma. The project's only arm-vs-arm measurement —
@@ -364,16 +369,17 @@ threshold).
 
 **Two crown-scale observations, both flagged to-investigate, neither asserted:**
 
-1. **Zero-cover crowns.** In the years at or after the label anchor, where a zero cannot be real
-   change: 2020s 47.0% of crowns at exactly 0, 2021 53.5%, 2022 42.4%, 2024 42.9%. This is the
-   citywide under-prediction defect made visible at the object scale. It is not yet a clean
-   measurement — the crown polygons are the phase-0 2020 instance set, whose own precision has
-   never been audited, and small crowns (median 64 m²) straddle few 1-m cells.
-2. **The high-cover cluster is a GSD/precision pattern, not a NIR pattern.** `RESUME_NOTES.md`
-   records this as "a large NIR-vs-RGB cover spread (0.97–0.98 vs 0.00–0.07)". The matrix does
-   not support the NIR framing: `cover_2021s_p2nir`, a NIR arm, has median **0.0000**. What the
-   table shows is that the only four arms with median crown cover above 0.5 are exactly the four
-   satisfying **GSD ≥ 60 cm or precision < 0.55** — and no arm outside that set does:
+1. **Zero-cover crowns — WITHDRAWN AND CORRECTED 2026-08-26.** The 42–54% figures were a
+   misregistration artifact (see §9 addendum). Regenerated clean: 2020s 6.5% at exactly 0,
+   2021 14.4%, 2022 4.4%, 2024 6.0% (medians 0.94–0.99). The residual few-percent zeros
+   remain worth a look (phase-0 crown-set precision unaudited; small crowns straddle few
+   1-m cells) but the "stark object-scale under-prediction in modern years" claim is dead.
+2. **WITHDRAWN 2026-08-26 — both framings were artifacts.** The "NIR-vs-RGB spread" and its
+   replacement "GSD ≥ 60 cm or precision < 0.55 separator" were BOTH patterns in the
+   misregistered planes (which arms shifted depended on source-raster origins — a geometry
+   accident that mimicked a sensor pattern). On clean planes nearly every arm has median
+   crown cover 0.76–1.00; the separator dissolves. Table below kept for the audit trail
+   only — its numbers are from the contaminated matrix:
 
    | arm | GSD cm | precision | median cover | frac ≥ 0.99 |
    |---|---|---|---|---|

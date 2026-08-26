@@ -9,6 +9,11 @@ from phase4seg.labels import (
 )
 
 import json
+import os
+import shutil
+import subprocess
+import time
+
 import numpy as np
 import pandas as pd
 import rasterio
@@ -690,6 +695,281 @@ def _existing_tiles_valid(label, sig):
     return True
 
 
+# ══════════════════════════════════════════════════════════════════════════════
+#  Bulk tile upload (rclone) — a WRITE-TRANSPORT change, nothing else
+#
+#  MEASURED 2026-08-26, live, on an rclone-mounted Colab VM: step_tile wrote each
+#  tile file straight into the Drive tile dir through the FUSE mount at ~7-21
+#  s/tile, so a 612-tile NIR retile burned ~100 min of a nearly-idle A100. Native
+#  drivefs moved the same volume in ~8 min; a bulk `rclone copy` of the same byte
+#  volume takes ~1-3 min. The per-FILE round trip is the cost, not the bytes.
+#  CLAUDE.md rule 3 (local-then-copy, validate, then copy) already mandates this
+#  pattern for every other large artifact — tiling simply predates the rule.
+#
+#  So, and ONLY when the activation triple in _bulk_upload_enabled holds: write
+#  every tile file to local NVMe under LOCAL_SCRATCH/tileout/{label}/ in the SAME
+#  relative layout, then do ONE bulk `rclone copy` to treedata-user:phase4/tiles/
+#  {label}, VERIFY it server-side, and only after that write the index CSV and
+#  meta.json THROUGH THE MOUNT exactly as today (meta last, so an interrupted run
+#  never leaves a "cache valid" marker).
+#
+#  What deliberately does NOT change:
+#    * the tile paths recorded in the index CSV are the same Drive-dir paths as
+#      today — core._stage_tiles_local and the queue's VERIFY:tile probe both
+#      depend on them being /content/drive/... strings;
+#    * every byte and every path that ends up on Drive;
+#    * tile selection, labelling, splitting — and _tile_signature gains NO key,
+#      so no cached tile set is invalidated and no re-tile is triggered;
+#    * behaviour anywhere the triple does not hold (local Windows QC/smoke,
+#      drivefs-mounted VMs, rclone missing): the original direct-write path runs
+#      unchanged, with `write_dir is out_tile_dir`.
+# ══════════════════════════════════════════════════════════════════════════════
+
+_RCLONE_REMOTE            = "treedata-user"  # gen_vm_bootstrap.py's WRITER remote. Its
+                                             # root_folder_id IS the `treedata` folder,
+                                             # so remote paths are BASE-relative 1:1.
+_RCLONE_TRANSFERS         = 16
+_RCLONE_CHECKERS          = 16
+_RCLONE_PROBE_TIMEOUT_SEC = 60
+_RCLONE_COPY_TIMEOUT_SEC  = 30 * 60          # a wedged remote must not hang past the
+                                             # queue's per-step ceiling with no cleanup
+_TILE_VISIBLE_TIMEOUT_SEC = 600              # mount dir-cache default is 5 min; Drive
+_TILE_VISIBLE_POLL_SEC    = 15               # change-polling normally beats that by ~4x
+
+_rclone_probe = None                         # None = unprobed; True/False = cached
+
+
+def _rclone_ready():
+    """True iff `rclone` is on PATH AND a remote named ``_RCLONE_REMOTE`` exists.
+
+    `rclone listremotes` runs at most ONCE per process (the answer cannot change
+    mid-run). Any failure — no binary, bad config, timeout — answers False, which
+    simply leaves the original direct-write path in charge.
+    """
+    global _rclone_probe
+    if _rclone_probe is None:
+        _rclone_probe = False
+        try:
+            if shutil.which("rclone"):
+                r = subprocess.run(["rclone", "listremotes"], capture_output=True,
+                                   text=True, timeout=_RCLONE_PROBE_TIMEOUT_SEC)
+                _rclone_probe = (r.returncode == 0
+                                 and f"{_RCLONE_REMOTE}:" in (r.stdout or "").split())
+        except Exception:                     # noqa: BLE001 — any probe failure = "no"
+            _rclone_probe = False
+    return _rclone_probe
+
+
+def _bulk_upload_enabled(out_tile_dir):
+    """The activation triple for the bulk-upload path — ALL THREE required:
+
+      1. POSIX **and** the tile output root is under the /content/drive mount.
+         On Windows ``str(WindowsPath("/content/drive/..."))`` is backslashed, so
+         a local QC/smoke run cannot enter this branch even in principle.
+      2. `rclone` on PATH.
+      3. an rclone remote named ``treedata-user`` is configured.
+
+    Anything else → False → today's direct-through-the-mount write, unchanged.
+    Kept as its own function so the dry-harness can force the branch.
+    """
+    if os.name != "posix":
+        return False
+    if not str(out_tile_dir).startswith("/content/drive/"):
+        return False
+    return _rclone_ready()
+
+
+def _remote_for(rel_posix):
+    """Remote path for a BASE-relative posix path. ``treedata-user:``'s
+    root_folder_id is the `treedata` folder itself, so the mapping is 1:1
+    ("phase4/tiles/2016"). Its own function so the harness can retarget it."""
+    return f"{_RCLONE_REMOTE}:{rel_posix}"
+
+
+def _bulk_upload_target(out_tile_dir, label):
+    """``(local staging root, remote path)`` for this year's tiles, or
+    ``(None, None)`` when the unchanged direct-write path applies."""
+    if not _bulk_upload_enabled(out_tile_dir):
+        return None, None
+    try:
+        rel = out_tile_dir.relative_to(BASE).as_posix()
+    except ValueError:
+        return None, None                  # tile dir outside BASE → never guess a remote
+    return LOCAL_SCRATCH / "tileout" / str(label), _remote_for(rel)
+
+
+def _run_rclone(args, timeout):
+    """Run one rclone command. Returns ``(rc, stdout, stderr)``; never raises —
+    the caller decides what a nonzero rc means. A timeout answers rc=124, a
+    missing/unrunnable binary rc=127."""
+    cmd = ["rclone"] + list(args)
+    print(f"    $ {' '.join(cmd)}", flush=True)
+    try:
+        p = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout)
+        return p.returncode, (p.stdout or ""), (p.stderr or "")
+    except subprocess.TimeoutExpired:
+        return 124, "", f"TIMEOUT after {timeout}s"
+    except Exception as e:                    # noqa: BLE001 (OSError, missing binary)
+        return 127, "", f"{type(e).__name__}: {e}"
+
+
+def _echo_rclone(stdout, stderr, n=12):
+    """Last few lines of an rclone transcript, into the step log."""
+    tail = [ln for ln in ((stdout or "") + (stderr or "")).splitlines() if ln.strip()]
+    for ln in tail[-n:]:
+        print(f"      | {ln}")
+
+
+def _staged_files(stage_root):
+    """``{relative posix path: size}`` for every file under the staging root."""
+    out = {}
+    for p in stage_root.rglob("*"):
+        if p.is_file():
+            out[p.relative_to(stage_root).as_posix()] = p.stat().st_size
+    return out
+
+
+def _bulk_upload_fail(label, why, stdout="", stderr=""):
+    """Loud, CACHE-INVALIDATING failure. No meta.json is left behind, so the next
+    run re-tiles instead of trusting a half-uploaded set; the index CSV has not
+    been written yet either, so the queue's VERIFY:tile reports MISSING. Raises
+    RuntimeError — cli.main() does not catch it (StepLogger re-raises), so the
+    process exits nonzero."""
+    try:
+        _meta_path(label).unlink()
+    except OSError:
+        pass
+    print("\n" + "!" * 74, flush=True)
+    print(f"!! BULK TILE UPLOAD FAILED for {label}: {why}")
+    print(f"!! No tile index and no meta.json were written — the tile cache is "
+          f"INVALID and the next run re-tiles.")
+    print(f"!! The LOCAL staging copy is KEPT so a re-run resumes cheaply "
+          f"(rclone copy skips what already landed).")
+    print("!" * 74 + "\n", flush=True)
+    _echo_rclone(stdout, stderr, n=20)
+    raise RuntimeError(f"bulk tile upload failed for {label}: {why}")
+
+
+def _wait_tiles_visible(stage_root, out_tile_dir):
+    """Bounded wait until every uploaded tile is visible THROUGH THE MOUNT.
+    Returns the number of still-missing files (0 = all visible).
+
+    The upload went straight to Drive's API, so the FUSE mount can still be
+    serving its pre-upload directory listing (often an empty one, since the split
+    dirs were just mkdir'd through the mount). rclone mount invalidates on Drive
+    change notifications (--poll-interval, ~1 min) and expires its listings at
+    --dir-cache-time (5 min default), so this normally clears on the first or
+    second poll. We wait anyway because the very next things to touch these paths
+    — the queue's VERIFY:tile probe and core._stage_tiles_local's per-file stat —
+    both read THROUGH the mount, and neither may be handed an index whose paths
+    do not yet resolve.
+    """
+    want = {}
+    for rel in _staged_files(stage_root):
+        d, _, name = rel.rpartition("/")
+        want.setdefault(d, set()).add(name)
+    n_total = sum(len(v) for v in want.values())
+    t0 = time.time()
+    while True:
+        missing = 0
+        for d, names in want.items():
+            mdir = out_tile_dir / d if d else out_tile_dir
+            try:
+                have = {p.name for p in mdir.iterdir()}
+            except OSError:
+                have = set()
+            missing += len(names - have)
+        el = time.time() - t0
+        if missing == 0:
+            print(f"    mount sees all {n_total} uploaded tiles ({el:.0f}s)", flush=True)
+            return 0
+        if el >= _TILE_VISIBLE_TIMEOUT_SEC:
+            return missing
+        print(f"    waiting for the mount to see the upload: {missing}/{n_total} "
+              f"not visible yet ({el:.0f}s)", flush=True)
+        time.sleep(_TILE_VISIBLE_POLL_SEC)
+
+
+def _bulk_upload_tiles(stage_root, remote, out_tile_dir, label):
+    """ONE bulk upload of the year's staged tiles, then verification. Raises
+    RuntimeError (via _bulk_upload_fail) on any failure — the caller has not yet
+    written the index or the meta, so a failed year leaves no cache-valid marker.
+
+    IDEMPOTENT / RESUMABLE: `--checksum` makes `rclone copy` skip destination
+    files whose md5 already matches, so a re-run after a partial upload (killed
+    runtime, wedged mount) re-writes the tiles to local NVMe cheaply and uploads
+    only the ones that never landed. It must be --checksum and NOT the default
+    (size+modtime) or --size-only: the resumed run REGENERATES the tiles, so
+    every local mtime is new (default → re-uploads everything), while --size-only
+    would skip a same-name same-size tile whose CONTENT changed. Nothing is
+    deleted at the destination — same as the direct-write path, which likewise
+    leaves an older run's stale tiles in place.
+    """
+    staged = _staged_files(stage_root)
+    n, nbytes = len(staged), sum(staged.values())
+    if not n:
+        _bulk_upload_fail(label, f"staging root {stage_root} holds no tile files")
+    print(f"  Bulk upload: {n} files / {nbytes / 1e6:.0f} MB   "
+          f"{stage_root} → {remote}", flush=True)
+    t0 = time.time()
+    rc, so, se = _run_rclone(
+        ["copy", str(stage_root), remote, "--checksum",
+         "--transfers", str(_RCLONE_TRANSFERS),
+         "--checkers", str(_RCLONE_CHECKERS),
+         "--stats", "60s", "--stats-one-line"],
+        timeout=_RCLONE_COPY_TIMEOUT_SEC)
+    _echo_rclone(so, se)
+    if rc != 0:
+        _bulk_upload_fail(label, f"rclone copy rc={rc}", so, se)
+    t_copy = time.time() - t0
+
+    # VERIFY server-side — NOT through the mount, whose cache we do not trust yet.
+    # Every staged file must exist on the remote with a matching md5 (local and
+    # Drive both expose md5, so `check` compares hashes, not just size). --one-way
+    # so pre-existing EXTRA files on Drive (a stale tile from an older sampling)
+    # are not a failure: the direct-write path leaves those behind too.
+    check_args = ["check", str(stage_root), remote, "--one-way",
+                  "--checkers", str(_RCLONE_CHECKERS)]
+    rc, so, se = _run_rclone(check_args, timeout=_RCLONE_COPY_TIMEOUT_SEC)
+    if rc != 0 and "no common hash" in (so + se).lower():
+        # A backend pair with no shared hash (never true for local→drive, but the
+        # verification must not silently vanish on one that isn't) → size-only.
+        print("      (no common hash on this backend pair — falling back to "
+              "--size-only verification)")
+        rc, so, se = _run_rclone(check_args + ["--size-only"],
+                                 timeout=_RCLONE_COPY_TIMEOUT_SEC)
+    _echo_rclone(so, se)
+    if rc != 0:
+        rc2, so2, se2 = _run_rclone(["size", remote, "--json"], timeout=300)
+        print(f"      remote size: {(so2 or se2).strip()[:300]}")
+        _bulk_upload_fail(label, f"rclone check rc={rc} (--one-way)", so, se)
+
+    # Corroborating counts for the log (never a gate — the remote legitimately
+    # holds >= our count when an older sampling left tiles behind).
+    rc2, so2, _ = _run_rclone(["size", remote, "--json"], timeout=300)
+    if rc2 == 0:
+        try:
+            d = json.loads((so2 or "").strip().splitlines()[-1])
+            print(f"    remote now holds {int(d['count'])} files / "
+                  f"{int(d['bytes']) / 1e6:.0f} MB (local set: {n} / "
+                  f"{nbytes / 1e6:.0f} MB)")
+        except Exception:                     # noqa: BLE001 — diagnostics only
+            pass
+
+    n_missing = _wait_tiles_visible(stage_root, out_tile_dir)
+    if n_missing:
+        _bulk_upload_fail(
+            label, f"{n_missing} uploaded tile(s) still not visible through the "
+                   f"mount after {_TILE_VISIBLE_TIMEOUT_SEC}s — the bytes are on "
+                   f"Drive (check passed) but the mount cache is stale; re-run "
+                   f"the tile step (the upload will be a no-op)")
+
+    shutil.rmtree(stage_root, ignore_errors=True)
+    print(f"  ✓ bulk upload verified: {n} files / {nbytes / 1e6:.0f} MB in "
+          f"{t_copy:.0f}s copy ({time.time() - t0:.0f}s total); staging root "
+          f"cleaned", flush=True)
+
+
 def step_tile(label, sites, dry_run=False, max_tiles=None, stride_override=None,
               citywide=False, force_retile=False):
     """Step 2 for one year: tile site crops (or the full city for coarse) and
@@ -727,11 +1007,31 @@ def step_tile(label, sites, dry_run=False, max_tiles=None, stride_override=None,
           f"neg_rate={tp['neg_rate']}, test={'yes' if tp['has_test'] else 'no'}) ──")
 
     out_tile_dir  = TILE_DIR / label
+    # WRITE TRANSPORT ONLY (see "Bulk tile upload" above): on an rclone-mounted
+    # Colab VM the tile files are written to local NVMe and bulk-uploaded once.
+    # Everywhere else stage_root is None and `write_dir is out_tile_dir` — i.e.
+    # byte-for-byte today's direct-through-the-mount write.
+    stage_root, remote = _bulk_upload_target(out_tile_dir, label)
+    write_dir = stage_root if stage_root is not None else out_tile_dir
+    if stage_root is not None:
+        # A leftover staging tree from an earlier, differently-sampled run must
+        # never be uploaded; the tiles themselves are cheap to regenerate locally.
+        shutil.rmtree(stage_root, ignore_errors=True)
+        print(f"  Bulk-upload path ACTIVE: tiles → {write_dir} → one rclone copy "
+              f"→ {remote}; index + meta still written through the mount")
     for split in ("train", "val", "test"):
+        # The Drive-side split dirs are created THROUGH the mount in BOTH branches
+        # so the directory tree on Drive ends identical — `rclone copy` creates no
+        # empty dirs, and an empty split would otherwise silently disappear.
         (out_tile_dir / split / "images").mkdir(parents=True, exist_ok=True)
         (out_tile_dir / split / "masks").mkdir(parents=True, exist_ok=True)
         if config.AUX_HEIGHT:
             (out_tile_dir / split / "heights").mkdir(parents=True, exist_ok=True)
+        if stage_root is not None:
+            (write_dir / split / "images").mkdir(parents=True, exist_ok=True)
+            (write_dir / split / "masks").mkdir(parents=True, exist_ok=True)
+            if config.AUX_HEIGHT:
+                (write_dir / split / "heights").mkdir(parents=True, exist_ok=True)
 
     np.random.seed(RANDOM_SEED)
 
@@ -852,8 +1152,14 @@ def step_tile(label, sites, dry_run=False, max_tiles=None, stride_override=None,
     index_rows = []
     for rec in tqdm(all_records, desc="  Writing tiles"):
         split = rec["split"]
+        # img_out/mask_out are the paths RECORDED IN THE INDEX — always the Drive
+        # tile dir, identical to today (readers + training staging depend on the
+        # /content/drive/... form). *_dst is where the bytes are actually written:
+        # the very same file unless the bulk-upload path is active.
         img_out  = out_tile_dir / split / "images" / rec["tile_name"]
         mask_out = out_tile_dir / split / "masks"  / rec["tile_name"]
+        img_dst  = write_dir / split / "images" / rec["tile_name"]
+        mask_dst = write_dir / split / "masks"  / rec["tile_name"]
         img_tile = np.asarray(rec["_img_tile"])[:3]            # RGB (C,H,W)
         if add_hs and nir_mode:
             nir = rec.get("_nir_tile")
@@ -868,20 +1174,21 @@ def step_tile(label, sites, dry_run=False, max_tiles=None, stride_override=None,
             hs = read_hillshade_chip(rec["crs"], rec["tile_transform"],
                                      img_tile.shape[1], img_tile.shape[2])
             img_tile = np.concatenate([img_tile, hs], axis=0)  # (4,H,W)
-        with rasterio.open(img_out, "w", **{**img_base, "crs": rec["crs"],
+        with rasterio.open(img_dst, "w", **{**img_base, "crs": rec["crs"],
                            "transform": rec["tile_transform"]}) as dst:
             dst.write(img_tile)
             if add_hs:
                 dst.update_tags(HS_SOURCE=config.HS_SOURCE)
-        with rasterio.open(mask_out, "w", **{**mask_base, "crs": rec["crs"],
+        with rasterio.open(mask_dst, "w", **{**mask_base, "crs": rec["crs"],
                            "transform": rec["tile_transform"]}) as dst:
             dst.write(np.asarray(rec["_mask_tile"]).squeeze(), 1)
         height_out = ""
         if write_height:
             hpath = out_tile_dir / split / "heights" / rec["tile_name"]
+            hdst  = write_dir / split / "heights" / rec["tile_name"]
             hchip = read_hillshade_chip(rec["crs"], rec["tile_transform"],
                                         TILE_SIZE, TILE_SIZE)     # CHM DN (1,H,W), 0=nodata
-            with rasterio.open(hpath, "w", **{**height_base, "crs": rec["crs"],
+            with rasterio.open(hdst, "w", **{**height_base, "crs": rec["crs"],
                                "transform": rec["tile_transform"]}) as dst:
                 dst.write(hchip)
             height_out = str(hpath)
@@ -892,6 +1199,12 @@ def step_tile(label, sites, dry_run=False, max_tiles=None, stride_override=None,
             "img_path": str(img_out), "mask_path": str(mask_out),
             "height_path": height_out,
         })
+
+    # Bulk-upload path: every tile byte reaches Drive HERE, in one rclone copy,
+    # and is verified server-side BEFORE the index/meta below are written. Raises
+    # on failure, so a bad upload never gets an index or a cache-valid marker.
+    if stage_root is not None:
+        _bulk_upload_tiles(stage_root, remote, out_tile_dir, label)
 
     index_df = pd.DataFrame(index_rows)
     index_path = out_tile_dir / f"tile_index_{label}.csv"

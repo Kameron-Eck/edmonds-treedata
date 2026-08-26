@@ -45,6 +45,13 @@ phantom-M mtime lore, two-sessions-one-tree hazards. Git ops are normal now.
   + permission allowlist: OVERHAUL_PLAN P11.5.
   **One queue per runtime**; queues write per-launch status files
   (`train_queue_status_{queue}_{ts}.csv`) and readers merge all of them.
+  **P11.6 (Kam 2026-08-26, runtime autonomy):** STOPPING a runtime is always
+  autonomous — never asked; an idle runtime is a defect. CREATING a runtime for a
+  queue Kam already approved by name (the kickoff-ask pattern) is autonomous, logged
+  in CHATLOG with tier + purpose. Cold creation (no pre-approved queue) still asks.
+  Drive mounting is automated via a folder-scoped service account + rclone — setup,
+  bootstrap flow, canary requirement, and secret handling: `COLAB_AUTONOMY_SETUP.md`.
+  The 2-concurrent cap stays.
 - **The frozen Drive copy** `G:\My Drive\treedata\Scripts\` is the pre-reorg emergency
   fallback until the Colab cutover proves out. **Never edit it.** Deleted at P10.
 

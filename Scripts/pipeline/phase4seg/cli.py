@@ -116,8 +116,12 @@ def main():
     p.add_argument("--no-hillshade", dest="hillshade", action="store_false",
                    help="RGB-only tiles (no structure channel).")
     p.add_argument("--hs-source", choices=sorted(HS_STATS), default="chm",
-                   help="Structure raster for band 4 (tiling-time choice, default "
-                        "chm): 'chm' = REAL 3DEP canopy height in metres (U8-scaled, "
+                   help="Source of band 4 (tiling-time choice, default "
+                        "chm). 'nir' (M06) = THE YEAR'S OWN NIR band, read from "
+                        "the same ortho window as the RGB (no LIDAR, no warp); "
+                        "only the ten bands=4 acquisitions can supply it and "
+                        "every other year fails loud. The LIDAR sources: "
+                        "'chm' = REAL 3DEP canopy height in metres (U8-scaled, "
                         "the true grass/tree discriminator); "
                         "'struct' = terrain-cancelled first-return minus "
                         "bare-earth (+127) — slope illumination cancels, grass is "
@@ -461,6 +465,30 @@ def main():
     entries = _resolve_years(args)
     labels = [e["label"] for e in entries]
     print(f"  Years ({len(labels)}): {', '.join(labels)}")
+
+    # ── M06 --hs-source nir: refuse every silent-substitution path up front ────
+    if config.nir_mode():
+        if args.aux_height:
+            sys.exit("--hs-source nir with --aux-height: --aux-height forces "
+                     "RGB-only input (CHM becomes the target), so the NIR band "
+                     "would be silently dropped. Pick one.")
+        if not config.USE_HILLSHADE:
+            sys.exit("--hs-source nir with --no-hillshade: no 4th channel would "
+                     "be baked at all. Drop --no-hillshade.")
+        _no_nir = [e["label"] for e in entries if int(e.get("bands", 3)) < 4]
+        if _no_nir:
+            sys.exit(f"--hs-source nir: no NIR band in {', '.join(_no_nir)} "
+                     f"(YEAR_CATALOG bands<4). The ten NIR acquisitions are "
+                     f"2015n 2016 2017n 2017s 2018s 2019n 2019s 2021n 2021s "
+                     f"2023n. Refusing to substitute RGB or LIDAR.")
+        _lifted = [lb for lb in labels if lb in NIR_LIFTED_FLOOR_YEARS]
+        if _lifted:
+            print(f"  ⚠ [--hs-source nir] {', '.join(_lifted)} has a LIFTED NIR "
+                  f"BLACK POINT (IMAGERY_FACTS §12): absolute NIR level is not "
+                  f"comparable to the healthy eight HS_STATS['nir'] was measured "
+                  f"on. Excluded from the M06 A/B arm by design.")
+        print(f"  [--hs-source nir] band 4 = each year's own NIR band "
+              f"(hs-dropout={config.HS_DROPOUT} keeps the pure-RGB pathway).")
     run_id = _write_run_manifest(args, entries)
     config.RUN_ID = run_id
 

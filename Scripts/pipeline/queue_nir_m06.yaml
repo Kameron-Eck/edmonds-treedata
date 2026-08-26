@@ -1,0 +1,104 @@
+# ═══════════════════════════════════════════════════════════════════════════════
+#  M06 NIR-INPUT-CHANNEL QUEUE — the A/B arm for "band 4 = the year's own NIR"
+#  Built 2026-08-26 (MACHINERY_AUDIT_2026-08 M06_NIR_INPUT_CHANNEL). NOT LAUNCHED.
+# ═══════════════════════════════════════════════════════════════════════════════
+#
+# PURPOSE
+#   NDVI separability is the one signal measured near YEAR-INVARIANT across this
+#   archive (AUROC 0.835-0.886, sd 0.016) while RGB separability swings 2.5x
+#   (sd 0.057) — yet no deployed model has ever seen a NIR band. `--hs-source nir`
+#   (landed with this queue) feeds band 4 of the year's OWN ortho into the 4th
+#   input channel through the existing hillshade machinery — a slot the deployed
+#   arms already fill with CHM, so this is a SWAP, not an extra channel (see the
+#   next block before you read any result): tiling bakes + tags it,
+#   conv-1 inflates 3->4 zero-init, HS_DROPOUT 0.25 keeps a pure-RGB pathway so the
+#   model degrades gracefully, inference re-reads band 4 from the same ortho window.
+#   Headline metric per the audit: CROSS-ARM VARIANCE of honest recall across NIR
+#   years — the year-invariance is the prize, not any single year's IoU.
+#
+# WHAT THE COMPARISON ACTUALLY IS  ** READ THIS BEFORE INTERPRETING ANY RESULT **
+#   The live per-year arms are NOT RGB-only. Measured 2026-08-26 from the run logs
+#   (phase4/logs, "Model: ... in_channels="):
+#       sem_best_2016_fullext_sectors_v1.pt   in_channels=4  +structure[chm]
+#       sem_best_2019_citywide_rgb.pt         in_channels=4  +structure[chm]
+#       (the 3-channel models are only the base2020 sector baselines = copies of
+#        phase3/sem_best_2020.pt; and the tag "citywide_rgb"/"p2nir" names the
+#        LABEL recipe, not the channel count — CHATLOG 2026-08-19 makes the same
+#        point about "p2nir")
+#   So these jobs are a 4th-CHANNEL SWAP (CHM -> NIR) at equal channel count, NOT
+#   an add-a-channel test. Report it that way. If the swap is ambiguous, the
+#   missing rung is a true RGB-only control — same recipe with `--no-hillshade`,
+#   tag `rgb3_m06` — which is NOT in this queue (it is a third A100 job; Kam's
+#   call). See reports/M06_NIR_ARM.md.
+#
+# COMPARISON TARGETS (same ortho, same recipe, same sectors, 4th channel swapped)
+#   2016_nir   vs  2016 / fullext_sectors_v1   (full-extent 2016_snoh_1ft_rgbi.tif,
+#              --force-citywide + sectors_v1 AOI — identical but hs_source=chm)
+#   2019n_nir  vs  2019n / p2nir   (champion_arms.csv: the only live 2019n arm;
+#              its raster is FULL-footprint, so it must be brought onto the sector
+#              strips before comparison — qc/phase4_sector_poststrat.py
+#              --arms 2019n:p2nir 2019n:nir_m06 — never compare a sector raster to
+#              a citywide one directly, they are scored on different ground)
+#
+# RADIOMETRY EXCLUSION (IMAGERY_FACTS §12, MEASURED 2026-08-26, nir-stack build)
+#   Ten acquisitions carry a 4th band; two have LIFTED NIR BLACK POINTS —
+#   2015n (NIR p1 = 33 DN, traced to the source NAIP DOQQs) and 2021s (p1 = 28 DN,
+#   confirmed on BOTH county servings of the flight) — vs 1-16 DN on the healthy
+#   eight. Structure and vegetation LOCATION stay honest there; the ABSOLUTE NIR
+#   level does not, and HS_STATS['nir'] was measured on the healthy eight. So the
+#   A/B arm uses HEALTHY-FLOOR years only: 2016 (primary) and 2019n (secondary).
+#   2015n/2021s are excluded BY DESIGN — the engine only WARNS, it does not refuse.
+#   (Independently reproduced while measuring HS_STATS['nir']: p1 = 33 / 28 DN.)
+#
+# UN-CONFOUNDED BY LABELS
+#   Neither job passes --add-canopy-mask: the corrected-label overlay is itself
+#   NDVI-derived, and mixing it into an NIR-input arm would confound the channel
+#   effect with the label change (audit M06 spec (c)).
+#
+# COST (A100 40 GB, one queue per runtime, P11)
+#   Per job: retile ~15-20 min (hs_source is a tiling signature key, so nir gets
+#   its OWN cache and forces a rebuild) + fine-tune ~30-40 min + sector inference
+#   1-3 min  =>  ~50-60 min/job, ~2 A100-hours for the pair including scoring.
+#
+# HAZARD — DO NOT RUN CONCURRENTLY WITH ANY 2016 / 2019n JOB
+#   Tile caches are keyed by YEAR ONLY (phase4/tiles/{year}), not by run tag. This
+#   queue REWRITES phase4/tiles/2016 and /2019n as 4-band NIR tiles. Models,
+#   rasters and QC rows of the in-flight sectors_v1 / fullext arms are untouched
+#   (different tags), and a later chm run simply re-tiles (signature mismatch) and
+#   adopts the tag it finds — no flag/tile/ckpt mismatch is possible. But a job
+#   TRAINING on 2016 tiles while this queue rewrites them would read mixed
+#   channels. Serialize: never overlap these two years across runtimes.
+#
+# LAUNCH IS KAM-GATED (P11/P11.5): ask before EVERY launch, stating queue file,
+# GPU tier, runtimes, wall-clock and rough cost. Runbook: reports/M06_NIR_ARM.md.
+# ═══════════════════════════════════════════════════════════════════════════════
+- id: "2016_nir"
+  year: "2016"
+  tag: nir_m06
+  extra: ["--force-citywide", "--hs-source", "nir", "--infer-aoi", "aoi/sectors_v1.json"]
+  why: >-
+    primary M06 arm. 2016_snoh_1ft_rgbi.tif is 4-band, healthy NIR floor (p1 = 8 DN),
+    100% of the city polygon (82.3% of the study extent; the rest is Puget Sound),
+    and already has the matched chm arm 2016/fullext_sectors_v1
+    on the same ortho + same sectors — the cleanest 4th-channel swap available.
+    C-CAP 2016 (ccap_2016_hires_lc_snohfull.tif) is the epoch-matched referee.
+  expect: >-
+    retile ~15-20 min (4-band nir tiles, own cache) + train ~30-40 min + sector
+    inference ~1-2 min. Log must show "+ NIR band 4 from THIS YEAR'S ortho" at tile
+    time and "in_channels=4  +structure[nir]" at inference; tiles tagged
+    HS_SOURCE=nir. Score vs C-CAP, NEVER vs the NDVI reference (circular here).
+- id: "2019n_nir"
+  year: "2019n"
+  tag: nir_m06
+  extra: ["--force-citywide", "--hs-source", "nir", "--infer-aoi", "aoi/sectors_v1.json"]
+  why: >-
+    secondary arm — the second point needed for the cross-year-variance headline
+    (one year cannot show year-invariance). 2019_naip_60cm_rgbi.tif is 4-band with a
+    healthy floor (p1 = 5 DN) and the coarsest NIR sensor in the pair, so it also
+    bounds the effect at 60 cm. Contrast arm: 2019n/p2nir (4ch chm), post-stratified
+    onto the sector strips. C-CAP 2021 is the epoch-matched referee for >=2019.
+  expect: >-
+    retile ~10-15 min + train ~25-35 min + sector inference ~1 min. NOTE 2019n NIR is
+    an OCTOBER flight (mean NIR 0.286 vs 0.466 for August 2016) — a real seasonal
+    difference the fixed HS_STATS['nir'] does not remove; the per-year fine-tune
+    absorbs it, but do not read a 2016-vs-2019n gap as a sensor effect alone.

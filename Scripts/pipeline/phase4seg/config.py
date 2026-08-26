@@ -608,3 +608,55 @@ TIER_EARLYSTOP = {"fine": "val_bce", "medium": "val_bce", "coarse": "val_iou_bt"
 TIER_LOSS_MODE = {"fine": "bce_dice", "medium": "bce_dice", "coarse": "bce_dice"}
 PER_YEAR_STEPS = ["labels", "tile", "train", "evaluate", "inference", "postproc"]
 ALL_STEPS = PER_YEAR_STEPS + ["consistency"]
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+#  M06 — NIR AS THE 4th INPUT CHANNEL   (APPENDED 2026-08-26; nothing above this
+#  line was edited — config.py is pure-move protected)
+# ══════════════════════════════════════════════════════════════════════════════
+# `--hs-source nir` reuses the whole 4th-channel machinery (tiling bakes band 4 +
+# stamps HS_SOURCE, conv-1 is inflated 3→4 zero-init, HS_DROPOUT keeps a pure-RGB
+# pathway, train/eval/inference adopt the tag/ckpt value) but takes band 4 from
+# **the year's own ortho**, not from a LIDAR master. Consequences of that swap:
+#   * NO entry is added to HS_PATHS — there is no raster to stage, and no warp:
+#     NIR is read from the SAME window of the SAME file as the RGB, so it is
+#     co-registered by construction (the LIDAR path has to reproject per tile).
+#   * Only the TEN 4-band acquisitions can supply it (YEAR_CATALOG "bands": 4 —
+#     2015n 2016 2017n 2017s 2018s 2019n 2019s 2021n 2021s 2023n). Every other
+#     year FAILS LOUD under --hs-source nir; substituting RGB or a LIDAR band
+#     silently is exactly the failure this mode exists to avoid.
+#   * Unlike the ~2016 LIDAR snapshot, this channel is contemporaneous with the
+#     RGB — no temporal drift, but also no coverage outside those ten years.
+# Rationale (MACHINERY_AUDIT_2026-08 M06): NDVI separability is near year-
+# invariant across this archive (AUROC 0.835-0.886, sd 0.016) while RGB swings
+# 2.5x (sd 0.057); the deployed per-year models never see NIR at all.
+HS_SOURCE_NIR = "nir"
+
+# /255 non-zero mean/std of band 4, POOLED over the eight healthy-floor NIR
+# acquisitions (2015n/2021s excluded — see NIR_LIFTED_FLOOR_YEARS). MEASURED
+# 2026-08-26 from decimated (~3000 px long side) full-extent band-4 reads of the
+# local mirror D:\edmonds-pipeline\Imagery: per-acquisition means 0.276-0.466
+# (within-acquisition sd 0.291, between-acquisition sd 0.068), pooled as
+# sqrt(mean(var) + var(means)). One global entry — same contract as the ImageNet
+# RGB stats, which are likewise fixed while measured RGB brightness swings across
+# years; the per-year fine-tune and HS_DROPOUT absorb the residual offset.
+HS_STATS[HS_SOURCE_NIR] = ([0.3752], [0.2991])
+
+# IMAGERY_FACTS §12 (MEASURED 2026-08-26, nir-stack build): two of the ten NIR
+# acquisitions have LIFTED BLACK POINTS — 2015n NIR p1 = 33 DN (traced to the
+# source NAIP DOQQs) and 2021s p1 = 28 DN (confirmed on both county servings of
+# the flight), vs 1-16 DN on the healthy eight. Within-band structure and
+# vegetation LOCATION stay honest there, but the absolute level does not — so
+# these two are excluded from the pooled stats above and from the M06 A/B arm
+# (queue_nir_m06.yaml). Tiling only WARNS: the exclusion is a campaign-design
+# decision, not an engine law.
+NIR_LIFTED_FLOOR_YEARS = {"2015n", "2021s"}
+
+
+def nir_mode():
+    """True when band 4 is the year's own NIR band (`--hs-source nir`).
+
+    Reads the LIVE module global, so it tracks the value cli/tiles/ckpts adopt at
+    runtime — never capture it via `from config import *`.
+    """
+    return HS_SOURCE == HS_SOURCE_NIR

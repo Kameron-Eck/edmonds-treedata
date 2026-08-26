@@ -533,6 +533,12 @@ def _hillshade_ds():
     guarded by the cross-runtime lock) still happens once, on the first caller.
     """
     key = config.HS_SOURCE
+    if key == HS_SOURCE_NIR:
+        # M06: band 4 is the YEAR'S OWN NIR band, read from the ortho itself in
+        # tiling/inference — there is no master raster to open or stage. Returning
+        # None (not a hillshade) makes any accidental caller take the "no 4th band"
+        # branch instead of silently getting LIDAR under an NIR run tag.
+        return None
     cache = getattr(_HS_TLS, "ds", None)
     if cache is None:
         cache = _HS_TLS.ds = {}
@@ -564,6 +570,14 @@ def read_hillshade_chip(dst_crs, dst_transform, h, w):
     """Reproject the hillshade onto an arbitrary target grid → (1,h,w) uint8.
     Out-of-coverage (water / no first-return) reprojects to 0, matching the RGB
     nodata fill. Returns zeros if the hillshade is unavailable."""
+    if config.nir_mode():
+        # M06 fail-loud: under --hs-source nir the 4th band MUST come from the
+        # year's own ortho (tiling.step_tile / core._prep read it directly). If
+        # this is reached, a caller was not converted and would have silently
+        # written zeros — never let an NIR run carry a blank/LIDAR band 4.
+        raise RuntimeError(
+            "read_hillshade_chip() called with --hs-source nir: band 4 must be "
+            "read from the year's own ortho, not warped from a LIDAR master.")
     from rasterio.warp import reproject, Resampling
     ds = _hillshade_ds()
     if ds is None:

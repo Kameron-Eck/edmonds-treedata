@@ -248,6 +248,7 @@ def _negative_site_records(src, sites, src_nodata, stride):
     """
     out, seen = [], set()
     img_h, img_w, tf = src.height, src.width, src.transform
+    nir_mode = config.nir_mode()          # M06: band 4 = this ortho's own band 4
     for site_label, b3857, crowns in sites:
         if not _is_negative_site(site_label, crowns):
             continue
@@ -305,6 +306,10 @@ def _negative_site_records(src, sites, src_nodata, stride):
                     "canopy_frac": 0.0, "crs": src.crs,
                     "tile_transform": rasterio.windows.transform(win_t, tf),
                     "_img_tile": img_tile, "_mask_tile": mask_tile,
+                    # M06: same window, same file → co-registered with no warp.
+                    # Read only for kept tiles (after the nodata/region filters).
+                    "_nir_tile": (src.read([4], window=win_t, boundless=True,
+                                           fill_value=0) if nir_mode else None),
                     "force_keep": True, "grvi": 0.0, "is_green_hardneg": False,
                 })
                 kept += 1
@@ -352,6 +357,22 @@ def _gather_citywide_coarse(label, sites, stride_override=None, dry_run=False):
             img_h, img_w, tf = src.height, src.width, src.transform
             print(f"  Ortho: {img_w}×{img_h}px  GSD≈{tf.a*100:.1f}cm  "
                   f"nodata={src_nodata}")
+            # ── M06: band 4 = THIS ortho's NIR band (no LIDAR, no warp) ────────
+            nir_mode = config.nir_mode()
+            if nir_mode:
+                if src.count < 4:
+                    raise RuntimeError(
+                        f"--hs-source nir: year {label} ortho {native.name} has "
+                        f"{src.count} band(s) — it carries no NIR. Fail loud; the "
+                        f"engine never substitutes RGB or a LIDAR band for a "
+                        f"missing NIR. Use a YEAR_CATALOG entry with bands=4.")
+                print(f"  + NIR band 4 from THIS YEAR'S ortho {native.name} "
+                      f"(source=nir; same window, no reprojection)")
+                if str(label) in NIR_LIFTED_FLOOR_YEARS:
+                    print(f"  ⚠ WARNING: {label} has a LIFTED NIR BLACK POINT "
+                          f"(IMAGERY_FACTS §12) — structure/location honest, "
+                          f"absolute NIR level NOT comparable to the healthy "
+                          f"eight that HS_STATS['nir'] was measured on.")
             # Bound the scan to ~CITYWIDE_CANDIDATE_TARGET candidates regardless of
             # GSD (floor = CITYWIDE_CANDIDATE_STRIDE, so coarse is unchanged). An
             # explicit --stride override is always honoured.
@@ -408,6 +429,12 @@ def _gather_citywide_coarse(label, sites, stride_override=None, dry_run=False):
                         "crs": native_crs,
                         "tile_transform": win_tf,
                         "_img_tile": img_tile, "_mask_tile": mask_tile,
+                        # M06: read band 4 ONLY for tiles that survived every
+                        # filter above, so nodata/GRVI/selection stay byte-
+                        # identical to the RGB arm and RAM holds one extra chip
+                        # per KEPT candidate, not per scanned position.
+                        "_nir_tile": (src.read([4], window=win, boundless=True,
+                                               fill_value=0) if nir_mode else None),
                         "force_keep": False, "grvi": round(grvi, 4),
                         "is_green_hardneg": (canopy_frac == 0.0
                                              and grvi >= GREEN_GRVI_THRESHOLD),
@@ -677,6 +704,15 @@ def step_tile(label, sites, dry_run=False, max_tiles=None, stride_override=None,
     tp    = TIER_TILE_PARAMS[tier]
     stride = int(stride_override) if stride_override else tp["stride"]
     mode = "CITY-WIDE" if citywide else "6-site"
+    nir_mode = config.nir_mode()
+    if nir_mode and not citywide:
+        # The 6-site path tiles the per-year SITE CROPS, and those are written
+        # RGB-only (labels.project_and_rasterise_site → read_rgb_window). Rather
+        # than silently give an NIR run a 3-band tile set (or a LIDAR band), stop.
+        raise RuntimeError(
+            f"--hs-source nir on year {label} without the citywide path: site "
+            f"crops are RGB-only (3 bands), so there is no NIR to bake. Pass "
+            f"--force-citywide (what every queue job uses).")
 
     sig = _tile_signature(label, stride, max_tiles, citywide)
     if citywide and not dry_run and not force_retile \
@@ -788,9 +824,14 @@ def step_tile(label, sites, dry_run=False, max_tiles=None, stride_override=None,
     # carries crs + tile_transform, so all tiling modes (city-wide / 6-site /
     # negative) get it. The HS_SOURCE tag on each image tile records which raster
     # was baked, so train/eval pick the matching normalization stats.
-    add_hs = bool(config.USE_HILLSHADE) and _hillshade_ds() is not None
+    # M06: in nir mode band 4 already rides on each record (read from the year's
+    # own ortho during the gather), so there is no master raster to open.
+    add_hs = bool(config.USE_HILLSHADE) and (nir_mode or _hillshade_ds() is not None)
     n_img_bands = 4 if add_hs else 3
-    if add_hs:
+    if add_hs and nir_mode:
+        print(f"  + NIR band 4 from the year's own ortho (source=nir, "
+              f"co-registered by construction — no reprojection)")
+    elif add_hs:
         print(f"  + LIDAR hillshade band 4 from {HS_PATHS[config.HS_SOURCE].name} "
               f"(source={config.HS_SOURCE}, reprojected per tile)")
     img_base  = {"driver": "GTiff", "dtype": "uint8", "count": n_img_bands,
@@ -814,7 +855,16 @@ def step_tile(label, sites, dry_run=False, max_tiles=None, stride_override=None,
         img_out  = out_tile_dir / split / "images" / rec["tile_name"]
         mask_out = out_tile_dir / split / "masks"  / rec["tile_name"]
         img_tile = np.asarray(rec["_img_tile"])[:3]            # RGB (C,H,W)
-        if add_hs:
+        if add_hs and nir_mode:
+            nir = rec.get("_nir_tile")
+            if nir is None:
+                raise RuntimeError(
+                    f"--hs-source nir: tile {rec['tile_name']} carries no NIR "
+                    f"chip — a gather path did not read band 4. Refusing to "
+                    f"write a tile with a substituted 4th band.")
+            img_tile = np.concatenate(
+                [img_tile, np.asarray(nir)[:1]], axis=0)       # (4,H,W)
+        elif add_hs:
             hs = read_hillshade_chip(rec["crs"], rec["tile_transform"],
                                      img_tile.shape[1], img_tile.shape[2])
             img_tile = np.concatenate([img_tile, hs], axis=0)  # (4,H,W)

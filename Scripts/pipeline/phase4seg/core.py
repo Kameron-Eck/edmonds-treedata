@@ -172,6 +172,11 @@ def rgb_to_model_input(img_uint8):
     mean, std = _input_norm(has_hs)
     arr = (arr - mean) / std
     if has_hs:
+        # M06 caveat for --hs-source nir: band 4 is then the year's NIR, where a
+        # raw 0 is *usually* out-of-coverage but can also be a genuinely black
+        # NIR pixel (deep water/deep shadow). Those get neutralised too. Measured
+        # 2026-08-26 on the two A/B orthos: 0.000% of the grid is NIR==0 while RGB
+        # is non-zero, so the conflation is nil there. Left as-is deliberately.
         # No-coverage LIDAR is stored as raw 0 (nodata sentinel). Left alone it
         # normalises to (0-mean)/std ≈ -1.78 — a distinctive EXTREME the net was
         # never taught to read as "no info". Blank it to 0 (= the channel mean),
@@ -1386,6 +1391,13 @@ def step_inference(label, batch_size=INFER_BATCH_SIZE, dry_run=False, citywide=F
     native = resolve_native_path(entry)
     if not native.exists():
         print(f"  ERROR: native ortho not found: {native}"); return
+    # M06: catalog-level NIR gate BEFORE any staging/GPU spend. The authoritative
+    # check is against the raster itself (below, once the ckpt's hs_source is
+    # adopted); this one just fails in seconds instead of after a multi-GB copy.
+    if config.nir_mode() and int(entry.get("bands", 3)) < 4:
+        raise RuntimeError(
+            f"--hs-source nir: year {label} is catalogued with "
+            f"{entry.get('bands')} bands — no NIR to feed channel 4.")
     ckpt = MODELS_DIR / f"sem_best_{label}{_tag_sfx()}.pt"
     if not ckpt.exists():
         if dry_run:
@@ -1408,6 +1420,7 @@ def step_inference(label, batch_size=INFER_BATCH_SIZE, dry_run=False, citywide=F
         img_h, img_w = src.height, src.width
         img_crs, img_tf = src.crs, src.transform
         src_nodata = src.nodata
+        img_bands = src.count                      # M06 NIR gate (checked below)
         px = src.transform.a; py = abs(src.transform.e)
     print(f"  Ortho: {img_w}×{img_h}px  ({img_w*px/1000:.1f}×{img_h*py/1000:.1f} km)"
           f"  GSD≈{px*100:.1f}cm  nodata={src_nodata}")
@@ -1439,6 +1452,14 @@ def step_inference(label, batch_size=INFER_BATCH_SIZE, dry_run=False, citywide=F
         if _ck_src in HS_STATS and _ck_src != config.HS_SOURCE:
             print(f"  ckpt was trained with --hs-source {_ck_src} — adopting it.")
             config.HS_SOURCE = _ck_src
+    # M06: the ckpt (not the flag) decides whether band 4 is NIR. An NIR model
+    # can only be run on an ortho that HAS band 4 — refuse rather than fall back.
+    nir_mode = has_hs and config.nir_mode()
+    if nir_mode and img_bands < 4:
+        raise RuntimeError(
+            f"--hs-source nir ({ckpt.name} was trained on NIR band 4): ortho "
+            f"{native.name} has {img_bands} band(s). Refusing to infer with a "
+            f"substituted 4th channel.")
     model = build_model(device, compile_model=False)
     _tgt = model._orig_mod if hasattr(model, "_orig_mod") else model
     _tgt.load_state_dict(_inflate_first_conv(ck["model_state"], _tgt.state_dict()),
@@ -1577,7 +1598,15 @@ def step_inference(label, batch_size=INFER_BATCH_SIZE, dry_run=False, citywide=F
                 win = rasterio.windows.Window(cc0, rr0, cc1 - cc0, rr1 - rr0)
                 _s = _src()
                 tile = read_rgb_window(_s, win).transpose(1, 2, 0)
-                if has_hs:                                  # co-registered hillshade band
+                if has_hs and nir_mode:
+                    # M06: band 4 = the SAME window of the SAME ortho the RGB came
+                    # from — co-registered by construction, no warp, no second
+                    # dataset. Concatenated BEFORE the reflect-pad, exactly where
+                    # the hillshade chip goes, so the padded tile is identical in
+                    # shape and the model sees the same channel order as training.
+                    nir = _s.read([4], window=win).transpose(1, 2, 0)
+                    tile = np.concatenate([tile, nir], axis=-1)
+                elif has_hs:                                # co-registered hillshade band
                     win_tf = rasterio.windows.transform(win, _s.transform)
                     hs = read_hillshade_chip(_s.crs, win_tf,
                                              int(win.height), int(win.width))

@@ -6,14 +6,23 @@
 # live=1; ckpt identity stays in the sem_best_{year}_{tag}.pt name convention).
 # Years with MULTIPLE live arms need Kam's designation and are ABSENT until he
 # names them — consumers fail loud / list them, never guess (last-wins was
-# silently plotting the wrong 2013 arm). PENDING KAM (live arms in brackets):
-#   2000 [citywide_rgb | xsensor_rgb]
-#   2002 [citywide_rgb | xsensor_rgb]
-#   2013 [citywide_rgb | xsensor_rgb]   (citywide_rgb implied by the 08-22 re-score)
-#   2015 [citywide_rgb | xsensor_rgb]
-#   2016 [<untagged citywide> | corrected]  (a 3rd live arm, fullext_sectors_v1, is
-#         sector-footprint -> ineligible per the rule below until run citywide)
-#   2017 [citywide_rgb | xsensor_train]
+# silently plotting the wrong 2013 arm).
+#
+# KAM DECISION 2026-08-26 — LEGACY ARMS DECLINED, DESIGNATIONS DEFERRED.
+# The six contested years (2000/2002/2013/2015/2016/2017, each with 2+ arms from
+# the spring per-year fine-tune campaign: citywide_rgb / xsensor* / 2016
+# corrected-vs-untagged) get NO champion. Kam: the arms predate the current
+# workflow (no manifests, no tags, no registry rows, no verification gates) and
+# their provenance can't be vouched for — "I don't like using this data because
+# it was not run on the current work flow." They stay scored in qc_indep (the
+# measurements were honest) but are NOT publication deliverables. Deliverables
+# for these years come from re-running the post-promotion winning recipe
+# citywide under the current workflow (manifested, tagged, gated) — the
+# campaign's natural next step (~1.5-2 A100-h/year, Kam-gated when scheduled).
+# Consumers keep listing these years as undesignated; that is the honest state.
+# The single-arm rows BELOW stay as operational pointers for dashboards (the
+# only raster their year has ever had) — same era caveat applies to the
+# citywide_rgb rows; none of them is a publication commitment either.
 # ELIGIBILITY RULE (2026-08-26): only FULL-FOOTPRINT rasters are champion-eligible.
 # A sector-restricted arm (tag *sectors_v1*) tests a model but cannot be the year's
 # deliverable; its MODEL contests once a full-footprint raster exists for it — and

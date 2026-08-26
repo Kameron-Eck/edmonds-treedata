@@ -1,0 +1,6 @@
+job,year,tag,src,dst,note
+2016cw_g,2016,golden_v1_2016cw,/content/drive/MyDrive/treedata/phase4/models/sem_best_2016.pt,/content/drive/MyDrive/treedata/phase4/models/sem_best_2016_golden_v1_2016cw.pt,untagged citywide 2016 baseline
+2016corr_g,2016,golden_v1_2016corr,/content/drive/MyDrive/treedata/phase4/models/sem_best_2016_corrected.pt,/content/drive/MyDrive/treedata/phase4/models/sem_best_2016_golden_v1_2016corr.pt,corrected-label 2016 arm
+2016fx_g,2016,golden_v1_2016fx,/content/drive/MyDrive/treedata/phase4/models/sem_best_2016_fullext_sectors_v1.pt,/content/drive/MyDrive/treedata/phase4/models/sem_best_2016_golden_v1_2016fx.pt,full-extent 2016 arm
+2021sp2_g,2021s,golden_v1_2021sp2,/content/drive/MyDrive/treedata/phase4/models/sem_best_2021s_p2nir.pt,/content/drive/MyDrive/treedata/phase4/models/sem_best_2021s_golden_v1_2021sp2.pt,4-channel NIR ckpt; engine adopts hs_source from it
+2021sfx_g,2021s,golden_v1_2021sfx,/content/drive/MyDrive/treedata/phase4/models/sem_best_2021s_fullext_sectors_v1.pt,/content/drive/MyDrive/treedata/phase4/models/sem_best_2021s_golden_v1_2021sfx.pt,full-extent 2021s arm

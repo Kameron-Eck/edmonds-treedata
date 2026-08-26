@@ -1,0 +1,162 @@
+{
+ "version": "sentinel_v1",
+ "crs": "EPSG:3857",
+ "_doc": "UNION of the 12 frozen sentinel windows (Scripts/sentinel_sites.json), each padded +30 m TRUE metres, as EPSG:3857 rects. Written for INFERENCE-ONLY re-runs (--infer-aoi) so qc/phase4_golden_gate.py can score all 12 windows for an arm whose citywide/sector prob raster does not cover them. The engine (phase4seg/core.py::_aoi_pixel_rects) reads ONLY 'crs' and each entry's 'bounds_3857'; 'sectors' is the engine's key name, not a claim that these are sectors. Rects are NOT dissolved \u2014 forest_4 lies inside the marsh_deciduous disc and marsh_deciduous clips neg_cemetery; the engine writes identical values to the doubly-covered pixels, which is harmless, and one rect per named window keeps the file traceable to sentinel_sites.json.",
+ "params": {
+  "pad_m_true": 30.0,
+  "n_windows": 12,
+  "source": "Scripts/sentinel_sites.json",
+  "bounds_fn": "qc/phase4_sentinel_snap.py::site_bounds (imported)"
+ },
+ "generated": {
+  "ts": "2026-08-26T15:34:46+00:00",
+  "git": "b77e423",
+  "script": "pipeline/make_sentinel_aoi.py"
+ },
+ "sectors": [
+  {
+   "id": "forest_1",
+   "bounds_3857": [
+    -13621277.578,
+    6077136.974,
+    -13620347.42,
+    6077742.293
+   ],
+   "why": "conifer training site (hand labels)",
+   "pad_m_true": 30.0,
+   "area_m2_true": 253825.7
+  },
+  {
+   "id": "forest_2",
+   "bounds_3857": [
+    -13618468.548,
+    6078474.672,
+    -13618054.344,
+    6078774.139
+   ],
+   "why": "conifer training site (hand labels)",
+   "pad_m_true": 30.0,
+   "area_m2_true": 55903.4
+  },
+  {
+   "id": "forest_3",
+   "bounds_3857": [
+    -13620749.11,
+    6070440.0,
+    -13620164.891,
+    6071024.139
+   ],
+   "why": "conifer training site (hand labels)",
+   "pad_m_true": 30.0,
+   "area_m2_true": 154086.0
+  },
+  {
+   "id": "forest_4",
+   "bounds_3857": [
+    -13624072.571,
+    6073833.908,
+    -13623488.205,
+    6074489.047
+   ],
+   "why": "conifer training site (hand labels)",
+   "pad_m_true": 30.0,
+   "area_m2_true": 172720.4
+  },
+  {
+   "id": "forest_6",
+   "bounds_3857": [
+    -13624567.489,
+    6072207.621,
+    -13624266.003,
+    6072792.046
+   ],
+   "why": "conifer training site (hand labels)",
+   "pad_m_true": 30.0,
+   "area_m2_true": 79522.3
+  },
+  {
+   "id": "marsh_deciduous",
+   "bounds_3857": [
+    -13624331.343,
+    6073453.533,
+    -13623050.988,
+    6074733.888
+   ],
+   "why": "Edmonds marsh deciduous stand - the known under-prediction miss (coords from phase4_qc_site.py usage)",
+   "pad_m_true": 30.0,
+   "area_m2_true": 739593.3
+  },
+  {
+   "id": "neg_cemetery",
+   "bounds_3857": [
+    -13623803.508,
+    6073296.142,
+    -13623534.295,
+    6073565.433
+   ],
+   "why": "grass/turf negative - watches grass-FP regression",
+   "pad_m_true": 30.0,
+   "area_m2_true": 32712.7
+  },
+  {
+   "id": "neg_civic_field",
+   "bounds_3857": [
+    -13623658.804,
+    6075583.329,
+    -13623389.568,
+    6075852.691
+   ],
+   "why": "grass/turf negative - watches grass-FP regression",
+   "pad_m_true": 30.0,
+   "area_m2_true": 32706.8
+  },
+  {
+   "id": "neg_stadium",
+   "bounds_3857": [
+    -13621207.544,
+    6074635.067,
+    -13620898.243,
+    6074944.511
+   ],
+   "why": "turf negative",
+   "pad_m_true": 30.0,
+   "area_m2_true": 43174.3
+  },
+  {
+   "id": "neg_parking",
+   "bounds_3857": [
+    -13617567.173,
+    6074470.321,
+    -13617265.666,
+    6074771.969
+   ],
+   "why": "impervious negative",
+   "pad_m_true": 30.0,
+   "area_m2_true": 41027.7
+  },
+  {
+   "id": "neg_water",
+   "bounds_3857": [
+    -13624779.683,
+    6076167.488,
+    -13624407.47,
+    6076468.863
+   ],
+   "why": "water / no-canopy control",
+   "pad_m_true": 30.0,
+   "area_m2_true": 50583.2
+  },
+  {
+   "id": "residential_mixed",
+   "bounds_3857": [
+    -13622471.659,
+    6074306.61,
+    -13621637.879,
+    6075140.39
+   ],
+   "why": "PROVISIONAL mixed residential block (street trees + lawns + roofs) - adjust coords if a better block is preferred, then treat as fixed",
+   "pad_m_true": 30.0,
+   "area_m2_true": 313596.8
+  }
+ ]
+}

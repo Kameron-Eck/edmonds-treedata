@@ -319,7 +319,7 @@ how much a pooled number moves between two identical runs.
 `city_canopy_totals_design.csv` 26 rows, of which **16 carry `is_champion=1`**;
 `crown_cover_matrix.parquet` **38,642 crowns × 29 cover columns** (33 columns total incl.
 `crown_id`, `sector`, `area_m2`, `n_cells`).
-Final (regeneration completed 2026-08-26): `sector_canopy_series.csv` **149 rows**, `city_canopy_totals_design.csv` **28 rows**, `crown_cover_matrix.parquet` **38,642 crowns × 35 columns** (31 cover arms + 4 metadata columns). Champion-arm rows regenerated bit-consistent with the pre-fullext run (same rasters, same thresholds — e.g. 2003s P̂ 0.39041 unchanged).
+Final (regeneration completed 2026-08-26): `sector_canopy_series.csv` **149 rows**, `city_canopy_totals_design.csv` **28 rows**, `crown_cover_matrix.parquet` **38,642 crowns × 35 columns** (31 cover arms + 4 metadata columns). Champion-arm rows regenerated consistent with the pre-fullext run (same rasters, same thresholds; spot-checked on 4 rows: 2003s .39041, 2006s .41819, 2011s .39877, 2020s .38741 — all unchanged). NOTE: the harvested totals CSV in the repo predates the column rename and carries `area_ha` with SAMPLED-land semantics (= `canopy_ha_sampled`); the next regeneration emits the honest column name.
 
 **Design-based city canopy fraction, champion arms only (pre-fullext run):**
 
@@ -590,20 +590,27 @@ Recorded so they are fixed at the source rather than carried forward.
 4. **`pipeline/champion_arms.csv` 2021s row is stale.** `2021s,p2nir,,only live arm` — 2021s now
    has two live arms; 2016 now has three. The auto-backfill's "forced, not a judgment" note
    should be re-run or the row amended.
+   **RESOLVED 2026-08-26**: the 2021s `why` now states the full-footprint rule; a written
+   eligibility rule (sector arms test, they don't deliver) was added to the file header.
 5. **`Reports/gpu_launches.csv` is stale.** It is missing the `20260825T221901Z` fullext
    relaunch — the largest GPU launch of the campaign (104.5 step-min). It is a regenerable
    harvest; re-run `pipeline/cost_report.py --launches`.
+   **RESOLVED 2026-08-26**: regenerated — 13 launches, coverage 0–102%, mean 65%.
 6. **`run_registry.csv` is missing the completed fullext GPU steps.** The 26 campaign rows stop
    at `20260825T062002Z_2016_fullext_sectors_v1_tile` plus the six CPU postproc rows. The
    `2016_fx` and `2021s_fx` train / evaluate / inference steps — all eight of them, including
    both 45-minute trains — have no registry row, so the campaign's largest spend is absent from
    the spend ledger.
+   **RESOLVED 2026-08-26**: `registry_from_manifests.py --since 20260825` appended 12 rows;
+   both fullext trains now carry `gpu_name`/`step_minutes`.
 7. **The state ledger says the campaign failed.** Only one state file exists
    (`state_20260825T044145Z.jsonl`); its last two lines are `S12_fullext_queue failed` and
    `_loop failed: blocked on ['S12_fullext_queue']`. S12 in fact completed at 00:04 UTC on
    2026-08-26 via a Kam-assisted relaunch outside the loop, and S13/S20–S23 followed. The
    authoritative record of the second half of the campaign is `RESUME_NOTES.md` + the status
    CSVs + the run manifests, not the ledger the checklist names as its measured state.
+   **RESOLVED 2026-08-26**: four closing entries (launch `manual-20260826`) appended to the
+   ledger recording S12/S13/S20/S21 done with evidence; the ledger now ends truthfully.
 8. **`RESUME_NOTES.md` says the matrix is "38,642 crowns x 28 arms"; the parquet has 29 cover
    columns** (33 columns total). Likewise the cover sidecar directory holds 30 rasters at the
    time of writing, mid-regeneration.

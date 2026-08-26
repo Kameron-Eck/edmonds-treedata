@@ -66,3 +66,12 @@ report. The E02 os.replace smoke already passed on drivefs; rerun it once on rcl
   use (they embed both).
 - Blast radius of a leaked SA key = the shared `treedata` folder (revocable by unsharing
   or deleting the key in the console), not the Google account.
+
+## STATUS: setup COMPLETE 2026-08-26 (all steps done via browser automation with Kam present)
+- Project `edmonds-pipeline` created (billing attached; Drive API usage is $0).
+- SA `treedata-mount@edmonds-pipeline.iam.gserviceaccount.com`, key at
+  `D:\edmonds-pipeline\secrets\treedata-mount-sa.json`; folder id saved beside it.
+- Drive API enabled; `treedata` shared with the SA (Editor, no notification).
+- PROVEN end-to-end from the qc VM: `rclone lsd` + deep `ls` under the SA — SA_ACCESS OK.
+- Still owed: the MOUNT canary on the next fresh VM (rclone mount ≠ rclone ls; see
+  the canary section). Kam's remaining step: the settings allowlist for colab.exe verbs.

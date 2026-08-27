@@ -1,0 +1,34 @@
+# STABLE-GROVES LABEL EXPERIMENT — 2009 (Kam-approved 2026-08-27).
+#
+# QUESTION. The projected 2020 key is wrong on an old year wherever a tree was
+# planted after it. Does replacing it with a SPARSE VERIFIED key beat it?
+#   arm A (baseline, ALREADY MEASURED — no GPU): 2009 fullext_sectors_v1,
+#         rec .6989 / prec .8472 @ 0.5 vs ccap_2016_snohfull, sector footprint.
+#   arm B (groves_nolidar): verified canopy = 2,307 stable crowns + Kam's Forest
+#         site; verified background = pre-2009 buildings; everything else IGNORE
+#         (overlay code 3 — withdraws the projected key's canopy claims).
+#   arm C (groves_lidar): B + Kam's lidar hard negatives (flat in BOTH the 2005
+#         and 2016 lidar => nothing tall grew 2005-2016 => lawn/grass/pavement,
+#         the tree-vs-grass confusion that IS the measured error population).
+# B vs A tests "do cleaner labels help"; C vs B tests "do HARD negatives help".
+#
+# WATER EXCLUDED FROM BOTH ARMS (--no-water). Water is verified background but
+# 78% of all negative pixels; including it makes C-vs-B a +8.6% change instead
+# of +55%, i.e. it dilutes the exact contrast this experiment exists to measure,
+# and it is trivially separable so it teaches nothing transferable.
+#
+# READ THE VERDICT AGAINST SIGMA: recall sd .0100 / precision sd .0052 (n=5,
+# same seed, LOWER bound). A gap under ~2 sd is indistinguishable, not a winner.
+# Score locally: qc/phase4_qc_indep.py vs ccap_2016_hires_lc_snohfull.tif at
+# fixed 0.5 on the sector footprint — matched to arm A exactly.
+#
+# Each arm retiles (the overlay is signature-keyed) — ~10-25 min, expected.
+# ONE JOB PER FILE: the two arms run in PARALLEL on separate runtimes
+# (one queue per runtime, P11). The other arm is queue_groves_lidar.yaml.
+- id: "2009_groves_nolidar"
+  year: "2009"
+  tag: groves_nolidar
+  extra: ["--force-citywide", "--infer-aoi", "aoi/sectors_v1.json",
+          "--add-canopy-mask", "/content/drive/MyDrive/treedata/phase4/labels_corrected/add_groves_noLidarNW_2009.tif"]
+  why: "sparse verified labels, easy negatives only (pre-2009 buildings)."
+  expect: "retile ~15 min; train ~30 min A100; sample inference ~10 min."

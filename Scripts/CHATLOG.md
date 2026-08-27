@@ -1453,6 +1453,30 @@ gotcha:  scripts Colab-only for torch (rasterio+geopandas+fiona+sklearn now pip-
 
 ════════════════ LOG  (newest first) ════════════════
 
+## 2026-08-27  PoC DELIVERABLE ASSEMBLED — per-crown validity intervals, 8-year ladder (Fable 5 session)
+did:     Sweep completed WITH 2024 (219 rows; 2024_fx P_hat .379 +/- .150) -> matrix rebuilt
+         -> groves re-mined 2,307 (8 yrs evidence) -> qc/build_validity_intervals.py (23402e2)
+         run on the full ladder (2000/2007/2009/2013/2016/2018s/2021s/2024, fullext arm rail).
+         38,642 crowns: STABLE_PRESENT 14,869 (38.5%) · INSUFFICIENT 11,118 (28.8%) ·
+         FLICKERING 4,422 (11.4%) · ESTABLISHED 3,946 (10.2%) · PRESENT_WITH_GAPS 2,897 (7.5%) ·
+         ABSENT_ALL 1,034 (2.7%) · LOST 356 (0.9%). Median span 24 yr (n=26,490).
+         sigma_fragile 2,324 (6.0%). Cutoff sensitivity table in the script output (0.40/0.10
+         and 0.60/0.20 move ~2.1k/2.3k crowns). Both GPKGs copied to ARCGIS\MachineLearning\.
+         SIGMA MEASURED, NOT DERIVED: per-crown sd from the 5 noise-repeat cover columns is
+         ~0.000 in the confident bands, .083 in the 0.15-0.50 band — noise lives exactly where
+         the three-state rule already abstains (independent validation of that design).
+         Operating-point protocol landed in Method_Pipeline.md (1f7ab6d): best-F1 REJECTED as a
+         deployment rule (argmax .440-.499 for ~.001 F1 = ~2 sigma of recall for nothing);
+         deploy fixed-0.5 or precision-floor; repeat years = ensemble-then-threshold with the
+         threshold re-selected on the ensemble curve; comparability rails written down.
+         Killed a DUPLICATE concurrent sector_series process (two writers, one CSV — orphan of
+         a chained background task the harness had already marked complete).
+decided: ESTABLISHED is NOT quotable as establishment dates yet — rate per gap-year varies 8x
+         (2013: 74/yr vs 2018s: 594/yr), a real establishment process would be smoother; it is
+         part real, part early-year model under-call. Gate = the stable-groves A/B.
+next:    stable-groves prototype labels + ~1 A100-h A/B · FUSE-bypass (staging reads + ckpt
+         saves) · PoC write-up · U1 canopy definition D1/D3-D6 still open (WORKPLAN section 3).
+
 ## 2026-08-27  PoC COMPUTE CLOSED 6/6 — 2024 landed attempt 5; handle discipline; model switch to Opus 5 (Fable 5 session end)
 did:     2024_fx complete + scored: rec .6400 prec .7860 @0.5 (train 35 min on healthy
          VM — prior "2.7h trains" were mount-degraded). Full PoC table (fixed 0.5,

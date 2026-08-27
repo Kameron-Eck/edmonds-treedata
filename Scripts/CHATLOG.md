@@ -1453,6 +1453,33 @@ gotcha:  scripts Colab-only for torch (rasterio+geopandas+fiona+sklearn now pip-
 
 ════════════════ LOG  (newest first) ════════════════
 
+## 2026-08-27  OVERNIGHT PoC — 5/6 years landed + scored; sigma n=5 banked; stable groves 2,309 (Fable 5 session)
+goal:    Kam-approved PoC (6-9 A100-h): complete product inside strips. "Fire without
+         permission" + overnight parallel runtimes granted.
+did:     noise n=5 COMPLETE — recall sd .0100 (range .0283), precision sd .0052, SAME
+         seed (LOWER bound). Verdict: fullext promotes over base2020 on converging
+         evidence (hand-truth + campaign); fullext-vs-p2nir UNDECIDABLE (~1.5 sd matched
+         footprint). Threshold wobble .440-.499 across identical runs (flat F1 plateau)
+         → operating-point protocol owed. PoC years trained+scored @0.5 vs C-CAP sample
+         footprint: 2000 .590/.920 · 2007 .624/.871 · 2009 .699/.847 · 2013 .631/.890 ·
+         2018s .646/.785. 2024 pending (3 stalls, all FUSE-mount freeze class). Chain
+         ran: series sweep 209 rows → matrix 47 cols → stable groves re-mined 2,309
+         (16 borderline expelled by new evidence). Kam: 0.8 floor locked; hand-declared
+         70.1 ha Forest site (838 crown overlap). Three refutations (roof/fusion/shadow
+         agents): every dissected FP/FN population = vegetation-class ambiguity at
+         margins → label-limited CONFIRMED empirically. Shadow probe found ~5 m east
+         ortho-vs-CHM displacement (crown lean + registration). NIR M06 CLOSED: tie
+         2016, dominated 2019n → CHM stays; NIR value = normalized-NDVI change work.
+         Queue fix b44a6a8: skipped jobs no longer re-read rasters (D-state hang).
+decided: no VM creation with degraded CLI handles at night (3 lost handles); rerun-on-
+         contamination applied to trashed/frozen ckpts throughout.
+files:   b44a6a8 queue fix · 6eaa2ff mine_stable_crowns · 9211f79 evidence scripts ·
+         queue_poc_{a,b}.yaml · ANNOTATION_WORKFLOW.md + SAM.dlpk + hotspots (ArcGIS)
+next:    2024 attended rerun (Kam) → score → PoC assembly (validity intervals 38,642
+         crowns) · ensemble experiment · operating-point protocol doc · FUSE-bypass for
+         ckpt saves + staging reads (the remaining reliability gap) · stable-labels
+         prototype A/B (~1 A100-h) · S2 calibration pilot.
+
 ## 2026-08-26  INFRASTRUCTURE DAY — writer mount fixed, transports bulked, noise n=5 in flight (Fable 5 session)
 goal:    Kam workday mandate: NIR training + radiometry + building-ID infrastructure; max
          hardware utilization; oversight tools.

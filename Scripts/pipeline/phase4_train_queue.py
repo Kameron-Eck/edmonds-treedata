@@ -679,10 +679,12 @@ def main():
         _hr(f"JOB {j['id']}  (year {j['year']}, tag {j['tag']})")
         print(f"  {j['why']}")
         ok = True
+        ran_any = False
         for st in STEPS:
             if (j["id"], st) in done:
                 print(f"  - skip {j['id']}/{st} (already OK)")
                 continue
+            ran_any = True
             res = run_step(j, st, args.infer_batch, rows)
             tries = 0
             while res == "RETRY" and tries < args.retries:
@@ -702,7 +704,13 @@ def main():
                       f"verification. Stopping this job before spending more GPU.")
                 ok = False
                 break
-        if ok:
+        if ok and not ran_any and (j["id"], "VERIFY") in done:
+            # Fully-skipped job with a recorded job-level VERIFY OK: do NOT
+            # re-read its raster through the FUSE mount — a relaunch re-verify
+            # hung the queue in uninterruptible disk sleep on a 146MB read
+            # (2018s_fx, 2026-08-27). The recorded verdict stands.
+            print(f"  - skip {j['id']}/VERIFY (already OK; not re-reading raster)")
+        elif ok:
             verify(j, rows)
 
     _hr("QUEUE DONE")

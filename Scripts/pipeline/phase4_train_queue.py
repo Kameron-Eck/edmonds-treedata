@@ -257,8 +257,18 @@ def _completed_steps():
                 bad.add((job, step[7:]))
             else:
                 bad.discard((job, step[7:]))
-        elif step == "VERIFY" and state in _VERIFY_HARD_FAIL:
-            bad.add((job, "inference"))          # job-end raster check failed
+        elif step == "VERIFY":
+            if state == "OK":
+                # record the job-level verdict so a relaunch can SKIP re-reading
+                # the raster (the b44a6a8 skip guard keys on (job, "VERIFY") —
+                # without this branch that pair never entered `done` and the
+                # guard was dead code; found when gpu4 re-verified and hung,
+                # 2026-08-27).
+                done.add(key)
+                bad.discard(key)
+            elif state in _VERIFY_HARD_FAIL:
+                bad.add((job, "inference"))      # job-end raster check failed
+                bad.add(key)
     return done - bad
 
 

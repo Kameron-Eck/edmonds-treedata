@@ -112,9 +112,10 @@ def canopy_label_from_2020_mask(msrc, dst_crs, dst_transform, h, w):
 def additions_from_mask(asrc, dst_crs, dst_transform, h, w):
     """Reproject the OPEN corrected-label additions raster (``asrc``) onto a crop
     grid. Mirrors ``canopy_label_from_2020_mask`` (nearest, categorical). Returns
-    a uint8 code per pixel: 0 = no change, 1 = ADD canopy, 2 = IGNORE. Anything
-    outside the additions coverage (nodata / off-footprint) → 0 (no change), so
-    2000 crops outside the 2016 strip simply keep the plain 2020 label.
+    a uint8 code per pixel: 0 = no change, 1 = ADD canopy, 2 = IGNORE,
+    3 = IGNORE unconditionally. Anything outside the additions coverage (nodata /
+    off-footprint) → 0 (no change), so 2000 crops outside the 2016 strip simply
+    keep the plain 2020 label.
     """
     out = np.zeros((h, w), dtype=np.uint8)               # 0 = no change (default)
     dst_bounds = rasterio.transform.array_bounds(h, w, dst_transform)  # l,b,r,t
@@ -144,7 +145,8 @@ def additions_from_mask(asrc, dst_crs, dst_transform, h, w):
         resampling=Resampling.nearest)
     out[dst_arr == 1] = 1
     out[dst_arr == 2] = 2
-    return out
+    out[dst_arr == 3] = 3      # must mirror apply_additions' code set (2026-08-27):
+    return out                 # an unpassed code silently degrades to "no change"
 
 
 def apply_additions(mask_tile, add_tile):

@@ -149,10 +149,21 @@ def additions_from_mask(asrc, dst_crs, dst_transform, h, w):
 
 def apply_additions(mask_tile, add_tile):
     """Layer an additions code array onto a 0/1/255 label tile, ADD-ONLY:
-    code 1 → force canopy (1); code 2 → force IGNORE (255) unless already canopy.
-    Never turns canopy into background."""
+    code 1 → force canopy (1); code 2 → force IGNORE (255) unless already canopy;
+    code 3 → force IGNORE (255) UNCONDITIONALLY (canopy included).
+    Never turns canopy into background.
+
+    Code 3 (2026-08-27) exists for SPARSE VERIFIED label sets: when a projected
+    2020 key is used on an old year, its canopy claims are wrong wherever a tree
+    was planted after that year, and code 2 cannot retract them (its `!= 1` guard
+    protects canopy by design — right for corrected-label overlays, wrong when the
+    whole point is to withhold unverified claims). Code 3 withdraws a claim to
+    IGNORE; it still never asserts background, so CLAUDE.md rule 6 holds — that
+    rule permits adding canopy OR IGNORE and forbids only canopy→background.
+    Codes 1/2 are untouched, so every existing overlay behaves identically."""
     mask_tile[add_tile == 1] = 1
     mask_tile[(add_tile == 2) & (mask_tile != 1)] = IGNORE_LABEL
+    mask_tile[add_tile == 3] = IGNORE_LABEL
     return mask_tile
 
 

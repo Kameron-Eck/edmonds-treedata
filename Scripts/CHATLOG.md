@@ -1453,6 +1453,27 @@ gotcha:  scripts Colab-only for torch (rasterio+geopandas+fiona+sklearn now pip-
 
 ════════════════ LOG  (newest first) ════════════════
 
+## 2026-08-27  PoC COMPUTE CLOSED 6/6 — 2024 landed attempt 5; handle discipline; model switch to Opus 5 (Fable 5 session end)
+did:     2024_fx complete + scored: rec .6400 prec .7860 @0.5 (train 35 min on healthy
+         VM — prior "2.7h trains" were mount-degraded). Full PoC table (fixed 0.5,
+         C-CAP, sample footprint): 2000 .590/.920 · 2007 .624/.871 · 2009 .699/.847 ·
+         2013 .631/.890 · 2018s .646/.785 · 2024 .640/.786. 2024 cost 5 attempts:
+         VM freeze ×2, D-state FUSE hang on job re-verify ×2 → queue fixes b44a6a8 +
+         20d8f9c (job-level VERIFY OK now enters done-set; skipped jobs never re-read
+         rasters — PROVEN: attempt 5 reached train in 1 min). Colab CLI handles die
+         permanently from overlapping/killed colab.exe (4 lost; memory rule: serialize,
+         generous timeouts). VM SELF-STOP watchdog in bootstrap (f3e5dae) — fired-adjacent
+         on gpu5; zero sessions, zero leak. Ensemble verdict: stability-not-accuracy
+         (same-seed errors correlated; ensemble-then-threshold = operating rule for
+         repeat years, threshold re-selected on ensemble curve). Synthetic imagery
+         PARKED ×2 (memory holds Lanaras/Braga/ACCESS-upgraded phase plan + free
+         tile-ratio diagnostic: 512px tile = 77 m at 15 cm vs 512 m at 1 m). GitHub
+         cleaned: Kam merged 105 commits to main; stale branches pruned.
+next:    (Opus 5) sweep bv2kt8jdv finishing → crown_cover_matrix → mine_stable_crowns
+         --gpkg → copy gpkg to ARCGIS → PoC ASSEMBLY (intervals, 38,642 crowns, sigma
+         error bars) → operating-point protocol doc → stable-groves prototype A/B
+         (~1 A100-h, approved) → FUSE-bypass engineering (staging reads + ckpt saves).
+
 ## 2026-08-27  OVERNIGHT PoC — 5/6 years landed + scored; sigma n=5 banked; stable groves 2,309 (Fable 5 session)
 goal:    Kam-approved PoC (6-9 A100-h): complete product inside strips. "Fire without
          permission" + overnight parallel runtimes granted.

@@ -1453,6 +1453,39 @@ gotcha:  scripts Colab-only for torch (rasterio+geopandas+fiona+sklearn now pip-
 
 ════════════════ LOG  (newest first) ════════════════
 
+## 2026-08-27  STABLE-GROVES EXPERIMENT — BLOCKED ON COLAB QUOTA (both arms lost mid-train)
+goal:    Kam-approved: does a SPARSE VERIFIED key beat the projected 2020 key on 2009?
+         arm A baseline (have it): rec .6989 prec .8472. arm B groves+buildings.
+         arm C = B + Kam's lidar hard negatives (flat in BOTH 2005 and 2016 lidar).
+did:     Kam's lidar idea BUILT and validated: qc/build_lidar_background.py, erode 2 cells
+         chosen by an independent CHM cross-check (contamination 20.7%->4.4% at 1->2 cells).
+         PSLC 2005 density MEASURED 1.68 pts/m2 median (n=46 tiles) vs 0.25 documented — ~7x
+         understated, answers WORKPLAN sec4 Tier2 item 8's precondition (IMAGERY_FACTS 8.1).
+         Engine: overlay code 3 = unconditional IGNORE (rule-6 compliant; rule permits adding
+         IGNORE, forbids only canopy->background) — needed because code 2's `!= 1` guard
+         cannot withdraw the projected key's canopy claims. SHIPPED HALF-LANDED: the reader
+         additions_from_mask didn't pass code 3, so both arms would have equalled baseline
+         and measured NOTHING; caught by an agent round-trip test, fixed (9de70d9).
+         Water EXCLUDED from both arms: 78% of negative px, makes C-vs-B a +8.6% change
+         instead of +55% — dilutes the contrast the experiment exists to measure.
+         Overlays: lidar arm grades 20.9% of strips vs 14.6% nolidar. Both arms retiled OK
+         (635 / 599 tiles) and trained.
+killed:  BOTH VMs reclaimed ~2 h in, within minutes of each other. Cause is ACCOUNT-LEVEL:
+         `colab new --gpu A100` AND `--gpu L4` now both return "Backend rejected accelerator
+         … you may not have quota or entitlement". COMPUTE UNITS EXHAUSTED — not a code fault.
+         Survived: sem_best_2009_groves_nolidar.pt (773 MB, best at 28 min, converged — train
+         ran 40 more min with no improvement). Arm C produced no checkpoint. No rasters, so
+         NO VERDICT.
+         Self-stop watchdog (f3e5dae) found INERT and fixed (9fe5d6c): `pgrep -f <pat>` spawns
+         `/bin/sh -c pgrep -f <pat>` whose cmdline contains the pattern, so it always saw a
+         running queue and could never fire. Now a /proc cmdline scan skipping its own pid.
+         It did NOT cause the losses.
+next:    KAM: top up Colab compute units. Then ~1 GPU-h finishes it — arm B needs inference
+         only (~10 min from the saved ckpt), arm C needs retrain+inference (~45 min).
+         Also owed: Web-Mercator AREA sweep — EPSG:3857 areas at this latitude are inflated
+         2.215x (groves 22.9->10.3 ha, Forest 70.1->31.6, lidar-bg 44->~20); same bug class
+         as the gsd_cm defect, and it corroborates the 959-vs-563 ha strip discrepancy.
+
 ## 2026-08-27  PoC DELIVERABLE ASSEMBLED — per-crown validity intervals, 8-year ladder (Fable 5 session)
 did:     Sweep completed WITH 2024 (219 rows; 2024_fx P_hat .379 +/- .150) -> matrix rebuilt
          -> groves re-mined 2,307 (8 yrs evidence) -> qc/build_validity_intervals.py (23402e2)

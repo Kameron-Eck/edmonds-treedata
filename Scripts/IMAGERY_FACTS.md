@@ -199,6 +199,24 @@ Both are public, credential-free, in the same NOAA bucket, same CRS, same tile g
 | whole dataset | 1,444 files / 14 GB (5–17 MB per tile) | 13,205 files / 2.9 TB (50–272 MB per tile) |
 | **density, stated** | 2 m spacing ⇒ **0.25 pts/m²** | 0.7 m spacing, **4 pts/m²** |
 | **density, cross-checked** | ~2.38 B pts ⇒ **~0.17 pts/m²** | ~457 B pts ⇒ **~5 pts/m²** |
+| **density, MEASURED on the acquired Edmonds tiles (2026-08-27)** | **median 1.68 pts/m²** (mean 1.56, range 0.42–2.35, n=46 non-empty tiles; per-tile `point_count / header bbox area`) — the stated and cross-checked figures **understate the local data ~7×** | not re-measured; the 4–5 figure is not in dispute |
+
+> **THE 2005 DENSITY FIGURES ABOVE ARE SUPERSEDED LOCALLY (2026-08-27).** WORKPLAN §4 Tier 2
+> item 8 asked for exactly this measurement ("Step one of any of this work: measure realised
+> pts/m² on a central Edmonds tile … do not plan cell sizes off either until the local number
+> is known"). Measured: **1.68 pts/m² median**. Consequences:
+> - The **density gap is ~3×, not 16–29×.** Every downstream caution scaled to that gap should
+>   be re-read, including 8b's decimation protocol (still required for *differencing* — the
+>   apex-undersampling bias is a real mechanism regardless of its size — but the magnitude was
+>   overstated).
+> - **2005 is not stand-scale-only.** A 2 m cell holds ~7 points; a 5 m cell ~42. Item 8c
+>   (dropping the height-staircase re-test) was reasoned from ~0.25 pts/m² and deserves a fresh
+>   look, though the apex-low bias argument is independent of density and may still carry it.
+> - **First use (2026-08-27):** flat-in-2005 ∧ flat-in-2016 as *verified background* for the
+>   2005–2016 window — Kam's idea, aimed at the hard negatives (lawn/grass/pavement) that the
+>   building+water negatives cannot supply. A conjunction of two flatness tests is safe where a
+>   difference is not: reading low only makes a scan say "flat" more often, and the dense 2016
+>   scan is authoritative about 2016. Tool: `qc/build_lidar_background.py`.
 | vertical accuracy | **6.3 cm** fundamental vertical, 95th pct, mixed land covers (Digital Coast) — InPort *separately* states **25 cm avg / 15–25 cm soft-vegetated**. Different metrics: **record both, never average.** Horizontal 60 cm. | **8 cm** NVA |
 | classes | **3 only** — Unclassified / Ground / Low Point. **Vegetation is left UNCLASSIFIED.** | **6** — Unclassified 410 B / Ground 39.5 B / Low Point 5.9 B / Water 953 M / Ignored Ground 19.8 M / Bridge Deck 10.8 M |
 | format | COPC (`.copc.laz`) — PDAL can bbox-query over HTTP without bulk download | COPC |

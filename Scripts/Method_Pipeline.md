@@ -181,6 +181,52 @@ After all years are processed:
 | CANOPY_PROB_THRESHOLD | 0.5 | Binary threshold on sigmoid output |
 | MIN_CANOPY_PATCH | 3.0 m² | Minimum patch size after thresholding |
 | MORPH_KERNEL | 3×3 | For opening/closing operations |
+
+### Operating-point protocol (THE home for how a threshold is chosen; 2026-08-27)
+
+**Measured problem.** Five identical repeats of the 2021s fine-tune (same recipe,
+same seed, same A100 — `noise_r1..r5`) selected best-F1 thresholds of **.440 .499
+.499 .490 .457** while their F1 differed by ~.001 across that span: the F1 curve
+has a flat plateau, so its argmax is unstable even when the model is not. Scored
+honestly vs C-CAP those repeats span **recall .6402–.6685 (sd .0100)** and
+**precision .8181–.8325 (sd .0052)** — see the noise-floor entry in `CHATLOG.md`
+(2026-08-27) and `qc_indep_report.csv` rows tagged `noise_r*`.
+
+**Rules.**
+1. **Model quality is judged on curve-level metrics** (AUROC, and PR-AUC where
+   canopy prevalence matters), never on a single thresholded recall/precision.
+   A thresholded pair describes a *product*, not a model.
+2. **Best-F1 is NOT the deployment rule.** It is reported, never deployed alone —
+   its argmax moved ±.03 for a .001 F1 gain, which then moves recall by ~2σ.
+3. **Deployment picks ONE of two stable rules, stated per campaign:**
+   - **fixed 0.5** — used when years must be comparable and no per-year deployed
+     threshold exists. This is what the 2026-08-27 PoC used (its `evaluate` step
+     was seeded-skipped, so no per-year operating point was ever produced).
+   - **precision-floor** — the lowest threshold meeting a fixed precision target.
+     Preferred when years must mean the same thing rather than use the same
+     number; the eval already computes a precision-floor point.
+4. **Repeat years: ensemble-then-threshold.** Averaging same-recipe repeats does
+   NOT raise accuracy (their errors are correlated: mean-of-5 for 2021s scored at
+   or slightly above the singles' mean at matched precision, below it at fixed
+   threshold) but it replaces a .028-recall lottery with one deterministic
+   artifact. If an ensemble is deployed, **re-select its threshold on the
+   ensemble's own curve** — the mean raster's curve is shifted relative to its
+   members'.
+5. **Comparability rails.** Two numbers may be compared only if they share the
+   reference raster, the canopy definition, AND the scored footprint (a citywide
+   row vs a sector-AOI row is not a comparison — different land composition).
+   Any reported difference smaller than the measured σ is stated as
+   indistinguishable, not as a winner.
+6. **Provenance.** Every deployed threshold has exactly one home:
+   `phase4/qc/qc_indep_report.csv`, `live=1 primary=1`. Scoring tools never
+   invent one; borrowing another arm's threshold is explicit and recorded
+   (`phase4_golden_gate.py --threshold-from`).
+
+**Open.** The sigma above is a **lower bound** — same seed, so it measures
+hardware nondeterminism plus threshold selection only. True retrain sigma needs
+a `--seed` flag (not built). Until it exists, no A/B smaller than ~2σ recall
+(~.02) is worth GPU time.
+
 ---
 ## Validation Strategy
 ### Per-Year Validation

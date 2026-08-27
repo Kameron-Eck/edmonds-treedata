@@ -141,6 +141,40 @@ subprocess.Popen("cd /content/repo/Scripts/pipeline && nohup python -u vm_heartb
                  " --session " + SESSION + " > /content/vm_heartbeat.log 2>&1 &",
                  shell=True)
 print("HEARTBEAT_STARTED", SESSION)
+# SELF-STOP WATCHDOG (2026-08-27): the CLI can lose its session handle (404/401
+# on long-lived VMs) leaving no external way to stop the runtime — a frozen VM
+# then bills until Google reclaims it. The VM ends ITSELF: once a queue/engine
+# process has been seen, 10 idle minutes + a 5-min upload-drain grace triggers
+# runtime.unassign(); a VM that never sees a queue self-stops after 2 h.
+_WD = [
+    "import subprocess, time",
+    "def _stop():",
+    "    try:",
+    "        from google.colab import runtime",
+    "        runtime.unassign()",
+    "    except Exception as e:",
+    "        print('unassign failed:', e)",
+    "seen, idle_since, t0 = False, None, time.time()",
+    "while True:",
+    "    q = subprocess.run(\\"pgrep -f 'phase4_train_queue|phase4_semantic_finetune'\\",",
+    "                       shell=True, capture_output=True, text=True).stdout.strip()",
+    "    if q:",
+    "        seen, idle_since = True, None",
+    "    elif seen:",
+    "        idle_since = idle_since or time.time()",
+    "        if time.time() - idle_since > 600:",
+    "            time.sleep(300)   # upload-drain grace",
+    "            _stop()",
+    "            break",
+    "    elif time.time() - t0 > 7200:   # queue never launched",
+    "        _stop()",
+    "        break",
+    "    time.sleep(60)",
+]
+open("/content/vm_selfstop.py", "w").write(chr(10).join(_WD))
+subprocess.Popen("nohup python -u /content/vm_selfstop.py > /content/vm_selfstop.log 2>&1 &",
+                 shell=True)
+print("SELFSTOP_ARMED")
 '''
     SCRATCH.mkdir(parents=True, exist_ok=True)
     out = SCRATCH / f"vm_bootstrap_{a.session}.py"

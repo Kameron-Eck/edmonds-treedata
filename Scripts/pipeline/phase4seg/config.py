@@ -538,6 +538,55 @@ YEAR_CATALOG = [
      "seg_tier": SEG_SEMANTIC_ONLY, "native_file": "2024_snoh_3in_rgb.tif"},
 ]
 
+# ── Pre-2000 holdings — DOCUMENTARY ONLY, deliberately NOT in YEAR_CATALOG ────
+# These files sit in the imagery mirror but had NO catalog entry, which is why
+# "the pipeline is limited to 2000" is literally true: no entry, no tier, no
+# path resolution (found 2026-08-27 while extracting the degraded-imagery lit
+# review, Reports/DEGRADED_IMAGERY_RESEARCH_2026-08-27.md).
+#
+# They are registered HERE rather than in YEAR_CATALOG on purpose. Consumers
+# iterate the catalog wholesale — e.g. make_building_masks.py builds a mask for
+# every entry — so appending these would silently expand the modelled series and
+# start processing years nobody has approved. Project scope is fixed at
+# 2000-2024 (IMAGERY_FACTS header, 2026-08-19). PROMOTING an entry from this
+# list into YEAR_CATALOG is the deliberate act that changes scope; it is Kam's
+# call, not a side effect of documenting what exists.
+#
+# gsd_cm below is TRUE GROUND resolution, MEASURED 2026-08-27 from each file's
+# own centre latitude — never the raw CRS unit. Both unit traps are present in
+# this set and both have burned this project before (the gsd_cm defect,
+# WORKPLAN 1.5; the 2.215x Mercator AREA inflation, 2026-08-27):
+#   EPSG:2285  = US survey FEET  -> x 0.3048006096
+#   EPSG:3857  = Mercator metres -> x cos(47.82 deg) = 0.6714 at Edmonds
+PRE2000_CATALOG = [
+    {"key": 1990, "label": "1990", "source": "Snohomish Co.", "gsd_cm": 304.8,
+     "bands": 1, "crs_epsg": 2285, "coverage": "unmeasured",
+     "native_file": "1990_snoh_10ft_pan.tif",
+     "note": "10 US survey ft. Panchromatic. Almost certainly too coarse to be useful "
+             "(a 6 m crown is ~2 px); registered for completeness only."},
+    {"key": 1996, "label": "1996", "source": "Snohomish Co.", "gsd_cm": 100.0,
+     "bands": 3, "crs_epsg": 2285, "coverage": "5.7% zero pixels in a 40x-decimated read",
+     "native_file": "1996_snoh_1m_rgb.tif",
+     "note": "3.2808 US survey ft = 1.000 m. RGB, NOT grayscale — the lit review assumed "
+             "1996 was panchromatic, so its colorization thread does not apply to this year. "
+             "This is the genuine ~100 cm target if the series is ever extended."},
+    {"key": "1998s", "label": "1998s", "source": "Snohomish Co.", "gsd_cm": 91.4,
+     "bands": 1, "crs_epsg": 2285, "coverage": "unmeasured",
+     "native_file": "1998_snoh_3ft_pan.tif",
+     "note": "3 US survey ft. Panchromatic — the historical-grayscale literature applies "
+             "HERE, not to 1996."},
+    {"key": 1998, "label": "1998", "source": "King County", "gsd_cm": 40.1,
+     "bands": 1, "crs_epsg": 3857, "coverage": "0.0% zero pixels in a 40x-decimated read",
+     "native_file": "1998_king_pan.tif",
+     "note": "40.1 cm true (0.5972 Mercator m) — same King product line as 2000/2002, far "
+             "finer than the lit review's 1 m assumption. Single-band."},
+    # 1936_king_pan.tif is DELIBERATELY ABSENT. It carries a CRS and a transform and reads
+    # as real imagery (37% zeros, so IMAGERY_FACTS' 2026-08-19 'NOT an empty shell'
+    # correction stands), but Kam states it is NOT GEOREFERENCED (2026-08-27). A rough
+    # world file on a scan is worse than no entry: it would align plausibly and be wrong.
+    # Verify registration against a known feature before it is ever listed here.
+]
+
 # 2020 is the anchor (already segmented in Phase 3); Phase 4 does the other 17.
 ANCHOR_LABEL = "2020"
 

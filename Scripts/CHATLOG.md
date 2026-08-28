@@ -1453,6 +1453,37 @@ gotcha:  scripts Colab-only for torch (rasterio+geopandas+fiona+sklearn now pip-
 
 ════════════════ LOG  (newest first) ════════════════
 
+## 2026-08-28  GROVES VERDICT — SPARSE VERIFIED LABELS LOSE DECISIVELY; Kam's lidar signal is REAL inside the losing arm
+result:  2009, common footprint 198.8 Mpx (intersection of all 3 arms x scorable ref), ccap
+         snohfull. THRESHOLD-FREE (qc/phase4_arm_pr_curves.py, ea5f205):
+           fullext (projected key)  AUROC .9210  PR-AUC .8632
+           groves_nolidar           AUROC .8986  PR-AUC .8095
+           groves_lidar             AUROC .8887  PR-AUC .7855
+         MATCHED PRECISION (=.8472, the baseline's @0.5) — the decisive table:
+           fullext .6989 recall · groves_nolidar .4420 · groves_lidar .4885
+         21-26 pp below baseline against a .0100 recall sd = ~26 sigma. NOT close.
+         The fixed-0.5 "recall win" for nolidar (.7503 vs .6989) was a CALIBRATION
+         ARTIFACT — that arm just sits at a more liberal operating point.
+         (b) KAM'S LIDAR NEGATIVES WORK AS DESIGNED, +.0465 recall at matched precision over
+         nolidar — dual-epoch flat ground does teach tree-vs-vegetated-ground. Real signal,
+         losing arm. (c) NEW FINDING: sparse labels BREAK CALIBRATION. Both sparse arms park
+         ~31% of valid px within +-0.01 of 0.5 (baseline 10.9%) and push 4-7% to >=0.99;
+         trained on 15-21% graded pixels they learned confidence on a little and abstention on
+         a third of the scene. VERIFY caught it first: maxprob 1.000 vs baseline .878.
+decided: the experiment CONFOUNDED "verified labels" with "FEW labels" — a design fault of
+         mine, not of Kam's idea. The separating test is a HYBRID: keep the projected key and
+         OVERWRITE it only where verification exists (groves -> canopy, lidar-flat/buildings ->
+         background), IGNORE nowhere. That isolates label CORRECTNESS from label QUANTITY and
+         is the obvious next arm. Note it needs a force-background path, which rule 6 forbids
+         via overlays — so it is a label-builder change, not an overlay code.
+         Also: any sparse-label arm must have its threshold re-selected on its own curve;
+         never compare one at a shared fixed cut (Method_Pipeline operating-point protocol).
+files:   ea5f205 curves · 9de70d9 code-3 + overlay builder · c945619 lidar background
+         · scratchpad arm_pr_curves_2009.{md,png}
+cost:    ~2 A100-h across the quota-killed attempt and the rerun. Both VMs stopped.
+next:    hybrid arm (isolates correctness from quantity) · the baseline's own 10.9% mass at
+         0.5 is worth a look · AOI block-leak (WORKPLAN 1.5) before any "% of strips" claim.
+
 ## 2026-08-27  STABLE-GROVES EXPERIMENT — BLOCKED ON COLAB QUOTA (both arms lost mid-train)
 goal:    Kam-approved: does a SPARSE VERIFIED key beat the projected 2020 key on 2009?
          arm A baseline (have it): rec .6989 prec .8472. arm B groves+buildings.

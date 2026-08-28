@@ -99,6 +99,17 @@ def main():
                         "autopsy scores the prob raster, not the GPKG, so this avoids "
                         "the fine-year polygonize on experimental runs.")
     p.add_argument("--batch-size", type=int, default=BATCH_SIZE)
+    p.add_argument("--seed", type=int, default=None,
+                   help="Override RANDOM_SEED (42) for TRAINING stochasticity only — "
+                        "init, augmentation order, loader shuffling. Tiling is "
+                        "untouched by design: tiling.py binds seed=RANDOM_SEED as "
+                        "default args at import, so tile selection and the "
+                        "train/val/test split stay fixed across --seed values. That "
+                        "isolation is the point: seed-varied repeats under one tag "
+                        "family measure TRUE retrain sigma (the 2026-08-27 noise "
+                        "campaign was same-seed and is a LOWER bound). Recorded in "
+                        "the manifest `seed` field. Default None = 42, byte-for-byte "
+                        "the historical behaviour.")
     p.add_argument("--no-compile", action="store_true",
                    help="Skip torch.compile in training — avoids the slow first-build "
                         "warmup (the dynamo/inductor import that can look frozen for "
@@ -284,6 +295,20 @@ def main():
                         "model/raster artifacts is refused unless this is passed "
                         "(prefer --run-tag).")
     args = p.parse_args(filtered)
+
+    if args.seed is not None:
+        # Propagate to every module-level RANDOM_SEED read at RUN time:
+        # core._seed_everything (train start), core._worker_init and
+        # core._loader_generator (loader construction), and this module's
+        # manifest line. tiling.py's defaults were bound at import and stay
+        # at 42 ON PURPOSE (see --seed help: fixed split, varied training).
+        global RANDOM_SEED
+        RANDOM_SEED = int(args.seed)
+        config.RANDOM_SEED = int(args.seed)
+        from phase4seg import core as _core_mod
+        _core_mod.RANDOM_SEED = int(args.seed)
+        print(f"  [--seed] RANDOM_SEED overridden to {args.seed} for training "
+              f"(tile selection/split unchanged, still 42)")
 
     if args.check:
         print("[preflight] arguments parsed OK — command is valid.")

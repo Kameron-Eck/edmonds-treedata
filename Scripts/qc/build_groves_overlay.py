@@ -21,6 +21,23 @@ RULE 6 HOLDS. Nothing here asserts background that the 2020 key did not already
 assert; code 3 only ever withdraws a claim to IGNORE. See
 `phase4seg/labels.py::apply_additions`.
 
+--hybrid MODE (2026-08-28) -- the successor design, and the one to use.
+The sparse mode above LOST decisively: on 2009, at MATCHED PRECISION, recall fell
+.699 (projected key) -> .442 (groves+buildings) / .489 (+lidar), ~26 sigma, and
+both sparse arms' calibration collapsed (31% of valid px within +-0.01 of 0.5 vs
+10.9% baseline; maxprob 1.000). Diagnosis: the experiment changed TWO things at
+once -- it made labels more CORRECT and far FEWER -- and a model graded on only
+15-21% of pixels never learns uncertainty. --hybrid isolates the two:
+
+    code 1  force canopy   -- same verified positives as above
+    code 3  force IGNORE   -- ONLY where verified background and the 2020 key
+                              CONTRADICT each other (key says canopy on ground
+                              proven flat/built). Withdraws just the contradicted
+                              claims.
+    code 0  no change      -- EVERYWHERE ELSE. The projected key survives intact,
+                              so label QUANTITY is held constant against the
+                              baseline and only CORRECTNESS varies.
+
 GRID. Matches `canopy_additions_2016.tif` -- EPSG:2285 at 0.5 m -- which is the
 PRODUCTION overlay convention, *not* MASK_2020's grid (EPSG:3857 at 7.5 cm; an
 overlay on that grid would be a ~31 GB file). `additions_from_mask` reprojects
@@ -32,9 +49,13 @@ WATER comes from the county hydrography layer, NOT from C-CAP -- C-CAP is
 eval-only and must never enter a training label (CLAUDE.md Key Data Facts).
 
 Usage:
-    py -3.12 qc/build_groves_overlay.py --year 2009 [--with-lidar] [--limit-blocks N]
+    py -3.12 qc/build_groves_overlay.py --year 2009 [--hybrid] [--with-lidar]
+                                        [--no-water] [--limit-blocks N]
 """
 import argparse
+import hashlib
+import shutil
+import time
 import sys
 from pathlib import Path
 
@@ -57,6 +78,53 @@ AOI = Path(__file__).resolve().parent.parent / "pipeline" / "aoi" / "sectors_v1.
 
 CODE_CANOPY, CODE_NOCHANGE, CODE_IGNORE = 1, 0, 3
 BLOCK = 2048
+LAKE_OUT = BASE / "phase4" / "labels_corrected"
+
+
+def _sha256(p, chunk=1 << 20):
+    h = hashlib.sha256()
+    with open(p, "rb") as f:
+        for b in iter(lambda: f.read(chunk), b""):
+            h.update(b)
+    return h.hexdigest()
+
+
+def _copy_verified(local_path, dest_dir):
+    """Copy to the lake and PROVE it landed (size + sha256 both sides).
+
+    This step did not exist before 2026-08-28: the builder wrote only to local
+    scratch, so two A100s once sat idle waiting for overlays that were never on
+    the lake — the launcher's own visibility guard was what caught it. Nothing
+    here is conditional on the output name.
+    """
+    dest_dir.mkdir(parents=True, exist_ok=True)
+    dest = dest_dir / local_path.name
+    want = local_path.stat().st_size
+    for attempt in range(2):
+        shutil.copyfile(local_path, dest)
+        # SETTLE FIRST. The Drive mount reports size LAZILY: measured 2026-08-28,
+        # the first stat straight after copyfile returned exactly 14 MiB for a
+        # 15,001,242-byte file and the full size appeared ~5 s later. Judging on
+        # that first read reports a truncation that never happened. Poll to
+        # convergence, THEN hash — a real short write never converges.
+        got = -1
+        for _ in range(24):
+            got = dest.stat().st_size
+            if got == want:
+                break
+            time.sleep(5)
+        if got != want:
+            if attempt == 0:
+                print(f"  (size still {got} != {want} after 2 min — recopying)")
+                continue
+            sys.exit(f"COPY FAIL (size {want} != {got}): {dest}")
+        lh, dh = _sha256(local_path), _sha256(dest)
+        if lh == dh:
+            print(f"[lake] VERIFIED {dest}  ({got/1e6:.1f} MB, sha256 {lh[:16]})")
+            return dest
+        if attempt == 0:
+            print(f"  (sha256 {lh[:16]} != {dh[:16]} — recopying)")
+    sys.exit(f"COPY FAIL (sha256 mismatch after retry): {dest}")
 
 # EPSG:2285 is Washington State Plane North in US SURVEY FEET, so GeoPandas
 # `.area` and pixel areas come out in ft^2. Every hectare figure here converts
@@ -114,6 +182,11 @@ def main():
     ap = argparse.ArgumentParser(description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--year", default="2009")
+    ap.add_argument("--hybrid", action="store_true",
+                    help="KEEP the projected 2020 key everywhere; assert code 1 only on "
+                         "verified canopy and code 3 only where verified background and the "
+                         "key CONTRADICT. Isolates label correctness from label quantity — "
+                         "the sparse default lost ~26 sigma at matched precision (2026-08-28)")
     ap.add_argument("--with-lidar", action="store_true",
                     help="include the dual-epoch lidar flat mask as verified background")
     ap.add_argument("--limit-blocks", type=int, default=0, help="debug: stop after N blocks")
@@ -124,8 +197,13 @@ def main():
     a = ap.parse_args([x for x in sys.argv[1:] if not (x == "-f" or x.endswith(".json"))])
 
     yr = int("".join(c for c in a.year if c.isdigit())[:4])
-    arm = "lidar" if a.with_lidar else "noLidar"
-    name = a.out or f"add_groves_{arm}_{a.year}.tif"
+    if a.hybrid:
+        arm = "lidar" if a.with_lidar else "nolidar"
+        name = a.out or f"add_hybrid_{arm}_{a.year}.tif"
+    else:
+        arm = "lidar" if a.with_lidar else "noLidar"
+        name = a.out or f"add_groves_{arm}_{a.year}.tif"
+    print(f"[mode] {'HYBRID — projected key kept, only contradictions withdrawn' if a.hybrid else 'SPARSE — everything unverified ignored'}")
     LOCAL_OUT.mkdir(parents=True, exist_ok=True)
     local_path = LOCAL_OUT / name
 
@@ -226,6 +304,7 @@ def main():
         strip_boxes.append((_box(*bb), 1))
 
     stats = dict(code1=0, code0=0, code3=0, conflict_grove_flat=0,
+                 conflict_under_pos=0,
                  bg_mask_canopy=0, bg_total=0, blocks_with_bg=0,
                  bg_water=0, bg_bld=0, bg_lidar=0,
                  s_code1=0, s_code0=0, s_code3=0, s_land=0)
@@ -242,7 +321,10 @@ def main():
                 h = min(BLOCK, H - r0)
                 btf = rasterio.windows.transform(
                     rasterio.windows.Window(0, r0, W, h), tf)
-                out = np.full((h, W), CODE_IGNORE, dtype=np.uint8)
+                # HYBRID: default is "leave the projected key alone" (code 0).
+                # SPARSE: default is "withhold everything" (code 3).
+                out = np.full((h, W), CODE_NOCHANGE if a.hybrid else CODE_IGNORE,
+                              dtype=np.uint8)
 
                 verified_bg = np.zeros((h, W), dtype=bool)
                 for shp, key in ((bld_shapes, "bg_bld"), (wat_shapes, "bg_water")):
@@ -264,14 +346,23 @@ def main():
                 if verified_bg.any():
                     stats["blocks_with_bg"] += 1
                     m2020 = _warp_block(mask_src, btf, h, W, crs, 255)
-                    bg_and_bg = verified_bg & (m2020 == 0)      # key agrees: background
-                    out[bg_and_bg] = CODE_NOCHANGE              # the negative we teach
+                    conflict = verified_bg & (m2020 == 1)   # key claims canopy on proven bg
                     stats["bg_total"] += int(verified_bg.sum())
-                    stats["bg_mask_canopy"] += int((verified_bg & (m2020 == 1)).sum())
+                    stats["bg_mask_canopy"] += int(conflict.sum())
+                    if a.hybrid:
+                        # withdraw ONLY the contradicted claims; every other pixel
+                        # keeps whatever the projected key said.
+                        out[conflict] = CODE_IGNORE
+                    else:
+                        bg_and_bg = verified_bg & (m2020 == 0)  # key agrees: background
+                        out[bg_and_bg] = CODE_NOCHANGE          # the negative we teach
 
                 # positives win over negatives (a grove inside a "flat" cell means
                 # the flat test was wrong there) — count the conflict as a quality signal
                 stats["conflict_grove_flat"] += int((pos & verified_bg).sum())
+                # how many withdrawn-claim pixels a positive then reclaims (hybrid
+                # invariant: code3_final == bg_mask_canopy - conflict_under_pos)
+                stats["conflict_under_pos"] += int((pos & (out == CODE_IGNORE)).sum())
                 out[pos] = CODE_CANOPY
 
                 dst.write(out, 1, window=rasterio.windows.Window(0, r0, W, h))
@@ -294,17 +385,20 @@ def main():
 
     px_ha = _ha_ft2(tf.a * abs(tf.e))          # true ha per pixel (2285 = feet)
     print(f"\n[out ] {local_path}  ({local_path.stat().st_size/1e6:.1f} MB)")
+    lab0 = "code 0 KEEPkey" if a.hybrid else "code 0 keep-bg"
     print(f"  CITYWIDE (whole {a.year} ortho extent — what actually gets tiled)")
-    for k, lab in (("code1", "code 1 canopy "), ("code0", "code 0 keep-bg"),
+    for k, lab in (("code1", "code 1 canopy "), ("code0", lab0),
                    ("code3", "code 3 IGNORE ")):
         print(f"    {lab}: {stats[k]:>13,} px  {stats[k]*px_ha:>9.1f} ha")
     graded = stats["code1"] + stats["code0"]
     tot = graded + stats["code3"]
-    print(f"    graded {100*graded/max(tot,1):.2f}%  /  ignored {100*stats['code3']/max(tot,1):.2f}%")
+    print(f"    graded {100*graded/max(tot,1):.2f}%  /  ignored {100*stats['code3']/max(tot,1):.2f}%"
+          + ("   (hybrid: 'graded' means the projected key survives there, so this is "
+             "~100% BY DESIGN — quantity held constant)" if a.hybrid else ""))
     print(f"  INSIDE SECTOR STRIPS")
     sg = stats["s_code1"] + stats["s_code0"]
     st = sg + stats["s_code3"]
-    for k, lab in (("s_code1", "code 1 canopy "), ("s_code0", "code 0 keep-bg"),
+    for k, lab in (("s_code1", "code 1 canopy "), ("s_code0", lab0.replace("code 0", "code 0")),
                    ("s_code3", "code 3 IGNORE ")):
         print(f"    {lab}: {stats[k]:>13,} px  {stats[k]*px_ha:>9.1f} ha")
     print(f"    graded {100*sg/max(st,1):.2f}%  /  ignored {100*stats['s_code3']/max(st,1):.2f}%"
@@ -317,12 +411,34 @@ def main():
               f"-> withdrawn to IGNORE, never asserted as background")
     print(f"  grove-vs-flat conflicts: {stats['conflict_grove_flat']:,} px "
           f"({stats['conflict_grove_flat']*px_ha:.2f} ha) — positives won")
-    if stats["code0"]:
-        print(f"  class balance citywide canopy:background = "
-              f"1 : {stats['code0']/max(stats['code1'],1):.1f}")
-    if stats["s_code0"]:
-        print(f"  class balance strips   canopy:background = "
-              f"1 : {stats['s_code0']/max(stats['s_code1'],1):.1f}")
+    if a.hybrid:
+        # INVARIANT: in hybrid the ONLY pixels changed from the projected key are
+        # code 1 (verified canopy) and code 3 (contradicted claims). Everything
+        # else must be untouched, and code 3 must be exactly the conflicts that a
+        # positive did not reclaim.
+        expect3 = stats["bg_mask_canopy"] - stats["conflict_under_pos"]
+        ok3 = (stats["code3"] == expect3)
+        changed = stats["code1"] + stats["code3"]
+        print(f"  HYBRID INVARIANT: code3 {stats['code3']:,} == conflicts "
+              f"{stats['bg_mask_canopy']:,} - reclaimed-by-positive "
+              f"{stats['conflict_under_pos']:,} = {expect3:,}  -> {'OK' if ok3 else 'MISMATCH'}")
+        if not ok3:
+            sys.exit("HYBRID INVARIANT FAILED — code 3 is not exactly the contradicted set")
+        print(f"  pixels CHANGED from the projected key: {changed:,} "
+              f"({100*changed/max(tot,1):.3f}% of the grid) — the rest is byte-untouched, "
+              f"which is the point: quantity constant, only correctness varies")
+    else:
+        if stats["code0"]:
+            print(f"  class balance citywide canopy:background = "
+                  f"1 : {stats['code0']/max(stats['code1'],1):.1f}")
+        if stats["s_code0"]:
+            print(f"  class balance strips   canopy:background = "
+                  f"1 : {stats['s_code0']/max(stats['s_code1'],1):.1f}")
+
+    if not a.limit_blocks:
+        _copy_verified(local_path, LAKE_OUT)
+    else:
+        print("  (--limit-blocks set: partial raster, NOT copied to the lake)")
     return 0
 
 

@@ -1464,9 +1464,17 @@ result:  2009, common footprint 198.8 Mpx (intersection of all 3 arms x scorable
          21-26 pp below baseline against a .0100 recall sd = ~26 sigma. NOT close.
          The fixed-0.5 "recall win" for nolidar (.7503 vs .6989) was a CALIBRATION
          ARTIFACT — that arm just sits at a more liberal operating point.
-         (b) KAM'S LIDAR NEGATIVES WORK AS DESIGNED, +.0465 recall at matched precision over
-         nolidar — dual-epoch flat ground does teach tree-vs-vegetated-ground. Real signal,
-         losing arm. (c) NEW FINDING: sparse labels BREAK CALIBRATION. Both sparse arms park
+         (b) ** RETRACTED 2026-08-28 — DO NOT QUOTE. ** This entry read "KAM'S LIDAR
+         NEGATIVES WORK AS DESIGNED, +.0465 recall at matched precision over nolidar".
+         VOID: the two arms ran CONCURRENTLY on year 2009 and the tile cache was keyed by
+         year only (TILE_DIR/{label}, no run tag), so they raced on ONE directory —
+         nolidar tiled 21:28-21:54, lidar 21:36-22:05, 18 min overlap, 635 vs 599 tiles.
+         Both models trained on an unknown mixture of each other's labels, so B-vs-C
+         compared nothing. The +.0465 is now best read as an accidental SAME-DATA
+         replicate gap = >=4x the banked recall sd .0100 (n=1 pair, one early-stopped
+         ckpt — a warning, not a measured sigma). Kam's lidar idea is UNTESTED, not
+         disproven. Fixed 507dff6 (per-arm tile dirs). The A-vs-B/C headline SURVIVES:
+         that effect was 21-26 pp and both arms lost. (c) NEW FINDING: sparse labels BREAK CALIBRATION. Both sparse arms park
          ~31% of valid px within +-0.01 of 0.5 (baseline 10.9%) and push 4-7% to >=0.99;
          trained on 15-21% graded pixels they learned confidence on a little and abstention on
          a third of the scene. VERIFY caught it first: maxprob 1.000 vs baseline .878.

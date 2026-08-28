@@ -89,6 +89,30 @@ five-fold difference in cost.
 
 ---
 
+## Does signing this off change the recipe? — NO, if you accept the defaults
+
+Kam's objection, and it is the right one: this project's hardest-won rule is **don't change
+the recipe** — recipe changes swing recall 5.6–12.7 points with the sign varying by year
+(WORKPLAN "Do not do"). So: what does each choice actually cost operationally?
+
+| choice | if you accept the default | if you pick the alternative |
+|---|---|---|
+| **A. cutoffs** ≥0.30 / ≥3 m | **NO-OP.** Verified 2026-08-27: `phase4_build_corrected_labels.py:145,193-195` already builds canopy at `NDVI>=0.3 AND height>=3.0 m` and IGNORE at 2–3 m. Signing off *documents* the running system | dropping to ≥2 m rebuilds every corrected-label overlay and **retrains every year that uses one** — a genuine recipe change |
+| **A2. unsure excluded** | **NO-OP on the model.** Changes a denominator and a caption in published totals; no label, tile or weight moves | counting unsure as not-canopy is also model-free, but lowers the headline by ~the policy gap |
+| **B1. edge ≥50%** | **NO-OP on the model.** Governs how a *human* judges a sample point | — |
+| **B2. under-crown** | **NO-OP on the model.** Interpretation only | — |
+| **B3. binary + interval** | **NO-OP.** The pipeline is binary end-to-end already (rule 6) | fractional cover would be a full rewrite of the mask convention |
+| **B4. interpreter records** | changes `phase4_accuracy_sample.py --step serve` — the **human review tool**, not the model. No retraining | — |
+
+**So the defaults are deliberately the no-op path.** The proposal chose the rule the code
+already runs *precisely so that* adopting a definition would not force a rebuild. What you
+would be signing is: "write down, and commit to, what the pipeline already does."
+
+The one place the tension is real: your D2 decision (woody ≥2 m counts) taken to its literal
+end would drop the height cut to 2 m — which *is* a recipe change. The recommended rule
+honours D2's intent differently, by **abstaining** on 2–3 m rather than denying it. That is
+the compromise, and it is worth knowing you are making it.
+
 ## Checkboxes — "accept all defaults" is a complete answer
 
 - [ ] **A. Cutoffs:** greenness ≥0.30, height ≥3 m; 2–3 m green = unsure *(recommended)*

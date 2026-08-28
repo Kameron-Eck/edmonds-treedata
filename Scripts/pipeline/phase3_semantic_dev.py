@@ -1865,6 +1865,14 @@ def _raster_crossval_overlap(instance_gdf, mask_path, chunk_rows=4096):
     spatial_iou  = inter_px / union_px if union_px > 0 else 0.0
     inst_covered = inter_px / inst_px  if inst_px  > 0 else 0.0
     sem_in_inst  = inter_px / sem_px   if sem_px   > 0 else 0.0
+    # CRS-UNIT TRAP (found 2026-08-27): `pixel_area` is transform.a * transform.e
+    # in the raster's OWN CRS units, which are never true m² here — EPSG:2285 is
+    # US survey FEET (1 unit² = 0.0929 m²) and EPSG:3857 is Web Mercator (areas
+    # inflated 1/cos²(47.81°) = 2.215x). So these three *_area_ha values are
+    # WRONG BY A CRS-DEPENDENT FACTOR. The ratios beside them (spatial_iou,
+    # inst_covered, sem_in_inst) are pixel-count ratios and are UNAFFECTED.
+    # Left uncorrected because Phase 3 is a completed phase whose outputs are
+    # already published; use phase4seg.common._crs_unit_m() for any new area.
     return {
         "instance_area_ha": inst_px  * pixel_area / 1e4,
         "semantic_area_ha": sem_px   * pixel_area / 1e4,

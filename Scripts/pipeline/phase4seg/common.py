@@ -59,6 +59,38 @@ from tqdm import tqdm
 warnings.filterwarnings("ignore")
 
 
+def _crs_unit_m(crs):
+    """Metres per CRS linear unit, for turning CRS-unit areas into TRUE m².
+
+    THE TRAP (measured 2026-08-27, same family as the gsd_cm defect, WORKPLAN §1.5):
+    a raw `.area` or `transform.a * transform.e` is in the CRS's own units, and
+    neither CRS this project uses gives true metres —
+
+      EPSG:2285  US survey FEET  -> 1 unit² = 0.0929 m²  (areas 10.76x TOO LARGE)
+      EPSG:3857  Web Mercator    -> conformal, not equal-area; at Edmonds
+                                    (47.81°N) areas are inflated 1/cos²(lat)
+                                    = 2.215x  (measured: the canonical crown
+                                    layer's stored area_m2 is 2.2215x its true
+                                    UTM-10N area, median 87.8 vs 39.5 m²)
+
+    Multiply an area by `_crs_unit_m(crs) ** 2` to get true m². For Mercator the
+    factor is latitude-dependent, so this returns cos(lat) at Edmonds rather than
+    the nominal 1.0 — good to ~0.1% across the city, and the honest answer is to
+    measure in an equal-area/local CRS (EPSG:26910 UTM 10N) where that matters.
+    """
+    try:
+        epsg = crs.to_epsg() if hasattr(crs, "to_epsg") else rasterio.crs.CRS.from_user_input(crs).to_epsg()
+    except Exception:                                    # noqa: BLE001
+        epsg = None
+    if epsg == 3857:
+        return float(np.cos(np.radians(47.81)))
+    try:
+        from pyproj import CRS as _pyCRS
+        return float(_pyCRS.from_user_input(crs).axis_info[0].unit_conversion_factor)
+    except Exception:                                    # noqa: BLE001
+        return 1.0
+
+
 # ── Timing helpers (same as phase1/phase3) ────────────────────────────────────
 
 _timers = {}

@@ -1,7 +1,7 @@
 from phase4seg.config import *
 from phase4seg import config
 from phase4seg.common import (_tag_sfx, entry_for, tick, tock,
-                              _copy_to_drive, _local_artifact_path)
+                              _copy_to_drive, _local_artifact_path, _crs_unit_m)
 
 import gc
 import numpy as np
@@ -87,6 +87,18 @@ def step_postproc(label, dry_run=False):
         img_crs, img_tf = src.crs, src.transform
         px, py = src.transform.a, abs(src.transform.e)
     pixel_area = px * py
+    # CRS-UNIT TRAP (2026-08-27). `pixel_area` is in the raster's OWN CRS units,
+    # which are NOT true m²: EPSG:2285 is US survey FEET (1 unit² = 0.0929 m², so
+    # a "1 m" pixel is 10.76x too small) and EPSG:3857 is Web Mercator (inflated
+    # 1/cos²(47.81°) = 2.215x at this latitude). Same family as the gsd_cm defect
+    # (WORKPLAN §1.5). `pixel_area_true` below is for REPORTED AREAS only.
+    #
+    # DELIBERATELY NOT APPLIED to min_px: MIN_CANOPY_PATCH lives in config.py
+    # (pure-move protected) and was tuned against these CRS-unit areas, so
+    # converting here would silently change every postproc mask. The sieve is
+    # therefore ~10.8x more permissive than "3.0 m²" reads on 2285 years and
+    # ~2.2x stricter on 3857 years. Retuning that constant is a science decision.
+    pixel_area_true = pixel_area * _crs_unit_m(img_crs) ** 2
     min_px = int(np.ceil(MIN_CANOPY_PATCH / pixel_area))
     # Per-year operating threshold from step_evaluate (best-F1), not the fixed 0.5.
     thr, thr_src = _operating_threshold(label)
@@ -118,10 +130,10 @@ def step_postproc(label, dry_run=False):
             valid_px  += int((~nod).sum())
             dst.write(m[np.newaxis], window=win)
 
-    canopy_area = canopy_px * pixel_area
+    canopy_area = canopy_px * pixel_area_true       # TRUE m² (see _crs_unit_m note)
     pct = 100 * canopy_px / valid_px if valid_px else 0
     print(f"  ✓ Mask (local): {mask_out.name} ({mask_out.stat().st_size/1e6:.0f} MB)")
-    print(f"  Canopy: {canopy_px:,}px = {canopy_area/1e4:.1f} ha "
+    print(f"  Canopy: {canopy_px:,}px = {canopy_area/1e4:.1f} ha true "
           f"({pct:.1f}% of imaged area)")
 
     # ── Polygonize in ROW-STRIPS (memory-safe) ──
@@ -215,7 +227,7 @@ def step_postproc(label, dry_run=False):
 
     # Record a one-line area summary for the cross-year consistency step.
     _append_area_summary(label, entry_for(label), canopy_area, pct, valid_px,
-                         pixel_area)
+                         pixel_area_true)
     tock("postproc")
 
 

@@ -144,7 +144,16 @@ def derive_crowns(name, footprint_bounds, src_crs, min_area_m2, valid_from, vali
     if not geoms:
         raise RuntimeError("no canopy polygons found in footprint — check location")
     gdf = gpd.GeoDataFrame(geometry=geoms, crs=mask_crs).to_crs(CROWN_CRS)
+    # CRS-UNIT TRAP (2026-08-27): CROWN_CRS is EPSG:3857 (Web Mercator), which is
+    # conformal, not equal-area — at Edmonds (47.81°N) `.area` is inflated
+    # 1/cos²(lat) = 2.215x. `area_m2` below is kept in that inflated form ONLY to
+    # stay schema-compatible with polygons/*_crowns_review.gpkg and with
+    # phase0_instance_seg's crowns, which carry the same inflation (measured
+    # 2.2215x). `area_m2_true` is the honest number and is what gets REPORTED.
+    # NOTE the --min-area-m2 filter therefore still selects on inflated area:
+    # a "2.0 m²" floor is really ~0.9 m² of ground.
     gdf["area_m2"] = gdf.geometry.area
+    gdf["area_m2_true"] = gdf.to_crs("EPSG:26910").geometry.area
     gdf = gdf[gdf["area_m2"] >= float(min_area_m2)].reset_index(drop=True)
     gdf["geometry"] = gdf.geometry.buffer(0)          # repair
     # schema matching polygons/Forest_*_crowns_review.gpkg
@@ -163,16 +172,21 @@ def derive_crowns(name, footprint_bounds, src_crs, min_area_m2, valid_from, vali
     cols = ["id", "source", "crown_id", "area_m2", "diameter_m", "size_class",
             "dtm_peak", "dtm_mean", "site", "status", "valid_from", "valid_to",
             "notes", "geometry"]
+    # keep the TRUE total as a scalar before the schema-fixing column select —
+    # area_m2_true is deliberately NOT written, so the staged GPKG stays
+    # schema-identical to polygons/Forest_*_crowns_review.gpkg
+    true_ha = float(gdf["area_m2_true"].sum()) / 1e4
     gdf = gdf[cols]
     POLY_STAGE.mkdir(parents=True, exist_ok=True)
     out = POLY_STAGE / f"{name}_crowns_review.gpkg"
     gdf.to_file(out, driver="GPKG")
-    print(f"  crowns→ {out}  ({len(gdf)} polygons ≥{min_area_m2} m², "
-          f"canopy area {gdf['area_m2'].sum()/1e4:.2f} ha, valid {valid_from}-{valid_to})")
-    return out, gdf, footprint_bounds
+    print(f"  crowns→ {out}  ({len(gdf)} polygons ≥{min_area_m2} m² [3857-inflated], "
+          f"canopy area {true_ha:.2f} ha TRUE, "
+          f"valid {valid_from}-{valid_to})")
+    return out, gdf, footprint_bounds, true_ha
 
 
-def preview(name, rgb, gdf, footprint_bounds, src_crs):
+def preview(name, rgb, gdf, footprint_bounds, src_crs, true_ha=None):
     """RGB crop with derived crown outlines overlaid — verify the labels."""
     img = np.transpose(rgb, (1, 2, 0))
     x0, y0, x1, y1 = footprint_bounds
@@ -187,7 +201,8 @@ def preview(name, rgb, gdf, footprint_bounds, src_crs):
             xs, ys = p.exterior.xy
             ax[1].plot(xs, ys, color="#00E0A0", lw=0.6)
     ax[1].set_title(f"derived canopy crowns  (n={len(gdf)}, "
-                    f"{gdf['area_m2'].sum()/1e4:.1f} ha)", fontsize=11)
+                    f"{true_ha:.1f} ha true)" if true_ha is not None
+                    else f"derived canopy crowns  (n={len(gdf)})", fontsize=11)
     ax[1].set_xlim(x0, x1); ax[1].set_ylim(y0, y1)
     fig.suptitle(f"{name} — REVIEW: do the green outlines match real tree canopy?",
                  fontsize=12)
@@ -232,9 +247,9 @@ def main():
         return
     print(f"[positive-site] staging {args.name} @ ({args.lon},{args.lat}) half={args.half_m}m")
     crop_out, rgb, fbounds, src_crs = crop_footprint(args.name, args.lon, args.lat, args.half_m)
-    crn_out, gdf, _ = derive_crowns(args.name, fbounds, src_crs, args.min_area_m2,
+    crn_out, gdf, _, true_ha = derive_crowns(args.name, fbounds, src_crs, args.min_area_m2,
                                     args.valid_from, args.valid_to)
-    preview(args.name, rgb, gdf, fbounds, src_crs)
+    preview(args.name, rgb, gdf, fbounds, src_crs, true_ha)
     print("\n[positive-site] STAGED — review the preview PNG, then re-run with --commit.")
     print("  labels are AUTO-DERIVED from the 2020 mask; confirm they match real crowns.")
 

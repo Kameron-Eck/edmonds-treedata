@@ -422,6 +422,21 @@ def preprocess_shapefiles(raw_gdfs, site_labels):
             gdf = gdf[~gdf.geometry.is_empty].reset_index(drop=True)
             print(f"  ✓ Dropped {n_empty} empty geometries")
 
+        # ── CRS-UNIT TRAP — `area_m2` HERE IS NOT TRUE m² (found 2026-08-27) ──
+        # TARGET_CRS is EPSG:3857 (Web Mercator), which is conformal, not
+        # equal-area: at Edmonds (47.81°N) areas are inflated 1/cos²(lat).
+        # MEASURED on the shipped edmonds_crowns_2020.gpkg: stored area_m2 is
+        # 2.2215x the true UTM-10N area (median 87.81 vs 39.53 m²). Same family
+        # as the gsd_cm defect (WORKPLAN §1.5).
+        #
+        # NOT FIXED IN PLACE, deliberately: this value also drives the sliver
+        # filter below AND size_class(), whose SMALL/MEDIUM cut-points were
+        # calibrated against these inflated numbers. Converting here would
+        # silently re-bucket every crown and change a phase1 feature, i.e. a
+        # model input — a science decision, not a reporting fix. To correct:
+        # convert with `.to_crs("EPSG:26910").area` and retune SIZE_SMALL_MAX /
+        # SIZE_MEDIUM_MAX / SMALL_AREA_THRESHOLD together, then regenerate.
+        # Anything QUOTING crown area in m²/ha must divide by 2.2215 first.
         # Drop slivers
         gdf["area_m2"] = gdf.geometry.area
         n_slivers      = (gdf["area_m2"] < SMALL_AREA_THRESHOLD).sum()

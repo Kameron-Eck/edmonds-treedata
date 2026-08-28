@@ -117,6 +117,28 @@ def _tag_sfx():
     """Filename suffix for --run-tag ('' when unset → legacy names)."""
     return f"_{config.RUN_TAG}" if config.RUN_TAG else ""
 
+
+def tile_dir_for(label):
+    """The tile directory for THIS ARM — {label}__{run_tag}, or {label} untagged.
+
+    THE BUG THIS FIXES (measured 2026-08-28, and it corrupted a landed result).
+    Tiles lived at TILE_DIR/{label} with no run-tag component. `_tile_signature`
+    DOES key on the overlay, so a SEQUENTIAL arm with different labels correctly
+    invalidates and re-tiles. But two arms on the SAME YEAR running CONCURRENTLY
+    both resolve to one directory, each judges the other's cache invalid, and both
+    re-tile into it — racing. The 2026-08-27 groves arms did exactly this
+    (`groves_nolidar` tiled 21:28-21:54, `groves_lidar` 21:36-22:05: 18 minutes of
+    overlap, 635 vs 599 tiles), so their B-vs-C comparison compared two models
+    trained on an unknown mixture of each other's labels. The A-vs-B/C headline
+    survived only because that effect was 21-26 pp and both arms lost.
+
+    Tagged runs now get their own directory, so concurrent arms cannot collide.
+    Untagged runs keep the legacy path unchanged — no spurious retile for the
+    historical caches. The first run of each tagged arm re-tiles once (~15-25 min);
+    that is the price of the isolation and it is worth paying exactly once.
+    """
+    return (TILE_DIR / f"{label}__{config.RUN_TAG}") if config.RUN_TAG else (TILE_DIR / label)
+
 def remaining_entries():
     """The 17 acquisitions Phase 4 fine-tunes (everything except the 2020 anchor)."""
     return [e for e in YEAR_CATALOG if e["label"] != ANCHOR_LABEL]

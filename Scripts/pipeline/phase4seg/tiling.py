@@ -3,6 +3,7 @@ from phase4seg import config
 from phase4seg.common import (
     _stage_imagery_local, _unstage_imagery_local, entry_for, resolve_native_path,
     _hillshade_ds, read_hillshade_chip, _site_window, _load_review_regions,
+    tile_dir_for,
 )
 from phase4seg.labels import (
     canopy_label_from_2020_mask, additions_from_mask, apply_additions,
@@ -665,7 +666,7 @@ def _tile_signature(label, stride, max_tiles, citywide):
 
 
 def _meta_path(label):
-    return TILE_DIR / label / f"tile_index_{label}.meta.json"
+    return tile_dir_for(label) / f"tile_index_{label}.meta.json"
 
 
 def _existing_tiles_valid(label, sig):
@@ -673,7 +674,7 @@ def _existing_tiles_valid(label, sig):
     meta matches the signature, the index exists, and every referenced tile file
     is present. Any mismatch/missing file → False (re-tile)."""
     mp = _meta_path(label)
-    idx = TILE_DIR / label / f"tile_index_{label}.csv"
+    idx = tile_dir_for(label) / f"tile_index_{label}.csv"
     if not (mp.exists() and idx.exists()):
         return False
     try:
@@ -997,7 +998,7 @@ def step_tile(label, sites, dry_run=False, max_tiles=None, stride_override=None,
     sig = _tile_signature(label, stride, max_tiles, citywide)
     if citywide and not dry_run and not force_retile \
             and _existing_tiles_valid(label, sig):
-        idx = TILE_DIR / label / f"tile_index_{label}.csv"
+        idx = tile_dir_for(label) / f"tile_index_{label}.csv"
         n = len(pd.read_csv(idx))
         print(f"\n── [{label}] Step 2: Tiling [{mode}] — REUSED {n} existing "
               f"tiles (sampling signature unchanged; --force-retile to rebuild) ──")
@@ -1006,7 +1007,7 @@ def step_tile(label, sites, dry_run=False, max_tiles=None, stride_override=None,
     print(f"\n── [{label}] Step 2: Tiling [{mode}] ({tier}: stride={stride}, "
           f"neg_rate={tp['neg_rate']}, test={'yes' if tp['has_test'] else 'no'}) ──")
 
-    out_tile_dir  = TILE_DIR / label
+    out_tile_dir  = tile_dir_for(label)
     # WRITE TRANSPORT ONLY (see "Bulk tile upload" above): on an rclone-mounted
     # Colab VM the tile files are written to local NVMe and bulk-uploaded once.
     # Everywhere else stage_root is None and `write_dir is out_tile_dir` — i.e.

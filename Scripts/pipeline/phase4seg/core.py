@@ -5,6 +5,7 @@ from phase4seg.common import (
     _stage_imagery_local, _unstage_imagery_local, read_rgb_window,
     read_hillshade_chip, close_thread_hillshade, tick, tock,
     _copy_to_drive, _local_artifact_path, _StagingLock, STAGE_LOCK_MIN_BYTES,
+    tile_dir_for,
 )
 from phase4seg.tiling import _origins_from_manifest
 
@@ -791,7 +792,7 @@ def step_train(label, batch_size=BATCH_SIZE, p3_ckpt=None, dry_run=False, compil
     print(f"  Device: {device}"
           + (f"  GPU: {torch.cuda.get_device_name(0)}" if device.type == "cuda" else ""))
 
-    index_path = TILE_DIR / label / f"tile_index_{label}.csv"
+    index_path = tile_dir_for(label) / f"tile_index_{label}.csv"
     if not index_path.exists():
         print(f"  ERROR: {index_path} not found — run step tile first")
         return
@@ -1164,7 +1165,7 @@ def step_evaluate(label, dry_run=False):
     print(f"\n── [{label}] Step 4: Evaluation ({tier}) ──")
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    index_path = TILE_DIR / label / f"tile_index_{label}.csv"
+    index_path = tile_dir_for(label) / f"tile_index_{label}.csv"
     if not index_path.exists():
         print(f"  ERROR: {index_path} not found — run step tile first"); return
     idx_df = pd.read_csv(index_path)

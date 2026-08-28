@@ -1,0 +1,27 @@
+# NODE B — 2009, projected 2020 key, 3-BAND RGB (no hillshade). Kam 2026-08-28.
+#
+# WHY THIS EXISTS. Kam's rule: change ONE thing at a time from an established
+# fact. Node A is measured and clean — 2009 / projected key / 4-band(CHM):
+# recall .6989, precision .8472, AUROC .9210, PR-AUC .8632 (matched-footprint,
+# ccap_2016_snohfull, fixed 0.5). Node C will be "corrected key, 3-band". That
+# comparison is only legible against a 3-BAND baseline, which does not exist.
+# This run creates it. It is a MEASUREMENT, not a candidate recipe.
+#
+# WHY 3-BAND AT ALL: the adversarial review found the intended label source is
+# derived from 2016 lidar, and the 4-band model READS a 2016-lidar-derived CHM
+# channel — 99.99% of proposed canopy labels sit where that channel already says
+# "tall", and a single CHM threshold separates them at 96.5% balanced accuracy.
+# A 4-band Node C would measure the model copying its own input. Dropping the
+# channel breaks that path.
+#
+# EXPECT IT TO SCORE LOWER THAN NODE A. That is fine and is not a failure — the
+# CHM carries real signal. The number we need is the 3-band baseline itself.
+#
+# Retiles: --no-hillshade changes use_hillshade in the tile signature, and per-arm
+# tile dirs landed in 507dff6, so this cuts a fresh isolated cache.
+- id: "2009_node_b"
+  year: "2009"
+  tag: rgb3_nodeb
+  extra: ["--force-citywide", "--no-hillshade", "--infer-aoi", "aoi/sectors_v1.json"]
+  why: "establish the 3-band branch point so Node C can change exactly one thing."
+  expect: "retile ~15-20 min; train ~30-40 min A100; sample inference ~5 min."

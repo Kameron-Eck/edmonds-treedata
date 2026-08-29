@@ -1711,6 +1711,16 @@ decided: seed-varied arms (1234, 777) to measure TRUE retrain sigma — the bank
 decided: verdicts come from CURVE metrics (AUROC / PR-AUC), never matched-precision recall —
          I read every verdict off recall for a week despite writing the rule myself. Recall is
          ~3x noisier (3 pp swing from seed alone vs .0016 AUROC).
+QUEUE ORDER AND WHY (2026-08-29 12:27Z): gpu35 = nodec_s1234 replicate -> then
+         smooth5 (Kam's named arm, on the one guaranteed slot). gpu37 = 3-band noise floor
+         -> then the GEOGRAPHIC HOLDOUT, not the third Node C seed. Reasoning: a third seed
+         adds n to a PERFORMANCE claim already held at ~2.5x noise; the holdout answers the
+         MECHANISM, which is what decides whether the approach scales at all — and scaling
+         before the proof of concept is settled is the thing Kam has explicitly said to
+         avoid. Safe to commit now because gpu37 does not free until ~13:40 while the
+         replicate lands ~12:53, so the replicate's verdict is known BEFORE the holdout
+         fires; if Node C does not replicate the chain gets killed, because there is no
+         mechanism to investigate for a result that is not real.
 next:    score nodec_s1234 (pre-registered: within ~.002 of .9179 = replicated; back near
          .906-.909 = the original was a lucky draw and must be reported as loudly as the
          positive was) · seed777 -> report n=3 as a SPREAD (max-min), not a sigma, and note

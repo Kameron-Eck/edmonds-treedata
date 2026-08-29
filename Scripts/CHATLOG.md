@@ -1906,6 +1906,30 @@ decided: verdicts come from CURVE metrics (AUROC / PR-AUC), never matched-precis
          before it is exec'd): before launching, scan the lake's heartbeats and REFUSE if
          any live VM's engine_proc already carries the same --run-tag. The per-VM guard
          ("a queue is still running") only sees its OWN VM and cannot catch this class.
+         ** "THE MODEL UNDER-PREDICTS" HOLDS GLOBALLY BUT NOT IN THE SPARSE REGION. **
+         Tested the post-hoc reading I had flagged and refused to act on
+         (phase4/qc/region_confusion_2009.md), FP:FN at threshold 0.5:
+             arm          region            FP        FN     FP:FN  recall  precision
+             rgb3_nodeb   all             8.99M    23.06M     0.39   .657     .831
+             rgb3_nodeb   inside (dense)  6.26M    20.05M     0.31   .681     .872
+             rgb3_nodeb   OUTSIDE(sparse) 2.73M     3.01M     0.91   .311     .332
+             nodec_v1     OUTSIDE(sparse) 2.96M     2.75M     1.08   .370     .354
+         Globally Node B misses 2.6 trees for every one it invents — the 2026-07-05 finding
+         STANDS. In dense canopy it is stronger still (0.31). But in the SPARSE region errors
+         are essentially BALANCED (0.91), and Node C tips it into OVER-prediction (1.08).
+         So my post-hoc reading was directionally right for Node C and WRONG for Node B: the
+         region is not FP-DOMINATED, it is balanced-to-slightly-over. The practical
+         conclusion survives either way and it CONTRADICTS what I wrote earlier tonight:
+         labelling more POSITIVES in the sparse region would not fix it — that is not where
+         the errors are. Retract the "label isolated/ornamental trees" recommendation as
+         stated; the region needs better discrimination, not more positive labels.
+         ALSO EXPOSED: in the sparse region BOTH arms are close to useless — precision .332
+         and recall .311 for Node B. That is the ornamental/suburban ground this workstream
+         has chased since July, and the model is barely better than noise on it. Node C
+         lifts recall to .370 but PAYS in false positives, raising FP:FN globally .39 -> .67.
+         That is the real price of the Node C recipe and it was not visible in AUROC.
+         CAVEAT held firmly: C-CAP 2016 scored against a 2009 raster, so real 2009->2016
+         change lands in FP and FN. Magnitudes are not trustworthy; direction is.
 QUEUE ORDER AND WHY (2026-08-29 12:27Z): gpu35 = nodec_s1234 replicate -> then
          smooth5 (Kam's named arm, on the one guaranteed slot). gpu37 = 3-band noise floor
          -> then the GEOGRAPHIC HOLDOUT, not the third Node C seed. Reasoning: a third seed

@@ -228,15 +228,21 @@ def _merged_rows():
 
 
 def _completed_steps():
-    """(job_id, step) pairs already recorded OK — across ALL status files — so a
-    restart does not redo them, even when the prior attempt ran as a different
-    queue launch.
+    """→ (done, reverify): steps already recorded OK across ALL status files, and
+    the subset whose last verification COULD NOT CHECK them.
 
     The engine's labels/tile steps are idempotent and train/evaluate/inference
     write tagged outputs, so skipping a previously-OK step is safe and turns a
     dead runtime into a cheap restart instead of starting from zero.
+
+    `reverify` is D7 (2026-08-29). An UNCHECKED/UNVERIFIED verdict used to call
+    `bad.discard(...)` — it actively CLEARED the step's failure marker, so "the
+    checker crashed" left a stronger resume credit than "the checker never ran".
+    Such a step now keeps its OK credit (re-running it is GPU spend, and a
+    checker that threw is no evidence the artifact is bad) but is re-VERIFIED on
+    the next launch instead of skipped in silence. Only hard states force a re-run.
     """
-    done, bad = set(), set()
+    done, bad, reverify = set(), set(), set()
     for r in _merged_rows():                       # sorted by ts: later rows win
         job, step, state = r.get("job"), str(r.get("step", "")), r.get("state")
         key = (job, step)
@@ -254,10 +260,15 @@ def _completed_steps():
             # early return) — its OK row must not license a skip if VERIFY:{step}
             # then hard-failed. Pre-P4.3 history has no VERIFY:{step} rows and is
             # unaffected. (Audit finding 2026-08-22.)
+            k = (job, step[7:])
             if state in _VERIFY_HARD_FAIL:
-                bad.add((job, step[7:]))
+                bad.add(k)
+                reverify.discard(k)
+            elif state in _VERIFY_UNVERIFIED:
+                reverify.add(k)                    # keep the credit, re-check it
             else:
-                bad.discard((job, step[7:]))
+                bad.discard(k)
+                reverify.discard(k)
         elif step == "VERIFY":
             if state == "OK":
                 # record the job-level verdict so a relaunch can SKIP re-reading
@@ -270,7 +281,7 @@ def _completed_steps():
             elif state in _VERIFY_HARD_FAIL:
                 bad.add((job, "inference"))      # job-end raster check failed
                 bad.add(key)
-    return done - bad
+    return done - bad, reverify - bad
 
 
 def _hr(t=""):
@@ -437,24 +448,61 @@ def run_step(job, step, infer_batch, rows):
 _PROB_SAMPLE_PX = 4_000_000
 
 
-def _check_prob_raster(out):
-    """Decimated sanity read of a prob raster → (state, detail)."""
+def _check_prob_raster(out, attempts=3, backoff_s=10):
+    """Decimated sanity read of a prob raster → (state, detail).
+
+    D7 (2026-08-29), two defects in the old version:
+
+      * `mb == 0` was UNREACHABLE. A 0-byte raster does not survive
+        rasterio.open() — it raises first, the caller's blanket except caught it,
+        and an empty file was reported UNCHECKED (a PASSING state) instead of
+        EMPTY (a hard failure). The size test now runs BEFORE the open, which is
+        the only place it can ever fire.
+      * an unopenable raster and a broken checker were the same state. They are
+        not the same thing: UNREADABLE means the artifact is bad, UNCHECKED means
+        this function is. Only the first should stop a job.
+
+    The open is retried with backoff first, because transient EIO on this mount is
+    documented in _copy_to_drive's own comments and UNREADABLE costs a re-run of a
+    4-hour inference. Three failures in ~30 s is a broken raster, not a hiccup.
+    """
     if not out.exists():
         return "MISSING", f"no raster at {out.name}"
-    mb = out.stat().st_size / 1e6
-    import rasterio
-    from rasterio.enums import Resampling
-    with rasterio.open(out) as s:
-        scale = min(1.0, (_PROB_SAMPLE_PX / float(s.width * s.height)) ** 0.5)
-        h = max(1200, min(s.height, int(s.height * scale)))
-        w = max(1, int(s.width * h / s.height))
-        a = s.read(1, out_shape=(h, w), resampling=Resampling.nearest)
-        nd = 255 if s.nodata is None else s.nodata
+    nbytes = out.stat().st_size
+    mb = nbytes / 1e6
+    if nbytes == 0:
+        return "EMPTY", f"{out.name} is 0 bytes"
+    try:
+        import rasterio
+        from rasterio.enums import Resampling
+    except Exception as e:                                      # noqa: BLE001
+        return "UNCHECKED", f"rasterio unavailable: {type(e).__name__}: {e}"[:200]
+    a = nd = None
+    last = None
+    for i in range(attempts):
+        try:
+            with rasterio.open(out) as s:
+                scale = min(1.0, (_PROB_SAMPLE_PX / float(s.width * s.height)) ** 0.5)
+                h = max(1200, min(s.height, int(s.height * scale)))
+                w = max(1, int(s.width * h / s.height))
+                a = s.read(1, out_shape=(h, w), resampling=Resampling.nearest)
+                nd = 255 if s.nodata is None else s.nodata
+            break
+        except Exception as e:                                  # noqa: BLE001
+            last = e
+            a = None
+            if i < attempts - 1:
+                print(f"    (raster read failed: {type(e).__name__}: {e} — retrying "
+                      f"in {backoff_s * (i + 1)}s [{i + 1}/{attempts}])", flush=True)
+                time.sleep(backoff_s * (i + 1))
+    if a is None:
+        return "UNREADABLE", (f"{mb:.0f}MB but rasterio could not open it after "
+                              f"{attempts} tries: {type(last).__name__}: {last}")[:200]
     v = a != nd
     vf = float(v.mean())
     mx = float(a[v].max()) / 254.0 if v.any() else float("nan")
     state = "OK"
-    if mb == 0 or not v.any():
+    if not v.any():
         state = "EMPTY"
     elif vf < 0.05:
         state = "MOSTLY_NODATA"
@@ -474,7 +522,24 @@ def _check_prob_raster(out):
 # P4.3: states that mean "the artifact this step just paid for is broken" —
 # the queue must stop spending on this job, not sail into the next GPU hour.
 _VERIFY_HARD_FAIL = {"MISSING", "EMPTY", "MOSTLY_NODATA", "NO_CONFIDENCE",
-                     "BAD_CKPT", "NO_TILES", "BAD_INDEX"}
+                     "BAD_CKPT", "NO_TILES", "BAD_INDEX", "UNREADABLE",
+                     "STALE_EVAL"}
+
+# D7 (2026-08-29): states that mean "THIS CHECK COULD NOT ANSWER" — which is not
+# the same as "the artifact is fine", and used to be recorded as if it were.
+#
+# Every exception inside verify_step landed on UNCHECKED, UNCHECKED was not in
+# _VERIFY_HARD_FAIL, and everything downstream treats not-hard-fail as a pass: the
+# job continued, and _completed_steps positively DISCARDED the step's bad marker,
+# so a later relaunch skipped a step whose artifact had never been looked at. A
+# check that throws was therefore indistinguishable from a check that succeeded —
+# the exact defect class that let an epoch-7 checkpoint be deployed as epoch 24.
+#
+# These states now: (a) print as a warning, (b) never license a silent skip — the
+# step keeps its OK credit but is RE-VERIFIED on the next launch, which is cheap,
+# rather than re-run, which is GPU spend nobody approved, and (c) survive into the
+# status CSV as themselves so the end-of-queue summary can show them.
+_VERIFY_UNVERIFIED = {"UNCHECKED", "UNVERIFIED"}
 
 
 def _verify_ckpt_identity(ck, year, tag, mb, step_start):
@@ -521,13 +586,82 @@ def _verify_ckpt_identity(ck, year, tag, mb, step_start):
     return "OK", ", ".join(parts)
 
 
-def verify_step(job, step, rows, step_start=None):
+def _parse_utc(s):
+    """"2026-08-29T04:05:06Z" → epoch seconds, or None. Timezone-aware on purpose:
+    the report stamps real UTC while step_start is a local time.time(), and
+    comparing those two through a naive datetime is how an off-by-8-hours
+    'freshness' check would quietly pass everything."""
+    try:
+        return (_dt.datetime.strptime(str(s), "%Y-%m-%dT%H:%M:%SZ")
+                .replace(tzinfo=_dt.timezone.utc).timestamp())
+    except (ValueError, TypeError):
+        return None
+
+
+def _verify_eval_rows(rep, y, tag, step_start):
+    """Did THIS run's evaluate step write rows to the shared report? → (state, detail).
+
+    D6 (2026-08-29). The old check was `(df["year"] == y).any()` against
+    semantic_eval_report.csv — a cumulative file that every year, every arm and
+    every campaign appends into. Any historical row for the year passed it, so a
+    job could "verify" its evaluate step against a number some other model
+    measured weeks earlier, and an evaluate step that exited 0 without writing
+    anything was indistinguishable from one that worked.
+
+    Rows now carry run_tag / run_id / written_utc (core.py step_evaluate), so the
+    check can be the one that was always meant: rows for this year, under THIS
+    job's tag, written since this step started.
+
+      MISSING     no rows for the year at all, or none under this tag (another
+                  arm's rows are not this run's evidence)
+      STALE_EVAL  rows under this tag, but written BEFORE this step began — the
+                  step exited 0 and left the previous run's numbers in place
+      UNVERIFIED  a pre-identity report, or an untagged job: the columns needed to
+                  attribute the rows are not there, so nothing is claimed
+    """
+    if not rep.exists():
+        return "MISSING", f"no {rep.name}"
+    import pandas as pd
+    df = pd.read_csv(rep)
+    sub = df[df["year"].astype(str) == str(y)]
+    if not len(sub):
+        return "MISSING", f"no rows for year {y} in {rep.name}"
+    if "run_tag" not in df.columns:
+        return "UNVERIFIED", (f"{len(sub)} rows for year {y}, but {rep.name} predates "
+                              f"run-identity stamping — cannot tell whose they are")
+    if not tag:
+        return "UNVERIFIED", (f"{len(sub)} rows for year {y}; job has no run tag, so "
+                              f"they cannot be attributed to this run")
+    mine = sub[sub["run_tag"].astype(str) == str(tag)]
+    if not len(mine):
+        others = sorted({str(t) for t in sub["run_tag"].astype(str)})[:4]
+        return "MISSING", (f"{len(sub)} rows for year {y} but NONE under tag {tag!r} "
+                           f"(found {others}) — these are not this run's numbers")
+    written = [_parse_utc(w) for w in mine.get("written_utc", [])]
+    newest = max([w for w in written if w is not None], default=None)
+    if newest is None:
+        return "UNVERIFIED", (f"{len(mine)} rows for {y}/{tag} but no readable "
+                              f"written_utc — freshness unknown")
+    when = _dt.datetime.fromtimestamp(newest).strftime("%H:%M:%S")
+    if step_start and newest < step_start - 5:
+        return "STALE_EVAL", (f"{len(mine)} rows for {y}/{tag} but the newest was "
+                              f"written {when}, BEFORE this step started — the step "
+                              f"exited 0 without writing its metrics")
+    return "OK", f"{len(mine)} rows for {y}/{tag}, written {when}"
+
+
+def verify_step(job, step, rows, step_start=None, reverify=False):
     """P4.3: per-step artifact check, recorded as a VERIFY:{step} row.
 
     The old job-end-only VERIFY let a broken artifact license every later step
     (the 2024 stub trained+evaluated fine and then died at inference; 2017's
     bad raster was only caught by a human a day later). Never raises; returns
     False on a hard failure so the caller aborts the job.
+
+    `reverify=True` marks a check re-run on a step this launch SKIPPED, because
+    the last launch's verdict was "could not check" (D7). `step_start` is None
+    there — there is no step to be newer than — so the freshness tests stand down
+    and say so, rather than comparing against a timestamp that does not exist.
     """
     y, tag = job["year"], job["tag"]
     state, detail = "OK", ""
@@ -570,26 +704,28 @@ def verify_step(job, step, rows, step_start=None):
                 else:
                     state, detail = _verify_ckpt_identity(ck, y, tag, mb, step_start)
         elif step == "evaluate":
-            import pandas as pd
             rep = BASE / "phase4" / "eval" / "semantic_eval_report.csv"
-            if not rep.exists():
-                state, detail = "MISSING", f"no {rep.name}"
-            else:
-                df = pd.read_csv(rep)
-                n = int((df["year"].astype(str) == str(y)).sum())
-                state = "OK" if n else "MISSING"
-                detail = f"{n} rows for year {y} in {rep.name}"
+            state, detail = _verify_eval_rows(rep, y, tag, step_start)
         elif step == "inference":
             out = MASKS / f"edmonds_canopy_prob_{y}_{tag}.tif"
             state, detail = _check_prob_raster(out)
     except Exception as e:                                      # noqa: BLE001
         state, detail = "UNCHECKED", f"{type(e).__name__}: {e}"[:200]
+    if reverify:
+        detail = f"[re-verify of a skipped step] {detail}"
     rec = dict(job=job["id"], year=y, tag=tag, step=f"VERIFY:{step}",
                state=state, exit="", minutes="", detail=detail,
                ts=_dt.datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
     rows.append(rec)
     _status_write(rows)
-    print(f"  VERIFY:{step} {job['id']}: {state}  {detail}")
+    if state in _VERIFY_UNVERIFIED:
+        # Loud, and worded so it can never be misread as a pass. It does not stop
+        # the job (a checker that throws is not proof the artifact is bad), but it
+        # is not evidence of anything either, and the next launch re-checks.
+        print(f"  VERIFY:{step} {job['id']}: {state} — COULD NOT CHECK THIS "
+              f"ARTIFACT, continuing UNPROVEN.  {detail}", flush=True)
+    else:
+        print(f"  VERIFY:{step} {job['id']}: {state}  {detail}")
     return state not in _VERIFY_HARD_FAIL
 
 
@@ -786,11 +922,14 @@ def main():
           f"train_queue_status*.csv)")
 
     rows = []                       # per-launch file holds only THIS launch's rows
-    done = set() if args.no_resume else _completed_steps()
+    done, reverify = (set(), set()) if args.no_resume else _completed_steps()
     if done:
         print(f"\n  RESUME: {len(done)} step(s) already OK across all status files "
               f"will be SKIPPED.")
         print(f"          (pass --no-resume to force everything to re-run)")
+    if reverify:
+        print(f"  RESUME: {len(reverify)} of those were last left UNVERIFIED — "
+              f"skipped but RE-CHECKED, not trusted.")
     t_all = _dt.datetime.now()
     for j in todo:
         _hr(f"JOB {j['id']}  (year {j['year']}, tag {j['tag']})")
@@ -799,7 +938,19 @@ def main():
         ran_any = False
         for st in STEPS:
             if (j["id"], st) in done:
-                print(f"  - skip {j['id']}/{st} (already OK)")
+                if (j["id"], st) in reverify:
+                    # D7: last time, the check itself failed — so this step is
+                    # recorded OK on no evidence. Re-CHECK it (seconds, no GPU);
+                    # do not re-RUN it (hours, and spend nobody approved).
+                    print(f"  - {j['id']}/{st} was left UNVERIFIED — re-checking "
+                          f"before trusting the skip")
+                    if not verify_step(j, st, rows, step_start=None, reverify=True):
+                        print(f"  ! {j['id']} skipped step '{st}' and its artifact "
+                              f"FAILED verification. Stopping this job.")
+                        ok = False
+                        break
+                else:
+                    print(f"  - skip {j['id']}/{st} (already OK)")
                 continue
             ran_any = True
             _t_step0 = time.time()

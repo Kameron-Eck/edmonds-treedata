@@ -1930,6 +1930,29 @@ decided: verdicts come from CURVE metrics (AUROC / PR-AUC), never matched-precis
          That is the real price of the Node C recipe and it was not visible in AUROC.
          CAVEAT held firmly: C-CAP 2016 scored against a 2009 raster, so real 2009->2016
          change lands in FP and FN. Magnitudes are not trustworthy; direction is.
+         ** THE DELIVERABLE IS CANOPY AREA, AND ON THAT METRIC NODE C IS NOT MARGINAL. **
+         Derived from the same confusion counts, no new scoring — predicted canopy px
+         (TP+FP) against reference canopy px (TP+FN):
+             region            Node B bias    Node C bias
+             all                 -20.9%          -8.7%
+             inside (dense)      -22.0%          -9.6%
+             OUTSIDE (sparse)     -6.4%          +4.8%
+         Node B UNDER-COUNTS CANOPY AREA BY A FIFTH. Node C more than HALVES that, and
+         improves |bias| in every region. For a product that IS canopy area over time, that
+         is a far larger effect than the +.0116 AUROC we have spent the night arguing about
+         — and AUROC is STRUCTURALLY BLIND to it, being threshold-free while area depends
+         entirely on where the operating point sits. The same is true of PR-AUC.
+         This is a candidate for the most important framing error of the campaign: every
+         verdict tonight (bands, UNRESOLVED, noise floors) was computed on RANKING metrics,
+         while the deliverable is an AREA metric that ranking cannot see.
+         CAVEATS, both real: (a) C-CAP 2016 scored against a 2009 raster, so genuine
+         2009->2016 change sits inside the absolute bias — the RELATIVE Node B vs Node C
+         comparison (same footprint, same reference) is the sound part, the absolute numbers
+         are not; (b) this is the sectors_v1 AOI (~10% of pixels), not citywide.
+         NEXT AND PRE-REGISTERED: does the area-bias improvement REPLICATE where the AUROC
+         gap did not? Running the same table on rgb3_nodeb_s1234 and nodec_s1234. If Node C's
+         area bias reproduces near -9% while its AUROC gap stayed inside noise, then the
+         UNRESOLVED verdict was answering a question the project does not actually ask.
 QUEUE ORDER AND WHY (2026-08-29 12:27Z): gpu35 = nodec_s1234 replicate -> then
          smooth5 (Kam's named arm, on the one guaranteed slot). gpu37 = 3-band noise floor
          -> then the GEOGRAPHIC HOLDOUT, not the third Node C seed. Reasoning: a third seed

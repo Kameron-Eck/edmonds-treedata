@@ -1,0 +1,23 @@
+# TRUE-SIGMA ARM, seed 777 — 2009, Node A recipe, ONLY the training seed differs.
+#
+# WHY THIS IS THE MOST LOAD-BEARING MEASUREMENT WE CAN MAKE. Every verdict this
+# week was read against sigma = .0100 recall, measured from 5 repeats that SHARED
+# seed 42 — so they varied only by hardware nondeterminism (cudnn.benchmark + AMP)
+# with initialisation, augmentation order and loader shuffling all identical. That
+# is a floor on a floor. The one accidental clue we have (two arms that trained on
+# scrambled identical tiles) differed by .046 — 4.6x the number we quote.
+#
+# --seed varies TRAINING stochasticity only. Tiling binds seed=RANDOM_SEED as
+# import-time defaults, so tile selection and the train/val/test SPLIT stay fixed
+# at 42 across these arms — deliberately. That isolates one variance source; SPLIT
+# variance (likely larger, since 3 selections ride on a ~120-tile val set) needs a
+# tiling-seed campaign and is NOT measured here. Say so when quoting the result.
+#
+# Baseline to compare against: fullext_sectors_v1, rec .6989 prec .8472 @0.5,
+# AUROC .9210, PR-AUC .8632 — same year, same recipe, seed 42.
+- id: "2009_seed777"
+  year: "2009"
+  tag: seed777
+  extra: ["--force-citywide", "--seed", "777", "--infer-aoi", "aoi/sectors_v1.json"]
+  why: "true retrain sigma: identical recipe, different training seed, split held fixed."
+  expect: "retile ~20 min (own arm dir); train ~30-40 min A100; inference ~5 min."

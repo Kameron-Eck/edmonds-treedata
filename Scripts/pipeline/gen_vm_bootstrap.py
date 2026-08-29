@@ -60,12 +60,37 @@ SESSION = {a.session!r}
 AUTH = "https://x-access-token:{tok}@github.com/Kameron-Eck/edmonds-treedata.git"
 MOUNT = {MOUNT!r}
 
-subprocess.run("curl -fsSL https://rclone.org/install.sh | bash",
-               shell=True, capture_output=True)
+# The installer used to run unchecked, so when it failed the script sailed on and
+# died 20 lines later with a bare FileNotFoundError: 'rclone' at the mount call —
+# measured on an L4 image 2026-08-29, after the same image class had worked on
+# A100. Silence is not success: verify the binary exists, retry, fall back to apt,
+# and if it is still missing say so WITH the installer's own output.
+def _have(binary):
+    return subprocess.run(["which", binary], capture_output=True).returncode == 0
+
+_inst = None
+for _attempt, _cmd in enumerate((
+        "curl -fsSL https://rclone.org/install.sh | bash",
+        "curl -fsSL https://rclone.org/install.sh | bash",   # transient network
+        "apt-get install -y -qq rclone")):                   # stale but present
+    if _have("rclone"):
+        break
+    _inst = subprocess.run(_cmd, shell=True, capture_output=True, text=True)
+if not _have("rclone"):
+    raise SystemExit("BOOTSTRAP FAIL: rclone not installed after 3 attempts. "
+                     "last stdout: %s | last stderr: %s"
+                     % ((_inst.stdout or "")[-800:] if _inst else "",
+                        (_inst.stderr or "")[-800:] if _inst else ""))
+print("rclone:", subprocess.run(["rclone", "version"], capture_output=True,
+                                text=True).stdout.splitlines()[0]
+      if _have("rclone") else "MISSING")
 # fuse3 is NOT preinstalled on Colab images; without fusermount3 the mount dies
 # with a bare "daemon exited" (measured 2026-08-26; the canary's root cause).
-if subprocess.run(["which", "fusermount3"], capture_output=True).returncode != 0:
+if not _have("fusermount3"):
     subprocess.run("apt-get install -y -qq fuse3", shell=True, capture_output=True)
+    if not _have("fusermount3"):
+        raise SystemExit("BOOTSTRAP FAIL: fuse3 missing after install; the mount "
+                         "would die with a bare 'daemon exited' (2026-08-26 canary)")
 open("/content/sa.json", "w").write(SA)
 os.makedirs("/root/.config/rclone", exist_ok=True)
 open("/root/.config/rclone/rclone.conf", "w").write(

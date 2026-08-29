@@ -84,6 +84,31 @@ Consequences for scheduling:
   greps only `LAUNCHED` exits 0 having launched nothing, and the VM then idles out
   to the watchdog with the work silently undone (this happened once, 2026-08-29).
 
+## NEVER run two colab CLI calls at once (measured 2026-08-29)
+
+A `colab exec` issued against a DYING session while another launcher was mid-
+bootstrap on a DIFFERENT session killed that launcher with SIGTERM (exit 15) and
+left a created-but-unbootstrapped VM behind. The CLI printed
+`Session 'gpu38' appears to be lost (404/401). Cleaning up.` and the cleanup took
+the sibling process with it.
+
+> **One colab CLI call at a time, always.** Bootstrap and launch belong in ONE
+> sequential script (see `seq_gpu39_smooth5.sh`), and no diagnostic exec may be
+> issued while any launcher is running. Check heartbeats — which are plain file
+> reads — instead of exec'ing when something else is in flight.
+
+This is the same discipline as "never kill mid-exec": these handles die
+permanently, and a lost handle strands a live VM that then bills until its
+watchdog fires.
+
+## Runtimes can vanish mid-queue
+
+`gpu38` (L4) died ~5 min into its queue: heartbeat stopped, and the next exec
+returned 404/401. Nothing was recoverable and the arm had to be relaunched from
+scratch. Treat any beacon older than ~4 min as a dead VM, not a slow one, and
+relaunch rather than investigate — investigating costs an exec, and the exec is
+what strands other sessions.
+
 ## Policy (P11.5 revision — takes effect when Kam merges CLAUDE.md)
 - STOP: always autonomous, never asked. Idle runtimes are a defect, not a resource.
 - CREATE for a queue Kam already approved by name (the kickoff-ask pattern): autonomous,

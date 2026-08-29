@@ -1,0 +1,64 @@
+# SELECT-SMOOTH ARM — 2009, 3-band, K=5 checkpoint selection. Kam 2026-08-29
+# ("run node B, and smooth the validation curve").
+#
+# ONE VARIABLE vs Node B (rgb3_nodeb): --select-smooth 5. Same 3 bands, same
+# projected-2020 citywide labels, same AOI, same default seed, same 30-epoch cap.
+#
+# WHAT THE FLAG DOES. Today the deployed checkpoint is the single epoch with the
+# highest validation IoU-at-best-threshold. K=5 instead scores each epoch by the
+# average of itself and its two neighbours on each side, and deploys the peak of
+# THAT curve. Early stopping is untouched — this changes which epoch is kept, and
+# nothing else about training.
+#
+# WHY IT IS WORTH AN A100 HOUR — measured offline tonight, no GPU, by replaying
+# the selection rule against seven arms' saved loss histories
+# (scratchpad/smooth_probe.py). In phase B of every single arm, the spread across
+# the top five candidate epochs is SMALLER than the average epoch-to-epoch wobble
+# of the same curve:
+#
+#   arm          top5 spread   mean |epoch-to-epoch|   ratio
+#   rgb3_ep60      .0024            .0049              0.49
+#   rgb3_nodeb     .0016            .0022              0.73
+#   nodec_v1       .0018            .0028              0.64
+#   seed1234       .0013            .0016              0.81
+#   corrupt25      .0007            .0016              0.44
+#   hybrid_v1      .0010            .0038              0.26
+#   chm2_v1        .0020            .0037              0.54
+#
+# Read plainly: the top five epochs are tied to within less than one epoch's
+# random jitter, so picking the argmax is close to drawing one of five at random,
+# and the one it draws is the one that got the luckiest validation noise. That is
+# selection ON noise, which is a mild form of overfitting the validation split.
+#
+# THE HYPOTHESIS THIS TESTS: the smoothed pick will score LOWER on validation (it
+# is not the val argmax by construction) but EQUAL OR BETTER on the independent
+# reference. Val down + independent up is the signature of removing selection
+# bias. Val down + independent down means the raw peak was real signal and this
+# flag should be left at 1.
+#
+# PRE-REGISTERED READ (curve metrics only — matched-precision recall is ~3x
+# noisier and is not the verdict metric). Baselines, both Node B, same recipe:
+#   rgb3_nodeb   AUROC .9063  PR-AUC .8365
+#   rgb3_ep60    AUROC .9086  PR-AUC .8322
+# Those two are the same recipe twice, so their gap IS the noise floor: .0023
+# AUROC / .0043 PR-AUC. Therefore:
+#   AUROC > .9109 (best baseline + noise floor)  = smoothing helps; test at K=3
+#                                                  and on Node C before adopting.
+#   AUROC inside .9063-.9109                     = INSEPARABLE from noise. The
+#                                                  honest output is "no measurable
+#                                                  effect at n=1", not a winner.
+#   AUROC < .9040                                = smoothing hurts; the raw val
+#                                                  peak carries real signal.
+# A single run CANNOT resolve an effect smaller than the noise floor, and this
+# arm is not expected to. Its job is to rule out a LARGE effect in either
+# direction cheaply, on a GPU that would otherwise sit idle.
+#
+# Retiles: new run_tag cuts a fresh per-arm tile dir (~15-20 min). Unavoidable
+# under tag isolation, and cheaper than risking the rgb3_nodeb baseline cache.
+- id: "2009_smooth5"
+  year: "2009"
+  tag: smooth5
+  extra: ["--force-citywide", "--no-hillshade", "--select-smooth", "5",
+          "--infer-aoi", "aoi/sectors_v1.json"]
+  why: "does averaging the validation curve before picking the deployed epoch beat picking its noisy argmax?"
+  expect: "retile ~15-20 min; train ~30-40 min A100; sample inference ~5 min."

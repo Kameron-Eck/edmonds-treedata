@@ -153,6 +153,15 @@ def test_colab_session_is_set_before_the_watchdog_is_spawned():
     assert set_at < spawn_at, (
         "COLAB_SESSION is set AFTER the watchdog is spawned — the watchdog cannot "
         "see it, so every VM writes one shared selfstop_vm.log")
-    # and it must still be set before the beacon, further down, for the same reason
-    beacon_at = src.index("vm_heartbeat")
-    assert set_at < beacon_at or beacon_at < set_at, "beacon reference not found"
+    # ...and before the beacon, further down, for the same reason. (Written first
+    # as `set_at < beacon_at or beacon_at < set_at`, which is true whenever the two
+    # differ — a check that cannot fail, inside the commit closing checks that
+    # cannot fail. Recorded because that is exactly how the class hides.)
+    # ANCHOR ON THE SPAWN, not the name: the first "vm_heartbeat" in this file is a
+    # comment inside the watchdog's own embedded source, ~230 lines above the beacon,
+    # so matching the bare name compared the env-var line against the wrong thing and
+    # failed on correct code.
+    beacon_at = src.index("nohup python -u vm_heartbeat.py")
+    assert set_at < beacon_at, "the beacon cannot see COLAB_SESSION either"
+    # (it is also passed --session explicitly on that command line, so the beacon
+    # does not depend on the environment the way the watchdog does)

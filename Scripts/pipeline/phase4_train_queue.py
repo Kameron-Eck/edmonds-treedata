@@ -1078,7 +1078,7 @@ def _load_queue(path):
 
 def verify(job, rows):
     """Job-end raster check (the historical VERIFY row scoring flows expect).
-    Never raises — this is unattended."""
+    Never raises — this is unattended. False on a hard failure."""
     out = MASKS / f"edmonds_canopy_prob_{job['year']}_{job['tag']}.tif"
     rec = dict(job=job["id"], year=job["year"], tag=job["tag"], step="VERIFY",
                state="", exit="", minutes="", detail="", **_ident(),
@@ -1091,6 +1091,11 @@ def verify(job, rows):
     rows.append(rec)
     _status_write(rows)
     print(f"  VERIFY {job['id']}: {rec['state']}  {rec['detail']}")
+    # Same contract as verify_step and _recheck_skipped_verify. This one returned
+    # None, so the job-end raster check — the MOST COMMON verify path — was the one
+    # the new exit code did not see: a job could end with its raster EMPTY and the
+    # queue still exited 0.
+    return rec["state"] not in _VERIFY_HARD_FAIL
 
 
 def _mb_from_verdict(detail):
@@ -1456,6 +1461,8 @@ def main():
         # holds its tag from then on, and the launch-time scan could not have seen
         # it. A clash here costs this ONE job, not the queue.
         if not _duplicate_tag_guard([j], rows, at_launch=False):
+            # skipped, not completed: it belongs in the exit code too
+            unconfirmed.append(j["id"])
             continue
         _declare_run_tags(todo, args.queue or "JOBS", job=j["id"])
         ok = True
@@ -1514,7 +1521,8 @@ def main():
             if not _recheck_skipped_verify(j, rows, verdicts.get(_vkey)):
                 ok = False
         elif ok:
-            verify(j, rows)
+            if not verify(j, rows):
+                ok = False
         if not ok:
             unconfirmed.append(j['id'])
 

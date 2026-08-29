@@ -709,3 +709,48 @@ def nir_mode():
     runtime — never capture it via `from config import *`.
     """
     return HS_SOURCE == HS_SOURCE_NIR
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+#  chm2 — CANOPY HEIGHT REBUILT FROM THE RAW 2016 POINTS   (APPENDED 2026-08-29;
+#  nothing above this line was edited — config.py is pure-move protected. The
+#  CLI derives --hs-source choices from sorted(HS_STATS), so these two
+#  assignments are all that is needed to make it selectable. _tile_signature
+#  hashes config.HS_SOURCE — the SELECTED value, not these dicts — so adding a
+#  key invalidates no existing tile cache and re-tiles nothing.)
+# ══════════════════════════════════════════════════════════════════════════════
+# WHY: band 4 is worth ~10 pp of recall (4-band .6989 vs 3-band .5990 at matched
+# precision, common 198.8 Mpx footprint) and its value concentrates in SMALL
+# crowns (+7.3 pp <5 m2, +8.0 pp 5-10 m2, +0.3 pp >100 m2). The raster carrying
+# it, HS_PATHS["chm"], is 3DEP HAG bilinear-upsampled from ~2 m onto a 1 m
+# EPSG:3857 grid (= 67 cm ground, Mercator-distorted). chm2 rebuilds the height
+# model from the 863.5M-return 2016 USGS COPC cloud on a 0.5 m EPSG:26910 grid
+# with NO reprojection, per-cell MAX height above ground, and the IDENTICAL uint8
+# encoding (DN = 1 + round(clip(h,0,50.6)/0.2), 0 = nodata) so the A/B is one
+# variable.  Builder: qc/build_chm2_2016.py.
+#
+# MEASURED 2026-08-29 against the raw points (interpolation-free: max return vs
+# min class-2 return in the SAME 2 m cell, 8.82M cells) — the old raster does NOT
+# read low on apexes as IMAGERY_FACTS 8.3 states, it reads HIGH almost
+# everywhere, because its effective support is ~3-6 m and it reports a
+# NEIGHBOURHOOD MAXIMUM rather than the height at the cell:
+#   * on ground the points measure as BARE (0.14 m), old says 4.90 m mean, and
+#     calls 57.3% of it taller than 2 m;
+#   * the +4.1 to +5.4 m offset holds in EVERY height bin, 0 m through 30 m;
+#   * zero shift minimises MAE, so it is not misregistration (r = 0.889);
+#   * independent check on verified_background_lidar_2005_2016.tif (flat in BOTH
+#     the 2005 and 2016 clouds, eroded 6 m, 691,905 cells): old mean 0.86 m and
+#     8.82% of certified-FLAT ground called taller than 2 m; chm2 mean 0.19 m
+#     and 0.01%.
+# Coverage is NOT the confound: 93.98% of the city polygon vs the old 95.13%, and
+# 84.1% of that 1.15 pp deficit is cells the old itself calls <2 m (its bilinear
+# bleed across shoreline/water nodata edges). The larger gap over the wider
+# extent is acquisition, not method — chm2 covers 91.41% inside the footprint of
+# the 40 laz tiles actually acquired, and nothing outside it.
+HS_PATHS["chm2"] = IMAGERY_DIR / "lidar_chm2_2016_50cm.tif"
+
+# /255 non-zero mean/std, computed by the SAME procedure as every entry above
+# (fetch_build_chm.py:153 — nz = arr[arr>0]/255, mean/std over the whole written
+# raster). Lower than "chm" because chm2 does not inflate open ground: its DN-1
+# (flat) share is 27.9% against the old raster's 10.1%.
+HS_STATS["chm2"] = ([0.1437], [0.2003])

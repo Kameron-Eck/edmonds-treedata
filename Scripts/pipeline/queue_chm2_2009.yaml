@@ -1,0 +1,32 @@
+# CHM2 ARM — 2009, 4-band, REBUILT height channel. Kam 2026-08-29 (all-night run).
+#
+# ONE VARIABLE vs NODE A (fullext_sectors_v1: AUROC .9210, PR-AUC .8632,
+# matched-precision recall .6989). Identical everything except --hs-source chm2.
+#
+# WHY. The 4th channel is worth ~10 pp of recall (Node A vs Node B) — the largest
+# lever measured in this project. But the raster supplying it is wrong. Adjudicated
+# against the raw 2016 points with NO interpolation in the loop (8.8M cells, max
+# return minus lowest class-2 return in the SAME cell):
+#   on ground: points 0.14 m · OLD raster 4.90 m mean, 57.3% called >2 m
+#   offset +4.1 to +5.4 m in EVERY bin 0-30 m (so not a roof artifact)
+#   NOT misregistration: MAE minimised at zero shift, r=.889 — agrees on WHERE, not HOW MUCH
+#   on certified-flat ground (flat in BOTH lidar epochs, eroded 6 m): old 0.86 m
+#   mean and 8.82% called >2 m; chm2 0.19 m and 0.01%
+# The old product has ~3-6 m effective support = a NEIGHBOURHOOD MAXIMUM. It smears
+# canopy height onto adjacent open ground. IMAGERY_FACTS 8.3's "reads low on conifer
+# apexes" has the SIGN BACKWARDS.
+#
+# chm2: 0.5 m (2x finer), EPSG:26910 native (no Mercator reprojection), same uint8
+# encoding so the A/B is one variable. Coverage 93.98% of the city vs old 95.13%,
+# and 84% of that deficit is cells the OLD calls <2 m (bilinear bleed at water edges).
+#
+# DIRECTION IS GENUINELY OPEN — do not assume a win. The old channel's inflation
+# painted "tall" onto lawns near trees, which plausibly HELPED recall by accident
+# while wrecking precision on grass. The 10 pp figure was earned with the inflated
+# channel. This measures whether a correct height model is actually better.
+- id: "2009_chm2"
+  year: "2009"
+  tag: chm2_v1
+  extra: ["--force-citywide", "--hs-source", "chm2", "--infer-aoi", "aoi/sectors_v1.json"]
+  why: "is a CORRECT height channel better than an inflated one?"
+  expect: "retile ~20 min (hs_source is signature-keyed); train ~30-60 min; inference ~5 min."

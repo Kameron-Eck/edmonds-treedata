@@ -1669,7 +1669,19 @@ decided: seed-varied arms (1234, 777) to measure TRUE retrain sigma — the bank
               steered by label error rather than model quality — and we already know the top
               five candidate epochs are tied within noise. That is a mechanism by which
               label correction could matter for SELECTION even where it does not matter for
-              LEARNING. Untested; noted as the strongest remaining hypothesis.
+              LEARNING. Untested.
+              ** SCOPED DOWN 12:45Z, same session — I called this "the strongest remaining
+              hypothesis" and the evidence I cited for it does not support the strong
+              version. The corrupt arms had their selection driven by heavily corrupted
+              validation labels and scored .9215 / .9210 / .9218 against clean's .9210 —
+              no penalty whatever. So selection-on-wrong-labels did not hurt HERE. Two
+              reasons that is not a full refutation: those arms also had corrupted TRAINING
+              labels, so learning and selection are confounded; and random displacement is a
+              different failure from the systematic label ABSENCE that Node C repairs
+              (2020-projected labels miss trees that existed in 2009 and were gone by 2020).
+              The honest status is: no support for the random-error version, untested for the
+              systematic-absence version, and not cheaply testable — separating the selection
+              channel would need per-epoch checkpoints scored on a clean val set.
          ** WAS THE BAD DRAW DETECTABLE BEFORE WE PAID FOR IT? YES, at n=3. ** Among the
          three same-recipe same-label runs, phase-A peaks were .6797 / .6802 / .6749 and
          final AUROC .9210 / .9194 / .9163 — the lowest phase A (seed777) is the lowest

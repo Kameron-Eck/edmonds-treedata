@@ -227,6 +227,36 @@ hardware nondeterminism plus threshold selection only. True retrain sigma needs
 a `--seed` flag (not built). Until it exists, no A/B smaller than ~2σ recall
 (~.02) is worth GPU time.
 
+### MEASURED 2026-08-29 — matched-precision recall is ~3x noisier than the curve metrics
+
+The `--seed` flag landed and the first seed-varied pair was run (2009, identical
+recipe, identical tiles, **only the training seed differs**):
+
+| | AUROC | PR-AUC | recall @ matched precision |
+|---|---|---|---|
+| seed 42 | .9210 | .8632 | **.6989** |
+| seed 1234 | .9194 | .8620 | **.6680** |
+
+**Three points of recall from a seed change** — 3x the banked .0100 floor — while
+AUROC moved **.0016** and PR-AUC **.0012**. The instability is not in the model;
+it is in the *metric*. Matched-precision recall requires solving for a threshold
+that hits a target precision, so any small shift in the probability distribution
+moves that threshold and swings recall. A curve metric has no threshold to move.
+
+**Consequences, and rule 1 above already implied them — this section exists because
+I wrote that rule and then read every verdict off the noisy instrument anyway:**
+
+1. **AUROC and PR-AUC are the VERDICT metrics.** Report matched-precision recall as
+   a product characteristic, never as the evidence that one arm beat another.
+2. **Re-read on curve metrics before quoting any A/B from before this date.** Doing
+   so on the 2026-08-28/29 arms *strengthened* Node C (AUROC +.0116 = 7x the seed
+   spread), *weakened* the damage curve's recall headline (5.5 pp = 1.8x), and turned
+   the chm2 result from a clean null into genuinely mixed (AUROC −.0057, PR-AUC +.0022).
+3. **n=1 pair is not a sigma.** A third seed is running; treat 3 pp as an order of
+   magnitude, not a measured spread.
+4. Still unmeasured and probably larger: **split variance**. Tiling binds its seed at
+   import, so `--seed` holds the train/val/test partition fixed by design.
+
 ---
 ## Validation Strategy
 ### Per-Year Validation

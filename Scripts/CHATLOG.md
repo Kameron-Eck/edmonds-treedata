@@ -1953,6 +1953,33 @@ decided: verdicts come from CURVE metrics (AUROC / PR-AUC), never matched-precis
          gap did not? Running the same table on rgb3_nodeb_s1234 and nodec_s1234. If Node C's
          area bias reproduces near -9% while its AUROC gap stayed inside noise, then the
          UNRESOLVED verdict was answering a question the project does not actually ask.
+         ** IT REPLICATES ON AREA. THE METRIC CHOSE THE VERDICT. **
+         (phase4/qc/region_confusion_2009_replication.md)
+             arm                 area bias        Node C improvement vs its Node B
+             rgb3_nodeb           -20.9%            run 1: +12.3 pp
+             rgb3_nodeb_s1234     -22.6%            run 2: +21.3 pp
+             nodec_v1              -8.7%          Node B own spread: 1.7 pp
+             nodec_s1234           -1.3%          Node C own spread: 7.4 pp
+         The SAME TWO RUNS that returned UNRESOLVED on AUROC are unambiguous here: both cut
+         the canopy-area under-count by 12-21 percentage points against a Node B pair that
+         reproduces itself to within 1.7 pp. A 7-12x margin. Node C REPLICATES on the metric
+         the project actually delivers, and did not on the metric I chose to judge it by.
+         ** AND THE OVERLAY-COSTS-STABILITY OBSERVATION IS NOW CONFIRMED ON A SECOND METRIC. **
+         Node C's area spread 7.4 pp vs Node B's 1.7 pp = 4.4x. The AUROC pair spreads were
+         .0063 vs .0015 = 4.2x. Two independent metrics, same factor. Promote from "weak
+         observation" to a measured effect: THE SPARSE OVERLAY ROUGHLY QUADRUPLES RUN-TO-RUN
+         VARIANCE. It buys accuracy and pays in stability. (Still n=2 pairs; the third Node C
+         seed now running gives n=3 on the expensive side.)
+         ** DEPLOYMENT RECIPE THAT FALLS OUT: Node C for the area gain + 3-seed ensemble for
+         the stability. ** That is exactly what the ensemble test found averaging is good
+         for — it removes variance rather than raising the mean (n=3 tied the best member on
+         AUROC, beat all members on PR-AUC). The two results compose.
+         CAVEATS UNCHANGED AND STILL BINDING: C-CAP 2016 against a 2009 raster puts real
+         2009->2016 change inside the ABSOLUTE bias, so only the RELATIVE comparison is
+         sound; sectors_v1 AOI (~10% of px), not citywide; and nodec_s1234 reaching -1.3%
+         is not "nearly unbiased" in any deployable sense — its precision fell to .7752 and
+         its FP:FN is 0.95, so it is close to unbiased by CANCELLATION of large opposite
+         errors, not by being right.
 QUEUE ORDER AND WHY (2026-08-29 12:27Z): gpu35 = nodec_s1234 replicate -> then
          smooth5 (Kam's named arm, on the one guaranteed slot). gpu37 = 3-band noise floor
          -> then the GEOGRAPHIC HOLDOUT, not the third Node C seed. Reasoning: a third seed

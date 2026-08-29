@@ -1491,9 +1491,55 @@ decided: seed-varied arms (1234, 777) to measure TRUE retrain sigma — the bank
          from 5 SAME-SEED repeats and is a floor on a floor. Split variance still unmeasured
          (tiling binds its seed at import) and is probably larger: 3 selections ride on a
          ~120-tile val set.
-next:    score chm2 (direction genuinely open — the inflation may have HELPED recall by
-         accident while wrecking grass precision) · nodeb_ep60 (do the two headline numbers
-         survive un-truncating?) · seeds -> sigma · then smoothing as its own arm.
+         ════ LATER THE SAME NIGHT — three hypotheses tested, TWO OF THEM MINE, BOTH DEAD ════
+         ** TRUNCATION: REFUTED. ** Above I wrote that EPOCHS_PHASE_B=30 truncates
+         asymmetrically and biases BOTH headline numbers. Tested it: reran Node B with
+         --epochs-phase-b 60. Log reads "Phase B stopped by PATIENCE after 32/60 epochs
+         (best epoch 17, patience 15)" — given room it did NOT keep climbing; it converged
+         and stopped on its own well short of the ceiling. Scored .9086 AUROC / .8322 PR-AUC
+         vs the 30-cap run's .9063 / .8365: differences of noise size that do not even agree
+         in sign. So the cap was not biasing the headline numbers, and NODE C'S WIN SURVIVES
+         a converged baseline (.9179/.8588 vs .906-.909/.832-.837, ~6x the seed spread on
+         AUROC). Correct the paragraph above accordingly: the cap-truncation concern was
+         real to raise and is now measured to be inert for this arm. --epochs-phase-b and
+         the stop-reason logging both stay; they are how it got settled.
+         ** CHM2: REFUTED. ** The corrected height channel scores ~ the inflated one. The
+         4-band model's height channel is not paying for measurement accuracy — its value is
+         COARSE STRUCTURE ("something tall-ish is here"), which the neighbourhood-maximum
+         smear preserves. Fixing the raster does not buy accuracy. (Curve metrics pending —
+         see next.)
+         ** CHECKPOINT SELECTION IS NEARLY A COIN FLIP — free, no GPU. ** New instrument
+         qc/phase4_select_smooth_probe.py replays the --select-smooth rule against saved loss
+         histories: it answers WHICH epoch each K would deploy, from files already on disk.
+         Across all 7 arms with histories, in phase B the spread over the TOP FIVE candidate
+         epochs is SMALLER than that same curve's mean epoch-to-epoch wobble (ratios .26-.81;
+         e.g. rgb3_ep60 top5 spread .0024 vs wobble .0049). Plain: the top five epochs are
+         tied to within less than one epoch of random jitter, so picking the argmax is close
+         to drawing one of five at random — and it draws whichever got the luckiest
+         validation noise. That is selection ON noise. K=5 changes the deployed epoch in 5 of
+         7 arms. This is the justification for running smoothing as its own arm.
+         ** NOISE FLOOR — my own error, caught before it set a verdict. ** I first wrote that
+         rgb3_nodeb vs rgb3_ep60 (.0023 AUROC) "is the noise floor". It is not: they differ
+         in the epoch cap AND the cap BOUND on the first (its best epoch was its last). Their
+         gap is cap-change + noise, an UPPER bound. The 3-band branch has NO clean same-recipe
+         repeat. Closest real number is the 4-band seed pair, .0016 AUROC. Working floor
+         ~.002, flagged soft in the queue file.
+         ** LAUNCHES (P11.6, all A100, all autonomous under Kam's all-night grant) **
+         gpu33 nodeb_ep60 (done, ~80 min, self-stopped by the watchdog on schedule — 2nd
+         proof the /proc-scan watchdog fires) · gpu34 seed777 (training) · gpu35 nodec_s1234
+         (Node C replicate at seed 1234 — the week's only positive rests on ONE run) ·
+         gpu36 smooth5 (select-smooth K=5 vs Node B) — all four with pre-registered reads in
+         their queue files.
+decided: verdicts come from CURVE metrics (AUROC / PR-AUC), never matched-precision recall —
+         I read every verdict off recall for a week despite writing the rule myself. Recall is
+         ~3x noisier (3 pp swing from seed alone vs .0016 AUROC).
+next:    score nodec_s1234 (pre-registered: within ~.002 of .9179 = replicated; back near
+         .906-.909 = the original was a lucky draw and must be reported as loudly as the
+         positive was) · seed777 -> report n=3 as a SPREAD (max-min), not a sigma, and note
+         it is Node-A-branch, a proxy for the 3-band comparisons · smooth5 vs Node B ·
+         4-band family (Node A / corrupt10-25-50 / chm2 / seeds) re-scored on curve metrics,
+         running local · PARKED for Kam: a systematic-ERASURE corruption arm (Node B vs C is
+         already that contrast, and erasure fights rule 6 ADD-ONLY — dose-response only).
 
 ## 2026-08-28  FACT TREE — Node B measured (CHM worth 10 pp), crown-touch built, damage curve launched (Fable 5 session)
 goal:    Kam's rule, adopted after three uninterpretable experiments: "change ONE thing at a

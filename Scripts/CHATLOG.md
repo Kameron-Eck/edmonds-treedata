@@ -1570,6 +1570,47 @@ decided: seed-varied arms (1234, 777) to measure TRUE retrain sigma — the bank
          ground; it does NOT prove the two RECIPES differ, because retrain noise is not in
          it. Rule adopted, and written into the tool's own output so it cannot be quoted
          without it: compare every gap against BOTH numbers and quote the LARGER.
+         ** n=3 SEEDS: THE ERROR BAR IS ~3x BIGGER THAN I HAD BEEN USING, AND IT
+         RETRACTS THREE OF TONIGHT'S OWN CLAIMS. ** seed777 landed (4-band branch,
+         phase4/qc/arm_pr_curves_2009_seeds3.md): AUROC .9210 / .9194 / .9163, PR-AUC
+         .8632 / .8620 / .8464. SPREAD (max-min, not a sigma — a 3-sample sigma has more
+         decimal places than information): .0047 AUROC, .0168 PR-AUC. I had been quoting
+         .0016 / .0012 from the n=2 pair. seed777 is the low draw and it widened everything.
+         RETRACTED tonight, all three because the gap is now inside the spread:
+           - "chm2 is measurably WORSE (-.0057 AUROC, ~3.5x seed noise)" — NO. -.0057 is
+             INSIDE a .0047 spread. Correct statement: chm2 is indistinguishable from the
+             inflated channel. The conclusion (fixing the raster buys nothing) stands; the
+             claim that it costs something does not.
+           - "PR-AUC registers the damage weakly (.0057 / .0064 at the top doses)" — NO.
+             Both are far inside a .0168 PR-AUC spread. Correct statement: NEITHER curve
+             metric registers label corruption up to 12.34%. AUROC flat AND PR-AUC within
+             retrain noise. That makes the damage-curve finding STRONGER, not weaker.
+           - "Node C is ~6x noise" — NO, ~2.5x on AUROC (.0116 vs .0047), and on PR-AUC
+             +.0223 vs a .0168 spread is only ~1.3x, i.e. PR-AUC ALONE would not carry it.
+             AUROC and the inside/outside split below are what carry it.
+         Lesson worth keeping: an error bar from n=2 is a guess. Every A/B verdict tonight
+         that sat under ~.005 AUROC was resting on it.
+         ** DID NODE C GENERALISE OR MEMORISE? — IT GENERALISED, AND THAT IS THE STRONGEST
+         RESULT OF THE WEEK. ** The obvious worry about training on ADDED labels is that the
+         model just repeats what it was told. Split the footprint by the overlay itself
+         (phase4/qc/nodec_gain_inside_vs_outside_2009.md; 15 m buffer so spillover beside an
+         added label is charged to INSIDE, not counted as transfer):
+             region                        dAUROC   95% CI            dPR-AUC
+             inside (labels added)         +.0043   [+.0032, +.0052]  +.0109
+             OUTSIDE (no labels added)     +.0303   [+.0221, +.0378]  +.0259
+         Note what OUTSIDE means precisely: ground where BOTH arms trained on the SAME
+         labels (the projected 2020 citywide mask; the overlay never touched it). Node C is
+         better there by +.0303 AUROC — ~6x the n=3 retrain spread, and SEVEN TIMES its own
+         gain inside the labelled region. Adding labels on a small area taught it something
+         that transferred to ground it was told nothing new about.
+         Mechanism that fits: inside is canopy-dense and the baseline was already good
+         (nodeb AUROC .8855 there); outside is canopy-sparse (PR-AUC only .2747) and is
+         exactly the ornamental/suburban under-prediction blind spot this project has been
+         chasing since 2026-07-05. The added labels repaired the weakness, not the strength.
+         CAVEAT, stated because it is easy to overread: inside and outside differ in canopy
+         density, so the two gaps sit in different difficulty regimes — "7x" is a comparison
+         of two gains, not a claim that outside improved 7x in some absolute sense.
+         THIS IS THE SCALING ARGUMENT: label a modest area, gain across the rest.
          ** LAUNCHES (P11.6, all A100, all autonomous under Kam's all-night grant) **
          gpu33 nodeb_ep60 (done, ~80 min, self-stopped by the watchdog on schedule — 2nd
          proof the /proc-scan watchdog fires) · gpu34 seed777 (training) · gpu35 nodec_s1234

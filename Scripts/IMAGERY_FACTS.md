@@ -257,9 +257,48 @@ source directories.
 1 m EPSG:3857 grid, quantised to **uint8 at 0.2 m/DN**, and **capped at 50.6 m** (CHATLOG
 records p99 = 44.6 m; western Washington Douglas-fir exceeds 50 m).
 
+> ### ⚠ THE SIGN IS BACKWARDS — MEASURED AND CORRECTED 2026-08-29
+>
+> The paragraph below reasoned from bilinear upsampling that the raster reads **low**. That
+> reasoning is sound about apexes but is **swamped by a much larger effect in the opposite
+> direction**, and the net error is high, not low.
+>
+> Adjudicated against the raw 2016 USGS point cloud (863.5 M returns) with NO interpolation in
+> the loop — max return minus lowest class-2 return **in the same 2 m cell**, 8,823,729 cells,
+> no ground fill, no resampling, no CRS change:
+>
+> | | raw points | `lidar_snoh_chm.tif` |
+> |---|---|---|
+> | mean height on ground | **0.14 m** | **4.90 m** |
+> | ground called taller than 2 m | — | **57.3%** |
+>
+> The offset is **+4.1 to +5.4 m in EVERY bin from 0 to 30 m**, including 20–30 m forest, so it
+> is not a roof-classification artifact. It is **not misregistration**: MAE is minimised at zero
+> shift and r = 0.8889 — the two rasters agree on *where* things are, not on *how much*.
+> Independent confirmation on `verified_background_lidar_2005_2016.tif` (flat in BOTH lidar
+> epochs, eroded 6 m, 691,905 cells): old mean **0.86 m** with **8.82%** of certified-flat ground
+> called >2 m; the rebuilt `chm2` gives **0.19 m** and **0.01%**.
+>
+> **Mechanism:** the product's effective support is ~3–6 m, so each cell reports a
+> **NEIGHBOURHOOD MAXIMUM** rather than the height at that cell — it smears canopy height onto
+> the open ground beside trees. Distribution: only **10.1%** of it is flat (DN 1) against
+> **27.9%** for the rebuilt version; median **6.8 m** vs **2.6 m**.
+>
+> **Consequence for every 4-band result to date:** the model's 4th channel has been telling it
+> that lawns next to trees are ~5 m tall. Whether that helped or hurt recall is genuinely open —
+> the inflation plausibly *helped* recall by accident while wrecking precision on grass — which
+> is what the `chm2_v1` A/B arm measures. The "height channel is worth 10 pp" figure
+> (Node A vs Node B, 2026-08-28) was earned with the INFLATED channel.
+>
+> Rebuilt product: `lidar_chm2_2016_50cm.tif` — 0.5 m, EPSG:26910 native (no Mercator
+> reprojection), same uint8 encoding so the A/B is one variable. Builder: `qc/build_chm2_2016.py`.
+> Coverage 93.98% of the city polygon vs 95.13%, and 84% of that deficit is cells the OLD one
+> itself calls <2 m.
+
 Bilinear upsampling **smooths local maxima**, and a canopy apex *is* a local maximum — so the
 raster reads **systematically low**, worst on narrow conical crowns, which is exactly what the
-conifer training sites are.
+conifer training sites are. *(Superseded — see the correction above. The apex-smoothing
+mechanism is real but is not the dominant error.)*
 
 > **Caveat on the caveat.** U6 ("CHM error cannot have made the staircase; it barely dents
 > it") injected **random Gaussian** error. Smoothing bias is **systematic and one-directional**,

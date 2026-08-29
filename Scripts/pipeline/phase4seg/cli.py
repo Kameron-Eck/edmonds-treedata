@@ -104,12 +104,40 @@ def main():
                         "init, augmentation order, loader shuffling. Tiling is "
                         "untouched by design: tiling.py binds seed=RANDOM_SEED as "
                         "default args at import, so tile selection and the "
-                        "train/val/test split stay fixed across --seed values. That "
-                        "isolation is the point: seed-varied repeats under one tag "
-                        "family measure TRUE retrain sigma (the 2026-08-27 noise "
-                        "campaign was same-seed and is a LOWER bound). Recorded in "
-                        "the manifest `seed` field. Default None = 42, byte-for-byte "
-                        "the historical behaviour.")
+                        "train/val/test split stay fixed across --seed values. The "
+                        "TRAIN/VAL split is pinned to config.SPLIT_SEED (42), which "
+                        "this flag does NOT patch — before 2026-08-29 it did, so on "
+                        "fine/medium/coarse-SITE years --seed silently re-drew the "
+                        "validation set while printing that the split was unchanged, "
+                        "and a seed-variance repeat measured training noise AND split "
+                        "noise together. That isolation is the point: seed-varied "
+                        "repeats under one tag family measure TRUE retrain sigma (the "
+                        "2026-08-27 noise campaign was same-seed and is a LOWER "
+                        "bound). Recorded in the manifest `seed` field. Default None "
+                        "= 42, byte-for-byte the historical behaviour.")
+    p.add_argument("--honest-val-split", action="store_true",
+                   help="OPT-IN honest validation hold-out (audit T1/T2). OFF by "
+                        "default and the default path is byte-identical to every run "
+                        "before 2026-08-29. ON: the train/val split is BLOCKED (whole "
+                        "spatial blocks held out, per site) instead of a random 15% "
+                        "drawn over tiles that overlap their neighbours by 50% "
+                        "(medium, stride 256) or 75% (coarse, stride 128), and the "
+                        "train-side buffer is measured in METRES (CANOPY_AUTOCORR_M "
+                        "= 520 m) instead of SPATIAL_BUFFER_PX = 512 px, which "
+                        "buffered nothing (a val tile's neighbours sit at Chebyshev "
+                        "exactly 512 and the retention test is '>='). A tile-time "
+                        "split that cannot be blocked is BUFFERED rather than left "
+                        "random, and a buffer that empties the training set is a hard "
+                        "error, never a silent fall-through. CHANGES ONLY THE SPLIT — "
+                        "the sampler, the pos_weight decision and the early-stop "
+                        "metric stay keyed on the citywide bin-balanced pool, "
+                        "unchanged. WARNING: fixing the split moves early stopping, "
+                        "LR scheduling and checkpoint selection, so an arm trained "
+                        "with this flag is NOT comparable with any arm trained "
+                        "without it — pair them deliberately, do not mix. Cached "
+                        "citywide tiles whose recorded split is already honest are "
+                        "reused; anything else (including every legacy index, which "
+                        "records no mode) re-tiles, ~20 min of GPU per year.")
     p.add_argument("--no-compile", action="store_true",
                    help="Skip torch.compile in training — avoids the slow first-build "
                         "warmup (the dynamo/inductor import that can look frozen for "
@@ -327,13 +355,23 @@ def main():
         # core._loader_generator (loader construction), and this module's
         # manifest line. tiling.py's defaults were bound at import and stay
         # at 42 ON PURPOSE (see --seed help: fixed split, varied training).
+        #
+        # T4 (2026-08-29): SPLIT_SEED is deliberately NOT patched here, and that
+        # is what finally makes the line printed below true. core.step_train's
+        # random-fallback split used to read this same patched RANDOM_SEED, so on
+        # every fine/medium/coarse-SITE year `--seed N` re-drew the validation set
+        # underneath a message promising it had not — while the buffer branch
+        # right beside it hardcoded seed=42 and ignored --seed entirely. Two
+        # sources of variance in one knob, reported as one.
         global RANDOM_SEED
         RANDOM_SEED = int(args.seed)
         config.RANDOM_SEED = int(args.seed)
         from phase4seg import core as _core_mod
         _core_mod.RANDOM_SEED = int(args.seed)
-        print(f"  [--seed] RANDOM_SEED overridden to {args.seed} for training "
-              f"(tile selection/split unchanged, still 42)")
+        print(f"  [--seed] RANDOM_SEED overridden to {args.seed} for TRAINING "
+              f"stochasticity only (init / augmentation / loader shuffle). Tile "
+              f"selection and the train/val split stay on SPLIT_SEED="
+              f"{config.SPLIT_SEED} — this flag does not reach them.")
 
     if args.check:
         print("[preflight] arguments parsed OK — command is valid.")
@@ -424,6 +462,11 @@ def main():
                 "argv": sys.argv[1:],
                 "run_tag": config.RUN_TAG, "step": step0,
                 "seed": int(RANDOM_SEED),
+                # T4: the two seeds are separate knobs and the manifest now says
+                # so. `seed` is training stochasticity; `split_seed` owns the
+                # train/val split and --seed does not reach it.
+                "split_seed": int(config.SPLIT_SEED),
+                "honest_val_split": bool(args.honest_val_split),
                 "years": {e["label"]: {"native": str(resolve_native_path(e)),
                                        "gsd_cm": e.get("gsd_cm")}
                           for e in entries},
@@ -542,6 +585,15 @@ def main():
     if args.force_citywide:
         print("  [--force-citywide] citywide 2020-mask recipe forced on ALL tiers "
               "(uniform recipe; only the sensor varies).")
+    # Audit T1/T2. Set on `config` (not the star-imported binding) because core
+    # and tiling froze their copies at import; every read site uses `config.`.
+    config.HONEST_VAL_SPLIT = bool(args.honest_val_split)
+    if config.HONEST_VAL_SPLIT:
+        print(f"  [--honest-val-split] train/val split BLOCKED, buffered "
+              f"{CANOPY_AUTOCORR_M:.0f} m (not SPATIAL_BUFFER_PX={SPATIAL_BUFFER_PX}). "
+              f"Split only — sampler / pos_weight / early-stop metric UNCHANGED. "
+              f"NOT comparable with any arm trained without this flag: it moves "
+              f"early stopping, LR scheduling and checkpoint selection.")
     # Edit F: --loss-mode overrides the coarse-tier loss (focal A/B); fine/medium
     # stay bce_dice. Mutating the dict contents (no rebind) → no `global` needed.
     if args.loss_mode:

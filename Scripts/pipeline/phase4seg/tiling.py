@@ -478,6 +478,37 @@ def _assign_blocks(records, gsd_m, block_size_m=SPATIAL_BLOCK_SIZE_M):
     return block_px
 
 
+def _drop_buffered_train(records, gsd_m, buffer_m, min_px=0):
+    """Mark every train record within `buffer_m` (Chebyshev, on the ground) of a
+    held-out record as ``split='drop'``. Returns the number dropped.
+
+    Lifted VERBATIM out of _block_partition (2026-08-29) so the degraded fallback
+    can reuse the identical buffer under --honest-val-split. `min_px` is a FLOOR
+    on the pixel buffer, passed as TILE_SIZE by the honest paths so the zero-pixel
+    -overlap invariant is structural rather than a consequence of 520 m happening
+    to exceed one tile at every real GSD. Default 0 ⇒ the historical expression
+    `buf_px = buffer_m / gsd_m`, unchanged.
+
+    Callers must pass records that share ONE coordinate space (the citywide pool
+    does; 6-site crops do not — group by site there).
+    """
+    buf_px = max(buffer_m / gsd_m, float(min_px))
+    held = [(r["row_off"], r["col_off"]) for r in records
+            if r["split"] in ("val", "test")]
+    n_drop = 0
+    if held:
+        hp = np.asarray(held, dtype=np.float64)
+        for r in records:
+            if r["split"] != "train":
+                continue
+            d = np.maximum(np.abs(hp[:, 0] - r["row_off"]),
+                           np.abs(hp[:, 1] - r["col_off"])).min()
+            if d < buf_px:
+                r["split"] = "drop"
+                n_drop += 1
+    return n_drop
+
+
 def _block_partition(records, gsd_m, val_frac=COARSE_VAL_FRAC,
                      test_frac=COARSE_TEST_FRAC, buffer_m=CANOPY_AUTOCORR_M,
                      seed=RANDOM_SEED):
@@ -490,20 +521,50 @@ def _block_partition(records, gsd_m, val_frac=COARSE_VAL_FRAC,
     a degraded split (no test, random val, nothing dropped) and flags it when
     blocking can't form non-empty val AND test (e.g. partial-coverage years with
     too few blocks). Returns a status dict for logging.
+
+    T3 (2026-08-29): the status now carries ``mode``, and the caller PERSISTS it
+    into the tile index and the meta json. Before that, a degraded split and a
+    blocked one produced byte-indistinguishable indexes — the ``block`` column is
+    written either way — and core inferred "BLOCKED" from `len(val_df) > 0`, which
+    a degraded split also satisfies. Tiling is cached, so the single warning
+    printed here never reappeared on any retrain of that year.
     """
     block_px = _assign_blocks(records, gsd_m)
     n = len(records)
     rng = np.random.RandomState(seed)
     status = {"blocks": 0, "block_px": block_px, "degraded": False,
-              "train": 0, "val": 0, "test": 0}
+              "mode": SPLIT_MODE_BLOCKED, "buffer_m": float(buffer_m),
+              "dropped": 0, "train": 0, "val": 0, "test": 0}
 
     def _degraded():
         status["degraded"] = True
+        status["mode"] = SPLIT_MODE_DEGRADED
+        # Reset: the blocked path may already have counted its own buffer drops
+        # before bailing here, and _degraded reassigns EVERY record, clearing
+        # them. Leaving the stale count would report drops that no longer exist.
+        status["dropped"] = 0
         idx = list(range(n)); rng.shuffle(idx)
         n_val = max(1, int(round(val_frac * n)))
         val_ids = set(idx[:n_val])
         for i, r in enumerate(records):
             r["split"] = "val" if i in val_ids else "train"
+        # --honest-val-split: the random draw stands (blocking is impossible
+        # here), but the train side is still buffered, so the val tiles are not
+        # 50–75%-overlapping neighbours of training tiles. Consumes no RNG, so
+        # the flag-OFF path below is bit-identical to the historical fallback.
+        if config.HONEST_VAL_SPLIT:
+            status["mode"] = SPLIT_MODE_DEG_BUF
+            status["dropped"] = _drop_buffered_train(records, gsd_m, buffer_m,
+                                                     min_px=TILE_SIZE)
+            if not any(r["split"] == "train" for r in records):
+                raise RuntimeError(
+                    f"--honest-val-split: blocking was impossible for this tile "
+                    f"pool ({n} tiles, {status['blocks']} blocks) and the "
+                    f"{buffer_m:.0f} m buffer around the random {n_val}-tile val "
+                    f"draw then consumed EVERY training tile. Refusing to train on "
+                    f"a leaked split. Widen this year's coverage, or drop "
+                    f"--honest-val-split and accept (and report) a leaked val "
+                    f"set — which is what the flag exists to stop.")
         status["train"] = sum(r["split"] == "train" for r in records)
         status["val"]   = sum(r["split"] == "val" for r in records)
         status["test"]  = 0
@@ -535,18 +596,13 @@ def _block_partition(records, gsd_m, val_frac=COARSE_VAL_FRAC,
                       else "val" if r["block"] in val_blocks else "train")
 
     # Buffer: drop train tiles within buffer_m (Chebyshev) of any held-out tile.
-    buf_px = buffer_m / gsd_m
-    held = [(r["row_off"], r["col_off"]) for r in records
-            if r["split"] in ("val", "test")]
-    if held:
-        hp = np.asarray(held, dtype=np.float64)
-        for r in records:
-            if r["split"] != "train":
-                continue
-            d = np.maximum(np.abs(hp[:, 0] - r["row_off"]),
-                           np.abs(hp[:, 1] - r["col_off"])).min()
-            if d < buf_px:
-                r["split"] = "drop"
+    # min_px=TILE_SIZE only when the honest flag is on — with it off this is the
+    # historical `buf_px = buffer_m / gsd_m` exactly (520 m already exceeds one
+    # tile at every catalogued GSD, so the floor changes nothing in practice; it
+    # makes the no-overlap guarantee structural rather than incidental).
+    status["dropped"] = _drop_buffered_train(
+        records, gsd_m, buffer_m,
+        min_px=TILE_SIZE if config.HONEST_VAL_SPLIT else 0)
 
     status["train"] = sum(r["split"] == "train" for r in records)
     status["val"]   = sum(r["split"] == "val" for r in records)
@@ -672,17 +728,40 @@ def _meta_path(label):
 def _existing_tiles_valid(label, sig):
     """True iff a complete tile set matching ``sig`` is already on disk: sidecar
     meta matches the signature, the index exists, and every referenced tile file
-    is present. Any mismatch/missing file → False (re-tile)."""
+    is present. Any mismatch/missing file → False (re-tile).
+
+    2026-08-29 (T3): the meta json also carries ``split_status``, which is NOT a
+    signature component — it describes what the split turned out to be, not what
+    was asked for. It is stripped by NAME (config.META_NONSIG_KEYS) before the
+    comparison, so recording it forces no re-tile and a legacy meta written
+    without it still validates.
+
+    --honest-val-split additionally refuses a cache whose recorded split is not
+    one of config.HONEST_SPLIT_MODES — including a legacy cache, which records no
+    mode at all and may well hold a degraded random split. That is the ONLY thing
+    that can make an honest run re-tile: the flag is deliberately kept out of
+    _tile_signature, so with it off nothing re-tiles, and with it on a year whose
+    cached split is already honest is reused as-is (a needless re-tile is ~20 min
+    of GPU per year).
+    """
     mp = _meta_path(label)
     idx = tile_dir_for(label) / f"tile_index_{label}.csv"
     if not (mp.exists() and idx.exists()):
         return False
     try:
         stored = json.loads(mp.read_text())
+        stored_status = stored.get("split_status") or {}
+        stored = {k: v for k, v in stored.items() if k not in META_NONSIG_KEYS}
         want = dict(sig)
         if "ortho" not in stored:
             want.pop("ortho", None)   # legacy (pre-P6.6) cache: honored, ortho unchecked
         if stored != want:
+            return False
+        if config.HONEST_VAL_SPLIT and \
+                stored_status.get("mode") not in HONEST_SPLIT_MODES:
+            print(f"  [--honest-val-split] cached tiles for {label} record split "
+                  f"mode {stored_status.get('mode') or 'NONE (legacy index)'} — "
+                  f"not an honest hold-out; re-tiling.")
             return False
         df = pd.read_csv(idx)
     except Exception:
@@ -1096,11 +1175,42 @@ def step_tile(label, sites, dry_run=False, max_tiles=None, stride_override=None,
         for r in forced:                       # curated negatives → always train
             r["split"] = "train"
             r.setdefault("block", "neg")
+        # T5 (MEASURED 2026-08-29 over the 19 live tile indexes that carry val
+        # rows): the pin above is unconditional, so curated negative-site tiles
+        # skip _block_partition and never see its buffer. In ALL 18 of those
+        # years that are in YEAR_CATALOG, the nearest negative-site TRAIN tile
+        # lies inside the 520 m buffer; in SEVEN of them it is closer than one
+        # TILE_SIZE — 2000 (241px), 2002 (182), 2005 (289), 2006s (172), 2007
+        # (466), 2021 (399), 2022 (195) — i.e. it SHARES PIXELS with a validation
+        # tile. 2022n (84px, no catalog entry) makes eight across all 19.
+        # Same leak as T1/T2, different door.
+        # Buffered here only under the flag: dropping curated hard negatives has
+        # a real cost (they are what suppresses grass/developed false positives),
+        # so it is a deliberate opt-in, not a silent default change.
+        n_forced_drop = 0
+        if config.HONEST_VAL_SPLIT:
+            n_forced_drop = _drop_buffered_train(
+                forced + [r for r in sampled if r["split"] in ("val", "test")],
+                gsd_m=entry["gsd_cm"] / 100.0, buffer_m=CANOPY_AUTOCORR_M,
+                min_px=TILE_SIZE)
+            forced = [r for r in forced if r["split"] != "drop"]
+            print(f"  [--honest-val-split] dropped {n_forced_drop} curated "
+                  f"negative-site tile(s) inside the hold-out buffer "
+                  f"({len(forced)} kept) — they are pinned to train and would "
+                  f"otherwise skip the buffer entirely")
         all_records = sampled + forced
+        split_status = dict(st, forced_train=len(forced),
+                            forced_dropped=n_forced_drop)
         if st["degraded"]:
+            # T3: this warning used to be the ONLY record that the split was
+            # random, and tiling is cached, so it never printed again on any
+            # retrain of the year. The mode is now written to the index and the
+            # meta json below, where every later reader can see it.
             print(f"  ⚠ blocked split DEGRADED (blocks={st['blocks']}): no held-out "
-                  f"test, random val — partial coverage / too few blocks")
-        print(f"  Blocked split: train {st['train']} (+{len(forced)} neg-site) / "
+                  f"test, random val — partial coverage / too few blocks "
+                  f"[mode={st['mode']}]")
+        print(f"  {'Blocked' if not st['degraded'] else 'DEGRADED'} split "
+              f"[{st['mode']}]: train {st['train']} (+{len(forced)} neg-site) / "
               f"val {st['val']} / test {st['test']}  (dropped {n_drop} buffer "
               f"tiles; block={st['block_px']}px, buffer={CANOPY_AUTOCORR_M:.0f}m)")
     else:
@@ -1113,10 +1223,21 @@ def step_tile(label, sites, dry_run=False, max_tiles=None, stride_override=None,
                 tile_names, test_size=tp["test_frac"], stratify=site_of,
                 random_state=RANDOM_SEED)
             train_set = set(train_names)
+            # T3: a TILE-LEVEL random test split. At medium (stride 256) and
+            # coarse (stride 128) every "held-out" test tile overlaps a training
+            # tile by 50%/75% of its linear extent. Recorded honestly rather than
+            # left to be inferred from the presence of test rows.
+            split_status = {"mode": SPLIT_MODE_SITEWISE, "degraded": False,
+                            "stride": int(stride), "tile_size": TILE_SIZE,
+                            "overlapping": stride < TILE_SIZE,
+                            "test_frac": tp["test_frac"]}
         else:
             if tp["has_test"]:
                 print("  (too few tiles/sites for a stratified test split — all train)")
             train_set = set(tile_names)
+            split_status = {"mode": SPLIT_MODE_ALL_TRAIN, "degraded": False,
+                            "stride": int(stride), "tile_size": TILE_SIZE,
+                            "overlapping": stride < TILE_SIZE, "test_frac": 0.0}
         for r in all_records:
             r["split"] = "train" if r["tile_name"] in train_set else "test"
 
@@ -1197,6 +1318,15 @@ def step_tile(label, sites, dry_run=False, max_tiles=None, stride_override=None,
             "tile_name": rec["tile_name"], "site": rec["site"], "split": split,
             "row_off": rec["row_off"], "col_off": rec["col_off"],
             "canopy_frac": rec["canopy_frac"], "block": rec.get("block", ""),
+            # T3: HOW this row's split was drawn. The `block` column above is
+            # written on every path — including the degraded random fallback,
+            # which bails AFTER _assign_blocks — so it can never distinguish a
+            # blocked split from a random one. This column can. Constant across
+            # the index by construction; carried per row so any reader that
+            # touches only the CSV (QC scripts, core.step_train/step_evaluate)
+            # sees it without needing the meta sidecar, which the 6-site path
+            # does not write at all.
+            "split_mode": split_status.get("mode", ""),
             "img_path": str(img_out), "mask_path": str(mask_out),
             "height_path": height_out,
         })
@@ -1213,11 +1343,19 @@ def step_tile(label, sites, dry_run=False, max_tiles=None, stride_override=None,
     # Sidecar signature enables idempotent reuse next session (see step_tile top).
     # Written last so an interrupted write never leaves a "valid" marker.
     if citywide:
-        _meta_path(label).write_text(json.dumps(
-            _tile_signature(label, stride, max_tiles, citywide)))
+        # split_status rides ALONGSIDE the signature, never inside it: it records
+        # what the split turned out to be, not what was requested, and putting it
+        # in _tile_signature would invalidate every cached tile set on this
+        # repo — ~20 min of GPU per year for a reporting field.
+        # _existing_tiles_valid strips it by name before comparing.
+        _meta_path(label).write_text(json.dumps({
+            **_tile_signature(label, stride, max_tiles, citywide),
+            "split_status": split_status,
+        }))
     n_tr = (index_df["split"] == "train").sum()
     n_va = (index_df["split"] == "val").sum()
     n_te = (index_df["split"] == "test").sum()
     print(f"  ✓ {len(index_rows)} tiles  (train {n_tr} / val {n_va} / "
-          f"test {n_te})  → {index_path.name}")
+          f"test {n_te})  [split_mode={split_status.get('mode', '?')}]"
+          f"  → {index_path.name}")
 

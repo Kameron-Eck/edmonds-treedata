@@ -449,6 +449,117 @@ def make_spatial_buffer_splits(df, n_folds=5, buffer_px=512, seed=42):
     return folds
 
 
+# ── honest blocked hold-out (2026-08-29, audit T1/T2) ─────────────────────────
+#
+# What was wrong with the two paths above it:
+#
+#   T1  medium/coarse tiles OVERLAP (TILE_SIZE 512, stride 256 / 128), and the
+#       spatial-buffer branch in step_train was gated on `tier_stride >=
+#       TILE_SIZE`, so both tiers fell through to a plain random 15% split. Every
+#       validation tile therefore shared 50% (medium) or 75% (coarse) of its
+#       linear extent with a training tile. The whole 2009 campaign is medium.
+#
+#   T2  SPATIAL_BUFFER_PX = 512 buffers nothing even where the branch DOES run.
+#       The retention test is `md[i] >= buffer_px`, and at fine stride 512 a val
+#       tile's eight neighbours sit at Chebyshev distance exactly 512 — so every
+#       direct neighbour is retained in train. The same config file defines
+#       CANOPY_AUTOCORR_M = 520 METRES as the citywide buffer: two notions of
+#       spatial independence an order of magnitude apart, one file apart.
+#
+# This function is the opt-in replacement: blocks on the ground, buffered in
+# metres, floored at one tile so "no pixel overlap" is structural.
+
+def make_blocked_val_split(df, gsd_m, val_frac=None, buffer_m=None,
+                           block_size_m=None, seed=None):
+    """Spatially BLOCKED train/val split over a training pool. Per SITE.
+
+    Whole spatial blocks (``block_size_m`` on the ground) are held out until
+    ``val_frac`` of the tiles are in val, then every train tile within
+    ``buffer_m`` (Chebyshev, on the ground, floored at one TILE_SIZE) of a val
+    tile is dropped. Blocks and distances are computed WITHIN each site: 6-site
+    records carry row_off/col_off in their own site-crop pixel space
+    (tiling.tile_site_native), so a cross-site distance is meaningless — and also
+    unnecessary, since separate site crops never overlap.
+
+    Uses its own ``np.random.RandomState(SPLIT_SEED)`` — never the global RNG,
+    and never RANDOM_SEED, which ``--seed`` patches (T4).
+
+    Returns ``(train_idx, val_idx, status)`` as positional index arrays into
+    ``df``. On failure returns ``(None, None, status)`` with ``status['error']``
+    set — the caller must refuse to train rather than fall back to a leaked
+    split, which is the exact failure mode this replaces.
+    """
+    val_frac    = config.HONEST_VAL_FRAC if val_frac is None else val_frac
+    buffer_m    = CANOPY_AUTOCORR_M if buffer_m is None else buffer_m
+    block_size_m = SPATIAL_BLOCK_SIZE_M if block_size_m is None else block_size_m
+    seed        = SPLIT_SEED if seed is None else seed
+
+    n = len(df)
+    block_px = max(TILE_SIZE, int(round(block_size_m / gsd_m)))
+    buf_px   = max(buffer_m / gsd_m, float(TILE_SIZE))
+    rows = df["row_off"].to_numpy()
+    cols = df["col_off"].to_numpy()
+    sites = df["site"].to_numpy()
+    keys = [f"{s}|{int(r) // block_px}_{int(c) // block_px}"
+            for s, r, c in zip(sites, rows, cols)]
+    status = {"mode": SPLIT_MODE_BLOCKED_TT, "tiles": n, "block_px": block_px,
+              "buffer_px": buf_px, "buffer_m": float(buffer_m),
+              "sites": int(len(set(sites.tolist()))),
+              "blocks": int(len(set(keys))), "val": 0, "train": 0, "dropped": 0,
+              "error": ""}
+    if status["blocks"] < 2:
+        status["error"] = (
+            f"only {status['blocks']} spatial block(s) across {status['sites']} "
+            f"site(s) at block={block_px}px ({block_size_m:.0f} m / "
+            f"{gsd_m * 100:.1f} cm GSD) — nothing can be held out")
+        return None, None, status
+
+    rng = np.random.RandomState(int(seed))
+    uniq = sorted(set(keys))
+    order = list(rng.permutation(len(uniq)))
+    counts = {k: keys.count(k) for k in uniq}
+    val_keys, acc = set(), 0
+    for i in order:
+        if acc >= val_frac * n:
+            break
+        val_keys.add(uniq[i]); acc += counts[uniq[i]]
+    # Never hold out everything: leave at least one block on the train side.
+    if len(val_keys) >= len(uniq):
+        val_keys.discard(uniq[order[-1]])
+
+    is_val = np.array([k in val_keys for k in keys], dtype=bool)
+    if not is_val.any() or is_val.all():
+        status["error"] = (f"block hold-out produced {int(is_val.sum())}/{n} val "
+                           f"tiles from {len(uniq)} blocks — degenerate")
+        return None, None, status
+
+    # Buffer, per site: drop train tiles too close to a val tile of the SAME site.
+    keep = ~is_val
+    for s in sorted(set(sites.tolist())):
+        in_site = sites == s
+        v = np.where(in_site & is_val)[0]
+        t = np.where(in_site & keep)[0]
+        if len(v) == 0 or len(t) == 0:
+            continue
+        d = np.minimum.reduce([
+            np.maximum(np.abs(rows[t] - rows[j]), np.abs(cols[t] - cols[j]))
+            for j in v])
+        keep[t[d < buf_px]] = False
+
+    train_idx = np.where(keep)[0]
+    val_idx   = np.where(is_val)[0]
+    status["val"]     = int(len(val_idx))
+    status["train"]   = int(len(train_idx))
+    status["dropped"] = int(n - len(train_idx) - len(val_idx))
+    if len(train_idx) == 0:
+        status["error"] = (
+            f"the {buffer_m:.0f} m buffer around {len(val_idx)} val tiles "
+            f"consumed every one of the {n - len(val_idx)} remaining training "
+            f"tiles — the pool is smaller than the canopy autocorrelation range")
+        return None, None, status
+    return train_idx, val_idx, status
+
+
 def _masked_l1(pred, target):
     """Mean L1 over VALID height pixels only (target >= 0; -1 = nodata/invalid
     sentinel). pred/target are B×1×H×W. Returns 0 when no valid pixels in the batch
@@ -1090,7 +1201,8 @@ def _deploy_smoothed_keeping_raw(sel, best_ckpt, history, extra):
 
 
 def _finish_selection(label, history, es_metric, es_maximize, best_val, raw_best,
-                      smooth_k, sel, best_ckpt, stop_a, stop_b, ran_b):
+                      smooth_k, sel, best_ckpt, stop_a, stop_b, ran_b,
+                      val_split=None):
     """Deploy the chosen epoch, write the loss history, and record WHY it stopped.
 
     At K=1 `sel` is None: best_ckpt already holds the raw-peak epoch, written
@@ -1170,6 +1282,12 @@ def _finish_selection(label, history, es_metric, es_maximize, best_val, raw_best
 
     summary = {
         "es_metric": es_metric,
+        # T3: WHICH split the early-stop metric above was measured on. Every
+        # number in this summary — the selected epoch, the stop reason, best_val
+        # — is conditioned on it, and until now nothing recorded it, so a run
+        # scored on a leaked val set looked exactly like a run scored on a
+        # blocked one. Reporting only; nothing is keyed on it.
+        "val_split_mode": val_split or "unrecorded",
         "select_smooth_k": smooth_k,
         "deployed_by": deployed,
         "stop_reason_a": stop_a, "stop_reason_b": stop_b,
@@ -1244,6 +1362,125 @@ def _set_encoder_bn_eval(model):
 
 
 # ══════════════════════════════════════════════════════════════════════════════
+#  Which split am I actually looking at? (2026-08-29, audit T3)
+#
+#  tiling.py now writes a `split_mode` column into every tile index and a
+#  `split_status` block into the citywide meta json. These two helpers are the
+#  only readers. Reporting only — no behaviour is keyed on them; the recipe
+#  boolean in step_train stays `len(val_df) > 0` exactly as before.
+# ══════════════════════════════════════════════════════════════════════════════
+
+def _index_split_mode(idx_df):
+    """The split mode recorded in a tile index, or "" for an index written
+    before the column existed. Constant across the index by construction; the
+    first non-empty value wins, and a disagreement is surfaced rather than
+    silently resolved."""
+    if "split_mode" not in idx_df.columns:
+        return ""
+    vals = {str(v) for v in idx_df["split_mode"].dropna().tolist() if str(v)}
+    if not vals:
+        return ""
+    if len(vals) > 1:
+        print(f"  WARNING: tile index carries MIXED split_mode values {sorted(vals)} "
+              f"— reporting the lot; the index was not written by one tiling run.")
+        return "+".join(sorted(vals))
+    return vals.pop()
+
+
+def _split_mode_label(mode):
+    """Human label for a persisted split mode. An index with no recorded mode
+    reports UNKNOWN, never BLOCKED — that inference is the bug (T3): a random
+    degraded split satisfies every test the old code applied."""
+    if not mode:
+        return ("UNKNOWN(legacy index, pre-2026-08-29 — mode not recorded; "
+                "may be a DEGRADED random split)")
+    if mode in HONEST_SPLIT_MODES:
+        return f"BLOCKED({mode})"
+    return f"DEGRADED/LEAKY({mode})"
+
+
+def _choose_val_split(train_df, tier, gsd_m):
+    """Pick the training-time train/val split for a pool with NO index-carved
+    val set. Returns ``(ftr, fva, mode, notes)``; ``notes`` are lines for the
+    caller to print, so this stays pure enough to diff-test.
+
+    Lifted VERBATIM out of step_train (2026-08-29) apart from three changes,
+    each visible here:
+
+      1. the ``config.HONEST_VAL_SPLIT`` branch at the top — OPT-IN, so with the
+         flag off it does not execute and what follows is the historical chain;
+      2. ``random_state=SPLIT_SEED`` where the original read ``RANDOM_SEED``
+         (T4). Both are 42 by default, so the default result is identical; the
+         difference is that ``--seed N`` no longer re-draws the validation set
+         while the run prints that the split is unchanged;
+      3. the mode strings, which are new and are reporting only.
+
+    What the historical chain does, and why it leaks:
+      • fine tier (stride == TILE_SIZE): a 5-fold spatial-buffer split with a
+        FIXED-PIXEL buffer of SPATIAL_BUFFER_PX = 512 — which retains every
+        direct neighbour, because neighbours sit at Chebyshev exactly 512 and
+        the retention test is ``>=`` (T2);
+      • medium/coarse: the branch is gated on ``tier_stride >= TILE_SIZE`` and
+        those tiers stride 256/128, so they fall through to a plain random 15%
+        split over tiles that overlap their neighbours by 50%/75% (T1).
+    """
+    notes = []
+    tier_stride = TIER_TILE_PARAMS[tier]["stride"]
+    ftr = fva = None
+    mode = ""
+
+    # ── OPT-IN honest hold-out (T1/T2). Gated on the flag, read through
+    #    `config.` because cli.py sets it at run time and the star-import
+    #    binding here was frozen at import. Off ⇒ this whole block is skipped.
+    if config.HONEST_VAL_SPLIT:
+        tr_idx, val_idx, st = make_blocked_val_split(train_df, gsd_m)
+        if tr_idx is None:
+            raise RuntimeError(
+                f"--honest-val-split: no honest hold-out is possible for this "
+                f"{tier} pool of {len(train_df)} tiles — {st['error']}. Refusing "
+                f"to fall back to the random split, which is what the flag "
+                f"exists to prevent. Tile more area, or drop the flag and accept "
+                f"(and report) a leaked validation set.")
+        notes.append(
+            f"  Val split: BLOCKED hold-out computed at train time — "
+            f"{st['val']} val / {st['train']} train, {st['dropped']} buffer tiles "
+            f"dropped ({st['blocks']} blocks over {st['sites']} site(s); "
+            f"block={st['block_px']}px, buffer={st['buffer_m']:.0f}m"
+            f"={st['buffer_px']:.0f}px)")
+        return (train_df.iloc[tr_idx].reset_index(drop=True),
+                train_df.iloc[val_idx].reset_index(drop=True),
+                SPLIT_MODE_BLOCKED_TT, notes)
+
+    # ── historical chain, unchanged ───────────────────────────────────────────
+    if tier_stride >= TILE_SIZE and train_df["site"].nunique() > 1 and len(train_df) >= 25:
+        folds = make_spatial_buffer_splits(
+            train_df, n_folds=5, buffer_px=SPATIAL_BUFFER_PX, seed=42)
+        tr_idx, val_idx = folds[0]
+        if len(tr_idx) > 0 and len(val_idx) > 0:
+            ftr = train_df.iloc[tr_idx].reset_index(drop=True)
+            fva = train_df.iloc[val_idx].reset_index(drop=True)
+            mode = SPLIT_MODE_BUFFER_PX
+        else:
+            notes.append("  (spatial-buffer split left an empty side — random split)")
+
+    if ftr is None:
+        if len(train_df) >= 7:
+            # Stratify by site only when every site has ≥2 tiles (else sklearn errors).
+            strat = (train_df["site"]
+                     if train_df["site"].nunique() > 1
+                     and train_df["site"].value_counts().min() >= 2 else None)
+            ftr, fva = train_test_split(train_df, test_size=0.15,
+                                        random_state=SPLIT_SEED, stratify=strat)
+            ftr = ftr.reset_index(drop=True); fva = fva.reset_index(drop=True)
+            mode = SPLIT_MODE_RANDOM_TT
+        else:
+            # Too few tiles to hold any out — validate on the training set.
+            ftr = train_df.copy(); fva = train_df.copy()
+            mode = SPLIT_MODE_TRAIN_AS_VAL
+    return ftr, fva, mode, notes
+
+
+# ══════════════════════════════════════════════════════════════════════════════
 #  Step 3 — Per-year fine-tune (Phase A frozen + Phase B full, from P3 ckpt)
 # ══════════════════════════════════════════════════════════════════════════════
 
@@ -1273,16 +1510,10 @@ def step_train(label, batch_size=BATCH_SIZE, p3_ckpt=None, dry_run=False, compil
         print("  Dry run — not training")
         return
 
-    # Train/val split for early stopping.
-    #  • fine tier: tiles are non-overlapping (stride == TILE_SIZE), so the
-    #    fixed-pixel spatial-buffer split gives clean separation (matches Phase 3).
-    #  • medium/coarse: tiles OVERLAP (stride < TILE_SIZE) and sites are small,
-    #    so a fixed 512px Chebyshev buffer prunes the entire training set (it did
-    #    for 2000: train=0). Honest spatial CV isn't achievable at these GSDs —
-    #    use a random split for early stopping only; the reported coarse metric
-    #    is the in-sample IoU in step_evaluate, and Phase 6 cross-checks against
-    #    2020 detections.
-    tier_stride = TIER_TILE_PARAMS[tier]["stride"]
+    # Train/val split for early stopping. The selection chain itself moved to
+    # _choose_val_split (2026-08-29) so a test can run it against a verbatim copy
+    # of the historical code and prove the default path is unchanged, row order
+    # included; see that function for what each branch does and why it leaked.
     ftr = fva = None
 
     # Fix 4: if a geographically-blocked val split was carved at tiling time
@@ -1291,35 +1522,28 @@ def step_train(label, batch_size=BATCH_SIZE, p3_ckpt=None, dry_run=False, compil
     # fallback for that path.
     val_df = idx_df[idx_df["split"] == "val"].reset_index(drop=True)
     use_blocked_val = len(val_df) > 0     # citywide-coarse path (bin-balanced pool)
+    # T3: `use_blocked_val` is the RECIPE boolean — it selects the sampler,
+    # the pos_weight decision and the early-stop metric further down, and is
+    # deliberately left keyed on "does the index carry a val split", unchanged.
+    # It is NOT evidence that the split was blocked: the degraded random
+    # fallback in tiling._block_partition also writes val rows (and writes the
+    # `block` column before it bails), so the two indexes were
+    # byte-indistinguishable and this line printed "BLOCKED" for both. What the
+    # split actually was is now READ from the index instead of inferred.
+    split_mode = _index_split_mode(idx_df)
     if use_blocked_val:
         ftr = train_df.reset_index(drop=True)
         fva = val_df.reset_index(drop=True)
-        print(f"  Val split: BLOCKED hold-out from tile index ({len(fva)} tiles)")
+        print(f"  Val split: {_split_mode_label(split_mode)} hold-out from tile "
+              f"index ({len(fva)} tiles)")
+    else:
+        ftr, fva, split_mode, _notes = _choose_val_split(
+            train_df, tier, gsd_m=entry["gsd_cm"] / 100.0)
+        for _n in _notes:
+            print(_n)
 
-    if ftr is None and tier_stride >= TILE_SIZE and train_df["site"].nunique() > 1 and len(train_df) >= 25:
-        folds = make_spatial_buffer_splits(
-            train_df, n_folds=5, buffer_px=SPATIAL_BUFFER_PX, seed=42)
-        tr_idx, val_idx = folds[0]
-        if len(tr_idx) > 0 and len(val_idx) > 0:
-            ftr = train_df.iloc[tr_idx].reset_index(drop=True)
-            fva = train_df.iloc[val_idx].reset_index(drop=True)
-        else:
-            print("  (spatial-buffer split left an empty side — random split)")
-
-    if ftr is None:
-        if len(train_df) >= 7:
-            # Stratify by site only when every site has ≥2 tiles (else sklearn errors).
-            strat = (train_df["site"]
-                     if train_df["site"].nunique() > 1
-                     and train_df["site"].value_counts().min() >= 2 else None)
-            ftr, fva = train_test_split(train_df, test_size=0.15,
-                                        random_state=RANDOM_SEED, stratify=strat)
-            ftr = ftr.reset_index(drop=True); fva = fva.reset_index(drop=True)
-        else:
-            # Too few tiles to hold any out — validate on the training set.
-            ftr = train_df.copy(); fva = train_df.copy()
-
-    print(f"  Train split: {len(ftr)}  |  Val split: {len(fva)}")
+    print(f"  Train split: {len(ftr)}  |  Val split: {len(fva)}  "
+          f"[{split_mode or 'unrecorded'}]")
     if len(fva) == 0:           # degenerate — validate on train
         fva = ftr.copy()
     if len(ftr) == 0:
@@ -1517,7 +1741,7 @@ def step_train(label, batch_size=BATCH_SIZE, p3_ckpt=None, dry_run=False, compil
     # ── deploy: raw peak (default) or the smoothed peak's REAL weights ────────
     summary = _finish_selection(label, history, es_metric, es_maximize, best_val,
                                 raw_best, smooth_k, sel, best_ckpt,
-                                stop_a, stop_b, ran_b)
+                                stop_a, stop_b, ran_b, val_split=split_mode)
     del model
     if device.type == "cuda":
         torch.cuda.empty_cache()
@@ -1687,7 +1911,15 @@ def step_evaluate(label, dry_run=False):
     # tiles, so train and "test" tiles overlap → optimistic, leaked metrics. Flag
     # it so these numbers aren't trusted as true held-out until spatial blocking is
     # applied to those tiers.
-    has_blocked_split = bool((idx_df["split"] == "val").any())
+    # T3: prefer the RECORDED mode. `(split == "val").any()` is also true of the
+    # degraded random fallback, so it could certify a leaked split as blocked.
+    # An index written before the column existed keeps the historical inference
+    # exactly, so no existing eval row changes value.
+    _mode = _index_split_mode(idx_df)
+    has_blocked_split = (_mode in HONEST_SPLIT_MODES if _mode
+                         else bool((idx_df["split"] == "val").any()))
+    if _mode:
+        print(f"  Tile-index split mode: {_split_mode_label(_mode)}")
     tier_stride = TIER_TILE_PARAMS[tier]["stride"]
     if len(eval_df) > 0 and not has_blocked_split and tier_stride < TILE_SIZE:
         eval_scope = "held-out test (TILE-LEVEL split — LEAKS across overlapping tiles)"

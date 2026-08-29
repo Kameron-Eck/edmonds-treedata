@@ -922,10 +922,17 @@ def _save_ckpt_state(phase, epoch, state, optim_state, sched_state,
     calling straight through — the default path is unchanged except that the
     dict is now assembled here.
     """
-    # verified write (P4.1): torch.save to local NVMe, then size-verified copy to
-    # Drive. Size-only (no sha) because this runs many times per training and the
-    # observed failure class is truncation, which size catches; the once-per-run
-    # rasters get the full sha256 treatment instead.
+    # verified write (P4.1): torch.save to local NVMe, then a verified copy to
+    # Drive.
+    # WAS size-only, on the reasoning that this runs many times per training and
+    # truncation is what size catches. That reasoning did not survive 2026-08-29:
+    # the checkpoint that passed every gate was not truncated, it was the WRONG
+    # EPOCH — a well-formed, correctly-sized epoch-7 file sitting where the log
+    # said epoch 24 was. Size cannot see that and neither can sha256; what sees it
+    # is the identity block below plus a check against the SERVER, which is what
+    # `checksum=True` now unlocks (it computes the md5 verify_on_drive compares).
+    # Cost is one hash pass over a local-NVMe file per improving epoch — tenths of
+    # a second, against an artifact this run exists to produce.
     path = Path(path)
     local = _local_artifact_path(path)
     payload = {"phase": phase, "epoch": epoch, "model_state": state,
@@ -951,7 +958,7 @@ def _save_ckpt_state(phase, epoch, state, optim_state, sched_state,
         payload.update(extra)
     torch.save(payload, local)
     if local != path:
-        _copy_to_drive(local, path, checksum=False)
+        _copy_to_drive(local, path)
         try:
             local.unlink()
         except OSError:
@@ -2044,6 +2051,25 @@ def step_evaluate(label, dry_run=False):
     rows.append(overall_row)
     new = pd.DataFrame(rows)
 
+    # ── Run identity on every row (D6, 2026-08-29) ────────────────────────────
+    # semantic_eval_report.csv is CUMULATIVE and SHARED: every year, every arm,
+    # every campaign appends into one file, and until now a row could not say
+    # which run produced it. That is why the queue's VERIFY:evaluate matched on
+    # `year` alone and passed on any historical row from any arm — a job could
+    # "verify" its evaluate step against a number measured weeks earlier by a
+    # different model. These three columns are what make that check possible.
+    #
+    # DELIBERATELY ADDITIVE. The replace key below stays (year, channels) and is
+    # NOT extended with run_tag. Letting tags coexist would put several OVERALL
+    # rows in one arm, and postproc._operating_threshold takes the LAST row of the
+    # matched arm as the deployed mask's threshold — so that change would silently
+    # move which threshold real masks are cut at. That is a science decision for
+    # the lane that owns thresholds, not a side effect of a provenance fix.
+    new["run_tag"] = config.RUN_TAG
+    new["run_id"] = config.RUN_ID
+    new["written_utc"] = (_dt.datetime.now(_dt.timezone.utc)
+                          .strftime("%Y-%m-%dT%H:%M:%SZ"))
+
     # Append/replace this (year, channels) arm's rows in the cumulative report.
     # Pre-channels rows were RGB-only — treat missing as "rgb" so a re-run still
     # replaces them rather than duplicating.
@@ -2055,8 +2081,21 @@ def step_evaluate(label, dry_run=False):
         old = old[~((old["year"].astype(str) == label) &
                     (old["channels"] == chan_desc))]
         new = pd.concat([old, new], ignore_index=True)
-    new.to_csv(EVAL_CSV, index=False)
-    print(f"  ✓ Eval rows written → {EVAL_CSV.name}  (channels={chan_desc})")
+    # Local-then-verified-copy, not a bare to_csv onto the FUSE mount. This one
+    # file carries EVERY year's metrics history, and it is rewritten whole on every
+    # evaluate step — a torn write here loses the lot. Same publish path as every
+    # other artifact (absent-destination replace + whatever verification the host
+    # can actually do).
+    _eval_local = _local_artifact_path(EVAL_CSV)
+    new.to_csv(_eval_local, index=False)
+    if _eval_local != EVAL_CSV:
+        _copy_to_drive(_eval_local, EVAL_CSV)
+        try:
+            _eval_local.unlink()
+        except OSError:
+            pass
+    print(f"  ✓ Eval rows written → {EVAL_CSV.name}  (channels={chan_desc}, "
+          f"run_tag={config.RUN_TAG or '(none)'})")
 
     if tier == "coarse":
         bf = f", best-F1 thresh={ti['best_f1_thresh']:.3f}" if ti else ""

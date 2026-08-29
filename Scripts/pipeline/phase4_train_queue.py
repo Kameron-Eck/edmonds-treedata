@@ -476,7 +476,51 @@ _VERIFY_HARD_FAIL = {"MISSING", "EMPTY", "MOSTLY_NODATA", "NO_CONFIDENCE",
                      "BAD_CKPT", "NO_TILES", "BAD_INDEX"}
 
 
-def verify_step(job, step, rows):
+def _verify_ckpt_identity(ck, year, tag, mb, step_start):
+    """Open the checkpoint and assert it belongs to THIS run.
+
+    WHY (2026-08-29). The previous gate asserted size >= 50 MB and zip magic, and
+    nothing else. It passed on a checkpoint that was phase B epoch 7 while the
+    training log reported deploying epoch 24 — the artifacts on Drive were simply
+    not what the run produced (the VM was unassigned before its upload backlog
+    drained). Size and zip magic cannot see that; identity can.
+
+    Checks, in order of how badly each would mislead:
+      1. mtime NEWER than the step started — a stale file from an earlier arm is
+         the failure that actually happened;
+      2. run_tag matches the job's tag — catches cross-arm contamination;
+      3. run_id present and non-empty — catches a file written before identity
+         stamping, which cannot be attributed at all.
+
+    Fails OPEN on an unreadable payload but says UNVERIFIED rather than OK, so the
+    distinction between "checked and fine" and "could not check" survives into the
+    status CSV instead of being flattened to a pass.
+    """
+    import datetime as _d
+    try:
+        import torch
+        d = torch.load(ck, map_location="cpu", weights_only=False)
+    except Exception as e:                                        # noqa: BLE001
+        return "UNVERIFIED", f"{mb:.0f}MB, zip ok; payload unreadable ({type(e).__name__})"
+
+    age = ck.stat().st_mtime
+    parts = [f"{mb:.0f}MB", f"{d.get('phase','?')}E{d.get('epoch','?')}"]
+    if step_start and age < step_start - 5:
+        stale = _d.datetime.fromtimestamp(age).strftime("%H:%M:%S")
+        return "BAD_CKPT", (f"{mb:.0f}MB but mtime {stale} PREDATES this step — the "
+                            f"file on disk is not what this run produced")
+    got = (d.get("run_tag") or "")
+    if tag and got and got != tag:
+        return "BAD_CKPT", f"{mb:.0f}MB, run_tag={got!r} but this job is {tag!r}"
+    rid = d.get("run_id") or ""
+    if not rid:
+        parts.append("no run_id (pre-identity build)")
+    else:
+        parts.append(f"run_id ok")
+    return "OK", ", ".join(parts)
+
+
+def verify_step(job, step, rows, step_start=None):
     """P4.3: per-step artifact check, recorded as a VERIFY:{step} row.
 
     The old job-end-only VERIFY let a broken artifact license every later step
@@ -523,7 +567,7 @@ def verify_step(job, step, rows):
                 elif not zipfile.is_zipfile(ck):
                     state, detail = "BAD_CKPT", f"{mb:.0f}MB, not a zip archive"
                 else:
-                    state, detail = "OK", f"{mb:.0f}MB, zip magic ok"
+                    state, detail = _verify_ckpt_identity(ck, y, tag, mb, step_start)
         elif step == "evaluate":
             import pandas as pd
             rep = BASE / "phase4" / "eval" / "semantic_eval_report.csv"
@@ -758,6 +802,7 @@ def main():
                 print(f"  - skip {j['id']}/{st} (already OK)")
                 continue
             ran_any = True
+            _t_step0 = time.time()
             res = run_step(j, st, args.infer_batch, rows)
             tries = 0
             while res == "RETRY" and tries < args.retries:
@@ -772,7 +817,7 @@ def main():
                       f"Recording and moving to the NEXT JOB (queue is unattended).")
                 ok = False
                 break
-            if not verify_step(j, st, rows):
+            if not verify_step(j, st, rows, step_start=_t_step0):
                 print(f"  ! {j['id']} step '{st}' exited 0 but its ARTIFACT failed "
                       f"verification. Stopping this job before spending more GPU.")
                 ok = False

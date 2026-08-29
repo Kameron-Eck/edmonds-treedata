@@ -10,6 +10,7 @@ from phase4seg.common import (
 from phase4seg.tiling import _origins_from_manifest
 
 import contextlib
+import datetime as _dt
 import gc
 import os
 import shutil
@@ -821,7 +822,20 @@ def _save_ckpt_state(phase, epoch, state, optim_state, sched_state,
                "history": history, "best_val": best_val,
                "in_channels": config.IN_CHANNELS,          # 3=RGB, 4=RGB+structure
                "aux_height_head": bool(config.AUX_HEIGHT), # height-prediction head present
-               "hs_source": config.HS_SOURCE}              # which raster band 4 was
+               "hs_source": config.HS_SOURCE,             # which raster band 4 was
+               # ── identity (2026-08-29, D2/D17) ──────────────────────────────
+               # Without these a checkpoint cannot say which run produced it, so
+               # a stale-but-well-formed file is indistinguishable from the right
+               # one — exactly how an epoch-7 corpse passed VERIFY:train while the
+               # log reported epoch 24. `epoch` is now ALWAYS 1-based and matches
+               # the log line; `epoch_base` records that so a file written before
+               # this change is still readable.
+               "run_id": config.RUN_ID,
+               "run_tag": config.RUN_TAG,
+               "run_years": config.RUN_YEARS,
+               "epoch_base": 1,
+               "saved_utc": _dt.datetime.now(_dt.timezone.utc)
+                              .strftime("%Y-%m-%dT%H:%M:%SZ")}
     if extra:
         payload.update(extra)
     torch.save(payload, local)
@@ -1464,13 +1478,13 @@ def step_train(label, batch_size=BATCH_SIZE, p3_ckpt=None, dry_run=False, compil
         if best:
             best_val = es_val; es = 0
             raw_best[:] = ["A", ep + 1]
-            _save_ckpt("A", ep, model, opt, sched, history, best_val, best_ckpt)
+            _save_ckpt("A", ep + 1, model, opt, sched, history, best_val, best_ckpt)
         else:
             es += 1
         if sel is not None:
             sel.observe("A", ep + 1, es_val, model)
         if (ep + 1) % SAVE_EVERY == 0 or ep == config.EPOCHS_PHASE_A - 1:
-            _save_ckpt("A", ep, model, opt, sched, history, best_val, latest_ckpt)
+            _save_ckpt("A", ep + 1, model, opt, sched, history, best_val, latest_ckpt)
         print(f"  A E{ep+1:>3}/{config.EPOCHS_PHASE_A} tr_bce={tr_bce:.4f} "
               f"val_bce={v_bce:.4f} val_iou={v_iou:.4f} "
               f"iou_bt={v_iou_bt:.4f}@{v_thr:.1f} "
@@ -1550,13 +1564,13 @@ def _run_phase_b(model, train_loader, val_loader, criterion, device, loss_mode,
         if best:
             best_val = es_val; es = 0
             raw_best[:] = ["B", ep + 1]
-            _save_ckpt("B", ep, model, opt, sched, history, best_val, best_ckpt)
+            _save_ckpt("B", ep + 1, model, opt, sched, history, best_val, best_ckpt)
         else:
             es += 1
         if sel is not None:
             sel.observe("B", ep + 1, es_val, model)
         if (ep + 1) % SAVE_EVERY == 0 or ep == config.EPOCHS_PHASE_B - 1:
-            _save_ckpt("B", ep, model, opt, sched, history, best_val, latest_ckpt)
+            _save_ckpt("B", ep + 1, model, opt, sched, history, best_val, latest_ckpt)
         print(f"  B E{ep+1:>3}/{config.EPOCHS_PHASE_B} tr_bce={tr_bce:.4f} "
               f"val_bce={v_bce:.4f} val_iou={v_iou:.4f} "
               f"iou_bt={v_iou_bt:.4f}@{v_thr:.1f} "

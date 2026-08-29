@@ -839,3 +839,11 @@ def chm_for_year(year, default=None):
     """Temporally-nearest height source for a year label. Used only when the
     caller asks for it (`--hs-source auto`); returns the default otherwise."""
     return CHM_BY_YEAR.get(str(year), default or CHM_BY_YEAR_DEFAULT)
+
+
+# Run identity, set by cli.py when the run manifest is written (2026-08-29, D2).
+# Artifacts stamp these so a checkpoint can answer "which run made me?" — the
+# absence of that field is what let a stale epoch-7 checkpoint pass VERIFY:train
+# while the log reported epoch 24. Empty when the engine is driven directly.
+RUN_ID    = ""
+RUN_YEARS = ""

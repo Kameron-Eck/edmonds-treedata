@@ -367,6 +367,11 @@ def main():
             lbls = "-".join(e["label"] for e in entries) or "none"
             step0 = args.step or "full"
             run_id = f"{ts}_{lbls}_{tag}_{step0}"
+            # Publish it so artifacts can carry their own identity (D2). Until now
+            # the run_id existed only inside the manifest, so a checkpoint could not
+            # say which run produced it and nothing downstream could check.
+            config.RUN_ID = run_id
+            config.RUN_YEARS = lbls
             # repo root: walk up from the RUNNING entrypoint (the shim copies
             # phase4seg/ off to /content/_phase4seg_pkg, so __file__ here may
             # not live in the repo — the shim does).

@@ -101,6 +101,26 @@ This is the same discipline as "never kill mid-exec": these handles die
 permanently, and a lost handle strands a live VM that then bills until its
 watchdog fires.
 
+## NEVER bootstrap a VM that has a running queue — the bootstrap REMOUNTS (2026-08-29)
+
+I bootstrapped `gpu39` at ~13:29Z believing its launcher had been killed. It had
+not (see the section below), and a queue was mid-TILE. The tile step then died:
+
+    2009_nodec_s3,2009,nodec_s2024,tile,FAIL,1,7.9,,2026-08-29 13:37:51
+
+`gen_vm_bootstrap` re-runs the **rclone mount** and re-clones the repo. A tiler
+reading and writing through that mount does not survive it being replaced. I had
+checked for contamination and cleared it — but I checked whether the CODE had
+changed, which was the right check for the wrong risk. The destructive part is the
+REMOUNT, not the `git reset`.
+
+> **Before any bootstrap: confirm the target VM has no queue process** (heartbeat
+> `queue_proc` is null, a plain file read). Bootstrap is destructive to a running
+> job even when the repo commit is identical.
+
+This cost one A100 arm (~8 min in) and is the second job lost in an hour to
+issuing CLI operations against a VM that was already busy.
+
 ## Killing a launcher LOCALLY does not stop the work REMOTELY (2026-08-29)
 
 `colab new` and `colab exec` dispatch to the runtime and return; the runtime keeps

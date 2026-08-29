@@ -847,3 +847,72 @@ def chm_for_year(year, default=None):
 # while the log reported epoch 24. Empty when the engine is driven directly.
 RUN_ID    = ""
 RUN_YEARS = ""
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+#  Honest held-out validation (2026-08-29 — audit findings T1..T4)
+#  APPEND-ONLY. None of these enter _tile_signature, so their existence
+#  invalidates no cached tile set. Defaults reproduce the historical behaviour
+#  bit for bit; the hold-out itself is OPT-IN via --honest-val-split.
+# ══════════════════════════════════════════════════════════════════════════════
+
+# T4. The seed that owns the TRAIN/VAL SPLIT, as distinct from RANDOM_SEED which
+# owns TRAINING stochasticity (init, augmentation order, loader shuffling).
+# cli.py patches RANDOM_SEED for --seed and MUST NEVER patch this one — that is
+# the whole point. Before this existed, core.step_train's random-fallback split
+# read the PATCHED RANDOM_SEED, so `--seed N` silently re-drew the validation set
+# on every fine/medium/coarse-SITE year while printing "split unchanged, still
+# 42": a seed-variance experiment was measuring training noise and split noise
+# together. 42 == the historical RANDOM_SEED, so the default path is unchanged.
+SPLIT_SEED = 42
+
+# T1/T2. Opt-in honest hold-out. OFF = today's split, exactly.
+#   ON  ⇒ · the train/val split at medium/coarse is BLOCKED (whole spatial blocks
+#            held out) instead of a random 15% drawn over 50%-overlapping
+#            (medium, stride 256) or 75%-overlapping (coarse, stride 128) tiles;
+#          · the train-side buffer is measured in METRES (CANOPY_AUTOCORR_M, the
+#            canopy spatial-autocorrelation range) instead of SPATIAL_BUFFER_PX,
+#            which at fine stride 512 retained every direct neighbour because the
+#            retention test is `>= 512` and a neighbour sits at exactly 512;
+#          · a tile-time split that could not be blocked is BUFFERED instead, and
+#            a buffer that empties the training set is a hard error, not a silent
+#            fall-through to a leaked split.
+# It changes the SPLIT ONLY. The sampler, the pos_weight decision and the
+# early-stop metric stay keyed on the citywide bin-balanced pool
+# (core: use_blocked_val) and are untouched.
+# Read it as `config.HONEST_VAL_SPLIT` — never bare — because cli.py sets it at
+# RUN time and the star-import binding in core/tiling is frozen at import time.
+HONEST_VAL_SPLIT = False
+
+# Val fraction for the blocked train-time hold-out. 0.15 matches the random
+# fallback it replaces, so an old-vs-new paired arm differs in WHICH tiles are
+# held out, not HOW MANY.
+HONEST_VAL_FRAC = 0.15
+
+# Split modes recorded in the tile index (`split_mode` column) and in the meta
+# json (`split_status`). Persisted so a random split can never again be reported
+# as BLOCKED: core used to infer "blocked" from `len(val_df) > 0`, which is
+# equally true of the degraded random fallback, and the `block` column is written
+# BEFORE the bail, so the two indexes were byte-indistinguishable. Tiling is
+# cached, so the one warning never reappeared on retrain.
+SPLIT_MODE_BLOCKED   = "blocked"                # whole blocks held out + metre buffer
+SPLIT_MODE_DEGRADED  = "degraded_random"        # random val, NO buffer, no test
+SPLIT_MODE_DEG_BUF   = "degraded_buffered"      # random val + metre buffer (flag ON)
+SPLIT_MODE_SITEWISE  = "sitewise_random_test"   # 6-site path: stratified test split
+SPLIT_MODE_ALL_TRAIN = "sitewise_all_train"     # 6-site path: no test split carved
+SPLIT_MODE_BLOCKED_TT = "blocked_holdout"       # train-time blocked val (flag ON)
+SPLIT_MODE_BUFFER_PX = "spatial_buffer_px"      # train-time fixed-pixel buffer fold
+SPLIT_MODE_RANDOM_TT = "random_holdout"         # train-time random 15% (leaks)
+SPLIT_MODE_TRAIN_AS_VAL = "train_as_val"        # <7 tiles: val IS train
+# Modes that actually guarantee no train tile within CANOPY_AUTOCORR_M of a
+# held-out tile. Used BOTH by the writer and by the cache-reuse guard, so an
+# honest run reuses an honest cache (no 20-min re-tile) and can never reuse a
+# leaked one. degraded_buffered is in the set: it has no test split, but its val
+# side IS buffered, so re-tiling it on every honest run would buy nothing.
+HONEST_SPLIT_MODES = (SPLIT_MODE_BLOCKED, SPLIT_MODE_DEG_BUF)
+
+# Meta-json keys that are NOT part of the tile signature. _existing_tiles_valid
+# strips exactly these (a NAMED set, never "any unknown key") before comparing,
+# so recording the split status cannot force a re-tile, and a legacy meta written
+# without the key still validates.
+META_NONSIG_KEYS = ("split_status",)

@@ -1,0 +1,40 @@
+# NODE C — 2009, 3-band RGB, projected key + PROVEN CANOPY ADDITIONS. Kam 2026-08-28.
+#
+# ONE VARIABLE vs NODE B (rgb3_nodeb: AUROC .9063, PR-AUC .8365, matched-precision
+# recall .5990). Identical year, channels, AOI, seed, recipe — the ONLY difference
+# is --add-canopy-mask. Verify by diffing the two run manifests.
+#
+# WHAT IT ASSERTS, one direction only: force canopy where the dual-epoch lidar says
+# something tall stood in BOTH 2005 and 2016 (datum-matched: 2005 >=3.0 m -> 2016
+# >=4.52 m, quantile-matched on 8.7M cells), AND it was green in the 2016 4-band
+# ortho (NDVI>=0.30 — screens poles/masts/boats; taken from 2016 NIR, never from
+# the 2009 imagery the model reads), AND it is not a building, AND the projected
+# 2020 key currently calls it BACKGROUND. No code 2, no code 3, no IGNORE.
+#
+# 3-BAND because the label source is 2016-lidar-derived and the 4-band model READS
+# a 2016-lidar-derived CHM channel — a 4-band Node C would measure the model
+# copying its own input (99.99% of proposed labels sit where that channel already
+# says 'tall'). Cost of dropping it, measured today: 10 pp of recall, concentrated
+# in small crowns. That is the price of a clean test.
+#
+# DOSE: 21.94 true ha = 3.897% of graded strip land, 100% effective flips.
+# CORRECTION TO MY OWN PRE-REGISTRATION: I predicted ~0.85% and called this
+# likely-null. That was denominator-confused. And the arm that produced the
+# 'clean null' was 85% NO-OP — only 2.98 ha of its 20.26 ha landed on
+# key-background, plus 4.61 ha of IGNORE, so it was never one-variable either.
+# Node C is 7.4x its EFFECTIVE force-canopy dose.
+#
+# PRE-REGISTERED READ (vs Node B, matched precision, identical footprint):
+#   > +2 sd recall (.020) = label correctness matters, and we know the direction.
+#   within +-2 sd = no effect at ~4% dose; read against the damage curve, which
+#   says what dose SHOULD have been visible. Not a closure on its own.
+#   Negative = the additions are wrong (lidar false positives) — inspect before
+#   concluding anything about correction in general.
+# Score: matched-precision recall + AUROC/PR-AUC + crown-touch by size class.
+- id: "2009_node_c"
+  year: "2009"
+  tag: nodec_v1
+  extra: ["--force-citywide", "--no-hillshade", "--infer-aoi", "aoi/sectors_v1.json",
+          "--add-canopy-mask", "/content/drive/MyDrive/treedata/phase4/labels_corrected/add_nodec_2009.tif"]
+  why: "one-variable test: does adding PROVEN canopy the key missed improve the model?"
+  expect: "retile ~20 min; train ~40-90 min A100 (3-band converges slower); inference ~5 min."

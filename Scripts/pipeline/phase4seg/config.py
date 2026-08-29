@@ -754,3 +754,28 @@ HS_PATHS["chm2"] = IMAGERY_DIR / "lidar_chm2_2016_50cm.tif"
 # raster). Lower than "chm" because chm2 does not inflate open ground: its DN-1
 # (flat) share is 27.9% against the old raster's 10.1%.
 HS_STATS["chm2"] = ([0.1437], [0.2003])
+
+# ══════════════════════════════════════════════════════════════════════════════
+#  CHECKPOINT-SELECTION SMOOTHING   (APPENDED 2026-08-29; nothing above this line
+#  was edited — config.py is pure-move protected. This is a TRAINING parameter:
+#  _tile_signature (tiling.py:629) hashes neither it nor the epoch budgets, so
+#  changing it invalidates NO tile cache and re-tiles nothing. Verified
+#  empirically — see the flag's --select-smooth help text.)
+# ══════════════════════════════════════════════════════════════════════════════
+# WHY: the deployed checkpoint is today the SINGLE BEST epoch by the early-stop
+# metric, measured on ~120 validation tiles. Taking a max over 20-50 noisy epochs
+# both inflates the reported validation number and adds run-to-run variance — you
+# select whichever epoch drew a lucky val batch. MEASURED symptom: the chosen
+# threshold wobbled .440-.499 across five otherwise identical 2009 runs.
+#
+# SELECT_SMOOTH_K > 1 picks the deployed epoch by a K-epoch CENTRED moving
+# average of that same metric (edge-truncated, never zero-padded), then saves
+# that epoch's REAL weights — weights are never averaged. It changes the
+# SELECTION SIGNAL ONLY: training, optimiser, LR schedule, and the early-stop
+# patience counter all still run off the RAW per-epoch value, and Phase B still
+# resumes from the RAW-best Phase-A checkpoint, so K is one variable.
+#
+# 1 = today's behaviour exactly (raw per-epoch peak). At K=1 the selector object
+# is never even constructed, so the default path is the historical code path.
+# Odd values only; the CLI rounds an even K up and says so.
+SELECT_SMOOTH_K = 1

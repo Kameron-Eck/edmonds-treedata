@@ -165,14 +165,39 @@ def main():
                         f"(default {config.DICE_WEIGHT}). Dice pulls the probability "
                         f"scale down on a background-heavy pixel distribution; "
                         f"set 0.0 to isolate BCE. Train-only.")
-    p.add_argument("--epochs-phase-a", type=int, default=config.EPOCHS_PHASE_A,
+    p.add_argument("--epochs-phase-a", "--max-epochs-a", dest="epochs_phase_a",
+                   type=int, default=config.EPOCHS_PHASE_A,
                    help=f"Phase-A epoch budget (default {config.EPOCHS_PHASE_A}). Lower "
                         f"(e.g. 8) for fast diagnostic runs — the cliff appears by "
-                        f"E6, so a short Phase A shows stable-vs-collapse quickly.")
-    p.add_argument("--epochs-phase-b", type=int, default=config.EPOCHS_PHASE_B,
+                        f"E6, so a short Phase A shows stable-vs-collapse quickly. "
+                        f"--max-epochs-a is an alias.")
+    p.add_argument("--epochs-phase-b", "--max-epochs-b", dest="epochs_phase_b",
+                   type=int, default=config.EPOCHS_PHASE_B,
                    help=f"Phase-B epoch budget (default {config.EPOCHS_PHASE_B}). Set 0 "
                         f"to skip Phase B entirely (diagnostic runs don't need it "
-                        f"— it never recovers from a Phase-A collapse).")
+                        f"— it never recovers from a Phase-A collapse). RAISE it "
+                        f"(--max-epochs-b 60) to test whether the cap, not "
+                        f"convergence, is deciding a result: four of five 2009 arms "
+                        f"stopped at EPOCH_CAP=30, one with its best epoch LAST, "
+                        f"which biases every A/B where one side learns slower. This "
+                        f"flag is per-run — the constant stays 30 because raising it "
+                        f"permanently is a recipe change. --max-epochs-b is an alias.")
+    p.add_argument("--select-smooth", type=int, default=config.SELECT_SMOOTH_K,
+                   help=f"Choose the DEPLOYED checkpoint by a K-epoch CENTRED moving "
+                        f"average of the early-stopping metric instead of its raw "
+                        f"per-epoch peak (default {config.SELECT_SMOOTH_K} = raw peak, "
+                        f"today's behaviour exactly). The metric is measured on ~120 "
+                        f"val tiles, so a max over 20-50 epochs both inflates the "
+                        f"reported number and adds run-to-run variance — the chosen "
+                        f"threshold wobbled .440-.499 across five identical 2009 runs. "
+                        f"SELECTION ONLY: training, optimiser, LR schedule and the "
+                        f"early-stop patience counter all still run off the raw value, "
+                        f"and Phase B still resumes from the raw-best Phase-A "
+                        f"checkpoint, so K is one variable. Window is edge-truncated "
+                        f"(never zero-padded) and smoothed WITHIN a phase; the saved "
+                        f"weights are one real epoch's, never an average. Even K is "
+                        f"rounded up to odd. Train-only — no re-tile (the epoch "
+                        f"budgets and K key no part of the tile signature).")
     p.add_argument("--freeze-encoder-bn", dest="freeze_encoder_bn",
                    action="store_true", default=config.FREEZE_ENCODER_BN,
                    help="Pin the frozen encoder's BatchNorm to its pretrained "
@@ -444,6 +469,19 @@ def main():
     # full schedule. --epochs-phase-b 0 skips Phase B (never rebuilt below).
     config.EPOCHS_PHASE_A = max(1, int(args.epochs_phase_a))
     config.EPOCHS_PHASE_B = max(0, int(args.epochs_phase_b))
+    # Checkpoint-SELECTION smoothing (2026-08-29). 1 = raw per-epoch peak = the
+    # historical path (core never even builds the selector). A centred window has
+    # no unambiguous centre at even K, so round up and say so.
+    _k = max(1, int(args.select_smooth))
+    if _k % 2 == 0:
+        print(f"  [--select-smooth] {_k} is even — a centred window has no centre; "
+              f"using {_k + 1}.")
+        _k += 1
+    config.SELECT_SMOOTH_K = _k
+    if _k > 1:
+        print(f"  [--select-smooth {_k}] deployed checkpoint = peak of the {_k}-epoch "
+              f"centred moving average of the early-stop metric (training, patience "
+              f"and the Phase-B resume point are UNCHANGED).")
     config.FREEZE_ENCODER_BN = bool(args.freeze_encoder_bn)
     # Module-level fallback; the per-step functions (train/evaluate/inference)
     # override IN_CHANNELS from the actual tile/ckpt band count.

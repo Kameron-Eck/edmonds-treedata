@@ -712,27 +712,343 @@ def _stage_tiles_local(idx_df, label):
         return idx_df
 
 
-def _save_ckpt(phase, epoch, model, optim, sched, history, best_val, path):
-    state = (model._orig_mod.state_dict() if hasattr(model, "_orig_mod")
-             else model.state_dict())
+def _model_state_of(model):
+    """The state_dict of the REAL module — unwrapping torch.compile.
+
+    Split out of _save_ckpt so the selection-smoothing ring captures exactly the
+    same keys the checkpoint writer does. Capturing the COMPILED wrapper instead
+    would prefix every key with `_orig_mod.`, and load_state_into's
+    strict=False load would then silently match NOTHING — a random-init model
+    deployed with no error raised anywhere. That is the one silent-failure mode
+    in this whole path, so both writers go through this function.
+    """
+    return (model._orig_mod.state_dict() if hasattr(model, "_orig_mod")
+            else model.state_dict())
+
+
+def _save_ckpt_state(phase, epoch, state, optim_state, sched_state,
+                     history, best_val, path, extra=None):
+    """Write a checkpoint from an ALREADY-CAPTURED state dict.
+
+    Body lifted verbatim out of _save_ckpt (2026-08-29) so a checkpoint can also
+    be written from a snapshot taken at an earlier epoch (centred selection
+    smoothing needs the weights of epoch i once epoch i+K//2 has been seen).
+    _save_ckpt keeps its exact previous behaviour by capturing live state and
+    calling straight through — the default path is unchanged except that the
+    dict is now assembled here.
+    """
     # verified write (P4.1): torch.save to local NVMe, then size-verified copy to
     # Drive. Size-only (no sha) because this runs many times per training and the
     # observed failure class is truncation, which size catches; the once-per-run
     # rasters get the full sha256 treatment instead.
     path = Path(path)
     local = _local_artifact_path(path)
-    torch.save({"phase": phase, "epoch": epoch, "model_state": state,
-                "optim_state": optim.state_dict(), "sched_state": sched.state_dict(),
-                "history": history, "best_val": best_val,
-                "in_channels": config.IN_CHANNELS,          # 3=RGB, 4=RGB+structure
-                "aux_height_head": bool(config.AUX_HEIGHT), # height-prediction head present
-                "hs_source": config.HS_SOURCE}, local)      # which raster band 4 was
+    payload = {"phase": phase, "epoch": epoch, "model_state": state,
+               "optim_state": optim_state, "sched_state": sched_state,
+               "history": history, "best_val": best_val,
+               "in_channels": config.IN_CHANNELS,          # 3=RGB, 4=RGB+structure
+               "aux_height_head": bool(config.AUX_HEIGHT), # height-prediction head present
+               "hs_source": config.HS_SOURCE}              # which raster band 4 was
+    if extra:
+        payload.update(extra)
+    torch.save(payload, local)
     if local != path:
         _copy_to_drive(local, path, checksum=False)
         try:
             local.unlink()
         except OSError:
             pass
+
+
+def _save_ckpt(phase, epoch, model, optim, sched, history, best_val, path):
+    _save_ckpt_state(phase, epoch, _model_state_of(model), optim.state_dict(),
+                     sched.state_dict(), history, best_val, path)
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+#  Checkpoint selection: raw per-epoch peak (default) vs K-epoch smoothed peak
+# ══════════════════════════════════════════════════════════════════════════════
+
+def _centred_moving_average(values, k):
+    """K-epoch CENTRED moving average, EDGE-TRUNCATED (never zero-padded).
+
+    values[i] averages over indices [i-k//2, i+k//2] clipped to the series, so the
+    first and last k//2 entries average over the shorter window that actually
+    exists rather than being dropped or diluted with zeros. k=1 returns the input
+    values unchanged — that identity is what makes --select-smooth 1 exactly
+    today's raw-peak selection.
+
+    ONE implementation, used by both the online selector (which needs the value
+    for epoch i as soon as epoch i+k//2 has run) and the post-hoc loss-history
+    column, so the CSV can never disagree with what was actually selected.
+    """
+    n = len(values)
+    if k <= 1 or n == 0:
+        return [float(v) for v in values]
+    half = k // 2
+    out = []
+    for i in range(n):
+        lo, hi = max(0, i - half), min(n, i + half + 1)
+        w = values[lo:hi]
+        out.append(float(sum(w)) / len(w))
+    return out
+
+
+class _SmoothCkptSelector:
+    """Picks the DEPLOYED epoch by the smoothed metric, holding its real weights.
+
+    Constructed only when SELECT_SMOOTH_K > 1 — at K=1 the caller leaves this
+    None and the untouched raw best-checkpoint logic is the whole story.
+
+    Save policy (the centred-smoothing trap): the smoothed value of epoch i is
+    only final once epoch i+half has run, so the decision LAGS the training loop.
+    A naive implementation that picked the smoothed argmax out of the finished
+    loss-history CSV would then have no weights left for that epoch and would
+    deploy the wrong (or the last-saved) checkpoint. This class instead keeps a
+    ring of the last `half+1` epochs' CPU weight snapshots, so the moment epoch
+    i's smoothed value finalises its real weights are still in hand; the winner
+    is copied out and the ring rolls on. Peak cost is (half+2) CPU copies of the
+    model state (~371 MB each for the resnet101 U-Net) — reported at construction.
+
+    Smoothing runs WITHIN a phase, not across the A→B boundary: Phase B restarts
+    from the best Phase-A checkpoint, so the two series are separate trajectories
+    and averaging across the seam would blend unrelated weights' scores. The
+    winners are then compared ACROSS phases with the same strict >/< and the same
+    A-then-B order as the raw logic, so the global pick reproduces exactly at K=1.
+    """
+
+    def __init__(self, k, maximize, model_mb=None):
+        self.k = int(k)
+        self.half = self.k // 2
+        self.maximize = bool(maximize)
+        self.ring = deque()          # [(phase, epoch, state), ...] pending finalisation
+        self.raw = []                # raw metric of the CURRENT phase
+        self.best = None             # (smoothed, phase, epoch, raw, state)
+        est = ((self.half + 2) * model_mb / 1024.0) if model_mb else None
+        print(f"  Ckpt selection: {self.k}-epoch CENTRED moving average of the "
+              f"early-stop metric (edge-truncated)"
+              + (f"; holds ≤{self.half + 2} CPU weight snapshots "
+                 f"(~{est:.1f} GB)" if est else ""))
+
+    # ── internals ────────────────────────────────────────────────────────────
+    def _better(self, a, b):
+        return a > b if self.maximize else a < b
+
+    def _finalise(self, upto):
+        """Score every ring entry whose centred window is complete (index < upto)."""
+        sm = _centred_moving_average(self.raw, self.k)
+        while self.ring and self.ring[0][1] - 1 < upto:
+            phase, ep, state = self.ring.popleft()
+            i = ep - 1
+            if self.best is None or self._better(sm[i], self.best[0]):
+                self.best = (sm[i], phase, ep, self.raw[i], state)
+
+    # ── public ───────────────────────────────────────────────────────────────
+    def observe(self, phase, ep, es_val, model):
+        """Record epoch `ep` (1-based) of `phase` and snapshot its weights."""
+        self.raw.append(float(es_val))
+        state = {kk: v.detach().to("cpu", copy=True)      # copy=True: a CPU-run
+                 for kk, v in _model_state_of(model).items()}   # .cpu() would alias
+        self.ring.append((phase, ep, state))
+        self._finalise(len(self.raw) - self.half)         # all windows now closed
+
+    def end_phase(self):
+        """Close the phase: the trailing `half` epochs get their truncated windows."""
+        self._finalise(len(self.raw))
+        self.raw = []
+        self.ring.clear()
+
+    @property
+    def selection(self):
+        """(smoothed_val, phase, epoch, raw_val) of the winner, or None."""
+        return None if self.best is None else self.best[:4]
+
+    def write(self, path, history, extra=None):
+        """Save the winning epoch's REAL weights to `path`."""
+        if self.best is None:
+            return False
+        sm, phase, ep, raw, state = self.best
+        # optim/sched are deliberately None: they would have to be the SELECTED
+        # epoch's, and holding AdamW's two moment buffers per ring slot would
+        # triple the snapshot cost for state nothing in this repo ever reads back
+        # (grep: phase4seg writes optim_state, only phase0/phase3 read theirs).
+        _save_ckpt_state(phase, ep, state, None, None, history, raw, path,
+                         extra=extra)
+        return True
+
+    def release(self):
+        self.ring.clear()
+        self.best = None
+        self.raw = []
+
+
+def _state_mb(model):
+    try:
+        return sum(v.numel() * v.element_size()
+                   for v in _model_state_of(model).values()) / 1e6
+    except Exception:
+        return None
+
+
+def _stop_reason(es, ran, budget):
+    """PATIENCE or EPOCH_CAP — the fact no run used to record.
+
+    `es` is the epochs-since-improvement counter as the loop left it, `ran` the
+    epochs actually executed, `budget` the configured cap.
+    """
+    if budget == 0:
+        return "skipped"
+    if es >= EARLY_STOP_PAT:
+        return "patience"
+    if ran >= budget:
+        return "epoch_cap"
+    return "incomplete"          # loop exited some other way (should not happen)
+
+
+def _phase_smoothed(history, k):
+    """Post-hoc smoothed series over the FINISHED history, smoothed within phase.
+
+    Same _centred_moving_average the online selector used, applied per phase, so
+    the CSV column is provably the series that drove the pick — not a re-derived
+    approximation.
+    """
+    out = [None] * len(history["es_val"])
+    for ph in ("A", "B"):
+        idx = [i for i, p in enumerate(history["phase"]) if p == ph]
+        sm = _centred_moving_average([history["es_val"][i] for i in idx], k)
+        for j, i in enumerate(idx):
+            out[i] = sm[j]
+    return out
+
+
+def _record_manifest_training(label, payload):
+    """Add this year's training-stop + checkpoint-selection block to the run
+    manifest. Best-effort, exactly like the manifest writer itself — provenance
+    must never be able to kill a run."""
+    try:
+        run_id = getattr(config, "RUN_ID", None)
+        if not run_id or run_id == "unrecorded":
+            return
+        import json as _json
+        mp = OUT_DIR / "runs" / run_id / "manifest.json"
+        if not mp.exists():
+            return
+        man = _json.loads(mp.read_text(encoding="utf-8"))
+        man.setdefault("training", {})[label] = payload
+        mp.write_text(_json.dumps(man, indent=2), encoding="utf-8")
+    except Exception as e:                                       # noqa: BLE001
+        print(f"  WARNING: training block not added to manifest ({e})")
+
+
+def _finish_selection(label, history, es_metric, es_maximize, best_val, raw_best,
+                      smooth_k, sel, best_ckpt, stop_a, stop_b, ran_b):
+    """Deploy the chosen epoch, write the loss history, and record WHY it stopped.
+
+    At K=1 `sel` is None: best_ckpt already holds the raw-peak epoch, written
+    during training exactly as it always was, and nothing here rewrites it.
+    """
+    sm = _phase_smoothed(history, smooth_k)
+    n = len(history["es_val"])
+    # raw argmax/argmin in the SAME order and with the SAME strict comparison the
+    # training loops used, so the first epoch to reach the peak wins ties.
+    ri = mi = None                        # raw argbest, smoothed argbest
+    for i in range(n):
+        if ri is None or (history["es_val"][i] > history["es_val"][ri] if es_maximize
+                          else history["es_val"][i] < history["es_val"][ri]):
+            ri = i
+        if mi is None or (sm[i] > sm[mi] if es_maximize else sm[i] < sm[mi]):
+            mi = i
+
+    def _row_of(phase, epoch, fallback):
+        return next((i for i in range(n) if history["phase"][i] == phase
+                     and history["epoch"][i] == epoch), fallback)
+
+    # Default (K=1, or any failure below): the raw peak is what best_ckpt holds.
+    deployed = "raw"
+    sel_phase, sel_epoch = raw_best[0], raw_best[1]
+    sel_row = _row_of(sel_phase, sel_epoch, ri)
+
+    if sel is not None:
+        pick = sel.selection                 # (smoothed, phase, epoch, raw)
+        post = (history["phase"][mi], history["epoch"][mi]) if mi is not None else None
+        if pick is None:
+            print("  WARNING: --select-smooth held no epoch (no validation epochs "
+                  "ran?) — leaving the raw-peak checkpoint in place.")
+        else:
+            # Online (lagged) pick and post-hoc pick are the SAME arithmetic on the
+            # SAME numbers; a disagreement means a bug in the ring, so say so loudly
+            # and deploy the online pick — its weights are the ones actually held.
+            if post is not None and (pick[1], pick[2]) != post:
+                print(f"  WARNING: smoothed-selection disagreement — online picked "
+                      f"{pick[1]}E{pick[2]}, post-hoc {post[0]}E{post[1]}; "
+                      f"deploying the online pick (it owns the weights).")
+            if (pick[1], pick[2]) == (raw_best[0], raw_best[1]):
+                # Same epoch: best_ckpt on disk already IS those weights, and it
+                # still carries its optimiser/scheduler state. Rewriting would cost
+                # a ~371 MB Drive round-trip to produce a strictly poorer file.
+                deployed = "smoothed(==raw)"
+                print(f"  Smoothed selection agrees with the raw peak "
+                      f"({pick[1]}E{pick[2]}) — best_ckpt left exactly as written.")
+            elif sel.write(best_ckpt, history, extra={
+                    "select_smooth_k": smooth_k, "selected_by": "smoothed",
+                    "es_metric": es_metric,
+                    "raw_best_phase": raw_best[0], "raw_best_epoch": raw_best[1],
+                    "raw_best_val": (float(history["es_val"][ri])
+                                     if ri is not None else None),
+                    "sel_smooth_val": float(pick[0])}):
+                deployed = "smoothed"
+                sel_phase, sel_epoch = pick[1], pick[2]
+                sel_row = _row_of(sel_phase, sel_epoch, sel_row)
+                print(f"  ★ DEPLOYED {sel_phase}E{sel_epoch} — smoothed {es_metric}"
+                      f"={pick[0]:.4f} (raw {pick[3]:.4f}); REPLACES the raw peak "
+                      f"{raw_best[0]}E{raw_best[1]} "
+                      f"(raw {history['es_val'][ri]:.4f}) in {best_ckpt.name}")
+        sel.release()
+
+    df = pd.DataFrame(history)
+    df["es_smooth"] = sm
+    df["is_raw_best"] = [1 if i == ri else 0 for i in range(n)]
+    df["is_smooth_best"] = [1 if i == mi else 0 for i in range(n)]
+    df["is_deployed"] = [1 if i == sel_row else 0 for i in range(n)]
+    df["select_smooth_k"] = smooth_k
+    df["es_metric"] = es_metric
+    df["stop_reason_a"] = stop_a
+    df["stop_reason_b"] = stop_b
+    df.to_csv(MODELS_DIR / f"sem_loss_history_{label}{_tag_sfx()}.csv", index=False)
+
+    def _at(i, series):
+        return float(series[i]) if i is not None else None
+
+    summary = {
+        "es_metric": es_metric,
+        "select_smooth_k": smooth_k,
+        "deployed_by": deployed,
+        "stop_reason_a": stop_a, "stop_reason_b": stop_b,
+        "epochs_a": sum(1 for p in history["phase"] if p == "A"),
+        "epochs_b": ran_b,
+        "epoch_cap_a": config.EPOCHS_PHASE_A, "epoch_cap_b": config.EPOCHS_PHASE_B,
+        "early_stop_patience": EARLY_STOP_PAT,
+        "raw_best_phase": raw_best[0], "raw_best_epoch": raw_best[1],
+        "raw_best_val": _at(ri, history["es_val"]),
+        "smooth_best_phase": history["phase"][mi] if mi is not None else None,
+        "smooth_best_epoch": history["epoch"][mi] if mi is not None else None,
+        "smooth_best_val": _at(mi, sm),
+        "deployed_phase": sel_phase, "deployed_epoch": sel_epoch,
+        "deployed_raw_val": _at(sel_row, history["es_val"]),
+        "deployed_smooth_val": _at(sel_row, sm),
+        "best_val": (float(best_val) if best_val is not None
+                     and np.isfinite(best_val) else None),
+    }
+    if ri is None:
+        print("  Selection: no epoch produced a finite metric — nothing deployed.")
+    else:
+        print(f"  Selection [{deployed}]: raw peak {raw_best[0]}E{raw_best[1]}"
+              f"={summary['raw_best_val']:.4f}  |  smoothed(K={smooth_k}) peak "
+              f"{summary['smooth_best_phase']}E{summary['smooth_best_epoch']}"
+              f"={summary['smooth_best_val']:.4f}  |  DEPLOYED "
+              f"{sel_phase}E{sel_epoch} (raw={summary['deployed_raw_val']:.4f})")
+    _record_manifest_training(label, summary)
+    return summary
 
 
 def _freeze_encoder(model):
@@ -970,7 +1286,17 @@ def step_train(label, batch_size=BATCH_SIZE, p3_ckpt=None, dry_run=False, compil
     else:
         print(f"  Loss mode: bce_dice (BCE_WEIGHT={config.BCE_WEIGHT} + DICE_WEIGHT={config.DICE_WEIGHT})")
     history = {"phase": [], "epoch": [], "train_bce": [], "val_bce": [],
-               "val_iou": [], "val_iou_bt": [], "val_thr_bt": []}
+               "val_iou": [], "val_iou_bt": [], "val_thr_bt": [], "es_val": []}
+    # Which epoch's weights the RAW rule deploys (what best_ckpt holds during
+    # training). Tracked only so the run can SAY it afterwards — the rule itself
+    # is untouched.
+    raw_best = [None, None]                       # [phase, epoch]
+    # --select-smooth: deferred, smoothed selection of the DEPLOYED epoch. None at
+    # K=1, and every new code path below is gated on that, so the default run
+    # takes the historical path exactly.
+    smooth_k = max(1, int(getattr(config, "SELECT_SMOOTH_K", 1)))
+    sel = (_SmoothCkptSelector(smooth_k, es_maximize,
+                               model_mb=_state_mb(model)) if smooth_k > 1 else None)
 
     # ── Phase A: frozen encoder ──
     print(f"\n  PHASE A — frozen encoder | {config.EPOCHS_PHASE_A} ep | LR={config.LR_PHASE_A}")
@@ -998,12 +1324,16 @@ def step_train(label, batch_size=BATCH_SIZE, p3_ckpt=None, dry_run=False, compil
         history["train_bce"].append(tr_bce); history["val_bce"].append(v_bce)
         history["val_iou"].append(v_iou)
         history["val_iou_bt"].append(v_iou_bt); history["val_thr_bt"].append(v_thr)
+        history["es_val"].append(float(es_val))
         best = es_val > best_val if es_maximize else es_val < best_val
         if best:
             best_val = es_val; es = 0
+            raw_best[:] = ["A", ep + 1]
             _save_ckpt("A", ep, model, opt, sched, history, best_val, best_ckpt)
         else:
             es += 1
+        if sel is not None:
+            sel.observe("A", ep + 1, es_val, model)
         if (ep + 1) % SAVE_EVERY == 0 or ep == config.EPOCHS_PHASE_A - 1:
             _save_ckpt("A", ep, model, opt, sched, history, best_val, latest_ckpt)
         print(f"  A E{ep+1:>3}/{config.EPOCHS_PHASE_A} tr_bce={tr_bce:.4f} "
@@ -1013,27 +1343,45 @@ def step_train(label, batch_size=BATCH_SIZE, p3_ckpt=None, dry_run=False, compil
               f"{' ★' if best else f'  [{es}/{EARLY_STOP_PAT}]'}")
         if es >= EARLY_STOP_PAT:
             print("  Early stop — Phase A"); break
+    # WHY training stopped, not just that it did. Four of five 2009 arms hit the
+    # EPOCH CAP rather than converging (one with its best epoch LAST), and nothing
+    # recorded that, so the truncation hid for a week. One line per phase.
+    stop_a = _stop_reason(es, len(history["epoch"]), config.EPOCHS_PHASE_A)
+    if sel is not None:
+        sel.end_phase()             # trailing epochs get their truncated windows
     print(f"  ✓ Phase A best {es_metric}: {best_val:.4f}")
+    print(f"  ⏹ Phase A stopped by {stop_a.upper()} after "
+          f"{len(history['epoch'])}/{config.EPOCHS_PHASE_A} epochs "
+          f"(best epoch {raw_best[1]}, patience {EARLY_STOP_PAT})")
 
     # ── Phase B: full model ── (skipped entirely when EPOCHS_PHASE_B == 0,
     # e.g. fast diagnostic runs — Phase B never recovers a Phase-A collapse).
     if config.EPOCHS_PHASE_B == 0:
         print("\n  PHASE B — skipped (--epochs-phase-b 0)")
+        stop_b, ran_b = "skipped", 0
     else:
-        _run_phase_b(model, train_loader, val_loader, criterion, device, loss_mode,
-                     es_metric, es_maximize, sched_mode, best_val, best_ckpt,
-                     latest_ckpt, history)
-    pd.DataFrame(history).to_csv(MODELS_DIR / f"sem_loss_history_{label}{_tag_sfx()}.csv",
-                                 index=False)
+        best_val, stop_b, ran_b = _run_phase_b(
+            model, train_loader, val_loader, criterion, device, loss_mode,
+            es_metric, es_maximize, sched_mode, best_val, best_ckpt,
+            latest_ckpt, history, raw_best, sel)
+
+    # ── deploy: raw peak (default) or the smoothed peak's REAL weights ────────
+    summary = _finish_selection(label, history, es_metric, es_maximize, best_val,
+                                raw_best, smooth_k, sel, best_ckpt,
+                                stop_a, stop_b, ran_b)
     del model
     if device.type == "cuda":
         torch.cuda.empty_cache()
     gc.collect()
+    return summary
 
 
 def _run_phase_b(model, train_loader, val_loader, criterion, device, loss_mode,
                  es_metric, es_maximize, sched_mode, best_val, best_ckpt,
-                 latest_ckpt, history):
+                 latest_ckpt, history, raw_best=None, sel=None):
+    if raw_best is None:
+        raw_best = [None, None]
+    n_before = len(history["epoch"])
     print(f"\n  PHASE B — full model | {config.EPOCHS_PHASE_B} ep | LR={LR_PHASE_B}")
     # v039 fix: resume from the BEST Phase-A checkpoint, not the last-epoch weights.
     # Previously Phase B continued from whatever weights Phase A ended on (which
@@ -1062,12 +1410,16 @@ def _run_phase_b(model, train_loader, val_loader, criterion, device, loss_mode,
         history["train_bce"].append(tr_bce); history["val_bce"].append(v_bce)
         history["val_iou"].append(v_iou)
         history["val_iou_bt"].append(v_iou_bt); history["val_thr_bt"].append(v_thr)
+        history["es_val"].append(float(es_val))
         best = es_val > best_val if es_maximize else es_val < best_val
         if best:
             best_val = es_val; es = 0
+            raw_best[:] = ["B", ep + 1]
             _save_ckpt("B", ep, model, opt, sched, history, best_val, best_ckpt)
         else:
             es += 1
+        if sel is not None:
+            sel.observe("B", ep + 1, es_val, model)
         if (ep + 1) % SAVE_EVERY == 0 or ep == config.EPOCHS_PHASE_B - 1:
             _save_ckpt("B", ep, model, opt, sched, history, best_val, latest_ckpt)
         print(f"  B E{ep+1:>3}/{config.EPOCHS_PHASE_B} tr_bce={tr_bce:.4f} "
@@ -1078,8 +1430,17 @@ def _run_phase_b(model, train_loader, val_loader, criterion, device, loss_mode,
         if es >= EARLY_STOP_PAT:
             print("  Early stop — Phase B"); break
 
+    ran_b = len(history["epoch"]) - n_before
+    stop_b = _stop_reason(es, ran_b, config.EPOCHS_PHASE_B)
+    if sel is not None:
+        sel.end_phase()
     print(f"  ✓ Phase B best {es_metric}: {best_val:.4f}  → {best_ckpt.name}")
+    print(f"  ⏹ Phase B stopped by {stop_b.upper()} after "
+          f"{ran_b}/{config.EPOCHS_PHASE_B} epochs (best epoch "
+          f"{raw_best[1] if raw_best[0] == 'B' else f'in phase A ({raw_best[1]})'}"
+          f", patience {EARLY_STOP_PAT})")
     del opt, scaler
+    return best_val, stop_b, ran_b
 
 
 # ══════════════════════════════════════════════════════════════════════════════

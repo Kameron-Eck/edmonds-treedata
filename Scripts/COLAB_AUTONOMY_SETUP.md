@@ -54,6 +54,36 @@ local (exercises bulk read), run one `_copy_to_drive` with checksum=True on a ~1
 → record in CHATLOG and trust the mount; any red → fall back to human drive.mount and
 report. The E02 os.replace smoke already passed on drivefs; rerun it once on rclone.
 
+## ONE VM PER QUEUE — chaining a second queue onto a finished VM DOES NOT WORK
+### (measured twice, 2026-08-29)
+
+**The session handle dies when the queue finishes.** Both times a VM completed its
+queue and went idle, its entry vanished from `~/.config/colab-cli/sessions.json`
+while the VM was still alive and beaconing, and `colab exec` returned
+`Session '<name>' not found`:
+
+| VM | queue finished | handle gone by | what failed |
+|----|----------------|----------------|-------------|
+| gpu34 | 11:58:35Z (seed777) | 12:00Z | chained smooth5 launch |
+| gpu35 | 12:48:56Z (nodec_s1234) | 12:50Z | chained smooth5 launch, again |
+
+Every SUCCESSFUL launch that night went to a **fresh** VM (`colab new` → bootstrap
+→ launch). Every chain-onto-an-existing-VM attempt failed this way. The likely
+cause is the Colab frontend dropping the kernel once it goes idle, with the CLI
+pruning the session on its next state write — but the cause does not matter
+operationally. The rule does:
+
+> **Never plan to run a second queue on a VM that has finished its first.**
+> Create a new runtime per queue and let the watchdog reclaim the old one.
+
+Consequences for scheduling:
+- Wall-clock per arm includes a fresh bootstrap (~2-3 min), not just train time.
+- A100 scarcity is the real throughput limit — `colab new` returned
+  `Precondition Failed` repeatedly on 2026-08-29 and needed a 240 s backoff loop.
+- Launchers must grep FAILURE signatures, not just success ones. A chain that
+  greps only `LAUNCHED` exits 0 having launched nothing, and the VM then idles out
+  to the watchdog with the work silently undone (this happened once, 2026-08-29).
+
 ## Policy (P11.5 revision — takes effect when Kam merges CLAUDE.md)
 - STOP: always autonomous, never asked. Idle runtimes are a defect, not a resource.
 - CREATE for a queue Kam already approved by name (the kickoff-ask pattern): autonomous,

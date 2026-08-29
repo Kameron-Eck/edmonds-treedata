@@ -78,27 +78,32 @@ QI = AP.QI
 MASKS = AP.MASKS
 
 
+def _box_any(a, r, axis):
+    """True where any input pixel lies within r along `axis` — a 1-D box test done
+    with a running sum, so cost does NOT grow with r."""
+    n = a.shape[axis]
+    c = np.cumsum(a, axis=axis, dtype=np.int32)
+    hi = np.clip(np.arange(n) + r, 0, n - 1)
+    lo = np.arange(n) - r - 1
+    top = np.take(c, hi, axis=axis)
+    bot = np.take(c, np.clip(lo, 0, n - 1), axis=axis)
+    shape = [1] * a.ndim
+    shape[axis] = n
+    bot = np.where((lo < 0).reshape(shape), 0, bot)
+    return (top - bot) > 0
+
+
 def _dilate(mask, r):
-    """Grow a boolean mask by r pixels. scipy when present; otherwise a separable
-    max over a (2r+1) box via successive shifts, which is the same result."""
+    """Grow a boolean mask by r pixels, as two separable 1-D box tests.
+
+    Rectangular dilation is separable, and a box test via running sums is O(n)
+    regardless of r. That matters here: the honest buffer for this pipeline is a
+    FULL TRAINING TILE (512 px), and a maximum_filter with a 1025-wide footprint
+    at that size is prohibitively slow on a 76 Mpx strip.
+    """
     if r <= 0:
         return mask
-    try:
-        # maximum_filter on a rectangular footprint runs as two separable 1-D
-        # passes; binary_dilation with a (2r+1)^2 element does not, and is orders
-        # slower at the buffer sizes used here
-        from scipy.ndimage import maximum_filter
-        return maximum_filter(mask.view(np.uint8), size=(2 * r + 1, 2 * r + 1),
-                              mode="nearest").astype(bool)
-    except ImportError:
-        out = mask.copy()
-        for ax in (0, 1):                       # separable: rows then cols
-            acc = out.copy()
-            for s in range(1, r + 1):
-                acc |= np.roll(out, s, axis=ax)
-                acc |= np.roll(out, -s, axis=ax)
-            out = acc
-        return out
+    return _box_any(_box_any(mask.astype(np.int32), r, 1).astype(np.int32), r, 0)
 
 
 def main():

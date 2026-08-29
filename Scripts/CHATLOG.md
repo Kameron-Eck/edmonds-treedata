@@ -1774,6 +1774,23 @@ decided: verdicts come from CURVE metrics (AUROC / PR-AUC), never matched-precis
          — it removes VARIANCE. With ~1 run in 3 landing badly, that converts a deployment
          lottery into a reliable mean. Useful for DEPLOYMENT, useless for making a one-run
          A/B sound, which is exactly the distinction the tool's docstring pre-committed to.
+         ** AT n=3 IT DOES CANCEL, AND IT ABSORBS THE BAD DRAW. ** Same test on the three
+         same-recipe 4-band seeds, one of which (seed777) is a KNOWN bad draw
+         (phase4/qc/arm_pr_curves_2009_seed_ensemble3.md):
+             fullext_sectors_v1  AUROC .9210   PR-AUC .8632
+             seed1234            AUROC .9194   PR-AUC .8620
+             seed777  (bad)      AUROC .9163   PR-AUC .8464
+             seedENS3            AUROC .9206   PR-AUC .8642   member mean .9189 / .8572
+         The 3-run average TIES the best member on AUROC (-.0004) and EXCEEDS EVERY MEMBER
+         on PR-AUC (+.0010 over the best, +.0070 over the mean). seed777 cost .0047 AUROC and
+         .0168 PR-AUC against the best member, and averaging absorbed essentially all of it —
+         WITHOUT needing to know in advance which run was the bad one. That is the practical
+         recipe this project needs given ~1 run in 3 lands badly: train 3 seeds, average,
+         deploy the average.
+         CAVEAT, because the tempting comparison is confounded: n=2 gave only the mean and
+         n=3 gave real cancellation, but those are DIFFERENT ARM FAMILIES (3-band Node C vs
+         4-band). Do NOT conclude "the benefit needs n>=3" from that pair. What is solid is
+         the within-family n=3 result.
 QUEUE ORDER AND WHY (2026-08-29 12:27Z): gpu35 = nodec_s1234 replicate -> then
          smooth5 (Kam's named arm, on the one guaranteed slot). gpu37 = 3-band noise floor
          -> then the GEOGRAPHIC HOLDOUT, not the third Node C seed. Reasoning: a third seed

@@ -68,6 +68,9 @@ def main():
     ap.add_argument("--thresh", type=float, default=0.5)
     ap.add_argument("--block-rows", type=int, default=2048)
     ap.add_argument("--out-dir", default=".")
+    ap.add_argument("--out-name", default=None,
+                    help="output filename; defaults to region_confusion_{year}.md. Present "
+                         "so repeated runs do not silently overwrite each other's tables.")
     args = ap.parse_args([a for a in sys.argv[1:]
                           if not (a == "-f" or a.endswith(".json"))])
 
@@ -167,7 +170,7 @@ def main():
     L += ["", "CAUTION: one reference (C-CAP 2016) applied to a 2009 raster, at one",
           "threshold. Real 2009->2016 change lands in FP/FN too, and the reference's own",
           "errors are not modelled. Read the DIRECTION, not the magnitude.", ""]
-    out = Path(args.out_dir) / f"region_confusion_{args.year}.md"
+    out = Path(args.out_dir) / (args.out_name or f"region_confusion_{args.year}.md")
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text("\n".join(L) + "\n", encoding="utf-8")
     print("\n".join(L))

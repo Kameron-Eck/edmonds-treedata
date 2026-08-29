@@ -126,7 +126,7 @@ def main():
                         "inflated 3→4 (zero-init). Re-tile to (de)activate.")
     p.add_argument("--no-hillshade", dest="hillshade", action="store_false",
                    help="RGB-only tiles (no structure channel).")
-    p.add_argument("--hs-source", choices=sorted(HS_STATS), default="chm",
+    p.add_argument("--hs-source", choices=sorted(HS_STATS) + ["auto"], default="chm",
                    help="Source of band 4 (tiling-time choice, default "
                         "chm). 'nir' (M06) = THE YEAR'S OWN NIR band, read from "
                         "the same ortho window as the RGB (no LIDAR, no warp); "
@@ -457,6 +457,28 @@ def main():
 
     config.USE_VI = bool(args.vi)
     config.USE_HILLSHADE = bool(args.hillshade)
+    # --hs-source auto: pick the TEMPORALLY-NEAREST height raster for this year
+    # (config.CHM_BY_YEAR). Opt-in only — never the default — because changing the
+    # height input silently would break comparability with every existing baseline.
+    # Resolved here, before tiling, so the choice lands in the tile signature, the
+    # HS_SOURCE tile tag, the checkpoint field and argv. A year with no mapping
+    # falls back to CHM_BY_YEAR_DEFAULT and SAYS SO rather than quietly using it.
+    if args.hs_source == "auto":
+        # `years` is not resolved until later in main(); read the flag directly so
+        # this cannot NameError the first time someone uses it.
+        _years = [y.strip() for y in (args.year or "").split(",") if y.strip()]
+        _picked = {y: config.chm_for_year(y) for y in _years}
+        if len(set(_picked.values())) > 1:
+            raise SystemExit(
+                "--hs-source auto resolves to DIFFERENT rasters across the requested "
+                f"years {_picked} — band 4 is a tiling-time choice, so run one year "
+                "per invocation (or pass an explicit --hs-source).")
+        _src = next(iter(_picked.values())) if _picked else config.CHM_BY_YEAR_DEFAULT
+        for _y in _years:
+            _mapped = _y in config.CHM_BY_YEAR
+            print(f"  [--hs-source auto] {_y} -> {_src}"
+                  + ("" if _mapped else f"  (no mapping; CHM_BY_YEAR_DEFAULT)"))
+        args.hs_source = _src
     config.HS_SOURCE = args.hs_source          # tiling-time; tiles/ckpts override later
     config.HS_DROPOUT = max(0.0, float(args.hs_dropout))
     # Collapse-fix levers (v031/v033): flag-driven so loss/LR experiments need no

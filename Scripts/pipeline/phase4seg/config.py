@@ -779,3 +779,63 @@ HS_STATS["chm2"] = ([0.1437], [0.2003])
 # is never even constructed, so the default path is the historical code path.
 # Odd values only; the CLI rounds an even K up and says so.
 SELECT_SMOOTH_K = 1
+
+# ─────────────────────────────────────────────────────────────────────────────
+#  chm2005 — CANOPY HEIGHT FROM THE RAW 2005 PSLC POINT CLOUD  (APPENDED 2026-08-29)
+#
+#  WHY. Every height-channel run to date fed a ~2016 raster to imagery from
+#  2000-2024. For the early half of the archive that is a 7-16 year mismatch:
+#  the comment at "best for 2015-2017 imagery; highest drift for 2000-2012"
+#  says so, and CHM_CREDIBLE_YEARS excludes 2009 outright — while the pipeline
+#  still used that raster as an INPUT for 2009. chm2005 is temporally native to
+#  roughly half the archive. Builder: qc/build_chm2005.py.
+#
+#  MEASURED, not assumed (qc/audit_lidar_2005_coverage.py, 2026-08-29):
+#    * 46 non-empty PSLC tiles, median 1.68 pts/m² — reproducing IMAGERY_FACTS
+#      exactly. The SAME audit measured 2016's local density at 17.47 pts/m²,
+#      not the 4-5 recorded there (that figure is a dataset-wide average over
+#      13,205 tiles, not these 41). The real inter-epoch gap is ~10.4x, not ~3x.
+#    * ground-return occupancy 44.6 / 69.5 / 80.3 / 86.5% at 1 / 2 / 3 / 4 m.
+#      The 2016 build used a 2 m ground grid at ~80% occupancy; 2005 reaches
+#      that only at 3 m, and the builder needs the ground grid to nest inside
+#      the canopy grid, so 2.0 m canopy / 4.0 m ground is the nesting-compatible
+#      pair that MEETS the precedent (86.5%) instead of undershooting it.
+#
+#  VALIDATED (qc/validate_chm2005.py) on ground certified flat in BOTH epochs
+#  and eroded 6 m — the test that exposed the original raster:
+#      chm2005  0.48 m mean, asserts >2 m on  0.17% of certified-flat ground
+#      chm2     0.19 m mean,                  0.01%
+#      chm(old) 0.86 m mean,                  8.82%     <- the defect
+#  52x better than the raster it replaces for early years; 17x behind chm2,
+#  which is what 4x coarser cells and 10x lower density predict, not a defect.
+#
+#  THE TRADE, STATED HERE SO IT IS NOT REDISCOVERED: chm2005 is 4x COARSER than
+#  chm2, and the height channel's measured value is CONCENTRATED IN SMALL CROWNS
+#  (+7.3 pp under 5 m² ≈ 2.2 m across) — the size of its own cell. It buys
+#  temporal correctness and pays in resolution. Which wins is EMPIRICAL and
+#  untested; do not assume either way.
+#
+#  CRS is EPSG:3740 (NAD83(HARN)/UTM 10N), the cloud's declared CRS, not the
+#  26910 chm2 carries. Sub-cell difference; the engine reprojects on read.
+HS_PATHS["chm2005"] = IMAGERY_DIR / "lidar_chm2005_2m.tif"
+# nonzero DN/255 mean/std, measured on the raster itself. The same routine
+# reproduces chm2's ([0.1437],[0.2003]) exactly, which is why these are trusted.
+HS_STATS["chm2005"] = ([0.1554], [0.1998])
+
+#  PER-YEAR HEIGHT SOURCE — opt-in via `--hs-source auto`, NEVER the default.
+#  Making this the default would silently change every future run and break
+#  comparability with every existing baseline, which is a re-baselining decision,
+#  not a config tweak. Left explicit so an arm that uses it says so in its argv.
+#  Split at 2013: the 2005 cloud was flown 2004-11..2005-07 and the 2016 cloud
+#  2016-03..2017-06, so 2013 is very nearly equidistant and later years are
+#  unambiguously closer to 2016.
+CHM_BY_YEAR_DEFAULT = "chm2"
+CHM_BY_YEAR = {y: "chm2005" for y in
+               ("2000", "2002", "2003s", "2005", "2006s", "2007", "2009",
+                "2011s", "2012s")}
+
+
+def chm_for_year(year, default=None):
+    """Temporally-nearest height source for a year label. Used only when the
+    caller asks for it (`--hs-source auto`); returns the default otherwise."""
+    return CHM_BY_YEAR.get(str(year), default or CHM_BY_YEAR_DEFAULT)

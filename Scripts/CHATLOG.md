@@ -1631,6 +1631,32 @@ decided: seed-varied arms (1234, 777) to measure TRUE retrain sigma — the bank
          density, so the two gaps sit in different difficulty regimes — "7x" is a comparison
          of two gains, not a claim that outside improved 7x in some absolute sense.
          THIS IS THE SCALING ARGUMENT: label a modest area, gain across the rest.
+         ** THE VALIDATION METRIC MEASURES LABEL QUALITY, NOT MODEL QUALITY — the damage
+         curve arriving from a second, independent direction. ** Tabulating phase A/B val
+         peaks against independent AUROC for all 10 scored 2009 arms turned this up:
+             corrupt50   val_iou_bt peak .6027   independent AUROC .9218  (HIGHEST of any arm)
+             clean       val_iou_bt peak .6842   independent AUROC .9210
+         Validation collapsed by .08 IoU while discrimination was UNCHANGED. Of course it
+         did — val is scored against the SAME corrupted labels the model trained on, so it
+         was measuring the label damage, not the model. Two consequences:
+           1. Cross-arm val comparison is INVALID whenever labels differ. corrupt*, nodec
+              (overlay) and chm2 (different input channel) each validate on different data.
+              Only same-label same-input arms can be ranked by val. Written down because the
+              table makes it look tempting.
+           2. THE SHARP ONE: early stopping AND checkpoint selection both run on this metric.
+              On years whose projected labels are wrong, the selection machinery is being
+              steered by label error rather than model quality — and we already know the top
+              five candidate epochs are tied within noise. That is a mechanism by which
+              label correction could matter for SELECTION even where it does not matter for
+              LEARNING. Untested; noted as the strongest remaining hypothesis.
+         ** WAS THE BAD DRAW DETECTABLE BEFORE WE PAID FOR IT? YES, at n=3. ** Among the
+         three same-recipe same-label runs, phase-A peaks were .6797 / .6802 / .6749 and
+         final AUROC .9210 / .9194 / .9163 — the lowest phase A (seed777) is the lowest
+         final. n=3 identifies the bad draw; it does NOT establish a graded relationship,
+         and fullext/seed1234 swap order between the two. Phase A is the cheap frozen-encoder
+         phase (~40% of train time), so a phase-A floor is a candidate ABORT-AND-RESEED gate.
+         The bigger value is scientific, not economic: a run whose phase A lands below the
+         family range should not be used as an A/B data point at all.
          ** LAUNCHES (P11.6, all A100, all autonomous under Kam's all-night grant) **
          gpu33 nodeb_ep60 (done, ~80 min, self-stopped by the watchdog on schedule — 2nd
          proof the /proc-scan watchdog fires) · gpu34 seed777 (training) · gpu35 nodec_s1234

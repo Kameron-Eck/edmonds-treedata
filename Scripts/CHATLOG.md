@@ -1711,6 +1711,17 @@ decided: seed-varied arms (1234, 777) to measure TRUE retrain sigma — the bank
 decided: verdicts come from CURVE metrics (AUROC / PR-AUC), never matched-precision recall —
          I read every verdict off recall for a week despite writing the rule myself. Recall is
          ~3x noisier (3 pp swing from seed alone vs .0016 AUROC).
+         ** HOLDOUT DESIGN VERIFIED BEFORE SPENDING A GPU ON IT — the check that should
+         have been run on the first attempt. ** Same tool, same 512 px full-tile exclusion,
+         but pointed at the WEST-CONFINED overlay (phase4/qc/holdout_design_census_2009.md):
+             design                       canopy px in the label-free-tile region
+             add_nodec (full overlay)                    1,513
+             add_nodecW (west-confined)             26,399,960   <- 39.3% of all canopy
+         A factor of ~17,000. The failed test had no ground to stand on; this one has 26.4M
+         canopy px and 62.4M non-canopy px across 342 blocks. RULE ADOPTED: census the
+         holdout region BEFORE training the arm — the census is free and the arm is an
+         A100 hour, and the first version of this experiment was invalidated by exactly the
+         quantity this check reports.
 QUEUE ORDER AND WHY (2026-08-29 12:27Z): gpu35 = nodec_s1234 replicate -> then
          smooth5 (Kam's named arm, on the one guaranteed slot). gpu37 = 3-band noise floor
          -> then the GEOGRAPHIC HOLDOUT, not the third Node C seed. Reasoning: a third seed

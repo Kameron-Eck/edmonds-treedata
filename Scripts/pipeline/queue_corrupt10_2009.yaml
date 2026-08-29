@@ -1,0 +1,39 @@
+# DAMAGE CURVE, level 10% — 2009, projected key + PHANTOM CROWNS. Kam 2026-08-28.
+#
+# QUESTION: how much does label error actually COST? Three label-correction
+# experiments were uninterpretable because we could not control the dose. So
+# instead of fixing unknown errors, inject known ones at a dose we choose.
+#
+# WHAT IS INJECTED: whole real crowns, displaced 10-40 m onto ground the 2020
+# key calls background, painted as canopy (code 1 only — rule-6 legal, no engine
+# change). Crown-shaped and clustered because that is what back-projection error
+# actually looks like; random pixel flips would measure a mechanism that does
+# not occur. Simulates the DOMINANT error: trees planted after 2009 that the
+# 2020 key claims were already there.
+#
+# DOSE LADDER (% of sector-strip LAND, 563.0 ha true): 10% -> 2.70% ·
+# 25% -> 6.56% · 50% -> 12.34%. Comparators: 0.7% = measured clean null;
+# 15-21% graded = the sparse-label catastrophe. The ladder brackets the null.
+#
+# 4-BAND on purpose: this is the PRODUCTION recipe, so it answers the
+# decision-relevant question (is correction worth investing in for the pipeline
+# we ship?). The height channel can partly compensate for a false canopy label,
+# which a 3-band run could not show. Baseline = Node A, rec .6989 / prec .8472,
+# AUROC .9210, PR-AUC .8632.
+#
+# READ IT AS A CURVE, not one number: the slope of damage-vs-dose is the result.
+# If 12.34% corruption barely moves matched-precision recall, then no correction
+# at any dose we can reach was ever going to matter, and the thread closes.
+#
+# KNOWN LIMIT (in the tool header too): phantoms carry the MATURE 2020 crown
+# size distribution (median 26.5 m2) while the real error is young plantings, so
+# a phantom is a more conspicuous error than the real thing — this likely
+# UNDERSTATES real damage. And erasure (trees removed 2009-2020) is untested:
+# force-background is forbidden by rule 6.
+- id: "2009_corrupt10"
+  year: "2009"
+  tag: corrupt10
+  extra: ["--force-citywide", "--infer-aoi", "aoi/sectors_v1.json",
+          "--add-canopy-mask", "/content/drive/MyDrive/treedata/phase4/labels_corrected/add_corrupt10_2009.tif"]
+  why: "damage curve rung: 10% of crowns duplicated as phantom canopy."
+  expect: "retile ~20 min; train ~35-45 min A100; sample inference ~5 min."

@@ -13,6 +13,7 @@ import contextlib
 import gc
 import os
 import shutil
+import subprocess
 import threading
 import time
 import numpy as np
@@ -656,6 +657,64 @@ def _loader_generator():
     return g
 
 
+_STAGE_RCLONE_REMOTE = "treedata-user"     # gen_vm_bootstrap.py's WRITER remote
+_STAGE_MOUNT_PREFIX  = "/content/drive/MyDrive/treedata/"
+_stage_rclone_probe = None
+
+
+def _bulk_stage_ok(src_root):
+    """True iff a bulk `rclone copy` can replace the per-file staging read.
+
+    Deliberately narrow — same activation discipline as tiling.py's bulk WRITE:
+    posix, the path really is under the Drive mount, rclone is on PATH, and the
+    writer remote exists. Anywhere else (Windows QC, a dry run, a VM without
+    rclone) this answers False and the historical per-file loop runs unchanged.
+    """
+    global _stage_rclone_probe
+    if os.name != "posix" or not str(src_root).startswith(_STAGE_MOUNT_PREFIX):
+        return False
+    if _stage_rclone_probe is None:
+        _stage_rclone_probe = False
+        try:
+            if shutil.which("rclone"):
+                r = subprocess.run(["rclone", "listremotes"], capture_output=True,
+                                   text=True, timeout=60)
+                _stage_rclone_probe = (r.returncode == 0 and
+                                       f"{_STAGE_RCLONE_REMOTE}:" in (r.stdout or "").split())
+        except Exception:                              # noqa: BLE001 — any failure = no
+            _stage_rclone_probe = False
+    return _stage_rclone_probe
+
+
+def _bulk_stage_tiles(src_root, dst_root, n_expected):
+    """One server-side-listed bulk copy of a tile dir. Returns files copied, or 0.
+
+    0 means "did not work, use the per-file loop" — never a silent partial. The
+    caller re-copies everything on 0, which is safe because --checksum makes the
+    bulk pass idempotent and the per-file pass skips size-matched files.
+    """
+    rel = str(src_root)[len(_STAGE_MOUNT_PREFIX):].strip("/")
+    try:
+        dst_root.mkdir(parents=True, exist_ok=True)
+        r = subprocess.run(
+            ["rclone", "copy", f"{_STAGE_RCLONE_REMOTE}:{rel}", str(dst_root),
+             "--transfers", "16", "--checkers", "16", "--checksum"],
+            capture_output=True, text=True, timeout=3600)
+        if r.returncode != 0:
+            print(f"  (bulk stage rc={r.returncode}, falling back to per-file: "
+                  f"{(r.stderr or '')[-160:]})")
+            return 0
+        got = sum(1 for _ in dst_root.rglob("*.tif"))
+        if got < n_expected:
+            print(f"  (bulk stage short: {got} < {n_expected} expected — per-file fallback)")
+            return 0
+        print(f"  ✓ bulk-staged {got} tiles via rclone (was N FUSE opens)")
+        return got
+    except Exception as e:                             # noqa: BLE001
+        print(f"  (bulk stage raised {type(e).__name__}: {e} — per-file fallback)")
+        return 0
+
+
 def _stage_tiles_local(idx_df, label):
     """P4.2: stage the year's tile set to local NVMe at train start.
 
@@ -697,10 +756,24 @@ def _stage_tiles_local(idx_df, label):
                     else contextlib.nullcontext())
             with lock:                      # P11.4: one bulk Drive copy at a time
                 tick(f"stage tiles {label}")
-                for src, dst in todo:
-                    dst.parent.mkdir(parents=True, exist_ok=True)
-                    shutil.copy2(src, dst)
-                    n_copied += 1
+                # BULK READ (2026-08-29). The per-file loop below reads each tile
+                # individually over the FUSE mount. Measured on this night's run:
+                # 613 tiles took 55+ min with the GPU at 0% and 6 MB allocated —
+                # an A100 sitting idle moving files. A tile set is ~0.65 GB, under
+                # STAGE_LOCK_MIN_BYTES, so nothing even serialises two arms doing
+                # it at once. tiling.py already solved the WRITE direction this way
+                # (78-138 s for the same volume); the READ direction never got it.
+                # ONE `rclone copy` of the arm's tile dir replaces N FUSE opens.
+                # Falls through to the per-file loop on ANY failure, so the slow
+                # path stays the safety net rather than being deleted.
+                src_root = Path(str(idx_df.iloc[0]["img_path"])).parents[2]
+                if _bulk_stage_ok(src_root):
+                    n_copied = _bulk_stage_tiles(src_root, dst_root, len(todo))
+                if not n_copied:
+                    for src, dst in todo:
+                        dst.parent.mkdir(parents=True, exist_ok=True)
+                        shutil.copy2(src, dst)
+                        n_copied += 1
                 tock(f"stage tiles {label}")
         out = idx_df.copy()
         for c in cols:

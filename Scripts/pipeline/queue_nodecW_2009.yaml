@@ -1,0 +1,51 @@
+# GEOGRAPHIC HOLDOUT — does Node C's gain TRANSFER, or is it tile-local supervision?
+# 2026-08-29, designed after the first transfer test was found invalid.
+#
+# THE QUESTION THIS EXISTS TO ANSWER, and why it matters more than another seed.
+# Node C beats Node B by +.0116 AUROC (~2.5x retrain noise). That is a PERFORMANCE
+# fact. The MECHANISM is unknown, and the mechanism is what decides whether the
+# approach scales:
+#   transfer  -> label a modest area, gain across the rest. Cheap citywide.
+#   tile-local -> you need labels in every tile you care about. Expensive citywide.
+#
+# WHY THE OBVIOUS TEST FAILED (do not repeat it). Comparing the gain where labels
+# were added against everywhere else is invalid here: the model trains on 512 px
+# TILES, so a tile containing ANY added label gets better supervision across its
+# whole area. At a full-tile exclusion only 1,513 of 67,163,941 reference-canopy
+# px lie outside the labelled region — 0.002%. add_nodec_2009.tif covers just
+# 1.445% of the city BY AREA but is scattered so finely that essentially all
+# canopy sits within ~100 m of a label. Coverage fraction is NOT spatial
+# separation; that overlay cannot answer this at any buffer.
+#
+# THE DESIGN. add_nodecW_2009.tif is the same overlay with everything at/east of
+# prob-grid column 21024 zeroed (qc/build_west_overlay.py). Measured: ~46% of the
+# overlay survives in the west, and ~27.5M reference-canopy px (45%) lie east of
+# the cut, with a 1168 px (~234 m) gap — more than double a training tile. So the
+# eastern canopy is in tiles that contain NO added labels at any distance.
+#
+# ONE VARIABLE vs nodec_v1: the overlay is west-confined. Same 3 bands, same
+# citywide projected labels, same AOI, same default seed.
+#
+# PRE-REGISTERED READ. Score with
+#   phase4_arm_bootstrap_ci.py --tags rgb3_nodeb,nodecW --split-mask
+#   add_nodecW_2009.tif --split-buffer 512
+# and read the OUTSIDE region — that is the label-free-tile holdout. Judge against
+# the OUTSIDE-region retrain floor measured tonight on same-recipe seeds, .0157
+# AUROC (NOT the whole-footprint .0047 — using the wrong denominator is the exact
+# error that inflated the first version of this result 3x):
+#   dAUROC outside >= ~.016   TRANSFER. The gain reaches ground the labels never
+#                             touched. This is the scaling result, and it would be
+#                             the most important positive of the week.
+#   dAUROC outside <= ~.005   NO TRANSFER. Node C is tile-local supervision;
+#                             citywide needs citywide labels. Report as loudly.
+#   between                   UNRESOLVED at n=1; needs a second seed of this arm.
+# Expect the arm to score WORSE overall than nodec_v1 — it trains on ~46% of the
+# added labels. That is not a failure and is not the question being asked.
+- id: "2009_nodecW"
+  year: "2009"
+  tag: nodecW
+  extra: ["--force-citywide", "--no-hillshade",
+          "--infer-aoi", "aoi/sectors_v1.json",
+          "--add-canopy-mask", "/content/drive/MyDrive/treedata/phase4/labels_corrected/add_nodecW_2009.tif"]
+  why: "does the added-label gain reach ground whose training tiles never saw an added label?"
+  expect: "retile ~40 min; train ~35 min; inference ~5 min."

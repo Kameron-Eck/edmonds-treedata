@@ -88,6 +88,14 @@ harness: ** 2026-08-29 — VERIFICATION REBUILT AFTER 3 ADVERSARIAL PASSES + COD
          GPU-GATED, KAM'S CALL: Stage 2 paired val-split arm (needs --force-retile) ·
          S3.5 chm2005 A/B (needs shared norm stats + 3 seeds/arm, or it repeats the
          underpowered chm2 test). Nothing running; no spend since the campaign.
+         BLOCKER MEASURED 2026-08-29, NOT YET BUILT: there is NO mechanism to share
+         normalisation stats. HS_STATS is keyed by raster NAME and core.py:129 reads
+         HS_STATS[config.HS_SOURCE], so chm normalises on mean .2306 and chm2 on
+         .1437 — and that .0869 gap IS the 4.43 m inflation. Launching S3.5 as the
+         engine stands today CANCELS THE TREATMENT BEFORE THE MODEL SEES IT and
+         reproduces the void test a third time. Needs --hs-stats-from (all height arms
+         normalise against ONE entry), stamped into manifest + checkpoint. ~45 min
+         local, no GPU. DO NOT LAUNCH S3.5 BEFORE IT EXISTS.
 
 sectors: ** ACTIVE WORKSTREAM 2026-08-24/25 — SECTOR CAMPAIGN. Source of truth =
          pipeline/sector_campaign_checklist.yaml + state_*.jsonl + RESUME_NOTES.md in

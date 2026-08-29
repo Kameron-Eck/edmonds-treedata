@@ -138,8 +138,14 @@ def main():
 
     log("\n── ground surface ──")
     gknown = np.isfinite(gmin)
-    log(f"  coarse cells WITH a class-2 return: {100*gknown.mean():.2f}%"
-        f"   (audit predicted ~86.5% on covered cells)")
+    # Report BOTH denominators. The audit measured occupancy over cells the cloud
+    # COVERS; this grid is a bbox that is ~half water and out-of-swath, so a
+    # whole-grid fraction is a different number and comparing them directly reads
+    # like a contradiction when they agree.
+    log(f"  coarse cells WITH a class-2 return: {100*gknown.mean():.2f}% of the GRID")
+    log(f"    (the audit's ~86.5% was over COVERED cells only; this grid is a bbox "
+        f"that is roughly half water/out-of-swath, so the two agree when the "
+        f"coverage fraction below is applied)")
     if (~gknown).any():
         d = ndimage.distance_transform_edt(~gknown, sampling=a.ground_cell)
         log("  fill distance for the rest (m): p50 %.1f  p90 %.1f  p99 %.1f  max %.1f"

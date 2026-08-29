@@ -514,7 +514,7 @@ def _sweep_part_orphans(dirpath, max_age_h=24):
         pass
 
 
-def _copy_to_drive(local_path, drive_path, checksum=True, retries=1):
+def _copy_to_drive(local_path, drive_path, checksum=True, retries=3):
     """VERIFIED, ATOMIC local-then-copy write.
 
     The unverified direct-to-Drive write has produced three broken artifacts
@@ -550,7 +550,29 @@ def _copy_to_drive(local_path, drive_path, checksum=True, retries=1):
             # file, and that metadata nicety killed a 45-min train at epoch 24
             # (2021s noise_r2, 2026-08-26). Data integrity is enforced below by
             # size+sha256, never by mtime.
-            shutil.copyfile(local_path, part)
+            # The COPY ITSELF can raise EIO when the rclone mount hiccups — not a
+            # mismatch we could detect below, an exception that killed the whole
+            # job. Measured: 2009_corrupt25 lost 114.5 min of A100 to
+            # `OSError: [Errno 5] Input/output error` on this exact .part write
+            # (2026-08-29). The checkpoint was already safe on local NVMe; only
+            # the transfer failed, so a retry costs seconds and saves the run.
+            # Backoff is generous because the mount usually recovers in tens of
+            # seconds. Integrity is still enforced by size+sha256 below — this
+            # widens WHAT we retry, never what we accept.
+            try:
+                shutil.copyfile(local_path, part)
+            except OSError as e:
+                tock(f"copy {drive_path.name}")
+                print(f"  ! copy raised {type(e).__name__}: {e} "
+                      f"[attempt {attempt + 1}/{retries + 1}]")
+                try:
+                    part.unlink()
+                except OSError:
+                    pass
+                if attempt < retries:
+                    time.sleep(20 * (attempt + 1))
+                    continue
+                raise
             try:
                 shutil.copystat(local_path, part)
             except OSError as e:

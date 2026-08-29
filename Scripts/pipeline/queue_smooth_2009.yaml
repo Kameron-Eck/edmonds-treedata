@@ -36,6 +36,25 @@
 # bias. Val down + independent down means the raw peak was real signal and this
 # flag should be left at 1.
 #
+# ** THE PRIMARY READ IS NOW PAIRED (52cff83, landed after this file was first
+# written and BEFORE this arm ran, so this run produces it). ** The engine used to
+# overwrite the raw-peak checkpoint with the smoothed one; it now keeps it as
+# sem_rawbest_2009_smooth5.pt. Both picks come from the SAME trajectory, so
+# scoring both is a comparison with NO retrain noise in it — the only difference
+# between the two rasters is which epoch was deployed. That resolves effects far
+# below the ~.002 cross-run floor, which is the whole difficulty here.
+#   To score the raw half: copy sem_rawbest_2009_smooth5.pt to
+#   sem_best_2009_smooth5raw.pt and run --step inference --run-tag smooth5raw
+#   (raster inference reads only the checkpoint and the ortho — no tiles, no
+#   retrain, ~5 min), then arm_pr_curves smooth5,smooth5raw.
+#   smooth5 AUROC > smooth5raw = smoothing helps, and this says so cleanly.
+#   If the two picks land on the SAME epoch the engine skips the rewrite, no
+#   sem_rawbest_ file appears, and the answer is "no-op on this trajectory".
+#
+# The cross-arm read below is now SECONDARY — kept because it is what relates
+# this arm to the Node B baselines, but it is noise-limited and was never going
+# to be decisive on its own.
+#
 # PRE-REGISTERED READ (curve metrics only — matched-precision recall is ~3x
 # noisier and is not the verdict metric). Baselines, both Node B, same recipe:
 #   rgb3_nodeb   AUROC .9063  PR-AUC .8365   (30-epoch B cap, best epoch = 30 = AT the cap)

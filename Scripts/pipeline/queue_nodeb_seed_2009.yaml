@@ -1,0 +1,35 @@
+# NODE B, SAME RECIPE, DIFFERENT SEED — the missing error bar. 2026-08-29.
+#
+# WHY THIS IS THE MOST VALUABLE REMAINING MEASUREMENT. The week's headline is
+# "Node C beats Node B by AUROC +.0116". Both arms live on the 3-BAND branch. That
+# branch has NO clean same-recipe repeat, so the claim's error bar is currently
+# BORROWED from the 4-band branch's seed pair (.0016 AUROC). Borrowing an error
+# bar across branches is exactly the kind of quiet assumption this project has
+# been burned by. This run measures it where the claim actually lives.
+#
+# It also retires a wrong number I wrote earlier tonight: I called the
+# rgb3_nodeb-vs-rgb3_ep60 gap (.0023) "the noise floor". It is not — those two
+# differ in the epoch cap and the cap BOUND on the first (its best epoch was its
+# last allowed epoch). That gap is cap-change + noise. This run is the clean pair.
+#
+# ONE VARIABLE vs rgb3_nodeb: --seed 1234. Same 3 bands, same projected-2020
+# citywide labels, same AOI, same 30-epoch cap. Tiling binds its seed at import,
+# so the train/val/test split is IDENTICAL — this isolates training stochasticity
+# and nothing else.
+#
+# PRE-REGISTERED READ (curve metrics):
+#   |AUROC - .9063| is the 3-band retrain noise on ONE pair. Report it as a
+#   difference, not a sigma: n=2 gives a difference, and a 2-point sigma is a
+#   number with more decimal places than information.
+#   If it comes in near .0016 (the 4-band figure), the borrowed error bar was
+#   fine and Node C's +.0116 stands at ~7x noise.
+#   If it comes in ABOVE ~.006, Node C's margin is under 2x noise and the
+#   headline must be restated as provisional pending more seeds. That outcome
+#   would matter more than any new hypothesis this week, so it is worth the hour.
+- id: "2009_nodeb_s1234"
+  year: "2009"
+  tag: rgb3_nodeb_s1234
+  extra: ["--force-citywide", "--no-hillshade", "--seed", "1234",
+          "--infer-aoi", "aoi/sectors_v1.json"]
+  why: "measure retrain noise on the branch the Node B vs Node C claim actually lives on."
+  expect: "retile ~20 min; train ~35 min A100; sample inference ~5 min."

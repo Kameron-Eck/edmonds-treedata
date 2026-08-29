@@ -82,6 +82,7 @@ import argparse
 import csv
 import datetime as _dt
 import io
+import json
 import os
 import re
 import secrets
@@ -1015,8 +1016,95 @@ def _recheck_skipped_verify(job, rows, prior):
     return state not in _VERIFY_HARD_FAIL
 
 
-def _duplicate_tag_guard(todo, max_age_s=300):
-    """Refuse to start if another LIVE VM is already running one of these run tags.
+TAGS_FILE = Path("/content/queue_tags.json")     # read by vm_heartbeat.run_tags
+
+
+def _declare_run_tags(todo, queue_name, job="", step=""):
+    """Tell this VM's beacon which run tags this queue owns (D11).
+
+    The beacon republishes this to the lake every 60 s, which is what gives the
+    cross-VM guard a FRESH answer during a multi-hour step. The queue could not
+    provide that itself: between its own writes there can be four hours of
+    training, far past any staleness window a guard could use.
+
+    LOCAL disk, never the lake: it describes this process, and the beacon — which
+    checks the pid is still live — is what turns it into a claim others can see.
+    Best-effort; a declaration that cannot be written must not stop a run (the
+    guard then reports itself unprotected, which is the honest outcome).
+    """
+    if not _COLAB_BASE.exists():
+        return                                   # not a VM; nothing reads this
+    try:
+        TAGS_FILE.write_text(json.dumps({
+            "pid": os.getpid(), "queue": str(queue_name), "job": job, "step": step,
+            "tags": sorted({str(j["tag"]) for j in todo}),
+            "ts_utc": _dt.datetime.now(_dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+            **_ident(),
+        }), encoding="utf-8")
+    except OSError as e:
+        print(f"  [dup-guard] could not declare run tags ({e}) — peers will fall back "
+              f"to reading this VM's engine cmdline, which is blank between steps")
+
+
+def _tag_owners(want, max_age_s=300):
+    """Which OTHER live runtimes hold a tag in `want`.
+
+    → (clashes, scanned, blind): clashes is [(vm, tag, how)], scanned counts LIVE
+    beacons read, and `blind` is a sentence explaining why the scan proves nothing
+    (None when it was sound).
+
+    Prefers each beacon's DECLARED `run_tags` (D11) and falls back to the old
+    cmdline regex for beacons from an older build. The regex is why this guard was
+    weak: it reads the ENGINE's cmdline, which is absent between engine steps and
+    truncated to the last 200 characters, so a queue that owned a tag continuously
+    appeared to hold it only in bursts.
+    """
+    logs = BASE / "phase4" / "logs"
+    me = _ident()
+    me_pid = str(os.getpid())
+    clashes, scanned, files = [], 0, []
+    try:
+        files = list(logs.glob("heartbeat_*.json"))
+    except OSError as e:
+        return [], 0, f"could not list {logs} ({type(e).__name__}: {e})"
+    for hb in files:
+        try:
+            if time.time() - hb.stat().st_mtime > max_age_s:
+                continue                          # stale beacon = dead VM
+            d = json.loads(hb.read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            continue
+        scanned += 1
+        if d.get("host") == me["host"] and str(d.get("run_tags_pid") or "") == me_pid:
+            continue                              # that beacon is publishing US
+        vm = d.get("session") or hb.stem.replace("heartbeat_", "")
+        declared = d.get("run_tags")
+        if isinstance(declared, list) and declared:
+            for t in declared:
+                if str(t) in want:
+                    clashes.append((vm, str(t), "declared"))
+        else:
+            m = re.search(r"--run-tag (\S+)", d.get("engine_proc") or "")
+            if m and m.group(1) in want:
+                clashes.append((vm, m.group(1), "engine cmdline"))
+    blind = None
+    if scanned == 0:
+        blind = (f"no live beacons in {logs} "
+                 f"({len(files)} heartbeat file(s), all stale or unreadable)")
+    return clashes, scanned, blind
+
+
+def _guard_row(rows, job, state, detail):
+    rec = dict(job=job.get("id", "(launch)"), year=job.get("year", ""),
+               tag=job.get("tag", ""), step="GUARD:runtag", state=state,
+               exit="", minutes="", detail=str(detail)[:200], **_ident(),
+               ts=_dt.datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+    rows.append(rec)
+    _status_write(rows)
+
+
+def _duplicate_tag_guard(todo, rows, at_launch=True, max_age_s=300):
+    """Refuse to run work whose run tag another LIVE VM already holds. → bool ok.
 
     WHY (2026-08-29). The smoothing arm was found running on TWO VMs at once, both
     mid-tile under `--run-tag smooth5`. A shared run tag means a shared per-arm tile
@@ -1024,54 +1112,50 @@ def _duplicate_tag_guard(todo, max_age_s=300):
     concurrent race that corrupted the groves B-vs-C comparison and forced a public
     retraction. Nothing had reached the lake that time; the next one might.
 
-    The existing interlock lives in the launch scripts and greps `ps` on the LOCAL
-    VM, so it is structurally blind to a second VM. This reads the beacons every VM
-    already publishes to the lake once a minute, so it sees across runtimes.
+    D11 fixed three ways this could not do its job:
 
-    Fails OPEN on any error: a heartbeat that cannot be read must never block a
-    legitimate run. The cost of a false block is a lost GPU hour; the cost of a
-    false pass is what it always was, so this only tightens the common case.
+      1. IT RAN ONCE, AT LAUNCH. A queue holds its tags for hours; a peer that
+         starts five minutes later was never looked for. It now also runs before
+         every job — and a clash there SKIPS THAT JOB, rather than killing a queue
+         that has already produced good work.
+      2. IT READ THE ENGINE'S CMDLINE. See _tag_owners: absent between steps,
+         truncated at 200 chars. Tags are now declared by the queue itself.
+      3. IT FAILED OPEN TWICE, IN PRINT ONLY. An unreadable lake and a zero-beacon
+         scan both printed a warning to a log nobody reads and proceeded as if
+         guarded. Both now also write a GUARD_UNVERIFIED row to the status CSV, so
+         "this run was never protected" is a fact in the audit trail rather than a
+         line in scrollback.
+
+    Still fails OPEN — a heartbeat that cannot be read must not block a legitimate
+    run — but it can no longer fail SILENTLY, which is the difference that matters.
     """
-    import json as _json
-    want = {j["tag"] for j in todo}
+    want = {str(j["tag"]) for j in todo}
     if not want:
-        return
-    clash = []
-    scanned = 0
-    logs = BASE / "phase4" / "logs"          # NOT LOG_DIR: this module defines only
-    try:                                     # BASE and QC_DIR, and the first draft of
-        for hb in logs.glob("heartbeat_*.json"):   # this guard referenced a name that
-            try:                                   # does not exist. Because the scan is
-                scanned += 1                       # wrapped in a fail-OPEN except, that
-                                                   # bug made the guard a SILENT NO-OP -
-                                                   # it would print 'could not scan' and
-                                                   # protect nothing. Hence `scanned`.
-                if time.time() - hb.stat().st_mtime > max_age_s:
-                    continue                      # stale beacon = dead VM
-                d = _json.loads(hb.read_text(encoding="utf-8"))
-                eng = d.get("engine_proc") or ""
-                m = re.search(r"--run-tag (\S+)", eng)
-                if m and m.group(1) in want:
-                    clash.append((hb.stem.replace("heartbeat_", ""), m.group(1)))
-            except (OSError, ValueError):
-                continue
-    except Exception as e:                        # fail OPEN, loudly
-        print(f"  [dup-guard] could not scan heartbeats ({e}) — proceeding unguarded")
-        return
-    if clash:
-        lines = "; ".join(f"{vm} already running tag {tag}" for vm, tag in clash)
-        raise SystemExit(
-            "REFUSING TO START: another live runtime is already using a run tag from "
-            f"this queue ({lines}). Two runs sharing a tag share the tile dir, the "
-            "checkpoint and the output raster, which silently corrupts both. Stop the "
-            "other runtime, or launch under a different tag.")
-    if scanned == 0:
-        print("  [dup-guard] WARNING: scanned 0 heartbeat files — the guard is NOT "
-              f"protecting this run (looked in {logs}). Proceeding, but a duplicate "
-              "run would go undetected.")
-        return
-    print(f"  [dup-guard] scanned {scanned} beacon(s); no live runtime is using "
-          f"{sorted(want)} — safe to start")
+        return True
+    clashes, scanned, blind = _tag_owners(want, max_age_s)
+    if clashes:
+        lines = "; ".join(f"{vm} already running tag {tag} [{how}]"
+                          for vm, tag, how in clashes)
+        _guard_row(rows, {} if at_launch else todo[0], "TAG_IN_USE", lines)
+        if at_launch:
+            raise SystemExit(
+                "REFUSING TO START: another live runtime is already using a run tag "
+                f"from this queue ({lines}). Two runs sharing a tag share the tile "
+                "dir, the checkpoint and the output raster, which silently corrupts "
+                "both. Stop the other runtime, or launch under a different tag.")
+        print(f"  ! SKIPPING {todo[0]['id']}: {lines}. Two runs sharing a tag "
+              f"corrupt each other's tile dir, checkpoint and raster. The rest of "
+              f"the queue continues.", flush=True)
+        return False
+    if blind:
+        print(f"  [dup-guard] WARNING: {blind} — this run is NOT PROTECTED against a "
+              f"duplicate tag. Proceeding; recorded as GUARD_UNVERIFIED.")
+        _guard_row(rows, {} if at_launch else todo[0], "GUARD_UNVERIFIED", blind)
+        return True
+    if at_launch:
+        print(f"  [dup-guard] scanned {scanned} live beacon(s); no runtime is using "
+              f"{sorted(want)} — safe to start")
+    return True
 
 
 def main():
@@ -1119,7 +1203,12 @@ def main():
     todo = [j for j in jobs if j["id"] not in skip
             and (args.only is None or j["id"] == args.only)]
 
-    _duplicate_tag_guard(todo)
+    # NB: the duplicate-tag guard used to run HERE, and that was wrong twice over.
+    # It ran before the --dry-run return, so a dry run — which spends nothing and
+    # touches nothing — could be refused outright by a peer holding a tag. And it
+    # ran before STATUS_OUT was set, so any status row it wrote would have landed
+    # in the LEGACY SHARED train_queue_status.csv: exactly the cross-queue clobber
+    # P11.1 split the files to prevent. It now runs below, after both.
 
     _hr("PHASE 4 — UNATTENDED TRAIN QUEUE")
     print(f"  BASE   : {BASE}")
@@ -1164,6 +1253,13 @@ def main():
           f"train_queue_status*.csv)")
 
     rows = []                       # per-launch file holds only THIS launch's rows
+    # Guard BEFORE any spend, but after STATUS_OUT exists so its row lands in this
+    # launch's own file, and after the dry-run return so a free plan is never
+    # refused. Declaring our tags only once the guard has passed keeps a queue from
+    # ever colliding with its own claim.
+    _duplicate_tag_guard(todo, rows, at_launch=True)
+    _declare_run_tags(todo, args.queue or "JOBS")
+
     done, reverify, verdicts = ((set(), set(), {}) if args.no_resume
                                 else _completed_steps())
     if done:
@@ -1177,6 +1273,12 @@ def main():
     for j in todo:
         _hr(f"JOB {j['id']}  (year {j['year']}, tag {j['tag']})")
         print(f"  {j['why']}")
+        # D11: re-check per job, not only at launch. A peer that started after us
+        # holds its tag from then on, and the launch-time scan could not have seen
+        # it. A clash here costs this ONE job, not the queue.
+        if not _duplicate_tag_guard([j], rows, at_launch=False):
+            continue
+        _declare_run_tags(todo, args.queue or "JOBS", job=j["id"])
         ok = True
         ran_any = False
         for st in STEPS:
@@ -1197,6 +1299,7 @@ def main():
                     print(f"  - skip {j['id']}/{st} (already OK)")
                 continue
             ran_any = True
+            _declare_run_tags(todo, args.queue or "JOBS", job=j["id"], step=st)
             _t_step0 = time.time()
             res = run_step(j, st, args.infer_batch, rows)
             tries = 0

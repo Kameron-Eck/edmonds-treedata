@@ -56,6 +56,7 @@ import time
 
 MOUNT = "/content/drive/MyDrive/treedata"     # the exact path every script expects
 SCRATCH = "/content/phase4_scratch"
+TAGS_FILE = "/content/queue_tags.json"        # the queue's own tag declaration (D11)
 VFS_CACHE = "/root/.cache/rclone"             # rclone's write cache (see _vfs_bytes)
 BREADCRUMB = "/content"                       # LOCAL disk: survives a lost mount
 MAXCHARS = 200                                # cap on every free-text field (2 KB budget)
@@ -265,7 +266,40 @@ def _last_line(path, size, nbytes=4000):
     return None
 
 
-def sample(base, scratch, session, prev, vfs_cache=VFS_CACHE):
+def run_tags(queue_pid, path=TAGS_FILE):
+    """The run tags the queue on THIS VM declares it owns, or None.
+
+    D11 (2026-08-29). The cross-VM duplicate-tag guard used to infer a tag by
+    regexing `--run-tag (\\S+)` out of the ENGINE's cmdline, as captured in this
+    beacon's `engine_proc` field — which is:
+
+      * None whenever no engine is running. That is every gap BETWEEN steps, and
+        the whole of the labels/evaluate work. The queue owns the tag continuously;
+        the engine only exists in bursts. A guard that reads the engine sees an
+        unowned tag most of the time.
+      * truncated to the LAST 200 characters of the cmdline (MAXCHARS), so whether
+        the tag is visible at all depends on how many flags follow it.
+
+    So the queue now DECLARES its tags to a local file and the beacon republishes
+    them on its own 60 s cadence — a stable answer for the whole life of the queue,
+    with a freshness guarantee the queue's file cannot give on its own (a train
+    step can run for hours between the queue's own writes).
+
+    Published ONLY when the recorded pid is the live queue process this beacon can
+    see in /proc. A queue that died leaves its declaration behind, and a dead run
+    must never go on holding a tag.
+    """
+    try:
+        with open(path, encoding="utf-8") as f:
+            d = json.load(f)
+    except (OSError, ValueError):
+        return None
+    if not queue_pid or str(d.get("pid")) != str(queue_pid):
+        return None
+    return d
+
+
+def sample(base, scratch, session, prev, vfs_cache=VFS_CACHE, tags_file=TAGS_FILE):
     """One heartbeat dict. `prev` carries the previous cycle's samples (or {})."""
     c0, t0 = _cpu_snap(), time.time()      # the CPU window spans this whole cycle
     logs = os.path.join(base, "phase4", "logs")
@@ -292,6 +326,7 @@ def sample(base, scratch, session, prev, vfs_cache=VFS_CACHE):
         nohup.pop("_path", None)
         nohup["prev_size"] = prev.get("nohup_size")
 
+    decl = run_tags(queue_proc, tags_file) or {}
     sc = _dir_bytes(scratch) if os.path.isdir(scratch) else 0
     gpu = _gpu()                                    # sleeps ~2 s: the CPU window
     cache, dirty = _vfs_bytes(vfs_cache)
@@ -305,6 +340,14 @@ def sample(base, scratch, session, prev, vfs_cache=VFS_CACHE):
         "cpu_pct": _cpu_pct(c0, _cpu_snap()),
         "queue_proc": queue_proc,
         "engine_proc": engine_proc,
+        # D11: what this VM is working on, DECLARED by the queue rather than
+        # scraped out of a truncated engine cmdline. Null when no live queue
+        # declares anything — never a stale claim from a dead run.
+        "run_tags": decl.get("tags"),
+        "run_tags_pid": decl.get("pid"),
+        "queue_file": str(decl.get("queue") or "")[:MAXCHARS] or None,
+        "queue_job": str(decl.get("job") or "")[:MAXCHARS] or None,
+        "queue_step": str(decl.get("step") or "")[:MAXCHARS] or None,
         "newest_nohup": nohup,
         "newest_status": status,
         "scratch_gb": round(sc / 1e9, 3),
@@ -402,6 +445,8 @@ def main():
     ap.add_argument("--scratch", default=SCRATCH)
     ap.add_argument("--vfs-cache", default=VFS_CACHE,
                     help="rclone write-cache dir (override for local tests)")
+    ap.add_argument("--tags-file", default=TAGS_FILE,
+                    help="the queue's run-tag declaration (override for local tests)")
     ap.add_argument("--breadcrumb", default=BREADCRUMB,
                     help="LOCAL dir for the final mount_ok=false heartbeat")
     a = ap.parse_args([x for x in sys.argv[1:]
@@ -414,7 +459,7 @@ def main():
     print(f"vm_heartbeat session={a.session} -> {out} every {a.interval}s "
           f"(pid {os.getpid()}, instance {INSTANCE_ID})", flush=True)
     while True:
-        hb = sample(a.base, a.scratch, a.session, prev, a.vfs_cache)
+        hb = sample(a.base, a.scratch, a.session, prev, a.vfs_cache, a.tags_file)
         try:
             if not hb["mount_ok"]:
                 raise OSError("mount gone: " + a.base)

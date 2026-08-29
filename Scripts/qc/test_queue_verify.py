@@ -1,4 +1,4 @@
-"""Queue verification gates (D6/D7/D8/D9, 2026-08-29).
+"""Queue verification gates (D6/D7/D8/D9/D10/D11, 2026-08-29).
 
 The queue's VERIFY rows are what stand between a broken artifact and the next
 GPU hour, and four of them could not fail:
@@ -16,8 +16,13 @@ GPU hour, and four of them could not fail:
       the year and tag that decide which artifacts the step actually produces.
   D9  a job whose every step was skipped was declared verified having read
       nothing at all.
+  D10 the status file was TRUNCATED then refilled on the mount after every step,
+      and unreadable status files were dropped from the merge — which rewrites
+      history in the unsafe direction, since rows merge latest-wins.
+  D11 the cross-VM run-tag guard ran once at launch and read the tag out of the
+      ENGINE's cmdline, which is absent between engine steps.
 
-These tests fix all four in place: each asserts the state the OLD code got wrong.
+These tests fix all six in place: each asserts the state the OLD code got wrong.
 
 No Drive, no GPU, no torch.
 
@@ -25,6 +30,8 @@ Run:  PYTHONUTF8=1 py -3.12 -m pytest qc/test_queue_verify.py -q
 """
 import csv
 import io
+import json
+import os
 import sys
 from pathlib import Path
 
@@ -431,6 +438,124 @@ def test_an_unreadable_status_file_disables_resume(tmp_path, monkeypatch):
     assert done == set() and reverify == set(), \
         "an incomplete ledger must not justify skipping anything"
     assert q._MERGE_DEFECTS, "the unreadable file must be reported, not dropped"
+
+
+# ── D11: the cross-VM run-tag guard ──────────────────────────────────────────
+
+def _beacon(tmp_path, name, **fields):
+    logs = tmp_path / "phase4" / "logs"
+    logs.mkdir(parents=True, exist_ok=True)
+    p = logs / f"heartbeat_{name}.json"
+    p.write_text(json.dumps(fields), encoding="utf-8")
+    return p
+
+
+def test_a_declared_tag_on_another_vm_is_a_clash(tmp_path, monkeypatch):
+    monkeypatch.setattr(q, "BASE", tmp_path)
+    _beacon(tmp_path, "gpu2", session="gpu2", host="other-vm",
+            run_tags=["smooth5"], run_tags_pid=999)
+    clashes, scanned, blind = q._tag_owners({"smooth5"})
+    assert scanned == 1 and blind is None
+    assert clashes == [("gpu2", "smooth5", "declared")]
+
+
+def test_a_declaration_survives_the_gap_between_engine_steps(tmp_path, monkeypatch):
+    """THE D11 CORE. The old guard read the ENGINE's cmdline, which is None
+    whenever no engine is running — every gap between steps, and the whole of the
+    labels/evaluate work. A queue that owns a tag for four hours appeared to hold
+    it only in bursts, and a peer launching in a gap saw a free tag."""
+    monkeypatch.setattr(q, "BASE", tmp_path)
+    _beacon(tmp_path, "gpu2", session="gpu2", host="other-vm", engine_proc=None,
+            queue_proc=444, run_tags=["smooth5"], run_tags_pid=444)
+    clashes, _, _ = q._tag_owners({"smooth5"})
+    assert clashes, "a declared tag must be visible with no engine running"
+
+
+def test_an_old_build_beacon_still_falls_back_to_the_cmdline(tmp_path, monkeypatch):
+    monkeypatch.setattr(q, "BASE", tmp_path)
+    _beacon(tmp_path, "gpu2", session="gpu2", host="other-vm",
+            engine_proc="python -u phase4_semantic_finetune.py --run-tag smooth5 --step train")
+    clashes, _, _ = q._tag_owners({"smooth5"})
+    assert clashes == [("gpu2", "smooth5", "engine cmdline")]
+
+
+def test_our_own_beacon_is_not_a_clash(tmp_path, monkeypatch):
+    """The beacon on THIS VM republishes THIS queue's tags within 60s of launch. A
+    guard that counted its own reflection would refuse every second job."""
+    monkeypatch.setattr(q, "BASE", tmp_path)
+    _beacon(tmp_path, "me", session="me", host=q._ident()["host"],
+            run_tags=["smooth5"], run_tags_pid=os.getpid())
+    clashes, scanned, _ = q._tag_owners({"smooth5"})
+    assert scanned == 1 and clashes == []
+
+
+def test_a_stale_beacon_is_a_dead_vm(tmp_path, monkeypatch):
+    monkeypatch.setattr(q, "BASE", tmp_path)
+    p = _beacon(tmp_path, "gpu2", session="gpu2", host="other-vm",
+                run_tags=["smooth5"], run_tags_pid=999)
+    os.utime(p, (0, 0))
+    clashes, scanned, blind = q._tag_owners({"smooth5"})
+    assert clashes == [] and scanned == 0
+    assert blind and "all stale" in blind
+
+
+def test_a_blind_guard_says_so_in_the_STATUS_CSV_not_just_the_log(tmp_path, monkeypatch):
+    """It fails OPEN — an unreadable lake must not block a legitimate run — but it
+    may not fail SILENTLY. The old version printed a warning to a log nobody reads
+    and proceeded as if guarded."""
+    monkeypatch.setattr(q, "BASE", tmp_path)          # no phase4/logs at all
+    monkeypatch.setattr(q, "_status_write", lambda r: None)
+    rows = []
+    assert q._duplicate_tag_guard([dict(id="a", year="2009", tag="smooth5")],
+                                  rows, at_launch=True) is True
+    assert rows and rows[-1]["state"] == "GUARD_UNVERIFIED"
+    assert rows[-1]["step"] == "GUARD:runtag"
+
+
+def test_a_clash_at_launch_refuses_before_any_spend(tmp_path, monkeypatch):
+    monkeypatch.setattr(q, "BASE", tmp_path)
+    monkeypatch.setattr(q, "_status_write", lambda r: None)
+    _beacon(tmp_path, "gpu2", session="gpu2", host="other-vm",
+            run_tags=["smooth5"], run_tags_pid=999)
+    rows = []
+    with pytest.raises(SystemExit):
+        q._duplicate_tag_guard([dict(id="a", year="2009", tag="smooth5")],
+                               rows, at_launch=True)
+    assert rows[-1]["state"] == "TAG_IN_USE"
+
+
+def test_a_clash_mid_queue_skips_the_job_not_the_queue(tmp_path, monkeypatch):
+    """A peer that starts after us was invisible to the launch-time scan. Losing
+    one job to that is right; losing a queue that has already produced good work
+    is not."""
+    monkeypatch.setattr(q, "BASE", tmp_path)
+    monkeypatch.setattr(q, "_status_write", lambda r: None)
+    _beacon(tmp_path, "gpu2", session="gpu2", host="other-vm",
+            run_tags=["smooth5"], run_tags_pid=999)
+    rows = []
+    ok = q._duplicate_tag_guard([dict(id="a", year="2009", tag="smooth5")],
+                                rows, at_launch=False)
+    assert ok is False                       # this job is skipped …
+    assert rows[-1]["state"] == "TAG_IN_USE" # … and the queue carries on
+
+
+def test_declaration_round_trips_from_the_queue_to_the_beacon(tmp_path, monkeypatch):
+    """The cross-module contract: the queue WRITES the declaration and the beacon
+    READS it. Both sides are asserted here because a key-name drift between two
+    files is invisible to either one's own tests."""
+    vh = pytest.importorskip("vm_heartbeat")
+    decl = tmp_path / "queue_tags.json"
+    monkeypatch.setattr(q, "_COLAB_BASE", tmp_path)      # pretend we are on a VM
+    monkeypatch.setattr(q, "TAGS_FILE", decl)
+    q._declare_run_tags([dict(id="a", year="2009", tag="smooth5"),
+                         dict(id="b", year="2013", tag="smooth5")],
+                        "queue_smooth.yaml", job="a", step="train")
+    got = vh.run_tags(os.getpid(), str(decl))
+    assert got and got["tags"] == ["smooth5"] and got["job"] == "a"
+    # a DEAD queue's leftover declaration must never keep holding a tag
+    assert vh.run_tags(os.getpid() + 1, str(decl)) is None
+    assert vh.run_tags(None, str(decl)) is None
+    assert vh.run_tags(os.getpid(), str(tmp_path / "absent.json")) is None
 
 
 def test_a_torn_status_file_is_caught_by_its_header(tmp_path, monkeypatch):

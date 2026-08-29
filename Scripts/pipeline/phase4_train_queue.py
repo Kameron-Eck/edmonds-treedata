@@ -82,6 +82,7 @@ import argparse
 import csv
 import datetime as _dt
 import io
+import re
 import socket
 import subprocess
 import sys
@@ -227,9 +228,35 @@ def _merged_rows():
     return rows
 
 
+def _job_key(job_id, year, tag, step):
+    """The identity a resume decision must key on: (job, year, tag, step).
+
+    D8 (2026-08-29). It used to be (job_id, step) — a resume matched on the job's
+    NICKNAME and ignored what the job actually produces. Job ids are short, hand
+    written and reused across queue files (`2019` appears in three, `2024` in
+    three), and NOTHING makes an id mean the same year or the same tag twice: two
+    queues can legitimately call different work `2024`. When they do, a resume
+    skips a step that never ran for THIS year and tag, and the job proceeds on some
+    other run's artifacts.
+
+    HONESTLY: this has not fired yet. Across the 117 harvested historical status
+    rows, no job id was ever recorded under more than one (year, tag) — every
+    reused id happens to carry identical year and tag. It is a latent defect, fixed
+    because nothing prevents it, not because it has bitten. (The INVERSE has bitten:
+    distinct ids sharing one tag, which is how the 2021s_nr2r rerun overwrote the
+    crashed noise_r2 checkpoints — see queue_noise_2021s_b.yaml. Tag collision is
+    D11's problem, not this key's.)
+
+    Both sides go through str() here so the CSV's text and the YAML's values (a
+    `tag: 2020` parses as an int) cannot disagree about what the same job is.
+    """
+    return (str(job_id), str(year), str(tag), str(step))
+
+
 def _completed_steps():
-    """→ (done, reverify): steps already recorded OK across ALL status files, and
-    the subset whose last verification COULD NOT CHECK them.
+    """→ (done, reverify, verdicts): steps already recorded OK across ALL status
+    files, the subset whose last verification COULD NOT CHECK them, and the newest
+    recorded VERIFY verdict text per key (D9 re-checks against it).
 
     The engine's labels/tile steps are idempotent and train/evaluate/inference
     write tagged outputs, so skipping a previously-OK step is safe and turns a
@@ -242,10 +269,15 @@ def _completed_steps():
     checker that threw is no evidence the artifact is bad) but is re-VERIFIED on
     the next launch instead of skipped in silence. Only hard states force a re-run.
     """
-    done, bad, reverify = set(), set(), set()
+    done, bad, reverify, verdicts = set(), set(), set(), {}
     for r in _merged_rows():                       # sorted by ts: later rows win
         job, step, state = r.get("job"), str(r.get("step", "")), r.get("state")
-        key = (job, step)
+        year, tag = r.get("year"), r.get("tag")
+        key = _job_key(job, year, tag, step)
+        if step in ("VERIFY",) or step.startswith("VERIFY:"):
+            # keep the newest verdict TEXT, not just the pass/fail — D9 re-checks a
+            # skipped job's raster against the size the verdict actually measured
+            verdicts[key] = (state, r.get("detail", ""), r.get("ts", ""))
         if step in STEPS:
             if state == "OK":
                 done.add(key)
@@ -260,7 +292,7 @@ def _completed_steps():
             # early return) — its OK row must not license a skip if VERIFY:{step}
             # then hard-failed. Pre-P4.3 history has no VERIFY:{step} rows and is
             # unaffected. (Audit finding 2026-08-22.)
-            k = (job, step[7:])
+            k = _job_key(job, year, tag, step[7:])
             if state in _VERIFY_HARD_FAIL:
                 bad.add(k)
                 reverify.discard(k)
@@ -279,9 +311,10 @@ def _completed_steps():
                 done.add(key)
                 bad.discard(key)
             elif state in _VERIFY_HARD_FAIL:
-                bad.add((job, "inference"))      # job-end raster check failed
+                # job-end raster check failed
+                bad.add(_job_key(job, year, tag, "inference"))
                 bad.add(key)
-    return done - bad, reverify - bad
+    return done - bad, reverify - bad, verdicts
 
 
 def _hr(t=""):
@@ -523,7 +556,7 @@ def _check_prob_raster(out, attempts=3, backoff_s=10):
 # the queue must stop spending on this job, not sail into the next GPU hour.
 _VERIFY_HARD_FAIL = {"MISSING", "EMPTY", "MOSTLY_NODATA", "NO_CONFIDENCE",
                      "BAD_CKPT", "NO_TILES", "BAD_INDEX", "UNREADABLE",
-                     "STALE_EVAL"}
+                     "STALE_EVAL", "SIZE_CHANGED"}
 
 # D7 (2026-08-29): states that mean "THIS CHECK COULD NOT ANSWER" — which is not
 # the same as "the artifact is fine", and used to be recorded as if it were.
@@ -772,6 +805,66 @@ def verify(job, rows):
     print(f"  VERIFY {job['id']}: {rec['state']}  {rec['detail']}")
 
 
+def _mb_from_verdict(detail):
+    """The MB figure a recorded VERIFY verdict measured, or None.
+
+    _check_prob_raster's detail always opens with "{mb:.0f}MB " — anchored at the
+    start so a stray number later in the string (valid=…, maxprob=…) can never be
+    mistaken for a size.
+    """
+    m = re.match(r"(\d+)MB\b", str(detail or "").strip())
+    return int(m.group(1)) if m else None
+
+
+def _recheck_skipped_verify(job, rows, prior):
+    """A job whose every step was skipped: is its raster STILL what was verified?
+
+    D9 (2026-08-29). The old branch printed "already OK" and read nothing at all —
+    a launch could report a job verified having opened no file, so a raster deleted,
+    truncated or overwritten between launches still counted as this launch's pass.
+
+    Re-READING it is not the answer: a relaunch re-verify hung the queue in
+    uninterruptible disk sleep on a 146 MB FUSE read (2018s_fx, 2026-08-27), which
+    is exactly why the skip exists. But a stat() is one metadata call, and it is
+    enough to catch the artifact being gone or a different size than the verdict
+    measured.
+
+    The row it writes is deliberately NOT "OK": this launch did not re-read the
+    raster and must not claim it did. OK_CACHED means "the recorded verdict stands
+    and the file still matches it", which is a weaker and truer statement.
+    """
+    out = MASKS / f"edmonds_canopy_prob_{job['year']}_{job['tag']}.tif"
+    p_state, p_detail, p_ts = prior if prior else ("", "", "")
+    try:
+        if not out.exists():
+            state, detail = "MISSING", (f"recorded {p_state} at {p_ts} but the raster "
+                                        f"is GONE now: {out.name}")
+        else:
+            mb = out.stat().st_size / 1e6
+            want = _mb_from_verdict(p_detail)
+            if want is None:
+                state = "UNVERIFIED"
+                detail = (f"{mb:.0f}MB on disk; the recorded verdict ({p_state} at "
+                          f"{p_ts}) carries no size to compare — existence only")
+            elif abs(round(mb) - want) > 1:
+                state = "SIZE_CHANGED"
+                detail = (f"{mb:.0f}MB now vs {want}MB when verified at {p_ts} — "
+                          f"this is not the raster that passed")
+            else:
+                state = "OK_CACHED"
+                detail = (f"{mb:.0f}MB, unchanged since {p_state} at {p_ts}; not "
+                          f"re-read (FUSE read hang guard, 2018s_fx 2026-08-27)")
+    except Exception as e:                                      # noqa: BLE001
+        state, detail = "UNCHECKED", f"{type(e).__name__}: {e}"[:200]
+    rec = dict(job=job["id"], year=job["year"], tag=job["tag"], step="VERIFY",
+               state=state, exit="", minutes="", detail=detail,
+               ts=_dt.datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+    rows.append(rec)
+    _status_write(rows)
+    print(f"  VERIFY {job['id']}: {state}  {detail}")
+    return state not in _VERIFY_HARD_FAIL
+
+
 def _duplicate_tag_guard(todo, max_age_s=300):
     """Refuse to start if another LIVE VM is already running one of these run tags.
 
@@ -790,7 +883,6 @@ def _duplicate_tag_guard(todo, max_age_s=300):
     false pass is what it always was, so this only tightens the common case.
     """
     import json as _json
-    import re as _re
     want = {j["tag"] for j in todo}
     if not want:
         return
@@ -808,7 +900,7 @@ def _duplicate_tag_guard(todo, max_age_s=300):
                     continue                      # stale beacon = dead VM
                 d = _json.loads(hb.read_text(encoding="utf-8"))
                 eng = d.get("engine_proc") or ""
-                m = _re.search(r"--run-tag (\S+)", eng)
+                m = re.search(r"--run-tag (\S+)", eng)
                 if m and m.group(1) in want:
                     clash.append((hb.stem.replace("heartbeat_", ""), m.group(1)))
             except (OSError, ValueError):
@@ -922,7 +1014,8 @@ def main():
           f"train_queue_status*.csv)")
 
     rows = []                       # per-launch file holds only THIS launch's rows
-    done, reverify = (set(), set()) if args.no_resume else _completed_steps()
+    done, reverify, verdicts = ((set(), set(), {}) if args.no_resume
+                                else _completed_steps())
     if done:
         print(f"\n  RESUME: {len(done)} step(s) already OK across all status files "
               f"will be SKIPPED.")
@@ -937,8 +1030,9 @@ def main():
         ok = True
         ran_any = False
         for st in STEPS:
-            if (j["id"], st) in done:
-                if (j["id"], st) in reverify:
+            _k = _job_key(j["id"], j["year"], j["tag"], st)
+            if _k in done:
+                if _k in reverify:
                     # D7: last time, the check itself failed — so this step is
                     # recorded OK on no evidence. Re-CHECK it (seconds, no GPU);
                     # do not re-RUN it (hours, and spend nobody approved).
@@ -973,12 +1067,14 @@ def main():
                       f"verification. Stopping this job before spending more GPU.")
                 ok = False
                 break
-        if ok and not ran_any and (j["id"], "VERIFY") in done:
+        _vkey = _job_key(j["id"], j["year"], j["tag"], "VERIFY")
+        if ok and not ran_any and _vkey in done:
             # Fully-skipped job with a recorded job-level VERIFY OK: do NOT
             # re-read its raster through the FUSE mount — a relaunch re-verify
             # hung the queue in uninterruptible disk sleep on a 146MB read
-            # (2018s_fx, 2026-08-27). The recorded verdict stands.
-            print(f"  - skip {j['id']}/VERIFY (already OK; not re-reading raster)")
+            # (2018s_fx, 2026-08-27). But do not declare it verified on no
+            # evidence either (D9): stat it, and record OK_CACHED, not OK.
+            _recheck_skipped_verify(j, rows, verdicts.get(_vkey))
         elif ok:
             verify(j, rows)
 

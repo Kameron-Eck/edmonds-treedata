@@ -1,7 +1,7 @@
-"""Queue verification gates (D6/D7, 2026-08-29).
+"""Queue verification gates (D6/D7/D8/D9, 2026-08-29).
 
 The queue's VERIFY rows are what stand between a broken artifact and the next
-GPU hour, and two of them could not fail:
+GPU hour, and four of them could not fail:
 
   D6  VERIFY:evaluate matched on `year` alone against semantic_eval_report.csv —
       a cumulative file every year, arm and campaign appends into. ANY historical
@@ -12,8 +12,12 @@ GPU hour, and two of them could not fail:
       than "the checker never ran". The 0-byte-raster branch (`mb == 0`) was also
       dead code — rasterio.open raises on an empty file, so the blanket except
       reported UNCHECKED instead of EMPTY.
+  D8  the resume ledger keyed on (job_id, step) — the job's NICKNAME — ignoring
+      the year and tag that decide which artifacts the step actually produces.
+  D9  a job whose every step was skipped was declared verified having read
+      nothing at all.
 
-These tests fix both in place: each asserts the state the OLD code got wrong.
+These tests fix all four in place: each asserts the state the OLD code got wrong.
 
 No Drive, no GPU, no torch.
 
@@ -48,6 +52,12 @@ def _row(job="2009", step="train", state="OK", ts="2026-08-29 01:00:00",
          year="2009", tag="citywide_rgb", detail=""):
     return dict(job=job, year=year, tag=tag, step=step, state=state, ts=ts,
                 detail=detail)
+
+
+# The resume ledger keys on the WORK (job, year, tag, step), not the job nickname
+# — D8. Built through the module's own helper so the test cannot encode a key
+# shape the code has since changed.
+KEY = q._job_key("2009", "2009", "citywide_rgb", "train")
 
 
 # ── D7: "could not check" is not "checked and fine" ───────────────────────────
@@ -121,9 +131,9 @@ def test_unchecked_no_longer_clears_the_resume_marker(tmp_path, monkeypatch):
         _row(step="train", state="OK", ts="2026-08-29 01:00:00"),
         _row(step="VERIFY:train", state="UNCHECKED", ts="2026-08-29 01:05:00"),
     ])
-    done, reverify = q._completed_steps()
-    assert ("2009", "train") in done, "an unapproved re-train is not the answer"
-    assert ("2009", "train") in reverify, "but it must not be silently trusted"
+    done, reverify, _ = q._completed_steps()
+    assert KEY in done, "an unapproved re-train is not the answer"
+    assert KEY in reverify, "but it must not be silently trusted"
 
 
 def test_a_clean_verify_needs_no_recheck(tmp_path, monkeypatch):
@@ -132,8 +142,8 @@ def test_a_clean_verify_needs_no_recheck(tmp_path, monkeypatch):
         _row(step="train", state="OK", ts="2026-08-29 01:00:00"),
         _row(step="VERIFY:train", state="OK", ts="2026-08-29 01:05:00"),
     ])
-    done, reverify = q._completed_steps()
-    assert ("2009", "train") in done and ("2009", "train") not in reverify
+    done, reverify, _ = q._completed_steps()
+    assert KEY in done and KEY not in reverify
 
 
 def test_a_hard_verify_failure_still_forces_a_rerun(tmp_path, monkeypatch):
@@ -142,9 +152,9 @@ def test_a_hard_verify_failure_still_forces_a_rerun(tmp_path, monkeypatch):
         _row(step="train", state="OK", ts="2026-08-29 01:00:00"),
         _row(step="VERIFY:train", state="BAD_CKPT", ts="2026-08-29 01:05:00"),
     ])
-    done, reverify = q._completed_steps()
-    assert ("2009", "train") not in done
-    assert ("2009", "train") not in reverify        # re-run supersedes re-check
+    done, reverify, _ = q._completed_steps()
+    assert KEY not in done
+    assert KEY not in reverify        # re-run supersedes re-check
 
 
 def test_a_later_clean_verify_clears_an_earlier_unchecked(tmp_path, monkeypatch):
@@ -156,8 +166,8 @@ def test_a_later_clean_verify_clears_an_earlier_unchecked(tmp_path, monkeypatch)
         _row(step="VERIFY:train", state="UNCHECKED", ts="2026-08-29 01:05:00"),
         _row(step="VERIFY:train", state="OK", ts="2026-08-29 02:05:00"),
     ])
-    done, reverify = q._completed_steps()
-    assert ("2009", "train") in done and ("2009", "train") not in reverify
+    done, reverify, _ = q._completed_steps()
+    assert KEY in done and KEY not in reverify
 
 
 # ── D6: the evaluate report has to say WHOSE numbers it holds ─────────────────
@@ -260,3 +270,96 @@ def test_parse_utc_is_timezone_aware():
     assert got == want
     assert q._parse_utc("nonsense") is None
     assert q._parse_utc(None) is None
+
+
+# ── D8: the resume ledger keys on the WORK, not the job's nickname ────────────
+
+def test_same_job_id_different_year_does_not_grant_a_skip(tmp_path, monkeypatch):
+    """THE D8 CORE. Job ids are short, hand-written and reused across queue files
+    (`2019` in three, `2024` in three), and nothing makes an id mean the same year
+    twice. Under the old (job_id, step) key, a completed `2024` step in one queue
+    silently satisfied a different queue's `2024`."""
+    monkeypatch.setattr(q, "QC_DIR", tmp_path)
+    _status_csv(tmp_path / "train_queue_status_a.csv", [
+        _row(job="2024", year="2024", tag="citywide_rgb", step="train", state="OK"),
+    ])
+    done, _, _ = q._completed_steps()
+    assert q._job_key("2024", "2024", "citywide_rgb", "train") in done
+    # same id, DIFFERENT year — this work has not been done
+    assert q._job_key("2024", "2017", "citywide_rgb", "train") not in done
+
+
+def test_same_job_id_different_tag_does_not_grant_a_skip(tmp_path, monkeypatch):
+    """A tag is a whole separate arm: its own tile dir, checkpoint and raster."""
+    monkeypatch.setattr(q, "QC_DIR", tmp_path)
+    _status_csv(tmp_path / "train_queue_status_a.csv", [
+        _row(job="2021s_nr2", year="2021s", tag="noise_r2", step="train", state="OK"),
+    ])
+    done, _, _ = q._completed_steps()
+    assert q._job_key("2021s_nr2", "2021s", "noise_r2", "train") in done
+    assert q._job_key("2021s_nr2", "2021s", "noise_r5", "train") not in done
+
+
+def test_job_key_normalises_both_sides():
+    """A YAML `tag: 2020` parses as an int while the CSV holds text; if the two
+    sides normalised differently the key would never match and every resume would
+    re-run everything."""
+    assert q._job_key("2024", 2024, 2020, "train") == \
+           q._job_key("2024", "2024", "2020", "train")
+
+
+# ── D9: a skipped job is not verified by having skipped it ───────────────────
+
+def _skipjob(monkeypatch, tmp_path):
+    monkeypatch.setattr(q, "MASKS", tmp_path)
+    monkeypatch.setattr(q, "_status_write", lambda r: None)
+    return dict(id="2018s_fx", year="2018s", tag="fx"), []
+
+
+PRIOR = ("OK", "146MB valid=99.1% maxprob=0.996", "2026-08-27 10:00:00")
+
+
+def test_skipped_job_recheck_catches_a_vanished_raster(tmp_path, monkeypatch):
+    """THE D9 CORE. The old branch printed 'already OK' and read nothing at all, so
+    a raster deleted between launches still counted as this launch's pass."""
+    job, rows = _skipjob(monkeypatch, tmp_path)
+    ok = q._recheck_skipped_verify(job, rows, PRIOR)
+    assert ok is False
+    assert rows[-1]["state"] == "MISSING"
+    assert rows[-1]["state"] in q._VERIFY_HARD_FAIL
+
+
+def test_skipped_job_recheck_catches_a_resized_raster(tmp_path, monkeypatch):
+    job, rows = _skipjob(monkeypatch, tmp_path)
+    (tmp_path / "edmonds_canopy_prob_2018s_fx.tif").write_bytes(b"x" * 4_000_000)
+    ok = q._recheck_skipped_verify(job, rows, PRIOR)
+    assert ok is False and rows[-1]["state"] == "SIZE_CHANGED"
+
+
+def test_skipped_job_recheck_reports_cached_not_ok(tmp_path, monkeypatch):
+    """It must NOT claim OK: this launch did not re-read the raster (that read is
+    what hung the queue on 2026-08-27). OK_CACHED is the weaker, true statement."""
+    job, rows = _skipjob(monkeypatch, tmp_path)
+    (tmp_path / "edmonds_canopy_prob_2018s_fx.tif").write_bytes(b"x" * 146_000_000)
+    ok = q._recheck_skipped_verify(job, rows, PRIOR)
+    assert ok is True
+    assert rows[-1]["state"] == "OK_CACHED"
+    assert rows[-1]["state"] not in q._VERIFY_HARD_FAIL
+
+
+def test_skipped_job_recheck_without_a_recorded_size_is_unverified(tmp_path, monkeypatch):
+    """A pre-D9 verdict carries no size to compare. That is 'existence only', which
+    is its own state — not a pass, and not a crash."""
+    job, rows = _skipjob(monkeypatch, tmp_path)
+    (tmp_path / "edmonds_canopy_prob_2018s_fx.tif").write_bytes(b"x" * 1000)
+    q._recheck_skipped_verify(job, rows, ("OK", "verified earlier", "2026-08-27"))
+    assert rows[-1]["state"] == "UNVERIFIED"
+    q._recheck_skipped_verify(job, rows, None)          # no prior row at all
+    assert rows[-1]["state"] == "UNVERIFIED"
+
+
+def test_mb_from_verdict_only_reads_the_anchored_size():
+    assert q._mb_from_verdict("146MB valid=99.1% maxprob=0.996 p99.9=0.9") == 146
+    assert q._mb_from_verdict("valid=99.1% 146MB") is None      # not anchored
+    assert q._mb_from_verdict("") is None
+    assert q._mb_from_verdict(None) is None

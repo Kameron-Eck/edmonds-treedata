@@ -39,6 +39,18 @@
 #   dAUROC outside <= ~.005   NO TRANSFER. Node C is tile-local supervision;
 #                             citywide needs citywide labels. Report as loudly.
 #   between                   UNRESOLVED at n=1; needs a second seed of this arm.
+#
+# ** READ THE AREA METRIC TOO — ADDED 2026-08-29 AFTER A FRAMING ERROR. ** Every
+# verdict in this campaign was computed on RANKING metrics (AUROC/PR-AUC), and the
+# deliverable is CANOPY AREA, which ranking is structurally blind to: it is
+# threshold-free, area is not. On area the SAME Node C runs that came back
+# UNRESOLVED on AUROC replicate decisively (under-count cut 12.3 and 21.3 pp
+# against a Node B pair reproducing to 1.7 pp). So score this arm BOTH ways:
+#   qc/phase4_region_confusion.py --tags rgb3_nodeb_twin,nodecW
+#       --region-mask add_nodecW_2009.tif --region-buffer 512
+# and read the OUTSIDE region's area bias alongside dAUROC. If the two disagree,
+# the AREA reading is the one that speaks to the product — say so explicitly
+# rather than quietly picking whichever is nicer.
 # Expect the arm to score WORSE overall than nodec_v1 — it trains on ~46% of the
 # added labels. That is not a failure and is not the question being asked.
 - id: "2009_nodecW"
@@ -48,4 +60,28 @@
           "--infer-aoi", "aoi/sectors_v1.json",
           "--add-canopy-mask", "/content/drive/MyDrive/treedata/phase4/labels_corrected/add_nodecW_2009.tif"]
   why: "does the added-label gain reach ground whose training tiles never saw an added label?"
+  expect: "retile ~40 min; train ~35 min; inference ~5 min."
+
+# ── TIER-MATCHED TWIN (added 2026-08-29 15:0xZ) ──────────────────────────────
+# WHY A SECOND JOB. The holdout's read is a CROSS-ARM gap, so it must be compared
+# against a Node B trained the same way. The existing rgb3_nodeb baseline ran on an
+# A100, and A100s have been returning Precondition Failed for ~40 min. Rather than
+# wait, this queue now carries its OWN Node B twin: both jobs run on the SAME VM,
+# on the SAME tier, back to back, so the tier cancels out of the comparison by
+# construction and the arm can run on whatever hardware is available.
+#
+# This matters more here than for the smoothing arm. Smoothing's primary read is
+# PAIRED WITHIN one run, so tier is irrelevant to it. The holdout's effect is also
+# expected to be SMALLER than Node C's full effect (it trains on ~46% of the added
+# labels and is read only in the outside region), so a tier confound of
+# seed-change size (measured: 1.7 pp area / .0015 AUROC for Node B) is a real risk.
+#
+# COST: two trainings instead of one, and two retiles (the overlay changes the tile
+# signature). Accepted — a clean answer on an available GPU beats a confounded one
+# on a scarce GPU.
+- id: "2009_nodeb_twin"
+  year: "2009"
+  tag: rgb3_nodeb_twin
+  extra: ["--force-citywide", "--no-hillshade", "--infer-aoi", "aoi/sectors_v1.json"]
+  why: "tier-matched Node B baseline for the holdout, trained on the same VM and tier."
   expect: "retile ~40 min; train ~35 min; inference ~5 min."

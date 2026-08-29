@@ -1028,7 +1028,18 @@ class _SmoothCkptSelector:
         self.maximize = bool(maximize)
         self.ring = deque()          # [(phase, epoch, state), ...] pending finalisation
         self.raw = []                # raw metric of the CURRENT phase
-        self.best = None             # (smoothed, phase, epoch, raw, state)
+        self.best = None             # winner WITHIN the current phase
+        # T8 (2026-08-29): `best` used to persist across end_phase() and the
+        # cross-phase comparison ran on SMOOTHED values, so a Phase B epoch whose
+        # raw score was WORSE than Phase A's peak could still win and replace
+        # best_ckpt. The raw rule structurally cannot do that: best_val carries
+        # across the A->B boundary and B overwrites only on strict RAW improvement.
+        # Fix: keep each phase's winner separately, track each phase's RAW peak, and
+        # apply the raw rule's cross-phase test at selection time. Smoothing stays
+        # free to pick a below-peak plateau epoch WITHIN a phase — that is its whole
+        # purpose — while B can only supersede A if B genuinely beat A on raw.
+        self.phase_best = {}         # phase -> (smoothed, phase, epoch, raw, state)
+        self.phase_raw_peak = {}     # phase -> best RAW value seen in that phase
         est = ((self.half + 2) * model_mb / 1024.0) if model_mb else None
         print(f"  Ckpt selection: {self.k}-epoch CENTRED moving average of the "
               f"early-stop metric (edge-truncated)"
@@ -1040,13 +1051,20 @@ class _SmoothCkptSelector:
         return a > b if self.maximize else a < b
 
     def _finalise(self, upto):
-        """Score every ring entry whose centred window is complete (index < upto)."""
+        """Score every ring entry whose centred window is complete (index < upto).
+
+        Comparison is WITHIN the current phase only (self.best is cleared by
+        end_phase); the cross-phase choice happens in `selection`.
+        """
         sm = _centred_moving_average(self.raw, self.k)
         while self.ring and self.ring[0][1] - 1 < upto:
             phase, ep, state = self.ring.popleft()
             i = ep - 1
             if self.best is None or self._better(sm[i], self.best[0]):
                 self.best = (sm[i], phase, ep, self.raw[i], state)
+            peak = self.phase_raw_peak.get(phase)
+            if peak is None or self._better(self.raw[i], peak):
+                self.phase_raw_peak[phase] = self.raw[i]
 
     # ── public ───────────────────────────────────────────────────────────────
     def observe(self, phase, ep, es_val, model):
@@ -1058,18 +1076,57 @@ class _SmoothCkptSelector:
         self._finalise(len(self.raw) - self.half)         # all windows now closed
 
     def end_phase(self):
-        """Close the phase: the trailing `half` epochs get their truncated windows."""
+        """Close the phase: the trailing `half` epochs get their truncated windows,
+        then bank this phase's winner and start the next phase clean (T8)."""
         self._finalise(len(self.raw))
+        if self.best is not None:
+            self.phase_best[self.best[1]] = self.best
+        self.best = None                       # do NOT carry across the seam
         self.raw = []
         self.ring.clear()
+
+    def _winner(self):
+        """The global winner, applying the RAW rule's cross-phase test (T8).
+
+        Within a phase the smoothed pick stands — that is what smoothing is for.
+        ACROSS phases, B supersedes A only if B's RAW peak strictly beat A's, which
+        is exactly the condition the raw rule uses (`best_val` carries over the
+        seam and B overwrites only on strict raw improvement). Without this, a
+        Phase B epoch that never matched Phase A on the real metric could still be
+        deployed because its SMOOTHED value happened to be higher.
+        """
+        banked = dict(self.phase_best)
+        if self.best is not None:                     # current, unbanked phase
+            banked[self.best[1]] = self.best
+        if not banked:
+            return None
+        if len(banked) == 1:
+            return next(iter(banked.values()))
+        a, b = banked.get("A"), banked.get("B")
+        if a is None or b is None:
+            return b or a
+        pa, pb = self.phase_raw_peak.get("A"), self.phase_raw_peak.get("B")
+        if pa is None or pb is None:
+            return b                                   # no raw evidence; historical order
+        return b if self._better(pb, pa) else a
 
     @property
     def selection(self):
         """(smoothed_val, phase, epoch, raw_val) of the winner, or None."""
-        return None if self.best is None else self.best[:4]
+        w = self._winner()
+        return None if w is None else w[:4]
+
+    @property
+    def winner_state(self):
+        """The winning epoch's weight snapshot, or None. Public because callers
+        (and tests) must not reach into the private tuple — `best` is now
+        phase-local and is None between phases, which is the point of T8."""
+        w = self._winner()
+        return None if w is None else w[4]
 
     def write(self, path, history, extra=None):
         """Save the winning epoch's REAL weights to `path`."""
+        self.best = self._winner()          # apply the cross-phase raw rule (T8)
         if self.best is None:
             return False
         sm, phase, ep, raw, state = self.best
@@ -1085,6 +1142,8 @@ class _SmoothCkptSelector:
         self.ring.clear()
         self.best = None
         self.raw = []
+        self.phase_best = {}
+        self.phase_raw_peak = {}
 
 
 def _state_mb(model):

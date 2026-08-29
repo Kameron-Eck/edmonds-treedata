@@ -204,7 +204,11 @@ def test_snapshots_are_copies_not_aliases_of_the_live_cpu_model():
     sel.end_phase()
     _, _, ep, _ = sel.selection
     assert ep == 1
-    for t in sel.best[4].values():
+    # was `sel.best[4]` — a private tuple index. `best` is now phase-local and is
+    # None after end_phase (T8: it must not carry across the seam), so the winner's
+    # state is read through the public accessor instead. Same subject: the ring must
+    # hold a COPY, not an alias of the live model.
+    for t in sel.winner_state.values():
         assert torch.all(t == 1.0), "snapshot aliased the live model"
 
 
@@ -532,3 +536,51 @@ def test_restores_raw_and_reports_raw_if_deploying_the_smoothed_pick_fails(tmp_p
     assert best.exists(), "the run must never be left with no checkpoint"
     assert best.read_bytes() == b"RAW-PEAK-PAYLOAD", "the raw peak must be restored intact"
     assert not list(tmp_path.glob("*.smoothtmp.pt"))
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+#  T8 — the cross-phase raw rule. A defect this session INTRODUCED and then fixed.
+#
+#  The raw rule structurally cannot deploy a Phase B epoch that never beat Phase A
+#  on the real metric: best_val carries across the seam and B overwrites only on
+#  strict raw improvement. The smoothed selector originally kept one `best` across
+#  end_phase() and compared SMOOTHED values, so a raw-worse B epoch could win.
+#  These pin the fixed behaviour so it cannot regress.
+# ══════════════════════════════════════════════════════════════════════════════
+
+def _run(sel, phase, vals, start_tag):
+    m = Tiny()
+    for i, v in enumerate(vals, 1):
+        m.stamp(start_tag + i)
+        sel.observe(phase, i, v, m)
+    sel.end_phase()
+
+
+def test_t8_phase_b_cannot_win_when_its_raw_peak_is_worse():
+    """A raises to 0.90; B plateaus at 0.50 but is SMOOTHER. B must not win."""
+    sel = core._SmoothCkptSelector(3, True)
+    _run(sel, "A", [0.10, 0.90, 0.20], start_tag=0)     # raw peak 0.90, spiky
+    _run(sel, "B", [0.50, 0.50, 0.50], start_tag=100)   # raw peak 0.50, flat
+    _, phase, _, raw = sel.selection
+    assert phase == "A", "B deployed despite never matching A's raw metric — T8"
+    assert raw >= 0.20
+
+
+def test_t8_phase_b_still_wins_when_it_genuinely_beats_a():
+    """The fix must not make B unable to win — only unable to win undeservedly."""
+    sel = core._SmoothCkptSelector(3, True)
+    _run(sel, "A", [0.10, 0.40, 0.20], start_tag=0)     # raw peak 0.40
+    _run(sel, "B", [0.80, 0.82, 0.81], start_tag=100)   # raw peak 0.82
+    _, phase, _, _ = sel.selection
+    assert phase == "B", "B beat A on raw and must be deployable"
+
+
+def test_t8_within_phase_smoothing_still_picks_a_below_peak_plateau():
+    """The fix must NOT become a raw-floor guard: inside a phase, smoothing is
+    supposed to reject a one-epoch spike in favour of a plateau."""
+    sel = core._SmoothCkptSelector(3, True)
+    _run(sel, "B", [0.95, 0.40, 0.80, 0.82, 0.84, 0.82], start_tag=0)
+    sm, phase, ep, raw = sel.selection
+    assert phase == "B"
+    assert ep != 1, "smoothing deployed the lucky spike — within-phase smoothing broke"
+    assert raw < 0.95, "deployed epoch should sit below the raw peak, on the plateau"

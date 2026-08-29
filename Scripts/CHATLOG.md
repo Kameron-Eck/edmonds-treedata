@@ -1734,6 +1734,30 @@ decided: verdicts come from CURVE metrics (AUROC / PR-AUC), never matched-precis
          holdout region BEFORE training the arm — the census is free and the arm is an
          A100 hour, and the first version of this experiment was invalidated by exactly the
          quantity this check reports.
+         ** THE REPLICATE CAME BACK UNRESOLVED — THE WEEK'S HEADLINE IS NOT CONFIRMED. **
+         nodec_s1234 (seed 1234), scored by qc/phase4_verdict.py against bands fixed at
+         12:07Z BEFORE the run landed:
+             rgb3_nodeb    AUROC .9063   PR-AUC .8365
+             nodec_s1234   AUROC .9116   PR-AUC .8516
+             GAP           dAUROC +.0053   dPR-AUC +.0151
+             bands: replicated >= +.0060 · does-not-stand <= +.0020   -> UNRESOLVED
+         Read by eye I would have called +.0053 a replication — positive, same direction,
+         short of the line by seven ten-thousandths. The band said otherwise. That is the
+         exact failure mode the mechanical verdict was built for and it caught me on FIRST
+         LIVE USE. The tool had been validated the same hour by reproducing nodec_v1's
+         published +.0116 to four decimals, so the number is not in doubt.
+         WHERE NODE C ACTUALLY STANDS: two runs, gaps +.0116 and +.0053. Both positive, both
+         above the refutation threshold, so the effect is NOT refuted. But they differ by
+         .0063 — almost exactly the expected two-draw spread (sqrt(2) x .0047 = .0066). So:
+         probably real, SMALLER than the first run implied, magnitude genuinely uncertain,
+         and n=3 is now required rather than optional.
+         ** PRIORITY REVERSED (12:55Z). ** At 12:27Z I put the geographic holdout ahead of a
+         third seed, arguing mechanism beats sample size. That argument assumed the
+         PERFORMANCE claim was settled. It is not. Investigating the mechanism of an
+         unresolved effect is premature — the same reasoning by which I said I would kill the
+         holdout outright if the replicate failed. New order: smooth5 (Kam's named arm) ->
+         third Node C seed (resolve the headline) -> holdout (mechanism, once there is an
+         effect worth explaining).
 QUEUE ORDER AND WHY (2026-08-29 12:27Z): gpu35 = nodec_s1234 replicate -> then
          smooth5 (Kam's named arm, on the one guaranteed slot). gpu37 = 3-band noise floor
          -> then the GEOGRAPHIC HOLDOUT, not the third Node C seed. Reasoning: a third seed

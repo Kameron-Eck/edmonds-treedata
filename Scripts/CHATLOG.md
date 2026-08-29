@@ -1453,6 +1453,48 @@ gotcha:  scripts Colab-only for torch (rasterio+geopandas+fiona+sklearn now pip-
 
 ════════════════ LOG  (newest first) ════════════════
 
+## 2026-08-29  DAMAGE CURVE COMPLETE · NODE C WINS · THE CHM CHANNEL IS INFLATED, NOT LOW (Fable 5, all-night run)
+goal:    Kam: 200 credits, run all night, reflect before each arm, parallel GPUs.
+did:     ** DAMAGE CURVE (inject known label error at a chosen dose) ** matched-precision
+         recall vs clean .6989: 2.70% -> .6951 (-.004) · 6.56% -> .6673 (-.032) ·
+         12.34% -> .6436 (-.055). Upper two points are LINEAR at ~0.45 pp per 1% of error;
+         the lowest falls BELOW that line (hints at a tolerance zone, but it is inside noise
+         so do not claim it). ** AUROC IS FLAT ACROSS ALL FOUR ** (.9210 .9215 .9210 .9218):
+         even 12% corruption leaves RANKING untouched — label error moves the OPERATING
+         POINT, not discrimination. That is why the hybrid's 0.53% correction was invisible
+         (predicted gain ~0.2 pp vs sigma .010) and it retires the mystery.
+         ** NODE C WINS ** (3-band, projected key + proven canopy, vs Node B): AUROC
+         .9063->.9179, PR-AUC .8365->.8588, matched-precision recall .5990->.6518 (+5.3 pp on
+         the common 198.8 Mpx footprint). All three metrics agree; noise would scatter. It
+         recovers HALF the 10 pp the height channel is worth WITHOUT the model seeing height —
+         lidar knowledge distilled through LABELS. Different mechanism from correction:
+         Node C moved AUROC (new information), corruption never did.
+         ** THE 4th CHANNEL IS WRONG, AND THE SIGN IS BACKWARDS ** — measured against 863.5M
+         raw 2016 returns, no interpolation in the loop (max return minus lowest class-2 in
+         the SAME 2 m cell, 8.8M cells): on ground the points say 0.14 m, lidar_snoh_chm.tif
+         says 4.90 m and calls 57.3% of bare ground >2 m. Offset +4.1 to +5.4 m in EVERY bin
+         0-30 m. NOT misregistration (MAE minimised at zero shift, r=.889). On certified-flat
+         ground: old 8.82% called >2 m, chm2 0.01%. Mechanism: ~3-6 m effective support = a
+         NEIGHBOURHOOD MAXIMUM smearing canopy height onto adjacent open ground. Every 4-band
+         model ever trained here was told lawns beside trees are ~5 m tall. IMAGERY_FACTS 8.3
+         corrected (ed3161e); rebuilt lidar_chm2_2016_50cm.tif (0.5 m, EPSG:26910 native,
+         same uint8 encoding so the A/B is one variable).
+         ** TRAINING MECHANISM ** 4 of 5 arms never early-stopped — they hit EPOCHS_PHASE_B=30.
+         rgb3_nodeb's BEST EPOCH WAS ITS LAST. The cap truncates ASYMMETRICALLY (harder
+         configs need more epochs, get proportionally less training), biasing every A/B where
+         one side is harder — including BOTH headline numbers above. --epochs-phase-b ALREADY
+         EXISTED (v034); I never checked and read truncated results for a week.
+         Landed: --select-smooth K (ring of trailing CPU weight snapshots so the winning
+         epoch's REAL weights are held — a post-hoc pick would select weights nobody saved;
+         never averages), stop-reason logging (its absence is why this hid), 18/18 tests.
+decided: seed-varied arms (1234, 777) to measure TRUE retrain sigma — the banked .010 came
+         from 5 SAME-SEED repeats and is a floor on a floor. Split variance still unmeasured
+         (tiling binds its seed at import) and is probably larger: 3 selections ride on a
+         ~120-tile val set.
+next:    score chm2 (direction genuinely open — the inflation may have HELPED recall by
+         accident while wrecking grass precision) · nodeb_ep60 (do the two headline numbers
+         survive un-truncating?) · seeds -> sigma · then smoothing as its own arm.
+
 ## 2026-08-28  FACT TREE — Node B measured (CHM worth 10 pp), crown-touch built, damage curve launched (Fable 5 session)
 goal:    Kam's rule, adopted after three uninterpretable experiments: "change ONE thing at a
          time from a previously established position of fact." Build the tree.

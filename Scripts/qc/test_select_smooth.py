@@ -426,3 +426,95 @@ def test_manifest_recorder_never_raises(monkeypatch, tmp_path):
     core._record_manifest_training("2009", {"a": 1})
     monkeypatch.setattr(config, "RUN_ID", "missing_dir", raising=False)
     core._record_manifest_training("2009", {"a": 1})
+
+
+# ════════════════════════════════════════════════════════════════════════════
+# _deploy_smoothed_keeping_raw — the PAIRED-TEST guarantee (2026-08-29)
+#
+# The function exists so the raw pick survives beside the smoothed one, making
+# "did smoothing help?" answerable on ONE trajectory (no retrain noise). These
+# tests gate the property that actually matters operationally: the run must never
+# be left with no checkpoint, and it must never REPORT "smoothed" while the file
+# on disk holds the raw peak. Every rename branch is exercised.
+# ════════════════════════════════════════════════════════════════════════════
+
+def _sel_with_pick():
+    """A real selector fed the synthetic series, so .write() has genuine weights."""
+    sel = core._SmoothCkptSelector(5, True)
+    model = Tiny()
+    for phase, ep, val in SERIES:
+        if phase == "B" and ep == 1:
+            sel.end_phase()
+        model.stamp(ep if phase == "B" else -ep)   # weights identify their epoch
+        sel.observe(phase, ep, val, model)
+    sel.end_phase()
+    return sel
+
+
+def _seed_raw(best):
+    best.write_bytes(b"RAW-PEAK-PAYLOAD")
+    return best
+
+
+def test_keeps_raw_beside_smoothed(tmp_path):
+    best = _seed_raw(tmp_path / "sem_best_2009_smooth5.pt")
+    ok = core._deploy_smoothed_keeping_raw(_sel_with_pick(), best, {}, {})
+    raw_keep = tmp_path / "sem_rawbest_2009_smooth5.pt"
+    assert ok is True
+    assert raw_keep.exists(), "the raw pick must survive for the paired comparison"
+    assert raw_keep.read_bytes() == b"RAW-PEAK-PAYLOAD", "raw file content must be untouched"
+    assert best.exists() and best.read_bytes() != b"RAW-PEAK-PAYLOAD", \
+        "best_ckpt must now hold the SMOOTHED pick"
+    assert not list(tmp_path.glob("*.smoothtmp.pt")), "temp file must not be left behind"
+
+
+def test_reports_raw_when_the_smoothed_write_fails(tmp_path):
+    """sel.write() False → nothing moves, best_ckpt still the raw peak, returns False."""
+    best = _seed_raw(tmp_path / "sem_best_2009_smooth5.pt")
+
+    class NoWrite:
+        def write(self, *a, **k):
+            return False
+
+    assert core._deploy_smoothed_keeping_raw(NoWrite(), best, {}, {}) is False
+    assert best.read_bytes() == b"RAW-PEAK-PAYLOAD"
+    assert not (tmp_path / "sem_rawbest_2009_smooth5.pt").exists()
+
+
+def test_deploys_without_the_pair_if_moving_raw_aside_fails(tmp_path, monkeypatch):
+    """First rename fails → still deploy (a kept pair is a bonus, not the job),
+    and still return True, because best_ckpt genuinely holds the smoothed pick."""
+    best = _seed_raw(tmp_path / "sem_best_2009_smooth5.pt")
+    real = core.os.replace
+    calls = {"n": 0}
+
+    def flaky(src, dst):
+        calls["n"] += 1
+        if calls["n"] == 1:
+            raise OSError("simulated: cannot move the raw pick aside")
+        return real(src, dst)
+
+    monkeypatch.setattr(core.os, "replace", flaky)
+    assert core._deploy_smoothed_keeping_raw(_sel_with_pick(), best, {}, {}) is True
+    assert best.exists() and best.read_bytes() != b"RAW-PEAK-PAYLOAD"
+    assert not (tmp_path / "sem_rawbest_2009_smooth5.pt").exists()
+
+
+def test_restores_raw_and_reports_raw_if_deploying_the_smoothed_pick_fails(tmp_path, monkeypatch):
+    """Second rename fails → raw is put BACK and False is returned, so the caller
+    records deployed='raw'. This is the silent-corruption path; it must not lie."""
+    best = _seed_raw(tmp_path / "sem_best_2009_smooth5.pt")
+    real = core.os.replace
+    calls = {"n": 0}
+
+    def flaky(src, dst):
+        calls["n"] += 1
+        if calls["n"] == 2:
+            raise OSError("simulated: cannot move the smoothed pick into place")
+        return real(src, dst)
+
+    monkeypatch.setattr(core.os, "replace", flaky)
+    assert core._deploy_smoothed_keeping_raw(_sel_with_pick(), best, {}, {}) is False
+    assert best.exists(), "the run must never be left with no checkpoint"
+    assert best.read_bytes() == b"RAW-PEAK-PAYLOAD", "the raw peak must be restored intact"
+    assert not list(tmp_path.glob("*.smoothtmp.pt"))

@@ -1013,6 +1013,68 @@ def _record_manifest_training(label, payload):
         print(f"  WARNING: training block not added to manifest ({e})")
 
 
+def _deploy_smoothed_keeping_raw(sel, best_ckpt, history, extra):
+    """Deploy the smoothed pick to best_ckpt, keeping the raw pick beside it.
+
+    WHY. The raw pick and the smoothed pick come from the SAME training
+    trajectory, so scoring both against the independent reference is a PAIRED
+    comparison with zero retrain noise in it: the only difference between the two
+    rasters is which epoch was deployed. Without this the raw pick is destroyed at
+    the instant the smoothed one is written, and answering "did smoothing help?"
+    costs a second training run whose own noise (~.002 AUROC, measured) is the
+    size of the effect being measured. Keeping the file makes the question
+    answerable for one extra inference pass (~5 min) instead of one extra train.
+
+    ORDERING. best_ckpt must never be left missing and `deployed` must never claim
+    "smoothed" while the file on disk holds the raw peak, so: write the new
+    checkpoint under a temp name FIRST, then move the old one aside, then move the
+    new one into place. Both renames have an ABSENT destination, which is the
+    os.replace case the rclone mount canary proved. Every failure branch below
+    either restores the raw pick and returns False (caller then reports "raw",
+    truthfully) or deploys without keeping the pair and says so.
+
+    To score the kept file later: copy it to sem_best_{year}_{tag}raw.pt and run
+    `--step inference --run-tag {tag}raw`. Raster inference reads only the
+    checkpoint and the ortho, so this needs no tiles and no retrain.
+    """
+    tmp = best_ckpt.with_name(best_ckpt.stem + ".smoothtmp.pt")
+    if not sel.write(tmp, history, extra=extra):
+        return False
+    raw_keep = best_ckpt.with_name(best_ckpt.name.replace("sem_best_", "sem_rawbest_", 1))
+    try:
+        os.replace(best_ckpt, raw_keep)
+    except OSError as e:
+        print(f"  ! could not move the raw pick aside ({e}); deploying the smoothed "
+              f"pick WITHOUT keeping the pair")
+        try:
+            os.replace(tmp, best_ckpt)
+            return True
+        except OSError as e2:
+            print(f"  ! and could not deploy it either ({e2}) — best_ckpt still holds "
+                  f"the RAW peak, reporting that rather than claiming otherwise")
+            try:
+                tmp.unlink()
+            except OSError:
+                pass
+            return False
+    try:
+        os.replace(tmp, best_ckpt)
+    except OSError as e:
+        print(f"  ! smoothed pick could not be moved into place ({e}) — restoring the raw peak")
+        try:
+            os.replace(raw_keep, best_ckpt)
+        except OSError:
+            pass
+        try:
+            tmp.unlink()
+        except OSError:
+            pass
+        return False
+    print(f"  raw pick kept as {raw_keep.name} — score both tags for a paired read "
+          f"on smoothing, with no retrain noise between them")
+    return True
+
+
 def _finish_selection(label, history, es_metric, es_maximize, best_val, raw_best,
                       smooth_k, sel, best_ckpt, stop_a, stop_b, ran_b):
     """Deploy the chosen epoch, write the loss history, and record WHY it stopped.
@@ -1062,7 +1124,7 @@ def _finish_selection(label, history, es_metric, es_maximize, best_val, raw_best
                 deployed = "smoothed(==raw)"
                 print(f"  Smoothed selection agrees with the raw peak "
                       f"({pick[1]}E{pick[2]}) — best_ckpt left exactly as written.")
-            elif sel.write(best_ckpt, history, extra={
+            elif _deploy_smoothed_keeping_raw(sel, best_ckpt, history, extra={
                     "select_smooth_k": smooth_k, "selected_by": "smoothed",
                     "es_metric": es_metric,
                     "raw_best_phase": raw_best[0], "raw_best_epoch": raw_best[1],

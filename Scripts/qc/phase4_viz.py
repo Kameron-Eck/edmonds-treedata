@@ -169,7 +169,12 @@ def main():
     ignore_label = getattr(m, "IGNORE_LABEL", 255)
 
     # ── locate this year's test tiles ─────────────────────────────────────────
-    index_path = m.TILE_DIR / year / f"tile_index_{year}.csv"
+    # Tagged runs tile into TILE_DIR/{year}__{tag}/ (common.tile_dir_for). Reading
+    # TILE_DIR/{year} here visualised whichever untagged legacy set happened to be
+    # there — some other arm's tiles, presented as this one's.
+    _tdir = getattr(m, "tile_dir_for", None)
+    index_path = ((_tdir(year) if _tdir else m.TILE_DIR / year)
+                  / f"tile_index_{year}.csv")
     if not index_path.exists():
         sys.exit(f"ERROR: {index_path} not found — run `step tile` for {year} first")
     idx = pd.read_csv(index_path)

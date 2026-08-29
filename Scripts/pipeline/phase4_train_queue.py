@@ -861,7 +861,19 @@ def _verify_ckpt_identity(ck, year, tag, mb, step_start):
         if state == "mismatch":
             return "UNVERIFIED", ", ".join(parts)
     else:
+        # ...and WITHOUT the freshness test or the Drive comparison there is very
+        # little left. run_tag and run_id say "this file belongs to this arm"; they
+        # cannot say "this file is the epoch the log described", which is the exact
+        # thing that went wrong. Returning OK here laundered the failure: a step left
+        # UNVERIFIED by a crashed launch was re-checked by the next launch, passed on
+        # identity fields alone, and _completed_steps then DISCARDED its reverify
+        # marker (line ~388) — so the B24/B7 corpse would have become a permanent OK
+        # after one relaunch. UNVERIFIED keeps the marker, so it is re-checked every
+        # launch and never silently graduates.
         parts.append("drive check skipped (re-verify: another runtime wrote this)")
+        return "UNVERIFIED", (", ".join(parts) +
+                              " — identity fields only; freshness and Drive-side"
+                              " comparison are not available on a re-verify")
     return "OK", ", ".join(parts)
 
 
@@ -929,6 +941,24 @@ def _verify_eval_rows(rep, y, tag, step_start):
     return "OK", f"{len(mine)} rows for {y}/{tag}, written {when}"
 
 
+def _sanitize_tag(tag):
+    """Reproduce cli.py's --run-tag sanitiser EXACTLY (phase4seg/cli.py:581).
+
+    The queue does not import phase4seg (that would drag torch into the
+    orchestrator), so this is a deliberate twin. If the sanitiser there changes,
+    VERIFY:tile starts looking in a directory the engine never wrote, which shows
+    up as MISSING — loud, not silent. That is the intended failure direction.
+    """
+    return "".join(c if (c.isalnum() or c in "._-") else "_" for c in str(tag)).strip("_")
+
+
+def _tagged_tile_index(y, tag):
+    """Where THIS ARM's tile index lives — the twin of common.tile_dir_for()."""
+    t = _sanitize_tag(tag)
+    sub = f"{y}__{t}" if t else str(y)
+    return BASE / "phase4" / "tiles" / sub / f"tile_index_{y}.csv"
+
+
 def verify_step(job, step, rows, step_start=None, reverify=False):
     """P4.3: per-step artifact check, recorded as a VERIFY:{step} row.
 
@@ -955,9 +985,21 @@ def verify_step(job, step, rows, step_start=None, reverify=False):
                                 ("MISSING", f"no site masks in {site_dir}")
         elif step == "tile":
             import pandas as pd
-            idx = BASE / "phase4" / "tiles" / y / f"tile_index_{y}.csv"
+            # THE TAGGED PATH, NOT THE LEGACY ONE. Every queue job passes --run-tag
+            # (line ~532), so the engine tiles into tiles/{y}__{tag}/ via
+            # common.tile_dir_for(). This check read tiles/{y}/ — the pre-branch
+            # untagged directory, which for every year still holds an index from
+            # some earlier arm. So VERIFY:tile did not fail; it PASSED, against a
+            # completely different arm's tiles, and reported their count as this
+            # arm's. A false OK is worse than a false MISSING, so when the tagged
+            # index is absent this now reports MISSING and NAMES the legacy index
+            # rather than quietly accepting it.
+            idx = _tagged_tile_index(y, tag)
             if not idx.exists():
-                state, detail = "MISSING", f"no {idx.name}"
+                legacy = BASE / "phase4" / "tiles" / y / f"tile_index_{y}.csv"
+                extra = (f"; legacy untagged {legacy.name} exists and is NOT this "
+                         f"arm's — not accepted") if legacy.exists() else ""
+                state, detail = "MISSING", f"no {idx.parent.name}/{idx.name}{extra}"
             else:
                 df = pd.read_csv(idx)
                 if not len(df):
@@ -1141,6 +1183,19 @@ def _declare_run_tags(todo, queue_name, job="", step=""):
               f"to reading this VM's engine cmdline, which is blank between steps")
 
 
+def _pid_alive(pid):
+    """Is this pid still running ON THIS HOST? Only ever asked about our own host."""
+    try:
+        os.kill(pid, 0)
+    except ProcessLookupError:
+        return False
+    except PermissionError:
+        return True                 # exists, owned by someone else
+    except OSError:
+        return True                 # cannot tell — assume live, the safe direction
+    return True
+
+
 def _tag_owners(want, max_age_s=300):
     """Which OTHER live runtimes hold a tag in `want`.
 
@@ -1185,6 +1240,21 @@ def _tag_owners(want, max_age_s=300):
         if d.get("host") == me["host"] and me_pid in {
                 str(d.get("run_tags_pid") or ""), str(d.get("queue_proc") or "")}:
             continue
+        # SAME HOST, DIFFERENT PID — this is the relaunch case, and it used to be
+        # fatal. The beacon SURVIVES a queue relaunch (comment above), so after a
+        # crash it keeps publishing the DEAD queue's pid, fresh, under our own tag.
+        # Self-recognition compares pids, ours is new, so the guard read its own
+        # corpse as a live peer and the relaunch died on REFUSING TO START — the
+        # exact crash-fix-rerun loop P11.5 exists to allow. A pid on OUR host we
+        # can simply ask about; a pid on another host means nothing and is left
+        # alone, so the cross-VM protection this guard is actually for is intact.
+        if d.get("host") == me["host"]:
+            _pid = str(d.get("run_tags_pid") or d.get("queue_proc") or "")
+            if _pid.isdigit() and not _pid_alive(int(_pid)):
+                print(f"  [dup-guard] {hb.name} still claims tag(s) for pid {_pid} "
+                      f"on this host, but that process is gone — stale beacon, "
+                      f"not a live peer. Ignoring.")
+                continue
         vm = d.get("session") or hb.stem.replace("heartbeat_", "")
         declared = d.get("run_tags")
         if isinstance(declared, list) and declared:
@@ -1377,6 +1447,7 @@ def main():
     if reverify:
         print(f"  RESUME: {len(reverify)} of those were last left UNVERIFIED — "
               f"skipped but RE-CHECKED, not trusted.")
+    unconfirmed = []
     t_all = _dt.datetime.now()
     for j in todo:
         _hr(f"JOB {j['id']}  (year {j['year']}, tag {j['tag']})")
@@ -1435,9 +1506,17 @@ def main():
             # hung the queue in uninterruptible disk sleep on a 146MB read
             # (2018s_fx, 2026-08-27). But do not declare it verified on no
             # evidence either (D9): stat it, and record OK_CACHED, not OK.
-            _recheck_skipped_verify(j, rows, verdicts.get(_vkey))
+            # The return was DISCARDED here. _recheck_skipped_verify exists to
+            # notice that a fully-skipped job's raster is now GONE or a different
+            # size than the verdict measured - and both of those are hard failures
+            # that changed nothing: the queue printed the row and carried on as if
+            # the job were complete. Captured now, and it decides the exit code.
+            if not _recheck_skipped_verify(j, rows, verdicts.get(_vkey)):
+                ok = False
         elif ok:
             verify(j, rows)
+        if not ok:
+            unconfirmed.append(j['id'])
 
     _hr("QUEUE DONE")
     mins = (_dt.datetime.now() - t_all).total_seconds() / 60
@@ -1449,7 +1528,17 @@ def main():
           "  (readers merge all train_queue_status*.csv)")
     print("  Scoring happens LOCALLY afterwards (no GPU): phase4_qc_indep.py,")
     print("  then phase4_ref_agreement.py for the NIR years.")
+    # The queue used to exit 0 no matter what: a job could fail every step, or have
+    # its artifact confirmed missing, and the launcher saw success. For an
+    # UNATTENDED queue the exit code is the only signal that reaches anything
+    # outside the status CSV, so it now reports whether the work actually landed.
+    if unconfirmed:
+        print("")
+        print(f"  {len(unconfirmed)} job(s) did NOT complete and verify: "
+              f"{', '.join(unconfirmed)}")
+        return 1
+    return 0
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())

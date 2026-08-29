@@ -763,6 +763,17 @@ def _existing_tiles_valid(label, sig):
                   f"mode {stored_status.get('mode') or 'NONE (legacy index)'} — "
                   f"not an honest hold-out; re-tiling.")
             return False
+        # MODE ALONE IS NOT ENOUGH. The forced negative-site tiles bypass the
+        # buffer entirely, so a cache can record an honest MODE and still hold
+        # forced tiles overlapping val — that is how contamination survived in 8
+        # years. Only the split path that accounts for them writes forced_dropped,
+        # so the key's ABSENCE dates the cache to before forced tiles were handled,
+        # whatever mode it claims. Missing key means re-tile.
+        if config.HONEST_VAL_SPLIT and "forced_dropped" not in stored_status:
+            print(f"  [--honest-val-split] cached tiles for {label} record mode "
+                  f"{stored_status.get('mode')} but no forced_dropped count — "
+                  f"built before forced negative-site tiles were buffered; re-tiling.")
+            return False
         df = pd.read_csv(idx)
     except Exception:
         return False

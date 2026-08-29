@@ -798,7 +798,7 @@ def _bulk_stage_ok(src_root):
     return _stage_rclone_probe
 
 
-def _bulk_stage_tiles(src_root, dst_root, n_expected):
+def _bulk_stage_tiles(src_root, dst_root, todo):
     """One server-side-listed bulk copy of a tile dir. Returns files copied, or 0.
 
     0 means "did not work, use the per-file loop" — never a silent partial. The
@@ -816,10 +816,19 @@ def _bulk_stage_tiles(src_root, dst_root, n_expected):
             print(f"  (bulk stage rc={r.returncode}, falling back to per-file: "
                   f"{(r.stderr or '')[-160:]})")
             return 0
-        got = sum(1 for _ in dst_root.rglob("*.tif"))
-        if got < n_expected:
-            print(f"  (bulk stage short: {got} < {n_expected} expected — per-file fallback)")
+        # THE COMPLETENESS CHECK COMPARED INCOMPATIBLE THINGS. `got` counted every
+        # .tif already under dst_root, `n_expected` was len(todo) — the number of
+        # files found MISSING or size-mismatched. On any resume that is 1800 vs 5,
+        # so the guard could not fire, and a bulk copy that silently dropped files
+        # returned success. Ask the real question instead: is every file we asked
+        # for now here, at the source's size? These are local NVMe stats.
+        missing = [d for _s, d in todo
+                   if not d.exists() or d.stat().st_size != _s.stat().st_size]
+        if missing:
+            print(f"  (bulk stage short: {len(missing)} of {len(todo)} requested "
+                  f"files absent or wrong size — per-file fallback)")
             return 0
+        got = len(todo)
         print(f"  ✓ bulk-staged {got} tiles via rclone (was N FUSE opens)")
         return got
     except Exception as e:                             # noqa: BLE001
@@ -845,7 +854,14 @@ def _stage_tiles_local(idx_df, label):
         return idx_df                       # already local (or not on Colab)
     kinds = {"img_path": "images", "mask_path": "masks", "height_path": "heights"}
     cols = [c for c in kinds if c in idx_df.columns]
-    dst_root = LOCAL_SCRATCH / "tiles" / str(label)
+    # SAME ARM-COLLISION AS THE LAKE-SIDE TILE DIR, one layer down. tile_dir_for()
+    # gives each arm its own tiles/{year}__{tag}/ on Drive, but the LOCAL staging
+    # copy keyed on the year alone. Two arms on one year, run in sequence on one VM,
+    # therefore share tiles/{year}/ on scratch — and the reuse test is exists+size,
+    # which two different overlays' tiles pass routinely. The second arm then trains
+    # on the first arm's tiles with nothing logged. Mirror the tagged name here.
+    _tag = getattr(config, "RUN_TAG", "") or ""
+    dst_root = LOCAL_SCRATCH / "tiles" / (f"{label}__{_tag}" if _tag else str(label))
     try:
         new_cols = {c: [] for c in cols}
         todo, todo_bytes = [], 0
@@ -880,7 +896,7 @@ def _stage_tiles_local(idx_df, label):
                 # path stays the safety net rather than being deleted.
                 src_root = Path(str(idx_df.iloc[0]["img_path"])).parents[2]
                 if _bulk_stage_ok(src_root):
-                    n_copied = _bulk_stage_tiles(src_root, dst_root, len(todo))
+                    n_copied = _bulk_stage_tiles(src_root, dst_root, todo)
                 if not n_copied:
                     for src, dst in todo:
                         dst.parent.mkdir(parents=True, exist_ok=True)
@@ -1228,11 +1244,23 @@ def _deploy_smoothed_keeping_raw(sel, best_ckpt, history, extra):
     `--step inference --run-tag {tag}raw`. Raster inference reads only the
     checkpoint and the ortho, so this needs no tiles and no retrain.
     """
-    tmp = best_ckpt.with_name(best_ckpt.stem + ".smoothtmp.pt")
+    # PREFIXED, not suffixed. As sem_best_{year}_{tag}.smoothtmp.pt it matched
+    # pipeline_status.py's `sem_best_{label}*.pt` glob, so a crash between write and
+    # rename left something that reads as one of the arm's checkpoints and that
+    # nothing ever deletes. A leading underscore keeps it out of every such glob.
+    tmp = best_ckpt.with_name("_smoothtmp_" + best_ckpt.name)
     if not sel.write(tmp, history, extra=extra):
         return False
     raw_keep = best_ckpt.with_name(best_ckpt.name.replace("sem_best_", "sem_rawbest_", 1))
     try:
+        # The docstring claimed both renames hit an ABSENT destination — the one
+        # os.replace case the mount canary actually proved. That was true for tmp
+        # and false for this one: sem_rawbest_{year}_{tag}.pt survives from any
+        # earlier run of the SAME tag, so a relaunch replaces over an existing file
+        # on the rclone mount, which is how the ` (1)` conflict copies appear.
+        # Unlink first and the claim becomes true again.
+        if raw_keep.exists():
+            raw_keep.unlink()
         os.replace(best_ckpt, raw_keep)
     except OSError as e:
         print(f"  ! could not move the raw pick aside ({e}); deploying the smoothed "
@@ -2137,8 +2165,34 @@ def step_evaluate(label, dry_run=False):
         if "channels" not in old.columns:
             old["channels"] = "rgb"
         old["channels"] = old["channels"].fillna("rgb")
-        old = old[~((old["year"].astype(str) == label) &
-                    (old["channels"] == chan_desc))]
+        _drop = ((old["year"].astype(str) == label) &
+                 (old["channels"] == chan_desc))
+        # KEEPING THE KEY AT (year, channels) IS DELIBERATE (see above) — but
+        # "not the deployed row" is not the same as "delete it". Two arms on one
+        # year and channel set is the normal shape of a paired experiment, and the
+        # second arm was silently erasing the first arm's measured rows from the
+        # only cumulative record of them. Worse now that VERIFY:evaluate is
+        # tag-keyed: the erased arm would re-verify as MISSING having once passed.
+        # Supersede instead of destroy — the deployed-threshold lookup is unchanged
+        # because the archive is a different file that nothing reads for thresholds.
+        if _drop.any():
+            _sup = EVAL_CSV.with_name("semantic_eval_report_superseded.csv")
+            _arch = old[_drop].copy()
+            _arch["superseded_utc"] = new["written_utc"].iloc[0]
+            _arch["superseded_by_tag"] = config.RUN_TAG or "(untagged)"
+            _sup_local = _local_artifact_path(_sup)
+            if _sup.exists():
+                _arch = pd.concat([pd.read_csv(_sup), _arch], ignore_index=True)
+            _arch.to_csv(_sup_local, index=False)
+            if _sup_local != _sup:
+                _copy_to_drive(_sup_local, _sup)
+                try:
+                    _sup_local.unlink()
+                except OSError:
+                    pass
+            print(f"  ({len(old[_drop])} superseded row(s) for {label}/{chan_desc} "
+                  f"archived to {_sup.name} before replacement)")
+        old = old[~_drop]
         new = pd.concat([old, new], ignore_index=True)
     # Local-then-verified-copy, not a bare to_csv onto the FUSE mount. This one
     # file carries EVERY year's metrics history, and it is rewritten whole on every

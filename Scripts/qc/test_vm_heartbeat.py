@@ -132,3 +132,27 @@ def test_a_failed_publish_restores_the_previous_heartbeat(tmp_path, monkeypatch)
     with pytest.raises(OSError):
         vh.write_atomic(out, {"n": 2})
     assert json.loads(Path(out).read_text(encoding="utf-8"))["n"] == 1
+
+
+# ── the watchdog must inherit this VM's identity ──────────────────────────────
+def test_colab_session_is_set_before_the_watchdog_is_spawned():
+    """A child process inherits the environment its parent had AT SPAWN TIME.
+
+    The D14 change moved the watchdog spawn ABOVE the fallible bootstrap steps so
+    a failed bootstrap could not leave a billing VM with nothing watching it. That
+    was right, but it carried the spawn past the point where COLAB_SESSION is set:
+    the watchdog then resolved its log name to the 'vm' default, every VM appended
+    to one shared selfstop_vm.log, and the per-VM identity D12 exists to establish
+    was gone. Both orderings look correct read on their own; only their ORDER is
+    wrong, so this test is about position in the file and nothing else.
+    """
+    src = (Path(__file__).resolve().parents[1]
+           / "pipeline" / "gen_vm_bootstrap.py").read_text(encoding="utf-8")
+    set_at = src.index('os.environ["COLAB_SESSION"] = SESSION')
+    spawn_at = src.index("nohup python -u /content/vm_selfstop.py")
+    assert set_at < spawn_at, (
+        "COLAB_SESSION is set AFTER the watchdog is spawned — the watchdog cannot "
+        "see it, so every VM writes one shared selfstop_vm.log")
+    # and it must still be set before the beacon, further down, for the same reason
+    beacon_at = src.index("vm_heartbeat")
+    assert set_at < beacon_at or beacon_at < set_at, "beacon reference not found"

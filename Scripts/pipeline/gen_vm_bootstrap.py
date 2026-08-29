@@ -178,6 +178,12 @@ _WD = [
     "    time.sleep(60)",
 ]
 open("/content/vm_selfstop.py", "w").write(chr(10).join(_WD))
+# The watchdog names its log after COLAB_SESSION, and a child only inherits the
+# environment its parent had AT SPAWN TIME. Setting this below, next to session.txt,
+# was too late: the watchdog was already running and had already resolved the name
+# to the 'vm' default, so every VM appended to one shared selfstop_vm.log and the
+# per-VM identity D12 exists to establish was gone again. Set it BEFORE the spawn.
+os.environ["COLAB_SESSION"] = SESSION
 subprocess.Popen("nohup python -u /content/vm_selfstop.py > /content/vm_selfstop.log 2>&1 &",
                  shell=True)
 print("SELFSTOP_ARMED")
@@ -221,7 +227,8 @@ if not _have("fusermount3"):
 # (the beacon, the self-stop watchdog) see the env var. On LOCAL disk, deliberately
 # — it describes this VM, not the shared lake.
 open("/content/session.txt", "w").write(SESSION)
-os.environ["COLAB_SESSION"] = SESSION      # also fixes selfstop's _note() log name
+# COLAB_SESSION is already set above, before the watchdog spawn - it has to be, or
+# the watchdog inherits nothing. Left here as a no-op for the beacon spawned below.
 open("/content/sa.json", "w").write(SA)
 os.makedirs("/root/.config/rclone", exist_ok=True)
 open("/root/.config/rclone/rclone.conf", "w").write(

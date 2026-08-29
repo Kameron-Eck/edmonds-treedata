@@ -69,10 +69,28 @@ def main():
     ap.add_argument("--block-rows", type=int, default=2048)
     ap.add_argument("--out-dir", default=".")
     ap.add_argument("--out-name", default=None,
-                    help="output filename; defaults to region_confusion_{year}.md. Present "
-                         "so repeated runs do not silently overwrite each other's tables.")
+                    help="output filename; defaults to region_confusion_{year}.md.")
+    ap.add_argument("--overwrite", action="store_true",
+                    help="permit writing over an existing table. Without this the run "
+                         "refuses rather than replacing a published measurement.")
     args = ap.parse_args([a for a in sys.argv[1:]
                           if not (a == "-f" or a.endswith(".json"))])
+
+    out = Path(args.out_dir) / (args.out_name or f"region_confusion_{args.year}.md")
+    # THE DEFAULT NAME DEPENDS ONLY ON THE YEAR, but the table's content depends on
+    # --tags and --region-mask. Adding --out-name was not enough: it defaults to None,
+    # so the naming stayed year-only and a later run still replaced an earlier one.
+    # That happened - a 4-arm all-only run wrote over the 2-arm inside/outside table
+    # the canopy-area finding was read from, and only git still had it. Existence is
+    # now a refusal, not a silent replacement.
+    if out.exists() and not args.overwrite:
+        raise SystemExit(
+            f"refusing to overwrite {out}"
+            f"{chr(10)}  It already holds a measurement, and this run's --tags/--region-mask"
+            f"{chr(10)}  may differ from the run that wrote it. Pass --out-name <other>.md"
+            f"{chr(10)}  to keep both, or --overwrite if you mean to replace it.")
+    # checked BEFORE the raster passes: refusing after ten minutes of block reads
+    # would be correct and useless.
 
     tags = [t.strip() for t in args.tags.split(",")]
     paths = [MASKS / f"edmonds_canopy_prob_{args.year}_{t}.tif" for t in tags]
@@ -170,7 +188,6 @@ def main():
     L += ["", "CAUTION: one reference (C-CAP 2016) applied to a 2009 raster, at one",
           "threshold. Real 2009->2016 change lands in FP/FN too, and the reference's own",
           "errors are not modelled. Read the DIRECTION, not the magnitude.", ""]
-    out = Path(args.out_dir) / (args.out_name or f"region_confusion_{args.year}.md")
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text("\n".join(L) + "\n", encoding="utf-8")
     print("\n".join(L))

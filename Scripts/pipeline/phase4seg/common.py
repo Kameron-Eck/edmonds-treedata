@@ -449,7 +449,12 @@ def _stage_imagery_local(src_path):
     if not str(src_path).startswith("/content/drive"):
         return src_path  # already local
     LOCAL_SCRATCH.mkdir(parents=True, exist_ok=True)
-    dst = LOCAL_SCRATCH / src_path.name
+    # D18 was applied to _local_artifact_path (the WRITE side) and not here (the
+    # READ side), though the collision is the same one: two Drive orthos whose
+    # basenames match — different years' native/ files routinely do — staged to one
+    # scratch file, and the exists+size test then hands the second caller the first
+    # one's imagery. Same deterministic full-path hash, same reasoning.
+    dst = LOCAL_SCRATCH / _scratch_name(src_path)
     try:
         src_size = src_path.stat().st_size
         if dst.exists() and dst.stat().st_size == src_size:

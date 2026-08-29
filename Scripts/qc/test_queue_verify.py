@@ -35,6 +35,7 @@ import os
 import sys
 from pathlib import Path
 
+import pandas as pd
 import pytest
 
 SCRIPTS = Path(__file__).resolve().parents[1]
@@ -490,7 +491,13 @@ def test_the_drive_check_is_skipped_on_a_resume_recheck(tmp_path, monkeypatch):
     monkeypatch.setattr(q, "_drive_matches_mount",
                         lambda *a, **k: called.append(1) or ("ok", "n"))
     state, detail = q._verify_ckpt_identity(ck, "2009", "x", 150.0, None)
-    assert state == "OK" and not called, "the drive check ran on a re-verify"
+    assert not called, "the drive check ran on a re-verify"
+    # ...and because it did not run, and freshness could not run either, the
+    # verdict must say so. Returning OK here graduated a step that a crashed
+    # launch had left UNVERIFIED into a permanent pass on identity fields alone —
+    # which the B24/B7 corpse satisfies, since it IS this arm's year and tag.
+    assert state == "UNVERIFIED", "a re-verify laundered into a pass"
+    assert state not in q._VERIFY_HARD_FAIL, "and it must not kill the job either"
     assert "drive check skipped" in detail
     q._verify_ckpt_identity(ck, "2009", "x", 150.0, ck.stat().st_mtime - 60)
     assert called, "the drive check must run when THIS VM wrote the file"
@@ -672,3 +679,53 @@ def test_a_torn_status_file_is_caught_by_its_header(tmp_path, monkeypatch):
         "job,year,step\n2009,2009,train\n", encoding="utf-8")   # no state/tag/ts
     rows, problem = q._read_status_file(tmp_path / "train_queue_status_torn.csv")
     assert rows == [] and problem and "header lacks" in problem
+
+
+# ── VERIFY:tile must check THIS ARM's tiles ───────────────────────────────────
+def test_verify_tile_reads_the_tagged_index_not_the_legacy_one(tmp_path, monkeypatch):
+    """Every queue job passes --run-tag, so the engine tiles into
+    tiles/{year}__{tag}/. This check read tiles/{year}/ — the pre-branch untagged
+    directory, which for every year still holds an index from some earlier arm. So
+    it did not fail; it PASSED, against another arm's tiles, and reported their
+    count as this arm's.
+    """
+    monkeypatch.setattr(q, "BASE", tmp_path)
+    tiles = tmp_path / "phase4" / "tiles"
+    legacy = tiles / "2009"
+    legacy.mkdir(parents=True)
+    img = tmp_path / "legacy.tif"
+    img.write_bytes(b"x")
+    pd.DataFrame([{"img_path": str(img)}] * 99).to_csv(
+        legacy / "tile_index_2009.csv", index=False)
+
+    job = {"id": "j1", "year": "2009", "tag": "mytag"}
+    rows = []
+    # The legacy index exists and is complete, and the old code PASSED on it. Now
+    # it is a hard fail: training this arm on another arm's tiles is the corruption,
+    # so stopping the job is the point, not a side effect.
+    assert q.verify_step(job, "tile", rows, step_start=None) is False
+    assert rows[-1]["state"] == "MISSING", (
+        f"passed against another arm's tiles: {rows[-1]['detail']}")
+    assert "legacy untagged" in rows[-1]["detail"], "and it should say why"
+
+    # now give the arm its own tiles: the check must find them
+    tagged = tiles / "2009__mytag"
+    tagged.mkdir(parents=True)
+    pd.DataFrame([{"img_path": str(img)}] * 7).to_csv(
+        tagged / "tile_index_2009.csv", index=False)
+    rows = []
+    q.verify_step(job, "tile", rows, step_start=None)
+    assert rows[-1]["state"] == "OK", rows[-1]["detail"]
+    assert "7 tiles" in rows[-1]["detail"], rows[-1]["detail"]
+
+
+def test_the_tag_sanitiser_matches_the_engines(tmp_path):
+    """The queue cannot import phase4seg, so _sanitize_tag is a deliberate twin of
+    cli.py's. If they drift, VERIFY:tile looks in a directory the engine never
+    wrote — MISSING, which is loud. This pins the pairing anyway."""
+    src = (Path(__file__).resolve().parents[1]
+           / "pipeline" / "phase4seg" / "cli.py").read_text(encoding="utf-8")
+    assert 'c if (c.isalnum() or c in "._-") else "_"' in src, \
+        "cli.py's --run-tag sanitiser changed; _sanitize_tag must follow"
+    for raw, want in [("node c/v1", "node_c_v1"), ("_x_", "x"), ("a.b-c", "a.b-c")]:
+        assert q._sanitize_tag(raw) == want, raw

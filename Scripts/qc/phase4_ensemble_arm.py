@@ -106,7 +106,11 @@ def main():
                     acc = np.zeros(arrs[0].shape, np.uint16)
                     for a in arrs:
                         acc += a
-                    comb = (acc // len(arrs)).astype(np.uint8)
+                    # FLOOR, not round: every mean pixel landed up to (n-1)/n DN
+                    # LOW, which is a systematic downward bias on exactly the
+                    # quantity the ensemble is measured on (canopy area at a fixed
+                    # threshold), pushing borderline pixels to the non-canopy side.
+                    comb = ((acc + len(arrs) // 2) // len(arrs)).astype(np.uint8)
                 else:
                     # 255 is nodata, so it must not win a max/median; those pixels are
                     # overwritten by `bad` below, but let them poison the statistic and

@@ -489,14 +489,21 @@ def test_a_legacy_meta_without_split_status_still_validates(tmp_path, monkeypatc
     assert tiling._existing_tiles_valid("X", SIG) is True
 
 
-@pytest.mark.parametrize("stored_mode,expect", [
-    (config.SPLIT_MODE_BLOCKED,  True),    # honest cache → reuse, no re-tile
-    (config.SPLIT_MODE_DEG_BUF,  True),    # its OWN output → must not re-tile forever
-    (config.SPLIT_MODE_DEGRADED, False),   # leaked cache → re-tile
-    (None,                       False),   # legacy index, mode unknown → re-tile
+# The honest-split writer always records forced_dropped alongside the mode (they
+# shipped together, afed9f7), so its ABSENCE dates a cache to before curated
+# negative-site tiles were buffered — those bypass the buffer entirely and can sit
+# inside a val block, which is the contamination the flag exists to remove. A cache
+# can therefore claim an honest MODE and still be contaminated.
+@pytest.mark.parametrize("status,expect", [
+    ({"mode": config.SPLIT_MODE_BLOCKED, "forced_dropped": 0},  True),
+    ({"mode": config.SPLIT_MODE_DEG_BUF, "forced_dropped": 3},  True),
+    ({"mode": config.SPLIT_MODE_DEGRADED, "forced_dropped": 0}, False),
+    ({"mode": config.SPLIT_MODE_BLOCKED},                       False),
+    ({"mode": config.SPLIT_MODE_DEG_BUF},                       False),
+    (None,                                                      False),
 ])
-def test_honest_cache_guard(tmp_path, monkeypatch, stored_mode, expect):
-    meta = dict(SIG) if stored_mode is None else {**SIG, "split_status": {"mode": stored_mode}}
+def test_honest_cache_guard(tmp_path, monkeypatch, status, expect):
+    meta = dict(SIG) if status is None else {**SIG, "split_status": status}
     _fake_cache(tmp_path, monkeypatch, meta)
     config.HONEST_VAL_SPLIT = True
     assert tiling._existing_tiles_valid("X", SIG) is expect

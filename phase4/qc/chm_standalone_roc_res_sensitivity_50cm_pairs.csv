@@ -1,0 +1,2 @@
+a,b,d_auroc,ci_lo,ci_hi,resolving_power,sign_stable,d_pr_auc,verdict,epoch_handicapped
+chm,chm2,+0.059955,+0.056886,+0.063201,0.003157,1.0000,+0.049316,BETTER,0

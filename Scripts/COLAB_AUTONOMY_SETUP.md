@@ -101,6 +101,29 @@ This is the same discipline as "never kill mid-exec": these handles die
 permanently, and a lost handle strands a live VM that then bills until its
 watchdog fires.
 
+## Killing a launcher LOCALLY does not stop the work REMOTELY (2026-08-29)
+
+`colab new` and `colab exec` dispatch to the runtime and return; the runtime keeps
+going even if the local process dies. Measured twice in one night:
+
+- A launcher killed with TaskStop at 11:50Z had already asked for a runtime.
+  `gpu36` appeared in the session file ~2 h later, created and idle the whole time.
+- A launcher SIGTERM'd mid-bootstrap at 13:27Z still completed its bootstrap AND
+  launched its queue on `gpu39`; the arm I believed dead had been training for
+  five minutes when I found it.
+
+Two consequences, one of them expensive:
+
+1. **A created-but-unbootstrapped VM has NO WATCHDOG.** The self-stop watchdog is
+   armed BY the bootstrap, so a VM that was created and then abandoned idles until
+   Google reclaims it — not the 10-min/2-h bounds the watchdog would give. `gpu36`
+   burned ~2 h that way. **After stopping any launcher, check `colab ls` and the
+   session file for a VM it may have created anyway, and either bootstrap it or
+   stop it.**
+2. **"I killed that job" is not a safe assumption.** Before relaunching an arm,
+   check the status CSVs on the lake for a run you think never started — and check
+   for contamination before reusing anything it touched.
+
 ## Runtimes can vanish mid-queue
 
 `gpu38` (L4) died ~5 min into its queue: heartbeat stopped, and the next exec

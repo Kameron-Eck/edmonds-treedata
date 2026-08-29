@@ -1758,6 +1758,22 @@ decided: verdicts come from CURVE metrics (AUROC / PR-AUC), never matched-precis
          holdout outright if the replicate failed. New order: smooth5 (Kam's named arm) ->
          third Node C seed (resolve the headline) -> holdout (mechanism, once there is an
          effect worth explaining).
+         ** ENSEMBLING TWO RUNS BUYS THE AVERAGE, NOT BETTER THAN THE AVERAGE. ** Since
+         retrain noise is the night's dominant problem, tested the standard remedy for free
+         on rasters already on disk (qc/phase4_ensemble_arm.py averages prob rasters on the
+         DN scale, nodata-in-any -> nodata-out so the footprint is identical):
+             nodec_v1     AUROC .9179   PR-AUC .8588
+             nodec_s1234  AUROC .9116   PR-AUC .8516
+             nodecENS     AUROC .9149   PR-AUC .8558     member mean .91475 / .8552
+         The ensemble is +.00015 above the member mean on AUROC. That is nothing. Averaging
+         two same-recipe runs does NOT cancel their noise — they train on the same data with
+         the same split, so their errors are CORRELATED and there is little independent
+         noise to cancel. The strong hypothesis (ensembling recovers lost accuracy) is dead.
+         WHAT SURVIVES, and it is a different claim: the ensemble matches the MEAN while
+         beating the WORSE member (.9149 > .9116). So it does not raise expected performance
+         — it removes VARIANCE. With ~1 run in 3 landing badly, that converts a deployment
+         lottery into a reliable mean. Useful for DEPLOYMENT, useless for making a one-run
+         A/B sound, which is exactly the distinction the tool's docstring pre-committed to.
 QUEUE ORDER AND WHY (2026-08-29 12:27Z): gpu35 = nodec_s1234 replicate -> then
          smooth5 (Kam's named arm, on the one guaranteed slot). gpu37 = 3-band noise floor
          -> then the GEOGRAPHIC HOLDOUT, not the third Node C seed. Reasoning: a third seed

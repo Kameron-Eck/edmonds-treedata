@@ -1818,6 +1818,30 @@ decided: verdicts come from CURVE metrics (AUROC / PR-AUC), never matched-precis
          comparison, ensembling still beats the realistic alternative. But "as good as the
          best run" was wrong, and the sparse-region loss is a real caveat FOR THIS PROJECT,
          because that region is the blind spot the whole workstream is trying to fix.
+         ** REFUTED A SECOND TIME. I AM DONE THEORISING WITHOUT A TEST. ** The
+         "averaging blurs confident minority detections" hypothesis predicted MAX-ensembling
+         would beat mean in the sparse region. Built it and scored it paired
+         (phase4/qc/ensemble_max_vs_mean_2009.md):
+             region            seedENS3(mean)  seedMAX3   dAUROC   95% CI
+             all                   .9206         .9176    -.0030  [-.0035, -.0025]
+             inside                .9007         .8983    -.0024  [-.0027, -.0021]
+             OUTSIDE (sparse)      .8590         .8455    -.0134  [-.0162, -.0108]
+         Max is WORSE everywhere and WORST exactly where I predicted it would win. Two
+         mechanism predictions, both refuted, both of which sounded reasonable beforehand.
+         WHAT THE NUMBERS SAY, with no story attached: in the sparse region
+         best single member > mean-ensemble > max-ensemble. Any rule that takes the
+         MORE-POSITIVE prediction makes that region worse.
+         ONE READING THAT FITS — flagged POST-HOC and UNTESTED, and it is arithmetic from
+         already-measured quantities rather than a new claim. The disagreement table gave
+         RATES (9.60% flip on outside canopy vs 1.59% on outside non-canopy) but the
+         populations are wildly uneven: 4.37M canopy px vs 71.58M non-canopy px. In ABSOLUTE
+         counts that is ~419k unstable canopy px against ~1.14M unstable non-canopy px. So
+         sparse-region instability is dominated BY COUNT by disagreement about what is NOT a
+         tree — spurious detections — which is precisely what a max rule amplifies. If that
+         is right, the earlier note "labelling should target isolated/ornamental trees"
+         should be re-examined: the bigger instability there may be FALSE POSITIVES on
+         non-canopy, which labelling positives would not fix. NOT acted on; needs its own
+         test before it changes any recommendation.
          ** WHERE THE RETRAIN NOISE LIVES — and it explains the .0157-vs-.0059 puzzle. **
          New instrument qc/phase4_arm_disagreement.py reads instability off rasters already
          on disk: how far apart the three same-recipe arms are per pixel, and how often they

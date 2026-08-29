@@ -82,7 +82,9 @@ import argparse
 import csv
 import datetime as _dt
 import io
+import os
 import re
+import secrets
 import socket
 import subprocess
 import sys
@@ -216,14 +218,96 @@ def _status_files():
     return files
 
 
-def _merged_rows():
-    """Union of all status files' rows, sorted by ts (UTC, lexically sortable)."""
-    rows = []
-    for f in _status_files():
+# ── Who and where (D13) ───────────────────────────────────────────────────────
+# NO ARTIFACT ANSWERED "what is running where, under which tag". The status CSV
+# named the job and the tag but never the machine, so with several runtimes
+# writing into one lake directory, a row could not be attributed to a VM at all —
+# and the 2026-08-29 post-mortem had to infer which VM produced which checkpoint
+# from timestamps. Every row now carries host and session.
+#
+# The session name is the Colab CLI's handle for this runtime, which the VM itself
+# has no API to ask for: the bootstrap knows it and hands it down, via COLAB_SESSION
+# in the environment and /content/session.txt on local disk. The file exists because
+# each `colab exec` is a fresh shell that does not inherit the bootstrap's env —
+# only the processes the bootstrap itself spawned do.
+_IDENT = None
+
+
+def _ident():
+    """{"host": …, "session": …} for this runtime. Resolved once, never raises."""
+    global _IDENT
+    if _IDENT is None:
         try:
-            rows.extend(csv.DictReader(io.open(f, encoding="utf-8", newline="")))
+            host = socket.gethostname()
+        except Exception:                                       # noqa: BLE001
+            host = ""
+        sess = os.environ.get("COLAB_SESSION") or ""
+        if not sess:
+            try:
+                p = Path("/content/session.txt")
+                if p.exists():
+                    sess = p.read_text(encoding="utf-8").strip()[:64]
+            except OSError:
+                pass
+        _IDENT = {"host": host, "session": sess}
+    return _IDENT
+
+
+# Files _merged_rows could not read on its last pass. Not decoration: a dropped
+# status file silently REWRITES HISTORY (see _merged_rows), so callers that make
+# decisions from the merge have to be able to ask whether the merge was complete.
+_MERGE_DEFECTS = []
+
+_STATUS_KEY_COLS = ("job", "year", "tag", "step", "state", "ts")
+
+
+def _read_status_file(f, attempts=3, backoff_s=2):
+    """One status file's rows → (rows, problem). `problem` is None when clean.
+
+    Retried, because these live on the FUSE mount where a transient EIO is
+    documented, and header-checked, because csv.DictReader does NOT raise on a
+    torn or truncated file — it happily yields rows with missing keys. A file
+    whose header lacks the columns the resume ledger keys on cannot be
+    interpreted, and saying so is the only honest answer.
+    """
+    last = None
+    for i in range(attempts):
+        try:
+            with io.open(f, encoding="utf-8", newline="") as fh:
+                rd = csv.DictReader(fh)
+                names = rd.fieldnames or []
+                missing = [c for c in _STATUS_KEY_COLS if c not in names]
+                if missing:
+                    return [], f"header lacks {missing} — rows cannot be interpreted"
+                return list(rd), None
         except Exception as e:                                  # noqa: BLE001
-            print(f"  ! WARN could not read {f.name} ({e}); skipping it.")
+            last = e
+            if i < attempts - 1:
+                time.sleep(backoff_s * (i + 1))
+    return [], f"{type(last).__name__}: {last}"
+
+
+def _merged_rows():
+    """Union of all status files' rows, sorted by ts (UTC, lexically sortable).
+
+    D10 (2026-08-29): this used to `print` a warning and drop an unreadable file's
+    rows on the floor. Dropping rows is not a neutral loss of information — it
+    REWRITES HISTORY IN THE UNSAFE DIRECTION. Rows are merged latest-wins, so if
+    file A holds a step's `OK` and file B holds the LATER `FAIL` that revoked it,
+    losing B leaves the OK standing and the next launch skips a step that failed.
+    The queue then builds on an artifact that was never produced.
+
+    So the drops are now COUNTED and published in _MERGE_DEFECTS, and
+    _completed_steps refuses to grant resume credit from an incomplete ledger.
+    """
+    rows = []
+    _MERGE_DEFECTS.clear()
+    for f in _status_files():
+        got, problem = _read_status_file(f)
+        if problem:
+            _MERGE_DEFECTS.append((f.name, problem))
+            print(f"  ! WARN unreadable status file {f.name}: {problem}")
+        rows.extend(got)
     rows.sort(key=lambda r: str(r.get("ts", "")))
     return rows
 
@@ -314,6 +398,20 @@ def _completed_steps():
                 # job-end raster check failed
                 bad.add(_job_key(job, year, tag, "inference"))
                 bad.add(key)
+    if _MERGE_DEFECTS:
+        # An incomplete ledger cannot justify a skip (D10). The rows we could not
+        # read may be exactly the FAIL that revoked an OK we did read, and the
+        # merge is latest-wins, so proceeding would skip a step that failed.
+        # Resume is an optimisation; not re-running work that never happened is
+        # not. This costs re-running steps in a rare case, which is the safe
+        # direction — and it is repairable: fix or delete the named file.
+        print("\n  ! RESUME DISABLED — the status history is INCOMPLETE:")
+        for name, why in _MERGE_DEFECTS:
+            print(f"      {name}: {why}")
+        print("    Rows that could not be read may include the failure that "
+              "revoked an earlier OK, so no step can be trusted as done.")
+        print("    Repair or delete the file(s) above to restore resume.")
+        return set(), set(), verdicts
     return done - bad, reverify - bad, verdicts
 
 
@@ -324,24 +422,76 @@ def _hr(t=""):
         print("=" * 74)
 
 
+def _replace_absent(tmp, dest):
+    """os.replace `tmp` onto `dest` with the destination guaranteed ABSENT (D4).
+
+    A deliberate 15-line twin of phase4seg/common.py's `_publish_replace`, and it
+    stays a twin: this module is an ORCHESTRATOR that must keep running when the
+    engine's environment is broken, so it imports no engine module and no third
+    party at import time. Importing common.py here would pull geopandas, rasterio,
+    shapely, fiona and sklearn into the process whose whole job is to survive them.
+
+    Same reasoning as there: the mount canary only ever proved the
+    absent-destination case of os.replace, and the aside suffix goes AFTER the
+    extension so extension-anchored readers cannot see it.
+    """
+    aside = None
+    if dest.exists():
+        aside = dest.with_name(dest.name + f".prev.{secrets.token_hex(3)}")
+        try:
+            os.replace(dest, aside)
+        except FileNotFoundError:
+            aside = None
+    try:
+        os.replace(tmp, dest)
+    except OSError:
+        if aside is not None:
+            try:
+                os.replace(aside, dest)
+            except OSError:
+                pass
+        raise
+    if aside is not None:
+        try:
+            aside.unlink()
+        except OSError:
+            pass
+
+
 def _status_write(rows):
     """Flush THIS LAUNCH's rows to its own status file. Called after EVERY step.
 
     Rewriting only our per-launch file means concurrent queues can never erase
     each other's records (P11.1); readers merge across files.
+
+    D10 (2026-08-29): the flush was `open(out, "w")` straight onto the Drive
+    mount — the file was TRUNCATED first and refilled afterwards, so every step
+    boundary opened a window in which this launch's entire history was a
+    zero-length file on the lake. Anything reading in that window (the resume
+    ledger, watch_queue, runtime_health, cost_report) sees a queue that has done
+    nothing. Write to a temp beside it, then publish with an absent-destination
+    replace, so the canonical name only ever holds a complete table.
     """
+    tmp = None
     try:
         QC_DIR.mkdir(parents=True, exist_ok=True)
         out = STATUS_OUT if STATUS_OUT is not None else STATUS
         cols = ["job", "year", "tag", "step", "state", "exit", "minutes",
-                "detail", "ts"]
-        with io.open(out, "w", encoding="utf-8", newline="") as f:
+                "detail", "ts", "host", "session"]
+        tmp = out.with_name(out.name + f".part.{os.getpid()}{secrets.token_hex(3)}")
+        with io.open(tmp, "w", encoding="utf-8", newline="") as f:
             w = csv.DictWriter(f, fieldnames=cols)
             w.writeheader()
             for r in rows:
                 w.writerow({k: r.get(k, "") for k in cols})
+        _replace_absent(tmp, out)
     except Exception as e:                                      # noqa: BLE001
         print(f"  ! WARN could not write status: {e}")
+        if tmp is not None:
+            try:
+                tmp.unlink()
+            except OSError:
+                pass
 
 
 def _gpu_line():
@@ -382,7 +532,7 @@ def run_step(job, step, infer_batch, rows):
     print(f"\n  $ {' '.join(cmd[1:])}", flush=True)
 
     rec = dict(job=job["id"], year=y, tag=tag, step=step, state="RUNNING",
-               exit="", minutes="", detail="",
+               exit="", minutes="", detail="", **_ident(),
                ts=_dt.datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
     rows.append(rec)
     _status_write(rows)
@@ -747,7 +897,7 @@ def verify_step(job, step, rows, step_start=None, reverify=False):
     if reverify:
         detail = f"[re-verify of a skipped step] {detail}"
     rec = dict(job=job["id"], year=y, tag=tag, step=f"VERIFY:{step}",
-               state=state, exit="", minutes="", detail=detail,
+               state=state, exit="", minutes="", detail=detail, **_ident(),
                ts=_dt.datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
     rows.append(rec)
     _status_write(rows)
@@ -793,7 +943,7 @@ def verify(job, rows):
     Never raises — this is unattended."""
     out = MASKS / f"edmonds_canopy_prob_{job['year']}_{job['tag']}.tif"
     rec = dict(job=job["id"], year=job["year"], tag=job["tag"], step="VERIFY",
-               state="", exit="", minutes="", detail="",
+               state="", exit="", minutes="", detail="", **_ident(),
                ts=_dt.datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
     try:
         state, detail = _check_prob_raster(out)
@@ -857,7 +1007,7 @@ def _recheck_skipped_verify(job, rows, prior):
     except Exception as e:                                      # noqa: BLE001
         state, detail = "UNCHECKED", f"{type(e).__name__}: {e}"[:200]
     rec = dict(job=job["id"], year=job["year"], tag=job["tag"], step="VERIFY",
-               state=state, exit="", minutes="", detail=detail,
+               state=state, exit="", minutes="", detail=detail, **_ident(),
                ts=_dt.datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
     rows.append(rec)
     _status_write(rows)

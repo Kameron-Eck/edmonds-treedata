@@ -91,6 +91,15 @@ if not _have("fusermount3"):
     if not _have("fusermount3"):
         raise SystemExit("BOOTSTRAP FAIL: fuse3 missing after install; the mount "
                          "would die with a bare 'daemon exited' (2026-08-26 canary)")
+# D13 (2026-08-29): publish the session name so artifacts can say WHERE they were
+# produced. The VM has no API to ask the Colab CLI what its own session handle is;
+# the bootstrap is the only thing that knows, so it hands the name down two ways.
+# The FILE is the one that matters: every later `colab exec` is a fresh shell that
+# does not inherit this process's environment, so only the children spawned below
+# (the beacon, the self-stop watchdog) see the env var. On LOCAL disk, deliberately
+# — it describes this VM, not the shared lake.
+open("/content/session.txt", "w").write(SESSION)
+os.environ["COLAB_SESSION"] = SESSION      # also fixes selfstop's _note() log name
 open("/content/sa.json", "w").write(SA)
 os.makedirs("/root/.config/rclone", exist_ok=True)
 open("/root/.config/rclone/rclone.conf", "w").write(

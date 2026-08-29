@@ -135,3 +135,60 @@ def test_registry_schema():
             datetime.strptime(date, "%Y-%m-%d")
         except ValueError:
             pytest.fail(f"row {lineno} ({run_id}): date {date!r} is not %Y-%m-%d")
+
+
+def _emitted_bootstrap():
+    """The VM script gen_vm_bootstrap.py emits, with a placeholder standing in for
+    each {substitution} — enough to parse, without needing any secret."""
+    src = (SCRIPTS / "pipeline" / "gen_vm_bootstrap.py").read_text(encoding="utf-8")
+    body = None
+    for node in ast.walk(ast.parse(src)):
+        if isinstance(node, ast.Assign) and any(
+                getattr(t, "id", None) == "body" for t in node.targets):
+            body = node.value
+    assert body is not None, "gen_vm_bootstrap.py has no `body = ...` assignment"
+    assert isinstance(body, ast.JoinedStr), \
+        f"`body` is {type(body).__name__}, not an f-string — this gate cannot read it"
+    return "".join(v.value if isinstance(v, ast.Constant) else "'_SUBST_'"
+                   for v in body.values)
+
+
+def _static_str(node):
+    """Best-effort source text for a watchdog line. Literal strings come through
+    verbatim; a runtime-computed fragment (`"MOUNT = " + repr(MOUNT)`) keeps its
+    literal half and gets a quoted placeholder for the rest, so the reassembled
+    line is still parseable Python."""
+    if isinstance(node, ast.Constant) and isinstance(node.value, str):
+        return node.value
+    if isinstance(node, ast.BinOp) and isinstance(node.op, ast.Add):
+        return _static_str(node.left) + _static_str(node.right)
+    return "'_SUBST_'"
+
+
+def test_emitted_vm_bootstrap_is_valid_python():
+    """gen_vm_bootstrap.py's product is CODE, and nothing checked its syntax.
+
+    py_compile only ever sees the generator; the script it emits is a string, and
+    the emitted script in turn WRITES A SECOND script (/content/vm_selfstop.py) as a
+    list of source lines. Both layers run unattended on a billing VM — the watchdog
+    layer is what drains the rclone upload backlog and calls runtime.unassign() —
+    and a syntax error in either is only discoverable by spending a runtime on it.
+    Both are parsed here.
+
+    An f-string substitution can also silently eat code: a stray brace in the
+    template becomes a format field rather than a Python brace, which is why the
+    placeholder round-trip is done through the AST rather than by regex.
+    """
+    emitted = _emitted_bootstrap()
+    ast.parse(emitted)                      # layer 1: the bootstrap itself
+
+    wd = None
+    for node in ast.walk(ast.parse(emitted)):
+        if isinstance(node, ast.Assign) and any(
+                getattr(t, "id", None) == "_WD" for t in node.targets):
+            wd = node.value
+    assert wd is not None and isinstance(wd, ast.List), \
+        "the emitted bootstrap no longer builds _WD as a literal list of source lines"
+    lines = [_static_str(e) for e in wd.elts]
+    assert len(lines) > 20, f"_WD collapsed to {len(lines)} lines — is it still the watchdog?"
+    ast.parse("\n".join(lines))             # layer 2: the self-stop watchdog

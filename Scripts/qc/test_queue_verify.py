@@ -363,3 +363,81 @@ def test_mb_from_verdict_only_reads_the_anchored_size():
     assert q._mb_from_verdict("valid=99.1% 146MB") is None      # not anchored
     assert q._mb_from_verdict("") is None
     assert q._mb_from_verdict(None) is None
+
+
+# ── D10: the status table is the audit trail; it must never be half-written ───
+
+def test_status_write_never_truncates_the_live_file(tmp_path, monkeypatch):
+    """THE D10 CORE. The flush was open(out, "w") straight onto the mount: the file
+    was TRUNCATED first and refilled after, so every step boundary opened a window
+    where this launch's whole history was a zero-length file on the lake. Asserted
+    at the syscall — no os.replace here may land on an existing destination, and
+    the canonical name must never be opened for writing."""
+    out = tmp_path / "train_queue_status_q_20260829T000000Z.csv"
+    monkeypatch.setattr(q, "QC_DIR", tmp_path)
+    monkeypatch.setattr(q, "STATUS_OUT", out)
+    q._status_write([_row(step="train", state="OK")])
+    assert out.exists()
+
+    seen, opened = [], []
+    real_replace, real_open = q.os.replace, io.open
+
+    def _spy_replace(a, b):
+        seen.append((Path(b).name, Path(b).exists()))
+        return real_replace(a, b)
+
+    def _spy_open(f, *a, **kw):
+        if "w" in str(a[0] if a else kw.get("mode", "")):
+            opened.append(Path(f).name)
+        return real_open(f, *a, **kw)
+
+    monkeypatch.setattr(q.os, "replace", _spy_replace)
+    monkeypatch.setattr(q.io, "open", _spy_open)
+    q._status_write([_row(step="train", state="OK"),
+                     _row(step="VERIFY:train", state="OK")])
+    assert not any(existed for _, existed in seen), \
+        f"replaced over an existing destination on the mount: {seen}"
+    assert out.name not in opened, \
+        "the canonical status file was opened for writing — that truncates it"
+    rows = list(csv.DictReader(io.open(out, encoding="utf-8", newline="")))
+    assert len(rows) == 2
+    assert not list(tmp_path.glob("*.part.*")) and not list(tmp_path.glob("*.prev.*"))
+
+
+def test_status_temp_files_are_invisible_to_every_reader(tmp_path):
+    """Readers glob `train_queue_status*.csv`. A temp named `...csv.part.x` matches
+    none of them; a temp named `...part.csv` would be MERGED, double-counting rows
+    into the resume ledger. Suffix after the extension, always."""
+    out = tmp_path / "train_queue_status_q_20260829T000000Z.csv"
+    tmp = out.with_name(out.name + ".part.1234ab")
+    tmp.write_text("junk", encoding="utf-8")
+    assert list(tmp_path.glob("train_queue_status*.csv")) == []
+
+
+def test_an_unreadable_status_file_disables_resume(tmp_path, monkeypatch):
+    """Dropping a file's rows REWRITES HISTORY in the unsafe direction: rows merge
+    latest-wins, so losing the file that holds a FAIL leaves the earlier OK
+    standing and the next launch skips a step that failed."""
+    monkeypatch.setattr(q, "QC_DIR", tmp_path)
+    _status_csv(tmp_path / "train_queue_status_a.csv", [
+        _row(step="train", state="OK", ts="2026-08-29 01:00:00")])
+    done, _, _ = q._completed_steps()
+    assert KEY in done                       # readable ledger: the skip is granted
+
+    # now a second file nobody can interpret — a torn write, a truncated header
+    (tmp_path / "train_queue_status_b.csv").write_text(
+        "this is not a csv header\n", encoding="utf-8")
+    done, reverify, _ = q._completed_steps()
+    assert done == set() and reverify == set(), \
+        "an incomplete ledger must not justify skipping anything"
+    assert q._MERGE_DEFECTS, "the unreadable file must be reported, not dropped"
+
+
+def test_a_torn_status_file_is_caught_by_its_header(tmp_path, monkeypatch):
+    """csv.DictReader does NOT raise on a truncated file — it yields rows with
+    missing keys. Only a header check notices."""
+    monkeypatch.setattr(q, "QC_DIR", tmp_path)
+    (tmp_path / "train_queue_status_torn.csv").write_text(
+        "job,year,step\n2009,2009,train\n", encoding="utf-8")   # no state/tag/ts
+    rows, problem = q._read_status_file(tmp_path / "train_queue_status_torn.csv")
+    assert rows == [] and problem and "header lacks" in problem

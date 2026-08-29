@@ -1,0 +1,41 @@
+# EP60 REPLICATION — does the epoch cap really move canopy AREA? 2026-08-29.
+#
+# WHY. Tonight's campaign-wide area re-read turned up a candidate flip:
+#     arm                area bias
+#     rgb3_nodeb          -20.9%     (30-epoch cap, best epoch 30 = AT the cap)
+#     rgb3_nodeb_s1234    -22.6%     (30-epoch cap, seed twin -> pair spread 1.7 pp)
+#     rgb3_ep60           -13.8%     (60-epoch cap, best epoch 17, stopped on PATIENCE)
+# +7.1 pp against a 1.7 pp seed-pair spread — about 4x. On AUROC the same pair is
+# +.0023, INSIDE noise, and that is what I used to REFUTE the truncation
+# hypothesis. So the ranking metric said "no effect" and the product metric says
+# "7 points of canopy area". One of those readings is answering the wrong question
+# and the AUROC one has the worse record tonight.
+#
+# WHY IT IS NOT ALREADY A FINDING. ep60-vs-nodeb is NOT a clean pair: the cap
+# differs AND the trajectory differed (best epoch 17 stopping on patience, vs best
+# epoch 30 pinned at the cap). And the 1.7 pp floor is ONE pair — the n=2 estimate
+# that has misled this session twice (4-band noise read .0016 at n=2 and .0047 at
+# n=3). A single lucky trajectory could produce all of it.
+#
+# ONE VARIABLE vs rgb3_ep60: --seed 1234. Same 3 bands, same citywide projected
+# labels, same AOI, same 60-epoch cap.
+#
+# PRE-REGISTERED READ — on AREA BIAS, which is the metric the claim is about.
+# Baselines: nodeb pair -20.9% / -22.6% (mean -21.8%); ep60 run 1 -13.8%.
+#   area bias >= ~-17%  (i.e. within ~3 pp of -13.8%, clearly outside the nodeb
+#                        pair's range)  -> REPLICATED. The epoch cap moves canopy
+#                        area, and it is the cheapest product win of the campaign:
+#                        train longer, no new labels, no new channels.
+#   area bias <= ~-20%  (inside the nodeb range) -> NOT REAL. ep60's -13.8% was a
+#                        lucky trajectory; the truncation refutation stands and
+#                        this must be reported as the negative it is.
+#   between -17% and -20% -> UNRESOLVED at n=2. Say so; do not pick a side.
+# ALSO record AUROC, so the two metrics can be compared on the same pair — that
+# disagreement is itself the finding worth keeping.
+- id: "2009_ep60_rep"
+  year: "2009"
+  tag: rgb3_ep60_s1234
+  extra: ["--force-citywide", "--no-hillshade", "--epochs-phase-b", "60",
+          "--seed", "1234", "--infer-aoi", "aoi/sectors_v1.json"]
+  why: "does the +7.1 pp area gain from a 60-epoch cap replicate, or was it one lucky trajectory?"
+  expect: "retile ~40 min; train up to ~1 h if it uses the ceiling; inference ~5 min."

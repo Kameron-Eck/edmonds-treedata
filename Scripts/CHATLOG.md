@@ -1453,6 +1453,52 @@ gotcha:  scripts Colab-only for torch (rasterio+geopandas+fiona+sklearn now pip-
 
 ════════════════ LOG  (newest first) ════════════════
 
+## 2026-08-28  FACT TREE — Node B measured (CHM worth 10 pp), crown-touch built, damage curve launched (Fable 5 session)
+goal:    Kam's rule, adopted after three uninterpretable experiments: "change ONE thing at a
+         time from a previously established position of fact." Build the tree.
+did:     ** NODE B ** 2009 / projected key / 3-BAND (--no-hillshade): AUROC .9063, PR-AUC
+         .8365, matched-precision recall .5990 vs Node A's .6989. So THE CHM CHANNEL IS WORTH
+         10 pp OF RECALL — a clean number this project did not have.
+         ** AND ITS VALUE IS CONCENTRATED IN SMALL CROWNS ** (crown-touch, Node A vs B, true
+         EPSG:26910 areas): 0-5 m2 .4298/.3568 (-7.3 pp) · 5-10 .5386/.4587 (-8.0) · 10-25
+         .7353/.6709 (-6.4) · 25-50 .9044/.8680 (-3.6) · 50-100 .9765/.9646 (-1.2) · 100-250
+         .9942/.9912 (-0.3). Height barely helps big trees and does nearly all its work on the
+         population the project fails on. A pixel aggregate cannot show this.
+         ** qc/phase4_crown_touch.py (f1e6c06) ** — Kam's idea: the 222,435 instance crowns are
+         never seen by citywide training, so they are a free held-out set. TRUE for the
+         citywide path, FALSE for any arm using --add-canopy-mask: our label-correction
+         overlays RASTERIZE stable_crowns_v0.gpkg as forced canopy, so scoring those arms on
+         crown touch would drive them toward 1.0 BY CONSTRUCTION. The tool therefore reads each
+         arm's own run manifest and classifies clean / add_overlay (auto-excludes 2,307
+         crown_ids + 5,184 in the Forest polygon) / site_crowns (refused) / unknown (refused).
+         Refusal tested live. Verdict on the metric: a RESTATEMENT at the headline level, but
+         it localizes (by size, by sector) where pixels cannot.
+         ** TILE CACHE COLLISION FIXED (507dff6) ** — see the retraction below.
+decided: TWO EXPERIMENTS IN PARALLEL, because neither answers alone.
+         (1) DAMAGE CURVE — stop trying to FIX unknown errors, INJECT known ones at a dose we
+         choose. Whole real crowns displaced 10-40 m onto key-background, painted canopy (code
+         1 only, rule-6 legal, no engine change; erasure is untestable — rule 6 forbids
+         force-background). Doses 2.70 / 6.56 / 12.34% of strip land = 4x-18x the arm that
+         nulled. Gives COST PER UNIT OF LABEL ERROR, the number that makes every correction
+         experiment interpretable.
+         (2) NODE C — one variable vs Node B: proven canopy additions only (datum-matched
+         2005>=3.0 m -> 2016>=4.52 m, NDVI>=0.30 from the 2016 4-band ortho NOT the 2009
+         imagery, buildings out, erode 1, no change classes, no IGNORE).
+killed:  ** MY OWN PRE-REGISTRATION OF NODE C AS 'LIKELY NULL'. ** I forecast ~0.85% dose from
+         a denominator-confused comparison (the 563/700/959 ha problem, WORKPLAN 1.5). Measured:
+         21.94 true ha = 3.897% of graded strip land, 100% effective flips. AND the hybrid that
+         produced the "clean null" was 85% NO-OP — only 2.98 ha of its 20.26 ha landed on
+         key-background, plus 4.61 ha of IGNORE, so it was never one-variable. Node C is 7.4x
+         its EFFECTIVE dose. Quote the hybrid as "0.53% effective, two variables", never "0.7%".
+         Also measured en route: 78.2% of lidar+green candidates land where the key ALREADY says
+         canopy — the borrowed key is more right than assumed on persistent tall green ground.
+files:   507dff6 tile isolation · f1e6c06 crown-touch · be4f2e4 crown-touch report · 7c7ea90
+         damage arms + injector · 332b9c4 --nodec · 6b0743c Node C queue · a9bc443 Node B queue
+next:    score 4 arms at matched precision + crown-touch by size; the DAMAGE CURVE SLOPE is the
+         result. Flat at 12.34% = no achievable correction ever mattered, close the thread and
+         spend on references/definition instead. Steep = labels are the lever and Kam's
+         annotation time is the highest-value input in the project.
+
 ## 2026-08-28  GROVES VERDICT — SPARSE VERIFIED LABELS LOSE DECISIVELY; Kam's lidar signal is REAL inside the losing arm
 result:  2009, common footprint 198.8 Mpx (intersection of all 3 arms x scorable ref), ccap
          snohfull. THRESHOLD-FREE (qc/phase4_arm_pr_curves.py, ea5f205):

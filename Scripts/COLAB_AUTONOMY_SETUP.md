@@ -144,6 +144,23 @@ Two consequences, one of them expensive:
    check the status CSVs on the lake for a run you think never started — and check
    for contamination before reusing anything it touched.
 
+## Drive can create ' (1)' duplicate files (2026-08-29, minor)
+
+`heartbeat_gpu42.json` and `heartbeat_gpu42 (1).json` appeared together, byte
+identical (same ts, same beacon_pid, same queue pid) — a Google Drive conflict
+copy produced when the beacon's atomic tmp+rename raced drivefs sync. Scope
+checked across the lake: **1 occurrence, in logs/ only; ZERO in qc/, masks/,
+models/, labels_corrected/**. That matters because every scoring reader merges
+all `train_queue_status_*.csv`, and a duplicated status file would double-count.
+
+Harmless as observed, and self-resolving: the beacon rewrites every 60 s, so the
+frozen copy ages past the duplicate-guard's 300 s freshness window on its own.
+The only effect is a cosmetically inflated beacon count and a clash message that
+would name `gpu42 (1)` as if it were a separate VM.
+
+**If a ' (N)' file ever appears in `qc/` or `masks/`, treat it as a data-integrity
+event, not clutter** — dedupe before scoring anything.
+
 ## Runtimes can vanish mid-queue
 
 `gpu38` (L4) died ~5 min into its queue: heartbeat stopped, and the next exec

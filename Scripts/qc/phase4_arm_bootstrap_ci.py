@@ -230,7 +230,15 @@ def main():
         lines.append("".join(row) + "|")
     lines += ["", "`sign stable` = share of replicates where the gap kept the sign of the",
               "point estimate. Below ~95% the ordering is not established by this evidence.",
-              ""]
+              "",
+              "## READ THIS BEFORE QUOTING A CI THAT EXCLUDES ZERO", "",
+              "A tight interval here proves the two RASTERS differ on this ground. It does",
+              "NOT prove the two RECIPES differ, because retrain noise is not in it: train",
+              "the same recipe twice and you get two different rasters, and this tool would",
+              "call that gap significant too. Compare the gap against BOTH numbers — this",
+              "interval AND the measured retrain spread for the branch — and quote the",
+              "larger. A gap that clears spatial sampling but sits at the retrain scale is",
+              "trajectory noise wearing a confidence interval.", ""]
     for t, pt, lo, hi, stable in verdicts:
         if lo > 0 or hi < 0:
             lines.append(f"- `{t}`: AUROC gap {pt:+.4f}, CI excludes zero — "

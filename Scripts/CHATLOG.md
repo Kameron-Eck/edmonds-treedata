@@ -1546,6 +1546,30 @@ decided: seed-varied arms (1234, 777) to measure TRUE retrain sigma — the bank
          gap is cap-change + noise, an UPPER bound. The 3-band branch has NO clean same-recipe
          repeat. Closest real number is the 4-band seed pair, .0016 AUROC. Working floor
          ~.002, flagged soft in the queue file.
+         ** THE SECOND ERROR BAR — measured, free, and it CLEARS Node C. ** Every verdict
+         here has been a point estimate checked against RETRAIN noise (train twice, see how
+         far it moves). That is one of two uncertainties. The other — given two FINISHED
+         rasters, how sure are we the ordering is real — had never been measured, and the
+         intuitive answer is wrong: 198.8 Mpx sounds like huge statistical power, but
+         neighbouring pixels are the SAME TREE, so the real sample size is the number of
+         independent patches. New tool qc/phase4_arm_bootstrap_ci.py resamples 512x2048 px
+         BLOCKS with replacement. Exact, not approximate: arm_pr_curves scores from 256-bin
+         DN histograms and histograms ADD, so per-block histograms resample and re-sum with
+         no pixel subsampling. Paired — every replicate scores all arms on the same blocks,
+         so shared ground cancels and the interval lands on the DIFFERENCE.
+         Result (phase4/qc/arm_bootstrap_ci_2009.md), 235 non-empty blocks — that, not
+         198.8 million, is what the evidence is worth:
+             nodec_v1 vs rgb3_nodeb   dAUROC +.0116  95% CI [+.0094, +.0136]  100% sign-stable
+                                      dPR-AUC +.0223  95% CI [+.0181, +.0266]  100% sign-stable
+         Node C's margin is ~5x the CI half-width AND ~6x retrain noise. Where we looked is
+         NOT what is holding this claim up.
+         ** AND THE TRAP THE SAME RUN EXPOSED. ** rgb3_ep60 vs rgb3_nodeb also came back
+         "significant": dAUROC +.0023, CI [+.0012,+.0033], 100% sign-stable. Those two are
+         the SAME recipe family differing by an epoch cap that did not bind — the gap is
+         trajectory noise. So a tight interval here proves the two RASTERS differ on this
+         ground; it does NOT prove the two RECIPES differ, because retrain noise is not in
+         it. Rule adopted, and written into the tool's own output so it cannot be quoted
+         without it: compare every gap against BOTH numbers and quote the LARGER.
          ** LAUNCHES (P11.6, all A100, all autonomous under Kam's all-night grant) **
          gpu33 nodeb_ep60 (done, ~80 min, self-stopped by the watchdog on schedule — 2nd
          proof the /proc-scan watchdog fires) · gpu34 seed777 (training) · gpu35 nodec_s1234

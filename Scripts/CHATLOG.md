@@ -54,6 +54,41 @@ SPACE RULES — keep always-loaded context low for continuous logging:
     judgement-heavy rewrite of the project's memory and should not be done at the end of a
     long session.
 
+harness: ** 2026-08-29 — VERIFICATION REBUILT AFTER 3 ADVERSARIAL PASSES + CODE REVIEW.
+         HEAD 1130dd7 on work/20260824-sectors. 157 tests, preflight, smoke green. **
+         Root cause of the night's failures, stated once: every write was verified
+         against the WRITER'S OWN CACHE, and no artifact carried run identity.
+         WORST FINDING (code review, not the passes): VERIFY:tile read
+         tiles/{year}/ while tagged runs write tiles/{year}__{tag}/ via
+         tile_dir_for(). Never failed — PASSED, against another arm's legacy index,
+         reporting its tile count as this arm's. Every VERIFY:tile line from the
+         2026-08-29 campaign attested to a directory nobody was writing.
+         NO RERUN OWED: the WRITER side was always correct, so training read the
+         right tiles. Only the attestation pointed elsewhere. Science stands; the
+         old VERIFY:tile OK rows are meaningless, not evidence of corruption.
+         ALSO CLOSED: D7 re-verify laundered UNVERIFIED->OK on identity fields alone
+         (one relaunch made the B24/B7 corpse a permanent pass) · verify() and
+         _recheck_skipped_verify returns discarded, queue exited 0 on an EMPTY
+         raster — exit code now means something · local tile scratch + imagery
+         staging keyed without the run tag (same collision, one layer down) ·
+         bulk-stage completeness compared total-present vs count-missing (1800 vs 5;
+         could not fire) · step_evaluate's (year,channels) replace DELETED the other
+         arm's rows, now superseded to an archive (threshold semantics untouched) ·
+         honest-split cache guard checked mode only, missed forced-tile provenance ·
+         dup-guard read its own corpse and refused relaunches (P11.5's own loop).
+         SELF-INFLICTED, same session: COLAB_SESSION was set AFTER the watchdog
+         spawn (my D14 commit), so every VM wrote one shared selfstop_vm.log; and a
+         new test asserted `a<b or b<a` — a check that cannot fail, inside the commit
+         closing checks that cannot fail. Both fixed, both mutation-checked.
+         DATA LOSS FOUND + RECOVERED: phase4_region_confusion --out-name defaults to
+         None, so the name stayed year-only and a 4-arm run overwrote the 2-arm
+         inside/outside table the canopy-area finding was read from. Only git had it.
+         Split to region_confusion_2009{,_seedpairs}.md; the script now refuses at
+         parse time.
+         GPU-GATED, KAM'S CALL: Stage 2 paired val-split arm (needs --force-retile) ·
+         S3.5 chm2005 A/B (needs shared norm stats + 3 seeds/arm, or it repeats the
+         underpowered chm2 test). Nothing running; no spend since the campaign.
+
 sectors: ** ACTIVE WORKSTREAM 2026-08-24/25 — SECTOR CAMPAIGN. Source of truth =
          pipeline/sector_campaign_checklist.yaml + state_*.jsonl + RESUME_NOTES.md in
          data:phase4/qc/sector_campaign/. Branch work/20260824-sectors. **
@@ -1452,6 +1487,63 @@ gotcha:  scripts Colab-only for torch (rasterio+geopandas+fiona+sklearn now pip-
          accept-all test data; 14,476-crown human review never finished.
 
 ════════════════ LOG  (newest first) ════════════════
+
+## 2026-08-29  HARNESS HARDENED — 15 review findings closed; VERIFY:tile was checking another arm (Fable 5)
+
+goal:    Kam: adversarial pass on training architecture, lidar, harness. Then fix.
+         Sub-agents per lane, ultracode. No new science.
+did:     3 passes landed (T1-T17 training, L1-L6 lidar, D1-D19 harness), then a local
+         /code-review on top returned 15 MORE. All closed. HEAD 1130dd7, 157 tests.
+         WORST: VERIFY:tile read tiles/{year}/, tagged runs write tiles/{year}__{tag}/.
+         Not a false MISSING — a false PASS against another arm's legacy index, all
+         night. Writer side (tile_dir_for) was always right, so NO RERUN OWED: training
+         used correct tiles; only the attestation was pointed elsewhere.
+         D7 re-verify laundered UNVERIFIED -> OK on identity fields alone; the B24/B7
+         corpse satisfies year+tag, so ONE relaunch made it a permanent pass.
+         verify() returned None and _recheck_skipped_verify's return was dropped ->
+         queue exited 0 with an EMPTY raster. Exit code now reports whether work landed.
+         _stage_tiles_local + _stage_imagery_local keyed without run tag (lake-side
+         collision, one layer down; reuse test is exists+size, two overlays pass it).
+         _bulk_stage_tiles compared total .tif present vs count found missing — 1800 vs
+         5 on any resume, could never fire.
+         step_evaluate (year,channels) replace DELETED the other arm's rows; now
+         superseded to semantic_eval_report_superseded.csv. Threshold semantics
+         deliberately untouched (that is the threshold lane's call, not a side effect).
+         honest-split cache guard checked mode only; forced_dropped shipped with the
+         forced-tile buffering (afed9f7) so its absence dates a pre-fix cache.
+         dup-guard read its OWN corpse: beacon survives relaunch, keeps publishing the
+         dead pid fresh under our tag -> REFUSING TO START on the P11.5 crash-fix-rerun
+         loop. Same-host pids now asked if alive.
+         ensemble mean floored (up to (n-1)/n DN low, systematic push off canopy);
+         .smoothtmp.pt matched sem_best_{label}*.pt; sem_rawbest_ survives a same-tag
+         relaunch so that os.replace was NOT the absent-destination case the docstring
+         claimed; phase4_viz visualised untagged tiles.
+killed:  Two defects I shipped THIS session. (1) D14 moved the watchdog spawn above the
+         fallible bootstrap steps (right) and past the COLAB_SESSION assignment (wrong)
+         — child inherits env at spawn time, so every VM wrote one shared
+         selfstop_vm.log, undoing D12. (2) A new test asserted `a<b or b<a`: true
+         whenever they differ, i.e. always. A check that cannot fail, in the commit
+         closing checks that cannot fail. De-tautologised, it then failed on CORRECT
+         code — it anchored on "vm_heartbeat" in a COMMENT 230 lines above the spawn.
+         Both now mutation-checked: break the source, watch the test fail.
+         DATA LOSS, recovered: phase4_region_confusion --out-name defaults to None, so
+         the default name stayed year-only and a later 4-arm all-only run overwrote the
+         2-arm inside/outside table the canopy-area finding was read from. git had it.
+         Both runs now live separately; the script refuses at PARSE time, not after ten
+         minutes of block reads.
+decided: exit code is a contract (unattended queue: it is the only signal leaving the
+         status CSV) · supersede, never delete, another arm's measured rows · a false
+         PASS is worse than a false MISSING, so absent tagged artifacts hard-fail.
+files:   45f835d 1130dd7 · pipeline/{phase4_train_queue,gen_vm_bootstrap}.py ·
+         phase4seg/{core,common,tiling}.py · qc/{phase4_region_confusion,phase4_viz,
+         phase4_ensemble_arm}.py · qc/test_{queue_verify,val_split,vm_heartbeat}.py ·
+         phase4/qc/region_confusion_2009{,_seedpairs}.md
+next:    KAM'S CALL, both GPU: Stage 2 paired val-split arm (--force-retile) · S3.5
+         chm2005 A/B (shared norm stats + 3 seeds/arm, else it repeats the underpowered
+         chm2 test). Deferred non-GPU: T5/T7 double maximisation + log effective sample
+         size · T10-T12 fail-loud fallbacks · T13 mislabelled train_bce/val_bce.
+         main merge still BLOCKED ON KAM.
+
 
 ## 2026-08-29  DAMAGE CURVE COMPLETE · NODE C WINS · THE CHM CHANNEL IS INFLATED, NOT LOW (Fable 5, all-night run)
 goal:    Kam: 200 credits, run all night, reflect before each arm, parallel GPUs.

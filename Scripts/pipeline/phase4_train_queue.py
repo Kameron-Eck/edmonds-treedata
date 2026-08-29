@@ -591,6 +591,67 @@ def verify(job, rows):
     print(f"  VERIFY {job['id']}: {rec['state']}  {rec['detail']}")
 
 
+def _duplicate_tag_guard(todo, max_age_s=300):
+    """Refuse to start if another LIVE VM is already running one of these run tags.
+
+    WHY (2026-08-29). The smoothing arm was found running on TWO VMs at once, both
+    mid-tile under `--run-tag smooth5`. A shared run tag means a shared per-arm tile
+    directory, a shared sem_best_*.pt and a shared output raster — the same
+    concurrent race that corrupted the groves B-vs-C comparison and forced a public
+    retraction. Nothing had reached the lake that time; the next one might.
+
+    The existing interlock lives in the launch scripts and greps `ps` on the LOCAL
+    VM, so it is structurally blind to a second VM. This reads the beacons every VM
+    already publishes to the lake once a minute, so it sees across runtimes.
+
+    Fails OPEN on any error: a heartbeat that cannot be read must never block a
+    legitimate run. The cost of a false block is a lost GPU hour; the cost of a
+    false pass is what it always was, so this only tightens the common case.
+    """
+    import json as _json
+    import re as _re
+    import time as _time
+    want = {j["tag"] for j in todo}
+    if not want:
+        return
+    clash = []
+    scanned = 0
+    logs = BASE / "phase4" / "logs"          # NOT LOG_DIR: this module defines only
+    try:                                     # BASE and QC_DIR, and the first draft of
+        for hb in logs.glob("heartbeat_*.json"):   # this guard referenced a name that
+            try:                                   # does not exist. Because the scan is
+                scanned += 1                       # wrapped in a fail-OPEN except, that
+                                                   # bug made the guard a SILENT NO-OP -
+                                                   # it would print 'could not scan' and
+                                                   # protect nothing. Hence `scanned`.
+                if _time.time() - hb.stat().st_mtime > max_age_s:
+                    continue                      # stale beacon = dead VM
+                d = _json.loads(hb.read_text(encoding="utf-8"))
+                eng = d.get("engine_proc") or ""
+                m = _re.search(r"--run-tag (\S+)", eng)
+                if m and m.group(1) in want:
+                    clash.append((hb.stem.replace("heartbeat_", ""), m.group(1)))
+            except (OSError, ValueError):
+                continue
+    except Exception as e:                        # fail OPEN, loudly
+        print(f"  [dup-guard] could not scan heartbeats ({e}) — proceeding unguarded")
+        return
+    if clash:
+        lines = "; ".join(f"{vm} already running tag {tag}" for vm, tag in clash)
+        raise SystemExit(
+            "REFUSING TO START: another live runtime is already using a run tag from "
+            f"this queue ({lines}). Two runs sharing a tag share the tile dir, the "
+            "checkpoint and the output raster, which silently corrupts both. Stop the "
+            "other runtime, or launch under a different tag.")
+    if scanned == 0:
+        print("  [dup-guard] WARNING: scanned 0 heartbeat files — the guard is NOT "
+              f"protecting this run (looked in {logs}). Proceeding, but a duplicate "
+              "run would go undetected.")
+        return
+    print(f"  [dup-guard] scanned {scanned} beacon(s); no live runtime is using "
+          f"{sorted(want)} — safe to start")
+
+
 def main():
     argv = sys.argv[1:]
     for i, a in enumerate(argv):
@@ -635,6 +696,8 @@ def main():
     skip = {s.strip() for s in args.skip.split(",") if s.strip()}
     todo = [j for j in jobs if j["id"] not in skip
             and (args.only is None or j["id"] == args.only)]
+
+    _duplicate_tag_guard(todo)
 
     _hr("PHASE 4 — UNATTENDED TRAIN QUEUE")
     print(f"  BASE   : {BASE}")

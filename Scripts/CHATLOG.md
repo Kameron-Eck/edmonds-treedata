@@ -1887,6 +1887,25 @@ decided: verdicts come from CURVE metrics (AUROC / PR-AUC), never matched-precis
          accuracy at the price of retrain variance, which would explain why Node C is hard
          to replicate. ONE PAIR EACH. Needs the third seed plus a second Node B seed before
          it is worth more than a note.
+         ** CONTAMINATION CAUGHT LIVE: THE SMOOTHING ARM RAN TWICE. ** 14:21Z, found gpu36
+         AND gpu37 both executing `--run-tag smooth5`, from two different nohup logs
+         (135750Z and 140757Z), both in the TILE step. Same run_tag means the SAME per-arm
+         tile dir, the same sem_best_2009_smooth5.pt and the same prob raster — this is
+         exactly the concurrent-race documented in tile_dir_for()'s docstring, the one that
+         corrupted the groves B-vs-C comparison and forced a retraction.
+         ACTED under Kam's standing rule ("always rerun if there is any contamination"):
+         stopped BOTH (stopping is autonomous), then verified the blast radius. NOTHING
+         reached the lake — no 2009__smooth5 tile dir, no checkpoint, no raster. Both died
+         mid-tile before publishing, so there is no poisoned cache for the rerun to inherit
+         and no cleanup was required. Beacons confirmed dead at 14:21:56Z and not advancing.
+         CAUSE not fully established. Two launch paths targeted smooth5 within 10 minutes;
+         the earlier one had been TaskStop'd locally, and remote dispatch survives a local
+         kill (see COLAB_AUTONOMY_SETUP). Most likely a pending exec fired late onto a
+         different session after the CLI cleaned up a lost handle.
+         GUARD OWED (not yet landed — deliberately not editing a launch script seconds
+         before it is exec'd): before launching, scan the lake's heartbeats and REFUSE if
+         any live VM's engine_proc already carries the same --run-tag. The per-VM guard
+         ("a queue is still running") only sees its OWN VM and cannot catch this class.
 QUEUE ORDER AND WHY (2026-08-29 12:27Z): gpu35 = nodec_s1234 replicate -> then
          smooth5 (Kam's named arm, on the one guaranteed slot). gpu37 = 3-band noise floor
          -> then the GEOGRAPHIC HOLDOUT, not the third Node C seed. Reasoning: a third seed

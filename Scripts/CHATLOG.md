@@ -1577,10 +1577,11 @@ decided: seed-varied arms (1234, 777) to measure TRUE retrain sigma — the bank
          decimal places than information): .0047 AUROC, .0168 PR-AUC. I had been quoting
          .0016 / .0012 from the n=2 pair. seed777 is the low draw and it widened everything.
          RETRACTED tonight, all three because the gap is now inside the spread:
-           - "chm2 is measurably WORSE (-.0057 AUROC, ~3.5x seed noise)" — NO. -.0057 is
-             INSIDE a .0047 spread. Correct statement: chm2 is indistinguishable from the
-             inflated channel. The conclusion (fixing the raster buys nothing) stands; the
-             claim that it costs something does not.
+           - "chm2 is measurably WORSE (-.0057 AUROC, ~3.5x seed noise)" — NO. .0057 is
+             1.2x the .0047 spread, i.e. the same size as retrain noise, not 3.5x it. (It
+             is not literally "inside" the observed range — say it precisely.) Correct
+             statement: chm2 is INDISTINGUISHABLE from the inflated channel. The conclusion
+             (fixing the raster buys nothing) stands; the claim that it costs something does not.
            - "PR-AUC registers the damage weakly (.0057 / .0064 at the top doses)" — NO.
              Both are far inside a .0168 PR-AUC spread. Correct statement: NEITHER curve
              metric registers label corruption up to 12.34%. AUROC flat AND PR-AUC within
@@ -1600,9 +1601,28 @@ decided: seed-varied arms (1234, 777) to measure TRUE retrain sigma — the bank
              OUTSIDE (no labels added)     +.0303   [+.0221, +.0378]  +.0259
          Note what OUTSIDE means precisely: ground where BOTH arms trained on the SAME
          labels (the projected 2020 citywide mask; the overlay never touched it). Node C is
-         better there by +.0303 AUROC — ~6x the n=3 retrain spread, and SEVEN TIMES its own
-         gain inside the labelled region. Adding labels on a small area taught it something
-         that transferred to ground it was told nothing new about.
+         better there by +.0303 AUROC — SEVEN TIMES its own gain inside the labelled region.
+         Adding labels on a small area taught it something that transferred to ground it was
+         told nothing new about.
+         ** CORRECTION TO MY OWN FIRST WRITE-UP OF THIS, SAME SESSION. ** I first called
+         +.0303 "~6x the retrain spread". That used the WHOLE-FOOTPRINT spread (.0047) as
+         the denominator for a REGION-SPECIFIC gap — wrong, and flattering. The sparse-canopy
+         outside region is much noisier. Measured it properly by running the same split on
+         the three same-recipe seeds (phase4/qc/regional_retrain_floor_seeds_2009.md):
+             region    same-recipe seed gaps vs base      regional retrain spread
+             inside    +.0002 , -.0059                    .0059
+             OUTSIDE   -.0035 , -.0157                    .0157
+         So the honest ratios are:
+             inside   Node C +.0043 vs a .0059 floor  -> NOT distinguishable from noise.
+             OUTSIDE  Node C +.0303 vs a .0157 floor  -> ~1.9x. Suggestive, NOT decisive
+                      at n=1. Real but far weaker than the 6x I first wrote.
+         What still stands, and is the part worth keeping: the gain is CONCENTRATED OUTSIDE
+         the labelled region, and its sign is opposite to everything seed variation did
+         there (both same-recipe reruns went DOWN outside; Node C went up). Memorisation
+         would have put the gain inside. It did not. But "generalises" is now a 1.9x
+         result awaiting the replicate, not a settled one — and the replicate's
+         pre-registration already asks whether this SHAPE reproduces, which is the test
+         that matters more than the magnitude.
          Mechanism that fits: inside is canopy-dense and the baseline was already good
          (nodeb AUROC .8855 there); outside is canopy-sparse (PR-AUC only .2747) and is
          exactly the ornamental/suburban under-prediction blind spot this project has been
@@ -1615,8 +1635,32 @@ decided: seed-varied arms (1234, 777) to measure TRUE retrain sigma — the bank
          gpu33 nodeb_ep60 (done, ~80 min, self-stopped by the watchdog on schedule — 2nd
          proof the /proc-scan watchdog fires) · gpu34 seed777 (training) · gpu35 nodec_s1234
          (Node C replicate at seed 1234 — the week's only positive rests on ONE run) ·
-         gpu36 smooth5 (select-smooth K=5 vs Node B) — all four with pre-registered reads in
-         their queue files.
+         smooth5 (select-smooth K=5 vs Node B) — NOT YET RUNNING as of 12:10Z, see below.
+         All arms carry pre-registered reads in their queue files.
+         ** THE SMOOTH ARM'S TWO FAILED LAUNCHES, AND THE TWO DURABLE LESSONS. **
+         (1) `colab new -s gpu36` BLOCKED indefinitely — 13 min, no return, no VM created.
+         Cause: a runtime needs a free browser-connection slot and both were bound to the
+         live VMs. Real concurrency ceiling with current tooling is TWO managed runtimes,
+         not the 3-4 in CLAUDE.md. (2) Chained onto gpu34 instead; between 11:41 and 12:00Z
+         gpu34's entry VANISHED from ~/.config/colab-cli/sessions.json while the VM was
+         still alive and beaconing. `colab exec` returned "Session 'gpu34' not found", the
+         chain script EXITED 0 having launched nothing, and gpu34 idled out to the watchdog.
+         LESSON 1: a session handle can disappear while its VM lives — verify the handle
+         immediately before relying on it, never assume a chain will land.
+         LESSON 2 (the one that actually bit): the chain grepped ONLY for success strings
+         ("LAUNCHED|flag ok"), so a dead launch and a live one looked identical. Silence is
+         not success. Every launcher now greps failure signatures too and checks each stage
+         explicitly. Third attempt is a fresh A100 (`Precondition Failed` on first try —
+         A100s are scarce right now, the retry loop backs off 240 s).
+         ** SEED777 WAS NOT BROKEN, BUT IT WAS NOT ORDINARY EITHER. ** Checked before
+         trusting the widened spread: its phase B ran only 19 epochs with BEST AT EPOCH 4
+         (vs epoch 21 of 30 for both other seeds) and its peak val_iou_bt was genuinely
+         lower (.6785 vs .6852 / .6842) — validation agrees with the independent score, so
+         this is a real convergence outcome, not a scoring artefact. So the .0047 spread is
+         honest, but it is driven by ONE RUN CONVERGING EARLY TO A WORSE OPTIMUM rather than
+         by uniform jitter. Operationally that is worse than symmetric noise: roughly 1 run
+         in 3 landed badly, so a single-run A/B can lose to a bad draw rather than to a bad
+         recipe. Argues for repeating any arm that is going to be promoted.
 decided: verdicts come from CURVE metrics (AUROC / PR-AUC), never matched-precision recall —
          I read every verdict off recall for a week despite writing the rule myself. Recall is
          ~3x noisier (3 pp swing from seed alone vs .0016 AUROC).

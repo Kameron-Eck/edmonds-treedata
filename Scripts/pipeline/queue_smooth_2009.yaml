@@ -69,17 +69,20 @@
 # Node A branch: .0016 AUROC / .0012 PR-AUC from a seed change alone.
 # Working noise floor for this read: ~.002 AUROC, and treat it as soft.
 #
-#   AUROC > .9110 (best baseline + ~.002)  = smoothing plausibly helps; do NOT
-#                                            adopt on this alone — confirm at
-#                                            K=3 and on the Node C branch.
-#   AUROC inside .9060-.9110               = INSEPARABLE from noise. The honest
-#                                            output is "no measurable effect at
-#                                            n=1", not a winner.
-#   AUROC inside .9040-.9060               = also INSEPARABLE — within noise of
-#                                            the LOWER baseline. Stated so the
-#                                            read stays mechanical at 5 a.m.
-#   AUROC < .9040                          = smoothing hurts; the raw val peak
-#                                            carries real signal after all.
+#   REVISED 2026-08-29 12:07Z: the n=3 seed spread is .0047 AUROC, not the ~.002
+#   these bands assumed. Widened accordingly — and note this makes the cross-arm
+#   read almost useless on its own, which is exactly why the PAIRED read above is
+#   primary.
+#   AUROC > .9160 (best baseline + ~.007)  = smoothing plausibly helps; confirm at
+#                                            K=3 and on the Node C branch before
+#                                            adopting anything.
+#   AUROC .9020-.9160                      = INSEPARABLE from retrain noise. The
+#                                            honest output is "the cross-arm read
+#                                            cannot resolve this; see the paired
+#                                            read", not a winner or a loser.
+#   AUROC < .9020                          = smoothing hurts enough to clear the
+#                                            spread; the raw val peak carries real
+#                                            signal after all.
 # A single run CANNOT resolve an effect smaller than the noise floor, and this
 # arm is not expected to. Its job is to rule out a LARGE effect in either
 # direction cheaply, on a GPU that would otherwise sit idle.

@@ -811,10 +811,17 @@ def _save_ckpt_state(phase, epoch, state, optim_state, sched_state,
     calling straight through — the default path is unchanged except that the
     dict is now assembled here.
     """
-    # verified write (P4.1): torch.save to local NVMe, then size-verified copy to
-    # Drive. Size-only (no sha) because this runs many times per training and the
-    # observed failure class is truncation, which size catches; the once-per-run
-    # rasters get the full sha256 treatment instead.
+    # verified write (P4.1): torch.save to local NVMe, then a verified copy to
+    # Drive.
+    # WAS size-only, on the reasoning that this runs many times per training and
+    # truncation is what size catches. That reasoning did not survive 2026-08-29:
+    # the checkpoint that passed every gate was not truncated, it was the WRONG
+    # EPOCH — a well-formed, correctly-sized epoch-7 file sitting where the log
+    # said epoch 24 was. Size cannot see that and neither can sha256; what sees it
+    # is the identity block below plus a check against the SERVER, which is what
+    # `checksum=True` now unlocks (it computes the md5 verify_on_drive compares).
+    # Cost is one hash pass over a local-NVMe file per improving epoch — tenths of
+    # a second, against an artifact this run exists to produce.
     path = Path(path)
     local = _local_artifact_path(path)
     payload = {"phase": phase, "epoch": epoch, "model_state": state,
@@ -840,7 +847,7 @@ def _save_ckpt_state(phase, epoch, state, optim_state, sched_state,
         payload.update(extra)
     torch.save(payload, local)
     if local != path:
-        _copy_to_drive(local, path, checksum=False)
+        _copy_to_drive(local, path)
         try:
             local.unlink()
         except OSError:

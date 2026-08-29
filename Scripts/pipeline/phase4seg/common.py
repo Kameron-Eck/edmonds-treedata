@@ -475,12 +475,181 @@ def _unstage_imagery_local(local_path):
         pass
 
 
-def _sha256(path, chunk=1 << 20):
-    h = hashlib.sha256()
+def _digests(path, algos=("sha256",), chunk=1 << 20):
+    """{algo: hexdigest} for `path`, computed in ONE pass over the bytes.
+
+    One pass matters because the verified write now wants sha256 (local↔copy) AND
+    md5 (the only hash Google Drive exposes, so the only one a SERVER-SIDE check
+    can compare against). Two passes over a multi-GB raster is minutes of NVMe for
+    nothing.
+    """
+    hs = {a: hashlib.new(a) for a in algos}
     with open(path, "rb") as f:
         for b in iter(lambda: f.read(chunk), b""):
-            h.update(b)
-    return h.hexdigest()
+            for h in hs.values():
+                h.update(b)
+    return {a: h.hexdigest() for a, h in hs.items()}
+
+
+def _sha256(path, chunk=1 << 20):
+    return _digests(path, ("sha256",), chunk)["sha256"]
+
+
+# ── Server-side write verification (D1) ───────────────────────────────────────
+# THE DEFECT. `_copy_to_drive` wrote through the rclone FUSE mount and then read
+# the copy back THROUGH THE SAME MOUNT to verify it. With --vfs-cache-mode writes
+# that read is served from the VM's own local write cache, so "✓ verified write"
+# attested only that bytes reached a cache on the machine that wrote them — the
+# exact thing that was true on 2026-08-29 when the log reported deploying epoch
+# B24 and every checkpoint on Drive was B7. The bytes were in the cache; the VM
+# was unassigned before they drained; nothing had ever asked Drive.
+#
+# THE INDEPENDENT CHANNEL. gen_vm_bootstrap.py's write canary already proves the
+# pattern: ask the SERVICE ACCOUNT remote, over the Drive API, for the file's md5.
+# That path shares no cache, no mount and no process with the write. `treedata-sa`
+# is READ-ONLY in practice (the SA has zero storage quota, so it cannot own
+# uploads) which is exactly what a verifier should be.
+#
+# WHAT A MISMATCH MEANS — the trap that makes this safe to run in a hot loop.
+# rclone uploads ASYNCHRONOUSLY, so for a while after the write the server still
+# holds the PREVIOUS file and answers with its md5. A mismatch is therefore NOT
+# evidence of corruption; it is "not drained yet" until proven otherwise. So this
+# only ever polls for a MATCH and reports what it found. It never raises, never
+# triggers a re-copy, and never fails a run. Raising stays with the local
+# size/sha256 check, where a mismatch really does mean a broken copy.
+_SA_REMOTE = "treedata-sa"                 # gen_vm_bootstrap.py's VERIFIER remote
+_DRIVE_MOUNT_PREFIX = "/content/drive/MyDrive/treedata/"
+_sa_remote_probe = None                    # None = unprobed; True/False = cached
+
+
+def _sa_remote_ready():
+    """True iff `rclone` is on PATH and the SA verification remote is configured.
+
+    Probed at most once per process. Anywhere this is False — local Windows QC, a
+    VM booted without the SA, an old bootstrap — server-side verification is simply
+    UNAVAILABLE, and every caller says so out loud rather than claiming a proof it
+    does not have.
+    """
+    global _sa_remote_probe
+    if _sa_remote_probe is None:
+        _sa_remote_probe = False
+        try:
+            if os.name == "posix" and shutil.which("rclone"):
+                r = subprocess.run(["rclone", "listremotes"], capture_output=True,
+                                   text=True, timeout=60)
+                _sa_remote_probe = (r.returncode == 0 and
+                                    f"{_SA_REMOTE}:" in (r.stdout or "").split())
+        except Exception:                              # noqa: BLE001 — any failure = no
+            _sa_remote_probe = False
+    return _sa_remote_probe
+
+
+def _drive_rel(drive_path):
+    """`treedata`-relative posix path for a mounted path, or None if it is not
+    under the mount. `treedata-sa:`'s root_folder_id IS the treedata folder, so the
+    mapping is 1:1 (phase4/models/sem_best_2009_x.pt)."""
+    s = str(drive_path)
+    if not s.startswith(_DRIVE_MOUNT_PREFIX):
+        return None
+    return s[len(_DRIVE_MOUNT_PREFIX):].strip("/")
+
+
+def _remote_md5(drive_path, timeout=120):
+    """Server-side md5 of `drive_path` via the SA remote, or None if unavailable.
+
+    `rclone md5sum`, not `lsjson --hashes`: that flag does not exist on the VM's
+    rclone build (measured 2026-08-26, when the flagless canary false-failed a good
+    upload). Output is "<md5>  <path>"; a missing remote file exits non-zero.
+    """
+    rel = _drive_rel(drive_path)
+    if rel is None or not _sa_remote_ready():
+        return None
+    try:
+        r = subprocess.run(["rclone", "md5sum", f"{_SA_REMOTE}:{rel}"],
+                           capture_output=True, text=True, timeout=timeout)
+    except Exception:                                  # noqa: BLE001
+        return None
+    if r.returncode != 0:
+        return None
+    tok = (r.stdout or "").split()
+    return tok[0].lower() if tok and len(tok[0]) == 32 else None
+
+
+def verify_on_drive(drive_path, want_md5, wait_s=0.0, poll_s=10.0):
+    """Poll the Drive API for `want_md5` at `drive_path`. → (state, note).
+
+    state is one of:
+      "ok"          the bytes are ON DRIVE — proven independently of this VM.
+      "pending"     no match within `wait_s`. Almost always an undrained upload
+                    backlog, NOT corruption (see the module note above), so the
+                    caller reports it and carries on. It is still not a pass.
+      "unavailable" no rclone / no SA remote / path outside the mount. Nothing was
+                    checked and the caller must not imply otherwise.
+
+    wait_s=0.0 does exactly one probe and never sleeps — cheap enough for the
+    per-epoch checkpoint write, where the authoritative long wait belongs instead
+    to the queue's once-per-job VERIFY:train.
+    """
+    if not want_md5:
+        return "unavailable", "no local md5 to compare"
+    if _drive_rel(drive_path) is None:
+        return "unavailable", "path is not under the Drive mount"
+    if not _sa_remote_ready():
+        return "unavailable", f"no `{_SA_REMOTE}` rclone remote on this host"
+    t0 = time.time()
+    got = None
+    while True:
+        got = _remote_md5(drive_path)
+        if got == want_md5:
+            return "ok", f"drive md5 {got[:8]}"
+        if time.time() - t0 >= wait_s:
+            break
+        time.sleep(min(poll_s, max(0.0, wait_s - (time.time() - t0))))
+    waited = int(time.time() - t0)
+    return "pending", (f"drive md5 {(got or 'absent')[:8]} != local {want_md5[:8]}"
+                       f" after {waited}s")
+
+
+def _publish_replace(part, dest):
+    """os.replace `part` onto `dest` with the destination guaranteed ABSENT.
+
+    WHY (D4). This was a plain `os.replace(part, drive_path)` over a destination
+    that already existed, on the rclone FUSE mount, once per improving epoch. The
+    mount canary that blessed os.replace only ever proved the ABSENT-destination
+    case — core.py:1032 says so in as many words — so the hot loop was running the
+    unproven case thousands of times a night.
+
+    Rename-aside makes BOTH renames absent-destination, and unlike
+    unlink-then-replace it never destroys the previous artifact before the new one
+    is in place: if the publish fails, the old file is restored from the aside name
+    and the caller still has something valid on Drive.
+
+    The aside suffix goes AFTER the extension (`sem_best_2009_x.pt.prev.a1b2c3`).
+    Every artifact glob in this repo is extension-anchored, so `.prev.*` matches
+    none of them — the same reason `.part.*` is spelled that way.
+    """
+    aside = None
+    if dest.exists():
+        aside = dest.with_name(dest.name + f".prev.{secrets.token_hex(3)}")
+        try:
+            os.replace(dest, aside)                    # absent destination
+        except FileNotFoundError:                      # vanished under us — fine
+            aside = None
+    try:
+        os.replace(part, dest)                         # absent destination
+    except OSError:
+        if aside is not None:
+            try:
+                os.replace(aside, dest)                # put the old one back
+            except OSError:
+                print(f"  ! could not restore the previous {dest.name}; it is at "
+                      f"{aside.name}")
+        raise
+    if aside is not None:
+        try:
+            aside.unlink()
+        except OSError:
+            pass
 
 
 def _local_artifact_path(final_path):
@@ -498,29 +667,33 @@ def _local_artifact_path(final_path):
 
 
 def _sweep_part_orphans(dirpath, max_age_h=24):
-    """Remove *.part.* staging files a died process left behind (multi-GB quota
-    leaks otherwise). Age-gated generously: a live .part being written by a
-    concurrent runtime is minutes old, never a day."""
+    """Remove *.part.* / *.prev.* staging files a died process left behind
+    (multi-GB quota leaks otherwise). Age-gated generously: a live .part being
+    written by a concurrent runtime is minutes old, never a day, and a .prev.
+    aside exists for the microseconds between two renames unless a publish died
+    between them."""
     now = time.time()
     try:
-        for p in Path(dirpath).glob("*.part.*"):
-            try:
-                if now - p.stat().st_mtime > max_age_h * 3600:
-                    p.unlink()
-                    print(f"  swept stale staging orphan: {p.name}")
-            except OSError:
-                pass
+        for pat in ("*.part.*", "*.prev.*"):
+            for p in Path(dirpath).glob(pat):
+                try:
+                    if now - p.stat().st_mtime > max_age_h * 3600:
+                        p.unlink()
+                        print(f"  swept stale staging orphan: {p.name}")
+                except OSError:
+                    pass
     except OSError:
         pass
 
 
-def _copy_to_drive(local_path, drive_path, checksum=True, retries=3):
-    """VERIFIED, ATOMIC local-then-copy write.
+def _copy_to_drive(local_path, drive_path, checksum=True, retries=3,
+                   server_wait_s=0.0):
+    """ATOMIC local-then-copy write, verified as far as it can actually prove.
 
     The unverified direct-to-Drive write has produced three broken artifacts
     (2022 xsensor 0-byte, 2017 xsensor 96.5%-nodata, 2024 truncated stub) that
     each cost a GPU run before anyone noticed. This copy refuses to be silent:
-    size must match, and (checksum=True) the Drive copy must hash identical to
+    size must match, and (checksum=True) the staged copy must hash identical to
     the local one; on repeated mismatch, RAISE — a loud failure at write time is
     the entire point.
 
@@ -532,6 +705,31 @@ def _copy_to_drive(local_path, drive_path, checksum=True, retries=3):
     with_suffix: mask .tif/.gpkg pairs share a stem) and pid+token-unique so two
     runtimes targeting one path cannot collide; every artifact-reading glob in
     the repo is extension-anchored, so .part.* files match none of them.
+
+    TWO CHECKS, AND THEY PROVE DIFFERENT THINGS (D1, 2026-08-29):
+
+      size + sha256 of the staged copy — read back through the SAME mount that
+        wrote it, so under --vfs-cache-mode writes it is served from this VM's own
+        write cache. It catches a truncated or garbled COPY, and that is all it
+        has ever been able to catch. It is not evidence the bytes are on Drive.
+        This is the check that RAISES.
+
+      md5 against the Drive API via the service-account remote — no shared cache,
+        no shared mount, no shared process. This is the only one that can say the
+        artifact SURVIVES THIS VM. It never raises: an unmatched md5 shortly after
+        a write is an undrained upload backlog far more often than corruption (see
+        the `verify_on_drive` note), so it is reported, not acted on.
+
+    So the line this prints now says which of the two it earned:
+        ✓ verified write        — proven on Drive
+        ✓ staged write … PENDING/LOCAL CACHE ONLY — bytes copied, Drive not (yet)
+                                  confirmed. NOT the same claim, and not spelled
+                                  the same, because the old wording is precisely
+                                  what made an epoch-7 corpse look like a pass.
+
+    server_wait_s=0.0 probes Drive once without sleeping, which is what the
+    per-epoch checkpoint write wants; the authoritative long wait lives in the
+    queue's once-per-job VERIFY:train, where it can decide something.
     """
     local_path, drive_path = Path(local_path), Path(drive_path)
     drive_path.parent.mkdir(parents=True, exist_ok=True)
@@ -539,7 +737,13 @@ def _copy_to_drive(local_path, drive_path, checksum=True, retries=3):
         return drive_path
     _sweep_part_orphans(drive_path.parent)
     want_size = local_path.stat().st_size
-    want_sha = _sha256(local_path) if checksum else None
+    # md5 is computed whenever a server-side check is possible at all — it is the
+    # ONLY hash Drive exposes. Both digests come from a single pass over the file.
+    _want_md5_too = _drive_rel(drive_path) is not None and _sa_remote_ready()
+    _algos = (("sha256",) if checksum else ()) + (("md5",) if _want_md5_too else ())
+    _dig = _digests(local_path, _algos) if _algos else {}
+    want_sha = _dig.get("sha256")
+    want_md5 = _dig.get("md5")
     part = drive_path.with_name(
         drive_path.name + f".part.{os.getpid()}{secrets.token_hex(3)}")
     try:
@@ -584,9 +788,20 @@ def _copy_to_drive(local_path, drive_path, checksum=True, retries=3):
             elif checksum and _sha256(part) != want_sha:
                 problem = "sha256 mismatch"
             else:
-                os.replace(part, drive_path)
-                print(f"  ✓ verified write: {drive_path.name} "
-                      f"({want_size/1e6:.0f} MB{', sha256 ok' if checksum else ''})")
+                _publish_replace(part, drive_path)     # D4: destination absent
+                local_note = f"{want_size/1e6:.0f} MB" + (", sha256 ok" if checksum else "")
+                state, note = verify_on_drive(drive_path, want_md5, wait_s=server_wait_s)
+                if state == "ok":
+                    print(f"  ✓ verified write: {drive_path.name} "
+                          f"({local_note}, {note})")
+                elif state == "pending":
+                    print(f"  ✓ staged write: {drive_path.name} ({local_note}) — "
+                          f"Drive NOT CONFIRMED: {note}. The upload backlog is "
+                          f"drained before the VM stops; VERIFY:train/inference "
+                          f"is what proves it landed.")
+                else:
+                    print(f"  ✓ staged write: {drive_path.name} ({local_note}) — "
+                          f"LOCAL CACHE ONLY, no server-side check ({note})")
                 return drive_path
             print(f"  ! verified write FAILED ({problem}) for {drive_path.name} "
                   f"[attempt {attempt + 1}/{retries + 1}]")

@@ -27,6 +27,19 @@ HERE = Path(__file__).resolve().parent
 PKG = HERE / "phase4seg"
 MODULES = ["config", "common", "labels", "tiling", "core", "postproc", "cli"]
 
+# The ORCHESTRATORS — swept for undefined names too, since 2026-08-29.
+# WHY: the sweep used to cover only the engine package, so `phase4_train_queue.py`
+# shipped `time.time()` with no `import time` at module scope (the only `time` in
+# the file was an `import time as _time` INSIDE a function). py_compile is blind to
+# that, the file has no local smoke test, and it would have raised NameError on the
+# first step of the first job of the next unattended run. These files never reach a
+# CPU smoke run, so this static sweep is the only gate they get.
+# They do NOT star-import config and do not carry the lazy-torch handles, so they
+# are swept against their own bindings + builtins ONLY — every allowance added here
+# is a real miss this gate would stop seeing.
+ORCHESTRATORS = ["phase4_train_queue.py", "vm_heartbeat.py",
+                 "gen_vm_bootstrap.py"]
+
 
 def fail(msg):
     print(f"\n[FAILED] {msg}")
@@ -35,7 +48,8 @@ def fail(msg):
 
 # ── 1. syntax ──────────────────────────────────────────────────────────────
 print("[1/4] py_compile ...")
-for f in [HERE / "phase4_semantic_finetune.py"] + [PKG / f"{m}.py" for m in MODULES]:
+for f in ([HERE / "phase4_semantic_finetune.py"] + [PKG / f"{m}.py" for m in MODULES]
+          + [HERE / o for o in ORCHESTRATORS]):
     try:
         py_compile.compile(str(f), doraise=True)
     except py_compile.PyCompileError as e:
@@ -52,8 +66,17 @@ BUILTINS = set(dir(builtins)) | {"__file__", "__name__", "__doc__"}
 TORCH = {"torch", "nn", "Dataset", "DataLoader", "WeightedRandomSampler",
          "smp", "A", "ToTensorV2"}
 problems = []
-for m in MODULES:
-    tree = ast.parse((PKG / f"{m}.py").read_text(encoding="utf-8"))
+
+
+def _missing_names(path, allowed):
+    """Names LOADed in `path` that nothing binds. `allowed` = extra available names.
+
+    Deliberately flow-INSENSITIVE: every Store anywhere in the file counts as bound
+    file-wide, so this under-reports (a name bound only inside another function is
+    accepted) and never cries wolf. It still catches the class that ships — a module
+    that imports nothing by that name at all.
+    """
+    tree = ast.parse(Path(path).read_text(encoding="utf-8"))
     bound, used = set(), []
 
     class B(ast.NodeVisitor):
@@ -104,10 +127,18 @@ for m in MODULES:
                 used.append(n.id)
 
     U().visit(tree)
-    avail = bound | CONFIG_STAR | BUILTINS | TORCH
-    miss = sorted(set(u for u in used if u not in avail))
+    avail = bound | BUILTINS | allowed
+    return sorted(set(u for u in used if u not in avail))
+
+
+for m in MODULES:
+    miss = _missing_names(PKG / f"{m}.py", CONFIG_STAR | TORCH)
     if miss:
         problems.append(f"{m}.py references undefined name(s): {miss}")
+for f in ORCHESTRATORS:                     # builtins + own bindings only
+    miss = _missing_names(HERE / f, set())
+    if miss:
+        problems.append(f"{f} references undefined name(s): {miss}")
 if problems:
     fail("undefined names (usually a missing import):\n  " + "\n  ".join(problems))
 print("      ok")

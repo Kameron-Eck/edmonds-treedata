@@ -86,6 +86,7 @@ import socket
 import subprocess
 import sys
 import threading
+import time
 from pathlib import Path
 
 _COLAB_BASE = Path("/content/drive/MyDrive/treedata")
@@ -654,7 +655,6 @@ def _duplicate_tag_guard(todo, max_age_s=300):
     """
     import json as _json
     import re as _re
-    import time as _time
     want = {j["tag"] for j in todo}
     if not want:
         return
@@ -668,7 +668,7 @@ def _duplicate_tag_guard(todo, max_age_s=300):
                                                    # bug made the guard a SILENT NO-OP -
                                                    # it would print 'could not scan' and
                                                    # protect nothing. Hence `scanned`.
-                if _time.time() - hb.stat().st_mtime > max_age_s:
+                if time.time() - hb.stat().st_mtime > max_age_s:
                     continue                      # stale beacon = dead VM
                 d = _json.loads(hb.read_text(encoding="utf-8"))
                 eng = d.get("engine_proc") or ""

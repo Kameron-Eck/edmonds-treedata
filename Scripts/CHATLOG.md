@@ -1864,6 +1864,29 @@ decided: verdicts come from CURVE metrics (AUROC / PR-AUC), never matched-precis
          same suburban/ornamental blind spot found 2026-07-05 by a completely different
          route (honest recall instrument), now confirmed by where the model cannot agree
          with ITSELF. Two independent methods, one target.
+         ** THE 3-BAND NOISE FLOOR IS MEASURED — AND IT DOES NOT RESCUE NODE C. **
+         rgb3_nodeb_s1234 landed (phase4/qc/arm_pr_curves_2009_3band_noisefloor.md):
+             rgb3_nodeb         AUROC .9063   PR-AUC .8365
+             rgb3_nodeb_s1234   AUROC .9048   PR-AUC .8316   -> same-recipe gap .0015
+             nodec_v1           AUROC .9179   (gap vs Node B +.0116)
+             nodec_s1234        AUROC .9116   (gap vs Node B +.0053)
+         Node B's seed pair differs by only .0015. Read alone that would make Node C look
+         comfortably real. I am NOT reading it that way, because it is an n=2 estimate and
+         n=2 is exactly what failed tonight: the 4-band family said .0016 at n=2 and .0047
+         at n=3. And there is direct evidence against trusting it HERE — the two Node C runs
+         are ALSO a same-recipe pair on this same branch and they differ by .0063, FOUR
+         TIMES Node B's .0015. Two pair-estimates on one branch disagreeing 4x means a
+         single pair estimates nothing.
+         HONEST RANGE: 3-band retrain noise is .0015-.0063, ARM-DEPENDENT. Node C's smaller
+         gap (+.0053) is no bigger than Node C's own run-to-run spread. THE UNRESOLVED
+         VERDICT STANDS. The third seed (running on gpu39) is the measurement that settles
+         it, and no band gets rewritten after the fact to reach a nicer answer.
+         ** WEAK OBSERVATION, NOT A FINDING: the overlay may COST STABILITY. ** Node C's
+         pair spread .0063 vs Node B's .0015 on identical bands, data and split — the only
+         difference is the sparse added-label overlay. If it holds, sparse added labels buy
+         accuracy at the price of retrain variance, which would explain why Node C is hard
+         to replicate. ONE PAIR EACH. Needs the third seed plus a second Node B seed before
+         it is worth more than a note.
 QUEUE ORDER AND WHY (2026-08-29 12:27Z): gpu35 = nodec_s1234 replicate -> then
          smooth5 (Kam's named arm, on the one guaranteed slot). gpu37 = 3-band noise floor
          -> then the GEOGRAPHIC HOLDOUT, not the third Node C seed. Reasoning: a third seed

@@ -1791,6 +1791,28 @@ decided: verdicts come from CURVE metrics (AUROC / PR-AUC), never matched-precis
          n=3 gave real cancellation, but those are DIFFERENT ARM FAMILIES (3-band Node C vs
          4-band). Do NOT conclude "the benefit needs n>=3" from that pair. What is solid is
          the within-family n=3 result.
+         ** WHERE THE RETRAIN NOISE LIVES — and it explains the .0157-vs-.0059 puzzle. **
+         New instrument qc/phase4_arm_disagreement.py reads instability off rasters already
+         on disk: how far apart the three same-recipe arms are per pixel, and how often they
+         land on opposite sides of the threshold (phase4/qc/arm_disagreement_2009.md):
+             region    ref class     pixels    mean spread (DN)   class-flip
+             all       canopy       67.2M          17.35            7.59%
+             all       non-canopy  131.6M          12.52            2.85%
+             outside   canopy        4.4M          18.94            9.60%
+             outside   non-canopy   71.6M          11.58            1.59%
+         Identically-trained runs disagree about what IS a tree 2.7x more often than about
+         what is NOT (7.59% vs 2.85% class-flip; 17.35 DN = 6.8 percentage points of
+         probability). And the regional split resolves the puzzle: in the sparse OUTSIDE
+         region canopy is only 5.7% of pixels AND is where the runs are least stable (9.60%
+         flip), while non-canopy there is the most stable ground in the map (1.59%). So that
+         region's AUROC rides on a small population of highly unstable positives — which is
+         exactly why its retrain noise is .0157 against the dense region's .0059. The noise
+         is not diffuse; it is CONCENTRATED ON RARE, HARD CANOPY.
+         ACTIONABLE: labelling effort should go to isolated/ornamental trees in LOW-canopy
+         ground, not to dense forest where the model is comparatively stable. That is the
+         same suburban/ornamental blind spot found 2026-07-05 by a completely different
+         route (honest recall instrument), now confirmed by where the model cannot agree
+         with ITSELF. Two independent methods, one target.
 QUEUE ORDER AND WHY (2026-08-29 12:27Z): gpu35 = nodec_s1234 replicate -> then
          smooth5 (Kam's named arm, on the one guaranteed slot). gpu37 = 3-band noise floor
          -> then the GEOGRAPHIC HOLDOUT, not the third Node C seed. Reasoning: a third seed

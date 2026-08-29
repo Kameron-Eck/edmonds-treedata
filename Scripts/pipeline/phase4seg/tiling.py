@@ -1179,10 +1179,11 @@ def step_tile(label, sites, dry_run=False, max_tiles=None, stride_override=None,
         # rows): the pin above is unconditional, so curated negative-site tiles
         # skip _block_partition and never see its buffer. In ALL 18 of those
         # years that are in YEAR_CATALOG, the nearest negative-site TRAIN tile
-        # lies inside the 520 m buffer; in SIX of them it is closer than one
-        # TILE_SIZE — 2000 (241px), 2002 (182), 2005 (289), 2006s (172), 2021
-        # (399), 2022 (195) — i.e. it SHARES PIXELS with a validation tile.
-        # 2022n (84px) makes seven across all 19. Same leak as T1/T2, other door.
+        # lies inside the 520 m buffer; in SEVEN of them it is closer than one
+        # TILE_SIZE — 2000 (241px), 2002 (182), 2005 (289), 2006s (172), 2007
+        # (466), 2021 (399), 2022 (195) — i.e. it SHARES PIXELS with a validation
+        # tile. 2022n (84px, no catalog entry) makes eight across all 19.
+        # Same leak as T1/T2, different door.
         # Buffered here only under the flag: dropping curated hard negatives has
         # a real cost (they are what suppresses grass/developed false positives),
         # so it is a deliberate opt-in, not a silent default change.

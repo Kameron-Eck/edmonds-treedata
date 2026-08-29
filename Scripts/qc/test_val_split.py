@@ -398,9 +398,10 @@ def test_degraded_buffer_that_empties_train_is_a_hard_error():
 
 
 def test_t5_curated_negative_tiles_skip_the_buffer_by_default():
-    """T5, measured on the 18 live tile indexes: force_keep tiles are pinned to
+    """T5, measured on the 19 live tile indexes: force_keep tiles are pinned to
     train BEFORE the buffer and never see it, so a curated negative-site tile can
-    share pixels with a validation tile. Seven live years do exactly that. Here
+    share pixels with a validation tile. Eight live years do exactly that (seven
+    catalogued — 2000, 2002, 2005, 2006s, 2007, 2021, 2022 — plus 2022n). Here
     the mechanism is reproduced in miniature: with the flag off the overlapping
     negative tile survives into train; with it on, it is dropped."""
     def build():

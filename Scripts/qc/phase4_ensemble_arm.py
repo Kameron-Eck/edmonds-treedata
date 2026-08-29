@@ -44,6 +44,15 @@ def main():
     ap.add_argument("--out-dir", default=None,
                     help="local staging dir (default: alongside cwd); rule 3, never "
                          "write a multi-GB raster straight to the mount")
+    ap.add_argument("--reduce", default="mean", choices=["mean", "max", "median"],
+                    help="how to combine the arms. MEAN is the classic ensemble. MAX "
+                         "exists because mean was measured to HURT in the sparse-canopy "
+                         "region (2026-08-29, -.0033 AUROC vs the best member): where "
+                         "positives are rare, averaging blurs a confident minority "
+                         "detection - one run finds an isolated tree, two miss it, the mean "
+                         "lands near 1/3 and that true positive's rank collapses. MAX keeps "
+                         "the finder. Expect it to cost precision on non-canopy, since it "
+                         "amplifies false positives too.")
     ap.add_argument("--block-rows", type=int, default=4096)
     args = ap.parse_args([a for a in sys.argv[1:]
                           if not (a == "-f" or a.endswith(".json"))])
@@ -75,7 +84,7 @@ def main():
     out_dir.mkdir(parents=True, exist_ok=True)
     local = out_dir / f"edmonds_canopy_prob_{args.year}_{args.out_tag}.tif"
 
-    print(f"[ens] averaging {len(tags)} arms: {tags}")
+    print(f"[ens] reduce={args.reduce} over {len(tags)} arms: {tags}")
     print(f"[ens] grid {W}x{H} -> {local.name}")
     srcs = [rasterio.open(p) for p in paths]
     valid_px = 0
@@ -92,13 +101,23 @@ def main():
                 bad = np.zeros(arrs[0].shape, bool)
                 for a in arrs:
                     bad |= (a == 255)
-                acc = np.zeros(arrs[0].shape, np.uint16)
-                for a in arrs:
-                    acc += a
-                mean = (acc // len(arrs)).astype(np.uint8)
-                mean[bad] = 255
+                stack = np.stack(arrs)
+                if args.reduce == "mean":
+                    acc = np.zeros(arrs[0].shape, np.uint16)
+                    for a in arrs:
+                        acc += a
+                    comb = (acc // len(arrs)).astype(np.uint8)
+                else:
+                    # 255 is nodata, so it must not win a max/median; those pixels are
+                    # overwritten by `bad` below, but let them poison the statistic and
+                    # a ragged edge would silently become confident canopy
+                    st = stack.astype(np.int16)
+                    st[st == 255] = -1
+                    comb = (st.max(axis=0) if args.reduce == "max"
+                            else np.median(st, axis=0)).clip(0, 254).astype(np.uint8)
+                comb[bad] = 255
                 valid_px += int((~bad).sum())
-                dst.write(mean, 1, window=win)
+                dst.write(comb, 1, window=win)
                 if bi % 4 == 0 or bi == n - 1:
                     print(f"    block {bi+1}/{n}", flush=True)
     finally:

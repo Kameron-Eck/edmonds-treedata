@@ -848,10 +848,20 @@ def _verify_ckpt_identity(ck, year, tag, mb, step_start):
     # held epoch B24 and DRIVE HELD B7: the mount answers with the good file, the
     # identity fields are the good file's, and the artifact that survives the VM is
     # the wrong one. Identity stamping cannot see that — only asking Drive can.
-    state, note = _drive_matches_mount(ck)
-    parts.append(note)
-    if state == "mismatch":
-        return "UNVERIFIED", ", ".join(parts)
+    #
+    # ONLY when this VM wrote the file (step_start set). On the D7 resume-recheck
+    # path the checkpoint came from a DEAD runtime, so this VM holds no dirty cache
+    # entry for it — a mount read IS a Drive read and the comparison is vacuously
+    # equal. It would buy nothing and cost a second full 150-300 MB read through
+    # FUSE, in a function with no watchdog over it: the uninterruptible-disk-sleep
+    # shape that hung the queue on 2018s_fx.
+    if step_start:
+        state, note = _drive_matches_mount(ck)
+        parts.append(note)
+        if state == "mismatch":
+            return "UNVERIFIED", ", ".join(parts)
+    else:
+        parts.append("drive check skipped (re-verify: another runtime wrote this)")
     return "OK", ", ".join(parts)
 
 
@@ -1160,8 +1170,21 @@ def _tag_owners(want, max_age_s=300):
         except (OSError, ValueError):
             continue
         scanned += 1
-        if d.get("host") == me["host"] and str(d.get("run_tags_pid") or "") == me_pid:
-            continue                              # that beacon is publishing US
+        # IS THIS BEACON PUBLISHING US? Two ways to tell, and BOTH are needed.
+        # run_tags_pid only exists in post-D11 beacons, and the beacon is NOT
+        # restarted when a queue is relaunched on a fix/ branch (P11.5) — the VM
+        # pulls and reruns the queue while the old beacon keeps running. On such a
+        # VM our own heartbeat carries no run_tags, falls through to the cmdline
+        # fallback below, and matches OUR OWN engine's --run-tag: every job after
+        # the first would skip itself as TAG_IN_USE, since a whole queue shares one
+        # tag. The same happens on a new beacon whenever the declaration could not
+        # be written. queue_proc has been published since long before D11 and on
+        # our own host that pid is us.
+        # No protection is lost: this guard is documented as cross-VM only —
+        # same-VM duplicates are the launch-script interlock's job.
+        if d.get("host") == me["host"] and me_pid in {
+                str(d.get("run_tags_pid") or ""), str(d.get("queue_proc") or "")}:
+            continue
         vm = d.get("session") or hb.stem.replace("heartbeat_", "")
         declared = d.get("run_tags")
         if isinstance(declared, list) and declared:

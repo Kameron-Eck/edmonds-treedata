@@ -478,6 +478,24 @@ def test_no_sa_remote_is_unavailable_not_ok(tmp_path, monkeypatch):
     assert q._drive_matches_mount(Path("/tmp/x.pt"), wait_s=0)[0] == "unavailable"
 
 
+def test_the_drive_check_is_skipped_on_a_resume_recheck(tmp_path, monkeypatch):
+    """step_start=None means another runtime wrote this file, so this VM holds no
+    dirty cache entry for it: a mount read IS a Drive read and the comparison is
+    vacuously equal. Skipping it avoids a second full 150-300 MB FUSE read inside
+    verify_step, which has no watchdog over it."""
+    torch = pytest.importorskip("torch")
+    ck = tmp_path / "sem_best_2009_x.pt"
+    torch.save({"phase": "B", "epoch": 24, "run_tag": "x", "run_id": "r1"}, ck)
+    called = []
+    monkeypatch.setattr(q, "_drive_matches_mount",
+                        lambda *a, **k: called.append(1) or ("ok", "n"))
+    state, detail = q._verify_ckpt_identity(ck, "2009", "x", 150.0, None)
+    assert state == "OK" and not called, "the drive check ran on a re-verify"
+    assert "drive check skipped" in detail
+    q._verify_ckpt_identity(ck, "2009", "x", 150.0, ck.stat().st_mtime - 60)
+    assert called, "the drive check must run when THIS VM wrote the file"
+
+
 def test_a_drive_mismatch_is_unverified_not_a_hard_stop(tmp_path, monkeypatch):
     """rclone uploads asynchronously, so a mismatch can mean 'not drained yet'.
     It must be loud and it must not count as a pass — but it must not throw away a
@@ -548,6 +566,33 @@ def test_our_own_beacon_is_not_a_clash(tmp_path, monkeypatch):
             run_tags=["smooth5"], run_tags_pid=os.getpid())
     clashes, scanned, _ = q._tag_owners({"smooth5"})
     assert scanned == 1 and clashes == []
+
+
+def test_an_old_build_beacon_on_our_own_vm_is_not_a_clash(tmp_path, monkeypatch):
+    """The mixed-version case, and it is the NORMAL one after a P11.5 crash fix:
+    the VM pulls a fix/ branch and relaunches the queue WITHOUT re-running the
+    bootstrap, so the beacon keeps running pre-D11 code. It publishes no run_tags,
+    falls through to the cmdline fallback, and that cmdline is OUR OWN engine's.
+    Since a whole queue shares one tag, every job after the first would have
+    skipped itself as TAG_IN_USE."""
+    monkeypatch.setattr(q, "BASE", tmp_path)
+    _beacon(tmp_path, "me", session="me", host=q._ident()["host"],
+            queue_proc=os.getpid(),                       # old build: no run_tags
+            engine_proc="python -u phase4_semantic_finetune.py --run-tag citywide_rgb")
+    clashes, scanned, _ = q._tag_owners({"citywide_rgb"})
+    assert scanned == 1 and clashes == [], \
+        "the guard matched this queue's own engine and would skip its own jobs"
+
+
+def test_the_same_tag_on_a_DIFFERENT_vm_is_still_a_clash(tmp_path, monkeypatch):
+    """The self-exclusion must not become a blanket exemption: a peer VM running
+    an old-build beacon with our tag is exactly what this guard is for."""
+    monkeypatch.setattr(q, "BASE", tmp_path)
+    _beacon(tmp_path, "gpu2", session="gpu2", host="other-vm",
+            queue_proc=os.getpid(),                       # same pid, DIFFERENT host
+            engine_proc="python -u phase4_semantic_finetune.py --run-tag citywide_rgb")
+    clashes, _, _ = q._tag_owners({"citywide_rgb"})
+    assert clashes == [("gpu2", "citywide_rgb", "engine cmdline")]
 
 
 def test_a_stale_beacon_is_a_dead_vm(tmp_path, monkeypatch):

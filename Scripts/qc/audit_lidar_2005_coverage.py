@@ -57,9 +57,19 @@ def log(m):
     print(m, flush=True)
 
 
-def headers(d):
-    """Per-tile bbox + point count, header-only. Cheap enough to run on everything."""
-    out = []
+MIN_TILE_PTS = 1000              # matches build_lidar_background.tiles() / build_chm2_2016
+
+
+def headers(d, min_pts=MIN_TILE_PTS):
+    """Per-tile bbox + point count, header-only. Cheap enough to run on everything.
+
+    Tiles below `min_pts` are EXCLUDED, matching both existing builders. This is not
+    cosmetic: the 2005 set contains near-empty tiles (one holds 3 points in a
+    15 x 89 m box = 0.002 pts/m2), and including them drags the density median away
+    from the figure IMAGERY_FACTS reports, which was measured on n=46 NON-EMPTY tiles.
+    A density statistic is only comparable if the population matches.
+    """
+    out, skipped = [], 0
     for f in sorted(glob.glob(str(d / "*.laz"))):
         try:
             h = laspy.open(f).header
@@ -67,9 +77,14 @@ def headers(d):
             log(f"    ! unreadable {Path(f).name}: {type(e).__name__}: {e}")
             continue                               # not silently skipped
         n = h.point_count
+        if n < min_pts:
+            skipped += 1
+            continue
         area = max((h.x_max - h.x_min) * (h.y_max - h.y_min), 1.0)
         out.append(dict(path=f, n=n, x0=h.x_min, x1=h.x_max, y0=h.y_min, y1=h.y_max,
                         area=area, dens=n / area))
+    if skipped:
+        log(f"    ({skipped} tile(s) below {min_pts} pts excluded)")
     return out
 
 

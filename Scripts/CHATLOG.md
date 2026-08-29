@@ -2034,6 +2034,33 @@ decided: verdicts come from CURVE metrics (AUROC / PR-AUC), never matched-precis
          ** EVERY ARM UNDER-COUNTS ** (-1.3% to -36.4%). Consistent with the 2026-07-05
          under-prediction finding AND with C-CAP 2016 being applied to 2009 imagery, which
          are not separable here.
+         ** THE TIME SERIES IS NOT RETRAIN-LIMITED — AND I NEARLY REPORTED THAT IT WAS. **
+         Having measured ~5.2% relative retrain noise on AREA, I started to convert it to the
+         canopy-fraction scale (5.2% x 0.4387 = 2.28 pp) and conclude the 2000-2024 trend was
+         only ~2.8x its own noise. WRONG, by about 4x. The series already contains a DIRECT
+         measurement: the 2021s noise arm (noise_r1..r5, five same-recipe repeats):
+             p_raw spread 1.64 pp   ->   p_adj spread 0.62 pp
+         The product's error adjustment (p_adj = p_raw * precision/recall, each run using its
+         OWN precision/recall) cancels most of the calibration drift that drives raw-area
+         noise. That adjustment is LOAD-BEARING: 2.6x noise reduction. My conversion ignored
+         it. Check the pipeline's own instrumentation before extrapolating a number from a
+         different measurement layer.
+             SIGNAL (citywide_rgb, 2000-2024 range)  6.33 pp
+             NOISE  (same-recipe, n=5, on p_adj)     0.62 pp   -> 10.2x
+         ** THE REAL LIMITER IS BETWEEN-ACQUISITION / BETWEEN-ARM DISAGREEMENT, NOT SEEDS. **
+         Median same-year different-arm spread 1.74 pp — ~3x the retrain noise. And several
+         year-to-year steps exceed 3x noise while being physically implausible for a
+         built-out city: 2021->2022 -2.82, 2022->2023 +2.12, 2023->2024 +4.21 pp. Canopy does
+         not do that. Those are acquisition artefacts (sensor / season / GSD), not model
+         instability — which means effort spent on training stability buys much less for the
+         TIME SERIES than effort spent on cross-acquisition normalisation.
+         ** RED FLAG: 2019n. ** nir_m06 = .5966 vs p2nir = .4143 for the SAME YEAR — an
+         18.23 pp spread. That is not measurement scatter, it is two different answers, and
+         any series point drawn from 2019n is currently unusable until it is resolved.
+         NOTE: built nothing here. qc/phase4_sector_series.py already existed with better
+         honesty rails than I would have written (thresholds only from live qc_indep rows,
+         sector-polygon clipping, true ground areas, water excluded), and the noise arm had
+         already been run. Checked before building.
 QUEUE ORDER AND WHY (2026-08-29 12:27Z): gpu35 = nodec_s1234 replicate -> then
          smooth5 (Kam's named arm, on the one guaranteed slot). gpu37 = 3-band noise floor
          -> then the GEOGRAPHIC HOLDOUT, not the third Node C seed. Reasoning: a third seed

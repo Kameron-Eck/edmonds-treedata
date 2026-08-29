@@ -52,6 +52,10 @@ desktop.ini
 !/phase4/qc/*.txt
 !/phase4/qc/*.csv
 !/phase4/qc/*.json
+# *.md added 2026-08-29: the arm PR/ROC comparison tables are findings TEXT, which
+# is exactly what this block exists to keep. Their .png companions stay ignored —
+# the .md carries every number, the figure is redundant weight.
+!/phase4/qc/*.md
 # sector_campaign harvest subdir (2026-08-26): same findings-not-rasters rule
 !/phase4/qc/sector_campaign/
 /phase4/qc/sector_campaign/*

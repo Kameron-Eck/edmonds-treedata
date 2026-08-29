@@ -1503,11 +1503,33 @@ decided: seed-varied arms (1234, 777) to measure TRUE retrain sigma — the bank
          AUROC). Correct the paragraph above accordingly: the cap-truncation concern was
          real to raise and is now measured to be inert for this arm. --epochs-phase-b and
          the stop-reason logging both stay; they are how it got settled.
-         ** CHM2: REFUTED. ** The corrected height channel scores ~ the inflated one. The
-         4-band model's height channel is not paying for measurement accuracy — its value is
-         COARSE STRUCTURE ("something tall-ish is here"), which the neighbourhood-maximum
-         smear preserves. Fixing the raster does not buy accuracy. (Curve metrics pending —
-         see next.)
+         ** CHM2: REFUTED, AND SLIGHTLY WORSE. ** Curve metrics now in: chm2_v1 AUROC .9153
+         vs Node A .9210 — DOWN .0057, about 3.5x the .0016 seed noise — PR-AUC .8654 vs
+         .8632, unchanged. So the measurement-correct height channel does not merely fail to
+         help, it costs a little ranking. Best available reading: the inflated channel's
+         neighbourhood-maximum smear acts like a DILATION of "tall", flagging the ground
+         immediately around crowns, and that helps at crown edges; the sharp corrected
+         channel does not. Either way the channel is not paying for measurement accuracy —
+         its value is COARSE STRUCTURE. Fixing the raster does not buy accuracy.
+         ** THE DAMAGE CURVE, RE-READ ON CURVE METRICS — the recall version OVERSTATED it. **
+         All four 4-band arms re-scored threshold-free on the common 198.8 Mpx footprint
+         (phase4/qc/arm_pr_curves_2009_4band.md). Doses are the MEASURED fractions, not the
+         nominal tag names:
+             dose      AUROC    PR-AUC   matched-precision recall
+             clean     .9210    .8632    .6989
+             2.70%     .9215    .8653    .6951
+             6.56%     .9210    .8575    .6673
+             12.34%    .9218    .8568    .6436
+         AUROC spread across the WHOLE range is .0008 — below the .0016 seed noise. Ranking
+         is untouched by 12% of crowns being wrong. PR-AUC does register damage but weakly:
+         the lowest dose is free, the top two cost .0057 and .0064 (~5x the .0012 PR-AUC seed
+         noise). Yet matched-precision recall falls 5.5 pp over the same range.
+         RECONCILE — all three are true and the apparent contradiction is the lesson: a SMALL
+         real shift in the PR curve lands on a STEEP part of it, so it buys a large-looking
+         recall change at the one high-precision operating point we deploy at. The earlier
+         "~0.45 pp recall per 1% of label error" is still the right number FOR THAT OPERATING
+         POINT, but it is not a measure of knowledge lost; most of what it counts is the
+         curve sliding under a fixed precision target. State it that way from now on.
          ** CHECKPOINT SELECTION IS NEARLY A COIN FLIP — free, no GPU. ** New instrument
          qc/phase4_select_smooth_probe.py replays the --select-smooth rule against saved loss
          histories: it answers WHICH epoch each K would deploy, from files already on disk.

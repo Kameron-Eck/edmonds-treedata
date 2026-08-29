@@ -1791,6 +1791,33 @@ decided: verdicts come from CURVE metrics (AUROC / PR-AUC), never matched-precis
          n=3 gave real cancellation, but those are DIFFERENT ARM FAMILIES (3-band Node C vs
          4-band). Do NOT conclude "the benefit needs n>=3" from that pair. What is solid is
          the within-family n=3 result.
+         ** MY MECHANISM PREDICTION WAS REFUTED, AND IT CORRECTS THE ENSEMBLE CLAIM
+         ABOVE. ** Having found the noise concentrated on rare hard canopy, I pre-registered
+         the implication — ensembling should help MOST where the runs disagree most — and
+         tested it paired (phase4/qc/ensemble_gain_by_region_2009.md, seedENS3 vs its best
+         member fullext_sectors_v1):
+             region            best member   seedENS3    dAUROC   95% CI
+             all                  .9210        .9206      -.0005  [-.0008, -.0001]
+             inside  (dense)      .9005        .9007      +.0002  [-.0002, +.0005]
+             OUTSIDE (sparse)     .8623        .8590      -.0033  [-.0054, -.0016]
+         Backwards. The ensemble HURTS where disagreement is highest (CI excludes zero) and
+         is merely neutral where it is lower. Best available explanation, offered as a
+         hypothesis not a finding: in a RARE-POSITIVE regime averaging BLURS confident
+         minority detections — one run confidently finds an isolated ornamental tree, two
+         miss it, the mean lands near 1/3, and that true positive's rank collapses against
+         confidently-negative ground. Averaging suppresses exactly the signal we most need
+         in the region we most care about.
+         CORRECTION TO THE ENTRY ABOVE: I wrote that the 3-run ensemble "TIES the best member
+         on AUROC". Under the paired bootstrap the deficit is -.0005 with the CI EXCLUDING
+         zero — small but real, not a tie. Restated honestly against the alternative you
+         actually face:
+             vs BEST member  : slightly but reliably WORSE (-.0005)
+             vs MEAN member  : BETTER (+.0017) — and the mean is what one random run gets
+             vs WORST member : much better
+         Since the best member cannot be identified in advance without a held-out
+         comparison, ensembling still beats the realistic alternative. But "as good as the
+         best run" was wrong, and the sparse-region loss is a real caveat FOR THIS PROJECT,
+         because that region is the blind spot the whole workstream is trying to fix.
          ** WHERE THE RETRAIN NOISE LIVES — and it explains the .0157-vs-.0059 puzzle. **
          New instrument qc/phase4_arm_disagreement.py reads instability off rasters already
          on disk: how far apart the three same-recipe arms are per pixel, and how often they

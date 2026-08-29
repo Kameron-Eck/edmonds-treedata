@@ -440,6 +440,67 @@ def test_an_unreadable_status_file_disables_resume(tmp_path, monkeypatch):
     assert q._MERGE_DEFECTS, "the unreadable file must be reported, not dropped"
 
 
+# ── D1: VERIFY:train asks DRIVE, not the cache that wrote the file ───────────
+
+def test_a_cached_checkpoint_drive_never_received_is_not_a_pass(tmp_path, monkeypatch):
+    """THE FAILURE OF 2026-08-29, reproduced. Every other check in verify_step
+    reads through the rclone mount, which serves this VM's own write cache — so
+    size, zip magic, epoch, run_tag and run_id ALL PASS on a checkpoint that never
+    reached Drive. That night the cache held B24, Drive held B7, the log said B24,
+    and VERIFY:train passed. Only asking Drive can see it."""
+    ck = tmp_path / "sem_best_2009_x.pt"
+    ck.write_bytes(b"epoch24-bytes")
+    monkeypatch.setattr(q, "_DRIVE_MOUNT_PREFIX", str(tmp_path) + os.sep)
+    monkeypatch.setattr(q.subprocess, "run", _fake_rclone(remote_md5="b" * 32))
+    monkeypatch.setattr(q.time, "sleep", lambda s: None)
+    state, note = q._drive_matches_mount(ck, wait_s=0)
+    assert state == "mismatch" and "DRIVE HOLDS DIFFERENT BYTES" in note
+
+
+def test_a_drained_checkpoint_passes(tmp_path, monkeypatch):
+    ck = tmp_path / "sem_best_2009_x.pt"
+    ck.write_bytes(b"epoch24-bytes")
+    monkeypatch.setattr(q, "_DRIVE_MOUNT_PREFIX", str(tmp_path) + os.sep)
+    monkeypatch.setattr(q.subprocess, "run", _fake_rclone(remote_md5=q._md5_of(ck)))
+    state, note = q._drive_matches_mount(ck, wait_s=0)
+    assert state == "ok" and "drive md5 ok" in note
+
+
+def test_no_sa_remote_is_unavailable_not_ok(tmp_path, monkeypatch):
+    """Nothing was checked; the note must say so rather than implying a pass."""
+    ck = tmp_path / "sem_best_2009_x.pt"
+    ck.write_bytes(b"x")
+    monkeypatch.setattr(q, "_DRIVE_MOUNT_PREFIX", str(tmp_path) + os.sep)
+    monkeypatch.setattr(q.subprocess, "run", _fake_rclone(remotes=""))
+    state, note = q._drive_matches_mount(ck, wait_s=0)
+    assert state == "unavailable" and "n/a" in note
+    # a path outside the mount can never be checked
+    assert q._drive_matches_mount(Path("/tmp/x.pt"), wait_s=0)[0] == "unavailable"
+
+
+def test_a_drive_mismatch_is_unverified_not_a_hard_stop(tmp_path, monkeypatch):
+    """rclone uploads asynchronously, so a mismatch can mean 'not drained yet'.
+    It must be loud and it must not count as a pass — but it must not throw away a
+    finished training run either."""
+    assert "UNVERIFIED" in q._VERIFY_UNVERIFIED
+    assert "UNVERIFIED" not in q._VERIFY_HARD_FAIL
+
+
+def _fake_rclone(remote_md5=None, remotes="treedata-sa:\n"):
+    """Stand-in for the two rclone calls _drive_matches_mount makes."""
+    class R:
+        def __init__(self, rc, out):
+            self.returncode, self.stdout, self.stderr = rc, out, ""
+
+    def run(cmd, **kw):
+        if cmd[:2] == ["rclone", "listremotes"]:
+            return R(0, remotes)
+        if cmd[:2] == ["rclone", "md5sum"]:
+            return R(0, f"{remote_md5}  x\n") if remote_md5 else R(1, "")
+        raise AssertionError(f"unexpected command {cmd}")
+    return run
+
+
 # ── D11: the cross-VM run-tag guard ──────────────────────────────────────────
 
 def _beacon(tmp_path, name, **fields):

@@ -726,6 +726,80 @@ _VERIFY_HARD_FAIL = {"MISSING", "EMPTY", "MOSTLY_NODATA", "NO_CONFIDENCE",
 _VERIFY_UNVERIFIED = {"UNCHECKED", "UNVERIFIED"}
 
 
+_SA_REMOTE = "treedata-sa"                       # gen_vm_bootstrap.py's VERIFIER remote
+_DRIVE_MOUNT_PREFIX = "/content/drive/MyDrive/treedata/"
+
+
+def _md5_of(path, chunk=1 << 20):
+    import hashlib
+    h = hashlib.md5()
+    with open(path, "rb") as f:
+        for b in iter(lambda: f.read(chunk), b""):
+            h.update(b)
+    return h.hexdigest()
+
+
+def _drive_matches_mount(path, wait_s=600, poll_s=15):
+    """Does DRIVE hold the same bytes this VM reads at `path`? → (state, note).
+
+    THE DEFECT THIS ANSWERS. Everything else in this file reads artifacts through
+    the rclone mount, and `--vfs-cache-mode writes` serves reads of a freshly
+    written file out of the VM's OWN CACHE. So every check — size, zip magic,
+    epoch, run_tag, run_id — can pass against a file that never reached Drive. On
+    2026-08-29 the cache held epoch B24, Drive held B7, the log said B24, and
+    VERIFY:train passed. The only way to see that is to ask Drive, over the API,
+    through credentials that share nothing with the write: `rclone md5sum` on the
+    service-account remote (the same channel as gen_vm_bootstrap.py's write canary).
+
+    States: "ok" (Drive has these bytes), "mismatch" (it does not, after wait_s),
+    "unavailable" (no rclone / no SA remote / not under the mount — nothing was
+    checked, and the caller must not pretend otherwise).
+
+    A mismatch is reported, never fatal. rclone uploads asynchronously, so shortly
+    after a write the server legitimately still holds the previous file; wait_s is
+    generous for exactly that reason. Waiting once per job, on a checkpoint whose
+    last write was usually many minutes before training ended, costs nothing in the
+    normal case and is the whole ballgame in the abnormal one.
+
+    NOT applied to the inference raster: that is multi-GB, and hashing it back
+    through FUSE is the read that hung the queue in uninterruptible disk sleep
+    (2018s_fx, 2026-08-27). The checkpoint is ~150-300 MB and worth the seconds.
+    """
+    p = str(path)
+    if not p.startswith(_DRIVE_MOUNT_PREFIX):
+        return "unavailable", "drive check n/a (not under the mount)"
+    rel = p[len(_DRIVE_MOUNT_PREFIX):].strip("/")
+    try:
+        r = subprocess.run(["rclone", "listremotes"], capture_output=True,
+                           text=True, timeout=60)
+        if r.returncode != 0 or f"{_SA_REMOTE}:" not in (r.stdout or "").split():
+            return "unavailable", f"drive check n/a (no {_SA_REMOTE}: remote)"
+    except Exception as e:                                      # noqa: BLE001
+        return "unavailable", f"drive check n/a ({type(e).__name__})"
+    try:
+        want = _md5_of(path)                     # as THIS VM sees it, cache and all
+    except OSError as e:
+        return "unavailable", f"drive check n/a (local md5 failed: {type(e).__name__})"
+    t0 = time.time()
+    got = None
+    while True:
+        try:
+            r = subprocess.run(["rclone", "md5sum", f"{_SA_REMOTE}:{rel}"],
+                               capture_output=True, text=True, timeout=120)
+            tok = (r.stdout or "").split()
+            got = tok[0].lower() if r.returncode == 0 and tok and len(tok[0]) == 32 else None
+        except Exception:                                       # noqa: BLE001
+            got = None
+        if got == want:
+            return "ok", f"drive md5 ok ({int(time.time() - t0)}s)"
+        if time.time() - t0 >= wait_s:
+            return "mismatch", (
+                f"DRIVE HOLDS DIFFERENT BYTES: mount md5 {want[:8]}, drive "
+                f"{(got or 'absent')[:8]} after {int(time.time() - t0)}s — this VM is "
+                f"reading a file the lake does not have")
+        time.sleep(poll_s)
+
+
 def _verify_ckpt_identity(ck, year, tag, mb, step_start):
     """Open the checkpoint and assert it belongs to THIS run.
 
@@ -767,6 +841,17 @@ def _verify_ckpt_identity(ck, year, tag, mb, step_start):
         parts.append("no run_id (pre-identity build)")
     else:
         parts.append(f"run_id ok")
+    # THE CHECK THAT ACTUALLY CATCHES THE 2026-08-29 FAILURE (D1, added here after
+    # noticing everything above it would have PASSED that night). Every test so far
+    # read the checkpoint through the rclone mount, and with --vfs-cache-mode writes
+    # the mount serves this VM's own write cache. On the night in question the cache
+    # held epoch B24 and DRIVE HELD B7: the mount answers with the good file, the
+    # identity fields are the good file's, and the artifact that survives the VM is
+    # the wrong one. Identity stamping cannot see that — only asking Drive can.
+    state, note = _drive_matches_mount(ck)
+    parts.append(note)
+    if state == "mismatch":
+        return "UNVERIFIED", ", ".join(parts)
     return "OK", ", ".join(parts)
 
 

@@ -2061,6 +2061,23 @@ decided: verdicts come from CURVE metrics (AUROC / PR-AUC), never matched-precis
          honesty rails than I would have written (thresholds only from live qc_indep rows,
          sector-polygon clipping, true ground areas, water excluded), and the noise arm had
          already been run. Checked before building.
+         ** ep60 REPLICATION: UNRESOLVED (pre-registered band, second time tonight). **
+         phase4/qc/ep60_replication_area_2009.md — area bias, the metric the claim is on:
+             rgb3_nodeb        -20.9%      rgb3_ep60        -13.8%
+             rgb3_nodeb_s1234  -22.6%      rgb3_ep60_s1234  -18.2%
+             Node B pair spread 1.7 pp     ep60 pair spread 4.4 pp
+         Bands fixed BEFORE the run: >= -17% replicated | <= -20% not real | between
+         unresolved. It came in at -18.2% -> UNRESOLVED. Reading that as "close enough"
+         is precisely the move the bands exist to stop, so it is not read that way.
+         WHAT IS TRUE WITHOUT BEING THE VERDICT: both ep60 runs beat both Node B runs and
+         the two pairs do not overlap — the WORST ep60 still beats the BEST Node B by
+         2.7 pp; mean-to-mean is 5.8 pp of canopy-area bias from nothing but a higher
+         epoch cap. Needs a third seed to settle.
+         ** PATTERN WORTH NAMING (3rd instance): interventions that push predicted canopy
+         UP also make runs LESS repeatable. ** Node C pair spread 7.4 pp vs Node B's 1.7;
+         ep60 pair spread 4.4 pp vs the same 1.7. Both raise area and both roughly double
+         to quadruple the run-to-run spread. Not yet explained; recorded so it is not
+         rediscovered a fourth time.
 QUEUE ORDER AND WHY (2026-08-29 12:27Z): gpu35 = nodec_s1234 replicate -> then
          smooth5 (Kam's named arm, on the one guaranteed slot). gpu37 = 3-band noise floor
          -> then the GEOGRAPHIC HOLDOUT, not the third Node C seed. Reasoning: a third seed

@@ -1616,13 +1616,34 @@ decided: seed-varied arms (1234, 777) to measure TRUE retrain sigma — the bank
              inside   Node C +.0043 vs a .0059 floor  -> NOT distinguishable from noise.
              OUTSIDE  Node C +.0303 vs a .0157 floor  -> ~1.9x. Suggestive, NOT decisive
                       at n=1. Real but far weaker than the 6x I first wrote.
-         What still stands, and is the part worth keeping: the gain is CONCENTRATED OUTSIDE
-         the labelled region, and its sign is opposite to everything seed variation did
-         there (both same-recipe reruns went DOWN outside; Node C went up). Memorisation
-         would have put the gain inside. It did not. But "generalises" is now a 1.9x
-         result awaiting the replicate, not a settled one — and the replicate's
-         pre-registration already asks whether this SHAPE reproduces, which is the test
-         that matters more than the magnitude.
+         ** RETRACTED IN FULL, SAME SESSION, ~1 HOUR LATER. THE TEST WAS NOT VALID. **
+         The model trains on 512 px TILES, so a tile containing ANY added label gets better
+         supervision across its whole area. A 75 px buffer removes about a crown's width and
+         leaves most of a contaminated tile still counted as "outside". Reran the split at a
+         FULL-TILE 512 px buffer, which is the honest exclusion — a canopy pixel >=512 px
+         (Chebyshev) from every added label is PROVABLY inside a label-free training tile,
+         because every 512x512 window containing it is label-free. The pixel census kills it:
+             region (512 px buffer)     reference-canopy px
+             all                         67,163,941
+             inside                      67,162,428
+             OUTSIDE                          1,513      <- 0.002% of canopy
+         There is essentially NO canopy on which to test transfer. The +.0303 "outside" gain
+         was measured on ground sitting inside the same training tiles as added labels, and
+         tile-level supervision spillover is NOT excluded by it. The generalisation claim
+         does not stand on this evidence and is withdrawn.
+         WHY THE TEST WAS DOOMED, which is itself the useful part: the overlay covers only
+         1.445% of the city BY AREA, but the stable-crown mining scatters it so that
+         essentially all canopy is within ~100 m of some added label. Coverage fraction told
+         us nothing about spatial separation. THIS OVERLAY CAN NEVER ANSWER THE TRANSFER
+         QUESTION at any buffer.
+         WHAT STILL STANDS: Node C's overall gap, +.0116 AUROC at ~2.5x retrain noise. That
+         is a PERFORMANCE claim and it is unaffected. What is gone is the MECHANISM claim —
+         we do not know whether it generalises or is repeating tile-local supervision.
+         THE EXPERIMENT THAT WOULD ANSWER IT (designed, not yet run): geographic holdout.
+         Build the overlay from stable crowns in the WESTERN sectors only, train, and score
+         on the EASTERN sectors, which then contain no added labels at any distance. That is
+         a clean transfer test and it costs one overlay build plus one A100 arm. Queue it
+         behind the seeds.
          Mechanism that fits: inside is canopy-dense and the baseline was already good
          (nodeb AUROC .8855 there); outside is canopy-sparse (PR-AUC only .2747) and is
          exactly the ornamental/suburban under-prediction blind spot this project has been

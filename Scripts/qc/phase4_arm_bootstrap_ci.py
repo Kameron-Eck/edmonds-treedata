@@ -27,6 +27,16 @@ PAIRED BY CONSTRUCTION: every replicate scores all arms on the SAME resampled
 blocks, so the interval is on the DIFFERENCE and the shared ground cancels. That
 is the quantity the verdict rests on.
 
+--split-mask: DID IT GENERALISE, OR DID IT MEMORISE?  (added 2026-08-29)
+An arm trained on ADDED labels must be asked where its gain actually lives. Pass
+the overlay that says where labels were added and the gap is reported separately
+INSIDE that region and OUTSIDE it. Gain only inside is close to tautological —
+we told the model the answer there, so citywide would need labels citywide. Gain
+that survives OUTSIDE is the model having learned something transferable, which
+is the result that scales. --split-buffer dilates the inside region so that
+spillover into neighbouring pixels is charged to "inside" rather than being
+mistaken for generalisation.
+
 WHAT IT DOES NOT TELL YOU. This is uncertainty from where we happened to LOOK,
 under one reference and one trained pair of models. It does not include retrain
 noise, reference error, or the circularity caveats. A gap that clears this
@@ -35,9 +45,11 @@ interval is not thereby "real" — it is "not explained by spatial sampling".
 Run:
   py -3.12 qc/phase4_arm_bootstrap_ci.py --year 2009 \
       --tags rgb3_nodeb,nodec_v1 \
-      --ref D:/edmonds-pipeline/Imagery/ccap_2016_hires_lc_snohfull.tif
+      --ref D:/edmonds-pipeline/Imagery/ccap_2016_hires_lc_snohfull.tif \
+      --split-mask "G:/My Drive/treedata/phase4/labels_corrected/add_nodec_2009.tif"
 """
 import argparse
+import contextlib
 import importlib.util
 import sys
 from pathlib import Path
@@ -66,6 +78,29 @@ QI = AP.QI
 MASKS = AP.MASKS
 
 
+def _dilate(mask, r):
+    """Grow a boolean mask by r pixels. scipy when present; otherwise a separable
+    max over a (2r+1) box via successive shifts, which is the same result."""
+    if r <= 0:
+        return mask
+    try:
+        # maximum_filter on a rectangular footprint runs as two separable 1-D
+        # passes; binary_dilation with a (2r+1)^2 element does not, and is orders
+        # slower at the buffer sizes used here
+        from scipy.ndimage import maximum_filter
+        return maximum_filter(mask.view(np.uint8), size=(2 * r + 1, 2 * r + 1),
+                              mode="nearest").astype(bool)
+    except ImportError:
+        out = mask.copy()
+        for ax in (0, 1):                       # separable: rows then cols
+            acc = out.copy()
+            for s in range(1, r + 1):
+                acc |= np.roll(out, s, axis=ax)
+                acc |= np.roll(out, -s, axis=ax)
+            out = acc
+        return out
+
+
 def main():
     ap = argparse.ArgumentParser(
         description="Spatial block-bootstrap CI on the gap between arms.")
@@ -80,9 +115,17 @@ def main():
     ap.add_argument("--block-cols", type=int, default=2048,
                     help="block width in px; row-strips alone are too elongated "
                          "to act as independent spatial units")
+    ap.add_argument("--split-mask", default=None,
+                    help="raster whose NONZERO pixels mark where labels were added; "
+                         "gaps are then reported inside vs outside that region")
+    ap.add_argument("--split-buffer", type=int, default=0,
+                    help="dilate the split mask by this many px, so spillover next to "
+                         "an added label counts as INSIDE and is not mistaken for "
+                         "generalisation")
     ap.add_argument("--reps", type=int, default=400)
     ap.add_argument("--seed", type=int, default=0)
     ap.add_argument("--out-dir", default=".")
+    ap.add_argument("--out-name", default=None)
     args = ap.parse_args([a for a in sys.argv[1:]
                           if not (a == "-f" or a.endswith(".json"))])
 
@@ -112,19 +155,33 @@ def main():
         raise SystemExit("arms are NOT on a common grid; refusing to compare")
     W, H = metas[0][0], metas[0][1]
 
+    regions = ["all"] if not args.split_mask else ["all", "inside", "outside"]
+    nR = len(regions)
     print(f"[boot] year={args.year} arms={tags}")
     print(f"[boot] canopy definition: {primary_name}")
     print(f"[boot] block = {args.block_rows}x{args.block_cols} px")
+    if args.split_mask:
+        print(f"[boot] split mask: {Path(args.split_mask).name}  buffer={args.split_buffer}px")
 
-    # per-block DN histograms, shape (n_arms, 2, 256): [arm][0]=reference-canopy,
-    # [arm][1]=non-canopy. Histograms add, which is what makes the bootstrap exact.
+    # per-block DN histograms, shape (n_arms, n_regions, 2, 256):
+    # [arm][region][0]=reference-canopy, [arm][region][1]=non-canopy.
+    # Histograms add, which is what makes the bootstrap exact.
     blocks = []
     srcs = [rasterio.open(p) for p in paths]
     ref_src = rasterio.open(args.ref)
     ref_nodata = ref_src.nodata
+    split_src = rasterio.open(args.split_mask) if args.split_mask else None
     try:
-        with WarpedVRT(ref_src, crs=srcs[0].crs, transform=srcs[0].transform,
-                       width=W, height=H, resampling=Resampling.nearest) as ref_vrt:
+        # both VRTs go through ExitStack so each is properly entered AND closed —
+        # a WarpedVRT used bare outside `with` is left un-exited on the error path
+        with contextlib.ExitStack() as stack:
+            ref_vrt = stack.enter_context(
+                WarpedVRT(ref_src, crs=srcs[0].crs, transform=srcs[0].transform,
+                          width=W, height=H, resampling=Resampling.nearest))
+            split_vrt = (stack.enter_context(
+                WarpedVRT(split_src, crs=srcs[0].crs, transform=srcs[0].transform,
+                          width=W, height=H, resampling=Resampling.nearest))
+                if split_src else None)
             n_strips = (H + args.block_rows - 1) // args.block_rows
             for si, row0 in enumerate(range(0, H, args.block_rows)):
                 rows = min(args.block_rows, H - row0)
@@ -152,17 +209,31 @@ def main():
                 prim = valid & np.isin(gid, prim_ids)
                 other = valid & ~prim
 
+                if split_vrt is not None:
+                    ins = split_vrt.read(1, window=win) != 0
+                    # dilation is truncated at strip edges; with 512-row strips and a
+                    # buffer of tens of px that touches a small fraction of the border
+                    ins = _dilate(ins, args.split_buffer)
+                else:
+                    ins = None
+
                 for col0 in range(0, W, args.block_cols):
                     c1 = min(col0 + args.block_cols, W)
                     bp = prim[:, col0:c1]
                     bo = other[:, col0:c1]
                     if not (bp.any() or bo.any()):
                         continue
-                    hist = np.zeros((len(tags), 2, 256), dtype=np.int64)
+                    if ins is not None:
+                        bi = ins[:, col0:c1]
+                        sel = [(bp, bo), (bp & bi, bo & bi), (bp & ~bi, bo & ~bi)]
+                    else:
+                        sel = [(bp, bo)]
+                    hist = np.zeros((len(tags), nR, 2, 256), dtype=np.int64)
                     for ai, pr in enumerate(prs):
                         sub = pr[:, col0:c1]
-                        hist[ai, 0] = np.bincount(sub[bp], minlength=256)
-                        hist[ai, 1] = np.bincount(sub[bo], minlength=256)
+                        for ri, (mp, mo) in enumerate(sel):
+                            hist[ai, ri, 0] = np.bincount(sub[mp], minlength=256)
+                            hist[ai, ri, 1] = np.bincount(sub[mo], minlength=256)
                     blocks.append(hist)
 
                 if si % 20 == 0 or si == n_strips - 1:
@@ -172,86 +243,96 @@ def main():
         for s in srcs:
             s.close()
         ref_src.close()
+        if split_src:
+            split_src.close()
 
     if len(blocks) < 20:
         raise SystemExit(f"only {len(blocks)} non-empty blocks — too few to bootstrap; "
                          "shrink --block-rows/--block-cols")
-    B = np.stack(blocks)                    # (n_blocks, n_arms, 2, 256)
+    B = np.stack(blocks)                    # (n_blocks, n_arms, n_regions, 2, 256)
     nb = B.shape[0]
     tot = B.sum(axis=0)
-    print(f"[boot] {nb} non-empty blocks; "
-          f"{int(tot[0][0].sum()):,} reference-canopy px, "
-          f"{int(tot[0][1].sum()):,} non-canopy")
+    print(f"[boot] {nb} non-empty blocks")
+    for ri, rn in enumerate(regions):
+        print(f"    {rn:8s} {int(tot[0][ri][0].sum()):>14,} canopy px  "
+              f"{int(tot[0][ri][1].sum()):>14,} non-canopy px")
 
     def score(h):                            # h: (2, 256)
+        if h[0].sum() == 0 or h[1].sum() == 0:
+            return float("nan"), float("nan")
         c = AP._curve_from_hists(h[0][:255], h[1][:255])
         return c["auroc"], c["ap"]
 
-    point = {t: score(tot[i]) for i, t in enumerate(tags)}
+    point = {t: [score(tot[i][ri]) for ri in range(nR)] for i, t in enumerate(tags)}
 
     rng = np.random.default_rng(args.seed)
-    reps = {t: {"auroc": [], "ap": []} for t in tags}
+    reps = {t: [{"auroc": [], "ap": []} for _ in range(nR)] for t in tags}
     for r in range(args.reps):
         idx = rng.integers(0, nb, nb)        # SAME blocks for every arm -> paired
         s = B[idx].sum(axis=0)
         for i, t in enumerate(tags):
-            a, p = score(s[i])
-            reps[t]["auroc"].append(a)
-            reps[t]["ap"].append(p)
+            for ri in range(nR):
+                a, p = score(s[i][ri])
+                reps[t][ri]["auroc"].append(a)
+                reps[t][ri]["ap"].append(p)
         if (r + 1) % 50 == 0:
             print(f"    replicate {r+1}/{args.reps}", flush=True)
 
     base = tags[0]
-    lines = [f"# Block-bootstrap CI on arm gaps — {args.year}", "",
-             f"Resampling unit: {args.block_rows}x{args.block_cols} px blocks · "
-             f"**{nb} non-empty blocks** · {args.reps} replicates · "
-             f"paired (same blocks per replicate)", "",
-             "Effective sample size is the BLOCK count, not the pixel count — neighbouring",
-             "pixels are the same tree. This interval covers uncertainty from WHERE WE",
-             "LOOKED only: not retrain noise, not reference error.", "",
-             "## Point estimates", "",
-             "| arm | AUROC | PR-AUC |", "|---|---|---|"]
-    for t in tags:
-        lines.append(f"| `{t}` | {point[t][0]:.4f} | {point[t][1]:.4f} |")
-    lines += ["", f"## Gaps vs `{base}` (95% percentile CI of the paired difference)", "",
+    L = [f"# Block-bootstrap CI on arm gaps — {args.year}", "",
+         f"Resampling unit: {args.block_rows}x{args.block_cols} px blocks · "
+         f"**{nb} non-empty blocks** · {args.reps} replicates · "
+         f"paired (same blocks per replicate)", "",
+         "Effective sample size is the BLOCK count, not the pixel count — neighbouring",
+         "pixels are the same tree. This interval covers uncertainty from WHERE WE",
+         "LOOKED only: not retrain noise, not reference error.", ""]
+    if args.split_mask:
+        L += [f"Split mask: `{Path(args.split_mask).name}`, buffer {args.split_buffer} px. "
+              f"**inside** = where labels were added (plus buffer); **outside** = the rest.",
+              "A gain confined to *inside* is close to tautological — the model was told the",
+              "answer there. A gain that survives *outside* is transferable, and is the only",
+              "version of the result that scales beyond the labelled area.", ""]
+
+    for ri, rn in enumerate(regions):
+        L += [f"## Region: {rn}", "", "| arm | AUROC | PR-AUC |", "|---|---|---|"]
+        for t in tags:
+            a, p = point[t][ri]
+            L.append(f"| `{t}` | {a:.4f} | {p:.4f} |")
+        L += ["", f"Gaps vs `{base}` (95% percentile CI of the paired difference)", "",
               "| arm | dAUROC | 95% CI | sign stable | dPR-AUC | 95% CI | sign stable |",
               "|---|---|---|---|---|---|---|"]
-    verdicts = []
-    for t in tags[1:]:
-        row = [f"| `{t}` "]
-        for k, j in (("auroc", 0), ("ap", 1)):
-            d = np.array(reps[t][k]) - np.array(reps[base][k])
-            pt = point[t][j] - point[base][j]
-            lo, hi = np.percentile(d, [2.5, 97.5])
-            stable = float((d > 0).mean()) if pt > 0 else float((d < 0).mean())
-            row.append(f"| {pt:+.4f} | [{lo:+.4f}, {hi:+.4f}] | {stable*100:.1f}% ")
-            if k == "auroc":
-                verdicts.append((t, pt, lo, hi, stable))
-        lines.append("".join(row) + "|")
-    lines += ["", "`sign stable` = share of replicates where the gap kept the sign of the",
-              "point estimate. Below ~95% the ordering is not established by this evidence.",
-              "",
-              "## READ THIS BEFORE QUOTING A CI THAT EXCLUDES ZERO", "",
-              "A tight interval here proves the two RASTERS differ on this ground. It does",
-              "NOT prove the two RECIPES differ, because retrain noise is not in it: train",
-              "the same recipe twice and you get two different rasters, and this tool would",
-              "call that gap significant too. Compare the gap against BOTH numbers — this",
-              "interval AND the measured retrain spread for the branch — and quote the",
-              "larger. A gap that clears spatial sampling but sits at the retrain scale is",
-              "trajectory noise wearing a confidence interval.", ""]
-    for t, pt, lo, hi, stable in verdicts:
-        if lo > 0 or hi < 0:
-            lines.append(f"- `{t}`: AUROC gap {pt:+.4f}, CI excludes zero — "
-                         f"NOT explained by spatial sampling.")
-        else:
-            lines.append(f"- `{t}`: AUROC gap {pt:+.4f}, CI **includes zero** "
-                         f"({stable*100:.1f}% sign-stable) — spatial sampling alone can "
-                         f"produce this ordering. Do not report it as a win on this evidence.")
+        for t in tags[1:]:
+            row = [f"| `{t}` "]
+            for k, j in (("auroc", 0), ("ap", 1)):
+                d = np.array(reps[t][ri][k]) - np.array(reps[base][ri][k])
+                d = d[~np.isnan(d)]
+                pt = point[t][ri][j] - point[base][ri][j]
+                if d.size == 0 or np.isnan(pt):
+                    row.append("| n/a | n/a | n/a ")
+                    continue
+                lo, hi = np.percentile(d, [2.5, 97.5])
+                stable = float((d > 0).mean()) if pt > 0 else float((d < 0).mean())
+                row.append(f"| {pt:+.4f} | [{lo:+.4f}, {hi:+.4f}] | {stable*100:.1f}% ")
+            L.append("".join(row) + "|")
+        L.append("")
 
-    out = Path(args.out_dir) / f"arm_bootstrap_ci_{args.year}.md"
+    L += ["`sign stable` = share of replicates where the gap kept the sign of the",
+          "point estimate. Below ~95% the ordering is not established by this evidence.",
+          "",
+          "## READ THIS BEFORE QUOTING A CI THAT EXCLUDES ZERO", "",
+          "A tight interval here proves the two RASTERS differ on this ground. It does",
+          "NOT prove the two RECIPES differ, because retrain noise is not in it: train",
+          "the same recipe twice and you get two different rasters, and this tool would",
+          "call that gap significant too. Compare the gap against BOTH numbers — this",
+          "interval AND the measured retrain spread for the branch — and quote the",
+          "larger. A gap that clears spatial sampling but sits at the retrain scale is",
+          "trajectory noise wearing a confidence interval.", ""]
+
+    name = args.out_name or f"arm_bootstrap_ci_{args.year}.md"
+    out = Path(args.out_dir) / name
     out.parent.mkdir(parents=True, exist_ok=True)
-    out.write_text("\n".join(lines) + "\n", encoding="utf-8")
-    print("\n".join(lines))
+    out.write_text("\n".join(L) + "\n", encoding="utf-8")
+    print("\n".join(L))
     print(f"\n[boot] wrote {out}")
 
 

@@ -48,6 +48,8 @@ import argparse
 import json
 import os
 import re
+import secrets
+import socket
 import subprocess
 import sys
 import time
@@ -58,6 +60,25 @@ VFS_CACHE = "/root/.cache/rclone"             # rclone's write cache (see _vfs_b
 BREADCRUMB = "/content"                       # LOCAL disk: survives a lost mount
 MAXCHARS = 200                                # cap on every free-text field (2 KB budget)
 QUEUE_RE = re.compile(r"--queue\s+(\S+)")
+
+# D12 (2026-08-29): SESSION NAMES WERE SELF-ASSERTED AND UNENFORCED.
+# The beacon writes heartbeat_{session}.json, with `session` taken verbatim from
+# --session. Nothing checked that two VMs were not handed the same name, and the
+# writes are plain overwrites, so a duplicate name means two runtimes take turns
+# stamping ONE file. Every reader — runtime_health, the dashboard, the dup-tag
+# guard — then sees a single blended "session" that is alternately one VM and the
+# other: fresh when either is alive, and mount_ok/queue_proc/gpu belonging to
+# whichever wrote last. Neither VM can be found, and neither looks dead.
+#
+# A name cannot be made unique from inside the VM (the Colab CLI hands it down),
+# so instead the beacon proves WHO it is and refuses to overwrite someone else:
+# INSTANCE_ID is unique per beacon process, it goes into every heartbeat, and a
+# beacon that finds a FRESH heartbeat carrying a different instance moves to
+# heartbeat_{session}__conflict-{id}.json rather than clobbering it. That name is
+# deliberately visible: runtime_health flags a heartbeat with no CLI session entry
+# as ORPHAN_HEARTBEAT, which is exactly the alarm a name collision deserves.
+INSTANCE_ID = f"{socket.gethostname()}-{os.getpid()}-{secrets.token_hex(3)}"
+CLAIM_STALE_SEC = 300                         # older than this = the other beacon is dead
 
 
 def _run(cmd, timeout=15):
@@ -295,17 +316,80 @@ def sample(base, scratch, session, prev, vfs_cache=VFS_CACHE):
         "prev_vfs_dirty_gb": prev.get("vfs_dirty_gb"),
         "prev_ts_utc": prev.get("ts_utc"),
         "beacon_pid": os.getpid(),
+        # D12/D13: WHO and WHERE. instance_id is what lets a second beacon detect
+        # that this session name is already taken instead of overwriting it, and
+        # what lets a reader tell two runtimes apart when they were.
+        "instance_id": INSTANCE_ID,
+        "host": socket.gethostname(),
     }
 
 
 def write_atomic(path, obj):
     """tmp + os.replace in the SAME dir: a reader never sees a half-written file, and
-    the reader-side staleness rule never trips on a torn read."""
-    tmp = path + ".tmp"
+    the reader-side staleness rule never trips on a torn read.
+
+    D4 (2026-08-29): the replace landed on an EXISTING destination every cycle
+    after the first, on the rclone FUSE mount — the case the mount canary never
+    proved (core.py:1032 concedes it). The old file is renamed aside first so both
+    renames have an absent destination, and it is restored if the publish fails,
+    so a beacon can never leave NO heartbeat behind.
+
+    Both staging suffixes go AFTER the extension. Every reader of these files
+    filters on a `.json` suffix, so `.json.tmp.<pid>` and `.json.prev.<token>`
+    match nothing — a `.tmp.json` would be read as a heartbeat of its own.
+    """
+    tmp = f"{path}.tmp.{os.getpid()}"
     os.makedirs(os.path.dirname(path), exist_ok=True)
     with open(tmp, "w", encoding="utf-8") as f:
         json.dump(obj, f, ensure_ascii=True, separators=(",", ":"))
-    os.replace(tmp, path)
+    aside = None
+    if os.path.exists(path):
+        aside = f"{path}.prev.{secrets.token_hex(3)}"
+        try:
+            os.replace(path, aside)
+        except FileNotFoundError:
+            aside = None
+    try:
+        os.replace(tmp, path)
+    except OSError:
+        if aside is not None:
+            try:
+                os.replace(aside, path)
+            except OSError:
+                pass
+        raise
+    if aside is not None:
+        try:
+            os.remove(aside)
+        except OSError:
+            pass
+
+
+def name_is_ours(path, instance, stale_sec=CLAIM_STALE_SEC):
+    """May this beacon write `path`? → (True, None) or (False, why).
+
+    False only when the file holds a heartbeat from a DIFFERENT, RECENTLY ALIVE
+    beacon — i.e. two runtimes were handed the same --session. Absent, unreadable,
+    ours, stale, or written by a pre-D12 build all answer True: this must never be
+    the reason oversight stops, and refusing on a file we cannot interpret would
+    silence a beacon over a bad byte.
+    """
+    try:
+        with open(path, encoding="utf-8") as f:
+            d = json.load(f)
+    except (OSError, ValueError):
+        return True, None
+    other = d.get("instance_id")
+    if not other or other == instance:
+        return True, None
+    try:
+        age = time.time() - os.path.getmtime(path)
+    except OSError:
+        return True, None
+    if age > stale_sec:
+        return True, None
+    return False, (f"session name already held by a live beacon "
+                   f"({str(other)[:60]}, {int(age)}s old)")
 
 
 def main():
@@ -326,13 +410,32 @@ def main():
     name = f"heartbeat_{a.session}.json"
     out = os.path.join(a.base, "phase4", "logs", name)
     prev, n = {}, 0
-    print(f"vm_heartbeat session={a.session} -> {out} every {a.interval}s (pid {os.getpid()})",
-          flush=True)
+    conflict = None                 # set once, then permanent: never flap names
+    print(f"vm_heartbeat session={a.session} -> {out} every {a.interval}s "
+          f"(pid {os.getpid()}, instance {INSTANCE_ID})", flush=True)
     while True:
         hb = sample(a.base, a.scratch, a.session, prev, a.vfs_cache)
         try:
             if not hb["mount_ok"]:
                 raise OSError("mount gone: " + a.base)
+            if conflict is None:
+                ok, why = name_is_ours(out, INSTANCE_ID)
+                if not ok:
+                    # D12: two runtimes were handed the same --session. Do NOT
+                    # overwrite the other beacon — that is what made both VMs
+                    # invisible. Take a distinct name and make the collision loud;
+                    # runtime_health will flag it as an ORPHAN_HEARTBEAT, which is
+                    # the right alarm.
+                    conflict = why
+                    name = f"heartbeat_{a.session}__conflict-{INSTANCE_ID[-6:]}.json"
+                    out = os.path.join(a.base, "phase4", "logs", name)
+                    print(f"vm_heartbeat: SESSION NAME COLLISION — {why}. "
+                          f"Publishing to {name} instead. TWO RUNTIMES SHARE THE "
+                          f"NAME {a.session!r}; one of them is not the VM you "
+                          f"think it is.", flush=True)
+            if conflict:
+                hb["session_requested"] = a.session
+                hb["session_conflict"] = conflict[:MAXCHARS]
             write_atomic(out, hb)
         except OSError as e:
             # The mount vanished (or went read-only). Leave a breadcrumb on LOCAL disk

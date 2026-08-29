@@ -244,6 +244,63 @@ def test_sweep_removes_stale_prev_asides(tmp_path):
     assert fresh.exists()
 
 
+# ── D18: local staging keyed on the FULL destination, not the basename ───────
+
+def test_same_basename_different_destination_gets_its_own_scratch_file():
+    """THE D18 CORE. LOCAL_SCRATCH is shared by every process on the VM and the
+    scratch name was the basename alone, so two different Drive destinations
+    ending in the same filename mapped to ONE local file — each publishing the
+    other's bytes."""
+    a = common._scratch_name("/content/drive/MyDrive/treedata/phase4/eval/report.csv")
+    b = common._scratch_name("/content/drive/MyDrive/treedata/phase4/qc/report.csv")
+    assert a != b, (a, b)
+
+
+def test_scratch_name_keeps_the_extension():
+    """GDAL picks its driver from the extension; losing it breaks every writer."""
+    assert common._scratch_name(
+        "/content/drive/MyDrive/treedata/phase4/models/sem_best_2009_x.pt"
+    ).endswith(".pt")
+    # a .tif/.gpkg pair shares a stem — both must stay distinguishable AND typed
+    t = common._scratch_name("/content/drive/x/edmonds_canopy_mask_2009.tif")
+    g = common._scratch_name("/content/drive/x/edmonds_canopy_mask_2009.gpkg")
+    assert t.endswith(".tif") and g.endswith(".gpkg") and t != g
+
+
+def test_scratch_name_is_deterministic():
+    """No pid, no token: a retry after a crash must REUSE and overwrite the same
+    staging file. A unique name per attempt would leak multi-GB rasters onto a
+    scratch disk nothing sweeps."""
+    p = "/content/drive/MyDrive/treedata/phase4/masks/edmonds_canopy_prob_2013_x.tif"
+    assert common._scratch_name(p) == common._scratch_name(p)
+
+
+def test_local_paths_are_not_staged_at_all():
+    assert common._local_artifact_path(Path("/tmp/x.tif")) == Path("/tmp/x.tif")
+
+
+def test_gpkg_layer_name_is_pinned_not_inherited_from_the_filename():
+    """WHY postproc now passes layer= explicitly. The GPKG driver names the layer
+    after the FILE BASENAME, and that file is written under a staging name — so
+    the staging name was leaking into the published artifact's internal metadata.
+    Both halves measured here, not assumed."""
+    fiona = pytest.importorskip("fiona")
+    import tempfile
+    schema = {"geometry": "Point", "properties": {}}
+    with tempfile.TemporaryDirectory() as d:
+        staged = Path(d) / "edmonds_canopy_mask_2009_x__3f2a9c01.gpkg"
+        # the defect: no layer= ⇒ the layer is named after the staging file
+        with fiona.open(staged, "w", driver="GPKG", schema=schema, crs="EPSG:4326"):
+            pass
+        assert fiona.listlayers(staged) == ["edmonds_canopy_mask_2009_x__3f2a9c01"]
+        staged.unlink()
+        # the fix: pinned to the FINAL stem, which is exactly today's value
+        with fiona.open(staged, "w", driver="GPKG", schema=schema, crs="EPSG:4326",
+                        layer="edmonds_canopy_mask_2009_x"):
+            pass
+        assert fiona.listlayers(staged) == ["edmonds_canopy_mask_2009_x"]
+
+
 def test_aside_and_part_suffixes_sort_after_the_extension():
     """Every artifact glob in the repo is extension-anchored, so the staging
     suffixes must come AFTER the extension or readers will pick them up (a

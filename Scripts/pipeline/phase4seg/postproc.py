@@ -173,8 +173,14 @@ def step_postproc(label, dry_run=False):
                     "get_type_id", "area"))
     except Exception:
         _vec = False
-    with fiona.open(gpkg_out, "w", driver="GPKG", crs=img_crs.to_wkt(),
-                    schema=schema) as dst:
+    # layer= is EXPLICIT since 2026-08-29 (D18). The GPKG driver defaults the layer
+    # name to the file's basename, and this file is written under a LOCAL STAGING
+    # name before being copied to gpkg_final — so the published artifact's internal
+    # layer name was silently inherited from a scratch filename. Pinning it to the
+    # final stem reproduces exactly the name every existing GPKG already carries,
+    # and stops the staging path from being able to change it.
+    with fiona.open(gpkg_out, "w", driver="GPKG", layer=gpkg_final.stem,
+                    crs=img_crs.to_wkt(), schema=schema) as dst:
         if _vec:
             print("  (vectorized shapely 2.x polygonize)")
             geoms = np.array(geom_list, dtype=object)

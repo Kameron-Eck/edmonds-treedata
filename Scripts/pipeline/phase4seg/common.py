@@ -658,12 +658,42 @@ def _local_artifact_path(final_path):
     On Colab (final under /content/drive) → a scratch path on local NVMe, so the
     multi-GB write never streams over FUSE; the caller then _copy_to_drive()s it.
     Anywhere else → final_path unchanged (already local disk).
+
+    D18 (2026-08-29): the scratch name was the BASENAME ALONE, so every Drive path
+    ending in the same filename mapped to ONE local file. LOCAL_SCRATCH is shared
+    by every process on the VM, and the names in play are not as unique as they
+    look — `semantic_eval_report.csv` under phase4/eval and any same-named file
+    elsewhere collide outright, and two engine steps writing different
+    destinations with a shared basename would silently interleave into one
+    multi-GB staging file and then publish each other's bytes.
+
+    The scratch name now carries a short hash of the FULL destination path, so
+    distinct destinations cannot alias. It stays DETERMINISTIC (no pid, no token)
+    on purpose: a retry after a crash must reuse — and overwrite — the same
+    scratch file rather than leaking another 8 GB onto a disk that is not swept.
+
+    This does not make two LIVE processes writing the same destination safe;
+    nothing here could. That is a shared run tag, and the tag guard is what has to
+    catch it.
     """
     final_path = Path(final_path)
     if str(final_path).startswith("/content/drive"):
         LOCAL_SCRATCH.mkdir(parents=True, exist_ok=True)
-        return LOCAL_SCRATCH / final_path.name
+        return LOCAL_SCRATCH / _scratch_name(final_path)
     return final_path
+
+
+def _scratch_name(final_path):
+    """Staging basename for `final_path` — its own function so the naming rule is
+    testable off-Colab (the branch above cannot be entered on Windows, by design:
+    str(WindowsPath("/content/drive/…")) is backslashed)."""
+    final_path = Path(final_path)
+    h = hashlib.sha256(str(final_path).encode("utf-8")).hexdigest()[:8]
+    # The tag goes before the EXTENSION CHAIN, so the file keeps its type and GDAL
+    # still picks the right driver: sem_best_2009_x.pt → sem_best_2009_x__3f2a9c01.pt
+    name = final_path.name
+    stem, dot, ext = name.partition(".")
+    return f"{stem}__{h}{dot}{ext}" if dot else f"{name}__{h}"
 
 
 def _sweep_part_orphans(dirpath, max_age_h=24):

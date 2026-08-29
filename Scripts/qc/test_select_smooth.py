@@ -277,7 +277,15 @@ def test_save_ckpt_refactor_writes_the_same_payload(tmp_path):
 
     a = torch.load(new, map_location="cpu", weights_only=False)
     b = torch.load(ref, map_location="cpu", weights_only=False)
-    assert sorted(a) == sorted(b)
+    # The original guarantee — the _save_ckpt -> _save_ckpt_state refactor must not
+    # DROP or corrupt any pre-existing field — is unchanged and still asserted below.
+    # What changed (2026-08-29, D2): the payload deliberately gained run identity, so
+    # equality became subset-plus-identity. A checkpoint that cannot say which run
+    # produced it is what let an epoch-7 file pass VERIFY:train while the log said 24.
+    assert set(b) <= set(a), f"refactor DROPPED fields: {sorted(set(b) - set(a))}"
+    identity = {"run_id", "run_tag", "run_years", "saved_utc", "epoch_base"}
+    assert identity <= set(a), f"identity fields missing: {sorted(identity - set(a))}"
+    assert a["epoch_base"] == 1
     for k in b:
         if k == "model_state":
             assert set(a[k]) == set(b[k])
@@ -369,7 +377,13 @@ def test_finish_selection_k1_leaves_the_raw_checkpoint_untouched(monkeypatch, tm
     assert (summary["raw_best_phase"], summary["raw_best_epoch"]) == RAW_PEAK
     assert (summary["deployed_phase"], summary["deployed_epoch"]) == RAW_PEAK
     ck = torch.load(ckpt, map_location="cpu", weights_only=False)
-    assert ck["epoch"] == 0                     # _save_ckpt stores the 0-based ep
+    # WAS `== 0`, asserting the 0-based loop variable. That dual meaning WAS the
+    # defect (D17): training-loop saves stored 0-based while logs and the selector
+    # used 1-based, so the one identity field a checkpoint carried could not be read
+    # without knowing which writer wrote it. Call sites now pass ep+1, so the stored
+    # epoch matches the log line — B1 here, not B0.
+    assert ck["epoch"] == 1
+    assert ck["epoch_base"] == 1
     assert ck["optim_state"] is not None        # untouched: still the full ckpt
     for t in ck["model_state"].values():
         assert torch.all(t == 101.0)            # B1's weights, the raw peak

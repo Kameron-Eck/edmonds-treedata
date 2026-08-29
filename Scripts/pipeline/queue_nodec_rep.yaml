@@ -1,0 +1,30 @@
+# NODE C REPLICATE — same arm, different training seed. Kam 2026-08-29 (all-night).
+#
+# WHY. Node C is the ONLY positive result this project has produced this week:
+# 3-band + proven canopy labels beat 3-band alone by AUROC +.0116 / PR-AUC +.0223,
+# and it held against BOTH a 30-epoch and a 60-epoch Node B. But it rests on ONE
+# training run. Tonight's seed pair measured what a seed change alone is worth:
+# AUROC .0016, PR-AUC .0012 — small, which is why the win looks solid — but
+# matched-precision recall swung 3 pp on nothing but the seed, so single-run
+# results in this pipeline have earned suspicion.
+#
+# Replicating the one thing that worked is worth more than a new hypothesis.
+#
+# ONE VARIABLE vs nodec_v1: --seed 1234. Same labels (add_nodec_2009.tif), same
+# 3 bands, same AOI, same everything. Tiling binds its seed at import so the
+# train/val/test split is IDENTICAL — this isolates training stochasticity.
+#
+# PRE-REGISTERED READ (curve metrics, per the protocol correction landed tonight —
+# matched-precision recall is ~3x noisier and is NOT the verdict metric):
+#   AUROC within ~.002 of nodec_v1's .9179 = replicated, the win is real.
+#   AUROC back near Node B's .906-.909 = the original was a lucky draw and the
+#   result does NOT stand. That would be the single most important negative of
+#   the week and must be reported as loudly as the positive was.
+- id: "2009_nodec_rep"
+  year: "2009"
+  tag: nodec_s1234
+  extra: ["--force-citywide", "--no-hillshade", "--seed", "1234",
+          "--infer-aoi", "aoi/sectors_v1.json",
+          "--add-canopy-mask", "/content/drive/MyDrive/treedata/phase4/labels_corrected/add_nodec_2009.tif"]
+  why: "replicate the only positive result at a different seed."
+  expect: "retile ~20 min; train ~35 min (bulk staging now); inference ~5 min."

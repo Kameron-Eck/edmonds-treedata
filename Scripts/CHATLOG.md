@@ -2007,6 +2007,33 @@ decided: verdicts come from CURVE metrics (AUROC / PR-AUC), never matched-precis
          the random seed is large, and it is the strongest argument yet for the 3-seed
          ensemble — which was measured to remove variance without raising the mean, i.e.
          exactly this problem.
+         ** CAMPAIGN-WIDE AREA RE-READ (phase4/qc/campaign_area_reread_2009.md). ** All 13
+         scored 2009 arms on one footprint (67,163,946 ref canopy px vs the published
+         67,163,941 — same ground, so these are comparable to every prior table):
+             arm                  AUROC    area bias
+             fullext_sectors_v1   .9210      -17.5%
+             seed1234 / seed777   .9194/.9163 -22.2% / -17.1%   (n=3 area floor 5.2 pp)
+             chm2_v1              .9153      -21.2%
+             rgb3_nodeb/_s1234    .9063/.9048 -20.9% / -22.6%   (3-band pair floor 1.7 pp)
+             rgb3_ep60            .9086      -13.8%
+             nodec_v1/_s1234      .9179/.9116  -8.7% / -1.3%
+             hybrid_v1              --        -28.9%
+         ** chm2 DID NOT FLIP — and I predicted it would. ** AUROC -.0057 vs a .0047 floor,
+         AREA -3.7 pp vs a 5.2 pp floor: indistinguishable on BOTH. "Fixing the inflated
+         height raster buys nothing" survives the re-read intact. Worth stating because the
+         night's pattern has been verdicts falling over; the ones measured on the right
+         quantity held, and chm2 was measured on the right quantity by luck of being null.
+         ** ONE CANDIDATE FLIP: rgb3_ep60. ** AUROC +.0023 over Node B (inside noise — this
+         is what I used to REFUTE the truncation hypothesis). On AREA: -13.8% vs -20.9%, a
+         +7.1 pp improvement, ~4x the 1.7 pp Node B seed-pair spread. NOT claiming the epoch
+         cap matters: (a) ep60-vs-nodeb is not a clean seed pair, the cap differs AND the
+         trajectory differed (best ep 17 stopping on PATIENCE vs best ep 30 AT the cap);
+         (b) the 3-band floor is ONE pair — the n=2 estimate that has misled me twice
+         tonight. NEEDS a second ep60 run before it is more than a candidate. Logged so it
+         is not quietly forgotten OR quietly promoted.
+         ** EVERY ARM UNDER-COUNTS ** (-1.3% to -36.4%). Consistent with the 2026-07-05
+         under-prediction finding AND with C-CAP 2016 being applied to 2009 imagery, which
+         are not separable here.
 QUEUE ORDER AND WHY (2026-08-29 12:27Z): gpu35 = nodec_s1234 replicate -> then
          smooth5 (Kam's named arm, on the one guaranteed slot). gpu37 = 3-band noise floor
          -> then the GEOGRAPHIC HOLDOUT, not the third Node C seed. Reasoning: a third seed

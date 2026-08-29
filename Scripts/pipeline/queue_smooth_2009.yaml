@@ -38,17 +38,29 @@
 #
 # PRE-REGISTERED READ (curve metrics only — matched-precision recall is ~3x
 # noisier and is not the verdict metric). Baselines, both Node B, same recipe:
-#   rgb3_nodeb   AUROC .9063  PR-AUC .8365
-#   rgb3_ep60    AUROC .9086  PR-AUC .8322
-# Those two are the same recipe twice, so their gap IS the noise floor: .0023
-# AUROC / .0043 PR-AUC. Therefore:
-#   AUROC > .9109 (best baseline + noise floor)  = smoothing helps; test at K=3
-#                                                  and on Node C before adopting.
-#   AUROC inside .9063-.9109                     = INSEPARABLE from noise. The
-#                                                  honest output is "no measurable
-#                                                  effect at n=1", not a winner.
-#   AUROC < .9040                                = smoothing hurts; the raw val
-#                                                  peak carries real signal.
+#   rgb3_nodeb   AUROC .9063  PR-AUC .8365   (30-epoch B cap, best epoch = 30 = AT the cap)
+#   rgb3_ep60    AUROC .9086  PR-AUC .8322   (60-epoch B cap, best epoch 17, stopped ep32)
+#
+# HOW BIG IS THE NOISE — stated honestly, because the first draft of this file
+# got it wrong. Those two runs are NOT the same recipe twice: the cap differs,
+# and it BOUND on the first one (its best epoch was the last epoch it was allowed
+# to run). So their .0023 AUROC gap is "cap change + noise", an UPPER bound on
+# noise, not a measurement of it. The 3-band branch has no clean same-recipe
+# repeat at all. The closest real measurement is the 4-band seed pair on the
+# Node A branch: .0016 AUROC / .0012 PR-AUC from a seed change alone.
+# Working noise floor for this read: ~.002 AUROC, and treat it as soft.
+#
+#   AUROC > .9110 (best baseline + ~.002)  = smoothing plausibly helps; do NOT
+#                                            adopt on this alone — confirm at
+#                                            K=3 and on the Node C branch.
+#   AUROC inside .9060-.9110               = INSEPARABLE from noise. The honest
+#                                            output is "no measurable effect at
+#                                            n=1", not a winner.
+#   AUROC inside .9040-.9060               = also INSEPARABLE — within noise of
+#                                            the LOWER baseline. Stated so the
+#                                            read stays mechanical at 5 a.m.
+#   AUROC < .9040                          = smoothing hurts; the raw val peak
+#                                            carries real signal after all.
 # A single run CANNOT resolve an effect smaller than the noise floor, and this
 # arm is not expected to. Its job is to rule out a LARGE effect in either
 # direction cheaply, on a GPU that would otherwise sit idle.

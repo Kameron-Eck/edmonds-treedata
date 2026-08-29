@@ -1980,6 +1980,33 @@ decided: verdicts come from CURVE metrics (AUROC / PR-AUC), never matched-precis
          is not "nearly unbiased" in any deployable sense — its precision fell to .7752 and
          its FP:FN is 0.95, so it is close to unbiased by CANCELLATION of large opposite
          errors, not by being right.
+         ** DAMAGE CURVE, RE-READ ON AREA: MY PUBLISHED CONCLUSION WAS WRONG FOR THE
+         DELIVERABLE. ** I reported that label corruption up to 12.34% "moves neither curve
+         metric" and called that a STRENGTHENED result. It was measured on ranking metrics,
+         which cannot see the operating point, and canopy area is nothing but the operating
+         point. Re-scored (phase4/qc/damage_curve_area_2009.md), with the control measured
+         first this time (phase4/qc/seed_area_noisefloor_2009.md):
+             CONTROL, 3 same-recipe 4-band seeds: -17.5% / -22.2% / -17.1%
+             -> 4-band AREA noise floor (max-min, n=3) = 5.2 pp
+             dose      AUROC     area bias    shift vs clean   vs noise
+             clean     .9210      -17.5%          --             --
+             2.70%     .9215       -5.9%       +11.6 pp        2.2x
+             6.56%     .9210      -36.4%       -18.9 pp        3.6x
+             12.34%    .9218      -24.7%        -7.2 pp        1.4x
+         AUROC spans .0008 across the whole range; AREA spans 30 pp. So corruption DOES
+         matter — for the product, not for ranking.
+         BUT THE CORRECTED CLAIM IS NARROWER THAN THE RAW NUMBERS LOOK, and saying so is the
+         point: it is NON-MONOTONIC. The heaviest dose has the SMALLEST shift (1.4x, barely
+         above noise) and the lightest dose IMPROVED area bias. That is not a dose-response;
+         it is corruption knocking the operating point around ARBITRARILY, by roughly 2-4x
+         retrain noise, with unpredictable SIGN. Do not quote a "pp of area per % of label
+         error" figure — the data does not support one.
+         ** AND A PRODUCT NUMBER THAT MATTERS ON ITS OWN: canopy AREA carries ~5 pp of
+         RETRAIN noise from the seed alone ** (-17.5% vs -22.2%, identical recipe). For a
+         deliverable reporting canopy percentage over time, a 5-point swing from nothing but
+         the random seed is large, and it is the strongest argument yet for the 3-seed
+         ensemble — which was measured to remove variance without raising the mean, i.e.
+         exactly this problem.
 QUEUE ORDER AND WHY (2026-08-29 12:27Z): gpu35 = nodec_s1234 replicate -> then
          smooth5 (Kam's named arm, on the one guaranteed slot). gpu37 = 3-band noise floor
          -> then the GEOGRAPHIC HOLDOUT, not the third Node C seed. Reasoning: a third seed

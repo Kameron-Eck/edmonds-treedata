@@ -59,6 +59,8 @@ import json
 import sys
 from pathlib import Path
 
+from phase4seg.names import status_files
+
 _COLAB_BASE = Path("/content/drive/MyDrive/treedata")
 _LOCAL_BASE = Path(r"G:\My Drive\treedata")
 BASE = _COLAB_BASE if _COLAB_BASE.exists() else _LOCAL_BASE          # data plane
@@ -68,7 +70,8 @@ REGISTRY = REPO / "Scripts" / "run_registry.csv"
 RUNS = BASE / "phase4" / "runs"
 EVAL_REPORT = BASE / "phase4" / "eval" / "semantic_eval_report.csv"
 INDEP_REPORT = BASE / "phase4" / "qc" / "qc_indep_report.csv"
-STATUS_GLOB = "train_queue_status*.csv"
+# discovery moved to phase4seg/names.status_files (2026-08-30)
+STATUS_GLOB = "train_queue_status*.csv"   # kept: some callers log it
 QC_DIR = BASE / "phase4" / "qc"
 MODELS, MASKS = BASE / "phase4" / "models", BASE / "phase4" / "masks"
 
@@ -180,7 +183,7 @@ def status_for(year, tag, step, run_ts, window_min=10):
     state, or an audit row closing a stale RUNNING) are then folded in.
     """
     cands, verifies = [], []
-    for f in sorted(QC_DIR.glob(STATUS_GLOB)):
+    for f in status_files(QC_DIR):
         for r in _rows(f):
             # Join on the status CSV's `year` column, NOT `job`: queue job ids may
             # carry suffixes (queue_sectors_base2020 uses id "2006s_b20" for year

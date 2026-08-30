@@ -93,6 +93,8 @@ import threading
 import time
 from pathlib import Path
 
+from phase4seg.names import status_files
+
 _COLAB_BASE = Path("/content/drive/MyDrive/treedata")
 _LOCAL_BASE = Path(r"G:\My Drive\treedata")
 BASE = _COLAB_BASE if _COLAB_BASE.exists() else _LOCAL_BASE
@@ -222,7 +224,10 @@ STATUS_OUT = None    # set per launch in main()
 
 def _status_files():
     """Every status file, legacy single-file first, then per-launch files."""
-    files = sorted(QC_DIR.glob("train_queue_status*.csv"))
+    # ONE discovery rule, shared with every other reader (phase4seg/names.py).
+    # The bare glob admitted a test-contaminated file that had been "quarantined"
+    # by renaming — see names.py for why a rename alone does not quarantine.
+    files = status_files(QC_DIR)
     return files
 
 

@@ -19,6 +19,12 @@ import sys
 import time
 from pathlib import Path
 
+# names.py is STDLIB-ONLY (see its docstring) — importing it keeps this
+# watcher free of the engine's heavy deps while giving it the one
+# status-file discovery rule.
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "pipeline"))
+from phase4seg.names import status_files
+
 _COLAB_BASE = Path("/content/drive/MyDrive/treedata")
 _LOCAL_BASE = Path(r"G:\My Drive\treedata")
 BASE = _COLAB_BASE if _COLAB_BASE.exists() else _LOCAL_BASE
@@ -32,7 +38,7 @@ def _rows():
     """Merged rows across every status file, sorted by ts (P11.1: queues write
     per-launch train_queue_status_{queue}_{ts}.csv files)."""
     rows = []
-    for f in sorted(STATUS.parent.glob("train_queue_status*.csv")):
+    for f in status_files(STATUS.parent):
         try:
             with open(f, encoding="utf-8", newline="") as fh:
                 rows.extend(csv.DictReader(fh))

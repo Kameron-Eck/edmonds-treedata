@@ -67,6 +67,8 @@ from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
+sys.path.insert(0, str(HERE.parent / "pipeline"))
+from phase4seg.names import status_files
 import watch_queue                                                   # noqa: E402
 from watch_queue import _rows as merged_status_rows, BAD as BAD_STATES  # noqa: E402
 
@@ -138,7 +140,7 @@ def launches(qc_dir):
     scoping is what stops those from flagging QUEUE_DEAD for all eternity."""
     out = {}
     try:
-        files = sorted(Path(qc_dir).glob("train_queue_status*.csv"))
+        files = status_files(qc_dir)
     except OSError:
         return out
     for f in files:

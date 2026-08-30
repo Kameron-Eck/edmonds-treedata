@@ -20,6 +20,7 @@ from pathlib import Path
 HERE = Path(__file__).resolve().parent
 REPO_SCRIPTS = HERE.parent
 sys.path.insert(0, str(REPO_SCRIPTS / "pipeline"))
+from phase4seg.names import status_files
 
 _COLAB_BASE = Path("/content/drive/MyDrive/treedata")
 _LOCAL_BASE = Path(r"G:\My Drive\treedata")
@@ -67,7 +68,7 @@ def year_rows():
     # per-launch status files — merge every train_queue_status*.csv.
     vstate = {}
     frames = []
-    for scsv in sorted(qdir.glob("train_queue_status*.csv")):
+    for scsv in status_files(qdir):
         try:
             frames.append(pd.read_csv(scsv))
         except Exception:

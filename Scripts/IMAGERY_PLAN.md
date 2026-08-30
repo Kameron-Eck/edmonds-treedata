@@ -1,5 +1,12 @@
 # Imagery Alignment, Characterisation and Recipe Plan
 
+> ## ⚠ SUPERSEDED — dated record, not a live plan
+>
+> Overtaken by `IMAGERY_ACQUISITION_PLAN_2026-08-22.md` and
+> `IMAGERY_FOUNDATION_PLAN_2026-08-22.md`, and then by the campaign that executed them.
+> Its counts are pre-campaign. Current imagery truths: `IMAGERY_FACTS.md`; current
+> counts: `STATUS.md`.
+
 **Opened 2026-08-19.** Companion to `WORKPLAN_2026-08-19.md` (which covers the model and the
 measurement work). This one covers the *inputs*: getting every acquisition lined up,
 documenting what each one actually is, and testing our way to a defensible common recipe.

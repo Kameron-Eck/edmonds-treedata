@@ -5,11 +5,24 @@
 > findings below are what make these searches worth running; each is recorded in
 > `CHATLOG.md` and reproducible from the scripts in this folder.
 > **Paste this whole file as the prompt.**
+>
+> ## ⚠ THIS IS A REUSABLE TEMPLATE — re-derive the project context before pasting
+>
+> Unlike a dated record, this file is meant to be USED again, so stale figures in it do
+> not just sit there — they get sent to whoever runs the next search. It described "18
+> aerial acquisitions ... 7.5–60 cm GSD" against a catalog holding 36 and spanning
+> 5.0–100.0 cm, and "68 papers across 8 searches" against a ledger of 210 rows / 61
+> phases. Corrected 2026-08-30; **regenerate rather than trust it**:
+>
+> ```
+> py -3.12 qc/pipeline_status.py --markdown   # then read Scripts/STATUS.md
+> ```
 
 ---
 
 You are extending an existing literature review for a geospatial deep-learning
-project. 68 papers are already tracked across 8 completed searches (Phases 1–3):
+project. A substantial ledger already exists — open `Literature_Tracker.xlsx` for the
+current row and phase counts rather than quoting a number from here — covering:
 instance-segmentation architectures, resolution sensitivity, multi-temporal urban
 canopy monitoring, active/semi-supervised learning, radiometric normalization,
 RGB-only vegetation indices, temporal anchor-and-project tracking, and long-term
@@ -18,10 +31,19 @@ searches left: **whether our measurements mean what we think they mean.**
 
 ## Project context
 
-Per-crown temporal canopy validity intervals for ~222,000 tree crowns across
-Edmonds, WA. 18 aerial acquisitions, 2000–2024, spanning 7.5–60 cm GSD across
-three sensors (King County, Snohomish County, NAIP). A U-Net is trained on the one
-year with hand labels (2020) and fine-tuned per year. Evaluation uses two
+**Binary canopy masks per aerial acquisition across Edmonds, WA — SEMANTIC
+segmentation.** Per-crown temporal validity intervals are then derived by scoring a
+fixed 2020 crown layer (~222,000 crowns) against those masks; instance segmentation is
+deferred, not run per year.
+
+The archive spans 2000–2024 across four sources (King County, City of Edmonds,
+Snohomish County, NAIP). **Fill in the acquisition count, calendar-year count, GSD span
+and RGB/NIR split from `Scripts/STATUS.md` before pasting — do not quote them from this
+template.** As of 2026-08-30 it is 36 acquisitions over 20 calendar years, GSD 5.0–100.0
+cm (a 20x range), 26 of 36 RGB-only.
+
+A U-Net (resnet101) is trained on the one year with hand labels (2020) and fine-tuned
+per year. Evaluation uses two
 independent proxies: NOAA C-CAP 1 m land cover (2016 and 2021 vintages) and an
 NDVI+CHM reference derived from our own NIR imagery plus a single ~2016 lidar
 canopy-height model at ~60% city coverage.

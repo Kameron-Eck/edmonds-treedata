@@ -1,4 +1,14 @@
 # MASTER PLAN — Option A Overhaul: Re-plumb the Planes
+
+> ## ⚠ SUPERSEDED — dated record, not a live plan
+>
+> Executed through P8 (P9/P10 outstanding). It re-plumbed the code and data planes and
+> that work is done and in effect. **It is not the active plan** — that is named in
+> `WORKPLAN.md`. It was still being called "Tier 0 ACTIVE" by `WORKPLAN_2026-08-19.md`
+> nine days after it closed, which is why this banner exists.
+>
+> Kept because it is the authoritative record of WHY the two planes are arranged as they
+> are, and that reasoning is still load-bearing.
 *(adopted by Kam 2026-08-20; supersedes the crashed-session draft `sleepy-rolling-pizza.md`; committed as `Scripts/OVERHAUL_PLAN_2026-08-20.md` in P0, becoming the active plan named by CHATLOG STATE)*
 
 ## EXECUTION STATUS (2026-08-22)

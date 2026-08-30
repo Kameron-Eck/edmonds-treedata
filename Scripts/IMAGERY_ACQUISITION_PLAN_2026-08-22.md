@@ -1,5 +1,15 @@
 # IMAGERY ACQUISITION PLAN — 2026-08-22
 
+> ## ⚠ SUPERSEDED — dated record, not a live plan
+>
+> Superseded by `IMAGERY_FOUNDATION_PLAN_2026-08-22.md`, whose own header said to mark
+> this file when the branches met. That never happened, so it kept reading as live.
+>
+> Its status line below still says "PLAN ONLY. Nothing here has been acquired" — **29
+> rasters landed under it.** Read it as what was intended on 2026-08-22; for what the
+> campaign actually produced see `IMAGERY_FACTS.md` §9–§13, and for current counts
+> `STATUS.md`.
+
 *Kam, 2026-08-22: "I want to go all out. Add additional new imagery; if a better version of an
 image I already have is available, I want it; or if there is metadata I want it; or if there is
 additional imagery for a year I already have coverage for, I want it."*

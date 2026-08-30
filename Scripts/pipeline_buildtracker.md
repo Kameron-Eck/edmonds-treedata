@@ -1,25 +1,37 @@
 # Edmonds Pipeline — Build Tracker
 
-*Created: 2026-05-23 · Last updated: 2026-08-18*
-*References: `Method_Pipeline.md`, `edmonds_combined_workplan.xlsx`. **Live day-to-day
-state (current model version, active workstream, next Colab step) lives in the
-`CHATLOG.md` STATE block** — this file tracks structural build status, not the daily
-state. (Doc map: `../README.md`.)*
+*Created: 2026-05-23 · Last updated: **2026-08-30**.*
+*References: `Method_Pipeline.md`. **Live state lives in [`WORKPLAN.md`](WORKPLAN.md)**
+(intent) and [`STATUS.md`](STATUS.md) (facts, generated) — not in `CHATLOG.md` STATE,
+which is now append-only history. This file tracks structural build status only.
+(Doc map: `../README.md`.)*
+
+> This file went eleven days without an update while being the designated home for
+> "what's built vs pending", and in that time it acquired no row for the sector
+> campaign, the damage curve, the harness rebuild or the boundary loss — the four
+> things the project was actually doing. Counts below are **not** restated from the
+> catalog; read `STATUS.md` for those.
 
 ---
 
 ## Phase scheme (current)
 
-Phase 4 = **semantic** per-year fine-tune (17 years); Phase 5 = **instance** per-year
-fine-tune (9 high-res years). (This is swapped from the original scheme — the old
-`Scripts/_archive/Tree Project Work Plan.xlsx` still shows Phase 4 = instance and is
-**superseded**; `edmonds_combined_workplan.xlsx` is canonical.) Phases 0/1/1A–1D/2/3
-are complete; 6–8 not yet built.
+**Phase 4 = SEMANTIC per-year fine-tune, every acquisition. This is the whole current
+pipeline.** Phases 0/1/1A–1D/2/3 are complete; 5–8 are not built.
+
+**Phase 5 was scoped as per-year INSTANCE fine-tune. Instance is DEFERRED, not
+cancelled** (Kam, 2026-08-29) — the scope summary below is kept for when it is picked
+up. Phase 0 produced the 222,435-crown layer once, from 2020, and it is used as a fixed
+lookup geometry, not regenerated per year.
+
+(This numbering is swapped from the original scheme — the old
+`Scripts/_archive/Tree Project Work Plan.xlsx` shows Phase 4 = instance and is
+**superseded**.)
 
 | Phase | Script | Status |
 |-------|--------|--------|
 | 0 | `phase0_instance_seg.py` | ✅ Complete — 222,435 crowns, `edmonds_crowns_2020.gpkg` |
-| 1 | `phase1_preprocess.py` | ✅ Complete — 18-year spectral features, `edmonds_crowns_phase1.parquet` (568 MB) |
+| 1 | `phase1_preprocess.py` | ✅ Complete — spectral features over the acquisitions catalogued at the time (18); the catalog has since grown, see `STATUS.md`. `edmonds_crowns_phase1.parquet` (568 MB) |
 | 1A–1D | `phase1a…1d_*.py` | ✅ Complete — active-learning QA loop (auto-label → sample → review → classifier) |
 | 2 | `phase2_data_prep.py` | ✅ Complete — imagery validation, coverage matrix, overlay QA |
 | 3 | `phase3_semantic_dev.py` | ✅ Complete — 2020 base semantic model; LOSO IoU 0.7299 / AUROC 0.9396; **passed DG1** |
@@ -52,7 +64,8 @@ described a single scale-robust model + i-Tree validation) — record the realit
   sampler bug + a `val_iou@0.5` metric artifact, not a training failure). 2016 RGB+CHM
   now beats the RGB baseline on held-out test (IoU 0.7725 vs 0.7245).
 - **Independent QC instrument** — `phase4_qc_ndvi.py` / `_score.py` / `_site.py`: builds
-  an NDVI+CHM canopy reference for the 4 NIR years and scores the model against it. The
+  an NDVI+CHM canopy reference for the NIR-bearing years (4 when this was written; see
+  `STATUS.md` for the current list) and scores the model against it. The
   standing read: precise but **under-predicting** — live numbers in the active plan's
   baseline table, not here.
 - **Corrected-label workstream (v042)** — `phase4_build_corrected_labels.py` inverts the
@@ -96,7 +109,8 @@ results. What matters structurally:
   completed** (labels are accept-all test data). The independent recall number for
   no-NIR years (2000) still needs Olofsson stratified photo-interpretation — **this is
   the DG2 gate** and the real credibility bottleneck. The harness for it is now BUILT
-  (`phase4_accuracy_sample.py`, samples drawn for 2016 / 2022n / 2000) and gated on U1.
+  (`phase4_accuracy_sample.py`, samples drawn for 2016 / 2000 and for the acquisition
+then labelled 2022n, since renamed 2023n) and gated on U1.
 - **2016 corrected-label model: EVALUATED, NOT DEPLOYED.** The retrain ran; it trades
   recall up for precision down, and the entire question lives in the contested zone where
   the two references disagree. Latent-class analysis was shown to be **inadmissible** for
@@ -109,7 +123,7 @@ results. What matters structurally:
   and channel balance, not brightness matching) where it previously had none.
 - **Deferred option:** NIR+height as auxiliary supervision *targets* (RGB-only inference)
   if label-augmentation doesn't close the recall gap.
-- **Remaining 15 years** after 2016/2000 are validated.
+- **The remaining years** after 2016/2000 are validated (15 when this was written).
 
 ### Key outputs
 `phase4/models/sem_best_{year}.pt` · `phase4/masks/edmonds_canopy_{prob,mask}_{year}.tif`
@@ -156,8 +170,10 @@ results. What matters structurally:
 - **Sources of truth were centralized 2026-07-06** — handoffs retired, the duplicate
   Admin workplan archived, and one home per kind of info (map in `../README.md`; live
   state in `CHATLOG.md` STATE). Keep it that way: one fact, one home.
-- **Versioning is git** since 2026-07-06 (working tree = the Drive folder, git database at
-  `D:/edmonds-pipeline/treedata.git`). `version_script.py` / `.versions/` are a frozen
+- **Versioning is git** since 2026-07-06. **The working tree is `D:\edmonds-pipeline	reedata`
+  and GitHub is the live mirror** — the old arrangement described here (working tree = the
+  Drive folder, DB at `treedata.git`) ended with the 2026-08-20 re-plumb and was the last
+  surviving description of it in a live doc. `version_script.py` / `.versions/` are a frozen
   pre-git archive — full history was imported as backdated commits v001–v044.
 - **Run records lag the runs.** `run_registry.csv` was 7 Colab runs behind until the
   2026-08-17 backfill; logs are the only durable record and they do NOT stamp the engine
@@ -167,8 +183,10 @@ results. What matters structurally:
 
 ## Phases 5–8 (not built — scope summary)
 
-- **5 · Instance fine-tune** (9 high-res years): label projection → per-year DTM →
-  fine-tune from Phase 0 → watershed → `phase5/crowns/edmonds_crowns_{year}.gpkg`. DG3/DG4.
+- **5 · Instance fine-tune** — **DEFERRED, not cancelled.** Label projection → per-year
+  DTM → fine-tune from Phase 0 → watershed → `phase5/crowns/edmonds_crowns_{year}.gpkg`.
+  DG3/DG4. Note: three QC scripts still read a `phase5/` path, but those are fallbacks
+  across the phase5→phase4 *rename* and are unrelated to this scope.
 - **6 · Temporal linking**: anchor-match instance years to 2020, discover removals/
   plantings, build canonical crown layer + canopy-fraction matrix.
 - **7 · Feature extraction**: spectral stats + VIs (GCC/GRVI all years, true NDVI for NIR

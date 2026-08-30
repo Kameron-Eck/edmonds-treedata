@@ -63,6 +63,8 @@ GATED_DOCS = [
     "Method_Pipeline.md",
     "../README.md",
     "IMAGERY_FACTS.md",
+    "pipeline_buildtracker.md",
+    "litreview_phase4_prompt.md",
 ]
 
 # Figures that were true once and are not now. A gated doc may still MENTION one while
@@ -181,12 +183,9 @@ def test_exactly_one_document_claims_to_be_the_active_plan():
     # applies supersession banners; each one that lands is deleted from this list.
     # The list only ever shrinks — a NEW unbannered plan fails immediately, which is
     # the property worth having while the cleanup is in flight.
-    KNOWN_UNBANNERED = {
-        "OVERHAUL_PLAN_2026-08-20.md",          # executed P0-P8; still reads ACTIVE
-        "IMAGERY_ACQUISITION_PLAN_2026-08-22.md",  # its successor says to mark it
-        "IMAGERY_PLAN.md",                      # overtaken by the two above
-        "WORKPLAN_2026-08-19.md",               # retires into WORKPLAN.md (Stage 0.1)
-    }
+    # Emptied 2026-08-30 (Stage 1.4): all four are bannered. The set stays as the
+    # mechanism — a NEW unbannered plan fails immediately — but the debt is cleared.
+    KNOWN_UNBANNERED = set()
     LIVE = "SEMANTIC_OVERHAUL_PLAN_2026-08-29.md"
     # WORKPLAN.md is THE living document, not a dated campaign plan — it is supposed to
     # read as current. Named explicitly because it would otherwise be caught by the
@@ -228,6 +227,16 @@ def test_no_gated_doc_points_at_a_missing_file():
                 # mention to be spelled pipeline/phase4seg/core.py, which is worse
                 # writing and not what this check is for.
                 if "/" not in ref or ref.startswith(("http", "_archive")) or "*" in ref:
+                    continue
+                # Data-plane paths live in the Drive lake, not the repo, and CI has no
+                # mount. A doc naming phase4/eval/semantic_eval_report.csv is pointing
+                # somewhere real — just not somewhere this check can see. Note that
+                # phase4/qc/ IS tracked in the repo and stays checked.
+                if ref.startswith(("phase4/eval/", "phase4/masks/", "phase4/models/",
+                                   "phase4/tiles/", "phase4/runs/", "phase4/logs/",
+                                   "phase4/sites/", "phase4/labels_corrected/",
+                                   "phase3/", "Full_Image/", "polygons/", "photos/",
+                                   "inference/", "labels/", "phase5/")):
                     continue
                 if any((base / ref).exists() for base in (SCRIPTS, REPO,
                                                           SCRIPTS / "pipeline",

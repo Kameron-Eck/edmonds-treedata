@@ -51,8 +51,8 @@ made permanent — an ungated doc can drift again.
 | **0.3** | drift gate wired into `ci.yml` | **done** `37be4ab` |
 | **0.4** | `EPOCH` re-baseline marker | **done** |
 | **1** | documentation — 5 class-A docs rewritten, 4 banners applied | **done** `e232be5` `46812d8` `5d91657` `9fe99f7` |
-| **2** | code shaped for retired goals — flag triage, dangling phase refs | next |
-| **3** | structural debt — the twins, `config.py` precision, the ledger module | not started |
+| **2** | code shaped for retired goals — label-source guard, inert flags, dangling refs, fail-loud loads | **done** `dfe4c42` `91cf30d` `9faab4c` |
+| **3** | structural debt — the twins, `config.py` precision, the ledger module | next |
 | **4** | architecture — SDM caching, HR aux branch, DeepLabV3+ arm | 4.1 partly done `7c8a385` |
 | **5** | pilot slice — 2019 / 2019s / 2019n | not started |
 

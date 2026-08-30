@@ -987,3 +987,32 @@ BOUNDARY_IGNORE_BUFFER  = 3      # px dilation of the IGNORE exclusion, see abov
 #  Tiles are inputs, not results; whether two RESULTS are comparable is the question
 #  this answers.
 EPOCH = 2
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+#  WHICH CONSTANTS IN THIS FILE ACTUALLY COST A RE-TILE   APPENDED 2026-08-30
+#
+#  This file is "pure-move protected" because changing a constant can invalidate
+#  every cached tile set at ~20 min of GPU per year. That rule is stated often and
+#  gets read as covering all 129 constants here.
+#
+#  It does not. Only the constants that feed tiling._tile_signature can invalidate a
+#  cache. Measured: **17 of 129 (13%)** — the other 112 are free to change.
+#
+#      TILE_SIZE  RANDOM_SEED  USE_HILLSHADE  HS_SOURCE  USE_VI
+#      COARSE_CITYWIDE_TILES  HARD_NEG_FRACTION  BACKGROUND_BUDGET_FRACTION
+#      GREEN_GRVI_THRESHOLD  COARSE_VAL_FRAC  COARSE_TEST_FRAC
+#      SPATIAL_BLOCK_SIZE_M  CANOPY_AUTOCORR_M
+#      ADD_CANOPY_MASK  SAMPLE_MANIFEST  AUX_HEIGHT  CHM_CREDIBLE_YEARS
+#                                        (the last four keyed only when ON)
+#
+#  DO NOT TRUST THE LIST ABOVE — it is a convenience copy and copies rot; this file
+#  has three deleted tables that prove it. The authoritative set is DERIVED from
+#  _tile_signature's own source by qc/test_tile_signature_scope.py, which fails if a
+#  key is added to the signature without being recorded. Read the test, not this
+#  comment, when it matters.
+#
+#  Why state the asymmetry at all: a blanket "never touch config.py" is more cautious
+#  than necessary AND uninformative — it gives no signal when someone edits one of the
+#  17 that genuinely does cost a rebuild. Appending is always safe; a new constant is
+#  a re-tile trigger only if _tile_signature reads it.

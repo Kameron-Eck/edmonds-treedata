@@ -61,6 +61,7 @@ GATED_DOCS = [
     "WORKPLAN.md",
     "SEMANTIC_OVERHAUL_PLAN_2026-08-29.md",
     "Method_Pipeline.md",
+    "../README.md",
 ]
 
 # Figures that were true once and are not now. A gated doc may still MENTION one while

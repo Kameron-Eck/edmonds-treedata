@@ -1,27 +1,36 @@
 # Edmonds Temporal Tree-Canopy Pipeline
 
-Machine-learning pipeline mapping individual tree crowns and canopy change across
-Edmonds, WA from aerial imagery spanning 2000–2024 (19 in-scope rasters, 4 sources),
-anchored to a 2020 hand-annotated dataset. Solo build for the City of Edmonds via the
-Climate Advisory Board, funded by the Sustainable Path Foundation.
+**A tree canopy assessment for Edmonds, WA: a binary canopy mask per aerial acquisition
+spanning 2000–2024, anchored to a 2020 hand-annotated dataset. Semantic segmentation.**
+
+Per-crown temporal validity intervals are derived from those masks against a fixed 2020
+crown layer. **Instance segmentation is deferred, not cancelled** — Phase 0 produced that
+crown layer once, from 2020, and is frozen.
+
+Solo build for the City of Edmonds via the Climate Advisory Board, funded by the
+Sustainable Path Foundation.
 
 ---
 
 ## ▶ Start here — the entry-point chain
 
-1. **[`Scripts/WORKPLAN_2026-08-19.md`](Scripts/WORKPLAN_2026-08-19.md)** — the entry
-   point. Verified / withdrawn / blocked / next, reorganised for reading. **It wins on
-   any disagreement.**
-2. **[`Scripts/CHATLOG.md`](Scripts/CHATLOG.md) STATE block** — the live log: current
-   model version, active work, provenance for a specific result.
-3. **This README** — the map: what every folder and doc is.
+1. **[`Scripts/CLAUDE.md`](Scripts/CLAUDE.md)** — the rules and the roadmap of where
+   everything lives.
+2. **[`Scripts/WORKPLAN.md`](Scripts/WORKPLAN.md)** — **intent**: the goal, the stage
+   board, decisions taken, what is waiting on Kam.
+3. **[`Scripts/STATUS.md`](Scripts/STATUS.md)** — **facts**: generated from the code and
+   the data lake. CI regenerates and diffs it, so it cannot drift.
+4. **This README** — the map: what every folder and doc is.
 
-*(The older claim that CHATLOG STATE is "the single source of live truth" is retired —
-STATE grew into a transcript; the WORKPLAN is the reference.)*
+**`Scripts/CHATLOG.md` is append-only history and is no longer read for state.** Its
+STATE block is superseded by `WORKPLAN.md`; the file's own header records that STATE
+"has become a TRANSCRIPT, not a reference".
 
 **Rule of the repo:** each fact has exactly one home; other docs *link* to it rather than
 restate it. A fact written authoritatively in two places is a bug — fix the source, not
-the copy.
+the copy. **As of 2026-08-30 that rule is enforced** by `qc/test_docs_match_code.py`,
+which runs in CI — because stating it was not enough. It went unenforced long enough for
+the bootstrap doc to describe an archive that had not existed for weeks.
 
 ---
 
@@ -58,19 +67,19 @@ the copy.
 | `Scripts/` | 26 MB | live | All code + docs. `pipeline/phase4seg/` is the live engine package (layout since 2026-08-20: `pipeline/` engine+drivers, `qc/` measurement, `scratch/`, `_archive/`); `scratch/litwatch_scratch/` has its own README (29 instruments vs 77 never-re-run writers); `_archive/` = retired scripts/docs, own README |
 | `phase4/` | ~100k files | live | Active engine output: `models/ masks/ eval/ qc/`. `qc/` holds the honest numbers (`qc_indep_report.csv`, `live=1` rows) |
 | `phase3/` | ~105 GB | live | 2020 base model + full-city 2020 prob/mask. Phase 4 depends on it |
-| `Full_Image/` | 1.2 TB | live | Imagery master. `Pipeline Imagery/` = the 19 in-scope rasters (2000–2024; King County, City of Edmonds, Snohomish, NAIP) + lidar CHM + C-CAP refs. `KingCo/ USGS/ WA_NAIP/ USDA_NRCS/` = raw source archives. (`temp/` was empty, removed; `Image_Scripts/` moved to `Scripts/_archive/Image_Scripts/` — both 2026-08-19) |
+| `Full_Image/` | 1.2 TB | live | Imagery master. `Pipeline Imagery/` = the in-scope rasters (2000–2024; King County, City of Edmonds, Snohomish, NAIP — count and GSD span in `Scripts/STATUS.md`, generated from YEAR_CATALOG) + lidar CHM + C-CAP refs. `KingCo/ USGS/ WA_NAIP/ USDA_NRCS/` = raw source archives. (`temp/` was empty, removed; `Image_Scripts/` moved to `Scripts/_archive/Image_Scripts/` — both 2026-08-19) |
 | `photos/` | 1.4 GB | live | Training-site footprint GeoTIFFs (`Forest_*` / `Negative_*`) |
-| `polygons/` | 102 MB | live | Hand-traced crown polygons (EPSG:3857) — the instance-training labels |
+| `polygons/` | 102 MB | live | Hand-traced crown polygons (EPSG:3857). **Overwritten with accept-all test data; the 14,476-crown review was never finished** — treat as provisional. This is why every queue job passes `--force-citywide` |
 | `phase2/` | 12 KB | live | 3 CSVs; `training_site_coverage.csv` is the live one. The 1.5 GB "Copy of…gpkg" was deleted 2026-08-20 after a measured review — same 222,435 crowns, every column preserved in `phase1a/edmonds_crowns_phase1a.gpkg` |
-| `Reports/` | 36 MB | live | The written deliverables — 4 tracked `.md` since 2026-08-18 (Verified_Results, Report_Dossier, Canopy_Brief, Measurement_Validity_Assessment) + 6 consultant/city source PDFs (untracked, deliberately) |
-| `Literature_Tracker.xlsx` | 75 KB | live | 68 papers. Now git-tracked (whitelist bug fixed 2026-08-19) |
+| `Reports/` | 36 MB | live | The written deliverables — 9 tracked `.md` (measured 2026-08-30; the previous "4" predated five more landing) + consultant/city source PDFs, untracked deliberately |
+| `Literature_Tracker.xlsx` | 75 KB | live | The literature ledger — the workbook is the count, not this table (it read "68 papers" against 210 rows / 61 search phases). Git-tracked since 2026-08-19 |
 | `imagery_stats/` | 12 KB | live | `imagery_catalog.csv`, read by one QC script |
 | `City Boundry/` | small | live | Edmonds boundary shapefile. **Misspelling is load-bearing** — scripts reference the path |
 | `bathology/` | small | live | Waterbody shapefile — actually hydrography, not bathymetry; **name kept** because scripts reference it |
 | `impervious/` | 4.9 MB | live | `impervious_edmonds.tif` (the clip the scripts read); the 1.48 GB statewide source deleted 2026-08-19 (re-downloadable) |
 | `experiments/` | — | live, git-IGNORED | Documented sandbox, own README |
 | `Admin/` | 181 KB | live | Business records (contracts, contractor tracking) — not pipeline |
-| `.claude/worktrees/` | — | live | Session worktrees; 12 stale ones pruned 2026-08-19, `ecosystem-cleanup` active |
+| `.claude/worktrees/` | — | live | Session worktrees. Transient — do not describe specific ones here; they are pruned as sessions end |
 
 ### ARCHIVAL — completed-phase outputs, keep
 
@@ -119,14 +128,16 @@ per its `MANIFEST.md`, no City-of-Edmonds years) serves fast local QC off the FU
 
 | Doc | Purpose |
 |---|---|
-| `Scripts/WORKPLAN_2026-08-19.md` | **Entry point.** Verified / withdrawn / blocked / next; wins on disagreement |
-| `Scripts/CHATLOG.md` | STATE block (live, edited in place) + LOG entries (history). Logging spec at the top of the file |
+| `Scripts/WORKPLAN.md` | **Intent**: goal, stage board, decisions, what is waiting on Kam |
+| `Scripts/STATUS.md` | **Facts**: generated from the code + lake, gated in CI. Never hand-edit |
+| `Scripts/WORKPLAN_2026-08-19.md` | Superseded by `WORKPLAN.md` — a dated record of what was planned on 2026-08-19 |
+| `Scripts/CHATLOG.md` | Append-only history. **No longer read for state** — that is `WORKPLAN.md`. Logging spec at the top of the file |
 | `Scripts/CLAUDE.md` | Session rules, drive layout, mandatory edit rules, how to resume |
-| `Scripts/Method_Pipeline.md` | The one home for method, params, tiers, loss, QC design |
+| `Scripts/Method_Pipeline.md` | The one home for method, params, tiers, loss, QC design. Rewritten to semantic-only 2026-08-30 |
 | `Scripts/pipeline_buildtracker.md` | What's built vs pending, per phase |
 | `Scripts/IMAGERY_FACTS.md` | Measured imagery truths (the one home for GSDs, counts, sources) |
 | `Scripts/IMAGERY_PLAN.md` | The imagery workstream — open questions and plan |
-| `Scripts/canopy_definition_PROPOSAL.md` | The U1 canopy-definition decision. **Draft, awaiting Kam's sign-off — blocks Phase 3** |
+| `Scripts/canopy_definition_PROPOSAL.md` | The U1 canopy-definition decision. Draft; D2 decided 2026-08-20, D1/D3–D6 open. **Overlaps `Reports/CANOPY_DEFINITION_DECISION_2026-08.md` — two live docs soliciting the same sign-off** |
 | `Scripts/honest-measurement-overhaul.md` | **SUPERSEDED 2026-08-19** by the WORKPLAN; kept for provenance only |
 | `Scripts/litwatch_robustness.md` | CLOSED literature-watch ledger (4,706 lines) |
 | `Scripts/litreview_phase4_prompt.md` | Literature-search prompt template |
@@ -140,13 +151,13 @@ per its `MANIFEST.md`, no City-of-Edmonds years) serves fast local QC off the FU
 | `Reports/Measurement_Validity_Assessment_2026-08-18.md` | What the numbers can and cannot support (U1–U8) |
 | `Reports/Edmonds_Report_Dossier.md` + `Reports/inventory.csv` | City/consultant canopy reports: data + method per report; PDFs alongside |
 | `Reports/Edmonds_Canopy_Brief.md` | The short public-facing brief |
-| `Literature_Tracker.xlsx` (root) | 68 academic remote-sensing papers, 8 search phases |
-| `git log` / `git diff` | Code + doc history and rollback; DB on `D:\edmonds-pipeline\treedata.git`, tags v001–v048 |
+| `Literature_Tracker.xlsx` (root) | The literature ledger. Open it for the count — do not restate one here |
+| `git log` / `git diff` | Code + doc history and rollback. The working tree **is** the repo and GitHub is the live mirror; `treedata.git` was the old detached DB from the pre-2026-08-20 era and is retired |
 
 Per-session `HANDOFF_*.md` files are **retired** — their role is covered by the WORKPLAN
 + CHATLOG STATE.
 
 ---
 
-*This README is the map. Entry point → `Scripts/WORKPLAN_2026-08-19.md`. Live log →
-`Scripts/CHATLOG.md` STATE.*
+*This README is the map. Rules → `Scripts/CLAUDE.md`. Intent → `Scripts/WORKPLAN.md`.
+Facts → `Scripts/STATUS.md`, generated.*

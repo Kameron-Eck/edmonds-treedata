@@ -518,6 +518,39 @@ def parse_log_tail(tail):
 
 
 # ── assemble one session card ──────────────────────────────────────────────────
+def fill_job_chips(jobs, qlatest, merged_latest):
+    """Attach per-step chips to each job in place; return the RUNNING one, if any.
+
+    Lifted out of build_card on 2026-08-30 so it can be TESTED. It could not be before:
+    build_card probes VMs and reads the lake, so nothing imported this module, and that
+    is how the bug below shipped unnoticed through a clean compile.
+
+    THE KEY IS THE ROW'S FULL IDENTITY — (job, year, tag, step), matching latest_by_key
+    and names.py::job_key. It was (job, step) here until the same day. A 2-tuple lookup
+    against a 4-tuple dict does not raise; it returns None, so every chip on every card
+    would have rendered blank with no error at all. A monitoring tool that silently shows
+    nothing is worse than one that crashes. The queue yaml supplies id, year and tag, so
+    the full key was always available.
+    """
+    running = None
+    for j in jobs:
+        def _k(step, _j=j):
+            return job_key(_j["id"], _j.get("year"), _j.get("tag", ""), step)
+        chips = []
+        for st in STEPS:
+            r = qlatest.get(_k(st)) or merged_latest.get(_k(st))
+            src = "this" if _k(st) in qlatest else ("prior" if r else None)
+            v = qlatest.get(_k(f"VERIFY:{st}")) or merged_latest.get(_k(f"VERIFY:{st}"))
+            chips.append({"step": st, "state": (r or {}).get("state"), "minutes": (r or {}).get("minutes"),
+                          "ts": (r or {}).get("ts"), "src": src, "verify": (v or {}).get("state")})
+            if r and r.get("state") == "RUNNING" and src == "this":
+                running = {"job": j["id"], "step": st, "ts": r.get("ts")}
+        jend = qlatest.get(_k("VERIFY")) or merged_latest.get(_k("VERIFY"))
+        j["steps"] = chips
+        j["job_end"] = {"state": (jend or {}).get("state"), "detail": (jend or {}).get("detail")} if jend else None
+    return running
+
+
 def build_card(sess, probe, probe_err, merged_latest, now):
     card = {"name": sess["name"], "endpoint": sess.get("endpoint"), "hardware": sess.get("hardware"),
             "probe_err": probe_err, "flags": []}
@@ -565,20 +598,7 @@ def build_card(sess, probe, probe_err, merged_latest, now):
     jobs = read_queue_yaml(queue) if queue else []
     qrows = status_rows_for(stem) if stem else []
     qlatest = latest_by_key(qrows)
-    running = None
-    for j in jobs:
-        chips = []
-        for st in STEPS:
-            r = qlatest.get((j["id"], st)) or merged_latest.get((j["id"], st))
-            src = "this" if (j["id"], st) in qlatest else ("prior" if r else None)
-            v = qlatest.get((j["id"], f"VERIFY:{st}")) or merged_latest.get((j["id"], f"VERIFY:{st}"))
-            chips.append({"step": st, "state": (r or {}).get("state"), "minutes": (r or {}).get("minutes"),
-                          "ts": (r or {}).get("ts"), "src": src, "verify": (v or {}).get("state")})
-            if r and r.get("state") == "RUNNING" and src == "this":
-                running = {"job": j["id"], "step": st, "ts": r.get("ts")}
-        jend = qlatest.get((j["id"], "VERIFY")) or merged_latest.get((j["id"], "VERIFY"))
-        j["steps"] = chips
-        j["job_end"] = {"state": (jend or {}).get("state"), "detail": (jend or {}).get("detail")} if jend else None
+    running = fill_job_chips(jobs, qlatest, merged_latest)
     card["jobs"] = jobs
     # hard-fail rows in this queue's files
     cur_file = None                 # the status file of the launch that is running NOW

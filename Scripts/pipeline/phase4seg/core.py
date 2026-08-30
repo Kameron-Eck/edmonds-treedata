@@ -1099,6 +1099,10 @@ def _save_ckpt_state(phase, epoch, state, optim_state, sched_state,
                "history": history, "best_val": best_val,
                "in_channels": config.IN_CHANNELS,          # 3=RGB, 4=RGB+structure
                "aux_height_head": bool(config.AUX_HEIGHT), # height-prediction head present
+               # Re-baseline marker: lets a reader tell whether two checkpoints
+               # are comparable without reconstructing it from dates. Absent on
+               # pre-2026-08-30 checkpoints, which means epoch 1.
+               "epoch_marker": config.EPOCH,
                "hs_source": config.HS_SOURCE,             # which raster band 4 was
                # ── identity (2026-08-29, D2/D17) ──────────────────────────────
                # Without these a checkpoint cannot say which run produced it, so

@@ -470,6 +470,9 @@ def main():
                 "repo_root": str(repo_root) if repo_root else None,
                 "argv": sys.argv[1:],
                 "run_tag": config.RUN_TAG, "step": step0,
+                # The re-baseline marker (config.py, 2026-08-30). Absence in an
+                # older manifest means epoch 1 — do not backfill those.
+                "epoch": config.EPOCH,
                 "seed": int(RANDOM_SEED),
                 # T4: the two seeds are separate knobs and the manifest now says
                 # so. `seed` is training stochasticity; `split_seed` owns the

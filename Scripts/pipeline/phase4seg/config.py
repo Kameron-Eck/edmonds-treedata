@@ -955,3 +955,35 @@ META_NONSIG_KEYS = ("split_status",)
 #  contract already expresses. NOT YET TESTED.
 BOUNDARY_WEIGHT         = 0.0    # 0 = off. Kervadec's schedule runs ~0.01 -> ~0.99
 BOUNDARY_IGNORE_BUFFER  = 3      # px dilation of the IGNORE exclusion, see above
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+#  EPOCH — the re-baseline marker                              APPENDED 2026-08-30
+#
+#  WHY. Kam's decision (2026-08-30, repo overhaul): declare a new epoch rather than
+#  keep every future change comparable to results earned under the old pipeline.
+#  Existing scored work stays readable and becomes HISTORICAL; new work re-earns its
+#  numbers. That is a deliberate, one-way choice and it needs to be a recorded fact
+#  rather than a convention someone remembers.
+#
+#  WHAT IT IS FOR. Stamped into every manifest, checkpoint and scored row, so a
+#  reader can always answer "were these two numbers produced by the same pipeline?"
+#  without reconstructing it from dates. The project has been bitten repeatedly by
+#  comparisons that were silently across a boundary — the chm2 arm judged against
+#  the MAX of three seeds, the smoothing arm whose checkpoints were a different
+#  epoch than the log claimed, the 2016 chm-vs-rgb pair whose tile cache had since
+#  been re-tiled to NIR. An explicit marker makes that class of question answerable.
+#
+#  WHAT IT IS NOT. Not a version number for the code (that is phase4seg.__version__
+#  plus the git SHA, both already in the manifest) and not a schema version. It
+#  changes only when Kam decides results are no longer comparable across it.
+#
+#  epoch 1 = everything before the 2026-08-30 overhaul. Those artifacts carry NO
+#            epoch field; absence means 1. Do not backfill them — a field written
+#            later by inference is not evidence.
+#  epoch 2 = the semantic-canopy overhaul onward.
+#
+#  NOT IN _tile_signature: bumping the epoch must not force a ~20 min/year re-tile.
+#  Tiles are inputs, not results; whether two RESULTS are comparable is the question
+#  this answers.
+EPOCH = 2

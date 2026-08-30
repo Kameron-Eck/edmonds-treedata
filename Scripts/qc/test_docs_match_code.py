@@ -58,6 +58,7 @@ FACTS = PS.code_facts()
 GATED_DOCS = [
     "CLAUDE.md",
     "STATUS.md",
+    "WORKPLAN.md",
     "SEMANTIC_OVERHAUL_PLAN_2026-08-29.md",
 ]
 
@@ -153,10 +154,16 @@ def test_exactly_one_document_claims_to_be_the_active_plan():
         "WORKPLAN_2026-08-19.md",               # retires into WORKPLAN.md (Stage 0.1)
     }
     LIVE = "SEMANTIC_OVERHAUL_PLAN_2026-08-29.md"
+    # WORKPLAN.md is THE living document, not a dated campaign plan — it is supposed to
+    # read as current. Named explicitly because it would otherwise be caught by the
+    # filename filter, and it currently escapes only by accident: it happens to use the
+    # word "superseded" about CHATLOG's STATE block within the first 2000 characters.
+    # Rewording that sentence would break this test for no real reason.
+    NOT_A_CAMPAIGN_PLAN = {"WORKPLAN.md"}
 
     claims = set()
     for p in SCRIPTS.glob("*.md"):
-        if "plan" not in p.name.lower():
+        if "plan" not in p.name.lower() or p.name in NOT_A_CAMPAIGN_PLAN:
             continue
         head = p.read_text(encoding="utf-8")[:2000].lower()
         if "superseded" in head or "retired" in head:

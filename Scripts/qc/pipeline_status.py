@@ -136,10 +136,162 @@ def year_rows():
     return rows
 
 
+# ── STATUS.md ────────────────────────────────────────────────────────────────
+#
+# Split in two ON PURPOSE, and the split is what makes the drift gate possible.
+#
+#   CODE section  — derived from the repo alone. No Drive, no torch, so CI can
+#                   regenerate it on ubuntu and fail the build when it disagrees.
+#                   These are exactly the facts that drifted: CLAUDE.md told every
+#                   session "18 acquisitions / 15 calendar years / 4 NIR years"
+#                   against a catalog holding 36 / 20 / 10, and nobody noticed for
+#                   weeks because nothing compared the two.
+#   LAKE section  — derived from the Drive data lake. CI cannot see it, and the
+#                   repo's harvested copies always lag (qc_indep_report.csv read 70
+#                   live rows in the repo against 172 in the lake). So it carries
+#                   its own generation timestamp and SAYS it may be stale, rather
+#                   than presenting itself as current. Making the lag visible is the
+#                   honest fix; pretending harvesting keeps up is not.
+#
+# The markers are load-bearing — test_docs_match_code extracts the CODE block and
+# compares it against a fresh render.
+CODE_BEGIN = "<!-- STATUS:code:begin -->"
+CODE_END = "<!-- STATUS:code:end -->"
+NL = chr(10)
+
+
+def code_facts():
+    """Facts derived from the repo ALONE. Must not touch Drive or import torch."""
+    from collections import Counter
+    from phase4seg import config as C
+    import phase4seg
+
+    cat = C.YEAR_CATALOG
+    gsd = sorted(e["gsd_cm"] for e in cat)
+    years = sorted({"".join(c for c in e["label"] if c.isdigit())[:4] for e in cat})
+    nir = sorted(e["label"] for e in cat if e["bands"] >= 4)
+    tiers = Counter(C.tier_for(e) for e in cat)
+    dag = _read_dag()
+    return {
+        "engine_version": getattr(phase4seg, "__version__", "?"),
+        "acquisitions": len(cat),
+        "calendar_years": len(years),
+        "year_span": f"{years[0]}-{years[-1]}",
+        "gsd_min": gsd[0], "gsd_max": gsd[-1],
+        "gsd_hist": dict(sorted(Counter(gsd).items())),
+        "nir_labels": nir,
+        "rgb_only": len(cat) - len(nir),
+        "tiers": dict(sorted(tiers.items())),
+        "dag_stages": len(dag.get("stages", {})),
+        "dag_bad": len(validate_dag(dag)),
+    }
+
+
+def render_code_block(f):
+    """The CI-gatable half. Deterministic — no timestamps, no paths, no host."""
+    hist = "  ".join(f"{k:g}x{v}" for k, v in f["gsd_hist"].items())
+    tiers = "  ".join(f"{k} {v}" for k, v in f["tiers"].items())
+    return "\n".join([
+        CODE_BEGIN,
+        "### Derived from the code — regenerated and gated in CI",
+        "",
+        "| fact | value |",
+        "|---|---|",
+        f"| engine | `phase4seg {f['engine_version']}` |",
+        f"| acquisitions | **{f['acquisitions']}** |",
+        f"| calendar years | **{f['calendar_years']}** ({f['year_span']}) |",
+        f"| GSD span | **{f['gsd_min']:g} - {f['gsd_max']:g} cm** |",
+        f"| GSD histogram | {hist} |",
+        f"| NIR-bearing (`bands>=4`) | **{len(f['nir_labels'])}** - {' '.join(f['nir_labels'])} |",
+        f"| RGB-only | **{f['rgb_only']}** |",
+        f"| seg tiers | {tiers} |",
+        f"| DAG stages | {f['dag_stages']} ({f['dag_bad']} with a missing script) |",
+        "",
+        "Every number above is read from `pipeline/phase4seg/config.py:YEAR_CATALOG` and",
+        "`pipeline/dag.yaml` at generation time. Do not hand-edit this block - regenerate",
+        "with `py -3.12 qc/pipeline_status.py --markdown`.",
+        CODE_END,
+    ])
+
+
+
+def render_lake_block(when):
+    """The half CI cannot see. Carries its own timestamp and says so.
+
+    The repo's harvested copies lag the lake by design - measured on 2026-08-30,
+    qc_indep_report.csv held 70 live rows in the repo against 172 in the lake, seven
+    days apart. Rather than pretend a harvest keeps up, this block states when it was
+    generated and shows the two counts side by side so the lag is visible.
+    """
+    import pandas as pd
+    out = ["### Derived from the data lake - generated " + when,
+           "",
+           "**This half is only as current as the last run of this script.** CI cannot",
+           "regenerate it (no Drive mount), so it is NOT gated. Treat every number below",
+           "as of the timestamp above, not as of now.",
+           ""]
+
+    # the one comparison that makes the lag concrete
+    rows = []
+    repo_qc = REPO_SCRIPTS.parent / "phase4" / "qc" / "qc_indep_report.csv"
+    for label, path in (("repo", repo_qc),
+                        ("lake", BASE / "phase4" / "qc" / "qc_indep_report.csv")):
+        try:
+            d = pd.read_csv(path)
+            live = d[d["live"] == 1] if "live" in d.columns else d
+            rows.append((label, len(d), len(live), live["year"].nunique(),
+                         str(d["ts"].max()) if "ts" in d.columns else "?"))
+        except Exception as e:                                    # noqa: BLE001
+            rows.append((label, "-", "-", "-", f"unreadable ({type(e).__name__})"))
+    out += ["#### Scored results - repo copy vs lake", "",
+            "| copy | rows | live | years | newest |", "|---|---|---|---|---|"]
+    for r in rows:
+        out.append(f"| {r[0]} | {r[1]} | {r[2]} | {r[3]} | {r[4]} |")
+    if len({str(r[1]) for r in rows}) > 1:
+        out += ["", "The repo copy is BEHIND. Run `py -3.12 pipeline/harvest_results.py`",
+                "to close the gap, or read the lake directly."]
+    out.append("")
+
+    try:
+        df = pd.DataFrame(year_rows())
+        out += ["#### Per-year state", "", df.to_markdown(index=False), ""]
+    except Exception as e:                                        # noqa: BLE001
+        out += [f"_per-year table unavailable: {type(e).__name__}: {e}_", ""]
+    return NL.join(out)
+
+
+def write_status_md(dest):
+    """STATUS.md = the gated code block + the timestamped lake block."""
+    import datetime as _dt
+    when = _dt.datetime.now().strftime("%Y-%m-%d %H:%M")
+    parts = ["# Project status - GENERATED, do not hand-edit",
+             "",
+             "Regenerate: `py -3.12 qc/pipeline_status.py --markdown`",
+             "",
+             render_code_block(code_facts()),
+             ""]
+    if BASE.exists():
+        parts.append(render_lake_block(when))
+    else:
+        parts += ["### Derived from the data lake",
+                  "",
+                  f"_Not available: the lake is not mounted at `{BASE}` "
+                  f"(checked {when}). The code block above is complete regardless._",
+                  ""]
+    Path(dest).write_text(NL.join(parts) + NL, encoding="utf-8")
+    return dest
+
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--csv", default=None)
     ap.add_argument("--mermaid", action="store_true")
+    ap.add_argument("--markdown", nargs="?", const=str(REPO_SCRIPTS / "STATUS.md"),
+                    default=None, metavar="PATH",
+                    help="write STATUS.md (default: Scripts/STATUS.md). The code-derived "
+                         "block is regenerated and gated in CI; the lake block carries its "
+                         "own timestamp because CI cannot see Drive.")
     args = ap.parse_args([a for a in sys.argv[1:]
                           if not (a == "-f" or a.endswith(".json"))])
 
@@ -155,6 +307,12 @@ def main():
 
     if args.mermaid:
         print("\n```mermaid\n" + mermaid(dag) + "\n```")
+        return
+
+    if args.markdown:
+        dest = write_status_md(args.markdown)
+        print("")
+        print(f"wrote {dest}")
         return
 
     rows = year_rows()

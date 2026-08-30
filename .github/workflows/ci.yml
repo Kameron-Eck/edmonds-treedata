@@ -65,3 +65,16 @@ jobs:
 
       - name: acquire_imagery tests
         run: pytest Scripts/qc/test_acquire_imagery.py -q
+
+      # The drift gate. Until now CI verified code against code and one CSV header
+      # against its generator, and touched no .md at all — which is how CLAUDE.md
+      # spent weeks telling every session the archive held 18 acquisitions when the
+      # catalog held 36. This regenerates STATUS.md's code block and fails when a
+      # documented fact no longer matches YEAR_CATALOG.
+      #
+      # It runs here because it CAN: phase4seg/config.py imports only pathlib, so the
+      # catalog is readable on a runner with no torch and no Drive mount. The
+      # lake-derived half of STATUS.md is deliberately NOT gated for the same reason —
+      # CI cannot see Drive, so that half carries its own timestamp instead.
+      - name: docs match code (drift gate)
+        run: pytest Scripts/qc/test_docs_match_code.py Scripts/qc/test_status_discovery.py -q

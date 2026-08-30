@@ -54,6 +54,39 @@ SPACE RULES — keep always-loaded context low for continuous logging:
     judgement-heavy rewrite of the project's memory and should not be done at the end of a
     long session.
 
+overhaul: ** ACTIVE PLAN 2026-08-29 — SEMANTIC_OVERHAUL_PLAN_2026-08-29.md. **
+         SCOPE: semantic canopy mask per acquisition, all 36. Instance DEFERRED not
+         cancelled (Kam) — phase0 crowns stay a fixed LOOKUP GEOMETRY for
+         build_validity_intervals.py; no per-year instance step exists or is planned.
+         Kam proposed a 4-part overhaul; readiness + literature run before any build.
+         VERDICT: items 2 (labels), 3 (protocol) and 4 (validation) survive; ITEM 1
+         (ASPP as specified) DOES NOT. Measured on the live model: bottleneck is
+         16x16 at output stride 32, so r=12 (span 25) and r=18 (span 37) EXCEED the
+         whole feature map — only r<=7 fits, and an encoder swap does not change it
+         (smp keeps stride 32). The one held paper using {1,6,12,18} at a bottleneck
+         measures it on a net that already has 2 transformer context modules; its own
+         baseline row gives ASPP-on-plain-U-Net +0.00 / -0.60 mIoU.
+         BUILD THE BOUNDARY LOSS INSTEAD — canopy area is an integral over the mask
+         edge, and perimeters + small crowns are the MEASURED failure.
+         ENCODER: keep resnet101 (Scenario A). A swap re-earns phase3 (6 trainings,
+         unmeasured) and costs 172 live rows across 23 years their like-for-like
+         status (35-104 A100-h to re-score).
+         NEW CROSS-CUTTING FINDING — SEASON. Archive spans Feb-Oct; ALL labels come
+         from the Apr-Jul 2020 anchor. Partly a RE-discovery (Search 55 ID 194;
+         CHATLOG result (17) withdrew it same-day on a cross-sensor GRVI instrument) —
+         now reopened on a WITHIN-sensor one: 2013 King Jun .7368 vs 2015 King Feb
+         .6415, same program/GSD, and within calendar 2015 (real change = 0) the
+         coarse Aug frames beat the fine Feb one by .145/.201. Disentangle via
+         same-flight GSD pairs (2019s/2019n same 2019-10-11 flight) then same-year
+         cross-season pairs. Leaf-off x coarse cell is EMPTY and unfillable from real
+         imagery.
+         CORRECTED TODAY: lidar anchors 83.5% of imaged pixels (NOT 44% — that was a
+         both-epochs bbox figure incl. Puget Sound); missing 16.5% is 99.8% negative
+         NDVI = water, hiding at most +0.02 pp canopy (chm_gap_2016.txt).
+         GATES before any run: encoder name into the ckpt payload · --lr-phase-b ·
+         raise STEP_TIMEOUT_MIN['train'] (300 kills an uncapped patience run) · plot
+         against effective_cm not nominal GSD (2005 is nominal 20.05, effective 80.7).
+
 harness: ** 2026-08-29 — VERIFICATION REBUILT AFTER 3 ADVERSARIAL PASSES + CODE REVIEW.
          HEAD 1130dd7 on work/20260824-sectors. 157 tests, preflight, smoke green. **
          Root cause of the night's failures, stated once: every write was verified

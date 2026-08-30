@@ -65,10 +65,22 @@ phantom-M mtime lore, two-sessions-one-tree hazards. Git ops are normal now.
 
 Per-crown temporal validity intervals for 222,435 individual tree crowns across
 Edmonds, WA. **36 aerial imagery acquisitions across 20 calendar years (2000-2024)** —
-GSD spans **5.0 cm to 100.0 cm, a 20x range**. Outputs binary canopy masks per year
-(semantic, all 36) and per-crown instance polygons (the high-resolution subset; 14
-acquisitions are <=15.2 cm). Anchored to the 2020 hand-annotated
+GSD spans **5.0 cm to 100.0 cm, a 20x range**. Anchored to the 2020 hand-annotated
 dataset.
+
+**SCOPE, current: SEMANTIC canopy mapping — binary canopy mask per acquisition, all
+36.** The model predicts ONE class (`classes=1`); per-year steps are labels -> tile ->
+train -> evaluate -> inference -> postproc. Nothing in the Phase 4 path runs instance
+segmentation.
+
+**Instance is DEFERRED, not cancelled (Kam, 2026-08-29).** Phase 0 already produced the
+222,435 crown polygons ONCE, from 2020, and is frozen (pinned to smp==0.3.4; never load
+it in a phase3/4 runtime). Those polygons are used as a fixed LOOKUP GEOMETRY, not as a
+per-year target: `qc/build_validity_intervals.py` scores each 2020 crown against each
+year's SEMANTIC mask (>=0.5 PRESENT / <=0.15 ABSENT / between UNSURE / no data
+UNOBSERVED) and derives the interval from that ladder. Per-year instance segmentation is
+a future phase and is NOT built — this file previously advertised it as an output, which
+invited planning around a capability that does not exist.
 
 **Current active workstream:** the Option A overhaul (see the active plan), riding
 alongside Phase 4 — per-year semantic canopy. The model is precise but

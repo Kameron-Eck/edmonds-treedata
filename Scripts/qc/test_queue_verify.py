@@ -689,7 +689,14 @@ def test_verify_tile_reads_the_tagged_index_not_the_legacy_one(tmp_path, monkeyp
     it did not fail; it PASSED, against another arm's tiles, and reported their
     count as this arm's.
     """
+    # BASE ALONE IS NOT ENOUGH, and this test learned that the expensive way.
+    # QC_DIR and STATUS are bound at import from the ORIGINAL BASE, so verify_step
+    # -> _status_write wrote a fixture row onto the real lake ledger and replaced
+    # 69 rows of queue history. Redirect everything the write path can reach.
     monkeypatch.setattr(q, "BASE", tmp_path)
+    monkeypatch.setattr(q, "QC_DIR", tmp_path / "phase4" / "qc")
+    monkeypatch.setattr(q, "STATUS", tmp_path / "phase4" / "qc" / "status.csv")
+    monkeypatch.setattr(q, "STATUS_OUT", tmp_path / "phase4" / "qc" / "status.csv")
     tiles = tmp_path / "phase4" / "tiles"
     legacy = tiles / "2009"
     legacy.mkdir(parents=True)

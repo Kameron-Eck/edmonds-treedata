@@ -57,6 +57,7 @@ made permanent — an ungated doc can drift again.
 | **3.3** | cite symbols, not lines — 30 pointers, gated | **done** `c9ce071` |
 | **3.4** | the status ledger — one state vocabulary so oversight can see failure | **done** `b260212`; the 4 row keys / 4 filename parsers still have no owning module |
 | **3.5** | `core.py` at 2,773 lines — the largest refactor here | next |
+| **3.6** | `step_evaluate` should stamp `run_tag` into `semantic_eval_report.csv` | **found 2026-08-30, not started.** The report carries no run identity, so a year holds ONE OVERALL row however many arms trained on it — the registry could not attribute and did not. Relabelled as a year-level fact for now (`test_registry_attribution.py` is the tripwire); the real fix is at write time. 14 files read this report, so the header change is its own commit. |
 | **4** | architecture — SDM caching, HR aux branch, DeepLabV3+ arm | 4.1 partly done `7c8a385` |
 | **5** | pilot slice — 2019 / 2019s / 2019n | not started |
 

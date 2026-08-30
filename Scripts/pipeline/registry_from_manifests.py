@@ -105,21 +105,53 @@ def _fmt(x, nd=4):
         return str(x)
 
 
-def held_out_metrics(year, tag):
-    """The OVERALL held-out row for this year — the model's own test number."""
+# The eval report's columns, as of 2026-08-30:
+#     year, gsd_cm, tier, channels, eval_scope, scope, site, <metrics...>
+# NOT ONE OF THEM IDENTIFIES A RUN. step_evaluate keys its rows on (label, channels,
+# scope, site) and drops superseded ones, so a year holds ONE OVERALL row no matter how
+# many arms were trained on it. That is a fact about the writer, and no amount of
+# cleverness on this side can recover attribution the writer never recorded.
+_EVAL_RUN_ID_COLS = ("run_tag", "run_id", "tag", "ts")
+
+
+def held_out_metrics(year):
+    """The year's newest OVERALL eval row. A YEAR-LEVEL fact, labelled as one.
+
+    THIS TOOK A tag ARGUMENT AND IGNORED IT, which is the whole defect: a signature
+    promising per-run attribution the data cannot keep. Every arm on a year got the same
+    row. Regenerating the registry on 2026-08-30 printed it in the open — three different
+    2009 arms (nodecW, rgb3_ep60_s1234, rgb3_nodeb_twin), different seeds, different
+    GPUs, byte-identical "IoU 0.6959, AUROC 0.9082, AP 0.8299" — and tagged a run named
+    `rgb3` with `[rgb+chm]`, contradicting its own name on the same line.
+
+    honest_metrics, six lines below, is the contrast and the model: it joins on the
+    `prob` column — the raster THIS run produced — and returns "" when the run's raster
+    has not been scored. An exact, timezone-immune, per-run join. It was written that way
+    because a near-miss had already happened. This function was not.
+
+    The number is kept because for a single-arm year it IS that run's number, and most
+    years have one arm; deleting it would throw away real information to avoid a labelling
+    problem. It is relabelled instead, the same move STATUS.md makes for its lake section:
+    keep the fact, stamp its provenance, never let it read as more than it is.
+
+    The real fix is upstream — step_evaluate stamping run_tag into each eval row, since
+    attribution can only be created at write time. test_registry_attribution.py fails the
+    moment that column appears, so this relabelling cannot outlive the reason for it.
+    """
     best = None
     for r in _rows(EVAL_REPORT):
         if r.get("year") == year and r.get("scope") == "OVERALL":
             best = r                                  # last wins: the newest re-run
     if not best:
         return ""
-    bits = [f"held-out IoU {_fmt(best.get('iou'))}"]
+    bits = [f"year-eval IoU {_fmt(best.get('iou'))}"]
     for label, key in (("AUROC", "auroc"), ("AP", "ap"),
                        ("prec", "precision"), ("rec", "recall")):
         if best.get(key):
             bits.append(f"{label} {_fmt(best[key])}")
     ch = best.get("channels")
-    return f"{', '.join(bits)} [{ch}]" if ch else ", ".join(bits)
+    head = f"{', '.join(bits)} [{ch}]" if ch else ", ".join(bits)
+    return head + " (newest OVERALL row for the YEAR; the eval report carries no run identity)"
 
 
 def honest_metrics(year, tag="", run_ts=None):
@@ -255,7 +287,7 @@ def build_row(mf):
     sha, branch = (m.get("git_sha") or "")[:8], m.get("git_branch") or "?"
     script_version = f"{ver} ({sha} on {branch}{'; DIRTY' if m.get('git_dirty') else ''})"
 
-    metrics = [x for x in (held_out_metrics(year, tag) if step in ("train", "evaluate") else "",
+    metrics = [x for x in (held_out_metrics(year) if step in ("train", "evaluate") else "",
                            honest_metrics(year, tag, _parse_manifest_ts(ts))
                            if step == "inference" else "") if x]
     run_ts = _parse_manifest_ts(ts)

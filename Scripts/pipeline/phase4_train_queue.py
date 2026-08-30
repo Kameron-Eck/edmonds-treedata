@@ -104,7 +104,14 @@ LABELS  = BASE / "phase4" / "labels_corrected"
 ENGINE  = SCRIPTS / "phase4_semantic_finetune.py"
 STATUS  = QC_DIR / "train_queue_status.csv"
 
-STEPS = ["labels", "tile", "train", "evaluate", "inference"]
+# postproc IS in this list as of 2026-08-30, and its absence was a real defect:
+# step_postproc polygonises the probability raster into the binary canopy mask +
+# GPKG — THE deliverable — and config.PER_YEAR_STEPS has always included it. But the
+# queue passes an explicit --step (see run_step), cli.py sets per_year=[args.step],
+# so cli.py's `if "postproc" in per_year` was never true under the queue. The step
+# ran only from a hand-typed command, and --skip-postproc in a queue file was a no-op
+# because it skipped something that never ran.
+STEPS = ["labels", "tile", "train", "evaluate", "inference", "postproc"]
 
 # Per-step wall-clock ceilings, in MINUTES. Deliberately generous — these exist
 # to break a genuine hang, never to cut short a slow-but-working step. Reference
@@ -120,7 +127,7 @@ STEPS = ["labels", "tile", "train", "evaluate", "inference"]
 #   train 300 > 60 + 60 (tile sets are 0.2-0.7 GiB, below the lock's floor, so the
 #   wait term is slack) · inference 480 > 60 + 26 + 255 + verified copy.
 STEP_TIMEOUT_MIN = {"labels": 120, "tile": 180, "train": 300,
-                    "evaluate": 60, "inference": 480}
+                    "evaluate": 60, "inference": 480, "postproc": 120}
 
 # Two interrupts inside this window = a human really wants out.
 DOUBLE_INT_SEC = 20
@@ -1030,6 +1037,37 @@ def verify_step(job, step, rows, step_start=None, reverify=False):
         elif step == "inference":
             out = MASKS / f"edmonds_canopy_prob_{y}_{tag}.tif"
             state, detail = _check_prob_raster(out)
+        elif step == "postproc":
+            # THE DELIVERABLE. step_postproc writes two artifacts and both matter:
+            # the binary mask raster and the polygonised GPKG. Checking only one
+            # would pass a run that produced half a deliverable.
+            mtif = MASKS / f"edmonds_canopy_mask_{y}_{tag}.tif"
+            gpkg = MASKS / f"edmonds_canopy_mask_{y}_{tag}.gpkg"
+            missing = [q.name for q in (mtif, gpkg) if not q.exists()]
+            if missing:
+                state, detail = "MISSING", f"no {', '.join(missing)}"
+            else:
+                mb_t = mtif.stat().st_size / 1e6
+                mb_g = gpkg.stat().st_size / 1e6
+                if mb_g < 0.01:
+                    state, detail = "EMPTY", f"GPKG is {mb_g*1000:.0f}KB — no polygons"
+                else:
+                    state = "OK"
+                    detail = f"mask {mb_t:.0f}MB, gpkg {mb_g:.1f}MB"
+                    if step_start:
+                        old = [q.name for q in (mtif, gpkg)
+                               if q.stat().st_mtime < step_start - 5]
+                        if old:
+                            state = "BAD_CKPT"
+                            detail = (f"{', '.join(old)} PREDATE this step — not "
+                                      f"what this run produced")
+        else:
+            # AN UNRECOGNISED STEP MUST NOT PASS. `state` is initialised to "OK",
+            # so before this branch existed any step without an elif fell through
+            # every test and was recorded OK with an empty detail — verified
+            # having checked nothing. That is the silent-pass class this queue has
+            # spent a week closing, and adding postproc above would have widened it.
+            state, detail = "UNCHECKED", f"no verifier for step {step!r}"
     except Exception as e:                                      # noqa: BLE001
         state, detail = "UNCHECKED", f"{type(e).__name__}: {e}"[:200]
     if reverify:
@@ -1189,14 +1227,28 @@ def _declare_run_tags(todo, queue_name, job="", step=""):
 
 
 def _pid_alive(pid):
-    """Is this pid still running ON THIS HOST? Only ever asked about our own host."""
+    """Is this pid still running ON THIS HOST? Only ever asked about our own host.
+
+    POSIX ONLY, and the guard is not cosmetic. On Windows `os.kill` does not probe —
+    CPython maps it to TerminateProcess for every signal except CTRL_C_EVENT and
+    CTRL_BREAK_EVENT, so `os.kill(pid, 0)` KILLS the process it was asked about.
+    phase4seg/common.py:230 already carries this guard with the same warning; this
+    copy was added on 2026-08-30 without it, which is exactly the hazard the
+    hand-maintained twins create (see the overhaul plan, Stage 3.1).
+
+    Returning True on Windows is the correct fallback: the caller uses this to decide
+    whether a beacon's claim is stale, and "assume the peer is alive" preserves the
+    duplicate-tag protection rather than weakening it.
+    """
+    if os.name != "posix":
+        return True
     try:
-        os.kill(pid, 0)
+        os.kill(int(pid), 0)
     except ProcessLookupError:
         return False
     except PermissionError:
         return True                 # exists, owned by someone else
-    except OSError:
+    except (OSError, ValueError, TypeError):
         return True                 # cannot tell — assume live, the safe direction
     return True
 

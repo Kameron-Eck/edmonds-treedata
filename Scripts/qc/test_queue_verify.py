@@ -736,3 +736,104 @@ def test_the_tag_sanitiser_matches_the_engines(tmp_path):
         "cli.py's --run-tag sanitiser changed; _sanitize_tag must follow"
     for raw, want in [("node c/v1", "node_c_v1"), ("_x_", "x"), ("a.b-c", "a.b-c")]:
         assert q._sanitize_tag(raw) == want, raw
+
+
+# ── _pid_alive must never call os.kill on Windows ─────────────────────────────
+def test_pid_alive_does_not_touch_os_kill_off_posix(monkeypatch):
+    """On Windows os.kill does NOT probe — CPython maps it to TerminateProcess for
+    every signal but CTRL_C_EVENT/CTRL_BREAK_EVENT, so os.kill(pid, 0) KILLS the
+    process it was asked about. phase4seg/common.py:230 has carried this guard all
+    along; the queue's copy was added on 2026-08-30 without it.
+
+    Asserting the RETURN VALUE is not enough — True is also what a successful probe
+    gives. The test has to prove os.kill was never reached.
+    """
+    monkeypatch.setattr(os, "name", "nt")
+
+    def _boom(*a, **k):
+        raise AssertionError("os.kill was called off-posix — this TERMINATES on Windows")
+
+    monkeypatch.setattr(os, "kill", _boom)
+    assert q._pid_alive(4321) is True, "off-posix must assume the peer is alive"
+
+
+def test_pid_alive_still_probes_on_posix(monkeypatch):
+    """The guard must not disable the check where it genuinely works."""
+    monkeypatch.setattr(os, "name", "posix")
+    seen = []
+    monkeypatch.setattr(os, "kill", lambda p, s: seen.append((p, s)))
+    assert q._pid_alive(4321) is True
+    assert seen == [(4321, 0)], "posix must still probe with signal 0"
+
+    def _gone(p, s):
+        raise ProcessLookupError
+
+    monkeypatch.setattr(os, "kill", _gone)
+    assert q._pid_alive(4321) is False, "a dead pid must read as dead on posix"
+
+
+def test_the_two_pid_alive_copies_agree_off_posix():
+    """The engine and the orchestrator each carry a _pid_alive. They are a
+    hand-maintained twin, and this is the assertion that keeps them honest until
+    Stage 3.1 replaces them with one shared module."""
+    src = (Path(__file__).resolve().parents[1]
+           / "pipeline" / "phase4seg" / "common.py").read_text(encoding="utf-8")
+    i = src.index("def _pid_alive(")
+    body = src[i:i + 500]
+    assert 'os.name != "posix"' in body, \
+        "the engine copy lost its Windows guard — fix both, not one"
+
+
+# ── postproc: the deliverable step, and the unknown-step fallthrough ──────────
+def _pp_job():
+    return {"id": "pp1", "year": "2009", "tag": "t1"}
+
+
+def test_postproc_is_in_the_queue_step_list():
+    """step_postproc polygonises the canopy mask + GPKG — the deliverable. It was
+    absent from STEPS, so it never ran under the queue and --skip-postproc was a
+    no-op. config.PER_YEAR_STEPS has always included it."""
+    assert "postproc" in q.STEPS, "the deliverable step is not in the queue"
+    assert q.STEP_TIMEOUT_MIN.get("postproc"), "postproc has no wall-clock ceiling"
+
+
+def test_verify_postproc_needs_both_artifacts(tmp_path, monkeypatch):
+    monkeypatch.setattr(q, "BASE", tmp_path)
+    monkeypatch.setattr(q, "QC_DIR", tmp_path / "qc")
+    monkeypatch.setattr(q, "STATUS", tmp_path / "qc" / "s.csv")
+    monkeypatch.setattr(q, "STATUS_OUT", tmp_path / "qc" / "s.csv")
+    masks = tmp_path / "masks"
+    masks.mkdir()
+    monkeypatch.setattr(q, "MASKS", masks)
+
+    rows = []
+    assert q.verify_step(_pp_job(), "postproc", rows, step_start=None) is False
+    assert rows[-1]["state"] == "MISSING", rows[-1]
+
+    # only the raster — half a deliverable must still fail
+    (masks / "edmonds_canopy_mask_2009_t1.tif").write_bytes(b"x" * 2_000_000)
+    rows = []
+    q.verify_step(_pp_job(), "postproc", rows, step_start=None)
+    assert rows[-1]["state"] == "MISSING" and "gpkg" in rows[-1]["detail"]
+
+    # both present and non-trivial
+    (masks / "edmonds_canopy_mask_2009_t1.gpkg").write_bytes(b"y" * 500_000)
+    rows = []
+    assert q.verify_step(_pp_job(), "postproc", rows, step_start=None) is not False
+    assert rows[-1]["state"] == "OK", rows[-1]
+
+
+def test_an_unrecognised_step_cannot_pass(tmp_path, monkeypatch):
+    """`state` is initialised to "OK", so before the else-branch existed any step
+    with no elif fell through every test and was recorded OK having checked
+    nothing. That is the silent-pass class, and adding postproc would have widened
+    it."""
+    monkeypatch.setattr(q, "BASE", tmp_path)
+    monkeypatch.setattr(q, "QC_DIR", tmp_path / "qc")
+    monkeypatch.setattr(q, "STATUS", tmp_path / "qc" / "s.csv")
+    monkeypatch.setattr(q, "STATUS_OUT", tmp_path / "qc" / "s.csv")
+    rows = []
+    q.verify_step(_pp_job(), "a_step_nobody_wrote_a_verifier_for", rows, step_start=None)
+    assert rows[-1]["state"] == "UNCHECKED", \
+        f"an unverifiable step recorded {rows[-1]['state']} — it must never read as OK"
+    assert "no verifier" in rows[-1]["detail"]

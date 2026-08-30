@@ -15,9 +15,9 @@ WHY A TEST AND NOT A CONVENTION. The repo already states the rule — "one fact,
 (`README.md`, `CLAUDE.md`) — and states it in two places, both of which then disagreed
 about how long `CHATLOG.md`'s STATE block was. A rule nothing enforces is a wish.
 
-WHY IT COVERS ONLY SOME DOCS TODAY. The doc cleanup is Stage 1 of the overhaul and has
-not run yet: `Method_Pipeline.md`, `README.md`, `IMAGERY_FACTS.md` and
-`pipeline_buildtracker.md` still carry the old figures. Adding them here now would make
+WHY IT COVERS ONLY SOME DOCS TODAY. The doc cleanup is Stage 1 of the overhaul and is
+in flight. `README.md`, `IMAGERY_FACTS.md`, `pipeline_buildtracker.md` and
+`litreview_phase4_prompt.md` still carry the old figures. Adding them here now would make
 the gate red on arrival and it would be switched off. GATED_DOCS grows as Stage 1 lands —
 that is the forcing function, and the list below is the to-do list.
 
@@ -53,13 +53,14 @@ PS = _status_mod()
 FACTS = PS.code_facts()
 
 # Docs that CLAIM TO BE CURRENT and have been brought in line with the code.
-# Stage 1 of the overhaul adds: Method_Pipeline.md, README.md, IMAGERY_FACTS.md,
-# pipeline_buildtracker.md, litreview_phase4_prompt.md.
+# Stage 1 still to add: README.md, IMAGERY_FACTS.md, pipeline_buildtracker.md,
+# litreview_phase4_prompt.md. The list only grows.
 GATED_DOCS = [
     "CLAUDE.md",
     "STATUS.md",
     "WORKPLAN.md",
     "SEMANTIC_OVERHAUL_PLAN_2026-08-29.md",
+    "Method_Pipeline.md",
 ]
 
 # Figures that were true once and are not now. A gated doc may still MENTION one while

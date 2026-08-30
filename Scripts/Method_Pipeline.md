@@ -1,25 +1,50 @@
 # Edmonds Tree Canopy Study — Multi-Temporal Segmentation Pipeline Methodology
 ## Study Overview
-Individual tree crown detection and temporal monitoring across 24 years (2000–2024) for the City of Edmonds, Washington. The pipeline produces per-year semantic canopy masks (canopy/non-canopy classification) for all 18 imagery acquisitions at their native resolution. For the 9 acquisitions at 7.5cm and 14.9cm GSD — the only resolutions where individual crowns are reliably separable — the pipeline additionally produces individual crown polygons via instance segmentation using distance transform regression and watershed. A temporal tracking framework anchored to the 2020 detection links outputs across years.
+**Canopy cover assessment for the City of Edmonds, Washington: a binary canopy mask per
+aerial acquisition, at native resolution, across the whole archive. Semantic segmentation
+only.**
+
+Per-crown temporal validity intervals are derived afterwards by scoring the **fixed 2020
+crown layer** against each year's semantic mask (`qc/build_validity_intervals.py`) — not
+by detecting crowns per year.
+
+**Instance segmentation is DEFERRED, not cancelled** (Kam, 2026-08-29). Phase 0 produced
+the 222,435-crown layer once, from 2020, and is frozen. The instance method is documented
+below because it is real and will be revisited; it is **not** a current output, and
+nothing in the Phase 4 path runs it.
+
+> **Counts, GSD span and band splits are NOT restated here.** They live in
+> `pipeline/phase4seg/config.py: YEAR_CATALOG` and are generated into
+> [`STATUS.md`](STATUS.md), which CI regenerates and diffs. Restating them in prose is
+> what produced the drift corrected on 2026-08-29, when this file and `CLAUDE.md` both
+> described an archive that had not existed for weeks.
 ---
 ## Imagery Stack
 The measured imagery characterisation (rasters, sources, resolution, coverage, colour
-comparability) now lives in one home: `Scripts/IMAGERY_FACTS.md` (updated 2026-08-19).
-The table this section used to carry was stale twice over — 18 acquisitions listed vs.
-19 in-scope rasters on Drive, and nominal GSDs wrong by up to 6× — so it has been
-replaced with this pointer rather than re-listed and left to drift again.
-Summary: 19 rasters, 2000–2024, from 4 sources — King County, City of Edmonds,
-Snohomish Co., NAIP.
-**Semantic segmentation (all 18 acquisitions, all resolutions):** Binary canopy mask and canopy polygons produced for every year at native GSD. No upscaling is applied; all imagery is processed at its original resolution.
-**Instance segmentation (9 acquisitions at 7.5cm and 14.9cm only):** Individual crown polygons produced via DTM regression + watershed, in addition to the semantic mask. Instance segmentation is not applied to imagery coarser than 14.9cm because crown boundaries are not reliably separable at those resolutions (Qin et al., 2023). The 7 acquisitions at 29.9–60.0cm receive semantic segmentation only.
-| Resolution | Years | Tile ground area | Outputs |
-|------------|-------|-----------------|---------|
-| 7.5cm (City of Edmonds) | 2017, 2020, 2022, 2024 | 38.4m × 38.4m | Instance crowns + semantic mask |
-| 14.9cm (King County) | 2013, 2015, 2019, 2021, 2023 | 76.8m × 76.8m | Instance crowns + semantic mask |
-| 29.9cm (King County) | 2005, 2007, 2009 | 153.6m × 153.6m | Semantic mask only |
-| 50.0cm (Snohomish Co.) | 2016, 2021s | 307.2m × 307.2m | Semantic mask only (67% coverage) |
-| 59.7cm (King County) | 2000, 2002 | 305.7m × 305.7m | Semantic mask only |
-| 60.0cm (NAIP) | 2019n, 2022n | 307.2m × 307.2m | Semantic mask only |
+comparability) lives in one home: `Scripts/IMAGERY_FACTS.md`. The counts, GSD span and
+band splits are generated into [`STATUS.md`](STATUS.md) from `YEAR_CATALOG`.
+
+This section used to carry a resolution table. It has been removed rather than
+corrected, and the reason is the point: it was a hand-copy of the catalog, and it
+drifted three separate ways at once — an acquisition count that had not been right for
+weeks, PRE-CORRECTION GSD values (7.5 / 14.9 / 29.9 / 50.0 / 59.7 cm, superseded
+2026-08-18 when the numbers were found to be CRS units rather than ground centimetres),
+and a row keyed on `2022n`, an acquisition renamed to `2023n` in `5a12da5`. A reader
+chasing that year looked for a file nothing writes.
+
+The irony is instructive and is left on the record: the paragraph above this one has
+said since 2026-08-19 that a table was removed for being "stale twice over" — and the
+replacement table went stale in the same three ways.
+
+**Semantic segmentation, every acquisition, all resolutions.** Binary canopy mask +
+polygonised GPKG for every year at native GSD. No upscaling: all imagery is processed at
+its original resolution.
+
+**Instance segmentation — DEFERRED, not a current output.** The method is preserved
+under Architecture below. It was scoped to the finest tiers only, on the ground that a
+crown needs roughly 800+ pixels for reliable separation (Qin et al., 2023); at the coarse
+end of this archive a crown is 5-15 pixels across, which is two orders of magnitude
+below that.
 ---
 ## Training Data
 - **3,000 hand-traced crown polygons** from 5 training sites on 2020 City of Edmonds 7.5cm RGB imagery
@@ -36,23 +61,46 @@ Snohomish Co., NAIP.
 - **Decoder dropout:** 0.3
 - **Input:** 3-channel RGB, 512×512 tiles, ImageNet normalised
 - **Phase 0 checkpoint:** ddt_best_global.pt — trained on 2020 7.5cm imagery with L1 loss on DTM regression
-### Instance Segmentation Head (7.5cm and 14.9cm imagery only)
-- **Applies to:** 9 acquisitions — 2017, 2020, 2022, 2024 (7.5cm) and 2013, 2015, 2019, 2021, 2023 (14.9cm)
+### Instance Segmentation Head — **DEFERRED (Kam, 2026-08-29). Not a current output.**
+
+> Preserved because instance is deferred, not cancelled, and this method is real work
+> that will be revisited. **Nothing in the Phase 4 path runs it**; Phase 0 produced the
+> 222,435-crown layer once, from 2020, and is frozen on `smp==0.3.4` (never load it in a
+> phase3/4 runtime). The GSD figures below are the PRE-2026-08-18 values and are left
+> as-written because they are what the scoping decision was made on — re-derive current
+> resolutions from `YEAR_CATALOG`, not from this section.
+
+- **Applied to (as scoped then):** 9 acquisitions — 2017, 2020, 2022, 2024 (7.5cm) and 2013, 2015, 2019, 2021, 2023 (14.9cm)
 - **Output:** 1 channel, continuous DTM values (0–100), no activation
 - **Loss:** L1 (MAE) on distance transform map
 - **Post-processing:** Threshold DTM → peak_local_max → watershed → crown polygons
 - **Label generation:** Per-crown normalised distance from centroid (1=boundary, 100=centroid)
 - **Why these resolutions only:** At 7.5cm a typical 5m crown is ~2,100 pixels; at 14.9cm it is ~700 pixels. Both are above the ~800 pixel/crown threshold identified by Qin et al. (2023) for reliable instance detection. At 29.9cm the same crown is ~175 pixels — below the threshold and too coarse for the DTM gradient to support stable watershed separation.
-### Semantic Segmentation Head (all 18 acquisitions, 7.5–60.0cm)
-- **Applies to:** All 18 acquisitions at their native resolution — no upscaling applied
-- **Output:** 1 channel, binary canopy probability, sigmoid activation
-- **Loss:** BCEWithLogitsLoss (or BCE with sigmoid activation)
-- **Post-processing:** Threshold probability map → binary canopy mask → polygonize (no watershed — semantic seg classifies pixels as canopy/non-canopy without separating individual crowns)
-- **Label generation:** Binary rasterisation of projected 2020 crown polygons (1=canopy, 0=non-canopy)
-Both heads share the same encoder and decoder architecture. The only difference is the final activation and loss function. The pretrained Phase 0 weights initialise both variants. For the 9 high-resolution acquisitions (7.5cm and 14.9cm), both heads are fine-tuned and run independently, producing two complementary outputs per year. For the 9 coarser acquisitions (29.9–60.0cm), only the semantic head is used.
+### Semantic Segmentation Head — **THE current pipeline**
+- **Applies to:** every acquisition, at native resolution — no upscaling. Counts and the
+  GSD span are in [`STATUS.md`](STATUS.md); the archive spans a 20× resolution range, so
+  no single figure describes it.
+- **Output:** 1 channel (`classes=1`), binary canopy probability, sigmoid at inference
+- **Loss:** masked **BCE + Dice**, `BCE_WEIGHT` 0.5 / `DICE_WEIGHT` 0.5 (`config.py`),
+  selected per tier by `TIER_LOSS_MODE` — currently `bce_dice` on all three. `focal_dice`
+  is available via `--loss-mode`. Pure Dice is `--bce-weight 0`.
+  A signed-distance **boundary term** (Kervadec) exists behind `--boundary-weight`,
+  **off by default**, applied in Phase B only.
+- **All loss terms are IGNORE-aware.** Masks are three-state — 0 background, 1 canopy,
+  **255 IGNORE** — and 255 is excluded from every term. Any new term must do the same or
+  it silently trains on unlabelled pixels.
+- **Post-processing:** threshold the probability map → binary canopy mask → polygonise to
+  GPKG (`step_postproc`). No watershed: semantic segmentation classifies pixels, it does
+  not separate individual crowns.
+- **Label generation:** the citywide 2020 mask projected onto the target year
+  (`--force-citywide`, which every queue job passes). Two other label sources exist in
+  the engine — per-site crown polygons and `--anchor-labels` — see "Label Projection".
+
+The semantic head is the deployed model. It shares the encoder and decoder with the
+deferred instance head; they differ in the final activation and the loss.
 ---
 ## Per-Year Fine-Tuning Pipeline
-For each of the 18 imagery acquisitions (except 2020 which is already done):
+For every acquisition except the 2020 anchor (already done):
 ### Step 1: Label Projection
 1. Load the 3,000 hand-traced crown polygons (EPSG:3857)
 2. Reproject to the target year's CRS if needed (EPSG:2285 for Snohomish, EPSG:26910 for NAIP)
@@ -97,14 +145,38 @@ For each of the 18 imagery acquisitions (except 2020 which is already done):
 2. Peak local max → markers → watershed on negative DTM
 3. Filter by minimum crown area (2.0 m²)
 4. Output: crown polygon GeoPackage with crown_id, area_m2, diameter_m, size_class
-**Semantic segmentation (all 18 acquisitions at native resolution — no watershed):**
+**Semantic segmentation (every acquisition, native resolution, no watershed):**
 1. Threshold probability map (e.g., p > 0.5)
 2. Optional morphological operations (opening to remove noise, closing to fill small gaps)
 3. Polygonize to canopy mask polygons
 4. Output: canopy mask GeoPackage
 ---
-## Temporal Crown Linking
-The pipeline uses a hybrid anchor-and-discovery approach: 2020 serves as the primary anchor for the majority of stable trees, while independent detections from all other instance segmentation years are used to discover trees that the 2020 anchor would miss — specifically, trees planted after 2020 and trees removed before 2020. These change events are the most analytically valuable outputs of a 24-year temporal study.
+## Temporal Crown Linking — **DEFERRED WITH INSTANCE. Read the current method first.**
+
+> **What actually happens today**, and it is much simpler than the five steps below.
+> There are no per-year crown detections, so there is nothing to link. Instead
+> `qc/build_validity_intervals.py` takes the **fixed 2020 crown layer** and scores each
+> crown against each year's **semantic mask**:
+>
+>     cover >= --present-hi (0.5)   PRESENT
+>     cover <= --absent-lo  (0.15)  ABSENT
+>     between                       UNSURE      (never assigned to a class)
+>     NaN                           UNOBSERVED  (outside the scored footprint; never 0)
+>
+> and derives `valid_to` = latest PRESENT year, `valid_from` = earliest PRESENT year with
+> no ABSENT between it and `valid_to`. Same three-state discipline as the masks. One arm
+> family per run — mixing recipes inside a crown's time series would attribute recipe
+> differences to the tree.
+>
+> **The consequence worth stating plainly:** with a fixed 2020 crown layer, the pipeline
+> can say a 2020 tree was *absent* earlier, but it cannot discover a crown that existed
+> in 2005 and was gone by 2020, nor one planted after 2020 — there is no per-year
+> detector to find them. The anchor-and-discovery design below exists precisely to
+> recover those, and recovering them is what instance segmentation is deferred *for*.
+
+The design below is preserved for when instance is picked up again. It assumes per-year
+instance detections, which the current pipeline does not produce.
+
 After all years are processed:
 ### Step 1: Primary Anchor Matching (2020-Based)
 - The 2020 crown polygons serve as the primary canonical ID layer (highest quality: trained directly on hand-annotated 2020 data at 7.5cm)
@@ -154,7 +226,8 @@ After all years are processed:
   - Within-year z-scores and percentile ranks
   - GRVI = (G−R)/(G+R) as NDVI proxy (all years)
   - GCC = G/(R+G+B) as illumination-robust vegetation index (all years)
-  - True NDVI where NIR available (2016, 2019n, 2021s, 2022n)
+  - True NDVI where NIR is available — the NIR-bearing labels are generated into
+    [`STATUS.md`](STATUS.md); do not hand-list them, that list has been wrong twice
   - Building-relative normalised values (compare crown spectra to nearby building rooftops)
 - These features feed the temporal active learning pipeline for canopy change classification
 ---
@@ -273,7 +346,8 @@ Per-year validation against the 2020 crown mask reprojected onto other years is 
 real pre-2020 canopy change counts as model "error", so recall measured that way is not
 trustworthy. A model-independent reference is built for the NIR-bearing years and used as the
 honest accuracy instrument.
-- **Reference definition.** For a year with a NIR band (2016 snoh, 2019n/2022n/2021s NAIP/snoh):
+- **Reference definition.** For a year with a NIR band (see [`STATUS.md`](STATUS.md)
+  for the current list):
   `NDVI = (NIR − R)/(NIR + R)`. Raw NDVI counts **grass** as vegetation — which the model
   rejects on purpose — so the honest CANOPY reference is `canopy = (NDVI ≥ veg_thresh) AND
   (CHM height ≥ min_height)`, i.e. vegetation that is also tall. 2016 is the cleanest instrument:
@@ -407,26 +481,21 @@ This methodology is supported by:
 - **Comparable temporal studies:** Velasquez-Camacho et al. (2025) — 18-year urban tree monitoring with deep learning; Healy et al. (2022) — 62-year UTC analysis using aerial photos
 ---
 ## Output Summary
-| Year | GSD | Instance Output | Semantic Output |
-|------|-----|-----------------|-----------------|
-| 2000 | 59.7cm | — | Canopy mask + polygons |
-| 2002 | 59.7cm | — | Canopy mask + polygons |
-| 2005 | 29.9cm | — | Canopy mask + polygons |
-| 2007 | 29.9cm | — | Canopy mask + polygons |
-| 2009 | 29.9cm | — | Canopy mask + polygons |
-| 2013 | 14.9cm | Crown polygons + attributes | Canopy mask + polygons |
-| 2015 | 14.9cm | Crown polygons + attributes | Canopy mask + polygons |
-| 2016 | 50.0cm | — | Canopy mask + polygons (67%) |
-| 2017 | 7.5cm | Crown polygons + attributes | Canopy mask + polygons |
-| 2019 | 14.9cm | Crown polygons + attributes | Canopy mask + polygons |
-| 2019n | 60.0cm | — | Canopy mask + polygons |
-| 2020 | 7.5cm | Crown polygons + attributes (anchor) | Canopy mask + polygons |
-| 2021 | 14.9cm | Crown polygons + attributes | Canopy mask + polygons |
-| 2021s | 50.0cm | — | Canopy mask + polygons (67%) |
-| 2022 | 7.5cm | Crown polygons + attributes | Canopy mask + polygons |
-| 2022n | 60.0cm | — | Canopy mask + polygons |
-| 2023 | 14.9cm | Crown polygons + attributes | Canopy mask + polygons |
-| 2024 | 7.5cm | Crown polygons + attributes | Canopy mask + polygons |
+**Per acquisition**, `step_postproc` writes two artifacts to `phase4/masks/`:
+
+  edmonds_canopy_mask_{label}{_tag}.tif    binary canopy raster
+  edmonds_canopy_mask_{label}{_tag}.gpkg   polygonised canopy
+
+plus `edmonds_canopy_prob_{label}{_tag}.tif` from `step_inference`.
+
+The per-year table that stood here has been removed. It was the THIRD hand-copy of
+`YEAR_CATALOG` in this file, and it carried the same three defects as the other two:
+pre-2026-08-18 GSD values, a row for `2022n` which no longer exists under that name,
+and an Instance Output column describing a
+product that is not produced. Which years exist, at what GSD, and which have been
+scored is generated into [`STATUS.md`](STATUS.md) — that table is regenerated and
+diffed by CI, so it cannot drift the way these three did.
+
 All outputs are GeoPackage format with CRS matching the source imagery.
 ---
 *Document Version: 4.0 — May 22, 2026*

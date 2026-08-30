@@ -154,3 +154,41 @@ def pid_alive(pid):
     except (OSError, ValueError, TypeError):
         return True                      # cannot tell — assume live
     return True
+
+
+# ── the state vocabulary ──────────────────────────────────────────────────────
+#
+# THE BLIND SPOT THIS CLOSES. The queue writes ten states meaning "the artifact you
+# just paid GPU hours for is broken". The watcher that oversight reads through watched
+# a DIFFERENT eleven, and the campaign loop watched a third set of six. Lined up:
+#
+#   written by the queue but watched by NOBODY:
+#       UNREADABLE      the probability raster cannot be opened
+#       STALE_EVAL      evaluate exited 0 and left the previous run's numbers
+#       SIZE_CHANGED    the artifact is not the one that passed verification
+#
+# All three are really written (phase4_train_queue writes each of them). So a run that
+# died because its raster could not be opened produced `bad_jobs == []`, and
+# runtime_health printed ALL_OK and exited 0. The oversight command was not merely
+# incomplete — it was confidently wrong, which is worse than having no watcher.
+#
+# Two sets, because they are two different things and conflating them is how the
+# watcher ended up with a set that was neither:
+#   VERIFY_HARD_FAIL — a produced ARTIFACT is broken. Written by verify_step.
+#   RUN_FAIL         — the STEP itself did not complete. Written by run_step.
+# Oversight wants the union; the queue's own abort logic wants only the first.
+
+VERIFY_HARD_FAIL = frozenset({
+    "MISSING", "EMPTY", "MOSTLY_NODATA", "NO_CONFIDENCE", "BAD_CKPT",
+    "NO_TILES", "BAD_INDEX", "UNREADABLE", "STALE_EVAL", "SIZE_CHANGED",
+})
+
+RUN_FAIL = frozenset({"FAIL", "ERROR", "TIMEOUT", "ABORTED", "INTERRUPTED"})
+
+# What any oversight tool should treat as "this needs a human".
+BAD_STATES = VERIFY_HARD_FAIL | RUN_FAIL
+
+# NOT a failure: "the check could not answer". Distinct on purpose — a checker that
+# threw is not evidence the artifact is bad, and treating it as one would throw away
+# good GPU hours. It is also not a pass; the resume ledger keeps it flagged.
+VERIFY_UNVERIFIED = frozenset({"UNCHECKED", "UNVERIFIED"})

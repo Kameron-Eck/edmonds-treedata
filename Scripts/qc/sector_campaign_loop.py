@@ -42,6 +42,9 @@ DATA = Path(r"G:\My Drive\treedata")
 CHECKLIST = SCRIPTS / "pipeline" / "sector_campaign_checklist.yaml"
 CAMP = DATA / "phase4" / "qc" / "sector_campaign"
 COLAB = r"/c/Users/Kameron/.local/bin/colab.exe"
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "pipeline"))
+from phase4seg.names import BAD_STATES   # stdlib-only; see names.py
+
 BASH = shutil.which("bash") or r"C:\Program Files\Git\bin\bash.exe"
 SCRATCH_DEFAULT = Path(os.environ.get("LOCALAPPDATA", "")) / "Temp" / "sector_campaign_vm"
 
@@ -50,7 +53,10 @@ BASE_YEARS = ["2006s", "2011s", "2003s", "2012s", "2018s", "2020s"]
 NEW_ARMS = [(y, "sectors_v1") for y in BASE_YEARS] + [("2016", "fullext_sectors_v1"),
                                                      ("2021s", "fullext_sectors_v1")]
 SEED_STEPS = ["labels", "tile", "train", "evaluate"]
-HARD_FAIL = {"EMPTY", "MOSTLY_NODATA", "NO_CONFIDENCE", "MISSING", "ERROR", "FAIL"}
+# Was a hand-copy of SIX states against the queue's ten — it could not see
+# BAD_CKPT, NO_TILES, BAD_INDEX, UNREADABLE, STALE_EVAL or SIZE_CHANGED, so a
+# campaign job that failed any of those read as fine and the loop continued.
+HARD_FAIL = set(BAD_STATES)
 NOW = lambda: dt.datetime.now(dt.timezone.utc).isoformat(timespec="seconds")  # noqa: E731
 
 

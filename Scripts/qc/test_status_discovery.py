@@ -133,3 +133,61 @@ def test_names_module_stays_stdlib_only():
              "numpy", "pandas", "fiona"}
     pulled = heavy & {m.split(".")[0] for m in set(sys.modules) - before}
     assert not pulled, f"names.py pulled heavy deps: {sorted(pulled)}"
+
+
+# ── the state vocabulary: readers must see everything the writer writes ───────
+def _load(name, rel):
+    import importlib.util
+    spec = importlib.util.spec_from_file_location(name, SCRIPTS / rel)
+    m = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(m)
+    return m
+
+
+def test_every_reader_sees_every_state_the_writer_writes():
+    """THE BLIND SPOT. The queue writes ten states meaning "the artifact you just paid
+    GPU hours for is broken". watch_queue watched a hand-copied ELEVEN that omitted
+    UNREADABLE, STALE_EVAL and SIZE_CHANGED; sector_campaign_loop watched SIX. All
+    three omitted states are really written.
+
+    So a run that died because its probability raster could not be opened produced
+    bad_jobs == [] and runtime_health printed ALL_OK and exited 0. Not merely
+    incomplete — confidently wrong, which is worse than having no watcher at all.
+    """
+    from phase4seg.names import VERIFY_HARD_FAIL
+
+    readers = {
+        "watch_queue.BAD": set(_load("wq", "qc/watch_queue.py").BAD),
+        "sector_campaign_loop.HARD_FAIL":
+            set(_load("scl", "qc/sector_campaign_loop.py").HARD_FAIL),
+    }
+    gaps = {n: sorted(VERIFY_HARD_FAIL - s) for n, s in readers.items()
+            if VERIFY_HARD_FAIL - s}
+    assert not gaps, (
+        "these oversight readers cannot see states the queue really writes — a run "
+        f"failing one of them would report healthy: {gaps}")
+
+
+def test_runtime_health_inherits_the_same_set():
+    """runtime_health imports watch_queue's set rather than keeping its own, which is
+    the right shape — but only because that set is now the shared one."""
+    src = (SCRIPTS / "qc" / "runtime_health.py").read_text(encoding="utf-8")
+    assert "from watch_queue import" in src and "BAD" in src
+
+
+def test_unverified_is_not_a_failure_and_not_a_pass():
+    """"The check could not answer" is its own thing. Folding it into either bucket
+    was D7: every exception landed on UNCHECKED, UNCHECKED was not a hard fail, and
+    everything downstream treated not-hard-fail as a pass."""
+    from phase4seg.names import BAD_STATES, VERIFY_HARD_FAIL, VERIFY_UNVERIFIED
+
+    assert not (VERIFY_UNVERIFIED & BAD_STATES), "UNCHECKED must not abort a job"
+    assert not (VERIFY_UNVERIFIED & VERIFY_HARD_FAIL)
+    assert "UNCHECKED" in VERIFY_UNVERIFIED and "UNVERIFIED" in VERIFY_UNVERIFIED
+
+
+def test_the_queue_uses_the_shared_set():
+    import phase4_train_queue as _q
+    from phase4seg.names import VERIFY_HARD_FAIL
+
+    assert set(_q._VERIFY_HARD_FAIL) == set(VERIFY_HARD_FAIL)

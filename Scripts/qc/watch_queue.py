@@ -23,15 +23,17 @@ from pathlib import Path
 # watcher free of the engine's heavy deps while giving it the one
 # status-file discovery rule.
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "pipeline"))
-from phase4seg.names import status_files
+from phase4seg.names import BAD_STATES, status_files
 
 _COLAB_BASE = Path("/content/drive/MyDrive/treedata")
 _LOCAL_BASE = Path(r"G:\My Drive\treedata")
 BASE = _COLAB_BASE if _COLAB_BASE.exists() else _LOCAL_BASE
 STATUS = BASE / "phase4" / "qc" / "train_queue_status.csv"
 
-BAD = {"FAIL", "ERROR", "TIMEOUT", "ABORTED", "EMPTY", "MOSTLY_NODATA",
-       "NO_CONFIDENCE", "BAD_CKPT", "NO_TILES", "BAD_INDEX", "MISSING"}
+# Was a hand-copy that MISSED three states the queue really writes — UNREADABLE,
+# STALE_EVAL and SIZE_CHANGED — so a run that died on any of them showed no bad jobs
+# and runtime_health (which imports this set) exited 0. Now the shared union.
+BAD = set(BAD_STATES)
 
 
 def _rows():

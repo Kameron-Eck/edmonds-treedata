@@ -94,7 +94,7 @@ import time
 from pathlib import Path
 
 from phase4seg.names import (
-    pid_alive, sanitize_tag, status_files, tile_dir_name,
+    VERIFY_HARD_FAIL, pid_alive, sanitize_tag, status_files, tile_dir_name,
 )
 
 _COLAB_BASE = Path("/content/drive/MyDrive/treedata")
@@ -719,9 +719,11 @@ def _check_prob_raster(out, attempts=3, backoff_s=10):
 
 # P4.3: states that mean "the artifact this step just paid for is broken" —
 # the queue must stop spending on this job, not sail into the next GPU hour.
-_VERIFY_HARD_FAIL = {"MISSING", "EMPTY", "MOSTLY_NODATA", "NO_CONFIDENCE",
-                     "BAD_CKPT", "NO_TILES", "BAD_INDEX", "UNREADABLE",
-                     "STALE_EVAL", "SIZE_CHANGED"}
+# One home for the vocabulary (phase4seg/names.py). It used to live here and be
+# hand-copied into watch_queue.BAD and sector_campaign_loop.HARD_FAIL, and those two
+# copies were each MISSING states this file really writes — so a run that died on
+# UNREADABLE, STALE_EVAL or SIZE_CHANGED made runtime_health print ALL_OK.
+_VERIFY_HARD_FAIL = VERIFY_HARD_FAIL
 
 # D7 (2026-08-29): states that mean "THIS CHECK COULD NOT ANSWER" — which is not
 # the same as "the artifact is fine", and used to be recorded as if it were.

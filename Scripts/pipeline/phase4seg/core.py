@@ -393,6 +393,38 @@ def _inflate_first_conv(state, own):
     return patched
 
 
+def _assert_state_fits(res, ckpt_path, allow_missing=(), what=""):
+    """Refuse a load_state_dict result that does not fit. Shared, because
+    step_inference does its own raw load_state_dict and bypassed the guarded
+    loader entirely — and that is the step that writes the deliverable rasters,
+    so it was the WORST one to leave silent. Measured on smp 0.5.0: a resnet101
+    checkpoint loaded into a resnet50 U-Net matches 380/380 target keys, so a
+    franken-load reports ZERO missing keys and is caught only by the 306
+    unexpected ones. Missing-key checks alone would not see it.
+    """
+    missing = [n for n in res.missing_keys
+               if not any(n.startswith(a) for a in allow_missing)]
+    unexpected = list(res.unexpected_keys)
+    if missing or unexpected:
+        def _show(keys):
+            head = ", ".join(keys[:6])
+            return head + (" ... (+%d more)" % (len(keys) - 6) if len(keys) > 6 else "")
+        msg = ["CHECKPOINT DOES NOT FIT THIS MODEL" + (" - " + what if what else ""),
+               "  checkpoint : %s" % Path(ckpt_path).name]
+        if missing:
+            msg += ["  missing    : %d key(s) the model needs and the ckpt lacks" % len(missing),
+                    "               " + _show(missing)]
+        if unexpected:
+            msg += ["  unexpected : %d key(s) the ckpt has and the model lacks" % len(unexpected),
+                    "               " + _show(unexpected)]
+        msg += ["",
+                "  Loading anyway leaves those weights at INITIALISATION and then trains",
+                "  and scores without raising - a plausible number off a partly random",
+                "  model. If this gap is expected, the CALLER declares it via",
+                "  allow_missing=(...); the loader does not guess."]
+        raise SystemExit(chr(10).join(msg))
+
+
 def load_state_into(model, ckpt_path, device, allow_missing=(), what=""):
     """Load a checkpoint's model_state into model (handles torch.compile wrap and
     RGB->RGB+hillshade first-conv inflation).
@@ -418,27 +450,7 @@ def load_state_into(model, ckpt_path, device, allow_missing=(), what=""):
     tgt = model._orig_mod if hasattr(model, "_orig_mod") else model
     state = _inflate_first_conv(state, tgt.state_dict())
     res = tgt.load_state_dict(state, strict=False)
-    missing = [n for n in res.missing_keys
-               if not any(n.startswith(a) for a in allow_missing)]
-    unexpected = list(res.unexpected_keys)
-    if missing or unexpected:
-        def _show(keys):
-            head = ", ".join(keys[:6])
-            return head + (" ... (+%d more)" % (len(keys) - 6) if len(keys) > 6 else "")
-        msg = ["CHECKPOINT DOES NOT FIT THIS MODEL" + (" - " + what if what else ""),
-               "  checkpoint : %s" % Path(ckpt_path).name]
-        if missing:
-            msg += ["  missing    : %d key(s) the model needs and the ckpt lacks" % len(missing),
-                    "               " + _show(missing)]
-        if unexpected:
-            msg += ["  unexpected : %d key(s) the ckpt has and the model lacks" % len(unexpected),
-                    "               " + _show(unexpected)]
-        msg += ["",
-                "  Loading anyway leaves those weights at INITIALISATION and then trains",
-                "  and scores without raising - a plausible number off a partly random",
-                "  model. If this gap is expected, the CALLER declares it via",
-                "  allow_missing=(...); the loader does not guess."]
-        raise SystemExit(chr(10).join(msg))
+    _assert_state_fits(res, ckpt_path, allow_missing, what)
     return ckpt
 
 
@@ -2400,8 +2412,14 @@ def step_inference(label, batch_size=INFER_BATCH_SIZE, dry_run=False, citywide=F
             f"substituted 4th channel.")
     model = build_model(device, compile_model=False)
     _tgt = model._orig_mod if hasattr(model, "_orig_mod") else model
-    _tgt.load_state_dict(_inflate_first_conv(ck["model_state"], _tgt.state_dict()),
-                         strict=False)
+    # THE DELIVERABLE-PRODUCING STEP, and it was the one load path still doing its
+    # own strict=False and discarding the result — so a checkpoint that did not fit
+    # this model produced a full citywide canopy raster with no error raised. Same
+    # guard as every other path now.
+    _res = _tgt.load_state_dict(
+        _inflate_first_conv(ck["model_state"], _tgt.state_dict()), strict=False)
+    _assert_state_fits(_res, ckpt, allow_missing=("aux_height_head.",),
+                       what="deployed checkpoint -> citywide inference")
     model.eval()
     if device.type == "cuda":
         # every inference forward has the same shape, so cuDNN's autotuner pays for

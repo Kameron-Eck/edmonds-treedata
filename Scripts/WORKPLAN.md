@@ -33,6 +33,12 @@ year is supervised by projecting the 2020 mask onto it, so growth, removal and �
 Active plan: **`SEMANTIC_OVERHAUL_PLAN_2026-08-29.md`** (architecture direction) executed
 through the repo overhaul plan agreed 2026-08-30. Branch `work/20260824-sectors`.
 
+**The drift gate covers nine documents** and grows as each is brought in line:
+`CLAUDE.md`, `WORKPLAN.md`, `STATUS.md`, the active plan, `Method_Pipeline.md`,
+`README.md`, `IMAGERY_FACTS.md`, `pipeline_buildtracker.md`,
+`litreview_phase4_prompt.md`. Adding a doc to `GATED_DOCS` is how the cleanup is
+made permanent — an ungated doc can drift again.
+
 ### The board
 
 | stage | what | state |
@@ -44,8 +50,8 @@ through the repo overhaul plan agreed 2026-08-30. Branch `work/20260824-sectors`
 | **0.2** | `STATUS.md` generated from code + lake | **done** `37be4ab` |
 | **0.3** | drift gate wired into `ci.yml` | **done** `37be4ab` |
 | **0.4** | `EPOCH` re-baseline marker | **done** |
-| **1** | documentation — 5 class-A docs rewritten, banners applied | next |
-| **2** | code shaped for retired goals — flag triage, dangling phase refs | not started |
+| **1** | documentation — 5 class-A docs rewritten, 4 banners applied | **done** `e232be5` `46812d8` `5d91657` `9fe99f7` |
+| **2** | code shaped for retired goals — flag triage, dangling phase refs | next |
 | **3** | structural debt — the twins, `config.py` precision, the ledger module | not started |
 | **4** | architecture — SDM caching, HR aux branch, DeepLabV3+ arm | 4.1 partly done `7c8a385` |
 | **5** | pilot slice — 2019 / 2019s / 2019n | not started |

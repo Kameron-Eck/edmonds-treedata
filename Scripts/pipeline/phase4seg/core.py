@@ -674,19 +674,112 @@ def _masked_focal(criterion_none, logits, masks):
     return (focal_map * valid).sum() / valid.sum().clamp(min=1.0)
 
 
-def _seg_loss(criterion_none, logits, masks, loss_mode="bce_dice"):
+def _signed_distance_map(masks, ignore_buffer=0):
+    """Kervadec-style signed distance map of the canopy boundary, plus its weight.
+
+    Sign convention (Kervadec et al. 2019): NEGATIVE inside canopy, POSITIVE outside.
+    The boundary loss is then sum(sdm * prob), so predicting canopy far outside the
+    true region is penalised in proportion to how far outside it is, and predicting it
+    inside is rewarded. That distance weighting is the whole point: an ordinary region
+    loss treats a pixel 1 px over the edge exactly like one 50 px over it.
+
+    THE HAZARD THIS FUNCTION EXISTS TO HANDLE, and it does not arise for BCE or Dice.
+    A distance transform needs a BINARY field, so the 255 IGNORE pixels have to be
+    assigned to one side. Assigning them to background manufactures a boundary at every
+    canopy/IGNORE edge - and those edges are everywhere in this project, because IGNORE
+    is exactly where the label is unsure. Training a boundary term to snap to a
+    manufactured edge would teach the model the shape of our uncertainty.
+
+    Two defences, both necessary:
+      1. the returned weight is zero at IGNORE (matching _masked_bce/_masked_dice), and
+      2. `ignore_buffer` dilates that zero outward, so the manufactured boundary's
+         NEIGHBOURHOOD is excluded too - the loss is only applied where the distance
+         field was computed from real labels on both sides.
+
+    Returns (sdm, weight), float32, on masks.device. Per-sample normalisation by the
+    max absolute distance makes the term scale-free, so its weight means the same thing
+    at any tile size or canopy fraction.
+    """
+    from scipy.ndimage import binary_dilation, distance_transform_edt
+    m = masks.detach().cpu().numpy()
+    sdm = np.zeros(m.shape, np.float32)
+    w = np.zeros(m.shape, np.float32)
+    flat = m.reshape(-1, *m.shape[-2:])
+    fs, fw = sdm.reshape(-1, *m.shape[-2:]), w.reshape(-1, *m.shape[-2:])
+    for j in range(flat.shape[0]):
+        s = flat[j]
+        ign = (s == IGNORE_LABEL)
+        canopy = (s == 1)
+        valid = ~ign
+        if ignore_buffer > 0 and ign.any():
+            valid &= ~binary_dilation(ign, iterations=int(ignore_buffer))
+        fw[j] = valid.astype(np.float32)
+        # A tile that is all canopy or all background has NO boundary; a distance field
+        # there is meaningless, so contribute nothing rather than a large constant.
+        if not canopy.any() or canopy.all():
+            continue
+        d_out = distance_transform_edt(~canopy)
+        d_in = distance_transform_edt(canopy)
+        d = (d_out - d_in).astype(np.float32)
+        peak = float(np.abs(d).max())
+        if peak > 0:
+            d /= peak
+        fs[j] = d
+    dev = masks.device
+    return (torch.from_numpy(sdm).to(dev), torch.from_numpy(w).to(dev))
+
+
+def _masked_boundary(logits, masks, sdm=None, ignore_buffer=0):
+    """Boundary loss over labeled pixels only (255 = IGNORE excluded, plus a buffer).
+
+    IGNORE handling matches _masked_bce and _masked_dice: the weight is zero at IGNORE
+    and the sum is normalised by the weight, so an all-IGNORE tile contributes nothing
+    rather than dividing by zero.
+
+    COST NOTE, measured: the two distance transforms are ~23 ms per 512 px tile on this
+    machine, so a batch of 10 adds ~230 ms plus a GPU->CPU->GPU round trip. The SDM
+    depends ONLY on the mask, which is fixed per tile, so recomputing it every epoch is
+    pure waste - the right home is the Dataset (computed once, in DataLoader workers) or
+    a file written beside each tile. Left here for now because correctness of the term
+    is what is being established; move it before a long run.
+    """
+    if sdm is None:
+        sdm, w = _signed_distance_map(masks, ignore_buffer)
+    else:
+        sdm, w = sdm
+    probs = torch.sigmoid(logits)
+    return (sdm * probs * w).sum() / w.sum().clamp(min=1.0)
+
+
+
+def _seg_loss(criterion_none, logits, masks, loss_mode="bce_dice", boundary_w=0.0):
     """Combined masked segmentation loss (all terms IGNORE-aware).
 
-    loss_mode "focal_dice" → FOCAL_WEIGHT*focal + DICE_WEIGHT*dice (Edit F);
-    otherwise → BCE_WEIGHT*bce + DICE_WEIGHT*dice (default, run-5 baseline).
-    Returns (combined, primary_component, dice_component).
+    loss_mode "focal_dice" -> FOCAL_WEIGHT*focal + DICE_WEIGHT*dice (Edit F);
+    otherwise -> BCE_WEIGHT*bce + DICE_WEIGHT*dice (default, run-5 baseline).
+
+    `boundary_w` > 0 ADDS the signed-distance boundary term. It is a WEIGHT rather than
+    a loss_mode on purpose: Kam's design applies it in Phase B only, so the caller passes
+    0.0 while the encoder is frozen and the configured value once it is not. A weight
+    also makes the Kervadec alpha schedule expressible without a second mode string.
+
+    Default 0.0 -> byte-for-byte the previous loss. Every existing arm is unaffected.
+
+    Returns (combined, primary_component, dice_component) as before.
     """
     dice = _masked_dice(logits, masks)
     if loss_mode == "focal_dice":
         focal = _masked_focal(criterion_none, logits, masks)
-        return FOCAL_WEIGHT * focal + config.DICE_WEIGHT * dice, focal, dice
-    bce = _masked_bce(criterion_none, logits, masks)
-    return config.BCE_WEIGHT * bce + config.DICE_WEIGHT * dice, bce, dice
+        total = FOCAL_WEIGHT * focal + config.DICE_WEIGHT * dice
+        primary = focal
+    else:
+        bce = _masked_bce(criterion_none, logits, masks)
+        total = config.BCE_WEIGHT * bce + config.DICE_WEIGHT * dice
+        primary = bce
+    if boundary_w:
+        total = total + boundary_w * _masked_boundary(
+            logits, masks, ignore_buffer=config.BOUNDARY_IGNORE_BUFFER)
+    return total, primary, dice
 
 
 def _compute_pos_weight(df):
@@ -707,7 +800,7 @@ def _compute_pos_weight(df):
 
 
 def _train_one_epoch(model, loader, optimizer, scaler, criterion, device,
-                     loss_mode="bce_dice", freeze_bn=False):
+                     loss_mode="bce_dice", freeze_bn=False, boundary_w=0.0):
     model.train()
     if freeze_bn:
         _set_encoder_bn_eval(model)   # re-pin frozen-encoder BN after train()
@@ -726,7 +819,7 @@ def _train_one_epoch(model, loader, optimizer, scaler, criterion, device,
         with torch.amp.autocast("cuda"):
             out = model(imgs)
             logits, height_pred = (out if isinstance(out, (tuple, list)) else (out, None))
-            seg, _p, _dice = _seg_loss(criterion, logits, masks, loss_mode)
+            seg, _p, _dice = _seg_loss(criterion, logits, masks, loss_mode, boundary_w)
             aux_h = (_masked_l1(height_pred, heights)
                      if (heights is not None and height_pred is not None) else None)
         loss = seg if aux_h is None else seg + config.HEIGHT_LAMBDA * aux_h
@@ -1836,7 +1929,13 @@ def step_train(label, batch_size=BATCH_SIZE, p3_ckpt=None, dry_run=False, compil
     for ep in range(config.EPOCHS_PHASE_A):
         t0 = time.time()
         _, tr_bce = _train_one_epoch(model, train_loader, opt, scaler, criterion,
-                                     device, loss_mode, freeze_bn=config.FREEZE_ENCODER_BN)
+                                     device, loss_mode,
+                                     freeze_bn=config.FREEZE_ENCODER_BN,
+                                     # Phase A maps 2020-learned features onto a new
+                                     # resolution with the encoder frozen. Edges are
+                                     # Phase B's job (Kam, 2026-08-30), so the boundary
+                                     # term is explicitly OFF here, not merely unset.
+                                     boundary_w=0.0)
         v_bce, v_iou, v_iou_bt, v_thr = _validate(model, val_loader, criterion,
                                                   device, loss_mode)
         es_val = (v_iou_bt if es_metric == "val_iou_bt"      # tier-selected metric
@@ -1922,7 +2021,8 @@ def _run_phase_b(model, train_loader, val_loader, criterion, device, loss_mode,
     for ep in range(config.EPOCHS_PHASE_B):
         t0 = time.time()
         _, tr_bce = _train_one_epoch(model, train_loader, opt, scaler, criterion,
-                                     device, loss_mode)
+                                     device, loss_mode,
+                                     boundary_w=config.BOUNDARY_WEIGHT)
         v_bce, v_iou, v_iou_bt, v_thr = _validate(model, val_loader, criterion,
                                                   device, loss_mode)
         es_val = (v_iou_bt if es_metric == "val_iou_bt"      # tier-selected metric

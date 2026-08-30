@@ -325,6 +325,15 @@ def main():
     p.add_argument("--emit-height", action="store_true",
                    help="(Reserved) With --aux-height, also write a predicted-height raster at "
                         "inference — a bonus diagnostic; not yet wired into step_inference.")
+    p.add_argument("--boundary-weight", type=float, default=None,
+                   help="Weight on the signed-distance BOUNDARY loss (Kervadec), "
+                        "added to the region loss in PHASE B ONLY; Phase A always "
+                        f"runs without it. Default {config.BOUNDARY_WEIGHT} = OFF, "
+                        "which is byte-for-byte the previous loss. Targets the "
+                        "measured failure (crown perimeters, small crowns) and the "
+                        "deliverable's own unit, since canopy AREA is an integral "
+                        "over the mask edge. Try ~0.01-0.1 first: it is a distance-"
+                        "weighted term and can dominate if set like a region weight.")
     p.add_argument("--loss-mode", choices=["bce_dice", "focal_dice"], default=None,
                    help="Override the COARSE-tier training loss (Edit F): 'bce_dice' "
                         "(default = run-5 baseline) or 'focal_dice' (focal+dice "
@@ -533,6 +542,11 @@ def main():
     # script edit between runs. Defaults reproduce v030 exactly.
     config.COARSE_POS_WEIGHT_MAX = float(args.coarse_pos_weight_max)
     config.LR_PHASE_A = float(args.lr_phase_a)
+    if args.boundary_weight is not None:
+        config.BOUNDARY_WEIGHT = float(args.boundary_weight)
+        print(f"  [--boundary-weight] {config.BOUNDARY_WEIGHT} on the signed-distance "
+              f"boundary loss, PHASE B ONLY (IGNORE buffer "
+              f"{config.BOUNDARY_IGNORE_BUFFER} px). Phase A is unaffected.")
     config.BCE_WEIGHT = float(args.bce_weight)
     config.DICE_WEIGHT = float(args.dice_weight)
     # Epoch budgets (v034): flag-driven for fast diagnostic runs. Defaults =

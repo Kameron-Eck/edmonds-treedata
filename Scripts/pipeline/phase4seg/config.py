@@ -916,3 +916,42 @@ HONEST_SPLIT_MODES = (SPLIT_MODE_BLOCKED, SPLIT_MODE_DEG_BUF)
 # so recording the split status cannot force a re-tile, and a legacy meta written
 # without the key still validates.
 META_NONSIG_KEYS = ("split_status",)
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+#  BOUNDARY LOSS — signed distance map (Kervadec et al. 2019)   APPENDED 2026-08-30
+#
+#  WHY. The measured failure of this project is crown PERIMETERS and small crowns:
+#  41.8% of misses fall in 16.3% of the area. BCE and Dice are region losses — they
+#  score a pixel one step over the edge exactly like one fifty steps over it, so
+#  neither can express "the edge is in the wrong place". The boundary term weights
+#  each predicted-canopy pixel by its signed distance from the true boundary.
+#
+#  AND IT IS THE DELIVERABLE'S OWN UNIT. Canopy AREA is an integral over the mask
+#  edge, so a blobby border inflates the number this project exists to report. That
+#  is a stronger reason than the one the ASPP proposal gave for sharp boundaries.
+#
+#  DEFAULT 0.0 — OFF. The term is additive and gated by its weight, so with the
+#  default every existing arm computes byte-for-byte the previous loss. Turning it on
+#  is an explicit --boundary-weight on the command line, recorded in the manifest.
+#
+#  PHASE B ONLY, by Kam's design (2026-08-30): Phase A maps 2020-learned features onto
+#  a new resolution with the encoder frozen; edges are Phase B's job. The caller
+#  passes boundary_w=0.0 in Phase A.
+#
+#  THE BUFFER IS NOT OPTIONAL IN SPIRIT. A distance transform needs a binary field, so
+#  255 IGNORE has to be assigned to one side; assigning it to background manufactures a
+#  boundary at every canopy/IGNORE edge — and IGNORE is precisely where our labels are
+#  unsure. Training a boundary term against that would teach the model the shape of our
+#  own uncertainty. BOUNDARY_IGNORE_BUFFER dilates the excluded zone so the loss only
+#  applies where the distance field was computed from real labels on both sides.
+#
+#  OPEN TENSION, recorded so it is not rediscovered: the overhaul plan's component 2
+#  wants crown PERIMETERS excluded from the loss on historical years, because a 2020
+#  boundary projected onto 2002 is not that tree's real edge. That is the opposite of
+#  what this term does. They cannot both apply to the same pixels. The intended
+#  resolution is that the boundary term trains where the label is trustworthy (2020 and
+#  years near it) while distant years keep perimeters as IGNORE — which the 0/1/255
+#  contract already expresses. NOT YET TESTED.
+BOUNDARY_WEIGHT         = 0.0    # 0 = off. Kervadec's schedule runs ~0.01 -> ~0.99
+BOUNDARY_IGNORE_BUFFER  = 3      # px dilation of the IGNORE exclusion, see above

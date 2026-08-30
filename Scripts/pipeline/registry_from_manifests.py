@@ -105,53 +105,70 @@ def _fmt(x, nd=4):
         return str(x)
 
 
-# The eval report's columns, as of 2026-08-30:
-#     year, gsd_cm, tier, channels, eval_scope, scope, site, <metrics...>
-# NOT ONE OF THEM IDENTIFIES A RUN. step_evaluate keys its rows on (label, channels,
-# scope, site) and drops superseded ones, so a year holds ONE OVERALL row no matter how
-# many arms were trained on it. That is a fact about the writer, and no amount of
-# cleverness on this side can recover attribution the writer never recorded.
-_EVAL_RUN_ID_COLS = ("run_tag", "run_id", "tag", "ts")
+# step_evaluate stamps run_tag / run_id / written_utc on every row it writes (D6,
+# 2026-08-29). That landed AFTER the last evaluate step ran, so the live report still
+# carries none of them — the columns appear on the first evaluate that runs from here.
+# held_out_metrics handles both eras, so nothing has to be changed when they arrive.
+_EVAL_RUN_ID_COLS = ("run_tag", "run_id")
+EVAL_SUPERSEDED = EVAL_REPORT.with_name("semantic_eval_report_superseded.csv")
 
 
-def held_out_metrics(year):
-    """The year's newest OVERALL eval row. A YEAR-LEVEL fact, labelled as one.
-
-    THIS TOOK A tag ARGUMENT AND IGNORED IT, which is the whole defect: a signature
-    promising per-run attribution the data cannot keep. Every arm on a year got the same
-    row. Regenerating the registry on 2026-08-30 printed it in the open — three different
-    2009 arms (nodecW, rgb3_ep60_s1234, rgb3_nodeb_twin), different seeds, different
-    GPUs, byte-identical "IoU 0.6959, AUROC 0.9082, AP 0.8299" — and tagged a run named
-    `rgb3` with `[rgb+chm]`, contradicting its own name on the same line.
-
-    honest_metrics, six lines below, is the contrast and the model: it joins on the
-    `prob` column — the raster THIS run produced — and returns "" when the run's raster
-    has not been scored. An exact, timezone-immune, per-run join. It was written that way
-    because a near-miss had already happened. This function was not.
-
-    The number is kept because for a single-arm year it IS that run's number, and most
-    years have one arm; deleting it would throw away real information to avoid a labelling
-    problem. It is relabelled instead, the same move STATUS.md makes for its lake section:
-    keep the fact, stamp its provenance, never let it read as more than it is.
-
-    The real fix is upstream — step_evaluate stamping run_tag into each eval row, since
-    attribution can only be created at write time. test_registry_attribution.py fails the
-    moment that column appears, so this relabelling cannot outlive the reason for it.
-    """
-    best = None
-    for r in _rows(EVAL_REPORT):
-        if r.get("year") == year and r.get("scope") == "OVERALL":
-            best = r                                  # last wins: the newest re-run
-    if not best:
-        return ""
-    bits = [f"year-eval IoU {_fmt(best.get('iou'))}"]
+def _eval_bits(r):
+    bits = [f"IoU {_fmt(r.get('iou'))}"]
     for label, key in (("AUROC", "auroc"), ("AP", "ap"),
                        ("prec", "precision"), ("rec", "recall")):
-        if best.get(key):
-            bits.append(f"{label} {_fmt(best[key])}")
-    ch = best.get("channels")
-    head = f"{', '.join(bits)} [{ch}]" if ch else ", ".join(bits)
-    return head + " (newest OVERALL row for the YEAR; the eval report carries no run identity)"
+        if r.get(key):
+            bits.append(f"{label} {_fmt(r[key])}")
+    ch = r.get("channels")
+    return f"{', '.join(bits)} [{ch}]" if ch else ", ".join(bits)
+
+
+def held_out_metrics(year, tag=""):
+    """This arm's OVERALL eval row when the report can name it; the year's otherwise.
+
+    THE DEFECT THIS REPLACES. It took `tag` and IGNORED it — filtered on year and
+    scope==OVERALL and took the last match. Regenerating the registry on 2026-08-30
+    printed the consequence: three different 2009 arms (nodecW, rgb3_ep60_s1234,
+    rgb3_nodeb_twin), different seeds and GPUs, all carrying "IoU 0.6959, AUROC 0.9082",
+    and two of them named `rgb3` while the bracket read `[rgb+chm]`.
+
+    It is worse than a labelling slip. step_train does NOT write eval rows, and the
+    registry holds 46 train steps against 9 evaluate steps — so most of those train rows
+    were showing an evaluation that had never been run for that arm at all, borrowed
+    from whichever arm last evaluated the year.
+
+    TWO ERAS, AND THE FUNCTION SPANS BOTH so nothing needs changing when the second
+    arrives. Pre-D6 rows carry no run identity and cannot be attributed; the number is
+    kept (most years have one arm, and for those it IS that run's) but stamped as a
+    year-level fact. Post-D6 rows carry run_tag, so the join is exact — and an arm with
+    no eval row of its own then gets NOTHING rather than a borrowed number, which is the
+    whole point.
+
+    Superseded rows count as the arm's own. Two arms on one year and channel set is the
+    normal shape of a paired experiment, and step_evaluate archives the displaced rows
+    to semantic_eval_report_superseded.csv precisely so they are not lost. An arm whose
+    row was replaced still measured what it measured.
+
+    honest_metrics below is the pattern this now follows: join on something that names
+    the run, and decline to report when the join finds nothing.
+    """
+    rows = [r for r in (_rows(EVAL_REPORT) + _rows(EVAL_SUPERSEDED))
+            if r.get("year") == year and r.get("scope") == "OVERALL"]
+    if not rows:
+        return ""
+
+    identified = [r for r in rows if str(r.get("run_tag") or "").strip()]
+    if identified:
+        want = str(tag or "").strip()
+        mine = [r for r in identified if str(r["run_tag"]).strip() == want]
+        if not mine:
+            return ""            # no eval row belongs to this arm — do not borrow one
+        return "held-out " + _eval_bits(mine[-1])
+
+    # Pre-D6: the report cannot say who wrote a row, so neither can this.
+    return ("year-eval " + _eval_bits(rows[-1])
+            + " (newest OVERALL row for the YEAR; these rows predate run_tag stamping, "
+              "so none can be attributed to a run)")
 
 
 def honest_metrics(year, tag="", run_ts=None):
@@ -287,7 +304,7 @@ def build_row(mf):
     sha, branch = (m.get("git_sha") or "")[:8], m.get("git_branch") or "?"
     script_version = f"{ver} ({sha} on {branch}{'; DIRTY' if m.get('git_dirty') else ''})"
 
-    metrics = [x for x in (held_out_metrics(year) if step in ("train", "evaluate") else "",
+    metrics = [x for x in (held_out_metrics(year, tag) if step in ("train", "evaluate") else "",
                            honest_metrics(year, tag, _parse_manifest_ts(ts))
                            if step == "inference" else "") if x]
     run_ts = _parse_manifest_ts(ts)

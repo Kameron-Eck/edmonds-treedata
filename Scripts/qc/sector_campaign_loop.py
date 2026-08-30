@@ -43,7 +43,7 @@ CHECKLIST = SCRIPTS / "pipeline" / "sector_campaign_checklist.yaml"
 CAMP = DATA / "phase4" / "qc" / "sector_campaign"
 COLAB = r"/c/Users/Kameron/.local/bin/colab.exe"
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "pipeline"))
-from phase4seg.names import BAD_STATES   # stdlib-only; see names.py
+from phase4seg.names import BAD_STATES, is_status_file   # stdlib-only; see names.py
 
 BASH = shutil.which("bash") or r"C:\Program Files\Git\bin\bash.exe"
 SCRATCH_DEFAULT = Path(os.environ.get("LOCALAPPDATA", "")) / "Temp" / "sector_campaign_vm"
@@ -148,7 +148,10 @@ def check_verify(clause, scratch) -> tuple[bool, str]:
         rows = []
         root = _resolve(c["glob"].split("*")[0]).parent
         pat = Path(c["glob"].replace("data:", "")).name
-        for p in sorted((DATA / "phase4" / "qc").glob(pat)):
+        # the checklist's glob is deliberately narrow (one campaign), but it is still
+        # filtered through the one discovery rule — a file renamed aside is not data.
+        for p in sorted(q for q in (DATA / "phase4" / "qc").glob(pat)
+                        if is_status_file(q)):
             rows += list(csv.DictReader(open(p, encoding="utf-8")))
         verdicts = {}
         for r in rows:

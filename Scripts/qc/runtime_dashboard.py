@@ -51,6 +51,13 @@ import sys
 import tempfile
 import threading
 import time
+from pathlib import Path as _P
+
+# names.py is STDLIB-ONLY (see its docstring): the discovery rule and the ledger
+# row key, with none of the engine's imports — this dashboard runs locally and
+# must start even when the engine environment is unusable.
+sys.path.insert(0, str(_P(__file__).resolve().parents[1] / "pipeline"))
+from phase4seg.names import is_status_file, job_key
 import webbrowser
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -411,7 +418,10 @@ def read_queue_yaml(queue_file):
 def status_rows_for(stem):
     """Rows from this queue's per-launch files, newest launch last."""
     rows = []
-    for f in sorted(QC_DIR.glob(f"train_queue_status_{stem}_*.csv")):
+    # stem-scoped on purpose (one card = one queue), but still filtered through the
+    # one discovery rule so a file renamed aside cannot be read back in.
+    for f in sorted(p for p in QC_DIR.glob(f"train_queue_status_{stem}_*.csv")
+                    if is_status_file(p)):
         try:
             with open(f, encoding="utf-8", newline="") as fh:
                 for r in csv.DictReader(fh):
@@ -424,9 +434,12 @@ def status_rows_for(stem):
 
 
 def latest_by_key(rows):
+    """Last row wins, keyed on the row's full identity — see names.py::job_key.
+    This keyed on (job, step) until 2026-08-30, which collapses two rows differing
+    only in year or tag: one arm's chips would silently show another arm's state."""
     out = {}
     for r in rows:
-        out[(r.get("job"), r.get("step"))] = r
+        out[job_key(r.get("job"), r.get("year"), r.get("tag"), r.get("step"))] = r
     return out
 
 

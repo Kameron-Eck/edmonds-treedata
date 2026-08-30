@@ -42,6 +42,11 @@ import re
 import sys
 from pathlib import Path
 
+# names.py is STDLIB-ONLY (see its docstring) — the one status-file discovery rule,
+# the one launch filter, and the one ledger row key, without the engine's deps.
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from phase4seg.names import job_key, parse_status_name, status_files
+
 _COLAB_BASE = Path("/content/drive/MyDrive/treedata")
 _LOCAL_BASE = Path(r"G:\My Drive\treedata")
 BASE = _COLAB_BASE if _COLAB_BASE.exists() else _LOCAL_BASE          # data plane
@@ -57,10 +62,17 @@ LAUNCHES_CSV = REPORTS / "gpu_launches.csv"
 PER_ARM_CSV = REPORTS / "cost_per_arm.csv"
 PER_ARM_MD = REPORTS / "cost_per_arm.md"
 
-# train_queue_status_{queue-yaml-stem}_{YYYYmmddTHHMMSSZ}.csv — the launch stamp is what
-# makes a file a LAUNCH. The hand-written `_seed` file and the legacy single-file
-# train_queue_status.csv have no stamp and simply fail this parse; that is the filter.
-STATUS_RE = re.compile(r"^train_queue_status_(?P<stem>.+)_(?P<ts>\d{8}T\d{6}Z)\.csv$")
+# The launch stamp is what makes a status file a LAUNCH: the hand-written `_seed`
+# files and the legacy shared train_queue_status.csv carry none, and a seed row
+# records a step declared already-done, so it burned no GPU. That filter is right
+# and is kept — it now comes from phase4seg.names.parse_status_name, which is also
+# what DISCOVERY goes through. It used to be a glob for
+#     train_queue_status_queue_*_2*.csv
+# which additionally demanded the `_queue_` infix. Every queue file to date happens
+# to be named queue_*.yaml, so that looked like a rule; it is a coincidence. The
+# overhaul's pilot queue (pilot_2019.yaml) writes train_queue_status_pilot_2019_{ts}
+# .csv and was globbed out — its A100 hours would have appeared in no cost report,
+# silently. See names.py::parse_status_name.
 NOHUP_RE = re.compile(r"^train_queue_nohup_(?P<stem>.+)_(?P<ts>\d{8}T\d{6}Z)\.log$")
 # the queue header prints:  "  GPU    : NVIDIA A100-SXM4-40GB, 40960 MiB   (ceilings ...)"
 GPU_LINE_RE = re.compile(r"^\s*GPU\s*:\s*(?P<val>.+?)\s*$")
@@ -263,10 +275,10 @@ def gpu_from_nohup(stem, launch_id):
 
 
 def harvest_launch(path, rates):
-    m = STATUS_RE.match(path.name)
-    if not m:
-        return None
-    stem, launch_id = m.group("stem"), m.group("ts")
+    parsed = parse_status_name(path.name)
+    if parsed is None or parsed[1] is None:
+        return None                      # not a status file, or not a LAUNCH
+    stem, launch_id = parsed
     rows = _rows(path)
 
     steps = [r for r in rows if not _is_verify(r.get("step")) and not _is_seeded(r)]
@@ -281,7 +293,10 @@ def harvest_launch(path, rates):
     total = sum(v for v in (_f(r.get("minutes")) for r in steps) if v is not None)
     final = {}
     for r in steps:
-        final[(r.get("job"), r.get("step"))] = r          # file order = chronological
+        # D8's key, not (job, step): a job id is a nickname and nothing makes it mean
+        # the same year and tag twice. See names.py::job_key.
+        final[job_key(r.get("job"), r.get("year"), r.get("tag"),
+                      r.get("step"))] = r                 # file order = chronological
     states = [str(r.get("state") or "").upper() for r in final.values()]
     n_ok = sum(1 for s in states if s == "OK")
     n_failed = sum(1 for s in states if s not in ("OK", "RUNNING"))
@@ -311,7 +326,7 @@ def harvest_launch(path, rates):
 
 def cmd_launches():
     rates = load_rates()
-    files = sorted(QC_DIR.glob("train_queue_status_queue_*_2*.csv"))
+    files = status_files(QC_DIR)          # harvest_launch drops seeds and the legacy file
     out = []
     for p in files:
         row = harvest_launch(p, rates)
@@ -370,10 +385,9 @@ def _arm_launch_usd(rates):
     not a measurement.
     """
     usd, blocked = {}, {}
-    for p in sorted(QC_DIR.glob("train_queue_status_queue_*_2*.csv")):
-        m = STATUS_RE.match(p.name)
-        if not m:
-            continue
+    for p in status_files(QC_DIR):
+        if (parse_status_name(p.name) or (None, None))[1] is None:
+            continue                         # seed or legacy file: no GPU was burned
         rows = [r for r in _rows(p) if not _is_verify(r.get("step")) and not _is_seeded(r)]
         share, tot = {}, 0.0
         for r in rows:

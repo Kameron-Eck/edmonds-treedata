@@ -192,3 +192,59 @@ BAD_STATES = VERIFY_HARD_FAIL | RUN_FAIL
 # threw is not evidence the artifact is bad, and treating it as one would throw away
 # good GPU hours. It is also not a pass; the resume ledger keeps it flagged.
 VERIFY_UNVERIFIED = frozenset({"UNCHECKED", "UNVERIFIED"})
+
+
+def parse_status_name(name):
+    """`(stem, ts)` for a status file, or None if it is not one.
+
+    `ts` is the LAUNCH STAMP and is None for the two kinds of file that never
+    represent a launch: the legacy shared `train_queue_status.csv` (stem "") and the
+    hand-written `*_seed.csv` files. That distinction is load-bearing for cost
+    accounting — a seed row records a step that was declared already-done, so it
+    burned no GPU, and counting it would inflate the bill for work nobody paid for.
+
+    IT IS ALSO THE RIGHT FILTER TO SELECT LAUNCHES BY, and cost_report.py used a
+    different one: it globbed `train_queue_status_queue_*_2*.csv`. That requires the
+    `_queue_` infix — the naming coincidence this module's header records rejecting,
+    because a queue file may be named anything. `pilot_2019.yaml`, which Stage 5 of
+    the overhaul builds, writes `train_queue_status_pilot_2019_{ts}.csv` and would
+    have been globbed out: its runs would burn A100 hours and appear in no cost
+    report, with nothing raised. Discovery goes through status_files(); whether a
+    file is a LAUNCH is then `ts is not None`, which is a fact about the file rather
+    than a guess about its name.
+    """
+    if not is_status_file(name):
+        return None
+    stem = Path(name).name[len(STATUS_STEM):-len(".csv")].lstrip("_")
+    m = re.search(r"_([0-9]{8}T[0-9]{6}Z)$", stem)
+    if not m:
+        return (stem, None)
+    return (stem[:m.start()], m.group(1))
+
+
+# ── the row key ───────────────────────────────────────────────────────────────
+
+def job_key(job_id, year, tag, step):
+    """The identity a ledger row has: (job, year, tag, step). THE one implementation.
+
+    D8 (2026-08-29) fixed the queue's resume key from (job, step) to this, because a
+    job id is a short hand-written NICKNAME reused across queue files — `2019` appears
+    in three, `2024` in three — and nothing makes an id mean the same year or the same
+    tag twice. A resume keyed on the nickname skips a step that never ran for THIS
+    year and tag, and the job proceeds on another run's artifacts.
+
+    The queue was fixed; two READERS were not, and kept the old 2-tuple:
+        cost_report.harvest_launch    within one launch file
+        runtime_dashboard.latest_by_key  across every launch of one queue stem
+    Both collapse rows that differ only in year or tag, so one run's outcome silently
+    replaces another's in the cost table and on the dashboard.
+
+    HONESTLY, AND THE SCOPE IS NARROWER THAN D8's: both readers key inside a single
+    queue's files, so a collision needs one yaml to reuse an id across two (year, tag)
+    pairs — not merely across queue files. Nothing forbids that, and no run has done
+    it. Latent, fixed because nothing prevents it, exactly as D8's own note put it.
+
+    Both sides go through str() so the CSV's text and the YAML's values (a `tag: 2020`
+    parses as an int) cannot disagree about what the same job is.
+    """
+    return (str(job_id), str(year), str(tag), str(step))

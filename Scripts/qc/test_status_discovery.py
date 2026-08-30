@@ -191,3 +191,105 @@ def test_the_queue_uses_the_shared_set():
     from phase4seg.names import VERIFY_HARD_FAIL
 
     assert set(_q._VERIFY_HARD_FAIL) == set(VERIFY_HARD_FAIL)
+
+
+# ── the launch filter and the row key ─────────────────────────────────────────
+
+@pytest.mark.parametrize("name,stem,ts", [
+    ("train_queue_status.csv", "", None),                      # legacy shared
+    ("train_queue_status_queue_golden_v2_seed.csv",
+     "queue_golden_v2_seed", None),                            # hand-written seed
+    ("train_queue_status_queue_smooth_2009_20260829T135750Z.csv",
+     "queue_smooth_2009", "20260829T135750Z"),
+    ("train_queue_status_pilot_2019_20260901T120000Z.csv",
+     "pilot_2019", "20260901T120000Z"),
+])
+def test_parse_status_name(name, stem, ts):
+    from phase4seg.names import parse_status_name
+    assert parse_status_name(name) == (stem, ts)
+
+
+def test_a_pilot_shaped_launch_reaches_the_cost_report():
+    """THE ONE WITH TEETH, and it points forward rather than back.
+
+    cost_report discovered launches with glob("train_queue_status_queue_*_2*.csv") —
+    the `_queue_` infix again, the same naming coincidence names.py already records
+    rejecting. The overhaul's Stage 5 pilot queue is `pilot_2019.yaml`, so its status
+    file is train_queue_status_pilot_2019_{ts}.csv, which that glob does not match.
+    The pilot would have burned A100 hours and appeared in no cost report, with
+    nothing raised — the failure mode is a silent absence, not an error.
+    """
+    import fnmatch
+    from phase4seg.names import parse_status_name
+
+    pilot = "train_queue_status_pilot_2019_20260901T120000Z.csv"
+    assert not fnmatch.fnmatch(pilot, "train_queue_status_queue_*_2*.csv"), (
+        "the old glob would have matched — this test no longer proves anything")
+    assert parse_status_name(pilot)[1] is not None, (
+        "the pilot's launch must be visible to cost accounting")
+
+
+@pytest.mark.parametrize("name", [
+    "train_queue_status.csv",
+    "train_queue_status_queue_smooth_2009_seed.csv",
+])
+def test_seeds_and_the_legacy_file_are_not_launches(name):
+    """A seed row records a step declared already-done; no GPU was burned. Counting it
+    would inflate the bill for work nobody paid for. `ts is None` is the filter, and it
+    is a fact about the file rather than a guess about its name."""
+    from phase4seg.names import parse_status_name
+    assert parse_status_name(name)[1] is None
+
+
+def test_cost_report_and_the_dashboard_use_the_queue_row_key():
+    """D8 fixed the queue's key from (job, step) to (job, year, tag, step) because a
+    job id is a hand-written nickname reused across queue files. Two READERS kept the
+    old 2-tuple and would collapse rows differing only in year or tag."""
+    src_cost = (SCRIPTS / "pipeline" / "cost_report.py").read_text(encoding="utf-8")
+    src_dash = (SCRIPTS / "qc" / "runtime_dashboard.py").read_text(encoding="utf-8")
+    for name, src in (("cost_report", src_cost), ("runtime_dashboard", src_dash)):
+        assert "job_key" in src, f"{name} does not use the shared row key"
+        assert '[(r.get("job"), r.get("step"))]' not in src, (
+            f"{name} still keys ledger rows on (job, step)")
+
+    import phase4_train_queue as _q
+    from phase4seg.names import job_key
+    assert _q._job_key("2024", 2024, "a", "train") == job_key("2024", 2024, "a", "train")
+    assert job_key("2024", 2019, "a", "train") != job_key("2024", 2024, "a", "train"), (
+        "two queues may both call their work `2024`; the key must separate them")
+
+
+# Every file that reads the ledger goes through the one discovery rule — or is named
+# here WITH the reason it does not. An undocumented reader is exactly what this checks
+# for: the rule is worth nothing if the next tool to touch the ledger writes its own glob.
+_DISCOVERY_EXEMPT = {
+    "names.py":            "the home of the rule",
+    "conftest.py":         "names the lake paths a test must never write; reads none",
+    "test_status_discovery.py": "this file",
+    "test_queue_verify.py":     "constructs fixtures under tmp_path",
+    "test_verified_write.py":   "constructs fixtures under tmp_path",
+    "vm_heartbeat.py":     "VM-side beacon, stdlib-only by design; its _newest() is a "
+                           "stem-scoped NEWEST-FILE selector, not a discovery rule — it "
+                           "cannot pick up a file renamed aside because the rename "
+                           "breaks the _{stem}_ match it requires",
+}
+
+
+def test_no_undocumented_reader_of_the_ledger():
+    missing = []
+    for root in ("pipeline", "qc"):
+        for p in sorted((SCRIPTS / root).rglob("*.py")):
+            if "_archive" in p.parts or "litwatch_scratch" in p.parts:
+                continue
+            src = p.read_text(encoding="utf-8", errors="replace")
+            if "train_queue_status" not in src:
+                continue
+            if p.name in _DISCOVERY_EXEMPT:
+                continue
+            if "status_files" in src or "is_status_file" in src:
+                continue
+            missing.append(p.name)
+    assert not missing, (
+        "these read the run-outcome ledger without the one discovery rule — either "
+        "import status_files/is_status_file, or add the file to _DISCOVERY_EXEMPT "
+        f"with the reason: {missing}")

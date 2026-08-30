@@ -68,7 +68,7 @@ from pathlib import Path
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
 sys.path.insert(0, str(HERE.parent / "pipeline"))
-from phase4seg.names import status_files
+from phase4seg.names import parse_status_name, status_files
 import watch_queue                                                   # noqa: E402
 from watch_queue import _rows as merged_status_rows, BAD as BAD_STATES  # noqa: E402
 
@@ -159,8 +159,7 @@ def launches(qc_dir):
         last = max((r.get("ts", "") for r in rows), default="")
         out[f.name] = {
             "file": f.name,
-            "stem": f.name[len("train_queue_status_"):-len(".csv")]
-                    if f.name.startswith("train_queue_status_") else f.name,
+            "stem": (parse_status_name(f.name) or (f.name, None))[0],
             "jobs": len(jobs), "done": len(ended & jobs), "bad_jobs": bad,
             "running": [f"{r.get('job','')}/{r.get('step','')}" for r in running],
             "terminal": bool(jobs) and jobs <= ended,

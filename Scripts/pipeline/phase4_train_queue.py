@@ -94,7 +94,8 @@ import time
 from pathlib import Path
 
 from phase4seg.names import (
-    VERIFY_HARD_FAIL, pid_alive, sanitize_tag, status_files, tile_dir_name,
+    VERIFY_HARD_FAIL, job_key, pid_alive, sanitize_tag, status_files,
+    tile_dir_name,
 )
 
 _COLAB_BASE = Path("/content/drive/MyDrive/treedata")
@@ -330,26 +331,11 @@ def _merged_rows():
 def _job_key(job_id, year, tag, step):
     """The identity a resume decision must key on: (job, year, tag, step).
 
-    D8 (2026-08-29). It used to be (job_id, step) — a resume matched on the job's
-    NICKNAME and ignored what the job actually produces. Job ids are short, hand
-    written and reused across queue files (`2019` appears in three, `2024` in
-    three), and NOTHING makes an id mean the same year or the same tag twice: two
-    queues can legitimately call different work `2024`. When they do, a resume
-    skips a step that never ran for THIS year and tag, and the job proceeds on some
-    other run's artifacts.
-
-    HONESTLY: this has not fired yet. Across the 117 harvested historical status
-    rows, no job id was ever recorded under more than one (year, tag) — every
-    reused id happens to carry identical year and tag. It is a latent defect, fixed
-    because nothing prevents it, not because it has bitten. (The INVERSE has bitten:
-    distinct ids sharing one tag, which is how the 2021s_nr2r rerun overwrote the
-    crashed noise_r2 checkpoints — see queue_noise_2021s_b.yaml. Tag collision is
-    D11's problem, not this key's.)
-
-    Both sides go through str() here so the CSV's text and the YAML's values (a
-    `tag: 2020` parses as an int) cannot disagree about what the same job is.
+    Delegates to names.py::job_key, which carries the D8 record of why the old
+    (job_id, step) key was wrong and which two READERS still had it. Kept as a
+    module-level name because tests and call sites reference it.
     """
-    return (str(job_id), str(year), str(tag), str(step))
+    return job_key(job_id, year, tag, step)
 
 
 def _completed_steps():

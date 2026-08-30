@@ -52,7 +52,11 @@ made permanent — an ungated doc can drift again.
 | **0.4** | `EPOCH` re-baseline marker | **done** |
 | **1** | documentation — 5 class-A docs rewritten, 4 banners applied | **done** `e232be5` `46812d8` `5d91657` `9fe99f7` |
 | **2** | code shaped for retired goals — label-source guard, inert flags, dangling refs, fail-loud loads | **done** `dfe4c42` `91cf30d` `9faab4c` |
-| **3** | structural debt — the twins, `config.py` precision, the ledger module | next |
+| **3.1** | the twins — one `names.py`, stdlib-only, importable from both planes | **done** `b939b34` |
+| **3.2** | `config.py` protection made precise — 17 of 129 constants force a re-tile | **done** `37be4ab` |
+| **3.3** | cite symbols, not lines — 30 pointers, gated | **done** `c9ce071` |
+| **3.4** | the status ledger — one state vocabulary so oversight can see failure | **done** `b260212`; the 4 row keys / 4 filename parsers still have no owning module |
+| **3.5** | `core.py` at 2,773 lines — the largest refactor here | next |
 | **4** | architecture — SDM caching, HR aux branch, DeepLabV3+ arm | 4.1 partly done `7c8a385` |
 | **5** | pilot slice — 2019 / 2019s / 2019n | not started |
 
@@ -71,7 +75,7 @@ made permanent — an ungated doc can drift again.
 
 | | what | why it needs you |
 |---|---|---|
-| **main** | `main` is ~137 commits behind `work/20260824-sectors` | pushing/merging/tagging `main` is a hard DENY for Claude by design |
+| **main** | `main` is behind `work/20260824-sectors` (147 commits as of `c9ce071`; a hand-written count, so read it as a stamp, not a live number — `git rev-list --count main..HEAD` is the live one) | pushing/merging/tagging `main` is a hard DENY for Claude by design |
 | **GPU** | the pilot slice (Stage 5) and any A/B | every first launch of a queue needs explicit approval — queue file, tier, runtime count, wall-clock, rough cost |
 | **tidy-up** | move `train_queue_status.CONTAMINATED-BY-TEST-20260829.csv` out of `phase4/qc/` | no longer required for correctness (the discovery rule now excludes it) — just tidier |
 

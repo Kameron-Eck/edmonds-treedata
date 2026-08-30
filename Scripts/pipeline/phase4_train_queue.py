@@ -93,7 +93,9 @@ import threading
 import time
 from pathlib import Path
 
-from phase4seg.names import status_files
+from phase4seg.names import (
+    pid_alive, sanitize_tag, status_files, tile_dir_name,
+)
 
 _COLAB_BASE = Path("/content/drive/MyDrive/treedata")
 _LOCAL_BASE = Path(r"G:\My Drive\treedata")
@@ -954,21 +956,18 @@ def _verify_eval_rows(rep, y, tag, step_start):
 
 
 def _sanitize_tag(tag):
-    """Reproduce cli.py's --run-tag sanitiser EXACTLY (phase4seg/cli.py:581).
-
-    The queue does not import phase4seg (that would drag torch into the
-    orchestrator), so this is a deliberate twin. If the sanitiser there changes,
-    VERIFY:tile starts looking in a directory the engine never wrote, which shows
-    up as MISSING — loud, not silent. That is the intended failure direction.
-    """
-    return "".join(c if (c.isalnum() or c in "._-") else "_" for c in str(tag)).strip("_")
+    """The run-tag sanitiser. NO LONGER A TWIN — shared with the engine via
+    phase4seg.names, which is stdlib-only, so importing it does not drag rasterio
+    and friends into the orchestrator. Kept as a name here because callers and one
+    test refer to it."""
+    return sanitize_tag(tag)
 
 
 def _tagged_tile_index(y, tag):
-    """Where THIS ARM's tile index lives — the twin of common.tile_dir_for()."""
-    t = _sanitize_tag(tag)
-    sub = f"{y}__{t}" if t else str(y)
-    return BASE / "phase4" / "tiles" / sub / f"tile_index_{y}.csv"
+    """Where THIS ARM's tile index lives. The directory RULE is shared with the
+    engine (phase4seg.names.tile_dir_name); only the root differs, which is the
+    entire reason the twin existed."""
+    return BASE / "phase4" / "tiles" / tile_dir_name(y, tag) / f"tile_index_{y}.csv"
 
 
 def verify_step(job, step, rows, step_start=None, reverify=False):
@@ -1286,30 +1285,14 @@ def _declare_run_tags(todo, queue_name, job="", step=""):
 
 
 def _pid_alive(pid):
-    """Is this pid still running ON THIS HOST? Only ever asked about our own host.
+    """Is this pid running on this host? Shared with the engine via phase4seg.names.
 
-    POSIX ONLY, and the guard is not cosmetic. On Windows `os.kill` does not probe —
-    CPython maps it to TerminateProcess for every signal except CTRL_C_EVENT and
-    CTRL_BREAK_EVENT, so `os.kill(pid, 0)` KILLS the process it was asked about.
-    phase4seg/common.py:230 already carries this guard with the same warning; this
-    copy was added on 2026-08-30 without it, which is exactly the hazard the
-    hand-maintained twins create (see the overhaul plan, Stage 3.1).
-
-    Returning True on Windows is the correct fallback: the caller uses this to decide
-    whether a beacon's claim is stale, and "assume the peer is alive" preserves the
-    duplicate-tag protection rather than weakening it.
+    These were twins and they DID diverge: this copy was added on 2026-08-30 WITHOUT
+    the `os.name != "posix"` guard the engine's copy has carried all along, so on
+    Windows it would have called TerminateProcess instead of probing. That is the
+    argument for one implementation, made concrete.
     """
-    if os.name != "posix":
-        return True
-    try:
-        os.kill(int(pid), 0)
-    except ProcessLookupError:
-        return False
-    except PermissionError:
-        return True                 # exists, owned by someone else
-    except (OSError, ValueError, TypeError):
-        return True                 # cannot tell — assume live, the safe direction
-    return True
+    return pid_alive(pid)
 
 
 def _tag_owners(want, max_age_s=300):

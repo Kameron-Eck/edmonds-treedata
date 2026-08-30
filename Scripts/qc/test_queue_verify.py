@@ -726,16 +726,60 @@ def test_verify_tile_reads_the_tagged_index_not_the_legacy_one(tmp_path, monkeyp
     assert "7 tiles" in rows[-1]["detail"], rows[-1]["detail"]
 
 
-def test_the_tag_sanitiser_matches_the_engines(tmp_path):
-    """The queue cannot import phase4seg, so _sanitize_tag is a deliberate twin of
-    cli.py's. If they drift, VERIFY:tile looks in a directory the engine never
-    wrote — MISSING, which is loud. This pins the pairing anyway."""
-    src = (Path(__file__).resolve().parents[1]
-           / "pipeline" / "phase4seg" / "cli.py").read_text(encoding="utf-8")
-    assert 'c if (c.isalnum() or c in "._-") else "_"' in src, \
-        "cli.py's --run-tag sanitiser changed; _sanitize_tag must follow"
-    for raw, want in [("node c/v1", "node_c_v1"), ("_x_", "x"), ("a.b-c", "a.b-c")]:
-        assert q._sanitize_tag(raw) == want, raw
+def test_the_naming_rules_have_exactly_one_implementation():
+    """These were hand-maintained TWINS. They are now shared through
+    phase4seg.names, and this asserts the copies are GONE rather than merely in sync.
+
+    A sync-checking test (which is what stood here) accepts two implementations and
+    only complains when they diverge. That is strictly weaker: _pid_alive's copies
+    were in sync for exactly as long as it took someone to add a third one without
+    the Windows guard — which shipped, passed the suite, and would have called
+    TerminateProcess on a live process.
+    """
+    import ast as _ast
+
+    SCRIPTS_DIR = Path(__file__).resolve().parents[1]
+
+    def _calls_os_kill(tree):
+        """AST, not grep. A first pass matched `os.kill(` inside the DOCSTRING that
+        explains why the guard exists — flagging the very comment that documents the
+        fix is the kind of false positive that gets a test deleted."""
+        for n in _ast.walk(tree):
+            if (isinstance(n, _ast.Call) and isinstance(n.func, _ast.Attribute)
+                    and n.func.attr == "kill"
+                    and isinstance(n.func.value, _ast.Name)
+                    and n.func.value.id == "os"):
+                return True
+        return False
+
+    def _has_sanitiser(tree):
+        """The sanitiser is a genexp over `c.isalnum() or c in "._-"`. Look for the
+        literal, which no other code in these files uses."""
+        for n in _ast.walk(tree):
+            if isinstance(n, _ast.Constant) and n.value == "._-":
+                return True
+        return False
+
+    offenders = []
+    for rel in ("pipeline/phase4_train_queue.py", "pipeline/phase4seg/cli.py",
+                "pipeline/phase4seg/common.py"):
+        tree = _ast.parse((SCRIPTS_DIR / rel).read_text(encoding="utf-8"))
+        if _has_sanitiser(tree):
+            offenders.append(f"{rel}: a second copy of the tag sanitiser")
+        if _calls_os_kill(tree):
+            offenders.append(f"{rel}: calls os.kill directly — use names.pid_alive")
+    assert not offenders, ("naming/probe logic duplicated outside names.py: "
+                           + "; ".join(offenders))
+
+
+def test_the_shared_rules_are_actually_used():
+    """Delegation must be real, not decorative."""
+    assert q._sanitize_tag("node c/v1") == "node_c_v1"
+    assert q._pid_alive(999999) is True or q._pid_alive(999999) is False
+    idx = q._tagged_tile_index("2009", "rgb3")
+    assert idx.parent.name == "2009__rgb3", idx
+    assert q._tagged_tile_index("2009", "").parent.name == "2009"
+
 
 
 # ── _pid_alive must never call os.kill on Windows ─────────────────────────────
@@ -770,18 +814,6 @@ def test_pid_alive_still_probes_on_posix(monkeypatch):
 
     monkeypatch.setattr(os, "kill", _gone)
     assert q._pid_alive(4321) is False, "a dead pid must read as dead on posix"
-
-
-def test_the_two_pid_alive_copies_agree_off_posix():
-    """The engine and the orchestrator each carry a _pid_alive. They are a
-    hand-maintained twin, and this is the assertion that keeps them honest until
-    Stage 3.1 replaces them with one shared module."""
-    src = (Path(__file__).resolve().parents[1]
-           / "pipeline" / "phase4seg" / "common.py").read_text(encoding="utf-8")
-    i = src.index("def _pid_alive(")
-    body = src[i:i + 500]
-    assert 'os.name != "posix"' in body, \
-        "the engine copy lost its Windows guard — fix both, not one"
 
 
 # ── postproc: the deliverable step, and the unknown-step fallthrough ──────────

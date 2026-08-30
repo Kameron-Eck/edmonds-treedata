@@ -620,8 +620,8 @@ def main():
         print("  [--aux-height] RGB-only input + height-prediction head "
               f"(height-lambda={config.HEIGHT_LAMBDA}); CHM used as target only.")
     config.INFER_BATCH = max(1, int(args.infer_batch))
-    config.RUN_TAG = ("".join(c if (c.isalnum() or c in "._-") else "_"
-                       for c in args.run_tag).strip("_") if args.run_tag else "")
+    from phase4seg.names import sanitize_tag
+    config.RUN_TAG = sanitize_tag(args.run_tag) if args.run_tag else ""
     if config.RUN_TAG:
         print(f"  [--run-tag] outputs suffixed _{config.RUN_TAG} (SAVE, no overwrite)")
     if args.force_citywide:

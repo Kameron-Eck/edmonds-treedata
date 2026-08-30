@@ -88,3 +88,69 @@ def status_files(qc_dir):
     """
     return sorted(p for p in Path(qc_dir).glob(f"{STATUS_STEM}*.csv")
                   if is_status_file(p))
+
+
+# ── run tags and the per-arm tile directory ───────────────────────────────────
+#
+# These were hand-maintained TWINS: the sanitiser existed in cli.py and again in
+# phase4_train_queue.py, and the tile-directory rule existed in common.py and again in
+# the queue. Both pairs were in sync when audited, which is the trap — a twin is not
+# dangerous while it agrees, it is dangerous at the moment someone edits one side.
+#
+# _pid_alive is the proof that the moment arrives: its two copies DID diverge, and the
+# copy without the Windows guard would have called TerminateProcess instead of probing.
+# That shipped, passed the suite, and was caught by an audit rather than by use.
+
+def sanitize_tag(tag):
+    """A run tag, reduced to characters safe in a filename. THE one implementation.
+
+    Everything an arm writes is keyed on this — the tile directory, the checkpoint, the
+    output raster, the status rows — so two implementations that disagree by one
+    character would send the writer and the reader to different places, and the reader
+    would find someone else's artifacts rather than nothing.
+    """
+    return "".join(c if (c.isalnum() or c in "._-") else "_"
+                   for c in str(tag)).strip("_")
+
+
+def tile_dir_name(label, tag):
+    """Directory NAME for this arm's tiles: `{label}__{tag}`, or `{label}` untagged.
+
+    Returns a NAME, not a path, so both planes can join it to their own root — the
+    engine to TILE_DIR, the orchestrator to its own BASE. That is the only reason the
+    twin existed: the two sides disagreed about the root, not about the rule.
+
+    WHY TAGGED DIRECTORIES EXIST (measured 2026-08-28, and it corrupted a landed
+    result): two arms on the same year running CONCURRENTLY both resolved to one
+    directory, each judged the other's cache invalid, and both re-tiled into it. The
+    2026-08-27 groves arms overlapped for 18 minutes and produced 635 vs 599 tiles, so
+    their comparison was between two models trained on an unknown mixture of each
+    other's labels.
+    """
+    t = sanitize_tag(tag) if tag else ""
+    return f"{label}__{t}" if t else str(label)
+
+
+def pid_alive(pid):
+    """Is this pid running ON THIS HOST? POSIX only — and the guard is not cosmetic.
+
+    On Windows `os.kill` does not probe: CPython maps it to TerminateProcess for every
+    signal except CTRL_C_EVENT and CTRL_BREAK_EVENT, so `os.kill(pid, 0)` KILLS the
+    process it was asked about. Returning True off-posix is the correct fallback for
+    every current caller — they use this to decide whether a peer's claim on a run tag
+    is stale, and "assume the peer is alive" preserves the protection rather than
+    weakening it.
+    """
+    import os
+
+    if os.name != "posix":
+        return True
+    try:
+        os.kill(int(pid), 0)
+    except ProcessLookupError:
+        return False
+    except PermissionError:
+        return True                      # exists, owned by someone else
+    except (OSError, ValueError, TypeError):
+        return True                      # cannot tell — assume live
+    return True

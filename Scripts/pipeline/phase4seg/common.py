@@ -137,10 +137,13 @@ def tile_dir_for(label):
     historical caches. The first run of each tagged arm re-tiles once (~15-25 min);
     that is the price of the isolation and it is worth paying exactly once.
     """
-    return (TILE_DIR / f"{label}__{config.RUN_TAG}") if config.RUN_TAG else (TILE_DIR / label)
+    # The RULE lives in names.tile_dir_name (stdlib-only, shared with the
+    # orchestrator); this function supplies the engine's root and its RUN_TAG.
+    from phase4seg.names import tile_dir_name
+    return TILE_DIR / tile_dir_name(label, config.RUN_TAG)
 
 def remaining_entries():
-    """The 17 acquisitions Phase 4 fine-tunes (everything except the 2020 anchor)."""
+    """Every acquisition Phase 4 fine-tunes — the catalog minus the 2020 anchor."""
     return [e for e in YEAR_CATALOG if e["label"] != ANCHOR_LABEL]
 
 
@@ -229,14 +232,10 @@ def _lock_enabled():
 
 def _pid_alive(pid):
     """POSIX only: os.kill(pid, 0) probes. On Windows os.kill TERMINATES, so the
-    answer there is always 'alive' (the lock never runs on Windows anyway)."""
-    if os.name != "posix":
-        return True
-    try:
-        os.kill(int(pid), 0)
-        return True
-    except (OSError, ValueError, TypeError):
-        return False
+    answer there is always 'alive'. Implementation shared with the orchestrator —
+    these were twins, and they DID diverge (the queue's copy lost this guard)."""
+    from phase4seg.names import pid_alive
+    return pid_alive(pid)
 
 
 class _StagingLock:

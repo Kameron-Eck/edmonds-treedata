@@ -101,6 +101,32 @@ try:
 except Exception as e:
     die("config from tiles", e)
 
+# ── the REAL architecture (build_model, not a stand-in) ──────────────────────
+# The tiny-model step below deliberately builds smp.Unet("resnet18") directly,
+# for speed. That makes it a good wiring test and a USELESS architecture gate:
+# it never calls build_model(), so a change to the encoder, the decoder channels,
+# or an inserted ASPP bottleneck is not exercised, and the smoke would PASS on a
+# model that cannot be constructed at all. CLAUDE.md rule 1 mandates this script
+# before a Colab round-trip precisely so an architecture error costs seconds
+# rather than a queue launch, so the real constructor has to run here.
+# Measured 1.2 s on CPU (build 1.1 + forward 0.1) with encoder_weights=None, so
+# nothing downloads and nothing is slow.
+step("build the REAL model via build_model() + one forward pass")
+try:
+    _real = core.build_model(device, compile_model=False)
+    with torch.no_grad():
+        _out = _real(torch.zeros(1, config.IN_CHANNELS, 64, 64, device=device))
+    _shape = _out[0].shape if isinstance(_out, (tuple, list)) else _out.shape
+    if tuple(_shape)[-2:] != (64, 64):
+        raise AssertionError(f"forward returned {tuple(_shape)}, expected ...x64x64 "
+                             f"- the decoder is not restoring input resolution")
+    print(f"    {config.ENCODER} + decoder{tuple(config.DECODER_CHANNELS)} "
+          f"in_ch={config.IN_CHANNELS} -> {tuple(_shape)}")
+    del _real, _out
+except Exception as e:
+    die("build the REAL model", e)
+
+
 # ── tiny model (real smp.Unet, tiny encoder, random init → no download) ───────
 step("build a tiny model + the real loss/optimizer/scaler wiring")
 try:

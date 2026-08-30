@@ -130,7 +130,7 @@ def _ensure_torch():
     # RandomFog/Affine fixes target the 2.x API). torch/timm come via smp's deps
     # if absent, but Colab's preinstalled torch normally satisfies them.
     _ensure_deps([
-        ("segmentation_models_pytorch", "segmentation-models-pytorch"),
+        ("segmentation_models_pytorch", "segmentation-models-pytorch>=0.4,<0.6"),
         ("albumentations",              "albumentations>=2.0,<3"),
     ])
     global torch, nn, Dataset, DataLoader, WeightedRandomSampler

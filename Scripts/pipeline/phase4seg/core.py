@@ -38,7 +38,7 @@ def _ensure_torch():
     if _torch_loaded:
         return
     _ensure_deps([
-        ("segmentation_models_pytorch", "segmentation-models-pytorch"),
+        ("segmentation_models_pytorch", "segmentation-models-pytorch>=0.4,<0.6"),
         ("albumentations",              "albumentations>=2.0,<3"),
     ])
     global torch, nn, Dataset, DataLoader, WeightedRandomSampler

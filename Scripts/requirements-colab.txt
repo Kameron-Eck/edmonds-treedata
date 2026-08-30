@@ -4,7 +4,13 @@
 # a pin changed here must be changed there in the same commit.
 #
 # torch itself is preinstalled on Colab — never pin it here; the runtime image wins.
-segmentation-models-pytorch
+# UNPINNED until 2026-08-29, and the ASPP work is what makes that a problem: the
+# hybrid depends on SegmentationModel.forward passing the encoder's FEATURE LIST to
+# the decoder (so an ASPP can wrap feats[-1] while the skips bypass it), and that
+# shape is smp >= 0.4. An unpinned resolve could hand Colab an older API and the
+# failure would be a shape error deep in a decoder, not a clear version complaint.
+# Floor pinned, ceiling held below the next major. Verified locally on 0.5.0.
+segmentation-models-pytorch>=0.4,<0.6
 albumentations>=2.0,<3
 timm
 geopandas

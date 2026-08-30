@@ -2771,8 +2771,10 @@ def print_summary():
   Phase 4: Per-Year Semantic Segmentation Fine-Tuning (uniform method)
     %run phase4_semantic_finetune.py
 
-  Phase 5: Per-Year Instance Segmentation Fine-Tuning (9 high-res years)
-    %run phase5_instance_finetune.py
+  Phase 5: Per-Year Instance Segmentation Fine-Tuning — DEFERRED, and the script
+    this line used to name (phase5_instance_finetune.py) has never existed in the
+    tree. Instance is deferred, not cancelled; Phase 0 produced the 222,435-crown
+    layer once, from 2020, and it is used as a fixed lookup geometry.
 
   Or review semantic results first:
     import rasterio

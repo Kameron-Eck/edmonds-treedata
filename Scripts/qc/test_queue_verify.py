@@ -837,3 +837,63 @@ def test_an_unrecognised_step_cannot_pass(tmp_path, monkeypatch):
     assert rows[-1]["state"] == "UNCHECKED", \
         f"an unverifiable step recorded {rows[-1]['state']} — it must never read as OK"
     assert "no verifier" in rows[-1]["detail"]
+
+
+# ── a job must declare where its labels come from ─────────────────────────────
+def _queue_file(tmp_path, jobs):
+    import yaml
+    p = tmp_path / "queue_test.yaml"
+    p.write_text(yaml.safe_dump(jobs), encoding="utf-8")
+    return str(p)
+
+
+def test_a_fine_year_without_a_declared_label_source_is_refused(tmp_path):
+    """`polygons/` was overwritten with accept-all test data and the 14,476-crown
+    review was never finished. Every queue file passes --force-citywide to avoid that
+    path, but the QUEUE DOES NOT INJECT IT — it comes from the YAML alone. So the only
+    thing standing between a run and known-bad labels was one hand-written line, and
+    omitting it produced no error: cli.py computes citywide = (tier=="coarse" or
+    force_citywide), gets False on a fine year, and takes the polygon path silently.
+    """
+    qf = _queue_file(tmp_path, [{"id": "j1", "year": "2020", "tag": "t",
+                                 "extra": ["--no-hillshade"]}])
+    with pytest.raises(SystemExit) as e:
+        q._load_queue(qf)
+    msg = str(e.value)
+    assert "does not declare a label source" in msg
+    assert "accept-all test data" in msg, "the message must say WHY, not just refuse"
+
+
+@pytest.mark.parametrize("flag", ["--force-citywide", "--anchor-labels",
+                                  "--coarse-site-tiling"])
+def test_any_explicit_declaration_is_accepted(tmp_path, flag):
+    """Three real label sources exist. The guard wants a DECLARATION, not one
+    particular answer — --coarse-site-tiling is 'yes, I really mean the site
+    polygons', which is a legitimate choice once the review is finished."""
+    qf = _queue_file(tmp_path, [{"id": "j1", "year": "2020", "tag": "t",
+                                 "extra": [flag]}])
+    assert len(q._load_queue(qf)) == 1
+
+
+def test_a_coarse_year_is_exempt(tmp_path):
+    """Coarse tier already forces citywide (cli.py: tier == "coarse" or force_citywide).
+    Demanding a redundant flag there would train people to add flags that do nothing,
+    which is its own hazard."""
+    import sys as _s
+    _s.path.insert(0, str(Path(__file__).resolve().parents[1] / "pipeline"))
+    from phase4seg import config as C
+    coarse = next(e["label"] for e in C.YEAR_CATALOG if C.tier_for(e) == "coarse")
+    qf = _queue_file(tmp_path, [{"id": "j1", "year": coarse, "tag": "t", "extra": []}])
+    assert len(q._load_queue(qf)) == 1, f"{coarse} is coarse and should be exempt"
+
+
+def test_every_shipped_queue_file_still_loads():
+    """The guard must not break the 31 queue files that already exist."""
+    qdir = Path(__file__).resolve().parents[1] / "pipeline"
+    refused = []
+    for f in sorted(qdir.glob("queue_*.yaml")):
+        try:
+            q._load_queue(f.name)
+        except SystemExit as e:
+            refused.append(f"{f.name}: {str(e).splitlines()[0]}")
+    assert not refused, "shipped queues refused by the new guard:\n  " + "\n  ".join(refused)

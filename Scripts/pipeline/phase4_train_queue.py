@@ -1093,6 +1093,59 @@ def verify_step(job, step, rows, step_start=None, reverify=False):
     return state not in _VERIFY_HARD_FAIL
 
 
+def _assert_label_source_declared(job, queue_path):
+    """A job must SAY where its training labels come from. Refuse if it does not.
+
+    THE HAZARD. `polygons/` was overwritten with accept-all test data and the
+    14,476-crown human review was never finished, so the per-site crown-polygon label
+    path trains on labels nobody has validated. Every one of the 32 queue files passes
+    --force-citywide, which avoids it — but the queue does NOT inject that flag (see
+    run_step: it adds only --year/--step/--infer-batch/--run-tag). It arrives from the
+    YAML alone.
+
+    So the protection against training on known-bad labels was one omitted line in a
+    hand-written file, with no error if the line went missing: cli.py would compute
+    `citywide = (tier == "coarse" or force_citywide)`, get False on a fine/medium year,
+    and quietly take the polygon path. Nothing downstream would look wrong.
+
+    This makes the guard structural. Coarse-tier years are exempt because the tier
+    ALREADY forces citywide — requiring a redundant flag there would train people to
+    add flags that do nothing, which is its own hazard.
+
+    The escape hatches are the real opt-ins, not a bypass: --anchor-labels selects the
+    third label source (the 2020 probability raster), and --coarse-site-tiling is the
+    explicit "yes, I mean the site path" switch. Either one is a declaration.
+    """
+    from phase4seg import config as _cfg      # stdlib-only import (see names.py)
+
+    extra = [str(x) for x in job.get("extra", [])]
+    if any(f in extra for f in ("--force-citywide", "--anchor-labels",
+                                "--coarse-site-tiling")):
+        return
+    # Look the entry up directly rather than via common.entry_for — common.py carries
+    # the heavy imports this module exists to avoid, and config.py is stdlib-only.
+    # (The first version called config.entry_for, which does not exist; the lookup
+    # raised, tier fell to None, and the coarse exemption below became dead code. It
+    # went unnoticed because every shipped queue carries a flag, so the lookup never
+    # ran. A test for the exemption is what surfaced it.)
+    entry = next((e for e in _cfg.YEAR_CATALOG
+                  if str(e.get("label")) == str(job["year"])), None)
+    tier = _cfg.tier_for(entry) if entry else None
+    if tier == "coarse":
+        return                            # the tier already forces citywide
+    sys.exit(chr(10).join([
+        f"queue file {queue_path}: job {job['id']!r} (year {job['year']}, tier "
+        f"{tier or 'unknown'}) does not declare a label source.",
+        "  Without --force-citywide a fine/medium year takes the PER-SITE CROWN POLYGON",
+        "  path, and `polygons/` was overwritten with accept-all test data — the",
+        "  14,476-crown review was never finished.",
+        "  Add one of: --force-citywide (the citywide 2020 mask, what every existing",
+        "  queue uses) | --anchor-labels (the 2020 probability raster) |",
+        "  --coarse-site-tiling (yes, I really mean the site polygons).",
+    ]))
+
+
+
 def _load_queue(path):
     """P6.3 queue-as-data: load the job list from a YAML file.
 
@@ -1116,6 +1169,7 @@ def _load_queue(path):
         j.setdefault("expect", "")
         j["year"] = str(j["year"])
         j["id"] = str(j["id"])
+        _assert_label_source_declared(j, p)
     return jobs
 
 

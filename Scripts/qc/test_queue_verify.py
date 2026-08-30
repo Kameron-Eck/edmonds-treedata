@@ -786,7 +786,7 @@ def test_the_shared_rules_are_actually_used():
 def test_pid_alive_does_not_touch_os_kill_off_posix(monkeypatch):
     """On Windows os.kill does NOT probe — CPython maps it to TerminateProcess for
     every signal but CTRL_C_EVENT/CTRL_BREAK_EVENT, so os.kill(pid, 0) KILLS the
-    process it was asked about. phase4seg/common.py:230 has carried this guard all
+    process it was asked about. phase4seg/common.py::_pid_alive has carried this guard all
     along; the queue's copy was added on 2026-08-30 without it.
 
     Asserting the RETURN VALUE is not enough — True is also what a successful probe

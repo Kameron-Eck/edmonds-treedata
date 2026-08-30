@@ -57,7 +57,7 @@ TILE = config.TILE_SIZE
 
 def _legacy_val_split(train_df, tier):
     """core.step_train's train/val selection EXACTLY as it stood before
-    2026-08-29 (core.py:1279-1310 at commit b8a4e29), lifted character for
+    2026-08-29 (core.py::step_train at commit b8a4e29), lifted character for
     character apart from being a function. `core.RANDOM_SEED` is read at call
     time, as the original did — that is what T4 is about.
     """

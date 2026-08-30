@@ -6,29 +6,33 @@ r"""
     Coarse-tier and --force-citywide runs learn from the Phase-3 citywide 2020
     SEMANTIC MASK (phase3/edmonds_canopy_mask_2020.tif). Verified in the engine,
     not assumed:
-      · phase4seg/cli.py:576-578   citywide = (coarse or --force-citywide) and
+      · phase4seg/cli.py::main      citywide = (coarse or --force-citywide) and
                                    not --coarse-site-tiling and not --anchor-labels
-      · phase4seg/labels.py:315-321  citywide => Step 1 (crown burn) is SKIPPED
-                                   ("citywide: labels step is skipped by design")
-      · phase4seg/tiling.py:341-344,419-420  every citywide tile is labelled by
-                                   canopy_label_from_2020_mask() off MASK_2020
-      · phase4seg/core.py:785,795-800  step_train reads tile_index_*.csv only;
-                                   `grep -n crown core.py` returns nothing
+      · phase4seg/labels.py::step_labels  citywide => Step 1 (crown burn) is
+                                   SKIPPED ("Label projection — SKIPPED (coarse
+                                   city-wide tiling labels tiles from the 2020
+                                   mask in Step 2)")
+      · phase4seg/tiling.py::_gather_citywide_coarse  every citywide tile is
+                                   labelled by canopy_label_from_2020_mask() off
+                                   MASK_2020
+      · phase4seg/core.py::step_train  reads tile_index_*.csv only;
+                                   `grep -c crown core.py` returns 0
     So the 222,435 per-crown INSTANCE polygons never enter such a run. No holdout
     has to be reserved — they are already fully held out.
 
   THE ESCAPE HATCH THIS SCRIPT POLICES
-    tiling.py:349-357,421-424 apply an ADD-ONLY overlay from --add-canopy-mask
-    into citywide label tiles. On 2009 the `hybrid_v1`, `groves_lidar` and
+    tiling.py::_gather_citywide_coarse applies an ADD-ONLY overlay from
+    --add-canopy-mask into citywide label tiles. On 2009 the `hybrid_v1`, `groves_lidar` and
     `groves_nolidar` arms use overlays whose force-canopy code is RASTERISED
-    CROWN POLYGONS — qc/build_groves_overlay.py:72 (GROVES = stable_crowns_v0
-    .gpkg), :293 (pos_shapes = groves + forest), :343 (rasterize -> CODE_CANOPY),
-    and stable_crowns_v0.gpkg is a 2,307-row subset of the canonical crown layer
-    with crown_id intact (qc/mine_stable_crowns.py:40,101-105). Those crowns were
+    CROWN POLYGONS — qc/build_groves_overlay.py::GROVES (= stable_crowns_v0.gpkg),
+    then in its main(): pos_shapes = groves + forest, rasterized to CODE_CANOPY.
+    stable_crowns_v0.gpkg is a 2,307-row subset of the canonical crown layer with
+    crown_id intact (qc/mine_stable_crowns.py::CROWNS, written by its main()). Those crowns were
     TRAINED AS FORCED CANOPY: unexcluded they score ~1.0 by construction and the
     metric FLATTERS the contaminated arm.
     This script therefore reads each arm's own run manifest (phase4/runs/*_tile/
-    manifest.json, written by cli.py:414) and decides from the recorded facts —
+    manifest.json, written by cli.py::_write_run_manifest) and decides from the
+    recorded facts —
     never from a hardcoded tag list — whether exclusion is required. A
     contaminated arm scored without exclusion is REFUSED.
 
@@ -79,11 +83,12 @@ DATA = Path(r"G:\My Drive\treedata")
 RUNS = DATA / "phase4" / "runs"
 
 # The canonical per-crown instance layer (phase 0). D: mirror first, lake second
-# — the same resolution order qc/mine_stable_crowns.py:40-41 uses.
+# — the same resolution order qc/mine_stable_crowns.py::CROWNS uses.
 CROWNS = Path(r"D:\edmonds-pipeline\backup\inference\edmonds_crowns_2020.gpkg")
 CROWNS_FALLBACK = DATA / "inference" / "edmonds_crowns_2020.gpkg"
 
-# Known crown-derived training-overlay ingredients (qc/build_groves_overlay.py:72,263).
+# Known crown-derived training-overlay ingredients (qc/build_groves_overlay.py::GROVES
+# and the site layer its main() unions in).
 STABLE_CROWNS = DATA / "phase4" / "qc" / "stable_crowns_v0.gpkg"
 FOREST_SITE = Path(r"D:\edmonds-pipeline\ARCGIS\MachineLearning\site_grid"
                    r"\negative_sites_draw.shp")
@@ -161,7 +166,8 @@ def _provenance(year, tag):
         return dict(base, status="site_crowns",
                     detail=("--anchor-labels" if anchor else "--coarse-site-tiling")
                            + " defeats the citywide path; labels come from site "
-                             "crown polygons (phase4seg/labels.py:217-243)")
+                             "crown polygons "
+                             "(phase4seg/labels.py::project_and_rasterise_site)")
     if not forced:
         return dict(base, status="site_crowns",
                     detail="manifest labels.force_citywide is not true — this run "
@@ -170,7 +176,8 @@ def _provenance(year, tag):
         return dict(base, status="add_overlay",
                     detail=f"--add-canopy-mask {Path(str(add)).name} "
                            f"({lab.get('add_canopy_mask_size')} B) is applied to "
-                           f"citywide label tiles at phase4seg/tiling.py:421-424")
+                           f"citywide label tiles at "
+                           f"phase4seg/tiling.py::_gather_citywide_coarse")
     return dict(base, status="clean",
                 detail="citywide 2020-mask labels, no add-overlay")
 
@@ -196,7 +203,7 @@ def _load_exclusion(src, crowns):
         return None, None, f"MISSING: {p}"
     g = gpd.read_file(p, engine="pyogrio")
     if p == FOREST_SITE:
-        # Mirror qc/build_groves_overlay.py:259-263 exactly: the 'Forest' site,
+        # Mirror qc/build_groves_overlay.py::main exactly: the 'Forest' site,
         # and of its two equal-area rows take the Tree/positive one.
         if "site" in g.columns:
             g = g[g["site"] == "Forest"]
@@ -294,7 +301,7 @@ def _accumulate(paths, tags, crowns, block_rows, all_touched, ref_path,
             if ref_vrt is not None:
                 rc = ref_vrt.read(1, window=win)
                 if ref_scheme == "binary":
-                    # mirrors phase4_arm_pr_curves.py:202-206 exactly
+                    # mirrors phase4_arm_pr_curves.py::main exactly
                     gid = np.full(rc.shape, other_id, dtype=np.int16)
                     gid[rc > 0] = canopy_id
                 else:
@@ -485,7 +492,7 @@ def main():
     print(f"[crown-touch] crowns: {len(crowns):,} from {cpath}")
 
     # TRUE area — never the stored area_m2 (EPSG:3857, 2.2215x inflated;
-    # phase0_instance_seg.py:425-440).
+    # phase0_instance_seg.py::preprocess_shapefiles).
     true_area = crowns.geometry.to_crs(AREA_CRS).area.to_numpy()
     stored = crowns["area_m2"].to_numpy() if "area_m2" in crowns.columns else None
     if stored is not None and len(stored):
@@ -640,7 +647,7 @@ def main():
     if excl_notes:
         A("**Exclusion applied** (an arm's manifest showed an add-canopy overlay whose "
           "force-canopy code is rasterised crown polygons — "
-          "`qc/build_groves_overlay.py:72,293,343`):\n")
+          "`qc/build_groves_overlay.py::GROVES`, rasterised in its `main()`):\n")
         for nte in excl_notes:
             A(f"- {nte}")
         A(f"\nTotal crowns excluded as CONTAMINATED: **{int(excl.sum()):,}** "

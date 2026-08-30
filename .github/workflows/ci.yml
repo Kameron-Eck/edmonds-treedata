@@ -76,5 +76,10 @@ jobs:
       # catalog is readable on a runner with no torch and no Drive mount. The
       # lake-derived half of STATUS.md is deliberately NOT gated for the same reason —
       # CI cannot see Drive, so that half carries its own timestamp instead.
+      #
+      # test_citations_resolve is the same idea one layer down: comments citing another
+      # file must name a SYMBOL, because line-number citations in this repo drifted by
+      # up to 1,139 lines while still resolving to plausible-looking code. Pure AST +
+      # regex over the repo, so it needs nothing CI does not have.
       - name: docs match code (drift gate)
-        run: pytest Scripts/qc/test_docs_match_code.py Scripts/qc/test_status_discovery.py -q
+        run: pytest Scripts/qc/test_docs_match_code.py Scripts/qc/test_status_discovery.py Scripts/qc/test_citations_resolve.py -q

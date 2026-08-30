@@ -6,13 +6,14 @@ WHY THIS EXISTS (2026-08-29, and it is not hypothetical).
 `phase4_train_queue.BASE` to a tmp_path and believed that redirected the module.
 It does not. The queue binds its paths at IMPORT time:
 
-    BASE    = ...                       (phase4_train_queue.py:98)
-    QC_DIR  = BASE / "phase4" / "qc"    (:101)
-    STATUS  = QC_DIR / "train_queue_status.csv"   (:105)
+    BASE    = ...                                  phase4_train_queue.py::BASE
+    QC_DIR  = BASE / "phase4" / "qc"               ::QC_DIR
+    STATUS  = QC_DIR / "train_queue_status.csv"    ::STATUS
 
 `QC_DIR` and `STATUS` are already-computed Path objects. Rebinding `BASE`
 afterwards leaves them pointing at the real lake. `_status_write` then resolves
-`out = STATUS_OUT if STATUS_OUT is not None else STATUS` (:479), and `STATUS_OUT`
+`out = STATUS_OUT if STATUS_OUT is not None else STATUS`
+(phase4_train_queue.py::_status_write), and `STATUS_OUT`
 is None outside `main()` — so the test wrote a fixture row to
 
     G:/My Drive/treedata/phase4/qc/train_queue_status.csv

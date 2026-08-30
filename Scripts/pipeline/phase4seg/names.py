@@ -45,7 +45,7 @@ from pathlib import Path
 # filter existed to prevent, caused by the filter. Short words are substrings of real
 # names, so a lexical deny-list cannot be made safe by lengthening it.
 #
-# Match the writer's ACTUAL SHAPE instead. phase4_train_queue.py:1489 emits
+# Match the writer's ACTUAL SHAPE instead. phase4_train_queue.py::main emits
 #     STATUS_OUT = QC_DIR / f"train_queue_status_{stem}_{launch_ts}.csv"
 # where {stem} is the QUEUE FILE's stem — plus the legacy shared `train_queue_status.csv`.
 # So the separator after the stem is an UNDERSCORE, always.

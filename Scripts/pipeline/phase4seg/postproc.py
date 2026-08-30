@@ -44,7 +44,7 @@ def _operating_threshold(label):
     col = ("prec_floor_thresh" if config.THRESH_MODE == "precision_floor"
            else "best_f1_thresh")
     # The channels arm being deployed — must match how step_evaluate keys its rows
-    # (core.py:1161) so a year with MULTIPLE arms (e.g. rgb and rgb+chm) picks THIS
+    # (core.py::step_evaluate) so a year with MULTIPLE arms (rgb and rgb+chm) picks THIS
     # arm's threshold, not whichever row happened to be appended last.
     chan_desc = f"rgb+{config.HS_SOURCE}" if config.IN_CHANNELS >= 4 else "rgb"
     if EVAL_CSV.exists():

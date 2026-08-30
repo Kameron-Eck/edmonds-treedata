@@ -25,7 +25,8 @@ r"""
   ------------------------------------------------------------------
   Every height product here shares ONE uint8 encoding —
       DN = 1 + round(clip(h_m, 0, 50.6) / 0.2),  0 = nodata
-  (fetch_build_chm.py:24, build_chm2_2016.py:32, build_chm2005.py:13) — so a
+  (stated in the header of each of fetch_build_chm.py, build_chm2_2016.py and
+  build_chm2005.py) — so a
   height raster IS already a 254-level canopy score, and sweeping the cut over
   every DN enumerates every "canopy is taller than h metres" classifier there
   is. One pass over the COMMON valid footprint (intersection of every raster
@@ -227,7 +228,8 @@ def max_filter_dn(dn, r):
     """Neighbourhood maximum over a (2r+1)^2 window — the CONFOUND TEST.
 
     `lidar_snoh_chm.tif` is USGS 3DEP HAG at ~2 m GSD BILINEAR-UPSAMPLED onto a
-    0.67 m ground grid (fetch_build_chm.py:17,132), and build_chm2_2016.py
+    0.67 m ground grid (fetch_build_chm.py's header, and its main()), and
+    build_chm2_2016.py
     measured the consequence: it reports a NEIGHBOURHOOD MAXIMUM rather than the
     height at the cell, +4.1 to +5.4 m nearly everywhere. A neighbourhood
     maximum is a DILATED canopy — it spreads crown height into the gaps between

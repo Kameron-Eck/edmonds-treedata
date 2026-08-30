@@ -750,7 +750,7 @@ def nir_mode():
 HS_PATHS["chm2"] = IMAGERY_DIR / "lidar_chm2_2016_50cm.tif"
 
 # /255 non-zero mean/std, computed by the SAME procedure as every entry above
-# (fetch_build_chm.py:153 — nz = arr[arr>0]/255, mean/std over the whole written
+# (fetch_build_chm.py::main — nz = arr[arr>0]/255, mean/std over the whole written
 # raster). Lower than "chm" because chm2 does not inflate open ground: its DN-1
 # (flat) share is 27.9% against the old raster's 10.1%.
 HS_STATS["chm2"] = ([0.1437], [0.2003])
@@ -758,7 +758,8 @@ HS_STATS["chm2"] = ([0.1437], [0.2003])
 # ══════════════════════════════════════════════════════════════════════════════
 #  CHECKPOINT-SELECTION SMOOTHING   (APPENDED 2026-08-29; nothing above this line
 #  was edited — config.py is pure-move protected. This is a TRAINING parameter:
-#  _tile_signature (tiling.py:629) hashes neither it nor the epoch budgets, so
+#  _tile_signature (tiling.py::_add_canopy_mask_sig) hashes neither it nor the
+#  epoch budgets, so
 #  changing it invalidates NO tile cache and re-tiles nothing. Verified
 #  empirically — see the flag's --select-smooth help text.)
 # ══════════════════════════════════════════════════════════════════════════════

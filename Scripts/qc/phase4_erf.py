@@ -56,7 +56,7 @@ SCRIPTS = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(SCRIPTS / "pipeline"))
 
 
-# config.BASE is HARDCODED to the Colab path (config.py:6) because the engine only ever
+# config.BASE is HARDCODED to the Colab path because the engine only ever
 # RUNS on Colab. This is a local QC tool, so it resolves the lake the way the other qc
 # scripts do (phase4_accuracy_sample.py, nir_change_probe.py): Colab path if present,
 # else the Drive letter.

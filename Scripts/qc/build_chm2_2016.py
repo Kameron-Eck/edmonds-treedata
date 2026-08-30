@@ -755,7 +755,7 @@ def analyse(new_path, a):
     verified_background_check(new_path)
 
     log("\n[3] HS_STATS for the new source (/255 non-zero, same procedure as "
-        "fetch_build_chm.py:153)")
+        "fetch_build_chm.py::main)")
     nz = newdn[newdn > 0].astype(np.float64) / 255.0
     log('  "chm2": ([%.4f], [%.4f])' % (nz.mean(), nz.std()))
     log('  (existing "chm": ([0.2306], [0.2305]); recomputed here from the raster '

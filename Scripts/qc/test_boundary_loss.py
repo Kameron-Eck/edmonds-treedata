@@ -180,3 +180,85 @@ def test_it_is_differentiable():
     core._masked_boundary(logits, masks).backward()
     assert logits.grad is not None and torch.isfinite(logits.grad).all()
     assert float(logits.grad.abs().sum()) > 0, "no gradient reaches the logits"
+
+
+# ── the SDM moved into the DataLoader worker (4.1, 2026-08-30) ───────────────
+
+def test_the_precomputed_field_equals_the_one_computed_in_the_loss():
+    """The move is only safe if both paths agree exactly. They share sdm_for_mask now,
+    so this is really asserting that the batch wrapper still routes through the
+    per-sample core rather than having regrown its own copy of the EDT logic."""
+    masks = _mask(ignore_box=(50, 60, 0, S))          # canopy square + IGNORE stripe
+    m = masks[0, 0].numpy()
+
+    sdm_b, w_b = core._signed_distance_map(masks, config.BOUNDARY_IGNORE_BUFFER)
+    sdm_s, w_s = core.sdm_for_mask(m, config.BOUNDARY_IGNORE_BUFFER)
+
+    assert np.allclose(sdm_b.numpy()[0, 0], sdm_s), "batch and per-sample fields differ"
+    assert np.allclose(w_b.numpy()[0, 0], w_s), "batch and per-sample weights differ"
+
+
+def test_passing_a_precomputed_field_gives_the_same_loss():
+    """What the training step now does. If the two disagree, every boundary-trained run
+    would be optimising a slightly different objective than the tests measured."""
+    masks = _mask()
+    logits = torch.randn(1, 1, S, S) * 2.0
+
+    crit = torch.nn.BCEWithLogitsLoss(reduction="none")
+    pre = core._signed_distance_map(masks, config.BOUNDARY_IGNORE_BUFFER)
+    a = core._seg_loss(crit, logits, masks, "bce_dice", boundary_w=1.0, sdm=pre)[0]
+    b = core._seg_loss(crit, logits, masks, "bce_dice", boundary_w=1.0, sdm=None)[0]
+    assert torch.allclose(a, b, atol=1e-6), (a.item(), b.item())
+
+
+def test_the_field_follows_the_augmented_mask_not_the_stored_one():
+    """THE REASON THIS IS NOT A CACHE. The plan said the SDM depends only on the fixed
+    tile, so precompute one per tile. The training augmentation warps 89.5% of tiles
+    non-isometrically (Rotate 45, Affine scale, GridDistortion, ElasticTransform), and a
+    field computed before that describes a shape the logits are never scored against.
+
+    A shifted square stands in for the warp: the field must move with the mask. If a
+    cached, pre-augmentation field were used, this is the assertion that would fail —
+    silently, in training, with no error anywhere."""
+    stored = _mask(canopy_box=(20, 44))[0, 0].numpy()
+    warped = _mask(canopy_box=(28, 52))[0, 0].numpy()   # what augmentation handed the loss
+
+    sdm_stored, _ = core.sdm_for_mask(stored, 0)
+    sdm_warped, _ = core.sdm_for_mask(warped, 0)
+
+    assert not np.allclose(sdm_stored, sdm_warped), (
+        "the distance field did not move with the mask — a per-tile cache would have "
+        "been indistinguishable from correctness here, which is exactly the risk")
+    # and the sign flips where the canopy moved: inside the new square, outside the old
+    assert sdm_warped[48, 48] < 0 < sdm_stored[48, 48]
+
+
+def test_the_dataset_carries_the_field_in_meta_not_as_a_new_tuple_element():
+    """The batch is already unpacked two ways (AUX_HEIGHT on/off) at two sites. Adding
+    positional elements would make four shapes, and a positional mix-up is the failure
+    mode that just cost a dashboard every one of its step chips. A dict key cannot be
+    mixed up."""
+    import ast
+    src = (SCRIPTS / "pipeline" / "phase4seg" / "core.py").read_text(encoding="utf-8")
+    tree = ast.parse(src)
+    fn = next(n for n in ast.walk(tree)
+              if isinstance(n, ast.FunctionDef) and n.name == "__getitem__")
+    body = ast.get_source_segment(src, fn)
+    assert 'meta["sdm"]' in body and "sdm_for_mask(" in body
+    for ret in [n for n in ast.walk(fn) if isinstance(n, ast.Return)]:
+        seg = ast.get_source_segment(src, ret)
+        assert "sdm" not in seg, f"the SDM leaked into a return tuple: {seg}"
+
+
+def test_nothing_is_computed_when_the_term_is_off():
+    """BOUNDARY_WEIGHT is 0.0 today. The Dataset must not pay ~23 ms/tile for a term
+    nothing is using — this is what keeps the change free for every current arm."""
+    import ast
+    src = (SCRIPTS / "pipeline" / "phase4seg" / "core.py").read_text(encoding="utf-8")
+    tree = ast.parse(src)
+    fn = next(n for n in ast.walk(tree)
+              if isinstance(n, ast.FunctionDef) and n.name == "__getitem__")
+    body = ast.get_source_segment(src, fn)
+    assert body.count("if self.training and config.BOUNDARY_WEIGHT:") == 2, (
+        "both Dataset return paths (AUX_HEIGHT on and off) must gate the SDM on the "
+        "weight being non-zero")

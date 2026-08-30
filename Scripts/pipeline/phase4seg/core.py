@@ -275,8 +275,13 @@ class SemanticDataset:
                 out = self.test_tf(image=rgb, mask=mask)
                 img, mask = out["image"], out["mask"]
                 mask = mask.unsqueeze(0).float() if mask.dim() == 2 else mask.float()
-            return (img, mask, _height_to_target(height_dn),
-                    {"tile_name": row["tile_name"], "site": row["site"]})
+            meta = {"tile_name": row["tile_name"], "site": row["site"]}
+            if self.training and config.BOUNDARY_WEIGHT:
+                sdm, w = sdm_for_mask(mask.squeeze(0).numpy(),
+                                      config.BOUNDARY_IGNORE_BUFFER)
+                meta["sdm"] = torch.from_numpy(sdm).unsqueeze(0)
+                meta["sdm_w"] = torch.from_numpy(w).unsqueeze(0)
+            return img, mask, _height_to_target(height_dn), meta
 
         if self.training:
             # Spatial aug applies jointly to all bands + mask (geometry only).
@@ -313,6 +318,29 @@ class SemanticDataset:
                 mask = mask.unsqueeze(0).float() if mask.dim() == 2 else mask.float()
 
         meta = {"tile_name": row["tile_name"], "site": row["site"]}
+        # The boundary term's distance field, computed HERE — in the DataLoader worker,
+        # on the AUGMENTED mask, which is the only mask the loss ever sees.
+        #
+        # IT CANNOT BE PRECOMPUTED PER TILE, and the plan said it could. The spatial
+        # augmentation is Rotate(45) + Affine(scale) + GridDistortion + ElasticTransform
+        # at p = .5/.5/.4/.3, so 89.5% of training tiles get a NON-ISOMETRIC warp. A
+        # distance field computed before that describes a different shape than the mask
+        # the logits are scored against — a silent correctness bug wearing an
+        # optimisation's clothes. Caching would have been wrong 9 tiles in 10.
+        #
+        # What this DOES buy: the ~23 ms/tile moves off the training step's critical
+        # path into workers that run in parallel and overlap with GPU compute, and the
+        # GPU->CPU->GPU round trip per batch disappears. Total CPU work is unchanged.
+        # That is the honest claim; "pure waste, recomputed every epoch" was not.
+        #
+        # Carried in `meta` rather than as new tuple elements on purpose. The batch is
+        # already unpacked two ways (AUX_HEIGHT on/off) at two sites; a third and fourth
+        # shape is how a positional mix-up gets in, and a dict lookup cannot mix up.
+        if self.training and config.BOUNDARY_WEIGHT:
+            sdm, w = sdm_for_mask(mask.squeeze(0).numpy(),
+                                  config.BOUNDARY_IGNORE_BUFFER)
+            meta["sdm"] = torch.from_numpy(sdm).unsqueeze(0)
+            meta["sdm_w"] = torch.from_numpy(w).unsqueeze(0)
         return img, mask, meta
 
 
@@ -694,6 +722,36 @@ def _masked_focal(criterion_none, logits, masks):
     return (focal_map * valid).sum() / valid.sum().clamp(min=1.0)
 
 
+def sdm_for_mask(s, ignore_buffer=0):
+    """Signed distance map + weight for ONE 2-D mask. numpy in, numpy out.
+
+    The per-sample core, so the Dataset (which has a single numpy mask) and the batch
+    path (which has a torch tensor) share one implementation rather than two that agree
+    until someone edits one. See phase4seg/names.py for what that costs.
+
+    scipy is imported lazily and stays lazy: this module is heavy, and the import
+    hygiene the orchestrator depends on is worth more than a microsecond here.
+    """
+    from scipy.ndimage import binary_dilation, distance_transform_edt
+
+    ign = (s == IGNORE_LABEL)
+    canopy = (s == 1)
+    valid = ~ign
+    if ignore_buffer > 0 and ign.any():
+        valid &= ~binary_dilation(ign, iterations=int(ignore_buffer))
+    w = valid.astype(np.float32)
+    # A tile that is all canopy or all background has NO boundary; a distance field
+    # there is meaningless, so contribute nothing rather than a large constant.
+    if not canopy.any() or canopy.all():
+        return np.zeros(s.shape, np.float32), w
+    d = (distance_transform_edt(~canopy)
+         - distance_transform_edt(canopy)).astype(np.float32)
+    peak = float(np.abs(d).max())
+    if peak > 0:
+        d /= peak
+    return d, w
+
+
 def _signed_distance_map(masks, ignore_buffer=0):
     """Kervadec-style signed distance map of the canopy boundary, plus its weight.
 
@@ -720,31 +778,13 @@ def _signed_distance_map(masks, ignore_buffer=0):
     max absolute distance makes the term scale-free, so its weight means the same thing
     at any tile size or canopy fraction.
     """
-    from scipy.ndimage import binary_dilation, distance_transform_edt
     m = masks.detach().cpu().numpy()
     sdm = np.zeros(m.shape, np.float32)
     w = np.zeros(m.shape, np.float32)
     flat = m.reshape(-1, *m.shape[-2:])
     fs, fw = sdm.reshape(-1, *m.shape[-2:]), w.reshape(-1, *m.shape[-2:])
     for j in range(flat.shape[0]):
-        s = flat[j]
-        ign = (s == IGNORE_LABEL)
-        canopy = (s == 1)
-        valid = ~ign
-        if ignore_buffer > 0 and ign.any():
-            valid &= ~binary_dilation(ign, iterations=int(ignore_buffer))
-        fw[j] = valid.astype(np.float32)
-        # A tile that is all canopy or all background has NO boundary; a distance field
-        # there is meaningless, so contribute nothing rather than a large constant.
-        if not canopy.any() or canopy.all():
-            continue
-        d_out = distance_transform_edt(~canopy)
-        d_in = distance_transform_edt(canopy)
-        d = (d_out - d_in).astype(np.float32)
-        peak = float(np.abs(d).max())
-        if peak > 0:
-            d /= peak
-        fs[j] = d
+        fs[j], fw[j] = sdm_for_mask(flat[j], ignore_buffer)
     dev = masks.device
     return (torch.from_numpy(sdm).to(dev), torch.from_numpy(w).to(dev))
 
@@ -756,12 +796,22 @@ def _masked_boundary(logits, masks, sdm=None, ignore_buffer=0):
     and the sum is normalised by the weight, so an all-IGNORE tile contributes nothing
     rather than dividing by zero.
 
-    COST NOTE, measured: the two distance transforms are ~23 ms per 512 px tile on this
-    machine, so a batch of 10 adds ~230 ms plus a GPU->CPU->GPU round trip. The SDM
-    depends ONLY on the mask, which is fixed per tile, so recomputing it every epoch is
-    pure waste - the right home is the Dataset (computed once, in DataLoader workers) or
-    a file written beside each tile. Left here for now because correctness of the term
-    is what is being established; move it before a long run.
+    COST, AND A PREMISE THAT DID NOT SURVIVE THE CODE (2026-08-30). The two distance
+    transforms are ~23 ms per 512 px tile, so a batch of 10 adds ~230 ms plus a
+    GPU->CPU->GPU round trip. The plan called that "pure waste, since the SDM depends
+    only on the fixed mask" and said to precompute one per tile. IT DOES NOT DEPEND ONLY
+    ON THE TILE: the training augmentation is Rotate(45) + Affine(scale) + GridDistortion
+    + ElasticTransform at p = .5/.5/.4/.3, so 89.5% of training tiles are warped
+    NON-ISOMETRICALLY. A field computed before that describes a different shape than the
+    mask the logits are scored against, and the mismatch is silent.
+
+    So the work is not removable, only movable. SemanticDataset now computes it AFTER
+    augmentation, in the DataLoader workers, and passes it in as `sdm` — parallel,
+    overlapped with GPU compute, and no round trip. Total CPU work is unchanged; the
+    training step's critical path is what gets shorter.
+
+    Passing `sdm=None` still computes it here. That is the path the boundary tests
+    drive, and the one any caller without Dataset support gets.
     """
     if sdm is None:
         sdm, w = _signed_distance_map(masks, ignore_buffer)
@@ -772,7 +822,8 @@ def _masked_boundary(logits, masks, sdm=None, ignore_buffer=0):
 
 
 
-def _seg_loss(criterion_none, logits, masks, loss_mode="bce_dice", boundary_w=0.0):
+def _seg_loss(criterion_none, logits, masks, loss_mode="bce_dice", boundary_w=0.0,
+              sdm=None):
     """Combined masked segmentation loss (all terms IGNORE-aware).
 
     loss_mode "focal_dice" -> FOCAL_WEIGHT*focal + DICE_WEIGHT*dice (Edit F);
@@ -797,8 +848,11 @@ def _seg_loss(criterion_none, logits, masks, loss_mode="bce_dice", boundary_w=0.
         total = config.BCE_WEIGHT * bce + config.DICE_WEIGHT * dice
         primary = bce
     if boundary_w:
+        # `sdm` is the (field, weight) pair the Dataset already computed for THIS
+        # augmented mask. None falls back to computing it here — the path the boundary
+        # tests exercise directly, and the one any caller without Dataset support gets.
         total = total + boundary_w * _masked_boundary(
-            logits, masks, ignore_buffer=config.BOUNDARY_IGNORE_BUFFER)
+            logits, masks, sdm=sdm, ignore_buffer=config.BOUNDARY_IGNORE_BUFFER)
     return total, primary, dice
 
 
@@ -828,18 +882,24 @@ def _train_one_epoch(model, loader, optimizer, scaler, criterion, device,
     n = 0
     for batch in loader:
         if config.AUX_HEIGHT:
-            imgs, masks, heights, _ = batch
+            imgs, masks, heights, meta = batch
             heights = heights.to(device, non_blocking=True)
         else:
-            imgs, masks, _ = batch
+            imgs, masks, meta = batch
             heights = None
         imgs = imgs.to(device, non_blocking=True)
         masks = masks.to(device, non_blocking=True)
+        # Present only when the boundary term is on (see SemanticDataset.__getitem__).
+        sdm = None
+        if boundary_w and isinstance(meta, dict) and "sdm" in meta:
+            sdm = (meta["sdm"].to(device, non_blocking=True),
+                   meta["sdm_w"].to(device, non_blocking=True))
         optimizer.zero_grad()
         with torch.amp.autocast("cuda"):
             out = model(imgs)
             logits, height_pred = (out if isinstance(out, (tuple, list)) else (out, None))
-            seg, _p, _dice = _seg_loss(criterion, logits, masks, loss_mode, boundary_w)
+            seg, _p, _dice = _seg_loss(criterion, logits, masks, loss_mode,
+                                       boundary_w, sdm=sdm)
             aux_h = (_masked_l1(height_pred, heights)
                      if (heights is not None and height_pred is not None) else None)
         loss = seg if aux_h is None else seg + config.HEIGHT_LAMBDA * aux_h

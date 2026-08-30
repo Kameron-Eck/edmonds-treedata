@@ -58,7 +58,12 @@ made permanent — an ungated doc can drift again.
 | **3.4** | the status ledger — one state vocabulary so oversight can see failure | **done** `b260212`; the 4 row keys / 4 filename parsers still have no owning module |
 | **3.5** | `core.py` at 2,773 lines — the largest refactor here | next |
 | **3.6** | per-run attribution of eval metrics in the registry | **done** `724f105` + this. The writer half was ALREADY built — `step_evaluate` stamps `run_tag`/`run_id`/`written_utc` (D6, 2026-08-29), including the note that the (year, channels) replace key is deliberately NOT extended because that would move which threshold real masks are cut at. It landed after the last evaluate ran, so the live report still carries none of those columns; they appear on the first evaluate from here. `held_out_metrics` now spans both eras — exact run_tag join when present (superseded archive included), year-level label when not — so no change is needed when they arrive. |
-| **4** | architecture — SDM caching, HR aux branch, DeepLabV3+ arm | 4.1 partly done `7c8a385` |
+| **4.1a** | boundary loss — the signed-distance term itself | **done** `7c8a385` |
+| **4.1b** | the SDM off the training step | **done.** NOT the cache the plan called for — that premise was false. The training augmentation (Rotate 45 + Affine scale + GridDistortion + Elastic, p = .5/.5/.4/.3) warps **89.5%** of tiles non-isometrically, so a field precomputed per tile describes a different shape than the mask the logits are scored against. Computed in the DataLoader worker AFTER augmentation instead: **446 ms -> 4.7 ms per batch of 10** off the critical path, measured. Total CPU work unchanged — it is parallelised, not eliminated. |
+| **4.1c** | the boundary term vs perimeter exclusion on historical years | **open.** They cannot both apply to the same pixels; that is a decision, not a refactor. |
+| **4.2** | training-only HR auxiliary branch | not started |
+| **4.3** | DeepLabV3+ as an arm | not started |
+| **4.4** | resample the fine end DOWN to deployment GSD | not started — the largest measured lever (+9.2 OA) and a tiling parameter, not a retrain |
 | **5** | pilot slice — 2019 / 2019s / 2019n | not started |
 
 ### Decisions taken (Kam, 2026-08-30)

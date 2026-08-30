@@ -167,6 +167,37 @@ try:
 except Exception as e:
     die("_train_one_epoch", e)
 
+# ── 1b) the SAME epoch with the boundary term ON ─────────────────────────────
+# BOUNDARY_WEIGHT is 0.0 in config, so step 1 above never touches the boundary path —
+# which is how the SDM could be plumbed through Dataset -> meta -> loss with the smoke
+# test still passing and nothing exercised. Turn it on for one epoch here, and assert
+# the Dataset actually produced the field rather than the loss quietly recomputing it.
+step("_train_one_epoch with the boundary term ON (SDM built in the DataLoader)")
+try:
+    _saved = config.BOUNDARY_WEIGHT
+    config.BOUNDARY_WEIGHT = 0.1
+    b_loader = DataLoader(core.SemanticDataset(train_df, True),
+                          batch_size=2, num_workers=0, shuffle=True,
+                          drop_last=len(train_df) >= 2)
+    _b = next(iter(b_loader))
+    _meta = _b[-1]
+    if "sdm" not in _meta or "sdm_w" not in _meta:
+        raise ValueError("the Dataset did not attach the distance field to meta — the "
+                         "loss would silently fall back to recomputing it per batch")
+    if tuple(_meta["sdm"].shape) != tuple(_b[1].shape):
+        raise ValueError(f"sdm shape {tuple(_meta['sdm'].shape)} != mask shape "
+                         f"{tuple(_b[1].shape)}")
+    bl, bseg = core._train_one_epoch(model, b_loader, optimizer, scaler, criterion,
+                                     device, loss_mode="bce_dice",
+                                     boundary_w=config.BOUNDARY_WEIGHT)
+    print(f"    boundary-on train loss={bl:.4f}  seg={bseg:.4f}  "
+          f"(sdm {tuple(_meta['sdm'].shape)} came from the Dataset)")
+    if not np.isfinite(bl):
+        raise ValueError("non-finite training loss with the boundary term on")
+    config.BOUNDARY_WEIGHT = _saved
+except Exception as e:
+    die("_train_one_epoch (boundary on)", e)
+
 # ── 2) real validation (pooled IoU sweep) ─────────────────────────────────────
 step("_validate (pooled global IoU over the threshold grid)")
 try:

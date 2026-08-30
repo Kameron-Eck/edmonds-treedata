@@ -101,3 +101,24 @@ def test_the_allowance_is_prefix_scoped_not_a_blanket(tmp_path):
         core.load_state_into(_Tiny(with_head=True), ck, torch.device("cpu"),
                              allow_missing=("aux_height_head.",))
     assert "decoder" in str(e.value), "the undeclared decoder gap must still stop it"
+
+
+# ── --loss-mode must not be accepted-and-inert ───────────────────────────────
+def test_loss_mode_is_refused_where_it_would_do_nothing():
+    """--loss-mode only mutates TIER_LOSS_MODE["coarse"]. The help text is honest
+    about that, but nothing said so at RUN time: passing it on a fine or medium year
+    was accepted, changed nothing, and landed in the manifest's argv looking as though
+    it applied. A later reader comparing that arm to a baseline would credit the null
+    to the loss rather than to a flag that never took effect."""
+    from phase4seg.cli import loss_mode_scope_error
+
+    msg = loss_mode_scope_error("focal_dice", {"fine"})
+    assert msg and "only affects the COARSE tier" in msg
+    assert "change nothing" in msg, "the message must say WHY it is refused"
+
+    assert loss_mode_scope_error("focal_dice", {"coarse"}) is None
+    assert loss_mode_scope_error("focal_dice", {"fine", "coarse"}) is None, \
+        "a mixed run that INCLUDES coarse is legitimate — the flag does something"
+    assert loss_mode_scope_error(None, {"fine"}) is None, "no flag, no complaint"
+    assert loss_mode_scope_error("focal_dice", set()) is None, \
+        "unknown tier set must not hard-fail a run"

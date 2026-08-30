@@ -63,6 +63,28 @@ def print_summary(entries):
     print(f"{'='*65}")
 
 
+def loss_mode_scope_error(loss_mode, tiers):
+    """Refuse --loss-mode when it would be ACCEPTED AND INERT. Returns a message or None.
+
+    The coarse-only scoping is deliberate and the help text says so. The hazard is that
+    nothing said so at RUN time: pass it on a fine or medium year and it is accepted,
+    changes nothing, and lands in the run manifest's argv looking as though it applied.
+    A later reader comparing that arm against a baseline would attribute the null to the
+    loss function rather than to a flag that never took effect — which is exactly the
+    mistake the chm2 lidar arm made for a different reason.
+
+    Pure so it can be tested; main() runs it before mutating TIER_LOSS_MODE.
+    """
+    if not loss_mode or not tiers:
+        return None
+    if "coarse" in tiers:
+        return None
+    return (f"--loss-mode {loss_mode} was passed, but it only affects the COARSE tier "
+            f"and these years are {sorted(tiers)}. It would be recorded in the manifest "
+            f"and change nothing. Drop the flag, or run it on a coarse year.")
+
+
+
 def main():
     # Declared up top: HS_DROPOUT/HS_SOURCE are read below as argparse defaults,
     # and Python forbids any use before the `global` declaration.
@@ -86,7 +108,8 @@ def main():
         description="Phase 4 — Per-Year Semantic Segmentation Fine-Tuning")
     p.add_argument("--year", type=str, default=None,
                    help="Comma-separated year labels (e.g. 2017 or 2005,2007,2009). "
-                        "Default: all 17 remaining.")
+                        "Default: every acquisition in YEAR_CATALOG except the "
+                        "2020 anchor.")
     p.add_argument("--tier", choices=["fine", "medium", "coarse"], default=None,
                    help="Restrict to one resolution tier.")
     p.add_argument("--step", choices=ALL_STEPS, default=None,
@@ -614,12 +637,15 @@ def main():
               f"NOT comparable with any arm trained without this flag: it moves "
               f"early stopping, LR scheduling and checkpoint selection.")
     # Edit F: --loss-mode overrides the coarse-tier loss (focal A/B); fine/medium
-    # stay bce_dice. Mutating the dict contents (no rebind) → no `global` needed.
     if args.loss_mode:
+        _msg = loss_mode_scope_error(args.loss_mode,
+                                     {tier_for(e) for e in _resolve_years(args)})
+        if _msg:
+            sys.exit(_msg)
         TIER_LOSS_MODE["coarse"] = args.loss_mode
 
     print("=" * 65)
-    print("  PHASE 4 — Per-Year Semantic Segmentation Fine-Tuning (17 years)")
+    print("  PHASE 4 — Per-Year Semantic Canopy Fine-Tuning")
     print("  Edmonds Temporal Active Learning Pipeline")
     print("=" * 65)
 

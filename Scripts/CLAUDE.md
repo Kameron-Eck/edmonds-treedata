@@ -1,348 +1,267 @@
-# Edmonds Temporal Active Learning Pipeline — Claude Code Instructions
+# Edmonds Tree Canopy — Claude Code Instructions
 
-> Read this file at the start of every session, then **read `WORKPLAN_2026-08-19.md`
-> FIRST** — it is the entry point / reference and wins on any disagreement — then
-> **the STATE block at the top of `CHATLOG.md`** for the live log/state. `../README.md`
-> is the map of every doc. Read the live source files before touching any code; do not
-> rely on memory or this file for specific parameters — always read the source.
+**This file is a ROADMAP and a RULEBOOK. It is deliberately NOT a facts store.**
+
+Facts belong in the code and the measured outputs; this file tells you where they live
+and how to re-derive them. That distinction is not stylistic — on 2026-08-29 the facts
+table here read *18 acquisitions, 15 calendar years, 4 NIR years* against a catalog
+holding **36 / 20 / 10**, and named a NIR year that had not existed for weeks. Every
+session had been starting from it. Anything restated here rots; anything derived does not.
+
+Read this file, then **`CHATLOG.md` STATE** (live state), then the active plan STATE names.
 
 ---
 
-## The two planes (the 2026-08-20 overhaul — read this before anything else)
+## 1. What we are building — current priority
+
+**A tree canopy assessment for Edmonds, WA: a binary canopy mask per aerial acquisition,
+across the whole archive.** That is the deliverable and the current focus.
+
+**SEMANTIC segmentation only.** The model predicts one class (`classes=1`) — canopy or
+not, per pixel. Per-year steps are `labels → tile → train → evaluate → inference →
+postproc`. Nothing in the Phase 4 path runs instance segmentation.
+
+**Instance is DEFERRED, not cancelled (Kam, 2026-08-29).** Phase 0 already produced
+222,435 crown polygons ONCE, from 2020, and is frozen. Those polygons are a fixed
+**lookup geometry**, not a per-year target: `qc/build_validity_intervals.py` scores each
+2020 crown against each year's SEMANTIC mask (≥0.5 PRESENT / ≤0.15 ABSENT / between
+UNSURE / no data UNOBSERVED) and derives per-crown validity intervals from that ladder.
+
+**The one hard constraint behind every difficulty here:** only 2020 has hand labels.
+Every other year is supervised by projecting the 2020 mask onto it, so tree growth,
+removal, and — established 2026-08-29 — **seasonal difference** all enter as label error.
+
+---
+
+## 2. Roadmap — where to find context
+
+### 2.1 By question
+
+| You need… | Go to |
+|---|---|
+| **Live state, what's next** | `CHATLOG.md` **STATE** block, then the plan it names |
+| **The active plan** | named in CHATLOG STATE (currently `SEMANTIC_OVERHAUL_PLAN_2026-08-29.md`) |
+| **Entry point / reference; wins on disagreement** | `WORKPLAN_2026-08-19.md` |
+| **Method, params, tiers, loss, QC design** | `Method_Pipeline.md` |
+| **What's built vs pending** | `pipeline_buildtracker.md` |
+| **Full doc map** | `../README.md` |
+| **Imagery catalog: years, GSD, bands, CRS, paths** | `pipeline/phase4seg/config.py` → `YEAR_CATALOG`, `imagery_roots()`. Test: `py -3.12 qc/phase4_catalog_check.py` |
+| **Acquisition DATES + measured effective resolution** | `qc/imagery_pixelsize_and_date.csv` (57 rows, evidence-graded, verbatim source quotes) and `IMAGERY_FACTS.md` |
+| **Lidar / CHM facts, coverage** | `IMAGERY_FACTS.md`; `phase4/qc/chm_gap_2016.txt` |
+| **Honest scored results** | `phase4/qc/qc_indep_report.csv`, `live=1` rows only |
+| **Which arm is the champion for a year** | `pipeline/champion_arms.csv` (1 reader + 5 importers) |
+| **What ran, when, on what GPU** | `run_registry.csv`; `phase4/qc/train_queue_status*.csv` (readers merge ALL of them) |
+| **Dependency spec** | `requirements-colab.txt` / `-local.txt` — in-script bootstraps must match (same-commit rule) |
+| **The script you are about to edit** | the script itself. Always. Never patch from memory. |
+
+### 2.2 Re-derive, don't read from here
+
+```bash
+# acquisitions, calendar years, NIR-bearing labels
+py -3.12 -c "import sys;sys.path.insert(0,'pipeline');from phase4seg import config as c;\
+cat=c.YEAR_CATALOG;print(len(cat),'acquisitions');\
+print('NIR:',sorted({e['label'] for e in cat if e['bands']>=4}))"
+
+# GSD span and histogram
+py -3.12 -c "import sys;sys.path.insert(0,'pipeline');from phase4seg import config as c;\
+from collections import Counter;g=[e['gsd_cm'] for e in c.YEAR_CATALOG];\
+print(min(g),'-',max(g),'cm');print(dict(sorted(Counter(g).items())))"
+```
+
+### 2.3 The two planes
 
 **Code plane:** this git repo, working tree `D:\edmonds-pipeline\treedata`, pushed to
-GitHub (`github.com/Kameron-Eck/edmonds-treedata`, private). Sessions open in
-`D:\edmonds-pipeline\treedata\Scripts`. Colab **clones the repo** (see
-`pipeline/colab_launch.ipynb` once P5 lands) — it does not read code from Drive.
+GitHub (`Kameron-Eck/edmonds-treedata`, private). Sessions open in `Scripts\`. Colab
+**clones the repo** — it does not read code from Drive.
 
 **Data plane:** `G:\My Drive\treedata\` (Colab: `/content/drive/MyDrive/treedata`).
 Imagery, models, masks, tiles, QC outputs, logs. **Drive's only job is the data lake.**
 
-Rules that came from Drive-as-working-tree are DEAD: pause-sync before git ops,
-phantom-M mtime lore, two-sessions-one-tree hazards. Git ops are normal now.
-
 - **Code and config resolve via `__file__`; data resolves via `BASE`.** Never
-  `BASE / "Scripts" / …` again.
+  `BASE / "Scripts" / …`.
 - **Authored vs measured text:** docs are authored in this repo; measured outputs
-  (`phase4/qc/*`, `Reports/*`, the registry) are produced in the data lake and
-  harvested into the repo by script (manual explicit-path copy until
-  `harvest_results.py` lands).
-- **Deterministic core, agentic shell:** scripts execute; Claude prepares/verifies/
-  records; untagged overwrites are refused (P4+).
-- **GPU spend gate (REVISED by Kam 2026-08-21, overhaul P11):** Claude MAY drive Colab
-  runtimes via the Colab MCP server, but **must ask Kam for explicit permission before
-  EVERY launch** — stating queue file, GPU tier, number of runtimes, expected
-  wall-clock, and rough cost — and may never launch, relaunch, retry-with-spend, or
-  add runtimes un-asked. Cap: **2 concurrent runtimes** (a Drive download throttle was
-  measured from one client on 2026-08-21 — its scope is not established, and the
-  2026-08-22 double-runtime silence is unexplained; bulk Drive copies are serialized by
-  the staging lock as a precaution). The MCP server is connected (2026-08-22); one
-  server instance = one Colab tab, so a second runtime needs a second server entry —
-  see the P11 runbook in the active plan. **P11.5 (Kam 2026-08-22):** the ask-first rule
-  covers the FIRST launch of each queue; after a crash Claude may fix on a `fix/…` branch,
-  canary on a small GPU and rerun on the A100 without asking (no cap tonight; every
-  launch logged with tier and hours); `main` never moves without Kam's approval. Protocol
-  + permission allowlist: OVERHAUL_PLAN P11.5.
-  **One queue per runtime**; queues write per-launch status files
-  (`train_queue_status_{queue}_{ts}.csv`) and readers merge all of them.
-  **P11.6 (Kam 2026-08-26, runtime autonomy):** STOPPING a runtime is always
-  autonomous — never asked; an idle runtime is a defect. CREATING a runtime for a
-  queue Kam already approved by name (the kickoff-ask pattern) is autonomous, logged
-  in CHATLOG with tier + purpose. Cold creation (no pre-approved queue) still asks.
-  Drive mounting is automated via a folder-scoped service account + rclone — setup,
-  bootstrap flow, canary requirement, and secret handling: `COLAB_AUTONOMY_SETUP.md`.
-  Concurrency cap REVISED (Kam 2026-08-26): 3-4 concurrent runtimes OK (Google
-  throttles above ~5); the old 2-cap was a Drive-throttle precaution from the
-  drivefs era — bulk copies still serialize through the staging lock.
-- **The frozen Drive copy** `G:\My Drive\treedata\Scripts\` is the pre-reorg emergency
-  fallback until the Colab cutover proves out. **Never edit it.** Deleted at P10.
+  (`phase4/qc/*`, `Reports/*`, the registry) are produced in the lake and harvested here.
+- `G:\My Drive\treedata\Scripts\` is a FROZEN pre-reorg copy — fallback only, **never edit**.
 
-**Active plan:** `Scripts/OVERHAUL_PLAN_2026-08-20.md` (per CHATLOG STATE).
-
----
-
-## Project Purpose
-
-Per-crown temporal validity intervals for 222,435 individual tree crowns across
-Edmonds, WA. **36 aerial imagery acquisitions across 20 calendar years (2000-2024)** —
-GSD spans **5.0 cm to 100.0 cm, a 20x range**. Anchored to the 2020 hand-annotated
-dataset.
-
-**SCOPE, current: SEMANTIC canopy mapping — binary canopy mask per acquisition, all
-36.** The model predicts ONE class (`classes=1`); per-year steps are labels -> tile ->
-train -> evaluate -> inference -> postproc. Nothing in the Phase 4 path runs instance
-segmentation.
-
-**Instance is DEFERRED, not cancelled (Kam, 2026-08-29).** Phase 0 already produced the
-222,435 crown polygons ONCE, from 2020, and is frozen (pinned to smp==0.3.4; never load
-it in a phase3/4 runtime). Those polygons are used as a fixed LOOKUP GEOMETRY, not as a
-per-year target: `qc/build_validity_intervals.py` scores each 2020 crown against each
-year's SEMANTIC mask (>=0.5 PRESENT / <=0.15 ABSENT / between UNSURE / no data
-UNOBSERVED) and derives the interval from that ladder. Per-year instance segmentation is
-a future phase and is NOT built — this file previously advertised it as an output, which
-invited planning around a capability that does not exist.
-
-**Current active workstream:** the Option A overhaul (see the active plan), riding
-alongside Phase 4 — per-year semantic canopy. The model is precise but
-**UNDER-predicts** canopy. See `CHATLOG.md` STATE for the live state. Everything hard
-here stems from the fact that **only 2020 has real hand labels**; all other years
-borrow them.
-
----
-
-## Sources of truth (one home each)
-
-**The full doc map lives in `../README.md`** — don't restate it here. The homes that
-matter before editing:
-
-- **Entry point / reference, wins on disagreement →** `WORKPLAN_2026-08-19.md` (read first).
-- **Live log / state →** `CHATLOG.md` **STATE** block (read after WORKPLAN to resume).
-- **Method / params / tiers / loss / QC →** `Method_Pipeline.md`.
-- **What's built vs pending →** `pipeline_buildtracker.md`.
-- **Schedule / decision gates →** `edmonds_combined_workplan.xlsx`.
-- **Active plan →** the one plan file named in CHATLOG STATE.
-- **The script being edited →** always read it before patching.
-- **Imagery catalog + path resolution →** `pipeline/phase4seg/config.py`: `YEAR_CATALOG`
-  and `imagery_roots()`. `_archive/scripts/pipeline_config.py` is frozen legacy and NOT
-  authoritative. Test with `py -3.12 qc/phase4_catalog_check.py`.
-- **Dependency spec →** `requirements-colab.txt` / `requirements-local.txt`; the
-  in-script bootstraps must agree with them (same-commit rule).
-
-**One fact, one home.** Each fact has exactly one authoritative location; every other
-doc *links* to it rather than restating it. A fact written authoritatively in two places
-is a bug — fix the source, not the copy. (Per-session `HANDOFF_*.md` files are **retired**.
-Superseded docs live in `_archive/` — never current.)
-
-**Rule: never invent hyperparameters or architectural decisions. If it is not in the
-source files, ask before assuming.**
-
----
-
-## Repo Layout (code plane, since 2026-08-20)
+### 2.4 Layout, abridged
 
 ```
-D:\edmonds-pipeline\treedata\          ← THE git repo (GitHub = live remote)
-├── README.md                          ← doc map (tracked at repo root)
-├── Scripts\
-│   ├── pipeline\                      ← the pipeline itself: engine + drivers
-│   │   ├── phase0_instance_seg.py … phase3_semantic_dev.py
-│   │   ├── phase4_semantic_finetune.py   ← THIN SHIM → phase4seg/ (preserves `%run ... --args`)
-│   │   ├── phase4seg\                    ← LIVE fine-tune/inference ENGINE package
-│   │   ├── phase4_train_queue.py         ← the Colab orchestrator (queue + VERIFY + status CSV)
-│   │   ├── phase4_p1_colab_run.py  phase4_build_corrected_labels.py
-│   │   ├── phase4_label_review.py ± _prep  make_*.py  fetch_build_chm.py
-│   │   ├── pipeline_log.py               ← write_step_log() / StepLogger (logs → phase4/logs)
-│   │   └── phase4seg_preflight.py  phase4seg_smoke.py   ← local gates before any Colab run
-│   ├── qc\                            ← measurement: 25 phase4_qc_* + catalog_check,
-│   │   data_inventory, ref_agreement, accuracy_sample (+ phase4_accuracy_review.html),
-│   │   sentinel tools, ccap tools, viz/qa/threshold/miss diagnostics
-│   ├── scratch\                       ← litwatch_scratch/ (see its README: 29 instruments
-│   │   vs 77 one-shot writers — NEVER re-run writers), merge helpers
-│   ├── _archive\                      ← retired scripts/docs (own README) — never current
-│   ├── requirements-colab.txt  requirements-local.txt
-│   ├── run_registry.csv  sentinel_sites.json  pipeline_architecture.html
-│   └── CLAUDE.md  Method_Pipeline.md  CHATLOG.md  WORKPLAN_2026-08-19.md  (all docs at root)
-├── phase4\qc\                         ← tracked MEASURED text (harvested from Drive)
-└── Reports\                           ← tracked *.md/*.csv (harvested; PDFs untracked)
+treedata/
+├── README.md                     ← doc map
+├── Scripts/
+│   ├── pipeline/                 ← engine + drivers
+│   │   ├── phase4_semantic_finetune.py   ← THIN SHIM → phase4seg/ (preserves `%run --args`)
+│   │   ├── phase4seg/                    ← LIVE engine: cli, core, tiling, labels, postproc, config
+│   │   ├── phase4_train_queue.py         ← Colab orchestrator (queue + VERIFY + status CSV)
+│   │   ├── gen_vm_bootstrap.py  vm_heartbeat.py   ← runtime autonomy
+│   │   └── phase4seg_preflight.py  phase4seg_smoke.py   ← LOCAL GATES before any Colab run
+│   ├── qc/                       ← measurement + tests (conftest.py blocks lake writes)
+│   ├── scratch/                  ← litwatch_scratch/ — see its README: instruments vs
+│   │                               one-shot writers. NEVER re-run a writer.
+│   └── _archive/                 ← retired. Never current.
+├── phase4/qc/                    ← tracked MEASURED text (harvested from the lake)
+└── Reports/                      ← tracked *.md/*.csv
 ```
 
-## Data plane (Drive; unchanged except logs)
+Data lake: `Full_Image/Pipeline Imagery/` (orthos, C-CAP, CHM) · `phase3/` (2020 base) ·
+`phase4/{models,masks,tiles,qc,eval,labels_corrected,logs}` · `polygons/` · `photos/`.
+Local imagery mirror `D:\edmonds-pipeline\Imagery` (partial; QC reads it first).
+Literature: `D:\edmonds-pipeline\Literture\{ASPP,Labeling,Validation}\`.
 
-```
-G:\My Drive\treedata\   ==  /content/drive/MyDrive/treedata   (Colab)
-├── Full_Image\Pipeline Imagery\      ← orthos, C-CAP refs, CHM (catalog: phase4seg/config.py)
-├── phase3\                            ← 2020 base model + citywide mask/prob
-├── phase4\  models/ masks/ tiles/ qc/ eval/ labels_corrected/ runs/ …
-│   └── logs\                          ← step logs (moved from Scripts/logs 2026-08-20)
-├── polygons\  photos\  phase5\ (abandoned; 3 QC scripts still read it)
-└── Scripts\                           ← FROZEN pre-reorg copy — fallback only, never edit
-```
+### 2.5 Phases
 
-Local imagery mirror: `D:\edmonds-pipeline\Imagery` (partial — no CoE orthos; QC reads
-it first). Backup: `D:\edmonds-pipeline\backup\` (P1 of the overhaul; checksum
-manifests). `D:\edmonds-pipeline\treedata.git` = the OLD detached git DB, retired at P10.
-
-- **torch runs on Colab** (local GPU = 4 GB T2000; CUDA works but is never used for
-  training). `rasterio`/`geopandas`/etc. pip-install locally on import, so QC,
-  label-building, and raster diagnostics **run locally** from the repo.
+| Phase | Status |
+|---|---|
+| 0 instance seg | Complete — 222,435 crowns. Deps FROZEN (`smp==0.3.4`); never load in a phase3/4 runtime |
+| 1–2 features / prep | Complete |
+| 3 semantic base | Complete — 2020 base. Its LOSO metrics are resnet101 numbers; they describe the CURRENT architecture only |
+| **4 per-year semantic** | **ACTIVE.** Live version + detail ONLY in CHATLOG STATE |
+| 5–8 | Not built |
 
 ---
 
-## Phase Architecture
+## 3. Essential rules
 
-| Phase | Script | Status |
-|-------|--------|--------|
-| 0 | `pipeline/phase0_instance_seg.py` | Complete — 222k crowns (deps FROZEN-LEGACY; never same runtime as phase3/4) |
-| 1–1D | `pipeline/phase1_*` | Complete — 18-year spectral features |
-| 2 | `pipeline/phase2_data_prep.py` | Complete |
-| 3 | `pipeline/phase3_semantic_dev.py` | Complete — 2020 base, LOSO IoU 0.7299 / AUROC 0.9396 |
-| 4 | `pipeline/phase4_semantic_finetune.py` (shim) → `phase4seg/` | **Active.** **Live version + detail live ONLY in `CHATLOG.md` STATE.** |
-| 4 (review) | `pipeline/phase4_label_review.py` | Built; the 14,476-crown human review was **never completed** (see Gotchas). |
-| 5–8 | — | Not built. phase5/ stays on Drive — 3 QC scripts read it. |
+### 3.1 Git
+Commit after every landed change. **`git status --short` FIRST, every time.**
 
-> The per-year fine-tune path has resolution **tiers** (fine ≤15 cm / medium 29.9 cm
-> / coarse 50–60 cm) and **two label sources**: coarse years train on the citywide
-> 2020 mask; fine/medium years train on per-site crown polygons — but every queue job
-> currently passes `--force-citywide` (see Gotchas). See `Method_Pipeline.md`.
-
----
-
-## Mandatory Rules for Every Edit
-
-### 1. Git is the version system; compile before writing
-Work happens in this repo on D:. Commit after every landed change; before a risky edit,
-make sure the tree is committed so rollback is one command:
 ```bash
-git status --short                          # ALWAYS first — see rule 1b
-git add <the paths you touched> && git commit -m "<what landed>"
+git status --short                      # always
+git add <the paths you touched>         # NEVER -A  (see below)
+git commit
 ```
-Tag `vNNN` (annotated) whenever CHATLOG STATE records a new live finetune version.
-Then `PYTHONUTF8=1 py -3.12 -m py_compile <script>` before the edit is considered done.
-For engine edits, also run `pipeline/phase4seg_preflight.py` (static) and
-`pipeline/phase4seg_smoke.py` (CPU runtime) before spending a Colab round-trip.
-No sync pauses, ever — the working tree is normal local disk.
 
-**1b. Parallel sessions may share this working tree — stage PATHS, never `-A`.**
-`git add -A` once swallowed another session's in-flight work under the wrong message
-(`0020f2a`, 2026-08-17). Run `git status --short` immediately before committing, stage
-only the paths you edited, and if a file you did not touch shows up dirty, leave it.
-For risky/parallel work, worktrees are cheap now — use them.
+**Stage paths, never `-A`.** Parallel sessions may share this tree. `git add -A` once
+swallowed another session's in-flight work under the wrong message (`0020f2a`). If a file
+you did not touch shows up dirty, leave it.
 
-**1c. Push after each session.** GitHub is the live mirror:
-```bash
-git push github main --tags
-```
-**Pushing, merging, tagging or resetting `main` is a P11.5 DENY rule for Claude —
-blocked outright, never prompted — so Kam runs it in his own shell.** Work branches
-(`work/…`, `fix/…`) may be pushed by Claude (P11.5); git commands run in plain
-`git <verb> …` form from the repo cwd (the allow/deny rules are prefix patterns).
-`drive-mirror` (`G:\My Drive\edmonds-git-mirror.git`) is retained until P10; pushing
-it is optional and Kam's.
+**`main` is Kam's.** Pushing, merging, tagging or resetting `main` is a hard DENY for
+Claude — blocked outright, never prompted. Claude may push `work/…` and `fix/…` branches.
 
-### 2. Log integration
-Every script `write_step_log()`s at the end of each `--step` →
-`{BASE}/phase4/logs/{script}_{step}_{timestamp}.log` (data plane; old logs remain in
-the frozen Drive `Scripts/logs/`). After Colab runs a step, **read the log from
-Drive** — do not ask the user to paste terminal output.
+**Compile before the edit is done:** `PYTHONUTF8=1 py -3.12 -m py_compile <script>`.
+For engine edits also run `phase4seg_preflight.py` (static) **and** `phase4seg_smoke.py`
+(CPU runtime) before spending a Colab round-trip.
 
-### 3. Local-then-copy writes
-Large files (GPKG, Parquet, TIF) are written to local NVMe first, validated, then
-copied with `shutil.copy2`. Never write large files straight to the FUSE mount.
-(Engine enforcement = P4 of the overhaul: verified writes with size+sha256.)
+### 3.2 Never invent
+Never invent hyperparameters, architectural decisions, or numbers. If it is not in the
+source, **ask**. Read live source files — do not infer from memory or from this file.
 
-### 4. Colab `%run` argparse filtering
-Every `main()` filters Colab's injected `-f <json>` args:
+### 3.3 One fact, one home
+Each fact has exactly one authoritative location; every other doc *links* to it. A fact
+written authoritatively in two places is a bug — fix the source, not the copy.
+
+### 3.4 GPU spend gate
+Claude may drive Colab runtimes, but **asks Kam before the FIRST launch of each queue**,
+stating queue file, GPU tier, runtime count, expected wall-clock and rough cost.
+
+- **Stopping a runtime is always autonomous** — an idle runtime is a defect.
+- **Creating a runtime for a queue Kam already approved by name is autonomous**, logged
+  in CHATLOG with tier + purpose. Cold creation still asks.
+- After a crash Claude may fix on a `fix/…` branch, canary on a small GPU, and rerun
+  without asking. `main` never moves without Kam.
+- **One queue per runtime.** Concurrency 3–4 (Google throttles above ~5).
+- Setup / bootstrap / secrets: `COLAB_AUTONOMY_SETUP.md`.
+
+### 3.5 Honest evaluation only
+Effective independent sample size is ~5 forest sites, not tile counts — **LOSO is the
+only honest split**; random-split metrics are inflated. Metrics scored against the 2020
+mask reprojected onto another year are **CIRCULAR** (real change counts as model error).
+Report the **independent** number as primary — never circular or random-split as headline.
+
+**If an effect is smaller than the measured noise floor, report UNDETERMINED, not "no
+difference."** That single distinction is what the chm2 lidar test got wrong, twice.
+
+### 3.6 Three-state mask supervision
+Masks are **0 background / 1 canopy / 255 IGNORE**. Unsure or unreviewed pixels are
+IGNORE — never assigned to a class. Corrected-label overlays are **ADD-ONLY**: they may
+add canopy or IGNORE, and must never turn canopy into background. Any new loss term must
+be IGNORE-aware or it silently trains on 255.
+
+### 3.7 Native resolution
+All segmentation uses **native resolution** — no upscaling. Upsampled imagery is only for
+spectral feature extraction under fixed 2020 crown polygons.
+
+### 3.8 Validity interval semantics
+- present@2000 → `valid_from=2000, valid_to=2020`
+- absent@2000 → `valid_from=2020, valid_to=2020` (out-of-interval negative)
+- unsure / unreviewed → IGNORE (subtract from the region polygon)
+
+### 3.9 Local-then-copy writes
+Large files (GPKG, Parquet, TIF) are written to local NVMe first, validated, then copied.
+Never write large files straight to the FUSE mount.
+
+### 3.10 Colab argparse filtering
+Every `main()` filters Colab's injected `-f <json>`. Preserve it in every script you touch.
+
 ```python
 filtered = [a for a in sys.argv[1:] if not (a == "-f" or a.endswith(".json"))]
 ```
-Preserve this in every script you touch.
 
-### 5. Honest evaluation only
-Effective independent sample size is ~5 forest sites, not tile counts — **LOSO** is
-the only honest split; random-split metrics are inflated. And metrics scored against
-the **2020 mask reprojected onto another year are CIRCULAR** (real pre-2020 change
-counts as model error). Report the **independent** number (NDVI+CHM reference for
-NIR years; C-CAP; Olofsson photo-interp for no-NIR years) as primary — never circular
-or random-split as the headline. Honest numbers: `phase4/qc/qc_indep_report.csv`,
-`live=1` rows only.
+### 3.11 Logging
+Every script `write_step_log()`s at the end of each `--step` → `{BASE}/phase4/logs/`.
+After Colab runs a step, **read the log from Drive** — do not ask Kam to paste stdout.
 
-### 6. Three-state mask supervision
-Masks are 0 (background), 1 (canopy), 255 (IGNORE). Unsure/unreviewed pixels are
-IGNORE — never assigned to either class. Corrected-label overlays are **ADD-ONLY**
-(may add canopy or IGNORE; must never turn canopy into background).
-
-### 7. Resolution
-All segmentation uses **native resolution** — no upscaling. Upsampled imagery is
-only for spectral feature extraction under fixed 2020 crown polygons.
-
-### 8. Validity interval semantics
-- present@2000 → `valid_from=2000, valid_to=2020`
-- absent@2000 → `valid_from=2020, valid_to=2020` (out-of-interval negative)
-- unsure/unreviewed → IGNORE (subtract from region polygon)
-
-### 9. Keep the running log current (session-end checklist)
-Per landed milestone: **(a)** edit the `CHATLOG.md` STATE block in place, **(b)**
-append one LOG entry (caveman style per the file's spec), **(c)** append a row to
-`run_registry.csv` if a Colab run landed (generated from manifests once P6 lands),
-**(d)** harvest measured text if any landed (manual explicit-path copy from Drive
-until `harvest_results.py`), and **(e)** `git add <the paths you touched> && git
-commit` — **never `-A`** (rule 1b) — then the rule-1c push (Kam). **Do not create a
-new `HANDOFF_*.md`** (retired) or a duplicate plan. Slow-moving docs reconcile only
-on phase boundaries or method changes.
+### 3.12 Session-end checklist
+Per landed milestone: **(a)** edit the `CHATLOG.md` STATE block in place, **(b)** append
+one LOG entry (caveman style, per the file's spec), **(c)** append a `run_registry.csv`
+row if a Colab run landed, **(d)** harvest measured text if any landed, **(e)** stage the
+paths you touched and commit — never `-A`. Kam pushes `main`.
+**Do not create `HANDOFF_*.md`** (retired) or a duplicate plan.
 
 ---
 
-## Key Data Facts
+## 4. Durable gotchas
 
-> **These are DERIVED from `pipeline/phase4seg/config.py: YEAR_CATALOG`, not authored.**
-> They had drifted badly and were corrected 2026-08-29: the table read *18 acquisitions,
-> 15 calendar years, 4 NIR years* against a catalog holding **36 / 20 / 10**, and listed a
-> NIR year `2022n` that has not existed since `5a12da5` relabelled it **2023n** (it is NAIP
-> 2023-10-07) — so a reader looked for a file by a name nothing writes. Restating catalog
-> facts here at all is a 'one fact, one home' violation; they are kept because a bootstrap
-> doc needs them readable. **Re-derive, never hand-edit:**
->
-> ```
-> py -3.12 -c "import sys;sys.path.insert(0,'pipeline');from phase4seg import config as c;\
-> cat=c.YEAR_CATALOG;print(len(cat),'acquisitions');\
-> print(sorted({e['label'] for e in cat if e['bands']>=4}))"
-> ```
-
-| Item | Value |
-|------|-------|
-| Acquisitions | **36** across 20 calendar years; GSD **5.0-100.0 cm** (histogram: 5.0x4 7.6x3 10.0x5 15.2x2 20.1x3 22.9x1 30.0x1 30.5x9 40.1x1 60.0x3 100.0x4) |
-| Total crowns | 222,435 |
-| Training sites | 5 conifer forest + curated negative/positive sites |
-| Phase 3 LOSO IoU / AUROC | 0.7299 ± 0.0413 / 0.9396 ± 0.0190 |
-| CHM | `lidar_snoh_chm.tif` — USGS 3DEP HAG, ~2016, U8 DN=0.2 m/DN (0=nodata), ~60% city coverage |
-| NIR-bearing years | **10** (`bands>=4` in YEAR_CATALOG): 2015n 2016 2017n 2017s 2018s 2019n 2019s 2021n 2021s 2023n. The other **26 are RGB-only** — a model that leans on NIR fails on 72% of the archive. |
-| C-CAP eval ref | `ccap_{2016,2021}_hires_lc.tif` — EVAL-ONLY (never train); 2016 full-coverage variant = `_snohfull` |
-| GPU (Colab) | **A100 40 GB** for real queue runs · L4 24 GB / T4 for canaries · RTX PRO 6000 ~95 GB only when memory-bound (ask). Tiers: OVERHAUL_PLAN P11.5 rule 4. Memory-plan against the tier actually selected. |
-| GPU (local) | 4 GB T2000 — CPU / raster / QC / smoke only, no training |
+- **`pipeline/phase4seg/config.py` is PURE-MOVE PROTECTED.** Its constants carry the
+  experimental history in comments and feed `_tile_signature`; changing one triggers a
+  ~20-min re-tile per year. **Append only. Never reformat or reorder.**
+- **`polygons/` was overwritten with accept-all test data.** The 14,476-crown human
+  review was never finished — those labels are provisional. This is why every queue job
+  passes `--force-citywide`.
+- **`phase3/edmonds_canopy_mask_2020.tif` is a model PREDICTION, not hand truth.** It
+  shares the model's blind spots (e.g. deciduous marsh).
+- **`phase4seg/` is Colab-only to run** (fork start method + torch). Locally, validate
+  with preflight + smoke.
+- **`City Boundry/` and `bathology/` are load-bearing misspellings** referenced by
+  scripts — never rename.
+- **Tagged runs tile to `tiles/{year}__{tag}/`** via `common.tile_dir_for()`. The
+  untagged legacy `tiles/{year}/` still exists for most years and belongs to nobody —
+  reading it silently returns another arm's tiles.
+- **The archive spans February to October, and every label comes from an April–July
+  2020 flight.** Leaf-off years carry systematic, species-correlated label error, not
+  scattered noise. Dates: `qc/imagery_pixelsize_and_date.csv`.
+- **Nominal GSD lies.** Use the measured `effective_cm` column — 2005 is nominal
+  20.05 cm and resolves at 80.7 cm, coarser than every 30 cm product.
+- **Tests must never write to the lake.** `qc/conftest.py` enforces it; a test that
+  patched `BASE` alone once destroyed 69 rows of live queue history.
 
 ---
 
-## Current State & Pending Work
-
-**Do not hardcode volatile state here — it rots.** The live "what's next" is the
-`CHATLOG.md` **STATE block** + the active plan it names. Read those to resume.
-
-**Gotchas (durable):**
-- `polygons/` was overwritten with accept-all test data; the 14,476-crown human
-  review was never finished — treat those labels as provisional. This is why every
-  queue job passes `--force-citywide`.
-- The full-city `phase3/edmonds_canopy_mask_2020.tif` is a **model prediction**, not
-  hand truth — it shares the model's blind spots (e.g. deciduous marsh).
-- `phase4seg/` (via the shim) is **Colab-only to run** (`fork` start method + torch);
-  locally, validate with `phase4seg_preflight.py` + `phase4seg_smoke.py` first.
-- `pipeline/phase4seg/config.py` is **pure-move protected**: its constants carry the
-  experimental history in comments and feed `_tile_signature` — changing a constant
-  triggers a full ~20-min re-tile per year. Never reformat it.
-- Data-plane dir names `City Boundry/` and `bathology/` are load-bearing misspellings
-  referenced by scripts — never rename.
-
----
-
-## Compute
+## 5. Compute
 
 | Resource | Use |
-|----------|-----|
-| Google Colab (A100 real runs / L4-T4 canaries / RTX PRO 6000 memory-bound only — OVERHAUL_PLAN P11.5 rule 4) | All tiling, training, inference, heavy I/O — launched from the cloned repo |
-| Local machine (4 GB T2000) | Claude Code, script edits, log review, **QC + label-build + raster diagnostics + preflight/smoke** |
+|---|---|
+| Colab **A100 40 GB** | real queue runs — tiling, training, inference, heavy I/O |
+| Colab **L4 24 GB / T4** | canaries |
+| Colab **RTX PRO 6000 ~95 GB** | only when memory-bound, and ask |
+| Local **4 GB T2000** | Claude Code, edits, log review, QC, label build, raster diagnostics, preflight/smoke. **No training.** |
 
-Compute-heavy torch steps run in Colab; do not split training between local and Colab.
-
----
-
-## Communication Pattern
-
-- Terse. Confirm scope before building.
-- Read live source files — never infer from memory.
-- Paste targeted terminal output (tracebacks), not full stdout — the log system exists
-  so full stdout need not be pasted.
-- After Colab runs a step, read the log from Drive before responding.
+`rasterio`/`geopandas`/etc. pip-install locally on import, so QC and raster work run
+locally. Compute-heavy torch runs on Colab. Do not split training between the two.
 
 ---
 
-*This file is the session bootstrap. It holds stable rules and pointers — the living
-state lives in `CHATLOG.md` STATE and the active plan. Doc map: `../README.md`.*
+## 6. Working with Kam
+
+- **Terse. Confirm scope before building.**
+- **Explain mechanism, not labels.** Narrate what happened and why, in plain language —
+  a named bug teaches nothing. Kam wants to learn the system, not be handed verdicts.
+- **Say what is measured vs inferred vs assumed**, every time. If something was checked,
+  say what was checked. If it wasn't, say that instead.
+- **Correct errors plainly and move on.** No preamble, no self-flagellation.
+- Paste targeted output (tracebacks), not full stdout — the log system exists for that.
+
+---
+
+*Session bootstrap: stable rules and pointers only. Living state is `CHATLOG.md` STATE
+and the plan it names. Doc map: `../README.md`.*

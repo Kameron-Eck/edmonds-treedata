@@ -64,9 +64,10 @@ phantom-M mtime lore, two-sessions-one-tree hazards. Git ops are normal now.
 ## Project Purpose
 
 Per-crown temporal validity intervals for 222,435 individual tree crowns across
-Edmonds, WA. 18 aerial imagery acquisitions (15 calendar years, 2000–2024).
-Outputs binary canopy masks per year (semantic, all 18 years) and per-crown
-instance polygons (9 high-resolution years). Anchored to the 2020 hand-annotated
+Edmonds, WA. **36 aerial imagery acquisitions across 20 calendar years (2000-2024)** —
+GSD spans **5.0 cm to 100.0 cm, a 20x range**. Outputs binary canopy masks per year
+(semantic, all 36) and per-crown instance polygons (the high-resolution subset; 14
+acquisitions are <=15.2 cm). Anchored to the 2020 hand-annotated
 dataset.
 
 **Current active workstream:** the Option A overhaul (see the active plan), riding
@@ -261,13 +262,28 @@ on phase boundaries or method changes.
 
 ## Key Data Facts
 
+> **These are DERIVED from `pipeline/phase4seg/config.py: YEAR_CATALOG`, not authored.**
+> They had drifted badly and were corrected 2026-08-29: the table read *18 acquisitions,
+> 15 calendar years, 4 NIR years* against a catalog holding **36 / 20 / 10**, and listed a
+> NIR year `2022n` that has not existed since `5a12da5` relabelled it **2023n** (it is NAIP
+> 2023-10-07) — so a reader looked for a file by a name nothing writes. Restating catalog
+> facts here at all is a 'one fact, one home' violation; they are kept because a bootstrap
+> doc needs them readable. **Re-derive, never hand-edit:**
+>
+> ```
+> py -3.12 -c "import sys;sys.path.insert(0,'pipeline');from phase4seg import config as c;\
+> cat=c.YEAR_CATALOG;print(len(cat),'acquisitions');\
+> print(sorted({e['label'] for e in cat if e['bands']>=4}))"
+> ```
+
 | Item | Value |
 |------|-------|
+| Acquisitions | **36** across 20 calendar years; GSD **5.0-100.0 cm** (histogram: 5.0x4 7.6x3 10.0x5 15.2x2 20.1x3 22.9x1 30.0x1 30.5x9 40.1x1 60.0x3 100.0x4) |
 | Total crowns | 222,435 |
 | Training sites | 5 conifer forest + curated negative/positive sites |
 | Phase 3 LOSO IoU / AUROC | 0.7299 ± 0.0413 / 0.9396 ± 0.0190 |
 | CHM | `lidar_snoh_chm.tif` — USGS 3DEP HAG, ~2016, U8 DN=0.2 m/DN (0=nodata), ~60% city coverage |
-| NIR-bearing years | 2016, 2019n, 2021s, 2022n (only these can build an NDVI reference) |
+| NIR-bearing years | **10** (`bands>=4` in YEAR_CATALOG): 2015n 2016 2017n 2017s 2018s 2019n 2019s 2021n 2021s 2023n. The other **26 are RGB-only** — a model that leans on NIR fails on 72% of the archive. |
 | C-CAP eval ref | `ccap_{2016,2021}_hires_lc.tif` — EVAL-ONLY (never train); 2016 full-coverage variant = `_snohfull` |
 | GPU (Colab) | **A100 40 GB** for real queue runs · L4 24 GB / T4 for canaries · RTX PRO 6000 ~95 GB only when memory-bound (ask). Tiers: OVERHAUL_PLAN P11.5 rule 4. Memory-plan against the tier actually selected. |
 | GPU (local) | 4 GB T2000 — CPU / raster / QC / smoke only, no training |

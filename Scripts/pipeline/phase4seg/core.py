@@ -393,14 +393,52 @@ def _inflate_first_conv(state, own):
     return patched
 
 
-def load_state_into(model, ckpt_path, device):
+def load_state_into(model, ckpt_path, device, allow_missing=(), what=""):
     """Load a checkpoint's model_state into model (handles torch.compile wrap and
-    RGB→RGB+hillshade first-conv inflation)."""
+    RGB->RGB+hillshade first-conv inflation).
+
+    T10 (2026-08-29). This called load_state_dict(strict=False) and THREW THE RESULT
+    AWAY. strict=False does not fail on a key mismatch - it reports one and carries
+    on - so a checkpoint sharing only its encoder with this model loads that, leaves
+    everything else at initialisation, and trains and scores with no error raised
+    anywhere. core.py already documents that hazard in prose at the writer side.
+
+    Deferred while every model was the same smp.Unet and a mismatch was hypothetical.
+    An architecture change ends that: inserting an ASPP bottleneck adds keys between
+    encoder and decoder, so the FIRST load of the old 2020 base into the new model is
+    precisely this failure - and its symptom is a plausible number, not a crash.
+
+    `allow_missing` is the only way to permit a gap, it is per-call and prefix-matched,
+    so a caller must NAME what it expects to be absent. Unexpected keys are never
+    allowed: they mean the checkpoint carries weights this model has no place for,
+    which is the wrong-architecture signal itself.
+    """
     ckpt = torch.load(ckpt_path, map_location=device)
     state = ckpt["model_state"]
     tgt = model._orig_mod if hasattr(model, "_orig_mod") else model
     state = _inflate_first_conv(state, tgt.state_dict())
-    tgt.load_state_dict(state, strict=False)
+    res = tgt.load_state_dict(state, strict=False)
+    missing = [n for n in res.missing_keys
+               if not any(n.startswith(a) for a in allow_missing)]
+    unexpected = list(res.unexpected_keys)
+    if missing or unexpected:
+        def _show(keys):
+            head = ", ".join(keys[:6])
+            return head + (" ... (+%d more)" % (len(keys) - 6) if len(keys) > 6 else "")
+        msg = ["CHECKPOINT DOES NOT FIT THIS MODEL" + (" - " + what if what else ""),
+               "  checkpoint : %s" % Path(ckpt_path).name]
+        if missing:
+            msg += ["  missing    : %d key(s) the model needs and the ckpt lacks" % len(missing),
+                    "               " + _show(missing)]
+        if unexpected:
+            msg += ["  unexpected : %d key(s) the ckpt has and the model lacks" % len(unexpected),
+                    "               " + _show(unexpected)]
+        msg += ["",
+                "  Loading anyway leaves those weights at INITIALISATION and then trains",
+                "  and scores without raising - a plausible number off a partly random",
+                "  model. If this gap is expected, the CALLER declares it via",
+                "  allow_missing=(...); the loader does not guess."]
+        raise SystemExit(chr(10).join(msg))
     return ckpt
 
 
@@ -1696,7 +1734,12 @@ def step_train(label, batch_size=BATCH_SIZE, p3_ckpt=None, dry_run=False, compil
               "run Phase 3 first or pass --ckpt.")
         return
     model = build_model(device, compile_model=compile_model)
-    ck = load_state_into(model, p3, device)
+    # The ONE legitimate gap in the pipeline: the Phase-3 2020 base predates the
+    # aux height head, so a --aux-height model has keys it cannot supply. Named
+    # here rather than waved through globally, so any OTHER gap still stops the run.
+    ck = load_state_into(model, p3, device,
+                         allow_missing=("aux_height_head.",),
+                         what="Phase-3 2020 base -> this fine-tune model")
     print(f"  ✓ Fine-tune start: {Path(p3).name}  "
           f"(P3 val_bce={ck.get('best_val', '?')})")
 
@@ -1855,7 +1898,7 @@ def _run_phase_b(model, train_loader, val_loader, criterion, device, loss_mode,
     # early-stopping had already rejected), so it started behind its own best_val
     # and could never improve on it → Phase B wasted. Reload best before unfreezing.
     if best_ckpt.exists():
-        load_state_into(model, best_ckpt, device)
+        load_state_into(model, best_ckpt, device, what="own Phase-A best -> Phase B")
         print(f"    (resumed from best Phase-A checkpoint: {es_metric}={best_val:.4f})")
     _unfreeze_encoder(model)
     opt = torch.optim.AdamW(model.parameters(), lr=LR_PHASE_B, weight_decay=1e-4)
@@ -2034,7 +2077,7 @@ def step_evaluate(label, dry_run=False):
         config.IN_CHANNELS = _s0.count           # match the model to the eval tiles
     _sync_hs_source_from_tile(eval_df.iloc[0]["img_path"])
     model = build_model(device, compile_model=False)
-    ck = load_state_into(model, ckpt, device)
+    ck = load_state_into(model, ckpt, device, what="deployed checkpoint -> evaluate/inference")
     model.eval()
     print(f"  Model: {ckpt.name}  (phase={ck.get('phase','?')} "
           f"val_bce={ck.get('best_val','?')})")

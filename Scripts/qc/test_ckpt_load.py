@@ -1,0 +1,103 @@
+"""load_state_into must refuse a checkpoint that does not fit the model (T10).
+
+WHY THIS IS A TEST AND NOT A COMMENT. The old line was
+
+    tgt.load_state_dict(state, strict=False)      # result discarded
+
+and `strict=False` does not raise on a key mismatch — it RETURNS one. So a
+checkpoint sharing only its encoder with the target model loaded that encoder,
+left the decoder at initialisation, and then trained and scored with no error
+anywhere. The output of that is not a crash; it is a number, and a plausible one.
+
+This was recorded as deferred (T10) while every model in the project was the same
+`smp.Unet` and a key mismatch could not really happen. The proposed ASPP-UNet
+overhaul ends that: inserting a bottleneck adds keys between encoder and decoder,
+so the very first load of the existing 2020 base into the new architecture IS this
+failure. The guard has to exist before that load is attempted, not after someone
+notices the numbers look odd.
+
+Run:
+  PYTHONUTF8=1 py -3.12 -m pytest qc/test_ckpt_load.py -q
+"""
+import sys
+from pathlib import Path
+
+import pytest
+
+SCRIPTS = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(SCRIPTS / "pipeline"))
+
+torch = pytest.importorskip("torch")
+core = pytest.importorskip("phase4seg.core")
+
+# core.py binds `torch` lazily inside _ensure_torch(); every step function calls it
+# before touching the model. A direct unit call has to do the same or the loader
+# raises NameError on `torch.load` before it can refuse anything.
+core._ensure_torch()
+
+
+class _Tiny(torch.nn.Module):
+    """Stand-in for the real model: two named blocks, so we can drop one and get
+    exactly the encoder-matches / decoder-missing shape the overhaul will produce."""
+
+    def __init__(self, with_head=False):
+        super().__init__()
+        self.encoder = torch.nn.Conv2d(3, 4, 1)
+        self.decoder = torch.nn.Conv2d(4, 1, 1)
+        if with_head:
+            self.aux_height_head = torch.nn.Conv2d(4, 1, 1)
+
+
+def _save(tmp_path, state, name="ck.pt"):
+    p = tmp_path / name
+    torch.save({"model_state": state}, p)
+    return p
+
+
+def test_an_exactly_matching_checkpoint_loads(tmp_path):
+    m = _Tiny()
+    ck = _save(tmp_path, m.state_dict())
+    assert core.load_state_into(_Tiny(), ck, torch.device("cpu")) is not None
+
+
+def test_a_checkpoint_missing_the_decoder_is_refused(tmp_path):
+    """The overhaul's exact shape: encoder keys line up, the rest do not."""
+    full = _Tiny().state_dict()
+    encoder_only = {k: v for k, v in full.items() if k.startswith("encoder.")}
+    ck = _save(tmp_path, encoder_only)
+    with pytest.raises(SystemExit) as e:
+        core.load_state_into(_Tiny(), ck, torch.device("cpu"))
+    msg = str(e.value)
+    assert "CHECKPOINT DOES NOT FIT THIS MODEL" in msg
+    assert "decoder.weight" in msg, msg
+    assert "INITIALISATION" in msg, "the message must say what loading anyway would do"
+
+
+def test_unexpected_keys_are_refused_even_with_allow_missing(tmp_path):
+    """A ckpt carrying weights the model has no place for is the wrong-architecture
+    signal itself, so allow_missing must not launder it."""
+    state = _Tiny(with_head=True).state_dict()
+    ck = _save(tmp_path, state)
+    with pytest.raises(SystemExit) as e:
+        core.load_state_into(_Tiny(), ck, torch.device("cpu"),
+                             allow_missing=("aux_height_head.",))
+    assert "unexpected" in str(e.value)
+
+
+def test_the_declared_aux_head_gap_is_permitted(tmp_path):
+    """The one real allowance: the Phase-3 2020 base predates the aux height head,
+    so a --aux-height model legitimately has keys it cannot supply."""
+    ck = _save(tmp_path, _Tiny().state_dict())            # no head, like Phase 3
+    got = core.load_state_into(_Tiny(with_head=True), ck, torch.device("cpu"),
+                               allow_missing=("aux_height_head.",))
+    assert got is not None
+
+
+def test_the_allowance_is_prefix_scoped_not_a_blanket(tmp_path):
+    """Naming one absent block must not excuse an unrelated one."""
+    full = _Tiny(with_head=True).state_dict()
+    ck = _save(tmp_path, {k: v for k, v in full.items() if k.startswith("encoder.")})
+    with pytest.raises(SystemExit) as e:
+        core.load_state_into(_Tiny(with_head=True), ck, torch.device("cpu"),
+                             allow_missing=("aux_height_head.",))
+    assert "decoder" in str(e.value), "the undeclared decoder gap must still stop it"

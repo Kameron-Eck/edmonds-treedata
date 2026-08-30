@@ -860,7 +860,25 @@ def build_semantic_model(device, pretrained_ckpt=None):
             # The final segmentation head shape is identical (1 class). With
             # IN_CHANNELS>3 the first conv shape differs, so strict=False skips
             # it (and we transplant it below); everything else loads.
-            model.load_state_dict(state, strict=False)
+            # strict=False is CORRECT here (the first conv is transplanted below), but
+            # the RESULT must not be thrown away. Discarding it is how a checkpoint that
+            # fits nothing but the encoder loads silently and trains to a plausible
+            # number — measured on smp 0.5.0, a resnet101 checkpoint dropped into a
+            # resnet50 U-Net matches 380/380 keys with ZERO missing, so a missing-key
+            # check alone would see a perfect load. Unexpected keys are what catch it.
+            _res = model.load_state_dict(state, strict=False)
+            _expected = ("encoder.conv1.",)          # transplanted a few lines below
+            _missing = [k for k in _res.missing_keys
+                        if not k.startswith(_expected)]
+            if _missing or _res.unexpected_keys:
+                raise SystemExit(
+                    f"Phase-0 checkpoint does not fit this model: "
+                    f"{len(_missing)} unexpected missing key(s) "
+                    f"{_missing[:4]}, {len(_res.unexpected_keys)} unexpected key(s) "
+                    f"{list(_res.unexpected_keys)[:4]}. Only the first conv "
+                    f"({_expected[0]}*) may differ — it is transplanted below. Loading "
+                    f"anyway would leave the rest at initialisation and train without "
+                    f"raising.")
             print(f"  ✓ Loaded Phase 0 weights: {ckpt_path.name}  "
                   f"(epoch={ckpt.get('epoch', '?')}  "
                   f"val={ckpt.get('best_val', '?')})")

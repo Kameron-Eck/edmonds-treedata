@@ -122,3 +122,30 @@ def test_loss_mode_is_refused_where_it_would_do_nothing():
     assert loss_mode_scope_error(None, {"fine"}) is None, "no flag, no complaint"
     assert loss_mode_scope_error("focal_dice", set()) is None, \
         "unknown tier set must not hard-fail a run"
+
+
+# ── --ckpt must not silently substitute a different model ────────────────────
+def test_a_bad_ckpt_path_refuses_rather_than_falling_back(tmp_path):
+    """A mistyped --ckpt used to WARN and then train from the DEFAULT Phase-3
+    checkpoint. One wrong character and the run starts from a different model than the
+    operator named — the warning scrolls past in a Colab log nobody reads live, and the
+    manifest records the --ckpt they intended. The arm is then compared against others
+    as though it used it."""
+    with pytest.raises(SystemExit) as e:
+        core.resolve_p3_ckpt(str(tmp_path / "typo_does_not_exist.pt"))
+    msg = str(e.value)
+    assert "does not exist" in msg
+    assert "Refusing to fall back" in msg, "the message must say what it refused to do"
+
+
+def test_a_good_ckpt_path_is_returned(tmp_path):
+    p = tmp_path / "real.pt"
+    p.write_bytes(b"x")
+    assert core.resolve_p3_ckpt(str(p)) == p
+
+
+def test_no_override_still_searches_the_defaults():
+    """The default search is for when the caller expressed NO preference — the refusal
+    above must not break it."""
+    got = core.resolve_p3_ckpt(None)
+    assert got is None or got.exists(), "default search returned a nonexistent path"

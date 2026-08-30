@@ -455,11 +455,31 @@ def load_state_into(model, ckpt_path, device, allow_missing=(), what=""):
 
 
 def resolve_p3_ckpt(override=None):
+    """Which checkpoint does this fine-tune start from?
+
+    T12 (2026-08-30). A bad `--ckpt` used to WARN and then fall back to the default
+    Phase-3 checkpoint, and training continued normally. One mistyped character and the
+    run silently starts from a different model than the operator asked for — the
+    warning scrolls past in a Colab log nobody reads live, the manifest records the
+    --ckpt they intended, and the arm is then compared against others as though it used
+    it. Under the re-baseline that is worse, not better: an epoch-2 run claiming a
+    specific warm start is exactly the kind of provenance the EPOCH marker exists to
+    make trustworthy.
+
+    An explicit path is a statement of intent. If it is wrong, say so and stop; do not
+    substitute a different model and carry on. The default search is for when the
+    caller expressed no preference.
+    """
     if override:
         p = Path(override)
         if p.exists():
             return p
-        print(f"  WARNING: --ckpt {p} not found; falling back to default Phase 3 ckpt")
+        raise SystemExit(
+            f"--ckpt {p} does not exist.\n"
+            f"  Refusing to fall back to the default Phase-3 checkpoint: you named a "
+            f"specific starting model, and silently training from a different one "
+            f"would misattribute every number this run produces.\n"
+            f"  Fix the path, or drop --ckpt to use the default.")
     for c in P3_CKPT_CANDIDATES:
         if c.exists():
             return c

@@ -62,6 +62,7 @@ GATED_DOCS = [
     "SEMANTIC_OVERHAUL_PLAN_2026-08-29.md",
     "Method_Pipeline.md",
     "../README.md",
+    "IMAGERY_FACTS.md",
 ]
 
 # Figures that were true once and are not now. A gated doc may still MENTION one while
@@ -75,8 +76,39 @@ _CORRECTION_CUES = ("was ", "were ", "corrected", "stale", "retired", "no longer
                     "not exist", "renamed", "previously", "drift", "wrong", "against a")
 
 
+# Some documents are HYBRID: part current, part dated record. IMAGERY_FACTS.md is the
+# clearest case — its sections 1-5 are the pre-campaign snapshot from 2026-08-19 and its
+# sections 9-13 supersede them. Gating the whole file would force the dated tables to be
+# rewritten, which would erase the gap analysis that is the reason the campaign happened.
+#
+# So a document can exempt a REGION, explicitly, with markers a reader also sees:
+#
+#     <!-- drift-gate:dated-begin -->   ... a dated record, not a current claim ...
+#     <!-- drift-gate:dated-end -->
+#
+# The marker lives in the document rather than in a list here on purpose: the person who
+# needs to know a section is historical is the person reading the section.
+DATED_BEGIN = "<!-- drift-gate:dated-begin -->"
+DATED_END = "<!-- drift-gate:dated-end -->"
+
+
 def _gated_files():
     return [SCRIPTS / d for d in GATED_DOCS if (SCRIPTS / d).exists()]
+
+
+def _current_lines(path):
+    """(lineno, line) for lines that CLAIM TO BE CURRENT — dated regions excluded."""
+    out, dated = [], False
+    for n, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
+        if DATED_BEGIN in line:
+            dated = True
+            continue
+        if DATED_END in line:
+            dated = False
+            continue
+        if not dated:
+            out.append((n, line))
+    return out
 
 
 @pytest.mark.parametrize("doc", GATED_DOCS)
@@ -89,7 +121,7 @@ def test_no_gated_doc_asserts_a_retired_figure(phrase):
     """A retired figure may appear only on a line that is CORRECTING it."""
     offenders = []
     for p in _gated_files():
-        for n, line in enumerate(p.read_text(encoding="utf-8").splitlines(), 1):
+        for n, line in _current_lines(p):
             if phrase not in line:
                 continue
             low = line.lower()
@@ -189,7 +221,7 @@ def test_no_gated_doc_points_at_a_missing_file():
     CHATLOG STATE named `cozy-skipping-jellyfish.md`, which exists nowhere."""
     missing = []
     for p in _gated_files():
-        for n, line in enumerate(p.read_text(encoding="utf-8").splitlines(), 1):
+        for n, line in _current_lines(p):
             for ref in re.findall(r"`([A-Za-z0-9_./-]+\.(?:md|py|yaml|csv))`", line):
                 # Only PATHS. A bare `core.py` is shorthand for "the engine's core",
                 # used constantly in prose; requiring it to resolve would force every

@@ -1,5 +1,0 @@
-162,829 points, 6x6 spatial blocks
-
-acquisition             GRVI mu  frac>.02  blockMIN  blockMAX  blockRANGE  betweenBlockVar%
-2000_king_rgb.tif       +0.1067    0.8441    0.7878    0.9298      0.1420             13.3%
-2013_king_rgb.tif       +0.0478    0.4440    0.1792    0.8431      0.6639             19.8%

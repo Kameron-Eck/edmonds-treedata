@@ -944,11 +944,16 @@ def _shipped_queue_files():
 
 
 def test_the_sweep_sees_queues_not_named_queue_underscore():
-    """queue3.yaml is the existing proof; pilot_2019.yaml is the one that matters next."""
+    """The sweep must find queues by SHAPE, not by a queue_ prefix. queue3.yaml was the
+    original proof (a real 3-job queue the old glob silently skipped); it was archived
+    2026-08-31 with the other spent arms, and the pilot files — which carry no queue_
+    prefix at all — are now the live proof. The >= count tracks the ACTIVE surface: 3
+    pilots + 2 sector queues; it shrank from 33 when 30 spent arms left for the archive
+    branch (git show archive/2026-08-pre-refactor:Scripts/pipeline/<name>)."""
     names = {f.name for f in _shipped_queue_files()}
-    assert "queue3.yaml" in names, (
-        "queue3.yaml is a 3-job queue and must be validated like the rest")
-    assert len(names) >= 32, f"only {len(names)} queue files found"
+    for want in ("pilot_2019_fine.yaml", "pilot_2019_medium.yaml", "pilot_2019_coarse.yaml"):
+        assert want in names, f"{want} not found by the shape-based sweep"
+    assert len(names) >= 5, f"only {len(names)} queue files found"
 
 
 def test_every_shipped_queue_file_still_loads():

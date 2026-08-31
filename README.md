@@ -34,7 +34,7 @@ the bootstrap doc to describe an archive that had not existed for weeks.
 
 ---
 
-## Git architecture (re-plumbed 2026-08-20 — see `Scripts/OVERHAUL_PLAN_2026-08-20.md`)
+## Git architecture (re-plumbed 2026-08-20 — plan archived: `archive/2026-08-pre-refactor:Scripts/OVERHAUL_PLAN_2026-08-20.md`)
 
 - **The repo lives at `D:\edmonds-pipeline\treedata`** — a normal git working tree on
   local disk. Sessions open in `D:\edmonds-pipeline\treedata\Scripts`. Tags **v001–v048+**.
@@ -136,10 +136,10 @@ per its `MANIFEST.md`, no City-of-Edmonds years) serves fast local QC off the FU
 | `Scripts/Method_Pipeline.md` | The one home for method, params, tiers, loss, QC design. Rewritten to semantic-only 2026-08-30 |
 | `Scripts/pipeline_buildtracker.md` | What's built vs pending, per phase |
 | `Scripts/IMAGERY_FACTS.md` | Measured imagery truths (the one home for GSDs, counts, sources) |
-| `Scripts/IMAGERY_PLAN.md` | The imagery workstream — open questions and plan |
-| `Scripts/canopy_definition_PROPOSAL.md` | The U1 canopy-definition decision. Draft; D2 decided 2026-08-20, D1/D3–D6 open. **Overlaps `Reports/CANOPY_DEFINITION_DECISION_2026-08.md` — two live docs soliciting the same sign-off** |
-| `Scripts/honest-measurement-overhaul.md` | **SUPERSEDED 2026-08-19** by the WORKPLAN; kept for provenance only |
-| `Scripts/litwatch_robustness.md` | CLOSED literature-watch ledger (4,706 lines) |
+| `archive/2026-08-pre-refactor:Scripts/IMAGERY_PLAN.md` | ARCHIVED 2026-08-31 — the imagery workstream plan; superseded by `Scripts/WORKPLAN.md` |
+| `archive/2026-08-pre-refactor:Scripts/canopy_definition_PROPOSAL.md` | ARCHIVED 2026-08-31 — the duplicate-sign-off overlap is resolved: `Reports/CANOPY_DEFINITION_DECISION_2026-08.md` is now the ONE live canopy-definition doc |
+| `archive/2026-08-pre-refactor:Scripts/honest-measurement-overhaul.md` | ARCHIVED 2026-08-31 (was already superseded 2026-08-19) |
+| `archive/2026-08-pre-refactor:Scripts/litwatch_robustness.md` | ARCHIVED 2026-08-31 — the CLOSED literature-watch ledger (4,706 lines) and its 70 generators |
 | `Scripts/litreview_phase4_prompt.md` | Literature-search prompt template |
 | `archive/2026-08-pre-refactor:Scripts/scratch/litwatch_scratch/README.md` | ARCHIVED — the litwatch scratchpad (29 instruments, 77 never-re-run writers) left the working tree 2026-08-31; read via `git show` |
 | `archive/2026-08-pre-refactor:Scripts/_archive/README.md` | ARCHIVED — the retired-material index left the working tree 2026-08-31; see `Scripts/docs/ARCHIVE_INDEX.md` |

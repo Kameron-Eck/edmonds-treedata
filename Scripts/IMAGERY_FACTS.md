@@ -214,7 +214,7 @@ addressable.
    season and sun angle at once. Nothing else in this archive does that.
 5. **Assess and adopt 2012**, or archive it deliberately.
 
-Detail and sequencing: `Scripts/IMAGERY_PLAN.md`.
+Detail and sequencing: `archive/2026-08-pre-refactor:Scripts/IMAGERY_PLAN.md` (archived 2026-08-31; live state is `WORKPLAN.md`).
 
 ---
 

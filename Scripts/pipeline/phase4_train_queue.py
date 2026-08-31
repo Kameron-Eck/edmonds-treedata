@@ -1450,7 +1450,7 @@ def main():
     ap.add_argument("--queue", default=None,
                     help="P6.3 queue-as-data: YAML file of jobs (id, year, tag, "
                          "extra, why, expect). Replaces editing JOBS in source. "
-                         "e.g. --queue queue3.yaml")
+                         "e.g. --queue pilot_2019_fine.yaml")
     ap.add_argument("--only", default=None, help="Run just this job id.")
     ap.add_argument("--skip", default="", help="Comma-separated job ids to skip.")
     ap.add_argument("--retries", type=int, default=2,

@@ -85,6 +85,7 @@ made permanent — an ungated doc can drift again.
 |---|---|---|
 | **main** | `main` is behind `work/20260824-sectors` (147 commits as of `c9ce071`; a hand-written count, so read it as a stamp, not a live number — `git rev-list --count main..HEAD` is the live one) | pushing/merging/tagging `main` is a hard DENY for Claude by design |
 | **GPU** | the pilot slice (Stage 5) and any A/B | every first launch of a queue needs explicit approval — queue file, tier, runtime count, wall-clock, rough cost |
+| **push** | `work/20260824-sectors` holds refactor 3A+3B (`12bcb01`, `a7dfe6c`) unpushed; Canary 1 clones github so it waits on this. Archive branch `archive/2026-08-pre-refactor` + tag also yours to push | this session's permission mode denies `git push` outright |
 | **tidy-up** | move `train_queue_status.CONTAMINATED-BY-TEST-20260829.csv` out of `phase4/qc/` | no longer required for correctness (the discovery rule now excludes it) — just tidier |
 
 Open questions recorded but not blocking:

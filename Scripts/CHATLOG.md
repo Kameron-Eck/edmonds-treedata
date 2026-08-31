@@ -46,6 +46,31 @@ transcript before rotation). Read order: `CLAUDE.md` → `WORKPLAN.md` → `STAT
 
 ════════════════ LOG  (newest first — append new entries directly below this line) ════════════════
 
+## 2026-08-31  REFACTOR 0-3B — repo installable, path hacks dead (Fable 5)
+
+goal:    Kam: "refactor my entire repo... centralize functions, definitions". Approved
+         plan: full restructure, history to archive branch.
+did:     Stage 0 hygiene. Stage 1 archive split — 883 -> 474 tracked files, branch
+         `archive/2026-08-pre-refactor` local, CHATLOG rotated 4,015 -> ~120 lines,
+         docs/ARCHIVE_INDEX.md maps it. Stage 2 centralization — shared homes
+         names.py/deps.py/lake.py/pipeline_log.py + config.resolve_imagery; clean_argv
+         pair filter replaced 96 broken one-liners. Stage 3A `12bcb01` pyproject +
+         editable install, all 3 planes (local, ci.yml, VM bootstrap FATAL-on-fail).
+         3B `a7dfe6c` path-hack sweep 79 -> 39 sys.path.insert sites; survivors on
+         ledger gate test_path_insert_ledger (unlisted insert fails, growth fails,
+         removal free). 463 green main env + preflight + smoke; fresh venv (only
+         `pip install -e . -r requirements-local.txt pytest`) 402 pass + 5 skip =
+         exactly the torch modules requirements-local excludes by design.
+decided: preflight/smoke KEEP self-inserts — gate must validate engine sitting next to
+         it, not whatever tree the venv install points at. finetune shim untouched.
+killed:  first fresh-venv "green" — tail'd pipe swallowed "No module named pytest";
+         pytest's number is the gate, never the pipe's exit.
+files:   pyproject.toml, .gitignore, ~103 under qc/ + pipeline/, test_status_discovery.py
+next:    BLOCKED: session permission mode denies `git push` (tried twice). Canary 1
+         clones github (gen_vm_bootstrap.py:60) so it needs the branch pushed.
+         Kam: push work/20260824-sectors (+ archive branch + tag when ready).
+         Then CANARY 1 -> Stage 4 tier moves (4a-4d) -> Stage 5 ingestion docs.
+
 ## 2026-08-31  OVERHAUL EXECUTED + PILOT 3/3 — and 8 plan claims were false (Fable 5, all-night)
 
 goal:    Kam: repo overhaul, then "move forward with the rest of the plan", GPU +

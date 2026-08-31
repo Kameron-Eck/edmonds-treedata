@@ -107,6 +107,7 @@ r"""
 """
 import argparse
 import csv
+import json
 import sys
 from pathlib import Path
 
@@ -202,6 +203,16 @@ def main():
                     default=None, help="source-pixel window; omit for the whole raster "
                                        "(2020s is 31 GB — you want a window)")
     ap.add_argument("--out", type=str, default=None, help="output GeoTIFF")
+    ap.add_argument("--passes", type=int, default=0,
+                    help="degradation passes. 0 (default) = one clean `average` resample. "
+                         "2 = the Real-ESRGAN pattern: blur/resize/noise/JPEG twice with "
+                         "independently drawn params, because ONE clean chain is too "
+                         "regular and transfers poorly to real degraded imagery.")
+    ap.add_argument("--seed", type=int, default=42,
+                    help="seed for the chain's draws; the applied params are written into "
+                         "the output's tags either way")
+    ap.add_argument("--no-jpeg", action="store_true",
+                    help="skip the JPEG step of each pass")
     ap.add_argument("--resampling", default="average",
                     choices=["average", "bilinear", "cubic", "nearest"],
                     help="average (default) AGGREGATES, which is what a coarse sensor "
@@ -249,12 +260,18 @@ def main():
         print()
         res = synthesize(a.src_raster, a.source, a.target, a.out, window=a.window,
                          with_offset=a.with_offset, table=table,
-                         resampling=a.resampling)
+                         resampling=a.resampling, passes=a.passes, seed=a.seed,
+                         jpeg=not a.no_jpeg)
         print(f"wrote {res['out']}")
         print(f"  shape {res['shape']}  scale {res['scale']:.4f}  "
               f"valid {res['valid_frac_src']:.3f} src -> {res['valid_frac_out']:.3f} out")
         for b, what in res['applied'].items():
             print(f"  {b}: {what}")
+        if res.get('chain'):
+            for rec in res['chain']:
+                print(f"  pass {rec['pass']}: kernel {rec['kernel']}  "
+                      f"resize {rec['resize']['interp']}->{rec['resize']['to']}  "
+                      f"noise sigma {rec['noise_sigma']}  jpeg q{rec.get('jpeg_q', '-')}")
     return 0
 
 
@@ -263,7 +280,7 @@ def main():
 # ── the raster step ───────────────────────────────────────────────────────────
 
 def synthesize(src_path, source, target, out_path, window=None, with_offset=False,
-               table=None, resampling="average"):
+               table=None, resampling="average", passes=0, seed=42, jpeg=True):
     """Write ONE synthetic window: resample to the target's GSD, then apply the map.
 
     ORDER IS RESAMPLE-THEN-RADIOMETRY, for the reason in the module header: the fitted
@@ -304,8 +321,16 @@ def synthesize(src_path, source, target, out_path, window=None, with_offset=Fals
         valid = ~(raw == 0).all(axis=0)                               # BEFORE anything
         oh = max(1, int(round(raw.shape[1] * scale)))
         ow = max(1, int(round(raw.shape[2] * scale)))
-        small = src.read(window=win, out_shape=(raw.shape[0], oh, ow),
-                         resampling=getattr(Resampling, resampling)).astype("float32")
+        if passes and passes > 0:
+            # The two-pass chain owns the whole downsample; see degrade_chain.
+            rng = np.random.default_rng(seed)
+            small, chain_log = degrade_chain(raw.astype("float32"), scale, rng,
+                                             passes=passes, jpeg=jpeg)
+            oh, ow = small.shape[1], small.shape[2]
+        else:
+            chain_log = None
+            small = src.read(window=win, out_shape=(raw.shape[0], oh, ow),
+                             resampling=getattr(Resampling, resampling)).astype("float32")
         # A coarse pixel is valid only where it sampled real ground. Derived from the
         # RESAMPLED stack rather than by resampling the raw mask: `average` over a
         # part-nodata footprint already pulls those pixels toward 0, and this keeps the
@@ -346,14 +371,98 @@ def synthesize(src_path, source, target, out_path, window=None, with_offset=Fals
             SYNTHETIC="yes", synth_source=source, synth_target=target,
             synth_tool="qc/degrade_synth.py", synth_order="resample-then-radiometry",
             synth_offset_applied=str(bool(with_offset)),
-            synth_resampling=resampling,
+            synth_resampling=(resampling if not chain_log else "degrade_chain"),
+            synth_passes=str(passes or 0), synth_seed=str(seed),
+            synth_chain=("" if not chain_log else json.dumps(chain_log)),
             synth_note=("Masks are NOT gold: the 2020 canopy mask is a model prediction. "
                         "PSF/blur half is approximate. Offsets omitted by default because "
                         "the fitted offset already contains the mixing that resampling "
                         "reproduces."))
     return dict(out=str(out_path), shape=[int(x) for x in out.shape],
-                scale=scale, applied=applied,
+                scale=scale, applied=applied, chain=chain_log,
                 valid_frac_src=float(valid.mean()), valid_frac_out=float(vmask.mean()))
+
+
+
+
+# ── the two-pass degradation chain (Real-ESRGAN pattern) ─────────────────────
+
+def _gen_gaussian_kernel(rng, size=None, sigma=None, beta=None):
+    """A GENERALIZED Gaussian kernel: exp(-(r^2 / 2 sigma^2)^(beta/2)).
+
+    beta = 2 is the ordinary Gaussian. beta < 2 gives heavier tails (a softer, hazier
+    blur), beta > 2 a flatter core with a sharper cutoff (nearer a box). Real sensor PSFs
+    are not Gaussian, and drawing beta per pass is what stops the synthetic blur from
+    carrying one recognisable signature that a network can key on.
+    """
+    import numpy as np
+    size = size or int(rng.choice([7, 9, 11, 13, 15, 17, 21]))
+    size = size + 1 if size % 2 == 0 else size
+    sigma = sigma if sigma is not None else float(rng.uniform(0.2, 3.0))
+    beta = beta if beta is not None else float(rng.uniform(0.5, 4.0))
+    r = np.arange(size) - size // 2
+    xx, yy = np.meshgrid(r, r)
+    rr = xx ** 2 + yy ** 2
+    k = np.exp(-((rr / (2 * sigma ** 2)) ** (beta / 2.0)))
+    s = k.sum()
+    return (k / s) if s > 0 else k, dict(size=size, sigma=round(sigma, 3),
+                                         beta=round(beta, 3))
+
+
+def degrade_chain(arr, scale, rng, passes=2, jpeg=True):
+    """Blur -> resize -> noise -> JPEG, run `passes` times, splitting the total scale.
+
+    WHY TWICE. One clean chain is too REGULAR: a single blur sigma and a single noise
+    level give the network a constant, learnable signature, and models trained on it
+    transfer poorly to real degraded imagery (the Real-ESRGAN finding, carried in this
+    project's own degraded-imagery lit review). Splitting the total downsample across two
+    passes with independently drawn parameters produces a distribution of looks instead of
+    one look.
+
+    Deterministic given `rng`, and the drawn parameters are RETURNED so the artifact can
+    record exactly what was applied — a synthetic image whose degradation cannot be
+    described is not reproducible evidence.
+
+    arr   : (bands, h, w) float32
+    scale : total linear scale (< 1 downsamples)
+    """
+    import numpy as np
+    from scipy.ndimage import convolve
+
+    per = scale ** (1.0 / passes)
+    log = []
+    cur = arr
+    for p in range(passes):
+        rec = {"pass": p + 1}
+        k, kinfo = _gen_gaussian_kernel(rng)
+        rec["kernel"] = kinfo
+        cur = np.stack([convolve(c, k, mode="nearest") for c in cur])
+
+        h, w = cur.shape[1], cur.shape[2]
+        nh, nw = max(1, int(round(h * per))), max(1, int(round(w * per)))
+        interp = str(rng.choice(["area", "bilinear", "bicubic"]))
+        rec["resize"] = {"to": [nh, nw], "interp": interp}
+        import cv2
+        code = {"area": cv2.INTER_AREA, "bilinear": cv2.INTER_LINEAR,
+                "bicubic": cv2.INTER_CUBIC}[interp]
+        cur = np.stack([cv2.resize(c, (nw, nh), interpolation=code) for c in cur])
+
+        sigma_n = float(rng.uniform(0.0, 6.0))
+        rec["noise_sigma"] = round(sigma_n, 3)
+        if sigma_n > 0:
+            cur = cur + rng.normal(0.0, sigma_n, size=cur.shape)
+
+        if jpeg:
+            q = int(rng.integers(60, 96))
+            rec["jpeg_q"] = q
+            u8 = np.clip(cur, 0, 255).astype("uint8")
+            chans = []
+            for c in u8:
+                ok, enc = cv2.imencode(".jpg", c, [int(cv2.IMWRITE_JPEG_QUALITY), q])
+                chans.append(cv2.imdecode(enc, cv2.IMREAD_GRAYSCALE) if ok else c)
+            cur = np.stack(chans).astype("float32")
+        log.append(rec)
+    return cur.astype("float32"), log
 
 
 if __name__ == "__main__":

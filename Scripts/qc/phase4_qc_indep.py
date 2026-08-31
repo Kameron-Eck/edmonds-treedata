@@ -64,6 +64,13 @@ from pathlib import Path
 
 # Dep bootstrap: mechanism in phase4seg/deps.py (refactor 2.3); the LIST stays
 # per-file — nine distinct sets exist and one shared list would over-install.
+# KERNEL-EXEC KEEP (Canary 1, 2026-08-31): this file is exec'd BY PATH inside the
+# Colab kernel, where the editable install is INVISIBLE - pip -e works via a .pth
+# file and site.py reads .pth only at interpreter STARTUP, so a kernel that was
+# already running when the bootstrap installed never sees it. Subprocesses re-run
+# site startup and do see it - measured on canary3b: the engine steps imported
+# phase4seg fine while this file's kernel-level import raised ModuleNotFoundError.
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "pipeline"))
 from phase4seg.deps import ensure_deps as _ensure_deps  # noqa: E402
 _ensure_deps([("rasterio", "rasterio"), ("numpy", "numpy")])
 

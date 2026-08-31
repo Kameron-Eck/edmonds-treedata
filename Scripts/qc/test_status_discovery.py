@@ -562,7 +562,8 @@ _PATH_INSERT_LEDGER = {
     "qc/conftest.py": 1,                     # THE canonical stanza
     "qc/build_lidar_quadrants.py": 1,        # qc sibling (4c)
     "qc/imagery_canopy_separability.py": 1,  # qc sibling (4c)
-    "qc/imagery_qc_suite.py": 1,             # qc sibling (4c)
+    "qc/imagery_qc_suite.py": 2,             # qc sibling (4c) + KERNEL-EXEC keep
+    "qc/phase4_qc_indep.py": 1,              # KERNEL-EXEC keep (see file header)
     "qc/investigate_2024_offset.py": 1,      # qc sibling (4c)
     "qc/investigate_displacement.py": 1,     # qc sibling (4c)
     "qc/make_ndvi_stack_norm.py": 2,         # make_nir_stack + radiometry_norm sibling

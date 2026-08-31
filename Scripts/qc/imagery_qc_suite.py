@@ -67,6 +67,14 @@ from rasterio.windows import Window, from_bounds as win_from_bounds
 SCRIPTS = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(SCRIPTS / "qc"))
 
+# KERNEL-EXEC KEEP (Canary 1, 2026-08-31): this file is exec'd BY PATH inside the
+# Colab kernel, where the editable install is INVISIBLE - pip -e works via a .pth
+# file and site.py reads .pth only at interpreter STARTUP, so a kernel that was
+# already running when the bootstrap installed never sees it. Subprocesses re-run
+# site startup and do see it - measured on canary3b: the engine steps imported
+# phase4seg fine while this file's kernel-level import raised ModuleNotFoundError.
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "pipeline"))
+
 from phase4seg import config as C          # noqa: E402
 import imagery_measure as im               # noqa: E402
 import phase4_catalog_check as CK          # noqa: E402

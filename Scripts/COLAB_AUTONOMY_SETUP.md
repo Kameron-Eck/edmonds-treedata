@@ -341,3 +341,49 @@ THE FIX (one-time, Kam ~2 min): a user-OAuth rclone token — files then owned b
 D:\edmonds-pipeline\secrets\rclone_user_token.json; gen_vm_bootstrap then ships a
 user-token remote for WRITER VMs and keeps the SA remote for reader VMs. Shared
 Drives would be cleaner but need Workspace (personal account: unavailable).
+
+## A100 assignment is CONCURRENCY-capped, not scarcity-capped (2026-08-31)
+
+Launching the 2019 pilot as three parallel arms, the third `colab new --gpu A100` failed
+six times over six minutes, every time with the same error:
+
+    TooManyAssignmentsError: Failed to issue request POST .../assign
+      ?nbh=<fresh handle each try>&variant=GPU&accelerator=A100: Precondition Failed
+
+Two A100s were already assigned to `pilotfine` and `pilotmed`. **`TooManyAssignments` is
+not `resource exhausted`** — backing off does not help, because the limit is on how many
+A100s this account holds at once, and the slot frees only when an existing one is
+released. The documented 240 s backoff is the right response to scarcity and the wrong
+response to this; a launcher that retries forever on it will retry forever.
+
+Two things checked before concluding, both cheap and both worth repeating:
+
+- **Stale handles were not holding the slots.** `gpu39/41/44/45` sit in
+  `sessions.json` but their beacons are 24 h old, so they are dead entries, not live
+  VMs consuming assignments.
+- **The failed attempts stranded nothing.** Each try minted a fresh `nbh=` handle, which
+  looks like it should leave a VM behind, but no `pilotcoarse` session appeared in
+  `sessions.json` until the successful create. That matters: a created-but-unbootstrapped
+  VM has no watchdog and bills until Google reclaims it.
+
+**The workaround is a different accelerator, not a longer wait.** `--gpu L4` was assigned
+in 14 s while both A100s stayed busy, which also confirms the cap is A100-specific rather
+than a limit on GPU runtimes generally. For a coarse-tier arm that is a throughput choice
+only — same code, same data, same seed — and an L4 has already carried one
+(`queue_nodecW_2009`, 8 steps, 0 failed) at the standing batch defaults.
+
+## `cmd | tee log` HIDES the launcher's exit code (2026-08-31)
+
+The pilot launcher ended correctly with
+
+    [00:51:55Z]   !! no A100 for pilotcoarse after 6 tries — stopping
+
+and `exit 1` — and the harness reported **exit code 0**, because the invocation was
+`bash launcher.sh | tee log` and a pipeline's status is its LAST command's. `tee` always
+succeeds. Anything keying off the exit code would have read a failed launch as a clean one.
+
+This is the same shape as the failure this file already records — "launchers must grep
+FAILURE signatures, not just success ones" — except one layer up, in the harness rather
+than the launcher. Use `set -o pipefail`, or `bash launcher.sh > log 2>&1` and read the
+file, or key on a terminal LINE in the output rather than on the status. The chained L4
+launch survived only because it waited on the terminal line.

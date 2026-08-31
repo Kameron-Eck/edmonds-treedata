@@ -46,6 +46,12 @@
 # 72 status files, read 2026-08-30), not an estimate. Ranges in each `expect` below.
 # postproc has no measured timing anywhere: until U3 it was not in the queue's STEPS at
 # all, so it has never run under a queue. Its ceiling is 120 min.
+#
+# ONE QUEUE PER RUNTIME (COLAB_AUTONOMY_SETUP.md). The three pilot tiers run
+# CONCURRENTLY on three A100s, so they are three queue files rather than one with
+# three jobs. The queues run in parallel; the colab CLI calls that start them do
+# NOT — a concurrent `colab exec` SIGTERM'd a sibling launcher mid-bootstrap on
+# 2026-08-29 and left an unbootstrapped, watchdog-less VM billing.
 
 - id: "pilot_2019_fine"
   year: "2019"
@@ -53,17 +59,3 @@
   extra: ["--force-citywide", "--no-hillshade"]
   why: "fine tier (10 cm), the end the ERF measurement says is context-starved: at 5-10 cm a crown is 100-300 px and the measured 106 px effective receptive field is smaller than one crown."
   expect: "labels ~1 min; tile ~14 min; train ~34 min; evaluate ~2 min; inference ~68 min (the long pole, max seen 100); postproc unmeasured. ~2 h median."
-
-- id: "pilot_2019_medium"
-  year: "2019s"
-  tag: pilot_e2_medium
-  extra: ["--force-citywide", "--no-hillshade"]
-  why: "medium tier (30.5 cm) AND the high side of the same-flight resolution pair with 2019n — same 2019-10-11 sensor day, so resolution is the only variable between them."
-  expect: "labels ~7 min; tile ~26 min; train ~36 min; evaluate ~5 min; inference ~5 min; postproc unmeasured. ~1 h 20 median."
-
-- id: "pilot_2019_coarse"
-  year: "2019n"
-  tag: pilot_e2_coarse
-  extra: ["--force-citywide", "--no-hillshade"]
-  why: "coarse tier (60 cm) AND the low side of the same-flight pair. Also the tier where the ERF is 7-20x a crown, i.e. the opposite regime from the fine job above."
-  expect: "labels ~8 min; tile ~10 min; train ~45 min; evaluate ~41 min; inference ~7 min; postproc unmeasured. ~1 h 50 median."

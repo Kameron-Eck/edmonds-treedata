@@ -1,0 +1,18 @@
+# PILOT SLICE — calendar year 2019 (overhaul Stage 5). ONE TIER, ONE RUNTIME.
+#
+# The shared rationale — why 2019 supplies all three tiers, why 2019s vs 2019n is a
+# same-flight resolution pair, why every job runs RGB-only, and what the four-part
+# gate is — lives in pipeline/pilot_2019_fine.yaml and is not repeated here.
+#
+# ONE QUEUE PER RUNTIME (COLAB_AUTONOMY_SETUP.md). The three pilot tiers run
+# CONCURRENTLY on three A100s, so they are three queue files rather than one with
+# three jobs. The queues run in parallel; the colab CLI calls that start them do
+# NOT — a concurrent `colab exec` SIGTERM'd a sibling launcher mid-bootstrap on
+# 2026-08-29 and left an unbootstrapped, watchdog-less VM billing.
+
+- id: "pilot_2019_coarse"
+  year: "2019n"
+  tag: pilot_e2_coarse
+  extra: ["--force-citywide", "--no-hillshade"]
+  why: "coarse tier (60 cm) AND the low side of the same-flight pair. Also the tier where the ERF is 7-20x a crown, i.e. the opposite regime from the fine job above."
+  expect: "labels ~8 min; tile ~10 min; train ~45 min; evaluate ~41 min; inference ~7 min; postproc unmeasured. ~1 h 50 median."

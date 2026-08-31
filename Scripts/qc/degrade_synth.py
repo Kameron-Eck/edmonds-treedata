@@ -89,11 +89,11 @@ r"""
   · The map is fitted on hardscape and is blind to phenology, vignetting,
     within-scene gradient, saturation and non-linearity.
 
-  STATUS: PLANNING STEP ONLY. This resolves and reports the transform for a target — the
-  coefficients, their fitted domain, their fit RMS against the uncorrected baseline, and
-  which bands the table declines to supply. It writes no raster yet. That is deliberate:
-  the ordering question above (resample-then-gain vs applying the offset) determines what
-  the raster step should do, and it is worth being right before writing pixels.
+  TWO MODES. `--plan` resolves and reports the transform for a target — coefficients,
+  fitted domain, fit RMS against the uncorrected baseline, and which bands the table
+  declines to supply — and touches no raster. `--src-raster` writes one synthetic window.
+  Windowed by design: 2020s is a 31 GB ortho, and tile-sized synthesis is what training
+  data actually needs; a whole-ortho pass is a Colab job, not a laptop one.
 
   Measured while building it, and it picks the A/B year: fit quality varies a lot across
   the archive, and 2000 — the weakest, oldest year — has the BEST fit in the sample
@@ -103,7 +103,7 @@ r"""
   interpretable.
 
   py -3.12 qc/degrade_synth.py --target 2009 --plan
-  py -3.12 qc/degrade_synth.py --target 2000 --plan --with-offset
+  py -3.12 qc/degrade_synth.py --target 2000 --src-raster <2020s.tif>       --window COL ROW W H --out synth_2020s_as_2000.tif
 """
 import argparse
 import csv
@@ -196,6 +196,17 @@ def main():
                     help="also apply the offsets. OFF by default because the offset "
                          "already contains the mixing that resampling reproduces — see "
                          "the ORDER OF OPERATIONS block.")
+    ap.add_argument("--src-raster", type=str, default=None,
+                    help="source ortho to transform. Omit for --plan.")
+    ap.add_argument("--window", type=int, nargs=4, metavar=("COL", "ROW", "W", "H"),
+                    default=None, help="source-pixel window; omit for the whole raster "
+                                       "(2020s is 31 GB — you want a window)")
+    ap.add_argument("--out", type=str, default=None, help="output GeoTIFF")
+    ap.add_argument("--resampling", default="average",
+                    choices=["average", "bilinear", "cubic", "nearest"],
+                    help="average (default) AGGREGATES, which is what a coarse sensor "
+                         "does; nearest sub-samples and gives a sharp image on a coarse "
+                         "grid — the look of neither sensor")
     a = ap.parse_args()
 
     table, tpath = load_table()
@@ -231,7 +242,118 @@ def main():
     print("    positive offset would fabricate imagery out of the fill value.")
     print("  · DNs outside the fitted domain above are EXTRAPOLATION, not measurement.")
     print("  · the masks are NOT gold: the 2020 mask is a model prediction.")
+
+    if a.src_raster:
+        if not a.out:
+            raise SystemExit("--src-raster needs --out")
+        print()
+        res = synthesize(a.src_raster, a.source, a.target, a.out, window=a.window,
+                         with_offset=a.with_offset, table=table,
+                         resampling=a.resampling)
+        print(f"wrote {res['out']}")
+        print(f"  shape {res['shape']}  scale {res['scale']:.4f}  "
+              f"valid {res['valid_frac_src']:.3f} src -> {res['valid_frac_out']:.3f} out")
+        for b, what in res['applied'].items():
+            print(f"  {b}: {what}")
     return 0
+
+
+
+
+# ── the raster step ───────────────────────────────────────────────────────────
+
+def synthesize(src_path, source, target, out_path, window=None, with_offset=False,
+               table=None, resampling="average"):
+    """Write ONE synthetic window: resample to the target's GSD, then apply the map.
+
+    ORDER IS RESAMPLE-THEN-RADIOMETRY, for the reason in the module header: the fitted
+    offset already contains the mixing that downsampling reproduces, so doing radiometry
+    first and resampling second counts it twice.
+
+    RESAMPLING IS `average`, NOT `nearest`. Downsampling a 7.6 cm ortho to 20 cm is an
+    AGGREGATION — a coarse pixel genuinely is the mean of the fine pixels under it, which
+    is exactly the mixing the coarse sensor performs. `nearest` would sub-sample instead,
+    keeping one fine pixel's value and discarding the rest, which produces a sharp image at
+    a coarse grid: the look of neither sensor. (qc/phase4_qc_extent_matched.py uses nearest
+    for a different job — matching a categorical reference — and that is why it must not be
+    reused here.)
+
+    The valid mask comes from the RAW pixels BEFORE anything is applied, because the
+    project's nodata convention is all-bands-exactly-0 and any positive term would turn
+    those zeros into a plausible DN. Invalid pixels are written back as 0.
+    """
+    import numpy as np
+    import rasterio
+    from rasterio.enums import Resampling
+    from rasterio.windows import Window
+
+    if table is None:
+        table, _ = load_table()
+    plan = plan_for(target, source, table)
+    tgt_cm, src_cm = plan["target_gsd_cm"], plan["source_gsd_cm"]
+    if not (tgt_cm and src_cm):
+        raise SystemExit(f"missing gsd for {source} or {target}")
+    scale = src_cm / tgt_cm                      # < 1 when the target is coarser
+
+    with rasterio.open(src_path) as src:
+        win = Window(*window) if window else Window(0, 0, src.width, src.height)
+        raw = src.read(window=win)                                    # (bands, h, w)
+        prof = src.profile.copy()
+        tf = src.window_transform(win)
+
+        valid = ~(raw == 0).all(axis=0)                               # BEFORE anything
+        oh = max(1, int(round(raw.shape[1] * scale)))
+        ow = max(1, int(round(raw.shape[2] * scale)))
+        small = src.read(window=win, out_shape=(raw.shape[0], oh, ow),
+                         resampling=getattr(Resampling, resampling)).astype("float32")
+        # A coarse pixel is valid only where it sampled real ground. Derived from the
+        # RESAMPLED stack rather than by resampling the raw mask: `average` over a
+        # part-nodata footprint already pulls those pixels toward 0, and this keeps the
+        # validity test consistent with the pixels actually written.
+        vmask = (small != 0).any(axis=0)
+
+    names = ["R", "G", "B", "N"][:small.shape[0]]
+    applied = {}
+    for i, b in enumerate(names):
+        d = plan["bands"].get(b) or {}
+        gr = d.get("gain_ratio")
+        if gr is None:
+            applied[b] = "UNCHANGED (no coefficient — the table declines to supply one)"
+            continue
+        band = small[i] * gr
+        if with_offset:
+            os_, ot = d.get("offset_src") or 0.0, d.get("offset_tgt") or 0.0
+            band = band + (os_ - ot) / (d.get("gain_tgt") or 1.0)
+        small[i] = band
+        applied[b] = (f"gain_ratio={gr:.4f}" + (" +offset" if with_offset else ""))
+
+    small = np.clip(small, 0, 255)
+    small[:, ~vmask] = 0                                              # nodata stays nodata
+    out = small.astype("uint8")
+
+    prof.update(width=ow, height=oh, count=out.shape[0], dtype="uint8",
+                transform=rasterio.Affine(tf.a / scale, tf.b, tf.c,
+                                          tf.d, tf.e / scale, tf.f),
+                compress="deflate", tiled=True)
+    out_path = Path(out_path)
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    with rasterio.open(out_path, "w", **prof) as dst:
+        dst.write(out)
+        for i, b in enumerate(names, start=1):
+            dst.set_band_description(
+                i, f"SYNTHETIC {b}: {source} resampled to {target} GSD, {applied[b]}")
+        dst.update_tags(
+            SYNTHETIC="yes", synth_source=source, synth_target=target,
+            synth_tool="qc/degrade_synth.py", synth_order="resample-then-radiometry",
+            synth_offset_applied=str(bool(with_offset)),
+            synth_resampling=resampling,
+            synth_note=("Masks are NOT gold: the 2020 canopy mask is a model prediction. "
+                        "PSF/blur half is approximate. Offsets omitted by default because "
+                        "the fitted offset already contains the mixing that resampling "
+                        "reproduces."))
+    return dict(out=str(out_path), shape=[int(x) for x in out.shape],
+                scale=scale, applied=applied,
+                valid_frac_src=float(valid.mean()), valid_frac_out=float(vmask.mean()))
 
 
 if __name__ == "__main__":

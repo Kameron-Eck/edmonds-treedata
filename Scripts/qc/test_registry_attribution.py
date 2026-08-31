@@ -165,8 +165,13 @@ def test_the_writer_really_does_stamp_run_identity():
     """The post-D6 path above is only reachable because step_evaluate stamps these. If
     that stamping is ever removed, every arm silently falls back to the year-level label
     and this file's second half stops testing anything real."""
-    core = (SCRIPTS / "pipeline" / "phase4seg" / "core.py").read_text(encoding="utf-8")
+    sys.path.insert(0, str(SCRIPTS / "pipeline"))
+    from phase4seg.names import symbol_body
+    # By symbol, not by path — see names.py::find_symbol_source. Importing the engine
+    # would pull torch, which CI deliberately does not have.
+    body = symbol_body(SCRIPTS / "pipeline" / "phase4seg", "step_evaluate", "function")
+    assert body, "step_evaluate not found in the engine package"
     for col in R._EVAL_RUN_ID_COLS:
-        assert f'new["{col}"]' in core, (
+        assert f'new["{col}"]' in body, (
             f"step_evaluate no longer stamps {col} into the eval report — per-run "
             "attribution in the registry is unreachable without it")

@@ -40,12 +40,17 @@ Run:
 """
 import ast
 import re
+import sys
 from pathlib import Path
 
 import pytest
 
 SCRIPTS = Path(__file__).resolve().parent.parent
 GATED = ("pipeline", "qc")
+
+# names.py is stdlib-only, so this stays importable in CI, which has no torch.
+sys.path.insert(0, str(SCRIPTS / "pipeline"))
+from phase4seg.names import find_symbol_source, symbol_body  # noqa: E402
 
 # Built by concatenation so this file does not violate its own ban — the examples in
 # the docstring above are written without the colon form for the same reason.
@@ -145,16 +150,20 @@ def test_the_evidence_chain_in_crown_touch_still_holds():
     polygons, so no holdout has to be reserved. Three of the five links in its cited
     chain had drifted onto unrelated code. Re-anchoring them fixed the pointers; this
     checks the CLAIM, which is the part that would actually invalidate the metric."""
-    core = (SCRIPTS / "pipeline" / "phase4seg" / "core.py").read_text(encoding="utf-8")
-    assert "crown" not in core.lower(), (
-        "core.py now mentions crowns — phase4_crown_touch's premise that the training "
-        "path cannot see the instance layer needs re-verifying, not just re-citing")
+    # Located by SYMBOL, not by filename: the claim is about the module that trains,
+    # and core.py is 2,833 lines with a split scheduled. A path-anchored assertion would
+    # pass vacuously the moment step_train moved to a file that happens not to say
+    # "crown" — a gate that stops checking without saying so.
+    pkg = SCRIPTS / "pipeline" / "phase4seg"
+    found = find_symbol_source(pkg, "step_train", "function")
+    assert found, "step_train not found in the engine package"
+    trainer, trainer_src = found
+    assert "crown" not in trainer_src.lower(), (
+        f"{trainer.name} (which defines step_train) now mentions crowns — "
+        "phase4_crown_touch's premise that the training path cannot see the instance "
+        "layer needs re-verifying, not just re-citing")
 
-    labels = (SCRIPTS / "pipeline" / "phase4seg" / "labels.py").read_text(encoding="utf-8")
-    tree = ast.parse(labels)
-    fn = next(n for n in ast.walk(tree)
-              if isinstance(n, ast.FunctionDef) and n.name == "step_labels")
-    body = ast.get_source_segment(labels, fn) or ""
+    body = symbol_body(pkg, "step_labels", "function") or ""
     assert "if citywide:" in body and "SKIPPED" in body, (
         "step_labels no longer short-circuits on citywide — the crown-burn step may "
         "now run in citywide mode, which would put crowns into the training labels")

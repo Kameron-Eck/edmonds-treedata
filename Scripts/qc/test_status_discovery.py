@@ -293,3 +293,56 @@ def test_no_undocumented_reader_of_the_ledger():
         "these read the run-outcome ledger without the one discovery rule — either "
         "import status_files/is_status_file, or add the file to _DISCOVERY_EXEMPT "
         f"with the reason: {missing}")
+
+
+# ── locating a symbol without importing the engine ────────────────────────────
+
+def test_the_locator_finds_symbols_across_modules():
+    """Gates that assert something about the engine's TEXT were written as
+    `(… / "core.py").read_text()`. core.py is 2,833 lines and a split is boarded as 3.5;
+    every one of those gates would then pass VACUOUSLY or fail spuriously depending on
+    which half the symbol landed in. A gate that silently stops checking reads exactly
+    like a gate that passes, which is the failure this repo keeps finding."""
+    from phase4seg.names import find_symbol_source
+
+    pkg = SCRIPTS / "pipeline" / "phase4seg"
+    assert find_symbol_source(pkg, "step_evaluate", "function")[0].name == "core.py"
+    # the proof it is not just reading core.py under another name:
+    assert find_symbol_source(pkg, "step_labels", "function")[0].name == "labels.py"
+    assert find_symbol_source(pkg, "no_such_symbol_anywhere") is None
+
+
+def test_the_locator_refuses_an_ambiguous_name_instead_of_guessing():
+    """Taking the first match would be a silent wrong answer — the same shape as the
+    status-file glob, the ledger row key and the eval-report join, all fixed this week
+    because they answered confidently from an under-specified key."""
+    from phase4seg.names import AmbiguousSymbol, find_symbol_source
+
+    pkg = SCRIPTS / "pipeline" / "phase4seg"
+    with pytest.raises(AmbiguousSymbol):
+        find_symbol_source(pkg, "__init__")     # defined in common.py and core.py
+
+
+def test_within_disambiguates_a_method():
+    """How __getitem__ is reached: name the class, not the file."""
+    from phase4seg.names import symbol_body
+
+    pkg = SCRIPTS / "pipeline" / "phase4seg"
+    body = symbol_body(pkg, "__getitem__", "function", within="SemanticDataset")
+    assert body and "def __getitem__" in body and "tile_name" in body
+
+
+def test_no_gate_still_hardcodes_the_engine_file_it_checks():
+    """The coupling this replaces. Four tests read core.py by path; three were written
+    the same day. Keeping the ban is what stops the next one being added."""
+    bad = []
+    for p in sorted((SCRIPTS / "qc").glob("test_*.py")):
+        if p.name == Path(__file__).name:
+            continue                      # this file NAMES the banned shape to ban it
+        src = p.read_text(encoding="utf-8", errors="replace")
+        if '"core.py"' in src and "read_text" in src:
+            bad.append(p.name)
+    assert not bad, (
+        "these assert on the engine's text via a hardcoded core.py path — use "
+        "names.find_symbol_source / symbol_body so the check follows the symbol: " +
+        ", ".join(bad))

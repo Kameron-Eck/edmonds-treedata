@@ -184,6 +184,19 @@ def test_it_is_differentiable():
 
 # ── the SDM moved into the DataLoader worker (4.1, 2026-08-30) ───────────────
 
+def _getitem_source():
+    """SemanticDataset.__getitem__'s text, found by SYMBOL rather than by filename.
+
+    It lived in core.py when these were written, and core.py is 2,833 lines with a split
+    scheduled. A path-anchored read would pass vacuously the moment the class moved —
+    the gate would stop checking and say nothing, which is the failure this repo keeps
+    finding in other people's code and had just written into its own."""
+    from phase4seg.names import symbol_body
+    body = symbol_body(SCRIPTS / "pipeline" / "phase4seg", "__getitem__",
+                       "function", within="SemanticDataset")
+    assert body, "SemanticDataset.__getitem__ not found in the engine package"
+    return body
+
 def test_the_precomputed_field_equals_the_one_computed_in_the_loss():
     """The move is only safe if both paths agree exactly. They share sdm_for_mask now,
     so this is really asserting that the batch wrapper still routes through the
@@ -239,26 +252,17 @@ def test_the_dataset_carries_the_field_in_meta_not_as_a_new_tuple_element():
     mode that just cost a dashboard every one of its step chips. A dict key cannot be
     mixed up."""
     import ast
-    src = (SCRIPTS / "pipeline" / "phase4seg" / "core.py").read_text(encoding="utf-8")
-    tree = ast.parse(src)
-    fn = next(n for n in ast.walk(tree)
-              if isinstance(n, ast.FunctionDef) and n.name == "__getitem__")
-    body = ast.get_source_segment(src, fn)
+    body = _getitem_source()
     assert 'meta["sdm"]' in body and "sdm_for_mask(" in body
-    for ret in [n for n in ast.walk(fn) if isinstance(n, ast.Return)]:
-        seg = ast.get_source_segment(src, ret)
+    for ret in [n for n in ast.walk(ast.parse(body)) if isinstance(n, ast.Return)]:
+        seg = ast.get_source_segment(body, ret)
         assert "sdm" not in seg, f"the SDM leaked into a return tuple: {seg}"
 
 
 def test_nothing_is_computed_when_the_term_is_off():
     """BOUNDARY_WEIGHT is 0.0 today. The Dataset must not pay ~23 ms/tile for a term
     nothing is using — this is what keeps the change free for every current arm."""
-    import ast
-    src = (SCRIPTS / "pipeline" / "phase4seg" / "core.py").read_text(encoding="utf-8")
-    tree = ast.parse(src)
-    fn = next(n for n in ast.walk(tree)
-              if isinstance(n, ast.FunctionDef) and n.name == "__getitem__")
-    body = ast.get_source_segment(src, fn)
+    body = _getitem_source()
     assert body.count("if self.training and config.BOUNDARY_WEIGHT:") == 2, (
         "both Dataset return paths (AUX_HEIGHT on and off) must gate the SDM on the "
         "weight being non-zero")

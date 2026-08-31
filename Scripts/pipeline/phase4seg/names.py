@@ -248,3 +248,90 @@ def job_key(job_id, year, tag, step):
     parses as an int) cannot disagree about what the same job is.
     """
     return (str(job_id), str(year), str(tag), str(step))
+
+
+# ── finding a symbol's source without importing the engine ────────────────────
+#
+# WHY THIS IS HERE AND NOT `inspect.getsource`. Several gates assert something about the
+# engine's TEXT — that step_evaluate still stamps run_tag, that the Dataset gates the
+# distance field on the weight, that the training path never mentions crowns. Those are
+# claims about the engine, not about a file, but every one of them was written as
+#
+#     (SCRIPTS / "pipeline" / "phase4seg" / "core.py").read_text()
+#
+# core.py is 2,833 lines and is scheduled to be split. Every such gate would then pass
+# vacuously or fail spuriously depending on which half the symbol landed in — a gate
+# that silently stops checking is the failure this repo keeps finding.
+#
+# inspect.getsource would follow the symbol, but importing the engine pulls torch, and
+# these gates run in CI where torch is deliberately absent. So: locate by parsing, not
+# by importing. Same reason names.py is stdlib-only in the first place.
+
+def engine_files(pkg_dir):
+    return sorted(p for p in Path(pkg_dir).glob("*.py") if p.name != "__init__.py")
+
+
+class AmbiguousSymbol(LookupError):
+    """More than one engine module defines this name and nothing narrowed it.
+
+    Returning the first match would be a silent wrong answer, which is the whole class
+    of defect these locators exist to prevent: a gate that quietly starts checking a
+    different thing reads exactly like a gate that passes.
+    """
+
+
+def _matches(pkg_dir, name, kind=None, within=None):
+    import ast
+
+    hits = []
+    for p in engine_files(pkg_dir):
+        src = p.read_text(encoding="utf-8", errors="replace")
+        try:
+            tree = ast.parse(src)
+        except SyntaxError:
+            continue
+        roots = [tree]
+        if within:
+            roots = [n for n in ast.walk(tree)
+                     if isinstance(n, ast.ClassDef) and n.name == within]
+        for root in roots:
+            for node in ast.walk(root):
+                if not isinstance(node, (ast.ClassDef, ast.FunctionDef,
+                                         ast.AsyncFunctionDef)):
+                    continue
+                if node.name != name:
+                    continue
+                if kind == "class" and not isinstance(node, ast.ClassDef):
+                    continue
+                if kind == "function" and isinstance(node, ast.ClassDef):
+                    continue
+                hits.append((p, src, node))
+    if len({h[0] for h in hits}) > 1:
+        raise AmbiguousSymbol(
+            f"{name!r} is defined in {sorted({h[0].name for h in hits})} — pass `within` "
+            f"to name the class, or a more specific `kind`. Taking the first would be a "
+            f"silent wrong answer.")
+    return hits
+
+
+def find_symbol_source(pkg_dir, name, kind=None):
+    """`(path, source_text)` for `name` in `pkg_dir`, or None if it is not there.
+
+    Returns the WHOLE module's text, because callers want to search around the symbol as
+    often as inside it; use `symbol_body` when the segment itself is what matters.
+    Raises AmbiguousSymbol rather than guessing.
+    """
+    hits = _matches(pkg_dir, name, kind)
+    return (hits[0][0], hits[0][1]) if hits else None
+
+
+def symbol_body(pkg_dir, name, kind=None, within=None):
+    """Source text of `name` itself. `within` scopes the search to a class's body, which
+    is how `__getitem__` is found without matching every other class's."""
+    import ast
+
+    hits = _matches(pkg_dir, name, kind, within)
+    if not hits:
+        return None
+    _p, src, node = hits[0]
+    return ast.get_source_segment(src, node)

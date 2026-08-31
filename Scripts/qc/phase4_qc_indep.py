@@ -80,6 +80,7 @@ import rasterio
 from rasterio.vrt import WarpedVRT
 from rasterio.enums import Resampling
 from rasterio.windows import Window
+from pipeline_log import write_step_log
 
 
 _COLAB_BASE = Path("/content/drive/MyDrive/treedata")
@@ -520,21 +521,6 @@ def _write_csvs(year, ref_path, prob_path, thresh, def_rows, surf_rows, R, run_t
     print(f"[qc-indep] wrote {surf}")
 
 
-def write_step_log(year, R):
-    try:
-        LOGS_DIR.mkdir(parents=True, exist_ok=True)
-        ts = _dt.datetime.now().strftime("%Y%m%d_%H%M%S")
-        p = LOGS_DIR / f"phase4_qc_indep_{year}_{ts}.log"
-        prim = R["defs"][R["primary_idx"]]
-        ref_can = sum(R["gpx"][g] for g in prim[1])
-        tp = sum(R["gmc"][g] for g in prim[1])
-        p.write_text(f"phase4_qc_indep.py year={year} primary_def={prim[0]}\n"
-                     f"recall={_safe(tp, ref_can):.4f} valid={R['valid']} "
-                     f"indep_1m_cells={R['indep_cells']:.0f}\n", encoding="utf-8")
-        print(f"[qc-indep] log → {p}")
-    except Exception as e:
-        print(f"[qc-indep] WARN log: {e}")
-
 
 def main():
     # Colab injects `-f <kernel.json>`; strip only that pair. (The generic
@@ -586,7 +572,12 @@ def main():
     except QCUnscorableError as e:
         print(f"\n[qc-indep] UNSCORABLE — no row written\n{e}\n", file=sys.stderr)
         raise SystemExit(2)
-    write_step_log(args.year, R)
+    _prim = R["defs"][R["primary_idx"]]
+    write_step_log("phase4_qc_indep", step=str(args.year), logs_dir=LOGS_DIR,
+                   primary_def=_prim[0],
+                   recall=round(_safe(sum(R["gmc"][g] for g in _prim[1]),
+                                      sum(R["gpx"][g] for g in _prim[1])), 4),
+                   valid=R["valid"], indep_1m_cells=int(R["indep_cells"]))
 
 
 if __name__ == "__main__":

@@ -64,6 +64,7 @@ import sys as _sys_for_names
 from pathlib import Path as _P_for_names
 _sys_for_names.path.insert(0, str(_P_for_names(__file__).resolve().parents[1] / "pipeline"))
 from phase4seg.names import clean_argv  # noqa: E402
+from pipeline_log import write_step_log
 
 _COLAB_BASE = Path("/content/drive/MyDrive/treedata")
 _LOCAL_BASE = Path(r"G:\My Drive\treedata")
@@ -214,18 +215,6 @@ def _write_csv(rows):
     return out
 
 
-def write_step_log(rows):
-    try:
-        LOGS_DIR.mkdir(parents=True, exist_ok=True)
-        ts = _dt.datetime.now().strftime("%Y%m%d_%H%M%S")
-        bad = [r for r in rows if r["verdict"] in BAD]
-        (LOGS_DIR / f"phase4_qc_inventory_sweep_{ts}.log").write_text(
-            f"phase4_qc_inventory.py rasters={len(rows)} problems={len(bad)} "
-            + " ".join(f"{r['file']}={r['verdict']}" for r in bad) + "\n",
-            encoding="utf-8")
-    except Exception as e:                                     # noqa: BLE001
-        print(f"[inventory] WARN log: {e}")
-
 
 def main():
     filtered = clean_argv()
@@ -258,7 +247,10 @@ def main():
     rows = _flag_outliers(rows)
     rows = _print_table(rows)
     _write_csv(rows)
-    write_step_log(rows)
+    _bad = [r for r in rows if r["verdict"] in BAD]
+    write_step_log("phase4_qc_inventory", step="sweep", logs_dir=LOGS_DIR,
+                   rasters=len(rows), problems=len(_bad),
+                   bad=" ".join(f"{r['file']}={r['verdict']}" for r in _bad))
 
     if args.strict and any(r["verdict"] in BAD for r in rows):
         raise SystemExit(2)

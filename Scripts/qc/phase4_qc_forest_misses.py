@@ -61,6 +61,7 @@ from rasterio.transform import Affine
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
+from pipeline_log import write_step_log
 
 
 _COLAB_BASE = Path("/content/drive/MyDrive/treedata")
@@ -559,19 +560,6 @@ def _plot(year, tp, fn):
         print(f"[forest-miss] WARN plot: {e}")
 
 
-def write_step_log(year, n_tp, n_fn, stable_path=None):
-    try:
-        LOGS_DIR.mkdir(parents=True, exist_ok=True)
-        ts = _dt.datetime.now().strftime("%Y%m%d_%H%M%S")
-        rec = n_tp / (n_tp + n_fn) if (n_tp + n_fn) else float("nan")
-        denom = "stable_subset" if stable_path else "full_forest"
-        (LOGS_DIR / f"phase4_qc_forest_misses_{year}_{ts}.log").write_text(
-            f"phase4_qc_forest_misses.py year={year} recall={rec:.4f} "
-            f"tp={n_tp} fn={n_fn} denominator={denom} "
-            f"stable_with={stable_path or ''}\n", encoding="utf-8")
-    except Exception:
-        pass
-
 
 def _confident_frac(fn_acc, cut=0.12):
     """Fraction of missed-forest px whose model prob < cut (confident/OOD misses)."""
@@ -718,7 +706,12 @@ def main():
 
     R = analyse(args.year, ref_path, prob_path, thresh,
                 forest_codes, args.block_rows, args.coarse, stable_path)
-    write_step_log(R["year"], R["n_tp"], R["n_fn"], stable_path)
+    write_step_log("phase4_qc_forest_misses", step=str(R["year"]), logs_dir=LOGS_DIR,
+                   recall=round(R["n_tp"] / (R["n_tp"] + R["n_fn"]), 4)
+                          if (R["n_tp"] + R["n_fn"]) else None,
+                   tp=R["n_tp"], fn=R["n_fn"],
+                   denominator="stable_subset" if stable_path else "full_forest",
+                   stable_with=str(stable_path or ""))
 
 
 if __name__ == "__main__":

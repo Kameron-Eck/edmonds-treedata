@@ -80,6 +80,7 @@ import sys as _sys_for_names
 from pathlib import Path as _P_for_names
 _sys_for_names.path.insert(0, str(_P_for_names(__file__).resolve().parents[1] / "pipeline"))
 from phase4seg.names import clean_argv  # noqa: E402
+from pipeline_log import write_step_log
 
 _COLAB_BASE = Path("/content/drive/MyDrive/treedata")
 _LOCAL_BASE = Path(r"G:\My Drive\treedata")
@@ -294,18 +295,6 @@ def report(R):
     print(f"[ref-agree] wrote {main_csv}")
 
 
-def write_step_log(R):
-    try:
-        LOGS_DIR.mkdir(parents=True, exist_ok=True)
-        ts = _dt.datetime.now().strftime("%Y%m%d_%H%M%S")
-        (LOGS_DIR / f"phase4_ref_agreement_{R['year']}_{ts}.log").write_text(
-            f"phase4_ref_agreement.py year={R['year']} valid={R['valid']} "
-            f"both_canopy={R['px']['both_canopy']} ndvi_only={R['px']['ndvi_only']} "
-            f"ccap_only={R['px']['ccap_only']} fn_both={R['fn_both']} "
-            f"fn_disagree={R['fn_disagree']}\n", encoding="utf-8")
-    except Exception as e:                                     # noqa: BLE001
-        print(f"[ref-agree] WARN log: {e}")
-
 
 def main():
     filtered = clean_argv()
@@ -334,7 +323,10 @@ def main():
         print(f"\n[ref-agree] UNSCORABLE — no row written\n{e}\n", file=sys.stderr)
         raise SystemExit(2)
     report(R)
-    write_step_log(R)
+    write_step_log("phase4_ref_agreement", step=str(R["year"]), logs_dir=LOGS_DIR,
+                   valid=R["valid"], both_canopy=R["px"]["both_canopy"],
+                   ndvi_only=R["px"]["ndvi_only"], ccap_only=R["px"]["ccap_only"],
+                   fn_both=R["fn_both"], fn_disagree=R["fn_disagree"])
 
 
 if __name__ == "__main__":

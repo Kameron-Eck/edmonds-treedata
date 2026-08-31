@@ -77,6 +77,7 @@ import sys as _sys_for_names
 from pathlib import Path as _P_for_names
 _sys_for_names.path.insert(0, str(_P_for_names(__file__).resolve().parents[1] / "pipeline"))
 from phase4seg.names import clean_argv  # noqa: E402
+from pipeline_log import write_step_log
 
 
 _COLAB_BASE = Path("/content/drive/MyDrive/treedata")
@@ -262,16 +263,6 @@ def _write_outputs(years, table, per_parcel_std, mean_flicker,
     print(f"[flicker] wrote {csv_path}\n[flicker] wrote {QC_DIR / 'flicker_report.txt'}")
 
 
-def write_step_log(mean_flicker, res_step):
-    try:
-        LOGS_DIR.mkdir(parents=True, exist_ok=True)
-        ts = _dt.datetime.now().strftime("%Y%m%d_%H%M%S")
-        (LOGS_DIR / f"phase4_qc_flicker_{ts}.log").write_text(
-            f"phase4_qc_flicker.py  mean_flicker={mean_flicker:.2f}pp "
-            f"res_step={res_step:.2f}pp\n", encoding="utf-8")
-    except Exception:
-        pass
-
 
 def main():
     filtered = clean_argv()
@@ -288,7 +279,8 @@ def main():
         print(f"  ! only {len(years)} year mask(s) found ({years}); flicker needs ≥2. "
               f"Run more years first, or pass --years.")
     mean_flicker, res_step = run(years, args.parcels)
-    write_step_log(mean_flicker, res_step)
+    write_step_log("phase4_qc_flicker", step="flicker", logs_dir=LOGS_DIR,
+                   mean_flicker_pp=round(mean_flicker, 2), res_step_pp=round(res_step, 2))
 
 
 if __name__ == "__main__":

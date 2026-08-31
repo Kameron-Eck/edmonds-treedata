@@ -104,6 +104,7 @@ CHM_DN_PER_M = 1.0 / 0.2
 # up all 10 NIR-bearing acquisitions instead of 4. See names.py::nir_years.
 from phase4seg import config as _C
 from phase4seg.names import clean_argv, nir_years as _nir_years
+from pipeline_log import write_step_log
 
 NIR_CATALOG = {k: {"file": e["native_file"], "nir": int(e["bands"])}
                for k, e in _nir_years(_C.YEAR_CATALOG).items()}
@@ -363,22 +364,6 @@ def preview(year, out_tif, lon, lat, radius_m):
     return out
 
 
-def write_step_log(year, out_tif, tot, args):
-    try:
-        LOGS_DIR.mkdir(parents=True, exist_ok=True)
-        ts = _dt.datetime.now().strftime("%Y%m%d_%H%M%S")
-        p = LOGS_DIR / f"phase4_build_corrected_labels_{year}_{ts}.log"
-        p.write_text(
-            f"phase4_build_corrected_labels.py year={year}\n"
-            f"veg_thresh={args.veg_thresh} min_height_m={args.min_height_m}\n"
-            f"output={out_tif}\n"
-            f"add_px={tot['add']} ignore_px={tot['ignore']} "
-            f"holdout_suppressed={tot['holdout_suppressed']}\n",
-            encoding="utf-8")
-        print(f"[corrected-labels] log → {p}")
-    except Exception as e:
-        print(f"[corrected-labels] WARN could not write log: {e}")
-
 
 def main():
     filtered = clean_argv()
@@ -409,7 +394,10 @@ def main():
         args.block_rows)
     if not args.no_preview:
         preview(args.year, out_tif, MARSH_LON, MARSH_LAT, args.radius_m)
-    write_step_log(args.year, out_tif, tot, args)
+    write_step_log("phase4_build_corrected_labels", step=str(args.year), logs_dir=LOGS_DIR,
+                   output=str(out_tif), veg_thresh=args.veg_thresh,
+                   min_height_m=args.min_height_m, add_px=tot["add"],
+                   ignore_px=tot["ignore"], holdout_suppressed=tot["holdout_suppressed"])
 
 
 if __name__ == "__main__":

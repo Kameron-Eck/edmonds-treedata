@@ -61,6 +61,7 @@ import sys as _sys_for_names
 from pathlib import Path as _P_for_names
 _sys_for_names.path.insert(0, str(_P_for_names(__file__).resolve().parents[1] / "pipeline"))
 from phase4seg.names import clean_argv  # noqa: E402
+from pipeline_log import write_step_log
 
 
 _COLAB_BASE = Path("/content/drive/MyDrive/treedata")
@@ -256,19 +257,6 @@ def _report(year, thresh, C, sweep, ref_path, prob_path):
     print(f"[qc-score] wrote {QC_DIR / f'qc_score_{year}.txt'}")
 
 
-def write_step_log(year, thresh, C):
-    try:
-        LOGS_DIR.mkdir(parents=True, exist_ok=True)
-        ts = _dt.datetime.now().strftime("%Y%m%d_%H%M%S")
-        p = LOGS_DIR / f"phase4_qc_score_{year}_{ts}.log"
-        recall = _safe(C["tp"], C["tp"] + C["fn"])
-        p.write_text(f"phase4_qc_score.py year={year} thresh={thresh}\n"
-                     f"recall_vs_ndvi={recall:.4f} tp={C['tp']} fn={C['fn']}\n",
-                     encoding="utf-8")
-        print(f"[qc-score] log → {p}")
-    except Exception as e:
-        print(f"[qc-score] WARN log: {e}")
-
 
 def main():
     filtered = clean_argv()
@@ -300,7 +288,9 @@ def main():
     except QCUnscorableError as e:
         print(f"\n[qc-score] UNSCORABLE — no row written\n{e}\n", file=sys.stderr)
         raise SystemExit(2)
-    write_step_log(args.year, thresh, C)
+    write_step_log("phase4_qc_score", step=str(args.year), logs_dir=LOGS_DIR,
+                   thresh=thresh, recall_vs_ndvi=round(_safe(C["tp"], C["tp"] + C["fn"]), 4),
+                   tp=C["tp"], fn=C["fn"])
 
 
 if __name__ == "__main__":

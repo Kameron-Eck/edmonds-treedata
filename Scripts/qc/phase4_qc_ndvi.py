@@ -95,6 +95,7 @@ from pathlib import Path as _Path
 _sys.path.insert(0, str(_Path(__file__).resolve().parents[1] / "pipeline"))
 from phase4seg import config as _C            # noqa: E402
 from phase4seg.names import clean_argv, nir_years as _nir_years   # noqa: E402
+from pipeline_log import write_step_log
 # chm_matched is NOT a catalog property — it records which years the 2016 CHM grid
 # matches, so it stays a small local overlay keyed by LABEL, never by filename.
 _CHM_MATCHED = {"2016": True}
@@ -268,24 +269,6 @@ def _write_summary(year, out_tif, veg_thresh, min_height_m, tot, ndvi_hist,
     print(f"\n[qc-ndvi] wrote {out_tif}\n[qc-ndvi] wrote {txt}")
 
 
-def write_step_log(year, out_tif, tot, args):
-    try:
-        LOGS_DIR.mkdir(parents=True, exist_ok=True)
-        ts = _dt.datetime.now().strftime("%Y%m%d_%H%M%S")
-        p = LOGS_DIR / f"phase4_qc_ndvi_ref_{ts}.log"
-        imaged = sum(tot.values()) - tot["nodata"]
-        p.write_text(
-            f"phase4_qc_ndvi.py --step ref  year={year}\n"
-            f"veg_thresh={args.veg_thresh} min_height_m={args.min_height_m}\n"
-            f"output={out_tif}\n"
-            f"canopy_px={tot['canopy']:,} grass_px={tot['grass']:,} "
-            f"nonveg_px={tot['nonveg']:,} nodata_px={tot['nodata']:,}\n"
-            f"canopy_pct_of_imaged={_pct(tot['canopy'], imaged):.2f}\n",
-            encoding="utf-8")
-        print(f"[qc-ndvi] log → {p}")
-    except Exception as e:
-        print(f"[qc-ndvi] WARN could not write log: {e}")
-
 
 def main():
     filtered = clean_argv()
@@ -304,7 +287,13 @@ def main():
              "height": [1.0, 2.0, 3.0, 5.0]}
     out_tif, tot = build_reference(args.year, args.veg_thresh, args.min_height_m,
                                    args.block_rows, sweep)
-    write_step_log(args.year, out_tif, tot, args)
+    _imaged = sum(tot.values()) - tot["nodata"]
+    write_step_log("phase4_qc_ndvi", step=f"ref_{args.year}", logs_dir=LOGS_DIR,
+                   output=str(out_tif), veg_thresh=args.veg_thresh,
+                   min_height_m=args.min_height_m, canopy_px=tot["canopy"],
+                   grass_px=tot["grass"], nonveg_px=tot["nonveg"],
+                   nodata_px=tot["nodata"],
+                   canopy_pct_of_imaged=round(_pct(tot["canopy"], _imaged), 2))
 
 
 if __name__ == "__main__":

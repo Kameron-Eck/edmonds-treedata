@@ -386,4 +386,13 @@ def write_step_log(script: str, step: str, logs_dir: Path,
     logger = StepLogger(script, step, logs_dir, capture_stdout=False,
                         version=version)
     logger._t0 = datetime.datetime.now()
-    logger._write(datetime.datetime.now(), 0.0, errors, notes, fields, stdout_text)
+    # NEVER-RAISE, same guard finish() carries. This one-shot called _write() directly
+    # and BYPASSED that try/except, so it raised where the module's own contract (and all
+    # 8 hand-rolled copies in qc/) swallow — a QC run that finished its science could die
+    # at the last line because a log directory was unwritable. Found 2026-08-31 while
+    # folding the copies onto this canonical one; the copies existed BECAUSE of this gap.
+    # (Cosmetic: the one-shot reports elapsed 0.0s — it never timed anything.)
+    try:
+        logger._write(datetime.datetime.now(), 0.0, errors, notes, fields, stdout_text)
+    except Exception as e:                                       # noqa: BLE001
+        print(f"  ⚠ pipeline_log: failed to write log — {e}", flush=True)

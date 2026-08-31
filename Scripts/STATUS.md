@@ -22,7 +22,7 @@ Every number above is read from `pipeline/phase4seg/config.py:YEAR_CATALOG` and
 with `py -3.12 qc/pipeline_status.py --markdown`.
 <!-- STATUS:code:end -->
 
-### Derived from the data lake - generated 2026-08-30 10:50
+### Derived from the data lake - generated 2026-08-30 21:45
 
 **This half is only as current as the last run of this script.** CI cannot
 regenerate it (no Drive mount), so it is NOT gated. Treat every number below
@@ -32,11 +32,8 @@ as of the timestamp above, not as of now.
 
 | copy | rows | live | years | newest |
 |---|---|---|---|---|
-| repo | 97 | 70 | 17 | 2026-08-22 18:00:44 |
-| lake | 208 | 172 | 23 | 2026-08-29 04:12:06 |
-
-The repo copy is BEHIND. Run `py -3.12 pipeline/harvest_results.py`
-to close the gap, or read the lake directly.
+| repo | 217 | 181 | 24 | 2026-08-30 21:36:10 |
+| lake | 217 | 181 | 24 | 2026-08-30 21:36:10 |
 
 _per-year table unavailable: ImportError: `Import tabulate` failed.  Use pip or conda to install the tabulate package._
 

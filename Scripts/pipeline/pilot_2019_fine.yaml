@@ -16,8 +16,26 @@
 #
 # One calendar year supplies all three tiers AND two controlled experiments for free:
 #
-#   · 2019s vs 2019n is a SAME-FLIGHT resolution pair — 30.5 cm against 60 cm on one
-#     date. Ecology, season and sensor-day are frozen; resolution is the only variable.
+#   · 2019s vs 2019n is a SAME-DATE resolution pair — 30.5 cm against 60 cm, both flown
+#     2019-10-11, so ecology, season and phenology are frozen.
+#
+#     CORRECTED 2026-08-31, twice, and the second correction matters more than the first.
+#     (a) It is NOT "same-flight": 2019s is Snohomish County HXIP and 2019n is USDA NAIP,
+#         two programs with different cameras, processing and radiometry, and different
+#         CRS (EPSG:2285 US survey feet vs EPSG:26910). Same day, two flights.
+#     (b) "Resolution is the only variable" was therefore false — but NOT for the reason
+#         a verification pass proposed. It claimed tier parameters diverge (stride,
+#         neg_rate, has_test, the checkpoint-selection metric). CHECKED, and they do not:
+#         TIER_STRIDE / TIER_NEG_RATE / TIER_EPOCHS do not exist in config.py at all,
+#         TIER_LOSS_MODE is 'bce_dice' for every tier, tiling.py has ZERO tier-dependent
+#         branches, and core.py::step_train keys pos_weight and the early-stop metric on
+#         `use_blocked_val` — the POOL — not the tier, with the comment "so
+#         --force-citywide gives a fine year the identical recipe". Both arms pass
+#         --force-citywide, so both get pos_weight 1.0 and val_iou_bt.
+#     So the surviving confound is PROGRAM/SENSOR + CRS, not the recipe. Read any
+#     resolution gap as resolution-plus-sensor, and do not read it as clean.
+#
+#     Precedent: CHATLOG recorded the same entanglement warning for the 2021 pair.
 #     This is the calibration rung the season/GSD disentanglement has been missing, and
 #     it arrives as a by-product rather than as its own campaign.
 #   · 2019 (April-May) vs 2019s/2019n (October) is a WITHIN-YEAR season contrast. Real

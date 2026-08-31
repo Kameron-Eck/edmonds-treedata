@@ -55,11 +55,10 @@ _sys_for_names.path.insert(0, str(_P_for_names(__file__).resolve().parents[1] / 
 from phase4seg.names import clean_argv  # noqa: E402
 
 
-_COLAB_BASE = Path("/content/drive/MyDrive/treedata")
-_LOCAL_BASE = Path(r"G:\My Drive\treedata")
-# require a real tree, not just the dir: an empty stray C:\content\... exists locally
-# (probe a DATA-plane landmark: Scripts/ left Drive for the D: git repo, 2026-08-20)
-BASE = _COLAB_BASE if (_COLAB_BASE / "Full_Image").exists() else _LOCAL_BASE
+# Lake paths: ONE home (pipeline/lake.py, refactor 2.4). This file was one of the THREE
+# that carried the strict Full_Image probe lake.py standardised on — its comment about
+# the stray C:\content\... dir is the original statement of why the bare probe is wrong.
+from lake import BASE  # noqa: E402
 
 _LOCAL_IMG = Path(r"D:\edmonds-pipeline\Imagery")
 _DRIVE_IMG = BASE / "Full_Image" / "Pipeline Imagery"

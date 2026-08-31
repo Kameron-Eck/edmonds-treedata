@@ -64,9 +64,8 @@ sys.path.insert(0, str(SCRIPTS / "pipeline"))
 # RUNS on Colab. This is a local QC tool, so it resolves the lake the way the other qc
 # scripts do (phase4_accuracy_sample.py, nir_change_probe.py): Colab path if present,
 # else the Drive letter.
-_COLAB_BASE = Path("/content/drive/MyDrive/treedata")
-_LOCAL_BASE = Path(r"G:\My Drive\treedata")
-_LAKE = _COLAB_BASE if _COLAB_BASE.exists() else _LOCAL_BASE
+# Lake paths: ONE home (pipeline/lake.py, refactor 2.4).
+from lake import BASE as _LAKE  # noqa: E402
 
 
 def _log(m):

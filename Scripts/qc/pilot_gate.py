@@ -38,6 +38,15 @@ RUNS = BASE / "phase4" / "runs"
 QC = BASE / "phase4" / "qc"
 INDEP = QC / "qc_indep_report.csv"
 
+# The independent reference. NOT an arbitrary pick: 57 live rows already use it, including
+# every prior 2019 and 2019n scoring, so the pilot's rows stay comparable with them. It is
+# also the nearer vintage to a 2019 flight than ccap_2016 is, and both hires rasters cover
+# the same Edmonds footprint. C-CAP is EVALUATION ONLY and never a label source.
+#
+# 2019s has NEVER been independently scored — it appears in no live row. The pilot will
+# produce its first, which is worth knowing before reading that number as a comparison.
+REF_CCAP = BASE / "Full_Image" / "Pipeline Imagery" / "ccap_2021_hires_lc.tif"
+
 # (year label, run tag) — the three arms of pipeline/pilot_2019_*.yaml.
 ARMS = [("2019", "pilot_e2_fine"),
         ("2019s", "pilot_e2_medium"),
@@ -80,9 +89,16 @@ def check_scored(label, tag):
             if str(r.get("live", "")).strip() == "1"
             and str(r.get("prob", "")).replace("\\", "/").split("/")[-1] == want]
     if not live:
-        return False, ("no live qc_indep row for this arm's raster — qc_indep is a "
-                       "SEPARATE local step, so this is expected to be the gate's "
-                       "honest failure until it is run")
+        # The gate's known manual dependency, so name the exact command rather than
+        # leaving a reader to reconstruct it. REFERENCE CHOICE IS NOT FREE: the prior
+        # 2019 and 2019n arms were scored against ccap_2021_hires_lc.tif, and using a
+        # different reference would make these rows incomparable with them. 2021 is also
+        # the nearer vintage to a 2019 flight than 2016 is, and both hires rasters cover
+        # the same Edmonds footprint (checked 2026-08-31).
+        return False, ("no live qc_indep row yet — qc_indep is a SEPARATE local step.\n"
+                       "        py -3.12 qc/phase4_qc_indep.py --year " + label +
+                       " --prob " + str(MASKS / f"edmonds_canopy_prob_{label}_{tag}.tif") +
+                       " \\\n            --ref '" + str(REF_CCAP) + "'")
     primary = [r for r in live if str(r.get("primary", "")).strip() == "1"]
     r = (primary or live)[-1]
     return True, (f"rec {r.get('recall')} prec {r.get('precision')} vs "

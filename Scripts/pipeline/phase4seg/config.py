@@ -1045,6 +1045,28 @@ EPOCH = 2
 #  choosing rates for this feature map is a science question, and phase4/qc/
 #  erf_report.md already argues the cheap win is a global-pool branch rather than
 #  large-rate taps. That argument is not settled here and is not meant to be.
+#  MEASURED 2026-08-31 on a Quadro T2000, batch of 4 at 512 px, eval mode:
+#
+#      unet           92.7M params   620.2 ms/batch
+#      deeplabv3plus  45.7M params   254.1 ms/batch     -> 2.44x FASTER
+#
+#  Kam's actual reason for wanting it ("i just wanted to implement deep lab cus i read it
+#  was faster") therefore CHECKS OUT. From the pilot ledger, the fine arm spent 68 min in
+#  inference, 34 in train and 16 in evaluate — ~118 of ~150 min in model-bound steps, so
+#  the speedup has real room to act. Tiling, labels and postproc are I/O and will not move.
+#
+#  THE COST, and it points straight at this project's named failure. DeepLabV3+'s decoder
+#  features are STRIDE 4 (smp's upsampling=4 default); U-Net's decoder is full resolution.
+#  In ground terms that is 52 cm per decoder cell at the fine tier's 13 cm effective GSD
+#  and 3.3 m at the coarse tier's 82.5 cm — wider than half a 6.46 m crown. The measured
+#  failure of this pipeline is crown PERIMETERS (41.8% of misses in 16.3% of the area) and
+#  the boundary loss landed the same week to sharpen exactly those edges. So the trade is
+#  2.44x throughput against coarser output detail on the axis that already fails.
+#
+#  UNMEASURED, and it bounds the win: whether step_inference is compute-bound or I/O-bound.
+#  The fine arm wrote a 2.26 GB raster in 68 min and the coarse arm 75 MB in 3.4 min —
+#  roughly linear in pixels, which is consistent with EITHER. Only the pilot arm will say
+#  how much of the 2.44x is realised.
 ARCH                    = "unet"          # "unet" | "deeplabv3plus"
 DEEPLAB_OUTPUT_STRIDE   = 16              # smp default; 8 doubles the feature map
 DEEPLAB_DECODER_CH      = 256             # int for DeepLabV3+, unlike U-Net's tuple

@@ -102,6 +102,32 @@ r"""
   weak and unusually well characterised, which is the combination that makes an A/B
   interpretable.
 
+  HOW SYNTHETIC TILES MUST ENTER TRAINING — AND THE LEAKAGE THAT WOULD NOT ANNOUNCE ITSELF
+  ------------------------------------------------------------------
+  core.py::step_train reads ONE index, `tile_index_{label}.csv`, and selects on its
+  `split` column. So synthetic samples enter by APPENDING ROWS to that index — no catalog
+  surgery, no new acquisition, no re-tile of the real year. Columns are
+  tile_name, site, split, row_off, col_off, canopy_frac, block, split_mode, img_path,
+  mask_path, height_path.
+
+  Three requirements, and the third is the one that would silently ruin the experiment:
+
+  1. `split` MUST be "train" for every synthetic row. A synthetic tile in val or test
+     means the model is being SCORED on imagery it was handed rather than on the year.
+  2. `site` should read "synth" so every downstream reader can separate them. The index is
+     consumed by more than step_train.
+  3. **SYNTHETIC TILES MUST COME ONLY FROM GROUND IN THE TARGET YEAR'S TRAIN BLOCKS.**
+     Measured on a real index: 36 blocks, and NO block holds more than one split — ground
+     is partitioned by block and the split follows the block. The synthetic imagery covers
+     the SAME GROUND as the real year, so a synthetic tile built over ground that sits in
+     a val or test block puts that ground into training WITH BETTER LABELS. The model then
+     scores well on held-out blocks it has effectively already seen, the A/B reports a
+     gain, and nothing anywhere raises an error.
+
+     This is the same failure the blocked split exists to prevent, arriving through a door
+     the split does not watch. Filter candidate ground by the target index's train blocks
+     BEFORE synthesising, not after.
+
   py -3.12 qc/degrade_synth.py --target 2009 --plan
   py -3.12 qc/degrade_synth.py --target 2000 --src-raster <2020s.tif>       --window COL ROW W H --out synth_2020s_as_2000.tif
 """

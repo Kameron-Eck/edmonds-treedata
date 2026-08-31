@@ -1,0 +1,32 @@
+# Makes the pipeline importable WITHOUT the 79 sys.path.insert hacks that existed across
+# 47 files in three idioms (refactor Stage 3, 2026-08-31). `pip install -e .` once, and
+# `phase4seg`, `lake`, `deps`-via-phase4seg, `pipeline_log` etc. resolve from anywhere —
+# locally, in CI, and on the Colab VM (gen_vm_bootstrap runs the install after cloning).
+#
+# DELIBERATE SHAPE, do not "modernise" it:
+#   · package-dir is Scripts/pipeline — the engine package and the shared modules live
+#     there. NO src/ layout: the repo is also driven by direct `py path/to/script.py`
+#     invocation and %run on Colab, and a src/ move would break every such path.
+#   · `pipeline` and `qc` are NOT packages. Making them packages would let the engine be
+#     imported both as `phase4seg` and as `pipeline.phase4seg` — two module instances,
+#     divergent state (config constants set on one, read on the other). The queue's
+#     run-tag plumbing would be the first casualty.
+#   · py-modules lists only the SHARED single-file modules something imports across a
+#     directory boundary. Scripts that are executed by path (orchestration, builders,
+#     instruments) are not import surface and are deliberately absent.
+#   · Installing top-level names `lake` and `pipeline_log` shadows any same-named PyPI
+#     package inside this venv. The repo runs in a dedicated venv; that is the trade.
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "edmonds-treedata"
+version = "0.1.0"
+description = "Edmonds tree-canopy pipeline — engine + shared modules (code plane only)"
+requires-python = ">=3.11"
+
+[tool.setuptools]
+package-dir = {"" = "Scripts/pipeline"}
+packages = ["phase4seg"]
+py-modules = ["lake", "pipeline_log", "registry_from_manifests", "cost_report"]

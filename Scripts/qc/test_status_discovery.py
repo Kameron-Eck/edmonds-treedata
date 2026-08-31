@@ -512,3 +512,24 @@ def test_no_new_two_path_probe_idiom():
     assert not hits, (
         "hand-rolled lake-root probes are back — import from pipeline/lake.py: "
         + ", ".join(hits))
+
+
+def test_emitted_bootstrap_imports_every_module_its_body_uses():
+    """The emitted-script gate checks the body PARSES; a used-but-unimported name is a
+    NameError on the VM that no parse can see. This nearly shipped on 2026-08-31: the
+    editable-install step used sys.executable while the emitted import line read
+    `import json, os, subprocess, time` — no sys. Static check on the generator source:
+    every MODULE.attr the body uses must appear in its own import line."""
+    import re
+    src = (SCRIPTS / "pipeline" / "gen_vm_bootstrap.py").read_text(encoding="utf-8")
+    m = re.search(r"body = f'''(.*?)'''", src, re.S)
+    assert m, "the emitted body f-string was not found"
+    body = m.group(1)
+    imp = re.match(r"import ([a-z_, ]+)", body)
+    assert imp, "the emitted body no longer starts with its import line"
+    imported = {x.strip() for x in imp.group(1).split(",")}
+    used = set(re.findall(r"\b(json|os|subprocess|sys|time|shutil|pathlib)\.", body))
+    missing = used - imported
+    assert not missing, (
+        f"the emitted bootstrap uses {sorted(missing)} without importing them — "
+        f"NameError on the VM, invisible to the parse gate")

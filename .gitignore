@@ -3,6 +3,7 @@
 !/.gitignore
 !/.gitattributes
 !/README.md
+!/pyproject.toml
 !/Scripts/
 !/Admin/
 # Admin: only the literature tracker

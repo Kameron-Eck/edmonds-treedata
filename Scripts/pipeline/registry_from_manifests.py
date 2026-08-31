@@ -267,13 +267,27 @@ def status_for(year, tag, step, run_ts, window_min=10):
     # The attempt's final word, BOUNDED to this attempt: rows from t0 until the next
     # attempt of the same step begins. Without that bound, the 01:03 tile run inherited
     # the 16:18 re-run's "OK" — five 2024 inference attempts share one (job, step) key.
+    #
+    # THE BOUND USED TO REQUIRE state == "RUNNING" ON THE NEXT ROW, and that hole let the
+    # bug back in (2026-08-31). A launch REWRITES its own status file and updates a step's
+    # row IN PLACE, RUNNING -> OK, keeping the step's START timestamp — so once the next
+    # attempt finishes, its RUNNING marker no longer exists anywhere and the bound never
+    # closes. Measured: pilotcoarse died mid-evaluate leaving only a RUNNING row; the
+    # pilotcoarse3 rerun completed in 26.2 min on an A100; and the DEAD L4 attempt's
+    # manifest absorbed it, so the registry claimed an L4 had finished a step it never
+    # started. A false outcome in an append-only ledger.
+    #
+    # Any next row of the same step opens the next attempt, whatever its state — safe
+    # because a terminal row carries its attempt's START ts, not its end ts (medium's
+    # `train OK` sits at 01:12:54 and evaluate begins 26.8 min later at 01:39:51), so an
+    # attempt's own terminal row can never be mistaken for the next attempt's start.
     t0 = _parse_status_ts(start.get("ts"))
     ordered = sorted((r for r in cands if _parse_status_ts(r.get("ts"))),
                      key=lambda r: _parse_status_ts(r["ts"]))
     t_end = None
     for r in ordered:
         t = _parse_status_ts(r["ts"])
-        if t > t0 and r.get("state") == "RUNNING":
+        if t > t0:
             t_end = t                                   # the next attempt starts here
             break
     final = start

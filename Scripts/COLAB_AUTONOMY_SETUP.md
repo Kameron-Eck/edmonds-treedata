@@ -366,7 +366,15 @@ Two things checked before concluding, both cheap and both worth repeating:
   `sessions.json` until the successful create. That matters: a created-but-unbootstrapped
   VM has no watchdog and bills until Google reclaims it.
 
-**The workaround is a different accelerator, not a longer wait.** `--gpu L4` was assigned
+**THE CAP IS 2, CONFIRMED BY KAM 2026-08-31.** Treat two concurrent A100s as the hard
+ceiling for this account and plan every campaign around it: two runtimes at a time, a
+third only on a different accelerator. Do not write launchers that retry A100 hoping a
+third slot appears — it will not, and six minutes of backoff is six minutes wasted.
+Kam has granted standing GPU permission for the remainder of the overhaul plan, and
+standing permission to run arms in parallel, so the spend gate no longer requires a
+per-queue ask; the 2-runtime ceiling is now the binding constraint instead.
+
+**A different accelerator is the way to a third arm, not a longer wait.** `--gpu L4` was assigned
 in 14 s while both A100s stayed busy, which also confirms the cap is A100-specific rather
 than a limit on GPU runtimes generally. For a coarse-tier arm that is a throughput choice
 only — same code, same data, same seed — and an L4 has already carried one

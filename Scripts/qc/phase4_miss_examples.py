@@ -88,13 +88,22 @@ OUT_DRIVE = BASE / "phase4" / "qc" / "miss_examples"
 OUT_LOCAL = Path(r"D:\edmonds-pipeline\annotate\miss_examples") if _LOCAL_IMG.exists() else OUT_DRIVE
 
 # NIR-bearing orthos usable for NDVI (label -> file, NIR band). Matches phase4_qc_forest_misses.
-NIR_CATALOG = {
-    "2016":  ("2016_snoh_rgbi.tif", 4),
-    "2019n": ("2019_naip_rgbi.tif", 4),
-    "2021s": ("2021_snoh_rgbi.tif", 4),
-    "2021":  ("2021_snoh_rgbi.tif", 4),      # alias
-    "2023n": ("2023_naip_rgbi.tif", 4),
-}
+# DERIVED from config.YEAR_CATALOG, never restated. Until 2026-08-31 this was a
+# literal dict whose four filenames had all lost their resolution token
+# ("2016_snoh_rgbi.tif" for "2016_snoh_1ft_rgbi.tif", and three more). Both names
+# exist on disk, so every .exists() passed while the stale files covered 39.6-67%
+# of the authoritative extent. Deriving fixes the instance AND the class, and picks
+# up all 10 NIR-bearing acquisitions instead of 4. See names.py::nir_years.
+import sys as _sys
+from pathlib import Path as _Path
+_sys.path.insert(0, str(_Path(__file__).resolve().parents[1] / "pipeline"))
+from phase4seg import config as _C            # noqa: E402
+from phase4seg.names import nir_years as _nir_years   # noqa: E402
+NIR_CATALOG = {k: (e["native_file"], int(e["bands"]))
+               for k, e in _nir_years(_C.YEAR_CATALOG).items()}
+# "2021" kept as an alias for 2021s, as before.
+if "2021s" in NIR_CATALOG:
+    NIR_CATALOG.setdefault("2021", NIR_CATALOG["2021s"])
 
 STRATA = ("low_ndvi", "mid_ndvi", "other_highndvi")
 

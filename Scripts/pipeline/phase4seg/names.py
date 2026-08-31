@@ -369,3 +369,35 @@ def status_files_for_stem(qc_dir, stem):
         if parsed and parsed[0] in want:
             out.append(p)
     return sorted(out)
+
+
+def nir_years(year_catalog):
+    """{label: entry} for every NIR-bearing acquisition. DERIVED, never restated.
+
+    WHY THIS EXISTS, measured 2026-08-31. Four live files each restated this catalog as a
+    literal dict, and all four had drifted to filenames that lost their resolution token:
+
+        catalog (authoritative)        restated in 4 files
+        2016_snoh_1ft_rgbi.tif    ->   2016_snoh_rgbi.tif
+        2019_naip_60cm_rgbi.tif   ->   2019_naip_rgbi.tif
+        2021_snoh_6in_rgbi.tif    ->   2021_snoh_rgbi.tif
+        2023_naip_60cm_rgbi.tif   ->   2023_naip_rgbi.tif
+
+    BOTH NAMES EXIST ON DISK, so every `.exists()` check passed and nothing ever raised.
+    The stale files are DIFFERENT PRODUCTS covering less ground — 34.49 km2 against the
+    authoritative 87.11 for 2016 and 2021s (39.6%), 53.79 against 80.31 for the NAIP years
+    (67.0%). `phase4_build_corrected_labels.py` is a LABEL PRODUCER, and
+    canopy_additions_2016.lineage.json records `imagery: ...\2016_snoh_rgbi.tif` — that
+    overlay was built from under 40% of the city. The lineage system caught it perfectly;
+    nobody read the lineage.
+
+    Nothing consumed that overlay (0 registry rows, 0 queue files, 0 run manifests), so no
+    landed result is affected — but the four dicts also held only 4 of the catalog's 10
+    NIR-bearing acquisitions, and MACHINERY_AUDIT_2026-08.md's sanctioned next action was
+    to hand-add the missing six to dicts whose existing four were wrong.
+
+    Deriving fixes the instance AND the class: this cannot drift, and it grows on its own
+    when the catalog does. Pass `config.YEAR_CATALOG` in rather than importing config here,
+    so this module stays stdlib-only and importable from both planes.
+    """
+    return {str(e["label"]): e for e in year_catalog if int(e.get("bands", 0)) >= 4}

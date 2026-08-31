@@ -67,12 +67,19 @@ _DRIVE_IMG = BASE / "Full_Image" / "Pipeline Imagery"
 CHM_NAME = "lidar_snoh_chm.tif"
 
 # same catalogue as phase4_qc_ndvi.py — all are R,G,B,NIR
-NIR_CATALOG = {
-    "2016": {"file": "2016_snoh_rgbi.tif", "nir": 4},
-    "2019n": {"file": "2019_naip_rgbi.tif", "nir": 4},
-    "2021s": {"file": "2021_snoh_rgbi.tif", "nir": 4},
-    "2023n": {"file": "2023_naip_rgbi.tif", "nir": 4},
-}
+# DERIVED from config.YEAR_CATALOG, never restated. Until 2026-08-31 this was a
+# literal dict whose four filenames had all lost their resolution token
+# ("2016_snoh_rgbi.tif" for "2016_snoh_1ft_rgbi.tif", and three more). Both names
+# exist on disk, so every .exists() passed while the stale files covered 39.6-67%
+# of the authoritative extent. Deriving fixes the instance AND the class, and picks
+# up all 10 NIR-bearing acquisitions instead of 4. See names.py::nir_years.
+import sys as _sys
+from pathlib import Path as _Path
+_sys.path.insert(0, str(_Path(__file__).resolve().parents[1] / "pipeline"))
+from phase4seg import config as _C            # noqa: E402
+from phase4seg.names import nir_years as _nir_years   # noqa: E402
+NIR_CATALOG = {k: {"file": e["native_file"], "nir": int(e["bands"])}
+               for k, e in _nir_years(_C.YEAR_CATALOG).items()}
 VEG_CUTS = [0.20, 0.25, 0.30]
 
 

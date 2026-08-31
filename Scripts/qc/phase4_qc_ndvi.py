@@ -84,12 +84,23 @@ CHM_NAME = "lidar_snoh_chm.tif"          # 3DEP HAG, U8 DN, 0.2 m/DN, 0 = nodata
 CHM_DN_PER_M = 1.0 / 0.2                  # DN = 1 + round(height_m / 0.2)
 
 # NIR-bearing years: imagery filename + 1-based NIR band index (all are R,G,B,NIR)
-NIR_CATALOG = {
-    "2016":  {"file": "2016_snoh_rgbi.tif", "nir": 4, "chm_matched": True},
-    "2019n": {"file": "2019_naip_rgbi.tif", "nir": 4, "chm_matched": False},
-    "2023n": {"file": "2023_naip_rgbi.tif", "nir": 4, "chm_matched": False},
-    "2021s": {"file": "2021_snoh_rgbi.tif", "nir": 4, "chm_matched": False},
-}
+# DERIVED from config.YEAR_CATALOG, never restated. Until 2026-08-31 this was a
+# literal dict whose four filenames had all lost their resolution token
+# ("2016_snoh_rgbi.tif" for "2016_snoh_1ft_rgbi.tif", and three more). Both names
+# exist on disk, so every .exists() passed while the stale files covered 39.6-67%
+# of the authoritative extent. Deriving fixes the instance AND the class, and picks
+# up all 10 NIR-bearing acquisitions instead of 4. See names.py::nir_years.
+import sys as _sys
+from pathlib import Path as _Path
+_sys.path.insert(0, str(_Path(__file__).resolve().parents[1] / "pipeline"))
+from phase4seg import config as _C            # noqa: E402
+from phase4seg.names import nir_years as _nir_years   # noqa: E402
+# chm_matched is NOT a catalog property — it records which years the 2016 CHM grid
+# matches, so it stays a small local overlay keyed by LABEL, never by filename.
+_CHM_MATCHED = {"2016": True}
+NIR_CATALOG = {k: {"file": e["native_file"], "nir": int(e["bands"]),
+                   "chm_matched": _CHM_MATCHED.get(k, False)}
+               for k, e in _nir_years(_C.YEAR_CATALOG).items()}
 
 
 def resolve_img(fname):

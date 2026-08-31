@@ -206,7 +206,7 @@ addressable.
 ## 7. What follows
 
 1. **Extend §2.2 and §3 to the missing nine acquisitions** — especially 2020. Both
-   instruments exist and are verified (`scratch/litwatch_scratch/q138b.py`, `cast2.py`).
+   instruments exist and are verified (`archive/2026-08-pre-refactor:Scripts/scratch/litwatch_scratch/q138b.py`, `cast2.py` — archived 2026-08-31).
 2. **Recover acquisition dates** from the four source archives. External, long lead time,
    and it unblocks §6.
 3. **Build overviews.** Cheapest performance win available.
@@ -385,7 +385,7 @@ distinction §2.2 already draws for the King years. Treat the four CoE years as 
 
 **Superseded 2026-08-23.** The per-file date *and* the four pixel-size senses (grid / true ground /
 effective / native flight) now live in **`Scripts/qc/imagery_pixelsize_and_date.csv`** (built by
-`scratch/imagery_pixelsize_date_build.py`; copied into the catalogue as sheet `Pixel_Size_And_Date`;
+`archive/2026-08-pre-refactor:Scripts/scratch/imagery_pixelsize_date_build.py` (archived 2026-08-31); copied into the catalogue as sheet `Pixel_Size_And_Date`;
 evidence under `qc/imagery_date_evidence/`). Every date there carries a fetched URL and a verbatim quote
 that was re-fetched and gate-checked; this section keeps only the headline deltas against what this
 document said before, so the two never disagree again.

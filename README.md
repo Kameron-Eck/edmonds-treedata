@@ -141,8 +141,8 @@ per its `MANIFEST.md`, no City-of-Edmonds years) serves fast local QC off the FU
 | `Scripts/honest-measurement-overhaul.md` | **SUPERSEDED 2026-08-19** by the WORKPLAN; kept for provenance only |
 | `Scripts/litwatch_robustness.md` | CLOSED literature-watch ledger (4,706 lines) |
 | `Scripts/litreview_phase4_prompt.md` | Literature-search prompt template |
-| `Scripts/scratch/litwatch_scratch/README.md` | The scratchpad's own map: 29 instruments (safe to re-run) vs 77 one-shot writers (never re-run) |
-| `Scripts/_archive/README.md` | Index of retired docs, dormant scripts, the 2026-07-08 audit — never current |
+| `archive/2026-08-pre-refactor:Scripts/scratch/litwatch_scratch/README.md` | ARCHIVED — the litwatch scratchpad (29 instruments, 77 never-re-run writers) left the working tree 2026-08-31; read via `git show` |
+| `archive/2026-08-pre-refactor:Scripts/_archive/README.md` | ARCHIVED — the retired-material index left the working tree 2026-08-31; see `Scripts/docs/ARCHIVE_INDEX.md` |
 | `Scripts/edmonds_combined_workplan.xlsx` | The canonical schedule / Gantt / grant milestones (distinct from the WORKPLAN `.md`) |
 | `Scripts/pipeline_architecture.html` | Self-contained architecture diagram — double-click to open, no network |
 | `Scripts/qc/phase4_accuracy_review.html` | Photo-interpretation review UI for `phase4_accuracy_sample.py --step serve` |

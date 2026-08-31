@@ -53,6 +53,10 @@ import rasterio
 from rasterio.transform import from_origin
 from rasterio.warp import Resampling, reproject
 from scipy import ndimage
+import sys as _sys_for_names
+from pathlib import Path as _P_for_names
+_sys_for_names.path.insert(0, str(_P_for_names(__file__).resolve().parents[1] / "pipeline"))
+from phase4seg.names import clean_argv  # noqa: E402
 
 HERE = Path(__file__).resolve().parent
 
@@ -88,8 +92,7 @@ def main():
     ap.add_argument("--epsg", type=int, default=EPSG_2005)
     ap.add_argument("--rebuild", action="store_true", help="ignore the point-pass cache")
     ap.add_argument("--no-lake", action="store_true")
-    a = ap.parse_args([x for x in sys.argv[1:]
-                       if not (x == "-f" or x.endswith(".json"))])
+    a = ap.parse_args(clean_argv())
 
     step_ratio = a.ground_cell / a.cell
     if abs(step_ratio - round(step_ratio)) > 1e-9:

@@ -72,6 +72,7 @@
 ╚══════════════════════════════════════════════════════════════════════════╝
 """
 
+from phase4seg.names import clean_argv
 import argparse
 import datetime as _dt
 import shutil
@@ -428,7 +429,7 @@ def main():
         if a.startswith("#"):
             argv = argv[:i]
             break
-    filtered = [a for a in argv if not (a == "-f" or a.endswith(".json"))]
+    filtered = clean_argv(argv)
     ap = argparse.ArgumentParser(
         description="P1 Colab driver — citywide 2022 + 2017 inference, GPU-mindful.")
     ap.add_argument("--stage", default="0",

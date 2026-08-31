@@ -54,6 +54,7 @@
 ╚══════════════════════════════════════════════════════════════════╝
 """
 
+from phase4seg.names import clean_argv
 import argparse
 import gc
 import multiprocessing
@@ -2820,8 +2821,7 @@ EXTRA_STEPS = ["spatialcheck", "loso"]
 
 
 def main():
-    filtered = [a for a in sys.argv[1:]
-                if not (a == "-f" or a.endswith(".json"))]
+    filtered = clean_argv()
 
     parser = argparse.ArgumentParser(
         description="Phase 3 — Semantic Segmentation Development (2020)")

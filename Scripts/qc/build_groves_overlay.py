@@ -64,6 +64,10 @@ import rasterio
 import rasterio.warp
 from rasterio.enums import Resampling
 from rasterio.features import rasterize
+import sys as _sys_for_names
+from pathlib import Path as _P_for_names
+_sys_for_names.path.insert(0, str(_P_for_names(__file__).resolve().parents[1] / "pipeline"))
+from phase4seg.names import clean_argv  # noqa: E402
 
 BASE = Path(r"G:\My Drive\treedata")
 LOCAL_OUT = Path(r"D:\edmonds-pipeline\_tmp")
@@ -194,7 +198,7 @@ def main():
                     help="drop open water from the negatives — it is verified but trivial, "
                          "and it outnumbers the HARD negatives ~200:1, diluting the signal")
     ap.add_argument("--out", default=None)
-    a = ap.parse_args([x for x in sys.argv[1:] if not (x == "-f" or x.endswith(".json"))])
+    a = ap.parse_args(clean_argv())
 
     yr = int("".join(c for c in a.year if c.isdigit())[:4])
     if a.hybrid:

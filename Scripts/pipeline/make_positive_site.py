@@ -37,6 +37,7 @@
 ╚══════════════════════════════════════════════════════════════════╝
 """
 
+from phase4seg.names import clean_argv
 import argparse
 import importlib
 import shutil
@@ -228,7 +229,7 @@ def commit(name):
 
 
 def main():
-    filtered = [a for a in sys.argv[1:] if not (a == "-f" or a.endswith(".json"))]
+    filtered = clean_argv()
     ap = argparse.ArgumentParser(description="Stage a positive canopy training site.")
     ap.add_argument("--name", default="Positive_Marsh")
     ap.add_argument("--lon", type=float, default=-122.3837)

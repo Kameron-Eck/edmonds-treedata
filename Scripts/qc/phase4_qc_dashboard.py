@@ -52,6 +52,10 @@ from pathlib import Path
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt                                # noqa: E402
+import sys as _sys_for_names
+from pathlib import Path as _P_for_names
+_sys_for_names.path.insert(0, str(_P_for_names(__file__).resolve().parents[1] / "pipeline"))
+from phase4seg.names import clean_argv  # noqa: E402
 
 _COLAB_BASE = Path("/content/drive/MyDrive/treedata")
 _LOCAL_BASE = Path(r"G:\My Drive\treedata")
@@ -251,7 +255,7 @@ def build(live, agree, out):
 
 
 def main():
-    argv = [a for a in sys.argv[1:] if not (a == "-f" or a.endswith(".json"))]
+    argv = clean_argv()
     ap = argparse.ArgumentParser(description="One-page honest-accuracy dashboard.")
     ap.add_argument("--out", default=str(QC_DIR / "accuracy_dashboard.png"))
     args = ap.parse_args(argv)

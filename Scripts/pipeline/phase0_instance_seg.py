@@ -49,6 +49,7 @@
 ╚══════════════════════════════════════════════════════════════════╝
 """
 
+from phase4seg.names import clean_argv
 import argparse
 import gc
 import multiprocessing
@@ -1938,8 +1939,7 @@ STEPS = [
 
 
 def main():
-    filtered = [a for a in sys.argv[1:]
-                if not (a == "-f" or a.endswith(".json"))]
+    filtered = clean_argv()
 
     parser = argparse.ArgumentParser(
         description="Phase 0 — 2020 anchored instance segmentation")

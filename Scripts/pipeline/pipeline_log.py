@@ -61,6 +61,7 @@ WHICH CODE PRODUCED THIS LOG
     Resolution never raises: any failure degrades to "unknown" and the step runs on.
 """
 
+from phase4seg.names import clean_argv
 import datetime
 import hashlib
 import io
@@ -174,7 +175,7 @@ def _command_line() -> str:
     """argv as run, with Colab's injected `-f <kernel>.json` pair removed."""
     try:
         argv = list(sys.argv[1:])
-        kept = [a for a in argv if not (a == "-f" or a.endswith(".json"))]
+        kept = clean_argv(argv)
         return " ".join(kept)
     except Exception:  # noqa: BLE001
         return ""

@@ -94,7 +94,7 @@ import sys as _sys
 from pathlib import Path as _Path
 _sys.path.insert(0, str(_Path(__file__).resolve().parents[1] / "pipeline"))
 from phase4seg import config as _C            # noqa: E402
-from phase4seg.names import nir_years as _nir_years   # noqa: E402
+from phase4seg.names import clean_argv, nir_years as _nir_years   # noqa: E402
 # chm_matched is NOT a catalog property — it records which years the 2016 CHM grid
 # matches, so it stays a small local overlay keyed by LABEL, never by filename.
 _CHM_MATCHED = {"2016": True}
@@ -288,8 +288,7 @@ def write_step_log(year, out_tif, tot, args):
 
 
 def main():
-    filtered = [a for a in sys.argv[1:]
-                if not (a == "-f" or a.endswith(".json"))]
+    filtered = clean_argv()
     ap = argparse.ArgumentParser(description="Build an independent NDVI canopy reference.")
     ap.add_argument("--year", default="2016", choices=sorted(NIR_CATALOG),
                     help="NIR-bearing year to build a reference for.")

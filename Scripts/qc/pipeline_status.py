@@ -20,7 +20,7 @@ from pathlib import Path
 HERE = Path(__file__).resolve().parent
 REPO_SCRIPTS = HERE.parent
 sys.path.insert(0, str(REPO_SCRIPTS / "pipeline"))
-from phase4seg.names import status_files
+from phase4seg.names import clean_argv, status_files
 
 _COLAB_BASE = Path("/content/drive/MyDrive/treedata")
 _LOCAL_BASE = Path(r"G:\My Drive\treedata")
@@ -292,8 +292,7 @@ def main():
                     help="write STATUS.md (default: Scripts/STATUS.md). The code-derived "
                          "block is regenerated and gated in CI; the lake block carries its "
                          "own timestamp because CI cannot see Drive.")
-    args = ap.parse_args([a for a in sys.argv[1:]
-                          if not (a == "-f" or a.endswith(".json"))])
+    args = ap.parse_args(clean_argv())
 
     dag = _read_dag()
     bad = validate_dag(dag)

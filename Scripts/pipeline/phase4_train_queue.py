@@ -94,6 +94,7 @@ import time
 from pathlib import Path
 
 from phase4seg.names import (
+    clean_argv,
     VERIFY_HARD_FAIL, job_key, pid_alive, sanitize_tag, status_files,
     status_out_name, tile_dir_name,
 )
@@ -1432,17 +1433,10 @@ def main():
     # Colab injects `-f /root/.local/.../kernel-XXX.json` into argv; strip THE PAIR,
     # not every .json-suffixed value — the old any-.json filter silently ate the
     # --infer-aoi value (aoi/sectors_v1.json), found 2026-08-25 on the first VM dry-run.
-    filtered, _skip = [], False
-    for a in argv:
-        if _skip:
-            _skip = False
-            continue
-        if a == "-f":
-            _skip = True
-            continue
-        if a.endswith(".json") and (not filtered or not filtered[-1].startswith("--")):
-            continue          # a bare kernel-json with no owning flag (belt and braces)
-        filtered.append(a)
+    # Colab -f/.json injection: the ONE pair filter (names.clean_argv). The
+    # hand-rolled version here carried a "bare .json with no owning flag" clause
+    # that ATE the equals form (--aoi=x.json fell back to default, silently).
+    filtered = clean_argv()
 
 
     ap = argparse.ArgumentParser(description="Unattended Phase-4 training queue.")

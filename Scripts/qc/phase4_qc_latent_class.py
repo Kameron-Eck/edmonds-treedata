@@ -78,6 +78,10 @@ import numpy as np
 import rasterio
 from rasterio.vrt import WarpedVRT
 from rasterio.enums import Resampling
+import sys as _sys_for_names
+from pathlib import Path as _P_for_names
+_sys_for_names.path.insert(0, str(_P_for_names(__file__).resolve().parents[1] / "pipeline"))
+from phase4seg.names import clean_argv  # noqa: E402
 from rasterio.transform import Affine
 
 _COLAB_BASE = Path("/content/drive/MyDrive/treedata")
@@ -465,7 +469,7 @@ def report(D, point, boot, label):
 
 
 def main():
-    argv = [a for a in sys.argv[1:] if not (a == "-f" or a.endswith(".json"))]
+    argv = clean_argv()
     ap = argparse.ArgumentParser(
         description="Latent-class sensitivity/specificity for C-CAP, the NDVI reference "
                     "and the model, with no gold standard (Foody 2022).")

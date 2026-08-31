@@ -14,6 +14,7 @@ Usage (local Windows, from anywhere):
 
 Session-end contract (rule 9d): run this before the end-of-session commit.
 """
+from phase4seg.names import clean_argv
 import argparse
 import hashlib
 import shutil
@@ -48,8 +49,7 @@ def main():
     ap.add_argument("--on-main", action="store_true",
                     help="P11.5: commits normally land on a work branch; pass this only "
                          "when Kam has said the harvest may go straight onto main.")
-    args = ap.parse_args([a for a in sys.argv[1:]
-                          if not (a == "-f" or a.endswith(".json"))])
+    args = ap.parse_args(clean_argv())
 
     if not (REPO / ".git").exists():
         sys.exit(f"not a git repo: {REPO} (this script must live in the repo)")

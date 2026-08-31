@@ -77,7 +77,7 @@ import sys as _sys
 from pathlib import Path as _Path
 _sys.path.insert(0, str(_Path(__file__).resolve().parents[1] / "pipeline"))
 from phase4seg import config as _C            # noqa: E402
-from phase4seg.names import nir_years as _nir_years   # noqa: E402
+from phase4seg.names import clean_argv, nir_years as _nir_years   # noqa: E402
 NIR_CATALOG = {k: {"file": e["native_file"], "nir": int(e["bands"])}
                for k, e in _nir_years(_C.YEAR_CATALOG).items()}
 VEG_CUTS = [0.20, 0.25, 0.30]
@@ -221,7 +221,7 @@ def report(R):
 
 
 def main():
-    argv = [a for a in sys.argv[1:] if not (a == "-f" or a.endswith(".json"))]
+    argv = clean_argv()
     ap = argparse.ArgumentParser(
         description="Bound how much canopy the missing-lidar zone could be hiding.")
     ap.add_argument("--year", default="2016", choices=sorted(NIR_CATALOG))

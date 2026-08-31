@@ -72,6 +72,10 @@ import re
 import sys
 import warnings
 from pathlib import Path
+import sys as _sys_for_names
+from pathlib import Path as _P_for_names
+_sys_for_names.path.insert(0, str(_P_for_names(__file__).resolve().parents[1] / "pipeline"))
+from phase4seg.names import clean_argv  # noqa: E402
 
 # rasterio's boundless read reshapes its output buffer in place; NumPy 2.5
 # deprecates that. It is rasterio's line, not ours, and it fires once per block.
@@ -204,7 +208,7 @@ def main():
     ap.add_argument("--min-valid", type=float, default=0.50,
                     help="minimum prob-valid fraction of labelled ground to score")
     ap.add_argument("--site", default="", help="score only sites containing this text")
-    a = ap.parse_args([x for x in sys.argv[1:] if not (x == "-f" or x.endswith(".json"))])
+    a = ap.parse_args(clean_argv())
 
     import geopandas as gpd
     from rasterio.warp import transform_geom

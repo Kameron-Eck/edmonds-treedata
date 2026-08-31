@@ -60,6 +60,7 @@
 ╚══════════════════════════════════════════════════════════════════╝
 """
 
+from phase4seg.names import clean_argv
 import argparse
 import csv
 import datetime
@@ -912,7 +913,7 @@ def main():
     LOGS_DIR = BASE / "phase4" / "logs"
     SCRIPT_NAME = "phase4_label_review"
 
-    filtered = [a for a in sys.argv[1:] if not (a == "-f" or a.endswith(".json"))]
+    filtered = clean_argv()
     p = argparse.ArgumentParser(description="Phase 4 temporal-anchor crown reviewer")
     p.add_argument("--step", choices=["prep", "serve", "compile"], required=True)
     p.add_argument("--year", type=int, default=YEAR)

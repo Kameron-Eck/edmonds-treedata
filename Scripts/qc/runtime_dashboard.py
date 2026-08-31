@@ -57,7 +57,7 @@ from pathlib import Path as _P
 # row key, with none of the engine's imports — this dashboard runs locally and
 # must start even when the engine environment is unusable.
 sys.path.insert(0, str(_P(__file__).resolve().parents[1] / "pipeline"))
-from phase4seg.names import is_status_file, job_key, status_files_for_stem
+from phase4seg.names import clean_argv, is_status_file, job_key, status_files_for_stem
 import webbrowser
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -1049,7 +1049,7 @@ def main():
     ap.add_argument("--no-exec", action="store_true", help="never call colab exec (G:-only view)")
     ap.add_argument("--once", action="store_true", help="print one JSON snapshot and exit")
     ap.add_argument("--open", action="store_true", help="open the page in the default browser")
-    args = ap.parse_args([a for a in sys.argv[1:] if not (a == "-f" or a.endswith(".json"))])
+    args = ap.parse_args(clean_argv())
     sessions = [s.strip() for s in args.sessions.split(",") if s.strip()] if args.sessions else []
     args.exec_interval = max(5, args.exec_interval)
     args.local_interval = max(2, min(args.local_interval, args.exec_interval))

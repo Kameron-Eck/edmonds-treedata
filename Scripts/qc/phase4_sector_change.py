@@ -73,6 +73,10 @@ import sys
 from pathlib import Path
 
 import numpy as np
+import sys as _sys_for_names
+from pathlib import Path as _P_for_names
+_sys_for_names.path.insert(0, str(_P_for_names(__file__).resolve().parents[1] / "pipeline"))
+from phase4seg.names import clean_argv  # noqa: E402
 
 SCRIPTS = Path(__file__).resolve().parents[1]
 
@@ -177,7 +181,7 @@ def main():
                     help="strip land-area weights: recovered from the series CSV "
                          "(default, pure post-processing) or recomputed from polygons")
     ap.add_argument("--series", default=str(SERIES))
-    a = ap.parse_args([x for x in sys.argv[1:] if not (x == "-f" or x.endswith(".json"))])
+    a = ap.parse_args(clean_argv())
 
     if a.arm.strip().lower() in ("is_champion", "champion", "champions", "1"):
         print("REFUSED: is_champion selects a different inference arm per year by "

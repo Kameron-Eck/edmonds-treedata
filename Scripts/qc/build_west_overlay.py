@@ -40,6 +40,10 @@ import numpy as np
 import rasterio
 from rasterio.enums import Resampling
 from rasterio.vrt import WarpedVRT
+import sys as _sys_for_names
+from pathlib import Path as _P_for_names
+_sys_for_names.path.insert(0, str(_P_for_names(__file__).resolve().parents[1] / "pipeline"))
+from phase4seg.names import clean_argv  # noqa: E402
 
 SRC_OVERLAY = Path(r"G:/My Drive/treedata/phase4/labels_corrected/add_nodec_2009.tif")
 GRID = Path(r"G:/My Drive/treedata/phase4/masks/edmonds_canopy_prob_2009_nodec_v1.tif")
@@ -54,8 +58,7 @@ def main():
     ap.add_argument("--grid", default=str(GRID))
     ap.add_argument("--out", default=None, help="local staging path (default: alongside cwd)")
     ap.add_argument("--block-rows", type=int, default=4096)
-    args = ap.parse_args([a for a in sys.argv[1:]
-                          if not (a == "-f" or a.endswith(".json"))])
+    args = ap.parse_args(clean_argv())
 
     src_p, grid_p = Path(args.src), Path(args.grid)
     for p in (src_p, grid_p):

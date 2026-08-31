@@ -1,4 +1,8 @@
 r"""
+import sys as _sys_for_names
+from pathlib import Path as _P_for_names
+_sys_for_names.path.insert(0, str(_P_for_names(__file__).resolve().parents[1] / "pipeline"))
+from phase4seg.names import clean_argv  # noqa: E402
 ╔══════════════════════════════════════════════════════════════════╗
   THE CHEAP PRIOR — score the HEIGHT RASTERS THEMSELVES as standalone
   canopy classifiers, against C-CAP, with a stated power.
@@ -342,8 +346,7 @@ def main():
     ap.add_argument("--seed", type=int, default=0)
     ap.add_argument("--tag", default="chm")
     ap.add_argument("--out-dir", default=r"D:\edmonds-pipeline\treedata\phase4\qc")
-    args = ap.parse_args([a for a in sys.argv[1:]
-                          if not (a == "-f" or a.endswith(".json"))])
+    args = ap.parse_args(clean_argv())
 
     if args.strip_rows % args.block_rows:
         raise SystemExit("--strip-rows must be a multiple of --block-rows so that "

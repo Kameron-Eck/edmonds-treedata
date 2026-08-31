@@ -98,7 +98,7 @@ import sys as _sys
 from pathlib import Path as _Path
 _sys.path.insert(0, str(_Path(__file__).resolve().parents[1] / "pipeline"))
 from phase4seg import config as _C            # noqa: E402
-from phase4seg.names import nir_years as _nir_years   # noqa: E402
+from phase4seg.names import clean_argv, nir_years as _nir_years   # noqa: E402
 NIR_CATALOG = {k: (e["native_file"], int(e["bands"]))
                for k, e in _nir_years(_C.YEAR_CATALOG).items()}
 # "2021" kept as an alias for 2021s, as before.
@@ -187,7 +187,7 @@ def read_window(ds, x, y, half_m, bands):
 
 
 def main():
-    filtered = [a for a in sys.argv[1:] if not (a == "-f" or a.endswith(".json"))]
+    filtered = clean_argv()
     ap = argparse.ArgumentParser(description="Extract visual examples of missed trees.")
     ap.add_argument("--n", type=int, default=20, help="examples per stratum")
     ap.add_argument("--chm-min-m", type=float, default=5.0, help="min tree height (m)")

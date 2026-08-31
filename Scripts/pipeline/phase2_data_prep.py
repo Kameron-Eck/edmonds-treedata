@@ -25,6 +25,7 @@ USAGE
   %run phase2_data_prep.py --dry-run
 """
 
+from phase4seg.names import clean_argv
 import argparse, sys, warnings
 from pathlib import Path
 import numpy as np, pandas as pd, geopandas as gpd
@@ -278,7 +279,7 @@ def main():
     parser.add_argument("--year", type=str)
     parser.add_argument("--site", type=int)
     parser.add_argument("--dry-run", action="store_true")
-    filtered = [a for a in sys.argv[1:] if not (a=="-f" or a.endswith(".json"))]
+    filtered = clean_argv()
     args = parser.parse_args(filtered)
     from pipeline_log import StepLogger
     LOGS_DIR = BASE / "phase4" / "logs"

@@ -29,6 +29,10 @@ import rasterio
 import rasterio.warp
 import geopandas as gpd
 from shapely.geometry import Point
+import sys as _sys_for_names
+from pathlib import Path as _P_for_names
+_sys_for_names.path.insert(0, str(_P_for_names(__file__).resolve().parents[1] / "pipeline"))
+from phase4seg.names import clean_argv  # noqa: E402
 
 MIRROR = Path(r"D:/edmonds-pipeline/Imagery")
 CCAP = MIRROR / "ccap_2016_hires_lc.tif"
@@ -50,7 +54,7 @@ ap.add_argument("--ndvi-window", type=int, default=3,
 ap.add_argument("--out", default="sample_ccap.gpkg", help="manifest path (.gpkg; .csv also written)")
 ap.add_argument("--seed", type=int, default=42)
 # Colab %run injects `-f <json>` — filter it (Rule 4) in case this is ever run there.
-filtered = [a for a in sys.argv[1:] if not (a == "-f" or a.endswith(".json"))]
+filtered = clean_argv()
 args = ap.parse_args(filtered)
 
 for p in (CCAP, NIR_IMG):

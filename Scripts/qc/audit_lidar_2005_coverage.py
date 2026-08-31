@@ -40,6 +40,10 @@ from pathlib import Path
 
 import laspy
 import numpy as np
+import sys as _sys_for_names
+from pathlib import Path as _P_for_names
+_sys_for_names.path.insert(0, str(_P_for_names(__file__).resolve().parents[1] / "pipeline"))
+from phase4seg.names import clean_argv  # noqa: E402
 
 SRC_2005 = Path(r"D:\edmonds-pipeline\Imagery\PSLC_2005")
 SRC_2016 = Path(r"D:\edmonds-pipeline\Imagery\USGS_2016")
@@ -148,8 +152,7 @@ def main():
     ap.add_argument("--skip-pass", action="store_true",
                     help="Q1 only; skip the point pass")
     ap.add_argument("--out-name", default="lidar_2005_coverage_audit.md")
-    a = ap.parse_args([x for x in sys.argv[1:]
-                       if not (x == "-f" or x.endswith(".json"))])
+    a = ap.parse_args(clean_argv())
 
     L = ["# 2005 lidar — coverage and cell-size gate (S3.1)", ""]
 

@@ -71,6 +71,10 @@ sys.path.insert(0, str(SCRIPTS / "qc"))
 from phase4seg import config as C          # noqa: E402
 import imagery_measure as im               # noqa: E402
 import phase4_catalog_check as CK          # noqa: E402
+import sys as _sys_for_names
+from pathlib import Path as _P_for_names
+_sys_for_names.path.insert(0, str(_P_for_names(__file__).resolve().parents[1] / "pipeline"))
+from phase4seg.names import clean_argv  # noqa: E402
 
 TODAY = dt.date.today().isoformat()
 SAT_HI, SAT_LO = 254, 1                    # DN treated as clipped high / low
@@ -660,7 +664,7 @@ CHECKS = {"integrity": qc_integrity, "radiometry": qc_radiometry, "ndvi": qc_ndv
 
 
 def main():
-    argv = [a for a in sys.argv[1:] if not (a == "-f" or a.endswith(".json"))]
+    argv = clean_argv()
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("check", choices=list(CHECKS) + ["all"])
     ap.add_argument("--workers", type=int, default=4)

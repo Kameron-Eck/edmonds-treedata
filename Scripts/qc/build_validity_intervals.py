@@ -76,6 +76,10 @@ import sys
 from pathlib import Path
 
 import numpy as np
+import sys as _sys_for_names
+from pathlib import Path as _P_for_names
+_sys_for_names.path.insert(0, str(_P_for_names(__file__).resolve().parents[1] / "pipeline"))
+from phase4seg.names import clean_argv  # noqa: E402
 
 DATA = Path(r"G:\My Drive\treedata")
 CAMP = DATA / "phase4" / "qc" / "sector_campaign"
@@ -186,7 +190,7 @@ def main():
     ap.add_argument("--out", default=str(OUT_CSV))
     ap.add_argument("--gpkg", action="store_true",
                     help="also write crown_validity_intervals.gpkg beside --out")
-    a = ap.parse_args([x for x in sys.argv[1:] if not (x == "-f" or x.endswith(".json"))])
+    a = ap.parse_args(clean_argv())
 
     import pandas as pd
 

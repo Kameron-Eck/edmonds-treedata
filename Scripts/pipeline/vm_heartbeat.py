@@ -44,6 +44,7 @@ Local validation without a VM (documented override; proves the JSON shape):
 On Windows `ps`/`nvidia-smi`/the mount are absent or empty — every affected field
 degrades to null rather than raising.
 """
+from phase4seg.names import clean_argv
 import argparse
 import json
 import os
@@ -479,8 +480,7 @@ def main():
                     help="the queue's run-tag declaration (override for local tests)")
     ap.add_argument("--breadcrumb", default=BREADCRUMB,
                     help="LOCAL dir for the final mount_ok=false heartbeat")
-    a = ap.parse_args([x for x in sys.argv[1:]
-                       if not (x == "-f" or x.endswith(".json"))])   # Colab %run injection
+    a = ap.parse_args(clean_argv())   # Colab %run injection
 
     name = f"heartbeat_{a.session}.json"
     out = os.path.join(a.base, "phase4", "logs", name)

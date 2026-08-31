@@ -33,6 +33,10 @@ import time
 
 from colab_cli.common import state
 from colab_cli.state import SessionState
+import sys as _sys_for_names
+from pathlib import Path as _P_for_names
+_sys_for_names.path.insert(0, str(_P_for_names(__file__).resolve().parents[1] / "pipeline"))
+from phase4seg.names import clean_argv  # noqa: E402
 
 TOKEN_TTL_MARGIN_S = 25 * 60      # refresh when under this much life remains
 
@@ -115,7 +119,7 @@ def main():
                     help="re-adopt orphans, refresh tokens nearing their 1 h expiry, respawn dead "
                          "keep-alive daemons (safe to run on a schedule; changes nothing when healthy)")
     ap.add_argument("--dry-run", action="store_true", help="show what would be written, write nothing")
-    a = ap.parse_args([x for x in sys.argv[1:] if not (x == "-f" or x.endswith(".json"))])
+    a = ap.parse_args(clean_argv())
 
     assignments = state.client.list_assignments()
     known = {s.endpoint: n for n, s in (state.store.list() or {}).items()}

@@ -59,7 +59,7 @@ import json
 import sys
 from pathlib import Path
 
-from phase4seg.names import status_files
+from phase4seg.names import clean_argv, status_files
 
 _COLAB_BASE = Path("/content/drive/MyDrive/treedata")
 _LOCAL_BASE = Path(r"G:\My Drive\treedata")
@@ -448,7 +448,7 @@ def main():
                     help="ONE-TIME (2026-08-25): rewrite the registry with gpu_name and "
                          "step_minutes added after `step`, padding existing rows. Refuses "
                          "to run twice. The only path that rewrites existing rows.")
-    a = ap.parse_args([x for x in sys.argv[1:] if not (x == "-f" or x.endswith(".json"))])
+    a = ap.parse_args(clean_argv())
 
     if a.migrate_columns:
         return migrate_columns(Path(a.registry))

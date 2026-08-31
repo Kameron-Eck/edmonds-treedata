@@ -103,7 +103,7 @@ CHM_DN_PER_M = 1.0 / 0.2
 # of the authoritative extent. Deriving fixes the instance AND the class, and picks
 # up all 10 NIR-bearing acquisitions instead of 4. See names.py::nir_years.
 from phase4seg import config as _C
-from phase4seg.names import nir_years as _nir_years
+from phase4seg.names import clean_argv, nir_years as _nir_years
 
 NIR_CATALOG = {k: {"file": e["native_file"], "nir": int(e["bands"])}
                for k, e in _nir_years(_C.YEAR_CATALOG).items()}
@@ -381,7 +381,7 @@ def write_step_log(year, out_tif, tot, args):
 
 
 def main():
-    filtered = [a for a in sys.argv[1:] if not (a == "-f" or a.endswith(".json"))]
+    filtered = clean_argv()
     ap = argparse.ArgumentParser(
         description="Build an ADD-ONLY corrected-label raster from NIR+CHM.")
     ap.add_argument("--year", default="2016", choices=sorted(NIR_CATALOG))

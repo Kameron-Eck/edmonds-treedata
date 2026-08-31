@@ -401,3 +401,39 @@ def nir_years(year_catalog):
     so this module stays stdlib-only and importable from both planes.
     """
     return {str(e["label"]): e for e in year_catalog if int(e.get("bands", 0)) >= 4}
+
+
+def clean_argv(argv=None):
+    """sys.argv[1:] with Colab's injected `-f <kernel>.json` removed — THE one filter.
+
+    Jupyter/Colab launches kernels with `-f /path/kernel-xxxx.json` appended, so every
+    script that argparses under `%run` must strip it. Three implementations existed and
+    two were wrong in ways only a real Colab exec ever exercises:
+
+      the 100-file one-liner    [a for a in argv if not (a == "-f" or a.endswith(".json"))]
+                                drops ANY .json value: `--aoi sectors_v1.json` loses its
+                                value and argparse dies loudly ("expected one argument")…
+                                but `--aoi=sectors_v1.json` is dropped WHOLE and the flag
+                                silently falls back to its default. No error, wrong AOI.
+      cli.py's pair filter +    the extra "bare .json with no owning flag" clause ate the
+      positional guard          equals form the same way. Guards a case never observed.
+      runtime_health's          the PAIR filter: drop `-f` and drop a .json token only
+      pair filter (this one)    when the PREVIOUS token was `-f`. Correct on all four
+                                measured cases: space form, equals form, bare kernel
+                                json, and no injection at all.
+
+    Deliberately does NOT try to detect kernel jsons positionally — `-f` pairing is the
+    contract Colab actually uses, and every cleverer guess broke a legitimate argument.
+    """
+    import sys as _sys
+
+    if argv is None:
+        argv = _sys.argv[1:]
+    keep, prev = [], ""
+    for a in argv:
+        if a == "-f" or (prev == "-f" and a.endswith(".json")):
+            prev = a
+            continue
+        keep.append(a)
+        prev = a
+    return keep

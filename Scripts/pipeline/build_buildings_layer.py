@@ -94,6 +94,7 @@ v001
 
 from __future__ import annotations
 
+from phase4seg.names import clean_argv
 import argparse
 import json
 import sys
@@ -788,6 +789,5 @@ def main(argv=None):
 
 if __name__ == "__main__":
     # Colab injects `-f <json>`; strip it (CLAUDE.md rule 4).
-    filtered = [a for a in sys.argv[1:]
-                if not (a == "-f" or a.endswith(".json"))]
+    filtered = clean_argv()
     sys.exit(main(filtered))

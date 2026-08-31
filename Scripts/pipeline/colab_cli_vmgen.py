@@ -35,6 +35,7 @@ Crash recovery on a LIVE VM never needs a new drivemount: push the fix branch,
 re-generate with --branch fix/..., re-run vm_bootstrap (it fetches + checkouts),
 re-run vm_launch. Only a dead VM needs `colab new` + Kam's drivemount again.
 """
+from phase4seg.names import clean_argv
 import argparse
 import pathlib
 import subprocess
@@ -146,7 +147,7 @@ def main():
     ap.add_argument("--probe", default="2016_snoh", help="qc mode: --only filter for the bootstrap smoke")
     ap.add_argument("--workers", type=int, default=4, help="qc mode: suite --workers")
     ap.add_argument("--outdir", required=True, help="LOCAL dir (session scratchpad) — never the repo or Drive")
-    a = ap.parse_args([x for x in sys.argv[1:] if not (x == "-f" or x.endswith(".json"))])
+    a = ap.parse_args(clean_argv())
     if a.mode == "train" and not a.queue:
         sys.exit("--queue is required in train mode")
     out = pathlib.Path(a.outdir)

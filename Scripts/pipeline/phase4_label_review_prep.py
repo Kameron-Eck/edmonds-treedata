@@ -31,6 +31,7 @@
 ╚══════════════════════════════════════════════════════════════════╝
 """
 
+from phase4seg.names import clean_argv
 import argparse
 import importlib
 import subprocess
@@ -339,7 +340,7 @@ def render_preview(crop_image, crowns_gdf, site_name, original_bounds,
 
 # ── Main ──────────────────────────────────────────────────────────────────────
 def main():
-    filtered = [a for a in sys.argv[1:] if not (a == "-f" or a.endswith(".json"))]
+    filtered = clean_argv()
     p = argparse.ArgumentParser(
         description="Phase 4 — Extract expanded 2000 training regions for review")
     p.add_argument("--buffer", type=float, default=200.0,

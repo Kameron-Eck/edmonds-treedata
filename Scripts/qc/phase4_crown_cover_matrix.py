@@ -18,6 +18,10 @@ import sys
 from pathlib import Path
 
 import numpy as np
+import sys as _sys_for_names
+from pathlib import Path as _P_for_names
+_sys_for_names.path.insert(0, str(_P_for_names(__file__).resolve().parents[1] / "pipeline"))
+from phase4seg.names import clean_argv  # noqa: E402
 
 SCRIPTS = Path(__file__).resolve().parents[1]
 DATA = Path(r"G:\My Drive\treedata")
@@ -30,7 +34,7 @@ MIN_CELLS = 30
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--aoi", default="pipeline/aoi/sectors_v1.json")
-    a = ap.parse_args([x for x in sys.argv[1:] if not (x == "-f" or x.endswith(".json"))])
+    a = ap.parse_args(clean_argv())
 
     import geopandas as gpd
     import pandas as pd

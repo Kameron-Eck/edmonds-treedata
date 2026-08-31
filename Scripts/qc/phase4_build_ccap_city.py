@@ -43,6 +43,10 @@ import numpy as np
 import rasterio
 from rasterio.windows import from_bounds
 from rasterio.features import geometry_mask
+import sys as _sys_for_names
+from pathlib import Path as _P_for_names
+_sys_for_names.path.insert(0, str(_P_for_names(__file__).resolve().parents[1] / "pipeline"))
+from phase4seg.names import clean_argv  # noqa: E402
 
 _COLAB_BASE = Path("/content/drive/MyDrive/treedata")
 _LOCAL_BASE = Path(r"G:\My Drive\treedata")
@@ -57,7 +61,7 @@ OLD_CLIP_NORTH_UTM = 5297858.0        # northern edge of ccap_*_hires_lc, UTM 10
 
 
 def main():
-    argv = [a for a in sys.argv[1:] if not (a == "-f" or a.endswith(".json"))]
+    argv = clean_argv()
     ap = argparse.ArgumentParser(description="Clip county-wide C-CAP to the Edmonds boundary.")
     ap.add_argument("--src", default="ccap_2016_hires_lc_snohfull.tif")
     ap.add_argument("--label", default="2016")

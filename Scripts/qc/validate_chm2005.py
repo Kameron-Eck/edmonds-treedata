@@ -36,6 +36,10 @@ from pathlib import Path
 
 import numpy as np
 import rasterio
+import sys as _sys_for_names
+from pathlib import Path as _P_for_names
+_sys_for_names.path.insert(0, str(_P_for_names(__file__).resolve().parents[1] / "pipeline"))
+from phase4seg.names import clean_argv  # noqa: E402
 
 HERE = Path(__file__).resolve().parent
 LOCAL = Path(r"D:\edmonds-pipeline\Imagery")
@@ -66,8 +70,7 @@ def main():
     ap.add_argument("--flat-m", type=float, default=2.0,
                     help="a product 'asserts vegetation' above this height")
     ap.add_argument("--out-name", default="chm2005_validation.md")
-    a = ap.parse_args([x for x in sys.argv[1:]
-                       if not (x == "-f" or x.endswith(".json"))])
+    a = ap.parse_args(clean_argv())
 
     vb = LOCAL / "verified_background_lidar_2005_2016.tif"
     if not vb.exists():

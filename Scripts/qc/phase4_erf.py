@@ -51,6 +51,10 @@ import sys
 from pathlib import Path
 
 import numpy as np
+import sys as _sys_for_names
+from pathlib import Path as _P_for_names
+_sys_for_names.path.insert(0, str(_P_for_names(__file__).resolve().parents[1] / "pipeline"))
+from phase4seg.names import clean_argv  # noqa: E402
 
 SCRIPTS = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(SCRIPTS / "pipeline"))
@@ -82,8 +86,7 @@ def main():
     ap.add_argument("--device", default="cpu", help="cpu is fine; this is a few passes")
     ap.add_argument("--out-name", default="erf_report.md")
     ap.add_argument("--overwrite", action="store_true")
-    a = ap.parse_args([x for x in sys.argv[1:]
-                       if not (x == "-f" or x.endswith(".json"))])
+    a = ap.parse_args(clean_argv())
 
     out = Path(r"D:\edmonds-pipeline\treedata\phase4\qc") / a.out_name
     if out.exists() and not a.overwrite:

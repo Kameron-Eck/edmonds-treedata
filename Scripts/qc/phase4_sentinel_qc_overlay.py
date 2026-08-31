@@ -55,6 +55,10 @@ from matplotlib.patches import Patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import phase4_sentinel_snap as SNAP
+import sys as _sys_for_names
+from pathlib import Path as _P_for_names
+_sys_for_names.path.insert(0, str(_P_for_names(__file__).resolve().parents[1] / "pipeline"))
+from phase4seg.names import clean_argv  # noqa: E402
 
 BASE = SNAP.BASE
 QC_DIR = BASE / "phase4" / "qc"
@@ -187,7 +191,7 @@ def render(name, year, P, run_note, out_png):
 
 
 def main():
-    argv = [a for a in sys.argv[1:] if not (a == "-f" or a.endswith(".json"))]
+    argv = clean_argv()
     ap = argparse.ArgumentParser(
         description="Sentinel TP/FN/FP overlays colour-coded by the P2 agreement partition.")
     ap.add_argument("--year", default="2016", choices=sorted(SNAP.IMG_CATALOG))

@@ -1,4 +1,8 @@
 r"""Dual-epoch lidar CROSS-TABULATION — all four states, not just flat/flat.
+import sys as _sys_for_names
+from pathlib import Path as _P_for_names
+_sys_for_names.path.insert(0, str(_P_for_names(__file__).resolve().parents[1] / "pipeline"))
+from phase4seg.names import clean_argv  # noqa: E402
 
 `build_lidar_background.py` used the two lidar epochs (PSLC 2005, USGS 2016) to
 certify ONE of the four states a cell can be in: flat in both, i.e. verified
@@ -968,8 +972,7 @@ def main():
     ap.add_argument("--limit-blocks", type=int, default=0,
                     help="debug: stop the overlay after N blocks (skips lake copy)")
     ap.add_argument("--out", default=None, help="overlay filename override")
-    a = ap.parse_args([x for x in sys.argv[1:]
-                       if not (x == "-f" or x.endswith(".json"))])
+    a = ap.parse_args(clean_argv())
 
     yr = int("".join(c for c in a.year if c.isdigit())[:4])
     if not (YEAR_LO <= yr <= YEAR_HI):

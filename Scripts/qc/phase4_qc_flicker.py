@@ -73,6 +73,10 @@ import geopandas as gpd
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
+import sys as _sys_for_names
+from pathlib import Path as _P_for_names
+_sys_for_names.path.insert(0, str(_P_for_names(__file__).resolve().parents[1] / "pipeline"))
+from phase4seg.names import clean_argv  # noqa: E402
 
 
 _COLAB_BASE = Path("/content/drive/MyDrive/treedata")
@@ -270,7 +274,7 @@ def write_step_log(mean_flicker, res_step):
 
 
 def main():
-    filtered = [a for a in sys.argv[1:] if not (a == "-f" or a.endswith(".json"))]
+    filtered = clean_argv()
     ap = argparse.ArgumentParser(description="Temporal-stability flicker test on stable parcels.")
     ap.add_argument("--years", default=None,
                     help="Comma-separated years (default: all masks on disk).")

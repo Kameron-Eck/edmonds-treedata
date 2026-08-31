@@ -70,6 +70,10 @@ import numpy as np
 import rasterio
 from rasterio.transform import from_origin
 from scipy import ndimage
+import sys as _sys_for_names
+from pathlib import Path as _P_for_names
+_sys_for_names.path.insert(0, str(_P_for_names(__file__).resolve().parents[1] / "pipeline"))
+from phase4seg.names import clean_argv  # noqa: E402
 
 SRC_2005 = Path(r"D:\edmonds-pipeline\Imagery\PSLC_2005")
 SRC_2016 = Path(r"D:\edmonds-pipeline\Imagery\USGS_2016")
@@ -188,7 +192,7 @@ def main():
     ap.add_argument("--cell", type=float, default=2.0)
     ap.add_argument("--flat-m", type=float, default=2.0)
     ap.add_argument("--erode", type=int, default=3, help="cells; 3 x 2 m = 6 m")
-    a = ap.parse_args([x for x in sys.argv[1:] if not (x == "-f" or x.endswith(".json"))])
+    a = ap.parse_args(clean_argv())
 
     f05, f16 = tiles(SRC_2005), tiles(SRC_2016)
     log("tiles: 2005 %d | 2016 %d" % (len(f05), len(f16)))

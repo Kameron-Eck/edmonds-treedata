@@ -45,7 +45,7 @@ from pathlib import Path
 # names.py is STDLIB-ONLY (see its docstring) — the one status-file discovery rule,
 # the one launch filter, and the one ledger row key, without the engine's deps.
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from phase4seg.names import job_key, parse_status_name, status_files
+from phase4seg.names import clean_argv, job_key, parse_status_name, status_files
 
 _COLAB_BASE = Path("/content/drive/MyDrive/treedata")
 _LOCAL_BASE = Path(r"G:\My Drive\treedata")
@@ -591,7 +591,7 @@ def main():
                     help="GPU-minutes + honest metrics per (year, run_tag)")
     ap.add_argument("--baseline", default=None,
                     help="run_tag to difference the other arms against (--per-arm)")
-    a = ap.parse_args([x for x in sys.argv[1:] if not (x == "-f" or x.endswith(".json"))])
+    a = ap.parse_args(clean_argv())
 
     if a.launches:
         return cmd_launches()

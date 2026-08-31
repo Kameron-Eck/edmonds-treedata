@@ -78,6 +78,10 @@ import rasterio
 from rasterio.features import geometry_mask
 from rasterio.windows import Window
 from shapely.geometry import shape
+import sys as _sys_for_names
+from pathlib import Path as _P_for_names
+_sys_for_names.path.insert(0, str(_P_for_names(__file__).resolve().parents[1] / "pipeline"))
+from phase4seg.names import clean_argv  # noqa: E402
 from shapely.strtree import STRtree
 
 # ── Paths (code resolves via __file__; data via the mirror / data plane) ──────
@@ -598,6 +602,5 @@ def main(argv=None):
 
 if __name__ == "__main__":
     # Colab injects `-f <json>`; strip it (CLAUDE.md rule 4).
-    filtered = [a for a in sys.argv[1:]
-                if not (a == "-f" or a.endswith(".json"))]
+    filtered = clean_argv()
     sys.exit(main(filtered))

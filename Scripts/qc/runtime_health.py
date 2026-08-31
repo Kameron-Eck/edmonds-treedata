@@ -68,7 +68,7 @@ from pathlib import Path
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
 sys.path.insert(0, str(HERE.parent / "pipeline"))
-from phase4seg.names import parse_status_name, status_files
+from phase4seg.names import clean_argv, parse_status_name, status_files
 import watch_queue                                                   # noqa: E402
 from watch_queue import _rows as merged_status_rows, BAD as BAD_STATES  # noqa: E402
 
@@ -362,14 +362,9 @@ def main():
     # "any token ending in .json" test: this script owns a `--json` flag AND a
     # `--sessions-json <path.json>` option, and the blunt filter silently ate the
     # option's VALUE (measured, not theorised). Pairing on -f keeps both safe.
-    argv, keep, prev = sys.argv[1:], [], ""
-    for a in argv:
-        if a == "-f" or (prev == "-f" and a.endswith(".json")):
-            prev = a
-            continue
-        keep.append(a)
-        prev = a
-    args = ap.parse_args(keep)
+    # This file's pair filter was the ONE correct implementation of three and is now the
+    # canonical body of names.clean_argv — imported back rather than kept as a twin.
+    args = ap.parse_args(clean_argv())
 
     while True:
         worst, sessions, queues, base = report(args)

@@ -13,6 +13,7 @@ The P9 sync mode (one-way Drive→D: robocopy wrapper with a preserved-exception
 list for the D:-only files, replacing the 2026-07-05 hand-robocopy) is the next
 step and will live here; manifests are its foundation.
 """
+from phase4seg.names import clean_argv
 import argparse
 import hashlib
 import sys
@@ -106,8 +107,7 @@ def main():
     g.add_argument("--manifest", metavar="DIR")
     g.add_argument("--verify", metavar="DIR")
     g.add_argument("--verify-sizes", metavar="DIR")
-    args = ap.parse_args([a for a in sys.argv[1:]
-                          if not (a == "-f" or a.endswith(".json"))])
+    args = ap.parse_args(clean_argv())
     if args.manifest:
         write_manifest(args.manifest)
     elif args.verify:

@@ -72,6 +72,7 @@ Kam's tool. Local-only (rasterio + geopandas install locally); no Colab, no GPU.
 
 from __future__ import annotations
 
+from phase4seg.names import clean_argv
 import argparse
 import csv
 import math
@@ -902,7 +903,7 @@ def inventory_only(args):
 
 
 def main():
-    filtered = [a for a in sys.argv[1:] if not (a == "-f" or a.endswith(".json"))]
+    filtered = clean_argv()
     ap = argparse.ArgumentParser(
         description="Stack every 4-band acquisition's NIR band onto one aligned grid.")
     ap.add_argument("--step", default="build", choices=["build", "inventory"],

@@ -43,7 +43,7 @@ CHECKLIST = SCRIPTS / "pipeline" / "sector_campaign_checklist.yaml"
 CAMP = DATA / "phase4" / "qc" / "sector_campaign"
 COLAB = r"/c/Users/Kameron/.local/bin/colab.exe"
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "pipeline"))
-from phase4seg.names import BAD_STATES, is_status_file   # stdlib-only; see names.py
+from phase4seg.names import clean_argv, BAD_STATES, is_status_file   # stdlib-only; see names.py
 
 BASH = shutil.which("bash") or r"C:\Program Files\Git\bin\bash.exe"
 SCRATCH_DEFAULT = Path(os.environ.get("LOCALAPPDATA", "")) / "Temp" / "sector_campaign_vm"
@@ -511,7 +511,7 @@ def main():
         ap.add_argument(f"--{f}", action="store_true")
     ap.add_argument("--deadline-min", type=int, default=720)
     ap.add_argument("--scratch", type=Path, default=SCRATCH_DEFAULT)
-    a = ap.parse_args([x for x in sys.argv[1:] if not (x == "-f" or x.endswith(".json"))])
+    a = ap.parse_args(clean_argv())
     if a.check:
         doc = _yaml()
         ids = [i["id"] for i in doc["items"]]

@@ -72,6 +72,10 @@ import importlib
 import subprocess
 import sys
 from pathlib import Path
+import sys as _sys_for_names
+from pathlib import Path as _P_for_names
+_sys_for_names.path.insert(0, str(_P_for_names(__file__).resolve().parents[1] / "pipeline"))
+from phase4seg.names import clean_argv  # noqa: E402
 
 
 # -- Dependency bootstrap (matches requirements-local.txt) --------------------
@@ -952,8 +956,7 @@ def verdict(school_null, sig, trend, naive):
 
 # -- main ---------------------------------------------------------------------
 def main():
-    filtered = [a for a in sys.argv[1:]
-                if not (a == "-f" or a.endswith(".json"))]
+    filtered = clean_argv()
     ap = argparse.ArgumentParser(description="NIR change probe: signal, null control, "
                                              "and degradation validation.")
     ap.add_argument("--skip-degradation", action="store_true",

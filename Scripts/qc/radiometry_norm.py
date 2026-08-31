@@ -1,4 +1,8 @@
 r"""
+import sys as _sys_for_names
+from pathlib import Path as _P_for_names
+_sys_for_names.path.insert(0, str(_P_for_names(__file__).resolve().parents[1] / "pipeline"))
+from phase4seg.names import clean_argv  # noqa: E402
 ╔══════════════════════════════════════════════════════════════════╗
   R2 — RADIOMETRY NORMALIZATION (per-acquisition gain/offset onto one reference)
   Edmonds Temporal Active Learning Pipeline
@@ -1097,7 +1101,7 @@ def _print_table(rows, out=print):
 
 
 def main():
-    filtered = [a for a in sys.argv[1:] if not (a == "-f" or a.endswith(".json"))]
+    filtered = clean_argv()
     ap = argparse.ArgumentParser(
         description="Fit a per-acquisition per-band linear radiometric "
                     "normalization onto one reference, from the R1 fingerprint.")

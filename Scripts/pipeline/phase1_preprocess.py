@@ -60,6 +60,7 @@
 ╚══════════════════════════════════════════════════════════════════╝
 """
 
+from phase4seg.names import clean_argv
 import argparse
 import ctypes
 import gc
@@ -2213,8 +2214,7 @@ def main():
     parser.add_argument("--force-upsample",  action="store_true",
                         help="Force rebuild of upsampled imagery")
 
-    filtered = [a for a in sys.argv[1:]
-                if not (a == "-f" or a.endswith(".json"))]
+    filtered = clean_argv()
     args = parser.parse_args(filtered)
 
     print("=" * 60)

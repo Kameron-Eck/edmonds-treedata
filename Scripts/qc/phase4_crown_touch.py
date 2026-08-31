@@ -76,6 +76,10 @@ from rasterio.enums import Resampling
 from rasterio.features import rasterize
 from rasterio.vrt import WarpedVRT
 from rasterio.windows import Window
+import sys as _sys_for_names
+from pathlib import Path as _P_for_names
+_sys_for_names.path.insert(0, str(_P_for_names(__file__).resolve().parents[1] / "pipeline"))
+from phase4seg.names import clean_argv  # noqa: E402
 
 HERE = Path(__file__).resolve().parent
 SCRIPTS = HERE.parent
@@ -418,8 +422,7 @@ def main():
                     help="rasterise crowns with all_touched=True")
     ap.add_argument("--block-rows", type=int, default=1024)
     ap.add_argument("--out-dir", default=".")
-    args = ap.parse_args([a for a in sys.argv[1:]
-                          if not (a == "-f" or a.endswith(".json"))])
+    args = ap.parse_args(clean_argv())
 
     if (args.thresh is None) == (args.match_precision_to is None):
         raise SystemExit(

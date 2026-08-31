@@ -54,6 +54,10 @@ import rasterio
 from rasterio.windows import Window
 
 from phase4seg import config as C
+import sys as _sys_for_names
+from pathlib import Path as _P_for_names
+_sys_for_names.path.insert(0, str(_P_for_names(__file__).resolve().parents[1] / "pipeline"))
+from phase4seg.names import clean_argv  # noqa: E402
 
 FILL_PROBE_PX = 512          # decimated read edge when overviews exist
 FILL_PROBE_GRID = 5          # NxN scattered windows when they do not
@@ -183,7 +187,7 @@ def orphans(roots, catalog_files):
 
 
 def main():
-    argv = [a for a in sys.argv[1:] if not (a == "-f" or a.endswith(".json"))]
+    argv = clean_argv()
     ap = argparse.ArgumentParser(description="Check every catalog entry resolves and opens.")
     ap.add_argument("--fill", action="store_true",
                     help="Also probe for constant-fill (empty shell) rasters.")

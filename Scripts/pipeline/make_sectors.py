@@ -50,6 +50,7 @@ OUTPUTS
 
 One-shot writer; idempotent (overwrites its own outputs only).
 """
+from phase4seg.names import clean_argv
 import argparse
 import datetime as dt
 import json
@@ -137,7 +138,7 @@ def main():
     ap.add_argument("--replace-geometry", action="store_true",
                     help="allow the geometry to move (re-cuts sectors; INVALIDATES every cover1m "
                          "sidecar and any AOI-restricted inference). Never use on sectors_v1.")
-    a = ap.parse_args([x for x in sys.argv[1:] if not (x == "-f" or x.endswith(".json"))])
+    a = ap.parse_args(clean_argv())
 
     aoi_dir = SCRIPTS / "pipeline" / "aoi"
     prev_p = aoi_dir / f"{a.version}.json"

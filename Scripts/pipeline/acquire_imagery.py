@@ -36,6 +36,7 @@ from __future__ import annotations
 import argparse, csv, datetime as dt, hashlib, io, json, math, os, random, shutil, statistics, sys, threading, time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
+from phase4seg.names import clean_argv
 
 HERE = Path(__file__).resolve().parent          # Scripts/pipeline
 SCRIPTS = HERE.parent
@@ -1024,7 +1025,7 @@ def do_register(m, t) -> int:
 
 # ----------------------------------------------------------------------------- main
 def main(argv=None):
-    argv = [a for a in (argv if argv is not None else sys.argv[1:]) if not (a == "-f" or a.endswith(".json"))]   # Colab rule 4
+    argv = clean_argv(argv)                      # Colab rule 4 — the ONE filter (names.py)
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("cmd", choices=["plan", "probe", "pilot", "fetch", "status", "assemble", "mosaic", "clip", "verify", "manifest", "mirror", "register", "clean"])
     ap.add_argument("--id"); ap.add_argument("--batch"); ap.add_argument("--manifest", default=str(MANIFEST_JSON))

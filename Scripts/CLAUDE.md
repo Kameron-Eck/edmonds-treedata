@@ -191,10 +191,14 @@ Large files (GPKG, Parquet, TIF) are written to local NVMe first, validated, the
 Never write large files straight to the FUSE mount.
 
 ### 3.10 Colab argparse filtering
-Every `main()` filters Colab's injected `-f <json>`. Preserve it in every script you touch.
+Every `main()` filters Colab's injected `-f <json>` — via the ONE shared filter, never a
+hand-rolled copy. The one-liner this rule used to show was WRONG (it silently dropped any
+`--flag=value.json` whole, falling back to the default with no error), and because it sat
+here in the rulebook, ~100 files copied it. Anything restated here rots; derive instead:
 
 ```python
-filtered = [a for a in sys.argv[1:] if not (a == "-f" or a.endswith(".json"))]
+from phase4seg.names import clean_argv
+filtered = clean_argv()          # pair filter: drops -f and ONLY its paired .json value
 ```
 
 ### 3.11 Logging

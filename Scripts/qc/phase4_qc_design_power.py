@@ -69,6 +69,10 @@ import numpy as np
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import phase4_accuracy_sample as PAS
+import sys as _sys_for_names
+from pathlib import Path as _P_for_names
+_sys_for_names.path.insert(0, str(_P_for_names(__file__).resolve().parents[1] / "pipeline"))
+from phase4seg.names import clean_argv  # noqa: E402
 
 BASE = PAS.BASE
 QC_DIR = PAS.QC_DIR
@@ -336,7 +340,7 @@ def report(year, meta, sweep, reps):
 
 
 def main():
-    argv = [a for a in sys.argv[1:] if not (a == "-f" or a.endswith(".json"))]
+    argv = clean_argv()
     ap = argparse.ArgumentParser(
         description="Simulate the real stratified design to get its expected CI and "
                     "its power to tell the two canopy definitions apart.")

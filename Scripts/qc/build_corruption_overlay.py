@@ -1,4 +1,8 @@
 r"""Build CONTROLLED-DAMAGE overlays for the 2009 training key — a dose-response
+import sys as _sys_for_names
+from pathlib import Path as _P_for_names
+_sys_for_names.path.insert(0, str(_P_for_names(__file__).resolve().parents[1] / "pipeline"))
+from phase4seg.names import clean_argv  # noqa: E402
 instrument, not a correction.
 
 ╔══════════════════════════════════════════════════════════════════════════════╗
@@ -243,7 +247,7 @@ def main():
     ap.add_argument("--no-copy", action="store_true", help="skip the lake copy")
     ap.add_argument("--force", action="store_true",
                     help="allow overwriting an existing overlay of the same name on the lake")
-    a = ap.parse_args([x for x in sys.argv[1:] if not (x == "-f" or x.endswith(".json"))])
+    a = ap.parse_args(clean_argv())
 
     t_start = time.time()
     levels = [float(x) for x in a.levels.split(",") if x.strip()]

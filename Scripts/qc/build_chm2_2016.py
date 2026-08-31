@@ -78,6 +78,10 @@ import argparse
 import glob
 import hashlib
 import json
+import sys as _sys_for_names
+from pathlib import Path as _P_for_names
+_sys_for_names.path.insert(0, str(_P_for_names(__file__).resolve().parents[1] / "pipeline"))
+from phase4seg.names import clean_argv  # noqa: E402
 import os
 import shutil
 import sys
@@ -790,8 +794,7 @@ def main():
     ap.add_argument("--skip-build", action="store_true", help="analyse the existing tif")
     ap.add_argument("--no-lake", action="store_true")
     ap.add_argument("--no-analysis", action="store_true")
-    a = ap.parse_args([x for x in sys.argv[1:]
-                       if not (x == "-f" or x.endswith(".json"))])
+    a = ap.parse_args(clean_argv())
 
     out = LOCAL_OUT / NAME if a.skip_build else build(a)
     if not a.no_analysis:

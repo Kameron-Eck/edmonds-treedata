@@ -63,6 +63,7 @@ USAGE
   %run phase1d_classifier.py --dry-run          # stats only, no model trained
 """
 
+from phase4seg.names import clean_argv
 import argparse
 import datetime
 import json
@@ -834,8 +835,7 @@ def print_summary(gdf: gpd.GeoDataFrame, threshold: float):
 # ══════════════════════════════════════════════════════════════
 
 if __name__ == "__main__":
-    filtered = [a for a in sys.argv[1:]
-                if not (a == "-f" or a.endswith(".json"))]
+    filtered = clean_argv()
     parser = argparse.ArgumentParser(description="Phase 1D classifier")
     parser.add_argument("--threshold", type=float,
                         default=DEFAULT_THRESHOLD,

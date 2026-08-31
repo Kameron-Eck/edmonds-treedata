@@ -65,6 +65,7 @@ USAGE
   %run phase1b_sampling.py --dry-run          # stats only
 """
 
+from phase4seg.names import clean_argv
 import argparse
 import shutil
 import sys
@@ -493,8 +494,7 @@ def write_batches(queue: gpd.GeoDataFrame, batch_size: int):
 # ══════════════════════════════════════════════════════════════
 
 if __name__ == "__main__":
-    filtered = [a for a in sys.argv[1:]
-                if not (a == "-f" or a.endswith(".json"))]
+    filtered = clean_argv()
     parser = argparse.ArgumentParser(
         description="Phase 1B resampling — classifier-informed queue")
     parser.add_argument("--batch-size", type=int, default=1000)

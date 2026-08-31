@@ -11,6 +11,7 @@ from phase4seg.common import (
 from phase4seg.labels import step_labels
 from phase4seg.tiling import step_tile
 from phase4seg.core import resolve_p3_ckpt, step_train, step_evaluate, step_inference
+from phase4seg.names import clean_argv
 from phase4seg.postproc import step_postproc, step_consistency
 
 
@@ -92,17 +93,10 @@ def main():
     # Colab injects `-f /root/.local/.../kernel-XXX.json` into argv; strip THE PAIR,
     # not every .json-suffixed value — the old any-.json filter silently ate the
     # --infer-aoi value (aoi/sectors_v1.json), found 2026-08-25 on the first VM dry-run.
-    filtered, _skip = [], False
-    for a in sys.argv[1:]:
-        if _skip:
-            _skip = False
-            continue
-        if a == "-f":
-            _skip = True
-            continue
-        if a.endswith(".json") and (not filtered or not filtered[-1].startswith("--")):
-            continue          # a bare kernel-json with no owning flag (belt and braces)
-        filtered.append(a)
+    # Colab -f/.json injection: the ONE pair filter (names.clean_argv). The
+    # hand-rolled version here carried a "bare .json with no owning flag" clause
+    # that ATE the equals form (--aoi=x.json fell back to default, silently).
+    filtered = clean_argv()
 
     p = argparse.ArgumentParser(
         description="Phase 4 — Per-Year Semantic Segmentation Fine-Tuning")

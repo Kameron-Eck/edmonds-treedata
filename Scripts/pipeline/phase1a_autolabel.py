@@ -51,6 +51,7 @@
 ╚══════════════════════════════════════════════════════════════════╝
 """
 
+from phase4seg.names import clean_argv
 import argparse
 import shutil
 import sys
@@ -664,8 +665,7 @@ def main():
     parser = argparse.ArgumentParser(description="Phase 1A auto-labeling")
     parser.add_argument("--dry-run", action="store_true",
                         help="Print stats without writing output.")
-    filtered = [a for a in sys.argv[1:]
-                if not (a == "-f" or a.endswith(".json"))]
+    filtered = clean_argv()
     args = parser.parse_args(filtered)
 
     print("=" * 60)

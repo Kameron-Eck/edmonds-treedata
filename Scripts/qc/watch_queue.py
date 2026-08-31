@@ -23,7 +23,7 @@ from pathlib import Path
 # watcher free of the engine's heavy deps while giving it the one
 # status-file discovery rule.
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "pipeline"))
-from phase4seg.names import BAD_STATES, status_files
+from phase4seg.names import clean_argv, BAD_STATES, status_files
 
 _COLAB_BASE = Path("/content/drive/MyDrive/treedata")
 _LOCAL_BASE = Path(r"G:\My Drive\treedata")
@@ -56,8 +56,7 @@ def main():
     ap.add_argument("--until-jobs", default=None,
                     help="comma-separated job ids; exit when each has a job-end "
                          "VERIFY row (0 if all OK-ish, 1 if any hard-failed)")
-    args = ap.parse_args([a for a in sys.argv[1:]
-                          if not (a == "-f" or a.endswith(".json"))])
+    args = ap.parse_args(clean_argv())
     watch = ({s.strip() for s in args.until_jobs.split(",") if s.strip()}
              if args.until_jobs else None)
 

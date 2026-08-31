@@ -434,3 +434,42 @@ def test_vm_heartbeat_agrees_with_the_shared_rule():
     assert not disagree, (
         "vm_heartbeat's local status-name rule disagrees with names.is_status_file on "
         f"{disagree} — the twin has drifted")
+
+
+# ── the one argv filter ───────────────────────────────────────────────────────
+
+@pytest.mark.parametrize("argv,want", [
+    (["--aoi", "custom.json"], ["--aoi", "custom.json"]),   # space form: value KEPT
+    (["--aoi=custom.json"], ["--aoi=custom.json"]),         # EQUALS form: the silent bug
+    (["-f", "/x/kernel-9c.json"], []),                      # the actual Colab injection
+    (["--year", "2019", "-f", "/k.json"], ["--year", "2019"]),
+    ([], []),
+])
+def test_clean_argv_all_four_measured_cases(argv, want):
+    """THE EQUALS FORM IS THE LOAD-BEARING CASE. ~100 files carried
+    `[a for a in sys.argv[1:] if not (a == "-f" or a.endswith(".json"))]` — copied from
+    CLAUDE.md rule 3.10 itself, which showed that exact line. Space-form values died
+    loudly ("expected one argument"); the equals form was dropped WHOLE and the flag fell
+    back to its default with no error at all. A test without the equals case passes while
+    the bug lives."""
+    from phase4seg.names import clean_argv
+    assert clean_argv(list(argv)) == want
+
+
+def test_the_broken_argv_idiom_is_extinct():
+    """The sweep took the count to zero; this keeps it there. The idiom spread because
+    the RULEBOOK showed it — rule 3.10 now derives from names.clean_argv instead."""
+    import re
+    pat = re.compile(r'\[\s*\w+\s+for\s+\w+\s+in\s+[\w.\[\]:()\s]+\s+if\s+not\s*\(\s*\w+\s*==\s*"-f"')
+    hits = []
+    for root in ("pipeline", "qc"):
+        for p in sorted((SCRIPTS / root).rglob("*.py")):
+            if "_archive" in p.parts or p.name in ("names.py", Path(__file__).name):
+                continue
+            src = p.read_text(encoding="utf-8", errors="replace")
+            for i, line in enumerate(src.splitlines(), 1):
+                if pat.search(line) and "clean_argv" not in line:
+                    hits.append(f"{p.name}:{i}")
+    assert not hits, (
+        "the broken -f/.json one-liner is back (it drops --flag=value.json silently); "
+        "use names.clean_argv: " + ", ".join(hits))

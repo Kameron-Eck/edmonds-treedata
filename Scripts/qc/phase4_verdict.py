@@ -34,6 +34,10 @@ import rasterio
 from rasterio.enums import Resampling
 from rasterio.vrt import WarpedVRT
 from rasterio.windows import Window
+import sys as _sys_for_names
+from pathlib import Path as _P_for_names
+_sys_for_names.path.insert(0, str(_P_for_names(__file__).resolve().parents[1] / "pipeline"))
+from phase4seg.names import clean_argv  # noqa: E402
 
 HERE = Path(__file__).resolve().parent
 
@@ -65,8 +69,7 @@ def main():
                     help="dAUROC at or below which the pre-registration says DOES NOT STAND")
     ap.add_argument("--block-rows", type=int, default=2048)
     ap.add_argument("--note", default="")
-    args = ap.parse_args([a for a in sys.argv[1:]
-                          if not (a == "-f" or a.endswith(".json"))])
+    args = ap.parse_args(clean_argv())
 
     if args.refute_at >= args.replicate_at:
         raise SystemExit("--refute-at must be BELOW --replicate-at; the band between them "

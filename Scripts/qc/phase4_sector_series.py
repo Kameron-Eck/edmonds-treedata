@@ -44,6 +44,10 @@ import numpy as np
 SCRIPTS = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(SCRIPTS / "qc"))
 import imagery_measure as im  # noqa: E402
+import sys as _sys_for_names
+from pathlib import Path as _P_for_names
+_sys_for_names.path.insert(0, str(_P_for_names(__file__).resolve().parents[1] / "pipeline"))
+from phase4seg.names import clean_argv  # noqa: E402
 
 DATA = Path(r"G:\My Drive\treedata")
 CAMP = DATA / "phase4" / "qc" / "sector_campaign"
@@ -74,7 +78,7 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--aoi", default="pipeline/aoi/sectors_v1.json")
     ap.add_argument("--box-px", type=int, default=4096, help="strip read height (native px)")
-    a = ap.parse_args([x for x in sys.argv[1:] if not (x == "-f" or x.endswith(".json"))])
+    a = ap.parse_args(clean_argv())
 
     import geopandas as gpd
     import rasterio

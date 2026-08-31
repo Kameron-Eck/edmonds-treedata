@@ -55,6 +55,10 @@ import rasterio.windows
 from rasterio.enums import Resampling
 import matplotlib
 import matplotlib.pyplot as plt
+import sys as _sys_for_names
+from pathlib import Path as _P_for_names
+_sys_for_names.path.insert(0, str(_P_for_names(__file__).resolve().parents[1] / "pipeline"))
+from phase4seg.names import clean_argv  # noqa: E402
 
 
 # ── Paths ─────────────────────────────────────────────────────────────────────
@@ -213,7 +217,7 @@ def make_figure(year, city_prob, site_probs, out_path, show):
 
 # ── Main ──────────────────────────────────────────────────────────────────────
 def main():
-    filtered = [a for a in sys.argv[1:] if not (a == "-f" or a.endswith(".json"))]
+    filtered = clean_argv()
     p = argparse.ArgumentParser(description="Phase 4 — threshold diagnostic")
     p.add_argument("--year", default="2000")
     p.add_argument("--prob", default=None, help="override probability raster path")

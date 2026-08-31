@@ -20,7 +20,6 @@ import numpy as np
 import pytest
 
 SCRIPTS = Path(__file__).resolve().parent.parent
-sys.path.insert(0, str(SCRIPTS / "pipeline"))
 
 torch = pytest.importorskip("torch")
 pytest.importorskip("scipy")

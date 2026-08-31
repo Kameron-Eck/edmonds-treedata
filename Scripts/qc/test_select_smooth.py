@@ -33,7 +33,6 @@ torch = pytest.importorskip("torch")
 import torch.nn as nn                                            # noqa: E402
 
 SCRIPTS = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(SCRIPTS / "pipeline"))
 
 import phase4seg.config as config                                # noqa: E402
 import phase4seg.core as core                                    # noqa: E402

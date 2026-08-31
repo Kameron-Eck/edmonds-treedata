@@ -72,9 +72,6 @@ import re
 import sys
 import warnings
 from pathlib import Path
-import sys as _sys_for_names
-from pathlib import Path as _P_for_names
-_sys_for_names.path.insert(0, str(_P_for_names(__file__).resolve().parents[1] / "pipeline"))
 from phase4seg.names import clean_argv  # noqa: E402
 
 # rasterio's boundless read reshapes its output buffer in place; NumPy 2.5
@@ -83,7 +80,6 @@ warnings.filterwarnings("ignore", message=".*Setting the shape on a NumPy array.
 
 SCRIPTS = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(SCRIPTS / "qc"))
-sys.path.insert(0, str(SCRIPTS / "pipeline"))
 
 from champion import load_champions, prob_arm            # noqa: E402,F401
 from phase4_sector_series import live_rows               # noqa: E402

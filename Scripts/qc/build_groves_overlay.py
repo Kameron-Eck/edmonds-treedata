@@ -64,9 +64,6 @@ import rasterio
 import rasterio.warp
 from rasterio.enums import Resampling
 from rasterio.features import rasterize
-import sys as _sys_for_names
-from pathlib import Path as _P_for_names
-_sys_for_names.path.insert(0, str(_P_for_names(__file__).resolve().parents[1] / "pipeline"))
 from phase4seg.names import clean_argv  # noqa: E402
 
 BASE = Path(r"G:\My Drive\treedata")
@@ -225,7 +222,6 @@ def main():
     with rasterio.open(TEMPLATE) as t:
         crs, res = t.crs, abs(t.transform.a)
         prof = t.profile.copy()
-    sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "pipeline"))
     from phase4seg.common import entry_for, resolve_native_path
     ortho = resolve_native_path(entry_for(a.year))
     if not ortho.exists():

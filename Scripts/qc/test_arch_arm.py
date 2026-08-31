@@ -24,7 +24,6 @@ from pathlib import Path
 import pytest
 
 SCRIPTS = Path(__file__).resolve().parent.parent
-sys.path.insert(0, str(SCRIPTS / "pipeline"))
 
 torch = pytest.importorskip("torch")
 core = pytest.importorskip("phase4seg.core")

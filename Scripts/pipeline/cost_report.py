@@ -44,7 +44,6 @@ from pathlib import Path
 
 # names.py is STDLIB-ONLY (see its docstring) — the one status-file discovery rule,
 # the one launch filter, and the one ledger row key, without the engine's deps.
-sys.path.insert(0, str(Path(__file__).resolve().parent))
 from phase4seg.names import clean_argv, job_key, parse_status_name, status_files
 
 # Lake paths: ONE home (pipeline/lake.py, refactor 2.4). The strict probe it

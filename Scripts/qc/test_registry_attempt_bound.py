@@ -30,7 +30,6 @@ from pathlib import Path
 import pytest
 
 SCRIPTS = Path(__file__).resolve().parent.parent
-sys.path.insert(0, str(SCRIPTS / "pipeline"))
 
 import registry_from_manifests as R  # noqa: E402
 

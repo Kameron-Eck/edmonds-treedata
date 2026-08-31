@@ -55,9 +55,6 @@ import csv
 import datetime as dt
 import sys
 from pathlib import Path
-import sys as _sys_for_names
-from pathlib import Path as _P_for_names
-_sys_for_names.path.insert(0, str(_P_for_names(__file__).resolve().parents[1] / "pipeline"))
 from phase4seg.names import clean_argv  # noqa: E402
 
 # Properties compared per file. HEADER facts first, then the two that are derived from

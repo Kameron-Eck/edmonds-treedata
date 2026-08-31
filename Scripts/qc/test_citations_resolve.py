@@ -49,7 +49,6 @@ SCRIPTS = Path(__file__).resolve().parent.parent
 GATED = ("pipeline", "qc")
 
 # names.py is stdlib-only, so this stays importable in CI, which has no torch.
-sys.path.insert(0, str(SCRIPTS / "pipeline"))
 from phase4seg.names import find_symbol_source, symbol_body  # noqa: E402
 
 # Built by concatenation so this file does not violate its own ban — the examples in

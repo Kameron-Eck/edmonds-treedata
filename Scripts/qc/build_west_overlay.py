@@ -40,9 +40,6 @@ import numpy as np
 import rasterio
 from rasterio.enums import Resampling
 from rasterio.vrt import WarpedVRT
-import sys as _sys_for_names
-from pathlib import Path as _P_for_names
-_sys_for_names.path.insert(0, str(_P_for_names(__file__).resolve().parents[1] / "pipeline"))
 from phase4seg.names import clean_argv  # noqa: E402
 
 SRC_OVERLAY = Path(r"G:/My Drive/treedata/phase4/labels_corrected/add_nodec_2009.tif")

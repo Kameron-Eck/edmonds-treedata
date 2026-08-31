@@ -93,3 +93,4 @@ desktop.ini
 
 # never track per-session Claude Code settings (the Scripts/ whitelist would otherwise catch them)
 Scripts/.claude/
+*.egg-info/

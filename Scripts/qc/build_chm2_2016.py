@@ -78,9 +78,6 @@ import argparse
 import glob
 import hashlib
 import json
-import sys as _sys_for_names
-from pathlib import Path as _P_for_names
-_sys_for_names.path.insert(0, str(_P_for_names(__file__).resolve().parents[1] / "pipeline"))
 from phase4seg.names import clean_argv  # noqa: E402
 import os
 import shutil

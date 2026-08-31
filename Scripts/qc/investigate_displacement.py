@@ -30,14 +30,10 @@ from pathlib import Path
 import numpy as np
 
 SCRIPTS = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(SCRIPTS / "pipeline"))
 sys.path.insert(0, str(SCRIPTS / "qc"))
 import imagery_measure as im               # noqa: E402
 import imagery_qc_suite as QS              # noqa: E402
 from investigate_2024_offset import corr, shift_correct   # noqa: E402
-import sys as _sys_for_names
-from pathlib import Path as _P_for_names
-_sys_for_names.path.insert(0, str(_P_for_names(__file__).resolve().parents[1] / "pipeline"))
 from phase4seg.names import clean_argv  # noqa: E402
 
 

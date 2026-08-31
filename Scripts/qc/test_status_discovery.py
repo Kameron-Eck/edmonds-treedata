@@ -27,7 +27,6 @@ from pathlib import Path
 import pytest
 
 SCRIPTS = Path(__file__).resolve().parent.parent
-sys.path.insert(0, str(SCRIPTS / "pipeline"))
 
 from phase4seg.names import STATUS_STEM, is_status_file, status_files  # noqa: E402
 
@@ -533,3 +532,83 @@ def test_emitted_bootstrap_imports_every_module_its_body_uses():
     assert not missing, (
         f"the emitted bootstrap uses {sorted(missing)} without importing them — "
         f"NameError on the VM, invisible to the parse gate")
+
+
+# ── refactor 3B ratchet: sys.path hacks stay dead ────────────────────────────
+# The editable install (pyproject.toml) resolves phase4seg / lake / pipeline_log /
+# registry_from_manifests / cost_report from anywhere; 3B removed the ~40 files of
+# per-file inserts that predate it. What SURVIVES is a short ledger, each entry
+# justified in place:
+#   · conftest.py            — the ONE canonical test stanza: tests import
+#                              pipeline-root orchestration modules (phase4_train_queue,
+#                              watch_queue, …) the install deliberately does NOT expose
+#   · uninstalled-module keeps — files importing pipeline-ROOT scripts by name
+#                              (make_nir_stack, phase4_train_queue, acquire_imagery)
+#   · preflight / smoke      — pin "validate the engine SITTING NEXT TO ME", not
+#                              whatever tree the venv's editable install points at
+#   · the finetune shim      — _pkg_import_root() picks local-copy vs Drive on Colab
+#   · pipeline→qc reverse    — die in refactor 4a, not 3B
+#   · qc-sibling inserts     — die in 4c when instruments/ lands
+# A NEW insert anywhere else fails here; so does growing an existing file's count.
+_PATH_INSERT_LEDGER = {
+    "pipeline/acquire_imagery.py": 3,        # mirror_sync + 2× imagery_measure (4a)
+    "pipeline/make_building_masks.py": 1,    # roof_presence_matrix (blessed qc import)
+    "pipeline/make_nir_stack.py": 1,         # imagery_measure (4a)
+    "pipeline/make_sectors.py": 1,           # imagery_measure (4a)
+    "pipeline/make_sentinel_aoi.py": 1,      # phase4_sentinel_snap (4a)
+    "pipeline/phase4_semantic_finetune.py": 1,  # the shim's import-root logic
+    "pipeline/phase4seg_preflight.py": 1,    # gate pins the adjacent tree
+    "pipeline/phase4seg_smoke.py": 1,        # gate pins the adjacent tree
+    "qc/conftest.py": 1,                     # THE canonical stanza
+    "qc/build_lidar_quadrants.py": 1,        # qc sibling (4c)
+    "qc/imagery_canopy_separability.py": 1,  # qc sibling (4c)
+    "qc/imagery_qc_suite.py": 1,             # qc sibling (4c)
+    "qc/investigate_2024_offset.py": 1,      # qc sibling (4c)
+    "qc/investigate_displacement.py": 1,     # qc sibling (4c)
+    "qc/make_ndvi_stack_norm.py": 2,         # make_nir_stack + radiometry_norm sibling
+    "qc/phase4_crown_cover_matrix.py": 1,    # qc sibling (4c)
+    "qc/phase4_golden_gate.py": 1,           # qc sibling (4c)
+    "qc/phase4_qc_design_power.py": 1,       # qc sibling (4c)
+    "qc/phase4_qc_latent_class_adversarial.py": 1,  # qc sibling (4c)
+    "qc/phase4_qc_latent_class_test.py": 1,  # qc sibling (4c)
+    "qc/phase4_sector_change.py": 1,         # qc sibling (4c)
+    "qc/phase4_sector_poststrat.py": 1,      # qc sibling (4c)
+    "qc/phase4_sector_series.py": 1,         # qc sibling (4c)
+    "qc/phase4_sentinel_qc_overlay.py": 1,   # qc sibling (4c)
+    "qc/phase4_site_eval.py": 1,             # qc sibling (4c)
+    "qc/roof_presence_matrix.py": 1,         # qc sibling (4c)
+    "qc/runtime_dashboard.py": 2,            # phase4_train_queue + watch_queue keeps
+    "qc/runtime_health.py": 1,               # qc sibling keep
+    "qc/separability_index_control.py": 1,   # qc sibling (4c)
+    "qc/test_acquire_imagery.py": 2,         # acquire_imagery keep + qc sibling
+    "qc/test_boundary_loss.py": 1,           # string payload for a spawned subprocess
+    "qc/test_ci_gates.py": 2,                # string payloads for spawned subprocesses
+    "qc/test_dashboard_chips.py": 1,         # qc sibling
+}
+
+
+def test_path_insert_ledger():
+    """Every sys.path.insert in pipeline/ and qc/ is on the ledger above, at or below
+    its recorded count. 79 sites predated the editable install; 3B cut them to ~39 and
+    this ratchet keeps the number falling. Removing one is free (counts are ceilings);
+    ADDING one means either the install should cover the import — fix the import — or
+    the new site is deliberate and gets a ledger line WITH its justification."""
+    import re
+    pat = re.compile(r"path\.insert")
+    over, unlisted = [], []
+    for root in ("pipeline", "qc"):
+        for p in sorted((SCRIPTS / root).rglob("*.py")):
+            if "_archive" in p.parts or p.name == "test_status_discovery.py":
+                continue  # self: the ledger and this regex literal both match the pattern
+            n = len(pat.findall(p.read_text(encoding="utf-8", errors="replace")))
+            if n == 0:
+                continue
+            rel = p.relative_to(SCRIPTS).as_posix()
+            cap = _PATH_INSERT_LEDGER.get(rel)
+            if cap is None:
+                unlisted.append(f"{rel} ({n})")
+            elif n > cap:
+                over.append(f"{rel} ({n} > {cap})")
+    assert not unlisted and not over, (
+        "sys.path.insert outside the 3B ledger — the editable install exists, use it. "
+        f"unlisted={unlisted} over={over}")

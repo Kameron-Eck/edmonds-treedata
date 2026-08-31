@@ -72,9 +72,6 @@ import importlib
 import subprocess
 import sys
 from pathlib import Path
-import sys as _sys_for_names
-from pathlib import Path as _P_for_names
-_sys_for_names.path.insert(0, str(_P_for_names(__file__).resolve().parents[1] / "pipeline"))
 from phase4seg.names import clean_argv  # noqa: E402
 
 
@@ -82,9 +79,6 @@ from phase4seg.names import clean_argv  # noqa: E402
 
 # Dep bootstrap: mechanism in phase4seg/deps.py (refactor 2.3); the LIST stays
 # per-file — nine distinct sets exist and one shared list would over-install.
-import sys as _sys_deps
-from pathlib import Path as _P_deps
-_sys_deps.path.insert(0, str(_P_deps(__file__).resolve().parents[1] / "pipeline"))
 from phase4seg.deps import ensure_deps as _ensure_deps  # noqa: E402
 _ensure_deps([("numpy", "numpy"), ("rasterio", "rasterio"),
                     ("geopandas", "geopandas"), ("pandas", "pandas"),
@@ -106,9 +100,6 @@ from scipy.ndimage import gaussian_filter, uniform_filter
 # Lake paths: ONE home (pipeline/lake.py, refactor 2.4). The strict probe it
 # carries is the correct one — the bare .exists() this file used was true
 # whenever the mount POINT existed, mounted or not.
-import sys as _sys_lake
-from pathlib import Path as _P_lake
-_sys_lake.path.insert(0, str(_P_lake(__file__).resolve().parents[1] / "pipeline"))
 from lake import BASE  # noqa: E402
 
 SCRIPTS_DIR = Path(__file__).resolve().parent.parent          # code plane
@@ -253,7 +244,6 @@ def resolve_img(fname):
 
 def year_catalog():
     """YEAR_CATALOG is the ONE home for which file a year key means."""
-    sys.path.insert(0, str(SCRIPTS_DIR / "pipeline"))
     from phase4seg import config as _cfg          # noqa: E402
     return {str(e["key"]): e for e in _cfg.YEAR_CATALOG}
 
@@ -967,7 +957,6 @@ def main():
     ap.add_argument("--out-dir", default=str(QC_DIR), help="CSV output directory.")
     args = ap.parse_args(filtered)
 
-    sys.path.insert(0, str(SCRIPTS_DIR / "pipeline"))
     from pipeline_log import StepLogger                      # noqa: E402
 
     logger = StepLogger(script="nir_change_probe", step="probe", logs_dir=LOGS_DIR)

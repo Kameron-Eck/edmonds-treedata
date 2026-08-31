@@ -44,7 +44,6 @@ import warnings
 from pathlib import Path
 
 SCRIPTS = Path(__file__).resolve().parent.parent
-sys.path.insert(0, str(SCRIPTS / "pipeline"))
 
 _COLAB = Path("/content/drive/MyDrive/treedata")
 BASE = _COLAB if _COLAB.exists() else Path(r"G:\My Drive\treedata")

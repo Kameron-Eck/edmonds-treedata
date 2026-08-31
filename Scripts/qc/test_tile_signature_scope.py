@@ -28,7 +28,6 @@ from pathlib import Path
 import pytest
 
 SCRIPTS = Path(__file__).resolve().parent.parent
-sys.path.insert(0, str(SCRIPTS / "pipeline"))
 
 TILING = SCRIPTS / "pipeline" / "phase4seg" / "tiling.py"
 CONFIG = SCRIPTS / "pipeline" / "phase4seg" / "config.py"

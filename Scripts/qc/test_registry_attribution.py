@@ -39,7 +39,6 @@ from pathlib import Path
 import pytest
 
 SCRIPTS = Path(__file__).resolve().parent.parent
-sys.path.insert(0, str(SCRIPTS / "pipeline"))
 
 import registry_from_manifests as R  # noqa: E402
 
@@ -165,7 +164,6 @@ def test_the_writer_really_does_stamp_run_identity():
     """The post-D6 path above is only reachable because step_evaluate stamps these. If
     that stamping is ever removed, every arm silently falls back to the year-level label
     and this file's second half stops testing anything real."""
-    sys.path.insert(0, str(SCRIPTS / "pipeline"))
     from phase4seg.names import symbol_body
     # By symbol, not by path — see names.py::find_symbol_source. Importing the engine
     # would pull torch, which CI deliberately does not have.

@@ -19,7 +19,6 @@ from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 REPO_SCRIPTS = HERE.parent
-sys.path.insert(0, str(REPO_SCRIPTS / "pipeline"))
 from phase4seg.names import clean_argv, status_files
 
 # Lake paths: ONE home (pipeline/lake.py, refactor 2.4). The strict probe it

@@ -56,14 +56,10 @@ from rasterio.warp import Resampling, reproject, transform as warp_xy, transform
 from rasterio.windows import from_bounds as win_from_bounds
 
 SCRIPTS = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(SCRIPTS / "pipeline"))
 sys.path.insert(0, str(SCRIPTS / "qc"))
 from phase4seg import config as C          # noqa: E402
 import imagery_measure as im               # noqa: E402
 import imagery_qc_suite as QS              # noqa: E402
-import sys as _sys_for_names
-from pathlib import Path as _P_for_names
-_sys_for_names.path.insert(0, str(_P_for_names(__file__).resolve().parents[1] / "pipeline"))
 from phase4seg.names import clean_argv  # noqa: E402
 
 TODAY = dt.date.today().isoformat()

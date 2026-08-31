@@ -27,7 +27,6 @@ import time
 from pathlib import Path
 
 SCRIPTS = Path(__file__).resolve().parent.parent
-sys.path.insert(0, str(SCRIPTS / "pipeline"))
 
 from phase4seg.names import status_files  # noqa: E402
 

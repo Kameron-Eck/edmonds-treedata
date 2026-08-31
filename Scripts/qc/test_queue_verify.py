@@ -39,7 +39,6 @@ import pandas as pd
 import pytest
 
 SCRIPTS = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(SCRIPTS / "pipeline"))
 
 q = pytest.importorskip("phase4_train_queue")
 
@@ -911,8 +910,6 @@ def test_a_coarse_year_is_exempt(tmp_path):
     """Coarse tier already forces citywide (cli.py: tier == "coarse" or force_citywide).
     Demanding a redundant flag there would train people to add flags that do nothing,
     which is its own hazard."""
-    import sys as _s
-    _s.path.insert(0, str(Path(__file__).resolve().parents[1] / "pipeline"))
     from phase4seg import config as C
     coarse = next(e["label"] for e in C.YEAR_CATALOG if C.tier_for(e) == "coarse")
     qf = _queue_file(tmp_path, [{"id": "j1", "year": coarse, "tag": "t", "extra": []}])

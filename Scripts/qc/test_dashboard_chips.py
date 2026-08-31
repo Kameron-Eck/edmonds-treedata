@@ -29,7 +29,6 @@ import sys
 from pathlib import Path
 
 SCRIPTS = Path(__file__).resolve().parent.parent
-sys.path.insert(0, str(SCRIPTS / "pipeline"))
 sys.path.insert(0, str(SCRIPTS / "qc"))
 
 import runtime_dashboard as D  # noqa: E402

@@ -1086,7 +1086,7 @@ def main(argv=None):
         else:
             print(f"[{t['id']}] {a.cmd}: not applicable to mode {mode}")
     try:
-        sys.path.insert(0, str(HERE)); from pipeline_log import write_step_log
+        from pipeline_log import write_step_log
         from phase4seg.config import BASE
         for base in (BASE, Path(r"G:\My Drive	reedata")):
             logs = base / "phase4" / "logs"

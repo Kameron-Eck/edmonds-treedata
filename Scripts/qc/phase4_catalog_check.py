@@ -47,16 +47,12 @@ import argparse
 import sys
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "pipeline"))  # phase4seg lives in pipeline/
 
 import numpy as np
 import rasterio
 from rasterio.windows import Window
 
 from phase4seg import config as C
-import sys as _sys_for_names
-from pathlib import Path as _P_for_names
-_sys_for_names.path.insert(0, str(_P_for_names(__file__).resolve().parents[1] / "pipeline"))
 from phase4seg.names import clean_argv  # noqa: E402
 
 FILL_PROBE_PX = 512          # decimated read edge when overviews exist

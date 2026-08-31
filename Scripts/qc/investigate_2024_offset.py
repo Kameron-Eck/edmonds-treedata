@@ -29,7 +29,6 @@ from pathlib import Path
 import numpy as np
 
 SCRIPTS = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(SCRIPTS / "pipeline"))
 sys.path.insert(0, str(SCRIPTS / "qc"))
 import imagery_measure as im               # noqa: E402
 import imagery_qc_suite as QS              # noqa: E402

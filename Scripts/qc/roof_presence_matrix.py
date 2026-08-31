@@ -97,9 +97,6 @@ v001
 """
 
 from __future__ import annotations
-import sys as _sys_for_names
-from pathlib import Path as _P_for_names
-_sys_for_names.path.insert(0, str(_P_for_names(__file__).resolve().parents[1] / "pipeline"))
 from phase4seg.names import clean_argv  # noqa: E402
 
 import argparse
@@ -117,7 +114,6 @@ import rasterio
 _HERE = Path(__file__).resolve().parent           # …/Scripts/qc
 _SCRIPTS = _HERE.parent                           # …/Scripts
 sys.path.insert(0, str(_HERE))
-sys.path.insert(0, str(_SCRIPTS / "pipeline"))
 
 # The probe is the one home for the calibrated rule. Import, never copy.
 from roof_presence_probe import (                 # noqa: E402

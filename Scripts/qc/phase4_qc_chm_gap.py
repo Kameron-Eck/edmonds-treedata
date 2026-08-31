@@ -59,9 +59,6 @@ from rasterio.transform import Affine
 # Lake paths: ONE home (pipeline/lake.py, refactor 2.4). The strict probe it
 # carries is the correct one — the bare .exists() this file used was true
 # whenever the mount POINT existed, mounted or not.
-import sys as _sys_lake
-from pathlib import Path as _P_lake
-_sys_lake.path.insert(0, str(_P_lake(__file__).resolve().parents[1] / "pipeline"))
 from lake import BASE  # noqa: E402
 QC_DIR = BASE / "phase4" / "qc"
 LOGS_DIR = BASE / "phase4" / "logs"
@@ -77,9 +74,6 @@ CHM_NAME = "lidar_snoh_chm.tif"
 # exist on disk, so every .exists() passed while the stale files covered 39.6-67%
 # of the authoritative extent. Deriving fixes the instance AND the class, and picks
 # up all 10 NIR-bearing acquisitions instead of 4. See names.py::nir_years.
-import sys as _sys
-from pathlib import Path as _Path
-_sys.path.insert(0, str(_Path(__file__).resolve().parents[1] / "pipeline"))
 from phase4seg import config
 from phase4seg import config as _C            # noqa: E402
 from phase4seg.config import resolve_imagery as _resolve_imagery  # noqa: E402

@@ -40,9 +40,6 @@ from pathlib import Path
 
 # Dep bootstrap: mechanism in phase4seg/deps.py (refactor 2.3); the LIST stays
 # per-file — nine distinct sets exist and one shared list would over-install.
-import sys as _sys_deps
-from pathlib import Path as _P_deps
-_sys_deps.path.insert(0, str(_P_deps(__file__).resolve().parents[1] / "pipeline"))
 from phase4seg.deps import ensure_deps as _ensure_deps  # noqa: E402
 _ensure_deps([("rasterio", "rasterio"), ("numpy", "numpy"),
                     ("matplotlib", "matplotlib")])
@@ -56,18 +53,12 @@ from rasterio.enums import Resampling
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
-import sys as _sys_for_names
-from pathlib import Path as _P_for_names
-_sys_for_names.path.insert(0, str(_P_for_names(__file__).resolve().parents[1] / "pipeline"))
 from phase4seg.names import clean_argv  # noqa: E402
 
 
 # Lake paths: ONE home (pipeline/lake.py, refactor 2.4). The strict probe it
 # carries is the correct one — the bare .exists() this file used was true
 # whenever the mount POINT existed, mounted or not.
-import sys as _sys_lake
-from pathlib import Path as _P_lake
-_sys_lake.path.insert(0, str(_P_lake(__file__).resolve().parents[1] / "pipeline"))
 from lake import BASE  # noqa: E402
 
 _LOCAL_IMG = Path(r"D:\edmonds-pipeline\Imagery")

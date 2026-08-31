@@ -45,13 +45,9 @@ import numpy as np
 import rasterio
 
 SCRIPTS = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(SCRIPTS / "pipeline"))
 sys.path.insert(0, str(SCRIPTS / "qc"))
 import imagery_qc_suite as QS                 # noqa: E402
 import imagery_canopy_separability as SEP     # noqa: E402
-import sys as _sys_for_names
-from pathlib import Path as _P_for_names
-_sys_for_names.path.insert(0, str(_P_for_names(__file__).resolve().parents[1] / "pipeline"))
 from phase4seg.names import clean_argv  # noqa: E402
 
 TODAY = dt.date.today().isoformat()

@@ -45,9 +45,6 @@ from pathlib import Path
 import geopandas as gpd
 import pandas as pd
 from shapely.geometry import Polygon, MultiPolygon
-import sys as _sys_for_names
-from pathlib import Path as _P_for_names
-_sys_for_names.path.insert(0, str(_P_for_names(__file__).resolve().parents[1] / "pipeline"))
 from phase4seg.names import clean_argv  # noqa: E402
 
 PARCELS_URL = ("https://gis.snoco.org/host/rest/services/Hosted/"

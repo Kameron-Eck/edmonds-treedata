@@ -36,7 +36,6 @@ from pathlib import Path
 import pytest
 
 SCRIPTS = Path(__file__).resolve().parent.parent
-sys.path.insert(0, str(SCRIPTS / "pipeline"))
 
 from phase4seg import config as C          # noqa: E402  (stdlib-only import chain)
 from phase4seg.names import nir_years      # noqa: E402

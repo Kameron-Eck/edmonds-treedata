@@ -1,7 +1,4 @@
 r"""Build CONTROLLED-DAMAGE overlays for the 2009 training key — a dose-response
-import sys as _sys_for_names
-from pathlib import Path as _P_for_names
-_sys_for_names.path.insert(0, str(_P_for_names(__file__).resolve().parents[1] / "pipeline"))
 from phase4seg.names import clean_argv  # noqa: E402
 instrument, not a correction.
 
@@ -276,7 +273,6 @@ def main():
     LOCAL_OUT.mkdir(parents=True, exist_ok=True)
 
     # ── output grid: production CONVENTION, sized to THIS YEAR'S ortho ────────
-    sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "pipeline"))
     from phase4seg.common import entry_for, resolve_native_path, _crs_unit_m
 
     with rasterio.open(TEMPLATE) as t:

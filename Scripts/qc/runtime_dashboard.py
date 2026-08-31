@@ -51,12 +51,10 @@ import sys
 import tempfile
 import threading
 import time
-from pathlib import Path as _P
 
 # names.py is STDLIB-ONLY (see its docstring): the discovery rule and the ledger
 # row key, with none of the engine's imports — this dashboard runs locally and
 # must start even when the engine environment is unusable.
-sys.path.insert(0, str(_P(__file__).resolve().parents[1] / "pipeline"))
 from phase4seg.names import clean_argv, is_status_file, job_key, status_files_for_stem
 import webbrowser
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer

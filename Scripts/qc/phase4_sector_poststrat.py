@@ -78,9 +78,6 @@ USAGE
   py -3.12 qc/phase4_sector_poststrat.py --arms 2013:citywide_rgb 2020s:sectors_v1 2019n:p2nir
 """
 import argparse
-import sys as _sys_for_names
-from pathlib import Path as _P_for_names
-_sys_for_names.path.insert(0, str(_P_for_names(__file__).resolve().parents[1] / "pipeline"))
 from phase4seg.names import clean_argv  # noqa: E402
 import csv
 import datetime as dt

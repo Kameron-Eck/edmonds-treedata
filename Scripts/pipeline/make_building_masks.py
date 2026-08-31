@@ -100,8 +100,7 @@ from rasterio.features import rasterize
 
 _HERE = Path(__file__).resolve().parent           # …/Scripts/pipeline
 _SCRIPTS = _HERE.parent                           # …/Scripts
-sys.path.insert(0, str(_HERE))
-sys.path.insert(0, str(_SCRIPTS / "qc"))
+sys.path.insert(0, str(_SCRIPTS / "qc"))   # roof_presence_matrix — the ONE blessed qc-path import
 
 # the fusion rule and the mask policy live in the matrix script — import them
 from roof_presence_matrix import (                # noqa: E402
@@ -332,7 +331,6 @@ def main(argv=None):
     args = ap.parse_args(argv)
 
     if args.all_years:
-        sys.path.insert(0, str(_HERE))
         from phase4seg import config as C
         years = [str(e["key"]) for e in C.YEAR_CATALOG]
     else:

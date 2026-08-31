@@ -19,7 +19,6 @@ def _registry_columns():
     means a future header migration updates generator and gate together (the
     E04 migration broke a hardcoded copy of this list within hours of it being
     written)."""
-    sys.path.insert(0, str(SCRIPTS / "pipeline"))
     from registry_from_manifests import COLUMNS
     return COLUMNS
 

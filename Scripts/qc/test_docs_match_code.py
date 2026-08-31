@@ -38,7 +38,6 @@ import pytest
 
 SCRIPTS = Path(__file__).resolve().parent.parent
 REPO = SCRIPTS.parent
-sys.path.insert(0, str(SCRIPTS / "pipeline"))
 
 
 def _status_mod():

@@ -25,7 +25,6 @@ from pathlib import Path
 import pytest
 
 SCRIPTS = Path(__file__).resolve().parent.parent
-sys.path.insert(0, str(SCRIPTS / "pipeline"))
 
 torch = pytest.importorskip("torch")
 core = pytest.importorskip("phase4seg.core")
@@ -178,9 +177,6 @@ def test_allow_missing_prefix_matches_the_real_aux_head():
     A stand-in can be named anything. This derives the prefix from the REAL model, so the
     two cannot drift apart again.
     """
-    import sys
-    from pathlib import Path
-    sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "pipeline"))
     from phase4seg import config, core
 
     core._ensure_torch()
@@ -218,9 +214,6 @@ def test_the_aux_head_actually_loads_from_a_non_aux_checkpoint():
     """End-to-end on the real model: a checkpoint WITHOUT the head (every 2020 base
     warm start) must load into the aux model with the head left at initialisation, and
     must NOT raise. This is the exact path --aux-height takes on epoch 1."""
-    import sys
-    from pathlib import Path
-    sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "pipeline"))
     from phase4seg import config, core
 
     core._ensure_torch()

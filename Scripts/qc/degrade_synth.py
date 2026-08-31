@@ -138,7 +138,6 @@ import sys
 from pathlib import Path
 
 SCRIPTS = Path(__file__).resolve().parent.parent
-sys.path.insert(0, str(SCRIPTS / "pipeline"))
 
 _COLAB = Path("/content/drive/MyDrive/treedata")
 BASE = _COLAB if _COLAB.exists() else Path(r"G:\My Drive\treedata")
@@ -179,8 +178,6 @@ def plan_for(target, source="2020s", table=None, table_path=None):
     """What synthesis to `target` would apply, per band — without touching a raster."""
     if table is None:
         table, table_path = load_table()
-    import sys as _s
-    _s.path.insert(0, str(SCRIPTS / "pipeline"))
     from phase4seg import config as C
     from phase4seg.common import tier_for
 

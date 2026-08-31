@@ -111,7 +111,6 @@ from shapely.geometry import MultiPolygon, Polygon, shape
 
 _HERE = Path(__file__).resolve().parent           # …/Scripts/pipeline
 _SCRIPTS = _HERE.parent                           # …/Scripts
-sys.path.insert(0, str(_HERE))
 
 try:
     from pipeline_log import write_step_log       # noqa: E402

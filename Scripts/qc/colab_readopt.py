@@ -33,9 +33,6 @@ import time
 
 from colab_cli.common import state
 from colab_cli.state import SessionState
-import sys as _sys_for_names
-from pathlib import Path as _P_for_names
-_sys_for_names.path.insert(0, str(_P_for_names(__file__).resolve().parents[1] / "pipeline"))
 from phase4seg.names import clean_argv  # noqa: E402
 
 TOKEN_TTL_MARGIN_S = 25 * 60      # refresh when under this much life remains

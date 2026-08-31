@@ -42,7 +42,6 @@ DATA = Path(r"G:\My Drive\treedata")
 CHECKLIST = SCRIPTS / "pipeline" / "sector_campaign_checklist.yaml"
 CAMP = DATA / "phase4" / "qc" / "sector_campaign"
 COLAB = r"/c/Users/Kameron/.local/bin/colab.exe"
-sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "pipeline"))
 from phase4seg.names import clean_argv, BAD_STATES, is_status_file   # stdlib-only; see names.py
 
 BASH = shutil.which("bash") or r"C:\Program Files\Git\bin\bash.exe"

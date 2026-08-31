@@ -67,7 +67,6 @@ from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
-sys.path.insert(0, str(HERE.parent / "pipeline"))
 from phase4seg.names import clean_argv, parse_status_name, status_files
 import watch_queue                                                   # noqa: E402
 from watch_queue import _rows as merged_status_rows, BAD as BAD_STATES  # noqa: E402

@@ -89,7 +89,6 @@ from rasterio.vrt import WarpedVRT
 
 _HERE = Path(__file__).resolve().parent           # …/Scripts/pipeline
 _SCRIPTS = _HERE.parent                           # …/Scripts
-sys.path.insert(0, str(_HERE))                    # phase4seg package
 sys.path.insert(0, str(_SCRIPTS / "qc"))          # imagery_measure (CITY_SHP)
 
 from phase4seg import config as C                 # noqa: E402

@@ -1,7 +1,4 @@
 r"""Dual-epoch lidar CROSS-TABULATION — all four states, not just flat/flat.
-import sys as _sys_for_names
-from pathlib import Path as _P_for_names
-_sys_for_names.path.insert(0, str(_P_for_names(__file__).resolve().parents[1] / "pipeline"))
 from phase4seg.names import clean_argv  # noqa: E402
 
 `build_lidar_background.py` used the two lidar epochs (PSLC 2005, USGS 2016) to
@@ -163,7 +160,6 @@ from scipy import ndimage
 
 _HERE = Path(__file__).resolve().parent                 # …/Scripts/qc
 sys.path.insert(0, str(_HERE))
-sys.path.insert(0, str(_HERE.parent / "pipeline"))
 
 # ONE HOME for the settle-then-hash lake copy and the block warp: import them
 # from the overlay builder rather than pasting copies that will drift.

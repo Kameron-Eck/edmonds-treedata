@@ -50,17 +50,11 @@ import sys
 from pathlib import Path
 
 import numpy as np
-import sys as _sys_for_names
-from pathlib import Path as _P_for_names
-_sys_for_names.path.insert(0, str(_P_for_names(__file__).resolve().parents[1] / "pipeline"))
 from phase4seg.names import clean_argv  # noqa: E402
 
 # Lake paths: ONE home (pipeline/lake.py, refactor 2.4). The strict probe it
 # carries is the correct one — the bare .exists() this file used was true
 # whenever the mount POINT existed, mounted or not.
-import sys as _sys_lake
-from pathlib import Path as _P_lake
-_sys_lake.path.insert(0, str(_P_lake(__file__).resolve().parents[1] / "pipeline"))
 from lake import BASE  # noqa: E402
 QC_DIR = BASE / "phase4" / "qc"
 LOGS_DIR = BASE / "phase4" / "logs"

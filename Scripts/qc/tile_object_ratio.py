@@ -37,7 +37,6 @@ import sys
 from pathlib import Path
 
 SCRIPTS = Path(__file__).resolve().parent.parent
-sys.path.insert(0, str(SCRIPTS / "pipeline"))
 
 from phase4seg import config as C          # noqa: E402
 from phase4seg.common import tier_for      # noqa: E402

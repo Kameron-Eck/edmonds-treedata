@@ -22,7 +22,6 @@ from pathlib import Path
 # names.py is STDLIB-ONLY (see its docstring) — importing it keeps this
 # watcher free of the engine's heavy deps while giving it the one
 # status-file discovery rule.
-sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "pipeline"))
 from phase4seg.names import clean_argv, BAD_STATES, status_files
 
 # Lake paths: ONE home (pipeline/lake.py, refactor 2.4). The strict probe it

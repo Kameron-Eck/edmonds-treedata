@@ -266,3 +266,75 @@ def test_nothing_is_computed_when_the_term_is_off():
     assert body.count("if self.training and config.BOUNDARY_WEIGHT:") == 2, (
         "both Dataset return paths (AUX_HEIGHT on and off) must gate the SDM on the "
         "weight being non-zero")
+
+
+# ── the losses split (3.5, 2026-08-31) ───────────────────────────────────────
+
+LOSS_NAMES = ["_masked_bce", "_masked_dice", "_masked_focal", "_masked_l1",
+              "_masked_boundary", "_signed_distance_map", "sdm_for_mask",
+              "_seg_loss", "_compute_pos_weight"]
+
+
+def test_the_facade_keeps_every_call_site_working():
+    """~9 call sites and several tests reach these as core.X. The facade must make the
+    move invisible — same objects, not copies."""
+    from phase4seg import core, losses
+    for n in LOSS_NAMES:
+        assert getattr(core, n, None) is getattr(losses, n, None), (
+            f"core.{n} is not losses.{n} — the facade is re-defining rather than "
+            f"re-exporting")
+
+
+def test_importing_losses_pulls_no_torch():
+    """THE PROPERTY THE WHOLE SPLIT DEPENDS ON. core.py binds torch into its own module
+    globals with `global torch, ...`, so a moved-out module would have none. The fix was
+    function-local imports, not a globals-dict rework — and that only works while the
+    module itself stays torch-free at import time. If someone 'tidies' the five local
+    imports up to the top, this fails and the orchestrator's ability to run against a
+    broken engine environment goes with it."""
+    import subprocess
+    import sys as _s
+    code = ("import sys; sys.path.insert(0, r'%s');"
+            "import phase4seg.losses;"
+            "print('torch' in sys.modules)" % str(SCRIPTS / "pipeline"))
+    out = subprocess.run([_s.executable, "-c", code], capture_output=True, text=True)
+    assert out.stdout.strip() == "False", (
+        f"importing phase4seg.losses pulled torch: {out.stdout!r} {out.stderr[-300:]!r}")
+
+
+def test_the_five_torch_users_import_it_locally():
+    """Derived, not listed: whichever functions reference torch must each carry their own
+    import, because there is no module-level binding to fall back on."""
+    import ast
+    src = (SCRIPTS / "pipeline" / "phase4seg" / "losses.py").read_text(encoding="utf-8")
+    tree = ast.parse(src)
+    for fn in [n for n in tree.body if isinstance(n, ast.FunctionDef)]:
+        uses = any(isinstance(x, ast.Name) and x.id == "torch"
+                   or (isinstance(x, ast.Attribute) and isinstance(x.value, ast.Name)
+                       and x.value.id == "torch")
+                   for x in ast.walk(fn))
+        if not uses:
+            continue
+        imports = any(isinstance(x, ast.Import) and any(a.name == "torch" for a in x.names)
+                      for x in ast.walk(fn))
+        assert imports, (
+            f"losses.{fn.name} uses torch but does not import it locally — there is no "
+            f"module-level torch in this file to fall back on")
+
+
+def test_preflight_knows_about_the_new_module():
+    """phase4seg_preflight's MODULES list is HARDCODED and hand-maintained while the symbol
+    locators auto-discover. A new engine module that is not in it gets zero static gating
+    and nothing says so — which is exactly the silent-coverage-gap shape this repo keeps
+    finding."""
+    src = (SCRIPTS / "pipeline" / "phase4seg_preflight.py").read_text(encoding="utf-8")
+    import re
+    m = re.search(r"MODULES\s*=\s*\[([^\]]*)\]", src)
+    assert m, "MODULES list not found in preflight"
+    listed = set(re.findall(r'"([a-z_]+)"', m.group(1)))
+    pkg = {p.stem for p in (SCRIPTS / "pipeline" / "phase4seg").glob("*.py")
+           if p.stem not in ("__init__", "names")}
+    missing = pkg - listed
+    assert not missing, (
+        f"engine modules absent from preflight's MODULES and therefore ungated: "
+        f"{sorted(missing)}")

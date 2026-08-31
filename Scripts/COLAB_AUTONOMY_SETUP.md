@@ -410,3 +410,43 @@ acting on it would have stopped a healthy runtime and paid for a second one.
 by the queue itself and proved stable throughout, while the beacon files blinked. The
 beacon answers "is the VM breathing"; the ledger answers "is the work advancing", which is
 the question that actually matters — and it is the one that stayed readable.
+
+## A LOST HANDLE IS NOT A DEAD VM, and neither is a silent ledger (2026-08-31)
+
+I declared `pilotcoarse` dead and launched a replacement. It was working the whole time.
+Three signals said "dead" and all three were wrong; the one that would have been right was
+arithmetic I had already done.
+
+| signal | read as | actually |
+|---|---|---|
+| `colab exec` -> `Session 'pilotcoarse' appears to be lost (404/401). Cleaning up.` | VM gone | the CLI HANDLE was gone; the VM ran to `train OK 54.7 min` |
+| beacon 2392 s stale, `util=0%` | VM gone | the BEACON process had stopped; the queue had not |
+| ledger frozen at `train RUNNING` for 52 min | stalled | coarse `train` MEDIAN is 44.5 min and its MAX is 146.4 |
+
+**The ledger does not update DURING a step.** A step in progress writes one RUNNING row and
+nothing more until it finishes, so "no new rows for 52 minutes" is not evidence of anything
+unless 52 minutes is long FOR THAT STEP. It was not. The correct check is elapsed-vs-known
+distribution, and those numbers are derivable from the ledger itself in one query — I had
+printed them earlier the same night and still read silence as death.
+
+Note the trap in the 4-minute beacon rule: it is sound for detecting a dead VM but it does
+NOT distinguish a dead VM from a dead BEACON. Both leave a stale file. When the beacon is
+stale, go to the ledger; when the ledger is quiet, go to the step's own timing distribution
+before concluding anything.
+
+**`colab exec` against a lost session DESTROYS the handle.** The CLI's "Cleaning up" removes
+the session from `sessions.json`, so probing a VM you suspect is dead permanently costs the
+ability to talk to it if you are wrong. The VM keeps running headless and its self-stop
+watchdog still reclaims it, so the work is not lost — but it can only be watched through
+the lake from that point on.
+
+**What the duplicate cost, and why it was nearly worse.** The replacement bootstrapped and
+launched the same queue with the SAME run tag, and resumed at `evaluate` because the ledger
+by then said `train OK`. Two VMs were briefly assigned the same (year, tag) — the exact
+concurrent-writer collision `names.py::tile_dir_name` records corrupting a landed 2026-08-27
+result. It was stopped ~4 minutes in, before it wrote any ledger row, eval row or artifact,
+so nothing was contaminated. The duplicate-tag guard did not save this: it scans for LIVE
+beacons, and the original's beacon was stale, so the clash was invisible to it.
+
+> Before relaunching an arm you believe is dead: check the LEDGER's last step against that
+> step's median and max. Only then probe — and know that probing may cost the handle.

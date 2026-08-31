@@ -18,18 +18,13 @@ from phase4seg.config import *
 from phase4seg import config
 
 
-def _pip_install(spec):
-    print(f"  • installing {spec} …")
-    subprocess.run([sys.executable, "-m", "pip", "install", "-q", spec], check=True)
-
-
-def _ensure_deps(deps):
-    for import_name, pip_spec in deps:
-        try:
-            importlib.import_module(import_name)
-        except ImportError:
-            _pip_install(pip_spec)
-            importlib.invalidate_caches()
+# The bootstrap MECHANISM lives in phase4seg/deps.py since 2026-08-31 (refactor 2.3).
+# These local names survive because qc/test_ci_gates.py::_bootstrap_specs AST-matches
+# `_ensure_deps([...literal list...])` call sites BY NAME in this file — the gate that
+# keeps in-script specs consistent with requirements-colab.txt. The names delegate; the
+# literal list below stays a literal.
+from phase4seg.deps import ensure_deps as _ensure_deps            # noqa: F401
+from phase4seg.deps import pip_install as _pip_install            # noqa: F401
 
 
 _ensure_deps([

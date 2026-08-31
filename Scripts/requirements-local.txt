@@ -13,3 +13,4 @@ numpy
 matplotlib
 pyyaml
 pyarrow
+pillow

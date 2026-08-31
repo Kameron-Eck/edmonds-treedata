@@ -32,3 +32,5 @@ numpy
 #                             in a phase-3/4 session)
 # Running phase0 in the SAME Colab session as phase3/phase4seg downgrades smp and
 # breaks the live profile. If phase0 must ever re-run, give it its own runtime.
+matplotlib
+pillow

@@ -79,17 +79,13 @@ from pathlib import Path
 
 
 # ── Dependency bootstrap (fresh-runtime safe) ─────────────────────────────────
-def _pip(spec):
-    print(f"  • installing {spec} …")
-    subprocess.run([sys.executable, "-m", "pip", "install", "-q", spec], check=True)
 
-for _imp, _spec in [("rasterio", "rasterio"), ("geopandas", "geopandas"),
+# Dep bootstrap: mechanism in phase4seg/deps.py (refactor 2.3); the LIST stays
+# per-file — nine distinct sets exist and one shared list would over-install.
+from phase4seg.deps import ensure_deps as _ensure_deps  # noqa: E402
+_ensure_deps([("rasterio", "rasterio"), ("geopandas", "geopandas"),
                     ("numpy", "numpy"), ("PIL", "pillow"),
-                    ("shapely", "shapely"), ("fiona", "fiona")]:
-    try:
-        importlib.import_module(_imp)
-    except ImportError:
-        _pip(_spec)
+                    ("shapely", "shapely"), ("fiona", "fiona")])
 
 import numpy as np
 import geopandas as gpd

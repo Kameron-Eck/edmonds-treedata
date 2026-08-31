@@ -101,6 +101,31 @@ try:
 except Exception as e:
     die("config from tiles", e)
 
+# ── the AUX-HEIGHT warm start, which nothing else exercises ─────────────────
+# AUX_HEIGHT is False above, so every gate below runs the plain U-Net and the aux branch
+# is reached by no local check at all. That is how the allow_missing prefix regression
+# (2026-08-31) survived: core.py names the head `height_head`, three call sites passed
+# `aux_height_head.`, and the only tests touching it used a stand-in named after the bug.
+# Building the real aux model on CPU with no pretrained weights costs ~1 s and proves the
+# exact path a --aux-height run takes on epoch 1: load a checkpoint that has no head.
+step("aux-height warm start (real model, CPU, no pretrained weights)")
+try:
+    _sa, _sc = config.AUX_HEIGHT, config.IN_CHANNELS
+    config.AUX_HEIGHT, config.IN_CHANNELS = True, 3
+    _aux = core._build_unet_with_height()
+    _head = [k for k in _aux.state_dict() if k.startswith("height_head.")]
+    if not _head:
+        raise ValueError("the aux model exposes no height_head.* keys")
+    _no_head = {k: v for k, v in _aux.state_dict().items()
+                if not k.startswith("height_head.")}
+    _res = _aux.load_state_dict(_no_head, strict=False)
+    core._assert_state_fits(_res, "smoke_non_aux.pt", allow_missing=("height_head.",),
+                            what="aux warm start")
+    print(f"    {len(_head)} head key(s) init from scratch, rest loaded: {_head}")
+    config.AUX_HEIGHT, config.IN_CHANNELS = _sa, _sc
+except Exception as e:
+    die("aux-height warm start", e)
+
 # ── the REAL architecture (build_model, not a stand-in) ──────────────────────
 # The tiny-model step below deliberately builds smp.Unet("resnet18") directly,
 # for speed. That makes it a good wiring test and a USELESS architecture gate:

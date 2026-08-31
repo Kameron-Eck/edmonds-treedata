@@ -100,7 +100,7 @@ def main():
     model = core.build_model(device, compile_model=False)
     if a.ckpt:
         core.load_state_into(model, Path(a.ckpt), device,
-                             allow_missing=("aux_height_head.",),
+                             allow_missing=("height_head.",),
                              what="ERF measurement")
         trained = True
     else:

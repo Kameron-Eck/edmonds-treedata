@@ -45,7 +45,13 @@ class _Tiny(torch.nn.Module):
         self.encoder = torch.nn.Conv2d(3, 4, 1)
         self.decoder = torch.nn.Conv2d(4, 1, 1)
         if with_head:
-            self.aux_height_head = torch.nn.Conv2d(4, 1, 1)
+            # NAMED TO MATCH THE REAL MODEL. core.py::_build_unet_with_height calls this
+            # attribute `height_head`, so the state_dict keys are height_head.weight /
+            # .bias. This stand-in used to call it `aux_height_head`, and because the
+            # three production call sites passed that same wrong prefix to allow_missing,
+            # all four assertions below passed against a prefix the real model never
+            # emits. The tests agreed with the bug instead of catching it.
+            self.height_head = torch.nn.Conv2d(4, 1, 1)
 
 
 def _save(tmp_path, state, name="ck.pt"):
@@ -80,7 +86,7 @@ def test_unexpected_keys_are_refused_even_with_allow_missing(tmp_path):
     ck = _save(tmp_path, state)
     with pytest.raises(SystemExit) as e:
         core.load_state_into(_Tiny(), ck, torch.device("cpu"),
-                             allow_missing=("aux_height_head.",))
+                             allow_missing=("height_head.",))
     assert "unexpected" in str(e.value)
 
 
@@ -89,7 +95,7 @@ def test_the_declared_aux_head_gap_is_permitted(tmp_path):
     so a --aux-height model legitimately has keys it cannot supply."""
     ck = _save(tmp_path, _Tiny().state_dict())            # no head, like Phase 3
     got = core.load_state_into(_Tiny(with_head=True), ck, torch.device("cpu"),
-                               allow_missing=("aux_height_head.",))
+                               allow_missing=("height_head.",))
     assert got is not None
 
 
@@ -99,7 +105,7 @@ def test_the_allowance_is_prefix_scoped_not_a_blanket(tmp_path):
     ck = _save(tmp_path, {k: v for k, v in full.items() if k.startswith("encoder.")})
     with pytest.raises(SystemExit) as e:
         core.load_state_into(_Tiny(with_head=True), ck, torch.device("cpu"),
-                             allow_missing=("aux_height_head.",))
+                             allow_missing=("height_head.",))
     assert "decoder" in str(e.value), "the undeclared decoder gap must still stop it"
 
 
@@ -149,3 +155,83 @@ def test_no_override_still_searches_the_defaults():
     above must not break it."""
     got = core.resolve_p3_ckpt(None)
     assert got is None or got.exists(), "default search returned a nonexistent path"
+
+
+# ── the prefix must come FROM the model, not from a stand-in ──────────────────
+
+def test_allow_missing_prefix_matches_the_real_aux_head():
+    """THE REGRESSION THIS FILE MISSED, 2026-08-31.
+
+    core.py::_build_unet_with_height names the head `self.height_head`, so its state_dict
+    keys are `height_head.weight` / `height_head.bias`. Three production call sites passed
+    `allow_missing=("aux_height_head.",)` — a prefix that matches NEITHER — so
+    _assert_state_fits would raise SystemExit on any --aux-height run loading a non-aux
+    checkpoint, which is every warm start from the 2020 base.
+
+    It shipped in 50006ce (2026-08-29, the commit that made a non-fitting checkpoint
+    fatal) and was invisible for two reasons that reinforced each other: this file's
+    stand-in was ALSO called `aux_height_head`, so four assertions agreed with the bug;
+    and phase4seg_smoke.py hard-sets AUX_HEIGHT = False, so the runtime gate never
+    reached the branch. Nobody had run the flag since — the last aux run in
+    run_registry.csv is 20260707_2016_v046_aux-height.
+
+    A stand-in can be named anything. This derives the prefix from the REAL model, so the
+    two cannot drift apart again.
+    """
+    import sys
+    from pathlib import Path
+    sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "pipeline"))
+    from phase4seg import config, core
+
+    core._ensure_torch()
+    saved_aux, saved_ch = config.AUX_HEIGHT, config.IN_CHANNELS
+    try:
+        config.AUX_HEIGHT, config.IN_CHANNELS = True, 3
+        model = core._build_unet_with_height()
+        head_keys = [k for k in model.state_dict() if "height" in k]
+    finally:
+        config.AUX_HEIGHT, config.IN_CHANNELS = saved_aux, saved_ch
+
+    assert head_keys, "the aux model exposes no height keys at all"
+
+    # Scan the whole ENGINE PACKAGE, not core.py by path: the split boarded as 3.5 would
+    # move this code, and a path-anchored read would then pass vacuously. Same reason
+    # test_status_discovery bans the hardcoded shape.
+    import re
+    from phase4seg.names import engine_files
+
+    prefixes = set()
+    for f in engine_files(Path(__file__).resolve().parent.parent / "pipeline" / "phase4seg"):
+        prefixes |= set(re.findall(r'allow_missing=\("([A-Za-z0-9_.]+)",\)',
+                                   f.read_text(encoding="utf-8")))
+    assert prefixes, "no allow_missing prefixes found anywhere in the engine package"
+
+    for pref in prefixes:
+        assert any(k.startswith(pref) for k in head_keys), (
+            f"the engine passes allow_missing=({pref!r},) but the real model's head keys "
+            f"are "
+            f"{head_keys} — nothing starts with it, so _assert_state_fits will reject "
+            f"every warm start on an --aux-height run")
+
+
+def test_the_aux_head_actually_loads_from_a_non_aux_checkpoint():
+    """End-to-end on the real model: a checkpoint WITHOUT the head (every 2020 base
+    warm start) must load into the aux model with the head left at initialisation, and
+    must NOT raise. This is the exact path --aux-height takes on epoch 1."""
+    import sys
+    from pathlib import Path
+    sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "pipeline"))
+    from phase4seg import config, core
+
+    core._ensure_torch()
+    saved_aux, saved_ch = config.AUX_HEIGHT, config.IN_CHANNELS
+    try:
+        config.AUX_HEIGHT, config.IN_CHANNELS = True, 3
+        model = core._build_unet_with_height()
+        full = model.state_dict()
+        non_aux = {k: v for k, v in full.items() if not k.startswith("height_head.")}
+        res = model.load_state_dict(non_aux, strict=False)
+        core._assert_state_fits(res, "synthetic.pt",
+                                allow_missing=("height_head.",), what="aux warm start")
+    finally:
+        config.AUX_HEIGHT, config.IN_CHANNELS = saved_aux, saved_ch

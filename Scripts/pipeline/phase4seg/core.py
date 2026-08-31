@@ -1927,7 +1927,7 @@ def step_train(label, batch_size=BATCH_SIZE, p3_ckpt=None, dry_run=False, compil
     # aux height head, so a --aux-height model has keys it cannot supply. Named
     # here rather than waved through globally, so any OTHER gap still stops the run.
     ck = load_state_into(model, p3, device,
-                         allow_missing=("aux_height_head.",),
+                         allow_missing=("height_head.",),
                          what="Phase-3 2020 base -> this fine-tune model")
     print(f"  ✓ Fine-tune start: {Path(p3).name}  "
           f"(P3 val_bce={ck.get('best_val', '?')})")
@@ -2602,7 +2602,7 @@ def step_inference(label, batch_size=INFER_BATCH_SIZE, dry_run=False, citywide=F
     # guard as every other path now.
     _res = _tgt.load_state_dict(
         _inflate_first_conv(ck["model_state"], _tgt.state_dict()), strict=False)
-    _assert_state_fits(_res, ckpt, allow_missing=("aux_height_head.",),
+    _assert_state_fits(_res, ckpt, allow_missing=("height_head.",),
                        what="deployed checkpoint -> citywide inference")
     model.eval()
     if device.type == "cuda":

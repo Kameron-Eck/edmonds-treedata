@@ -99,7 +99,9 @@ CHM_DN_PER_M = 1.0 / 0.2
 # exist on disk, so every .exists() passed while the stale files covered 39.6-67%
 # of the authoritative extent. Deriving fixes the instance AND the class, and picks
 # up all 10 NIR-bearing acquisitions instead of 4. See names.py::nir_years.
-from phase4seg import config as _C
+from phase4seg import config
+from phase4seg import config as _C            # noqa: E402
+from phase4seg.config import resolve_imagery as _resolve_imagery  # noqa: E402
 from phase4seg.names import clean_argv, nir_years as _nir_years
 from pipeline_log import write_step_log
 
@@ -111,11 +113,12 @@ MARSH_LON, MARSH_LAT = -122.3837, 47.8027
 
 
 def resolve_img(fname):
-    for d in IMAGERY_DIRS:
-        p = d / fname
-        if p.exists():
-            return p
-    raise FileNotFoundError(f"{fname} not found in {[str(d) for d in IMAGERY_DIRS]}")
+    """Delegates to config.resolve_imagery — the ONE resolution order (refactor 2.5).
+    Same contract as the loop it replaces: returns the path, raises
+    FileNotFoundError when no root answers. The (path, root) pair is available at
+    the shared home for callers that need to record which root answered."""
+    p, _root = _resolve_imagery(fname)
+    return p
 
 
 def resolve_chm():

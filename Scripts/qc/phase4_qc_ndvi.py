@@ -96,7 +96,9 @@ CHM_DN_PER_M = 1.0 / 0.2                  # DN = 1 + round(height_m / 0.2)
 import sys as _sys
 from pathlib import Path as _Path
 _sys.path.insert(0, str(_Path(__file__).resolve().parents[1] / "pipeline"))
+from phase4seg import config
 from phase4seg import config as _C            # noqa: E402
+from phase4seg.config import resolve_imagery as _resolve_imagery  # noqa: E402
 from phase4seg.names import clean_argv, nir_years as _nir_years   # noqa: E402
 from pipeline_log import write_step_log
 # chm_matched is NOT a catalog property — it records which years the 2016 CHM grid
@@ -108,11 +110,12 @@ NIR_CATALOG = {k: {"file": e["native_file"], "nir": int(e["bands"]),
 
 
 def resolve_img(fname):
-    for d in IMAGERY_DIRS:
-        p = d / fname
-        if p.exists():
-            return p
-    raise FileNotFoundError(f"{fname} not found in {[str(d) for d in IMAGERY_DIRS]}")
+    """Delegates to config.resolve_imagery — the ONE resolution order (refactor 2.5).
+    Same contract as the loop it replaces: returns the path, raises
+    FileNotFoundError when no root answers. The (path, root) pair is available at
+    the shared home for callers that need to record which root answered."""
+    p, _root = _resolve_imagery(fname)
+    return p
 
 
 def resolve_chm():

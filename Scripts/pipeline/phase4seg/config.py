@@ -1070,3 +1070,36 @@ EPOCH = 2
 ARCH                    = "unet"          # "unet" | "deeplabv3plus"
 DEEPLAB_OUTPUT_STRIDE   = 16              # smp default; 8 doubles the feature map
 DEEPLAB_DECODER_CH      = 256             # int for DeepLabV3+, unlike U-Net's tuple
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+#  RESOLVE_IMAGERY — the one filename->path resolver           APPENDED 2026-08-31
+#
+#  WHY HERE. imagery_roots() above is already "the ONE resolution order" so the
+#  engine and the QC scripts cannot disagree about which copy of a year they read
+#  — but it returned only the ORDER, and ~15 QC files each hand-rolled the loop
+#  that walks it. Fifteen loops, one contract, and the survey measured 0/36
+#  divergent answers — identical behaviour restated fifteen times. This appends
+#  the loop itself. config.py is append-only; appending honours that, and
+#  _tile_signature does not read this function (gated by
+#  qc/test_tile_signature_scope.py), so it costs no re-tile.
+#
+#  RETURNS (path, root), NEVER a bare path. Recording WHICH root answered is a
+#  caller obligation — a silent cross-root fallback is exactly the bug the
+#  ordering exists to expose, and the two sites that were already compliant
+#  (make_nir_stack, radiometry_fingerprint) both use this shape.
+#
+#  required=False returns (None, None) instead of raising, absorbing the
+#  return-None contract some callers carry. Callers that want SystemExit or
+#  FileNotFoundError wrap it — their exception contracts differ and are
+#  load-bearing, so this function does not guess.
+def resolve_imagery(native_file, extra_roots=(), required=True):
+    for root in list(extra_roots) + imagery_roots():
+        p = root / native_file
+        if p.exists():
+            return p, root
+    if required:
+        raise FileNotFoundError(
+            f"{native_file} not found under any imagery root "
+            f"({[str(r) for r in list(extra_roots) + imagery_roots()]})")
+    return None, None

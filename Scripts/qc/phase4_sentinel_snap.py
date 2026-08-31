@@ -59,6 +59,7 @@ from phase4seg.names import clean_argv  # noqa: E402
 # that carried the strict Full_Image probe lake.py standardised on — its comment about
 # the stray C:\content\... dir is the original statement of why the bare probe is wrong.
 from lake import BASE  # noqa: E402
+from phase4seg.config import resolve_imagery as _resolve_imagery  # noqa: E402
 
 _LOCAL_IMG = Path(r"D:\edmonds-pipeline\Imagery")
 _DRIVE_IMG = BASE / "Full_Image" / "Pipeline Imagery"
@@ -81,11 +82,12 @@ IMG_CATALOG = {
 
 
 def resolve(fname):
-    for d in IMAGERY_DIRS:
-        p = d / fname
-        if p.exists():
-            return p
-    raise FileNotFoundError(f"{fname} not found in {[str(d) for d in IMAGERY_DIRS]}")
+    """Delegates to config.resolve_imagery — the ONE resolution order (refactor 2.5).
+    Same contract as the loop it replaces: returns the path, raises
+    FileNotFoundError when no root answers. The (path, root) pair is available at
+    the shared home for callers that need to record which root answered."""
+    p, _root = _resolve_imagery(fname)
+    return p
 
 
 def site_bounds(site):

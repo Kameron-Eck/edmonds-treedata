@@ -335,3 +335,37 @@ def symbol_body(pkg_dir, name, kind=None, within=None):
         return None
     _p, src, node = hits[0]
     return ast.get_source_segment(src, node)
+
+
+def status_out_name(stem, launch_ts):
+    """The status file THIS launch writes: the one formatter, paired with the parser.
+
+    phase4_train_queue built this f-string by hand while names.py owned the parser, so the
+    two could drift and nothing would notice — no test constructed a name through the
+    writer. Round-trip is now gated: parse_status_name(status_out_name(s, ts)) == (s, ts).
+    """
+    return f"{STATUS_STEM}_{stem}_{launch_ts}.csv"
+
+
+def status_files_for_stem(qc_dir, stem):
+    """This queue's status files — its launches AND its seed, and nothing else.
+
+    THE TRAP THIS EXISTS TO AVOID, measured against the real lake on 2026-08-31. Callers
+    globbed `train_queue_status_{stem}_*.csv`, which is PREFIX matching: 23 of the 77 files
+    are matched by some other queue's stem. Twenty-two of those are that queue's own
+    `_seed` file and are wanted — `sector_campaign_loop` writes a 24-row seed whose whole
+    job is to stop the queue re-running finished base-year fine-tunes, so dropping it makes
+    completed work look un-run. Exactly ONE is a genuine cross-queue collision:
+
+        queue_noise_2021s   also matches   queue_noise_2021s_b   (a different 4-job queue)
+
+    So neither the naive glob nor naive stem-equality is right. Equality against `stem` OR
+    `stem + "_seed"` keeps all 22 and rejects the one.
+    """
+    want = (str(stem), f"{stem}_seed")
+    out = []
+    for p in status_files(qc_dir):
+        parsed = parse_status_name(p.name)
+        if parsed and parsed[0] in want:
+            out.append(p)
+    return sorted(out)

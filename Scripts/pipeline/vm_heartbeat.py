@@ -227,6 +227,31 @@ def _vfs_bytes(root=VFS_CACHE, cap=4000):
     return cache, (dirty if ok else None)
 
 
+def _is_status_name(name):
+    """Is this a real run-outcome ledger file? A DELIBERATE TWIN of
+    phase4seg.names.is_status_file, kept local because this beacon must keep running when
+    the engine package is unimportable — it is the liveness signal, and a failed import
+    here costs the ability to see any VM at all.
+
+    A twin is only safe while it is proven equivalent, so
+    qc/test_status_discovery.py::test_vm_heartbeat_agrees_with_the_shared_rule checks both
+    against the same corpus. Edit one, the test fails.
+
+    WHY IT WAS NEEDED (2026-08-31): _newest's stem filter below is CONDITIONAL. When the
+    queue-process regex finds nothing, stem is None, the filter is skipped entirely, and
+    every `train_queue_status*.csv` on the lake is a candidate — including
+    `train_queue_status.CONTAMINATED-BY-TEST-20260829.csv`, which is still sitting there.
+    The exemption that excused this file from the shared rule claimed the rename "breaks
+    the _{stem}_ match it requires"; on the stem=None path there is no such match to break.
+    """
+    if not (name.startswith("train_queue_status") and name.endswith(".csv")):
+        return False
+    rest = name[len("train_queue_status"):-len(".csv")]
+    if rest and not rest.startswith("_"):
+        return False                      # a dot-suffixed rename, e.g. ".CONTAMINATED-..."
+    return all(c.isalnum() or c in "._-" for c in rest)
+
+
 def _newest(dirpath, prefix, suffix, stem):
     """Newest file matching prefix*suffix, filtered to THIS VM's queue stem when we
     know it (see the multi-VM note in the module docstring)."""
@@ -236,6 +261,10 @@ def _newest(dirpath, prefix, suffix, stem):
             for e in it:
                 n = e.name
                 if not (n.startswith(prefix) and n.endswith(suffix)):
+                    continue
+                # Reject a file renamed aside even when stem is None (the filter below
+                # is conditional and would otherwise let it through). Status family only.
+                if prefix == "train_queue_status" and not _is_status_name(n):
                     continue
                 if stem and ("_" + stem + "_") not in n and not n.endswith("_" + stem + suffix):
                     continue

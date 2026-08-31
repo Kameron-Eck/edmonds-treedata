@@ -268,10 +268,16 @@ _DISCOVERY_EXEMPT = {
     "test_status_discovery.py": "this file",
     "test_queue_verify.py":     "constructs fixtures under tmp_path",
     "test_verified_write.py":   "constructs fixtures under tmp_path",
-    "vm_heartbeat.py":     "VM-side beacon, stdlib-only by design; its _newest() is a "
-                           "stem-scoped NEWEST-FILE selector, not a discovery rule — it "
-                           "cannot pick up a file renamed aside because the rename "
-                           "breaks the _{stem}_ match it requires",
+    # REASON REWRITTEN 2026-08-31. The previous one was FALSE: it said _newest "cannot
+    # pick up a file renamed aside because the rename breaks the _{stem}_ match it
+    # requires". That match is CONDITIONAL — when the queue-process regex finds nothing,
+    # stem is None, the filter is skipped, and all 77 candidates are admitted including
+    # the contaminated file. vm_heartbeat now carries its own _is_status_name, kept local
+    # because the beacon must run when the engine package is unimportable, and proven
+    # equivalent by test_vm_heartbeat_agrees_with_the_shared_rule.
+    "vm_heartbeat.py":     "VM-side beacon; must survive an unimportable engine package, "
+                           "so it keeps a LOCAL copy of the rule — a deliberate twin, "
+                           "gated for equivalence rather than trusted",
 }
 
 
@@ -346,3 +352,85 @@ def test_no_gate_still_hardcodes_the_engine_file_it_checks():
         "these assert on the engine's text via a hardcoded core.py path — use "
         "names.find_symbol_source / symbol_body so the check follows the symbol: " +
         ", ".join(bad))
+
+
+# ── one queue's files: its launches and its seed, nothing else ────────────────
+
+@pytest.mark.parametrize("stem,name,want", [
+    # the ONE genuine cross-queue collision on the real lake
+    ("queue_noise_2021s", "train_queue_status_queue_noise_2021s_b_20260826T185246Z.csv", False),
+    ("queue_noise_2021s", "train_queue_status_queue_noise_2021s_20260826T142501Z.csv", True),
+    # the 22 that a naive stem-equality fix would have thrown away
+    ("queue_smooth_2009", "train_queue_status_queue_smooth_2009_seed.csv", True),
+    ("queue_sectors_base2020", "train_queue_status_queue_sectors_base2020_seed.csv", True),
+    ("pilot_2019_fine", "train_queue_status_pilot_2019_fine_20260831T004442Z.csv", True),
+])
+def test_stem_selection_keeps_seeds_and_rejects_other_queues(tmp_path, stem, name, want):
+    """PREFIX MATCHING WAS THE BUG AND STEM EQUALITY WOULD HAVE BEEN THE OVERCORRECTION.
+
+    Callers globbed `train_queue_status_{stem}_*.csv`. Against the real lake that matched
+    23 files belonging to some OTHER stem — but 22 of those are the queue's own `_seed`
+    file and are wanted: sector_campaign_loop writes a 24-row seed whose entire job is to
+    stop the queue re-running finished base-year fine-tunes, so dropping it makes completed
+    work look un-run and costs GPU hours. Exactly one is a real collision, and it is the
+    one this rule has to reject.
+    """
+    from phase4seg.names import status_files_for_stem
+    (tmp_path / name).write_text("job,year,tag,step,state\n", encoding="utf-8")
+    got = [p.name for p in status_files_for_stem(tmp_path, stem)]
+    assert (name in got) is want, f"{name} for stem {stem}: got {got}"
+
+
+def test_the_writer_and_the_parser_round_trip():
+    """The formatter did not exist: phase4_train_queue hand-built the f-string while
+    names.py owned the parser, and no test constructed a name through the writer — so the
+    two could drift apart silently."""
+    from phase4seg.names import parse_status_name, status_out_name
+
+    for stem, ts in (("pilot_2019_fine", "20260831T004442Z"),
+                     ("queue_smooth_2009", "20260829T135750Z"),
+                     ("a", "20260101T000000Z")):
+        assert parse_status_name(status_out_name(stem, ts)) == (stem, ts)
+
+
+def test_the_queue_builds_its_status_name_through_the_formatter():
+    src = (SCRIPTS / "pipeline" / "phase4_train_queue.py").read_text(encoding="utf-8")
+    assert "status_out_name(" in src, "the writer no longer uses the shared formatter"
+    assert 'f"train_queue_status_{' not in src, "the hand-built f-string is back"
+
+
+def test_vm_heartbeat_agrees_with_the_shared_rule():
+    """vm_heartbeat keeps its OWN selector — deliberately, because it is the VM-side
+    beacon and must not depend on the engine package being importable. That is a twin, so
+    it is PROVEN equivalent here instead of trusted.
+
+    The exemption's previous wording claimed _newest "cannot pick up a file renamed aside
+    because the rename breaks the _{stem}_ match it requires". That was FALSE: the stem
+    filter is conditional (`if stem and ...`), and when the queue-process regex finds no
+    match, stem is None, the filter is off, and all 77 candidates are admitted — including
+    train_queue_status.CONTAMINATED-BY-TEST-20260829.csv. A gate whose stated reason is
+    wrong is worse than no gate, because it stops anyone looking.
+    """
+    import importlib.util
+
+    from phase4seg.names import is_status_file
+
+    spec = importlib.util.spec_from_file_location(
+        "vmhb", SCRIPTS / "pipeline" / "vm_heartbeat.py")
+    vm = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(vm)
+
+    corpus = [
+        "train_queue_status.csv",
+        "train_queue_status_queue_smooth_2009_seed.csv",
+        "train_queue_status_pilot_2019_fine_20260831T004442Z.csv",
+        "train_queue_status.CONTAMINATED-BY-TEST-20260829.csv",
+        "train_queue_status.BACKUP.csv",
+        "train_queue_statusfoo.csv",
+        "unrelated.csv",
+    ]
+    disagree = [n for n in corpus
+                if bool(vm._is_status_name(n)) != bool(is_status_file(n))]
+    assert not disagree, (
+        "vm_heartbeat's local status-name rule disagrees with names.is_status_file on "
+        f"{disagree} — the twin has drifted")

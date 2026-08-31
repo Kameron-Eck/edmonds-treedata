@@ -71,7 +71,10 @@ RUNS = BASE / "phase4" / "runs"
 EVAL_REPORT = BASE / "phase4" / "eval" / "semantic_eval_report.csv"
 INDEP_REPORT = BASE / "phase4" / "qc" / "qc_indep_report.csv"
 # discovery moved to phase4seg/names.status_files (2026-08-30)
-STATUS_GLOB = "train_queue_status*.csv"   # kept: some callers log it
+# STATUS_GLOB deleted 2026-08-31: grep found the definition was its ONLY occurrence,
+# and it still spelled out the exact permissive pattern that admitted the contaminated
+# file on 2026-08-29. A dead constant that encodes a retired rule is a trap for whoever
+# reaches for it next. Discovery goes through phase4seg.names.status_files.
 QC_DIR = BASE / "phase4" / "qc"
 MODELS, MASKS = BASE / "phase4" / "models", BASE / "phase4" / "masks"
 

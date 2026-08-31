@@ -156,7 +156,12 @@ def check_verify(clause, scratch) -> tuple[bool, str]:
         verdicts = {}
         for r in rows:
             if r.get("step") == "VERIFY":
-                verdicts[r.get("job_id") or r.get("job") or r.get("id")] = \
+                # `job` only. This file's OWN column contract, ~35 lines below, records
+                # that a first version wrote `job_id` and the seed went silently
+                # invisible, so the queue began full fine-tunes for the base years
+                # (caught 4 min in, 2026-08-25). A fallback to the column that caused
+                # that invites the same row back.
+                verdicts[r.get("job")] = \
                     (r.get("state") or "").upper()
         missing = [j for j in c["jobs"] if j not in verdicts]
         bad = {j: v for j, v in verdicts.items()

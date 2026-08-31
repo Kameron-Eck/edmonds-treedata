@@ -95,7 +95,7 @@ from pathlib import Path
 
 from phase4seg.names import (
     VERIFY_HARD_FAIL, job_key, pid_alive, sanitize_tag, status_files,
-    tile_dir_name,
+    status_out_name, tile_dir_name,
 )
 
 _COLAB_BASE = Path("/content/drive/MyDrive/treedata")
@@ -1511,7 +1511,7 @@ def main():
     global STATUS_OUT
     _stem = Path(args.queue).stem if args.queue else "jobs"
     _launch_ts = _dt.datetime.now(_dt.timezone.utc).strftime("%Y%m%dT%H%M%SZ")
-    STATUS_OUT = QC_DIR / f"train_queue_status_{_stem}_{_launch_ts}.csv"
+    STATUS_OUT = QC_DIR / status_out_name(_stem, _launch_ts)
     if _COLAB_BASE.exists():            # P11.4: the staging-lock dir must pre-exist —
         (BASE / "phase4" / "locks").mkdir(parents=True, exist_ok=True)   # never let two VMs race to create it
     print(f"  writing status to {STATUS_OUT.name}  (readers merge all "

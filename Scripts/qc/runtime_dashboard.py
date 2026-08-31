@@ -57,7 +57,7 @@ from pathlib import Path as _P
 # row key, with none of the engine's imports — this dashboard runs locally and
 # must start even when the engine environment is unusable.
 sys.path.insert(0, str(_P(__file__).resolve().parents[1] / "pipeline"))
-from phase4seg.names import is_status_file, job_key
+from phase4seg.names import is_status_file, job_key, status_files_for_stem
 import webbrowser
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -418,10 +418,13 @@ def read_queue_yaml(queue_file):
 def status_rows_for(stem):
     """Rows from this queue's per-launch files, newest launch last."""
     rows = []
-    # stem-scoped on purpose (one card = one queue), but still filtered through the
-    # one discovery rule so a file renamed aside cannot be read back in.
-    for f in sorted(p for p in QC_DIR.glob(f"train_queue_status_{stem}_*.csv")
-                    if is_status_file(p)):
+    # One card = one queue, so this is stem-scoped — but the scoping rule lives in
+    # names.py now. The glob it replaced was PREFIX matching: `queue_noise_2021s` also
+    # matched `queue_noise_2021s_b`, a different 4-job queue, and a foreign later-ts file
+    # would then set cur_file below and filter this queue's own failure rows away as
+    # "history". status_files_for_stem keeps the queue's own `_seed` file, which 22 of the
+    # 23 prefix matches turned out to be and which the chips genuinely need.
+    for f in status_files_for_stem(QC_DIR, stem):
         try:
             with open(f, encoding="utf-8", newline="") as fh:
                 for r in csv.DictReader(fh):

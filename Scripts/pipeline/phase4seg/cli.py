@@ -350,6 +350,13 @@ def main():
     p.add_argument("--emit-height", action="store_true",
                    help="(Reserved) With --aux-height, also write a predicted-height raster at "
                         "inference — a bonus diagnostic; not yet wired into step_inference.")
+    p.add_argument("--arch", default=None, choices=["unet", "deeplabv3plus"],
+                   help="architecture ARM (default unet). deeplabv3plus is a PLUMBING "
+                        "arm, not a migration — the recorded decision is 'keep the U-Net "
+                        "and resnet101; change the loss, not the backbone'. Stamped into "
+                        "the manifest and the checkpoint, because smp gives both the same "
+                        "encoder.* prefix and a cross-load would be a partial load rather "
+                        "than an error. Does NOT invalidate the tile cache.")
     p.add_argument("--boundary-weight", type=float, default=None,
                    help="Weight on the signed-distance BOUNDARY loss (Kervadec), "
                         "added to the region loss in PHASE B ONLY; Phase A always "
@@ -498,6 +505,13 @@ def main():
                 # The re-baseline marker (config.py, 2026-08-30). Absence in an
                 # older manifest means epoch 1 — do not backfill those.
                 "epoch": config.EPOCH,
+                # ARCHITECTURE PROVENANCE. Until 2026-08-31 nothing recorded which
+                # architecture produced a run — not this manifest, not the checkpoint,
+                # not the eval rows — so a DeepLabV3+ result and a U-Net result were
+                # indistinguishable to every downstream reader. That had to land before
+                # a second architecture could exist at all.
+                "arch": str(getattr(config, "ARCH", "unet")).lower(),
+                "encoder": ENCODER,
                 "seed": int(RANDOM_SEED),
                 # T4: the two seeds are separate knobs and the manifest now says
                 # so. `seed` is training stochasticity; `split_seed` owns the
@@ -570,6 +584,11 @@ def main():
     # script edit between runs. Defaults reproduce v030 exactly.
     config.COARSE_POS_WEIGHT_MAX = float(args.coarse_pos_weight_max)
     config.LR_PHASE_A = float(args.lr_phase_a)
+    if args.arch is not None:
+        config.ARCH = args.arch
+        print(f"  [--arch] {config.ARCH}"
+              + ("  (ARM, not a migration — see config.ARCH)"
+                 if config.ARCH != "unet" else ""))
     if args.boundary_weight is not None:
         config.BOUNDARY_WEIGHT = float(args.boundary_weight)
         print(f"  [--boundary-weight] {config.BOUNDARY_WEIGHT} on the signed-distance "

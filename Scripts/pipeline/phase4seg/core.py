@@ -374,13 +374,45 @@ def _build_unet_with_height():
 
 
 def build_model(device, compile_model=True):
-    """U-Net with a canopy logits head. With AUX_HEIGHT, adds a parallel height head
-    so the model returns a (seg_logits, height) tuple (the --aux-height reframe)."""
+    """The segmentation model for this arm. U-Net by default; DeepLabV3+ as an ARM.
+
+    ARCHITECTURE IS AN ARM, NOT A MIGRATION (Kam, 2026-08-31). The recorded decision
+    "keep the U-Net and resnet101; change the loss, not the backbone" stands; this exists
+    so the alternative can be PLUMBED and tested on a pilot pair, which is a different
+    question from which one ships.
+
+    THE DANGER THIS FUNCTION CREATES, and why config.ARCH is stamped everywhere: smp 0.5.0
+    gives U-Net and DeepLabV3+ the SAME `encoder.*` prefix. Loading one's checkpoint into
+    the other therefore matches every encoder key and misses only the decoder — a partial
+    load, not an error. Without the stamp, an arm comparison could silently be a U-Net
+    encoder wearing a DeepLabV3+ decoder at initialisation. _assert_state_fits catches the
+    key mismatch, but only because the caller has to declare what it expects; the stamp is
+    what lets a READER catch it afterwards.
+
+    AUX_HEIGHT stays U-Net-only: _build_unet_with_height subclasses smp.Unet to keep the
+    encoder.*/decoder.*/segmentation_head.* key layout that P3/P0 warm starts depend on.
+    Asking for both is refused rather than silently resolved.
+    """
     _ensure_torch()
-    model = _build_unet_with_height() if config.AUX_HEIGHT else smp.Unet(
-        encoder_name=ENCODER, encoder_weights=None,
-        decoder_channels=DECODER_CHANNELS, in_channels=config.IN_CHANNELS,
-        classes=1, activation=None)
+    arch = str(getattr(config, "ARCH", "unet")).lower()
+    if config.AUX_HEIGHT and arch != "unet":
+        raise SystemExit(
+            f"--aux-height is U-Net only, but ARCH={arch}. The height head subclasses "
+            f"smp.Unet to preserve the checkpoint key layout that warm starts need. "
+            f"Pick one.")
+    if arch == "deeplabv3plus":
+        model = smp.DeepLabV3Plus(
+            encoder_name=ENCODER, encoder_weights=None,
+            encoder_output_stride=config.DEEPLAB_OUTPUT_STRIDE,
+            decoder_channels=config.DEEPLAB_DECODER_CH,
+            in_channels=config.IN_CHANNELS, classes=1, activation=None)
+    elif arch == "unet":
+        model = _build_unet_with_height() if config.AUX_HEIGHT else smp.Unet(
+            encoder_name=ENCODER, encoder_weights=None,
+            decoder_channels=DECODER_CHANNELS, in_channels=config.IN_CHANNELS,
+            classes=1, activation=None)
+    else:
+        raise SystemExit(f"unknown ARCH {arch!r} — expected 'unet' or 'deeplabv3plus'")
     _inject_dropout(model.decoder, DECODER_DROPOUT)
     model = model.to(device)
     if compile_model:
@@ -979,6 +1011,10 @@ def _save_ckpt_state(phase, epoch, state, optim_state, sched_state,
                # are comparable without reconstructing it from dates. Absent on
                # pre-2026-08-30 checkpoints, which means epoch 1.
                "epoch_marker": config.EPOCH,
+               # Which architecture produced these weights. Without it a DeepLabV3+
+               # checkpoint and a U-Net one are indistinguishable, and smp gives them the
+               # same encoder.* prefix so a cross-load is a PARTIAL load, not an error.
+               "arch": str(getattr(config, "ARCH", "unet")).lower(),
                "hs_source": config.HS_SOURCE,             # which raster band 4 was
                # ── identity (2026-08-29, D2/D17) ──────────────────────────────
                # Without these a checkpoint cannot say which run produced it, so

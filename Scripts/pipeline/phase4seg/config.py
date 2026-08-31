@@ -1017,3 +1017,34 @@ EPOCH = 2
 #  than necessary AND uninformative — it gives no signal when someone edits one of the
 #  17 that genuinely does cost a rebuild. Appending is always safe; a new constant is
 #  a re-tile trigger only if _tile_signature reads it.
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+#  ARCHITECTURE SELECTION                                      APPENDED 2026-08-31
+#
+#  WHY NOW. Kam (2026-08-31): "can deeplab v3+ be an arm? We are to test the plumbing
+#  out on a pilot set of fine and course data. not the full pipeline." So this is an
+#  ARM, and a PLUMBING test — not a migration, and not a change to the recorded
+#  decision "keep the U-Net and resnet101; change the loss, not the backbone".
+#
+#  WHAT THE PLUMBING HAD TO GAIN FIRST. Before this, NOTHING recorded which
+#  architecture produced a checkpoint: not the checkpoint payload, not the run
+#  manifest, not the eval rows. A DeepLabV3+ checkpoint and a U-Net one were
+#  indistinguishable to every reader, and load_state_into would happily part-load one
+#  into the other — smp 0.5.0 shares the encoder.* prefix across both, so the failure
+#  would be a partial load, not an error. ARCH is stamped into the manifest and the
+#  checkpoint so that is impossible to do silently.
+#
+#  NOT A RE-TILE TRIGGER. tiling._tile_signature does not read it (gated by
+#  qc/test_tile_signature_scope.py), so switching arms reuses the tile cache — which
+#  is what makes an arm comparison affordable.
+#
+#  DEEPLABV3+ SPECIFICS, measured on the installed smp 0.5.0: decoder_channels is an
+#  INT here (256) where U-Net takes a tuple, and encoder_output_stride defaults to 16.
+#  The atrous rates are LEFT AT smp's (12, 24, 36) default for the plumbing test —
+#  choosing rates for this feature map is a science question, and phase4/qc/
+#  erf_report.md already argues the cheap win is a global-pool branch rather than
+#  large-rate taps. That argument is not settled here and is not meant to be.
+ARCH                    = "unet"          # "unet" | "deeplabv3plus"
+DEEPLAB_OUTPUT_STRIDE   = 16              # smp default; 8 doubles the feature map
+DEEPLAB_DECODER_CH      = 256             # int for DeepLabV3+, unlike U-Net's tuple

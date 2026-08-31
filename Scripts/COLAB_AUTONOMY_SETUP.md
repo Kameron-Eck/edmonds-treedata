@@ -387,3 +387,26 @@ FAILURE signatures, not just success ones" — except one layer up, in the harne
 than the launcher. Use `set -o pipefail`, or `bash launcher.sh > log 2>&1` and read the
 file, or key on a terminal LINE in the output rather than on the status. The chained L4
 launch survived only because it waited on the terminal line.
+
+## The G: mirror BLINKS files in and out while VMs write (2026-08-31)
+
+Watching three concurrent pilot VMs, `heartbeat_pilotcoarse.json` was readable, then
+absent, then readable again within seconds — and `ls | grep heartbeat_pilot` returned
+nothing at all on one call while a beacon had just been parsed successfully on the
+previous one. Nothing was wrong with the VMs. Google Drive for Desktop streams the mirror,
+and a directory listing does not reliably materialise files another writer is touching.
+
+This nearly cost an arm. The 4-minute rule ("treat any beacon older than ~4 min as a dead
+VM and relaunch rather than investigate") is sound, but it assumes the beacon's staleness
+is a fact about the VM. Read through a blinking mirror it is a fact about the mirror, and
+acting on it would have stopped a healthy runtime and paid for a second one.
+
+> **Retry before concluding absence.** A single failed read or empty listing on the G:
+> mirror is not evidence. Read N times with a short sleep; only then treat it as missing.
+> A watcher that concludes from one miss is the same under-specified-signal defect as the
+> status-file glob and the ledger row key — confident, and wrong.
+
+**Prefer the LEDGER over the beacon for liveness.** `train_queue_status_*.csv` is appended
+by the queue itself and proved stable throughout, while the beacon files blinked. The
+beacon answers "is the VM breathing"; the ledger answers "is the work advancing", which is
+the question that actually matters — and it is the one that stayed readable.

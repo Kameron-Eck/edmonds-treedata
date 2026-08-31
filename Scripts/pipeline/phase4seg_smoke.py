@@ -27,9 +27,10 @@ import rasterio
 HERE = Path(__file__).resolve().parent          # repo Scripts/pipeline (CODE plane)
 # DATA plane: code left Drive for the D: git repo 2026-08-20, so BASE can no
 # longer be derived from __file__ — probe the mounts like every other script.
-_COLAB_BASE = Path("/content/drive/MyDrive/treedata")
-_LOCAL_BASE = Path(r"G:\My Drive\treedata")
-BASE = _COLAB_BASE if _COLAB_BASE.exists() else _LOCAL_BASE
+# Lake paths: ONE home (pipeline/lake.py, refactor 2.4). The strict probe it
+# carries is the correct one — the bare .exists() this file used was true
+# whenever the mount POINT existed, mounted or not.
+from lake import BASE  # noqa: E402
 sys.path.insert(0, str(HERE))
 
 ap = argparse.ArgumentParser()

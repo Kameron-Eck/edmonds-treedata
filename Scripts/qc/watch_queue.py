@@ -25,9 +25,10 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "pipeline"))
 from phase4seg.names import clean_argv, BAD_STATES, status_files
 
-_COLAB_BASE = Path("/content/drive/MyDrive/treedata")
-_LOCAL_BASE = Path(r"G:\My Drive\treedata")
-BASE = _COLAB_BASE if _COLAB_BASE.exists() else _LOCAL_BASE
+# Lake paths: ONE home (pipeline/lake.py, refactor 2.4). The strict probe it
+# carries is the correct one — the bare .exists() this file used was true
+# whenever the mount POINT existed, mounted or not.
+from lake import BASE  # noqa: E402
 STATUS = BASE / "phase4" / "qc" / "train_queue_status.csv"
 
 # Was a hand-copy that MISSED three states the queue really writes — UNREADABLE,

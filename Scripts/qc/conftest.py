@@ -6,7 +6,7 @@ WHY THIS EXISTS (2026-08-29, and it is not hypothetical).
 `phase4_train_queue.BASE` to a tmp_path and believed that redirected the module.
 It does not. The queue binds its paths at IMPORT time:
 
-    BASE    = ...                                  phase4_train_queue.py::BASE
+    BASE    = ...                                  lake.py::BASE (imported by the queue)
     QC_DIR  = BASE / "phase4" / "qc"               ::QC_DIR
     STATUS  = QC_DIR / "train_queue_status.csv"    ::STATUS
 

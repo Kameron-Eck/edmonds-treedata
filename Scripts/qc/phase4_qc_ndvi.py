@@ -68,9 +68,13 @@ from rasterio.windows import Window
 
 # ── Environment / paths ───────────────────────────────────────────────────────
 # Runs LOCALLY (Windows, imagery on D:) or on Colab (Drive mount). Detect.
-_COLAB_BASE = Path("/content/drive/MyDrive/treedata")
-_LOCAL_BASE = Path(r"G:\My Drive\treedata")
-BASE = _COLAB_BASE if _COLAB_BASE.exists() else _LOCAL_BASE
+# Lake paths: ONE home (pipeline/lake.py, refactor 2.4). The strict probe it
+# carries is the correct one — the bare .exists() this file used was true
+# whenever the mount POINT existed, mounted or not.
+import sys as _sys_lake
+from pathlib import Path as _P_lake
+_sys_lake.path.insert(0, str(_P_lake(__file__).resolve().parents[1] / "pipeline"))
+from lake import BASE  # noqa: E402
 
 # Imagery: prefer the fast local mirror on D:, fall back to the Drive originals.
 _LOCAL_IMG = Path(r"D:\edmonds-pipeline\Imagery")

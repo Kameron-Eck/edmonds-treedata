@@ -99,9 +99,10 @@ from phase4seg.names import (
     status_out_name, tile_dir_name,
 )
 
-_COLAB_BASE = Path("/content/drive/MyDrive/treedata")
-_LOCAL_BASE = Path(r"G:\My Drive\treedata")
-BASE = _COLAB_BASE if _COLAB_BASE.exists() else _LOCAL_BASE
+# Lake paths: ONE home (pipeline/lake.py, refactor 2.4). The strict probe it
+# carries is the correct one — the bare .exists() this file used was true
+# whenever the mount POINT existed, mounted or not.
+from lake import BASE, COLAB_BASE as _COLAB_BASE  # noqa: E402
 
 SCRIPTS = Path(__file__).resolve().parent  # the CODE dir (repo pipeline/), NOT a Drive path
 QC_DIR  = BASE / "phase4" / "qc"

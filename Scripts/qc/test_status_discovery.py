@@ -473,3 +473,42 @@ def test_the_broken_argv_idiom_is_extinct():
     assert not hits, (
         "the broken -f/.json one-liner is back (it drops --flag=value.json silently); "
         "use names.clean_argv: " + ", ".join(hits))
+
+
+# ── the lake has one home ─────────────────────────────────────────────────────
+
+def test_lake_module_is_stdlib_only_and_uses_the_strict_probe():
+    """38 files used a bare `.exists()` probe that is true whenever the mount POINT
+    exists — mounted or not — so an unmounted Colab drive read as an empty lake rather
+    than an unreachable one. lake.py standardises the strict (Full_Image) probe the
+    3-file minority carried. Stdlib-only, or the orchestrator loses it."""
+    import importlib
+    import sys as _s
+    before = set(_s.modules)
+    lake = importlib.import_module("lake")
+    heavy = {"torch", "rasterio", "geopandas", "numpy", "pandas"}
+    pulled = heavy & {m.split(".")[0] for m in set(_s.modules) - before}
+    assert not pulled, f"lake.py pulled heavy deps: {sorted(pulled)}"
+    src = (SCRIPTS / "pipeline" / "lake.py").read_text(encoding="utf-8")
+    assert '(COLAB_BASE / "Full_Image").exists()' in src, "the strict probe is gone"
+    assert isinstance(lake.DRIVE_MOUNT_PREFIX, str) and lake.DRIVE_MOUNT_PREFIX.endswith("/"), (
+        "DRIVE_MOUNT_PREFIX must stay a forward-slash string with its trailing slash — "
+        "it feeds startswith() guards and Path() would break them on Windows")
+
+
+def test_no_new_two_path_probe_idiom():
+    """The 38-file sweep took the hand-rolled probe to zero outside the deliberate
+    stdlib twins; this keeps it there."""
+    import re
+    pat = re.compile(r'_COLAB_BASE = Path\("/content/drive/MyDrive/treedata"\)')
+    allowed = {"lake.py", "vm_heartbeat.py", "gen_vm_bootstrap.py", Path(__file__).name}
+    hits = []
+    for root in ("pipeline", "qc"):
+        for p in sorted((SCRIPTS / root).rglob("*.py")):
+            if "_archive" in p.parts or p.name in allowed:
+                continue
+            if pat.search(p.read_text(encoding="utf-8", errors="replace")):
+                hits.append(p.name)
+    assert not hits, (
+        "hand-rolled lake-root probes are back — import from pipeline/lake.py: "
+        + ", ".join(hits))

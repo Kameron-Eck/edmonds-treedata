@@ -919,11 +919,42 @@ def test_a_coarse_year_is_exempt(tmp_path):
     assert len(q._load_queue(qf)) == 1, f"{coarse} is coarse and should be exempt"
 
 
-def test_every_shipped_queue_file_still_loads():
-    """The guard must not break the 31 queue files that already exist."""
+def _shipped_queue_files():
+    """Every queue file in pipeline/, found by SHAPE — a YAML list of dicts with an id.
+
+    This globbed `queue_*.yaml` and had been silently skipping `queue3.yaml`, a real
+    3-job queue that simply has no underscore. Same coincidence as the cost report's
+    `train_queue_status_queue_*` glob (fixed 2026-08-30): every file HAPPENING to share a
+    prefix is not a rule, and the pilot queue the overhaul builds is named pilot_2019.yaml
+    precisely because a queue may be called anything. A validation sweep that quietly
+    covers 31 of 33 files is worse than one that covers none, because it reads as
+    complete.
+    """
+    import yaml
     qdir = Path(__file__).resolve().parents[1] / "pipeline"
+    out = []
+    for f in sorted(qdir.glob("*.yaml")):
+        try:
+            d = yaml.safe_load(f.read_text(encoding="utf-8"))
+        except Exception:
+            continue
+        if isinstance(d, list) and d and all(isinstance(x, dict) and "id" in x for x in d):
+            out.append(f)
+    return out
+
+
+def test_the_sweep_sees_queues_not_named_queue_underscore():
+    """queue3.yaml is the existing proof; pilot_2019.yaml is the one that matters next."""
+    names = {f.name for f in _shipped_queue_files()}
+    assert "queue3.yaml" in names, (
+        "queue3.yaml is a 3-job queue and must be validated like the rest")
+    assert len(names) >= 32, f"only {len(names)} queue files found"
+
+
+def test_every_shipped_queue_file_still_loads():
+    """The guard must not break any queue file that already exists."""
     refused = []
-    for f in sorted(qdir.glob("queue_*.yaml")):
+    for f in _shipped_queue_files():
         try:
             q._load_queue(f.name)
         except SystemExit as e:

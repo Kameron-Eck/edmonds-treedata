@@ -1,0 +1,69 @@
+# PILOT SLICE — calendar year 2019, all three tiers, end to end (overhaul Stage 5).
+#
+# WHAT THIS IS FOR. Not a science result. It is the proof that the MACHINERY produces the
+# deliverable without a hand-typed step, before anything commits to all 36 acquisitions.
+# The gate, per the plan: each year must produce (1) a mask GPKG, (2) an independently
+# scored row, (3) a manifest carrying EPOCH and architecture provenance, and (4) a
+# STATUS.md that updates without hand-editing. If any of the four is missing or needs a
+# manual step, the machinery is not finished and the 36-year run does not start.
+#
+# WHY 2019 AND NOT THREE UNRELATED YEARS. Verified against YEAR_CATALOG on 2026-08-30 —
+# these are the live values, not restated ones:
+#
+#     2019    10.00 cm  fine     3 bands  EPSG:3857    flown 2019-04-25 -> 05-08 (King)
+#     2019s   30.50 cm  medium   4 bands  EPSG:2285    flown 2019-10-11 (Snohomish HXIP)
+#     2019n   60.00 cm  coarse   4 bands  EPSG:26910   flown 2019-10-11 (NAIP)
+#
+# One calendar year supplies all three tiers AND two controlled experiments for free:
+#
+#   · 2019s vs 2019n is a SAME-FLIGHT resolution pair — 30.5 cm against 60 cm on one
+#     date. Ecology, season and sensor-day are frozen; resolution is the only variable.
+#     This is the calibration rung the season/GSD disentanglement has been missing, and
+#     it arrives as a by-product rather than as its own campaign.
+#   · 2019 (April-May) vs 2019s/2019n (October) is a WITHIN-YEAR season contrast. Real
+#     canopy change inside one calendar year is zero by construction, so any difference
+#     is season plus resolution — and the pair above already measured the resolution term.
+#
+# BANDS ARE NOT A CONFOUND. 2019s and 2019n carry 4 bands, but every job runs RGB-only
+# under --no-hillshade, so all three arms see three channels. That is deliberate: the
+# comparison is about resolution and season, and letting the two 4-band acquisitions use
+# their extra band would put a third variable into a designed contrast.
+#
+# THE NAME IS DELIBERATE. This file is pilot_2019.yaml, not queue_pilot_2019.yaml. Every
+# queue file to date happens to start `queue_`, which made that prefix look like a rule
+# it never was: the cost report globbed `train_queue_status_queue_*` and would have left
+# this pilot's A100 hours out of every cost table, silently (fixed 2026-08-30), and the
+# queue-yaml validation sweep globbed `queue_*.yaml` and had been skipping the existing
+# queue3.yaml for the same reason. Both now match on shape. Naming this file the way the
+# plan names it keeps those fixes honest instead of theoretical.
+#
+# LABEL SOURCE. Every job declares --force-citywide, so labels come from the Phase-3
+# citywide 2020 mask and NOT from polygons/ (overwritten with accept-all test data; the
+# 14,476-crown review was never finished). The queue REFUSES a job that does not declare
+# a label source, so this is enforced rather than remembered.
+#
+# EXPECTED WALL-CLOCK is per-tier MEDIAN of real OK rows in the run ledger (571 rows /
+# 72 status files, read 2026-08-30), not an estimate. Ranges in each `expect` below.
+# postproc has no measured timing anywhere: until U3 it was not in the queue's STEPS at
+# all, so it has never run under a queue. Its ceiling is 120 min.
+
+- id: "pilot_2019_fine"
+  year: "2019"
+  tag: pilot_e2_fine
+  extra: ["--force-citywide", "--no-hillshade"]
+  why: "fine tier (10 cm), the end the ERF measurement says is context-starved: at 5-10 cm a crown is 100-300 px and the measured 106 px effective receptive field is smaller than one crown."
+  expect: "labels ~1 min; tile ~14 min; train ~34 min; evaluate ~2 min; inference ~68 min (the long pole, max seen 100); postproc unmeasured. ~2 h median."
+
+- id: "pilot_2019_medium"
+  year: "2019s"
+  tag: pilot_e2_medium
+  extra: ["--force-citywide", "--no-hillshade"]
+  why: "medium tier (30.5 cm) AND the high side of the same-flight resolution pair with 2019n — same 2019-10-11 sensor day, so resolution is the only variable between them."
+  expect: "labels ~7 min; tile ~26 min; train ~36 min; evaluate ~5 min; inference ~5 min; postproc unmeasured. ~1 h 20 median."
+
+- id: "pilot_2019_coarse"
+  year: "2019n"
+  tag: pilot_e2_coarse
+  extra: ["--force-citywide", "--no-hillshade"]
+  why: "coarse tier (60 cm) AND the low side of the same-flight pair. Also the tier where the ERF is 7-20x a crown, i.e. the opposite regime from the fine job above."
+  expect: "labels ~8 min; tile ~10 min; train ~45 min; evaluate ~41 min; inference ~7 min; postproc unmeasured. ~1 h 50 median."

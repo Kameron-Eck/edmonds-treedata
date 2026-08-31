@@ -64,7 +64,7 @@ made permanent — an ungated doc can drift again.
 | **4.2** | training-only HR auxiliary branch | not started |
 | **4.3** | DeepLabV3+ as an arm | not started |
 | **4.4** | resample the fine end DOWN to deployment GSD | not started — the largest measured lever (+9.2 OA) and a tiling parameter, not a retrain |
-| **5** | pilot slice — 2019 / 2019s / 2019n | not started |
+| **5** | pilot slice — 2019 / 2019s / 2019n | **queue written** `pipeline/pilot_2019.yaml`, loads clean, label-source guard passes, postproc in STEPS. **Not launched:** the spend gate wants the figures in front of Kam first — 3 A100 runtimes, ~2 h wall-clock concurrent (~5 h GPU total, median of real ledger rows), USD unquotable because colab_rates.csv has no sourced A100 rate by design. |
 
 ### Decisions taken (Kam, 2026-08-30)
 

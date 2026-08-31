@@ -23,6 +23,7 @@ import argparse
 import csv
 import json
 import sys
+import time
 from pathlib import Path
 
 SCRIPTS = Path(__file__).resolve().parent.parent
@@ -53,12 +54,35 @@ ARMS = [("2019", "pilot_e2_fine"),
         ("2019n", "pilot_e2_coarse")]
 
 
+def _retry(fn, tries=10, pause=1.0):
+    """Run `fn` until it returns something non-empty, or give up.
+
+    THE G: MIRROR BLINKS. Drive for Desktop streams it, and while VMs are writing, a read
+    or a directory LISTING can come back empty for files that are plainly there seconds
+    later — measured 2026-08-31, and it nearly had a healthy runtime declared dead.
+
+    This gate hit it too: `status_files()` returned [] mid-campaign and the gate printed
+    "no ledger rows for this arm" for an arm that had eleven. A gate that reports MISS
+    because of a transient listing is worse than no gate — it would fail the pilot for a
+    filesystem hiccup. Retry the LISTING, not only the read; that distinction is what the
+    first version got wrong.
+    """
+    for _ in range(tries):
+        out = fn()
+        if out:
+            return out
+        time.sleep(pause)
+    return fn()
+
+
 def _rows(p):
-    try:
-        with open(p, encoding="utf-8", newline="") as f:
-            return list(csv.DictReader(f))
-    except OSError:
-        return []
+    def _once():
+        try:
+            with open(p, encoding="utf-8", newline="") as f:
+                return list(csv.DictReader(f))
+        except OSError:
+            return []
+    return _retry(_once)
 
 
 def check_mask(label, tag):
@@ -70,7 +94,7 @@ def check_mask(label, tag):
     means the fix did not take.
     """
     g = MASKS / f"edmonds_canopy_mask_{label}_{tag}.gpkg"
-    if g.exists():
+    if _retry(lambda: g.exists() or None, tries=4):
         return True, f"{g.name} ({g.stat().st_size / 1e6:.1f} MB)"
     near = sorted(p.name for p in MASKS.glob(f"edmonds_canopy_mask_{label}*.gpkg"))
     return False, ("no GPKG for this arm" +
@@ -112,7 +136,7 @@ def check_manifest(label, tag):
     silently compares across the line. Architecture provenance is engine_version + the
     commit, so a number can be traced to the code that produced it.
     """
-    hits = sorted(RUNS.glob(f"*_{label}_{tag}_*/manifest.json"))
+    hits = _retry(lambda: sorted(RUNS.glob(f"*_{label}_{tag}_*/manifest.json")))
     if not hits:
         return False, f"no manifest under runs/*_{label}_{tag}_*/"
     m = json.loads(hits[-1].read_text(encoding="utf-8"))
@@ -132,12 +156,31 @@ def check_status_rows(label, tag):
     so it distinguishes them.
     """
     want_steps = {"labels", "tile", "train", "evaluate", "inference", "postproc"}
-    rows = []
-    for f in status_files(QC):
-        rows += [r for r in _rows(f)
-                 if str(r.get("year")) == label and str(r.get("tag")) == tag]
+    # RETRY THE WHOLE ARM LOOKUP, not the listing. Retrying until the listing is non-empty
+    # is the wrong predicate and it failed here: status_files() returned plenty of files
+    # while the mirror hid THIS arm's file specifically, so the retry was satisfied
+    # instantly and the gate still reported "no ledger rows" for an arm with eleven. What
+    # matters is whether the answer we need appeared, not whether some answer did.
+    def _gather():
+        out = []
+        for f in status_files(QC):
+            out += [r for r in _rows(f)
+                    if str(r.get("year")) == label and str(r.get("tag")) == tag]
+        return out
+
+    rows = _retry(_gather, tries=12)
     if not rows:
-        return False, "no ledger rows for this arm"
+        # "I could not read the ledger" IS NOT "the queue did not run the step", and
+        # printing the first as the second is the mistake this repo fixed in the state
+        # vocabulary the same day: UNCHECKED belongs in neither the pass nor the fail
+        # bucket. It bit here for real — the medium arm's ledger file vanished from the
+        # G: mirror while its GPKG, mask, prob raster, eval row and six manifests all sat
+        # there, so the queue plainly ran every step and the gate said otherwise.
+        others = _retry(lambda: [p.name for p in status_files(QC)], tries=3)
+        return None, (f"UNVERIFIED — no ledger file for this arm is readable "
+                      f"({len(others)} other status files are). That is missing "
+                      f"EVIDENCE, not a failed step; check the lake from the VM side "
+                      f"before treating it as one.")
     final = {}
     for r in rows:                                  # file order is chronological
         final[str(r.get("step"))] = r
@@ -170,20 +213,26 @@ def main():
     verdicts = []
     for label, tag in arms:
         print(f"\n── {label} / {tag} " + "─" * (52 - len(label) - len(tag)))
-        ok_all = True
+        ok_all, unverified = True, []
         for name, fn in CHECKS:
             try:
                 ok, detail = fn(label, tag)
             except Exception as e:                       # noqa: BLE001
                 ok, detail = False, f"check raised: {e!r}"
-            ok_all &= ok
-            print(f"  [{'PASS' if ok else 'MISS'}] {name:28s} {detail}")
-        verdicts.append((label, tag, ok_all))
+            # ok is None = UNVERIFIED: the check could not answer. It is neither a pass
+            # (nothing was confirmed) nor a fail (nothing was disproven), and collapsing
+            # it into either is how oversight ends up confidently wrong.
+            tag_ = "PASS" if ok else ("UNVR" if ok is None else "MISS")
+            ok_all = ok_all and (ok is True)
+            unverified.append(name) if ok is None else None
+            print(f"  [{tag_}] {name:28s} {detail}")
+        verdicts.append((label, tag, ok_all, unverified))
 
     print("\n" + "=" * 66)
-    npass = sum(1 for _, _, v in verdicts if v)
-    for label, tag, v in verdicts:
-        print(f"  {label:6s} {tag:20s} {'GATE PASS' if v else 'GATE NOT MET'}")
+    npass = sum(1 for _, _, v, _u in verdicts if v)
+    for label, tag, v, unv in verdicts:
+        state = "GATE PASS" if v else ("GATE UNVERIFIED" if unv else "GATE NOT MET")
+        print(f"  {label:6s} {tag:20s} {state}" + (f"  ({', '.join(unv)})" if unv else ""))
     print(f"\n{npass}/{len(verdicts)} arms complete.")
     if npass != len(verdicts):
         print("The 36-year run does not start until every line above reads GATE PASS.\n"

@@ -20,9 +20,14 @@
 #     2019-10-11, so ecology, season and phenology are frozen.
 #
 #     CORRECTED 2026-08-31, twice, and the second correction matters more than the first.
-#     (a) It is NOT "same-flight": 2019s is Snohomish County HXIP and 2019n is USDA NAIP,
-#         two programs with different cameras, processing and radiometry, and different
-#         CRS (EPSG:2285 US survey feet vs EPSG:26910). Same day, two flights.
+#     (a) SUPERSEDED 2026-08-31 by Kam + the date table. I wrote "two programs, two
+#         flights". The date table says 2019s is the "same Hexagon flight as NAIP 2019" —
+#         ONE flight, TWO delivered products (WA consortium 1-ft, USDA NAIP 60 cm). I had
+#         read the `source` column (download URLs) and not `date_shot`. Pixels agree:
+#         correlation peaks at EXACTLY zero shift, so they are perfectly co-registered;
+#         but residual after a best-fit linear map is 14-27 DN, far too large for one to
+#         be a downsample of the other. Sun angle, atmosphere, phenology and sensor
+#         hardware are IDENTICAL; delivered GSD and the processing chain are what differ.
 #     (b) "Resolution is the only variable" was therefore false — but NOT for the reason
 #         a verification pass proposed. It claimed tier parameters diverge (stride,
 #         neg_rate, has_test, the checkpoint-selection metric). CHECKED, and they do not:

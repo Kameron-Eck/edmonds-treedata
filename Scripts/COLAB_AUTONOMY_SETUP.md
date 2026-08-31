@@ -450,3 +450,45 @@ beacons, and the original's beacon was stale, so the clash was invisible to it.
 
 > Before relaunching an arm you believe is dead: check the LEDGER's last step against that
 > step's median and max. Only then probe — and know that probing may cost the handle.
+
+## Diagnosing a suspected-dead runtime: the checks that actually separate the cases
+
+Two coarse-arm incidents on 2026-08-31, one hour apart, with OPPOSITE correct answers.
+The difference was not the signals — it was which questions got asked.
+
+**Incident 1 (I was WRONG).** Beacon 40 min stale, `colab exec` returned 404/401, ledger
+quiet at `train RUNNING` for 52 min. Declared dead. It was mid-train and went on to write
+`train OK 54.7 min`.
+
+**Incident 2 (I was RIGHT).** Same arm, ledger quiet at `evaluate RUNNING` for 72 min.
+Dead.
+
+The four questions that separate them, cheapest first — all plain file reads:
+
+1. **Is the quiet longer than the STEP's own distribution?** The ledger writes ONE row per
+   step and nothing until it ends. In (1), 52 min sat inside coarse-train's 44.7 median /
+   146.4 max. In (2), 72 min was past coarse-evaluate's 56.7 max. Derive both from the
+   ledger; do not guess.
+2. **Has the step passed the QUEUE'S OWN ceiling?** `STEP_TIMEOUT_MIN` is enforced by the
+   queue, so a live queue MUST write a TIMEOUT row once it fires. In (2), evaluate's 60-min
+   ceiling had passed 13 minutes earlier with no row. **This is the strongest single signal
+   available**, because it is the queue reporting on itself: silence past its own ceiling
+   means the process enforcing it is gone.
+3. **Is the MIRROR still pulling VM writes?** Compare mtimes of files written by OTHER VMs.
+   In (2), a different arm's beacon and ledger had synced 30 min AFTER the suspect went
+   quiet, so the silence was the VM's, not the mirror's. Without this, staleness is
+   ambiguous and (1) is what happens.
+4. **Is there a beacon `.tmp.<pid>` left behind?** `heartbeat_pilotcoarse.json.tmp.3132`
+   sat from 01:49 — the beacon crashed mid-atomic-write. Useful, but it dates the BEACON's
+   death, not the VM's: in (1) the beacon died at 01:49 and the queue kept working until
+   02:30. **A dead beacon is not a dead VM and never was.**
+
+`colab exec` is NOT on this list, and belongs last if at all: against a lost session the
+CLI prints "Cleaning up" and drops the handle, so probing a VM you are wrong about
+permanently costs the ability to stop it.
+
+**Resume, don't restart.** Both relaunches reused the SAME run tag so `_completed_steps()`
+matched on (job, year, tag, step) and skipped what was done — incident 2's relaunch
+inherited labels, tile AND a verified 1.11 GB checkpoint, resuming at evaluate and saving
+~89 min. Check the checkpoint and tile index are on the lake first; `VERIFY:train OK` in
+the ledger is what says so.

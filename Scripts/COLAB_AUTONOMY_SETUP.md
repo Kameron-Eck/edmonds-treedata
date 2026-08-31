@@ -487,8 +487,17 @@ The four questions that separate them, cheapest first — all plain file reads:
 CLI prints "Cleaning up" and drops the handle, so probing a VM you are wrong about
 permanently costs the ability to stop it.
 
-**Resume, don't restart.** Both relaunches reused the SAME run tag so `_completed_steps()`
-matched on (job, year, tag, step) and skipped what was done — incident 2's relaunch
-inherited labels, tile AND a verified 1.11 GB checkpoint, resuming at evaluate and saving
-~89 min. Check the checkpoint and tile index are on the lake first; `VERIFY:train OK` in
-the ledger is what says so.
+**Resume, don't restart — CONFIRMED, not assumed.** Both relaunches reused the SAME run
+tag, so `_completed_steps()` matched on (job, year, tag, step) and skipped finished work.
+Incident 2's relaunch was watched doing it:
+
+    GUARD:runtag  GUARD_UNVERIFIED  03:45:00      <- new launch starts
+    evaluate      RUNNING           03:51:45      <- labels, tile AND train all skipped
+
+It inherited a verified 1.11 GB checkpoint and ~89 min of work, and took 6m45s between the
+guard row and the first step (the resume scan plus staging). Check the checkpoint and tile
+index are on the lake before relaunching; `VERIFY:train OK` in the ledger is what says so.
+
+The dead launch's orphaned `evaluate RUNNING` row stays in its own status file forever and
+is harmless: `_completed_steps()` treats RUNNING as not-done, which is why the new launch
+correctly re-ran evaluate rather than skipping it too.

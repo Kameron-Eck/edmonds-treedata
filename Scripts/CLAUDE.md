@@ -8,7 +8,8 @@ table here read *18 acquisitions, 15 calendar years, 4 NIR years* against a cata
 holding **36 / 20 / 10**, and named a NIR year that had not existed for weeks. Every
 session had been starting from it. Anything restated here rots; anything derived does not.
 
-Read this file, then **`CHATLOG.md` STATE** (live state), then the active plan STATE names.
+Read this file, then **`WORKPLAN.md`** (the one living state doc), then `STATUS.md`
+(generated numbers). `CHATLOG.md` is append-only history, no longer read for state.
 
 ---
 
@@ -39,9 +40,9 @@ removal, and — established 2026-08-29 — **seasonal difference** all enter as
 
 | You need… | Go to |
 |---|---|
-| **Live state, what's next** | `CHATLOG.md` **STATE** block, then the plan it names |
-| **The active plan** | named in CHATLOG STATE (currently `SEMANTIC_OVERHAUL_PLAN_2026-08-29.md`) |
-| **Entry point / reference; wins on disagreement** | `WORKPLAN_2026-08-19.md` |
+| **Live state, what's next** | `WORKPLAN.md` (intent + the board) |
+| **The active plan** | named in `WORKPLAN.md` (currently `SEMANTIC_OVERHAUL_PLAN_2026-08-29.md`) |
+| **Historical authority (pre-overhaul era)** | `WORKPLAN_2026-08-19.md` — archived reference, superseded by `WORKPLAN.md` |
 | **Method, params, tiers, loss, QC design** | `Method_Pipeline.md` |
 | **What's built vs pending** | `pipeline_buildtracker.md` |
 | **Full doc map** | `../README.md` |
@@ -49,9 +50,11 @@ removal, and — established 2026-08-29 — **seasonal difference** all enter as
 | **Acquisition DATES + measured effective resolution** | `qc/imagery_pixelsize_and_date.csv` (57 rows, evidence-graded, verbatim source quotes) and `IMAGERY_FACTS.md` |
 | **Lidar / CHM facts, coverage** | `IMAGERY_FACTS.md`; `phase4/qc/chm_gap_2016.txt` |
 | **Honest scored results** | `phase4/qc/qc_indep_report.csv`, `live=1` rows only |
-| **Which arm is the champion for a year** | `pipeline/champion_arms.csv` (1 reader + 5 importers) |
+| **Which arm is the champion for a year** | `pipeline/champion_arms.csv` (reader: `champion.load_champions`) |
 | **CSV/JSON column meanings** | `docs/SCHEMAS.md` — every data contract, writers cited by symbol |
 | **Before trusting ANY statistic** | `docs/STATS_CHECKLIST.md` — the ten-question GIS pre-flight |
+| **ONE row per acquisition, everything joined** | `phase4/qc/acquisition_passport.csv` (generated view of five fact homes; rendered on the Pipeline Atlas artifact) |
+| **Inter-year registration error** | `phase4/qc/coregistration.csv` — medians = registration, p95 = conservative bound; reader rules in `docs/SCHEMAS.md` |
 | **Per-acquisition CRS / units / grid, measured** | `phase4/qc/imagery_geometry.csv` (instrument: `qc/instruments/imagery_geometry.py`); assumption census: `docs/CRS_CENSUS.md` |
 | **What experiments exist / their verdicts** | `experiments/*.yaml` (schema: its README; gate any of them vs the lake: `py -3.12 qc/pilot_gate.py --experiment <file>`) |
 | **What ran, when, on what GPU** | `run_registry.csv`; `phase4/qc/train_queue_status*.csv` (readers merge ALL of them) |
@@ -61,14 +64,14 @@ removal, and — established 2026-08-29 — **seasonal difference** all enter as
 ### 2.2 Re-derive, don't read from here
 
 ```bash
-# acquisitions, calendar years, NIR-bearing labels
-py -3.12 -c "import sys;sys.path.insert(0,'pipeline');from phase4seg import config as c;\
-cat=c.YEAR_CATALOG;print(len(cat),'acquisitions');\
+# acquisitions, calendar years, NIR-bearing labels  (phase4seg is INSTALLED — no path hacks)
+py -3.12 -c "from phase4seg import config as c;cat=c.YEAR_CATALOG;\
+print(len(cat),'acquisitions');\
 print('NIR:',sorted({e['label'] for e in cat if e['bands']>=4}))"
 
 # GSD span and histogram
-py -3.12 -c "import sys;sys.path.insert(0,'pipeline');from phase4seg import config as c;\
-from collections import Counter;g=[e['gsd_cm'] for e in c.YEAR_CATALOG];\
+py -3.12 -c "from phase4seg import config as c;from collections import Counter;\
+g=[e['gsd_cm'] for e in c.YEAR_CATALOG];\
 print(min(g),'-',max(g),'cm');print(dict(sorted(Counter(g).items())))"
 ```
 
@@ -100,21 +103,25 @@ treedata/
 ├── pyproject.toml                ← the install: package phase4seg + shared py-modules
 ├── README.md                     ← doc map
 ├── Scripts/
-│   ├── pipeline/                 ← 19 root entries: engine + orchestration + shared
+│   ├── pipeline/                 ← ~20 root entries: engine + orchestration + shared
 │   │   ├── phase4_semantic_finetune.py   ← THIN SHIM → phase4seg/ (preserves `%run --args`)
 │   │   ├── phase4seg/                    ← LIVE engine: cli, core, tiling, labels, postproc, config
 │   │   ├── phase4_train_queue.py         ← Colab orchestrator (queue + VERIFY + status CSV)
+│   │   ├── vm_ops.py                     ← THE VM front door: launch/exec/status/stop
 │   │   ├── gen_vm_bootstrap.py  vm_heartbeat.py   ← runtime autonomy (exec-by-path: NEVER move)
+│   │   ├── queue_ledger.py  queue_verify.py       ← the queue's ledger + verify layers
 │   │   ├── phase4seg_preflight.py  phase4seg_smoke.py   ← LOCAL GATES before any Colab run
 │   │   ├── builders/             ← 18 artifact producers (make_*, build_*, fetch_*)
 │   │   └── frozen/               ← phase0–3 provenance + the UNCLEAR label_review pair
-│   ├── qc/                       ← 29 root entries: tests + ops + VM-exec'd (conftest blocks lake writes)
+│   ├── qc/                       ← ~35 root entries: tests + ops + VM-exec'd (conftest blocks lake writes)
 │   │   ├── (root)                ← test_*.py, conftest, pipeline_status, runtime_*, pilot_gate,
-│   │   │                           watch_queue, sector_campaign_loop, imagery_qc_suite +
-│   │   │                           phase4_qc_indep (kernel-exec'd: see their KERNEL-EXEC KEEP headers)
-│   │   └── instruments/          ← 69 measurement scripts, one home
+│   │   │                           watch_queue, sector_campaign_loop, check.py (the ladder),
+│   │   │                           landed.py (session-end), imagery_qc_suite + phase4_qc_indep
+│   │   │                           (kernel-exec'd: see their KERNEL-EXEC KEEP headers)
+│   │   └── instruments/          ← ~70 measurement scripts, one home
+│   ├── experiments/              ← one yaml per experiment: hypothesis, arms, decision rule
 │   ├── scratch/                  ← convention only; contents archived. NEVER re-run a writer.
-│   └── docs/ARCHIVE_INDEX.md     ← map of everything on archive/2026-08-pre-refactor
+│   └── docs/                     ← SCHEMAS, CRS_CENSUS, STATS_CHECKLIST, ARCHIVE_INDEX (all gated)
 ├── phase4/qc/                    ← tracked MEASURED text (harvested from the lake)
 └── Reports/                      ← tracked *.md/*.csv
 ```
@@ -131,7 +138,7 @@ Literature: `D:\edmonds-pipeline\Literture\{ASPP,Labeling,Validation}\`.
 | 0 instance seg | Complete — 222,435 crowns. Deps FROZEN (`smp==0.3.4`); never load in a phase3/4 runtime |
 | 1–2 features / prep | Complete |
 | 3 semantic base | Complete — 2020 base. Its LOSO metrics are resnet101 numbers; they describe the CURRENT architecture only |
-| **4 per-year semantic** | **ACTIVE.** Live version + detail ONLY in CHATLOG STATE |
+| **4 per-year semantic** | **ACTIVE.** Live detail in `WORKPLAN.md` + `STATUS.md` |
 | 5–8 | Not built |
 
 ---
@@ -179,7 +186,11 @@ stating queue file, GPU tier, runtime count, expected wall-clock and rough cost.
   in CHATLOG with tier + purpose. Cold creation still asks.
 - After a crash Claude may fix on a `fix/…` branch, canary on a small GPU, and rerun
   without asking. `main` never moves without Kam.
-- **One queue per runtime.** Concurrency 3–4 (Google throttles above ~5).
+- **One queue per runtime.** Concurrency 3–4 (Google throttles above ~5); one queue
+  CAN be split across parallel runtimes via `vm_ops launch --queue-args "--only JOB"`.
+- **CPU runtimes are FREE (0 compute units, sourced) and parallelizable** — postproc
+  and other torch-free batches fan out 3-4 wide at zero cost, never serialized.
+- **`pipeline/vm_ops.py` is the front door** — lifecycle rules enforced in code.
 - Setup / bootstrap / secrets: `COLAB_AUTONOMY_SETUP.md`.
 
 ### 3.4b The measurement contract
@@ -276,6 +287,7 @@ stage the paths you touched and commit — never `-A`. Kam pushes `main`.
 |---|---|
 | Colab **A100 40 GB** | real queue runs — tiling, training, inference, heavy I/O |
 | Colab **L4 24 GB / T4** | canaries |
+| Colab **CPU runtime** | FREE (0 compute units): postproc, torch-free batches — fan out in parallel |
 | Colab **RTX PRO 6000 ~95 GB** | only when memory-bound, and ask |
 | Local **4 GB T2000** | Claude Code, edits, log review, QC, label build, raster diagnostics, preflight/smoke. **No training.** |
 
@@ -296,5 +308,5 @@ locally. Compute-heavy torch runs on Colab. Do not split training between the tw
 
 ---
 
-*Session bootstrap: stable rules and pointers only. Living state is `CHATLOG.md` STATE
-and the plan it names. Doc map: `../README.md`.*
+*Session bootstrap: stable rules and pointers only. Living state is `WORKPLAN.md`;
+generated numbers are `STATUS.md`/`STATUS.json`. Doc map: `../README.md`.*

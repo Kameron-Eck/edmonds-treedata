@@ -172,3 +172,28 @@ def test_the_writer_really_does_stamp_run_identity():
         assert f'new["{col}"]' in body, (
             f"step_evaluate no longer stamps {col} into the eval report — per-run "
             "attribution in the registry is unreachable without it")
+
+
+def test_registry_covers_every_finished_manifest():
+    """The landed-command gate (2026-09-01): registry_from_manifests --dry-run must
+    report 0 new rows — every manifest the TOOL considers due has its registry row.
+    The tool's own definition of "due" (finished AND scored; RUNNING and unscored
+    deferred by design) is the one contract; the first version of this test
+    reinvented it stricter and flagged rows the tool deliberately defers.
+    Lake-dependent; skips in CI. Fix: `py -3.12 qc/landed.py`."""
+    import pytest
+    import re as _re
+    import subprocess
+    import sys
+    from lake import BASE
+    if not (BASE / "phase4" / "runs").exists():
+        pytest.skip("lake not mounted")
+    r = subprocess.run([sys.executable,
+                        str(SCRIPTS / "pipeline" / "registry_from_manifests.py"),
+                        "--dry-run"], capture_output=True, text=True, cwd=str(SCRIPTS))
+    assert r.returncode == 0, r.stderr[-300:]
+    m = _re.search(r"(\d+) new", r.stdout)
+    assert m, "could not parse the tool's summary line: " + r.stdout[-300:]
+    assert m.group(1) == "0", (
+        "registry is behind the manifests — run `py -3.12 qc/landed.py`: "
+        + r.stdout[-600:])

@@ -224,10 +224,11 @@ Every script `write_step_log()`s at the end of each `--step` → `{BASE}/phase4/
 After Colab runs a step, **read the log from Drive** — do not ask Kam to paste stdout.
 
 ### 3.12 Session-end checklist
-Per landed milestone: **(a)** edit the `CHATLOG.md` STATE block in place, **(b)** append
-one LOG entry (caveman style, per the file's spec), **(c)** append a `run_registry.csv`
-row if a Colab run landed, **(d)** harvest measured text if any landed, **(e)** stage the
-paths you touched and commit — never `-A`. Kam pushes `main`.
+Per landed milestone: **run `py -3.12 qc/landed.py`** — it derives registry rows from
+manifests (never hand-type them; two invented run_ids proved why, 2026-09-01), checks
+experiment/doc consistency, regenerates STATUS, and prints the CHATLOG stub if the log
+lacks today's entry. Then: append the LOG entry (caveman style, per the file's spec),
+stage the paths you touched and commit — never `-A`. Kam pushes `main`.
 **Do not create `HANDOFF_*.md`** (retired) or a duplicate plan.
 
 ---

@@ -57,11 +57,15 @@ Pixel-counting a classified map gives MAP area, which is biased whenever omissio
 commission errors are asymmetric — and ours are (recall ≠ precision in every live
 row). Good practice (the Olofsson-style protocol) is a stratified reference sample,
 photo-interpreted, driving an error-adjusted area estimator WITH a confidence
-interval. The machinery half-exists: `phase4_accuracy_sample.py` + its review UI —
-and the 14,476-crown human review was never finished (`polygons/` carries accept-all
-test data; CLAUDE.md gotcha). **Rule: mask-derived areas are labeled MAP AREA;
-nothing is published as an area ESTIMATE until it has the adjusted estimator and its
-CI. This is the highest-leverage open item for trustworthy statistics.**
+interval. The machinery is COMPLETE and verified post-refactor (2026-09-01):
+`phase4_accuracy_sample.py` --step design/serve/estimate — information-weighted
+strata (reference-agreement × canopy-height), browser photo-interpreter, Olofsson
+estimators. Two campaign kits are DESIGNED AND PARKED on the lake awaiting Kam's
+interpretation hours: `sample_2019n.csv` (250 pts vs C-CAP 2021) and
+`sample_2016.csv` (era-matched C-CAP 2016 — a zero-reference-gap calibration pair).
+Start any session with `--step serve --year 2016`. **Rule: mask-derived areas are
+labeled MAP AREA; nothing is published as an area ESTIMATE until it has the
+adjusted estimator and its CI.**
 
 ## 9. Reference data epoch & definition — DOCUMENTED
 Scores are against C-CAP 2021 hi-res with the `forest_wetland` class mapping, one

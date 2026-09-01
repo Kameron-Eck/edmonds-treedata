@@ -42,6 +42,7 @@ COLS = ["label", "file", "root", "crs_auth", "crs_name", "unit_name", "unit_to_m
         "origin_aligned_to_px", "width", "height", "minx", "miny", "maxx", "maxy",
         "n_bands", "dtype", "nodata", "size_mb",
         "catalog_epsg", "epsg_match", "catalog_gsd_cm", "gsd_vs_catalog_pct",
+        "city_bounds_coverage_pct", "black_px_pct_in_city", "mmu_effective_m2",
         "measured_utc", "note"]
 
 
@@ -123,6 +124,82 @@ def measure_one(entry, rasterio):
     return row
 
 
+_CITY_26910 = None
+
+
+def _city_polygon():
+    """City boundary dissolved into ONE polygon in the analysis grid, cached."""
+    global _CITY_26910
+    if _CITY_26910 is None:
+        import geopandas as gpd
+        from imagery_measure import CITY_SHP
+        from phase4seg.config import ANALYSIS_GRID_EPSG
+        g = gpd.read_file(CITY_SHP).to_crs(epsg=ANALYSIS_GRID_EPSG)
+        _CITY_26910 = g.union_all() if hasattr(g, "union_all") else g.unary_union
+    return _CITY_26910
+
+
+def statistics_columns(row, entry, rasterio):
+    """The GIS-specialist columns (2026-09-01): the three per-acquisition facts a
+    statistic silently depends on.
+
+    city_bounds_coverage_pct — a cross-year trend computed over DIFFERENT footprints
+        is not a trend. Bounds are warped to the analysis grid and intersected with
+        the dissolved city polygon. BOUNDS coverage, not valid-pixel coverage: a
+        raster can cover the city on paper and be void inside (next column).
+    black_px_pct_in_city — 30 of 36 rasters declare NO nodata, so mosaic collar and
+        void read as data. Measured at ~1/16 decimated scale, band 1 == 0, inside
+        the city polygon only; a method estimate, honest to ~0.1%. Drive-resident
+        files are SKIPPED (a decimated read still walks every block over FUSE) and
+        say so rather than pretending.
+    mmu_effective_m2 — postproc's sieve is min_px = ceil(MIN_CANOPY_PATCH /
+        pixel_area) in CRS UNITS (tuned that way; retune is Kam's science call,
+        docs/CRS_CENSUS.md Class B). This column is what the sieve REMOVES in true
+        m² for THIS year: min_px x true pixel area. It differs BY CRS FAMILY, which
+        is a systematic per-year bias any canopy trend must carry or correct.
+    """
+    from shapely.geometry import box
+    import numpy as np
+    from rasterio.warp import transform_geom
+    from phase4seg.config import ANALYSIS_GRID_EPSG, MIN_CANOPY_PATCH
+    from shapely.geometry import shape as _shape
+
+    crs_auth = row.get("crs_auth")
+    if not crs_auth or crs_auth == "NONE" or row.get("root") == "NOT FOUND":
+        return
+    city = _city_polygon()
+    b = box(float(row["minx"]), float(row["miny"]), float(row["maxx"]), float(row["maxy"]))
+    b26 = _shape(transform_geom(crs_auth, f"EPSG:{ANALYSIS_GRID_EPSG}",
+                                b.__geo_interface__))
+    row["city_bounds_coverage_pct"] = round(100.0 * city.intersection(b26).area
+                                            / city.area, 2)
+
+    # sieve reach in true m² (mirrors postproc.step_postproc's min_px arithmetic)
+    px_area_crs = float(row["px_x_crs"]) * float(row["px_y_crs"])
+    min_px = int(np.ceil(MIN_CANOPY_PATCH / px_area_crs))
+    row["mmu_effective_m2"] = round(min_px * float(row["px_ground_x_m"])
+                                    * float(row["px_ground_y_m"]), 3)
+
+    if row.get("root") != "local":
+        row["black_px_pct_in_city"] = "SKIPPED(drive)"
+        return
+    from phase4seg.config import resolve_imagery
+    from rasterio.features import geometry_mask
+    path, _ = resolve_imagery(entry["native_file"], required=False)
+    with rasterio.open(path) as src:
+        f = 16
+        oh, ow = max(1, src.height // f), max(1, src.width // f)
+        a = src.read(1, out_shape=(oh, ow))
+        t = src.transform * src.transform.scale(src.width / ow, src.height / oh)
+        city_in_src = _shape(transform_geom(f"EPSG:{ANALYSIS_GRID_EPSG}", crs_auth,
+                                            city.__geo_interface__))
+        m = geometry_mask([city_in_src.__geo_interface__], out_shape=(oh, ow),
+                          transform=t, invert=True)
+        n = int(m.sum())
+        if n:
+            row["black_px_pct_in_city"] = round(100.0 * float((a[m] == 0).mean()), 3)
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--only", help="filename fragment filter")
@@ -135,6 +212,10 @@ def main():
         if a.only and a.only.lower() not in e["native_file"].lower():
             continue
         r = measure_one(e, rasterio)
+        try:
+            statistics_columns(r, e, rasterio)
+        except Exception as ex:                       # noqa: BLE001 — record, not crash
+            r["note"] = (r.get("note", "") + f" stats cols failed: {ex}")[:200]
         r["measured_utc"] = ts
         r.setdefault("note", "")
         rows.append(r)

@@ -869,3 +869,24 @@ The archive's projection shape, measured from all 36 catalog rasters (one row ea
   `docs/CRS_CENSUS.md`. The declared cross-year grid: `config.ANALYSIS_GRID_EPSG`
   (26910) — a declaration about where NEW statistics compute, never a resampling of
   the archive (rule 3.7 stands).
+
+## 15. Statistics columns (MEASURED 2026-09-01) — the checklist's per-year facts
+
+Three columns added to `phase4/qc/imagery_geometry.csv` (instrument:
+`qc/instruments/imagery_geometry.py`; audit: `docs/STATS_CHECKLIST.md`):
+
+- **Footprint: settled.** All 36 acquisitions' bounds cover the city polygon at
+  100.0% — cross-year trends are not footprint-confounded at the bounds level.
+- **Collar/void: one real case.** `black_px_pct_in_city` is ≤0.4% everywhere
+  measured EXCEPT **2000 at 2.28%** — the oldest mosaic carries real void inside
+  the city, so any full-city denominator for 2000 that counts black as valid is
+  ~2.3% wrong. Four Drive-only rasters say `SKIPPED(drive)` rather than pretending.
+- **The sieve bias is not a band, it is an 11.6× spread — and its mechanism is the
+  unit bug in fossil form.** `MIN_CANOPY_PATCH = 3.0 "m²"` is divided by pixel area
+  in CRS UNITS: on the 15 survey-foot years that arithmetic treats 3.0 as ft², so
+  the effective minimum patch is **0.279 m²**; on NAIP years it is **3.24 m²**;
+  Web-Mercator years sit near **1.36 m²**. Small canopy (young trees, shrub-scale
+  crowns) survives postproc in some years and is deleted in others purely by CRS
+  family. Any cross-year trend in small canopy carries this until the sieve is
+  harmonized — a recorded science decision (Kam's), because retuning changes every
+  postproc mask (docs/CRS_CENSUS.md Class B).

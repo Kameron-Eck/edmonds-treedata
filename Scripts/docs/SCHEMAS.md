@@ -80,5 +80,9 @@ row per acquisition, measured with rasterio from the file itself. Key columns:
 `crs_metric_inflation_pct` (their gap: +48.7% for every EPSG:3857 file here);
 `origin_aligned_to_px` (grid congruence — the measurable half of same-flight/
 different-delivery questions); `epsg_match` / `gsd_vs_catalog_pct` (disagreement
-flags vs YEAR_CATALOG — 0 flagged 2026-09-01). Gate:
+flags vs YEAR_CATALOG — 0 flagged 2026-09-01). Plus the statistics columns (2026-09-01): `city_bounds_coverage_pct` (footprint
+vs the dissolved city polygon on the analysis grid — the denominator question),
+`black_px_pct_in_city` (decimated collar/void estimate; `SKIPPED(drive)` for the
+rasters only Drive holds), `mmu_effective_m2` (what the CRS-unit sieve removes in
+true m² for THIS year). Gate:
 `test_analysis_grid.py::test_geometry_table_exists_with_the_contract_columns`.

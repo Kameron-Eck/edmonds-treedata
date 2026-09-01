@@ -51,6 +51,7 @@ removal, and — established 2026-08-29 — **seasonal difference** all enter as
 | **Honest scored results** | `phase4/qc/qc_indep_report.csv`, `live=1` rows only |
 | **Which arm is the champion for a year** | `pipeline/champion_arms.csv` (1 reader + 5 importers) |
 | **CSV/JSON column meanings** | `docs/SCHEMAS.md` — every data contract, writers cited by symbol |
+| **Before trusting ANY statistic** | `docs/STATS_CHECKLIST.md` — the ten-question GIS pre-flight |
 | **Per-acquisition CRS / units / grid, measured** | `phase4/qc/imagery_geometry.csv` (instrument: `qc/instruments/imagery_geometry.py`); assumption census: `docs/CRS_CENSUS.md` |
 | **What experiments exist / their verdicts** | `experiments/*.yaml` (schema: its README; gate any of them vs the lake: `py -3.12 qc/pilot_gate.py --experiment <file>`) |
 | **What ran, when, on what GPU** | `run_registry.csv`; `phase4/qc/train_queue_status*.csv` (readers merge ALL of them) |

@@ -56,6 +56,7 @@ FACTS = PS.code_facts()
 GATED_DOCS = [
     "docs/SCHEMAS.md",
     "docs/CRS_CENSUS.md",
+    "docs/STATS_CHECKLIST.md",
     "CLAUDE.md",
     "STATUS.md",
     "WORKPLAN.md",

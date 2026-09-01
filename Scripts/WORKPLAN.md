@@ -33,6 +33,16 @@ year is supervised by projecting the 2020 mask onto it, so growth, removal and �
 Active plan: **`SEMANTIC_OVERHAUL_PLAN_2026-08-29.md`** (architecture direction) executed
 through the repo overhaul plan agreed 2026-08-30. Branch `work/20260824-sectors`.
 
+**EPOCH 3 (2026-09-01): every deliverable mask is cut at 3.0 m² TRUE** — the sieve
+re-baselined (`postproc.sieve_min_px`), all 20 champion+pilot arms regenerated on
+parallel zero-cost CPU runtimes, UTM years reproducing their EPOCH 2 polygon counts
+exactly. The statistics floor is `docs/STATS_CHECKLIST.md` (6 of 10 hardened/measured;
+open: co-registration table, Olofsson area estimation). The imagery's measured truth:
+`phase4/qc/imagery_geometry.csv` + `acquisition_passport.csv` (one row per
+acquisition, five homes joined, gated) — rendered on the Pipeline Atlas artifact.
+The agentic loop: `experiments/*.yaml` → `qc/experiment_queue.py` → `vm_ops launch`
+→ `pilot_gate --experiment` → `qc/landed.py`; `qc/check.py` is the definition of done.
+
 **The full-repo refactor is COMPLETE (2026-09-01).** Tracked files 883 -> 477; one
 editable install (`pip install -e .`) replaces the path-hack era; layout is
 `pipeline/` (+`builders/`, `frozen/`) and `qc/` (+`instruments/`); everything removed

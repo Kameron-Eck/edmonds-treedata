@@ -92,3 +92,44 @@ def test_passport_is_fresh():
     for lab, r in rows.items():
         assert r["mmu_effective_m2"] == geo[lab]["mmu_effective_m2"], (
             f"{lab}: passport mmu disagrees with the geometry home — regenerate")
+
+
+def test_step_postproc_loop_survives_the_extraction():
+    """The 2026-09-01 lesson: threshold_and_clean's extraction left step_postproc
+    counting valid_px from a name that moved inside the function — a NameError only
+    a REAL postproc run could see, and the EPOCH 3 batch saw it on pair 1. Static
+    pin: every bare name step_postproc reads must be defined in its own scope."""
+    import ast
+    import builtins
+    src = (SCRIPTS / "pipeline" / "phase4seg" / "postproc.py").read_text(encoding="utf-8")
+    tree = ast.parse(src)
+    fn = next(n for n in ast.walk(tree)
+              if isinstance(n, ast.FunctionDef) and n.name == "step_postproc")
+    assigned = {a.arg for a in fn.args.args}
+    for node in ast.walk(fn):
+        if isinstance(node, ast.Name) and isinstance(node.ctx, ast.Store):
+            assigned.add(node.id)
+        elif isinstance(node, (ast.Import, ast.ImportFrom)):
+            assigned |= {(a.asname or a.name.split(".")[0]) for a in node.names}
+        elif isinstance(node, (ast.FunctionDef, ast.comprehension)):
+            pass
+    module_names = set()
+    for node in tree.body:
+        if isinstance(node, (ast.FunctionDef, ast.ClassDef)):
+            module_names.add(node.name)
+        elif isinstance(node, ast.Assign):
+            module_names |= {t.id for t in node.targets if isinstance(t, ast.Name)}
+        elif isinstance(node, (ast.Import, ast.ImportFrom)):
+            module_names |= {(a.asname or a.name.split(".")[0]) for a in node.names}
+    # names read inside comprehensions bind locally; collect their targets too
+    for node in ast.walk(fn):
+        if isinstance(node, ast.comprehension) and isinstance(node.target, ast.Name):
+            assigned.add(node.target.id)
+    known = assigned | module_names | set(dir(builtins))
+    # the star-import surface (config constants) — resolve via the config module
+    from phase4seg import config as _cfg
+    known |= set(vars(_cfg))
+    unknown = sorted({node.id for node in ast.walk(fn)
+                      if isinstance(node, ast.Name) and isinstance(node.ctx, ast.Load)
+                      and node.id not in known})
+    assert not unknown, f"step_postproc reads undefined name(s): {unknown}"

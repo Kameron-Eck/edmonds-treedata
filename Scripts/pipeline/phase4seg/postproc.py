@@ -150,7 +150,7 @@ def step_postproc(label, dry_run=False):
             prob = src.read(1, window=win)
             m = threshold_and_clean(prob, thr_u8, kernel)
             canopy_px += int((m == 1).sum())
-            valid_px  += int((~nod).sum())
+            valid_px  += int((m != 255).sum())   # nodata carries through as 255
             dst.write(m[np.newaxis], window=win)
 
     canopy_area = canopy_px * pixel_area_true       # TRUE m² (see _crs_unit_m note)

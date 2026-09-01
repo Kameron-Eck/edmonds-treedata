@@ -46,6 +46,28 @@ transcript before rotation). Read order: `CLAUDE.md` → `WORKPLAN.md` → `STAT
 
 ════════════════ LOG  (newest first — append new entries directly below this line) ════════════════
 
+## 2026-09-01  IMAGERY GEOMETRY MEASURED — 4 CRS families, 17 files in FEET (Fable 5)
+
+goal:    Kam: authentic imagery facts, stored so future contexts find them; wrong
+         projections "drove stats" before. Items 1-4 approved.
+did:     `87bbb76`. imagery_geometry.py -> phase4/qc/imagery_geometry.csv (36 rows,
+         rasterio-measured): CRS, unit, naive-vs-TRUE-GROUND pixel size, origin
+         alignment, extent, bands, nodata, catalog flags. Instrument's FIRST RUN
+         re-derived the founding trap (+48.9% naive on all 13 EPSG:3857 files =
+         1/cos(lat)) -> both numbers are now columns. MEASURED: 4 CRS families;
+         2285 x15 + 2926 x2 (US SURVEY FEET, 17/36); 3857 x13; 26910 x6 (only
+         honest metres). Catalog: ZERO disagreements. nodata declared on 6/36
+         only. config.ANALYSIS_GRID_EPSG=26910 appended (declaration, not
+         resampling — 3.7 stands) + gates. docs/CRS_CENSUS.md (gated): every
+         stats-bearing CRS site by symbol, incl. the two BY-DESIGN exceptions
+         (MIN_CANOPY_PATCH sieve, inflated phase-0 crown areas). CLAUDE.md 3.4b:
+         the measurement contract (instrument -> measured CSV -> gated finding).
+         IMAGERY_FACTS 14 = the finding; SCHEMAS.md = the table contract.
+         Also: colab CU balance anchor MEASURED via Kam's browser (173.39 CU
+         @ 03:45Z, verbatim in colab_rates.csv) — next launch settles a rate.
+next:    grid-congruence arithmetic on the 2019s/2019n class is now one query;
+         Kam's calls unchanged (main, tag).
+
 ## 2026-09-01  AGENTIC WORKFLOW 7/7 — lifecycle as code, checklist as command (Fable 5)
 
 goal:    Kam: "what remains a problem for agentic workflow... go for all 7"

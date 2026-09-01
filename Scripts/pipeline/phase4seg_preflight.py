@@ -25,7 +25,8 @@ from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 PKG = HERE / "phase4seg"
-MODULES = ["config", "deps", "common", "labels", "tiling", "losses", "core", "postproc", "cli"]
+MODULES = ["config", "deps", "common", "labels", "tiling", "losses", "splits",
+           "staging", "core", "postproc", "cli"]
 
 # The ORCHESTRATORS — swept for undefined names too, since 2026-08-29.
 # WHY: the sweep used to cover only the engine package, so `phase4_train_queue.py`

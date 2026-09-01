@@ -570,6 +570,7 @@ _PATH_INSERT_LEDGER = {
     "qc/instruments/phase4_qc_latent_class_adversarial.py": 1,  # sibling
     "qc/instruments/phase4_qc_latent_class_test.py": 1,  # sibling
     "qc/instruments/phase4_sector_poststrat.py": 1,  # phase4_qc_indep (qc root)
+    "qc/instruments/postproc_variant_score.py": 1,  # phase4_qc_indep (qc root)
     "qc/instruments/phase4_site_eval.py": 1,  # sibling instruments
     "qc/instruments/roof_presence_matrix.py": 1,  # roof_presence_probe sibling
     "qc/runtime_dashboard.py": 2,            # phase4_train_queue + watch_queue keeps

@@ -1,0 +1,10 @@
+variant,year,thresh,recall,precision,f1,canopy_ha_true,tp,fp,ref_canopy,note
+raw@0.643,2011s,0.643,0.4994,0.8680,0.6340,,,,,qc_indep sweep 2026-09-01 (scores prob>=thr; one u8 step above production round)
+morph@0.643,2011s,0.643,0.5050,0.8662,0.6381,1264.0,60497713,9344235,119787808,production threshold_and_clean 3x3 open+close chunked 4096
+morph_sieve@0.643,2011s,0.643,0.5050,0.8663,0.6380,1263.8,60489563,9338557,119787808,+ strip-wise sieve min_px=33 (3m2 true)
+raw@0.45,2011s,0.45,0.7338,0.7723,0.7526,,,,,qc_indep sweep 2026-09-01
+morph@0.45,2011s,0.45,0.7344,0.7717,0.7526,1941.9,87975584,26020005,119787808,
+morph_sieve@0.45,2011s,0.45,0.7344,0.7718,0.7526,1941.7,87971588,26007847,119787808,
+raw@0.4743,2006s,0.4743,0.6544,0.7213,0.6862,,,,,qc_indep live row (pilot)
+morph@0.4743,2006s,0.4743,0.6575,0.7196,0.6872,1879.4,7317498,2851714,11128663,3px kernel = 3.0m element at 100cm GSD - still neutral
+SHIPPED_MASK,2011s,0.643,0.5050,0.8662,0.6381,,60497713,9344235,119787808,EQUIVALENCE ANCHOR: shipped edmonds_canopy_mask_2011s_hy_e3_2011s.tif scored directly; pixel-identical to morph@0.643 replica

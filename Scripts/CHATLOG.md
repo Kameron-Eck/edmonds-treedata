@@ -46,6 +46,36 @@ transcript before rotation). Read order: `CLAUDE.md` → `WORKPLAN.md` → `STAT
 
 ════════════════ LOG  (newest first — append new entries directly below this line) ════════════════
 
+## 2026-09-01  R&D FLEXIBILITY — six agentic-workflow seams landed (Fable 5)
+
+goal:    Kam: "flexible for research and development... what if I wanted to
+         implement a different architecture." All six proposals approved; order
+         mine (seam -> substrate -> consumers -> protection).
+did:     `448b881` ARCH seam: ckpt.ARCHS registry + contract test parametrized
+         over it (new arch = one builder + one dict line + check.py; 11 arch
+         tests). `ad2c2e7` STATUS.json via pipeline_status --json + anti-rot gate
+         (agents query, never parse markdown). `3271caa` docs/SCHEMAS.md — every
+         data contract, writers cited BY SYMBOL, gated. `7276f59` experiments/
+         one yaml per experiment (hypothesis/arms/decision rule BEFORE results/
+         verdict); pilot_gate --experiment gates ANY of them (pilot re-verified
+         3/3 through the new loader); schema gate incl. registry provenance for
+         complete experiments; seeded with pilot_2019, deeplab_arm (tabled),
+         degradation_synth_2000 + resolution_1x2x4 (queued, rules pre-registered).
+         `94f22a2` qc/bench.py deterministic micro-benchmark — hermetic synthetic
+         tiles through REAL dataset/train/validate, rtol 1e-4 vs stored reference;
+         3 nondeterminism sources measured+pinned (CPU threads, algorithms,
+         albumentations 2.x seeding from OS entropy ignoring global seeds);
+         mutation-tested (DICE_WEIGHT x1.25 diverges every metric). `59cdc02`
+         --overrides YAML overlays, manifest-recorded, tile-signature guard
+         DERIVED from _tile_signature AST; bench MATCH on the commit touching
+         cli/config — its first real assignment.
+decided: bench regresses ENGINE math on resnet18, not the shipping arch (that has
+         its own registry contract). Overrides never CREATE constants.
+files:   phase4seg/{ckpt,overrides}.py, qc/{bench,check,pilot_gate,test_*}.py,
+         experiments/, docs/SCHEMAS.md, STATUS.json
+next:    Kam: main merge + tag still pending. Queue split (phase4_train_queue
+         1,600 L) is the remaining big-file target.
+
 ## 2026-09-01  TOOLING + CORE SPLIT — ruff found 7 live bugs; core 2,666 -> 1,579 (Fable 5)
 
 goal:    Kam: "improve the repo to improve the ability of claude code to create

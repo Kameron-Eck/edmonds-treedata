@@ -65,7 +65,8 @@ def main():
     else:
         rung("smoke", [py, str(SCRIPTS / "pipeline" / "phase4seg_smoke.py")])
     if a.status:
-        rung("status", [py, str(SCRIPTS / "qc" / "pipeline_status.py"), "--markdown"])
+        rung("status-md", [py, str(SCRIPTS / "qc" / "pipeline_status.py"), "--markdown"])
+        rung("status-json", [py, str(SCRIPTS / "qc" / "pipeline_status.py"), "--json"])
     print(f"\ncheck: ALL RUNGS PASSED in {time.time() - t0:.0f}s")
 
 

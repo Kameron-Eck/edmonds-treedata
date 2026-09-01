@@ -282,6 +282,33 @@ def write_status_md(dest):
 
 
 
+def write_status_json(dest):
+    """STATUS.json — the agent-facing view. Same sources as STATUS.md, no rendering:
+    code_facts() verbatim, the per-year rows verbatim, the champion map, and honest
+    flags about what could not be seen (lake unmounted != everything is fine)."""
+    import datetime as _dt
+    import json as _json
+    payload = {
+        "generated_utc": _dt.datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"),
+        "lake_mounted": bool(BASE.exists()),
+        "code": code_facts(),
+        "champions": None,
+        "years": None,
+        "note": ("code block is repo-derived and CI-gatable; champions/years need the "
+                 "lake and are null when it is not mounted"),
+    }
+    if BASE.exists():
+        try:
+            from champion import load_champions
+            payload["champions"] = dict(sorted(load_champions().items()))
+        except Exception as e:
+            payload["champions"] = {"_error": str(e)[:200]}
+        payload["years"] = year_rows()
+    Path(dest).write_text(_json.dumps(payload, indent=1, default=str) + NL,
+                          encoding="utf-8")
+    return dest
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--csv", default=None)
@@ -291,6 +318,11 @@ def main():
                     help="write STATUS.md (default: Scripts/STATUS.md). The code-derived "
                          "block is regenerated and gated in CI; the lake block carries its "
                          "own timestamp because CI cannot see Drive.")
+    ap.add_argument("--json", nargs="?", const=str(REPO_SCRIPTS / "STATUS.json"),
+                    default=None, metavar="PATH",
+                    help="write STATUS.json — the same facts as --markdown, machine-"
+                         "readable, for agents that should QUERY state instead of "
+                         "parsing markdown. Schema: docs/SCHEMAS.md.")
     args = ap.parse_args(clean_argv())
 
     dag = _read_dag()
@@ -310,6 +342,11 @@ def main():
     if args.markdown:
         dest = write_status_md(args.markdown)
         print("")
+        print(f"wrote {dest}")
+        return
+
+    if args.json:
+        dest = write_status_json(args.json)
         print(f"wrote {dest}")
         return
 

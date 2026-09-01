@@ -1,0 +1,427 @@
+{
+ "generated_utc": "2026-09-01T01:40:32Z",
+ "lake_mounted": true,
+ "code": {
+  "engine_version": "v048",
+  "acquisitions": 36,
+  "calendar_years": 20,
+  "year_span": "2000-2024",
+  "gsd_min": 5.0,
+  "gsd_max": 100.0,
+  "gsd_hist": {
+   "5.0": 4,
+   "7.6": 3,
+   "10.0": 5,
+   "15.2": 2,
+   "20.1": 3,
+   "22.9": 1,
+   "30.0": 1,
+   "30.5": 9,
+   "40.1": 1,
+   "60.0": 3,
+   "100.0": 4
+  },
+  "nir_labels": [
+   "2015n",
+   "2016",
+   "2017n",
+   "2017s",
+   "2018s",
+   "2019n",
+   "2019s",
+   "2021n",
+   "2021s",
+   "2023n"
+  ],
+  "rgb_only": 26,
+  "tiers": {
+   "coarse": 10,
+   "fine": 12,
+   "medium": 14
+  },
+  "dag_stages": 16,
+  "dag_bad": 0
+ },
+ "champions": {
+  "2003s": "sectors_v1",
+  "2005": "citywide_rgb",
+  "2006s": "sectors_v1",
+  "2007": "citywide_rgb",
+  "2009": "citywide_rgb",
+  "2011s": "sectors_v1",
+  "2012s": "sectors_v1",
+  "2018s": "sectors_v1",
+  "2019": "citywide_rgb",
+  "2019n": "p2nir",
+  "2020s": "sectors_v1",
+  "2021": "citywide_rgb",
+  "2021s": "p2nir",
+  "2022": "citywide_rgb",
+  "2023": "citywide_rgb",
+  "2023n": "",
+  "2024": "citywide_rgb"
+ },
+ "years": [
+  {
+   "year": "2000",
+   "gsd_cm": 40.1,
+   "tiles": "Y",
+   "models": 7,
+   "prob": "2000.tif[224MB]; 2000_citywide_rgb.tif[215MB]; 2000_fullext_sectors_v1.tif[36MB]; 2000_xsensor_rgb.tif[227MB]; 2000_xsensor_sample.tif[13MB]; 2000_xsensor_train.tif[18MB]",
+   "mask": "Y",
+   "verify": "fullext_sectors_v1:OK",
+   "honest": "\u2014"
+  },
+  {
+   "year": "2002",
+   "gsd_cm": 30.0,
+   "tiles": "Y",
+   "models": 5,
+   "prob": "2002.tif[230MB]; 2002_citywide_rgb.tif[216MB]; 2002_xsensor_rgb.tif[223MB]; 2002_xsensor_train.tif[19MB]",
+   "mask": "Y",
+   "verify": "\u2014",
+   "honest": "\u2014"
+  },
+  {
+   "year": "2002s",
+   "gsd_cm": 30.5,
+   "tiles": "\u2014",
+   "models": 0,
+   "prob": "\u2014",
+   "mask": "\u2014",
+   "verify": "\u2014",
+   "honest": "\u2014"
+  },
+  {
+   "year": "2003s",
+   "gsd_cm": 30.5,
+   "tiles": "\u2014",
+   "models": 1,
+   "prob": "2003s_sectors_v1.tif[44MB]",
+   "mask": "Y",
+   "verify": "sectors_v1:OK",
+   "honest": "rec 0.340 prec 0.815"
+  },
+  {
+   "year": "2005",
+   "gsd_cm": 20.1,
+   "tiles": "Y",
+   "models": 1,
+   "prob": "2005_citywide_rgb.tif[522MB]",
+   "mask": "\u2014",
+   "verify": "citywide_rgb:OK",
+   "honest": "rec 0.635 prec 0.917"
+  },
+  {
+   "year": "2006s",
+   "gsd_cm": 100.0,
+   "tiles": "Y",
+   "models": 1,
+   "prob": "2006s_sectors_v1.tif[9MB]",
+   "mask": "Y",
+   "verify": "sectors_v1:OK",
+   "honest": "rec 0.638 prec 0.442"
+  },
+  {
+   "year": "2007",
+   "gsd_cm": 20.1,
+   "tiles": "Y",
+   "models": 2,
+   "prob": "2007_citywide_rgb.tif[496MB]; 2007_fullext_sectors_v1.tif[88MB]",
+   "mask": "\u2014",
+   "verify": "citywide_rgb:OK; fullext_sectors_v1:OK",
+   "honest": "rec 0.660 prec 0.881"
+  },
+  {
+   "year": "2007s",
+   "gsd_cm": 30.5,
+   "tiles": "\u2014",
+   "models": 0,
+   "prob": "\u2014",
+   "mask": "\u2014",
+   "verify": "\u2014",
+   "honest": "\u2014"
+  },
+  {
+   "year": "2009",
+   "gsd_cm": 20.1,
+   "tiles": "Y",
+   "models": 27,
+   "prob": "2009_chm2_v1.tif[96MB]; 2009_citywide_rgb.tif[514MB]; 2009_corrupt10.tif[102MB]; 2009_corrupt25.tif[88MB]; 2009_corrupt50.tif[96MB]; 2009_fullext_sectors_v1.tif[84MB]; 2009_groves_lidar.tif[82MB]; 2009_groves_nolidar.tif[89MB]; 2009_hybrid_v1.tif[81MB]; 2009_nodec_s1234.tif[119MB]; 2009_nodec_v1.tif[115MB]; 2009_nodecENS.tif[58MB]; 2009_nodecW.tif[92MB]; 2009_rgb3_ep60.tif[81MB]; 2009_rgb3_ep60_s1234.tif[81MB]; 2009_rgb3_nodeb.tif[86MB]; 2009_rgb3_nodeb_s1234.tif[76MB]; 2009_rgb3_nodeb_twin.tif[88MB]; 2009_seed1234.tif[87MB]; 2009_seed777.tif[76MB]; 2009_seedENS3.tif[42MB]; 2009_seedMAX3.tif[40MB]; 2009_smooth5.tif[85MB]; 2009_smooth5raw.tif[85MB]",
+   "mask": "\u2014",
+   "verify": "citywide_rgb:OK; fullext_sectors_v1:OK; groves_nolidar:OK; groves_lidar:OK; hybrid_v1:OK; rgb3_nodeb:OK; corrupt25:OK; corrupt10:OK; corrupt50:OK; nodec_v1:OK; chm2_v1:OK; seed1234:OK; rgb3_ep60:OK; seed777:OK; nodec_s1234:OK; rgb3_nodeb_s1234:OK; nodec_s2024:OK; smooth5:OK; nodecW:OK; rgb3_ep60_s1234:OK; rgb3_nodeb_twin:OK",
+   "honest": "rec 0.605 prec 0.918"
+  },
+  {
+   "year": "2009s",
+   "gsd_cm": 30.5,
+   "tiles": "\u2014",
+   "models": 0,
+   "prob": "\u2014",
+   "mask": "\u2014",
+   "verify": "\u2014",
+   "honest": "\u2014"
+  },
+  {
+   "year": "2011s",
+   "gsd_cm": 30.5,
+   "tiles": "\u2014",
+   "models": 1,
+   "prob": "2011s_sectors_v1.tif[62MB]",
+   "mask": "Y",
+   "verify": "sectors_v1:OK",
+   "honest": "rec 0.573 prec 0.451"
+  },
+  {
+   "year": "2012s",
+   "gsd_cm": 22.9,
+   "tiles": "\u2014",
+   "models": 1,
+   "prob": "2012s_sectors_v1.tif[90MB]",
+   "mask": "Y",
+   "verify": "sectors_v1:OK",
+   "honest": "rec 0.472 prec 0.699"
+  },
+  {
+   "year": "2013",
+   "gsd_cm": 10.0,
+   "tiles": "Y",
+   "models": 5,
+   "prob": "2013.tif[2063MB]; 2013_citywide_rgb.tif[2511MB]; 2013_fullext_sectors_v1.tif[346MB]; 2013_xsensor_rgb.tif[2364MB]; 2013_xsensor_train.tif[69MB]",
+   "mask": "Y",
+   "verify": "fullext_sectors_v1:OK",
+   "honest": "\u2014"
+  },
+  {
+   "year": "2013s",
+   "gsd_cm": 100.0,
+   "tiles": "\u2014",
+   "models": 0,
+   "prob": "\u2014",
+   "mask": "\u2014",
+   "verify": "\u2014",
+   "honest": "\u2014"
+  },
+  {
+   "year": "2015",
+   "gsd_cm": 10.0,
+   "tiles": "Y",
+   "models": 4,
+   "prob": "2015.tif[2172MB]; 2015_citywide_rgb.tif[2510MB]; 2015_xsensor_rgb.tif[2613MB]; 2015_xsensor_train.tif[70MB]",
+   "mask": "Y",
+   "verify": "\u2014",
+   "honest": "\u2014"
+  },
+  {
+   "year": "2015n",
+   "gsd_cm": 100.0,
+   "tiles": "\u2014",
+   "models": 0,
+   "prob": "\u2014",
+   "mask": "\u2014",
+   "verify": "\u2014",
+   "honest": "\u2014"
+  },
+  {
+   "year": "2015s",
+   "gsd_cm": 30.5,
+   "tiles": "\u2014",
+   "models": 0,
+   "prob": "\u2014",
+   "mask": "\u2014",
+   "verify": "\u2014",
+   "honest": "\u2014"
+  },
+  {
+   "year": "2016",
+   "gsd_cm": 30.5,
+   "tiles": "Y",
+   "models": 7,
+   "prob": "2016.tif[471MB]; 2016_corrected.tif[586MB]; 2016_fullext_sectors_v1.tif[61MB]; 2016_golden_v1_2016corr.tif[29MB]; 2016_golden_v1_2016cw.tif[28MB]; 2016_golden_v1_2016fx.tif[29MB]; 2016_nir_m06.tif[67MB]",
+   "mask": "Y",
+   "verify": "corrected:OK; fullext_sectors_v1:OK; nir_m06:OK; golden_v1_2016cw:MOSTLY_NODATA; golden_v1_2016corr:MOSTLY_NODATA; golden_v1_2016fx:MOSTLY_NODATA",
+   "honest": "\u2014"
+  },
+  {
+   "year": "2017",
+   "gsd_cm": 5.0,
+   "tiles": "Y",
+   "models": 4,
+   "prob": "2017_citywide_rgb.tif[6718MB]; 2017_xsensor_rgb.tif[406MB]; 2017_xsensor_train.tif[2972MB]",
+   "mask": "\u2014",
+   "verify": "citywide_rgb:OK",
+   "honest": "\u2014"
+  },
+  {
+   "year": "2017n",
+   "gsd_cm": 100.0,
+   "tiles": "\u2014",
+   "models": 0,
+   "prob": "\u2014",
+   "mask": "\u2014",
+   "verify": "\u2014",
+   "honest": "\u2014"
+  },
+  {
+   "year": "2017s",
+   "gsd_cm": 30.5,
+   "tiles": "\u2014",
+   "models": 0,
+   "prob": "\u2014",
+   "mask": "\u2014",
+   "verify": "\u2014",
+   "honest": "\u2014"
+  },
+  {
+   "year": "2018s",
+   "gsd_cm": 15.2,
+   "tiles": "Y",
+   "models": 2,
+   "prob": "2018s_fullext_sectors_v1.tif[146MB]; 2018s_sectors_v1.tif[157MB]",
+   "mask": "Y",
+   "verify": "sectors_v1:OK; fullext_sectors_v1:OK",
+   "honest": "rec 0.461 prec 0.802"
+  },
+  {
+   "year": "2019",
+   "gsd_cm": 10.0,
+   "tiles": "Y",
+   "models": 3,
+   "prob": "2019_citywide_rgb.tif[2289MB]; 2019_pilot_e2_fine.tif[2258MB]; 2019_xsensor_train.tif[69MB]",
+   "mask": "Y",
+   "verify": "citywide_rgb:OK",
+   "honest": "rec 0.635 prec 0.824"
+  },
+  {
+   "year": "2019n",
+   "gsd_cm": 60.0,
+   "tiles": "Y",
+   "models": 3,
+   "prob": "2019n_nir_m06.tif[17MB]; 2019n_p2nir.tif[66MB]; 2019n_pilot_e2_coarse.tif[75MB]",
+   "mask": "Y",
+   "verify": "p2nir:OK; nir_m06:OK; pilot_e2_coarse:OK",
+   "honest": "rec 0.650 prec 0.854"
+  },
+  {
+   "year": "2019s",
+   "gsd_cm": 30.5,
+   "tiles": "\u2014",
+   "models": 1,
+   "prob": "2019s_pilot_e2_medium.tif[152MB]",
+   "mask": "Y",
+   "verify": "pilot_e2_medium:OK",
+   "honest": "\u2014"
+  },
+  {
+   "year": "2020",
+   "gsd_cm": 5.0,
+   "tiles": "\u2014",
+   "models": 0,
+   "prob": "\u2014",
+   "mask": "\u2014",
+   "verify": "\u2014",
+   "honest": "\u2014"
+  },
+  {
+   "year": "2020s",
+   "gsd_cm": 7.6,
+   "tiles": "\u2014",
+   "models": 1,
+   "prob": "2020s_sectors_v1.tif[563MB]",
+   "mask": "Y",
+   "verify": "sectors_v1:OK",
+   "honest": "rec 0.548 prec 0.817"
+  },
+  {
+   "year": "2021",
+   "gsd_cm": 10.0,
+   "tiles": "Y",
+   "models": 1,
+   "prob": "2021_citywide_rgb.tif[2281MB]",
+   "mask": "\u2014",
+   "verify": "citywide_rgb:OK",
+   "honest": "rec 0.606 prec 0.878"
+  },
+  {
+   "year": "2021n",
+   "gsd_cm": 60.0,
+   "tiles": "\u2014",
+   "models": 0,
+   "prob": "\u2014",
+   "mask": "\u2014",
+   "verify": "\u2014",
+   "honest": "\u2014"
+  },
+  {
+   "year": "2021s",
+   "gsd_cm": 15.2,
+   "tiles": "Y",
+   "models": 9,
+   "prob": "2021s_fullext_sectors_v1.tif[182MB]; 2021s_golden_v1_2021sfx.tif[79MB]; 2021s_golden_v1_2021sp2.tif[79MB]; 2021s_noise_ens5.tif[178MB]; 2021s_noise_r1.tif[179MB]; 2021s_noise_r2.tif[179MB]; 2021s_noise_r3.tif[180MB]; 2021s_noise_r4.tif[176MB]; 2021s_noise_r5.tif[184MB]; 2021s_p2nir.tif[439MB]",
+   "mask": "Y",
+   "verify": "p2nir:OK; fullext_sectors_v1:OK; noise_r1:OK; noise_r2:OK; noise_r3:OK; golden_v1_2021sp2:MOSTLY_NODATA; golden_v1_2021sfx:MOSTLY_NODATA; noise_r4:OK; noise_r5:OK",
+   "honest": "rec 0.685 prec 0.855"
+  },
+  {
+   "year": "2022",
+   "gsd_cm": 5.0,
+   "tiles": "Y",
+   "models": 2,
+   "prob": "2022_citywide_rgb.tif[3927MB]; 2022_xsensor_train.tif[1198MB]",
+   "mask": "\u2014",
+   "verify": "citywide_rgb:OK",
+   "honest": "rec 0.682 prec 0.801"
+  },
+  {
+   "year": "2022s",
+   "gsd_cm": 7.6,
+   "tiles": "\u2014",
+   "models": 0,
+   "prob": "\u2014",
+   "mask": "\u2014",
+   "verify": "\u2014",
+   "honest": "\u2014"
+  },
+  {
+   "year": "2023",
+   "gsd_cm": 10.0,
+   "tiles": "Y",
+   "models": 1,
+   "prob": "2023_citywide_rgb.tif[2450MB]",
+   "mask": "\u2014",
+   "verify": "citywide_rgb:OK",
+   "honest": "rec 0.651 prec 0.851"
+  },
+  {
+   "year": "2023n",
+   "gsd_cm": 60.0,
+   "tiles": "\u2014",
+   "models": 1,
+   "prob": "2023n.tif[65MB]",
+   "mask": "\u2014",
+   "verify": "\u2014",
+   "honest": "rec 0.656 prec 0.863"
+  },
+  {
+   "year": "2024",
+   "gsd_cm": 5.0,
+   "tiles": "Y",
+   "models": 2,
+   "prob": "2024_citywide_rgb.tif[4652MB]; 2024_fullext_sectors_v1.tif[747MB]",
+   "mask": "\u2014",
+   "verify": "citywide_rgb:OK; fullext_sectors_v1:OK",
+   "honest": "rec 0.617 prec 0.824"
+  },
+  {
+   "year": "2024s",
+   "gsd_cm": 7.6,
+   "tiles": "\u2014",
+   "models": 0,
+   "prob": "\u2014",
+   "mask": "\u2014",
+   "verify": "\u2014",
+   "honest": "\u2014"
+  }
+ ],
+ "note": "code block is repo-derived and CI-gatable; champions/years need the lake and are null when it is not mounted"
+}

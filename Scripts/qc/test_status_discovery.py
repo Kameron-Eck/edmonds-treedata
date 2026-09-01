@@ -605,3 +605,22 @@ def test_path_insert_ledger():
     assert not unlisted and not over, (
         "sys.path.insert outside the 3B ledger — the editable install exists, use it. "
         f"unlisted={unlisted} over={over}")
+
+
+def test_status_json_code_block_matches_the_code():
+    """STATUS.json is the agent-facing state file. Its "code" object is repo-derived,
+    so a stale tracked copy is the SAME disease as the old hand-written facts table —
+    and gets the same gate STATUS.md's code block has. Lake-derived fields carry their
+    own timestamp and are exempt (CI cannot see Drive)."""
+    import json
+    p = SCRIPTS / "STATUS.json"
+    if not p.exists():
+        import pytest
+        pytest.skip("STATUS.json not generated yet")
+    import importlib
+    ps = importlib.import_module("pipeline_status")
+    tracked = json.loads(p.read_text(encoding="utf-8"))["code"]
+    fresh = json.loads(json.dumps(ps.code_facts(), default=str))
+    assert tracked == fresh, (
+        "STATUS.json 'code' disagrees with a fresh derivation — regenerate: "
+        "py -3.12 qc/pipeline_status.py --json")

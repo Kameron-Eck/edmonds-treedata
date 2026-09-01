@@ -45,3 +45,26 @@ def test_geometry_table_exists_with_the_contract_columns():
     assert need <= set(rows[0]), f"missing columns: {need - set(rows[0])}"
     bad = [r["label"] for r in rows if r["epsg_match"] not in ("", "1")]
     assert not bad, f"measured CRS disagrees with the catalog for: {bad}"
+
+
+def test_mmu_column_matches_the_live_sieve_arithmetic():
+    """Integration gate (Kam's 'how do I know it was integrated' question,
+    2026-09-01): the geometry table's mmu_effective_m2 must equal what
+    postproc.sieve_min_px produces from the same measured pixel sizes. If the
+    re-baseline changes the sieve and the table is not regenerated, THIS fails —
+    the table can never silently describe a sieve that no longer exists."""
+    import csv
+    import math
+    from phase4seg.postproc import sieve_min_px
+    p = SCRIPTS.parent / "phase4" / "qc" / "imagery_geometry.csv"
+    rows = list(csv.DictReader(p.open(encoding="utf-8")))
+    for r in rows:
+        if not r.get("mmu_effective_m2"):
+            continue
+        want = sieve_min_px(float(r["px_x_crs"]) * float(r["px_y_crs"])) \
+            * float(r["px_ground_x_m"]) * float(r["px_ground_y_m"])
+        # stored column is rounded to 3 decimals — compare at that precision
+        assert math.isclose(float(r["mmu_effective_m2"]), round(want, 3),
+                            abs_tol=5e-4), (
+            f"{r['label']}: table says {r['mmu_effective_m2']}, live sieve says "
+            f"{want:.3f} — regenerate qc/instruments/imagery_geometry.py")

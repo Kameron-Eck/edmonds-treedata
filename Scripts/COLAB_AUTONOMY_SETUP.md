@@ -30,6 +30,12 @@ settings file), e.g.:
                                                               creation is delegated (P11.5 rev)
 
 ## Per-runtime flow after setup (fully automated)
+**THE FRONT DOOR (2026-09-01): `py -3.12 pipeline/vm_ops.py launch --session <name>
+--gpu <tier> [--queue pipeline/queue_x.yaml]`** — it runs the sequence below with the
+rules ENFORCED (one CLI call at a time via lockfile, three-state signature verify,
+token-script cleanup, backoff, launched-NOTHING detection). The manual steps stay
+documented for understanding and for recovery, not as the default path.
+
 1. `colab new -s <name> [--gpu A100]`
 2. `py -3.12 pipeline/gen_vm_bootstrap.py --session <name>` → emits a token-bearing
    one-shot script into local scratch (embeds the SA key + repo token; DELETE after use).

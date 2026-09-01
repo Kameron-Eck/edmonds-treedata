@@ -66,3 +66,15 @@ def test_queue_payload_greps_failure_not_just_success(tmp_path, monkeypatch):
     assert "MISSING" in calls["body"], "payload must expose the launched-nothing case"
     assert "nohup python -u phase4_train_queue.py" in calls["body"]
     assert not list(tmp_path.glob("vm_start_*.py")), "payload must be cleaned up"
+
+
+def test_bench_reference_is_present_and_coherent():
+    """Integration gate for the micro-benchmark: the reference exists, parses, and
+    records the environment it was made in — a bench whose reference silently
+    vanished would make `check.py --bench` a first-run no-op instead of a guard."""
+    import json
+    ref = SCRIPTS / "qc" / "bench_reference.json"
+    assert ref.exists(), "qc/bench_reference.json missing — run: py -3.12 qc/bench.py --update"
+    d = json.loads(ref.read_text(encoding="utf-8"))
+    assert d.get("metrics") and d.get("torch") and d.get("seed") == 1337
+    assert {"e1_loss", "val_loss", "postproc_canopy_px"} <= set(d["metrics"])

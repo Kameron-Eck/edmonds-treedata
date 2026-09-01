@@ -159,9 +159,8 @@ def statistics_columns(row, entry, rasterio):
         is a systematic per-year bias any canopy trend must carry or correct.
     """
     from shapely.geometry import box
-    import numpy as np
     from rasterio.warp import transform_geom
-    from phase4seg.config import ANALYSIS_GRID_EPSG, MIN_CANOPY_PATCH
+    from phase4seg.config import ANALYSIS_GRID_EPSG
     from shapely.geometry import shape as _shape
 
     crs_auth = row.get("crs_auth")
@@ -174,9 +173,11 @@ def statistics_columns(row, entry, rasterio):
     row["city_bounds_coverage_pct"] = round(100.0 * city.intersection(b26).area
                                             / city.area, 2)
 
-    # sieve reach in true m² (mirrors postproc.step_postproc's min_px arithmetic)
+    # sieve reach in true m² — THE shared arithmetic, never a mirror (re-baseline
+    # changes postproc.sieve_min_px once and this column follows automatically)
+    from phase4seg.postproc import sieve_min_px
     px_area_crs = float(row["px_x_crs"]) * float(row["px_y_crs"])
-    min_px = int(np.ceil(MIN_CANOPY_PATCH / px_area_crs))
+    min_px = sieve_min_px(px_area_crs)
     row["mmu_effective_m2"] = round(min_px * float(row["px_ground_x_m"])
                                     * float(row["px_ground_y_m"]), 3)
 

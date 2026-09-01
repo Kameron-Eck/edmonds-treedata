@@ -66,6 +66,17 @@ def _operating_threshold(label):
     return CANOPY_PROB_THRESHOLD, f"default 0.5 ({config.THRESH_MODE} unavailable)"
 
 
+def sieve_min_px(pixel_area_crs_units):
+    """THE sieve arithmetic, one home (2026-09-01): minimum patch size in PIXELS from
+    MIN_CANOPY_PATCH divided by pixel area in CRS UNITS. That denominator is the
+    documented Class-B defect (docs/CRS_CENSUS.md): on survey-foot years "3.0 m²"
+    is effectively 3.0 ft² -> 0.279 m² true; on NAIP years 3.24 m². Kam has declared
+    a RE-BASELINE that will change this function; step_postproc and the geometry
+    instrument (mmu_effective_m2) both call it, so the change lands everywhere or
+    nowhere."""
+    return int(np.ceil(MIN_CANOPY_PATCH / pixel_area_crs_units))
+
+
 def threshold_and_clean(prob, thr_u8, kernel):
     """The postproc NUMERIC kernel, pure: uint8 prob chunk -> {0,1,255} mask chunk.
     Threshold at the operating cut, open+close with the morph kernel, carry nodata
@@ -112,7 +123,7 @@ def step_postproc(label, dry_run=False):
     # therefore ~10.8x more permissive than "3.0 m²" reads on 2285 years and
     # ~2.2x stricter on 3857 years. Retuning that constant is a science decision.
     pixel_area_true = pixel_area * _crs_unit_m(img_crs) ** 2
-    min_px = int(np.ceil(MIN_CANOPY_PATCH / pixel_area))
+    min_px = sieve_min_px(pixel_area)
     # Per-year operating threshold from step_evaluate (best-F1), not the fixed 0.5.
     thr, thr_src = _operating_threshold(label)
     thr_u8 = int(round(thr * 254))

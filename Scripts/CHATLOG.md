@@ -46,6 +46,33 @@ transcript before rotation). Read order: `CLAUDE.md` → `WORKPLAN.md` → `STAT
 
 ════════════════ LOG  (newest first — append new entries directly below this line) ════════════════
 
+## 2026-09-01  RECIPE DEEP-DIVE — threshold only large knob; morph/sieve NEUTRAL (Fable 5)
+
+goal:    Kam: "are we leaving anything obvious on the table like sieve that has
+         a large impact?" Audit every recipe stage before 36-run spend.
+did:     new instrument `qc/instruments/postproc_variant_score.py` — scores
+         production mask semantics (real `threshold_and_clean` + sieve) vs C-CAP,
+         ledger-safe. Validated: shipped 2011s mask scored PIXEL-IDENTICAL to
+         replica (tp=60,497,713). Measured: threshold sweep 2011s 23 recall pts
+         (0.643 chosen circular vs 0.45; canopy AREA 1264 vs 1942 ha = 54% swing);
+         morphology NEUTRAL both years incl. 3 m-kernel 2006s (+0.31/-0.17);
+         sieve moves 0.016% px. 2020-label uncertainty band measured: 5.2% of
+         valid px in model's own 0.4-0.6 band, recipe asserts hard 0/1 on all.
+         CSV `phase4/qc/postproc_variant_scores.csv`; narrative
+         `Reports/RECIPE_AUDIT_2026-09-01.md`. Commit `aca79eb`.
+decided: no postproc edits before Kam's threshold call (provenance); ledger line
+         for instrument's one path-insert (precedent: phase4_sector_poststrat).
+killed:  "3 m morphology eraser" framing — measured neutral, open+close cancel.
+         Sieve suspicion — clean post-EPOCH-3, and mask raster never sieved anyway.
+files:   Reports/RECIPE_AUDIT_2026-09-01.md, phase4/qc/postproc_variant_scores.csv,
+         qc/instruments/postproc_variant_score.py, qc/test_status_discovery.py,
+         WORKPLAN.md row 6.
+next:    KAM: threshold policy A/B/C (C recommended) — the ONE gate left before
+         36-run. Post-GPU cleanups queued: kernel ground-units, GPKG area_m2
+         CRS-unit bug (~30/36 years), redundant vector filter, stale comment.
+         Candidate experiment: --anchor-labels A/B on 2011s (~2-3 A100-hr).
+         Full ladder (not --fast) before any Colab push.
+
 ## 2026-09-01  HARD-YEAR PILOT COMPLETE — recipe hypothesis confirmed (Fable 5)
 
 goal:    the pre-spend gate before the 36-run: are the worst years bad recipe or

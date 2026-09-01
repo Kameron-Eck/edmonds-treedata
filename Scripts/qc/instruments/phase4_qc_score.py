@@ -38,10 +38,7 @@
 import argparse
 import csv
 import datetime as _dt
-import importlib
-import subprocess
 import sys
-from pathlib import Path
 
 
 
@@ -50,7 +47,6 @@ from pathlib import Path
 from phase4seg.deps import ensure_deps as _ensure_deps  # noqa: E402
 _ensure_deps([("rasterio", "rasterio"), ("numpy", "numpy")])
 
-import numpy as np
 import rasterio
 from rasterio.windows import Window
 from phase4seg.names import clean_argv  # noqa: E402

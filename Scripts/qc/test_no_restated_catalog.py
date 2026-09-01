@@ -30,10 +30,8 @@ Run:
 """
 import ast
 import re
-import sys
 from pathlib import Path
 
-import pytest
 
 SCRIPTS = Path(__file__).resolve().parent.parent
 

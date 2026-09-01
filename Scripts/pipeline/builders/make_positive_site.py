@@ -39,10 +39,7 @@
 
 from phase4seg.names import clean_argv
 import argparse
-import importlib
 import shutil
-import subprocess
-import sys
 from pathlib import Path
 
 
@@ -60,7 +57,7 @@ import rasterio.warp
 import rasterio.windows
 import rasterio.features
 import geopandas as gpd
-from shapely.geometry import shape, box
+from shapely.geometry import shape
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt

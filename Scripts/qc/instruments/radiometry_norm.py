@@ -1,5 +1,4 @@
 r"""
-from phase4seg.names import clean_argv  # noqa: E402
 ╔══════════════════════════════════════════════════════════════════╗
   R2 — RADIOMETRY NORMALIZATION (per-acquisition gain/offset onto one reference)
   Edmonds Temporal Active Learning Pipeline
@@ -209,7 +208,6 @@ from __future__ import annotations
 
 import argparse
 import csv
-import datetime as dt
 import sys
 from itertools import combinations
 from pathlib import Path
@@ -224,6 +222,7 @@ SCRIPTS = _HERE.parent                             # …/Scripts
 # carries is the correct one — the bare .exists() this file used was true
 # whenever the mount POINT existed, mounted or not.
 from lake import BASE  # noqa: E402
+from phase4seg.names import clean_argv  # noqa: E402
 QC_DIR = BASE / "phase4" / "qc"
 
 FP_CSV = QC_DIR / "radiometry_fingerprint.csv"

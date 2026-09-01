@@ -57,7 +57,6 @@ import argparse
 import csv
 import datetime as _dt
 import io
-import sys
 from pathlib import Path
 
 import numpy as np

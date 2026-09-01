@@ -33,7 +33,6 @@ OUTPUTS (data:phase4/qc/sector_campaign/)
 """
 import argparse
 import csv
-import datetime as dt
 import json
 import re
 import sys
@@ -80,7 +79,7 @@ def main():
     import rasterio
     import rasterio.features
     from rasterio.warp import transform_geom
-    from shapely.geometry import shape, box
+    from shapely.geometry import shape
     from shapely.ops import unary_union
 
     aoi = json.loads((SCRIPTS / a.aoi).read_text(encoding="utf-8")

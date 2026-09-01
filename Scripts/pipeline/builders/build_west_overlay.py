@@ -33,10 +33,8 @@ Run:
   py -3.12 qc/build_west_overlay.py --cut-col 21024
 """
 import argparse
-import sys
 from pathlib import Path
 
-import numpy as np
 import rasterio
 from rasterio.enums import Resampling
 from rasterio.vrt import WarpedVRT

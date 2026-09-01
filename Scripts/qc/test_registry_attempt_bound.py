@@ -24,7 +24,6 @@ Run:
   PYTHONUTF8=1 py -3.12 -m pytest qc/test_registry_attempt_bound.py -q
 """
 import datetime as dt
-import sys
 from pathlib import Path
 
 import pytest

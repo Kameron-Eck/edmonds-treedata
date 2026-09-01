@@ -2659,7 +2659,8 @@ def step_inference(label, batch_size=INFER_BATCH_SIZE, dry_run=False, citywide=F
 
     if local != native:
         _unstage_imagery_local(local)
-    del model
+    model = None  # free the ref (GPU mem) WITHOUT unbinding: _forward closes over
+                  # this name, and `del` of a cell var makes any later call a NameError
     if device.type == "cuda":
         torch.cuda.empty_cache()
 

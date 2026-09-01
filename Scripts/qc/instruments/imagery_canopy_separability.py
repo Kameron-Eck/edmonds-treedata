@@ -43,7 +43,6 @@ r"""
 ╚══════════════════════════════════════════════════════════════════╝
 """
 import argparse
-import csv
 import datetime as dt
 import sys
 from concurrent.futures import ThreadPoolExecutor
@@ -56,7 +55,6 @@ from rasterio.warp import Resampling, reproject, transform as warp_xy, transform
 from rasterio.windows import from_bounds as win_from_bounds
 
 SCRIPTS = Path(__file__).resolve().parents[2]  # instruments/ -> qc/ -> Scripts/
-from phase4seg import config as C          # noqa: E402
 import imagery_measure as im               # noqa: E402
 import imagery_qc_suite as QS              # noqa: E402
 from phase4seg.names import clean_argv  # noqa: E402

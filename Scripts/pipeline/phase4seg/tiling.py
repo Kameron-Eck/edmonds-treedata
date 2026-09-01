@@ -23,7 +23,6 @@ import rasterio.warp
 import rasterio.windows
 from pathlib import Path
 from rasterio.coords import BoundingBox
-from rasterio.enums import Resampling
 from sklearn.model_selection import train_test_split
 from tqdm import tqdm
 

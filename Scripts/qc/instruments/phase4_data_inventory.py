@@ -49,11 +49,9 @@ import argparse
 import csv
 import datetime as _dt
 import io
-import sys
 from math import cos, radians
 from pathlib import Path
 
-import numpy as np
 import rasterio
 from rasterio.vrt import WarpedVRT
 from rasterio.enums import Resampling

@@ -24,7 +24,6 @@ is unaffected.
 
 Run:  PYTHONUTF8=1 py -3.12 -m pytest qc/test_select_smooth.py -q
 """
-import sys
 from pathlib import Path
 
 import pytest

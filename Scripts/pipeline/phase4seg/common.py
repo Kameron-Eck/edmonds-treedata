@@ -1,13 +1,11 @@
 import contextlib
 import hashlib
-import importlib
 import json
 import os
 import random
 import secrets
 import socket
 import subprocess
-import sys
 import shutil
 import threading
 import time
@@ -46,10 +44,6 @@ import rasterio.transform
 import rasterio.warp
 import rasterio.windows
 from rasterio.coords import BoundingBox
-from rasterio.enums import Resampling
-from shapely.geometry import box, mapping, shape
-from sklearn.model_selection import train_test_split
-from tqdm import tqdm
 
 warnings.filterwarnings("ignore")
 

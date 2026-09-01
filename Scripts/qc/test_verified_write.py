@@ -26,7 +26,6 @@ anywhere the geo stack does.
 Run:  PYTHONUTF8=1 py -3.12 -m pytest qc/test_verified_write.py -q
 """
 import os
-import sys
 from pathlib import Path
 
 import pytest

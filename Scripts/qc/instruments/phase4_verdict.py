@@ -26,7 +26,6 @@ Run (bands from pipeline/queue_nodec_rep.yaml):
 """
 import argparse
 import importlib.util
-import sys
 from pathlib import Path
 
 import numpy as np

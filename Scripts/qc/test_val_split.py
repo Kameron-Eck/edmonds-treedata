@@ -36,7 +36,6 @@ Torch-free: core binds torch lazily, and nothing here touches it.
 Run:  PYTHONUTF8=1 py -3.12 -m pytest qc/test_val_split.py -q
 """
 import json
-import sys
 from pathlib import Path
 
 import numpy as np

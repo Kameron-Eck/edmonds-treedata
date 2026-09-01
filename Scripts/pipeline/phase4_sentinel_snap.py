@@ -24,9 +24,7 @@ r"""
 
 import argparse
 import datetime as _dt
-import importlib
 import json
-import subprocess
 import sys
 from pathlib import Path
 

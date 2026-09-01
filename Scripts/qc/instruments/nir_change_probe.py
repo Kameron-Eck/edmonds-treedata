@@ -68,9 +68,6 @@
 """
 
 import argparse
-import importlib
-import subprocess
-import sys
 from pathlib import Path
 from phase4seg.names import clean_argv  # noqa: E402
 
@@ -91,7 +88,6 @@ import rasterio
 from rasterio.enums import Resampling
 from rasterio.features import rasterize
 from rasterio.vrt import WarpedVRT
-from rasterio.warp import transform_bounds
 from rasterio.windows import Window, from_bounds
 from scipy.ndimage import gaussian_filter, uniform_filter
 

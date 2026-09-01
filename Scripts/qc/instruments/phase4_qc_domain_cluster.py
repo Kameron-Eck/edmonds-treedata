@@ -46,8 +46,6 @@ import csv
 import datetime as _dt
 import io
 import re
-import sys
-from pathlib import Path
 
 import numpy as np
 from phase4seg.names import clean_argv  # noqa: E402

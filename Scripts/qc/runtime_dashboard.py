@@ -41,7 +41,6 @@ The colab executable: $COLAB_EXE, else `colab` on PATH, else the uv tool shim.
 import argparse
 import csv
 import datetime as _dt
-import glob
 import json
 import os
 import re
@@ -55,7 +54,7 @@ import time
 # names.py is STDLIB-ONLY (see its docstring): the discovery rule and the ledger
 # row key, with none of the engine's imports — this dashboard runs locally and
 # must start even when the engine environment is unusable.
-from phase4seg.names import clean_argv, is_status_file, job_key, status_files_for_stem
+from phase4seg.names import clean_argv, job_key, status_files_for_stem
 import webbrowser
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path

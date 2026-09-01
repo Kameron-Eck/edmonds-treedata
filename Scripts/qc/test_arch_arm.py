@@ -18,7 +18,6 @@ comparison" could have been a U-Net encoder wearing an untrained DeepLabV3+ deco
 Run:
   PYTHONUTF8=1 py -3.12 -m pytest qc/test_arch_arm.py -q
 """
-import sys
 from pathlib import Path
 
 import pytest

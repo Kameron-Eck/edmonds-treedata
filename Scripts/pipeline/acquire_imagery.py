@@ -33,7 +33,7 @@ Design (from the code review of _archive/scripts/unified_downloader.py):
   per-chunk telemetry so `status` can diagnose a slow run                             [agentic loop]
 """
 from __future__ import annotations
-import argparse, csv, datetime as dt, hashlib, io, json, math, os, random, shutil, statistics, sys, threading, time
+import argparse, datetime as dt, hashlib, json, math, os, random, shutil, statistics, sys, threading, time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 from phase4seg.names import clean_argv
@@ -718,7 +718,7 @@ def urllib_encode(params):
 
 def do_mosaic(m, t) -> int:
     """NAIP quads -> one raster on the study extent (tile CRS/grid, nearest, no resampling)."""
-    import numpy as np, rasterio
+    import rasterio
     from rasterio.merge import merge
     from rasterio.enums import Resampling
     spec = t.get("mosaic") or {"out_name": t["out_name"], "epsg": t["native_epsg"], "bands": t["bands"], "band_names": t.get("band_names", [])}

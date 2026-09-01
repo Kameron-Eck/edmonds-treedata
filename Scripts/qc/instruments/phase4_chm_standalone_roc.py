@@ -1,5 +1,4 @@
 r"""
-from phase4seg.names import clean_argv  # noqa: E402
 ╔══════════════════════════════════════════════════════════════════╗
   THE CHEAP PRIOR — score the HEIGHT RASTERS THEMSELVES as standalone
   canopy classifiers, against C-CAP, with a stated power.
@@ -100,6 +99,7 @@ from rasterio.enums import Resampling
 from rasterio.vrt import WarpedVRT
 from rasterio.warp import transform_bounds
 from rasterio.windows import Window
+from phase4seg.names import clean_argv  # noqa: E402
 
 HERE = Path(__file__).resolve().parent
 

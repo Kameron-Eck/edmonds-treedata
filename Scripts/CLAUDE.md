@@ -150,9 +150,10 @@ you did not touch shows up dirty, leave it.
 **`main` is Kam's.** Pushing, merging, tagging or resetting `main` is a hard DENY for
 Claude — blocked outright, never prompted. Claude may push `work/…` and `fix/…` branches.
 
-**Compile before the edit is done:** `PYTHONUTF8=1 py -3.12 -m py_compile <script>`.
-For engine edits also run `phase4seg_preflight.py` (static) **and** `phase4seg_smoke.py`
-(CPU runtime) before spending a Colab round-trip.
+**`py -3.12 qc/check.py` is the definition of done** — the whole ladder (ruff
+F-rules, compile sweep, full suite, preflight, smoke) in one command, ~80 s.
+`--fast` skips the smoke for doc-only edits; never skip it before a Colab push.
+Single-file quick loop while iterating: `PYTHONUTF8=1 py -3.12 -m py_compile <script>`.
 
 ### 3.2 Never invent
 Never invent hyperparameters, architectural decisions, or numbers. If it is not in the

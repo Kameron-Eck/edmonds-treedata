@@ -31,9 +31,6 @@
 
 import argparse
 import datetime as _dt
-import importlib
-import subprocess
-import sys
 from pathlib import Path
 
 
@@ -48,7 +45,6 @@ import numpy as np
 import rasterio
 import rasterio.warp
 import rasterio.windows
-from rasterio.vrt import WarpedVRT
 from rasterio.enums import Resampling
 import matplotlib
 matplotlib.use("Agg")

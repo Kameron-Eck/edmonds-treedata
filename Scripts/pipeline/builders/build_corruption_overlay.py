@@ -1,5 +1,4 @@
 r"""Build CONTROLLED-DAMAGE overlays for the 2009 training key — a dose-response
-from phase4seg.names import clean_argv  # noqa: E402
 instrument, not a correction.
 
 ╔══════════════════════════════════════════════════════════════════════════════╗
@@ -96,6 +95,7 @@ import rasterio
 import rasterio.warp
 from rasterio.enums import Resampling
 from rasterio.features import rasterize
+from phase4seg.names import clean_argv  # noqa: E402
 
 BASE = Path(r"G:\My Drive\treedata")
 LOCAL_OUT = Path(r"D:\edmonds-pipeline\_tmp")

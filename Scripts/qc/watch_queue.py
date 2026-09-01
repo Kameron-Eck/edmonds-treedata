@@ -17,7 +17,6 @@ import argparse
 import csv
 import sys
 import time
-from pathlib import Path
 
 # names.py is STDLIB-ONLY (see its docstring) — importing it keeps this
 # watcher free of the engine's heavy deps while giving it the one

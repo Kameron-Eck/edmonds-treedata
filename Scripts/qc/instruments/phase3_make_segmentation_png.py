@@ -28,7 +28,6 @@ import pandas as pd
 import rasterio
 import rasterio.features
 import geopandas as gpd
-from shapely.geometry import box
 
 import torch
 import segmentation_models_pytorch as smp

@@ -35,7 +35,6 @@ Run:
 """
 import argparse
 import glob
-import sys
 from pathlib import Path
 
 import laspy

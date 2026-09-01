@@ -51,7 +51,6 @@ Run:
 import argparse
 import contextlib
 import importlib.util
-import sys
 from pathlib import Path
 
 import numpy as np

@@ -13,7 +13,6 @@ them identically. If the boundary term does too, it is not worth its cost.
 Run:
   PYTHONUTF8=1 py -3.12 -m pytest qc/test_boundary_loss.py -q
 """
-import sys
 from pathlib import Path
 
 import numpy as np

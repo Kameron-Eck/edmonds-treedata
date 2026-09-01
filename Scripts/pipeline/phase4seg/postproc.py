@@ -9,7 +9,6 @@ import pandas as pd
 import rasterio
 import rasterio.features
 import rasterio.windows
-from pathlib import Path
 from shapely.geometry import mapping, shape
 from tqdm import tqdm
 

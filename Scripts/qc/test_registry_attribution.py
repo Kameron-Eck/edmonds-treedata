@@ -33,7 +33,6 @@ Run:
   PYTHONUTF8=1 py -3.12 -m pytest qc/test_registry_attribution.py -q
 """
 import csv
-import sys
 from pathlib import Path
 
 import pytest

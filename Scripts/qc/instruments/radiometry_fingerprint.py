@@ -1,5 +1,4 @@
 r"""
-from phase4seg.names import clean_argv  # noqa: E402
 ╔══════════════════════════════════════════════════════════════════╗
   R1 — RADIOMETRY FINGERPRINT (per-acquisition colour over stable ground)
   Edmonds Temporal Active Learning Pipeline
@@ -138,7 +137,6 @@ import argparse
 import csv
 import datetime as dt
 import json
-import sys
 from pathlib import Path
 
 import numpy as np
@@ -158,6 +156,7 @@ from phase4seg import config as C            # noqa: E402
 # carries is the correct one — the bare .exists() this file used was true
 # whenever the mount POINT existed, mounted or not.
 from lake import BASE  # noqa: E402
+from phase4seg.names import clean_argv  # noqa: E402
 QC_DIR   = BASE / "phase4" / "qc"
 LOGS_DIR = BASE / "phase4" / "logs"
 POLY_DIR = BASE / "polygons"

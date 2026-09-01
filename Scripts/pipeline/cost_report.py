@@ -386,7 +386,8 @@ def _arm_launch_usd(rates):
     """
     usd, blocked = {}, {}
     for p in status_files(QC_DIR):
-        if (parse_status_name(p.name) or (None, None))[1] is None:
+        launch_ts = (parse_status_name(p.name) or (None, None))[1]
+        if launch_ts is None:
             continue                         # seed or legacy file: no GPU was burned
         rows = [r for r in _rows(p) if not _is_verify(r.get("step")) and not _is_seeded(r)]
         share, tot = {}, 0.0
@@ -406,7 +407,7 @@ def _arm_launch_usd(rates):
             else:
                 usd[key] = usd.get(key, 0.0) + amount * share[key] / tot
                 continue
-            blocked.setdefault(key, []).append((m.group("ts"), why))
+            blocked.setdefault(key, []).append((launch_ts, why))
     return usd, blocked
 
 

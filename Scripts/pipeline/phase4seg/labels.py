@@ -1,5 +1,4 @@
 from phase4seg.config import *
-from phase4seg import config
 from phase4seg.common import (
     read_rgb_window, _site_window, _year_int, _load_review_regions,
     _load_coverage_overrides, _stage_imagery_local, _unstage_imagery_local,
@@ -8,7 +7,6 @@ from phase4seg.common import (
 
 import numpy as np
 import pandas as pd
-import geopandas as gpd
 import rasterio
 import rasterio.features
 import rasterio.transform

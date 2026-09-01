@@ -19,7 +19,6 @@ notices the numbers look odd.
 Run:
   PYTHONUTF8=1 py -3.12 -m pytest qc/test_ckpt_load.py -q
 """
-import sys
 from pathlib import Path
 
 import pytest

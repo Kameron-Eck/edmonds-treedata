@@ -44,7 +44,6 @@ import csv
 import datetime as _dt
 import io
 import json
-import sys
 from pathlib import Path
 
 import numpy as np

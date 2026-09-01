@@ -19,7 +19,6 @@ Run:  PYTHONUTF8=1 py -3.12 -m pytest qc/test_vm_heartbeat.py -q
 """
 import json
 import os
-import sys
 from pathlib import Path
 
 import pytest

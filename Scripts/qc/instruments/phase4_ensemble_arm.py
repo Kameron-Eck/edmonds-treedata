@@ -25,7 +25,6 @@ Run:
       --tags nodec_v1,nodec_s1234 --out-tag nodecENS
 """
 import argparse
-import sys
 from pathlib import Path
 
 import numpy as np

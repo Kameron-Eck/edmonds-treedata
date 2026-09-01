@@ -31,3 +31,17 @@ package-dir = {"" = "Scripts/pipeline"}
 packages = ["phase4seg"]
 py-modules = ["lake", "pipeline_log", "registry_from_manifests", "cost_report",
               "imagery_measure", "champion", "phase4_sentinel_snap"]  # refactor 4a: shared trio
+
+# Lint gate (refactor follow-up, 2026-09-01): F-rules ONLY, deliberately.
+#   F821 undefined-name caught 7 live bugs on first run (5 clean_argv NameErrors
+#   hiding inside module docstrings, a leftover regex-match in cost_report, and a
+#   `del` of a closure-captured `model` in core's inference cleanup). F401/F811
+#   keep the import surface honest. NO style rules: config.py is append-only,
+#   history comments are load-bearing, and format churn poisons git blame.
+# frozen/ = completed-phase provenance, never edited; scratch/ = convention stub.
+[tool.ruff]
+target-version = "py312"
+extend-exclude = ["Scripts/pipeline/frozen", "Scripts/pipeline/phase4seg/config.py", "Scripts/scratch"]
+
+[tool.ruff.lint]
+select = ["F821", "F401", "F811"]

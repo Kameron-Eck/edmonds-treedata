@@ -63,7 +63,6 @@ import io
 import json
 import math
 import socketserver
-import sys
 import threading
 from pathlib import Path
 

@@ -22,10 +22,8 @@ Run:
   PYTHONUTF8=1 py -3.12 -m pytest qc/test_tile_signature_scope.py -q
 """
 import ast
-import sys
 from pathlib import Path
 
-import pytest
 
 SCRIPTS = Path(__file__).resolve().parent.parent
 

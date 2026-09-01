@@ -1,5 +1,4 @@
 r"""Dual-epoch lidar CROSS-TABULATION — all four states, not just flat/flat.
-from phase4seg.names import clean_argv  # noqa: E402
 
 `build_lidar_background.py` used the two lidar epochs (PSLC 2005, USGS 2016) to
 certify ONE of the four states a cell can be in: flat in both, i.e. verified
@@ -157,6 +156,7 @@ from rasterio.enums import Resampling
 from rasterio.features import rasterize
 from rasterio.transform import from_origin
 from scipy import ndimage
+from phase4seg.names import clean_argv  # noqa: E402
 
 _HERE = Path(__file__).resolve().parent                 # …/Scripts/qc
 sys.path.insert(0, str(_HERE))

@@ -2,7 +2,7 @@
 synthetic 4-band GeoTIFF exactly as an ArcGIS exportImage would, with failure injection.
 Run:  PYTHONUTF8=1 py -3.12 -m pytest qc/test_acquire_imagery.py -q
 """
-import hashlib, io, json, sys
+import hashlib, sys
 from pathlib import Path
 import numpy as np, pytest, rasterio
 from rasterio.io import MemoryFile

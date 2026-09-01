@@ -39,6 +39,12 @@ jobs:
           # Editable install (refactor Stage 3): phase4seg + the shared modules resolve
           # without sys.path hacks — the same mechanism local dev and the Colab VM use.
           pip install -e .
+          pip install ruff
+
+      # F-rules only (config in pyproject [tool.ruff]): undefined names, unused/redefined
+      # imports. First run caught 7 live NameError bugs. No style rules by design.
+      - name: Ruff (F821 / F401 / F811)
+        run: ruff check Scripts/pipeline Scripts/qc
 
       - name: Compile sweep (pipeline, qc, scratch — excluding _archive)
         run: |

@@ -42,10 +42,6 @@
 """
 
 import argparse
-import datetime as _dt
-import importlib
-import subprocess
-import sys
 from pathlib import Path
 
 
@@ -87,7 +83,6 @@ CHM_DN_PER_M = 1.0 / 0.2                  # DN = 1 + round(height_m / 0.2)
 # exist on disk, so every .exists() passed while the stale files covered 39.6-67%
 # of the authoritative extent. Deriving fixes the instance AND the class, and picks
 # up all 10 NIR-bearing acquisitions instead of 4. See names.py::nir_years.
-from phase4seg import config
 from phase4seg import config as _C            # noqa: E402
 from phase4seg.config import resolve_imagery as _resolve_imagery  # noqa: E402
 from phase4seg.names import clean_argv, nir_years as _nir_years   # noqa: E402

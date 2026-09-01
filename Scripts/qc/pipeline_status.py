@@ -14,7 +14,6 @@ Usage:
     py -3.12 pipeline_status.py --mermaid       # print the DAG as Mermaid
 """
 import argparse
-import sys
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent

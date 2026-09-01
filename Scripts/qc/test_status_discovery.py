@@ -551,11 +551,8 @@ def test_emitted_bootstrap_imports_every_module_its_body_uses():
 #   · qc-sibling inserts     — die in 4c when instruments/ lands
 # A NEW insert anywhere else fails here; so does growing an existing file's count.
 _PATH_INSERT_LEDGER = {
-    "pipeline/acquire_imagery.py": 3,        # mirror_sync + 2× imagery_measure (4a)
+    "pipeline/acquire_imagery.py": 1,        # mirror_sync (uninstalled pipeline-root)
     "pipeline/make_building_masks.py": 1,    # roof_presence_matrix (blessed qc import)
-    "pipeline/make_nir_stack.py": 1,         # imagery_measure (4a)
-    "pipeline/make_sectors.py": 1,           # imagery_measure (4a)
-    "pipeline/make_sentinel_aoi.py": 1,      # phase4_sentinel_snap (4a)
     "pipeline/phase4_semantic_finetune.py": 1,  # the shim's import-root logic
     "pipeline/phase4seg_preflight.py": 1,    # gate pins the adjacent tree
     "pipeline/phase4seg_smoke.py": 1,        # gate pins the adjacent tree

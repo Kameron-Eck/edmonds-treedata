@@ -464,7 +464,7 @@ verifies which codes are *present*, not what they *mean*.
 ## 10. Campaign acquisitions (2026-08-23 →) — measured on arrival
 
 Every file below was acquired by `pipeline/acquire_imagery.py` from the manifest
-`pipeline/imagery_acquisition_manifest.json`, measured by `qc/imagery_measure.py`, and entered in
+`pipeline/imagery_acquisition_manifest.json`, measured by `pipeline/imagery_measure.py`, and entered in
 `qc/imagery_pixelsize_and_date.csv` (sheet `Pixel_Size_And_Date`). Raw per-chunk ledgers, probe/pilot/
 measure/decision JSON live beside each file under `Imagery/<SOURCE>/_acq/<ID>/` on **both** planes.
 The replacement test (coverage / bands / effective resolution on a *common* grid / JPEG signature /

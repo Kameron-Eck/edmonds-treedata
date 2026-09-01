@@ -891,7 +891,7 @@ def do_clean(m, t) -> int:
 # ----------------------------------------------------------------------------- pilot / verify / register
 def do_pilot(m, t, args) -> int:
     import numpy as np, rasterio
-    sys.path.insert(0, str(SCRIPTS / "qc")); import imagery_measure as im
+    import imagery_measure as im
     probe = load_probe(m, t)
     px = float(t["px"]); epsg = int(t["native_epsg"])
     box_m = float(args.box_m or (t.get("pilot") or {}).get("box_m") or 500)
@@ -989,7 +989,7 @@ def do_pilot(m, t, args) -> int:
 
 
 def do_verify(m, t) -> int:
-    sys.path.insert(0, str(SCRIPTS / "qc")); import imagery_measure as im
+    import imagery_measure as im
     out = out_path(m, t)
     if not out.exists():
         sys.exit(f"{out} missing - assemble/mosaic first")

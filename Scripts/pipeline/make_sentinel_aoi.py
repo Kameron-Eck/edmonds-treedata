@@ -13,7 +13,7 @@ SCHEMA. Deliberately the schema `phase4seg/core.py::_aoi_pixel_rects` already co
 reads ONLY `crs` and each entry's `bounds_3857`; every other key here is documentation.
 "sectors" is the engine's word for "rects" — these are windows, not sectors.
 
-GEOMETRY. Window bounds come from `qc/phase4_sentinel_snap.py::site_bounds` — IMPORTED,
+GEOMETRY. Window bounds come from `pipeline/phase4_sentinel_snap.py::site_bounds` — IMPORTED,
 never re-implemented, so the AOI cannot drift from what the gate actually scores when a
 window is edited. Each window is padded by PAD_M in TRUE metres (WGS84 dlat/dlon
 expansion, the same idiom site_bounds uses for its lon/lat/radius entries) to absorb
@@ -48,7 +48,6 @@ import rasterio.warp
 import rasterio.windows
 
 SCRIPTS = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(SCRIPTS / "qc"))
 import phase4_sentinel_snap as SNAP                 # noqa: E402  window/bounds helpers
 
 OUT = Path(__file__).resolve().parent / "aoi" / "sentinel_v1.json"
@@ -208,7 +207,7 @@ def main():
         ),
         "params": {"pad_m_true": PAD_M, "n_windows": len(rects),
                    "source": "Scripts/sentinel_sites.json",
-                   "bounds_fn": "qc/phase4_sentinel_snap.py::site_bounds (imported)"},
+                   "bounds_fn": "pipeline/phase4_sentinel_snap.py::site_bounds (imported)"},
         "generated": {"ts": _dt.datetime.now(_dt.timezone.utc).isoformat(timespec="seconds"),
                       "git": _git_sha(), "script": "pipeline/make_sentinel_aoi.py"},
         "sectors": rects,

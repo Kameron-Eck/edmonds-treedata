@@ -21,7 +21,7 @@ WHAT IT WRITES
     nir_stack_README.txt    band order, source file, date, native GSD, root.
 
     Both share ONE grid: EPSG:3857, 1.0 unit pixels, extent = the Edmonds city
-    polygon (qc/imagery_measure.CITY_SHP) padded >=100 m and SNAPPED TO THE CHM
+    polygon (pipeline/imagery_measure.CITY_SHP) padded >=100 m and SNAPPED TO THE CHM
     LATTICE (Imagery/lidar_snoh_chm.tif), so the stack overlays the CHM /
     structure / hillshade rasters pixel-for-pixel with no resampling.
 
@@ -89,7 +89,6 @@ from rasterio.vrt import WarpedVRT
 
 _HERE = Path(__file__).resolve().parent           # …/Scripts/pipeline
 _SCRIPTS = _HERE.parent                           # …/Scripts
-sys.path.insert(0, str(_SCRIPTS / "qc"))          # imagery_measure (CITY_SHP)
 
 from phase4seg import config as C                 # noqa: E402
 import imagery_measure as im                      # noqa: E402  (CITY_SHP local-first)
@@ -791,7 +790,7 @@ def write_readme(path, inv, problems, orphans, nir_stats, ndvi_stats,
     A("  date shot + true pixel size          -> Scripts/qc/imagery_pixelsize_and_date.csv")
     A("  red/NIR band convention              -> qc/phase4_qc_ndvi.py (read [1,2,3,4],")
     A("                                          r=[0], nir=[3])")
-    A("  city polygon                         -> qc/imagery_measure.py CITY_SHP")
+    A("  city polygon                         -> pipeline/imagery_measure.py CITY_SHP")
     A("")
     if problems:
         A("CATALOG ENTRIES THAT DID NOT MAKE IT IN")

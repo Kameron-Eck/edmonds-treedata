@@ -29,4 +29,5 @@ requires-python = ">=3.11"
 [tool.setuptools]
 package-dir = {"" = "Scripts/pipeline"}
 packages = ["phase4seg"]
-py-modules = ["lake", "pipeline_log", "registry_from_manifests", "cost_report"]
+py-modules = ["lake", "pipeline_log", "registry_from_manifests", "cost_report",
+              "imagery_measure", "champion", "phase4_sentinel_snap"]  # refactor 4a: shared trio

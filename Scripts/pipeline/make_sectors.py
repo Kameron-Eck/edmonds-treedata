@@ -61,7 +61,6 @@ from pathlib import Path
 import numpy as np
 
 SCRIPTS = Path(__file__).resolve().parents[0].parent
-sys.path.insert(0, str(SCRIPTS / "qc"))
 import imagery_measure as im  # noqa: E402   (CITY_SHP local-first)
 
 # the anchor lattice (identical to scratch/make_site_grid.py)

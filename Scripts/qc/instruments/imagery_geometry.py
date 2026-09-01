@@ -176,8 +176,8 @@ def statistics_columns(row, entry, rasterio):
     # sieve reach in true m² — THE shared arithmetic, never a mirror (re-baseline
     # changes postproc.sieve_min_px once and this column follows automatically)
     from phase4seg.postproc import sieve_min_px
-    px_area_crs = float(row["px_x_crs"]) * float(row["px_y_crs"])
-    min_px = sieve_min_px(px_area_crs)
+    ground_area = float(row["px_ground_x_m"]) * float(row["px_ground_y_m"])
+    min_px = sieve_min_px(ground_area)
     row["mmu_effective_m2"] = round(min_px * float(row["px_ground_x_m"])
                                     * float(row["px_ground_y_m"]), 3)
 

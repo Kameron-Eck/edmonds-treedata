@@ -46,12 +46,11 @@ blocked ground splits with metre buffers (`splits.py::make_blocked_val_split`),
 LOSO as the only honest site-level split (CLAUDE.md 3.5). **Rule: effective n is
 ~5 forest sites, not tile counts; random-split numbers are never headlines.**
 
-## 7. Minimum mapping unit — MEASURED, retune OPEN (science call, Kam's)
-The postproc sieve is tuned in CRS units (`docs/CRS_CENSUS.md` Class B), so what it
-removes differs BY CRS FAMILY: per-acquisition `mmu_effective_m2` in the geometry
-table quantifies it. **Rule: any cross-year canopy trend states the per-year
-effective MMU band it carries; harmonizing the sieve is a recorded science decision,
-not a silent edit.**
+## 7. Minimum mapping unit — RE-BASELINED (EPOCH 3, Kam 2026-09-01)
+`postproc.py::sieve_min_px` now sieves at 3.0 m² TRUE everywhere (residual spread =
+integer-pixel quantisation, 3.0–3.999 m², per-acquisition in the geometry table).
+**Rule: EPOCH 2 and EPOCH 3 masks are never compared in one trend — the manifest
+EPOCH stamp is the guard; masks regenerate per year via `--step postproc`.**
 
 ## 8. Area estimation bias — OPEN (the big one)
 Pixel-counting a classified map gives MAP area, which is biased whenever omission and

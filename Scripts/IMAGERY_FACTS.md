@@ -890,3 +890,12 @@ Three columns added to `phase4/qc/imagery_geometry.csv` (instrument:
   family. Any cross-year trend in small canopy carries this until the sieve is
   harmonized — a recorded science decision (Kam's), because retuning changes every
   postproc mask (docs/CRS_CENSUS.md Class B).
+
+**§15 addendum (2026-09-01): the sieve is RE-BASELINED.** Kam: 3.0 m² true
+everywhere → EPOCH 3. `postproc.py::sieve_min_px` divides by true-m² pixel area; the
+archive's MMU spread collapses from 11.6× (0.279–3.24 m²) to integer-pixel
+quantisation only (3.0–3.999 m², per-acquisition column regenerated). Masks produced
+under EPOCH 2 carry the old sieve until their year's postproc re-runs; the manifest
+EPOCH stamp keeps the eras from being silently compared. Correction to the census's
+first edition recorded there: `_crs_unit_m` DOES handle EPSG:3857 (cos-latitude
+special case), so reported hectares were already ground-true to ~0.1%.

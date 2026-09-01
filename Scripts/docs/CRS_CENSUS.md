@@ -17,10 +17,11 @@ hazard is unit-blind consumers.
 
 ## The one converter
 
-`common.py::_crs_unit_m` — CRS linear unit → metres. Every true-area computation goes
-through it. Note its limit: it converts **units**, not projection scale — for EPSG:3857
-the unit is "metre" (factor 1.0) while true ground is ~0.672× that here. Ground-true
-lengths in 3857 need a warp (see `imagery_geometry.py::measure_one`), not a unit factor.
+`common.py::_crs_unit_m` — CRS linear unit → metres, **including an explicit EPSG:3857
+special case** (returns cos(47.81°), good to ~0.1% across the city — this census's
+first edition wrongly claimed it was unit-only; its own docstring says otherwise).
+For anything demanding better than ~0.1%, measure on the analysis grid
+(`imagery_geometry.py::measure_one` warps a real pixel).
 
 ## Class A — TRUE-METRE computations (correct by construction)
 
@@ -35,10 +36,11 @@ lengths in 3857 need a warp (see `imagery_geometry.py::measure_one`), not a unit
 
 ## Class B — CRS-UNIT BY DESIGN (documented, deliberately NOT converted)
 
-- `postproc.py::step_postproc` `min_px` sieve: `MIN_CANOPY_PATCH` was **tuned against
-  CRS-unit areas** (config.py, pure-move protected). Converting it would silently change
-  every postproc mask — ~10.8× more permissive than "3.0 m²" reads on 2285 years, ~2.2×
-  stricter on 3857. Retuning is a science decision, recorded, not a bug.
+- ~~The `min_px` sieve in CRS units~~ — **RESOLVED 2026-09-01 (EPOCH 3, Kam: 3.0 m²
+  true everywhere)**: `postproc.py::sieve_min_px` now divides by TRUE m² pixel area;
+  the residual spread is integer-pixel quantisation (3.0–3.999 m² across the archive,
+  vs 0.279–3.24 before). EPOCH 2 masks carry the old sieve; the manifest EPOCH stamp
+  separates the eras.
 - Phase-0 crown `area_m2` + `size_class` (222,435 crowns): stored Web-Mercator-inflated
   (median 87.8 stored vs 39.5 true). **Documented-not-changed** (WORKPLAN); consumers
   that care recompute (`build_corruption_overlay.py::main` does, loudly).

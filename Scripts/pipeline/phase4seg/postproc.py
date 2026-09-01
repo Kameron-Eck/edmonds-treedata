@@ -66,15 +66,18 @@ def _operating_threshold(label):
     return CANOPY_PROB_THRESHOLD, f"default 0.5 ({config.THRESH_MODE} unavailable)"
 
 
-def sieve_min_px(pixel_area_crs_units):
-    """THE sieve arithmetic, one home (2026-09-01): minimum patch size in PIXELS from
-    MIN_CANOPY_PATCH divided by pixel area in CRS UNITS. That denominator is the
-    documented Class-B defect (docs/CRS_CENSUS.md): on survey-foot years "3.0 m²"
-    is effectively 3.0 ft² -> 0.279 m² true; on NAIP years 3.24 m². Kam has declared
-    a RE-BASELINE that will change this function; step_postproc and the geometry
-    instrument (mmu_effective_m2) both call it, so the change lands everywhere or
-    nowhere."""
-    return int(np.ceil(MIN_CANOPY_PATCH / pixel_area_crs_units))
+def sieve_min_px(pixel_area_true_m2):
+    """THE sieve arithmetic, one home — RE-BASELINED to TRUE m² (Kam, 2026-09-01,
+    EPOCH 3): minimum patch size in PIXELS = MIN_CANOPY_PATCH / pixel area in TRUE
+    square metres. Until EPOCH 3 the denominator was CRS units, so "3.0 m²" meant
+    0.279 m² on survey-foot years and 3.24 m² on NAIP — an 11.6x minimum-mapping-
+    unit spread BY CRS FAMILY, measured in phase4/qc/imagery_geometry.csv and
+    recorded in docs/CRS_CENSUS.md (now resolved) + IMAGERY_FACTS 15. The residual
+    spread is integer-pixel quantisation only (ceil): 3.000-3.24 m² across the
+    archive. Masks produced before EPOCH 3 carry the old sieve; the EPOCH stamp in
+    every manifest is what keeps the two eras from being silently compared.
+    step_postproc and the geometry instrument both call THIS function."""
+    return int(np.ceil(MIN_CANOPY_PATCH / pixel_area_true_m2))
 
 
 def threshold_and_clean(prob, thr_u8, kernel):
@@ -123,7 +126,7 @@ def step_postproc(label, dry_run=False):
     # therefore ~10.8x more permissive than "3.0 m²" reads on 2285 years and
     # ~2.2x stricter on 3857 years. Retuning that constant is a science decision.
     pixel_area_true = pixel_area * _crs_unit_m(img_crs) ** 2
-    min_px = sieve_min_px(pixel_area)
+    min_px = sieve_min_px(pixel_area_true)   # EPOCH 3: true m², not CRS units
     # Per-year operating threshold from step_evaluate (best-F1), not the fixed 0.5.
     thr, thr_src = _operating_threshold(label)
     thr_u8 = int(round(thr * 254))

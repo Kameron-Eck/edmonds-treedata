@@ -987,7 +987,9 @@ BOUNDARY_IGNORE_BUFFER  = 3      # px dilation of the IGNORE exclusion, see abov
 #  NOT IN _tile_signature: bumping the epoch must not force a ~20 min/year re-tile.
 #  Tiles are inputs, not results; whether two RESULTS are comparable is the question
 #  this answers.
-EPOCH = 2
+EPOCH = 3   # 2026-09-01: sieve re-baselined to TRUE m² (Kam: "lets do 3m^2").
+            # EPOCH 2 masks carry the CRS-unit sieve (0.279-3.24 m² MMU spread);
+            # EPOCH 3 masks carry 3.0 m² true everywhere (+ integer-px ceiling).
 
 
 # ══════════════════════════════════════════════════════════════════════════════

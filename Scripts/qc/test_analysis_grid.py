@@ -61,8 +61,8 @@ def test_mmu_column_matches_the_live_sieve_arithmetic():
     for r in rows:
         if not r.get("mmu_effective_m2"):
             continue
-        want = sieve_min_px(float(r["px_x_crs"]) * float(r["px_y_crs"])) \
-            * float(r["px_ground_x_m"]) * float(r["px_ground_y_m"])
+        ground = float(r["px_ground_x_m"]) * float(r["px_ground_y_m"])
+        want = sieve_min_px(ground) * ground
         # stored column is rounded to 3 decimals — compare at that precision
         assert math.isclose(float(r["mmu_effective_m2"]), round(want, 3),
                             abs_tol=5e-4), (

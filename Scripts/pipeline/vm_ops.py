@@ -102,8 +102,9 @@ def verify_output(out, ok_sigs, fail_sigs, what):
 
 
 def new_session(session, gpu, tries=6, backoff=240):
+    args = ["new", "-s", session] + ([] if gpu == "CPU" else ["--gpu", gpu])
     for i in range(tries):
-        code, out = _cli(["new", "-s", session, "--gpu", gpu], timeout=300)
+        code, out = _cli(args, timeout=300)
         if "Session READY" in out:
             print(f"  VM READY: {session} ({gpu})")
             return
@@ -207,7 +208,10 @@ def main():
     sub = ap.add_subparsers(dest="cmd", required=True)
     L = sub.add_parser("launch")
     L.add_argument("--session", required=True)
-    L.add_argument("--gpu", default="T4", choices=["T4", "L4", "G4", "A100", "H100"])
+    L.add_argument("--gpu", default="T4",
+                   choices=["CPU", "T4", "L4", "G4", "A100", "H100"],
+                   help="CPU = no accelerator flag: zero compute units (the one "
+                        "MEASURED-free tier in colab_rates.csv) — right for postproc")
     L.add_argument("--queue", default=None)
     L.add_argument("--branch", default=None)
     E = sub.add_parser("exec")

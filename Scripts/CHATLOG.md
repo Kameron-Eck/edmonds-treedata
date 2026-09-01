@@ -46,6 +46,24 @@ transcript before rotation). Read order: `CLAUDE.md` → `WORKPLAN.md` → `STAT
 
 ════════════════ LOG  (newest first — append new entries directly below this line) ════════════════
 
+## 2026-09-01  EPOCH 3 — sieve re-baselined to 3.0 m² TRUE (Kam: "lets do 3m^2")
+
+goal:    kill the 11.6x minimum-mapping-unit spread (0.279-3.24 m² by CRS family —
+         "3.0 m²" read as ft² on 15 survey-foot years).
+did:     `01b1de7`. sieve_min_px divides by TRUE-m² pixel area; MMU spread now
+         integer-px quantisation only (3.0-3.999 m²). EPOCH 2 -> 3 (not in
+         _tile_signature — no re-tile). Geometry table + passport columns
+         regenerated; parity gate follows the live function. Census Class-B entry
+         struck RESOLVED (history kept) + census correction: _crs_unit_m DOES
+         handle 3857 (cos-lat) — reported hectares were already ground-true.
+         STATS_CHECKLIST item 7 -> RE-BASELINED. Local postproc canary hit the
+         documented fork/Windows wall -> batch rides a CPU Colab runtime (ZERO
+         compute units, the one sourced-free tier): vm_ops gained a CPU choice;
+         20 (year, tag) pairs = 17 champions + 3 pilot arms, nohup-detached,
+         log epoch3_postproc_batch_*.log, watchdog self-stops.
+next:    verify batch DONE ok=20; then landed.py (registry rows for the re-runs
+         come from manifests). Pilot Atlas mmu column already shows EPOCH 3.
+
 ## 2026-09-01  IMAGERY GEOMETRY MEASURED — 4 CRS families, 17 files in FEET (Fable 5)
 
 goal:    Kam: authentic imagery facts, stored so future contexts find them; wrong

@@ -66,8 +66,22 @@ def _operating_threshold(label):
     return CANOPY_PROB_THRESHOLD, f"default 0.5 ({config.THRESH_MODE} unavailable)"
 
 
-def step_postproc(label, dry_run=False):
+def threshold_and_clean(prob, thr_u8, kernel):
+    """The postproc NUMERIC kernel, pure: uint8 prob chunk -> {0,1,255} mask chunk.
+    Threshold at the operating cut, open+close with the morph kernel, carry nodata
+    through as 255. Extracted 2026-09-01 so qc/bench.py regresses the REAL code —
+    a replica in the bench would regress nothing. step_postproc is the only other
+    caller; behavior identical by construction."""
     from scipy.ndimage import binary_opening, binary_closing
+    nod = prob == PROB_NODATA
+    m = ((~nod) & (prob >= thr_u8)).astype(np.uint8)
+    m = binary_opening(m, structure=kernel).astype(np.uint8)
+    m = binary_closing(m, structure=kernel).astype(np.uint8)
+    m[nod] = 255                       # carry no-data through to the mask
+    return m
+
+
+def step_postproc(label, dry_run=False):
     print(f"\n── [{label}] Step 6: Post-processing ──")
 
     prob_out = MASKS_DIR / f"edmonds_canopy_prob_{label}{_tag_sfx()}.tif"
@@ -120,11 +134,7 @@ def step_postproc(label, dry_run=False):
             r1 = min(r0 + CHUNK, img_h)
             win = rasterio.windows.Window(0, r0, img_w, r1 - r0)
             prob = src.read(1, window=win)
-            nod = prob == PROB_NODATA
-            m = ((~nod) & (prob >= thr_u8)).astype(np.uint8)
-            m = binary_opening(m, structure=kernel).astype(np.uint8)
-            m = binary_closing(m, structure=kernel).astype(np.uint8)
-            m[nod] = 255                       # carry no-data through to the mask
+            m = threshold_and_clean(prob, thr_u8, kernel)
             canopy_px += int((m == 1).sum())
             valid_px  += int((~nod).sum())
             dst.write(m[np.newaxis], window=win)

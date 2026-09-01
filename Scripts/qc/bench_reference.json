@@ -5,7 +5,14 @@
   "e2_loss": 0.881506,
   "e2_seg": 0.592621,
   "boundary_loss": 0.831914,
-  "val_loss": 0.627339
+  "val_loss": 0.627339,
+  "eval_f1": 1.0,
+  "eval_iou": 1.0,
+  "eval_auroc": 1.0,
+  "eval_ap": 1.0,
+  "eval_best_f1": 1.0,
+  "postproc_canopy_px": 0,
+  "postproc_nodata_px": 2048
  },
  "seed": 1337,
  "n_tiles": 8,

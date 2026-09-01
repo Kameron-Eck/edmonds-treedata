@@ -133,6 +133,30 @@ def run():
             out["boundary_loss"] = round(bloss, 6)
             v = core._validate(model, va, criterion, device)
             out["val_loss"] = round(float(v[0] if isinstance(v, (tuple, list)) else v), 6)
+
+            # evaluate/postproc NUMERIC kernels (2026-09-01): the last unguarded
+            # numeric path was canary-only. Same pinned rng; REAL functions, not
+            # replicas (threshold_and_clean was extracted from step_postproc for
+            # exactly this).
+            rng2 = np.random.default_rng(SEED + 1)
+            gt = (rng2.random((4, 256, 256)) < 0.3)
+            probf = np.clip(gt * 0.55 + rng2.random(gt.shape) * 0.45, 0, 1)
+            pred = probf >= 0.5
+            m = core._metrics(int((pred & gt).sum()), int((pred & ~gt).sum()),
+                              int((~pred & gt).sum()), int((~pred & ~gt).sum()))
+            out["eval_f1"], out["eval_iou"] = m["f1"], m["iou"]
+            ti = core._threshold_independent_metrics(
+                [probf.ravel().astype(np.float32)], [gt.ravel()], m["f1"])
+            for k in ("auroc", "ap", "best_f1"):
+                if k in ti:
+                    out[f"eval_{k}"] = round(float(ti[k]), 6)
+            from phase4seg import postproc as PP
+            prob_u8 = np.clip(probf[0] * 254, 0, 254).astype(np.uint8)
+            prob_u8[:8, :] = 255                      # a nodata band
+            kernel = np.ones((config.MORPH_KERNEL_SIZE,) * 2, dtype=bool)
+            pm = PP.threshold_and_clean(prob_u8, int(round(0.5 * 254)), kernel)
+            out["postproc_canopy_px"] = int((pm == 1).sum())
+            out["postproc_nodata_px"] = int((pm == 255).sum())
             return out
     finally:
         config.AUX_HEIGHT, config.IN_CHANNELS, config.USE_VI = sa, sx, sv

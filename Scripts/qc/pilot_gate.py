@@ -63,25 +63,8 @@ def load_arms(experiment_path):
     return [(str(a["year"]), str(a["tag"])) for a in spec["arms"]], spec
 
 
-def _retry(fn, tries=10, pause=1.0):
-    """Run `fn` until it returns something non-empty, or give up.
-
-    THE G: MIRROR BLINKS. Drive for Desktop streams it, and while VMs are writing, a read
-    or a directory LISTING can come back empty for files that are plainly there seconds
-    later — measured 2026-08-31, and it nearly had a healthy runtime declared dead.
-
-    This gate hit it too: `status_files()` returned [] mid-campaign and the gate printed
-    "no ledger rows for this arm" for an arm that had eleven. A gate that reports MISS
-    because of a transient listing is worse than no gate — it would fail the pilot for a
-    filesystem hiccup. Retry the LISTING, not only the read; that distinction is what the
-    first version got wrong.
-    """
-    for _ in range(tries):
-        out = fn()
-        if out:
-            return out
-        time.sleep(pause)
-    return fn()
+from lake import read_retry as _retry   # noqa: E402 — ONE home (lake.py); the
+# mirror-blinks mechanism and the retry-the-LISTING lesson are documented there.
 
 
 def _rows(p):

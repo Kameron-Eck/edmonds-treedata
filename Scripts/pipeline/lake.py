@@ -48,3 +48,24 @@ IMAGERY_DIR = BASE / "Full_Image" / "Pipeline Imagery"
 # String, not Path — feeds startswith() guards; slash direction and the trailing
 # separator are load-bearing (see docstring).
 DRIVE_MOUNT_PREFIX = "/content/drive/MyDrive/treedata/"
+
+
+def read_retry(fn, tries=10, pause=1.0):
+    """Run `fn` until it returns something non-empty, or give up (then return the
+    last attempt so the caller sees the real emptiness, not None).
+
+    THE MIRROR BLINKS — on both planes. Locally, Drive for Desktop streams G: and a
+    read or a directory LISTING can come back empty for files plainly there seconds
+    later (measured 2026-08-31; it nearly had a healthy runtime declared dead, and
+    pilot_gate printed "no ledger rows" for an arm that had eleven). On the VM the
+    FUSE mount has the same failure shape. Retry the ANSWER — the listing or the
+    parsed rows — never a timestamp guess. This is the ONE home for that rule;
+    pilot_gate carried the original and now delegates here.
+    """
+    import time
+    for _ in range(tries):
+        out = fn()
+        if out:
+            return out
+        time.sleep(pause)
+    return fn()

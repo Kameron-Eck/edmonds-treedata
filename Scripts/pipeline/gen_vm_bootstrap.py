@@ -313,6 +313,13 @@ subprocess.Popen("cd /content/repo/Scripts/pipeline && nohup python -u vm_heartb
                  " --session " + SESSION + " > /content/vm_heartbeat.log 2>&1 &",
                  shell=True)
 print("HEARTBEAT_STARTED", SESSION)
+# Deterministic on-VM supervisor (vm_babysitter.py, 2026-09-01; NO model by Kam's
+# decision): restarts a dead heartbeat, retries known-transient step failures ONCE
+# via the queue's own resume credit, escalates everything else to its Drive log.
+subprocess.Popen("cd /content/repo/Scripts/pipeline && nohup python -u vm_babysitter.py"
+                 " --session " + SESSION + " > /content/vm_babysitter.log 2>&1 &",
+                 shell=True)
+print("BABYSITTER_STARTED", SESSION)
 # SELF-STOP WATCHDOG (2026-08-27): the CLI can lose its session handle (404/401
 # on long-lived VMs) leaving no external way to stop the runtime — a frozen VM
 # then bills until Google reclaims it. The VM ends ITSELF: once a queue/engine

@@ -40,7 +40,7 @@ SCRATCH = Path(os.environ.get("LOCALAPPDATA", "")) / "Temp" / "sector_campaign_v
 LOCK = SCRATCH / "colab_cli.lock"
 
 BOOT_OK = ("WRITE_CANARY PASS", "EDITABLE_INSTALL OK", "BOOTSTRAP_READY",
-           "HEARTBEAT_STARTED")
+           "HEARTBEAT_STARTED", "BABYSITTER_STARTED")
 BOOT_FAIL = ("BOOTSTRAP FAIL", "MOUNT_FAILED", "WRITE_CANARY FAIL",
              "EDITABLE_INSTALL FAIL", "Traceback (most recent call last)")
 

@@ -10,7 +10,7 @@ doing" without spending a `colab exec`. Two ways it could lie:
        whichever wrote last. Neither runtime could be found; neither looked dead.
   D4   the publish was os.replace over an existing destination on the rclone FUSE
        mount, every cycle after the first — the case
-       core.py::_deploy_smoothed_keeping_raw concedes the mount canary never proved.
+       select.py::_deploy_smoothed_keeping_raw concedes the mount canary never proved.
 
 vm_heartbeat.py is STDLIB ONLY by design (it must survive anything the queue does
 to the environment), and so is this file: no Drive, no torch, no geo stack.

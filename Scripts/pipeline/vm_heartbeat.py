@@ -403,7 +403,7 @@ def write_atomic(path, obj):
 
     D4 (2026-08-29): the replace landed on an EXISTING destination every cycle
     after the first, on the rclone FUSE mount — the case the mount canary never
-    proved (core.py::_deploy_smoothed_keeping_raw concedes it). The old file is
+    proved (select.py::_deploy_smoothed_keeping_raw concedes it). The old file is
     renamed aside first so both
     renames have an absent destination, and it is restored if the publish fails,
     so a beacon can never leave NO heartbeat behind.

@@ -609,7 +609,7 @@ def _publish_replace(part, dest):
     WHY (D4). This was a plain `os.replace(part, drive_path)` over a destination
     that already existed, on the rclone FUSE mount, once per improving epoch. The
     mount canary that blessed os.replace only ever proved the ABSENT-destination
-    case — core.py::_deploy_smoothed_keeping_raw says so in as many words — so the
+    case — select.py::_deploy_smoothed_keeping_raw says so in as many words — so the
     hot loop was running the
     unproven case thousands of times a night.
 

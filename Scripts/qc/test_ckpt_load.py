@@ -43,7 +43,7 @@ class _Tiny(torch.nn.Module):
         self.encoder = torch.nn.Conv2d(3, 4, 1)
         self.decoder = torch.nn.Conv2d(4, 1, 1)
         if with_head:
-            # NAMED TO MATCH THE REAL MODEL. core.py::_build_unet_with_height calls this
+            # NAMED TO MATCH THE REAL MODEL. ckpt.py::_build_unet_with_height calls this
             # attribute `height_head`, so the state_dict keys are height_head.weight /
             # .bias. This stand-in used to call it `aux_height_head`, and because the
             # three production call sites passed that same wrong prefix to allow_missing,
@@ -160,7 +160,7 @@ def test_no_override_still_searches_the_defaults():
 def test_allow_missing_prefix_matches_the_real_aux_head():
     """THE REGRESSION THIS FILE MISSED, 2026-08-31.
 
-    core.py::_build_unet_with_height names the head `self.height_head`, so its state_dict
+    ckpt.py::_build_unet_with_height names the head `self.height_head`, so its state_dict
     keys are `height_head.weight` / `height_head.bias`. Three production call sites passed
     `allow_missing=("aux_height_head.",)` — a prefix that matches NEITHER — so
     _assert_state_fits would raise SystemExit on any --aux-height run loading a non-aux

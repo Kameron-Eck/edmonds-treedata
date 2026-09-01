@@ -48,9 +48,19 @@ INDEP = QC / "qc_indep_report.csv"
 REF_CCAP = BASE / "Full_Image" / "Pipeline Imagery" / "ccap_2021_hires_lc.tif"
 
 # (year label, run tag) — the three arms of pipeline/pilot_2019_*.yaml.
-ARMS = [("2019", "pilot_e2_fine"),
-        ("2019s", "pilot_e2_medium"),
-        ("2019n", "pilot_e2_coarse")]
+DEFAULT_EXPERIMENT = Path(__file__).resolve().parents[1] / "experiments" / "pilot_2019.yaml"
+
+
+def load_arms(experiment_path):
+    """(year, tag) pairs from an experiments/*.yaml file (schema: experiments/README.md).
+
+    The gate generalised 2026-09-01: the checks below were never pilot-specific —
+    deliverable exists, independent score present, manifest carries EPOCH, ledger
+    complete — so ANY experiment can be gated with --experiment. The pilot file is
+    the default for continuity with `py -3.12 qc/pilot_gate.py`."""
+    import yaml
+    spec = yaml.safe_load(Path(experiment_path).read_text(encoding="utf-8"))
+    return [(str(a["year"]), str(a["tag"])) for a in spec["arms"]], spec
 
 
 def _retry(fn, tries=10, pause=1.0):
@@ -202,13 +212,17 @@ CHECKS = [("mask GPKG (the deliverable)", check_mask),
 def main():
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--arm", help="only this run tag")
+    ap.add_argument("--experiment", default=str(DEFAULT_EXPERIMENT),
+                    help="experiments/*.yaml to gate (default: the 2019 pilot)")
     a = ap.parse_args()
 
     print(f"lake: {BASE}")
     if not BASE.exists():
         sys.exit(f"data lake not reachable at {BASE}")
 
-    arms = [x for x in ARMS if not a.arm or x[1] == a.arm]
+    all_arms, spec = load_arms(a.experiment)
+    print(f"experiment: {spec.get('name')} [{spec.get('status')}]")
+    arms = [x for x in all_arms if not a.arm or x[1] == a.arm]
     verdicts = []
     for label, tag in arms:
         print(f"\n── {label} / {tag} " + "─" * (52 - len(label) - len(tag)))

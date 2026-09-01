@@ -1,0 +1,24 @@
+name: pilot_2019
+status: complete
+hypothesis: >
+  The overhauled machinery (U1-U3, D-series, EPOCH 2) can run one calendar year at
+  three tiers end-to-end unattended, producing a deliverable mask, an independent
+  score, and a complete ledger per arm — the go-condition for the 36-acquisition run.
+arms:
+  - {year: "2019", tag: pilot_e2_fine}
+  - {year: "2019s", tag: pilot_e2_medium}
+  - {year: "2019n", tag: pilot_e2_coarse}
+baseline: null
+metric: >
+  qc_indep_report.csv live=1 rows per arm (recall/precision vs ccap_2021_hires_lc,
+  forest_wetland); the four-part gate in qc/pilot_gate.py.
+decision_rule: >
+  PASS per arm = mask GPKG exists + independent score present + manifest carries
+  EPOCH + all six steps OK in the ledger. 3/3 arms PASS unblocks the 36-year run
+  (which remains Kam's call).
+verdict: >
+  3/3 GATE PASS 2026-08-31 04:36Z. Numbers in qc_indep_report.csv (live=1);
+  narrative in WORKPLAN.md board row 5. Side findings: coarse beat medium on the
+  same flight (support eliminated as explanation — support_matched_rescore);
+  2019s/2019n established as ONE flight, TWO deliveries.
+decided: 2026-08-31

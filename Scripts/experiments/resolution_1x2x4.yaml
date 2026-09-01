@@ -1,0 +1,22 @@
+name: resolution_1x2x4
+status: queued
+hypothesis: >
+  The measured coarse-over-medium gap (support-matched, program-confound narrowed
+  to one flight processed two ways) is a genuine resolution effect: ONE acquisition
+  trained at native, 2x and 4x downsampled will reproduce the ordering.
+arms:
+  - {year: "2019s", tag: res_1x}
+  - {year: "2019s", tag: res_2x}
+  - {year: "2019s", tag: res_4x}
+baseline: res_1x
+metric: >
+  qc_indep live rows, all three arms scored on the SAME reference at each arm's own
+  operating point, plus the support-matched rescore
+  (qc/instruments/support_matched_rescore.py) to keep scoring support equal.
+decision_rule: >
+  Written before running: if 4x >= 2x >= 1x on recall at comparable precision, the
+  within-acquisition resolution effect is confirmed and "do NOT super-resolve the
+  coarse end" hardens; any other ordering reopens the question. Differences under
+  the noise floor: UNDETERMINED.
+verdict: null
+decided: null

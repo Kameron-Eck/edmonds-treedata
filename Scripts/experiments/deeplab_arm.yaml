@@ -1,0 +1,21 @@
+name: deeplab_arm
+status: tabled
+hypothesis: >
+  DeepLabV3+ (resnet101) trains/infers materially faster than the U-Net at
+  comparable quality on a fine+coarse pilot pair — Kam's speed motivation.
+arms:
+  - {year: "2019", tag: deeplab_fine}
+  - {year: "2019n", tag: deeplab_coarse}
+baseline: pilot_e2_fine
+metric: >
+  qc_indep live rows vs the pilot baselines at each arm's own operating point,
+  plus wall-clock per step from the ledger.
+decision_rule: >
+  Worth un-tabling only if speed matters operationally AND the stride-4 decoder
+  does not cost crown-perimeter recall (the pipeline's measured failure mode).
+verdict: >
+  TABLED by Kam 2026-08-31 before any GPU run. Plumbing built, measured, and kept
+  inert: ckpt.ARCHS registrant #2, 2.44x faster on T2000 batch timing, stride-4
+  decoder trade-off recorded in config.py's ARCH block. Arch stamp closes the
+  silent cross-load hazard regardless of this experiment's fate.
+decided: 2026-08-31

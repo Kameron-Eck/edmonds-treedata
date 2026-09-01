@@ -1,0 +1,21 @@
+name: degradation_synth_2000
+status: queued
+hypothesis: >
+  Training on 2020 imagery synthetically degraded to 2000's measured resolution and
+  radiometry (resample-first, gain-only — qc/instruments/degrade_synth.py) beats the
+  plain citywide-projection arm on 2000, because the domain gap, not label error,
+  dominates that year.
+arms:
+  - {year: "2000", tag: degsynth_a}
+baseline: citywide_rgb
+metric: >
+  qc_indep live rows for 2000, degsynth_a vs the 2000 champion arm, same ref and
+  canopy_def; 2000 chosen because its radiometric fit is the strongest measured
+  improvement in the R2 table (see radiometry_norm.py docstring).
+decision_rule: >
+  Promote the approach to more coarse years only if degsynth_a improves recall at
+  comparable precision; kill if within the measured noise floor (report
+  UNDETERMINED, not "no difference"). Synthetic tiles must come from the target's
+  TRAIN blocks only (leakage rule in degrade_synth.py).
+verdict: null
+decided: null

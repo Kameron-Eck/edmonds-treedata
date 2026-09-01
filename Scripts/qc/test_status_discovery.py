@@ -557,6 +557,7 @@ _PATH_INSERT_LEDGER = {
     "pipeline/phase4seg_preflight.py": 1,    # gate pins the adjacent tree
     "pipeline/phase4seg_smoke.py": 1,        # gate pins the adjacent tree
     "qc/conftest.py": 1,                     # THE canonical stanza
+    "qc/test_vm_ops.py": 1,                  # vm_ops is pipeline-root, not installed
     "pipeline/builders/build_lidar_quadrants.py": 1,  # builders sibling (self-dir)
     "qc/imagery_qc_suite.py": 2,             # qc sibling (4c) + KERNEL-EXEC keep
     "qc/phase4_qc_indep.py": 1,              # KERNEL-EXEC keep (see file header)

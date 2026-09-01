@@ -46,6 +46,31 @@ transcript before rotation). Read order: `CLAUDE.md` → `WORKPLAN.md` → `STAT
 
 ════════════════ LOG  (newest first — append new entries directly below this line) ════════════════
 
+## 2026-08-31  CANARY 1 PASSED — refactor proven on real Colab, one live catch (Fable 5)
+
+goal:    gate refactor Stages 2+3 on a real VM before Stage 4 tier moves.
+did:     L4 VM `canary3b`, ~60 min total. Bootstrap: WRITE_CANARY PASS,
+         EDITABLE_INSTALL OK, BOOTSTRAP_READY at branch tip, heartbeat 60 s cadence.
+         Steps: inference (6.9 min, 3,501 positions) + postproc (12,682 polygons) on
+         pilot-coarse checkpoint+tiles, exit 0 both. REGRESSION MATCH — new prob
+         raster stats identical to pilot (mean 50.066, frac_ge128 0.17462); pilot
+         originals backed up to masks/_prerefactor_backup/ first. Injection proven:
+         KERNEL_ARGV showed colab_kernel_launcher.py -f kernel-*.json; qc suite
+         parsed clean through clean_argv. Self-stop FIRED per spec: drain clear
+         23:59:17Z, unassign ~10 min after last engine process. Registry: 2 rows.
+         LIVE CATCH -> `1dbe158`: kernel-exec'd qc files (imagery_qc_suite,
+         phase4_qc_indep) could not import phase4seg — pip -e works via .pth,
+         site.py reads .pth at interpreter STARTUP only, so a running kernel never
+         sees a mid-session install; subprocesses do. Insert restored to BOTH with
+         mechanism comment + ledger lines. 464 green.
+decided: kernel-exec keep is a permanent ledger class, not 4c debt.
+killed:  v1 qc-suite wrapper printed OK over a swallowed %run traceback — run_cell
+         + .success now; also --only matches FILENAMES not labels (2019 not 2019n).
+files:   qc/imagery_qc_suite.py qc/phase4_qc_indep.py qc/test_status_discovery.py
+         run_registry.csv
+next:    Stage 4 tier moves 4a-4d, then Stage 5 ingestion docs. Tag still Kam's
+         (git tag deny in his global settings).
+
 ## 2026-08-31  REFACTOR 0-3B — repo installable, path hacks dead (Fable 5)
 
 goal:    Kam: "refactor my entire repo... centralize functions, definitions". Approved

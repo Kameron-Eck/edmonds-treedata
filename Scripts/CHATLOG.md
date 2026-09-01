@@ -46,6 +46,26 @@ transcript before rotation). Read order: `CLAUDE.md` → `WORKPLAN.md` → `STAT
 
 ════════════════ LOG  (newest first — append new entries directly below this line) ════════════════
 
+## 2026-09-01  HARD-YEAR PILOT COMPLETE — recipe hypothesis confirmed (Fable 5)
+
+goal:    the pre-spend gate before the 36-run: are the worst years bad recipe or
+         bad imagery? Two arms, rule pre-registered before launch.
+did:     2011s 0.471 -> 0.756 f.5 (ABOVE the 0.72 line — recipe CONFIRMED);
+         2006s 0.470 -> 0.707 (UNDETERMINED band per rule; residual matches its
+         three measured strikes). Verdict in experiments/hard_year_pilot.yaml;
+         spent generated queue deleted; mining refreshed with the fresh arms.
+         The RIDE was the other experiment: 4 A100 launches survived a FUSE-race
+         evaluate crash (tile valid seconds later), 3 beacon deaths (queues kept
+         working — beacon bug, cosmetic), 1 guard/split collision (my surgery vs
+         the duplicate-tag guard: ~2h idle A100, owned), 1 unverified-checkpoint
+         resume denial (safe-by-design re-train). ZERO corrupt artifacts, zero
+         silent errors. Reliability answer built the same night: vm_babysitter
+         (Tier 1, NO model per Kam) + campaign-aware registry gate + vm_ops
+         --queue-args. RECOMMENDATION to Kam: GO for the 36-run, 2006s flagged
+         low-confidence + first for degradation synthesis. Decision is Kam's.
+next:    Kam: 36-run go/no-go (the ladder's final gate is passed). CU balance
+         after-read settles the measured rate on whichever launch he approves.
+
 ## 2026-09-01  EPOCH 3 MASKS REGENERATED — 4 parallel free CPU VMs, 19+1 arms
 
 goal:    regenerate every champion + pilot mask under the 3.0 m² TRUE sieve.

@@ -1,5 +1,5 @@
 name: hard_year_pilot
-status: queued
+status: complete
 hypothesis: >
   The archive's four weakest scored arms are all sector_v1-recipe (2006s .470,
   2011s .471, 3003s/2012s .637 f.5) while every citywide-recipe year — including
@@ -24,5 +24,21 @@ decision_rule: >
   report both readings to Kam with the noise floor, decide together. The 36-run
   go/no-go itself remains Kam's call in all branches.
 launch_defaults: ["--force-citywide", "--no-hillshade"]
-verdict: null
-decided: null
+verdict: >
+  MIXED, read per the rule. 2011s: 0.471 -> 0.756 f.5 — ABOVE the 0.72 line,
+  recipe hypothesis CONFIRMED outright. 2006s: 0.470 -> 0.707 — the UNDETERMINED
+  band, 0.013 under the line; no measured noise floor exists for cross-arm f.5
+  deltas, so per checklist rule 10 that shortfall is UNDETERMINED, not a failure.
+  Its residual gap matches its three measured strikes (145 cm effective
+  resolution, 9.2 m registration p95, 15-yr reference gap; see IMAGERY_FACTS 14
+  and the coregistration table). Specialist reading: the recipe explains the
+  great majority of both years' historical deficit; 2006s is genuinely hard
+  imagery performing respectably. RECOMMENDATION: GO for the 36-run with 2006s
+  flagged low-confidence and first in line for degradation synthesis. The
+  36-run go/no-go remains Kam's. Numbers: qc_indep_report.csv live=1 rows.
+  Ops note: both arms also stress-tested the reliability layer (a FUSE-race
+  evaluate crash, three beacon deaths, one guard/split collision) -> vm_ops
+  --queue-args, the campaign-aware registry gate, and vm_babysitter all exist
+  because of this experiment. The spent GENERATED queue file is deleted
+  (regenerable from git; the generator refuses complete experiments by design).
+decided: 2026-09-01

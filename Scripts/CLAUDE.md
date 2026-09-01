@@ -155,6 +155,9 @@ Claude — blocked outright, never prompted. Claude may push `work/…` and `fix
 **`py -3.12 qc/check.py` is the definition of done** — the whole ladder (ruff
 F-rules, compile sweep, full suite, preflight, smoke) in one command, ~80 s.
 `--fast` skips the smoke for doc-only edits; never skip it before a Colab push.
+`--bench` adds the deterministic micro-benchmark (qc/bench.py) — run it for any
+edit that could move engine NUMERICS (losses, transforms, train step); BENCH
+MATCH means the math is unchanged, without a GPU.
 Single-file quick loop while iterating: `PYTHONUTF8=1 py -3.12 -m py_compile <script>`.
 
 ### 3.2 Never invent

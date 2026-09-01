@@ -47,6 +47,8 @@ def main():
     ap = argparse.ArgumentParser(description="run the full local verification ladder")
     ap.add_argument("--fast", action="store_true", help="skip the CPU runtime smoke")
     ap.add_argument("--status", action="store_true", help="also regenerate STATUS.md")
+    ap.add_argument("--bench", action="store_true",
+                    help="also run the deterministic micro-benchmark (qc/bench.py)")
     a = ap.parse_args()
     py = sys.executable
     t0 = time.time()
@@ -64,6 +66,8 @@ def main():
         print("  [skip] smoke        (--fast; run the full ladder before any Colab push)")
     else:
         rung("smoke", [py, str(SCRIPTS / "pipeline" / "phase4seg_smoke.py")])
+    if a.bench:
+        rung("bench", [py, str(SCRIPTS / "qc" / "bench.py")])
     if a.status:
         rung("status-md", [py, str(SCRIPTS / "qc" / "pipeline_status.py"), "--markdown"])
         rung("status-json", [py, str(SCRIPTS / "qc" / "pipeline_status.py"), "--json"])

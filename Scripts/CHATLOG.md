@@ -46,6 +46,25 @@ transcript before rotation). Read order: `CLAUDE.md` → `WORKPLAN.md` → `STAT
 
 ════════════════ LOG  (newest first — append new entries directly below this line) ════════════════
 
+## 2026-09-01  EPOCH 3 MASKS REGENERATED — 4 parallel free CPU VMs, 19+1 arms
+
+goal:    regenerate every champion + pilot mask under the 3.0 m² TRUE sieve.
+did:     Kam's correction applied ("parallel CPU runtimes") -> 20 pairs sliced
+         across epoch3/b/c/d (CPU tier = 0 compute units), heavies split. Serial
+         attempt first found a LIVE bug on pair 1: step_postproc read `nod` after
+         the threshold_and_clean extraction moved it — NameError reachable only
+         by real postproc; fixed `e471773` + static scope gate; failed attempts
+         kept in registry as provenance. Parallel run: 19/20 OK in ~2.5 h wall
+         (2022 65.9 min the pole). 20th = 2023n untagged champion: the engine's
+         untagged-overwrite guard REFUSED correctly; re-run --allow-overwrite on
+         a fresh VM. min_patch printed 3.0 m² everywhere (9 px NAIP -> 1,194 px
+         5 cm Mercator; foot years 48 -> 299 px = the ft² bug's 6.2x, gone).
+         FREE regression proof: 2019n pilot_e2_coarse reproduced EXACTLY 12,682
+         polygons — UTM years were always right, so EPOCH 3 changed them not at
+         all. landed.py absorbed 20 manifest rows. All VMs self-stopped.
+next:    EPOCH 3 complete once 2023n RETRY OK lands. Registry note: postproc-only
+         rows carry no GPU (CPU runtime, $0).
+
 ## 2026-09-01  EPOCH 3 — sieve re-baselined to 3.0 m² TRUE (Kam: "lets do 3m^2")
 
 goal:    kill the 11.6x minimum-mapping-unit spread (0.279-3.24 m² by CRS family —

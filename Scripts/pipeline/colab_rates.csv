@@ -39,3 +39,13 @@
 # add a MEASURED row here.
 as_of,gpu_name_pattern,tier_label,cu_per_hour,usd_per_cu,evidence_tier,source_url,quote,note
 2026-08-25,"^\s*$|cpu|no driver",CPU runtime (no GPU),0,,PUBLISHED,OVERHAUL_PLAN_2026-08-20.md:705,"**Probe results (2026-08-22, CPU sessions, no compute units).**","The one rate this repo can source. cu_per_hour 0 applies ONLY to an explicitly-CPU runtime string (the queue's _gpu_line() prints 'none (CPU runtime or no driver)'); the ^\s*$ alternation is inert - the blank-name guard fires first. Quote is verbatim from line 705; the plan states it as a parenthetical about the 2026-08-22 CLI probes, i.e. those CPU sessions consumed no compute units. usd_per_cu left BLANK: no invoice has been read on this account."
+# ── BALANCE ANCHOR (MEASURED, 2026-09-01) ─────────────────────────────────────
+# Screen-read from https://colab.research.google.com/signup on THIS account at
+# 2026-09-01T03:45Z, verbatim: "You currently have 173.39 compute units."
+# Plan shown: Colab Pro (CURRENT PLAN, $9.99/month, 100 CU/month); Pay-As-You-Go
+# offers verbatim: "$9.99 for 100 Compute Units" / "$49.99 for 500 Compute Units"
+# -> PUBLISHED usd_per_cu 0.0999 (PAYG marginal price; the Pro subscription's
+# effective rate differs and no invoice has been read).
+# TO SETTLE THE FIRST MEASURED GPU RATE: read the balance again immediately after
+# the next launch, put (173.39 - new_reading) in gpu_launches.csv
+# measured_cu_delta for that launch, then add the MEASURED row here.

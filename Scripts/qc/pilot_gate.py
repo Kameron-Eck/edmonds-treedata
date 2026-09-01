@@ -23,7 +23,6 @@ import argparse
 import csv
 import json
 import sys
-import time
 from pathlib import Path
 
 SCRIPTS = Path(__file__).resolve().parent.parent

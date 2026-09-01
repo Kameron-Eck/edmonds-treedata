@@ -13,7 +13,7 @@ It does not. The queue binds its paths at IMPORT time:
 `QC_DIR` and `STATUS` are already-computed Path objects. Rebinding `BASE`
 afterwards leaves them pointing at the real lake. `_status_write` then resolves
 `out = STATUS_OUT if STATUS_OUT is not None else STATUS`
-(phase4_train_queue.py::_status_write), and `STATUS_OUT`
+(queue_ledger.py::_status_write), and `STATUS_OUT`
 is None outside `main()` — so the test wrote a fixture row to
 
     G:/My Drive/treedata/phase4/qc/train_queue_status.csv

@@ -55,6 +55,7 @@ FACTS = PS.code_facts()
 # litreview_phase4_prompt.md. The list only grows.
 GATED_DOCS = [
     "docs/SCHEMAS.md",
+    "docs/CRS_CENSUS.md",
     "CLAUDE.md",
     "STATUS.md",
     "WORKPLAN.md",

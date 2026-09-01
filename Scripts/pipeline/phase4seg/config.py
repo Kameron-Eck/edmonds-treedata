@@ -1110,3 +1110,17 @@ def resolve_imagery(native_file, extra_roots=(), required=True):
 # manifest writer records it verbatim. None = no overlay. NOT a tuning knob itself;
 # never in _tile_signature (the overlay GUARD is what protects the signature).
 OVERRIDES_APPLIED = None
+
+# ── THE ANALYSIS GRID                                          APPENDED 2026-09-01 ──
+# The declared CRS for CROSS-YEAR statistics (areas, rescoring, comparison grids):
+# UTM 10N — CRS metres are ground metres over Edmonds (measured 0.0% inflation in
+# phase4/qc/imagery_geometry.csv, vs +48.7% linear for the archive's 13 EPSG:3857
+# files and US-survey-foot units in its 17 State-Plane files). Already the de-facto
+# choice: support_matched_rescore grids on it, build_buildings_layer computes area_m2
+# in it, postproc's true-area path converts toward metres via _crs_unit_m.
+#
+# WHAT THIS IS NOT: a resampling instruction. Training/inference/tiling stay in each
+# year's NATIVE CRS (rule 3.7); masks are never warped at rest. This constant names
+# the grid a NEW cross-year statistic should compute on — or stay native and convert
+# lengths/areas with common._crs_unit_m. Deliberately NOT in _tile_signature.
+ANALYSIS_GRID_EPSG = 26910

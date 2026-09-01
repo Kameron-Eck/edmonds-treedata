@@ -51,6 +51,7 @@ removal, and — established 2026-08-29 — **seasonal difference** all enter as
 | **Honest scored results** | `phase4/qc/qc_indep_report.csv`, `live=1` rows only |
 | **Which arm is the champion for a year** | `pipeline/champion_arms.csv` (1 reader + 5 importers) |
 | **CSV/JSON column meanings** | `docs/SCHEMAS.md` — every data contract, writers cited by symbol |
+| **Per-acquisition CRS / units / grid, measured** | `phase4/qc/imagery_geometry.csv` (instrument: `qc/instruments/imagery_geometry.py`); assumption census: `docs/CRS_CENSUS.md` |
 | **What experiments exist / their verdicts** | `experiments/*.yaml` (schema: its README; gate any of them vs the lake: `py -3.12 qc/pilot_gate.py --experiment <file>`) |
 | **What ran, when, on what GPU** | `run_registry.csv`; `phase4/qc/train_queue_status*.csv` (readers merge ALL of them) |
 | **Dependency spec** | `requirements-colab.txt` / `-local.txt` — in-script bootstraps must match (same-commit rule) |
@@ -179,6 +180,14 @@ stating queue file, GPU tier, runtime count, expected wall-clock and rough cost.
   without asking. `main` never moves without Kam.
 - **One queue per runtime.** Concurrency 3–4 (Google throttles above ~5).
 - Setup / bootstrap / secrets: `COLAB_AUTONOMY_SETUP.md`.
+
+### 3.4b The measurement contract
+Every imagery/science question answers as: an **instrument** in `qc/instruments/` →
+a **measured CSV** in `phase4/qc/` → a **gated finding** (one paragraph + pointer) in
+the owning doc. Chat is where findings are discussed; gated files are where they
+live. An answer that arrives without the script that produced it is a restatement,
+not a measurement. Cross-year statistics compute on `config.ANALYSIS_GRID_EPSG` or
+stay native and convert via `common._crs_unit_m` — never by resampling the archive.
 
 ### 3.5 Honest evaluation only
 Effective independent sample size is ~5 forest sites, not tile counts — **LOSO is the

@@ -844,3 +844,28 @@ Instrument noise bounded <0.4% by the three same-flight pairs (2020/2020s, 2022/
   killed by rendering the window across years before reporting. Vegetated targets are
   season-confounded (Snohomish dates mostly NOT FOUND); only the hardscape spine is
   radiometrically clean. §3's rule stands: no colour number compares across sources.
+
+## 14. Per-acquisition geometry (MEASURED 2026-09-01) — qc/instruments/imagery_geometry.py
+
+The archive's projection shape, measured from all 36 catalog rasters (one row each in
+`phase4/qc/imagery_geometry.csv` — the table is the home; this section is the finding):
+
+- **Four CRS families, two unit systems.** EPSG:2285 ×15 + EPSG:2926 ×2 carry
+  **US survey feet** (17 of 36 files); EPSG:3857 ×13 carries "metres" that are not
+  ground metres (**+48.7% linear** at this latitude — the 2.215× area factor's square
+  root, now visible per row as `crs_metric_inflation_pct`); EPSG:26910 ×6 is the only
+  family where CRS metres are ground metres (measured 0.0%).
+- **The catalog is honest: 0 disagreements.** Every measured CRS matches
+  `YEAR_CATALOG.crs_epsg`, and every true-ground pixel size matches `gsd_cm` within
+  1%. The hazard was never the catalog — it is unit-blind CONSUMERS, which is why the
+  table records the naive number beside the true one instead of hiding it.
+- **Only 6 of 36 rasters declare nodata.** Blank mosaic collar reads as data on the
+  other 30; anything measuring over a full extent must mask by geometry, not nodata.
+- **Grid congruence is now queryable.** `origin_aligned_to_px` + origin/extent columns
+  make same-flight-different-delivery questions (the 2019s/2019n class, §9) answerable
+  by arithmetic instead of correlation runs; all 19 metre-CRS files are integer-aligned
+  to their own grids, the 17 foot-CRS files are not.
+- The census of every statistics-bearing CRS assumption in the code, cited by symbol:
+  `docs/CRS_CENSUS.md`. The declared cross-year grid: `config.ANALYSIS_GRID_EPSG`
+  (26910) — a declaration about where NEW statistics compute, never a resampling of
+  the archive (rule 3.7 stands).

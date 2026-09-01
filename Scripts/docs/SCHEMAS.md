@@ -69,3 +69,16 @@ Written by `pipeline_status.py::write_status_json`. Top-level: `generated_utc`,
 `champions` (year → tag; null when the lake is unmounted), `years` (one object per
 acquisition: artifact presence, VERIFY states, honest champion numbers), `note`.
 Agents: query this file; do not parse STATUS.md.
+
+## imagery_geometry.csv (phase4/qc/, GENERATED — regenerate, never edit)
+
+Written by `imagery_geometry.py::measure_one` over every YEAR_CATALOG raster; one
+row per acquisition, measured with rasterio from the file itself. Key columns:
+`crs_auth` (measured EPSG), `unit_name` (metre vs **US survey foot** — 17 of 36),
+`px_x_m_naive` (CRS-units×factor: what unit-blind code computes) vs
+`px_ground_x_m` (warped into the analysis grid: what the ground says) and
+`crs_metric_inflation_pct` (their gap: +48.7% for every EPSG:3857 file here);
+`origin_aligned_to_px` (grid congruence — the measurable half of same-flight/
+different-delivery questions); `epsg_match` / `gsd_vs_catalog_pct` (disagreement
+flags vs YEAR_CATALOG — 0 flagged 2026-09-01). Gate:
+`test_analysis_grid.py::test_geometry_table_exists_with_the_contract_columns`.

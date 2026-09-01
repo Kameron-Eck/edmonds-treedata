@@ -40,9 +40,12 @@ SCRIPTS = Path(__file__).resolve().parents[2]  # instruments/ -> qc/ -> Scripts/
 OUT = SCRIPTS.parent / "phase4" / "qc" / "coregistration.csv"
 ANCHOR = "2020s"
 BRIDGE = "2020"          # the label source; Drive-resident, fewer chips
-CHIP = 128               # px per side at common support
+CHIP_GROUND_M = 64.0     # constant GROUND extent per chip — v1 sized chips in
+                         # PIXELS, so fine pairs measured ~10 m chips with a
+                         # +/-0.9 m detection window (right-censoring their p95)
+                         # while coarse pairs got 100+ m. One ruler now.
 QUALITY_MIN = 4.0        # peak / mean(|surface|) — below this a chip self-rejects
-MAX_SHIFT_PX = 12        # a "peak" farther than this is a false lock, reject
+MAX_SHIFT_M = 8.0        # a "peak" farther than this is a false lock, reject
 
 COLS = ["label", "vs", "n_tried", "n_used", "median_dx_m", "median_dy_m",
         "p68_mag_m", "p95_mag_m", "support_m", "chip_ground_m",
@@ -91,19 +94,24 @@ def _open_on_grid(label, support_m):
     return src, vrt
 
 
+def _chip_px(support_m):
+    return int(np.clip(round(CHIP_GROUND_M / support_m), 64, 512))
+
+
 def _chip(vrt, x, y, support_m):
-    """CHIP x CHIP float array centred on (x, y) analysis-grid coords."""
+    """Square chip of ~CHIP_GROUND_M metres of ground, centred on (x, y)."""
     import rasterio.windows
-    half = CHIP * support_m / 2
+    n = _chip_px(support_m)
+    half = n * support_m / 2
     win = rasterio.windows.from_bounds(x - half, y - half, x + half, y + half,
                                        transform=vrt.transform)
-    a = vrt.read(1, window=win, out_shape=(CHIP, CHIP)).astype(np.float32)
-    return a
+    return vrt.read(1, window=win, out_shape=(n, n)).astype(np.float32)
 
 
 def phase_shift(a, b):
     """(dx_px, dy_px, quality) — b's offset relative to a via phase correlation."""
-    w = np.hanning(CHIP)
+    n = a.shape[0]
+    w = np.hanning(n)
     win2 = np.outer(w, w)
     fa, fb = np.fft.fft2(a * win2), np.fft.fft2(b * win2)
     cross = fa * np.conj(fb)
@@ -116,12 +124,12 @@ def phase_shift(a, b):
     def sub(v_m1, v_0, v_p1):
         d = (v_m1 - v_p1) / (2 * (v_m1 - 2 * v_0 + v_p1) + 1e-12)
         return float(np.clip(d, -0.5, 0.5))
-    dy = py_ + sub(surf[(py_ - 1) % CHIP, px_], surf[py_, px_], surf[(py_ + 1) % CHIP, px_])
-    dx = px_ + sub(surf[py_, (px_ - 1) % CHIP], surf[py_, px_], surf[py_, (px_ + 1) % CHIP])
-    if dx > CHIP / 2:
-        dx -= CHIP
-    if dy > CHIP / 2:
-        dy -= CHIP
+    dy = py_ + sub(surf[(py_ - 1) % n, px_], surf[py_, px_], surf[(py_ + 1) % n, px_])
+    dx = px_ + sub(surf[py_, (px_ - 1) % n], surf[py_, px_], surf[py_, (px_ + 1) % n])
+    if dx > n / 2:
+        dx -= n
+    if dy > n / 2:
+        dy -= n
     return dx, dy, quality
 
 
@@ -142,13 +150,14 @@ def measure_pair(label, ref_label, points, geo):
             if a.std() < 4 or b.std() < 4:        # featureless chip (water, void)
                 continue
             dx, dy, q = phase_shift(a, b)
-            if q < QUALITY_MIN or max(abs(dx), abs(dy)) > MAX_SHIFT_PX:
+            if q < QUALITY_MIN or max(abs(dx), abs(dy)) * support > MAX_SHIFT_M:
                 continue
             shifts.append((dx * support, dy * support))
     finally:
         vrt_a.close(); src_a.close(); vrt_b.close(); src_b.close()
     row = dict(label=label, vs=ref_label, n_tried=tried, n_used=len(shifts),
-               support_m=round(support, 4), chip_ground_m=round(CHIP * support, 1))
+               support_m=round(support, 4),
+               chip_ground_m=round(_chip_px(support) * support, 1))
     if len(shifts) >= 8:
         arr = np.array(shifts)
         mags = np.hypot(arr[:, 0], arr[:, 1])

@@ -95,3 +95,15 @@ qc_indep scores). A reading view — fixes go to the SOURCE, then regenerate; th
 freshness gate (`test_analysis_grid.py::test_passport_is_fresh`) fails when the view
 disagrees with a home. Rendered with the stage DAG and the stats pre-flight on the
 Pipeline Atlas artifact page.
+
+## coregistration.csv (phase4/qc/, GENERATED — regenerate, never edit)
+
+Written by `coregistration.py::measure_pair`: one row per acquisition vs the 2020s
+anchor (constant ~64 m ground chips on the analysis grid, phase correlation,
+self-rejecting anchors — `n_used`/`n_tried` records selectivity). READER RULES:
+`median_dx_m`/`median_dy_m` is registration proper (systematic offsets are
+correctable at comparison time — six years flagged >=1 m incl. 2013s at 2.2 m and
+2024 at 1.2 m); `p95_mag_m` is a CONSERVATIVE bound that includes building lean,
+parallax and real change inside the chip, not pure georeferencing. The 2020 row is
+the BRIDGE to the label source (p95 0.014 m) and is gated near-zero. Gate:
+`test_analysis_grid.py::test_coregistration_table_contract`.

@@ -180,7 +180,9 @@ def test_registry_covers_every_finished_manifest():
     The tool's own definition of "due" (finished AND scored; RUNNING and unscored
     deferred by design) is the one contract; the first version of this test
     reinvented it stricter and flagged rows the tool deliberately defers.
-    Lake-dependent; skips in CI. Fix: `py -3.12 qc/landed.py`."""
+    Lake-dependent; skips in CI. Fix: `py -3.12 qc/landed.py`. NOTE: while a
+    queue is ACTIVE, each completed step mints a manifest, so this gate demands a
+    fresh absorb — that is absorb-as-you-go working, not flakiness."""
     import pytest
     import re as _re
     import subprocess

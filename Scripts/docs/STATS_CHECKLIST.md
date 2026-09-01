@@ -24,15 +24,18 @@ data. Per-acquisition `black_px_pct_in_city` (decimated estimate) is in the geom
 table. **Rule: mask by GEOMETRY (the city/AOI polygon), never by trusting nodata;
 report valid-pixel fraction beside any full-extent statistic.**
 
-## 4. Co-registration — PARTIALLY MEASURED, protocol OPEN
+## 4. Co-registration — MEASURED (2026-09-01)
 Change statistics die on shift: one pixel of misregistration at 60 cm turns every
 crown edge into "change". Cross-registration spot-checks exist
 (`imagery_qc_suite.py::qc_crossreg`; the displacement investigations under
 `qc/instruments/`), and the 2019s/2019n pair measured correlation peaking at exactly
-zero shift. OPEN: no per-year-pair registration-error table. **Rule: no per-pixel
-cross-year comparison without a measured registration bound for that pair; crown- or
-block-level aggregation (as `build_validity_intervals.py` does) is the shift-tolerant
-default.**
+zero shift. The table now exists: `phase4/qc/coregistration.csv` — every year vs
+the 2020s anchor with a 1.4 cm bridge to the label source; medians mostly <0.5 m,
+six years flagged with correctable systematic offsets (2013s 2.2 m, 2024 1.2 m,
+2000 1.7 m, +3 at ~1 m). **Rule: per-pixel cross-year comparison is out everywhere
+(p95 bounds 5-9 m incl. parallax content); crown/block aggregation is the default
+and sits comfortably inside the medians; flagged years get their median vector
+subtracted at comparison time, never a resampled archive.**
 
 ## 5. Support / MAUP — HARDENED for arms
 Comparing statistics computed at different support sizes manufactures differences.

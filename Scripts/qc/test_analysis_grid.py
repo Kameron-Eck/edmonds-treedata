@@ -133,3 +133,26 @@ def test_step_postproc_loop_survives_the_extraction():
                       if isinstance(node, ast.Name) and isinstance(node.ctx, ast.Load)
                       and node.id not in known})
     assert not unknown, f"step_postproc reads undefined name(s): {unknown}"
+
+
+def test_coregistration_table_contract():
+    """STATS_CHECKLIST item 4's table: one row per non-anchor acquisition, and the
+    BRIDGE (2020 vs the 2020s anchor) must stay near-zero — if the label source and
+    the anchor ever disagree by more than 5 cm, every leg's interpretation changes
+    and this fails loudly. Median = registration proper; p95 = conservative upper
+    bound including parallax/lean/change content (its uniform 5-9 m band across
+    even same-vendor pairs is the tell)."""
+    import csv
+    from phase4seg.config import YEAR_CATALOG
+    p = SCRIPTS.parent / "phase4" / "qc" / "coregistration.csv"
+    assert p.exists(), "run qc/instruments/coregistration.py"
+    rows = {r["label"]: r for r in csv.DictReader(p.open(encoding="utf-8"))}
+    assert set(rows) == {str(e["label"]) for e in YEAR_CATALOG} - {"2020s"}
+    bridge = rows["2020"]
+    assert bridge["p95_mag_m"] and float(bridge["p95_mag_m"]) < 0.05, (
+        f"label-source bridge degraded: p95 {bridge['p95_mag_m']} m")
+    for lab, r in rows.items():
+        assert r["n_tried"], f"{lab}: empty row"
+        if not r["p95_mag_m"]:
+            assert "UNDETERMINED" in r["note"] or "failed" in r["note"], (
+                f"{lab}: no magnitude and no honest note")

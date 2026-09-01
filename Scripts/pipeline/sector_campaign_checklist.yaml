@@ -21,7 +21,7 @@ items:
     phase: sectors
     owner: local
     description: 5 west-east sector AOIs, 4 block-rows tall, snapped to the anchor lattice, water extension from the bathology waterbody layer.
-    run: "py -3.12 pipeline/make_sectors.py --rows-per-sector 4 --version sectors_v1"
+    run: "py -3.12 pipeline/builders/make_sectors.py --rows-per-sector 4 --version sectors_v1"
     verify:
       - {cmd: "py -3.12 -c \"import json;d=json.load(open('pipeline/aoi/sectors_v1.json'));assert len(d['sectors'])==5\"", expect_exit: 0}
       - {file: "data:phase4/qc/sectors/sectors_v1.gpkg", min_bytes: 10000}

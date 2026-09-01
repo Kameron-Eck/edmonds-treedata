@@ -113,7 +113,7 @@ CROWNS_FALLBACK = BASE / "inference" / "edmonds_crowns_2020.gpkg"
 # County hydrography — the SAME layer build_groves_overlay.py uses. NOT C-CAP,
 # which is eval-only and must never touch a training label.
 WATER = BASE / "bathology" / "GDBA_HYDROGRAPHY__waterbody_snoco.shp"
-AOI = Path(__file__).resolve().parent.parent / "pipeline" / "aoi" / "sectors_v1.json"
+AOI = Path(__file__).resolve().parent.parent / "aoi" / "sectors_v1.json"  # parent.parent = pipeline/
 
 CODE_CANOPY, CODE_NOCHANGE = 1, 0
 BLOCK = 2048

@@ -2307,7 +2307,7 @@ def step_evaluate(label, dry_run=False):
 def _aoi_pixel_rects(aoi_path, img_crs, img_tf, img_h, img_w):
     """Sector AOI file → pixel rects [(r0, r1, c0, c1)] on this ortho, clamped to the
     grid; empty/degenerate rects dropped. Accepts the sectors JSON written by
-    pipeline/make_sectors.py ({"crs": ..., "sectors": [{"bounds_3857": [minx,miny,maxx,maxy]}]})
+    pipeline/builders/make_sectors.py ({"crs": ..., "sectors": [{"bounds_3857": [minx,miny,maxx,maxy]}]})
     or any vector file geopandas can read (bounds per feature). Relative paths resolve
     against the repo pipeline/ dir so the same flag value works locally and on a VM clone."""
     import json

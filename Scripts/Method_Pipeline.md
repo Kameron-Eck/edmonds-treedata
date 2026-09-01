@@ -5,7 +5,7 @@ aerial acquisition, at native resolution, across the whole archive. Semantic seg
 only.**
 
 Per-crown temporal validity intervals are derived afterwards by scoring the **fixed 2020
-crown layer** against each year's semantic mask (`qc/build_validity_intervals.py`) — not
+crown layer** against each year's semantic mask (`pipeline/builders/build_validity_intervals.py`) — not
 by detecting crowns per year.
 
 **Instance segmentation is DEFERRED, not cancelled** (Kam, 2026-08-29). Phase 0 produced
@@ -155,7 +155,7 @@ For every acquisition except the 2020 anchor (already done):
 
 > **What actually happens today**, and it is much simpler than the five steps below.
 > There are no per-year crown detections, so there is nothing to link. Instead
-> `qc/build_validity_intervals.py` takes the **fixed 2020 crown layer** and scores each
+> `pipeline/builders/build_validity_intervals.py` takes the **fixed 2020 crown layer** and scores each
 > crown against each year's **semantic mask**:
 >
 >     cover >= --present-hi (0.5)   PRESENT

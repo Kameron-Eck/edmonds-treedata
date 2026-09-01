@@ -23,7 +23,7 @@ postproc`. Nothing in the Phase 4 path runs instance segmentation.
 
 **Instance is DEFERRED, not cancelled (Kam, 2026-08-29).** Phase 0 already produced
 222,435 crown polygons ONCE, from 2020, and is frozen. Those polygons are a fixed
-**lookup geometry**, not a per-year target: `qc/build_validity_intervals.py` scores each
+**lookup geometry**, not a per-year target: `pipeline/builders/build_validity_intervals.py` scores each
 2020 crown against each year's SEMANTIC mask (≥0.5 PRESENT / ≤0.15 ABSENT / between
 UNSURE / no data UNOBSERVED) and derives per-crown validity intervals from that ladder.
 

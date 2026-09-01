@@ -362,7 +362,7 @@ What this does and does not mean:
 | A job's first `$ …` line says `--step labels` / `--step train` | seed missing / wrong header / stale `ts` | **kill the process now**, re-run setup, relaunch, confirm the first step line reads `--step inference` |
 | `VERIFY:inference … MOSTLY_NODATA` on every job | expected at 2.5% valid — the 5% floor was set for ~10% sector AOIs | none; see the section above. Judge the raster by `maxprob` / `p99.9`, not by the state |
 | `ERROR: ... sem_best_<year>_<tag>.pt not found — run step train first` | ckpt copy not visible through the mount | re-run setup (it will copy through the mount on the second pass) |
-| `AOI: 0 rect(s)` / `--infer-aoi has no overlap` | wrong CRS or a truncated json | re-emit locally; `py -3.12 pipeline/make_sentinel_aoi.py --check` prints the 12/12 on-grid count |
+| `AOI: 0 rect(s)` / `--infer-aoi has no overlap` | wrong CRS or a truncated json | re-emit locally; `py -3.12 pipeline/builders/make_sentinel_aoi.py --check` prints the 12/12 on-grid count |
 | Job id already `OK` in history | a reused job id | job ids here (`*_g`) were checked against all 17 historical status files — none collide. Never reuse `2016_fx` / `2021s_fx` |
 
 ## After the run

@@ -95,9 +95,8 @@ import numpy as np
 import rasterio
 
 _HERE = Path(__file__).resolve().parent            # …/Scripts/qc
-_SCRIPTS = _HERE.parent                            # …/Scripts
-sys.path.insert(0, str(_SCRIPTS / "pipeline"))     # make_nir_stack + phase4seg
-sys.path.insert(0, str(_HERE))                     # radiometry_norm
+_SCRIPTS = _HERE.parent.parent                     # …/Scripts (builders/ is one deeper)
+sys.path.insert(0, str(_SCRIPTS / "qc"))           # radiometry_norm (4c home)
 
 import make_nir_stack as mns                       # noqa: E402  IMPORTED, never edited
 import radiometry_norm as rn                       # noqa: E402

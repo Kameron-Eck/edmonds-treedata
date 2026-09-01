@@ -20,7 +20,7 @@ is right about numbers and this file is right about intent.*
 across the whole archive. Semantic segmentation only.**
 
 Instance segmentation is **deferred, not cancelled**. Phase 0's 222,435 crown polygons
-are a fixed lookup geometry for `qc/build_validity_intervals.py`, not a per-year target.
+are a fixed lookup geometry for `pipeline/builders/build_validity_intervals.py`, not a per-year target.
 
 **The one constraint behind every difficulty:** only 2020 has hand labels. Every other
 year is supervised by projecting the 2020 mask onto it, so growth, removal and — measured

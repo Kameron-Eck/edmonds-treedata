@@ -99,7 +99,7 @@ import rasterio
 from rasterio.features import rasterize
 
 _HERE = Path(__file__).resolve().parent           # …/Scripts/pipeline
-_SCRIPTS = _HERE.parent                           # …/Scripts
+_SCRIPTS = _HERE.parent.parent                    # …/Scripts (builders/ is one deeper)
 sys.path.insert(0, str(_SCRIPTS / "qc"))   # roof_presence_matrix — the ONE blessed qc-path import
 
 # the fusion rule and the mask policy live in the matrix script — import them

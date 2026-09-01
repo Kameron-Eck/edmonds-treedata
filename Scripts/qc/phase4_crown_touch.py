@@ -24,7 +24,7 @@ r"""
     tiling.py::_gather_citywide_coarse applies an ADD-ONLY overlay from
     --add-canopy-mask into citywide label tiles. On 2009 the `hybrid_v1`, `groves_lidar` and
     `groves_nolidar` arms use overlays whose force-canopy code is RASTERISED
-    CROWN POLYGONS — qc/build_groves_overlay.py::GROVES (= stable_crowns_v0.gpkg),
+    CROWN POLYGONS — pipeline/builders/build_groves_overlay.py::GROVES (= stable_crowns_v0.gpkg),
     then in its main(): pos_shapes = groves + forest, rasterized to CODE_CANOPY.
     stable_crowns_v0.gpkg is a 2,307-row subset of the canonical crown layer with
     crown_id intact (qc/mine_stable_crowns.py::CROWNS, written by its main()). Those crowns were
@@ -88,7 +88,7 @@ RUNS = DATA / "phase4" / "runs"
 CROWNS = Path(r"D:\edmonds-pipeline\backup\inference\edmonds_crowns_2020.gpkg")
 CROWNS_FALLBACK = DATA / "inference" / "edmonds_crowns_2020.gpkg"
 
-# Known crown-derived training-overlay ingredients (qc/build_groves_overlay.py::GROVES
+# Known crown-derived training-overlay ingredients (pipeline/builders/build_groves_overlay.py::GROVES
 # and the site layer its main() unions in).
 STABLE_CROWNS = DATA / "phase4" / "qc" / "stable_crowns_v0.gpkg"
 FOREST_SITE = Path(r"D:\edmonds-pipeline\ARCGIS\MachineLearning\site_grid"
@@ -204,7 +204,7 @@ def _load_exclusion(src, crowns):
         return None, None, f"MISSING: {p}"
     g = gpd.read_file(p, engine="pyogrio")
     if p == FOREST_SITE:
-        # Mirror qc/build_groves_overlay.py::main exactly: the 'Forest' site,
+        # Mirror pipeline/builders/build_groves_overlay.py::main exactly: the 'Forest' site,
         # and of its two equal-area rows take the Tree/positive one.
         if "site" in g.columns:
             g = g[g["site"] == "Forest"]
@@ -647,7 +647,7 @@ def main():
     if excl_notes:
         A("**Exclusion applied** (an arm's manifest showed an add-canopy overlay whose "
           "force-canopy code is rasterised crown polygons — "
-          "`qc/build_groves_overlay.py::GROVES`, rasterised in its `main()`):\n")
+          "`pipeline/builders/build_groves_overlay.py::GROVES`, rasterised in its `main()`):\n")
         for nte in excl_notes:
             A(f"- {nte}")
         A(f"\nTotal crowns excluded as CONTAMINATED: **{int(excl.sum()):,}** "

@@ -56,7 +56,7 @@ def print_summary(entries):
     in-sample (see eval_scope in {EVAL_CSV.name}). For each coarse year
     decide: include in temporal analysis / exclude / flag low-confidence.
 
-  NEXT: qc/build_validity_intervals.py — scores each crown of the FIXED
+  NEXT: pipeline/builders/build_validity_intervals.py — scores each crown of the FIXED
         2020 layer against these masks (>=0.5 PRESENT / <=0.15 ABSENT /
         between UNSURE / no data UNOBSERVED) and derives per-crown
         validity intervals from that ladder.

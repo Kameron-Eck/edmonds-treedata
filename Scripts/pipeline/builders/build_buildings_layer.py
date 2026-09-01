@@ -110,7 +110,7 @@ import pandas as pd
 from shapely.geometry import MultiPolygon, Polygon, shape
 
 _HERE = Path(__file__).resolve().parent           # …/Scripts/pipeline
-_SCRIPTS = _HERE.parent                           # …/Scripts
+_SCRIPTS = _HERE.parent.parent                    # …/Scripts (builders/ is one deeper)
 
 try:
     from pipeline_log import write_step_log       # noqa: E402

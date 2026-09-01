@@ -255,7 +255,7 @@ Both are public, credential-free, in the same NOAA bucket, same CRS, same tile g
 >   2005–2016 window — Kam's idea, aimed at the hard negatives (lawn/grass/pavement) that the
 >   building+water negatives cannot supply. A conjunction of two flatness tests is safe where a
 >   difference is not: reading low only makes a scan say "flat" more often, and the dense 2016
->   scan is authoritative about 2016. Tool: `qc/build_lidar_background.py`.
+>   scan is authoritative about 2016. Tool: `pipeline/builders/build_lidar_background.py`.
 | vertical accuracy | **6.3 cm** fundamental vertical, 95th pct, mixed land covers (Digital Coast) — InPort *separately* states **25 cm avg / 15–25 cm soft-vegetated**. Different metrics: **record both, never average.** Horizontal 60 cm. | **8 cm** NVA |
 | classes | **3 only** — Unclassified / Ground / Low Point. **Vegetation is left UNCLASSIFIED.** | **6** — Unclassified 410 B / Ground 39.5 B / Low Point 5.9 B / Water 953 M / Ignored Ground 19.8 M / Bridge Deck 10.8 M |
 | format | COPC (`.copc.laz`) — PDAL can bbox-query over HTTP without bulk download | COPC |
@@ -330,7 +330,7 @@ records p99 = 44.6 m; western Washington Douglas-fir exceeds 50 m).
 > (Node A vs Node B, 2026-08-28) was earned with the INFLATED channel.
 >
 > Rebuilt product: `lidar_chm2_2016_50cm.tif` — 0.5 m, EPSG:26910 native (no Mercator
-> reprojection), same uint8 encoding so the A/B is one variable. Builder: `qc/build_chm2_2016.py`.
+> reprojection), same uint8 encoding so the A/B is one variable. Builder: `pipeline/builders/build_chm2_2016.py`.
 > Coverage 93.98% of the city polygon vs 95.13%, and 84% of that deficit is cells the OLD one
 > itself calls <2 m.
 
@@ -802,7 +802,7 @@ during the nir_stack build. Bimodal, clean separation:
   itself a measured fact to remember.
 - Products: D:\edmonds-pipeline\ARCGIS\MachineLearning\nir_stack\{nir_stack_1m.tif (10-band,
   uint8), nir_stack_ndvi_1m.tif (int16 x1000)}, CHM-lattice-snapped, band-tagged with
-  source+date; README carries the per-band warnings. Builder: pipeline/make_nir_stack.py.
+  source+date; README carries the per-band warnings. Builder: pipeline/builders/make_nir_stack.py.
 
 ### §11 addendum (Kam, 2026-08-26 late)
 - **Shadow direction**: "a lot of the imagery is taken when the shadows go west" — a

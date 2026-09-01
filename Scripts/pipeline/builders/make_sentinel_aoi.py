@@ -47,10 +47,10 @@ import rasterio
 import rasterio.warp
 import rasterio.windows
 
-SCRIPTS = Path(__file__).resolve().parents[1]
+SCRIPTS = Path(__file__).resolve().parents[2]   # builders/ -> pipeline/ -> Scripts/
 import phase4_sentinel_snap as SNAP                 # noqa: E402  window/bounds helpers
 
-OUT = Path(__file__).resolve().parent / "aoi" / "sentinel_v1.json"
+OUT = Path(__file__).resolve().parent.parent / "aoi" / "sentinel_v1.json"
 VERSION = "sentinel_v1"
 PAD_M = 30.0                    # true metres of write-crop overhang tolerance
 M_PER_DEG_LAT = 111320.0        # the constant SNAP.site_bounds uses — kept identical

@@ -60,7 +60,7 @@ from pathlib import Path
 
 import numpy as np
 
-SCRIPTS = Path(__file__).resolve().parents[0].parent
+SCRIPTS = Path(__file__).resolve().parents[2]   # builders/ -> pipeline/ -> Scripts/
 import imagery_measure as im  # noqa: E402   (CITY_SHP local-first)
 
 # the anchor lattice (identical to scratch/make_site_grid.py)

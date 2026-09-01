@@ -99,7 +99,7 @@ stages:
 
   # -- sector program (2026-08-24) --
   make_sectors:
-    script: pipeline/make_sectors.py --rows-per-sector 4 --version sectors_v1
+    script: pipeline/builders/make_sectors.py --rows-per-sector 4 --version sectors_v1
     runs_on: local
     inputs: [bathology/GDBA_HYDROGRAPHY__waterbody_snoco.shp, "City Boundry/Edmonds Boundry.shp"]
     outputs: ["repo:pipeline/aoi/sectors_v1.json", phase4/qc/sectors/sectors_v1.gpkg]

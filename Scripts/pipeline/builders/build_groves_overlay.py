@@ -75,7 +75,7 @@ FOREST = Path(r"D:\edmonds-pipeline\ARCGIS\MachineLearning\site_grid\negative_si
 LIDAR_BG = BASE / "Full_Image" / "Pipeline Imagery" / "verified_background_lidar_2005_2016.tif"
 BUILDINGS = BASE / "buildings" / "buildings_canonical.gpkg"
 WATER = BASE / "bathology" / "GDBA_HYDROGRAPHY__waterbody_snoco.shp"
-AOI = Path(__file__).resolve().parent.parent / "pipeline" / "aoi" / "sectors_v1.json"
+AOI = Path(__file__).resolve().parent.parent / "aoi" / "sectors_v1.json"  # parent.parent = pipeline/
 
 CODE_CANOPY, CODE_NOCHANGE, CODE_IGNORE = 1, 0, 3
 BLOCK = 2048

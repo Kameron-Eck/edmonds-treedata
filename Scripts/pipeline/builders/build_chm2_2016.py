@@ -98,7 +98,7 @@ LAKE_OUT = Path(r"G:\My Drive\treedata\Full_Image\Pipeline Imagery")
 NAME = "lidar_chm2_2016_50cm.tif"
 
 OLD_CHM = Path(r"D:\edmonds-pipeline\Imagery\lidar_snoh_chm.tif")
-SECTORS_JSON = Path(__file__).resolve().parents[1] / "pipeline" / "aoi" / "sectors_v1.json"
+SECTORS_JSON = Path(__file__).resolve().parents[1] / "aoi" / "sectors_v1.json"  # parents[1] = pipeline/
 
 EPSG = 26910
 GROUND_CLASS = 2

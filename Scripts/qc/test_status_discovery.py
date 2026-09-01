@@ -552,18 +552,18 @@ def test_emitted_bootstrap_imports_every_module_its_body_uses():
 # A NEW insert anywhere else fails here; so does growing an existing file's count.
 _PATH_INSERT_LEDGER = {
     "pipeline/acquire_imagery.py": 1,        # mirror_sync (uninstalled pipeline-root)
-    "pipeline/make_building_masks.py": 1,    # roof_presence_matrix (blessed qc import)
+    "pipeline/builders/make_building_masks.py": 1,  # roof_presence_matrix (blessed qc import)
     "pipeline/phase4_semantic_finetune.py": 1,  # the shim's import-root logic
     "pipeline/phase4seg_preflight.py": 1,    # gate pins the adjacent tree
     "pipeline/phase4seg_smoke.py": 1,        # gate pins the adjacent tree
     "qc/conftest.py": 1,                     # THE canonical stanza
-    "qc/build_lidar_quadrants.py": 1,        # qc sibling (4c)
+    "pipeline/builders/build_lidar_quadrants.py": 1,  # builders sibling (self-dir)
     "qc/imagery_canopy_separability.py": 1,  # qc sibling (4c)
     "qc/imagery_qc_suite.py": 2,             # qc sibling (4c) + KERNEL-EXEC keep
     "qc/phase4_qc_indep.py": 1,              # KERNEL-EXEC keep (see file header)
     "qc/investigate_2024_offset.py": 1,      # qc sibling (4c)
     "qc/investigate_displacement.py": 1,     # qc sibling (4c)
-    "qc/make_ndvi_stack_norm.py": 2,         # make_nir_stack + radiometry_norm sibling
+    "pipeline/builders/make_ndvi_stack_norm.py": 1,  # radiometry_norm (4c home)
     "qc/phase4_crown_cover_matrix.py": 1,    # qc sibling (4c)
     "qc/phase4_golden_gate.py": 1,           # qc sibling (4c)
     "qc/phase4_qc_design_power.py": 1,       # qc sibling (4c)

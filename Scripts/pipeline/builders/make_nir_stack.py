@@ -88,7 +88,7 @@ from rasterio.enums import ColorInterp, Resampling
 from rasterio.vrt import WarpedVRT
 
 _HERE = Path(__file__).resolve().parent           # …/Scripts/pipeline
-_SCRIPTS = _HERE.parent                           # …/Scripts
+_SCRIPTS = _HERE.parent.parent                    # …/Scripts (builders/ is one deeper)
 
 from phase4seg import config as C                 # noqa: E402
 import imagery_measure as im                      # noqa: E402  (CITY_SHP local-first)

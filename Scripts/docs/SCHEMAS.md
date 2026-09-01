@@ -86,3 +86,12 @@ vs the dissolved city polygon on the analysis grid — the denominator question)
 rasters only Drive holds), `mmu_effective_m2` (what the CRS-unit sieve removes in
 true m² for THIS year). Gate:
 `test_analysis_grid.py::test_geometry_table_exists_with_the_contract_columns`.
+
+## acquisition_passport.csv (phase4/qc/, GENERATED — regenerate, never edit)
+
+Written by `acquisition_passport.py::main`: ONE row per acquisition, joining the five
+fact homes (catalog, geometry table, pixelsize/date table, champion_arms, live
+qc_indep scores). A reading view — fixes go to the SOURCE, then regenerate; the
+freshness gate (`test_analysis_grid.py::test_passport_is_fresh`) fails when the view
+disagrees with a home. Rendered with the stage DAG and the stats pre-flight on the
+Pipeline Atlas artifact page.

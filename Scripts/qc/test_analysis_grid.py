@@ -68,3 +68,27 @@ def test_mmu_column_matches_the_live_sieve_arithmetic():
                             abs_tol=5e-4), (
             f"{r['label']}: table says {r['mmu_effective_m2']}, live sieve says "
             f"{want:.3f} — regenerate qc/instruments/imagery_geometry.py")
+
+
+def test_passport_is_fresh():
+    """The joined view must agree with its sources — a passport that contradicts a
+    home is worse than bouncing between dataframes (Kam's centralization ask,
+    2026-09-01, done the one-home-safe way: view generated, sources authoritative)."""
+    import csv
+    from phase4seg.config import YEAR_CATALOG
+    from champion import load_champions
+    p = SCRIPTS.parent / "phase4" / "qc" / "acquisition_passport.csv"
+    assert p.exists(), "run qc/instruments/acquisition_passport.py"
+    rows = {r["label"]: r for r in csv.DictReader(p.open(encoding="utf-8"))}
+    assert set(rows) == {str(e["label"]) for e in YEAR_CATALOG}, (
+        "passport labels drifted from the catalog — regenerate")
+    champ = load_champions()
+    for y, tag in champ.items():
+        assert rows[y]["champion_tag"] == tag, (
+            f"{y}: passport says champion {rows[y]['champion_tag']!r}, "
+            f"champion_arms.csv says {tag!r} — regenerate the passport")
+    geo = {r["label"]: r for r in csv.DictReader(
+        (SCRIPTS.parent / "phase4" / "qc" / "imagery_geometry.csv").open(encoding="utf-8"))}
+    for lab, r in rows.items():
+        assert r["mmu_effective_m2"] == geo[lab]["mmu_effective_m2"], (
+            f"{lab}: passport mmu disagrees with the geometry home — regenerate")

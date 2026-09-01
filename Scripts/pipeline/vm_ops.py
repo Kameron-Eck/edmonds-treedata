@@ -147,7 +147,7 @@ def exec_file(session, file, timeout):
     return code, out
 
 
-def launch_queue(session, queue_yaml):
+def launch_queue(session, queue_yaml, queue_args=""):
     """The production start form (phase4_train_queue.py header, line ~50):
     nohup-detached so the queue survives the exec handle."""
     q = Path(queue_yaml)
@@ -161,7 +161,7 @@ def launch_queue(session, queue_yaml):
         "import subprocess, time\n"
         f"log = {log!r}\n"
         f"cmd = 'cd /content/repo/Scripts/pipeline && nohup python -u "
-        f"phase4_train_queue.py --queue {q.name} > ' + log + ' 2>&1 &'\n"
+        f"phase4_train_queue.py --queue {q.name} {queue_args} > ' + log + ' 2>&1 &'\n"
         "subprocess.run(cmd, shell=True, check=True)\n"
         "time.sleep(5)\n"
         "r = subprocess.run(['pgrep', '-f', 'phase4_train_queue'],"
@@ -213,6 +213,9 @@ def main():
                    help="CPU = no accelerator flag: zero compute units (the one "
                         "MEASURED-free tier in colab_rates.csv) — right for postproc")
     L.add_argument("--queue", default=None)
+    L.add_argument("--queue-args", default="",
+                   help="extra phase4_train_queue args, e.g. '--only JOB_ID' to "
+                        "split one queue across parallel runtimes")
     L.add_argument("--branch", default=None)
     E = sub.add_parser("exec")
     E.add_argument("--session", required=True)
@@ -231,7 +234,7 @@ def main():
         new_session(a.session, a.gpu)
         bootstrap(a.session, a.branch)
         if a.queue:
-            launch_queue(a.session, a.queue)
+            launch_queue(a.session, a.queue, a.queue_args)
         print(f"launch complete: {a.session}")
     elif a.cmd == "exec":
         code, _ = exec_file(a.session, a.file, a.timeout)

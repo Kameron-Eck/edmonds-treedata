@@ -62,8 +62,12 @@ did:     Kam's correction applied ("parallel CPU runtimes") -> 20 pairs sliced
          FREE regression proof: 2019n pilot_e2_coarse reproduced EXACTLY 12,682
          polygons — UTM years were always right, so EPOCH 3 changed them not at
          all. landed.py absorbed 20 manifest rows. All VMs self-stopped.
-next:    EPOCH 3 complete once 2023n RETRY OK lands. Registry note: postproc-only
-         rows carry no GPU (CPU runtime, $0).
+         2023n RETRY OK (2.4 min, --allow-overwrite, epoch3g) -> 20/20. EPOCH 3
+         COMPLETE: every champion + pilot mask cut at 3.0 m² true. Lesson kept:
+         the grep-chained exec on epoch3f hid a failure AND stopped the VM early —
+         same swallowed-evidence class as tail'd pipes; capture full exec output.
+next:    (none for EPOCH 3.) Open science items: co-registration table, the
+         Olofsson area-estimation campaign (needs Kam's photo-interpretation).
 
 ## 2026-09-01  EPOCH 3 — sieve re-baselined to 3.0 m² TRUE (Kam: "lets do 3m^2")
 

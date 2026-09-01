@@ -50,6 +50,7 @@ removal, and — established 2026-08-29 — **seasonal difference** all enter as
 | **Lidar / CHM facts, coverage** | `IMAGERY_FACTS.md`; `phase4/qc/chm_gap_2016.txt` |
 | **Honest scored results** | `phase4/qc/qc_indep_report.csv`, `live=1` rows only |
 | **Which arm is the champion for a year** | `pipeline/champion_arms.csv` (1 reader + 5 importers) |
+| **CSV/JSON column meanings** | `docs/SCHEMAS.md` — every data contract, writers cited by symbol |
 | **What ran, when, on what GPU** | `run_registry.csv`; `phase4/qc/train_queue_status*.csv` (readers merge ALL of them) |
 | **Dependency spec** | `requirements-colab.txt` / `-local.txt` — in-script bootstraps must match (same-commit rule) |
 | **The script you are about to edit** | the script itself. Always. Never patch from memory. |

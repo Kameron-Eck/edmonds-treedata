@@ -54,6 +54,7 @@ FACTS = PS.code_facts()
 # Stage 1 still to add: README.md, IMAGERY_FACTS.md, pipeline_buildtracker.md,
 # litreview_phase4_prompt.md. The list only grows.
 GATED_DOCS = [
+    "docs/SCHEMAS.md",
     "CLAUDE.md",
     "STATUS.md",
     "WORKPLAN.md",

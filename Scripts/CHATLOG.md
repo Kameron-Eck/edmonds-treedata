@@ -46,6 +46,30 @@ transcript before rotation). Read order: `CLAUDE.md` → `WORKPLAN.md` → `STAT
 
 ════════════════ LOG  (newest first — append new entries directly below this line) ════════════════
 
+## 2026-09-01  REFACTOR COMPLETE — Stages 4+5 landed, repo is the target tree (Fable 5)
+
+goal:    finish the approved full-repo refactor: tier moves + ingestion docs.
+did:     4a `ae6aa63` shared trio qc->pipeline as installed py-modules; 5 reverse
+         inserts died. 4b `8dad590` 18 builders -> pipeline/builders/, all anchors
+         re-derived, dag+checklist+5 gated docs updated. 4c `d6db126` 70 instruments
+         -> qc/instruments/ (qc root 98 -> 29); measured first: NO stayer imports a
+         mover; 5 inserts died, ledger rewritten; 49 files of refs. 4d `1f2a59e`
+         phase0-3 + label_review pair -> pipeline/frozen/ (zero importers, zero
+         anchors, 3 refs). Stage 5: CLAUDE.md tree + install step, README layout
+         row. EXIT CHECKS: pilot_gate re-read 3/3 PASS from the lake on the moved
+         layout; CI green through 4c (4d in flight); 464 tests + preflight + smoke
+         at every commit. Tracked files 883 -> 477 (-46%); pipeline root 88 -> 19;
+         qc root 160 -> 29. config.py comments untouched (append-only) — its two
+         stale builder refs are deliberate historical record.
+decided: phase4_catalog_check STAYS at qc/ root (CLAUDE.md test command + suite
+         import). No-op bootstrap sanity rides the NEXT queue launch, not a
+         dedicated VM (canary already proved bootstrap+install at 1dbe158; no
+         queue-path file moved since).
+files:   see the four commits; STATUS.md regenerated each move.
+next:    Kam: the tag (git tag deny is his), 36-year run go/no-go, label_review
+         archive question, Class-B resolver repairs. Queued: degradation-synthesis
+         A/B on 2000 (GPU), 4.4 within-acquisition 1x/2x/4x (GPU).
+
 ## 2026-08-31  CANARY 1 PASSED — refactor proven on real Colab, one live catch (Fable 5)
 
 goal:    gate refactor Stages 2+3 on a real VM before Stage 4 tier moves.

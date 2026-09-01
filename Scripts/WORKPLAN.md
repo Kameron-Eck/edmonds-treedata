@@ -33,6 +33,13 @@ year is supervised by projecting the 2020 mask onto it, so growth, removal and �
 Active plan: **`SEMANTIC_OVERHAUL_PLAN_2026-08-29.md`** (architecture direction) executed
 through the repo overhaul plan agreed 2026-08-30. Branch `work/20260824-sectors`.
 
+**The full-repo refactor is COMPLETE (2026-09-01).** Tracked files 883 -> 477; one
+editable install (`pip install -e .`) replaces the path-hack era; layout is
+`pipeline/` (+`builders/`, `frozen/`) and `qc/` (+`instruments/`); everything removed
+lives on branch `archive/2026-08-pre-refactor` (map: `docs/ARCHIVE_INDEX.md`).
+Canary 1 proved the layout on a real VM — inference+postproc reproduced the pilot
+raster stat-identically — and `pilot_gate.py` still reads 3/3 PASS from the lake.
+
 **The drift gate covers nine documents** and grows as each is brought in line:
 `CLAUDE.md`, `WORKPLAN.md`, `STATUS.md`, the active plan, `Method_Pipeline.md`,
 `README.md`, `IMAGERY_FACTS.md`, `pipeline_buildtracker.md`,

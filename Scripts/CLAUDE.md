@@ -85,20 +85,32 @@ Imagery, models, masks, tiles, QC outputs, logs. **Drive's only job is the data 
 
 ### 2.4 Layout, abridged
 
+**Install first**: `py -3.12 -m pip install -e .` from the repo root (pyproject.toml).
+That makes `phase4seg` + the shared modules (`lake`, `pipeline_log`, `imagery_measure`,
+`champion`, …) import from ANYWHERE with no path hacks — locally, in CI, and on the VM
+(the bootstrap installs it; FATAL if it can't). The surviving `sys.path.insert` sites
+are a closed ledger: `test_status_discovery.py::test_path_insert_ledger`.
+
 ```
 treedata/
+├── pyproject.toml                ← the install: package phase4seg + shared py-modules
 ├── README.md                     ← doc map
 ├── Scripts/
-│   ├── pipeline/                 ← engine + drivers
+│   ├── pipeline/                 ← 19 root entries: engine + orchestration + shared
 │   │   ├── phase4_semantic_finetune.py   ← THIN SHIM → phase4seg/ (preserves `%run --args`)
 │   │   ├── phase4seg/                    ← LIVE engine: cli, core, tiling, labels, postproc, config
 │   │   ├── phase4_train_queue.py         ← Colab orchestrator (queue + VERIFY + status CSV)
-│   │   ├── gen_vm_bootstrap.py  vm_heartbeat.py   ← runtime autonomy
-│   │   └── phase4seg_preflight.py  phase4seg_smoke.py   ← LOCAL GATES before any Colab run
-│   ├── qc/                       ← measurement + tests (conftest.py blocks lake writes)
-│   ├── scratch/                  ← litwatch_scratch/ — see its README: instruments vs
-│   │                               one-shot writers. NEVER re-run a writer.
-│   └── _archive/                 ← retired. Never current.
+│   │   ├── gen_vm_bootstrap.py  vm_heartbeat.py   ← runtime autonomy (exec-by-path: NEVER move)
+│   │   ├── phase4seg_preflight.py  phase4seg_smoke.py   ← LOCAL GATES before any Colab run
+│   │   ├── builders/             ← 18 artifact producers (make_*, build_*, fetch_*)
+│   │   └── frozen/               ← phase0–3 provenance + the UNCLEAR label_review pair
+│   ├── qc/                       ← 29 root entries: tests + ops + VM-exec'd (conftest blocks lake writes)
+│   │   ├── (root)                ← test_*.py, conftest, pipeline_status, runtime_*, pilot_gate,
+│   │   │                           watch_queue, sector_campaign_loop, imagery_qc_suite +
+│   │   │                           phase4_qc_indep (kernel-exec'd: see their KERNEL-EXEC KEEP headers)
+│   │   └── instruments/          ← 69 measurement scripts, one home
+│   ├── scratch/                  ← convention only; contents archived. NEVER re-run a writer.
+│   └── docs/ARCHIVE_INDEX.md     ← map of everything on archive/2026-08-pre-refactor
 ├── phase4/qc/                    ← tracked MEASURED text (harvested from the lake)
 └── Reports/                      ← tracked *.md/*.csv
 ```

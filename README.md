@@ -64,7 +64,7 @@ the bootstrap doc to describe an archive that had not existed for weeks.
 
 | Item | Size | Status | What it is |
 |---|---|---|---|
-| `Scripts/` | 26 MB | live | All code + docs. `pipeline/phase4seg/` is the live engine package (layout since 2026-08-20: `pipeline/` engine+drivers, `qc/` measurement, `scratch/`, `_archive/`); `scratch/litwatch_scratch/` has its own README (29 instruments vs 77 never-re-run writers); `_archive/` = retired scripts/docs, own README |
+| `Scripts/` | 26 MB | live | All code + docs. `pipeline/phase4seg/` is the live engine package. Layout since the 2026-08-31 refactor: `pipeline/` (19 root entries: engine, orchestration, shared installed modules) + `pipeline/builders/` (18 artifact producers) + `pipeline/frozen/` (phase0-3 provenance); `qc/` (29 root entries: tests, ops, VM-exec'd) + `qc/instruments/` (69 measurement scripts). `pip install -e .` once (pyproject.toml) and every shared module imports anywhere. Archived material: `Scripts/docs/ARCHIVE_INDEX.md` -> the `archive/2026-08-pre-refactor` branch |
 | `phase4/` | ~100k files | live | Active engine output: `models/ masks/ eval/ qc/`. `qc/` holds the honest numbers (`qc_indep_report.csv`, `live=1` rows) |
 | `phase3/` | ~105 GB | live | 2020 base model + full-city 2020 prob/mask. Phase 4 depends on it |
 | `Full_Image/` | 1.2 TB | live | Imagery master. `Pipeline Imagery/` = the in-scope rasters (2000–2024; King County, City of Edmonds, Snohomish, NAIP — count and GSD span in `Scripts/STATUS.md`, generated from YEAR_CATALOG) + lidar CHM + C-CAP refs. `KingCo/ USGS/ WA_NAIP/ USDA_NRCS/` = raw source archives. (`temp/` was empty, removed; `Image_Scripts/` moved to `Scripts/_archive/Image_Scripts/` — both 2026-08-19) |
@@ -145,7 +145,7 @@ per its `MANIFEST.md`, no City-of-Edmonds years) serves fast local QC off the FU
 | `archive/2026-08-pre-refactor:Scripts/_archive/README.md` | ARCHIVED — the retired-material index left the working tree 2026-08-31; see `Scripts/docs/ARCHIVE_INDEX.md` |
 | `Scripts/edmonds_combined_workplan.xlsx` | The canonical schedule / Gantt / grant milestones (distinct from the WORKPLAN `.md`) |
 | `Scripts/pipeline_architecture.html` | Self-contained architecture diagram — double-click to open, no network |
-| `Scripts/qc/phase4_accuracy_review.html` | Photo-interpretation review UI for `phase4_accuracy_sample.py --step serve` |
+| `Scripts/qc/instruments/phase4_accuracy_review.html` | Photo-interpretation review UI for `phase4_accuracy_sample.py --step serve` |
 | `Scripts/run_registry.csv` + `phase4/runs/{run_id}/sentinels/` | Colab run history, one row per run + fixed-site snapshot PNGs |
 | `Reports/Edmonds_Verified_Results_2026-08-19.md` | The numbers this project will stand behind |
 | `Reports/Measurement_Validity_Assessment_2026-08-18.md` | What the numbers can and cannot support (U1–U8) |

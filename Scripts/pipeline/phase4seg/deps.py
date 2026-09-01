@@ -19,7 +19,7 @@ THE TWO THAT MUST NOT FOLD ONTO THIS, recorded so nobody "finishes the job":
     gracefully offline. Folding them here would shell out to pip on every run and turn a
     graceful degrade into a hard abort. Their import-name derivation is also wrong for
     scikit-learn→sklearn and pillow→PIL; do not port it.
-  · pipeline/phase0_instance_seg.py: FROZEN pins (smp==0.3.4, timm==0.9.7), documented
+  · pipeline/frozen/phase0_instance_seg.py: FROZEN pins (smp==0.3.4, timm==0.9.7), documented
     in requirements-colab.txt under "FROZEN LEGACY". Never load in a phase3/4 runtime.
 
 DEP LISTS STAY PER-FILE. Nine distinct sets exist across the callers (a stack QC script

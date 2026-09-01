@@ -26,7 +26,7 @@ def _registry_columns():
 _VERSION_OPS = "<>=~!"
 _BOOTSTRAP_FILES = ["pipeline/phase4seg/common.py",
                     "pipeline/phase4seg/core.py",
-                    "pipeline/phase3_semantic_dev.py"]
+                    "pipeline/frozen/phase3_semantic_dev.py"]
 
 
 def _norm(name):

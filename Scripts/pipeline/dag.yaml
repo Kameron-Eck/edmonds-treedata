@@ -9,7 +9,7 @@
 
 stages:
   phase0_instance_seg:
-    script: pipeline/phase0_instance_seg.py
+    script: pipeline/frozen/phase0_instance_seg.py
     runs_on: colab
     status: complete
     inputs: ["Full_Image/Pipeline Imagery/2020_coe_rgb.tif", "labels/*_dtm.tif"]
@@ -17,21 +17,21 @@ stages:
     note: 222,435 crowns; DTM regression + watershed. Deps FROZEN-LEGACY.
 
   phase1_spectral:
-    script: pipeline/phase1_preprocess.py … phase1d_classifier.py
+    script: pipeline/frozen/phase1_preprocess.py … phase1d_classifier.py
     runs_on: colab
     status: complete
     inputs: ["inference/edmonds_crowns_2020.gpkg", "Full_Image/Pipeline Imagery/upsample/"]
     outputs: ["phase1/edmonds_crowns_phase1.parquet"]
 
   phase2_data_prep:
-    script: pipeline/phase2_data_prep.py
+    script: pipeline/frozen/phase2_data_prep.py
     runs_on: colab
     status: complete
     inputs: ["phase1/edmonds_crowns_phase1.parquet", "polygons/", "photos/"]
     outputs: ["phase2/training_site_coverage.csv"]
 
   phase3_base_2020:
-    script: pipeline/phase3_semantic_dev.py
+    script: pipeline/frozen/phase3_semantic_dev.py
     runs_on: colab
     status: complete
     inputs: ["photos/", "polygons/", "Full_Image/Pipeline Imagery/2020_coe_rgb.tif"]

@@ -28,3 +28,8 @@ Rules:
 - `decision_rule` is written at CREATION, before results — that is the point.
 - Gate any experiment against the lake with
   `py -3.12 qc/pilot_gate.py --experiment experiments/<name>.yaml`.
+- **Launching**: arms may carry `extra: [--flag, ...]` and the experiment may carry
+  `launch_defaults: [...]` (applied to every arm, arm flags win).
+  `py -3.12 qc/experiment_queue.py --experiment experiments/<name>.yaml` writes the
+  queue yaml FROM the experiment — never hand-write one; a gate regenerates every
+  GENERATED-headered queue file and fails on drift.

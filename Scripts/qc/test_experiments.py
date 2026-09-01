@@ -72,3 +72,43 @@ def test_complete_experiments_have_registry_provenance():
             assert str(a["tag"]) in reg, (
                 f"{p.name}: complete, but tag {a['tag']!r} never appears in "
                 f"run_registry.csv — a finished experiment leaves provenance")
+
+
+def test_generated_queues_match_their_experiments():
+    """One source of truth: every pipeline/queue_*.yaml carrying the GENERATED header
+    must equal an in-memory regeneration from its experiment file. Edit the
+    experiment, rerun qc/experiment_queue.py — never the queue file."""
+    import re
+    from experiment_queue import MARK, generate
+    checked = 0
+    for q in (SCRIPTS / "pipeline").glob("queue_*.yaml"):
+        head = q.read_text(encoding="utf-8")
+        if not head.startswith(MARK):
+            continue
+        m = re.search(r"experiments/(\S+\.yaml)", head)
+        assert m, f"{q.name}: GENERATED header names no experiment file"
+        text, _ = generate(EXP_DIR / m.group(1))
+        assert head == text, (
+            f"{q.name} drifted from its experiment — regenerate: "
+            f"py -3.12 qc/experiment_queue.py --experiment experiments/{m.group(1)}")
+        checked += 1
+    # zero generated files is legal (none launched yet); drift is not
+
+
+def test_generator_refuses_decided_experiments():
+    import pytest as _pt
+    from experiment_queue import generate
+    with _pt.raises(SystemExit, match="complete"):
+        generate(EXP_DIR / "pilot_2019.yaml")
+
+
+def test_generator_jobs_carry_the_queue_contract():
+    """id/year/tag/extra are what phase4_train_queue._load_queue consumes; the
+    generated shape must keep matching the hand-written pilot shape."""
+    from experiment_queue import generate
+    text, spec = generate(EXP_DIR / "resolution_1x2x4.yaml")
+    jobs = yaml.safe_load(text)
+    assert len(jobs) == len(spec["arms"])
+    for j in jobs:
+        assert set(j) >= {"id", "year", "tag", "extra", "why"}
+        assert j["id"].startswith(spec["name"] + "_")

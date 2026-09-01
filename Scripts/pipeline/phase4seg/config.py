@@ -1103,3 +1103,10 @@ def resolve_imagery(native_file, extra_roots=(), required=True):
             f"{native_file} not found under any imagery root "
             f"({[str(r) for r in list(extra_roots) + imagery_roots()]})")
     return None, None
+
+
+# ── PER-RUN OVERRIDES MARKER                                  APPENDED 2026-09-01 ──
+# Set by overrides.apply_overrides() when a run used --overrides file.yaml; the
+# manifest writer records it verbatim. None = no overlay. NOT a tuning knob itself;
+# never in _tile_signature (the overlay GUARD is what protects the signature).
+OVERRIDES_APPLIED = None

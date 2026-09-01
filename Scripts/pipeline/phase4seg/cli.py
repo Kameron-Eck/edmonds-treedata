@@ -97,6 +97,10 @@ def main():
     # hand-rolled version here carried a "bare .json with no owning flag" clause
     # that ATE the equals form (--aoi=x.json fell back to default, silently).
     filtered = clean_argv()
+    # R&D overlays (overrides.py): applied BEFORE the parser exists, because
+    # flag defaults read config at build time. Explicit flags still win.
+    from phase4seg.overrides import prescan_argv
+    filtered = prescan_argv(filtered)
 
     p = argparse.ArgumentParser(
         description="Phase 4 — Per-Year Semantic Segmentation Fine-Tuning")
@@ -495,6 +499,7 @@ def main():
                 "gpu": gpu, "gpu_mem_gb": gpu_mem_gb,
                 "repo_root": str(repo_root) if repo_root else None,
                 "argv": sys.argv[1:],
+                "overrides": getattr(config, "OVERRIDES_APPLIED", None),
                 "run_tag": config.RUN_TAG, "step": step0,
                 # The re-baseline marker (config.py, 2026-08-30). Absence in an
                 # older manifest means epoch 1 — do not backfill those.

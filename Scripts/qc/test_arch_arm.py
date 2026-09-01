@@ -41,9 +41,11 @@ def _build(arch, in_ch=3, aux=False):
 
 
 def test_both_arms_build_and_agree_on_output_shape():
-    """Same output contract, so nothing downstream needs to know which arm ran."""
+    """Same output contract, so nothing downstream needs to know which arm ran.
+    Parametrized over the REGISTRY: a newly registered arch is subjected to the
+    step contract automatically, before any GPU minute is spent on it."""
     x = torch.randn(2, 3, 256, 256)
-    for arch in ("unet", "deeplabv3plus"):
+    for arch in sorted(core.ARCHS):
         m = _build(arch).eval()
         with torch.no_grad():
             out = m(x)
@@ -112,3 +114,49 @@ def test_arch_does_not_invalidate_the_tile_cache():
             f"{name} leaked into _tile_signature — switching arms would force a "
             f"~20 min/year re-tile and make arm comparison unaffordable")
     assert engine_files(pkg)
+
+
+# ── registry-derived contract (2026-09-01): every entry earns these, automatically ──
+
+def test_registry_entries_carry_the_contract():
+    """The seam is a dict; this pins its shape so a half-registered arch fails here
+    instead of as an AttributeError mid-training."""
+    assert core.ARCHS, "the architecture registry is empty"
+    for name, spec in core.ARCHS.items():
+        assert callable(spec.get("build")), f"{name}: no builder"
+        assert isinstance(spec.get("aux_height"), bool), f"{name}: aux_height must be explicit"
+
+
+@pytest.mark.parametrize("arch", sorted(core.ARCHS))
+def test_every_registered_arch_saves_and_reloads_strict(arch):
+    """Round-trip: what _save_ckpt_state persists must load back into a FRESH build of
+    the same arch with strict=True — zero missing, zero unexpected. A builder that
+    reads mutable config in a non-reproducible way fails here first."""
+    m = _build(arch)
+    state = core._model_state_of(m)
+    fresh = _build(arch)
+    res = fresh.load_state_dict(state, strict=True)
+    assert not getattr(res, "missing_keys", []) and not getattr(res, "unexpected_keys", [])
+
+
+@pytest.mark.parametrize("a,b", [(a, b) for a in sorted(core.ARCHS)
+                                 for b in sorted(core.ARCHS) if a < b])
+def test_every_arch_pair_cross_load_is_refused(a, b):
+    """Generalises the U-Net/DeepLab case to every pair the registry will ever hold:
+    either the key sets differ (then _assert_state_fits must refuse) or they are
+    identical, which is its own alarm — two 'different' architectures that cannot be
+    told apart by their checkpoints."""
+    ma, mb = _build(a), _build(b)
+    res = mb.load_state_dict(ma.state_dict(), strict=False)
+    assert res.missing_keys or res.unexpected_keys, (
+        f"{a} and {b} have IDENTICAL key sets — the arch stamp is now the only guard")
+    with pytest.raises(SystemExit):
+        core._assert_state_fits(res, f"{a}.pt", what=f"{a} weights into {b}")
+
+
+@pytest.mark.parametrize("arch", [n for n, s in core.ARCHS.items() if not s["aux_height"]])
+def test_every_non_aux_arch_refuses_aux_height(arch):
+    """aux_height=False means REFUSED, not silently dropped — derived from the registry
+    flag so the rule follows every future registrant."""
+    with pytest.raises(SystemExit):
+        _build(arch, aux=True)

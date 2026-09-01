@@ -58,6 +58,56 @@ def _build_unet_with_height():
                           classes=1, activation=None)
 
 
+def _build_unet():
+    """Registry builder: the shipping arm. AUX_HEIGHT resolves here because only the
+    U-Net subclass preserves the encoder.*/decoder.*/segmentation_head.* key layout
+    that P3/P0 warm starts depend on."""
+    import segmentation_models_pytorch as smp
+    return _build_unet_with_height() if config.AUX_HEIGHT else smp.Unet(
+        encoder_name=ENCODER, encoder_weights=None,
+        decoder_channels=DECODER_CHANNELS, in_channels=config.IN_CHANNELS,
+        classes=1, activation=None)
+
+
+def _build_deeplabv3plus():
+    """Registry builder: the TABLED alternative arm (Kam, 2026-08-31) — inert unless a
+    run sets ARCH. Kept registered because it proves the seam works and its measured
+    trade-off (2.44x faster, stride-4 decoder vs a crown-perimeter failure mode) is
+    recorded in config.py's ARCH block."""
+    import segmentation_models_pytorch as smp
+    return smp.DeepLabV3Plus(
+        encoder_name=ENCODER, encoder_weights=None,
+        encoder_output_stride=config.DEEPLAB_OUTPUT_STRIDE,
+        decoder_channels=config.DEEPLAB_DECODER_CH,
+        in_channels=config.IN_CHANNELS, classes=1, activation=None)
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+#  THE ARCHITECTURE REGISTRY — the seam for trying a different architecture.
+#
+#  To add one:
+#    1. Write a builder above: no args; reads config at CALL time (IN_CHANNELS etc.);
+#       returns an UN-compiled, UN-moved torch.nn.Module whose forward maps
+#       (B, IN_CHANNELS, H, W) -> (B, 1, H, W) at input resolution — that is the
+#       step contract; inference/postproc/eval need to know nothing else about it.
+#       Import torch/smp INSIDE the builder (lazy-torch rule; see module docstring).
+#    2. Register it here with its capability flags.
+#    3. Run `py -3.12 qc/check.py` — qc/test_arch_arm.py parametrizes over THIS dict,
+#       so the new arm is automatically built, forwarded, key-diffed against every
+#       other arm, cross-load-refused, and checked for tile-cache invariance.
+#    4. Any new config constants are APPENDED to config.py (its rule) and must NOT
+#       enter _tile_signature — architecture must never invalidate the tile cache
+#       (test_arch_does_not_invalidate_the_tile_cache pins this).
+#
+#  aux_height: whether the arm supports the training-only height head. Refused, not
+#  silently dropped, when unsupported (build_model).
+# ══════════════════════════════════════════════════════════════════════════════
+ARCHS = {
+    "unet":          {"build": _build_unet,          "aux_height": True},
+    "deeplabv3plus": {"build": _build_deeplabv3plus, "aux_height": False},
+}
+
+
 def build_model(device, compile_model=True):
     """The segmentation model for this arm. U-Net by default; DeepLabV3+ as an ARM.
 
@@ -81,26 +131,18 @@ def build_model(device, compile_model=True):
     from phase4seg.core import _ensure_torch  # lazy: no module-level cycle
     _ensure_torch()                            # deps bootstrap still fires here
     import torch
-    import segmentation_models_pytorch as smp
     arch = str(getattr(config, "ARCH", "unet")).lower()
-    if config.AUX_HEIGHT and arch != "unet":
+    spec = ARCHS.get(arch)
+    if spec is None:
+        raise SystemExit(f"unknown ARCH {arch!r} — registered: {sorted(ARCHS)} "
+                         f"(add one via the ARCHS registry above; the contract test in "
+                         f"qc/test_arch_arm.py picks it up automatically)")
+    if config.AUX_HEIGHT and not spec["aux_height"]:
         raise SystemExit(
             f"--aux-height is U-Net only, but ARCH={arch}. The height head subclasses "
             f"smp.Unet to preserve the checkpoint key layout that warm starts need. "
             f"Pick one.")
-    if arch == "deeplabv3plus":
-        model = smp.DeepLabV3Plus(
-            encoder_name=ENCODER, encoder_weights=None,
-            encoder_output_stride=config.DEEPLAB_OUTPUT_STRIDE,
-            decoder_channels=config.DEEPLAB_DECODER_CH,
-            in_channels=config.IN_CHANNELS, classes=1, activation=None)
-    elif arch == "unet":
-        model = _build_unet_with_height() if config.AUX_HEIGHT else smp.Unet(
-            encoder_name=ENCODER, encoder_weights=None,
-            decoder_channels=DECODER_CHANNELS, in_channels=config.IN_CHANNELS,
-            classes=1, activation=None)
-    else:
-        raise SystemExit(f"unknown ARCH {arch!r} — expected 'unet' or 'deeplabv3plus'")
+    model = spec["build"]()
     _inject_dropout(model.decoder, DECODER_DROPOUT)
     model = model.to(device)
     if compile_model:

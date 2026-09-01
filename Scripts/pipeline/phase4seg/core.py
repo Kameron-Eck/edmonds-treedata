@@ -364,7 +364,7 @@ from sklearn.model_selection import train_test_split  # noqa: E402,F401 — faca
 # ── model/ckpt IO and checkpoint selection live in phase4seg/ckpt.py / select.py
 # since 2026-09-01. Same facade contract as losses above.
 from phase4seg.ckpt import (               # noqa: E402,F401
-    _assert_state_fits, _build_unet_with_height, _inflate_first_conv, _inject_dropout,
+    ARCHS, _assert_state_fits, _build_unet_with_height, _inflate_first_conv, _inject_dropout,
     _model_state_of, _save_ckpt, _save_ckpt_state, build_model, load_state_into,
     resolve_p3_ckpt,
 )

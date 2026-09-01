@@ -10,5 +10,8 @@
 - **`names.py` is stdlib-only** (orchestrators import it on machines with no engine env).
 - **Colab-only runtime.** Locally validate with `py -3.12 qc/check.py` (preflight+smoke
   rungs); never try to train here.
+- **New architecture = one bounded task**: write a builder in `ckpt.py`, register it
+  in `ARCHS` (contract in the registry docstring), run `qc/check.py` —
+  `test_arch_arm.py` parametrizes over the registry and enforces the whole battery.
 - `core.py` split policy: move clusters out with a facade re-export in `core` so call
   sites and test monkeypatches keep working (`losses.py` is the precedent).

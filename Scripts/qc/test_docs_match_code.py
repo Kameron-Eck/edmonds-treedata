@@ -57,6 +57,7 @@ GATED_DOCS = [
     "docs/SCHEMAS.md",
     "docs/CRS_CENSUS.md",
     "docs/STATS_CHECKLIST.md",
+    "docs/REPO_INVENTORY.md",
     "CLAUDE.md",
     "STATUS.md",
     "WORKPLAN.md",

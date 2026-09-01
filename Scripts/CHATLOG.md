@@ -46,6 +46,36 @@ transcript before rotation). Read order: `CLAUDE.md` → `WORKPLAN.md` → `STAT
 
 ════════════════ LOG  (newest first — append new entries directly below this line) ════════════════
 
+## 2026-09-01  TOOLING + CORE SPLIT — ruff found 7 live bugs; core 2,666 -> 1,579 (Fable 5)
+
+goal:    Kam: "improve the repo to improve the ability of claude code to create
+         better code" — approved items: ruff gate, check.py ladder, nested
+         CLAUDE.mds, then the core.py split.
+did:     `59a3d71` ruff F-gate (F821/F401/F811 only, no style; config.py + frozen/
+         excluded) — FIRST RUN caught 7 live bugs: 5 clean_argv imports sitting
+         INSIDE module docstrings (py_compile-legal, NameError at main), a
+         guaranteed NameError in cost_report's blocked-cost path (`m.group` with
+         no m — the path EVERY launch takes), and core's `del model` deleting a
+         name _forward closes over (post-cleanup call = NameError; canary-safe by
+         call order only). +121 dead imports pruned across 73 files.
+         qc/check.py = definition of done: ruff/compile/pytest/preflight/smoke,
+         one command, ~75 s; CLAUDE.md 3.1 points at it; CI runs same rungs.
+         Nested CLAUDE.mds in phase4seg/ + qc/instruments/ put rules at the edit.
+         CORE SPLIT `048b9c5` + `0650782`: splits.py 281 + staging.py 161 (torch-
+         free, measured) then ckpt.py 320 (function-local torch after lazy
+         _ensure_torch — losses pattern) + select.py 455 (torch-free; MODELS_DIR/
+         OUT_DIR read from core AT RUN TIME because tests patch core.X — the
+         freeze trap fired in-suite and was fixed, not suppressed). Facade
+         re-exports keep every core.X call site + monkeypatch. core.py 1,579 L.
+decided: facade contract covers WRITES (dir constants) not just calls. train_test_split
+         is facade surface (test_val_split's reference implementation).
+killed:  nothing — every gate that fired (preflight module list, citations, F401
+         on the facade) was fixed at the source, not suppressed.
+files:   phase4seg/{ckpt,select,splits,staging}.py NEW; core.py; check.py NEW;
+         pyproject [tool.ruff]; ci.yml; 2 nested CLAUDE.mds; ~80 files import-pruned.
+next:    steps/dataset stay in core BY DESIGN (the _ensure_torch injection
+         coupling; 3.5 rejected per-module injection). Kam: main merge + tag.
+
 ## 2026-09-01  REFACTOR COMPLETE — Stages 4+5 landed, repo is the target tree (Fable 5)
 
 goal:    finish the approved full-repo refactor: tier moves + ingestion docs.

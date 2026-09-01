@@ -1,0 +1,22 @@
+# GENERATED from experiments/hard_year_pilot.yaml — DO NOT EDIT.
+# Edit the experiment file and rerun:
+#   py -3.12 qc/experiment_queue.py --experiment experiments/hard_year_pilot.yaml
+# test_experiments.py::test_generated_queues_match_their_experiments fails on drift.
+# ONE QUEUE PER RUNTIME (COLAB_AUTONOMY_SETUP.md); arms wanting parallel
+# runtimes get split into per-arm files by hand, still generated-headered.
+- id: hard_year_pilot_hy_e3_2006s
+  year: 2006s
+  tag: hy_e3_2006s
+  extra:
+  - --force-citywide
+  - --no-hillshade
+  why: arm of experiments/hard_year_pilot.yaml — hypothesis and decision rule live
+    THERE, not here.
+- id: hard_year_pilot_hy_e3_2011s
+  year: 2011s
+  tag: hy_e3_2011s
+  extra:
+  - --force-citywide
+  - --no-hillshade
+  why: arm of experiments/hard_year_pilot.yaml — hypothesis and decision rule live
+    THERE, not here.

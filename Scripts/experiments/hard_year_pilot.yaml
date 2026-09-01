@@ -1,0 +1,28 @@
+name: hard_year_pilot
+status: queued
+hypothesis: >
+  The archive's four weakest scored arms are all sector_v1-recipe (2006s .470,
+  2011s .471, 3003s/2012s .637 f.5) while every citywide-recipe year — including
+  2000 at 0.827 with a 22-year reference gap — sits >=0.77. Mining
+  (phase4/qc/score_vs_difficulty.csv) says the weakness is the RECIPE, not the
+  imagery. Re-running the two worst years under the unified citywide EPOCH-3
+  recipe tests that directly; it is the gate before the 36-acquisition run's
+  ~70 A100-hours.
+arms:
+  - {year: "2006s", tag: hy_e3_2006s}
+  - {year: "2011s", tag: hy_e3_2011s}
+baseline: sectors_v1
+metric: >
+  qc_indep live rows (forest_wetland, own operating point) for the new arms vs
+  the same years' sector_v1 rows; fleet context in score_vs_difficulty.csv.
+decision_rule: >
+  Written before launch. If both fresh arms reach f.5 >= 0.72 (the bottom of the
+  citywide fleet band), the recipe hypothesis stands: GO for the 36-run, no
+  special handling. If either stays <= 0.60, imagery is implicated for that year:
+  the 36-run still GOES but those years are flagged low-confidence and routed to
+  the degradation-synthesis workstream. Between 0.60 and 0.72: UNDETERMINED —
+  report both readings to Kam with the noise floor, decide together. The 36-run
+  go/no-go itself remains Kam's call in all branches.
+launch_defaults: ["--force-citywide", "--no-hillshade"]
+verdict: null
+decided: null

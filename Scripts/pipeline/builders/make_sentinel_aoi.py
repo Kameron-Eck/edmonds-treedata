@@ -1,7 +1,7 @@
 r"""Sentinel-window AOI — the inference footprint that makes the golden gate scorable
 on EVERY frozen window (E07 v2, 2026-08-26).
 
-WHY. The golden gate (`qc/phase4_golden_gate.py`) scores the 12 frozen sentinel windows
+WHY. The golden gate (`qc/instruments/phase4_golden_gate.py`) scores the 12 frozen sentinel windows
 in `Scripts/sentinel_sites.json`. Sector-restricted arms (`--infer-aoi aoi/sectors_v1.json`)
 only intersect ~1 of those 12 windows, so the five grass / impervious / water NEGATIVES —
 the ones that watch FP regression — are unscorable for every sector arm. This AOI is the
@@ -196,7 +196,7 @@ def main():
         "_doc": (
             "UNION of the 12 frozen sentinel windows (Scripts/sentinel_sites.json), each "
             "padded +30 m TRUE metres, as EPSG:3857 rects. Written for INFERENCE-ONLY "
-            "re-runs (--infer-aoi) so qc/phase4_golden_gate.py can score all 12 windows "
+            "re-runs (--infer-aoi) so qc/instruments/phase4_golden_gate.py can score all 12 windows "
             "for an arm whose citywide/sector prob raster does not cover them. The engine "
             "(phase4seg/core.py::_aoi_pixel_rects) reads ONLY 'crs' and each entry's "
             "'bounds_3857'; 'sectors' is the engine's key name, not a claim that these are "

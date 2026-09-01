@@ -129,7 +129,7 @@ killed:  EIGHT plan/board claims, each checked against source, several my own:
          "core.py split needs an ensure_torch(globals()) rework, laziness gated twice" —
          gated ONCE (preflight only PRINTS it); function-local imports work, as
          sdm_for_mask already does for scipy. Losses split landed, 2833 -> 2621 lines.
-         "There is no R2 radiometry table" (MINE, wrong) — qc/radiometry_norm.py is
+         "There is no R2 radiometry table" (MINE, wrong) — qc/instruments/radiometry_norm.py is
          self-titled R2; I asserted a negative from two .md files without grepping qc/.
          "n_targets=2, so zero residual DOF" (MINE, wrong) — n_points is 6, 4 DOF.
 found:   --aux-height BROKEN since 50006ce (my own fail-loud-loads commit): allow_missing

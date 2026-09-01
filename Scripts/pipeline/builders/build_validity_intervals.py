@@ -59,7 +59,7 @@ THREE HONEST LIMITS ON THAT SIGMA:
      reported alongside for the per-year view.
 
 INPUT   data:phase4/qc/sector_campaign/crown_cover_matrix.parquet
-        + crown_cover_matrix.columns.json   (from qc/phase4_crown_cover_matrix.py)
+        + crown_cover_matrix.columns.json   (from qc/instruments/phase4_crown_cover_matrix.py)
 OUTPUT  data:phase4/qc/sector_campaign/crown_validity_intervals.csv
         data:phase4/qc/sector_campaign/crown_validity_intervals.gpkg
         (2020 crownV5 polygons joined, D: mirror first — same source as the

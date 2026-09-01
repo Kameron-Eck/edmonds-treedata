@@ -272,7 +272,7 @@ def _write_summary(year, out_tif, veg_thresh, min_height_m, uncertain_lo_m,
     print("\n" + "\n".join(L))
     print(f"\n[corrected-labels] wrote {out_tif}\n[corrected-labels] wrote {txt}")
     # E06b: machine-readable lineage sidecar — future overlays are born stamped.
-    # (The 2016 artifact predates this; qc/stamp_label_lineage.py backfills it
+    # (The 2016 artifact predates this; qc/instruments/stamp_label_lineage.py backfills it
     # READ-ONLY — never re-run this builder for lineage: the fixed filename +
     # mtime bump would spuriously invalidate the overlay's tile-signature key.)
     import datetime as _dt

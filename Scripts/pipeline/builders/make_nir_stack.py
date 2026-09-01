@@ -6,7 +6,7 @@
 WHY
     Ten of the held acquisitions carry a real near-infrared band. NIR is the
     single cheapest "is this actually live vegetation?" signal we own, and it is
-    the ONLY model-independent one (qc/phase4_qc_ndvi.py builds its independent
+    the ONLY model-independent one (qc/instruments/phase4_qc_ndvi.py builds its independent
     canopy reference from exactly this band). Scattered across ten files in four
     CRSs at five ground resolutions it is unusable as a *looking* tool.
 
@@ -33,7 +33,7 @@ WHAT IT WRITES
 
 BAND CONVENTION (not invented here — reused verbatim)
     Every 4-band file in the catalog is R,G,B,NIR: band 1 = RED, band 4 = NIR.
-    That is the convention of qc/phase4_qc_ndvi.py and
+    That is the convention of qc/instruments/phase4_qc_ndvi.py and
     pipeline/phase4_build_corrected_labels.py, both of which do
         rgbi = img.read([1, 2, 3, nir_b]); r, nir = rgbi[0], rgbi[3]
         ndvi = (nir - r) / (nir + r + 1e-6)
@@ -375,7 +375,7 @@ def to_uint8(nir, dtype, scale_mode):
 def ndvi_int16(red, nir, valid, chunk=2048):
     """NDVI x 1000 as int16, computed in row chunks so float32 never sees the
     whole 123 Mpx grid at once. Formula and epsilon are verbatim from
-    qc/phase4_qc_ndvi.py: (nir - r) / (nir + r + 1e-6).
+    qc/instruments/phase4_qc_ndvi.py: (nir - r) / (nir + r + 1e-6).
     """
     h, w = red.shape
     out = np.full((h, w), NDVI_NODATA, np.int16)
@@ -682,7 +682,7 @@ def write_readme(path, inv, problems, orphans, nir_stats, ndvi_stats,
         A(f"  {ndvi_path.name:24s} int16  — NDVI x 1000. nodata = {NDVI_NODATA}.")
         A("                           NDVI = (band4 - band1) / (band4 + band1 + 1e-6),")
         A("                           i.e. (NIR - RED)/(NIR + RED) — the formula and")
-        A("                           epsilon are verbatim from qc/phase4_qc_ndvi.py and")
+        A("                           epsilon are verbatim from qc/instruments/phase4_qc_ndvi.py and")
         A("                           pipeline/phase4_build_corrected_labels.py, which")
         A("                           both read [1,2,3,4] and take r=band1, nir=band4.")
         A("                           Computed from the NATIVE DNs, then resampled-")
@@ -788,7 +788,7 @@ def write_readme(path, inv, problems, orphans, nir_stats, ndvi_stats,
     A("                                         YEAR_CATALOG (entries with bands == 4)")
     A("  which root a filename resolves from -> config.imagery_roots() (D: mirror first)")
     A("  date shot + true pixel size          -> Scripts/qc/imagery_pixelsize_and_date.csv")
-    A("  red/NIR band convention              -> qc/phase4_qc_ndvi.py (read [1,2,3,4],")
+    A("  red/NIR band convention              -> qc/instruments/phase4_qc_ndvi.py (read [1,2,3,4],")
     A("                                          r=[0], nir=[3])")
     A("  city polygon                         -> pipeline/imagery_measure.py CITY_SHP")
     A("")
@@ -819,7 +819,7 @@ def write_readme(path, inv, problems, orphans, nir_stats, ndvi_stats,
     A("    that raw NIR DNs carry. Symbolise -200..800 (i.e. NDVI -0.2..0.8).")
     A("  * NDVI counts GRASS as vegetation. To read CANOPY, pair it with the CHM")
     A("    (lidar_snoh_chm.tif, DN x 0.2 = metres) — that is exactly the")
-    A("    NDVI >= 0.2 AND height >= 2 m rule qc/phase4_qc_ndvi.py uses.")
+    A("    NDVI >= 0.2 AND height >= 2 m rule qc/instruments/phase4_qc_ndvi.py uses.")
     A("  * The date column is the flight date, not the calendar year: two bands can")
     A("    share a year (2017n / 2017s) and October bands (2019n/s, 2023n) are late-")
     A("    season, so deciduous NDVI runs lower there for phenology, not for loss.")

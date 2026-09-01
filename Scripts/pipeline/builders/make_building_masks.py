@@ -38,7 +38,7 @@ THE GRID — read from the raster, never re-derived
     3857 would be a 0.67 m buffer on the ground.
 
 WHICH STRUCTURES GO IN
-    Presence comes from `qc/roof_presence_matrix.py`, whose fusion rule is
+    Presence comes from `qc/instruments/roof_presence_matrix.py`, whose fusion rule is
     imported here rather than reimplemented, so the mask and the matrix can
     never drift apart:
 
@@ -100,7 +100,7 @@ from rasterio.features import rasterize
 
 _HERE = Path(__file__).resolve().parent           # …/Scripts/pipeline
 _SCRIPTS = _HERE.parent.parent                    # …/Scripts (builders/ is one deeper)
-sys.path.insert(0, str(_SCRIPTS / "qc"))   # roof_presence_matrix — the ONE blessed qc-path import
+sys.path.insert(0, str(_SCRIPTS / "qc" / "instruments"))   # roof_presence_matrix — the ONE blessed qc-path import
 
 # the fusion rule and the mask policy live in the matrix script — import them
 from roof_presence_matrix import (                # noqa: E402
@@ -315,7 +315,7 @@ def load_matrix(scope_files):
             print(f"  matrix part: {p.name}  {len(frames[-1]):,} rows")
     if not frames:
         print("  NO presence matrix found — every year falls back to the "
-              "assessor backbone alone (run qc/roof_presence_matrix.py)")
+              "assessor backbone alone (run qc/instruments/roof_presence_matrix.py)")
         return None
     m = pd.concat(frames, ignore_index=True)
     # citywide rows win over sector rows for the same (building_id, year)

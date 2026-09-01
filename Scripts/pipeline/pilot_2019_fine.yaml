@@ -80,5 +80,5 @@
   year: "2019"
   tag: pilot_e2_fine
   extra: ["--force-citywide", "--no-hillshade"]
-  why: "fine tier (10 cm), the end with the LEAST context per prediction. CORRECTED 2026-08-31 by qc/tile_object_ratio.py: the 106 px ERF covers 2.07 crown-widths at the fine tier's median effective GSD, 6.60 at medium and 15.60 at coarse — so fine is context-poorest, but the claim that the ERF is SMALLER than one crown is false for every acquisition in this archive (minimum 1.07, at 2022/6.5 cm). It would need an effective GSD under 6.09 cm; the finest measured is 6.5."
+  why: "fine tier (10 cm), the end with the LEAST context per prediction. CORRECTED 2026-08-31 by qc/instruments/tile_object_ratio.py: the 106 px ERF covers 2.07 crown-widths at the fine tier's median effective GSD, 6.60 at medium and 15.60 at coarse — so fine is context-poorest, but the claim that the ERF is SMALLER than one crown is false for every acquisition in this archive (minimum 1.07, at 2022/6.5 cm). It would need an effective GSD under 6.09 cm; the finest measured is 6.5."
   expect: "labels ~1 min; tile ~14 min; train ~34 min; evaluate ~2 min; inference ~68 min (the long pole, max seen 100); postproc unmeasured. ~2 h median."

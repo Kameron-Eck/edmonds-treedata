@@ -2,7 +2,7 @@
 
 **What this launches.** Five INFERENCE-ONLY jobs (`pipeline/queue_golden_v2.yaml`) that
 re-run five existing checkpoints over `pipeline/aoi/sentinel_v1.json` — the 12 frozen
-sentinel windows — under five NEW run tags, so `qc/phase4_golden_gate.py` can score all
+sentinel windows — under five NEW run tags, so `qc/instruments/phase4_golden_gate.py` can score all
 12 windows for arms whose shipped prob rasters cover only ~1 of them. No training, no
 tiling, no label build, no existing raster touched (P7: new tags are mandatory).
 
@@ -367,7 +367,7 @@ What this does and does not mean:
 
 ## After the run
 
-Score each new arm with `qc/phase4_golden_gate.py` (year + tag). That is a separate step
+Score each new arm with `qc/instruments/phase4_golden_gate.py` (year + tag). That is a separate step
 with its own threshold contract and is deliberately **not** part of this runbook.
 
 ## Non-goals

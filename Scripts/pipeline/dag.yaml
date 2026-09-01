@@ -77,7 +77,7 @@ stages:
     outputs: ["phase4/masks/edmonds_canopy_mask_{y}_{tag}.tif", "phase4/masks/edmonds_canopy_mask_{y}_{tag}.gpkg", "phase4/eval/_per_year_canopy_area.csv"]
 
   qc_ndvi_reference:
-    script: qc/phase4_qc_ndvi.py
+    script: qc/instruments/phase4_qc_ndvi.py
     runs_on: local
     inputs: ["Full_Image/Pipeline Imagery/{y}_rgbi.tif", "Full_Image/Pipeline Imagery/lidar_snoh_chm.tif"]
     outputs: ["phase4/qc/ndvi_ref_{y}.tif", "phase4/qc/ndvi_ref_{y}.txt"]
@@ -88,10 +88,10 @@ stages:
     runs_on: local
     inputs: ["phase4/masks/edmonds_canopy_prob_{y}_{tag}.tif", "Full_Image/Pipeline Imagery/ccap_*_hires_lc*.tif"]
     outputs: ["phase4/qc/qc_indep_report.csv", "phase4/qc/qc_indep_surfaces_{y}.csv", "phase4/qc/qc_indep_{y}.txt"]
-    note: THE honest number (live=1 rows). qc/phase4_qc_score.py = the NDVI-side twin.
+    note: THE honest number (live=1 rows). qc/instruments/phase4_qc_score.py = the NDVI-side twin.
 
   qc_ref_agreement:
-    script: qc/phase4_ref_agreement.py
+    script: qc/instruments/phase4_ref_agreement.py
     runs_on: local
     inputs: ["phase4/qc/ndvi_ref_{y}.tif", "Full_Image/Pipeline Imagery/ccap_*_hires_lc*.tif"]
     outputs: ["phase4/qc/ref_agreement_{y}.txt", "phase4/qc/ref_agreement_report.csv"]
@@ -105,12 +105,12 @@ stages:
     outputs: ["repo:pipeline/aoi/sectors_v1.json", phase4/qc/sectors/sectors_v1.gpkg]
     note: fixed west-east inference sectors; phase4_inference accepts --infer-aoi aoi/sectors_v1.json
   qc_sector_series:
-    script: qc/phase4_sector_series.py --aoi pipeline/aoi/sectors_v1.json
+    script: qc/instruments/phase4_sector_series.py --aoi pipeline/aoi/sectors_v1.json
     runs_on: local
     inputs: ["phase4/masks/edmonds_canopy_prob_{y}_{tag}.tif", phase4/qc/qc_indep_report.csv]
     outputs: [phase4/qc/sector_campaign/sector_canopy_series.csv, phase4/qc/sector_campaign/city_canopy_totals_design.csv]
   qc_crown_cover_matrix:
-    script: qc/phase4_crown_cover_matrix.py --aoi pipeline/aoi/sectors_v1.json
+    script: qc/instruments/phase4_crown_cover_matrix.py --aoi pipeline/aoi/sectors_v1.json
     runs_on: local
     inputs: [phase4/qc/sector_campaign/cover1m, inference/edmonds_crowns_2020.gpkg]
     outputs: [phase4/qc/sector_campaign/crown_cover_matrix.parquet]

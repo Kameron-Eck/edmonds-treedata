@@ -22,7 +22,7 @@ Every number above is read from `pipeline/phase4seg/config.py:YEAR_CATALOG` and
 with `py -3.12 qc/pipeline_status.py --markdown`.
 <!-- STATUS:code:end -->
 
-### Derived from the data lake - generated 2026-08-31 17:20
+### Derived from the data lake - generated 2026-08-31 17:26
 
 **This half is only as current as the last run of this script.** CI cannot
 regenerate it (no Drive mount), so it is NOT gated. Treat every number below

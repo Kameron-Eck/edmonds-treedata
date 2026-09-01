@@ -41,8 +41,8 @@ them.
 | Phase-A learning rate | **BUILT** — `--lr-phase-a` | `cli.py:183` |
 | Three-state labels (0/1/255 IGNORE) | **BUILT**, and it is the vehicle for every label idea below | CLAUDE.md rule 6 |
 | U-Net skips already bypass the bottleneck | **BUILT** — decoder consumes the full feature list, so an ASPP on `feats[-1]` leaves skips untouched | verified against installed smp 0.5.0 |
-| Stratified accuracy design (Olofsson/Stehman) | **BUILT** — real stratum weights, Monte-Carlo achieved CI | `qc/phase4_accuracy_sample.py --step design` |
-| Canopy area with GSD carried | **BUILT** | `qc/phase4_sector_series.py` |
+| Stratified accuracy design (Olofsson/Stehman) | **BUILT** — real stratum weights, Monte-Carlo achieved CI | `qc/instruments/phase4_accuracy_sample.py --step design` |
+| Canopy area with GSD carried | **BUILT** | `qc/instruments/phase4_sector_series.py` |
 | 36-year scale-up | **BUILT** — YAML per year, no hardcoded year list | `phase4_train_queue.py` |
 
 **Genuinely absent:** `--lr-phase-b` (Phase B is hardcoded `5e-6`), a boundary loss term,

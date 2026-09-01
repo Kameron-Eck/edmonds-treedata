@@ -143,7 +143,7 @@ items:
     depends_on: [S20_qc_indep_scoring]
     timeout_min: 360
     description: Per-sector canopy series from PROBS at deployed thresholds (sector-POLYGON clipped, err-adjusted), incl. existing full-city years clipped to sectors; design-based city totals + successive-difference CI.
-    run: "py -3.12 qc/phase4_sector_series.py --aoi pipeline/aoi/sectors_v1.json"
+    run: "py -3.12 qc/instruments/phase4_sector_series.py --aoi pipeline/aoi/sectors_v1.json"
     verify:
       - {csv_rows: {path: "data:phase4/qc/sector_campaign/sector_canopy_series.csv", min_rows: 40}}
       - {csv_rows: {path: "data:phase4/qc/sector_campaign/city_canopy_totals_design.csv", min_rows: 8}}
@@ -154,7 +154,7 @@ items:
     depends_on: [S21_postproc]
     timeout_min: 240
     description: "Per-crown cover matrix on sectors (1-m cover sidecars + rasterize/bincount; crowns from the D: mirror)."
-    run: "py -3.12 qc/phase4_crown_cover_matrix.py --aoi pipeline/aoi/sectors_v1.json"
+    run: "py -3.12 qc/instruments/phase4_crown_cover_matrix.py --aoi pipeline/aoi/sectors_v1.json"
     verify:
       - {file: "data:phase4/qc/sector_campaign/crown_cover_matrix.parquet", min_bytes: 200000}
 

@@ -102,8 +102,8 @@ LOCAL_OUT = Path(r"D:\edmonds-pipeline\_tmp")
 LAKE_OUT = BASE / "phase4" / "labels_corrected"
 TEMPLATE = BASE / "phase4" / "labels_corrected" / "canopy_additions_2016.tif"
 
-# D: mirror FIRST, lake second — the resolution order qc/phase4_crown_touch.py::CROWNS
-# and qc/mine_stable_crowns.py::CROWNS already use. The D: copies are the P1 backup and
+# D: mirror FIRST, lake second — the resolution order qc/instruments/phase4_crown_touch.py::CROWNS
+# and qc/instruments/mine_stable_crowns.py::CROWNS already use. The D: copies are the P1 backup and
 # are sha256-manifested (MANIFEST.sha256 beside each). The chosen path is printed.
 MASK_2020 = Path(r"D:\edmonds-pipeline\backup\phase3\edmonds_canopy_mask_2020.tif")
 MASK_2020_FALLBACK = BASE / "phase3" / "edmonds_canopy_mask_2020.tif"

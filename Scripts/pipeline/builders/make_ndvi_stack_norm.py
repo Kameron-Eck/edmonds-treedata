@@ -18,7 +18,7 @@ WHY THIS EXISTS AS A SEPARATE FILE
 
     This script writes the OTHER product: the same grid, the same formula, with
     each acquisition's red and NIR first mapped through the R2 linear
-    normalization (qc/radiometry_norm.py) onto one reference era. What changes
+    normalization (qc/instruments/radiometry_norm.py) onto one reference era. What changes
     between bands here is much closer to vegetation alone.
 
     BOTH ARE KEPT. Neither replaces the other. The native stack is the record;
@@ -65,7 +65,7 @@ THE TWO LIFTED-FLOOR YEARS ARE CARRIED RAW, NOT CORRECTED
     Read those two bands for WHERE vegetation is, never for HOW MUCH against
     another band.
 
-WHAT THE CORRECTION CANNOT FIX (also in qc/radiometry_norm.py's header)
+WHAT THE CORRECTION CANNOT FIX (also in qc/instruments/radiometry_norm.py's header)
     Phenology (an April frame and an August frame stay different over plants —
     normalization makes the CAMERAS comparable, never the SEASONS); per-scene
     vignetting, BRDF/hotspot and mosaic-seam gradients (one gain + one offset
@@ -96,7 +96,7 @@ import rasterio
 
 _HERE = Path(__file__).resolve().parent            # …/Scripts/qc
 _SCRIPTS = _HERE.parent.parent                     # …/Scripts (builders/ is one deeper)
-sys.path.insert(0, str(_SCRIPTS / "qc"))           # radiometry_norm (4c home)
+sys.path.insert(0, str(_SCRIPTS / "qc" / "instruments"))  # radiometry_norm
 
 import make_nir_stack as mns                       # noqa: E402  IMPORTED, never edited
 import radiometry_norm as rn                       # noqa: E402
@@ -319,7 +319,7 @@ def write_readme(path, inv, problems, stats, bounds, snapped_to, width, height,
     a("=" * 78)
     a(f"  built  : {datetime.now():%Y-%m-%d %H:%M}  in {elapsed / 60:.1f} min")
     a(f"  by     : Scripts/qc/make_ndvi_stack_norm.py")
-    a(f"  table  : {args.norm_table}   (fitted by Scripts/qc/radiometry_norm.py)")
+    a(f"  table  : {args.norm_table}   (fitted by Scripts/qc/instruments/radiometry_norm.py)")
     a(f"  grid   : {mns.DST_CRS} @ {mns.DST_RES} unit px, {width} x {height}, "
       f"snapped to {snapped_to}")
     a(f"  bounds : {bounds[0]:.1f} {bounds[1]:.1f} {bounds[2]:.1f} {bounds[3]:.1f}")
@@ -421,13 +421,13 @@ def write_readme(path, inv, problems, stats, bounds, snapped_to, width, height,
     a("    in the native stack. Shadowed conifer is exactly what this project")
     a("    cares about, so for a shadow question prefer the native product; use")
     a("    this one for cross-year comparison of sunlit canopy.")
-    a("  Reproduce the numbers: py -3.12 qc/radiometry_norm.py --step validate [4]")
+    a("  Reproduce the numbers: py -3.12 qc/instruments/radiometry_norm.py --step validate [4]")
     a("")
     a("  HOW THE CORRECTION WAS VALIDATED")
     a("  ------------------------------------------------------------------")
     a("  Same-flight cross-sensor pairs — same ground, same day, different")
     a("  sensor and processing chain — must agree over invariant hardscape after")
-    a("  correction. Reproduce with:  py -3.12 qc/radiometry_norm.py --step validate")
+    a("  correction. Reproduce with:  py -3.12 qc/instruments/radiometry_norm.py --step validate")
     a("  Measured (mean |spine p50 difference| over R/G/B[/N]):")
     a("      2015n vs 2015s   16.0 DN raw  ->   1.6 DN normalized")
     a("      2017n vs 2017s   11.4 DN raw  ->   4.6 DN normalized")

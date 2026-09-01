@@ -820,7 +820,7 @@ despite 13 assessor-dated houses landing in between; probe features are NOT pixe
 (core_slope_rel 0.0120 vs 0.0012), so "same flight re-served" is ONE hypothesis among
 several. LEAD ONLY — belongs to the imagery-date evidence workstream before any conclusion.
 
-## 13. Radiometry fingerprint R1 (MEASURED 2026-08-26) — qc/radiometry_fingerprint.py
+## 13. Radiometry fingerprint R1 (MEASURED 2026-08-26) — qc/instruments/radiometry_fingerprint.py
 
 Per-acquisition band statistics over a pseudo-invariant hardscape mask (selected ONCE
 from the 2020 anchor, applied identically to all 36 acquisitions; parking 92.5% kept,

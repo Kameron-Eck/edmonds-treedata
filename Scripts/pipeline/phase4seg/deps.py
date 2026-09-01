@@ -14,7 +14,7 @@ it only because the VM-level bootstrap pre-installs requirements-colab.txt befor
 script runs — the in-script loops are belt-and-braces for the local/interactive plane.
 
 THE TWO THAT MUST NOT FOLD ONTO THIS, recorded so nobody "finishes the job":
-  · qc/phase4_qc_inventory.py / qc/phase4_ref_agreement.py (family B): guard INSIDE the
+  · qc/instruments/phase4_qc_inventory.py / qc/instruments/phase4_ref_agreement.py (family B): guard INSIDE the
     function and `check=False` — they no-op when the package exists and degrade
     gracefully offline. Folding them here would shell out to pip on every run and turn a
     graceful degrade into a hard abort. Their import-name derivation is also wrong for

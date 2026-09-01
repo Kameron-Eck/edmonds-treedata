@@ -84,7 +84,7 @@ ARCGIS_OUT = Path(r"D:\edmonds-pipeline\ARCGIS\MachineLearning\sectors")
 # the honest scorer's (qc/phase4_qc_indep.py CCAP_DEFAULT): here 5 (Developed Open Space) and 7
 # (Pasture/Hay) are folded into developed/bare rather than into grass, and scrub (12/14/17) and
 # cropland (6) have no bucket of their own (they land in nothing and simply do not sum to 1).
-# It is a coarse land-context descriptor, NOT the scoring taxonomy — qc/phase4_sector_poststrat.py
+# It is a coarse land-context descriptor, NOT the scoring taxonomy — qc/instruments/phase4_sector_poststrat.py
 # strata use CCAP_DEFAULT, so its per-group fractions will not match these to the decimal.
 CCAP_GROUPS = {"forest": [9, 10, 11], "wetland": [13, 16], "emergent_wetland": [15, 18],
                "grass": [8], "developed": [2, 3, 4, 5], "bare": [7, 19, 20],

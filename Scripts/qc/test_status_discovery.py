@@ -558,26 +558,21 @@ _PATH_INSERT_LEDGER = {
     "pipeline/phase4seg_smoke.py": 1,        # gate pins the adjacent tree
     "qc/conftest.py": 1,                     # THE canonical stanza
     "pipeline/builders/build_lidar_quadrants.py": 1,  # builders sibling (self-dir)
-    "qc/imagery_canopy_separability.py": 1,  # qc sibling (4c)
     "qc/imagery_qc_suite.py": 2,             # qc sibling (4c) + KERNEL-EXEC keep
     "qc/phase4_qc_indep.py": 1,              # KERNEL-EXEC keep (see file header)
-    "qc/investigate_2024_offset.py": 1,      # qc sibling (4c)
-    "qc/investigate_displacement.py": 1,     # qc sibling (4c)
+    "qc/instruments/investigate_2024_offset.py": 1,  # imagery_qc_suite (qc root)
+    "qc/instruments/investigate_displacement.py": 2,  # qc root + sibling
     "pipeline/builders/make_ndvi_stack_norm.py": 1,  # radiometry_norm (4c home)
-    "qc/phase4_crown_cover_matrix.py": 1,    # qc sibling (4c)
-    "qc/phase4_golden_gate.py": 1,           # qc sibling (4c)
-    "qc/phase4_qc_design_power.py": 1,       # qc sibling (4c)
-    "qc/phase4_qc_latent_class_adversarial.py": 1,  # qc sibling (4c)
-    "qc/phase4_qc_latent_class_test.py": 1,  # qc sibling (4c)
-    "qc/phase4_sector_change.py": 1,         # qc sibling (4c)
-    "qc/phase4_sector_poststrat.py": 1,      # qc sibling (4c)
-    "qc/phase4_sector_series.py": 1,         # qc sibling (4c)
-    "qc/phase4_sentinel_qc_overlay.py": 1,   # qc sibling (4c)
-    "qc/phase4_site_eval.py": 1,             # qc sibling (4c)
-    "qc/roof_presence_matrix.py": 1,         # qc sibling (4c)
+    "qc/instruments/phase4_golden_gate.py": 1,  # sibling instruments
+    "qc/instruments/phase4_qc_design_power.py": 1,  # sibling instruments
+    "qc/instruments/phase4_qc_latent_class_adversarial.py": 1,  # sibling
+    "qc/instruments/phase4_qc_latent_class_test.py": 1,  # sibling
+    "qc/instruments/phase4_sector_poststrat.py": 1,  # phase4_qc_indep (qc root)
+    "qc/instruments/phase4_site_eval.py": 1,  # sibling instruments
+    "qc/instruments/roof_presence_matrix.py": 1,  # roof_presence_probe sibling
     "qc/runtime_dashboard.py": 2,            # phase4_train_queue + watch_queue keeps
     "qc/runtime_health.py": 1,               # qc sibling keep
-    "qc/separability_index_control.py": 1,   # qc sibling (4c)
+    "qc/instruments/separability_index_control.py": 2,  # qc root + sibling
     "qc/test_acquire_imagery.py": 2,         # acquire_imagery keep + qc sibling
     "qc/test_boundary_loss.py": 1,           # string payload for a spawned subprocess
     "qc/test_ci_gates.py": 2,                # string payloads for spawned subprocesses

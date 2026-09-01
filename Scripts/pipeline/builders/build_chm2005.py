@@ -15,7 +15,7 @@ IMPORTS rather than copies (one home for the method):
 
 WHAT DIFFERS FROM THE 2016 BUILD, AND WHY — measured, not assumed
   cell sizes    2.0 m canopy / 4.0 m ground   (2016 build: 0.5 m / 2.0 m)
-  Set from qc/audit_lidar_2005_coverage.py, which measured ground-return occupancy on
+  Set from qc/instruments/audit_lidar_2005_coverage.py, which measured ground-return occupancy on
   these tiles:  1 m 44.6% | 2 m 69.5% | 3 m 80.3% | 4 m 86.5% | 5 m 90.5%.
   The 2016 build chose 2.0 m ground because ~80% of its 2 m cells held a ground return.
   For 2005 that fraction is only reached at 3 m, and the builder requires the ground

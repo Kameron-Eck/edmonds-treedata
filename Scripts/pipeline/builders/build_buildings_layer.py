@@ -77,7 +77,7 @@ WHAT `yr_built` CANNOT TELL YOU  (repeated because it governs every downstream u
     - DEMOLISHED structures are absent from both the roll and the roofprints.
       A current-state layer cannot count what it deleted.
     - Therefore: assessor-PRESENT is strong evidence; assessor-ABSENT is weak.
-      That asymmetry is the whole design of qc/roof_presence_matrix.py.
+      That asymmetry is the whole design of qc/instruments/roof_presence_matrix.py.
 
 USAGE
     py -3.12 pipeline/build_buildings_layer.py              # build everything
@@ -282,7 +282,7 @@ def load_onegeo() -> gpd.GeoDataFrame:
 
     geopandas/pyogrio drops the GeoJSON `id`, and that id is the only stable
     handle back into Kam's file (and into the earlier probe output), so the
-    JSON is parsed directly — same reason as qc/roof_presence_probe.py.
+    JSON is parsed directly — same reason as qc/instruments/roof_presence_probe.py.
     """
     d = json.loads(ONEGEO_JSON.read_text(encoding="utf-8"))
     recs, geoms = [], []
@@ -580,7 +580,7 @@ EPSG:4326.
 
 Two consumers:
 
-1. **`qc/roof_presence_matrix.py`** — the per-structure x per-year presence
+1. **`qc/instruments/roof_presence_matrix.py`** — the per-structure x per-year presence
    matrix. `yr_built` is its deterministic backbone; the imagery probe only has
    to resolve the {stats.get('n_built_in_record', 0):,} structures built inside
    the 2000-2024 imagery record
@@ -714,7 +714,7 @@ Read this before any temporal use.
   roll nor a current-state footprint layer can count what it deleted. This layer
   will never mask a building torn down before 2025.
 - **Therefore assessor-PRESENT is strong evidence and assessor-ABSENT is weak.**
-  That asymmetry is the design of `qc/roof_presence_matrix.py`: the record
+  That asymmetry is the design of `qc/instruments/roof_presence_matrix.py`: the record
   promotes a structure to PRESENT, but only the imagery can demote it.
 - Structures finished after the input vintages (county roofprints ~2025,
   ONEGEO 2025-06) are missing from the most recent years.

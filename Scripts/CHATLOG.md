@@ -46,6 +46,37 @@ transcript before rotation). Read order: `CLAUDE.md` → `WORKPLAN.md` → `STAT
 
 ════════════════ LOG  (newest first — append new entries directly below this line) ════════════════
 
+## 2026-09-01  AGENTIC WORKFLOW 7/7 — lifecycle as code, checklist as command (Fable 5)
+
+goal:    Kam: "what remains a problem for agentic workflow... go for all 7"
+         (billable time granted).
+did:     7 `0deb3d0` lake.read_retry — ONE home for retry-the-answer, pilot_gate
+         delegates (3/3 live). 5 same commit: bench covers evaluate/postproc —
+         postproc.threshold_and_clean EXTRACTED pure so the bench regresses real
+         code; +6 metrics; MATCH x2. 2 `7976cc5` qc/landed.py — 3.12 is a command;
+         my own 2 hand-typed canary rows had INVENTED run_ids, replaced by
+         manifest-derived; gate asks the tool its own question (0 new). 4 `a727bce`
+         qc/experiment_queue.py — queue yamls GENERATE from experiment files,
+         drift-gated. 1 `f94fba6` pipeline/vm_ops.py — launch/exec/status/stop
+         with the CLI lock, three-state signature verify, token cleanup,
+         backoff; PROVEN LIVE on T4 (~4 min): all signatures, heartbeat, clean
+         stop. 3 `4c546a7` queue split 1,629 -> 973: queue_verify.py 478 +
+         queue_ledger.py ~300, q-context routing preserves all 52 monkeypatches
+         (3 subtleties caught by the suite: patched intra-cluster call, shared
+         _MERGE_DEFECTS list, q.io module-object patch surface). 6 BLOCKED ON
+         EVIDENCE by colab_rates.csv's own correct rules — procedure documented
+         there; Kam reads CU balance before/after any launch to settle a
+         MEASURED row.
+decided: queue guards cluster stays in the queue (main's own surface). vm_ops
+         prints 3.4 policy reminders, never bypasses them.
+killed:  committed once over a red ladder (tail'd pipe, again) — pipefail now in
+         every ladder chain; it caught the very next stray import.
+files:   vm_ops.py queue_verify.py queue_ledger.py landed.py experiment_queue.py
+         bench.py lake.py + tests
+next:    Kam: main merge + tag + one CU-balance read. The repo's agentic loop is
+         now: experiments/x.yaml -> experiment_queue -> vm_ops launch -> pilot_gate
+         --experiment -> landed.py.
+
 ## 2026-09-01  R&D FLEXIBILITY — six agentic-workflow seams landed (Fable 5)
 
 goal:    Kam: "flexible for research and development... what if I wanted to

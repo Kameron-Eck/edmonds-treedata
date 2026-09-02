@@ -139,3 +139,23 @@ def test_mailbox_stop_kills_only_queue_and_engine(tmp_path, monkeypatch):
     assert "phase4_train_queue|phase4_semantic" in pg[-1]
     reply = json.loads((tmp_path / "cmd_reply_s1.json").read_text())
     assert reply["killed"] == ["111", "222"] and "watchdog" in reply["note"]
+
+
+def test_mailbox_status_ignores_other_sessions_logs(tmp_path, monkeypatch):
+    """Drill finding 2026-09-02: the shared logs dir means a bare newest-glob
+    returns ANOTHER session's queue log. Only logs from this boot qualify."""
+    import json, os, time
+    monkeypatch.setattr(bb, "LOGS", str(tmp_path))
+    monkeypatch.setattr(bb, "STATE", str(tmp_path / "state.json"))
+    monkeypatch.setattr(bb, "BOOT_TS", time.time())
+    monkeypatch.setattr(bb.subprocess, "run",
+                        lambda *a, **k: type("R", (), {"stdout": ""})())
+    old = tmp_path / "train_queue_nohup_other_session.log"
+    old.write_text("ANOTHER SESSION'S HISTORY")
+    two_hours_ago = time.time() - 7200
+    os.utime(old, (two_hours_ago, two_hours_ago))
+    (tmp_path / "cmd_s1.json").write_text(json.dumps({"cmd": "status", "nonce": "n9"}))
+    bb.check_mailbox("s1", {"retried": []})
+    reply = json.loads((tmp_path / "cmd_reply_s1.json").read_text())
+    assert "nohup_tail" not in reply
+    assert "no queue log newer" in reply["nohup"]

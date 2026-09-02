@@ -221,6 +221,10 @@ def sessions():
         now = _dt2.datetime.now(_dt2.timezone.utc)
         beats = []
         for hb in sorted((BASE / "phase4" / "logs").glob("heartbeat_*.json")):
+            if "__conflict" in hb.stem:
+                continue    # Drive conflict copies (a beacon killed mid-write
+                            # left one on the 2026-09-02 drill) are sync debris,
+                            # not sessions — listing them miscounts the fleet
             try:
                 d = json.loads(hb.read_text(encoding="utf-8"))
                 ts = _dt2.datetime.fromisoformat(

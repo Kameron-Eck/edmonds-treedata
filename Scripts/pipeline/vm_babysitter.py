@@ -50,6 +50,7 @@ DRIVE = "/content/drive/MyDrive/treedata"
 LOGS = DRIVE + "/phase4/logs"
 STATE = "/content/babysitter_state.json"
 POLL_S = 30
+BOOT_TS = time.time()             # mailbox status only reports logs from THIS boot
 KNOWN_TRANSIENT = (
     "not recognized as being in a supported file format",   # FUSE mid-upload read
     "Transport endpoint is not connected",                   # mount dropped
@@ -190,13 +191,21 @@ def check_mailbox(session, st):
                             "phase4_train_queue|phase4_semantic|vm_heartbeat"],
                            capture_output=True, text=True)
         reply["procs"] = (r.stdout or "").strip()[:1500]
-        logs = sorted(glob.glob(f"{LOGS}/train_queue_nohup_*.log"))
+        # Only logs written since THIS VM booted: the logs dir is shared across
+        # runtimes and a bare newest-glob latched onto ANOTHER session's queue
+        # log on the drill's first live status (2026-09-02) — the exact hazard
+        # vm_heartbeat's header documents for its own globs.
+        import os as _os
+        logs = [p for p in sorted(glob.glob(f"{LOGS}/train_queue_nohup_*.log"))
+                if _os.path.getmtime(p) >= BOOT_TS - 60]
         if logs:
             try:
                 reply["nohup"] = logs[-1].rsplit("/", 1)[-1]
                 reply["nohup_tail"] = open(logs[-1], errors="replace").read()[-1500:]
             except OSError:
                 pass
+        else:
+            reply["nohup"] = "(no queue log newer than this VM's boot)"
     elif cmd == "stop":
         r = subprocess.run(["pgrep", "-f", "phase4_train_queue|phase4_semantic"],
                            capture_output=True, text=True)

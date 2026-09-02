@@ -77,6 +77,17 @@ policy-C threshold and a champion cut at the circular `best_f1_thresh` are
 different operating-point populations; this registry (plus `run_tag`) is what
 separates them. Non-default `ref` rows are sensitivity checks, not deployments.
 
+## hw_{session}.csv (lake `phase4/logs/`, RAW hardware telemetry)
+
+Written by `vm_hwlogger.py::main` (launched by every bootstrap from 2026-09-02;
+5 s samples, one buffered Drive write per minute). Kernel + NVIDIA counters
+only — no pipeline code in the measurement path. Columns: `ts_utc,
+gpu_util_pct, gpu_mem_util_pct, gpu_mem_used_mb, gpu_power_w, cpu_pct,
+disk_read_mb_s, disk_write_mb_s, net_rx_mb_s, net_tx_mb_s, disk_used_gb,
+disk_free_gb`. Reader notes: net rx/tx IS the Drive traffic (rclone is HTTPS);
+disk_* is local NVMe; blank cells mean the sampler failed that tick (CPU
+runtimes have blank GPU columns) — blanks are honest, never zeros.
+
 ## champion_arms.csv (Scripts/pipeline/, AUTHORED decision)
 
 The machine-readable answer to "which arm is the deliverable for year Y".

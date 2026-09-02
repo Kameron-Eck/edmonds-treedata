@@ -19,6 +19,20 @@ below maps to a failure measured on 2026-09-01:
           to the babysitter log as ESCALATE with the log excerpt, and the VM's
           own self-stop watchdog is left to end the runtime. Unknown failures
           are a human's to read — by design, not limitation.
+  RULE 4  DRIVE COMMAND MAILBOX (2026-09-02). All three Tier-1 staging handles
+          died mid-flight while their VMs kept working — CLI handles die
+          permanently, so the control plane must not live in them. Each poll,
+          read {LOGS}/cmd_{session}.json; a tiny fixed vocabulary, one nonce
+          processed once (ledger in the state file), reply written to
+          {LOGS}/cmd_reply_{session}.json:
+            status  -> process table + newest queue-nohup tail (the deep probe
+                       exec used to provide)
+            stop    -> SIGTERM the queue + engine processes and nothing else;
+                       the EXISTING self-stop watchdog then ends the idle VM
+                       through its measured drain-aware path — this rule never
+                       reimplements unassign.
+          Unknown commands get an error reply, never execution. There is
+          deliberately no run-arbitrary-code command.
 
 Launched by the emitted bootstrap (nohup, like vm_heartbeat). Stdlib only — this
 is a VM twin: no lake.py, no phase4seg, paths spelled directly.
@@ -155,6 +169,54 @@ def failure_is_known_transient(year, step):
     return None, None
 
 
+def check_mailbox(session, st):
+    """RULE 4 — one command per nonce, tiny vocabulary, reply file always written."""
+    import glob
+    p = f"{LOGS}/cmd_{session}.json"
+    try:
+        d = json.load(open(p))
+    except (OSError, ValueError):
+        return
+    nonce = str(d.get("nonce", ""))
+    if not nonce or nonce in st.setdefault("nonces", []):
+        return
+    st["nonces"].append(nonce)
+    save_state(st)                      # ledger FIRST: a crash mid-command must
+    cmd = str(d.get("cmd", ""))         # not replay it on restart
+    reply = {"nonce": nonce, "cmd": cmd, "session": session,
+             "ts": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())}
+    if cmd == "status":
+        r = subprocess.run(["pgrep", "-af",
+                            "phase4_train_queue|phase4_semantic|vm_heartbeat"],
+                           capture_output=True, text=True)
+        reply["procs"] = (r.stdout or "").strip()[:1500]
+        logs = sorted(glob.glob(f"{LOGS}/train_queue_nohup_*.log"))
+        if logs:
+            try:
+                reply["nohup"] = logs[-1].rsplit("/", 1)[-1]
+                reply["nohup_tail"] = open(logs[-1], errors="replace").read()[-1500:]
+            except OSError:
+                pass
+    elif cmd == "stop":
+        r = subprocess.run(["pgrep", "-f", "phase4_train_queue|phase4_semantic"],
+                           capture_output=True, text=True)
+        pids = [x for x in r.stdout.split() if x.strip()]
+        for pid in pids:
+            subprocess.run(["kill", pid], capture_output=True)
+        reply["killed"] = pids
+        reply["note"] = ("queue+engine SIGTERMed; the self-stop watchdog ends "
+                         "this idle VM via its drain-aware path")
+    else:
+        reply["error"] = f"unknown cmd {cmd!r} — vocabulary: status, stop"
+    try:
+        with open(f"{LOGS}/cmd_reply_{session}.json", "w") as f:
+            json.dump(reply, f)
+    except OSError:
+        pass                            # Drive blink; the log line still records it
+    log(session, f"MAILBOX {cmd or '?'} nonce={nonce} processed "
+                 f"({'ERROR' if 'error' in reply else 'ok'})")
+
+
 def relaunch(queue_file, job_id, session):
     ts = time.strftime("%Y%m%dT%H%M%SZ", time.gmtime())
     lg = f"{LOGS}/train_queue_nohup_babysitter_retry_{job_id}_{ts}.log"
@@ -172,6 +234,8 @@ def main():
     queue_seen = False
     while True:
         time.sleep(POLL_S)
+        # RULE 4 — the Drive mailbox is checked every cycle, queue alive or not
+        check_mailbox(session, st)
         # RULE 1 — the beacon must not die silently
         if not pids("vm_heartbeat.py"):
             log(session, "BEACON DEAD -> restarting vm_heartbeat")

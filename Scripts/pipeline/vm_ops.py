@@ -240,6 +240,42 @@ def sessions():
         print(f"(heartbeat cross-reference unavailable: {e})")
 
 
+def cmd(session, command, wait_s=240):
+    """Handle-free control: write the Drive mailbox the babysitter polls (RULE 4)
+    and wait for its reply file. Works on any VM whose babysitter is from
+    2026-09-02 or later, regardless of CLI-handle state. Vocabulary: status, stop.
+    Round-trip = local->Drive sync + 30 s babysitter poll + Drive->local sync —
+    minutes under mirror lag, not seconds; that is the price of handle-freedom."""
+    import time as _t
+    from lake import BASE, read_retry
+    logs = BASE / "phase4" / "logs"
+    import datetime as _dt
+    nonce = _dt.datetime.now(_dt.timezone.utc).strftime("%Y%m%dT%H%M%S%fZ")
+    (logs / f"cmd_{session}.json").write_text(
+        json.dumps({"cmd": command, "nonce": nonce}), encoding="utf-8")
+    print(f"  mailbox written: cmd={command} nonce={nonce}; waiting for reply "
+          f"(up to {wait_s}s)")
+    rp = logs / f"cmd_reply_{session}.json"
+    t0 = _t.time()
+    while _t.time() - t0 < wait_s:
+        _t.sleep(15)
+        data = read_retry(lambda: rp.read_text(encoding="utf-8") if rp.exists() else "")
+        if data:
+            try:
+                r = json.loads(data)
+            except ValueError:
+                continue
+            if r.get("nonce") == nonce:
+                for k, v in r.items():
+                    print(f"  {k}: {v if not isinstance(v, str) or len(v) < 200 else v[:200] + '…'}")
+                if "nohup_tail" in r:
+                    print("  --- nohup tail ---")
+                    print(r["nohup_tail"])
+                return
+    print(f"  no reply within {wait_s}s — mirror lag, a pre-mailbox babysitter, "
+          f"or a dead VM; check `vm_ops sessions` for existence")
+
+
 def stop(session):
     code, out = _cli(["stop", "-s", session], timeout=180)
     if "Not Found" in out or "404" in out:
@@ -274,6 +310,11 @@ def main():
     X.add_argument("--session", required=True)
     sub.add_parser("sessions", help="account-level runtime census "
                                     "(survives dead handles) + fresh heartbeats")
+    C = sub.add_parser("cmd", help="handle-free control via the Drive mailbox "
+                                   "(babysitter RULE 4): status | stop")
+    C.add_argument("--session", required=True)
+    C.add_argument("--command", required=True, choices=["status", "stop"])
+    C.add_argument("--wait", type=int, default=240)
     a = ap.parse_args()
 
     if a.cmd == "launch":
@@ -282,6 +323,20 @@ def main():
                   "first launch of a NEW queue needs Kam's yes.")
         new_session(a.session, a.gpu)
         bootstrap(a.session, a.branch)
+        # Persist the BROWSER attach URL to the lake NOW: the CLI handle can die
+        # permanently mid-run (all three Tier-1 staging handles did, 2026-09-02),
+        # and this URL is the manual reattach lever that outlives it.
+        try:
+            _c2, _u = _cli(["url", "-s", a.session], timeout=120)
+            _url = next((ln.strip() for ln in _u.splitlines()
+                         if ln.strip().startswith("http")), "")
+            if _url:
+                from lake import BASE as _B
+                (_B / "phase4" / "logs" / f"vm_url_{a.session}.txt").write_text(
+                    _url + "\n", encoding="utf-8")
+                print(f"  browser attach URL (persisted to lake): {_url}")
+        except Exception as _e:                                  # noqa: BLE001
+            print(f"  (url capture skipped: {_e})")
         if a.queue:
             launch_queue(a.session, a.queue, a.queue_args)
         print(f"launch complete: {a.session}")
@@ -294,6 +349,8 @@ def main():
         stop(a.session)
     elif a.cmd == "sessions":
         sessions()
+    elif a.cmd == "cmd":
+        cmd(a.session, a.command, a.wait)
 
 
 if __name__ == "__main__":

@@ -78,3 +78,64 @@ def test_twin_agrees_with_the_shared_rule():
               "train_queue_status_a b.csv"]
     for name in corpus:
         assert bb._is_status_name(name) == is_status_file(name), name
+
+
+def test_mailbox_nonce_processed_once(tmp_path, monkeypatch):
+    """RULE 4: a command nonce executes exactly once — a crash between ledger
+    write and reply must not replay a stop on restart (ledger-first order)."""
+    import json
+    monkeypatch.setattr(bb, "LOGS", str(tmp_path))
+    monkeypatch.setattr(bb, "STATE", str(tmp_path / "state.json"))
+    calls = []
+    monkeypatch.setattr(bb.subprocess, "run",
+                        lambda *a, **k: (calls.append(a[0]),
+                                         type("R", (), {"stdout": ""})())[1])
+    (tmp_path / "cmd_s1.json").write_text(json.dumps({"cmd": "status", "nonce": "n1"}))
+    st = {"retried": []}
+    bb.check_mailbox("s1", st)
+    assert "n1" in st["nonces"]
+    reply = json.loads((tmp_path / "cmd_reply_s1.json").read_text())
+    assert reply["nonce"] == "n1" and reply["cmd"] == "status"
+    n_first = len(calls)
+    bb.check_mailbox("s1", st)              # same nonce again -> no re-execution
+    assert len(calls) == n_first
+
+
+def test_mailbox_unknown_command_replies_error_and_runs_nothing(tmp_path, monkeypatch):
+    """No run-arbitrary-code channel: anything outside the vocabulary gets an
+    error reply and zero subprocess activity."""
+    import json
+    monkeypatch.setattr(bb, "LOGS", str(tmp_path))
+    monkeypatch.setattr(bb, "STATE", str(tmp_path / "state.json"))
+    calls = []
+    monkeypatch.setattr(bb.subprocess, "run",
+                        lambda *a, **k: (calls.append(a[0]),
+                                         type("R", (), {"stdout": ""})())[1])
+    (tmp_path / "cmd_s1.json").write_text(
+        json.dumps({"cmd": "exec_anything", "nonce": "n2"}))
+    bb.check_mailbox("s1", {"retried": []})
+    reply = json.loads((tmp_path / "cmd_reply_s1.json").read_text())
+    assert "error" in reply and not calls
+
+
+def test_mailbox_stop_kills_only_queue_and_engine(tmp_path, monkeypatch):
+    """stop SIGTERMs the queue/engine pattern and nothing else; ending the VM
+    stays the self-stop watchdog's job (the reply says so)."""
+    import json
+    monkeypatch.setattr(bb, "LOGS", str(tmp_path))
+    monkeypatch.setattr(bb, "STATE", str(tmp_path / "state.json"))
+    calls = []
+
+    def fake_run(argv, **k):
+        calls.append(argv)
+        out = "111\n222\n" if argv[0] == "pgrep" else ""
+        return type("R", (), {"stdout": out})()
+    monkeypatch.setattr(bb.subprocess, "run", fake_run)
+    (tmp_path / "cmd_s1.json").write_text(json.dumps({"cmd": "stop", "nonce": "n3"}))
+    bb.check_mailbox("s1", {"retried": []})
+    kills = [a for a in calls if a[0] == "kill"]
+    assert sorted(a[1] for a in kills) == ["111", "222"]
+    pg = next(a for a in calls if a[0] == "pgrep")
+    assert "phase4_train_queue|phase4_semantic" in pg[-1]
+    reply = json.loads((tmp_path / "cmd_reply_s1.json").read_text())
+    assert reply["killed"] == ["111", "222"] and "watchdog" in reply["note"]

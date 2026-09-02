@@ -46,6 +46,38 @@ transcript before rotation). Read order: `CLAUDE.md` → `WORKPLAN.md` → `STAT
 
 ════════════════ LOG  (newest first — append new entries directly below this line) ════════════════
 
+## 2026-09-01  POLICY C LANDED — dense sweep, plateau selector, pilot masks re-cut (Fable 5)
+
+goal:    Kam: "Let's go with C." Build per-year independent threshold selection,
+         prove it end-to-end on pilot arms, pre-register 36-run.
+did:     dense u8 sweep in `phase4_qc_indep._write_dense_sweep` — 2x 256-bin
+         histograms -> EXACT curve at all 254 cuts, one scan. Immediately
+         earned keep: F1 peak ~0.14, FAR below coarse sweep's 0.40 floor, on
+         plateau flat within 0.005 across 3x range. Selector
+         `qc/instruments/select_indep_threshold.py`: criterion
+         f1_plateau_hi_d005 (highest k within 0.005 of peak — precision end of
+         metric-indifferent plateau; strict argmax = sloppy recall edge).
+         Registry `phase4/qc/indep_thresholds.csv`. Selected: 2011s k=80
+         (0.315, rec .763/prec .755; was rec .499 @0.643); 2006s k=85 (0.335,
+         rec .721/prec .684; old 0.4743 sat on probability CLIFF — recall
+         .68->.42 across 0.45->0.50). Ref-sensitivity vs 2016 C-CAP: 0.05-0.10.
+         Masks re-cut on free CPU VM (recutC, registry-read thresholds, never
+         hand-typed); EQUIVALENCE PASS (mask within 0.001 of registry rows).
+         Quantization fix: floor-truncate thresh (rounded 6dp crossed u8
+         boundary — scorer cut k+1 while production cut k). Ledger live rows
+         now policy-C. Engine UNTOUCHED (--infer-thresh deploys). Overlay
+         delivered (overlay_2011s_policyC.png). Commits 5088ad9, fd70834.
+decided: plateau-high criterion (measured rationale in selector docstring);
+         36-run = 34 arms + ADOPT 2 pilot arms (~4-6 A100-hr saved) —
+         `experiments/full_archive_e3.yaml` status queued.
+files:   qc/phase4_qc_indep.py, qc/instruments/select_indep_threshold.py,
+         docs/SCHEMAS.md (2 new contracts), experiments/full_archive_e3.yaml,
+         phase4/qc/indep_thresholds.csv, run_registry (2 recut rows).
+next:    KAM: 36-run launch (GPU gate ask pending: 2xA100, ~65-70 A100-hr).
+         Adversarial review workflow on selector code in flight. Post-GPU
+         cleanups queued (kernel units, GPKG area_m2). --anchor-labels A/B
+         candidate experiment.
+
 ## 2026-09-01  RECIPE DEEP-DIVE — threshold only large knob; morph/sieve NEUTRAL (Fable 5)
 
 goal:    Kam: "are we leaving anything obvious on the table like sieve that has

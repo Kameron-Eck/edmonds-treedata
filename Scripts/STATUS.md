@@ -22,7 +22,7 @@ Every number above is read from `pipeline/phase4seg/config.py:YEAR_CATALOG` and
 with `py -3.12 qc/pipeline_status.py --markdown`.
 <!-- STATUS:code:end -->
 
-### Derived from the data lake - generated 2026-09-01 16:58
+### Derived from the data lake - generated 2026-09-01 17:42
 
 **This half is only as current as the last run of this script.** CI cannot
 regenerate it (no Drive mount), so it is NOT gated. Treat every number below
@@ -33,7 +33,7 @@ as of the timestamp above, not as of now.
 | copy | rows | live | years | newest |
 |---|---|---|---|---|
 | repo | 217 | 181 | 24 | 2026-08-30 21:36:10 |
-| lake | 238 | 187 | 24 | 2026-09-01 16:12:45 |
+| lake | 256 | 193 | 24 | 2026-09-01 17:32:16 |
 
 The repo copy is BEHIND. Run `py -3.12 pipeline/harvest_results.py`
 to close the gap, or read the lake directly.

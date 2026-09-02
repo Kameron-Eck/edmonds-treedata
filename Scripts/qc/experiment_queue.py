@@ -34,14 +34,20 @@ def generate(exp_path):
     defaults = [str(x) for x in (spec.get("launch_defaults") or [])]
     jobs = []
     for a in spec["arms"]:
-        jobs.append({
+        job = {
             "id": f"{spec['name']}_{a['tag']}",
             "year": str(a["year"]),
             "tag": str(a["tag"]),
             "extra": defaults + [str(x) for x in (a.get("extra") or [])],
             "why": f"arm of experiments/{exp_path.name} — hypothesis and decision "
                    f"rule live THERE, not here.",
-        })
+        }
+        # Per-arm step subset passthrough (arm wins over experiment-level
+        # `steps`); the queue validates against its STEPS vocabulary.
+        steps = a.get("steps") or spec.get("steps")
+        if steps:
+            job["steps"] = [str(s) for s in steps]
+        jobs.append(job)
     header = (
         f"{MARK} experiments/{exp_path.name} — DO NOT EDIT.\n"
         f"# Edit the experiment file and rerun:\n"

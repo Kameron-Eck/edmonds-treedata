@@ -559,6 +559,16 @@ def _load_queue(path):
         j.setdefault("expect", "")
         j["year"] = str(j["year"])
         j["id"] = str(j["id"])
+        # Optional per-job step subset (Tier 1, 2026-09-02): lets one queue run
+        # labels..evaluate under --sample-manifest while a second runs inference
+        # under --infer-aoi — per-step FLAGS stay impossible (one cmd shape per
+        # job), per-job STEP LISTS are enough. Must be a subset of STEPS in
+        # engine order; verify_step is already per-step so nothing else changes.
+        if "steps" in j:
+            bad = [s for s in j["steps"] if s not in STEPS]
+            if bad:
+                sys.exit(f"queue file {p}: job {j['id']} has unknown steps {bad}")
+            j["steps"] = [s for s in STEPS if s in set(j["steps"])]
         _assert_label_source_declared(j, p)
     return jobs
 
@@ -840,7 +850,7 @@ def main():
     if args.dry_run:
         print("\n  DRY RUN — nothing executed. Commands that would run:")
         for j in todo:
-            for st in STEPS:
+            for st in j.get("steps", STEPS):
                 print(f"    --year {j['year']} --step {st} --run-tag {j['tag']} "
                       f"{' '.join(j['extra'])}".rstrip())
         return
@@ -889,7 +899,7 @@ def main():
         _declare_run_tags(todo, args.queue or "JOBS", job=j["id"])
         ok = True
         ran_any = False
-        for st in STEPS:
+        for st in j.get("steps", STEPS):
             _k = _job_key(j["id"], j["year"], j["tag"], st)
             if _k in done:
                 if _k in reverify:

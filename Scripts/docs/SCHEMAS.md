@@ -64,7 +64,9 @@ k, thresh, f1, recall, precision, edge_flag, sweep_file, ts`. `criterion` is the
 pre-registered rule (`f1_plateau_hi_d005`: highest k within 0.005 of peak F1 —
 the precision-most end of the metric-indifferent plateau);
 `edge_flag == "EDGE"` means the peak sat within 5 steps of the grid edge — inspect
-before deploying. Deployment: `--step postproc --infer-thresh <thresh>`.
+before deploying. `thresh` is k/254 FLOOR-truncated to 6 dp so production's
+`int(round(thr*254))` and the scorer's `pr >= thr*254` both cut at exactly k.
+Deployment: `--step postproc --infer-thresh <thresh>`.
 **Reader rule**: never pool scores across threshold policy — an arm cut at a
 policy-C threshold and a champion cut at the circular `best_f1_thresh` are
 different operating-point populations; this registry (plus `run_tag`) is what

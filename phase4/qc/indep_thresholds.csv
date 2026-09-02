@@ -1,5 +1,5 @@
 year,run_tag,ref,criterion,k,thresh,f1,recall,precision,edge_flag,sweep_file,ts
-2011s,hy_e3_2011s,ccap_2021_hires_lc.tif,f1_plateau_hi_d005,80,0.314961,0.759,0.7633,0.7547,,qc_indep_sweep_2011s_hy_e3_2011s_ccap_2021_hires_lc.csv,2026-09-01 17:21:24
-2011s,hy_e3_2011s,ccap_2016_hires_lc.tif,f1_plateau_hi_d005,67,0.26378,0.786,0.7734,0.7991,,qc_indep_sweep_2011s_hy_e3_2011s_ccap_2016_hires_lc.csv,2026-09-01 17:21:24
-2006s,hy_e3_2006s,ccap_2021_hires_lc.tif,f1_plateau_hi_d005,85,0.334646,0.7019,0.7206,0.6841,,qc_indep_sweep_2006s_hy_e3_2006s_ccap_2021_hires_lc.csv,2026-09-01 17:21:25
-2006s,hy_e3_2006s,ccap_2016_hires_lc.tif,f1_plateau_hi_d005,60,0.23622,0.7337,0.7527,0.7158,,qc_indep_sweep_2006s_hy_e3_2006s_ccap_2016_hires_lc.csv,2026-09-01 17:21:25
+2011s,hy_e3_2011s,ccap_2021_hires_lc.tif,f1_plateau_hi_d005,80,0.31496,0.759,0.7633,0.7547,,qc_indep_sweep_2011s_hy_e3_2011s_ccap_2021_hires_lc.csv,2026-09-01 17:30:51
+2011s,hy_e3_2011s,ccap_2016_hires_lc.tif,f1_plateau_hi_d005,67,0.263779,0.786,0.7734,0.7991,,qc_indep_sweep_2011s_hy_e3_2011s_ccap_2016_hires_lc.csv,2026-09-01 17:30:51
+2006s,hy_e3_2006s,ccap_2021_hires_lc.tif,f1_plateau_hi_d005,85,0.334645,0.7019,0.7206,0.6841,,qc_indep_sweep_2006s_hy_e3_2006s_ccap_2021_hires_lc.csv,2026-09-01 17:30:51
+2006s,hy_e3_2006s,ccap_2016_hires_lc.tif,f1_plateau_hi_d005,60,0.23622,0.7337,0.7527,0.7158,,qc_indep_sweep_2006s_hy_e3_2006s_ccap_2016_hires_lc.csv,2026-09-01 17:30:51

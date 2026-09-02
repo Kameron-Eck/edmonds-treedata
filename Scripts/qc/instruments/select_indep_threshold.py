@@ -98,7 +98,12 @@ def main():
                   f"rec={r['recall']:<7} prec={r['precision']}{mark}")
 
     row = dict(year=args.year, run_tag=args.tag, ref=best["ref"], criterion=CRITERION,
-               k=k, thresh=round(k / 254.0, 6), f1=best["f1"], recall=best["recall"],
+               # FLOOR-truncate, never round: a 6-dp round can land just ABOVE
+               # k/254, and the scorer's float compare (pr >= thr*254) then cuts
+               # at k+1 while production's int(round()) still cuts at k. A
+               # floored value sits in (k-1, k] where BOTH cut at k. Measured
+               # 2026-09-01: rounded 0.314961 scored k=81 (rec -0.0008).
+               k=k, thresh=int(k / 254.0 * 1e6) / 1e6, f1=best["f1"], recall=best["recall"],
                precision=best["precision"], edge_flag=edge, sweep_file=sweep_path.name,
                ts=_dt.datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
     keep = []

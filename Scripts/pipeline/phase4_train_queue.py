@@ -575,7 +575,24 @@ def _load_queue(path):
 
 def verify(job, rows):
     """Job-end raster check (the historical VERIFY row scoring flows expect).
-    Never raises — this is unattended. False on a hard failure."""
+    Never raises — this is unattended. False on a hard failure.
+
+    A job with a STEPS SUBSET that never reaches inference has no prob raster
+    to check — demanding one flagged all 7 of t1stageA's staged jobs as
+    'did NOT complete and verify' after 130 clean minutes (measured
+    2026-09-02, the steps feature's first real run). The tile step's own
+    verify_step already covered what those jobs produced; the job-end check
+    applies only when the job's steps actually make the raster."""
+    if "steps" in job and "inference" not in job["steps"]:
+        rec = dict(job=job["id"], year=job["year"], tag=job["tag"], step="VERIFY",
+                   state="OK", exit="", minutes="",
+                   detail=f"steps subset {job['steps']} — no prob raster expected; "
+                          f"per-step verifies are the record", **_ident(),
+                   ts=_dt.datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+        rows.append(rec)
+        _status_write(rows)
+        print(f"  VERIFY {job['id']}: OK  {rec['detail']}")
+        return True
     out = MASKS / f"edmonds_canopy_prob_{job['year']}_{job['tag']}.tif"
     rec = dict(job=job["id"], year=job["year"], tag=job["tag"], step="VERIFY",
                state="", exit="", minutes="", detail="", **_ident(),

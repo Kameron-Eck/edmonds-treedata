@@ -456,6 +456,21 @@ def name_is_ours(path, instance, stale_sec=CLAIM_STALE_SEC):
     other = d.get("instance_id")
     if not other or other == instance:
         return True, None
+    # SAME HOST = OUR PREDECESSOR, not a foreign runtime (drill 3, 2026-09-02).
+    # instance ids are {hostname}-{pid}-{hex} and Colab hostnames are per-VM,
+    # so when the babysitter resurrects a killed beacon (RULE 1), the new
+    # process finds its predecessor's seconds-old claim from the SAME hostname
+    # and — before this branch — diverted itself to a __conflict file, silently
+    # maiming the session's telemetry on every resurrection (drill 1's
+    # "conflict copy" was this guard, not Drive sync). Same host ⇒ take over
+    # the name. Two RUNTIMES sharing a --session still collide correctly:
+    # their hostnames differ.
+    try:
+        if (str(other).rsplit("-", 2)[0]
+                == str(instance).rsplit("-", 2)[0]):
+            return True, None
+    except Exception:
+        pass
     try:
         age = time.time() - os.path.getmtime(path)
     except OSError:

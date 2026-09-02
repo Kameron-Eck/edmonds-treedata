@@ -88,15 +88,25 @@ def main():
             "2>&1 &', shell=True, check=True)\n"
             "time.sleep(2)\n"
             "subprocess.run(['pkill','-f','vm_heartbeat.py'], capture_output=True)\n"
-            "time.sleep(45)\n"
-            "r = subprocess.run(['pgrep','-f','vm_heartbeat'],"
-            " capture_output=True, text=True)\n"
-            "print('BEACON_RESURRECTED:', r.stdout.strip() or 'STILL_DEAD')\n",
+            "pid = ''\n"
+            "for _ in range(12):\n"                # poll to 120 s — a fixed 45 s
+            "    time.sleep(10)\n"                 # sleep raced the 30 s babysitter
+            "    r = subprocess.run(['pgrep','-f','vm_heartbeat'],"
+            " capture_output=True, text=True)\n"   # poll boundary on drill 3
+            "    pid = r.stdout.strip()\n"
+            "    if pid: break\n"
+            "print('BEACON_RESURRECTED:', pid or 'STILL_DEAD')\n"
+            "hb = open('/content/vm_heartbeat.log', errors='replace').read()[-300:]\n"
+            "print('HB_LOG_TAIL:', hb)\n",
             encoding="utf-8")
         code, out = run(["exec", "--session", sess, "--file", str(payload),
-                         "--timeout", "180"], timeout=420)
+                         "--timeout", "240"], timeout=480)
         stage("RULE1_BEACON_RESURRECTED",
-              "BEACON_RESURRECTED:" in out and "STILL_DEAD" not in out)
+              "BEACON_RESURRECTED:" in out and "STILL_DEAD" not in out,
+              out[-300:].replace("\n", " | ") if "STILL_DEAD" in out
+              or "BEACON_RESURRECTED:" not in out else "")
+        stage("RULE1_NO_CONFLICT_DIVERSION", "COLLISION" not in out,
+              "resurrected beacon publishes under its own name")
 
         # 3 INDUCE handle death
         bak = str(SESSIONS_JSON) + f".{sess}.bak"

@@ -38,23 +38,35 @@ def _beat(path, instance, session="test"):
 # ── D12: a beacon must not overwrite another live beacon's file ──────────────
 
 def test_a_live_peer_holds_the_name(tmp_path):
-    p = _beat(tmp_path / "heartbeat_test.json", "vm-a-111")
-    ok, why = vh.name_is_ours(str(p), "vm-b-222")
+    """Instance ids are {hostname}-{pid}-{hex}; DIFFERENT hostnames = two
+    runtimes handed one --session. (Ids updated 2026-09-02: the old vm-a/vm-b
+    fakes shared the 'vm' hostname under the same-host rule below.)"""
+    p = _beat(tmp_path / "heartbeat_test.json", "hostA-111-aaaaaa")
+    ok, why = vh.name_is_ours(str(p), "hostB-222-bbbbbb")
     assert ok is False and "live beacon" in why
 
 
 def test_our_own_file_is_ours(tmp_path):
     """The common case, every cycle after the first — it must not self-conflict."""
-    p = _beat(tmp_path / "heartbeat_test.json", "vm-a-111")
-    assert vh.name_is_ours(str(p), "vm-a-111") == (True, None)
+    p = _beat(tmp_path / "heartbeat_test.json", "hostA-111-aaaaaa")
+    assert vh.name_is_ours(str(p), "hostA-111-aaaaaa") == (True, None)
+
+
+def test_same_host_predecessor_is_taken_over_not_conflicted(tmp_path):
+    """DRILL 3 FINDING (2026-09-02): after a RULE-1 resurrection the new beacon
+    finds its killed predecessor's seconds-old claim from the SAME hostname and
+    used to divert to a __conflict file — silently maiming telemetry on every
+    resurrection. Same host = our predecessor: take the name over, even fresh."""
+    p = _beat(tmp_path / "heartbeat_test.json", "hostA-111-aaaaaa")
+    assert vh.name_is_ours(str(p), "hostA-999-ffffff") == (True, None)
 
 
 def test_a_stale_peer_is_a_dead_vm_and_the_name_is_reclaimed(tmp_path):
     """A restarted runtime gets its own name back — otherwise every restart would
     permanently rename itself and oversight would drift away from the CLI's names."""
-    p = _beat(tmp_path / "heartbeat_test.json", "vm-a-111")
+    p = _beat(tmp_path / "heartbeat_test.json", "hostA-111-aaaaaa")
     os.utime(p, (0, 0))
-    assert vh.name_is_ours(str(p), "vm-b-222") == (True, None)
+    assert vh.name_is_ours(str(p), "hostB-222-bbbbbb") == (True, None)
 
 
 def test_nothing_unreadable_is_ever_a_reason_to_stop_beaconing(tmp_path):

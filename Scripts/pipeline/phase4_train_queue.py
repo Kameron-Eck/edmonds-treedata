@@ -801,7 +801,10 @@ def main():
                     help="P6.3 queue-as-data: YAML file of jobs (id, year, tag, "
                          "extra, why, expect). Replaces editing JOBS in source. "
                          "e.g. --queue pilot_2019_fine.yaml")
-    ap.add_argument("--only", default=None, help="Run just this job id.")
+    ap.add_argument("--only", default=None,
+                    help="Run just these job id(s) — comma-separated. The CPU "
+                         "fan-out rule needs multi-job splits (Tier 1, 2026-09-02); "
+                         "a single id behaves exactly as before.")
     ap.add_argument("--skip", default="", help="Comma-separated job ids to skip.")
     ap.add_argument("--retries", type=int, default=2,
                     help="Retries after a STRAY interrupt (default 2). Two interrupts "
@@ -815,8 +818,10 @@ def main():
     jobs = _load_queue(args.queue) if args.queue else JOBS
 
     skip = {s.strip() for s in args.skip.split(",") if s.strip()}
+    only = ({s.strip() for s in args.only.split(",") if s.strip()}
+            if args.only else None)
     todo = [j for j in jobs if j["id"] not in skip
-            and (args.only is None or j["id"] == args.only)]
+            and (only is None or j["id"] in only)]
 
     # NB: the duplicate-tag guard used to run HERE, and that was wrong twice over.
     # It ran before the --dry-run return, so a dry run — which spends nothing and

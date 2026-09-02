@@ -191,13 +191,21 @@ def check_mailbox(session, st):
                             "phase4_train_queue|phase4_semantic|vm_heartbeat"],
                            capture_output=True, text=True)
         reply["procs"] = (r.stdout or "").strip()[:1500]
-        # Only logs written since THIS VM booted: the logs dir is shared across
-        # runtimes and a bare newest-glob latched onto ANOTHER session's queue
-        # log on the drill's first live status (2026-09-02) — the exact hazard
-        # vm_heartbeat's header documents for its own globs.
+        # SCOPE BY THIS VM'S OWN QUEUE STEM when it is known (the vm_heartbeat
+        # discipline): the logs dir is shared across runtimes, and drill 1's
+        # bare newest-glob returned ANOTHER session's queue log. The boot-time
+        # filter (drill 2) held only because remote mtimes lag appends — the
+        # stem scope does not depend on Drive upload cadence. Boot-time filter
+        # stays as the fallback for the window before any queue is seen.
         import os as _os
-        logs = [p for p in sorted(glob.glob(f"{LOGS}/train_queue_nohup_*.log"))
-                if _os.path.getmtime(p) >= BOOT_TS - 60]
+        stem = ""
+        qf = st.get("queue_file", "")
+        if qf:
+            stem = qf.rsplit("/", 1)[-1].rsplit(".", 1)[0]
+        pat = (f"{LOGS}/train_queue_nohup_{stem}*.log" if stem
+               else f"{LOGS}/train_queue_nohup_*.log")
+        logs = [p for p in sorted(glob.glob(pat))
+                if stem or _os.path.getmtime(p) >= BOOT_TS - 60]
         if logs:
             try:
                 reply["nohup"] = logs[-1].rsplit("/", 1)[-1]
@@ -205,7 +213,8 @@ def check_mailbox(session, st):
             except OSError:
                 pass
         else:
-            reply["nohup"] = "(no queue log newer than this VM's boot)"
+            reply["nohup"] = ("(no log for queue stem %s)" % stem if stem
+                              else "(no queue log newer than this VM's boot)")
     elif cmd == "stop":
         r = subprocess.run(["pgrep", "-f", "phase4_train_queue|phase4_semantic"],
                            capture_output=True, text=True)
@@ -256,6 +265,9 @@ def main():
             qf, _ = parse_queue_args(argv)
             if qf:
                 queue_file = qf
+                if st.get("queue_file") != qf:
+                    st["queue_file"] = qf       # mailbox status scopes its log
+                    save_state(st)              # glob by this stem (drill 3)
             continue                            # queue alive: nothing to judge yet
         if not queue_seen:
             continue                            # queue not launched yet

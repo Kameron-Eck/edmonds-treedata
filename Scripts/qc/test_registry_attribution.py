@@ -191,17 +191,24 @@ def test_registry_covers_every_finished_manifest():
     if not (BASE / "phase4" / "runs").exists():
         pytest.skip("lake not mounted")
     # An ACTIVE campaign mints a manifest per completed step — faster than any
-    # absorb. A fresh VM heartbeat (<10 min) proves one is running: skip honestly
+    # absorb. A fresh VM heartbeat proves one is running: skip honestly
     # rather than fail a gate that cannot be green until the queue ends. When the
-    # lake is quiet, the gate is strict.
+    # lake is quiet, the gate is strict. WINDOW = 60 min, not 10 (2026-09-02):
+    # heartbeats are read through the Drive desktop mirror, which under sync
+    # backlog hides files for tens of minutes — the 10-min window made this
+    # gate FLICKER red mid-campaign twice in one evening (both times the suite
+    # was green on the very next run). The gate's real target — a FORGOTTEN
+    # absorb — is hours-to-days old, so the wider window loses no teeth.
     import datetime as _dt
     import json as _json
     for hb in (BASE / "phase4" / "logs").glob("heartbeat_*.json"):
+        if "__conflict" in hb.stem:
+            continue                       # Drive sync debris, not a session
         try:
             ts = _json.loads(hb.read_text(encoding="utf-8")).get("ts_utc", "")
             age = (_dt.datetime.now(_dt.timezone.utc)
                    - _dt.datetime.fromisoformat(ts.replace("Z", "+00:00"))).total_seconds()
-            if age < 600:
+            if age < 3600:
                 pytest.skip(f"active campaign ({hb.stem}, beat {int(age)}s ago) — "
                             f"manifests are being minted; run qc/landed.py at session end")
         except (OSError, ValueError):

@@ -46,6 +46,37 @@ transcript before rotation). Read order: `CLAUDE.md` → `WORKPLAN.md` → `STAT
 
 ════════════════ LOG  (newest first — append new entries directly below this line) ════════════════
 
+## 2026-09-02  HANDLE-FREE CONTROL CERTIFIED — 4 fire drills, 4 real bugs, ALL PASS (Fable 5)
+
+goal:    Kam: prevent/regain runtime control after CLI-handle death (all 3
+         Phase-A staging handles died mid-flight while VMs kept working);
+         "iterate through this drill again. We need it work flawlessly."
+did:     control plane moved OFF handles: `vm_ops sessions` (account census,
+         wraps `colab sessions`), babysitter RULE 4 Drive mailbox
+         (status|stop, nonce-once, no-arbitrary-code) + `vm_ops cmd`, browser
+         attach URL persisted at launch. Fire drill = repo instrument
+         `qc/instruments/vm_control_drill.py` (--yes, one T4, 10 asserted
+         stages incl. INDUCED handle death via sessions.json strip). Four
+         drills run, each caught a real defect: (1) mailbox status leaked
+         ANOTHER session's queue log (shared logs dir bare glob) -> queue-stem
+         scoping; (2) census lags unassign ~15 min (watchdog fired ON schedule;
+         observation channel slow) -> breadcrumb-first reap detection;
+         (3) THE BIG ONE: every RULE-1 beacon resurrection self-diverted to a
+         __conflict heartbeat (collision guard could not tell same-VM dead
+         predecessor from foreign runtime) — telemetry silently maimed since
+         the feature landed; drill 1's "Drive debris" attribution CORRECTED
+         -> same-host takeover in name_is_ours + NO_CONFLICT_DIVERSION drill
+         stage; (4) registry gate flickered on mirror-lagged heartbeats ->
+         60 min campaign window. DRILL 4: ALL PASS 10/10. Commits 52fa08e,
+         7aa26e5, 63715a3, 48efdfb, d1beda8, 5ba530b.
+killed:  "conflict copies are Drive sync debris" (drill 3 proved otherwise);
+         fixed 45 s resurrection wait (raced the 30 s poll boundary).
+next:    Phase A staging: A done 7/7; B+C alive (census+heartbeats), ledgers
+         mirror-lagged. When staged: Phase B on 2xA100 (queue steps
+         train,evaluate then inference w/ --infer-aoi) — VMs get the full
+         certified control stack. check.py pytest rung still shows a rare
+         pass-on-retry flicker beyond the registry gate; source unidentified.
+
 ## 2026-09-01  POLICY C LANDED — dense sweep, plateau selector, pilot masks re-cut (Fable 5)
 
 goal:    Kam: "Let's go with C." Build per-year independent threshold selection,

@@ -311,7 +311,11 @@ def score(year, ref_path, prob_path, thresh, ref_scheme, ref_map_path, block_row
                 else:
                     codes = np.clip(rc.astype(np.int64), 0, 255)
                     gid = lut[codes]
-                    if ref_nodata is not None and 0 <= int(ref_nodata) < 256:
+                    # nodata is masked on the RAW values, BEFORE the clip can
+                    # fold an out-of-range sentinel (-9999, 65535) into a real
+                    # code — the old `0 <= nodata < 256` guard skipped exactly
+                    # the sentinels that needed masking (review finding).
+                    if ref_nodata is not None:
                         gid[rc == ref_nodata] = ignore_id
 
                 valid = (gid != ignore_id) & (pr != 255)
@@ -404,8 +408,12 @@ def _write_dense_sweep(year, ref_path, prob_path, primary_def, hist_can, hist_no
             f1 = _safe(2 * prc * rec, prc + rec)
             if f1 == f1 and f1 > best[1]:            # NaN-safe strict argmax
                 best = (k, f1)                        # ties keep the LOWER k
+            # thresh is FLOOR-truncated (not rounded): a 6dp round lands above
+            # k/254 for 126 of 254 k, and the scorer's float compare then cuts
+            # at k+1 — the row would not reproduce its own tp/fp (review
+            # finding; same hazard the selector fixed on 2026-09-01).
             w.writerow([year, _prob_arm(prob_path.name), ref_path.name,
-                        prob_path.name, primary_def, k, round(k / 254.0, 6),
+                        prob_path.name, primary_def, k, int(k / 254.0 * 1e6) / 1e6,
                         tp, fn, fp, round(rec, 4), round(prc, 4),
                         round(f1, 4) if f1 == f1 else "", ts])
     print(f"[qc-indep] dense sweep -> {out.name}  "

@@ -9,11 +9,11 @@ area swing (Reports/RECIPE_AUDIT_2026-09-01.md). Policy, pre-registered:
               (0.005) of the curve's peak — F1 on the PRIMARY canopy definition
               (forest_wetland), raw prob (morphology measured neutral — audit
               report, variant CSV). WHY not strict argmax: both pilot curves are
-              flat within 0.005 across a 3x threshold range (2011s k=28..80,
-              2006s k=25..85 — at ~120M cells that plateau is metric
+              flat within 0.005 across a 3x threshold range (2011s k=28..81,
+              2006s k=25..86 — at ~120M cells that plateau is metric
               indifference, not noise), and strict argmax deploys the sloppy
               recall-most edge (k=36, prec .716) when the precision-most end of
-              the SAME plateau (k=80, prec .755) is indistinguishable in F1.
+              the SAME plateau (k=81, prec .756) is indistinguishable in F1.
               Preferring precision inside the plateau also answers the C-CAP
               caveat: the reference's canopy definition is broad (gaps,
               understory), so crown-deliverable truth sits above its optimum.
@@ -58,9 +58,21 @@ def pick(sweep_path):
     scored = [r for r in rows if r["f1"]]
     if not scored:
         raise SystemExit(f"UNSELECTABLE: {sweep_path} has no scorable F1 row. (exit 2)")
-    peak = max(float(r["f1"]) for r in scored)
+    # COMPLETENESS: a truncated sweep (crash mid-write) must not silently select.
+    ks = {int(r["k"]) for r in rows}
+    if ks != set(range(1, 255)):
+        raise SystemExit(f"UNSELECTABLE: {sweep_path} holds {len(ks)}/254 cuts — "
+                         f"truncated sweep; regenerate it. (exit 2)")
     # PLATEAU-HIGH: highest k the metric cannot distinguish from the peak.
-    best = max((r for r in scored if peak - float(r["f1"]) <= PLATEAU_DELTA),
+    # Compare in integer 1e-4 ticks: f1 is written at 4dp, and float64
+    # subtraction of two 4dp decimals lands ABOVE 0.005 for a row exactly at
+    # the boundary (0.7639-0.7589 = 0.005000...0044), silently excluding it —
+    # one-directional, always toward lower k, against the criterion's intent.
+    # Review-workflow finding, 2026-09-01; fired on 3 of the 4 pilot sweeps.
+    peak_t = max(round(float(r["f1"]) * 1e4) for r in scored)
+    delta_t = round(PLATEAU_DELTA * 1e4)
+    best = max((r for r in scored
+                if peak_t - round(float(r["f1"]) * 1e4) <= delta_t),
                key=lambda r: int(r["k"]))
     k = int(best["k"])
     edge = "EDGE" if (k <= EDGE_K or k >= 255 - EDGE_K) else ""
@@ -108,15 +120,23 @@ def main():
                ts=_dt.datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
     keep = []
     if REGISTRY.exists():
+        # r.get(): an older-schema row without one of the key columns must fall
+        # through to the DictWriter tolerance, not KeyError here (review finding).
         keep = [r for r in csv.DictReader(open(REGISTRY, encoding="utf-8"))
-                if not (r["year"] == row["year"] and r["run_tag"] == row["run_tag"]
-                        and r["ref"] == row["ref"])]
-    with open(REGISTRY, "w", newline="", encoding="utf-8") as f:
+                if not (r.get("year") == row["year"]
+                        and r.get("run_tag") == row["run_tag"]
+                        and r.get("ref") == row["ref"])]
+    # Atomic replace: a crash mid-write must never truncate the registry
+    # (review finding). NOTE: selections are run SEQUENTIALLY (the 36-run
+    # driver loops arms) — concurrent selectors would still last-writer-win.
+    tmp = REGISTRY.with_suffix(".csv.tmp")
+    with open(tmp, "w", newline="", encoding="utf-8") as f:
         w = csv.DictWriter(f, fieldnames=FIELDS)
         w.writeheader()
         for r in keep:
             w.writerow({c: r.get(c, "") for c in FIELDS})
         w.writerow(row)
+    tmp.replace(REGISTRY)
     print(f"[select-indep] registered -> {REGISTRY}  "
           f"(deploy: --infer-thresh {row['thresh']})")
 

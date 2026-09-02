@@ -1126,3 +1126,10 @@ OVERRIDES_APPLIED = None
 # the grid a NEW cross-year statistic should compute on — or stay native and convert
 # lengths/areas with common._crs_unit_m. Deliberately NOT in _tile_signature.
 ANALYSIS_GRID_EPSG = 26910
+
+# ── PERF (appended 2026-09-02; Kam: "implement performance and efficiency
+#    improvements to speed up this sample pipeline"). NOT in _tile_signature —
+#    IO paths only, numerics untouched. sem_latest was re-uploading ~1.1 GB per
+#    epoch with zero production readers; True keeps it on VM-local disk
+#    (crash-resume within the VM unaffected; sem_best uploads unchanged).
+LATEST_CKPT_LOCAL = True

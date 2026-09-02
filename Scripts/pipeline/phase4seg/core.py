@@ -714,6 +714,16 @@ def step_train(label, batch_size=BATCH_SIZE, p3_ckpt=None, dry_run=False, compil
     MODELS_DIR.mkdir(parents=True, exist_ok=True)
     best_ckpt   = MODELS_DIR / f"sem_best_{label}{_tag_sfx()}.pt"
     latest_ckpt = MODELS_DIR / f"sem_latest_{label}{_tag_sfx()}.pt"
+    if config.LATEST_CKPT_LOCAL and str(MODELS_DIR).startswith("/content/drive"):
+        # sem_latest re-uploaded ~1.1 GB per epoch through the verified-write
+        # path; it has ZERO production readers (checked 2026-09-02: only frozen
+        # phase3 and one test fixture name the pattern), and the queue's resume
+        # policy re-trains on any unverified checkpoint anyway. Keep it LOCAL:
+        # crash-resume within the VM still works, Drive stops paying per epoch.
+        # sem_best uploads unchanged (verified) — that one is the deliverable.
+        _lc = Path("/content/_ckpt_local")
+        _lc.mkdir(parents=True, exist_ok=True)
+        latest_ckpt = _lc / latest_ckpt.name
     # Early-stop / best-checkpoint criterion follows the POOL, not the GSD tier:
     # any citywide bin-balanced pool (coarse, or a --force-citywide fine year) uses
     # val_iou_bt (its BCE scale drifts below 0.5); 6-site pools use val_bce. Keying
@@ -981,6 +991,11 @@ def step_evaluate(label, dry_run=False):
     if not index_path.exists():
         print(f"  ERROR: {index_path} not found — run step tile first"); return
     idx_df = pd.read_csv(index_path)
+    # P4.2 parity (2026-09-02): step_train has staged tiles to NVMe since P4.2;
+    # evaluate kept reading FUSE — measured on t1gpuA as 3->18 s/batch jitter
+    # (Drive latency), the eval pass dominating small-arm wall time. Same bytes,
+    # same numerics; only the read path changes.
+    idx_df = _stage_tiles_local(idx_df, label)
     eval_df = idx_df[idx_df["split"] == "test"].reset_index(drop=True)
     eval_scope = "held-out test"
     # v039: honesty caveat. Only the coarse-citywide path carves a spatially

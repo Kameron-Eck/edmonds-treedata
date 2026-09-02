@@ -193,6 +193,53 @@ def status(session):
           f"dirty {d.get('vfs_dirty_gb')} GB")
 
 
+def sessions():
+    """ACCOUNT-LEVEL runtime census — the oversight that survives handle death.
+
+    Handles die permanently (colab-cli discipline), and on 2026-09-02 all three
+    Tier-1 staging handles died mid-flight while the VMs kept working; the only
+    live view was the browser's Manage-sessions dialog until this subcommand
+    wrapped `colab sessions` (which queries the ACCOUNT, not local state — it
+    listed both surviving VMs and pruned 11 stale local records on first use).
+
+    Cross-references Drive heartbeats to label what it can. HONEST LIMITS,
+    measured before writing this: an orphaned session (dead handle) is VISIBLE
+    here but NOT addressable — `colab status/stop -s <raw id>` returns 'not
+    found' (name-keyed local state). Orphans end via their self-stop watchdog,
+    or manually in the browser dialog. This census answers 'is anything
+    running, and how many' — pair it with heartbeat ages for 'is it healthy'."""
+    code, out = _cli(["sessions"], timeout=180)
+    if code != 0:
+        raise SystemExit(f"colab sessions failed:\n{out[-300:]}")
+    live = [ln.strip() for ln in out.splitlines() if "Hardware:" in ln]
+    print(f"{len(live)} active runtime(s) on the account:")
+    for ln in live:
+        print(f"  {ln}")
+    try:
+        from lake import BASE
+        import datetime as _dt2
+        now = _dt2.datetime.now(_dt2.timezone.utc)
+        beats = []
+        for hb in sorted((BASE / "phase4" / "logs").glob("heartbeat_*.json")):
+            try:
+                d = json.loads(hb.read_text(encoding="utf-8"))
+                ts = _dt2.datetime.fromisoformat(
+                    d.get("ts_utc", "").replace("Z", "+00:00"))
+                age = (now - ts).total_seconds() / 60
+                if age < 20:
+                    beats.append((hb.stem.replace("heartbeat_", ""), round(age)))
+            except Exception:                                    # noqa: BLE001
+                continue
+        if beats:
+            print("fresh heartbeats (<20 min; Drive-mirror lag can hide some):")
+            for name, age in beats:
+                print(f"  {name}: {age} min old")
+        else:
+            print("no fresh heartbeats visible (mirror lag, or none beating)")
+    except Exception as e:                                       # noqa: BLE001
+        print(f"(heartbeat cross-reference unavailable: {e})")
+
+
 def stop(session):
     code, out = _cli(["stop", "-s", session], timeout=180)
     if "Not Found" in out or "404" in out:
@@ -225,6 +272,8 @@ def main():
     S.add_argument("--session", required=True)
     X = sub.add_parser("stop")
     X.add_argument("--session", required=True)
+    sub.add_parser("sessions", help="account-level runtime census "
+                                    "(survives dead handles) + fresh heartbeats")
     a = ap.parse_args()
 
     if a.cmd == "launch":
@@ -243,6 +292,8 @@ def main():
         status(a.session)
     elif a.cmd == "stop":
         stop(a.session)
+    elif a.cmd == "sessions":
+        sessions()
 
 
 if __name__ == "__main__":

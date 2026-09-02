@@ -320,6 +320,16 @@ subprocess.Popen("cd /content/repo/Scripts/pipeline && nohup python -u vm_babysi
                  " --session " + SESSION + " > /content/vm_babysitter.log 2>&1 &",
                  shell=True)
 print("BABYSITTER_STARTED", SESSION)
+# RAW HARDWARE TRUTH (Kam, 2026-09-02: "hard for me to know what to trust since
+# I have not been able to monitor the hardware utilization myself"): a passive
+# nvidia-smi append-log every 5 s straight to Drive — Google's own counters, no
+# pipeline code in the path, readable by ANYONE while the VM runs and after it
+# dies. Fails silently on CPU runtimes (no nvidia-smi).
+subprocess.Popen("nohup nvidia-smi --query-gpu=timestamp,utilization.gpu,"
+                 "utilization.memory,memory.used,power.draw --format=csv,noheader"
+                 " -l 5 >> /content/drive/MyDrive/treedata/phase4/logs/gpu_util_"
+                 + SESSION + ".csv 2>/dev/null &", shell=True)
+print("GPULOGGER_STARTED", SESSION)
 # SELF-STOP WATCHDOG (2026-08-27): the CLI can lose its session handle (404/401
 # on long-lived VMs) leaving no external way to stop the runtime — a frozen VM
 # then bills until Google reclaims it. The VM ends ITSELF: once a queue/engine

@@ -109,17 +109,48 @@ def _procs():
     return out
 
 
+_CYCLE_UTIL = []                 # utilization samples gathered DURING the cycle sleep
+
+
+def _sleep_sampling(seconds, every=5.0):
+    """Sleep `seconds` while sampling utilization.gpu every `every` s into
+    _CYCLE_UTIL. Tier-1 lesson (2026-09-02): 3 samples x 1 s per 60 s cycle is
+    5% temporal coverage — on 6-second epochs the beacon read 0% for hours on
+    two A100s that were training the whole time. Sampling the SLEEP raises
+    coverage ~5x for ~100 ms of nvidia-smi per sample; a CPU runtime pays one
+    failed call then falls back to a plain sleep."""
+    t0 = time.time()
+    while True:
+        left = seconds - (time.time() - t0)
+        if left <= 0:
+            return
+        time.sleep(min(every, left))
+        v = _run(["nvidia-smi", "--query-gpu=utilization.gpu",
+                  "--format=csv,noheader,nounits"], timeout=10).strip().splitlines()
+        if v and v[0].strip().isdigit():
+            _CYCLE_UTIL.append(int(v[0].strip()))
+        elif not _CYCLE_UTIL:
+            left = seconds - (time.time() - t0)
+            if left > 0:
+                time.sleep(left)
+            return                          # CPU runtime: don't hammer a dead tool
+
+
 def _gpu(nsamp=3, sleep=1.0):
     """nvidia-smi -> {name, util_pct, util_max_pct, mem_used_mb}, or None on a CPU
-    runtime. util is the MEAN of nsamp samples, never one reading: utilization.gpu
-    is instantaneous and inference is input-bound, so a single sample reads 0 most
+    runtime. util is the MEAN of nsamp samples PLUS every sample gathered during
+    the cycle sleep (_sleep_sampling), never one reading: utilization.gpu is
+    instantaneous and inference is input-bound, so a single sample reads 0 most
     of the time even at full tilt (measured; same lesson as the dashboard probe)."""
     g = _run(["nvidia-smi", "--query-gpu=name,utilization.gpu,memory.used",
               "--format=csv,noheader,nounits"], timeout=20).strip().splitlines()
     if not g or "," not in g[0]:
         return None
     name, util, mem = [x.strip() for x in g[0].split(",")[:3]]
-    vals = [int(util)] if util.isdigit() else []
+    vals = list(_CYCLE_UTIL)
+    _CYCLE_UTIL.clear()
+    if util.isdigit():
+        vals.append(int(util))
     for _ in range(max(0, nsamp - 1)):
         time.sleep(sleep)
         v = _run(["nvidia-smi", "--query-gpu=utilization.gpu",
@@ -547,7 +578,7 @@ def main():
         if a.once or (a.cycles and n >= a.cycles):
             print(f"vm_heartbeat: {n} cycle(s) written, exit", flush=True)
             return 0
-        time.sleep(a.interval)
+        _sleep_sampling(a.interval)
 
 
 if __name__ == "__main__":

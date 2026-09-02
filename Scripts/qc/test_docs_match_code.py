@@ -188,7 +188,7 @@ def test_exactly_one_document_claims_to_be_the_active_plan():
     # Emptied 2026-08-30 (Stage 1.4): all four are bannered. The set stays as the
     # mechanism — a NEW unbannered plan fails immediately — but the debt is cleared.
     KNOWN_UNBANNERED = set()
-    LIVE = "SEMANTIC_OVERHAUL_PLAN_2026-08-29.md"
+    LIVE = "TIER1_SCIENCE_SAMPLE_PLAN_2026-09-02.md"
     # WORKPLAN.md is THE living document, not a dated campaign plan — it is supposed to
     # read as current. Named explicitly because it would otherwise be caught by the
     # filename filter, and it currently escapes only by accident: it happens to use the

@@ -1,5 +1,11 @@
 # Semantic canopy overhaul — plan of record
 
+**SUPERSEDED 2026-09-02 by `TIER1_SCIENCE_SAMPLE_PLAN_2026-09-02.md`.** This plan's
+architecture direction was executed (EPOCH 3, policy C, the hard-year pilot, the
+recipe audit); the full-36 campaign it pointed toward was deliberately deferred by
+Kam in favor of the Tier-1 science sample. Kept for the record — read the active
+plan for current direction.
+
 **Owner:** Kam. **Scope:** SEMANTIC canopy mask per acquisition, all 36. Instance is
 deferred, not cancelled (see `CLAUDE.md` Project Purpose).
 **Status:** plan only. Nothing here has been built or run. No GPU has been spent.

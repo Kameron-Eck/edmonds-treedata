@@ -41,7 +41,7 @@ removal, and — established 2026-08-29 — **seasonal difference** all enter as
 | You need… | Go to |
 |---|---|
 | **Live state, what's next** | `WORKPLAN.md` (intent + the board) |
-| **The active plan** | named in `WORKPLAN.md` (currently `SEMANTIC_OVERHAUL_PLAN_2026-08-29.md`) |
+| **The active plan** | named in `WORKPLAN.md` (currently `TIER1_SCIENCE_SAMPLE_PLAN_2026-09-02.md`) |
 | **Historical authority (pre-overhaul era)** | `WORKPLAN_2026-08-19.md` — archived reference, superseded by `WORKPLAN.md` |
 | **Method, params, tiers, loss, QC design** | `Method_Pipeline.md` |
 | **What's built vs pending** | `pipeline_buildtracker.md` |

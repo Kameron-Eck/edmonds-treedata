@@ -348,13 +348,34 @@ def main():
     tpx_m = abs(ttf.a) * u_cr
     print(f"[test ] key grid {TW}x{TH} @ {tpx_m:.3f} true m/px  ({time.time()-t0:.1f}s)")
     # The off-key rejection doubles as the off-grid rejection ONLY if the output
-    # grid contains the key's footprint. Assert it rather than assume it.
-    if not (ob[0] <= kb_out[0] and ob[1] <= kb_out[1]
+    # grid contains the key's footprint. When it does, behavior is UNCHANGED
+    # (2009's overlays stay byte-reproducible). When it does not (2011s: the
+    # ortho is 4-40 ft smaller than the key on each edge, found 2026-09-02),
+    # the fix is not to refuse but to SHRINK THE LANDING ZONE: eligibility is
+    # ANDed with the output-grid bounds inset by 1.2x the largest crown bbox
+    # (the builder's own min-offset factor), so no accepted landing can reach
+    # the grid edge — the clipping the old sys.exit guarded against is
+    # impossible by construction.
+    grid_inset_mask = None
+    if (ob[0] <= kb_out[0] and ob[1] <= kb_out[1]
             and ob[2] >= kb_out[2] and ob[3] >= kb_out[3]):
-        sys.exit(f"FAIL: the output grid {[round(v) for v in ob]} does not contain the 2020 "
-                 f"key footprint {[round(v) for v in kb_out]} — a landing inside the key "
-                 f"could then fall outside the grid and be silently clipped.")
-    print(f"[test ] output grid contains the key footprint: OK")
+        print(f"[test ] output grid contains the key footprint: OK")
+    else:
+        g26 = g.to_crs(epsg=26910)
+        bx = g26.bounds
+        max_ext_m = float(max((bx.maxx - bx.minx).max(), (bx.maxy - bx.miny).max()))
+        inset_m = 1.2 * max_ext_m
+        gb_key = rasterio.warp.transform_bounds(crs, ms.crs, *ob)
+        inset_u = inset_m / u_cr                     # metres -> key CRS units
+        inner = _box(gb_key[0] + inset_u, gb_key[1] + inset_u,
+                     gb_key[2] - inset_u, gb_key[3] - inset_u)
+        grid_inset_mask = rasterize([(inner, 1)], out_shape=(TH, TW),
+                                    transform=ttf, fill=0,
+                                    dtype="uint8").astype(bool)
+        print(f"[test ] output grid does NOT contain the key footprint "
+              f"(grid {[round(v) for v in ob]} vs key {[round(v) for v in kb_out]}) "
+              f"— landing zone inset {inset_m:.1f} m true (1.2 x max crown bbox "
+              f"{max_ext_m:.1f} m); off-grid landings impossible by construction")
 
     wat = None
     if WATER.exists():
@@ -374,6 +395,8 @@ def main():
     good = (key == 0)
     if wat is not None:
         good &= ~wat
+    if grid_inset_mask is not None:
+        good &= grid_inset_mask
     n_key_c = int((key == 1).sum())
     n_key_b = int((key == 0).sum())
     n_key_n = int((key == mnod).sum())

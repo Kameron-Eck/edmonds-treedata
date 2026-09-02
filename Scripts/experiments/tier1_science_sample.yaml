@@ -1,82 +1,246 @@
 name: tier1_science_sample
 status: queued
-hypothesis: >
-  The training-side knobs the recipe audit left open — lidar as label context,
-  lidar as an input channel, and the 4th (NIR) band — are testable cheaply on a
-  fixed, screened, spatially-split ground sample before any full-archive spend
-  (design: TIER1_SCIENCE_SAMPLE_PLAN_2026-09-02.md). What would change our
-  mind per question: a lidar-adder win above the measured noise floor in >=2 of
-  the 3 non-2020 years says projected labels are correctably wrong and the
-  36-run should train on lidar-gated labels; an input-channel win says the
-  model is information-starved, not just label-limited; an NIR win on BOTH
-  sensors says the archive's 4-band years deserve 4-band arms. Null results
-  above the floor close those questions with numbers instead of instinct.
+hypothesis: 'The training-side knobs the recipe audit left open — lidar as label context, lidar as an
+  input channel, and the 4th (NIR) band — are testable cheaply on a fixed, screened, spatially-split ground
+  sample before any full-archive spend (design: TIER1_SCIENCE_SAMPLE_PLAN_2026-09-02.md). What would change
+  our mind per question: a lidar-adder win above the measured noise floor in >=2 of the 3 non-2020 years
+  says projected labels are correctably wrong and the 36-run should train on lidar-gated labels; an input-channel
+  win says the model is information-starved, not just label-limited; an NIR win on BOTH sensors says the
+  archive''s 4-band years deserve 4-band arms. Null results above the floor close those questions with
+  numbers instead of instinct.
+
+  '
 arms:
-  # 2006s (1 m, adjacent to the 2005 lidar epoch)
-  - {year: "2006s", tag: t1_2006s_base}
-  - {year: "2006s", tag: t1_2006s_add05}
-  - {year: "2006s", tag: t1_2006s_add16}
-  - {year: "2006s", tag: t1_2006s_in05}
-  - {year: "2006s", tag: t1_2006s_in16}
-  # 2011s (30.5 cm, BETWEEN lidar epochs — the epoch-mismatch probe; also
-  # hosts the seed replicates and the label-corruption dose curve)
-  - {year: "2011s", tag: t1_2011s_base}
-  - {year: "2011s", tag: t1_2011s_base_s2}
-  - {year: "2011s", tag: t1_2011s_base_s3}
-  - {year: "2011s", tag: t1_2011s_add05}
-  - {year: "2011s", tag: t1_2011s_add16}
-  - {year: "2011s", tag: t1_2011s_in05}
-  - {year: "2011s", tag: t1_2011s_in16}
-  - {year: "2011s", tag: t1_2011s_cor02}
-  - {year: "2011s", tag: t1_2011s_cor05}
-  - {year: "2011s", tag: t1_2011s_cor10}
-  # 2016 (RGBI, adjacent to the 2016 lidar epoch; baseline is 3-band)
-  - {year: "2016", tag: t1_2016_base}
-  - {year: "2016", tag: t1_2016_add05}
-  - {year: "2016", tag: t1_2016_add16}
-  - {year: "2016", tag: t1_2016_in05}
-  - {year: "2016", tag: t1_2016_in16}
-  - {year: "2016", tag: t1_2016_nir}
-  # 2020 (label-source era — sanity anchor where label error is smallest;
-  # exact acquisition (2020 vs 2020s) resolved in Phase 0 per measured facts,
-  # recorded here before launch)
-  - {year: "2020", tag: t1_2020_base}
-  - {year: "2020", tag: t1_2020_add05}
-  - {year: "2020", tag: t1_2020_add16}
-  - {year: "2020", tag: t1_2020_in05}
-  - {year: "2020", tag: t1_2020_in16}
-  # 2019n (NAIP 4-band — replicates the NIR pair on a second sensor)
-  - {year: "2019n", tag: t1_2019n_base}
-  - {year: "2019n", tag: t1_2019n_nir}
-baseline: null   # within-year: each year's t1_{year}_base cell
-metric: >
-  Dense sweeps qc_indep_sweep_{year}_{tag}_*.csv restricted to the sample's
-  TEST blocks; policy-C selections in phase4/qc/indep_thresholds.csv (chosen
-  on SELECTION blocks); paired-delta table harvested to
-  phase4/qc/tier1_results.csv. Numbers live there, never here.
-decision_rule: >
-  Written before any run exists. SAMPLE: fixed ground blocks, stratified and
-  screened (CHM coverage in both epochs, coreg-quiet, radiometric
-  representativeness), split train/selection/test ONCE; the same blocks for
-  every arm; train and early-stop on train/selection blocks, policy-C
-  threshold chosen on selection blocks, scores read from test blocks only.
-  NOISE FLOOR: the max pairwise |delta| among t1_2011s_base{,_s2,_s3} on the
-  primary statistic; any arm delta at or below it is UNDETERMINED, never a
-  win. PRIMARY STATISTIC: recall at precision 0.75 from the test-block sweep
-  (curve-matched); F1 at the arm's own policy-C point is secondary. KILL RULE
-  (pre-launch, free): a lidar-adder arm whose additions raster changes under
-  2% of its year's labeled sample pixels is STRUCK before launch and recorded
-  here — it cannot move anything. VERDICTS: lidar-adder pathway CONFIRMED if
-  the adder beats base by more than the floor in >=2 of {2006s, 2011s, 2016};
-  lidar-input likewise; NIR CONFIRMED only if nir beats base on BOTH 2016 and
-  2019n (one of two = sensor-specific, reported as such); corruption doses
-  produce a dose-response slope (calibration, no pass/fail). 2020 arms are the
-  sanity anchor: a "win" appearing ONLY on 2020 is suspect (its labels are
-  least wrong; little to correct). GPU: 2xA100 concurrency cap; utilization
-  reported as registry step-hours / session wall-hours with target >=0.85;
-  torch-free steps run on CPU VMs, never on the A100s. Launch flags per arm
-  are generated into this file's arm `extra` lists when the Phase-0 builders
-  land, BEFORE the queue is generated; the science content above does not
-  change after results exist. Launch itself remains Kam's (GPU gate).
+- year: 2006s
+  tag: t1_2006s_base
+  extra:
+  - --sample-manifest
+  - /content/drive/MyDrive/treedata/phase4/qc/sample_tiles_2006s.csv
+  - --no-hillshade
+- year: 2006s
+  tag: t1_2006s_add05
+  extra:
+  - --sample-manifest
+  - /content/drive/MyDrive/treedata/phase4/qc/sample_tiles_2006s.csv
+  - --no-hillshade
+  - --add-canopy-mask
+  - /content/drive/MyDrive/treedata/phase4/labels_corrected/add_chm2005.tif
+- year: 2006s
+  tag: t1_2006s_add16
+  extra:
+  - --sample-manifest
+  - /content/drive/MyDrive/treedata/phase4/qc/sample_tiles_2006s.csv
+  - --no-hillshade
+  - --add-canopy-mask
+  - /content/drive/MyDrive/treedata/phase4/labels_corrected/add_chm2016.tif
+- year: 2006s
+  tag: t1_2006s_in05
+  extra:
+  - --sample-manifest
+  - /content/drive/MyDrive/treedata/phase4/qc/sample_tiles_2006s.csv
+  - --hs-source
+  - chm2005
+- year: 2006s
+  tag: t1_2006s_in16
+  extra:
+  - --sample-manifest
+  - /content/drive/MyDrive/treedata/phase4/qc/sample_tiles_2006s.csv
+  - --hs-source
+  - chm2
+- year: 2011s
+  tag: t1_2011s_base
+  extra:
+  - --sample-manifest
+  - /content/drive/MyDrive/treedata/phase4/qc/sample_tiles_2011s.csv
+  - --no-hillshade
+- year: 2011s
+  tag: t1_2011s_base_s2
+  extra:
+  - --sample-manifest
+  - /content/drive/MyDrive/treedata/phase4/qc/sample_tiles_2011s.csv
+  - --no-hillshade
+  - --seed
+  - '43'
+- year: 2011s
+  tag: t1_2011s_base_s3
+  extra:
+  - --sample-manifest
+  - /content/drive/MyDrive/treedata/phase4/qc/sample_tiles_2011s.csv
+  - --no-hillshade
+  - --seed
+  - '44'
+- year: 2011s
+  tag: t1_2011s_add05
+  extra:
+  - --sample-manifest
+  - /content/drive/MyDrive/treedata/phase4/qc/sample_tiles_2011s.csv
+  - --no-hillshade
+  - --add-canopy-mask
+  - /content/drive/MyDrive/treedata/phase4/labels_corrected/add_chm2005.tif
+- year: 2011s
+  tag: t1_2011s_add16
+  extra:
+  - --sample-manifest
+  - /content/drive/MyDrive/treedata/phase4/qc/sample_tiles_2011s.csv
+  - --no-hillshade
+  - --add-canopy-mask
+  - /content/drive/MyDrive/treedata/phase4/labels_corrected/add_chm2016.tif
+- year: 2011s
+  tag: t1_2011s_in05
+  extra:
+  - --sample-manifest
+  - /content/drive/MyDrive/treedata/phase4/qc/sample_tiles_2011s.csv
+  - --hs-source
+  - chm2005
+- year: 2011s
+  tag: t1_2011s_in16
+  extra:
+  - --sample-manifest
+  - /content/drive/MyDrive/treedata/phase4/qc/sample_tiles_2011s.csv
+  - --hs-source
+  - chm2
+- year: 2011s
+  tag: t1_2011s_cor02
+  extra:
+  - --sample-manifest
+  - /content/drive/MyDrive/treedata/phase4/qc/sample_tiles_2011s.csv
+  - --no-hillshade
+  - --add-canopy-mask
+  - /content/drive/MyDrive/treedata/phase4/labels_corrected/PENDING_add_corrupt_02_2011s.tif
+- year: 2011s
+  tag: t1_2011s_cor05
+  extra:
+  - --sample-manifest
+  - /content/drive/MyDrive/treedata/phase4/qc/sample_tiles_2011s.csv
+  - --no-hillshade
+  - --add-canopy-mask
+  - /content/drive/MyDrive/treedata/phase4/labels_corrected/PENDING_add_corrupt_05_2011s.tif
+- year: 2011s
+  tag: t1_2011s_cor10
+  extra:
+  - --sample-manifest
+  - /content/drive/MyDrive/treedata/phase4/qc/sample_tiles_2011s.csv
+  - --no-hillshade
+  - --add-canopy-mask
+  - /content/drive/MyDrive/treedata/phase4/labels_corrected/PENDING_add_corrupt_10_2011s.tif
+- year: '2016'
+  tag: t1_2016_base
+  extra:
+  - --sample-manifest
+  - /content/drive/MyDrive/treedata/phase4/qc/sample_tiles_2016.csv
+  - --no-hillshade
+- year: '2016'
+  tag: t1_2016_add05
+  extra:
+  - --sample-manifest
+  - /content/drive/MyDrive/treedata/phase4/qc/sample_tiles_2016.csv
+  - --no-hillshade
+  - --add-canopy-mask
+  - /content/drive/MyDrive/treedata/phase4/labels_corrected/add_chm2005.tif
+- year: '2016'
+  tag: t1_2016_add16
+  extra:
+  - --sample-manifest
+  - /content/drive/MyDrive/treedata/phase4/qc/sample_tiles_2016.csv
+  - --no-hillshade
+  - --add-canopy-mask
+  - /content/drive/MyDrive/treedata/phase4/labels_corrected/add_chm2016.tif
+- year: '2016'
+  tag: t1_2016_in05
+  extra:
+  - --sample-manifest
+  - /content/drive/MyDrive/treedata/phase4/qc/sample_tiles_2016.csv
+  - --hs-source
+  - chm2005
+- year: '2016'
+  tag: t1_2016_in16
+  extra:
+  - --sample-manifest
+  - /content/drive/MyDrive/treedata/phase4/qc/sample_tiles_2016.csv
+  - --hs-source
+  - chm2
+- year: '2016'
+  tag: t1_2016_nir
+  extra:
+  - --sample-manifest
+  - /content/drive/MyDrive/treedata/phase4/qc/sample_tiles_2016.csv
+  - --hs-source
+  - nir
+- year: '2020'
+  tag: t1_2020_base
+  extra:
+  - --sample-manifest
+  - /content/drive/MyDrive/treedata/phase4/qc/sample_tiles_2020.csv
+  - --no-hillshade
+- year: '2020'
+  tag: t1_2020_add05
+  extra:
+  - --sample-manifest
+  - /content/drive/MyDrive/treedata/phase4/qc/sample_tiles_2020.csv
+  - --no-hillshade
+  - --add-canopy-mask
+  - /content/drive/MyDrive/treedata/phase4/labels_corrected/add_chm2005.tif
+- year: '2020'
+  tag: t1_2020_add16
+  extra:
+  - --sample-manifest
+  - /content/drive/MyDrive/treedata/phase4/qc/sample_tiles_2020.csv
+  - --no-hillshade
+  - --add-canopy-mask
+  - /content/drive/MyDrive/treedata/phase4/labels_corrected/add_chm2016.tif
+- year: '2020'
+  tag: t1_2020_in05
+  extra:
+  - --sample-manifest
+  - /content/drive/MyDrive/treedata/phase4/qc/sample_tiles_2020.csv
+  - --hs-source
+  - chm2005
+- year: '2020'
+  tag: t1_2020_in16
+  extra:
+  - --sample-manifest
+  - /content/drive/MyDrive/treedata/phase4/qc/sample_tiles_2020.csv
+  - --hs-source
+  - chm2
+- year: 2019n
+  tag: t1_2019n_base
+  extra:
+  - --sample-manifest
+  - /content/drive/MyDrive/treedata/phase4/qc/sample_tiles_2019n.csv
+  - --no-hillshade
+- year: 2019n
+  tag: t1_2019n_nir
+  extra:
+  - --sample-manifest
+  - /content/drive/MyDrive/treedata/phase4/qc/sample_tiles_2019n.csv
+  - --hs-source
+  - nir
+baseline: null
+metric: 'Dense sweeps qc_indep_sweep_{year}_{tag}_*.csv restricted to the sample''s TEST blocks; policy-C
+  selections in phase4/qc/indep_thresholds.csv (chosen on SELECTION blocks); paired-delta table harvested
+  to phase4/qc/tier1_results.csv. Numbers live there, never here.
+
+  '
+decision_rule: 'Written before any run exists. SAMPLE: fixed ground blocks, stratified and screened (CHM
+  coverage in both epochs, coreg-quiet, radiometric representativeness), split train/selection/test ONCE;
+  the same blocks for every arm; train and early-stop on train/selection blocks, policy-C threshold chosen
+  on selection blocks, scores read from test blocks only. NOISE FLOOR: the max pairwise |delta| among
+  t1_2011s_base{,_s2,_s3} on the primary statistic; any arm delta at or below it is UNDETERMINED, never
+  a win. PRIMARY STATISTIC: recall at precision 0.75 from the test-block sweep (curve-matched); F1 at
+  the arm''s own policy-C point is secondary. KILL RULE (pre-launch, free): a lidar-adder arm whose additions
+  raster changes under 2% of its year''s labeled sample pixels is STRUCK before launch and recorded here
+  — it cannot move anything. VERDICTS: lidar-adder pathway CONFIRMED if the adder beats base by more than
+  the floor in >=2 of {2006s, 2011s, 2016}; lidar-input likewise; NIR CONFIRMED only if nir beats base
+  on BOTH 2016 and 2019n (one of two = sensor-specific, reported as such); corruption doses produce a
+  dose-response slope (calibration, no pass/fail). 2020 arms are the sanity anchor: a "win" appearing
+  ONLY on 2020 is suspect (its labels are least wrong; little to correct). GPU: 2xA100 concurrency cap;
+  utilization reported as registry step-hours / session wall-hours with target >=0.85; torch-free steps
+  run on CPU VMs, never on the A100s. Launch flags per arm are generated into this file''s arm `extra`
+  lists when the Phase-0 builders land, BEFORE the queue is generated; the science content above does
+  not change after results exist. Launch itself remains Kam''s (GPU gate).
+
+  '
 verdict: null
 decided: null
+launch_defaults:
+- --force-citywide

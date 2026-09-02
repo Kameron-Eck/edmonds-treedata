@@ -1,0 +1,74 @@
+name: full_archive_e3
+status: queued
+hypothesis: >
+  The hard-year pilot confirmed the unified citywide EPOCH-3 recipe explains the
+  historical weak tail (2011s 0.471 -> 0.756; 2006s 0.470 -> 0.707 with three
+  measured imagery strikes). This campaign applies that ONE recipe to the whole
+  archive. What would change our mind: multiple arms failing their gates, or
+  scoring below their year's prior champion, would mean the pilot did not
+  generalize and the recipe premise is wrong.
+arms:
+  - {year: "2000", tag: e3_2000}
+  - {year: "2002", tag: e3_2002}
+  - {year: "2002s", tag: e3_2002s}
+  - {year: "2003s", tag: e3_2003s}
+  - {year: "2005", tag: e3_2005}
+  - {year: "2007", tag: e3_2007}
+  - {year: "2007s", tag: e3_2007s}
+  - {year: "2009", tag: e3_2009}
+  - {year: "2009s", tag: e3_2009s}
+  - {year: "2012s", tag: e3_2012s}
+  - {year: "2013", tag: e3_2013}
+  - {year: "2013s", tag: e3_2013s}
+  - {year: "2015", tag: e3_2015}
+  - {year: "2016", tag: e3_2016}
+  - {year: "2017", tag: e3_2017}
+  - {year: "2019", tag: e3_2019}
+  - {year: "2015n", tag: e3_2015n}
+  - {year: "2015s", tag: e3_2015s}
+  - {year: "2017s", tag: e3_2017s}
+  - {year: "2019s", tag: e3_2019s}
+  - {year: "2017n", tag: e3_2017n}
+  - {year: "2018s", tag: e3_2018s}
+  - {year: "2019n", tag: e3_2019n}
+  - {year: "2020", tag: e3_2020}
+  - {year: "2020s", tag: e3_2020s}
+  - {year: "2021", tag: e3_2021}
+  - {year: "2021s", tag: e3_2021s}
+  - {year: "2021n", tag: e3_2021n}
+  - {year: "2022", tag: e3_2022}
+  - {year: "2022s", tag: e3_2022s}
+  - {year: "2023n", tag: e3_2023n}
+  - {year: "2023", tag: e3_2023}
+  - {year: "2024", tag: e3_2024}
+  - {year: "2024s", tag: e3_2024s}
+baseline: null   # per-year prior champions (champion_arms.csv); no single tag
+metric: >
+  qc_indep_report.csv live=1 rows per arm (vs ccap_2021_hires_lc), the dense
+  sweep files qc_indep_sweep_{year}_{tag}_*.csv, and the policy-C registry
+  phase4/qc/indep_thresholds.csv. Fleet view: score_vs_difficulty.csv.
+decision_rule: >
+  Written before launch. OPERATING-POINT POLICY IS C (Kam, 2026-09-01, after
+  Reports/RECIPE_AUDIT_2026-09-01.md): each arm's deployed threshold is selected
+  by select_indep_threshold.py from its dense independent sweep - criterion
+  f1_plateau_hi_d005 (the HIGHEST k whose F1 sits within 0.005 of the curve's
+  peak, on forest_wetland, raw prob). Rationale measured on the pilot curves
+  BEFORE any 36-run arm exists: both are flat within 0.005 across a 3x
+  threshold range, so strict argmax would deploy the recall-most edge of a
+  plateau the metric cannot distinguish; preferring the precision-most end
+  suits a crown deliverable scored against C-CAP's broad canopy definition.
+  Fallback for an unscorable sweep = fixed 0.5 with a loud flag, NEVER the
+  circular best_f1_thresh. In-queue postproc masks are
+  PLACEHOLDERS (circular threshold); final masks are re-cut post-run at the
+  policy-C threshold on free CPU (postproc --infer-thresh from the registry) and
+  re-scored. An arm PASSES when all six steps verify, qc_indep scores it, and
+  its selection is non-EDGE (or EDGE inspected and accepted). The campaign
+  lands when every arm passes or is listed as a named exception - failures are
+  reported, never hidden. 2006s and 2011s are ADOPTED from hard_year_pilot
+  (identical recipe, tags hy_e3_*) rather than re-run - ~4-6 A100-hr saved;
+  their policy-C re-cut happens with the fleet's. Champion promotion per year
+  remains Kam's call (champion_arms.csv), as does launch (GPU gate: 2xA100
+  cap, ~65-70 A100-hr estimated for 34 arms, babysitter on every bootstrap).
+launch_defaults: ["--force-citywide", "--no-hillshade"]
+verdict: null
+decided: null

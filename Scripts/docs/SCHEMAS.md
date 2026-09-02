@@ -45,6 +45,31 @@ Columns: `year, ref, prob, canopy_def, thresh, recall, precision, grass_reject, 
 fn, fp, ref_canopy, valid, indep_1m_cells, primary, live, run_tag, ts`.
 `prob` is the scored raster's name — `champion.py::prob_arm` recovers the arm tag.
 
+## qc_indep_sweep_{year}_{arm}_{refstem}.csv (lake `phase4/qc/`, GENERATED dense curve)
+
+Written by `phase4_qc_indep.py::_write_dense_sweep` on every scoring run. One row
+per integer cut `k` = 1..254 — the EXACT recall/precision/F1 curve on the primary
+canopy definition, from two 256-bin histograms (raw prob, no morphology — measured
+neutral, `Reports/RECIPE_AUDIT_2026-09-01.md`). File per (year, arm, ref): a re-run
+overwrites its own lineage only. Columns: `year, run_tag, ref, prob, canopy_def, k,
+thresh, tp, fn, fp, recall, precision, f1, ts`. `thresh = k/254` round-trips through
+postproc's `int(round(thr*254))` to the same integer — selected cut == deployed cut.
+This file is the INPUT to threshold policy C; publish it beside any score it selected.
+
+## indep_thresholds.csv (lake `phase4/qc/`, the policy-C selection registry)
+
+Written by `select_indep_threshold.py::main` (policy C — Kam, 2026-09-01). One row
+per (year, run_tag, ref), replace-by-key. Columns: `year, run_tag, ref, criterion,
+k, thresh, f1, recall, precision, edge_flag, sweep_file, ts`. `criterion` is the
+pre-registered rule (`f1_plateau_hi_d005`: highest k within 0.005 of peak F1 —
+the precision-most end of the metric-indifferent plateau);
+`edge_flag == "EDGE"` means the peak sat within 5 steps of the grid edge — inspect
+before deploying. Deployment: `--step postproc --infer-thresh <thresh>`.
+**Reader rule**: never pool scores across threshold policy — an arm cut at a
+policy-C threshold and a champion cut at the circular `best_f1_thresh` are
+different operating-point populations; this registry (plus `run_tag`) is what
+separates them. Non-default `ref` rows are sensitivity checks, not deployments.
+
 ## champion_arms.csv (Scripts/pipeline/, AUTHORED decision)
 
 The machine-readable answer to "which arm is the deliverable for year Y".

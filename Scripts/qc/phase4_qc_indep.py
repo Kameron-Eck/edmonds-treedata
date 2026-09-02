@@ -283,6 +283,12 @@ def score(year, ref_path, prob_path, thresh, ref_scheme, ref_map_path, block_row
         primary_idx = 1 if len(defs) >= 2 else 0
         primary_groups = defs[primary_idx][1]
         sweep = {round(t, 4): dict(tp=0, fn=0, fp=0) for t in SWEEP_THRESHOLDS}
+        # DENSE u8 sweep (policy C, 2026-09-01): two 256-bin histograms give the
+        # EXACT curve at every integer cut k for one scan's cost — no float grid
+        # to miss a peak between points, and the selected k IS the production cut
+        # (postproc rounds thr*254 back to the same integer by construction).
+        hist_can = np.zeros(256, dtype=np.int64)   # pr values on ref-canopy px
+        hist_non = np.zeros(256, dtype=np.int64)   # pr values on valid non-canopy px
 
         with WarpedVRT(ref_src, crs=prob.crs, transform=prob.transform,
                        width=W, height=H, resampling=Resampling.nearest) as ref_vrt:
@@ -325,6 +331,8 @@ def score(year, ref_path, prob_path, thresh, ref_scheme, ref_map_path, block_row
 
                 # sweep on primary canopy def
                 prim = valid & np.isin(gid, [names.index(g) for g in primary_groups])
+                hist_can += np.bincount(pr[prim], minlength=256)
+                hist_non += np.bincount(pr[valid & ~prim], minlength=256)
                 for t in sweep:
                     mct = valid & (pr >= t * 254.0)
                     sweep[t]["tp"] += int((prim & mct).sum())
@@ -364,7 +372,44 @@ def score(year, ref_path, prob_path, thresh, ref_scheme, ref_map_path, block_row
                   grass_group=grass_group, gpx=gpx, gmc=gmc,
                   valid=valid_total, indep_cells=indep_cells, thr=thr_u8)
     _report(year, ref_path, prob_path, thresh, ref_scheme, result, sweep)
+    _write_dense_sweep(year, ref_path, prob_path, defs[primary_idx][0],
+                       hist_can, hist_non)
     return result
+
+
+def _write_dense_sweep(year, ref_path, prob_path, primary_def, hist_can, hist_non):
+    """One row per integer cut k=1..254: the EXACT curve on the primary canopy
+    definition (raw prob, no morphology — measured neutral, see
+    Reports/RECIPE_AUDIT_2026-09-01.md). This file is the INPUT to threshold
+    policy C: qc/instruments/select_indep_threshold.py reads it, picks the
+    F1-max cut, and records the choice in phase4/qc/indep_thresholds.csv.
+    File per (year, arm, ref) — a re-run overwrites its own lineage only."""
+    can_total = int(hist_can.sum())
+    # cut at k ⇒ model-canopy is pr >= k: suffix sums over the histograms
+    can_ge = np.cumsum(hist_can[::-1])[::-1]         # canopy px with pr >= k
+    non_ge = np.cumsum(hist_non[::-1])[::-1]
+    arm = _prob_arm(prob_path.name) or "untagged"
+    out = QC_DIR / f"qc_indep_sweep_{year}_{arm}_{ref_path.stem}.csv"
+    ts = _dt.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    best = (0, -1.0)                                  # (k, f1)
+    with open(out, "w", newline="", encoding="utf-8") as f:
+        w = csv.writer(f)
+        w.writerow(["year", "run_tag", "ref", "prob", "canopy_def", "k", "thresh",
+                    "tp", "fn", "fp", "recall", "precision", "f1", "ts"])
+        for k in range(1, 255):
+            tp, fp = int(can_ge[k]), int(non_ge[k])
+            fn = can_total - tp
+            rec = _safe(tp, can_total)
+            prc = _safe(tp, tp + fp)
+            f1 = _safe(2 * prc * rec, prc + rec)
+            if f1 == f1 and f1 > best[1]:            # NaN-safe strict argmax
+                best = (k, f1)                        # ties keep the LOWER k
+            w.writerow([year, _prob_arm(prob_path.name), ref_path.name,
+                        prob_path.name, primary_def, k, round(k / 254.0, 6),
+                        tp, fn, fp, round(rec, 4), round(prc, 4),
+                        round(f1, 4) if f1 == f1 else "", ts])
+    print(f"[qc-indep] dense sweep -> {out.name}  "
+          f"(F1 peak: k={best[0]} thresh={best[0]/254.0:.4f} f1={best[1]:.4f})")
 
 
 def _report(year, ref_path, prob_path, thresh, ref_scheme, R, sweep):

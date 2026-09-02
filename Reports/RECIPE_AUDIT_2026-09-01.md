@@ -35,9 +35,13 @@ cross-year consistency check flags ±40% deviations; threshold wander alone can
 exceed that. Fixing threshold policy is not just an accuracy fix, it is the
 prerequisite for any cross-year canopy trend.
 
-Decision pending with Kam (options A fixed-0.5 / B guard band / C per-year
-selection on the independent sweep; C recommended, with the full per-year curve
-published beside every score). Caveat that travels with C: C-CAP 2021 carries
+**DECIDED: C (Kam, 2026-09-01 — "Let's go with C").** Implemented same day:
+dense u8 sweep in `phase4_qc_indep._write_dense_sweep` (exact curve at all 254
+integer cuts, selected cut == deployed cut by construction), selector
+`qc/instruments/select_indep_threshold.py` → registry
+`phase4/qc/indep_thresholds.csv`, pre-registered in
+`experiments/full_archive_e3.yaml`. Engine untouched — deployment rides the
+existing `--infer-thresh` override. Caveat that travels with C: C-CAP 2021 carries
 its own temporal gap and a broad canopy definition, so variant *deltas* against
 it are trustworthy while the *absolute* optimum inherits its canopy definition —
 publish the curve, don't bless a single number.

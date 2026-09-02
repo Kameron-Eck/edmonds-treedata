@@ -126,24 +126,30 @@ def main():
                          "--wait", "300"], timeout=420)
         stage("MAILBOX_STOP", "killed" in out and "[]" not in out.split("killed")[-1][:20])
 
-        # 7 REAP by the watchdog
+        # 7 REAP by the watchdog. The BREADCRUMB is the fast, authoritative
+        # signal (drill 2: watchdog fired dead on its 600 s schedule at
+        # 09:39:45Z while the account census kept listing the T4 for ~15 more
+        # minutes — the census lags unassign). Pass on breadcrumb; keep census
+        # clearance as the secondary acceptance within the bound.
         t0 = time.time()
-        reaped = False
+        how = ""
         while time.time() - t0 < a.reap_wait_min * 60:
             time.sleep(60)
+            try:
+                crumb = (LOGS / f"selfstop_{sess}.log").read_text(
+                    encoding="utf-8", errors="replace")
+                if "drain" in crumb or "stopped" in crumb:
+                    how = "breadcrumb: " + crumb.strip().splitlines()[-1]
+                    break
+            except OSError:
+                pass
             r = subprocess.run([str(COLAB), "sessions"], capture_output=True,
                                text=True, timeout=180)
             if "T4" not in r.stdout:
-                reaped = True
+                how = "census clear (breadcrumb not yet synced)"
                 break
-        crumb = ""
-        try:
-            crumb = (LOGS / f"selfstop_{sess}.log").read_text(
-                encoding="utf-8", errors="replace").strip().splitlines()[-1]
-        except OSError:
-            crumb = "(breadcrumb not yet synced)"
-        stage("WATCHDOG_REAPED", reaped,
-              f"{(time.time()-t0)/60:.0f} min; {crumb}")
+        stage("WATCHDOG_REAPED", bool(how),
+              f"{(time.time()-t0)/60:.0f} min; {how}")
     finally:
         # 8 CLEANUP — restore local CLI state minus the (now gone) drill session
         if bak and Path(bak).exists():

@@ -42,8 +42,13 @@ Written by `phase4_qc_indep.py::main`. One row per (year, ref, canopy_def, thres
 **Reader rules that are not optional**: filter `live == 1`; `primary` marks the
 headline row; `canopy_def == "forest_wetland"` is the primary class mapping.
 Columns: `year, ref, prob, canopy_def, thresh, recall, precision, grass_reject, tp,
-fn, fp, ref_canopy, valid, indep_1m_cells, primary, live, run_tag, ts`.
+fn, fp, ref_canopy, valid, indep_1m_cells, primary, live, run_tag, aoi, ts`.
 `prob` is the scored raster's name — `champion.py::prob_arm` recovers the arm tag.
+`aoi` (Tier 1, 2026-09-02): non-empty means the score is RESTRICTED to sample
+ground blocks (`--aoi` + manifest CSV) — AOI is part of the live-row lineage and
+restricted rows must NEVER be pooled or compared with citywide rows. Dense-sweep
+files for restricted runs carry the aoi name as a filename suffix for the same
+reason.
 
 ## qc_indep_sweep_{year}_{arm}_{refstem}.csv (lake `phase4/qc/`, GENERATED dense curve)
 

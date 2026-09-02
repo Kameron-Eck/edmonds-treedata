@@ -78,6 +78,8 @@ warnings.filterwarnings("ignore", message="Setting the shape on a NumPy array",
 
 import numpy as np
 import rasterio
+import rasterio.warp
+import rasterio.windows
 from rasterio.vrt import WarpedVRT
 from rasterio.enums import Resampling
 from rasterio.windows import Window
@@ -238,8 +240,24 @@ def _preflight_prob(year, prob_path, min_valid_frac, sample=2000):
     print(f"[qc-indep] preflight: prob {frac:.1%} valid — OK")
 
 
+def load_aoi(manifest_csv, roles):
+    """Ground blocks from science_sample_manifest.csv (or same-schema CSV) as
+    GeoJSON-like boxes in the manifest's own EPSG, filtered to `roles`.
+    Stdlib+rasterio only — no geopandas (KERNEL-EXEC constraint)."""
+    rows = [r for r in csv.DictReader(open(manifest_csv, encoding="utf-8"))
+            if r.get("role") in roles]
+    if not rows:
+        raise QCUnscorableError(f"--aoi {manifest_csv}: no rows with role in {roles}")
+    epsg = int(rows[0]["epsg"])
+    geoms = [{"type": "Polygon", "coordinates": [[
+        (float(r["minx"]), float(r["miny"])), (float(r["maxx"]), float(r["miny"])),
+        (float(r["maxx"]), float(r["maxy"])), (float(r["minx"]), float(r["maxy"])),
+        (float(r["minx"]), float(r["miny"]))]]} for r in rows]
+    return geoms, epsg, len(rows)
+
+
 def score(year, ref_path, prob_path, thresh, ref_scheme, ref_map_path, block_rows,
-          min_valid_frac=0.05):
+          min_valid_frac=0.05, aoi=None, aoi_name=""):
     names, canopy_order, grass_group, code_to_group = load_ref_map(ref_scheme, ref_map_path)
     ignore_id = names.index("ignore")
     lut = build_lut(names, code_to_group) if ref_scheme != "binary" else None
@@ -274,6 +292,15 @@ def score(year, ref_path, prob_path, thresh, ref_scheme, ref_map_path, block_row
         except Exception:
             pass
         px_area = abs(rx * ry) * (m_per_unit ** 2)   # prob-grid pixel area in m²
+
+        aoi_geoms = None
+        if aoi is not None:
+            import rasterio.features as _rf
+            geoms, aoi_epsg, n_blocks_aoi = aoi
+            aoi_geoms = [rasterio.warp.transform_geom(
+                f"EPSG:{aoi_epsg}", prob.crs, g) for g in geoms]
+            print(f"    aoi  = {aoi_name} ({n_blocks_aoi} blocks; scores are "
+                  f"RESTRICTED — never pool with citywide rows)")
 
         # per-group accumulators (valid px only)
         gpx = {g: 0 for g in names}                  # group px
@@ -319,6 +346,13 @@ def score(year, ref_path, prob_path, thresh, ref_scheme, ref_map_path, block_row
                         gid[rc == ref_nodata] = ignore_id
 
                 valid = (gid != ignore_id) & (pr != 255)
+                if aoi_geoms is not None:
+                    import rasterio.features as _rf
+                    wtf = rasterio.windows.transform(win, prob.transform)
+                    inaoi = _rf.rasterize(
+                        [(g, 1) for g in aoi_geoms], out_shape=pr.shape,
+                        transform=wtf, fill=0, dtype="uint8").astype(bool)
+                    valid &= inaoi
                 if not valid.any():
                     if bi % 5 == 0 or bi == n_blocks - 1:
                         print(f"    block {bi+1}/{n_blocks}", flush=True)
@@ -362,26 +396,32 @@ def score(year, ref_path, prob_path, thresh, ref_scheme, ref_map_path, block_row
             f"  Check (a) the prob raster is not all-nodata (a failed inference run),\n"
             f"        (b) the two rasters actually overlap on the ground.\n"
             f"  No row written — an unscorable year must not look like a scored one.")
-    if frac < min_valid_frac:
+    if frac < min_valid_frac and aoi is None:
+        # An AOI-restricted run is SUPPOSED to leave most of the raster invalid
+        # (30 test blocks ~ 2% of a citywide grid); the zero-valid check above
+        # still protects it. The whole-raster fraction gate applies citywide only.
         raise QCUnscorableError(
             f"year {year}: only {frac:.2%} of the prob raster is valid "
             f"({valid_total:,} / {total_px:,} px), below --min-valid-frac "
             f"{min_valid_frac:.2%}.\n    prob = {prob_path}\n"
             f"  This usually means the inference run failed or covered only a strip.\n"
             f"  Re-run inference, or pass --min-valid-frac to score it deliberately.")
-    print(f"[qc-indep] valid {valid_total:,} / {total_px:,} px ({frac:.1%}) — OK")
+    print(f"[qc-indep] valid {valid_total:,} / {total_px:,} px ({frac:.1%}) — OK"
+          + (f" [aoi={aoi_name}]" if aoi is not None else ""))
 
     indep_cells = valid_total * px_area / 1.0        # ≈ independent 1 m² C-CAP cells
     result = dict(names=names, defs=defs, primary_idx=primary_idx,
                   grass_group=grass_group, gpx=gpx, gmc=gmc,
                   valid=valid_total, indep_cells=indep_cells, thr=thr_u8)
-    _report(year, ref_path, prob_path, thresh, ref_scheme, result, sweep)
+    _report(year, ref_path, prob_path, thresh, ref_scheme, result, sweep,
+            aoi_name=aoi_name)
     _write_dense_sweep(year, ref_path, prob_path, defs[primary_idx][0],
-                       hist_can, hist_non)
+                       hist_can, hist_non, aoi_name=aoi_name)
     return result
 
 
-def _write_dense_sweep(year, ref_path, prob_path, primary_def, hist_can, hist_non):
+def _write_dense_sweep(year, ref_path, prob_path, primary_def, hist_can, hist_non,
+                       aoi_name=""):
     """One row per integer cut k=1..254: the EXACT curve on the primary canopy
     definition (raw prob, no morphology — measured neutral, see
     Reports/RECIPE_AUDIT_2026-09-01.md). This file is the INPUT to threshold
@@ -393,13 +433,16 @@ def _write_dense_sweep(year, ref_path, prob_path, primary_def, hist_can, hist_no
     can_ge = np.cumsum(hist_can[::-1])[::-1]         # canopy px with pr >= k
     non_ge = np.cumsum(hist_non[::-1])[::-1]
     arm = _prob_arm(prob_path.name) or "untagged"
-    out = QC_DIR / f"qc_indep_sweep_{year}_{arm}_{ref_path.stem}.csv"
+    # An AOI-restricted sweep is its OWN file — it must never overwrite the
+    # citywide sweep for the same (year, arm, ref) lineage.
+    sfx = f"_{aoi_name}" if aoi_name else ""
+    out = QC_DIR / f"qc_indep_sweep_{year}_{arm}_{ref_path.stem}{sfx}.csv"
     ts = _dt.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     best = (0, -1.0)                                  # (k, f1)
     with open(out, "w", newline="", encoding="utf-8") as f:
         w = csv.writer(f)
         w.writerow(["year", "run_tag", "ref", "prob", "canopy_def", "k", "thresh",
-                    "tp", "fn", "fp", "recall", "precision", "f1", "ts"])
+                    "tp", "fn", "fp", "recall", "precision", "f1", "aoi", "ts"])
         for k in range(1, 255):
             tp, fp = int(can_ge[k]), int(non_ge[k])
             fn = can_total - tp
@@ -415,12 +458,12 @@ def _write_dense_sweep(year, ref_path, prob_path, primary_def, hist_can, hist_no
             w.writerow([year, _prob_arm(prob_path.name), ref_path.name,
                         prob_path.name, primary_def, k, int(k / 254.0 * 1e6) / 1e6,
                         tp, fn, fp, round(rec, 4), round(prc, 4),
-                        round(f1, 4) if f1 == f1 else "", ts])
+                        round(f1, 4) if f1 == f1 else "", aoi_name, ts])
     print(f"[qc-indep] dense sweep -> {out.name}  "
           f"(F1 peak: k={best[0]} thresh={best[0]/254.0:.4f} f1={best[1]:.4f})")
 
 
-def _report(year, ref_path, prob_path, thresh, ref_scheme, R, sweep):
+def _report(year, ref_path, prob_path, thresh, ref_scheme, R, sweep, aoi_name=""):
     names, defs = R["names"], R["defs"]
     gpx, gmc = R["gpx"], R["gmc"]
     valid = R["valid"]
@@ -498,7 +541,7 @@ def _report(year, ref_path, prob_path, thresh, ref_scheme, R, sweep):
     # tagged arms as the untagged lineage in the human-readable column (the
     # supersede logic was unaffected: it parses the prob filename itself).
     _write_csvs(year, ref_path, prob_path, thresh, def_rows, surf_rows, R,
-                run_tag=_prob_arm(prob_path.name))
+                run_tag=_prob_arm(prob_path.name), aoi_name=aoi_name)
     print(f"\n[qc-indep] wrote {QC_DIR / f'qc_indep_{year}.txt'}")
 
 
@@ -507,7 +550,8 @@ def _prob_arm(name):
     return m.group(1) if m else ""
 
 
-def _write_csvs(year, ref_path, prob_path, thresh, def_rows, surf_rows, R, run_tag=""):
+def _write_csvs(year, ref_path, prob_path, thresh, def_rows, surf_rows, R, run_tag="",
+                aoi_name=""):
     ts = _dt.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     # Main per-definition CSV.
     #
@@ -520,7 +564,7 @@ def _write_csvs(year, ref_path, prob_path, thresh, def_rows, surf_rows, R, run_t
     main = QC_DIR / "qc_indep_report.csv"
     fields = ["year", "ref", "prob", "canopy_def", "thresh", "recall", "precision",
               "grass_reject", "tp", "fn", "fp", "ref_canopy", "valid",
-              "indep_1m_cells", "primary", "live", "run_tag", "ts"]
+              "indep_1m_cells", "primary", "live", "run_tag", "aoi", "ts"]
     new = []
     for r in def_rows:
         new.append(dict(year=year, ref=ref_path.name, prob=prob_path.name,
@@ -529,21 +573,26 @@ def _write_csvs(year, ref_path, prob_path, thresh, def_rows, surf_rows, R, run_t
                         grass_reject=round(r["grass_reject"], 4),
                         tp=r["tp"], fn=r["fn"], fp=r["fp"], ref_canopy=r["ref_canopy"],
                         valid=R["valid"], indep_1m_cells=round(R["indep_cells"]),
-                        primary=int(r["primary"]), live=1, run_tag=run_tag, ts=ts))
+                        primary=int(r["primary"]), live=1, run_tag=run_tag,
+                        aoi=aoi_name, ts=ts))
     keep, n_sup = [], 0
     if main.exists():
         for row in csv.DictReader(open(main, encoding="utf-8")):
-            # identical run (same prob AND thresh) → replace outright, don't stack
+            # identical run (same prob AND thresh AND aoi) → replace outright
             if (row.get("year") == str(year) and row.get("ref") == ref_path.name
                     and row.get("prob") == prob_path.name
-                    and row.get("thresh") == str(thresh)):
+                    and row.get("thresh") == str(thresh)
+                    and row.get("aoi", "") == aoi_name):
                 continue
-            # same year+ref+ARM, different run → keep as history, mark dead.
+            # same year+ref+ARM+AOI, different run → keep as history, mark dead.
             # Arm = the run tag parsed from the prob filename (the same parse
             # live_thresholds() uses): a sectors_v1 re-score must never kill the
             # citywide live row for the same year — each tag is its own lineage.
+            # AOI is part of the lineage for the same reason: a test-block score
+            # must never supersede (or be pooled with) the citywide live row.
             if (row.get("year") == str(year) and row.get("ref") == ref_path.name
                     and _prob_arm(row.get("prob", "")) == _prob_arm(prob_path.name)
+                    and row.get("aoi", "") == aoi_name
                     and row.get("live", "1") != "0"):
                 row["live"] = "0"
                 n_sup += 1
@@ -602,6 +651,14 @@ def main():
     ap.add_argument("--min-valid-frac", type=float, default=0.05,
                     help="Abort if less than this fraction of the prob raster is valid "
                          "(default 0.05). Guards against scoring a failed inference run.")
+    ap.add_argument("--aoi", default=None,
+                    help="Restrict scoring to ground blocks from a manifest CSV "
+                         "(science_sample_manifest.csv schema). Rows/sweeps are "
+                         "provenance-stamped and NEVER pooled with citywide.")
+    ap.add_argument("--aoi-roles", default="test",
+                    help="Comma-separated roles to include (default: test).")
+    ap.add_argument("--aoi-name", default=None,
+                    help="Provenance label; default sample-<roles>.")
     args = ap.parse_args(keep)
 
     ref_path = Path(args.ref)
@@ -621,9 +678,15 @@ def main():
             print(f"  deployed threshold {thresh} (channels={ch}) from eval CSV")
 
     try:
+        aoi = aoi_name = None
+        if args.aoi:
+            roles = tuple(r.strip() for r in args.aoi_roles.split(",") if r.strip())
+            aoi = load_aoi(args.aoi, roles)
+            aoi_name = args.aoi_name or ("sample-" + "-".join(roles))
         R = score(args.year, ref_path, prob_path, thresh,
                   args.ref_scheme, args.ref_map, args.block_rows,
-                  min_valid_frac=args.min_valid_frac)
+                  min_valid_frac=args.min_valid_frac,
+                  aoi=aoi, aoi_name=aoi_name or "")
     except QCUnscorableError as e:
         print(f"\n[qc-indep] UNSCORABLE — no row written\n{e}\n", file=sys.stderr)
         raise SystemExit(2)

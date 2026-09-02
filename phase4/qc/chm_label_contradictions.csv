@@ -1,0 +1,3 @@
+epoch,chm,labeled_px,add_pct,ignore_pct,kill_stale_pct,sample_labeled_px,sample_add_pct,sample_ignore_pct,sample_kill_stale_pct,sample_touched_pct,low_h_m,high_h_m,bldg_buf_m,ts
+2005,lidar_chm2005_2m.tif,8494267,5.485,3.94,3.853,888763,4.044,5.016,3.813,12.874,2.0,4.0,6.0,2026-09-01 21:23:19
+2016,lidar_chm2_2016_50cm.tif,166919333,5.115,1.754,2.285,14221512,2.293,2.428,2.344,7.065,2.0,4.0,6.0,2026-09-01 21:29:15

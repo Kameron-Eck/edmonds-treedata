@@ -151,7 +151,9 @@ def launch_queue(session, queue_yaml, queue_args=""):
     """The production start form (phase4_train_queue.py header, line ~50):
     nohup-detached so the queue survives the exec handle."""
     q = Path(queue_yaml)
-    if not q.exists():
+    if not q.exists() and (HERE / q.name).exists():
+        q = HERE / q.name          # bit twice from Scripts/ cwd (2026-09-02): the
+    if not q.exists():             # VM side only ever uses q.name anyway
         raise SystemExit(f"queue file missing: {q}")
     ts = time.strftime("%Y%m%dT%H%M%SZ", time.gmtime())
     payload = SCRATCH / f"vm_start_{session}.py"

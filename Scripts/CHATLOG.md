@@ -57,10 +57,19 @@ did:     dense u8 sweep in `phase4_qc_indep._write_dense_sweep` — 2x 256-bin
          `qc/instruments/select_indep_threshold.py`: criterion
          f1_plateau_hi_d005 (highest k within 0.005 of peak — precision end of
          metric-indifferent plateau; strict argmax = sloppy recall edge).
-         Registry `phase4/qc/indep_thresholds.csv`. Selected: 2011s k=80
-         (0.315, rec .763/prec .755; was rec .499 @0.643); 2006s k=85 (0.335,
-         rec .721/prec .684; old 0.4743 sat on probability CLIFF — recall
-         .68->.42 across 0.45->0.50). Ref-sensitivity vs 2016 C-CAP: 0.05-0.10.
+         Registry `phase4/qc/indep_thresholds.csv`. Selected (after review fix
+         below): 2011s k=81 (0.3189, rec .7625/prec .7552; was rec .499
+         @0.643); 2006s k=86 (0.3386, rec .7195/prec .6848; old 0.4743 sat on
+         probability CLIFF — recall .68->.42 across 0.45->0.50).
+         Ref-sensitivity vs 2016 C-CAP: 0.05-0.10.
+review:  13-agent adversarial workflow on the two new code paths — every fix a
+         CONFIRMED reproduced finding (commit fce0162). Load-bearing: float64
+         plateau compare excluded the row exactly 0.005 below peak (fired 3/4
+         sweeps, picks were k=80/85 — one step recall-ward of the rule);
+         tick-exact compare now. Also: sweep thresh column floored; nodata
+         masked pre-clip; truncated-sweep refusal; atomic registry write.
+         Masks re-cut AGAIN at corrected picks (recutC2, free CPU);
+         EQUIVALENCE PASS both rounds.
          Masks re-cut on free CPU VM (recutC, registry-read thresholds, never
          hand-typed); EQUIVALENCE PASS (mask within 0.001 of registry rows).
          Quantization fix: floor-truncate thresh (rounded 6dp crossed u8

@@ -115,6 +115,11 @@ arms:
   - --no-hillshade
   - --add-canopy-mask
   - /content/drive/MyDrive/treedata/phase4/labels_corrected/add_corrupt5_2011s.tif
+  steps:
+  - labels
+  - tile
+  - train
+  - evaluate
 - year: 2011s
   tag: t1_2011s_cor10
   extra:
@@ -123,6 +128,11 @@ arms:
   - --no-hillshade
   - --add-canopy-mask
   - /content/drive/MyDrive/treedata/phase4/labels_corrected/add_corrupt10_2011s.tif
+  steps:
+  - labels
+  - tile
+  - train
+  - evaluate
 - year: '2016'
   tag: t1_2016_base
   extra:
@@ -195,6 +205,11 @@ arms:
   - /content/drive/MyDrive/treedata/phase4/qc/sample_tiles_2020.csv
   - --hs-source
   - chm2005
+  steps:
+  - labels
+  - tile
+  - train
+  - evaluate
 - year: '2020'
   tag: t1_2020_in16
   extra:
@@ -202,6 +217,11 @@ arms:
   - /content/drive/MyDrive/treedata/phase4/qc/sample_tiles_2020.csv
   - --hs-source
   - chm2
+  steps:
+  - labels
+  - tile
+  - train
+  - evaluate
 - year: 2019n
   tag: t1_2019n_base
   extra:
@@ -245,5 +265,5 @@ decided: null
 launch_defaults:
 - --force-citywide
 steps:
-- labels
-- tile
+- train
+- evaluate

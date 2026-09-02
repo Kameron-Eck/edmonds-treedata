@@ -15,8 +15,8 @@
   why: arm of experiments/tier1_science_sample.yaml — hypothesis and decision rule
     live THERE, not here.
   steps:
-  - labels
-  - tile
+  - train
+  - evaluate
 - id: tier1_science_sample_t1_2006s_add05
   year: 2006s
   tag: t1_2006s_add05
@@ -30,8 +30,8 @@
   why: arm of experiments/tier1_science_sample.yaml — hypothesis and decision rule
     live THERE, not here.
   steps:
-  - labels
-  - tile
+  - train
+  - evaluate
 - id: tier1_science_sample_t1_2006s_add16
   year: 2006s
   tag: t1_2006s_add16
@@ -45,8 +45,8 @@
   why: arm of experiments/tier1_science_sample.yaml — hypothesis and decision rule
     live THERE, not here.
   steps:
-  - labels
-  - tile
+  - train
+  - evaluate
 - id: tier1_science_sample_t1_2006s_in05
   year: 2006s
   tag: t1_2006s_in05
@@ -59,8 +59,8 @@
   why: arm of experiments/tier1_science_sample.yaml — hypothesis and decision rule
     live THERE, not here.
   steps:
-  - labels
-  - tile
+  - train
+  - evaluate
 - id: tier1_science_sample_t1_2006s_in16
   year: 2006s
   tag: t1_2006s_in16
@@ -73,8 +73,8 @@
   why: arm of experiments/tier1_science_sample.yaml — hypothesis and decision rule
     live THERE, not here.
   steps:
-  - labels
-  - tile
+  - train
+  - evaluate
 - id: tier1_science_sample_t1_2011s_base
   year: 2011s
   tag: t1_2011s_base
@@ -86,8 +86,8 @@
   why: arm of experiments/tier1_science_sample.yaml — hypothesis and decision rule
     live THERE, not here.
   steps:
-  - labels
-  - tile
+  - train
+  - evaluate
 - id: tier1_science_sample_t1_2011s_base_s2
   year: 2011s
   tag: t1_2011s_base_s2
@@ -101,8 +101,8 @@
   why: arm of experiments/tier1_science_sample.yaml — hypothesis and decision rule
     live THERE, not here.
   steps:
-  - labels
-  - tile
+  - train
+  - evaluate
 - id: tier1_science_sample_t1_2011s_base_s3
   year: 2011s
   tag: t1_2011s_base_s3
@@ -116,8 +116,8 @@
   why: arm of experiments/tier1_science_sample.yaml — hypothesis and decision rule
     live THERE, not here.
   steps:
-  - labels
-  - tile
+  - train
+  - evaluate
 - id: tier1_science_sample_t1_2011s_add05
   year: 2011s
   tag: t1_2011s_add05
@@ -131,8 +131,8 @@
   why: arm of experiments/tier1_science_sample.yaml — hypothesis and decision rule
     live THERE, not here.
   steps:
-  - labels
-  - tile
+  - train
+  - evaluate
 - id: tier1_science_sample_t1_2011s_add16
   year: 2011s
   tag: t1_2011s_add16
@@ -146,8 +146,8 @@
   why: arm of experiments/tier1_science_sample.yaml — hypothesis and decision rule
     live THERE, not here.
   steps:
-  - labels
-  - tile
+  - train
+  - evaluate
 - id: tier1_science_sample_t1_2011s_in05
   year: 2011s
   tag: t1_2011s_in05
@@ -160,8 +160,8 @@
   why: arm of experiments/tier1_science_sample.yaml — hypothesis and decision rule
     live THERE, not here.
   steps:
-  - labels
-  - tile
+  - train
+  - evaluate
 - id: tier1_science_sample_t1_2011s_in16
   year: 2011s
   tag: t1_2011s_in16
@@ -174,8 +174,8 @@
   why: arm of experiments/tier1_science_sample.yaml — hypothesis and decision rule
     live THERE, not here.
   steps:
-  - labels
-  - tile
+  - train
+  - evaluate
 - id: tier1_science_sample_t1_2011s_cor02
   year: 2011s
   tag: t1_2011s_cor02
@@ -189,8 +189,8 @@
   why: arm of experiments/tier1_science_sample.yaml — hypothesis and decision rule
     live THERE, not here.
   steps:
-  - labels
-  - tile
+  - train
+  - evaluate
 - id: tier1_science_sample_t1_2011s_cor05
   year: 2011s
   tag: t1_2011s_cor05
@@ -206,6 +206,8 @@
   steps:
   - labels
   - tile
+  - train
+  - evaluate
 - id: tier1_science_sample_t1_2011s_cor10
   year: 2011s
   tag: t1_2011s_cor10
@@ -221,6 +223,8 @@
   steps:
   - labels
   - tile
+  - train
+  - evaluate
 - id: tier1_science_sample_t1_2016_base
   year: '2016'
   tag: t1_2016_base
@@ -232,8 +236,8 @@
   why: arm of experiments/tier1_science_sample.yaml — hypothesis and decision rule
     live THERE, not here.
   steps:
-  - labels
-  - tile
+  - train
+  - evaluate
 - id: tier1_science_sample_t1_2016_add05
   year: '2016'
   tag: t1_2016_add05
@@ -247,8 +251,8 @@
   why: arm of experiments/tier1_science_sample.yaml — hypothesis and decision rule
     live THERE, not here.
   steps:
-  - labels
-  - tile
+  - train
+  - evaluate
 - id: tier1_science_sample_t1_2016_add16
   year: '2016'
   tag: t1_2016_add16
@@ -262,8 +266,8 @@
   why: arm of experiments/tier1_science_sample.yaml — hypothesis and decision rule
     live THERE, not here.
   steps:
-  - labels
-  - tile
+  - train
+  - evaluate
 - id: tier1_science_sample_t1_2016_in05
   year: '2016'
   tag: t1_2016_in05
@@ -276,8 +280,8 @@
   why: arm of experiments/tier1_science_sample.yaml — hypothesis and decision rule
     live THERE, not here.
   steps:
-  - labels
-  - tile
+  - train
+  - evaluate
 - id: tier1_science_sample_t1_2016_in16
   year: '2016'
   tag: t1_2016_in16
@@ -290,8 +294,8 @@
   why: arm of experiments/tier1_science_sample.yaml — hypothesis and decision rule
     live THERE, not here.
   steps:
-  - labels
-  - tile
+  - train
+  - evaluate
 - id: tier1_science_sample_t1_2016_nir
   year: '2016'
   tag: t1_2016_nir
@@ -304,8 +308,8 @@
   why: arm of experiments/tier1_science_sample.yaml — hypothesis and decision rule
     live THERE, not here.
   steps:
-  - labels
-  - tile
+  - train
+  - evaluate
 - id: tier1_science_sample_t1_2020_base
   year: '2020'
   tag: t1_2020_base
@@ -317,8 +321,8 @@
   why: arm of experiments/tier1_science_sample.yaml — hypothesis and decision rule
     live THERE, not here.
   steps:
-  - labels
-  - tile
+  - train
+  - evaluate
 - id: tier1_science_sample_t1_2020_add05
   year: '2020'
   tag: t1_2020_add05
@@ -332,8 +336,8 @@
   why: arm of experiments/tier1_science_sample.yaml — hypothesis and decision rule
     live THERE, not here.
   steps:
-  - labels
-  - tile
+  - train
+  - evaluate
 - id: tier1_science_sample_t1_2020_add16
   year: '2020'
   tag: t1_2020_add16
@@ -347,8 +351,8 @@
   why: arm of experiments/tier1_science_sample.yaml — hypothesis and decision rule
     live THERE, not here.
   steps:
-  - labels
-  - tile
+  - train
+  - evaluate
 - id: tier1_science_sample_t1_2020_in05
   year: '2020'
   tag: t1_2020_in05
@@ -363,6 +367,8 @@
   steps:
   - labels
   - tile
+  - train
+  - evaluate
 - id: tier1_science_sample_t1_2020_in16
   year: '2020'
   tag: t1_2020_in16
@@ -377,6 +383,8 @@
   steps:
   - labels
   - tile
+  - train
+  - evaluate
 - id: tier1_science_sample_t1_2019n_base
   year: 2019n
   tag: t1_2019n_base
@@ -388,8 +396,8 @@
   why: arm of experiments/tier1_science_sample.yaml — hypothesis and decision rule
     live THERE, not here.
   steps:
-  - labels
-  - tile
+  - train
+  - evaluate
 - id: tier1_science_sample_t1_2019n_nir
   year: 2019n
   tag: t1_2019n_nir
@@ -402,5 +410,5 @@
   why: arm of experiments/tier1_science_sample.yaml — hypothesis and decision rule
     live THERE, not here.
   steps:
-  - labels
-  - tile
+  - train
+  - evaluate

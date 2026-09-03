@@ -240,8 +240,16 @@ decision_rule: 'Written before any run exists. SAMPLE: fixed ground blocks, stra
   not change after results exist. Launch itself remains Kam''s (GPU gate).
 
   '
-verdict: null
-decided: null
+verdict: 'Floor (max pairwise |delta| among 2011s base/s2/s3, recall@prec0.75 test blocks) = 0.0085.
+  LIDAR-INPUT CONFIRMED: in05 and in16 beat base beyond floor in 3/3 of {2006s +.023/+.046,
+  2011s +.017/+.021, 2016 +.075/+.066}. LIDAR-ADDER NOT CONFIRMED: 1/3 for both (2016 +.081/+.066
+  only; 2011s -.001/-.026; 2006s -.017 and add16 -.503 -- 2016-epoch additions on 2006 imagery
+  poison the labels). NIR CONFIRMED: 2016 +.074 AND 2019n +.040. CORRUPTION: flat dose-response
+  (cor05 -.0002, cor10 +.003, both inside floor) -- training insensitive to <=10% random label
+  corruption; projection error, not noise, is the binding constraint. 2020 anchor unremarkable
+  (its wins echoed on real years). 27/28 arms scored; 2011s_cor02 produced no checkpoint (fate
+  unresolved on t1gpuD); dose curve read from 0/5/10%. Data: phase4/qc/tier1_results.csv.'
+decided: '2026-09-03'
 launch_defaults:
 - --force-citywide
 steps:

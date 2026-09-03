@@ -30,7 +30,9 @@ year is supervised by projecting the 2020 mask onto it, so growth, removal and �
 
 ## Where we are
 
-Active plan: **`TIER1_SCIENCE_SAMPLE_PLAN_2026-09-02.md`** (the science sample —
+Active plan: **the ACCURACY CAMPAIGN board below** (Tier 1 complete 2026-09-03;
+its plan doc `TIER1_SCIENCE_SAMPLE_PLAN_2026-09-02.md` is now historical reference —
+
 lidar labels, lidar input, NIR, on fixed ground blocks; matrix pre-registered in
 `experiments/tier1_science_sample.yaml`). Prior: `SEMANTIC_OVERHAUL_PLAN_2026-08-29.md`
 (architecture direction), executed through the repo overhaul agreed 2026-08-30.
@@ -149,3 +151,35 @@ files as a place to look for current state.
 
 Those files are not deleted — they are dated records of what was planned when. Stage 1.4
 applies supersession banners so they stop reading as live.
+
+---
+
+## ACCURACY CAMPAIGN — the active board (2026-09-03)
+
+Goal: reference-grade accuracy + precision measurement. Adversarial-review findings
+(bootstrap CIs, era-matched rescore, add16 QC figure) are DOCUMENTED, PENDING KAM
+CONFIRMATION — nothing acted on. Kam's standing observation: C-CAP over-calls canopy;
+it is a bounded comparator, never truth.
+
+### KAM's list (human eyes required)
+| # | Task | Est. | Output |
+|---|---|---|---|
+| K1 | Photo-interpret the 250-point 2016 sample: `py -3.12 qc/instruments/phase4_accuracy_sample.py --step serve --year 2016` | ~half day | `sample_2016_labels.csv` |
+| K2 | Re-label a ~30-point subset (second pass, blind) — measures YOUR reference uncertainty | ~20 min | self-agreement rate |
+| K3 | Hand-delineate full canopy in 3-5 small blocks (QGIS) — the edge-precision instrument points cannot be | ~2 h each | reference polygons |
+| K4 | Confirm/reject the documented review findings (bootstrap CIs incl. the 2019n NIR demotion candidate; era-rescore; add16 figure) | reading | verdict amendments or none |
+| K5 | Decide: photo-interp campaigns for which OTHER eras (2006s? 2011s? 2020?) — each is another K1 | decision | scope |
+| K6 | (housekeeping) Cancel duplicate Colab Pro sub if Google AI plan covers it — Google's own banner suggests it | 5 min | -$9.99/mo |
+
+### CLAUDE's list (computational, no human labels needed)
+| # | Task | Cost | Output |
+|---|---|---|---|
+| C1 | Lidar-epoch reference scoring: score 2005-adjacent + 2016 masks against their OWN epoch's CHM>=2m (physical reference, zero circularity) | CPU, free | accuracy vs lidar per epoch |
+| C2 | Buffer-tolerant re-scoring (strict vs +/-1px edge tolerance) — splits boundary/registration error from detection error | CPU, free | error decomposition table |
+| C3 | Same-flight consistency ceiling: 2019s-vs-2019n mask disagreement — the processing-chain noise floor no reference sees | CPU, free | consistency bound |
+| C4 | `--step estimate` (Olofsson) the moment K1 lands; incl. the C-CAP-overcount quantification the disagree strata encode | CPU, minutes | `accuracy_2016.*` with CIs |
+| C5 | Edge-precision scorer for K3's polygons (predicted-edge-to-true-edge distance distribution) | CPU, small | edge-precision metric |
+| C6 | Fold confirmed findings (after K4) into the tier1 record + the full_archive_e3 recipe draft for Kam's 36-run gate | doc work | recipe rewrite |
+
+Sequencing: C1-C3 need nothing from Kam and run now. C4 blocks on K1. C5 blocks on K3.
+C6 blocks on K4. The 36-run stays gated on Kam (funding + recipe sign-off).

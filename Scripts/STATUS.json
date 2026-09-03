@@ -1,5 +1,5 @@
 {
- "generated_utc": "2026-09-02T01:06:44Z",
+ "generated_utc": "2026-09-03T08:32:24Z",
  "lake_mounted": true,
  "code": {
   "engine_version": "v048",
@@ -116,8 +116,8 @@
    "year": "2006s",
    "gsd_cm": 100.0,
    "tiles": "Y",
-   "models": 2,
-   "prob": "2006s_hy_e3_2006s.tif[33MB]; 2006s_sectors_v1.tif[9MB]",
+   "models": 7,
+   "prob": "2006s_hy_e3_2006s.tif[33MB]; 2006s_sectors_v1.tif[9MB]; 2006s_t1_2006s_add05.tif[11MB]; 2006s_t1_2006s_add16.tif[7MB]; 2006s_t1_2006s_base.tif[10MB]; 2006s_t1_2006s_in05.tif[10MB]; 2006s_t1_2006s_in16.tif[11MB]",
    "mask": "Y",
    "verify": "sectors_v1:OK",
    "honest": "rec 0.638 prec 0.442"
@@ -166,10 +166,10 @@
    "year": "2011s",
    "gsd_cm": 30.5,
    "tiles": "\u2014",
-   "models": 2,
-   "prob": "2011s_hy_e3_2011s.tif[334MB]; 2011s_sectors_v1.tif[62MB]",
+   "models": 11,
+   "prob": "2011s_hy_e3_2011s.tif[334MB]; 2011s_sectors_v1.tif[62MB]; 2011s_t1_2011s_add05.tif[64MB]; 2011s_t1_2011s_add16.tif[60MB]; 2011s_t1_2011s_base.tif[62MB]; 2011s_t1_2011s_base_s2.tif[59MB]; 2011s_t1_2011s_base_s3.tif[62MB]; 2011s_t1_2011s_cor05.tif[61MB]; 2011s_t1_2011s_cor10.tif[61MB]; 2011s_t1_2011s_in05.tif[59MB]; 2011s_t1_2011s_in16.tif[60MB]",
    "mask": "Y",
-   "verify": "sectors_v1:OK; hy_e3_2011s:OK",
+   "verify": "sectors_v1:OK",
    "honest": "rec 0.573 prec 0.451"
   },
   {
@@ -236,10 +236,10 @@
    "year": "2016",
    "gsd_cm": 30.5,
    "tiles": "Y",
-   "models": 7,
-   "prob": "2016.tif[471MB]; 2016_corrected.tif[586MB]; 2016_fullext_sectors_v1.tif[61MB]; 2016_golden_v1_2016corr.tif[29MB]; 2016_golden_v1_2016cw.tif[28MB]; 2016_golden_v1_2016fx.tif[29MB]; 2016_nir_m06.tif[67MB]",
+   "models": 13,
+   "prob": "2016.tif[471MB]; 2016_corrected.tif[586MB]; 2016_fullext_sectors_v1.tif[61MB]; 2016_golden_v1_2016corr.tif[29MB]; 2016_golden_v1_2016cw.tif[28MB]; 2016_golden_v1_2016fx.tif[29MB]; 2016_nir_m06.tif[67MB]; 2016_t1_2016_add05.tif[63MB]; 2016_t1_2016_add16.tif[61MB]; 2016_t1_2016_base.tif[61MB]; 2016_t1_2016_in05.tif[60MB]; 2016_t1_2016_in16.tif[61MB]; 2016_t1_2016_nir.tif[61MB]",
    "mask": "Y",
-   "verify": "fullext_sectors_v1:OK; nir_m06:OK; golden_v1_2016cw:MOSTLY_NODATA; golden_v1_2016corr:MOSTLY_NODATA; golden_v1_2016fx:MOSTLY_NODATA",
+   "verify": "fullext_sectors_v1:OK; nir_m06:OK; golden_v1_2016cw:MOSTLY_NODATA; golden_v1_2016corr:MOSTLY_NODATA; golden_v1_2016fx:MOSTLY_NODATA; t1_2016_in05:OK; t1_2016_in16:OK; t1_2016_nir:OK",
    "honest": "\u2014"
   },
   {
@@ -296,10 +296,10 @@
    "year": "2019n",
    "gsd_cm": 60.0,
    "tiles": "Y",
-   "models": 3,
-   "prob": "2019n_nir_m06.tif[17MB]; 2019n_p2nir.tif[66MB]; 2019n_pilot_e2_coarse.tif[75MB]",
+   "models": 5,
+   "prob": "2019n_nir_m06.tif[17MB]; 2019n_p2nir.tif[66MB]; 2019n_pilot_e2_coarse.tif[75MB]; 2019n_t1_2019n_base.tif[21MB]; 2019n_t1_2019n_nir.tif[22MB]",
    "mask": "Y",
-   "verify": "nir_m06:OK; pilot_e2_coarse:OK",
+   "verify": "nir_m06:OK; pilot_e2_coarse:OK; t1_2019n_base:OK; t1_2019n_nir:OK",
    "honest": "rec 0.650 prec 0.854"
   },
   {
@@ -316,10 +316,10 @@
    "year": "2020",
    "gsd_cm": 5.0,
    "tiles": "\u2014",
-   "models": 0,
-   "prob": "\u2014",
+   "models": 5,
+   "prob": "2020_t1_2020_add05.tif[735MB]; 2020_t1_2020_add16.tif[681MB]; 2020_t1_2020_base.tif[723MB]; 2020_t1_2020_in05.tif[708MB]; 2020_t1_2020_in16.tif[650MB]",
    "mask": "\u2014",
-   "verify": "\u2014",
+   "verify": "t1_2020_base:OK; t1_2020_add05:OK; t1_2020_in05:OK; t1_2020_in16:OK",
    "honest": "\u2014"
   },
   {

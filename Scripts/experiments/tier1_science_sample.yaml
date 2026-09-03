@@ -1,5 +1,5 @@
 name: tier1_science_sample
-status: queued
+status: complete
 hypothesis: 'The training-side knobs the recipe audit left open — lidar as label context, lidar as an
   input channel, and the 4th (NIR) band — are testable cheaply on a fixed, screened, spatially-split ground
   sample before any full-archive spend (design: TIER1_SCIENCE_SAMPLE_PLAN_2026-09-02.md). What would change

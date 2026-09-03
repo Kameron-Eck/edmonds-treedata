@@ -466,3 +466,15 @@ branch:
 The older `_archive/CHATLOG_2026-06-29_to_2026-07-07.md` compaction lives there too. This
 stub stays the valid append target required by CLAUDE.md §3.12; the HOW-TO block above is
 the unchanged spec for new entries.
+
+## 2026-09-03  tier1-verdicts
+goal:    finish tier1 GPU tail, score all arms, write pre-registered verdicts
+did:     t1gpuF ran final 9 inference arms then self-stopped via watchdog (0 runtimes left).
+         conveyor scored 27/28 (cor02 has no ckpt). built qc/instruments/build_tier1_results.py
+         -> phase4/qc/tier1_results.csv. floor .0085 from 2011s replicates. verdicts in
+         experiments/tier1_science_sample.yaml: LIDAR-INPUT CONFIRMED 3/3 yrs; ADDER NOT
+         CONFIRMED 1/3 (2006s_add16 -.503 epoch poison); NIR CONFIRMED both yrs; corruption
+         <=10pct flat. conveyor timeout death fixed (1200->3600s, 2020 scores are 167M cells).
+files:   experiments/tier1_science_sample.yaml, qc/instruments/build_tier1_results.py,
+         phase4/qc/tier1_results.csv, run_registry.csv, STATUS.*
+next:    perf writeup (ledger sync pending), cor02 fate, verdicts -> full_archive_e3 recipe (Kam)

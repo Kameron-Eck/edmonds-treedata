@@ -49,3 +49,4 @@ as_of,gpu_name_pattern,tier_label,cu_per_hour,usd_per_cu,evidence_tier,source_ur
 # TO SETTLE THE FIRST MEASURED GPU RATE: read the balance again immediately after
 # the next launch, put (173.39 - new_reading) in gpu_launches.csv
 # measured_cu_delta for that launch, then add the MEASURED row here.
+2026-09-03T01:40Z,balance_anchor,91.79,CU,screen-read from Colab Resources panel (Runtime > View resources); usage rate ~10.6 CU/hr with 2xA100 live; prior anchor 173.39 (2026-09-01) -> ~81.6 CU consumed by Tier-1 campaign incl. drills+waste. Note: disproves CU-exhaustion theory for the 2026-09-02 double-kill (balance ample then; per-session runtime limit likelier).

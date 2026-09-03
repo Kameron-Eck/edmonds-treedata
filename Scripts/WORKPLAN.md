@@ -31,10 +31,9 @@ year is supervised by projecting the 2020 mask onto it, so growth, removal and â
 ## Where we are
 
 Active plan: **the ACCURACY CAMPAIGN board below** (Tier 1 complete 2026-09-03;
-its plan doc `TIER1_SCIENCE_SAMPLE_PLAN_2026-09-02.md` is now historical reference â€”
-
-lidar labels, lidar input, NIR, on fixed ground blocks; matrix pre-registered in
-`experiments/tier1_science_sample.yaml`). Prior: `SEMANTIC_OVERHAUL_PLAN_2026-08-29.md`
+its plan doc `TIER1_SCIENCE_SAMPLE_PLAN_2026-09-02.md` is now historical reference;
+verdicts + data live in `experiments/tier1_science_sample.yaml` and
+`phase4/qc/tier1_results.csv`). Prior: `SEMANTIC_OVERHAUL_PLAN_2026-08-29.md`
 (architecture direction), executed through the repo overhaul agreed 2026-08-30.
 Branch `work/20260824-sectors`.
 

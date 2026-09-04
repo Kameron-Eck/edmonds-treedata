@@ -1,0 +1,5 @@
+quantity,cells,km2,note
+compared_cells,10821947,43.2878,"dual-covered 2m cells; keep-p 0.0926, seed 20260904"
+artifact_gain,375198,1.5008,sim<2m & real>=5m — density artifact ONLY (true change=0)
+artifact_loss,26,0.0001,sim>=5m & real<2m
+points_kept_frac,79951587,0.09259,"of 863,525,701 points"

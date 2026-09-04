@@ -717,6 +717,24 @@ def _tile_signature(label, stride, max_tiles, citywide):
                         "size": int(_ortho.stat().st_size) if _ortho.exists() else None}
     except Exception:
         pass
+    # 2026-09-03: the LABEL SOURCE the tiles are cut from. Rebuilt labels (a
+    # swapped anchor raster, moved prob_hi/lo cuts, a regenerated site mask)
+    # used to leave this signature unchanged, so stale tiles were silently
+    # reused — the v042 class, but for labels. Citywide runs read MASK_2020
+    # directly; site runs read {site}_mask.tif. name+size only, mtime excluded
+    # (Drive rewrites mtimes — the phantom-M lesson). Legacy caches without
+    # these keys are grandfathered in _existing_tiles_valid.
+    try:
+        if citywide:
+            sig["mask_2020"] = {
+                "name": MASK_2020.name,
+                "size": int(MASK_2020.stat().st_size) if MASK_2020.exists() else None}
+        else:
+            sig["label_masks"] = [
+                {"name": m.name, "size": int(m.stat().st_size)}
+                for m in sorted((SITE_DIR / label).glob("*_mask.tif"))]
+    except Exception:
+        pass
     return sig
 
 
@@ -754,6 +772,9 @@ def _existing_tiles_valid(label, sig):
         want = dict(sig)
         if "ortho" not in stored:
             want.pop("ortho", None)   # legacy (pre-P6.6) cache: honored, ortho unchecked
+        for _k in ("mask_2020", "label_masks"):   # legacy (pre-2026-09-03): honored
+            if _k not in stored:
+                want.pop(_k, None)
         if stored != want:
             return False
         if config.HONEST_VAL_SPLIT and \

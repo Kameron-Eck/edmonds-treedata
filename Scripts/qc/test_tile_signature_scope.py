@@ -41,6 +41,11 @@ RETILE_TRIGGERS = {
     "SPATIAL_BLOCK_SIZE_M", "CANOPY_AUTOCORR_M",
     # keyed only when the feature is ON, so turning it off does not invalidate caches
     "ADD_CANOPY_MASK", "SAMPLE_MANIFEST", "AUX_HEIGHT", "CHM_CREDIBLE_YEARS",
+    # 2026-09-03: the label source the tiles are cut from (anchor-key gap).
+    # Citywide keys MASK_2020 (name+size); site runs key {site}_mask.tif files
+    # under SITE_DIR. Replacing either now forces the re-tile it always should
+    # have; legacy caches without the keys are grandfathered.
+    "MASK_2020", "SITE_DIR",
 }
 
 

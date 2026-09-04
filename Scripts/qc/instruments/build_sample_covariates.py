@@ -14,19 +14,17 @@ import argparse
 import csv
 import io
 import json
-import sys
 from pathlib import Path
 
 import numpy as np
 import rasterio
 from rasterio.warp import transform as warp_transform
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "pipeline"))
-from lake import BASE  # noqa: E402
+from lake import BASE
 
 QC_DIR = BASE / "phase4" / "qc"
-GRVI_THRESH = 0.02      # phase4_qc_leafoff.py:134
-DEN_MIN = 12            # phase4_qc_leafoff.py grvi() near-black skip
+GRVI_THRESH = 0.02      # phase4_qc_leafoff.py grvi/LOW-GREENNESS convention
+DEN_MIN = 12            # phase4_qc_leafoff.py::grvi near-black skip
 DARK_DN = 60
 
 

@@ -478,3 +478,24 @@ did:     t1gpuF ran final 9 inference arms then self-stopped via watchdog (0 run
 files:   experiments/tier1_science_sample.yaml, qc/instruments/build_tier1_results.py,
          phase4/qc/tier1_results.csv, run_registry.csv, STATUS.*
 next:    perf writeup (ledger sync pending), cor02 fate, verdicts -> full_archive_e3 recipe (Kam)
+
+## 2026-09-04  accuracy-batch-overnight
+goal:    Kam's approved 8-item CPU batch (reference error + boundary accounting)
+did:     sampler repaired (chm2 strata, undo bug) + 2016/2023n REDRAWN (K1 unblocked,
+         design-power +/-1.87pp). U1: estimate scores ANY arm at the labelled points.
+         E2 covariates joined. certified-flat scoring: C-CAP 2016 over-calls 0.30% of
+         physically-empty ground (2021: <=1.17% incl growth); lidar-input slashes
+         empty-ground FP (2020 base .256->in16 .037); add16 poison visible (.375).
+         C2: ~2-3pt recall / ~2.4pt precision is 1px edge accounting at 1m years.
+         C3: same flight two deliveries = 1.3pt citywide area gap, IoU .738 -- the
+         trend's consistency floor. C1 lidar anchors (2016_base .751/.712 CLEAN;
+         in16-vs-chm2 flagged CIRCULAR). tile-signature anchor-key gap closed +
+         tripwire. E1 histograms KILLED the leaf-off premise: gradient is DELIVERY
+         RADIOMETRY (2015 Feb bimodal+unharmed; 2019 Apr whole-shift -0.02).
+         hybrid_v1 PR closed (AUROC .8946). X6 provenance. MVV-0 epoch-decay record.
+files:   qc/instruments/{phase4_accuracy_sample,build_sample_covariates,
+         certified_flat_scoring,tier1_block_bootstrap,tier1_buffer_tolerant,
+         sameflight_consistency,phase4_qc_leafoff,phase4_arm_pr_curves}.py,
+         phase4seg/tiling.py, phase4/qc/*.csv, Reports/{GREENNESS,EPOCH_DECAY}*.md
+next:    K1 (Kam labels 250, ~15min), K4 confirmation of the whole documented block,
+         radiometric-normalization pilot design, 2016_base reseed (GPU, Kam)

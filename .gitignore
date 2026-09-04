@@ -79,6 +79,7 @@ desktop.ini
 /Reports/*
 !/Reports/*.md
 !/Reports/*.csv
+!/Reports/*.docx   # generated findings ledger — work product, small
 
 # ── .github: track the CI workflow, nothing else ──────────────────────────
 # Added 2026-08-25 (overhaul E03). The /* rule at the top ignored .github/

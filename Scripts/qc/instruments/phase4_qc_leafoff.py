@@ -122,6 +122,22 @@ def report(v, kept, tot, label, img_name):
     q = np.percentile(v, [5, 10, 25, 50, 75, 90, 95])
     low = float((v < 0.02).mean())
     neg = float((v < 0.0).mean())
+    # E1 (2026-09-03): the summary quantiles cannot show bimodality — the
+    # dark-tail SHAPE is the discriminator between "bare deciduous mode"
+    # (leaf-off) and "whole distribution shifted" (delivery radiometry).
+    # Full histogram to CSV so the shape is on the record.
+    import csv as _csv
+    import io as _io
+    edges = np.arange(-0.5, 0.5001, 0.01)
+    counts, _ = np.histogram(np.clip(v, -0.5, 0.5), bins=edges)
+    hp = QC_DIR / f"leafoff_hist_{label}.csv"
+    with _io.open(hp, "w", encoding="utf-8", newline="") as f:
+        w = _csv.writer(f)
+        w.writerow(["bin_lo", "bin_hi", "count", "frac"])
+        for i, c in enumerate(counts):
+            w.writerow([round(float(edges[i]), 3), round(float(edges[i + 1]), 3),
+                        int(c), round(float(c / v.size), 6)])
+    print(f"  [E1] histogram -> {hp}")
     L = [f"LEAF-OFF TEST - {label}",
          f"  imagery : {img_name}",
          f"  canopy pixels sampled : {v.size:,}  ({kept} of {tot} windows kept)",

@@ -204,7 +204,7 @@ DEAD (adversarially killed — listed so it stays dead).
 | Task | Blocked on |
 |---|---|
 | Certified-flat scoring (model-free C-CAP over-call bound + free change cell count) | nothing — next computational slot |
-| Leaf-off quantity-preserving IGNORE experiment — **PREMISE FLAGGED 2026-09-03**: the recall-vs-greenness gradient does not track flight dates (Reports/GREENNESS_GRADIENT_CORRECTION_2026-09-03.md); decompose radiometry-vs-phenology BEFORE any GPU | covariate decomposition + Kam GPU nod |
+| ~~Leaf-off IGNORE experiment~~ **KILLED by E1 histograms 2026-09-03**: the gradient is delivery RADIOMETRY, not phenology (Feb 2015 bimodal + unharmed; Apr 2019 whole-distribution shift). Successor candidate: per-delivery radiometric normalization pilot (cheap, CPU-testable first) | new experiment design + Kam |
 | Reseed t1_2016_base x2 (~3-4 A100-h) — gates NIR/adder magnitudes | Kam GPU nod |
 | Olofsson estimate + C-CAP two-parameter bias correction | K1 labels |
 | Recipe constraint into full_archive_e3 (forbid forward-projected CHM overlays, minimum version) | K4 confirmation |

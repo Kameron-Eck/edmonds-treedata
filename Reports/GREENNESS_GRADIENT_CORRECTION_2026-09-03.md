@@ -49,3 +49,22 @@ dominating the index.
 - Radiometric normalization (per-delivery) enters the candidate list for the 36-run
   recipe — it was previously judged unnecessary; this gradient is the first evidence
   with a mechanism pointing at it.
+
+## RESOLVED by E1 histograms (2026-09-03, later the same night)
+
+Per-bin GRVI histograms over 2020-mask canopy (phase4/qc/leafoff_hist_{2015,2016,2019,2021}.csv):
+
+| year | shape | neg frac | low frac |
+|---|---|---|---|
+| 2015 (Feb) | BIMODAL — bare-deciduous mode @0.02 + conifer mode @0.19 | .145 | .313 |
+| 2019 (Apr) | UNIMODAL @ −0.02 — the whole distribution is non-green | .741 | .907 |
+| 2021 (Apr) | dominant low peak @ −0.01, small shoulder @0.12 | .473 | .644 |
+| 2016 (summer) | unimodal green @0.17–0.27 | .023 | .028 |
+
+Verdict: 2015 is true phenology (bimodal) and its recall is UNHARMED (.740) —
+leaf-off alone does not damage recall. 2019/2021's low-greenness is a WHOLE-
+DISTRIBUTION radiometric shift (74% of April canopy pixels cannot be negative-
+GRVI biologically — conifers stay green). The recall gradient is DELIVERY
+RADIOMETRY. The leaf-off IGNORE experiment is DEAD as premised; the surviving
+candidate lever is per-delivery radiometric normalization (G/R separation),
+testable cheaply against the 2019 arm before any recipe change.

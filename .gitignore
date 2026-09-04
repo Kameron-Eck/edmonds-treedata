@@ -50,6 +50,7 @@ desktop.ini
 /phase4/*
 !/phase4/qc/
 /phase4/qc/*
+!/phase4/qc/*.png
 !/phase4/qc/*.txt
 !/phase4/qc/*.csv
 !/phase4/qc/*.json
@@ -79,7 +80,8 @@ desktop.ini
 /Reports/*
 !/Reports/*.md
 !/Reports/*.csv
-!/Reports/*.docx   # generated findings ledger — work product, small
+# generated findings ledger — work product, small
+!/Reports/*.docx
 
 # ── .github: track the CI workflow, nothing else ──────────────────────────
 # Added 2026-08-25 (overhaul E03). The /* rule at the top ignored .github/

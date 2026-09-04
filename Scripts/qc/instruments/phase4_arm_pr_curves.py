@@ -59,8 +59,10 @@ HERE = Path(__file__).resolve().parent
 def _load_qc_indep():
     """Import phase4_qc_indep as a module so the class map / DN convention are
     the SAME OBJECTS the scorer of record uses, not a copy that can rot."""
+    # qc ROOT, not instruments/ — the 4c move relocated this file but the
+    # scorer of record stayed at qc/ (KERNEL-EXEC keep); HERE broke silently.
     spec = importlib.util.spec_from_file_location(
-        "_qc_indep", HERE / "phase4_qc_indep.py")
+        "_qc_indep", HERE.parent / "phase4_qc_indep.py")
     mod = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(mod)          # safe: the script is __main__-guarded
     return mod

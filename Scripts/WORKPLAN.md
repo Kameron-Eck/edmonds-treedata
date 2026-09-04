@@ -182,3 +182,59 @@ it is a bounded comparator, never truth.
 
 Sequencing: C1-C3 need nothing from Kam and run now. C4 blocks on K1. C5 blocks on K3.
 C6 blocks on K4. The 36-run stays gated on Kam (funding + recipe sign-off).
+
+---
+
+## MASTER BOARD — every open thread, one home (2026-09-03)
+
+This section is THE master work plan. Everything below either lives here or is a
+pointer; if a task isn't on this board it is not planned work. States:
+ACTIVE (being executed) / QUEUED (agreed, waiting on a blocker) / KAM-GATE (needs
+his decision) / TABLED (deliberately parked, with the re-open condition) /
+DEAD (adversarially killed — listed so it stays dead).
+
+### ACTIVE
+| Thread | State | Pointer |
+|---|---|---|
+| Accuracy campaign K1-K6 / C1-C6 | boards above | this file |
+| Adversarial-review follow-ons (sampler chm2 redraw before K1; U1 estimate-decoupling; undo-bug fix; 2023n redraw) | machinery-fix grant covers these | plan record + `qc/instruments/phase4_accuracy_sample.py` |
+| Findings ledger regeneration discipline | regenerate on new experiments, never hand-edit | `Reports/FINDINGS_LEDGER_2026-09-03.docx` |
+
+### QUEUED (agreed, blocked)
+| Task | Blocked on |
+|---|---|
+| Certified-flat scoring (model-free C-CAP over-call bound + free change cell count) | nothing — next computational slot |
+| Leaf-off quantity-preserving IGNORE experiment (2019 vs 2013, dose-capped ~3%) — the top training lever, ~4-5 A100-h | Kam GPU nod (Tier-1 grant expired with campaign) |
+| Reseed t1_2016_base x2 (~3-4 A100-h) — gates NIR/adder magnitudes | Kam GPU nod |
+| Olofsson estimate + C-CAP two-parameter bias correction | K1 labels |
+| Recipe constraint into full_archive_e3 (forbid forward-projected CHM overlays, minimum version) | K4 confirmation |
+| Small closes: _tile_signature anchor-key gap + tripwire; E1 dark-tail rerun; hybrid_v1 PR close-out; tier1_results sweep-provenance (X6); MVV-0 epoch-decay write-up | none — batch when convenient |
+| Ops debt: resume-credit visibility root fix; mailbox stem-collision; rare check.py flicker | none — batch |
+
+### KAM-GATE (his call, nothing moves without it)
+| Decision | Context |
+|---|---|
+| K4: confirm/reject the documented review findings | bootstrap CIs, era rescore, add16 figure, ledger corrections |
+| The 36-run (full_archive_e3) go/no-go + recipe sign-off | also: the yaml holds 34 arms, not 36 — reconcile |
+| Overlay-policy strength (forbid forward-only vs ALL CHM overlays pending reseed) | risk posture, not measurement |
+| K5 era choice for further photo-interp campaigns | ~15 min labeling each at his pace |
+| Shoreline transfer test post-36-run (paper external validity) | inference-only, pre-registered |
+| C-CAP license quarantine for any new clip | goes live if Shoreline or any new AOI |
+| Champion designations for 2000/2002/2013/2015/2016/2017 | champion_arms.csv is the home |
+
+### TABLED (parked deliberately — re-open condition recorded)
+| Item | Re-open when |
+|---|---|
+| Instance segmentation (per-year crowns) | after semantic archive ships (Kam 2026-08-29) |
+| DeepLabV3+ | never for this pipeline unless edge-precision work makes stride-4 acceptable |
+| Synthetic degraded-imagery training (Phase A tool built) | pre-2000 years become the focus |
+| Satellite workstream (S2 calibration anchor, C-CAP 30m trend band) | after the 36-run ships the mask series |
+| Stability-mined labels A/B | closed null three ways — re-open only with new arm-disagreement evidence |
+| Object-kind decomposition diagnostic | when a question needs sub-30-block resolution |
+
+### DEAD (adversarially killed 2026-09-03 — do not re-propose without NEW evidence)
+Shadow masks / shadow input channel; uncertainty-weighted loss; KC/Shoreline pre-36-run
+(all forms); era-matched rescore of the remaining 18 arms; model-confidence photo-interp
+strata; temporal-change strata on incompatible lattices; confirmatory direction-gating
+GPU arms; 5-band CHM+NIR fusion (errors shared, not complementary); more corruption doses.
+

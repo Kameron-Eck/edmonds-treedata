@@ -83,7 +83,11 @@ MASKS = BASE / "phase4" / "masks"
 
 _LOCAL_IMG = Path(r"D:\edmonds-pipeline\Imagery")
 _DRIVE_IMG = BASE / "Full_Image" / "Pipeline Imagery"
-CHM_NAME = "lidar_snoh_chm.tif"
+# chm2 REPLACED lidar_snoh_chm.tif 2026-09-03: the old raster reads +4.1-5.4 m
+# high in every bin and calls 8.82% of certified-flat ground >2 m (config.py
+# chm2 block); strata drawn from it put the "5-15 m" band at ~0-11 m true.
+# Same DN encoding (1 + round(h/0.2), 0 = nodata) — decode below unchanged.
+CHM_NAME = "lidar_chm2_2016_50cm.tif"
 CHM_DN_PER_M = 1.0 / 0.2
 
 CCAP_CANOPY = [9, 10, 11, 13, 16]
@@ -281,7 +285,14 @@ def step_estimate(year):
             csv.DictReader(io.open(samp_p, encoding="utf-8", newline=""))}
     labels = {}
     for r in csv.DictReader(io.open(lab_p, encoding="utf-8", newline="")):
-        labels[int(r["point_id"])] = r["label"].strip().lower()
+        lab = r["label"].strip().lower()
+        # The labels CSV is an append-only event log; "undo" retracts the point's
+        # standing decision (same fold as step_serve._final). Without this, a
+        # trailing undo was scored as a fabricated non-canopy truth.
+        if lab == "undo":
+            labels.pop(int(r["point_id"]), None)
+        else:
+            labels[int(r["point_id"])] = lab
 
     # Olofsson stratified estimation. Population units are lattice cells; each
     # stratum h has known weight W_h = N_h / N. Within-stratum sample means of

@@ -1,0 +1,4 @@
+quantity,cells,km2,definition
+dual_covered,8866539,35.466,DN>0 in both chm2005(2m) and chm2 max-warped to its grid
+loss_2005_2016,191008,0.764,"h2005>=5m AND h2016<2m (physical, model-free)"
+gain_2005_2016,877241,3.509,h2005<2m AND h2016>=5m

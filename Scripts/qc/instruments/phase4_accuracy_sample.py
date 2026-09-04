@@ -270,7 +270,13 @@ def step_design(year, prob_path, ccap_path, ndvi_path, thresh, n, decim, seed):
     print(f"\n  Next: --step serve --year {year}   (photo-interpret each point)")
 
 
-def step_estimate(year):
+def step_estimate(year, prob_path=None, thresh=None):
+    """Default: score the frozen model_canopy snapshot the design stored.
+    U1 (2026-09-03): pass prob_path (+ thresh) to score ANY arm's prob raster
+    at the same labelled points — the labels are model-agnostic, so one
+    labelling session evaluates every arm at every threshold, forever.
+    Points falling on nodata/255 or outside the raster are EXCLUDED and
+    counted (effective n shrinks; sample-extent probs cover few points)."""
     meta_p = QC_DIR / f"sample_{year}_meta.json"
     lab_p = QC_DIR / f"sample_{year}_labels.csv"
     samp_p = QC_DIR / f"sample_{year}.csv"
@@ -301,6 +307,24 @@ def step_estimate(year):
     strata_meta = {int(k): v for k, v in meta["strata"].items()}
     N = sum(v["cells"] for v in strata_meta.values())
 
+    # U1: per-point predictions from an arbitrary prob raster, sampled at the
+    # design's stored (x, y) — transformed from the design CRS if it differs.
+    arm_pred, arm_tag, no_pred = None, "", 0
+    if prob_path is not None:
+        if thresh is None:
+            raise SystemExit("--prob needs --thresh (the arm's operating point)")
+        thr_u8 = thresh * 254.0
+        with rasterio.open(prob_path) as pr:
+            xs = [float(samp[p]["x"]) for p in sorted(samp)]
+            ys = [float(samp[p]["y"]) for p in sorted(samp)]
+            if str(pr.crs) != meta["crs"]:
+                xs, ys = warp_transform(meta["crs"], pr.crs, xs, ys)
+            vals = np.array([v[0] for v in pr.sample(zip(xs, ys), 1)])
+        arm_pred = {}
+        for pid, v in zip(sorted(samp), vals):
+            arm_pred[pid] = None if v == 255 else bool(v >= thr_u8)
+        arm_tag = Path(prob_path).stem.replace("edmonds_canopy_prob_", "")
+
     acc = {h: dict(n=0, tp=0, fp=0, fn=0, tn=0, unsure=0) for h in strata_meta}
     for pid, row in samp.items():
         lab = labels.get(pid)
@@ -312,7 +336,13 @@ def step_estimate(year):
             a["unsure"] += 1
             continue
         truth = lab in ("canopy", "c", "yes", "1")
-        pred = row["model_canopy"] == "1"
+        if arm_pred is not None:
+            pred = arm_pred.get(pid)
+            if pred is None:
+                no_pred += 1
+                continue
+        else:
+            pred = row["model_canopy"] == "1"
         a["n"] += 1
         if truth and pred:   a["tp"] += 1
         elif not truth and pred: a["fp"] += 1
@@ -385,10 +415,15 @@ def step_estimate(year):
     recall, ci_recall = ratio_ci({"tp": 1}, {"tp": 1, "fn": 1})
     prec, ci_prec = ratio_ci({"tp": 1}, {"tp": 1, "fp": 1})
 
-    L = [f"HUMAN ACCURACY ESTIMATE — {year}   (Olofsson stratified)",
+    model_line = (f"  model  : {Path(prob_path).name} @ thresh {thresh}"
+                  f"   ({no_pred} points outside/nodata, EXCLUDED)"
+                  if prob_path is not None else
+                  f"  model  : {meta['prob']} @ thresh {meta['thresh']}")
+    L = [f"HUMAN ACCURACY ESTIMATE — {year}"
+         + (f" / arm {arm_tag}" if arm_tag else "") + "   (Olofsson stratified)",
          f"  sample : {meta['n_drawn']} points, {labelled} labelled, "
          f"{sum(a['unsure'] for a in acc.values())} unsure (EXCLUDED, never coerced)",
-         f"  model  : {meta['prob']} @ thresh {meta['thresh']}",
+         model_line,
          "",
          f"  recall     {recall:.4f}  ± {ci_recall:.4f}   (95% CI, approx)",
          f"  precision  {prec:.4f}  ± {ci_prec:.4f}   (95% CI, approx)",
@@ -414,8 +449,9 @@ def step_estimate(year):
           "  Phase-4 literature review settles the exact form."]
     txt = "\n".join(L)
     print("\n" + txt)
-    (QC_DIR / f"accuracy_{year}.txt").write_text(txt, encoding="utf-8")
-    with io.open(QC_DIR / f"accuracy_{year}.csv", "w", encoding="utf-8", newline="") as f:
+    stem = f"accuracy_{year}" + (f"_{arm_tag}" if arm_tag else "")
+    (QC_DIR / f"{stem}.txt").write_text(txt, encoding="utf-8")
+    with io.open(QC_DIR / f"{stem}.csv", "w", encoding="utf-8", newline="") as f:
         w = csv.writer(f)
         w.writerow(["metric", "value"])
         for k, v in (("recall", recall), ("ci95_recall", ci_recall),
@@ -423,7 +459,7 @@ def step_estimate(year):
                      ("true_canopy_frac", area_true), ("ci95_canopy_frac", ci_area),
                      ("model_canopy_frac", p_tp + p_fp), ("n_labelled", labelled)):
             w.writerow([k, round(v, 6) if isinstance(v, float) else v])
-    print(f"\n  wrote {QC_DIR / f'accuracy_{year}.txt'}")
+    print(f"\n  wrote {QC_DIR / f'{stem}.txt'}")
 
 
 
@@ -595,7 +631,9 @@ def main():
         step_design(args.year, Path(args.prob), Path(args.ref), ndvi,
                     args.thresh, args.n, args.decim, args.seed)
     elif args.step == "estimate":
-        step_estimate(args.year)
+        step_estimate(args.year,
+                      prob_path=Path(args.prob) if args.prob else None,
+                      thresh=args.thresh)
     else:
         if args.ortho is None:
             raise SystemExit("--ortho is required for --step serve (the year's native "

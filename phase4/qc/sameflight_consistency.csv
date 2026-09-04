@@ -1,0 +1,2 @@
+mask_a,mask_b,grid_px_m,valid_px,canopy_a_frac,canopy_b_frac,disagree_frac,canopy_iou,hard_disagree_frac,note
+edmonds_canopy_mask_2019s_pilot_e2_medium.tif,edmonds_canopy_mask_2019n_pilot_e2_coarse.tif,1.0,860527308,0.2102,0.2231,0.0654,0.7376,0.0591,"one flight, two deliveries, zero engine diff (pilot e2); hard = no same-class pixel within 1px in the other mask"

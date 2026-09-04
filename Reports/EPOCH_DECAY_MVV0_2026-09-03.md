@@ -50,3 +50,19 @@ with: chm2005-input losing to chm2-input on 2006s (+.023 vs +.046).
 Per-year recipe: use the best-QUALITY CHM (chm2) as input everywhere lidar input is
 used; do not chase epoch-nearness; KC/Shoreline acquisition for epoch science is
 NOT-WORTH-IT pre-36-run (master board, WORKPLAN.md).
+
+## Addendum — C1 lidar-epoch anchors (2026-09-03, test AOI, buildings IGNOREd)
+
+Physical reference = epoch CHM >= 2 m, building+2 m excluded (still includes
+power lines/tall shrubs — a "tall vegetation-like surface" reference):
+
+| arm | reference | recall | precision | independence |
+|---|---|---|---|---|
+| 2016_base | chm2 (own epoch) | .7512 | .7118 | CLEAN — no lidar in the model |
+| 2016_in16 | chm2 | .6999 | .8901 | **CIRCULAR — chm2 is also the arm's INPUT; partly self-agreement, never quote as accuracy** |
+| 2006s_base | chm2005 (1 yr off) | .4597 | .8666 | clean; low recall = the weak year, high precision = what fires is real tall veg |
+| 2011s_base | chm2005 (6 yr stale) | .6363 | .7902 | clean but includes real 2005→2011 change — a bound, not truth |
+
+2016_base agreeing with physical lidar at ~the same level as with C-CAP is the
+first zero-circularity evidence that reference error is not dominating the 2016
+scores. Rows live in qc_indep_report.csv (ref *_canopy2m_binary, aoi sample-test).

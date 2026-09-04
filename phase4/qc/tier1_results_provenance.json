@@ -1,0 +1,412 @@
+{
+ "generated": "2026-09-03",
+ "primary_statistic": "recall@precision>=0.75, test-block dense sweep, ref ccap_2021_hires_lc, canopy_def forest_wetland",
+ "builder": "qc/instruments/build_tier1_results.py",
+ "arms": {
+  "t1_2006s_add05": {
+   "sweep_file": "qc_indep_sweep_2006s_t1_2006s_add05_ccap_2021_hires_lc_sample-test.csv",
+   "sweep_md5": "a0b5a46628f8a26e9aac443a6e59fe73",
+   "sweep_ts": [
+    "2026-09-02 17:47:11"
+   ],
+   "sweep_rows": 254,
+   "selection_pick": {
+    "k": "63",
+    "thresh": "0.248031",
+    "criterion": "f1_plateau_hi_d005",
+    "ts": "2026-09-02 17:47:02",
+    "sweep_file": "qc_indep_sweep_2006s_t1_2006s_add05_ccap_2021_hires_lc_sample-selection.csv"
+   }
+  },
+  "t1_2006s_add16": {
+   "sweep_file": "qc_indep_sweep_2006s_t1_2006s_add16_ccap_2021_hires_lc_sample-test.csv",
+   "sweep_md5": "91a50427f287cd9429484e619defe556",
+   "sweep_ts": [
+    "2026-09-02 17:47:28"
+   ],
+   "sweep_rows": 254,
+   "selection_pick": {
+    "k": "113",
+    "thresh": "0.444881",
+    "criterion": "f1_plateau_hi_d005",
+    "ts": "2026-09-02 17:47:19",
+    "sweep_file": "qc_indep_sweep_2006s_t1_2006s_add16_ccap_2021_hires_lc_sample-selection.csv"
+   }
+  },
+  "t1_2006s_base": {
+   "sweep_file": "qc_indep_sweep_2006s_t1_2006s_base_ccap_2021_hires_lc_sample-test.csv",
+   "sweep_md5": "d9627f32d870300dd66f902cfd9ef38c",
+   "sweep_ts": [
+    "2026-09-02 17:47:45"
+   ],
+   "sweep_rows": 254,
+   "selection_pick": {
+    "k": "64",
+    "thresh": "0.251968",
+    "criterion": "f1_plateau_hi_d005",
+    "ts": "2026-09-02 17:47:36",
+    "sweep_file": "qc_indep_sweep_2006s_t1_2006s_base_ccap_2021_hires_lc_sample-selection.csv"
+   }
+  },
+  "t1_2006s_in05": {
+   "sweep_file": "qc_indep_sweep_2006s_t1_2006s_in05_ccap_2021_hires_lc_sample-test.csv",
+   "sweep_md5": "b6b486f19bf0129fe82b9985b254fdc8",
+   "sweep_ts": [
+    "2026-09-02 17:48:03"
+   ],
+   "sweep_rows": 254,
+   "selection_pick": {
+    "k": "63",
+    "thresh": "0.248031",
+    "criterion": "f1_plateau_hi_d005",
+    "ts": "2026-09-02 17:47:53",
+    "sweep_file": "qc_indep_sweep_2006s_t1_2006s_in05_ccap_2021_hires_lc_sample-selection.csv"
+   }
+  },
+  "t1_2006s_in16": {
+   "sweep_file": "qc_indep_sweep_2006s_t1_2006s_in16_ccap_2021_hires_lc_sample-test.csv",
+   "sweep_md5": "4cacafdfc4bc70cac2e9b6958127aa38",
+   "sweep_ts": [
+    "2026-09-02 17:48:20"
+   ],
+   "sweep_rows": 254,
+   "selection_pick": {
+    "k": "69",
+    "thresh": "0.271653",
+    "criterion": "f1_plateau_hi_d005",
+    "ts": "2026-09-02 17:48:11",
+    "sweep_file": "qc_indep_sweep_2006s_t1_2006s_in16_ccap_2021_hires_lc_sample-selection.csv"
+   }
+  },
+  "t1_2011s_add05": {
+   "sweep_file": "qc_indep_sweep_2011s_t1_2011s_add05_ccap_2021_hires_lc_sample-test.csv",
+   "sweep_md5": "f5b1c41b00d97f4ae9cf8298dbb67243",
+   "sweep_ts": [
+    "2026-09-02 18:15:12"
+   ],
+   "sweep_rows": 254,
+   "selection_pick": {
+    "k": "63",
+    "thresh": "0.248031",
+    "criterion": "f1_plateau_hi_d005",
+    "ts": "2026-09-02 18:14:12",
+    "sweep_file": "qc_indep_sweep_2011s_t1_2011s_add05_ccap_2021_hires_lc_sample-selection.csv"
+   }
+  },
+  "t1_2011s_add16": {
+   "sweep_file": "qc_indep_sweep_2011s_t1_2011s_add16_ccap_2021_hires_lc_sample-test.csv",
+   "sweep_md5": "cf763fc8a56b69f48bed0db101ed6ed9",
+   "sweep_ts": [
+    "2026-09-02 18:20:55"
+   ],
+   "sweep_rows": 254,
+   "selection_pick": {
+    "k": "56",
+    "thresh": "0.220472",
+    "criterion": "f1_plateau_hi_d005",
+    "ts": "2026-09-02 18:19:55",
+    "sweep_file": "qc_indep_sweep_2011s_t1_2011s_add16_ccap_2021_hires_lc_sample-selection.csv"
+   }
+  },
+  "t1_2011s_base": {
+   "sweep_file": "qc_indep_sweep_2011s_t1_2011s_base_ccap_2021_hires_lc_sample-test.csv",
+   "sweep_md5": "3aaf34b73216fcf0006eba07d5ecb7d5",
+   "sweep_ts": [
+    "2026-09-02 17:54:03"
+   ],
+   "sweep_rows": 254,
+   "selection_pick": {
+    "k": "57",
+    "thresh": "0.224409",
+    "criterion": "f1_plateau_hi_d005",
+    "ts": "2026-09-02 17:53:03",
+    "sweep_file": "qc_indep_sweep_2011s_t1_2011s_base_ccap_2021_hires_lc_sample-selection.csv"
+   }
+  },
+  "t1_2011s_base_s2": {
+   "sweep_file": "qc_indep_sweep_2011s_t1_2011s_base_s2_ccap_2021_hires_lc_sample-test.csv",
+   "sweep_md5": "458f84f6988d6a59d54859ed9ae87f94",
+   "sweep_ts": [
+    "2026-09-02 17:59:44"
+   ],
+   "sweep_rows": 254,
+   "selection_pick": {
+    "k": "67",
+    "thresh": "0.263779",
+    "criterion": "f1_plateau_hi_d005",
+    "ts": "2026-09-02 17:58:45",
+    "sweep_file": "qc_indep_sweep_2011s_t1_2011s_base_s2_ccap_2021_hires_lc_sample-selection.csv"
+   }
+  },
+  "t1_2011s_base_s3": {
+   "sweep_file": "qc_indep_sweep_2011s_t1_2011s_base_s3_ccap_2021_hires_lc_sample-test.csv",
+   "sweep_md5": "31d34973ced2005c05a924f797fb8719",
+   "sweep_ts": [
+    "2026-09-02 18:09:29"
+   ],
+   "sweep_rows": 254,
+   "selection_pick": {
+    "k": "66",
+    "thresh": "0.259842",
+    "criterion": "f1_plateau_hi_d005",
+    "ts": "2026-09-02 18:08:29",
+    "sweep_file": "qc_indep_sweep_2011s_t1_2011s_base_s3_ccap_2021_hires_lc_sample-selection.csv"
+   }
+  },
+  "t1_2011s_cor05": {
+   "sweep_file": "qc_indep_sweep_2011s_t1_2011s_cor05_ccap_2021_hires_lc_sample-test.csv",
+   "sweep_md5": "4fb2ec7bea6a931dac8bdf91a5064418",
+   "sweep_ts": [
+    "2026-09-02 18:46:09"
+   ],
+   "sweep_rows": 254,
+   "selection_pick": {
+    "k": "61",
+    "thresh": "0.240157",
+    "criterion": "f1_plateau_hi_d005",
+    "ts": "2026-09-02 18:45:09",
+    "sweep_file": "qc_indep_sweep_2011s_t1_2011s_cor05_ccap_2021_hires_lc_sample-selection.csv"
+   }
+  },
+  "t1_2011s_cor10": {
+   "sweep_file": "qc_indep_sweep_2011s_t1_2011s_cor10_ccap_2021_hires_lc_sample-test.csv",
+   "sweep_md5": "4a654afdb24769ad9f1c0ef05dd3196d",
+   "sweep_ts": [
+    "2026-09-02 18:51:52"
+   ],
+   "sweep_rows": 254,
+   "selection_pick": {
+    "k": "58",
+    "thresh": "0.228346",
+    "criterion": "f1_plateau_hi_d005",
+    "ts": "2026-09-02 18:50:52",
+    "sweep_file": "qc_indep_sweep_2011s_t1_2011s_cor10_ccap_2021_hires_lc_sample-selection.csv"
+   }
+  },
+  "t1_2011s_in05": {
+   "sweep_file": "qc_indep_sweep_2011s_t1_2011s_in05_ccap_2021_hires_lc_sample-test.csv",
+   "sweep_md5": "0947db547303b5f2479708efb170447f",
+   "sweep_ts": [
+    "2026-09-02 18:34:40"
+   ],
+   "sweep_rows": 254,
+   "selection_pick": {
+    "k": "55",
+    "thresh": "0.216535",
+    "criterion": "f1_plateau_hi_d005",
+    "ts": "2026-09-02 18:33:37",
+    "sweep_file": "qc_indep_sweep_2011s_t1_2011s_in05_ccap_2021_hires_lc_sample-selection.csv"
+   }
+  },
+  "t1_2011s_in16": {
+   "sweep_file": "qc_indep_sweep_2011s_t1_2011s_in16_ccap_2021_hires_lc_sample-test.csv",
+   "sweep_md5": "d91c09ca6f08a07cb2db0d4f080230f0",
+   "sweep_ts": [
+    "2026-09-02 18:40:26"
+   ],
+   "sweep_rows": 254,
+   "selection_pick": {
+    "k": "54",
+    "thresh": "0.212598",
+    "criterion": "f1_plateau_hi_d005",
+    "ts": "2026-09-02 18:39:24",
+    "sweep_file": "qc_indep_sweep_2011s_t1_2011s_in16_ccap_2021_hires_lc_sample-selection.csv"
+   }
+  },
+  "t1_2016_add05": {
+   "sweep_file": "qc_indep_sweep_2016_t1_2016_add05_ccap_2021_hires_lc_sample-test.csv",
+   "sweep_md5": "02bcd0a60052dafd9476228ecd0544b5",
+   "sweep_ts": [
+    "2026-09-02 19:03:16"
+   ],
+   "sweep_rows": 254,
+   "selection_pick": {
+    "k": "56",
+    "thresh": "0.220472",
+    "criterion": "f1_plateau_hi_d005",
+    "ts": "2026-09-02 19:02:17",
+    "sweep_file": "qc_indep_sweep_2016_t1_2016_add05_ccap_2021_hires_lc_sample-selection.csv"
+   }
+  },
+  "t1_2016_add16": {
+   "sweep_file": "qc_indep_sweep_2016_t1_2016_add16_ccap_2021_hires_lc_sample-test.csv",
+   "sweep_md5": "544545d771a8066611e5c336114cd4a9",
+   "sweep_ts": [
+    "2026-09-02 19:12:58"
+   ],
+   "sweep_rows": 254,
+   "selection_pick": {
+    "k": "57",
+    "thresh": "0.224409",
+    "criterion": "f1_plateau_hi_d005",
+    "ts": "2026-09-02 19:11:59",
+    "sweep_file": "qc_indep_sweep_2016_t1_2016_add16_ccap_2021_hires_lc_sample-selection.csv"
+   }
+  },
+  "t1_2016_base": {
+   "sweep_file": "qc_indep_sweep_2016_t1_2016_base_ccap_2021_hires_lc_sample-test.csv",
+   "sweep_md5": "810ebf28d3a9fe92cd2ddcd7d78bd8be",
+   "sweep_ts": [
+    "2026-09-02 18:57:34"
+   ],
+   "sweep_rows": 254,
+   "selection_pick": {
+    "k": "103",
+    "thresh": "0.405511",
+    "criterion": "f1_plateau_hi_d005",
+    "ts": "2026-09-02 18:56:34",
+    "sweep_file": "qc_indep_sweep_2016_t1_2016_base_ccap_2021_hires_lc_sample-selection.csv"
+   }
+  },
+  "t1_2016_in05": {
+   "sweep_file": "qc_indep_sweep_2016_t1_2016_in05_ccap_2021_hires_lc_sample-test.csv",
+   "sweep_md5": "0ccf3c1c047ebbe60a58118680a7a785",
+   "sweep_ts": [
+    "2026-09-02 21:38:32"
+   ],
+   "sweep_rows": 254,
+   "selection_pick": {
+    "k": "37",
+    "thresh": "0.145669",
+    "criterion": "f1_plateau_hi_d005",
+    "ts": "2026-09-02 21:37:32",
+    "sweep_file": "qc_indep_sweep_2016_t1_2016_in05_ccap_2021_hires_lc_sample-selection.csv"
+   }
+  },
+  "t1_2016_in16": {
+   "sweep_file": "qc_indep_sweep_2016_t1_2016_in16_ccap_2021_hires_lc_sample-test.csv",
+   "sweep_md5": "fa202ffda6497ee4e875203e4c1bfb57",
+   "sweep_ts": [
+    "2026-09-02 21:40:16"
+   ],
+   "sweep_rows": 254,
+   "selection_pick": {
+    "k": "34",
+    "thresh": "0.133858",
+    "criterion": "f1_plateau_hi_d005",
+    "ts": "2026-09-02 21:39:17",
+    "sweep_file": "qc_indep_sweep_2016_t1_2016_in16_ccap_2021_hires_lc_sample-selection.csv"
+   }
+  },
+  "t1_2016_nir": {
+   "sweep_file": "qc_indep_sweep_2016_t1_2016_nir_ccap_2021_hires_lc_sample-test.csv",
+   "sweep_md5": "732d863591c61ce5880ab7d42b0d1364",
+   "sweep_ts": [
+    "2026-09-02 21:42:01"
+   ],
+   "sweep_rows": 254,
+   "selection_pick": {
+    "k": "42",
+    "thresh": "0.165354",
+    "criterion": "f1_plateau_hi_d005",
+    "ts": "2026-09-02 21:41:02",
+    "sweep_file": "qc_indep_sweep_2016_t1_2016_nir_ccap_2021_hires_lc_sample-selection.csv"
+   }
+  },
+  "t1_2019n_base": {
+   "sweep_file": "qc_indep_sweep_2019n_t1_2019n_base_ccap_2021_hires_lc_sample-test.csv",
+   "sweep_md5": "d16050b825adc2880ad50e42be474ab9",
+   "sweep_ts": [
+    "2026-09-02 23:55:55"
+   ],
+   "sweep_rows": 254,
+   "selection_pick": {
+    "k": "124",
+    "thresh": "0.488188",
+    "criterion": "f1_plateau_hi_d005",
+    "ts": "2026-09-02 23:55:37",
+    "sweep_file": "qc_indep_sweep_2019n_t1_2019n_base_ccap_2021_hires_lc_sample-selection.csv"
+   }
+  },
+  "t1_2019n_nir": {
+   "sweep_file": "qc_indep_sweep_2019n_t1_2019n_nir_ccap_2021_hires_lc_sample-test.csv",
+   "sweep_md5": "006657e76207f15c77276d0d11f07d3b",
+   "sweep_ts": [
+    "2026-09-02 23:56:29"
+   ],
+   "sweep_rows": 254,
+   "selection_pick": {
+    "k": "106",
+    "thresh": "0.417322",
+    "criterion": "f1_plateau_hi_d005",
+    "ts": "2026-09-02 23:56:10",
+    "sweep_file": "qc_indep_sweep_2019n_t1_2019n_nir_ccap_2021_hires_lc_sample-selection.csv"
+   }
+  },
+  "t1_2020_add05": {
+   "sweep_file": "qc_indep_sweep_2020_t1_2020_add05_ccap_2021_hires_lc_sample-test.csv",
+   "sweep_md5": "a4701d2659803b7cb37f99928a4b2ec1",
+   "sweep_ts": [
+    "2026-09-02 23:09:02"
+   ],
+   "sweep_rows": 254,
+   "selection_pick": {
+    "k": "30",
+    "thresh": "0.11811",
+    "criterion": "f1_plateau_hi_d005",
+    "ts": "2026-09-02 22:42:49",
+    "sweep_file": "qc_indep_sweep_2020_t1_2020_add05_ccap_2021_hires_lc_sample-selection.csv"
+   }
+  },
+  "t1_2020_add16": {
+   "sweep_file": "qc_indep_sweep_2020_t1_2020_add16_ccap_2021_hires_lc_sample-test.csv",
+   "sweep_md5": "f02d489107e069972d63d80a6b29be88",
+   "sweep_ts": [
+    "2026-09-02 22:22:44"
+   ],
+   "sweep_rows": 254,
+   "selection_pick": {
+    "k": "28",
+    "thresh": "0.110236",
+    "criterion": "f1_plateau_hi_d005",
+    "ts": "2026-09-02 21:56:32",
+    "sweep_file": "qc_indep_sweep_2020_t1_2020_add16_ccap_2021_hires_lc_sample-selection.csv"
+   }
+  },
+  "t1_2020_base": {
+   "sweep_file": "qc_indep_sweep_2020_t1_2020_base_ccap_2021_hires_lc_sample-test.csv",
+   "sweep_md5": "459f0d4c8f572cef9f976f5c7cb0d3f4",
+   "sweep_ts": [
+    "2026-09-02 23:51:21"
+   ],
+   "sweep_rows": 254,
+   "selection_pick": {
+    "k": "26",
+    "thresh": "0.102362",
+    "criterion": "f1_plateau_hi_d005",
+    "ts": "2026-09-02 23:25:09",
+    "sweep_file": "qc_indep_sweep_2020_t1_2020_base_ccap_2021_hires_lc_sample-selection.csv"
+   }
+  },
+  "t1_2020_in05": {
+   "sweep_file": "qc_indep_sweep_2020_t1_2020_in05_ccap_2021_hires_lc_sample-test.csv",
+   "sweep_md5": "3068bac0b53558ed0356038ae18aaaf6",
+   "sweep_ts": [
+    "2026-09-03 00:38:34"
+   ],
+   "sweep_rows": 254,
+   "selection_pick": {
+    "k": "20",
+    "thresh": "0.07874",
+    "criterion": "f1_plateau_hi_d005",
+    "ts": "2026-09-03 00:12:24",
+    "sweep_file": "qc_indep_sweep_2020_t1_2020_in05_ccap_2021_hires_lc_sample-selection.csv"
+   }
+  },
+  "t1_2020_in16": {
+   "sweep_file": "qc_indep_sweep_2020_t1_2020_in16_ccap_2021_hires_lc_sample-test.csv",
+   "sweep_md5": "730e6502ae388ef3bb0a348e12183bc9",
+   "sweep_ts": [
+    "2026-09-03 01:20:32"
+   ],
+   "sweep_rows": 254,
+   "selection_pick": {
+    "k": "18",
+    "thresh": "0.070866",
+    "criterion": "f1_plateau_hi_d005",
+    "ts": "2026-09-03 00:54:26",
+    "sweep_file": "qc_indep_sweep_2020_t1_2020_in16_ccap_2021_hires_lc_sample-selection.csv"
+   }
+  }
+ }
+}

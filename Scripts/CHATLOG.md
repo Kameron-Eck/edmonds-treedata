@@ -534,3 +534,21 @@ files:   experiments/{trend8_uniform_rgb,overlap_floor}.yaml, config.py append,
          imagery_geometry.csv, passport, test pins
 next:    launch overlap_floor 2xA100; items 3 (Landsat covariate), 4 (degradation
          ladder), 6 (2m stack census); 2020-Aug consortium fetch
+
+## 2026-09-05  housecleaning
+goal:    repo hygiene after the week
+did:     pr-curves outputs homed to phase4/qc (root pollution from the 4c-move bug,
+         instrument still writes cwd - debt). QUARANTINED four 2023n sidecars holding
+         2022n byte-copy content (qc_indep/leafoff-control/design_power x2; dot-suffix
+         rename + README_2023N_QUARANTINE; sample_2023n itself was already redrawn
+         2026-09-03). landed.py absorbed 28 registry rows (trend8+overlap manifests).
+         FIXED landed.py CHATLOG gate: re.search took the FIRST ## date (oldest in
+         the rotated stub) as "newest" and nagged past entries; now max(findall).
+         lit pile complete: 4 papers read+reasoned (MURTreeFormer, JPSL irrational-
+         transitions, GeoAI inheritance, ALCC ensemble) - all confirm the diagnosis,
+         none validates change vs blind human truth; 3 free tests queued.
+files:   qc/landed.py, phase4/qc/arm_pr_curves*, CHATLOG.md, run_registry.csv,
+         lake: 2023n quarantine renames + README
+next:    overlap GPUs finishing -> floor/factorial/EagleView reads; then the
+         synthesis session (Kam). Search budget exhausted this session - skeptic
+         hunt brief for a fresh session.

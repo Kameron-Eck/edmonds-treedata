@@ -64,12 +64,16 @@ def main():
 
     print("\n── CHATLOG " + "─" * 60)
     log = (SCRIPTS / "CHATLOG.md").read_text(encoding="utf-8", errors="replace")
-    m = re.search(r"^## (\d{4}-\d{2}-\d{2})", log, re.M)
+    # ALL matches, take the last: entries append at the BOTTOM, and the rotated
+    # stub keeps old entries above — re.search took the first (= oldest) and
+    # nagged for entries that already existed (caught 2026-09-05).
+    dates = re.findall(r"^## (\d{4}-\d{2}-\d{2})", log, re.M)
+    newest = max(dates) if dates else None
     today = _dt.date.today().isoformat()
-    if m and m.group(1) >= today:   # >= : a session can straddle midnight
-        print(f"  newest entry is from today ({m.group(1)}) — assumed current")
+    if newest and newest >= today:   # >= : a session can straddle midnight
+        print(f"  newest entry is from today ({newest}) — assumed current")
     else:
-        print(f"  newest entry: {m.group(1) if m else 'NONE'} — append one "
+        print(f"  newest entry: {newest or 'NONE'} — append one "
               f"(caveman style, schema in the file header):\n"
               f"  ## {today}  <slug>\n  goal:    \n  did:     \n  files:   \n  next:    ")
 

@@ -54,10 +54,14 @@ def main():
     ok = inside & v16 & v21 & v24
     loss = ok & c16 & ~c24
     persist = loss & ~c21
+    gain = ok & ~c16 & c24
+    pgain = gain & c21          # already present by 2021 AND held to 2024
     lab, n = ndimage.label(persist, structure=np.ones((3, 3)))
     print(f"loss cells {loss.sum():,} ({loss.sum()*4/1e4:.1f} ha); "
           f"persistent {persist.sum():,} ({persist.sum()*4/1e4:.1f} ha); "
           f"{n} raw clusters")
+    print(f"gain cells {gain.sum():,} ({gain.sum()*4/1e4:.1f} ha); "
+          f"persistent gain {pgain.sum():,} ({pgain.sum()*4/1e4:.1f} ha)")
     sizes = ndimage.sum_labels(np.ones_like(lab), lab, range(1, n + 1))
     keep = [i + 1 for i, s in enumerate(sizes) if s * 4 / 1e4 >= MIN_HA]
     cents = ndimage.center_of_mass(persist, lab, keep)
@@ -112,7 +116,9 @@ def main():
     fig, ax = plt.subplots(figsize=(10, 14))
     base = np.zeros((h, w, 3))
     base[inside] = (0.92, 0.92, 0.90)
-    base[ok & c16] = (0.75, 0.85, 0.75)
+    base[ok & c16] = (0.80, 0.86, 0.80)
+    base[gain] = (0.45, 0.85, 0.45)
+    base[pgain] = (0.05, 0.55, 0.10)
     base[loss] = (1.0, 0.55, 0.2)
     base[persist] = (0.85, 0.1, 0.1)
     ax.imshow(base)
@@ -120,9 +126,10 @@ def main():
         col = (float(r["x"]) - tf.c) / CELL
         row = (tf.f - float(r["y"])) / CELL
         ax.plot(col, row, "b+", ms=8, mew=1.6)
-    ax.set_title("Edmonds canopy loss 2016→2024 (trend8 maps)\n"
-                 "green=2016 canopy, orange=loss, red=persistent loss (already gone by 2021), "
-                 "blue + = Kam's verified loss points")
+    ax.set_title("Edmonds canopy change 2016→2024 (trend8 maps)\n"
+                 "pale green=2016 canopy · bright green=gain · dark green=persistent gain (by 2021)\n"
+                 "orange=loss · red=persistent loss (gone by 2021) · blue + = Kam's verified loss points\n"
+                 "CAUTION: raw gain inherits the fine-2024-GSD artifact — dark green is the trustworthy layer")
     ax.axis("off")
     fig.tight_layout()
     fig.savefig(OUTD / "trend8_hotspot_map.png", dpi=140)

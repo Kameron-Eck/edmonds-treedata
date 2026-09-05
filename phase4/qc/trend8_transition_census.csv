@@ -1,0 +1,8 @@
+quantity,px,frac,note
+all_city_px,6138921,1.0,
+stable_0_transitions,4347113,0.708123300495315,
+monotone_1_transition,489591,0.07975196292638397,real single change OR one bad year
+flicker_2plus,1302217,0.21212473657830097,trajectory family's target
+canopy_gone_canopy,1009466,0.16443704032027778,impossible triple (trees do not resurrect)
+ever_canopy_px,2567788,0.4182800202185368,
+flicker_share_of_ever_canopy,1302217,0.5071357136959905,the paper ratio

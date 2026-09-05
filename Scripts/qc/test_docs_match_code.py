@@ -148,10 +148,11 @@ def test_no_gated_doc_asserts_a_retired_figure(phrase):
 def test_the_live_numbers_are_what_the_code_says():
     """Pins the derivation itself. If YEAR_CATALOG changes, this fails and every
     number in STATUS.md and the gated docs must be revisited — which is the point."""
-    assert FACTS["acquisitions"] == 36, FACTS["acquisitions"]
+    # 37 since 2026-09-05: 2017k promoted for the overlap program (item 7).
+    assert FACTS["acquisitions"] == 37, FACTS["acquisitions"]
     assert FACTS["calendar_years"] == 20, FACTS["calendar_years"]
     assert len(FACTS["nir_labels"]) == 10, FACTS["nir_labels"]
-    assert FACTS["rgb_only"] == 26
+    assert FACTS["rgb_only"] == 27   # +2017k (RGB) 2026-09-05
     assert (FACTS["gsd_min"], FACTS["gsd_max"]) == (5.0, 100.0)
     assert "2022n" not in FACTS["nir_labels"], "2022n was renamed to 2023n"
 

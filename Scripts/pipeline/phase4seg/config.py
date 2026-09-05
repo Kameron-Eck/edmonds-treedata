@@ -1143,7 +1143,9 @@ LATEST_CKPT_LOCAL = True
 YEAR_CATALOG.append({
     "key": "2017k", "label": "2017k",
     "source": "King Co. 2017 (same May 2017 window as 2017 CoE)",
-    "gsd_cm": 15.0, "bands": 3, "crs_epsg": 3857,
+    "gsd_cm": 10.0, "bands": 3, "crs_epsg": 3857,   # 10.0 = MEASURED ground px
+    # (imagery_geometry 2026-09-05: 0.1004 m; the 0.149 CRS-units are Mercator-
+    # inflated +48.7% — the same-day flag caught the nominal 15.0 first written)
     "coverage": "city (held locally + lake)",
     "seg_tier": "semantic_only",
     "native_file": "2017_king_rgb.tif",

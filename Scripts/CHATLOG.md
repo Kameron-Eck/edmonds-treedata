@@ -516,3 +516,21 @@ files:   qc/instruments/{panel_a_paired_change,paired_change_power,
          metric_tolerance_scores.csv, lidar_decimation_null.csv, paired_change_power.csv
 next:    city statement doc (two-leg story: lidar up 2005-2016, human-measured down
          2016-2024); Panel B (2005->2016 paired) decision; Bayesian anchor optional
+
+## 2026-09-05  trend8-verdict-overlap-launch
+goal:    8-year map series verdicts + flicker program items 1-8 (Kam approved)
+did:     trend8 DONE both A100s one session (16 masks). raw fractions sawtooth
+         +-3-6pp; 2m harmonization NULL (detection-time bias); map 2016->2024 +4.2pp
+         OPPOSITE Panel A -2.21 - maps disqualified from trend, Panel A stands.
+         hot spots: 115ha loss, dispersed (max cluster 0.41ha), 34/42 of Kam's
+         verified losses corroborated. lit families 3/4/5 workflow -> ranked program.
+         item1 flicker parcels: hard negatives ~0 FP flat (no hallucinated canopy).
+         2017k promoted (Kam item-7 approval): catalog append, gsd corrected to
+         MEASURED 10.0 (Mercator flag), geometry/coreg/passport regen, pins 36->37
+         26->27, coreg 2017k median .01/.21m. overlap_floor pre-registered
+         (items 2+5+7: floor kill >1.3pp, factorial, EagleView triple sign test).
+files:   experiments/{trend8_uniform_rgb,overlap_floor}.yaml, config.py append,
+         qc/instruments/trend8_*.py, phase4/qc/trend8_*, coregistration.csv,
+         imagery_geometry.csv, passport, test pins
+next:    launch overlap_floor 2xA100; items 3 (Landsat covariate), 4 (degradation
+         ladder), 6 (2m stack census); 2020-Aug consortium fetch

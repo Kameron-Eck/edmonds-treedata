@@ -356,6 +356,16 @@ def step_estimate():
             labels.pop(r["point_id"], None)
         else:
             labels[r["point_id"]] = r["label"]
+    vfile = QC_DIR / "panel_a_verify.csv"
+    n_over = 0
+    if vfile.exists():
+        v = _load_labels(vfile)
+        for pid, lab in v.items():
+            if pid in labels and lab != labels[pid]:
+                n_over += 1
+            labels[pid] = lab
+        print(f"[verify] {len(v)} change calls re-judged vs leaf-on Oct-2023; "
+              f"{n_over} overturned")
     delta = {"loss": -1.0, "gain": 1.0, "nochange": 0.0}
 
     blur_bad = sum(1 for pid, lab in labels.items()
@@ -411,10 +421,118 @@ def step_estimate():
     print(f"\nwrote {QC_DIR / 'panel_a_estimate.txt'}")
 
 
+ORTHO_VERIFY = IMG / "2023_naip_60cm_rgbi.tif"   # 2023-10-07: leaf-ON verifier
+# 2023n coreg vs anchor is near-zero (2023 (King) row is the co-family product);
+# NAIP 60cm chip is context only - registration residual acceptable for a
+# present/absent crown judgment.
+COREG_VERIFY = (0.0, 0.0)
+
+
+def _load_labels(path):
+    labs = {}
+    if path.exists():
+        for r in csv.DictReader(io.open(path, encoding="utf-8", newline="")):
+            if r["label"] == "undo":
+                labs.pop(r["point_id"], None)
+            else:
+                labs[r["point_id"]] = r["label"]
+    return labs
+
+
+def step_verify_chips():
+    """Cut the leaf-on middle chip for every live gain/loss call."""
+    labs = _load_labels(QC_DIR / "panel_a_labels.csv")
+    pts = {r["point_id"]: r for r in csv.DictReader(
+        io.open(QC_DIR / "panel_a_points.csv", encoding="utf-8", newline=""))}
+    todo = [p for p, l in labs.items()
+            if pts[p]["kind"] == "live" and l in ("gain", "loss")]
+    for i, pid in enumerate(sorted(todo, key=int), 1):
+        r = pts[pid]
+        m = _chip_png(ORTHO_VERIFY, float(r["x"]), float(r["y"]), *COREG_VERIFY)
+        m.save(CHIP_DIR / f"{pid}_M.png")
+        if i % 20 == 0 or i == len(todo):
+            print(f"  verify chips {i}/{len(todo)}", flush=True)
+    print(f"{len(todo)} change calls queued for verification. Next: --step verify")
+
+
+VPAGE = PAGE.replace(
+    "<div><img id=L> <img id=R></div>",
+    "<div><img id=L> <img id=M> <img id=R></div>"
+).replace(
+    "canopy AT THE CROSSHAIR: same, gain, or loss?",
+    "VERIFY vs leaf-on Oct-2023 (middle): was your call real change?"
+).replace(
+    "L.src='/chip/'+q[i]+'_L.png';R.src='/chip/'+q[i]+'_R.png';",
+    "L.src='/chip/'+q[i]+'_L.png';M.src='/chip/'+q[i]+'_M.png';"
+    "R.src='/chip/'+q[i]+'_R.png';"
+).replace("img{width:420px", "img{width:340px")
+
+
+def step_verify(port):
+    """Re-serve ONLY the gain/loss calls with the 2023-10 leaf-on middle chip.
+    Same answer vocabulary; result csv panel_a_verify.csv OVERRIDES the
+    original label in --step estimate (a loss that shows an intact crown in
+    Oct-2023 AND spring-2024 bare branches is phenology -> answer "nochange"
+    unless truly removed)."""
+    labs = _load_labels(QC_DIR / "panel_a_labels.csv")
+    pts = {r["point_id"]: r for r in csv.DictReader(
+        io.open(QC_DIR / "panel_a_points.csv", encoding="utf-8", newline=""))}
+    vfile = QC_DIR / "panel_a_verify.csv"
+    done = set(_load_labels(vfile))
+    queue = [p for p, l in sorted(labs.items(), key=lambda kv: int(kv[0]))
+             if pts[p]["kind"] == "live" and l in ("gain", "loss")
+             and p not in done]
+    if not vfile.exists():
+        vfile.write_text("point_id,label,ts\n", encoding="utf-8")
+
+    class H(http.server.BaseHTTPRequestHandler):
+        def log_message(self, *a):
+            pass
+
+        def do_GET(self):
+            import datetime
+            import urllib.parse as up
+            u = up.urlparse(self.path)
+            if u.path == "/":
+                b = VPAGE.encode()
+                self.send_response(200)
+                self.send_header("Content-Type", "text/html; charset=utf-8")
+                self.end_headers()
+                self.wfile.write(b)
+            elif u.path == "/queue":
+                b = json.dumps(queue).encode()
+                self.send_response(200)
+                self.send_header("Content-Type", "application/json")
+                self.end_headers()
+                self.wfile.write(b)
+            elif u.path.startswith("/chip/"):
+                pth = CHIP_DIR / Path(u.path).name
+                if pth.exists() and pth.suffix == ".png":
+                    self.send_response(200)
+                    self.send_header("Content-Type", "image/png")
+                    self.end_headers()
+                    self.wfile.write(pth.read_bytes())
+                else:
+                    self.send_error(404)
+            elif u.path == "/label":
+                qd = dict(up.parse_qsl(u.query))
+                ts = datetime.datetime.now(datetime.UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
+                with io.open(vfile, "a", encoding="utf-8", newline="") as f:
+                    f.write(f'{qd["pid"]},{qd["label"]},{ts}\n')
+                self.send_response(200)
+                self.end_headers()
+            else:
+                self.send_error(404)
+
+    print(f"{len(queue)} change calls to verify -> http://localhost:{port}")
+    http.server.ThreadingHTTPServer(("127.0.0.1", port), H).serve_forever()
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--step", required=True,
-                    choices=["design", "chips", "serve", "estimate"])
+                    choices=["design", "chips", "serve", "estimate",
+                             "verify-chips", "verify"])
     ap.add_argument("--port", type=int, default=8741)
     a = ap.parse_args(clean_argv())
     if a.step == "design":
@@ -423,6 +541,10 @@ def main():
         step_chips()
     elif a.step == "serve":
         step_serve(a.port)
+    elif a.step == "verify-chips":
+        step_verify_chips()
+    elif a.step == "verify":
+        step_verify(a.port)
     else:
         step_estimate()
 

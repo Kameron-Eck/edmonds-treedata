@@ -1,0 +1,51 @@
+name: overlap_floor
+status: queued
+hypothesis: 'Items 2+5+7 of the flicker-program ranking (2026-09-05, Kam-approved): the
+  archive''s OVERLAP structure can decompose the trend8 sawtooth into instrument mechanisms
+  without any new ground truth. (2) OVERLAP FLOOR: same-window acquisitions delivered
+  differently bound the instrument term - 2017 CoE vs 2017 King share the May 4-10 2017
+  flight window (fine vs ~15cm grid); zero real change between them by construction.
+  (5) EAGLEVIEW TRIPLE: 2020/2022/2024 CoE 5cm - vendor, GSD, and season all held; the
+  strongest same-method series the archive owns; its 2020->2024 net is the method-controlled
+  map trend to sign-test against Panel A (-2.21pp). (7) SEASON x GRID FACTORIAL 2017:
+  {May: CoE 5cm, King 15cm} x {Aug: 2017s 30cm, 2017n 1m} - the only design that crosses
+  season and grid with zero real change inside one calendar year.'
+arms:
+- year: '2017'
+  tag: of_2017
+  extra: [--no-hillshade]
+- year: 2017k
+  tag: of_2017k
+  extra: [--no-hillshade]
+- year: 2017s
+  tag: of_2017s
+  extra: [--no-hillshade]
+- year: 2017n
+  tag: of_2017n
+  extra: [--no-hillshade]
+- year: '2020'
+  tag: of_2020
+  extra: [--no-hillshade]
+- year: '2022'
+  tag: of_2022
+  extra: [--no-hillshade]
+baseline: null
+metric: 'city-clipped canopy fraction on the common 2m grid (trend8_harmonized_fractions
+  method) per arm; paired deltas within the overlap sets.'
+decision_rule: 'Written before any run. Same UNIFORM recipe as trend8 (plain RGB,
+  --no-hillshade, policy-C criterion) so every overlap delta is an instrument term, never
+  a recipe term. READS: (a) |fraction(2017 CoE) - fraction(2017 King)| is the same-window
+  cross-delivery floor at May; if it exceeds the 1.3pp same-flight bound (C3) the noise
+  model is understated - STOP and re-derive before quoting any map number again. (b) The
+  2017 quartet decomposes: season main effect = mean(Aug arms) - mean(May arms); grid main
+  effect within season; interaction. If season+grid explain <50% of the quartet spread, a
+  fourth mechanism is at work (mosaic seams, BRDF) and the harmonization program is declared
+  BOUNDED. (c) EagleView 2020->2022->2024 net change, method-controlled: primary read is
+  SIGN vs Panel A on the shared window; agreement rehabilitates method-controlled map
+  differencing, disagreement kills map differencing here even under total method control
+  (either way a finding, pre-registered). trend8_2024 is reused as the 2024 arm - same
+  recipe, no rerun. 2xA100 cap; approved by Kam 2026-09-05 ("Yes to 1 through 8").'
+verdict: null
+decided: null
+launch_defaults:
+- --force-citywide

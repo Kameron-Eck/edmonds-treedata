@@ -1133,3 +1133,18 @@ ANALYSIS_GRID_EPSG = 26910
 #    epoch with zero production readers; True keeps it on VM-local disk
 #    (crash-resume within the VM unaffected; sem_best uploads unchanged).
 LATEST_CKPT_LOCAL = True
+
+# ── 2017k — King County 2017 spring flight              APPENDED 2026-09-05 ──
+# Promoted under Kam's item-7 approval (2017 season x GSD factorial, overlap
+# program 2026-09-05): same May 4-10 2017 flight window as the 2017 CoE 5 cm
+# product, delivered at ~15 cm on EPSG:3857 (nominal-vs-effective per the
+# pixelsize table's 2017 (King) row). Fills the factorial's May-coarse-grid
+# cell beside 2017 (May fine), 2017s (Aug 30 cm), 2017n (Aug 1 m).
+YEAR_CATALOG.append({
+    "key": "2017k", "label": "2017k",
+    "source": "King Co. 2017 (same May 2017 window as 2017 CoE)",
+    "gsd_cm": 15.0, "bands": 3, "crs_epsg": 3857,
+    "coverage": "city (held locally + lake)",
+    "seg_tier": "semantic_only",
+    "native_file": "2017_king_rgb.tif",
+})

@@ -1,0 +1,54 @@
+# GENERATED from experiments/overlap_floor.yaml — DO NOT EDIT.
+# Edit the experiment file and rerun:
+#   py -3.12 qc/experiment_queue.py --experiment experiments/overlap_floor.yaml
+# test_experiments.py::test_generated_queues_match_their_experiments fails on drift.
+# ONE QUEUE PER RUNTIME (COLAB_AUTONOMY_SETUP.md); arms wanting parallel
+# runtimes get split into per-arm files by hand, still generated-headered.
+- id: overlap_floor_of_2017
+  year: '2017'
+  tag: of_2017
+  extra:
+  - --force-citywide
+  - --no-hillshade
+  why: arm of experiments/overlap_floor.yaml — hypothesis and decision rule live THERE,
+    not here.
+- id: overlap_floor_of_2017k
+  year: 2017k
+  tag: of_2017k
+  extra:
+  - --force-citywide
+  - --no-hillshade
+  why: arm of experiments/overlap_floor.yaml — hypothesis and decision rule live THERE,
+    not here.
+- id: overlap_floor_of_2017s
+  year: 2017s
+  tag: of_2017s
+  extra:
+  - --force-citywide
+  - --no-hillshade
+  why: arm of experiments/overlap_floor.yaml — hypothesis and decision rule live THERE,
+    not here.
+- id: overlap_floor_of_2017n
+  year: 2017n
+  tag: of_2017n
+  extra:
+  - --force-citywide
+  - --no-hillshade
+  why: arm of experiments/overlap_floor.yaml — hypothesis and decision rule live THERE,
+    not here.
+- id: overlap_floor_of_2020
+  year: '2020'
+  tag: of_2020
+  extra:
+  - --force-citywide
+  - --no-hillshade
+  why: arm of experiments/overlap_floor.yaml — hypothesis and decision rule live THERE,
+    not here.
+- id: overlap_floor_of_2022
+  year: '2022'
+  tag: of_2022
+  extra:
+  - --force-citywide
+  - --no-hillshade
+  why: arm of experiments/overlap_floor.yaml — hypothesis and decision rule live THERE,
+    not here.

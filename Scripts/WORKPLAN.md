@@ -196,6 +196,8 @@ DEAD (adversarially killed — listed so it stays dead).
 ### ACTIVE
 | Thread | State | Pointer |
 |---|---|---|
+| **Flicker program (items 1-8, Kam-approved 2026-09-05)**: 1 ✓ (parcels), 6 ✓ (census: 50.7% flicker), 2/5/7 ON GPUs (ofA/ofB, overlap_floor), 3/4/8 QUEUED-held per Kam (finish in-flight first, then synthesis) | GPUs to complete → floor/factorial/EagleView analysis | `experiments/overlap_floor.yaml` |
+| **Canopy DEFINITION review — SAVED, awaiting Kam sign-off** on the §6 written definition + §7 decisions | Kam reading | `Reports/CANOPY_COVER_DEFINITION_REVIEW_2026-09-05.md` |
 | **DIRECTION CAMPAIGN — Panel A DONE (2026-09-04): canopy −2.21pp 2016→2024, CI [−3.31,−1.11], verified vs leaf-on Oct-2023** | next: city statement doc + Panel B decision | `phase4/qc/panel_a_estimate.txt`, instrument `qc/instruments/panel_a_paired_change.py` |
 | Accuracy campaign K1-K6 / C1-C6 | boards above | this file |
 | Adversarial-review follow-ons (sampler chm2 redraw before K1; U1 estimate-decoupling; undo-bug fix; 2023n redraw) | machinery-fix grant covers these | plan record + `qc/instruments/phase4_accuracy_sample.py` |

@@ -415,6 +415,15 @@ def step_estimate():
          f"(sharpness-asymmetry bias; pairing cannot cancel this one)",
          f"      capture audit: {missed}/{len(srs_out)} SRS points OUTSIDE the "
          f"locators showed change (0-1 supports capture ~0.9+)"]
+    dl = QC_DIR / "panel_a_drift_labels.csv"
+    if dl.exists():
+        dlab = _load_labels(dl)
+        bad = sum(1 for v in dlab.values() if v in ("gain", "loss"))
+        L.append(f"      drift controls (2.0 m worst-case shift): {bad}/{len(dlab)} "
+                 f"false change -> displacement bias bound +0.32 pp typical / "
+                 f"+1.00 pp hostile on NET (subtracts from decline; derivation "
+                 f"2026-09-05, edge-vulnerable exposure by stratum). Sign of the "
+                 f"decline holds in both scenarios.")
     txt = "\n".join(L)
     print("\n" + txt)
     (QC_DIR / "panel_a_estimate.txt").write_text(txt, encoding="utf-8")

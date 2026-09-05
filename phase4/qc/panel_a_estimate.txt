@@ -4,3 +4,4 @@ PANEL A ESTIMATE - 2016->2024   (paired Olofsson)
   QC: duplicate disagreement 2/28 (differential error ~0.036; gate needs <=0.005)
       blur-control false change 0/30 (sharpness-asymmetry bias; pairing cannot cancel this one)
       capture audit: 2/97 SRS points OUTSIDE the locators showed change (0-1 supports capture ~0.9+)
+      drift controls (2.0 m worst-case shift): 2/30 false change -> displacement bias bound +0.32 pp typical / +1.00 pp hostile on NET (subtracts from decline; derivation 2026-09-05, edge-vulnerable exposure by stratum). Sign of the decline holds in both scenarios.

@@ -439,6 +439,91 @@ def _load_labels(path):
     return labs
 
 
+def step_drift_controls():
+    """Displacement controls (Kam's disclosure 2026-09-05: trees sometimes
+    rendered shifted between chips and read as change). 30 pairs, both sides
+    the SAME 2024 imagery, right chip shifted 2.0 m in a random direction —
+    the measured residual registration scale (coregistration.csv 2016 p68
+    2.03 m). Points drawn from stable-canopy ground near crown edges, the
+    vulnerable zone (verified losses sit median 2.0 m from an edge). True
+    answer is `same` for every pair; the change-call rate on these IS the
+    displacement-induced false-change rate. Queue file: panel_a_drift.csv,
+    labels: panel_a_drift_labels.csv (served by --step drift)."""
+    rng = np.random.default_rng(20260905)
+    pts = [r for r in csv.DictReader(io.open(QC_DIR / "panel_a_points.csv",
+                                             encoding="utf-8", newline=""))
+           if r["kind"] == "live" and r["stratum"] in ("3",)]
+    sel = rng.choice(pts, 30, replace=False)
+    rows = []
+    for i, r in enumerate(sel):
+        ang = rng.uniform(0, 2 * np.pi)
+        dx, dy = 2.0 * np.cos(ang), 2.0 * np.sin(ang)
+        pid = f"D{i+1:02d}"
+        left = _chip_png(ORTHO24, float(r["x"]), float(r["y"]), *COREG["2024"])
+        right = _chip_png(ORTHO24, float(r["x"]) + dx, float(r["y"]) + dy,
+                          *COREG["2024"])
+        left.save(CHIP_DIR / f"{pid}_L.png")
+        right.save(CHIP_DIR / f"{pid}_R.png")
+        rows.append(dict(point_id=pid, src=r["point_id"],
+                         dx=round(dx, 2), dy=round(dy, 2)))
+    with io.open(QC_DIR / "panel_a_drift.csv", "w", encoding="utf-8", newline="") as f:
+        w = csv.DictWriter(f, fieldnames=["point_id", "src", "dx", "dy"])
+        w.writeheader(); w.writerows(rows)
+    print(f"30 drift controls cut (2.0 m shifts). Next: --step drift")
+
+
+def step_generic_serve(port, queue_csv, labels_csv):
+    """Serve an arbitrary pair-queue (drift controls etc.): same UI, same
+    append-only labels contract, point_ids taken from queue_csv."""
+    rows = list(csv.DictReader(io.open(queue_csv, encoding="utf-8", newline="")))
+    done = set(_load_labels(labels_csv))
+    queue = [r["point_id"] for r in rows if r["point_id"] not in done]
+    if not labels_csv.exists():
+        labels_csv.write_text("point_id,label,ts\n", encoding="utf-8")
+
+    class H(http.server.BaseHTTPRequestHandler):
+        def log_message(self, *a):
+            pass
+
+        def do_GET(self):
+            import datetime
+            import urllib.parse as up
+            u = up.urlparse(self.path)
+            if u.path == "/":
+                b = PAGE.encode()
+                self.send_response(200)
+                self.send_header("Content-Type", "text/html; charset=utf-8")
+                self.end_headers()
+                self.wfile.write(b)
+            elif u.path == "/queue":
+                b = json.dumps(queue).encode()
+                self.send_response(200)
+                self.send_header("Content-Type", "application/json")
+                self.end_headers()
+                self.wfile.write(b)
+            elif u.path.startswith("/chip/"):
+                pth = CHIP_DIR / Path(u.path).name
+                if pth.exists() and pth.suffix == ".png":
+                    self.send_response(200)
+                    self.send_header("Content-Type", "image/png")
+                    self.end_headers()
+                    self.wfile.write(pth.read_bytes())
+                else:
+                    self.send_error(404)
+            elif u.path == "/label":
+                qd = dict(up.parse_qsl(u.query))
+                ts = datetime.datetime.now(datetime.UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
+                with io.open(labels_csv, "a", encoding="utf-8", newline="") as f:
+                    f.write(f'{qd["pid"]},{qd["label"]},{ts}\n')
+                self.send_response(200)
+                self.end_headers()
+            else:
+                self.send_error(404)
+
+    print(f"{len(queue)} to label -> http://localhost:{port}")
+    http.server.ThreadingHTTPServer(("127.0.0.1", port), H).serve_forever()
+
+
 def step_verify_chips():
     """Cut the leaf-on middle chip for every live gain/loss call."""
     labs = _load_labels(QC_DIR / "panel_a_labels.csv")
@@ -532,7 +617,7 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--step", required=True,
                     choices=["design", "chips", "serve", "estimate",
-                             "verify-chips", "verify"])
+                             "verify-chips", "verify", "drift-controls", "drift"])
     ap.add_argument("--port", type=int, default=8741)
     a = ap.parse_args(clean_argv())
     if a.step == "design":
@@ -543,6 +628,11 @@ def main():
         step_serve(a.port)
     elif a.step == "verify-chips":
         step_verify_chips()
+    elif a.step == "drift-controls":
+        step_drift_controls()
+    elif a.step == "drift":
+        step_generic_serve(a.port, QC_DIR / "panel_a_drift.csv",
+                           QC_DIR / "panel_a_drift_labels.csv")
     elif a.step == "verify":
         step_verify(a.port)
     else:

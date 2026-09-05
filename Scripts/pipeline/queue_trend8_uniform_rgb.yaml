@@ -1,0 +1,70 @@
+# GENERATED from experiments/trend8_uniform_rgb.yaml — DO NOT EDIT.
+# Edit the experiment file and rerun:
+#   py -3.12 qc/experiment_queue.py --experiment experiments/trend8_uniform_rgb.yaml
+# test_experiments.py::test_generated_queues_match_their_experiments fails on drift.
+# ONE QUEUE PER RUNTIME (COLAB_AUTONOMY_SETUP.md); arms wanting parallel
+# runtimes get split into per-arm files by hand, still generated-headered.
+- id: trend8_uniform_rgb_trend8_2009
+  year: '2009'
+  tag: trend8_2009
+  extra:
+  - --force-citywide
+  - --no-hillshade
+  why: arm of experiments/trend8_uniform_rgb.yaml — hypothesis and decision rule live
+    THERE, not here.
+- id: trend8_uniform_rgb_trend8_2011s
+  year: 2011s
+  tag: trend8_2011s
+  extra:
+  - --force-citywide
+  - --no-hillshade
+  why: arm of experiments/trend8_uniform_rgb.yaml — hypothesis and decision rule live
+    THERE, not here.
+- id: trend8_uniform_rgb_trend8_2013
+  year: '2013'
+  tag: trend8_2013
+  extra:
+  - --force-citywide
+  - --no-hillshade
+  why: arm of experiments/trend8_uniform_rgb.yaml — hypothesis and decision rule live
+    THERE, not here.
+- id: trend8_uniform_rgb_trend8_2015
+  year: '2015'
+  tag: trend8_2015
+  extra:
+  - --force-citywide
+  - --no-hillshade
+  why: arm of experiments/trend8_uniform_rgb.yaml — hypothesis and decision rule live
+    THERE, not here.
+- id: trend8_uniform_rgb_trend8_2016
+  year: '2016'
+  tag: trend8_2016
+  extra:
+  - --force-citywide
+  - --no-hillshade
+  why: arm of experiments/trend8_uniform_rgb.yaml — hypothesis and decision rule live
+    THERE, not here.
+- id: trend8_uniform_rgb_trend8_2019
+  year: '2019'
+  tag: trend8_2019
+  extra:
+  - --force-citywide
+  - --no-hillshade
+  why: arm of experiments/trend8_uniform_rgb.yaml — hypothesis and decision rule live
+    THERE, not here.
+- id: trend8_uniform_rgb_trend8_2021
+  year: '2021'
+  tag: trend8_2021
+  extra:
+  - --force-citywide
+  - --no-hillshade
+  why: arm of experiments/trend8_uniform_rgb.yaml — hypothesis and decision rule live
+    THERE, not here.
+- id: trend8_uniform_rgb_trend8_2024
+  year: '2024'
+  tag: trend8_2024
+  extra:
+  - --force-citywide
+  - --no-hillshade
+  why: arm of experiments/trend8_uniform_rgb.yaml — hypothesis and decision rule live
+    THERE, not here.

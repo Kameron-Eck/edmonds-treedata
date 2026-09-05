@@ -1,0 +1,60 @@
+name: trend8_uniform_rgb
+status: queued
+hypothesis: 'The canopy trend has an inflection near 2016: up-or-flat before, declining after
+  (Panel A human measurement: -2.21pp 2016->2024, CI [-3.31,-1.11]; lidar physics: net gain
+  2005->2016 on covered ground). An 8-year full-city map series under ONE DELIBERATELY UNIFORM
+  recipe (plain RGB, no NIR, no lidar input, no hillshade - per-year-best recipes change the
+  METHOD over time, and a method change at the inflection year is a fake-trend generator)
+  tests: (a) does the map-differenced 2016->2024 net agree in SIGN with Panel A;
+  (b) is the pre-2016 slope (2009/2011s/2013/2015) >= the post-2016 slope (2016/2019/2021/2024),
+  computed WITHIN the King sensor family where possible; (c) do loss hot-spots persist across
+  consecutive years (a real hot spot repeats; an artifact flickers - the C3 same-flight floor
+  1.3pp/IoU .738 and flicker report are the judges); (d) do map losses co-locate with the 42
+  Panel-A-verified loss points and the dual-epoch lidar loss cells.'
+arms:
+- year: '2009'
+  tag: trend8_2009
+  extra: [--no-hillshade]
+- year: 2011s
+  tag: trend8_2011s
+  extra: [--no-hillshade]
+- year: '2013'
+  tag: trend8_2013
+  extra: [--no-hillshade]
+- year: '2015'
+  tag: trend8_2015
+  extra: [--no-hillshade]
+- year: '2016'
+  tag: trend8_2016
+  extra: [--no-hillshade]
+- year: '2019'
+  tag: trend8_2019
+  extra: [--no-hillshade]
+- year: '2021'
+  tag: trend8_2021
+  extra: [--no-hillshade]
+- year: '2024'
+  tag: trend8_2024
+  extra: [--no-hillshade]
+baseline: null
+metric: 'canopy fraction per year (postproc mask area / city area, analysis grid); primary
+  triangulation = SIGN of map-differenced 2016->2024 net vs Panel A -2.21pp; secondary =
+  pre-vs-post-2016 slope difference against the +-1.3pp C3 processing floor.'
+decision_rule: 'Written before any run. UNIFORM RECIPE IS THE POINT: all 8 arms plain RGB
+  (--no-hillshade, 3-band; 2016 trains on its RGB bands only via the uniform flag set), same
+  architecture, same policy-C threshold criterion (f1_plateau_hi_d005 vs ccap_2021_hires_lc,
+  citywide dense sweep) applied identically to every year - C-CAP is the operating-point
+  selector ONLY, never the accuracy or trend authority (it is a bounded comparator; Kam
+  2026-09-03). TREND READ: canopy fraction per year = postproc mask area / city area on the
+  analysis grid; pre-vs-post-2016 slopes compared with the C3 processing-noise term (+-1.3pp
+  single-year) carried as the error floor; the map series CORROBORATES the human-measured
+  direction, it never overrides Panel A. Sign agreement map-vs-PanelA on 2016->2024 is the
+  primary triangulation. Hot spots: loss patches present in >=2 consecutive maps, cross-
+  referenced against Panel A verified losses + lidar loss cells. Per-session runtime limit
+  (~7.5h) is expected to kill runtimes mid-queue: resume via explicit --only missing-list
+  relaunch (the resume-credit hole is a known open debt). 2xA100 cap; Kam approved GPU +
+  credits 2026-09-04.'
+verdict: null
+decided: null
+launch_defaults:
+- --force-citywide

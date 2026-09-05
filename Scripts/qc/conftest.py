@@ -80,6 +80,34 @@ def _lake_is_read_only(request):
     before = {p: _fingerprint(p) for p in _TARGETS}
     yield
     changed = [p for p in _TARGETS if _fingerprint(p) != before[p]]
+    # 2026-09-05: the "rare check.py flicker" root cause. QC_DIR and MASKS are
+    # fingerprinted as DIRECTORIES (entry count) — a live Colab queue landing a
+    # status CSV / mask mid-test changes the count and this guard blamed the
+    # test. Attribution: if every changed target is a directory whose count
+    # only GREW, and a fresh VM heartbeat (<20 min) exists on the lake, demote
+    # to a warning. File targets (q.STATUS — the 2026-08-29 69-row disaster
+    # class) still hard-fail unconditionally.
+    if changed:
+        import time as _time
+        import warnings as _warnings
+        dirs_only = all(before[p][0] == "dir" for p in changed)
+        grew_only = dirs_only and all(
+            _fingerprint(p)[1] >= before[p][1] for p in changed)
+        live_vm = False
+        try:
+            hb_dir = _TARGETS[0].parent.parent / "logs"
+            live_vm = any(
+                _time.time() - f.stat().st_mtime < 1200
+                for f in hb_dir.glob("heartbeat_*.json"))
+        except Exception:                                        # noqa: BLE001
+            pass
+        if grew_only and live_vm:
+            _warnings.warn(
+                f"lake directories grew during {request.node.name} while a "
+                f"live VM heartbeat is fresh — attributed to the running "
+                f"campaign, not the test: "
+                + ", ".join(str(p) for p in changed))
+            changed = []
     if changed:
         names = "\n  ".join(str(p) for p in changed)
         pytest.fail(

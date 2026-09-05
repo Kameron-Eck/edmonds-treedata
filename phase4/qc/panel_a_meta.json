@@ -1,0 +1,52 @@
+{
+  "panel": "A",
+  "interval": "2016->2024",
+  "epsg": 26910,
+  "cell": 2.0,
+  "seed": 20260904,
+  "n_live": 1250,
+  "n_dup": 30,
+  "n_blur": 30,
+  "ortho16": "2016_snoh_1ft_rgbi.tif",
+  "ortho24": "2024_snoh_3in_rgb.tif",
+  "note24": "local snoh 3in used; CoE 5cm is Drive-only",
+  "coreg_applied": {
+    "2016": [
+      0.493,
+      0.011
+    ],
+    "2024": [
+      0.017,
+      -0.02
+    ]
+  },
+  "chip_m": 56.0,
+  "mask16": "edmonds_canopy_mask_2016_fullext_sectors_v1.tif",
+  "mask24": "edmonds_canopy_mask_2024_citywide_rgb.tif",
+  "strata": {
+    "1": {
+      "name": "cand_change",
+      "cells": 1125142,
+      "sampled": 700,
+      "area_share": 0.18258975669293626
+    },
+    "2": {
+      "name": "srs_floor",
+      "cells": 6162131,
+      "sampled": 120,
+      "area_share": 1.0
+    },
+    "3": {
+      "name": "stable_canopy",
+      "cells": 506506,
+      "sampled": 180,
+      "area_share": 0.08219656479227722
+    },
+    "4": {
+      "name": "stable_other",
+      "cells": 4530483,
+      "sampled": 250,
+      "area_share": 0.7352136785147865
+    }
+  }
+}

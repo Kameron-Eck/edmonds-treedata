@@ -196,6 +196,7 @@ DEAD (adversarially killed — listed so it stays dead).
 ### ACTIVE
 | Thread | State | Pointer |
 |---|---|---|
+| **DIRECTION CAMPAIGN — Panel A DONE (2026-09-04): canopy −2.21pp 2016→2024, CI [−3.31,−1.11], verified vs leaf-on Oct-2023** | next: city statement doc + Panel B decision | `phase4/qc/panel_a_estimate.txt`, instrument `qc/instruments/panel_a_paired_change.py` |
 | Accuracy campaign K1-K6 / C1-C6 | boards above | this file |
 | Adversarial-review follow-ons (sampler chm2 redraw before K1; U1 estimate-decoupling; undo-bug fix; 2023n redraw) | machinery-fix grant covers these | plan record + `qc/instruments/phase4_accuracy_sample.py` |
 | Findings ledger regeneration discipline | regenerate on new experiments, never hand-edit | `Reports/FINDINGS_LEDGER_2026-09-03.docx` |

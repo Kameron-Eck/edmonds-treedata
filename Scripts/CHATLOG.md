@@ -499,3 +499,20 @@ files:   qc/instruments/{phase4_accuracy_sample,build_sample_covariates,
          phase4seg/tiling.py, phase4/qc/*.csv, Reports/{GREENNESS,EPOCH_DECAY}*.md
 next:    K1 (Kam labels 250, ~15min), K4 confirmation of the whole documented block,
          radiometric-normalization pilot design, 2016_base reseed (GPU, Kam)
+
+## 2026-09-04  direction-campaign-panel-a
+goal:    tell the city the direction of the canopy
+did:     direction workflow (5 agents): no sign survives the old instruments; paired-
+         change design instead. power gate: 250 FAILS, 1250 GO (hw 1.03pp). decimation
+         null REVIVED lidar 2005->2016 net-gain (artifact gain 1.50km2, artifact loss
+         ~0 - density cannot fake loss). Panel A built (locators eroded 48->18% share,
+         N raised 1000->1250 for power .81), Kam labeled 1250 pairs + 61-call verify
+         pass vs leaf-on Oct-2023 (2024 flew Mar-May leaf-off - Kam caught it).
+         RESULT: -2.21pp 2016->2024, CI [-3.31,-1.11], DOWN. 42/54 losses real,
+         6/7 gains fake. blur 0/30, capture 2/97. C2b metric tolerance: 2020 strict
+         score was pixel-harshness (at 2m tolerance 2020 is BEST year .920).
+files:   qc/instruments/{panel_a_paired_change,paired_change_power,
+         lidar_decimation_null,tier1_metric_tolerance}.py, phase4/qc/panel_a_*,
+         metric_tolerance_scores.csv, lidar_decimation_null.csv, paired_change_power.csv
+next:    city statement doc (two-leg story: lidar up 2005-2016, human-measured down
+         2016-2024); Panel B (2005->2016 paired) decision; Bayesian anchor optional

@@ -1,0 +1,12 @@
+tag,year,season,grid,k,thresh,precision,recall,frac
+of_2017,2017,May,5cm,56,0.220472,0.7094,0.841,0.3177679008718426
+of_2017k,2017k,May,10cm,29,0.114173,0.7157,0.8528,0.319266224052036
+of_2017s,2017s,Aug,30cm,35,0.137795,0.6888,0.8277,0.3187101752967198
+of_2017n,2017n,Aug,100cm,96,0.377952,0.6877,0.7324,0.28381079823221633
+
+quantity,value_pp,note
+floor |CoE-King| same-window pp,0.15,PASS (<=1.3)
+season effect Aug-May pp,-1.73,
+grid effect May (10cm-5cm) pp,0.15,
+grid effect Aug (1m-30cm) pp,-3.49,
+quartet spread pp,3.55,vs 10.1 delivered-cut spread

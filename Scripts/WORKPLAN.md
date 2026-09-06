@@ -153,91 +153,68 @@ applies supersession banners so they stop reading as live.
 
 ---
 
-## ACCURACY CAMPAIGN — the active board (2026-09-03)
+## MASTER BOARD — everything done, everything remaining (refreshed 2026-09-06)
 
-Goal: reference-grade accuracy + precision measurement. Adversarial-review findings
-(bootstrap CIs, era-matched rescore, add16 QC figure) are DOCUMENTED, PENDING KAM
-CONFIRMATION — nothing acted on. Kam's standing observation: C-CAP over-calls canopy;
-it is a bounded comparator, never truth.
+THE rule: if a task is not on this board, it is not planned work. Done work carries a
+pointer to its verdict/artifact, never a restated number (one fact, one home).
 
-### KAM's list (human eyes required)
-| # | Task | Est. | Output |
-|---|---|---|---|
-| K1 | Photo-interpret the 250-point 2016 sample: `py -3.12 qc/instruments/phase4_accuracy_sample.py --step serve --year 2016` | ~half day | `sample_2016_labels.csv` |
-| K2 | Re-label a ~30-point subset (second pass, blind) — measures YOUR reference uncertainty | ~20 min | self-agreement rate |
-| K3 | Hand-delineate full canopy in 3-5 small blocks (QGIS) — the edge-precision instrument points cannot be | ~2 h each | reference polygons |
-| K4 | Confirm/reject the documented review findings (bootstrap CIs incl. the 2019n NIR demotion candidate; era-rescore; add16 figure) | reading | verdict amendments or none |
-| K5 | Decide: photo-interp campaigns for which OTHER eras (2006s? 2011s? 2020?) — each is another K1 | decision | scope |
-| K6 | (housekeeping) Cancel duplicate Colab Pro sub if Google AI plan covers it — Google's own banner suggests it | 5 min | -$9.99/mo |
-
-### CLAUDE's list (computational, no human labels needed)
-| # | Task | Cost | Output |
-|---|---|---|---|
-| C1 | Lidar-epoch reference scoring: score 2005-adjacent + 2016 masks against their OWN epoch's CHM>=2m (physical reference, zero circularity) | CPU, free | accuracy vs lidar per epoch |
-| C2 | Buffer-tolerant re-scoring (strict vs +/-1px edge tolerance) — splits boundary/registration error from detection error | CPU, free | error decomposition table |
-| C3 | Same-flight consistency ceiling: 2019s-vs-2019n mask disagreement — the processing-chain noise floor no reference sees | CPU, free | consistency bound |
-| C4 | `--step estimate` (Olofsson) the moment K1 lands; incl. the C-CAP-overcount quantification the disagree strata encode | CPU, minutes | `accuracy_2016.*` with CIs |
-| C5 | Edge-precision scorer for K3's polygons (predicted-edge-to-true-edge distance distribution) | CPU, small | edge-precision metric |
-| C6 | Fold confirmed findings (after K4) into the tier1 record + the full_archive_e3 recipe draft for Kam's 36-run gate | doc work | recipe rewrite |
-
-Sequencing: C1-C3 need nothing from Kam and run now. C4 blocks on K1. C5 blocks on K3.
-C6 blocks on K4. The 36-run stays gated on Kam (funding + recipe sign-off).
-
----
-
-## MASTER BOARD — every open thread, one home (2026-09-03)
-
-This section is THE master work plan. Everything below either lives here or is a
-pointer; if a task isn't on this board it is not planned work. States:
-ACTIVE (being executed) / QUEUED (agreed, waiting on a blocker) / KAM-GATE (needs
-his decision) / TABLED (deliberately parked, with the re-open condition) /
-DEAD (adversarially killed — listed so it stays dead).
-
-### ACTIVE
-| Thread | State | Pointer |
-|---|---|---|
-| **Flicker program (items 1-8, Kam-approved 2026-09-05)**: 1 ✓ (parcels), 6 ✓ (census: 50.7% flicker), 2/5/7 ON GPUs (ofA/ofB, overlap_floor), 3/4/8 QUEUED-held per Kam (finish in-flight first, then synthesis) | GPUs to complete → floor/factorial/EagleView analysis | `experiments/overlap_floor.yaml` |
-| **Canopy DEFINITION review — SAVED, awaiting Kam sign-off** on the §6 written definition + §7 decisions | Kam reading | `Reports/CANOPY_COVER_DEFINITION_REVIEW_2026-09-05.md` |
-| **DIRECTION CAMPAIGN — Panel A DONE (2026-09-04): canopy −2.21pp 2016→2024, CI [−3.31,−1.11], verified vs leaf-on Oct-2023** | next: city statement doc + Panel B decision | `phase4/qc/panel_a_estimate.txt`, instrument `qc/instruments/panel_a_paired_change.py` |
-| Accuracy campaign K1-K6 / C1-C6 | boards above | this file |
-| Adversarial-review follow-ons (sampler chm2 redraw before K1; U1 estimate-decoupling; undo-bug fix; 2023n redraw) | machinery-fix grant covers these | plan record + `qc/instruments/phase4_accuracy_sample.py` |
-| Findings ledger regeneration discipline | regenerate on new experiments, never hand-edit | `Reports/FINDINGS_LEDGER_2026-09-03.docx` |
-
-### QUEUED (agreed, blocked)
-| Task | Blocked on |
+### DONE — the completed campaigns (chronological)
+| Campaign | Verdict pointer |
 |---|---|
-| Certified-flat scoring (model-free C-CAP over-call bound + free change cell count) | nothing — next computational slot |
-| ~~Leaf-off IGNORE experiment~~ **KILLED by E1 histograms 2026-09-03**: the gradient is delivery RADIOMETRY, not phenology (Feb 2015 bimodal + unharmed; Apr 2019 whole-distribution shift). Successor candidate: per-delivery radiometric normalization pilot (cheap, CPU-testable first) | new experiment design + Kam |
-| Reseed t1_2016_base x2 (~3-4 A100-h) — gates NIR/adder magnitudes | Kam GPU nod |
-| Olofsson estimate + C-CAP two-parameter bias correction | K1 labels |
-| Recipe constraint into full_archive_e3 (forbid forward-projected CHM overlays, minimum version) | K4 confirmation |
-| Small closes: _tile_signature anchor-key gap + tripwire; E1 dark-tail rerun; hybrid_v1 PR close-out; tier1_results sweep-provenance (X6); MVV-0 epoch-decay write-up | none — batch when convenient |
-| Ops debt: resume-credit visibility root fix; mailbox stem-collision; rare check.py flicker | none — batch |
+| Phase 0-3 + repo refactor + pilot slice (3/3 gate) | `WORKPLAN` §history, `experiments/pilot_2019.yaml` |
+| Policy-C threshold selection (recipe audit) | `docs/SCHEMAS.md` indep_thresholds; `Reports/RECIPE_AUDIT_2026-09-01.md` |
+| **Tier-1 science sample** (28 arms): LIDAR-INPUT confirmed, ADDER not, NIR 2016-only, corruption flat | `experiments/tier1_science_sample.yaml`; `phase4/qc/tier1_results.csv` + bootstrap CIs |
+| Adversarial review + corrections (era-rescore fix, floors, footnotes) | `Reports/FINDINGS_LEDGER_2026-09-03.docx` |
+| Accuracy instruments: sampler repair/redraws, U1 any-arm estimate, E2 covariates, certified-flat, C1 lidar anchors, C2/C2b edge tolerance, C3 same-flight floor | `phase4/qc/` (certified_flat_scores, metric_tolerance_scores, sameflight_consistency…) |
+| Greenness gradient RESOLVED: delivery radiometry, not phenology (Kam's catch) | `Reports/GREENNESS_GRADIENT_CORRECTION_2026-09-03.md` |
+| **Direction campaign / Panel A**: −2.21pp 2016→2024, CI ±1.10, 5 measured controls (blur, drift, verify, duplicates, capture) | `phase4/qc/panel_a_estimate.txt`; instrument `qc/instruments/panel_a_paired_change.py` |
+| Lidar leg revived (decimation null: density can't fake loss): net GAIN 2005→2016 | `phase4/qc/lidar_decimation_null.csv`, `certified_change_cells.csv` |
+| **trend8 8-year map series** + operating-point attack + recalibration: delivered cuts retracted, matched cuts PASS the sign test; 41/42 loss corroboration; flicker honest negative | `experiments/trend8_uniform_rgb.yaml` verdict; `phase4/qc/trend8_*` |
+| **overlap_floor** (floor 0.15pp; factorial decomposed: op-point 6.5 + 1m-info 3.5 + season ~0; EagleView endpoints agree with Panel A) | `experiments/overlap_floor.yaml` verdict; `overlap_factorial_read.csv`, `eagleview_sign_test.csv` |
+| Canopy DEFINITION review (four questions answered; draft definition §6) | `Reports/CANOPY_COVER_DEFINITION_REVIEW_2026-09-05.md` |
+| Literature: 4 papers read+reasoned (MURTreeFormer, JPSL, GeoAI, ALCC); families 3/4/5 deep-dive; sawtooth lit map | this file §history + CHATLOG 2026-09-05/06 |
+| Flicker-program items 1, 2, 5, 6, 7 (parcels, floor, EagleView, census, factorial) | verdicts above |
 
-### KAM-GATE (his call, nothing moves without it)
-| Decision | Context |
+### RUNNING (external)
+| Thread | Where |
 |---|---|
-| K4: confirm/reject the documented review findings | bootstrap CIs, era rescore, add16 figure, ledger corrections |
-| The 36-run (full_archive_e3) go/no-go + recipe sign-off | also: the yaml holds 34 arms, not 36 — reconcile |
-| Overlay-policy strength (forbid forward-only vs ALL CHM overlays pending reseed) | risk posture, not measurement |
-| K5 era choice for further photo-interp campaigns | ~15 min labeling each at his pace |
-| Shoreline transfer test post-36-run (paper external validity) | inference-only, pre-registered |
-| C-CAP license quarantine for any new clip | goes live if Shoreline or any new AOI |
-| Champion designations for 2000/2002/2013/2015/2016/2017 | champion_arms.csv is the home |
+| Overnight literature hunt (twin study / novel solution vs the truth document) | separate Claude session; contract `Reports/TRUTH_DOCUMENT_TEMPORAL_INCONSISTENCY_HUNT.md` |
 
-### TABLED (parked deliberately — re-open condition recorded)
-| Item | Re-open when |
+### AWAITING KAM — the decision stack (nothing moves without these)
+| # | Decision |
 |---|---|
-| Instance segmentation (per-year crowns) | after semantic archive ships (Kam 2026-08-29) |
-| DeepLabV3+ | never for this pipeline unless edge-precision work makes stride-4 acceptable |
-| Synthetic degraded-imagery training (Phase A tool built) | pre-2000 years become the focus |
-| Satellite workstream (S2 calibration anchor, C-CAP 30m trend band) | after the 36-run ships the mask series |
-| Stability-mined labels A/B | closed null three ways — re-open only with new arm-disagreement evidence |
-| Object-kind decomposition diagnostic | when a question needs sub-30-block resolution |
+| 1 | **The synthesis session** — sit down with the full evidence table (this board + ledger) and set the story |
+| 2 | K4 block: sign off (or amend) the documented findings — review corrections, bootstrap CIs, definition §6 + §7, trend8/overlap verdicts |
+| 3 | K1: label the redrawn 250-point 2016 sample (~15 min) → Olofsson absolute accuracy; K2 blind repeats; K5 era choice |
+| 4 | City statement doc — the two-leg trend + hot-spot atlas + the "your policy gap is 2.6pp and no instrument could see it until now" framing |
+| 5 | Paper scope decision (methods paper: pre-registration + controls + decomposition — the gap claim pending the overnight hunt) |
+| 6 | 36-run go/no-go + recipe sign-off (34-vs-36 arm reconciliation; per-year NIR/lidar-input recipe vs uniform) |
+| 7 | Champion designations (8 years unnamed); overlay-policy strength; C-CAP license quarantine if any new AOI |
+| 8 | Forward-monitoring recommendation to the city: repeat-lidar cycle / vendor-locked capture / annual 15-min point panels |
 
-### DEAD (adversarially killed 2026-09-03 — do not re-propose without NEW evidence)
-Shadow masks / shadow input channel; uncertainty-weighted loss; KC/Shoreline pre-36-run
-(all forms); era-matched rescore of the remaining 18 arms; model-confidence photo-interp
-strata; temporal-change strata on incompatible lattices; confirmatory direction-gating
-GPU arms; 5-band CHM+NIR fusion (errors shared, not complementary); more corruption doses.
+### QUEUED (agreed or natural next, blocked or waiting a slot)
+| Task | Blocker |
+|---|---|
+| Flicker item 3: Landsat per-flight-window phenology covariate (arbiter role; also dates 2011s) | satellite minimal-reopen nod (Kam) |
+| Flicker item 4: 2024 degradation ladder (~5 A100-h) — GSD transfer function | Kam GPU nod |
+| Flicker item 8: calibrated HMM on the prob stack (emissions from Panel A + parcels) — atlas smoothing, gated | items done; needs a design pass + kill criteria |
+| SAM boundary-refinement pilot (C2b-gap kill criterion pre-written) | Kam nod; ~1 GPU-h |
+| Free tests from the lit pile: map-loss UA spot check (~60 cells, Kam); ALCC-style change-count comparison; 30m-stability refutation | Kam minutes / CPU |
+| Panel B (2005→2016 paired points, ~1 Kam-day) — would upgrade the lidar leg to human evidence | Kam's day + drift/blur controls port |
+| 2020-Aug consortium fetch (phenology ladder completion) | ~1h, anytime |
+| Ops debt: exec-handle retry loop in vm_ops; launch-time VM-side input preflight; heartbeat rename mirror-flap fix; pr_curves cwd-write; --only job-id friendliness; resume-credit root fix; mailbox stem collision | machinery grant, batchable |
+
+### TABLED (parked with re-open conditions)
+Instance segmentation (after semantic archive ships) · synthetic degradation training
+(pre-2000 focus) · S2 fraction series (after Landsat covariate reports) · self-training
+loop (after 36-run; one guarded iteration only) · object-kind decomposition (needs
+sub-30-block resolution) · Shoreline transfer test (post-36-run paper polish)
+
+### DEAD (adversarially killed — do not re-propose without NEW evidence)
+Shadow masks/channel · uncertainty-weighted loss · KC/Shoreline pre-36-run ·
+naive temporal smoothing as trend fix · label inheritance for trend · LandTrendr/CCDC
+on uncalibrated aerial · leaf-off IGNORE experiment (premise was radiometry) ·
+"uncorrectable 10pp delivery bias" (killed by the operating-point attack) ·
+delivered-cut map fractions as a trend series (retracted) · more corruption doses ·
+DeepLab · 5-band fusion · stability mining · model-confidence photo-interp strata
 

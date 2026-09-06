@@ -1,0 +1,6 @@
+arm,k,precision,frac_pct,note
+of_2020,18,0.794,24.44,EagleView-family 5cm, matched-cut (plateau width 1 - peaky calibration, flag)
+trend8_2024,16,0.768,23.5,same family+recipe
+delta_2020_2024_pp,,,-0.94,4-yr window
+panel_a_linear_expectation_pp,,,-1.1,-2.21 over 8yr scaled to 4yr
+SIGN TEST,,,,AGREE (both DOWN); magnitude within 0.2pp; 2022 interior point pending

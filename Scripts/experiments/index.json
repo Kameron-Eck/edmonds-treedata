@@ -1,0 +1,1215 @@
+{
+  "entries": [
+    {
+      "arm_scores": {},
+      "arms": [
+        {
+          "extra": [
+            "--no-hillshade"
+          ],
+          "tag": "of_2017",
+          "year": "2017"
+        },
+        {
+          "extra": [
+            "--no-hillshade"
+          ],
+          "tag": "of_2017k",
+          "year": "2017k"
+        },
+        {
+          "extra": [
+            "--no-hillshade"
+          ],
+          "tag": "of_2017s",
+          "year": "2017s"
+        },
+        {
+          "extra": [
+            "--no-hillshade"
+          ],
+          "tag": "of_2017n",
+          "year": "2017n"
+        },
+        {
+          "extra": [
+            "--no-hillshade"
+          ],
+          "tag": "of_2020",
+          "year": "2020"
+        },
+        {
+          "extra": [
+            "--no-hillshade"
+          ],
+          "tag": "of_2022",
+          "year": "2022"
+        }
+      ],
+      "category": null,
+      "champion_tags": [],
+      "commit": null,
+      "decided": "2026-09-06",
+      "decision_rule": "Written before any run. Same UNIFORM recipe as trend8 (plain RGB, --no-hillshade, policy-C criterion) so every overlap delta is an instrument term, never a recipe term. READS: (a) |fraction(2017 CoE) - fraction(2017 King)| is the same-window cross-delivery floor at May; if it exceeds the 1.3pp same-flight bound (C3) the noise model is understated - STOP and re-derive before quoting any map number again. (b) The 2017 quartet decomposes: season main effect = mean(Aug arms) - mean(May arms); grid main effect within season; interaction. If season+grid explain <50% of the quartet spread, a fourth mechanism is at work (mosaic seams, BRDF) and the harmonization program is declared BOUNDED. (c) EagleView 2020->2022->2024 net change, method-controlled: primary read is SIGN vs Panel A on the shared window; agreement rehabilitates method-controlled map differencing, disagreement kills map differencing here even under total method control (either way a finding, pre-registered). trend8_2024 is reused as the 2024 arm - same recipe, no rerun. 2xA100 cap; approved by Kam 2026-09-05 (\"Yes to 1 through 8\").",
+      "design_doc": null,
+      "extra": {},
+      "headline": "All three pre-registered reads complete, at policy-C matched cuts (the rule as written; delivered-cut fractions were never valid inputs).",
+      "hypothesis": "Items 2+5+7 of the flicker-program ranking (2026-09-05, Kam-approved): the archive's OVERLAP structure can decompose the trend8 sawtooth into instrument mechanisms without any new ground truth. (2) OVERLAP FLOOR: same-window acquisitions delivered differently bound the instrument term - 2017 CoE vs 2017 King share the May 4-10 2017 flight window (fine vs ~15cm grid); zero real change between them by construction. (5) EAGLEVIEW TRIPLE: 2020/2022/2024 CoE 5cm - vendor, GSD, and season all held; the strongest same-method series the archive owns; its 2020->2024 net is the method-controlled map trend to sign-test against Panel A (-2.21pp). (7) SEASON x GRID FACTORIAL 2017: {May: CoE 5cm, King 15cm} x {Aug: 2017s 30cm, 2017n 1m} - the only design that crosses season and grid with zero real change inside one calendar year.",
+      "imagery": [],
+      "inputs": [],
+      "instruments": [],
+      "kind": "experiment",
+      "last_run": "2026-09-06",
+      "metric": "city-clipped canopy fraction on the common 2m grid (trend8_harmonized_fractions method) per arm; paired deltas within the overlap sets.",
+      "n": null,
+      "n_source": null,
+      "name": "overlap_floor",
+      "outputs": [],
+      "registry_rows": 37,
+      "reports": [],
+      "retrospective": false,
+      "run_ids": [],
+      "sample": null,
+      "status": "complete",
+      "superseded_by": [],
+      "supersedes": [],
+      "tags": [],
+      "verdict": "All three pre-registered reads complete, at policy-C matched cuts (the rule as written; delivered-cut fractions were never valid inputs). (a) FLOOR: |2017 CoE - 2017 King| same-window = 0.15pp - PASS at one-ninth of the 1.3pp same-flight bound; noise model holds. (b) FACTORIAL: quartet spread 10.1pp (delivered) -> 3.55pp (matched); the three <=30cm arms agree to 0.15pp TOTAL; season effect ~0 within grid class; the ENTIRE residual is the 1m NAIP arm (-3.5pp genuine information deficit, recall .73 at common precision). Decomposition: 10.1 = ~6.5 operating point + ~3.5 coarse- grid info loss + ~0 season + ~0.15 delivery-at-<=30cm. Harmonization program NOT bounded - the spread is explained. (c) EAGLEVIEW: 24.44 -> 26.32 -> 23.50; endpoints -0.94pp/4yr agree with Panel A in sign AND pace (~-1.1 expected); interior +1.9/-2.8 wobble - single-year steps stay inside noise even under total method control. Levels harmonized-to-C-CAP. Data: overlap_factorial_read.csv, eagleview_sign_test.csv."
+    },
+    {
+      "arm_scores": {},
+      "arms": [
+        {
+          "extra": [
+            "--no-hillshade"
+          ],
+          "tag": "trend8_2009",
+          "year": "2009"
+        },
+        {
+          "extra": [
+            "--no-hillshade"
+          ],
+          "tag": "trend8_2011s",
+          "year": "2011s"
+        },
+        {
+          "extra": [
+            "--no-hillshade"
+          ],
+          "tag": "trend8_2013",
+          "year": "2013"
+        },
+        {
+          "extra": [
+            "--no-hillshade"
+          ],
+          "tag": "trend8_2015",
+          "year": "2015"
+        },
+        {
+          "extra": [
+            "--no-hillshade"
+          ],
+          "tag": "trend8_2016",
+          "year": "2016"
+        },
+        {
+          "extra": [
+            "--no-hillshade"
+          ],
+          "tag": "trend8_2019",
+          "year": "2019"
+        },
+        {
+          "extra": [
+            "--no-hillshade"
+          ],
+          "tag": "trend8_2021",
+          "year": "2021"
+        },
+        {
+          "extra": [
+            "--no-hillshade"
+          ],
+          "tag": "trend8_2024",
+          "year": "2024"
+        }
+      ],
+      "category": null,
+      "champion_tags": [],
+      "commit": null,
+      "decided": "2026-09-06",
+      "decision_rule": "Written before any run. UNIFORM RECIPE IS THE POINT: all 8 arms plain RGB (--no-hillshade, 3-band; 2016 trains on its RGB bands only via the uniform flag set), same architecture, same policy-C threshold criterion (f1_plateau_hi_d005 vs ccap_2021_hires_lc, citywide dense sweep) applied identically to every year - C-CAP is the operating-point selector ONLY, never the accuracy or trend authority (it is a bounded comparator; Kam 2026-09-03). TREND READ: canopy fraction per year = postproc mask area / city area on the analysis grid; pre-vs-post-2016 slopes compared with the C3 processing-noise term (+-1.3pp single-year) carried as the error floor; the map series CORROBORATES the human-measured direction, it never overrides Panel A. Sign agreement map-vs-PanelA on 2016->2024 is the primary triangulation. Hot spots: loss patches present in >=2 consecutive maps, cross- referenced against Panel A verified losses + lidar loss cells. Per-session runtime limit (~7.5h) is expected to kill runtimes mid-queue: resume via explicit --only missing-list relaunch (the resume-credit hole is a known open debt). 2xA100 cap; Kam approved GPU + credits 2026-09-04.",
+      "design_doc": null,
+      "extra": {},
+      "headline": "DELIVERED-CUT SERIES RETRACTED as a trend read (per-arm best-F1 cuts on 650x-skewed eval populations; the 2026-09-06 attack).",
+      "hypothesis": "The canopy trend has an inflection near 2016: up-or-flat before, declining after (Panel A human measurement: -2.21pp 2016->2024, CI [-3.31,-1.11]; lidar physics: net gain 2005->2016 on covered ground). An 8-year full-city map series under ONE DELIBERATELY UNIFORM recipe (plain RGB, no NIR, no lidar input, no hillshade - per-year-best recipes change the METHOD over time, and a method change at the inflection year is a fake-trend generator) tests: (a) does the map-differenced 2016->2024 net agree in SIGN with Panel A; (b) is the pre-2016 slope (2009/2011s/2013/2015) >= the post-2016 slope (2016/2019/2021/2024), computed WITHIN the King sensor family where possible; (c) do loss hot-spots persist across consecutive years (a real hot spot repeats; an artifact flickers - the C3 same-flight floor 1.3pp/IoU .738 and flicker report are the judges); (d) do map losses co-locate with the 42 Panel-A-verified loss points and the dual-epoch lidar loss cells.",
+      "imagery": [],
+      "inputs": [],
+      "instruments": [],
+      "kind": "experiment",
+      "last_run": "2026-09-06",
+      "metric": "canopy fraction per year (postproc mask area / city area, analysis grid); primary triangulation = SIGN of map-differenced 2016->2024 net vs Panel A -2.21pp; secondary = pre-vs-post-2016 slope difference against the +-1.3pp C3 processing floor.",
+      "n": null,
+      "n_source": null,
+      "name": "trend8_uniform_rgb",
+      "outputs": [],
+      "registry_rows": 58,
+      "reports": [],
+      "retrospective": false,
+      "run_ids": [],
+      "sample": null,
+      "status": "complete",
+      "superseded_by": [],
+      "supersedes": [],
+      "tags": [],
+      "verdict": "DELIVERED-CUT SERIES RETRACTED as a trend read (per-arm best-F1 cuts on 650x-skewed eval populations; the 2026-09-06 attack). At policy-C matched cuts (joint plateau, common precision .7394): (a) SIGN TEST vs Panel A: PASSES - 2016->2024 = -5.59pp sweep-footprint / -3.48pp city-clipped masks (delivered cuts had said +4.2, wrong sign); (b) pre-2016 flat-to-up, post-2016 declining - the two-leg story reproduced; (c) hot spots dispersed (largest recut persistent cluster 1.53ha); (d) 41/42 of Panel A verified losses corroborated by matched-cut map loss (was 34/42). RESIDUALS: +-2-4pp inter-year jitter persists (per-year curve shape) - single-year map steps are NOT readable; pixel flicker did NOT collapse (47.8% vs 50.7% of ever-canopy) - per-pixel instability is real detection noise, so change MAPS need persistence filtering even though change TOTALS at matched cuts corroborate direction. Levels are harmonized-to-C-CAP (matcher, never authority); pace authority remains Panel A -2.21+-1.10. Data: trend8_policy_cuts.csv, trend8_harmonized_fractions.csv, trend8_transition_census.csv, trend8_hotspot_map.png, eagleview_sign_test.csv."
+    },
+    {
+      "arm_scores": {},
+      "arms": [],
+      "category": "truth",
+      "champion_tags": [],
+      "commit": null,
+      "decided": "2026-09-04",
+      "decision_rule": "RECONSTRUCTED (retrospective: true) from the instrument docstring and the power gate that ran BEFORE the labelling — those parts genuinely are pre-registered. qc/instruments/paired_change_power.py was run first and gated the design: N=250 FAILED, N=1250 was GO at power 0.81 with a half-width of 1.03pp; the campaign did not proceed at the failing N. Pairing is the design commitment — one interpreter, the same physical point in both epochs, locators that LOCATE and never label. The estimate is admissible only if the controls hold: the SRS capture stratum bounds what the locators missed, blind duplicates bound differential interpreter error, a blur control bounds sharpness asymmetry between a 1-ft and a 3-in product, and a worst-case registration shift bounds displacement. A sign that flips under any control is not a finding.\n",
+      "design_doc": null,
+      "extra": {
+        "controls": [
+          "duplicates",
+          "blur",
+          "capture-SRS",
+          "drift-displacement"
+        ],
+        "imagery_used": "2016_snoh_1ft_rgbi.tif and 2024_snoh_3in_rgb.tif (the LOCAL Snohomish 3-in delivery; the CoE 5 cm 2024 product is Drive-only) — recorded in panel_a_meta.json\n",
+        "interpreter": "Kam (single reader; the second-reader duplicate campaign is queued)",
+        "open_followups": [
+          "Panel B (2005->2016 paired points) would upgrade the lidar leg to human evidence",
+          "second-reader duplicate campaign — interpreter error is comparable to the effect and currently unpropagated",
+          "K1 250-point 2016 labelling feeds Olofsson ABSOLUTE accuracy, a different question"
+        ]
+      },
+      "headline": "DIRECTION IS DOWN, and it is the project's only human-measured trend statement.",
+      "hypothesis": "The city's question is DIRECTION, and no instrument in the pipeline could answer it: every map-based read of 2016->2024 was inside its own processing noise. A HUMAN judging the same physical point in both years, side by side, cancels the model, the threshold, the reference vintage, the radiometry and the interpreter's private canopy definition — everything the map series cannot hold still. What would change our mind: a capture audit finding substantial change outside the locators (the strata would then be measuring the locators, not the city), or a duplicate/blur control showing the interpreter manufactures change at a rate comparable to the effect.\n",
+      "imagery": [
+        {
+          "bands": 4,
+          "gsd_cm": 30.5,
+          "label": "2016"
+        },
+        {
+          "bands": 3,
+          "gsd_cm": 5.0,
+          "label": "2024"
+        }
+      ],
+      "inputs": [
+        "phase4/qc/panel_a_points.csv",
+        "phase4/qc/panel_a_meta.json",
+        "phase4/qc/paired_change_power.csv"
+      ],
+      "instruments": [
+        "Scripts/qc/instruments/panel_a_paired_change.py",
+        "Scripts/qc/instruments/paired_change_power.py"
+      ],
+      "kind": "measurement-campaign",
+      "last_run": null,
+      "metric": "phase4/qc/panel_a_estimate.txt — paired Olofsson net change with its 95% CI and all four measured controls (duplicate disagreement, blur-control false change, capture audit, drift/displacement bound). Point-level labels in phase4/qc/panel_a_labels.csv; design and strata in phase4/qc/panel_a_meta.json.\n",
+      "n": 1250,
+      "n_source": "phase4/qc/panel_a_meta.json#json:n_live",
+      "name": "panel_a_direction",
+      "outputs": [
+        "phase4/qc/panel_a_estimate.txt",
+        "phase4/qc/panel_a_labels.csv",
+        "phase4/qc/panel_a_verify.csv",
+        "phase4/qc/panel_a_drift.csv",
+        "phase4/qc/panel_a_drift_labels.csv",
+        "phase4/qc/panel_a_loss_crosscheck.csv"
+      ],
+      "registry_rows": 0,
+      "reports": [
+        "Reports/TRUTH_DOCUMENT_TEMPORAL_INCONSISTENCY_HUNT.md"
+      ],
+      "retrospective": true,
+      "run_ids": [],
+      "sample": "paired photo-interpretation points on a 2 m lattice (EPSG:26910) clipped to the city polygon, four strata (cand_change / srs_floor / stable_canopy / stable_other), drawn once at seed 20260904 and judged by one interpreter in both epochs.\n",
+      "status": "complete",
+      "superseded_by": [],
+      "supersedes": [],
+      "tags": [
+        "photo-interp",
+        "paired-change",
+        "olofsson",
+        "direction",
+        "human-truth",
+        "2016-2024"
+      ],
+      "verdict": "DIRECTION IS DOWN, and it is the project's only human-measured trend statement. Net 2016->2024 = -2.21pp of city area, 95% CI [-3.31, -1.11] — the single figure the city statement rests on, read from phase4/qc/panel_a_estimate.txt, which also carries every control in the same file. All four controls hold: the SRS capture audit found change outside the locators at a rate consistent with capture ~0.9+, blind duplicates disagreed at a rate the file records against its own gate, the blur control produced zero false change in 30 pairs, and a hostile 2.0 m registration shift moves the net in the direction that SUBTRACTS from the decline, so the sign holds in both scenarios. Loss points survive scrutiny far better than gain points (crosscheck in phase4/qc/panel_a_loss_crosscheck.csv). Kam's own catch during the verify pass is part of the record: the 2024 flight is leaf-off March-May, so a leaf-on October-2023 comparison was re-called rather than trusted (phase4/qc/panel_a_verify.csv). STANDING: Panel A is the PACE AND DIRECTION AUTHORITY. Map series corroborate it and never override it — that hierarchy is what trend8_uniform_rgb's retraction enforced, and what overlap_floor's EagleView sign test independently agreed with.\n"
+    },
+    {
+      "arm_scores": {},
+      "arms": [],
+      "category": "floors",
+      "champion_tags": [],
+      "commit": null,
+      "decided": "2026-09-04",
+      "decision_rule": "RECONSTRUCTED (retrospective: true) from the instrument docstring, which states the reading rule before any number: the pair carries ZERO engine diff between the two pilot arms' commits, so mask disagreement between them is processing-chain plus GSD and nothing else. The 1-px-tolerant variant is what splits boundary jitter from body-level disagreement — the tolerant number is the honest floor for AREA claims, the raw number for per-pixel claims. Any later single-year map step smaller than this floor is UNREADABLE, not \"no change\" (CLAUDE.md 3.5).\n",
+      "design_doc": null,
+      "extra": {
+        "consumed_by": [
+          "trend8_uniform_rgb",
+          "overlap_floor"
+        ],
+        "depends_on": "pilot_2019",
+        "why_this_pair": "established in the pilot after a correction and a correction-of-the-correction — the two products are ONE flight, not two programs; correlation peaks at exactly zero shift while the residual after a best-fit linear map is 14-27 DN, far too large for one to be a downsample of the other. See entry same_flight_pair_2019.\n"
+      },
+      "headline": "THE FLOOR EXISTS AND IT IS LARGE ENOUGH TO MATTER.",
+      "hypothesis": "Every accuracy number in this project is scored against a reference that is itself imperfect, so no reference can tell us how much of a year-to-year map difference is processing rather than trees. One pair in the archive can: 2019s and 2019n are ONE Hexagon flight delivered two ways (WA consortium 1 ft, USDA NAIP 60 cm). Identical sun, atmosphere, phenology and sensor hardware; only the delivered GSD and the processing chain differ. Whatever those two masks disagree about is a floor — no accuracy or trend claim about either product can honestly be tighter than it.\n",
+      "imagery": [
+        {
+          "bands": 4,
+          "gsd_cm": 30.5,
+          "label": "2019s"
+        },
+        {
+          "bands": 4,
+          "gsd_cm": 60.0,
+          "label": "2019n"
+        }
+      ],
+      "inputs": [],
+      "instruments": [
+        "Scripts/qc/instruments/sameflight_consistency.py"
+      ],
+      "kind": "instrument-finding",
+      "last_run": null,
+      "metric": "phase4/qc/sameflight_consistency.csv — one row: overall disagreement fraction, canopy IoU, and a 1-px-tolerant disagreement fraction over the valid overlap, after warping the 2019n mask (nearest) onto the 2019s grid.\n",
+      "n": 1,
+      "n_source": "phase4/qc/sameflight_consistency.csv#rows",
+      "name": "sameflight_floor_c3",
+      "outputs": [
+        "phase4/qc/sameflight_consistency.csv"
+      ],
+      "registry_rows": 0,
+      "reports": [
+        "Reports/TRUTH_DOCUMENT_TEMPORAL_INCONSISTENCY_HUNT.md"
+      ],
+      "retrospective": true,
+      "run_ids": [],
+      "sample": "one mask pair (2019s pilot_e2_medium vs 2019n pilot_e2_coarse), compared over their full valid overlap on the 2019s 1 m grid — the whole city, not a sample of it.\n",
+      "status": "complete",
+      "superseded_by": [],
+      "supersedes": [],
+      "tags": [
+        "noise-floor",
+        "processing-chain",
+        "same-flight",
+        "c3",
+        "consistency",
+        "trend"
+      ],
+      "verdict": "THE FLOOR EXISTS AND IT IS LARGE ENOUGH TO MATTER. One flight, two deliveries, zero engine diff: canopy IoU 0.7376 and a 1.3pp citywide canopy-area gap, read from phase4/qc/sameflight_consistency.csv (the row's own note records the conditions). Two consequences, both load-bearing downstream: (1) single-year map steps inside +-1.3pp are processing, not trees — this is the error floor trend8_uniform_rgb's decision rule carries and the reason its interior wobble was declared unreadable; (2) it is the bound overlap_floor's same-window cross-delivery test was judged against, where the 2017 CoE-vs-King pair came in at one-ninth of it, confirming the noise model rather than breaking it. The IoU is the blunter of the two readings: a 0.74 IoU between two products of the SAME photons is the cleanest statement in the repo of how much of a canopy map is the processing chain.\n"
+    },
+    {
+      "arm_scores": {
+        "t1_2006s_add05": {
+          "home": "tier1_results.csv",
+          "prec_at_p75": "0.751",
+          "recall_at_p75": "0.5676"
+        },
+        "t1_2006s_add16": {
+          "home": "tier1_results.csv",
+          "prec_at_p75": "0.7866",
+          "recall_at_p75": "0.0814"
+        },
+        "t1_2006s_base": {
+          "home": "tier1_results.csv",
+          "prec_at_p75": "0.7504",
+          "recall_at_p75": "0.5847"
+        },
+        "t1_2006s_in05": {
+          "home": "tier1_results.csv",
+          "prec_at_p75": "0.7504",
+          "recall_at_p75": "0.6073"
+        },
+        "t1_2006s_in16": {
+          "home": "tier1_results.csv",
+          "prec_at_p75": "0.7502",
+          "recall_at_p75": "0.6308"
+        },
+        "t1_2011s_add05": {
+          "home": "tier1_results.csv",
+          "prec_at_p75": "0.75",
+          "recall_at_p75": "0.7243"
+        },
+        "t1_2011s_add16": {
+          "home": "tier1_results.csv",
+          "prec_at_p75": "0.7502",
+          "recall_at_p75": "0.6989"
+        },
+        "t1_2011s_base": {
+          "home": "tier1_results.csv",
+          "prec_at_p75": "0.7502",
+          "recall_at_p75": "0.7253"
+        },
+        "t1_2011s_base_s2": {
+          "home": "tier1_results.csv",
+          "prec_at_p75": "0.7506",
+          "recall_at_p75": "0.7201"
+        },
+        "t1_2011s_base_s3": {
+          "home": "tier1_results.csv",
+          "prec_at_p75": "0.7504",
+          "recall_at_p75": "0.7168"
+        },
+        "t1_2011s_cor05": {
+          "home": "tier1_results.csv",
+          "prec_at_p75": "0.7503",
+          "recall_at_p75": "0.7251"
+        },
+        "t1_2011s_cor10": {
+          "home": "tier1_results.csv",
+          "prec_at_p75": "0.75",
+          "recall_at_p75": "0.7285"
+        },
+        "t1_2011s_in05": {
+          "home": "tier1_results.csv",
+          "prec_at_p75": "0.7511",
+          "recall_at_p75": "0.7427"
+        },
+        "t1_2011s_in16": {
+          "home": "tier1_results.csv",
+          "prec_at_p75": "0.7528",
+          "recall_at_p75": "0.7461"
+        },
+        "t1_2016_add05": {
+          "home": "tier1_results.csv",
+          "prec_at_p75": "0.7502",
+          "recall_at_p75": "0.7505"
+        },
+        "t1_2016_add16": {
+          "home": "tier1_results.csv",
+          "prec_at_p75": "0.7505",
+          "recall_at_p75": "0.7353"
+        },
+        "t1_2016_base": {
+          "home": "tier1_results.csv",
+          "prec_at_p75": "0.7582",
+          "recall_at_p75": "0.6693"
+        },
+        "t1_2016_in05": {
+          "home": "tier1_results.csv",
+          "prec_at_p75": "0.7504",
+          "recall_at_p75": "0.7441"
+        },
+        "t1_2016_in16": {
+          "home": "tier1_results.csv",
+          "prec_at_p75": "0.7521",
+          "recall_at_p75": "0.7351"
+        },
+        "t1_2016_nir": {
+          "home": "tier1_results.csv",
+          "prec_at_p75": "0.7503",
+          "recall_at_p75": "0.7429"
+        },
+        "t1_2019n_base": {
+          "home": "tier1_results.csv",
+          "prec_at_p75": "0.7638",
+          "recall_at_p75": "0.6749"
+        },
+        "t1_2019n_nir": {
+          "home": "tier1_results.csv",
+          "prec_at_p75": "0.7507",
+          "recall_at_p75": "0.7146"
+        },
+        "t1_2020_add05": {
+          "home": "tier1_results.csv",
+          "prec_at_p75": "0.7889",
+          "recall_at_p75": "0.6871"
+        },
+        "t1_2020_add16": {
+          "home": "tier1_results.csv",
+          "prec_at_p75": "0.7664",
+          "recall_at_p75": "0.7005"
+        },
+        "t1_2020_base": {
+          "home": "tier1_results.csv",
+          "prec_at_p75": "0.7999",
+          "recall_at_p75": "0.6402"
+        },
+        "t1_2020_in05": {
+          "home": "tier1_results.csv",
+          "prec_at_p75": "0.7702",
+          "recall_at_p75": "0.6753"
+        },
+        "t1_2020_in16": {
+          "home": "tier1_results.csv",
+          "prec_at_p75": "0.7968",
+          "recall_at_p75": "0.6592"
+        }
+      },
+      "arms": [
+        {
+          "extra": [
+            "--no-hillshade",
+            "--infer-aoi",
+            "/content/drive/MyDrive/treedata/phase4/qc/science_sample_blocks.gpkg"
+          ],
+          "tag": "t1_2006s_base",
+          "year": "2006s"
+        },
+        {
+          "extra": [
+            "--no-hillshade",
+            "--add-canopy-mask",
+            "/content/drive/MyDrive/treedata/phase4/labels_corrected/add_chm2005.tif",
+            "--infer-aoi",
+            "/content/drive/MyDrive/treedata/phase4/qc/science_sample_blocks.gpkg"
+          ],
+          "tag": "t1_2006s_add05",
+          "year": "2006s"
+        },
+        {
+          "extra": [
+            "--no-hillshade",
+            "--add-canopy-mask",
+            "/content/drive/MyDrive/treedata/phase4/labels_corrected/add_chm2016.tif",
+            "--infer-aoi",
+            "/content/drive/MyDrive/treedata/phase4/qc/science_sample_blocks.gpkg"
+          ],
+          "tag": "t1_2006s_add16",
+          "year": "2006s"
+        },
+        {
+          "extra": [
+            "--hs-source",
+            "chm2005",
+            "--infer-aoi",
+            "/content/drive/MyDrive/treedata/phase4/qc/science_sample_blocks.gpkg"
+          ],
+          "tag": "t1_2006s_in05",
+          "year": "2006s"
+        },
+        {
+          "extra": [
+            "--hs-source",
+            "chm2",
+            "--infer-aoi",
+            "/content/drive/MyDrive/treedata/phase4/qc/science_sample_blocks.gpkg"
+          ],
+          "tag": "t1_2006s_in16",
+          "year": "2006s"
+        },
+        {
+          "extra": [
+            "--no-hillshade",
+            "--infer-aoi",
+            "/content/drive/MyDrive/treedata/phase4/qc/science_sample_blocks.gpkg"
+          ],
+          "tag": "t1_2011s_base",
+          "year": "2011s"
+        },
+        {
+          "extra": [
+            "--no-hillshade",
+            "--seed",
+            "43",
+            "--infer-aoi",
+            "/content/drive/MyDrive/treedata/phase4/qc/science_sample_blocks.gpkg"
+          ],
+          "tag": "t1_2011s_base_s2",
+          "year": "2011s"
+        },
+        {
+          "extra": [
+            "--no-hillshade",
+            "--seed",
+            "44",
+            "--infer-aoi",
+            "/content/drive/MyDrive/treedata/phase4/qc/science_sample_blocks.gpkg"
+          ],
+          "tag": "t1_2011s_base_s3",
+          "year": "2011s"
+        },
+        {
+          "extra": [
+            "--no-hillshade",
+            "--add-canopy-mask",
+            "/content/drive/MyDrive/treedata/phase4/labels_corrected/add_chm2005.tif",
+            "--infer-aoi",
+            "/content/drive/MyDrive/treedata/phase4/qc/science_sample_blocks.gpkg"
+          ],
+          "tag": "t1_2011s_add05",
+          "year": "2011s"
+        },
+        {
+          "extra": [
+            "--no-hillshade",
+            "--add-canopy-mask",
+            "/content/drive/MyDrive/treedata/phase4/labels_corrected/add_chm2016.tif",
+            "--infer-aoi",
+            "/content/drive/MyDrive/treedata/phase4/qc/science_sample_blocks.gpkg"
+          ],
+          "tag": "t1_2011s_add16",
+          "year": "2011s"
+        },
+        {
+          "extra": [
+            "--hs-source",
+            "chm2005",
+            "--infer-aoi",
+            "/content/drive/MyDrive/treedata/phase4/qc/science_sample_blocks.gpkg"
+          ],
+          "tag": "t1_2011s_in05",
+          "year": "2011s"
+        },
+        {
+          "extra": [
+            "--hs-source",
+            "chm2",
+            "--infer-aoi",
+            "/content/drive/MyDrive/treedata/phase4/qc/science_sample_blocks.gpkg"
+          ],
+          "tag": "t1_2011s_in16",
+          "year": "2011s"
+        },
+        {
+          "extra": [
+            "--no-hillshade",
+            "--add-canopy-mask",
+            "/content/drive/MyDrive/treedata/phase4/labels_corrected/add_corrupt2_2011s.tif",
+            "--infer-aoi",
+            "/content/drive/MyDrive/treedata/phase4/qc/science_sample_blocks.gpkg"
+          ],
+          "tag": "t1_2011s_cor02",
+          "year": "2011s"
+        },
+        {
+          "extra": [
+            "--no-hillshade",
+            "--add-canopy-mask",
+            "/content/drive/MyDrive/treedata/phase4/labels_corrected/add_corrupt5_2011s.tif",
+            "--infer-aoi",
+            "/content/drive/MyDrive/treedata/phase4/qc/science_sample_blocks.gpkg"
+          ],
+          "tag": "t1_2011s_cor05",
+          "year": "2011s"
+        },
+        {
+          "extra": [
+            "--no-hillshade",
+            "--add-canopy-mask",
+            "/content/drive/MyDrive/treedata/phase4/labels_corrected/add_corrupt10_2011s.tif",
+            "--infer-aoi",
+            "/content/drive/MyDrive/treedata/phase4/qc/science_sample_blocks.gpkg"
+          ],
+          "tag": "t1_2011s_cor10",
+          "year": "2011s"
+        },
+        {
+          "extra": [
+            "--no-hillshade",
+            "--infer-aoi",
+            "/content/drive/MyDrive/treedata/phase4/qc/science_sample_blocks.gpkg"
+          ],
+          "tag": "t1_2016_base",
+          "year": "2016"
+        },
+        {
+          "extra": [
+            "--no-hillshade",
+            "--add-canopy-mask",
+            "/content/drive/MyDrive/treedata/phase4/labels_corrected/add_chm2005.tif",
+            "--infer-aoi",
+            "/content/drive/MyDrive/treedata/phase4/qc/science_sample_blocks.gpkg"
+          ],
+          "tag": "t1_2016_add05",
+          "year": "2016"
+        },
+        {
+          "extra": [
+            "--no-hillshade",
+            "--add-canopy-mask",
+            "/content/drive/MyDrive/treedata/phase4/labels_corrected/add_chm2016.tif",
+            "--infer-aoi",
+            "/content/drive/MyDrive/treedata/phase4/qc/science_sample_blocks.gpkg"
+          ],
+          "tag": "t1_2016_add16",
+          "year": "2016"
+        },
+        {
+          "extra": [
+            "--hs-source",
+            "chm2005",
+            "--infer-aoi",
+            "/content/drive/MyDrive/treedata/phase4/qc/science_sample_blocks.gpkg"
+          ],
+          "tag": "t1_2016_in05",
+          "year": "2016"
+        },
+        {
+          "extra": [
+            "--hs-source",
+            "chm2",
+            "--infer-aoi",
+            "/content/drive/MyDrive/treedata/phase4/qc/science_sample_blocks.gpkg"
+          ],
+          "tag": "t1_2016_in16",
+          "year": "2016"
+        },
+        {
+          "extra": [
+            "--hs-source",
+            "nir",
+            "--infer-aoi",
+            "/content/drive/MyDrive/treedata/phase4/qc/science_sample_blocks.gpkg"
+          ],
+          "tag": "t1_2016_nir",
+          "year": "2016"
+        },
+        {
+          "extra": [
+            "--no-hillshade",
+            "--infer-aoi",
+            "/content/drive/MyDrive/treedata/phase4/qc/science_sample_blocks.gpkg"
+          ],
+          "tag": "t1_2020_base",
+          "year": "2020"
+        },
+        {
+          "extra": [
+            "--no-hillshade",
+            "--add-canopy-mask",
+            "/content/drive/MyDrive/treedata/phase4/labels_corrected/add_chm2005.tif",
+            "--infer-aoi",
+            "/content/drive/MyDrive/treedata/phase4/qc/science_sample_blocks.gpkg"
+          ],
+          "tag": "t1_2020_add05",
+          "year": "2020"
+        },
+        {
+          "extra": [
+            "--no-hillshade",
+            "--add-canopy-mask",
+            "/content/drive/MyDrive/treedata/phase4/labels_corrected/add_chm2016.tif",
+            "--infer-aoi",
+            "/content/drive/MyDrive/treedata/phase4/qc/science_sample_blocks.gpkg"
+          ],
+          "tag": "t1_2020_add16",
+          "year": "2020"
+        },
+        {
+          "extra": [
+            "--hs-source",
+            "chm2005",
+            "--infer-aoi",
+            "/content/drive/MyDrive/treedata/phase4/qc/science_sample_blocks.gpkg"
+          ],
+          "tag": "t1_2020_in05",
+          "year": "2020"
+        },
+        {
+          "extra": [
+            "--hs-source",
+            "chm2",
+            "--infer-aoi",
+            "/content/drive/MyDrive/treedata/phase4/qc/science_sample_blocks.gpkg"
+          ],
+          "tag": "t1_2020_in16",
+          "year": "2020"
+        },
+        {
+          "extra": [
+            "--no-hillshade",
+            "--infer-aoi",
+            "/content/drive/MyDrive/treedata/phase4/qc/science_sample_blocks.gpkg"
+          ],
+          "tag": "t1_2019n_base",
+          "year": "2019n"
+        },
+        {
+          "extra": [
+            "--hs-source",
+            "nir",
+            "--infer-aoi",
+            "/content/drive/MyDrive/treedata/phase4/qc/science_sample_blocks.gpkg"
+          ],
+          "tag": "t1_2019n_nir",
+          "year": "2019n"
+        }
+      ],
+      "category": null,
+      "champion_tags": [],
+      "commit": null,
+      "decided": "2026-09-03",
+      "decision_rule": "Written before any run exists. SAMPLE: fixed ground blocks, stratified and screened (CHM coverage in both epochs, coreg-quiet, radiometric representativeness), split train/selection/test ONCE; the same blocks for every arm; train and early-stop on train/selection blocks, policy-C threshold chosen on selection blocks, scores read from test blocks only. NOISE FLOOR: the max pairwise |delta| among t1_2011s_base{,_s2,_s3} on the primary statistic; any arm delta at or below it is UNDETERMINED, never a win. PRIMARY STATISTIC: recall at precision 0.75 from the test-block sweep (curve-matched); F1 at the arm's own policy-C point is secondary. KILL RULE (pre-launch, free): a lidar-adder arm whose additions raster changes under 2% of its year's labeled sample pixels is STRUCK before launch and recorded here — it cannot move anything. VERDICTS: lidar-adder pathway CONFIRMED if the adder beats base by more than the floor in >=2 of {2006s, 2011s, 2016}; lidar-input likewise; NIR CONFIRMED only if nir beats base on BOTH 2016 and 2019n (one of two = sensor-specific, reported as such); corruption doses produce a dose-response slope (calibration, no pass/fail). 2020 arms are the sanity anchor: a \"win\" appearing ONLY on 2020 is suspect (its labels are least wrong; little to correct). GPU: 2xA100 concurrency cap; utilization reported as registry step-hours / session wall-hours with target >=0.85; torch-free steps run on CPU VMs, never on the A100s. Launch flags per arm are generated into this file's arm `extra` lists when the Phase-0 builders land, BEFORE the queue is generated; the science content above does not change after results exist. Launch itself remains Kam's (GPU gate).\n",
+      "design_doc": null,
+      "extra": {},
+      "headline": "Floor (max pairwise |delta| among 2011s base/s2/s3, recall@prec0.75 test blocks) = 0.0085.",
+      "hypothesis": "The training-side knobs the recipe audit left open — lidar as label context, lidar as an input channel, and the 4th (NIR) band — are testable cheaply on a fixed, screened, spatially-split ground sample before any full-archive spend (design: TIER1_SCIENCE_SAMPLE_PLAN_2026-09-02.md). What would change our mind per question: a lidar-adder win above the measured noise floor in >=2 of the 3 non-2020 years says projected labels are correctably wrong and the 36-run should train on lidar-gated labels; an input-channel win says the model is information-starved, not just label-limited; an NIR win on BOTH sensors says the archive's 4-band years deserve 4-band arms. Null results above the floor close those questions with numbers instead of instinct.\n",
+      "imagery": [],
+      "inputs": [],
+      "instruments": [],
+      "kind": "experiment",
+      "last_run": "2026-09-03",
+      "metric": "Dense sweeps qc_indep_sweep_{year}_{tag}_*.csv restricted to the sample's TEST blocks; policy-C selections in phase4/qc/indep_thresholds.csv (chosen on SELECTION blocks); paired-delta table harvested to phase4/qc/tier1_results.csv. Numbers live there, never here.\n",
+      "n": null,
+      "n_source": null,
+      "name": "tier1_science_sample",
+      "outputs": [],
+      "registry_rows": 142,
+      "reports": [],
+      "retrospective": false,
+      "run_ids": [],
+      "sample": null,
+      "status": "complete",
+      "superseded_by": [],
+      "supersedes": [],
+      "tags": [],
+      "verdict": "Floor (max pairwise |delta| among 2011s base/s2/s3, recall@prec0.75 test blocks) = 0.0085. LIDAR-INPUT CONFIRMED: in05 and in16 beat base beyond floor in 3/3 of {2006s +.023/+.046, 2011s +.017/+.021, 2016 +.075/+.066}. LIDAR-ADDER NOT CONFIRMED: 1/3 for both (2016 +.081/+.066 only; 2011s -.001/-.026; 2006s -.017 and add16 -.503 -- 2016-epoch additions on 2006 imagery poison the labels). NIR CONFIRMED: 2016 +.074 AND 2019n +.040. CORRUPTION: flat dose-response (cor05 -.0002, cor10 +.003, both inside floor) -- training insensitive to <=10% random label corruption; projection error, not noise, is the binding constraint. 2020 anchor unremarkable (its wins echoed on real years). 27/28 arms scored; 2011s_cor02 produced no checkpoint (fate unresolved on t1gpuD); dose curve read from 0/5/10%. Data: phase4/qc/tier1_results.csv."
+    },
+    {
+      "arm_scores": {},
+      "arms": [
+        {
+          "tag": "hy_e3_2006s",
+          "year": "2006s"
+        },
+        {
+          "tag": "hy_e3_2011s",
+          "year": "2011s"
+        }
+      ],
+      "category": null,
+      "champion_tags": [],
+      "commit": null,
+      "decided": "2026-09-01",
+      "decision_rule": "Written before launch. If both fresh arms reach f.5 >= 0.72 (the bottom of the citywide fleet band), the recipe hypothesis stands: GO for the 36-run, no special handling. If either stays <= 0.60, imagery is implicated for that year: the 36-run still GOES but those years are flagged low-confidence and routed to the degradation-synthesis workstream. Between 0.60 and 0.72: UNDETERMINED — report both readings to Kam with the noise floor, decide together. The 36-run go/no-go itself remains Kam's call in all branches.\n",
+      "design_doc": null,
+      "extra": {},
+      "headline": "MIXED, read per the rule.",
+      "hypothesis": "The archive's four weakest scored arms are all sector_v1-recipe (2006s .470, 2011s .471, 3003s/2012s .637 f.5) while every citywide-recipe year — including 2000 at 0.827 with a 22-year reference gap — sits >=0.77. Mining (phase4/qc/score_vs_difficulty.csv) says the weakness is the RECIPE, not the imagery. Re-running the two worst years under the unified citywide EPOCH-3 recipe tests that directly; it is the gate before the 36-acquisition run's ~70 A100-hours.\n",
+      "imagery": [],
+      "inputs": [],
+      "instruments": [],
+      "kind": "experiment",
+      "last_run": "2026-09-02",
+      "metric": "qc_indep live rows (forest_wetland, own operating point) for the new arms vs the same years' sector_v1 rows; fleet context in score_vs_difficulty.csv.\n",
+      "n": null,
+      "n_source": null,
+      "name": "hard_year_pilot",
+      "outputs": [],
+      "registry_rows": 20,
+      "reports": [],
+      "retrospective": false,
+      "run_ids": [],
+      "sample": null,
+      "status": "complete",
+      "superseded_by": [],
+      "supersedes": [],
+      "tags": [],
+      "verdict": "MIXED, read per the rule. 2011s: 0.471 -> 0.756 f.5 — ABOVE the 0.72 line, recipe hypothesis CONFIRMED outright. 2006s: 0.470 -> 0.707 — the UNDETERMINED band, 0.013 under the line; no measured noise floor exists for cross-arm f.5 deltas, so per checklist rule 10 that shortfall is UNDETERMINED, not a failure. Its residual gap matches its three measured strikes (145 cm effective resolution, 9.2 m registration p95, 15-yr reference gap; see IMAGERY_FACTS 14 and the coregistration table). Specialist reading: the recipe explains the great majority of both years' historical deficit; 2006s is genuinely hard imagery performing respectably. RECOMMENDATION: GO for the 36-run with 2006s flagged low-confidence and first in line for degradation synthesis. The 36-run go/no-go remains Kam's. Numbers: qc_indep_report.csv live=1 rows. Ops note: both arms also stress-tested the reliability layer (a FUSE-race evaluate crash, three beacon deaths, one guard/split collision) -> vm_ops --queue-args, the campaign-aware registry gate, and vm_babysitter all exist because of this experiment. The spent GENERATED queue file is deleted (regenerable from git; the generator refuses complete experiments by design).\n"
+    },
+    {
+      "arm_scores": {},
+      "arms": [
+        {
+          "tag": "deeplab_fine",
+          "year": "2019"
+        },
+        {
+          "tag": "deeplab_coarse",
+          "year": "2019n"
+        }
+      ],
+      "category": null,
+      "champion_tags": [],
+      "commit": null,
+      "decided": "2026-08-31",
+      "decision_rule": "Worth un-tabling only if speed matters operationally AND the stride-4 decoder does not cost crown-perimeter recall (the pipeline's measured failure mode).\n",
+      "design_doc": null,
+      "extra": {},
+      "headline": "TABLED by Kam 2026-08-31 before any GPU run.",
+      "hypothesis": "DeepLabV3+ (resnet101) trains/infers materially faster than the U-Net at comparable quality on a fine+coarse pilot pair — Kam's speed motivation.\n",
+      "imagery": [],
+      "inputs": [],
+      "instruments": [],
+      "kind": "experiment",
+      "last_run": null,
+      "metric": "qc_indep live rows vs the pilot baselines at each arm's own operating point, plus wall-clock per step from the ledger.\n",
+      "n": null,
+      "n_source": null,
+      "name": "deeplab_arm",
+      "outputs": [],
+      "registry_rows": 0,
+      "reports": [],
+      "retrospective": false,
+      "run_ids": [],
+      "sample": null,
+      "status": "tabled",
+      "superseded_by": [],
+      "supersedes": [],
+      "tags": [],
+      "verdict": "TABLED by Kam 2026-08-31 before any GPU run. Plumbing built, measured, and kept inert: ckpt.ARCHS registrant #2, 2.44x faster on T2000 batch timing, stride-4 decoder trade-off recorded in config.py's ARCH block. Arch stamp closes the silent cross-load hazard regardless of this experiment's fate.\n"
+    },
+    {
+      "arm_scores": {
+        "pilot_e2_coarse": {
+          "home": "qc_indep_report.csv",
+          "precision": "0.7725",
+          "recall": "0.6887",
+          "ref": "ccap_2021_hires_lc.tif"
+        },
+        "pilot_e2_fine": {
+          "home": "qc_indep_report.csv",
+          "precision": "0.8218",
+          "recall": "0.6461",
+          "ref": "ccap_2021_hires_lc.tif"
+        },
+        "pilot_e2_medium": {
+          "home": "qc_indep_report.csv",
+          "precision": "0.7589",
+          "recall": "0.6292",
+          "ref": "ccap_2021_hires_lc.tif"
+        }
+      },
+      "arms": [
+        {
+          "tag": "pilot_e2_fine",
+          "year": "2019"
+        },
+        {
+          "tag": "pilot_e2_medium",
+          "year": "2019s"
+        },
+        {
+          "tag": "pilot_e2_coarse",
+          "year": "2019n"
+        }
+      ],
+      "category": "machinery",
+      "champion_tags": [],
+      "commit": null,
+      "decided": "2026-08-31",
+      "decision_rule": "PASS per arm = mask GPKG exists + independent score present + manifest carries EPOCH + all six steps OK in the ledger. 3/3 arms PASS unblocks the 36-year run (which remains Kam's call).\n",
+      "design_doc": "Scripts/SEMANTIC_OVERHAUL_PLAN_2026-08-29.md",
+      "extra": {
+        "docx_sections": [
+          "pilot_2019"
+        ],
+        "side_findings": [
+          "support_matched_rescore (qc/instruments/support_matched_rescore.py) eliminated scoring support as the explanation for coarse-over-medium",
+          "the 2019s/2019n pair became the C3 same-flight consistency floor — see entry sameflight_floor_c3"
+        ]
+      },
+      "headline": "3/3 GATE PASS 2026-08-31 04:36Z.",
+      "hypothesis": "The overhauled machinery (U1-U3, D-series, EPOCH 2) can run one calendar year at three tiers end-to-end unattended, producing a deliverable mask, an independent score, and a complete ledger per arm — the go-condition for the 36-acquisition run.\n",
+      "imagery": [
+        {
+          "bands": 3,
+          "gsd_cm": 10.0,
+          "label": "2019"
+        },
+        {
+          "bands": 4,
+          "gsd_cm": 30.5,
+          "label": "2019s"
+        },
+        {
+          "bands": 4,
+          "gsd_cm": 60.0,
+          "label": "2019n"
+        }
+      ],
+      "inputs": [],
+      "instruments": [],
+      "kind": "experiment",
+      "last_run": "2026-09-01",
+      "metric": "qc_indep_report.csv live=1 rows per arm (recall/precision vs ccap_2021_hires_lc, forest_wetland); the four-part gate in qc/pilot_gate.py.\n",
+      "n": null,
+      "n_source": null,
+      "name": "pilot_2019",
+      "outputs": [
+        "phase4/qc/qc_indep_report.csv",
+        "phase4/qc/support_matched_2019_pair.csv"
+      ],
+      "registry_rows": 23,
+      "reports": [
+        "Reports/FINDINGS_LEDGER_2026-09-03.docx"
+      ],
+      "retrospective": false,
+      "run_ids": [
+        "20260831T015830Z_2019s_pilot_e2_medium_postproc",
+        "20260831T024236Z_2019_pilot_e2_fine_postproc",
+        "20260831T042348Z_2019n_pilot_e2_coarse_postproc"
+      ],
+      "sample": "three arms over one calendar year; the two 60 cm/1 ft deliveries of the same Hexagon flight are the within-flight pair the later floors are measured on.\n",
+      "status": "complete",
+      "superseded_by": [],
+      "supersedes": [],
+      "tags": [
+        "pilot",
+        "three-tier",
+        "gate",
+        "epoch-2",
+        "go-condition"
+      ],
+      "verdict": "3/3 GATE PASS 2026-08-31 04:36Z. Numbers in qc_indep_report.csv (live=1); narrative in WORKPLAN.md board row 5. Side findings: coarse beat medium on the same flight (support eliminated as explanation — support_matched_rescore); 2019s/2019n established as ONE flight, TWO deliveries.\n"
+    },
+    {
+      "arm_scores": {},
+      "arms": [
+        {
+          "tag": "degsynth_a",
+          "year": "2000"
+        }
+      ],
+      "category": null,
+      "champion_tags": [],
+      "commit": null,
+      "decided": null,
+      "decision_rule": "Promote the approach to more coarse years only if degsynth_a improves recall at comparable precision; kill if within the measured noise floor (report UNDETERMINED, not \"no difference\"). Synthetic tiles must come from the target's TRAIN blocks only (leakage rule in degrade_synth.py).\n",
+      "design_doc": null,
+      "extra": {},
+      "headline": "Training on 2020 imagery synthetically degraded to 2000's measured resolution and radiometry (resample-first, gain-only — qc/instruments/degrade_synth.py) beats the plain citywide-projection arm on 20…",
+      "hypothesis": "Training on 2020 imagery synthetically degraded to 2000's measured resolution and radiometry (resample-first, gain-only — qc/instruments/degrade_synth.py) beats the plain citywide-projection arm on 2000, because the domain gap, not label error, dominates that year.\n",
+      "imagery": [],
+      "inputs": [],
+      "instruments": [],
+      "kind": "experiment",
+      "last_run": null,
+      "metric": "qc_indep live rows for 2000, degsynth_a vs the 2000 champion arm, same ref and canopy_def; 2000 chosen because its radiometric fit is the strongest measured improvement in the R2 table (see radiometry_norm.py docstring).\n",
+      "n": null,
+      "n_source": null,
+      "name": "degradation_synth_2000",
+      "outputs": [],
+      "registry_rows": 0,
+      "reports": [],
+      "retrospective": false,
+      "run_ids": [],
+      "sample": null,
+      "status": "queued",
+      "superseded_by": [],
+      "supersedes": [],
+      "tags": [],
+      "verdict": null
+    },
+    {
+      "arm_scores": {},
+      "arms": [
+        {
+          "tag": "e3_2000",
+          "year": "2000"
+        },
+        {
+          "tag": "e3_2002",
+          "year": "2002"
+        },
+        {
+          "tag": "e3_2002s",
+          "year": "2002s"
+        },
+        {
+          "tag": "e3_2003s",
+          "year": "2003s"
+        },
+        {
+          "tag": "e3_2005",
+          "year": "2005"
+        },
+        {
+          "tag": "e3_2007",
+          "year": "2007"
+        },
+        {
+          "tag": "e3_2007s",
+          "year": "2007s"
+        },
+        {
+          "tag": "e3_2009",
+          "year": "2009"
+        },
+        {
+          "tag": "e3_2009s",
+          "year": "2009s"
+        },
+        {
+          "tag": "e3_2012s",
+          "year": "2012s"
+        },
+        {
+          "tag": "e3_2013",
+          "year": "2013"
+        },
+        {
+          "tag": "e3_2013s",
+          "year": "2013s"
+        },
+        {
+          "tag": "e3_2015",
+          "year": "2015"
+        },
+        {
+          "tag": "e3_2016",
+          "year": "2016"
+        },
+        {
+          "tag": "e3_2017",
+          "year": "2017"
+        },
+        {
+          "tag": "e3_2019",
+          "year": "2019"
+        },
+        {
+          "tag": "e3_2015n",
+          "year": "2015n"
+        },
+        {
+          "tag": "e3_2015s",
+          "year": "2015s"
+        },
+        {
+          "tag": "e3_2017s",
+          "year": "2017s"
+        },
+        {
+          "tag": "e3_2019s",
+          "year": "2019s"
+        },
+        {
+          "tag": "e3_2017n",
+          "year": "2017n"
+        },
+        {
+          "tag": "e3_2018s",
+          "year": "2018s"
+        },
+        {
+          "tag": "e3_2019n",
+          "year": "2019n"
+        },
+        {
+          "tag": "e3_2020",
+          "year": "2020"
+        },
+        {
+          "tag": "e3_2020s",
+          "year": "2020s"
+        },
+        {
+          "tag": "e3_2021",
+          "year": "2021"
+        },
+        {
+          "tag": "e3_2021s",
+          "year": "2021s"
+        },
+        {
+          "tag": "e3_2021n",
+          "year": "2021n"
+        },
+        {
+          "tag": "e3_2022",
+          "year": "2022"
+        },
+        {
+          "tag": "e3_2022s",
+          "year": "2022s"
+        },
+        {
+          "tag": "e3_2023n",
+          "year": "2023n"
+        },
+        {
+          "tag": "e3_2023",
+          "year": "2023"
+        },
+        {
+          "tag": "e3_2024",
+          "year": "2024"
+        },
+        {
+          "tag": "e3_2024s",
+          "year": "2024s"
+        }
+      ],
+      "category": null,
+      "champion_tags": [],
+      "commit": null,
+      "decided": null,
+      "decision_rule": "Written before launch. OPERATING-POINT POLICY IS C (Kam, 2026-09-01, after Reports/RECIPE_AUDIT_2026-09-01.md): each arm's deployed threshold is selected by select_indep_threshold.py from its dense independent sweep - criterion f1_plateau_hi_d005 (the HIGHEST k whose F1 sits within 0.005 of the curve's peak, on forest_wetland, raw prob). Rationale measured on the pilot curves BEFORE any 36-run arm exists: both are flat within 0.005 across a 3x threshold range, so strict argmax would deploy the recall-most edge of a plateau the metric cannot distinguish; preferring the precision-most end suits a crown deliverable scored against C-CAP's broad canopy definition. Fallback for an unscorable sweep = fixed 0.5 with a loud flag, NEVER the circular best_f1_thresh. In-queue postproc masks are PLACEHOLDERS (circular threshold); final masks are re-cut post-run at the policy-C threshold on free CPU (postproc --infer-thresh from the registry) and re-scored. An arm PASSES when all six steps verify, qc_indep scores it, and its selection is non-EDGE (or EDGE inspected and accepted). The campaign lands when every arm passes or is listed as a named exception - failures are reported, never hidden. 2006s and 2011s are ADOPTED from hard_year_pilot (identical recipe, tags hy_e3_*) rather than re-run - ~4-6 A100-hr saved; their policy-C re-cut happens with the fleet's. Champion promotion per year remains Kam's call (champion_arms.csv), as does launch (GPU gate: 2xA100 cap, ~65-70 A100-hr estimated for 34 arms, babysitter on every bootstrap).\n",
+      "design_doc": null,
+      "extra": {},
+      "headline": "The hard-year pilot confirmed the unified citywide EPOCH-3 recipe explains the historical weak tail (2011s 0.471 -> 0.756; 2006s 0.470 -> 0.707 with three measured imagery strikes).",
+      "hypothesis": "The hard-year pilot confirmed the unified citywide EPOCH-3 recipe explains the historical weak tail (2011s 0.471 -> 0.756; 2006s 0.470 -> 0.707 with three measured imagery strikes). This campaign applies that ONE recipe to the whole archive. What would change our mind: multiple arms failing their gates, or scoring below their year's prior champion, would mean the pilot did not generalize and the recipe premise is wrong.\n",
+      "imagery": [],
+      "inputs": [],
+      "instruments": [],
+      "kind": "experiment",
+      "last_run": null,
+      "metric": "qc_indep_report.csv live=1 rows per arm (vs ccap_2021_hires_lc), the dense sweep files qc_indep_sweep_{year}_{tag}_*.csv, and the policy-C registry phase4/qc/indep_thresholds.csv. Fleet view: score_vs_difficulty.csv.\n",
+      "n": null,
+      "n_source": null,
+      "name": "full_archive_e3",
+      "outputs": [],
+      "registry_rows": 0,
+      "reports": [],
+      "retrospective": false,
+      "run_ids": [],
+      "sample": null,
+      "status": "queued",
+      "superseded_by": [],
+      "supersedes": [],
+      "tags": [],
+      "verdict": null
+    },
+    {
+      "arm_scores": {},
+      "arms": [
+        {
+          "tag": "res_1x",
+          "year": "2019s"
+        },
+        {
+          "tag": "res_2x",
+          "year": "2019s"
+        },
+        {
+          "tag": "res_4x",
+          "year": "2019s"
+        }
+      ],
+      "category": null,
+      "champion_tags": [],
+      "commit": null,
+      "decided": null,
+      "decision_rule": "Written before running: if 4x >= 2x >= 1x on recall at comparable precision, the within-acquisition resolution effect is confirmed and \"do NOT super-resolve the coarse end\" hardens; any other ordering reopens the question. Differences under the noise floor: UNDETERMINED.\n",
+      "design_doc": null,
+      "extra": {},
+      "headline": "The measured coarse-over-medium gap (support-matched, program-confound narrowed to one flight processed two ways) is a genuine resolution effect: ONE acquisition trained at native, 2x and 4x downsampl…",
+      "hypothesis": "The measured coarse-over-medium gap (support-matched, program-confound narrowed to one flight processed two ways) is a genuine resolution effect: ONE acquisition trained at native, 2x and 4x downsampled will reproduce the ordering.\n",
+      "imagery": [],
+      "inputs": [],
+      "instruments": [],
+      "kind": "experiment",
+      "last_run": null,
+      "metric": "qc_indep live rows, all three arms scored on the SAME reference at each arm's own operating point, plus the support-matched rescore (qc/instruments/support_matched_rescore.py) to keep scoring support equal.\n",
+      "n": null,
+      "n_source": null,
+      "name": "resolution_1x2x4",
+      "outputs": [],
+      "registry_rows": 0,
+      "reports": [],
+      "retrospective": false,
+      "run_ids": [],
+      "sample": null,
+      "status": "queued",
+      "superseded_by": [],
+      "supersedes": [],
+      "tags": [],
+      "verdict": null
+    }
+  ]
+}

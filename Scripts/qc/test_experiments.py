@@ -27,7 +27,6 @@ Repo-only by construction: every check reads tracked files, so CI passes with no
 mounted. Lake paths in provenance fields are legitimate and deliberately unchecked.
 """
 import csv
-import json
 import subprocess
 from pathlib import Path
 
@@ -44,9 +43,9 @@ REQUIRED = {"name", "status", "hypothesis", "arms", "baseline", "metric",
             "decision_rule", "verdict", "decided"}
 # Provenance fields holding repo-relative paths that must resolve.
 PATH_FIELDS = ("design_doc", "reports", "instruments", "inputs", "outputs")
-# Prefixes that mark a path as NOT repo-relative: the data lake (both mounts) and
-# glob patterns. Legitimate provenance, unverifiable from a checkout.
-_UNCHECKABLE = ("G:", "/content/", "D:", "http", "~")
+# The n_source resolver and the uncheckable-prefix list live in the GENERATED-layer
+# builder (one home for the logic); this suite imports and gates them.
+from experiments_index import _UNCHECKABLE, resolve_n  # noqa: E402
 
 
 def _specs():
@@ -68,42 +67,22 @@ def _as_list(v):
     return v if isinstance(v, list) else [v]
 
 
-# ---------------------------------------------------------------- n / n_source
+# ---------------------------------------------------------------- generated layer
 
-def resolve_n(source, root=REPO):
-    """Resolve an `n_source` pointer to an integer. Grammar in experiments/README.md.
+def test_index_is_fresh():
+    """INDEX.md / index.json are the GENERATED layer — regenerated here, byte-compared.
 
-    Returns None when the pointer cannot be resolved from a checkout (missing file,
-    lake path) — the caller decides whether that is a failure. Raises ValueError on a
-    malformed pointer, which IS always a failure.
+    Fails after any registry edit until `py -3.12 qc/experiments_index.py` is re-run,
+    exactly like the GENERATED-queue-file drift gate. This is what lets the index
+    restate values the authored layer may not: harvested at build time, pinned here.
     """
-    if "#" not in str(source):
-        raise ValueError(f"n_source {source!r} has no '#<selector>'")
-    rel, sel = str(source).rsplit("#", 1)
-    if rel.startswith(_UNCHECKABLE):
-        return None
-    p = root / rel
-    if not p.exists():
-        p = SCRIPTS / rel                       # bare names resolve under Scripts/
-    if not p.exists():
-        return None
-    if sel == "lines":
-        return sum(1 for ln in p.read_text(encoding="utf-8").splitlines()
-                   if ln.strip() and not ln.lstrip().startswith("#"))
-    if sel.startswith("json:"):
-        val = json.loads(p.read_text(encoding="utf-8"))[sel[5:]]
-        return int(val)
-    if sel == "rows" or sel.startswith("rows:"):
-        # `#` comment lines are stripped before the header is read — champion_arms.csv
-        # style banners would otherwise be parsed as data.
-        body = [ln for ln in p.read_text(encoding="utf-8").splitlines()
-                if ln.strip() and not ln.lstrip().startswith("#")]
-        rows = list(csv.DictReader(body))
-        if sel == "rows":
-            return len(rows)
-        col, _, want = sel[5:].partition("=")
-        return sum(1 for r in rows if str(r.get(col, "")).strip() == want)
-    raise ValueError(f"n_source {source!r}: unknown selector {sel!r}")
+    import experiments_index
+    md, js = experiments_index.render()
+    for fname, want in (("INDEX.md", md), ("index.json", js)):
+        p = EXP_DIR / fname
+        assert p.exists(), f"{fname} missing — run: py -3.12 qc/experiments_index.py"
+        assert p.read_text(encoding="utf-8") == want, (
+            f"{fname} is STALE — run: py -3.12 qc/experiments_index.py")
 
 
 # ---------------------------------------------------------------- core schema

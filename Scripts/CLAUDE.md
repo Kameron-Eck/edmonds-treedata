@@ -56,7 +56,7 @@ removal, and — established 2026-08-29 — **seasonal difference** all enter as
 | **ONE row per acquisition, everything joined** | `phase4/qc/acquisition_passport.csv` (generated view of five fact homes; rendered on the Pipeline Atlas artifact) |
 | **Inter-year registration error** | `phase4/qc/coregistration.csv` — medians = registration, p95 = conservative bound; reader rules in `docs/SCHEMAS.md` |
 | **Per-acquisition CRS / units / grid, measured** | `phase4/qc/imagery_geometry.csv` (instrument: `qc/instruments/imagery_geometry.py`); assumption census: `docs/CRS_CENSUS.md` |
-| **What experiments exist / their verdicts** | `experiments/*.yaml` (schema: its README; gate any of them vs the lake: `py -3.12 qc/pilot_gate.py --experiment <file>`) |
+| **What experiments exist / their verdicts** | `experiments/INDEX.md` first (generated, resolved values), then the entry's yaml (authored, pointers; schema: `experiments/README.md`; gate vs the lake: `py -3.12 qc/pilot_gate.py --experiment <file>`) |
 | **What ran, when, on what GPU** | `run_registry.csv`; `phase4/qc/train_queue_status*.csv` (readers merge ALL of them) |
 | **Dependency spec** | `requirements-colab.txt` / `-local.txt` — in-script bootstraps must match (same-commit rule) |
 | **The script you are about to edit** | the script itself. Always. Never patch from memory. |

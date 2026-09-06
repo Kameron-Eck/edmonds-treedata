@@ -9,7 +9,10 @@ with open("/content/RECUT_ARMS", encoding="utf-8") as f:
         if ln and not ln.startswith("#"):
             y, t, th = ln.split()
             arms.append((y, t, th))
-chain = " && ".join(
+# between-arm scratch cleanup: recut1 died reading back its OWN staged tif
+# (corrupt TIFF directory) - staged probs/masks accumulate across 8 citywide
+# arms and can exhaust /content; clean after each arm.
+chain = " && rm -rf /content/phase4_scratch/* && ".join(
     f"python -u {REPO}/pipeline/phase4_semantic_finetune.py --year {y} "
     f"--step postproc --run-tag {t} --force-citywide --infer-thresh {th} "
     f">> /content/drive/MyDrive/treedata/phase4/logs/recut_{y}_{t}.log 2>&1" for y, t, th in arms)

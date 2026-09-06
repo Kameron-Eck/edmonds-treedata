@@ -172,13 +172,13 @@ pointer to its verdict/artifact, never a restated number (one fact, one home).
 | **trend8 8-year map series** + operating-point attack + recalibration: delivered cuts retracted, matched cuts PASS the sign test; 41/42 loss corroboration; flicker honest negative | `experiments/trend8_uniform_rgb.yaml` verdict; `phase4/qc/trend8_*` |
 | **overlap_floor** (floor 0.15pp; factorial decomposed: op-point 6.5 + 1m-info 3.5 + season ~0; EagleView endpoints agree with Panel A) | `experiments/overlap_floor.yaml` verdict; `overlap_factorial_read.csv`, `eagleview_sign_test.csv` |
 | Canopy DEFINITION review (four questions answered; draft definition §6) | `Reports/CANOPY_COVER_DEFINITION_REVIEW_2026-09-05.md` |
-| Literature: 4 papers read+reasoned (MURTreeFormer, JPSL, GeoAI, ALCC); families 3/4/5 deep-dive; sawtooth lit map | this file §history + CHATLOG 2026-09-05/06 |
+| Literature: 4 papers read+reasoned; families 3/4/5 deep-dive; sawtooth lit map | CHATLOG 2026-09-05/06 |
+| **Overnight literature HUNT complete** (1,359 queries, 132 full reads): NO segmentation twin exists (gap claim now hunted); Roman/Nix/Healy = the peer-reviewed Panel-A lineage; PACC honestly refused; two-reader audit | `Reports/LIT_HUNT_DIGEST_2026-09-06.md` (+ FINAL/MASTER) |
+| Change-detector design + adversarial review (step-shape certifier wins; shipped persist filter = recall tax; bounded temporal backfill formalized) | `Reports/CHANGE_DETECTOR_DESIGN_2026-09-06.md` |
 | Flicker-program items 1, 2, 5, 6, 7 (parcels, floor, EagleView, census, factorial) | verdicts above |
 
 ### RUNNING (external)
-| Thread | Where |
-|---|---|
-| Overnight literature hunt (twin study / novel solution vs the truth document) | separate Claude session; contract `Reports/TRUTH_DOCUMENT_TEMPORAL_INCONSISTENCY_HUNT.md` |
+(none — the literature hunt completed 2026-09-06; angle-10 relaunch is QUEUED)
 
 ### AWAITING KAM — the decision stack (nothing moves without these)
 | # | Decision |
@@ -202,6 +202,13 @@ pointer to its verdict/artifact, never a restated number (one fact, one home).
 | Free tests from the lit pile: map-loss UA spot check (~60 cells, Kam); ALCC-style change-count comparison; 30m-stability refutation | Kam minutes / CPU |
 | Panel B (2005→2016 paired points, ~1 Kam-day) — would upgrade the lidar leg to human evidence | Kam's day + drift/blur controls port |
 | 2020-Aug consortium fetch (phenology ladder completion) | ~1h, anytime |
+| **Second-reader duplicate campaign** (~2,550 duplicates; interpreter error 3.6% is comparable to the effect and unpropagated) | Kam labeling day + a second reader |
+| **Stable-stratum re-interpretation** (N≈2,070, date-blinded, order-randomized → ±1.5pp; certifies PACC + de-circularizes the kill test) | Kam ~1-2.5h |
+| Change-detector build: gold-set freeze → step-shape certifier port (3 audit fixes) → tiered output → bounded temporal backfill | Kam go; 1-2 days CPU |
+| Angle-10 relaunch (replacement-aware detection; spec+seeds ready in LIT_HUNT_MASTER) | engine budgets reset (after midnight UTC) |
+| Port as instruments: smoothing-trap reproduction; edge-band anisotropy probe (13.2pp); sigma_chain MDC-floor publication | CPU, small |
+| Truth-document F-number annotations (superseded by our own recalibration) + Literature_Tracker fixes | doc pass |
+| Open-leads pass: unfired OpenAlex sweep, Scholar cited-by x12, Stehman texts, 42 UNREADABLEs via library | next research session |
 | Ops debt: exec-handle retry loop in vm_ops; launch-time VM-side input preflight; heartbeat rename mirror-flap fix; pr_curves cwd-write; --only job-id friendliness; resume-credit root fix; mailbox stem collision | machinery grant, batchable |
 
 ### TABLED (parked with re-open conditions)

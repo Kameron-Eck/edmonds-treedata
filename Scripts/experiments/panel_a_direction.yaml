@@ -1,0 +1,85 @@
+name: panel_a_direction
+kind: measurement-campaign
+status: complete
+retrospective: true
+category: truth
+tags: [photo-interp, paired-change, olofsson, direction, human-truth, 2016-2024]
+hypothesis: >
+  The city's question is DIRECTION, and no instrument in the pipeline could answer it:
+  every map-based read of 2016->2024 was inside its own processing noise. A HUMAN
+  judging the same physical point in both years, side by side, cancels the model, the
+  threshold, the reference vintage, the radiometry and the interpreter's private canopy
+  definition — everything the map series cannot hold still. What would change our mind:
+  a capture audit finding substantial change outside the locators (the strata would then
+  be measuring the locators, not the city), or a duplicate/blur control showing the
+  interpreter manufactures change at a rate comparable to the effect.
+arms: []
+baseline: null
+metric: >
+  phase4/qc/panel_a_estimate.txt — paired Olofsson net change with its 95% CI and all
+  four measured controls (duplicate disagreement, blur-control false change, capture
+  audit, drift/displacement bound). Point-level labels in phase4/qc/panel_a_labels.csv;
+  design and strata in phase4/qc/panel_a_meta.json.
+decision_rule: >
+  RECONSTRUCTED (retrospective: true) from the instrument docstring and the power gate
+  that ran BEFORE the labelling — those parts genuinely are pre-registered.
+  qc/instruments/paired_change_power.py was run first and gated the design: N=250
+  FAILED, N=1250 was GO at power 0.81 with a half-width of 1.03pp; the campaign did not
+  proceed at the failing N. Pairing is the design commitment — one interpreter, the same
+  physical point in both epochs, locators that LOCATE and never label. The estimate is
+  admissible only if the controls hold: the SRS capture stratum bounds what the locators
+  missed, blind duplicates bound differential interpreter error, a blur control bounds
+  sharpness asymmetry between a 1-ft and a 3-in product, and a worst-case registration
+  shift bounds displacement. A sign that flips under any control is not a finding.
+verdict: >
+  DIRECTION IS DOWN, and it is the project's only human-measured trend statement.
+  Net 2016->2024 = -2.21pp of city area, 95% CI [-3.31, -1.11] — the single figure the
+  city statement rests on, read from phase4/qc/panel_a_estimate.txt, which also carries
+  every control in the same file. All four controls hold: the SRS capture audit found
+  change outside the locators at a rate consistent with capture ~0.9+, blind duplicates
+  disagreed at a rate the file records against its own gate, the blur control produced
+  zero false change in 30 pairs, and a hostile 2.0 m registration shift moves the net
+  in the direction that SUBTRACTS from the decline, so the sign holds in both scenarios.
+  Loss points survive scrutiny far better than gain points (crosscheck in
+  phase4/qc/panel_a_loss_crosscheck.csv). Kam's own catch during the verify pass is
+  part of the record: the 2024 flight is leaf-off March-May, so a leaf-on October-2023
+  comparison was re-called rather than trusted (phase4/qc/panel_a_verify.csv).
+  STANDING: Panel A is the PACE AND DIRECTION AUTHORITY. Map series corroborate it and
+  never override it — that hierarchy is what trend8_uniform_rgb's retraction enforced,
+  and what overlap_floor's EagleView sign test independently agreed with.
+decided: 2026-09-04
+instruments:
+  - Scripts/qc/instruments/panel_a_paired_change.py
+  - Scripts/qc/instruments/paired_change_power.py
+inputs:
+  - phase4/qc/panel_a_points.csv
+  - phase4/qc/panel_a_meta.json
+  - phase4/qc/paired_change_power.csv
+outputs:
+  - phase4/qc/panel_a_estimate.txt
+  - phase4/qc/panel_a_labels.csv
+  - phase4/qc/panel_a_verify.csv
+  - phase4/qc/panel_a_drift.csv
+  - phase4/qc/panel_a_drift_labels.csv
+  - phase4/qc/panel_a_loss_crosscheck.csv
+reports: [Reports/TRUTH_DOCUMENT_TEMPORAL_INCONSISTENCY_HUNT.md]
+imagery: ["2016", "2024"]
+sample: >
+  paired photo-interpretation points on a 2 m lattice (EPSG:26910) clipped to the city
+  polygon, four strata (cand_change / srs_floor / stable_canopy / stable_other), drawn
+  once at seed 20260904 and judged by one interpreter in both epochs.
+n: 1250
+n_source: phase4/qc/panel_a_meta.json#json:n_live
+supersedes: []
+superseded_by: []
+extra:
+  interpreter: Kam (single reader; the second-reader duplicate campaign is queued)
+  imagery_used: >
+    2016_snoh_1ft_rgbi.tif and 2024_snoh_3in_rgb.tif (the LOCAL Snohomish 3-in
+    delivery; the CoE 5 cm 2024 product is Drive-only) — recorded in panel_a_meta.json
+  controls: [duplicates, blur, capture-SRS, drift-displacement]
+  open_followups:
+    - Panel B (2005->2016 paired points) would upgrade the lidar leg to human evidence
+    - second-reader duplicate campaign — interpreter error is comparable to the effect
+      and currently unpropagated
+    - K1 250-point 2016 labelling feeds Olofsson ABSOLUTE accuracy, a different question

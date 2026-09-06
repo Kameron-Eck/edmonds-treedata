@@ -56,10 +56,21 @@ def load_arms(experiment_path):
     The gate generalised 2026-09-01: the checks below were never pilot-specific —
     deliverable exists, independent score present, manifest carries EPOCH, ledger
     complete — so ANY experiment can be gated with --experiment. The pilot file is
-    the default for continuity with `py -3.12 qc/pilot_gate.py`."""
+    the default for continuity with `py -3.12 qc/pilot_gate.py`.
+
+    Refuses an arms-less entry (2026-09-06). The registry backfill made
+    `arms: []` legal for measurement-campaigns and instrument-findings; run
+    through this gate they would produce zero checks and print a clean PASS —
+    a vacuous green is worse than an error."""
     import yaml
     spec = yaml.safe_load(Path(experiment_path).read_text(encoding="utf-8"))
-    return [(str(a["year"]), str(a["tag"])) for a in spec["arms"]], spec
+    arms = [(str(a["year"]), str(a["tag"])) for a in spec["arms"]]
+    if not arms:
+        raise SystemExit(
+            f"{spec.get('name')} is kind {spec.get('kind', 'experiment')} with no "
+            f"arms — this gate checks (year, tag) deliverables and has nothing to "
+            f"check. Read its metric/verdict pointers instead.")
+    return arms, spec
 
 
 from lake import read_retry as _retry   # noqa: E402 — ONE home (lake.py); the

@@ -1,5 +1,9 @@
 name: pilot_2019
+kind: experiment
 status: complete
+retrospective: false
+category: machinery
+tags: [pilot, three-tier, gate, epoch-2, go-condition]
 hypothesis: >
   The overhauled machinery (U1-U3, D-series, EPOCH 2) can run one calendar year at
   three tiers end-to-end unattended, producing a deliverable mask, an independent
@@ -22,3 +26,26 @@ verdict: >
   same flight (support eliminated as explanation — support_matched_rescore);
   2019s/2019n established as ONE flight, TWO deliveries.
 decided: 2026-08-31
+design_doc: Scripts/SEMANTIC_OVERHAUL_PLAN_2026-08-29.md
+reports: [Reports/FINDINGS_LEDGER_2026-09-03.docx]
+outputs:
+  - phase4/qc/qc_indep_report.csv
+  - phase4/qc/support_matched_2019_pair.csv
+run_ids:
+  - 20260831T024236Z_2019_pilot_e2_fine_postproc
+  - 20260831T015830Z_2019s_pilot_e2_medium_postproc
+  - 20260831T042348Z_2019n_pilot_e2_coarse_postproc
+imagery: ["2019", "2019s", "2019n"]
+sample: >
+  three arms over one calendar year; the two 60 cm/1 ft deliveries of the same
+  Hexagon flight are the within-flight pair the later floors are measured on.
+supersedes: []
+superseded_by: []
+launch_defaults: []
+extra:
+  docx_sections: [pilot_2019]
+  side_findings:
+    - support_matched_rescore (qc/instruments/support_matched_rescore.py) eliminated
+      scoring support as the explanation for coarse-over-medium
+    - the 2019s/2019n pair became the C3 same-flight consistency floor —
+      see entry sameflight_floor_c3

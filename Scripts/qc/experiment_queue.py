@@ -29,8 +29,18 @@ MARK = "# GENERATED from"
 def generate(exp_path):
     exp_path = Path(exp_path)
     spec = yaml.safe_load(exp_path.read_text(encoding="utf-8"))
+    # `kind` arrived 2026-09-06 with the registry backfill. Without this check a
+    # measurement-campaign (arms: []) would generate a queue of ZERO jobs and the
+    # launcher would report a clean, empty, meaningless run.
+    kind = spec.get("kind", "experiment")
+    if kind != "experiment":
+        raise SystemExit(f"{spec['name']} is kind {kind} — nothing to launch "
+                         f"(only kind: experiment owns arms; experiments/README.md)")
     if spec["status"] in ("complete", "tabled"):
         raise SystemExit(f"{spec['name']} is {spec['status']} — nothing to launch")
+    if spec["status"] == "needs-kam":
+        raise SystemExit(f"{spec['name']} is needs-kam — its result is documented and "
+                         f"unsigned; launching it is not the next move")
     defaults = [str(x) for x in (spec.get("launch_defaults") or [])]
     jobs = []
     for a in spec["arms"]:

@@ -1,0 +1,60 @@
+name: sameflight_floor_c3
+kind: instrument-finding
+status: complete
+retrospective: true
+category: floors
+tags: [noise-floor, processing-chain, same-flight, c3, consistency, trend]
+hypothesis: >
+  Every accuracy number in this project is scored against a reference that is itself
+  imperfect, so no reference can tell us how much of a year-to-year map difference is
+  processing rather than trees. One pair in the archive can: 2019s and 2019n are ONE
+  Hexagon flight delivered two ways (WA consortium 1 ft, USDA NAIP 60 cm). Identical
+  sun, atmosphere, phenology and sensor hardware; only the delivered GSD and the
+  processing chain differ. Whatever those two masks disagree about is a floor — no
+  accuracy or trend claim about either product can honestly be tighter than it.
+arms: []
+baseline: null
+metric: >
+  phase4/qc/sameflight_consistency.csv — one row: overall disagreement fraction, canopy
+  IoU, and a 1-px-tolerant disagreement fraction over the valid overlap, after warping
+  the 2019n mask (nearest) onto the 2019s grid.
+decision_rule: >
+  RECONSTRUCTED (retrospective: true) from the instrument docstring, which states the
+  reading rule before any number: the pair carries ZERO engine diff between the two
+  pilot arms' commits, so mask disagreement between them is processing-chain plus GSD
+  and nothing else. The 1-px-tolerant variant is what splits boundary jitter from
+  body-level disagreement — the tolerant number is the honest floor for AREA claims,
+  the raw number for per-pixel claims. Any later single-year map step smaller than this
+  floor is UNREADABLE, not "no change" (CLAUDE.md 3.5).
+verdict: >
+  THE FLOOR EXISTS AND IT IS LARGE ENOUGH TO MATTER. One flight, two deliveries,
+  zero engine diff: canopy IoU 0.7376 and a 1.3pp citywide canopy-area gap, read from
+  phase4/qc/sameflight_consistency.csv (the row's own note records the conditions).
+  Two consequences, both load-bearing downstream: (1) single-year map steps inside
+  +-1.3pp are processing, not trees — this is the error floor trend8_uniform_rgb's
+  decision rule carries and the reason its interior wobble was declared unreadable;
+  (2) it is the bound overlap_floor's same-window cross-delivery test was judged
+  against, where the 2017 CoE-vs-King pair came in at one-ninth of it, confirming the
+  noise model rather than breaking it. The IoU is the blunter of the two readings: a
+  0.74 IoU between two products of the SAME photons is the cleanest statement in the
+  repo of how much of a canopy map is the processing chain.
+decided: 2026-09-04
+instruments: [Scripts/qc/instruments/sameflight_consistency.py]
+outputs: [phase4/qc/sameflight_consistency.csv]
+reports: [Reports/TRUTH_DOCUMENT_TEMPORAL_INCONSISTENCY_HUNT.md]
+imagery: ["2019s", "2019n"]
+sample: >
+  one mask pair (2019s pilot_e2_medium vs 2019n pilot_e2_coarse), compared over their
+  full valid overlap on the 2019s 1 m grid — the whole city, not a sample of it.
+n: 1
+n_source: phase4/qc/sameflight_consistency.csv#rows
+supersedes: []
+superseded_by: []
+extra:
+  depends_on: pilot_2019
+  why_this_pair: >
+    established in the pilot after a correction and a correction-of-the-correction —
+    the two products are ONE flight, not two programs; correlation peaks at exactly
+    zero shift while the residual after a best-fit linear map is 14-27 DN, far too
+    large for one to be a downsample of the other. See entry same_flight_pair_2019.
+  consumed_by: [trend8_uniform_rgb, overlap_floor]

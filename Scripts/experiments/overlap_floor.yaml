@@ -1,5 +1,5 @@
 name: overlap_floor
-status: queued
+status: complete
 hypothesis: 'Items 2+5+7 of the flicker-program ranking (2026-09-05, Kam-approved): the
   archive''s OVERLAP structure can decompose the trend8 sawtooth into instrument mechanisms
   without any new ground truth. (2) OVERLAP FLOOR: same-window acquisitions delivered
@@ -45,7 +45,17 @@ decision_rule: 'Written before any run. Same UNIFORM recipe as trend8 (plain RGB
   differencing, disagreement kills map differencing here even under total method control
   (either way a finding, pre-registered). trend8_2024 is reused as the 2024 arm - same
   recipe, no rerun. 2xA100 cap; approved by Kam 2026-09-05 ("Yes to 1 through 8").'
-verdict: null
-decided: null
+verdict: 'All three pre-registered reads complete, at policy-C matched cuts (the rule as written;
+  delivered-cut fractions were never valid inputs). (a) FLOOR: |2017 CoE - 2017 King| same-window =
+  0.15pp - PASS at one-ninth of the 1.3pp same-flight bound; noise model holds. (b) FACTORIAL: quartet
+  spread 10.1pp (delivered) -> 3.55pp (matched); the three <=30cm arms agree to 0.15pp TOTAL; season
+  effect ~0 within grid class; the ENTIRE residual is the 1m NAIP arm (-3.5pp genuine information
+  deficit, recall .73 at common precision). Decomposition: 10.1 = ~6.5 operating point + ~3.5 coarse-
+  grid info loss + ~0 season + ~0.15 delivery-at-<=30cm. Harmonization program NOT bounded - the spread
+  is explained. (c) EAGLEVIEW: 24.44 -> 26.32 -> 23.50; endpoints -0.94pp/4yr agree with Panel A in
+  sign AND pace (~-1.1 expected); interior +1.9/-2.8 wobble - single-year steps stay inside noise even
+  under total method control. Levels harmonized-to-C-CAP. Data: overlap_factorial_read.csv,
+  eagleview_sign_test.csv.'
+decided: '2026-09-06'
 launch_defaults:
 - --force-citywide

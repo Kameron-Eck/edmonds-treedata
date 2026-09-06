@@ -1,5 +1,5 @@
 name: trend8_uniform_rgb
-status: queued
+status: complete
 hypothesis: 'The canopy trend has an inflection near 2016: up-or-flat before, declining after
   (Panel A human measurement: -2.21pp 2016->2024, CI [-3.31,-1.11]; lidar physics: net gain
   2005->2016 on covered ground). An 8-year full-city map series under ONE DELIBERATELY UNIFORM
@@ -54,7 +54,18 @@ decision_rule: 'Written before any run. UNIFORM RECIPE IS THE POINT: all 8 arms 
   (~7.5h) is expected to kill runtimes mid-queue: resume via explicit --only missing-list
   relaunch (the resume-credit hole is a known open debt). 2xA100 cap; Kam approved GPU +
   credits 2026-09-04.'
-verdict: null
-decided: null
+verdict: 'DELIVERED-CUT SERIES RETRACTED as a trend read (per-arm best-F1 cuts on 650x-skewed eval
+  populations; the 2026-09-06 attack). At policy-C matched cuts (joint plateau, common precision .7394):
+  (a) SIGN TEST vs Panel A: PASSES - 2016->2024 = -5.59pp sweep-footprint / -3.48pp city-clipped masks
+  (delivered cuts had said +4.2, wrong sign); (b) pre-2016 flat-to-up, post-2016 declining - the two-leg
+  story reproduced; (c) hot spots dispersed (largest recut persistent cluster 1.53ha); (d) 41/42 of Panel
+  A verified losses corroborated by matched-cut map loss (was 34/42). RESIDUALS: +-2-4pp inter-year
+  jitter persists (per-year curve shape) - single-year map steps are NOT readable; pixel flicker did NOT
+  collapse (47.8% vs 50.7% of ever-canopy) - per-pixel instability is real detection noise, so change
+  MAPS need persistence filtering even though change TOTALS at matched cuts corroborate direction.
+  Levels are harmonized-to-C-CAP (matcher, never authority); pace authority remains Panel A -2.21+-1.10.
+  Data: trend8_policy_cuts.csv, trend8_harmonized_fractions.csv, trend8_transition_census.csv,
+  trend8_hotspot_map.png, eagleview_sign_test.csv.'
+decided: '2026-09-06'
 launch_defaults:
 - --force-citywide

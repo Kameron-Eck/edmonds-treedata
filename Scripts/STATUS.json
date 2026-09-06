@@ -1,5 +1,5 @@
 {
- "generated_utc": "2026-09-05T20:35:21Z",
+ "generated_utc": "2026-09-06T13:40:09Z",
  "lake_mounted": true,
  "code": {
   "engine_version": "v048",
@@ -249,17 +249,17 @@
    "models": 5,
    "prob": "2017_citywide_rgb.tif[6718MB]; 2017_of_2017.tif[3028MB]; 2017_xsensor_rgb.tif[406MB]; 2017_xsensor_train.tif[2972MB]",
    "mask": "Y",
-   "verify": "citywide_rgb:OK; of_2017:OK",
+   "verify": "citywide_rgb:OK",
    "honest": "\u2014"
   },
   {
    "year": "2017k",
    "gsd_cm": 10.0,
    "tiles": "\u2014",
-   "models": 0,
-   "prob": "\u2014",
-   "mask": "\u2014",
-   "verify": "\u2014",
+   "models": 1,
+   "prob": "2017k_of_2017k.tif[2368MB]",
+   "mask": "Y",
+   "verify": "of_2017k:OK",
    "honest": "\u2014"
   },
   {
@@ -267,9 +267,9 @@
    "gsd_cm": 100.0,
    "tiles": "\u2014",
    "models": 1,
-   "prob": "\u2014",
-   "mask": "\u2014",
-   "verify": "of_2017n:OK",
+   "prob": "2017n_of_2017n.tif[28MB]",
+   "mask": "Y",
+   "verify": "\u2014",
    "honest": "\u2014"
   },
   {
@@ -279,7 +279,7 @@
    "models": 1,
    "prob": "2017s_of_2017s.tif[323MB]",
    "mask": "Y",
-   "verify": "of_2017s:OK",
+   "verify": "\u2014",
    "honest": "\u2014"
   },
   {
@@ -377,7 +377,7 @@
    "gsd_cm": 5.0,
    "tiles": "Y",
    "models": 3,
-   "prob": "2022_citywide_rgb.tif[3927MB]; 2022_xsensor_train.tif[1198MB]",
+   "prob": "2022_citywide_rgb.tif[3927MB]; 2022_of_2022.tif[5357MB]; 2022_xsensor_train.tif[1198MB]",
    "mask": "Y",
    "verify": "citywide_rgb:OK",
    "honest": "rec 0.682 prec 0.801"

@@ -552,3 +552,21 @@ files:   qc/landed.py, phase4/qc/arm_pr_curves*, CHATLOG.md, run_registry.csv,
 next:    overlap GPUs finishing -> floor/factorial/EagleView reads; then the
          synthesis session (Kam). Search budget exhausted this session - skeptic
          hunt brief for a fresh session.
+
+## 2026-09-06  recalibration-campaign-complete
+goal:    finish the operating-point recalibration + all overlap reads
+did:     14/14 sweeps (3 free CPU VMs + sweep4 + recut2 relays; handle mortality
+         worked around; recut1 died on corrupt staged tif -> lake-side logs +
+         scratch cleanup fix -> recut2 8/8). VERDICTS WRITTEN, both experiments
+         complete: overlap_floor - floor 0.15pp PASS, quartet 10.1->3.55pp with
+         residual entirely the 1m arm, season ~0, <=30cm deliveries interchangeable
+         (0.15pp); EagleView endpoints -0.94pp/4yr agree with Panel A sign+pace,
+         interior wobble = single-year steps unreadable. trend8 - delivered cuts
+         RETRACTED, matched cuts flip the sign test to PASS (-3.5 to -5.6pp
+         2016->2024), two-leg story reproduced, 41/42 loss corroboration, flicker
+         did NOT collapse (47.8%) = pixel noise real, maps need persistence.
+         2017k promoted+trained (VERIFY OK) after 2 imagery-visibility failures.
+files:   experiments/{trend8_uniform_rgb,overlap_floor}.yaml (verdicts), queues
+         removed, phase4/qc/{trend8_policy_cuts,overlap_factorial_read,
+         eagleview_sign_test,trend8_*}.csv, hotspot map, payloads
+next:    Kam synthesis session (all evidence final); K4 sign-offs; city statement

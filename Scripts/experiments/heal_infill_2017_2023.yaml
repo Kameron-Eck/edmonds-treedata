@@ -94,9 +94,13 @@ imagery: ["2017", "2020", "2022", "2023"]
 sample: >
   Citywide inference if the budget allows; otherwise a spatial sample that MUST contain
   the 1,214 Panel A gold points. Sampling at random would remove the only population
-  that can score the result and would defeat the experiment's whole purpose. All four
-  years are already tiled (phase4/qc/tileset_registry.csv), so the tiling step is
-  already paid for on three of them.
+  that can score the result and would defeat the experiment's whole purpose. All four years re-tile.
+  Tile dirs exist for every one of them, but under OTHER campaigns' tags (of_2017,
+  of_2020, t1_2020_*, of_2022, untagged 2023), and tile_dir_for() keys the directory
+  on {label}__{run_tag} — so heal_2017 and its siblings resolve to directories that do
+  not exist. Recipe discipline forbids borrowing the old tags in any case. Corrected
+  2026-09-07: an earlier version of this line claimed the tiling was already paid for
+  on three of the four, which is false in both directions.
 
 supersedes: []
 superseded_by: []
@@ -105,7 +109,11 @@ extra:
   measured_cost: >
     From the trend8 step logs: mean 2.1 A100-hours per year across the eight trend8
     years, range 1.1-4.9 h. Four years is therefore ~8 A100-hours serial, ~4 hours
-    wall-clock on the 2-concurrent-A100 cap. An earlier estimate of "one to two
+    wall-clock on the 2-concurrent-A100 cap. ADD ~1.2 h of tiling (4 x the 18.6 min
+    measured median) that the sample: block above wrongly assumed was already paid.
+    That tiling is GPU-busy 0% of the time and belongs on a free CPU runtime; running
+    it there first is the no-cost pilot for the tile-offload proposal in
+    Reports/PIPELINE_SPEEDUP_OPTIONS_2026-09-07.md section 7.3. An earlier estimate of "one to two
     A100-days" in chat was wrong by roughly 6x — it misread the recalibration campaign's
     total compute (which included sweeps, recuts and the free CPU fleet) as engine time.
   why_these_four: >

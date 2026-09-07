@@ -34,6 +34,8 @@ than selected. Everything below is resolved from them at build time.
   <br>evidence `phase4/qc/landmark_transform_gate.csv#regex:^# r_est_vs_expected,([0-9.]+)`
 - **1170** — The Panel A gold set is frozen at 1,170 no-change / 42 loss / 2 gain, resolved by the semantics in panel_a_paired_change.step_estimate — the code that produced the -2.21 pp headline. The record's 1,169 no-change is not reproducible under any verify convention tested; loss and gain are stable under all of them. This set is a development set forever: 42 positives means held-out recall has sd 7.3 pp.
   <br>evidence `phase4/qc/panel_a_gold.csv#regex:^# count_nochange,(\d+)`
+- **0.5857** — The local displacement field COMPOSES across epoch pairs — the A-B field is predicted by the A-R and B-R fields, which never saw it, at median r = 0.5857 with 55 of 56 triples beating a shuffled-correspondence null at p < 0.05. So the structure is a property of the EPOCHS, not of the pairing: it is geometry. But its magnitude sits under the noise of a per-cell median — composed residual 0.452 m against a global-constant 0.433 m, beating global in only 15 of 56 triples — so it is not exploitable. The transplant is capped at one imagery-validated shift per epoch pair.
+  <br>evidence `phase4/qc/local_field_transitivity.csv#regex:^# median_r_composed,([0-9.]+)`
 
 ## 2. Best arm per year, at one held cut
 

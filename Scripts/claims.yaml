@@ -163,3 +163,19 @@ claims:
       - Reports/CHANGE_DETECTOR_DESIGN_2026-09-06.md
       - Reports/TEMPORAL_REFINEMENT_DESIGN_2026-09-06.md
     entry: panel_a_direction
+
+  - id: local-field-real-but-not-exploitable
+    statement: >-
+      The local displacement field COMPOSES across epoch pairs — the A-B field is
+      predicted by the A-R and B-R fields, which never saw it, at median r = 0.5857 with
+      55 of 56 triples beating a shuffled-correspondence null at p < 0.05. So the
+      structure is a property of the EPOCHS, not of the pairing: it is geometry. But its
+      magnitude sits under the noise of a per-cell median — composed residual 0.452 m
+      against a global-constant 0.433 m, beating global in only 15 of 56 triples — so it
+      is not exploitable. The transplant is capped at one imagery-validated shift per
+      epoch pair.
+    value: "0.5857"
+    evidence: 'phase4/qc/local_field_transitivity.csv#regex:^# median_r_composed,([0-9.]+)'
+    stated_in:
+      - Reports/TEMPORAL_REFINEMENT_DESIGN_2026-09-06.md
+    entry: change_detector_design

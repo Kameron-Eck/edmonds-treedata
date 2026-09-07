@@ -513,3 +513,40 @@ metric's resolution where it is ≤ 0.43 m. Local structure buys a further ~0.14
 and up to 0.43 m on the worst-registered epoch, and is unvalidated. Placement error on the
 favourable population is 2.4–2.9 m (1.8–2.0 m on confidently-matched pairs), measured on a
 2 m lattice against a population truncated at 8 m by the matcher.
+
+---
+
+## 13. RESOLVED — the local field is real, and not worth using
+
+§12 left one UNDETERMINED: local displacement beats global at predicting a held-out
+cluster, but the estimate comes FROM THE MASKS, so it could be spatially correlated
+detection noise rather than geometry. `qc/instruments/local_field_transitivity.py`
+settles it without imagery, using a property noise does not have.
+
+**Geometry composes.** If each epoch carries a real local warp W(x), then for any three
+epochs `d_AB(x) = d_AR(x) − d_BR(x)`, because both sides equal W_A(x) − W_B(x). The A–B
+field is never consulted when building the A–R and B–R fields, so agreement is an
+out-of-sample prediction about a third measurement. A pairing artifact belongs to the
+PAIR and has no reason to compose.
+
+Two questions, and they have different answers — reporting one verdict conflated them on
+the first run:
+
+**Q1, is the structure a property of the epochs?** **YES.** Median r(composed, observed)
+= **0.5857** over 56 triples, with **55 of 56** beating a shuffled-correspondence null at
+p < 0.05. The field composes. It is geometry, not a matching artifact.
+
+**Q2, is it worth using?** **NO.** Composed residual **0.4524 m** against a
+global-constant **0.4328 m**, and composition beats the constant in only **15 of 56**
+triples. The structure is real but its magnitude sits under the noise of a per-cell
+median, so one constant predicts as well or better.
+
+**Decision: cap the transplant at ONE shift per epoch pair** — the global median, which
+§11 validated against imagery at r = 0.9457 and 7.4 cm. The local degree of freedom is
+not spent, because a field that is real but unexploitable buys complexity and no
+accuracy. This closes the open item from §12 rather than deferring it, and it simplifies
+the build: one translation, one validated estimator, no per-neighbourhood machinery.
+
+Note what this does NOT say. It does not say the city has no local warp — it says the
+warp is smaller than our ability to measure it from 400 m cells of matched clusters. A
+denser or better-conditioned estimator could change Q2 without touching Q1.

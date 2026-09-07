@@ -432,3 +432,84 @@ restriction) and §10 (fix the scale at 1.0) still binds.
 
 The build order in §7 is unchanged. This removes the objection that killed the previous
 design; it does not remove the gold-set freeze that blocks everything.
+
+---
+
+## 12. PLACEMENT — measured, and my first reading of it was wrong
+
+Kam: "why don't we try to place it first, and see how right or wrong we get it."
+
+`qc/instruments/placement_accuracy.py` does leave-one-out on clusters BOTH epochs found:
+hide one, place it from its neighbours, compare to where it actually is. Three arms —
+`naive` (no transform), `global` (one median shift per epoch pair, computed leave-one-out),
+`local` (median of the K nearest matched pairs, excluding the held-out one).
+
+**I ran it at k = 8, read the result as "the transform buys nothing", and reported that to
+Kam. An adversarial referee — CLAUDE.md 3.4c, the proposer does not score its own
+proposal — overturned it. The instrument's arithmetic was sound; my reading was not.**
+
+### What the corrected run says
+
+| epoch | \|offset\| | naive | global | local (k=64) |
+|---|---|---|---|---|
+| 2019 | 0.03 m | 1.92 | 1.88 | **1.85** |
+| 2013 | 0.18 m | 2.39 | **2.38** | 2.39 |
+| 2009 | 0.20 m | 2.87 | 2.90 | **2.88** |
+| 2015 | 0.27 m | 2.71 | 2.67 | **2.64** |
+| 2016 | 0.41 m | 2.58 | 2.57 | **2.46** |
+| 2011s | 1.01 m | 2.90 | 2.72 | **2.69** |
+| 2024 | 1.16 m | 2.35 | 1.99 | **1.92** |
+
+k-sweep of the median per-epoch error: **2.586 (k=8) → 2.488 (k=32) → 2.462 (k=64) →
+2.437 (k=128)** → 2.472 (k=256) → 2.496 (k=512). Against naive 2.578 and global 2.573.
+
+### The three corrections, and they matter
+
+**k = 8 measured my estimator, not the world.** An 8-point median is noisy; the decay to a
+plateau at k ∈ [32, 128] is monotone. At k = 64 `local` beats `global` in 6 of 7 epochs,
+and the referee found it also beats the BEST POSSIBLE constant translation in 4 of 7
+(2016 by 0.073 m, 2024 by 0.050). **So spatial structure in the displacement field is
+detectable, and my conclusion that it is not was an artifact of one badly chosen
+parameter.** The sign of that finding is reversed, not softened.
+
+**"No gain" was a 3.5 violation.** For the five epochs with offsets ≤ 0.43 m, the gain a
+*perfect* transform would produce is 0.00–0.06 m — below what this metric resolves. Those
+rows are UNDETERMINED, not zero, and the output now labels them. The referee's stronger
+statistic: each epoch's observed gain against what its own residual cloud predicts for its
+own offset gives **r = +0.9964** across all seven, ratios 0.90–1.20. The transform behaves
+exactly as a correct transform should; it is simply invisible where the offset is small.
+
+**The IoU arm is quantized and could not have shown a difference.** Every measured shift
+is under one 2 m cell, so whole-cell translation rounds them all to zero and `global`'s IoU
+was a bit-for-bit copy of `naive`'s. My "identical IoU" observation was `round()` returning
+0, not a measurement. I also wrote that `local` was "consistently the worst on IoU" — false:
+2024's local IoU (0.5862) beats naive (0.5688), and 2024 is the one epoch where the
+transform should help most. I had hidden the only IoU evidence in favour of the transform.
+
+### What the IoU actually decomposes into
+
+Measured ceilings, now emitted as columns: observed 0.560 · best whole-cell shift 0.630 ·
+area-ratio ceiling 0.767. So of the deficit, **most is detected-extent mismatch admitted by
+this instrument's own `AREA_RATIO = (0.5, 2.0)` filter, and ~0.07 of IoU is
+placement-recoverable.** My claim that "the cluster is an unstable unit" conflated extent
+with position; the instability is in how much of a crown each epoch detects, not in where
+it is. That is consistent with §10's 2.3% delineation finding rather than contradicting it —
+different unit (cover inside a frozen polygon vs free component-to-component IoU).
+
+### The caveat that binds the good news
+
+`local`'s advantage is estimated FROM THE MASKS. Only the *global* median has been
+validated against imagery (§11). Spatially correlated matching noise — mergers and splits
+clustering in dense stands — would lower leave-one-out error without being geometry, and
+2016, the strongest local win, has a small measured offset. **Whether the local structure
+is geometry or a spatially correlated detection artifact is UNDETERMINED and needs its own
+imagery-side gate before any build uses it.** That is precisely the §3 lesson, and it
+applies to this analysis as much as to the layer it replaced.
+
+### Honest summary
+
+A single translation per epoch pair buys 0.36 m where the offset is ≥ 1 m and is below the
+metric's resolution where it is ≤ 0.43 m. Local structure buys a further ~0.14 m overall
+and up to 0.43 m on the worst-registered epoch, and is unvalidated. Placement error on the
+favourable population is 2.4–2.9 m (1.8–2.0 m on confidently-matched pairs), measured on a
+2 m lattice against a population truncated at 8 m by the matcher.

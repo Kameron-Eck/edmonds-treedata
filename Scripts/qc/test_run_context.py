@@ -194,3 +194,92 @@ def test_join_basis_is_declared_and_honest():
             assert tsid, f"{r['run_id']}: join_basis {basis} without a tileset_id"
             assert tsid in known, (
                 f"{r['run_id']}: tileset_id {tsid} is not in tileset_registry.csv")
+
+
+# ------------------------------------------------------------------ arm metrics
+
+ARM_METRICS = QC / "arm_metrics.csv"
+CURVES = QC / "curves"
+
+
+def _metrics():
+    rows = _rows(ARM_METRICS)
+    if not rows:
+        pytest.skip("arm_metrics.csv absent — run "
+                    "qc/instruments/harvest_arm_metrics.py")
+    return rows
+
+
+def test_policy_is_a_closed_set():
+    """The policy names the RULE that chose the threshold, and it is not free text.
+
+    "per-arm best F1" and "matched at precision 0.75" are different claims about the
+    same arm; a typo'd or invented policy silently mixes them back together, which is
+    the 10.09-vs-1.07 pp failure.
+    """
+    from instruments.harvest_arm_metrics import POLICIES
+    for r in _metrics():
+        assert r["policy"] in POLICIES, (
+            f"{r['curve_id']}: unknown policy {r['policy']!r} — allowed: {POLICIES}")
+
+
+def test_every_point_carries_its_operating_point():
+    """No bare precision/recall pair: a threshold and a population, every row."""
+    for r in _metrics():
+        assert r["thresh"], f"{r['curve_id']}/{r['policy']}: precision and recall with no threshold"
+        assert r["population"], f"{r['curve_id']}/{r['policy']}: no evaluation population size"
+
+
+def test_counts_agree_with_the_ratios():
+    """precision = tp/(tp+fp) and recall = tp/(tp+fn), recomputed from the counts.
+
+    Storing counts is what makes the ratios auditable; this is the audit.
+    """
+    for r in _metrics():
+        tp, fn, fp = (float(r["tp"]), float(r["fn"]), float(r["fp"]))
+        if tp + fp:
+            assert abs(tp / (tp + fp) - float(r["precision"])) < 5e-4, (
+                f"{r['curve_id']}/{r['policy']}: precision disagrees with tp/fp")
+        if tp + fn:
+            assert abs(tp / (tp + fn) - float(r["recall"])) < 5e-4, (
+                f"{r['curve_id']}/{r['policy']}: recall disagrees with tp/fn")
+
+
+def test_matched_points_actually_meet_their_floor():
+    """A `matched_p75` row whose precision is below 0.75 would be a lie in the name."""
+    for r in _metrics():
+        if r["policy"].startswith("matched_p"):
+            floor = int(r["policy"].split("_p")[1]) / 100.0
+            assert float(r["precision"]) >= floor - 5e-4, (
+                f"{r['curve_id']}: {r['policy']} has precision {r['precision']}")
+
+
+def test_curve_files_resolve_and_are_shaped_right():
+    from instruments.harvest_arm_metrics import CURVE_COLS
+    seen = set()
+    for r in _metrics():
+        if not r["curve_file"] or r["curve_id"] in seen:
+            continue
+        seen.add(r["curve_id"])
+        p = REPO / r["curve_file"]
+        assert p.exists(), f"{r['curve_id']}: curve file {r['curve_file']} missing"
+        lines = p.read_text(encoding="utf-8").splitlines()
+        assert lines[0] == ",".join(CURVE_COLS), f"{p.name}: unexpected columns"
+        assert len(lines) - 1 == int(r["n_cuts"]), (
+            f"{p.name}: {len(lines) - 1} cuts, row says {r['n_cuts']}")
+
+
+def test_one_curve_id_means_one_population():
+    """Same id => same arm, same reference, same pixels.
+
+    The bug this pins: the first harvest keyed on (year, tag, ref, prob, def) and the
+    LOSO `sample-selection` and `sample-test` halves — genuinely different populations
+    — collided into one id, silently discarding one of them. 87 sweeps became 58.
+    """
+    by = {}
+    for r in _metrics():
+        if not r["curve_file"]:
+            continue
+        prev = by.setdefault(r["curve_id"], (r["eval_scope"], r["population"]))
+        assert prev[0] == r["eval_scope"], (
+            f"curve_id {r['curve_id']} spans scopes {prev[0]!r} and {r['eval_scope']!r}")

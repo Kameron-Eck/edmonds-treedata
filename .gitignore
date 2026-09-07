@@ -71,6 +71,14 @@ desktop.ini
 !/phase4/qc/tilesets/
 /phase4/qc/tilesets/*
 !/phase4/qc/tilesets/*.csv
+# curves/ (2026-09-06): the full precision-recall sweep behind every scored arm —
+# k, thresh, tp, fn, fp, recall, precision, f1 at all 254 cuts. The CURVE is the
+# primitive; every precision/recall pair anyone quotes is a projection of it, so
+# with these tracked an operating-point question is answerable from a checkout
+# instead of a GPU. 87 curves, 1.15 MB.
+!/phase4/qc/curves/
+/phase4/qc/curves/*
+!/phase4/qc/curves/*.csv
 
 # ── Reports: track the WRITING, never the source PDFs ─────────────────────
 # Added 2026-08-18. Reports/ was ignored wholesale by the /* rule, which meant

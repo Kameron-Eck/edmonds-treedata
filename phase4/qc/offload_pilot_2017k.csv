@@ -1,0 +1,42 @@
+metric,step,baseline,pilot,unit,baseline_source,pilot_source,note
+step_minutes,labels,2.3,,min,train_queue_status.csv session=of2017k2,,
+step_minutes,tile,21.1,,min,train_queue_status.csv session=of2017k2,,
+step_minutes,train,47.8,,min,train_queue_status.csv session=of2017k2,,
+step_minutes,evaluate,1.1,,min,train_queue_status.csv session=of2017k2,,
+step_minutes,inference,20.3,,min,train_queue_status.csv session=of2017k2,,
+step_minutes,postproc,19.0,,min,train_queue_status.csv session=of2017k2,,
+step_elapsed_log,labels,0.00,,min,phase4_semantic_finetune_labels_2017k_2026-09-06T01-42.log,,"engine time, `elapsed:` normalised to minutes"
+step_elapsed_log,tile,18.50,,min,phase4_semantic_finetune_tile_2017k_2026-09-06T02-03.log,,"engine time, `elapsed:` normalised to minutes"
+step_elapsed_log,train,46.40,,min,phase4_semantic_finetune_train_2017k_2026-09-06T02-50.log,,"engine time, `elapsed:` normalised to minutes"
+step_elapsed_log,evaluate,0.99,,min,phase4_semantic_finetune_evaluate_2017k_2026-09-06T02-53.log,,"engine time, `elapsed:` normalised to minutes"
+step_elapsed_log,inference,19.40,,min,phase4_semantic_finetune_inference_2017k_2026-09-06T03-13.log,,"engine time, `elapsed:` normalised to minutes"
+step_elapsed_log,postproc,18.00,,min,phase4_semantic_finetune_postproc_2017k_2026-09-06T03-32.log,,"engine time, `elapsed:` normalised to minutes"
+machine,labels,GPU,,GPU|CPU,run_passport.csv 20260906T014036Z_2017k_of_2017k_labels,,baseline basis run_passport.gpu=NVIDIA A100-SXM4-40GB
+machine,tile,GPU,,GPU|CPU,run_passport.csv 20260906T014248Z_2017k_of_2017k_tile,,baseline basis run_passport.gpu=NVIDIA A100-SXM4-40GB
+machine,train,GPU,,GPU|CPU,run_passport.csv 20260906T020357Z_2017k_of_2017k_train,,baseline basis run_passport.gpu=NVIDIA A100-SXM4-40GB
+machine,evaluate,GPU,,GPU|CPU,run_passport.csv 20260906T025227Z_2017k_of_2017k_evaluate,,baseline basis run_passport.gpu=NVIDIA A100-SXM4-40GB
+machine,inference,GPU,,GPU|CPU,run_passport.csv 20260906T025334Z_2017k_of_2017k_inference,,baseline basis run_passport.gpu=NVIDIA A100-SXM4-40GB
+machine,postproc,GPU,,GPU|CPU,run_passport.csv 20260906T031357Z_2017k_of_2017k_postproc,,baseline basis run_passport.gpu=NVIDIA A100-SXM4-40GB
+a100_span_min,,113.0,,min,"13 rows, train_queue_status.csv",,baseline session of2017k2; first ts to last VERIFY* ts
+total_span_min,,113.0,,min,"13 rows, train_queue_status.csv",,all rows of the tag; the pilot's is EXPECTED to exceed the baseline's (three bootstraps in sequence) — see the yaml
+sem_best_mb,train,1113.2,,MB (bytes/1e6),sem_best_2017k_of_2017k.pt,sem_best_2017k_spd_2017k.pt,stat on the lake; blank = the file is not there
+prob_raster_mb,inference,2368.4,,MB (bytes/1e6),edmonds_canopy_prob_2017k_of_2017k.tif,edmonds_canopy_prob_2017k_spd_2017k.tif,stat on the lake; blank = the file is not there
+mask_mb,postproc,95.9,,MB (bytes/1e6),edmonds_canopy_mask_2017k_of_2017k.tif,edmonds_canopy_mask_2017k_spd_2017k.tif,stat on the lake; blank = the file is not there
+gpkg_mb,postproc,26.9,,MB (bytes/1e6),edmonds_canopy_mask_2017k_of_2017k.gpkg,edmonds_canopy_mask_2017k_spd_2017k.gpkg,stat on the lake; blank = the file is not there
+tileset_id,tile,a36d6772e88b,,id,tileset_registry.csv,,
+n_tiles,tile,632,,tiles,tileset_registry.csv,,
+tileset_id_match,tile,a36d6772e88b,,id,tileset_registry.csv,,pilot not tiled yet — or tileset_registry.csv has not been re-harvested (qc/instruments/harvest_tilesets.py)
+eval_ap,evaluate,0.4275,,fraction (4dp),semantic_eval_report.csv,,"OVERALL row, held-out test; R5 is REPORTED, not gated"
+eval_auroc,evaluate,0.8851,,fraction (4dp),semantic_eval_report.csv,,"OVERALL row, held-out test; R5 is REPORTED, not gated"
+hw_nothing_frac,labels,,,fraction,,,sessions taken from the queue rows (the file carries no run_tag)
+hw_nothing_frac,tile,0.7563,,fraction,hw_of2017k2.csv basis=interval,,sessions taken from the queue rows (the file carries no run_tag)
+hw_nothing_frac,train,0.2618,,fraction,hw_of2017k2.csv basis=interval,,sessions taken from the queue rows (the file carries no run_tag)
+hw_nothing_frac,evaluate,0.7143,,fraction,hw_of2017k2.csv basis=interval,,sessions taken from the queue rows (the file carries no run_tag)
+hw_nothing_frac,inference,0.0985,,fraction,hw_of2017k2.csv basis=interval,,sessions taken from the queue rows (the file carries no run_tag)
+hw_nothing_frac,postproc,1.0000,,fraction,hw_of2017k2.csv basis=interval,,sessions taken from the queue rows (the file carries no run_tag)
+hw_gpu_busy_frac,labels,,,fraction,,,sessions taken from the queue rows (the file carries no run_tag)
+hw_gpu_busy_frac,tile,0.0000,,fraction,hw_of2017k2.csv basis=interval,,sessions taken from the queue rows (the file carries no run_tag)
+hw_gpu_busy_frac,train,0.1792,,fraction,hw_of2017k2.csv basis=interval,,sessions taken from the queue rows (the file carries no run_tag)
+hw_gpu_busy_frac,evaluate,0.2857,,fraction,hw_of2017k2.csv basis=interval,,sessions taken from the queue rows (the file carries no run_tag)
+hw_gpu_busy_frac,inference,0.7586,,fraction,hw_of2017k2.csv basis=interval,,sessions taken from the queue rows (the file carries no run_tag)
+hw_gpu_busy_frac,postproc,0.0000,,fraction,hw_of2017k2.csv basis=interval,,sessions taken from the queue rows (the file carries no run_tag)

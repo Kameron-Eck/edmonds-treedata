@@ -1,0 +1,15 @@
+# HAND-SPLIT from pipeline/queue_offload_pilot_2017k.yaml (the GENERATED file) — one runtime, one
+# steps: subset. Same job id in all three split files so the queue ledger merges their rows by
+# (job, year, tag, step) and each launch skips what an earlier runtime already recorded OK.
+# Deliberately NOT carrying the GENERATED header: test_generated_queues_match_their_experiments
+# requires a headered file to equal the full regeneration, which a split file cannot.
+# Hypothesis, decision rule and baseline live in experiments/offload_pilot_2017k.yaml.
+# THIS FILE: cpu1 — CPU runtime (0 CU): the two torch-free steps. Kill K2 in the experiment file checks the tileset_id this produces.
+- id: offload_pilot_2017k_spd_2017k
+  year: '2017k'
+  tag: spd_2017k
+  steps: [labels, tile]
+  extra:
+  - --force-citywide
+  - --no-hillshade
+  why: cpu1 slice of experiments/offload_pilot_2017k.yaml — hypothesis and decision rule live THERE, not here.

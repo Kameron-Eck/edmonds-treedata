@@ -1,0 +1,118 @@
+name: offload_pilot_2017k
+kind: experiment
+status: queued
+retrospective: false
+category: machinery
+tags: [speedup, offload, cpu-runtime, checkpoint-diet, postproc-staging, hw-telemetry, pilot]
+
+hypothesis: >
+  Three speedup changes landed on 2026-09-07 (Reports/PIPELINE_SPEEDUP_OPTIONS_2026-09-07.md
+  §7, and the four commits that implement it): (P1) phase4seg checkpoints no longer carry
+  optimizer/scheduler state, (P2) postproc stages the probability raster sequentially instead
+  of reading it windowed over the Drive FUSE mount, and the hardware logger now records which
+  engine step is running (marker basis) plus an iowait column. Each was sized on hardware
+  samples that ALL predate commit 5096b03, and the tile/postproc offload to free CPU runtimes
+  was a projection (§7.3: 31.8 h of logged engine time never needed a GPU). None of it has
+  been observed on a real run. This pilot re-runs ONE already-run acquisition under the same
+  recipe with the torch-free steps moved to CPU runtimes, so every projected saving becomes a
+  measured before/after on the same year, same tiles, same recipe. What would change our
+  mind: a CPU-tiled set whose tileset_id differs from the GPU-tiled baseline (offload changes
+  the tiles, not just where they are made), or a CPU postproc slower than the A100 read it
+  replaces (staging cost exceeds the FUSE penalty at this raster size).
+
+arms:
+  - {year: "2017k", tag: spd_2017k, extra: [--no-hillshade]}
+
+# The of_2017k recipe verbatim (train log command line, 2026-09-06):
+#   --year 2017k --step train --infer-batch 32 --run-tag of_2017k --force-citywide --no-hillshade
+# --infer-batch 32 is added by the queue; --force-citywide via launch_defaults (2017k is fine tier).
+launch_defaults:
+  - --force-citywide
+
+baseline: of_2017k
+
+metric: >
+  Step elapsed from phase4/logs/phase4_semantic_finetune_<step>_2017k_*.log (pilot) against
+  the of_2017k rows of 2026-09-06; A100-bearing span from the GPU queue's rows in
+  phase4/qc/train_queue_status*.csv (first RUNNING ts to final VERIFY ts); artifact sizes by
+  stat on the lake; per-step hardware attribution from phase4/qc/hw_step_attribution.csv
+  (basis=marker for the pilot sessions, basis=interval for of2017k2); tile-set identity from
+  phase4/qc/tileset_registry.csv.
+
+decision_rule: >
+  PRE-REGISTERED 2026-09-07, before any launch. Baseline = of_2017k, session of2017k2,
+  2026-09-06, the ENTIRE pipeline on one A100, pre-5096b03: tile 18.5 / train 46.4 /
+  evaluate 1.0 / inference 19.4 / postproc 18.0 min (step logs); A100 session span 01:40 to
+  03:33 = 113 min (train_queue_status.csv); sem_best_2017k_of_2017k.pt = 1113.2 MB;
+  edmonds_canopy_prob_2017k_of_2017k.tif = 2368.4 MB; tileset_id a36d6772e88b, 632 tiles.
+  Pilot = the same arm split across three runtimes in sequence: CPU-1 runs labels+tile,
+  an A100 runs train+evaluate+inference, CPU-2 runs postproc.
+
+  KILL (any one stops the offload default outright): (K1) a step fails on a CPU runtime;
+  (K2) the pilot's tileset_id != a36d6772e88b — CPU tiling that does not reproduce the
+  GPU-tiled set is a different experiment, not a cheaper one.
+
+  READS, each answered with its own number: (R1) PRIMARY, promotes the tile+postproc
+  offload as the queue default: A100-bearing span <= 0.75 x 113 = 85 min. Expected from
+  the baseline's own steps ~67 min plus whatever P1 removes from train. (R2) P1: sem_best
+  on Drive <= 0.5 x 1113.2 MB; the ratio the P1 implementer measured locally on the
+  production architecture is the prediction to compare against. (R3) P2: postproc elapsed
+  on CPU-2 <= 18.0 min; at ~40 MB/s sequential (Reports §1) staging 2.4 GB costs ~1 min,
+  so a CPU postproc slower than the A100's FUSE read means the staging path did not engage
+  — read its log line before concluding anything. (R4) telemetry: the first marker-basis
+  attribution; report train/inference nothing_frac on the A100 session next to the legacy
+  interval-basis 0.31/0.29, direction only — one session is not a noise floor. (R5) sanity:
+  evaluate AP/AUROC vs of_2017k's semantic_eval_report row, reported, NOT gated — one seed
+  on GPU nondeterminism has no measured floor here; a large gap is a finding to chase, not
+  a verdict.
+
+  STATED UP FRONT so nobody reads it as a failure: total pilot wall-clock (CPU-1 + A100 +
+  CPU-2, run in sequence with three bootstraps) is EXPECTED to exceed 113 min. Offload
+  converts paid GPU time into free CPU time; it saves wall-clock only when the CPU work
+  overlaps GPU work on other years (Reports §7.4). R1 measures the money lever, which is
+  what this pilot is for.
+
+verdict: null
+decided: null
+
+design_doc: Reports/PIPELINE_SPEEDUP_OPTIONS_2026-09-07.md
+reports:
+  - Reports/PIPELINE_SPEEDUP_OPTIONS_2026-09-07.md
+instruments:
+  - Scripts/qc/instruments/harvest_hw_attribution.py
+  - Scripts/qc/instruments/harvest_tilesets.py
+inputs:
+  - phase4/qc/train_queue_status.csv
+  - phase4/qc/tileset_registry.csv
+outputs:
+  - phase4/qc/hw_step_attribution.csv
+  - phase4/qc/tileset_registry.csv
+imagery: ["2017k"]
+sample: >
+  One acquisition, citywide (632 tiles at the baseline's signature). The unit of analysis
+  is a pipeline STEP's elapsed time and the machine it ran on — a machinery result, not a
+  canopy number; nothing here feeds a science verdict.
+
+supersedes: []
+superseded_by: []
+
+extra:
+  runtime_split: >
+    Three hand-split queue files beside the generated one (pipeline/pilot_offload_2017k_cpu1.yaml,
+    _gpu.yaml, _cpu2.yaml) carry the SAME job id with a steps: subset each; the queue ledger
+    merges their rows by (job, year, tag, step). They deliberately do NOT carry the GENERATED
+    header: test_generated_queues_match_their_experiments requires a headered file to equal
+    the full regeneration, and a split file cannot. pipeline/queue_offload_pilot_2017k.yaml
+    is the canonical generated file and is not what gets launched.
+  measured_cost: >
+    A100 for roughly train+evaluate+inference (~67 min baseline) plus bootstrap. No MEASURED
+    GPU rate exists on this account (pipeline/colab_rates.csv ships schema-only for GPUs);
+    the 2026-09-03 balance note there reads "~10.6 CU/hr with 2xA100 live", so ~5.3 CU/h
+    per A100 is INFERRED and ~7 CU for this pilot is INFERRED. CPU runtimes: 0 CU
+    (PUBLISHED row in colab_rates.csv). Kam authorised this run 2026-09-07 ("You have my
+    full permission to move ahead").
+  why_2017k: >
+    of2017k2 is the only logged session whose queue rows carry a `session` value, so it is
+    the one baseline with VERIFIED per-VM hardware attribution (Reports §7 GOLD row). It is
+    also fine-tier with a 2.4 GB probability raster — large enough for P2 to matter and
+    small enough to run in under two hours.

@@ -219,6 +219,28 @@ live. An answer that arrives without the script that produced it is a restatemen
 not a measurement. Cross-year statistics compute on `config.ANALYSIS_GRID_EPSG` or
 stay native and convert via `common._crs_unit_m` — never by resampling the archive.
 
+### 3.4c The design contract
+3.4b governs findings. This governs DESIGNS, which used to slip through: a design is a
+claim about what *would* happen, and it is the easiest kind of claim to validate against
+itself.
+
+- **A design may not be accepted on numbers it produced about itself.** Every load-bearing
+  number is either read from a tracked file, or REPRODUCED by an independent agent that
+  re-ran the prototype **on real data** — never the design's own reported output.
+- **A design validated only on synthetic or injected data is UNVALIDATED**, and must say
+  so in those words. Synthetic validation tests the code, not the claim.
+- **A kill criterion must be shown to FIRE on a known-bad input before it counts as a
+  gate.** A gate that has never fired is not known to work; mutation-test it the way
+  `qc/claims.py` was mutation-tested before it was trusted.
+- **The proposer never scores its own proposal.**
+
+Why, in one case: 2026-09-06, a mask-derived offset layer reported clean numbers against a
+synthetic block-constant field, and its own kill criterion passed it. An independent
+referee re-ran it on the real eight epochs — it attenuated verified-loss signal 2.2× more
+than noise and fabricated canopy in 872 units. Every number the design reported was true
+about the synthetic field and false about the archive.
+(`Reports/TEMPORAL_REFINEMENT_DESIGN_2026-09-06.md` §3.)
+
 ### 3.5 Honest evaluation only
 Effective independent sample size is ~5 forest sites, not tile counts — **LOSO is the
 only honest split**; random-split metrics are inflated. Metrics scored against the 2020

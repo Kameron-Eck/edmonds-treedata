@@ -62,7 +62,9 @@ verdict: >
   read, not a measured instrument; and the build itself (gold-set freeze, certifier
   port with its three audit fixes, tiered output) is QUEUED on Kam's go.
 decided: 2026-09-06
-reports: [Reports/CHANGE_DETECTOR_DESIGN_2026-09-06.md]
+reports:
+  - Reports/CHANGE_DETECTOR_DESIGN_2026-09-06.md
+  - Reports/TEMPORAL_REFINEMENT_DESIGN_2026-09-06.md
 instruments: [Scripts/qc/instruments/trend8_hotspots.py]
 inputs:
   - phase4/qc/trend8_hotspots.csv

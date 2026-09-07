@@ -92,7 +92,8 @@
       "outputs": [],
       "registry_rows": 0,
       "reports": [
-        "Reports/CHANGE_DETECTOR_DESIGN_2026-09-06.md"
+        "Reports/CHANGE_DETECTOR_DESIGN_2026-09-06.md",
+        "Reports/TEMPORAL_REFINEMENT_DESIGN_2026-09-06.md"
       ],
       "retrospective": true,
       "run_ids": [],

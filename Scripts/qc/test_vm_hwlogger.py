@@ -29,4 +29,6 @@ def test_rate_mb_counter_reset_is_blank():
 
 
 def test_header_matches_row_arity():
-    assert len(hw.HEADER.strip().split(",")) == 12
+    # 15 since v2 (2026-09-07): cpu_iowait_pct, step, run_tag appended.
+    # The v2 column names are pinned in qc/test_hw_marker.py, not restated here.
+    assert len(hw.HEADER.strip().split(",")) == 15

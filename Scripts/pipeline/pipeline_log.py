@@ -59,12 +59,34 @@ WHICH CODE PRODUCED THIS LOG
     row reconstructable from logs/ alone — see CLAUDE.md rule 9.
 
     Resolution never raises: any failure degrades to "unknown" and the step runs on.
+
+WHICH STEP IS RUNNING RIGHT NOW
+    A log is written when a step ENDS, so nothing on the box can say what is open
+    while it is open. StepLogger.start() therefore also publishes a one-object JSON
+    marker at phase4seg.names.hw_step_marker_path() — {script, step, run_tag, pid,
+    started_utc} — and finish() deletes it. pipeline/vm_hwlogger.py reads it once per
+    5 s sample and stamps `step` / `run_tag` onto each hardware row, which turns
+    per-step hardware attribution from a cross-VM timestamp join (29% of samples
+    dropped as ambiguous — Reports/PIPELINE_SPEEDUP_OPTIONS_2026-09-07.md §7) into a
+    per-machine fact.
+
+    The marker is BEST-EFFORT and strictly subordinate to the step: every write and
+    delete is swallowed, and the write is skipped entirely unless (a) we are on posix
+    or HW_STEP_MARKER was set explicitly, and (b) the marker's parent directory already
+    exists. Guard (a) is the one that matters off-VM: the built-in default is the Colab
+    path /content/hw_step_marker.json, and a POSIX-absolute path on Windows resolves
+    DRIVE-RELATIVE, so it lands at "content" on the current drive — a directory that
+    already exists on the code-plane box, which is why an existence check alone let
+    every local step litter the drive root.
+    Same standard as provenance above — this must never break a run.
 """
 
-from phase4seg.names import clean_argv
+from phase4seg.names import clean_argv, hw_step_marker_path
 import datetime
 import hashlib
 import io
+import json
+import os
 import re
 import sys
 import traceback
@@ -215,6 +237,7 @@ class StepLogger:
         self._buf: io.StringIO | None = None
         self._tee: "_Tee | None" = None
         self._finished = False   # guard: finish() must write exactly once
+        self._marker_path: str | None = None   # set by start(), cleared by finish()
 
     # ── context manager (optional) ────────────────────────────────────────────
     def __enter__(self):
@@ -233,10 +256,75 @@ class StepLogger:
     def start(self):
         """Call at the beginning of the step."""
         self._t0 = datetime.datetime.now()
+        self._write_marker()
         if self.capture_stdout:
             self._buf = io.StringIO()
             self._tee = _Tee(sys.stdout, self._buf)
             sys.stdout = self._tee
+
+    # ── the "a step is open" marker (read by vm_hwlogger) ─────────────────────
+    def _write_marker(self):
+        """Publish {script, step, run_tag, pid, started_utc} for the hardware logger.
+
+        Never raises: the marker is telemetry about the step, and telemetry that can
+        kill the step is worse than no telemetry (the module docstring's standard).
+
+        Three deliberate guards:
+          · the BUILT-IN default is only ever resolved on posix. That default is the
+            Colab path /content/hw_step_marker.json, and a POSIX-absolute path on
+            Windows resolves drive-relative — to "content" on whatever drive is
+            current. Measured 2026-09-07 on the code-plane box: os.path.isdir("/content")
+            is True there, so the parent-exists check below does NOT fire and every
+            local QC/label step wrote a marker at the drive root. An explicit
+            HW_STEP_MARKER (tests, a second logger on one box) is always honoured.
+          · the parent directory must ALREADY exist — never mkdir. This is the posix
+            case: a VM without /content is a VM with no hardware logger to read the
+            marker anyway.
+          · write-then-os.replace, into a PID-suffixed temp. vm_hwlogger opens this file
+            from another process every 5 s; an atomic rename means it can never read a
+            half-written object and log a blank step for a sample that had one. The pid
+            in the temp name keeps two writers on one host from truncating each other's
+            in-flight temp — with a shared name, the loser's replace() raises after the
+            winner already published the loser's bytes.
+        """
+        try:
+            if os.name != "posix" and not os.environ.get("HW_STEP_MARKER"):
+                return                      # see guard 1: /content is drive-relative here
+            path = hw_step_marker_path()
+            parent = os.path.dirname(path) or "."
+            if not os.path.isdir(parent):
+                return                      # nothing to write into; not an error here
+            try:
+                from phase4seg import config
+                run_tag = str(getattr(config, "RUN_TAG", "") or "")
+            except Exception:               # noqa: BLE001 — engine env may be absent
+                run_tag = ""
+            payload = {
+                "script": str(self.script),
+                "step": str(self.step),
+                "run_tag": run_tag,
+                "pid": os.getpid(),
+                "started_utc": datetime.datetime.now(
+                    datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+            }
+            tmp = f"{path}.{os.getpid()}.tmp"
+            with open(tmp, "w", encoding="utf-8") as f:
+                json.dump(payload, f)
+            os.replace(tmp, path)
+            self._marker_path = path
+        except Exception:                   # noqa: BLE001 — must never break a run
+            pass
+
+    def _clear_marker(self):
+        """Remove the marker. Its ABSENCE is the reading "no step is open"."""
+        path = self._marker_path
+        self._marker_path = None
+        if not path:
+            return
+        try:
+            os.remove(path)
+        except Exception:                   # noqa: BLE001 — already gone is fine
+            pass
 
     def finish(self, errors: int = 0, notes: str = "", **fields):
         """
@@ -261,6 +349,11 @@ class StepLogger:
         if self._finished:
             return
         self._finished = True
+
+        # Clear the marker BEFORE the log write, and outside its try: a step whose log
+        # cannot be written has still ended, and leaving the marker behind would make
+        # vm_hwlogger attribute every later idle sample to this step forever.
+        self._clear_marker()
 
         t1 = datetime.datetime.now()
         elapsed = (t1 - self._t0).total_seconds() if self._t0 else 0.0

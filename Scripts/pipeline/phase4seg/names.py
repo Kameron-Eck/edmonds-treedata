@@ -403,6 +403,36 @@ def nir_years(year_catalog):
     return {str(e["label"]): e for e in year_catalog if int(e.get("bands", 0)) >= 4}
 
 
+def hw_step_marker_path():
+    """Where "which step is running on THIS VM right now" is published. One home.
+
+    WRITER: pipeline_log.StepLogger.start() writes a small JSON object here
+    ({script, step, run_tag, pid, started_utc}) and StepLogger.finish() DELETES it, so
+    the file's ABSENCE is itself the reading "no step is open" — the hardware logger
+    records that as "(between)".
+
+    READER: pipeline/vm_hwlogger.py, once per 5 s sample, to stamp `step` and `run_tag`
+    onto the hardware row it is about to write.
+
+    WHY A FILE AND NOT A JOIN. Attributing hardware samples to steps used to be done
+    afterwards, by matching hw_*.csv timestamps against the step logs of every VM — and
+    nothing in a step log says WHICH machine ran it, so concurrently-open intervals from
+    different VMs are indistinguishable. Measured cost of that method: 8,304 of 28,999
+    samples (29%) dropped as ambiguous, in §7 of
+    Reports/PIPELINE_SPEEDUP_OPTIONS_2026-09-07.md (line 153).
+
+    A marker file is per-machine by construction, so the attribution is exact rather than
+    forensic. Both processes are on the same host; nothing crosses the mount.
+
+    Env override HW_STEP_MARKER exists so tests (and any second logger on one box) can
+    point the pair somewhere writable. Stdlib only, like the rest of this module — the
+    hardware logger must keep running when the engine's environment is broken.
+    """
+    import os
+
+    return os.environ.get("HW_STEP_MARKER") or "/content/hw_step_marker.json"
+
+
 def clean_argv(argv=None):
     """sys.argv[1:] with Colab's injected `-f <kernel>.json` removed — THE one filter.
 

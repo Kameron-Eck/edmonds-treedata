@@ -63,6 +63,14 @@ desktop.ini
 /phase4/qc/sector_campaign/*
 !/phase4/qc/sector_campaign/*.csv
 !/phase4/qc/sector_campaign/*.json
+# tilesets/ (2026-09-06): one immutable CSV per tile set — row_off, col_off, split,
+# block. This is WHICH TILES a run trained on, the provenance no raster carries and
+# the lake cannot be trusted to preserve (a re-tile overwrites its directory in
+# place). 41,856 tiles across 71 sets is under 1 MB pruned, so it is tracked text,
+# not a pointer. Same findings-not-rasters rule as the block above.
+!/phase4/qc/tilesets/
+/phase4/qc/tilesets/*
+!/phase4/qc/tilesets/*.csv
 
 # ── Reports: track the WRITING, never the source PDFs ─────────────────────
 # Added 2026-08-18. Reports/ was ignored wholesale by the /* rule, which meant

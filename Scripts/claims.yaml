@@ -83,3 +83,27 @@ claims:
     stated_in:
       - docs/SCHEMAS.md
     entry: null
+
+  - id: sawtooth-is-sensitivity
+    statement: >-
+      At the held precision of the matched-cut series, reported canopy fraction tracks
+      the model's recall at r = 0.9089 (exact permutation p = 0.0018 over all 40,320
+      orderings). The residual year-to-year sawtooth is detector sensitivity moving,
+      not canopy moving — which is what licenses an ASYMMETRIC correction, since the
+      error is one-sided (the model misses real trees, it does not invent them).
+    value: "0.9089"
+    evidence: "phase4/qc/sensitivity_sawtooth.csv#csv:value@statistic=pearson_r_recall_vs_frac"
+    stated_in:
+      - Reports/CHANGE_DETECTOR_DESIGN_2026-09-06.md
+    entry: trend8_uniform_rgb
+
+  - id: matched-cuts-did-not-fix-jitter
+    statement: >-
+      Matching the operating point fixed the SIGN of the trend, not the year-to-year
+      jitter: mean absolute step went from 3.06 pp (delivered cuts) to 3.29 pp
+      (matched). Harmonisation is not what makes annual metrics readable.
+    value: "3.29"
+    evidence: "phase4/qc/sensitivity_sawtooth.csv#csv:value@statistic=matched_mean_abs_step_pp"
+    stated_in:
+      - Reports/CHANGE_DETECTOR_DESIGN_2026-09-06.md
+    entry: trend8_uniform_rgb

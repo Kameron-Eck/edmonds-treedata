@@ -22,6 +22,10 @@ than selected. Everything below is resolved from them at build time.
   <br>evidence `phase4/qc/tilesets#dir_csv_count`
 - **87** — Every scored arm's full precision-recall sweep is tracked: 87 curves.
   <br>evidence `phase4/qc/curves#dir_csv_count`
+- **0.9089** — At the held precision of the matched-cut series, reported canopy fraction tracks the model's recall at r = 0.9089 (exact permutation p = 0.0018 over all 40,320 orderings). The residual year-to-year sawtooth is detector sensitivity moving, not canopy moving — which is what licenses an ASYMMETRIC correction, since the error is one-sided (the model misses real trees, it does not invent them).
+  <br>evidence `phase4/qc/sensitivity_sawtooth.csv#csv:value@statistic=pearson_r_recall_vs_frac`
+- **3.29** — Matching the operating point fixed the SIGN of the trend, not the year-to-year jitter: mean absolute step went from 3.06 pp (delivered cuts) to 3.29 pp (matched). Harmonisation is not what makes annual metrics readable.
+  <br>evidence `phase4/qc/sensitivity_sawtooth.csv#csv:value@statistic=matched_mean_abs_step_pp`
 
 ## 2. Best arm per year, at one held cut
 

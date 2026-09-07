@@ -1,0 +1,17 @@
+statistic,value,source,note
+n_epochs,8,trend8_policy_cuts.csv,"2009,2011s,2013,2015,2016,2019,2021,2024"
+precision_min,0.7394,trend8_policy_cuts.csv,matched cuts pin precision BY CONSTRUCTION — this is the held axis
+precision_max,0.7524,trend8_policy_cuts.csv,
+recall_min,0.6955,trend8_policy_cuts.csv,worst-recall epoch: 2024
+recall_max,0.8260,trend8_policy_cuts.csv,best-recall epoch: 2021
+recall_spread_pp,13.05,trend8_policy_cuts.csv,"recall is NOT pinned by the matched cut, and it maps straight into area"
+frac_min_pct,24.76,trend8_policy_cuts.csv,
+frac_max_pct,31.20,trend8_policy_cuts.csv,
+pearson_r_recall_vs_frac,0.9089,trend8_policy_cuts.csv,"the finding: at a held precision, reported canopy tracks detector sensitivity"
+permutation_p_two_sided,0.00179,trend8_policy_cuts.csv,"EXACT over all 40,320 orderings — not a normal approximation"
+loo_r_min,0.8348,trend8_policy_cuts.csv,"leave-one-out floor: 2009:0.908, 2011s:0.963, 2013:0.916, 2015:0.896, 2016:0.903, 2019:0.915, 2021:0.929, 2024:0.835"
+loo_r_max,0.9628,trend8_policy_cuts.csv,no single epoch carries it
+matched_mean_abs_step_pp,3.29,trend8_policy_cuts.csv,year-to-year movement in the MATCHED series
+matched_max_abs_step_pp,5.15,trend8_policy_cuts.csv,
+delivered_mean_abs_step_pp,3.06,trend8_harmonized_fractions.csv,"the RETRACTED delivered-cut series, for comparison"
+step_reduction_pp,-0.24,trend8_policy_cuts.csv+trend8_harmonized_fractions.csv,"NEGATIVE or ~zero means matching the operating point did NOT reduce the sawtooth — it fixed the SIGN, not the jitter"

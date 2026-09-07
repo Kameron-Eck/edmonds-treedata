@@ -98,3 +98,38 @@ sound physics and was oversized in the proposal.
 Every number above is either from a tracked file or from a referee's re-derivation over
 `phase4/logs/`. Where a lane's arithmetic did not survive re-derivation, the corrected
 figure is the one printed.
+
+---
+
+## 6. WHY the GPU is idle — attributed to the step that was running
+
+The 82% figure is not one problem. Matching every 5-second hardware sample to the engine
+step running at that timestamp (39.5 h of paid GPU time, 11 GPU-bearing sessions):
+
+| step | idle h | busy h | share of ITS OWN time spent idle |
+|---|---|---|---|
+| train | 10.3 | 2.1 | **83%** |
+| tile | 6.3 | 0.1 | **98%** |
+| inference | 5.7 | 4.7 | 54% |
+| postproc | 5.2 | 0.2 | **96%** |
+| (between steps) | 4.2 | 0.0 | **100%** |
+| evaluate | 0.6 | 0.0 | 95% |
+
+**Two distinct causes, and they need different fixes.**
+
+**(a) ~15.7 h — 40% of all paid GPU time — is spent running things that never needed a
+GPU.** Tiling is 98% idle, postproc 96%, and 4.2 h is dead time between steps with the
+runtime alive and nothing executing. These steps are torch-free or nearly so, and CPU
+runtimes cost zero compute units. Postproc has already been moved to free CPU VMs for some
+campaigns; tiling has not.
+
+**(b) Training itself runs the GPU only 17% of the time.** 10.3 h idle against 2.1 h busy.
+Classifying those idle samples by what else was active: model loaded with **CPU pegged
+above 50% for 3.0 h** (augmentation and dataloading cannot feed the device), **nothing
+busy at all for 4.9 h**, local disk busy 1.7 h, and network only 0.3 h. So training is
+starved by CPU-side work and by the per-save tax, not by Drive bandwidth.
+
+**Why this refutes buying a faster GPU, arithmetically.** The device does **7.2 h of real
+work inside 39.5 h of paid time**. A GPU twice as fast finishes that work in 3.6 h and the
+total becomes 35.9 h — a **9% saving**. A GPU that took literally zero time would save
+**18%**. Concurrency divides the whole 39.5 h; a faster device can only ever touch the 7.2.

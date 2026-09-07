@@ -15,14 +15,43 @@ import io
 import os
 import secrets
 import socket
+import sys
 import time
 from pathlib import Path
 
 from phase4seg.names import job_key, status_files
 
+_QUEUE_FILE = "phase4_train_queue.py"
+
 
 def _q():
-    """The queue module as runtime context — lazy to avoid the import cycle."""
+    """The queue module as runtime context — lazy to avoid the import cycle.
+
+    `sys.modules["__main__"]` is consulted FIRST, and that ordering is the whole
+    point. In production the queue is started as a SCRIPT — `nohup python -u
+    phase4_train_queue.py --queue …` (pipeline/vm_ops.py::launch_queue) — so the
+    running module is registered under the name `__main__` and under no other.
+    A bare `import phase4_train_queue` therefore does not find it: it EXECUTES
+    THE FILE A SECOND TIME under a second name and hands back that second module
+    object, whose globals are all import-time defaults.
+
+    Every constant matches between the two copies, so the substitution is
+    invisible — except for the one global `main()` assigns at RUNTIME. STATUS_OUT
+    stayed None on the copy, so queue_ledger.py::_status_write took its
+    `else STATUS` branch and rewrote the SHARED train_queue_status.csv, with only
+    this launch's rows, after every step. Launches announced a per-launch file and
+    erased the shared ledger instead, from the split that introduced this helper
+    (4c546a7, 2026-09-01 03:30 UTC) until 2026-09-07. Measured on the lake that
+    day: the newest per-launch file's launch stamp is 20260831T034500Z — the last
+    one before the split — and 21 orphaned `.part.*` temps sit beside a shared
+    ledger holding four rows of a single session.
+
+    Under pytest `__main__` is pytest's own entry point, so the fallback runs and
+    returns the module the tests import and patch — the identity they rely on.
+    """
+    m = sys.modules.get("__main__")
+    if Path(getattr(m, "__file__", "") or "").name == _QUEUE_FILE:
+        return m
     import phase4_train_queue
     return phase4_train_queue
 
@@ -240,7 +269,13 @@ def _status_write(rows):
     """Flush THIS LAUNCH's rows to its own status file. Called after EVERY step.
 
     Rewriting only our per-launch file means concurrent queues can never erase
-    each other's records (P11.1); readers merge across files.
+    each other's records (P11.1); readers merge across files. That sentence was
+    FALSE for six days and is worth keeping as the caution it earned: the flush
+    writes only THIS launch's `rows`, so the moment `out` resolves to the shared
+    STATUS instead of a per-launch file — which is exactly what the `__main__`
+    defect in ::_q did from 2026-09-01 — every flush replaces the whole ledger
+    with one launch's rows. Not a race: unconditional, and every other launch's
+    history is gone. `out` being per-launch is what makes the claim true.
 
     D10 (2026-08-29): the flush was `open(out, "w")` straight onto the Drive
     mount — the file was TRUNCATED first and refilled afterwards, so every step

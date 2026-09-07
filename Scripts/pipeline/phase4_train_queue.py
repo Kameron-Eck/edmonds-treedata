@@ -877,7 +877,7 @@ def main():
     print(f"  BASE   : {BASE}")
     print(f"  GPU    : {_gpu_line()}   (ceilings sized on L4; P11.5 default = A100 for real runs)")
     print(f"  queue  : {args.queue or 'JOBS (in-source)'}")
-    print(f"  status : {QC_DIR}\\train_queue_status_*.csv   "
+    print(f"  status : {QC_DIR / 'train_queue_status_*.csv'}   "
           f"(per-launch file, flushed after EVERY step; readers merge all)")
     print(f"  jobs   : {len(todo)} of {len(jobs)}")
     for j in todo:

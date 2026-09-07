@@ -15,11 +15,14 @@ import subprocess
 import time
 from pathlib import Path
 
-
-def _q():
-    """The queue module as runtime context — lazy to avoid the import cycle."""
-    import phase4_train_queue
-    return phase4_train_queue
+# NOT a twin any more. This was a byte-identical copy of queue_ledger's resolver,
+# and when that one was found to hand back a SECOND module object under
+# production's `__main__` (queue_ledger.py::_q carries the full record), this copy
+# had the same defect and no reason to be fixed separately. One resolver, one home
+# — the names.py lesson: a twin is not dangerous while it agrees, it is dangerous
+# at the moment someone edits one side. queue_ledger imports only phase4seg.names,
+# so this adds no cycle and no engine dependency.
+from queue_ledger import _q
 
 
 def _md5_of(path, chunk=1 << 20):

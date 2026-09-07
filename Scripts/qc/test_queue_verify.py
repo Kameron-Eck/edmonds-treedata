@@ -32,6 +32,8 @@ import csv
 import io
 import json
 import os
+import sys
+import types
 from pathlib import Path
 
 import pandas as pd
@@ -408,6 +410,67 @@ def test_status_write_never_truncates_the_live_file(tmp_path, monkeypatch):
     rows = list(csv.DictReader(io.open(out, encoding="utf-8", newline="")))
     assert len(rows) == 2
     assert not list(tmp_path.glob("*.part.*")) and not list(tmp_path.glob("*.prev.*"))
+
+
+def test_status_write_finds_the_launch_running_as_dunder_main(tmp_path, monkeypatch):
+    """Production runs the queue as a SCRIPT, so the live module is `__main__`.
+
+    `nohup python -u phase4_train_queue.py --queue …` (vm_ops.py::launch_queue)
+    registers the running module under the name `__main__` and under no other.
+    queue_ledger.py::_q resolved its context with a bare `import
+    phase4_train_queue`, which does not find `__main__` — it executes the file a
+    SECOND time under a second name and returns THAT object. Every constant
+    matches, so nothing looked wrong; the one global main() assigns at runtime,
+    STATUS_OUT, was None on the copy. _status_write then took its `else STATUS`
+    branch and replaced the SHARED ledger — with only this launch's rows — after
+    every step. Observed on the lake 2026-09-07: the newest per-launch file is
+    stamped 20260831T034500Z — the last launch before the split — and the shared
+    file holds four rows of one session where six days of campaigns should be.
+
+    This test reproduces the production module identity that pytest never has
+    (under pytest `__main__` is pytest's own entry point) and asserts both halves:
+    the launch's rows go to ITS file, and the shared ledger is left alone.
+    """
+    import queue_ledger
+
+    per_launch = tmp_path / "train_queue_status_qx_20260907T214559Z.csv"
+    shared = tmp_path / "train_queue_status.csv"
+    _status_csv(shared, [_row(job="peer", step="train", state="OK"),
+                         _row(job="peer", step="inference", state="FAIL")])
+
+    # the module the RUNNING SCRIPT lives in: same file, name `__main__`,
+    # STATUS_OUT already assigned by main()
+    main_mod = types.ModuleType("__main__")
+    main_mod.__file__ = q.__file__
+    main_mod.QC_DIR, main_mod.STATUS, main_mod.STATUS_OUT = tmp_path, shared, per_launch
+    monkeypatch.setitem(sys.modules, "__main__", main_mod)
+
+    # the second copy a bare import would return: import-time defaults, and
+    # redirected off the lake so the OLD behaviour is observable, not destructive
+    monkeypatch.setattr(q, "QC_DIR", tmp_path)
+    monkeypatch.setattr(q, "STATUS", shared)
+    monkeypatch.setattr(q, "STATUS_OUT", None)
+
+    queue_ledger._status_write([_row(job="mine", step="train", state="OK")])
+
+    assert per_launch.exists(), (
+        "this launch's rows did not reach its own status file — _q() resolved a "
+        "module object other than the running __main__")
+    mine = list(csv.DictReader(io.open(per_launch, encoding="utf-8", newline="")))
+    assert [r["job"] for r in mine] == ["mine"]
+    peer = list(csv.DictReader(io.open(shared, encoding="utf-8", newline="")))
+    assert [r["job"] for r in peer] == ["peer", "peer"], \
+        "the shared ledger was rewritten with one launch's rows — history erased"
+
+
+def test_the_queue_context_resolver_has_exactly_one_home():
+    """queue_verify carried a byte-identical copy of queue_ledger's `_q`. Twins are
+    safe only until someone fixes one side, which is what happened here — the
+    __main__ defect above lived in both. Same function object, or it is a twin
+    again."""
+    import queue_ledger
+    import queue_verify
+    assert queue_verify._q is queue_ledger._q
 
 
 def test_status_temp_files_are_invisible_to_every_reader(tmp_path):

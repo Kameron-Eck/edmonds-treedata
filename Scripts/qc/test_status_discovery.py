@@ -564,6 +564,8 @@ _PATH_INSERT_LEDGER = {
     "qc/test_gold_freeze.py": 1,             # freeze_panel_a_gold (instruments)
     "qc/instruments/freeze_panel_a_gold.py": 1,  # panel_a_paired_change (sibling)
     "qc/instruments/local_field_transitivity.py": 1,  # placement_accuracy (sibling)
+    "qc/instruments/temporal_heal.py": 1,    # placement_accuracy (sibling)
+    "qc/test_temporal_heal.py": 1,           # temporal_heal (instruments)
     "qc/test_claims.py": 1,                  # claims.py (qc root)
     "qc/test_run_context.py": 5,             # year_scoreboard, coverage_map, ask (qc root)
     "qc/ask.py": 1,                          # claims.py (qc root), lazily

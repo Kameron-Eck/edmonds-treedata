@@ -133,3 +133,105 @@ starved by CPU-side work and by the per-save tax, not by Drive bandwidth.
 work inside 39.5 h of paid time**. A GPU twice as fast finishes that work in 3.6 h and the
 total becomes 35.9 h — a **9% saving**. A GPU that took literally zero time would save
 **18%**. Concurrency divides the whole 39.5 h; a faster device can only ever touch the 7.2.
+
+---
+
+## 7. Where the idle time actually goes — corrected attribution, and what to do about it
+
+§6's per-step table had **two defects that are fixed here**, so where the numbers differ,
+**the ones below supersede it**.
+
+**(a) Cross-VM contamination.** §6 matched every hardware sample against step intervals
+from *all* VMs, first hit wins. The sessions overlap heavily — `trend8A2`/`trend8B2` run
+concurrently for ~8 h, `ofA`/`ofB` for ~6 h, `t1gpuE` sits entirely inside `t1gpuD` — so a
+`train` sample from one VM could be labelled `tile` because another VM's tiling matched
+first. Only `of2017k2` carries a `session` value in `train_queue_status.csv`, so a clean
+per-VM join exists for that one session and nowhere else.
+**(b) The dead-sample test omitted network TX.** It tested `net_rx_mb_s` and never
+`net_tx_mb_s`, so checkpoint uploads and mask writes counted as "nothing happening".
+
+Recomputed with TX included, dropping the 29% of samples where concurrently-open
+intervals disagree (8,304 of 28,999):
+
+| step | hours | GPU>5% | CPU>50% | net TX | net RX | disk | **NOTHING** |
+|---|---|---|---|---|---|---|---|
+| train | 8.6 | 13% | 34% | **26%** | 6% | 19% | 31% |
+| inference | 6.5 | **44%** | 0% | 1% | 22% | 31% | 29% |
+| (between steps) | 5.0 | 0% | 0% | 8% | 7% | 2% | **84%** |
+| postproc | 4.2 | 0% | 0% | 3% | 2% | 0% | **96%** |
+| tile | 3.7 | 0% | 0% | 9% | 18% | 13% | **71%** |
+| evaluate | 0.6 | 4% | 0% | 5% | 3% | 1% | **87%** |
+
+Validated against the one session with verified attribution (`of2017k2`, joined on the
+queue `session` column): postproc **100%** nothing, tile 76%, train 26%, inference 76%
+GPU-busy. Same picture at n=1 VM, so the ambiguity filter is not manufacturing the result.
+
+### 7.1 The mechanism — why every counter reads zero at once
+
+`NOTHING` means GPU <5%, CPU <15%, disk <5 MB/s, and **both** network directions
+<1 MB/s simultaneously. That is not idleness; it is a process blocked on Drive FUSE
+per-file latency. Two things conspire to make it invisible: `vm_hwlogger.cpu_pct` computes
+`idle = vals[3] + vals[4]  # idle + iowait`, so blocked-on-I/O time is **counted as idle**,
+and the cost is round-trips rather than bytes, so **no bandwidth counter registers it**.
+
+The repo already contains the proof and the cure, in `staging.py`'s own comment: *613 tiles
+took 55+ min with the GPU at 0%*, replaced by one bulk `rclone copy` at **78–138 s** — a
+~30× improvement on identical volume. That fix was applied to the tile READ direction
+(2026-08-29) and the tile WRITE direction (`tiling.py`). **`core.py:1559` holds the only
+`ThreadPoolExecutor` in the engine**; every other transfer is a sequential `shutil.copy2`.
+
+### 7.2 Two corrections to committed numbers
+
+**`evaluate` is not meaningfully GPU-bearing.** It is GPU-busy in **4%** of its samples and
+"nothing" in 87%, scoring a median of ~200 held-out tiles in a **median 7.8 min (max 56.3)**
+— the forward pass is seconds and the rest is checkpoint load and report write. §3 priced a
+full-archive arm at 43.4 min of GPU-bearing steps by counting evaluate's 6.4 min; the
+honest figure is **~37 min**, which improves every row of the concurrency table.
+
+**Training spends a quarter of its time uploading.** Net TX exceeds 1 MB/s in **26%** of
+train samples — ~2.2 h of the 8.6 h sampled. That is the checkpoint path, and it is
+independent measured support for stripping `optim_state` (891.8 MB → 371 MB), already
+ranked first among code changes in §2.
+
+### 7.3 The offload rule, stated from the measurement
+
+**A step belongs on a free CPU runtime when its GPU-busy fraction is ~0 AND its handoff to
+a GPU step is bulk-transferable.** Applied to the logged totals:
+
+| step | GPU busy | logged total | verdict |
+|---|---|---|---|
+| postproc | 0% | 9.0 h | **offload, unconditional** |
+| tile | 0% | 22.8 h | **offload** — safe only because `_bulk_stage_tiles` now exists |
+| evaluate | 4% | 12.6 h | offload-capable; better fixed in-process after train |
+| train | 13% (34% CPU>50%) | 39.5 h | keep on GPU |
+| inference | 44% | 12.0 h | keep on GPU — the only step genuinely using the device |
+
+**31.8 h of logged engine time (tile + postproc) never needed a GPU at all.** Tiling could
+not have been offloaded before 2026-08-29: without the bulk path the tiles would have
+crossed the many-small-files FUSE penalty between VMs, which is worse than the idling.
+
+**One interaction to state rather than let a referee find it:** offloaded tiling stages the
+ortho on the CPU VM, so the GPU box no longer arrives with that ortho warm for inference.
+That trades against §2's LRU scratch-cache option and the two must be designed together.
+
+### 7.4 What offloading does and does not buy
+
+Offloading moves waste to a machine that costs 0 compute units. It converts **money**, not
+wall-clock — the pipeline finishes no sooner unless the offloaded work runs *concurrently*
+with GPU work on other years. Wall-clock comes from three separable levers, and they are
+not interchangeable:
+
+| lever | saves wall-clock | saves money |
+|---|---|---|
+| more concurrent runtimes (§3, still ranked first) | yes, divides everything | no |
+| bulk / parallel I/O instead of per-file FUSE | yes, on every machine | yes |
+| offload torch-free steps to CPU VMs | only if run concurrently | yes |
+
+### 7.5 Standing caveat on all of §6 and §7
+
+**Every hardware sample predates commit `5096b03`** (last sample 2026-09-06 03:44; the fix
+landed 2026-09-07 09:33). That commit stopped the multi-GB probability-raster FUSE
+round-trip between inference and postproc, so **the 96%-nothing postproc figure describes
+pre-fix behaviour and may already be partly obsolete**. Postproc must be re-measured, not
+re-fixed. The queued `heal_infill_2017_2023` campaign is the natural post-fix measurement
+run: it produces fresh `hw_*.csv` at no additional cost beyond the GPU time already sought.

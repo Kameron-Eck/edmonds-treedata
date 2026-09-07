@@ -1,0 +1,114 @@
+# known_failures.yaml — the AUTHORED half of the failure registry.
+#
+# harvest_failures.py counts SYMPTOMS from the step logs; this file supplies the
+# CAUSE and the FIX, which no script can derive. A symptom with no match here is
+# published as `undiagnosed` and shows up in `py -3.12 qc/ask.py --gaps` until
+# someone writes it down. That visibility is the point.
+#
+# match:   regex, tried against the normalised signature AND the exception class
+# status:  fixed | mitigated | environmental | wontfix
+# cause:   the MECHANISM, in one sentence — why it happened, not what it printed
+# fix:     what made it stop, or what to do when it happens again
+# commit:  the commit that fixed it, when there is one
+
+failures:
+  - match: "TIFFReadDirectory|Failed to read directory"
+    status: fixed
+    cause: >-
+      postproc read back a mask it had just staged, and the staged TIF was truncated
+      because the previous arm left the scratch dir dirty and the write raced its own
+      reader. The recut1 VM died this way and took its logs with it.
+    fix: >-
+      Write logs to the lake, not the VM, and clear /content/phase4_scratch between
+      arms in the payload chain. Re-run the affected arm; the artifact is not salvage.
+    notes: rerun-on-contamination — never salvage an ambiguous raster
+
+  - match: "CUDA out of memory|OutOfMemoryError"
+    status: mitigated
+    cause: >-
+      Inference batch sized for a free 40 GB A100 while leftover allocations from the
+      training step were still resident, so the true ceiling was well under 40 GB.
+    fix: >-
+      Lower --infer-batch, or run inference as its own step on a fresh runtime.
+
+  - match: "NameError"
+    status: fixed
+    cause: >-
+      Function-local torch imports: a helper hoisted to module scope lost the local
+      import and only failed at call time, inside training, after the GPU was hot.
+    fix: >-
+      Keep the import inside the five functions that need it (the pattern sdm_for_mask
+      already used) and let phase4seg_preflight import every module before any launch.
+
+  - match: "BrokenPipeError"
+    status: environmental
+    cause: >-
+      The Colab exec handle died mid-step — handle mortality, not a pipeline defect.
+      The VM usually keeps working; only the channel is gone.
+    fix: >-
+      Never kill a runtime on a dead handle. Re-attach and read the lake-side log to
+      find out whether the work actually finished.
+
+  - match: "Errno 5. Input/output error"
+    status: environmental
+    cause: >-
+      The Drive FUSE mount dropping I/O mid-step. Every instance is a path under
+      /content/drive: training reads thousands of small tile files straight off the
+      mount, and FUSE returns EIO under that sustained pattern. Not a pipeline defect
+      and not reproducible from the code — the same step succeeds on a re-run.
+    fix: >-
+      Re-run the step. To stop it recurring, stage tiles to local NVMe for the epoch
+      rather than reading them per-batch off the mount (CLAUDE.md 3.9 is the same
+      lesson on the write side). Never treat an EIO as evidence about the data.
+    notes: >-
+      Mechanism inferred from the errno + the /content/drive path on all five, not
+      from an instrumented reproduction.
+
+  - match: "No such file or directory.*(images|masks)|pathlib.*mkdir"
+    status: environmental
+    cause: >-
+      mkdir of a nested tile directory failed because its parent was not yet visible
+      on the FUSE mount — the same mount unreliability as the EIO family, on the
+      metadata path rather than the data path.
+    fix: >-
+      Re-run the tile step; it is idempotent and re-creates the tree. If it repeats,
+      tile to local scratch and bulk-upload (the path _bulk_upload_tiles already takes).
+
+  - match: "not recognized as being in a supported file format"
+    status: fixed
+    cause: >-
+      A tile written to the mount was truncated by a partial/interrupted write, so a
+      later step opened a file that exists and has a name but no readable header.
+    fix: >-
+      Delete the affected tile directory and re-tile — do not attempt to salvage. This
+      is the same rerun-on-contamination rule as the staged-TIF failure above.
+
+  - match: "ZIPDecode|TIFFReadEncodedTile"
+    status: environmental
+    cause: >-
+      The SOURCE ortho itself read back corrupt at a specific scanline (2024,
+      inference) — a partially-synced or damaged file on Drive, not a model or code
+      fault. The failure is in decoding imagery, before anything is predicted.
+    fix: >-
+      Verify the ortho against its expected size, re-sync it from the original
+      delivery, and re-run. qc/imagery_qc_suite.py is the integrity check for this.
+
+  - match: "No such file or directory: '<path>'$"
+    status: fixed
+    cause: >-
+      --infer-aoi named an AOI file the VM could not see: _aoi_pixel_rects reads the
+      path at inference time, so a missing or mis-named AOI kills the step after the
+      model is already loaded. Both instances were launches whose AOI had not been
+      uploaded to the lake.
+    fix: >-
+      Preflight every launch-time path VM-side before the queue starts. Same class as
+      the of_2017k failures, where imagery existed only on the local mirror.
+
+  - match: "Read failed. See previous exception"
+    status: environmental
+    cause: >-
+      A rasterio read that failed for a reason recorded in the PRECEDING exception —
+      this row is the wrapper, not the fault. Its example log pairs with the ZIPDecode
+      family above.
+    fix: >-
+      Read the exception immediately above it in the log; do not diagnose this line.

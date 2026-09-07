@@ -358,3 +358,93 @@ def test_scoreboard_never_ranks_across_populations():
     text = md.read_text(encoding="utf-8")
     assert "**ref `" in text, "scoreboard lost its per-reference grouping"
     assert "population" in text, "scoreboard must print the population it ranked on"
+
+
+# ------------------------------------------------------------------ coverage + failures
+
+def test_coverage_map_is_fresh():
+    """Derives only from tracked homes, so staleness is a hard failure, not a guess."""
+    sys.path.insert(0, str(SCRIPTS / "qc"))     # ledger: test_status_discovery.py
+    import coverage_map
+    p = QC / "coverage_map.md"
+    if not p.exists():
+        pytest.skip("coverage_map.md absent — run py -3.12 qc/coverage_map.py")
+    assert p.read_text(encoding="utf-8") == coverage_map.build(), (
+        "coverage_map.md is STALE — run: py -3.12 qc/coverage_map.py")
+
+
+def test_coverage_map_does_not_imply_a_backlog():
+    """A blank cell must stay 'no record', not 'should have been done'.
+
+    Several acquisitions are deliberately out of scope. If this file ever starts
+    reading as a to-do list, it will manufacture work nobody chose.
+    """
+    p = QC / "coverage_map.md"
+    if not p.exists():
+        pytest.skip("coverage_map.md absent")
+    text = p.read_text(encoding="utf-8")
+    assert "never *should have been done*" in text, (
+        "coverage_map.md lost the caveat separating deliberate scope from oversight")
+
+
+def test_failure_registry_states_a_cause_or_says_it_has_none():
+    """Every row is diagnosed or explicitly `undiagnosed` — never silently blank.
+
+    An undiagnosed failure is a real finding (it becomes the to-do list surfaced by
+    `ask.py --gaps`); a diagnosed one with an empty cause would be a lie.
+    """
+    rows = _rows(QC / "failure_registry.csv")
+    if not rows:
+        pytest.skip("failure_registry.csv absent — run harvest_failures.py")
+    for r in rows:
+        if r["status"] == "undiagnosed":
+            assert not r["cause"].strip(), (
+                f"{r['failure_id']}: undiagnosed but carries a cause")
+        else:
+            assert r["cause"].strip(), (
+                f"{r['failure_id']}: status {r['status']} with no cause — a status "
+                f"without a mechanism teaches nothing")
+        assert r["example_log"], f"{r['failure_id']}: no example log to open"
+
+
+def test_known_failures_patterns_compile():
+    """A bad regex in the authored half would silently un-diagnose everything."""
+    import re as _re
+    import yaml
+    p = SCRIPTS / "qc" / "known_failures.yaml"
+    if not p.exists():
+        pytest.skip("known_failures.yaml absent")
+    spec = yaml.safe_load(p.read_text(encoding="utf-8")) or {}
+    seen = set()
+    for f in spec.get("failures", []):
+        assert "match" in f and "status" in f, f"entry without match/status: {f}"
+        _re.compile(f["match"])                       # raises on a bad pattern
+        assert f["match"] not in seen, f"duplicate pattern {f['match']!r}"
+        seen.add(f["match"])
+        if f["status"] != "undiagnosed":
+            assert f.get("cause", "").strip(), f"{f['match']}: status with no cause"
+
+
+def test_ask_answers_every_subject_kind():
+    """The front door must actually open — a broken ask.py is a silent context outage."""
+    sys.path.insert(0, str(SCRIPTS / "qc"))     # ledger: test_status_discovery.py
+    import ask
+    for kind, getter in (
+        ("year", lambda: next(iter(sorted(ask._catalog())), None)),
+        ("tileset", lambda: next((t["tileset_id"] for t in
+                                  ask.rows(QC / "tileset_registry.csv")
+                                  if t["tileset_id"]), None)),
+        ("entry", lambda: next((e["name"] for e in ask._index()), None)),
+    ):
+        subject = getter()
+        if subject is None:
+            continue
+        got, payload = ask.resolve(subject)
+        assert got == kind, f"{subject!r} resolved as {got}, expected {kind}"
+        out = []
+        {"year": ask.answer_year, "tileset": ask.answer_tileset,
+         "entry": ask.answer_entry}[kind](payload, out)
+        assert out, f"ask.py produced no answer for {kind} {subject!r}"
+    gaps = []
+    ask.answer_gaps(gaps)
+    assert any("does not know yet" in ln.lower() for ln in gaps)

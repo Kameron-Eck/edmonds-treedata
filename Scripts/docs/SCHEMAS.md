@@ -222,3 +222,28 @@ eval_scope)` and ranked only within a group, with `population` shown — ranking
 populations is how a coverage gap gets misread as a skill gap (2017's deliveries span
 15.8 M to 5.7 B scored pixels). Joins the tile counts and the champion star.
 Gate: `test_run_context.py::test_year_scoreboard_is_fresh`.
+
+## failure_registry.csv (phase4/qc/, HARVESTED) + qc/known_failures.yaml (AUTHORED)
+
+Written by `qc/instruments/harvest_failures.py` from step logs with `errors: N>0`.
+Two layers, deliberately: the CSV holds SYMPTOMS (exception class, normalised
+signature, occurrence count, first/last seen, steps/years/tags, an example log);
+`qc/known_failures.yaml` holds the CAUSE and the FIX, matched onto a symptom by regex.
+No script can derive a mechanism, and the mechanism is the part worth keeping.
+
+Signatures are normalised (paths, hex ids, timestamps, large integers, line numbers →
+placeholders) so one bug is one row across runs. READER RULE: a row with
+`status: undiagnosed` has an EMPTY `cause` by contract — it is a real finding, not a
+gap in the file, and it surfaces in `py -3.12 qc/ask.py --gaps` until someone writes
+the mechanism down. A status other than `undiagnosed` with no cause fails the gate
+(`test_failure_registry_states_a_cause_or_says_it_has_none`).
+
+## coverage_map.md (phase4/qc/, GENERATED — byte-compared)
+
+Written by `qc/coverage_map.py`: one row per acquisition — tile sets, tiles, train
+runs, arms scored, arms with a matched-cut read, best AP, champion, registry entries.
+READER RULE: **a blank cell means "no record", never "should have been done."** Some
+acquisitions are deliberately out of scope (the Atlas trend is 2016→2024; several
+deliveries exist only as overlap controls), and separating deliberate from overlooked
+is a decision this file does not make. Gate:
+`test_run_context.py::test_coverage_map_is_fresh` plus a gate pinning that caveat.

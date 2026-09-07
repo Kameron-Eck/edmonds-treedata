@@ -40,6 +40,9 @@ removal, and — established 2026-08-29 — **seasonal difference** all enter as
 
 | You need… | Go to |
 |---|---|
+| **ANY question about a year, arm, entry or tile set** | **`py -3.12 qc/ask.py <subject>`** — start here. Joins every home, names its sources, reads only tracked files |
+| **What we do NOT know yet** | `py -3.12 qc/ask.py --gaps`; full matrix `phase4/qc/coverage_map.md` |
+| **Why a run died / has this broken before** | `phase4/qc/failure_registry.csv` (symptoms, counted) + `qc/known_failures.yaml` (cause + fix, authored) |
 | **Live state, what's next** | `WORKPLAN.md` (intent + the board) |
 | **The active plan** | named in `WORKPLAN.md` (currently `TIER1_SCIENCE_SAMPLE_PLAN_2026-09-02.md`) |
 | **Historical authority (pre-overhaul era)** | `WORKPLAN_2026-08-19.md` — archived reference, superseded by `WORKPLAN.md` |
@@ -75,7 +78,8 @@ print('NIR:',sorted({e['label'] for e in cat if e['bands']>=4}))"
 
 # re-harvest the run context after any Colab campaign (needs the lake)
 # py -3.12 qc/instruments/harvest_tilesets.py && py -3.12 qc/instruments/harvest_run_passport.py
-# py -3.12 qc/instruments/harvest_arm_metrics.py && py -3.12 qc/year_scoreboard.py
+# py -3.12 qc/instruments/harvest_arm_metrics.py && py -3.12 qc/instruments/harvest_failures.py
+# py -3.12 qc/year_scoreboard.py && py -3.12 qc/coverage_map.py
 
 # GSD span and histogram
 py -3.12 -c "from phase4seg import config as c;from collections import Counter;\

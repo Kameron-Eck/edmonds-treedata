@@ -682,3 +682,27 @@ files:   qc/{ask,coverage_map,known_failures.yaml}, qc/instruments/harvest_failu
 next:    still missing per my own assessment: bidirectional claim<->evidence links,
          a decision registry for the AWAITING KAM stack, and automatic re-harvest as
          a landed.py rung (today the harvests are manual and can silently drift)
+
+## 2026-09-06  decisions-claims-autoharvest
+goal:    build the three gaps I named in my own assessment last turn
+did:     (1) AUTO RE-HARVEST as landed.py rungs - the harvests were manual, so a
+         campaign landing without them left every context table describing the
+         PREVIOUS lake state (the .docx failure mode, faster). Ten rungs now, docstring
+         updated to match. (2) DECISIONS: decisions.yaml, 10 entries, owner + why +
+         evidence + blocks/blocked_by edges; ask.py --decisions sorts ready-first
+         (5 ready, 5 waiting). WORKPLAN now POINTS instead of restating. The symmetry
+         gate caught two one-sided edges in the file I had just written. (3) CLAIMS:
+         claims.yaml + qc/claims.py resolver (superset of the n_source grammar: adds
+         csv:<col>@<filters> single-cell, regex:, dir_csv_count) + verify_claims.py
+         (exit 1 on drift) + test_claims.py. Seven claims seeded, all OK. A drifted
+         claim is REPORTED not auto-corrected - which side is wrong is a judgement.
+         Mutation-tested all three failure modes (moved value -> drifted; missing file
+         -> unresolved; ambiguous selector -> error) before trusting the gate.
+         Also answered Kam on how Claude uses ask.py: it is now the FIRST roadmap row
+         in CLAUDE.md, so orientation is CLAUDE.md + WORKPLAN + ask.py per subject
+         rather than reading four docs and guessing which of ten artifacts to open.
+files:   decisions.yaml, claims.yaml, qc/{claims,verify_claims,ask,landed}.py,
+         qc/test_{claims,decisions}.py, qc/test_status_discovery.py ledger,
+         docs/SCHEMAS.md, CLAUDE.md roadmap, WORKPLAN AWAITING-KAM section
+next:    still open from the assessment: nothing. Next real work is Kam's decision
+         stack - 5 decisions are READY NOW with nothing above them

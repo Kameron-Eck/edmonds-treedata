@@ -165,3 +165,43 @@ def test_healing_helps_where_a_human_called_it_stable():
     assert healed < raw, (
         f"healing removed no impossible triples at verified no-change points "
         f"({raw} -> {healed})")
+
+
+def test_valid_to_is_clamped_to_raw_evidence():
+    """Healing may never extend a tree's recorded life.
+
+    Healing is a PIXEL predicate; valid_to is a CROWN-COVER predicate at 0.5, so a healed
+    cell can push a crown from 0.45 to 0.55 and move a removal date one epoch LATER than
+    the unhealed data supports. An adversarial review flagged this as needing a clamp in
+    the CONSUMER rather than an assertion in a test — this pins that the clamp is there.
+    """
+    src = (SCRIPTS / "qc" / "instruments" / "crown_trajectories.py").read_text(
+        encoding="utf-8")
+    assert 'valid_to = years[max(raw_p)]' in src, (
+        "valid_to is no longer computed from RAW presence — healing can now extend a "
+        "recorded life, which moves removal dates later than the evidence supports")
+
+
+def test_terminal_losses_are_flagged_not_deleted():
+    """A loss whose only evidence is the final epoch cannot be corroborated.
+
+    64% of LOST crowns were last seen in the penultimate epoch, and the final epoch is the
+    series' worst-recall year — that class is a detection deficit wearing a removal's
+    label. It must be FLAGGED. It must also never be deleted: the shipped persist filter
+    deleted exactly this class and discarded every verified terminal event.
+    """
+    import csv as _csv
+    p = REPO / "phase4" / "qc" / "crown_trajectories.csv"
+    if not p.exists():
+        pytest.skip("crown_trajectories.csv absent — run crown_trajectories.py")
+    body = [ln for ln in p.read_text(encoding="utf-8").splitlines()
+            if ln.strip() and not ln.lstrip().startswith("#")]
+    rows = list(_csv.DictReader(body))
+    lost = [r for r in rows if r["class"] == "LOST"]
+    assert lost, "no LOST crowns — the classifier has stopped finding removals"
+    term = [r for r in lost if r["confidence"] == "TERMINAL"]
+    assert term, (
+        "no LOST crown is flagged TERMINAL — uncorroborable terminal-window events are "
+        "being reported at the same confidence as ones two later epochs confirm")
+    # and they are still present, not filtered away
+    assert len(lost) > len(term), "every loss is terminal — the corroborated class is gone"

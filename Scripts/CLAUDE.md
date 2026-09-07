@@ -8,9 +8,10 @@ table here read *18 acquisitions, 15 calendar years, 4 NIR years* against a cata
 holding **36 / 20 / 10**, and named a NIR year that had not existed for weeks. Every
 session had been starting from it. Anything restated here rots; anything derived does not.
 
-Read this file, then **`WORKPLAN.md`** (the one living state doc), then
-**`SCIENCE.md`** (everything concluded, generated, ~3k tokens — NOT the CSVs, which
-are the 107k-token audit trail behind it), then `STATUS.md` (generated numbers). `CHATLOG.md` is append-only history, no longer read for state.
+Read this file, then **`WORKPLAN.md`** (the one living state doc), then **`SCIENCE.md`**
+(everything concluded, generated, ~3k tokens — NOT the CSVs, which are the 107k-token
+audit trail behind it), then `STATUS.md` (generated numbers). `CHATLOG.md` is
+append-only history, no longer read for state.
 
 ---
 
@@ -49,7 +50,7 @@ removal, and — established 2026-08-29 — **seasonal difference** all enter as
 | **Does a published number still match its evidence** | `py -3.12 qc/verify_claims.py`; registry `claims.yaml`, view `qc/ask.py --claims` |
 | **Why a run died / has this broken before** | `phase4/qc/failure_registry.csv` (symptoms, counted) + `qc/known_failures.yaml` (cause + fix, authored) |
 | **Live state, what's next** | `WORKPLAN.md` (intent + the board) |
-| **The active plan** | named in `WORKPLAN.md` (currently `TIER1_SCIENCE_SAMPLE_PLAN_2026-09-02.md`) |
+| **The active plan** | `WORKPLAN.md` — its "Where we are" names the current one. Not repeated here: this row named a plan doc for three days after `WORKPLAN.md` had already retired it to historical reference |
 | **Historical authority (pre-overhaul era)** | `WORKPLAN_2026-08-19.md` — archived reference, superseded by `WORKPLAN.md` |
 | **Method, params, tiers, loss, QC design** | `Method_Pipeline.md` |
 | **What's built vs pending** | `pipeline_buildtracker.md` |
@@ -262,11 +263,16 @@ Every script `write_step_log()`s at the end of each `--step` → `{BASE}/phase4/
 After Colab runs a step, **read the log from Drive** — do not ask Kam to paste stdout.
 
 ### 3.12 Session-end checklist
-Per landed milestone: **run `py -3.12 qc/landed.py`** — it derives registry rows from
-manifests (never hand-type them; two invented run_ids proved why, 2026-09-01), checks
-experiment/doc consistency, regenerates STATUS, and prints the CHATLOG stub if the log
-lacks today's entry. Then: append the LOG entry (caveman style, per the file's spec),
-stage the paths you touched and commit — never `-A`. Kam pushes `main`.
+Per landed milestone: **run `py -3.12 qc/landed.py`**. What it does is listed in its own
+docstring — deliberately not repeated here, because the list written in this spot named
+four rungs while the script had grown to nine, inside the file whose header warns that
+restatements rot. `--dry-run` shows the rungs without running them.
+
+The one rung worth knowing by heart: registry rows are DERIVED from manifests, never
+hand-typed — two invented run_ids proved why (2026-09-01).
+
+Then: append the LOG entry (caveman style, per the file's spec), stage the paths you
+touched and commit — never `-A`. Kam pushes `main`.
 **Do not create `HANDOFF_*.md`** (retired) or a duplicate plan.
 
 ---

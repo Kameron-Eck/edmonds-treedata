@@ -570,3 +570,41 @@ files:   experiments/{trend8_uniform_rgb,overlap_floor}.yaml (verdicts), queues
          removed, phase4/qc/{trend8_policy_cuts,overlap_factorial_read,
          eagleview_sign_test,trend8_*}.csv, hotspot map, payloads
 next:    Kam synthesis session (all evidence final); K4 sign-offs; city statement
+
+## 2026-09-06  experiment-registry-built
+goal:    Kam: one machine-readable source for every experiment - inputs, outputs,
+         variables, imagery, sample size, provenance - always in reach for agents
+did:     Diagnosed the .docx ledger's four bottlenecks (unsearchable binary; no
+         regeneration path; frozen 09-03 so the recalibration silently superseded
+         parts of it; nothing gated it) -> two-layer design. AUTHORED layer =
+         experiments/*.yaml extended additively: kind (experiment /
+         measurement-campaign / instrument-finding, so Panel A + the lit hunt fit
+         without inventing arms), retrospective (gate-enforced: a backfilled
+         decision_rule is a reconstruction and must say so, or the registry
+         fabricates pre-registration), pinned n/n_source, imagery as catalog keys,
+         supersession links, instruments/inputs/outputs. GENERATED layer =
+         qc/experiments_index.py joins all entries against run_registry,
+         qc_indep_report(live=1), tier1_results, champion_arms, YEAR_CATALOG and
+         writes INDEX.md + index.json with RESOLVED values; test_index_is_fresh
+         regenerates + byte-compares so it cannot rot the way the doc did.
+         Backfill: 6 extract agents + 6 adversarial verifiers (Opus; the Fable
+         fleet hit its usage limit first try, zero files written, relaunched).
+         32 entries written, 7 errors fixed in place by the verifiers (a 5cm GSD
+         that is 30.5, a quote attributed to the wrong file, a date read off a
+         checkout mtime, a mis-cited decision leg), 15 substantive findings
+         escalated and then applied under a second fix+recheck pass. Biggest
+         catch: imagery_qc_suite_2026_08_24 had the grading mechanism INVERTED -
+         credited peak ratio with deciding trustworthiness when the instrument
+         says confidence comes from site agreement and gating on peak ratio once
+         threw away 54 of 100 measurements. recipe_audit's "identical to 4dp"
+         disproved by its own CSV -> UNDETERMINED per 3.5. Gate bug found by real
+         data: tag ownership keyed on tag alone, but the engine's unit is
+         (year,tag) - tiles/{year}__{tag}/ - so one recipe across two years looked
+         like a conflict; fixed. 43 entries: 34 complete, 5 needs-kam (verdict
+         null - documented but unsigned, or output not in the tracked record),
+         3 queued, 1 tabled. check.py all five rungs, 482 tests.
+files:   experiments/{INDEX.md,index.json,README.md,BACKFILL_RECONCILIATION.md} +
+         32 new *.yaml, qc/experiments_index.py, qc/test_experiments.py,
+         CLAUDE.md roadmap row, WORKPLAN DONE row
+next:    Kam synthesis session (open INDEX.md first); K4 sign-offs incl. the 5
+         needs-kam entries; the docx stays as the audited 09-03 snapshot

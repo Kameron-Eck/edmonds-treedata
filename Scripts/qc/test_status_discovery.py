@@ -557,6 +557,8 @@ _PATH_INSERT_LEDGER = {
     "pipeline/phase4seg_preflight.py": 1,    # gate pins the adjacent tree
     "pipeline/phase4seg_smoke.py": 1,        # gate pins the adjacent tree
     "qc/conftest.py": 1,                     # THE canonical stanza
+    "qc/year_scoreboard.py": 1,              # instruments/ sibling (harvest_arm_metrics)
+    "qc/test_run_context.py": 1,             # imports year_scoreboard (qc root)
     "qc/test_vm_ops.py": 1,                  # vm_ops is pipeline-root, not installed
     "qc/test_vm_babysitter.py": 1,           # vm_babysitter is a stdlib VM twin
     "qc/test_vm_hwlogger.py": 1,             # vm_hwlogger is a stdlib VM-side script

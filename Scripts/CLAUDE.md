@@ -58,6 +58,10 @@ removal, and — established 2026-08-29 — **seasonal difference** all enter as
 | **Per-acquisition CRS / units / grid, measured** | `phase4/qc/imagery_geometry.csv` (instrument: `qc/instruments/imagery_geometry.py`); assumption census: `docs/CRS_CENSUS.md` |
 | **What experiments exist / their verdicts** | `experiments/INDEX.md` first (generated, resolved values), then the entry's yaml (authored, pointers; schema: `experiments/README.md`; gate vs the lake: `py -3.12 qc/pilot_gate.py --experiment <file>`) |
 | **What ran, when, on what GPU** | `run_registry.csv`; `phase4/qc/train_queue_status*.csv` (readers merge ALL of them) |
+| **Full provenance of a run** (commit, seeds, imagery, env) | `phase4/qc/run_passport.csv` — mind `join_basis` before trusting its `tileset_id` |
+| **Which tiles a run used / tile-set identity** | `phase4/qc/tileset_registry.csv` + `tilesets/{tileset_id}.csv`. Same ID = same tiles |
+| **Precision/recall at a stated cut; the PR curves** | `phase4/qc/arm_metrics.csv` + `curves/{curve_id}.csv`. NEVER quote a pair without its `policy` + `population` |
+| **Best arm for a year, at a held cut** | `phase4/qc/year_scoreboard.md` |
 | **Dependency spec** | `requirements-colab.txt` / `-local.txt` — in-script bootstraps must match (same-commit rule) |
 | **The script you are about to edit** | the script itself. Always. Never patch from memory. |
 
@@ -68,6 +72,10 @@ removal, and — established 2026-08-29 — **seasonal difference** all enter as
 py -3.12 -c "from phase4seg import config as c;cat=c.YEAR_CATALOG;\
 print(len(cat),'acquisitions');\
 print('NIR:',sorted({e['label'] for e in cat if e['bands']>=4}))"
+
+# re-harvest the run context after any Colab campaign (needs the lake)
+# py -3.12 qc/instruments/harvest_tilesets.py && py -3.12 qc/instruments/harvest_run_passport.py
+# py -3.12 qc/instruments/harvest_arm_metrics.py && py -3.12 qc/year_scoreboard.py
 
 # GSD span and histogram
 py -3.12 -c "from phase4seg import config as c;from collections import Counter;\

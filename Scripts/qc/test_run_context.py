@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import csv
 import re
+import sys
 from pathlib import Path
 
 import pytest
@@ -324,3 +325,36 @@ def test_engine_exposes_tileset_id():
     assert callable(getattr(tiling, "tileset_id", None)), (
         "phase4seg.tiling.tileset_id is gone — run manifests can no longer record "
         "which tile set they used, and every future join drops to inferred_current")
+
+
+# ------------------------------------------------------------------ scoreboard
+
+def test_year_scoreboard_is_fresh():
+    """The scoreboard derives ONLY from tracked homes, so it can be byte-compared.
+
+    Unlike the harvests above (which read the lake), every input here — arm_metrics,
+    tileset_registry, champion_arms — is in the repo, so a regeneration is
+    reproducible in CI and staleness is a hard failure rather than a guess.
+    """
+    sys.path.insert(0, str(SCRIPTS / "qc"))     # ledger: test_status_discovery.py
+    import year_scoreboard
+    p = QC / "year_scoreboard.md"
+    if not p.exists():
+        pytest.skip("year_scoreboard.md absent — run py -3.12 qc/year_scoreboard.py")
+    md, _, _ = year_scoreboard.build()
+    assert p.read_text(encoding="utf-8") == md, (
+        "year_scoreboard.md is STALE — run: py -3.12 qc/year_scoreboard.py")
+
+
+def test_scoreboard_never_ranks_across_populations():
+    """Groups are (ref, scope) — a coverage gap must never read as a skill gap.
+
+    2017's four deliveries span 15.8 M to 5.7 B scored pixels; sorting those into one
+    table would make the smallest-footprint arm look like a different model.
+    """
+    md = (QC / "year_scoreboard.md")
+    if not md.exists():
+        pytest.skip("year_scoreboard.md absent")
+    text = md.read_text(encoding="utf-8")
+    assert "**ref `" in text, "scoreboard lost its per-reference grouping"
+    assert "population" in text, "scoreboard must print the population it ranked on"

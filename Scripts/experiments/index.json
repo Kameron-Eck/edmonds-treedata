@@ -109,6 +109,7 @@
         "adversarial-review",
         "hot-spots"
       ],
+      "tilesets": [],
       "verdict": "THE STEP-SHAPE CERTIFIER WINS AND THE SHIPPED PERSISTENCE FILTER IS A PURE RECALL TAX. Bolting a fit-free step-shape certifier onto the existing two-epoch rule moves Olofsson-weighted precision from 0.249 to 0.431 — about 60 percent of the total gain any candidate achieved, for roughly five lines on the already-cached 2 m stack, no model and no fitted parameter — read from Reports/CHANGE_DETECTOR_DESIGN_2026-09-06.md, whose table also carries the recall column and the two model tiers. Once the certifier is attached the HMM-versus-slope question is statistically empty. The incumbent measured WORSE than believed: the persistence filter moves weighted precision by a statistical zero while deleting every one of the human-verified terminal-epoch losses by construction, because no later epoch exists to corroborate them. Mechanism, and the answer to Kam's question: neighbours may WEIGHT a year's testimony and must never overwrite it — a median-style correction regresses the best-calibrated year toward its worst-calibrated neighbours, endpoints cannot be smoothed so the bias never cancels, and the trap is spatial as well as temporal (a single removed crown inside a surviving stand is voted back by its own neighbours). Scope is fixed by the same read: Panel A stays the pace authority and this detector owns WHERE only, hard-limited to 2016-2024, because run backward the model fabricates a trend at the unvalidated endpoints. TWO STANDING CAVEATS: the prototype numbers were produced in session scratch and are, in the report's own words, unreproducible from repo plus lake until the certifier port lands — so this verdict is a design read, not a measured instrument; and the build itself (gold-set freeze, certifier port with its three audit fixes, tiered output) is QUEUED on Kam's go.\n"
     },
     {
@@ -207,6 +208,7 @@
         "trend8",
         "2m-stack"
       ],
+      "tilesets": [],
       "verdict": "THE MODEL DOES NOT HALLUCINATE CANOPY ON BARE GROUND; THE INSTABILITY LIVES IN SENSITIVITY ON REAL VEGETATION. The three genuinely non-vegetated footprints (Parking, Water, Civic_Field) hold 0.0 to 0.7 percent false canopy, flat across all eight years, read from phase4/qc/trend8_flicker_report.csv — well inside the instrument's static gate, so the sawtooth is not a false-positive problem and no height or greenness prior would touch it. The same file also retired two of its own parcels: the Cemetery and Stadium footprints carry real crowns and track the city series, which makes them unusable as clean negatives — a correction to the negative set, not a result about the model. The census half is the counterweight and points the other way: on the citywide 2 m stack, per-pixel label trajectories are unstable at a scale no reference-scored accuracy number reveals, and a substantial share of the city carries the canopy-gone-canopy triple that no physical process can produce — both shares in phase4/qc/trend8_transition_census.csv, which is assumption-free because no reference raster and no threshold choice enters it. Put together the two halves isolate the error: it is per-year detection sensitivity on vegetated ground, so change MAPS need persistence or shape filtering even where change TOTALS at matched cuts corroborate direction. Both files are consumed downstream — the hard negatives become the empirical null and the zero-fire gate for change_detector_design, and the cached 2 m stack this campaign built is the I/O amortizer every later trajectory pass reuses.\n"
     },
     {
@@ -273,10 +275,264 @@
         "condition-t",
         "roman-2021"
       ],
+      "tilesets": [],
       "verdict": "NO TWIN EXISTS, AND THE ONE DESIGN THAT PASSED THE CHECKLIST WAS REFUSED ON ITS OWN PILOT. Condition A is met on the letter by exactly one study — Roman et al. 2021, Land 10(4):403, Philadelphia 1970-2010, five epochs from two uncalibrated aerial programs, one interpreter, paired points with an interpreter-derived detectable-change threshold — adjudicated 4 of 5 by three independent panels and missing only segmentation. It is therefore the peer-reviewed precedent for Panel A's exact method, never for a map series; Nix and Healy extend it into a three-study lineage. No segmentation-series twin surfaced in 1,359 logged queries with 132 full-text reads and 42 recorded UNREADABLE, so the paper's gap claim is now hunted rather than asserted. Condition B is the more consequential half: PACC — panel is the estimator, map is the auxiliary — passed the adversarial checklist unanimously on the kill-test item, then its own read-only pilot showed the map series shrinks the panel's confidence interval by only about 4 percent (+-1.89 to +-1.81 pp) and that forcing the map to carry the difference is WORSE than ignoring it (+-3.68 pp), read from Reports/LIT_HUNT_FINAL_2026-09-06.md. B was refused despite the checklist pass, because the pilot failed the contract's purpose — which the digest's two-reader audit records as under-claiming rather than overclaiming. That refusal converged independently with the same day's change_detector_design conclusion: the map owns WHERE, Panel A owns PACE.\n"
     },
     {
-      "arm_scores": {},
+      "arm_scores": {
+        "of_2017": {
+          "best_f1": {
+            "curve": "phase4/qc/curves/77dd08bf8bed.csv",
+            "eval_scope": "",
+            "population": "5745626645",
+            "pr_auc": "0.7962",
+            "precision": "0.7324",
+            "recall": "0.8173",
+            "ref": "ccap_2021_hires_lc.tif",
+            "thresh": "0.224409"
+          },
+          "matched_p50": {
+            "curve": "phase4/qc/curves/77dd08bf8bed.csv",
+            "eval_scope": "",
+            "population": "6589984864",
+            "pr_auc": "0.7962",
+            "precision": "0.6429",
+            "recall": "0.8812",
+            "ref": "ccap_2021_hires_lc.tif",
+            "thresh": "0.216535"
+          },
+          "matched_p75": {
+            "curve": "phase4/qc/curves/77dd08bf8bed.csv",
+            "eval_scope": "",
+            "population": "5567361941",
+            "pr_auc": "0.7962",
+            "precision": "0.7531",
+            "recall": "0.7878",
+            "ref": "ccap_2021_hires_lc.tif",
+            "thresh": "0.23622"
+          },
+          "matched_p90": {
+            "curve": "phase4/qc/curves/77dd08bf8bed.csv",
+            "eval_scope": "",
+            "population": "4447137788",
+            "pr_auc": "0.7962",
+            "precision": "0.901",
+            "recall": "0.0466",
+            "ref": "ccap_2021_hires_lc.tif",
+            "thresh": "0.547244"
+          }
+        },
+        "of_2017k": {
+          "best_f1": {
+            "curve": "phase4/qc/curves/51da78ca2773.csv",
+            "eval_scope": "",
+            "population": "1406952724",
+            "pr_auc": "0.8223",
+            "precision": "0.75",
+            "recall": "0.8159",
+            "ref": "ccap_2021_hires_lc.tif",
+            "thresh": "0.133858"
+          },
+          "matched_p50": {
+            "curve": "phase4/qc/curves/51da78ca2773.csv",
+            "eval_scope": "",
+            "population": "2034462755",
+            "pr_auc": "0.8223",
+            "precision": "0.5258",
+            "recall": "0.9305",
+            "ref": "ccap_2021_hires_lc.tif",
+            "thresh": "0.07874"
+          },
+          "matched_p75": {
+            "curve": "phase4/qc/curves/51da78ca2773.csv",
+            "eval_scope": "",
+            "population": "1406952724",
+            "pr_auc": "0.8223",
+            "precision": "0.75",
+            "recall": "0.8159",
+            "ref": "ccap_2021_hires_lc.tif",
+            "thresh": "0.133858"
+          },
+          "matched_p90": {
+            "curve": "phase4/qc/curves/51da78ca2773.csv",
+            "eval_scope": "",
+            "population": "1152887195",
+            "pr_auc": "0.8223",
+            "precision": "0.9002",
+            "recall": "0.3813",
+            "ref": "ccap_2021_hires_lc.tif",
+            "thresh": "0.669291"
+          }
+        },
+        "of_2017n": {
+          "best_f1": {
+            "curve": "phase4/qc/curves/49ba3c0af71e.csv",
+            "eval_scope": "",
+            "population": "15843862",
+            "pr_auc": "0.7012",
+            "precision": "0.6508",
+            "recall": "0.7912",
+            "ref": "ccap_2021_hires_lc.tif",
+            "thresh": "0.240157"
+          },
+          "matched_p50": {
+            "curve": "phase4/qc/curves/49ba3c0af71e.csv",
+            "eval_scope": "",
+            "population": "21093477",
+            "pr_auc": "0.7012",
+            "precision": "0.5004",
+            "recall": "0.8982",
+            "ref": "ccap_2021_hires_lc.tif",
+            "thresh": "0.15748"
+          },
+          "matched_p75": {
+            "curve": "phase4/qc/curves/49ba3c0af71e.csv",
+            "eval_scope": "",
+            "population": "11805490",
+            "pr_auc": "0.7012",
+            "precision": "0.7632",
+            "recall": "0.1982",
+            "ref": "ccap_2021_hires_lc.tif",
+            "thresh": "0.480314"
+          },
+          "matched_p90": {
+            "curve": "phase4/qc/curves/49ba3c0af71e.csv",
+            "eval_scope": "",
+            "population": "11189657",
+            "pr_auc": "0.7012",
+            "precision": "0.9393",
+            "recall": "0.0949",
+            "ref": "ccap_2021_hires_lc.tif",
+            "thresh": "0.492125"
+          }
+        },
+        "of_2017s": {
+          "best_f1": {
+            "curve": "phase4/qc/curves/0b157d79812c.csv",
+            "eval_scope": "",
+            "population": "158176240",
+            "pr_auc": "0.8191",
+            "precision": "0.7137",
+            "recall": "0.7987",
+            "ref": "ccap_2021_hires_lc.tif",
+            "thresh": "0.145669"
+          },
+          "matched_p50": {
+            "curve": "phase4/qc/curves/0b157d79812c.csv",
+            "eval_scope": "",
+            "population": "228640081",
+            "pr_auc": "0.8191",
+            "precision": "0.5113",
+            "recall": "0.9506",
+            "ref": "ccap_2021_hires_lc.tif",
+            "thresh": "0.102362"
+          },
+          "matched_p75": {
+            "curve": "phase4/qc/curves/0b157d79812c.csv",
+            "eval_scope": "",
+            "population": "149422078",
+            "pr_auc": "0.8191",
+            "precision": "0.751",
+            "recall": "0.7462",
+            "ref": "ccap_2021_hires_lc.tif",
+            "thresh": "0.165354"
+          },
+          "matched_p90": {
+            "curve": "phase4/qc/curves/0b157d79812c.csv",
+            "eval_scope": "",
+            "population": "124525025",
+            "pr_auc": "0.8191",
+            "precision": "0.9011",
+            "recall": "0.3599",
+            "ref": "ccap_2021_hires_lc.tif",
+            "thresh": "0.559055"
+          }
+        },
+        "of_2020": {
+          "best_f1": {
+            "curve": "phase4/qc/curves/78c9944728d2.csv",
+            "eval_scope": "",
+            "population": "4894691267",
+            "pr_auc": "0.7488",
+            "precision": "0.7936",
+            "recall": "0.6842",
+            "ref": "ccap_2021_hires_lc.tif",
+            "thresh": "0.070866"
+          },
+          "matched_p50": {
+            "curve": "phase4/qc/curves/78c9944728d2.csv",
+            "eval_scope": "",
+            "population": "6134297696",
+            "pr_auc": "0.7488",
+            "precision": "0.6119",
+            "recall": "0.7509",
+            "ref": "ccap_2021_hires_lc.tif",
+            "thresh": "0.066929"
+          },
+          "matched_p75": {
+            "curve": "phase4/qc/curves/78c9944728d2.csv",
+            "eval_scope": "",
+            "population": "4894691267",
+            "pr_auc": "0.7488",
+            "precision": "0.7936",
+            "recall": "0.6842",
+            "ref": "ccap_2021_hires_lc.tif",
+            "thresh": "0.070866"
+          },
+          "matched_p90": {
+            "curve": "phase4/qc/curves/78c9944728d2.csv",
+            "eval_scope": "",
+            "population": "4276515053",
+            "pr_auc": "0.7488",
+            "precision": "0.9028",
+            "recall": "0.2709",
+            "ref": "ccap_2021_hires_lc.tif",
+            "thresh": "0.73622"
+          }
+        },
+        "of_2022": {
+          "best_f1": {
+            "curve": "phase4/qc/curves/d11d69cb719f.csv",
+            "eval_scope": "",
+            "population": "5315562672",
+            "pr_auc": "0.7848",
+            "precision": "0.7326",
+            "recall": "0.7649",
+            "ref": "ccap_2021_hires_lc.tif",
+            "thresh": "0.102362"
+          },
+          "matched_p50": {
+            "curve": "phase4/qc/curves/d11d69cb719f.csv",
+            "eval_scope": "",
+            "population": "7842851473",
+            "pr_auc": "0.7848",
+            "precision": "0.5049",
+            "recall": "0.905",
+            "ref": "ccap_2021_hires_lc.tif",
+            "thresh": "0.066929"
+          },
+          "matched_p75": {
+            "curve": "phase4/qc/curves/d11d69cb719f.csv",
+            "eval_scope": "",
+            "population": "5178270225",
+            "pr_auc": "0.7848",
+            "precision": "0.7511",
+            "recall": "0.743",
+            "ref": "ccap_2021_hires_lc.tif",
+            "thresh": "0.133858"
+          },
+          "matched_p90": {
+            "curve": "phase4/qc/curves/d11d69cb719f.csv",
+            "eval_scope": "",
+            "population": "4247303747",
+            "pr_auc": "0.7848",
+            "precision": "0.9009",
+            "recall": "0.2012",
+            "ref": "ccap_2021_hires_lc.tif",
+            "thresh": "0.649606"
+          }
+        }
+      },
       "arms": [
         {
           "extra": [
@@ -349,10 +605,355 @@
       "superseded_by": [],
       "supersedes": [],
       "tags": [],
+      "tilesets": [
+        "0d4456027a30",
+        "13ede6107083",
+        "a36d6772e88b",
+        "be489674c45a",
+        "d13e3982992a",
+        "e955bb67a335"
+      ],
       "verdict": "All three pre-registered reads complete, at policy-C matched cuts (the rule as written; delivered-cut fractions were never valid inputs). (a) FLOOR: |2017 CoE - 2017 King| same-window = 0.15pp - PASS at one-ninth of the 1.3pp same-flight bound; noise model holds. (b) FACTORIAL: quartet spread 10.1pp (delivered) -> 3.55pp (matched); the three <=30cm arms agree to 0.15pp TOTAL; season effect ~0 within grid class; the ENTIRE residual is the 1m NAIP arm (-3.5pp genuine information deficit, recall .73 at common precision). Decomposition: 10.1 = ~6.5 operating point + ~3.5 coarse- grid info loss + ~0 season + ~0.15 delivery-at-<=30cm. Harmonization program NOT bounded - the spread is explained. (c) EAGLEVIEW: 24.44 -> 26.32 -> 23.50; endpoints -0.94pp/4yr agree with Panel A in sign AND pace (~-1.1 expected); interior +1.9/-2.8 wobble - single-year steps stay inside noise even under total method control. Levels harmonized-to-C-CAP. Data: overlap_factorial_read.csv, eagleview_sign_test.csv."
     },
     {
-      "arm_scores": {},
+      "arm_scores": {
+        "trend8_2009": {
+          "best_f1": {
+            "curve": "phase4/qc/curves/6a5c3556d7d3.csv",
+            "eval_scope": "",
+            "population": "370374999",
+            "pr_auc": "0.81",
+            "precision": "0.7046",
+            "recall": "0.8093",
+            "ref": "ccap_2021_hires_lc.tif",
+            "thresh": "0.122047"
+          },
+          "matched_p50": {
+            "curve": "phase4/qc/curves/6a5c3556d7d3.csv",
+            "eval_scope": "",
+            "population": "501824826",
+            "pr_auc": "0.81",
+            "precision": "0.5362",
+            "recall": "0.9419",
+            "ref": "ccap_2021_hires_lc.tif",
+            "thresh": "0.086614"
+          },
+          "matched_p75": {
+            "curve": "phase4/qc/curves/6a5c3556d7d3.csv",
+            "eval_scope": "",
+            "population": "344975021",
+            "pr_auc": "0.81",
+            "precision": "0.75",
+            "recall": "0.7424",
+            "ref": "ccap_2021_hires_lc.tif",
+            "thresh": "0.452755"
+          },
+          "matched_p90": {
+            "curve": "phase4/qc/curves/6a5c3556d7d3.csv",
+            "eval_scope": "",
+            "population": "286272250",
+            "pr_auc": "0.81",
+            "precision": "0.9007",
+            "recall": "0.3194",
+            "ref": "ccap_2021_hires_lc.tif",
+            "thresh": "0.543307"
+          }
+        },
+        "trend8_2011s": {
+          "best_f1": {
+            "curve": "phase4/qc/curves/2b8ac04cee1c.csv",
+            "eval_scope": "",
+            "population": "158952590",
+            "pr_auc": "0.8292",
+            "precision": "0.7164",
+            "recall": "0.8258",
+            "ref": "ccap_2021_hires_lc.tif",
+            "thresh": "0.106299"
+          },
+          "matched_p50": {
+            "curve": "phase4/qc/curves/2b8ac04cee1c.csv",
+            "eval_scope": "",
+            "population": "224623043",
+            "pr_auc": "0.8292",
+            "precision": "0.5246",
+            "recall": "0.9659",
+            "ref": "ccap_2021_hires_lc.tif",
+            "thresh": "0.051181"
+          },
+          "matched_p75": {
+            "curve": "phase4/qc/curves/2b8ac04cee1c.csv",
+            "eval_scope": "",
+            "population": "150784329",
+            "pr_auc": "0.8292",
+            "precision": "0.7504",
+            "recall": "0.7781",
+            "ref": "ccap_2021_hires_lc.tif",
+            "thresh": "0.185039"
+          },
+          "matched_p90": {
+            "curve": "phase4/qc/curves/2b8ac04cee1c.csv",
+            "eval_scope": "",
+            "population": "124708142",
+            "pr_auc": "0.8292",
+            "precision": "0.9008",
+            "recall": "0.373",
+            "ref": "ccap_2021_hires_lc.tif",
+            "thresh": "0.716535"
+          }
+        },
+        "trend8_2013": {
+          "best_f1": {
+            "curve": "phase4/qc/curves/4f31ed3fa74a.csv",
+            "eval_scope": "",
+            "population": "1412111645",
+            "pr_auc": "0.8116",
+            "precision": "0.7403",
+            "recall": "0.7885",
+            "ref": "ccap_2021_hires_lc.tif",
+            "thresh": "0.145669"
+          },
+          "matched_p50": {
+            "curve": "phase4/qc/curves/4f31ed3fa74a.csv",
+            "eval_scope": "",
+            "population": "2085002632",
+            "pr_auc": "0.8116",
+            "precision": "0.5133",
+            "recall": "0.9333",
+            "ref": "ccap_2021_hires_lc.tif",
+            "thresh": "0.082677"
+          },
+          "matched_p75": {
+            "curve": "phase4/qc/curves/4f31ed3fa74a.csv",
+            "eval_scope": "",
+            "population": "1390014655",
+            "pr_auc": "0.8116",
+            "precision": "0.7512",
+            "recall": "0.7748",
+            "ref": "ccap_2021_hires_lc.tif",
+            "thresh": "0.153543"
+          },
+          "matched_p90": {
+            "curve": "phase4/qc/curves/4f31ed3fa74a.csv",
+            "eval_scope": "",
+            "population": "1148820712",
+            "pr_auc": "0.8116",
+            "precision": "0.9005",
+            "recall": "0.3495",
+            "ref": "ccap_2021_hires_lc.tif",
+            "thresh": "0.645669"
+          }
+        },
+        "trend8_2015": {
+          "best_f1": {
+            "curve": "phase4/qc/curves/f733fc9f1eac.csv",
+            "eval_scope": "",
+            "population": "1453643570",
+            "pr_auc": "0.7746",
+            "precision": "0.7098",
+            "recall": "0.7685",
+            "ref": "ccap_2021_hires_lc.tif",
+            "thresh": "0.133858"
+          },
+          "matched_p50": {
+            "curve": "phase4/qc/curves/f733fc9f1eac.csv",
+            "eval_scope": "",
+            "population": "2062043485",
+            "pr_auc": "0.7746",
+            "precision": "0.5118",
+            "recall": "0.9061",
+            "ref": "ccap_2021_hires_lc.tif",
+            "thresh": "0.098425"
+          },
+          "matched_p75": {
+            "curve": "phase4/qc/curves/f733fc9f1eac.csv",
+            "eval_scope": "",
+            "population": "1366533758",
+            "pr_auc": "0.7746",
+            "precision": "0.751",
+            "recall": "0.71",
+            "ref": "ccap_2021_hires_lc.tif",
+            "thresh": "0.169291"
+          },
+          "matched_p90": {
+            "curve": "phase4/qc/curves/f733fc9f1eac.csv",
+            "eval_scope": "",
+            "population": "1121066622",
+            "pr_auc": "0.7746",
+            "precision": "0.9019",
+            "recall": "0.1242",
+            "ref": "ccap_2021_hires_lc.tif",
+            "thresh": "0.692913"
+          }
+        },
+        "trend8_2016": {
+          "best_f1": {
+            "curve": "phase4/qc/curves/9536536fd441.csv",
+            "eval_scope": "",
+            "population": "154439968",
+            "pr_auc": "0.8304",
+            "precision": "0.7357",
+            "recall": "0.805",
+            "ref": "ccap_2021_hires_lc.tif",
+            "thresh": "0.165354"
+          },
+          "matched_p50": {
+            "curve": "phase4/qc/curves/9536536fd441.csv",
+            "eval_scope": "",
+            "population": "227166417",
+            "pr_auc": "0.8304",
+            "precision": "0.5165",
+            "recall": "0.9577",
+            "ref": "ccap_2021_hires_lc.tif",
+            "thresh": "0.07874"
+          },
+          "matched_p75": {
+            "curve": "phase4/qc/curves/9536536fd441.csv",
+            "eval_scope": "",
+            "population": "150909963",
+            "pr_auc": "0.8304",
+            "precision": "0.7515",
+            "recall": "0.7855",
+            "ref": "ccap_2021_hires_lc.tif",
+            "thresh": "0.181102"
+          },
+          "matched_p90": {
+            "curve": "phase4/qc/curves/9536536fd441.csv",
+            "eval_scope": "",
+            "population": "125076359",
+            "pr_auc": "0.8304",
+            "precision": "0.9014",
+            "recall": "0.4035",
+            "ref": "ccap_2021_hires_lc.tif",
+            "thresh": "0.728346"
+          }
+        },
+        "trend8_2019": {
+          "best_f1": {
+            "curve": "phase4/qc/curves/fe90bb21a580.csv",
+            "eval_scope": "",
+            "population": "1437659237",
+            "pr_auc": "0.8093",
+            "precision": "0.7265",
+            "recall": "0.7962",
+            "ref": "ccap_2021_hires_lc.tif",
+            "thresh": "0.102362"
+          },
+          "matched_p50": {
+            "curve": "phase4/qc/curves/fe90bb21a580.csv",
+            "eval_scope": "",
+            "population": "2023143742",
+            "pr_auc": "0.8093",
+            "precision": "0.5273",
+            "recall": "0.925",
+            "ref": "ccap_2021_hires_lc.tif",
+            "thresh": "0.066929"
+          },
+          "matched_p75": {
+            "curve": "phase4/qc/curves/fe90bb21a580.csv",
+            "eval_scope": "",
+            "population": "1371436455",
+            "pr_auc": "0.8093",
+            "precision": "0.7582",
+            "recall": "0.752",
+            "ref": "ccap_2021_hires_lc.tif",
+            "thresh": "0.114173"
+          },
+          "matched_p90": {
+            "curve": "phase4/qc/curves/fe90bb21a580.csv",
+            "eval_scope": "",
+            "population": "1145247840",
+            "pr_auc": "0.8093",
+            "precision": "0.9006",
+            "recall": "0.3206",
+            "ref": "ccap_2021_hires_lc.tif",
+            "thresh": "0.625984"
+          }
+        },
+        "trend8_2021": {
+          "best_f1": {
+            "curve": "phase4/qc/curves/e1db5afaea4b.csv",
+            "eval_scope": "",
+            "population": "1388483719",
+            "pr_auc": "0.8391",
+            "precision": "0.7594",
+            "recall": "0.8057",
+            "ref": "ccap_2021_hires_lc.tif",
+            "thresh": "0.110236"
+          },
+          "matched_p50": {
+            "curve": "phase4/qc/curves/e1db5afaea4b.csv",
+            "eval_scope": "",
+            "population": "2070655575",
+            "pr_auc": "0.8391",
+            "precision": "0.5227",
+            "recall": "0.9551",
+            "ref": "ccap_2021_hires_lc.tif",
+            "thresh": "0.055118"
+          },
+          "matched_p75": {
+            "curve": "phase4/qc/curves/e1db5afaea4b.csv",
+            "eval_scope": "",
+            "population": "1406539700",
+            "pr_auc": "0.8391",
+            "precision": "0.7502",
+            "recall": "0.8157",
+            "ref": "ccap_2021_hires_lc.tif",
+            "thresh": "0.106299"
+          },
+          "matched_p90": {
+            "curve": "phase4/qc/curves/e1db5afaea4b.csv",
+            "eval_scope": "",
+            "population": "1157540160",
+            "pr_auc": "0.8391",
+            "precision": "0.9006",
+            "recall": "0.4212",
+            "ref": "ccap_2021_hires_lc.tif",
+            "thresh": "0.641732"
+          }
+        },
+        "trend8_2024": {
+          "best_f1": {
+            "curve": "phase4/qc/curves/7155b9466840.csv",
+            "eval_scope": "",
+            "population": "5436883153",
+            "pr_auc": "0.7449",
+            "precision": "0.7524",
+            "recall": "0.6955",
+            "ref": "ccap_2021_hires_lc.tif",
+            "thresh": "0.055118"
+          },
+          "matched_p50": {
+            "curve": "phase4/qc/curves/7155b9466840.csv",
+            "eval_scope": "",
+            "population": "6132892404",
+            "pr_auc": "0.7449",
+            "precision": "0.6671",
+            "recall": "0.7739",
+            "ref": "ccap_2021_hires_lc.tif",
+            "thresh": "0.051181"
+          },
+          "matched_p75": {
+            "curve": "phase4/qc/curves/7155b9466840.csv",
+            "eval_scope": "",
+            "population": "5436883153",
+            "pr_auc": "0.7449",
+            "precision": "0.7524",
+            "recall": "0.6955",
+            "ref": "ccap_2021_hires_lc.tif",
+            "thresh": "0.055118"
+          },
+          "matched_p90": {
+            "curve": "phase4/qc/curves/7155b9466840.csv",
+            "eval_scope": "",
+            "population": "4424905673",
+            "pr_auc": "0.7449",
+            "precision": "0.9088",
+            "recall": "0.0009",
+            "ref": "ccap_2021_hires_lc.tif",
+            "thresh": "0.669291"
+          }
+        }
+      },
       "arms": [
         {
           "extra": [
@@ -439,6 +1040,16 @@
       "superseded_by": [],
       "supersedes": [],
       "tags": [],
+      "tilesets": [
+        "10d6558ee4ef",
+        "3dbae57010df",
+        "4bb6c625c5e8",
+        "7885febe1bdc",
+        "892f6c92c07a",
+        "c1dddc82af1f",
+        "cd31e23d8060",
+        "e45a392d75b2"
+      ],
       "verdict": "DELIVERED-CUT SERIES RETRACTED as a trend read (per-arm best-F1 cuts on 650x-skewed eval populations; the 2026-09-06 attack). At policy-C matched cuts (joint plateau, common precision .7394): (a) SIGN TEST vs Panel A: PASSES - 2016->2024 = -5.59pp sweep-footprint / -3.48pp city-clipped masks (delivered cuts had said +4.2, wrong sign); (b) pre-2016 flat-to-up, post-2016 declining - the two-leg story reproduced; (c) hot spots dispersed (largest recut persistent cluster 1.53ha); (d) 41/42 of Panel A verified losses corroborated by matched-cut map loss (was 34/42). RESIDUALS: +-2-4pp inter-year jitter persists (per-year curve shape) - single-year map steps are NOT readable; pixel flicker did NOT collapse (47.8% vs 50.7% of ever-canopy) - per-pixel instability is real detection noise, so change MAPS need persistence filtering even though change TOTALS at matched cuts corroborate direction. Levels are harmonized-to-C-CAP (matcher, never authority); pace authority remains Panel A -2.21+-1.10. Data: trend8_policy_cuts.csv, trend8_harmonized_fractions.csv, trend8_transition_census.csv, trend8_hotspot_map.png, eagleview_sign_test.csv."
     },
     {
@@ -514,6 +1125,7 @@
         "chm2",
         "kam-questions"
       ],
+      "tilesets": [],
       "verdict": "THE KNOBS THAT SOUND DEFINITIONAL ARE WORTH ~NOTHING; THE INVISIBLE ONES CARRY THE WHOLE ANSWER. The literal gap knobs — 3x3 morphology plus the 3 m2 sieve — measured area-neutral at 1264.0 vs 1263.8 ha, read from phase4/qc/postproc_variant_scores.csv (morph vs morph_sieve, 2011s), while the reference family, the model operating threshold, the denominator and the interpreter's own consistency each move the headline by more, every one of them cited to its own measured file in the review's section-5 table. Mechanism: within-crown gaps are already closed by the classifier's receptive field long before postproc sees them, so the morphological \"gap rule\" operates on pixels that were never in dispute; the disputed pixels live at the greenness/height cut, the threshold, and the choice of ground in the denominator. Section 1 also settles the plain questions against the literature: vertical projection is the standard and matches Kam's high-noon intuition, crowns are treated as solid outlines (crown cover), and isolated trees count identically to stands. TWO STANDING CAVEATS the entry carries with the verdict: the written definition in section 6 is a DRAFT — section 7 hands six decisions back to Kam and the K4 sign-off row on the WORKPLAN board is open, so nothing here is adopted; and the review flags its own evidence base as partly contaminated, because every height-knob row measured on the old lidar_snoh_chm scale is UNDETERMINED pending a chm2 rebuild, including the \"trees, not shrubs\" reading of the contested band.\n"
     },
     {
@@ -600,6 +1212,7 @@
         "reference-disagreement",
         "k1"
       ],
+      "tilesets": [],
       "verdict": "THE DESIGN HOLDS, THE BINDING CONSTRAINT IS THE INTERPRETER RATHER THAN n, AND NO ESTIMATE HAS EVER BEEN PRODUCED. Read from phase4/qc/design_power_2016.txt, which is the PRE-redraw 2016 kit: at zero interpreter error that design returns a 95% half-width of +-1.22pp against an 8.24pp separation between the two candidate canopy definitions, and the same file's sweep degrades to `marginal` by 10% interpreter error — its own one-word verdict is CONDITIONAL. The 2026-09-04 redraw's power, +-1.87pp, is recorded only in Scripts/CHATLOG.md — no design_power file exists for the redrawn kit — and it does not flip the read, because 1.87pp still sits well inside the 8.24pp separation reported at phase4/qc/design_power_2016.txt:31. That inverts the premise carried in the docstring of Scripts/qc/instruments/phase4_qc_design_power.py, which records the 2026-08-18 assessment as computing +-5.9pp under simple random sampling and concluding the sample could not arbitrate — note that design_power_2016.txt:32 records the SRS half-width the assessment assumed as +-0.0620 (6.20pp), so the two figures may be different quantities rather than one contradicting the other, and this entry does not adjudicate which. Either way sample size was never the binding constraint, interpreter fidelity is, which is why the duplicate-interpreted subset stopped being optional. The 2026-09-03 ledger audit surfaced four defects in the machinery, and the 2026-09-04 repair pass (Scripts/CHATLOG.md, `accuracy-batch-overnight`) closed them: strata rebuilt on chm2 instead of the deprecated CHM raster that reads high, the undo-as-final-row bug in `--step estimate` fixed, the 2016 and 2023n kits redrawn after 2023n was found to be a byte copy of 2022n, and the frozen-model-snapshot defect retired by U1, which scores ANY arm at the labelled points rather than the snapshot each kit froze. What remains absent is the campaign's own deliverable: no labels file exists, therefore no Olofsson estimate, no error-adjusted area, no CI. That is the honest read — the machinery is complete and gated, the number is not, and K1 (Kam labelling the redrawn 250-point 2016 kit) is the only gate between them.\n"
     },
     {
@@ -690,6 +1303,7 @@
         "ccap-bound",
         "tier1"
       ],
+      "tilesets": [],
       "verdict": "THE ABSOLUTE FALSE-POSITIVE FLOOR IS REAL, AND LIDAR AS AN INPUT CHANNEL COLLAPSES IT. Read from phase4/qc/certified_flat_scores.csv: on physically empty ground the 2020 Tier-1 base arm calls canopy at a rate of 0.25574 while its lidar-input sibling in16 calls it at 0.0365 — an order of magnitude, measured against truth that contains no lidar-derived label and no reference product at all. That matters more than the proxy-scored version of the same claim, because it cannot be explained as the reference agreeing with the input. Three further reads live in the same file and reach the reader through the generated index rather than being restated here: the two C-CAP rows bound the reference's own over-call on flat ground, and it is small enough that C-CAP FP cannot account for arm-level FP — the arms own theirs; the 2006s label-adder arm that Tier-1 flagged as epoch poison carries the worst FP rate of any arm scored, so the poison is visible on absolute truth and not only in the ranking; and the two citywide rows show the deployed masks sit far below the AOI-restricted Tier-1 arms. The second output, phase4/qc/certified_change_cells.csv, is the model-free dual-epoch loss and gain count that the lidar decimation-null leg was judged against.\n"
     },
     {
@@ -742,6 +1356,7 @@
         "artifact-bound",
         "2005-2016"
       ],
+      "tilesets": [],
       "verdict": "DENSITY CAN FAKE GAIN AND CANNOT FAKE LOSS — that asymmetry is what revived the lidar leg. On ground where true change is zero, the null fired 1.5008 km2 of artifact GAIN against 0.0001 km2 of artifact LOSS, read from phase4/qc/lidar_decimation_null.csv (the row notes carry the keep probability, the seed and the predicates). Mechanism: a sparse cloud misses crown tops, so the simulated \"past\" reads low against a dense \"now\" — the artifact points one way by construction and there is no mechanism for the reverse. Consequences, both load-bearing: (1) the measured 2005->2016 LOSS in phase4/qc/certified_change_cells.csv is not reachable by the density gap and stands as physical evidence; (2) the net GAIN read carries this artifact volume as its explicit bound and is never quoted without it. This is the lidar half of the two-leg story whose human-measured half is panel_a_direction; it upgrades the pre-2016 leg from unusable to bounded, not to precise.\n"
     },
     {
@@ -825,6 +1440,7 @@
         "metric",
         "tier1"
       ],
+      "tilesets": [],
       "verdict": "THE STRICT SCORE WAS MEASURING PIXEL SIZE, NOT DETECTION. Read from phase4/qc/metric_tolerance_scores.csv: the 2020 base arm scores recall 0.7039 strict and 0.9197 at 2 m tolerance — the same mask, the same blocks, the same threshold, moved only by forgiving 2 m of boundary. The two 2020 arms hold the lowest strict recalls in the file and the 2020 base arm holds the highest at 2 m: the ranking inverts under nothing but a change of accounting. The file's dilate_px column carries the mechanism: on 2020's centimetre grid, 2 m of physical forgiveness is tens of pixels of dilation, while on 2006s — the only multi-metre grid in the file — both the 0.5 m and the 1 m tolerance round to no dilation at all, so its strict, half-metre and one-metre rows are identical by construction. At the one-metre-grid years, 2011s and 2016, only the half-metre tolerance rounds to zero; 1 m dilates a single pixel and does move both recall and precision. The consequence is a reader rule, not a model change: strict per-pixel recall is not comparable across delivery grids and never was a like-for-like ranking, so any cross-year arm comparison must be read at a fixed metric tolerance. This entry owns both legs of that correction — the native-pixel C2 read in buffer_tolerant_scores.csv has no registry entry of its own and is superseded here, not elsewhere. The residual past 2 m is what a boundary-refinement method would have to beat, and is the pre-written kill criterion the queued SAM pilot is gated on (WORKPLAN QUEUED).\n"
     },
     {
@@ -906,6 +1522,7 @@
         "human-truth",
         "2016-2024"
       ],
+      "tilesets": [],
       "verdict": "DIRECTION IS DOWN, and it is the project's only human-measured trend statement. Net 2016->2024 = -2.21pp of city area, 95% CI [-3.31, -1.11] — the single figure the city statement rests on, read from phase4/qc/panel_a_estimate.txt, which also carries every control in the same file. All four controls hold: the SRS capture audit found change outside the locators at a rate consistent with capture ~0.9+, blind duplicates disagreed at a rate the file records against its own gate, the blur control produced zero false change in 30 pairs, and a hostile 2.0 m registration shift moves the net in the direction that SUBTRACTS from the decline, so the sign holds in both scenarios. Loss points survive scrutiny far better than gain points (crosscheck in phase4/qc/panel_a_loss_crosscheck.csv). Kam's own catch during the verify pass is part of the record: the 2024 flight is leaf-off March-May, so a leaf-on October-2023 comparison was re-called rather than trusted (phase4/qc/panel_a_verify.csv). STANDING: Panel A is the PACE AND DIRECTION AUTHORITY. Map series corroborate it and never override it — that hierarchy is what trend8_uniform_rgb's retraction enforced, and what overlap_floor's EagleView sign test independently agreed with.\n"
     },
     {
@@ -970,6 +1587,7 @@
         "consistency",
         "trend"
       ],
+      "tilesets": [],
       "verdict": "THE FLOOR EXISTS AND IT IS LARGE ENOUGH TO MATTER. One flight, two deliveries, zero engine diff: canopy IoU 0.7376 and a 1.3pp citywide canopy-area gap, read from phase4/qc/sameflight_consistency.csv (the row's own note records the conditions). Two consequences, both load-bearing downstream: (1) single-year map steps inside +-1.3pp are processing, not trees — this is the error floor trend8_uniform_rgb's decision rule carries and the reason its interior wobble was declared unreadable; (2) it is the bound overlap_floor's same-window cross-delivery test was judged against, where the 2017 CoE-vs-King pair came in at one-ninth of it, confirming the noise model rather than breaking it. The IoU is the blunter of the two readings: a 0.74 IoU between two products of the SAME photons is the cleanest statement in the repo of how much of a canopy map is the processing chain.\n"
     },
     {
@@ -1064,6 +1682,7 @@
         "recall",
         "king-sensor"
       ],
+      "tilesets": [],
       "verdict": "THE GRADIENT IS DELIVERY RADIOMETRY, NOT PHENOLOGY, AND THE LEAF-OFF IGNORE EXPERIMENT IS DEAD AS PREMISED. Read from Reports/GREENNESS_GRADIENT_CORRECTION_2026-09-03.md, which carries both legs: the February 2015 flight is genuinely bimodal — a bare-deciduous mode beside an intact conifer mode — and its recall is UNHARMED, so leaf-off by itself does not damage recall; while the April 2019 and 2021 deliveries show a whole-distribution shift into negative GRVI, with 74% of 2019's canopy pixels reading negative, which conifers cannot biologically be. Three consequences follow. The queued quantity-preserving leaf-off IGNORE experiment is killed at the premise: an IGNORE keyed on low GRVI would mask by radiometry, not by season, and would remove conifer canopy from supervision in exactly the years that need it. Per-delivery radiometric normalization — previously judged unnecessary — enters the candidate list for the 36-run recipe as the surviving lever, testable against the 2019 arm before any recipe change. And CLAUDE.md's durable gotcha that leaf-off years carry systematic, species-correlated label error stands entirely unchanged: that claim is about projecting an April-July 2020 label onto a February acquisition, which is a different mechanism from the recall gradient corrected here. What this entry supersedes in leafoff_recall_gradient is the CAUSE, not the measurements — the recall-versus-greenness association those five files record is unaltered, and remains directional with two named exceptions rather than a dose-response.\n"
     },
     {
@@ -1164,144 +1783,1144 @@
         "superseded",
         "2013-2023"
       ],
+      "tilesets": [],
       "verdict": "A DIRECTION, NOT A GRADIENT — and the direction was later re-attributed away from season. The read: in aggregate the two least-low-greenness years hold the two highest recalls and the three high-low-greenness years all sit lower, but the ordering is not monotone and the split is really 2-vs-3, not a five-step ramp. Two cells break it outright, both read from phase4/qc/leafoff_*_king.csv paired against phase4/qc/score_vs_difficulty.csv: 2015 is a February flight, the catalog's leaf-off end, and carries the HIGHEST recall of the five; 2021 sits mid-pack on low-greenness and carries the LOWEST recall of the five. The five recalls are also not a like-for- like comparison — each is read at that year's own selected threshold, and 2019's is the most liberal of the set, so pooling them across threshold policies is forbidden by the reader rules in Scripts/docs/SCHEMAS.md. SUPERSEDED: the association survives, its cause does not. Reports/GREENNESS_GRADIENT_CORRECTION_2026-09-03.md shows the greenness fraction does not track the calendar at all — three late-April flights measure two to three times \"less green\" than deep winter — and restates the surviving association as recall vs IMAGE GREENNESS at -.109 across these five same-sensor years, the one figure this entry carries and the file it is read from. The per-bin histograms resolve it: 2015 is true phenology (bimodal) with UNHARMED recall, while the low- greenness years are a whole-distribution radiometric shift that conifers cannot produce biologically. The quantity that tracks recall is DELIVERY RADIOMETRY, not season. Read greenness_gradient_correction for the live statement; this entry records what was claimed and how it was measured.\n"
     },
     {
       "arm_scores": {
         "t1_2006s_add05": {
-          "home": "tier1_results.csv",
-          "prec_at_p75": "0.751",
-          "recall_at_p75": "0.5676"
+          "best_f1": {
+            "curve": "phase4/qc/curves/9bf4eacc4285.csv",
+            "eval_scope": "sample-test",
+            "population": "854017",
+            "pr_auc": "0.7551",
+            "precision": "0.6414",
+            "recall": "0.7579",
+            "ref": "ccap_2021_hires_lc.tif",
+            "thresh": "0.244094"
+          },
+          "matched_p50": {
+            "curve": "phase4/qc/curves/9bf4eacc4285.csv",
+            "eval_scope": "sample-test",
+            "population": "1107551",
+            "pr_auc": "0.7551",
+            "precision": "0.5139",
+            "recall": "0.8951",
+            "ref": "ccap_2021_hires_lc.tif",
+            "thresh": "0.212598"
+          },
+          "matched_p75": {
+            "curve": "phase4/qc/curves/9bf4eacc4285.csv",
+            "eval_scope": "sample-test",
+            "population": "712667",
+            "pr_auc": "0.7551",
+            "precision": "0.751",
+            "recall": "0.5676",
+            "ref": "ccap_2021_hires_lc.tif",
+            "thresh": "0.413385"
+          },
+          "matched_p90": {
+            "curve": "phase4/qc/curves/9bf4eacc4285.csv",
+            "eval_scope": "sample-test",
+            "population": "615341",
+            "pr_auc": "0.7551",
+            "precision": "0.9013",
+            "recall": "0.2365",
+            "ref": "ccap_2021_hires_lc.tif",
+            "thresh": "0.598425"
+          }
         },
         "t1_2006s_add16": {
-          "home": "tier1_results.csv",
-          "prec_at_p75": "0.7866",
-          "recall_at_p75": "0.0814"
+          "best_f1": {
+            "curve": "phase4/qc/curves/731186aa5d4e.csv",
+            "eval_scope": "sample-selection",
+            "population": "738053",
+            "pr_auc": "0.5522",
+            "precision": "0.441",
+            "recall": "0.8771",
+            "ref": "ccap_2021_hires_lc.tif",
+            "thresh": "0.409448"
+          },
+          "matched_p50": {
+            "curve": "phase4/qc/curves/731186aa5d4e.csv",
+            "eval_scope": "sample-selection",
+            "population": "550807",
+            "pr_auc": "0.5522",
+            "precision": "0.5001",
+            "recall": "0.5762",
+            "ref": "ccap_2021_hires_lc.tif",
+            "thresh": "0.492125"
+          },
+          "matched_p75": {
+            "curve": "phase4/qc/curves/731186aa5d4e.csv",
+            "eval_scope": "sample-selection",
+            "population": "353645",
+            "pr_auc": "0.5522",
+            "precision": "0.7756",
+            "recall": "0.0413",
+            "ref": "ccap_2021_hires_lc.tif",
+            "thresh": "0.507874"
+          },
+          "matched_p90": {
+            "curve": "phase4/qc/curves/731186aa5d4e.csv",
+            "eval_scope": "sample-selection",
+            "population": "349510",
+            "pr_auc": "0.5522",
+            "precision": "0.9095",
+            "recall": "0.0011",
+            "ref": "ccap_2021_hires_lc.tif",
+            "thresh": "0.515748"
+          }
         },
         "t1_2006s_base": {
-          "home": "tier1_results.csv",
-          "prec_at_p75": "0.7504",
-          "recall_at_p75": "0.5847"
+          "best_f1": {
+            "curve": "phase4/qc/curves/e860a51a8584.csv",
+            "eval_scope": "sample-test",
+            "population": "823556",
+            "pr_auc": "0.8108",
+            "precision": "0.6925",
+            "recall": "0.8052",
+            "ref": "_chm2005_canopy2m_binary.tif",
+            "thresh": "0.240157"
+          },
+          "matched_p50": {
+            "curve": "phase4/qc/curves/e860a51a8584.csv",
+            "eval_scope": "sample-test",
+            "population": "1163021",
+            "pr_auc": "0.8108",
+            "precision": "0.5114",
+            "recall": "0.9599",
+            "ref": "_chm2005_canopy2m_binary.tif",
+            "thresh": "0.208661"
+          },
+          "matched_p75": {
+            "curve": "phase4/qc/curves/e860a51a8584.csv",
+            "eval_scope": "sample-test",
+            "population": "752916",
+            "pr_auc": "0.8108",
+            "precision": "0.75",
+            "recall": "0.7232",
+            "ref": "_chm2005_canopy2m_binary.tif",
+            "thresh": "0.255905"
+          },
+          "matched_p90": {
+            "curve": "phase4/qc/curves/e860a51a8584.csv",
+            "eval_scope": "sample-test",
+            "population": "627141",
+            "pr_auc": "0.8108",
+            "precision": "0.9019",
+            "recall": "0.3101",
+            "ref": "_chm2005_canopy2m_binary.tif",
+            "thresh": "0.515748"
+          }
         },
         "t1_2006s_in05": {
-          "home": "tier1_results.csv",
-          "prec_at_p75": "0.7504",
-          "recall_at_p75": "0.6073"
+          "best_f1": {
+            "curve": "phase4/qc/curves/7d09560b49b2.csv",
+            "eval_scope": "sample-selection",
+            "population": "516313",
+            "pr_auc": "0.7594",
+            "precision": "0.6289",
+            "recall": "0.8092",
+            "ref": "ccap_2021_hires_lc.tif",
+            "thresh": "0.240157"
+          },
+          "matched_p50": {
+            "curve": "phase4/qc/curves/7d09560b49b2.csv",
+            "eval_scope": "sample-selection",
+            "population": "676390",
+            "pr_auc": "0.7594",
+            "precision": "0.5049",
+            "recall": "0.954",
+            "ref": "ccap_2021_hires_lc.tif",
+            "thresh": "0.216535"
+          },
+          "matched_p75": {
+            "curve": "phase4/qc/curves/7d09560b49b2.csv",
+            "eval_scope": "sample-selection",
+            "population": "416370",
+            "pr_auc": "0.7594",
+            "precision": "0.7515",
+            "recall": "0.5788",
+            "ref": "ccap_2021_hires_lc.tif",
+            "thresh": "0.291338"
+          },
+          "matched_p90": {
+            "curve": "phase4/qc/curves/7d09560b49b2.csv",
+            "eval_scope": "sample-selection",
+            "population": "354260",
+            "pr_auc": "0.7594",
+            "precision": "0.9018",
+            "recall": "0.1258",
+            "ref": "ccap_2021_hires_lc.tif",
+            "thresh": "0.551181"
+          }
         },
         "t1_2006s_in16": {
-          "home": "tier1_results.csv",
-          "prec_at_p75": "0.7502",
-          "recall_at_p75": "0.6308"
+          "best_f1": {
+            "curve": "phase4/qc/curves/c7d97323b8be.csv",
+            "eval_scope": "sample-selection",
+            "population": "498874",
+            "pr_auc": "0.7718",
+            "precision": "0.6505",
+            "recall": "0.7955",
+            "ref": "ccap_2021_hires_lc.tif",
+            "thresh": "0.263779"
+          },
+          "matched_p50": {
+            "curve": "phase4/qc/curves/c7d97323b8be.csv",
+            "eval_scope": "sample-selection",
+            "population": "684245",
+            "pr_auc": "0.7718",
+            "precision": "0.5017",
+            "recall": "0.9644",
+            "ref": "ccap_2021_hires_lc.tif",
+            "thresh": "0.232283"
+          },
+          "matched_p75": {
+            "curve": "phase4/qc/curves/c7d97323b8be.csv",
+            "eval_scope": "sample-selection",
+            "population": "420178",
+            "pr_auc": "0.7718",
+            "precision": "0.7512",
+            "recall": "0.611",
+            "ref": "ccap_2021_hires_lc.tif",
+            "thresh": "0.366141"
+          },
+          "matched_p90": {
+            "curve": "phase4/qc/curves/c7d97323b8be.csv",
+            "eval_scope": "sample-selection",
+            "population": "355489",
+            "pr_auc": "0.7718",
+            "precision": "0.9021",
+            "recall": "0.1587",
+            "ref": "ccap_2021_hires_lc.tif",
+            "thresh": "0.57874"
+          }
         },
         "t1_2011s_add05": {
-          "home": "tier1_results.csv",
-          "prec_at_p75": "0.75",
-          "recall_at_p75": "0.7243"
+          "best_f1": {
+            "curve": "phase4/qc/curves/c73982da6bcc.csv",
+            "eval_scope": "sample-test",
+            "population": "8612919",
+            "pr_auc": "0.7973",
+            "precision": "0.7032",
+            "recall": "0.7912",
+            "ref": "ccap_2021_hires_lc.tif",
+            "thresh": "0.244094"
+          },
+          "matched_p50": {
+            "curve": "phase4/qc/curves/c73982da6bcc.csv",
+            "eval_scope": "sample-test",
+            "population": "12455274",
+            "pr_auc": "0.7973",
+            "precision": "0.5068",
+            "recall": "0.9546",
+            "ref": "ccap_2021_hires_lc.tif",
+            "thresh": "0.173228"
+          },
+          "matched_p75": {
+            "curve": "phase4/qc/curves/c73982da6bcc.csv",
+            "eval_scope": "sample-test",
+            "population": "8015663",
+            "pr_auc": "0.7973",
+            "precision": "0.75",
+            "recall": "0.7243",
+            "ref": "ccap_2021_hires_lc.tif",
+            "thresh": "0.437007"
+          },
+          "matched_p90": {
+            "curve": "phase4/qc/curves/c73982da6bcc.csv",
+            "eval_scope": "sample-test",
+            "population": "6574731",
+            "pr_auc": "0.7973",
+            "precision": "0.9006",
+            "recall": "0.1658",
+            "ref": "ccap_2021_hires_lc.tif",
+            "thresh": "0.720472"
+          }
         },
         "t1_2011s_add16": {
-          "home": "tier1_results.csv",
-          "prec_at_p75": "0.7502",
-          "recall_at_p75": "0.6989"
+          "best_f1": {
+            "curve": "phase4/qc/curves/d49dc8502705.csv",
+            "eval_scope": "sample-test",
+            "population": "8726662",
+            "pr_auc": "0.8034",
+            "precision": "0.6908",
+            "recall": "0.7856",
+            "ref": "ccap_2021_hires_lc.tif",
+            "thresh": "0.220472"
+          },
+          "matched_p50": {
+            "curve": "phase4/qc/curves/d49dc8502705.csv",
+            "eval_scope": "sample-test",
+            "population": "12534762",
+            "pr_auc": "0.8034",
+            "precision": "0.5027",
+            "recall": "0.9516",
+            "ref": "ccap_2021_hires_lc.tif",
+            "thresh": "0.169291"
+          },
+          "matched_p75": {
+            "curve": "phase4/qc/curves/d49dc8502705.csv",
+            "eval_scope": "sample-test",
+            "population": "7959213",
+            "pr_auc": "0.8034",
+            "precision": "0.7502",
+            "recall": "0.6989",
+            "ref": "ccap_2021_hires_lc.tif",
+            "thresh": "0.346456"
+          },
+          "matched_p90": {
+            "curve": "phase4/qc/curves/d49dc8502705.csv",
+            "eval_scope": "sample-test",
+            "population": "6701154",
+            "pr_auc": "0.8034",
+            "precision": "0.9015",
+            "recall": "0.3467",
+            "ref": "ccap_2021_hires_lc.tif",
+            "thresh": "0.606299"
+          }
         },
         "t1_2011s_base": {
-          "home": "tier1_results.csv",
-          "prec_at_p75": "0.7502",
-          "recall_at_p75": "0.7253"
+          "best_f1": {
+            "curve": "phase4/qc/curves/c5ca5e1bcd8a.csv",
+            "eval_scope": "sample-test",
+            "population": "8720336",
+            "pr_auc": "0.837",
+            "precision": "0.7409",
+            "recall": "0.7956",
+            "ref": "ccap_2016_hires_lc.tif",
+            "thresh": "0.216535"
+          },
+          "matched_p50": {
+            "curve": "phase4/qc/curves/c5ca5e1bcd8a.csv",
+            "eval_scope": "sample-test",
+            "population": "13048607",
+            "pr_auc": "0.837",
+            "precision": "0.5126",
+            "recall": "0.9598",
+            "ref": "ccap_2016_hires_lc.tif",
+            "thresh": "0.153543"
+          },
+          "matched_p75": {
+            "curve": "phase4/qc/curves/c5ca5e1bcd8a.csv",
+            "eval_scope": "sample-test",
+            "population": "8600795",
+            "pr_auc": "0.837",
+            "precision": "0.7506",
+            "recall": "0.7845",
+            "ref": "ccap_2016_hires_lc.tif",
+            "thresh": "0.224409"
+          },
+          "matched_p90": {
+            "curve": "phase4/qc/curves/c5ca5e1bcd8a.csv",
+            "eval_scope": "sample-test",
+            "population": "7185005",
+            "pr_auc": "0.837",
+            "precision": "0.9012",
+            "recall": "0.4848",
+            "ref": "ccap_2016_hires_lc.tif",
+            "thresh": "0.594488"
+          }
         },
         "t1_2011s_base_s2": {
-          "home": "tier1_results.csv",
-          "prec_at_p75": "0.7506",
-          "recall_at_p75": "0.7201"
+          "best_f1": {
+            "curve": "phase4/qc/curves/bbb3a54fa94c.csv",
+            "eval_scope": "sample-selection",
+            "population": "5074174",
+            "pr_auc": "0.7895",
+            "precision": "0.6999",
+            "recall": "0.8138",
+            "ref": "ccap_2021_hires_lc.tif",
+            "thresh": "0.248031"
+          },
+          "matched_p50": {
+            "curve": "phase4/qc/curves/bbb3a54fa94c.csv",
+            "eval_scope": "sample-selection",
+            "population": "7250584",
+            "pr_auc": "0.7895",
+            "precision": "0.5123",
+            "recall": "0.9743",
+            "ref": "ccap_2021_hires_lc.tif",
+            "thresh": "0.208661"
+          },
+          "matched_p75": {
+            "curve": "phase4/qc/curves/bbb3a54fa94c.csv",
+            "eval_scope": "sample-selection",
+            "population": "4678472",
+            "pr_auc": "0.7895",
+            "precision": "0.7506",
+            "recall": "0.7334",
+            "ref": "ccap_2021_hires_lc.tif",
+            "thresh": "0.279527"
+          },
+          "matched_p90": {
+            "curve": "phase4/qc/curves/bbb3a54fa94c.csv",
+            "eval_scope": "sample-selection",
+            "population": "3762107",
+            "pr_auc": "0.7895",
+            "precision": "0.9128",
+            "recall": "0.0006",
+            "ref": "ccap_2021_hires_lc.tif",
+            "thresh": "0.909448"
+          }
         },
         "t1_2011s_base_s3": {
-          "home": "tier1_results.csv",
-          "prec_at_p75": "0.7504",
-          "recall_at_p75": "0.7168"
+          "best_f1": {
+            "curve": "phase4/qc/curves/be9e51a9b4bf.csv",
+            "eval_scope": "sample-selection",
+            "population": "5148004",
+            "pr_auc": "0.7868",
+            "precision": "0.6891",
+            "recall": "0.8168",
+            "ref": "ccap_2021_hires_lc.tif",
+            "thresh": "0.216535"
+          },
+          "matched_p50": {
+            "curve": "phase4/qc/curves/be9e51a9b4bf.csv",
+            "eval_scope": "sample-selection",
+            "population": "7202546",
+            "pr_auc": "0.7868",
+            "precision": "0.5148",
+            "recall": "0.9703",
+            "ref": "ccap_2021_hires_lc.tif",
+            "thresh": "0.165354"
+          },
+          "matched_p75": {
+            "curve": "phase4/qc/curves/be9e51a9b4bf.csv",
+            "eval_scope": "sample-selection",
+            "population": "4666392",
+            "pr_auc": "0.7868",
+            "precision": "0.7503",
+            "recall": "0.7226",
+            "ref": "ccap_2021_hires_lc.tif",
+            "thresh": "0.318897"
+          },
+          "matched_p90": {
+            "curve": "phase4/qc/curves/be9e51a9b4bf.csv",
+            "eval_scope": "sample-selection",
+            "population": "3761887",
+            "pr_auc": "0.7868",
+            "precision": "0.9852",
+            "recall": "0.0001",
+            "ref": "ccap_2021_hires_lc.tif",
+            "thresh": "0.811023"
+          }
         },
         "t1_2011s_cor05": {
-          "home": "tier1_results.csv",
-          "prec_at_p75": "0.7503",
-          "recall_at_p75": "0.7251"
+          "best_f1": {
+            "curve": "phase4/qc/curves/9e223c45cfdc.csv",
+            "eval_scope": "sample-selection",
+            "population": "5072756",
+            "pr_auc": "0.7962",
+            "precision": "0.7019",
+            "recall": "0.8203",
+            "ref": "ccap_2021_hires_lc.tif",
+            "thresh": "0.208661"
+          },
+          "matched_p50": {
+            "curve": "phase4/qc/curves/9e223c45cfdc.csv",
+            "eval_scope": "sample-selection",
+            "population": "7360559",
+            "pr_auc": "0.7962",
+            "precision": "0.5058",
+            "recall": "0.979",
+            "ref": "ccap_2021_hires_lc.tif",
+            "thresh": "0.15748"
+          },
+          "matched_p75": {
+            "curve": "phase4/qc/curves/9e223c45cfdc.csv",
+            "eval_scope": "sample-selection",
+            "population": "4690590",
+            "pr_auc": "0.7962",
+            "precision": "0.7516",
+            "recall": "0.7471",
+            "ref": "ccap_2021_hires_lc.tif",
+            "thresh": "0.251968"
+          },
+          "matched_p90": {
+            "curve": "phase4/qc/curves/9e223c45cfdc.csv",
+            "eval_scope": "sample-selection",
+            "population": "3762016",
+            "pr_auc": "0.7962",
+            "precision": "0.917",
+            "recall": "0.0004",
+            "ref": "ccap_2021_hires_lc.tif",
+            "thresh": "0.779527"
+          }
         },
         "t1_2011s_cor10": {
-          "home": "tier1_results.csv",
-          "prec_at_p75": "0.75",
-          "recall_at_p75": "0.7285"
+          "best_f1": {
+            "curve": "phase4/qc/curves/aa512b99fed3.csv",
+            "eval_scope": "sample-selection",
+            "population": "5077230",
+            "pr_auc": "0.7967",
+            "precision": "0.7031",
+            "recall": "0.8279",
+            "ref": "ccap_2021_hires_lc.tif",
+            "thresh": "0.208661"
+          },
+          "matched_p50": {
+            "curve": "phase4/qc/curves/aa512b99fed3.csv",
+            "eval_scope": "sample-selection",
+            "population": "7289912",
+            "pr_auc": "0.7967",
+            "precision": "0.5104",
+            "recall": "0.9776",
+            "ref": "ccap_2021_hires_lc.tif",
+            "thresh": "0.161417"
+          },
+          "matched_p75": {
+            "curve": "phase4/qc/curves/aa512b99fed3.csv",
+            "eval_scope": "sample-selection",
+            "population": "4706517",
+            "pr_auc": "0.7967",
+            "precision": "0.7505",
+            "recall": "0.7553",
+            "ref": "ccap_2021_hires_lc.tif",
+            "thresh": "0.240157"
+          },
+          "matched_p90": {
+            "curve": "phase4/qc/curves/aa512b99fed3.csv",
+            "eval_scope": "sample-selection",
+            "population": "3766169",
+            "pr_auc": "0.7967",
+            "precision": "0.9014",
+            "recall": "0.0104",
+            "ref": "ccap_2021_hires_lc.tif",
+            "thresh": "0.748031"
+          }
         },
         "t1_2011s_in05": {
-          "home": "tier1_results.csv",
-          "prec_at_p75": "0.7511",
-          "recall_at_p75": "0.7427"
+          "best_f1": {
+            "curve": "phase4/qc/curves/71aa9bc086e2.csv",
+            "eval_scope": "sample-test",
+            "population": "8490359",
+            "pr_auc": "0.8274",
+            "precision": "0.7152",
+            "recall": "0.7909",
+            "ref": "ccap_2021_hires_lc.tif",
+            "thresh": "0.208661"
+          },
+          "matched_p50": {
+            "curve": "phase4/qc/curves/71aa9bc086e2.csv",
+            "eval_scope": "sample-test",
+            "population": "11980803",
+            "pr_auc": "0.8274",
+            "precision": "0.5271",
+            "recall": "0.9535",
+            "ref": "ccap_2021_hires_lc.tif",
+            "thresh": "0.161417"
+          },
+          "matched_p75": {
+            "curve": "phase4/qc/curves/71aa9bc086e2.csv",
+            "eval_scope": "sample-test",
+            "population": "8045369",
+            "pr_auc": "0.8274",
+            "precision": "0.7511",
+            "recall": "0.7427",
+            "ref": "ccap_2021_hires_lc.tif",
+            "thresh": "0.259842"
+          },
+          "matched_p90": {
+            "curve": "phase4/qc/curves/71aa9bc086e2.csv",
+            "eval_scope": "sample-test",
+            "population": "6753081",
+            "pr_auc": "0.8274",
+            "precision": "0.9014",
+            "recall": "0.4196",
+            "ref": "ccap_2021_hires_lc.tif",
+            "thresh": "0.622047"
+          }
         },
         "t1_2011s_in16": {
-          "home": "tier1_results.csv",
-          "prec_at_p75": "0.7528",
-          "recall_at_p75": "0.7461"
+          "best_f1": {
+            "curve": "phase4/qc/curves/f325ffd8b121.csv",
+            "eval_scope": "sample-selection",
+            "population": "4897602",
+            "pr_auc": "0.8103",
+            "precision": "0.7257",
+            "recall": "0.7985",
+            "ref": "ccap_2021_hires_lc.tif",
+            "thresh": "0.200787"
+          },
+          "matched_p50": {
+            "curve": "phase4/qc/curves/f325ffd8b121.csv",
+            "eval_scope": "sample-selection",
+            "population": "7335136",
+            "pr_auc": "0.8103",
+            "precision": "0.5075",
+            "recall": "0.9787",
+            "ref": "ccap_2021_hires_lc.tif",
+            "thresh": "0.165354"
+          },
+          "matched_p75": {
+            "curve": "phase4/qc/curves/f325ffd8b121.csv",
+            "eval_scope": "sample-selection",
+            "population": "4709905",
+            "pr_auc": "0.8103",
+            "precision": "0.7519",
+            "recall": "0.7637",
+            "ref": "ccap_2021_hires_lc.tif",
+            "thresh": "0.208661"
+          },
+          "matched_p90": {
+            "curve": "phase4/qc/curves/f325ffd8b121.csv",
+            "eval_scope": "sample-selection",
+            "population": "3854204",
+            "pr_auc": "0.8103",
+            "precision": "0.9004",
+            "recall": "0.2219",
+            "ref": "ccap_2021_hires_lc.tif",
+            "thresh": "0.688976"
+          }
         },
         "t1_2016_add05": {
-          "home": "tier1_results.csv",
-          "prec_at_p75": "0.7502",
-          "recall_at_p75": "0.7505"
+          "best_f1": {
+            "curve": "phase4/qc/curves/45303ceb6965.csv",
+            "eval_scope": "sample-test",
+            "population": "8505335",
+            "pr_auc": "0.8319",
+            "precision": "0.7155",
+            "recall": "0.7977",
+            "ref": "ccap_2021_hires_lc.tif",
+            "thresh": "0.181102"
+          },
+          "matched_p50": {
+            "curve": "phase4/qc/curves/45303ceb6965.csv",
+            "eval_scope": "sample-test",
+            "population": "12503575",
+            "pr_auc": "0.8319",
+            "precision": "0.5072",
+            "recall": "0.9637",
+            "ref": "ccap_2021_hires_lc.tif",
+            "thresh": "0.110236"
+          },
+          "matched_p75": {
+            "curve": "phase4/qc/curves/45303ceb6965.csv",
+            "eval_scope": "sample-test",
+            "population": "8071536",
+            "pr_auc": "0.8319",
+            "precision": "0.7502",
+            "recall": "0.7505",
+            "ref": "ccap_2021_hires_lc.tif",
+            "thresh": "0.27559"
+          },
+          "matched_p90": {
+            "curve": "phase4/qc/curves/45303ceb6965.csv",
+            "eval_scope": "sample-test",
+            "population": "6761951",
+            "pr_auc": "0.8319",
+            "precision": "0.9018",
+            "recall": "0.433",
+            "ref": "ccap_2021_hires_lc.tif",
+            "thresh": "0.641732"
+          }
         },
         "t1_2016_add16": {
-          "home": "tier1_results.csv",
-          "prec_at_p75": "0.7505",
-          "recall_at_p75": "0.7353"
+          "best_f1": {
+            "curve": "phase4/qc/curves/924fbab80b9a.csv",
+            "eval_scope": "sample-test",
+            "population": "8616525",
+            "pr_auc": "0.8163",
+            "precision": "0.7051",
+            "recall": "0.7993",
+            "ref": "ccap_2021_hires_lc.tif",
+            "thresh": "0.200787"
+          },
+          "matched_p50": {
+            "curve": "phase4/qc/curves/924fbab80b9a.csv",
+            "eval_scope": "sample-test",
+            "population": "12291077",
+            "pr_auc": "0.8163",
+            "precision": "0.5148",
+            "recall": "0.9587",
+            "ref": "ccap_2021_hires_lc.tif",
+            "thresh": "0.141732"
+          },
+          "matched_p75": {
+            "curve": "phase4/qc/curves/924fbab80b9a.csv",
+            "eval_scope": "sample-test",
+            "population": "8035706",
+            "pr_auc": "0.8163",
+            "precision": "0.7505",
+            "recall": "0.7353",
+            "ref": "ccap_2021_hires_lc.tif",
+            "thresh": "0.326771"
+          },
+          "matched_p90": {
+            "curve": "phase4/qc/curves/924fbab80b9a.csv",
+            "eval_scope": "sample-test",
+            "population": "6727674",
+            "pr_auc": "0.8163",
+            "precision": "0.9016",
+            "recall": "0.3832",
+            "ref": "ccap_2021_hires_lc.tif",
+            "thresh": "0.649606"
+          }
         },
         "t1_2016_base": {
-          "home": "tier1_results.csv",
-          "prec_at_p75": "0.7582",
-          "recall_at_p75": "0.6693"
+          "best_f1": {
+            "curve": "phase4/qc/curves/59d4b7bc805d.csv",
+            "eval_scope": "sample-test",
+            "population": "8308857",
+            "pr_auc": "0.7992",
+            "precision": "0.6697",
+            "recall": "0.815",
+            "ref": "_chm2_canopy2m_binary.tif",
+            "thresh": "0.303149"
+          },
+          "matched_p50": {
+            "curve": "phase4/qc/curves/59d4b7bc805d.csv",
+            "eval_scope": "sample-test",
+            "population": "11362189",
+            "pr_auc": "0.7992",
+            "precision": "0.5105",
+            "recall": "0.9566",
+            "ref": "_chm2_canopy2m_binary.tif",
+            "thresh": "0.192913"
+          },
+          "matched_p75": {
+            "curve": "phase4/qc/curves/59d4b7bc805d.csv",
+            "eval_scope": "sample-test",
+            "population": "7222746",
+            "pr_auc": "0.7992",
+            "precision": "0.757",
+            "recall": "0.681",
+            "ref": "_chm2_canopy2m_binary.tif",
+            "thresh": "0.515748"
+          },
+          "matched_p90": {
+            "curve": "phase4/qc/curves/59d4b7bc805d.csv",
+            "eval_scope": "sample-test",
+            "population": "6097578",
+            "pr_auc": "0.7992",
+            "precision": "0.9038",
+            "recall": "0.2707",
+            "ref": "_chm2_canopy2m_binary.tif",
+            "thresh": "0.633858"
+          }
         },
         "t1_2016_in05": {
-          "home": "tier1_results.csv",
-          "prec_at_p75": "0.7504",
-          "recall_at_p75": "0.7441"
+          "best_f1": {
+            "curve": "phase4/qc/curves/ab2827d2676c.csv",
+            "eval_scope": "sample-test",
+            "population": "8573049",
+            "pr_auc": "0.8553",
+            "precision": "0.7542",
+            "recall": "0.7874",
+            "ref": "ccap_2016_hires_lc.tif",
+            "thresh": "0.141732"
+          },
+          "matched_p50": {
+            "curve": "phase4/qc/curves/ab2827d2676c.csv",
+            "eval_scope": "sample-test",
+            "population": "12563916",
+            "pr_auc": "0.8553",
+            "precision": "0.5308",
+            "recall": "0.9519",
+            "ref": "ccap_2016_hires_lc.tif",
+            "thresh": "0.094488"
+          },
+          "matched_p75": {
+            "curve": "phase4/qc/curves/ab2827d2676c.csv",
+            "eval_scope": "sample-test",
+            "population": "8573049",
+            "pr_auc": "0.8553",
+            "precision": "0.7542",
+            "recall": "0.7874",
+            "ref": "ccap_2016_hires_lc.tif",
+            "thresh": "0.141732"
+          },
+          "matched_p90": {
+            "curve": "phase4/qc/curves/ab2827d2676c.csv",
+            "eval_scope": "sample-test",
+            "population": "7234557",
+            "pr_auc": "0.8553",
+            "precision": "0.9005",
+            "recall": "0.5466",
+            "ref": "ccap_2016_hires_lc.tif",
+            "thresh": "0.547244"
+          }
         },
         "t1_2016_in16": {
-          "home": "tier1_results.csv",
-          "prec_at_p75": "0.7521",
-          "recall_at_p75": "0.7351"
+          "best_f1": {
+            "curve": "phase4/qc/curves/f035d0766a4c.csv",
+            "eval_scope": "sample-test",
+            "population": "7009166",
+            "pr_auc": "0.9069",
+            "precision": "0.8165",
+            "recall": "0.8125",
+            "ref": "_chm2_canopy2m_binary.tif",
+            "thresh": "0.15748"
+          },
+          "matched_p50": {
+            "curve": "phase4/qc/curves/f035d0766a4c.csv",
+            "eval_scope": "sample-test",
+            "population": "11421584",
+            "pr_auc": "0.9069",
+            "precision": "0.5139",
+            "recall": "0.98",
+            "ref": "_chm2_canopy2m_binary.tif",
+            "thresh": "0.090551"
+          },
+          "matched_p75": {
+            "curve": "phase4/qc/curves/f035d0766a4c.csv",
+            "eval_scope": "sample-test",
+            "population": "7643036",
+            "pr_auc": "0.9069",
+            "precision": "0.7506",
+            "recall": "0.8713",
+            "ref": "_chm2_canopy2m_binary.tif",
+            "thresh": "0.125984"
+          },
+          "matched_p90": {
+            "curve": "phase4/qc/curves/f035d0766a4c.csv",
+            "eval_scope": "sample-test",
+            "population": "6378170",
+            "pr_auc": "0.9069",
+            "precision": "0.9003",
+            "recall": "0.6873",
+            "ref": "_chm2_canopy2m_binary.tif",
+            "thresh": "0.507874"
+          }
         },
         "t1_2016_nir": {
-          "home": "tier1_results.csv",
-          "prec_at_p75": "0.7503",
-          "recall_at_p75": "0.7429"
+          "best_f1": {
+            "curve": "phase4/qc/curves/8e4a621978c4.csv",
+            "eval_scope": "sample-selection",
+            "population": "5029836",
+            "pr_auc": "0.7999",
+            "precision": "0.7087",
+            "recall": "0.8206",
+            "ref": "ccap_2021_hires_lc.tif",
+            "thresh": "0.137795"
+          },
+          "matched_p50": {
+            "curve": "phase4/qc/curves/8e4a621978c4.csv",
+            "eval_scope": "sample-selection",
+            "population": "7105204",
+            "pr_auc": "0.7999",
+            "precision": "0.5223",
+            "recall": "0.972",
+            "ref": "ccap_2021_hires_lc.tif",
+            "thresh": "0.098425"
+          },
+          "matched_p75": {
+            "curve": "phase4/qc/curves/8e4a621978c4.csv",
+            "eval_scope": "sample-selection",
+            "population": "4689167",
+            "pr_auc": "0.7999",
+            "precision": "0.7544",
+            "recall": "0.7575",
+            "ref": "ccap_2021_hires_lc.tif",
+            "thresh": "0.165354"
+          },
+          "matched_p90": {
+            "curve": "phase4/qc/curves/8e4a621978c4.csv",
+            "eval_scope": "sample-selection",
+            "population": "3761780",
+            "pr_auc": "0.7999",
+            "precision": "0.9199",
+            "recall": "0.0014",
+            "ref": "ccap_2021_hires_lc.tif",
+            "thresh": "0.929133"
+          }
         },
         "t1_2019n_base": {
-          "home": "tier1_results.csv",
-          "prec_at_p75": "0.7638",
-          "recall_at_p75": "0.6749"
+          "best_f1": {
+            "curve": "phase4/qc/curves/50cffc0c3217.csv",
+            "eval_scope": "sample-test",
+            "population": "2266249",
+            "pr_auc": "0.8038",
+            "precision": "0.6866",
+            "recall": "0.79",
+            "ref": "ccap_2021_hires_lc.tif",
+            "thresh": "0.381889"
+          },
+          "matched_p50": {
+            "curve": "phase4/qc/curves/50cffc0c3217.csv",
+            "eval_scope": "sample-test",
+            "population": "3160608",
+            "pr_auc": "0.8038",
+            "precision": "0.5136",
+            "recall": "0.9479",
+            "ref": "ccap_2021_hires_lc.tif",
+            "thresh": "0.15748"
+          },
+          "matched_p75": {
+            "curve": "phase4/qc/curves/50cffc0c3217.csv",
+            "eval_scope": "sample-test",
+            "population": "2013332",
+            "pr_auc": "0.8038",
+            "precision": "0.7638",
+            "recall": "0.6749",
+            "ref": "ccap_2021_hires_lc.tif",
+            "thresh": "0.507874"
+          },
+          "matched_p90": {
+            "curve": "phase4/qc/curves/50cffc0c3217.csv",
+            "eval_scope": "sample-test",
+            "population": "1720544",
+            "pr_auc": "0.8038",
+            "precision": "0.9034",
+            "recall": "0.3081",
+            "ref": "ccap_2021_hires_lc.tif",
+            "thresh": "0.629921"
+          }
         },
         "t1_2019n_nir": {
-          "home": "tier1_results.csv",
-          "prec_at_p75": "0.7507",
-          "recall_at_p75": "0.7146"
+          "best_f1": {
+            "curve": "phase4/qc/curves/edb2f243abfd.csv",
+            "eval_scope": "sample-selection",
+            "population": "1334288",
+            "pr_auc": "0.8031",
+            "precision": "0.684",
+            "recall": "0.8152",
+            "ref": "ccap_2021_hires_lc.tif",
+            "thresh": "0.255905"
+          },
+          "matched_p50": {
+            "curve": "phase4/qc/curves/edb2f243abfd.csv",
+            "eval_scope": "sample-selection",
+            "population": "1862251",
+            "pr_auc": "0.8031",
+            "precision": "0.5137",
+            "recall": "0.9732",
+            "ref": "ccap_2021_hires_lc.tif",
+            "thresh": "0.149606"
+          },
+          "matched_p75": {
+            "curve": "phase4/qc/curves/edb2f243abfd.csv",
+            "eval_scope": "sample-selection",
+            "population": "1177454",
+            "pr_auc": "0.8031",
+            "precision": "0.7582",
+            "recall": "0.6733",
+            "ref": "ccap_2021_hires_lc.tif",
+            "thresh": "0.503937"
+          },
+          "matched_p90": {
+            "curve": "phase4/qc/curves/edb2f243abfd.csv",
+            "eval_scope": "sample-selection",
+            "population": "996727",
+            "pr_auc": "0.8031",
+            "precision": "0.9014",
+            "recall": "0.2586",
+            "ref": "ccap_2021_hires_lc.tif",
+            "thresh": "0.61811"
+          }
         },
         "t1_2020_add05": {
-          "home": "tier1_results.csv",
-          "prec_at_p75": "0.7889",
-          "recall_at_p75": "0.6871"
+          "best_f1": {
+            "curve": "phase4/qc/curves/e12a81bd20c8.csv",
+            "eval_scope": "sample-selection",
+            "population": "173894441",
+            "pr_auc": "0.8064",
+            "precision": "0.7471",
+            "recall": "0.7394",
+            "ref": "ccap_2021_hires_lc.tif",
+            "thresh": "0.11811"
+          },
+          "matched_p50": {
+            "curve": "phase4/qc/curves/e12a81bd20c8.csv",
+            "eval_scope": "sample-selection",
+            "population": "216720325",
+            "pr_auc": "0.8064",
+            "precision": "0.6127",
+            "recall": "0.8832",
+            "ref": "ccap_2021_hires_lc.tif",
+            "thresh": "0.114173"
+          },
+          "matched_p75": {
+            "curve": "phase4/qc/curves/e12a81bd20c8.csv",
+            "eval_scope": "sample-selection",
+            "population": "161964867",
+            "pr_auc": "0.8064",
+            "precision": "0.7979",
+            "recall": "0.6496",
+            "ref": "ccap_2021_hires_lc.tif",
+            "thresh": "0.122047"
+          },
+          "matched_p90": {
+            "curve": "phase4/qc/curves/e12a81bd20c8.csv",
+            "eval_scope": "sample-selection",
+            "population": "143249759",
+            "pr_auc": "0.8064",
+            "precision": "0.9014",
+            "recall": "0.2738",
+            "ref": "ccap_2021_hires_lc.tif",
+            "thresh": "0.574803"
+          }
         },
         "t1_2020_add16": {
-          "home": "tier1_results.csv",
-          "prec_at_p75": "0.7664",
-          "recall_at_p75": "0.7005"
+          "best_f1": {
+            "curve": "phase4/qc/curves/b65557fb3b0f.csv",
+            "eval_scope": "sample-selection",
+            "population": "164764746",
+            "pr_auc": "0.7801",
+            "precision": "0.7828",
+            "recall": "0.6656",
+            "ref": "ccap_2021_hires_lc.tif",
+            "thresh": "0.110236"
+          },
+          "matched_p50": {
+            "curve": "phase4/qc/curves/b65557fb3b0f.csv",
+            "eval_scope": "sample-selection",
+            "population": "210371610",
+            "pr_auc": "0.7801",
+            "precision": "0.6098",
+            "recall": "0.801",
+            "ref": "ccap_2021_hires_lc.tif",
+            "thresh": "0.106299"
+          },
+          "matched_p75": {
+            "curve": "phase4/qc/curves/b65557fb3b0f.csv",
+            "eval_scope": "sample-selection",
+            "population": "164764746",
+            "pr_auc": "0.7801",
+            "precision": "0.7828",
+            "recall": "0.6656",
+            "ref": "ccap_2021_hires_lc.tif",
+            "thresh": "0.110236"
+          },
+          "matched_p90": {
+            "curve": "phase4/qc/curves/b65557fb3b0f.csv",
+            "eval_scope": "sample-selection",
+            "population": "142896600",
+            "pr_auc": "0.7801",
+            "precision": "0.9029",
+            "recall": "0.2551",
+            "ref": "ccap_2021_hires_lc.tif",
+            "thresh": "0.625984"
+          }
         },
         "t1_2020_base": {
-          "home": "tier1_results.csv",
-          "prec_at_p75": "0.7999",
-          "recall_at_p75": "0.6402"
+          "best_f1": {
+            "curve": "phase4/qc/curves/cd1b7c272e35.csv",
+            "eval_scope": "sample-test",
+            "population": "297949524",
+            "pr_auc": "0.7552",
+            "precision": "0.7383",
+            "recall": "0.7039",
+            "ref": "ccap_2021_hires_lc.tif",
+            "thresh": "0.102362"
+          },
+          "matched_p50": {
+            "curve": "phase4/qc/curves/cd1b7c272e35.csv",
+            "eval_scope": "sample-test",
+            "population": "297949524",
+            "pr_auc": "0.7552",
+            "precision": "0.7383",
+            "recall": "0.7039",
+            "ref": "ccap_2021_hires_lc.tif",
+            "thresh": "0.102362"
+          },
+          "matched_p75": {
+            "curve": "phase4/qc/curves/cd1b7c272e35.csv",
+            "eval_scope": "sample-test",
+            "population": "276658178",
+            "pr_auc": "0.7552",
+            "precision": "0.7999",
+            "recall": "0.6402",
+            "ref": "ccap_2021_hires_lc.tif",
+            "thresh": "0.106299"
+          },
+          "matched_p90": {
+            "curve": "phase4/qc/curves/cd1b7c272e35.csv",
+            "eval_scope": "sample-test",
+            "population": "244522247",
+            "pr_auc": "0.7552",
+            "precision": "0.9009",
+            "recall": "0.231",
+            "ref": "ccap_2021_hires_lc.tif",
+            "thresh": "0.665354"
+          }
         },
         "t1_2020_in05": {
-          "home": "tier1_results.csv",
-          "prec_at_p75": "0.7702",
-          "recall_at_p75": "0.6753"
+          "best_f1": {
+            "curve": "phase4/qc/curves/9595f4c2dc6b.csv",
+            "eval_scope": "sample-test",
+            "population": "286525941",
+            "pr_auc": "0.7491",
+            "precision": "0.7702",
+            "recall": "0.6753",
+            "ref": "ccap_2021_hires_lc.tif",
+            "thresh": "0.07874"
+          },
+          "matched_p50": {
+            "curve": "phase4/qc/curves/9595f4c2dc6b.csv",
+            "eval_scope": "sample-test",
+            "population": "286525941",
+            "pr_auc": "0.7491",
+            "precision": "0.7702",
+            "recall": "0.6753",
+            "ref": "ccap_2021_hires_lc.tif",
+            "thresh": "0.07874"
+          },
+          "matched_p75": {
+            "curve": "phase4/qc/curves/9595f4c2dc6b.csv",
+            "eval_scope": "sample-test",
+            "population": "286525941",
+            "pr_auc": "0.7491",
+            "precision": "0.7702",
+            "recall": "0.6753",
+            "ref": "ccap_2021_hires_lc.tif",
+            "thresh": "0.07874"
+          },
+          "matched_p90": {
+            "curve": "phase4/qc/curves/9595f4c2dc6b.csv",
+            "eval_scope": "sample-test",
+            "population": "245721548",
+            "pr_auc": "0.7491",
+            "precision": "0.901",
+            "recall": "0.2769",
+            "ref": "ccap_2021_hires_lc.tif",
+            "thresh": "0.700787"
+          }
         },
         "t1_2020_in16": {
-          "home": "tier1_results.csv",
-          "prec_at_p75": "0.7968",
-          "recall_at_p75": "0.6592"
+          "best_f1": {
+            "curve": "phase4/qc/curves/f1fdbdaf1b5f.csv",
+            "eval_scope": "sample-selection",
+            "population": "158952446",
+            "pr_auc": "0.7718",
+            "precision": "0.811",
+            "recall": "0.6132",
+            "ref": "ccap_2021_hires_lc.tif",
+            "thresh": "0.070866"
+          },
+          "matched_p50": {
+            "curve": "phase4/qc/curves/f1fdbdaf1b5f.csv",
+            "eval_scope": "sample-selection",
+            "population": "188904119",
+            "pr_auc": "0.7718",
+            "precision": "0.6656",
+            "recall": "0.7129",
+            "ref": "ccap_2021_hires_lc.tif",
+            "thresh": "0.066929"
+          },
+          "matched_p75": {
+            "curve": "phase4/qc/curves/f1fdbdaf1b5f.csv",
+            "eval_scope": "sample-selection",
+            "population": "158952446",
+            "pr_auc": "0.7718",
+            "precision": "0.811",
+            "recall": "0.6132",
+            "ref": "ccap_2021_hires_lc.tif",
+            "thresh": "0.070866"
+          },
+          "matched_p90": {
+            "curve": "phase4/qc/curves/f1fdbdaf1b5f.csv",
+            "eval_scope": "sample-selection",
+            "population": "143812851",
+            "pr_auc": "0.7718",
+            "precision": "0.9021",
+            "recall": "0.3135",
+            "ref": "ccap_2021_hires_lc.tif",
+            "thresh": "0.629921"
+          }
         }
       },
       "arms": [
@@ -1624,6 +3243,33 @@
         "m06_nir_arm"
       ],
       "tags": [],
+      "tilesets": [
+        "0007909b0a4b",
+        "00c3bdb418cc",
+        "039e90cc3757",
+        "11b38fdfcf67",
+        "3bbb309b6ef4",
+        "46d85f7edcc5",
+        "5bfc8bb57f6a",
+        "618894c3ef98",
+        "63aecb520333",
+        "66af3b1cbf79",
+        "7aca77a79981",
+        "88296711094f",
+        "8df07a5c6853",
+        "9f288ff8c071",
+        "a48b358e09c4",
+        "bda3aed311d2",
+        "c12ba42ecca3",
+        "c62da8bd5f09",
+        "d219f4d84a6a",
+        "da798ffbabd7",
+        "dfadfc0b93cc",
+        "e40db5526c3b",
+        "f18b8df967fc",
+        "fb0b72be2e05",
+        "fc897629a17c"
+      ],
       "verdict": "Floor (max pairwise |delta| among 2011s base/s2/s3, recall@prec0.75 test blocks) = 0.0085. LIDAR-INPUT CONFIRMED: in05 and in16 beat base beyond floor in 3/3 of {2006s +.023/+.046, 2011s +.017/+.021, 2016 +.075/+.066}. LIDAR-ADDER NOT CONFIRMED: 1/3 for both (2016 +.081/+.066 only; 2011s -.001/-.026; 2006s -.017 and add16 -.503 -- 2016-epoch additions on 2006 imagery poison the labels). NIR CONFIRMED: 2016 +.074 AND 2019n +.040. CORRUPTION: flat dose-response (cor05 -.0002, cor10 +.003, both inside floor) -- training insensitive to <=10% random label corruption; projection error, not noise, is the binding constraint. 2020 anchor unremarkable (its wins echoed on real years). 27/28 arms scored; 2011s_cor02 produced no checkpoint (fate unresolved on t1gpuD); dose curve read from 0/5/10%. Data: phase4/qc/tier1_results.csv."
     },
     {
@@ -1685,10 +3331,96 @@
         "phase-correlation",
         "archive-wide"
       ],
+      "tilesets": [],
       "verdict": "THE ANCHOR CHAIN IS CERTIFIED, AND REGISTRATION IS SEPARABLE FROM THE THING IT IS USUALLY CONFUSED WITH. The decisive row is the bridge: the 2020 label source measures p95 0.014 m against the 2020s anchor, read from phase4/qc/coregistration.csv — orders of magnitude below every other p95 in the table, which is what \"gated near-zero\" means and which is why the labels and the anchor can be treated as the same ground. With that established, the rest of the table is usable: a handful of acquisitions carry a systematic offset above a metre and are correctable at comparison time, with the flagged years and their rounded offsets quoted in the reader rules of Scripts/docs/SCHEMAS.md rather than restated here. Two readings the table forces and the prose does not: the p95 column is NOT registration error — years with essentially zero median offset still carry multi-metre p95, because the statistic includes lean, parallax and real change; and an offset belongs to a DELIVERY, not to a year, since one flagged acquisition's sibling delivery of the same flight measures essentially zero on a fuller chip sample. Downstream, a p95 from this table is legitimate only as one strike among several: experiments/hard_year_pilot.yaml uses one that way, as one of three measured strikes against a single year, and keeps the p95 qualifier on it.\n"
     },
     {
-      "arm_scores": {},
+      "arm_scores": {
+        "hy_e3_2006s": {
+          "best_f1": {
+            "curve": "phase4/qc/curves/f3f65fa1c8fd.csv",
+            "eval_scope": "sample-test",
+            "population": "854991",
+            "pr_auc": "0.7676",
+            "precision": "0.6468",
+            "recall": "0.779",
+            "ref": "ccap_2021_hires_lc.tif",
+            "thresh": "0.106299"
+          },
+          "matched_p50": {
+            "curve": "phase4/qc/curves/f3f65fa1c8fd.csv",
+            "eval_scope": "sample-test",
+            "population": "1087322",
+            "pr_auc": "0.7676",
+            "precision": "0.5268",
+            "recall": "0.9049",
+            "ref": "ccap_2021_hires_lc.tif",
+            "thresh": "0.07874"
+          },
+          "matched_p75": {
+            "curve": "phase4/qc/curves/f3f65fa1c8fd.csv",
+            "eval_scope": "sample-test",
+            "population": "713563",
+            "pr_auc": "0.7676",
+            "precision": "0.7538",
+            "recall": "0.5809",
+            "ref": "ccap_2021_hires_lc.tif",
+            "thresh": "0.480314"
+          },
+          "matched_p90": {
+            "curve": "phase4/qc/curves/f3f65fa1c8fd.csv",
+            "eval_scope": "sample-test",
+            "population": "614049",
+            "pr_auc": "0.7676",
+            "precision": "0.9056",
+            "recall": "0.2279",
+            "ref": "ccap_2021_hires_lc.tif",
+            "thresh": "0.531496"
+          }
+        },
+        "hy_e3_2011s": {
+          "best_f1": {
+            "curve": "phase4/qc/curves/bf3f2d384437.csv",
+            "eval_scope": "",
+            "population": "160888032",
+            "pr_auc": "0.866",
+            "precision": "0.7629",
+            "recall": "0.821",
+            "ref": "ccap_2016_hires_lc.tif",
+            "thresh": "0.137795"
+          },
+          "matched_p50": {
+            "curve": "phase4/qc/curves/bf3f2d384437.csv",
+            "eval_scope": "",
+            "population": "244013681",
+            "pr_auc": "0.866",
+            "precision": "0.5165",
+            "recall": "0.9656",
+            "ref": "ccap_2016_hires_lc.tif",
+            "thresh": "0.066929"
+          },
+          "matched_p75": {
+            "curve": "phase4/qc/curves/bf3f2d384437.csv",
+            "eval_scope": "",
+            "population": "163466339",
+            "pr_auc": "0.866",
+            "precision": "0.7516",
+            "recall": "0.8333",
+            "ref": "ccap_2016_hires_lc.tif",
+            "thresh": "0.125984"
+          },
+          "matched_p90": {
+            "curve": "phase4/qc/curves/bf3f2d384437.csv",
+            "eval_scope": "",
+            "population": "136058866",
+            "pr_auc": "0.866",
+            "precision": "0.9004",
+            "recall": "0.5561",
+            "ref": "ccap_2016_hires_lc.tif",
+            "thresh": "0.602362"
+          }
+        }
+      },
       "arms": [
         {
           "tag": "hy_e3_2006s",
@@ -1727,6 +3459,10 @@
       "superseded_by": [],
       "supersedes": [],
       "tags": [],
+      "tilesets": [
+        "77e67464b751",
+        "e7a67d2fe2f4"
+      ],
       "verdict": "MIXED, read per the rule. 2011s: 0.471 -> 0.756 f.5 — ABOVE the 0.72 line, recipe hypothesis CONFIRMED outright. 2006s: 0.470 -> 0.707 — the UNDETERMINED band, 0.013 under the line; no measured noise floor exists for cross-arm f.5 deltas, so per checklist rule 10 that shortfall is UNDETERMINED, not a failure. Its residual gap matches its three measured strikes (145 cm effective resolution, 9.2 m registration p95, 15-yr reference gap; see IMAGERY_FACTS 14 and the coregistration table). Specialist reading: the recipe explains the great majority of both years' historical deficit; 2006s is genuinely hard imagery performing respectably. RECOMMENDATION: GO for the 36-run with 2006s flagged low-confidence and first in line for degradation synthesis. The 36-run go/no-go remains Kam's. Numbers: qc_indep_report.csv live=1 rows. Ops note: both arms also stress-tested the reliability layer (a FUSE-race evaluate crash, three beacon deaths, one guard/split collision) -> vm_ops --queue-args, the campaign-aware registry gate, and vm_babysitter all exist because of this experiment. The spent GENERATED queue file is deleted (regenerable from git; the generator refuses complete experiments by design).\n"
     },
     {
@@ -1798,6 +3534,7 @@
         "epoch3",
         "knob-census"
       ],
+      "tilesets": [],
       "verdict": "THE THRESHOLD IS THE ONE LARGE KNOB, AND THE SIEVE IS NOT ON THE TABLE — the direct answer to the question that prompted the audit. Same model, same imagery, same year: canopy area comes out 1264.0 ha or 1941.9 ha depending only on where the operating cut lands, read from phase4/qc/postproc_variant_scores.csv. Against that, the sieve is operationally invisible: in the same file, morph vs morph_sieve leaves recall unchanged to 4 dp at both cuts (0.5050 at 0.643, 0.7344 at 0.45) and moves precision only in the fourth decimal (0.8662 -> 0.8663 at 0.643, 0.7717 -> 0.7718 at 0.45, with f1 going 0.6381 -> 0.6380 at 0.643 and unchanged at 0.7526 at 0.45). Deltas of order 0.0001 do not put the sieve on the table. The epistemic claim is weaker than the write-up's phrasing, and this entry states the weaker one: \"identical to four decimals at both thresholds\" (Reports/RECIPE_AUDIT_2026-09-01.md) holds for RECALL only — precision moves in the fourth decimal at both cuts and f1 at 0.643 — and since NO noise floor was measured for any postproc delta, the honest reading is that the sieve's effect is UNDETERMINED, not demonstrated to be zero (CLAUDE.md 3.5). Morphology is the honest exception: its deltas are bounded small and partly absorbed by the one-u8-step difference between scorer and production, and because NO floor was measured it is UNDETERMINED-but-bounded-small, never \"proven neutral\" (CLAUDE.md 3.5). The operational consequence is what let the campaign proceed unblocked: exactly one item gated launch — threshold policy — and it closed the same day (entry threshold_policy_c, Kam 2026-09-01). Everything else in postproc is post-GPU and re-derivable on free CPU, so the A100 spend buys probability rasters and is insulated from every finding here. Three follow-ups stay OPEN and are not verdicts: GPKG attribute-integrity fixes (INSPECTED, not fixed; zero-GPU — do not quote GPKG area_m2 until they are), kernel unit normalisation (right on principle, measured impact nil), and the anchor-labels A/B (UNMEASURED, needs GPU).\n"
     },
     {
@@ -1867,6 +3604,7 @@
         "operating-point",
         "selector"
       ],
+      "tilesets": [],
       "verdict": "ADOPTED AND IMPLEMENTED THE DAY IT WAS PROPOSED — \"DECIDED: C (Kam, 2026-09-01 — 'Let's go with C')\" in Reports/RECIPE_AUDIT_2026-09-01.md. The plateau is real, which is what makes the tie-break more than a preference: both pilot curves are flat within 0.005 across a threefold threshold range, so strict argmax would have deployed the recall-most, sloppiest edge of a region the metric cannot distinguish. The deployed 2011s selection is k=81 at thresh 0.318897, recall 0.7625 / precision 0.7552, read from phase4/qc/indep_thresholds.csv; the same recall and precision are carried to 4 dp by the matching live row in the LAKE copy of the independent ledger, which the tracked harvest in this repo predates. READ, stated precisely: the POLICY is settled, the fleet-wide campaign that deploys it is NOT — full_archive_e3 is still queued, so what exists is two citywide pilot selections plus Tier-1 AOI-restricted selections, not an archive-wide policy-C answer. Two standing constraints travel with any number it selected: publish the curve rather than blessing a single value (the caveat Kam published with the decision, because C-CAP's broad canopy definition is inherited by the ABSOLUTE optimum even though variant deltas against it are trustworthy), and never place a policy-C-cut arm in one table with a circular-cut champion — they are different operating-point populations, and such a comparison measures the threshold, not the model. Engine untouched: deployment rides the existing --infer-thresh override, which is why re-cutting masks costs zero GPU.\n"
     },
     {
@@ -1909,27 +3647,46 @@
       "superseded_by": [],
       "supersedes": [],
       "tags": [],
+      "tilesets": [],
       "verdict": "TABLED by Kam 2026-08-31 before any GPU run. Plumbing built, measured, and kept inert: ckpt.ARCHS registrant #2, 2.44x faster on T2000 batch timing, stride-4 decoder trade-off recorded in config.py's ARCH block. Arch stamp closes the silent cross-load hazard regardless of this experiment's fate.\n"
     },
     {
       "arm_scores": {
         "pilot_e2_coarse": {
-          "home": "qc_indep_report.csv",
-          "precision": "0.7725",
-          "recall": "0.6887",
-          "ref": "ccap_2021_hires_lc.tif"
+          "scored_live": {
+            "curve": "",
+            "eval_scope": "",
+            "population": "37503993",
+            "pr_auc": "",
+            "precision": "0.8036",
+            "recall": "0.6792",
+            "ref": "ccap_2021_hires_lc.tif",
+            "thresh": "0.4951"
+          }
         },
         "pilot_e2_fine": {
-          "home": "qc_indep_report.csv",
-          "precision": "0.8218",
-          "recall": "0.6461",
-          "ref": "ccap_2021_hires_lc.tif"
+          "scored_live": {
+            "curve": "",
+            "eval_scope": "",
+            "population": "1244873265",
+            "pr_auc": "",
+            "precision": "0.8218",
+            "recall": "0.6461",
+            "ref": "ccap_2021_hires_lc.tif",
+            "thresh": "0.332"
+          }
         },
         "pilot_e2_medium": {
-          "home": "qc_indep_report.csv",
-          "precision": "0.7589",
-          "recall": "0.6292",
-          "ref": "ccap_2021_hires_lc.tif"
+          "scored_live": {
+            "curve": "",
+            "eval_scope": "",
+            "population": "144691159",
+            "pr_auc": "",
+            "precision": "0.7964",
+            "recall": "0.626",
+            "ref": "ccap_2021_hires_lc.tif",
+            "thresh": "0.4816"
+          }
         }
       },
       "arms": [
@@ -2013,6 +3770,11 @@
         "epoch-2",
         "go-condition"
       ],
+      "tilesets": [
+        "a7bfd7980553",
+        "cda7c1cb5d2a",
+        "ee05afb52517"
+      ],
       "verdict": "3/3 GATE PASS 2026-08-31 04:36Z. Numbers in qc_indep_report.csv (live=1); narrative in WORKPLAN.md board row 5. Side findings: coarse beat medium on the same flight (support eliminated as explanation — support_matched_rescore); 2019s/2019n established as ONE flight, TWO deliveries.\n"
     },
     {
@@ -2088,6 +3850,7 @@
         "correction",
         "2019"
       ],
+      "tilesets": [],
       "verdict": "ONE FLIGHT, TWO DELIVERED PRODUCTS — and the correction runs in the direction that makes the pilot's resolution result STRONGER, not weaker. The read, from Scripts/WORKPLAN.md row 5: correlation between the two deliveries peaks at EXACTLY zero shift, while the residual after a best-fit linear map is 14-27 DN, far too large for one to be a downsample of the other, which would leave 1-2 DN — the decisive pair of figures, and the file they are read from. Geometry identical, radiometry not: sun angle, atmosphere, phenology and sensor hardware are all held fixed, and what differs is delivered GSD plus the PROCESSING CHAIN. The identity is corroborated by Scripts/qc/imagery_pixelsize_and_date.csv, whose date_shot column records the consortium 1-ft product as the same Hexagon flight as the 2019 NAIP delivery, both at evidence grade PUBLISHED. The competing explanation for the pilot gap was killed separately: the support-matched rescore in phase4/qc/support_matched_2019_pair.csv holds the gap flat across every common support tested, so it is not an artifact of scoring the finer arm against a reference it out-resolves. STANDING: this pair is the archive's only within-flight control, and it is what experiments/sameflight_floor_c3.yaml turns into a processing-chain noise floor.\n"
     },
     {
@@ -2170,6 +3933,7 @@
         "noise-floor",
         "pre-overhaul"
       ],
+      "tilesets": [],
       "verdict": "THE DIAGNOSTICS LANDED, AND WHAT THEY MOSTLY PRODUCED WAS A FLOOR. The single most-cited number the pre-overhaul era owns comes out of this cluster: a recall sd of .0100 and a precision sd of .0052 across five same-seed replicates, read from the footer of phase4/qc/arm_pr_curves_2009_3band.md, which the file itself labels a LOWER bound because the replicates do not vary the seed. Every later pre-Tier-1 verdict that says \"inside the noise\" is measuring against that footer, and several downstream write-ups cite it for scale on years it was never measured on — legitimately, as an order of magnitude, never as a pooled sigma. On the arm ordering the cluster was built to judge, the 2009 fullext arm leads its 3-band contrast on both threshold-free metrics and at matched precision, and the per-crown view agrees in sign across every sector; the campaign's own caution is attached to that agreement, because with one training run per arm spatial consistency cannot separate \"this recipe is worse\" from \"this run landed low\". The lasting methodological output is the standard itself: matched operating points, a paired block bootstrap, seed replicates and a per-crown crosscheck became the minimum bar an arm claim has to clear, and the Tier-1 design inherited all four.\n"
     },
     {
@@ -2276,6 +4040,7 @@
         "decision-record",
         "opt-in"
       ],
+      "tilesets": [],
       "verdict": "ALL FOUR COMMITMENTS LANDED, AND THE ASSIGNMENT IS OPT-IN BY DESIGN. Both rebuilds carry the old product's encoding exactly — DN = 1 + round(clip(h, 0, 50.6) / 0.2) with 0 = nodata, so height recovers as (DN - 1) * 0.2 — read from Scripts/pipeline/phase4seg/config.py, the append-only block that IS the record for this cluster. Four reads follow. (1) The 2016 rebuild's normalisation mean sits BELOW the old raster's for a reason that is itself the defect measurement: the rebuild does not inflate open ground, so far more of it is flat, and that shifts the non-zero mean down (see old_chm_defect). (2) The 2005 rebuild's statistics are trusted on a stated ground — the same routine reproduces the 2016 rebuild's published pair exactly — which is a check on the routine and not on the raster. (3) The per-year map assigns the 2005 product to the early acquisition labels listed in this entry's imagery field and keeps the 2016 product as the default, splitting at 2013 because the two clouds were flown either side of it and 2013 is very nearly equidistant; the map resolves through a single function and is reached only when an arm asks for it. (4) The trade is written down so it is not rediscovered: the 2005 product is materially coarser than the 2016 one, and the height channel's measured value is concentrated in crowns about the size of its own cell — it buys temporal correctness and pays in resolution, and the config comment records that as EMPIRICAL AND UNTESTED. That comment is now stale in one direction and deliberately not updated: the trade was subsequently tested by the Tier-1 science sample, and config.py is append-only by design. Two live consequences for readers: an arm that pinned its raster with an explicit source flag did NOT use the per-year map, and several qc instruments still name the OLD raster in their own constants, so a script's height channel must be read from the script rather than assumed from this map.\n"
     },
     {
@@ -2341,6 +4106,7 @@
         "screen",
         "block-bootstrap"
       ],
+      "tilesets": [],
       "verdict": "THE SCREEN INVERTED. The raster independently measured to be inflated by four to five metres is the BEST standalone discriminator of the six arms — chm AUROC 0.9019 against the corrected 2016 rebuild chm2 at 0.8385, read from phase4/qc/chm_standalone_roc_all_three.md, where the paired gap and its interval sit in the same file. Three reads follow and none of them is \"the old raster is good\". First, the result INDICTS THE METRIC AND THE REFERENCE, not the raster: the mechanism is worked out in chm_standalone_prior_closure and the support leg in chm_roc_support_confound. Second, dilating the sharp raster toward the old one's spatial support recovers most of the difference, which is what turned \"chm2 is worse\" into a question about form. Third, chm2005 clears the encoding check and behaves like a correctly built product, and its score is epoch-handicapped by eleven years against a 2016 reference, so it is a floor rather than an estimate. The file bounds its own licence explicitly: this measures MARGINAL discrimination, not CONDITIONAL value — the height raster enters training as a 4th channel beside RGB, and a weaker marginal discriminator can still carry information RGB lacks. Numbers from this run are RUN-TAGGED: the synthesis report phase4/qc/CHM_STANDALONE_PRIOR_2026-08-29.md sets the rule for the whole family — \"Compare numbers only *within* a run\" — because each run scores on the intersection of ITS OWN arms and the footprints differ.\n"
     },
     {
@@ -2400,6 +4166,7 @@
         "block-bootstrap",
         "no-gpu"
       ],
+      "tilesets": [],
       "verdict": "SUPPORT IS MOST OF IT, AND THE REFERENCE REWARDS BLUR REGARDLESS OF WHICH PRODUCT IS BLURRED. The chm-vs-chm2 paired gap of +0.0630 dAUROC collapses to +0.0110 once chm2 is dilated to a 5 m neighbourhood maximum, read from phase4/qc/chm_standalone_roc_support_confound.md, where the intermediate 3 m rung and every interval sit in the same table. The second leg is the one that generalises: dilating the OLD raster against itself raises its best-F1 while slightly lowering its AUROC, so an operating-point statistic and a threshold-free one disagree in direction on the same treatment — quote which one you mean. What this run does NOT establish is the mechanism's completeness: a max filter cannot separate \"the reference is blobbier\" from \"the reference is offset\", which is why the registration and dilate-plus-blur runs were built; the closure is chm_standalone_prior_closure. The standing caveat is carried verbatim here as in the sibling run: this measures MARGINAL discrimination and not CONDITIONAL value, so a gap this test resolves does not license a claim about what training can do with the channel.\n"
     },
     {
@@ -2469,6 +4236,7 @@
         "cheap-prior",
         "no-gpu"
       ],
+      "tilesets": [],
       "verdict": "FORM EXPLAINS THE GAP, THE SCREEN DID NOT FIRE, AND THE TRAINING QUESTION STAYS UNDETERMINED. Applying the old product's own dilate-then-blur to the sharp rebuild reaches AUROC 0.9073 against the old raster's 0.9059, read from phase4/qc/CHM_STANDALONE_PRIOR_2026-08-29.md — which flags the SIGN of that difference as post-hoc in the same paragraph, because it is the best of four form variants tried. The supported claim is therefore \"form explains the gap\", NOT \"chm2 is better than chm\"; quoting it the second way is the misquote the report exists to stop. Three consequences are load-bearing. (1) The metric is indicted: a constant height inflation cannot move AUROC by construction, since rank statistics are invariant under a monotone shift — level is not the treatment, shape is, and a scalar gain is something a first convolution absorbs for free. (2) All three confounds are excluded — scoring at the sharp raster's native cell barely moves the gap, the real sub-2 m registration offset is an order of magnitude too small to rank the rasters, and doubling the block size widens every interval without changing a verdict. (3) Two-raster height fusion buys discrimination nothing — the AUROC gain and the PR-AUC loss are a wash, and the PR-AUC loss is exactly what a cross-epoch maximum should cost; this is a HEIGHT fusion and must never be presented as the 5-band RGB+NIR+CHM closure. One confound is recorded as OPEN and not excluded: nothing in this repo states whether the reference product's own production chain used 3DEP-derived height, which would make the old raster partly circular with it. The screen's purpose therefore does not fire — there is no information deficit in the rebuild — so the training-side question was left open here and answered later by a different design with a different statistic, reference year and noise floor. The standing conclusion the file draws is the sharper one: THE REFERENCE IS NOW THE BINDING CONSTRAINT, NOT THE LIDAR.\n"
     },
     {
@@ -2543,6 +4311,7 @@
         "certified-flat",
         "sign-error"
       ],
+      "tilesets": [],
       "verdict": "THE SIGN WAS BACKWARDS AND THE DEFECT IS LARGE. On ground certified flat in both lidar epochs and eroded 6 m, the deployed raster asserts vegetation taller than 2 m on 8.82% of it against the 2016 rebuild's 0.01% — read from phase4/qc/chm2005_validation.md, where the full percentile table and each product's coverage of that ground sit in one row each. The interpolation-free point adjudication in Scripts/pipeline/phase4seg/config.py gives the mechanism and the magnitude: the product reads high nearly everywhere, in every height bin from bare ground through mature forest, and both confounds are excluded — the error is minimised at zero shift, so it is not misregistration, and it is present in the tall bins, so it is not a roof-classification artifact. The MECHANISM is that the product's effective support is several metres and each cell reports a NEIGHBOURHOOD MAXIMUM rather than the height at that cell: it smears canopy height onto the open ground beside trees. Coverage is excluded as the explanation for the rebuild's slightly smaller footprint — most of the deficit is cells the old raster itself calls short, its bilinear bleed across shoreline nodata edges. Three consequences stand. (1) Every 4-band result produced before the rebuild was earned with a channel telling the model that lawns next to trees are about five metres tall; whether that helped or hurt recall is genuinely open and is recorded as open. (2) A CONSTANT offset would be invisible to a rank statistic, which is why the standalone ROC could not see this at all — see chm_standalone_prior_closure. (3) The bias passes straight through to anything that thresholds the OLD raster at an absolute height: stable-label mining, lidar-background gating, and the height strata of the human accuracy sample. Bounded deliberately: the certified-flat subset is small, easy and non-random, so it bounds OPEN-GROUND behaviour only — accuracy under canopy, where no independent reference exists, is explicitly not established.\n"
     },
     {
@@ -2658,6 +4427,10 @@
         "calibration",
         "2009"
       ],
+      "tilesets": [
+        "4d5489e1767a",
+        "85f6eea8791e"
+      ],
       "verdict": "CLOSED AS THREE DIFFERENT ANSWERS, and the composite read is that the projected 2020 key is more right than it looks. SPARSE is decisively refuted: replacing the key with a mined verified key costs 21-26 pp of recall at matched precision against a recall sd the source file itself calls a LOWER bound — the verdict prose and the matched- precision table are in archive/2026-08-pre-refactor:Scripts/CHATLOG.md, and the threshold-free curves that agree with it for the baseline arm are in Reports/ARM_PR_CURVES_2009.md. The mechanism is measured, not guessed: sparse labels BREAK CALIBRATION, parking a large share of valid pixels within a hundredth of 0.5 where the baseline parks far fewer (calibration table, same archived source), so the naive fixed-cut \"recall win\" for the sparse arm is an artifact of operating point. HYBRID is a clean null on the ranking metrics — recall 0.6253 at precision 0.8792 against the baseline's 0.6989 / 0.8472, both read from the live=1 forest_wetland rows of phase4/qc/qc_indep_report.csv — and the reason is also measured: the damage curve shows AUROC is flat across the whole injected label-error range, so label error moves the OPERATING POINT, not discrimination, and a sub-percent correction could never have paid. QUADRANTS is the one variant that is not dead. On the pre-registered ranking band it is UNRESOLVED, not null: AUROC gaps of +.0116 then +.0053 over the one-variable baseline, read from the curve table in phase4/qc/arm_pr_curves_2009_3band_noisefloor.md, against a band fixed before the replicate landed at +.0060 to replicate and +.0020 to fall (the band itself is recorded only in archive/2026-08-pre-refactor:Scripts/CHATLOG.md) — positive twice, above the refutation line twice, short of the replication line once. THE PAIRING IS A CHOICE, AND IT IS STATED RATHER THAN LEFT IMPLICIT: both gaps are taken against the single rgb3_nodeb baseline, inherited from the source, which makes the second one cross-seed — the replicate arm scored against the base-seed baseline, while the same table also carries the baseline's own seed replicate, which this pairing never uses. The seed-MATCHED alternative on that table, nodec_s1234 against rgb3_nodeb_s1234, is a gap of +.0068, read from the curve table in phase4/qc/arm_pr_curves_2009_3band_noisefloor.md — above the +.0060 replication line, so under that pairing the ranking metric would read REPLICATES, not UNRESOLVED. The recorded read stays UNRESOLVED, under the pairing inherited from the source, pending a decision on which pairing the pre-registered band was meant to govern; nothing below changes either way. On canopy area, the deliverable metric, it REPLICATES in both runs by a margin several times the baseline seed pair's own spread, derived from the confusion counts in phase4/qc/campaign_area_reread_2009.md and phase4/qc/region_confusion_2009_replication.md — but it also roughly quadruples run-to-run variance on both metrics, so it buys accuracy and pays in stability. STANDING: the live successor is the Tier-1 lidar factor, which is a different year set, reference and statistic; nothing here pools with it.\n"
     },
     {
@@ -2719,15 +4492,22 @@
         "historical-imagery",
         "applicability-check"
       ],
+      "tilesets": [],
       "verdict": "THE CHECK PAID FOR ITSELF, AND IT CHANGED THE PREMISE OF THE SYNTHESIS WORK. Four of the brief's repo-specific claims are recorded as verified WRONG for this repo, including its implementation prompt, which targets a codebase whose files, tile counts and crown counts are not ours. The decisive one is the grayscale claim: the brief asserted the 1996-2003 holdings are ~100 cm and may be grayscale, and phase4/qc/imagery_qc_integrity_2026-08-24.csv records 1996_snoh_1m_rgb.tif as 3 bands at a true GSD of 100.0 cm — so the whole colorization and panchromatic-FCN thread does not apply to 1996. Where it DOES apply the report scopes narrowly: of the three single-band files in its measured-holdings table it hands the panchromatic literature to 1998_snoh_3ft_pan.tif alone, calling 1990_snoh_10ft_pan.tif likely too coarse to be useful and 1998_king_pan.tif far finer than the brief assumes (Reports/DEGRADED_IMAGERY_RESEARCH_2026-08-27.md, the measured-holdings table). What survived is what the degradation work was then built on: pre-2000 imagery exists on disk but has no YEAR_CATALOG entry, so \"the pipeline is limited to 2000\" is literally true; the 100 cm regime reaches our year 2000 through EFFECTIVE resolution rather than nominal; a single clean degradation chain is too regular to transfer and the loop must be run twice with independently randomised parameters; a round-trip bias harness is separable and useful on its own; and systematic label displacement, unlike random label noise, is the failure mode that actually costs accuracy — which the repo had just measured on its own data as an east-side ortho-vs-CHM displacement. STANDING: this is a literature and applicability campaign, not a measurement of the model. Nothing here promotes anything; it supplies the premise degradation_synth_2000 was written to TEST, and that entry remains queued.\n"
     },
     {
       "arm_scores": {
         "nir_m06": {
-          "home": "qc_indep_report.csv",
-          "precision": "0.861",
-          "recall": "0.5813",
-          "ref": "ccap_2016_hires_lc.tif"
+          "scored_live": {
+            "curve": "",
+            "eval_scope": "",
+            "population": "7005394",
+            "pr_auc": "",
+            "precision": "0.8189",
+            "recall": "0.4709",
+            "ref": "ccap_2021_hires_lc.tif",
+            "thresh": "0.5008"
+          }
         }
       },
       "arms": [
@@ -2804,15 +4584,22 @@
         "2016",
         "2019n"
       ],
+      "tilesets": [],
       "verdict": "CLOSED, AND THE CHM STAYS IN SLOT FOUR. The decisive leg is 2019n, where the NIR arm's live primary row reads recall 0.4709 against ccap_2021_hires_lc.tif in phase4/qc/qc_indep_report.csv — below every other live 2019n arm scored on that same reference, by a margin far outside the noise band the decision rule names. The 2016 leg came out a tie rather than a win: the NIR arm and the CHM arm sit close on the same snohfull reference, but at materially different operating points and on a sector-restricted footprint — the two confounds the campaign's own list says make such a pair uncontrolled in either direction. SCOPE, and it is load-bearing: this was a CHM-to-NIR SWAP at equal channel count, not a channel addition. Tier-1's later \"NIR CONFIRMED\" verdict compared NIR against a genuine 3-band base on pre-registered test blocks against a measured replicate floor — a different contrast, a different control, a different reference and a different statistic. That entry supersedes this one because the question moved there, NOT because the answer flipped; reading them as wrong-versus-right is itself the misquote. Carry the 2019n caveat with any use of that leg: the same log that recorded this closure had already flagged 2019n as a year whose arms give two different answers and whose series points are unusable until that is resolved.\n"
     },
     {
       "arm_scores": {
         "fullext_sectors_v1": {
-          "home": "qc_indep_report.csv",
-          "precision": "0.9072",
-          "recall": "0.5868",
-          "ref": "ccap_2016_hires_lc_snohfull.tif"
+          "scored_live": {
+            "curve": "",
+            "eval_scope": "",
+            "population": "731980694",
+            "pr_auc": "",
+            "precision": "0.7751",
+            "recall": "0.6372",
+            "ref": "ccap_2021_hires_lc.tif",
+            "thresh": "0.5"
+          }
         }
       },
       "arms": [
@@ -2956,6 +4743,7 @@
         "pre-overhaul",
         "promotion-gate"
       ],
+      "tilesets": [],
       "verdict": "SAMPLED INFERENCE WORKS; PROMOTION DOES NOT FOLLOW FROM IT. Eight arms ran VERIFY-clean and were scored, postprocessed and folded into the series, and the harness cut the cost of an inference pass severalfold — short of the design note's prediction, but real, and the report states both the measured cut and the prediction. That part landed. The promotion question came back UNDECIDABLE, and deliberately so: the campaign's own decisive read, from Reports/SECTOR_CAMPAIGN_REPORT_2026-08.md, is that 2016_fx trades recall for precision — recall 0.0473 lower and precision 0.0383 higher than the citywide arm — at a higher threshold and on a footprint with more reference canopy, so each of the three confounds independently exceeds the effect. Two things were delivered outright and are not undecidable: the study-clip coverage ceilings on 2016 and 2021s are gone, and the checkpoints exist to re-infer citywide whenever that is wanted. Two standing consequences came out of it. First, the champion ELIGIBILITY RULE now written into Scripts/pipeline/champion_arms.csv — only full-footprint rasters are champion-eligible, a sector-restricted arm tests a model and cannot be a year's deliverable — cites this campaign's section 7 as its source. Second, the noise arm it asked for is the same missing measurement the whole pre-overhaul era lacked; it was finally supplied by tier1_science_sample's seed replicates, not here.\n"
     },
     {
@@ -3027,6 +4815,7 @@
         "coverage",
         "archive-sweep"
       ],
+      "tilesets": [],
       "verdict": "THE ARCHIVE IS USABLE, AND ITS REGISTRATION IS THE THING THAT NEEDED WATCHING. The sweep opened and graded every held raster and produced the project's first per-pair registration numbers. The decisive one is 2024: the CoE and Snohomish deliveries of that year sit 1.29 m apart at high confidence and near-zero site spread — a WARN, read from phase4/qc/imagery_qc_crossreg_summary_2026-08-24.csv — which is a systematic displacement of the primary 2024 product, not scatter, and is why no per-crown change claim was allowed to cross that year until coregistration was addressed. The same file shows the opposite case in the same archive: the 2020 and 2022 CoE/Snohomish pairs land on each other to millimetres, so the 2024 offset is a property of that delivery rather than of the comparison method. Two secondary results carry forward: several pairs grade NOISY rather than offset, which in that file means the five comparison sites disagreed with each other — the displacement is not systematic, so no registration number is reported for the pair, and it is not a statement that the correlation was weak. Second, the sweep is where the pre-2000 holdings were first measured in the tracked record — the rows degraded_imagery_lit_review used to adjudicate an outside literature brief.\n"
     },
     {
@@ -3088,6 +4877,7 @@
         "live-flag",
         "scoring-gate"
       ],
+      "tilesets": [],
       "verdict": "THE PREDICTED MOVEMENT DID NOT HAPPEN. On-recipe citywide scores recall .7399 / precision .8681 at its own cut 0.5026, against the off-recipe xsensor raster's .7395 at the matched snohfull extent — 0.0004 of recall — both read from phase4/qc/qc_indep_report.csv. No noise floor was ever measured for this comparison, so under CLAUDE.md 3.5 the strict label is UNDETERMINED, not proven-zero; the operational read the commit recorded stands, that for 2013 the recipe change was worth nothing measurable, which is itself the finding. The commit's second deliverable is a rule change that outlived the number: the deployed threshold must match the model that produced the raster — 2013 is RGB-only and therefore correctly scores at an RGB threshold — superseding the earlier formulation that the gate must always read rgb+chm. THREE QUALIFIERS TRAVEL WITH THIS NUMBER and it is unquotable without them: the model is RGB-ONLY, the reference is 2016-generation on the full-Snohomish extent rather than the ccap_2021 deployment reference, and the cut is a CIRCULAR best-F1 threshold selected 10 days before policy C existed — 2013 has no row in phase4/qc/indep_thresholds.csv and was never re-cut, so it may not be pooled with the policy-C years (entry threshold_policy_c). Its recall happens to sit near a policy-C year's, which is exactly what makes the invalid comparison look tempting.\n"
     },
     {
@@ -3150,6 +4940,7 @@
         "2016",
         "assumption-check"
       ],
+      "tilesets": [],
       "verdict": "THE ASSUMPTION HOLDS AND IS NOW CHECKED RATHER THAN ASSERTED. The worst-case understatement of city canopy from the coverage gap is up to +0.02 pp of imaged area, identical at all three NDVI cuts — read from phase4/qc/chm_gap_2016.txt, which carries the coverage split and both zones' NDVI profiles in the same file. THAT BOUND WAS MEASURED ON A CLIPPED FOOTPRINT AND MUST BE QUOTED THAT WAY: the ortho this instrument opened is the file Scripts/pipeline/phase4seg/config.py records as \"2016_snoh_rgbi.tif (0.5 ft served upsample, 53.4% clip)\", replaced 2026-08-23 by the native 1 ft delivery whose catalog coverage string in that same file reads \"100% of city polygon, 82.3% of study extent (measured 2026-08-23; remainder is Puget Sound)\". The imaged-pixel denominator and the has-CHM / no-CHM split the bound is computed over therefore describe the clipped predecessor, not the footprint the catalog now resolves to, and nothing has re-measured the bound on the replacement. The mechanism is unambiguous: almost the whole no-CHM zone reads negative in NDVI while the has-CHM zone reads like a mixed urban-forest scene, so the uncovered strip is water, exactly as the standing assumption said. Three bounds travel with this result and none of them is optional. (1) It bounds COVERAGE bias ONLY — it says nothing about whether the height raster is accurate where it does exist, and that separate question is answered badly for the raster this instrument reads: see old_chm_defect. (2) NDVI here is computed on decimated, averaged reflectance, so mixed pixels are smoothed and the percentiles are indicative rather than exact. (3) Turbid or sun-glinted water can read slightly positive, so the negative-NDVI share understates water a little — which pushes in the conservative direction for this conclusion. One unreconciled figure is recorded rather than smoothed over: the human accuracy sampler's stratum design cites a materially lower CHM coverage of the city than this file measures over imaged 2016 pixels. The two use different denominators, no tracked file reconciles them, and they must not be averaged or quoted as a contradiction.\n"
     },
     {
@@ -3206,6 +4997,7 @@
         "mixed-sign",
         "unsigned"
       ],
+      "tilesets": [],
       "verdict": null
     },
     {
@@ -3244,6 +5036,7 @@
       "superseded_by": [],
       "supersedes": [],
       "tags": [],
+      "tilesets": [],
       "verdict": null
     },
     {
@@ -3317,6 +5110,7 @@
         "king-county",
         "mvv0"
       ],
+      "tilesets": [],
       "verdict": null
     },
     {
@@ -3388,6 +5182,7 @@
         "matched-precision",
         "operating-point"
       ],
+      "tilesets": [],
       "verdict": null
     },
     {
@@ -3558,6 +5353,7 @@
       "superseded_by": [],
       "supersedes": [],
       "tags": [],
+      "tilesets": [],
       "verdict": null
     },
     {
@@ -3623,6 +5419,7 @@
         "untracked-result",
         "2016"
       ],
+      "tilesets": [],
       "verdict": null
     },
     {
@@ -3669,6 +5466,7 @@
       "superseded_by": [],
       "supersedes": [],
       "tags": [],
+      "tilesets": [],
       "verdict": null
     },
     {
@@ -3763,6 +5561,7 @@
         "forest-misses",
         "2016"
       ],
+      "tilesets": [],
       "verdict": null
     }
   ]

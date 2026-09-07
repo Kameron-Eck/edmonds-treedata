@@ -92,13 +92,18 @@ def _load_homes():
     from phase4seg import config
 
     registry = _csv_rows(SCRIPTS / "run_registry.csv")
+    metrics = _csv_rows(REPO / "phase4" / "qc" / "arm_metrics.csv")
+    passport = _csv_rows(REPO / "phase4" / "qc" / "run_passport.csv")
+    tilesets = {r["tileset_id"]: r
+                for r in _csv_rows(REPO / "phase4" / "qc" / "tileset_registry.csv")
+                if r["tileset_id"]}
     indep = [r for r in _csv_rows(REPO / "phase4" / "qc" / "qc_indep_report.csv")
              if r.get("live", "").strip() == "1"]
     tier1 = {(r["year"], r["tag"]): r
              for r in _csv_rows(REPO / "phase4" / "qc" / "tier1_results.csv")}
     champs = champion.load_champions()          # year label -> champion tag
     catalog = {e["label"]: e for e in config.YEAR_CATALOG}
-    return registry, indep, tier1, champs, catalog
+    return registry, indep, tier1, champs, catalog, metrics, passport, tilesets
 
 
 # ---------------------------------------------------------------- the join
@@ -116,7 +121,8 @@ def _first_sentence(text, cap=200):
 
 def build():
     """Return the joined registry: a list of dicts, one per entry, sorted."""
-    registry, indep, tier1, champs, catalog = _load_homes()
+    (registry, indep, tier1, champs, catalog,
+     metrics, passport, tilesets) = _load_homes()
     indep_by_tag = {}
     for r in indep:
         indep_by_tag.setdefault(r.get("run_tag", "").strip(), []).append(r)
@@ -134,17 +140,34 @@ def build():
                     if r["run_id"] in rids or any(t in r["run_id"] for t in tags)]
         reg_dates = sorted(r["date"] for r in reg_rows if r.get("date"))
 
-        # scored results for owned tags
+        # Scored results for owned tags — the full (threshold, policy, population)
+        # triple, never a bare precision/recall pair. arm_metrics.csv is preferred
+        # because it is the only home that carries all three.
         arm_scores = {}
         for t in tags:
-            row = tier1.get((next((a["year"] for a in arms if a.get("tag") == t), ""), t))
+            yr = next((str(a["year"]) for a in arms if a.get("tag") == t), "")
+            pts = [m for m in metrics if m["run_tag"] == t]
+            if pts:
+                arm_scores[t] = {
+                    m["policy"]: {"recall": m["recall"], "precision": m["precision"],
+                                  "thresh": m["thresh"], "population": m["population"],
+                                  "pr_auc": m["pr_auc"], "eval_scope": m["eval_scope"],
+                                  "ref": m["ref"], "curve": m["curve_file"]}
+                    for m in pts}
+                continue
+            row = tier1.get((yr, t))
             if row:
-                arm_scores[t] = {"recall_at_p75": row["recall_at_p75"],
-                                 "prec_at_p75": row["prec_at_p75"], "home": "tier1_results.csv"}
+                arm_scores[t] = {"matched_p75": {
+                    "recall": row["recall_at_p75"], "precision": row["prec_at_p75"],
+                    "thresh": f"k={row['k_at_p75']}",
+                    "n_eligible_cuts": row["n_eligible_cuts"],
+                    "home": "tier1_results.csv"}}
             elif indep_by_tag.get(t):
                 r = indep_by_tag[t][0]
-                arm_scores[t] = {"recall": r["recall"], "precision": r["precision"],
-                                 "ref": r["ref"], "home": "qc_indep_report.csv"}
+                arm_scores[t] = {"scored_live": {
+                    "recall": r["recall"], "precision": r["precision"],
+                    "thresh": r["thresh"], "ref": r["ref"],
+                    "home": "qc_indep_report.csv"}}
 
         champion_tags = sorted(t for a in arms for t in [a.get("tag")]
                                if t and champs.get(str(a.get("year"))) == t)
@@ -182,6 +205,10 @@ def build():
             "inputs": spec.get("inputs") or [],
             "outputs": spec.get("outputs") or [],
             "run_ids": sorted(rids),
+            "tilesets": sorted({p["tileset_id"] for p in passport
+                                if p["tileset_id"] and
+                                (p["run_id"] in rids or
+                                 any(t == p["run_tag"] for t in tags))}),
             "registry_rows": len(reg_rows),
             "last_run": reg_dates[-1] if reg_dates else None,
             "commit": spec.get("commit"),

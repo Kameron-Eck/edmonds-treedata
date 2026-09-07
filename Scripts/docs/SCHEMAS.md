@@ -150,3 +150,75 @@ correctable at comparison time — six years flagged >=1 m incl. 2013s at 2.2 m 
 parallax and real change inside the chip, not pure georeferencing. The 2020 row is
 the BRIDGE to the label source (p95 0.014 m) and is gated near-zero. Gate:
 `test_analysis_grid.py::test_coregistration_table_contract`.
+
+## The run-context layer (phase4/qc/, HARVESTED — re-harvest, never edit)
+
+Four artifacts that answer "what did this run actually do, on which tiles, and how
+well" from a checkout, with no lake mounted. All are DERIVED VIEWS: fixes go to the
+source (a manifest, a sidecar, a sweep) and then re-harvest. Their gates are in
+`qc/test_run_context.py` and are STRUCTURAL, not freshness — CI has no lake, so
+"re-harvest and diff" cannot pass there. The one exception is
+`year_scoreboard.md`, whose inputs are all tracked and which IS byte-compared.
+
+### tileset_registry.csv + tilesets/{tileset_id}.csv
+
+Written by `qc/instruments/harvest_tilesets.py`. ONE row per tile set, keyed by
+`tileset_id` — 12 hex, the sha256 of the STORED `_tile_signature` (split_status
+stripped by name via `config.META_NONSIG_KEYS`). The engine's own definition lives at
+`phase4seg.tiling.tileset_id()` and the harvester imports it, so the two cannot drift
+(`test_tileset_id_matches_the_engine`).
+
+**Same ID means the same tiles.** That is what makes "these ten years ran on one tile
+set" checkable rather than assumed, and `test_one_id_means_one_tile_set` enforces it.
+`tilesets/{id}.csv` is the tile LIST — `row_off, col_off, split, block`, one row per
+tile — written once and never rewritten, because a re-tile changes the signature and
+therefore the ID. Lake-absolute image/mask paths are deliberately dropped: they say
+where bytes live today, not what the set is. `id_basis: none` with a stated `note`
+marks a directory whose sidecar is absent (the 6-site path writes none) — an empty ID
+is legitimate, a fabricated one is not.
+
+### run_passport.csv
+
+Written by `qc/instruments/harvest_run_passport.py` from every
+`phase4/runs/{run_id}/manifest.json`: commit + dirty flag + branch, GPU, seed AND
+split_seed, arch/encoder, the imagery file each year resolved to with its GSD, label
+sources with sizes, argv, and `env_sha` (a hash of pip freeze — the archive holds 37
+distinct environments). READER RULE: **`join_basis` gates how much the `tileset_id`
+column is worth.** `manifest` = the run stamped its own tile set after its steps ran,
+trustworthy. `inferred_current` = inferred from `(year, run_tag)` → whatever that tile
+dir holds TODAY, and a dir re-tiles in place, so it can name a set the run never saw.
+`none` = no join. Historical runs are permanently `inferred_current`; only runs from
+engines calling `cli._record_tilesets` earn `manifest`. `in_run_registry` flags the 16
+manifests with no `run_registry.csv` row.
+
+### arm_metrics.csv + curves/{curve_id}.csv
+
+Written by `qc/instruments/harvest_arm_metrics.py`. **A precision/recall pair with no
+operating point is not a measurement** — three deliveries of one 2017 flight read
+10.09 pp apart at per-arm cuts and 1.07 pp apart at matched ones. So every row carries
+`thresh`, the `policy` that chose it, `tp/fn/fp`, and `population`.
+
+`curve_id` keys `(year, run_tag, ref, prob, canopy_def, eval_scope)`. **`eval_scope` is
+load-bearing**: the LOSO `sample-selection` and `sample-test` halves are different
+populations of the same arm, and omitting it collapsed 87 sweeps into 58 with the
+first-written silently winning (found and fixed 2026-09-06;
+`test_one_curve_id_means_one_population`).
+
+`policy` is a CLOSED set (`harvest_arm_metrics.POLICIES`, gated):
+`best_f1` is what shipped and is never valid for cross-arm comparison;
+`matched_p50`/`p75`/`p90` are the steady points — highest recall at a held precision —
+each with `n_eligible_cuts`, because a match found among a handful of cuts is a corner
+artifact; `scored_live` is the cut the shipped mask was actually made at.
+`pr_auc` is average precision, NOT AUROC: a sweep has no `tn`, and at ~650x class skew
+AUROC reads optimistically high for everything. Real AUROC with CIs lives in
+`chm_standalone_roc_*_arms.csv`. `curves/{id}.csv` is the full 254-cut sweep — the
+primitive every scalar projects from.
+
+### year_scoreboard.md (GENERATED — byte-compared)
+
+Written by `qc/year_scoreboard.py`: best arm per year at ONE held policy
+(`matched_p75` by default, printed in the file). Arms are grouped by `(ref,
+eval_scope)` and ranked only within a group, with `population` shown — ranking across
+populations is how a coverage gap gets misread as a skill gap (2017's deliveries span
+15.8 M to 5.7 B scored pixels). Joins the tile counts and the champion star.
+Gate: `test_run_context.py::test_year_scoreboard_is_fresh`.

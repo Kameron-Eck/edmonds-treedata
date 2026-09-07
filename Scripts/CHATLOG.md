@@ -608,3 +608,46 @@ files:   experiments/{INDEX.md,index.json,README.md,BACKFILL_RECONCILIATION.md} 
          CLAUDE.md roadmap row, WORKPLAN DONE row
 next:    Kam synthesis session (open INDEX.md first); K4 sign-offs incl. the 5
          needs-kam entries; the docx stays as the audited 09-03 snapshot
+
+## 2026-09-06  run-context-layer-built
+goal:    Kam: centralize as much data per run as possible - best performance per
+         year, steady points on the curve for objective comparison, tile counts,
+         WHICH tiles trained, and a unique ID per tile SET
+did:     Five phases, each its own commit. (1) TILE SET IDENTITY: the engine already
+         DEFINED it - _tile_signature is the dict deciding cache reuse - but it lived
+         only in a lake sidecar. tiling.tileset_id() reduces the STORED dict (not a
+         recomputation: _existing_tiles_valid grandfathers old caches by dropping
+         keys, so live config can differ from disk) to 12 hex. 81 tile dirs -> 71
+         distinct sets, 41,856 tiles. Tile LISTS tracked in full (924 KB pruned to
+         row_off/col_off/split/block) because a re-tile overwrites its lake dir in
+         place and takes the old answer with it. Immediately showed 4 sets shared by
+         >1 arm - the seed replicates, so those noise floors really did hold tiles
+         constant. (2) RUN PASSPORT: 535 manifests -> 240 KB tracked CSV, pip_freeze
+         hashed to env_sha (37 distinct environments). join_basis declares its own
+         weakness: historical runs are inferred_current forever because a manifest
+         never recorded its tile set. Found 16 manifests with no run_registry row.
+         (3) METRICS: 87 PR sweeps tracked whole (1.15 MB) + arm_metrics.csv, one row
+         per (curve, policy) with thresh, counts, population, pr_auc. Policy is a
+         closed gated set: best_f1 (what shipped, never valid cross-arm), matched
+         p50/p75/p90 (the steady points), scored_live. PR-AUC not AUROC - no tn in a
+         sweep, and at 650x skew AUROC flatters everything. (4) ENGINE stamps
+         tilesets into the manifest AFTER the step loop (writing it at manifest time
+         would stamp a re-tiling run with its PREDECESSOR's set); signature untouched,
+         test_tile_signature_scope still green. (5) YEAR SCOREBOARD at a held cut,
+         grouped by (ref, eval_scope) so a coverage gap never reads as a skill gap.
+bugs:    MY OWN curve_id ignored the evaluation POPULATION - the LOSO
+         sample-selection/sample-test halves collided, 87 sweeps became 58, one
+         silently dropped. That is exactly the sin the module exists to prevent,
+         committed by its own key. eval_scope now keys the curve; halves differ
+         materially (2006s_add05 .5215 vs .5676). Also: every pr_auc read nan because
+         a sweep's extreme cut has tp=fp=0 -> precision 0/0, and one such point
+         poisons the integral; non-finite now parses as ABSENT. Also: the tag
+         ownership gate keyed on tag alone when the engine's unit is (year,tag).
+files:   qc/instruments/harvest_{tilesets,run_passport,arm_metrics}.py,
+         qc/year_scoreboard.py, qc/test_run_context.py (20 gates),
+         pipeline/phase4seg/{tiling,cli}.py, qc/experiments_index.py,
+         phase4/qc/{tileset_registry,run_passport,arm_metrics}.csv +
+         tilesets/ (71) + curves/ (87) + year_scoreboard.md, docs/SCHEMAS.md,
+         .gitignore, CLAUDE.md roadmap, WORKPLAN DONE row
+next:    re-harvest after each Colab campaign (command in CLAUDE.md 2.2); new runs
+         earn join_basis=manifest; Kam synthesis session

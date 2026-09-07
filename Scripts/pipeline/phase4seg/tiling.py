@@ -9,6 +9,7 @@ from phase4seg.labels import (
     canopy_label_from_2020_mask, additions_from_mask, apply_additions,
 )
 
+import hashlib
 import json
 import os
 import shutil
@@ -740,6 +741,39 @@ def _tile_signature(label, stride, max_tiles, citywide):
 
 def _meta_path(label):
     return tile_dir_for(label) / f"tile_index_{label}.meta.json"
+
+
+def tileset_id(label):
+    """The stable public ID of the tile set `label` currently holds, or None.
+
+    `_tile_signature` has always DEFINED tile-set identity — it is what decides
+    whether a cached set may be reused — but it lived only in the sidecar beside the
+    tiles, so nothing could quote it, join on it, or answer "did these two runs train
+    on the same tiles". This reduces the STORED signature to 12 hex chars.
+
+    Reads the sidecar rather than recomputing from live config, deliberately: the
+    stored dict is the record of what the tiles were actually cut under, and
+    `_existing_tiles_valid` grandfathers older caches by dropping keys, so a
+    recomputation can differ from what is on disk. `split_status` is stripped by name
+    (config.META_NONSIG_KEYS) exactly as the reuse check strips it.
+
+    THE SIGNATURE ITSELF IS UNTOUCHED by this function. Anything that changed it would
+    invalidate every cached tile set in the lake — ~20 min of GPU per year across 37
+    acquisitions — which is why `qc/test_tile_signature_scope.py` pins its contents.
+
+    One home: qc/instruments/harvest_tilesets.py imports this, so the tracked
+    registry and the engine can never disagree about what an ID is.
+    """
+    mp = _meta_path(label)
+    if not mp.exists():
+        return None
+    try:
+        stored = json.loads(mp.read_text())
+    except Exception:
+        return None
+    sig = {k: v for k, v in stored.items() if k not in META_NONSIG_KEYS}
+    canon = json.dumps(sig, sort_keys=True, separators=(",", ":"), default=str)
+    return hashlib.sha256(canon.encode("utf-8")).hexdigest()[:12]
 
 
 def _existing_tiles_valid(label, sig):

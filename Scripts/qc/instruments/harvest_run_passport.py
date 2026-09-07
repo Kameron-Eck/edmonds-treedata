@@ -117,7 +117,12 @@ def build_rows(runs_root, tilesets, reg_ids):
         freeze = m.get("pip_freeze") or []
 
         # The join, and its honesty column.
-        tsid, basis = m.get("tileset_id", ""), "manifest"
+        # The engine records `tilesets: {label: id}` AFTER its steps run, so when the
+        # key is present it is what the run actually used — the strong basis.
+        # A multi-year run touching several DIFFERENT tile sets has no single id;
+        # it falls through to inference and then to `none`, rather than picking one.
+        declared = {v for v in (m.get("tilesets") or {}).values() if v}
+        tsid, basis = ((declared.pop(), "manifest") if len(declared) == 1 else ("", ""))
         if not tsid:
             tag = m.get("run_tag") or ""
             hits = {tilesets.get((lb, tag)) for lb in labels}

@@ -39,7 +39,6 @@ from __future__ import annotations
 
 import argparse
 import csv
-import hashlib
 import io
 import json
 import sys
@@ -67,14 +66,17 @@ REGISTRY_COLS = [
 
 
 def tileset_id(stored_meta, nonsig_keys):
-    """The tile set's ID: sha256 of the stored signature, split_status stripped.
+    """The tile set's ID — the ENGINE's definition, imported, never re-implemented.
 
-    Canonical JSON (sorted keys, no whitespace drift) so the same dict always hashes
-    the same, on any platform. 12 hex chars — 48 bits over a population of order 100
-    tile sets, which is collision-free by a wide margin and still eyeball-comparable.
+    `phase4seg.tiling.tileset_id(label)` reads the sidecar itself; this variant takes
+    an already-loaded dict so the harvest reads each file once. Both reduce to the same
+    canonical-JSON sha256, and test_tileset_id_matches_the_engine pins that they agree
+    — a copied hasher would drift the day the engine's changed.
     """
+    import hashlib
+    import json as _json
     sig = {k: v for k, v in stored_meta.items() if k not in nonsig_keys}
-    canon = json.dumps(sig, sort_keys=True, separators=(",", ":"), default=str)
+    canon = _json.dumps(sig, sort_keys=True, separators=(",", ":"), default=str)
     return hashlib.sha256(canon.encode("utf-8")).hexdigest()[:12], sig
 
 

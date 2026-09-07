@@ -283,3 +283,44 @@ def test_one_curve_id_means_one_population():
         prev = by.setdefault(r["curve_id"], (r["eval_scope"], r["population"]))
         assert prev[0] == r["eval_scope"], (
             f"curve_id {r['curve_id']} spans scopes {prev[0]!r} and {r['eval_scope']!r}")
+
+
+def test_tileset_id_matches_the_engine():
+    """The harvester's hash and the engine's MUST be the same function.
+
+    `phase4seg.tiling.tileset_id(label)` is what a run stamps into its own manifest;
+    the harvester hashes the same sidecar to build the tracked registry. If the two
+    ever drifted, a run would claim one identity and the registry record another —
+    and nothing else in this suite would notice. Checked against the real stored
+    signatures, so it also covers the canonical-JSON rules (sort_keys, separators).
+    """
+    from phase4seg.config import META_NONSIG_KEYS
+    from instruments.harvest_tilesets import tileset_id as harvest_id
+
+    # A stored signature, an era-legacy one (fewer keys), and a degenerate one.
+    samples = [
+        {"label": "2016", "citywide": True, "stride": 1, "tile_size": 512,
+         "ortho": {"name": "2016_snoh_1ft_rgbi.tif", "size": 12345},
+         "split_status": {"mode": "blocked", "blocks": 9}},
+        {"label": "2009", "citywide": False, "stride": 2},
+        {},
+    ]
+    import hashlib
+    import json as _json
+    for stored in samples:
+        got, sig = harvest_id(stored, META_NONSIG_KEYS)
+        # the engine's own reduction, inlined from tiling.tileset_id
+        canon = _json.dumps({k: v for k, v in stored.items()
+                             if k not in META_NONSIG_KEYS},
+                            sort_keys=True, separators=(",", ":"), default=str)
+        want = hashlib.sha256(canon.encode("utf-8")).hexdigest()[:12]
+        assert got == want, f"harvester and engine disagree on {stored}"
+        assert "split_status" not in sig, "split_status must never enter the hash"
+
+
+def test_engine_exposes_tileset_id():
+    """The engine-side helper must exist and be importable — the manifest calls it."""
+    from phase4seg import tiling
+    assert callable(getattr(tiling, "tileset_id", None)), (
+        "phase4seg.tiling.tileset_id is gone — run manifests can no longer record "
+        "which tile set they used, and every future join drops to inferred_current")

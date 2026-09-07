@@ -426,6 +426,38 @@ def main():
         except OSError:
             return None
 
+    def _record_tilesets(run_id, entries):
+        """Patch the run manifest with the tile set each year ACTUALLY used.
+
+        Why not at manifest-write time: the manifest is written before the step loop,
+        so on a run that re-tiles, the sidecar then on disk belongs to the PREVIOUS
+        tile set. Recording it there would stamp the manifest with a set the run never
+        trained on — the exact weakness the tracked passport marks `inferred_current`.
+        Written here, after every step, the sidecar is the one the run used.
+
+        Never raises: provenance must not be able to kill a run (same contract as
+        _write_run_manifest).
+        """
+        import json as _json
+        from phase4seg.tiling import tileset_id
+        try:
+            mf = OUT_DIR / "runs" / str(run_id) / "manifest.json"
+            if not mf.exists():
+                return
+            ids = {}
+            for e in entries:
+                tsid = tileset_id(e["label"])
+                if tsid:
+                    ids[e["label"]] = tsid
+            if not ids:
+                return
+            man = _json.loads(mf.read_text(encoding="utf-8"))
+            man["tilesets"] = ids
+            mf.write_text(_json.dumps(man, indent=2), encoding="utf-8")
+            print(f"  tilesets: " + ", ".join(f"{k}={v}" for k, v in sorted(ids.items())))
+        except Exception as e:                                  # noqa: BLE001
+            print(f"  WARNING: tileset ids not recorded ({e})")
+
     def _write_run_manifest(args, entries):
         """P6.1: one manifest per engine invocation → phase4/runs/{run_id}/manifest.json.
 
@@ -815,5 +847,6 @@ def main():
             if isinstance(r, dict): _f.update(r)
             log.finish(**_f)
 
+    _record_tilesets(run_id, entries)
     print_summary(entries)
     timer_summary()

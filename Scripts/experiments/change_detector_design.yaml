@@ -65,6 +65,7 @@ decided: 2026-09-06
 reports:
   - Reports/CHANGE_DETECTOR_DESIGN_2026-09-06.md
   - Reports/TEMPORAL_REFINEMENT_DESIGN_2026-09-06.md
+  - Reports/HEALING_TOOL_REASONING_2026-09-07.md
 instruments: [Scripts/qc/instruments/trend8_hotspots.py]
 inputs:
   - phase4/qc/trend8_hotspots.csv

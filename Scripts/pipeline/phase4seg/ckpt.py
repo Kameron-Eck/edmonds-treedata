@@ -299,9 +299,13 @@ def _save_ckpt_state(phase, epoch, state, optim_state, sched_state,
     Body lifted verbatim out of _save_ckpt (2026-08-29) so a checkpoint can also
     be written from a snapshot taken at an earlier epoch (centred selection
     smoothing needs the weights of epoch i once epoch i+K//2 has been seen).
-    _save_ckpt keeps its exact previous behaviour by capturing live state and
-    calling straight through — the default path is unchanged except that the
-    dict is now assembled here.
+    _save_ckpt calls straight through — the default path is unchanged except that
+    the dict is now assembled here. It used to pass LIVE optimiser/scheduler
+    state; since 2026-09-07 it passes None for both (see _save_ckpt), so every
+    phase4 writer now reaches this function with optim_state=sched_state=None.
+    The keys stay in the payload with a None value: readers that test key
+    presence keep working, and a stripped checkpoint stays distinguishable from
+    one written by a build that never had the fields.
     """
     from phase4seg.core import _ensure_torch  # lazy: no module-level cycle
     _ensure_torch()                            # deps bootstrap still fires here
@@ -358,5 +362,56 @@ def _save_ckpt_state(phase, epoch, state, optim_state, sched_state,
 
 
 def _save_ckpt(phase, epoch, model, optim, sched, history, best_val, path):
-    _save_ckpt_state(phase, epoch, _model_state_of(model), optim.state_dict(),
-                     sched.state_dict(), history, best_val, path)
+    """CHECKPOINT DIET (2026-09-07): optimiser/scheduler state is NOT written.
+
+    Mechanism. This is the training-loop writer: `core.py::step_train` (Phase A) and
+    `core.py::_run_phase_b` call it on every improving epoch for `sem_best`, and for
+    `sem_latest` every config.SAVE_EVERY-th epoch plus the last epoch of the phase —
+    SAVE_EVERY is 5, so at the current budgets Phase B writes sem_latest at most 6
+    times over 30 epochs and Phase A at most 4 over 20 — fewer when patience stops a
+    phase before its budget — and NEVER once per epoch. `sem_best` lives under
+    MODELS_DIR, i.e. it crosses the Drive FUSE mount on each improving epoch;
+    `sem_latest` stays on local NVMe (config.LATEST_CKPT_LOCAL, honoured in
+    `core.py::step_train`). AdamW carries two fp32 moment buffers per STEPPED
+    parameter, so the optimiser state was ~2x the weights in Phase B and ~1.08x in
+    Phase A, where `core.py::_freeze_encoder` runs first and the optimiser is built
+    over requires_grad params only. Dropping it does not change resume
+    semantics, because
+    nothing resumes from it: a repo-wide grep for `optim_state` / `sched_state` finds
+    readers ONLY in `pipeline/frozen/phase0_instance_seg.py::_load_checkpoint` and
+    `pipeline/frozen/phase3_semantic_dev.py::_load_checkpoint`, each reading its OWN
+    checkpoints. Every phase4 reader — `ckpt.py::load_state_into`, the metadata
+    torch.load in core.py, and `queue_verify.py::_verify_ckpt_identity`, which
+    torch.loads every sem_best in VERIFY:train — reads model_state and the
+    identity/metadata keys and never the optimiser, so Phase-B resume from the
+    Phase-A best already built a fresh optimiser before this change.
+
+    Measured (local CPU, 2026-09-07). Parameter census on the production build
+    (ARCHS["unet"], IN_CHANNELS=3, AUX_HEIGHT=False): 92,680,577 params, of which
+    50,180,417 still require grad after `core.py::_freeze_encoder`. At 4 B/param the
+    weights alone are ~371 MB, and AdamW adds 8 B per stepped param, predicting
+    ~1,113 MB for a Phase-B checkpoint and ~773 MB for a Phase-A one. The archive
+    agrees: `ls -l` over the 135 sem_best_*.pt in the lake's phase4/models finds 106
+    files at ~1,113 MB (Phase B), 28 at ~773 MB (Phase A), and exactly one small file
+    — sem_best_2009_smooth5.pt at 371,405,955 B, which only the already-None writer in
+    `select.py::_SmoothCkptSelector` could have produced, and which is therefore a
+    real on-disk instance of the post-diet size. So the saving is 741.8 MB per
+    Phase-B write (2.997x, 66.6% of the payload) and 401.5 MB per Phase-A write
+    (2.081x, 51.9%); 64.4% weighted over the archive's 106/28 split. Do not quote the
+    Phase-B ratio alone as the per-write saving — sem_best is written on every
+    improving epoch and Phase A runs first.
+    Reports/PIPELINE_SPEEDUP_OPTIONS_2026-09-07.md §2 row 1 reads 891.8 MB -> 371 MB:
+    the 371 MB end is the size measured above, but 891.8 MB matches NO file in
+    phase4/models and sits between the two clusters — not reconciled here. Treat that
+    report's 3.6 h forward saving as its PROJECTION, not a measurement. Independent
+    measured support for the same change: §7.2 — net TX exceeds 1 MB/s in 26% of train
+    hardware samples, ~2.2 h of the 8.6 h sampled, which is this upload path.
+
+    This completes a design already half-applied:
+    `select.py::_SmoothCkptSelector.write` has passed None, None since 2026-08-29 for
+    the same reason. Signature unchanged — callers still hand over the live
+    optimiser/scheduler, they are simply not serialised — and the payload keys
+    survive with a None value (see _save_ckpt_state).
+    """
+    _save_ckpt_state(phase, epoch, _model_state_of(model), None,
+                     None, history, best_val, path)

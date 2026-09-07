@@ -190,7 +190,8 @@ class _SmoothCkptSelector:
         # optim/sched are deliberately None: they would have to be the SELECTED
         # epoch's, and holding AdamW's two moment buffers per ring slot would
         # triple the snapshot cost for state nothing in this repo ever reads back
-        # (grep: phase4seg writes optim_state, only phase0/phase3 read theirs).
+        # (grep: only phase0/phase3 read theirs; 2026-09-07 the training-loop
+        # writer stopped writing them too, so this is now the whole-engine rule).
         _save_ckpt_state(phase, ep, state, None, None, history, raw, path,
                          extra=extra)
         return True
@@ -380,9 +381,13 @@ def _finish_selection(label, history, es_metric, es_maximize, best_val, raw_best
                       f"{pick[1]}E{pick[2]}, post-hoc {post[0]}E{post[1]}; "
                       f"deploying the online pick (it owns the weights).")
             if (pick[1], pick[2]) == (raw_best[0], raw_best[1]):
-                # Same epoch: best_ckpt on disk already IS those weights, and it
-                # still carries its optimiser/scheduler state. Rewriting would cost
-                # a ~371 MB Drive round-trip to produce a strictly poorer file.
+                # Same epoch: best_ckpt on disk already IS those weights. Rewriting
+                # would cost a ~371 MB Drive round-trip for no change to the weights.
+                # (2026-09-07: the "and it still carries its optimiser/scheduler
+                # state" clause was dropped — since the checkpoint diet the
+                # training-loop writer strips both too, so the file on disk is no
+                # longer the fatter one. ~371 MB is now the measured size of what
+                # would be re-sent, not an understatement of it.)
                 deployed = "smoothed(==raw)"
                 print(f"  Smoothed selection agrees with the raw peak "
                       f"({pick[1]}E{pick[2]}) — best_ckpt left exactly as written.")

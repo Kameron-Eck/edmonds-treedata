@@ -17,7 +17,10 @@ Proves the three things the smoothing change has to be true for:
 
 Also gates the claim that neither --select-smooth nor the epoch budgets perturb
 _tile_signature (they are TRAINING params; a leak would invalidate every cached
-tile set) and that the _save_ckpt -> _save_ckpt_state refactor is payload-identical.
+tile set) and that the _save_ckpt -> _save_ckpt_state refactor drops no payload field.
+(2026-09-07: "payload-identical" retired — the checkpoint diet makes _save_ckpt write
+optim_state/sched_state as None. Every KEY still survives; two values are now None by
+contract, and a tripwire test pins that.)
 
 Needs torch (CPU is fine); skipped where torch is absent, so the no-torch CI job
 is unaffected.
@@ -257,8 +260,17 @@ def test_training_params_do_not_key_the_tile_signature():
 # ── 6. the refactor on the DEFAULT path ───────────────────────────────────────
 
 def test_save_ckpt_refactor_writes_the_same_payload(tmp_path):
-    """_save_ckpt now delegates to _save_ckpt_state. Same keys, same values as the
-    pre-refactor inline torch.save — this is the only default-path code change."""
+    """_save_ckpt delegates to _save_ckpt_state: same KEYS as the pre-refactor inline
+    torch.save, same values for everything except the two the checkpoint diet strips.
+
+    CONTRACT CHANGE (2026-09-07, checkpoint diet). optim_state/sched_state are no
+    longer captured — _save_ckpt passes None for both, matching what select.py has
+    done since 2026-08-29. The keys REMAIN in the payload with a None value, so the
+    no-dropped-fields guarantee below is unchanged and still the point of this test;
+    what changed is that those two keys are now asserted to be None rather than
+    type-equal to a live state_dict. The reference payload deliberately still holds a
+    real opt/sched state_dict: it documents exactly what stopped being written
+    (measured 1,113,134,613 B -> 371,403,223 B, 3.00x, for the production U-Net)."""
     model = Tiny()
     model.stamp(3)
     opt = torch.optim.AdamW(model.parameters(), lr=1e-4)
@@ -294,9 +306,48 @@ def test_save_ckpt_refactor_writes_the_same_payload(tmp_path):
             for name in b[k]:
                 assert torch.equal(a[k][name], b[k][name])
         elif k in ("optim_state", "sched_state"):
-            assert type(a[k]) is type(b[k])
+            # The diet: present as a key (so `set(b) <= set(a)` above stays a real
+            # no-dropped-fields check), None as a value.
+            assert k in a and a[k] is None, (
+                f"{k} should be stripped to None by the checkpoint diet, got "
+                f"{type(a.get(k))}")
         else:
             assert a[k] == b[k]
+
+
+def test_save_ckpt_strips_optimiser_state(tmp_path):
+    """TRIPWIRE (2026-09-07, checkpoint diet). The training-loop writer must never
+    serialise optimiser/scheduler state again.
+
+    The input is known-bad on purpose: one real opt.step() runs first, so AdamW's two
+    moment buffers per parameter genuinely exist and a regression that re-captured
+    them would write a non-empty dict here. Measured on the production U-Net, that is
+    what the diet removes: 1,113,134,613 B -> 371,403,223 B (3.00x), and it is the
+    payload that crosses Drive on every improving epoch (`core.py::step_train` for
+    Phase A, `core.py::_run_phase_b` for Phase B).
+
+    Keys must SURVIVE as None rather than disappear — a reader that tests key
+    presence keeps working, and the no-dropped-fields test above depends on it."""
+    model = Tiny()
+    opt = torch.optim.AdamW(model.parameters(), lr=1e-4)
+    sched = torch.optim.lr_scheduler.StepLR(opt, step_size=1)
+    sum(p.sum() for p in model.parameters()).backward()
+    opt.step()                                   # moment buffers now exist
+    assert opt.state_dict()["state"], "the fixture never populated optimiser state"
+    model.stamp(7)                               # re-stamp AFTER the step: the saved
+    #                                              weights must stay identifiable
+
+    p = tmp_path / "sem_best_diet.pt"
+    core._save_ckpt("B", 3, model, opt, sched, {"phase": ["B"], "epoch": [3]}, 0.9, p)
+    ck = torch.load(p, map_location="cpu", weights_only=False)
+
+    assert "optim_state" in ck and ck["optim_state"] is None
+    assert "sched_state" in ck and ck["sched_state"] is None
+    assert ck["model_state"] and all(torch.all(t == 7.0)
+                                     for t in ck["model_state"].values())
+    for k in ("run_id", "run_tag", "run_years", "saved_utc", "epoch_base"):
+        assert k in ck, f"identity field {k} lost"
+    assert (ck["phase"], ck["epoch"], ck["epoch_base"]) == ("B", 3, 1)
 
 
 # ── 7. the REAL Phase-B loop + the real finish path ───────────────────────────
@@ -316,9 +367,31 @@ class TinyUnet(nn.Module):
                 p.fill_(float(v))
 
 
-def _drive_phase_b(monkeypatch, tmp_path, iou_series, budget, k=1):
+def _drive_phase_b(monkeypatch, tmp_path, iou_series, budget, k=1, writes=None):
     """Run the real _run_phase_b over a scripted val_iou_bt series, then the real
-    _finish_selection — called exactly the way step_train calls them."""
+    _finish_selection — called exactly the way step_train calls them.
+
+    `writes`, if given, is filled with the number of checkpoint WRITES that had
+    happened after _run_phase_b and again after _finish_selection, so a caller can
+    assert that _finish_selection wrote nothing. The two counters are on the two
+    real write entry points reachable from here: core._save_ckpt (the training
+    loop) and select._save_ckpt_state (the selector's rewrite). NOT
+    core._save_ckpt_state — core imports that symbol and never calls it, and
+    ckpt._save_ckpt resolves its own module global, so a counter there would sit
+    at zero forever and the assertion would be vacuous.
+    """
+    from phase4seg import select                      # for the selector's writer
+    saves = {"n": 0}
+
+    def _counted(fn):
+        def wrapper(*a, **kw):
+            saves["n"] += 1
+            return fn(*a, **kw)
+        return wrapper
+
+    monkeypatch.setattr(core, "_save_ckpt", _counted(core._save_ckpt))
+    monkeypatch.setattr(select, "_save_ckpt_state",
+                        _counted(select._save_ckpt_state))
     model = TinyUnet()
     seq = iter(list(enumerate(iou_series)))
     state = {"i": 0}
@@ -348,9 +421,13 @@ def _drive_phase_b(monkeypatch, tmp_path, iou_series, budget, k=1):
         model, None, None, None, torch.device("cpu"), "bce_dice",
         "val_iou_bt", True, "max", float("-inf"), best_ckpt,
         tmp_path / "sem_latest_x.pt", history, raw_best, sel)
+    if writes is not None:
+        writes["after_phase_b"] = saves["n"]
     summary = core._finish_selection("x", history, "val_iou_bt", True, best_val,
                                      raw_best, k, sel, best_ckpt,
                                      "epoch_cap", stop_b, ran_b)
+    if writes is not None:
+        writes["after_finish"] = saves["n"]
     return summary, best_ckpt, history
 
 
@@ -374,7 +451,9 @@ def test_phase_b_reports_patience_when_it_converges(monkeypatch, tmp_path):
 
 
 def test_finish_selection_k1_leaves_the_raw_checkpoint_untouched(monkeypatch, tmp_path):
-    summary, ckpt, _ = _drive_phase_b(monkeypatch, tmp_path, PHASE_B, budget=len(PHASE_B))
+    writes = {}
+    summary, ckpt, _ = _drive_phase_b(monkeypatch, tmp_path, PHASE_B,
+                                      budget=len(PHASE_B), writes=writes)
     assert summary["deployed_by"] == "raw"
     assert (summary["raw_best_phase"], summary["raw_best_epoch"]) == RAW_PEAK
     assert (summary["deployed_phase"], summary["deployed_epoch"]) == RAW_PEAK
@@ -386,7 +465,20 @@ def test_finish_selection_k1_leaves_the_raw_checkpoint_untouched(monkeypatch, tm
     # epoch matches the log line — B1 here, not B0.
     assert ck["epoch"] == 1
     assert ck["epoch_base"] == 1
-    assert ck["optim_state"] is not None        # untouched: still the full ckpt
+    # UNTOUCHED, counted rather than inferred from the payload (2026-09-07). This
+    # used to be `ck["optim_state"] is not None`, which proved the file on disk was
+    # the training loop's write and not a selector rewrite — the selector has passed
+    # None, None since 2026-08-29. The checkpoint diet made BOTH writers produce
+    # None, so that assertion stopped discriminating: a future _finish_selection that
+    # rewrote best_ckpt at K=1 with the same raw-peak weights (say, to stamp
+    # selection provenance) would slip past it. Counting writes tests the property
+    # the test is named for directly.
+    assert writes["after_phase_b"] >= 1              # the counter is actually wired
+    assert writes["after_finish"] == writes["after_phase_b"]
+    # Kept as the contract check it now is. Key presence is asserted separately —
+    # `is None` alone cannot tell "stripped" from "key removed", and key survival is
+    # what stale readers depend on.
+    assert "optim_state" in ck and ck["optim_state"] is None
     for t in ck["model_state"].values():
         assert torch.all(t == 101.0)            # B1's weights, the raw peak
 

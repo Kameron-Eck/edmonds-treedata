@@ -1,0 +1,110 @@
+name: leafoff_recall_gradient
+kind: instrument-finding
+status: complete
+retrospective: true
+category: phenology
+tags: [leaf-off, grvi, greenness, recall, king-imagery, superseded, 2013-2023]
+hypothesis: >
+  If leaf-off phenology is what damages the model on the older archive, then the years
+  whose canopy pixels measure least green should be the years the model recalls worst.
+  Five King-imagery years hold the sensor family, the grid and the recipe class fixed,
+  so season is the varying factor and the pairing is legal: pair each year's measured
+  low-greenness fraction (GRVI below the instrument's cut, over pixels the 2020 canopy
+  mask calls canopy) against that year's citywide_rgb recall. What would change our mind
+  is a leaf-off flight that recalls as well as a leaf-on one.
+arms: []
+baseline: null
+metric: >
+  phase4/qc/leafoff_{2013,2015,2019,2021,2023}_king.csv and the matching .txt — the
+  low-greenness and negative GRVI fractions, the percentile summary and the instrument's
+  HOW-TO-READ and CAVEATS rails, one file per year. The recall side is
+  phase4/qc/score_vs_difficulty.csv, citywide_rgb rows only, with each year's own
+  threshold, month and leafoff_risk in the same row.
+decision_rule: >
+  RECONSTRUCTED (retrospective: true) from the instrument's own HOW TO READ and CAVEATS
+  blocks, which are identical in all five files and which do pre-register the reading.
+  Leaf-on reads as a unimodal positive GRVI distribution with a small low fraction;
+  leaf-off reads as BIMODAL — conifers stay green while deciduous crowns go bare — so
+  the low-greenness fraction is the signature. It must be compared against a KNOWN
+  LEAF-ON acquisition rather than an absolute threshold, because colour balance differs
+  by sensor; that is why the comparison is confined to one sensor family. The
+  instrument also pre-registers the direction of its own bias: the canopy mask is a
+  MODEL OUTPUT carrying the very blind spot under test, so the test understates
+  low-greenness and is biased AGAINST finding leaf-off, which makes a positive result
+  strong and a null weak. Rails that bound any verdict: leaf-off flights have low sun
+  angle so shadow and phenology are correlated and thin shadow is not excluded, and the
+  sample is grid windows, "indicative, not an estimate".
+verdict: >
+  A DIRECTION, NOT A GRADIENT — and the direction was later re-attributed away from
+  season. The read: in aggregate the two least-low-greenness years hold the two highest
+  recalls and the three high-low-greenness years all sit lower, but the ordering is not
+  monotone and the split is really 2-vs-3, not a five-step ramp. Two cells break it
+  outright, both read from phase4/qc/leafoff_*_king.csv paired against
+  phase4/qc/score_vs_difficulty.csv: 2015 is a February flight, the catalog's leaf-off
+  end, and carries the HIGHEST recall of the five; 2021 sits mid-pack on low-greenness
+  and carries the LOWEST recall of the five. The five recalls are also not a like-for-
+  like comparison — each is read at that year's own selected threshold, and 2019's is
+  the most liberal of the set, so pooling them across threshold policies is forbidden
+  by the reader rules in Scripts/docs/SCHEMAS.md. SUPERSEDED: the association survives,
+  its cause does not. Reports/GREENNESS_GRADIENT_CORRECTION_2026-09-03.md shows the
+  greenness fraction does not track the calendar at all — three late-April flights
+  measure two to three times "less green" than deep winter — and restates the surviving
+  association as recall vs IMAGE GREENNESS at -.109 across these five same-sensor years,
+  the one figure this entry carries and the file it is read from. The per-bin histograms
+  resolve it: 2015 is true phenology (bimodal) with UNHARMED recall, while the low-
+  greenness years are a whole-distribution radiometric shift that conifers cannot
+  produce biologically. The quantity that tracks recall is DELIVERY RADIOMETRY, not
+  season. Read greenness_gradient_correction for the live statement; this entry records
+  what was claimed and how it was measured.
+decided: 2026-09-03
+instruments:
+  - Scripts/qc/instruments/phase4_qc_leafoff.py
+inputs:
+  - phase4/qc/score_vs_difficulty.csv
+outputs:
+  - phase4/qc/leafoff_2013_king.csv
+  - phase4/qc/leafoff_2013_king.txt
+  - phase4/qc/leafoff_2015_king.csv
+  - phase4/qc/leafoff_2015_king.txt
+  - phase4/qc/leafoff_2019_king.csv
+  - phase4/qc/leafoff_2019_king.txt
+  - phase4/qc/leafoff_2021_king.csv
+  - phase4/qc/leafoff_2021_king.txt
+  - phase4/qc/leafoff_2023_king.csv
+  - phase4/qc/leafoff_2023_king.txt
+reports:
+  - Reports/GREENNESS_GRADIENT_CORRECTION_2026-09-03.md
+  - Reports/FINDINGS_LEDGER_2026-09-03.docx
+imagery: ["2013", "2015", "2019", "2021", "2023"]
+sample: >
+  five King RGB acquisitions, one paired cell each: the low-greenness fraction over
+  roughly a million sampled canopy pixels per year (2 of 16 grid windows kept, deep
+  shadow excluded, thin shadow not), against that year's citywide_rgb recall. Five
+  pairs is the whole sample — a rank correlation on n=5 supports a direction and
+  nothing stronger.
+supersedes: []
+superseded_by: [greenness_gradient_correction]
+extra:
+  docx_sections: [EXP-B-leafoff-recall-gradient]
+  never_quote_as:
+    - as a gradient or a dose-response — the ordering is broken at two of five cells
+    - as five recalls at one operating point — they sit at five different thresholds
+    - 2013 as a leaf-off measurement — it is the catalog's only leafoff_risk 0 of the
+      five and is the LEAF-ON reference the instrument's HOW-TO block asks for
+  reader_rules_applied: >
+    citywide_rgb rows only (recipe class held fixed), canopy definition forest_wetland,
+    no aoi-restricted row pooled with a citywide row — per Scripts/docs/SCHEMAS.md.
+  what_survives_the_supersession: >
+    the CLAUDE.md durable gotcha that leaf-off years carry systematic label error stands
+    unchanged — projecting an April-July 2020 key onto a February acquisition is still a
+    seasonal mismatch. The correction is about the RECALL gradient's cause, not about
+    label-projection season risk.
+  consequence_of_the_supersession: >
+    the queued "leaf-off quantity-preserving IGNORE" experiment is DEAD as premised — an
+    IGNORE keyed on low greenness would mask by radiometry, not season. The surviving
+    lever is per-delivery radiometric normalization.
+  season_premise_that_the_rails_assume: >
+    the instrument's rail (4) tells readers to compare against a known leaf-on
+    acquisition "NAIP is leaf-on BY SPECIFICATION". Scripts/qc/imagery_pixelsize_and_date.csv
+    records that no NAIP metadata record read carries any leaf-on/leaf-off statement, so
+    that premise is undocumented — see entry same_flight_pair_2019.

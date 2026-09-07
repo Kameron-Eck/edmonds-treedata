@@ -1,0 +1,82 @@
+name: ccap_mixed_sign_bias
+kind: instrument-finding
+status: needs-kam
+retrospective: true
+category: reference
+tags: [c-cap, reference-bias, bounded-comparator, canopy-definition, mixed-sign, unsigned]
+hypothesis: >
+  C-CAP is the reference nearly every score in this project is measured against, and the
+  standing temptation is to treat its disagreement with our masks as one-directional —
+  "C-CAP over-calls canopy, so our real accuracy is better than the numbers say." It is
+  not one-directional. Two documented mechanisms push our metrics in OPPOSITE directions
+  and concentrate in the same suburban residential land cover, so they cannot be assumed
+  to cancel and their net cannot be signed. What would change our mind: a measurement of
+  either limb's magnitude, which would turn a caveat into a correction.
+arms: []
+baseline: null
+metric: >
+  no measured home exists, and that is the finding's status rather than an omission.
+  Both limbs are recorded as prose in Reports/CANOPY_DEFINITION_DECISION_2026-08.md —
+  the over-call limb as Kam's observation with its signed consequence, the
+  stands-not-crowns limb as a class-definition property established by the failure of
+  the document's whole measured cutoff grid to reach C-CAP's total. Quantification is
+  queued on the WORKPLAN board as the Olofsson estimate off the 250-point 2016
+  photo-interpretation sample, blocked on Kam's labelling of that sample.
+decision_rule: >
+  RECONSTRUCTED (retrospective: true) from the governing decision document and the
+  board's standing instruction; it is a READING rule, not a pass/fail. C-CAP is a
+  bounded comparator, never truth, and no C-CAP-referenced score may be read as evidence
+  about our accuracy in EITHER direction. A signed net bias — and any correction factor
+  derived from one — becomes quotable only when both limbs have been measured, because
+  they act on the same population with opposite signs: over-call charges our true
+  negatives as false negatives while flattering our precision, and the stands-not-crowns
+  exclusion charges correctly detected isolated trees as false positives, understating
+  precision on exactly the population the first limb flatters. Corollary the document
+  states in its own right: the disagreement is a difference of KIND, not of degree, so
+  no choice of greenness and height cutoffs can reconcile the two references — a
+  threshold search for reconciliation is chasing something that does not exist.
+verdict: null
+decided: null
+design_doc: Reports/CANOPY_DEFINITION_DECISION_2026-08.md
+imagery: ["2016"]
+sample: >
+  no sample and no computation — two documented disagreement mechanisms between C-CAP
+  and our masks, assembled into one mixed-sign record because separating them into two
+  entries would invite quoting either limb as if it were the net.
+supersedes: []
+superseded_by: []
+extra:
+  docx_sections: [EXP-B-CCAP-MIXED-SIGN-BIAS]
+  needs_kam_reason: >
+    the governing decision document is UNSIGNED — all six of its checkboxes are written
+    unticked, verified in the file this session — so the finding has no adopted
+    mitigation and is a caveat attached to readings rather than a correction applied to
+    numbers. On top of that, neither limb has been measured: the over-call limb is
+    recorded explicitly as an observation, and its quantification is queued on the
+    WORKPLAN board behind Kam's 250-point 2016 photo-interpretation sample. A verdict
+    here would have to state a net sign that no tracked file supports.
+  limb_1_over_call: >
+    C-CAP paints canopy where none is, so our true negatives there are charged as false
+    negatives (recall UNDERSTATED) and our false positives land on painted canopy and
+    are credited as true positives (precision FLATTERED). Kam's own observation,
+    recorded in the decision document's "stale in the original proposal" block.
+  limb_2_stands_not_crowns: >
+    C-CAP counts stands rather than individual crowns and excludes isolated trees as a
+    matter of kind, so a correctly detected street or yard tree has no reference canopy
+    to match and is charged as a false positive — precision UNDERSTATED, on the same
+    suburban population limb 1 flatters.
+  third_structured_component: >
+    crown-edge partial pixels are the third non-random component of reference
+    disagreement and are routinely conflated with the two limbs above. It is a property
+    of OUR masks, not a C-CAP bias, and belongs in the definition review rather than
+    here.
+  reading_rule_in_force: >
+    the live tracked home of the bounded-comparator rule — C-CAP as the operating-point
+    selector only, never the accuracy or trend authority — is the decision_rule of entry
+    trend8_uniform_rgb, which is the rule being applied rather than a second statement
+    of this finding.
+  unverified_upstream: >
+    the document's disagreement-magnitude figures are attributed to a CHATLOG result
+    that lives on the pre-refactor archive branch and was not read; its cutoff-grid
+    percentages are over the 2016 imaged band rather than the city, and the document
+    itself flags them as internally comparable but not citywide canopy figures.

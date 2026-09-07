@@ -1,0 +1,124 @@
+name: arm_diagnostics_2009
+kind: measurement-campaign
+status: complete
+retrospective: true
+category: floors
+tags: ["2009", pr-curves, threshold-free, block-bootstrap, crown-touch, region-confusion, noise-floor, pre-overhaul]
+hypothesis: >
+  Through the pre-overhaul era every arm-vs-arm claim was a single recall number read at
+  a single threshold, and nobody could say whether a gap between two arms was the recipe,
+  the operating point, or the seed. 2009 became the bench where that was fixed: one year,
+  several arms, and a family of diagnostics that each remove one of those explanations —
+  threshold-free curves so the operating point cannot carry the answer, a paired block
+  bootstrap so spatial sampling cannot, seed replicates so the training run cannot, a
+  per-crown view so a pixel win that is really a boundary effect shows up as one, and a
+  region split so over- and under-prediction are not averaged into a single score. What
+  would change our mind about any arm ordering here: a gap that does not survive all four.
+arms: []
+baseline: null
+metric: >
+  The threshold-free tables in Reports/ARM_PR_CURVES_2009.md and its phase4/qc/
+  companions (AUROC, PR-AUC, and the matched-operating-point recall at a fixed
+  precision), the paired block-bootstrap CIs on arm gaps in
+  phase4/qc/arm_bootstrap_ci_2009.md, the per-crown touch/cover tables in
+  Reports/CROWN_TOUCH_2009.md, and the FP/FN-by-region tables in
+  phase4/qc/region_confusion_2009*.md. All are computed on ONE common valid footprint —
+  the intersection of every arm's valid pixels with the scorable reference — so the arms
+  are never compared on different ground.
+decision_rule: >
+  RECONSTRUCTED (retrospective: true) from the diagnostics' own headers and footers,
+  which state their reading rules before any verdict. (1) Compare arms at a MATCHED
+  operating point, not at a shared nominal threshold, and read the threshold-free curve
+  first. (2) Judge every gap against the measured retrain spread, which the curve files
+  carry as a footer on every table — and which is explicitly a LOWER bound, because the
+  replicates share a seed. (3) The block bootstrap answers only whether a gap survives
+  SPATIAL resampling; a gap that clears spatial sampling but sits at the retrain scale is
+  trajectory noise wearing a confidence interval, in that file's own words. (4) In the
+  per-crown view, absolute touch and cover rates are NOT quotable — the 2020 crown layer
+  is itself model output and scoring it against 2009 predictions makes real planting
+  count as model error — so only the arm-vs-arm delta on the identical crown set is
+  interpretable, and the honest test on it is the sign test over sector-level paired
+  deltas, never the crown-level McNemar z, whose independence assumption CLAUDE.md rule 5
+  denies.
+verdict: >
+  THE DIAGNOSTICS LANDED, AND WHAT THEY MOSTLY PRODUCED WAS A FLOOR. The single most-cited
+  number the pre-overhaul era owns comes out of this cluster: a recall sd of .0100 and a
+  precision sd of .0052 across five same-seed replicates, read from the footer of
+  phase4/qc/arm_pr_curves_2009_3band.md, which the file itself labels a LOWER bound
+  because the replicates do not vary the seed. Every later pre-Tier-1 verdict that says
+  "inside the noise" is measuring against that footer, and several downstream write-ups
+  cite it for scale on years it was never measured on — legitimately, as an order of
+  magnitude, never as a pooled sigma. On the arm ordering the cluster was built to judge,
+  the 2009 fullext arm leads its 3-band contrast on both threshold-free metrics and at
+  matched precision, and the per-crown view agrees in sign across every sector; the
+  campaign's own caution is attached to that agreement, because with one training run per
+  arm spatial consistency cannot separate "this recipe is worse" from "this run landed
+  low". The lasting methodological output is the standard itself: matched operating
+  points, a paired block bootstrap, seed replicates and a per-crown crosscheck became the
+  minimum bar an arm claim has to clear, and the Tier-1 design inherited all four.
+decided: 2026-08-29
+reports:
+  - Reports/ARM_PR_CURVES_2009.md
+  - Reports/CROWN_TOUCH_2009.md
+instruments:
+  - Scripts/qc/instruments/phase4_arm_pr_curves.py
+  - Scripts/qc/instruments/phase4_arm_bootstrap_ci.py
+  - Scripts/qc/instruments/phase4_arm_disagreement.py
+  - Scripts/qc/instruments/phase4_region_confusion.py
+  - Scripts/qc/instruments/phase4_crown_touch.py
+  - Scripts/qc/instruments/phase4_ensemble_arm.py
+outputs:
+  - phase4/qc/arm_pr_curves_2009.md
+  - phase4/qc/arm_pr_curves_2009_3band.md
+  - phase4/qc/arm_pr_curves_2009_4band.md
+  - phase4/qc/arm_pr_curves_2009_3band_noisefloor.md
+  - phase4/qc/arm_pr_curves_2009_seeds3.md
+  - phase4/qc/arm_pr_curves_2009_seed_ensemble3.md
+  - phase4/qc/arm_pr_curves_2009_nodec_ensemble.md
+  - phase4/qc/arm_bootstrap_ci_2009.md
+  - phase4/qc/arm_disagreement_2009.md
+  - phase4/qc/region_confusion_2009.md
+  - phase4/qc/region_confusion_2009_replication.md
+  - phase4/qc/region_confusion_2009_seedpairs.md
+  - phase4/qc/seed_area_noisefloor_2009.md
+  - phase4/qc/ensemble_gain_by_region_2009.md
+  - phase4/qc/ensemble_max_vs_mean_2009.md
+  - phase4/qc/campaign_area_reread_2009.md
+imagery: ["2009"]
+sample: >
+  one calendar year, several arms scored on a single common valid footprint (the
+  intersection of every arm's valid pixels with the scorable C-CAP reference), plus a
+  crown-level view over the phase-0 2020 crowns that fall wholly inside that footprint.
+  The replicate set behind the floor is five same-seed reruns; the bootstrap resamples
+  fixed pixel blocks, paired across arms.
+supersedes: []
+superseded_by: []
+extra:
+  reads_from: >
+    each arm's probability raster in the lake (phase4/masks/) against the epoch-matched
+    C-CAP reference — lake paths, not gated here. The common-footprint pixel counts these
+    files report line up with the valid column of phase4/qc/qc_indep_report.csv, which is
+    the tracked cross-check, not an input.
+  scope_note: >
+    this entry owns the DIAGNOSTIC MACHINERY and the floors it measured, on the
+    fullext-versus-3-band contrast. The label-variant verdicts computed with the same
+    instruments on the same year — the sparse-groves and quadrants/Node-C arms — belong
+    to stability_mining_closure, which is where their readings are recorded. Shared
+    pointers, separate verdicts.
+  crown_layer: >
+    D:\edmonds-pipeline\backup\inference\edmonds_crowns_2020.gpkg (local path, not
+    gated). It descends from the same 2020 hand annotations as the training key, so the
+    independence is at the LABEL-PATHWAY level, not total.
+  provenance_gate: >
+    each arm's recipe was read from its own run manifest rather than from a tag list,
+    confirming no add-canopy overlay contaminated the held-out crown layer. The two
+    manifests are lake paths recorded in Reports/CROWN_TOUCH_2009.md.
+  filename_caveat: >
+    two of the 2009 diagnostic files carry an instrument's boilerplate header rather than one
+    matching their name — seed_area_noisefloor_2009.md is a region-confusion-format table
+    over the three seed arms, and holdout_design_census_2009.md (not listed) carries the
+    bootstrap header. Read the table, not the title.
+  instrument_paths: >
+    the reports' footers cite the pre-reorganisation locations (qc/phase4_crown_touch.py);
+    the instruments now live under Scripts/qc/instruments/ and that is what is pointed at
+    here.

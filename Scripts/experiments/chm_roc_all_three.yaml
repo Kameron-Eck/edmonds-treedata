@@ -1,0 +1,94 @@
+name: chm_roc_all_three
+kind: measurement-campaign
+status: complete
+retrospective: true
+category: lidar
+tags: [chm, lidar, roc, standalone, height-raster, no-gpu, screen, block-bootstrap]
+hypothesis: >
+  Before spending A100 hours on a height-channel training A/B, ask the cheap version of
+  the question: does each height raster, used ALONE with no model and no GPU, separate
+  canopy from non-canopy? Every height product in the archive is already a 254-level
+  canopy score under one shared uint8 encoding, so sweeping the cut over every DN
+  enumerates every "canopy iff height >= h" classifier there is. The screen was designed
+  to fire in one direction: if a corrected raster is not a better discriminator on its
+  own, no training arm was expected to find value in it. This run scores the three real
+  rasters (chm, chm2, chm2005) plus dilation and two-raster-fusion arms in one sitting.
+arms: []
+baseline: null
+metric: >
+  phase4/qc/chm_standalone_roc_all_three.md — per-arm AUROC / PR-AUC / best-F1 height /
+  best-Youden height on the common footprint, plus the paired-gap verdict table. Machine
+  copies in phase4/qc/chm_standalone_roc_all_three_arms.csv (one row per arm) and
+  phase4/qc/chm_standalone_roc_all_three_pairs.csv (one row per arm pair, each carrying
+  its own resolving power and a measurable yes/no).
+decision_rule: >
+  RECONSTRUCTED (retrospective: true) from the report's own Method text, which states
+  the reading rules ahead of every number. Four commitments. (1) INTERSECTION SCORING —
+  every arm is scored on the intersection of all arms' valid extents with the
+  reference's, so coverage is never charged as accuracy. (2) A PAIRED spatial block
+  bootstrap in which every replicate scores every arm on the SAME resampled blocks, so
+  shared ground cancels and the interval is on the DIFFERENCE; the effective sample size
+  is the block count, not the pixel count. (3) A gap smaller than the half-width of its
+  own paired interval is reported UNDETERMINED — "not a null: this evaluation could not
+  tell the two apart, which is a statement about the evidence, not about the rasters."
+  (4) EPOCH HANDICAP — an arm whose epoch differs from the reference's has real growth
+  and removal charged to it as classification error, so its score is a LOWER BOUND on
+  its discrimination in its own epoch. The maxN(...) arms exist to test one hypothesis:
+  if a SHARP raster catches up once dilated to the same spatial support, the gap was
+  granularity, not information.
+verdict: >
+  THE SCREEN INVERTED. The raster independently measured to be inflated by four to five
+  metres is the BEST standalone discriminator of the six arms — chm AUROC 0.9019 against
+  the corrected 2016 rebuild chm2 at 0.8385, read from
+  phase4/qc/chm_standalone_roc_all_three.md, where the paired gap and its interval sit
+  in the same file. Three reads follow and none of them is "the old raster is good".
+  First, the result INDICTS THE METRIC AND THE REFERENCE, not the raster: the mechanism
+  is worked out in chm_standalone_prior_closure and the support leg in
+  chm_roc_support_confound. Second, dilating the sharp raster toward the old one's
+  spatial support recovers most of the difference, which is what turned "chm2 is worse"
+  into a question about form. Third, chm2005 clears the encoding check and behaves like
+  a correctly built product, and its score is epoch-handicapped by eleven years against
+  a 2016 reference, so it is a floor rather than an estimate. The file bounds its own
+  licence explicitly: this measures MARGINAL discrimination, not CONDITIONAL value — the
+  height raster enters training as a 4th channel beside RGB, and a weaker marginal
+  discriminator can still carry information RGB lacks. Numbers from this run are
+  RUN-TAGGED: the synthesis report phase4/qc/CHM_STANDALONE_PRIOR_2026-08-29.md sets the
+  rule for the whole family — "Compare numbers only *within* a run" — because each run
+  scores on the intersection of ITS OWN arms and the footprints differ.
+decided: 2026-08-29
+commit: 2f31d19
+instruments:
+  - Scripts/qc/instruments/phase4_chm_standalone_roc.py
+  - Scripts/pipeline/builders/build_chm2_2016.py
+  - Scripts/pipeline/builders/build_chm2005.py
+outputs:
+  - phase4/qc/chm_standalone_roc_all_three.md
+  - phase4/qc/chm_standalone_roc_all_three_arms.csv
+  - phase4/qc/chm_standalone_roc_all_three_pairs.csv
+reports: [phase4/qc/CHM_STANDALONE_PRIOR_2026-08-29.md]
+sample: >
+  the common valid footprint of all six height arms intersected with the reference,
+  on a 1 m analysis grid in EPSG:26910 snapped to the reference lattice; resampled as
+  non-empty 512 x 512 px (512 m) spatial blocks, 400 paired bootstrap replicates. The
+  unit of analysis is the BLOCK, not the pixel — neighbouring pixels are the same tree.
+supersedes: []
+superseded_by: []
+extra:
+  docx_sections: [chm-roc-all-three]
+  arms_scored: >
+    chm (old 3DEP HAG product), chm2 (2016 rebuild), chm2005 (2005 rebuild), and the
+    derived max2(chm2) 5 m neighbourhood MAX, max1(chm2005) 3 m MAX, and the per-pixel
+    max(chm2, chm2005) two-raster fusion
+  lake_inputs: >
+    G:\My Drive\treedata\Full_Image\Pipeline Imagery\lidar_snoh_chm.tif,
+    lidar_chm2_2016_50cm.tif, lidar_chm2005_2m.tif, and the reference
+    ccap_2016_hires_lc_snohfull.tif (canopy definition forest_wetland)
+  known_caveats:
+    - the max filter is truncated at I/O strip boundaries (2048 rows)
+    - the reference is a classified 1 m product with its own errors, not hand truth,
+      and cannot resolve crowns below its own cell
+  synthesised_by: chm_standalone_prior_closure
+  sibling_run: chm_roc_support_confound
+  why_no_n: >
+    the honest sample size is the block count, which no tracked file resolves to on its
+    own; the arms/pairs CSVs count arms and pairs, not sampling units

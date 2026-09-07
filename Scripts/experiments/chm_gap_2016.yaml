@@ -1,0 +1,96 @@
+name: chm_gap_2016
+kind: instrument-finding
+status: complete
+retrospective: true
+category: lidar
+tags: [chm, lidar, coverage, ndvi, water, bound, "2016", assumption-check]
+hypothesis: >
+  Every canopy definition this project uses is "green AND tall", so it needs a height
+  value. Where the lidar does not reach, a pixel CANNOT be canopy — it is forced to
+  background by absence of data rather than by the definition, which makes every canopy
+  figure derived that way a LOWER BOUND. A standing assumption said the uncovered strip
+  is the Puget Sound western edge and the southern margin, i.e. water, and therefore that
+  the bound is tight and nothing changes. That was plausible and never verified. If the
+  uncovered zone instead contains green land, the city canopy number is understated and
+  the canopy definition inherits a coverage bias. Water reads strongly negative in NDVI
+  and vegetation reads high, so the two zones can be told apart with no model at all.
+arms: []
+baseline: null
+metric: >
+  phase4/qc/chm_gap_2016.txt — the coverage split, the NDVI percentile profile of each
+  zone with its negative-NDVI share, the green share of each zone at three NDVI cuts, and
+  the worst-case bound on understated city canopy. Machine copy in
+  phase4/qc/chm_gap_2016.csv, one row per zone.
+decision_rule: >
+  RECONSTRUCTED (retrospective: true) from the instrument's own docstring, which states
+  the reading before the run: "Water is strongly NEGATIVE in NDVI, so a no-CHM zone that
+  is genuinely water will show a negative NDVI distribution. Vegetation sits high. The gap
+  between those two readings is the answer." Two design commitments make the answer
+  admissible. First, the SAME NDVI cuts are applied to both zones, so the has-CHM zone is
+  the control that says what green looks like in this imagery rather than a value asserted
+  from elsewhere. Second, the bound is DELIBERATELY GENEROUS: every green no-CHM pixel is
+  counted as canopy at each cut, even though lawns are green too, so the reported figure
+  is an upper bound on the understatement and the truth is lower. The assumption is
+  confirmed only if the no-CHM zone is overwhelmingly negative in NDVI AND the generous
+  bound is negligible against the canopy figures it would perturb.
+verdict: >
+  THE ASSUMPTION HOLDS AND IS NOW CHECKED RATHER THAN ASSERTED. The worst-case
+  understatement of city canopy from the coverage gap is up to +0.02 pp of imaged area,
+  identical at all three NDVI cuts — read from phase4/qc/chm_gap_2016.txt, which carries
+  the coverage split and both zones' NDVI profiles in the same file. The mechanism is
+  unambiguous: almost the whole no-CHM zone reads negative in NDVI while the has-CHM zone
+  reads like a mixed urban-forest scene, so the uncovered strip is water, exactly as the
+  standing assumption said. Three bounds travel with this result and none of them is
+  optional. (1) It bounds COVERAGE bias ONLY — it says nothing about whether the height
+  raster is accurate where it does exist, and that separate question is answered badly for
+  the raster this instrument reads: see old_chm_defect. (2) NDVI here is computed on
+  decimated, averaged reflectance, so mixed pixels are smoothed and the percentiles are
+  indicative rather than exact. (3) Turbid or sun-glinted water can read slightly
+  positive, so the negative-NDVI share understates water a little — which pushes in the
+  conservative direction for this conclusion. One unreconciled figure is recorded rather
+  than smoothed over: the human accuracy sampler's stratum design cites a materially lower
+  CHM coverage of the city than this file measures over imaged 2016 pixels. The two use
+  different denominators, no tracked file reconciles them, and they must not be averaged
+  or quoted as a contradiction.
+decided: 2026-08-18
+commit: b78fbe2
+instruments: [Scripts/qc/instruments/phase4_qc_chm_gap.py]
+outputs:
+  - phase4/qc/chm_gap_2016.txt
+  - phase4/qc/chm_gap_2016.csv
+imagery: ["2016"]
+sample: >
+  the two zones of the imaged 2016 footprint — has-CHM and no-CHM — where "imaged" means
+  red plus near-infrared above zero, measured on the 2016 four-band ortho decimated 1/8.
+  The unit of analysis is the zone; the per-zone pixel counts and NDVI percentiles are the
+  measurements.
+n: 2
+n_source: phase4/qc/chm_gap_2016.csv#rows
+supersedes: []
+superseded_by: []
+extra:
+  docx_sections: [chm-gap-2016]
+  origin: U1 / result 9d, 2026-08-18 — the instrument docstring names its own provenance
+  height_raster_read: >
+    the instrument reads the OLD product, lidar_snoh_chm.tif, named in its own module
+    constant. This result therefore describes the coverage of THAT raster, not of the
+    later rebuilds — see chm_encodings_year_assignment for which raster a given script
+    actually opens.
+  imagery_filename_note: >
+    the measured file records the ortho as 2016_snoh_rgbi.tif; config.YEAR_CATALOG's
+    entry for label "2016" names 2016_snoh_1ft_rgbi.tif. Same acquisition, and the
+    catalog holds exactly one 2016 label. The two basenames ARE reconciled by tracked
+    files: the comment above the 2016 entry in Scripts/pipeline/phase4seg/config.py
+    records "2026-08-23 REPLACED: 2016_snoh_rgbi.tif (0.5 ft served upsample, 53.4%
+    clip) -> 2016_snoh_1ft_rgbi.tif", and SUPERSEDED_FILES in
+    Scripts/qc/phase4_catalog_check.py carries the same mapping. This measurement
+    (2026-08-18, commit b78fbe2) predates that replacement, so it read the SUPERSEDED
+    file, not the one the catalog now names.
+  unreconciled: >
+    CHM coverage of the city is quoted as roughly 60% in the stratum design of
+    Scripts/qc/instruments/phase4_accuracy_sample.py and as the has-CHM share measured
+    here over imaged 2016 pixels at 1/8 decimation. Different denominators, no tracked
+    reconciliation — do not average them.
+  bounds_only: >
+    coverage bias. Accuracy of the height raster where it exists is a different question
+    (recorded in the file as U6) and is answered by old_chm_defect.

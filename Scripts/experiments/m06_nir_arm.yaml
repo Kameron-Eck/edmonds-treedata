@@ -1,0 +1,96 @@
+name: m06_nir_arm
+kind: experiment
+status: complete
+retrospective: true
+category: channels
+tags: [nir, 4th-channel, chm-swap, sectors, pre-overhaul, "2016", "2019n"]
+hypothesis: >
+  The archive's 4-band acquisitions carry a NIR band the engine has never used, and NIR
+  is the band vegetation is easiest to see in. The M06 arm asks whether feeding band 4 of
+  the year's OWN ortho as the fourth input channel beats what that channel currently
+  carries. The contrast is deliberately narrow: the live per-year arms already run four
+  channels with a CHM in slot four, so this is a SWAP at equal channel count, not a test
+  of whether a fourth channel helps at all. Two sensors were run so the answer could not
+  be a one-sensor story. What would change our mind: the NIR arm beating its per-year
+  contrast on both sensors by more than the only noise bound the project then owned.
+arms:
+  - {year: "2016", tag: nir_m06}
+  - {year: "2019n", tag: nir_m06}
+baseline: null
+metric: >
+  qc_indep live=1, primary=1 rows in phase4/qc/qc_indep_report.csv carrying run_tag
+  nir_m06, scored against epoch-matched C-CAP (the 2016 snohfull product for 2016, the
+  2021 product for 2019n) through Scripts/qc/phase4_qc_indep.py. The NDVI-derived
+  reference is CIRCULAR for these arms — it is computed from the very band the model now
+  takes as input — and the runbook rules it out as the headline for exactly that reason.
+decision_rule: >
+  RECONSTRUCTED (retrospective: true) from Reports/M06_NIR_ARM.md, whose promotion
+  section was written before the launch and promotes nothing on its own: a winner is
+  named on qc_indep live=1 threshold-free metrics at a matched operating point, and no
+  arm is promotable until a noise arm measures run-to-run sigma — the precondition
+  inherited from sector_campaign_v1. The only empirical bound available at the time was
+  the 2013 xsensor/citywide recall pair, whose magnitude is about what a small threshold
+  nudge does to that same raster, so any recall delta below that band is inside the noise.
+  The headline was pre-specified as the cross-arm variance of honest recall ACROSS the
+  two NIR years rather than either year's IoU — year-invariance was the prize. Sector-
+  restricted arms are champion-INELIGIBLE by the campaign's eligibility rule: they test a
+  model, they do not deliver a year.
+verdict: >
+  CLOSED, AND THE CHM STAYS IN SLOT FOUR. The decisive leg is 2019n, where the NIR arm's
+  live primary row reads recall 0.4709 against ccap_2021_hires_lc.tif in
+  phase4/qc/qc_indep_report.csv — below every other live 2019n arm scored on that same
+  reference, by a margin far outside the noise band the decision rule names. The 2016 leg
+  came out a tie rather than a win: the NIR arm and the CHM arm sit close on the same
+  snohfull reference, but at materially different operating points and on a
+  sector-restricted footprint — the two confounds the campaign's own list says make such
+  a pair uncontrolled in either direction. SCOPE, and
+  it is load-bearing: this was a CHM-to-NIR SWAP at equal channel count, not a channel
+  addition. Tier-1's later "NIR CONFIRMED" verdict compared NIR against a genuine 3-band
+  base on pre-registered test blocks against a measured replicate floor — a different
+  contrast, a different control, a different reference and a different statistic. That
+  entry supersedes this one because the question moved there, NOT because the answer
+  flipped; reading them as wrong-versus-right is itself the misquote. Carry the 2019n
+  caveat with any use of that leg: the same log that recorded this closure had already
+  flagged 2019n as a year whose arms give two different answers and whose series points
+  are unusable until that is resolved.
+decided: 2026-08-27
+design_doc: Reports/sector_campaign_design.md
+reports: [Reports/M06_NIR_ARM.md]
+instruments: [Scripts/qc/phase4_qc_indep.py]
+outputs: [phase4/qc/qc_indep_report.csv]
+run_ids:
+  - 20260826T203533Z_2016_nir_m06_inference
+  - 20260827T001300Z_2019n_nir_m06_inference
+imagery: ["2016", "2019n"]
+sample: >
+  two arms, one per NIR-bearing sensor — a Snohomish 1 ft summer flight (2016) and an
+  autumn NAIP 60 cm delivery (2019n) — trained citywide and inferred over the
+  sectors_v1 strips, each scored against its epoch-matched C-CAP reference.
+supersedes: []
+superseded_by: [tier1_science_sample]
+extra:
+  closure_quote: >
+    "NIR M06 CLOSED: tie 2016, dominated 2019n → CHM stays; NIR value = normalized-NDVI
+    change work." — quoted verbatim from archive/2026-08-pre-refactor:Scripts/CHATLOG.md
+    line 2471 (entry '2026-08-27 OVERNIGHT PoC'). The current-tree CHATLOG was rotated
+    2026-08-31 and its stub certifies the pre-rotation text is preserved byte-identical
+    on that branch. "dominated" carries no direction or magnitude in the source and none
+    should be supplied.
+  year_2019n_red_flag: >
+    the same log records "RED FLAG: 2019n. nir_m06 = .5966 vs p2nir = .4143 for the SAME
+    YEAR" and calls any series point drawn from 2019n unusable until resolved
+    (archive/2026-08-pre-refactor:Scripts/CHATLOG.md, lines ~2251-2253). The channel
+    composition of the p2nir arm is not established by anything in the tracked tree, so
+    that spread cannot be attributed to a channel difference.
+  seasonal_confound: >
+    2016 is a summer flight and 2019n an autumn one, and their measured band-4 means
+    differ accordingly; the fixed NIR normalisation stats do not remove that, so a
+    2016-vs-2019n gap is not a clean sensor effect (Reports/M06_NIR_ARM.md).
+  missing_rung: >
+    a true RGB-only control (same recipe, --no-hillshade, tag rgb3_m06) was deliberately
+    left out of the queue. Tier-1's t1_2016_base / t1_2019n_base arms are what eventually
+    supplied it.
+  executable_spec: >
+    pipeline/queue_nir_m06.yaml — the queue file named in the runbook; it does not exist
+    in the current tree (removed in the 2026-08-31 reorganisation) and is therefore not
+    carried as a gated pointer.

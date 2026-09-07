@@ -1,0 +1,93 @@
+name: threshold_policy_c
+kind: instrument-finding
+status: complete
+retrospective: true
+category: threshold
+tags: [policy-c, f1_plateau_hi_d005, dense-sweep, circularity, operating-point, selector]
+hypothesis: >
+  The operating cut was being chosen by max F1 on 2020-PROJECTED labels, so real
+  land-cover change between the imaged year and 2020 was scored as model error during
+  selection — the threshold was picked by the one quantity the project cannot hold
+  still. Two changes were proposed together: select the cut from an exact, independent
+  254-cut sweep against C-CAP instead, and take the precision-most end of the flat
+  region rather than the recall-most edge. What would have killed the second half: an
+  independent F1 curve with a sharp peak. A narrow peak makes plateau-high
+  indistinguishable from strict argmax and leaves the tie-break unmotivated.
+arms: []
+baseline: null
+metric: >
+  phase4/qc/indep_thresholds.csv — one row per (year, run_tag, ref): criterion, the
+  selected integer cut k, the floor-truncated thresh, F1 / recall / precision at that
+  cut, edge_flag, and the sweep file it was chosen from. Column contract, the
+  floor-truncation rule, the EDGE rule and the never-pool-across-policy reader rule are
+  in Scripts/docs/SCHEMAS.md; the decision itself is Reports/RECIPE_AUDIT_2026-09-01.md.
+decision_rule: >
+  RECONSTRUCTED (retrospective: true) from the selector's module docstring and the
+  pre-registration in experiments/full_archive_e3.yaml — both written before any
+  36-run arm existed, so this half genuinely is pre-registered. The rule: the scorer
+  writes an exhaustive curve at every integer u8 cut from two 256-bin histograms (the
+  exact curve, not a sampled one) on the raw probability raster; the selector takes the
+  HIGHEST k whose F1 is within 0.005 of the peak — deliberately NOT the argmax.
+  Comparison is done in integer 1e-4 ticks because f1 is written at 4 dp and float
+  subtraction drops a row sitting exactly on the boundary, always toward lower k, always
+  against the criterion's intent. thresh is FLOOR-truncated to 6 dp so that production's
+  int(round(thresh*254)) and the scorer's pr >= thresh*254 both cut at exactly k;
+  rounding up silently deploys k+1. A sweep that does not hold exactly {1..254} is
+  UNSELECTABLE and writes no row. The fallback is never circular: a missing or
+  unscorable sweep writes no registry row, exits 2, and that year deploys a fixed 0.5
+  with a loud flag. The 0.005 band is asserted as METRIC INDIFFERENCE, not noise, and
+  the docstring argues why: at ~120M scored cells the sampling error on F1 sits far
+  below 0.005, so a plateau that wide is a property of the curve. Reader rule adopted
+  with the policy: never pool scores across threshold policy, and never read a
+  non-default reference row as a deployment.
+verdict: >
+  ADOPTED AND IMPLEMENTED THE DAY IT WAS PROPOSED — "DECIDED: C (Kam, 2026-09-01 —
+  'Let's go with C')" in Reports/RECIPE_AUDIT_2026-09-01.md. The plateau is real, which
+  is what makes the tie-break more than a preference: both pilot curves are flat within
+  0.005 across a threefold threshold range, so strict argmax would have deployed the
+  recall-most, sloppiest edge of a region the metric cannot distinguish. The deployed
+  2011s selection is k=81 at thresh 0.318897, recall 0.7625 / precision 0.7552, read
+  from phase4/qc/indep_thresholds.csv; the same recall and precision are carried to 4 dp
+  by the matching live row in the LAKE copy of the independent ledger, which the tracked
+  harvest in this repo predates. READ, stated precisely: the POLICY is settled, the
+  fleet-wide campaign that deploys it is NOT — full_archive_e3 is still queued, so
+  what exists is two citywide pilot selections plus Tier-1 AOI-restricted selections,
+  not an archive-wide policy-C answer. Two standing constraints travel with any number
+  it selected: publish the curve rather than blessing a single value (the caveat Kam
+  published with the decision, because C-CAP's broad canopy definition is inherited by
+  the ABSOLUTE optimum even though variant deltas against it are trustworthy), and never
+  place a policy-C-cut arm in one table with a circular-cut champion — they are
+  different operating-point populations, and such a comparison measures the threshold,
+  not the model. Engine untouched: deployment rides the existing --infer-thresh
+  override, which is why re-cutting masks costs zero GPU.
+decided: 2026-09-01
+reports: [Reports/RECIPE_AUDIT_2026-09-01.md]
+instruments:
+  - Scripts/qc/instruments/select_indep_threshold.py
+  - Scripts/qc/phase4_qc_indep.py
+outputs: [phase4/qc/indep_thresholds.csv]
+imagery: ["2011s", "2006s"]
+sample: >
+  the tracked threshold registry — four citywide pilot selections (2011s and 2006s,
+  each against the ccap_2021 deployment reference and the ccap_2016 sensitivity
+  reference). The Tier-1 t1_* selections are AOI-restricted to sample ground blocks,
+  carry a '_sample-selection' sweep-file suffix, exist only on the lake copy of the same
+  registry, and must never be pooled or compared with citywide rows — the registry
+  has no aoi column, so that filename suffix is the only signal.
+n: 4
+n_source: phase4/qc/indep_thresholds.csv#rows
+supersedes: []
+superseded_by: []
+extra:
+  docx_sections: [THRESHOLD_POLICY_C]
+  pre_registered_in: full_archive_e3
+  consumed_by: [trend8_uniform_rgb]
+  depends_on: recipe_audit
+  selection_is_arm_dependent: >
+    the selected k varies widely across arms and years, which is the measured argument
+    against ever deploying one fixed threshold fleet-wide; per-arm values live in the
+    registry, never restated here.
+  reader_trap: >
+    indep_thresholds.csv has NO aoi column. On the lake copy the large majority of rows
+    are AOI-restricted Tier-1 selections, so "a registry row is citywide" is the wrong
+    default there; the tracked copy in this repo holds the citywide pilot rows only.

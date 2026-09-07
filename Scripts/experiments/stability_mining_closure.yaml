@@ -1,0 +1,169 @@
+name: stability_mining_closure
+kind: measurement-campaign
+status: complete
+retrospective: true
+category: labels
+tags: [stability-mining, sparse-labels, hybrid, lidar-quadrants, node-c, calibration, "2009"]
+hypothesis: >
+  Only 2020 has hand labels, so every old year is supervised by projecting the 2020 mask
+  onto it. If that projected key is the binding constraint, then labels MINED for
+  cross-era stability — crowns that read as canopy under every model of every era, plus
+  dual-epoch lidar evidence of height — should beat it when training an old imagery
+  year. Three variants attack the same question from different sides: replace the key
+  with a sparse verified one, keep the key and overwrite only where verification exists,
+  or add lidar-certified canopy on top of a one-variable baseline. What would change our
+  mind is an arm that beats the projected key at a matched operating point by more than
+  the recipe's own run-to-run spread.
+arms: []
+baseline: null
+metric: >
+  phase4/qc/qc_indep_report.csv (2009 rows, live=1, forest_wetland) for the arms'
+  operating points; phase4/qc/arm_pr_curves_2009_3band.md and
+  phase4/qc/arm_pr_curves_2009_3band_noisefloor.md for the threshold-free curves, the
+  matched-operating-point tables, the calibration mass and the recipe's noise floor;
+  phase4/qc/campaign_area_reread_2009.md and
+  phase4/qc/region_confusion_2009_replication.md for the regional confusion counts the
+  canopy-area bias is derived from; phase4/qc/damage_curve_area_2009.md,
+  phase4/qc/seed_area_noisefloor_2009.md and phase4/qc/ep60_replication_area_2009.md
+  for the label-error dose response and the seed floors; phase4/qc/nodec_gain_inside_vs_outside_2009.md
+  and phase4/qc/holdout_design_census_2009.md for the paired block bootstrap on the
+  inside/outside split. Curve summary for the sparse leg also in Reports/ARM_PR_CURVES_2009.md.
+decision_rule: >
+  RECONSTRUCTED (retrospective: true) from the arms' queue-file reads and the archived
+  verdict prose. Three rules, one per variant, and each was stated before its result.
+  SPARSE is judged at MATCHED PRECISION against the baseline's precision at 0.5, never
+  at a shared fixed cut, because a sparse-label arm is differently calibrated and a
+  fixed cut would credit it for merely sitting at a more liberal operating point.
+  HYBRID exists to separate label CORRECTNESS from label QUANTITY — keep the projected
+  key, overwrite only proven pixels, IGNORE nowhere — so a null there means correcting
+  the key is not the lever, whatever the sparse arms did. QUADRANTS was judged against a
+  band fixed BEFORE its replicate landed: dAUROC at or above +.0060 replicates, at or
+  below +.0020 does not stand, anything between is UNRESOLVED and must be reported as
+  such rather than as a null (CLAUDE.md 3.5). A late addition to the reading, adopted
+  when the ranking metric came back inside the band: canopy AREA is the deliverable and
+  AUROC is structurally blind to the operating point, so the area re-read is a second
+  pre-declared axis, floored by the same-recipe seed spread rather than by a nominal cut.
+verdict: >
+  CLOSED AS THREE DIFFERENT ANSWERS, and the composite read is that the projected 2020
+  key is more right than it looks. SPARSE is decisively refuted: replacing the key with
+  a mined verified key costs 21-26 pp of recall at matched precision against a recall sd
+  the source file itself calls a LOWER bound — the verdict prose and the matched-
+  precision table are in archive/2026-08-pre-refactor:Scripts/CHATLOG.md, and the
+  threshold-free curves that agree with it for the baseline arm are in
+  Reports/ARM_PR_CURVES_2009.md. The mechanism is measured, not guessed: sparse labels
+  BREAK CALIBRATION, parking a large share of valid pixels within a hundredth of 0.5
+  where the baseline parks far fewer (calibration table, same archived source), so the
+  naive fixed-cut "recall win" for the sparse arm is an artifact of operating point.
+  HYBRID is a clean null on the ranking metrics —
+  recall 0.6253 at precision 0.8792 against the baseline's 0.6989 / 0.8472, both read
+  from the live=1 forest_wetland rows of phase4/qc/qc_indep_report.csv — and the reason
+  is also measured: the damage curve shows AUROC is flat across the whole injected
+  label-error range, so label error moves the OPERATING POINT, not discrimination, and
+  a sub-percent correction could never have paid. QUADRANTS is the one variant that is
+  not dead. On the pre-registered ranking band it is UNRESOLVED, not null: AUROC gaps of
+  +.0116 then +.0053 over the one-variable baseline, from the four curve cells in
+  phase4/qc/arm_pr_curves_2009_3band_noisefloor.md, against a band fixed before the
+  replicate landed at +.0060 to replicate and +.0020 to fall (the band itself is
+  recorded only in archive/2026-08-pre-refactor:Scripts/CHATLOG.md) — positive twice,
+  above the refutation line twice, short of the replication line once. On canopy area,
+  the deliverable metric, it REPLICATES in both runs by a margin several times the
+  baseline seed pair's own spread, derived from the confusion counts in
+  phase4/qc/campaign_area_reread_2009.md and phase4/qc/region_confusion_2009_replication.md
+  — but it also roughly quadruples run-to-run variance on both metrics, so it buys
+  accuracy and pays in stability. STANDING: the live successor is the Tier-1 lidar
+  factor, which is a different year set, reference and statistic; nothing here pools
+  with it.
+decided: 2026-08-29
+instruments:
+  - Scripts/qc/instruments/mine_stable_crowns.py
+  - Scripts/pipeline/builders/build_groves_overlay.py
+  - Scripts/pipeline/builders/build_lidar_quadrants.py
+  - Scripts/qc/instruments/phase4_arm_pr_curves.py
+  - Scripts/qc/instruments/phase4_region_confusion.py
+  - Scripts/qc/instruments/phase4_verdict.py
+inputs:
+  - phase4/qc/qc_indep_report.csv
+outputs:
+  - phase4/qc/arm_pr_curves_2009_3band.md
+  - phase4/qc/arm_pr_curves_2009_3band_noisefloor.md
+  - phase4/qc/campaign_area_reread_2009.md
+  - phase4/qc/region_confusion_2009_replication.md
+  - phase4/qc/damage_curve_area_2009.md
+  - phase4/qc/seed_area_noisefloor_2009.md
+  - phase4/qc/ep60_replication_area_2009.md
+  - phase4/qc/holdout_design_census_2009.md
+  - phase4/qc/nodec_gain_inside_vs_outside_2009.md
+reports:
+  - Reports/ARM_PR_CURVES_2009.md
+  - Reports/FINDINGS_LEDGER_2026-09-03.docx
+run_ids:
+  - 20260827T064808Z_2009_fullext_sectors_v1_inference
+  - 20260828T003342Z_2009_groves_nolidar_inference
+  - 20260828T033743Z_2009_hybrid_v1_inference
+  - 20260828T172049Z_2009_rgb3_nodeb_inference
+  - 20260829T064558Z_2009_nodec_v1_inference
+imagery: ["2009"]
+sample: >
+  one imagery year (2009), five label variants plus their one-variable baselines, all
+  scored on ONE common footprint — the intersection of every arm's valid pixels with
+  the scorable 2016 hi-res C-CAP reference under forest_wetland. The quadrants leg adds
+  a seed replicate and a paired block bootstrap over 512x2048 px blocks, whose effective
+  n is the block count and never the pixel count.
+supersedes: []
+superseded_by: []
+extra:
+  docx_sections: [EXP-C-stability-mining-closure]
+  arms_by_variant:
+    sparse: [groves_nolidar, groves_lidar]
+    hybrid: [hybrid_v1]
+    quadrants: [nodec_v1, nodec_s1234]
+    baselines: [fullext_sectors_v1, rgb3_nodeb, rgb3_nodeb_s1234]
+  arms_not_claimed_here: >
+    kind is measurement-campaign, so this entry declares no (year, tag) arms and owns no
+    tags. The tag names above are provenance, listed so a reader can find the runs.
+  registry_gaps: >
+    groves_lidar, nodec_s1234 and rgb3_nodeb_s1234 have labels/tile/train rows in
+    run_registry.csv but NO inference row, so only the five confirmed terminal run_ids
+    are cited.
+  retraction_that_must_travel_with_this_entry: >
+    "Kam's lidar hard negatives work as designed" is RETRACTED and VOID. The two groves
+    arms ran concurrently on 2009 while the tile cache was keyed by year only, so they
+    raced on one directory and both models trained on an unknown mixture of each other's
+    labels. Kam's lidar-negatives idea is UNTESTED, not disproven. Fixed by per-arm tile
+    dirs in commit 507dff6. Retraction text: archive/2026-08-pre-refactor:Scripts/CHATLOG.md.
+  thin_provenance: >
+    the sparse arms' matched-precision recalls and their calibration table live only in
+    an untracked session scratchpad; the tracked Reports/ARM_PR_CURVES_2009.md is a
+    DIFFERENT arm pair and must not be cited for the groves arms. The 21-26 pp gap and
+    the verdict prose are recoverable from the archive-branch CHATLOG.
+  do_not_quote:
+    - the sparse effect as a settled sigma count — the recall sd in the denominator is
+      n=5 SAME-SEED and the source file calls it a lower bound, so the sigma count is an
+      upper bound. The pp gap is the robust statement.
+    - the hybrid as the most under-counting of all 13 arms — a deliberately corrupted
+      arm under-counts more; hybrid_v1 is the most under-counting of the non-corrupted
+      arms.
+    - the hybrid as a 0.7% dose — it was 85% no-op and therefore never one-variable;
+      the ruling is 0.53% effective, two variables.
+    - quadrants as null — its own pre-registered band returned UNRESOLVED, and it
+      replicated on area.
+  binding_caveats_on_the_area_leg:
+    - a 2016 reference scored against a 2009 raster puts real 2009-2016 change inside
+      the ABSOLUTE bias, so only the RELATIVE comparison is sound
+    - this is the sectors_v1 AOI, not citywide
+    - the replicate's near-unbiased area comes from CANCELLATION of large opposite
+      errors, not from being right
+  filename_hazard: >
+    phase4/qc/holdout_design_census_2009.md contains a bootstrap CI, not the census its
+    name promises; and five phase4/qc/*_2009.md files whose names promise
+    area/damage/noisefloor/replication content all carry the generic title "FP/FN
+    balance by region" and hold only TP/FP/FN/recall/precision. Area figures are DERIVED
+    from those counts, never read from a column.
+  live_successor: >
+    tier1_science_sample pre-registered the lidar-as-label ADDER factor across three
+    years with a different reference and a different statistic, AOI-restricted to sample
+    ground blocks. Do not pool any Tier-1 number with the 2009 numbers above.
+  variant_verdict_dates: >
+    sparse and hybrid closed 2026-08-28, the quadrants replicate 2026-08-29 (archived
+    CHATLOG entry headings); the area re-read tables landed the same day. The
+    2026-09-03 findings ledger re-read the three as one thread but decided nothing new.

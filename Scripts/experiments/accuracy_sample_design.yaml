@@ -1,0 +1,116 @@
+name: accuracy_sample_design
+kind: measurement-campaign
+status: complete
+retrospective: true
+category: truth
+tags: [olofsson, stratified-sample, photo-interp, design-power, reference-disagreement, k1]
+hypothesis: >
+  Every accuracy number in this project is scored against a reference that is itself a
+  product — C-CAP, or an NDVI+CHM rule — and the two of them disagree over a large
+  minority of pixels, replicated across four years and three sensors, so it is not
+  vintage drift. Inside that contested zone no proxy can adjudicate: the corrected-label
+  experiment lifted recall by adopting the NDVI reference's canopy DEFINITION, and
+  whether that made the model more CORRECT or merely more LIBERAL is exactly the
+  question a proxy cannot answer. A stratified, photo-interpreted human sample with
+  Olofsson error-adjusted estimators is the only instrument in the pipeline with no
+  model and no proxy product between the analyst and the answer. What would change our
+  mind: a power analysis showing the drawn design cannot separate the two candidate
+  canopy definitions at the n actually drawn, or strata that spend the sample on ground
+  both references already agree about and therefore buy no adjudication at all.
+arms: []
+baseline: null
+metric: >
+  phase4/qc/design_power_{2016,2022n,2023n}.txt and .csv — the expected CI of the
+  ACTUAL drawn design (real stratum weights, real allocation, Monte-Carlo studies),
+  swept over interpreter error, with the separation between the two candidate canopy
+  definitions in the same file. Kits and their stratum weights: phase4/qc/
+  sample_{year}_meta.json; point tables: phase4/qc/sample_{year}.csv. There is no
+  estimate output — the Olofsson estimator lives behind `--step estimate` and has
+  never been run, because no labels file exists.
+decision_rule: >
+  RECONSTRUCTED (retrospective: true) from the instrument docstring and from
+  qc/instruments/phase4_qc_design_power.py, whose question was posed against the
+  2026-08-18 assessment BEFORE any point was drawn — that part genuinely is
+  pre-registered. The design commitments: strata cross REFERENCE AGREEMENT with CANOPY
+  HEIGHT, not model confidence, because uniform strata would spend the sample on ground
+  both references already agree about; every stratum keeps its true area W_h = N_h/N,
+  which is what makes the deliberate over-sampling of the contested zone unbiased
+  rather than merely convenient; the four confusion cells within a stratum are ONE
+  multinomial draw, so the CI carries the full covariance and not the sum of variances;
+  `unsure` is a first-class answer, EXCLUDED from estimation and never coerced, the same
+  three-state discipline as the mask labels (CLAUDE.md 3.6). The publication rule the
+  campaign exists to enforce: mask-derived areas are labelled MAP AREA, and nothing is
+  published as an area ESTIMATE until it carries the adjusted estimator and its CI
+  (docs/STATS_CHECKLIST.md section 8). The design is admissible only if the measured
+  power says it can tell the two candidate canopy definitions apart at the drawn n.
+verdict: >
+  THE DESIGN HOLDS, THE BINDING CONSTRAINT IS THE INTERPRETER RATHER THAN n, AND NO
+  ESTIMATE HAS EVER BEEN PRODUCED. Read from phase4/qc/design_power_2016.txt: at zero
+  interpreter error the drawn design returns a 95% half-width of +-1.22pp against an
+  8.24pp separation between the two candidate canopy definitions, and the same file's
+  sweep degrades to `marginal` by 10% interpreter error — its own one-word verdict is
+  CONDITIONAL. That inverts the 2026-08-18 assessment's premise, which computed +-5.9pp
+  under simple random sampling and concluded the sample could not arbitrate: sample size
+  was never the binding constraint, interpreter fidelity is, which is why the
+  duplicate-interpreted subset stopped being optional. The 2026-09-03 ledger audit
+  surfaced four defects in the machinery, and the 2026-09-04 repair pass
+  (Scripts/CHATLOG.md, `accuracy-batch-overnight`) closed them: strata rebuilt on chm2
+  instead of the deprecated CHM raster that reads high, the undo-as-final-row bug in
+  `--step estimate` fixed, the 2016 and 2023n kits redrawn after 2023n was found to be a
+  byte copy of 2022n, and the frozen-model-snapshot defect retired by U1, which scores
+  ANY arm at the labelled points rather than the snapshot each kit froze. What remains
+  absent is the campaign's own deliverable: no labels file exists, therefore no Olofsson
+  estimate, no error-adjusted area, no CI. That is the honest read — the machinery is
+  complete and gated, the number is not, and K1 (Kam labelling the redrawn 250-point
+  2016 kit) is the only gate between them.
+decided: 2026-09-04
+design_doc: Scripts/docs/STATS_CHECKLIST.md
+instruments:
+  - Scripts/qc/instruments/phase4_accuracy_sample.py
+  - Scripts/qc/instruments/phase4_qc_design_power.py
+  - Scripts/qc/instruments/build_sample_covariates.py
+outputs:
+  - phase4/qc/sample_2016.csv
+  - phase4/qc/sample_2016_meta.json
+  - phase4/qc/sample_2000.csv
+  - phase4/qc/sample_2022n.csv
+  - phase4/qc/sample_2023n.csv
+  - phase4/qc/design_power_2016.txt
+  - phase4/qc/design_power_2016.csv
+  - phase4/qc/design_power_2022n.txt
+  - phase4/qc/design_power_2023n.txt
+reports: [Reports/FINDINGS_LEDGER_2026-09-03.docx]
+imagery: ["2016", "2000", "2023n"]
+sample: >
+  stratified photo-interpretation kits over the decimated analysis lattice, one kit per
+  year, 250 points each. Years with NIR use the dual-reference scheme (six strata
+  crossing C-CAP/NDVI agreement with canopy height); years without fall back to four
+  strata on C-CAP class crossed with height, because there is no disagreement to
+  adjudicate. The pinned n is the 2016 kit.
+n: 250
+n_source: phase4/qc/sample_2016.csv#rows
+supersedes: []
+superseded_by: []
+extra:
+  docx_sections: [accuracy-sample-design]
+  board_row: >
+    WORKPLAN DONE, "Accuracy instruments" — this entry owns the sampler-repair/redraw,
+    U1 and E2 legs; the certified-flat, C2/C2b and C3 legs are certified_flat_scoring,
+    metric_tolerance_c2b and sameflight_floor_c3.
+  stale_repo_kits: >
+    the repo copies of sample_2016.csv / sample_2016_meta.json predate the 2026-09-04
+    repair and redraw — they still carry the original seed, prob raster and threshold.
+    The redrawn kits are parked on the lake at G:\My Drive\treedata\phase4\qc\, which
+    is also where a `--step serve` session would write labels.
+  defects_audited:
+    - "strata thresholded on the deprecated high-reading CHM -- repaired, rebuilt on chm2"
+    - "sample_2023n was a byte copy of sample_2022n -- repaired, redrawn"
+    - "--step estimate did not honour `undo` as a point's final row -- repaired"
+    - "each kit froze a model snapshot and threshold that no longer deploy -- retired by U1"
+  untracked_evidence: >
+    the E2 covariate join (sample_2016_covariates.csv) is lake-side and not in
+    phase4/qc/; it is cited by greenness_gradient_correction, not scored here.
+  open_gate: >
+    K1 — Kam labels the redrawn 250-point 2016 kit (WORKPLAN AWAITING KAM #3), which is
+    what turns this campaign from a design into an estimate. K2 blind repeats are what
+    the power file says decides whether the headline number means anything.

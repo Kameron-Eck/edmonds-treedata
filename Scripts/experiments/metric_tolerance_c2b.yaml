@@ -1,0 +1,95 @@
+name: metric_tolerance_c2b
+kind: instrument-finding
+status: complete
+retrospective: true
+category: floors
+tags: [edge-tolerance, boundary, registration, c2, c2b, metric, tier1]
+hypothesis: >
+  A strict per-pixel score charges a model for every boundary pixel it misplaces, and
+  the delivery grids in the Tier-1 set differ in pixel size by more than an order of
+  magnitude — so the same physical misplacement is nearly free for a centimetre year and
+  fatal for a multi-metre one. The error sources that actually generate boundary
+  disagreement are METRIC, not pixel-counted: inter-year registration measured out to
+  metres in phase4/qc/coregistration.csv, crown-edge gradients of order a metre, and
+  label projection from a 2020 flight onto every other year. A tolerance expressed in
+  NATIVE PIXELS — the earlier C2 read — conflates all of that with the delivery grid and
+  hands the coarse years metres of forgiveness while handing the fine years centimetres.
+  What would change our mind: scores that barely move as physical tolerance grows, which
+  would mean the disagreement is body-level rather than boundary and the strict number
+  could stand as it is.
+arms: []
+baseline: null
+metric: >
+  phase4/qc/metric_tolerance_scores.csv — one row per Tier-1 arm and tolerance (strict,
+  0.5 m, 1 m, 2 m), carrying the arm's pixel size in metres, the pixel dilation that
+  tolerance rounds to on that grid, and recall and precision at that tolerance. The
+  superseded native-pixel read is phase4/qc/buffer_tolerant_scores.csv from
+  Scripts/qc/instruments/tier1_buffer_tolerant.py, retained as the artefact being
+  corrected rather than as a source to quote.
+decision_rule: >
+  RECONSTRUCTED (retrospective: true) from the C2b instrument docstring, which states
+  the reading ladder before any arm is scored. Same arms, same test blocks, same
+  policy-C thresholds and the same reference as the native-pixel run, so the ONLY thing
+  that changes is how tolerance is defined; dilation is round(tol / pixel_size) pixels
+  by 8-neighbourhood chamfer approximation, and a tolerance that rounds to zero pixels
+  is a strict read under another name and must be reported as one, never as evidence
+  that tolerance does not matter on that grid. The ladder is then read in three parts:
+  strict to 1 m is boundary and registration accounting, 1 m to 2 m adds the measured
+  registration tail from coregistration.csv, and whatever survives past 2 m is genuine
+  detection error — the only part a recipe change or a boundary-refinement method can
+  address. A cross-year comparison is admissible only at a fixed PHYSICAL tolerance.
+verdict: >
+  THE STRICT SCORE WAS MEASURING PIXEL SIZE, NOT DETECTION. Read from
+  phase4/qc/metric_tolerance_scores.csv: the 2020 base arm scores recall 0.7039 strict
+  and 0.9197 at 2 m tolerance — the same mask, the same blocks, the same threshold,
+  moved only by forgiving 2 m of boundary. The two 2020 arms hold the lowest strict
+  recalls in the file and the 2020 base arm holds the highest at 2 m: the ranking
+  inverts under nothing but a change of accounting. The file's dilate_px column carries the
+  mechanism: on 2020's centimetre grid, 2 m of physical forgiveness is tens of pixels of
+  dilation, while on the coarse years' multi-metre grids the 0.5 m and 1 m tolerances
+  round to no dilation at all and the strict, half-metre and one-metre rows are
+  identical by construction. The consequence is a reader rule, not a model change:
+  strict per-pixel recall is not comparable across delivery grids and never was a
+  like-for-like ranking, so any cross-year arm comparison must be read at a fixed metric
+  tolerance. This entry owns both legs of that correction — the native-pixel C2 read in
+  buffer_tolerant_scores.csv has no registry entry of its own and is superseded here,
+  not elsewhere. The residual past 2 m is what a boundary-refinement method would have
+  to beat, and is the pre-written kill criterion the queued SAM pilot is gated on
+  (WORKPLAN QUEUED).
+decided: 2026-09-04
+instruments:
+  - Scripts/qc/instruments/tier1_metric_tolerance.py
+  - Scripts/qc/instruments/tier1_buffer_tolerant.py
+inputs:
+  - phase4/qc/science_sample_manifest.csv
+  - phase4/qc/indep_thresholds.csv
+  - phase4/qc/coregistration.csv
+outputs:
+  - phase4/qc/metric_tolerance_scores.csv
+  - phase4/qc/buffer_tolerant_scores.csv
+design_doc: Scripts/TIER1_SCIENCE_SAMPLE_PLAN_2026-09-02.md
+imagery: ["2006s", "2011s", "2016", "2019n", "2020"]
+sample: >
+  nine Tier-1 arms — the base and lidar-input siblings of 2006s, 2011s, 2016 and 2020,
+  plus 2019n base — scored on the science sample's TEST blocks against C-CAP 2021
+  hi-res under the forest_wetland canopy definition, each arm cut at its policy-C threshold
+  and read at four tolerances. Not a fresh sample: the same masks the Tier-1 verdicts
+  were written from, re-scored under a different accounting.
+n: 36
+n_source: phase4/qc/metric_tolerance_scores.csv#rows
+supersedes: []
+superseded_by: []
+extra:
+  board_row: >
+    WORKPLAN DONE, "Accuracy instruments" — the C2/C2b edge-tolerance leg. Sibling legs
+    are accuracy_sample_design, certified_flat_scoring and sameflight_floor_c3.
+  supersession_note: >
+    C2 (native-pixel buffer) and C2b (metric tolerance) are one thread with one
+    conclusion, so they share this entry rather than being split; there is no
+    leafoff-style registry name on the C2 side for supersedes: to resolve against.
+  tag_ownership: >
+    the t1_* tags re-scored here belong to tier1_science_sample; this entry claims no
+    arms and launches nothing.
+  followup: >
+    SAM boundary-refinement pilot, whose kill criterion is written against the residual
+    past 2 m measured here (WORKPLAN QUEUED, awaiting Kam's nod and about 1 GPU-hour).

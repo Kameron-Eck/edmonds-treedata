@@ -1,0 +1,100 @@
+name: sector_campaign_v1
+kind: measurement-campaign
+status: complete
+retrospective: true
+category: machinery
+tags: [sectors, sampled-inference, design-based-estimator, pre-overhaul, promotion-gate]
+hypothesis: >
+  Citywide inference costs a full A100 pass per arm, which is why almost no arm had ever
+  been compared against another. If five west-east strips can stand in for the city, the
+  same experimental question can be asked for roughly a tenth of the pixels, and the
+  archive becomes something you can iterate on rather than something you run once. The
+  campaign therefore asks two things at once: does sampled inference work as an
+  experiment bench, and do the two full-extent fine-tunes it carries beat the arms
+  already on record. What would change our mind on the second: an effect larger than the
+  three confounds the design cannot control — the footprint, the operating point, and
+  run-to-run training noise.
+arms: []
+baseline: null
+metric: >
+  Reports/SECTOR_CAMPAIGN_REPORT_2026-08.md, which quotes every number to a file on disk
+  with its reference and operating point attached. Per-arm accuracy in the qc_indep
+  live=1 rows of phase4/qc/qc_indep_report.csv; the design-based city fraction and its
+  CIs in phase4/qc/sector_campaign/; the frozen-window regression in
+  phase4/qc/golden_gate_history.csv, which is report-only and never accuracy.
+decision_rule: >
+  RECONSTRUCTED (retrospective: true) from Reports/SECTOR_CAMPAIGN_REPORT_2026-08.md,
+  whose rule is stated as a precondition rather than a threshold: NO arm is promotable
+  until a noise arm — identical recipe, different seed — measures run-to-run sigma. Until
+  then the only empirical bound is the 2013 xsensor_rgb / citywide_rgb pair, a single
+  observation whose magnitude is about what the same raster shows between two adjacent
+  thresholds, so any claimed improvement of that size or smaller is inside the only noise
+  bound that exists. Every arm-vs-arm read must additionally carry its footprint and its
+  operating point, because both differ between a sector arm and a citywide arm and both
+  move recall. Scoring is against epoch-matched C-CAP through qc/phase4_qc_indep.py; the
+  golden gate is report-only in v1 for the same missing-sigma reason.
+verdict: >
+  SAMPLED INFERENCE WORKS; PROMOTION DOES NOT FOLLOW FROM IT. Eight arms ran VERIFY-clean
+  and were scored, postprocessed and folded into the series, and the harness cut the cost
+  of an inference pass severalfold — short of the design note's prediction, but real, and
+  the report states both the measured cut and the prediction. That part landed. The
+  promotion question came back UNDECIDABLE, and deliberately so: the campaign's own
+  decisive read, from Reports/SECTOR_CAMPAIGN_REPORT_2026-08.md, is that 2016_fx trades
+  recall for precision — recall 0.0473 lower and precision 0.0383 higher than the
+  citywide arm — at a higher threshold and on a footprint with more reference canopy, so
+  each of the three confounds independently exceeds the effect. Two things were delivered
+  outright and are not undecidable: the study-clip coverage ceilings on 2016 and 2021s
+  are gone, and the checkpoints exist to re-infer citywide whenever that is wanted. Two
+  standing consequences came out of it. First, the champion ELIGIBILITY RULE now written
+  into Scripts/pipeline/champion_arms.csv — only full-footprint rasters are
+  champion-eligible, a sector-restricted arm tests a model and cannot be a year's
+  deliverable — cites this campaign's section 7 as its source. Second, the noise arm it
+  asked for is the same missing measurement the whole pre-overhaul era lacked; it was
+  finally supplied by tier1_science_sample's seed replicates, not here.
+decided: 2026-08-26
+design_doc: Reports/SECTOR_DESIGN_REVIEW_2026-08_lanes.txt
+reports:
+  - Reports/SECTOR_CAMPAIGN_REPORT_2026-08.md
+  - Reports/sector_campaign_design.md
+instruments:
+  - Scripts/qc/sector_campaign_loop.py
+  - Scripts/qc/instruments/phase4_sector_series.py
+  - Scripts/qc/instruments/phase4_sector_poststrat.py
+  - Scripts/qc/instruments/phase4_crown_cover_matrix.py
+  - Scripts/qc/phase4_qc_indep.py
+inputs:
+  - Scripts/pipeline/aoi/sectors_v1.json
+  - Scripts/pipeline/builders/make_sectors.py
+outputs:
+  - phase4/qc/sector_campaign/sector_canopy_series.csv
+  - phase4/qc/sector_campaign/city_canopy_totals_design.csv
+  - phase4/qc/sector_campaign/sector_change_paired.csv
+  - phase4/qc/sector_campaign/sector_trend.csv
+  - phase4/qc/golden_gate_history.csv
+  - phase4/qc/qc_indep_report.csv
+imagery: ["2003s", "2006s", "2011s", "2012s", "2016", "2018s", "2020s", "2021s"]
+sample: >
+  eight arms on eight acquisitions — six un-adapted 2020-checkpoint baselines (tag
+  sectors_v1, a byte-for-byte copy of the phase-3 checkpoint, so they measure what the
+  un-adapted model does on previously unscored years) and two full-extent fine-tunes
+  (tag fullext_sectors_v1) — with inference restricted to five west-east strips standing
+  in for the city, and the city fraction rebuilt from them by a design-based estimator
+  over those five strata.
+supersedes: []
+superseded_by: []
+extra:
+  branch: work/20260824-sectors, campaign window 2026-08-24 to 2026-08-26
+  execution_ledger: >
+    data:phase4/qc/sector_campaign/state_20260825T044145Z.jsonl (lake path, not gated)
+  consumed_by: >
+    hard_year_pilot (designed against the sectors_v1 arms), m06_nir_arm (its promotion
+    rule cites this campaign's noise-arm precondition), and the champion eligibility
+    rule in Scripts/pipeline/champion_arms.csv
+  known_correction: >
+    the report's first edition mis-stated modern-year zero-cover crown fractions; the
+    cause was a cover-sidecar misregistration, fixed at source and the planes
+    regenerated, and the corrected reading is carried in the report's section 1 item 4.
+  kam_decision_2026-08-26: >
+    the six contested legacy years got NO champion — the arms predate the current
+    workflow and their provenance cannot be vouched for. Recorded in the header comments
+    of Scripts/pipeline/champion_arms.csv, not restated here.

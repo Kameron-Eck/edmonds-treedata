@@ -1,0 +1,89 @@
+name: rescore_2013_citywide
+kind: instrument-finding
+status: complete
+retrospective: true
+category: scoring
+tags: ["2013", rgb-only, ledger-hygiene, off-recipe, live-flag, scoring-gate]
+hypothesis: >
+  2013's headline was being carried by the wrong two rows: the live=1 answer was an
+  off-recipe 'xsensor' raster, and the on-recipe citywide raster had only ever been
+  scored at a fallback 0.5 rather than at the threshold belonging to the model that
+  produced it. The prediction written down before the run was that scoring the
+  on-recipe raster at its own deployed cut would MOVE the number off .7422 — i.e.
+  that the recipe change was worth something measurable for 2013.
+arms: []
+baseline: null
+metric: >
+  phase4/qc/qc_indep_report.csv — the current 2013 answer is the live=1, primary=1,
+  canopy_def forest_wetland row whose ref is ccap_2016_hires_lc_snohfull.tif AND whose
+  prob is edmonds_canopy_prob_2013_citywide_rgb.tif; the (ref, prob) pair is the only
+  discriminator, because the documented live/primary/canopy_def filters alone leave
+  three 2013 candidates. Per-surface detail in phase4/qc/qc_indep_surfaces_2013.csv,
+  run text in phase4/qc/qc_indep_2013.txt.
+decision_rule: >
+  RECONSTRUCTED (retrospective: true) from commit 528c980's message and the prediction
+  it records. Score the on-recipe citywide RGB probability raster against the same
+  reference, on the same 1 m independent grid and canopy definitions as every other
+  year, at the threshold belonging to THE MODEL THAT PRODUCED IT. Compare like-for-like
+  only: the comparator is the off-recipe raster scored against the SAME snohfull
+  reference extent, never the smaller non-snohfull one, whose gap is a reference-extent
+  artefact rather than a recipe effect. Then flip live flags so exactly one row per
+  raster lineage stays current, leaving the superseded rows in the file as the audit
+  trail. The run answers the prediction whichever way it lands — a move off .7422
+  confirms the recipe change matters for 2013, and no move is itself the finding. A
+  second deliverable was stated as a rule, not a number: the scoring gate must require
+  the deployed threshold to match the model's band configuration.
+verdict: >
+  THE PREDICTED MOVEMENT DID NOT HAPPEN. On-recipe citywide scores recall .7399 /
+  precision .8681 at its own cut 0.5026, against the off-recipe xsensor raster's .7395
+  at the matched snohfull extent — 0.0004 of recall — both read from
+  phase4/qc/qc_indep_report.csv. No noise floor was ever measured for this comparison,
+  so under CLAUDE.md 3.5 the strict label is UNDETERMINED, not proven-zero; the
+  operational read the commit recorded stands, that for 2013 the recipe change was worth
+  nothing measurable, which is itself the finding. The commit's second deliverable is a
+  rule change that outlived the number: the deployed threshold must match the model that
+  produced the raster — 2013 is RGB-only and therefore correctly scores at an RGB
+  threshold — superseding the earlier formulation that the gate must always read
+  rgb+chm. THREE QUALIFIERS TRAVEL WITH THIS NUMBER and it is unquotable without them:
+  the model is RGB-ONLY, the reference is 2016-generation on the full-Snohomish extent
+  rather than the ccap_2021 deployment reference, and the cut is a CIRCULAR best-F1
+  threshold selected 10 days before policy C existed — 2013 has no row in
+  phase4/qc/indep_thresholds.csv and was never re-cut, so it may not be pooled with the
+  policy-C years (entry threshold_policy_c). Its recall happens to sit near a policy-C
+  year's, which is exactly what makes the invalid comparison look tempting.
+decided: 2026-08-22
+commit: 528c980
+instruments: [Scripts/qc/phase4_qc_indep.py]
+outputs:
+  - phase4/qc/qc_indep_report.csv
+  - phase4/qc/qc_indep_2013.txt
+  - phase4/qc/qc_indep_surfaces_2013.csv
+imagery: ["2013"]
+sample: >
+  one acquisition, one probability raster, one reference — the whole citywide
+  independent extent rather than a sample of it, scored once per canopy definition
+  (forest_only / forest_wetland / forest_wetland_scrub) with forest_wetland the only
+  quotable primary.
+supersedes: []
+superseded_by: []
+extra:
+  docx_sections: [RESCORE_2013_CITYWIDE]
+  threshold_policy: circular best-F1 (pre-policy-C); no indep_thresholds.csv row exists
+  reader_trap: >
+    three 2013 rows survive the documented live==1 / primary==1 / forest_wetland
+    filters, on three different rasters and two different reference extents. Only the
+    (ref, prob) pair separates them, and none of the three may be pooled with another.
+  ledger_bookkeeping_correction: >
+    the docx's account of this commit's live-flag work is wrong and was corrected by its
+    own audit pass; re-verified here against git. The citywide @0.5 triplet was ALREADY
+    live=0 at 528c980^ — this commit did not demote it. What the commit did was flip
+    the xsensor-vs-snohfull triplet live 1 -> 0 in place and APPEND the three new
+    citywide rows, live=1 at creation.
+  chatlog_provenance: >
+    the 'done-2013' entry that carries the band-configuration context was added by this
+    commit to a CHATLOG that has since been rotated; it survives in the 528c980 diff and
+    on the archive branch, not in the current-tree file.
+  repo_copy_is_a_harvest: >
+    the tracked phase4/qc/qc_indep_report.csv lacks the `aoi` column the lake copy
+    gained later. For the 2013 rows the two agree exactly (verified this session), but a
+    reader using the repo copy loses the AOI discriminator for every other year.

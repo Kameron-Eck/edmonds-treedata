@@ -1,0 +1,90 @@
+name: imagery_qc_suite_2026_08_24
+kind: measurement-campaign
+status: complete
+retrospective: true
+category: imagery
+tags: [integrity, coregistration, radiometry, ndvi-identity, duplication, coverage, archive-sweep]
+hypothesis: >
+  The 2026-08-23/24 acquisition campaign roughly doubled the catalog and replaced several
+  years outright, and nothing in the pipeline could say whether the new stock was USABLE.
+  The existing catalog check answers a header question — does every entry resolve, open,
+  and carry the bands and CRS it claims — and cannot answer the five that decide temporal
+  canopy work: do two acquisitions of the same year land on the same ground; is any file
+  radiometrically broken; is every "NIR" band actually NIR in the order the engine
+  assumes; which same-year pairs are genuinely independent rather than the same pixels
+  twice; and where are the holes, given that a coverage percentage hides interior gaps
+  because a doughnut and a full disc score the same number. Every later imagery claim in
+  this project rests on the answers.
+arms: []
+baseline: null
+metric: >
+  One CSV of measured numbers per check in phase4/qc/, all stamped 2026-08-24, plus a run
+  record in phase4/qc/imagery_qc_run_2026-08-24.json. The cross-registration sweep is the
+  headline: phase4/qc/imagery_qc_crossreg_summary_2026-08-24.csv carries one graded row
+  per same-year pair (median offset = registration, max = worst site, peak ratio =
+  confidence), with the per-site rows behind it. Findings are graded in the files
+  themselves; the suite never auto-fixes anything.
+decision_rule: >
+  RECONSTRUCTED (retrospective: true) from the docstring of Scripts/qc/imagery_qc_suite.py,
+  which states the contract before any measurement: every check writes a CSV of measured
+  numbers and prints a compact verdict table; exit 0 means every check ran, exit 1 means
+  at least one FAIL-grade finding; and "QC measures, humans decide" — nothing here edits
+  the catalog or the data. A same-year pair is read on its MEDIAN site offset, not its
+  maximum, with the peak ratio deciding whether the measurement is trustworthy at all
+  (the NOISY grade exists to stop a low-confidence correlation being read as an offset).
+  The reference failure the design is built around is the S02-vs-U02 lesson: the plan
+  predicted a duplicate and measurement said otherwise, so duplication is measured rather
+  than assumed.
+verdict: >
+  THE ARCHIVE IS USABLE, AND ITS REGISTRATION IS THE THING THAT NEEDED WATCHING. The
+  sweep opened and graded every held raster and produced the project's first per-pair
+  registration numbers. The decisive one is 2024: the CoE and Snohomish deliveries of
+  that year sit 1.29 m apart at high confidence and near-zero site spread — a WARN, read
+  from phase4/qc/imagery_qc_crossreg_summary_2026-08-24.csv — which is a systematic
+  displacement of the primary 2024 product, not scatter, and is why no per-crown change
+  claim was allowed to cross that year until coregistration was addressed. The same file
+  shows the opposite case in the same archive: the 2020 and 2022 CoE/Snohomish pairs land
+  on each other to millimetres, so the 2024 offset is a property of that delivery rather
+  than of the comparison method. Two secondary results carry forward: several pairs grade
+  NOISY rather than offset, meaning the correlation is too weak to call an offset at all,
+  and the sweep is where the pre-2000 holdings were first measured in the tracked record —
+  the rows degraded_imagery_lit_review used to adjudicate an outside literature brief.
+decided: 2026-08-24
+reports: [Scripts/IMAGERY_FACTS.md]
+instruments: [Scripts/qc/imagery_qc_suite.py]
+inputs:
+  - Scripts/pipeline/phase4seg/config.py
+  - Scripts/qc/phase4_catalog_check.py
+outputs:
+  - phase4/qc/imagery_qc_integrity_2026-08-24.csv
+  - phase4/qc/imagery_qc_integrity_campaign_local_2026-08-24.csv
+  - phase4/qc/imagery_qc_radiometry_2026-08-24.csv
+  - phase4/qc/imagery_qc_ndvi_2026-08-24.csv
+  - phase4/qc/imagery_qc_crossreg_2026-08-24.csv
+  - phase4/qc/imagery_qc_crossreg_summary_2026-08-24.csv
+  - phase4/qc/imagery_qc_crossreg_lowconfidence_2026-08-24.csv
+  - phase4/qc/imagery_qc_duplication_2026-08-24.csv
+  - phase4/qc/imagery_qc_coverage_2026-08-24.csv
+  - phase4/qc/imagery_qc_run_2026-08-24.json
+sample: >
+  every raster held after the 2026-08-23/24 acquisition campaign — catalog entries and
+  non-catalog holdings alike, including the pre-2000 files that have no YEAR_CATALOG
+  entry — one row per file for integrity and coverage, one row per same-year file pair
+  for cross-registration and duplication, and five fixed comparison sites per pair.
+n: 38
+n_source: phase4/qc/imagery_qc_integrity_2026-08-24.csv#rows
+supersedes: []
+superseded_by: []
+extra:
+  checks: [integrity, radiometry, ndvi, crossreg, duplication, coverage]
+  why_no_imagery_field: >
+    the sweep's unit is a FILE, not a catalog label, and it deliberately covers holdings
+    with no YEAR_CATALOG entry at all. Mapping the file list onto catalog labels would
+    misrepresent what was measured, so the imagery field is left off.
+  successor: >
+    per-acquisition coregistration against the 2020s anchor (entry
+    coregistration_2020s_anchor) is the designed follow-up to this sweep's crossreg
+    check; phase4/qc/coregistration.csv is its home, not these files.
+  not_included: >
+    the separability CSVs dated 2026-08-24 in phase4/qc/ come from a different
+    instrument and are not outputs of this suite.

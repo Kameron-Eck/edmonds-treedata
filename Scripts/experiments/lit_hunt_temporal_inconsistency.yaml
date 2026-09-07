@@ -1,0 +1,109 @@
+name: lit_hunt_temporal_inconsistency
+kind: measurement-campaign
+status: complete
+retrospective: true
+category: literature
+tags: [literature, gap-claim, twin-hunt, olofsson, panel-a, pacc, condition-t, roman-2021]
+hypothesis: >
+  The project's central claim to novelty was ASSERTED, not hunted: that nobody has
+  mapped canopy wall-to-wall from a heterogeneous, uncalibrated, sub-meter aerial
+  archive over five or more epochs, measured the map series' own inter-date
+  inconsistency, and validated the change against blind human truth. Either a twin
+  study exists — in which case we adopt its method and stop reinventing — or a
+  solution we have not considered exists, or neither does and the gap claim is
+  upgraded from asserted to hunted. What would change our mind: any single study
+  scoring 4 of 5 on the pre-written criteria, or a design surviving the adversarial
+  checklist AND certifying on our data.
+arms: []
+baseline: null
+metric: >
+  Reports/LIT_HUNT_FINAL_2026-09-06.md — the verdict against the contract's three
+  sufficiency conditions, with the per-criterion adjudication of every finalist, the
+  F1-F8 scorecard for the studies that clear, and the hunt log's coverage counters.
+  Reports/LIT_HUNT_MASTER_2026-09-06.md carries the appendices (full hunt log, panel
+  returns, verbatim queries); Reports/LIT_HUNT_DIGEST_2026-09-06.md is the
+  two-reader audit of both.
+decision_rule: >
+  RECONSTRUCTED (retrospective: true) — and unusually, most of the rule genuinely IS
+  pre-registered: Reports/TRUTH_DOCUMENT_TEMPORAL_INCONSISTENCY_HUNT.md was written
+  as the contract BEFORE the hunt and the hunting session re-read it every
+  iteration. Condition A (the twin) is met by any single study scoring at least 4 of
+  5 stated criteria, from a FULLY READ text — abstracts may nominate candidates and
+  nothing more. Condition B (a novel solution) requires survival of a six-clause
+  adversarial checklist including "needs no radiometric cross-calibration", "is not
+  naive temporal smoothing", and "has a statable kill criterion testable on our
+  data". Condition T (honest exhaustion) is permitted only on a logged search space
+  of the stated depth, and its deliverable is the documented negative. Rules of
+  evidence: full text or it did not happen; a paywalled paper is recorded UNREADABLE,
+  never summarised from its abstract.
+verdict: >
+  NO TWIN EXISTS, AND THE ONE DESIGN THAT PASSED THE CHECKLIST WAS REFUSED ON ITS OWN
+  PILOT. Condition A is met on the letter by exactly one study — Roman et al. 2021,
+  Land 10(4):403, Philadelphia 1970-2010, five epochs from two uncalibrated aerial
+  programs, one interpreter, paired points with an interpreter-derived
+  detectable-change threshold — adjudicated 4 of 5 by three independent panels and
+  missing only segmentation. It is therefore the peer-reviewed precedent for Panel
+  A's exact method, never for a map series; Nix and Healy extend it into a
+  three-study lineage. No segmentation-series twin surfaced in 1,359 logged queries
+  with 132 full-text reads and 42 recorded UNREADABLE, so the paper's gap claim is
+  now hunted rather than asserted. Condition B is the more consequential half:
+  PACC — panel is the estimator, map is the auxiliary — passed the adversarial
+  checklist unanimously on the kill-test item, then its own read-only pilot showed
+  the map series shrinks the panel's confidence interval by only about 4 percent
+  (+-1.89 to +-1.81 pp) and that forcing the map to carry the difference is WORSE
+  than ignoring it (+-3.68 pp), read from Reports/LIT_HUNT_FINAL_2026-09-06.md. B was
+  refused despite the checklist pass, because the pilot failed the contract's
+  purpose — which the digest's two-reader audit records as under-claiming rather than
+  overclaiming. That refusal converged independently with the same day's
+  change_detector_design conclusion: the map owns WHERE, Panel A owns PACE.
+decided: 2026-09-06
+design_doc: Reports/TRUTH_DOCUMENT_TEMPORAL_INCONSISTENCY_HUNT.md
+reports:
+  - Reports/LIT_HUNT_DIGEST_2026-09-06.md
+  - Reports/LIT_HUNT_FINAL_2026-09-06.md
+  - Reports/LIT_HUNT_MASTER_2026-09-06.md
+inputs:
+  - phase4/qc/trend8_harmonized_fractions.csv
+  - phase4/qc/panel_a_estimate.txt
+  - phase4/qc/trend8_transition_census.csv
+  - phase4/qc/sameflight_consistency.csv
+  - Reports/GREENNESS_GRADIENT_CORRECTION_2026-09-03.md
+sample: >
+  the unit is the PAPER. Nine contract angles, each with multiple query
+  formulations across web search, Google Scholar phrase queries, Internet Archive
+  Scholar full text, preprint servers, citation graphs and non-English grey
+  literature; candidates triaged from the logged queries, finalists read in full and
+  scored by independent adjudication panels against the contract's five criteria.
+  Counters (queries logged, papers triaged, full reads, UNREADABLE) live in the hunt
+  log section of the FINAL and MASTER deliverables.
+supersedes: []
+superseded_by: []
+extra:
+  folds_in: >
+    the four papers read and reasoned on 2026-09-05/06 before the overnight hunt
+    (MURTreeFormer, the irrational-transition masking paper, the GeoAI label-
+    inheritance paper, the ALCC ensemble) — recorded in the truth document section 2
+    as "do not re-find these" and carried into the hunt's closest-misses table. They
+    are this entry's prior round, not a separate campaign.
+  unfinished: >
+    Angle 10 (replacement-aware detection) never finished — sweeps triaged, no full
+    reads, no synthesis (search engines rate-limited; one armed sweep never fired).
+    Spec and seeds are preserved in the MASTER for a clean relaunch; the WORKPLAN
+    board carries it as QUEUED.
+  corrections_to_our_record:
+    - the truth document's own F-numbers are superseded by our 2026-09-06
+      recalibration and are to be ANNOTATED, not silently edited — do not quote
+      F1/F3/F5/F6/F7 from the contract until that pass lands
+    - gold counts pinned; the loss-corroboration figure must always carry its
+      10 m-halo convention
+    - two Literature_Tracker ledger errors and three citation-rot catches inside
+      candidate designs
+  new_measurements_not_yet_ported: >
+    the hunt's pilot produced edge-band anisotropy on lidar-certified-unchanged
+    ground, a cross-date bias estimate on stable points, and an independent
+    reproduction of the smoothing trap. All three are session-scratch numbers with
+    no instrument and no gated CSV — the WORKPLAN board carries the port as QUEUED,
+    and per CLAUDE.md 3.4b none of them may be cited until it lands.
+  session_byproduct: >
+    the pilot left four numpy caches outside the repo at D:\edmonds-pipeline\ ;
+    the digest records them as deleted during housekeeping.

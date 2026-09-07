@@ -250,6 +250,8 @@ verdict: 'Floor (max pairwise |delta| among 2011s base/s2/s3, recall@prec0.75 te
   (its wins echoed on real years). 27/28 arms scored; 2011s_cor02 produced no checkpoint (fate
   unresolved on t1gpuD); dose curve read from 0/5/10%. Data: phase4/qc/tier1_results.csv.'
 decided: '2026-09-03'
+supersedes:
+- m06_nir_arm
 launch_defaults:
 - --force-citywide
 steps:

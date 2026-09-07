@@ -1,0 +1,90 @@
+name: degraded_imagery_lit_review
+kind: measurement-campaign
+status: complete
+retrospective: true
+category: literature
+tags: [literature, degradation, synthetic-labels, pre-2000, historical-imagery, applicability-check]
+hypothesis: >
+  Extending the canopy record back past 2000 means working at roughly a metre per pixel,
+  where a six-metre crown is a handful of pixels rather than a hundred. The question is
+  whether anyone has solved that, and what they did — and, separately, whether an
+  outside literature review can be trusted against THIS repo at all. A brief commissioned
+  from a session with no access to the data will state repo-specific premises it cannot
+  check; the campaign is therefore two things: the hunt, and an adversarial check of
+  every repo-specific claim the hunt returned against measured files. What would change
+  our mind about acting on any of it: the premise failing that check.
+arms: []
+baseline: null
+metric: >
+  Reports/DEGRADED_IMAGERY_RESEARCH_2026-08-27.md, whose front matter is the deliverable
+  that matters: a VERIFIED WRONG list and a VERIFIED RIGHT list, each item adjudicated
+  against files on disk before the review body is allowed to be read. The measured rows
+  the check used are in phase4/qc/imagery_qc_integrity_2026-08-24.csv (bands, true GSD,
+  CRS units per file); the acquisition-date and effective-resolution facts it leans on
+  live in Scripts/qc/imagery_pixelsize_and_date.csv.
+decision_rule: >
+  RECONSTRUCTED (retrospective: true) from the report's own front matter, which was
+  written as the gate on the body beneath it: "Its research is useful; its repo-specific
+  content is NOT ours and its premises were checked against the actual data on
+  2026-08-27." A claim is actionable only if it survives that check; a claim about our
+  files is adjudicated by MEASUREMENT, not by the brief's own authority; and the brief's
+  own sourcing caveat — full-text retrieval was blocked, so figures come from abstracts
+  and search results — means no quantitative figure from it may appear in anything public
+  without verification against the primary source. Method recommendations that describe
+  what this pipeline already does are recorded as already-true rather than adopted.
+verdict: >
+  THE CHECK PAID FOR ITSELF, AND IT CHANGED THE PREMISE OF THE SYNTHESIS WORK. Four of
+  the brief's repo-specific claims are recorded as verified WRONG for this repo,
+  including its implementation prompt, which targets a codebase whose files, tile counts
+  and crown counts are not ours. The decisive one is the grayscale claim: the brief
+  asserted the 1996-2003 holdings are ~100 cm and may be grayscale, and
+  phase4/qc/imagery_qc_integrity_2026-08-24.csv records 1996_snoh_1m_rgb.tif as 3 bands
+  at a true GSD of 100.0 cm — so the whole colorization and panchromatic-FCN thread does
+  not apply to 1996, and applies instead to the two genuinely single-band files the same
+  measurement identified. What survived is what the degradation work was then built on:
+  pre-2000 imagery exists on disk but has no YEAR_CATALOG entry, so "the pipeline is
+  limited to 2000" is literally true; the 100 cm regime reaches our year 2000 through
+  EFFECTIVE resolution rather than nominal; a single clean degradation chain is too
+  regular to transfer and the loop must be run twice with independently randomised
+  parameters; a round-trip bias harness is separable and useful on its own; and
+  systematic label displacement, unlike random label noise, is the failure mode that
+  actually costs accuracy — which the repo had just measured on its own data as an
+  east-side ortho-vs-CHM displacement. STANDING: this is a literature and applicability
+  campaign, not a measurement of the model. Nothing here promotes anything; it supplies
+  the premise degradation_synth_2000 was written to TEST, and that entry remains queued.
+decided: 2026-08-27
+reports: [Reports/DEGRADED_IMAGERY_RESEARCH_2026-08-27.md]
+instruments: [Scripts/qc/imagery_qc_suite.py]
+inputs:
+  - phase4/qc/imagery_qc_integrity_2026-08-24.csv
+  - Scripts/qc/imagery_pixelsize_and_date.csv
+  - Scripts/pipeline/phase4seg/config.py
+imagery: ["2000"]
+sample: >
+  one external literature brief, read in full, with every repo-specific premise in it
+  adjudicated against measured rows for the four pre-2000 files held on disk and against
+  the catalog's own contents. The literature itself is search-retrieved rather than
+  full-text, by the brief's own admission.
+supersedes: []
+superseded_by: []
+extra:
+  informs: degradation_synth_2000
+  relationship: >
+    this campaign produced the PREMISE that degradation_synth_2000 tests — it does not
+    supersede it and is not superseded by it. The synthesis entry stays queued with its
+    own pre-registered rule; if that arm ever runs, its result judges the premise, not
+    the review.
+  depends_on: imagery_qc_suite_2026_08_24
+  pre_2000_holdings: >
+    the four files are not in YEAR_CATALOG and therefore carry no imagery label; their
+    measured bands, true GSD and CRS units are rows in
+    phase4/qc/imagery_qc_integrity_2026-08-24.csv. Three are single-band, one is 3-band
+    RGB, and the CRS units differ between the Snohomish and King files — the same
+    units trap that produced the earlier GSD and area defects.
+  sourcing_caveat: >
+    the brief states full-text PDF retrieval was blocked by its session's network policy,
+    so its quantitative figures are reproduced from abstracts and search results. Verify
+    against the primary source before any of them appears in anything public.
+  side_finding_owned_elsewhere: >
+    the ~5 m east-side ortho-vs-CHM displacement the report cites was measured by the
+    shadow-FP probe and belongs to shadow_fp_fn_2016, not here.

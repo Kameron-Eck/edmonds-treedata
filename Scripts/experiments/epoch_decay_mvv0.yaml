@@ -1,0 +1,70 @@
+name: epoch_decay_mvv0
+kind: instrument-finding
+status: needs-kam
+retrospective: true
+category: lidar
+tags: [chm, epoch-distance, lidar-input, acquisition-decision, king-county, mvv0]
+hypothesis: >
+  King County holds lidar epochs Edmonds cannot get, and buying them was on the table.
+  The question that decides the spend is whether the CHM's value as a model INPUT decays
+  with |imagery year - lidar year|. If it does, more epochs buy accuracy on the old
+  years; if it does not, the model is using the height raster as structural context
+  rather than as a current-year measurement, and the finer product wins regardless of
+  era. What would change our mind: the era-matched epoch beating the distant epoch, on
+  its own year, by more than the Tier-1 replicate floor.
+arms: []
+baseline: null
+metric: >
+  No new measurement — the finding is a re-read of tracked Tier-1 numbers.
+  phase4/qc/tier1_results.csv, delta_recall_at_p75 for the eight in05 / in16 arms
+  (recall at precision 0.75 on the science sample's TEST blocks); interval evidence in
+  phase4/qc/tier1_bootstrap_ci.csv. The report's C1 addendum claims a second table of
+  physical-reference rows in phase4/qc/qc_indep_report.csv; those rows do not resolve
+  there (see extra.needs_kam_reason).
+decision_rule: >
+  RECONSTRUCTED (retrospective: true) from Reports/EPOCH_DECAY_MVV0_2026-09-03.md, which
+  states its reading rule before the table: era-currency is confirmed only if the
+  era-matched CHM epoch beats the temporally distant one, on its own imagery year, by
+  more than the Tier-1 replicate floor — the same floor tier1_science_sample
+  pre-registered, applied to a question that entry did not ask. Two epochs across three
+  non-anchor years BOUND the epoch effect; they cannot fit a decay curve, and the report
+  says so. The acquisition decision follows from the bound, not from a fitted slope: if
+  the bound sits below the decision-relevant size, buying more epochs is NOT-WORTH-IT.
+  2020 is the anchor and is excluded from the ordering test.
+verdict: null
+decided: null
+design_doc: Scripts/TIER1_SCIENCE_SAMPLE_PLAN_2026-09-02.md
+reports: [Reports/EPOCH_DECAY_MVV0_2026-09-03.md]
+instruments:
+  - Scripts/qc/phase4_qc_indep.py
+  - Scripts/qc/instruments/tier1_block_bootstrap.py
+inputs:
+  - phase4/qc/tier1_results.csv
+  - phase4/qc/tier1_bootstrap_ci.csv
+imagery: ["2006s", "2011s", "2016", "2020"]
+sample: >
+  the eight Tier-1 lidar-as-INPUT arms — chm2005 and chm2 on each of 2006s, 2011s, 2016
+  and the 2020 anchor — read off the science sample's TEST blocks. No arm was trained or
+  scored for this entry; it re-reads rows another entry produced.
+supersedes: []
+superseded_by: []
+extra:
+  depends_on: tier1_science_sample
+  needs_kam_reason: >
+    Two independent grounds, either sufficient under the README's needs-kam definition.
+    (1) NOT SIGNED OFF: the report's own status line reads "Pending Kam's K4 confirmation
+    like the rest of the review block", and K4 is still an open row in the AWAITING KAM
+    decision stack of Scripts/WORKPLAN.md ("K4 block: sign off (or amend) the documented
+    findings — review corrections, bootstrap CIs, definition §6 + §7, trend8/overlap
+    verdicts").
+    The sibling
+    finding from the same review block, era_matched_rescore, carries needs-kam for the
+    same reason. (2) PART OF THE RECORD DOES NOT RESOLVE: the C1 addendum states "Rows
+    live in qc_indep_report.csv (ref *_canopy2m_binary, aoi sample-test)", and a grep of
+    the tracked phase4/qc/qc_indep_report.csv returns zero rows matching canopy2m. The
+    eight-arm main table DOES resolve, exactly, against phase4/qc/tier1_results.csv —
+    the untraceable part is the physical-reference addendum only.
+  consequence_if_signed_off: >
+    the per-year recipe uses the best-QUALITY CHM as input everywhere lidar input is
+    used, and the KC/Shoreline epoch acquisition stays declined. That consequence is
+    already carried on the master board; this entry is where its evidence is pinned.

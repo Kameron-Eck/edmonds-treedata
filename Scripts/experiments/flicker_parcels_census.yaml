@@ -1,0 +1,96 @@
+name: flicker_parcels_census
+kind: measurement-campaign
+status: complete
+retrospective: true
+category: floors
+tags: [flicker, hard-negatives, trajectory, transition-census, error-isolation, trend8, 2m-stack]
+hypothesis: >
+  The 8-year map series sawtooths by several pp a year around a signal of about two,
+  and the whole trend read depends on WHERE that instability lives. Two candidate
+  homes, and they demand opposite remedies: the model hallucinates canopy on
+  non-vegetated ground (a false-positive problem, fixable with a height or greenness
+  prior), or its sensitivity on REAL vegetation drifts by delivery (a calibration
+  problem, fixable only at the operating point). Items 1 and 6 of the flicker
+  program split the question: score every year on ground known not to have changed,
+  then census every pixel's 8-year label trajectory citywide. What would change our
+  mind about the first: false canopy on hard-negative parcels that moves across
+  years rather than sitting flat.
+arms: []
+baseline: null
+metric: >
+  phase4/qc/trend8_flicker_report.csv — per-parcel false-canopy percentage in each of
+  the eight trend8 years plus the across-year standard deviation that the flicker
+  instrument's own gate is read against. phase4/qc/trend8_transition_census.csv —
+  citywide pixel counts and fractions by trajectory family (stable, one transition,
+  two or more transitions, and the physically impossible canopy-gone-canopy triple)
+  over the common 2 m grid.
+decision_rule: >
+  RECONSTRUCTED (retrospective: true) from the flicker instrument's own gate, which
+  predates this campaign by weeks and is stated in its docstring before any number:
+  false positives that are STATIC cancel in year-to-year differencing and can be
+  tolerated, while false positives that FLICKER manufacture spurious gain and loss
+  and are the worst error mode a change product can have. Mean across-year flicker
+  of roughly 3 pp or less on unchanged ground reads as static; roughly 5 pp or more
+  reads as flickering and forces per-year rejection into the queue. The census side
+  carries its own hard rule: a canopy-gone-canopy trajectory is PHYSICALLY
+  IMPOSSIBLE on this time base, so its share is a direct, assumption-free lower
+  bound on per-pixel detection error — no reference raster and no threshold choice
+  enters it.
+verdict: >
+  THE MODEL DOES NOT HALLUCINATE CANOPY ON BARE GROUND; THE INSTABILITY LIVES IN
+  SENSITIVITY ON REAL VEGETATION. The three genuinely non-vegetated footprints
+  (Parking, Water, Civic_Field) hold 0.0 to 0.7 percent false canopy, flat across all
+  eight years, read from phase4/qc/trend8_flicker_report.csv — well inside the
+  instrument's static gate, so the sawtooth is not a false-positive problem and no
+  height or greenness prior would touch it. The same file also retired two of its own
+  parcels: the Cemetery and Stadium footprints carry real crowns and track the city
+  series, which makes them unusable as clean negatives — a correction to the
+  negative set, not a result about the model. The census half is the counterweight
+  and points the other way: on the citywide 2 m stack, per-pixel label trajectories
+  are unstable at a scale no reference-scored accuracy number reveals, and a
+  substantial share of the city carries the canopy-gone-canopy triple that no
+  physical process can produce — both shares in
+  phase4/qc/trend8_transition_census.csv, which is assumption-free because no
+  reference raster and no threshold choice enters it. Put together the two halves
+  isolate the
+  error: it is per-year detection sensitivity on vegetated ground, so change MAPS
+  need persistence or shape filtering even where change TOTALS at matched cuts
+  corroborate direction. Both files are consumed downstream — the hard negatives
+  become the empirical null and the zero-fire gate for change_detector_design, and
+  the cached 2 m stack this campaign built is the I/O amortizer every later
+  trajectory pass reuses.
+decided: 2026-09-06
+instruments:
+  - Scripts/qc/instruments/phase4_qc_flicker.py
+  - Scripts/qc/instruments/trend8_transition_census.py
+outputs:
+  - phase4/qc/trend8_flicker_report.csv
+  - phase4/qc/trend8_transition_census.csv
+reports: [Reports/CHANGE_DETECTOR_DESIGN_2026-09-06.md]
+imagery: ["2009", "2011s", "2013", "2015", "2016", "2019", "2021", "2024"]
+sample: >
+  two units, one campaign. Item 1's unit is the PARCEL — the curated Negative_*
+  footprints (parks, playing fields, stadium, parking, water), scored on all eight
+  trend8 masks; item 6's unit is the 2 m CITY PIXEL, censused wall to wall inside
+  the city polygon on the common analysis grid, not sampled. No single n is given
+  because a count of one unit would misdescribe the other.
+supersedes: []
+superseded_by: []
+extra:
+  program_items: >
+    flicker-program items 1 (hard-negative parcels) and 6 (2 m stack cache +
+    transition census). Items 2, 5 and 7 of the same program are owned by
+    overlap_floor; items 3, 4 and 8 are QUEUED on the WORKPLAN board.
+  local_cache: >
+    the census instrument also writes a compressed 2 m stack cache to local NVMe
+    (outside the lake and outside the repo) — the amortizer, not a deliverable.
+  filename_note: >
+    phase4_qc_flicker.py writes flicker_report.csv into the lake QC directory; the
+    tracked copy was harvested under the trend8_ prefix to keep it apart from the
+    pre-trend8 run of the same instrument (phase4/qc/flicker_report.csv).
+  consumed_by:
+    - change_detector_design — hard negatives supply its empirical null and its
+      zero-fire gate
+    - trend8_uniform_rgb — the parcel report is a named judge of its hypothesis
+      leg (c) alongside the C3 same-flight floor; the census supplies the
+      pixel-flicker residual its verdict reports

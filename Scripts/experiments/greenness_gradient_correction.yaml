@@ -1,0 +1,108 @@
+name: greenness_gradient_correction
+kind: instrument-finding
+status: complete
+retrospective: true
+category: imagery
+tags: [radiometry, grvi, leaf-off, phenology, correction, recall, king-sensor]
+hypothesis: >
+  The 2026-09-03 adversarial-review synthesis read a recall difference across five
+  King-sensor years as LEAF-OFF PHENOLOGY — the years whose canopy pixels score least
+  green are the years the model recalls worst — and promoted a seasonal-IGNORE training
+  experiment on the strength of it. That reading makes a checkable commitment: if the
+  mechanism is phenology, the low-greenness fraction has to track the calendar. It does
+  not. The flight windows in Scripts/qc/imagery_pixelsize_and_date.csv put the two
+  lowest low-greenness years in June and in deep winter, and all three of the highest in
+  April, and Kam's independent observation the same day was that no leaf-off variation
+  was visible by eye. What would separate the two mechanisms: per-bin GRVI histograms
+  over canopy. Real leaf-off must be BIMODAL — a bare-deciduous mode beside a conifer
+  mode, because conifers do not stop being green — while a processing-chain shift moves
+  the WHOLE distribution, conifers included.
+arms: []
+baseline: null
+metric: >
+  Reports/GREENNESS_GRADIENT_CORRECTION_2026-09-03.md — the owning write-up, carrying
+  the flight-window table that breaks the phenology framing and the per-bin GRVI
+  histogram read that resolved it. The greenness side of the association is measured in
+  phase4/qc/leafoff_{2013,2015,2019,2021,2023}_king.csv and their .txt companions; the
+  recall side is the citywide_rgb rows of phase4/qc/score_vs_difficulty.csv.
+decision_rule: >
+  RECONSTRUCTED (retrospective: true) from the leaf-off instrument's own HOW-TO-READ and
+  CAVEATS blocks, which travel with every output file and were written before this
+  correction. The instrument's rails: GRVI is a WITHIN-FAMILY comparator, never an
+  absolute threshold, because colour balance differs by sensor — so a comparison is legal
+  only against a known leaf-on acquisition of the same family; the canopy mask defining
+  which pixels are measured is a MODEL OUTPUT carrying the very blind spot under test, so
+  the test understates low-greenness and is biased AGAINST finding leaf-off; leaf-off
+  flights have low sun angle, so shadow and phenology are correlated and thin shadow is
+  not excluded; the windows are a grid, not a probability sample, and the result is
+  indicative rather than an estimate. The decisive test for the MECHANISM, stated before
+  the histograms were run: bimodality. A distribution with a bare-deciduous mode and an
+  intact conifer mode is phenology; a distribution shifted whole is the delivery's
+  radiometric processing chain. Recall figures are read at each year's OWN selected
+  threshold and are never pooled across operating-point policies.
+verdict: >
+  THE GRADIENT IS DELIVERY RADIOMETRY, NOT PHENOLOGY, AND THE LEAF-OFF IGNORE EXPERIMENT
+  IS DEAD AS PREMISED. Read from Reports/GREENNESS_GRADIENT_CORRECTION_2026-09-03.md,
+  which carries both legs: the February 2015 flight is genuinely bimodal — a
+  bare-deciduous mode beside an intact conifer mode — and its recall is UNHARMED, so
+  leaf-off by itself does not damage recall; while the April 2019 and 2021 deliveries
+  show a whole-distribution shift into negative GRVI, with 74% of 2019's canopy pixels
+  reading negative, which conifers cannot biologically be. Three consequences follow.
+  The queued quantity-preserving leaf-off IGNORE experiment is killed at the premise: an
+  IGNORE keyed on low GRVI would mask by radiometry, not by season, and would remove
+  conifer canopy from supervision in exactly the years that need it. Per-delivery
+  radiometric normalization — previously judged unnecessary — enters the candidate list
+  for the 36-run recipe as the surviving lever, testable against the 2019 arm before any
+  recipe change. And CLAUDE.md's durable gotcha that leaf-off years carry systematic,
+  species-correlated label error stands entirely unchanged: that claim is about
+  projecting an April-July 2020 label onto a February acquisition, which is a different
+  mechanism from the recall gradient corrected here. What this entry supersedes in
+  leafoff_recall_gradient is the CAUSE, not the measurements — the recall-versus-greenness
+  association those five files record is unaltered, and remains directional with two
+  named exceptions rather than a dose-response.
+decided: 2026-09-03
+instruments:
+  - Scripts/qc/instruments/phase4_qc_leafoff.py
+inputs:
+  - phase4/qc/score_vs_difficulty.csv
+  - Scripts/qc/imagery_pixelsize_and_date.csv
+outputs:
+  - phase4/qc/leafoff_2013_king.csv
+  - phase4/qc/leafoff_2015_king.csv
+  - phase4/qc/leafoff_2019_king.csv
+  - phase4/qc/leafoff_2021_king.csv
+  - phase4/qc/leafoff_2023_king.csv
+reports: [Reports/GREENNESS_GRADIENT_CORRECTION_2026-09-03.md]
+imagery: ["2013", "2015", "2016", "2019", "2021", "2023"]
+sample: >
+  the five King-sensor RGB acquisitions whose citywide_rgb arms are scored in
+  score_vs_difficulty.csv — 2013, 2015, 2019, 2021, 2023 — holding sensor family, grid
+  and recipe class fixed so that season and delivery are the varying factors; plus the
+  four years histogrammed for the resolving test (2015, 2016, 2019, 2021), with 2016 as
+  the summer leaf-on control. GRVI is computed over pixels the 2020 canopy mask calls
+  canopy, in a subset of grid windows per year: indicative, not a probability sample.
+supersedes: [leafoff_recall_gradient]
+superseded_by: []
+extra:
+  docx_section: >
+    EXP-B-leafoff-recall-gradient in Reports/FINDINGS_LEDGER_2026-09-03.docx is the
+    framing this corrects; that section is the superseded entry's own write-up.
+  board_row: >
+    the WORKPLAN DONE row reading "Greenness gradient RESOLVED: delivery radiometry,
+    not phenology (Kam's catch)".
+  kam_catch: >
+    Kam's independent observation on 2026-09-03 — no visible leaf-off variation by eye —
+    is what sent the claim back to the flight-date table before any histogram was run.
+  untracked_evidence: >
+    the resolving per-bin GRVI histograms (leafoff_hist_{2015,2016,2019,2021}.csv) and
+    the E2 covariate join (sample_2016_covariates.csv) are lake-side under
+    G:\My Drive\treedata\phase4\qc\ and are not in the tracked phase4/qc/; the report is
+    the tracked home of their read, which is why the verdict cites it rather than a CSV.
+  pending: >
+    K4 sign-off of the documented block (WORKPLAN AWAITING KAM #2). The correction is
+    written and its consequences are already applied to the queue; Kam's confirmation is
+    of the whole 2026-09-03 block, not of this finding alone.
+  surviving_lever: >
+    per-delivery radiometric normalization (G/R separation), cheap to test against the
+    2019 arm; the leaf-off IGNORE experiment it replaces must not be relaunched as
+    premised.

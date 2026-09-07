@@ -1,0 +1,77 @@
+name: fusion_5band_nir_chm
+kind: measurement-campaign
+status: needs-kam
+retrospective: true
+category: inputs
+tags: [fusion, nir, chm, headroom, decision-fusion, one-shot, untracked-result, "2016"]
+hypothesis: >
+  Before spending an A100 on input-level 5-band (RGB+NIR+CHM) training, ask the cheap
+  question first: do the 2016 CHM-input arm and the 2016 NIR-input arm miss the SAME
+  trees? If their errors largely coincide, a fused input has nothing to recover and the
+  spend is unjustified; if the errors are disjoint, there is headroom. A DECISION-level
+  fusion (per-pixel mean of the two arms' probability rasters) stands in for the trained
+  model, because the engine has no 5-channel path at all — `--hs-source nir` rides the
+  existing 4th-channel machinery, so "5-band" names a probe, never an arm that exists.
+arms: []
+baseline: null
+metric: >
+  NOT IN THE TRACKED RECORD, and that is why this entry cannot be signed off. The
+  one-shot script's only output path was a session scratchpad, so the error-overlap
+  statistics (FN/FP intersection, Jaccard) and the fusion threshold sweep live nowhere
+  in the repo or the lake. What IS tracked is the QUESTION, the DESIGN and both arms'
+  deployed thresholds, in the script's docstring and constants on the archive branch
+  (extra.script). The parent CHM-vs-NIR axis this probe was scouting does have tracked
+  homes: Reports/M06_NIR_ARM.md for the equal-channel-count M06 swap, and the
+  pre-registered NIR factor in experiments/tier1_science_sample.yaml.
+decision_rule: >
+  RECONSTRUCTED (retrospective: true) from the script's own docstring, which states the
+  two tasks before any result: Task A is error overlap at each arm's OWN deployed
+  threshold — the fused-input case is only open if the two arms fail on different
+  pixels; Task B sweeps the mean-probability fusion across 21 cuts and compares it
+  against both parents at their deployed points AND at each parent's own best point on
+  the sweep, scored on the intersection of the two arms' valid footprints so neither is
+  credited for coverage the other lacks. Conventions were copied from
+  qc/phase4_qc_indep.py rather than reinvented. The docstring names NO noise floor and
+  NO pass/fail cut, so even with the numbers in hand the design could not have promoted
+  anything — a second reason the result is not a verdict.
+verdict: null
+decided: null
+reports:
+  - Reports/M06_NIR_ARM.md
+  - Reports/SECTOR_DESIGN_REVIEW_2026-08_lanes.txt
+  - Reports/FINDINGS_LEDGER_2026-09-03.docx
+imagery: ["2016"]
+sample: >
+  two 2016 citywide probability rasters (the fullext_sectors_v1 CHM-input arm and the
+  nir_m06 NIR-input arm), compared pixelwise on the intersection of their valid
+  footprints against the 2016 hi-res C-CAP reference under the forest_wetland canopy
+  definition. The script's own report string notes the footprint is sample strips only.
+supersedes: []
+superseded_by: []
+extra:
+  docx_sections: [fusion-5band-nir-chm]
+  needs_kam_reason: >
+    Every result number from this probe is untracked. The script wrote a markdown
+    summary to a session scratchpad and nothing else; repo-wide searches for the
+    headroom/Jaccard/decision-fusion outputs and for any 5-band code path return
+    nothing. The question and design are recoverable, the measurement is not. Kam's
+    call: re-run the script if the numbers are wanted, or close the question on the
+    tracked M06 and Tier-1 evidence. Do NOT reconstruct the numbers.
+  script: >
+    archive/2026-08-pre-refactor:Scripts/scratch/fusion_headroom_2016.py — recoverable
+    with `git show`; not in the working tree (Scripts/scratch/ was archived as
+    non-idempotent one-shot writers). Ran 2026-08-26.
+  output_that_was_never_committed: >
+    a session scratchpad markdown file (path is in the script's OUT_MD constant) — not
+    the lake, not the repo.
+  category_error_warning: >
+    phase4/qc/CHM_STANDALONE_PRIOR_2026-08-29.md's "fusion buys discrimination nothing"
+    is about max(chm2, chm2005) — a per-pixel maximum of two HEIGHT rasters across
+    epochs, scored standalone with no model in the loop. It is not a verdict on
+    RGB+NIR+CHM input fusion. Two unrelated experiments share the word "fusion".
+  related_entries:
+    - tier1_science_sample — the pre-registered NIR factor (4-band vs a 3-band
+      --no-hillshade control, on TEST blocks, against a replicate floor)
+    - the M06 CHATLOG closure ("NIR M06 CLOSED ... CHM stays") and the Tier-1 NIR
+      verdict answer DIFFERENT questions and both stand; treating them as
+      wrong-vs-right is itself the misquote

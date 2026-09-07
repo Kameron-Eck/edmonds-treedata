@@ -1,0 +1,117 @@
+name: same_flight_pair_2019
+kind: instrument-finding
+status: complete
+retrospective: true
+category: imagery
+tags: [same-flight, two-deliveries, confound, resolution, support-matched, correction, "2019"]
+hypothesis: >
+  The 2019 pilot returned the COARSER arm scoring higher than the finer one on the same
+  date, and how much that result is worth depends entirely on how wide the confound
+  between the two products is. If 2019s and 2019n are two programs flying two aircraft
+  on one date, the gap is contaminated by sensor, sun angle and atmosphere and means
+  little. If they are ONE acquisition delivered twice, everything except delivered GSD
+  and the processing chain is held fixed and the resolution result is correspondingly
+  stronger. Establish which, from evidence, before quoting the pilot's gap at all.
+arms: []
+baseline: null
+metric: >
+  Scripts/WORKPLAN.md board row 5 is the authoritative statement — the zero-shift
+  correlation peak, the residual after a best-fit linear map, and Kam's correction of
+  the correction. Identity evidence is Scripts/qc/imagery_pixelsize_and_date.csv (the
+  date_shot and notes columns of both rows, evidence-graded, with verbatim source
+  quotes). The support-matched rescore that removed the competing explanation is
+  phase4/qc/support_matched_2019_pair.csv. Independent registration against a different
+  reference: the 2019s and 2019n rows of phase4/qc/coregistration.csv.
+decision_rule: >
+  RECONSTRUCTED (retrospective: true) from the correction sequence recorded in
+  Scripts/WORKPLAN.md row 5 and the instruments run to settle it. The discriminators
+  were fixed by what each one can rule out, not by a target value. GEOMETRY: cross-
+  correlate the two deliveries over candidate shifts — a correlation peaking at exactly
+  zero shift is what one flight looks like and two flights generally are not.
+  RADIOMETRY: fit a best-fit linear map between the deliveries and read the residual
+  against a known baseline — a pure downsample of the same pixels leaves a residual of
+  a couple of DN, so a residual far above that rules out one product being a resample of
+  the other and leaves the processing chain as the difference. IDENTITY: read the
+  date_shot and notes columns of the pixelsize table, not the source column, which holds
+  provenance URLs and not dates — reading source alone is the specific misread that
+  produced the wrong version of this fact. MEASUREMENT ARTIFACT: rescore the pilot's gap
+  on a common support at several scales; if the gap collapses as support coarsens it was
+  an artifact of scoring support and resolution is UNDETERMINED, if it holds flat the
+  gap is real.
+verdict: >
+  ONE FLIGHT, TWO DELIVERED PRODUCTS — and the correction runs in the direction that
+  makes the pilot's resolution result STRONGER, not weaker. The read, from
+  Scripts/WORKPLAN.md row 5: correlation between the two deliveries peaks at EXACTLY
+  zero shift, while the residual after a best-fit linear map is 14-27 DN, far too large
+  for one to be a downsample of the other, which would leave 1-2 DN — the decisive pair
+  of figures, and the file they are read from. Geometry identical, radiometry not: sun
+  angle, atmosphere, phenology and sensor hardware are all held fixed, and what differs
+  is delivered GSD plus the PROCESSING CHAIN. The identity is corroborated by
+  Scripts/qc/imagery_pixelsize_and_date.csv, whose date_shot column records the
+  consortium 1-ft product as the same Hexagon flight as the 2019 NAIP delivery, both at
+  evidence grade PUBLISHED. The competing explanation for the pilot gap was killed
+  separately: the support-matched rescore in phase4/qc/support_matched_2019_pair.csv
+  holds the gap flat across every common support tested, so it is not an artifact of
+  scoring the finer arm against a reference it out-resolves. STANDING: this pair is the
+  archive's only within-flight control, and it is what
+  experiments/sameflight_floor_c3.yaml turns into a processing-chain noise floor.
+decided: 2026-08-31
+instruments:
+  - Scripts/qc/instruments/support_matched_rescore.py
+inputs:
+  - Scripts/qc/imagery_pixelsize_and_date.csv
+  - phase4/qc/score_vs_difficulty.csv
+outputs:
+  - phase4/qc/support_matched_2019_pair.csv
+reports:
+  - Scripts/WORKPLAN.md
+  - Scripts/IMAGERY_FACTS.md
+  - Reports/FINDINGS_LEDGER_2026-09-03.docx
+imagery: ["2019s", "2019n"]
+sample: >
+  one acquisition pair — the WA consortium 1-ft delivery and the USDA NAIP 60 cm
+  delivery of the same 2019-10-11 Hexagon flight over Edmonds. The support-matched
+  rescore evaluates both arms at three common supports, the finest being the reference
+  product's own support so no reference is interpolated and then measured.
+supersedes: []
+superseded_by: []
+extra:
+  docx_sections: [EXP-E-2019-same-flight-pair]
+  relationship_to_sameflight_floor_c3: >
+    sameflight_floor_c3 DEPENDS ON this finding and already points back at it
+    (extra.why_this_pair, "See entry same_flight_pair_2019"). This entry establishes
+    WHAT the pair is; that entry measures what two masks of the same photons disagree
+    about and turns it into the project's processing-chain noise floor. Neither
+    supersedes the other and no source claims supersession.
+  depends_on: pilot_2019
+  readers_must_not_stop_at_the_first_correction: >
+    Scripts/CHATLOG.md still carries the KILL of this claim ("same DATE, two programs")
+    among the killed claims of 2026-08-31. That kill is itself OVERTURNED by
+    Scripts/WORKPLAN.md row 5, which records a correction and then a correction of the
+    correction (Kam, 2026-08-31). Both statements are live in the tree; WORKPLAN row 5
+    is the later and authoritative one.
+  provenance_gap: >
+    the zero-shift correlation and the 14-27 DN residual are recorded as PROSE in the
+    WORKPLAN row. No tracked instrument output holds them, and the DN figure is a span
+    across bands/sites rather than a single statistic. It is the number carrying the
+    whole conclusion and it deserves an instrument it does not yet have.
+  instrument_docstring_carries_the_superseded_framing: >
+    Scripts/qc/instruments/support_matched_rescore.py still describes the pair as "two
+    different flights on one date" in its docstring. That predates Kam's correction; the
+    script's MEASUREMENT is unaffected, only its framing sentence is stale.
+  season_caveat_riding_both_halves: >
+    both deliveries are the same October acquisition, and
+    Scripts/qc/imagery_pixelsize_and_date.csv records that no NAIP metadata record read
+    carries any leaf-on/leaf-off statement — so the "NAIP is leaf-on by specification"
+    premise, which the leaf-off instrument's HOW-TO block asks readers to lean on, has
+    no documentary basis. See entry leafoff_recall_gradient.
+  open_flag_on_2019n: >
+    the archived CHATLOG records an unresolved between-arm disagreement on 2019n large
+    enough that it calls any series point drawn from that acquisition unusable until
+    resolved. Those figures are canopy-fraction series points, a different quantity from
+    the recall/precision cells in phase4/qc/score_vs_difficulty.csv; the warning stands
+    either way.
+  grid_congruence_successor: >
+    Scripts/IMAGERY_FACTS.md section 14 records that phase4/qc/imagery_geometry.csv now
+    makes same-flight-different-delivery questions of this class answerable by
+    arithmetic instead of correlation runs.

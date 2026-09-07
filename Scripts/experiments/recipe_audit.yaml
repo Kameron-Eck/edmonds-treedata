@@ -1,0 +1,94 @@
+name: recipe_audit
+kind: measurement-campaign
+status: complete
+retrospective: true
+category: recipe
+tags: [postproc, sieve, morphology, threshold, pre-launch, epoch3, knob-census]
+hypothesis: >
+  Kam's question before committing A100 hours to the 36-run was specific: "make sure we
+  are leaving anything obvious on the table like sieve that has a large impact." An
+  audit answers it only if it walks the whole citywide EPOCH-3 recipe stage by stage —
+  labels, tile, train, evaluate, inference, postproc — and labels every knob MEASURED
+  (instrument + CSV exist), INSPECTED (read in source, no number needed) or UNMEASURED
+  (needs GPU), so no knob is declared harmless because nobody looked. What would change
+  our mind: any postproc knob moving the independent score by more than the threshold
+  does, which would make the launch recipe itself the risk rather than the operating
+  point.
+arms: []
+baseline: null
+metric: >
+  phase4/qc/postproc_variant_scores.csv — paired raw / morph / morph_sieve scorings of
+  the SAME frozen probability raster at a fixed cut, on both pilot years, plus a
+  SHIPPED_MASK equivalence row. The audit's threshold table is cross-confirmed at full
+  precision against the LIVE independent ledger on the lake — the tracked harvest
+  phase4/qc/qc_indep_report.csv predates the pilot rows involved and does not hold them.
+  The stage-by-stage MEASURED / INSPECTED / UNMEASURED census itself is
+  Reports/RECIPE_AUDIT_2026-09-01.md.
+decision_rule: >
+  RECONSTRUCTED (retrospective: true) from the audit's own labelling scheme, which it
+  states before any number: a knob is "on the table" only if it is MEASURED to move the
+  independent score, and a knob nobody measured is written UNMEASURED rather than
+  assumed harmless. Postproc knobs are measured as paired variants on ONE frozen
+  probability raster at a fixed threshold — no re-training, no split, so every
+  difference is attributable to the postproc stage alone — on both pilot years chosen
+  so the 3-pixel kernel spans its full physical range (0.15 m at a 5 cm year, 3.0 m at
+  a 100 cm year). An equivalence anchor scores the actually-shipped mask directly to
+  confirm the replica measures what production ships. The launch gate follows from the
+  census: only an item that is both MEASURED-large and pre-GPU may delay the campaign.
+  ADMISSIBILITY LIMIT recorded with the rule: no noise floor was measured for any
+  postproc delta, so the audit's "neutral" readings rest on magnitude plus a known
+  scorer/production one-u8-step confound, not on a floor.
+verdict: >
+  THE THRESHOLD IS THE ONE LARGE KNOB, AND THE SIEVE IS NOT ON THE TABLE — the direct
+  answer to the question that prompted the audit. Same model, same imagery, same year:
+  canopy area comes out 1264.0 ha or 1941.9 ha depending only on where the operating cut
+  lands, read from phase4/qc/postproc_variant_scores.csv. Against that, the sieve moves
+  recall not at all and precision in the fourth decimal — identical to 4 dp is identical,
+  and it needs no floor to say so. Morphology is the honest exception: its deltas are
+  bounded small and partly absorbed by the one-u8-step difference between scorer and
+  production, and because NO floor was measured it is UNDETERMINED-but-bounded-small,
+  never "proven neutral" (CLAUDE.md 3.5). The operational consequence is what let the
+  campaign proceed unblocked: exactly one item gated launch — threshold policy — and
+  it closed the same day (entry threshold_policy_c, Kam 2026-09-01). Everything else in
+  postproc is post-GPU and re-derivable on free CPU, so the A100 spend buys probability
+  rasters and is insulated from every finding here. Three follow-ups stay OPEN and are
+  not verdicts: GPKG attribute-integrity fixes (INSPECTED, not fixed; zero-GPU — do not
+  quote GPKG area_m2 until they are), kernel unit normalisation (right on principle,
+  measured impact nil), and the anchor-labels A/B (UNMEASURED, needs GPU).
+decided: 2026-09-01
+reports: [Reports/RECIPE_AUDIT_2026-09-01.md]
+instruments: [Scripts/qc/instruments/postproc_variant_score.py]
+outputs: [phase4/qc/postproc_variant_scores.csv]
+imagery: ["2011s", "2006s"]
+sample: >
+  nine postproc variant scorings on two pilot acquisitions — raw / morph / morph_sieve
+  at two cuts on 2011s (30.5 cm GSD) and raw / morph on 2006s (100 cm GSD, the 3.0 m kernel
+  extreme), plus one SHIPPED_MASK equivalence row — all scored on 1 m independent cells
+  against the C-CAP deployment reference at canopy_def forest_wetland.
+n: 9
+n_source: phase4/qc/postproc_variant_scores.csv#rows
+supersedes: []
+superseded_by: []
+extra:
+  docx_sections: [RECIPE_AUDIT_2026-09-01]
+  gating_output: threshold_policy_c
+  live_ledger_is_lake_side: >
+    the pilot rows the audit's threshold table quotes live in the lake copy of
+    qc_indep_report.csv and are absent from the tracked harvest in this repo, which
+    predates them; they are also live==0 today, superseded by the policy-C rows, and are
+    quotable only as the pre-policy-C baseline that motivated the change.
+  no_floor_caveat: >
+    the audit measured no seed replicates, no rerun spread and no bootstrap CI for any
+    postproc delta; floors quoted elsewhere in the repo belong to OTHER experiments and
+    must not be pooled with these numbers.
+  quoting_trap: >
+    the audit's own "23 recall points" is the raw@0.45 minus raw@0.643 comparison from
+    its table, written BEFORE policy C existed. Quoting it against a policy-C row is a
+    category error; the circular-vs-policy-C delta is a different number.
+  open_followups:
+    - GPKG attribute integrity (area_m2 in CRS units, redundant vector filter, simplify
+      tolerance in CRS units, a stale comment block) — INSPECTED, zero-GPU, not fixed
+    - morphology kernel specified in pixels, not ground units — low priority, measured
+      impact nil
+    - anchor-labels A/B (2020 prob >=0.6 canopy / <=0.4 background / between IGNORE) —
+      UNMEASURED, needs GPU, declared not a 36-run blocker

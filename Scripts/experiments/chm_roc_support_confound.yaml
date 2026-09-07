@@ -1,0 +1,83 @@
+name: chm_roc_support_confound
+kind: measurement-campaign
+status: complete
+retrospective: true
+category: lidar
+tags: [chm, lidar, roc, dilation, spatial-support, confound, block-bootstrap, no-gpu]
+hypothesis: >
+  The standalone ROC handed back a result that reads backwards: the height raster
+  measured to be inflated by four to five metres outscores the corrected rebuild. One
+  explanation does not require the old product to hold more information — the reference
+  is a generalized 1 m classified map that labels forest patches wall to wall, gaps
+  included, while the old product's effective support is several metres and it reports a
+  neighbourhood maximum. If that is the whole story, then dilating the SHARP raster to
+  matched support should close most of the gap, and dilating the OLD raster against
+  ITSELF should also be rewarded — because the reference would be rewarding blur rather
+  than any particular product. This run tests exactly that ladder, on the chm/chm2 pair
+  only, which buys a larger common footprint and more blocks than the all_three run.
+arms: []
+baseline: null
+metric: >
+  phase4/qc/chm_standalone_roc_support_confound.md — per-arm AUROC / PR-AUC / best-F1
+  height for the dilation ladder, and the paired-gap verdict table with each pair's own
+  resolving power. Machine copies in
+  phase4/qc/chm_standalone_roc_support_confound_arms.csv and
+  phase4/qc/chm_standalone_roc_support_confound_pairs.csv.
+decision_rule: >
+  RECONSTRUCTED (retrospective: true) from the report's Method text, which is the
+  all_three run's design applied to a single hypothesis. Same shared DN sweep, same
+  intersection scoring so coverage is never charged as accuracy, same PAIRED spatial
+  block bootstrap with every replicate scoring every arm on the SAME resampled blocks.
+  The reading rule is the ladder: chm2 dilated at 3 m and at 5 m, plus chm dilated at
+  3 m. Support is confirmed as the driver if the chm-vs-chm2 gap SHRINKS monotonically
+  as chm2's support is matched to the old product's; it is confirmed as a property of
+  the REFERENCE rather than of either product if blurring the old raster against itself
+  is also rewarded. A pair whose gap is inside the half-width of its own paired interval
+  is UNDETERMINED, never "no difference". Numbers are run-tagged and are not to be
+  quoted against the all_three run's, because each run scores on the intersection of its
+  own arms.
+verdict: >
+  SUPPORT IS MOST OF IT, AND THE REFERENCE REWARDS BLUR REGARDLESS OF WHICH PRODUCT IS
+  BLURRED. The chm-vs-chm2 paired gap of +0.0630 dAUROC collapses to +0.0110 once chm2
+  is dilated to a 5 m neighbourhood maximum, read from
+  phase4/qc/chm_standalone_roc_support_confound.md, where the intermediate 3 m rung and
+  every interval sit in the same table. The second leg is the one that generalises:
+  dilating the OLD raster against itself raises its best-F1 while slightly lowering its
+  AUROC, so an operating-point statistic and a threshold-free one disagree in direction
+  on the same treatment — quote which one you mean. What this run does NOT establish is
+  the mechanism's completeness: a max filter cannot separate "the reference is blobbier"
+  from "the reference is offset", which is why the registration and dilate-plus-blur
+  runs were built; the closure is chm_standalone_prior_closure. The standing caveat is
+  carried verbatim here as in the sibling run: this measures MARGINAL discrimination and
+  not CONDITIONAL value, so a gap this test resolves does not license a claim about what
+  training can do with the channel.
+decided: 2026-08-29
+commit: 2f31d19
+instruments: [Scripts/qc/instruments/phase4_chm_standalone_roc.py]
+outputs:
+  - phase4/qc/chm_standalone_roc_support_confound.md
+  - phase4/qc/chm_standalone_roc_support_confound_arms.csv
+  - phase4/qc/chm_standalone_roc_support_confound_pairs.csv
+reports: [phase4/qc/CHM_STANDALONE_PRIOR_2026-08-29.md]
+sample: >
+  the common valid footprint of the chm / chm2 dilation ladder intersected with the
+  reference, on a 1 m analysis grid in EPSG:26910; resampled as non-empty 512 x 512 px
+  (512 m) spatial blocks, 400 paired bootstrap replicates. The unit of analysis is the
+  BLOCK. This run's footprint is LARGER than the all_three run's because fewer rasters
+  intersect — the reason cross-run comparison is forbidden.
+supersedes: []
+superseded_by: []
+extra:
+  docx_sections: [chm-roc-support-confound]
+  arms_scored: >
+    chm, chm2, max1(chm2) = 3 m neighbourhood MAX, max2(chm2) = 5 m MAX, and
+    max1(chm) = the OLD raster under a 3 m MAX — the self-dilation control
+  lake_inputs: >
+    G:\My Drive\treedata\Full_Image\Pipeline Imagery\lidar_snoh_chm.tif,
+    lidar_chm2_2016_50cm.tif, and the reference ccap_2016_hires_lc_snohfull.tif
+    (canopy definition forest_wetland)
+  synthesised_by: chm_standalone_prior_closure
+  sibling_run: chm_roc_all_three
+  why_no_n: >
+    the honest sample size is the block count, which no tracked file resolves to on its
+    own; the arms/pairs CSVs count arms and pairs, not sampling units

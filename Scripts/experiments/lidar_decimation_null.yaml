@@ -1,0 +1,67 @@
+name: lidar_decimation_null
+kind: measurement-campaign
+status: complete
+retrospective: true
+category: lidar
+tags: [lidar, null-test, decimation, point-density, direction, artifact-bound, 2005-2016]
+hypothesis: >
+  The 2005 PSLC cloud is about an order of magnitude sparser than 2016. Sparse
+  sampling under-reads crown maxima, so a 2005-vs-2016 height difference can
+  manufacture apparent canopy GAIN on ground that never changed — and if it does so
+  at the scale of the measured signal, the whole lidar leg of the direction story is
+  unreadable rather than positive. What would change our mind: an artifact volume
+  comparable to the change signal in certified_change_cells.csv, in the same
+  direction as the signal.
+arms: []
+baseline: null
+metric: >
+  phase4/qc/lidar_decimation_null.csv — cells and km2 of artifact GAIN and artifact
+  LOSS fired on ground where true change is zero by construction, plus the realised
+  keep fraction and the compared-cell count. Judged against the real change signal
+  in phase4/qc/certified_change_cells.csv; the density gap itself is measured in
+  phase4/qc/lidar_2005_coverage_audit.md.
+decision_rule: >
+  RECONSTRUCTED (retrospective: true) from the instrument docstring, which states the
+  design as a null before any number exists. Decimate the 2016 cloud to the MEASURED
+  2005 density (chunk-level Bernoulli at the coverage audit's keep probability,
+  seeded), rebuild a 2005-style CHM using the chm2005 grid parameters, constants and
+  class rules imported from build_chm2_2016 itself, then run the SAME LOSS/GAIN
+  predicates certified_change_cells uses, against the real full-density product, on
+  identical ground. True change is zero by construction, so every cell that fires is
+  pure density artifact. The read: an artifact approaching the signal kills the leg;
+  an artifact that is ASYMMETRIC leaves whichever direction it cannot fake still
+  admissible, with the direction it can fake carrying the artifact as its bound.
+verdict: >
+  DENSITY CAN FAKE GAIN AND CANNOT FAKE LOSS — that asymmetry is what revived the
+  lidar leg. On ground where true change is zero, the null fired 1.5008 km2 of
+  artifact GAIN against 0.0001 km2 of artifact LOSS, read from
+  phase4/qc/lidar_decimation_null.csv (the row notes carry the keep probability, the
+  seed and the predicates). Mechanism: a sparse cloud misses crown tops, so the
+  simulated "past" reads low against a dense "now" — the artifact points one way by
+  construction and there is no mechanism for the reverse. Consequences, both
+  load-bearing: (1) the measured 2005->2016 LOSS in phase4/qc/certified_change_cells.csv
+  is not reachable by the density gap and stands as physical evidence; (2) the net
+  GAIN read carries this artifact volume as its explicit bound and is never quoted
+  without it. This is the lidar half of the two-leg story whose human-measured half
+  is panel_a_direction; it upgrades the pre-2016 leg from unusable to bounded, not
+  to precise.
+decided: 2026-09-04
+instruments: [Scripts/qc/instruments/lidar_decimation_null.py]
+inputs: [phase4/qc/lidar_2005_coverage_audit.md, phase4/qc/certified_change_cells.csv]
+outputs: [phase4/qc/lidar_decimation_null.csv]
+sample: >
+  the full dual-covered 2 m grid — every cell where the decimated 2005-style rebuild
+  and the real full-density 2016 chm2 both carry data. The whole lidar overlap, not
+  a draw from it; the compared-cell count is the first row of the output CSV.
+supersedes: []
+superseded_by: []
+extra:
+  builder_imported: >
+    Scripts/pipeline/builders/build_chm2_2016.py — the null imports its constants,
+    class rules and grid helper rather than restating them, so the simulated CHM
+    cannot drift from the real one it is compared against.
+  no_imagery_field: >
+    deliberate. The unit here is a lidar point cloud (PSLC 2005, county 2016), and
+    config.YEAR_CATALOG labels name ORTHO acquisitions — tagging this entry "2005"
+    would assert an imagery provenance the campaign never touched.
+  two_leg_story: panel_a_direction owns the human-measured 2016->2024 leg

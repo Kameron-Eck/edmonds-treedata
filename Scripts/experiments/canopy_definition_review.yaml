@@ -1,0 +1,95 @@
+name: canopy_definition_review
+kind: measurement-campaign
+status: complete
+retrospective: true
+category: definition
+tags: [canopy-definition, vertical-projection, crown-cover, gap-threshold, sensitivity, chm2, kam-questions]
+hypothesis: >
+  The study's core variable had never been written down, and every instrument in the
+  pipeline was quietly running its own version of it. Kam's four plain questions —
+  is canopy what you see looking straight down at high noon; do small breaks inside
+  a crown count; is there a gap-size threshold; does density matter — each name a
+  knob the code already sets implicitly. The campaign's premise is that a definition
+  is only worth arguing about in proportion to what it MOVES on our own data. What
+  would change our mind: a sensitivity table in which the gap and morphology knobs —
+  the ones that sound definitional — move city area more than the operating point,
+  the reference family, or the denominator.
+arms: []
+baseline: null
+metric: >
+  Reports/CANOPY_COVER_DEFINITION_REVIEW_2026-09-05.md — section 5 is the judged
+  table: one row per definitional knob, each carrying its swing in pp of city (or
+  imaged-band) area and the tracked file it was measured in. Section 4 is the
+  pipeline self-audit that enumerates every implicit choice currently running and
+  flags the ones that disagree with each other.
+decision_rule: >
+  RECONSTRUCTED (retrospective: true) from the review's own method statement, which
+  gates every clause before it is recommended: a clause is admissible only if it
+  (a) answers one of the four plain questions, (b) names the convention it follows
+  in the literature, and (c) has a swing MEASURED on our data by a tracked
+  instrument. A knob with no measured swing is not a decision. A row whose evidence
+  rests on the superseded lidar_snoh_chm height scale is reported UNDETERMINED, not
+  settled (CLAUDE.md 3.5). And the recommended definition must be a NO-OP on the
+  running system — a definition that forces a retrain is a recipe change wearing a
+  definition's clothes, and would have to be judged as one.
+verdict: >
+  THE KNOBS THAT SOUND DEFINITIONAL ARE WORTH ~NOTHING; THE INVISIBLE ONES CARRY THE
+  WHOLE ANSWER. The literal gap knobs — 3x3 morphology plus the 3 m2 sieve — measured
+  area-neutral at 1264.0 vs 1263.8 ha, read from phase4/qc/postproc_variant_scores.csv
+  (morph vs morph_sieve, 2011s), while the reference family, the model operating
+  threshold, the denominator and the interpreter's own consistency each move the
+  headline by more, every one of them cited to its own measured file in the review's
+  section-5 table. Mechanism: within-crown gaps are already closed by the classifier's
+  receptive field long before postproc sees them, so the morphological "gap rule"
+  operates on pixels that were never in dispute; the disputed pixels live at the
+  greenness/height cut, the threshold, and the choice of ground in the denominator.
+  Section 1 also settles the plain questions against the literature: vertical
+  projection is the standard and matches Kam's high-noon intuition, crowns are
+  treated as solid outlines (crown cover), and isolated trees count identically to
+  stands. TWO STANDING CAVEATS the entry carries with the verdict: the written
+  definition in section 6 is a DRAFT — section 7 hands six decisions back to Kam and
+  the K4 sign-off row on the WORKPLAN board is open, so nothing here is adopted; and
+  the review flags its own evidence base as partly contaminated, because every
+  height-knob row measured on the old lidar_snoh_chm scale is UNDETERMINED pending a
+  chm2 rebuild, including the "trees, not shrubs" reading of the contested band.
+decided: 2026-09-05
+reports: [Reports/CANOPY_COVER_DEFINITION_REVIEW_2026-09-05.md]
+instruments:
+  - Scripts/qc/instruments/phase4_qc_ndvi.py
+  - Scripts/qc/instruments/phase4_qc_ndvi_vs_tree.py
+  - Scripts/qc/instruments/phase4_qc_design_power.py
+  - Scripts/qc/instruments/phase4_build_ccap_city.py
+inputs:
+  - phase4/qc/postproc_variant_scores.csv
+  - phase4/qc/design_power_2016.txt
+  - phase4/qc/ndvi_ref_2016.txt
+  - phase4/qc/ndvi_vs_tree_2021s.txt
+  - phase4/qc/ccap_city_2016.txt
+  - phase4/qc/sameflight_consistency.csv
+  - phase4/qc/panel_a_estimate.txt
+imagery: ["2016", "2021s"]
+sample: >
+  not a point sample — the unit is the DEFINITIONAL KNOB. Every implicit choice the
+  running pipeline makes (label convention, NDVI/height cutoff pair, C-CAP class
+  set, operating threshold, postproc MMU, denominator, human protocol, scoring and
+  resampling conventions) is enumerated, then priced in pp of area from an existing
+  measured file wherever one exists.
+supersedes: []
+superseded_by: []
+extra:
+  audited_code: >
+    Scripts/pipeline/phase4_build_corrected_labels.py — the corrected-label rule is
+    one of the three coexisting NDVI+height cutoff pairs section 4 flags; its
+    hardcoded old-CHM reference is why several section-5 rows read UNDETERMINED.
+  unsigned_decision_doc: >
+    Reports/CANOPY_DEFINITION_DECISION_2026-08.md is the earlier, unsigned decision
+    document this review amends. It is registered as the design_doc of
+    ccap_mixed_sign_bias, not of this entry (BACKFILL_RECONCILIATION section C).
+  open_followups:
+    - K1 pre-gate — rebuild ndvi_ref + rerun the D1 sweep, ndvi_vs_tree and
+      height_by_agreement on chm2 (free CPU); until then the height-knob rows and
+      the contested band's composition stay UNDETERMINED
+    - Kam's six open decisions (section 7), incl. form-vs-height for tall woody
+      non-trees and the 2-3 m unsure band
+    - the draft definition must reach the interpreter BEFORE Panel B / K1 labelling
+      begins; measured interpreter error is already comparable to the effect

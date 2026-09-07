@@ -1,0 +1,103 @@
+name: coregistration_2020s_anchor
+kind: measurement-campaign
+status: complete
+retrospective: true
+category: geometry
+tags: [coregistration, registration, anchor, analysis-grid, phase-correlation, archive-wide]
+hypothesis: >
+  Every cross-year statement in this project assumes the acquisitions describe the same
+  ground. Nothing had measured that. Two things follow if it is false and unmeasured: a
+  systematic offset between two years would be read as canopy change, and the label
+  source itself — the 2020 flight the whole archive's supervision is projected from —
+  could be sitting off the anchor with no one able to tell. So measure every acquisition
+  against one anchor, on one analysis grid, in one pass: the systematic part is
+  correctable at comparison time, and the label source's own row either certifies the
+  chain or invalidates all of it at once.
+arms: []
+baseline: null
+metric: >
+  phase4/qc/coregistration.csv — one row per acquisition against the 2020s anchor, with
+  median_dx_m / median_dy_m (registration proper), p68_mag_m / p95_mag_m (per-chip
+  displacement distribution), n_used vs n_tried (selectivity), support and chip size,
+  and the measurement timestamp. Reader rules and the rounded per-year flags are in
+  Scripts/docs/SCHEMAS.md; the analysis-grid declaration behind them is
+  Scripts/IMAGERY_FACTS.md.
+decision_rule: >
+  RECONSTRUCTED (retrospective: true) from the writer's contract and the reader rules
+  gated alongside the table, which do fix the reading independently of any result.
+  Three commitments. (1) The anchor chain is only trustworthy if the 2020 BRIDGE row —
+  the label source measured against the anchor — comes back near zero; a non-zero result
+  there invalidates the whole table rather than one year, so that row is a gate, not a
+  data point. (2) Registration proper is the MEDIAN offset vector and nothing else.
+  p95_mag_m is a conservative bound that includes building lean, parallax and real
+  ground change inside the chip, so quoting it as a year's misregistration overstates it
+  by roughly an order of magnitude — the rule is stated as non-optional. (3) Rows are
+  not equally powered: n_used against n_tried is the audit trail of a phase correlation
+  whose anchors reject themselves, and the table runs at two attempt regimes, so a row's
+  offset is read together with its selectivity. Cross-year statistics compute on
+  config.ANALYSIS_GRID_EPSG and never by resampling the archive (CLAUDE.md 3.4b).
+verdict: >
+  THE ANCHOR CHAIN IS CERTIFIED, AND REGISTRATION IS SEPARABLE FROM THE THING IT IS
+  USUALLY CONFUSED WITH. The decisive row is the bridge: the 2020 label source measures
+  p95 0.014 m against the 2020s anchor, read from phase4/qc/coregistration.csv — orders
+  of magnitude below every other p95 in the table, which is what "gated near-zero" means
+  and which is why the labels and the anchor can be treated as the same ground. With
+  that established, the rest of the table is usable: a handful of acquisitions carry a
+  systematic offset above a metre and are correctable at comparison time, with the
+  flagged years and their rounded offsets quoted in the reader rules of
+  Scripts/docs/SCHEMAS.md rather than restated here. Two readings the table forces and
+  the prose does not: the p95 column is NOT registration error — years with essentially
+  zero median offset still carry multi-metre p95, because the statistic includes lean,
+  parallax and real change; and an offset belongs to a DELIVERY, not to a year, since
+  one flagged acquisition's sibling delivery of the same flight measures essentially
+  zero on a fuller chip sample. Downstream, a p95 from this table is legitimate only as
+  one strike among several, never as a registration figure — which is exactly how
+  experiments/hard_year_pilot.yaml uses it.
+decided: 2026-09-01
+instruments:
+  - Scripts/qc/instruments/coregistration.py
+outputs:
+  - phase4/qc/coregistration.csv
+reports:
+  - Scripts/docs/SCHEMAS.md
+  - Scripts/IMAGERY_FACTS.md
+  - Reports/FINDINGS_LEDGER_2026-09-03.docx
+sample: >
+  every acquisition in the imagery catalog except the anchor itself, phase-correlated
+  against 2020s over constant ground chips laid on config.ANALYSIS_GRID_EPSG, in one
+  measurement pass — the whole archive, not a sample of it. Chip size and attempt count
+  vary by acquisition, so rows are not equally powered.
+n: 36
+n_source: phase4/qc/coregistration.csv#rows
+supersedes: []
+superseded_by: []
+extra:
+  docx_sections: [EXP-D-coregistration-2020s-anchor]
+  generated_table: >
+    phase4/qc/coregistration.csv is GENERATED — regenerate, never edit. Every row
+    carries the same measured_utc, so the table is one measurement epoch; anything
+    comparing it to an older number is comparing to a superseded pass.
+  regeneration_note: >
+    the campaign closed and was gated 2026-09-01 (commit 91fa7e0, which landed both the
+    instrument and the first table). The table was regenerated 2026-09-05 when a further
+    acquisition entered the catalog; n is pinned to the CURRENT file. Verified this
+    session that the bridge row and the flagged rows carry the same values as the
+    2026-09-01 pass — the regeneration added a row, it did not move a result. The
+    2026-09-03 findings ledger read the earlier pass and quotes its row count; that
+    count is stale and must not be requoted.
+  gate: Scripts/qc/test_analysis_grid.py::test_coregistration_table_contract
+  claim_that_could_not_be_reproduced: >
+    SCHEMAS.md states a COUNT of years flagged at or above one metre. Recomputing
+    magnitudes from median_dx_m / median_dy_m over the whole table does not reproduce
+    that count, and the doc does not state its criterion. The two acquisitions SCHEMAS.md
+    names individually are quoted by the tracked record and are safe; the count is not
+    re-derivable from the CSV and should be treated as prose pending a stated criterion.
+  reader_rule_that_is_not_optional: >
+    p95_mag_m is a conservative bound including building lean, parallax and real change
+    inside the chip. Registration proper is median_dx_m / median_dy_m. Quoting a p95 as
+    a misregistration overstates it by roughly an order of magnitude.
+  consumed_by:
+    - hard_year_pilot — uses a p95 from this table as one of three strikes, explicitly
+      not as a registration figure
+    - same_flight_pair_2019 — the 2019s and 2019n rows are the independent sub-metre
+      check on a pair established as one flight by other evidence

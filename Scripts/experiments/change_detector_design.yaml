@@ -1,0 +1,121 @@
+name: change_detector_design
+kind: measurement-campaign
+status: complete
+retrospective: true
+category: change
+tags: [change-detection, trajectory, certifier, persistence, smoothing-trap, adversarial-review, hot-spots]
+hypothesis: >
+  The shipped hot-spot rule filters map loss by requiring the loss to persist into a
+  later epoch. Two questions were open and both were Kam's: can a year's neighbours
+  vouch for it (borrow shape across the 8-epoch stack), and is persistence the right
+  filter at all. The suspicion driving the campaign is that the two are opposite
+  instruments — a real removal is a STEP, flat before and flat after, while
+  neighbour consensus measures CURVATURE, so the more genuinely sustained a loss is,
+  the less any smoothing or consensus rule can see it. What would change our mind: a
+  consensus statistic that fires on sustained events at a rate comparable to a
+  level-step statistic, or a persistence filter that buys precision worth its recall
+  cost.
+arms: []
+baseline: null
+metric: >
+  Reports/CHANGE_DETECTOR_DESIGN_2026-09-06.md — the decisive table is Olofsson-
+  weighted precision with recall, one row per candidate rule (shipped persist
+  filter, raw two-epoch rule, raw plus step-shape certifier, HMM plus certifier,
+  slope plus certifier), scored against the human-verified loss/no-change gold drawn
+  from the Panel A label and verify logs. Section 4 carries the surviving failure
+  modes with their measured bounds; section 5 records where the two adversarial
+  referees disagreed and who won each.
+decision_rule: >
+  RECONSTRUCTED (retrospective: true) from the design's own structure, which judges
+  every candidate on one axis and states the gates before the build. The axis is
+  Olofsson-weighted precision — the quantity the atlas actually consumes — with
+  gross loss and gross gain scored SEPARATELY, never as a net, because every
+  estimator on this stack gets its net right by cancellation. A rule earns its place
+  only by beating the fit-free certifier's number, not the raw rule's. Nothing
+  fitted may be credited against gold it was fitted on. Terminal-epoch events are
+  structurally uncorroborable and must be REPORTED with honest low confidence, never
+  deleted — a filter that removes them is buying precision with recall it never
+  declares. And per CLAUDE.md 3.4b, no number in the write-up may be cited
+  downstream until its prototype lands as a repo instrument with a gated CSV.
+verdict: >
+  THE STEP-SHAPE CERTIFIER WINS AND THE SHIPPED PERSISTENCE FILTER IS A PURE RECALL
+  TAX. Bolting a fit-free step-shape certifier onto the existing two-epoch rule moves
+  Olofsson-weighted precision from 0.249 to 0.431 — about 60 percent of the total
+  gain any candidate achieved, for roughly five lines on the already-cached 2 m
+  stack, no model and no fitted parameter — read from
+  Reports/CHANGE_DETECTOR_DESIGN_2026-09-06.md, whose table also carries the recall
+  column and the two model tiers. Once the certifier is attached the HMM-versus-slope
+  question is statistically empty. The incumbent measured WORSE than believed: the
+  persistence filter moves weighted precision by a statistical zero while deleting
+  every one of the human-verified terminal-epoch losses by construction, because no
+  later epoch exists to corroborate them. Mechanism, and the answer to Kam's
+  question: neighbours may WEIGHT a year's testimony and must never overwrite it —
+  a median-style correction regresses the best-calibrated year toward its
+  worst-calibrated neighbours, endpoints cannot be smoothed so the bias never
+  cancels, and the trap is spatial as well as temporal (a single removed crown
+  inside a surviving stand is voted back by its own neighbours). Scope is fixed by
+  the same read: Panel A stays the pace authority and this detector owns WHERE only,
+  hard-limited to 2016-2024, because run backward the model fabricates a trend at
+  the unvalidated endpoints. TWO STANDING CAVEATS: the prototype numbers were
+  produced in session scratch and are, in the report's own words, unreproducible
+  from repo plus lake until the certifier port lands — so this verdict is a design
+  read, not a measured instrument; and the build itself (gold-set freeze, certifier
+  port with its three audit fixes, tiered output) is QUEUED on Kam's go.
+decided: 2026-09-06
+reports: [Reports/CHANGE_DETECTOR_DESIGN_2026-09-06.md]
+instruments: [Scripts/qc/instruments/trend8_hotspots.py]
+inputs:
+  - phase4/qc/trend8_hotspots.csv
+  - phase4/qc/trend8_transition_census.csv
+  - phase4/qc/trend8_flicker_report.csv
+  - phase4/qc/panel_a_labels.csv
+  - phase4/qc/panel_a_verify.csv
+  - phase4/qc/panel_a_estimate.txt
+  - phase4/qc/sameflight_consistency.csv
+  - phase4/qc/coregistration.csv
+imagery: ["2009", "2011s", "2013", "2015", "2016", "2019", "2021", "2024"]
+sample: >
+  the human-verified gold drawn from the Panel A label and verify logs — verified
+  no-change points plus verified loss and gain points, re-deduplicated this session
+  with pinned semantics (three analysts had produced three counts from the same
+  logs). Detection units are frozen 2020 crowns where available and 12 m cells
+  otherwise; connected-component "stands" were measured and rejected as a unit
+  because they percolate. The gold is declared SPENT — development set forever;
+  every confirmatory number must come from a fresh draw.
+supersedes: []
+superseded_by: []
+extra:
+  audited_incumbent: >
+    the shipped persistence rule was verified directly in
+    Scripts/qc/instruments/trend8_hotspots.py this session — the campaign's one
+    claim that IS reproducible from the repo today.
+  prototypes_unported: >
+    both candidate detectors and the certifier live only in session scratch. Per
+    CLAUDE.md 3.4b the measurement contract is unmet until they land as instruments
+    writing gated CSVs; the report says so itself and the port is the first build
+    step.
+  corrections_this_campaign_made:
+    - there is no 2022 layer in the stack — the epochs are irregular and any design
+      must handle uneven gaps
+    - gold counts re-arbitrated by re-deduplicating the label and verify logs
+    - the loss-corroboration figure is a 10 m-halo convention; the pixel-exact count
+      is lower and neither may be printed without naming which one it is
+    - the "2.2 m registration" figure belongs to a non-trend8 acquisition; the
+      operative per-year quantity is p68 scatter, which is uncorrectable and becomes
+      evidence WIDTH, not a shift to fix (phase4/qc/coregistration.csv)
+    - the smoothing trap has no fact home in the repo and needs an instrument before
+      anything cites it again
+  blocked_on:
+    - Kam go for the build (gold freeze, certifier port, tiered output)
+    - crown-level output needs citywide 1 m trend8 cover sidecars that do not exist
+  pre_registered_gates: >
+    written in section 2 of the report BEFORE any build: beat the fit-free
+    certifier's weighted precision, paired bootstrap, gross loss and gross gain
+    scored separately, false positives reported in the mid-cover stratum, zero fires
+    on the hard-negative parcels (flicker_parcels_census), bait fires no worse than
+    raw, terminal-class recall floor, certified area within a stated factor of
+    truth, and every recall number printed with its measured standard deviation.
+  relation_to_other_entries: >
+    consumes trend8_uniform_rgb's map series and panel_a_direction's human truth;
+    converged independently with lit_hunt_temporal_inconsistency's PACC refusal on
+    the same day — map owns WHERE, panel owns PACE.

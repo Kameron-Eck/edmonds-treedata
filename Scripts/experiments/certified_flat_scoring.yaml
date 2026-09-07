@@ -1,0 +1,96 @@
+name: certified_flat_scoring
+kind: instrument-finding
+status: complete
+retrospective: true
+category: truth
+tags: [certified-flat, false-positive, absolute-truth, lidar, ccap-bound, tier1]
+hypothesis: >
+  Every score in this pipeline is relative to an imperfect reference, so any false
+  positive can be argued away as a reference error instead of a model error. One patch
+  of ground in the archive admits no such argument: 2 m cells whose maximum height above
+  ground was under 2 m in BOTH the 2005 PSLC and the 2016 USGS point clouds, eroded
+  inward so edges cannot leak in. No model, no human and no C-CAP enters that truth
+  definition, and a decade separates the two acquisitions that agree on it, so anything
+  any product calls canopy there is wrong absolutely. Scoring C-CAP itself on it bounds
+  the reference's over-call; scoring the Tier-1 arms on it asks whether the lidar-input
+  effect confirmed against a proxy reference survives against ground that contains no
+  proxy at all. What would change our mind: erosion too shallow to exclude crown
+  overhang, or a flat set so small or so unrepresentative — all pavement, no yards —
+  that its rate says nothing about the city.
+arms: []
+baseline: null
+metric: >
+  phase4/qc/certified_flat_scores.csv — one row per scored product (both C-CAP hi-res
+  vintages, every Tier-1 arm prob at its policy-C deployed threshold, and named citywide
+  probs at their live thresholds): valid flat-cell count, false-positive cells, FP rate,
+  and a note recording the operating point. Companion phase4/qc/certified_change_cells.csv
+  carries the same pass's model-free dual-epoch loss and gain cell counts on
+  dual-covered ground.
+decision_rule: >
+  RECONSTRUCTED (retrospective: true) from the instrument docstring, which fixes the
+  reading rules before any product is scored. Truth is the dual-lidar verified-background
+  raster built by Scripts/pipeline/builders/build_lidar_background.py and checked by
+  Scripts/qc/instruments/_lidar_bg_validate.py — it is asserted, not fitted. Every
+  product is warped onto its 2 m grid with Resampling.max, the convention that "asserts
+  vegetation anywhere in the cell": that is the most FORGIVING possible read of the
+  product, so the rate it returns is an upper bound on what the product calls canopy and
+  a floor under how wrong that is. Each product is cut at its OWN deployed threshold,
+  never a common cut, because an arm at a policy-C threshold and a champion at a
+  circular best-F1 cut are different operating-point populations. Tier-1 probs are
+  AOI-restricted, so their flat-cell count is smaller and is reported per row rather than
+  pooled — rates compare within the AOI family or within the citywide family, never
+  across the boundary. The dual-epoch change count states its height thresholds and
+  involves no model, so it is a physical bound rather than a detection result.
+verdict: >
+  THE ABSOLUTE FALSE-POSITIVE FLOOR IS REAL, AND LIDAR AS AN INPUT CHANNEL COLLAPSES IT.
+  Read from phase4/qc/certified_flat_scores.csv: on physically empty ground the 2020
+  Tier-1 base arm calls canopy at a rate of 0.25574 while its lidar-input sibling in16
+  calls it at 0.0365 — an order of magnitude, measured against truth that contains no
+  lidar-derived label and no reference product at all. That matters more than the
+  proxy-scored version of the same claim, because it cannot be explained as the
+  reference agreeing with the input. Three further reads live in the same file and reach
+  the reader through the generated index rather than being restated here: the two C-CAP
+  rows bound the reference's own over-call on flat ground, and it is small enough that
+  C-CAP FP cannot account for arm-level FP — the arms own theirs; the 2006s label-adder
+  arm that Tier-1 flagged as epoch poison carries the worst FP rate of any arm scored,
+  so the poison is visible on absolute truth and not only in the ranking; and the two
+  citywide rows show the deployed masks sit far below the AOI-restricted Tier-1 arms.
+  The second output, phase4/qc/certified_change_cells.csv, is the model-free dual-epoch
+  loss and gain count that the lidar decimation-null leg was judged against.
+decided: 2026-09-04
+instruments:
+  - Scripts/qc/instruments/certified_flat_scoring.py
+  - Scripts/pipeline/builders/build_lidar_background.py
+  - Scripts/qc/instruments/_lidar_bg_validate.py
+inputs:
+  - phase4/qc/indep_thresholds.csv
+outputs:
+  - phase4/qc/certified_flat_scores.csv
+  - phase4/qc/certified_change_cells.csv
+imagery: ["2006s", "2011s", "2016", "2019n", "2020", "2023n"]
+sample: >
+  the dual-lidar certified-flat cell set — 2 m cells under 2 m above ground in both the
+  2005 and 2016 point clouds, eroded 6 m inward — intersected with each product's valid
+  extent. Citywide products see the whole set; AOI-restricted Tier-1 probs see a subset,
+  and every row carries its own cell count. The unit of analysis is the product, one row
+  each; the unit of evidence is the flat cell.
+n: 31
+n_source: phase4/qc/certified_flat_scores.csv#rows
+supersedes: []
+superseded_by: []
+extra:
+  board_row: >
+    WORKPLAN DONE, "Accuracy instruments" — the certified-flat leg. Sibling legs are
+    accuracy_sample_design, metric_tolerance_c2b and sameflight_floor_c3.
+  truth_raster: >
+    verified_background_lidar_2005_2016.tif, built 2026-08-27 and held on the LOCAL
+    imagery mirror D:\edmonds-pipeline\Imagery\ — not a repo-tracked path, so it is
+    recorded here rather than in inputs.
+  warp_convention: >
+    Resampling.max, the same convention as the build_chm2_2016 verified-background
+    check — deliberately the product's best case, so the measured rate is an upper
+    bound on the product and never a worst case constructed against it.
+  tag_ownership: >
+    the t1_* arm tags scored here belong to tier1_science_sample; this entry re-reads
+    their masks against a different truth and claims no arms of its own.
+  consumed_by: [lidar_decimation_null, ccap_mixed_sign_bias]

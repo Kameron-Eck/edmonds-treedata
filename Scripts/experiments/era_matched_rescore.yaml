@@ -1,0 +1,91 @@
+name: era_matched_rescore
+kind: measurement-campaign
+status: needs-kam
+retrospective: true
+category: reference
+tags: [c-cap, reference-vintage, tier1, lidar-input, matched-precision, operating-point]
+hypothesis: >
+  Every Tier-1 score is measured against a C-CAP reference whose vintage is years away
+  from the imagery it judges. If the lidar-input verdict — or the apparent
+  recall/precision behaviour of the arms — is a property of that choice rather than of
+  the models, then swapping in the era-matched reference should move it. Nine already
+  trained arms are rescored on identical ground against both C-CAP vintages, with the
+  reference raster as the only manipulated variable and each arm as its own control.
+  What would change our mind about the parent verdict: arm deltas that fall inside the
+  replicate floor, or change sign, once the reference is era-matched.
+arms: []
+baseline: null
+metric: >
+  the ccap_2021 side is the tracked table phase4/qc/tier1_results.csv (primary statistic
+  recall at precision >= 0.75 on TEST blocks, its selected cut, and the paired
+  arm-minus-base delta). The era-matched ccap_2016 side has NO tracked home: the builder
+  Scripts/qc/instruments/build_tier1_results.py globs the ccap_2021 sweeps exclusively,
+  so no row for the era-matched arms was ever written. Those numbers exist only as dense
+  sweep CSVs on the lake plus an in-session recomputation, and that is precisely why
+  this entry is needs-kam.
+decision_rule: >
+  RECONSTRUCTED (retrospective: true) from the parent pre-registration in
+  experiments/tier1_science_sample.yaml, whose statistic and floor this rescore inherits
+  unchanged. Primary statistic: the maximum recall among the 254 integer cuts whose
+  precision is at least 0.75, read on TEST blocks only, at canopy_def forest_wetland.
+  The reference swap is judged at MATCHED PRECISION and never at a fixed cut — holding
+  k fixed while the reference moves simply reads a different point on a different PR
+  curve, and comparing rows cut under different threshold policies is the pooling
+  SCHEMAS.md forbids outright. Arm deltas are then recomputed within each reference
+  against the parent's measured seed-replicate floor, and the lidar-input verdict counts
+  as reference-robust only if it survives on both vintages by the same rule. STATED
+  LIMIT, which is part of the rule rather than a footnote: the replicate floor was
+  measured on the ccap_2021 side only — no replicate arms and no sweep-selection files
+  exist for the era-matched reference — so every "beats the floor" statement on that
+  side imports a floor from the other reference, and no deployed-point (policy-C) number
+  can be computed there at all without first running a selection sweep.
+verdict: null
+decided: null
+inputs: [phase4/qc/tier1_results.csv]
+instruments:
+  - Scripts/qc/instruments/build_tier1_results.py
+  - Scripts/qc/phase4_qc_indep.py
+imagery: ["2006s", "2011s", "2016"]
+sample: >
+  nine already-trained, already-inferred Tier-1 arms — {2006s, 2011s, 2016} x {base,
+  in05, in16} — each rescored twice on the identical sample-test ground blocks, once
+  against the era-matched 2016-vintage C-CAP reference and once against the 2021-vintage
+  Tier-1 default. AOI-restricted to the sample blocks throughout; never to be pooled
+  with citywide rows. The adder, NIR and corruption arms and the 2020 / 2019n years have
+  no era-matched sweep at all.
+supersedes: []
+superseded_by: []
+extra:
+  docx_sections: [EXP-A-ERA-MATCHED-RESCORE]
+  parent_design: tier1_science_sample
+  needs_kam_reason: >
+    two independent reasons, either sufficient. (1) NOT SIGNED OFF: the WORKPLAN board
+    carries this among the adversarial-review findings as documented and pending Kam
+    confirmation with nothing acted on, gated behind the K4 sign-off block that is still
+    open on the AWAITING KAM stack. (2) PRIMARY OUTPUT NOT IN THE TRACKED RECORD: the
+    era-matched statistic has no results table — build_tier1_results.py globs only the
+    ccap_2021 sweeps — so the era-matched values live on the lake and in an in-session
+    recomputation. Writing a verdict here would launder an untracked computation into
+    the registry, which is the failure this status exists to prevent.
+  shape_of_the_finding: >
+    stated without values, because none of the era-matched numbers is tracked. At
+    matched precision the era-matched reference credits every one of the nine arms with
+    MORE recall than the 2021-vintage reference does — nine of nine in the same
+    direction. Read at a fixed cut instead, the same eighteen sweeps produce the
+    opposite-looking story (recall flat, precision uniformly up), and that apparent
+    "trade" is an operating-point artifact of holding k still while the curve moves. The
+    parent's lidar-input verdict survives the swap by the parent's own rule; the adder,
+    NIR and corruption verdicts were never rescored and remain untested against the
+    era-matched reference.
+  reference_effect_not_model_effect: >
+    the same predicted rasters are involved on both sides, so any movement is the two
+    C-CAP vintages disagreeing about the ground, never an arm improving. The 2016
+    vintage also paints more reference canopy on the same cells, and a larger canopy
+    denominator mechanically eases recall — part of the movement is definitional.
+  untracked_outputs: >
+    dense sweep CSVs on the lake under phase4/qc/, stems
+    qc_indep_sweep_{year}_t1_{year}_{base,in05,in16}_ccap_{2016,2021}_hires_lc_sample-test.csv
+  method_validation: >
+    re-running the pre-registered statistic's definition on the ccap_2021 sweeps
+    reproduced the tracked phase4/qc/tier1_results.csv to 4 dp on all nine arms, so the
+    era-matched computation is verified-equivalent — trustworthy, but still not tracked.

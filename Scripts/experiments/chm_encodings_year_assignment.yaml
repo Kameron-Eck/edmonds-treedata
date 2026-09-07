@@ -1,0 +1,106 @@
+name: chm_encodings_year_assignment
+kind: instrument-finding
+status: complete
+retrospective: true
+category: lidar
+tags: [chm, lidar, encoding, normalisation, per-year, config, decision-record, opt-in]
+hypothesis: >
+  Once two rebuilt height rasters exist alongside the one they replace, an arm's height
+  channel stops being identifiable from its results — three products, three grids, three
+  epochs, and a training pipeline that standardises whatever it is handed. Two things
+  have to be pinned or every later A/B is uninterpretable. First, ENCODING: if the
+  rebuilds do not carry byte-for-byte the same uint8 scheme as the old raster, an A/B
+  against the old channel changes two variables at once and nothing can be attributed.
+  Second, ASSIGNMENT: every height-channel run to date fed a roughly-2016 raster to
+  imagery spanning a quarter century, which for the early half of the archive is a seven
+  to sixteen year mismatch — the pipeline was using that raster as an input for years its
+  own credibility list already excluded.
+arms: []
+baseline: null
+metric: >
+  Scripts/pipeline/phase4seg/config.py, the append-only chm2 and chm2005 blocks — the
+  raster paths, the shared uint8 encoding, the per-source normalisation statistics and
+  the routine that produced them, the per-year assignment map CHM_BY_YEAR with its
+  default and its resolver, and the tile-cache invariance argument. The same encoding is
+  stated independently in the two standalone-ROC reports and in the accuracy sampler's
+  own constant; those are the cross-checks, not the home.
+decision_rule: >
+  RECONSTRUCTED (retrospective: true) from the config block's own comments, which state
+  each commitment as a rule rather than as a result. (1) ONE VARIABLE: both rebuilds keep
+  the IDENTICAL uint8 encoding as the raster they replace — the config block states the
+  encoding and the one-variable rule, and the builder it names,
+  Scripts/pipeline/builders/build_chm2_2016.py, gives the reason in its docstring:
+  "what is under test is resolution / apex accuracy / coverage / no-reprojection, NOT
+  bit depth." (2) STATS ARE
+  ONLY AS GOOD AS THE ROUTINE: the normalisation pair for a new raster is trusted only if
+  the same routine reproduces the previously published pair for the existing raster
+  exactly; that is a reproducibility check on the measuring code, never an independent
+  validation of the new raster's radiometry. (3) NO SILENT RE-BASELINING: a per-year
+  height source is opt-in via an explicit flag and NEVER the default, because making it
+  the default would change every future run and break comparability with every existing
+  baseline — a re-baselining decision, not a config tweak — and because an arm that uses
+  it must say so in its argv. (4) NO CACHE CHURN: the tile signature hashes the SELECTED
+  height source, not these dictionaries, so adding a key must invalidate no existing tile
+  cache and re-tile nothing.
+verdict: >
+  ALL FOUR COMMITMENTS LANDED, AND THE ASSIGNMENT IS OPT-IN BY DESIGN. Both rebuilds
+  carry the old product's encoding exactly — DN = 1 + round(clip(h, 0, 50.6) / 0.2) with
+  0 = nodata, so height recovers as (DN - 1) * 0.2 — read from
+  Scripts/pipeline/phase4seg/config.py, the append-only block that IS the record for
+  this cluster. Four reads follow. (1) The 2016 rebuild's normalisation mean sits BELOW
+  the old raster's for a reason that is itself the defect measurement: the rebuild does
+  not inflate open ground, so far more of it is flat, and that shifts the non-zero mean
+  down (see old_chm_defect). (2) The 2005 rebuild's statistics are trusted on a stated
+  ground — the same routine reproduces the 2016 rebuild's published pair exactly — which
+  is a check on the routine and not on the raster. (3) The per-year map assigns the 2005
+  product to the early acquisition labels listed in this entry's imagery field and keeps
+  the 2016 product as the default, splitting at 2013 because the two clouds were flown
+  either side of it and
+  2013 is very nearly equidistant; the map resolves through a single function and is
+  reached only when an arm asks for it. (4) The trade is written down so it is not
+  rediscovered: the 2005 product is materially coarser than the 2016 one, and the height
+  channel's measured value is concentrated in crowns about the size of its own cell — it
+  buys temporal correctness and pays in resolution, and the config comment records that
+  as EMPIRICAL AND UNTESTED. That comment is now stale in one direction and deliberately
+  not updated: the trade was subsequently tested by the Tier-1 science sample, and
+  config.py is append-only by design. Two live consequences for readers: an arm that
+  pinned its raster with an explicit source flag did NOT use the per-year map, and
+  several qc instruments still name the OLD raster in their own constants, so a script's
+  height channel must be read from the script rather than assumed from this map.
+decided: 2026-08-29
+commit: 5968367
+instruments:
+  - Scripts/pipeline/builders/build_chm2_2016.py
+  - Scripts/pipeline/builders/build_chm2005.py
+  - Scripts/pipeline/builders/fetch_build_chm.py
+  - Scripts/qc/instruments/audit_lidar_2005_coverage.py
+outputs: [Scripts/pipeline/phase4seg/config.py]
+reports: [phase4/qc/lidar_2005_coverage_audit.md]
+imagery: ["2000", "2002", "2003s", "2005", "2006s", "2007", "2009", "2011s", "2012s"]
+sample: >
+  not a sample — a configuration decision record. The listed imagery labels are exactly
+  the acquisition years the per-year map assigns to the 2005 height product; every other
+  catalog label falls to the 2016 default.
+supersedes: []
+superseded_by: []
+extra:
+  docx_sections: [chm-encodings-and-year-assignment]
+  depends_on: old_chm_defect
+  encoding_cross_checks: >
+    the same DN scheme is stated independently in
+    phase4/qc/chm_standalone_roc_all_three.md and
+    phase4/qc/chm_standalone_roc_support_confound.md, and is implied by the height
+    constant in Scripts/qc/instruments/phase4_accuracy_sample.py; the height-recovery
+    form appears in Scripts/qc/instruments/phase4_miss_examples.py
+  lake_products: >
+    G:\My Drive\treedata\Full_Image\Pipeline Imagery\lidar_chm2_2016_50cm.tif
+    (0.5 m, EPSG:26910, no reprojection) and lidar_chm2005_2m.tif (2 m canopy grid /
+    4 m ground grid, EPSG:3740 — the cloud's declared CRS; the engine reprojects on read)
+  config_is_append_only: >
+    pipeline/phase4seg/config.py is pure-move protected — its constants feed the tile
+    signature and its comments carry the experimental history. The stale "untested" note
+    on the coarseness trade is left in place deliberately; the correction lives in the
+    entry that tested it, not in the file.
+  still_wired_to_the_old_raster: >
+    several qc instruments name lidar_snoh_chm.tif in their own module constants. That
+    inventory is a live consequence of this record, not a claim it resolves.

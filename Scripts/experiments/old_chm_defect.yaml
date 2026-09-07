@@ -1,0 +1,118 @@
+name: old_chm_defect
+kind: instrument-finding
+status: complete
+retrospective: true
+category: lidar
+tags: [chm, lidar, defect, correction, height-channel, certified-flat, sign-error]
+hypothesis: >
+  The height channel is the largest single lever this project has measured, and the
+  raster feeding it is a convenience product: USGS 3DEP height-above-ground at roughly
+  2 m, bilinear-upsampled onto a 1 m Mercator grid and quantised to uint8. The standing
+  belief, reasoned from that upsampling, was that it reads systematically LOW — bilinear
+  smoothing kills local maxima and a canopy apex IS a local maximum, so the loss would
+  fall hardest on narrow conical crowns, exactly the conifer sites the project trains
+  on. That is a chain of reasoning, not a measurement. The way to settle it is to
+  adjudicate the raster against the raw returns with NO interpolation anywhere in the
+  loop, and to ask not only how large the error is but which SIGN it has.
+arms: []
+baseline: null
+metric: >
+  phase4/qc/chm2005_validation.md — the certified-flat-ground table: mean, p50/p90/p99,
+  the share of flat ground each product asserts is taller than 2 m, and coverage, for
+  the old raster and both rebuilds. The interpolation-free point adjudication and the
+  coverage-confound exclusion are recorded in the append-only comment block of
+  Scripts/pipeline/phase4seg/config.py; the corrected narrative and its struck
+  predecessor are Scripts/IMAGERY_FACTS.md section 8.3.
+decision_rule: >
+  RECONSTRUCTED (retrospective: true) from the adjudication routine's own docstring,
+  which states its admissibility conditions before reporting anything. The comparison is
+  max return minus lowest ground-class return IN THE SAME cell, measured directly from
+  the point pass — no ground fill, no resampling, no CRS change — so it cannot inherit a
+  defect from either product's construction. Two confounds must be excluded before a
+  disagreement counts as a product defect rather than an artifact: MISREGISTRATION,
+  excluded by showing the error is minimised at zero shift (the rasters agree on where
+  things are, not on how much), and CLASS ARTIFACT, excluded by showing the offset holds
+  in every height bin rather than only where roofs live. The independent confirmation
+  runs on ground certified under 2 m in BOTH lidar epochs and then eroded 6 m,
+  specifically so no cell can excuse a tall reading as a clipped crown edge; on that
+  ground every product should read about zero. A rebuild is only credited if it beats
+  the old raster on that same ground.
+verdict: >
+  THE SIGN WAS BACKWARDS AND THE DEFECT IS LARGE. On ground certified flat in both lidar
+  epochs and eroded 6 m, the deployed raster asserts vegetation taller than 2 m on 8.82%
+  of it against the 2016 rebuild's 0.01% — read from phase4/qc/chm2005_validation.md,
+  where the full percentile table and each product's coverage of that ground sit in one
+  row each. The interpolation-free point adjudication in
+  Scripts/pipeline/phase4seg/config.py gives the mechanism and the magnitude: the
+  product reads high nearly everywhere, in every height bin from bare ground through
+  mature forest, and both confounds are excluded — the error is minimised at zero shift,
+  so it is not misregistration, and it is present in the tall bins, so it is not a
+  roof-classification artifact. The MECHANISM is that the product's effective support is
+  several metres and each cell reports a NEIGHBOURHOOD MAXIMUM rather than the height at
+  that cell: it smears canopy height onto the open ground beside trees. Coverage is
+  excluded as the explanation for the rebuild's slightly smaller footprint — most of the
+  deficit is cells the old raster itself calls short, its bilinear bleed across shoreline
+  nodata edges. Three consequences stand. (1) Every 4-band result produced before the
+  rebuild was earned with a channel telling the model that lawns next to trees are about
+  five metres tall; whether that helped or hurt recall is genuinely open and is recorded
+  as open. (2) A CONSTANT offset would be invisible to a rank statistic, which is why the
+  standalone ROC could not see this at all — see chm_standalone_prior_closure. (3) The
+  bias passes straight through to anything that thresholds the OLD raster at an absolute
+  height: stable-label mining, lidar-background gating, and the height strata of the
+  human accuracy sample. Bounded deliberately: the certified-flat subset is small, easy
+  and non-random, so it bounds OPEN-GROUND behaviour only — accuracy under canopy, where
+  no independent reference exists, is explicitly not established.
+decided: 2026-08-29
+commit: cfc2f1d
+instruments:
+  - Scripts/pipeline/builders/build_chm2_2016.py
+  - Scripts/qc/instruments/validate_chm2005.py
+  - Scripts/pipeline/builders/build_lidar_background.py
+  - Scripts/qc/instruments/audit_lidar_2005_coverage.py
+outputs: [phase4/qc/chm2005_validation.md]
+reports:
+  - Scripts/IMAGERY_FACTS.md
+  - Scripts/pipeline/phase4seg/config.py
+  - phase4/qc/CHM_STANDALONE_PRIOR_2026-08-29.md
+  - phase4/qc/lidar_2005_coverage_audit.md
+sample: >
+  two independent grounds. First, every 2 m ground cell in which the point pass measured
+  both a lowest ground-class return and a maximum canopy return — the interpolation-free
+  adjudication. Second, the certified-flat reference raster: cells whose height above
+  ground was under 2 m in BOTH the 2005 and 2016 clouds, eroded 6 m. The two tests report
+  different numbers on purpose and are never averaged.
+supersedes: []
+superseded_by: []
+extra:
+  docx_sections: [old-chm-defect]
+  recorded_in_three_places: >
+    the append-only comment block of pipeline/phase4seg/config.py (the pure-move
+    protected record), the correction banner in IMAGERY_FACTS.md section 8.3 which keeps
+    the superseded low-reading paragraph in place and struck, and the committed
+    certified-flat validation table in phase4/qc/chm2005_validation.md
+  companion_commits:
+    - ed3161e IMAGERY_FACTS 8.3 correction banner
+    - 33c2f60 chm2005 built and PASSES validation on certified-flat ground
+  lake_products: >
+    G:\My Drive\treedata\Full_Image\Pipeline Imagery\lidar_snoh_chm.tif (under test),
+    lidar_chm2_2016_50cm.tif and lidar_chm2005_2m.tif (the rebuilds),
+    verified_background_lidar_2005_2016.tif (the certified-flat reference)
+  corrections_landed:
+    - the pre-2026-08-29 IMAGERY_FACTS wording that the raster reads LOW is superseded
+    - the "2005 lidar is ~3x sparser than 2016" figure is superseded by the local
+      measurement in phase4/qc/lidar_2005_coverage_audit.md; the earlier number was a
+      dataset-wide average over tiles this project never acquired
+    - chm2005 is NOT defective for reading behind chm2 on flat ground; the gap is what
+      coarser cells and lower point density predict, and its recorded verdict is PASS
+  downstream_consumers_still_on_the_old_raster: >
+    several qc instruments still name lidar_snoh_chm.tif; the inventory and the
+    per-year assignment that replaces it are chm_encodings_year_assignment
+  known_limits:
+    - open-ground behaviour only; under-canopy accuracy is not established
+    - the certified-flat subset is deliberately easy and non-random
+  unreconciled: >
+    the 2016 local point density and the resulting inter-epoch ratio differ slightly
+    between the two records of the same audit — the tracked table in
+    phase4/qc/lidar_2005_coverage_audit.md and the append-only summary in
+    pipeline/phase4seg/config.py. Neither figure is used above; the measured file is the
+    home, and no tracked file reconciles the two.

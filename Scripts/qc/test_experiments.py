@@ -138,13 +138,22 @@ def test_only_experiments_carry_launch_machinery(path):
             f"belongs to kind: experiment only")
 
 
-def test_every_tag_is_owned_by_one_experiment():
+def test_every_arm_is_owned_by_one_experiment():
+    """Ownership is per (year, tag) — the engine's unit, not the tag alone.
+
+    `common.tile_dir_for()` writes `tiles/{year}__{tag}/`, so one recipe run across
+    several years is ONE tag on several arms and is legitimate (m06_nir_arm: nir_m06
+    on 2016 and 2019n; the sectors campaign: sectors_v1 on six years). What must never
+    happen is two entries claiming the same (year, tag) — that is two owners for one
+    set of tiles, masks and registry rows.
+    """
     owner = {}
     for p in _specs():
         for a in _load(p)["arms"]:
-            tag = str(a["tag"])
-            assert tag not in owner, f"tag {tag!r} owned by {owner[tag]} AND {p.name}"
-            owner[tag] = p.name
+            key = (str(a["year"]), str(a["tag"]))
+            assert key not in owner, (
+                f"arm {key[0]}__{key[1]} owned by {owner[key]} AND {p.name}")
+            owner[key] = p.name
 
 
 def test_complete_experiments_have_registry_provenance():

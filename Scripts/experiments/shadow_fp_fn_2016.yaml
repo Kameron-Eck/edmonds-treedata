@@ -1,0 +1,104 @@
+name: shadow_fp_fn_2016
+kind: measurement-campaign
+status: needs-kam
+retrospective: true
+category: errors
+tags: [shadow, false-positives, ndvi-screen, displacement, forest-misses, "2016"]
+hypothesis: >
+  Kam's hypothesis (2026-08-26), in two halves. FP side: the model's false positives
+  pile up on the DOWN-SUN side of crowns, where dark shadow texture next to canopy gets
+  misread as canopy — and if so, the normalized NIR/NDVI stack, which he observed
+  separates bright trees from dark shadow cleanly, could screen them out at little
+  recall cost. FN side: the canopy the model FAILS to find is systematically darker
+  than the canopy it recalls, i.e. misses are shadowed. What would change our mind on
+  the FP half is a shadow-side FP density no higher than the up-sun control once the
+  two bands are shown to be geometrically comparable.
+arms: []
+baseline: null
+metric: >
+  FP HALF: NOT IN THE TRACKED RECORD — the per-region FP/TP densities, the shadow/up-sun
+  ratios and the NDVI comparison exist only in an untracked session scratchpad; the
+  script that wrote them is archive-branch tracked (extra.script). FN HALF: tracked, in
+  the AUTO-DIAGNOSIS block of phase4/qc/forest_miss_{2000,2002,2013,2015,2016}.txt,
+  written by Scripts/qc/instruments/phase4_qc_forest_misses.py. The scored arm's
+  operating point and TP population are tracked in phase4/qc/qc_indep_report.csv (the
+  2016 fullext_sectors_v1 forest_wetland row, live=1) and phase4/qc/score_vs_difficulty.csv.
+decision_rule: >
+  RECONSTRUCTED (retrospective: true) from the script docstring, which pre-registers
+  three things before any number. (1) The sun direction is measured, not assumed: sweep
+  candidate directions in 15-degree steps and take the one whose adjacent down-direction
+  ground band is DARKEST in the ortho — "if no direction clearly wins, stop." (2) The
+  shadow casters are the CHM height field, never C-CAP, whose over-generalized
+  residential blobs are not physical shadow casters; C-CAP stays the truth layer for
+  FP/TP so every row matches the live qc_indep convention. (3) TP density is the
+  GEOMETRIC-FAIRNESS CONTROL: geometrically comparable bands must return equal TP
+  densities, and a band pair that fails that control cannot have its FP comparison read
+  at all. On the FN side the rule is the instrument's own reporting gate — a
+  BRIGHTER/DARKER bullet fires only when the brightness delta exceeds 6 DN
+  (phase4_qc_forest_misses.py), so silence is a reporting threshold, never a null.
+verdict: null
+decided: null
+instruments:
+  - Scripts/qc/instruments/phase4_qc_forest_misses.py
+inputs:
+  - phase4/qc/qc_indep_report.csv
+  - phase4/qc/score_vs_difficulty.csv
+outputs:
+  - phase4/qc/forest_miss_2000.txt
+  - phase4/qc/forest_miss_2002.txt
+  - phase4/qc/forest_miss_2013.txt
+  - phase4/qc/forest_miss_2015.txt
+  - phase4/qc/forest_miss_2016.txt
+reports:
+  - Reports/DEGRADED_IMAGERY_RESEARCH_2026-08-27.md
+  - Reports/FINDINGS_LEDGER_2026-09-03.docx
+imagery: ["2000", "2002", "2013", "2015", "2016"]
+sample: >
+  FP half: one 2016 probability raster (fullext_sectors_v1) at its deployed threshold,
+  partitioned into three off-tree-ground regions on its own grid — a down-sun band, the
+  identical up-sun control band, and all remaining CHM-valid non-canopy ground — with
+  overlap pixels excluded from both bands. FN half: the five years for which the tracked
+  forest-miss instrument has emitted an AUTO-DIAGNOSIS block.
+supersedes: []
+superseded_by: []
+extra:
+  docx_sections: [EXP-A-shadow-fp-fn-2016]
+  needs_kam_reason: >
+    The probe's primary output is a session scratchpad markdown file that was never
+    committed to the repo or the lake; it is the only holder of the FP/TP densities,
+    the two band ratios and the NDVI table. The reading itself is also not a clean
+    verdict: the fairness control FAILED, so the band test is CONFOUNDED by an
+    imagery-vs-CHM displacement rather than answering the shadow question, and the
+    hypothesis is unsupported at the deployed threshold rather than refuted. Writing a
+    verdict on an untracked, confounded measurement is exactly what needs-kam prevents.
+    Kam's call: re-run the probe under the measurement contract, or close on the FN-side
+    tracked evidence alone.
+  script: >
+    archive/2026-08-pre-refactor:Scripts/scratch/shadow_fp_overlay.py — recoverable with
+    `git show`; a scratch one-shot, archived so it can never re-run. Template was
+    scratch/roof_fp_overlay.py (FP definition, C-CAP scheme, deployed threshold and TP
+    control all copied rather than reinvented).
+  tracked_corroboration: >
+    the probe's all-TP pixel count is EXACTLY the tp cell of the 2016 fullext_sectors_v1
+    forest_wetland row in phase4/qc/qc_indep_report.csv at its deployed threshold, and
+    that threshold matches phase4/qc/score_vs_difficulty.csv. That ties the untracked
+    output to two tracked rows on both the operating point and the TP population; it
+    does not make the FP-density cells themselves tracked.
+  side_finding_that_outlived_the_probe: >
+    the failed fairness control is a systematic ~5 m east-side ortho-vs-CHM displacement
+    at crown edges. It is cited as a measurement in
+    Reports/DEGRADED_IMAGERY_RESEARCH_2026-08-27.md and is the stated reason
+    Scripts/pipeline/builders/build_lidar_quadrants.py erodes its tall/tall class. The
+    magnitude is a band-scale inference, not a measured offset vector.
+  fn_half_caveats:
+    - the forest-miss outputs were committed 2026-08-18 and cover five years; they
+      PREDATE the shadow probe and are a companion line of evidence, not part of the
+      same run
+    - zero DARKER bullets is not "no darker misses" — the 6 DN gate suppresses at least
+      one real sub-threshold darker/greener inversion, recorded only in
+      archive/2026-08-pre-refactor:Scripts/CHATLOG.md
+  ndvi_screen_status: >
+    MOOT for this error class on the probe's own reading — the near-tree false positives
+    are vegetated understory/grass at crown margins, a different population from the
+    open cast shadows on hardscape Kam observed separating in the NIR stack. Untracked
+    like the rest of the FP half.

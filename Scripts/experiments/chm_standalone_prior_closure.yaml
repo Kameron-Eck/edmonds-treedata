@@ -1,0 +1,105 @@
+name: chm_standalone_prior_closure
+kind: instrument-finding
+status: complete
+retrospective: true
+category: lidar
+tags: [chm, lidar, roc, synthesis, form-vs-information, reference-bias, cheap-prior, no-gpu]
+hypothesis: >
+  The standalone ROC family returned a result nobody can deploy as written: the height
+  raster measured to be inflated by four to five metres beats the corrected rebuild.
+  Either the corrected raster genuinely holds less canopy information, or the evaluation
+  rewards the old product's FORM — its spatial support and its smoothness, matched to a
+  generalized 1 m reference that labels forest patches wall to wall. The two are
+  separable with no GPU: take the old product's own two-step form (dilate, then blur),
+  apply it to the sharp raster, and see whether the entire gap closes. If it does, the
+  ROC was measuring form, the cheap screen's stated purpose did not fire, and the
+  training question is still open rather than answered in the negative.
+arms: []
+baseline: null
+metric: >
+  phase4/qc/CHM_STANDALONE_PRIOR_2026-08-29.md — the synthesis of the whole ROC run
+  family: the dilate-then-blur form ladder, the constant-offset (chm minus 4.43 m) arm,
+  the two-raster fusion verdict, and the three confound runs (grid resolution,
+  registration, block size), each with its own paired interval. The per-run detail lives
+  in phase4/qc/chm_standalone_roc_*.md and their _arms/_pairs CSV sidecars; the two runs
+  scored in their own registry entries are chm_roc_all_three and chm_roc_support_confound.
+decision_rule: >
+  RECONSTRUCTED (retrospective: true) from the report's own framing, which states the
+  screen's purpose before any result: "if a corrected raster is not a better
+  discriminator on its own, no training arm will find it." The reconciliation rule is
+  the form reconstruction — apply the old product's dilate-then-blur to the sharp
+  raster; if the entire standalone gap closes, the gap was form, not information, and
+  the screen's premise is void. That reading is admissible only with three confounds
+  excluded, each its own run: grid resolution (score at the sharp raster's own native
+  cell instead of 1 m), registration (translate the sampling window, and cross-correlate
+  the two rasters directly with no reference in the loop), and block size (512 m against
+  1024 m blocks — the interval must widen without any verdict changing). The interval
+  itself is bounded by what it covers: "uncertainty from where we looked, under one
+  reference. It is not retrain noise and not reference error."
+verdict: >
+  FORM EXPLAINS THE GAP, THE SCREEN DID NOT FIRE, AND THE TRAINING QUESTION STAYS
+  UNDETERMINED. Applying the old product's own dilate-then-blur to the sharp rebuild
+  reaches AUROC 0.9073 against the old raster's 0.9059, read from
+  phase4/qc/CHM_STANDALONE_PRIOR_2026-08-29.md — which flags the SIGN of that difference
+  as post-hoc in the same paragraph, because it is the best of four form variants tried.
+  The supported claim is therefore "form explains the gap", NOT "chm2 is better than
+  chm"; quoting it the second way is the misquote the report exists to stop. Three
+  consequences are load-bearing. (1) The metric is indicted: a constant height inflation
+  cannot move AUROC by construction, since rank statistics are invariant under a
+  monotone shift — level is not the treatment, shape is, and a scalar gain is something
+  a first convolution absorbs for free. (2) All three confounds are excluded — scoring
+  at the sharp raster's native cell barely moves the gap, the real sub-2 m registration
+  offset is an order of magnitude too small to rank the rasters, and doubling the block
+  size widens every interval without changing a verdict. (3) Two-raster height fusion
+  buys discrimination nothing — the AUROC gain and the PR-AUC loss are a wash, and the
+  PR-AUC loss is exactly what a cross-epoch maximum should cost; this is a HEIGHT fusion
+  and must never be presented as the 5-band RGB+NIR+CHM closure. One confound is
+  recorded as OPEN and not excluded: nothing in this repo states whether the reference
+  product's own production chain used 3DEP-derived height, which would make the old
+  raster partly circular with it. The screen's purpose therefore does not fire — there
+  is no information deficit in the rebuild — so the training-side question was left open
+  here and answered later by a different design with a different statistic, reference
+  year and noise floor. The standing conclusion the file draws is the sharper one: THE
+  REFERENCE IS NOW THE BINDING CONSTRAINT, NOT THE LIDAR.
+decided: 2026-08-29
+commit: 2f31d19
+instruments: [Scripts/qc/instruments/phase4_chm_standalone_roc.py]
+outputs:
+  - phase4/qc/CHM_STANDALONE_PRIOR_2026-08-29.md
+  - phase4/qc/chm_standalone_roc_mechanism.md
+  - phase4/qc/chm_standalone_roc_mechanism_arms.csv
+  - phase4/qc/chm_standalone_roc_mechanism_pairs.csv
+  - phase4/qc/chm_standalone_roc_chm_vs_chm2.md
+  - phase4/qc/chm_standalone_roc_chm_vs_chm2_arms.csv
+  - phase4/qc/chm_standalone_roc_chm_vs_chm2_pairs.csv
+  - phase4/qc/chm_standalone_roc_registration.md
+  - phase4/qc/chm_standalone_roc_registration_pair.md
+  - phase4/qc/chm_standalone_roc_res_sensitivity_50cm.md
+  - phase4/qc/chm_standalone_roc_blocksize_1024.md
+sample: >
+  the ROC run family listed in the report's own Artifacts table — each run scoring the
+  height rasters as standalone classifiers over the intersection of that run's arms with
+  the reference, resampled as spatial blocks and judged on PAIRED differences. Whole
+  local-CPU cost was under an hour against a stated ~6 A100-hour alternative.
+supersedes: []
+superseded_by: []
+extra:
+  docx_sections: [chm-standalone-prior-closure]
+  synthesises: [chm_roc_all_three, chm_roc_support_confound]
+  depends_on: old_chm_defect
+  open_confound: >
+    whether the C-CAP production chain used 3DEP-derived height. If it did, the old
+    raster is partly circular with the reference. Only a non-lidar reference — hand-drawn
+    crowns or photo-interpreted points — would settle it.
+  not_a_committed_script: >
+    the reference-free raster-to-raster cross-correlation in the registration section was
+    a one-off scratch computation; its numbers are transcribed in the report in full and
+    have no CSV behind them
+  downstream: >
+    the training-side question this report deliberately left open was answered by the
+    Tier-1 science sample (see tier1_science_sample), a different design — not by this
+    report
+  quoting_rule: >
+    "Compare numbers only *within* a run" — each run scores on the intersection of its
+    own arms, so the same raster carries different AUROCs in different runs and neither
+    supersedes the other

@@ -134,3 +134,18 @@ claims:
     stated_in:
       - Reports/TEMPORAL_REFINEMENT_DESIGN_2026-09-06.md
     entry: null
+
+  - id: landmark-transform-tracks-geometry
+    statement: >-
+      The landmark transform — derived only from clusters BOTH epochs detected — recovers
+      measured registration at r = 0.9457 (dx 0.993, dy 0.876), median error 0.074 m,
+      exact permutation p = 0.0002 over all 5,040 relabellings with each shuffled world
+      refitting its own sign bits. Its residual does not track recall (r = 0.148). The
+      block-wise offset it replaces scored r = -0.245 against registration (wrong sign)
+      and -0.450 against recall. Conditioning on mutual detection before estimating
+      geometry is what fixes the contamination.
+    value: "0.9457"
+    evidence: "phase4/qc/landmark_transform_gate.csv#regex:^# r_est_vs_expected,([0-9.]+)"
+    stated_in:
+      - Reports/TEMPORAL_REFINEMENT_DESIGN_2026-09-06.md
+    entry: change_detector_design

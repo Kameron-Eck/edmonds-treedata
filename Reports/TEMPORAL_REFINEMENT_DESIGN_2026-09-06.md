@@ -373,3 +373,62 @@ not either of the two coarsest.
 semantic mask needs a marker rule, and the marker spacing IS the "what size cluster"
 parameter in disguise. Connected components cannot do it (§2: one component is 692 ha).
 This is the one part of the transplant with no measured guidance yet.
+
+---
+
+## 11. THE GATE — run before the build, and it PASSES
+
+§3 falsified a block-wise offset estimated from mask agreement. Kam's revision conditions
+on MUTUAL DETECTION first: match clusters both epochs found, snap those, derive the
+transform only from matched pairs. A crown one epoch missed is not a landmark, so it
+cannot pull the fit. `qc/instruments/landmark_transform_gate.py` tests whether that
+actually fixes the contamination — **before** anything is built on it, which is CLAUDE.md
+3.4c applied in the direction it was written for.
+
+Landmarks are connected components between one mature crown (28 m², a 6 m disc) and 1 ha.
+The upper bound deliberately excludes the percolating blobs, so no watershed is needed:
+if the mechanism fails on the easy objects, better segmentation will not save it. That
+leaves 6,800–11,300 landmarks per epoch and 1,600–4,100 unambiguous mutual matches.
+
+Each epoch is matched against 2021 (best-registered, p68 0.857 m). The prediction comes
+from imagery, not masks: `coregistration.py` measures every epoch against the 2020s anchor
+by phase correlation on ground chips.
+
+| | landmark gate | the falsified block layer |
+|---|---|---|
+| r(estimate, **measured registration**) | **+0.9457** (dx +0.993, dy +0.876) | −0.245, **wrong sign** |
+| r(residual, **recall**) | **+0.148** | −0.450 |
+| median error vs measured | **0.074 m** | — |
+| exact permutation p | **0.0002** | — |
+
+**7.4 cm median error** against an independent imagery-based measurement, and the residual
+does not track sensitivity. The block layer measured how much each year's detector missed
+and called it displacement; this measures displacement.
+
+**Two disclosures, because the result is strong enough that its weaknesses matter.**
+
+*The axis signs were resolved empirically and are declared in the output* (dx −1, dy +1).
+`coregistration.phase_shift` works in array coordinates, where dy runs down the rows while
+map y runs up, and its docstring's a/b direction cannot be confirmed from the docstring
+alone. Rather than pick a convention and hope, each axis was fitted for its own sign. This
+is legitimate for one reason and it should be checked rather than trusted: a sign is one
+bit per axis, while the evidence is MAGNITUDE agreement across seven epochs — 2024 reads
+1.00 m against a measured 0.96 m, 2019 reads 0.02 m against 0.01 m. No choice of sign
+manufactures that. The permutation null was given the same freedom the estimate took:
+every one of the 5,040 relabellings refits its own signs, so the p-value prices in the
+fitting. (Separately: the phase_shift docstring may have its a/b direction inverted. That
+is a claim about existing code and is NOT established here — it is the single hypothesis
+that explains both observed sign flips, and it deserves its own check.)
+
+*n = 7 epochs.* The correlation is over 14 points. The effect is large and the permutation
+null is exact, but seven is seven.
+
+**What this licenses and what it does not.** It licenses the placement step of the
+transplant: a cluster copied from a donor epoch can be positioned using a transform derived
+from mutually-detected neighbours, and that transform is measuring geometry. It does NOT
+validate the transplant end to end — placing a cluster correctly is necessary, not
+sufficient, and every constraint in §4 (post-clearing vegetation), §5 (endpoints, output
+restriction) and §10 (fix the scale at 1.0) still binds.
+
+The build order in §7 is unchanged. This removes the objection that killed the previous
+design; it does not remove the gold-set freeze that blocks everything.

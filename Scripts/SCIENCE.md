@@ -30,6 +30,8 @@ than selected. Everything below is resolved from them at build time.
   <br>evidence `phase4/qc/detectability_curve.csv#csv:recall@epoch=2015;kind=cumulative_ge;diam_lo_m=6`
 - **0.9699** — On the 137,901 crowns every epoch sees, the measured extent barely differs between epochs: mean cover spans 0.9699 (2015) to 0.9926 (2021), a 2.3% systematic difference, and 2011s at 38.1 cm reads 0.978 against 2024 at 6.8 cm reading 0.9707. Epochs differ in WHICH crowns they find, not in how well they outline the ones they find — so the healing problem is detection, not delineation, and a transplant needs no scale parameter.
   <br>evidence `phase4/qc/detectability_curve.csv#csv:recall@epoch=2015;kind=conditional_cover`
+- **0.9457** — The landmark transform — derived only from clusters BOTH epochs detected — recovers measured registration at r = 0.9457 (dx 0.993, dy 0.876), median error 0.074 m, exact permutation p = 0.0002 over all 5,040 relabellings with each shuffled world refitting its own sign bits. Its residual does not track recall (r = 0.148). The block-wise offset it replaces scored r = -0.245 against registration (wrong sign) and -0.450 against recall. Conditioning on mutual detection before estimating geometry is what fixes the contamination.
+  <br>evidence `phase4/qc/landmark_transform_gate.csv#regex:^# r_est_vs_expected,([0-9.]+)`
 
 ## 2. Best arm per year, at one held cut
 

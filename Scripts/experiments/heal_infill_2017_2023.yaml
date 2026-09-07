@@ -1,0 +1,110 @@
+name: heal_infill_2017_2023
+kind: experiment
+status: queued
+retrospective: false
+category: change
+tags: [healing, temporal-backfill, density, panel-a, scoreable, trend8-recipe]
+
+hypothesis: >
+  The healing operator cannot currently be scored. Panel A ruled on 2016->2024, but the
+  HEAL tier fires only on 2011s, 2013 and 2015 — every later bracket in the trend8 stack
+  spans >= 3 years, the distance bigleaf maple coppice crosses, and is therefore BLIND.
+  So the operator runs entirely upstream of the interval the human gold covers, and the
+  42 verified losses and 1,170 verified no-change points cannot judge it
+  (measured: Reports/HEALING_TOOL_REASONING_2026-09-07.md §10).
+
+  Adding 2017, 2020, 2022 and 2023 on the SAME trend8 recipe closes every interior
+  bracket inside the Panel A window to under three years. Two things should follow, and
+  both are testable. First, healing begins firing where the human truth lives, so the
+  frozen gold can score the HEAL tier directly instead of only its censoring behaviour.
+  Second, annual cadence makes the REVIEW tier resolvable at all: post-2016 has no lidar
+  to veto the laundering path (a real clearing whose regrowth reads as canopy), and at
+  three-year gaps nothing in the mask distinguishes that from a detection failure — but
+  at one-year gaps a replacement returns SMALL AND GROWING while an artifact returns
+  FULL-SIZE AND STATIC. That is Kam's own design note, and it needs density to work.
+
+  What would change our mind: healing that launders verified losses once it operates
+  inside the validated window, or a size-trajectory signal that fails to separate the
+  two return shapes even at annual cadence.
+
+arms:
+  - {year: "2017", tag: heal_2017}
+  - {year: "2020", tag: heal_2020}
+  - {year: "2022", tag: heal_2022}
+  - {year: "2023", tag: heal_2023}
+
+baseline: trend8_uniform_rgb
+
+metric: >
+  phase4/qc/heal_vs_gold.csv rebuilt on the 12-epoch stack — laundered and censored
+  counts against the 42 verified losses, and impossible-triple removal against the 1,170
+  verified no-change points. Secondary: phase4/qc/temporal_heal.csv tier distribution
+  (BLIND should fall to zero inside 2016-2024), and phase4/qc/crown_trajectories.csv
+  TERMINAL share, which today is 64% of all LOST crowns.
+
+decision_rule: >
+  PRE-REGISTERED, before any run. PRIMARY KILL: healing must launder ZERO verified
+  losses once it operates inside the Panel A window — the terminal absence of a verified
+  loss may never be filled. That is the one result that stops the design outright, and
+  the current 0 of 42 was measured only OUTSIDE the window, so it is not yet evidence
+  about the case that matters.
+
+  PROMOTE if, on the 12-epoch stack: (a) laundered = 0 and terminal-censored = 0 against
+  the frozen gold; (b) impossible-triple removal at verified no-change points is no worse
+  than the 99 of 124 measured on 8 epochs; (c) BLIND brackets inside 2016-2024 fall to
+  zero, which is arithmetic and therefore a check on the run rather than a finding.
+
+  RECIPE DISCIPLINE: all four arms run the trend8 recipe. The existing of_2017, of_2020
+  and of_2022 masks are NOT used, despite already being on disk with matched cuts,
+  because they come from the overlap-floor campaign and mixing training recipes across a
+  trajectory series reintroduces exactly the confound trend8 was built to control.
+  Matched cuts collapse DELIVERY differences to 0.15 pp; that is not evidence they
+  collapse RECIPE differences, and no measurement in the repo says they do.
+
+  Report every recall figure with the gold's measured +/- 7.3 pp. The gold is a
+  development set: a promote here licenses the enriched confirmatory draw, not a
+  published number.
+
+verdict: null
+decided: null
+
+design_doc: Reports/TEMPORAL_REFINEMENT_DESIGN_2026-09-06.md
+reports:
+  - Reports/HEALING_TOOL_REASONING_2026-09-07.md
+instruments:
+  - Scripts/qc/instruments/temporal_heal.py
+  - Scripts/qc/instruments/heal_vs_gold.py
+  - Scripts/qc/instruments/crown_trajectories.py
+inputs:
+  - phase4/qc/panel_a_gold.csv
+  - phase4/qc/temporal_heal.csv
+outputs:
+  - phase4/qc/heal_vs_gold.csv
+  - phase4/qc/crown_trajectories.csv
+imagery: ["2017", "2020", "2022", "2023"]
+sample: >
+  Citywide inference if the budget allows; otherwise a spatial sample that MUST contain
+  the 1,214 Panel A gold points. Sampling at random would remove the only population
+  that can score the result and would defeat the experiment's whole purpose. All four
+  years are already tiled (phase4/qc/tileset_registry.csv), so the tiling step is
+  already paid for on three of them.
+
+supersedes: []
+superseded_by: []
+
+extra:
+  measured_cost: >
+    From the trend8 step logs: mean 2.1 A100-hours per year across the eight trend8
+    years, range 1.1-4.9 h. Four years is therefore ~8 A100-hours serial, ~4 hours
+    wall-clock on the 2-concurrent-A100 cap. An earlier estimate of "one to two
+    A100-days" in chat was wrong by roughly 6x — it misread the recalibration campaign's
+    total compute (which included sweeps, recuts and the free CPU fleet) as engine time.
+  why_these_four: >
+    They are the epochs that close the brackets inside Panel A's interval. With them,
+    2016/2017/2019/2020/2021/2022/2023 all become REVIEW rather than BLIND; without
+    them, 2016/2019/2021 are BLIND and the window carries no heal evidence at all.
+  what_this_does_not_do: >
+    It does not license healed masks feeding the annual canopy fraction. That
+    restriction is structural — endpoints cannot be healed, so the bias never cancels —
+    and more epochs do not change it. Healed output feeds trajectories, validity
+    intervals and change maps only.

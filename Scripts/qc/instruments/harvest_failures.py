@@ -32,6 +32,7 @@ from __future__ import annotations
 
 import argparse
 import csv
+import hashlib
 import io
 import re
 import sys
@@ -141,7 +142,12 @@ def harvest(logs_dir, known):
                     if k["_re"].search(sig) or k["_re"].search(cls)), None)
         dates = sorted(g["dates"])
         rows.append({
-            "failure_id": f"{cls.split('.')[-1].lower()}-{abs(hash(sig)) % 10000:04d}",
+            # STABLE across processes: builtin hash() is salted per interpreter
+            # (PYTHONHASHSEED), so ids churned on every harvest and the auto-harvest
+            # rung produced a spurious diff on a file nothing had changed. Caught
+            # 2026-09-06 by that rung, the first time it ran.
+            "failure_id": f"{cls.split('.')[-1].lower()}-"
+                          f"{hashlib.sha256(sig.encode('utf-8')).hexdigest()[:6]}",
             "exception_class": cls, "signature": sig, "n_occurrences": g["n"],
             "first_seen": dates[0] if dates else "", "last_seen": dates[-1] if dates else "",
             "steps": ",".join(sorted(g["steps"])), "years": ",".join(sorted(g["years"])),

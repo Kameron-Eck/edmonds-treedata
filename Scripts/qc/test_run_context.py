@@ -448,3 +448,22 @@ def test_ask_answers_every_subject_kind():
     gaps = []
     ask.answer_gaps(gaps)
     assert any("does not know yet" in ln.lower() for ln in gaps)
+
+
+def test_failure_ids_are_stable_across_processes():
+    """An id must not change when nothing changed.
+
+    The first version used builtin hash(), which is salted per interpreter, so every
+    harvest rewrote the id column and the auto-harvest rung produced a diff on a file
+    nobody had touched. Caught 2026-09-06 by that rung on its first run.
+    """
+    from instruments.harvest_failures import normalise
+    import hashlib
+    rows = _rows(QC / "failure_registry.csv")
+    if not rows:
+        pytest.skip("failure_registry.csv absent")
+    for r in rows:
+        want = hashlib.sha256(normalise(r["signature"]).encode("utf-8")).hexdigest()[:6]
+        assert r["failure_id"].endswith(want), (
+            f"{r['failure_id']}: id is not the stable digest of its signature — "
+            f"re-harvesting will churn it")

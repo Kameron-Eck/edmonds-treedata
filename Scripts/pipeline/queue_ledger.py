@@ -16,6 +16,26 @@ phase4seg.names::hw_step_marker_path and the pid from the process — so there i
 nothing for `_q()` to resolve and nothing for a test to patch on the queue module.
 They live here rather than in phase4_train_queue.py because queue_verify.py needs
 them too and this is the module both already import.
+
+── THE LEDGER GROWS BY ONE FILE PER LAUNCH, AND NOTHING HERE PRUNES IT ────────
+`_merged_rows` reads EVERY admissible status file on the lake, and
+phase4_train_queue.py::main writes a new one on every launch (names.py
+::status_out_name). Measured on the lake 2026-09-07: 77 files match the glob, 76
+are admissible (the odd one is the quarantined CONTAMINATED-BY-TEST fixture),
+166 KB in total — and that merge is the WHOLE of the queue's startup cost. On
+session spdc1 it took 359 s, 4.7 s per file, while the beacon scan in the same
+launch finished inside one second. `_stage_status_files` below turns the reads
+into one bulk transfer, which makes the per-file term small but does NOT make it
+zero; the file count still grows monotonically, one per launch.
+
+Consolidating them is NOT this module's call and must not be done here. The lake's
+`phase4/qc/ledger_recovery/README.md` says in as many words: "Do not sweep
+`phase4/qc/` on the lake" — the `.part.*` orphans sitting there are the ONLY
+surviving copies of six days of queue history, and the recovery is explicitly
+Kam's decision, not an autonomous one. A consolidation rung, when it is decided,
+belongs in qc/landed.py beside the other session-end machinery (its `harvest`
+rung already reads the lake and writes tracked text), so it runs once per landed
+milestone under review rather than silently inside a queue launch.
 """
 import csv
 import datetime as _dt
@@ -23,14 +43,78 @@ import io
 import json
 import os
 import secrets
+import shutil
 import socket
+import subprocess
 import sys
+import tempfile
 import time
 from pathlib import Path
 
 from phase4seg.names import hw_step_marker_path, job_key, status_files
 
 _QUEUE_FILE = "phase4_train_queue.py"
+
+# The WRITER remote gen_vm_bootstrap.py configures, and the SAME one the lake is
+# mounted from (`rclone mount treedata-user: /content/drive/MyDrive/treedata`), so
+# `treedata-user:phase4/qc` and `{mount}/phase4/qc` are the same directory by
+# construction — no root-folder arithmetic, no second identity. Deliberately not
+# `treedata-sa`: that remote exists to be an INDEPENDENT check of what Drive holds
+# (queue_verify.py::_drive_matches_mount), and borrowing it for a transport
+# shortcut would quietly retire the one channel that shares nothing with the write.
+_LEDGER_RCLONE_REMOTE = "treedata-user"
+# Bounded BELOW the cost it replaces, on purpose. A timeout here is not free — the
+# per-file loop still has to run afterwards — so the worst case is this plus the old
+# cost, and a ceiling above the old cost would make the "speedup" able to more than
+# double it. 359 s was the measured per-file merge on spdc1; 180 s is ample for
+# 166 KB over the API even at one file per second, and caps the tail at ~1.5x.
+_BULK_TIMEOUT_S = 180
+# How long a status file must have been QUIET on the mount before its bytes may be
+# taken from Drive instead. 600 s is the same generous window queue_verify.py
+# ::_drive_matches_mount already waits before calling a mount/Drive difference a
+# mismatch, and for the same reason: rclone uploads asynchronously, so shortly after
+# a write the server legitimately still holds the previous file. A 2 KB CSV drains
+# in seconds, so this costs the bulk path only the one or two files a live campaign
+# touched in the last ten minutes — including, always, this launch's own.
+_FRESH_SKIP_S = 600
+_rclone_probe = None
+
+# What the startup scans cost, published for ONE line in the launch header
+# (phase4_train_queue.py::main). Not a ledger column and not a lake artifact: the
+# nohup log is where a launch's own timings belong, and a harvest can regex them
+# out of it. See ::startup_line for the shape.
+STARTUP_SCAN = {}
+
+
+def record_scan(kind, **fields):
+    """Record one startup scan's counts + wall clock. Last writer wins.
+
+    `_tag_owners` runs TWICE per job as well as at launch (D11), so a per-job
+    rescan overwrites the launch figure — which is fine, because the line is
+    printed once, before the first job.
+    """
+    STARTUP_SCAN[kind] = dict(fields)
+
+
+def startup_line():
+    """`startup: N status files in X s, M beacons in Y s`, or None if nothing ran.
+
+    Stable shape on purpose: this is the ONLY place the two scans are measured on a
+    live VM, and until 2026-09-07 they were measured nowhere at all — the 6.7-minute
+    gap between process start and the first engine spawn had to be reconstructed
+    afterwards from a launch stamp in a filename and a row `ts`. `--no-resume` skips
+    the status merge entirely, so either half may be absent.
+    """
+    s, b = STARTUP_SCAN.get("status"), STARTUP_SCAN.get("beacons")
+    parts = []
+    if s:
+        parts.append(f"{s['n']} status files in {s['seconds']:.1f} s "
+                     f"({s['n_local']} bulk-copied, {s['n'] - s['n_local']} "
+                     f"read per-file)")
+    if b:
+        parts.append(f"{b['n']} beacons in {b['seconds']:.1f} s "
+                     f"({b['n_open']} opened, {b['n'] - b['n_open']} skipped stale)")
+    return ("startup: " + ", ".join(parts)) if parts else None
 
 
 def _q():
@@ -223,6 +307,182 @@ def _read_status_file(f, attempts=3, backoff_s=2):
                 time.sleep(backoff_s * (i + 1))
     return [], f"{type(last).__name__}: {last}"
 
+def _bulk_read_ok(qc_dir):
+    """May a bulk `rclone copy` replace the N per-file FUSE opens of the merge?
+
+    THE SAME ACTIVATION DISCIPLINE as phase4seg/staging.py::_bulk_stage_ok — posix,
+    the path really is under the Drive mount, rclone on PATH, and the writer remote
+    configured — REPLICATED here in stdlib rather than imported. That is the rule
+    this module has followed since it was split out: the orchestrator's job is to
+    keep running when the engine's environment is broken, and importing staging.py
+    would pull phase4seg.common and with it geopandas, rasterio, shapely and fiona
+    into the process whose whole purpose is to survive them
+    (queue_ledger.py::_replace_absent carries the same reasoning for its twin).
+
+    Anywhere else — Windows QC, a laptop, a VM without rclone — this answers False
+    and the historical per-file loop runs unchanged.
+    """
+    q = _q()
+    global _rclone_probe
+    if os.name != "posix" or not str(qc_dir).startswith(q._DRIVE_MOUNT_PREFIX):
+        return False
+    if _rclone_probe is None:
+        _rclone_probe = False
+        try:
+            if shutil.which("rclone"):
+                r = subprocess.run(["rclone", "listremotes"], capture_output=True,
+                                   text=True, timeout=60)
+                _rclone_probe = (r.returncode == 0 and
+                                 f"{_LEDGER_RCLONE_REMOTE}:" in (r.stdout or "").split())
+        except Exception:                                       # noqa: BLE001 — any failure = no
+            _rclone_probe = False
+    return _rclone_probe
+
+
+def _listing_stats(qc_dir):
+    """{name: (st_size, st_mtime)} for `qc_dir`, from ONE os.scandir. {} if unlistable.
+
+    Both numbers come from the LISTING, not from N stat() calls, because on the
+    rclone mount a directory listing is one round-trip whose attributes then serve
+    every entry out of the dir cache — the same reason vm_heartbeat.py::_dir_bytes
+    walks with scandir instead of stat'ing paths.
+
+    Discovery still goes through phase4seg/names.py::status_files (the ONE rule, and
+    the rename-is-not-a-quarantine lesson lives there); this only supplies attributes
+    for the names that rule already admitted. names.status_files' glob is itself a
+    single scandir of this directory, so the pair is two listings of one cached
+    directory, not 2N metadata calls.
+    """
+    out = {}
+    try:
+        with os.scandir(qc_dir) as it:
+            for e in it:
+                try:
+                    st = e.stat(follow_symlinks=False)
+                    out[e.name] = (st.st_size, st.st_mtime)
+                except OSError:
+                    pass
+    except OSError:
+        pass
+    return out
+
+
+def _rclone_fetch(rel, dst, listfile):
+    """One `rclone copy` of exactly the names in `listfile`. Never raises.
+
+    Split out as its own function so the tests can substitute a local copier and
+    exercise the bulk PATH on a machine where `_bulk_read_ok` is necessarily False.
+
+    `--files-from` and never `--include`: phase4/qc holds 446 entries, among them
+    `train_queue_status.CONTAMINATED-BY-TEST-20260829.csv` and 22 orphaned
+    `.part.*` temps. A glob-shaped filter would transfer the quarantined file and
+    the orphans; an explicit name list transfers what names.status_files admitted
+    and nothing else.
+
+    THE RETURN CODE IS DELIBERATELY IGNORED by the caller. This launch's OWN status
+    file already exists on the mount (the dup-guard flushed a GUARD row into it) but
+    is still dirty in the rclone write cache, so Drive does not have it yet and a
+    non-zero rc is the EXPECTED case, not an error. Completeness is decided per file
+    against the mount's own listing instead — see ::_stage_status_files.
+    """
+    try:
+        subprocess.run(
+            ["rclone", "copy", f"{_LEDGER_RCLONE_REMOTE}:{rel}", str(dst),
+             "--files-from", str(listfile), "--transfers", "16", "--checkers", "16"],
+            capture_output=True, text=True, timeout=_BULK_TIMEOUT_S)
+    except Exception as e:                                      # noqa: BLE001
+        print(f"  (bulk status fetch raised {type(e).__name__}: {e} — per-file reads)")
+
+
+def _stage_status_files(files):
+    """→ (tmpdir | None, {name: local Path}) — the files it is SAFE to read locally.
+
+    WHY. Measured on the lake 2026-09-07: 76 admissible status files totalling
+    166 KB, and reading them one at a time through the mount took 359 s on session
+    spdc1 — 4.7 s per file, with CPU at 2%, iowait 8% and network ≈ 0. The bytes are
+    nothing; the cost is one Drive round-trip per open, exactly the shape
+    Reports/PIPELINE_SPEEDUP_OPTIONS_2026-09-07.md §1 measures (~40 MB/s for one big
+    sequential file, ~1.3 MB/s for many small ones).
+
+    THE HAZARD THIS GUARDS, and it is a real one. The mount runs
+    `--vfs-cache-mode writes`, so it can serve THIS VM's own unuploaded bytes while
+    Drive still holds the previous version — that is the mechanism behind the
+    B24/B7 checkpoint (queue_verify.py::_drive_matches_mount). Reading the ledger
+    from Drive instead of the mount can therefore hand back an OLDER copy of a file
+    this VM wrote, and if that copy holds a step's `OK` while the mount holds the
+    LATER `FAIL` that revoked it, the merge is latest-wins and the queue skips a
+    step that failed. That is precisely D10's unsafe direction, arriving through a
+    door D10 did not have.
+
+    So a bulk copy is accepted PER FILE, and only when BOTH hold:
+
+      · its size matches the mount's own listing, and
+      · the mount says the file has not been touched for `_FRESH_SKIP_S`.
+
+    THE SECOND TEST IS NOT REDUNDANT, and the arithmetic says why. `run_step`
+    updates its row IN PLACE — RUNNING→OK sets `exit="0"` and fills `minutes` — and
+    at 10.0–99.9 minutes those additions exactly cancel the seven-to-two-character
+    shrink of the state, so the file is the SAME SIZE before and after the most
+    common step transition in the project. (Measured, not reasoned: RUNNING→OK is
+    −1/+0/+1 bytes across the plausible range, zero for any 4-character `minutes`.
+    RUNNING→FAIL never collides, +1 to +4.) A stale copy at a colliding size is in
+    fact HARMLESS — a row still reading RUNNING revokes resume credit, which is the
+    safe direction, and the genuinely dangerous case (a row MISSING entirely) costs
+    a whole ~85-byte row and cannot collide — but that safety rests on an invariant
+    about how `run_step` and `_status_write` happen to mutate `rows` today, and an
+    invariant nobody stated is one a later edit removes for free.
+
+    What freshness buys is precise, and worth not overstating: it GUARANTEES that a
+    file THIS VM wrote recently — always including this launch's own, which the
+    dup-guard flushed a GUARD row into seconds ago — is never taken from Drive,
+    because the mount's mtime is this VM's own write time. For a PEER's file it only
+    narrows the window: a peer that flushed 11 minutes ago with its upload still
+    backlogged (the condition vm_heartbeat.py's `vfs_dirty_gb` exists to expose)
+    presents a quiet mtime over stale Drive bytes, and size plus the monotonicity
+    above carry the rest. Both remaining outcomes are the safe direction.
+
+    A file that fails either test — a peer VM flushing mid-copy, a stale Drive copy,
+    a transfer that did not land, this launch's own status file — is read from the
+    mount exactly as before. Nothing is ever partially trusted, nothing is dropped.
+    """
+    q = _q()
+    if not files or not _bulk_read_ok(q.QC_DIR):
+        return None, {}
+    stats = _listing_stats(q.QC_DIR)
+    if not stats:
+        return None, {}
+    now = time.time()
+    tmpdir = None
+    try:
+        # LOCAL disk, never under the mount: this is the read we are trying to
+        # avoid paying for, and a temp dir on the FUSE mount would pay it twice
+        # (CLAUDE.md 3.9, local-then-copy).
+        tmpdir = tempfile.mkdtemp(prefix="queue_ledger_")
+        dst = Path(tmpdir) / "qc"
+        dst.mkdir()
+        listfile = Path(tmpdir) / "_files_from.txt"
+        listfile.write_text("".join(f"{f.name}\n" for f in files), encoding="utf-8")
+        rel = str(q.QC_DIR)[len(q._DRIVE_MOUNT_PREFIX):].strip("/")
+        _rclone_fetch(rel, dst, listfile)
+        local = {}
+        for f in files:
+            st = stats.get(f.name)
+            if st is None or now - st[1] < _FRESH_SKIP_S:
+                continue                      # absent from the listing, or still warm
+            p = dst / f.name
+            try:
+                if p.is_file() and p.stat().st_size == st[0]:
+                    local[f.name] = p
+            except OSError:
+                pass
+        return tmpdir, local
+    except Exception as e:                                      # noqa: BLE001
+        print(f"  (bulk status stage failed {type(e).__name__}: {e} — per-file reads)")
+        if tmpdir:
+            shutil.rmtree(tmpdir, ignore_errors=True)
+        return None, {}
+
+
 def _merged_rows():
     """Union of all status files' rows, sorted by ts (UTC, lexically sortable).
 
@@ -235,16 +495,43 @@ def _merged_rows():
 
     So the drops are now COUNTED and published in _MERGE_DEFECTS, and
     _completed_steps refuses to grant resume credit from an incomplete ledger.
+
+    2026-09-07: WHERE the bytes come from is now a transport decision (see
+    ::_stage_status_files) and nothing else. The file SET is the same set, every
+    file is parsed by the same ::_read_status_file, the order is the same
+    names.status_files order, and the sort key is untouched — so the merge these
+    rows feed is byte-for-byte what it was. A local copy that will not parse is
+    NOT recorded as a defect: it is re-read from the mount first, because a bad
+    copy is evidence about the copy, and letting it disable resume would let a
+    speedup manufacture the very RESUME DISABLED state D10 reserves for a damaged
+    lake.
     """
     q = _q()
     rows = []
     _MERGE_DEFECTS.clear()
-    for f in _status_files():
-        got, problem = _read_status_file(f)
-        if problem:
-            _MERGE_DEFECTS.append((f.name, problem))
-            print(f"  ! WARN unreadable status file {f.name}: {problem}")
-        rows.extend(got)
+    t0 = time.time()
+    files = _status_files()
+    tmpdir, local = _stage_status_files(files)
+    try:
+        for f in files:
+            src = local.get(f.name)
+            if src is not None:
+                # local NVMe: the retry/backoff exists for the mount's documented
+                # transient EIO and buys nothing here
+                got, problem = _read_status_file(src, attempts=1)
+                if problem:
+                    got, problem = _read_status_file(f)
+            else:
+                got, problem = _read_status_file(f)
+            if problem:
+                _MERGE_DEFECTS.append((f.name, problem))
+                print(f"  ! WARN unreadable status file {f.name}: {problem}")
+            rows.extend(got)
+    finally:
+        if tmpdir:
+            shutil.rmtree(tmpdir, ignore_errors=True)
+    record_scan("status", n=len(files), n_local=len(local),
+                seconds=time.time() - t0)
     rows.sort(key=lambda r: str(r.get("ts", "")))
     return rows
 

@@ -490,8 +490,9 @@ import io   # noqa: F401 — facade surface: the never-truncate test patches q.i
             # (module-object patch, so queue_ledger's io.open sees it too)
 from queue_ledger import (      # noqa: E402,F401
     _MERGE_DEFECTS, _completed_steps, _ident, _job_key, _merged_rows,
-    _read_status_file, _replace_absent, _status_files, _status_write,
-    clear_phase_marker, publish_phase_marker,
+    _read_status_file, _replace_absent, _stage_status_files, _status_files,
+    _status_write, clear_phase_marker, publish_phase_marker, record_scan,
+    startup_line,
 )
 # _MERGE_DEFECTS is mutated IN PLACE (clear/append, never rebound), so this binding
 # shares the one list — q._MERGE_DEFECTS stays truthful, and the test that reads it
@@ -731,19 +732,50 @@ def _tag_owners(want, max_age_s=300):
     weak: it reads the ENGINE's cmdline, which is absent between engine steps and
     truncated to the last 200 characters, so a queue that owned a tag continuously
     appeared to hold it only in bursts.
+
+    ONE LISTING, MTIMES TAKEN FROM IT, AND ONLY FRESH BEACONS ARE OPENED. The
+    liveness window is `max_age_s` — the same 300 s the guard has always used to
+    decide a beacon is a dead VM — and it now gates the OPEN, not just the parse.
+    That was already true in effect (the old form stat'ed first and `continue`d
+    before reading), so this is a REGRESSION GATE, not a fix, and the measurement
+    says so: on 2026-09-07 session spdc1 scanned 72 heartbeat files in under one
+    second, stamping its GUARD:runtag row in the same second as the launch stamp.
+    Five launch-time GUARD rows spanning 45→72 files all read the same. The startup
+    cost lives entirely in the status-file merge (queue_ledger.py::_merged_rows).
+    What changes here is that the scan is MEASURED (record_scan) and that "never
+    open a beacon we have already decided is dead" is now asserted by a test that
+    counts opens, instead of being a property of the control flow.
     """
     logs = BASE / "phase4" / "logs"
     me = _ident()
     me_pid = str(os.getpid())
-    clashes, scanned, files = [], 0, []
+    clashes, scanned, opened, files = [], 0, 0, []
+    t0 = time.time()
     try:
-        files = list(logs.glob("heartbeat_*.json"))
+        # os.scandir, not Path.glob + a stat() per hit: phase4/logs holds ~1,080
+        # entries and the mtime we need is already in the listing.
+        with os.scandir(logs) as it:
+            for e in it:
+                if not (e.name.startswith("heartbeat_")
+                        and e.name.endswith(".json")):
+                    continue
+                try:
+                    files.append((Path(e.path), e.stat().st_mtime))
+                except OSError:
+                    # unstattable = indistinguishable from dead, which is how the
+                    # old code treated it too (the stat raised inside its try and
+                    # skipped the file) — but it still COUNTS, because `blind`
+                    # reports how many heartbeat files exist, not how many parsed
+                    files.append((Path(e.path), 0.0))
     except OSError as e:
+        record_scan("beacons", n=0, n_open=0, seconds=time.time() - t0)
         return [], 0, f"could not list {logs} ({type(e).__name__}: {e})"
-    for hb in files:
+    now = time.time()
+    for hb, mtime in files:
+        if now - mtime > max_age_s:
+            continue                              # stale beacon = dead VM: never opened
+        opened += 1
         try:
-            if time.time() - hb.stat().st_mtime > max_age_s:
-                continue                          # stale beacon = dead VM
             d = json.loads(hb.read_text(encoding="utf-8"))
         except (OSError, ValueError):
             continue
@@ -792,6 +824,7 @@ def _tag_owners(want, max_age_s=300):
     if scanned == 0:
         blind = (f"no live beacons in {logs} "
                  f"({len(files)} heartbeat file(s), all stale or unreadable)")
+    record_scan("beacons", n=len(files), n_open=opened, seconds=time.time() - t0)
     return clashes, scanned, blind
 
 
@@ -961,6 +994,15 @@ def main():
 
     done, reverify, verdicts = ((set(), set(), {}) if args.no_resume
                                 else _completed_steps())
+    # WHAT STARTUP ACTUALLY COST, on every launch from now on. Until 2026-09-07 the
+    # window between this process starting and the first engine spawn was measured
+    # nowhere: it had to be reconstructed from a launch stamp in a filename and a
+    # row `ts`, and only for launches whose per-launch file survived. It was 6.0 min
+    # on session spdc1, all of it the status merge. One line, printed before the
+    # first job, so the nohup log carries it. (queue_ledger.py::startup_line)
+    _startup = startup_line()
+    if _startup:
+        print(f"\n  {_startup}")
     if done:
         print(f"\n  RESUME: {len(done)} step(s) already OK across all status files "
               f"will be SKIPPED.")

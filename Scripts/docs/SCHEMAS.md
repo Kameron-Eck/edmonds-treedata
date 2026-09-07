@@ -79,14 +79,87 @@ separates them. Non-default `ref` rows are sensitivity checks, not deployments.
 
 ## hw_{session}.csv (lake `phase4/logs/`, RAW hardware telemetry)
 
-Written by `vm_hwlogger.py::main` (launched by every bootstrap from 2026-09-02;
-5 s samples, one buffered Drive write per minute). Kernel + NVIDIA counters
-only — no pipeline code in the measurement path. Columns: `ts_utc,
-gpu_util_pct, gpu_mem_util_pct, gpu_mem_used_mb, gpu_power_w, cpu_pct,
-disk_read_mb_s, disk_write_mb_s, net_rx_mb_s, net_tx_mb_s, disk_used_gb,
-disk_free_gb`. Reader notes: net rx/tx IS the Drive traffic (rclone is HTTPS);
-disk_* is local NVMe; blank cells mean the sampler failed that tick (CPU
-runtimes have blank GPU columns) — blanks are honest, never zeros.
+Written by `pipeline/vm_hwlogger.py::main` (launched by every bootstrap from
+2026-09-02; 5 s samples, one buffered Drive write per minute). Kernel + NVIDIA
+counters only — no pipeline code in the measurement path. **LEGACY (v1)
+columns**: `ts_utc, gpu_util_pct, gpu_mem_util_pct, gpu_mem_used_mb,
+gpu_power_w, cpu_pct, disk_read_mb_s, disk_write_mb_s, net_rx_mb_s,
+net_tx_mb_s, disk_used_gb, disk_free_gb`. Reader notes: net rx/tx IS the Drive
+traffic (rclone is HTTPS); disk_* is local NVMe; blank cells mean the sampler
+failed that tick (CPU runtimes have blank GPU columns) — blanks are honest,
+never zeros.
+
+**v2 appends three columns**, in this order: `cpu_iowait_pct, step, run_tag`.
+`cpu_iowait_pct` is `100 * delta(iowait ticks) / delta(total ticks)` over the
+sample interval — the counter the v1 schema could not see, because
+`vm_hwlogger.py::cpu_ticks` folds iowait into idle, so a process blocked on
+Drive FUSE reads as an idle CPU. **`cpu_pct` keeps its v1 definition** (busy =
+total − idle − iowait) so the two schemas remain comparable on that column.
+`step` / `run_tag` are read at each sample from the step marker file
+(`phase4seg/names.py::hw_step_marker_path`), written by `StepLogger.start()`
+and deleted by `.finish()`: **the marker's absence means between steps**, and
+blank `step` cells mean exactly that. `step` carries the year suffix as passed
+(`train_2017`), never normalised at write time.
+
+**One file, one schema.** If `hw_{session}.csv` exists with a v1 first line the
+logger writes `hw_{session}_v2.csv` instead rather than appending rows of a
+different width — so one session can own two files, and `_v2` in a filename is
+the SCHEMA, not the session name.
+
+## hw_step_attribution.csv (phase4/qc/, HARVESTED — re-harvest, never edit)
+
+Written by `qc/instruments/harvest_hw_attribution.py::build_rows` from the raw
+`hw_*.csv` above plus the step logs. One row per `(session, step, basis)` and one
+`step = ALL` row per `(session, basis)`; `step` values are the engine step with
+its year label stripped (`train_2017` → `train`), plus `(between)` for samples
+with no step running. The basis is decided PER FILE, so a session owning both a
+v1 and a v2 file (see the fork rule above) emits two independent sets of rows —
+the marker samples keep their own per-machine `step` instead of being re-guessed
+by time against another VM's step log. Columns: `session, step, basis,
+gpu_present, samples, hours, gpu_busy_frac, gpu_util_mean, cpu50_frac,
+iowait10_frac, tx1_frac, rx1_frac, disk5_frac, nothing_frac, ambiguous_dropped,
+samples_parsed, span_hours, source_file`. Fractions are of the row's samples (GPU
+fractions of the samples that HAVE a GPU reading), and are BLANK on a row with no
+samples.
+
+**READER RULE: three denominators, and two of them are missing time.** The `ALL`
+row pools ATTRIBUTED samples only — `samples_parsed` = `ALL.samples` +
+`ambiguous_dropped` — so **`ALL.hours` is not the session's wall clock and must
+not be summed as "VM time"**. `hours` is SAMPLED time (samples × the file's own
+measured cadence), so a stalled logger under-counts it; `span_hours` is the
+covered wall clock (last − first `ts_utc` over that `(session, basis)` group's
+parsed rows, NOT over the session — a dual-schema session owns two groups, and
+summing their spans would double its run) and `span_hours − hours` is time the
+logger never sampled. Measured 2026-09-07 across the 18 archived sessions the
+three read 72.63 h covered / 60.35 h sampled / 48.82 h attributed, so ALL.hours
+is a third below the wall clock. A session whose every sample was
+ambiguity-dropped still gets its `ALL` row, with `samples = 0` and blank
+fractions: a machine that ran is never absent from the table.
+
+**READER RULE: `basis` gates how much a row is worth**, the same way
+`join_basis` gates `run_passport`. `marker` = the v2 `step` column, so each
+sample names its own step on its own machine — trustworthy. `interval` = the
+legacy files, joined by TIME to the step LOGS, which carry no session or host
+field; the queue status CSVs that do carry `session` cover only 1 of the 18
+archived hw sessions (`of2017k2`, 13 rows; the repo-tracked copies carry none —
+measured 2026-09-07), so they cannot rescue the legacy archive, though that one
+session is an independent per-machine record the interval rule could be checked
+against. Samples whose concurrently-open intervals disagree are DROPPED and
+counted in `ambiguous_dropped` (repeated on every row of that `(session,
+basis)` group, so a reader slicing to one step still sees it); the sessions
+overlap heavily, so this is a large share of the archive — 8,304 of the 29,001
+samples in the 12 GPU-bearing sessions, measured 2026-09-07. What survives the drop can still be another
+VM's step — an `interval` row can attribute `train` hours to a CPU-only runtime
+that cannot run torch at all. Interval rows are indicative; marker rows are
+measured.
+
+`nothing_frac` is the finding, not a residual: GPU < 5% AND CPU < 15% AND
+disk < 5 MB/s AND **both** network directions < 1 MB/s at once. That is a
+process blocked on Drive FUSE per-file latency — round-trips cost no bandwidth,
+and iowait is charged to idle in v1 — not a machine with nothing to do. The
+network test covers TX as well as RX because checkpoint uploads are the single
+largest thing train does that is not training. `iowait10_frac` is blank for
+every v1 file: the column did not exist, which is not the same as zero.
 
 ## champion_arms.csv (Scripts/pipeline/, AUTHORED decision)
 
@@ -291,3 +364,29 @@ them raw is never the right move.
 
 `test_science_digest_stays_loadable` caps it at ~12k tokens, so it cannot quietly
 become another dump.
+
+## offload_pilot_2017k.csv (phase4/qc/, GENERATED)
+
+Written by `qc/instruments/offload_pilot_compare.py`: the offload pilot's pre-registered
+reads (`experiments/offload_pilot_2017k.yaml`) joined from five homes into one file, so
+the verdict is written FROM A FILE. Long format — `metric, step, baseline, pilot, unit,
+baseline_source, pilot_source, note` — with `of_2017k` and `spd_2017k` side by side.
+Metrics: `step_minutes` (the queue ledger's OK-row `minutes`, orchestrator wall clock,
+1dp), `step_elapsed_log` (the engine's own `elapsed:` from the step log matched on
+`--run-tag`, normalised to minutes, 2dp — these two measure different brackets and
+differ by 1-3 min per step), `machine`, `a100_span_min` / `total_span_min`,
+`sem_best_mb` / `prob_raster_mb` / `mask_mb` / `gpkg_mb` (decimal MB, bytes/1e6),
+`tileset_id` / `n_tiles` / `tileset_id_match`, `eval_ap` / `eval_auroc`, and
+`hw_nothing_frac` / `hw_gpu_busy_frac` per step.
+
+READER RULE: **a blank cell means NOT MEASURED — never zero.** Every row is emitted
+whether or not the arm has run. The one exception is a step that ran and FAILED (kill
+criterion K1): the value is still blank, but `note` carries `latest state FAIL`, so a
+failure cannot read as an absence. `machine` is not in the queue's status CSV at all —
+`_gpu_line()` prints the tier to the launch header on stdout and `host` is a container
+hostname — so it is resolved from the run manifest's `gpu` via `run_passport.csv`, then
+the per-session `heartbeat_<session>.json`, then the train log's `Device:` line, and
+`note` names which of the three answered. `eval_ap`/`eval_auroc` read the superseded
+archive as well as the live report, because step_evaluate's replace key is
+(year, channels) and NOT run_tag: the pilot evaluating the same year and channels
+displaces the baseline's rows. Gate: `qc/test_offload_pilot_compare.py`.

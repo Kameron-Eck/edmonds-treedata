@@ -1,0 +1,436 @@
+"""harvest_hw_attribution.py — WHICH STEP was running while the hardware sat idle.
+
+`vm_hwlogger.py::main` writes a 5-second hardware sample to `phase4/logs/hw_{session}.csv`
+on every runtime. Raw, that file answers "was the GPU busy at 02:14:35Z" and nothing
+else. The question anyone actually asks — *which step is wasting the paid GPU, and would
+it run just as well on a free CPU runtime* — needs the samples attributed to the engine
+step that was executing, and that join was done AD HOC IN CHAT for
+`Reports/PIPELINE_SPEEDUP_OPTIONS_2026-09-07.md`. It had to be redone twice: once because
+the first pass matched samples against step intervals from ALL concurrently-running VMs
+first-hit-wins (the sessions overlap heavily, so a `train` sample could be labelled
+`tile` by another VM's log), and once because the dead-sample test read `net_rx_mb_s` and
+never `net_tx_mb_s`, counting checkpoint uploads as "nothing happening". A number that
+takes two corrections in one afternoon belongs in a script whose output is a tracked CSV
+(CLAUDE.md 3.4b), not in a chat transcript.
+
+TWO ATTRIBUTION BASES, and the CSV says which one produced every row. The basis is
+decided PER FILE, and a row is keyed `(session, step, basis)` — see `build_rows`.
+
+    marker      The hw CSV carries its own `step` column (schema v2): the sampler read
+                the step marker file the engine writes at StepLogger.start() and deletes
+                at finish(). Each sample names its OWN step, on its OWN machine. No
+                cross-VM ambiguity is possible. This is the basis to trust.
+
+    interval    Legacy hw CSVs (every file written before the marker landed) have no step
+                column, so the only join available is TIME against the step logs — and
+                the step LOGS carry no session or host field, so a sample cannot be told
+                which VM's step it belongs to. The one archive that DOES pair a session
+                with a step — the queue-status ledger, `phase4/qc/*queue_status*.csv`
+                (named here, never read: discovery of those files has exactly one home,
+                `phase4seg.names.status_files`) — has a populated `session` for only 1
+                of the 18 archived hw sessions (of2017k2, 13 rows; the 9 repo-tracked
+                copies carry none — measured 2026-09-07). So it cannot rescue the legacy
+                archive, but that one session IS an independent per-machine record this
+                rule could be validated against. The rule here is deliberately
+                conservative: a sample is attributed to step S only when EVERY step
+                interval open at that instant normalises to S. When they DISAGREE the
+                sample is DROPPED and counted in `ambiguous_dropped` — the correction
+                that the first ad-hoc pass lacked. Measured 2026-09-07: 8,304 of the
+                29,001 samples in the 12 GPU-bearing sessions drop this way (28.6%;
+                19.1% of all 43,453 archived samples). A row on this basis is
+                indicative, never verified — see the reader rule below.
+
+READER RULE FOR `interval` ROWS. What survives the ambiguity drop can still belong to
+another machine: the six CPU-only sessions in the archive carry 1.9 h of `train` and
+0.8 h of `inference` with zero ambiguous drops, because at those instants exactly one
+step interval was open — on some OTHER VM. A CPU runtime cannot run torch, so those
+labels are provably not that machine's work. The marker basis is what removes this
+whole class of error; until a session is logged on v2, its per-step split is a
+population-level indication, not a per-machine measurement.
+
+THREE DENOMINATORS, all on the row, because two of them are missing time. The `ALL` row
+pools ATTRIBUTED samples only: `samples_parsed` = `ALL.samples` + `ambiguous_dropped`,
+so ALL.hours is NOT the session's wall clock and must never be summed as "VM time".
+`hours` is SAMPLED time — samples x the file's own measured cadence — so a stalled
+logger under-counts it; `span_hours` (last `ts_utc` − first, over that (session, basis)
+GROUP's parsed rows — not over the session, which may own two groups) is the covered wall
+clock, and `span_hours − hours` is time the logger did not sample at all. Measured 2026-09-07 over
+the 18 archived sessions, the three sum to 72.63 h covered / 60.35 h sampled / 48.82 h
+attributed: 17% lost to logger gaps, a further 19% of samples to ambiguity. Reading
+ALL.hours as the campaign's VM time is therefore a third low. (`vm_hwlogger.py::main`
+appends to Drive inside the sampling loop, so a slow FUSE write stalls sampling — read
+in the writer, not tested here; if the stalls fall in quiet periods then `nothing_frac`
+is biased LOW, i.e. this instrument would understate the very effect it measures.)
+
+ASSUMPTION, stated because it is not verified: step-log `started:` / `completed:`
+timestamps are naive local time on the VM that wrote them, while hw `ts_utc` is stamped
+`...Z`. The two are treated as THE SAME CLOCK here, exactly as the existing analysis did.
+Colab runtimes run UTC, and the empirical check is that attribution lands sensibly (a
+minority of samples fall between steps) rather than degenerating to all-`(between)`,
+which is what a multi-hour offset would produce. It is not proof.
+
+WHAT "NOTHING" MEANS, and why it is the finding. `nothing_frac` counts samples where the
+GPU is under 5%, the CPU under 15%, local disk under 5 MB/s and BOTH network directions
+under 1 MB/s at once. That is not idleness — it is a process blocked on Drive FUSE
+per-file latency: `vm_hwlogger.py::cpu_ticks` folds iowait into idle, so blocked-on-I/O
+reads as an idle CPU, and the cost is round-trips rather than bytes, so no bandwidth
+counter registers it. Schema v2 adds `cpu_iowait_pct` precisely so that blindness is
+measurable going forward; `iowait10_frac` is blank for every legacy file, which is
+honest, not missing data.
+
+CPU-ONLY SESSIONS ARE KEPT. They log blank GPU columns and would vanish under any
+"GPU-bearing sessions only" filter — but they are the offload TARGET, so their cost
+profile is exactly what the offload decision needs.
+
+Run:  py -3.12 qc/instruments/harvest_hw_attribution.py [--dry-run]
+      py -3.12 qc/instruments/harvest_hw_attribution.py --logs-dir DIR --out FILE
+Output: phase4/qc/hw_step_attribution.csv  (schema: docs/SCHEMAS.md)
+"""
+from __future__ import annotations
+
+import argparse
+import csv
+import datetime as dt
+import heapq
+import io
+import re
+import statistics
+import sys
+from pathlib import Path
+
+SCRIPTS = Path(__file__).resolve().parents[2]
+REPO = SCRIPTS.parent
+QC = REPO / "phase4" / "qc"
+
+COLS = ["session", "step", "basis", "gpu_present", "samples", "hours",
+        "gpu_busy_frac", "gpu_util_mean", "cpu50_frac", "iowait10_frac",
+        "tx1_frac", "rx1_frac", "disk5_frac", "nothing_frac",
+        "ambiguous_dropped", "samples_parsed", "span_hours", "source_file"]
+
+BETWEEN = "(between)"
+ALL = "ALL"
+
+# The logger's cadence (vm_hwlogger.py --interval default). Used only when a file is too
+# short to measure its own spacing; every archived file measures 5.0 s exactly.
+DEFAULT_SAMPLE_SECONDS = 5.0
+MAX_SAMPLE_SECONDS = 300.0        # a longer gap is a stall, not the cadence
+
+# Thresholds. These are the ones §7 of the speedup report was recomputed with; changing
+# one changes the meaning of every historical row, so they live here as named constants.
+GPU_BUSY_PCT = 5.0
+CPU_BUSY_PCT = 50.0
+CPU_QUIET_PCT = 15.0
+IOWAIT_PCT = 10.0
+NET_MB_S = 1.0
+DISK_MB_S = 5.0
+
+# `train_2017`, `evaluate_2006s`, `postproc_2019n` -> the step. Year labels are four
+# digits plus an optional delivery letter (`2006s`, `2017k`, `2019n`), never bare words,
+# so this cannot eat a step name.
+_YEAR_SUFFIX = re.compile(r"_\d{4}[a-z0-9]*$")
+
+_STEP_HEAD = re.compile(r"^=== \S+ --step (\S+) ===")
+_STARTED = re.compile(r"^started:\s+(\S+)", re.M)
+_COMPLETED = re.compile(r"^completed:\s+(\S+)", re.M)
+
+
+def norm_step(name):
+    """Strip the trailing year label. Blank / missing -> the between-steps bucket."""
+    s = (name or "").strip()
+    if not s:
+        return BETWEEN
+    return _YEAR_SUFFIX.sub("", s) or BETWEEN
+
+
+def _num(v):
+    """A hw cell as float, or None. BLANK IS NOT ZERO: the logger writes an empty cell
+    when a sampler failed that tick (and for every GPU column on a CPU runtime), and
+    reading those as 0 would manufacture idleness that was never measured."""
+    if v is None:
+        return None
+    s = str(v).strip()
+    if not s:
+        return None
+    try:
+        return float(s)
+    except ValueError:
+        return None
+
+
+def _ts(v):
+    try:
+        return dt.datetime.strptime(str(v).strip(), "%Y-%m-%dT%H:%M:%SZ")
+    except (ValueError, TypeError):
+        return None
+
+
+def session_of(path):
+    """hw_{session}.csv -> session; a `_v2` suffix is the schema, not the session."""
+    stem = Path(path).name
+    if stem.startswith("hw_"):
+        stem = stem[3:]
+    if stem.endswith(".csv"):
+        stem = stem[:-4]
+    if stem.endswith("_v2"):
+        stem = stem[:-3]
+    return stem
+
+
+def read_hw(path):
+    """-> (rows, has_step_column). Rows with an unreadable ts_utc are dropped: they can
+    be attributed on neither basis."""
+    text = Path(path).read_text(encoding="utf-8", errors="replace")
+    rdr = csv.DictReader(text.splitlines())
+    has_step = "step" in (rdr.fieldnames or [])
+    rows = []
+    for r in rdr:
+        t = _ts(r.get("ts_utc"))
+        if t is None:
+            continue
+        rows.append({
+            "ts": t,
+            "gpu": _num(r.get("gpu_util_pct")),
+            "cpu": _num(r.get("cpu_pct")),
+            "iowait": _num(r.get("cpu_iowait_pct")),
+            "dr": _num(r.get("disk_read_mb_s")),
+            "dw": _num(r.get("disk_write_mb_s")),
+            "rx": _num(r.get("net_rx_mb_s")),
+            "tx": _num(r.get("net_tx_mb_s")),
+            "step": r.get("step"),
+        })
+    return rows, has_step
+
+
+def read_step_logs(logs_dir):
+    """Every completed engine step as (start, end, normalised_step).
+
+    A log with no `completed:` line is a step that died or is still running; it has no
+    closed interval, so it contributes nothing rather than an open-ended one that would
+    swallow every later sample.
+    """
+    out = []
+    for p in sorted(Path(logs_dir).glob("phase4_semantic_finetune_*.log")):
+        try:
+            with open(p, encoding="utf-8", errors="replace") as f:
+                head = f.read(4096)
+        except OSError:
+            continue
+        m = _STEP_HEAD.match(head.splitlines()[0] if head else "")
+        s, e = _STARTED.search(head), _COMPLETED.search(head)
+        if not (m and s and e):
+            continue
+        try:
+            t0 = dt.datetime.fromisoformat(s.group(1))
+            t1 = dt.datetime.fromisoformat(e.group(1))
+        except ValueError:
+            continue
+        if t1 < t0:
+            continue
+        out.append((t0, t1, norm_step(m.group(1))))
+    out.sort()
+    return out
+
+
+def attribute_interval(rows, intervals):
+    """Sweep the samples against the (global, cross-VM) step intervals.
+
+    -> (list of step-or-None per row, ambiguous_dropped). None = dropped because the
+    intervals open at that instant name different steps and the step logs carry no
+    session field to break the tie.
+    """
+    order = sorted(range(len(rows)), key=lambda i: rows[i]["ts"])
+    labels = [None] * len(rows)
+    active = []                      # heap of (end, step), all with start <= t
+    i, dropped = 0, 0
+    for idx in order:
+        t = rows[idx]["ts"]
+        while i < len(intervals) and intervals[i][0] <= t:
+            heapq.heappush(active, (intervals[i][1], intervals[i][2]))
+            i += 1
+        while active and active[0][0] < t:
+            heapq.heappop(active)
+        names = {step for _end, step in active}
+        if not names:
+            labels[idx] = BETWEEN
+        elif len(names) == 1:
+            labels[idx] = names.pop()
+        else:
+            dropped += 1             # labels[idx] stays None
+    return labels, dropped
+
+
+def _sample_seconds(rows):
+    """The file's own cadence, measured. Median of consecutive deltas, ignoring stalls."""
+    ts = sorted(r["ts"] for r in rows)
+    d = [(b - a).total_seconds() for a, b in zip(ts, ts[1:])]
+    d = [x for x in d if 0 < x <= MAX_SAMPLE_SECONDS]
+    return statistics.median(d) if d else DEFAULT_SAMPLE_SECONDS
+
+
+def _f(x):
+    return f"{x:.4f}"
+
+
+def summarise(session, step, basis, rows, secs, dropped, parsed, span_hours,
+              source, has_iowait):
+    """One output row. `rows` may be EMPTY — a session every one of whose samples was
+    ambiguity-dropped still gets its ALL row, with zero samples and blank fractions,
+    because a table that accounts for paid VM time must not silently omit a machine."""
+    n = len(rows)
+    gpu = [r["gpu"] for r in rows if r["gpu"] is not None]
+    busy = sum(1 for g in gpu if g > GPU_BUSY_PCT)
+
+    def frac(pred):
+        return sum(1 for r in rows if pred(r)) / n
+
+    def nothing(r):
+        # The GPU may be BLANK here (a CPU runtime has no readings at all) — that is the
+        # one column where absence is informative. Every other counter must have an
+        # actual reading before this row can claim nothing was happening; a blank cell
+        # is a failed sampler, and unknown is not idle.
+        if r["gpu"] is not None and r["gpu"] >= GPU_BUSY_PCT:
+            return False
+        vals = (r["cpu"], r["dr"], r["dw"], r["rx"], r["tx"])
+        if any(v is None for v in vals):
+            return False
+        return (r["cpu"] < CPU_QUIET_PCT and r["dr"] + r["dw"] < DISK_MB_S
+                and r["rx"] < NET_MB_S and r["tx"] < NET_MB_S)
+
+    def pf(pred):
+        # No samples -> no fraction. Blank, never 0.0000: an empty row measured nothing.
+        return _f(frac(pred)) if n else ""
+
+    return {
+        "session": session, "step": step, "basis": basis,
+        "gpu_present": _f(len(gpu) / n) if n else "",
+        "samples": n,
+        "hours": _f(n * secs / 3600.0),
+        "gpu_busy_frac": _f(busy / len(gpu)) if gpu else "",
+        "gpu_util_mean": _f(sum(gpu) / len(gpu)) if gpu else "",
+        "cpu50_frac": pf(lambda r: r["cpu"] is not None and r["cpu"] > CPU_BUSY_PCT),
+        "iowait10_frac": (pf(lambda r: r["iowait"] is not None
+                              and r["iowait"] > IOWAIT_PCT)
+                          if has_iowait else ""),
+        "tx1_frac": pf(lambda r: r["tx"] is not None and r["tx"] > NET_MB_S),
+        "rx1_frac": pf(lambda r: r["rx"] is not None and r["rx"] > NET_MB_S),
+        "disk5_frac": pf(lambda r: r["dr"] is not None and r["dw"] is not None
+                         and r["dr"] + r["dw"] > DISK_MB_S),
+        "nothing_frac": pf(nothing),
+        "ambiguous_dropped": dropped,
+        "samples_parsed": parsed,
+        "span_hours": _f(span_hours),
+        "source_file": source,
+    }
+
+
+def build_rows(logs_dir, hw_files=None):
+    """One row per (session, step, BASIS).
+
+    Each FILE is attributed on its own basis. A session that owns both a legacy and a
+    v2 file (the logger forks `hw_{s}_v2.csv` rather than append a wider row, so a
+    reused session name produces exactly that) emits two independent sets of rows —
+    the v2 samples keep their per-machine `step` markers instead of being re-guessed
+    by time against another VM's step log, which is what pooling to the weaker basis
+    did. `basis` therefore never covers two attribution qualities at once.
+    """
+    logs_dir = Path(logs_dir)
+    files = sorted(hw_files) if hw_files else sorted(logs_dir.glob("hw_*.csv"))
+    intervals = None
+
+    groups = {}
+    for p in files:
+        rows, has_step = read_hw(p)
+        g = groups.setdefault((session_of(p), "marker" if has_step else "interval"),
+                              {"rows": [], "files": []})
+        g["rows"] += rows
+        g["files"].append(Path(p).name)
+
+    out = []
+    for session, basis in sorted(groups):
+        g = groups[(session, basis)]
+        rows = g["rows"]
+        if not rows:
+            continue
+        source = ";".join(sorted(g["files"]))
+        secs = _sample_seconds(rows)
+        has_iowait = any(r["iowait"] is not None for r in rows)
+        ts = [r["ts"] for r in rows]
+        span_h = (max(ts) - min(ts)).total_seconds() / 3600.0
+        parsed = len(rows)
+
+        if basis == "marker":
+            labels = [norm_step(r["step"]) for r in rows]
+            dropped = 0
+        else:
+            if intervals is None:
+                intervals = read_step_logs(logs_dir)
+            labels, dropped = attribute_interval(rows, intervals)
+
+        by_step = {}
+        kept = []
+        for lab, r in zip(labels, rows):
+            if lab is None:
+                continue
+            by_step.setdefault(lab, []).append(r)
+            kept.append(r)
+        for step in sorted(by_step):
+            out.append(summarise(session, step, basis, by_step[step], secs,
+                                 dropped, parsed, span_h, source, has_iowait))
+        # UNCONDITIONAL. A session whose every sample was ambiguity-dropped has no step
+        # rows at all; without this its samples, its drop count and the fact that the
+        # machine ran would vanish from the table entirely.
+        out.append(summarise(session, ALL, basis, kept, secs, dropped, parsed,
+                             span_h, source, has_iowait))
+    out.sort(key=lambda r: (r["session"], r["step"], r["basis"]))
+    return out
+
+
+def _logs_dir(explicit=None):
+    if explicit:
+        return Path(explicit)
+    from phase4seg import config
+    for cand in (Path(config.BASE) / "phase4" / "logs",
+                 Path(r"G:/My Drive/treedata/phase4/logs")):
+        if cand.exists():
+            return cand
+    return cand
+
+
+def main(argv=None):
+    from phase4seg.names import clean_argv
+    ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
+    ap.add_argument("--logs-dir", default=None)
+    ap.add_argument("--out", default=None)
+    ap.add_argument("--dry-run", action="store_true")
+    a = ap.parse_args(clean_argv() if argv is None else argv)
+
+    logs_dir = _logs_dir(a.logs_dir)
+    if not logs_dir.exists():
+        print(f"FATAL: logs not found: {logs_dir}\n"
+              f"       this instrument reads the lake — mount it, or pass --logs-dir")
+        return 2
+
+    rows = build_rows(logs_dir)
+    buf = io.StringIO(newline="")
+    w = csv.DictWriter(buf, fieldnames=COLS, lineterminator="\n")
+    w.writeheader()
+    w.writerows(rows)
+    out = Path(a.out) if a.out else (QC / "hw_step_attribution.csv")
+    if not a.dry_run:
+        out.parent.mkdir(parents=True, exist_ok=True)
+        out.write_text(buf.getvalue(), encoding="utf-8", newline="")
+
+    alls = [r for r in rows if r["step"] == ALL]
+    print(f"{'DRY RUN: ' if a.dry_run else ''}{len(rows)} rows over {len(alls)} "
+          f"(session, basis) groups → {out.name}")
+    print(f"  {'session':12} {'basis':9} {'hours':>7} {'span_h':>7} {'gpu?':>6} "
+          f"{'nothing':>8} {'ambig':>7}")
+    for r in alls:
+        print(f"  {r['session']:12} {r['basis']:9} {r['hours']:>7} "
+              f"{r['span_hours']:>7} {r['gpu_present']:>6} {r['nothing_frac']:>8} "
+              f"{r['ambiguous_dropped']:>7}")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

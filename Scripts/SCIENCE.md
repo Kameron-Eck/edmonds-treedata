@@ -28,6 +28,8 @@ than selected. Everything below is resolved from them at build time.
   <br>evidence `phase4/qc/sensitivity_sawtooth.csv#csv:value@statistic=matched_mean_abs_step_pp`
 - **0.9149** — Measured on our own archive, crown detectability is NOT ordered by ground resolution: at a 6 m minimum diameter, 2011s (38.1 cm effective) recalls 0.973 of bracketed crowns while 2015 (13.7 cm, nearly 3x finer) recalls 0.915. The per-epoch sensitivity dominates the pixel count, so a size gate must be per-epoch and cannot be derived from GSD alone.
   <br>evidence `phase4/qc/detectability_curve.csv#csv:recall@epoch=2015;kind=cumulative_ge;diam_lo_m=6`
+- **0.9699** — On the 137,901 crowns every epoch sees, the measured extent barely differs between epochs: mean cover spans 0.9699 (2015) to 0.9926 (2021), a 2.3% systematic difference, and 2011s at 38.1 cm reads 0.978 against 2024 at 6.8 cm reading 0.9707. Epochs differ in WHICH crowns they find, not in how well they outline the ones they find — so the healing problem is detection, not delineation, and a transplant needs no scale parameter.
+  <br>evidence `phase4/qc/detectability_curve.csv#csv:recall@epoch=2015;kind=conditional_cover`
 
 ## 2. Best arm per year, at one held cut
 

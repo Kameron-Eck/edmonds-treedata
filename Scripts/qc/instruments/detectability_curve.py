@@ -31,9 +31,12 @@ WHAT IT CANNOT SEE, stated plainly because it bounds every number below:
   * Cover is computed on the 2 m analysis lattice, so the smallest bins are coarse by
     construction: a 2 m crown is about one cell.
 
-Output: phase4/qc/detectability_curve.csv — one row per (epoch, size bin), plus cumulative
-rows giving recall for all crowns at or above each threshold, which is the form a sieve
-design actually consumes.
+Output: phase4/qc/detectability_curve.csv — one row per (epoch, size bin); cumulative rows
+giving recall for all crowns at or above each threshold, which is the form a sieve design
+actually consumes; and `conditional_cover` rows giving the mean measured extent, per epoch,
+of the crowns EVERY epoch sees. That last family answers a different question from the
+curve: given that an epoch finds a crown, does it outline it the same size as the others?
+The gap between the two is the gap between a DETECTION problem and a DELINEATION problem.
 
 Run:  py -3.12 qc/instruments/detectability_curve.py            (local CPU, ~1-2 min)
       py -3.12 qc/instruments/detectability_curve.py --dry-run
@@ -114,8 +117,9 @@ def build():
 
     stack, inside, years, g, ids = load()
     n = len(g)
-    seen = np.vstack([per_crown_cover(stack[i], ids, n, True) >= COVER_DETECT
-                      for i in range(len(years))])          # (epochs, crowns+1)
+    cov = np.vstack([per_crown_cover(stack[i], ids, n, True)
+                     for i in range(len(years))])           # (epochs, crowns+1)
+    seen = cov >= COVER_DETECT
     diam = np.full(n + 1, np.nan)
     diam[g["idx"].to_numpy()] = g["diameter_m"].to_numpy()
 
@@ -151,6 +155,19 @@ def build():
                 "n_bracketed": k, "n_detected": det,
                 "recall": round(det / k, 4), "px_per_crown_at_eff_gsd": "",
             })
+    # ---- conditional delineation: on crowns EVERY epoch sees, how much does the
+    # measured extent differ between epochs? This separates a DETECTION problem from a
+    # DELINEATION problem, and the answer decides whether a transplant needs a scale
+    # parameter at all.
+    allseen = np.all(seen, axis=0)
+    for i, y in enumerate(years):
+        mc = float(np.nanmean(cov[i, allseen]))
+        rows.append({
+            "epoch": y, "eff_cm": EFF_CM[y], "kind": "conditional_cover",
+            "diam_lo_m": "", "diam_hi_m": "",
+            "n_bracketed": int(allseen.sum()), "n_detected": "",
+            "recall": round(mc, 4), "px_per_crown_at_eff_gsd": "",
+        })
     return rows, None
 
 

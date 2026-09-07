@@ -316,3 +316,60 @@ This also revises §3's framing. I had written that mature-crown features are ad
 every epoch *because* the pixel count clears Hao's floor. The conclusion holds — they are
 admissible — but the stated reason was the borrowed one, and the measured ranking shows
 pixel count is not what decides it.
+
+---
+
+## 10. ADDENDUM — the transplant, and why it escapes §3 (Kam, 2026-09-06)
+
+Kam clarified the mechanism, and the clarification matters: watershed each YEAR'S mask
+into clusters (not the frozen 2020 crowns), match clusters between epochs, and where a
+cluster is missing in the year being healed, **copy the donor cluster and place it** using
+two degrees of freedom — a translation, and a scale to absorb "lens differences".
+
+**This is not the falsified layer, and the difference is precise.** §3's offset was
+estimated per block and applied to the mask's EXISTING content — which is how it displaced
+surviving canopy across removed crowns and erased verified losses. In the transplant,
+nothing existing moves. The only thing placed is the newly added object. The
+one-directional guarantee survives at the pixel level, and the worst failure changes from
+*erasing a real loss* (signal-destroying) to *placing healed canopy a few metres off*
+(a bounded spatial-accuracy cost). That is a far better failure mode, and it is the reason
+the transplant is worth building where the offset layer was not.
+
+**The scale parameter, however, should be deleted — measured, not fitted.**
+`detectability_curve.py`'s `conditional_cover` rows: on the **137,901 crowns every epoch
+sees**, mean measured cover spans **0.9699 (2015) to 0.9926 (2021) — a 2.3% systematic
+difference across the whole archive.** 2011s at 38.1 cm reads 0.978; 2024 at 6.8 cm reads
+0.9707. Effectively identical, at a 5.6× resolution difference.
+
+So epochs differ in **which crowns they find, not in how well they outline the ones they
+find.** The healing problem is DETECTION, not DELINEATION. There is only ~2% of systematic
+size signal available, per-crown variance will swamp it, and a fitted per-cluster scale
+would be fitting noise — worse, it would be free to absorb exactly the sensitivity
+difference §3 showed a fitted geometric parameter will happily absorb. Fix the scale at
+1.0. If a correction is ever wanted, take it from this table as a per-epoch-pair constant,
+never from a per-cluster fit.
+
+(Caveat: cover is measured inside the frozen 2020 polygon and cannot exceed 1.0, so the
+2.3% is compressed by a ceiling; and the all-eight-epoch population is the easiest one.
+Both make this a lower bound on agreement, which is the direction that favours the
+conclusion.)
+
+**Choosing the cluster size — the question Kam flagged as open — is now readable off the
+curve.** Cumulative recall on bracketed crowns at or above a minimum diameter:
+
+| min diameter | crowns | worst epoch (2015) | best epoch (2013) |
+|---|---|---|---|
+| ≥3 m | 172,748 | 0.903 | 0.986 |
+| ≥6 m | 153,585 | 0.915 | 0.989 |
+| ≥10 m | 84,010 | 0.947 | 0.994 |
+| ≥14 m | 27,774 | 0.970 | 0.997 |
+
+Raising the threshold buys per-epoch reliability and costs population: ≥6 m keeps 88% of
+the crowns at 0.915 worst-epoch recall; ≥10 m reaches 0.947 but discards 45%. That is the
+tradeoff, and it should be chosen per epoch rather than once — the binding epoch is 2015,
+not either of the two coarsest.
+
+**Open, and genuinely open:** the watershed markers. Per-year instance segmentation of a
+semantic mask needs a marker rule, and the marker spacing IS the "what size cluster"
+parameter in disguise. Connected components cannot do it (§2: one component is 692 ha).
+This is the one part of the transplant with no measured guidance yet.

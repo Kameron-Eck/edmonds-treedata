@@ -11,11 +11,19 @@ so this runs it:
   1. registry   registry_from_manifests (append-only, idempotent) — every finished
                 manifest becomes a row; hand-typing is retired
   2. exp        experiment-file consistency (qc/test_experiments.py)
-  3. docs       drift gates over the gated docs
-  4. status     STATUS.md + STATUS.json regenerated (lake mounted only)
-  5. chatlog    HEURISTIC reminder + entry stub when the newest LOG entry is not
+  3. decisions  the open-decision registry (qc/test_decisions.py)
+  4. claims     every load-bearing number re-resolved against its evidence
+                (qc/verify_claims.py) — this is what the findings ledger never had
+  5. docs       drift gates over the gated docs
+  6. status     STATUS.md + STATUS.json regenerated (lake mounted only)
+  7. harvest    tilesets, run passports, arm metrics + curves, failures — the
+                lake-reading harvests, so a landed campaign cannot leave the tracked
+                context tables describing the PREVIOUS state of the lake
+  8. regen      year scoreboard, coverage map, experiment index — derived from
+                tracked homes, so they run with or without the lake
+  9. chatlog    HEURISTIC reminder + entry stub when the newest LOG entry is not
                 from today — printed, never written (the log stays human-authored)
-  6. stage      `git status --short` so nothing lands unstaged (never add -A)
+ 10. stage      `git status --short` so nothing lands unstaged (never add -A)
 
 Commit + CHATLOG prose remain yours; everything mechanical is now one command.
 """
@@ -51,6 +59,10 @@ def main():
     fails += run("registry <- manifests", reg, dry=False) != 0   # its own dry-run flag
     fails += run("experiment consistency",
                  [py, "-m", "pytest", "qc/test_experiments.py", "-q"], a.dry_run) != 0
+    fails += run("decision registry",
+                 [py, "-m", "pytest", "qc/test_decisions.py", "-q"], a.dry_run) != 0
+    fails += run("claims vs evidence",
+                 [py, str(SCRIPTS / "qc" / "verify_claims.py")], a.dry_run) != 0
     fails += run("doc drift gates",
                  [py, "-m", "pytest", "qc/test_docs_match_code.py", "-q"], a.dry_run) != 0
     from lake import BASE
@@ -59,8 +71,28 @@ def main():
                                    "--markdown"], a.dry_run) != 0
         fails += run("STATUS.json", [py, str(SCRIPTS / "qc" / "pipeline_status.py"),
                                      "--json"], a.dry_run) != 0
+        # The lake-reading harvests. A campaign that lands without these leaves every
+        # tracked context table describing the PREVIOUS state of the lake — the same
+        # silent-drift failure as the .docx ledger, just faster. They are idempotent
+        # and cheap (seconds), so they run on every landed milestone rather than
+        # relying on anyone remembering.
+        for name, script in (("tilesets", "instruments/harvest_tilesets.py"),
+                             ("run passports", "instruments/harvest_run_passport.py"),
+                             ("arm metrics + curves", "instruments/harvest_arm_metrics.py"),
+                             ("failures", "instruments/harvest_failures.py")):
+            fails += run(f"harvest: {name}",
+                         [py, str(SCRIPTS / "qc" / script)], a.dry_run) != 0
     else:
         print("\n── STATUS regen skipped — lake not mounted")
+        print("── harvests skipped — they read the lake; tracked views still regenerate")
+
+    # Derived from TRACKED homes only, so these regenerate with or without the lake —
+    # and their freshness gates fail the suite if they are not run.
+    for name, script in (("year scoreboard", "year_scoreboard.py"),
+                         ("coverage map", "coverage_map.py"),
+                         ("experiment index", "experiments_index.py")):
+        fails += run(f"regenerate: {name}",
+                     [py, str(SCRIPTS / "qc" / script)], a.dry_run) != 0
 
     print("\n── CHATLOG " + "─" * 60)
     log = (SCRIPTS / "CHATLOG.md").read_text(encoding="utf-8", errors="replace")

@@ -1,0 +1,85 @@
+# claims.yaml — the load-bearing numbers, each linked to the row that proves it.
+#
+# WHY. Registry entries point AT evidence; nothing pointed BACK. So when the 2026-09-06
+# recalibration superseded the era F-numbers, the ledger kept stating the old ones for
+# three days and the supersessions had to be found by hand. A claim here names the
+# value AND the tracked row it came from, and `qc/verify_claims.py` re-resolves every
+# pointer. A claim whose evidence has moved is reported DRIFTED — never silently
+# corrected, because which side is wrong (the number, or the sentence around it) is a
+# judgement a person makes.
+#
+#   id         stable slug
+#   statement  the claim in words, as someone would say it out loud
+#   value      the number/string as claimed
+#   tolerance  optional; numeric comparison within +/- this (floating text, rounding)
+#   evidence   ONE pointer, grammar in qc/claims.py
+#   stated_in  every place this claim is written down — what to fix if it drifts
+#   entry      the registry entry that owns the science
+#
+# Gated by qc/test_claims.py: pointers resolve, values match, stated_in files exist.
+
+claims:
+  - id: panel-a-net-change
+    statement: >-
+      Panel A's paired photo-interpretation measures a NET canopy change of -2.21
+      percentage points of city area between 2016 and 2024.
+    value: "-2.21"
+    evidence: 'phase4/qc/panel_a_estimate.txt#regex:NET CHANGE (-?[0-9.]+) pp'
+    stated_in:
+      - experiments/panel_a_direction.yaml
+      - Reports/LIT_HUNT_DIGEST_2026-09-06.md
+    entry: panel_a_direction
+
+  - id: panel-a-ci
+    statement: "The 95% confidence interval on the Panel A net change is +/-1.10 pp."
+    value: "1.10"
+    evidence: 'phase4/qc/panel_a_estimate.txt#regex:95% CI \+/-([0-9.]+) pp'
+    stated_in:
+      - experiments/panel_a_direction.yaml
+    entry: panel_a_direction
+
+  - id: panel-a-n
+    statement: "Panel A rests on 1,250 labelled paired points."
+    value: "1250"
+    evidence: 'phase4/qc/panel_a_estimate.txt#regex:labelled (\d+) live'
+    stated_in:
+      - experiments/panel_a_direction.yaml
+    entry: panel_a_direction
+
+  - id: sameflight-iou
+    statement: >-
+      One flight delivered two ways, scored by one frozen model, agrees at IoU 0.7376 —
+      the processing-chain floor no downstream algorithm can remove.
+    value: "0.7376"
+    evidence: "phase4/qc/sameflight_consistency.csv#csv:canopy_iou@grid_px_m=1.0"
+    stated_in:
+      - experiments/sameflight_floor_c3.yaml
+    entry: sameflight_floor_c3
+
+  - id: lidar-decimation-artifact-gain
+    statement: >-
+      Bernoulli-thinning the dense lidar epoch to the sparse one's density fabricates
+      1.5008 km2 of apparent GAIN and essentially no loss — density cannot fake loss.
+    value: "1.5008"
+    evidence: "phase4/qc/lidar_decimation_null.csv#csv:km2@quantity=artifact_gain"
+    stated_in:
+      - experiments/lidar_decimation_null.yaml
+    entry: lidar_decimation_null
+
+  - id: tileset-count
+    statement: >-
+      The archive's 81 tile directories resolve to 71 distinct tile sets — the rest are
+      arms sharing one set, which is what makes those comparisons clean.
+    value: "71"
+    evidence: "phase4/qc/tilesets#dir_csv_count"
+    stated_in:
+      - docs/SCHEMAS.md
+    entry: null
+
+  - id: curves-tracked
+    statement: "Every scored arm's full precision-recall sweep is tracked: 87 curves."
+    value: "87"
+    evidence: "phase4/qc/curves#dir_csv_count"
+    stated_in:
+      - docs/SCHEMAS.md
+    entry: null

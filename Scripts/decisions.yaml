@@ -1,0 +1,180 @@
+# decisions.yaml — the AUTHORED registry of open decisions.
+#
+# WHY THIS EXISTS. The decision stack lived as eight prose bullets in WORKPLAN.md:
+# no dates, no owner, no dependency structure, and no way for a session to tell that
+# the 36-run gate is downstream of the champion designations. A session could read the
+# board and still not know what is actually blocked on Kam versus on compute.
+#
+# WORKPLAN.md now POINTS here (one fact, one home). The board keeps intent; this file
+# keeps the decisions themselves, queryable via `py -3.12 qc/ask.py --decisions`.
+#
+# Fields:
+#   id           short kebab slug, stable — other entries reference it in `blocked_by`
+#   question     the decision, phrased so a yes/no or a choice answers it
+#   owner        kam | claude | either — who can actually make the call
+#   status       open | decided | superseded | dropped
+#   blocks       ids or work this decision gates (nothing here starts until it lands)
+#   blocked_by   ids that must land first — the dependency edge
+#   why          what changes depending on the answer; the cost of not deciding
+#   evidence     tracked pointers a decider should read first
+#   decided / decision   filled in when it lands; both or neither
+#
+# Gated by qc/test_decisions.py: ids unique, statuses closed, links resolve, no cycles,
+# every pointer exists, decided entries carry a date AND the decision text.
+
+decisions:
+  - id: synthesis-session
+    question: >-
+      Sit down with the full evidence table and set the story: what does the project
+      claim about Edmonds canopy direction, at what confidence, in what order.
+    owner: kam
+    status: open
+    blocks: [city-statement, paper-scope]
+    why: >-
+      Every downstream artifact (the city statement, the paper, the forward-monitoring
+      recommendation) is a rendering of one narrative that has not been fixed yet.
+      Writing any of them first means writing them twice.
+    evidence:
+      - experiments/INDEX.md
+      - phase4/qc/year_scoreboard.md
+      - Reports/LIT_HUNT_DIGEST_2026-09-06.md
+
+  - id: k4-signoff
+    question: >-
+      Sign off or amend the documented findings block — review corrections, bootstrap
+      CIs, canopy definition §6 and §7, the trend8 and overlap verdicts.
+    owner: kam
+    status: open
+    blocks: [paper-scope, city-statement, thirtysix-run-go]
+    why: >-
+      Five registry entries sit at status needs-kam with null verdicts because their
+      results are documented but unsigned. Until this lands they cannot be cited, and
+      the registry deliberately refuses to write a verdict the record cannot support.
+    evidence:
+      - experiments/INDEX.md
+      - Reports/FINDINGS_LEDGER_2026-09-03.docx
+
+  - id: k1-labelling
+    question: >-
+      Label the redrawn 250-point 2016 sample (~15 min at the measured pace), then
+      decide K2 blind repeats and the K5 era choice.
+    owner: kam
+    status: open
+    blocks: [ccap-bias-quantification]
+    why: >-
+      It is the only route to an Olofsson absolute-accuracy estimate, and zero of the
+      drawn points are labelled — the sampler is repaired and idle. The binding
+      constraint measured in accuracy_sample_design is interpreter effort, not n.
+    evidence:
+      - experiments/accuracy_sample_design.yaml
+      - qc/instruments/phase4_accuracy_sample.py
+
+  - id: ccap-bias-quantification
+    question: >-
+      Adopt a two-parameter C-CAP correction, or keep C-CAP strictly as a bounded
+      comparator that is never a level authority.
+    owner: kam
+    status: open
+    blocked_by: [k1-labelling]
+    why: >-
+      C-CAP is the reference nearly every score in the project is measured against, and
+      its bias is MIXED-SIGN — it over-calls shrubs and hedges while excluding isolated
+      trees by definition. Neither limb has been measured, so no correction can be
+      one-parameter. Kam's standing position is that C-CAP overestimates.
+    evidence:
+      - experiments/ccap_mixed_sign_bias.yaml
+      - Reports/CANOPY_DEFINITION_DECISION_2026-08.md
+
+  - id: champion-designations
+    question: >-
+      Name a champion arm for the 20 acquisitions that have none, or state which are
+      deliberately out of scope.
+    owner: kam
+    status: open
+    blocks: [thirtysix-run-go]
+    why: >-
+      pipeline/champion_arms.csv is the machine-readable answer to "which arm is the
+      deliverable for year Y", and it covers 17 of 37 acquisitions. Until it is
+      complete, the coverage map cannot distinguish deliberate scope from an oversight,
+      and STATUS withholds numbers for undesignated years.
+    evidence:
+      - phase4/qc/coverage_map.md
+      - pipeline/champion_arms.csv
+
+  - id: thirtysix-run-go
+    question: >-
+      Go/no-go on the full-archive run, plus the recipe sign-off: reconcile 34 vs 36
+      arms, and choose per-year NIR/lidar-input recipes versus one uniform recipe.
+    owner: kam
+    status: open
+    blocked_by: [champion-designations, k4-signoff]
+    why: >-
+      The largest single compute commitment left. full_archive_e3.yaml holds 34 arms
+      against a claim of 36, and that discrepancy has never been reconciled — launching
+      before it is means not knowing what was launched.
+    evidence:
+      - experiments/full_archive_e3.yaml
+      - experiments/tier1_science_sample.yaml
+
+  - id: city-statement
+    question: >-
+      Approve the city-facing statement: the two-leg trend, the hot-spot atlas, and the
+      framing that the policy gap is 2.6 pp and no instrument could see it until now.
+    owner: kam
+    status: open
+    blocks: [forward-monitoring]
+    blocked_by: [synthesis-session, k4-signoff]
+    why: >-
+      This is the deliverable the whole project exists for — telling the city which
+      direction the canopy is heading. It is outward-facing and effectively
+      irreversible once sent.
+    evidence:
+      - phase4/qc/panel_a_estimate.txt
+      - phase4/qc/trend8_hotspots.csv
+
+  - id: paper-scope
+    question: >-
+      Fix the paper's scope: a methods paper built on pre-registration, measured
+      controls and the inconsistency decomposition, with the gap claim now hunted.
+    owner: kam
+    status: open
+    blocked_by: [synthesis-session, k4-signoff]
+    why: >-
+      The overnight hunt established that no published study maps wall-to-wall from a
+      heterogeneous sub-meter archive over five-plus epochs, measures its own
+      inconsistency, and validates change against blind human truth. That gap is the
+      paper's claim to novelty and it is now evidenced rather than asserted.
+    evidence:
+      - Reports/LIT_HUNT_DIGEST_2026-09-06.md
+      - experiments/lit_hunt_temporal_inconsistency.yaml
+
+  - id: forward-monitoring
+    question: >-
+      Which forward-monitoring regime to recommend to the city: a repeat-lidar cycle,
+      vendor-locked capture, annual 15-minute point panels, or a combination.
+    owner: kam
+    status: open
+    blocked_by: [city-statement]
+    why: >-
+      The archive's hardest lesson is that uncontrolled capture makes trend nearly
+      unmeasurable; the recommendation is how the city avoids repeating it. The
+      measured inputs already exist — the same-flight floor, the operating-point
+      decomposition, and the paired-panel power curve.
+    evidence:
+      - experiments/sameflight_floor_c3.yaml
+      - experiments/overlap_floor.yaml
+      - phase4/qc/paired_change_power.csv
+
+  - id: change-detector-build
+    question: >-
+      Green-light the change-detector build: gold-set freeze, certifier port with the
+      three audit fixes, tiers, then bounded temporal backfill.
+    owner: kam
+    status: open
+    why: >-
+      Designed and adversarially reviewed, with pass/kill numbers prototyped; 1-2 days
+      of CPU. It is the piece that turns per-year masks into defensible change, and it
+      is queued behind nothing except the decision to start.
+    evidence:
+      - Reports/CHANGE_DETECTOR_DESIGN_2026-09-06.md
+      - experiments/change_detector_design.yaml

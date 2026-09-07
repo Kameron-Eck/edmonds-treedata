@@ -11,6 +11,9 @@ cost a session four documents and a guess about which of eight artifacts to open
     py -3.12 qc/ask.py panel_a         a registry entry: verdict, pointers, provenance
     py -3.12 qc/ask.py 742fe8d54c43    a tile set: knobs, split, who used it
     py -3.12 qc/ask.py --gaps          what the archive does NOT know yet
+    py -3.12 qc/ask.py --decisions     the open decision stack, ready-first
+    py -3.12 qc/ask.py <decision-id>   one decision: why it matters, what it blocks
+    py -3.12 qc/ask.py --claims        load-bearing numbers, re-checked against evidence
 
 The subject type is detected, not declared. Everything printed is READ FROM a tracked
 home at call time and the home is named, so an answer can be checked and never has to
@@ -57,6 +60,24 @@ def _champions():
         return champion.load_champions()
     except Exception:
         return {}
+
+
+def _decisions():
+    p = SCRIPTS / "decisions.yaml"
+    if not p.exists():
+        return []
+    import yaml
+    return (yaml.safe_load(p.read_text(encoding="utf-8")) or {}).get("decisions", [])
+
+
+def _claims_state():
+    """Every claim with its live verification state — the back-link from number to use."""
+    try:
+        sys.path.insert(0, str(SCRIPTS / "qc"))   # ledger: test_status_discovery.py
+        import claims as _c
+        return _c.verify_all()
+    except Exception:
+        return []
 
 
 def _index():
@@ -222,6 +243,13 @@ def answer_entry(entry, out):
     for k in ("supersedes", "superseded_by", "tilesets", "run_ids"):
         if entry.get(k):
             out.append(f"  {k:12} {', '.join(entry[k])[:96]}")
+    cs = [(c, st, d) for c, st, d in _claims_state() if c.get("entry") == entry["name"]]
+    if cs:
+        _section(out, "CLAIMS RESTING ON THIS ENTRY")
+        for c, st, d in cs:
+            flag = "" if st == "ok" else f"  <-- {st.upper()}: {d}"
+            out.append(f"  {c['value']:>10}  {c['statement'].strip()[:58]}{flag}")
+            out.append(f"  {'':10}  evidence {c['evidence'][:64]}")
     if entry.get("arm_scores"):
         _section(out, "ARM SCORES (resolved at build time)")
         for tag, pts in list(entry["arm_scores"].items())[:6]:
@@ -250,6 +278,85 @@ def answer_tileset(tsid, out):
         out.append("  these arms are directly comparable: identical tiles and split")
     out.append(f"\n  which tiles: phase4/qc/tilesets/{tsid}.csv")
     return True
+
+
+def answer_decision(d, out):
+    out.append(f"DECISION {d['id']}   [{d['status']} · owner {d['owner']}]")
+    out.append("")
+    for line in _wrap(d["question"]):
+        out.append("  " + line)
+    _section(out, "WHY IT MATTERS")
+    for line in _wrap(d["why"]):
+        out.append("  " + line)
+    if d.get("blocked_by"):
+        _section(out, "BLOCKED BY — these must land first")
+        for ref in d["blocked_by"]:
+            other = next((x for x in _decisions() if x["id"] == ref), {})
+            out.append(f"  {ref:26} [{other.get('status', '?')}] "
+                       f"{(other.get('question') or '')[:44]}")
+    if d.get("blocks"):
+        _section(out, "BLOCKS — nothing here starts until this lands")
+        for ref in d["blocks"]:
+            out.append(f"  {ref}")
+    if d.get("decision"):
+        _section(out, f"DECIDED {d.get('decided', '')}")
+        for line in _wrap(d["decision"]):
+            out.append("  " + line)
+    _section(out, "READ FIRST")
+    for e in (d.get("evidence") or []):
+        out.append(f"  {e}")
+
+
+def answer_decision_stack(out):
+    ds = [d for d in _decisions() if d["status"] == "open"]
+    ids = {d["id"] for d in ds}
+    ready = [d for d in ds if not (set(d.get("blocked_by") or []) & ids)]
+    waiting = [d for d in ds if d not in ready]
+    out.append(f"OPEN DECISIONS ({len(ds)})   ready first — nothing above them")
+    _section(out, f"READY NOW ({len(ready)})")
+    for d in ready:
+        out.append(f"  {d['id']:26} [{d['owner']}] {(d['question'] or '').strip()[:64]}")
+        if d.get("blocks"):
+            out.append(f"  {'':26} unblocks: {', '.join(d['blocks'])}")
+    _section(out, f"WAITING ON ANOTHER DECISION ({len(waiting)})")
+    for d in waiting:
+        out.append(f"  {d['id']:26} after {', '.join(d.get('blocked_by') or [])}")
+    out.append("")
+    out.append("  py -3.12 qc/ask.py <decision-id>   for one in full   "
+               "[Scripts/decisions.yaml]")
+
+
+def _wrap(text, width=88):
+    words, line, lines = str(text).split(), "", []
+    for w in words:
+        if len(line) + len(w) + 1 > width:
+            lines.append(line)
+            line = w
+        else:
+            line = f"{line} {w}".strip()
+    if line:
+        lines.append(line)
+    return lines
+
+
+def answer_claims(out):
+    cs = _claims_state()
+    bad = [x for x in cs if x[1] != "ok"]
+    out.append(f"LOAD-BEARING CLAIMS ({len(cs)})   re-resolved against evidence just now")
+    if bad:
+        out.append(f"  {len(bad)} NO LONGER MATCH — the number moved, the sentence "
+                   f"did not")
+    for c, st, d in cs:
+        mark = "ok " if st == "ok" else st.upper()
+        out.append("")
+        out.append(f"  [{mark}] {c['value']}   {c['id']}")
+        for line in _wrap(c["statement"], 84):
+            out.append(f"        {line}")
+        out.append(f"        evidence  {c['evidence']}")
+        if st != "ok":
+            out.append(f"        {d}")
+            for w in (c.get("stated_in") or []):
+                out.append(f"        RE-STATE IN  {w}")
 
 
 # ------------------------------------------------------------------ the gaps
@@ -282,6 +389,13 @@ def answer_gaps(out):
     for f in und[:10]:
         out.append(f"  {f['exception_class']:26} x{f['n_occurrences']:<3} "
                    f"last {f['last_seen']}  {f['example_log'][:44]}")
+    drifted = [x for x in _claims_state() if x[1] != "ok"]
+    _section(out, "CLAIMS THAT NO LONGER MATCH THEIR EVIDENCE")
+    if not drifted:
+        out.append("  none — every registered claim still resolves to its stated value")
+    for c, st, d in drifted:
+        out.append(f"  {c['id']:30} {st.upper():11} {str(d)[:44]}")
+
     _section(out, "REGISTRY ENTRIES AWAITING KAM")
     for e in _index():
         if e["status"] == "needs-kam":
@@ -301,6 +415,9 @@ def resolve(subject):
     ts = {t["tileset_id"] for t in rows(QC / "tileset_registry.csv") if t["tileset_id"]}
     if subject in ts:
         return "tileset", subject
+    for d in _decisions():
+        if d["id"] == subject:
+            return "decision", d
     for e in _index():
         if e["name"] == subject:
             return "entry", e
@@ -341,12 +458,19 @@ def main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("subject", nargs="?", help="acquisition, arm tag, entry, tileset id")
     ap.add_argument("--gaps", action="store_true", help="what is NOT known yet")
+    ap.add_argument("--decisions", action="store_true", help="the open decision stack")
+    ap.add_argument("--claims", action="store_true",
+                    help="load-bearing numbers, re-verified against their evidence")
     ap.add_argument("--list", action="store_true", help="list every subject")
     a = ap.parse_args(argv)
 
     out = []
     if a.gaps:
         answer_gaps(out)
+    elif a.decisions:
+        answer_decision_stack(out)
+    elif a.claims:
+        answer_claims(out)
     elif a.list:
         listing(out)
     elif not a.subject:
@@ -358,6 +482,8 @@ def main(argv=None):
             answer_year(payload, out)
         elif kind == "tileset":
             answer_tileset(payload, out)
+        elif kind == "decision":
+            answer_decision(payload, out)
         elif kind == "entry":
             answer_entry(payload, out)
         elif kind == "arm":

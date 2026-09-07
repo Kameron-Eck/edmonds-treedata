@@ -184,16 +184,18 @@ pointer to its verdict/artifact, never a restated number (one fact, one home).
 (none — the literature hunt completed 2026-09-06; angle-10 relaunch is QUEUED)
 
 ### AWAITING KAM — the decision stack (nothing moves without these)
-| # | Decision |
-|---|---|
-| 1 | **The synthesis session** — sit down with the full evidence table (this board + ledger) and set the story |
-| 2 | K4 block: sign off (or amend) the documented findings — review corrections, bootstrap CIs, definition §6 + §7, trend8/overlap verdicts |
-| 3 | K1: label the redrawn 250-point 2016 sample (~15 min) → Olofsson absolute accuracy; K2 blind repeats; K5 era choice |
-| 4 | City statement doc — the two-leg trend + hot-spot atlas + the "your policy gap is 2.6pp and no instrument could see it until now" framing |
-| 5 | Paper scope decision (methods paper: pre-registration + controls + decomposition — the gap claim pending the overnight hunt) |
-| 6 | 36-run go/no-go + recipe sign-off (34-vs-36 arm reconciliation; per-year NIR/lidar-input recipe vs uniform) |
-| 7 | Champion designations (8 years unnamed); overlay-policy strength; C-CAP license quarantine if any new AOI |
-| 8 | Forward-monitoring recommendation to the city: repeat-lidar cycle / vendor-locked capture / annual 15-min point panels |
+
+**The decisions live in [`decisions.yaml`](decisions.yaml)** — one entry each, with
+owner, dependency edges, why it matters and what to read first. Query them:
+
+```bash
+py -3.12 qc/ask.py --decisions        # the stack, ready-first
+py -3.12 qc/ask.py <decision-id>      # one decision in full
+```
+
+They are NOT restated here: two homes for one stack is how the board and the ledger
+drifted apart before. Gated by `qc/test_decisions.py` (ids resolve, the graph is
+acyclic, a decided entry says what was decided).
 
 ### QUEUED (agreed or natural next, blocked or waiting a slot)
 | Task | Blocker |

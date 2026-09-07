@@ -42,6 +42,8 @@ removal, and — established 2026-08-29 — **seasonal difference** all enter as
 |---|---|
 | **ANY question about a year, arm, entry or tile set** | **`py -3.12 qc/ask.py <subject>`** — start here. Joins every home, names its sources, reads only tracked files |
 | **What we do NOT know yet** | `py -3.12 qc/ask.py --gaps`; full matrix `phase4/qc/coverage_map.md` |
+| **What is blocked, on whom, in what order** | `py -3.12 qc/ask.py --decisions`; authored in `decisions.yaml` |
+| **Does a published number still match its evidence** | `py -3.12 qc/verify_claims.py`; registry `claims.yaml`, view `qc/ask.py --claims` |
 | **Why a run died / has this broken before** | `phase4/qc/failure_registry.csv` (symptoms, counted) + `qc/known_failures.yaml` (cause + fix, authored) |
 | **Live state, what's next** | `WORKPLAN.md` (intent + the board) |
 | **The active plan** | named in `WORKPLAN.md` (currently `TIER1_SCIENCE_SAMPLE_PLAN_2026-09-02.md`) |

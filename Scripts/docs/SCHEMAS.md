@@ -247,3 +247,28 @@ acquisitions are deliberately out of scope (the Atlas trend is 2016→2024; seve
 deliveries exist only as overlap controls), and separating deliberate from overlooked
 is a decision this file does not make. Gate:
 `test_run_context.py::test_coverage_map_is_fresh` plus a gate pinning that caveat.
+
+## decisions.yaml + claims.yaml (Scripts/, AUTHORED)
+
+**`decisions.yaml`** is the open-decision stack that used to be eight prose bullets on
+the board: one entry each with `owner`, `status`, `why`, `evidence`, and the dependency
+edges `blocks`/`blocked_by`. WORKPLAN.md now points here rather than restating it —
+two homes for one stack is how the board and the ledger drifted apart before. READER
+RULE: edges must be symmetric (if A blocks B, B is blocked_by A) and the graph acyclic;
+both are gated, and the symmetry gate caught two one-sided edges on the first run.
+A `decided` entry must carry BOTH a date and the decision text. View:
+`py -3.12 qc/ask.py --decisions` (ready-first), or `ask.py <decision-id>` for one.
+
+**`claims.yaml`** closes the claim↔evidence asymmetry: entries pointed AT evidence, but
+no published number pointed BACK at the row that proves it, which is why the ledger's
+era F-numbers stayed stale for three days after the recalibration superseded them. Each
+claim carries the `statement`, the `value` as claimed, ONE `evidence` pointer, and
+`stated_in` — every file that would have to change if it drifts. `qc/claims.py`
+resolves pointers using a superset of the `n_source` grammar (adds `csv:<col>@<filters>`
+for a single cell, `regex:`, and `dir_csv_count`), and a `csv:` selector matching zero
+or many rows is an ERROR, never a silent first-match.
+
+READER RULE: **a drifted claim is reported, never auto-corrected** — which side is
+wrong, the measurement or the sentence built on it, is a judgement. Check with
+`py -3.12 qc/verify_claims.py` (exit 1 on drift, so it can gate a commit); gated by
+`qc/test_claims.py` and run as a `landed.py` rung.

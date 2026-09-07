@@ -30,9 +30,14 @@ decision_rule: >
   independent score, and a knob nobody measured is written UNMEASURED rather than
   assumed harmless. Postproc knobs are measured as paired variants on ONE frozen
   probability raster at a fixed threshold — no re-training, no split, so every
-  difference is attributable to the postproc stage alone — on both pilot years chosen
-  so the 3-pixel kernel spans its full physical range (0.15 m at a 5 cm year, 3.0 m at
-  a 100 cm year). An equivalence anchor scores the actually-shipped mask directly to
+  difference is attributable to the postproc stage alone — on both pilot years. The
+  0.15 m-to-3.0 m figure that frames this is the ARCHIVE-WIDE span, not the pilot pair's:
+  Reports/RECIPE_AUDIT_2026-09-01.md states the pixel-specified kernel's "physical size
+  spans 0.15 m (5 cm years) to 3.0 m (2006s)" across the archive and calls 2006s only
+  "the 3 m extreme". The measured pair does not cover that span — 2011s is 30.5 cm GSD in
+  config.YEAR_CATALOG, so its 3-pixel kernel is ~0.9 m — so the pilots run roughly 0.9 m
+  to 3.0 m and the 0.15 m fine end was NEVER MEASURED; the coarse extreme is what the
+  audit actually tested. An equivalence anchor scores the actually-shipped mask directly to
   confirm the replica measures what production ships. The launch gate follows from the
   census: only an item that is both MEASURED-large and pre-GPU may delay the campaign.
   ADMISSIBILITY LIMIT recorded with the rule: no noise floor was measured for any
@@ -42,9 +47,19 @@ verdict: >
   THE THRESHOLD IS THE ONE LARGE KNOB, AND THE SIEVE IS NOT ON THE TABLE — the direct
   answer to the question that prompted the audit. Same model, same imagery, same year:
   canopy area comes out 1264.0 ha or 1941.9 ha depending only on where the operating cut
-  lands, read from phase4/qc/postproc_variant_scores.csv. Against that, the sieve moves
-  recall not at all and precision in the fourth decimal — identical to 4 dp is identical,
-  and it needs no floor to say so. Morphology is the honest exception: its deltas are
+  lands, read from phase4/qc/postproc_variant_scores.csv. Against that, the sieve is
+  operationally invisible: in the same file, morph vs morph_sieve leaves recall unchanged
+  to 4 dp at both cuts (0.5050 at 0.643, 0.7344 at 0.45) and moves precision only in the
+  fourth decimal (0.8662 -> 0.8663 at 0.643, 0.7717 -> 0.7718 at 0.45, with f1 going
+  0.6381 -> 0.6380 at 0.643 and unchanged at 0.7526 at 0.45). Deltas of order 0.0001 do
+  not put the sieve on the table. The
+  epistemic claim is weaker than the write-up's phrasing, and this entry states the
+  weaker one: "identical to four decimals at both thresholds"
+  (Reports/RECIPE_AUDIT_2026-09-01.md) holds for RECALL only — precision moves in the
+  fourth decimal at both cuts and f1 at 0.643 — and since NO noise floor was measured
+  for any postproc delta,
+  the honest reading is that the sieve's effect is UNDETERMINED, not demonstrated to be zero (CLAUDE.md 3.5). Morphology is
+  the honest exception: its deltas are
   bounded small and partly absorbed by the one-u8-step difference between scorer and
   production, and because NO floor was measured it is UNDETERMINED-but-bounded-small,
   never "proven neutral" (CLAUDE.md 3.5). The operational consequence is what let the

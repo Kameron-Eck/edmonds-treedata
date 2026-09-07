@@ -68,6 +68,10 @@ inputs:
   - phase4/qc/trend8_transition_census.csv
   - phase4/qc/sameflight_consistency.csv
   - Reports/GREENNESS_GRADIENT_CORRECTION_2026-09-03.md
+outputs:
+  - Reports/LIT_HUNT_FINAL_2026-09-06.md
+  - Reports/LIT_HUNT_DIGEST_2026-09-06.md
+  - Reports/LIT_HUNT_MASTER_2026-09-06.md
 sample: >
   the unit is the PAPER. Nine contract angles, each with multiple query
   formulations across web search, Google Scholar phrase queries, Internet Archive

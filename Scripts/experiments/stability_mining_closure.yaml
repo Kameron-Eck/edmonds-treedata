@@ -61,11 +61,22 @@ verdict: >
   label-error range, so label error moves the OPERATING POINT, not discrimination, and
   a sub-percent correction could never have paid. QUADRANTS is the one variant that is
   not dead. On the pre-registered ranking band it is UNRESOLVED, not null: AUROC gaps of
-  +.0116 then +.0053 over the one-variable baseline, from the four curve cells in
+  +.0116 then +.0053 over the one-variable baseline, read from the curve table in
   phase4/qc/arm_pr_curves_2009_3band_noisefloor.md, against a band fixed before the
   replicate landed at +.0060 to replicate and +.0020 to fall (the band itself is
   recorded only in archive/2026-08-pre-refactor:Scripts/CHATLOG.md) — positive twice,
-  above the refutation line twice, short of the replication line once. On canopy area,
+  above the refutation line twice, short of the replication line once. THE PAIRING IS A
+  CHOICE, AND IT IS STATED RATHER THAN LEFT IMPLICIT: both gaps are taken against the
+  single rgb3_nodeb baseline, inherited from the source, which makes the second one
+  cross-seed — the replicate arm scored against the base-seed baseline, while the same
+  table also carries the baseline's own seed replicate, which this pairing never uses.
+  The seed-MATCHED alternative on that table, nodec_s1234 against rgb3_nodeb_s1234, is a
+  gap of +.0068, read from the curve table in
+  phase4/qc/arm_pr_curves_2009_3band_noisefloor.md — above the +.0060
+  replication line, so under that pairing the ranking metric would read REPLICATES, not
+  UNRESOLVED. The recorded read stays UNRESOLVED, under the pairing inherited from the
+  source, pending a decision on which pairing the pre-registered band was meant to
+  govern; nothing below changes either way. On canopy area,
   the deliverable metric, it REPLICATES in both runs by a margin several times the
   baseline seed pair's own spread, derived from the confusion counts in
   phase4/qc/campaign_area_reread_2009.md and phase4/qc/region_confusion_2009_replication.md

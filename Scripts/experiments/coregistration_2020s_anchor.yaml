@@ -51,8 +51,8 @@ verdict: >
   parallax and real change; and an offset belongs to a DELIVERY, not to a year, since
   one flagged acquisition's sibling delivery of the same flight measures essentially
   zero on a fuller chip sample. Downstream, a p95 from this table is legitimate only as
-  one strike among several, never as a registration figure — which is exactly how
-  experiments/hard_year_pilot.yaml uses it.
+  one strike among several: experiments/hard_year_pilot.yaml uses one that way, as one
+  of three measured strikes against a single year, and keeps the p95 qualifier on it.
 decided: 2026-09-01
 instruments:
   - Scripts/qc/instruments/coregistration.py
@@ -97,7 +97,7 @@ extra:
     inside the chip. Registration proper is median_dx_m / median_dy_m. Quoting a p95 as
     a misregistration overstates it by roughly an order of magnitude.
   consumed_by:
-    - hard_year_pilot — uses a p95 from this table as one of three strikes, explicitly
-      not as a registration figure
+    - hard_year_pilot — uses a p95 from this table as one of three strikes, with the
+      p95 qualifier retained
     - same_flight_pair_2019 — the 2019s and 2019n rows are the independent sub-metre
       check on a pair established as one flight by other evidence

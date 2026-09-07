@@ -54,8 +54,17 @@ extra:
     Every result number from this probe is untracked. The script wrote a markdown
     summary to a session scratchpad and nothing else; repo-wide searches for the
     headroom/Jaccard/decision-fusion outputs and for any 5-band code path return
-    nothing. The question and design are recoverable, the measurement is not. Kam's
-    call: re-run the script if the numbers are wanted, or close the question on the
+    nothing. The question and design are recoverable, and so — for now — is the
+    measurement: the scratchpad markdown still exists (extra.surviving_output) and was
+    read this session, its common footprint and both of the CHM arm's error counts
+    matching the tracked 2016 fullext_sectors_v1 forest_wetland live=1 row of
+    phase4/qc/qc_indep_report.csv at that arm's deployed threshold. That does not make
+    it tracked: it sits in an OS temp directory any cleanup may delete, not in the lake
+    and not in the repo. Kam's call, three options, and this entry picks none of them:
+    promote the surviving output into the lake under the measurement contract
+    (CLAUDE.md 3.4b); re-run the script under that contract if the numbers are wanted,
+    which is what project doctrine (rerun-on-contamination — never salvage an ambiguous
+    artifact) prefers over promoting an untracked one; or close the question on the
     tracked M06 and Tier-1 evidence. Do NOT reconstruct the numbers.
   script: >
     archive/2026-08-pre-refactor:Scripts/scratch/fusion_headroom_2016.py — recoverable
@@ -63,7 +72,14 @@ extra:
     non-idempotent one-shot writers). Ran 2026-08-26.
   output_that_was_never_committed: >
     a session scratchpad markdown file (path is in the script's OUT_MD constant) — not
-    the lake, not the repo.
+    the lake, not the repo. It survives, ephemerally: see extra.surviving_output.
+  surviving_output: >
+    EPHEMERAL, a lead and not provenance. The probe's markdown summary is still on disk
+    at C:\Users\Kameron\AppData\Local\Temp\claude\D--edmonds-pipeline-treedata-Scripts\38ce7527-5e87-4d98-b55b-f039524783e8\scratchpad\fusion_headroom_2016.md
+    — a session-scoped OS temp directory that any cleanup may delete without notice.
+    Deliberately NOT in outputs: and not in any other pointer field, because nothing
+    outside the repo or the lake can be gated, and a path that can vanish must not be
+    cited as a measured home.
   category_error_warning: >
     phase4/qc/CHM_STANDALONE_PRIOR_2026-08-29.md's "fusion buys discrimination nothing"
     is about max(chm2, chm2005) — a per-pixel maximum of two HEIGHT rasters across

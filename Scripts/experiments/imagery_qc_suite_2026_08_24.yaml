@@ -21,17 +21,28 @@ metric: >
   One CSV of measured numbers per check in phase4/qc/, all stamped 2026-08-24, plus a run
   record in phase4/qc/imagery_qc_run_2026-08-24.json. The cross-registration sweep is the
   headline: phase4/qc/imagery_qc_crossreg_summary_2026-08-24.csv carries one graded row
-  per same-year pair (median offset = registration, max = worst site, peak ratio =
-  confidence), with the per-site rows behind it. Findings are graded in the files
+  per same-year pair (median offset = the pair's registration, site spread = how far the
+  five comparison sites disagree, which is what decides whether the pair gets a verdict at
+  all, max offset = worst site, median peak = the median of the per-site correlation peak
+  ratios, a per-site admission floor and not a confidence score), with the per-site rows
+  behind it. Findings are graded in the files
   themselves; the suite never auto-fixes anything.
 decision_rule: >
   RECONSTRUCTED (retrospective: true) from the docstring of Scripts/qc/imagery_qc_suite.py,
   which states the contract before any measurement: every check writes a CSV of measured
   numbers and prints a compact verdict table; exit 0 means every check ran, exit 1 means
   at least one FAIL-grade finding; and "QC measures, humans decide" — nothing here edits
-  the catalog or the data. A same-year pair is read on its MEDIAN site offset, not its
-  maximum, with the peak ratio deciding whether the measurement is trustworthy at all
-  (the NOISY grade exists to stop a low-confidence correlation being read as an offset).
+  the catalog or the data. The cross-registration grading rule is NOT in that docstring;
+  it is stated in the code at Scripts/qc/imagery_qc_suite.py:460-472 and applied at
+  :491-496. A same-year pair is read on its MEDIAN site offset, not its maximum, and what
+  decides whether the pair gets a verdict at all is whether the five sites AGREE: NOISY is
+  assigned on the spread of the offset vector across sites, because a real georeferencing
+  offset is systematic while a wrong correlation peak is idiosyncratic. The correlation
+  peak ratio is an admission floor on a single site measurement only (PEAK_FLOOR, :88),
+  never the confidence test — a first pass that gated on peak height discarded the
+  majority of the measurements, including parking and residential sites whose peaks are
+  legitimately soft whenever two acquisitions differ in season or resolution, because peak
+  height measures how ALIKE two images are and not whether the offset is right.
   The reference failure the design is built around is the S02-vs-U02 lesson: the plan
   predicted a duplicate and measurement said otherwise, so duplication is measured rather
   than assumed.
@@ -46,8 +57,10 @@ verdict: >
   shows the opposite case in the same archive: the 2020 and 2022 CoE/Snohomish pairs land
   on each other to millimetres, so the 2024 offset is a property of that delivery rather
   than of the comparison method. Two secondary results carry forward: several pairs grade
-  NOISY rather than offset, meaning the correlation is too weak to call an offset at all,
-  and the sweep is where the pre-2000 holdings were first measured in the tracked record —
+  NOISY rather than offset, which in that file means the five comparison sites disagreed
+  with each other — the displacement is not systematic, so no registration number is
+  reported for the pair, and it is not a statement that the correlation was weak. Second,
+  the sweep is where the pre-2000 holdings were first measured in the tracked record —
   the rows degraded_imagery_lit_review used to adjudicate an outside literature brief.
 decided: 2026-08-24
 reports: [Scripts/IMAGERY_FACTS.md]

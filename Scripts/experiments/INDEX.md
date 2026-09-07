@@ -46,7 +46,7 @@ Authored layer + schema: this directory's `README.md`. 43 entries: 34 complete �
 | stability_mining_closure | measurement-campaign | complete | 2026-08-29 | — | 2009 | CLOSED AS THREE DIFFERENT ANSWERS, and the composite read is that the projected 2020 key is more right than it looks. |
 | degraded_imagery_lit_review | measurement-campaign | complete | 2026-08-27 | — | 2000 | THE CHECK PAID FOR ITSELF, AND IT CHANGED THE PREMISE OF THE SYNTHESIS WORK. |
 | m06_nir_arm | experiment | complete | 2026-08-27 | — | 2016,2019n | CLOSED, AND THE CHM STAYS IN SLOT FOUR. |
-| sector_campaign_v1 | measurement-campaign | complete | 2026-08-26 | — | 2003s,2006s,2011s,2012s,2016,2018s,2020s,2021s | SAMPLED INFERENCE WORKS; PROMOTION DOES NOT FOLLOW FROM IT. |
+| sector_campaign_v1 ★ | experiment | complete | 2026-08-26 | — | 2003s,2006s,2011s,2012s,2016,2018s,2020s,2021s | SAMPLED INFERENCE WORKS; PROMOTION DOES NOT FOLLOW FROM IT. |
 | imagery_qc_suite_2026_08_24 | measurement-campaign | complete | 2026-08-24 | 38 | — | THE ARCHIVE IS USABLE, AND ITS REGISTRATION IS THE THING THAT NEEDED WATCHING. |
 | rescore_2013_citywide | instrument-finding | complete | 2026-08-22 | — | 2013 | THE PREDICTED MOVEMENT DID NOT HAPPEN. |
 | chm_gap_2016 | instrument-finding | complete | 2026-08-18 | 2 | 2016 | THE ASSUMPTION HOLDS AND IS NOW CHECKED RATHER THAN ASSERTED. |

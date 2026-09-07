@@ -37,7 +37,15 @@ verdict: >
   THE ASSUMPTION HOLDS AND IS NOW CHECKED RATHER THAN ASSERTED. The worst-case
   understatement of city canopy from the coverage gap is up to +0.02 pp of imaged area,
   identical at all three NDVI cuts — read from phase4/qc/chm_gap_2016.txt, which carries
-  the coverage split and both zones' NDVI profiles in the same file. The mechanism is
+  the coverage split and both zones' NDVI profiles in the same file. THAT BOUND WAS
+  MEASURED ON A CLIPPED FOOTPRINT AND MUST BE QUOTED THAT WAY: the ortho this instrument
+  opened is the file Scripts/pipeline/phase4seg/config.py records as "2016_snoh_rgbi.tif
+  (0.5 ft served upsample, 53.4% clip)", replaced 2026-08-23 by the native 1 ft delivery
+  whose catalog coverage string in that same file reads "100% of city polygon, 82.3% of
+  study extent (measured 2026-08-23; remainder is Puget Sound)". The imaged-pixel
+  denominator and the has-CHM / no-CHM split the bound is
+  computed over therefore describe the clipped predecessor, not the footprint the catalog
+  now resolves to, and nothing has re-measured the bound on the replacement. The mechanism is
   unambiguous: almost the whole no-CHM zone reads negative in NDVI while the has-CHM zone
   reads like a mixed urban-forest scene, so the uncovered strip is water, exactly as the
   standing assumption said. Three bounds travel with this result and none of them is
@@ -85,12 +93,18 @@ extra:
     clip) -> 2016_snoh_1ft_rgbi.tif", and SUPERSEDED_FILES in
     Scripts/qc/phase4_catalog_check.py carries the same mapping. This measurement
     (2026-08-18, commit b78fbe2) predates that replacement, so it read the SUPERSEDED
-    file, not the one the catalog now names.
+    file, not the one the catalog now names. Consequence for this entry's own metadata:
+    imagery: ["2016"] resolves, in today's catalog, to a file this measurement never
+    opened, and the two footprints are not the same — the superseded one is the 53.4%
+    clip, the current one covers 100% of the city polygon and 82.3% of the study extent.
   unreconciled: >
     CHM coverage of the city is quoted as roughly 60% in the stratum design of
     Scripts/qc/instruments/phase4_accuracy_sample.py and as the has-CHM share measured
     here over imaged 2016 pixels at 1/8 decimation. Different denominators, no tracked
-    reconciliation — do not average them.
+    reconciliation — do not average them. The clipped footprint this measurement read
+    (the superseded 53.4%-clip ortho, see imagery_filename_note) MAY account for part of
+    that gap, since it changes the denominator the has-CHM share is taken over; that is a
+    candidate explanation only, unverified, and no tracked file tests it.
   bounds_only: >
     coverage bias. Accuracy of the height raster where it exists is a different question
     (recorded in the file as U6) and is answered by old_chm_defect.

@@ -176,6 +176,7 @@ pointer to its verdict/artifact, never a restated number (one fact, one home).
 | **Overnight literature HUNT complete** (1,359 queries, 132 full reads): NO segmentation twin exists (gap claim now hunted); Roman/Nix/Healy = the peer-reviewed Panel-A lineage; PACC honestly refused; two-reader audit | `Reports/LIT_HUNT_DIGEST_2026-09-06.md` (+ FINAL/MASTER) |
 | Change-detector design + adversarial review (step-shape certifier wins; shipped persist filter = recall tax; bounded temporal backfill formalized) | `Reports/CHANGE_DETECTOR_DESIGN_2026-09-06.md` |
 | Flicker-program items 1, 2, 5, 6, 7 (parcels, floor, EagleView, census, factorial) | verdicts above |
+| **Experiment registry built** — every campaign the project has run is now one machine-readable entry (43), joined to the measured homes and drift-gated; the .docx ledger becomes a Sep-3 snapshot, not the source | **`experiments/INDEX.md`** (start here); schema `experiments/README.md`; sweep audit `experiments/BACKFILL_RECONCILIATION.md` |
 
 ### RUNNING (external)
 (none — the literature hunt completed 2026-09-06; angle-10 relaunch is QUEUED)

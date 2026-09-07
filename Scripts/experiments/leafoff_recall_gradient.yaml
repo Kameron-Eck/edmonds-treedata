@@ -31,7 +31,7 @@ decision_rule: >
   instrument also pre-registers the direction of its own bias: the canopy mask is a
   MODEL OUTPUT carrying the very blind spot under test, so the test understates
   low-greenness and is biased AGAINST finding leaf-off, which makes a positive result
-  strong and a null weak. Rails that bound any verdict: leaf-off flights have low sun
+  strong. Rails that bound any verdict: leaf-off flights have low sun
   angle so shadow and phenology are correlated and thin shadow is not excluded, and the
   sample is grid windows, "indicative, not an estimate".
 verdict: >

@@ -46,9 +46,11 @@ verdict: >
   recalls in the file and the 2020 base arm holds the highest at 2 m: the ranking
   inverts under nothing but a change of accounting. The file's dilate_px column carries the
   mechanism: on 2020's centimetre grid, 2 m of physical forgiveness is tens of pixels of
-  dilation, while on the coarse years' multi-metre grids the 0.5 m and 1 m tolerances
-  round to no dilation at all and the strict, half-metre and one-metre rows are
-  identical by construction. The consequence is a reader rule, not a model change:
+  dilation, while on 2006s — the only multi-metre grid in the file — both the 0.5 m and
+  the 1 m tolerance round to no dilation at all, so its strict, half-metre and one-metre
+  rows are identical by construction. At the one-metre-grid years, 2011s and 2016, only
+  the half-metre tolerance rounds to zero; 1 m dilates a single pixel and does move both
+  recall and precision. The consequence is a reader rule, not a model change:
   strict per-pixel recall is not comparable across delivery grids and never was a
   like-for-like ranking, so any cross-year arm comparison must be read at a fixed metric
   tolerance. This entry owns both legs of that correction — the native-pixel C2 read in
@@ -87,6 +89,12 @@ extra:
     C2 (native-pixel buffer) and C2b (metric tolerance) are one thread with one
     conclusion, so they share this entry rather than being split; there is no
     leafoff-style registry name on the C2 side for supersedes: to resolve against.
+  stale_repo_artifact: >
+    the TRACKED copy of phase4/qc/indep_thresholds.csv holds four rows only
+    (hy_e3_2006s and hy_e3_2011s) and none of the t1_* thresholds each arm was cut at
+    here; Scripts/qc/instruments/tier1_metric_tolerance.py:67 read the LAKE copy at
+    G:\My Drive\treedata\phase4\qc\. The inputs: pointer is kept because it names the
+    right file, not because the repo copy is the one that was read.
   tag_ownership: >
     the t1_* tags re-scored here belong to tier1_science_sample; this entry claims no
     arms and launches nothing.

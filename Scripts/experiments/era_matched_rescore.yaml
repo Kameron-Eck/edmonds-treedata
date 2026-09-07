@@ -59,10 +59,14 @@ extra:
   docx_sections: [EXP-A-ERA-MATCHED-RESCORE]
   parent_design: tier1_science_sample
   needs_kam_reason: >
-    two independent reasons, either sufficient. (1) NOT SIGNED OFF: the WORKPLAN board
-    carries this among the adversarial-review findings as documented and pending Kam
-    confirmation with nothing acted on, gated behind the K4 sign-off block that is still
-    open on the AWAITING KAM stack. (2) PRIMARY OUTPUT NOT IN THE TRACKED RECORD: the
+    two independent reasons, either sufficient. (1) NOT SIGNED OFF: the corrections are
+    landed but Kam's sign-off on them is not. The current board files the parent work
+    under DONE — Scripts/WORKPLAN.md line 167, "Adversarial review + corrections
+    (era-rescore fix, floors, footnotes) | `Reports/FINDINGS_LEDGER_2026-09-03.docx`" —
+    while sign-off itself is still open on the AWAITING KAM stack at line 187, "K4 block:
+    sign off (or amend) the documented findings — review corrections, bootstrap CIs,
+    definition §6 + §7, trend8/overlap verdicts". Line numbers rot; the quoted row text is
+    the anchor. (2) PRIMARY OUTPUT NOT IN THE TRACKED RECORD: the
     era-matched statistic has no results table — build_tier1_results.py globs only the
     ccap_2021 sweeps — so the era-matched values live on the lake and in an in-session
     recomputation. Writing a verdict here would launder an untracked computation into

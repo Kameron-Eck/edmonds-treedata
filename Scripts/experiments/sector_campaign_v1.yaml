@@ -1,5 +1,5 @@
 name: sector_campaign_v1
-kind: measurement-campaign
+kind: experiment
 status: complete
 retrospective: true
 category: machinery
@@ -14,7 +14,15 @@ hypothesis: >
   already on record. What would change our mind on the second: an effect larger than the
   three confounds the design cannot control — the footprint, the operating point, and
   run-to-run training noise.
-arms: []
+arms:
+  - {year: "2003s", tag: sectors_v1}
+  - {year: "2006s", tag: sectors_v1}
+  - {year: "2011s", tag: sectors_v1}
+  - {year: "2012s", tag: sectors_v1}
+  - {year: "2018s", tag: sectors_v1}
+  - {year: "2020s", tag: sectors_v1}
+  - {year: "2016", tag: fullext_sectors_v1}
+  - {year: "2021s", tag: fullext_sectors_v1}
 baseline: null
 metric: >
   Reports/SECTOR_CAMPAIGN_REPORT_2026-08.md, which quotes every number to a file on disk

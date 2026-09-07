@@ -71,9 +71,13 @@ imagery: ["2006s", "2011s", "2016", "2019n", "2020", "2023n"]
 sample: >
   the dual-lidar certified-flat cell set — 2 m cells under 2 m above ground in both the
   2005 and 2016 point clouds, eroded 6 m inward — intersected with each product's valid
-  extent. Citywide products see the whole set; AOI-restricted Tier-1 probs see a subset,
-  and every row carries its own cell count. The unit of analysis is the product, one row
-  each; the unit of evidence is the flat cell.
+  extent. NO product sees the whole set: the full flat set is the cell count stated in
+  phase4/qc/chm2005_validation.md, and every row of phase4/qc/certified_flat_scores.csv
+  carries its own smaller count. Coverage varies by product rather than by footprint
+  class, and the citywide-versus-AOI contrast inverts for at least one pair — the 2016
+  fullext citywide prob sees FEWER flat cells than the AOI-restricted 2006s arms — so a
+  row's cell count is read from the file and never inferred from its footprint label. The
+  unit of analysis is the product, one row each; the unit of evidence is the flat cell.
 n: 31
 n_source: phase4/qc/certified_flat_scores.csv#rows
 supersedes: []
@@ -90,6 +94,12 @@ extra:
     Resampling.max, the same convention as the build_chm2_2016 verified-background
     check — deliberately the product's best case, so the measured rate is an upper
     bound on the product and never a worst case constructed against it.
+  stale_repo_artifact: >
+    the TRACKED copy of phase4/qc/indep_thresholds.csv holds four rows only
+    (hy_e3_2006s and hy_e3_2011s) and none of the t1_* thresholds this instrument cuts
+    each arm at; Scripts/qc/instruments/certified_flat_scoring.py:81 read the LAKE copy at
+    G:\My Drive\treedata\phase4\qc\. The inputs: pointer is kept because it names the
+    right file, not because the repo copy is the one that was read.
   tag_ownership: >
     the t1_* arm tags scored here belong to tier1_science_sample; this entry re-reads
     their masks against a different truth and claims no arms of its own.

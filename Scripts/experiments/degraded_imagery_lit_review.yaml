@@ -40,8 +40,12 @@ verdict: >
   asserted the 1996-2003 holdings are ~100 cm and may be grayscale, and
   phase4/qc/imagery_qc_integrity_2026-08-24.csv records 1996_snoh_1m_rgb.tif as 3 bands
   at a true GSD of 100.0 cm — so the whole colorization and panchromatic-FCN thread does
-  not apply to 1996, and applies instead to the two genuinely single-band files the same
-  measurement identified. What survived is what the degradation work was then built on:
+  not apply to 1996. Where it DOES apply the report scopes narrowly: of the three
+  single-band files in its measured-holdings table it hands the panchromatic literature to
+  1998_snoh_3ft_pan.tif alone, calling 1990_snoh_10ft_pan.tif likely too coarse to be
+  useful and 1998_king_pan.tif far finer than the brief assumes
+  (Reports/DEGRADED_IMAGERY_RESEARCH_2026-08-27.md, the measured-holdings table).
+  What survived is what the degradation work was then built on:
   pre-2000 imagery exists on disk but has no YEAR_CATALOG entry, so "the pipeline is
   limited to 2000" is literally true; the 100 cm regime reaches our year 2000 through
   EFFECTIVE resolution rather than nominal; a single clean degradation chain is too
@@ -62,8 +66,10 @@ inputs:
 imagery: ["2000"]
 sample: >
   one external literature brief, read in full, with every repo-specific premise in it
-  adjudicated against measured rows for the four pre-2000 files held on disk and against
-  the catalog's own contents. The literature itself is search-retrieved rather than
+  adjudicated against the measured rows for the pre-2000 holdings and against the
+  catalog's own contents. Five pre-2000 non-year rasters carry rows in
+  phase4/qc/imagery_qc_integrity_2026-08-24.csv; the report's measured-holdings table
+  tabulates four of them. The literature itself is search-retrieved rather than
   full-text, by the brief's own admission.
 supersedes: []
 superseded_by: []
@@ -76,11 +82,13 @@ extra:
     the review.
   depends_on: imagery_qc_suite_2026_08_24
   pre_2000_holdings: >
-    the four files are not in YEAR_CATALOG and therefore carry no imagery label; their
+    the pre-2000 files are not in YEAR_CATALOG and therefore carry no imagery label; their
     measured bands, true GSD and CRS units are rows in
-    phase4/qc/imagery_qc_integrity_2026-08-24.csv. Three are single-band, one is 3-band
-    RGB, and the CRS units differ between the Snohomish and King files — the same
-    units trap that produced the earlier GSD and area defects.
+    phase4/qc/imagery_qc_integrity_2026-08-24.csv. FIVE such rasters are on disk with rows
+    there — four single-band and one 3-band RGB — while the report's measured-holdings
+    table lists four, omitting 1936_king_pan.tif (1 band, EPSG:3857). The CRS units differ
+    between the Snohomish and King files — the same units trap that produced the earlier
+    GSD and area defects.
   sourcing_caveat: >
     the brief states full-text PDF retrieval was blocked by its session's network policy,
     so its quantitative figures are reproduced from abstracts and search results. Verify

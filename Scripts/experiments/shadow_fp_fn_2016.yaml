@@ -66,18 +66,32 @@ extra:
   needs_kam_reason: >
     The probe's primary output is a session scratchpad markdown file that was never
     committed to the repo or the lake; it is the only holder of the FP/TP densities,
-    the two band ratios and the NDVI table. The reading itself is also not a clean
+    the two band ratios and the NDVI table. That file still exists
+    (extra.surviving_output) and was read this session — its all-TP population is the
+    match described in extra.tracked_corroboration — but it sits in an OS temp
+    directory any cleanup may delete, so the tracked record is unchanged: the FP half
+    is still not in it. The reading itself is also not a clean
     verdict: the fairness control FAILED, so the band test is CONFOUNDED by an
     imagery-vs-CHM displacement rather than answering the shadow question, and the
     hypothesis is unsupported at the deployed threshold rather than refuted. Writing a
     verdict on an untracked, confounded measurement is exactly what needs-kam prevents.
-    Kam's call: re-run the probe under the measurement contract, or close on the FN-side
-    tracked evidence alone.
+    Kam's call, three options, and this entry picks none of them: promote the surviving
+    output into the lake under the measurement contract (CLAUDE.md 3.4b); re-run the
+    probe under that contract, which is what project doctrine (rerun-on-contamination —
+    never salvage an ambiguous artifact) prefers over promoting an untracked one; or
+    close on the FN-side tracked evidence alone.
   script: >
     archive/2026-08-pre-refactor:Scripts/scratch/shadow_fp_overlay.py — recoverable with
     `git show`; a scratch one-shot, archived so it can never re-run. Template was
     scratch/roof_fp_overlay.py (FP definition, C-CAP scheme, deployed threshold and TP
     control all copied rather than reinvented).
+  surviving_output: >
+    EPHEMERAL, a lead and not provenance. The probe's markdown summary is still on disk
+    at C:\Users\Kameron\AppData\Local\Temp\claude\D--edmonds-pipeline-treedata-Scripts\38ce7527-5e87-4d98-b55b-f039524783e8\scratchpad\shadow_fp_results.md
+    — a session-scoped OS temp directory that any cleanup may delete without notice.
+    Deliberately NOT in outputs: and not in any other pointer field, because nothing
+    outside the repo or the lake can be gated, and a path that can vanish must not be
+    cited as a measured home.
   tracked_corroboration: >
     the probe's all-TP pixel count is EXACTLY the tp cell of the 2016 fullext_sectors_v1
     forest_wetland row in phase4/qc/qc_indep_report.csv at its deployed threshold, and

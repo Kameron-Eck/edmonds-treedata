@@ -20,10 +20,12 @@ hypothesis: >
 arms: []
 baseline: null
 metric: >
-  phase4/qc/design_power_{2016,2022n,2023n}.txt and .csv — the expected CI of the
-  ACTUAL drawn design (real stratum weights, real allocation, Monte-Carlo studies),
-  swept over interpreter error, with the separation between the two candidate canopy
-  definitions in the same file. Kits and their stratum weights: phase4/qc/
+  phase4/qc/design_power_{2016,2022n,2023n}.txt and .csv — the expected CI of the design
+  AS DRAWN (real stratum weights, real allocation, Monte-Carlo studies), swept over
+  interpreter error, with the separation between the two candidate canopy definitions in
+  the same file. These files describe the kits as they stood BEFORE the 2026-09-04 repair
+  and redraw; the redrawn 2016 kit's power has no tracked home (see verdict). Kits and
+  their stratum weights: phase4/qc/
   sample_{year}_meta.json; point tables: phase4/qc/sample_{year}.csv. There is no
   estimate output — the Olofsson estimator lives behind `--step estimate` and has
   never been run, because no labels file exists.
@@ -45,13 +47,21 @@ decision_rule: >
   power says it can tell the two candidate canopy definitions apart at the drawn n.
 verdict: >
   THE DESIGN HOLDS, THE BINDING CONSTRAINT IS THE INTERPRETER RATHER THAN n, AND NO
-  ESTIMATE HAS EVER BEEN PRODUCED. Read from phase4/qc/design_power_2016.txt: at zero
-  interpreter error the drawn design returns a 95% half-width of +-1.22pp against an
-  8.24pp separation between the two candidate canopy definitions, and the same file's
-  sweep degrades to `marginal` by 10% interpreter error — its own one-word verdict is
-  CONDITIONAL. That inverts the 2026-08-18 assessment's premise, which computed +-5.9pp
-  under simple random sampling and concluded the sample could not arbitrate: sample size
-  was never the binding constraint, interpreter fidelity is, which is why the
+  ESTIMATE HAS EVER BEEN PRODUCED. Read from phase4/qc/design_power_2016.txt, which is
+  the PRE-redraw 2016 kit: at zero interpreter error that design returns a 95% half-width
+  of +-1.22pp against an 8.24pp separation between the two candidate canopy definitions,
+  and the same file's sweep degrades to `marginal` by 10% interpreter error — its own
+  one-word verdict is CONDITIONAL. The 2026-09-04 redraw's power, +-1.87pp, is recorded
+  only in Scripts/CHATLOG.md — no design_power file exists for the redrawn kit — and it
+  does not flip the read, because 1.87pp still sits well inside the 8.24pp separation
+  reported at phase4/qc/design_power_2016.txt:31. That inverts the premise carried in the
+  docstring of Scripts/qc/instruments/phase4_qc_design_power.py, which records the
+  2026-08-18 assessment as computing +-5.9pp under simple random sampling and concluding
+  the sample could not arbitrate — note that design_power_2016.txt:32 records the SRS
+  half-width the assessment assumed as +-0.0620 (6.20pp), so the two figures may be
+  different quantities rather than one contradicting the other, and this entry does not
+  adjudicate which. Either way sample size was never the binding constraint, interpreter fidelity is,
+  which is why the
   duplicate-interpreted subset stopped being optional. The 2026-09-03 ledger audit
   surfaced four defects in the machinery, and the 2026-09-04 repair pass
   (Scripts/CHATLOG.md, `accuracy-batch-overnight`) closed them: strata rebuilt on chm2

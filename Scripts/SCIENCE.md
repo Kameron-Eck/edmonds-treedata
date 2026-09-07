@@ -36,6 +36,8 @@ than selected. Everything below is resolved from them at build time.
   <br>evidence `phase4/qc/panel_a_gold.csv#regex:^# count_nochange,(\d+)`
 - **0.5857** — The local displacement field COMPOSES across epoch pairs — the A-B field is predicted by the A-R and B-R fields, which never saw it, at median r = 0.5857 with 55 of 56 triples beating a shuffled-correspondence null at p < 0.05. So the structure is a property of the EPOCHS, not of the pairing: it is geometry. But its magnitude sits under the noise of a per-cell median — composed residual 0.452 m against a global-constant 0.433 m, beating global in only 15 of 56 triples — so it is not exploitable. The transplant is capped at one imagery-validated shift per epoch pair.
   <br>evidence `phase4/qc/local_field_transitivity.csv#regex:^# median_r_composed,([0-9.]+)`
+- **0** — Scored against the frozen gold, bounded temporal backfill launders ZERO of the 42 verified losses — no terminal absence is filled and none is censored to IGNORE — while removing 99 of the 124 impossible canopy-gone-canopy triples at points a human verified as no-change. Five verified-loss points do receive an upstream heal at 2015, which is the operator working: the tree is present on both flanks and the loss still stands at the end.
+  <br>evidence `phase4/qc/heal_vs_gold.csv#regex:^# loss_laundered,([0-9]+)`
 
 ## 2. Best arm per year, at one held cut
 

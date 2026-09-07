@@ -179,3 +179,17 @@ claims:
     stated_in:
       - Reports/TEMPORAL_REFINEMENT_DESIGN_2026-09-06.md
     entry: change_detector_design
+
+  - id: healer-launders-nothing
+    statement: >-
+      Scored against the frozen gold, bounded temporal backfill launders ZERO of the 42
+      verified losses — no terminal absence is filled and none is censored to IGNORE —
+      while removing 99 of the 124 impossible canopy-gone-canopy triples at points a
+      human verified as no-change. Five verified-loss points do receive an upstream heal
+      at 2015, which is the operator working: the tree is present on both flanks and the
+      loss still stands at the end.
+    value: "0"
+    evidence: 'phase4/qc/heal_vs_gold.csv#regex:^# loss_laundered,([0-9]+)'
+    stated_in:
+      - Reports/TEMPORAL_REFINEMENT_DESIGN_2026-09-06.md
+    entry: change_detector_design

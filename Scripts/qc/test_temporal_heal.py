@@ -113,3 +113,55 @@ def test_output_restriction_is_stated_where_a_reader_meets_it():
     assert "never feeds the annual canopy fraction" in src.lower() or \
            "never the annual fraction series" in src.lower(), (
         "the output restriction is no longer stated in the instrument")
+
+
+def test_healing_launders_no_verified_loss():
+    """THE SAFETY PROPERTY, scored against the frozen gold.
+
+    Laundering is filling the TERMINAL absence — the run of absent epochs a real removal
+    created. Healing an upstream dropout at a point cut later is the operator working, not
+    harm; the first version of this metric conflated the two and reported 5 of 42 as
+    laundering when the true count was 0.
+
+    Structurally this should be impossible — the endpoints cannot be healed and a terminal
+    absence ends at an endpoint — but "should be impossible" is exactly the claim worth
+    testing rather than asserting.
+    """
+    import csv as _csv
+    p = REPO / "phase4" / "qc" / "heal_vs_gold.csv"
+    if not p.exists():
+        pytest.skip("heal_vs_gold.csv absent — run qc/instruments/heal_vs_gold.py")
+    body = [ln for ln in p.read_text(encoding="utf-8").splitlines()
+            if ln.strip() and not ln.lstrip().startswith("#")]
+    rows = list(_csv.DictReader(body))
+    losses = [r for r in rows if r["label"] == "loss"]
+    assert losses, "no verified losses in the scored gold"
+    laundered = [r["point_id"] for r in losses if int(r["terminal_laundered"]) > 0]
+    assert not laundered, (
+        f"healing filled the terminal absence of verified loss(es) {laundered} — a real "
+        f"removal has been erased, which is the failure the whole design is gated against")
+    censored = [r["point_id"] for r in losses if int(r["terminal_censored"]) > 0]
+    assert not censored, (
+        f"healing marked the terminal absence of verified loss(es) {censored} as IGNORE — "
+        f"the event is not erased but it is no longer visible to a change detector")
+
+
+def test_healing_helps_where_a_human_called_it_stable():
+    """The win side: impossible triples at verified no-change points must go DOWN.
+
+    A correction that removes none of them is machinery for nothing; one that removes them
+    while laundering losses is worse than nothing. Both halves are gated.
+    """
+    import csv as _csv
+    p = REPO / "phase4" / "qc" / "heal_vs_gold.csv"
+    if not p.exists():
+        pytest.skip("heal_vs_gold.csv absent")
+    body = [ln for ln in p.read_text(encoding="utf-8").splitlines()
+            if ln.strip() and not ln.lstrip().startswith("#")]
+    rows = [r for r in _csv.DictReader(body) if r["label"] == "nochange"]
+    raw = sum(int(r["impossible_triples_raw"]) for r in rows)
+    healed = sum(int(r["impossible_triples_healed"]) for r in rows)
+    assert raw > 0, "no impossible triples to fix — the test has nothing to measure"
+    assert healed < raw, (
+        f"healing removed no impossible triples at verified no-change points "
+        f"({raw} -> {healed})")

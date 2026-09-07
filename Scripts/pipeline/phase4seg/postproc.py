@@ -1,9 +1,12 @@
 from phase4seg.config import *
 from phase4seg import config
 from phase4seg.common import (_tag_sfx, entry_for, tick, tock,
-                              _copy_to_drive, _local_artifact_path, _crs_unit_m)
+                              _copy_to_drive, _local_artifact_path, _crs_unit_m,
+                              _stage_imagery_local, _unstage_imagery_local)
 
 import gc
+import shutil
+
 import numpy as np
 import pandas as pd
 import rasterio
@@ -95,195 +98,339 @@ def threshold_and_clean(prob, thr_u8, kernel):
     return m
 
 
+# ══════════════════════════════════════════════════════════════════════════════
+#  Where postproc reads the probability raster FROM  (P4.3, extended 2026-09-07)
+# ══════════════════════════════════════════════════════════════════════════════
+
+STAGE_FREE_MARGIN = 1.3
+"""Free bytes required in LOCAL_SCRATCH per byte staged.
+
+ASSUMED, NOT MEASURED. The copy itself needs 1.0x; the extra 0.3x is slack for the
+mask and GeoPackage this same step writes into LOCAL_SCRATCH while the staged
+probability raster is still open. Nothing was measured to pick 0.3.
+"""
+
+
+def _is_drive_path(path):
+    """True when `path` lives on the Colab Drive FUSE mount.
+
+    The same test core.py::step_train applies to MODELS_DIR
+    (``str(...).startswith("/content/drive")``), lifted into its own function so the
+    branch is reachable from a test off-Colab: on Windows
+    ``str(Path("/content/drive/x.tif"))`` is backslashed and can never match, the
+    same design note common.py::_scratch_name carries.
+    """
+    return str(path).startswith("/content/drive")
+
+
+def _resolve_prob_source(prob_final, allow_stage=True):
+    """Choose the probability raster step_postproc actually opens.
+
+    Returns ``(path, staged_here)``. Three cases, in order:
+
+      a. a local copy already sits in LOCAL_SCRATCH — step_inference left it in this
+         same invocation — AND its size matches `prob_final` -> read it;
+         ``staged_here=False``, because that copy belongs to step_inference.
+      b. `prob_final` is on the Drive FUSE mount and LOCAL_SCRATCH has room -> copy it
+         down with ONE sequential read, then read the local copy; ``staged_here=True``.
+      c. anything else — already local, no room, missing, or ``allow_stage=False``
+         (the --dry-run path, which must not trigger a multi-GB copy before printing
+         a threshold and returning) -> `prob_final` unchanged, ``staged_here=False``.
+
+    Why (b) exists: postproc reads this raster in 4096-row windows. Over FUSE that is
+    thousands of small latency-bound range reads with no CPU, disk or network counter
+    moving — 96% of postproc samples showed all four idle
+    (Reports/PIPELINE_SPEEDUP_OPTIONS_2026-09-07.md §7) — while one SEQUENTIAL copy of
+    the same file measured ~40 MB/s (§1). Commit 5096b03 covered only case (a) and fell
+    back to the windowed FUSE read, which is the pathology itself.
+
+    (a) and (b) resolve to the SAME scratch path by construction: _local_artifact_path
+    and _stage_imagery_local both name their destination LOCAL_SCRATCH /
+    _scratch_name(p) for the same `p` (common.py::_local_artifact_path,
+    ::_stage_imagery_local). So (b) simply creates the file (a) would have found.
+
+    THE SIZE CHECK, both sides. common.py::_stage_imagery_local is a bare shutil.copy2
+    with no atomic rename and no post-copy verify, and it CATCHES its own failures and
+    returns its source — so a copy killed midway (step timeout, VM preemption, drivefs
+    EIO, a full disk) leaves a truncated multi-GB file at the scratch path while the run
+    reports success over FUSE. Nothing sweeps it: common.py::_sweep_part_orphans only
+    removes ``*.part.*`` / ``*.prev.*``, and this name is neither. Case (a)'s old
+    ``exists()``-only test would then hand that stump to rasterio, whose header still
+    reports the full height and width, so the failure surfaces as a mid-loop read error
+    on every retry until someone clears the scratch directory by hand. So: (a) compares
+    sizes against the Drive original and DISCARDS a mismatch (which also drops a stale
+    complete copy left by a superseded run at the same year+tag path), and (b) re-checks
+    the size after copying. A size check is NOT a content check — it cannot catch a
+    same-length substitution, only a short or differently-sized one.
+
+    Never raises — the whole body sits inside one try, because on a wedged mount even
+    ``prob_final.exists()`` re-raises drivefs EIO (CPython's pathlib swallows only
+    ENOENT / ENOTDIR / EBADF / ELOOP). Any failure degrades to (`prob_final`, False)
+    with a WARNING, so a staging problem costs speed and not the run.
+    """
+    prob_final = Path(prob_final)
+    try:
+        local = _local_artifact_path(prob_final)
+        if local != prob_final and local.exists():
+            try:
+                same_size = local.stat().st_size == prob_final.stat().st_size
+            except OSError:
+                same_size = True     # cannot compare -> keep the pre-check behaviour
+            if same_size:
+                print(f"  reading the staged local probability raster "
+                      f"({local.stat().st_size / 1e6:.0f} MB) — no FUSE round-trip")
+                return local, False
+            print(f"  discarding a short/stale local probability raster "
+                  f"({local.stat().st_size / 1e6:.0f} MB against a "
+                  f"{prob_final.stat().st_size / 1e6:.0f} MB source) — not this raster")
+            _unstage_imagery_local(local)
+        if not allow_stage:
+            return prob_final, False
+        if not prob_final.exists():
+            return prob_final, False          # the caller's ERROR line speaks for this
+        if not _is_drive_path(prob_final):
+            print("  probability raster is already on local disk — no staging needed")
+            return prob_final, False
+        LOCAL_SCRATCH.mkdir(parents=True, exist_ok=True)
+        size = prob_final.stat().st_size
+        free = shutil.disk_usage(LOCAL_SCRATCH).free
+        if free < STAGE_FREE_MARGIN * size:
+            print(f"  NOT staging the probability raster: {size / 1e9:.1f} GB needs "
+                  f"{STAGE_FREE_MARGIN * size / 1e9:.1f} GB of scratch, "
+                  f"{free / 1e9:.1f} GB free — reading windowed over FUSE")
+            return prob_final, False
+        staged = _stage_imagery_local(prob_final)
+        if staged != prob_final:
+            staged_size = staged.stat().st_size
+            if staged_size != size:
+                print(f"  WARNING: the staged probability raster is "
+                      f"{staged_size / 1e9:.2f} GB, not {size / 1e9:.2f} GB — "
+                      f"discarding it and reading windowed over FUSE")
+                _unstage_imagery_local(staged)
+                return prob_final, False
+            print(f"  staged the probability raster to local scratch "
+                  f"({size / 1e9:.1f} GB, one sequential copy) — the windowed read "
+                  f"below runs off NVMe, not FUSE")
+            return staged, True
+        print("  WARNING: staging the probability raster failed — postproc will read "
+              "it windowed over FUSE (slow: thousands of small range reads)")
+        return prob_final, False
+    except Exception as e:                                       # noqa: BLE001
+        print(f"  WARNING: could not stage the probability raster ({e!r}) — postproc "
+              f"will read it windowed over FUSE")
+        return prob_final, False
+
+
 def step_postproc(label, dry_run=False):
     print(f"\n── [{label}] Step 6: Post-processing ──")
 
     prob_final = MASKS_DIR / f"edmonds_canopy_prob_{label}{_tag_sfx()}.tif"
-    # P4.3 (2026-09-07): READ THE LOCAL STAGED COPY WHEN INFERENCE LEFT ONE.
-    # step_inference already writes the probability raster to local NVMe and then
-    # copies it to Drive. When postproc runs in the SAME invocation — the default
-    # full-pipeline path in cli.py — it used to re-open that same multi-GB file over
-    # FUSE, TWICE (the header read here and the windowed read below). Measured across
-    # 38 postproc runs, elapsed time correlates with the probability raster's size at
-    # r = +0.886: this step is moving bytes, not computing. The 5 cm epochs carry
-    # 3.0-6.7 GB rasters and take 66-99 min against 1-5 min for the coarse years.
-    # Falling back to Drive keeps the free-CPU postproc workflow working unchanged,
-    # where inference ran on a different machine and no local copy exists.
-    prob_local = _local_artifact_path(prob_final)
-    prob_out = prob_local if (prob_local != prob_final and prob_local.exists()) \
-        else prob_final
-    if prob_out != prob_final:
-        print(f"  reading the staged local probability raster "
-              f"({prob_out.stat().st_size / 1e6:.0f} MB) — no FUSE round-trip")
-    mask_final = MASKS_DIR / f"edmonds_canopy_mask_{label}{_tag_sfx()}.tif"
-    gpkg_final = MASKS_DIR / f"edmonds_canopy_mask_{label}{_tag_sfx()}.gpkg"
-    # verified write path (P4.1): heavy outputs land on local NVMe first, then a
-    # size+sha256-verified copy moves each to Drive (also makes the polygonize
-    # read-back local instead of a multi-GB FUSE read).
-    mask_out = _local_artifact_path(mask_final)
-    gpkg_out = _local_artifact_path(gpkg_final)
-    if not prob_out.exists():
-        print(f"  ERROR: {prob_out} not found — run inference first"); return
-
-    with rasterio.open(prob_out) as src:
-        img_h, img_w = src.height, src.width
-        img_crs, img_tf = src.crs, src.transform
-        px, py = src.transform.a, abs(src.transform.e)
-    pixel_area = px * py
-    # CRS-UNIT TRAP (2026-08-27). `pixel_area` is in the raster's OWN CRS units,
-    # which are NOT true m²: EPSG:2285 is US survey FEET (1 unit² = 0.0929 m², so
-    # a "1 m" pixel is 10.76x too small) and EPSG:3857 is Web Mercator (inflated
-    # 1/cos²(47.81°) = 2.215x at this latitude). Same family as the gsd_cm defect
-    # (WORKPLAN §1.5). `pixel_area_true` below is for REPORTED AREAS only.
-    #
-    # DELIBERATELY NOT APPLIED to min_px: MIN_CANOPY_PATCH lives in config.py
-    # (pure-move protected) and was tuned against these CRS-unit areas, so
-    # converting here would silently change every postproc mask. The sieve is
-    # therefore ~10.8x more permissive than "3.0 m²" reads on 2285 years and
-    # ~2.2x stricter on 3857 years. Retuning that constant is a science decision.
-    pixel_area_true = pixel_area * _crs_unit_m(img_crs) ** 2
-    min_px = sieve_min_px(pixel_area_true)   # EPOCH 3: true m², not CRS units
-    # Per-year operating threshold from step_evaluate (best-F1), not the fixed 0.5.
-    thr, thr_src = _operating_threshold(label)
-    thr_u8 = int(round(thr * 254))
-    print(f"  threshold={thr:.3f} [{thr_src}] (u8≥{thr_u8})  "
-          f"min_patch={MIN_CANOPY_PATCH}m²({min_px}px)  "
-          f"morph={MORPH_KERNEL_SIZE}×{MORPH_KERNEL_SIZE}")
-    if dry_run:
-        print("  Dry run — not processing"); return
-
-    tick("postproc")
-    CHUNK = 4096
-    kernel = np.ones((MORPH_KERNEL_SIZE, MORPH_KERNEL_SIZE), dtype=bool)
-    mask_profile = {"driver": "GTiff", "dtype": "uint8", "width": img_w,
-                    "height": img_h, "count": 1, "crs": img_crs, "transform": img_tf,
-                    "compress": "lzw", "nodata": 255, "BIGTIFF": "YES"}
-    canopy_px = valid_px = 0
-    with rasterio.open(prob_out) as src, rasterio.open(mask_out, "w", **mask_profile) as dst:
-        for r0 in tqdm(range(0, img_h, CHUNK), desc="  Threshold"):
-            r1 = min(r0 + CHUNK, img_h)
-            win = rasterio.windows.Window(0, r0, img_w, r1 - r0)
-            prob = src.read(1, window=win)
-            m = threshold_and_clean(prob, thr_u8, kernel)
-            canopy_px += int((m == 1).sum())
-            valid_px  += int((m != 255).sum())   # nodata carries through as 255
-            dst.write(m[np.newaxis], window=win)
-
-    canopy_area = canopy_px * pixel_area_true       # TRUE m² (see _crs_unit_m note)
-    pct = 100 * canopy_px / valid_px if valid_px else 0
-    print(f"  ✓ Mask (local): {mask_out.name} ({mask_out.stat().st_size/1e6:.0f} MB)")
-    print(f"  Canopy: {canopy_px:,}px = {canopy_area/1e4:.1f} ha true "
-          f"({pct:.1f}% of imaged area)")
-
-    # ── Polygonize in ROW-STRIPS (memory-safe) ──
-    # A fine year's mask is multi-GB (2013 = 74496×105984 ≈ 7.9 GB) — a single
-    # src.read(1) OOMs the host (silent kernel kill). Read ~400M-px strips, sieve +
-    # polygonize each, and collect the geometries (lightweight vs the raster). A canopy
-    # region spanning a strip edge becomes two adjacent polygons — negligible for a
-    # semantic-canopy area layer. Coarse years fit in one/two strips (unchanged).
-    print("  Polygonizing…"); tick("polygonize")
-    import fiona
-    schema = {"geometry": "Polygon",
-              "properties": {"canopy_id": "str", "area_m2": "float"}}
-    strip_rows = max(TILE_SIZE, min(img_h, int(400_000_000 / max(img_w, 1))))
-    geom_list = []
-    with rasterio.open(mask_out) as src:
-        for _r0 in range(0, img_h, strip_rows):
-            _win = rasterio.windows.Window(0, _r0, img_w, min(strip_rows, img_h - _r0))
-            _clean = rasterio.features.sieve(
-                (src.read(1, window=_win) == 1).astype(np.uint8),
-                size=min_px, connectivity=POLYGON_CONNECTIVITY)
-            _wtf = rasterio.windows.transform(_win, img_tf)
-            geom_list.extend(shape(g) for g, _ in rasterio.features.shapes(
-                _clean, mask=(_clean == 1), transform=_wtf,
-                connectivity=POLYGON_CONNECTIVITY))
-            del _clean
-        gc.collect()
-    n = 0
-    # v039 speedup: the per-polygon Python loop (simplify preserve_topology=True +
-    # is_valid + buffer(0), one fiona write each) dominates postproc on a full-city
-    # mask (100k+ crowns). shapely 2.x runs simplify/validity/area as C ufuncs over
-    # the whole array at once, and fiona.writerecords batches the write. Fallback to
-    # the per-feature loop if shapely 2.x isn't available.
+    # P4.3 (2026-09-07): NEVER READ THE PROBABILITY RASTER WINDOWED OVER FUSE.
+    # This step is moving bytes, not computing:
+    #   • 96% of postproc samples show no GPU, no CPU, no disk AND no network at once
+    #     (Reports/PIPELINE_SPEEDUP_OPTIONS_2026-09-07.md §7) — blocked on FUSE
+    #     per-request latency, while ONE sequential file reads at ~40 MB/s (§1);
+    #   • postproc's elapsed time tracks the probability raster's SIZE, and how strongly,
+    #     over how many runs, and what that costs the 5 cm epochs is recorded ONCE, at
+    #     core.py::step_inference. Not restated here: that measurement has no tracked
+    #     CSV or report home, so a copy of it would rot silently the day it is re-taken.
+    # TWO local sources satisfy that, both resolved by _resolve_prob_source:
+    #   (a) the copy step_inference left on NVMe when postproc runs in the SAME
+    #       invocation (the default full-pipeline path in cli.py) — commit 5096b03;
+    #   (b) a copy staged HERE, for the free-CPU postproc workflow where inference ran
+    #       on another machine. 5096b03 fell back to the Drive path in that case, which
+    #       is the pathology itself, not a fallback away from it. At the measured
+    #       ~40 MB/s one sequential copy of 6.7 GB is ~2.8 min (arithmetic, not timed).
+    # dry-run must not pay for (b): it prints a threshold and returns without reading.
+    prob_out, prob_staged_here = _resolve_prob_source(prob_final,
+                                                      allow_stage=not dry_run)
     try:
-        import shapely as _shp
-        _vec = all(hasattr(_shp, a) for a in
-                   ("simplify", "make_valid", "is_valid", "get_parts",
-                    "get_type_id", "area"))
-    except Exception:
-        _vec = False
-    # layer= is EXPLICIT since 2026-08-29 (D18). The GPKG driver defaults the layer
-    # name to the file's basename, and this file is written under a LOCAL STAGING
-    # name before being copied to gpkg_final — so the published artifact's internal
-    # layer name was silently inherited from a scratch filename. Pinning it to the
-    # final stem reproduces exactly the name every existing GPKG already carries,
-    # and stops the staging path from being able to change it.
-    with fiona.open(gpkg_out, "w", driver="GPKG", layer=gpkg_final.stem,
-                    crs=img_crs.to_wkt(), schema=schema) as dst:
-        if _vec:
-            print("  (vectorized shapely 2.x polygonize)")
-            geoms = np.array(geom_list, dtype=object)
-            if len(geoms):
-                if SIMPLIFY_TOLERANCE_M > 0:
-                    # preserve_topology=False = fast Douglas-Peucker; the make_valid
-                    # pass below repairs the rare self-intersection it can create.
-                    geoms = _shp.simplify(geoms, SIMPLIFY_TOLERANCE_M,
-                                          preserve_topology=False)
-                bad = ~_shp.is_valid(geoms)
-                if bad.any():
-                    geoms[bad] = _shp.make_valid(geoms[bad])
-                parts = _shp.get_parts(geoms)                     # explode multi/coll
-                parts = parts[_shp.get_type_id(parts) == 3]       # keep Polygons only
-                areas = _shp.area(parts)
-                keep = areas >= MIN_CANOPY_PATCH
-                parts = parts[keep]; areas = areas[keep]
-                dst.writerecords(
-                    {"geometry": mapping(p),
-                     "properties": {"canopy_id": f"CAN_{label}_{i:07d}",
-                                    "area_m2": round(float(a), 2)}}
-                    for i, (p, a) in enumerate(zip(parts, areas)))
-                n = len(parts)
-        else:
-            for poly in tqdm(geom_list, desc="  Polygonize", mininterval=5.0):
-                if SIMPLIFY_TOLERANCE_M > 0:
-                    poly = poly.simplify(SIMPLIFY_TOLERANCE_M, preserve_topology=True)
-                if not poly.is_valid:
-                    poly = poly.buffer(0)
-                if poly.is_empty:
-                    continue
-                parts = list(poly.geoms) if poly.geom_type == "MultiPolygon" else [poly]
-                for part in parts:
-                    if part.area < MIN_CANOPY_PATCH:
-                        continue
-                    dst.write({"geometry": mapping(part),
-                               "properties": {"canopy_id": f"CAN_{label}_{n:07d}",
-                                              "area_m2": round(part.area, 2)}})
-                    n += 1
-    tock("polygonize")
-    print(f"  ✓ Canopy GeoPackage: {gpkg_out.name}  ({n:,} polygons)")
+        mask_final = MASKS_DIR / f"edmonds_canopy_mask_{label}{_tag_sfx()}.tif"
+        gpkg_final = MASKS_DIR / f"edmonds_canopy_mask_{label}{_tag_sfx()}.gpkg"
+        # verified write path (P4.1): heavy outputs land on local NVMe first, then a
+        # size+sha256-verified copy moves each to Drive (also makes the polygonize
+        # read-back local instead of a multi-GB FUSE read).
+        mask_out = _local_artifact_path(mask_final)
+        gpkg_out = _local_artifact_path(gpkg_final)
+        if not prob_out.exists():
+            print(f"  ERROR: {prob_out} not found — run inference first"); return
 
-    for _local, _final in ((mask_out, mask_final), (gpkg_out, gpkg_final)):
-        if _local != _final:
-            _copy_to_drive(_local, _final)     # raises loudly on size/sha mismatch
+        with rasterio.open(prob_out) as src:
+            img_h, img_w = src.height, src.width
+            img_crs, img_tf = src.crs, src.transform
+            px, py = src.transform.a, abs(src.transform.e)
+        pixel_area = px * py
+        # CRS-UNIT TRAP (2026-08-27). `pixel_area` is in the raster's OWN CRS units,
+        # which are NOT true m²: EPSG:2285 is US survey FEET (1 unit² = 0.0929 m², so
+        # a "1 m" pixel is 10.76x too small) and EPSG:3857 is Web Mercator (inflated
+        # 1/cos²(47.81°) = 2.215x at this latitude). Same family as the gsd_cm defect
+        # (WORKPLAN §1.5). `pixel_area_true` below is for REPORTED AREAS only.
+        #
+        # DELIBERATELY NOT APPLIED to min_px: MIN_CANOPY_PATCH lives in config.py
+        # (pure-move protected) and was tuned against these CRS-unit areas, so
+        # converting here would silently change every postproc mask. The sieve is
+        # therefore ~10.8x more permissive than "3.0 m²" reads on 2285 years and
+        # ~2.2x stricter on 3857 years. Retuning that constant is a science decision.
+        pixel_area_true = pixel_area * _crs_unit_m(img_crs) ** 2
+        min_px = sieve_min_px(pixel_area_true)   # EPOCH 3: true m², not CRS units
+        # Per-year operating threshold from step_evaluate (best-F1), not the fixed 0.5.
+        thr, thr_src = _operating_threshold(label)
+        thr_u8 = int(round(thr * 254))
+        print(f"  threshold={thr:.3f} [{thr_src}] (u8≥{thr_u8})  "
+              f"min_patch={MIN_CANOPY_PATCH}m²({min_px}px)  "
+              f"morph={MORPH_KERNEL_SIZE}×{MORPH_KERNEL_SIZE}")
+        if dry_run:
+            print("  Dry run — not processing"); return
+
+        tick("postproc")
+        CHUNK = 4096
+        kernel = np.ones((MORPH_KERNEL_SIZE, MORPH_KERNEL_SIZE), dtype=bool)
+        mask_profile = {"driver": "GTiff", "dtype": "uint8", "width": img_w,
+                        "height": img_h, "count": 1, "crs": img_crs, "transform": img_tf,
+                        "compress": "lzw", "nodata": 255, "BIGTIFF": "YES"}
+        canopy_px = valid_px = 0
+        with rasterio.open(prob_out) as src, rasterio.open(mask_out, "w", **mask_profile) as dst:
+            for r0 in tqdm(range(0, img_h, CHUNK), desc="  Threshold"):
+                r1 = min(r0 + CHUNK, img_h)
+                win = rasterio.windows.Window(0, r0, img_w, r1 - r0)
+                prob = src.read(1, window=win)
+                m = threshold_and_clean(prob, thr_u8, kernel)
+                canopy_px += int((m == 1).sum())
+                valid_px  += int((m != 255).sum())   # nodata carries through as 255
+                dst.write(m[np.newaxis], window=win)
+
+        canopy_area = canopy_px * pixel_area_true       # TRUE m² (see _crs_unit_m note)
+        pct = 100 * canopy_px / valid_px if valid_px else 0
+        print(f"  ✓ Mask (local): {mask_out.name} ({mask_out.stat().st_size/1e6:.0f} MB)")
+        print(f"  Canopy: {canopy_px:,}px = {canopy_area/1e4:.1f} ha true "
+              f"({pct:.1f}% of imaged area)")
+
+        # ── Polygonize in ROW-STRIPS (memory-safe) ──
+        # A fine year's mask is multi-GB (2013 = 74496×105984 ≈ 7.9 GB) — a single
+        # src.read(1) OOMs the host (silent kernel kill). Read ~400M-px strips, sieve +
+        # polygonize each, and collect the geometries (lightweight vs the raster). A canopy
+        # region spanning a strip edge becomes two adjacent polygons — negligible for a
+        # semantic-canopy area layer. Coarse years fit in one/two strips (unchanged).
+        print("  Polygonizing…"); tick("polygonize")
+        import fiona
+        schema = {"geometry": "Polygon",
+                  "properties": {"canopy_id": "str", "area_m2": "float"}}
+        strip_rows = max(TILE_SIZE, min(img_h, int(400_000_000 / max(img_w, 1))))
+        geom_list = []
+        with rasterio.open(mask_out) as src:
+            for _r0 in range(0, img_h, strip_rows):
+                _win = rasterio.windows.Window(0, _r0, img_w, min(strip_rows, img_h - _r0))
+                _clean = rasterio.features.sieve(
+                    (src.read(1, window=_win) == 1).astype(np.uint8),
+                    size=min_px, connectivity=POLYGON_CONNECTIVITY)
+                _wtf = rasterio.windows.transform(_win, img_tf)
+                geom_list.extend(shape(g) for g, _ in rasterio.features.shapes(
+                    _clean, mask=(_clean == 1), transform=_wtf,
+                    connectivity=POLYGON_CONNECTIVITY))
+                del _clean
+            gc.collect()
+        n = 0
+        # v039 speedup: the per-polygon Python loop (simplify preserve_topology=True +
+        # is_valid + buffer(0), one fiona write each) dominates postproc on a full-city
+        # mask (100k+ crowns). shapely 2.x runs simplify/validity/area as C ufuncs over
+        # the whole array at once, and fiona.writerecords batches the write. Fallback to
+        # the per-feature loop if shapely 2.x isn't available.
+        try:
+            import shapely as _shp
+            _vec = all(hasattr(_shp, a) for a in
+                       ("simplify", "make_valid", "is_valid", "get_parts",
+                        "get_type_id", "area"))
+        except Exception:
+            _vec = False
+        # layer= is EXPLICIT since 2026-08-29 (D18). The GPKG driver defaults the layer
+        # name to the file's basename, and this file is written under a LOCAL STAGING
+        # name before being copied to gpkg_final — so the published artifact's internal
+        # layer name was silently inherited from a scratch filename. Pinning it to the
+        # final stem reproduces exactly the name every existing GPKG already carries,
+        # and stops the staging path from being able to change it.
+        with fiona.open(gpkg_out, "w", driver="GPKG", layer=gpkg_final.stem,
+                        crs=img_crs.to_wkt(), schema=schema) as dst:
+            if _vec:
+                print("  (vectorized shapely 2.x polygonize)")
+                geoms = np.array(geom_list, dtype=object)
+                if len(geoms):
+                    if SIMPLIFY_TOLERANCE_M > 0:
+                        # preserve_topology=False = fast Douglas-Peucker; the make_valid
+                        # pass below repairs the rare self-intersection it can create.
+                        geoms = _shp.simplify(geoms, SIMPLIFY_TOLERANCE_M,
+                                              preserve_topology=False)
+                    bad = ~_shp.is_valid(geoms)
+                    if bad.any():
+                        geoms[bad] = _shp.make_valid(geoms[bad])
+                    parts = _shp.get_parts(geoms)                     # explode multi/coll
+                    parts = parts[_shp.get_type_id(parts) == 3]       # keep Polygons only
+                    areas = _shp.area(parts)
+                    keep = areas >= MIN_CANOPY_PATCH
+                    parts = parts[keep]; areas = areas[keep]
+                    dst.writerecords(
+                        {"geometry": mapping(p),
+                         "properties": {"canopy_id": f"CAN_{label}_{i:07d}",
+                                        "area_m2": round(float(a), 2)}}
+                        for i, (p, a) in enumerate(zip(parts, areas)))
+                    n = len(parts)
+            else:
+                for poly in tqdm(geom_list, desc="  Polygonize", mininterval=5.0):
+                    if SIMPLIFY_TOLERANCE_M > 0:
+                        poly = poly.simplify(SIMPLIFY_TOLERANCE_M, preserve_topology=True)
+                    if not poly.is_valid:
+                        poly = poly.buffer(0)
+                    if poly.is_empty:
+                        continue
+                    parts = list(poly.geoms) if poly.geom_type == "MultiPolygon" else [poly]
+                    for part in parts:
+                        if part.area < MIN_CANOPY_PATCH:
+                            continue
+                        dst.write({"geometry": mapping(part),
+                                   "properties": {"canopy_id": f"CAN_{label}_{n:07d}",
+                                                  "area_m2": round(part.area, 2)}})
+                        n += 1
+        tock("polygonize")
+        print(f"  ✓ Canopy GeoPackage: {gpkg_out.name}  ({n:,} polygons)")
+
+        for _local, _final in ((mask_out, mask_final), (gpkg_out, gpkg_final)):
+            if _local != _final:
+                _copy_to_drive(_local, _final)     # raises loudly on size/sha mismatch
+                try:
+                    _local.unlink()
+                except OSError:
+                    pass
+
+        # Record a one-line area summary for the cross-year consistency step.
+        _append_area_summary(label, entry_for(label), canopy_area, pct, valid_px,
+                             pixel_area_true)
+        tock("postproc")
+    finally:
+        # P4.3 (2026-09-07): release the staged probability raster on EVERY exit —
+        # whether inference left it for us or _resolve_prob_source staged it here, and
+        # whether this step returned, raised or completed. Both are the SAME
+        # LOCAL_SCRATCH path by construction (_local_artifact_path and
+        # _stage_imagery_local derive it from _scratch_name of the same destination),
+        # so either branch below removes the same file; `prob_staged_here` only picks
+        # the guarded helper. It is the `finally` that matters: the file is 3-6.7 GB on
+        # the fine epochs, nothing sweeps that name (common.py::_sweep_part_orphans
+        # takes only *.part.* / *.prev.*), and one leak per failed year eats the free
+        # space _resolve_prob_source checks — so a mid-queue exception used to silently
+        # switch every LATER year back to the windowed FUSE read this exists to avoid.
+        # Dropping it is free: the authoritative copy is on Drive either way (inference
+        # verified its copy by size and sha256; case (b) copied FROM Drive). The cost
+        # is that a same-year retry after a crash re-stages instead of reusing the
+        # copy — one sequential read, deliberately paid to bound the leak.
+        # `prob_staged_here` is never True under --dry-run (allow_stage=False), so the
+        # first branch needs no dry-run guard. The second does: --dry-run reads nothing
+        # and must not consume the copy step_inference left for the REAL run, which is
+        # what the pre-`finally` code did by returning above this block.
+        if prob_staged_here:
+            _unstage_imagery_local(prob_out)   # guarded to LOCAL_SCRATCH; never raises
+        elif prob_out != prob_final and not dry_run:
             try:
-                _local.unlink()
+                prob_out.unlink()
             except OSError:
                 pass
-
-    # P4.3 (2026-09-07): release the staged probability raster inference left for us.
-    # It is 3-6.7 GB on the fine epochs and its authoritative copy is already on Drive
-    # (inference verified that copy by size and sha256 before we ever read this one),
-    # so dropping it here is free and keeps a multi-year queue from filling local disk.
-    if prob_out != prob_final:
-        try:
-            prob_out.unlink()
-        except OSError:
-            pass
-
-    # Record a one-line area summary for the cross-year consistency step.
-    _append_area_summary(label, entry_for(label), canopy_area, pct, valid_px,
-                         pixel_area_true)
-    tock("postproc")
 
 
 def _append_area_summary(label, entry, canopy_area_m2, canopy_pct, valid_px,

@@ -109,18 +109,20 @@ the SCHEMA, not the session name.
 ## hw_step_attribution.csv (phase4/qc/, HARVESTED — re-harvest, never edit)
 
 Written by `qc/instruments/harvest_hw_attribution.py::build_rows` from the raw
-`hw_*.csv` above plus the step logs. One row per `(session, step, basis)` and one
-`step = ALL` row per `(session, basis)`; `step` values are the engine step with
-its year label stripped (`train_2017` → `train`), plus `(between)` for samples
-with no step running. The basis is decided PER FILE, so a session owning both a
+`hw_*.csv` above plus the step logs. One row per `(session, step, basis, phase)`
+and one `step = ALL` row per `(session, basis)`; `step` values are the engine
+step with its year label stripped (`train_2017` → `train`), plus `(between)` for
+samples with no step running. The basis is decided PER FILE, so a session owning both a
 v1 and a v2 file (see the fork rule above) emits two independent sets of rows —
 the marker samples keep their own per-machine `step` instead of being re-guessed
 by time against another VM's step log. Columns: `session, step, basis,
 gpu_present, samples, hours, gpu_busy_frac, gpu_util_mean, cpu50_frac,
 iowait10_frac, tx1_frac, rx1_frac, disk5_frac, nothing_frac, ambiguous_dropped,
-samples_parsed, span_hours, source_file`. Fractions are of the row's samples (GPU
-fractions of the samples that HAVE a GPU reading), and are BLANK on a row with no
-samples.
+samples_parsed, span_hours, source_file, phase`. Fractions are of the row's
+samples (GPU fractions of the samples that HAVE a GPU reading), and are BLANK on
+a row with no samples. `phase` was appended (last position, so no column moved)
+on 2026-09-07 and makes the row key `(session, step, basis, phase)` — semantics
+in **The step-phase layer**, at the end of this file.
 
 `gpu_present` is the fraction of the row's samples that carry a **non-blank
 `gpu_util_pct`** — 1.0000 on a GPU runtime, 0.0000 on a CPU one, and blank on a
@@ -415,3 +417,359 @@ the per-session `heartbeat_<session>.json`, then the train log's `Device:` line,
 archive as well as the live report, because step_evaluate's replace key is
 (year, channels) and NOT run_tag: the pilot evaluating the same year and channels
 displaces the baseline's rows. Gate: `qc/test_offload_pilot_compare.py`.
+
+## timing_events.csv (phase4/qc/, GENERATED)
+
+Written by `qc/instruments/harvest_timing_events.py::harvest`: one row per
+`⏱ <label>: <N>s` line the engine printed, joined to the SIZE of the file that line
+moved. Columns: `run_id, year, run_tag, step, label, seconds, bytes, mb_per_s,
+log_file`. The first four come from the step log's own header block, so every event
+carries the arm that produced it; `step` is the command line's bare `--step`
+(`evaluate`), never the banner's year-suffixed `evaluate_2006s`. Order is `run_id`,
+then log line order — the within-log sequence is itself evidence (stage, then the work,
+then copy). `seconds` is the log's verbatim string; `bytes` is an integer;
+`mb_per_s` is `bytes/1e6/seconds` to 2dp.
+
+WHY IT EXISTS. `phase4seg/common.py::tock` has been printing these lines since phase 1
+and nothing read them, because the number that turns a duration into a RATE — the size
+of the file — is not printed beside the duration. For `copy` events the log does carry it
+one line down (`common.py::_copy_to_drive` prints `✓ verified|staged write: X (N MB…)`;
+2,228 of
+2,233 copy events have it, to the nearest whole MB); for `stage` events — the half the
+storage argument rests on — nothing in the log carries it, which is why `bytes` is joined
+from the lake. So `Reports/
+PIPELINE_SPEEDUP_OPTIONS_2026-09-07.md` §1 priced its whole storage argument on
+"Drive gives 40 MB/s on one big sequential file", a figure with no instrument behind it.
+Measured 2026-09-07 over 2,823 events in 362 step logs: `stage` median **39.0 MB/s**
+(n=281, p10 7.4, p90 87.2), and for files ≥1 GB **39.7 MB/s** (n=145). The claim holds.
+
+READER RULES.
+
+- **`stage` and `copy` measure opposite directions and different media.**
+  `common.py::_stage_imagery_local` and `staging.py::_stage_tiles_local` copy
+  Drive → local NVMe: that is a Drive READ and the only rows that are Drive throughput.
+  `common.py::_copy_to_drive` writes local NVMe → a `.part` on the rclone FUSE mount,
+  which lands in the VFS cache and returns before anything reaches Google, so whatever
+  its value, it is a cache-write rate and not upload bandwidth. Never quote a `copy` row
+  as Drive throughput; that exact error produced the inflated checkpoint estimate the
+  speedup report corrects in its §2. THE MEDIAN DEPENDS ON WHICH SIZE YOU USE, and both
+  belong in the same sentence: **463.9 MB/s** all-copy / **484.0 MB/s** `sem_best` from
+  this file's joined lake `bytes` (n=2,107 / n=1,375 rows with a rate), against
+  **429.4 MB/s** for both from the size the engine LOGGED at copy time (n=2,108 /
+  n=1,376). **Prefer 429.4** — see the `bytes` rule below for why the joined figure runs
+  12.7% high.
+- **`bytes` is the file's size in the lake NOW, joined by BASENAME — not the size at the
+  time of the event.** EXACT for the `stage` population, which is the whole of the
+  published throughput: the orthos and `phase3`'s 2020 mask are write-once, all 28
+  distinct sized `stage` basenames resolve in those two roots, and 24 cross-check exactly
+  against the independent `size_mb` column of `imagery_geometry.csv` (0 disagreements).
+  NOT exact for `copy`, and the error is systematic rather than churn — measured
+  2026-09-07 against the size the same call logged (`round(bytes/1e6)` vs the engine's
+  `{want_size/1e6:.0f}` integer MB; the rounding is not optional, a byte-exact comparison
+  disagrees on all 2,173 rows and means nothing): **1,025 of 2,173 comparable rows
+  disagree, 47%, median 44%, max 67%, the lake file larger in 984 of them**, because
+  `sem_best_*.pt` is overwritten every improving epoch and the architecture grew.
+  So **`copy` `mb_per_s` is not usable at the row level** — only its median is, and even
+  that shifts 463.9 → 429.4. It would be outright wrong for append-mode artifacts like
+  `semantic_eval_report.csv`, which grows with every run (those rows blank anyway).
+- **A blank `bytes` has three causes and the row does not distinguish them:** the label
+  names no file (`inference`, `postproc`, `polygonize`, and `stage tiles 2009`, whose
+  tail is a directory description); no such basename in the five scanned roots
+  (`Full_Image/Pipeline Imagery`, `phase4/models`, `phase4/masks`, `phase4/eval`,
+  `phase3` — `phase4/labels_corrected` is deliberately outside, so the `add_chm*.tif`
+  overlays miss); or two DIFFERENT sizes answer to one basename (`phase4/masks/` vs
+  `_prerefactor_backup/`, `eval/viz_2000/` vs `eval/viz_2016/`), in which case the join
+  refuses to pick a side. The same size in several directories is not ambiguous.
+- **`mb_per_s` is blank unless `bytes` resolved AND `seconds` > 0.** 120 of the 2,823
+  events are sub-cadence zeros — all 43 `copy semantic_eval_report.csv` events among
+  them. A sub-cadence operation is real; a division by zero is not a rate.
+- **A `stage` row is a COLD Drive read only the first time a runtime touches the file.**
+  `common.py::_unstage_imagery_local` deletes the scratch copy after each step, so a
+  later step re-staging the same file reads it back out of the warm rclone VFS / OS page
+  cache: 3 of 281 sized rows exceed 500 MB/s for that reason (max
+  `stage 2006_snoh_1m_rgb.tif` at 1092.72 MB/s, the same basename that read 156.10 MB/s
+  three minutes earlier in the same session). Drop the >300 MB/s tail before quoting
+  `stage` as Drive throughput — it moves the median 39.0 → 38.3 and p90 87.2 → 84.1, so
+  the headline figures above stand either way.
+- **Per-event rates are throughput UNDER CAMPAIGN CONCURRENCY, not a clean single-stream
+  number.** The P11.4 staging lock serialises bulk copies within one VM, but concurrent
+  VMs share the Drive link — `2017_king_rgb.tif` (11.55 GB) staged at 93.5 and
+  132.6 MB/s on 2026-09-06 and at 37.3 MB/s on 2026-09-07, same file, same code.
+- `_copy_to_drive` also calls `tock` inside its `except OSError` retry branch, so a
+  `copy` row CAN time a FAILED partial transfer — but measured 2026-09-07, **0 of 2,233
+  do** (no `⏱ copy` line in the 507 archived step logs is followed by `! copy raised`).
+  Re-count before discarding an absurdly fast or slow `copy` row as a failure.
+- **A harvest that finds ZERO events refuses to overwrite a populated file and exits 2**
+  (`--allow-empty` overrides). Both the log listing and the size scan go through
+  `lake.py::read_retry`, because a blinking mirror listing would otherwise publish a
+  header-only CSV over the whole archive and report success.
+
+Gate: `qc/test_timing_events.py`.
+
+## The step-phase layer (`hw_*.csv` `step` cell, `hw_step_attribution.csv` `phase`)
+
+Added 2026-09-07; the vocabulary has one home,
+`pipeline/phase4seg/names.py::hw_step_marker_path`. The step marker may carry an
+optional `phase`:
+
+| phase | meaning | written by |
+|---|---|---|
+| `open` | a StepLogger step is running — **also what an ABSENT key means** | `pipeline_log.py::StepLogger.start` (which writes no phase at all) |
+| `launching` | the queue has spawned the engine process, StepLogger has not opened yet | reserved for `phase4_train_queue.py` |
+| `verifying` | the queue's post-step VERIFY; the engine has already exited | reserved for `phase4_train_queue.py` |
+
+**Only `open` is written today**, so every row in the current harvest reads `open`
+or blank — a fact about the writers, not about the readers, which honour all three.
+
+**On the raw side the phase rides INSIDE the existing `step` cell**, as
+`<step>#<phase>`, for any phase but `open`
+(`vm_hwlogger.py::read_marker`). No column was added to `hw_{session}.csv`: a
+second widening would have forked a `_v3` file per the one-file-one-schema rule
+above, splitting live sessions in half to carry a field that is blank in almost
+every row.
+
+**On the harvested side it is its own last column.**
+`harvest_hw_attribution.py::split_step` splits the cell, so `step` keeps exactly
+the value it has always had (`train_2017#verifying` → `train`, phase
+`verifying`) and the row key becomes `(session, step, basis, phase)` — **one step
+may legitimately appear on several rows; sum them before quoting a step total.**
+`(between)` and `ALL` rows carry a BLANK phase: neither names a step whose phase
+could be reported, and `ALL` pools every phase. `interval`-basis rows can only
+ever read `open`, because a step LOG exists only for a step that opened.
+
+**Why**: `(between)` is this table's residual and it is one of the largest
+buckets in it — see §7 of
+`Reports/PIPELINE_SPEEDUP_OPTIONS_2026-09-07.md` — and it is attributable to
+nothing at all. Part of it is the queue, not an idle machine: the
+`spdc1,(between),marker` row of `hw_step_attribution.csv` is a CPU runtime whose
+between-steps time reads `cpu50_frac` at zero with `iowait10_frac` dominant,
+i.e. **blocked on I/O** — queue-side input staging, before its first marker
+opened. (That session is LIVE: its counts and fractions move between harvests, so
+read the row, never a number restated about it.) Phases move that time out of the
+residual and onto a row that names it.
+
+**Writer requirement, because the reader gates on liveness**: the marker's `pid`
+must be the pid of whatever WROTE it. `read_marker` discards a marker whose pid
+is dead (so a SIGKILLed step cannot keep claiming later samples), and `verifying`
+runs after the engine has exited — a queue that copied the engine's pid in would
+have every verifying sample silently blanked.
+
+## hw_meta_{session}.json (lake `phase4/logs/`, one file per session)
+
+Written ONCE by `pipeline/vm_hwlogger.py::write_meta` from
+`vm_hwlogger.py::runtime_facts`, at logger start, beside the session's
+`hw_{session}.csv`. Never rewritten: an existing file always wins, so
+`started_utc` stays on the session's first sample even if the logger is
+restarted. Keys: `session, started_utc, hostname, vcpus, ram_gb, disk_total_gb,
+gpu_name, gpu_mem_mb, kernel, python, marker_path`.
+
+`vcpus` is `os.cpu_count`, `ram_gb` is `/proc/meminfo` `MemTotal` converted from
+kB, `disk_total_gb` is `statvfs("/content")`, `gpu_name`/`gpu_mem_mb` are the
+FIRST line of `nvidia-smi --query-gpu=name,memory.total` (blank on a CPU
+runtime, where the binary is absent), `kernel` is `os.uname().release`, `python`
+is `sys.version.split()[0]`.
+
+**Every field is independently best-effort and BLANK when it could not be
+read** — never 0, and never a guess; the logger must reach its sampling loop
+whatever the environment denies it.
+
+**Why it exists**: every column of `hw_{session}.csv` says what the runtime was
+DOING and nothing anywhere said what it WAS. A session reading 0% GPU for six
+hours could not be told from a session that had no GPU (`gpu_present` in
+`hw_step_attribution.csv` INFERS it from blank cells — an inference, not a
+reading), and hours could not be priced: an A100 hour and a free CPU hour are
+the same number and different money.
+
+Gate: `qc/test_vm_hwlogger.py`, `qc/test_hw_marker.py`, `qc/test_hw_attribution.py`.
+
+## runtime_sessions.csv (phase4/qc/, GENERATED)
+
+Written by `qc/instruments/harvest_runtime_sessions.py`: ONE ROW PER RUNTIME —
+`session, queue, gpu_name, vcpus, ram_gb, hw_first_utc, hw_last_utc, hw_hours,
+gpu_present, heartbeat_first_utc, heartbeat_last_utc, queue_first_row_ts,
+queue_last_row_ts, n_queue_rows, startup_min, idle_tail_min, sources`. `hw_hours`
+is the SPAN of the hw stamps (last − first), not sampled time — cf.
+`hw_step_attribution.csv`, which carries `span_hours` and `hours` as separate
+columns because a stalled logger leaves gaps inside the span.
+
+**Why it exists.** `hw_step_attribution.csv` is keyed on the STEP, so the two
+kinds of wasted VM time both land in its one `(between)` bucket: START-UP (the
+machine is billed, the queue has not written its first row — bootstrap, pip,
+clone, mount) and the IDLE TAIL (the queue wrote its last row and the runtime is
+still alive). Only the first is fixable by editing the pipeline; the second is
+fixable only by stopping the runtime, which CLAUDE.md 3.4 already calls a defect.
+This table splits them, by putting the machine's clock (hw samples, heartbeats)
+next to the queue's clock (status rows) per session.
+
+A session is admitted if it appears in ANY of four homes, and `sources` names
+which: `hw` (`hw_{session}.csv`, `_v2` being the schema and not the name),
+`hw_meta` (`hw_meta_{session}.json`), `heartbeat` (the `session` FIELD inside any
+`heartbeat_*.json`, including a `__conflict-` copy and a stranded
+`.json.prev.{tok}.json` — a bare `.json.prev.{tok}` is NOT read, because the
+writer promised every reader filters on a `.json` suffix — never the filename)
+and `queue_rows` (the `session` column `queue_ledger.py::_status_write` stamps, discovered through
+`phase4seg.names.status_files`). `train_queue_nohup_*.log` filenames carry no
+session — `vm_ops.py::launch_queue` names them after the QUEUE — so they feed
+only the `queue` column.
+
+READER RULES, each earned on a measured row:
+
+- **BLANK IS NEVER ZERO.** `n_queue_rows` blank means the ledger rows are not on
+  the lake, not that the runtime ran no steps. `gpu_present` is `1`/`0`/blank,
+  where blank means no hw sample was parsed at all and `0` means samples exist
+  with every GPU column empty — a CPU runtime. `gpu_name`/`vcpus`/`ram_gb` come
+  from `hw_meta` ONLY and are blank for every session logged before that file
+  existed; `gpu_present` is the measured answer for those.
+- **`queue` is blank rather than guessed.** Two links exist — a heartbeat's
+  `newest_nohup.name`, admitted only when that record's `queue_proc` is non-null
+  (`vm_heartbeat.py::_newest` drops its own-stem filter without one and then
+  reports the newest nohup log on the whole shared mount, routinely another VM's),
+  and the stem of a status FILE holding this session's rows. They agree or the
+  cell is blank with `queue_ambiguous(a,b)` in `sources`.
+- **`queue_last_row_ts` is the last step's START, not its end.**
+  `phase4_train_queue.py::run_step` stamps `ts` when it appends the row in state
+  `RUNNING` and never re-stamps it. So `idle_tail_min` INCLUDES that final step's
+  run time whenever the last row is a step row (not when it is a `VERIFY` row,
+  appended after its step finished). Read it as an UPPER BOUND; the row's own
+  `minutes` is the correction, deliberately not joined here.
+- **`idle_tail_min` is not a tail at all while the queue is still running.**
+  `run_step` appends its row in state `RUNNING`, so a session whose newest row is
+  `RUNNING` has a value that grows with the current step: measured on the live
+  campaign 2026-09-07, `spdg` read 4.4 min and then 10.4 min off the same
+  unchanged row six minutes later. Those rows carry `queue_last_row_RUNNING` in
+  `sources` and are excluded from the instrument's own headline sum.
+- **A NEGATIVE `idle_tail_min` means the beacon stopped before the queue did**,
+  which is a telemetry failure and not an idle tail. It is
+  published rather than clipped, flagged `beacon_ended_before_queue` in `sources`.
+  Measured 2026-09-07 on `pilotcoarse`: the last surviving heartbeat stamp is
+  42.8 min BEFORE the queue's last row and sits INSIDE the queue's span, so the
+  beacon stopped while the work continued (a clock offset would push the stamp
+  outside the span, by a whole hour), and `pilotcoarse2` reports a different
+  `host` and a different GPU, so it is not the same runtime re-bootstrapped under
+  a new session name either. WHY the beacon stopped is not established. Exclude
+  those rows from any sum.
+- **`heartbeat_first_utc` is a ceiling on the beacon's start, not the start.**
+  `vm_heartbeat.py::write_atomic` OVERWRITES one file per session every 60 s, so
+  what survives is the last cycle plus its `prev_ts_utc` plus any stranded
+  `.prev.` file that still ends in `.json`. The earliest of those is the earliest stamp that still exists.
+- **The two clocks are ASSUMED to be one.** hw and heartbeat stamp `...Z`; status
+  rows are `_dt.datetime.now()` on the VM — naive local. Colab runtimes run UTC,
+  so they are compared directly. A whole-hour `startup_min` or `idle_tail_min` is
+  the symptom to check before believing a large value.
+
+**What it measures today, and the gap it exposes (2026-09-07).** 76 sessions.
+Thirteen carry GPU hardware samples; FOUR sessions have both a machine-side stamp
+and a session-stamped queue row, and they are the whole idle-tail measurement:
+`spdg` (A100, hw + rows, but its last row is `RUNNING` — a live step, excluded),
+`pilotcoarse` (flagged `beacon_ended_before_queue`, excluded), and `pilotfine`
+2.3 min + `pilotmed` 11.1 min = **13.4 min of idle tail over two A100 sessions**.
+Those two have `gpu_present` BLANK — no hw CSV was written for them — so the
+instrument's own headline, which keys on `gpu_present`, reports UNMEASURED; their
+GPU model is known only from `heartbeat_{session}.json`'s `gpu.name`, which this
+table deliberately does not admit into `gpu_name` (hw_meta only, per its writer).
+Read that summary line as "no GPU session CONFIRMED FROM HARDWARE SAMPLES has a
+usable tail", never as "no tail was measured".
+
+Everything else is unmeasurable from status rows, and the cause is a ledger loss
+rather than a discovery gap: every per-launch status
+file written after 2026-08-31 is absent from the lake (`hard_year`, `tier1`,
+`trend8`, `overlap_floor`, `offload` — measured absent), and the shared
+`train_queue_status.csv` holds only the latest launch's rows. `queue_ledger.py`
+::`_flush` records the mechanism itself — the `__main__` defect in `::_q` made
+`STATUS_OUT` resolve to the shared file, so each flush replaced the whole ledger
+with one launch's rows. Absence measured here; cause quoted from that docstring,
+not re-verified. Until per-launch status files are on the lake again, this
+column answers for pilot-era sessions only.
+
+Gate: `qc/test_runtime_sessions.py`. Regenerate:
+`py -3.12 qc/instruments/harvest_runtime_sessions.py` (a `landed.py` harvest rung).
+
+## train_queue_status_recovered_20260901_20260907.csv (phase4/qc/ledger_recovery/, GENERATED — a CANDIDATE, not a ledger)
+
+Writer: `qc/instruments/rebuild_queue_ledger.py::main` (rows: `::merge_rows`,
+synthesis: `::synthesise`, write: `::write_csv`). Sidecar:
+`phase4/qc/ledger_recovery/recovery_report.md`, same writer.
+
+**It is not part of any ledger.** The file lives in the REPO. `::assert_not_lake`
+refuses any output path under `lake.BASE`, `lake.COLAB_BASE` or `lake.LOCAL_BASE`,
+so the instrument cannot write it to the lake even by argument. It becomes real
+only if a human copies it into `phase4/qc/` on the lake, at which point every
+reader merges it — the name satisfies `phase4seg/names.py::is_status_file`, which
+is the point of the name and is gated in `qc/test_rebuild_queue_ledger.py`. Do not
+quote its rows as ledger history until that copy happens; quote them as *recovered
+evidence* and say so.
+
+**Columns: exactly the eleven `queue_ledger.py::_status_write` writes** — `job`,
+`year`, `tag`, `step`, `state`, `exit`, `minutes`, `detail`, `ts`, `host`,
+`session`. There is deliberately NO provenance column: a twelfth field would hand
+every reader's `DictReader` a schema it does not know. Provenance is the `detail`
+prefix plus the report.
+
+**Two kinds of row, and `detail` is what tells them apart.**
+- *Snapshot-native* — copied byte-for-byte from the orphaned
+  `train_queue_status.csv.part.*` / `.prev.*` temps in the same directory. Queue-written,
+  unmodified, no prefix.
+- *Recovered* — `detail` begins `RECOVERED-FROM-LOGS:` and quotes the nohup line
+  that is the evidence plus the step log that dated it. Synthesised only where NO
+  snapshot row covers `(year, tag, step)`, so a recovered row never competes with
+  a queue-written one under latest-wins.
+
+**`ts` does not mean the same thing in the two kinds.** A queue-written row carries
+the step's START: `phase4_train_queue.py::run_step` stamps `ts` when it appends the
+`RUNNING` row and mutates that same dict on completion (the same property
+`runtime_sessions.csv`'s `queue_last_row_ts` note records). The nohup log has no
+timestamps, so a recovered row carries the engine step log's `completed:` instead —
+up to `minutes` LATER than the queue would have written. Reshaped to the ledger's
+`%Y-%m-%d %H:%M:%S`, never re-precisioned.
+
+**`minutes` is the queue's own number in both kinds, never the step log's
+`elapsed`.** That field is a formatted string whose unit varies with magnitude —
+`pipeline_log.py::StepLogger._write` emits `0.0s`, `1.1min` or `1.10h` — and it
+spans the ENGINE's `started:`→`completed:`, while the queue's clock also covers
+spawning the child, its pip bootstrap and its imports. Measured on the window:
+labels/2011s reads `0.0s` against the queue's `5.4`; postproc/2017 reads `1.10h`
+against the queue's `66.6`. `cost_report` sums this column. A recovered `TIMEOUT`
+row, whose print carries no minutes, leaves the cell BLANK rather than borrowing a
+number that means something else.
+
+**`host` and `session` are blank on recovered rows.** Neither is derivable from a
+nohup or step log; the nohup filename carries the queue stem and the launch stamp,
+not the session. Blank is the honest value.
+
+**A recovered VERIFY verdict is quoted, never reconstructed** — no printed verdict,
+no row. One consequence, recorded rather than hidden:
+`queue_verify.py::_mb_from_verdict` anchors `(\d+)MB` at the START of a VERIFY
+`detail`, so the prefix defeats that parse and a later fully-skipped-job re-check
+degrades from `OK_CACHED`/`SIZE_CHANGED` to `UNVERIFIED` (existence only). That
+keeps the step's resume credit and forces a re-verify; it cannot produce a false OK.
+
+**Not present at all, by design:** `GUARD:runtag` rows (not step outcomes, and the
+log carries no timestamp for them), resume skips (`- skip job/step (already OK)`
+writes no row), D7 re-verifies of skipped steps, and any `$` command block the
+queue never closed with an outcome line — the runtime died mid-step and no terminal
+state exists to record. The report lists each refusal with its evidence.
+
+**ROW ORDER IS PART OF THE CONTRACT HERE, which it is not in a per-launch file.**
+`run_step` keeps ONE dict per step — flushed as `RUNNING`, mutated in place on
+completion — so a per-launch file holds one row per step and only its terminal
+state. This file is assembled from ORPHANS, and an orphan snapshotted mid-step
+preserves the `RUNNING` half, so both halves can survive **at the same `ts`**.
+`queue_ledger.py::_merged_rows` sorts by `ts` alone with a stable sort, so which of
+two equal-`ts` rows a reader consumes LAST — and therefore which one
+`_completed_steps` believes — is decided by row order.
+`rebuild_queue_ledger.py::_sort_key` orders non-terminal states FIRST within an
+equal `(ts, job, year, tag, step)` group so the terminal row has the final word,
+reproducing what the queue's own file would have shown. Do not re-sort this file on
+the plain column tuple: `"OK" < "RUNNING"` alphabetically, which reverses it and
+revokes a step that finished. The report counts the affected keys.
+
+Two diagnostics in the report exist because suppression withholds them from the
+CSV, and both are resume-relevant: a key the logs show FAILING later than its
+newest surviving row (with the later state, if any, that superseded it), and a key
+whose newest surviving row is still `RUNNING` while a log shows it finished — the
+second reads as a revocation to `_completed_steps`, so the candidate still says
+"re-run".
+
+Gate: `qc/test_rebuild_queue_ledger.py`. Regenerate:
+`py -3.12 qc/instruments/rebuild_queue_ledger.py` (reads the lake's
+`phase4/logs/` read-only; deterministic — two runs are byte-identical).

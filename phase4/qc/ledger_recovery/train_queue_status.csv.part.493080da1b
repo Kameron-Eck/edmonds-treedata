@@ -1,0 +1,10 @@
+job,year,tag,step,state,exit,minutes,detail,ts,host,session
+tier1_science_sample_t1_2011s_base,2011s,t1_2011s_base,train,OK,0,26.9,,2026-09-02 10:44:58,9cdd4cd38abf,t1gpuB
+tier1_science_sample_t1_2011s_base,2011s,t1_2011s_base,VERIFY:train,OK,,,"1113MB, BE19, run_id ok, drive md5 ok (3s)",2026-09-02 11:12:03,9cdd4cd38abf,t1gpuB
+tier1_science_sample_t1_2011s_base,2011s,t1_2011s_base,evaluate,OK,0,13.4,,2026-09-02 11:12:13,9cdd4cd38abf,t1gpuB
+tier1_science_sample_t1_2011s_base,2011s,t1_2011s_base,VERIFY:evaluate,OK,,,"2 rows for 2011s/t1_2011s_base, written 11:24:51",2026-09-02 11:26:00,9cdd4cd38abf,t1gpuB
+tier1_science_sample_t1_2011s_base,2011s,t1_2011s_base,VERIFY,OK,,,"steps subset ['train', 'evaluate'] — no prob raster expected; per-step verifies are the record",2026-09-02 11:26:00,9cdd4cd38abf,t1gpuB
+tier1_science_sample_t1_2011s_base_s2,2011s,t1_2011s_base_s2,GUARD:runtag,GUARD_UNVERIFIED,,,"no live beacons in /content/drive/MyDrive/treedata/phase4/logs (55 heartbeat file(s), all stale or unreadable)",2026-09-02 11:27:43,9cdd4cd38abf,t1gpuB
+tier1_science_sample_t1_2011s_base_s2,2011s,t1_2011s_base_s2,train,OK,0,25.9,,2026-09-02 11:27:46,9cdd4cd38abf,t1gpuB
+tier1_science_sample_t1_2011s_base_s2,2011s,t1_2011s_base_s2,VERIFY:train,OK,,,"1113MB, BE21, run_id ok, drive md5 ok (4s)",2026-09-02 11:53:52,9cdd4cd38abf,t1gpuB
+tier1_science_sample_t1_2011s_base_s2,2011s,t1_2011s_base_s2,evaluate,OK,0,25.1,,2026-09-02 11:53:54,9cdd4cd38abf,t1gpuB

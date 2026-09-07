@@ -1,0 +1,8 @@
+job,year,tag,step,state,exit,minutes,detail,ts,host,session
+(launch),,,GUARD:runtag,GUARD_UNVERIFIED,,,"no live beacons in /content/drive/MyDrive/treedata/phase4/logs (62 heartbeat file(s), all stale or unreadable)",2026-09-05 03:11:58,f177769fa2e9,trend8A2
+trend8_uniform_rgb_trend8_2009,2009,trend8_2009,labels,OK,0,4.2,,2026-09-05 03:16:38,f177769fa2e9,trend8A2
+trend8_uniform_rgb_trend8_2009,2009,trend8_2009,VERIFY:labels,OK,,,citywide: labels step is skipped by design,2026-09-05 03:20:53,f177769fa2e9,trend8A2
+trend8_uniform_rgb_trend8_2009,2009,trend8_2009,tile,OK,0,22.1,,2026-09-05 03:20:53,f177769fa2e9,trend8A2
+trend8_uniform_rgb_trend8_2009,2009,trend8_2009,VERIFY:tile,OK,,,"624 tiles indexed; probed 20 paths, 0 missing",2026-09-05 03:42:59,f177769fa2e9,trend8A2
+trend8_uniform_rgb_trend8_2009,2009,trend8_2009,train,OK,0,39.0,,2026-09-05 03:42:59,f177769fa2e9,trend8A2
+trend8_uniform_rgb_trend8_2009,2009,trend8_2009,VERIFY:train,OK,,,"1113MB, BE20, run_id ok, drive md5 ok (116s)",2026-09-05 04:24:01,f177769fa2e9,trend8A2

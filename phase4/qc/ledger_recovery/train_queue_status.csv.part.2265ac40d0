@@ -1,0 +1,37 @@
+job,year,tag,step,state,exit,minutes,detail,ts,host,session
+tier1_science_sample_t1_2006s_base,2006s,t1_2006s_base,train,OK,0,23.2,,2026-09-02 10:42:43,cbfc39c6b32b,t1gpuA
+tier1_science_sample_t1_2006s_base,2006s,t1_2006s_base,VERIFY:train,OK,,,"1113MB, BE25, run_id ok, drive md5 ok (237s)",2026-09-02 11:10:01,cbfc39c6b32b,t1gpuA
+tier1_science_sample_t1_2006s_base,2006s,t1_2006s_base,evaluate,OK,0,11.0,,2026-09-02 11:10:55,cbfc39c6b32b,t1gpuA
+tier1_science_sample_t1_2006s_base,2006s,t1_2006s_base,VERIFY:evaluate,OK,,,"8 rows for 2006s/t1_2006s_base, written 11:19:03",2026-09-02 11:21:57,cbfc39c6b32b,t1gpuA
+tier1_science_sample_t1_2006s_base,2006s,t1_2006s_base,VERIFY,OK,,,"steps subset ['train', 'evaluate'] — no prob raster expected; per-step verifies are the record",2026-09-02 11:21:57,cbfc39c6b32b,t1gpuA
+tier1_science_sample_t1_2006s_add05,2006s,t1_2006s_add05,train,OK,0,23.0,,2026-09-02 11:21:58,cbfc39c6b32b,t1gpuA
+tier1_science_sample_t1_2006s_add05,2006s,t1_2006s_add05,VERIFY:train,OK,,,"1113MB, BE11, run_id ok, drive md5 ok (5s)",2026-09-02 11:45:22,cbfc39c6b32b,t1gpuA
+tier1_science_sample_t1_2006s_add05,2006s,t1_2006s_add05,evaluate,OK,0,9.3,,2026-09-02 11:45:27,cbfc39c6b32b,t1gpuA
+tier1_science_sample_t1_2006s_add05,2006s,t1_2006s_add05,VERIFY:evaluate,OK,,,"8 rows for 2006s/t1_2006s_add05, written 11:53:57",2026-09-02 11:54:45,cbfc39c6b32b,t1gpuA
+tier1_science_sample_t1_2006s_add05,2006s,t1_2006s_add05,VERIFY,OK,,,"steps subset ['train', 'evaluate'] — no prob raster expected; per-step verifies are the record",2026-09-02 11:54:45,cbfc39c6b32b,t1gpuA
+tier1_science_sample_t1_2006s_add16,2006s,t1_2006s_add16,train,OK,0,26.2,,2026-09-02 11:54:47,cbfc39c6b32b,t1gpuA
+tier1_science_sample_t1_2006s_add16,2006s,t1_2006s_add16,VERIFY:train,OK,,,"1113MB, BE28, run_id ok, drive md5 ok (263s)",2026-09-02 12:25:59,cbfc39c6b32b,t1gpuA
+tier1_science_sample_t1_2006s_add16,2006s,t1_2006s_add16,evaluate,OK,0,6.9,,2026-09-02 12:26:00,cbfc39c6b32b,t1gpuA
+tier1_science_sample_t1_2006s_add16,2006s,t1_2006s_add16,VERIFY:evaluate,OK,,,"8 rows for 2006s/t1_2006s_add16, written 12:31:51",2026-09-02 12:33:51,cbfc39c6b32b,t1gpuA
+tier1_science_sample_t1_2006s_add16,2006s,t1_2006s_add16,VERIFY,OK,,,"steps subset ['train', 'evaluate'] — no prob raster expected; per-step verifies are the record",2026-09-02 12:33:54,cbfc39c6b32b,t1gpuA
+tier1_science_sample_t1_2006s_in05,2006s,t1_2006s_in05,train,OK,0,22.8,,2026-09-02 12:33:57,cbfc39c6b32b,t1gpuA
+tier1_science_sample_t1_2006s_in05,2006s,t1_2006s_in05,VERIFY:train,OK,,,"1113MB, BE14, run_id ok, drive md5 ok (5s)",2026-09-02 12:56:58,cbfc39c6b32b,t1gpuA
+tier1_science_sample_t1_2006s_in05,2006s,t1_2006s_in05,evaluate,OK,0,16.0,,2026-09-02 12:57:02,cbfc39c6b32b,t1gpuA
+tier1_science_sample_t1_2006s_in05,2006s,t1_2006s_in05,VERIFY:evaluate,OK,,,"8 rows for 2006s/t1_2006s_in05, written 13:12:49",2026-09-02 13:13:57,cbfc39c6b32b,t1gpuA
+tier1_science_sample_t1_2006s_in05,2006s,t1_2006s_in05,VERIFY,OK,,,"steps subset ['train', 'evaluate'] — no prob raster expected; per-step verifies are the record",2026-09-02 13:13:59,cbfc39c6b32b,t1gpuA
+tier1_science_sample_t1_2006s_in16,2006s,t1_2006s_in16,train,OK,0,20.7,,2026-09-02 13:14:59,cbfc39c6b32b,t1gpuA
+tier1_science_sample_t1_2006s_in16,2006s,t1_2006s_in16,VERIFY:train,OK,,,"1113MB, BE27, run_id ok, drive md5 ok (281s)",2026-09-02 13:41:27,cbfc39c6b32b,t1gpuA
+tier1_science_sample_t1_2006s_in16,2006s,t1_2006s_in16,evaluate,OK,0,16.3,,2026-09-02 13:41:29,cbfc39c6b32b,t1gpuA
+tier1_science_sample_t1_2006s_in16,2006s,t1_2006s_in16,VERIFY:evaluate,OK,,,"8 rows for 2006s/t1_2006s_in16, written 13:56:54",2026-09-02 13:57:51,cbfc39c6b32b,t1gpuA
+tier1_science_sample_t1_2006s_in16,2006s,t1_2006s_in16,VERIFY,OK,,,"steps subset ['train', 'evaluate'] — no prob raster expected; per-step verifies are the record",2026-09-02 13:57:51,cbfc39c6b32b,t1gpuA
+tier1_science_sample_t1_2011s_cor05,2011s,t1_2011s_cor05,tile,OK,0,22.9,,2026-09-02 13:57:53,cbfc39c6b32b,t1gpuA
+tier1_science_sample_t1_2011s_cor05,2011s,t1_2011s_cor05,VERIFY:tile,OK,,,"281 tiles indexed; probed 20 paths, 0 missing",2026-09-02 14:20:48,cbfc39c6b32b,t1gpuA
+tier1_science_sample_t1_2011s_cor05,2011s,t1_2011s_cor05,train,OK,0,20.1,,2026-09-02 14:20:48,cbfc39c6b32b,t1gpuA
+tier1_science_sample_t1_2011s_cor05,2011s,t1_2011s_cor05,VERIFY:train,OK,,,"1113MB, BE18, run_id ok, drive md5 ok (4s)",2026-09-02 14:41:04,cbfc39c6b32b,t1gpuA
+tier1_science_sample_t1_2011s_cor05,2011s,t1_2011s_cor05,evaluate,OK,0,17.9,,2026-09-02 14:41:05,cbfc39c6b32b,t1gpuA
+tier1_science_sample_t1_2011s_cor05,2011s,t1_2011s_cor05,VERIFY:evaluate,OK,,,"2 rows for 2011s/t1_2011s_cor05, written 14:58:34",2026-09-02 14:58:59,cbfc39c6b32b,t1gpuA
+tier1_science_sample_t1_2011s_cor05,2011s,t1_2011s_cor05,VERIFY,OK,,,"steps subset ['labels', 'tile', 'train', 'evaluate'] — no prob raster expected; per-step verifies are the record",2026-09-02 14:58:59,cbfc39c6b32b,t1gpuA
+tier1_science_sample_t1_2011s_cor10,2011s,t1_2011s_cor10,GUARD:runtag,GUARD_UNVERIFIED,,,"no live beacons in /content/drive/MyDrive/treedata/phase4/logs (55 heartbeat file(s), all stale or unreadable)",2026-09-02 14:59:36,cbfc39c6b32b,t1gpuA
+tier1_science_sample_t1_2011s_cor10,2011s,t1_2011s_cor10,labels,OK,0,13.9,,2026-09-02 14:59:55,cbfc39c6b32b,t1gpuA
+tier1_science_sample_t1_2011s_cor10,2011s,t1_2011s_cor10,VERIFY:labels,OK,,,citywide: labels step is skipped by design,2026-09-02 15:13:56,cbfc39c6b32b,t1gpuA
+tier1_science_sample_t1_2011s_cor10,2011s,t1_2011s_cor10,tile,OK,0,29.1,,2026-09-02 15:13:56,cbfc39c6b32b,t1gpuA

@@ -1,0 +1,11 @@
+job,year,tag,step,state,exit,minutes,detail,ts,host,session
+tier1_science_sample_t1_2006s_base,2006s,t1_2006s_base,inference,OK,0,5.0,,2026-09-03 00:19:56,bfb6c24dcb56,t1gpuE
+tier1_science_sample_t1_2006s_base,2006s,t1_2006s_base,VERIFY:inference,OK,,,10MB valid=15.4% maxprob=0.791 p99.9=0.736 [2369x1687 sample],2026-09-03 00:24:58,bfb6c24dcb56,t1gpuE
+tier1_science_sample_t1_2006s_base,2006s,t1_2006s_base,VERIFY,OK,,,10MB valid=15.4% maxprob=0.791 p99.9=0.736 [2369x1687 sample],2026-09-03 00:24:58,bfb6c24dcb56,t1gpuE
+tier1_science_sample_t1_2006s_add05,2006s,t1_2006s_add05,inference,OK,0,4.0,,2026-09-03 00:25:02,bfb6c24dcb56,t1gpuE
+tier1_science_sample_t1_2006s_add05,2006s,t1_2006s_add05,VERIFY:inference,OK,,,11MB valid=15.4% maxprob=0.811 p99.9=0.760 [2369x1687 sample],2026-09-03 00:29:01,bfb6c24dcb56,t1gpuE
+tier1_science_sample_t1_2006s_add05,2006s,t1_2006s_add05,VERIFY,OK,,,11MB valid=15.4% maxprob=0.811 p99.9=0.760 [2369x1687 sample],2026-09-03 00:29:01,bfb6c24dcb56,t1gpuE
+tier1_science_sample_t1_2006s_add16,2006s,t1_2006s_add16,inference,OK,0,2.9,,2026-09-03 00:29:54,bfb6c24dcb56,t1gpuE
+tier1_science_sample_t1_2006s_add16,2006s,t1_2006s_add16,VERIFY:inference,WEAK_CALIBRATION,,,7MB valid=15.4% maxprob=0.547 p99.9=0.512 [2369x1687 sample],2026-09-03 00:32:55,bfb6c24dcb56,t1gpuE
+tier1_science_sample_t1_2006s_add16,2006s,t1_2006s_add16,VERIFY,WEAK_CALIBRATION,,,7MB valid=15.4% maxprob=0.547 p99.9=0.512 [2369x1687 sample],2026-09-03 00:32:55,bfb6c24dcb56,t1gpuE
+tier1_science_sample_t1_2006s_in05,2006s,t1_2006s_in05,inference,OK,0,8.0,,2026-09-03 00:32:59,bfb6c24dcb56,t1gpuE

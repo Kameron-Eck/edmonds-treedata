@@ -1,0 +1,4 @@
+job,year,tag,step,state,exit,minutes,detail,ts,host,session
+tier1_science_sample_t1_2016_base,2016,t1_2016_base,labels,OK,0,6.9,,2026-09-02 05:20:58,beaacebe7666,t1stageC
+tier1_science_sample_t1_2016_base,2016,t1_2016_base,VERIFY:labels,OK,,,citywide: labels step is skipped by design,2026-09-02 05:27:54,beaacebe7666,t1stageC
+tier1_science_sample_t1_2016_base,2016,t1_2016_base,tile,OK,0,16.2,,2026-09-02 05:27:54,beaacebe7666,t1stageC

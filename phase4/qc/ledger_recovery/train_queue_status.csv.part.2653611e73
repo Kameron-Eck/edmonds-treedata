@@ -1,0 +1,2 @@
+job,year,tag,step,state,exit,minutes,detail,ts,host,session
+(launch),,,GUARD:runtag,GUARD_UNVERIFIED,,,"no live beacons in /content/drive/MyDrive/treedata/phase4/logs (72 heartbeat file(s), all stale or unreadable)",2026-09-07 21:45:59,7afa7da53fe7,spdc1

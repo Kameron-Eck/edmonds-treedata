@@ -1,0 +1,12 @@
+job,year,tag,step,state,exit,minutes,detail,ts,host,session
+overlap_floor_of_2017k,2017k,of_2017k,labels,OK,0,6.4,,2026-09-05 15:02:36,4a58ba2ccf6e,ofB
+overlap_floor_of_2017k,2017k,of_2017k,VERIFY:labels,OK,,,citywide: labels step is skipped by design,2026-09-05 15:09:52,4a58ba2ccf6e,ofB
+overlap_floor_of_2017k,2017k,of_2017k,tile,OK,0,4.1,,2026-09-05 15:09:53,4a58ba2ccf6e,ofB
+overlap_floor_of_2017k,2017k,of_2017k,VERIFY:tile,MISSING,,,no 2017k__of_2017k/tile_index_2017k.csv,2026-09-05 15:14:04,4a58ba2ccf6e,ofB
+overlap_floor_of_2020,2020,of_2020,labels,OK,0,7.0,,2026-09-05 15:14:22,4a58ba2ccf6e,ofB
+overlap_floor_of_2020,2020,of_2020,VERIFY:labels,OK,,,citywide: labels step is skipped by design,2026-09-05 15:21:38,4a58ba2ccf6e,ofB
+overlap_floor_of_2020,2020,of_2020,tile,OK,0,33.2,,2026-09-05 15:21:38,4a58ba2ccf6e,ofB
+overlap_floor_of_2020,2020,of_2020,VERIFY:tile,OK,,,"690 tiles indexed; probed 20 paths, 0 missing",2026-09-05 15:54:51,4a58ba2ccf6e,ofB
+overlap_floor_of_2020,2020,of_2020,train,OK,0,38.0,,2026-09-05 15:54:51,4a58ba2ccf6e,ofB
+overlap_floor_of_2020,2020,of_2020,VERIFY:train,OK,,,"1113MB, BE12, run_id ok, drive md5 ok (1s)",2026-09-05 16:32:59,4a58ba2ccf6e,ofB
+overlap_floor_of_2020,2020,of_2020,evaluate,OK,0,2.1,,2026-09-05 16:33:53,4a58ba2ccf6e,ofB

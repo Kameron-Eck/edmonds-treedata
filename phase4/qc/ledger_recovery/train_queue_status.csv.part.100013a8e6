@@ -1,0 +1,13 @@
+job,year,tag,step,state,exit,minutes,detail,ts,host,session
+(launch),,,GUARD:runtag,GUARD_UNVERIFIED,,,"no live beacons in /content/drive/MyDrive/treedata/phase4/logs (45 heartbeat file(s), all stale or unreadable)",2026-09-01 21:18:46,38761790de03,hardyear4
+hard_year_pilot_hy_e3_2011s,2011s,hy_e3_2011s,labels,OK,0,5.4,,2026-09-01 21:21:39,38761790de03,hardyear4
+hard_year_pilot_hy_e3_2011s,2011s,hy_e3_2011s,VERIFY:labels,OK,,,citywide: labels step is skipped by design,2026-09-01 21:27:53,38761790de03,hardyear4
+hard_year_pilot_hy_e3_2011s,2011s,hy_e3_2011s,tile,OK,0,8.0,,2026-09-01 21:27:54,38761790de03,hardyear4
+hard_year_pilot_hy_e3_2011s,2011s,hy_e3_2011s,VERIFY:tile,OK,,,"589 tiles indexed; probed 20 paths, 0 missing",2026-09-01 21:35:56,38761790de03,hardyear4
+hard_year_pilot_hy_e3_2011s,2011s,hy_e3_2011s,train,OK,0,42.1,,2026-09-01 21:35:56,38761790de03,hardyear4
+hard_year_pilot_hy_e3_2011s,2011s,hy_e3_2011s,VERIFY:train,OK,,,"1113MB, BE16, run_id ok, drive md5 ok (1s)",2026-09-01 22:20:05,38761790de03,hardyear4
+hard_year_pilot_hy_e3_2011s,2011s,hy_e3_2011s,evaluate,OK,0,7.9,,2026-09-01 22:20:51,38761790de03,hardyear4
+hard_year_pilot_hy_e3_2011s,2011s,hy_e3_2011s,VERIFY:evaluate,OK,,,"2 rows for 2011s/hy_e3_2011s, written 22:28:39",2026-09-01 22:28:47,38761790de03,hardyear4
+hard_year_pilot_hy_e3_2011s,2011s,hy_e3_2011s,inference,OK,0,4.0,,2026-09-01 22:28:47,38761790de03,hardyear4
+hard_year_pilot_hy_e3_2011s,2011s,hy_e3_2011s,VERIFY:inference,OK,,,334MB valid=79.9% maxprob=0.913 p99.9=0.854 [2369x1687 sample],2026-09-01 22:32:49,38761790de03,hardyear4
+hard_year_pilot_hy_e3_2011s,2011s,hy_e3_2011s,postproc,OK,0,2.2,,2026-09-01 22:32:49,38761790de03,hardyear4

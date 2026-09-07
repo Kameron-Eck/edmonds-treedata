@@ -1,0 +1,16 @@
+job,year,tag,step,state,exit,minutes,detail,ts,host,session
+(launch),,,GUARD:runtag,GUARD_UNVERIFIED,,,"no live beacons in /content/drive/MyDrive/treedata/phase4/logs (63 heartbeat file(s), all stale or unreadable)",2026-09-05 14:56:51,b7684324090b,ofA
+overlap_floor_of_2017,2017,of_2017,labels,OK,0,7.0,,2026-09-05 14:59:45,b7684324090b,ofA
+overlap_floor_of_2017,2017,of_2017,VERIFY:labels,OK,,,citywide: labels step is skipped by design,2026-09-05 15:06:48,b7684324090b,ofA
+overlap_floor_of_2017,2017,of_2017,tile,OK,0,43.2,,2026-09-05 15:06:48,b7684324090b,ofA
+overlap_floor_of_2017,2017,of_2017,VERIFY:tile,OK,,,"650 tiles indexed; probed 20 paths, 0 missing",2026-09-05 15:50:25,b7684324090b,ofA
+overlap_floor_of_2017,2017,of_2017,train,OK,0,40.6,,2026-09-05 15:50:28,b7684324090b,ofA
+overlap_floor_of_2017,2017,of_2017,VERIFY:train,OK,,,"1113MB, BE20, run_id ok, drive md5 ok (1s)",2026-09-05 16:31:37,b7684324090b,ofA
+overlap_floor_of_2017,2017,of_2017,evaluate,OK,0,1.0,,2026-09-05 16:31:38,b7684324090b,ofA
+overlap_floor_of_2017,2017,of_2017,VERIFY:evaluate,OK,,,"2 rows for 2017/of_2017, written 16:32:28",2026-09-05 16:32:37,b7684324090b,ofA
+overlap_floor_of_2017,2017,of_2017,inference,OK,0,70.4,,2026-09-05 16:32:37,b7684324090b,ofA
+overlap_floor_of_2017,2017,of_2017,VERIFY:inference,OK,,,3028MB valid=87.8% maxprob=0.862 p99.9=0.614 [2387x1674 sample],2026-09-05 17:43:02,b7684324090b,ofA
+overlap_floor_of_2017,2017,of_2017,postproc,OK,0,66.6,,2026-09-05 17:43:02,b7684324090b,ofA
+overlap_floor_of_2017,2017,of_2017,VERIFY:postproc,OK,,,"mask 290MB, gpkg 38.4MB",2026-09-05 18:49:39,b7684324090b,ofA
+overlap_floor_of_2017,2017,of_2017,VERIFY,OK,,,3028MB valid=87.8% maxprob=0.862 p99.9=0.614 [2387x1674 sample],2026-09-05 18:49:39,b7684324090b,ofA
+overlap_floor_of_2017s,2017s,of_2017s,labels,OK,0,3.3,,2026-09-05 18:49:41,b7684324090b,ofA

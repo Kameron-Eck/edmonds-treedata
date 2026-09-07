@@ -1,0 +1,31 @@
+job,year,tag,step,state,exit,minutes,detail,ts,host,session
+(launch),,,GUARD:runtag,GUARD_UNVERIFIED,,,"no live beacons in /content/drive/MyDrive/treedata/phase4/logs (62 heartbeat file(s), all stale or unreadable)",2026-09-05 03:11:58,f177769fa2e9,trend8A2
+trend8_uniform_rgb_trend8_2009,2009,trend8_2009,labels,OK,0,4.2,,2026-09-05 03:16:38,f177769fa2e9,trend8A2
+trend8_uniform_rgb_trend8_2009,2009,trend8_2009,VERIFY:labels,OK,,,citywide: labels step is skipped by design,2026-09-05 03:20:53,f177769fa2e9,trend8A2
+trend8_uniform_rgb_trend8_2009,2009,trend8_2009,tile,OK,0,22.1,,2026-09-05 03:20:53,f177769fa2e9,trend8A2
+trend8_uniform_rgb_trend8_2009,2009,trend8_2009,VERIFY:tile,OK,,,"624 tiles indexed; probed 20 paths, 0 missing",2026-09-05 03:42:59,f177769fa2e9,trend8A2
+trend8_uniform_rgb_trend8_2009,2009,trend8_2009,train,OK,0,39.0,,2026-09-05 03:42:59,f177769fa2e9,trend8A2
+trend8_uniform_rgb_trend8_2009,2009,trend8_2009,VERIFY:train,OK,,,"1113MB, BE20, run_id ok, drive md5 ok (116s)",2026-09-05 04:24:01,f177769fa2e9,trend8A2
+trend8_uniform_rgb_trend8_2009,2009,trend8_2009,evaluate,OK,0,2.8,,2026-09-05 04:24:50,f177769fa2e9,trend8A2
+trend8_uniform_rgb_trend8_2009,2009,trend8_2009,VERIFY:evaluate,OK,,,"2 rows for 2009/trend8_2009, written 04:27:00",2026-09-05 04:27:40,f177769fa2e9,trend8A2
+trend8_uniform_rgb_trend8_2009,2009,trend8_2009,inference,OK,0,6.1,,2026-09-05 04:27:40,f177769fa2e9,trend8A2
+trend8_uniform_rgb_trend8_2009,2009,trend8_2009,VERIFY:inference,OK,,,468MB valid=94.9% maxprob=0.921 p99.9=0.807 [2387x1675 sample],2026-09-05 04:33:49,f177769fa2e9,trend8A2
+trend8_uniform_rgb_trend8_2009,2009,trend8_2009,postproc,OK,0,4.8,,2026-09-05 04:33:49,f177769fa2e9,trend8A2
+trend8_uniform_rgb_trend8_2009,2009,trend8_2009,VERIFY:postproc,OK,,,"mask 33MB, gpkg 17.8MB",2026-09-05 04:38:37,f177769fa2e9,trend8A2
+trend8_uniform_rgb_trend8_2009,2009,trend8_2009,VERIFY,OK,,,468MB valid=94.9% maxprob=0.921 p99.9=0.807 [2387x1675 sample],2026-09-05 04:38:37,f177769fa2e9,trend8A2
+trend8_uniform_rgb_trend8_2011s,2011s,trend8_2011s,labels,OK,0,6.2,,2026-09-05 04:38:38,f177769fa2e9,trend8A2
+trend8_uniform_rgb_trend8_2011s,2011s,trend8_2011s,VERIFY:labels,OK,,,citywide: labels step is skipped by design,2026-09-05 04:44:54,f177769fa2e9,trend8A2
+trend8_uniform_rgb_trend8_2011s,2011s,trend8_2011s,tile,OK,0,28.1,,2026-09-05 04:44:54,f177769fa2e9,trend8A2
+trend8_uniform_rgb_trend8_2011s,2011s,trend8_2011s,VERIFY:tile,OK,,,"589 tiles indexed; probed 20 paths, 0 missing",2026-09-05 05:13:37,f177769fa2e9,trend8A2
+trend8_uniform_rgb_trend8_2011s,2011s,trend8_2011s,train,OK,0,35.1,,2026-09-05 05:13:37,f177769fa2e9,trend8A2
+trend8_uniform_rgb_trend8_2011s,2011s,trend8_2011s,VERIFY:train,UNVERIFIED,,,"1113MB, BE24, run_id ok, DRIVE HOLDS DIFFERENT BYTES: mount md5 d7c4b8cd, drive absent after 602s — this VM is reading a file the lake does not have",2026-09-05 05:58:53,f177769fa2e9,trend8A2
+trend8_uniform_rgb_trend8_2011s,2011s,trend8_2011s,evaluate,OK,0,2.9,,2026-09-05 05:58:55,f177769fa2e9,trend8A2
+trend8_uniform_rgb_trend8_2011s,2011s,trend8_2011s,VERIFY:evaluate,OK,,,"2 rows for 2011s/trend8_2011s, written 06:01:24",2026-09-05 06:01:51,f177769fa2e9,trend8A2
+trend8_uniform_rgb_trend8_2011s,2011s,trend8_2011s,inference,OK,0,3.9,,2026-09-05 06:01:51,f177769fa2e9,trend8A2
+trend8_uniform_rgb_trend8_2011s,2011s,trend8_2011s,VERIFY:inference,OK,,,328MB valid=79.9% maxprob=0.882 p99.9=0.835 [2369x1687 sample],2026-09-05 06:05:45,f177769fa2e9,trend8A2
+trend8_uniform_rgb_trend8_2011s,2011s,trend8_2011s,postproc,OK,0,3.1,,2026-09-05 06:05:45,f177769fa2e9,trend8A2
+trend8_uniform_rgb_trend8_2011s,2011s,trend8_2011s,VERIFY:postproc,OK,,,"mask 19MB, gpkg 70.9MB",2026-09-05 06:08:53,f177769fa2e9,trend8A2
+trend8_uniform_rgb_trend8_2011s,2011s,trend8_2011s,VERIFY,OK,,,328MB valid=79.9% maxprob=0.882 p99.9=0.835 [2369x1687 sample],2026-09-05 06:08:53,f177769fa2e9,trend8A2
+trend8_uniform_rgb_trend8_2016,2016,trend8_2016,labels,OK,0,9.0,,2026-09-05 06:08:55,f177769fa2e9,trend8A2
+trend8_uniform_rgb_trend8_2016,2016,trend8_2016,VERIFY:labels,OK,,,citywide: labels step is skipped by design,2026-09-05 06:17:56,f177769fa2e9,trend8A2
+trend8_uniform_rgb_trend8_2016,2016,trend8_2016,tile,OK,0,22.0,,2026-09-05 06:17:56,f177769fa2e9,trend8A2

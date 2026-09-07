@@ -1,0 +1,16 @@
+job,year,tag,step,state,exit,minutes,detail,ts,host,session
+(launch),,,GUARD:runtag,GUARD_UNVERIFIED,,,"no live beacons in /content/drive/MyDrive/treedata/phase4/logs (62 heartbeat file(s), all stale or unreadable)",2026-09-05 03:13:07,cc4e9c9545e8,trend8B2
+trend8_uniform_rgb_trend8_2013,2013,trend8_2013,labels,OK,0,9.0,,2026-09-05 03:18:50,cc4e9c9545e8,trend8B2
+trend8_uniform_rgb_trend8_2013,2013,trend8_2013,VERIFY:labels,OK,,,citywide: labels step is skipped by design,2026-09-05 03:27:55,cc4e9c9545e8,trend8B2
+trend8_uniform_rgb_trend8_2013,2013,trend8_2013,tile,OK,0,24.9,,2026-09-05 03:27:55,cc4e9c9545e8,trend8B2
+trend8_uniform_rgb_trend8_2013,2013,trend8_2013,VERIFY:tile,OK,,,"628 tiles indexed; probed 20 paths, 0 missing",2026-09-05 03:52:52,cc4e9c9545e8,trend8B2
+trend8_uniform_rgb_trend8_2013,2013,trend8_2013,train,OK,0,41.9,,2026-09-05 03:52:52,cc4e9c9545e8,trend8B2
+trend8_uniform_rgb_trend8_2013,2013,trend8_2013,VERIFY:train,OK,,,"1113MB, BE17, run_id ok, drive md5 ok (313s)",2026-09-05 04:40:05,cc4e9c9545e8,trend8B2
+trend8_uniform_rgb_trend8_2013,2013,trend8_2013,evaluate,OK,0,2.9,,2026-09-05 04:40:57,cc4e9c9545e8,trend8B2
+trend8_uniform_rgb_trend8_2013,2013,trend8_2013,VERIFY:evaluate,OK,,,"2 rows for 2013/trend8_2013, written 04:43:43",2026-09-05 04:43:54,cc4e9c9545e8,trend8B2
+trend8_uniform_rgb_trend8_2013,2013,trend8_2013,inference,OK,0,24.1,,2026-09-05 04:43:54,cc4e9c9545e8,trend8B2
+trend8_uniform_rgb_trend8_2013,2013,trend8_2013,VERIFY:inference,OK,,,2395MB valid=90.6% maxprob=0.921 p99.9=0.846 [2385x1676 sample],2026-09-05 05:08:24,cc4e9c9545e8,trend8B2
+trend8_uniform_rgb_trend8_2013,2013,trend8_2013,postproc,OK,0,17.5,,2026-09-05 05:08:24,cc4e9c9545e8,trend8B2
+trend8_uniform_rgb_trend8_2013,2013,trend8_2013,VERIFY:postproc,OK,,,"mask 95MB, gpkg 24.9MB",2026-09-05 05:25:57,cc4e9c9545e8,trend8B2
+trend8_uniform_rgb_trend8_2013,2013,trend8_2013,VERIFY,OK,,,2395MB valid=90.6% maxprob=0.921 p99.9=0.846 [2385x1676 sample],2026-09-05 05:25:57,cc4e9c9545e8,trend8B2
+trend8_uniform_rgb_trend8_2015,2015,trend8_2015,labels,OK,0,5.0,,2026-09-05 05:25:59,cc4e9c9545e8,trend8B2

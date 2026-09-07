@@ -1,0 +1,39 @@
+job,year,tag,step,state,exit,minutes,detail,ts,host,session
+(launch),,,GUARD:runtag,GUARD_UNVERIFIED,,,"no live beacons in /content/drive/MyDrive/treedata/phase4/logs (63 heartbeat file(s), all stale or unreadable)",2026-09-05 14:56:51,b7684324090b,ofA
+overlap_floor_of_2017,2017,of_2017,labels,OK,0,7.0,,2026-09-05 14:59:45,b7684324090b,ofA
+overlap_floor_of_2017,2017,of_2017,VERIFY:labels,OK,,,citywide: labels step is skipped by design,2026-09-05 15:06:48,b7684324090b,ofA
+overlap_floor_of_2017,2017,of_2017,tile,OK,0,43.2,,2026-09-05 15:06:48,b7684324090b,ofA
+overlap_floor_of_2017,2017,of_2017,VERIFY:tile,OK,,,"650 tiles indexed; probed 20 paths, 0 missing",2026-09-05 15:50:25,b7684324090b,ofA
+overlap_floor_of_2017,2017,of_2017,train,OK,0,40.6,,2026-09-05 15:50:28,b7684324090b,ofA
+overlap_floor_of_2017,2017,of_2017,VERIFY:train,OK,,,"1113MB, BE20, run_id ok, drive md5 ok (1s)",2026-09-05 16:31:37,b7684324090b,ofA
+overlap_floor_of_2017,2017,of_2017,evaluate,OK,0,1.0,,2026-09-05 16:31:38,b7684324090b,ofA
+overlap_floor_of_2017,2017,of_2017,VERIFY:evaluate,OK,,,"2 rows for 2017/of_2017, written 16:32:28",2026-09-05 16:32:37,b7684324090b,ofA
+overlap_floor_of_2017,2017,of_2017,inference,OK,0,70.4,,2026-09-05 16:32:37,b7684324090b,ofA
+overlap_floor_of_2017,2017,of_2017,VERIFY:inference,OK,,,3028MB valid=87.8% maxprob=0.862 p99.9=0.614 [2387x1674 sample],2026-09-05 17:43:02,b7684324090b,ofA
+overlap_floor_of_2017,2017,of_2017,postproc,OK,0,66.6,,2026-09-05 17:43:02,b7684324090b,ofA
+overlap_floor_of_2017,2017,of_2017,VERIFY:postproc,OK,,,"mask 290MB, gpkg 38.4MB",2026-09-05 18:49:39,b7684324090b,ofA
+overlap_floor_of_2017,2017,of_2017,VERIFY,OK,,,3028MB valid=87.8% maxprob=0.862 p99.9=0.614 [2387x1674 sample],2026-09-05 18:49:39,b7684324090b,ofA
+overlap_floor_of_2017s,2017s,of_2017s,labels,OK,0,3.3,,2026-09-05 18:49:41,b7684324090b,ofA
+overlap_floor_of_2017s,2017s,of_2017s,VERIFY:labels,OK,,,citywide: labels step is skipped by design,2026-09-05 18:54:43,b7684324090b,ofA
+overlap_floor_of_2017s,2017s,of_2017s,tile,OK,0,17.1,,2026-09-05 18:54:43,b7684324090b,ofA
+overlap_floor_of_2017s,2017s,of_2017s,VERIFY:tile,OK,,,"557 tiles indexed; probed 20 paths, 0 missing",2026-09-05 19:11:50,b7684324090b,ofA
+overlap_floor_of_2017s,2017s,of_2017s,train,OK,0,35.2,,2026-09-05 19:11:50,b7684324090b,ofA
+overlap_floor_of_2017s,2017s,of_2017s,VERIFY:train,OK,,,"1113MB, BE29, run_id ok, drive md5 ok (1s)",2026-09-05 19:47:38,b7684324090b,ofA
+overlap_floor_of_2017s,2017s,of_2017s,evaluate,OK,0,2.2,,2026-09-05 19:47:38,b7684324090b,ofA
+overlap_floor_of_2017s,2017s,of_2017s,VERIFY:evaluate,OK,,,"2 rows for 2017s/of_2017s, written 19:49:02",2026-09-05 19:49:50,b7684324090b,ofA
+overlap_floor_of_2017s,2017s,of_2017s,inference,OK,0,4.1,,2026-09-05 19:49:50,b7684324090b,ofA
+overlap_floor_of_2017s,2017s,of_2017s,VERIFY:inference,OK,,,323MB valid=100.0% maxprob=0.906 p99.9=0.835 [2369x1687 sample],2026-09-05 19:53:56,b7684324090b,ofA
+overlap_floor_of_2017s,2017s,of_2017s,postproc,OK,0,3.0,,2026-09-05 19:53:56,b7684324090b,ofA
+overlap_floor_of_2017s,2017s,of_2017s,VERIFY:postproc,OK,,,"mask 16MB, gpkg 54.9MB",2026-09-05 19:56:56,b7684324090b,ofA
+overlap_floor_of_2017s,2017s,of_2017s,VERIFY,OK,,,323MB valid=100.0% maxprob=0.906 p99.9=0.835 [2369x1687 sample],2026-09-05 19:56:56,b7684324090b,ofA
+overlap_floor_of_2017n,2017n,of_2017n,labels,OK,0,4.8,,2026-09-05 19:56:58,b7684324090b,ofA
+overlap_floor_of_2017n,2017n,of_2017n,VERIFY:labels,OK,,,citywide: labels step is skipped by design,2026-09-05 20:01:48,b7684324090b,ofA
+overlap_floor_of_2017n,2017n,of_2017n,tile,OK,0,15.8,,2026-09-05 20:01:48,b7684324090b,ofA
+overlap_floor_of_2017n,2017n,of_2017n,VERIFY:tile,OK,,,"582 tiles indexed; probed 20 paths, 0 missing",2026-09-05 20:17:34,b7684324090b,ofA
+overlap_floor_of_2017n,2017n,of_2017n,train,OK,0,18.4,,2026-09-05 20:17:34,b7684324090b,ofA
+overlap_floor_of_2017n,2017n,of_2017n,VERIFY:train,OK,,,"773MB, AE14, run_id ok, drive md5 ok (1s)",2026-09-05 20:36:57,b7684324090b,ofA
+overlap_floor_of_2017n,2017n,of_2017n,evaluate,OK,0,1.8,,2026-09-05 20:36:57,b7684324090b,ofA
+overlap_floor_of_2017n,2017n,of_2017n,VERIFY:evaluate,OK,,,"2 rows for 2017n/of_2017n, written 20:38:42",2026-09-05 20:38:47,b7684324090b,ofA
+overlap_floor_of_2017n,2017n,of_2017n,inference,OK,0,1.2,,2026-09-05 20:38:47,b7684324090b,ofA
+overlap_floor_of_2017n,2017n,of_2017n,VERIFY:inference,WEAK_CALIBRATION,,,28MB valid=100.0% maxprob=0.724 p99.9=0.602 [2379x1681 sample],2026-09-05 20:40:04,b7684324090b,ofA
+overlap_floor_of_2017n,2017n,of_2017n,postproc,OK,0,1.0,,2026-09-05 20:40:04,b7684324090b,ofA

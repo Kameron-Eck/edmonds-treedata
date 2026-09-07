@@ -1,0 +1,19 @@
+job,year,tag,step,state,exit,minutes,detail,ts,host,session
+tier1_science_sample_t1_2011s_cor02,2011s,t1_2011s_cor02,train,OK,0,2.2,,2026-09-02 20:03:47,a151c0467079,t1gpuD
+tier1_science_sample_t1_2011s_cor02,2011s,t1_2011s_cor02,VERIFY:train,MISSING,,,no sem_best_2011s_t1_2011s_cor02.pt,2026-09-02 20:07:54,a151c0467079,t1gpuD
+tier1_science_sample_t1_2016_in05,2016,t1_2016_in05,train,OK,0,27.6,,2026-09-02 20:07:58,a151c0467079,t1gpuD
+tier1_science_sample_t1_2016_in05,2016,t1_2016_in05,VERIFY:train,OK,,,"1113MB, BE9, run_id ok, drive md5 ok (5s)",2026-09-02 20:35:47,a151c0467079,t1gpuD
+tier1_science_sample_t1_2016_in05,2016,t1_2016_in05,evaluate,OK,0,3.8,,2026-09-02 20:35:48,a151c0467079,t1gpuD
+tier1_science_sample_t1_2016_in05,2016,t1_2016_in05,VERIFY:evaluate,OK,,,"2 rows for 2016/t1_2016_in05, written 20:38:03",2026-09-02 20:39:38,a151c0467079,t1gpuD
+tier1_science_sample_t1_2016_in05,2016,t1_2016_in05,VERIFY,OK,,,"steps subset ['train', 'evaluate'] — no prob raster expected; per-step verifies are the record",2026-09-02 20:39:38,a151c0467079,t1gpuD
+tier1_science_sample_t1_2016_in16,2016,t1_2016_in16,train,OK,0,31.2,,2026-09-02 20:39:38,a151c0467079,t1gpuD
+tier1_science_sample_t1_2016_in16,2016,t1_2016_in16,VERIFY:train,OK,,,"1113MB, BE23, run_id ok, drive md5 ok (400s)",2026-09-02 21:17:40,a151c0467079,t1gpuD
+tier1_science_sample_t1_2016_in16,2016,t1_2016_in16,evaluate,OK,0,2.2,,2026-09-02 21:17:42,a151c0467079,t1gpuD
+tier1_science_sample_t1_2016_in16,2016,t1_2016_in16,VERIFY:evaluate,OK,,,"2 rows for 2016/t1_2016_in16, written 21:19:37",2026-09-02 21:19:58,a151c0467079,t1gpuD
+tier1_science_sample_t1_2016_in16,2016,t1_2016_in16,VERIFY,OK,,,"steps subset ['train', 'evaluate'] — no prob raster expected; per-step verifies are the record",2026-09-02 21:19:58,a151c0467079,t1gpuD
+tier1_science_sample_t1_2016_nir,2016,t1_2016_nir,train,OK,0,29.5,,2026-09-02 21:19:58,a151c0467079,t1gpuD
+tier1_science_sample_t1_2016_nir,2016,t1_2016_nir,VERIFY:train,OK,,,"1113MB, BE22, run_id ok, drive md5 ok (4s)",2026-09-02 21:49:41,a151c0467079,t1gpuD
+tier1_science_sample_t1_2016_nir,2016,t1_2016_nir,evaluate,OK,0,2.0,,2026-09-02 21:49:43,a151c0467079,t1gpuD
+tier1_science_sample_t1_2016_nir,2016,t1_2016_nir,VERIFY:evaluate,OK,,,"2 rows for 2016/t1_2016_nir, written 21:51:06",2026-09-02 21:51:43,a151c0467079,t1gpuD
+tier1_science_sample_t1_2016_nir,2016,t1_2016_nir,VERIFY,OK,,,"steps subset ['train', 'evaluate'] — no prob raster expected; per-step verifies are the record",2026-09-02 21:51:43,a151c0467079,t1gpuD
+tier1_science_sample_t1_2020_base,2020,t1_2020_base,train,OK,0,37.3,,2026-09-02 21:51:46,a151c0467079,t1gpuD

@@ -1,0 +1,14 @@
+job,year,tag,step,state,exit,minutes,detail,ts,host,session
+tier1_science_sample_t1_2016_in05,2016,t1_2016_in05,inference,OK,0,12.0,,2026-09-03 03:33:55,09b9030cc9e8,t1gpuF
+tier1_science_sample_t1_2016_in05,2016,t1_2016_in05,VERIFY:inference,OK,,,60MB valid=9.3% maxprob=0.858 p99.9=0.803 [2369x1687 sample],2026-09-03 03:46:49,09b9030cc9e8,t1gpuF
+tier1_science_sample_t1_2016_in05,2016,t1_2016_in05,VERIFY,OK,,,60MB valid=9.3% maxprob=0.858 p99.9=0.803 [2369x1687 sample],2026-09-03 03:46:49,09b9030cc9e8,t1gpuF
+tier1_science_sample_t1_2016_in16,2016,t1_2016_in16,inference,OK,0,7.9,,2026-09-03 03:46:50,09b9030cc9e8,t1gpuF
+tier1_science_sample_t1_2016_in16,2016,t1_2016_in16,VERIFY:inference,OK,,,61MB valid=9.3% maxprob=0.925 p99.9=0.886 [2369x1687 sample],2026-09-03 03:54:57,09b9030cc9e8,t1gpuF
+tier1_science_sample_t1_2016_in16,2016,t1_2016_in16,VERIFY,OK,,,61MB valid=9.3% maxprob=0.925 p99.9=0.886 [2369x1687 sample],2026-09-03 03:55:00,09b9030cc9e8,t1gpuF
+tier1_science_sample_t1_2016_nir,2016,t1_2016_nir,inference,OK,0,10.8,,2026-09-03 03:55:52,09b9030cc9e8,t1gpuF
+tier1_science_sample_t1_2016_nir,2016,t1_2016_nir,VERIFY:inference,OK,,,61MB valid=9.3% maxprob=0.988 p99.9=0.972 [2369x1687 sample],2026-09-03 04:06:48,09b9030cc9e8,t1gpuF
+tier1_science_sample_t1_2016_nir,2016,t1_2016_nir,VERIFY,OK,,,61MB valid=9.3% maxprob=0.988 p99.9=0.972 [2369x1687 sample],2026-09-03 04:06:48,09b9030cc9e8,t1gpuF
+tier1_science_sample_t1_2020_base,2020,t1_2020_base,inference,OK,0,34.9,,2026-09-03 04:06:48,09b9030cc9e8,t1gpuF
+tier1_science_sample_t1_2020_base,2020,t1_2020_base,VERIFY:inference,OK,,,723MB valid=7.4% maxprob=0.902 p99.9=0.827 [2387x1674 sample],2026-09-03 04:41:45,09b9030cc9e8,t1gpuF
+tier1_science_sample_t1_2020_base,2020,t1_2020_base,VERIFY,OK,,,723MB valid=7.4% maxprob=0.902 p99.9=0.827 [2387x1674 sample],2026-09-03 04:41:45,09b9030cc9e8,t1gpuF
+tier1_science_sample_t1_2020_add05,2020,t1_2020_add05,inference,OK,0,29.0,,2026-09-03 04:41:45,09b9030cc9e8,t1gpuF

@@ -743,6 +743,12 @@ def main():
             per_year.remove("train")
         if args.skip_inference:
             per_year = [s for s in per_year if s not in ("inference", "postproc")]
+    # P4.3 (2026-09-07): tell step_inference whether postproc follows in THIS process.
+    # When it does, inference keeps its staged local probability raster instead of
+    # unlinking it, and postproc reads that instead of pulling the same multi-GB file
+    # back over FUSE. Set as a module attribute rather than a config.py constant so it
+    # cannot touch _tile_signature and trigger a re-tile.
+    config.POSTPROC_FOLLOWS = ("postproc" in per_year and not args.skip_postproc)
     if per_year:
         print(f"  Steps: {', '.join(per_year)}")
 

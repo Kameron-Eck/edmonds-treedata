@@ -5428,18 +5428,30 @@
       "arm_scores": {},
       "arms": [
         {
+          "extra": [
+            "--no-hillshade"
+          ],
           "tag": "heal_2017",
           "year": "2017"
         },
         {
+          "extra": [
+            "--no-hillshade"
+          ],
           "tag": "heal_2020",
           "year": "2020"
         },
         {
+          "extra": [
+            "--no-hillshade"
+          ],
           "tag": "heal_2022",
           "year": "2022"
         },
         {
+          "extra": [
+            "--no-hillshade"
+          ],
           "tag": "heal_2023",
           "year": "2023"
         }

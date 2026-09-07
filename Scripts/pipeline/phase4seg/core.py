@@ -1578,10 +1578,19 @@ def step_inference(label, batch_size=INFER_BATCH_SIZE, dry_run=False, citywide=F
     tock("inference")
     if prob_out != prob_final:
         _copy_to_drive(prob_out, prob_final)      # raises loudly on size/sha mismatch
-        try:
-            prob_out.unlink()
-        except OSError:
-            pass
+        # P4.3 (2026-09-07): KEEP the staged copy when postproc runs in this same
+        # invocation. It used to be unlinked here unconditionally, so postproc — which
+        # follows immediately on the default full-pipeline path — re-read the same
+        # multi-GB file back over FUSE. Postproc's elapsed time tracks the raster's
+        # size at r = +0.886 across 38 runs, so that round-trip is most of what the
+        # step costs on the 5 cm epochs (3.0-6.7 GB, 66-99 min). postproc unlinks it
+        # when it is done; if postproc is NOT part of this run the file goes now, so
+        # a long inference-only queue cannot fill the VM's local disk.
+        if not getattr(config, "POSTPROC_FOLLOWS", False):
+            try:
+                prob_out.unlink()
+            except OSError:
+                pass
     print(f"  ✓ Probability raster: {prob_final.name} "
           f"({prob_final.stat().st_size/1e6:.0f} MB)")
 

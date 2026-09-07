@@ -28,10 +28,19 @@ hypothesis: >
   two return shapes even at annual cadence.
 
 arms:
-  - {year: "2017", tag: heal_2017}
-  - {year: "2020", tag: heal_2020}
-  - {year: "2022", tag: heal_2022}
-  - {year: "2023", tag: heal_2023}
+  - {year: "2017", tag: heal_2017, extra: [--no-hillshade]}
+  - {year: "2020", tag: heal_2020, extra: [--no-hillshade]}
+  - {year: "2022", tag: heal_2022, extra: [--no-hillshade]}
+  - {year: "2023", tag: heal_2023, extra: [--no-hillshade]}
+
+# The trend8 recipe, verbatim — this campaign exists to EXTEND that series, so any
+# deviation reintroduces the confound it was built to control. --force-citywide is not
+# optional here or anywhere: polygons/ was overwritten with accept-all test data and the
+# 14,476-crown human review was never finished, so the crown labels are provisional
+# (CLAUDE.md §4). queue_verify refuses a fine-tier job that declares no label source, and
+# it refused this file until this block was added — the guard working as intended.
+launch_defaults:
+  - --force-citywide
 
 baseline: trend8_uniform_rgb
 

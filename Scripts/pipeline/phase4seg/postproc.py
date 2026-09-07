@@ -98,7 +98,23 @@ def threshold_and_clean(prob, thr_u8, kernel):
 def step_postproc(label, dry_run=False):
     print(f"\n── [{label}] Step 6: Post-processing ──")
 
-    prob_out = MASKS_DIR / f"edmonds_canopy_prob_{label}{_tag_sfx()}.tif"
+    prob_final = MASKS_DIR / f"edmonds_canopy_prob_{label}{_tag_sfx()}.tif"
+    # P4.3 (2026-09-07): READ THE LOCAL STAGED COPY WHEN INFERENCE LEFT ONE.
+    # step_inference already writes the probability raster to local NVMe and then
+    # copies it to Drive. When postproc runs in the SAME invocation — the default
+    # full-pipeline path in cli.py — it used to re-open that same multi-GB file over
+    # FUSE, TWICE (the header read here and the windowed read below). Measured across
+    # 38 postproc runs, elapsed time correlates with the probability raster's size at
+    # r = +0.886: this step is moving bytes, not computing. The 5 cm epochs carry
+    # 3.0-6.7 GB rasters and take 66-99 min against 1-5 min for the coarse years.
+    # Falling back to Drive keeps the free-CPU postproc workflow working unchanged,
+    # where inference ran on a different machine and no local copy exists.
+    prob_local = _local_artifact_path(prob_final)
+    prob_out = prob_local if (prob_local != prob_final and prob_local.exists()) \
+        else prob_final
+    if prob_out != prob_final:
+        print(f"  reading the staged local probability raster "
+              f"({prob_out.stat().st_size / 1e6:.0f} MB) — no FUSE round-trip")
     mask_final = MASKS_DIR / f"edmonds_canopy_mask_{label}{_tag_sfx()}.tif"
     gpkg_final = MASKS_DIR / f"edmonds_canopy_mask_{label}{_tag_sfx()}.gpkg"
     # verified write path (P4.1): heavy outputs land on local NVMe first, then a
@@ -253,6 +269,16 @@ def step_postproc(label, dry_run=False):
                 _local.unlink()
             except OSError:
                 pass
+
+    # P4.3 (2026-09-07): release the staged probability raster inference left for us.
+    # It is 3-6.7 GB on the fine epochs and its authoritative copy is already on Drive
+    # (inference verified that copy by size and sha256 before we ever read this one),
+    # so dropping it here is free and keeps a multi-year queue from filling local disk.
+    if prob_out != prob_final:
+        try:
+            prob_out.unlink()
+        except OSError:
+            pass
 
     # Record a one-line area summary for the cross-year consistency step.
     _append_area_summary(label, entry_for(label), canopy_area, pct, valid_px,

@@ -134,3 +134,63 @@ def test_no_orphan_tile_lists():
     known = {r["tileset_id"] for r in _tilesets() if r["tileset_id"]}
     orphans = [p.name for p in TILESET_LISTS.glob("*.csv") if p.stem not in known]
     assert not orphans, f"tile lists with no registry row: {orphans}"
+
+
+# ------------------------------------------------------------------ passports
+
+RUN_PASSPORT = QC / "run_passport.csv"
+# A manifest-era run_id is timestamped `YYYYMMDDTHHMMSSZ_…`. Runs from before P6.1
+# added run manifests use `YYYYMMDD_…` and legitimately have no passport — the format
+# IS the discriminator, so no hand-maintained exception list can rot here.
+MANIFEST_ERA = re.compile(r"^\d{8}T\d{6}Z_")
+JOIN_BASES = {"manifest", "inferred_current", "none"}
+
+
+def _passports():
+    rows = _rows(RUN_PASSPORT)
+    if not rows:
+        pytest.skip("run_passport.csv absent — run "
+                    "qc/instruments/harvest_run_passport.py with the lake mounted")
+    return rows
+
+
+def test_run_ids_are_unique():
+    seen = set()
+    for r in _passports():
+        assert r["run_id"] not in seen, f"duplicate passport row {r['run_id']}"
+        seen.add(r["run_id"])
+
+
+def test_every_manifest_era_registry_row_has_a_passport():
+    """run_registry.csv is the thin view; the passport is the wide one.
+
+    Any manifest-era run in the registry without a passport row means the harvest is
+    stale or a manifest went missing — either way the wide record no longer covers
+    the ledger it is supposed to explain.
+    """
+    have = {r["run_id"] for r in _passports()}
+    reg = SCRIPTS / "run_registry.csv"
+    missing = [r["run_id"] for r in _rows(reg)
+               if MANIFEST_ERA.match(r["run_id"]) and r["run_id"] not in have]
+    assert not missing, (
+        f"{len(missing)} manifest-era registry runs have no passport row "
+        f"(re-run harvest_run_passport.py): {missing[:5]}")
+
+
+def test_join_basis_is_declared_and_honest():
+    """A tileset_id must be accompanied by how it was obtained — and resolve.
+
+    `inferred_current` is a weaker claim than `manifest`: it reads the tile dir as it
+    stands TODAY, and a dir re-tiles in place. Blurring the two would let a run claim
+    tiles it never saw.
+    """
+    known = {r["tileset_id"] for r in _tilesets() if r["tileset_id"]}
+    for r in _passports():
+        basis, tsid = r["join_basis"], r["tileset_id"]
+        assert basis in JOIN_BASES, f"{r['run_id']}: unknown join_basis {basis!r}"
+        if basis == "none":
+            assert not tsid, f"{r['run_id']}: join_basis none but carries a tileset_id"
+        else:
+            assert tsid, f"{r['run_id']}: join_basis {basis} without a tileset_id"
+            assert tsid in known, (
+                f"{r['run_id']}: tileset_id {tsid} is not in tileset_registry.csv")

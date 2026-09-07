@@ -107,3 +107,16 @@ claims:
     stated_in:
       - Reports/CHANGE_DETECTOR_DESIGN_2026-09-06.md
     entry: trend8_uniform_rgb
+
+  - id: detectability-not-ordered-by-resolution
+    statement: >-
+      Measured on our own archive, crown detectability is NOT ordered by ground
+      resolution: at a 6 m minimum diameter, 2011s (38.1 cm effective) recalls 0.973 of
+      bracketed crowns while 2015 (13.7 cm, nearly 3x finer) recalls 0.915. The
+      per-epoch sensitivity dominates the pixel count, so a size gate must be per-epoch
+      and cannot be derived from GSD alone.
+    value: "0.9149"
+    evidence: "phase4/qc/detectability_curve.csv#csv:recall@epoch=2015;kind=cumulative_ge;diam_lo_m=6"
+    stated_in:
+      - Reports/TEMPORAL_REFINEMENT_DESIGN_2026-09-06.md
+    entry: null

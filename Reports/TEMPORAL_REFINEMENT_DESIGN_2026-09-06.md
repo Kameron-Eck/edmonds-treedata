@@ -258,3 +258,61 @@ re-run of a prototype whose script path is recorded in the workflow journal. The
 prototypes themselves live in session scratch and are **not** reproducible from repo+lake
 until ported — the same defect the previous design doc flagged about the smoothing trap,
 and it is flagged here rather than worked around.
+
+---
+
+## 9. ADDENDUM — the detectability curve, measured (Kam, 2026-09-06)
+
+> "Perhaps the detectability should be on a curve. So we can measure how detectability
+> threshold impact the recall."
+
+Correct, and it exposed that every crown-size threshold this project had quoted was
+BORROWED. Hao 2023's 50 px/tree floor and Pouliot 2002's RMSE ladder are the only sources
+behind the angle-10 GSD gate, and that audit itself ruled both transfers shaky — Hao
+measured a weeded single-species plantation from sub-centimetre drone imagery, and
+Pouliot's adjudicating skeptic ruled his crown-to-pixel ladder inapplicable to urban crowns.
+
+`qc/instruments/detectability_curve.py` measures ours instead. A crown is taken as PRESENT
+at epoch *t* when both flanking epochs see it — evidence from imagery other than *t* — and
+recall at *t* is the fraction of those bracketed crowns *t* also sees, binned by diameter.
+173,697 bracketed crowns; local CPU, ~2 min.
+
+**Result 1 — the curve is real and it is shallow.** Within an epoch, recall climbs
+monotonically with diameter: ~0.75–0.95 in the 0–2 m bin to 0.97–0.997 at 14 m+. A size
+threshold does buy recall, but far less than the borrowed floors predict. At 2011s
+(38.1 cm effective) a sub-2 m crown is a handful of pixels, where Hao's transferred curve
+would give ~0.20 recall; we measure **0.835**. The literature floor understates our
+detectability badly, and the angle-10 gate built on it was over-conservative at the small
+end. (Caveat that bounds this: bracketing conditions on being detectable *somewhere*, so
+the small bins are enriched for easy small crowns and these are upper bounds.)
+
+**Result 2 — and this is the finding — detectability is NOT ordered by resolution.**
+At a 6 m minimum diameter:
+
+| epoch | effective GSD | recall ≥6 m |
+|---|---|---|
+| 2013 | 13.2 cm | 0.989 |
+| 2019 | 12.6 cm | 0.979 |
+| 2021 | 12.6 cm | 0.979 |
+| **2011s** | **38.1 cm** | **0.973** |
+| 2016 | 35.4 cm | 0.968 |
+| **2015** | **13.7 cm** | **0.915** |
+
+**2011s at 38.1 cm beats 2015 at 13.7 cm — three times finer — at every size bin in the
+table.** So pixels-per-crown does not order our epochs, and a size gate derived from GSD
+is measuring the wrong variable. Whatever separates 2013 (0.989) from 2015 (0.915) at
+near-identical resolution is per-epoch sensitivity, not sampling. 2015 is the series' one
+explicitly LEAF-OFF epoch and 2013 is "Fully leaf-on"
+(`qc/imagery_pixelsize_and_date.csv`), which is a plausible driver and is NOT established
+here — the greenness-gradient work attributed a related effect to delivery radiometry
+rather than phenology, and this instrument cannot separate the two.
+
+**Consequence for the sieve.** The minimum-diameter threshold must be an operating point
+chosen PER EPOCH off this curve, not a constant justified by GSD. And the coarse epochs are
+not the constraint anyone assumed: 2011s and 2016, the two coarsest in the archive, sit
+mid-table. The binding constraint is 2015, one of the finest.
+
+This also revises §3's framing. I had written that mature-crown features are admissible at
+every epoch *because* the pixel count clears Hao's floor. The conclusion holds — they are
+admissible — but the stated reason was the borrowed one, and the measured ranking shows
+pixel count is not what decides it.

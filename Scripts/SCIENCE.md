@@ -26,6 +26,8 @@ than selected. Everything below is resolved from them at build time.
   <br>evidence `phase4/qc/sensitivity_sawtooth.csv#csv:value@statistic=pearson_r_recall_vs_frac`
 - **3.29** — Matching the operating point fixed the SIGN of the trend, not the year-to-year jitter: mean absolute step went from 3.06 pp (delivered cuts) to 3.29 pp (matched). Harmonisation is not what makes annual metrics readable.
   <br>evidence `phase4/qc/sensitivity_sawtooth.csv#csv:value@statistic=matched_mean_abs_step_pp`
+- **0.9149** — Measured on our own archive, crown detectability is NOT ordered by ground resolution: at a 6 m minimum diameter, 2011s (38.1 cm effective) recalls 0.973 of bracketed crowns while 2015 (13.7 cm, nearly 3x finer) recalls 0.915. The per-epoch sensitivity dominates the pixel count, so a size gate must be per-epoch and cannot be derived from GSD alone.
+  <br>evidence `phase4/qc/detectability_curve.csv#csv:recall@epoch=2015;kind=cumulative_ge;diam_lo_m=6`
 
 ## 2. Best arm per year, at one held cut
 

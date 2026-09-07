@@ -14,6 +14,7 @@ cost a session four documents and a guess about which of eight artifacts to open
     py -3.12 qc/ask.py --decisions     the open decision stack, ready-first
     py -3.12 qc/ask.py <decision-id>   one decision: why it matters, what it blocks
     py -3.12 qc/ask.py --claims        load-bearing numbers, re-checked against evidence
+    py -3.12 qc/ask.py --compare 2016 2019 2024      side by side, at one held cut
 
 The subject type is detected, not declared. Everything printed is READ FROM a tracked
 home at call time and the home is named, so an answer can be checked and never has to
@@ -359,6 +360,95 @@ def answer_claims(out):
                 out.append(f"        RE-STATE IN  {w}")
 
 
+def answer_compare(subjects, out, policy="matched_p75"):
+    """Side-by-side — because `best` is a comparison, and one subject cannot show it.
+
+    Refuses to imply a ranking across different references or evaluation populations:
+    those rows differ by what was measured, not by how well. That distinction is the
+    whole reason year_scoreboard groups before it ranks.
+    """
+    kinds = {s: resolve(s)[0] for s in subjects}
+    metrics = rows(QC / "arm_metrics.csv")
+    tiles = rows(QC / "tileset_registry.csv")
+    champs = _champions()
+
+    if set(kinds.values()) == {"year"}:
+        out.append(f"COMPARING {len(subjects)} ACQUISITIONS at `{policy}`")
+        out.append("")
+        out.append("  year   best arm              recall  prec    AP      "
+                   "population     ref / scope")
+        refs = set()
+        for y in subjects:
+            cand = [m for m in metrics if m["year"] == y and m["policy"] == policy]
+            if not cand:
+                out.append(f"  {y:6} — never scored at this cut")
+                continue
+            b = max(cand, key=lambda m: float(m["recall"]) if m["recall"] else -1)
+            refs.add((b["ref"], b["eval_scope"]))
+            star = "*" if champs.get(y) == b["run_tag"] else " "
+            out.append(f"  {y:6} {b['run_tag'][:20]:20}{star} {b['recall']:>6} "
+                       f"{b['precision']:>6}  {b['pr_auc'] or '—':>6}  "
+                       f"{_fmt_int(b['population']):>13}  {b['ref']}"
+                       f" / {b['eval_scope'] or 'citywide'}")
+        _section(out, "IS THIS COMPARISON FAIR?")
+        if len(refs) > 1:
+            out.append("  NO — these rows were measured against DIFFERENT references or")
+            out.append("  populations. The differences below are partly what was")
+            out.append("  measured, not how well the model did:")
+            for r, sc in sorted(refs):
+                out.append(f"    {r} / {sc or 'citywide'}")
+        else:
+            out.append("  Same reference and scope for every row — differences are the")
+            out.append("  model, at a held precision. Populations may still differ; "
+                       "check the column.")
+        _section(out, "WHAT ELSE DIFFERS (the usual confounders)")
+        cat = _catalog()
+        for y in subjects:
+            e = cat.get(y, {})
+            ts = [t for t in tiles if t["label"] == y]
+            n = sum(int(t["n_tiles"]) for t in ts)
+            out.append(f"  {y:6} {str(e.get('gsd_cm', '?')):>6} cm · "
+                       f"{e.get('bands', '?')} bands · {n or 0} tiles in "
+                       f"{len(ts)} set(s)")
+        return
+
+    if set(kinds.values()) == {"arm"}:
+        out.append(f"COMPARING {len(subjects)} ARMS")
+        shared = None
+        for tag in subjects:
+            ts = {t["tileset_id"] for t in tiles if t["run_tag"] == tag}
+            shared = ts if shared is None else (shared & ts)
+        _section(out, "TRAINED ON THE SAME TILES?")
+        if shared:
+            out.append(f"  YES — tileset {', '.join(sorted(shared))}. Identical tiles "
+                       f"and split, so a difference here is the recipe, not the data.")
+        else:
+            out.append("  NO — different tile sets. Some of any difference is the tiles.")
+            for tag in subjects:
+                ids = sorted({t["tileset_id"] for t in tiles if t["run_tag"] == tag})
+                out.append(f"    {tag:24} {', '.join(ids) or '(none recorded)'}")
+        groups = {}
+        for tag in subjects:
+            for m in [x for x in metrics if x["run_tag"] == tag]:
+                groups.setdefault((m["ref"], m["eval_scope"]), {}).setdefault(
+                    m["policy"], {})[tag] = m
+        for (ref, scope), pols in sorted(groups.items()):
+            _section(out, f"ref {ref} · scope {scope or 'citywide'}")
+            for pol in sorted(pols):
+                if len(pols[pol]) < 2:
+                    continue
+                out.append(f"  {pol}")
+                for tag, m in sorted(pols[pol].items()):
+                    out.append(f"    {tag:24} rec {m['recall']:>6} "
+                               f"prec {m['precision']:>6}  thr {m['thresh']:>9}  "
+                               f"pop {_fmt_int(m['population']):>13}")
+        return
+
+    out.append("COMPARE needs subjects of ONE kind — all acquisitions, or all arms.")
+    for s, k in kinds.items():
+        out.append(f"  {s:24} {k}")
+
+
 # ------------------------------------------------------------------ the gaps
 
 def answer_gaps(out):
@@ -459,6 +549,10 @@ def main(argv=None):
     ap.add_argument("subject", nargs="?", help="acquisition, arm tag, entry, tileset id")
     ap.add_argument("--gaps", action="store_true", help="what is NOT known yet")
     ap.add_argument("--decisions", action="store_true", help="the open decision stack")
+    ap.add_argument("--compare", nargs="+", metavar="SUBJECT",
+                    help="two or more acquisitions (or arms) side by side")
+    ap.add_argument("--policy", default="matched_p75",
+                    help="operating point for --compare (default matched_p75)")
     ap.add_argument("--claims", action="store_true",
                     help="load-bearing numbers, re-verified against their evidence")
     ap.add_argument("--list", action="store_true", help="list every subject")
@@ -471,6 +565,8 @@ def main(argv=None):
         answer_decision_stack(out)
     elif a.claims:
         answer_claims(out)
+    elif a.compare:
+        answer_compare(a.compare, out, a.policy)
     elif a.list:
         listing(out)
     elif not a.subject:

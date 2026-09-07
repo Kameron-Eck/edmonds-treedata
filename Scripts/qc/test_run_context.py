@@ -467,3 +467,51 @@ def test_failure_ids_are_stable_across_processes():
         assert r["failure_id"].endswith(want), (
             f"{r['failure_id']}: id is not the stable digest of its signature — "
             f"re-harvesting will churn it")
+
+
+def test_science_digest_is_fresh():
+    """The KNOW half regenerates from tracked homes, so staleness is a hard failure."""
+    sys.path.insert(0, str(SCRIPTS / "qc"))     # ledger: test_status_discovery.py
+    import science_digest
+    p = SCRIPTS / "SCIENCE.md"
+    if not p.exists():
+        pytest.skip("SCIENCE.md absent — run py -3.12 qc/science_digest.py")
+    assert p.read_text(encoding="utf-8") == science_digest.build(), (
+        "SCIENCE.md is STALE — run: py -3.12 qc/science_digest.py")
+
+
+def test_science_digest_stays_loadable():
+    """It exists to fit in context. If it stops fitting, it has stopped working.
+
+    The audit CSVs are ~107k tokens; the digest's whole purpose is to be the ~3k-token
+    answer to "what do we know". A cap keeps a future contributor from quietly turning
+    it back into a data dump.
+    """
+    p = SCRIPTS / "SCIENCE.md"
+    if not p.exists():
+        pytest.skip("SCIENCE.md absent")
+    approx_tokens = len(p.read_text(encoding="utf-8")) // 4
+    assert approx_tokens < 12000, (
+        f"SCIENCE.md is ~{approx_tokens:,} tokens — it is meant to be the loadable "
+        f"summary, not another dump. Move detail into the CSVs and cite it instead.")
+
+
+def test_compare_refuses_unfair_rankings():
+    """`best` across different references or populations is a coverage difference.
+
+    2016's best arm is scored against a lidar reference on a LOSO split; 2019's is
+    against C-CAP citywide. Presenting those as a ranking would be exactly the error
+    the whole operating-point discipline exists to prevent.
+    """
+    sys.path.insert(0, str(SCRIPTS / "qc"))     # ledger: test_status_discovery.py
+    import ask
+    years = sorted({m["year"] for m in ask.rows(QC / "arm_metrics.csv")
+                    if m["policy"] == "matched_p75"})
+    if len(years) < 2:
+        pytest.skip("need two scored years to compare")
+    out = []
+    ask.answer_compare(years[:4], out)
+    text = "\n".join(out)
+    assert "IS THIS COMPARISON FAIR?" in text, (
+        "compare no longer states whether the rows are comparable")
+    assert "population" in text, "compare must show the populations it ranked on"

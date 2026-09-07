@@ -8,8 +8,9 @@ table here read *18 acquisitions, 15 calendar years, 4 NIR years* against a cata
 holding **36 / 20 / 10**, and named a NIR year that had not existed for weeks. Every
 session had been starting from it. Anything restated here rots; anything derived does not.
 
-Read this file, then **`WORKPLAN.md`** (the one living state doc), then `STATUS.md`
-(generated numbers). `CHATLOG.md` is append-only history, no longer read for state.
+Read this file, then **`WORKPLAN.md`** (the one living state doc), then
+**`SCIENCE.md`** (everything concluded, generated, ~3k tokens — NOT the CSVs, which
+are the 107k-token audit trail behind it), then `STATUS.md` (generated numbers). `CHATLOG.md` is append-only history, no longer read for state.
 
 ---
 
@@ -40,6 +41,8 @@ removal, and — established 2026-08-29 — **seasonal difference** all enter as
 
 | You need… | Go to |
 |---|---|
+| **Everything we have concluded, in one load (~3k tok)** | **`Scripts/SCIENCE.md`** — read this before anything else factual |
+| **Why is X better than Y** | `py -3.12 qc/ask.py --compare <A> <B> …` — states whether the comparison is even fair |
 | **ANY question about a year, arm, entry or tile set** | **`py -3.12 qc/ask.py <subject>`** — start here. Joins every home, names its sources, reads only tracked files |
 | **What we do NOT know yet** | `py -3.12 qc/ask.py --gaps`; full matrix `phase4/qc/coverage_map.md` |
 | **What is blocked, on whom, in what order** | `py -3.12 qc/ask.py --decisions`; authored in `decisions.yaml` |
@@ -81,7 +84,7 @@ print('NIR:',sorted({e['label'] for e in cat if e['bands']>=4}))"
 # re-harvest the run context after any Colab campaign (needs the lake)
 # py -3.12 qc/instruments/harvest_tilesets.py && py -3.12 qc/instruments/harvest_run_passport.py
 # py -3.12 qc/instruments/harvest_arm_metrics.py && py -3.12 qc/instruments/harvest_failures.py
-# py -3.12 qc/year_scoreboard.py && py -3.12 qc/coverage_map.py
+# py -3.12 qc/year_scoreboard.py && py -3.12 qc/coverage_map.py && py -3.12 qc/science_digest.py
 
 # GSD span and histogram
 py -3.12 -c "from phase4seg import config as c;from collections import Counter;\

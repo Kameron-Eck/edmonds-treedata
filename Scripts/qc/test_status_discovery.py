@@ -559,9 +559,10 @@ _PATH_INSERT_LEDGER = {
     "qc/conftest.py": 1,                     # THE canonical stanza
     "qc/year_scoreboard.py": 1,              # instruments/ sibling (harvest_arm_metrics)
     "qc/coverage_map.py": 0,                 # tracked-homes only, no sibling import
+    "qc/science_digest.py": 1,               # claims.py (qc root)
     "qc/verify_claims.py": 1,                # claims.py (qc root)
     "qc/test_claims.py": 1,                  # claims.py (qc root)
-    "qc/test_run_context.py": 3,             # year_scoreboard, coverage_map, ask (qc root)
+    "qc/test_run_context.py": 5,             # year_scoreboard, coverage_map, ask (qc root)
     "qc/ask.py": 1,                          # claims.py (qc root), lazily
     "qc/test_vm_ops.py": 1,                  # vm_ops is pipeline-root, not installed
     "qc/test_vm_babysitter.py": 1,           # vm_babysitter is a stdlib VM twin

@@ -19,8 +19,8 @@ so this runs it:
   7. harvest    tilesets, run passports, arm metrics + curves, failures — the
                 lake-reading harvests, so a landed campaign cannot leave the tracked
                 context tables describing the PREVIOUS state of the lake
-  8. regen      year scoreboard, coverage map, experiment index — derived from
-                tracked homes, so they run with or without the lake
+  8. regen      year scoreboard, coverage map, experiment index, SCIENCE.md —
+                derived from tracked homes, so they run with or without the lake
   9. chatlog    HEURISTIC reminder + entry stub when the newest LOG entry is not
                 from today — printed, never written (the log stays human-authored)
  10. stage      `git status --short` so nothing lands unstaged (never add -A)
@@ -90,7 +90,8 @@ def main():
     # and their freshness gates fail the suite if they are not run.
     for name, script in (("year scoreboard", "year_scoreboard.py"),
                          ("coverage map", "coverage_map.py"),
-                         ("experiment index", "experiments_index.py")):
+                         ("experiment index", "experiments_index.py"),
+                         ("science digest", "science_digest.py")):
         fails += run(f"regenerate: {name}",
                      [py, str(SCRIPTS / "qc" / script)], a.dry_run) != 0
 

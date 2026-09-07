@@ -272,3 +272,22 @@ READER RULE: **a drifted claim is reported, never auto-corrected** — which sid
 wrong, the measurement or the sentence built on it, is a judgement. Check with
 `py -3.12 qc/verify_claims.py` (exit 1 on drift, so it can gate a commit); gated by
 `qc/test_claims.py` and run as a `landed.py` rung.
+
+## SCIENCE.md (Scripts/, GENERATED — byte-compared, size-capped)
+
+Written by `qc/science_digest.py`: every conclusion the project has reached, in one
+file of ~2,600 tokens. Sections are the answer (verified claims), best arm per year at
+one held cut, what the completed investigations concluded, what is NOT known, and what
+is blocked on whom.
+
+WHY IT EXISTS. The measured split, 2026-09-06: the science is ~10,600 tokens across
+five artifacts; the audit trail (`run_passport` + `arm_metrics` + `tileset_registry`)
+is ~107,600 — **10.1x larger than the science it supports**. The CSVs are big because
+they are denormalised for joining and complete rather than selected: 54-76% of their
+cell bytes repeat a value already present in another row, and gzip crushes 420 KB to
+44 KB. READER RULE: **SCIENCE.md is the KNOW half, the CSVs are the CHECK half.** Read
+the digest; query the CSVs through `qc/ask.py` when a claim needs checking. Reading
+them raw is never the right move.
+
+`test_science_digest_stays_loadable` caps it at ~12k tokens, so it cannot quietly
+become another dump.

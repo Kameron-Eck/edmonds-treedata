@@ -651,3 +651,34 @@ files:   qc/instruments/harvest_{tilesets,run_passport,arm_metrics}.py,
          .gitignore, CLAUDE.md roadmap, WORKPLAN DONE row
 next:    re-harvest after each Colab campaign (command in CLAUDE.md 2.2); new runs
          earn join_basis=manifest; Kam synthesis session
+
+## 2026-09-06  context-retrieval-built
+goal:    Kam: what is missing that would reduce the bottleneck of getting science
+         into context. Measured it instead of guessing, then built the top three.
+did:     MEASURED THE BOTTLENECK FIRST: cold-start read order is ~14.7k tokens across
+         4 docs, but the context layer built earlier today is ~115k tokens of CSV read
+         raw - so capture had stopped being the problem and RETRIEVAL had become it.
+         (1) qc/ask.py - one subject, one answer, ~40 lines. Detects whether the
+         subject is an acquisition, arm tag, registry entry or tileset id; joins every
+         tracked home; names the home each block came from so answers are checkable.
+         --gaps and --list. Reads only tracked files: bare checkout, no lake, no GPU.
+         (2) qc/coverage_map.py -> phase4/qc/coverage_map.md, per-acquisition matrix.
+         Surfaced numbers nobody had: of 37 acquisitions 13 never tiled, 9 NEVER
+         SCORED (2002s 2007s 2009s 2013s 2015n 2015s 2021n 2022s 2024s), 21 with no
+         matched-cut read, 21 with no champion. Deliberately refuses to imply a
+         backlog - blank = no record, not should-have-been-done; gate pins the caveat.
+         (3) failure registry: harvest_failures.py counts SYMPTOMS from 863 step logs
+         (22 with errors>0 -> 8 distinct failures, normalised signatures so one bug is
+         one row); qc/known_failures.yaml is the AUTHORED cause+fix matched by regex.
+         All 8 diagnosed from the tracebacks. THREE ARE ONE MECHANISM: Drive FUSE
+         dropping I/O under sustained small-file reads (EIO on train, mkdir ENOENT on
+         tile, truncated tile -> unsupported-format) = rule 3.9 seen from the read
+         side. Undiagnosed rows carry an empty cause BY CONTRACT and surface in
+         ask.py --gaps, so "never worked out why" is a to-do not a silence.
+files:   qc/{ask,coverage_map,known_failures.yaml}, qc/instruments/harvest_failures.py,
+         qc/test_run_context.py (25 gates), phase4/qc/{coverage_map.md,
+         failure_registry.csv}, docs/SCHEMAS.md, CLAUDE.md roadmap (ask.py is now the
+         FIRST row), WORKPLAN DONE row
+next:    still missing per my own assessment: bidirectional claim<->evidence links,
+         a decision registry for the AWAITING KAM stack, and automatic re-harvest as
+         a landed.py rung (today the harvests are manual and can silently drift)

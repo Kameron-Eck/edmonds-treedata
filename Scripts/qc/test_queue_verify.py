@@ -412,6 +412,97 @@ def test_status_write_never_truncates_the_live_file(tmp_path, monkeypatch):
     assert not list(tmp_path.glob("*.part.*")) and not list(tmp_path.glob("*.prev.*"))
 
 
+# ── the aside rename's error is not always FileNotFoundError ─────────────────
+# _replace_absent renamed the destination aside, guarded ONLY against
+# FileNotFoundError — which reads "dest vanished under us, so there is no aside".
+# True for ENOENT and false for everything else. On this rclone FUSE mount a
+# transient EIO is documented (_check_prob_raster retries for it), and an EIO can be
+# raised AFTER the rename has already landed. The old code let that OSError
+# propagate: the destination was GONE, the only copy of the table was stranded under
+# a `.prev.<hex>` name nothing globs and nothing sweeps, and _status_write's caller
+# printed a WARN and carried on. That is the mechanism behind the three orphaned
+# `.prev.*` files found on the lake 2026-09-07 (e499355's closing note).
+
+def _eio():
+    import errno
+    return OSError(errno.EIO, "input/output error")
+
+
+def _replace_spy(monkeypatch, script):
+    """Patch os.replace with a scripted sequence. Each entry is 'ok', 'eio_after'
+    (perform the rename, THEN raise EIO — the case the old guard could not see), or
+    'eio_before' (raise without renaming). Returns the call log."""
+    real = q.os.replace
+    calls = []
+
+    def _spy(a, b):
+        act = script[len(calls)] if len(calls) < len(script) else "ok"
+        calls.append((Path(a).name, Path(b).name, act))
+        if act == "eio_before":
+            raise _eio()
+        real(a, b)
+        if act == "eio_after":
+            raise _eio()
+
+    monkeypatch.setattr(q.os, "replace", _spy)
+    return calls
+
+
+def _seed_status(tmp_path, monkeypatch):
+    out = tmp_path / "train_queue_status_q_20260907T000000Z.csv"
+    monkeypatch.setattr(q, "QC_DIR", tmp_path)
+    monkeypatch.setattr(q, "STATUS_OUT", out)
+    q._status_write([_row(job="prev", step="train", state="OK")])
+    return out
+
+
+def _jobs(out):
+    return [r["job"] for r in
+            csv.DictReader(io.open(out, encoding="utf-8", newline=""))]
+
+
+def test_an_eio_after_the_aside_rename_does_not_lose_the_table(tmp_path, monkeypatch):
+    """THE ORPHAN'S MECHANISM. The rename landed and then reported EIO. The old
+    guard caught only FileNotFoundError, so this escaped _replace_absent entirely
+    with the destination GONE. Re-probing the filesystem — dest absent, aside
+    present — says the rename completed, so the publish must proceed."""
+    out = _seed_status(tmp_path, monkeypatch)
+    _replace_spy(monkeypatch, ["eio_after"])
+    q._status_write([_row(job="new", step="train", state="OK")])
+    assert out.exists(), "the destination was lost to an EIO that had already renamed it"
+    assert _jobs(out) == ["new"]
+    assert not list(tmp_path.glob("*.prev.*")), "the previous table was orphaned"
+    assert not list(tmp_path.glob("*.part.*"))
+
+
+def test_an_eio_on_both_renames_restores_the_previous_table(tmp_path, monkeypatch):
+    """Aside rename completes-then-EIOs, and the publish fails too. The aside is the
+    only copy of the ledger, so it goes back where it came from — the destination
+    still holds the PREVIOUS table and no `.prev.*` is left behind."""
+    out = _seed_status(tmp_path, monkeypatch)
+    _replace_spy(monkeypatch, ["eio_after", "eio_before"])
+    q._status_write([_row(job="new", step="train", state="OK")])
+    assert out.exists()
+    assert _jobs(out) == ["prev"], "the previous table was not restored"
+    assert not list(tmp_path.glob("*.prev.*"))
+    assert not list(tmp_path.glob("*.part.*"))
+
+
+def test_an_eio_that_did_not_rename_never_publishes_over_the_destination(
+        tmp_path, monkeypatch):
+    """The other half of the re-probe: dest is STILL THERE, so the rename did not
+    land. Publishing now would run os.replace over an existing destination on this
+    mount — the unproven case D4 exists to avoid — so it re-raises instead, and the
+    next flush retries against an intact table."""
+    out = _seed_status(tmp_path, monkeypatch)
+    calls = _replace_spy(monkeypatch, ["eio_before"])
+    q._status_write([_row(job="new", step="train", state="OK")])
+    assert _jobs(out) == ["prev"]
+    assert len(calls) == 1, f"published over an existing destination: {calls}"
+    assert not list(tmp_path.glob("*.prev.*"))
+    assert not list(tmp_path.glob("*.part.*"))
+
+
 def test_status_write_finds_the_launch_running_as_dunder_main(tmp_path, monkeypatch):
     """Production runs the queue as a SCRIPT, so the live module is `__main__`.
 

@@ -339,6 +339,15 @@ def run_step(job, step, infer_batch, rows):
     budget = STEP_TIMEOUT_MIN.get(step, 240)
     timed_out = {"hit": False}
     try:
+        # "launching": the engine process exists but its StepLogger has not opened
+        # the step yet — interpreter start, imports, the deps bootstrap, ortho
+        # staging. Measured 2026-09-07 on the CPU pilot that is NINE MINUTES for
+        # tile, and until now every second of it landed in the hardware harvest as
+        # "(between)", attributable to nothing. StepLogger's own marker OVERWRITES
+        # this one the moment the step opens, so the window this claims is exactly
+        # the pre-step window; the `finally` below removes ours only if it is still
+        # ours (a killed engine's marker is left for vm_hwlogger's liveness gate).
+        publish_phase_marker(step, y, tag, "launching")
         proc = subprocess.Popen(cmd, cwd=str(SCRIPTS), stdout=subprocess.PIPE,
                                 stderr=subprocess.STDOUT, text=True,
                                 bufsize=1, errors="replace")
@@ -412,6 +421,11 @@ def run_step(job, step, infer_batch, rows):
                    minutes=round((_dt.datetime.now()-t0).total_seconds()/60, 1))
         _status_write(rows)
         return False
+    finally:
+        # ONE clear for every exit path — normal, TIMEOUT, either interrupt branch,
+        # and the Popen that never started. Hand-placing it on each branch is how a
+        # "launching" marker survives into the next step and mis-attributes it.
+        clear_phase_marker()
 
     mins = round((_dt.datetime.now() - t0).total_seconds() / 60, 1)
     rec.update(state="OK" if rc == 0 else "FAIL", exit=str(rc), minutes=mins)
@@ -477,6 +491,7 @@ import io   # noqa: F401 — facade surface: the never-truncate test patches q.i
 from queue_ledger import (      # noqa: E402,F401
     _MERGE_DEFECTS, _completed_steps, _ident, _job_key, _merged_rows,
     _read_status_file, _replace_absent, _status_files, _status_write,
+    clear_phase_marker, publish_phase_marker,
 )
 # _MERGE_DEFECTS is mutated IN PLACE (clear/append, never rebound), so this binding
 # shares the one list — q._MERGE_DEFECTS stays truthful, and the test that reads it
@@ -608,28 +623,49 @@ def verify(job, rows):
     'did NOT complete and verify' after 130 clean minutes (measured
     2026-09-02, the steps feature's first real run). The tile step's own
     verify_step already covered what those jobs produced; the job-end check
-    applies only when the job's steps actually make the raster."""
-    if "steps" in job and "inference" not in job["steps"]:
+    applies only when the job's steps actually make the raster.
+
+    `minutes` is RECORDED here, as on every step row. It used to be blank, and a
+    blank was read as "this took no time worth naming" — the assumption written
+    into docs/SCHEMAS.md and harvest_runtime_sessions.py, both of which say a
+    VERIFY row "takes seconds". Measured 2026-09-07 on the CPU pilot: a labels
+    VERIFY took SEVEN MINUTES. The marker bracket below and this number measure
+    the same interval on purpose, one for the hardware samples and one for the
+    ledger.
+
+    The marker's step is "VERIFY", not the step whose artifact is read: this check
+    runs after ALL of a job's steps, so folding its time into `inference` (whose
+    raster it happens to open) would bill post-postproc work to a step that ended
+    earlier. harvest_hw_attribution.py::norm_step strips the year and leaves a
+    distinct `VERIFY` row."""
+    t0 = _dt.datetime.now()
+    publish_phase_marker("VERIFY", job["year"], job["tag"], "verifying")
+    try:
+        if "steps" in job and "inference" not in job["steps"]:
+            rec = dict(job=job["id"], year=job["year"], tag=job["tag"], step="VERIFY",
+                       state="OK", exit="",
+                       minutes=round((_dt.datetime.now()-t0).total_seconds()/60, 1),
+                       detail=f"steps subset {job['steps']} — no prob raster expected; "
+                              f"per-step verifies are the record", **_ident(),
+                       ts=_dt.datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+            rows.append(rec)
+            _status_write(rows)
+            print(f"  VERIFY {job['id']}: OK  {rec['detail']}")
+            return True
+        out = MASKS / f"edmonds_canopy_prob_{job['year']}_{job['tag']}.tif"
         rec = dict(job=job["id"], year=job["year"], tag=job["tag"], step="VERIFY",
-                   state="OK", exit="", minutes="",
-                   detail=f"steps subset {job['steps']} — no prob raster expected; "
-                          f"per-step verifies are the record", **_ident(),
+                   state="", exit="", minutes="", detail="", **_ident(),
                    ts=_dt.datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+        try:
+            state, detail = _check_prob_raster(out)
+            rec.update(state=state, detail=detail)
+        except Exception as e:                                  # noqa: BLE001
+            rec.update(state="UNCHECKED", detail=f"{type(e).__name__}: {e}"[:200])
+        rec["minutes"] = round((_dt.datetime.now() - t0).total_seconds() / 60, 1)
         rows.append(rec)
         _status_write(rows)
-        print(f"  VERIFY {job['id']}: OK  {rec['detail']}")
-        return True
-    out = MASKS / f"edmonds_canopy_prob_{job['year']}_{job['tag']}.tif"
-    rec = dict(job=job["id"], year=job["year"], tag=job["tag"], step="VERIFY",
-               state="", exit="", minutes="", detail="", **_ident(),
-               ts=_dt.datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
-    try:
-        state, detail = _check_prob_raster(out)
-        rec.update(state=state, detail=detail)
-    except Exception as e:                                      # noqa: BLE001
-        rec.update(state="UNCHECKED", detail=f"{type(e).__name__}: {e}"[:200])
-    rows.append(rec)
-    _status_write(rows)
+    finally:
+        clear_phase_marker()
     print(f"  VERIFY {job['id']}: {rec['state']}  {rec['detail']}")
     # Same contract as verify_step and _recheck_skipped_verify. This one returned
     # None, so the job-end raster check — the MOST COMMON verify path — was the one

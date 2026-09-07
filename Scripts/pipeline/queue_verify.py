@@ -22,7 +22,13 @@ from pathlib import Path
 # — the names.py lesson: a twin is not dangerous while it agrees, it is dangerous
 # at the moment someone edits one side. queue_ledger imports only phase4seg.names,
 # so this adds no cycle and no engine dependency.
-from queue_ledger import _q
+from queue_ledger import _q, clear_phase_marker, publish_phase_marker
+
+# from-imported, unlike everything else here, and deliberately: these two read NO
+# queue global — they resolve their path from phase4seg.names and their pid from the
+# process — so there is nothing for a test to patch on the queue module and nothing
+# for _q() to get wrong. Routing them through the facade would only re-expose them to
+# the __main__/second-import trap e499355 closed.
 
 
 def _md5_of(path, chunk=1 << 20):
@@ -332,9 +338,19 @@ def verify_step(job, step, rows, step_start=None, reverify=False):
     the last launch's verdict was "could not check" (D7). `step_start` is None
     there — there is no step to be newer than — so the freshness tests stand down
     and say so, rather than comparing against a timestamp that does not exist.
+
+    THIS IS NOT FREE AND USED TO LOOK FREE. The row's `minutes` was hard-blank, and
+    the whole interval ran with no step marker on disk, so the hardware harvest
+    bucketed it as "(between)". Measured 2026-09-07 on the CPU pilot, the labels
+    VERIFY alone was seven minutes — these checks stat and read artifacts across a
+    FUSE mount, and one of them (VERIFY:train) makes a Drive API call. The marker
+    bracket and the `minutes` below open and close together so the hardware samples
+    and the ledger describe the same interval.
     """
     q = _q()
     y, tag = job["year"], job["tag"]
+    t0 = _dt.datetime.now()
+    publish_phase_marker(step, y, tag, "verifying")
     state, detail = "OK", ""
     try:
         if step == "labels":
@@ -428,10 +444,20 @@ def verify_step(job, step, rows, step_start=None, reverify=False):
     if reverify:
         detail = f"[re-verify of a skipped step] {detail}"
     rec = dict(job=job["id"], year=y, tag=tag, step=f"VERIFY:{step}",
-               state=state, exit="", minutes="", detail=detail, **q._ident(),
+               state=state, exit="",
+               minutes=round((_dt.datetime.now() - t0).total_seconds() / 60, 1),
+               detail=detail, **q._ident(),
                ts=_dt.datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
     rows.append(rec)
     q._status_write(rows)
+    # Cleared AFTER the flush, so the marker covers the whole interval `minutes`
+    # measures. NOT a try/finally like run_step's, and the difference is deliberate:
+    # everything between the publish and here is already inside the blanket except
+    # above or cannot raise (_ident and _status_write both swallow). The one escape
+    # left is a BaseException — a stray Colab SIGINT mid-VERIFY — and that leak is
+    # bounded twice over: run_step's next "launching" overwrites it, and if the queue
+    # dies with it, vm_hwlogger's liveness gate blanks a marker whose pid is gone.
+    clear_phase_marker()
     if state in q._VERIFY_UNVERIFIED:
         # Loud, and worded so it can never be misread as a pass. It does not stop
         # the job (a checker that throws is not proof the artifact is bad), but it
@@ -460,6 +486,11 @@ def _recheck_skipped_verify(job, rows, prior):
     and the file still matches it", which is a weaker and truer statement.
     """
     q = _q()
+    t0 = _dt.datetime.now()
+    # Same bracket and same step name as the job-end verify() this stands in for —
+    # it writes the same `step="VERIFY"` row, so the hardware harvest must see the
+    # same `VERIFY` bucket rather than two spellings of one activity.
+    publish_phase_marker("VERIFY", job["year"], job["tag"], "verifying")
     out = q.MASKS / f"edmonds_canopy_prob_{job['year']}_{job['tag']}.tif"
     p_state, p_detail, p_ts = prior if prior else ("", "", "")
     try:
@@ -484,9 +515,12 @@ def _recheck_skipped_verify(job, rows, prior):
     except Exception as e:                                      # noqa: BLE001
         state, detail = "UNCHECKED", f"{type(e).__name__}: {e}"[:200]
     rec = dict(job=job["id"], year=job["year"], tag=job["tag"], step="VERIFY",
-               state=state, exit="", minutes="", detail=detail, **q._ident(),
+               state=state, exit="",
+               minutes=round((_dt.datetime.now() - t0).total_seconds() / 60, 1),
+               detail=detail, **q._ident(),
                ts=_dt.datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
     rows.append(rec)
     q._status_write(rows)
+    clear_phase_marker()
     print(f"  VERIFY {job['id']}: {state}  {detail}")
     return state not in q._VERIFY_HARD_FAIL

@@ -9,9 +9,18 @@ patches q.QC_DIR / q.STATUS_OUT / q.STATUS / q._status_write — a from-import h
 would freeze what the tests redirect. _IDENT / _MERGE_DEFECTS / _STATUS_KEY_COLS
 move WITH the cluster; _MERGE_DEFECTS is re-exported (a test reads it, and
 in-place mutation keeps the shared binding truthful).
+
+publish_phase_marker / clear_phase_marker are the ONE exception to the `_q()` rule,
+and deliberately: they read no queue global at all — the path comes from
+phase4seg.names::hw_step_marker_path and the pid from the process — so there is
+nothing for `_q()` to resolve and nothing for a test to patch on the queue module.
+They live here rather than in phase4_train_queue.py because queue_verify.py needs
+them too and this is the module both already import.
 """
 import csv
+import datetime as _dt
 import io
+import json
 import os
 import secrets
 import socket
@@ -19,7 +28,7 @@ import sys
 import time
 from pathlib import Path
 
-from phase4seg.names import job_key, status_files
+from phase4seg.names import hw_step_marker_path, job_key, status_files
 
 _QUEUE_FILE = "phase4_train_queue.py"
 
@@ -89,6 +98,104 @@ def _ident():
                 pass
         _IDENT = {"host": host, "session": sess}
     return _IDENT
+
+
+# ── the "what is the QUEUE doing right now" marker ───────────────────────────
+# The engine publishes its own marker from pipeline_log.py::StepLogger._write_marker
+# while a step is open. Everything the queue does AROUND a step — spawning the
+# engine and waiting for its imports/bootstrap/staging, and the post-step VERIFY —
+# happened with no marker on disk at all, so vm_hwlogger stamped those samples
+# blank and qc/instruments/harvest_hw_attribution.py bucketed them as "(between)":
+# attributable to nothing. Measured 2026-09-07 on the CPU pilot: 17 min at 44%
+# iowait in "(between)" before the first step marker opened — 7 min of it the
+# labels VERIFY, 9 min the tile engine process before StepLogger got control.
+#
+# These two write the SAME object shape as StepLogger plus the `phase` key whose
+# vocabulary is owned by phase4seg/names.py::hw_step_marker_path ("launching",
+# "verifying"; StepLogger writes none and absent reads as "open"). Deliberately
+# NOT via pipeline_log: this module is the orchestrator's, and importing an engine
+# module here would pull the engine's dependency tree into the process whose job is
+# to keep running when that tree is broken (the _replace_absent twin's reasoning).
+#
+# Neither raises. A marker that can kill the queue is worse than no marker — the
+# same standard pipeline_log.py's docstring sets for its own copy.
+
+def publish_phase_marker(step, year, tag, phase):
+    """Publish "the queue is in <phase> around <step>_<year>" for vm_hwlogger.
+
+    `step` is joined to `year` because that is the vocabulary the ENGINE already
+    writes (phase4seg/cli.py opens its StepLogger as f"{step}_{lab}"), and the
+    harvest's norm_step strips the year suffix off both alike. So a queue marker
+    lands in the same step row as the engine's, separated only by its phase.
+
+    THE PID IS OURS, never the engine's. vm_hwlogger.read_marker discards a marker
+    whose pid is not alive, so a "verifying" marker carrying the exited engine's pid
+    would blank the very phase it exists to record (names.py says so explicitly).
+
+    The two guards are StepLogger's, for its measured reasons: the built-in default
+    is the POSIX path /content/hw_step_marker.json, which on Windows resolves
+    DRIVE-RELATIVE to a "content" directory that exists on the code-plane box — so
+    an existence check alone is not enough off-posix, and an explicit HW_STEP_MARKER
+    (tests) is always honoured. The parent must already exist; never mkdir.
+
+    Published temp-then-os.replace, into a pid-suffixed temp, because vm_hwlogger
+    opens this file from another process every 5 s and must never read half an
+    object. The temp is removed if anything fails, so no `{path}.{pid}.tmp` orphan
+    outlives the run.
+    """
+    tmp = None
+    try:
+        if os.name != "posix" and not os.environ.get("HW_STEP_MARKER"):
+            return
+        path = hw_step_marker_path()
+        parent = os.path.dirname(path) or "."
+        if not os.path.isdir(parent):
+            return
+        payload = {
+            "script": "phase4_train_queue",
+            "step": f"{step}_{year}",
+            "run_tag": str(tag or ""),
+            "pid": os.getpid(),
+            "started_utc": _dt.datetime.now(
+                _dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+            "phase": str(phase),
+        }
+        tmp = f"{path}.{os.getpid()}.tmp"
+        with open(tmp, "w", encoding="utf-8") as f:
+            json.dump(payload, f)
+        os.replace(tmp, path)
+    except Exception:                       # noqa: BLE001 — must never break the queue
+        if tmp:
+            try:
+                os.remove(tmp)
+            except OSError:
+                pass
+
+
+def clear_phase_marker():
+    """Remove the marker ONLY if it is still OURS. Absence reads as "no step open".
+
+    The ownership check is the whole point. Between our publish and this call the
+    engine's StepLogger will normally have OVERWRITTEN the file with its own marker
+    (same path, one home per VM) — deleting that would blank every sample of a
+    running engine step and hand it back to "(between)", which is the bucket this
+    whole mechanism exists to empty.
+
+    An unreadable marker is likewise left alone: it may be the engine's, mid-write.
+    Only a marker that names our pid is ours to delete.
+    """
+    try:
+        if os.name != "posix" and not os.environ.get("HW_STEP_MARKER"):
+            return                          # we never wrote one; nothing is ours
+        path = hw_step_marker_path()
+        with open(path, encoding="utf-8") as f:
+            d = json.load(f)
+        if d.get("pid") != os.getpid():
+            return                          # the engine's, or a stale foreign one
+        os.remove(path)
+    except Exception:                       # noqa: BLE001 — already gone is fine
+        pass
+
 
 def _read_status_file(f, attempts=3, backoff_s=2):
     """One status file's rows → (rows, problem). `problem` is None when clean.
@@ -232,15 +339,37 @@ def _completed_steps():
 def _replace_absent(tmp, dest):
     """os.replace `tmp` onto `dest` with the destination guaranteed ABSENT (D4).
 
-    A deliberate 15-line twin of phase4seg/common.py's `_publish_replace`, and it
-    stays a twin: this module is an ORCHESTRATOR that must keep running when the
+    A near-twin of phase4seg/common.py's `_publish_replace`, and it stays a separate
+    copy on purpose: this module is an ORCHESTRATOR that must keep running when the
     engine's environment is broken, so it imports no engine module and no third
     party at import time. Importing common.py here would pull geopandas, rasterio,
     shapely, fiona and sklearn into the process whose whole job is to survive them.
+    NO LONGER BYTE-IDENTICAL as of the aside-rename fix below; common.py still
+    carries the old FileNotFoundError-only guard.
 
     Same reasoning as there: the mount canary only ever proved the
     absent-destination case of os.replace, and the aside suffix goes AFTER the
     extension so extension-anchored readers cannot see it.
+
+    THE ASIDE RENAME'S ERROR IS NOT ALWAYS FileNotFoundError. It was guarded against
+    that alone, which reads "dest vanished under us, so there is no aside" — true for
+    ENOENT and false for everything else. On this rclone FUSE mount a transient EIO
+    is documented (_check_prob_raster retries for it), and an EIO can be raised AFTER
+    the rename has already landed: dest is then gone, `aside` is set to None by the
+    old code as if nothing had moved, and the publish proceeds with the previous
+    table stranded under a `.prev.<hex>` name that nothing ever unlinks and no reader
+    globs. That is the mechanism behind the three orphaned `.prev.*` files found on
+    the lake 2026-09-07 (e499355's closing note), and if the publish then failed too,
+    the restore never ran and the destination stayed EMPTY.
+
+    So: catch OSError, then RE-PROBE the filesystem rather than trust the exception's
+    type. dest still there means the rename did not land — re-raise without
+    publishing, because publishing over an existing destination is the unproven
+    os.replace case this function exists to avoid; _status_write's caller prints a
+    WARN, drops its temp, and the next step's flush retries against an intact table.
+    dest gone AND the aside present means the rename DID complete: the aside is
+    authoritative, and the publish (with its restore-on-failure path) must proceed.
+    dest gone and no aside is the original ENOENT reading.
     """
     q = _q()
     aside = None
@@ -248,8 +377,21 @@ def _replace_absent(tmp, dest):
         aside = dest.with_name(dest.name + f".prev.{secrets.token_hex(3)}")
         try:
             os.replace(dest, aside)
-        except FileNotFoundError:
-            aside = None
+        except OSError:
+            if dest.exists():
+                # the rename did not happen; the previous table is still published.
+                # If a copy of it landed anyway, dest is the authoritative name and
+                # the aside would be exactly the orphan this branch exists to avoid.
+                try:
+                    aside.unlink()
+                except OSError:
+                    pass
+                raise
+            if not aside.exists():
+                aside = None               # dest vanished under us — nothing to keep
+            # else: the rename completed and THEN failed. Fall through: `aside` holds
+            # the only copy of the previous table, and the publish below restores it
+            # if it cannot land the new one.
     try:
         os.replace(tmp, dest)
     except OSError:
@@ -257,7 +399,8 @@ def _replace_absent(tmp, dest):
             try:
                 os.replace(aside, dest)
             except OSError:
-                pass
+                print(f"  ! could not restore the previous {dest.name}; it is at "
+                      f"{aside.name}")
         raise
     if aside is not None:
         try:

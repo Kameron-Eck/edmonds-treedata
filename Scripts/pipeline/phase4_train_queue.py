@@ -122,15 +122,41 @@ STEPS = ["labels", "tile", "train", "evaluate", "inference", "postproc"]
 # inference ran 254.9 min on L4 — the old 240-min inference ceiling would have
 # killed 2024/2017/2022 fifteen minutes short (found 2026-08-22). Since P11.4
 # a step may also WAIT for another runtime's bulk copy (the Drive staging lock,
-# phase4seg/common.py, which gives up after STAGE_LOCK_MAX_WAIT_MIN = 60 and
-# proceeds unlocked). Invariant, per step that takes the lock once:
+# phase4seg/common.py, which gives up after common.py::STAGE_LOCK_MAX_WAIT_MIN and
+# proceeds unlocked). THAT CONSTANT IS 15, not the 60 this comment asserted until
+# 2026-09-07: the source retuned it 60 -> 15 on 2026-08-26 and the restatement here
+# never followed. 60 is kept below as the deliberate CONSERVATIVE bound — every term
+# was sized against it, so each line holds a fortiori at 15, and a future re-retune
+# upward (to anything ≤ 60) cannot silently invalidate them — past 60 they must be
+# re-derived. Invariant, per step that takes the lock once:
 #   ceiling > STAGE_LOCK_MAX_WAIT_MIN + own staging + largest observed work
 #   labels 120 > 60 + 26 + 27 (non-citywide only: it stages the native ortho, up to
 #   48 GB; every --force-citywide job skips it) · tile 180 > 60 + 26 + 24 ·
 #   train 300 > 60 + 60 (tile sets are 0.2-0.7 GiB, below the lock's floor, so the
-#   wait term is slack) · inference 480 > 60 + 26 + 255 + verified copy.
+#   wait term is slack) · inference 480 > 60 + 26 + 255 + verified copy ·
+#   postproc 180 > 60 + 3 + 99.
+#
+# POSTPROC JOINED that list on 2026-09-07 (commit f582e0e) and was the one step missing
+# from it. phase4seg/postproc.py::_resolve_prob_source now stages the probability raster
+# itself when inference ran on another machine — this step's FIRST bulk Drive→NVMe copy,
+# hence its first exposure to the lock. Its two terms:
+#   · own staging ~2.8 min. The 5 cm probability rasters are 3.0-6.7 GB (recorded at
+#     phase4seg/core.py::step_inference); 6.7 GB at the ~40 MB/s sequential Drive rate
+#     measured in Reports/PIPELINE_SPEEDUP_OPTIONS_2026-09-07.md §1 is 2.8 min.
+#     Arithmetic, not timed. Only the TOP of that range contends at all —
+#     common.py::STAGE_LOCK_MIN_BYTES is 4 GiB = 4.29 GB, so a 3.0 GB raster copies
+#     unlocked and pays no wait term; the 60 above is charged to the 6.7 GB case only.
+#   · largest observed work 99.0 min — the maximum `elapsed:` over the 69 postproc step
+#     logs in the lake, from phase4_semantic_finetune_postproc_2024_2026-09-01T07-34.log
+#     (MEASURED 2026-09-07 by grepping `^elapsed:` across phase4/logs). EVERY ONE of
+#     those 69 predates commit 5096b03: the newest is dated 2026-09-06 and the fix
+#     landed 2026-09-07 09:33, so all of them time the windowed-FUSE read that 5096b03
+#     and f582e0e exist to remove. Post-fix postproc elapsed is UNMEASURED, and sizing
+#     the ceiling on the pre-fix worst case is the conservative direction.
+# The old 120 FAILED this invariant (60 + 3 + 99 = 162) and cleared the live-15 form by
+# only 3.2 min, which is not margin for something whose only job is to break a hang.
 STEP_TIMEOUT_MIN = {"labels": 120, "tile": 180, "train": 300,
-                    "evaluate": 60, "inference": 480, "postproc": 120}
+                    "evaluate": 60, "inference": 480, "postproc": 180}
 
 # Two interrupts inside this window = a human really wants out.
 DOUBLE_INT_SEC = 20

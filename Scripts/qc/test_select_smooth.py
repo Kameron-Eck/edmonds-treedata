@@ -270,7 +270,9 @@ def test_save_ckpt_refactor_writes_the_same_payload(tmp_path):
     what changed is that those two keys are now asserted to be None rather than
     type-equal to a live state_dict. The reference payload deliberately still holds a
     real opt/sched state_dict: it documents exactly what stopped being written
-    (measured 1,113,134,613 B -> 371,403,223 B, 3.00x, for the production U-Net)."""
+    (~3x the payload on the production U-Net; the measured bytes and the method that
+    produced them live in Reports/PIPELINE_SPEEDUP_OPTIONS_2026-09-07.md §8.2, and are
+    deliberately not restated here — no test would catch them drifting)."""
     model = Tiny()
     model.stamp(3)
     opt = torch.optim.AdamW(model.parameters(), lr=1e-4)
@@ -321,10 +323,11 @@ def test_save_ckpt_strips_optimiser_state(tmp_path):
 
     The input is known-bad on purpose: one real opt.step() runs first, so AdamW's two
     moment buffers per parameter genuinely exist and a regression that re-captured
-    them would write a non-empty dict here. Measured on the production U-Net, that is
-    what the diet removes: 1,113,134,613 B -> 371,403,223 B (3.00x), and it is the
-    payload that crosses Drive on every improving epoch (`core.py::step_train` for
-    Phase A, `core.py::_run_phase_b` for Phase B).
+    them would write a non-empty dict here. On the production U-Net that is ~3x the
+    Phase-B payload (measured, with its method, in
+    Reports/PIPELINE_SPEEDUP_OPTIONS_2026-09-07.md §8.2), and it is the payload that
+    crosses Drive on every improving epoch (`core.py::step_train` for Phase A,
+    `core.py::_run_phase_b` for Phase B).
 
     Keys must SURVIVE as None rather than disappear — a reader that tests key
     presence keeps working, and the no-dropped-fields test above depends on it."""

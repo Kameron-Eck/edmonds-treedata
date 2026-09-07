@@ -140,9 +140,11 @@ def _resolve_prob_source(prob_final, allow_stage=True):
     Why (b) exists: postproc reads this raster in 4096-row windows. Over FUSE that is
     thousands of small latency-bound range reads with no CPU, disk or network counter
     moving — 96% of postproc samples showed all four idle
-    (Reports/PIPELINE_SPEEDUP_OPTIONS_2026-09-07.md §7) — while one SEQUENTIAL copy of
-    the same file measured ~40 MB/s (§1). Commit 5096b03 covered only case (a) and fell
-    back to the windowed FUSE read, which is the pathology itself.
+    (Reports/PIPELINE_SPEEDUP_OPTIONS_2026-09-07.md §7, and per its §7.5 every hardware
+    sample behind that figure predates commit 5096b03, so it measures the pre-fix
+    behaviour this function removes rather than what remains) — while one SEQUENTIAL
+    copy of the same file measured ~40 MB/s (§1). Commit 5096b03 covered only case (a)
+    and fell back to the windowed FUSE read, which is the pathology itself.
 
     (a) and (b) resolve to the SAME scratch path by construction: _local_artifact_path
     and _stage_imagery_local both name their destination LOCAL_SCRATCH /
@@ -167,8 +169,21 @@ def _resolve_prob_source(prob_final, allow_stage=True):
     ``prob_final.exists()`` re-raises drivefs EIO (CPython's pathlib swallows only
     ENOENT / ENOTDIR / EBADF / ELOOP). Any failure degrades to (`prob_final`, False)
     with a WARNING, so a staging problem costs speed and not the run.
+
+    AND THAT DEGRADE MUST NOT LEAK. There is a window — between _stage_imagery_local
+    returning a FINISHED multi-GB copy and this function returning ``(staged, True)`` —
+    in which the very next statements touch the filesystem again (``staged.stat()``) and
+    can raise. Before 2026-09-07 the ``except`` below returned `prob_final` from inside
+    that window and nobody ever owned the copy: `staged_here` was False, so
+    step_postproc's `finally` released nothing, and nothing else sweeps the name
+    (common.py::_sweep_part_orphans takes only *.part.* / *.prev.*). One such failure
+    per year ate the free space this function itself checks, so a transient stat error
+    silently switched every LATER year back to the windowed FUSE read. The handler now
+    unstages whatever THIS call staged, best-effort and inside its own try — releasing
+    the copy must not become a new way for the never-raises contract to be broken.
     """
     prob_final = Path(prob_final)
+    staged = None
     try:
         local = _local_artifact_path(prob_final)
         if local != prob_final and local.exists():
@@ -216,6 +231,11 @@ def _resolve_prob_source(prob_final, allow_stage=True):
               "it windowed over FUSE (slow: thousands of small range reads)")
         return prob_final, False
     except Exception as e:                                       # noqa: BLE001
+        if staged is not None and staged != prob_final:
+            try:
+                _unstage_imagery_local(staged)   # the copy nobody would have owned
+            except Exception:                    # noqa: BLE001 — see the docstring
+                pass
         print(f"  WARNING: could not stage the probability raster ({e!r}) — postproc "
               f"will read it windowed over FUSE")
         return prob_final, False
@@ -228,7 +248,9 @@ def step_postproc(label, dry_run=False):
     # P4.3 (2026-09-07): NEVER READ THE PROBABILITY RASTER WINDOWED OVER FUSE.
     # This step is moving bytes, not computing:
     #   • 96% of postproc samples show no GPU, no CPU, no disk AND no network at once
-    #     (Reports/PIPELINE_SPEEDUP_OPTIONS_2026-09-07.md §7) — blocked on FUSE
+    #     (Reports/PIPELINE_SPEEDUP_OPTIONS_2026-09-07.md §7; that report's own §7.5
+    #     caveat applies — every sample behind the figure predates 5096b03, so it is
+    #     the pre-fix pathology, not a measurement of what is left) — blocked on FUSE
     #     per-request latency, while ONE sequential file reads at ~40 MB/s (§1);
     #   • postproc's elapsed time tracks the probability raster's SIZE, and how strongly,
     #     over how many runs, and what that costs the 5 cm epochs is recorded ONCE, at

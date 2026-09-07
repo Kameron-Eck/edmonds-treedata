@@ -97,6 +97,36 @@ def test_unwritable_marker_directory_never_raises_into_the_run(tmp_path, monkeyp
                                   "must only ever write into a directory that exists"
 
 
+def test_a_failed_publish_leaves_no_orphan_temp(tmp_path, monkeypatch):
+    """The atomic publish's failure path, fired. `_write_marker` writes a PID-suffixed
+    temp and os.replace's it over the marker; the pid is there so two writers on one
+    host cannot truncate each other's in-flight file. When the replace fails — a
+    read-only or vanished directory, a Windows sharing violation while vm_hwlogger has
+    the marker open — the exception is swallowed, and it used to be swallowed with the
+    temp still on disk. Nothing sweeps that name and nothing reads it (vm_hwlogger opens
+    only the exact marker path), so every failing process left one more invisible file
+    in the directory the hardware logger lives in.
+
+    Three assertions, because two of them are the pre-existing contract this must not
+    break: start() still does not raise, and a marker that was never published is not
+    recorded as one (a stale `_marker_path` would make finish() remove someone else's).
+    """
+    m = tmp_path / "hw_step_marker.json"
+    monkeypatch.setenv("HW_STEP_MARKER", str(m))
+
+    def _boom(_src, _dst):
+        raise OSError("replace failed")
+
+    monkeypatch.setattr(os, "replace", _boom)
+
+    log = StepLogger("s", "train_2017", tmp_path, capture_stdout=False)
+    log.start()                                  # must not raise
+
+    assert not m.exists(), "nothing should have been published"
+    assert list(tmp_path.glob("*.tmp")) == [], "the atomic temp was left behind"
+    assert log._marker_path is None, "an unpublished marker was recorded as published"
+
+
 @pytest.mark.skipif(os.name == "posix",
                     reason="on posix the default IS the real marker path; writing it "
                            "is the correct behaviour and a test must not touch it")

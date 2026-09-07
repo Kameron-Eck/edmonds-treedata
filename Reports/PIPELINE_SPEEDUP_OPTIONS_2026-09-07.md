@@ -235,3 +235,78 @@ round-trip between inference and postproc, so **the 96%-nothing postproc figure 
 pre-fix behaviour and may already be partly obsolete**. Postproc must be re-measured, not
 re-fixed. The queued `heal_infill_2017_2023` campaign is the natural post-fix measurement
 run: it produces fresh `hw_*.csv` at no additional cost beyond the GPU time already sought.
+
+## 8. Implementation record (2026-09-07)
+
+§2 row 1 ("strip `optim_state` from `sem_best`") shipped. This section is the tracked home
+for the two measurements behind it — they were quoted in `phase4seg/ckpt.py` and
+`qc/test_select_smooth.py` docstrings as "measured" with no file anywhere holding them,
+which is the kind of number that rots the day it is re-taken (CLAUDE.md 3.4b). Both were
+**re-derived independently here**, not copied from the implementing pass's report
+(CLAUDE.md 3.4c).
+
+### 8.1 Parameter census — MEASURED, local CPU
+
+```
+py -3.12 -c "from phase4seg import ckpt, core, config; \
+m=ckpt.ARCHS['unet']['build'](); tot=sum(p.numel() for p in m.parameters()); \
+core._freeze_encoder(m); \
+print(tot, sum(p.numel() for p in m.parameters() if p.requires_grad))"
+```
+
+Production build (`ARCHS["unet"]`, `IN_CHANNELS=3`, `AUX_HEIGHT=False`): **92,680,577
+parameters**, of which **50,180,417** still require grad after
+`phase4seg/core.py::_freeze_encoder`. AdamW carries two fp32 moment buffers per **stepped**
+parameter, so Phase A — which freezes first and builds the optimiser over `requires_grad`
+params only — has ~1.08× the weights in optimiser state where Phase B has ~2×. That is the
+whole reason the saving is not one number.
+
+### 8.2 Checkpoint size, with and without optimiser state — MEASURED, local CPU
+
+Method: build the production model; construct `torch.optim.AdamW` over its `requires_grad`
+parameters; set zero grads and call `.step()` once so the two moment buffers actually
+materialise (a freshly-constructed AdamW has an EMPTY state dict and would understate the
+payload by the whole amount at issue); attach a `StepLR`; then `torch.save` the
+`phase4seg/ckpt.py::_save_ckpt_state` payload twice — once with `optim_state` /
+`sched_state`, once with both `None` — to a local temp file, and `stat` each. Phase A is
+the same recipe with `phase4seg/core.py::_freeze_encoder` applied before the optimiser is
+built. Nothing written to the lake.
+
+| write | with optim+sched | with both `None` | ratio | saving |
+|---|---|---|---|---|
+| Phase-B best (encoder trainable) | 1,113,136,145 B | 371,405,107 B | **2.997×** | 741.7 MB (66.6%) |
+| Phase-A best (encoder frozen) | 772,875,507 B | 371,405,107 B | **2.081×** | 401.5 MB (51.9%) |
+
+Byte-weighted over the archive's 106/28 split (§8.3) the saving is **64.4%** of bytes
+written. **Do not quote the Phase-B ratio alone as "the" per-write saving**: `sem_best` is
+written on every improving epoch and Phase A runs first.
+
+The implementing pass reported this pair as 1,113,134,613 B → 371,403,223 B. That
+reproduces here **to within 1.5–1.9 kB** — payload metadata (the `history` dict and the
+phase/epoch scalars) differs between the two recipes, and nothing else can differ at this
+scale. The claim is confirmed; the exact bytes are recipe-dependent and only the numbers
+in the table above have a stated method behind them.
+
+### 8.3 Lake census, and a correction to §2 row 1 — MEASURED
+
+```
+stat -c '%s' "G:/My Drive/treedata/phase4/models/sem_best_"*.pt | sort -n
+```
+
+135 files, in **three** clusters and nothing between them:
+
+| files | size range | what it is |
+|---|---|---|
+| 1 | 371,405,955 B (371.4 MB) | `sem_best_2009_smooth5.pt` — the only pre-existing on-disk instance of the post-diet size, and only `phase4seg/select.py::_SmoothCkptSelector` could have written it (it has passed `None, None` since 2026-08-29) |
+| 28 | 772,888,667 – 773,021,944 B (772.9–773.0 MB) | Phase-A best |
+| 106 | 1,113,161,289 – 1,113,244,581 B (1113.2 MB) | Phase-B best |
+
+**§2 row 1's "891.8 MB → 371 MB" is wrong at the 891.8 end.** The archive's `sem_best`
+sizes are bimodal, and 891.8 MB sits in the empty gap between the two clusters — zero
+files fall in 773.1–1113.1 MB. It was never a real file, and where it came from is NOT
+reconciled here — it is neither cluster, nor their plain mean (943.1 MB), nor the
+106/28-weighted mean (1042.1 MB). The 371 MB end is right (it is 8.2's measured
+`without`, and the one 371.4 MB file on disk). **Treat §2 row 1's 3.6 h forward saving as
+a PROJECTION built on that figure, not a measurement.** Independent measured support for
+the change itself is §7.2: net TX exceeds 1 MB/s in 26% of `train` hardware samples,
+~2.2 h of the 8.6 h sampled — which is this upload path — subject to the §7.5 caveat.

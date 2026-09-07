@@ -386,26 +386,23 @@ def _save_ckpt(phase, epoch, model, optim, sched, history, best_val, path):
     identity/metadata keys and never the optimiser, so Phase-B resume from the
     Phase-A best already built a fresh optimiser before this change.
 
-    Measured (local CPU, 2026-09-07). Parameter census on the production build
-    (ARCHS["unet"], IN_CHANNELS=3, AUX_HEIGHT=False): 92,680,577 params, of which
-    50,180,417 still require grad after `core.py::_freeze_encoder`. At 4 B/param the
-    weights alone are ~371 MB, and AdamW adds 8 B per stepped param, predicting
-    ~1,113 MB for a Phase-B checkpoint and ~773 MB for a Phase-A one. The archive
-    agrees: `ls -l` over the 135 sem_best_*.pt in the lake's phase4/models finds 106
-    files at ~1,113 MB (Phase B), 28 at ~773 MB (Phase A), and exactly one small file
-    — sem_best_2009_smooth5.pt at 371,405,955 B, which only the already-None writer in
-    `select.py::_SmoothCkptSelector` could have produced, and which is therefore a
-    real on-disk instance of the post-diet size. So the saving is 741.8 MB per
-    Phase-B write (2.997x, 66.6% of the payload) and 401.5 MB per Phase-A write
-    (2.081x, 51.9%); 64.4% weighted over the archive's 106/28 split. Do not quote the
-    Phase-B ratio alone as the per-write saving — sem_best is written on every
-    improving epoch and Phase A runs first.
-    Reports/PIPELINE_SPEEDUP_OPTIONS_2026-09-07.md §2 row 1 reads 891.8 MB -> 371 MB:
-    the 371 MB end is the size measured above, but 891.8 MB matches NO file in
-    phase4/models and sits between the two clusters — not reconciled here. Treat that
-    report's 3.6 h forward saving as its PROJECTION, not a measurement. Independent
-    measured support for the same change: §7.2 — net TX exceeds 1 MB/s in 26% of train
-    hardware samples, ~2.2 h of the 8.6 h sampled, which is this upload path.
+    THE BYTES LIVE IN Reports/PIPELINE_SPEEDUP_OPTIONS_2026-09-07.md §8, not here.
+    They used to be restated in this docstring with no tracked file behind them, and
+    they had already drifted between the two copies that carried them. §8 records, as
+    MEASURED on local CPU with the recipe that produced each figure: the parameter
+    census (§8.1), the with/without checkpoint sizes and their ratios (§8.2), and the
+    size census of all 135 sem_best_*.pt in the lake (§8.3).
+
+    What belongs at THIS call site is the SHAPE, which the bytes only illustrate: the
+    payload is ~3x smaller in Phase B and ~2x in Phase A, because AdamW charges two
+    fp32 moment buffers per STEPPED parameter and Phase A steps only the unfrozen ones.
+    Do not quote the Phase-B ratio alone as the per-write saving — sem_best is written
+    on every improving epoch and Phase A runs first; §8.2 carries the byte-weighted
+    figure over the archive's real split. §8.3 also settles the 891.8 MB in that
+    report's §2 row 1: no file on disk has that size, so its 3.6 h forward saving is a
+    PROJECTION. Independent measured support for the change itself is §7.2 — net TX
+    above 1 MB/s in 26% of train hardware samples, which is this upload path — read
+    with the §7.5 caveat that every hardware sample predates commit 5096b03.
 
     This completes a design already half-applied:
     `select.py::_SmoothCkptSelector.write` has passed None, None since 2026-08-29 for

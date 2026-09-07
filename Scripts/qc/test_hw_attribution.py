@@ -19,6 +19,12 @@ tests, on rows small enough to count by hand:
   f  a session whose every sample is ambiguity-dropped — the ALL row is still emitted,
      with zero samples. A table that accounts for paid VM time may not silently omit a
      machine that ran.
+  g  a session whose file parses to NO samples at all — same rule, reached by the other
+     road. `if not rows: continue` deleted it from the table outright, which is exactly
+     the omission (f) exists to prevent.
+  h  a v2 file whose `step` column is present but entirely blank — it must NOT be
+     published as a 100% `(between)` machine on the trusted `marker` tier. Presence of
+     the column was the old test; use of it is the new one.
 
 Plus the two accounting traps the row itself must close: a session owning BOTH schemas
 keeps each file on its own basis (a marker's per-machine step is never re-guessed from
@@ -244,6 +250,91 @@ def test_a_fully_ambiguous_session_still_gets_its_ALL_row(tmp_path):
     assert a["samples_parsed"] == 2, "parsed = kept + dropped, recoverable from the row"
     assert a["span_hours"] == "0.0028"          # 10 s
     assert a["nothing_frac"] == "" and a["gpu_present"] == "", "no samples, no fraction"
+
+
+def test_a_session_with_no_parseable_samples_still_gets_its_ALL_row(tmp_path):
+    """(g) The same never-omit rule, on the other road into it.
+
+    (f) covers a session whose samples were all DROPPED. This covers one whose file
+    yielded no samples to drop: a header-only file (the logger created it and died
+    before its first tick) and one whose every `ts_utc` is unparseable (a truncated or
+    half-flushed FUSE write — `read_hw` discards those rows because they can be
+    attributed on neither basis). Both used to hit `if not rows: continue` and vanish,
+    taking with them the one fact that matters most about that machine: it ran, and its
+    hardware log is empty. Zero samples is a finding about the logger; an absent row is
+    indistinguishable from a VM that never existed.
+    """
+    logs = tmp_path / "logs"
+    logs.mkdir()
+    _write(logs / "hw_hdr.csv", V1_HEADER, [])                    # header only
+    _write(logs / "hw_bad.csv", V1_HEADER,                        # unparseable stamps
+           ["not-a-timestamp,0,0,0,50.0,1,0,0,0,0,50.0,200.0"])
+    rows = build_rows(logs)
+
+    for session in ("hdr", "bad"):
+        r = _by_step(rows, session)
+        assert set(r) == {"ALL"}, f"{session} lost its ALL row"
+        a = r["ALL"]
+        assert a["samples"] == 0 and a["samples_parsed"] == 0
+        assert a["ambiguous_dropped"] == 0
+        assert a["hours"] == "0.0000" and a["span_hours"] == "0.0000"
+        assert a["gpu_present"] == "" and a["nothing_frac"] == "", \
+            "no samples, no fraction — blank, never 0.0000"
+        assert a["basis"] == "interval"
+        assert a["source_file"] == f"hw_{session}.csv"
+
+
+def test_a_blank_step_column_is_demoted_off_the_marker_tier(tmp_path):
+    """(h) THE TIER GUARD, fired. The basis used to be chosen on the column's PRESENCE,
+    so a v2 file with nothing but blanks in `step` published as `marker` — the tier
+    docs/SCHEMAS.md tells readers to trust as a per-machine measurement — asserting that
+    100% of the runtime was `(between)`, i.e. that no engine step ran there at all.
+
+    Blank has two causes the column cannot separate: genuinely between steps, or
+    `pipeline_log.py::StepLogger` never published a marker on that VM (an unwritable
+    directory returns silently, by design). A file that never once carried a marker has
+    demonstrated nothing about the marker mechanism, so it drops to the interval basis —
+    where, as this fixture shows, the step logs still recover the step that ran.
+
+    The demotion is recorded in `source_file` because the row has no free-text column;
+    a reader slicing on `basis` alone already gets the weaker tier, and this says why.
+    """
+    logs = tmp_path / "logs"
+    logs.mkdir()
+    _steplog(logs, "train_2017", 0, 60)
+    _write(logs / "hw_blank_v2.csv", V2_HEADER,
+           [_v2(s, 50, 60, 0, 0, 0, 0, 1, "") for s in (10, 20, 30)])
+    rows = _by_step(build_rows(logs), "blank")
+
+    assert set(rows) == {"train", "ALL"}, \
+        "the interval basis should have recovered the step that ran"
+    a = rows["ALL"]
+    assert a["basis"] == "interval", "a never-used step column claimed the trusted tier"
+    assert a["samples"] == 3
+    assert "step column present but blank" in a["source_file"]
+    assert "hw_blank_v2.csv" in a["source_file"]
+    # and the fallback is not blind: iowait still reads, because the file IS v2.
+    assert a["iowait10_frac"] == "0.0000"
+
+
+def test_one_used_marker_cell_is_enough_to_keep_the_marker_tier(tmp_path):
+    """The other side of (h) — the demotion must not swallow a working v2 file whose
+    machine happened to idle between steps for most of its life. One non-blank cell is
+    evidence the marker mechanism worked there; the blanks are then real `(between)`.
+    """
+    logs = tmp_path / "logs"
+    logs.mkdir()
+    _steplog(logs, "tile_2017", 0, 60)          # would relabel everything if demoted
+    _write(logs / "hw_mostly.csv", V2_HEADER,
+           [_v2(10, 0, 1, 0, 0, 0, 0, 1, ""),
+            _v2(20, 0, 1, 0, 0, 0, 0, 1, ""),
+            _v2(30, 90, 60, 0, 0, 0, 0, 1, "train_2017")])
+    rows = _by_step(build_rows(logs), "mostly")
+
+    assert rows["ALL"]["basis"] == "marker"
+    assert set(rows) == {"(between)", "train", "ALL"}
+    assert rows["(between)"]["samples"] == 2
+    assert "blank" not in rows["ALL"]["source_file"]
 
 
 def test_output_is_deterministic_and_columns_are_the_contract(tmp_path):

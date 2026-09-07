@@ -122,6 +122,19 @@ samples_parsed, span_hours, source_file`. Fractions are of the row's samples (GP
 fractions of the samples that HAVE a GPU reading), and are BLANK on a row with no
 samples.
 
+`gpu_present` is the fraction of the row's samples that carry a **non-blank
+`gpu_util_pct`** — 1.0000 on a GPU runtime, 0.0000 on a CPU one, and blank on a
+row with no samples. It is the column that tells a CPU-only session apart from a
+GPU session whose sampler failed, which is why `nothing_frac` may treat an absent
+GPU reading as idle and must treat every other absent reading as unknown.
+
+**Per-row vs group constant.** `samples, hours, gpu_present, gpu_busy_frac,
+gpu_util_mean` and every `*_frac` describe THAT row's samples. `basis,
+ambiguous_dropped, samples_parsed, span_hours` and `source_file` are constants of
+the whole `(session, basis)` group, **repeated on every one of its rows** so a
+reader who slices to a single step still sees the denominators — never sum them
+across a group's rows.
+
 **READER RULE: three denominators, and two of them are missing time.** The `ALL`
 row pools ATTRIBUTED samples only — `samples_parsed` = `ALL.samples` +
 `ambiguous_dropped` — so **`ALL.hours` is not the session's wall clock and must
@@ -134,11 +147,23 @@ logger never sampled. Measured 2026-09-07 across the 18 archived sessions the
 three read 72.63 h covered / 60.35 h sampled / 48.82 h attributed, so ALL.hours
 is a third below the wall clock. A session whose every sample was
 ambiguity-dropped still gets its `ALL` row, with `samples = 0` and blank
-fractions: a machine that ran is never absent from the table.
+fractions: a machine that ran is never absent from the table. Since 2026-09-07
+that also holds when the file parses to no samples AT ALL (header-only, or every
+`ts_utc` unreadable): `samples_parsed = 0`, `hours = span_hours = 0.0000`, blank
+fractions. Zero samples is a finding about the logger; an absent row is
+indistinguishable from a VM that never existed.
 
 **READER RULE: `basis` gates how much a row is worth**, the same way
-`join_basis` gates `run_passport`. `marker` = the v2 `step` column, so each
-sample names its own step on its own machine — trustworthy. `interval` = the
+`join_basis` gates `run_passport`. `marker` = the v2 `step` column **with at
+least one non-blank cell in it**, so each sample names its own step on its own
+machine — trustworthy. A v2 file whose `step` column is present but entirely
+blank is DEMOTED to `interval` and says so in its `source_file` cell (`[v2 step
+column present but blank -> interval basis: …]`): blank has two causes the column
+cannot separate — genuinely between steps, or a VM where
+`pipeline_log.py::StepLogger` never managed to publish a marker — and a file that
+never once carried one has demonstrated nothing about the mechanism. Choosing the
+basis on the column's mere PRESENCE (the rule until 2026-09-07) published such a
+file as a 100% `(between)` machine on the trusted tier. `interval` = the
 legacy files, joined by TIME to the step LOGS, which carry no session or host
 field; the queue status CSVs that do carry `session` cover only 1 of the 18
 archived hw sessions (`of2017k2`, 13 rows; the repo-tracked copies carry none —

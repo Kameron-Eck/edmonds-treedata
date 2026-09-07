@@ -285,8 +285,15 @@ class StepLogger:
             half-written object and log a blank step for a sample that had one. The pid
             in the temp name keeps two writers on one host from truncating each other's
             in-flight temp — with a shared name, the loser's replace() raises after the
-            winner already published the loser's bytes.
+            winner already published the loser's bytes. And when that replace DOES fail
+            (or json.dump dies mid-write), the temp is removed on the way out: swallowing
+            the exception without it left a `{path}.{pid}.tmp` beside the marker forever,
+            in a directory nothing sweeps, and the pid in the name guarantees a fresh
+            orphan per process rather than one file overwritten. vm_hwlogger reads only
+            the exact marker name, so the orphan is invisible until someone lists the
+            directory — telemetry litter that outlives the run it describes.
         """
+        tmp = None
         try:
             if os.name != "posix" and not os.environ.get("HW_STEP_MARKER"):
                 return                      # see guard 1: /content is drive-relative here
@@ -313,7 +320,11 @@ class StepLogger:
             os.replace(tmp, path)
             self._marker_path = path
         except Exception:                   # noqa: BLE001 — must never break a run
-            pass
+            if tmp:
+                try:
+                    os.remove(tmp)          # no orphan {path}.{pid}.tmp beside the marker
+                except OSError:
+                    pass
 
     def _clear_marker(self):
         """Remove the marker. Its ABSENCE is the reading "no step is open"."""

@@ -16,10 +16,23 @@ takes two corrections in one afternoon belongs in a script whose output is a tra
 TWO ATTRIBUTION BASES, and the CSV says which one produced every row. The basis is
 decided PER FILE, and a row is keyed `(session, step, basis)` — see `build_rows`.
 
-    marker      The hw CSV carries its own `step` column (schema v2): the sampler read
-                the step marker file the engine writes at StepLogger.start() and deletes
-                at finish(). Each sample names its OWN step, on its OWN machine. No
-                cross-VM ambiguity is possible. This is the basis to trust.
+    marker      The hw CSV carries its own `step` column (schema v2) AND at least one
+                row has a non-blank value in it: the sampler read the step marker file
+                the engine writes at StepLogger.start() and deletes at finish(). Each
+                sample names its OWN step, on its OWN machine. No cross-VM ambiguity is
+                possible. This is the basis to trust.
+
+                THE NON-BLANK TEST IS NOT PEDANTRY. Until 2026-09-07 the basis was
+                chosen on the mere PRESENCE of the column, and a v2 file whose every
+                `step` cell is blank would then publish as 100% `(between)` — "this
+                machine ran no engine step at all" — on the TRUSTED tier. Blank cells
+                have two causes and the column cannot tell them apart: the VM really was
+                between steps, or `pipeline_log.py::StepLogger` never managed to publish
+                a marker there (an unwritable directory returns silently, by design).
+                A file that never once carried a marker is a file that has demonstrated
+                nothing about the marker mechanism, so it drops to `interval` and says
+                so in `source_file`. Live example on the day the rule was written:
+                `hw_spdc1.csv`, v2 header, 24 samples, every step cell empty.
 
     interval    Legacy hw CSVs (every file written before the marker landed) have no step
                 column, so the only join available is TIME against the step logs — and
@@ -274,8 +287,10 @@ def _f(x):
 def summarise(session, step, basis, rows, secs, dropped, parsed, span_hours,
               source, has_iowait):
     """One output row. `rows` may be EMPTY — a session every one of whose samples was
-    ambiguity-dropped still gets its ALL row, with zero samples and blank fractions,
-    because a table that accounts for paid VM time must not silently omit a machine."""
+    ambiguity-dropped, or whose file parsed to no samples at all, still gets its ALL
+    row, with zero samples and blank fractions, because a table that accounts for paid
+    VM time must not silently omit a machine. `hours` is then 0.0000 and `span_hours`
+    0.0000: measured zero, not missing."""
     n = len(rows)
     gpu = [r["gpu"] for r in rows if r["gpu"] is not None]
     busy = sum(1 for g in gpu if g > GPU_BUSY_PCT)
@@ -340,25 +355,45 @@ def build_rows(logs_dir, hw_files=None):
     groups = {}
     for p in files:
         rows, has_step = read_hw(p)
-        g = groups.setdefault((session_of(p), "marker" if has_step else "interval"),
-                              {"rows": [], "files": []})
+        # The column must be present AND used at least once — see the module docstring.
+        # A v2 file with nothing but blanks in it has proved nothing about the marker,
+        # so it is demoted rather than published as an all-`(between)` machine.
+        has_marker = has_step and any((r["step"] or "").strip() for r in rows)
+        g = groups.setdefault((session_of(p), "marker" if has_marker else "interval"),
+                              {"rows": [], "files": [], "demoted": []})
         g["rows"] += rows
         g["files"].append(Path(p).name)
+        if has_step and not has_marker:
+            g["demoted"].append(Path(p).name)
 
     out = []
     for session, basis in sorted(groups):
         g = groups[(session, basis)]
         rows = g["rows"]
-        if not rows:
-            continue
         source = ";".join(sorted(g["files"]))
+        if g["demoted"]:
+            # There is no free-text column on this row, so the demotion rides on
+            # source_file — the one cell that already names files. A reader who slices
+            # on `basis` alone still gets the right (weaker) tier; this says WHY.
+            source += (" [v2 step column present but blank -> interval basis: "
+                       + ";".join(sorted(g["demoted"])) + "]")
         secs = _sample_seconds(rows)
         has_iowait = any(r["iowait"] is not None for r in rows)
         ts = [r["ts"] for r in rows]
-        span_h = (max(ts) - min(ts)).total_seconds() / 3600.0
+        # No parseable sample -> no span. max() over an empty sequence raises, and this
+        # group is reached precisely because the group is NOT skipped any more.
+        span_h = (max(ts) - min(ts)).total_seconds() / 3600.0 if ts else 0.0
         parsed = len(rows)
 
-        if basis == "marker":
+        if not rows:
+            # An unreadable / header-only / all-bad-timestamp file. It gets its ALL row
+            # anyway — same rule as the all-ambiguity-dropped case below, for the same
+            # reason: a machine that ran is never absent from the table, and "0 samples
+            # parsed" is a finding about the logger, not an absence of one. Guarded here
+            # rather than inside attribute_interval so an empty group does not pay for a
+            # scan of every step log in the lake.
+            labels, dropped = [], 0
+        elif basis == "marker":
             labels = [norm_step(r["step"]) for r in rows]
             dropped = 0
         else:
@@ -378,7 +413,11 @@ def build_rows(logs_dir, hw_files=None):
                                  dropped, parsed, span_h, source, has_iowait))
         # UNCONDITIONAL. A session whose every sample was ambiguity-dropped has no step
         # rows at all; without this its samples, its drop count and the fact that the
-        # machine ran would vanish from the table entirely.
+        # machine ran would vanish from the table entirely. Since 2026-09-07 that also
+        # covers the zero-PARSED case (`samples_parsed` = 0), which used to `continue`
+        # out of the loop above and delete the session from the table outright — the
+        # exact omission the ambiguity branch was written to prevent, reached by the
+        # other road.
         out.append(summarise(session, ALL, basis, kept, secs, dropped, parsed,
                              span_h, source, has_iowait))
     out.sort(key=lambda r: (r["session"], r["step"], r["basis"]))

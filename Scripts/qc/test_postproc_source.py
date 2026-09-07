@@ -4,7 +4,8 @@ WHAT THIS GUARDS. step_postproc reads the per-year probability raster in 4096-ro
 windows. When that file sits on the Colab Drive FUSE mount, those windows become
 thousands of small latency-bound range reads: 96% of postproc samples showed no GPU,
 no CPU, no disk and no network activity at once
-(Reports/PIPELINE_SPEEDUP_OPTIONS_2026-09-07.md §7) while one sequential file reads
+(Reports/PIPELINE_SPEEDUP_OPTIONS_2026-09-07.md §7 — with that report's §7.5 caveat,
+that every sample behind the figure predates commit 5096b03) while one sequential file reads
 at ~40 MB/s (§1). That postproc's elapsed time tracks the raster's SIZE — how strongly
 and over how many runs — is recorded once, at core.py::step_inference, and is not
 restated here. Commit 5096b03 read a local copy only when inference had left one in the
@@ -21,7 +22,11 @@ two invariants that matter operationally:
     atomic rename, no post-copy verify) and swallows its own failures, so a killed copy
     leaves a truncated multi-GB file that nothing sweeps. Both guards against that —
     the pre-check on an inherited copy and the post-check on one we made — are SHOWN
-    here to FIRE on a known-bad input, per CLAUDE.md §3.4c.
+    here to FIRE on a known-bad input, per CLAUDE.md §3.4c; and
+  * it never LEAKS a copy it made. The two invariants above collide in one window: a
+    raise after the copy finished must still degrade to the Drive path, and must take
+    the finished copy with it. Before 2026-09-07 it returned `staged_here=False` and
+    left the file, so step_postproc's `finally` released nothing.
 
 Everything is monkeypatched (`_local_artifact_path`, `_stage_imagery_local`,
 `_unstage_imagery_local`, `_is_drive_path`, `shutil.disk_usage`,
@@ -304,6 +309,80 @@ def test_dry_run_discards_a_short_local_copy_but_stages_nothing(env):
     assert env.calls == []
     assert out == env.prob_final
     assert staged_here is False
+
+
+class _StatBomb(type(Path())):
+    """A real path whose ``.stat()`` raises — the one window that leaked.
+
+    ``_stage_imagery_local`` has already finished a multi-GB copy when the very next
+    statement re-checks its size. The copy lands in LOCAL_SCRATCH, on NVMe — so the real
+    raisers in that window are a local-disk error on ``staged.stat()`` (EIO on a failing
+    device, or the ENOSPC that a 6.7 GB write is exactly the thing to provoke) and the
+    ``print`` immediately after it, whose message carries an em dash and therefore
+    raises UnicodeEncodeError on a non-UTF-8 stdout. Any of the three leaves the same
+    finished copy behind; stat is simply the first and the cheapest to induce.
+
+    Subclassing the concrete Path keeps everything else real: the file exists,
+    ``.parent`` still equals the scratch dir the unstage helper guards on, and equality
+    against the plain source Path still works.
+    """
+
+    def stat(self, *a, **kw):
+        raise OSError(errno.EIO, "drivefs stat failed")
+
+
+def test_a_raise_after_a_finished_copy_does_not_leak_it(env):
+    """THE THIRD GUARD, fired. _resolve_prob_source never raises — every failure
+    degrades to (prob_final, False). But a failure raised AFTER the copy completed used
+    to degrade with the copy still on disk and nobody owning it: `staged_here` came back
+    False, so step_postproc's `finally` released nothing, and no sweeper takes this name
+    (common.py::_sweep_part_orphans handles only *.part.* / *.prev.*). Each such failure
+    burned multi-GB of the free space _resolve_prob_source itself tests, so a transient
+    stat error quietly pushed every later year back onto the windowed FUSE read.
+
+    The copy really is written here before the stat blows up, so the assertion is about
+    a file that existed — not about an imaginary one.
+    """
+    dst_seen = []
+
+    def _stage(src):
+        src = Path(src)
+        env.calls.append(src)
+        env.scratch.mkdir(parents=True, exist_ok=True)
+        dst = env.scratch / src.name
+        dst.write_bytes(src.read_bytes())        # the copy FINISHES
+        dst_seen.append(dst)
+        return _StatBomb(dst)                    # …and then the size re-check fails
+
+    env.monkeypatch.setattr(postproc, "_stage_imagery_local", _stage)
+
+    out, staged_here = postproc._resolve_prob_source(env.prob_final)
+
+    assert out == env.prob_final, "the degrade must still hand back the Drive path"
+    assert staged_here is False
+    assert env.unstaged == dst_seen, "the finished copy was left in scratch"
+    assert not dst_seen[0].exists(), "the leaked file is still on disk"
+
+
+def test_the_unstage_on_that_path_cannot_break_the_never_raises_contract(env):
+    """Releasing the copy must not become a NEW way to raise. The helper is documented
+    as never raising, but it is monkeypatched in tests and could be reimplemented; if
+    the release throws, the contract this whole function exists to keep must still hold.
+    """
+    def _stage(src):
+        env.calls.append(Path(src))
+        env.scratch.mkdir(parents=True, exist_ok=True)
+        dst = env.scratch / Path(src).name
+        dst.write_bytes(Path(src).read_bytes())
+        return _StatBomb(dst)
+
+    def _explode(_p):
+        raise RuntimeError("unstage blew up")
+
+    env.monkeypatch.setattr(postproc, "_stage_imagery_local", _stage)
+    env.monkeypatch.setattr(postproc, "_unstage_imagery_local", _explode)
+
+    assert postproc._resolve_prob_source(env.prob_final) == (env.prob_final, False)
 
 
 def test_is_drive_path_matches_the_test_core_uses():

@@ -32,6 +32,8 @@ than selected. Everything below is resolved from them at build time.
   <br>evidence `phase4/qc/detectability_curve.csv#csv:recall@epoch=2015;kind=conditional_cover`
 - **0.9457** — The landmark transform — derived only from clusters BOTH epochs detected — recovers measured registration at r = 0.9457 (dx 0.993, dy 0.876), median error 0.074 m, exact permutation p = 0.0002 over all 5,040 relabellings with each shuffled world refitting its own sign bits. Its residual does not track recall (r = 0.148). The block-wise offset it replaces scored r = -0.245 against registration (wrong sign) and -0.450 against recall. Conditioning on mutual detection before estimating geometry is what fixes the contamination.
   <br>evidence `phase4/qc/landmark_transform_gate.csv#regex:^# r_est_vs_expected,([0-9.]+)`
+- **1170** — The Panel A gold set is frozen at 1,170 no-change / 42 loss / 2 gain, resolved by the semantics in panel_a_paired_change.step_estimate — the code that produced the -2.21 pp headline. The record's 1,169 no-change is not reproducible under any verify convention tested; loss and gain are stable under all of them. This set is a development set forever: 42 positives means held-out recall has sd 7.3 pp.
+  <br>evidence `phase4/qc/panel_a_gold.csv#regex:^# count_nochange,(\d+)`
 
 ## 2. Best arm per year, at one held cut
 

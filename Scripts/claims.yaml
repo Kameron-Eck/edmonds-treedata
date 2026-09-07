@@ -149,3 +149,17 @@ claims:
     stated_in:
       - Reports/TEMPORAL_REFINEMENT_DESIGN_2026-09-06.md
     entry: change_detector_design
+
+  - id: panel-a-gold-frozen
+    statement: >-
+      The Panel A gold set is frozen at 1,170 no-change / 42 loss / 2 gain, resolved by
+      the semantics in panel_a_paired_change.step_estimate — the code that produced the
+      -2.21 pp headline. The record's 1,169 no-change is not reproducible under any
+      verify convention tested; loss and gain are stable under all of them. This set is
+      a development set forever: 42 positives means held-out recall has sd 7.3 pp.
+    value: "1170"
+    evidence: 'phase4/qc/panel_a_gold.csv#regex:^# count_nochange,(\d+)'
+    stated_in:
+      - Reports/CHANGE_DETECTOR_DESIGN_2026-09-06.md
+      - Reports/TEMPORAL_REFINEMENT_DESIGN_2026-09-06.md
+    entry: panel_a_direction

@@ -561,6 +561,8 @@ _PATH_INSERT_LEDGER = {
     "qc/coverage_map.py": 0,                 # tracked-homes only, no sibling import
     "qc/science_digest.py": 1,               # claims.py (qc root)
     "qc/verify_claims.py": 1,                # claims.py (qc root)
+    "qc/test_gold_freeze.py": 1,             # freeze_panel_a_gold (instruments)
+    "qc/instruments/freeze_panel_a_gold.py": 1,  # panel_a_paired_change (sibling)
     "qc/test_claims.py": 1,                  # claims.py (qc root)
     "qc/test_run_context.py": 5,             # year_scoreboard, coverage_map, ask (qc root)
     "qc/ask.py": 1,                          # claims.py (qc root), lazily

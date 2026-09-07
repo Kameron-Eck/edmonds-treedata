@@ -13,6 +13,20 @@ FileFinder caches directory listings by mtime. Family A never did this and got a
 it only because the VM-level bootstrap pre-installs requirements-colab.txt before any
 script runs — the in-script loops are belt-and-braces for the local/interactive plane.
 
+  THAT SENTENCE WAS FALSE 2026-08-26 → 2026-09-07, and this docstring is why nobody
+  looked. gen_vm_bootstrap.py replaced colab_cli_vmgen.py as the VM front door and did
+  not carry over its `pip install -r requirements-colab.txt`; the editable install it
+  does run pulls no third-party package, because pyproject.toml declares no [project]
+  dependencies. So the loop below stopped being belt-and-braces and became the ONLY
+  installer on every GPU/CPU runtime: fiona and segmentation-models-pytorch installed
+  inside the first engine step of each VM (82 `installing` lines / 43 nohup logs).
+  Restored in gen_vm_bootstrap.py and gated by
+  qc/test_ci_gates.py::test_vm_bootstrap_installs_the_requirements_file.
+
+  KNOWN LIMIT of the probe, unchanged: it asks `importlib.import_module(name)`, never a
+  VERSION. A preinstalled out-of-range package satisfies it silently — the pins are
+  enforced by `pip install -r`, not here.
+
 THE TWO THAT MUST NOT FOLD ONTO THIS, recorded so nobody "finishes the job":
   · qc/instruments/phase4_qc_inventory.py / qc/instruments/phase4_ref_agreement.py (family B): guard INSIDE the
     function and `check=False` — they no-op when the package exists and degrade

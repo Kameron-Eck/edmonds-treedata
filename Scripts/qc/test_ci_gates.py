@@ -191,3 +191,60 @@ def test_emitted_vm_bootstrap_is_valid_python():
     lines = [_static_str(e) for e in wd.elts]
     assert len(lines) > 20, f"_WD collapsed to {len(lines)} lines — is it still the watchdog?"
     ast.parse("\n".join(lines))             # layer 2: the self-stop watchdog
+
+
+def _emitted_argv_lists():
+    """[(Call node, [str literals in its first list arg]), …] from the emitted bootstrap.
+
+    Only the string CONSTANTS come back — `sys.executable` is an Attribute and is
+    checked separately by its caller, which is the point: a bootstrap that shelled out
+    to a bare "python" would run pip against the wrong interpreter."""
+    out = []
+    for node in ast.walk(ast.parse(_emitted_bootstrap())):
+        if isinstance(node, ast.Call) and node.args and isinstance(node.args[0], ast.List):
+            toks = [e.value for e in node.args[0].elts
+                    if isinstance(e, ast.Constant) and isinstance(e.value, str)]
+            if toks:
+                out.append((node, toks))
+    return out
+
+
+def test_vm_bootstrap_installs_the_requirements_file():
+    """Third rung of the same-commit chain — the one that was missing, for 12 days.
+
+    test_bootstrap_consistency proves the in-script `_ensure_deps` specs AGREE with
+    requirements-colab.txt. Nothing proved any VM ever INSTALLED that file. From
+    2026-08-26, when pipeline/gen_vm_bootstrap.py became the front door, to 2026-09-07
+    no VM did: it ran only `pip install -e /content/repo`, and pyproject.toml declares
+    no `[project] dependencies`, so an editable install adds phase4seg and the shared
+    py-modules and ZERO third-party packages. The two packages the Colab image does not
+    already carry — fiona and segmentation-models-pytorch — were then installed lazily
+    by the first engine process on every VM, inside a step, on the clock.
+
+    MEASURED (2026-09-07, 43 mirrored phase4/logs/train_queue_nohup_*.log): 82
+    `installing` lines, exactly those two package names and no others; 2 per VM, never
+    per step (one log carries 24 engine invocations and still 2 installs); 0 in all 15
+    logs predating the front-door change, whose generators DID install the file —
+    pipeline/colab_cli_vmgen.py::BOOTSTRAP and qc/sector_campaign_loop.py.
+
+    Installing the requirements file also enforces the VERSIONS: `pip install -r` honours
+    `segmentation-models-pytorch>=0.4,<0.6`, while phase4seg/deps.py::ensure_deps probes
+    by import NAME only and would accept any preinstalled version.
+    """
+    req = [(n, t) for n, t in _emitted_argv_lists()
+           if "-r" in t and any(x.endswith("requirements-colab.txt") for x in t)]
+    assert req, (
+        "the emitted VM bootstrap never runs `pip install -r .../requirements-colab.txt` "
+        "— every engine process on the VM pays its own pip resolve instead (see docstring)")
+    node, toks = req[0]
+    assert "pip" in toks and "install" in toks, \
+        f"the requirements install is not a pip install invocation: {toks}"
+    first = node.args[0].elts[0]
+    assert isinstance(first, ast.Attribute) and first.attr == "executable", (
+        "the requirements install must run through sys.executable — a bare 'python' can "
+        "be a different interpreter than the one the queue spawns the engine with")
+    path = next(x for x in toks if x.endswith("requirements-colab.txt"))
+    assert path == "/content/repo/Scripts/requirements-colab.txt", \
+        f"requirements path {path!r} is not where gen_vm_bootstrap.py clones the repo"
+    assert (SCRIPTS / "requirements-colab.txt").exists(), \
+        "the bootstrap installs a requirements file that is not in this repo"

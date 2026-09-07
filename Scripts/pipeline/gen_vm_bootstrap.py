@@ -296,6 +296,30 @@ if not ok:
     raise SystemExit("WRITE_CANARY FAIL: upload never verified server-side via the SA "
                      "— do NOT run writers on this VM. " + ((q.stdout or q.stderr) if q else "")[-200:])
 print("WRITE_CANARY PASS (server-side md5 via SA)")
+# ENGINE DEPENDENCIES, ONCE PER VM (2026-09-07). The editable install below adds
+# phase4seg + the shared py-modules and NOTHING ELSE — pyproject.toml deliberately
+# declares no [project] dependencies. When this generator replaced colab_cli_vmgen.py
+# as the front door on 2026-08-26 it dropped that generator's `pip install -r
+# requirements-colab.txt` (colab_cli_vmgen.py::BOOTSTRAP still has it), so from then on
+# the two packages the Colab image does NOT carry — fiona and
+# segmentation-models-pytorch — were installed lazily by the first engine process on
+# every VM, inside a step: 82 `installing` lines across 43 phase4/logs/
+# train_queue_nohup_*.log, exactly those two names, ~13 s on an A100 and ~2 min on a
+# 2-vCPU CPU runtime. Installing the file here moves that cost out of the step window
+# (bootstrap has a 900 s exec timeout and a 1200 s BOOTSTRAP_OK watchdog deadline — 2
+# min fits with room) and, unlike phase4seg/deps.py::ensure_deps, which probes by import
+# NAME only, `pip install -r` enforces the PINS (segmentation-models-pytorch>=0.4,<0.6).
+# The phase0 FROZEN pins (smp==0.3.4, timm==0.9.7) are comments in that file, so pip
+# never sees them — the frozen rule holds by construction.
+# NON-FATAL by design: ensure_deps is the documented second line of defence, so a
+# transient PyPI failure must not kill an approved GPU launch. Loud, though — the rclone
+# block above is here because silence is not success.
+rr = subprocess.run([sys.executable, "-m", "pip", "install", "-q", "-r",
+                     "/content/repo/Scripts/requirements-colab.txt"],
+                    capture_output=True, text=True)
+print("REQUIREMENTS_INSTALL OK" if rr.returncode == 0 else
+      "REQUIREMENTS_INSTALL FAIL (non-fatal - engine self-installs per VM): "
+      + (rr.stderr or rr.stdout or "")[-300:])
 # Editable install (refactor Stage 3): phase4seg + shared modules resolve on the VM the
 # same way they do locally and in CI, with no sys.path hacks. -q keeps the log readable;
 # failure is FATAL — a VM without the install runs scripts whose imports half-resolve.

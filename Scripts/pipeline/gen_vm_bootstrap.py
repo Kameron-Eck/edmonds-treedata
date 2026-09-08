@@ -347,9 +347,12 @@ subprocess.Popen("cd /content/repo/Scripts/pipeline && nohup python -u vm_babysi
 print("BABYSITTER_STARTED", SESSION)
 # RAW HARDWARE TRUTH (Kam, 2026-09-02: "We should be tracking GPU utilization,
 # CPU utilization, read/write speed, and virtual disk space"): vm_hwlogger.py
-# samples the kernel's own counters + nvidia-smi every 5 s and appends
-# phase4/logs/hw_{{session}}.csv (buffered, one Drive write per minute). No
-# pipeline code in the measurement path; readable during and after the run.
+# samples the kernel's own counters + nvidia-smi every 5 s onto a LOCAL spool,
+# flushed per row; a separate thread republishes the WHOLE spool onto
+# phase4/logs/hw_{{session}}.csv every 12th sample (one Drive write a minute),
+# temp + os.replace. Nothing is buffered — a failed publish needs no recovery,
+# the next tick republishes the same local file. No pipeline code in the
+# measurement path; readable during and after the run.
 subprocess.Popen("cd /content/repo/Scripts/pipeline && nohup python -u vm_hwlogger.py"
                  " --session " + SESSION + " > /content/vm_hwlogger.log 2>&1 &",
                  shell=True)

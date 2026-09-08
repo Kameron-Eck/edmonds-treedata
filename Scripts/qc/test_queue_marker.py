@@ -234,8 +234,10 @@ def test_verify_step_brackets_itself_with_a_verifying_marker(marker, monkeypatch
 
 def test_verify_step_records_its_own_minutes(marker, monkeypatch):
     """It used to be hard-blank, and blank was read as "seconds" (docs/SCHEMAS.md,
-    harvest_runtime_sessions.py both say so). The pilot's labels VERIFY was SEVEN
-    MINUTES. A number, always — even when it rounds to 0.0."""
+    harvest_runtime_sessions.py both say so) — an assumption, not a reading. Measured
+    it holds: the pilot's labels VERIFY was ~3 s (spdc1's adjacent stamps) and the
+    first rows to carry the field read 0.0 (spdc2). A number, always — even when it
+    rounds to 0.0."""
     monkeypatch.setattr(q, "_status_write", lambda rows: None)
     rows = []
     q.verify_step(JOB, "labels", rows)

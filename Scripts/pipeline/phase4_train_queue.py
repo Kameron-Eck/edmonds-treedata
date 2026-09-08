@@ -629,10 +629,19 @@ def verify(job, rows):
     `minutes` is RECORDED here, as on every step row. It used to be blank, and a
     blank was read as "this took no time worth naming" — the assumption written
     into docs/SCHEMAS.md and harvest_runtime_sessions.py, both of which say a
-    VERIFY row "takes seconds". Measured 2026-09-07 on the CPU pilot: a labels
-    VERIFY took SEVEN MINUTES. The marker bracket below and this number measure
-    the same interval on purpose, one for the hardware samples and one for the
-    ledger.
+    VERIFY row "takes seconds". The point of the number is that the cost is now
+    READ rather than assumed, in either direction; the first readings say the
+    assumption was RIGHT. Both VERIFY rows on session spdc2 carry `minutes` 0.0
+    (train_queue_status_pilot_offload_2017k_cpu2_20260907T235535Z.csv — a LAKE
+    file, live and untracked, so not a path this repo can resolve; read
+    2026-09-08). A commit message on this file once read seven minutes off the
+    CPU pilot's labels VERIFY; that was the labels STEP. `ts` is stamped at the
+    RUNNING append in phase4_train_queue.py::run_step and never re-stamped, so
+    spdc1's labels row (ts 21:51:58, minutes 6.8) ENDED at 21:58:46 and its
+    VERIFY:labels row is stamped 21:58:49 — three seconds
+    (phase4/qc/ledger_recovery/train_queue_status_recovered_20260901_20260907.csv).
+    The marker bracket below and this number measure the same interval on
+    purpose, one for the hardware samples and one for the ledger.
 
     The marker's step is "VERIFY", not the step whose artifact is read: this check
     runs after ALL of a job's steps, so folding its time into `inference` (whose

@@ -339,13 +339,25 @@ def verify_step(job, step, rows, step_start=None, reverify=False):
     there — there is no step to be newer than — so the freshness tests stand down
     and say so, rather than comparing against a timestamp that does not exist.
 
-    THIS IS NOT FREE AND USED TO LOOK FREE. The row's `minutes` was hard-blank, and
-    the whole interval ran with no step marker on disk, so the hardware harvest
-    bucketed it as "(between)". Measured 2026-09-07 on the CPU pilot, the labels
-    VERIFY alone was seven minutes — these checks stat and read artifacts across a
-    FUSE mount, and one of them (VERIFY:train) makes a Drive API call. The marker
-    bracket and the `minutes` below open and close together so the hardware samples
-    and the ledger describe the same interval.
+    IT USED TO LOOK FREE BECAUSE NOTHING MEASURED IT. The row's `minutes` was
+    hard-blank, and the whole interval ran with no step marker on disk, so the
+    hardware harvest bucketed it as "(between)". Worth measuring because these checks
+    stat and read artifacts across a FUSE mount and one of them (VERIFY:train) makes a
+    Drive API call — but measured, it is cheap. On the CPU pilot's spdc1 the labels row
+    is stamped 21:51:58 with `minutes` 6.8, so it ENDED 21:58:46, and VERIFY:labels is
+    stamped 21:58:49: three seconds, in
+    phase4/qc/ledger_recovery/…_recovered_20260901_20260907.csv (`ts` is the RUNNING
+    append, phase4_train_queue.py::run_step, never re-stamped). The first rows to
+    actually carry `minutes` read 0.0 on spdc2, in the lake's per-launch
+    …_pilot_offload_2017k_cpu2_20260907T235535Z.csv — live and untracked, so not a path
+    this repo can resolve; read 2026-09-08. Both names are elided at the front on
+    purpose — spelling the ledger's filename prefix here would make this module read
+    like a ledger READER to test_status_discovery.py's gate, and it is not one; the
+    full names are in docs/SCHEMAS.md. The 6.8 min this docstring once called a
+    seven-minute VERIFY was the labels STEP: an engine process whose own step log
+    brackets 0.0s of work, i.e. pure start-up. The marker bracket and the `minutes`
+    below open and close together so the hardware samples and the ledger describe the
+    same interval.
     """
     q = _q()
     y, tag = job["year"], job["tag"]

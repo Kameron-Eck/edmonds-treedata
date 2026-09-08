@@ -191,8 +191,14 @@ def _ident():
 # happened with no marker on disk at all, so vm_hwlogger stamped those samples
 # blank and qc/instruments/harvest_hw_attribution.py bucketed them as "(between)":
 # attributable to nothing. Measured 2026-09-07 on the CPU pilot: 17 min at 44%
-# iowait in "(between)" before the first step marker opened — 7 min of it the
-# labels VERIFY, 9 min the tile engine process before StepLogger got control.
+# iowait in "(between)" before the first step marker opened — 9 min of it the tile
+# engine process before StepLogger got control, and the labels queue row's 6.8 min,
+# an engine process whose own step log brackets 0.0s of work (started and completed
+# 21:58:43). NOT the labels VERIFY, which this comment used to call 7 min of it:
+# queue rows stamp `ts` at the RUNNING append and never re-stamp it, so spdc1's
+# labels row (ts 21:51:58, minutes 6.8) ended 21:58:46 and VERIFY:labels is stamped
+# 21:58:49 — three seconds
+# (phase4/qc/ledger_recovery/train_queue_status_recovered_20260901_20260907.csv).
 #
 # These two write the SAME object shape as StepLogger plus the `phase` key whose
 # vocabulary is owned by phase4seg/names.py::hw_step_marker_path ("launching",

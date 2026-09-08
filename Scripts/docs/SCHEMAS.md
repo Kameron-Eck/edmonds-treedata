@@ -80,8 +80,14 @@ separates them. Non-default `ref` rows are sensitivity checks, not deployments.
 ## hw_{session}.csv (lake `phase4/logs/`, RAW hardware telemetry)
 
 Written by `pipeline/vm_hwlogger.py::main` (launched by every bootstrap from
-2026-09-02; 5 s samples, one buffered Drive write per minute). Kernel + NVIDIA
-counters only — no pipeline code in the measurement path. **LEGACY (v1)
+2026-09-02; 5 s samples). Since e8dec13 every sample goes to a LOCAL spool,
+flushed per row, and `vm_hwlogger.py::mirror_once` republishes the whole spool
+onto this path every 12th sample — one Drive write a minute, temp +
+`os.replace`, cut at the last newline. **Nothing is buffered**: this file is the
+previous complete file until the instant it is the new complete file, and a
+failed publish needs no recovery because the next tick republishes the same
+local file. Kernel + NVIDIA counters only — no pipeline code in the measurement
+path. **LEGACY (v1)
 columns**: `ts_utc, gpu_util_pct, gpu_mem_util_pct, gpu_mem_used_mb,
 gpu_power_w, cpu_pct, disk_read_mb_s, disk_write_mb_s, net_rx_mb_s,
 net_tx_mb_s, disk_used_gb, disk_free_gb`. Reader notes: net rx/tx IS the Drive
@@ -411,9 +417,34 @@ step log describe WHAT that step produced, not just how long it took —
 arm that printed no staging line, i.e. read the probability raster over FUSE).
 
 READER RULE: **a blank cell means NOT MEASURED — never zero.** Every row is emitted
-whether or not the arm has run. The one exception is a step that ran and FAILED (kill
-criterion K1): the value is still blank, but `note` carries `latest state FAIL`, so a
-failure cannot read as an absence. `machine` is not in the queue's status CSV at all —
+whether or not the arm has run. Since 7a60226 there are THREE blanks that mean something
+else, and `note` is the only thing that separates them from an absence — read it before
+reading a blank:
+
+- **the step ran and FAILED** (kill criterion K1): `note` carries `latest state FAIL`
+  (`offload_pilot_compare.py::step_minutes`). Otherwise K1 would read exactly like
+  "not run".
+- **the step's own row does not survive the arm's pin**: `note` carries `NO SURVIVING
+  ROW under this arm's pin — N row(s) … belong to another launch and were refused; the
+  step is not known to have been skipped` (same symbol). Measured on the baseline's
+  `labels` and `tile`: two earlier failed launches had already written rows under this
+  tag, so the ledger recovery suppressed of2017k2's own; those minutes live in the nohup
+  log and in the yaml's pre-registration, not in the ledger.
+- **a span whose ENDPOINT is a recovered row**: `note` carries `NOT PUBLISHED: the span
+  opens/closes on a RECOVERED-FROM-LOGS row…` plus the number it would otherwise have
+  printed (`offload_pilot_compare.py::_endpoint_guard`). A recovered row's `ts` is the
+  engine's `completed:`, not the queue-side start the span rows assume, and on the
+  baseline that would have printed 41.7 min against a real 113.0 — inverting R1 for
+  anyone who read only the value column.
+
+`baseline_source` / `pilot_source` name the FILE **and the pin rule that admitted the
+row** (`offload_pilot_compare.py::_src`), because "this is the pre-registered session"
+(`session=of2017k2`) and "this is a blank-session recovered row I took on trust from a
+time window" (`blank-session, in-window`) are different grades of evidence and the CSV
+alone has no other way to say which. Rows the pin refuses are counted and printed, never
+dropped silently.
+
+`machine` is not in the queue's status CSV at all —
 `_gpu_line()` prints the tier to the launch header on stdout and `host` is a container
 hostname — so it is resolved from the run manifest's `gpu` via `run_passport.csv`, then
 the per-session `heartbeat_<session>.json`, then the train log's `Device:` line, and

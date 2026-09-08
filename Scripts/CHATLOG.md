@@ -883,3 +883,40 @@ files:   qc/instruments/heal_{gap_spectrum,fill_audit_sample,fill_odds,closing_b
 next:    Kam reader session on the 300+300 (design note has the power); gamma_conditional
          from adjudicated triples once 12 epochs exist; regression referee verdict ->
          launch 2020/2022/2023 or bisect on GPU; ledger consolidation rung.
+
+## 2026-09-08  harvester-heal2017-score-stack-generalised
+goal:    answer "precision/recall of the current recipe per year" honestly; use the
+         campaign's idle hours on the healer's next dependency (a stack that is not
+         fixed at eight epochs).
+did:     TABLE from arm_metrics at matched_p75 vs C-CAP 2021, 14 acquisitions; found
+         the tracked qc_indep_report.csv had ZERO rows for any recipe arm — 285 rows /
+         9 days behind the lake, hand-copied, no rung. harvest_qc_indep.py LANDED
+         (1279019): byte copy + three gates (shrink / header / double-live), each
+         shown to fire; landed.py rung 7. heal_2017 SCORED vs C-CAP 2021 locally
+         (torch-free, 70 min): R 0.796 / P 0.753 at the held cut beside of_2017's
+         0.788 / 0.753 — UNDETERMINED; sweep shows the WEAK_CALIBRATION cliff
+         (recall 0.70 at u8 124 = the delivered cut, 0.32 two steps up). heal_2023
+         landed on healD (BE12, held-out F1 0.813), healD stopped; heal_2020 trained
+         clean (AE11, F1 0.954 at 0.50 — the 2017 divergence did not recur).
+         STACK GENERALISED (b7ee58c, Opus workflow + referee PASS): heal_stack_build.py,
+         census warp extracted (2009+2011s rebuilt cellwise identical), --stack/--out
+         on four instruments, every default cmp IDENTICAL. 10-EPOCH TRIAL on real data
+         (scratch only): BLIND 0; no-change triples 124->220, healer removes 173;
+         closing launders 7/12 in-interval where the healer launders 0.
+decided: 10-epoch numbers are PROVISIONAL and untracked; the experiment's verdict waits
+         for the 12-epoch build (heal_2020 postproc + heal_2022 on healC).
+killed:  "the delivered-cut rows do not exist for recipe arms" (they did — the tracked
+         copy was stale; harvested now).
+bugs:    heal_closing_baseline: laundered_in_interval (13-14) exceeds
+         n_eligible_in_interval (12) on the 10-epoch stack — count and denominator are
+         not the same unit; invisible on 8 epochs where both read 4. heal_gap_spectrum's
+         crosscheck and crown columns read the TRACKED 8-epoch heal_vs_gold / crown
+         rasters regardless of --stack (MISMATCH printed; needs --heal-vs-gold plumbing).
+files:   qc/instruments/{harvest_qc_indep,heal_stack_build}.py + tests; census,
+         temporal_heal, heal_vs_gold, heal_gap_spectrum, heal_closing_baseline;
+         phase4/qc/qc_indep_* (503->506 rows), curves/efb2813b8a46.csv, arm_metrics,
+         year_scoreboard; claims.yaml (72/86/88); landed regens; WORKPLAN rows.
+next:    referee + fix the two instrument defects; 12-epoch build; rebuild
+         heal_vs_gold / closing / spectrum / fill-audit on it; arm verdicts in
+         experiments/heal_infill_2017_2023.yaml (carry WEAK_CALIBRATION for 2017);
+         Kam: reader session on the 300+300, the two registered decisions.

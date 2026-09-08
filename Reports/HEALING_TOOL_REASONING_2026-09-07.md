@@ -179,3 +179,51 @@ Panel A window from BLIND into REVIEW, which puts healing where the 42 verified 
 
 The prerequisite nobody should skip: **a spatial sample must contain the Panel A gold
 points**, or the scoring argument it exists to enable evaporates.
+
+
+---
+
+## 14. What the literature says about this design (2026-09-08)
+
+Source: `Reports/LIT_HEALING_ANALOGUES_2026-09-08.md` (ten fields, 72 mechanisms, 26
+skeptic-adjudicated; registry entry `experiments/lit_healing_analogues.yaml`).
+
+**Solid ground.** Every field supplies the shape of bounded backfill — bracketing, gap
+caps, asymmetric birth/death, threshold relaxation under temporal support, size floors
+from a completeness curve. Two of our choices are stricter than anything found: the
+both-sides rule (canopy before AND after the gap) is ours alone — every probabilistic
+mechanism the finders recommended fills from one anchor or none; and our hard gates (gap
+length in years, size floor, lidar veto) do the work that four fields' shared formula
+would do with a parameter we do not have. That formula, fill odds
+= (1−ε)^(k+1)·∏(1−p_t) / [ε·γ·(1−γ)^(k−1)] (occupancy, HMM, interval-censored, astronomy),
+needs γ = P(regain | recent removal) in its denominator; the panel supplies
+P(colonisation | empty site), three orders of magnitude smaller and the wrong quantity,
+so any posterior built on it returns HEAL for every gap (§3 of the report). The tiers
+encode the missing rate as a rule; that is why they work when the formula cannot.
+
+**Where it cuts.** (1) 0 of 42 laundered is an exact 95% upper bound of 6.9%, not zero.
+(2) Under a both-sides rule only losses with a detection AFTER the loss are at risk, so the
+at-risk denominator (n_eligible) must be published with the count; if small, the criterion
+is near-vacuous. (3) The one-directionality theorem bounds 1→0, which we forbid by
+construction, and bounds nothing on 0→1, the failure that matters. Two assumptions cut
+the other way: misses are correlated across years (recall vs canopy fraction r = 0.91),
+which makes every independence formula err toward declaring loss — the impossible-triple
+criterion at the 1,170 no-change points guards that side; and p_t measured against
+projected-2020 labels is circular outside the verified interval, biasing toward filling —
+the BLIND tier guards that, as a rule not a measurement.
+
+**Changes, in order.** (a) Gap-length spectrum H(L) with laundered(L), triples(L),
+n_eligible, crowns-deleted — zero labels (`qc/instruments/heal_gap_spectrum.py`).
+(b) Fill-side laundering audit: ~300 cells sampled from the healer's own output, paired
+interval reads, a null-change control pair, adjudicator sub-checked on lidar/finer
+imagery — bounds the fill-side rate below 1% in one session where the loss side would
+need ~8,650 points (`qc/instruments/heal_fill_audit_sample.py`). (c) Measure
+γ_conditional from adjudicated impossible triples at the no-change points — the only
+population where loss-then-regain can appear; the 42 losses are selected for no regain
+and cannot yield it; the annual cadence of heal_infill_2017_2023 is what makes those
+triples observable. (d) Add the fill-odds Λ per healed gap as an AUDIT column beside the
+tier that licensed it, and run a plain 1-D morphological closing as the comparator
+baseline, never yet done.
+
+**Refuse** until γ_conditional is measured: any posterior-as-licence (PMBM existence,
+dynamic-occupancy posterior, SAR-EM imputation, fitted-transition HMMs).

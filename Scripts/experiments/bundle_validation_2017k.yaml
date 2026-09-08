@@ -1,0 +1,96 @@
+name: bundle_validation_2017k
+kind: experiment
+status: queued
+retrospective: false
+category: machinery
+tags: [speedup, tile-bundle, queue-startup, bootstrap, hw-telemetry, validation, pilot]
+
+hypothesis: >
+  Five machinery changes landed after the offload pilot, each sized by arithmetic from a
+  measurement rather than by a run: the tile-bundle handoff (one archive per tileset_id;
+  predicted ~13-17 s to stage a set against the pilot's measured 228.2 s for 1,264 files),
+  the queue start-up bulk fetch of the status ledger (94cb8df; predicted ~14 s against the
+  measured 359 s), the bootstrap installing requirements-colab.txt once per VM (3f60b0f;
+  no "* installing" lines inside any step), the hardware logger's local spool with a
+  whole-file mirror (e8dec13; predicted zero sampling gaps against the measured 26-30%
+  loss), and the queue-side launching/verifying phase markers with timed VERIFY rows
+  (c5dc91c). Under CLAUDE.md 3.4c every one of those numbers is UNVALIDATED until an
+  independent run reads it from the lake. This is that run: the offload pilot's CPU-1 and
+  A100 slices repeated under a new tag with the bundle flag ON. What would change our
+  mind: a bundle-path train that stages no faster than the per-file path, a start-up line
+  that is not an order of magnitude below 359 s, or a hardware file that still shows gaps.
+
+arms:
+  - {year: "2017k", tag: spdv_2017k, extra: [--no-hillshade]}
+
+launch_defaults:
+  - --force-citywide
+
+baseline: spd_2017k
+
+metric: >
+  From the lake, read by an agent that did not write the code: the tile step's
+  "⏱ stage tiles 2017k" line in the train step log (phase4/logs) and its
+  phase4/qc/timing_events.csv row; the "startup: N status files in X s" line in each
+  queue nohup log; the absence of "* installing" lines in every step log and nohup log;
+  hw_{session}.csv gap accounting from phase4/qc/runtime_sessions.csv and a direct gap
+  count (samples spanned vs sampled); phase values in phase4/qc/hw_step_attribution.csv
+  (launching, open, verifying present for both sessions); VERIFY rows carrying minutes in
+  the per-launch status files; tileset_id from phase4/qc/tileset_registry.csv.
+
+decision_rule: >
+  PRE-REGISTERED 2026-09-08, before launch. Two runtimes in sequence: CPU-1 runs
+  labels+tile with PHASE4SEG_TILE_BUNDLE=1 (publishes the bundle); an A100 runs train
+  (reads it) with the same flag. Evaluate, inference and postproc are NOT run — they add
+  nothing to these reads and cost GPU time. KILL: (K1) the tile step's tileset_id !=
+  a36d6772e88b (the bundle changed the tiles, not just their transport); (K2) the train
+  step refuses or falls back to the per-file path for any reason other than an absent
+  bundle — read staging's refusal line. READS: (R1) bundle: train's "stage tiles 2017k"
+  <= 60 s (predicted 13-17; the pilot measured 228.2) — PROMOTE the flag to default in the
+  queue if met; (R2) start-up: each queue's "startup:" line reports the status-file merge
+  <= 60 s (measured 359 on spdc1; predicted ~14); (R3) bootstrap: zero "* installing"
+  lines across both sessions' logs; (R4) telemetry: hw_{session}.csv for both sessions
+  spans within 10% of its sampled minutes (the pilot lost 26-30%) and contains no torn
+  row; (R5) phases: hw_step_attribution.csv shows launching and verifying rows for both
+  sessions and every VERIFY row in the two per-launch status files carries minutes.
+  Every number is reported next to its pilot counterpart; none is claimed as a saving
+  until read from the lake by the referee, and a train shorter than the pilot's 39.9 min
+  is attributed to the bundle only by the stage-tiles line, never by the total.
+
+verdict: null
+decided: null
+
+design_doc: Reports/PIPELINE_SPEEDUP_OPTIONS_2026-09-07.md
+reports:
+  - Reports/PIPELINE_SPEEDUP_OPTIONS_2026-09-07.md
+instruments:
+  - Scripts/qc/instruments/harvest_timing_events.py
+  - Scripts/qc/instruments/harvest_runtime_sessions.py
+  - Scripts/qc/instruments/harvest_hw_attribution.py
+  - Scripts/qc/instruments/harvest_tilesets.py
+inputs:
+  - phase4/qc/offload_pilot_2017k.csv
+outputs:
+  - phase4/qc/timing_events.csv
+  - phase4/qc/runtime_sessions.csv
+  - phase4/qc/hw_step_attribution.csv
+imagery: ["2017k"]
+sample: >
+  One acquisition, the pilot's own, so every read has a same-recipe counterpart in
+  phase4/qc/offload_pilot_2017k.csv. Machinery, not science; no canopy number from this
+  run feeds anything.
+
+supersedes: []
+superseded_by: []
+
+extra:
+  runtime_split: >
+    Two hand-split queue files (pipeline/bundle_validation_2017k_cpu1.yaml: labels+tile;
+    pipeline/bundle_validation_2017k_gpu.yaml: train), same job id, no GENERATED header
+    (the drift test would refuse a split). Launched with `vm_ops launch ... --env
+    PHASE4SEG_TILE_BUNDLE=1` once that flag exists on the front door.
+  measured_cost: >
+    CPU-1 free (0 CU, PUBLISHED). A100 for one train step, ~40 min on the pilot's
+    numbers (39.9 min engine, 40.4 queue) plus bootstrap; ~4 CU INFERRED from the
+    2026-09-03 balance note (~5.3 CU/h per A100). Authorised under Kam's 2026-09-07
+    "full permission to move ahead" and "don't defer to me for permissions".

@@ -1,0 +1,15 @@
+# HAND-SPLIT launch file for experiments/bundle_validation_2017k.yaml — one runtime, one
+# steps: subset. Same job id in both split files so the queue ledger merges their rows by
+# (job, year, tag, step). Deliberately NOT carrying the GENERATED header: the drift test
+# requires a headered file to equal the full regeneration, which a split file cannot.
+# Hypothesis, decision rule and baseline live in the experiment file, not here.
+# THIS FILE: cpu1 — CPU runtime (0 CU): labels + tile, launched with
+#   --env PHASE4SEG_TILE_BUNDLE=1 so the tile step PUBLISHES the bundle.
+- id: bundle_validation_2017k_spdv_2017k
+  year: '2017k'
+  tag: spdv_2017k
+  steps: [labels, tile]
+  extra:
+  - --force-citywide
+  - --no-hillshade
+  why: cpu1 slice of experiments/bundle_validation_2017k.yaml — hypothesis and decision rule live THERE, not here.

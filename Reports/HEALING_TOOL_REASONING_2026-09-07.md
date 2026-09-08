@@ -227,3 +227,53 @@ baseline, never yet done.
 
 **Refuse** until γ_conditional is measured: any posterior-as-licence (PMBM existence,
 dynamic-occupancy posterior, SAR-EM imputation, fitted-transition HMMs).
+
+
+---
+
+## 15. The three literature tests, run on the 8-epoch stack (2026-09-08)
+
+Instruments: `qc/instruments/heal_gap_spectrum.py`, `heal_fill_audit_sample.py`,
+`heal_fill_odds.py`, `heal_closing_baseline.py`; tables under `phase4/qc/`; every number
+below is read from them.
+
+**The primary kill criterion has no power.** `heal_gap_spectrum.csv`: `laundered_at_risk`
+is 0 in every gap bucket. A verified loss's terminal absence runs to the end of the series,
+so the epoch after any interior epoch inside it also reads absent and a both-sides fill can
+never touch it; every published alignment shift quantises to zero 2 m cells; 0 of 1,214 gold
+points have a terminal absence filled anywhere. "0 of 42 laundered" certifies nothing about
+any both-sides rule (also proven as a theorem by the closing baseline's tests). The
+impossible-triple criterion keeps its power (124 → 99). `laundered_eligible` = 28 at L=5 is
+the population a one-sided or REVIEW-tier rule would put at risk. The campaign rule in
+`experiments/heal_infill_2017_2023.yaml` carries a dated amendment naming the fill-side
+audit and the triples as the operative tests.
+
+**The fill-side audit is drawn and waiting for a reader.** `heal_fill_audit_sample.csv`:
+300 fill components + 300 matched controls, stratified by tier × gap × size, 220 rows
+adjudicable against the 2016 lidar. Two facts from the draw: REVIEW has zero population on
+8 epochs (every post-2016 bracket spans ≥ 3 years, so tier and gap are collinear until the
+heal_infill years land), and the literal control population — untouched bracketed absences
+above the floor — is 0 by the operator's definition, so the control is one-sided absences
+(a discrimination control, not a blinded error-rate control). At n = 300 and k = 0 the
+fill-side bound is 0.99%; the adjudicated floor (55–120 rows) resolves 2.5–7.9 pp.
+
+**At equal cap, the healer is a plain closing plus the size floor.** `heal_closing_baseline.csv`:
+the tier-matched 1-D closing's citywide fill count equals the sum of the healer's
+`candidate_cells_raw` over the three HEAL epochs exactly (449,663), because all shifts round
+to zero cells at 2 m — the landmark transform is inert on this grid. Healer − closing is the
+28 m² floor alone: −129,766 cells (−28.9%) and −10 triple fixes on the same epochs (58 vs 68).
+Whether the floor is a gain is UNDETERMINED: eligible terminal 0, eligible in-interval 4,
+and the four share one shape (2016 canopy, 2019 absent, 2021 canopy, 2024 absent) where the
+2024 removal survives any fill.
+
+**The fill-odds statistic is inert here, as predicted.** `heal_fill_odds.csv`: under the
+panel's γ (2 gains / 1,214 points) the formula licenses every fill; under the rule-implied
+γ = 0.20, 97.5% of fills fall below posterior 0.99 but none below 0.5 (median odds ~20:1 for
+FILL). 8,034 of 32,190 fills overlap no 2020 crown and carry no Λ. 53% of fills sit on crowns
+already above 0.40 cover, so "fill = the crown's miss event" is false for the majority.
+
+**What follows.** (1) The reader session on the 300 + 300. (2) γ_conditional from adjudicated
+impossible triples at the no-change points once the 12-epoch stack exists. (3) A design
+question the closing baseline raises: with the transform inert at 2 m and the tiers
+collinear with gap length on this cadence, the healer's measurable content is the size floor
+and the tier vocabulary; the density experiment is what can change that.

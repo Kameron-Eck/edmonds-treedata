@@ -851,3 +851,35 @@ next:    finer save split (torch.save / sha256 read-back / publish / verify are 
          bundle on the next campaign (heal_infill queue is ready, ~8 A100-h + 1.2 h
          tile on CPU); ledger consolidation rung; postproc on a >2-vCPU CPU tier;
          concurrency cap raise (Kam) still #1 wall-clock lever.
+
+## 2026-09-08  healing-literature-tests-run
+goal:    turn the lit review's three first tests into instruments and run the two that
+         need no labels; record what they say about the healer we have.
+did:     lit review landed (experiments/lit_healing_analogues.yaml; Reports/LIT_HEALING_
+         ANALOGUES_2026-09-08.md; 72 mechanisms, 26 adjudicated): NO field has a measured
+         laundering rate for a one-directional temporal fill; convergent formula needs
+         gamma_conditional the panel cannot supply. Reasoning §14 maps it onto our design.
+         INSTRUMENTS: heal_gap_spectrum (test 2): laundered_at_risk = 0 in EVERY bucket -
+         a verified loss's terminal absence runs to series end, a both-sides fill can never
+         touch it; 0/42 has NO POWER. heal_infill rule AMENDED on record (22d3a9c): fill-
+         side audit + impossible triples are the operative tests. heal_fill_audit_sample
+         (test 1): 300 fills + 300 controls drawn, 220 lidar-adjudicable; REVIEW tier has
+         zero population on 8 epochs; control = one-sided absences (literal control pop is
+         0 by the operator's definition). heal_fill_odds: formula licenses every fill under
+         panel gamma; ~20:1 FILL under gamma_rule; inert as predicted. heal_closing_
+         baseline: tier-matched closing == healer pre-floor candidate set TO THE CELL
+         (449,663) - all shifts round to 0 cells at 2 m, landmark transform inert on this
+         grid; healer - closing = the size floor alone (-28.9% cells, -10 triple fixes);
+         floor gain UNDETERMINED. Reasoning §15 records all four.
+decided: hold the 3-arm heal launch until the 2017 training divergence is refereed
+         (Phase B never improved; probabilities compressed; WEAK_CALIBRATION on the
+         raster; suspect window is today's engine commit).
+killed:  "0 of 42 laundered" as a bound (vacuous for both-sides rules, measured).
+         "the landmark transform buys placement accuracy for the healer" at 2 m (inert).
+files:   qc/instruments/heal_{gap_spectrum,fill_audit_sample,fill_odds,closing_baseline}.py
+         + tests; phase4/qc/heal_*.csv, heal_fill_audit_design.txt; experiments/
+         heal_infill_2017_2023.yaml amendment; Reports/HEALING_TOOL_REASONING §14-15;
+         docs/SCHEMAS.md; WORKPLAN rows.
+next:    Kam reader session on the 300+300 (design note has the power); gamma_conditional
+         from adjudicated triples once 12 epochs exist; regression referee verdict ->
+         launch 2020/2022/2023 or bisect on GPU; ledger consolidation rung.

@@ -20,6 +20,7 @@ concurrency cap 2) is policy, not mechanics — this tool prints the reminders a
 executes the mechanics.
 
     py -3.12 pipeline/vm_ops.py launch --session s1 --gpu L4 [--queue pipeline/queue_x.yaml]
+                                       [--env KEY=VALUE ...]
     py -3.12 pipeline/vm_ops.py exec   --session s1 --file payload.py [--timeout 900]
     py -3.12 pipeline/vm_ops.py status --session s1
     py -3.12 pipeline/vm_ops.py stop   --session s1
@@ -29,6 +30,8 @@ Stdlib only (lake imported for status). VM-side scripts stay in gen_vm_bootstrap
 import argparse
 import json
 import os
+import re
+import shlex
 import subprocess
 import sys
 import time
@@ -147,9 +150,89 @@ def exec_file(session, file, timeout):
     return code, out
 
 
-def launch_queue(session, queue_yaml, queue_args=""):
+# ── --env: the only way to reach the ENGINE's environment ────────────────────
+# The engine reads switches from os.environ — staging.py::_bundle_enabled returns a
+# module constant bound at IMPORT, `os.environ.get("PHASE4SEG_TILE_BUNDLE", "") ==
+# "1"` — and the engine is a GRANDCHILD of this launch: vm_ops starts the queue, and
+# phase4_train_queue.py::run_step spawns the engine with a subprocess.Popen that
+# passes no `env=` and therefore inherits os.environ. So a variable set on the
+# queue process is set for every engine step of that launch, and nowhere else.
+#
+# It has to happen at LAUNCH, not in the bootstrap: "every later `colab exec` is a
+# fresh shell that does not inherit this process's environment" (the D13 comment in
+# gen_vm_bootstrap.py) — an export at bootstrap time is gone before the queue starts.
+_ENV_KEY_RE = re.compile(r"^[A-Z_][A-Z0-9_]*$")
+# ALLOWLIST, not a denylist of metacharacters: the value is interpolated into a
+# string handed to `sh -c`, and enumerating what a shell treats as special is how
+# injection holes get written. This set is exactly shlex.quote's own safe set, so
+# quoting is the identity on it and the emitted payload text stays predictable.
+_ENV_VAL_RE = re.compile(r"^[A-Za-z0-9_@%+=:,./-]*$")
+
+
+def parse_env(items):
+    """['KEY=VALUE', …] → [(KEY, VALUE), …]; SystemExit on anything unsafe.
+
+    Pure and side-effect free, so main() can run it BEFORE `colab new`: a rejected
+    --env must never leave a billing runtime behind.
+    """
+    pairs, seen = [], set()
+    for item in items or ():
+        k, sep, v = str(item).partition("=")
+        if not sep:
+            raise SystemExit(f"--env expects KEY=VALUE, got {item!r}")
+        if not _ENV_KEY_RE.match(k):
+            raise SystemExit(f"--env key {k!r} is not an UPPER_SNAKE name "
+                             f"(^[A-Z_][A-Z0-9_]*$)")
+        if not _ENV_VAL_RE.match(v):
+            raise SystemExit(f"--env value for {k} holds a quote, newline or shell "
+                             f"metacharacter; allowed: [A-Za-z0-9_@%+=:,./-]")
+        if "MISSING" in item:
+            # The payload echoes the env back on stdout and launch_queue verifies
+            # THAT stdout with 'MISSING' as its failure signature (the sentinel for
+            # pgrep finding no queue). A name like PHASE4SEG_ALLOW_MISSING would
+            # flip a SUCCESSFUL launch to FAILED with the queue already running
+            # unattended — refuse at the door rather than weaken the verifier.
+            raise SystemExit(f"--env {item!r} contains 'MISSING', the queue-launch "
+                             f"failure signature — rename it or set it VM-side")
+        if k in seen:
+            raise SystemExit(f"--env {k} given twice — one value per key")
+        seen.add(k)
+        pairs.append((k, v))
+    return pairs
+
+
+def _env_shell_prefix(pairs):
+    """[(K, V), …] → `K=V ` assignments for the front of the nohup command line.
+
+    TWO QUOTING LEVELS live here: the prefix is interpolated into a single-quoted
+    PYTHON literal in the payload, which is then handed to `sh -c`. Rather than
+    nest quotes, parse_env's allowlist keeps every value inside shlex.quote's own
+    safe set, so quoting is the IDENTITY and neither level needs escaping — this
+    asserts that invariant instead of trusting it. The one value shlex WOULD
+    rewrite is "": it returns `''`, which closes the Python literal (the emitted
+    text then only works by accident, via adjacent-literal concatenation). An
+    empty assignment needs no quoting in shell anyway — `K= cmd` sets K empty.
+    """
+    out = []
+    for k, v in pairs:
+        if v and shlex.quote(v) != v:        # unreachable via parse_env; a real
+            raise SystemExit(                # gate if anyone calls this directly
+                f"--env value for {k} would need shell quoting — refusing rather "
+                f"than escaping through two levels")
+        out.append(f"{k}={v} ")
+    return "".join(out)
+
+
+def launch_queue(session, queue_yaml, queue_args="", env=()):
     """The production start form (phase4_train_queue.py header, line ~50):
-    nohup-detached so the queue survives the exec handle."""
+    nohup-detached so the queue survives the exec handle.
+
+    `env` is ['KEY=VALUE', …] (from `vm_ops launch --env`). Each becomes a shell
+    assignment PREFIX on the nohup'd queue — `KEY=V nohup python …` — so it scopes
+    to that process tree and touches nothing else on the VM. With no --env the
+    payload is byte-identical to the pre-2026-09-08 one, pinned literally in
+    test_vm_ops.py::test_payload_without_env_is_byte_identical.
+    """
     q = Path(queue_yaml)
     if not q.exists() and (HERE / q.name).exists():
         q = HERE / q.name          # bit twice from Scripts/ cwd (2026-09-02): the
@@ -159,17 +242,40 @@ def launch_queue(session, queue_yaml, queue_args=""):
     payload = SCRATCH / f"vm_start_{session}.py"
     log = ("/content/drive/MyDrive/treedata/phase4/logs/"
            f"train_queue_nohup_{q.stem}_{ts}.log")
+    env_pairs = parse_env(env)
+    env_prefix = _env_shell_prefix(env_pairs)
+    # WHERE THE EVIDENCE LANDS. The payload's stdout is the EXEC channel, not the
+    # nohup log — the queue opens that file itself with its own redirect — so the
+    # env is recorded on both sides: printed (exec channel → this process's stdout,
+    # and printed locally too because exec_file echoes only out[-2000:]), and
+    # written as the log's first lines, with the queue APPENDING below them. The
+    # rclone mount is `--vfs-cache-mode writes` (gen_vm_bootstrap.py), so `>>` on
+    # the mount is a cached read-write open and works. cost_report.py::gpu_from_nohup
+    # scans the log's first 40 lines for the `GPU :` header; that header sits on
+    # line 6 today, so a handful of QUEUE_ENV lines above it stays inside its budget.
+    redir, env_head = ">", ""
+    if env_pairs:
+        redir = ">>"
+        env_head = (
+            f"queue_env = {[f'{k}={v}' for k, v in env_pairs]!r}\n"
+            "for _e in queue_env:\n"
+            "    print('QUEUE_ENV ' + _e)\n"
+            "with open(log, 'w', encoding='utf-8') as _fh:\n"
+            "    _fh.writelines('QUEUE_ENV ' + _e + '\\n' for _e in queue_env)\n")
     body = (
         "import subprocess, time\n"
         f"log = {log!r}\n"
-        f"cmd = 'cd /content/repo/Scripts/pipeline && nohup python -u "
-        f"phase4_train_queue.py --queue {q.name} {queue_args} > ' + log + ' 2>&1 &'\n"
+        + env_head +
+        f"cmd = 'cd /content/repo/Scripts/pipeline && {env_prefix}nohup python -u "
+        f"phase4_train_queue.py --queue {q.name} {queue_args} {redir} ' + log + ' 2>&1 &'\n"
         "subprocess.run(cmd, shell=True, check=True)\n"
         "time.sleep(5)\n"
         "r = subprocess.run(['pgrep', '-f', 'phase4_train_queue'],"
         " capture_output=True, text=True)\n"
         "print('QUEUE_LAUNCHED pid', r.stdout.strip() or 'MISSING')\n")
     payload.write_text(body, encoding="utf-8")
+    for k, v in env_pairs:
+        print(f"  QUEUE_ENV {k}={v}")
     try:
         code, out = exec_file(session, payload, 120)
         state, msg = verify_output(out, ("QUEUE_LAUNCHED pid",), ("MISSING",),
@@ -305,6 +411,10 @@ def main():
     L.add_argument("--queue-args", default="",
                    help="extra phase4_train_queue args, e.g. '--only JOB_ID' to "
                         "split one queue across parallel runtimes")
+    L.add_argument("--env", action="append", metavar="KEY=VALUE",
+                   help="set KEY in the QUEUE's environment, and so in every engine "
+                        "step it spawns (run_step's Popen inherits os.environ) — "
+                        "e.g. --env PHASE4SEG_TILE_BUNDLE=1. Repeatable; needs --queue")
     L.add_argument("--branch", default=None)
     E = sub.add_parser("exec")
     E.add_argument("--session", required=True)
@@ -324,6 +434,11 @@ def main():
     a = ap.parse_args()
 
     if a.cmd == "launch":
+        # Validate --env FIRST, before `colab new` can bill a runtime for a typo.
+        if parse_env(a.env) and not a.queue:
+            raise SystemExit("--env sets the QUEUE's environment; with no --queue it "
+                             "would be silently dropped (a later `colab exec` is a "
+                             "fresh shell). Pass --queue, or set it in the payload.")
         if a.gpu == "A100":
             print("REMINDER (CLAUDE.md 3.4): A100 concurrency cap is 2 on this account; "
                   "first launch of a NEW queue needs Kam's yes.")
@@ -344,7 +459,7 @@ def main():
         except Exception as _e:                                  # noqa: BLE001
             print(f"  (url capture skipped: {_e})")
         if a.queue:
-            launch_queue(a.session, a.queue, a.queue_args)
+            launch_queue(a.session, a.queue, a.queue_args, a.env or ())
         print(f"launch complete: {a.session}")
     elif a.cmd == "exec":
         code, _ = exec_file(a.session, a.file, a.timeout)

@@ -16,7 +16,7 @@ wrong:
   c  a session seen ONLY in status rows (no hw, no heartbeat). Same rule, other side —
      and `idle_tail_min` must be BLANK, because nothing measured when the machine died.
   d  BLANK IS NOT ZERO. `n_queue_rows`, `startup_min`, `idle_tail_min`, `gpu_present`
-     and the three hw_meta columns are each blank when unmeasured. A 0 in any of them
+     and the hw_meta columns are each blank when unmeasured. A 0 in any of them
      reads as "measured, and it was nothing" — the opposite claim.
   e  determinism: two runs over one fixture tree are byte-identical, and the header IS
      the contract in docs/SCHEMAS.md.
@@ -40,6 +40,11 @@ wrong:
      is absent — the mirror drops single entries from a non-empty listing.
   n  a ledger that stops NAMING the session while rows for its own tags keep arriving
      is truncated, not finished: its gap is work, and it leaves the headline sum.
+  o  the CPU identity (`cpu_model`, `cpu_mhz`, `bogomips`) is read from hw_meta when the
+     keys are there and BLANK when they are not — which is every meta on the lake today,
+     because the logger only began writing them 2026-09-08. The columns exist because
+     `vcpus` + `ram_gb` could not tell two CPU runtimes apart that ran one 632-tile step
+     21.0 vs 39.1 sampled minutes apart (`spdc1`, `spdvc1`).
 
 Run:  PYTHONUTF8=1 py -3.12 -m pytest qc/test_runtime_sessions.py -q
 """
@@ -204,7 +209,7 @@ def test_d_blank_is_never_zero_anywhere_on_the_table(lake):
     _status(qc / "train_queue_status_queue_x_20260905T000000Z.csv",
             [("tile", "2026-09-05 03:00:00", "ghost")])
     rows = build_rows(logs, qc)
-    numeric = ("vcpus", "ram_gb", "hw_hours", "n_queue_rows",
+    numeric = ("vcpus", "ram_gb", "cpu_mhz", "bogomips", "hw_hours", "n_queue_rows",
                "startup_min", "idle_tail_min")
     for r in rows:
         for c in numeric:
@@ -496,6 +501,45 @@ def test_n_a_ledger_that_stops_naming_the_session_is_not_an_idle_tail(lake):
     assert "later_rows_unattributed(of_2020)" in rows["cut"]["sources"]
     assert rows["whole"]["idle_tail_min"] == "300.0"
     assert "later_rows_unattributed" not in rows["whole"]["sources"]
+
+
+def test_o_the_cpu_identity_is_read_from_hw_meta_and_blank_without_it(lake):
+    """(o) The three columns appended 2026-09-08, and the reason they had to be.
+
+    `spdc1` and `spdvc1` are both CPU runtimes that ran the SAME 632-tile `tile` step
+    over the same ortho, in 21.0 vs 39.1 sampled minutes at a median `cpu_pct` of 28.9
+    vs 21.3. Nothing in either machine's record could say whether the hosts differed:
+    hw_meta's original eleven keys size a runtime and never name it.
+
+    `named` — a meta carrying the three keys: they reach the table as TEXT, the model
+              string intact (it holds `(R)` and an `@`, and would carry a comma on some
+              hosts — the writer quotes, it must not be mangled here).
+    `sized` — a meta with the eleven original keys only, which is every hw_meta on the
+              lake today including `hw_meta_spdvc1.json`: the three cells are blank and
+              the columns it DOES carry are untouched, so the reader can tell "this
+              logger predates the keys" from "this logger could not read /proc".
+    """
+    logs, qc = lake
+    _hw(logs / "hw_named.csv", ["2026-09-05T01:00:00Z", "2026-09-05T02:00:00Z"], gpu="")
+    (logs / "hw_meta_named.json").write_text(json.dumps({
+        "session": "named", "vcpus": 2, "ram_gb": 13.6,
+        "cpu_model": "Intel(R) Xeon(R) CPU @ 2.20GHz", "cpu_mhz": 2200.0,
+        "bogomips": "4399.99"}), encoding="utf-8")
+    _hw(logs / "hw_sized.csv", ["2026-09-05T01:00:00Z", "2026-09-05T02:00:00Z"], gpu="")
+    (logs / "hw_meta_sized.json").write_text(json.dumps({
+        "session": "sized", "vcpus": 2, "ram_gb": 13.6, "gpu_name": ""}),
+        encoding="utf-8")
+
+    rows = _by_session(build_rows(logs, qc))
+    assert rows["named"]["cpu_model"] == "Intel(R) Xeon(R) CPU @ 2.20GHz"
+    assert rows["named"]["cpu_mhz"] == "2200.0"
+    assert rows["named"]["bogomips"] == "4399.99"
+
+    assert rows["sized"]["cpu_model"] == ""
+    assert rows["sized"]["cpu_mhz"] == ""
+    assert rows["sized"]["bogomips"] == ""
+    assert rows["sized"]["vcpus"] == "2" and rows["sized"]["ram_gb"] == "13.6"
+    assert "hw_meta" in rows["sized"]["sources"].split(";")
 
 
 def test_the_two_clocks_parse_to_the_same_naive_form():

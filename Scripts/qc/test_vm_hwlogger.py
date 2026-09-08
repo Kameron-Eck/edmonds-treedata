@@ -19,7 +19,13 @@ the loop still reached. /proc, statvfs, os.uname and nvidia-smi are removed
 explicitly in those tests rather than left to the platform, because this box
 HAS an nvidia-smi (a local T2000) and a POSIX-absolute path here resolves
 drive-relative, so "absent on Windows" is not a thing the environment can be
-trusted to provide."""
+trusted to provide.
+
+Since 2026-09-08 that side also reads /proc/cpuinfo for `cpu_model`, `cpu_mhz` and
+`bogomips`, and the same rule governs them: a synthetic file is PASSED IN, never
+found. What is pinned is the parsing (first stanza, case-folded keys, `model` not
+mistaken for `model name`) and the blanks — per field, so an ARM kernel's missing
+`cpu MHz` cannot take `model name` down with it."""
 import json
 import os
 import sys
@@ -59,9 +65,46 @@ def test_header_matches_row_arity():
 
 # ── runtime facts: hw_meta_{session}.json ─────────────────────────────────────
 
-CONTRACT_FIELDS = {"session", "started_utc", "hostname", "vcpus", "ram_gb",
-                   "disk_total_gb", "gpu_name", "gpu_mem_mb", "kernel", "python",
-                   "marker_path"}
+# The eleven keys hw_meta shipped with (2026-09-07). Pinned SEPARATELY from the field
+# set below: every one of them is already on the lake in `hw_meta_spdvc1.json`, and a
+# reader that finds one missing or renamed cannot tell a schema change from a logger
+# that failed to gather it. New keys append; these do not move.
+V1_FIELDS = {"session", "started_utc", "hostname", "vcpus", "ram_gb",
+             "disk_total_gb", "gpu_name", "gpu_mem_mb", "kernel", "python",
+             "marker_path"}
+
+# …and the CPU identity, added 2026-09-08 because `vcpus` + `ram_gb` could not tell two
+# CPU runtimes apart that ran the same 632-tile step 1.9x apart in time.
+CPU_FIELDS = {"cpu_model", "cpu_mhz", "bogomips"}
+
+CONTRACT_FIELDS = V1_FIELDS | CPU_FIELDS
+
+# One Colab CPU runtime's stanza, plus the traps it carries: `model` is a strict PREFIX
+# of `model name`, the second processor's stanza must not win, and ARM spells bogomips
+# with capitals.
+CPUINFO = """processor	: 0
+vendor_id	: GenuineIntel
+model		: 79
+model name	: Intel(R) Xeon(R) CPU @ 2.20GHz
+cpu MHz		: 2199.998
+bogomips	: 4399.99
+
+processor	: 1
+model name	: A DIFFERENT CORE
+cpu MHz		: 1000.0
+BogoMIPS	: 1.0
+"""
+
+# An ARM kernel: no `cpu MHz` line at all, and the capitalised spelling.
+ARM_CPUINFO = """model name	: Neoverse-N1
+BogoMIPS	: 50.00
+"""
+
+# A `cpu MHz` cell that is not a number. Blank, never 0.0 — the same rule every other
+# field in hw_meta follows.
+UNPARSEABLE_MHZ = """model name	: X
+cpu MHz	: not-a-number
+"""
 
 
 def _no_gpu(monkeypatch):
@@ -116,6 +159,73 @@ def test_runtime_facts_takes_the_first_gpu_line(monkeypatch):
     f = hw.runtime_facts("s", "m.json", meminfo="nope")
     assert f["gpu_name"] == "NVIDIA A100-SXM4-40GB"
     assert f["gpu_mem_mb"] == "40960"
+
+
+def test_runtime_facts_reads_the_cpu_identity_from_cpuinfo(monkeypatch, tmp_path):
+    """The three keys that made hw_meta able to answer WHICH machine, not just how much.
+
+    Sessions `spdc1` and `spdvc1` ran the same 632-tile `tile` step 21.0 vs 39.1
+    sampled minutes apart, at a median `cpu_pct` of 28.9 vs 21.3, and the archive
+    cannot say whether the hosts differed: `spdvc1`'s hw_meta stops at `vcpus` 2 /
+    `ram_gb` 13.6, and `spdc1` has no hw_meta at all. Three traps are pinned here
+    because each would publish
+    a plausible wrong answer rather than a blank: `model` is a strict prefix of
+    `model name`, a second core's stanza must not overwrite the first, and `cpu MHz` is
+    a number rounded like `ram_gb` and not the raw string.
+    """
+    _no_gpu(monkeypatch)
+    ci = tmp_path / "cpuinfo"
+    ci.write_text(CPUINFO, encoding="utf-8")
+    f = hw.runtime_facts("s", "m.json", meminfo="nope", cpuinfo=str(ci))
+    assert f["cpu_model"] == "Intel(R) Xeon(R) CPU @ 2.20GHz"
+    assert f["cpu_mhz"] == 2200.0                 # 2199.998 to one decimal
+    assert f["bogomips"] == "4399.99"
+
+
+def test_each_cpu_field_is_blank_on_its_own(monkeypatch, tmp_path):
+    """Independently best-effort, not all-or-nothing: an ARM kernel prints no `cpu MHz`
+    at all, and losing `model name` with it would throw away the durable half of the
+    identity for the sake of the volatile one. The case-folded key match is what makes
+    `BogoMIPS` readable there."""
+    _no_gpu(monkeypatch)
+    ci = tmp_path / "cpuinfo"
+    ci.write_text(ARM_CPUINFO, encoding="utf-8")
+    f = hw.runtime_facts("s", "m.json", meminfo="nope", cpuinfo=str(ci))
+    assert f["cpu_model"] == "Neoverse-N1"
+    assert f["bogomips"] == "50.00"
+    assert f["cpu_mhz"] == "", "an absent key must be blank, never 0.0"
+
+    ci.write_text(UNPARSEABLE_MHZ, encoding="utf-8")
+    assert hw.runtime_facts("s", "m.json", meminfo="nope",
+                            cpuinfo=str(ci))["cpu_mhz"] == ""
+
+
+def test_no_cpuinfo_blanks_the_three_and_leaves_the_others_alone(monkeypatch, tmp_path):
+    """The Windows reading, and the CPU runtime whose /proc is unreadable: the file is
+    absent, the three fields are blank, and the eleven keys hw_meta already had are
+    untouched — the logger must still reach its sampling loop."""
+    _no_gpu(monkeypatch)
+    mi = tmp_path / "meminfo"
+    mi.write_text("MemTotal:       12345678 kB\n", encoding="utf-8")
+    f = hw.runtime_facts("s", "m.json", meminfo=str(mi),
+                         cpuinfo=str(tmp_path / "no_cpuinfo"))
+    assert set(f) == CONTRACT_FIELDS
+    for k in CPU_FIELDS:
+        assert f[k] == "", f"{k} should be blank, not a guess"
+    assert f["ram_gb"] == 12.6 and f["session"] == "s" and f["hostname"]
+    assert V1_FIELDS.issubset(f), "the eleven original keys are the standing contract"
+
+
+def test_runtime_facts_runs_on_this_platform_with_every_default(monkeypatch):
+    """Import AND run, off posix, with no path arguments at all — the one property this
+    file exists to hold. `/proc/cpuinfo` is not merely absent on Windows: a POSIX-
+    absolute path resolves DRIVE-relative here, so it misses on a path that looks
+    plausible, and either way must cost three blank fields and nothing else."""
+    _no_gpu(monkeypatch)
+    f = hw.runtime_facts("s", "m.json")
+    assert set(f) == CONTRACT_FIELDS
+    if os.name == "nt":
+        assert all(f[k] == "" for k in CPU_FIELDS)
 
 
 def test_write_meta_writes_once_and_never_rewrites(tmp_path):

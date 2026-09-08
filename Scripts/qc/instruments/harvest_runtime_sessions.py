@@ -30,13 +30,28 @@ finding about the missing writer, not a reason to drop the row.
                               span, and the split between the two is the sibling
                               table's business (`hw_step_attribution.span_hours` vs
                               its `hours`), not repeated here.
-    hw_meta_{session}.json    `vm_hwlogger.py` — the runtime's fixed facts (GPU model,
-                              vCPUs, RAM), written ONCE at start. NOT YET PRESENT for
-                              any archived session: the file was specified 2026-09-07
-                              and no runtime has written one, so `gpu_name` / `vcpus` /
-                              `ram_gb` are blank on every historical row. Blank there
-                              means the file did not exist, never "no GPU" — read
-                              `gpu_present`, which is measured from the samples.
+    hw_meta_{session}.json    `vm_hwlogger.py::runtime_facts` — the runtime's fixed
+                              facts (GPU model, vCPUs, RAM, and since 2026-09-08 the
+                              CPU identity), written ONCE at start. TWO sessions on
+                              the lake have one: `spdvc1` and `spdvg`, both 2026-09-08.
+                              `gpu_name` / `vcpus` / `ram_gb` are blank on every earlier
+                              row because the file did not exist, never because there
+                              was no GPU — read `gpu_present`, which is measured from
+                              the samples.
+
+                              `cpu_model` / `cpu_mhz` / `bogomips` are blank on EVERY
+                              row today, those two included: both metas were written
+                              before those keys existed, and a VM clones the code at
+                              launch, so no existing session gains them. They are here
+                              because `spdc1` and `spdvc1`, both CPU runtimes, ran the
+                              identical 632-tile
+                              `tile` step over the same ortho in 21.0 vs 39.1 sampled
+                              minutes at a median `cpu_pct` of 28.9 vs 21.3 (the
+                              `tile_2017k` rows of each `hw_{session}.csv`; the ledger's
+                              own `minutes` reads 34.1 vs 53.6). A slower host core is
+                              the obvious explanation and no tracked file could confirm
+                              or refute it: hw_meta's eleven original keys SIZE the
+                              machine and never name it.
     heartbeat_*.json          `vm_heartbeat.py::write_atomic`. The SESSION FIELD is
                               read, never the filename: a name collision publishes to
                               `heartbeat_{s}__conflict-{id}.json` and a failed publish
@@ -189,7 +204,11 @@ COLS = ["session", "queue", "gpu_name", "vcpus", "ram_gb",
         "hw_first_utc", "hw_last_utc", "hw_hours", "gpu_present",
         "heartbeat_first_utc", "heartbeat_last_utc",
         "queue_first_row_ts", "queue_last_row_ts", "n_queue_rows",
-        "startup_min", "idle_tail_min", "sources"]
+        "startup_min", "idle_tail_min", "sources",
+        # THE CPU IDENTITY, appended 2026-09-08 (vm_hwlogger.py::runtime_facts). Last,
+        # so every reader keyed on a column POSITION in the seventeen above still reads
+        # what it read. Blank for every session whose hw_meta predates those keys.
+        "cpu_model", "cpu_mhz", "bogomips"]
 
 # vm_ops.py::launch_queue writes train_queue_nohup_{queue_stem}_{launch_ts}.log. The
 # stem itself contains underscores (`queue_tier1_science_sample`), so the split is
@@ -698,6 +717,14 @@ def build_rows(logs_dir, qc_dir):
             "startup_min": _minutes(hw_lo, q_lo),
             "idle_tail_min": _minutes(q_hi, alive_end),
             "sources": ";".join(src),
+            # Read from hw_meta ONLY, and blank when the key is not there — which is
+            # every session logged before 2026-09-08, and any runtime whose /proc could
+            # not be read. `is not None` rather than `or ""` for the same reason as
+            # `vcpus`: a 0.0 MHz reading would be a measurement, and falsiness would
+            # erase it.
+            "cpu_model": str(m.get("cpu_model") or ""),
+            "cpu_mhz": str(m.get("cpu_mhz") if m.get("cpu_mhz") is not None else ""),
+            "bogomips": str(m.get("bogomips") if m.get("bogomips") is not None else ""),
         })
     return rows
 

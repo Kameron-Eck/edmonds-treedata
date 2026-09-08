@@ -610,13 +610,40 @@ Written ONCE by `pipeline/vm_hwlogger.py::write_meta` from
 `hw_{session}.csv`. Never rewritten: an existing file always wins, so
 `started_utc` stays on the session's first sample even if the logger is
 restarted. Keys: `session, started_utc, hostname, vcpus, ram_gb, disk_total_gb,
-gpu_name, gpu_mem_mb, kernel, python, marker_path`.
+gpu_name, gpu_mem_mb, kernel, python, marker_path` and, since 2026-09-08,
+`cpu_model, cpu_mhz, bogomips`.
 
 `vcpus` is `os.cpu_count`, `ram_gb` is `/proc/meminfo` `MemTotal` converted from
 kB, `disk_total_gb` is `statvfs("/content")`, `gpu_name`/`gpu_mem_mb` are the
 FIRST line of `nvidia-smi --query-gpu=name,memory.total` (blank on a CPU
 runtime, where the binary is absent), `kernel` is `os.uname().release`, `python`
 is `sys.version.split()[0]`.
+
+`cpu_model`, `cpu_mhz` and `bogomips` are the FIRST stanza's `model name`,
+`cpu MHz` (a number rounded to one decimal, like `ram_gb`) and `bogomips` in
+`/proc/cpuinfo` — read once, keys matched case-folded because ARM spells it
+`BogoMIPS`, first occurrence only because the file repeats its keys per core.
+Each is blank on its own: an absent file, an absent key or an unparseable number
+costs that field and no other.
+
+**Why the CPU identity was added (2026-09-08).** The eleven original keys SIZE a
+runtime and never name it, and two CPU runtimes that size the same do not run the
+same. Sessions `spdc1` and `spdvc1` ran the identical 632-tile `tile` step over
+the same ortho with the same recipe: the hw samples carrying that step number 252
+vs 469 — 21.0 vs 39.1 min at the 5 s cadence — at a median `cpu_pct` of 28.9 vs
+21.3 (computed over the `step = tile_2017k` rows of each `hw_{session}.csv` on
+the lake, 2026-09-08; the ledger's own `minutes` on the two `tile` rows reads
+34.1 vs 53.6, and a `harvest_hw_attribution.py` run the same day put their `hours`
+at 0.3500 vs 0.6514 with `cpu50_frac` 0.3056 vs 0.2111 — `spdvc1` was a live
+session and its attribution rows were untracked when this was written). A step
+1.9x longer at LOWER CPU is what a slower host core looks like, and no tracked
+file could confirm or refute that: `spdvc1`'s meta stops at `vcpus` 2 and
+`ram_gb` 13.6, and `spdc1` has no meta at all.
+
+**Both metas on the lake predate these keys** — `hw_meta_spdvc1.json` and
+`hw_meta_spdvg.json`, read 2026-09-08 — so the three are blank everywhere until a
+runtime launches from a repo carrying this change. A VM clones the code at launch,
+so no existing session gains them retroactively.
 
 **Every field is independently best-effort and BLANK when it could not be
 read** — never 0, and never a guess; the logger must reach its sampling loop
@@ -636,7 +663,8 @@ Gate: `qc/test_vm_hwlogger.py`, `qc/test_hw_marker.py`, `qc/test_hw_attribution.
 Written by `qc/instruments/harvest_runtime_sessions.py`: ONE ROW PER RUNTIME —
 `session, queue, gpu_name, vcpus, ram_gb, hw_first_utc, hw_last_utc, hw_hours,
 gpu_present, heartbeat_first_utc, heartbeat_last_utc, queue_first_row_ts,
-queue_last_row_ts, n_queue_rows, startup_min, idle_tail_min, sources`. `hw_hours`
+queue_last_row_ts, n_queue_rows, startup_min, idle_tail_min, sources`, and since
+2026-09-08 the three trailing columns `cpu_model, cpu_mhz, bogomips`. `hw_hours`
 is the SPAN of the hw stamps (last − first), not sampled time — cf.
 `hw_step_attribution.csv`, which carries `span_hours` and `hours` as separate
 columns because a stalled logger leaves gaps inside the span.
@@ -669,6 +697,15 @@ READER RULES, each earned on a measured row:
   with every GPU column empty — a CPU runtime. `gpu_name`/`vcpus`/`ram_gb` come
   from `hw_meta` ONLY and are blank for every session logged before that file
   existed; `gpu_present` is the measured answer for those.
+- **`cpu_model`/`cpu_mhz`/`bogomips` say WHICH machine — and are blank on every
+  row today.** They too come from `hw_meta` alone
+  (`vm_hwlogger.py::runtime_facts`, which began writing them 2026-09-08), and both
+  metas on the lake were written before those keys existed, so blank here reads
+  "the logger predates the keys", never "the host was not identified". They exist
+  because `vcpus` + `ram_gb` could not tell `spdc1` from `spdvc1`: two CPU
+  runtimes that ran one 632-tile `tile` step 21.0 vs 39.1 sampled minutes apart at
+  a median `cpu_pct` of 28.9 vs 21.3, with no tracked field able to say whether
+  the host CPU differed. Derivation in the `hw_meta_{session}.json` section above.
 - **`queue` is blank rather than guessed.** Three links, in precedence order.
   (1) The heartbeat's own `queue_file` — the `--queue` argument the queue process
   publishes about itself (`vm_heartbeat.py::sample`, D11) — basename, `.yaml`
@@ -761,21 +798,23 @@ READER RULES, each earned on a measured row:
   so they are compared directly. A whole-hour `startup_min` or `idle_tail_min` is
   the symptom to check before believing a large value.
 
-**What it measures today (2026-09-07, re-measured after the recovery candidate
-reached the lake).** 76 sessions; 20 carry hw samples, 13 of those GPU ones; 18
-carry session-stamped ledger rows. SEVENTEEN sessions get an `idle_tail_min`
-value, and fifteen of them are excluded from the headline by a flag they earned:
-two `beacon_ended_before_queue` (`hardyear4`, `pilotcoarse`), three
-`queue_last_row_RUNNING` (including `spdg`, the live offload campaign, whose row
-moves on every harvest), and thirteen `later_rows_unattributed`. What survives is
-`pilotfine` 2.3 min + `pilotmed` 11.1 min = **13.4 min**, and it is a LOWER BOUND
-over the only fully-attributed ledgers on the lake — the four pilot-era launch
-files — not a campaign total.
+**What it measures today (2026-09-08, re-measured when the CPU columns were
+added).** 79 sessions; 23 carry hw samples, 14 of those GPU ones; 21 carry
+session-stamped ledger rows. TWENTY sessions get an `idle_tail_min` value, and
+sixteen of them are excluded from the headline by a flag they earned (the flags
+overlap): two `beacon_ended_before_queue` (`hardyear4`, `pilotcoarse`), three
+`queue_last_row_RUNNING` (`pilotcoarse`, `trend8A2`, and `spdvg` — an A100 that
+was still running when this was harvested, so its row moves on every harvest) and
+fourteen `later_rows_unattributed`. What survives is `pilotfine` 2.3 +
+`pilotmed` 11.1 + `spdc2` 1.9 + `spdvc1` 1.6 = **16.9 min**, and it is a LOWER
+BOUND over the only fully-attributed ledgers on the lake — the pilot-era launch
+files plus the two 2026-09-08 CPU runtimes — not a campaign total.
 
-The unflagged sum would read **1826.3 min over 13 sessions, and it is mostly
-work, not idleness**: those thirteen are the runtimes whose ledger rows survive
+The unflagged sum would read **1918.1 min over 18 sessions, and it is mostly
+work, not idleness**: fourteen of those are the runtimes whose ledger rows survive
 only in the recovery candidate, whose later events carry no `session`. Do not
-quote it. The `ts` semantics the candidate's sidecar publishes
+quote it — and note that it is not even stable, because `spdvg`'s `RUNNING` row
+grows between harvests (1916.1 two minutes earlier). The `ts` semantics the candidate's sidecar publishes
 (`phase4/qc/ledger_recovery/recovery_report.md`: a synthesised row carries a
 RECONSTRUCTED step start, and its `detail` prefix names which of three rungs dated
 it) do NOT bite this table — measured, all 244 synthesised rows carry an empty
@@ -790,14 +829,17 @@ and the shared `train_queue_status.csv` holds only the latest launch's rows.
 `::_q` made `STATUS_OUT` resolve to the shared file, so each flush replaced the
 whole ledger with one launch's rows. Absence measured here; cause quoted from
 that docstring, not re-verified. Until per-launch status files are written again,
-a campaign-wide idle-tail number cannot be had from this table, and the 13.4 min
+a campaign-wide idle-tail number cannot be had from this table, and the 16.9 min
 headline is provisional.
 
-`gpu_name`/`vcpus`/`ram_gb` are blank on all 76 rows: no `hw_meta_*.json` exists
-on the lake yet. `pilotfine` and `pilotmed` also have `gpu_present` BLANK — no hw
-CSV was written for them — so the instrument's GPU-confirmed line reports 0.0 min
-over 0 sessions. Read it as "no session CONFIRMED FROM HARDWARE SAMPLES has a
-usable tail", never as "no tail was measured"; both are A100s according to
+`gpu_name`/`vcpus`/`ram_gb` are filled on exactly two rows — `spdvc1` and
+`spdvg`, the first sessions to write an `hw_meta_*.json` — and blank on the other
+77, where the file does not exist. `pilotfine` and `pilotmed` have `gpu_present`
+BLANK — no hw CSV was written for them — and the other two usable tails
+(`spdc2`, `spdvc1`) are CPU runtimes, so the instrument's GPU-confirmed line
+reports 0.0 min over 0 sessions. Read that line as "no session CONFIRMED FROM
+HARDWARE SAMPLES has a usable tail", never as "no tail was measured"; `pilotfine`
+and `pilotmed` are both A100s according to
 `heartbeat_{session}.json`'s `gpu.name`, which this table deliberately does not
 admit into `gpu_name` (hw_meta only, per its writer).
 

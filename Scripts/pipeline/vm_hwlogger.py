@@ -95,7 +95,8 @@ Beside the samples, ONE file of runtime facts (runtime_facts / write_meta):
 
     {DRIVE}/phase4/logs/hw_meta_{session}.json
     session, started_utc, hostname, vcpus, ram_gb, disk_total_gb, gpu_name,
-    gpu_mem_mb, kernel, python, marker_path
+    gpu_mem_mb, kernel, python, marker_path,
+    cpu_model, cpu_mhz, bogomips
 
 Written once at start and never rewritten. Every per-sample column says what the
 machine was DOING; nothing in the archive says what the machine WAS, so a session
@@ -355,7 +356,8 @@ def _disk_total_gb(mount):
     return round(st.f_frsize * st.f_blocks / 1e9, 1)
 
 
-def runtime_facts(session, marker, mount="/content", meminfo="/proc/meminfo"):
+def runtime_facts(session, marker, mount="/content", meminfo="/proc/meminfo",
+                  cpuinfo="/proc/cpuinfo"):
     """What this machine IS — the constants a per-sample row cannot carry.
 
     Every column of hw_{session}.csv says what the runtime was doing; nothing anywhere
@@ -364,12 +366,51 @@ def runtime_facts(session, marker, mount="/content", meminfo="/proc/meminfo"):
     which is an inference, not a reading), and hours cannot be priced, because an A100
     hour and a free CPU hour are the same number and different money.
 
+    WHICH MACHINE, NOT JUST HOW MUCH (cpu_model, cpu_mhz, bogomips — 2026-09-08).
+    `vcpus` and `ram_gb` size the runtime; nothing identified the silicon, and two CPU
+    runtimes that size the same do not run the same. Measured on `spdc1` and `spdvc1`,
+    which ran the SAME 632-tile `tile` step over the same ortho with the same recipe:
+    the hw samples carrying that step number 252 vs 469 — 21.0 vs 39.1 min at the 5 s
+    cadence — at a median `cpu_pct` of 28.9 vs 21.3. A step 1.9x longer at LOWER CPU is
+    what a slower host core looks like, but nothing tracked can confirm or refute that,
+    because these three keys did not exist: `spdvc1`'s hw_meta reads `vcpus` 2 and
+    `ram_gb` 13.6 and stops there, and `spdc1` predates the file entirely.
+
+    FIRST STANZA ONLY. /proc/cpuinfo repeats its keys once per core, and a second core
+    is news only on a heterogeneous host, which these are not. The key match is
+    case-folded because ARM spells it `BogoMIPS`. `cpu_mhz` is a SAMPLE of the current
+    clock — it moves with the governor and with which core answered — so it is a hint
+    about the state of the host, while `cpu_model` is the durable identity.
+
     Every field is independently best-effort and blank on failure: this runs immediately
     before the sampling loop, and a logger that dies gathering metadata has thrown away
     the measurement it exists for. Off posix, /proc and statvfs are simply absent and
     the dict comes back mostly blank — which is the correct reading, not an error.
     """
     name, mem = gpu_identity()
+
+    # ONE read for the three cpuinfo fields, first occurrence of each key. The read is
+    # best-effort as a whole and each field is blank on its own: a kernel that omits
+    # `cpu MHz` (ARM does) must still yield `model name`. Off posix the file is absent —
+    # on Windows a POSIX-absolute path resolves drive-relative and simply misses — and
+    # all three come back blank, which is the honest reading.
+    cpu = {}
+    try:
+        with open(cpuinfo, encoding="utf-8", errors="replace") as f:
+            for ln in f:
+                k, sep, v = ln.partition(":")
+                if not sep:
+                    continue
+                k = k.strip().lower()
+                if k in ("model name", "cpu mhz", "bogomips") and k not in cpu:
+                    cpu[k] = v.strip()
+    except Exception:                             # noqa: BLE001
+        pass
+    try:                                          # a number, like ram_gb; never a guess
+        mhz = round(float(cpu["cpu mhz"]), 1)
+    except (KeyError, ValueError):
+        mhz = ""
+
     return {
         "session": session,
         "started_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
@@ -382,6 +423,9 @@ def runtime_facts(session, marker, mount="/content", meminfo="/proc/meminfo"):
         "kernel": _best_effort(lambda: os.uname().release),
         "python": sys.version.split()[0],
         "marker_path": marker,
+        "cpu_model": cpu.get("model name", ""),
+        "cpu_mhz": mhz,
+        "bogomips": cpu.get("bogomips", ""),
     }
 
 

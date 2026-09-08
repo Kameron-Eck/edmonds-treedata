@@ -29,7 +29,7 @@ make it. `py -3.12 qc/ask.py <label>` opens any single row in full.
 | 2015s | 30.5 | 3 |  |  |  |  |  |  |  |  |  |
 | 2016 | 30.5 | 4 | 8 | 4289 | 8 | 11 | 9 | 18 | 0.9069 |  | 16 |
 | 2017 | 5.0 | 3 | 2 | 1291 | 2 | 2 | 2 | 1 | 0.7962 |  | 1 |
-| 2017k | 10.0 | 3 | 1 | 632 | 2 | 2 | 1 | 1 | 0.8223 |  | 2 |
+| 2017k | 10.0 | 3 | 1 | 632 | 3 | 2 | 1 | 1 | 0.8223 |  | 2 |
 | 2017n | 100.0 | 4 | 1 | 582 | 1 | 1 | 1 | 1 | 0.7012 |  |  |
 | 2017s | 30.5 | 4 | 1 | 557 | 1 | 1 | 1 | 1 | 0.8191 |  |  |
 | 2018s | 15.2 | 4 | 1 | 599 | 1 | 1 | 2 |  |  | sectors_v1 | 1 |
@@ -50,4 +50,4 @@ make it. `py -3.12 qc/ask.py <label>` opens any single row in full.
 
 **37 acquisitions.** No tile set: **13** · never scored: **9** · no matched-cut read: **21** · no champion: **21**.
 
-Columns: *tile sets* counts distinct `tileset_id` in `tileset_registry.csv`; *tiles* sums `n_tiles` over those DISTINCT sets. *tile dirs* counts registry ROWS — one per tile directory, so one set materialised under two run tags is one set and two directories (archive-wide: 71 sets in 82 directories). Summing over rows instead double-counts — why, and what it once got wrong, is in `docs/SCHEMAS.md`. *train runs* counts `step=train` rows in `run_passport.csv`. *arms scored* and *matched cut* count distinct arms in `arm_metrics.csv`; *best AP* is the highest average precision recorded at any cut. *champion* is `pipeline/champion_arms.csv`. *entries* counts registry entries naming this acquisition.
+Columns: *tile sets* counts distinct `tileset_id` in `tileset_registry.csv`; *tiles* sums `n_tiles` over those DISTINCT sets. *tile dirs* counts registry ROWS — one per tile directory, so one set materialised under two run tags is one set and two directories (archive-wide: 71 sets in 83 directories). Summing over rows instead double-counts — why, and what it once got wrong, is in `docs/SCHEMAS.md`. *train runs* counts `step=train` rows in `run_passport.csv`. *arms scored* and *matched cut* count distinct arms in `arm_metrics.csv`; *best AP* is the highest average precision recorded at any cut. *champion* is `pipeline/champion_arms.csv`. *entries* counts registry entries naming this acquisition.

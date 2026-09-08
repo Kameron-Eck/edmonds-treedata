@@ -85,6 +85,24 @@ def loss_mode_scope_error(loss_mode, tiers):
             f"and change nothing. Drop the flag, or run it on a coarse year.")
 
 
+def _citywide_for(e, args):
+    """Does this catalog entry run the CITY-WIDE 2020-mask recipe?
+
+    Coarse tier defaults to city-wide stratified tiling (Fix 3); opt out with
+    --coarse-site-tiling, and the 6-site anchor-label path takes precedence when
+    --anchor-labels is set. --force-citywide extends the citywide recipe to ALL
+    tiers (uniform cross-resolution recipe, only the sensor varies).
+
+    Lifted verbatim out of the per-year loop so main() can ask the SAME question
+    BEFORE the loop — the recipe decides whether the shared site footprints are
+    read at all, and that decision used to be reachable only after the cost of
+    discovering them had already been paid. Pure, so it is testable.
+    """
+    return ((tier_for(e) == "coarse" or args.force_citywide)
+            and not args.coarse_site_tiling
+            and not args.anchor_labels)
+
+
 
 def main():
     # Declared up top: HS_DROPOUT/HS_SOURCE are read below as argparse defaults,
@@ -773,10 +791,39 @@ def main():
     for d in (OUT_DIR, SITE_DIR, TILE_DIR, MODELS_DIR, MASKS_DIR, EVAL_DIR):
         d.mkdir(parents=True, exist_ok=True)
 
-    # Site footprints are shared across years — discover once.
+    # Site footprints are shared across years — discover once, and ONLY when some
+    # year's recipe actually reads them.
+    #
+    # This used to run for any labels/tile invocation, here: before the per-year
+    # loop and therefore before any StepLogger exists. It globs PHOTOS_DIR on the
+    # lake and loads every training site's crown layer
+    # (common.py::discover_site_footprints -> load_site_crowns -> preprocess_crowns),
+    # so on a citywide run the wall-clock landed OUTSIDE the step it preceded — the
+    # 2026-09-07 pilot's labels step reported `elapsed: 0.0s` inside StepLogger while
+    # the queue was billed minutes for it, and the 2026-09-08 validation caught the
+    # engine walking "Forest_1 4118 crowns" with the queue marker still "launching".
+    #
+    # Under the citywide recipe:
+    #   - labels.py::step_labels returns at its "Label projection — SKIPPED" print,
+    #     before it ever iterates `sites`. It needs nothing.
+    #   - tiling.py::step_tile DOES need them (_gather_citywide_coarse ->
+    #     _negative_site_records turns the curated negative sites into the
+    #     guaranteed-background force_keep tiles), so it discovers them ITSELF,
+    #     inside its own StepLogger, where the cost is attributed to the step that
+    #     pays it instead of vanishing into the start-up gap.
+    #
+    # The saving is UNMEASURED: it is real only to the extent a citywide labels/tile
+    # launch reads its own start-up gap afterwards. Do not quote a number for it.
     sites = None
-    if any(s in per_year for s in ("labels", "tile")):
+    _wants_sites = any(s in per_year for s in ("labels", "tile"))
+    if _wants_sites and any(not _citywide_for(e, args) for e in entries):
         sites = discover_site_footprints(site_buffer=args.site_buffer)
+    elif _wants_sites:
+        print("\n── Training-site footprints: NOT discovered up front ──\n"
+              "  Every requested year runs the city-wide 2020-mask recipe, so no "
+              "step here reads them yet: step_labels skips the site path entirely, "
+              "and step_tile discovers them inside its own step log if (and only "
+              "if) it really re-tiles.")
 
     p3 = resolve_p3_ckpt(args.ckpt)
     if "train" in per_year:
@@ -787,13 +834,9 @@ def main():
         lab = e["label"]
         print(f"\n{'#'*65}\n#  YEAR {lab}  ({e['gsd_cm']:.1f} cm, "
               f"{tier_for(e)}, {e['source']}, {e['coverage']})\n{'#'*65}")
-        # Coarse tier defaults to city-wide stratified tiling (Fix 3); opt out
-        # with --coarse-site-tiling, and the 6-site anchor-label path takes
-        # precedence when --anchor-labels is set. --force-citywide extends the
-        # citywide recipe to ALL tiers (uniform cross-resolution recipe).
-        citywide = ((tier_for(e) == "coarse" or args.force_citywide)
-                    and not args.coarse_site_tiling
-                    and not args.anchor_labels)
+        # Recipe choice — the rules live in the module-level helper, which the
+        # sites guard above asks too. One home, so the two cannot drift.
+        citywide = _citywide_for(e, args)
         if "labels" in per_year:
             with StepLogger(SCRIPT_NAME, f"labels_{lab}", LOGS_DIR) as log:
                 r = step_labels(lab, sites, dry_run=args.dry_run,
@@ -808,7 +851,8 @@ def main():
             with StepLogger(SCRIPT_NAME, f"tile_{lab}", LOGS_DIR) as log:
                 r = step_tile(lab, sites, dry_run=args.dry_run,
                               max_tiles=args.max_tiles, stride_override=args.stride,
-                              citywide=citywide, force_retile=args.force_retile)
+                              citywide=citywide, force_retile=args.force_retile,
+                              site_buffer=args.site_buffer)
                 _f = {"year": lab, "gsd_cm": e["gsd_cm"], "run_id": run_id,
                       "dry_run": args.dry_run, "errors": 0}
                 if isinstance(r, dict): _f.update(r)

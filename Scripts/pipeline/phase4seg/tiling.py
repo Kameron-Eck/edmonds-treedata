@@ -3,7 +3,7 @@ from phase4seg import config
 from phase4seg.common import (
     _stage_imagery_local, _unstage_imagery_local, entry_for, resolve_native_path,
     _hillshade_ds, read_hillshade_chip, _site_window, _load_review_regions,
-    tile_dir_for,
+    tile_dir_for, discover_site_footprints,
 )
 from phase4seg.labels import (
     canopy_label_from_2020_mask, additions_from_mask, apply_additions,
@@ -1172,13 +1172,19 @@ def _bulk_upload_tiles(stage_root, remote, out_tile_dir, label):
 
 
 def step_tile(label, sites, dry_run=False, max_tiles=None, stride_override=None,
-              citywide=False, force_retile=False):
+              citywide=False, force_retile=False, site_buffer=0.0):
     """Step 2 for one year: tile site crops (or the full city for coarse) and
     write the per-year index.
 
     ``citywide`` (coarse default, Fix 3) samples tiles across the whole city
     ortho labelled from the 2020 mask, balanced by canopy fraction, instead of
     tiling the 6 site crops.
+
+    ``sites`` may be None on the CITY-WIDE path only: cli.py::main skips the
+    shared up-front discovery when every requested year runs that recipe, and
+    this step discovers them itself below. ``site_buffer`` is the padding that
+    discovery would have used (cli's --site-buffer default 0.0); it does not key
+    ``_tile_signature``, so carrying it here triggers no re-tile.
     """
     entry = entry_for(label)
     tier  = tier_for(entry)
@@ -1237,6 +1243,33 @@ def step_tile(label, sites, dry_run=False, max_tiles=None, stride_override=None,
     np.random.seed(RANDOM_SEED)
 
     if citywide:
+        if sites is None and not dry_run:
+            # LATE discovery, deliberately here and not at the top of the step.
+            #
+            # cli.py::main no longer discovers site footprints up front when every
+            # year runs the citywide recipe (cli.py::_citywide_for): step_labels
+            # reads none, and the glob + crown load used to run before any
+            # StepLogger existed, so the minutes it cost were attributed to no step
+            # at all. This branch DOES need them — _gather_citywide_coarse ->
+            # _negative_site_records turns the curated negative sites into the
+            # guaranteed-background force_keep tiles — so the cost is paid inside
+            # this step's own log instead.
+            #
+            # Placement earns two skips that a top-of-function call would lose: the
+            # `_existing_tiles_valid` reuse-hit has already returned above, and
+            # `dry_run` is excluded here because _gather_citywide_coarse returns
+            # before it ever reaches _negative_site_records.
+            #
+            # Trade-off, stated: a multi-year single invocation
+            # (--year a,b --step tile --force-citywide) now discovers once per
+            # re-tiling year instead of once in total. Queue jobs pass exactly one
+            # (phase4_train_queue.py::run_step builds `--year job["year"]`), and
+            # hoisting a cache back into cli could not skip the reuse-hit case,
+            # which lives in here.
+            #
+            # The saving is UNMEASURED until a citywide labels/tile launch reads its
+            # own start-up gap.
+            sites = discover_site_footprints(site_buffer=site_buffer)
         all_records = _gather_citywide_coarse(
             label, sites, stride_override=stride_override, dry_run=dry_run)
         if dry_run:

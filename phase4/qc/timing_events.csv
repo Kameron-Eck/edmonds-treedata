@@ -3486,6 +3486,8 @@ run_id,year,run_tag,step,label,seconds,bytes,mb_per_s,log_file
 20260908T171707Z_2020_heal_2020_evaluate,2020,heal_2020,evaluate,copy semantic_eval_report_superseded.csv,0.0,25406,,phase4_semantic_finetune_evaluate_2020_2026-09-08T17-18.log
 20260908T171707Z_2020_heal_2020_evaluate,2020,heal_2020,evaluate,copy semantic_eval_report.csv,0.0,,,phase4_semantic_finetune_evaluate_2020_2026-09-08T17-18.log
 20260908T171707Z_2020_heal_2020_evaluate,2020,heal_2020,evaluate,eval report,14.2,,,phase4_semantic_finetune_evaluate_2020_2026-09-08T17-18.log
+20260908T171942Z_2020_heal_2020_inference,2020,heal_2020,inference,inference,3543.9,,,phase4_semantic_finetune_inference_2020_2026-09-08T18-20.log
+20260908T171942Z_2020_heal_2020_inference,2020,heal_2020,inference,copy edmonds_canopy_prob_2020_heal_2020.tif,9.4,4160577754,442.61,phase4_semantic_finetune_inference_2020_2026-09-08T18-20.log
 20260908T172658Z_2023_heal_2023_evaluate,2023,heal_2023,evaluate,eval tiles local,4.1,,,phase4_semantic_finetune_evaluate_2023_2026-09-08T17-29.log
 20260908T172658Z_2023_heal_2023_evaluate,2023,heal_2023,evaluate,eval model load,2.4,,,phase4_semantic_finetune_evaluate_2023_2026-09-08T17-29.log
 20260908T172658Z_2023_heal_2023_evaluate,2023,heal_2023,evaluate,eval forward,7.3,,,phase4_semantic_finetune_evaluate_2023_2026-09-08T17-29.log
@@ -3498,6 +3500,10 @@ run_id,year,run_tag,step,label,seconds,bytes,mb_per_s,log_file
 20260908T174731Z_2023_heal_2023_postproc,2023,heal_2023,postproc,copy edmonds_canopy_mask_2023_heal_2023.tif,0.2,94525378,472.63,phase4_semantic_finetune_postproc_2023_2026-09-08T18-05.log
 20260908T174731Z_2023_heal_2023_postproc,2023,heal_2023,postproc,copy edmonds_canopy_mask_2023_heal_2023.gpkg,0.0,22130688,,phase4_semantic_finetune_postproc_2023_2026-09-08T18-05.log
 20260908T174731Z_2023_heal_2023_postproc,2023,heal_2023,postproc,postproc,1096.4,,,phase4_semantic_finetune_postproc_2023_2026-09-08T18-05.log
+20260908T182058Z_2020_heal_2020_postproc,2020,heal_2020,postproc,polygonize,1834.2,,,phase4_semantic_finetune_postproc_2020_2026-09-08T19-28.log
+20260908T182058Z_2020_heal_2020_postproc,2020,heal_2020,postproc,copy edmonds_canopy_mask_2020_heal_2020.tif,0.7,333367208,476.24,phase4_semantic_finetune_postproc_2020_2026-09-08T19-28.log
+20260908T182058Z_2020_heal_2020_postproc,2020,heal_2020,postproc,copy edmonds_canopy_mask_2020_heal_2020.gpkg,0.1,45232128,452.32,phase4_semantic_finetune_postproc_2020_2026-09-08T19-28.log
+20260908T182058Z_2020_heal_2020_postproc,2020,heal_2020,postproc,postproc,4034.9,,,phase4_semantic_finetune_postproc_2020_2026-09-08T19-28.log
 unrecorded,2011s,t1_2011s_in05,evaluate,copy semantic_eval_report.csv,0.0,,,phase4_semantic_finetune_evaluate_2011s_2026-09-02T14-40.log
 unrecorded,2000,fullext_sectors_v1,inference,stage 2000_king_rgb.tif,58.4,1258501736,21.55,phase4_semantic_finetune_inference_2000_2026-08-27T03-18.log
 unrecorded,2000,fullext_sectors_v1,inference,stage lidar_snoh_chm.tif,149.9,75698441,0.50,phase4_semantic_finetune_inference_2000_2026-08-27T03-18.log

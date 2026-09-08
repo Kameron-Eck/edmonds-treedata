@@ -18,8 +18,10 @@ than selected. Everything below is resolved from them at build time.
   <br>evidence `phase4/qc/sameflight_consistency.csv#csv:canopy_iou@grid_px_m=1.0`
 - **1.5008** — Bernoulli-thinning the dense lidar epoch to the sparse one's density fabricates 1.5008 km2 of apparent GAIN and essentially no loss — density cannot fake loss.
   <br>evidence `phase4/qc/lidar_decimation_null.csv#csv:km2@quantity=artifact_gain`
-- **71** — The archive's 81 tile directories resolve to 71 distinct tile sets — the rest are arms sharing one set, which is what makes those comparisons clean.
+- **71** — The archive holds 71 distinct tile sets, one tracked tile list each — fewer than the tile directories on disk, because arms sharing a set share its tiles exactly, which is what makes those comparisons clean.
   <br>evidence `phase4/qc/tilesets#dir_csv_count`
+- **82** — Those sets are materialised in 82 tile directories — one registry row per directory, keyed (label, run_tag), so a set built again under a second run tag is one set counted once and two directories on disk. Counting rows as sets is the defect `qc/coverage_map.py::tileset_census` exists to prevent.
+  <br>evidence `phase4/qc/tileset_registry.csv#rows`
 - **87** — Every scored arm's full precision-recall sweep is tracked: 87 curves.
   <br>evidence `phase4/qc/curves#dir_csv_count`
 - **0.9089** — At the held precision of the matched-cut series, reported canopy fraction tracks the model's recall at r = 0.9089 (exact permutation p = 0.0018 over all 40,320 orderings). The residual year-to-year sawtooth is detector sensitivity moving, not canopy moving — which is what licenses an ASYMMETRIC correction, since the error is one-sided (the model misses real trees, it does not invent them).

@@ -625,3 +625,35 @@ def test_compare_refuses_unfair_rankings():
     assert "IS THIS COMPARISON FAIR?" in text, (
         "compare no longer states whether the rows are comparable")
     assert "population" in text, "compare must show the populations it ranked on"
+
+
+def test_compare_counts_tile_sets_not_registry_rows(tmp_path, monkeypatch):
+    """`--compare`'s confounder line must not sum `n_tiles` over registry ROWS.
+
+    2017k's offload pilot materialised ONE tile set under two run tags, and this view
+    read those two rows as "1264 tiles in 2 set(s)" — twice the tiles and twice the
+    sets against the archive's 632 tiles, one set, two directories, which turned the
+    pilot's RESULT (a CPU-tiled set reproducing the A100-tiled one) into an apparent
+    doubling. Sets, tiles and directories are three measurements; the one home that
+    separates them is `qc/coverage_map.py::tileset_census`, and this gates that
+    ask.py keeps asking it instead of counting rows again.
+    """
+    import ask
+    _synthetic_registry(tmp_path, [("2017k", "a36d6772e88b", 632),
+                                   ("2017k", "a36d6772e88b", 632)])
+    monkeypatch.setattr(ask, "QC", tmp_path)          # arm_metrics.csv absent: unscored
+    monkeypatch.setattr(ask, "_catalog",
+                        lambda: {"2017k": {"gsd_cm": 10.0, "bands": 3}})
+    monkeypatch.setattr(ask, "_champions", lambda: {})
+    out = []
+    ask.answer_compare(["2017k"], out)
+    text = "\n".join(out)
+    assert "632 tiles in 1 set(s)" in text, (
+        f"compare no longer reports distinct tile SETS and their tiles:\n{text}")
+    assert "2 tile dir(s)" in text, (
+        f"compare dropped the directory count, so one set materialised twice is "
+        f"indistinguishable from one materialised once:\n{text}")
+    for wrong in ("1264", "1,264", "in 2 set(s)"):
+        assert wrong not in text, (
+            f"compare published {wrong!r} — that is the registry ROW sum, the defect "
+            f"tileset_census exists to prevent:\n{text}")

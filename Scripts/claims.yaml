@@ -66,12 +66,31 @@ claims:
       - experiments/lidar_decimation_null.yaml
     entry: lidar_decimation_null
 
+  # The two numbers below are ONE fact seen from two sides, and they are deliberately
+  # two claims: a claim is verified on its `value` alone, so a second number carried in
+  # the prose of the first is ungated and drifts silently. This one did — it read "81
+  # tile directories" while the registry had grown to 82 (the offload pilot's second
+  # 2017k directory), and nothing failed, because the pointer only ever checked 71.
+  # Neither statement may spell the other's digit; they cross-reference in words.
   - id: tileset-count
     statement: >-
-      The archive's 81 tile directories resolve to 71 distinct tile sets — the rest are
-      arms sharing one set, which is what makes those comparisons clean.
+      The archive holds 71 distinct tile sets, one tracked tile list each — fewer than
+      the tile directories on disk, because arms sharing a set share its tiles exactly,
+      which is what makes those comparisons clean.
     value: "71"
     evidence: "phase4/qc/tilesets#dir_csv_count"
+    stated_in:
+      - docs/SCHEMAS.md
+    entry: null
+
+  - id: tileset-directories
+    statement: >-
+      Those sets are materialised in 82 tile directories — one registry row per
+      directory, keyed (label, run_tag), so a set built again under a second run tag is
+      one set counted once and two directories on disk. Counting rows as sets is the
+      defect `qc/coverage_map.py::tileset_census` exists to prevent.
+    value: "82"
+    evidence: "phase4/qc/tileset_registry.csv#rows"
     stated_in:
       - docs/SCHEMAS.md
     entry: null

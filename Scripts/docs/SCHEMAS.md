@@ -268,7 +268,7 @@ source (a manifest, a sidecar, a sweep) and then re-harvest. Their gates are in
 
 ### tileset_registry.csv + tilesets/{tileset_id}.csv
 
-Written by `qc/instruments/harvest_tilesets.py`. ONE row per tile set, keyed by
+Written by `qc/instruments/harvest_tilesets.py`. ONE row per tile DIRECTORY (label, run_tag) - several directories can share one id (2017k: two directories, one set; see the tileset-directories claim) - each carrying its
 `tileset_id` — 12 hex, the sha256 of the STORED `_tile_signature` (split_status
 stripped by name via `config.META_NONSIG_KEYS`). The engine's own definition lives at
 `phase4seg.tiling.tileset_id()` and the harvester imports it, so the two cannot drift
@@ -698,7 +698,7 @@ READER RULES, each earned on a measured row:
   builds its record — `ts` included — after the check has run, so that cell is a
   completion time (the job-end `VERIFY` row is the other way round;
   `phase4_train_queue.py::verify` stamps `ts` before `_check_prob_raster`). **How
-  long a VERIFY takes was UNRECORDED until 2026-09-07**: all 246 VERIFY rows in
+  long a VERIFY takes was UNRECORDED until 2026-09-07**: all 278 VERIFY rows in
   `phase4/qc/ledger_recovery/train_queue_status_recovered_20260901_20260907.csv`
   carry a blank `minutes`, and the archive's only bound is the adjacent stamps on
   session `spdc1` — `labels` stamped 21:51:58 with `minutes` 6.8 (ending 21:58:46),
@@ -731,7 +731,7 @@ READER RULES, each earned on a measured row:
   last row only while every row is attributed. Since the ledger-recovery
   candidate reached the lake (2026-09-07 — it is now IN `phase4/qc/` and every
   reader merges it, as `names.status_files` promises), that no longer holds: its
-  252 snapshot-native rows carry a `session` and its 198 log-synthesised rows
+  252 snapshot-native rows carry a `session` and its 244 log-synthesised rows
   carry an EMPTY one, and the synthesised rows are exactly the events no snapshot
   captured — the later ones. Measured on `ofB`: last session-stamped row
   `evaluate` 16:33:53, rows for the same tag continuing to 18:58:23, and a
@@ -775,11 +775,12 @@ files — not a campaign total.
 The unflagged sum would read **1826.3 min over 13 sessions, and it is mostly
 work, not idleness**: those thirteen are the runtimes whose ledger rows survive
 only in the recovery candidate, whose later events carry no `session`. Do not
-quote it. The `ts` semantics the candidate's sidecar warns about
-(`phase4/qc/ledger_recovery/recovery_report.md`: a synthesised row carries the
-step log's `completed:`, not the queue's step start) do NOT bite this table — measured, all
-198 synthesised rows carry an empty `session`, so only the 252 snapshot-native,
-queue-stamped rows ever join here. The loss is attribution, not timing.
+quote it. The `ts` semantics the candidate's sidecar publishes
+(`phase4/qc/ledger_recovery/recovery_report.md`: a synthesised row carries a
+RECONSTRUCTED step start, and its `detail` prefix names which of three rungs dated
+it) do NOT bite this table — measured, all 244 synthesised rows carry an empty
+`session`, so only the 252 snapshot-native, queue-stamped rows ever join here. The
+loss is attribution, not timing.
 
 The underlying ledger loss is recorded rather than fixed: every per-launch status
 file written between 2026-09-01 and 2026-09-07 is absent from the lake
@@ -824,21 +825,55 @@ evidence* and say so.
 every reader's `DictReader` a schema it does not know. Provenance is the `detail`
 prefix plus the report.
 
-**Two kinds of row, and `detail` is what tells them apart.**
+**Two kinds of row, and `detail` is what tells them apart.** 496 rows as rebuilt
+2026-09-07: 252 snapshot-native, 244 synthesised from logs.
 - *Snapshot-native* — copied byte-for-byte from the orphaned
   `train_queue_status.csv.part.*` / `.prev.*` temps in the same directory. Queue-written,
   unmodified, no prefix.
-- *Recovered* — `detail` begins `RECOVERED-FROM-LOGS:` and quotes the nohup line
-  that is the evidence plus the step log that dated it. Synthesised only where NO
-  snapshot row covers `(year, tag, step)`, so a recovered row never competes with
-  a queue-written one under latest-wins.
+- *Recovered* — `detail` begins `RECOVERED-FROM-LOGS(ts=start): `,
+  `RECOVERED-FROM-LOGS(ts=completed-minutes): ` or `RECOVERED-FROM-LOGS(ts=completed): `
+  — the parenthesis names which rung dated the row (below), so the mode is visible in
+  the row itself and not only in the report — and then quotes the nohup line that is
+  the evidence plus the step log that dated it. A reader that only asks "was this
+  recovered?" still matches the stem `RECOVERED-FROM-LOGS`, which is the constant
+  every reader and test keys on (`rebuild_queue_ledger.py::PREFIX`). Synthesised only
+  where no snapshot row **of the same LAUNCH** covers `(year, tag, step)`:
+  suppression is keyed `(year, tag, step, LAUNCH)`, and a snapshot session is
+  attributed to a launch by evidence — the launch's window must contain the session's
+  earliest surviving row, and the launch log's printed step outcomes must match that
+  session's rows EXACTLY on `(job, year, tag, step, state, minutes)` — on
+  `(…, verdict)` for a VERIFY (`::attribute_launches`; no match leaves the session
+  unattributed, covering nothing). Keying on `(year, tag, step)` alone is what the first version did, and it
+  erased the very rows it exists to recover: `of_2017k` ran three times, and the two
+  earlier FAILED launches' surviving `labels`/`tile` rows suppressed the successful
+  launch's. So a recovered row CAN share a key with a queue-written row from an
+  earlier launch of the same tag — that collision is the recovery working, and
+  readers resolve it the ordinary way, by taking the latest `ts`.
 
-**`ts` does not mean the same thing in the two kinds.** A queue-written row carries
-the step's START: `phase4_train_queue.py::run_step` stamps `ts` when it appends the
-`RUNNING` row and mutates that same dict on completion (the same property
-`runtime_sessions.csv`'s `queue_last_row_ts` note records). The nohup log has no
-timestamps, so a recovered row carries the engine step log's `completed:` instead —
-up to `minutes` LATER than the queue would have written. Reshaped to the ledger's
+**`ts` is the step's START in both kinds — but a recovered row's is RECONSTRUCTED,
+and the row says how.** A queue-written row carries the start outright:
+`phase4_train_queue.py::run_step` stamps `ts` when it appends the `RUNNING` row and
+mutates that same dict on completion (the same property `runtime_sessions.csv`'s
+`queue_last_row_ts` note records). A recovered row is dated by a three-rung ladder,
+and the `detail` prefix names the rung used:
+- `ts=start` — the block's own `run_id: 20260906T014036Z_…` stamp, which the engine
+  mints at startup and the queue prints inside the block. Sanity-gated: it must lie
+  within [`completed:` − `minutes` − 60 s, `completed:` + 60 s], or the rung is
+  refused, so a run_id from a differently-zoned clock cannot pass itself off as a
+  start. The engine's own `started:` is NOT a rung — `StepLogger` opens the step only
+  after footprint discovery and staging, measured five minutes late on
+  `hy_e3_2011s/labels`.
+- `ts=completed-minutes` — no usable run_id: the step log's `completed:` minus the
+  queue's own elapsed.
+- `ts=completed` — neither: the step log's `completed:`, unchanged. Also what every
+  recovered VERIFY row gets, since `verify_step` stamps when the check ENDS and the
+  log prints no duration for it.
+
+Carrying `completed:` on every row is what the first version did, and it made a
+recovered session look like it started up to `minutes` late: of2017k2's A100 span read
+41.7 min against the 113.1 the queue itself printed. Which rung is right is MEASURED
+every run against the surviving queue-written rows, never asserted — the sidecar's
+rung table carries n, median and max per rung. Reshaped to the ledger's
 `%Y-%m-%d %H:%M:%S`, never re-precisioned.
 
 **`minutes` is the queue's own number in both kinds, never the step log's

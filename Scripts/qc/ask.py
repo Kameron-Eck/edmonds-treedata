@@ -27,6 +27,7 @@ from __future__ import annotations
 
 import argparse
 import csv
+import importlib
 import json
 import sys
 from pathlib import Path
@@ -71,14 +72,38 @@ def _decisions():
     return (yaml.safe_load(p.read_text(encoding="utf-8")) or {}).get("decisions", [])
 
 
+def _qc_sibling(name):
+    """Import a qc-root script by name — `claims`, `coverage_map`.
+
+    Both are scripts, not installed modules, so the qc root is put on the import
+    path here, lazily, ONCE. This is the only such site in this file and the ledger
+    (`qc/test_status_discovery.py::test_path_insert_ledger`) caps it at one — a
+    second one anywhere below fails that gate.
+    """
+    sys.path.insert(0, str(SCRIPTS / "qc"))   # ledger: test_status_discovery.py
+    return importlib.import_module(name)
+
+
 def _claims_state():
     """Every claim with its live verification state — the back-link from number to use."""
     try:
-        sys.path.insert(0, str(SCRIPTS / "qc"))   # ledger: test_status_discovery.py
-        import claims as _c
-        return _c.verify_all()
+        return _qc_sibling("claims").verify_all()
     except Exception:
         return []
+
+
+def _tileset_census(tiles):
+    """{label: (n_sets, n_tiles, n_dirs)} — ONE home: `coverage_map.py::tileset_census`.
+
+    A registry ROW is one tile DIRECTORY, keyed (label, run_tag), and two rows can
+    carry ONE `tileset_id` — the same tiles materialised under two tags. So rows are
+    not sets, and `n_tiles` summed over rows double-counts: this view printed 2017k
+    as "1264 tiles in 2 set(s)" where the archive holds 632 tiles, one set, two
+    directories. Deliberately NOT wrapped in a fallback: the only fallback is the row
+    sum, which is the defect, and a ValueError out of the census is a
+    `qc/instruments/harvest_tilesets.py` bug that must surface rather than average.
+    """
+    return _qc_sibling("coverage_map").tileset_census(tiles)
 
 
 def _index():
@@ -403,13 +428,13 @@ def answer_compare(subjects, out, policy="matched_p75"):
                        "check the column.")
         _section(out, "WHAT ELSE DIFFERS (the usual confounders)")
         cat = _catalog()
+        census = _tileset_census(tiles)     # sets, tiles and dirs are THREE numbers
         for y in subjects:
             e = cat.get(y, {})
-            ts = [t for t in tiles if t["label"] == y]
-            n = sum(int(t["n_tiles"]) for t in ts)
+            n_sets, n_tiles, n_dirs = census.get(y, (0, 0, 0))
             out.append(f"  {y:6} {str(e.get('gsd_cm', '?')):>6} cm · "
-                       f"{e.get('bands', '?')} bands · {n or 0} tiles in "
-                       f"{len(ts)} set(s)")
+                       f"{e.get('bands', '?')} bands · {_fmt_int(n_tiles)} tiles in "
+                       f"{n_sets} set(s), materialised in {n_dirs} tile dir(s)")
         return
 
     if set(kinds.values()) == {"arm"}:

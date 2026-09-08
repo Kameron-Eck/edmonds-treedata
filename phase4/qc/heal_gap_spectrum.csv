@@ -1,0 +1,26 @@
+row_kind,L_years,n_epochs,epochs,L_days_measured,n_epochs_dated,tier_HEAL,tier_REVIEW,tier_BLIND,n_eligible,n_fills,n_fills_canopy,n_fills_ignore,fill_rate,fills_outside_eligible,gold_loss_n,laundered,laundered_points,laundered_eligible,laundered_at_risk,laundered_rate_ci95_upper,censored,triples_present,triples_removed,crowns_eligible,crowns_deleted,notes
+spectrum,3,1,2015,1167,1,1,0,0,240245,187541,187541,0,0.7806,0,42,0,0,2,0,,0,41,35,11528,6758,
+spectrum,4,3,2011s|2013|2016,1493,2,2,0,1,318231,210296,132356,77940,0.6608,0,42,0,0,2,0,,0,47,36,8477,3059,
+spectrum,5,2,2019|2021,1802,1,0,0,2,280358,188520,0,188520,0.6724,0,42,0,0,28,0,,0,36,28,6140,1645,
+negative_control,4,3,2011s|2013|2016,1493,2,2,0,1,318231,210296,132356,77940,0.6608,0,42,0,0,16,0,,0,50,38,,,"gold labels permuted, seed 20260908"
+# epochs,2009|2011s|2013|2015|2016|2019|2021|2024
+# n_gold_points_on_grid,1214
+# off_grid,0
+# median_L_years,4
+# shuffle_seed,20260908
+# laundered_total,0
+# laundered_at_risk_total,0
+# fills_outside_eligible_total,0
+# triples_present_total,124
+# triples_removed_total,99
+# crown_multi_epoch_runs,10103
+# analytic_null,0/1214 of all gold points have a terminal absence filled anywhere; expected laundered points among 42 losses under the null = 0.000
+# date_basis_2009,measured
+# date_basis_2011s,undated
+# date_basis_2013,measured
+# date_basis_2015,measured
+# date_basis_2016,measured
+# date_basis_2019,measured
+# date_basis_2021,ambiguous
+# date_basis_2024,measured
+# crosscheck_heal_vs_gold,triples 124/99 vs heal_vs_gold 124/99 MATCH

@@ -1,0 +1,109 @@
+### probe_bundle_read.py -- tile-bundle read, measured three ways
+### experiments/bundle_validation_2017k.yaml R1 FAIL follow-up, item (1)
+
+=== CONTEXT =======================================================
+  utc                2026-09-08T05:28:19Z
+  COLAB_SESSION      spdprobe2   <- hw_{session}.csv joins on this
+  hostname           21a744b1ce43
+  python             3.13.15   cwd /content/repo/Scripts
+  PHASE4SEG_TILE_BUNDLE=1
+  phase4seg          v048
+  repo branch        work/20260906-healing-tool
+  repo commit        cc35b5c
+  staging.py          cc35b5c 2026-09-07 probe_bundle_read: re-read an aged tile bundle through the engine's own path with a bytes-vs-time cur
+  mounts:
+    treedata-user{qOqdu}: /content/drive/MyDrive/treedata fuse.rclone rw,nosuid,nodev,relatime,user_id=0,group_id=0 0 0
+  rclone:
+    1032 /usr/bin/rclone mount treedata-user: /content/drive/MyDrive/treedata --daemon --vfs-cache-mode writes --vfs-cache-max-size 40G --drive-pacer-min-
+  df /content:
+    Filesystem      Size  Used Avail Use% Mounted on
+    overlay         226G   21G  206G   9% /
+  free:
+    total        used        free      shared  buff/cache   available
+    Mem:           12975         731        7848           2        4395       11935
+    Swap:              0           0           0
+  nproc:
+    2
+
+=== INPUTS ========================================================
+  tile dir           /content/drive/MyDrive/treedata/phase4/tiles/2017k__spdv_2017k
+  index read         632 rows in 26.86s  (tile_index_2017k.csv)
+  cols               ['img_path', 'mask_path', 'height_path']
+  first img_path     /content/drive/MyDrive/treedata/phase4/tiles/2017k__spdv_2017k/val/images/city_r22839_c53622.tif
+  src_root (derived) /content/drive/MyDrive/treedata/phase4/tiles/2017k__spdv_2017k   == tile_dir
+  tileset id         a36d6772e88b  (0.64s to derive)   MATCH  <- experiments/bundle_validation_2017k.yaml K1
+  sidecar            _bundle_a36d6772e88b.json  1264 members, read in 0.85s
+  sidecar records    tar_size=512112640 (488.4 MiB)  n_files=1264  created_utc=2026-09-08T03:04:11+00:00
+  sidecar tar_sha256 93affa56f320f55d...
+  tar on the mount   _bundle_a36d6772e88b.tar  512112640 bytes (488.4 MiB)  mtime 2026-09-08T03:04:11Z
+
+  cache drop before pass A: FAILED (OSError: [Errno 30] Read-only file system: '/proc/sys/vm/drop_caches') -- later passes may read from RAM
+=== PASS A -- engine path (staging._stage_from_bundle) ==============
+  start utc          2026-09-08T05:28:50Z
+  dst_root           /content/probe_bundle_7duhwkv9/tiles/2017k__spdv_2017k   (fresh mkdtemp: no .done marker can short-circuit step 7)
+  tar_dir            /content/probe_bundle_7duhwkv9/bundles
+    t=+   3.0s  FIRST BYTES  size=4063232 (3.9 MiB)
+    t=+   4.0s  size=77463552 (   73.9 MiB)  +70.0 MiB    70.0 MB/s
+    t=+   5.0s  size=134086656 (  127.9 MiB)  +54.0 MiB    54.0 MB/s
+    t=+   6.0s  size=170917888 (  163.0 MiB)  +35.1 MiB    35.0 MB/s
+    t=+   7.0s  size=259784704 (  247.8 MiB)  +84.8 MiB    84.7 MB/s
+    t=+   8.0s  size=352190464 (  335.9 MiB)  +88.1 MiB    88.1 MB/s
+    t=+   9.0s  size=402522112 (  383.9 MiB)  +48.0 MiB    48.0 MB/s
+    t=+  10.0s  size=405422080 (  386.6 MiB)  +2.8 MiB     2.8 MB/s
+    t=+  11.0s  size=407195648 (  388.3 MiB)  +1.7 MiB     1.7 MB/s
+    t=+  12.0s  size=482213888 (  459.9 MiB)  +71.5 MiB    71.5 MB/s
+  ⏱ bundle copy 2017k: 10.6s
+    t=+  13.0s  size=512112640 (  488.4 MiB)  +28.5 MiB    28.5 MB/s
+    t=+  14.0s  COPY COMPLETE at full size 512112640 -- everything after this is sha256 + extract, not transfer
+  OK tiles staged from bundle a36d6772e88b: 1264 files (0.51 GB, ONE sequential read) -> /content/probe_bundle_7duhwkv9/tiles/2017k__spdv_2017k
+    t=+  18.0s  tar gone (extract finished / refused)
+  ⏱ probe bundle engine: 18.0s
+  engine return: staged, 3 column(s) rewritten; report={'copied': True}  (copied=False means the step-7 local reuse hit, which cannot happen on a fresh mkdtemp)
+  sampler: 18 samples at 1.0s, first bytes at +3.0s, peak 512112640 bytes (488.4 MiB), longest zero-growth run 3.0s, copy complete at +14.0s
+  end utc            2026-09-08T05:29:08Z
+
+  cache drop before pass B: FAILED (OSError: [Errno 30] Read-only file system: '/proc/sys/vm/drop_caches') -- later passes may read from RAM
+=== PASS B -- chunked read of the same tar over the mount ==========
+  start utc          2026-09-08T05:29:09Z
+  file               /content/drive/MyDrive/treedata/phase4/tiles/2017k__spdv_2017k/_bundle_a36d6772e88b.tar
+  buffer             8388608 bytes (8 MiB), slow threshold 2.0s
+    open() 0.05s
+    chunk=    1 offset=0 (     0.0 MiB) got=8388608 took=  1.14s  FIRST CHUNK (first-byte cost)
+    chunk=   16 offset=125829120 (   120.0 MiB) got=8388608 took= 33.33s
+  ⏱ probe bundle chunked: 38.9s, 13.2 MB/s, stalls>2s=1, longest=33.3s
+  ⏱ probe bundle sha256: 2.1s
+  bytes 512112640  chunks 62  short reads 1  open 0.05s  (sha256 folded into the same pass, CPU time excluded from the throughput above)
+  sha256 93affa56f320f55d...  vs sidecar 93affa56f320f55d...  MATCH
+  slow chunks (>2.0s), offset in MiB:
+    #16 at 120.0 MiB  33.33s  (8388608 bytes)
+  end utc            2026-09-08T05:29:50Z
+
+  cache drop before pass C: FAILED (OSError: [Errno 30] Read-only file system: '/proc/sys/vm/drop_caches') -- later passes may read from RAM
+=== PASS C -- control: an aged object of the same size class ========
+  start utc          2026-09-08T05:29:50Z
+  listing            /content/drive/MyDrive/treedata/Full_Image/Pipeline Imagery
+  listed             45 .tif >= 200 MiB in 0.53s
+    candidate  2006_snoh_1m_rgb.tif  218544136 bytes (208.4 MiB)  mtime 2026-08-23T22:31:40Z
+    candidate  1996_snoh_1m_rgb.tif  221226039 bytes (211.0 MiB)  mtime 2026-08-23T22:31:23Z
+    candidate  2017_naip_1m_rgbi.tif  258837380 bytes (246.8 MiB)  mtime 2026-08-23T17:36:25Z
+    candidate  2015_naip_1m_rgbi.tif  267712247 bytes (255.3 MiB)  mtime 2026-08-23T17:23:43Z
+    candidate  2001_snoh_1ft_pan.tif  474665129 bytes (452.7 MiB)  mtime 2026-08-23T20:42:11Z
+  CHOSEN             2006_snoh_1m_rgb.tif  218544136 bytes (208.4 MiB)  mtime 2026-08-23T22:31:40Z   (rule: smallest .tif clearing the floor, ties by name)
+  SCOPE              control reads 208.4 MiB vs the tar's 488.4 MiB -- a clean control here says nothing about offsets beyond that point.  Use --control <bigger file> to extend it.
+    open() 0.00s
+    chunk=    1 offset=0 (     0.0 MiB) got=8388608 took=  0.91s  FIRST CHUNK (first-byte cost)
+  ⏱ probe control chunked: 3.3s, 66.9 MB/s, stalls>2s=0, longest=0.0s
+  bytes 218544136  chunks 27  short reads 1  open 0.00s  file 2006_snoh_1m_rgb.tif
+  end utc            2026-09-08T05:29:54Z
+
+  cleanup: removed /content/probe_bundle_7duhwkv9 (exists=False)
+
+=== SUMMARY =======================================================
+  order              A,B,C
+  PASS A engine      18.0s  first-byte +3.0s  longest zero-growth 3.0s
+  PASS B chunked     38.9s  13.2 MB/s  stalls=1  longest=33.3s
+  PASS C chunked     3.3s  66.9 MB/s  stalls=0  longest=0.0s  [2006_snoh_1m_rgb.tif]
+  READING RULE (from the experiment's own next-step): >= 30 MB/s on the bundle says the pilot hit a Drive window / object-freshness effect; ~4 MB/s with the same zero-traffic stall says structural.  A control that stalls the same way says neither -- it is the mount or the host.
+  CAVEAT: this order read the tar in PASS A first, so PASS B is a WARM read unless the cache drop above reported ok.  For a cold chunked number, run --order B,A,C on a second fresh runtime.
+  end utc            2026-09-08T05:29:54Z
+PROBE_DONE exit=0

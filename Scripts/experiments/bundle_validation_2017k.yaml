@@ -148,3 +148,21 @@ extra:
     numbers (39.9 min engine, 40.4 queue) plus bootstrap; ~4 CU INFERRED from the
     2026-09-03 balance note (~5.3 CU/h per A100). Authorised under Kam's 2026-09-07
     "full permission to move ahead" and "don't defer to me for permissions".
+  probe_result: >
+    NEXT (1) DONE 2026-09-08 05:28Z on a fresh CPU runtime (spdprobe2), log tracked at
+    phase4/qc/probe_bundle_read_20260908T052818Z.txt, instrument
+    qc/instruments/probe_bundle_read.py. PASS A, the engine's own path on the same
+    now-aged bundle: copy 10.6 s, 18.0 s end to end with sha256 and the 1264-member
+    extract, first byte at +3 s, longest zero-growth run 3 s, bursts to 88 MB/s and a
+    2-3 s dip at the 384 MiB VFS range boundary - inside the 13-17 s prediction's
+    scope. PASS B, a chunked raw re-read of the same file minutes later (cache drop
+    refused, read-only /proc): 38.9 s at 13.2 MB/s with ONE stall of 33.3 s. PASS C,
+    the aged 208 MiB control (2006_snoh_1m_rgb.tif): 3.3 s, 66.9 MB/s, no stall.
+    READING - the validation's 119 s was not a property of the object: the same
+    read runs at prediction hours later. But B shows a 33 s stall on a second read of
+    the same file, so stalls on this mount are intermittent and can hit any single
+    read; a design that reads one 0.5 GB object in one unbounded copy has no
+    protection against them. Engineering follows either way: a bounded read with a
+    throughput floor and an escape to the rclone transport, then re-validate R1 on
+    the next campaign's train. R1 stays FAIL on its own run; this probe does not
+    re-score it.

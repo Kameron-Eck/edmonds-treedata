@@ -1,5 +1,5 @@
 {
- "generated_utc": "2026-09-07T02:23:17Z",
+ "generated_utc": "2026-09-08T05:54:32Z",
  "lake_mounted": true,
  "code": {
   "engine_version": "v048",
@@ -119,7 +119,7 @@
    "models": 7,
    "prob": "2006s_hy_e3_2006s.tif[33MB]; 2006s_sectors_v1.tif[9MB]; 2006s_t1_2006s_add05.tif[11MB]; 2006s_t1_2006s_add16.tif[7MB]; 2006s_t1_2006s_base.tif[10MB]; 2006s_t1_2006s_in05.tif[10MB]; 2006s_t1_2006s_in16.tif[11MB]",
    "mask": "Y",
-   "verify": "sectors_v1:OK",
+   "verify": "sectors_v1:OK; hy_e3_2006s:OK; t1_2006s_base:OK; t1_2006s_add05:OK; t1_2006s_add16:WEAK_CALIBRATION; t1_2006s_in05:OK; t1_2006s_in16:OK",
    "honest": "rec 0.638 prec 0.442"
   },
   {
@@ -149,7 +149,7 @@
    "models": 28,
    "prob": "2009_chm2_v1.tif[96MB]; 2009_citywide_rgb.tif[514MB]; 2009_corrupt10.tif[102MB]; 2009_corrupt25.tif[88MB]; 2009_corrupt50.tif[96MB]; 2009_fullext_sectors_v1.tif[84MB]; 2009_groves_lidar.tif[82MB]; 2009_groves_nolidar.tif[89MB]; 2009_hybrid_v1.tif[81MB]; 2009_nodec_s1234.tif[119MB]; 2009_nodec_v1.tif[115MB]; 2009_nodecENS.tif[58MB]; 2009_nodecW.tif[92MB]; 2009_rgb3_ep60.tif[81MB]; 2009_rgb3_ep60_s1234.tif[81MB]; 2009_rgb3_nodeb.tif[86MB]; 2009_rgb3_nodeb_s1234.tif[76MB]; 2009_rgb3_nodeb_twin.tif[88MB]; 2009_seed1234.tif[87MB]; 2009_seed777.tif[76MB]; 2009_seedENS3.tif[42MB]; 2009_seedMAX3.tif[40MB]; 2009_smooth5.tif[85MB]; 2009_smooth5raw.tif[85MB]; 2009_trend8_2009.tif[468MB]",
    "mask": "Y",
-   "verify": "fullext_sectors_v1:OK; groves_nolidar:OK; groves_lidar:OK; hybrid_v1:OK; rgb3_nodeb:OK; corrupt25:OK; corrupt10:OK; corrupt50:OK; nodec_v1:OK; chm2_v1:OK; seed1234:OK; rgb3_ep60:OK; seed777:OK; nodec_s1234:OK; rgb3_nodeb_s1234:OK; nodec_s2024:OK; smooth5:OK; nodecW:OK; rgb3_ep60_s1234:OK; rgb3_nodeb_twin:OK",
+   "verify": "fullext_sectors_v1:OK; groves_nolidar:OK; groves_lidar:OK; hybrid_v1:OK; rgb3_nodeb:OK; corrupt25:OK; corrupt10:OK; corrupt50:OK; nodec_v1:OK; chm2_v1:OK; seed1234:OK; rgb3_ep60:OK; seed777:OK; nodec_s1234:OK; rgb3_nodeb_s1234:OK; nodec_s2024:OK; smooth5:OK; nodecW:OK; rgb3_ep60_s1234:OK; rgb3_nodeb_twin:OK; trend8_2009:OK",
    "honest": "rec 0.605 prec 0.918"
   },
   {
@@ -169,7 +169,7 @@
    "models": 12,
    "prob": "2011s_hy_e3_2011s.tif[334MB]; 2011s_sectors_v1.tif[62MB]; 2011s_t1_2011s_add05.tif[64MB]; 2011s_t1_2011s_add16.tif[60MB]; 2011s_t1_2011s_base.tif[62MB]; 2011s_t1_2011s_base_s2.tif[59MB]; 2011s_t1_2011s_base_s3.tif[62MB]; 2011s_t1_2011s_cor05.tif[61MB]; 2011s_t1_2011s_cor10.tif[61MB]; 2011s_t1_2011s_in05.tif[59MB]; 2011s_t1_2011s_in16.tif[60MB]; 2011s_trend8_2011s.tif[328MB]",
    "mask": "Y",
-   "verify": "sectors_v1:OK",
+   "verify": "sectors_v1:OK; hy_e3_2011s:OK; t1_2011s_base:OK; t1_2011s_base_s2:OK; t1_2011s_add05:OK; t1_2011s_in05:OK; t1_2011s_cor05:OK; t1_2011s_cor02:MISSING; t1_2011s_cor10:OK; t1_2011s_base_s3:OK; t1_2011s_add16:OK; t1_2011s_in16:OK; trend8_2011s:OK",
    "honest": "rec 0.573 prec 0.451"
   },
   {
@@ -189,7 +189,7 @@
    "models": 6,
    "prob": "2013.tif[2063MB]; 2013_citywide_rgb.tif[2511MB]; 2013_fullext_sectors_v1.tif[346MB]; 2013_trend8_2013.tif[2395MB]; 2013_xsensor_rgb.tif[2364MB]; 2013_xsensor_train.tif[69MB]",
    "mask": "Y",
-   "verify": "fullext_sectors_v1:OK",
+   "verify": "fullext_sectors_v1:OK; trend8_2013:OK",
    "honest": "\u2014"
   },
   {
@@ -209,7 +209,7 @@
    "models": 5,
    "prob": "2015.tif[2172MB]; 2015_citywide_rgb.tif[2510MB]; 2015_trend8_2015.tif[2039MB]; 2015_xsensor_rgb.tif[2613MB]; 2015_xsensor_train.tif[70MB]",
    "mask": "Y",
-   "verify": "\u2014",
+   "verify": "trend8_2015:OK",
    "honest": "\u2014"
   },
   {
@@ -239,7 +239,7 @@
    "models": 14,
    "prob": "2016.tif[471MB]; 2016_corrected.tif[586MB]; 2016_fullext_sectors_v1.tif[61MB]; 2016_golden_v1_2016corr.tif[29MB]; 2016_golden_v1_2016cw.tif[28MB]; 2016_golden_v1_2016fx.tif[29MB]; 2016_nir_m06.tif[67MB]; 2016_t1_2016_add05.tif[63MB]; 2016_t1_2016_add16.tif[61MB]; 2016_t1_2016_base.tif[61MB]; 2016_t1_2016_in05.tif[60MB]; 2016_t1_2016_in16.tif[61MB]; 2016_t1_2016_nir.tif[61MB]; 2016_trend8_2016.tif[362MB]",
    "mask": "Y",
-   "verify": "fullext_sectors_v1:OK; nir_m06:OK; golden_v1_2016cw:MOSTLY_NODATA; golden_v1_2016corr:MOSTLY_NODATA; golden_v1_2016fx:MOSTLY_NODATA",
+   "verify": "fullext_sectors_v1:OK; nir_m06:OK; golden_v1_2016cw:MOSTLY_NODATA; golden_v1_2016corr:MOSTLY_NODATA; golden_v1_2016fx:MOSTLY_NODATA; t1_2016_base:OK; t1_2016_in05:OK; t1_2016_in16:OK; t1_2016_nir:OK; t1_2016_add05:OK; t1_2016_add16:OK; trend8_2016:OK",
    "honest": "\u2014"
   },
   {
@@ -249,17 +249,17 @@
    "models": 5,
    "prob": "2017_citywide_rgb.tif[6718MB]; 2017_of_2017.tif[3028MB]; 2017_xsensor_rgb.tif[406MB]; 2017_xsensor_train.tif[2972MB]",
    "mask": "Y",
-   "verify": "citywide_rgb:OK",
+   "verify": "citywide_rgb:OK; of_2017:OK",
    "honest": "\u2014"
   },
   {
    "year": "2017k",
    "gsd_cm": 10.0,
    "tiles": "\u2014",
-   "models": 1,
-   "prob": "2017k_of_2017k.tif[2368MB]",
+   "models": 3,
+   "prob": "2017k_of_2017k.tif[2368MB]; 2017k_spd_2017k.tif[2376MB]",
    "mask": "Y",
-   "verify": "of_2017k:OK",
+   "verify": "of_2017k:OK; spd_2017k:OK; spdv_2017k:OK",
    "honest": "\u2014"
   },
   {
@@ -269,7 +269,7 @@
    "models": 1,
    "prob": "2017n_of_2017n.tif[28MB]",
    "mask": "Y",
-   "verify": "\u2014",
+   "verify": "of_2017n:OK",
    "honest": "\u2014"
   },
   {
@@ -279,7 +279,7 @@
    "models": 1,
    "prob": "2017s_of_2017s.tif[323MB]",
    "mask": "Y",
-   "verify": "\u2014",
+   "verify": "of_2017s:OK",
    "honest": "\u2014"
   },
   {
@@ -299,7 +299,7 @@
    "models": 4,
    "prob": "2019_citywide_rgb.tif[2289MB]; 2019_pilot_e2_fine.tif[2258MB]; 2019_trend8_2019.tif[2257MB]; 2019_xsensor_train.tif[69MB]",
    "mask": "Y",
-   "verify": "citywide_rgb:OK",
+   "verify": "citywide_rgb:OK; trend8_2019:OK",
    "honest": "rec 0.635 prec 0.824"
   },
   {
@@ -309,7 +309,7 @@
    "models": 5,
    "prob": "2019n_nir_m06.tif[17MB]; 2019n_p2nir.tif[66MB]; 2019n_pilot_e2_coarse.tif[75MB]; 2019n_t1_2019n_base.tif[21MB]; 2019n_t1_2019n_nir.tif[22MB]",
    "mask": "Y",
-   "verify": "nir_m06:OK; pilot_e2_coarse:OK",
+   "verify": "nir_m06:OK; pilot_e2_coarse:OK; t1_2019n_base:OK; t1_2019n_nir:OK",
    "honest": "rec 0.650 prec 0.854"
   },
   {
@@ -329,7 +329,7 @@
    "models": 6,
    "prob": "2020_of_2020.tif[4165MB]; 2020_t1_2020_add05.tif[735MB]; 2020_t1_2020_add16.tif[681MB]; 2020_t1_2020_base.tif[723MB]; 2020_t1_2020_in05.tif[708MB]; 2020_t1_2020_in16.tif[650MB]",
    "mask": "Y",
-   "verify": "\u2014",
+   "verify": "t1_2020_base:OK; t1_2020_add05:OK; t1_2020_in05:OK; t1_2020_in16:OK; t1_2020_add16:WEAK_CALIBRATION; of_2020:OK",
    "honest": "\u2014"
   },
   {
@@ -349,7 +349,7 @@
    "models": 2,
    "prob": "2021_citywide_rgb.tif[2281MB]; 2021_trend8_2021.tif[2050MB]",
    "mask": "Y",
-   "verify": "\u2014",
+   "verify": "trend8_2021:OK",
    "honest": "rec 0.606 prec 0.878"
   },
   {
@@ -379,7 +379,7 @@
    "models": 3,
    "prob": "2022_citywide_rgb.tif[3927MB]; 2022_of_2022.tif[5357MB]; 2022_xsensor_train.tif[1198MB]",
    "mask": "Y",
-   "verify": "citywide_rgb:OK",
+   "verify": "citywide_rgb:OK; of_2022:OK",
    "honest": "rec 0.682 prec 0.801"
   },
   {
@@ -419,7 +419,7 @@
    "models": 3,
    "prob": "2024_citywide_rgb.tif[4652MB]; 2024_fullext_sectors_v1.tif[747MB]; 2024_trend8_2024.tif[2729MB]",
    "mask": "Y",
-   "verify": "citywide_rgb:OK; fullext_sectors_v1:OK",
+   "verify": "citywide_rgb:OK; fullext_sectors_v1:OK; trend8_2024:OK",
    "honest": "rec 0.617 prec 0.824"
   },
   {

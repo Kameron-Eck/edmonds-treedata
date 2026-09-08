@@ -87,16 +87,22 @@ def _job_header(job, year, tag):
             "  why not\n")
 
 
-def _block(year, step, tag, run_id, step_log_name, outcome=None):
+def _block(year, step, tag, run_id, step_log_name, outcome=None,
+           echo_run_id=True):
     """One `$` command block: the queue's command, the engine's two echo lines,
     and optionally the queue's outcome line. Indentation is the whole point —
-    queue lines are two spaces, engine stdout is `    | `."""
+    queue lines are two spaces, engine stdout is `    | `.
+
+    `echo_run_id=False` drops the run_id line, which is the shape 4 of the 177
+    real blocks in the window have — and the one that sends `_anchor` to its
+    second rung."""
     s = (f"\n  $ -u /content/repo/Scripts/pipeline/phase4_semantic_finetune.py "
          f"--year {year} --step {step} --infer-batch 32 --run-tag {tag} "
-         f"--force-citywide\n"
-         f"    |   run_id: {run_id}  (git deadbeef on work/x; GPU none)\n"
-         f"    |   ✓ log → /content/drive/MyDrive/treedata/phase4/logs/"
-         f"{step_log_name}\n")
+         f"--force-citywide\n")
+    if echo_run_id:
+        s += f"    |   run_id: {run_id}  (git deadbeef on work/x; GPU none)\n"
+    s += (f"    |   ✓ log → /content/drive/MyDrive/treedata/phase4/logs/"
+          f"{step_log_name}\n")
     if outcome is not None:
         s += outcome
     return s
@@ -223,19 +229,141 @@ def test_uncovered_step_is_synthesised_with_the_queues_own_minutes(
     assert ev[0]["state"] == "OK" and ev[0]["exit"] == "0"
     assert ev[0]["minutes"] == "1.2"
     assert ev[0]["detail"].startswith(rql.PREFIX)
-    # ts is the step log's `completed:`, reshaped to the ledger's format
-    assert ev[0]["ts"] == "2026-09-03 01:26:10"
+    # `ts` is the step START, because that is what a queue-written ts is. The
+    # block's run_id stamp (20260903T012500Z) is the log's own timestamp for it;
+    # the step log's `completed:` (01:26:10) is when the step ENDED.
+    assert ev[0]["ts"] == "2026-09-03 01:25:00"
+    assert ev[0]["detail"].startswith(rql._prefix(rql.TS_START))
     # host/session are not derivable from a log and are left blank, not guessed
     assert ev[0]["host"] == "" and ev[0]["session"] == ""
 
 
-def test_a_covered_step_is_never_synthesised(evidence, monkeypatch):
-    """train IS covered by the snapshots, so its log outcome adds no row — a
-    synthesised row could only compete with a queue-written one on latest-wins."""
+def test_a_covered_step_of_the_same_launch_is_never_synthesised(
+        evidence, monkeypatch):
+    """train IS covered by a snapshot row of the SAME launch, so its log outcome
+    adds no row — a synthesised row could only compete with a queue-written one on
+    latest-wins. (A row from a DIFFERENT launch does not cover it: see
+    test_a_later_launch_under_a_reused_tag_is_recovered.)"""
     rows, _out, _rep = _run_main(evidence, monkeypatch)
     recovered_train = [r for r in rows if r["step"] == "train"
                        and r["detail"].startswith(rql.PREFIX)]
     assert recovered_train == []
+
+
+# ── L1: suppression is per LAUNCH ─────────────────────────────────────────────
+
+@pytest.fixture()
+def relaunch(tmp_path):
+    """One tag, two launches: an earlier one whose rows SURVIVED and a later one
+    whose rows were erased. This is the of_2017k shape — ofB/of2017k failed under
+    the tag and their rows sit in orphans, of2017k2 then ran the whole pipeline and
+    its rows were clobbered — and it is the case the first version could not
+    recover, because the failed launches' rows covered the key."""
+    rec, logs = tmp_path / "rec", tmp_path / "logs"
+    _snapshot(rec / "train_queue_status.csv.part.one", [
+        _row("of_job", "2017k", "of_tag", "labels", "OK", "0", "9.0",
+             ts="2026-09-06 00:20:05", host="hostA", session="sessA"),
+        _row("of_job", "2017k", "of_tag", "VERIFY:labels", "MISSING",
+             detail="no site masks", ts="2026-09-06 00:29:10",
+             host="hostA", session="sessA"),
+    ])
+    # launch 1 — the failed one whose ledger row survived
+    _step_log(logs, "labels", "2017k", "2026-09-06T00-29",
+              "2026-09-06T00:29:00.000000", "2026-09-06T00:29:00.000000",
+              "20260906T002010Z_2017k_of_tag_labels")
+    log1 = _nohup_header("queue_of.yaml") + _job_header("of_job", "2017k", "of_tag")
+    log1 += _block("2017k", "labels", "of_tag", "20260906T002010Z_2017k_of_tag_labels",
+                   "phase4_semantic_finetune_labels_2017k_2026-09-06T00-29.log",
+                   "  [of_job/labels] exit=0  elapsed 9.0 min\n"
+                   "  VERIFY:labels of_job: MISSING  no site masks\n")
+    _write(logs / "train_queue_nohup_queue_of_20260906T002000Z.log", log1)
+    # launch 2 — the successful one whose ledger rows were erased
+    _step_log(logs, "labels", "2017k", "2026-09-06T01-42",
+              "2026-09-06T01:42:44.000000", "2026-09-06T01:42:44.000000",
+              "20260906T014036Z_2017k_of_tag_labels")
+    _step_log(logs, "tile", "2017k", "2026-09-06T02-03",
+              "2026-09-06T01:44:00.000000", "2026-09-06T02:03:07.000000",
+              "20260906T014248Z_2017k_of_tag_tile")
+    log2 = _nohup_header("queue_of.yaml") + _job_header("of_job", "2017k", "of_tag")
+    log2 += _block("2017k", "labels", "of_tag", "20260906T014036Z_2017k_of_tag_labels",
+                   "phase4_semantic_finetune_labels_2017k_2026-09-06T01-42.log",
+                   "  [of_job/labels] exit=0  elapsed 2.3 min\n"
+                   "  VERIFY:labels of_job: OK  citywide: labels step is skipped "
+                   "by design\n")
+    log2 += _block("2017k", "tile", "of_tag", "20260906T014248Z_2017k_of_tag_tile",
+                   "phase4_semantic_finetune_tile_2017k_2026-09-06T02-03.log",
+                   "  [of_job/tile] exit=0  elapsed 21.1 min\n"
+                   "  VERIFY:tile of_job: OK  632 tiles indexed\n")
+    _write(logs / "train_queue_nohup_queue_of_20260906T014000Z.log", log2)
+    return dict(rec=rec, logs=logs, tmp=tmp_path)
+
+
+def test_a_later_launch_under_a_reused_tag_is_recovered(relaunch, monkeypatch):
+    """The whole point of L1. A relaunch keeps the run-tag, so (year, tag, step)
+    cannot tell two runs apart; keying suppression on it let a FAILED launch's
+    surviving row erase a LATER successful one's outcome."""
+    rows, _out, _rep = _run_main(relaunch, monkeypatch)
+    labels = sorted((r["minutes"], r["ts"], r["detail"][:40])
+                    for r in rows if r["step"] == "labels")
+    assert [m for m, _t, _d in labels] == ["2.3", "9.0"]
+    got = {r["minutes"]: r for r in rows if r["step"] == "labels"}
+    # the survivor is untouched…
+    assert got["9.0"]["session"] == "sessA" and got["9.0"]["detail"] == ""
+    # …and the later launch's row is recovered, quoting ITS log
+    assert got["2.3"]["detail"].startswith(rql._prefix(rql.TS_START))
+    assert "20260906T014000Z" in got["2.3"]["detail"]
+    assert got["2.3"]["ts"] == "2026-09-06 01:40:36"
+    tile = [r for r in rows if r["step"] == "tile"]
+    assert len(tile) == 1 and tile[0]["minutes"] == "21.1"
+    assert tile[0]["ts"] == "2026-09-06 01:42:48"
+
+
+def test_the_earlier_launchs_own_outcome_is_still_suppressed(relaunch, monkeypatch):
+    """Launch-keying must not become "synthesise everything": the row that DID
+    survive still speaks for its own launch, and a second copy of it would carry
+    the RECOVERED prefix into a key the queue itself recorded."""
+    rows, _out, _rep = _run_main(relaunch, monkeypatch)
+    assert not [r for r in rows if r["minutes"] == "9.0"
+                and r["detail"].startswith(rql.PREFIX)]
+    # its VERIFY verdict survived too, and is not written a second time
+    missing = [r for r in rows if r["state"] == "MISSING"]
+    assert len(missing) == 1 and missing[0]["session"] == "sessA"
+
+
+def _ev(src, step, state, minutes, kind="step", job="jobA", year="1999",
+        tag="tagA", verdict=""):
+    """The minimum of a parsed event that `_event_fp` reads."""
+    return dict(kind=kind, src=src, job=job, year=year, tag=tag, step=step,
+                state=state, minutes=minutes, verdict=verdict)
+
+
+def test_attribution_needs_the_window_and_the_content_together():
+    """Neither signal alone maps a session to its launch.
+
+    TIME alone fails: hardyear4's rows exactly match one outcome line in a launch
+    that had already ended — a relaunch of the same job re-printing the same
+    rounded `minutes`. CONTENT alone fails for the same reason. Together they are
+    unambiguous on the whole window."""
+    spans = {"L1": ("2026-09-01 19:47:01", "2026-09-01 21:15:16"),
+             "L2": ("2026-09-01 21:18:44", "2026-09-01 22:35:00")}
+    events = [_ev("L1", "train", "OK", "5.0"), _ev("L2", "train", "OK", "5.0")]
+    rows = [_row("jobA", "1999", "tagA", "train", "OK", "0", "5.0",
+                 ts="2026-09-01 21:18:46", host="h", session="s")]
+    launch_of, table = rql.attribute_launches(rows, events, spans)
+    assert launch_of[("h", "s")] == "L2", "the ended launch was chosen on content"
+    assert table[0]["matches"] == 1
+
+
+def test_a_session_that_matches_nothing_is_left_unattributed():
+    """Zero exact matches means the launch is unknown, and an unknown launch
+    covers nothing. The safe direction: it can only ADD a row the log proves."""
+    spans = {"L1": ("2026-09-01 19:47:01", "2026-09-01 21:15:16")}
+    events = [_ev("L1", "train", "OK", "5.0")]
+    rows = [_row("jobA", "1999", "tagA", "train", "RUNNING",
+                 ts="2026-09-01 19:50:00", host="h", session="s")]
+    launch_of, table = rql.attribute_launches(rows, events, spans)
+    assert launch_of[("h", "s")] is None
+    assert table[0]["launch"] == "" and table[0]["n_candidates"] == 1
 
 
 def test_a_block_without_an_outcome_line_yields_no_row(evidence, monkeypatch):
@@ -370,6 +498,123 @@ def test_engine_stdout_mentioning_verify_is_not_parsed_as_a_verdict(tmp_path):
     p = _write(logs / "train_queue_nohup_queue_fake_20260903T010000Z.log", log)
     events, _notes = rql.parse_nohup(p)
     assert events == [], f"engine stdout became {len(events)} ledger event(s)"
+
+
+# ── L2: which clock a recovered `ts` comes from ───────────────────────────────
+
+def _one_block_run(tmp_path, monkeypatch, outcome, run_id="rid",
+                   echo_run_id=True, started="2026-09-03T01:10:00.000000",
+                   completed="2026-09-03T01:22:30.000000", snapshot_rows=()):
+    """One job, one block, no surviving rows unless asked → the ladder in
+    isolation. Returns the candidate's rows."""
+    rec, logs = tmp_path / "rec", tmp_path / "logs"
+    _snapshot(rec / "train_queue_status.csv.part.aaa", list(snapshot_rows))
+    _step_log(logs, "train", "1999", "2026-09-03T01-10", started, completed,
+              run_id)
+    log = _nohup_header("q.yaml") + _job_header("jobA", "1999", "tagA")
+    log += _block("1999", "train", "tagA", run_id,
+                  "phase4_semantic_finetune_train_1999_2026-09-03T01-10.log",
+                  outcome, echo_run_id=echo_run_id)
+    _write(logs / "train_queue_nohup_q_20260903T010000Z.log", log)
+    out = tmp_path / "out" / "train_queue_status_recovered_test.csv"
+    report = tmp_path / "out" / "r.md"
+    monkeypatch.setattr(sys, "argv", [
+        "x", "--recovery-dir", str(rec), "--logs-dir", str(logs),
+        "--out", str(out), "--report", str(report)])
+    rql.main()
+    with io.open(out, encoding="utf-8", newline="") as fh:
+        return list(csv.DictReader(fh)), report
+
+
+def test_ts_falls_to_completed_minus_minutes_when_the_block_has_no_run_id(
+        tmp_path, monkeypatch):
+    """Rung 2. Four of the 177 real blocks in the window print no run_id line; the
+    queue's own `elapsed` then reconstructs the same interval the queue timed,
+    because `run_step` starts its clock one line after it stamps the row."""
+    rows, _rep = _one_block_run(
+        tmp_path, monkeypatch, "  [jobA/train] exit=0  elapsed 12.5 min\n",
+        echo_run_id=False)
+    got = [r for r in rows if r["step"] == "train"][0]
+    assert got["ts"] == "2026-09-03 01:10:00"        # 01:22:30 − 12.5 min
+    assert got["detail"].startswith(rql._prefix(rql.TS_COMPLETED_MINUTES))
+
+
+def test_a_run_id_stamped_off_the_steps_own_window_is_refused(
+        tmp_path, monkeypatch):
+    """The gate, shown FIRING. A run_id whose stamp cannot belong to this step —
+    another VM's clock, another zone — must not pass itself off as a start; the
+    ladder falls to rung 2 and the row says so."""
+    rows, _rep = _one_block_run(
+        tmp_path, monkeypatch, "  [jobA/train] exit=0  elapsed 12.5 min\n",
+        run_id="20260902T221000Z_1999_tagA_train")        # 3 h too early
+    got = [r for r in rows if r["step"] == "train"][0]
+    assert got["ts"] == "2026-09-03 01:10:00"
+    assert got["detail"].startswith(rql._prefix(rql.TS_COMPLETED_MINUTES))
+    # …and the SAME stamp inside the window is taken
+    rows2, _r2 = _one_block_run(
+        tmp_path / "b", monkeypatch, "  [jobA/train] exit=0  elapsed 12.5 min\n",
+        run_id="20260903T011005Z_1999_tagA_train")
+    got2 = [r for r in rows2 if r["step"] == "train"][0]
+    assert got2["ts"] == "2026-09-03 01:10:05"
+    assert got2["detail"].startswith(rql._prefix(rql.TS_START))
+
+
+def test_a_timeout_dates_from_completed_because_nothing_else_exists(
+        tmp_path, monkeypatch):
+    """Rung 3 on a step. A TIMEOUT prints no `elapsed`, so `minutes` stays blank
+    (`cost_report` sums that column and a guess would be spend that never
+    happened) — and with no minutes there is nothing to subtract."""
+    rows, _rep = _one_block_run(
+        tmp_path, monkeypatch,
+        "  ! TIMEOUT: jobA/train exceeded 240 min — killing it and moving on.\n",
+        echo_run_id=False)
+    got = [r for r in rows if r["step"] == "train"][0]
+    assert (got["state"], got["exit"], got["minutes"]) == ("TIMEOUT", "killed", "")
+    assert got["ts"] == "2026-09-03 01:22:30"
+    assert got["detail"].startswith(rql._prefix(rql.TS_COMPLETED))
+
+
+def test_a_verify_row_carries_the_moment_the_check_began(tmp_path, monkeypatch):
+    """Rung 3 on a VERIFY, and the only rung one may use. `verify_step` stamps its
+    row when the check ENDS, and the log prints no duration for it — measured on
+    the CPU pilot, a labels VERIFY ran seven minutes — so the honest value is the
+    step's `completed:`, which is when the check started."""
+    rows, _rep = _one_block_run(
+        tmp_path, monkeypatch,
+        "  [jobA/train] exit=0  elapsed 12.5 min\n"
+        "  VERIFY:train jobA: OK  773MB, AE18\n",
+        run_id="20260903T011000Z_1999_tagA_train")
+    v = [r for r in rows if r["step"] == "VERIFY:train"][0]
+    assert v["ts"] == "2026-09-03 01:22:30"
+    assert v["detail"].startswith(rql._prefix(rql.TS_COMPLETED))
+    # the step it follows still dates from its own start
+    assert [r for r in rows if r["step"] == "train"][0]["ts"] == \
+        "2026-09-03 01:10:00"
+
+
+def test_same_run_suspects_fires_when_the_attribution_is_broken(
+        tmp_path, monkeypatch):
+    """The check on L1, mutation-tested. With attribution working the surviving
+    row covers its own launch and nothing is synthesised; with it disabled the
+    same execution is recorded twice, seconds apart — which is exactly the
+    signature `same_run_suspects` exists to catch."""
+    survivor = [_row("jobA", "1999", "tagA", "train", "OK", "0", "12.5",
+                     ts="2026-09-03 01:09:58", host="h", session="s")]
+    rows, report = _one_block_run(
+        tmp_path, monkeypatch, "  [jobA/train] exit=0  elapsed 12.5 min\n",
+        run_id="20260903T011000Z_1999_tagA_train", snapshot_rows=survivor)
+    assert len([r for r in rows if r["step"] == "train"]) == 1
+    assert "### Same-run suspects" in report.read_text(encoding="utf-8")
+    assert rql.same_run_suspects(rows) == []
+
+    monkeypatch.setattr(rql, "attribute_launches", lambda *a, **k: ({}, []))
+    rows2, report2 = _one_block_run(
+        tmp_path / "b", monkeypatch,
+        "  [jobA/train] exit=0  elapsed 12.5 min\n",
+        run_id="20260903T011000Z_1999_tagA_train", snapshot_rows=survivor)
+    got = rql.same_run_suspects(rows2)
+    assert [d["key"] for d in got] == [("1999", "tagA", "train")]
+    assert "1999/tagA/train" in report2.read_text(encoding="utf-8")
 
 
 def test_queue_ts_reshapes_without_inventing_precision():

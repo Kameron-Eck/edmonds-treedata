@@ -19,12 +19,15 @@ pilot's CPU-1 slice).
 derives from manifests, never from these rows. What the rows carry that nothing else
 does: queue-level outcome per step, queue minutes, VERIFY verdict text, session, host.
 
-**Recovery status: NOT DONE — Kam's call.** Restoring means placing a merged
-`train_queue_status_recovered_*.csv` beside the others on the lake, which every reader
-would merge (resume credit, cost_report, registry_from_manifests, pilot_gate). That
-alters the audit trail and the resume ledger; it is not an autonomous action. The
-instrument `qc/instruments/rebuild_queue_ledger.py` (if present) produces the merged
-candidate INTO THIS REPO for review and never writes to the lake.
+**Recovery status: RESTORED (2026-09-08, on Kam's delegation).** The candidate built by
+`qc/instruments/rebuild_queue_ledger.py` (which never writes to the lake itself) was copied
+to the lake as `train_queue_status_recovered_20260901_20260907.csv`, an additive file every
+reader merges (resume credit, cost_report, registry_from_manifests, pilot_gate). Two
+versions have been placed: 450 rows (252 snapshot + 198 synthesised, keyed on
+(year, tag, step)) and then 496 rows (252 + 244, keyed per LAUNCH so a reused tag's later
+successful run is recovered; `ts` on start-of-step where the block's run_id allows, the
+row's `detail` prefix says which rung). `recovery_report.md` carries the per-campaign
+coverage and the one known residual (trend8_2024/postproc's only surviving row is RUNNING).
 
 **Do not sweep `phase4/qc/` on the lake** until recovery is decided; the orphans there
 are the originals of these copies.

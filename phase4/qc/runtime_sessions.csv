@@ -57,13 +57,13 @@ recut2,,,,,2026-09-06T08:45:59Z,2026-09-06T12:32:51Z,3.7811,0,2026-09-06T12:31:5
 recutC,,,,,,,,,2026-09-02T00:36:57Z,2026-09-02T00:38:03Z,,,,,,heartbeat
 recutC2,,,,,,,,,2026-09-02T01:01:44Z,2026-09-02T01:03:50Z,,,,,,heartbeat
 spdc1,,,,,2026-09-07T21:46:00Z,2026-09-07T22:35:54Z,0.8317,0,,,2026-09-07T21:45:59Z,2026-09-07T21:58:49Z,4,-0.0,37.1,hw;queue_rows;heartbeat_not_listed;later_rows_unattributed(spd_2017k)
-spdc2,pilot_offload_2017k_cpu2,,,,2026-09-07T23:55:39Z,2026-09-08T00:28:47Z,0.5522,0,2026-09-08T00:26:56Z,2026-09-08T00:28:51Z,2026-09-07T23:55:35Z,2026-09-08T00:26:55Z,4,-0.1,1.9,hw;heartbeat;queue_rows
-spdg,,,,,2026-09-07T22:37:51Z,2026-09-07T23:52:58Z,1.2519,1,,,2026-09-07T22:44:34Z,2026-09-07T23:51:54Z,7,6.7,1.1,hw;queue_rows;heartbeat_not_listed
+spdc2,pilot_offload_2017k_cpu2,,,,2026-09-07T23:55:39Z,2026-09-08T00:28:47Z,0.5522,0,,,2026-09-07T23:55:35Z,2026-09-08T00:26:55Z,4,-0.1,1.9,hw;queue_rows;heartbeat_not_listed
+spdg,,,,,2026-09-07T22:37:51Z,2026-09-07T23:52:58Z,1.2519,1,,,2026-09-07T22:44:34Z,2026-09-07T23:51:54Z,7,6.7,1.1,hw;queue_rows;heartbeat_not_listed;later_rows_unattributed(spd_2017k)
 sweep1,,,,,2026-09-06T00:15:09Z,2026-09-06T04:14:38Z,3.9914,0,,,,,,,,hw;heartbeat_not_listed
 sweep2,,,,,2026-09-06T00:16:55Z,2026-09-06T04:32:38Z,4.2619,0,2026-09-06T04:31:41Z,2026-09-06T04:32:43Z,,,,,,hw;heartbeat
 sweep3,,,,,2026-09-06T00:18:59Z,2026-09-06T09:12:32Z,8.8925,0,2026-09-06T09:10:56Z,2026-09-06T09:12:49Z,,,,,,hw;heartbeat
 sweep4,,,,,2026-09-06T03:37:11Z,2026-09-06T06:20:35Z,2.7233,0,2026-09-06T06:19:04Z,2026-09-06T06:20:39Z,,,,,,hw;heartbeat
-t1gpuA,queue_tier1_science_sample,,,,,,,,2026-09-02T14:44:01Z,2026-09-02T17:54:03Z,2026-09-02T10:42:43Z,2026-09-02T16:32:55Z,43,,81.1,"heartbeat;queue_rows;later_rows_unattributed(t1_2006s_in05,t1_2006s_in16,t1_2011s_cor05,t1_2011s_cor10,t1_2020_add16)"
+t1gpuA,queue_tier1_science_sample,,,,,,,,2026-09-02T14:44:01Z,2026-09-02T17:54:03Z,2026-09-02T10:42:43Z,2026-09-02T16:32:55Z,43,,81.1,"heartbeat;queue_rows;later_rows_unattributed(t1_2006s_add05,t1_2006s_base,t1_2006s_in05,t1_2006s_in16,t1_2011s_cor05,t1_2011s_cor10,t1_2020_add16)"
 t1gpuB,queue_tier1_science_sample,,,,,,,,2026-09-02T17:52:47Z,2026-09-02T17:54:01Z,2026-09-02T10:44:58Z,2026-09-02T15:03:42Z,27,,170.3,"heartbeat;queue_rows;later_rows_unattributed(t1_2011s_add05,t1_2011s_add16,t1_2011s_base,t1_2011s_base_s2,t1_2011s_base_s3,t1_2011s_in05,t1_2011s_in16,t1_2016_base)"
 t1gpuC,,,,,2026-09-02T18:09:07Z,2026-09-02T20:03:49Z,1.9117,1,2026-09-02T20:01:52Z,2026-09-02T20:02:59Z,,,,,,hw;heartbeat
 t1gpuD,queue_tier1_science_sample,,,,2026-09-02T19:56:01Z,2026-09-03T03:30:34Z,7.5758,1,2026-09-02T20:59:53Z,2026-09-03T03:30:39Z,2026-09-02T20:03:47Z,2026-09-02T21:51:46Z,18,7.8,338.9,hw;heartbeat;queue_rows;later_rows_unattributed(t1_2020_base)

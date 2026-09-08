@@ -35,7 +35,7 @@ its plan doc `TIER1_SCIENCE_SAMPLE_PLAN_2026-09-02.md` is now historical referen
 verdicts + data live in `experiments/tier1_science_sample.yaml` and
 `phase4/qc/tier1_results.csv`). Prior: `SEMANTIC_OVERHAUL_PLAN_2026-08-29.md`
 (architecture direction), executed through the repo overhaul agreed 2026-08-30.
-Branch `work/20260824-sectors`.
+Branch `work/20260906-healing-tool` (since 2026-09-06; prior `work/20260824-sectors`).
 
 **EPOCH 3 (2026-09-01): every deliverable mask is cut at 3.0 m² TRUE** — the sieve
 re-baselined (`postproc.sieve_min_px`), all 20 champion+pilot arms regenerated on
@@ -59,6 +59,22 @@ raster stat-identically — and `pilot_gate.py` still reads 3/3 PASS from the la
 `README.md`, `IMAGERY_FACTS.md`, `pipeline_buildtracker.md`,
 `litreview_phase4_prompt.md`. Adding a doc to `GATED_DOCS` is how the cleanup is
 made permanent — an ungated doc can drift again.
+
+**SPEEDUP + RECORDING + LEDGER RECOVERY (2026-09-07/08).** The A100 was measured idle
+82% of paid time; attributing it per step (`Reports/PIPELINE_SPEEDUP_OPTIONS_2026-09-07.md`
+§7) found tile and postproc blocked on Drive per-file latency with every counter at zero.
+Four changes landed, refereed and gated (checkpoint diet, postproc stage-then-read, step
+markers + iowait in `hw_*.csv` v2, the attribution/timing/session harvests), then ONE
+already-run acquisition was re-run under the same recipe split across free CPU runtimes
+and an A100: verdict in `experiments/offload_pilot_2017k.yaml`, table
+`phase4/qc/offload_pilot_2017k.csv` (§9 of the report is the one-line summary). Standing
+result: **labels+tile run on free CPU runtimes by default**; postproc stays on the GPU box.
+The same day's forensics found the queue ledger had been erasing itself since 08-31
+(`e499355`; snapshots and the rebuilt candidate in `phase4/qc/ledger_recovery/`, restored to
+the lake as an additive merge file) and that the VM bootstrap had never installed the
+requirements file (`3f60b0f`). Every launch now prints its start-up scan cost (`94cb8df`,
+unvalidated until the next launch). Runtime facts, phases and throughput are harvested by
+`qc/landed.py`; contracts in `docs/SCHEMAS.md`.
 
 ### The board
 
@@ -153,7 +169,7 @@ applies supersession banners so they stop reading as live.
 
 ---
 
-## MASTER BOARD — everything done, everything remaining (refreshed 2026-09-06)
+## MASTER BOARD — everything done, everything remaining (refreshed 2026-09-08)
 
 THE rule: if a task is not on this board, it is not planned work. Done work carries a
 pointer to its verdict/artifact, never a restated number (one fact, one home).
@@ -178,6 +194,9 @@ pointer to its verdict/artifact, never a restated number (one fact, one home).
 | Flicker-program items 1, 2, 5, 6, 7 (parcels, floor, EagleView, census, factorial) | verdicts above |
 | **Context retrieval built** — `qc/ask.py` answers any subject in ~40 lines instead of 115k tokens of CSV; coverage map makes the archive's holes a fact (13 never tiled, 9 never scored); failure registry turns 22 dead runs into 8 diagnosed causes | `py -3.12 qc/ask.py <subject>` · `--gaps`; `phase4/qc/{coverage_map.md,failure_registry.csv}`; `qc/known_failures.yaml` |
 | **Run-context layer built** — tile sets have IDs and tracked tile lists, 535 manifests become a passport, every precision/recall carries its cut + population, PR curves tracked, per-year scoreboard at a held point | `phase4/qc/{tileset_registry,run_passport,arm_metrics,year_scoreboard.md}`; contracts in `docs/SCHEMAS.md` |
+| **Speedup pilot (offload_pilot_2017k)** — tile offload PROMOTED (identical tileset from a CPU runtime; A100-bearing span cut 40%), checkpoint diet validated, postproc offload NOT promoted (2-vCPU compute penalty), same model at both ends | `experiments/offload_pilot_2017k.yaml` verdict; `phase4/qc/offload_pilot_2017k.csv`; `Reports/PIPELINE_SPEEDUP_OPTIONS_2026-09-07.md` §7–9 |
+| **Recording layer** — step markers with launching/verifying phases, iowait column, runtime facts, VERIFY minutes, attribution/timing/session harvests; first MEASURED Drive throughput and start-up/idle-tail accounting | `phase4/qc/{hw_step_attribution,timing_events,runtime_sessions}.csv`; `docs/SCHEMAS.md` hw sections; `qc/landed.py` rungs |
+| **Queue ledger recovery** — six days of status rows erased by a module-identity bug (fixed, verified on the next launch); 25 snapshots preserved, 450-row candidate rebuilt from snapshots + logs and restored to the lake additively | `phase4/qc/ledger_recovery/README.md` + `recovery_report.md`; `qc/instruments/rebuild_queue_ledger.py`; commits `e499355`, `8667378` |
 | **Experiment registry built** — every campaign the project has run is now one machine-readable entry (43), joined to the measured homes and drift-gated; the .docx ledger becomes a Sep-3 snapshot, not the source | **`experiments/INDEX.md`** (start here); schema `experiments/README.md`; sweep audit `experiments/BACKFILL_RECONCILIATION.md` |
 
 ### RUNNING (external)
@@ -214,6 +233,16 @@ acyclic, a decided entry says what was decided).
 | Port as instruments: smoothing-trap reproduction; edge-band anisotropy probe (13.2pp); sigma_chain MDC-floor publication | CPU, small |
 | Truth-document F-number annotations (superseded by our own recalibration) + Literature_Tracker fixes | doc pass |
 | Open-leads pass: unfired OpenAlex sweep, Scholar cited-by x12, Stehman texts, 42 UNREADABLEs via library | next research session |
+| **Tile-bundle handoff** — one archive per tileset_id so train/evaluate/inference stage a set in one sequential transfer (measured today: 228 s per train for 1,264 files at 5.5 files/s) | workflow in flight 2026-09-08; verify on the next launch |
+| **Ortho scratch cache with LRU** (Reports §2 row 2) — the same 11.5 GB ortho was staged four times across the pilot's two runs at 37–133 MB/s (`phase4/qc/timing_events.csv`) | after the tile-bundle lands (same files); capacity-aware, never three deleted lines |
+| **Per-epoch train profiler** — train is GPU-busy ~20% and CPU>90% ~40% of its own time on the marker basis; `NUM_WORKERS=16` on 12 vCPUs; per-epoch data/compute/val/save split is unrecorded | engine change in `core.py`; canary on L4; after the tile-bundle lands |
+| `common.py::_publish_replace` aside-rename guard (same defect `c5dc91c` fixed in the ledger, on the CHECKPOINT publish path) | after the tile-bundle lands (file ownership) |
+| Ledger consolidation rung in `qc/landed.py` — per-launch status files grow one per launch and the start-up scan grows with them; fold old files into one archive, never sweep the lake while `ledger_recovery` originals sit there | design pass; small |
+| Rebuild-instrument: session/window-aware suppression so a reused tag's later successful run is recovered (of2017k2's labels/tile rows, its 113-min span) | agent in flight 2026-09-08; then re-copy the candidate to the lake |
+| Postproc on a CPU tier with more than 2 vCPUs (R3 failed on compute, not staging: polygonize 653 vs 436 s) | one free launch on a high-RAM/multi-core CPU tier, if the account offers one |
+| Validate `94cb8df` (queue start-up bulk fetch: 359 s → ~14 s EXTRAPOLATED) and `3f60b0f` (bootstrap installs requirements) from the `startup:` line and the absence of `* installing` on the next launch | next launch, any queue |
+| Evaluate's un-instrumented extra minute (2.1 vs 1.0 min engine time, tiles already local both runs) | tick/tock inside evaluate; small |
+| **Concurrency cap raise** — still the only lever that divides wall-clock (Reports §3; per-acquisition GPU-bearing time now ~64 min measured) | Kam: account quota request |
 | Ops debt: exec-handle retry loop in vm_ops; launch-time VM-side input preflight; heartbeat rename mirror-flap fix; pr_curves cwd-write; --only job-id friendliness; resume-credit root fix; mailbox stem collision | machinery grant, batchable |
 
 ### TABLED (parked with re-open conditions)

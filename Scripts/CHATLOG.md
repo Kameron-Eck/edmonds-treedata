@@ -706,3 +706,61 @@ files:   decisions.yaml, claims.yaml, qc/{claims,verify_claims,ask,landed}.py,
          docs/SCHEMAS.md, CLAUDE.md roadmap, WORKPLAN AWAITING-KAM section
 next:    still open from the assessment: nothing. Next real work is Kam's decision
          stack - 5 decisions are READY NOW with nothing above them
+
+## 2026-09-08  speedup-pilot-recording-ledger-recovery
+goal:    Kam: "fix bottle necks", "test run on a year we have already run so you can
+         compare", "improved record and metric collection", "don't defer to me for
+         permissions". Orchestrator + Opus agents; every change refereed (3.4c).
+did:     (1) MEASURED where the A100 idles: per-step attribution redone twice — cross-VM
+         contamination (29% samples ambiguous) and net TX missing from the dead test.
+         Result: tile 71% / postproc 96% of own time with EVERY counter zero = blocked on
+         Drive per-file latency; vm_hwlogger counted iowait as idle. Reports §7.
+         (2) LANDED, refereed, gate green: checkpoint diet (optim/sched state never read
+         back; 1113.1 -> 371.4 MB measured on production arch, Reports §8); postproc
+         stage-then-read; step marker + iowait column in hw telemetry (v2, 15 cols);
+         harvest_hw_attribution, harvest_timing_events (first MEASURED Drive throughput:
+         39.7 MB/s median over 145 large files, p10-p90 7-87), harvest_runtime_sessions;
+         queue-side launching/verifying phases + VERIFY minutes; hw_meta runtime facts.
+         (3) PILOT offload_pilot_2017k RAN (spdc1 CPU / spdg A100 / spdc2 CPU), verdict
+         in experiments/offload_pilot_2017k.yaml from phase4/qc/offload_pilot_2017k.csv:
+         K2 PASS tileset a36d6772e88b identical from CPU; R1 PROMOTE A100 span 113.0 ->
+         67.3 min; R2 PASS 371.4 MB; R3 FAIL postproc 26.9 vs 18.0 (staging ENGAGED, 2.4 GB
+         in 114 s; polygonize 653 vs 436 s on 2 vCPU); R5 same model AP .4338/.4275.
+         Unplanned: same recipe retrain moved canopy 19.6% -> 19.1% (threshold .558 ->
+         .594) = single-seed noise sample; tile copy 228 s/train (1,264 files, 5.5/s);
+         same 11.5 GB ortho staged 4x at 37-133 MB/s; queue start-up 359 s merging 76
+         status files over FUSE (fixed 94cb8df, unvalidated); hwlogger lost 26-30% of
+         samples to its own flush (fixed e8dec13).
+         (4) LEDGER ERASURE FOUND: since 4c546a7 (08-31) queue_ledger._q imported the queue
+         a second time under python script start; STATUS_OUT None on the copy -> every
+         launch REPLACED the shared train_queue_status.csv with its own rows. Six days
+         erased. Fixed e499355 (verified: spdc2 wrote its per-launch file). 25 orphan
+         snapshots preserved phase4/qc/ledger_recovery/ (252 rows); rebuild instrument
+         -> 450-row candidate; RESTORED to lake as additive train_queue_status_recovered_
+         20260901_20260907.csv (Kam delegated). Bootstrap never installed
+         requirements-colab.txt since 08-26 (fixed 3f60b0f).
+decided: labels+tile -> free CPU runtimes by default (K2+R1). postproc stays on GPU box
+         (2 vCPU 1.5x slower; bigger CPU tier untested). Restore recovered ledger to lake:
+         additive, readers merge, one free re-run risk accepted. Hand-split queue files
+         carry no GENERATED header (drift test would fail) — split is a launch concern.
+killed:  "dup-guard opens 72 heartbeat files" — refuted, stat-first, 0 s. "labels VERIFY
+         took 7 min" — misread, queue ts = step START; VERIFY 3 s, 6.8 min was engine
+         start-up doing 0.0 s of work. "pip installs per step" — per VM, ~13 s A100.
+         "891.8 MB checkpoint" — no such file; archive bimodal 773.0 / 1113.2 MB.
+         My own gating: two chains continued past failing checks (pipe masked exit code)
+         — commits went out with failures; fixed after; set -o pipefail from then on.
+files:   Reports/PIPELINE_SPEEDUP_OPTIONS_2026-09-07.md §7-9; experiments/offload_pilot_
+         2017k.yaml; pipeline/{pilot_offload_2017k_cpu1,gpu,cpu2}.yaml; phase4seg/{ckpt,
+         select,postproc,names}.py; pipeline/{pipeline_log,vm_hwlogger,queue_ledger,
+         queue_verify,phase4_train_queue,gen_vm_bootstrap}.py; qc/instruments/{harvest_hw_
+         attribution,harvest_timing_events,harvest_runtime_sessions,offload_pilot_compare,
+         rebuild_queue_ledger}.py + tests; phase4/qc/{hw_step_attribution,timing_events,
+         runtime_sessions,offload_pilot_2017k}.csv; phase4/qc/ledger_recovery/; docs/SCHEMAS.md
+         (many sections); memory queue-ledger-erasure-recovery. Branch work/20260906-healing-tool.
+next:    tile-bundle handoff (workflow in flight: one archive per tileset_id, ~13 s vs
+         228 s); rebuild instrument session-aware suppression (agent in flight); then
+         ortho scratch cache (P3, now measured 4x re-stage), common.py::_publish_replace
+         aside guard, per-epoch train profiler (train GPU-busy 20%, CPU>90% 40%, 16
+         workers on 12 vCPU), evaluate's un-instrumented +1 min, ledger consolidation
+         rung. Validate 94cb8df startup line on next launch. Concurrency cap raise still
+         #1 wall-clock lever (Kam).

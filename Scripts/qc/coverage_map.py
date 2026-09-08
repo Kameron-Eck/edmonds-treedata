@@ -35,6 +35,42 @@ def _rows(path):
     return list(csv.DictReader(body))
 
 
+def tileset_census(rows):
+    """`tileset_registry.csv` rows -> {label: (n_sets, n_tiles, n_dirs)}.
+
+    A registry row is one tile DIRECTORY — keyed (`label`, `run_tag`) — and several
+    rows can share one `tileset_id`: the same set of tiles materialised under two
+    tags. So "how many tile sets" and "how many directories" are two different
+    measurements, and this returns both rather than letting one stand for the other:
+
+      n_sets   distinct `tileset_id` under the label
+      n_tiles  `n_tiles` summed over those DISTINCT ids — never over rows
+      n_dirs   rows, i.e. how many times those sets were materialised on disk
+
+    Summing over rows double-counts. Measured 2026-09-07: it read 2009 as 18 sets /
+    11,036 tiles where the archive holds 10 / 6,124, and made 2017k's offload pilot —
+    a CPU-tiled set reproducing the A100-tiled one byte-for-byte, which is the pilot's
+    RESULT (`experiments/offload_pilot_2017k.yaml`) — read as a doubling.
+
+    A row with no `tileset_id` counts as its own set: unidentified directories must
+    not collapse into one another. Raises ValueError if one id carries two different
+    `n_tiles` — that is a harvester bug in `qc/instruments/harvest_tilesets.py`, not
+    something to average away.
+    """
+    ids, dirs = {}, {}
+    for r in rows:
+        lab = r["label"]
+        key = r["tileset_id"] or f"(no id) {r['tile_dir']}"
+        n = int(r["n_tiles"])
+        seen = ids.setdefault(lab, {})
+        if seen.setdefault(key, n) != n:
+            raise ValueError(
+                f"{lab}: tile set {key} carries n_tiles {seen[key]} and {n}. One id "
+                f"must mean one set of tiles — fix harvest_tilesets.py, do not average")
+        dirs[lab] = dirs.get(lab, 0) + 1
+    return {lab: (len(s), sum(s.values()), dirs[lab]) for lab, s in ids.items()}
+
+
 def build():
     from phase4seg import config
     import champion
@@ -44,9 +80,7 @@ def build():
     tiles, metrics = _rows(QC / "tileset_registry.csv"), _rows(QC / "arm_metrics.csv")
     runs = _rows(QC / "run_passport.csv")
 
-    tiled, trained = {}, {}
-    for t in tiles:
-        tiled.setdefault(t["label"], []).append(t)
+    tiled, trained = tileset_census(tiles), {}
     for r in runs:
         if r["step"] == "train":
             for y in r["years"].split(","):
@@ -79,20 +113,19 @@ def build():
            "from overlooked is a decision, not a measurement, and this file does not",
            "make it. `py -3.12 qc/ask.py <label>` opens any single row in full.",
            "",
-           "| acq | gsd | bands | tile sets | tiles | train runs | arms scored "
-           "| matched cut | best AP | champion | entries |",
-           "|---|---|---|---|---|---|---|---|---|---|---|"]
+           "| acq | gsd | bands | tile sets | tiles | tile dirs | train runs "
+           "| arms scored | matched cut | best AP | champion | entries |",
+           "|---|---|---|---|---|---|---|---|---|---|---|---|"]
 
     n_gap = {"tiled": 0, "scored": 0, "matched": 0, "champ": 0}
     for lab in sorted(cat):
         e = cat[lab]
-        ts = tiled.get(lab, [])
-        n_tiles = sum(int(t["n_tiles"]) for t in ts)
+        n_sets, n_tiles, n_dirs = tiled.get(lab, (0, 0, 0))
         arms = scored.get(lab, set())
         mp = matched.get(lab, [])
         best_ap = max(aps.get(lab, []), default=None)
         ch = champs.get(lab, "")
-        if not ts:
+        if not n_sets:
             n_gap["tiled"] += 1
         if not arms:
             n_gap["scored"] += 1
@@ -102,22 +135,31 @@ def build():
             n_gap["champ"] += 1
         out.append(
             f"| {lab} | {e.get('gsd_cm')} | {e.get('bands')} "
-            f"| {len(ts) or ''} | {n_tiles or ''} | {trained.get(lab, '') or ''} "
+            f"| {n_sets or ''} | {n_tiles or ''} | {n_dirs or ''} "
+            f"| {trained.get(lab, '') or ''} "
             f"| {len(arms) or ''} | {len(mp) or ''} "
             f"| {f'{best_ap:.4f}' if best_ap is not None else ''} "
             f"| {ch} | {written.get(lab, '') or ''} |")
 
+    n_sets_all = sum(v[0] for v in tiled.values())
+    n_dirs_all = sum(v[2] for v in tiled.values())
     out += ["",
             f"**{len(cat)} acquisitions.** No tile set: **{n_gap['tiled']}** · "
             f"never scored: **{n_gap['scored']}** · no matched-cut read: "
             f"**{n_gap['matched']}** · no champion: **{n_gap['champ']}**.",
             "",
-            "Columns: *tile sets* counts distinct sets (`tileset_registry.csv`); "
-            "*tiles* sums them. *train runs* counts `step=train` rows in "
-            "`run_passport.csv`. *arms scored* and *matched cut* count distinct arms "
-            "in `arm_metrics.csv`; *best AP* is the highest average precision "
-            "recorded at any cut. *champion* is `pipeline/champion_arms.csv`. "
-            "*entries* counts registry entries naming this acquisition.",
+            "Columns: *tile sets* counts distinct `tileset_id` in "
+            "`tileset_registry.csv`; *tiles* sums `n_tiles` over those DISTINCT sets. "
+            "*tile dirs* counts registry ROWS — one per tile directory, so one set "
+            "materialised under two run tags is one set and two directories "
+            f"(archive-wide: {n_sets_all} sets in {n_dirs_all} directories). Summing "
+            "over rows instead double-counts — why, and what it once got wrong, is "
+            "in `docs/SCHEMAS.md`. *train runs* counts `step=train` "
+            "rows in `run_passport.csv`. *arms scored* and *matched cut* count "
+            "distinct arms in `arm_metrics.csv`; *best AP* is the highest average "
+            "precision recorded at any cut. *champion* is "
+            "`pipeline/champion_arms.csv`. *entries* counts registry entries naming "
+            "this acquisition.",
             ""]
     return "\n".join(out)
 

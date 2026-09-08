@@ -346,13 +346,27 @@ the mechanism down. A status other than `undiagnosed` with no cause fails the ga
 
 ## coverage_map.md (phase4/qc/, GENERATED — byte-compared)
 
-Written by `qc/coverage_map.py`: one row per acquisition — tile sets, tiles, train
-runs, arms scored, arms with a matched-cut read, best AP, champion, registry entries.
+Written by `qc/coverage_map.py`: one row per acquisition — tile sets, tiles, tile
+dirs, train runs, arms scored, arms with a matched-cut read, best AP, champion,
+registry entries.
 READER RULE: **a blank cell means "no record", never "should have been done."** Some
 acquisitions are deliberately out of scope (the Atlas trend is 2016→2024; several
 deliveries exist only as overlap controls), and separating deliberate from overlooked
 is a decision this file does not make. Gate:
 `test_run_context.py::test_coverage_map_is_fresh` plus a gate pinning that caveat.
+
+READER RULE: **a tile SET is not a tile DIRECTORY.** A `tileset_registry.csv` row is
+one directory, keyed (`label`, `run_tag`); several rows can share one `tileset_id`
+— the same tiles materialised under two tags, which is exactly what makes those arms
+comparable. *tile sets* counts distinct ids and *tiles* sums `n_tiles` over those
+distinct ids; *tile dirs* counts rows. Summing over rows double-counts: it read 2009
+as 18 sets / 11,036 tiles against 10 / 6,124, and made 2017k's offload pilot — whose
+result is that the CPU-tiled set reproduces the A100-tiled one byte-for-byte — look
+like a doubling (fixed 2026-09-07). The census is
+`qc/coverage_map.py::tileset_census`, one home for both generators, gated by
+`test_run_context.py::test_tileset_census_counts_a_shared_id_once` and
+`::test_coverage_map_tiles_column_is_distinct_sets`. SCIENCE.md §2 has room for one
+column and prints the distinct-set number under the header `tiles (distinct sets)`.
 
 ## decisions.yaml + claims.yaml (Scripts/, AUTHORED)
 

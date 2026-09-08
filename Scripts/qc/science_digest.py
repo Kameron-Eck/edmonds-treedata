@@ -90,6 +90,7 @@ def build():
     claims = _yaml(SCRIPTS / "claims.yaml", "claims")
     sys.path.insert(0, str(SCRIPTS / "qc"))          # ledger: test_status_discovery.py
     import claims as _c
+    from coverage_map import tileset_census   # ONE home: coverage_map.py::tileset_census
     for cl in claims:
         state, detail = _c.verify(cl)
         mark = "" if state == "ok" else f"  **[{state.upper()}: {detail}]**"
@@ -104,21 +105,24 @@ def build():
           "best at something. `pop` is the scored population; **rows with different",
           "refs or populations are NOT comparable to each other** — that is a coverage",
           "difference, not a skill difference. Full detail: `phase4/qc/year_scoreboard.md`.",
+          "`tiles (distinct sets)` sums `n_tiles` over distinct `tileset_id`, not over",
+          "registry rows: a row is one tile DIRECTORY, and one set materialised under two",
+          "run tags is still one set. `phase4/qc/coverage_map.md` prints the directory",
+          "count beside it.",
           "",
-          "| year | best arm | recall | prec | AP | ref / scope | pop | tiles |",
+          "| year | best arm | recall | prec | AP | ref / scope | pop "
+          "| tiles (distinct sets) |",
           "|---|---|---|---|---|---|---|---|"]
     by_year = {}
     for m in metrics:
         if m["policy"] != POLICY:
             continue
         by_year.setdefault(m["year"], []).append(m)
-    tiles_by = {}
-    for t in tiles:
-        tiles_by.setdefault(t["label"], []).append(t)
+    tiles_by = tileset_census(tiles)
     for year in sorted(by_year):
         best = max(by_year[year], key=lambda m: _f(m["recall"]) or -1)
         star = " ★" if champs.get(year) == best["run_tag"] else ""
-        n_tiles = sum(int(t["n_tiles"]) for t in tiles_by.get(year, []))
+        n_tiles = tiles_by.get(year, (0, 0, 0))[1]
         pop = f"{int(best['population']):,}" if best["population"] else "—"
         o.append(f"| {year} | {best['run_tag'] or '(untagged)'}{star} "
                  f"| {best['recall']} | {best['precision']} | {best['pr_auc'] or '—'} "

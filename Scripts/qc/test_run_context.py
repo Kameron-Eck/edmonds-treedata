@@ -19,6 +19,12 @@ from pathlib import Path
 import pytest
 
 SCRIPTS = Path(__file__).resolve().parents[1]
+# ledger: test_status_discovery.py. ONE insert for the file: the qc-root generators
+# gated here (coverage_map, science_digest, year_scoreboard, ask, claims) are scripts,
+# not installed packages. This was nine identical in-function inserts before the tile
+# census tests were added — the ratchet is a count, so the fix is one home, not a
+# raised ceiling.
+sys.path.insert(0, str(SCRIPTS / "qc"))
 REPO = SCRIPTS.parent
 QC = REPO / "phase4" / "qc"
 TILESET_REGISTRY = QC / "tileset_registry.csv"
@@ -336,7 +342,6 @@ def test_year_scoreboard_is_fresh():
     tileset_registry, champion_arms — is in the repo, so a regeneration is
     reproducible in CI and staleness is a hard failure rather than a guess.
     """
-    sys.path.insert(0, str(SCRIPTS / "qc"))     # ledger: test_status_discovery.py
     import year_scoreboard
     p = QC / "year_scoreboard.md"
     if not p.exists():
@@ -364,7 +369,6 @@ def test_scoreboard_never_ranks_across_populations():
 
 def test_coverage_map_is_fresh():
     """Derives only from tracked homes, so staleness is a hard failure, not a guess."""
-    sys.path.insert(0, str(SCRIPTS / "qc"))     # ledger: test_status_discovery.py
     import coverage_map
     p = QC / "coverage_map.md"
     if not p.exists():
@@ -385,6 +389,115 @@ def test_coverage_map_does_not_imply_a_backlog():
     text = p.read_text(encoding="utf-8")
     assert "never *should have been done*" in text, (
         "coverage_map.md lost the caveat separating deliberate scope from oversight")
+
+
+def _synthetic_registry(tmp_path, triples):
+    """(label, tileset_id, n_tiles) -> a registry CSV in tmp_path, read back by _rows.
+
+    tmp_path only: `qc/conftest.py` forbids a test writing to the lake.
+    """
+    p = tmp_path / "tileset_registry.csv"
+    lines = ["tileset_id,label,run_tag,tile_dir,n_tiles"]
+    for i, (lab, tid, n) in enumerate(triples):
+        lines.append(f"{tid},{lab},tag{i},{lab}__tag{i},{n}")
+    p.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    return _rows(p)
+
+
+def test_tileset_census_counts_a_shared_id_once(tmp_path):
+    """Two rows, one id, is ONE set of tiles materialised twice — not two sets.
+
+    A registry row is one tile DIRECTORY (label, run_tag). Counting rows as sets and
+    summing n_tiles over rows double-counts any set built under two tags: it read
+    2009 as 18 sets / 11,036 tiles against the archive's 10 / 6,124, and turned
+    2017k's offload pilot — whose RESULT is that the CPU-tiled set reproduces the
+    A100-tiled one byte-for-byte — into an apparent doubling.
+    Gates qc/coverage_map.py::tileset_census.
+    """
+    from coverage_map import tileset_census
+
+    shared = _synthetic_registry(tmp_path, [("2017k", "aaaaaaaaaaaa", 632),
+                                            ("2017k", "aaaaaaaaaaaa", 632)])
+    assert tileset_census(shared) == {"2017k": (1, 632, 2)}, (
+        "one tileset_id under two run tags must count as ONE set with ONE tile total, "
+        "and TWO directories")
+
+    distinct = _synthetic_registry(tmp_path, [("2009", "aaaaaaaaaaaa", 600),
+                                              ("2009", "bbbbbbbbbbbb", 700)])
+    assert tileset_census(distinct) == {"2009": (2, 1300, 2)}, (
+        "two distinct tileset_ids are two sets and their tiles do add")
+
+    both = _synthetic_registry(tmp_path, [("2009", "aaaaaaaaaaaa", 600),
+                                          ("2009", "aaaaaaaaaaaa", 600),
+                                          ("2009", "bbbbbbbbbbbb", 700),
+                                          ("2011s", "cccccccccccc", 300)])
+    assert tileset_census(both) == {"2009": (2, 1300, 3), "2011s": (1, 300, 1)}
+
+
+def test_tileset_census_is_order_independent(tmp_path):
+    """Same rows, any order, same census — the generators are byte-compared."""
+    from coverage_map import tileset_census
+
+    triples = [("2009", "aaaaaaaaaaaa", 600), ("2011s", "cccccccccccc", 300),
+               ("2009", "bbbbbbbbbbbb", 700), ("2009", "aaaaaaaaaaaa", 600)]
+    forward = tileset_census(_synthetic_registry(tmp_path, triples))
+    reverse = tileset_census(_synthetic_registry(tmp_path, list(reversed(triples))))
+    assert forward == reverse == {"2009": (2, 1300, 3), "2011s": (1, 300, 1)}
+
+
+def test_tileset_census_rejects_one_id_with_two_tile_counts(tmp_path):
+    """One id must mean one set of tiles. Disagreement is a harvester bug, not noise.
+
+    Averaging or first-winning would publish a number no directory on disk holds.
+    """
+    from coverage_map import tileset_census
+
+    rows = _synthetic_registry(tmp_path, [("2009", "aaaaaaaaaaaa", 600),
+                                          ("2009", "aaaaaaaaaaaa", 601)])
+    with pytest.raises(ValueError, match="one set of tiles"):
+        tileset_census(rows)
+
+
+def test_coverage_map_tiles_column_is_distinct_sets(tmp_path):
+    """The published table must carry the distinct-set number, not the row sum.
+
+    The freshness gate proves the file matches the generator; this proves the
+    generator counts the right thing, and survives a hand-edit of either.
+    """
+    from coverage_map import tileset_census
+
+    p = QC / "coverage_map.md"
+    rows = _rows(TILESET_REGISTRY)
+    if not p.exists() or not rows:
+        pytest.skip("coverage_map.md or tileset_registry.csv absent")
+    census = tileset_census(rows)
+    published = {}
+    for ln in p.read_text(encoding="utf-8").splitlines():
+        cells = [c.strip() for c in ln.split("|")[1:-1]]
+        if len(cells) < 6 or cells[0] in ("acq", "---") or cells[0] not in census:
+            continue
+        published[cells[0]] = tuple(int(c) if c else 0 for c in cells[3:6])
+    assert published, "no acquisition rows parsed out of coverage_map.md"
+    for lab, got in published.items():
+        assert got == census[lab], (
+            f"{lab}: coverage_map.md publishes (sets, tiles, dirs) {got}, the registry "
+            f"holds {census[lab]} — summing registry ROWS double-counts one set "
+            f"materialised under two run tags")
+
+
+def test_science_digest_tiles_header_names_what_it_counts():
+    """SCIENCE.md has room for one tile column, so the header must say which one.
+
+    It is the ~3k-token file every session loads; an unqualified `tiles` there was a
+    row sum reading as a set count.
+    """
+    p = SCRIPTS / "SCIENCE.md"
+    if not p.exists():
+        pytest.skip("SCIENCE.md absent")
+    text = p.read_text(encoding="utf-8")
+    assert "| tiles (distinct sets) |" in text, (
+        "SCIENCE.md's tile column lost the qualifier saying it sums over distinct "
+        "tileset_ids, not registry rows")
 
 
 def test_failure_registry_states_a_cause_or_says_it_has_none():
@@ -427,7 +540,6 @@ def test_known_failures_patterns_compile():
 
 def test_ask_answers_every_subject_kind():
     """The front door must actually open — a broken ask.py is a silent context outage."""
-    sys.path.insert(0, str(SCRIPTS / "qc"))     # ledger: test_status_discovery.py
     import ask
     for kind, getter in (
         ("year", lambda: next(iter(sorted(ask._catalog())), None)),
@@ -471,7 +583,6 @@ def test_failure_ids_are_stable_across_processes():
 
 def test_science_digest_is_fresh():
     """The KNOW half regenerates from tracked homes, so staleness is a hard failure."""
-    sys.path.insert(0, str(SCRIPTS / "qc"))     # ledger: test_status_discovery.py
     import science_digest
     p = SCRIPTS / "SCIENCE.md"
     if not p.exists():
@@ -503,7 +614,6 @@ def test_compare_refuses_unfair_rankings():
     against C-CAP citywide. Presenting those as a ranking would be exactly the error
     the whole operating-point discipline exists to prevent.
     """
-    sys.path.insert(0, str(SCRIPTS / "qc"))     # ledger: test_status_discovery.py
     import ask
     years = sorted({m["year"] for m in ask.rows(QC / "arm_metrics.csv")
                     if m["policy"] == "matched_p75"})

@@ -46,12 +46,16 @@ ranking is only meaningful at a held cut: at per-arm best-F1 every arm is
 best at something. `pop` is the scored population; **rows with different
 refs or populations are NOT comparable to each other** — that is a coverage
 difference, not a skill difference. Full detail: `phase4/qc/year_scoreboard.md`.
+`tiles (distinct sets)` sums `n_tiles` over distinct `tileset_id`, not over
+registry rows: a row is one tile DIRECTORY, and one set materialised under two
+run tags is still one set. `phase4/qc/coverage_map.md` prints the directory
+count beside it.
 
-| year | best arm | recall | prec | AP | ref / scope | pop | tiles |
+| year | best arm | recall | prec | AP | ref / scope | pop | tiles (distinct sets) |
 |---|---|---|---|---|---|---|---|
 | 2006s | t1_2006s_in16 | 0.7278 | 0.7526 | 0.8249 | ccap_2016_hires_lc.tif / sample-test | 785,426 | 1415 |
-| 2009 | trend8_2009 | 0.7424 | 0.75 | 0.81 | ccap_2021_hires_lc.tif / citywide | 344,975,021 | 11036 |
-| 2011s | hy_e3_2011s | 0.8333 | 0.7516 | 0.866 | ccap_2016_hires_lc.tif / citywide | 163,466,339 | 3707 |
+| 2009 | trend8_2009 | 0.7424 | 0.75 | 0.81 | ccap_2021_hires_lc.tif / citywide | 344,975,021 | 6124 |
+| 2011s | hy_e3_2011s | 0.8333 | 0.7516 | 0.866 | ccap_2016_hires_lc.tif / citywide | 163,466,339 | 3145 |
 | 2013 | trend8_2013 | 0.7748 | 0.7512 | 0.8116 | ccap_2021_hires_lc.tif / citywide | 1,390,014,655 | 1256 |
 | 2015 | trend8_2015 | 0.71 | 0.751 | 0.7746 | ccap_2021_hires_lc.tif / citywide | 1,366,533,758 | 934 |
 | 2016 | t1_2016_in16 | 0.8713 | 0.7506 | 0.9069 | _chm2_canopy2m_binary.tif / sample-test | 7,643,036 | 4289 |
@@ -68,8 +72,9 @@ difference, not a skill difference. Full detail: `phase4/qc/year_scoreboard.md`.
 
 16 of 37 acquisitions have a matched-cut read. ★ = designated champion.
 
-## 3. What 34 completed investigations concluded
+## 3. What 35 completed investigations concluded
 
+- **offload_pilot_2017k** (2026-09-08) — RAN 2026-09-07 21:45Z to 2026-09-08 00:27Z on three runtimes (spdc1 CPU, spdg A100, spdc2 CPU);
 - **change_detector_design** (2026-09-06) — THE STEP-SHAPE CERTIFIER WINS AND THE SHIPPED PERSISTENCE FILTER IS A PURE RECALL TAX.
 - **flicker_parcels_census** (2026-09-06) — THE MODEL DOES NOT HALLUCINATE CANOPY ON BARE GROUND; THE INSTABILITY LIVES IN SENSITIVITY ON REAL VEGETATION.
 - **lit_hunt_temporal_inconsistency** (2026-09-06) — NO TWIN EXISTS, AND THE ONE DESIGN THAT PASSED THE CHECKLIST WAS REFUSED ON ITS OWN PILOT.

@@ -559,7 +559,7 @@ _PATH_INSERT_LEDGER = {
     "qc/conftest.py": 1,                     # THE canonical stanza
     "qc/year_scoreboard.py": 1,              # instruments/ sibling (harvest_arm_metrics)
     "qc/coverage_map.py": 0,                 # tracked-homes only, no sibling import
-    "qc/science_digest.py": 1,               # claims.py (qc root)
+    "qc/science_digest.py": 1,               # claims.py + coverage_map (qc root)
     "qc/verify_claims.py": 1,                # claims.py (qc root)
     "qc/test_gold_freeze.py": 1,             # freeze_panel_a_gold (instruments)
     "qc/instruments/freeze_panel_a_gold.py": 1,  # panel_a_paired_change (sibling)
@@ -569,7 +569,7 @@ _PATH_INSERT_LEDGER = {
     "qc/instruments/crown_trajectories.py": 1,  # temporal_heal + detectability (sibling)
     "qc/test_temporal_heal.py": 1,           # temporal_heal (instruments)
     "qc/test_claims.py": 1,                  # claims.py (qc root)
-    "qc/test_run_context.py": 5,             # year_scoreboard, coverage_map, ask (qc root)
+    "qc/test_run_context.py": 1,             # ONE module-level qc-root insert (was 9)
     "qc/ask.py": 1,                          # claims.py (qc root), lazily
     "qc/test_vm_ops.py": 1,                  # vm_ops is pipeline-root, not installed
     "qc/test_vm_babysitter.py": 1,           # vm_babysitter is a stdlib VM twin

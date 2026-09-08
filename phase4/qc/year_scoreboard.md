@@ -193,7 +193,7 @@ champion (pipeline/champion_arms.csv).
 
 | arm | recall | precision | thresh | pr_auc | population | eligible cuts | tiles (train) | curve |
 |---|---|---|---|---|---|---|---|---|
-| heal_2017 | 0.7962 | 0.7529 | 0.161417 | 0.7865 | 5,580,636,711 | 99 | — | `phase4/qc/curves/efb2813b8a46.csv` |
+| heal_2017 | 0.7962 | 0.7529 | 0.161417 | 0.7865 | 5,580,636,711 | 99 | 650 (404) | `phase4/qc/curves/efb2813b8a46.csv` |
 | of_2017 | 0.7878 | 0.7531 | 0.23622 | 0.7962 | 5,567,361,941 | 193 | 650 (404) | `phase4/qc/curves/77dd08bf8bed.csv` |
 
 ## 2017k

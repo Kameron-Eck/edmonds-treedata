@@ -52,19 +52,23 @@ def _rows(p):
     return list(csv.DictReader(body))
 
 
-def build():
+def build(stack=None):
+    """`stack` defaults to the published 8-epoch cache. The healer is run on the SAME
+    stack, so the gold trajectories and the overlays index one lattice — the closing
+    baseline refuses anything else."""
     import numpy as np
     sys.path.insert(0, str(SCRIPTS / "qc" / "instruments"))  # ledger: test_status_discovery
     from temporal_heal import apply_heal, build as heal_build
 
+    stack_path = Path(stack) if stack is not None else STACK
     gold = _rows(QC / "panel_a_gold.csv")
     if not gold:
         return None, None, "panel_a_gold.csv absent — run freeze_panel_a_gold.py"
-    heal_rows, overlays, err = heal_build()
+    heal_rows, overlays, err = heal_build(stack=stack_path)
     if err:
         return None, None, err
 
-    d = np.load(STACK)
+    d = np.load(stack_path)
     stack, inside, tf = d["stack"], d["inside"], d["transform"]
     years = [str(y) for y in d["years"]]
     h, w = inside.shape
@@ -133,13 +137,25 @@ def build():
     return out, {"off_grid": off, "years": years}, None
 
 
+OUT_CSV = QC / "heal_vs_gold.csv"
+
+
+def _parser():
+    ap = argparse.ArgumentParser(description=__doc__)
+    ap.add_argument("--stack", default=str(STACK),
+                    help="epoch stack the healer and the gold trajectories index "
+                         "(default: the published 8-epoch cache)")
+    ap.add_argument("--out", default=str(OUT_CSV),
+                    help="where the table goes (default: the tracked heal_vs_gold.csv)")
+    ap.add_argument("--dry-run", action="store_true")
+    return ap
+
+
 def main(argv=None):
     from phase4seg.names import clean_argv
-    ap = argparse.ArgumentParser(description=__doc__)
-    ap.add_argument("--dry-run", action="store_true")
-    a = ap.parse_args(clean_argv() if argv is None else argv)
+    a = _parser().parse_args(clean_argv() if argv is None else argv)
 
-    rows, meta, err = build()
+    rows, meta, err = build(stack=a.stack)
     if err:
         print(f"FATAL: {err}")
         return 2
@@ -169,10 +185,9 @@ def main(argv=None):
             buf.write(f"# {lab}_{k},{v}\n")
     buf.write(f"# off_grid,{meta['off_grid']}\n")
     if not a.dry_run:
-        (QC / "heal_vs_gold.csv").write_text(buf.getvalue(), encoding="utf-8",
-                                             newline="")
+        Path(a.out).write_text(buf.getvalue(), encoding="utf-8", newline="")
 
-    print(f"{'DRY RUN: ' if a.dry_run else ''}phase4/qc/heal_vs_gold.csv "
+    print(f"{'DRY RUN: ' if a.dry_run else ''}{a.out} "
           f"— {len(rows)} gold points scored, {meta['off_grid']} off-grid")
     print(f"\n{'label':10}{'n':>7}{'touched':>9}{'->canopy':>10}{'->ignore':>10}"
           f"{'triples raw':>13}{'healed':>9}{'fixed':>7}")

@@ -28,7 +28,7 @@ make it. `py -3.12 qc/ask.py <label>` opens any single row in full.
 | 2015n | 100.0 | 4 |  |  |  |  |  |  |  |  |  |
 | 2015s | 30.5 | 3 |  |  |  |  |  |  |  |  |  |
 | 2016 | 30.5 | 4 | 8 | 4289 | 8 | 11 | 9 | 18 | 0.9069 |  | 16 |
-| 2017 | 5.0 | 3 | 2 | 1291 | 2 | 2 | 2 | 1 | 0.7962 |  | 1 |
+| 2017 | 5.0 | 3 | 2 | 1291 | 3 | 3 | 3 | 2 | 0.7962 |  | 1 |
 | 2017k | 10.0 | 3 | 1 | 632 | 3 | 3 | 1 | 1 | 0.8223 |  | 2 |
 | 2017n | 100.0 | 4 | 1 | 582 | 1 | 1 | 1 | 1 | 0.7012 |  |  |
 | 2017s | 30.5 | 4 | 1 | 557 | 1 | 1 | 1 | 1 | 0.8191 |  |  |
@@ -36,18 +36,18 @@ make it. `py -3.12 qc/ask.py <label>` opens any single row in full.
 | 2019 | 10.0 | 3 | 3 | 1792 | 3 | 3 | 3 | 1 | 0.8093 | citywide_rgb | 5 |
 | 2019n | 60.0 | 4 | 4 | 1694 | 4 | 4 | 5 | 4 | 0.8105 | p2nir | 6 |
 | 2019s | 30.5 | 4 | 1 | 561 | 1 | 1 | 1 |  |  |  | 3 |
-| 2020 | 5.0 | 3 | 6 | 3862 | 6 | 5 | 6 | 11 | 0.8064 |  | 4 |
+| 2020 | 5.0 | 3 | 6 | 3862 | 7 | 6 | 6 | 11 | 0.8064 |  | 4 |
 | 2020s | 7.6 | 3 |  |  |  |  | 1 |  |  | sectors_v1 | 1 |
 | 2021 | 10.0 | 3 | 2 | 1220 | 2 | 1 | 2 | 1 | 0.8391 | citywide_rgb | 4 |
 | 2021n | 60.0 | 4 |  |  |  |  |  |  |  |  |  |
 | 2021s | 15.2 | 4 | 1 | 705 | 1 | 8 | 7 |  |  | p2nir | 2 |
 | 2022 | 5.0 | 3 | 2 | 1226 | 2 | 2 | 2 | 1 | 0.7848 | citywide_rgb | 1 |
 | 2022s | 7.6 | 3 |  |  |  |  |  |  |  |  |  |
-| 2023 | 10.0 | 3 | 1 | 584 | 1 |  | 1 |  |  | citywide_rgb | 3 |
+| 2023 | 10.0 | 3 | 2 | 1181 | 2 | 1 | 1 |  |  | citywide_rgb | 3 |
 | 2023n | 60.0 | 4 |  |  |  |  | 1 |  |  |  | 2 |
 | 2024 | 5.0 | 3 | 2 | 1254 | 2 | 4 | 3 | 1 | 0.7449 | citywide_rgb | 3 |
 | 2024s | 7.6 | 3 |  |  |  |  |  |  |  |  |  |
 
 **37 acquisitions.** No tile set: **13** · never scored: **9** · no matched-cut read: **21** · no champion: **21**.
 
-Columns: *tile sets* counts distinct `tileset_id` in `tileset_registry.csv`; *tiles* sums `n_tiles` over those DISTINCT sets. *tile dirs* counts registry ROWS — one per tile directory, so one set materialised under two run tags is one set and two directories (archive-wide: 71 sets in 83 directories). Summing over rows instead double-counts — why, and what it once got wrong, is in `docs/SCHEMAS.md`. *train runs* counts `step=train` rows in `run_passport.csv`. *arms scored* and *matched cut* count distinct arms in `arm_metrics.csv`; *best AP* is the highest average precision recorded at any cut. *champion* is `pipeline/champion_arms.csv`. *entries* counts registry entries naming this acquisition.
+Columns: *tile sets* counts distinct `tileset_id` in `tileset_registry.csv`; *tiles* sums `n_tiles` over those DISTINCT sets. *tile dirs* counts registry ROWS — one per tile directory, so one set materialised under two run tags is one set and two directories (archive-wide: 72 sets in 86 directories). Summing over rows instead double-counts — why, and what it once got wrong, is in `docs/SCHEMAS.md`. *train runs* counts `step=train` rows in `run_passport.csv`. *arms scored* and *matched cut* count distinct arms in `arm_metrics.csv`; *best AP* is the highest average precision recorded at any cut. *champion* is `pipeline/champion_arms.csv`. *entries* counts registry entries naming this acquisition.

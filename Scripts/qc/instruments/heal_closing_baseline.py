@@ -67,6 +67,8 @@ before any comparison is printed; a mismatch is reported and the table is refuse
 Output: phase4/qc/heal_closing_baseline.csv
 
 Run:  py -3.12 qc/instruments/heal_closing_baseline.py [--dry-run]
+      py -3.12 qc/instruments/heal_closing_baseline.py --stack S.npz --heal H.csv --out O.csv
+      (defaults regenerate the tracked CSV from the published 8-epoch cache)
 """
 from __future__ import annotations
 
@@ -84,6 +86,7 @@ QC = REPO / "phase4" / "qc"
 STACK = Path(r"D:\edmonds-pipeline\trend8_stack_2m.npz")
 META_JSON = QC / "panel_a_meta.json"
 HEAL_CSV = QC / "temporal_heal.csv"
+OUT_CSV = QC / "heal_closing_baseline.csv"
 
 CELL_M = 2.0
 CANOPY, ABSENT, IGNORE = 1, 0, 255
@@ -296,15 +299,21 @@ def decode(s):
     return [_CODE[c] for c in s]
 
 
-def build():
+def build(stack=None, heal_csv=None):
     """Sibling imports stay inside here (qc/instruments/CLAUDE.md): run directly the
     instruments dir is sys.path[0], while a test can still load this file by path and
-    exercise every pure function above with no stack and no gold."""
+    exercise every pure function above with no stack and no gold.
+
+    `stack` / `heal_csv` default to the module constants (the published 8-epoch cache and
+    the tracked temporal_heal.csv). The stack's epochs must be the epochs heal_vs_gold
+    scored — its trajectories index this stack — so a mismatch is refused, not indexed."""
     import numpy as np
+    stack_path = Path(stack) if stack is not None else STACK
+    heal_path = Path(heal_csv) if heal_csv is not None else HEAL_CSV
 
     from heal_vs_gold import build as hvg_build      # called as its own main() calls it
 
-    hvg_rows, hvg_meta, err = hvg_build()
+    hvg_rows, hvg_meta, err = hvg_build(stack=stack_path)   # same lattice, by construction
     if err:
         return None, None, err
     meta = json.loads(META_JSON.read_text(encoding="utf-8"))
@@ -332,8 +341,12 @@ def build():
             parity.append((r["point_id"], mine, theirs))
 
     n_term, n_int = eligibility(points, yrs, interior_idx)
-    d = np.load(STACK)
+    d = np.load(stack_path)
     stack, inside = d["stack"], d["inside"]
+    if [str(y) for y in d["years"]] != [str(y) for y in years]:
+        return None, None, (f"{stack_path.name} epochs {[str(y) for y in d['years']]} "
+                            f"!= heal_vs_gold's {list(years)} — the gold trajectories "
+                            f"index a different stack")
 
     rows = []
     for rule, caps in SWEEP:
@@ -349,8 +362,8 @@ def build():
                          decode(r["healed_trajectory"])) for r in hvg_rows],
                        interior_idx)
 
-    hf = _footer(HEAL_CSV) if HEAL_CSV.exists() else {}
-    heal_rows = _rows(HEAL_CSV)
+    hf = _footer(heal_path) if heal_path.exists() else {}
+    heal_rows = _rows(heal_path)
     heal_cw = int(hf.get("heal_tier_cells", 0))
     ign_cw = sum(int(r["healed_cells"]) for r in heal_rows if r["tier"] != "HEAL")
     rows.append(_row("healer", "tier_matched", 0, healer, n_term, n_int,
@@ -402,13 +415,23 @@ def _row(arm, rule, K, agg, n_term, n_int, cw, ign, npts):
     }
 
 
+def _parser():
+    ap = argparse.ArgumentParser(description=__doc__)
+    ap.add_argument("--stack", default=str(STACK),
+                    help="epoch stack npz (default: the published 8-epoch cache)")
+    ap.add_argument("--heal", default=str(HEAL_CSV),
+                    help="temporal_heal.csv to read (default: the tracked one)")
+    ap.add_argument("--out", default=str(OUT_CSV),
+                    help="CSV to write (default: the tracked one)")
+    ap.add_argument("--dry-run", action="store_true")
+    return ap
+
+
 def main(argv=None):
     from phase4seg.names import clean_argv
-    ap = argparse.ArgumentParser(description=__doc__)
-    ap.add_argument("--dry-run", action="store_true")
-    a = ap.parse_args(clean_argv() if argv is None else argv)
+    a = _parser().parse_args(clean_argv() if argv is None else argv)
 
-    rows, meta, err = build()
+    rows, meta, err = build(a.stack, a.heal)
     if err:
         print(f"FATAL: {err}")
         return 2
@@ -425,11 +448,11 @@ def main(argv=None):
     buf.write(f"# scoring_parity_mismatches,{len(meta['parity'])}\n")
     buf.write("# closing_runs_on_the_unaligned_stack,1\n")
     if not a.dry_run:
-        (QC / "heal_closing_baseline.csv").write_text(buf.getvalue(), encoding="utf-8",
-                                                      newline="")
+        Path(a.out).parent.mkdir(parents=True, exist_ok=True)
+        Path(a.out).write_text(buf.getvalue(), encoding="utf-8", newline="")
 
     n_bad = len(meta["parity"])
-    print(f"{'DRY RUN: ' if a.dry_run else ''}phase4/qc/heal_closing_baseline.csv "
+    print(f"{'DRY RUN: ' if a.dry_run else ''}{a.out} "
           f"— {len(rows)} arms over {meta['n_points']:,} gold points")
     print("\nSCORING PARITY vs heal_vs_gold.py's own per-row numbers: "
           + ("OK — 0 mismatches" if n_bad == 0 else f"{n_bad} MISMATCHES"))

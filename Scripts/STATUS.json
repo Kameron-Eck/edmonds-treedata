@@ -1,5 +1,5 @@
 {
- "generated_utc": "2026-09-08T05:54:32Z",
+ "generated_utc": "2026-09-08T18:12:51Z",
  "lake_mounted": true,
  "code": {
   "engine_version": "v048",
@@ -246,8 +246,8 @@
    "year": "2017",
    "gsd_cm": 5.0,
    "tiles": "Y",
-   "models": 5,
-   "prob": "2017_citywide_rgb.tif[6718MB]; 2017_of_2017.tif[3028MB]; 2017_xsensor_rgb.tif[406MB]; 2017_xsensor_train.tif[2972MB]",
+   "models": 6,
+   "prob": "2017_citywide_rgb.tif[6718MB]; 2017_heal_2017.tif[2276MB]; 2017_of_2017.tif[3028MB]; 2017_xsensor_rgb.tif[406MB]; 2017_xsensor_train.tif[2972MB]",
    "mask": "Y",
    "verify": "citywide_rgb:OK; of_2017:OK",
    "honest": "\u2014"
@@ -326,10 +326,10 @@
    "year": "2020",
    "gsd_cm": 5.0,
    "tiles": "\u2014",
-   "models": 6,
+   "models": 7,
    "prob": "2020_of_2020.tif[4165MB]; 2020_t1_2020_add05.tif[735MB]; 2020_t1_2020_add16.tif[681MB]; 2020_t1_2020_base.tif[723MB]; 2020_t1_2020_in05.tif[708MB]; 2020_t1_2020_in16.tif[650MB]",
    "mask": "Y",
-   "verify": "t1_2020_base:OK; t1_2020_add05:OK; t1_2020_in05:OK; t1_2020_in16:OK; t1_2020_add16:WEAK_CALIBRATION; of_2020:OK",
+   "verify": "t1_2020_base:OK; t1_2020_add05:OK; t1_2020_in05:OK; t1_2020_in16:OK; t1_2020_add16:WEAK_CALIBRATION; of_2020:OK; heal_2020:OK",
    "honest": "\u2014"
   },
   {
@@ -396,10 +396,10 @@
    "year": "2023",
    "gsd_cm": 10.0,
    "tiles": "Y",
-   "models": 1,
-   "prob": "2023_citywide_rgb.tif[2450MB]",
+   "models": 2,
+   "prob": "2023_citywide_rgb.tif[2450MB]; 2023_heal_2023.tif[2335MB]",
    "mask": "Y",
-   "verify": "\u2014",
+   "verify": "heal_2023:OK",
    "honest": "rec 0.651 prec 0.851"
   },
   {

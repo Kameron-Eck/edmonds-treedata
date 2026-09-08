@@ -523,6 +523,16 @@
             "recall": "0.0466",
             "ref": "ccap_2021_hires_lc.tif",
             "thresh": "0.547244"
+          },
+          "scored_live": {
+            "curve": "",
+            "eval_scope": "",
+            "population": "5435107679",
+            "pr_auc": "",
+            "precision": "0.802",
+            "recall": "0.7284",
+            "ref": "ccap_2021_hires_lc.tif",
+            "thresh": "0.5"
           }
         },
         "of_2017k": {
@@ -565,6 +575,16 @@
             "recall": "0.3813",
             "ref": "ccap_2021_hires_lc.tif",
             "thresh": "0.669291"
+          },
+          "scored_live": {
+            "curve": "",
+            "eval_scope": "",
+            "population": "1260081495",
+            "pr_auc": "",
+            "precision": "0.8152",
+            "recall": "0.6794",
+            "ref": "ccap_2021_hires_lc.tif",
+            "thresh": "0.5"
           }
         },
         "of_2017n": {
@@ -607,6 +627,16 @@
             "recall": "0.0949",
             "ref": "ccap_2021_hires_lc.tif",
             "thresh": "0.492125"
+          },
+          "scored_live": {
+            "curve": "",
+            "eval_scope": "",
+            "population": "11031683",
+            "pr_auc": "",
+            "precision": "0.9397",
+            "recall": "0.0756",
+            "ref": "ccap_2021_hires_lc.tif",
+            "thresh": "0.5"
           }
         },
         "of_2017s": {
@@ -649,6 +679,16 @@
             "recall": "0.3599",
             "ref": "ccap_2021_hires_lc.tif",
             "thresh": "0.559055"
+          },
+          "scored_live": {
+            "curve": "",
+            "eval_scope": "",
+            "population": "135650093",
+            "pr_auc": "",
+            "precision": "0.8612",
+            "recall": "0.5437",
+            "ref": "ccap_2021_hires_lc.tif",
+            "thresh": "0.5"
           }
         },
         "of_2020": {
@@ -691,6 +731,16 @@
             "recall": "0.2709",
             "ref": "ccap_2021_hires_lc.tif",
             "thresh": "0.73622"
+          },
+          "scored_live": {
+            "curve": "",
+            "eval_scope": "",
+            "population": "4619355021",
+            "pr_auc": "",
+            "precision": "0.839",
+            "recall": "0.5819",
+            "ref": "ccap_2021_hires_lc.tif",
+            "thresh": "0.5"
           }
         },
         "of_2022": {
@@ -733,6 +783,16 @@
             "recall": "0.2012",
             "ref": "ccap_2021_hires_lc.tif",
             "thresh": "0.649606"
+          },
+          "scored_live": {
+            "curve": "",
+            "eval_scope": "",
+            "population": "4753074246",
+            "pr_auc": "",
+            "precision": "0.8135",
+            "recall": "0.6274",
+            "ref": "ccap_2021_hires_lc.tif",
+            "thresh": "0.5"
           }
         }
       },
@@ -860,6 +920,16 @@
             "recall": "0.3194",
             "ref": "ccap_2021_hires_lc.tif",
             "thresh": "0.543307"
+          },
+          "scored_live": {
+            "curve": "",
+            "eval_scope": "",
+            "population": "330699868",
+            "pr_auc": "",
+            "precision": "0.7655",
+            "recall": "0.6903",
+            "ref": "ccap_2021_hires_lc.tif",
+            "thresh": "0.5"
           }
         },
         "trend8_2011s": {
@@ -902,6 +972,16 @@
             "recall": "0.373",
             "ref": "ccap_2021_hires_lc.tif",
             "thresh": "0.716535"
+          },
+          "scored_live": {
+            "curve": "",
+            "eval_scope": "",
+            "population": "143918658",
+            "pr_auc": "",
+            "precision": "0.8144",
+            "recall": "0.6754",
+            "ref": "ccap_2021_hires_lc.tif",
+            "thresh": "0.5"
           }
         },
         "trend8_2013": {
@@ -944,6 +1024,16 @@
             "recall": "0.3495",
             "ref": "ccap_2021_hires_lc.tif",
             "thresh": "0.645669"
+          },
+          "scored_live": {
+            "curve": "",
+            "eval_scope": "",
+            "population": "1261161456",
+            "pr_auc": "",
+            "precision": "0.8043",
+            "recall": "0.6372",
+            "ref": "ccap_2021_hires_lc.tif",
+            "thresh": "0.5"
           }
         },
         "trend8_2015": {
@@ -986,6 +1076,16 @@
             "recall": "0.1242",
             "ref": "ccap_2021_hires_lc.tif",
             "thresh": "0.692913"
+          },
+          "scored_live": {
+            "curve": "",
+            "eval_scope": "",
+            "population": "1255890032",
+            "pr_auc": "",
+            "precision": "0.81",
+            "recall": "0.5773",
+            "ref": "ccap_2021_hires_lc.tif",
+            "thresh": "0.5"
           }
         },
         "trend8_2016": {
@@ -1028,6 +1128,16 @@
             "recall": "0.4035",
             "ref": "ccap_2021_hires_lc.tif",
             "thresh": "0.728346"
+          },
+          "scored_live": {
+            "curve": "",
+            "eval_scope": "",
+            "population": "137115889",
+            "pr_auc": "",
+            "precision": "0.8218",
+            "recall": "0.6669",
+            "ref": "ccap_2021_hires_lc.tif",
+            "thresh": "0.5"
           }
         },
         "trend8_2019": {
@@ -1070,6 +1180,16 @@
             "recall": "0.3206",
             "ref": "ccap_2021_hires_lc.tif",
             "thresh": "0.625984"
+          },
+          "scored_live": {
+            "curve": "",
+            "eval_scope": "",
+            "population": "1222835465",
+            "pr_auc": "",
+            "precision": "0.8428",
+            "recall": "0.5656",
+            "ref": "ccap_2021_hires_lc.tif",
+            "thresh": "0.5"
           }
         },
         "trend8_2021": {
@@ -1112,6 +1232,16 @@
             "recall": "0.4212",
             "ref": "ccap_2021_hires_lc.tif",
             "thresh": "0.641732"
+          },
+          "scored_live": {
+            "curve": "",
+            "eval_scope": "",
+            "population": "1212658429",
+            "pr_auc": "",
+            "precision": "0.8647",
+            "recall": "0.6157",
+            "ref": "ccap_2021_hires_lc.tif",
+            "thresh": "0.5"
           }
         },
         "trend8_2024": {
@@ -1154,6 +1284,16 @@
             "recall": "0.0009",
             "ref": "ccap_2021_hires_lc.tif",
             "thresh": "0.669291"
+          },
+          "scored_live": {
+            "curve": "",
+            "eval_scope": "",
+            "population": "4711629804",
+            "pr_auc": "",
+            "precision": "0.8543",
+            "recall": "0.3806",
+            "ref": "ccap_2021_hires_lc.tif",
+            "thresh": "0.5"
           }
         }
       },
@@ -2031,6 +2171,16 @@
             "recall": "0.2365",
             "ref": "ccap_2021_hires_lc.tif",
             "thresh": "0.598425"
+          },
+          "scored_live": {
+            "curve": "",
+            "eval_scope": "",
+            "population": "836584",
+            "pr_auc": "",
+            "precision": "0.6525",
+            "recall": "0.7413",
+            "ref": "ccap_2021_hires_lc.tif",
+            "thresh": "0.248031"
           }
         },
         "t1_2006s_add16": {
@@ -2073,6 +2223,16 @@
             "recall": "0.0011",
             "ref": "ccap_2021_hires_lc.tif",
             "thresh": "0.515748"
+          },
+          "scored_live": {
+            "curve": "",
+            "eval_scope": "",
+            "population": "1212499",
+            "pr_auc": "",
+            "precision": "0.4515",
+            "recall": "0.7659",
+            "ref": "ccap_2021_hires_lc.tif",
+            "thresh": "0.444881"
           }
         },
         "t1_2006s_base": {
@@ -2115,6 +2275,16 @@
             "recall": "0.3101",
             "ref": "_chm2005_canopy2m_binary.tif",
             "thresh": "0.515748"
+          },
+          "scored_live": {
+            "curve": "",
+            "eval_scope": "",
+            "population": "869101",
+            "pr_auc": "",
+            "precision": "0.6315",
+            "recall": "0.7694",
+            "ref": "ccap_2021_hires_lc.tif",
+            "thresh": "0.251968"
           }
         },
         "t1_2006s_in05": {
@@ -2157,6 +2327,16 @@
             "recall": "0.1258",
             "ref": "ccap_2021_hires_lc.tif",
             "thresh": "0.551181"
+          },
+          "scored_live": {
+            "curve": "",
+            "eval_scope": "",
+            "population": "847942",
+            "pr_auc": "",
+            "precision": "0.6342",
+            "recall": "0.7604",
+            "ref": "ccap_2021_hires_lc.tif",
+            "thresh": "0.248031"
           }
         },
         "t1_2006s_in16": {
@@ -2199,6 +2379,16 @@
             "recall": "0.1587",
             "ref": "ccap_2021_hires_lc.tif",
             "thresh": "0.57874"
+          },
+          "scored_live": {
+            "curve": "",
+            "eval_scope": "",
+            "population": "839678",
+            "pr_auc": "",
+            "precision": "0.643",
+            "recall": "0.7648",
+            "ref": "ccap_2021_hires_lc.tif",
+            "thresh": "0.271653"
           }
         },
         "t1_2011s_add05": {
@@ -2241,6 +2431,16 @@
             "recall": "0.1658",
             "ref": "ccap_2021_hires_lc.tif",
             "thresh": "0.720472"
+          },
+          "scored_live": {
+            "curve": "",
+            "eval_scope": "",
+            "population": "8577485",
+            "pr_auc": "",
+            "precision": "0.7058",
+            "recall": "0.7879",
+            "ref": "ccap_2021_hires_lc.tif",
+            "thresh": "0.248031"
           }
         },
         "t1_2011s_add16": {
@@ -2283,6 +2483,16 @@
             "recall": "0.3467",
             "ref": "ccap_2021_hires_lc.tif",
             "thresh": "0.606299"
+          },
+          "scored_live": {
+            "curve": "",
+            "eval_scope": "",
+            "population": "8726662",
+            "pr_auc": "",
+            "precision": "0.6908",
+            "recall": "0.7856",
+            "ref": "ccap_2021_hires_lc.tif",
+            "thresh": "0.220472"
           }
         },
         "t1_2011s_base": {
@@ -2325,6 +2535,16 @@
             "recall": "0.4848",
             "ref": "ccap_2016_hires_lc.tif",
             "thresh": "0.594488"
+          },
+          "scored_live": {
+            "curve": "",
+            "eval_scope": "",
+            "population": "8531270",
+            "pr_auc": "",
+            "precision": "0.7091",
+            "recall": "0.7831",
+            "ref": "ccap_2021_hires_lc.tif",
+            "thresh": "0.224409"
           }
         },
         "t1_2011s_base_s2": {
@@ -2367,6 +2587,16 @@
             "recall": "0.0006",
             "ref": "ccap_2021_hires_lc.tif",
             "thresh": "0.909448"
+          },
+          "scored_live": {
+            "curve": "",
+            "eval_scope": "",
+            "population": "8615412",
+            "pr_auc": "",
+            "precision": "0.687",
+            "recall": "0.7854",
+            "ref": "ccap_2021_hires_lc.tif",
+            "thresh": "0.263779"
           }
         },
         "t1_2011s_base_s3": {
@@ -2409,6 +2639,16 @@
             "recall": "0.0001",
             "ref": "ccap_2021_hires_lc.tif",
             "thresh": "0.811023"
+          },
+          "scored_live": {
+            "curve": "",
+            "eval_scope": "",
+            "population": "8528813",
+            "pr_auc": "",
+            "precision": "0.6923",
+            "recall": "0.7744",
+            "ref": "ccap_2021_hires_lc.tif",
+            "thresh": "0.259842"
           }
         },
         "t1_2011s_cor05": {
@@ -2451,6 +2691,16 @@
             "recall": "0.0004",
             "ref": "ccap_2021_hires_lc.tif",
             "thresh": "0.779527"
+          },
+          "scored_live": {
+            "curve": "",
+            "eval_scope": "",
+            "population": "8496091",
+            "pr_auc": "",
+            "precision": "0.6964",
+            "recall": "0.7778",
+            "ref": "ccap_2021_hires_lc.tif",
+            "thresh": "0.240157"
           }
         },
         "t1_2011s_cor10": {
@@ -2493,6 +2743,16 @@
             "recall": "0.0104",
             "ref": "ccap_2021_hires_lc.tif",
             "thresh": "0.748031"
+          },
+          "scored_live": {
+            "curve": "",
+            "eval_scope": "",
+            "population": "8582905",
+            "pr_auc": "",
+            "precision": "0.6911",
+            "recall": "0.7894",
+            "ref": "ccap_2021_hires_lc.tif",
+            "thresh": "0.228346"
           }
         },
         "t1_2011s_in05": {
@@ -2535,6 +2795,16 @@
             "recall": "0.4196",
             "ref": "ccap_2021_hires_lc.tif",
             "thresh": "0.622047"
+          },
+          "scored_live": {
+            "curve": "",
+            "eval_scope": "",
+            "population": "8343031",
+            "pr_auc": "",
+            "precision": "0.7266",
+            "recall": "0.7765",
+            "ref": "ccap_2021_hires_lc.tif",
+            "thresh": "0.216535"
           }
         },
         "t1_2011s_in16": {
@@ -2577,6 +2847,16 @@
             "recall": "0.2219",
             "ref": "ccap_2021_hires_lc.tif",
             "thresh": "0.688976"
+          },
+          "scored_live": {
+            "curve": "",
+            "eval_scope": "",
+            "population": "7428102",
+            "pr_auc": "",
+            "precision": "0.8563",
+            "recall": "0.623",
+            "ref": "ccap_2016_hires_lc.tif",
+            "thresh": "0.5"
           }
         },
         "t1_2016_add05": {
@@ -2619,6 +2899,16 @@
             "recall": "0.433",
             "ref": "ccap_2021_hires_lc.tif",
             "thresh": "0.641732"
+          },
+          "scored_live": {
+            "curve": "",
+            "eval_scope": "",
+            "population": "8246423",
+            "pr_auc": "",
+            "precision": "0.7357",
+            "recall": "0.7712",
+            "ref": "ccap_2021_hires_lc.tif",
+            "thresh": "0.220472"
           }
         },
         "t1_2016_add16": {
@@ -2661,6 +2951,16 @@
             "recall": "0.3832",
             "ref": "ccap_2021_hires_lc.tif",
             "thresh": "0.649606"
+          },
+          "scored_live": {
+            "curve": "",
+            "eval_scope": "",
+            "population": "8519838",
+            "pr_auc": "",
+            "precision": "0.7461",
+            "recall": "0.7637",
+            "ref": "ccap_2021_hires_lc.tif",
+            "thresh": "0.224409"
           }
         },
         "t1_2016_base": {
@@ -2703,6 +3003,16 @@
             "recall": "0.2707",
             "ref": "_chm2_canopy2m_binary.tif",
             "thresh": "0.633858"
+          },
+          "scored_live": {
+            "curve": "",
+            "eval_scope": "",
+            "population": "9106551",
+            "pr_auc": "",
+            "precision": "0.7684",
+            "recall": "0.6949",
+            "ref": "ccap_2016_hires_lc.tif",
+            "thresh": "0.5"
           }
         },
         "t1_2016_in05": {
@@ -2745,6 +3055,16 @@
             "recall": "0.5466",
             "ref": "ccap_2016_hires_lc.tif",
             "thresh": "0.547244"
+          },
+          "scored_live": {
+            "curve": "",
+            "eval_scope": "",
+            "population": "8527891",
+            "pr_auc": "",
+            "precision": "0.7468",
+            "recall": "0.7701",
+            "ref": "ccap_2021_hires_lc.tif",
+            "thresh": "0.145669"
           }
         },
         "t1_2016_in16": {
@@ -2787,6 +3107,16 @@
             "recall": "0.6873",
             "ref": "_chm2_canopy2m_binary.tif",
             "thresh": "0.507874"
+          },
+          "scored_live": {
+            "curve": "",
+            "eval_scope": "",
+            "population": "8636488",
+            "pr_auc": "",
+            "precision": "0.7361",
+            "recall": "0.7729",
+            "ref": "ccap_2021_hires_lc.tif",
+            "thresh": "0.133858"
           }
         },
         "t1_2016_nir": {
@@ -2829,6 +3159,16 @@
             "recall": "0.0014",
             "ref": "ccap_2021_hires_lc.tif",
             "thresh": "0.929133"
+          },
+          "scored_live": {
+            "curve": "",
+            "eval_scope": "",
+            "population": "8184738",
+            "pr_auc": "",
+            "precision": "0.7229",
+            "recall": "0.7561",
+            "ref": "ccap_2021_hires_lc.tif",
+            "thresh": "0.165354"
           }
         },
         "t1_2019n_base": {
@@ -2871,6 +3211,16 @@
             "recall": "0.3081",
             "ref": "ccap_2021_hires_lc.tif",
             "thresh": "0.629921"
+          },
+          "scored_live": {
+            "curve": "",
+            "eval_scope": "",
+            "population": "2230795",
+            "pr_auc": "",
+            "precision": "0.7255",
+            "recall": "0.7371",
+            "ref": "ccap_2021_hires_lc.tif",
+            "thresh": "0.488188"
           }
         },
         "t1_2019n_nir": {
@@ -2913,6 +3263,16 @@
             "recall": "0.2586",
             "ref": "ccap_2021_hires_lc.tif",
             "thresh": "0.61811"
+          },
+          "scored_live": {
+            "curve": "",
+            "eval_scope": "",
+            "population": "2134626",
+            "pr_auc": "",
+            "precision": "0.7273",
+            "recall": "0.751",
+            "ref": "ccap_2021_hires_lc.tif",
+            "thresh": "0.417322"
           }
         },
         "t1_2020_add05": {
@@ -2955,6 +3315,16 @@
             "recall": "0.2738",
             "ref": "ccap_2021_hires_lc.tif",
             "thresh": "0.574803"
+          },
+          "scored_live": {
+            "curve": "",
+            "eval_scope": "",
+            "population": "310911253",
+            "pr_auc": "",
+            "precision": "0.7036",
+            "recall": "0.7758",
+            "ref": "ccap_2021_hires_lc.tif",
+            "thresh": "0.11811"
           }
         },
         "t1_2020_add16": {
@@ -2997,6 +3367,16 @@
             "recall": "0.2551",
             "ref": "ccap_2021_hires_lc.tif",
             "thresh": "0.625984"
+          },
+          "scored_live": {
+            "curve": "",
+            "eval_scope": "",
+            "population": "289376644",
+            "pr_auc": "",
+            "precision": "0.7664",
+            "recall": "0.7005",
+            "ref": "ccap_2021_hires_lc.tif",
+            "thresh": "0.110236"
           }
         },
         "t1_2020_base": {
@@ -3039,6 +3419,16 @@
             "recall": "0.231",
             "ref": "ccap_2021_hires_lc.tif",
             "thresh": "0.665354"
+          },
+          "scored_live": {
+            "curve": "",
+            "eval_scope": "",
+            "population": "297491637",
+            "pr_auc": "",
+            "precision": "0.7222",
+            "recall": "0.7006",
+            "ref": "ccap_2021_hires_lc.tif",
+            "thresh": "0.102362"
           }
         },
         "t1_2020_in05": {
@@ -3081,6 +3471,16 @@
             "recall": "0.2769",
             "ref": "ccap_2021_hires_lc.tif",
             "thresh": "0.700787"
+          },
+          "scored_live": {
+            "curve": "",
+            "eval_scope": "",
+            "population": "285990591",
+            "pr_auc": "",
+            "precision": "0.7529",
+            "recall": "0.6719",
+            "ref": "ccap_2021_hires_lc.tif",
+            "thresh": "0.07874"
           }
         },
         "t1_2020_in16": {
@@ -3123,6 +3523,16 @@
             "recall": "0.3135",
             "ref": "ccap_2021_hires_lc.tif",
             "thresh": "0.629921"
+          },
+          "scored_live": {
+            "curve": "",
+            "eval_scope": "",
+            "population": "277957321",
+            "pr_auc": "",
+            "precision": "0.7788",
+            "recall": "0.6557",
+            "ref": "ccap_2021_hires_lc.tif",
+            "thresh": "0.070866"
           }
         }
       },
@@ -3579,6 +3989,16 @@
             "recall": "0.2279",
             "ref": "ccap_2021_hires_lc.tif",
             "thresh": "0.531496"
+          },
+          "scored_live": {
+            "curve": "",
+            "eval_scope": "",
+            "population": "14235640",
+            "pr_auc": "",
+            "precision": "0.7695",
+            "recall": "0.6524",
+            "ref": "ccap_2016_hires_lc.tif",
+            "thresh": "0.4743"
           }
         },
         "hy_e3_2011s": {
@@ -3621,6 +4041,16 @@
             "recall": "0.5561",
             "ref": "ccap_2016_hires_lc.tif",
             "thresh": "0.602362"
+          },
+          "scored_live": {
+            "curve": "",
+            "eval_scope": "",
+            "population": "8248925",
+            "pr_auc": "",
+            "precision": "0.7693",
+            "recall": "0.7332",
+            "ref": "ccap_2021_hires_lc.tif",
+            "thresh": "0.318897"
           }
         }
       },
@@ -5626,7 +6056,60 @@
       "verdict": null
     },
     {
-      "arm_scores": {},
+      "arm_scores": {
+        "heal_2017": {
+          "best_f1": {
+            "curve": "phase4/qc/curves/efb2813b8a46.csv",
+            "eval_scope": "",
+            "population": "5580636711",
+            "pr_auc": "0.7865",
+            "precision": "0.7529",
+            "recall": "0.7962",
+            "ref": "ccap_2021_hires_lc.tif",
+            "thresh": "0.161417"
+          },
+          "matched_p50": {
+            "curve": "phase4/qc/curves/efb2813b8a46.csv",
+            "eval_scope": "",
+            "population": "6051888200",
+            "pr_auc": "0.7865",
+            "precision": "0.698",
+            "recall": "0.8502",
+            "ref": "ccap_2021_hires_lc.tif",
+            "thresh": "0.15748"
+          },
+          "matched_p75": {
+            "curve": "phase4/qc/curves/efb2813b8a46.csv",
+            "eval_scope": "",
+            "population": "5580636711",
+            "pr_auc": "0.7865",
+            "precision": "0.7529",
+            "recall": "0.7962",
+            "ref": "ccap_2021_hires_lc.tif",
+            "thresh": "0.161417"
+          },
+          "matched_p90": {
+            "curve": "phase4/qc/curves/efb2813b8a46.csv",
+            "eval_scope": "",
+            "population": "4428773382",
+            "pr_auc": "0.7865",
+            "precision": "0.9003",
+            "recall": "0.0087",
+            "ref": "ccap_2021_hires_lc.tif",
+            "thresh": "0.515748"
+          },
+          "scored_live": {
+            "curve": "",
+            "eval_scope": "",
+            "population": "4638575821",
+            "pr_auc": "",
+            "precision": "0.867",
+            "recall": "0.3154",
+            "ref": "ccap_2021_hires_lc.tif",
+            "thresh": "0.4986"
+          }
+        }
+      },
       "arms": [
         {
           "extra": [
@@ -5702,7 +6185,7 @@
         "Scripts/qc/instruments/crown_trajectories.py"
       ],
       "kind": "experiment",
-      "last_run": null,
+      "last_run": "2026-09-08",
       "metric": "phase4/qc/heal_vs_gold.csv rebuilt on the 12-epoch stack — laundered and censored counts against the 42 verified losses, and impossible-triple removal against the 1,170 verified no-change points. Secondary: phase4/qc/temporal_heal.csv tier distribution (BLIND should fall to zero inside 2016-2024), and phase4/qc/crown_trajectories.csv TERMINAL share, which today is 64% of all LOST crowns.\n",
       "n": null,
       "n_source": null,
@@ -5711,7 +6194,7 @@
         "phase4/qc/heal_vs_gold.csv",
         "phase4/qc/crown_trajectories.csv"
       ],
-      "registry_rows": 0,
+      "registry_rows": 15,
       "reports": [
         "Reports/HEALING_TOOL_REASONING_2026-09-07.md"
       ],
@@ -5729,7 +6212,11 @@
         "scoreable",
         "trend8-recipe"
       ],
-      "tilesets": [],
+      "tilesets": [
+        "0d4456027a30",
+        "a105c1937d57",
+        "e955bb67a335"
+      ],
       "verdict": null
     },
     {

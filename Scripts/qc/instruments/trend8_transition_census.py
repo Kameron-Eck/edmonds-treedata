@@ -33,29 +33,47 @@ YEARS = ("2009", "2011s", "2013", "2015", "2016", "2019", "2021", "2024")
 CELL, EPSG = 2.0, 26910
 
 
-def main():
+def city_grid(city_shp=CITY, cell=CELL, epsg=EPSG):
+    """The common analysis lattice: (transform, width, height, inside) for the city.
+
+    Pure — reads the boundary shapefile and nothing else. Shared with
+    heal_stack_build.py so the N-epoch stack lands on the SAME grid as this cache.
+    """
     import geopandas as gpd
-    city = gpd.read_file(CITY).to_crs(EPSG)
+    city = gpd.read_file(city_shp).to_crs(epsg)
     minx, miny, maxx, maxy = city.total_bounds
-    tf = Affine(CELL, 0, float(np.floor(minx)), 0, -CELL, float(np.ceil(maxy)))
-    w = int(np.ceil((maxx - minx) / CELL)) + 1
-    h = int(np.ceil((maxy - miny) / CELL)) + 1
+    tf = Affine(cell, 0, float(np.floor(minx)), 0, -cell, float(np.ceil(maxy)))
+    w = int(np.ceil((maxx - minx) / cell)) + 1
+    h = int(np.ceil((maxy - miny) / cell)) + 1
     inside = rfeat.rasterize(((g, 1) for g in city.geometry), out_shape=(h, w),
                              transform=tf, fill=0, dtype="uint8").astype(bool)
+    return tf, w, h, inside
+
+
+def warp_mask(path, tf, w, h, epsg=EPSG):
+    """One mask onto the lattice: average-resample, 0.5 majority, 255 where no data.
+
+    uint8 (h, w) of 0/1/255 — the trend8_harmonized_fractions convention.
+    """
+    with rasterio.open(path) as src:
+        with WarpedVRT(src, crs=f"EPSG:{epsg}", transform=tf, width=w,
+                       height=h, resampling=Resampling.average,
+                       src_nodata=255, nodata=float("nan"),
+                       dtype="float32") as v:
+            a = v.read(1)
+    lay = np.full((h, w), 255, np.uint8)
+    fin = np.isfinite(a)
+    lay[fin & (a >= 0.5)] = 1
+    lay[fin & (a < 0.5)] = 0
+    return lay
+
+
+def main():
+    tf, w, h, inside = city_grid()
     layers = []
     for y in YEARS:
         p = MASKS / f"edmonds_canopy_mask_{y}_trend8_{y}.tif"
-        with rasterio.open(p) as src:
-            with WarpedVRT(src, crs=f"EPSG:{EPSG}", transform=tf, width=w,
-                           height=h, resampling=Resampling.average,
-                           src_nodata=255, nodata=float("nan"),
-                           dtype="float32") as v:
-                a = v.read(1)
-        lay = np.full((h, w), 255, np.uint8)
-        fin = np.isfinite(a)
-        lay[fin & (a >= 0.5)] = 1
-        lay[fin & (a < 0.5)] = 0
-        layers.append(lay)
+        layers.append(warp_mask(p, tf, w, h))
         print(f"  {y} cached", flush=True)
     stack = np.stack(layers)              # (8, h, w) uint8 0/1/255
     np.savez_compressed(CACHE, stack=stack, inside=inside,

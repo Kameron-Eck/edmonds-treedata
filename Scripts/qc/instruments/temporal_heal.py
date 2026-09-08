@@ -49,6 +49,9 @@ TIERS, because not every candidate deserves the same confidence:
 Output: phase4/qc/temporal_heal.csv, plus per-epoch overlays when --write-overlays.
 
 Run:  py -3.12 qc/instruments/temporal_heal.py [--min-area 28] [--dry-run]
+      py -3.12 qc/instruments/temporal_heal.py --stack other.npz --out other.csv
+      (the defaults regenerate the tracked CSV from the published 8-epoch cache; a wider
+       stack — heal_stack_build.py — goes through --stack/--out and never moves them)
 """
 from __future__ import annotations
 
@@ -62,6 +65,7 @@ SCRIPTS = Path(__file__).resolve().parents[2]
 REPO = SCRIPTS.parent
 QC = REPO / "phase4" / "qc"
 STACK = Path(r"D:\edmonds-pipeline\trend8_stack_2m.npz")
+OUT_CSV = QC / "temporal_heal.csv"
 
 CELL_M = 2.0
 MIN_AREA_M2 = 28.0        # one mature crown (6 m disc) — the scale the sieve targets
@@ -137,13 +141,16 @@ def tier_for(prev_label, epoch_label, next_label):
     return "HEAL" if y2 <= LIDAR_LAST else "REVIEW"
 
 
-def build(min_area_m2=MIN_AREA_M2):
+def build(min_area_m2=MIN_AREA_M2, stack=None):
+    """`stack` None resolves the module global STACK at CALL time, so a caller that
+    rebinds `temporal_heal.STACK` (heal_fill_audit_sample.py::build) is still honoured."""
     import numpy as np
     from scipy import ndimage
-    if not STACK.exists():
-        return None, None, f"{STACK} not found (local mirror)"
+    stack_path = Path(stack) if stack is not None else STACK
+    if not stack_path.exists():
+        return None, None, f"{stack_path} not found (local mirror)"
     clusters, matched_pairs = _import_machinery()
-    d = np.load(STACK)
+    d = np.load(stack_path)
     stack, inside, tf = d["stack"], d["inside"], d["transform"]
     years = [str(y) for y in d["years"]]
 
@@ -206,15 +213,23 @@ def build(min_area_m2=MIN_AREA_M2):
     return rows, overlays, None
 
 
-def main(argv=None):
-    from phase4seg.names import clean_argv
+def _parser():
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--min-area", type=float, default=MIN_AREA_M2,
                     help="minimum healed component, m2 (default one mature crown)")
+    ap.add_argument("--stack", default=str(STACK),
+                    help="epoch stack npz (default: the published 8-epoch cache)")
+    ap.add_argument("--out", default=str(OUT_CSV),
+                    help="CSV to write (default: the tracked phase4/qc/temporal_heal.csv)")
     ap.add_argument("--dry-run", action="store_true")
-    a = ap.parse_args(clean_argv() if argv is None else argv)
+    return ap
 
-    rows, overlays, err = build(a.min_area)
+
+def main(argv=None):
+    from phase4seg.names import clean_argv
+    a = _parser().parse_args(clean_argv() if argv is None else argv)
+
+    rows, overlays, err = build(a.min_area, a.stack)
     if err:
         print(f"FATAL: {err}")
         return 2
@@ -230,11 +245,11 @@ def main(argv=None):
     for tier in ("HEAL", "REVIEW", "BLIND"):
         buf.write(f"# n_epochs_{tier},{sum(1 for r in rows if r['tier'] == tier)}\n")
     if not a.dry_run:
-        (QC / "temporal_heal.csv").write_text(buf.getvalue(), encoding="utf-8",
-                                              newline="")
+        Path(a.out).parent.mkdir(parents=True, exist_ok=True)
+        Path(a.out).write_text(buf.getvalue(), encoding="utf-8", newline="")
 
-    print(f"{'DRY RUN: ' if a.dry_run else ''}phase4/qc/temporal_heal.csv "
-          f"(min component {a.min_area:.0f} m2 = one mature crown)")
+    print(f"{'DRY RUN: ' if a.dry_run else ''}{a.out} "
+          f"(min component {a.min_area:.0f} m2 = one mature crown; stack {a.stack})")
     print(f"\n{'epoch':7}{'bracket':16}{'tier':8}{'shift prev':>12}{'shift next':>12}"
           f"{'cand':>9}{'healed':>9}{'ha':>8}{'pp':>7}")
     for r in rows:

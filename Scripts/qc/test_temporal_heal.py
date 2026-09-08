@@ -205,3 +205,70 @@ def test_terminal_losses_are_flagged_not_deleted():
         "being reported at the same confidence as ones two later epochs confirm")
     # and they are still present, not filtered away
     assert len(lost) > len(term), "every loss is terminal — the corroborated class is gone"
+
+
+# ---- the stack the healer reads is a parameter; the defaults are the published ones ----
+
+def _synthetic_stack(path):
+    """Three epochs 2013/2015/2016 (a HEAL-tier bracket), one 10x10 canopy block that
+    the middle epoch drops: 100 cells the healer must fill and nothing else."""
+    n = 30
+    stack = np.zeros((3, n, n), np.uint8)
+    stack[0, 5:15, 5:15] = 1
+    stack[2, 5:15, 5:15] = 1
+    np.savez(path, stack=stack, inside=np.ones((n, n), bool),
+             years=np.array(["2013", "2015", "2016"]),
+             transform=np.array([2.0, 0.0, 0.0, 0.0, -2.0, 2.0 * n]))
+    return path
+
+
+def test_parser_defaults_are_the_module_constants():
+    """A later edit cannot silently move the published output or its input: the parser
+    defaults ARE the module constants, and the constants ARE the tracked locations."""
+    import temporal_heal as TH
+    a = TH._parser().parse_args([])
+    assert a.stack == str(TH.STACK) and a.out == str(TH.OUT_CSV)
+    assert TH.STACK == Path(r"D:\edmonds-pipeline\trend8_stack_2m.npz")
+    assert TH.OUT_CSV == REPO / "phase4" / "qc" / "temporal_heal.csv"
+    assert a.min_area == TH.MIN_AREA_M2 and not a.dry_run
+
+
+def test_stack_and_out_are_honoured_on_a_synthetic_stack(tmp_path):
+    """build() runs end to end on a 3-epoch synthetic npz through --stack, writes only to
+    --out, and the tracked measured CSV is byte-identical afterwards."""
+    pytest.importorskip("scipy")
+    import csv as _csv
+    import temporal_heal as TH
+    s = _synthetic_stack(tmp_path / "s.npz")
+    o = tmp_path / "o.csv"
+    before = TH.OUT_CSV.read_bytes() if TH.OUT_CSV.exists() else None
+
+    rows, overlays, err = TH.build(stack=s)
+    assert err is None and len(rows) == 1
+    r = rows[0]
+    assert (r["epoch"], r["prev"], r["next"], r["tier"]) == ("2015", "2013", "2016", "HEAL")
+    assert r["candidate_cells_raw"] == 100 and r["healed_cells"] == 100
+    assert overlays["2015"]["heal"].sum() == 100 and overlays["2015"]["ignore"].sum() == 0
+
+    assert TH.main(["--stack", str(s), "--out", str(o)]) == 0
+    body = [ln for ln in o.read_text(encoding="utf-8").splitlines()
+            if ln.strip() and not ln.startswith("#")]
+    got = list(_csv.DictReader(body))
+    assert [g["epoch"] for g in got] == ["2015"] and got[0]["healed_cells"] == "100"
+    assert "# heal_tier_cells,100" in o.read_text(encoding="utf-8")
+    after = TH.OUT_CSV.read_bytes() if TH.OUT_CSV.exists() else None
+    assert after == before, "a --stack/--out run rewrote the tracked measured CSV"
+
+
+def test_module_global_override_still_reaches_build(tmp_path, monkeypatch):
+    """heal_fill_audit_sample.py::build rebinds temporal_heal.STACK and then calls
+    build() with no argument. The default must resolve at CALL time, not def time."""
+    pytest.importorskip("scipy")
+    import temporal_heal as TH
+    s = _synthetic_stack(tmp_path / "s.npz")
+    monkeypatch.setattr(TH, "STACK", s)
+    rows, _, err = TH.build()
+    assert err is None and rows[0]["healed_cells"] == 100
+    monkeypatch.setattr(TH, "STACK", tmp_path / "absent.npz")
+    _, _, err = TH.build()
+    assert err and "absent.npz" in err

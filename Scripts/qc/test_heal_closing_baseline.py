@@ -249,3 +249,105 @@ def test_the_tracked_csv_publishes_both_at_risk_denominators():
     assert all("n_eligible_terminal" in r and "n_eligible_in_interval" in r for r in rows)
     assert any(r["arm"] == "healer" for r in rows), (
         "the healer's own row is missing — the baseline has nothing to be a baseline for")
+
+
+# ------------------------------------------------------------------ --stack / --heal / --out
+
+np = pytest.importorskip("numpy")
+
+
+def test_parser_defaults_are_the_module_constants():
+    """The defaults regenerate the tracked CSV from the published cache and the tracked
+    temporal_heal.csv; a later edit cannot silently move any of the three."""
+    a = M._parser().parse_args([])
+    assert a.stack == str(M.STACK) and a.heal == str(M.HEAL_CSV) and a.out == str(M.OUT_CSV)
+    assert M.STACK == Path(r"D:\edmonds-pipeline\trend8_stack_2m.npz")
+    assert M.HEAL_CSV == QC / "temporal_heal.csv"
+    assert M.OUT_CSV == CSV_OUT
+    assert not a.dry_run
+
+
+def _synthetic_stack(path):
+    n = 30
+    stack = np.zeros((3, n, n), np.uint8)
+    stack[0, 5:15, 5:15] = 1
+    stack[2, 5:15, 5:15] = 1
+    np.savez(path, stack=stack, inside=np.ones((n, n), bool),
+             years=np.array(["2013", "2015", "2016"]),
+             transform=np.array([2.0, 0.0, 0.0, 0.0, -2.0, 2.0 * n]))
+    return path
+
+
+def _fake_hvg(years):
+    """heal_vs_gold.build's shape: per-point trajectories plus its own per-row scores,
+    which build() re-scores for parity. Two points on a 3-epoch series."""
+    import types
+    rows = [
+        {"point_id": "L1", "label": "loss", "raw_trajectory": "CC.",
+         "healed_trajectory": "CC.", "impossible_triples_raw": "0",
+         "impossible_triples_healed": "0", "terminal_laundered": "0",
+         "terminal_censored": "0", "healed_to_canopy": "0"},
+        {"point_id": "N1", "label": "nochange", "raw_trajectory": "C.C",
+         "healed_trajectory": "CCC", "impossible_triples_raw": "1",
+         "impossible_triples_healed": "0", "terminal_laundered": "0",
+         "terminal_censored": "0", "healed_to_canopy": "1"},
+    ]
+    m = types.ModuleType("heal_vs_gold")
+    # build(stack=...) — the baseline forwards its stack so both index one lattice; the
+    # double ignores it and answers with ITS years, which is how the mismatch test
+    # below can still make the gate fire.
+    m.build = lambda stack=None: (rows, {"years": list(years)}, None)
+    return m
+
+
+HEAL_CSV_TEXT = (
+    "epoch,prev,next,tier,gap_left_yr,gap_right_yr,shift_prev_dx_m,shift_prev_dy_m,"
+    "shift_next_dx_m,shift_next_dy_m,n_match_prev,n_match_next,candidate_cells_raw,"
+    "healed_cells,healed_ha,healed_pp_of_city,n_components\n"
+    "2015,2013,2016,HEAL,2,1,0.0,0.0,0.0,0.0,0,0,100,100,0.04,11.111,1\n"
+    "# min_area_m2,28.0\n# heal_tier_cells,100\n")
+
+
+def test_stack_heal_and_out_are_honoured_on_a_synthetic_stack(tmp_path, monkeypatch):
+    """build() runs end to end on a 3-epoch synthetic stack with heal_vs_gold stubbed to
+    the matching epochs; the CSV lands only at --out and the tracked one is untouched."""
+    import sys as _sys
+    s = _synthetic_stack(tmp_path / "s.npz")
+    h = tmp_path / "heal.csv"
+    h.write_text(HEAL_CSV_TEXT, encoding="utf-8")
+    o = tmp_path / "o.csv"
+    meta = tmp_path / "meta.json"
+    meta.write_text('{"interval": "2013 -> 2016"}', encoding="utf-8")
+    monkeypatch.setattr(M, "META_JSON", meta)
+    monkeypatch.setitem(_sys.modules, "heal_vs_gold", _fake_hvg(["2013", "2015", "2016"]))
+    before = CSV_OUT.read_bytes() if CSV_OUT.exists() else None
+
+    assert M.main(["--stack", str(s), "--heal", str(h), "--out", str(o)]) == 0
+    rows = _rows(o)
+    healer = [r for r in rows if r["arm"] == "healer"]
+    assert len(healer) == 1 and healer[0]["citywide_cells_filled"] == "100"
+    acq1 = [r for r in rows if r["arm"] == "closing" and r["rule"] == "acq"
+            and r["K"] == "1"][0]
+    assert acq1["citywide_cells_filled"] == "100"      # the unaligned closing, same block
+    assert acq1["nochange_triples_removed"] == "1"
+    assert "# scoring_parity_mismatches,0" in o.read_text(encoding="utf-8")
+    after = CSV_OUT.read_bytes() if CSV_OUT.exists() else None
+    assert after == before, "a --stack/--heal/--out run rewrote the tracked measured CSV"
+
+
+def test_a_stack_whose_epochs_are_not_the_golds_is_refused_not_indexed(tmp_path,
+                                                                        monkeypatch):
+    """heal_vs_gold's trajectories index ITS stack; citywide fills index the one passed.
+    Twelve layers under eight-epoch years would be silently wrong, so it is FATAL."""
+    import sys as _sys
+    s = _synthetic_stack(tmp_path / "s.npz")
+    meta = tmp_path / "meta.json"
+    meta.write_text('{"interval": "2013 -> 2016"}', encoding="utf-8")
+    monkeypatch.setattr(M, "META_JSON", meta)
+    monkeypatch.setitem(_sys.modules, "heal_vs_gold",
+                        _fake_hvg(["2009", "2011s", "2013"]))
+    rows, meta_, err = M.build(stack=s, heal_csv=tmp_path / "none.csv")
+    assert rows is None and "different stack" in err
+    o = tmp_path / "o.csv"
+    assert M.main(["--stack", str(s), "--out", str(o)]) == 2
+    assert not o.exists()

@@ -397,3 +397,65 @@ def test_real_csv_publishes_the_denominator_beside_every_zero():
     assert sum(int(r["laundered_eligible"]) for r in rows) > 0, (
         "no verified loss's terminal absence overlaps any bracket — then even the "
         "positional denominator is empty and the file should say so")
+
+
+# ---- --stack: the healer runs on another stack; the defaults do not move --------------
+
+def test_parser_defaults_are_the_module_constants():
+    a = HGS._parser().parse_args([])
+    assert a.out == str(HGS.OUT_CSV) and a.gold == str(HGS.GOLD_CSV)
+    assert a.stack is None and a.heal is None
+    assert HGS.OUT_CSV == REAL_CSV == QC / "heal_gap_spectrum.csv"
+    assert a.seed == HGS.SHUFFLE_SEED and not a.dry_run and not a.no_crowns
+
+
+def _synthetic_stack(path):
+    """The temporal_heal fixture: 2013/2015/2016, a 10x10 block dropped at 2015."""
+    n = 30
+    stack = np.zeros((3, n, n), np.uint8)
+    stack[0, 5:15, 5:15] = 1
+    stack[2, 5:15, 5:15] = 1
+    np.savez(path, stack=stack, inside=np.ones((n, n), bool),
+             years=np.array(["2013", "2015", "2016"]),
+             transform=np.array([2.0, 0.0, 0.0, 0.0, -2.0, 2.0 * n]))
+    return path
+
+
+def test_stack_override_runs_the_healer_on_that_stack(tmp_path):
+    """Through the real path — temporal_heal.build on the override, candidate
+    reconstruction and containment both passing — writing only to --out."""
+    pytest.importorskip("scipy")
+    s = _synthetic_stack(tmp_path / "s.npz")
+    # one no-change point inside the dropped block (row 7, col 7 -> a P A P cell) and one
+    # verified loss on bare ground; both on-grid
+    gold = [{"point_id": "N1", "label": "nochange", "x": 2.0 * 7 + 1.0, "y": 60.0 - 2.0 * 7 - 1.0},
+            {"point_id": "L1", "label": "loss", "x": 2.0 * 20 + 1.0, "y": 60.0 - 2.0 * 20 - 1.0}]
+    g = tmp_path / "g.csv"
+    _write_gold(g, gold)
+    o = tmp_path / "o.csv"
+    before = REAL_CSV.read_bytes() if REAL_CSV.exists() else None
+
+    bundle, err = HGS.load_bundle(None, stack=s)
+    assert err is None and bundle["years"] == ["2013", "2015", "2016"]
+    assert bundle["tiers"] == ["", "HEAL", ""] and int(bundle["candidate"][1].sum()) == 100
+    assert int((bundle["healed"][1] == HGS.HEALED).sum()) == 100
+
+    rc = HGS.main(["--stack", str(s), "--gold", str(g), "--out", str(o), "--no-crowns"])
+    assert rc == 0
+    body = [ln for ln in o.read_text(encoding="utf-8").splitlines()
+            if ln.strip() and not ln.startswith("#")]
+    rows = list(csv.DictReader(body))
+    spec = [r for r in rows if r["row_kind"] == "spectrum"]
+    assert [r["L_years"] for r in spec] == ["3"] and spec[0]["epochs"] == "2015"
+    assert spec[0]["n_fills_canopy"] == "100" and spec[0]["triples_removed"] == "1"
+    assert spec[0]["fills_outside_eligible"] == "0"
+    assert "# epochs,2013|2015|2016" in o.read_text(encoding="utf-8")
+    after = REAL_CSV.read_bytes() if REAL_CSV.exists() else None
+    assert after == before, "a --stack run rewrote the tracked measured CSV"
+
+
+def test_stack_override_lands_on_the_module_instance_the_healer_runs_from(tmp_path):
+    """_sibling loads a fresh temporal_heal each call, so setting STACK anywhere but on
+    that instance is a no-op — an absent override must surface as ITS error."""
+    bundle, err = HGS.load_bundle(None, stack=tmp_path / "absent.npz")
+    assert bundle is None and "absent.npz" in err

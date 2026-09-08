@@ -84,6 +84,8 @@ Output: phase4/qc/heal_gap_spectrum.csv
 
 Run:  py -3.12 qc/instruments/heal_gap_spectrum.py [--dry-run] [--no-crowns]
       py -3.12 qc/instruments/heal_gap_spectrum.py --heal bundle.npz --gold g.csv --out o.csv
+      py -3.12 qc/instruments/heal_gap_spectrum.py --stack S.npz --out o.csv --no-crowns
+      (--stack overrides temporal_heal.STACK for the healer run; the default is unchanged)
 """
 from __future__ import annotations
 
@@ -560,7 +562,7 @@ def _row(kind, L, cells, epochs, acc, crown_elig, crown_rem, days, note):
 
 # ---------------------------------------------------------------- the real bundle
 
-def load_bundle(path=None):
+def load_bundle(path=None, stack=None):
     """Either replay a saved bundle (`--heal`, what the tests use) or build the real one.
 
     The real path runs `temporal_heal.py::build` and RECONSTRUCTS its candidate set from
@@ -576,6 +578,10 @@ def load_bundle(path=None):
     """
     import numpy as np
     th = _sibling("temporal_heal")
+    if stack:
+        # on THIS module instance — _sibling loads a fresh one each call, so the override
+        # has to land here, the way heal_fill_audit_sample.py::build sets heal.STACK.
+        th.STACK = Path(stack)
     if path:
         d = np.load(path, allow_pickle=False)
         b = {"years": [str(y) for y in d["years"]],
@@ -628,24 +634,30 @@ def load_bundle(path=None):
             "crown_raw": None, "crown_healed": None}, None
 
 
-def main(argv=None):
-    from phase4seg.names import clean_argv
+def _parser():
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--heal", default=None,
                     help="replay a saved heal bundle (.npz) instead of running the healer")
+    ap.add_argument("--stack", default=None,
+                    help="epoch stack the healer reads (overrides temporal_heal.STACK)")
     ap.add_argument("--gold", default=str(GOLD_CSV))
     ap.add_argument("--out", default=str(OUT_CSV))
     ap.add_argument("--no-crowns", action="store_true",
                     help="skip the validity-interval boundary count (needs the 2020 gpkg)")
     ap.add_argument("--seed", type=int, default=SHUFFLE_SEED)
     ap.add_argument("--dry-run", action="store_true")
-    a = ap.parse_args(clean_argv() if argv is None else argv)
+    return ap
+
+
+def main(argv=None):
+    from phase4seg.names import clean_argv
+    a = _parser().parse_args(clean_argv() if argv is None else argv)
 
     gold = _rows(a.gold)
     if not gold:
         print(f"FATAL: {a.gold} absent or empty — run freeze_panel_a_gold.py")
         return 2
-    bundle, err = load_bundle(a.heal)
+    bundle, err = load_bundle(a.heal, a.stack)
     if err:
         print(f"FATAL: {err}")
         return 2

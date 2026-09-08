@@ -49,6 +49,11 @@ ground blocks (`--aoi` + manifest CSV) — AOI is part of the live-row lineage a
 restricted rows must NEVER be pooled or compared with citywide rows. Dense-sweep
 files for restricted runs carry the aoi name as a filename suffix for the same
 reason.
+**Tracked copy** (`phase4/qc/qc_indep_report.csv` + the per-year `qc_indep_{year}.txt`
+and `qc_indep_surfaces_{year}.csv` breakouts) is written ONLY by
+`qc/instruments/harvest_qc_indep.py` (a `landed.py` rung, 2026-09-08): byte copy of the
+lake, refusing a shrinking report and a re-shaped header, reporting any lineage with
+two live generations. It was hand-copied before and fell 285 rows behind twice.
 
 ## qc_indep_sweep_{year}_{arm}_{refstem}.csv (lake `phase4/qc/`, GENERATED dense curve)
 

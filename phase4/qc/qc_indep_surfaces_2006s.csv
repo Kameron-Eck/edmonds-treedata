@@ -1,0 +1,3 @@
+group,kind,px,area_pct,canopy_call_rate,ref,prob,thresh,ts
+canopy,canopy,606672,43.994,0.4597,_chm2005_canopy2m_binary.tif,edmonds_canopy_prob_2006s_t1_2006s_base.tif,0.5,2026-09-03 23:46:24
+other,non-canopy,772318,56.006,0.0556,_chm2005_canopy2m_binary.tif,edmonds_canopy_prob_2006s_t1_2006s_base.tif,0.5,2026-09-03 23:46:24

@@ -17,7 +17,8 @@ so this runs it:
   5. docs       drift gates over the gated docs
   6. status     STATUS.md + STATUS.json regenerated (lake mounted only)
   7. harvest    tilesets, run passports, arm metrics + curves, failures, hw
-                attribution, timing events, runtime sessions — the lake-reading
+                attribution, timing events, runtime sessions, independent
+                scores (qc_indep_report + breakouts) — the lake-reading
                 harvests, so a landed campaign cannot leave the tracked context
                 tables describing the PREVIOUS state of the lake. The list in the
                 loop below is the one that runs; this line is a summary of it
@@ -87,7 +88,11 @@ def main():
                              ("timing events",
                               "instruments/harvest_timing_events.py"),
                              ("runtime sessions",
-                              "instruments/harvest_runtime_sessions.py")):
+                              "instruments/harvest_runtime_sessions.py"),
+                             # The honest-results home itself. Hand-copied until
+                             # 2026-09-08, when it sat 285 rows behind the lake.
+                             ("independent scores",
+                              "instruments/harvest_qc_indep.py")):
             fails += run(f"harvest: {name}",
                          [py, str(SCRIPTS / "qc" / script)], a.dry_run) != 0
     else:

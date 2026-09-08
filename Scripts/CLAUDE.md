@@ -85,6 +85,7 @@ print('NIR:',sorted({e['label'] for e in cat if e['bands']>=4}))"
 # re-harvest the run context after any Colab campaign (needs the lake)
 # py -3.12 qc/instruments/harvest_tilesets.py && py -3.12 qc/instruments/harvest_run_passport.py
 # py -3.12 qc/instruments/harvest_arm_metrics.py && py -3.12 qc/instruments/harvest_failures.py
+# py -3.12 qc/instruments/harvest_qc_indep.py      # the honest-results table itself (never hand-copy it)
 # py -3.12 qc/year_scoreboard.py && py -3.12 qc/coverage_map.py && py -3.12 qc/science_digest.py
 
 # GSD span and histogram

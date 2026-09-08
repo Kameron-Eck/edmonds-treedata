@@ -1,0 +1,28 @@
+QC score vs INDEPENDENT reference — year 2006s
+  ref  : D:\edmonds-pipeline\Imagery\_chm2005_canopy2m_binary.tif   (scheme=binary)
+  prob : G:\My Drive\treedata\phase4\masks\edmonds_canopy_prob_2006s_t1_2006s_base.tif
+  deployed threshold : 0.5
+  valid px           : 1,378,990   (≈ 1,378,990 independent 1 m² cells)
+  model canopy frac  : 23.34%
+
+  CANOPY DEFINITIONS (nested):
+    definition             recall   precision   grass_rej   ref_canopy%   TP / FN(missed)
+    canopy_only            0.4597    0.8666       nan       43.99%   278,874 / 327,798  <-- PRIMARY
+
+  PER-SURFACE DELINEATION (canopy-call rate = recall for canopy, FP-rate otherwise):
+    group                kind         px          area%    canopy-call
+    canopy               canopy            606,672   43.99%    0.4597 (recall)
+    other                non-canopy        772,318   56.01%    0.0556 (FP-rate)
+
+  THRESHOLD SWEEP (primary def = canopy_only):
+    thresh    recall   precision   TP / missed
+    0.2000   0.9818    0.4781     595,634 / 11,038
+    0.2500   0.7416    0.7378     449,887 / 156,785
+    0.3000   0.6074    0.8099     368,476 / 238,196
+    0.3767   0.5550    0.8331     336,677 / 269,995
+    0.4500   0.5111    0.8500     310,047 / 296,625
+    0.5000   0.4597    0.8666     278,874 / 327,798
+
+  CLASS MAP USED (audit — VERIFY vs the reference's own legend):
+    canopy order : ['canopy_only']
+    grass group  : None

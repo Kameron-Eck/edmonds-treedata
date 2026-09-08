@@ -764,3 +764,46 @@ next:    tile-bundle handoff (workflow in flight: one archive per tileset_id, ~1
          workers on 12 vCPU), evaluate's un-instrumented +1 min, ledger consolidation
          rung. Validate 94cb8df startup line on next launch. Concurrency cap raise still
          #1 wall-clock lever (Kam).
+
+## 2026-09-08  bundle-validation-run-and-ledger-rebuild-2
+goal:    validate five post-pilot machinery changes on a real run (3.4c), close the
+         ledger rebuild's two limits, land the follow-ups the pilot exposed.
+did:     (1) VALIDATION RAN: experiments/bundle_validation_2017k.yaml (spdvc1 CPU
+         labels+tile, spdvg A100 train, PHASE4SEG_TILE_BUNDLE=1 via new `vm_ops launch
+         --env`), referee-scored from named files. K1/K2 PASS. R1 FAIL: bundle read
+         123.7 s vs 60 s bar (1.85x faster than 228.2 per-file; >= 86 s zero-traffic
+         stall, one vCPU in D-state; rclone upload of same files 1302 vs 522 s same
+         window; comparator wrong at 0.3 GB size class). Flag stays OFF. R2 PASS startup
+         merge 5.1/5.9 s (was 359). R3 PASS 0 installs (was 3). R4 PASS 0 gaps 0 torn
+         (was 15-24% lost). R5 PASS phases + VERIFY minutes on every step.
+         (2) LANDED: tile-bundle handoff dd71417 (design duel: minimal design's guards
+         all inert against same-signature re-tile; robust design sweeps every bundle on
+         write); vm_ops --env 961abb0; site-discovery skip under citywide 6276207 (labels
+         9.4 min of nothing; tile's cost moved inside step - needs sites for negative
+         records); coverage_map/science_digest/ask.py tile SET vs DIRECTORY census
+         ee5be4d 271f804 (2017k read 1264 for 632); claims split 71 sets / 83 dirs;
+         cpu_model/mhz/bogomips in hw_meta 8bd256c (two "2 vCPU" hosts: 21.0 vs 39.1
+         min same tile step, cause UNDETERMINED); rebuild per-LAUNCH suppression +
+         start-of-step ts af60d97 (of2017k2 rows back; 496 rows replace 450 on lake).
+         (3) FOUND, untimed: saving epochs 58 s vs 24 s non-saving = 11-13 min per
+         train step in torch.save / sha256 read-back / publish / verify, A100 idle;
+         timed copy 2.5 s of it. 4x the bundle's whole saving.
+decided: bundle flag not promoted (pre-registered bar). Recovered ledger on lake
+         REPLACED with 496-row version (superset, better ts). Row-count claims
+         (tileset-directories) refresh at landed.py - drift expected by design.
+killed:  "39.1 MB/s is the bar for a 0.5 GB read" - size-class conditioned: p10 7.5,
+         16/82 under 10 at 0.01-0.33 GB. "bundle shortened training" - only 104.5 s of
+         240 s delta is the staging line; rest is one fewer save. My "19.7/33.5 min
+         tile compute" derivation - sampled minutes are 21.0/39.1 (ratio holds).
+files:   experiments/bundle_validation_2017k.yaml; pipeline/bundle_validation_2017k_
+         {cpu1,gpu}.yaml; phase4seg/{staging,tiling,cli,common}.py; pipeline/vm_ops.py;
+         qc/{coverage_map,science_digest,ask}.py; qc/instruments/{rebuild_queue_ledger,
+         harvest_runtime_sessions}.py; pipeline/vm_hwlogger.py; claims.yaml;
+         docs/SCHEMAS.md; WORKPLAN board rows.
+next:    engine workflow in flight (ortho scratch cache design duel, common.py::
+         _publish_replace guard, per-epoch phase timing, evaluate ticks) - commit on
+         landing. Probe: re-read aged bundle on a fresh runtime with chunked timing
+         (agent writing qc/instruments/probe_bundle_read.py) - settles window vs
+         structural. Then chunked copy w/ floor + rclone escape if structural. Ticks
+         around torch.save/_sha256/verify_on_drive. Ledger consolidation rung.
+         Concurrency cap raise (Kam) still #1 wall-clock lever.

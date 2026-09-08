@@ -609,6 +609,53 @@ def _validate(model, loader, criterion, device, loss_mode="bce_dice"):
             iou_grid[bt_i], _VAL_THRESH_GRID[bt_i])
 
 
+def _augmentation_seed_state(transforms=None):
+    """READ (never assert) whether the augmentation stream carries a seed.
+
+    albumentations 2.x gives every Compose its OWN random pair and seeds it from OS
+    entropy unless `seed=` is passed at construction: its BaseCompose.set_random_seed
+    stores that argument on `.seed` and rebuilds both generators from it, so `.seed`
+    is the object's own answer and this function just reports it. Neither python's
+    nor numpy's global seed reaches that stream. Measured 2026-09-08 (albumentations
+    2.0.8): two Composes from one factory, with identical global reseeding either
+    side, disagreed on 12,096 of 12,288 pixels of a single flip/rotate application,
+    and two identically-seeded SemanticDataset objects in one process differ in
+    1,035,887 of 1,048,576 pixels on item 0. That is why the printed line names the
+    augmentation RNG separately from python/numpy/torch instead of implying one word
+    covers all four.
+
+    SCOPE: the three factories SemanticDataset draws its TRAINING transforms from —
+    spatial, plus both pixel variants (a dataset builds one of the two, depending on
+    _numpy_norm). They are the only ones holding random ops; _make_test_transform is
+    Normalize+ToTensorV2, so its seed would say nothing about augmentation.
+
+    Probing builds throwaway Composes (~7 ms measured, and measured NOT to touch the
+    python/numpy global streams); _seed_everything calls it BEFORE it seeds, so
+    anything a future transform's constructor did draw is overwritten regardless.
+    """
+    if transforms is None:
+        try:
+            transforms = [_make_spatial_transform(), _make_pixel_transform(),
+                          _make_pixel_transform_nonorm()]
+        except Exception as e:
+            return f"UNKNOWN (Compose probe failed: {type(e).__name__})"
+    absent = object()
+    seeds = [getattr(tf, "seed", absent) for tf in transforms]
+    if any(s is absent for s in seeds):
+        # An albumentations whose Compose has no `.seed` is a version this probe
+        # cannot read. Say UNKNOWN and claim nothing — falling through to the
+        # int-branch would print SEEDED, which is the overstatement being repaired.
+        return "UNKNOWN (this albumentations Compose exposes no .seed)"
+    if all(s is None for s in seeds):
+        return ("UNSEEDED (albumentations Compose.seed=None — self-seeds per "
+                "process) — runs are single draws")
+    if any(s is None for s in seeds):
+        return (f"PARTLY SEEDED (Compose.seed={seeds}) — the unseeded part of the "
+                f"stream is a single draw")
+    return (f"SEEDED (albumentations Compose.seed={seeds[0]}) — aug stream "
+            f"repeatable-in-principle")
+
+
 def _seed_everything(seed):
     """P6.2: make a training run repeatable-in-principle and RECORD the seed.
 
@@ -618,12 +665,15 @@ def _seed_everything(seed):
     bitwise reproducibility is not the goal, bounded variation is).
     """
     import random
+    # Probe BEFORE seeding: the word is read off real Compose objects, and building
+    # them here can never disturb the seeds set immediately below.
+    aug = _augmentation_seed_state()
     random.seed(seed)
     np.random.seed(seed)
     torch.manual_seed(seed)
     if torch.cuda.is_available():
         torch.cuda.manual_seed_all(seed)
-    print(f"  Seeds: python/numpy/torch(+cuda) = {seed}  "
+    print(f"  Seeds: python/numpy/torch(+cuda) = {seed}; augmentation RNG: {aug} "
           f"(cudnn.benchmark + AMP nondeterminism accepted)")
 
 

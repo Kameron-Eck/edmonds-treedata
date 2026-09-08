@@ -116,6 +116,9 @@ def run():
             for _tf in (getattr(ds_tr, "spatial_tf", None), getattr(ds_tr, "pixel_tf", None)):
                 if _tf is not None and hasattr(_tf, "set_random_seed"):
                     _tf.set_random_seed(SEED)
+            print(f"  bench: augmentation RNG pinned to {SEED} on spatial_tf/pixel_tf "
+                  "regardless of what the Seeds line above reports for production — a "
+                  "verdict below is about the step body, NOT run-to-run reproducibility.")
             tr = DataLoader(ds_tr,
                             batch_size=2, num_workers=0, shuffle=True,
                             generator=core._loader_generator(),

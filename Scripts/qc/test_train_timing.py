@@ -31,6 +31,18 @@ CONTRACT between the printer and the harvester, not the plumbing:
      epoch-end `torch.cuda.synchronize()` is guarded by `device.type == "cuda"`, so
      the CPU-stubbed Phase-B loop never touches the module-level binding either.
 
+  g  (2026-09-08) the start-of-train `Seeds:` line names what is actually controlled.
+     It used to read "Seeds: python/numpy/torch(+cuda) = 42 (cudnn.benchmark + AMP
+     nondeterminism accepted)", which reads as "the run is seeded". It is not:
+     albumentations 2.x self-seeds every Compose from OS entropy when `seed=` is not
+     passed, and `core.py::_make_spatial_transform` and its two siblings pass none,
+     so the augmentation stream is a fresh draw in every process. The word is now
+     READ off the Compose objects (`core.py::_augmentation_seed_state`), and what is
+     gated is that the word TRACKS THOSE OBJECTS — UNSEEDED today, SEEDED once a seed
+     is passed, UNKNOWN (never SEEDED) when `.seed` cannot be read at all. The last
+     of the three is the mutation test CLAUDE.md 3.4c asks for: a state word that has
+     never been shown to change is not known to be reading anything.
+
 Run:  PYTHONUTF8=1 py -3.12 -m pytest qc/test_train_timing.py -q
 """
 import re
@@ -355,6 +367,84 @@ def test_evaluate_emits_its_five_timing_labels():
         assert f'tick("{label}")' in body, f"step_evaluate no longer ticks {label!r}"
         assert f'tock("{label}")' in body, f"step_evaluate no longer tocks {label!r}"
         assert _EVENT.search(f"  ⏱ {label}: 12.3s"), f"{label!r} would not harvest"
+
+
+# ── g: the Seeds line says what is, and is not, seeded ────────────────────────
+
+SEEDS_PREFIX = "  Seeds: python/numpy/torch(+cuda) = 42"
+SEEDS_SUFFIX = "(cudnn.benchmark + AMP nondeterminism accepted)"
+
+
+def _seeds_line(capsys):
+    core._seed_everything(42)
+    out = [ln for ln in capsys.readouterr().out.splitlines() if "Seeds:" in ln]
+    assert len(out) == 1, f"expected one Seeds line, got {out!r}"
+    return out[0]
+
+
+def test_seeds_line_reports_the_augmentation_rng_as_unseeded(capsys):
+    """The line as production prints it TODAY. The prefix is pinned byte-for-byte
+    (indent included) because it is the only stable handle anyone reading a Colab log
+    or grepping the archive has, and the old suffix is pinned because the cudnn/AMP
+    admission it carries is still true and still the reader's warning."""
+    line = _seeds_line(capsys)
+    assert line.startswith(SEEDS_PREFIX), f"the Seeds prefix moved: {line!r}"
+    assert "augmentation RNG: UNSEEDED" in line, (
+        f"the augmentation RNG is no longer reported UNSEEDED: {line!r} — if a seed is "
+        f"now passed to the Composes that is a NUMERICS change, not a wording one")
+    assert SEEDS_SUFFIX in line, f"the cudnn/AMP admission was dropped: {line!r}"
+
+
+def test_seeds_line_says_seeded_when_the_composes_carry_a_seed(capsys, monkeypatch):
+    """Same path end to end — factory → inspector → print — with the ONE thing that
+    should change the word changed. Patching the factories (not the inspector) is what
+    makes this a test of reading rather than of a hardcoded string."""
+    for name in ("_make_spatial_transform", "_make_pixel_transform",
+                 "_make_pixel_transform_nonorm"):
+        orig = getattr(core, name)
+
+        def seeded(_orig=orig):
+            tf = _orig()
+            tf.set_random_seed(42)
+            return tf
+        monkeypatch.setattr(core, name, seeded)
+    line = _seeds_line(capsys)
+    assert "augmentation RNG: SEEDED" in line, (
+        f"the word did not follow the Compose objects: {line!r}")
+    assert "UNSEEDED" not in line
+    assert line.startswith(SEEDS_PREFIX) and SEEDS_SUFFIX in line
+
+
+def test_seeds_line_says_unknown_not_seeded_when_it_cannot_read_the_composes(capsys,
+                                                                             monkeypatch):
+    """The mutation test. Feed the inspector a Compose-shaped object with no `.seed`
+    (the shape an older or future albumentations would present) and the line must fall
+    to UNKNOWN. The failure mode this bans is the quiet one: a version bump that hides
+    `.seed`, an int-branch that catches it, and a log line that starts claiming SEEDED
+    about a stream nobody is seeding."""
+    class NoSeed:
+        pass
+    for name in ("_make_spatial_transform", "_make_pixel_transform",
+                 "_make_pixel_transform_nonorm"):
+        monkeypatch.setattr(core, name, lambda: NoSeed())
+    line = _seeds_line(capsys)
+    assert "augmentation RNG: UNKNOWN" in line, f"silent fall-through: {line!r}"
+    assert "SEEDED" not in line, (
+        f"an unreadable Compose was reported as a seeding claim: {line!r}")
+
+
+def test_the_bench_says_its_pin_is_not_a_reproducibility_claim():
+    """`qc/bench.py` pins the very RNG production leaves free, so BENCH MATCH is a
+    verdict on the step body and a null verdict on run-to-run reproducibility. Read off
+    the imported function, not a hardcoded path, so the note travels with the pin."""
+    import inspect
+
+    import bench
+    body = inspect.getsource(bench.run)
+    assert "set_random_seed(SEED)" in body, "bench no longer pins the aug RNG"
+    assert "reproducibility" in body, (
+        "bench pins the augmentation RNG without saying so — a reader takes BENCH "
+        "MATCH for a reproducibility result")
 
 
 def test_no_line_numbers_in_the_new_citations():

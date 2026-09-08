@@ -17,9 +17,10 @@ so this runs it:
   5. docs       drift gates over the gated docs
   6. status     STATUS.md + STATUS.json regenerated (lake mounted only)
   7. harvest    tilesets, run passports, arm metrics + curves, failures, hw
-                attribution — the lake-reading harvests, so a landed campaign cannot
-                leave the tracked context tables describing the PREVIOUS state of
-                the lake
+                attribution, timing events, runtime sessions — the lake-reading
+                harvests, so a landed campaign cannot leave the tracked context
+                tables describing the PREVIOUS state of the lake. The list in the
+                loop below is the one that runs; this line is a summary of it
   8. regen      year scoreboard, coverage map, experiment index, SCIENCE.md —
                 derived from tracked homes, so they run with or without the lake
   9. chatlog    HEURISTIC reminder + entry stub when the newest LOG entry is not
@@ -82,7 +83,11 @@ def main():
                              ("arm metrics + curves", "instruments/harvest_arm_metrics.py"),
                              ("failures", "instruments/harvest_failures.py"),
                              ("hw attribution",
-                              "instruments/harvest_hw_attribution.py")):
+                              "instruments/harvest_hw_attribution.py"),
+                             ("timing events",
+                              "instruments/harvest_timing_events.py"),
+                             ("runtime sessions",
+                              "instruments/harvest_runtime_sessions.py")):
             fails += run(f"harvest: {name}",
                          [py, str(SCRIPTS / "qc" / script)], a.dry_run) != 0
     else:

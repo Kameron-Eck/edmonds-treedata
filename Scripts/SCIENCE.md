@@ -74,8 +74,9 @@ count beside it.
 
 16 of 37 acquisitions have a matched-cut read. ★ = designated champion.
 
-## 3. What 35 completed investigations concluded
+## 3. What 36 completed investigations concluded
 
+- **bundle_validation_2017k** (2026-09-08) — RAN 2026-09-08 02:02Z to 03:49Z (spdvc1 CPU labels+tile, spdvg A100 train), scored by an independent referee against the rule above; every number below names its file.
 - **offload_pilot_2017k** (2026-09-08) — RAN 2026-09-07 21:45Z to 2026-09-08 00:27Z on three runtimes (spdc1 CPU, spdg A100, spdc2 CPU);
 - **change_detector_design** (2026-09-06) — THE STEP-SHAPE CERTIFIER WINS AND THE SHIPPED PERSISTENCE FILTER IS A PURE RECALL TAX.
 - **flicker_parcels_census** (2026-09-06) — THE MODEL DOES NOT HALLUCINATE CANOPY ON BARE GROUND; THE INSTABILITY LIVES IN SENSITIVITY ON REAL VEGETATION.

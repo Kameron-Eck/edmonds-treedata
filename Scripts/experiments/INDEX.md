@@ -1,7 +1,7 @@
 # EXPERIMENT REGISTRY INDEX — GENERATED, do not edit
 
 Regenerate: `py -3.12 qc/experiments_index.py` (drift-gated by `test_experiments.py::test_index_is_fresh`).
-Authored layer + schema: this directory's `README.md`. 46 entries: 35 complete · 5 needs-kam · 5 queued · 1 tabled.
+Authored layer + schema: this directory's `README.md`. 46 entries: 36 complete · 5 needs-kam · 4 queued · 1 tabled.
 
 ## Awaiting Kam sign-off
 
@@ -15,6 +15,7 @@ Authored layer + schema: this directory's `README.md`. 46 entries: 35 complete �
 
 | entry | kind | status | decided | N | imagery | headline |
 |---|---|---|---|---|---|---|
+| bundle_validation_2017k | experiment | complete | 2026-09-08 | — | 2017k | RAN 2026-09-08 02:02Z to 03:49Z (spdvc1 CPU labels+tile, spdvg A100 train), scored by an independent referee against the rule above; every number below names its file. |
 | offload_pilot_2017k | experiment | complete | 2026-09-08 | — | 2017k | RAN 2026-09-07 21:45Z to 2026-09-08 00:27Z on three runtimes (spdc1 CPU, spdg A100, spdc2 CPU); |
 | change_detector_design | measurement-campaign | complete | 2026-09-06 | — | 2009,2011s,2013,2015,2016,2019,2021,2024 | THE STEP-SHAPE CERTIFIER WINS AND THE SHIPPED PERSISTENCE FILTER IS A PURE RECALL TAX. |
 | flicker_parcels_census | measurement-campaign | complete | 2026-09-06 | — | 2009,2011s,2013,2015,2016,2019,2021,2024 | THE MODEL DOES NOT HALLUCINATE CANOPY ON BARE GROUND; THE INSTABILITY LIVES IN SENSITIVITY ON REAL VEGETATION. |
@@ -51,7 +52,6 @@ Authored layer + schema: this directory's `README.md`. 46 entries: 35 complete �
 | imagery_qc_suite_2026_08_24 | measurement-campaign | complete | 2026-08-24 | 38 | — | THE ARCHIVE IS USABLE, AND ITS REGISTRATION IS THE THING THAT NEEDED WATCHING. |
 | rescore_2013_citywide | instrument-finding | complete | 2026-08-22 | — | 2013 | THE PREDICTED MOVEMENT DID NOT HAPPEN. |
 | chm_gap_2016 | instrument-finding | complete | 2026-08-18 | 2 | 2016 | THE ASSUMPTION HOLDS AND IS NOW CHECKED RATHER THAN ASSERTED. |
-| bundle_validation_2017k | experiment | queued | — | — | 2017k | Five machinery changes landed after the offload pilot, each sized by arithmetic from a measurement rather than by a run: the tile-bundle handoff (one archive per tileset_id; |
 | ccap_mixed_sign_bias | instrument-finding | needs-kam | — | — | 2016 | C-CAP is the reference nearly every score in this project is measured against, and the standing temptation is to treat its disagreement with our masks as one-directional — "C-CAP over-calls canopy, so… |
 | degradation_synth_2000 | experiment | queued | — | — | — | Training on 2020 imagery synthetically degraded to 2000's measured resolution and radiometry (resample-first, gain-only — qc/instruments/degrade_synth.py) beats the plain citywide-projection arm on 20… |
 | epoch_decay_mvv0 | instrument-finding | needs-kam | — | — | 2006s,2011s,2016,2020 | King County holds lidar epochs Edmonds cannot get, and buying them was on the table. |

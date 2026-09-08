@@ -807,3 +807,47 @@ next:    engine workflow in flight (ortho scratch cache design duel, common.py::
          structural. Then chunked copy w/ floor + rclone escape if structural. Ticks
          around torch.save/_sha256/verify_on_drive. Ledger consolidation rung.
          Concurrency cap raise (Kam) still #1 wall-clock lever.
+
+## 2026-09-08  engine-cache-profiler-bounded-read-landed
+goal:    land the engine follow-ups the pilot and validation exposed; settle the bundle
+         stall question; close the session with every rung clean.
+did:     (1) ENGINE 83d1169 (design duel + referees, ladder incl. bench = BENCH MATCH):
+         ortho scratch cache phase4seg/scratchcache.py - entries keyed by the existing
+         full-path hash, source compared on every hit, journal `copying` BEFORE the copy,
+         .part + os.replace, pins per (entry, pid) under flock before validation/open,
+         LRU eviction inside cache namespace only, prob raster ADOPTED after verified
+         Drive copy (under the queue POSTPROC_FOLLOWS is always False - every step its
+         own process - so postproc re-staged 2.4-6.7 GB every time); hit emits NO timing
+         row (would fabricate the saving). Residuals closed: pre-clear stale payload
+         under flock; eviction ladder never empties cache, never evicts the entry being
+         made room for. common.py::_publish_replace aside guard = ledger's (OSError +
+         re-probe). Per-epoch phase rows data/gpu(sync at epoch end)/val/save/other +
+         evaluate spans; SCHEMAS overlap rule (sum within family). Saving UNVALIDATED
+         until a same-VM tile+inference job shows the inference stage row gone.
+         (2) PROBE 5aa99e1 (qc/instruments/probe_bundle_read.py, detached, log mirrored
+         30 s; first attempt via exec channel timed out on a silent copy): same aged
+         bundle 10.6 s copy / 18.0 s end-to-end; chunked re-read stalled 33 s once; aged
+         control 66.9 MB/s no stall -> stalls intermittent on any read, not freshness.
+         (3) BOUNDED READ a5e58b4: FLOOR_MBPS 6.0 (p5.3 of 0.10-0.33 GB stage rows;
+         4.30 trips, 7.50/48.3 don't), MAX_STALL_S 60 (33.3 passes, >=86 fails), escape
+         to rclone path; honest limit in source: on the measured trace the gate fires at
+         ~101 s then fallback costs ~228 s - protects against never-returning stalls,
+         saves nothing on the one seen. Verdict comparator band corrected 0.01->0.10 GB.
+         (4) landed.py all mechanical rungs clean; STATUS regenerated; harvests settled.
+decided: PHASE4SEG_TILE_BUNDLE stays OFF (R1 FAIL stands); re-validate on next
+         campaign train now that the read is bounded. Cache lands OFF nothing - it is
+         transparent; first same-VM campaign validates it.
+killed:  "stall = fresh object" as sole cause (B's 33 s on a re-read). "bound saves
+         time" (it bounds worst case). Exec channel for long silent VM work (times out
+         waiting for output; detach + mirror instead).
+files:   phase4seg/{scratchcache,common,core,labels,postproc,staging,tiling}.py,
+         phase4seg_preflight.py, queue_ledger.py docstring, qc/test_{scratch_cache,
+         train_timing,tile_bundle,verified_write,postproc_source}.py,
+         qc/instruments/probe_bundle_read.py, phase4/qc/probe_bundle_read_2026*.txt,
+         docs/SCHEMAS.md, experiments/bundle_validation_2017k.yaml extra.probe_result,
+         STATUS.md/json, WORKPLAN board.
+next:    finer save split (torch.save / sha256 read-back / publish / verify are ONE
+         `save` bucket today; 11-13 min/train, A100 idle); validate cache + bounded
+         bundle on the next campaign (heal_infill queue is ready, ~8 A100-h + 1.2 h
+         tile on CPU); ledger consolidation rung; postproc on a >2-vCPU CPU tier;
+         concurrency cap raise (Kam) still #1 wall-clock lever.

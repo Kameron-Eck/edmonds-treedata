@@ -97,6 +97,17 @@ def tock(label):
     return 0.0
 
 
+def untick(label):
+    """Drop a running timer WITHOUT printing — an attempt that turned out not to be
+    the thing being measured. Added 2026-09-07 for staging.py's tile-bundle attempt:
+    it must publish "⏱ stage tiles {label}" only when it actually staged the set, or
+    a refused attempt would put a second, ~0 s event of that name in the log the
+    rclone fallback is about to write, and the harvested timing series would carry
+    two rows per step. Without this the alternative was re-implementing tock's format
+    string at the call site, which is exactly the kind of restatement that drifts."""
+    _timers.pop(label, None)
+
+
 def timer_summary():
     if _timers:
         print(f"\n  Unclosed timers: {list(_timers.keys())}")

@@ -764,7 +764,20 @@ def tileset_id(label):
     One home: qc/instruments/harvest_tilesets.py imports this, so the tracked
     registry and the engine can never disagree about what an ID is.
     """
-    mp = _meta_path(label)
+    return tileset_id_from_meta(_meta_path(label))
+
+
+def tileset_id_from_meta(meta_path):
+    """The 12-hex ID a sidecar meta.json records, or None. THE hash, one home.
+
+    A PURE MOVE of `tileset_id`'s body (2026-09-07), so the tile-BUNDLE reader in
+    `staging.py::_stage_from_bundle` can name a bundle from the meta sitting BESIDE
+    THE INDEX IT IS ACTUALLY CONSUMING instead of re-deriving the directory from live
+    config. `tileset_id` above is now a one-line wrapper over this, so the engine, the
+    bundle and `qc/instruments/harvest_tilesets.py::tileset_id` cannot drift apart —
+    `qc/test_tile_bundle.py::test_tileset_id_wrapper_is_a_pure_move` pins the pair.
+    """
+    mp = Path(meta_path)
     if not mp.exists():
         return None
     try:
@@ -774,6 +787,45 @@ def tileset_id(label):
     sig = {k: v for k, v in stored.items() if k not in META_NONSIG_KEYS}
     canon = json.dumps(sig, sort_keys=True, separators=(",", ":"), default=str)
     return hashlib.sha256(canon.encode("utf-8")).hexdigest()[:12]
+
+
+# ── Tile-bundle sweep (2026-09-07) ────────────────────────────────────────────
+# The tile BUNDLE (staging.py::_stage_from_bundle) is an advisory transport cache
+# named for the tile set's ID: tiles/{label}__{tag}/_bundle_{tileset_id}.tar + .json.
+# A CHANGED signature gives a new ID and the old bundle is simply unreachable. The
+# dangerous case is a re-tile whose signature is UNCHANGED — --force-retile, or a
+# re-run after a kill left an intact meta from an earlier complete tiling. Tiles and
+# index are rewritten under the SAME ID, and GDAL/LZW output is not guaranteed
+# byte-stable across runs (`_bulk_upload_tiles` uses `rclone copy --checksum`
+# precisely so it overwrites same-name files whose content changed). A surviving
+# bundle would then hand a trainer the PREVIOUS tiling's bytes, at the right names
+# and often the right sizes, for the whole ~20-minute re-tile.
+#
+# So: unlink every `_bundle_*` before the first tile byte is written, unconditionally,
+# on BOTH the bulk and direct-write branches. Between the sweep and the republish
+# there is simply no bundle and readers take the rclone path — slower, correct.
+#
+# NOT GATED ON THE BUNDLE FLAG, deliberately. With publishing off, a same-ID re-tile
+# that skipped the sweep would leave a stale bundle sitting in the dir, and the moment
+# the flag was turned on a reader would consume the previous tiling's bytes. The
+# sidecar's index_sha256 would not catch it: a deterministic re-sample writes a
+# byte-identical index CSV.
+def _sweep_bundles(out_tile_dir):
+    """Remove any tile bundle in ``out_tile_dir``. Returns the names removed."""
+    gone = []
+    try:
+        for q in sorted(Path(out_tile_dir).glob("_bundle_*")):
+            try:
+                q.unlink()
+                gone.append(q.name)
+            except OSError:
+                pass
+    except OSError:
+        pass
+    if gone:
+        print(f"  swept {len(gone)} stale tile-bundle file(s) before re-tiling: "
+              f"{', '.join(gone)}")
+    return gone
 
 
 def _existing_tiles_valid(label, sig):
@@ -1109,10 +1161,14 @@ def _bulk_upload_tiles(stage_root, remote, out_tile_dir, label):
                    f"Drive (check passed) but the mount cache is stale; re-run "
                    f"the tile step (the upload will be a no-op)")
 
-    shutil.rmtree(stage_root, ignore_errors=True)
+    # THE STAGING ROOT IS *NOT* REMOVED HERE (moved to step_tile, 2026-09-07).
+    # It is the only complete LOCAL copy of the tile set, and `rclone check --one-way`
+    # above just proved it equals what is on Drive — which is exactly what the tile
+    # bundle is built from. step_tile removes it after the bundle attempt, success or
+    # not. `_bulk_upload_fail` still raises BEFORE that site, so its promise that "the
+    # LOCAL staging copy is KEPT so a re-run resumes cheaply" holds by construction.
     print(f"  ✓ bulk upload verified: {n} files / {nbytes / 1e6:.0f} MB in "
-          f"{t_copy:.0f}s copy ({time.time() - t0:.0f}s total); staging root "
-          f"cleaned", flush=True)
+          f"{t_copy:.0f}s copy ({time.time() - t0:.0f}s total)", flush=True)
 
 
 def step_tile(label, sites, dry_run=False, max_tiles=None, stride_override=None,
@@ -1336,6 +1392,14 @@ def step_tile(label, sites, dry_run=False, max_tiles=None, stride_override=None,
         print(f"  + aux-height sidecars: {'ON' if write_height else 'OFF'} "
               f"(year {label}{'' if write_height else ' — not CHM-credible'})")
 
+    # SWEEP THE OLD BUNDLE HERE and nowhere else. This is the last point that is
+    # after BOTH `--dry-run` returns and after the "no tiles" bail, and before the
+    # first Drive-side tile mutation on EITHER branch (direct-write mutates Drive in
+    # the loop below; the bulk branch mutates it at _bulk_upload_tiles, later). A
+    # dry run must not delete a valid 0.5 GB bundle, and a reused tile set never
+    # reaches this line at all — it returned at the top. See _sweep_bundles.
+    _sweep_bundles(out_tile_dir)
+
     index_rows = []
     for rec in tqdm(all_records, desc="  Writing tiles"):
         split = rec["split"]
@@ -1417,6 +1481,27 @@ def step_tile(label, sites, dry_run=False, max_tiles=None, stride_override=None,
             **_tile_signature(label, stride, max_tiles, citywide),
             "split_status": split_status,
         }))
+    # TILE BUNDLE — published LAST, after the tiles are verified server-side, after
+    # the index, after the meta. It is an advisory transport cache: every tile byte is
+    # already on Drive individually and the per-file dir stays canonical, so a bundle
+    # that fails to build, fails to copy, or never lands is a cheaper path not taken,
+    # never an error. Hence: only on the bulk-upload branch (the one branch that holds
+    # a complete LOCAL copy — building one on the direct-write branch would mean
+    # reading every tile back through the mount, which is the cost being removed),
+    # only citywide (the only path that writes a meta, and the meta is what names the
+    # bundle), and only with the flag on (staging.py::_BUNDLE_ENABLED).
+    if stage_root is not None and citywide:
+        from phase4seg import staging as _staging
+        if _staging._bundle_enabled():
+            _staging._publish_bundle(stage_root, out_tile_dir, label, index_path,
+                                     tileset_id(label), run_tag=config.RUN_TAG)
+    if stage_root is not None:
+        # Moved out of _bulk_upload_tiles so the bundle above could be built from the
+        # local tree rclone had just proved equal to Drive. Runs either way: the tiles
+        # are on Drive regardless of what the bundle did.
+        shutil.rmtree(stage_root, ignore_errors=True)
+        print(f"  staging root cleaned: {stage_root}")
+
     n_tr = (index_df["split"] == "train").sum()
     n_va = (index_df["split"] == "val").sum()
     n_te = (index_df["split"] == "test").sum()

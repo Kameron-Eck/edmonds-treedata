@@ -15,6 +15,7 @@ import os
 import shutil
 import subprocess
 import tarfile
+import time
 from pathlib import Path, PurePosixPath
 
 from phase4seg import config
@@ -62,6 +63,149 @@ _BUNDLE_PREFIX   = "_bundle_"
 _BUNDLE_SPLITS   = ("train", "val", "test")
 _BUNDLE_KINDS    = ("images", "masks", "heights")
 _BUNDLE_CHUNK    = 1 << 20
+
+# ── THE BOUNDED READ (2026-09-08) ─────────────────────────────────────────────
+#  Step 8 below used to be a bare `shutil.copyfile(src_root / tar_name, local_tar)`
+#  over the mount: no timeout, no throughput floor, no slow-path escape. The transport
+#  it replaces — `_bulk_stage_tiles`'s `rclone copy … --transfers 16 --checkers 16
+#  --checksum` — carries rclone's own retries, so the bundle path's worst case was
+#  UNBOUNDED where the rung below it is not. Named as a design gap by the validation's
+#  own referee: experiments/bundle_validation_2017k.yaml, verdict R1.
+#
+#  WHAT IT CANNOT DO, said plainly. The checks below run at CHUNK BOUNDARIES, because
+#  a blocking read() on a FUSE mount cannot be interrupted without a watchdog thread.
+#  A read that blocks forever still blocks forever inside one chunk. What this bounds
+#  is how much MORE time the path spends after a stall returns, and — on the measured
+#  failure — it does not make that case faster: the validation's ≥86 s stall would be
+#  seen at ~101 s and the rclone fallback then costs its own ~228 s (pilot). The bound
+#  buys protection against the stall that never ends, not a saving on the one measured.
+#
+#  EVERY RATE BELOW IS bytes/1e6/seconds — the unit of phase4/qc/timing_events.csv's
+#  `mb_per_s` column, so the floor and the distribution it is drawn from are one unit.
+#
+#    4.30 MB/s  THE FAILURE. timing_events.csv `bundle copy 2017k` = 119.2 s over the
+#               sidecar's 512,112,640 B tar (run_tag spdv_2017k). MUST trip.
+#    7.50 MB/s  p10 of the comparable population: `stage` events moving 0.10–0.33 GB
+#               in timing_events.csv (n=94, median 48.8, 17 below 10 MB/s). MUST NOT
+#               trip. NOTE: the yaml verdict quotes these figures as the "0.01–0.33 GB"
+#               band (n=82, p10 7.5, median 48.0). On today's CSV the 0.01 lower bound
+#               does NOT reproduce them (p10 2.63) and 0.10 does, so the band that
+#               reproduces is the one named here; the yaml is not this file's to edit.
+#   48.31 MB/s  the SAME object read again hours later on a fresh runtime —
+#               phase4/qc/probe_bundle_read_20260908T052818Z.txt PASS A, 10.6 s.
+#               MUST NOT trip.
+#
+#  6.0 is the only round number inside (4.30, 7.50). It sits at p5.3 of that population
+#  (5 of 94 below), so ~95% of measured reads of this size class clear it, and it gives
+#  the live 512 MB tar an 85.4 s budget — above the 68.3 s a p10 read takes, below the
+#  119.2 s that failed.
+FLOOR_MBPS = 6.0
+
+#  MAX_STALL_S brackets two MEASURED stalls, one of each kind:
+#    33.3 s  probe PASS B — one chunk at offset 120 MiB on a re-read of the SAME file
+#            that had just read clean minutes earlier. Intermittent, and the read still
+#            finished. MUST NOT abort on its own.
+#    ≥86 s   the validation A100's zero-traffic window (yaml verdict R1, from
+#            hw_spdvg.csv: net rx ~0 on every channel, iowait pinned at 8.4% = one of
+#            twelve vCPUs in D-state). SHOULD abort.
+#  60 s is the midpoint of the only interval where those two disagree.
+MAX_STALL_S = 60.0
+
+#  STALL_S is a LOGGING threshold, not a gate: any chunk at or above it publishes a
+#  `⏱ bundle stall <label>@<MiB>` row, so the next slow read is diagnosable from the
+#  harvested series instead of from a live hardware trace. Why 10 and not the probe's
+#  own 2.0 s threshold: at 2 s the HEALTHY PASS A read would have logged its 384 MiB
+#  VFS range-boundary dip (2–3 s), and a threshold that fires on the healthy case
+#  teaches nothing. 10 s is still well under the 33.3 s stall it must catch.
+STALL_S = 10.0
+
+#  Live tile sets are 0.2–0.7 GB, so the size term alone gives them 33–117 s and this
+#  floor never binds on Colab. It exists for the KB-scale fixtures in
+#  qc/test_tile_bundle.py, whose size term is ~1 ms: without it every existing
+#  round-trip test would be racing a budget against the real clock.
+MIN_BUDGET_S = 10.0
+
+#  8 MiB — the buffer probe_bundle_read.py measured this mount with (PASS B and C). On
+#  the live 488 MiB tar that is 62 chunks, i.e. a budget/stall check about every 0.17 s
+#  at the probe's 48 MB/s: fine granularity, and far too few syscalls to matter.
+_BUNDLE_READ_CHUNK = 8 << 20
+
+
+def _now():
+    """The bounded read's clock, read through a function for exactly the reason
+    `_bundle_enabled` is: qc/test_tile_bundle.py drives a 33.3 s and a 90 s stall, and
+    a test that really slept them would cost two minutes."""
+    return time.monotonic()
+
+
+def _bundle_budget_s(nbytes):
+    """Wall-clock seconds a mount read of ``nbytes`` is allowed to take."""
+    return max(MIN_BUDGET_S, (nbytes or 0) / 1e6 / FLOOR_MBPS)
+
+
+def _bounded_copy(src, dst, label, size_hint=0):
+    """Chunked mount read of ``src`` into ``dst``, floored and stall-capped.
+
+    Returns **None** on success, or the refusal reason. NEVER RAISES, and never leaves
+    ``dst`` behind on a non-success return — the caller's next rung is the rclone
+    transport, which must inherit nothing partial.
+
+    THE BUDGET IS NOT CHECKED ONCE THE LAST BYTE IS IN. `done < size` guards it, and
+    that is not tidiness: without it a read that crosses the budget on its FINAL chunk
+    would delete a complete local tar and pay rclone (~228 s on the pilot) to fetch
+    back what was already on disk. The budget exists to stop spending MORE time, and
+    once every byte has arrived there is none left to spend. With the size unknown
+    (fstat failed and the sidecar carried none) the guard cannot apply and the check
+    runs unconditionally.
+    """
+    reason = None
+    done = 0
+    t0 = prev = _now()
+    try:
+        # buffering=0 → one raw read per chunk, so `dt` times the MOUNT and not
+        # python's buffer-refill schedule. `t0` is taken BEFORE the open on purpose:
+        # an open() that blocks is the same failure as a read() that blocks, and it
+        # should be caught by the same two gates.
+        with open(src, "rb", buffering=0) as fh:
+            try:
+                size = os.fstat(fh.fileno()).st_size or int(size_hint or 0)
+            except OSError:
+                size = int(size_hint or 0)
+            budget = _bundle_budget_s(size)
+            with open(dst, "wb") as out:
+                while True:
+                    buf = fh.read(_BUNDLE_READ_CHUNK)
+                    now = _now()
+                    dt, prev = now - prev, now
+                    if dt >= STALL_S:
+                        # Harvestable by qc/instruments/harvest_timing_events.py::_EVENT
+                        # — the offset is in the LABEL, not after the seconds, because
+                        # that regex anchors on the line ending in `<N>s`.
+                        print(f"  ⏱ bundle stall {label}@{done / (1 << 20):.1f}MiB: "
+                              f"{dt:.1f}s")
+                    if dt > MAX_STALL_S:
+                        reason = (f"one chunk at {done / (1 << 20):.1f} MiB stalled "
+                                  f"{dt:.1f}s, over the {MAX_STALL_S:.0f}s ceiling")
+                        break
+                    if not buf:
+                        break
+                    out.write(buf)
+                    done += len(buf)
+                    el = now - t0
+                    if el > budget and (not size or done < size):
+                        rate = done / 1e6 / el if el > 0 else 0.0
+                        reason = (f"read {done / 1e6:.1f} of {size / 1e6:.1f} MB in "
+                                  f"{el:.1f}s = {rate:.2f} MB/s, under the "
+                                  f"{FLOOR_MBPS:.1f} MB/s floor (budget {budget:.1f}s)")
+                        break
+    except Exception as e:                             # noqa: BLE001 — never raise
+        reason = f"tar copy failed ({type(e).__name__}: {e})"
+    if reason:
+        try:
+            Path(dst).unlink()
+        except OSError:
+            pass
+    return reason
 
 
 def _bundle_enabled():
@@ -379,7 +523,10 @@ def _stage_from_bundle(src_root, dst_root, idx_df, cols, kinds, label,
 
     # 8. THE WHOLE POINT: one sequential open instead of N. Far under
     #    STAGE_LOCK_MIN_BYTES (4 GiB), so it takes no Drive staging lock — same as
-    #    today's tile staging. tick/tock so it lands in the timing events.
+    #    today's tile staging. tick/tock so it lands in the timing events. BOUNDED
+    #    since 2026-09-08 (see the THE BOUNDED READ block at the top): a throughput
+    #    floor and a stall ceiling, and an abort here is a refusal like any other —
+    #    the ladder falls to rclone exactly as an absent bundle would.
     tar_dir = Path(tar_dir) if tar_dir else (LOCAL_SCRATCH / "bundles")
     tar_dir.mkdir(parents=True, exist_ok=True)
     local_tar = tar_dir / f"{dst_root.name}__{want}.tar"
@@ -391,13 +538,27 @@ def _stage_from_bundle(src_root, dst_root, idx_df, cols, kinds, label,
     # gated on: today's path checks free space nowhere at all, and refusing a bundle
     # where today would have copied one would be a regression, not a guard.
     scratchcache.reserve(2 * int(sidecar.get("tar_size") or 0))
+    # THE PART FILE, same discipline as common._copy_to_drive's Drive-side write: the
+    # canonical local name never exists holding a partial read, and two same-VM
+    # processes cannot interleave into one file. Published with os.replace only after
+    # the bounded read returns clean.
+    part = tar_dir / f"{local_tar.name}.part.{os.getpid()}"
     tick(f"bundle copy {label}")
-    try:
-        shutil.copyfile(src_root / tar_name, local_tar)
-    except OSError as e:
-        tock(f"bundle copy {label}")
-        return _bundle_refuse(f"tar copy failed ({e})", local_tar=local_tar)
+    why = _bounded_copy(src_root / tar_name, part, label,
+                        size_hint=int(sidecar.get("tar_size") or 0))
+    # ONE ROW PER COPY, on BOTH outcomes. An aborted read really did spend those
+    # seconds and the row is the evidence; what says it is an abort is the refusal line
+    # printed immediately after it and the `bundle stall` rows above it. Contrast
+    # `stage tiles`, which unticks its no-copy returns — there the hazard is a
+    # FABRICATED FAST row under the name the saving is measured from, and a slow row
+    # cannot inflate a saving.
     tock(f"bundle copy {label}")
+    if why:
+        return _bundle_refuse(why, local_tar=part)
+    try:
+        os.replace(part, local_tar)
+    except OSError as e:
+        return _bundle_refuse(f"tar publish to scratch failed ({e})", local_tar=part)
 
     # 9. The ONLY thing that proves the bytes arrived intact. This is also what makes
     #    the write side's "Drive NOT CONFIRMED" tolerable (see _publish_bundle): the

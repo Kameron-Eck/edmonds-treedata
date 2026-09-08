@@ -68,7 +68,7 @@ verdict: >
   the rule does not credit. The flag is NOT promoted. Mechanism from hw_spdvg.csv: net rx
   moved ~0.41 GB in the first ~15 s, then >= 86 s with zero bytes on every channel, CPU
   0.4-4.5%, iowait pinned at 8.4% (one of twelve vCPUs blocked) - a stall, not a slow
-  copy. The comparator was wrong at this size class: stage rows for 0.01-0.33 GB objects
+  copy. The comparator was wrong at this size class: stage rows for 0.10-0.33 GB objects (the band that reproduces on the tracked CSV; the referee wrote 0.01, whose p10 is 2.6)
   (n=82) run p10 7.5 / median 48.0 / max 959 MB/s, 16 of 82 under 10 MB/s. Transport
   (shutil.copyfile over the mount) ruled out - the same call moved 11.5 GB at 40.3 MB/s
   one step earlier; sha256 read-back and contention ruled out by the timer scope and the

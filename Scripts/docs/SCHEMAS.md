@@ -498,7 +498,17 @@ READER RULES.
   still true of the file, but since 2026-09-07 the lines themselves NEST, so a total over
   every row in a step double-counts. Three families now share a log. (1) The pre-existing
   POINT events: `stage <file>`, `stage tiles <label>`, `copy <file>`, `inference`,
-  `postproc`, `bundle copy <label>`. (2) The per-epoch BUCKETS
+  `postproc`, `bundle copy <label>`, and `bundle stall <label>@<N>MiB` — which is NOT a
+  point event but a member of family (1) enclosed by its own `bundle copy` row, one per
+  chunk of the bounded read (`staging.py::_bounded_copy`) that took ≥ its `STALL_S`, with
+  the byte offset in the LABEL because `_EVENT` anchors on the line ending in `<N>s`. Two
+  consequences for a reader: sum-within-family applies (the stall seconds are already
+  inside the copy row), and **a `bundle copy` row can time an ABORTED read** — the
+  bounded read refuses on a throughput floor or a stall ceiling and the row is still
+  published, deliberately, because the seconds were really spent. What says it was an
+  abort is the `(tile bundle not used: … MB/s … budget …)` line immediately after it, not
+  anything in this CSV, so never average `bundle copy` without checking the log for that
+  line. (2) The per-epoch BUCKETS
   `epoch <A|B><n> <bucket>`, bucket ∈ `data` / `gpu (sync at epoch end)` / `val` /
   `save` / `other`, written by `core.py::_publish_epoch_phases` (the `data` bucket is
   measured by `core.py::_timed_batches`). (3) The five `eval` SPANS

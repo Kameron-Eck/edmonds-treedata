@@ -34,6 +34,7 @@ on Windows. `qc/conftest.py` fails any test that touches the real lake.
 
 Run:  PYTHONUTF8=1 py -3.12 -m pytest qc/test_tile_bundle.py -q
 """
+import csv
 import importlib.util
 import json
 import os
@@ -110,14 +111,26 @@ def read_index(fx):
 
 @pytest.fixture
 def copy_counter(monkeypatch):
-    """Counts `shutil.copyfile` calls made by staging — 'did it move 0.5 GB?'"""
+    """Counts every whole-file transfer staging makes — 'did it move 0.5 GB?'
+
+    BOTH transports, and the second one is not optional. Since the bounded read
+    (2026-09-08) the bundle's own 0.5 GB transfer is no longer a `shutil.copyfile`; it
+    is `staging._bounded_copy`'s chunk loop. Counting only copyfile would leave the
+    three "refused BEFORE any copy" assertions below asserting nothing whatsoever.
+    """
     calls = []
     real = shutil.copyfile
+    real_bounded = staging._bounded_copy
 
     def counted(src, dst, **kw):
         calls.append((str(src), str(dst)))
         return real(src, dst, **kw)
+
+    def counted_bounded(src, dst, *a, **kw):
+        calls.append((str(src), str(dst)))
+        return real_bounded(src, dst, *a, **kw)
     monkeypatch.setattr(staging.shutil, "copyfile", counted)
+    monkeypatch.setattr(staging, "_bounded_copy", counted_bounded)
     return calls
 
 
@@ -717,6 +730,327 @@ def test_the_stage_tiles_event_is_published_only_when_bytes_moved(
     # untick, not a leaked timer: an unclosed one is reported by common.timer_summary
     # and would look like a crashed step.
     assert f"stage tiles {label}" not in common._timers
+
+
+# ══ the bounded read ═════════════════════════════════════════════════════════
+#
+# WHY THE READ IS BOUNDED AT ALL. `experiments/bundle_validation_2017k.yaml` R1 FAIL:
+# the live A100 spent 119.2 s reading the 512,112,640 B tar (4.30 MB/s) with ≥86 s of
+# ZERO traffic on every channel, and the read was a bare `shutil.copyfile` with no
+# timeout, no throughput floor and no slow-path escape — unbounded, where the rclone
+# transport it replaces carries rclone's own retries. The follow-up probe
+# (`phase4/qc/probe_bundle_read_20260908T052818Z.txt`) then read the SAME object at
+# 48.3 MB/s hours later (PASS A) and hit a 33.3 s stall on a re-read minutes after that
+# (PASS B). So stalls on this mount are INTERMITTENT and can hit any single read: the
+# gate has to tolerate the 33.3 s one and refuse the ≥86 s one.
+#
+# WHAT THE GATES CANNOT DO, stated because a gate believed to do more than it does is
+# worse than none: both checks run at CHUNK BOUNDARIES. A read blocked inside one
+# chunk is not interrupted, so on the measured failure the abort lands at ~101 s and
+# the rclone fallback then costs its own ~228 s — SLOWER than the 119.2 s it replaced.
+# The bound buys protection against the stall that never returns.
+#
+# HOW THESE TESTS DRIVE IT. `staging._now` is monkeypatched with `_Clock`, so a 90 s
+# stall costs no wall time. The fixtures are KB-scale, so the tests that exercise the
+# BUDGET scale `FLOOR_MBPS`/`MIN_BUDGET_S` to the fixture and the SHIPPED constants are
+# pinned separately, by arithmetic, against the five measured numbers above.
+
+
+class _Clock:
+    """`staging._now` driven by a script instead of by the wall clock.
+
+    `_bounded_copy` calls `_now()` once before the copy and once after each chunk read,
+    so call k ≥ 1 is the END of chunk k. `per_chunk` is the default advance; `script`
+    maps a 1-based chunk index to its own.
+    """
+
+    def __init__(self, per_chunk=0.0, script=None):
+        self.per_chunk, self.script = per_chunk, dict(script or {})
+        self.t, self.n = 0.0, 0
+
+    def __call__(self):
+        if self.n:
+            self.t += self.script.get(self.n, self.per_chunk)
+        self.n += 1
+        return self.t
+
+
+def _n_chunks(nbytes, chunk):
+    """Chunk reads `_bounded_copy` makes for a file this size: the data chunks plus the
+    final empty read that ends the loop."""
+    return -(-nbytes // chunk) + 1
+
+
+def _scale_budget_to(fx, tsid, monkeypatch, seconds, chunk=512):
+    """Make this fixture's tar have a `seconds`-long budget, and return its chunk count.
+
+    The size term for a ~10 KB fixture is ~1 ms, so `MIN_BUDGET_S` would otherwise be
+    the only thing in play and the FLOOR would never be what the test exercises.
+    """
+    size = tar_path(fx, tsid).stat().st_size
+    monkeypatch.setattr(staging, "MIN_BUDGET_S", 0.0)
+    monkeypatch.setattr(staging, "FLOOR_MBPS", (size / 1e6) / seconds)
+    monkeypatch.setattr(staging, "_BUNDLE_READ_CHUNK", chunk)
+    return _n_chunks(size, chunk)
+
+
+# The five measured numbers the shipped constants are chosen against. Each names its
+# tracked file; none is a preference.
+MEASURED_TAR_BYTES = 512112640          # sidecar tar_size (probe log, INPUTS block)
+MEASURED_FAIL_S = 119.2                 # timing_events.csv `bundle copy 2017k`
+MEASURED_PROBE_S = 10.6                 # probe PASS A, same object, fresh runtime
+MEASURED_OK_STALL_S = 33.3              # probe PASS B, one chunk at 120 MiB
+MEASURED_BAD_STALL_S = 86.0             # yaml R1 / hw_spdvg.csv zero-traffic window
+MEASURED_HEALTHY_DIP_S = 3.0            # probe PASS A longest zero-growth run
+# Every one of those is a frozen property of ONE run and cannot move. The p10 the floor
+# is picked under is NOT — it is a population statistic that shifts with each harvest
+# (n=82 at the verdict, 94 today) — so it is re-derived below rather than pinned here.
+
+
+def _stage_rates_in_the_bundle_size_class():
+    """`mb_per_s` of every `stage` event moving 0.10–0.33 GB, from the tracked CSV.
+
+    THE BAND IS THE ONE THAT REPRODUCES. `experiments/bundle_validation_2017k.yaml`
+    reports these as the "0.01–0.33 GB" figures (n=82, p10 7.5, median 48.0); on
+    today's CSV the 0.01 lower bound gives p10 2.63 and the 0.10 bound gives 7.50 /
+    median 48.8, so 0.10 is what the verdict's numbers were computed over. Not fixed
+    in the yaml — that file is a decided experiment record, not this change's to edit.
+    """
+    csv_path = (Path(__file__).resolve().parents[2] / "phase4" / "qc"
+                / "timing_events.csv")
+    if not csv_path.exists():
+        pytest.skip("timing_events.csv is harvested from the lake; absent here")
+    rates = []
+    with csv_path.open(encoding="utf-8") as fh:
+        for row in csv.DictReader(fh):
+            if not (row.get("label") or "").startswith("stage "):
+                continue
+            try:
+                if 0.10e9 <= int(row["bytes"]) <= 0.33e9:
+                    rates.append(float(row["mb_per_s"]))
+            except (TypeError, ValueError, KeyError):
+                continue
+    return sorted(rates)
+
+
+def test_the_floor_stays_below_the_p10_of_the_population_it_was_drawn_from():
+    """THE ONE CONSTANT WHOSE BASIS MOVES, so it is READ and not restated (CLAUDE.md
+    §2.2). FLOOR_MBPS was set at p5.3 of this population. If a re-harvest drags the
+    p10 under 6.0 MB/s this fires — and the correct response is to revisit the
+    constant, not the test: a floor above its own population's p10 refuses one read in
+    ten that today's unbounded path completes."""
+    rates = _stage_rates_in_the_bundle_size_class()
+    assert len(rates) >= 50, f"population too small to speak for a p10: n={len(rates)}"
+    p10 = rates[max(0, int(0.10 * (len(rates) - 1)))]
+    assert staging.FLOOR_MBPS < p10, (
+        f"FLOOR_MBPS={staging.FLOOR_MBPS} is at or above the p10 ({p10:.2f} MB/s, "
+        f"n={len(rates)}) of the 0.10–0.33 GB `stage` population it was drawn from")
+    # and the budget it gives the live tar still sits between the p10 pace and the
+    # 119.2 s that failed — the interval the constant was chosen to land in.
+    budget = staging._bundle_budget_s(MEASURED_TAR_BYTES)
+    assert MEASURED_TAR_BYTES / 1e6 / p10 < budget < MEASURED_FAIL_S
+
+
+def test_the_shipped_constants_trip_the_measured_failure_and_pass_the_measured_normals():
+    """THE CONSTANTS GATE, and it touches no disk on purpose.
+
+    Every other test here scales the constants to a KB fixture. This one asserts the
+    values that actually ship, against the five numbers in the tracked files, at the
+    one size the archive has measured this object at.
+    """
+    budget = staging._bundle_budget_s(MEASURED_TAR_BYTES)
+    mb = MEASURED_TAR_BYTES / 1e6
+
+    # (a) the throughput floor: the measured failure trips, both measured normals pass.
+    assert MEASURED_FAIL_S > budget, (
+        f"the validation's own 119.2 s bundle copy ({mb / MEASURED_FAIL_S:.2f} MB/s) "
+        f"does not trip a {budget:.1f}s budget — the gate has never fired")
+    assert MEASURED_PROBE_S < budget, "the probe's 48.3 MB/s read would be refused"
+    # The p10 half of the floor's basis moves with each harvest and is asserted against
+    # the tracked CSV in test_the_floor_stays_below_the_p10_of_the_population_*.
+
+    # (b) the stall ceiling brackets the two measured stalls, one of each kind.
+    assert MEASURED_OK_STALL_S < staging.MAX_STALL_S <= MEASURED_BAD_STALL_S
+    # and one tolerated stall inside an otherwise probe-speed read stays in budget, or
+    # gate (a) would fire on the case gate (b) is written to allow.
+    assert MEASURED_PROBE_S + MEASURED_OK_STALL_S < budget
+
+    # (c) the LOGGING threshold: silent on the healthy read's VFS-boundary dip, loud on
+    # the stall that matters.
+    assert MEASURED_HEALTHY_DIP_S < staging.STALL_S < MEASURED_OK_STALL_S
+
+
+def test_a_healthy_bounded_read_stages_the_set_with_one_tick_and_no_stall_line(
+        tmp_path, monkeypatch, capsys):
+    """(i) The normal case: every byte arrives, one `⏱ bundle copy` row, no stall row,
+    no refusal, and nothing left in the scratch tar dir."""
+    fx = build_tiles(tmp_path)
+    tsid, _ = publish(fx, tmp_path, monkeypatch)
+    monkeypatch.setattr(staging, "_BUNDLE_READ_CHUNK", 512)
+    monkeypatch.setattr(staging, "_now", _Clock(per_chunk=0.05))
+    capsys.readouterr()
+
+    new_cols, dst = stage(fx, tmp_path)
+    assert new_cols is not None
+    idx, cols = read_index(fx)
+    for old, new in zip(idx["img_path"], new_cols["img_path"]):
+        assert Path(new).read_bytes() == Path(old).read_bytes()
+
+    out = capsys.readouterr().out
+    assert out.count("⏱ bundle copy") == 1, "the whole copy must publish ONE row"
+    assert "bundle stall" not in out
+    assert "tile bundle not used" not in out
+    assert not list((tmp_path / "bundles").iterdir()), "scratch tar dir not cleaned"
+
+
+def test_a_read_at_half_the_floor_rate_aborts_and_hands_the_fallback_an_empty_tree(
+        tmp_path, monkeypatch, capsys):
+    """(ii) The floor fires, and (v) the partial `.part` is gone.
+
+    "The fallback is invoked" is proved the way every other refusal test here proves
+    it — by the None return, which IS the ladder contract, plus the `_bundle_refuse`
+    line naming the rclone path. The caller-side half is a source pin
+    (`test_an_unexpected_bundle_error_falls_through_to_the_rclone_path`); rclone itself
+    does not run on Windows QC.
+    """
+    fx = build_tiles(tmp_path)
+    tsid, _ = publish(fx, tmp_path, monkeypatch)
+    n = _scale_budget_to(fx, tsid, monkeypatch, seconds=4.0)
+    # exactly half the floor rate: the whole tar in 8.0 s against a 4.0 s budget,
+    # spread evenly so no single chunk is anywhere near MAX_STALL_S.
+    monkeypatch.setattr(staging, "_now", _Clock(per_chunk=8.0 / n))
+    capsys.readouterr()
+
+    out, dst = stage(fx, tmp_path)
+    assert out is None
+    text = capsys.readouterr().out
+    assert "tile bundle not used" in text and "staging takes the rclone path" in text
+    assert "MB/s floor" in text and "budget" in text, \
+        f"the refusal must name the rate and the budget: {text!r}"
+    assert_nothing_staged(dst)
+    assert not list((tmp_path / "bundles").iterdir()), \
+        "the partial read survived in the scratch tar dir"
+
+
+def test_the_partial_is_released_on_abort_and_never_reaches_the_canonical_name(
+        tmp_path, monkeypatch, capsys):
+    """(v), proved rather than inferred. A partial read must never be published under
+    the name step 9 hashes: `os.replace` is the only publish, and an aborted read must
+    not reach it."""
+    fx = build_tiles(tmp_path)
+    tsid, _ = publish(fx, tmp_path, monkeypatch)
+    n = _scale_budget_to(fx, tsid, monkeypatch, seconds=4.0)
+    monkeypatch.setattr(staging, "_now", _Clock(per_chunk=8.0 / n))
+    monkeypatch.setattr(staging.os, "replace", lambda *a, **k: pytest.fail(
+        "an aborted read was published under the canonical local tar name"))
+
+    out, dst = stage(fx, tmp_path)
+    assert out is None
+    assert not list((tmp_path / "bundles").glob("*.part*"))
+    assert not list((tmp_path / "bundles").glob("*.tar"))
+
+
+def test_one_33s_stall_inside_a_full_speed_read_is_tolerated(tmp_path, monkeypatch,
+                                                             capsys):
+    """(iii) THE MEASURED NORMAL CASE, reproduced at fixture scale: probe PASS B's one
+    33.3 s stall inside a read that is otherwise PASS A's 10.6 s, against PASS A's own
+    85.4 s budget. It must stage, and it must SAY it stalled."""
+    fx = build_tiles(tmp_path)
+    tsid, _ = publish(fx, tmp_path, monkeypatch)
+    n = _scale_budget_to(fx, tsid, monkeypatch, seconds=85.4)
+    monkeypatch.setattr(staging, "_now",
+                        _Clock(per_chunk=MEASURED_PROBE_S / n,
+                               script={n // 2: MEASURED_OK_STALL_S}))
+    capsys.readouterr()
+
+    out, dst = stage(fx, tmp_path)
+    assert out is not None, (
+        "the intermittent stall the probe measured on a read that FINISHED was "
+        "refused — the ceiling is below the measured normal case")
+    text = capsys.readouterr().out
+    assert text.count("⏱ bundle stall") == 1
+    assert text.count("⏱ bundle copy") == 1
+    assert "tile bundle not used" not in text
+
+
+def test_a_stall_over_the_ceiling_aborts_with_the_budget_untouched(tmp_path,
+                                                                   monkeypatch, capsys):
+    """(iv) Gate (b) alone. The budget is set far out of reach, so only the stall
+    ceiling can produce this refusal — the two gates are independently live."""
+    fx = build_tiles(tmp_path)
+    tsid, _ = publish(fx, tmp_path, monkeypatch)
+    monkeypatch.setattr(staging, "MIN_BUDGET_S", 1000.0)
+    monkeypatch.setattr(staging, "_BUNDLE_READ_CHUNK", 512)
+    n = _n_chunks(tar_path(fx, tsid).stat().st_size, 512)
+    monkeypatch.setattr(staging, "_now",
+                        _Clock(per_chunk=0.05, script={n // 2: 90.0}))
+    capsys.readouterr()
+
+    out, dst = stage(fx, tmp_path)
+    assert out is None
+    text = capsys.readouterr().out
+    assert "stalled 90.0s" in text and "ceiling" in text, text
+    assert "floor" not in text, "the budget fired too — this test proves nothing"
+    assert_nothing_staged(dst)
+    assert not list((tmp_path / "bundles").iterdir())
+
+
+def test_the_budget_does_not_abort_after_the_last_byte_has_arrived(tmp_path,
+                                                                   monkeypatch, capsys):
+    """THE BOUNDARY THAT WOULD HAVE COST THE MOST. A read that crosses the budget on
+    its FINAL chunk has the whole tar on local disk; deleting it to re-fetch the same
+    bytes over rclone (~228 s on the pilot) is pure loss. `done < size` is what stops
+    that, and a gate is only a gate once its boundary is pinned."""
+    fx = build_tiles(tmp_path)
+    tsid, _ = publish(fx, tmp_path, monkeypatch)
+    n = _scale_budget_to(fx, tsid, monkeypatch, seconds=4.0)
+    # every chunk but the last inside the budget; the last one lands at ~5.0 s.
+    monkeypatch.setattr(staging, "_now",
+                        _Clock(per_chunk=3.0 / (n - 1), script={n - 1: 2.0}))
+    capsys.readouterr()
+
+    out, dst = stage(fx, tmp_path)
+    assert out is not None, (
+        "the budget fired after every byte was already local — the fallback now "
+        "re-downloads a tar that was sitting on NVMe")
+    assert "tile bundle not used" not in capsys.readouterr().out
+
+
+def test_the_bundle_timing_labels_parse_with_the_harvesters_own_regex(tmp_path,
+                                                                      monkeypatch,
+                                                                      capsys):
+    """(vi) A row nobody can harvest is a print statement. Parsed with the SHIPPED
+    regex, imported — not restated — so a change to either side fails here.
+
+    The offset lives in the LABEL (`bundle stall 2017k@0.0MiB`) and not after the
+    seconds because `_EVENT` anchors on the line ENDING in `<N>s`; trailing text would
+    silently drop the row.
+    """
+    from instruments.harvest_timing_events import _EVENT
+
+    fx = build_tiles(tmp_path)
+    tsid, _ = publish(fx, tmp_path, monkeypatch)
+    n = _scale_budget_to(fx, tsid, monkeypatch, seconds=85.4)
+    monkeypatch.setattr(staging, "_now",
+                        _Clock(per_chunk=MEASURED_PROBE_S / n,
+                               script={n // 2: MEASURED_OK_STALL_S}))
+    capsys.readouterr()
+    assert stage(fx, tmp_path)[0] is not None
+
+    events = {}
+    for line in capsys.readouterr().out.splitlines():
+        m = _EVENT.search(line)
+        if m:
+            events[m.group(1).strip()] = float(m.group(2))
+    assert f"bundle copy {fx.label}" in events, \
+        f"harvest_timing_events._EVENT did not parse the copy row: {events}"
+    stalls = [k for k in events if k.startswith(f"bundle stall {fx.label}@")]
+    assert len(stalls) == 1, f"expected one stall row, got {sorted(events)}"
+    assert stalls[0].endswith("MiB"), "the offset is not in the label"
+    assert events[stalls[0]] == pytest.approx(MEASURED_OK_STALL_S, abs=0.05)
+    # and it must NOT be joined to a file size: `size_for` only sizes stage/copy labels
+    from instruments.harvest_timing_events import size_for
+    assert size_for(stalls[0], {"2017k": 1}) is None
 
 
 # ══ the flag ══════════════════════════════════════════════════════════════════

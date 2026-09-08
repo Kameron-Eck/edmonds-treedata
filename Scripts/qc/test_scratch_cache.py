@@ -1130,8 +1130,14 @@ def test_the_bundle_extract_reserves_before_it_copies():
     fn = ast.parse(_engine_symbol("_stage_from_bundle"))
     reserves = [n.lineno for n in ast.walk(fn) if isinstance(n, ast.Call)
                 and isinstance(n.func, ast.Attribute) and n.func.attr == "reserve"]
+    # THE TRANSPORT MOVED (2026-09-08) and this pin had to move with it, or it would
+    # have gone green by finding nothing: the 0.5 GB read is no longer
+    # `shutil.copyfile` but `staging.py::_bounded_copy`'s chunk loop, a bare Name call
+    # rather than an Attribute. Match both, so what is asserted is the write that
+    # actually happens.
     copies = [n.lineno for n in ast.walk(fn) if isinstance(n, ast.Call)
-              and isinstance(n.func, ast.Attribute) and n.func.attr == "copyfile"]
+              and ((isinstance(n.func, ast.Attribute) and n.func.attr == "copyfile")
+                   or (isinstance(n.func, ast.Name) and n.func.id == "_bounded_copy"))]
     assert reserves and copies and min(reserves) < min(copies), (reserves, copies)
 
 

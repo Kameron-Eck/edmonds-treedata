@@ -145,7 +145,8 @@ extra:
     merges their rows by (job, year, tag, step). They deliberately do NOT carry the GENERATED
     header: test_generated_queues_match_their_experiments requires a headered file to equal
     the full regeneration, and a split file cannot. pipeline/queue_offload_pilot_2017k.yaml
-    is the canonical generated file and is not what gets launched.
+    was the canonical generated file at launch time and was removed on completion (the
+    generator refuses decided experiments; the arm above is the record).
   measured_cost: >
     A100 for roughly train+evaluate+inference (~67 min baseline) plus bootstrap. No MEASURED
     GPU rate exists on this account (pipeline/colab_rates.csv ships schema-only for GPUs);

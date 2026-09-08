@@ -19,7 +19,7 @@
       "design_doc": "Reports/PIPELINE_SPEEDUP_OPTIONS_2026-09-07.md",
       "extra": {
         "measured_cost": "A100 for roughly train+evaluate+inference (~67 min baseline) plus bootstrap. No MEASURED GPU rate exists on this account (pipeline/colab_rates.csv ships schema-only for GPUs); the 2026-09-03 balance note there reads \"~10.6 CU/hr with 2xA100 live\", so ~5.3 CU/h per A100 is INFERRED and ~7 CU for this pilot is INFERRED. CPU runtimes: 0 CU (PUBLISHED row in colab_rates.csv). Kam authorised this run 2026-09-07 (\"You have my full permission to move ahead\").\n",
-        "runtime_split": "Three hand-split queue files beside the generated one (pipeline/pilot_offload_2017k_cpu1.yaml, _gpu.yaml, _cpu2.yaml) carry the SAME job id with a steps: subset each; the queue ledger merges their rows by (job, year, tag, step). They deliberately do NOT carry the GENERATED header: test_generated_queues_match_their_experiments requires a headered file to equal the full regeneration, and a split file cannot. pipeline/queue_offload_pilot_2017k.yaml is the canonical generated file and is not what gets launched.\n",
+        "runtime_split": "Three hand-split queue files beside the generated one (pipeline/pilot_offload_2017k_cpu1.yaml, _gpu.yaml, _cpu2.yaml) carry the SAME job id with a steps: subset each; the queue ledger merges their rows by (job, year, tag, step). They deliberately do NOT carry the GENERATED header: test_generated_queues_match_their_experiments requires a headered file to equal the full regeneration, and a split file cannot. pipeline/queue_offload_pilot_2017k.yaml was the canonical generated file at launch time and was removed on completion (the generator refuses decided experiments; the arm above is the record).\n",
         "why_2017k": "of2017k2 is the only logged session whose queue rows carry a `session` value, so it is the one baseline with VERIFIED per-VM hardware attribution (Reports §7 GOLD row). It is also fine-tier with a 2.4 GB probability raster — large enough for P2 to matter and small enough to run in under two hours.\n"
       },
       "headline": "RAN 2026-09-07 21:45Z to 2026-09-08 00:27Z on three runtimes (spdc1 CPU, spdg A100, spdc2 CPU);",
@@ -40,7 +40,7 @@
         "Scripts/qc/instruments/harvest_tilesets.py"
       ],
       "kind": "experiment",
-      "last_run": null,
+      "last_run": "2026-09-07",
       "metric": "Step elapsed from phase4/logs/phase4_semantic_finetune_<step>_2017k_*.log (pilot) against the of_2017k rows of 2026-09-06; A100-bearing span from the GPU queue's rows in phase4/qc/train_queue_status*.csv (first RUNNING ts to final VERIFY ts); artifact sizes by stat on the lake; per-step hardware attribution from phase4/qc/hw_step_attribution.csv (basis=marker for the pilot sessions, basis=interval for of2017k2); tile-set identity from phase4/qc/tileset_registry.csv.\n",
       "n": null,
       "n_source": null,
@@ -49,7 +49,7 @@
         "phase4/qc/hw_step_attribution.csv",
         "phase4/qc/tileset_registry.csv"
       ],
-      "registry_rows": 0,
+      "registry_rows": 5,
       "reports": [
         "Reports/PIPELINE_SPEEDUP_OPTIONS_2026-09-07.md"
       ],

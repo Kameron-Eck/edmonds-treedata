@@ -74,9 +74,10 @@ count beside it.
 
 16 of 37 acquisitions have a matched-cut read. ★ = designated champion.
 
-## 3. What 36 completed investigations concluded
+## 3. What 37 completed investigations concluded
 
 - **bundle_validation_2017k** (2026-09-08) — RAN 2026-09-08 02:02Z to 03:49Z (spdvc1 CPU labels+tile, spdvg A100 train), scored by an independent referee against the rule above; every number below names its file.
+- **lit_healing_analogues** (2026-09-08) — NO FIELD SUPPLIES A MEASURED LAUNDERING RATE for a one-directional temporal correction on real gold.
 - **offload_pilot_2017k** (2026-09-08) — RAN 2026-09-07 21:45Z to 2026-09-08 00:27Z on three runtimes (spdc1 CPU, spdg A100, spdc2 CPU);
 - **change_detector_design** (2026-09-06) — THE STEP-SHAPE CERTIFIER WINS AND THE SHIPPED PERSISTENCE FILTER IS A PURE RECALL TAX.
 - **flicker_parcels_census** (2026-09-06) — THE MODEL DOES NOT HALLUCINATE CANOPY ON BARE GROUND; THE INSTABILITY LIVES IN SENSITIVITY ON REAL VEGETATION.
@@ -122,16 +123,17 @@ count beside it.
 
 A gap here is a record, not a backlog — some acquisitions are deliberately out of scope. `phase4/qc/coverage_map.md` has the matrix.
 
-## 5. What is blocked, and on whom (10 open)
+## 5. What is blocked, and on whom (12 open)
 
-**Ready now (5) — nothing above them:**
+**Ready now (6) — nothing above them:**
 
 - `synthesis-session` [kam] — Sit down with the full evidence table and set the story: what does the project claim about Edmonds canopy dire
 - `k4-signoff` [kam] — Sign off or amend the documented findings block — review corrections, bootstrap CIs, canopy definition §6 and 
 - `k1-labelling` [kam] — Label the redrawn 250-point 2016 sample (~15 min at the measured pace), then decide K2 blind repeats and the K
 - `champion-designations` [kam] — Name a champion arm for the 20 acquisitions that have none, or state which are deliberately out of scope.
 - `change-detector-build` [kam] — Green-light the change-detector build: gold-set freeze, certifier port with the three audit fixes, tiers, then
+- `augmentation-seeding` [kam] — Seed the augmentation stream — pass an explicit seed to every albumentations Compose and re-baseline every arm
 
-**Waiting (5):** `ccap-bias-quantification` after k1-labelling, `thirtysix-run-go` after champion-designations, k4-signoff, `city-statement` after synthesis-session, k4-signoff, `paper-scope` after synthesis-session, k4-signoff, `forward-monitoring` after city-statement
+**Waiting (6):** `ccap-bias-quantification` after k1-labelling, `thirtysix-run-go` after champion-designations, k4-signoff, `city-statement` after synthesis-session, k4-signoff, `paper-scope` after synthesis-session, k4-signoff, `forward-monitoring` after city-statement, `selection-metric-calibration` after augmentation-seeding
 
 Full entries with evidence: `py -3.12 qc/ask.py --decisions`.

@@ -178,3 +178,67 @@ decisions:
     evidence:
       - Reports/CHANGE_DETECTOR_DESIGN_2026-09-06.md
       - experiments/change_detector_design.yaml
+
+  - id: augmentation-seeding
+    question: >-
+      Seed the augmentation stream — pass an explicit seed to every albumentations
+      Compose and re-baseline every arm — or leave it unseeded and treat each run as
+      ONE DRAW, which then requires same-commit replication before any single-run
+      number may be read as a verdict.
+    owner: kam
+    status: open
+    blocks: [selection-metric-calibration]
+    why: >-
+      core.py builds all four dataset Composes (_make_spatial_transform,
+      _make_pixel_transform, _make_pixel_transform_nonorm, _make_test_transform) with
+      no `seed=`, so albumentations 2.x self-seeds each one from OS entropy per
+      process; _seed_everything and _worker_init never reach it. Two SemanticDataset
+      objects seeded identically inside one process differ in 1,035,887 of 1,048,576
+      pixels on the first item, and same-tile 2017k runs at three commits vary 6.4% at
+      epoch-1 train loss and 27% at epoch 2 (referee measurement 2026-09-08 from the
+      train logs; no tracked instrument yet). So the train log's
+      `Seeds: python/numpy/torch(+cuda) = 42` line and run_passport's `seed` column
+      both overstate what is controlled, and qc/bench.py pins the augmentation RNG
+      itself — it calls `Compose.set_random_seed(SEED)` on the dataset's own transforms
+      before the bench runs, under a comment saying the globals do not reach them —
+      which makes BENCH MATCH a null verdict on run-to-run reproducibility, not a
+      confirmation of it. This is Kam's call and not a machinery fix, because passing
+      a seed moves training numerics for
+      EVERY year and re-baselines every arm; leaving it unseeded costs nothing today
+      and makes every unreplicated single-run comparison unreadable.
+    evidence:
+      - pipeline/phase4seg/core.py
+      - qc/bench.py
+      - phase4/qc/run_passport.csv
+
+  - id: selection-metric-calibration
+    question: >-
+      Keep the val_iou_bt early-stop / best-checkpoint metric and carry
+      WEAK_CALIBRATION into every arm's verdict, or add a calibration term or a
+      fixed-threshold guard to selection AFTER the campaign, with a re-baseline.
+    owner: kam
+    status: open
+    blocked_by: [augmentation-seeding]
+    why: >-
+      Selection maximises IoU at a FLOATING threshold off the 0.1-0.8 grid
+      (`es_metric = "val_iou_bt"` in core.py, chosen epoch published by
+      phase4seg/select.py::_finish_selection), so a run whose probabilities compress
+      upward still scores well and nothing in the metric can see it. The 2017 (5 cm)
+      arm heal_2017 selected Phase-A epoch 7 on val_iou_bt 0.7186 at threshold 0.4
+      while val_iou at 0.5 had collapsed to 0.2618; Phase B at LR_PHASE_B never
+      recovered, and the deployed raster read maxprob 0.701 / p99.9 0.520 —
+      WEAK_CALIBRATION under queue_verify's shape check — against 0.862 / 0.614 and OK
+      on the 09-05 run of the SAME arm, which selected on a margin of 0.0010, 5-12x
+      smaller than the same-epoch spread between runs. That 09-05 run showed the same
+      floating-versus-0.5 gap at its own late epochs, so compression is a property of
+      the 5 cm recipe and predates every 2026-09-07/08 commit (referee measurement
+      2026-09-08 from the train logs and the VERIFY output; no tracked instrument
+      yet). Changing the metric mid-campaign breaks heal_infill's RECIPE DISCIPLINE
+      clause, and matched cuts already absorb threshold shift; not changing it means
+      every 5 cm arm carries a calibration caveat into its verdict. It waits on
+      augmentation-seeding because a metric change cannot be A/B tested against a
+      stream that redraws itself every run.
+    evidence:
+      - experiments/heal_infill_2017_2023.yaml
+      - pipeline/queue_verify.py
+      - pipeline/phase4seg/select.py

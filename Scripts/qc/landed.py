@@ -60,6 +60,13 @@ def main():
     if a.dry_run:
         reg.append("--dry-run")
     fails += run("registry <- manifests", reg, dry=False) != 0   # its own dry-run flag
+    # The experiment index resolves registry rows, so the rows the rung above just
+    # appended make it stale — and the consistency rung below gates on its freshness.
+    # Regenerated HERE, before that gate, not only in the regen loop at the end: the
+    # end-of-run regen left every landed run with one red rung (twice on 2026-09-08)
+    # that a second pass then passed, which is the wrong order, not a real failure.
+    fails += run("regenerate: experiment index (pre-gate)",
+                 [py, str(SCRIPTS / "qc" / "experiments_index.py")], a.dry_run) != 0
     fails += run("experiment consistency",
                  [py, "-m", "pytest", "qc/test_experiments.py", "-q"], a.dry_run) != 0
     fails += run("decision registry",

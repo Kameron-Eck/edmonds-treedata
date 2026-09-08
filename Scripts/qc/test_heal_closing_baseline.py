@@ -137,10 +137,48 @@ def test_in_interval_laundering_fires_at_K_and_not_at_K_minus_one():
 
     agg2 = M.score_arm([("loss", raw, at2)], interior)
     agg1 = M.score_arm([("loss", raw, at1)], interior)
-    assert agg2["laundered_in_interval"] == 2
+    # ONE point, filled at TWO interior epochs, counts ONE — the unit is the point, the
+    # same unit as its denominator below. The old code returned 2 here (per fill event
+    # against a per-point denominator), which is how the 10-epoch trial printed 13 of 12.
+    assert agg2["laundered_in_interval"] == 1
+    assert agg2["loss_cells_filled"] == 2                  # the cells, in their own column
     assert agg1["laundered_in_interval"] == 0
     assert M.eligibility([("loss", raw)], YRS, interior)[1] == 1, (
         "the at-risk denominator does not contain the point the criterion just caught")
+
+
+def test_in_interval_count_never_exceeds_its_denominator():
+    """MUTATION, the 10-epoch defect. Two losses whose absent runs cover two interior
+    epochs each (the shapes 1113 `CCCCC..CC.` and 28 `CCCCC..C..` carried on the 10-epoch
+    trial): per fill event a cap >= 2 reads 4, per point it reads 2, and the unbounded
+    denominator is 2. Then a random sweep over every rule: count <= denominator always."""
+    yrs = [2009, 2011, 2013, 2015, 2016, 2017, 2019, 2021, 2023, 2024]
+    interior = [5, 6, 7, 8]                        # 2017, 2019, 2021, 2023
+    pts = [("loss", [C, C, C, C, C, A, A, C, C, A]),
+           ("loss", [C, C, C, C, C, A, A, C, A, A])]
+    n_int = M.eligibility(pts, yrs, interior)[1]
+    assert n_int == 2
+    pairs = [(lab, raw, M.close_1d(raw, yrs, "acq", 2)) for lab, raw in pts]
+    agg = M.score_arm(pairs, interior)
+    assert agg["loss_cells_filled"] == 4, "each point should be filled at two epochs"
+    assert agg["laundered_in_interval"] == 2, (
+        "a point filled at two epochs was counted twice — per event, not per point")
+    assert agg["laundered_in_interval"] <= n_int
+
+    rng = random.Random(20260908)
+    for _ in range(300):
+        n = rng.randint(3, 10)
+        series = [("loss", [rng.choice([C, A, A, X]) for _ in range(n)])
+                  for _ in range(rng.randint(1, 6))]
+        ys = yrs[:n]
+        inner = [i for i in range(1, n - 1) if rng.random() < 0.7]
+        _, elig = M.eligibility(series, ys, inner)
+        for rule, K in (("acq", rng.randint(1, n)), ("step_years", rng.randint(1, 8)),
+                        ("span_years", rng.randint(2, 15)), ("tier_matched", 0)):
+            a = M.score_arm([(lab, raw, M.close_1d(raw, ys, rule, K))
+                             for lab, raw in series], inner)
+            assert a["laundered_in_interval"] <= elig, (rule, K, series, inner)
+            assert a["laundered_terminal"] <= M.eligibility(series, ys, inner)[0]
 
 
 def test_the_terminal_criterion_cannot_fire_for_a_both_sides_rule():
@@ -333,6 +371,35 @@ def test_stack_heal_and_out_are_honoured_on_a_synthetic_stack(tmp_path, monkeypa
     assert "# scoring_parity_mismatches,0" in o.read_text(encoding="utf-8")
     after = CSV_OUT.read_bytes() if CSV_OUT.exists() else None
     assert after == before, "a --stack/--heal/--out run rewrote the tracked measured CSV"
+
+
+def test_a_count_above_its_denominator_is_refused_not_published(tmp_path, monkeypatch):
+    """MUTATION of the publish gate. The healer row's flanks are aligned, so count <=
+    denominator is not guaranteed by nesting there; build() refuses the whole table if any
+    row's laundered_* exceeds its n_eligible_*. Inject exactly the 10-epoch defect (a
+    per-event count against a per-point denominator) through score_arm and the table must
+    be refused with the reason named, nothing written."""
+    import sys as _sys
+    s = _synthetic_stack(tmp_path / "s.npz")
+    h = tmp_path / "heal.csv"
+    h.write_text(HEAL_CSV_TEXT, encoding="utf-8")
+    meta = tmp_path / "meta.json"
+    meta.write_text('{"interval": "2013 -> 2016"}', encoding="utf-8")
+    monkeypatch.setattr(M, "META_JSON", meta)
+    monkeypatch.setitem(_sys.modules, "heal_vs_gold", _fake_hvg(["2013", "2015", "2016"]))
+    real = M.score_arm
+
+    def inflated(*a, **k):
+        agg = real(*a, **k)
+        agg["laundered_in_interval"] += 1000        # the old per-event unit, exaggerated
+        return agg
+    monkeypatch.setattr(M, "score_arm", inflated)
+
+    rows, meta_, err = M.build(stack=s, heal_csv=h)
+    assert rows is None and "not the same unit" in err
+    o = tmp_path / "o.csv"
+    assert M.main(["--stack", str(s), "--heal", str(h), "--out", str(o)]) == 2
+    assert not o.exists()
 
 
 def test_a_stack_whose_epochs_are_not_the_golds_is_refused_not_indexed(tmp_path,

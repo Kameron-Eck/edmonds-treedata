@@ -41,13 +41,18 @@ filling", shown rather than argued, and it is mutation-tested both ways in
 input built to trip it, and the in-interval counter below DOES.
 
 SO A SECOND COUNTER, ON THE POPULATION WHERE A FILL IS AN ASSERTION ABOUT THE VERIFIED
-EVENT. `laundered_in_interval` counts fills at verified LOSS points on the epochs strictly
-inside the panel's own interval (read from `panel_a_meta.json`; on the trend8 stack that
-is 2019 and 2021). Its at-risk denominator `n_eligible_in_interval` is the number of loss
-points an UNBOUNDED both-sides rule could fill there — publish the pair, never the count
-alone (§6 G2). This does not count the 5 upstream fills `heal_vs_gold.py` correctly
-refuses to call laundering: those are 2015 dropouts at points cut later, before the panel's
-window opens.
+EVENT. `laundered_in_interval` counts verified LOSS POINTS filled at one or more epochs
+strictly inside the panel's own interval (read from `panel_a_meta.json`; on the trend8
+stack that is 2019 and 2021). Its at-risk denominator `n_eligible_in_interval` is the
+number of loss points an UNBOUNDED both-sides rule could fill there — publish the pair,
+never the count alone (§6 G2). BOTH ARE PER POINT, and the unit matters: a point whose
+absent run spans two interior epochs is filled twice but counted ONCE, so the count can
+never exceed its denominator. (Until 2026-09-08 the numerator counted per (point, epoch)
+fill EVENT against a per-point denominator — invisible on the 8-epoch stack, where no
+eligible loss is filled at two interior epochs, and 13 of 12 on the 10-epoch trial.)
+Cells filled, if wanted, are `loss_cells_filled`. This does not count the 5 upstream
+fills `heal_vs_gold.py` correctly refuses to call laundering: those are 2015 dropouts at
+points cut later, before the panel's window opens.
 
 READ `laundered_in_interval` AS AN UPPER BOUND, NOT AN ERASURE COUNT. It is a NECESSARY
 signature of laundering, not a sufficient one: a fill at an interior epoch asserts canopy
@@ -216,9 +221,13 @@ def score_arm(pairs, interior_idx):
         if label == "loss":
             agg["loss_cells_filled"] += nfill
             agg["loss_points_filled"] += int(nfill > 0)
-            agg["laundered_terminal"] += terminal_laundered(raw, new)
+            # PER POINT, like `n_eligible_terminal`. (`terminal_censored` stays in
+            # cells: it has no published denominator and the healer's row reads it.)
+            agg["laundered_terminal"] += int(terminal_laundered(raw, new) > 0)
             agg["terminal_censored"] += terminal_censored(raw, new)
-            agg["laundered_in_interval"] += filled_at(raw, new, interior_idx)
+            # PER POINT — the same unit as `eligibility`'s denominator. `filled_at`
+            # sums over epochs; wrapping it in `> 0` is what keeps count <= n_eligible.
+            agg["laundered_in_interval"] += int(filled_at(raw, new, interior_idx) > 0)
             agg["loss_triples_raw"] += triples(raw)
             agg["loss_triples_after"] += triples(new)
         elif label == "nochange":
@@ -241,7 +250,11 @@ def eligibility(points, yrs, interior_idx):
 
     A loss is at risk from a family iff SOME member of that family could fill it. The
     unbounded closing is the most permissive both-sides rule there is, so what it cannot
-    reach, none of them can.
+    reach, none of them can. Both counts are PER POINT (`> 0`), the unit `score_arm`'s
+    `laundered_*` counters use: every closing arm fills only both-flanked 0-runs, the
+    unbounded closing fills all of them, so an arm's per-point count is <= this by
+    construction. The healer aligns its flanks and the closing does not, so for its row
+    the inequality is CHECKED in `build()` rather than assumed.
     """
     n_term = n_int = 0
     for label, raw in points:
@@ -368,6 +381,17 @@ def build(stack=None, heal_csv=None):
     ign_cw = sum(int(r["healed_cells"]) for r in heal_rows if r["tier"] != "HEAL")
     rows.append(_row("healer", "tier_matched", 0, healer, n_term, n_int,
                      heal_cw, ign_cw, len(points)))
+
+    # A count above its own denominator means the two are not the same unit. Refused,
+    # never published: that is exactly the row the 10-epoch trial printed (13 of 12).
+    over = [(r["arm"], r["rule"], r["K"], c, r[c], r[d_])
+            for r in rows
+            for c, d_ in (("laundered_in_interval", "n_eligible_in_interval"),
+                          ("laundered_terminal", "n_eligible_terminal"))
+            if r[c] > r[d_]]
+    if over:
+        return None, None, (f"count exceeds its denominator — not the same unit: "
+                            f"{over[:3]}")
 
     # Does the healer's alignment move anything AT THIS RESOLUTION? temporal_heal.py
     # translates by whole cells, so a sub-cell shift is the identity. Measured from the

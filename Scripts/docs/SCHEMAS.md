@@ -1168,8 +1168,8 @@ population that could not contain the event.
 | `censored` | terminal absences marked 255 instead: the event is not erased but a change detector can no longer see it |
 | `triples_present` | raw present-absent-present triples centred on an epoch of this L, at the verified no-change points |
 | `triples_removed` | of those, the ones healing closed. The win side |
-| `crowns_eligible` | crowns whose RAW ladder holds a SINGLE-epoch ABSENT at this L flanked by PRESENT — a validity-interval boundary pair |
-| `crowns_deleted` | of those, the ones healing closed, merging two presence episodes into one. Blank on the control row: crowns do not depend on the gold labels |
+| `crowns_eligible` | crowns whose RAW ladder holds a SINGLE-epoch ABSENT at this L flanked by PRESENT — a validity-interval boundary pair. BLANK, never 0, when the comparison was skipped: `--no-crowns`, no gpkg on the local mirror, or a `--stack` whose epochs are not the crown rasters' (the trailer's `crowns_note` says which) |
+| `crowns_deleted` | of those, the ones healing closed, merging two presence episodes into one. Blank on the control row (crowns do not depend on the gold labels) and blank whenever `crowns_eligible` is |
 | `notes` | free text; carries the shuffle seed on the control row |
 
 **Read `laundered_at_risk` before `laundered`.** A verified loss's terminal absence runs
@@ -1192,10 +1192,14 @@ out of the per-L attribution entirely; the trailer counts them as
 `shuffle_seed`, the `*_total` sums, `crown_multi_epoch_runs`, `analytic_null` (the base
 rate scaled to the verified-loss count — exact, where one permutation of 42 from 1,214 is
 not), one `date_basis_{epoch}` per epoch (`measured` / `undated` / `ambiguous` /
-`no-row`), and `crosscheck_heal_vs_gold`, which reports whether the per-L triple
-attribution sums to the aggregate `heal_vs_gold.csv` published. Reported rather than
-asserted: a stale `heal_vs_gold.csv` is a reason to re-run that instrument, not to fail
-this one — the assertion lives in
+`no-row`), `crowns_note` when the crown comparison was skipped (e.g. `SKIPPED (crown
+rasters are 8-epoch, bundle is 10-epoch)` — the crown rasters live on the published
+8-epoch cache; `crown_multi_epoch_runs` is then BLANK, not 0), and `crosscheck_heal_vs_gold`, which reports whether the per-L triple
+attribution sums to the aggregate the `--heal-vs-gold` file published (default: the
+tracked `heal_vs_gold.csv`; a `--stack` run must pass the one produced on that stack, or
+the line compares two archives). Reported rather than asserted: a stale
+`heal_vs_gold.csv` is a reason to re-run that instrument, not to fail this one — the
+assertion lives in
 `qc/test_heal_gap_spectrum.py::test_real_csv_agrees_with_heal_vs_gold_on_the_totals_it_shares`.
 
 Gate: `qc/test_heal_gap_spectrum.py`, whose two mutation tests are the only evidence the
@@ -1302,10 +1306,17 @@ both-sides rule needs a detection AFTER the cell it fills; a terminal absence
 (`heal_vs_gold.py::build`, walking back from the last epoch) has none. So the count is
 structurally pinned at 0 for the closing at every K, for the healer, and for any
 both-sides rule — `0 of 42 laundered` certifies nothing about this family (§6 G2, §4.9
-M7). `laundered_in_interval` is the counter that can move: fills at verified LOSS points
-on the epochs strictly inside the panel's own interval (read from `panel_a_meta.json`;
-2019 and 2021 on this stack), with `n_eligible_in_interval` — the losses an UNBOUNDED
-both-sides rule could fill there — as its denominator. Publish the pair, never the count.
+M7). `laundered_in_interval` is the counter that can move: verified LOSS POINTS filled at
+one or more epochs strictly inside the panel's own interval (read from
+`panel_a_meta.json`; 2019 and 2021 on this stack), with `n_eligible_in_interval` — the
+losses an UNBOUNDED both-sides rule could fill there — as its denominator. Publish the
+pair, never the count. **Both pairs are PER POINT** (`laundered_terminal` too; only
+`terminal_censored` stays in cells): a point filled at two interior epochs counts once,
+so the count is ≤ its denominator by construction (every closing arm fills
+only both-flanked runs and the unbounded closing fills all of them; the healer row, whose
+flanks are aligned, is checked in `build()` and the table refused on overflow). Until
+2026-09-08 the numerator counted per (point, epoch) fill EVENT — invisible on 8 epochs,
+13 of 12 on the 10-epoch trial. The cells are in `loss_cells_filled`.
 Both denominators come from `heal_closing_baseline.py::eligibility`, which uses the
 unbounded rule so a narrow cap cannot flatter itself by shrinking its own at-risk set.
 

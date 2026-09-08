@@ -407,6 +407,120 @@ def test_parser_defaults_are_the_module_constants():
     assert a.stack is None and a.heal is None
     assert HGS.OUT_CSV == REAL_CSV == QC / "heal_gap_spectrum.csv"
     assert a.seed == HGS.SHUFFLE_SEED and not a.dry_run and not a.no_crowns
+    # the crosscheck's source is a flag with the tracked file as its default, so a
+    # --stack run can name the heal_vs_gold.csv produced on ITS stack
+    assert a.heal_vs_gold == str(HGS.HEAL_VS_GOLD_CSV)
+    assert HGS.HEAL_VS_GOLD_CSV == QC / "heal_vs_gold.csv"
+
+
+# ---- --heal-vs-gold: the crosscheck reads the file it is pointed at -------------------
+
+def _trailer_file(path, raw, fixed):
+    path.write_text(f"point_id,label\n# nochange_triples_raw,{raw}\n"
+                    f"# nochange_triples_fixed,{fixed}\n", encoding="utf-8")
+    return path
+
+
+def test_crosscheck_reads_the_heal_vs_gold_it_is_pointed_at(tmp_path, capsys):
+    """Until 2026-09-08 the crosscheck read the TRACKED heal_vs_gold.csv whatever --stack
+    said, so a 10-epoch run printed 'triples 220/173 vs heal_vs_gold 124/99 MISMATCH'
+    against a file scored on a different archive. The synthetic bundle's no-change point
+    flickers at two epochs and nothing is healed: 2 present, 0 removed. A trailer that
+    says so must MATCH; one that says otherwise must MISMATCH; both must be the file
+    named on the command line."""
+    bpath, gpath = tmp_path / "b.npz", tmp_path / "g.csv"
+    _write_bundle(bpath, _bundle())
+    _write_gold(gpath, _gold())
+    match = _trailer_file(tmp_path / "hvg_match.csv", 2, 0)
+    wrong = _trailer_file(tmp_path / "hvg_wrong.csv", 3, 1)
+
+    o1 = tmp_path / "o1.csv"
+    assert HGS.main(["--heal", str(bpath), "--gold", str(gpath), "--out", str(o1),
+                     "--no-crowns", "--heal-vs-gold", str(match)]) == 0
+    out = capsys.readouterr().out
+    assert "CROSSCHECK: triples 2/0 vs heal_vs_gold 2/0 MATCH" in out
+    assert "# crosscheck_heal_vs_gold,triples 2/0 vs heal_vs_gold 2/0 MATCH" in \
+        o1.read_text(encoding="utf-8")
+
+    o2 = tmp_path / "o2.csv"
+    assert HGS.main(["--heal", str(bpath), "--gold", str(gpath), "--out", str(o2),
+                     "--no-crowns", "--heal-vs-gold", str(wrong)]) == 0
+    assert "triples 2/0 vs heal_vs_gold 3/1 MISMATCH" in capsys.readouterr().out
+
+    # a file with no trailer at all: no crosscheck line, rather than a made-up one
+    o3 = tmp_path / "o3.csv"
+    assert HGS.main(["--heal", str(bpath), "--gold", str(gpath), "--out", str(o3),
+                     "--no-crowns", "--heal-vs-gold", str(tmp_path / "absent.csv")]) == 0
+    assert "crosscheck_heal_vs_gold" not in o3.read_text(encoding="utf-8")
+
+
+# ---- the crown columns: measured, or EMPTY and said so ------------------------------
+
+def _crown_cells(path):
+    body = [ln for ln in path.read_text(encoding="utf-8").splitlines()
+            if ln.strip() and not ln.startswith("#")]
+    rows = [r for r in csv.DictReader(body) if r["row_kind"] == "spectrum"]
+    assert rows
+    return [(r["crowns_eligible"], r["crowns_deleted"]) for r in rows]
+
+
+def test_crown_mismatch_is_announced_and_writes_empty_cells(tmp_path, monkeypatch, capsys):
+    """The crown rasters live on the published 8-epoch cache; on any other stack the
+    ladders cannot be compared. The run must SAY so, name both epoch counts, and leave
+    the two crown columns EMPTY — a 0 there reads as 'no boundary was deleted', which
+    nobody measured. It must also decide BEFORE rasterising 222k crowns."""
+    import types
+    bpath, gpath, opath = tmp_path / "b.npz", tmp_path / "g.csv", tmp_path / "o.csv"
+    _write_bundle(bpath, _bundle())                   # 5 epochs
+    _write_gold(gpath, _gold())
+    eight = tmp_path / "eight.npz"
+    np.savez(eight, years=np.array(["2009", "2011s", "2013", "2015", "2016", "2019",
+                                    "2021", "2024"]))
+    gpkg = tmp_path / "crowns.gpkg"
+    gpkg.write_bytes(b"")
+
+    def _no_load():
+        raise AssertionError("dc.load() ran — the epoch check must come first")
+
+    fake_dc = types.SimpleNamespace(CROWNS=gpkg, STACK=eight, load=_no_load)
+    real = HGS._sibling
+
+    def _sib(name):
+        return fake_dc if name == "detectability_curve" else real(name)
+    monkeypatch.setattr(HGS, "_sibling", _sib)
+
+    assert HGS.main(["--heal", str(bpath), "--gold", str(gpath), "--out", str(opath)]) == 0
+    out = capsys.readouterr().out
+    assert "crowns: SKIPPED (crown rasters are 8-epoch, bundle is 5-epoch)" in out
+    text = opath.read_text(encoding="utf-8")
+    assert "# crowns_note,SKIPPED (crown rasters are 8-epoch, bundle is 5-epoch)" in text
+    assert "# crown_multi_epoch_runs,\n" in text, "a skipped count printed as a number"
+    assert all(c == ("", "") for c in _crown_cells(opath)), (
+        "a skipped crown comparison wrote numbers into the crown columns")
+
+
+def test_no_crowns_writes_empty_cells_not_zeros(tmp_path, capsys):
+    bpath, gpath, opath = tmp_path / "b.npz", tmp_path / "g.csv", tmp_path / "o.csv"
+    _write_bundle(bpath, _bundle())
+    _write_gold(gpath, _gold())
+    assert HGS.main(["--heal", str(bpath), "--gold", str(gpath), "--out", str(opath),
+                     "--no-crowns"]) == 0
+    assert "crowns: SKIPPED (--no-crowns)" in capsys.readouterr().out
+    assert all(c == ("", "") for c in _crown_cells(opath))
+    assert "# crown_multi_epoch_runs,\n" in opath.read_text(encoding="utf-8")
+
+
+def test_crown_cells_are_numbers_when_the_ladders_are_supplied(tmp_path):
+    """The other branch: a bundle carrying its own crown ladders is measured, and the
+    cells are integers — the blank is for a skip, never for a zero that was counted."""
+    b = _bundle()
+    b["crown_raw"] = ["PAPPP", "PPPPP"]
+    b["crown_healed"] = ["PPPPP", "PPPPP"]
+    rows, meta = HGS.spectrum(b, _gold())
+    by = _by_L(rows)
+    assert by[4]["crowns_eligible"] == 1 and by[4]["crowns_deleted"] == 1
+    assert by[5]["crowns_eligible"] == 0 and by[5]["crowns_deleted"] == 0
+    assert meta["crown_note"] == "" and meta["crown_multi_epoch_runs"] == 0
 
 
 def _synthetic_stack(path):

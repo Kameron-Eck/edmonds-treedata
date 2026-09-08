@@ -84,8 +84,18 @@ Output: phase4/qc/heal_gap_spectrum.csv
 
 Run:  py -3.12 qc/instruments/heal_gap_spectrum.py [--dry-run] [--no-crowns]
       py -3.12 qc/instruments/heal_gap_spectrum.py --heal bundle.npz --gold g.csv --out o.csv
-      py -3.12 qc/instruments/heal_gap_spectrum.py --stack S.npz --out o.csv --no-crowns
-      (--stack overrides temporal_heal.STACK for the healer run; the default is unchanged)
+      py -3.12 qc/instruments/heal_gap_spectrum.py --stack S.npz --heal-vs-gold H.csv --out o.csv
+      (--stack overrides temporal_heal.STACK for the healer run; the default is unchanged.
+       --heal-vs-gold is the heal_vs_gold.csv the trailer cross-checks against — pass the
+       one RUN ON THE SAME STACK, or the crosscheck compares two different archives.)
+
+THE CROWN COLUMNS ARE MEASURED OR BLANK, NEVER A SILENT ZERO. `crown_states` reads the
+2020 crown raster off `detectability_curve.STACK` (the published 8-epoch cache); on a
+stack with other epochs the ladders cannot be compared, so the run prints
+`crowns: SKIPPED (crown rasters are N-epoch, bundle is M-epoch)`, writes the same to the
+`crowns_note` trailer key, and leaves `crowns_eligible` / `crowns_deleted` EMPTY. The
+same for `--no-crowns` and for a missing gpkg. Until 2026-09-08 those cells read 0 on a
+skipped run, indistinguishable from a measured zero.
 """
 from __future__ import annotations
 
@@ -340,11 +350,19 @@ def crown_states(bundle):
     dc = _sibling("detectability_curve")
     ct = _sibling("crown_trajectories")
     if not dc.CROWNS.exists():
-        return None, None, f"{dc.CROWNS.name} not found (local mirror)"
+        return None, None, f"SKIPPED ({dc.CROWNS.name} not found on the local mirror)"
+
+    # The epoch check comes BEFORE dc.load() rasterises 222k crowns: on a foreign stack
+    # the answer is known from the cache's `years` alone, and the caller must be told it
+    # is a skip rather than handed zeros.
+    crown_years = [str(y) for y in np.load(dc.STACK)["years"]]
+    if crown_years != list(bundle["years"]):
+        return None, None, (f"SKIPPED (crown rasters are {len(crown_years)}-epoch, "
+                            f"bundle is {len(bundle['years'])}-epoch)")
 
     stack, inside, years, g, ids = dc.load()
     if [str(y) for y in years] != list(bundle["years"]):
-        return None, None, "crown raster epochs disagree with the heal bundle"
+        return None, None, "SKIPPED (crown raster epochs disagree with the heal bundle)"
     n = len(g)
     healed = bundle["healed"]
     raw_cov = np.vstack([dc.per_crown_cover(stack[i], ids, n, False)
@@ -440,9 +458,10 @@ def spectrum(bundle, gold, no_crowns=False, seed=SHUFFLE_SEED):
 
     real = gold_counters(bundle, labels, l_of)
 
-    # ---- crown ladders (optional: needs the 2020 crown gpkg on the local mirror)
-    crown_elig, crown_rem, crown_multi, crown_note = \
-        collections.Counter(), collections.Counter(), 0, ""
+    # ---- crown ladders (optional: needs the 2020 crown gpkg on the local mirror).
+    # None until MEASURED: `_row` writes None as an empty cell, so a skipped comparison
+    # — whatever the reason — can never be read as a measured zero.
+    crown_elig, crown_rem, crown_multi, crown_note = None, None, None, ""
     if not no_crowns:
         if bundle.get("crown_raw") is not None:
             rs, hs = list(bundle["crown_raw"]), list(bundle["crown_healed"])
@@ -454,7 +473,7 @@ def spectrum(bundle, gold, no_crowns=False, seed=SHUFFLE_SEED):
         if rs is not None:
             crown_elig, crown_rem, crown_multi = crown_boundary_removals(rs, hs, l_of)
     else:
-        crown_note = "skipped (--no-crowns)"
+        crown_note = "SKIPPED (--no-crowns)"
 
     # ---- cell-level aggregates, read off the healed array rather than the overlay, so
     # a fill the eligibility predicate never licensed still shows up (mutation B).
@@ -641,6 +660,9 @@ def _parser():
     ap.add_argument("--stack", default=None,
                     help="epoch stack the healer reads (overrides temporal_heal.STACK)")
     ap.add_argument("--gold", default=str(GOLD_CSV))
+    ap.add_argument("--heal-vs-gold", default=str(HEAL_VS_GOLD_CSV),
+                    help="heal_vs_gold.csv whose trailer the crosscheck reads — must be "
+                         "the one run on the SAME stack (default: the tracked 8-epoch file)")
     ap.add_argument("--out", default=str(OUT_CSV))
     ap.add_argument("--no-crowns", action="store_true",
                     help="skip the validity-interval boundary count (needs the 2020 gpkg)")
@@ -686,7 +708,8 @@ def main(argv=None):
               f"{sum(r['fills_outside_eligible'] for r in spec)}\n")
     buf.write(f"# triples_present_total,{tp}\n")
     buf.write(f"# triples_removed_total,{tr}\n")
-    buf.write(f"# crown_multi_epoch_runs,{meta['crown_multi_epoch_runs']}\n")
+    cm = meta["crown_multi_epoch_runs"]
+    buf.write(f"# crown_multi_epoch_runs,{'' if cm is None else cm}\n")   # blank = skipped
     if meta["crown_note"]:
         buf.write(f"# crowns_note,{meta['crown_note']}\n")
     if meta["null_note"]:
@@ -694,8 +717,10 @@ def main(argv=None):
     for y, basis in meta["date_basis"].items():
         buf.write(f"# date_basis_{y},{basis}\n")
     # cross-check against the scorer that owns the aggregate. Reported, not asserted:
-    # a stale heal_vs_gold.csv is a reason to re-run it, not a reason to fail here.
-    hv = _trailer(HEAL_VS_GOLD_CSV)
+    # a stale heal_vs_gold.csv is a reason to re-run it, not a reason to fail here. The
+    # file is --heal-vs-gold (default: the tracked one) — on a --stack run it must be the
+    # heal_vs_gold.csv produced on THAT stack, or MISMATCH only says "two archives".
+    hv = _trailer(a.heal_vs_gold)
     xc = ""
     if hv.get("nochange_triples_raw"):
         ok = (str(tp) == hv["nochange_triples_raw"]
@@ -715,13 +740,16 @@ def main(argv=None):
           f"{'crown+':>9}{'crown-':>9}")
     def _rate(r):
         return f"{r['fill_rate']:.2f}" if r["fill_rate"] != "" else "—"
+
+    def _n(v):
+        return "-" if v == "" else f"{v:,}"          # a skipped crown cell prints '-'
     for r in spec:
         t = f"{r['tier_HEAL']}H/{r['tier_REVIEW']}R/{r['tier_BLIND']}B"
         print(f"{r['L_years']:>5}{r['epochs']:>26}{t:>16}{r['n_eligible']:>10,}"
               f"{r['n_fills']:>9,}{_rate(r):>7}{r['laundered']:>7}"
               f"{r['laundered_at_risk']:>8}{r['laundered_eligible']:>6}"
               f"{r['triples_present']:>7}{r['triples_removed']:>7}"
-              f"{r['crowns_eligible']:>9,}{r['crowns_deleted']:>9,}")
+              f"{_n(r['crowns_eligible']):>9}{_n(r['crowns_deleted']):>9}")
     ctrl = [r for r in rows if r["row_kind"] == "negative_control"]
     for r in ctrl:
         print(f"{r['L_years']:>5}{'SHUFFLED GOLD (control)':>26}{'-':>16}"
@@ -746,7 +774,8 @@ def main(argv=None):
     if xc:
         print(f"  CROSSCHECK: {xc}")
     if meta["crown_note"]:
-        print(f"  crowns: {meta['crown_note']}")
+        print(f"  crowns: {meta['crown_note']} — crowns_eligible / crowns_deleted are "
+              f"EMPTY, not measured")
     else:
         print(f"  crowns: {meta['crown_multi_epoch_runs']:,} multi-epoch absent runs are "
               f"counted but NOT attributed to an L —\n  they span more than one bracket. "

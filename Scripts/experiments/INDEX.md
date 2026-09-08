@@ -1,7 +1,7 @@
 # EXPERIMENT REGISTRY INDEX — GENERATED, do not edit
 
 Regenerate: `py -3.12 qc/experiments_index.py` (drift-gated by `test_experiments.py::test_index_is_fresh`).
-Authored layer + schema: this directory's `README.md`. 46 entries: 36 complete · 5 needs-kam · 4 queued · 1 tabled.
+Authored layer + schema: this directory's `README.md`. 47 entries: 37 complete · 5 needs-kam · 4 queued · 1 tabled.
 
 ## Awaiting Kam sign-off
 
@@ -16,6 +16,7 @@ Authored layer + schema: this directory's `README.md`. 46 entries: 36 complete �
 | entry | kind | status | decided | N | imagery | headline |
 |---|---|---|---|---|---|---|
 | bundle_validation_2017k | experiment | complete | 2026-09-08 | — | 2017k | RAN 2026-09-08 02:02Z to 03:49Z (spdvc1 CPU labels+tile, spdvg A100 train), scored by an independent referee against the rule above; every number below names its file. |
+| lit_healing_analogues | instrument-finding | complete | 2026-09-08 | — | — | NO FIELD SUPPLIES A MEASURED LAUNDERING RATE for a one-directional temporal correction on real gold. |
 | offload_pilot_2017k | experiment | complete | 2026-09-08 | — | 2017k | RAN 2026-09-07 21:45Z to 2026-09-08 00:27Z on three runtimes (spdc1 CPU, spdg A100, spdc2 CPU); |
 | change_detector_design | measurement-campaign | complete | 2026-09-06 | — | 2009,2011s,2013,2015,2016,2019,2021,2024 | THE STEP-SHAPE CERTIFIER WINS AND THE SHIPPED PERSISTENCE FILTER IS A PURE RECALL TAX. |
 | flicker_parcels_census | measurement-campaign | complete | 2026-09-06 | — | 2009,2011s,2013,2015,2016,2019,2021,2024 | THE MODEL DOES NOT HALLUCINATE CANOPY ON BARE GROUND; THE INSTABILITY LIVES IN SENSITIVITY ON REAL VEGETATION. |

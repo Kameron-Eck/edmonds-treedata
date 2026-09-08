@@ -77,6 +77,59 @@
     },
     {
       "arm_scores": {},
+      "arms": [],
+      "category": "literature",
+      "champion_tags": [],
+      "commit": null,
+      "decided": "2026-09-08",
+      "decision_rule": "A mechanism counts only if a skeptic re-opened its cited page and could not refute the finder's reading, and only if the paper reports its own false-correction rate on gold; a method that smooths without a laundering analysis is a lead, not a recommendation. Fields are ranked by assumption fit: one-sided error with a covariate-dependent miss rate, near-zero false alarms, sparse gold at one time step, real change that must survive.\n",
+      "design_doc": null,
+      "extra": {
+        "not_verified_candidates": "The critic named two papers the run could not fetch (Ulman 2017; Uhrig 2017 depth completion) and five coverage gaps (re-ID after a gap, depth completion into a real validity mask, reversible multistate models, Kalman smoothers, clinical no-lesion- can-vanish rules); they are recorded in the report's section 8 as gaps, not findings.\n",
+        "related_entries": [
+          "heal_infill_2017_2023"
+        ]
+      },
+      "headline": "NO FIELD SUPPLIES A MEASURED LAUNDERING RATE for a one-directional temporal correction on real gold.",
+      "hypothesis": "Some field outside canopy mapping already has a bounded, one-directional temporal correction with a MEASURED false-correction (laundering) rate on real gold, and a gate we could borrow verbatim. Prompt: Reports/LITREVIEW_HEALING_ANALOGUES_PROMPT_2026-09-08.md. Run 2026-09-08 by a Fable orchestrator over 10 Opus finders, 12 skeptics and 1 critic; 413 URL attempts, 216 fetched; 72 mechanisms, 26 recommended by finders, of which 1 stands, 17 weakened to leads, 8 refuted; 26 quotations corrected or dropped.\n",
+      "imagery": [],
+      "inputs": [],
+      "instruments": [],
+      "kind": "instrument-finding",
+      "last_run": null,
+      "metric": "Reports/LIT_HEALING_ANALOGUES_2026-09-08.md (ranking, the convergent formula, every false-correction rate found, borrowable gates, first-three / refuse-one, not-found list, provenance) and Reports/lit_healing_analogues_2026-09-08.csv (72 rows: field, mechanism, one_directional, licensing_evidence, stated_bound_or_rate, ground_truth_needed, feasible_at_2k_labels, skeptic_verdict, citation, url).\n",
+      "n": null,
+      "n_source": null,
+      "name": "lit_healing_analogues",
+      "outputs": [
+        "Reports/lit_healing_analogues_2026-09-08.csv"
+      ],
+      "registry_rows": 0,
+      "reports": [
+        "Reports/LIT_HEALING_ANALOGUES_2026-09-08.md",
+        "Reports/LITREVIEW_HEALING_ANALOGUES_PROMPT_2026-09-08.md"
+      ],
+      "retrospective": false,
+      "run_ids": [],
+      "sample": "Literature: 72 mechanisms across ten fields, 26 adjudicated by an independent skeptic who re-opened the cited page; the rest labelled LEAD or REJECT by the finder only.\n",
+      "status": "complete",
+      "superseded_by": [],
+      "supersedes": [],
+      "tags": [
+        "healing",
+        "temporal-backfill",
+        "literature",
+        "laundering",
+        "occupancy",
+        "hmm",
+        "interval-censoring",
+        "tracking"
+      ],
+      "tilesets": [],
+      "verdict": "NO FIELD SUPPLIES A MEASURED LAUNDERING RATE for a one-directional temporal correction on real gold. Four fields (occupancy modelling, HMM/state-space, interval-censored survival, astronomy completeness) converge on one fill-odds formula whose denominator is P(regain | recent removal); the endpoint panel cannot measure it (its two gains are colonisation of empty sites), so the posterior cannot refuse a bracketed fill at the project's rates. Ranking: occupancy 7, HMM 7, interval-censored 6, label-noise/PU 6, multi-object tracking 5, image primitives 5, astronomy 4, speech/VAD 4, video segmentation 4, medical longitudinal 3. What stands: morphological closing as the comparator baseline, the gap-length spectrum H(L) as an instrument, the OVER-style attributed-error audit, PU's e(x) as a weight, F-space debiasing as an audit. FIRST THREE: (1) a fill-side laundering audit of ~300 cells sampled from the healer's own output, paired interval reads with a null-change control, reported beside the 0/42; (2) H(L) with laundered(L), triples(L), n_eligible and crowns-deleted columns, zero labels, mutation-tested; (3) measure gamma_conditional from adjudicated impossible triples at the no-change points (the 42 losses are selected for no regain and cannot yield it). REFUSE until gamma_conditional is measured: any posterior-as-licence (PMBM existence, dynamic-occupancy posterior, SAR-EM, fitted-transition HMMs).\n"
+    },
+    {
+      "arm_scores": {},
       "arms": [
         {
           "extra": [

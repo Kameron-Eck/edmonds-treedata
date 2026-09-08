@@ -58,6 +58,21 @@ decision_rule: >
   the current 0 of 42 was measured only OUTSIDE the window, so it is not yet evidence
   about the case that matters.
 
+  AMENDMENT 2026-09-08, written before any arm of this campaign has a verdict and with the
+  original text above left intact: phase4/qc/heal_gap_spectrum.csv (qc/instruments/
+  heal_gap_spectrum.py) measured that the PRIMARY KILL as written cannot fire. A verified
+  loss has a terminal absence that runs to the end of the series, so the epoch after any
+  interior epoch inside it also reads absent and a both-sides fill can never touch it;
+  laundered_at_risk is 0 in every gap bucket on the 8-epoch stack and every alignment shift
+  quantises to zero cells. 0 of 42 is therefore a criterion with no power, not a bound.
+  The operative laundering test for this campaign is the FILL-SIDE audit
+  (qc/instruments/heal_fill_audit_sample.py, ~300 fills sampled from the healer output with
+  a null-change control, human-read, k/300 reported with its exact upper bound), together
+  with the impossible-triple criterion at the no-change points, which keeps its power.
+  The 42 remain the population for the ONE-SIDED failure a REVIEW-tier rule could commit
+  (laundered_eligible = 28 at L=5). Source: Reports/LIT_HEALING_ANALOGUES_2026-09-08.md
+  section 0 item 4 and Reports/HEALING_TOOL_REASONING_2026-09-07.md section 14.
+
   PROMOTE if, on the 12-epoch stack: (a) laundered = 0 and terminal-censored = 0 against
   the frozen gold; (b) impossible-triple removal at verified no-change points is no worse
   than the 99 of 124 measured on 8 epochs; (c) BLIND brackets inside 2016-2024 fall to

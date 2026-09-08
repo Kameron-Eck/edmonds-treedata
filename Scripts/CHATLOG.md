@@ -920,3 +920,44 @@ next:    referee + fix the two instrument defects; 12-epoch build; rebuild
          heal_vs_gold / closing / spectrum / fill-audit on it; arm verdicts in
          experiments/heal_infill_2017_2023.yaml (carry WEAK_CALIBRATION for 2017);
          Kam: reader session on the 300+300, the two registered decisions.
+
+## 2026-09-08  healer-closed-out-and-tabled
+goal:    Kam: "bring today's healer work to a close, then table it so we can improve the
+         system so work like this can move faster"; then "any runtime that is almost
+         finished can continue; don't start any new epochs."
+did:     DEFECTS FIXED (802a0c8, Opus workflow + referee): closing baseline's
+         laundered_in_interval counted (point, epoch) fill EVENTS against a per-point
+         denominator (13 of 12 on 10 epochs; both read 4 on 8, so invisible) — both per
+         point now, build() refuses any count above its denominator, mutation-tested
+         (old code 4 vs 2); the same unit error in laundered_terminal fixed (inert).
+         Spectrum given --heal-vs-gold and an explicit crown SKIP with EMPTY cells.
+         Every default byte-identical to the tracked CSVs. healD stopped after
+         heal_2023 landed (BE12, F1 0.813). heal_2020 landed on healC (AE11, F1
+         0.954; VERIFY:postproc OK 19:28Z); heal_2022 NEVER STARTED — healC idled with
+         its exec channel lost (404); stopped via the Drive mailbox (queue+engine
+         SIGTERMed, watchdog ended the VM; 0 active runtimes). Experiment set
+         status: tabled with an explicit NO VERDICT + per-arm notes (2017
+         WEAK_CALIBRATION + C-CAP score; 2020 clean; 2023 clean; 2022 not run);
+         generated queue retired (regenerates on resumption). ELEVEN-EPOCH STACK
+         cached at D:\edmonds-pipeline\heal_stack_2m.npz (8 trend8 + heal_2017/2020/
+         2023, date-ordered; parity: 8 shared epochs identical to the published
+         cache; 6.6 MB). landed.py: registry +1, harvests, STATUS; ordering fix —
+         the experiment index is regenerated BEFORE the consistency gate (it went
+         red on every landed run that added registry rows, twice today).
+         WORKPLAN: healer TABLED row + SYSTEM WORK queued in leverage order.
+decided: (Kam) no new GPU runs; healer science paused until the system work lands:
+         (1) measured-file registry gated in the suite, (2) synthetic rehearsal lake
+         of non-default shape every instrument must run on, (3) append-only lake
+         writes + harvest-on-land, (4) versioned object storage when decided.
+killed:  nothing scientific — the decision rule was NOT evaluated; the 10-epoch
+         scratch numbers stay provisional and untracked.
+files:   qc/instruments/heal_closing_baseline.py, heal_gap_spectrum.py + tests;
+         docs/SCHEMAS.md; experiments/heal_infill_2017_2023.yaml + INDEX;
+         pipeline/queue_heal_infill_2017_2023.yaml (removed); qc/landed.py;
+         WORKPLAN.md; run_registry + harvests + STATUS; memory note
+         close-out-then-table-for-system-work.
+next:    the system work above (next session); on resumption: regenerate the queue,
+         run heal_2022, rebuild the stack to 12, then heal_vs_gold / closing /
+         spectrum / fill-audit for the experiment's verdict; Kam: reader session on
+         the 300+300, the two registered decisions (augmentation seeding, selection
+         metric).

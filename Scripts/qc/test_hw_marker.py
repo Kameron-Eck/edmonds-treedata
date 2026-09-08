@@ -192,6 +192,61 @@ def test_read_marker_missing_is_blank_not_an_error(tmp_path):
     assert hw.read_marker(str(tmp_path / "nope.json")) == ("", "")
 
 
+def _marker(tmp_path, **fields):
+    """A marker with a LIVE pid unless one is given — read_marker discards dead ones."""
+    d = {"script": "s", "step": "train_2017", "run_tag": "tg", "pid": os.getpid(),
+         "started_utc": "2026-09-07T00:00:00Z"}
+    d.update(fields)
+    p = tmp_path / "m.json"
+    p.write_text(json.dumps(d), encoding="utf-8")
+    return str(p)
+
+
+def test_read_marker_without_a_phase_key_is_the_bare_step(tmp_path):
+    """The StepLogger contract, unchanged: it writes no `phase`, and absent means open.
+    Every marker written before 2026-09-07 is this case, and it must not grow a suffix."""
+    assert hw.read_marker(_marker(tmp_path)) == ("train_2017", "tg")
+
+
+def test_read_marker_phase_open_is_the_bare_step(tmp_path):
+    """Explicit `open` reads identically to absent — one step, one cell, one harvest row.
+    If it suffixed, `train` and `train#open` would be two rows for the same work."""
+    assert hw.read_marker(_marker(tmp_path, phase="open")) == ("train_2017", "tg")
+
+
+def test_read_marker_launching_and_verifying_suffix_the_step(tmp_path):
+    """The phases the queue will write: staging before the step and VERIFY after it,
+    which today land in the harvest's `(between)` bucket with nothing to attribute them
+    to — see the `spdc1,(between),marker` row of phase4/qc/hw_step_attribution.csv."""
+    assert hw.read_marker(_marker(tmp_path, phase="launching")) \
+        == ("train_2017#launching", "tg")
+    assert hw.read_marker(_marker(tmp_path, phase="verifying")) \
+        == ("train_2017#verifying", "tg")
+
+
+def test_read_marker_blank_phase_is_open(tmp_path):
+    """A writer that sets the key but leaves it empty has said nothing; it must not
+    produce a `train_2017#` cell that the harvest would then split into a blank phase."""
+    assert hw.read_marker(_marker(tmp_path, phase="")) == ("train_2017", "tg")
+
+
+def test_read_marker_phase_without_a_step_stays_blank(tmp_path):
+    """A phase is a fact ABOUT a step. With no step there is nothing to qualify, and a
+    bare `#verifying` cell would normalise to `(between)` in the harvest anyway. run_tag
+    is a separate reading and keeps its pre-existing pass-through."""
+    assert hw.read_marker(_marker(tmp_path, step="", phase="verifying")) == ("", "tg")
+
+
+def test_read_marker_verifying_by_a_dead_writer_is_still_blank(tmp_path, monkeypatch):
+    """The collision the names.py docstring warns about, pinned. `verifying` runs after
+    the engine has exited, so a queue that copies the ENGINE's pid into the marker gets
+    every verifying sample discarded by the liveness gate — the phase would be lost
+    exactly where it was supposed to be recorded. The gate is right (a SIGKILLed step
+    must not keep claiming samples); the requirement is that the pid be the WRITER's."""
+    monkeypatch.setattr(hw, "pid_alive", lambda _p: False)
+    assert hw.read_marker(_marker(tmp_path, phase="verifying", pid=999_999)) == ("", "")
+
+
 def test_read_marker_malformed_json_is_blank(tmp_path):
     """A sample can land mid-write on a box without atomic rename; a blank step is an
     honest 'unknown', a crashed logger loses the whole session's telemetry."""

@@ -456,8 +456,8 @@ READER RULES.
   belong in the same sentence: **463.9 MB/s** all-copy / **484.0 MB/s** `sem_best` from
   this file's joined lake `bytes` (n=2,107 / n=1,375 rows with a rate), against
   **429.4 MB/s** for both from the size the engine LOGGED at copy time (n=2,108 /
-  n=1,376). **Prefer 429.4** — see the `bytes` rule below for why the joined figure runs
-  12.7% high.
+  n=1,376). **Prefer 429.4** — see the `bytes` rule below for why the joined `sem_best`
+  figure runs 12.7% high (all-copy, 8.0%).
 - **`bytes` is the file's size in the lake NOW, joined by BASENAME — not the size at the
   time of the event.** EXACT for the `stage` population, which is the whole of the
   published throughput: the orthos and `phase3`'s 2020 mask are write-once, all 28
@@ -620,11 +620,26 @@ READER RULES, each earned on a measured row:
   with every GPU column empty — a CPU runtime. `gpu_name`/`vcpus`/`ram_gb` come
   from `hw_meta` ONLY and are blank for every session logged before that file
   existed; `gpu_present` is the measured answer for those.
-- **`queue` is blank rather than guessed.** Two links exist — a heartbeat's
-  `newest_nohup.name`, admitted only when that record's `queue_proc` is non-null
-  (`vm_heartbeat.py::_newest` drops its own-stem filter without one and then
-  reports the newest nohup log on the whole shared mount, routinely another VM's),
-  and the stem of a status FILE holding this session's rows. They agree or the
+- **`queue` is blank rather than guessed.** Three links, in precedence order.
+  (1) The heartbeat's own `queue_file` — the `--queue` argument the queue process
+  publishes about itself (`vm_heartbeat.py::sample`, D11) — basename, `.yaml`
+  stripped. It wins: it is the only link that cannot name another VM's queue.
+  (2) For pre-D11 records that declare none, the heartbeat's `newest_nohup.name`,
+  admitted only when `queue_proc` is non-null (`vm_heartbeat.py::_newest` drops
+  its own-stem filter without one and then reports the newest nohup log on the
+  whole shared mount, routinely another VM's). **A live `queue_proc` is NECESSARY
+  BUT NOT SUFFICIENT**: that filter matches by SUBSTRING, so a stem which is a
+  strict prefix of another queue's stem returns the LONGER queue's log. Measured
+  2026-09-07 on `hardyear` — declared `queue_hard_year_pilot`, `newest_nohup`
+  named `queue_hard_year_pilot_only2006s`, and this table published the longer
+  stem until (1) existed. A stem reached this way is dropped when another nohup
+  stem on the lake is a prefix of it, flagged
+  `queue_prefix_collision(shorter,longer)`. (3) The stem of a status FILE holding
+  this session's rows, **only when that file is a LAUNCH**
+  (`names.parse_status_name` returns a non-None ts): a `_seed` file's stem would
+  collide with its own queue's launches, and the ledger-recovery candidate's stem
+  is a filename artifact — reproduced, it published
+  `queue = recovered_20260901_20260907` for four sessions. The links agree or the
   cell is blank with `queue_ambiguous(a,b)` in `sources`.
 - **`queue_last_row_ts` is the last step's START, not its end.**
   `phase4_train_queue.py::run_step` stamps `ts` when it appends the row in state
@@ -648,6 +663,33 @@ READER RULES, each earned on a measured row:
   `host` and a different GPU, so it is not the same runtime re-bootstrapped under
   a new session name either. WHY the beacon stopped is not established. Exclude
   those rows from any sum.
+- **`later_rows_unattributed(tag)` means the ledger stopped NAMING the session
+  before the work stopped, so that row's gap is mostly work.**
+  `queue_last_row_ts` is the last row saying `session=<s>`, which is the run's
+  last row only while every row is attributed. Since the ledger-recovery
+  candidate reached the lake (2026-09-07 — it is now IN `phase4/qc/` and every
+  reader merges it, as `names.status_files` promises), that no longer holds: its
+  252 snapshot-native rows carry a `session` and its 198 log-synthesised rows
+  carry an EMPTY one, and the synthesised rows are exactly the events no snapshot
+  captured — the later ones. Measured on `ofB`: last session-stamped row
+  `evaluate` 16:33:53, rows for the same tag continuing to 18:58:23, and a
+  published 351.6 min "idle tail" across hours of work. Any blank-session row
+  bearing one of the session's tags and dated after its last row raises this
+  flag, and those rows leave the instrument's headline sum. **Necessary, not
+  sufficient**: the check only sees tags the session already has an attributed
+  row for, so a ledger that cut before its next tag began passes unflagged —
+  absence of the flag is not proof of completeness.
+- **`heartbeat_not_listed` means no beacon record was found for a session another
+  writer knows about** — not that the beacon columns are merely empty. The
+  heartbeat listing is not evidence of absence: reproduced 2026-09-07, one
+  `glob("heartbeat_*")` returned 143 entries with a live runtime's file missing
+  and readable by name seconds either side, and `vm_heartbeat.py::write_atomic`
+  renames the live file aside before replacing it, so the canonical name is
+  genuinely absent for a window every 60 s. Every session known elsewhere and
+  absent from the listing is therefore RE-PROBED by name (including the bare
+  `.json.prev.{tok}` aside, the only copy inside that window) before its beacon
+  columns are published blank. Sessions that predate the beacon carry this flag
+  permanently, which is the same true statement about them.
 - **`heartbeat_first_utc` is a ceiling on the beacon's start, not the start.**
   `vm_heartbeat.py::write_atomic` OVERWRITES one file per session every 60 s, so
   what survives is the last cycle plus its `prev_ts_utc` plus any stranded
@@ -657,29 +699,44 @@ READER RULES, each earned on a measured row:
   so they are compared directly. A whole-hour `startup_min` or `idle_tail_min` is
   the symptom to check before believing a large value.
 
-**What it measures today, and the gap it exposes (2026-09-07).** 76 sessions.
-Thirteen carry GPU hardware samples; FOUR sessions have both a machine-side stamp
-and a session-stamped queue row, and they are the whole idle-tail measurement:
-`spdg` (A100, hw + rows, but its last row is `RUNNING` — a live step, excluded),
-`pilotcoarse` (flagged `beacon_ended_before_queue`, excluded), and `pilotfine`
-2.3 min + `pilotmed` 11.1 min = **13.4 min of idle tail over two A100 sessions**.
-Those two have `gpu_present` BLANK — no hw CSV was written for them — so the
-instrument's own headline, which keys on `gpu_present`, reports UNMEASURED; their
-GPU model is known only from `heartbeat_{session}.json`'s `gpu.name`, which this
-table deliberately does not admit into `gpu_name` (hw_meta only, per its writer).
-Read that summary line as "no GPU session CONFIRMED FROM HARDWARE SAMPLES has a
-usable tail", never as "no tail was measured".
+**What it measures today (2026-09-07, re-measured after the recovery candidate
+reached the lake).** 76 sessions; 20 carry hw samples, 13 of those GPU ones; 18
+carry session-stamped ledger rows. SEVENTEEN sessions get an `idle_tail_min`
+value, and fifteen of them are excluded from the headline by a flag they earned:
+two `beacon_ended_before_queue` (`hardyear4`, `pilotcoarse`), three
+`queue_last_row_RUNNING` (including `spdg`, the live offload campaign, whose row
+moves on every harvest), and thirteen `later_rows_unattributed`. What survives is
+`pilotfine` 2.3 min + `pilotmed` 11.1 min = **13.4 min**, and it is a LOWER BOUND
+over the only fully-attributed ledgers on the lake — the four pilot-era launch
+files — not a campaign total.
 
-Everything else is unmeasurable from status rows, and the cause is a ledger loss
-rather than a discovery gap: every per-launch status
-file written after 2026-08-31 is absent from the lake (`hard_year`, `tier1`,
-`trend8`, `overlap_floor`, `offload` — measured absent), and the shared
-`train_queue_status.csv` holds only the latest launch's rows. `queue_ledger.py`
-::`_flush` records the mechanism itself — the `__main__` defect in `::_q` made
-`STATUS_OUT` resolve to the shared file, so each flush replaced the whole ledger
-with one launch's rows. Absence measured here; cause quoted from that docstring,
-not re-verified. Until per-launch status files are on the lake again, this
-column answers for pilot-era sessions only.
+The unflagged sum would read **1826.3 min over 13 sessions, and it is mostly
+work, not idleness**: those thirteen are the runtimes whose ledger rows survive
+only in the recovery candidate, whose later events carry no `session`. Do not
+quote it. The `ts` semantics the candidate's sidecar warns about
+(`phase4/qc/ledger_recovery/recovery_report.md`: a synthesised row carries the
+step log's `completed:`, not the queue's step start) do NOT bite this table — measured, all
+198 synthesised rows carry an empty `session`, so only the 252 snapshot-native,
+queue-stamped rows ever join here. The loss is attribution, not timing.
+
+The underlying ledger loss is recorded rather than fixed: every per-launch status
+file written between 2026-09-01 and 2026-09-07 is absent from the lake
+(`hard_year`, `tier1`, `trend8`, `overlap_floor`, `offload` — measured absent),
+and the shared `train_queue_status.csv` holds only the latest launch's rows.
+`queue_ledger.py::_flush` records the mechanism itself — the `__main__` defect in
+`::_q` made `STATUS_OUT` resolve to the shared file, so each flush replaced the
+whole ledger with one launch's rows. Absence measured here; cause quoted from
+that docstring, not re-verified. Until per-launch status files are written again,
+a campaign-wide idle-tail number cannot be had from this table, and the 13.4 min
+headline is provisional.
+
+`gpu_name`/`vcpus`/`ram_gb` are blank on all 76 rows: no `hw_meta_*.json` exists
+on the lake yet. `pilotfine` and `pilotmed` also have `gpu_present` BLANK — no hw
+CSV was written for them — so the instrument's GPU-confirmed line reports 0.0 min
+over 0 sessions. Read it as "no session CONFIRMED FROM HARDWARE SAMPLES has a
+usable tail", never as "no tail was measured"; both are A100s according to
+`heartbeat_{session}.json`'s `gpu.name`, which this table deliberately does not
+admit into `gpu_name` (hw_meta only, per its writer).
 
 Gate: `qc/test_runtime_sessions.py`. Regenerate:
 `py -3.12 qc/instruments/harvest_runtime_sessions.py` (a `landed.py` harvest rung).

@@ -25,6 +25,10 @@ tests, on rows small enough to count by hand:
   h  a v2 file whose `step` column is present but entirely blank — it must NOT be
      published as a 100% `(between)` machine on the trusted `marker` tier. Presence of
      the column was the old test; use of it is the new one.
+  i  a marker file carrying PHASES (`train_2017#launching`) — one step, several rows,
+     the `step` column unchanged and the phase in its own column. `(between)` is this
+     table's residual, which §7 leaves attributable to nothing; the phases
+     are the queue-side time that belongs somewhere else.
 
 Plus the two accounting traps the row itself must close: a session owning BOTH schemas
 keeps each file on its own basis (a marker's per-machine step is never re-guessed from
@@ -37,7 +41,13 @@ from pathlib import Path
 
 import pytest
 
-from instruments.harvest_hw_attribution import COLS, build_rows, main, norm_step
+from instruments.harvest_hw_attribution import (
+    COLS,
+    build_rows,
+    main,
+    norm_step,
+    split_step,
+)
 
 V1_HEADER = ("ts_utc,gpu_util_pct,gpu_mem_util_pct,gpu_mem_used_mb,gpu_power_w,"
              "cpu_pct,disk_read_mb_s,disk_write_mb_s,net_rx_mb_s,net_tx_mb_s,"
@@ -335,6 +345,90 @@ def test_one_used_marker_cell_is_enough_to_keep_the_marker_tier(tmp_path):
     assert set(rows) == {"(between)", "train", "ALL"}
     assert rows["(between)"]["samples"] == 2
     assert "blank" not in rows["ALL"]["source_file"]
+
+
+def test_norm_step_strips_the_phase_before_the_year_label(tmp_path):
+    """ORDER MATTERS. The year regex is anchored at the end of the string, so with the
+    `#phase` still attached it matches nothing and `train_2017#verifying` would become
+    its own step — one step split across two rows, which is the failure the phase column
+    was added to prevent, not cause."""
+    assert norm_step("train_2017#verifying") == "train"
+    assert norm_step("postproc_2019n#launching") == "postproc"
+    assert norm_step("#launching") == "(between)"
+    assert norm_step("train_2017") == "train"
+
+
+def test_split_step_maps_the_phase_vocabulary():
+    """The vocabulary lives in phase4seg/names.py::hw_step_marker_path; this is the
+    reader's half of it. An unknown value passes through: reporting what the marker said
+    beats silently retiring a phase the queue has started writing."""
+    assert split_step("train_2017") == ("train", "open")
+    assert split_step("train_2017#launching") == ("train", "launching")
+    assert split_step("evaluate_2006s#verifying") == ("evaluate", "verifying")
+    assert split_step("train_2017#") == ("train", "open")
+    assert split_step("train_2017#futurephase") == ("train", "futurephase")
+    assert split_step("") == ("(between)", "")
+    assert split_step(None) == ("(between)", "")
+    assert split_step("#verifying") == ("(between)", ""), \
+        "a phase with no step names no step, so it cannot claim one"
+
+
+def test_phases_split_one_step_into_rows_and_the_step_column_is_unchanged(tmp_path):
+    """The point of the column, on a fixture that mixes all three phases of one step.
+
+    `launching` and `verifying` are queue time around the engine step: today they have
+    no marker at all and land in `(between)`, which §7 of
+    Reports/PIPELINE_SPEEDUP_OPTIONS_2026-09-07.md leaves attributable to nothing — and
+    which the tracked `spdc1,(between),marker` row shows is not idleness at all
+    (cpu50_frac at zero, iowait10_frac dominant: blocked on I/O). Separated, they are still
+    `train` in the `step` column (so every existing slice keeps its meaning) and their
+    cost is readable on its own row.
+    """
+    logs = tmp_path / "logs"
+    logs.mkdir()
+    _write(logs / "hw_ph.csv", V2_HEADER, [
+        _v2(0,  0,  5, 0, 0, 0, 0, 40, "train_2017#launching"),   # staging, iowait
+        _v2(5,  0,  5, 0, 0, 0, 0, 40, "train_2017#launching"),
+        _v2(10, 90, 60, 0, 0, 0, 0, 1, "train_2017"),             # the step itself
+        _v2(15, 0,  1, 0, 0, 0, 0,  1, "train_2017#verifying"),
+        _v2(20, 0,  1, 0, 0, 0, 0,  1, ""),                       # really between
+    ])
+    rows = [r for r in build_rows(logs) if r["session"] == "ph"]
+    keyed = {(r["step"], r["phase"]): r for r in rows}
+
+    assert set(keyed) == {("train", "open"), ("train", "launching"),
+                          ("train", "verifying"), ("(between)", ""), ("ALL", "")}
+    assert all(r["basis"] == "marker" for r in rows)
+
+    launch = keyed[("train", "launching")]
+    assert launch["samples"] == 2
+    assert launch["iowait10_frac"] == "1.0000", "the staging stall must be visible"
+    assert launch["gpu_busy_frac"] == "0.0000"
+    assert keyed[("train", "open")]["gpu_busy_frac"] == "1.0000"
+    assert keyed[("train", "verifying")]["samples"] == 1
+    # the ALL row pools every phase and therefore claims none of them
+    assert keyed[("ALL", "")]["samples"] == 5
+
+
+def test_bare_steps_read_open_and_between_reads_blank(tmp_path):
+    """The default on both bases. A step LOG can only record a step that OPENED, so the
+    interval basis can never see anything but `open`; `(between)` names no step, so it
+    has no phase to report — blank, not `open`."""
+    logs = tmp_path / "logs"
+    logs.mkdir()
+    _steplog(logs, "inference_2019n", 0, 60)
+    _write(logs / "hw_iv.csv", V1_HEADER, [_v1(10, 80, 20, 0, 0, 0, 0),
+                                           _v1(90, 0, 1, 0, 0, 0, 0)])
+    _write(logs / "hw_mk2.csv", V2_HEADER, [_v2(10, 90, 60, 0, 0, 0, 0, 1, "tile_2017"),
+                                            _v2(20, 0, 1, 0, 0, 0, 0, 1, "")])
+    rows = build_rows(logs)
+
+    iv = _by_step(rows, "iv")
+    assert iv["inference"]["phase"] == "open" and iv["(between)"]["phase"] == ""
+    assert iv["ALL"]["phase"] == ""
+    mk = _by_step(rows, "mk2")
+    assert mk["tile"]["phase"] == "open" and mk["(between)"]["phase"] == ""
+    assert mk["ALL"]["phase"] == ""
 
 
 def test_output_is_deterministic_and_columns_are_the_contract(tmp_path):

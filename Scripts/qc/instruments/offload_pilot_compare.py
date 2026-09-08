@@ -397,6 +397,14 @@ def hw_rows(hw_csv, sessions):
     set — matched EVERY session in the archive and the pilot column came back full of
     another campaign's numbers while the pilot had zero queue rows. A blank pilot cell is
     the whole contract of this file.
+
+    ONLY ENGINE-STEP ROWS. Since the marker gained a `phase`, that file is one row per
+    (session, step, basis, phase) — one step legitimately owns several rows, and
+    harvest_hw_attribution.py::build_rows sorts them launching < open < verifying. This
+    dict keys on the step alone and keeps the LAST row at equal basis rank, so without
+    the filter below a one-sample VERIFY window would be published as the step's
+    hardware profile. A row with no `phase` column at all reads as "" and is kept, so
+    the pre-phase files still parse.
     """
     p = Path(hw_csv)
     if not p.exists():
@@ -411,6 +419,8 @@ def hw_rows(hw_csv, sessions):
     out = {}
     for r in csv.DictReader(text.splitlines()):
         if str(r.get("session") or "") not in sessions:
+            continue
+        if str(r.get("phase") or "") not in ("open", ""):
             continue
         key = str(r.get("step") or "")
         prev = out.get(key)

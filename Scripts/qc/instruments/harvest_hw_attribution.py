@@ -95,6 +95,20 @@ CPU-ONLY SESSIONS ARE KEPT. They log blank GPU columns and would vanish under an
 "GPU-bearing sessions only" filter — but they are the offload TARGET, so their cost
 profile is exactly what the offload decision needs.
 
+THE `phase` COLUMN (appended 2026-09-07, last position, so no existing column moved).
+`(between)` is this table's residual and it is one of the largest buckets §7 reports —
+attributable to nothing at all. Some of it is the QUEUE, not an idle machine: this
+file's own `spdc1,(between),marker` row is a CPU runtime reading cpu50_frac at zero with
+iowait10_frac dominant, which is a machine BLOCKED ON I/O — input staging, before its
+first step marker ever opened. That session is live; read the row for the fractions. The marker can now carry a `phase` (`open` / `launching` /
+`verifying`; vocabulary owned by `phase4seg/names.py::hw_step_marker_path`), the logger
+stamps the cell as `<step>#<phase>`, and `split_step` lands it in its own column. So the
+row key is `(session, step, basis, phase)` — one step may legitimately appear on several
+rows. Bare steps read `open`; `(between)` and `ALL` rows carry blank, because neither
+names a step whose phase could be reported. Nothing writes a non-`open` phase yet: every
+row in the current harvest is `open` or blank, and that is a fact about the writers, not
+about this reader.
+
 Run:  py -3.12 qc/instruments/harvest_hw_attribution.py [--dry-run]
       py -3.12 qc/instruments/harvest_hw_attribution.py --logs-dir DIR --out FILE
 Output: phase4/qc/hw_step_attribution.csv  (schema: docs/SCHEMAS.md)
@@ -118,10 +132,12 @@ QC = REPO / "phase4" / "qc"
 COLS = ["session", "step", "basis", "gpu_present", "samples", "hours",
         "gpu_busy_frac", "gpu_util_mean", "cpu50_frac", "iowait10_frac",
         "tx1_frac", "rx1_frac", "disk5_frac", "nothing_frac",
-        "ambiguous_dropped", "samples_parsed", "span_hours", "source_file"]
+        "ambiguous_dropped", "samples_parsed", "span_hours", "source_file",
+        "phase"]
 
 BETWEEN = "(between)"
 ALL = "ALL"
+PHASE_OPEN = "open"
 
 # The logger's cadence (vm_hwlogger.py --interval default). Used only when a file is too
 # short to measure its own spacing; every archived file measures 5.0 s exactly.
@@ -148,11 +164,39 @@ _COMPLETED = re.compile(r"^completed:\s+(\S+)", re.M)
 
 
 def norm_step(name):
-    """Strip the trailing year label. Blank / missing -> the between-steps bucket."""
-    s = (name or "").strip()
+    """Strip the phase suffix and the trailing year label. Blank -> the between bucket.
+
+    The "#phase" comes off FIRST: `train_2017#verifying` must normalise to `train`, and
+    the year regex is anchored at the end of the string, so a suffix left in place would
+    protect the year label from it and split one step across two rows.
+    """
+    s = (name or "").strip().split("#", 1)[0].strip()
     if not s:
         return BETWEEN
     return _YEAR_SUFFIX.sub("", s) or BETWEEN
+
+
+def split_step(name):
+    """A marker cell -> (step, phase). See phase4seg/names.py::hw_step_marker_path.
+
+    `vm_hwlogger.py::read_marker` writes the cell as `<step>#<phase>` for any phase but
+    `open`, so the step column stays exactly what it always was for engine steps and the
+    queue's own time around them is separable rather than pooled into `(between)`.
+
+      train_2017              -> ("train", "open")      an engine step, StepLogger open
+      train_2017#launching    -> ("train", "launching") spawned, StepLogger not open yet
+      train_2017#verifying    -> ("train", "verifying") engine exited, queue VERIFYing
+      "" / "#launching"       -> ("(between)", "")      no step named: no phase to claim
+
+    An unrecognised phase passes through unchanged — this instrument reports what the
+    marker said, and a vocabulary check here would silently retire a phase the queue
+    had started writing.
+    """
+    step = norm_step(name)
+    if step == BETWEEN:
+        return BETWEEN, ""
+    _base, _sep, phase = (name or "").strip().partition("#")
+    return step, (phase.strip() or PHASE_OPEN)
 
 
 def _num(v):
@@ -285,7 +329,7 @@ def _f(x):
 
 
 def summarise(session, step, basis, rows, secs, dropped, parsed, span_hours,
-              source, has_iowait):
+              source, has_iowait, phase=""):
     """One output row. `rows` may be EMPTY — a session every one of whose samples was
     ambiguity-dropped, or whose file parsed to no samples at all, still gets its ALL
     row, with zero samples and blank fractions, because a table that accounts for paid
@@ -335,11 +379,14 @@ def summarise(session, step, basis, rows, secs, dropped, parsed, span_hours,
         "samples_parsed": parsed,
         "span_hours": _f(span_hours),
         "source_file": source,
+        # Last column, appended 2026-09-07: every pre-existing column keeps its index,
+        # so a positional reader of the old schema still reads the old fields.
+        "phase": phase,
     }
 
 
 def build_rows(logs_dir, hw_files=None):
-    """One row per (session, step, BASIS).
+    """One row per (session, step, BASIS, phase).
 
     Each FILE is attributed on its own basis. A session that owns both a legacy and a
     v2 file (the logger forks `hw_{s}_v2.csv` rather than append a wider row, so a
@@ -394,12 +441,17 @@ def build_rows(logs_dir, hw_files=None):
             # scan of every step log in the lake.
             labels, dropped = [], 0
         elif basis == "marker":
-            labels = [norm_step(r["step"]) for r in rows]
+            labels = [split_step(r["step"]) for r in rows]
             dropped = 0
         else:
             if intervals is None:
                 intervals = read_step_logs(logs_dir)
             labels, dropped = attribute_interval(rows, intervals)
+            # A step LOG records a step that ran, i.e. a StepLogger that opened, so the
+            # interval basis can only ever see `open` — the queue's launching/verifying
+            # time is precisely what leaves no step log and lands in `(between)` here.
+            labels = [lab if lab is None else
+                      (lab, "" if lab == BETWEEN else PHASE_OPEN) for lab in labels]
 
         by_step = {}
         kept = []
@@ -408,9 +460,11 @@ def build_rows(logs_dir, hw_files=None):
                 continue
             by_step.setdefault(lab, []).append(r)
             kept.append(r)
-        for step in sorted(by_step):
-            out.append(summarise(session, step, basis, by_step[step], secs,
-                                 dropped, parsed, span_h, source, has_iowait))
+        # Keyed by (step, phase) since 2026-09-07: one step can hold several phases, and
+        # pooling them would re-create the blend the phase column exists to separate.
+        for step, phase in sorted(by_step):
+            out.append(summarise(session, step, basis, by_step[(step, phase)], secs,
+                                 dropped, parsed, span_h, source, has_iowait, phase))
         # UNCONDITIONAL. A session whose every sample was ambiguity-dropped has no step
         # rows at all; without this its samples, its drop count and the fact that the
         # machine ran would vanish from the table entirely. Since 2026-09-07 that also
@@ -418,9 +472,11 @@ def build_rows(logs_dir, hw_files=None):
         # out of the loop above and delete the session from the table outright — the
         # exact omission the ambiguity branch was written to prevent, reached by the
         # other road.
+        # The ALL row pools every phase, so it carries none: a blank `phase` on ALL is
+        # "not a phase-specific row", the same way its `step` is not a step.
         out.append(summarise(session, ALL, basis, kept, secs, dropped, parsed,
                              span_h, source, has_iowait))
-    out.sort(key=lambda r: (r["session"], r["step"], r["basis"]))
+    out.sort(key=lambda r: (r["session"], r["step"], r["basis"], r["phase"]))
     return out
 
 

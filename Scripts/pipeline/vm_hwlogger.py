@@ -33,7 +33,8 @@ v2 (2026-09-07) — the last three columns:
                    beside it, not folded into it.
   step, run_tag    Read each sample from the marker file that
                    pipeline_log.StepLogger publishes (see
-                   phase4seg.names.hw_step_marker_path). Blank when no step is
+                   phase4seg.names.hw_step_marker_path — which owns the `phase`
+                   vocabulary this reader honours). Blank when no step is
                    open — and also when the marker's writer pid is gone, so a
                    SIGKILLed step cannot keep claiming samples it is not running
                    (read_marker). This is what makes attribution EXACT: §7 had to join hw
@@ -42,16 +43,38 @@ v2 (2026-09-07) — the last three columns:
                    intervals disagreed — nothing recorded which step ran on
                    which machine. The marker is per-machine by construction.
 
+                   Since 2026-09-07 a marker may also carry a `phase`, and the
+                   cell then reads `<step>#<phase>` — see read_marker. The CSV
+                   HEADER IS UNCHANGED: the phase rides inside the existing step
+                   cell precisely so v2 files written before and after this stay
+                   one schema.
+
 Schema safety: if hw_{session}.csv already exists with the v1 12-column header,
 this writes hw_{session}_v2.csv instead (resolve_out). Two schemas in one file
 would break every DictReader that touches it, and a half-v1/half-v2 file cannot
 be repaired after the fact.
+
+Beside the samples, ONE file of runtime facts (runtime_facts / write_meta):
+
+    {DRIVE}/phase4/logs/hw_meta_{session}.json
+    session, started_utc, hostname, vcpus, ram_gb, disk_total_gb, gpu_name,
+    gpu_mem_mb, kernel, python, marker_path
+
+Written once at start and never rewritten. Every per-sample column says what the
+machine was DOING; nothing in the archive says what the machine WAS, so a session
+reading 0% GPU could not be told apart from a session with no GPU, and hours could
+not be priced (an A100 hour and a CPU hour are not the same money). These are
+constants of the runtime, so a row per sample would be 43,000 copies of one fact.
+Best-effort in every field: blank beats a guess, and this must never be able to
+stop the sampling loop it runs before.
 """
 import argparse
 import json
 import os
 import shutil
+import socket
 import subprocess
+import sys
 import time
 
 DRIVE = "/content/drive/MyDrive/treedata"
@@ -111,8 +134,33 @@ def cpu_iowait_pct(prev, cur):
     return round(100.0 * dio / dt_, 1) if dt_ > 0 else ""
 
 
+PHASE_OPEN = "open"          # the default when a marker carries no `phase` key at all
+
+
 def read_marker(path):
-    """(step, run_tag) from the open-step marker, or ("", "") for "no step open".
+    """(step_cell, run_tag) from the marker, or ("", "") for "no step open".
+
+    THE PHASE SUFFIX. A marker may carry `phase` — the vocabulary is owned by
+    phase4seg.names.hw_step_marker_path: "open" (a StepLogger step is running; also
+    what an absent key means, because StepLogger writes no phase), "launching" (the
+    queue has spawned the engine but StepLogger has not opened yet) and "verifying"
+    (the queue's post-step VERIFY). Anything but open is appended to the step as
+    `<step>#<phase>`, so the sample is still attributed to its step AND the harvest
+    can separate engine time from queue time (harvest_hw_attribution.py::norm_step
+    splits on the "#"). Nothing here writes a phase; this side only reads one.
+
+    Why it is worth a suffix rather than a new column: the queue's own work around a
+    step has no marker at all, so it lands in the harvest as `(between)` —
+    indistinguishable from a machine doing nothing. Read the `spdc1,(between),marker`
+    row of phase4/qc/hw_step_attribution.csv: a CPU runtime with cpu50_frac at zero
+    and iowait10_frac dominant, i.e. that time was spent BLOCKED ON I/O, not idling.
+    That session is live, so read the row for the fractions rather than this sentence.
+    Reports/PIPELINE_SPEEDUP_OPTIONS_2026-09-07.md §7 makes the same point at scale:
+    `(between steps)` is the second-largest bucket in the table and none of it is
+    attributable to anything today.
+
+    An unknown phase value passes through unaltered — the harvest reports what it
+    reads. A phase with no step is not a reading about a step, so it is ignored.
 
     Every failure mode collapses to the same blank pair on purpose: absent (between
     steps — the normal case), unreadable, truncated, or not JSON at all. The reader
@@ -137,7 +185,11 @@ def read_marker(path):
         pid = d.get("pid")
         if pid is not None and not pid_alive(pid):
             return "", ""                         # writer is gone; its step is over
-        return str(d.get("step", "") or ""), str(d.get("run_tag", "") or "")
+        step = str(d.get("step", "") or "")
+        phase = str(d.get("phase", "") or "")
+        if step and phase and phase != PHASE_OPEN:
+            step = f"{step}#{phase}"
+        return step, str(d.get("run_tag", "") or "")
     except Exception:                             # noqa: BLE001
         return "", ""
 
@@ -215,6 +267,112 @@ def gpu_row():
         return "", "", "", ""
 
 
+def gpu_identity():
+    """(name, total_mem_mb) — WHAT the GPU is, asked once, not what it is doing.
+
+    First line only: nvidia-smi prints one row per device and every Colab runtime this
+    pipeline uses is single-GPU, so a second row would be news rather than data. Blank
+    pair on a CPU runtime, where the binary is absent and the call raises.
+    """
+    try:
+        out = subprocess.run(
+            ["nvidia-smi", "--query-gpu=name,memory.total",
+             "--format=csv,noheader,nounits"],
+            capture_output=True, text=True, timeout=10).stdout.strip()
+        p = [x.strip() for x in out.splitlines()[0].split(",")]
+        return p[0], p[1]
+    except Exception:                             # noqa: BLE001
+        return "", ""
+
+
+def _best_effort(fn, default=""):
+    """Any field may be missing; NO field may raise. The exception surface here is wider
+    than OSError on purpose — os.uname and os.statvfs do not EXIST off posix, so the
+    Windows failure is AttributeError, and this helper runs on the code-plane box in
+    tests."""
+    try:
+        v = fn()
+    except Exception:                             # noqa: BLE001
+        return default
+    return default if v is None else v
+
+
+def _meminfo_gb(path):
+    """MemTotal from /proc/meminfo, in GB. Kernel reports kB; blank when unreadable."""
+    try:
+        with open(path, encoding="utf-8") as f:
+            for ln in f:
+                if ln.startswith("MemTotal:"):
+                    return round(int(ln.split()[1]) * 1024 / 1e9, 1)
+    except Exception:                             # noqa: BLE001
+        pass
+    return ""
+
+
+def _disk_total_gb(mount):
+    st = os.statvfs(mount)                        # AttributeError off posix — see caller
+    return round(st.f_frsize * st.f_blocks / 1e9, 1)
+
+
+def runtime_facts(session, marker, mount="/content", meminfo="/proc/meminfo"):
+    """What this machine IS — the constants a per-sample row cannot carry.
+
+    Every column of hw_{session}.csv says what the runtime was doing; nothing anywhere
+    says what it was. So a session that reads 0% GPU for six hours cannot be told from
+    a session that had no GPU (`gpu_present` in the harvest infers it from blank cells,
+    which is an inference, not a reading), and hours cannot be priced, because an A100
+    hour and a free CPU hour are the same number and different money.
+
+    Every field is independently best-effort and blank on failure: this runs immediately
+    before the sampling loop, and a logger that dies gathering metadata has thrown away
+    the measurement it exists for. Off posix, /proc and statvfs are simply absent and
+    the dict comes back mostly blank — which is the correct reading, not an error.
+    """
+    name, mem = gpu_identity()
+    return {
+        "session": session,
+        "started_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+        "hostname": _best_effort(socket.gethostname),
+        "vcpus": _best_effort(os.cpu_count),
+        "ram_gb": _meminfo_gb(meminfo),
+        "disk_total_gb": _best_effort(lambda: _disk_total_gb(mount)),
+        "gpu_name": name,
+        "gpu_mem_mb": mem,
+        "kernel": _best_effort(lambda: os.uname().release),
+        "python": sys.version.split()[0],
+        "marker_path": marker,
+    }
+
+
+def write_meta(path, facts):
+    """Write the runtime facts ONCE. Existing file wins; nothing here ever rewrites it.
+
+    Write-once because these are start-of-life constants: a rewrite could only move
+    `started_utc` forward, and a session whose logger was restarted mid-run would lose
+    the timestamp that dates its first sample.
+
+    Temp + os.replace, the same publish StepLogger uses for the marker: a Drive blink
+    halfway through a direct write leaves a truncated JSON that the write-once rule
+    would then protect forever. Returns True if it wrote.
+    """
+    tmp = ""                                      # bound before the try: the except path
+    try:                                          # reads it, and os.path.exists can raise
+        if os.path.exists(path):
+            return False
+        tmp = f"{path}.{os.getpid()}.tmp"
+        with open(tmp, "w", encoding="utf-8") as f:
+            json.dump(facts, f, sort_keys=True)
+        os.replace(tmp, path)
+        return True
+    except Exception:                             # noqa: BLE001
+        try:
+            if tmp:
+                os.remove(tmp)                    # no orphan beside the meta file
+        except Exception:                         # noqa: BLE001
+            pass
+        return False
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--session", required=True)
@@ -228,6 +386,12 @@ def main():
     a = ap.parse_args()
     marker = a.marker or _marker_path()
     out = resolve_out(a.out or f"{DRIVE}/phase4/logs/hw_{a.session}.csv")
+
+    # Beside the samples, never inside them. Derived from `out`'s directory rather than
+    # DRIVE so a local `--out` run stays local — on the VM the two are the same path.
+    # Its schema fork does not apply: hw_meta is a new name, so it has only ever had one.
+    write_meta(os.path.join(os.path.dirname(out) or ".", f"hw_meta_{a.session}.json"),
+               runtime_facts(a.session, marker))
 
     rows = []
     try:

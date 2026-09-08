@@ -144,10 +144,16 @@ def _evalcsv(path, rows):
 
 
 def _hw(path, rows):
-    """Only the columns this instrument reads; harvest_hw_attribution writes more."""
-    lines = ["session,step,basis,gpu_busy_frac,nothing_frac,source_file"]
-    for sess, step, basis, busy, nothing in rows:
-        lines.append(f"{sess},{step},{basis},{busy},{nothing},hw_{sess}.csv")
+    """Only the columns this instrument reads; harvest_hw_attribution writes more.
+
+    `phase` is optional per row and defaults to "open"; it is written LAST, where
+    harvest_hw_attribution.py::build_rows appends it in the real file.
+    """
+    lines = ["session,step,basis,gpu_busy_frac,nothing_frac,source_file,phase"]
+    for row in rows:
+        sess, step, basis, busy, nothing = row[:5]
+        phase = row[5] if len(row) > 5 else "open"
+        lines.append(f"{sess},{step},{basis},{busy},{nothing},hw_{sess}.csv,{phase}")
     path.write_text("\n".join(lines) + "\n", encoding="utf-8", newline="")
 
 
@@ -226,7 +232,13 @@ class Lake:
             _hw(self.hw, [("base1", "train", "interval", "0.1792", "0.2618"),
                           ("base1", "inference", "interval", "0.7586", "0.0985"),
                           ("base1", "ALL", "interval", "0.1933", "0.5083"),
+                          # one step, three phases, in the order build_rows sorts
+                          # them: launching < open < verifying.
+                          ("gpu1", "train", "marker", "0.0000", "0.9500",
+                           "launching"),
                           ("gpu1", "train", "marker", "0.6000", "0.1000"),
+                          ("gpu1", "train", "marker", "0.0000", "0.9900",
+                           "verifying"),
                           ("gpu1", "train", "interval", "0.1111", "0.9999"),
                           ("cpu2", "postproc", "marker", "0.0000", "0.4000"),
                           ("other", "train", "marker", "0.7777", "0.7777")])
@@ -424,6 +436,21 @@ def test_three_runtimes_write_three_status_files_and_merge_to_the_same_numbers(t
     assert "cpu1" in t[("step_minutes", "tile")]["pilot_source"]
     assert "gpu" in t[("step_minutes", "train")]["pilot_source"]
     assert "cpu2" in t[("step_minutes", "postproc")]["pilot_source"]
+
+
+def test_queue_phase_rows_never_displace_the_engine_step(tmp_path):
+    """R4 must read the ENGINE step, not the queue window either side of it.
+
+    hw_step_attribution.csv is one row per (session, step, basis, phase) since the
+    marker gained a phase, so one step legitimately owns several rows and they arrive
+    in the order harvest_hw_attribution.py::build_rows sorts them — launching, open,
+    verifying. This instrument keys on the step alone and keeps the last row at equal
+    basis rank, so before the phase filter the alphabetically-last phase won and a
+    one-sample VERIFY window was published as the training step's hardware profile.
+    """
+    t, _ = Lake(tmp_path).table()
+    assert t[("hw_gpu_busy_frac", "train")]["pilot"] == "0.6000"   # not 0.0000
+    assert t[("hw_nothing_frac", "train")]["pilot"] == "0.1000"    # not 0.9900/0.9500
 
 
 def test_absent_hardware_attribution_is_reported_not_zeroed(tmp_path):

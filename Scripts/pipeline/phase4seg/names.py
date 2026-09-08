@@ -414,6 +414,35 @@ def hw_step_marker_path():
     READER: pipeline/vm_hwlogger.py, once per 5 s sample, to stamp `step` and `run_tag`
     onto the hardware row it is about to write.
 
+    THE `phase` KEY — optional, and this is the vocabulary. StepLogger writes NO phase,
+    and an absent key reads as "open", so nothing about the engine's markers changes:
+
+        open        an engine step is running inside StepLogger (the default)
+        launching   the queue has spawned the engine process, but StepLogger has not
+                    opened its step yet — bootstrap, imports, input staging
+        verifying   the queue's post-step VERIFY is running; the engine has exited
+
+    Only "open" is written today. The other two belong to phase4_train_queue.py and are
+    reserved here so the reader and the harvest can honour them the day it writes them.
+    vm_hwlogger stamps the cell as `<step>#<phase>` for anything but open, and
+    qc/instruments/harvest_hw_attribution.py::norm_step splits it back out into its own
+    `phase` column; the CSV header is untouched by any of it.
+
+    WHY: everything the queue does around a step currently lands in the harvest as
+    `(between)`, attributable to nothing — see §7 of
+    Reports/PIPELINE_SPEEDUP_OPTIONS_2026-09-07.md for how much of the archive that
+    is, and the `spdc1,(between),marker` row of phase4/qc/hw_step_attribution.csv for
+    what it hides: a CPU runtime whose between-steps time reads cpu50_frac at zero
+    with iowait10_frac dominant — blocked on I/O, not idle. (That session is live and
+    its fractions move between harvests; read the row, never a number restated here.)
+    That is queue-side staging: it is expensive, and today it is invisible.
+
+    THE `pid` MUST BE THE WRITER'S OWN. vm_hwlogger.read_marker discards a marker whose
+    pid is not alive — a step SIGKILLed by the queue's timeout would otherwise keep
+    claiming every later sample. So a "verifying" marker, written after the engine has
+    exited, must carry the QUEUE's pid: copying the dead engine's pid in would blank the
+    very phase it was written to record.
+
     WHY A FILE AND NOT A JOIN. Attributing hardware samples to steps used to be done
     afterwards, by matching hw_*.csv timestamps against the step logs of every VM — and
     nothing in a step log says WHICH machine ran it, so concurrently-open intervals from

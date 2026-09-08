@@ -11,6 +11,16 @@ the sampler never blocks on the publish, the publish is whole-file so a failure 
 leaves the old file untouched, a retried publish duplicates nothing, and a spool that
 cannot be opened degrades to the old path instead of taking the logger down.
 
+A fifth since the twin: the publish never replaces a destination that EXISTS. That
+spelling put `hw_healA (1).csv` on Drive beside `hw_healA.csv` — two objects, one name,
+one folder — and the rename-aside that removes it opens a window where neither name
+holds the file, so three properties are pinned together: the destination is absent at
+the instant of the publish, a publish that fails inside the window restores the previous
+file, and an aside that could NOT be restored is kept rather than deleted. The last of
+those caught a real defect in the first draft of the fix (an unconditional cleanup that
+would have deleted the only surviving copy of a killed session) and is the only test in
+this file that could.
+
 Since 2026-09-07 also the runtime-facts side (`hw_meta_{session}.json`), which
 is the one part of the logger that runs OFF the VM in practice — it is written
 before the sampling loop, from sources that mostly do not exist on Windows, so
@@ -482,3 +492,152 @@ def test_a_sampler_that_raises_costs_a_sample_not_the_logger(tmp_path, monkeypat
     assert hw.sample_loop(rows.append, str(tmp_path / "no_marker.json"),
                           interval=0.0, flush_every=100, max_samples=4) == 4
     assert 1 <= len(rows) < 4, "a failed read must cost its own sample and no other"
+
+
+def test_the_publish_never_replaces_a_destination_that_exists(tmp_path, monkeypatch):
+    """THE DUPLICATE-OBJECT DEFENCE, and the only assertion here that fails on the old
+    code. `hw_healA (1).csv` sat on the lake beside `hw_healA.csv` on 2026-09-08 — one
+    Drive folder, two objects, one name — after this function had spent a session
+    running `os.replace(part, out)` onto an `out` that already existed. That is the case
+    `common.py::_publish_replace` was written to stop doing (D4, a9f04ea), and every
+    duplicate the lake holds is on that side of the line while ten days of
+    destination-absent publishes hold none.
+
+    NOT A REPRODUCTION. No local filesystem duplicates on rename, so nothing here can
+    show a twin appearing or not appearing; what is pinned is the SEQUENCE — at the
+    instant the part is published, the destination does not exist. The acceptance check
+    for the fix itself is the next multi-hour session leaving no `hw_{session} (1).csv`.
+    """
+    local, out = tmp_path / "l.csv", tmp_path / "o.csv"
+    local.write_text(hw.HEADER + f"{ROW}0,a\n", encoding="utf-8")
+    assert hw.mirror_once(str(local), str(out)) is True      # first publish: absent
+
+    local.write_text(hw.HEADER + f"{ROW}0,a\n{ROW}5,b\n", encoding="utf-8")
+    real = os.replace
+    seen = {}
+
+    def _watch(src, dst):
+        if str(dst) == str(out):
+            seen["dest_existed"] = os.path.exists(dst)
+        return real(src, dst)
+
+    monkeypatch.setattr(hw.os, "replace", _watch)
+    assert hw.mirror_once(str(local), str(out)) is True      # second: dest was there
+    monkeypatch.undo()
+
+    assert seen.get("dest_existed") is False, (
+        "published onto an EXISTING destination — the spelling that put "
+        "hw_healA (1).csv on Drive")
+    assert out.read_text(encoding="utf-8") == local.read_text(encoding="utf-8")
+    assert list(tmp_path.glob("*.prev.*")) == [], "the aside was left on the mount"
+    assert list(tmp_path.glob("*.part.*")) == []
+
+
+def test_a_publish_that_fails_after_the_aside_restores_the_previous_file(
+        tmp_path, monkeypatch):
+    """Rename-aside buys the absent destination by opening a window where NEITHER name
+    holds the file. If the publish dies in there, the previous complete publish must come
+    back — that is the whole reason this is rename-aside and not unlink-then-replace,
+    which would have destroyed it before the replacement was in place.
+
+    The failure is injected on the part->out replace ONLY and ONLY ONCE — a transient
+    EIO, which is what this mount actually does (`common.py::_copy_to_drive` retries it
+    by measurement) — so the aside rename has already landed, `out` is gone, and the
+    restore is the only thing that can put it back. Fired, not asserted: a restore path
+    that has never run is not known to work (CLAUDE.md 3.4c)."""
+    local, out = tmp_path / "l.csv", tmp_path / "o.csv"
+    local.write_text(hw.HEADER + f"{ROW}0,a\n", encoding="utf-8")
+    assert hw.mirror_once(str(local), str(out)) is True
+    published = out.read_bytes()
+
+    local.write_text(hw.HEADER + f"{ROW}0,a\n{ROW}5,b\n", encoding="utf-8")
+    real = os.replace
+    fired = []
+
+    def _fail_publish_once(src, dst):
+        if str(dst) == str(out) and not fired:
+            fired.append(1)
+            raise OSError("EIO publishing onto the mount")
+        return real(src, dst)
+
+    monkeypatch.setattr(hw.os, "replace", _fail_publish_once)
+    assert hw.mirror_once(str(local), str(out)) is False
+    monkeypatch.undo()
+
+    assert fired, "the failure never fired — this test proves nothing"
+    assert out.read_bytes() == published, (
+        "the previous publish was not restored — the aside window lost the file")
+    assert list(tmp_path.glob("*.prev.*")) == [], "the aside was stranded"
+    assert list(tmp_path.glob("*.part.*")) == []
+    # And the session recovers on the next tick, which is the property the whole
+    # mirror rests on: nothing is buffered, so a failed publish costs one minute.
+    assert hw.mirror_once(str(local), str(out)) is True
+    assert out.read_text(encoding="utf-8") == local.read_text(encoding="utf-8")
+
+
+def test_an_aside_that_could_not_be_restored_is_kept_not_deleted(tmp_path, monkeypatch):
+    """The harsher branch of the same window: the mount stays broken across BOTH renames,
+    so the publish fails and the restore fails too. `out` is then absent and the aside
+    holds the only copy of the session that would survive this VM — the spool is local
+    disk and dies with the machine, which is how `healA` ended (killed externally,
+    mid-inference, 2026-09-08).
+
+    So the cleanup may not run on it. An unconditional `os.remove(aside)` here turns a
+    recoverable publish failure into a lost session, and it passed every other test in
+    this file — the version first written for this change had exactly that line. The
+    only thing that catches it is making the restore fail too. Same rule as
+    `common.py::_publish_replace`: under equal uncertainty, keep the copy."""
+    local, out = tmp_path / "l.csv", tmp_path / "o.csv"
+    local.write_text(hw.HEADER + f"{ROW}0,a\n", encoding="utf-8")
+    assert hw.mirror_once(str(local), str(out)) is True
+    published = out.read_bytes()
+
+    local.write_text(hw.HEADER + f"{ROW}0,a\n{ROW}5,b\n", encoding="utf-8")
+    real = os.replace
+
+    def _dest_is_dead(src, dst):
+        if str(dst) == str(out):             # publish AND restore both target `out`
+            raise OSError("EIO: the mount stayed broken")
+        return real(src, dst)
+
+    monkeypatch.setattr(hw.os, "replace", _dest_is_dead)
+    assert hw.mirror_once(str(local), str(out)) is False
+    monkeypatch.undo()
+
+    assert not out.exists(), "the injection did not reach the state under test"
+    asides = list(tmp_path.glob("*.prev.*"))
+    assert len(asides) == 1, "the last publish was deleted with nothing published"
+    assert asides[0].read_bytes() == published
+    assert list(tmp_path.glob("*.part.*")) == [], "the temp still must not accumulate"
+    # The next tick republishes from the spool and the orphan is then redundant.
+    assert hw.mirror_once(str(local), str(out)) is True
+    assert out.read_text(encoding="utf-8") == local.read_text(encoding="utf-8")
+
+
+def test_the_aside_name_is_matched_by_no_reader_glob(tmp_path, monkeypatch):
+    """`hw_x.csv.prev.{pid}`, never `hw_x.prev.{pid}.csv`. Every hw reader globs
+    `hw_*.csv` (`harvest_hw_attribution.py::build_rows`,
+    `harvest_runtime_sessions.py::build_rows`), so an aside spelled with `.csv` last
+    would be harvested as a runtime named `x.prev.4952` — the same class of phantom
+    session the Drive duplicate creates. Caught mid-publish, because a successful
+    publish leaves no aside to inspect."""
+    local, out = tmp_path / "hw_x.csv", tmp_path / "hw_out.csv"
+    local.write_text(hw.HEADER + f"{ROW}0,a\n", encoding="utf-8")
+    assert hw.mirror_once(str(local), str(out)) is True
+
+    local.write_text(hw.HEADER + f"{ROW}0,a\n{ROW}5,b\n", encoding="utf-8")
+    real = os.replace
+    mid = {}
+
+    def _snapshot(src, dst):
+        if str(dst) == str(out):
+            mid["names"] = sorted(p.name for p in tmp_path.glob("hw_*.csv"))
+        return real(src, dst)
+
+    monkeypatch.setattr(hw.os, "replace", _snapshot)
+    assert hw.mirror_once(str(local), str(out)) is True
+    monkeypatch.undo()
+
+    # Only the spool answers `hw_*.csv` in the window: `out` has been renamed aside and
+    # the aside's `.prev.{pid}` tail keeps it out of the glob.
+    assert mid["names"] == ["hw_x.csv"], mid["names"]

@@ -45,6 +45,14 @@ wrong:
      because the logger only began writing them 2026-09-08. The columns exist because
      `vcpus` + `ram_gb` could not tell two CPU runtimes apart that ran one 632-tile step
      21.0 vs 39.1 sampled minutes apart (`spdc1`, `spdvc1`).
+  p  a DRIVE DUPLICATE — `hw_healA (1).csv` beside `hw_healA.csv`, two objects with one
+     name in one folder (rclone.org/drive, "Duplicated files"), as the lake held
+     2026-09-08. Read literally it is a whole extra runtime whose `sources` says `hw`
+     and nothing else: the shape of a machine with broken telemetry, so it does not even
+     look wrong. Both files fold into one row and the row NAMES the duplicate.
+  q  the same when only the ` (N)` survives a cleanup — the row keeps the real session
+     name. A table that renames a paid runtime according to how its file was tidied is
+     worse than one that misses it.
 
 Run:  PYTHONUTF8=1 py -3.12 -m pytest qc/test_runtime_sessions.py -q
 """
@@ -55,7 +63,13 @@ from pathlib import Path
 import pytest
 
 from instruments import harvest_runtime_sessions as hrs
-from instruments.harvest_runtime_sessions import COLS, build_rows, main, parse_ts
+from instruments.harvest_runtime_sessions import (
+    COLS,
+    build_rows,
+    main,
+    parse_ts,
+    session_of_hw,
+)
 
 HW_HEADER = ("ts_utc,gpu_util_pct,gpu_mem_util_pct,gpu_mem_used_mb,gpu_power_w,"
              "cpu_pct,disk_read_mb_s,disk_write_mb_s,net_rx_mb_s,net_tx_mb_s,"
@@ -560,3 +574,51 @@ def test_harvested_artifact_matches_the_published_schema():
     sessions = [r["session"] for r in rdr]
     assert sessions == sorted(sessions)
     assert len(sessions) == len(set(sessions)), "one row per session"
+
+
+def test_p_a_drive_duplicate_is_the_same_session_not_a_second_runtime(lake):
+    """(p) `hw_healA (1).csv` beside `hw_healA.csv` — two Drive objects, one name, one
+    folder (rclone.org/drive, "Duplicated files"), as the lake held on 2026-09-08 after
+    `vm_hwlogger.py::mirror_once` spent a session replacing a destination that existed.
+
+    Read literally the twin is a WHOLE EXTRA RUNTIME on this table: session `healA (1)`,
+    `sources` reading `hw` and nothing else, no beacon, no queue rows, plus a spurious
+    `heartbeat_not_listed` — which is precisely the shape of a machine whose telemetry
+    failed, so it does not even look wrong. Nobody would be counting a phantom; they
+    would be counting a runtime with broken instrumentation.
+
+    Unlike the sibling table this one needs no row-level merge — its hw columns are
+    min / max / any over the session's files, already union operations — so what is
+    pinned here is that the two files fold into ONE row, that the row's span covers
+    both, and that it SAYS a duplicate exists rather than absorbing it silently.
+    """
+    logs, qc = lake
+    _hw(logs / "hw_healA.csv", ["2026-09-08T06:30:51Z", "2026-09-08T08:57:47Z"])
+    _hw(logs / "hw_healA (1).csv", ["2026-09-08T06:30:51Z", "2026-09-08T08:05:21Z"])
+
+    rows = _by_session(build_rows(logs, qc))
+    assert set(rows) == {"healA"}, "the Drive duplicate published as its own runtime"
+    r = rows["healA"]
+    assert r["hw_first_utc"] == "2026-09-08T06:30:51Z"
+    assert r["hw_last_utc"] == "2026-09-08T08:57:47Z", "the longer file sets the bound"
+    assert r["hw_hours"] == "2.4489"
+    assert "hw_drive_duplicate(hw_healA (1).csv)" in r["sources"]
+
+
+def test_q_a_lone_drive_duplicate_keeps_the_real_session_name(lake):
+    """The stranded half can outlive the other — a dedupe, or a hand cleanup that deleted
+    the wrong object, leaves only the ` (1)`. The row must still be `healA`: a table that
+    renames a paid runtime according to how its file was tidied is worse than one that
+    misses it, because the new name looks like a real machine. `_v2` is stripped too, and
+    Drive appends its suffix to the whole name including the schema fork."""
+    logs, qc = lake
+    _hw(logs / "hw_healA (1).csv", ["2026-09-08T06:30:51Z", "2026-09-08T08:05:21Z"])
+    _hw(logs / "hw_other_v2 (2).csv", ["2026-09-08T06:30:51Z"])
+
+    rows = _by_session(build_rows(logs, qc))
+    assert set(rows) == {"healA", "other"}
+    assert "hw_drive_duplicate(hw_healA (1).csv)" in rows["healA"]["sources"]
+    assert "hw_drive_duplicate(hw_other_v2 (2).csv)" in rows["other"]["sources"]
+    # And an ordinary name is not flagged: the suffix is anchored at the end of the
+    # stem, so a session genuinely spelled with parentheses is untouched.
+    assert session_of_hw("hw_foo (1)bar.csv") == "foo (1)bar"

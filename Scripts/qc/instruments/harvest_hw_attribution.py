@@ -84,6 +84,19 @@ understate the very effect it measures. Same defect, second symptom: a flush tha
 part way left a TORN row, which `read_hw` now counts and reports as
 `rows_dropped_malformed` instead of skipping in silence.
 
+DRIVE DUPLICATES (2026-09-08). Google Drive permits two objects with one name in one
+folder — rclone.org/drive, "Duplicated files": "Sometimes, for no reason I've been able
+to track down, drive will duplicate a file that rclone uploads. Drive unlike all the
+other remotes can have duplicated files." The desktop client renders the second as
+`hw_healA (1).csv`, and read literally that is a runtime named `healA (1)`: a machine
+that never existed, published on the trusted `marker` tier, with samples it shares with
+the real `healA` counted on both rows. `session_of` therefore strips the ` (N)` and
+`merge_files` unions the group by `ts_utc` behind the longest file. On the one case the
+lake holds the twin is a strict PREFIX (1,128 of the canonical's 1,752 rows, byte for
+byte), so `healA`'s numbers are the canonical file's alone and only `source_file` and
+the printed `twin_rows_merged` say a merge happened. `vm_hwlogger.py::mirror_once`
+carries the writer-side attribution and the fix.
+
 ASSUMPTION, stated because it is not verified: step-log `started:` / `completed:`
 timestamps are naive local time on the VM that wrote them, while hw `ts_utc` is stamped
 `...Z`. The two are treated as THE SAME CLOCK here, exactly as the existing analysis did.
@@ -167,6 +180,11 @@ DISK_MB_S = 5.0
 # so this cannot eat a step name.
 _YEAR_SUFFIX = re.compile(r"_\d{4}[a-z0-9]*$")
 
+# ` (1)`, ` (2)` … — Google Drive's rendering of a SECOND object carrying the same name
+# in the same folder. Anchored at the end of the name with `.csv` already stripped, so a
+# session legitimately named `foo (1)bar` is untouched. See `session_of` / `is_drive_twin`.
+_DRIVE_TWIN = re.compile(r" \(\d+\)$")
+
 _STEP_HEAD = re.compile(r"^=== \S+ --step (\S+) ===")
 _STARTED = re.compile(r"^started:\s+(\S+)", re.M)
 _COMPLETED = re.compile(r"^completed:\s+(\S+)", re.M)
@@ -231,15 +249,82 @@ def _ts(v):
 
 
 def session_of(path):
-    """hw_{session}.csv -> session; a `_v2` suffix is the schema, not the session."""
+    """hw_{session}.csv -> session; a `_v2` suffix is the schema, not the session.
+
+    A TRAILING ` (N)` IS DRIVE, NOT A SESSION NAME. Google Drive permits two objects
+    with one name in one folder (rclone.org/drive, "Duplicated files"), and the desktop
+    client renders the second as `hw_healA (1).csv`. Read literally that is a runtime
+    called `healA (1)` — a machine that never existed, published on the trusted `marker`
+    tier beside the real one, with its samples counted twice across the two rows.
+    `hw_healA (1).csv` on the lake 2026-09-08 is the case; `vm_hwlogger.py::mirror_once`
+    is the writer it came from and now carries the fix.
+
+    STRIP ORDER IS `.csv` -> ` (N)` -> `_v2`, because Drive appends its suffix to the
+    whole name including the schema fork: `hw_x_v2 (1).csv` is session `x` on the v2
+    schema, and stripping `_v2` first would leave ` (1)` welded to it.
+    """
     stem = Path(path).name
     if stem.startswith("hw_"):
         stem = stem[3:]
     if stem.endswith(".csv"):
         stem = stem[:-4]
+    stem = _DRIVE_TWIN.sub("", stem)
     if stem.endswith("_v2"):
         stem = stem[:-3]
     return stem
+
+
+def is_drive_twin(name):
+    """Is this filename Drive's `name (N).csv` copy of another object? See `session_of`."""
+    stem = Path(name).name
+    if stem.endswith(".csv"):
+        stem = stem[:-4]
+    return bool(_DRIVE_TWIN.search(stem))
+
+
+def merge_files(named):
+    """[(filename, rows), …] for ONE (session, basis) -> (rows, rows_added, extra_files).
+
+    ONE FILE PASSES THROUGH UNTOUCHED, and that is deliberate rather than incidental: a
+    legacy file written by the pre-2026-09-08 Drive appender could re-write rows it had
+    already flushed (`vm_hwlogger.py`'s own docstring reads the mechanism out of the
+    code), so a file may legitimately carry two rows at one `ts_utc`. De-duplicating a
+    single file would silently move `samples` for sessions nobody is asking about. Every
+    session on the lake but one holds exactly one file, so this branch is the archive.
+
+    SEVERAL FILES ARE A DRIVE DUPLICATE — or the v1/v2 schema fork landing on one basis,
+    which happens when the v2 file's step column is present but blank and is demoted to
+    `interval` beside its v1 sibling. Either way they may OVERLAP, and the union is the
+    right answer for both. `mirror_once` publishes the
+    WHOLE spool every tick, so each publish is a superset of the one before and a
+    stranded twin is a PREFIX of the file that kept growing — concatenating them, which
+    is what `rows += rows` did, would count every shared sample twice. Measured on
+    `healA`: the twin's 1,128 rows are byte-identical to the first 1,128 of the
+    canonical's 1,752.
+
+    So: the LONGEST file is primary and passes through untouched (its own internal
+    duplicates included, same rule as above); every other file contributes only the
+    `ts_utc` values the primary does not have. A twin that is a strict prefix therefore
+    adds nothing and the session's numbers are exactly the canonical file's — while a
+    twin that DIVERGED (a restarted logger whose spool lost the seed) still lands its
+    unique samples instead of being thrown away.
+
+    Ties break to the name WITHOUT ` (N)`, never to sort order: `hw_healA (1).csv` sorts
+    BEFORE `hw_healA.csv`, so `sorted()` alone would make the twin primary.
+    """
+    if len(named) == 1:
+        return list(named[0][1]), 0, []
+    order = sorted(named, key=lambda nr: (-len(nr[1]), is_drive_twin(nr[0]), nr[0]))
+    rows = list(order[0][1])
+    seen = {r["ts"] for r in rows}
+    added = 0
+    for _name, extra in order[1:]:
+        for r in extra:
+            if r["ts"] not in seen:
+                seen.add(r["ts"])
+                rows.append(r)
+                added += 1
+    return rows, added, [n for n, _r in order[1:]]
 
 
 def read_hw(path):
@@ -445,17 +530,29 @@ def build_rows(logs_dir, hw_files=None, stats=None):
         # so it is demoted rather than published as an all-`(between)` machine.
         has_marker = has_step and any((r["step"] or "").strip() for r in rows)
         g = groups.setdefault((session_of(p), "marker" if has_marker else "interval"),
-                              {"rows": [], "files": [], "demoted": []})
-        g["rows"] += rows
+                              {"named": [], "files": [], "demoted": []})
+        # Kept PER FILE, not concatenated, because two files for one session are a Drive
+        # duplicate and overlap — see merge_files, which used to be `g["rows"] += rows`.
+        g["named"].append((Path(p).name, rows))
         g["files"].append(Path(p).name)
         if has_step and not has_marker:
             g["demoted"].append(Path(p).name)
 
     out = []
+    twin_rows_merged = 0
     for session, basis in sorted(groups):
         g = groups[(session, basis)]
-        rows = g["rows"]
+        rows, added, merged_from = merge_files(g["named"])
+        twin_rows_merged += added
         source = ";".join(sorted(g["files"]))
+        if merged_from:
+            # Same convention as the demotion note below: the row has no free-text
+            # column, so what the harvest DID to this session's files rides on the one
+            # cell that already names them. A reader who sees only `hw_healA.csv` here
+            # is reading a session whose files were never merged.
+            source += (" [merged by ts_utc, longest file primary: "
+                       + ";".join(sorted(merged_from))
+                       + f" -> +{added} rows]")
         if g["demoted"]:
             # There is no free-text column on this row, so the demotion rides on
             # source_file — the one cell that already names files. A reader who slices
@@ -517,6 +614,10 @@ def build_rows(logs_dir, hw_files=None, stats=None):
     out.sort(key=lambda r: (r["session"], r["step"], r["basis"], r["phase"]))
     if stats is not None:
         stats["rows_dropped_malformed"] = malformed
+        # Rows a NON-PRIMARY file of a multi-file group contributed. Zero with a twin
+        # that is a strict prefix — which is the healthy shape and not the same finding
+        # as "no twin exists"; `source_file` is where that is visible.
+        stats["twin_rows_merged"] = twin_rows_merged
     return out
 
 
@@ -563,6 +664,10 @@ def main(argv=None):
     # count is the signature of the writer defect fixed 2026-09-08 (vm_hwlogger.py
     # ::mirror_once) coming back, and a silent skip is how it stayed invisible.
     print(f"  rows_dropped_malformed {stats.get('rows_dropped_malformed', 0)}")
+    # Also not a column, for the same reason: a merged row belongs to its session's
+    # step, and what the merge did belongs to the harvest. Printed because a Drive
+    # duplicate is otherwise invisible — before this it published as a second session.
+    print(f"  twin_rows_merged       {stats.get('twin_rows_merged', 0)}")
     print(f"  {'session':12} {'basis':9} {'hours':>7} {'span_h':>7} {'gpu?':>6} "
           f"{'nothing':>8} {'ambig':>7}")
     for r in alls:

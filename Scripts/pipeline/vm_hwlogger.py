@@ -44,8 +44,11 @@ so the re-write half of the mechanism is read from the code, not observed here.)
 
 So the sample is written to `{local_dir}/hw_{session}.local.csv` and flushed on the spot
 — local NVMe, no FUSE, one line per write — and a daemon thread publishes the WHOLE
-local file to Drive every --flush-every samples: write `{out}.part.{pid}`, os.replace it
-onto `out`. That publish is atomic (a reader sees the old file or the new one, never a
+local file to Drive every --flush-every samples: write `{out}.part.{pid}`, rename any
+existing `out` aside, os.replace the part onto the now-absent name, drop the aside. That
+publish never replaces a destination in place — the spelling that put
+`hw_healA (1).csv` on Drive beside `hw_healA.csv`; see mirror_once, which carries the
+attribution. It is atomic (a reader sees the old file or the new one, never a
 torn line), idempotent (a failed mirror retries on the next tick — nothing is buffered,
 so nothing can be half-written twice) and cut at the last complete line, so a half-
 written local row cannot reach Drive even in principle. The local file is the session's
@@ -466,6 +469,28 @@ def _write_bytes(path, data):
         f.write(data)
 
 
+def _probe(path):
+    """"present" / "absent" / "unknown" — os.stat, deliberately never os.path.exists.
+
+    Same rule and same reason as `_open_local` below, which says it in as many words:
+    os.path.exists reports a mount BLINK as "absent". Only FileNotFoundError means there
+    is really nothing there; any other OSError is the mount declining to answer.
+
+    mirror_once pays for that lie twice if it takes it. A blink read as "absent" would
+    restore the aside ONTO AN EXISTING destination — the one spelling this module exists
+    to stop using, inside its own failure handler — and, on a publish that actually
+    succeeded, would delete an aside that is the last copy of a publish. So "unknown" is
+    its own answer, and both callers do nothing with it.
+    """
+    try:
+        os.stat(path)
+    except FileNotFoundError:
+        return "absent"
+    except OSError:
+        return "unknown"
+    return "present"
+
+
 def mirror_once(local, out):
     """Publish the WHOLE local spool onto `out`, atomically. True if it landed.
 
@@ -484,20 +509,108 @@ def mirror_once(local, out):
     here: `phase4/qc/ledger_recovery/` holds 22 orphaned `*.csv.part.*` files left by
     the queue's own temp-plus-replace on this same mount. Routine, must not collide
     between processes, must not accumulate.
+
+    THE DESTINATION IS MADE ABSENT FIRST (2026-09-08), which is the D4 rule this
+    function was written without. `os.replace(part, out)` onto an out that ALREADY
+    EXISTS is the case `common.py::_publish_replace` exists to avoid, and one publish
+    a minute for the length of a session runs it thousands of times.
+
+    Attribution is the lake's own natural experiment, not a mechanism story — rclone
+    disclaims one: rclone.org/drive, "Duplicated files" — "Sometimes, for no reason
+    I've been able to track down, drive will duplicate a file that rclone uploads.
+    Drive unlike all the other remotes can have duplicated files." (rclone.org/commands/
+    rclone_dedupe: deduping by name "is only useful with a small group of backends
+    (e.g. Google Drive, Opendrive) that can have duplicate file names".) What CAN be
+    attributed is which of the two spellings produces them here. Every duplicate the
+    lake holds — six objects, whole mount, read 2026-09-08 — sits on one side:
+
+      existing destination   5 `.pt` in phase4/models, 2026-08-29 08:34-08:47 PDT,
+                             while `common.py::_copy_to_drive` still published with a
+                             plain `os.replace(part, drive_path)` — read it at a9f04ea^,
+                             where that is the only replace in the function. Plus
+                             `hw_healA (1).csv`, this function's first long session.
+      absent destination     0. `_publish_replace` landed a9f04ea 10:47 PDT the same
+                             morning and `vm_heartbeat.py::write_atomic` 769cef8 24
+                             minutes later; ten days since, 148 beacon objects
+                             republished every 60 s on every runtime and 72 checkpoint
+                             objects of 371 MB-1.1 GB (a floor on the publishes — a
+                             sem_best is rewritten per improving epoch), and not one
+                             twin.
+
+    So: rename `out` aside (destination now absent), replace `part` onto it, drop the
+    aside. Both renames are then the case the mount canary actually proved, and unlike
+    unlink-then-replace nothing is destroyed before the replacement is in place.
+
+    NOT VALIDATED ON THE MOUNT. The duplicate cannot be reproduced off Drive — no local
+    filesystem has the behaviour — so the tests below prove the sequence and the failure
+    handling, never the absence of a twin. The acceptance check is the next multi-hour
+    session publishing no `hw_{session} (1).csv`.
+
+    Rejected, and why: writing the canonical name directly through the VFS write cache
+    is not smaller — under `--vfs-cache-mode writes`, files "are written back to the
+    remote only when they are closed and if they haven't been accessed for
+    `--vfs-write-back` seconds" (rclone.org/commands/rclone_mount), so a killed VM leaves
+    whatever partial bytes the last open wrote at the canonical path AND takes the spool
+    with it, losing the session instead of duplicating it. Waiting for the upload to
+    quiesce is
+    rejected on evidence: it targets an in-flight-upload mechanism nothing here has
+    attributed, and rclone says it cannot attribute one either.
+
+    THE COST IS A SUB-SECOND WINDOW where `out` does not exist, the same one
+    `write_atomic` opens every 60 s — `harvest_runtime_sessions.py::reprobe_heartbeat`
+    documents a reader hitting it. A harvest that lands inside it misses that session's
+    file for that run and finds it on the next; the twin it replaces is permanent.
     """
     part = f"{out}.part.{os.getpid()}"
+    aside = f"{out}.prev.{os.getpid()}"
+    # The aside suffix goes AFTER `.csv`, like `_publish_replace`'s: `hw_x.csv.prev.N`
+    # is matched by no reader, while `hw_x.prev.N.csv` would be globbed by
+    # `hw_*.csv` and harvested as a session named `x.prev.N`.
     try:
         with open(local, "rb") as f:
             data = f.read()
         _write_bytes(part, data[:data.rfind(b"\n") + 1])
+        try:
+            os.replace(out, aside)
+        except FileNotFoundError:
+            pass                                  # first publish: already absent
         os.replace(part, out)
         return True
     except Exception:                             # noqa: BLE001
+        # PROBE, never infer from the exception type: `_publish_replace` records an EIO
+        # raised on this mount AFTER the rename had already landed. A CONFIRMED-absent
+        # `out` is the only state where the aside holds the sole copy of the last
+        # publish, and the only one that may be restored — putting the aside back over
+        # an existing `out` would be the very case this change removes, so a mount that
+        # will not answer (`_probe` -> "unknown") is left alone.
+        try:
+            if _probe(out) == "absent":
+                os.replace(aside, out)
+        except OSError:
+            pass
+        return False
+    finally:
+        # `part` is always disposable: it is a copy of the spool, which is still there.
         try:
             os.remove(part)
         except OSError:
             pass
-        return False
+        # THE ASIDE IS NOT, AND IT IS ONLY DROPPED ONCE SOMETHING IS PUBLISHED. On the
+        # happy path `out` holds a superset of it. But if the publish AND the restore
+        # both failed — a mount that stayed broken across both renames — the aside is
+        # the only copy of this session that would survive the VM: the spool is local
+        # and dies with the machine, which is exactly how `healA` ended (killed
+        # externally, mid-inference). Deleting it there would turn a recoverable
+        # publish failure into a lost session, so it is left as a `.prev.{pid}` orphan
+        # for the next tick to make redundant. Same rule, same reason, as
+        # `common.py::_publish_replace`: under equal uncertainty, keep the copy — which
+        # is why the test is a CONFIRMED-present `out` and not `not absent`. A blink
+        # answers "unknown" and the aside stays.
+        try:
+            if _probe(out) == "present":
+                os.remove(aside)
+        except OSError:
+            pass
 
 
 def _mirror_worker(local, out, tick, lock):

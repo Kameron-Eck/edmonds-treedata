@@ -24,7 +24,15 @@ finding about the missing writer, not a reason to drop the row.
 
     hw_{session}.csv          `vm_hwlogger.py::main` — 5 s hardware samples. The `_v2`
                               suffix is the SCHEMA, not part of the session name (same
-                              rule as `harvest_hw_attribution.py::session_of`).
+                              rule as `harvest_hw_attribution.py::session_of`), and a
+                              trailing ` (N)` is DRIVE: two objects may share one name
+                              in one folder (rclone.org/drive, "Duplicated files") and
+                              `hw_healA (1).csv` sat on the lake 2026-09-08. Read
+                              literally it is an extra runtime on this table, `sources`
+                              reading `hw` and nothing else — the shape of a machine
+                              whose beacon and queue both failed. Stripped in
+                              `session_of_hw`; the surviving row says
+                              `hw_drive_duplicate(<file>)`.
                               `hw_hours` is the SPAN of those stamps (last − first), NOT
                               sampled time: a stalled logger leaves a gap inside the
                               span, and the split between the two is the sibling
@@ -215,6 +223,11 @@ COLS = ["session", "queue", "gpu_name", "vcpus", "ram_gb",
 # anchored on the TIMESTAMP, never on the last underscore.
 _NOHUP = re.compile(r"^train_queue_nohup_(.+)_(\d{8}T\d{6}Z)\.log$")
 
+# ` (1)`, ` (2)` … — Drive's rendering of a SECOND object with the same name in the same
+# folder. Matched with `.csv` already stripped and anchored at the end, so a session
+# genuinely spelled `foo (1)bar` is untouched. See `session_of_hw`.
+_DRIVE_TWIN = re.compile(r" \(\d+\)$")
+
 # Every LISTING this instrument makes goes through `lake.py::read_retry` with these:
 # the Drive/FUSE mirror hands back an empty listing for a directory that is plainly
 # populated a second later, and an empty listing here does not raise — it silently
@@ -288,17 +301,32 @@ def declared_queue_stem(beat):
 
 
 def session_of_hw(path):
-    """hw_{session}.csv -> session; a `_v2` suffix is the schema, not the session.
+    """hw_{session}.csv -> session; `_v2` is the schema and ` (N)` is Drive, not names.
 
     A deliberate re-implementation of `harvest_hw_attribution.py::session_of` rather
     than an import: instruments are run by path and must not depend on each other's
-    load order. Six lines, one rule, and both are covered by their own tests.
+    load order. One rule, two homes, and both are covered by their own tests — so when
+    one changes, so must the other.
+
+    A TRAILING ` (N)` IS DRIVE. Two objects may carry one name in one Drive folder
+    (rclone.org/drive, "Duplicated files") and the desktop client renders the second as
+    `hw_healA (1).csv`. Read literally that is a whole extra runtime on this table —
+    `healA (1)`, with `sources` reading `hw`, no beacon, no queue rows and a spurious
+    `heartbeat_not_listed`, which is exactly the shape of a machine whose telemetry
+    failed. Strip order is `.csv` -> ` (N)` -> `_v2`: Drive appends its suffix to the
+    whole name, so `hw_x_v2 (1).csv` is session `x`.
+
+    This table needs no row-level merge, unlike the sibling one. Its hw columns are
+    min / max / any over the session's files, and those are already union operations:
+    a twin is a prefix or an overlap, and either way it can only re-state a bound the
+    longer file already sets or widen it correctly.
     """
     stem = Path(path).name
     if stem.startswith("hw_"):
         stem = stem[3:]
     if stem.endswith(".csv"):
         stem = stem[:-4]
+    stem = _DRIVE_TWIN.sub("", stem)
     if stem.endswith("_v2"):
         stem = stem[:-3]
     return stem
@@ -589,7 +617,13 @@ def build_rows(logs_dir, qc_dir):
         if not s:
             continue
         lo, hi, gpu = read_hw(p)
-        g = hw.setdefault(s, {"lo": None, "hi": None, "gpu": None})
+        g = hw.setdefault(s, {"lo": None, "hi": None, "gpu": None, "twins": []})
+        # Named on the row, not silently absorbed: a duplicate Drive object is a fact
+        # about the lake this session's operator may want to act on (deleting one is
+        # Kam's call, never a harvest's), and it is the only place a reader can see
+        # that this row was assembled from more than one file.
+        if _DRIVE_TWIN.search(Path(p).stem):
+            g["twins"].append(Path(p).name)
         if lo is not None:
             g["lo"] = lo if g["lo"] is None or lo < g["lo"] else g["lo"]
         if hi is not None:
@@ -632,6 +666,8 @@ def build_rows(logs_dir, qc_dir):
         src = []
         if sess in hw:
             src.append("hw")
+            for t in sorted(h.get("twins") or ()):
+                src.append(f"hw_drive_duplicate({t})")
         if sess in meta:
             src.append("hw_meta")
         if sess in beats:

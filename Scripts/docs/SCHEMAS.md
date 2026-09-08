@@ -82,8 +82,9 @@ separates them. Non-default `ref` rows are sensitivity checks, not deployments.
 Written by `pipeline/vm_hwlogger.py::main` (launched by every bootstrap from
 2026-09-02; 5 s samples). Since e8dec13 every sample goes to a LOCAL spool,
 flushed per row, and `vm_hwlogger.py::mirror_once` republishes the whole spool
-onto this path every 12th sample — one Drive write a minute, temp +
-`os.replace`, cut at the last newline. **Nothing is buffered**: this file is the
+onto this path every 12th sample — one Drive write a minute, temp + rename-aside
++ `os.replace` onto the now-absent name, cut at the last newline. **Nothing is
+buffered**: this file is the
 previous complete file until the instant it is the new complete file, and a
 failed publish needs no recovery because the next tick republishes the same
 local file. Kernel + NVIDIA counters only — no pipeline code in the measurement
@@ -111,6 +112,20 @@ blank `step` cells mean exactly that. `step` carries the year suffix as passed
 logger writes `hw_{session}_v2.csv` instead rather than appending rows of a
 different width — so one session can own two files, and `_v2` in a filename is
 the SCHEMA, not the session name.
+
+**A trailing ` (N)` is DRIVE, not a session.** Google Drive permits two objects
+with one name in one folder ([rclone.org/drive, "Duplicated
+files"](https://rclone.org/drive/)) and the desktop client renders the second as
+`hw_healA (1).csv` — one such pair sat on the lake 2026-09-08, the twin a strict
+byte prefix of the file that kept growing. Both readers strip the suffix
+(`.csv` → ` (N)` → `_v2`) so the samples land on the real session:
+`harvest_hw_attribution.py::merge_files` unions the group by `ts_utc` behind the
+longest file (so a prefix twin moves no number and a diverging one still lands
+its unique samples) and names the merge in `source_file`;
+`harvest_runtime_sessions.py` needs no merge — its hw columns are min/max/any —
+and flags the row `hw_drive_duplicate(<file>)`. Writer side,
+`vm_hwlogger.py::mirror_once` now renames the destination aside so the publish
+never replaces a name that exists.
 
 ## hw_step_attribution.csv (phase4/qc/, HARVESTED — re-harvest, never edit)
 

@@ -1,4 +1,20 @@
 session,step,basis,gpu_present,samples,hours,gpu_busy_frac,gpu_util_mean,cpu50_frac,iowait10_frac,tx1_frac,rx1_frac,disk5_frac,nothing_frac,ambiguous_dropped,samples_parsed,span_hours,source_file,phase
+healA,(between),marker,1.0000,60,0.0833,0.0000,0.0000,0.0000,0.0000,0.0000,0.0000,0.0500,0.9500,0,1752,2.4489,"hw_healA (1).csv;hw_healA.csv [merged by ts_utc, longest file primary: hw_healA (1).csv -> +0 rows]",
+healA,ALL,marker,1.0000,1752,2.4333,0.2026,14.2688,0.1027,0.0445,0.0331,0.2763,0.2243,0.3887,0,1752,2.4489,"hw_healA (1).csv;hw_healA.csv [merged by ts_utc, longest file primary: hw_healA (1).csv -> +0 rows]",
+healA,evaluate,marker,1.0000,8,0.0111,0.0000,0.0000,0.0000,0.0000,0.0000,0.0000,0.0000,1.0000,0,1752,2.4489,"hw_healA (1).csv;hw_healA.csv [merged by ts_utc, longest file primary: hw_healA (1).csv -> +0 rows]",launching
+healA,evaluate,marker,1.0000,29,0.0403,0.0345,1.1379,0.0000,0.0000,0.0000,0.0000,0.0000,0.9655,0,1752,2.4489,"hw_healA (1).csv;hw_healA.csv [merged by ts_utc, longest file primary: hw_healA (1).csv -> +0 rows]",open
+healA,inference,marker,1.0000,1,0.0014,0.0000,0.0000,0.0000,0.0000,0.0000,0.0000,0.0000,1.0000,0,1752,2.4489,"hw_healA (1).csv;hw_healA.csv [merged by ts_utc, longest file primary: hw_healA (1).csv -> +0 rows]",launching
+healA,inference,marker,1.0000,287,0.3986,0.9686,70.3345,0.0000,0.0000,0.0000,0.0000,0.3693,0.0105,0,1752,2.4489,"hw_healA (1).csv;hw_healA.csv [merged by ts_utc, longest file primary: hw_healA (1).csv -> +0 rows]",open
+healA,labels,marker,1.0000,12,0.0167,0.0000,0.0000,0.0000,0.0000,0.0000,0.0000,0.0833,0.9167,0,1752,2.4489,"hw_healA (1).csv;hw_healA.csv [merged by ts_utc, longest file primary: hw_healA (1).csv -> +0 rows]",launching
+healA,tile,marker,1.0000,1,0.0014,0.0000,0.0000,0.0000,0.0000,0.0000,0.0000,0.0000,1.0000,0,1752,2.4489,"hw_healA (1).csv;hw_healA.csv [merged by ts_utc, longest file primary: hw_healA (1).csv -> +0 rows]",launching
+healA,tile,marker,1.0000,903,1.2542,0.0000,0.0000,0.0000,0.0864,0.0299,0.4939,0.2702,0.4441,0,1752,2.4489,"hw_healA (1).csv;hw_healA.csv [merged by ts_utc, longest file primary: hw_healA (1).csv -> +0 rows]",open
+healA,train,marker,1.0000,12,0.0167,0.0000,0.0000,0.0000,0.0000,0.0000,0.0000,0.0833,0.9167,0,1752,2.4489,"hw_healA (1).csv;hw_healA.csv [merged by ts_utc, longest file primary: hw_healA (1).csv -> +0 rows]",launching
+healA,train,marker,1.0000,426,0.5917,0.1784,11.2207,0.4225,0.0000,0.0728,0.0892,0.0892,0.3451,0,1752,2.4489,"hw_healA (1).csv;hw_healA.csv [merged by ts_utc, longest file primary: hw_healA (1).csv -> +0 rows]",open
+healA,train,marker,1.0000,13,0.0181,0.0000,0.0000,0.0000,0.0000,0.0000,0.0000,0.0000,1.0000,0,1752,2.4489,"hw_healA (1).csv;hw_healA.csv [merged by ts_utc, longest file primary: hw_healA (1).csv -> +0 rows]",verifying
+healB,(between),marker,1.0000,8,0.0111,0.0000,0.0000,0.0000,0.0000,0.0000,0.0000,0.1250,0.8750,0,276,0.3844,hw_healB.csv,
+healB,ALL,marker,1.0000,276,0.3833,0.3877,28.3333,0.0000,0.1957,0.0000,0.4529,0.6232,0.1087,0,276,0.3844,hw_healB.csv,
+healB,inference,marker,1.0000,1,0.0014,0.0000,0.0000,0.0000,0.0000,0.0000,0.0000,1.0000,0.0000,0,276,0.3844,hw_healB.csv,launching
+healB,inference,marker,1.0000,267,0.3708,0.4007,29.2884,0.0000,0.2022,0.0000,0.4682,0.6367,0.0861,0,276,0.3844,hw_healB.csv,open
 of2017k,(between),interval,1.0000,215,0.2986,0.0000,0.0000,0.0000,,0.0000,0.0605,0.0140,0.9349,0,216,0.4483,hw_of2017k.csv,
 of2017k,ALL,interval,1.0000,216,0.3000,0.0000,0.0000,0.0000,,0.0000,0.0602,0.0139,0.9352,0,216,0.4483,hw_of2017k.csv,
 of2017k,tile,interval,1.0000,1,0.0014,0.0000,0.0000,0.0000,,0.0000,0.0000,0.0000,1.0000,0,216,0.4483,hw_of2017k.csv,open

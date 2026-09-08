@@ -29,6 +29,13 @@ tests, on rows small enough to count by hand:
      the `step` column unchanged and the phase in its own column. `(between)` is this
      table's residual, which §7 leaves attributable to nothing; the phases
      are the queue-side time that belongs somewhere else.
+  j  a DRIVE DUPLICATE — `hw_healA (1).csv` beside `hw_healA.csv`, two objects with one
+     name in one folder (rclone.org/drive, "Duplicated files"). Read literally it is a
+     runtime called `healA (1)`, published on the trusted `marker` tier with samples
+     counted on both rows. Four shapes, because the twin is not always the strict prefix
+     the lake happens to hold: prefix (nothing may move), diverging (the unique samples
+     must land), twin-only (the session keeps its real name), and the tie where the twin
+     sorts first (it must never be the file that is read).
 
 Plus the two accounting traps the row itself must close: a session owning BOTH schemas
 keeps each file on its own basis (a marker's per-machine step is never re-guessed from
@@ -46,6 +53,7 @@ from instruments.harvest_hw_attribution import (
     build_rows,
     main,
     norm_step,
+    session_of,
     split_step,
 )
 
@@ -517,3 +525,129 @@ def test_the_tracked_csv_matches_the_declared_columns():
     assert head == ",".join(COLS), (
         "phase4/qc/hw_step_attribution.csv is stale — rerun "
         "qc/instruments/harvest_hw_attribution.py")
+
+
+# ── Drive duplicates (2026-09-08) ────────────────────────────────────────────
+# Google Drive permits two objects with one name in one folder (rclone.org/drive,
+# "Duplicated files"); the desktop client renders the second as `hw_healA (1).csv`.
+# Read literally that is a runtime named `healA (1)` — a machine that never existed,
+# published on the TRUSTED marker tier, sharing samples with the real session and
+# counting them on both rows. Four shapes, because the twin is not always a prefix.
+
+
+def test_session_of_strips_the_drive_suffix_after_the_schema_suffix():
+    """Strip order is `.csv` -> ` (N)` -> `_v2`. Drive appends its suffix to the WHOLE
+    name, schema fork included, so stripping `_v2` first leaves ` (1)` welded on and the
+    session comes back as `x_v2 (1)` — a phantom on the phantom."""
+    assert session_of("hw_healA.csv") == "healA"
+    assert session_of("hw_healA (1).csv") == "healA"
+    assert session_of("hw_healA (12).csv") == "healA"
+    assert session_of("hw_x_v2.csv") == "x"
+    assert session_of("hw_x_v2 (1).csv") == "x"
+    # Anchored at the end with `.csv` already off: a session genuinely spelled this way
+    # is not a Drive artifact and must survive.
+    assert session_of("hw_foo (1)bar.csv") == "foo (1)bar"
+
+
+def test_a_twin_that_is_a_prefix_changes_no_number_of_its_session(tmp_path):
+    """THE SHAPE ON THE LAKE. `mirror_once` publishes the WHOLE spool every tick, so each
+    publish is a superset of the one before and a stranded twin is a strict PREFIX of the
+    file that kept growing — `hw_healA (1).csv` is byte-identical to the first 1,128 rows
+    of `hw_healA.csv`'s 1,752, measured 2026-09-08.
+
+    Two things must therefore hold at once, and only one of them was true before: the
+    twin must not appear as its own session, AND merging it must move nothing. The
+    control is the same harvest over the canonical file ALONE — every published number
+    must match it, because the twin contributes no sample the canonical lacks. If they
+    differ, the merge is double-counting, which is exactly what `rows += rows` did."""
+    logs = tmp_path / "logs"
+    logs.mkdir()
+    rows = [_v2(s, 90, 60, 0, 0, 0, 0, 1, "train_2017") for s in range(0, 60, 5)]
+    _write(logs / "hw_healA.csv", V2_HEADER, rows)
+    _write(logs / "hw_healA (1).csv", V2_HEADER, rows[:6])      # a strict prefix
+
+    got = build_rows(logs)
+    assert {r["session"] for r in got} == {"healA"}, "the twin published as a session"
+
+    control = build_rows(logs, hw_files=[logs / "hw_healA.csv"])
+    keys = ("session", "step", "basis", "phase", "samples", "hours", "span_hours",
+            "samples_parsed", "ambiguous_dropped", "gpu_busy_frac", "nothing_frac")
+    assert [{k: r[k] for k in keys} for r in got] == \
+           [{k: r[k] for k in keys} for r in control]
+
+    # What DID change: the row says its files were merged, and says it added nothing.
+    all_row = _by_step(got, "healA")["ALL"]
+    assert "hw_healA (1).csv" in all_row["source_file"]
+    assert "-> +0 rows" in all_row["source_file"]
+
+
+def test_a_diverging_twin_lands_its_unique_samples_and_reports_them(tmp_path):
+    """NOT EVERY TWIN IS A PREFIX. A logger relaunched under one session name seeds its
+    spool from whatever `out` it can read (`vm_hwlogger.py::_open_local`), and on the
+    VM's own rclone view BOTH objects answer to that name — so a restart can seed from
+    either and the two files then diverge. Throwing the twin away would lose real
+    samples; concatenating them would count the shared ones twice.
+
+    Union by `ts_utc` behind the longest file does neither: the four samples only the
+    twin holds arrive, the six they share arrive once, and `samples_parsed` says 10."""
+    logs = tmp_path / "logs"
+    logs.mkdir()
+    shared = [_v2(s, 90, 60, 0, 0, 0, 0, 1, "train_2017") for s in range(0, 30, 5)]
+    _write(logs / "hw_healA.csv", V2_HEADER, shared)
+    _write(logs / "hw_healA (1).csv", V2_HEADER,
+           shared[:2] + [_v2(s, 90, 60, 0, 0, 0, 0, 1, "train_2017")
+                         for s in range(30, 50, 5)])
+
+    stats = {}
+    got = build_rows(logs, stats=stats)
+    assert {r["session"] for r in got} == {"healA"}
+    all_row = _by_step(got, "healA")["ALL"]
+    assert int(all_row["samples_parsed"]) == 10, "6 shared + 4 unique, each once"
+    assert int(all_row["samples"]) == 10
+    assert stats["twin_rows_merged"] == 4
+    assert "-> +4 rows" in all_row["source_file"]
+    # The span widens to cover the samples only the twin had.
+    assert float(all_row["span_hours"]) == pytest.approx(45 / 3600.0, abs=1e-6)
+
+
+def test_a_twin_whose_canonical_is_gone_is_still_its_session(tmp_path):
+    """The stranded half can outlive the other: Drive holds two independent objects, and
+    a `rclone dedupe`, a hand cleanup, or a delete of the wrong one leaves only the
+    ` (1)`. The session must still be `healA` — the alternative is a table that silently
+    renames a paid runtime because of how its file was tidied."""
+    logs = tmp_path / "logs"
+    logs.mkdir()
+    _write(logs / "hw_healA (1).csv", V2_HEADER,
+           [_v2(s, 90, 60, 0, 0, 0, 0, 1, "train_2017") for s in range(0, 30, 5)])
+
+    stats = {}
+    got = build_rows(logs, stats=stats)
+    assert {r["session"] for r in got} == {"healA"}
+    all_row = _by_step(got, "healA")["ALL"]
+    assert all_row["basis"] == "marker", "a lone twin is still a v2 file with markers"
+    assert int(all_row["samples"]) == 6
+    # ONE file, so nothing was merged and the note must not appear: a single file passes
+    # through untouched, which is what keeps every legacy session's numbers fixed.
+    assert "merged by ts_utc" not in all_row["source_file"]
+    assert stats["twin_rows_merged"] == 0
+
+
+def test_the_twin_is_never_primary_even_when_it_sorts_first(tmp_path):
+    """`hw_healA (1).csv` sorts BEFORE `hw_healA.csv` — space is 0x20, `.` is 0x2e — so
+    `sorted()` alone makes the twin primary. That is invisible while one file is a prefix
+    of the other and decides the reading the moment they disagree at a shared `ts_utc`,
+    which is what a re-seeded restart produces.
+
+    Equal row counts, so length cannot break the tie: the name WITHOUT ` (N)` must win,
+    and the published `gpu_util_mean` says which file was read."""
+    logs = tmp_path / "logs"
+    logs.mkdir()
+    _write(logs / "hw_healA.csv", V2_HEADER,
+           [_v2(s, 90, 60, 0, 0, 0, 0, 1, "train_2017") for s in range(0, 20, 5)])
+    _write(logs / "hw_healA (1).csv", V2_HEADER,
+           [_v2(s, 10, 60, 0, 0, 0, 0, 1, "train_2017") for s in range(0, 20, 5)])
+
+    all_row = _by_step(build_rows(logs), "healA")["ALL"]
+    assert int(all_row["samples"]) == 4, "the same four stamps, not eight"
+    assert float(all_row["gpu_util_mean"]) == pytest.approx(90.0), \
+        "the Drive duplicate was read in preference to the canonical file"

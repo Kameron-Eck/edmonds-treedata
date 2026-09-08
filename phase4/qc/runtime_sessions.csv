@@ -43,6 +43,8 @@ gpu9,,,,,,,,,2026-08-28T00:47:49Z,2026-08-28T00:48:52Z,,,,,,heartbeat,,,
 hardyear,queue_hard_year_pilot,,,,,,,,2026-09-01T18:45:53Z,2026-09-01T18:46:58Z,,,,,,heartbeat,,,
 hardyear3,queue_hard_year_pilot,,,,,,,,2026-09-01T21:05:51Z,2026-09-01T21:06:55Z,,,,,,heartbeat,,,
 hardyear4,queue_hard_year_pilot,,,,,,,,2026-09-01T21:47:53Z,2026-09-01T21:49:57Z,2026-09-01T21:18:46Z,2026-09-01T22:32:49Z,12,,-42.9,heartbeat;queue_rows;beacon_ended_before_queue;later_rows_unattributed(hy_e3_2011s),,,
+healA,queue_heal_infill_2017_2023,NVIDIA A100-SXM4-40GB,12,89.6,2026-09-08T06:30:51Z,2026-09-08T08:57:47Z,2.4489,1,2026-09-08T08:55:49Z,2026-09-08T08:56:53Z,2026-09-08T06:30:48Z,2026-09-08T08:33:40Z,10,-0.1,24.1,hw;hw_drive_duplicate(hw_healA (1).csv);hw_meta;heartbeat;queue_rows;queue_last_row_RUNNING,Intel(R) Xeon(R) CPU @ 2.20GHz,2200.2,4400.30
+healB,queue_heal_infill_2017_2023,NVIDIA A100-SXM4-40GB,12,89.6,2026-09-08T13:55:11Z,2026-09-08T14:18:15Z,0.3844,1,2026-09-08T14:16:51Z,2026-09-08T14:17:54Z,2026-09-08T13:55:09Z,2026-09-08T13:55:47Z,2,-0.0,22.5,hw;hw_meta;heartbeat;queue_rows;queue_last_row_RUNNING,Intel(R) Xeon(R) CPU @ 2.20GHz,2200.2,4400.42
 of2017k,,,,,2026-09-06T00:22:00Z,2026-09-06T00:48:54Z,0.4483,1,2026-09-06T00:45:51Z,2026-09-06T00:47:44Z,2026-09-06T00:28:55Z,2026-09-06T00:28:55Z,1,6.9,20.0,hw;heartbeat;queue_rows;later_rows_unattributed(of_2017k),,,
 of2017k2,,,,,2026-09-06T01:40:11Z,2026-09-06T03:44:36Z,2.0736,1,2026-09-06T03:43:38Z,2026-09-06T03:44:41Z,,,,,,hw;heartbeat,,,
 ofA,,,,,2026-09-05T14:56:53Z,2026-09-05T20:54:00Z,5.9519,1,2026-09-05T20:52:58Z,2026-09-05T20:54:03Z,2026-09-05T14:56:51Z,2026-09-05T20:40:04Z,38,-0.0,14.0,hw;heartbeat;queue_rows;later_rows_unattributed(of_2017n),,,

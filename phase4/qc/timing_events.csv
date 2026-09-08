@@ -2823,6 +2823,32 @@ run_id,year,run_tag,step,label,seconds,bytes,mb_per_s,log_file
 20260907T235948Z_2017k_spd_2017k_postproc,2017k,spd_2017k,postproc,copy edmonds_canopy_mask_2017k_spd_2017k.tif,0.3,95739748,319.13,phase4_semantic_finetune_postproc_2017k_2026-09-08T00-26.log
 20260907T235948Z_2017k_spd_2017k_postproc,2017k,spd_2017k,postproc,copy edmonds_canopy_mask_2017k_spd_2017k.gpkg,0.2,26890240,134.45,phase4_semantic_finetune_postproc_2017k_2026-09-08T00-26.log
 20260907T235948Z_2017k_spd_2017k_postproc,2017k,spd_2017k,postproc,postproc,1498.8,,,phase4_semantic_finetune_postproc_2017k_2026-09-08T00-26.log
+20260908T021256Z_2017k_spdv_2017k_tile,2017k,spdv_2017k,tile,stage 2017_king_rgb.tif,286.3,11549324736,40.34,phase4_semantic_finetune_tile_2017k_2026-09-08T03-04.log
+20260908T021256Z_2017k_spdv_2017k_tile,2017k,spdv_2017k,tile,stage edmonds_canopy_mask_2020.tif,4.6,287816390,62.57,phase4_semantic_finetune_tile_2017k_2026-09-08T03-04.log
+20260908T021256Z_2017k_spdv_2017k_tile,2017k,spdv_2017k,tile,bundle build 2017k,14.5,,,phase4_semantic_finetune_tile_2017k_2026-09-08T03-04.log
+20260908T021256Z_2017k_spdv_2017k_tile,2017k,spdv_2017k,tile,copy _bundle_a36d6772e88b.tar,16.4,,,phase4_semantic_finetune_tile_2017k_2026-09-08T03-04.log
+20260908T031159Z_2017k_spdv_2017k_train,2017k,spdv_2017k,train,bundle copy 2017k,119.2,,,phase4_semantic_finetune_train_2017k_2026-09-08T03-48.log
+20260908T031159Z_2017k_spdv_2017k_train,2017k,spdv_2017k,train,stage tiles 2017k,123.7,,,phase4_semantic_finetune_train_2017k_2026-09-08T03-48.log
+20260908T031159Z_2017k_spdv_2017k_train,2017k,spdv_2017k,train,copy sem_best_2017k_spdv_2017k.pt,0.7,371435155,530.62,phase4_semantic_finetune_train_2017k_2026-09-08T03-48.log
+20260908T031159Z_2017k_spdv_2017k_train,2017k,spdv_2017k,train,copy sem_best_2017k_spdv_2017k.pt,0.7,371435155,530.62,phase4_semantic_finetune_train_2017k_2026-09-08T03-48.log
+20260908T031159Z_2017k_spdv_2017k_train,2017k,spdv_2017k,train,copy sem_best_2017k_spdv_2017k.pt,0.7,371435155,530.62,phase4_semantic_finetune_train_2017k_2026-09-08T03-48.log
+20260908T031159Z_2017k_spdv_2017k_train,2017k,spdv_2017k,train,copy sem_best_2017k_spdv_2017k.pt,0.8,371435155,464.29,phase4_semantic_finetune_train_2017k_2026-09-08T03-48.log
+20260908T031159Z_2017k_spdv_2017k_train,2017k,spdv_2017k,train,copy sem_best_2017k_spdv_2017k.pt,0.7,371435155,530.62,phase4_semantic_finetune_train_2017k_2026-09-08T03-48.log
+20260908T031159Z_2017k_spdv_2017k_train,2017k,spdv_2017k,train,copy sem_best_2017k_spdv_2017k.pt,35.9,371435155,10.35,phase4_semantic_finetune_train_2017k_2026-09-08T03-48.log
+20260908T031159Z_2017k_spdv_2017k_train,2017k,spdv_2017k,train,copy sem_best_2017k_spdv_2017k.pt,0.8,371435155,464.29,phase4_semantic_finetune_train_2017k_2026-09-08T03-48.log
+20260908T031159Z_2017k_spdv_2017k_train,2017k,spdv_2017k,train,copy sem_best_2017k_spdv_2017k.pt,0.8,371435155,464.29,phase4_semantic_finetune_train_2017k_2026-09-08T03-48.log
+20260908T031159Z_2017k_spdv_2017k_train,2017k,spdv_2017k,train,copy sem_best_2017k_spdv_2017k.pt,0.7,371435155,530.62,phase4_semantic_finetune_train_2017k_2026-09-08T03-48.log
+20260908T031159Z_2017k_spdv_2017k_train,2017k,spdv_2017k,train,copy sem_best_2017k_spdv_2017k.pt,0.7,371435155,530.62,phase4_semantic_finetune_train_2017k_2026-09-08T03-48.log
+20260908T031159Z_2017k_spdv_2017k_train,2017k,spdv_2017k,train,copy sem_best_2017k_spdv_2017k.pt,0.7,371435155,530.62,phase4_semantic_finetune_train_2017k_2026-09-08T03-48.log
+20260908T031159Z_2017k_spdv_2017k_train,2017k,spdv_2017k,train,copy sem_best_2017k_spdv_2017k.pt,0.7,371435155,530.62,phase4_semantic_finetune_train_2017k_2026-09-08T03-48.log
+20260908T031159Z_2017k_spdv_2017k_train,2017k,spdv_2017k,train,copy sem_best_2017k_spdv_2017k.pt,0.6,371435155,619.06,phase4_semantic_finetune_train_2017k_2026-09-08T03-48.log
+20260908T031159Z_2017k_spdv_2017k_train,2017k,spdv_2017k,train,copy sem_best_2017k_spdv_2017k.pt,0.8,371435155,464.29,phase4_semantic_finetune_train_2017k_2026-09-08T03-48.log
+20260908T031159Z_2017k_spdv_2017k_train,2017k,spdv_2017k,train,copy sem_best_2017k_spdv_2017k.pt,0.7,371435155,530.62,phase4_semantic_finetune_train_2017k_2026-09-08T03-48.log
+20260908T031159Z_2017k_spdv_2017k_train,2017k,spdv_2017k,train,copy sem_best_2017k_spdv_2017k.pt,0.7,371435155,530.62,phase4_semantic_finetune_train_2017k_2026-09-08T03-48.log
+20260908T031159Z_2017k_spdv_2017k_train,2017k,spdv_2017k,train,copy sem_best_2017k_spdv_2017k.pt,0.7,371435155,530.62,phase4_semantic_finetune_train_2017k_2026-09-08T03-48.log
+20260908T031159Z_2017k_spdv_2017k_train,2017k,spdv_2017k,train,copy sem_best_2017k_spdv_2017k.pt,0.7,371435155,530.62,phase4_semantic_finetune_train_2017k_2026-09-08T03-48.log
+20260908T031159Z_2017k_spdv_2017k_train,2017k,spdv_2017k,train,copy sem_best_2017k_spdv_2017k.pt,0.7,371435155,530.62,phase4_semantic_finetune_train_2017k_2026-09-08T03-48.log
+20260908T031159Z_2017k_spdv_2017k_train,2017k,spdv_2017k,train,copy sem_best_2017k_spdv_2017k.pt,0.8,371435155,464.29,phase4_semantic_finetune_train_2017k_2026-09-08T03-48.log
 unrecorded,2011s,t1_2011s_in05,evaluate,copy semantic_eval_report.csv,0.0,,,phase4_semantic_finetune_evaluate_2011s_2026-09-02T14-40.log
 unrecorded,2000,fullext_sectors_v1,inference,stage 2000_king_rgb.tif,58.4,1258501736,21.55,phase4_semantic_finetune_inference_2000_2026-08-27T03-18.log
 unrecorded,2000,fullext_sectors_v1,inference,stage lidar_snoh_chm.tif,149.9,75698441,0.50,phase4_semantic_finetune_inference_2000_2026-08-27T03-18.log

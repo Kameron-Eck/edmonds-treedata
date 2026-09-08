@@ -36,6 +36,13 @@ WHAT IS GATED HERE.
      neither of those two paths pays for it. Both are real skips —
      `_gather_citywide_coarse` returns before `_negative_site_records` on a dry
      run — and a top-of-function call would have lost them.
+  f  Both discoveries are TIMED, under one label shape `discover sites <label>`,
+     and the label parses with the harvester's own shipped regex
+     (`instruments/harvest_timing_events.py::_EVENT`) and joins to no file size.
+     Attribution without a tick is only half the fix: the 2026-09-08 healA tile
+     log carries "stage ortho" and "stage mask" ⏱ rows and prints the discovery
+     banner with none, so the cost is inside the step's wall-clock and invisible
+     inside it.
 
 The SAVING is UNMEASURED. These tests prove the call is not made; they say nothing
 about how many seconds that is worth. That number only exists once a citywide
@@ -43,6 +50,7 @@ labels/tile launch reads its own start-up gap.
 
 Run:  PYTHONUTF8=1 py -3.12 -m pytest qc/test_cli_site_discovery.py -q
 """
+import re
 import subprocess
 import sys
 import types
@@ -334,3 +342,72 @@ def test_cli_hands_step_tile_the_buffer_the_shared_discovery_would_have_used():
     body = src[src.index("def main("):]
     tile_call = body[body.index("r = step_tile("):]
     assert "site_buffer=args.site_buffer" in tile_call[:tile_call.index(")\n")]
+
+
+# ══ f — the discovery is timed, under one label shape ════════════════════════
+
+def _timing_labels(text):
+    """{label: seconds} for every `⏱` line in `text`, parsed with the harvester's
+    OWN regex — imported, not restated, so a change to either side fails here."""
+    from instruments.harvest_timing_events import _EVENT
+    out = {}
+    for line in text.splitlines():
+        m = _EVENT.search(line)
+        if m:
+            out[m.group(1).strip()] = float(m.group(2))
+    return out
+
+
+def test_the_site_recipe_discovery_publishes_a_parsable_timing_row(monkeypatch,
+                                                                   tmp_path,
+                                                                   capsys):
+    """A cost with no ⏱ row is a cost nobody can read. This one is NOT harvested —
+    it prints before any StepLogger opens, so it lands in the queue's own
+    `train_queue_nohup_*.log` and never in `timing_events.csv` — but it must still
+    carry the same label shape `step_tile` publishes, and it must not be joined to
+    a file size (`size_for` sizes only `stage `/`copy ` labels)."""
+    run_cli(monkeypatch, tmp_path, ["--year", FINE_YEAR, "--step", "labels"],
+            discover_raises=False)
+    events = _timing_labels(capsys.readouterr().out)
+    want = f"discover sites {FINE_YEAR}"
+    assert want in events, \
+        f"harvest_timing_events._EVENT did not parse the discovery row: {events}"
+
+    from instruments.harvest_timing_events import size_for
+    assert size_for(want, {FINE_YEAR: 1}) is None
+
+
+def test_the_shared_discovery_names_every_year_it_covers(monkeypatch, tmp_path,
+                                                         capsys):
+    """One call serves the whole invocation (test_discovery_is_still_shared_across
+    _years), so a single-year label would misattribute those seconds to the first
+    year alone."""
+    run_cli(monkeypatch, tmp_path,
+            ["--year", f"{FINE_YEAR},{COARSE_YEAR}", "--step", "labels",
+             "--coarse-site-tiling"], discover_raises=False)
+    events = _timing_labels(capsys.readouterr().out)
+    assert f"discover sites {FINE_YEAR},{COARSE_YEAR}" in events, sorted(events)
+
+
+def test_the_late_discovery_in_step_tile_is_timed_under_the_same_label():
+    """Source pin, for the same reason (e) is one: driving the real `step_tile`
+    needs an ortho. THIS is the harvestable half — it prints inside the tile step's
+    StepLogger — so the bracket order and the one label binding are the property.
+    """
+    body = _step_tile_body()
+    reuse = body.index("REUSED")
+    guard = body.index("if citywide:", reuse)
+    call = body.index("discover_site_footprints(site_buffer=site_buffer)")
+    tick_at = body.index("tick(", guard)
+    tock_at = body.index("tock(", call)
+    assert guard < tick_at < call < tock_at, \
+        "the discovery must be bracketed by tick/tock inside the citywide guard"
+
+    tick_arg = re.search(r"tick\(([^)]*)\)", body[guard:]).group(1)
+    tock_arg = re.search(r"tock\(([^)]*)\)", body[guard:]).group(1)
+    assert tick_arg == tock_arg, \
+        f"tick({tick_arg}) and tock({tock_arg}) time different labels — tock only " \
+        f"prints for a label tick opened"
+    assert f'{tick_arg} = f"discover sites ' in body, \
+        "the label must be the shared `discover sites <label>` shape the site-recipe " \
+        "call in cli.py::main also prints"

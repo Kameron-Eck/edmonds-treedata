@@ -3,7 +3,7 @@ from phase4seg import config
 from phase4seg.common import (
     _stage_imagery_local, _unstage_imagery_local, entry_for, resolve_native_path,
     _hillshade_ds, read_hillshade_chip, _site_window, _load_review_regions,
-    tile_dir_for, discover_site_footprints,
+    tile_dir_for, discover_site_footprints, tick, tock,
 )
 from phase4seg.labels import (
     canopy_label_from_2020_mask, additions_from_mask, apply_additions,
@@ -1279,7 +1279,19 @@ def step_tile(label, sites, dry_run=False, max_tiles=None, stride_override=None,
             #
             # The saving is UNMEASURED until a citywide labels/tile launch reads its
             # own start-up gap.
+            #
+            # TIMED, because moving the cost in here made it attributable but not
+            # visible: the 2026-09-08 healA tile log prints the discovery banner and
+            # its five "Forest_N NNNN crowns" lines with no ⏱ beside them, while
+            # every other cost in the same step carries one. This is a point event —
+            # the PHOTOS_DIR site listing plus one crown-layer read per site, over
+            # FUSE — and it takes no `bytes`: harvest_timing_events.py::size_for
+            # sizes only `stage `/`copy ` labels. The number stays UNMEASURED until a
+            # tile step reads it.
+            _disc = f"discover sites {label}"
+            tick(_disc)
             sites = discover_site_footprints(site_buffer=site_buffer)
+            tock(_disc)
         all_records = _gather_citywide_coarse(
             label, sites, stride_override=stride_override, dry_run=dry_run)
         if dry_run:

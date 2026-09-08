@@ -498,7 +498,8 @@ READER RULES.
   still true of the file, but since 2026-09-07 the lines themselves NEST, so a total over
   every row in a step double-counts. Three families now share a log. (1) The pre-existing
   POINT events: `stage <file>`, `stage tiles <label>`, `copy <file>`, `inference`,
-  `postproc`, `bundle copy <label>`, and `bundle stall <label>@<N>MiB` — which is NOT a
+  `postproc`, `discover sites <label>`, `bundle copy <label>`, and
+  `bundle stall <label>@<N>MiB` — which is NOT a
   point event but a member of family (1) enclosed by its own `bundle copy` row, one per
   chunk of the bounded read (`staging.py::_bounded_copy`) that took ≥ its `STALL_S`, with
   the byte offset in the LABEL because `_EVENT` anchors on the line ending in `<N>s`. Two
@@ -508,7 +509,19 @@ READER RULES.
   published, deliberately, because the seconds were really spent. What says it was an
   abort is the `(tile bundle not used: … MB/s … budget …)` line immediately after it, not
   anything in this CSV, so never average `bundle copy` without checking the log for that
-  line. (2) The per-epoch BUCKETS
+  line. `discover sites <label>` (2026-09-08) times `common.py::discover_site_footprints`
+  — the PHOTOS_DIR site-photo listing plus one crown-layer read per training site, all of
+  it over FUSE — and takes no `bytes` by construction. Where it comes from decides
+  whether it is here at all: `tiling.py::step_tile`'s late citywide discovery prints
+  inside the tile step's own StepLogger and IS harvested (`<label>` is that year), while a
+  SITE-recipe run discovers once in `cli.py::main` before any StepLogger opens, so that
+  line — same shape, `<label>` the comma-joined years the one call serves — reaches only
+  the queue's `train_queue_nohup_*.log`. An absent `discover sites` row is therefore not
+  evidence that discovery was skipped. Until 6276207 there was no row at all and the
+  seconds sat in the queue's `launching` phase, attributed to no step; since 6276207 the
+  citywide call has been inside the tile step's wall-clock but with nothing separating it
+  from the rest of the step. The duration is UNMEASURED until the next tile step reads it.
+  (2) The per-epoch BUCKETS
   `epoch <A|B><n> <bucket>`, bucket ∈ `data` / `gpu (sync at epoch end)` / `val` /
   `save` / `other`, written by `core.py::_publish_epoch_phases` (the `data` bucket is
   measured by `core.py::_timed_batches`). (3) The five `eval` SPANS

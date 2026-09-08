@@ -6,7 +6,7 @@ from phase4seg.config import *
 from phase4seg import config
 from phase4seg.common import (
     discover_site_footprints, entry_for, remaining_entries, _tag_sfx,
-    timer_summary, resolve_native_path,
+    timer_summary, resolve_native_path, tick, tock,
 )
 from phase4seg.labels import step_labels
 from phase4seg.tiling import step_tile
@@ -817,7 +817,20 @@ def main():
     sites = None
     _wants_sites = any(s in per_year for s in ("labels", "tile"))
     if _wants_sites and any(not _citywide_for(e, args) for e in entries):
+        # Timed under the SAME label shape step_tile's late discovery uses — same
+        # function, same class of cost — with every year of the invocation in the
+        # label, because this one call is shared by all of them.
+        #
+        # It is NOT harvestable, and that is a property of WHERE it runs, not of the
+        # label: no StepLogger has opened yet, so the line goes to the queue's own
+        # stdout (`train_queue_nohup_*.log`), which
+        # harvest_timing_events.py::read_retry_logs does not glob. It is here to be
+        # read by whoever is watching a site-recipe launch — until now the minutes it
+        # costs were invisible on the console as well as absent from every CSV.
+        _disc = f"discover sites {','.join(e['label'] for e in entries)}"
+        tick(_disc)
         sites = discover_site_footprints(site_buffer=args.site_buffer)
+        tock(_disc)
     elif _wants_sites:
         print("\n── Training-site footprints: NOT discovered up front ──\n"
               "  Every requested year runs the city-wide 2020-mask recipe, so no "

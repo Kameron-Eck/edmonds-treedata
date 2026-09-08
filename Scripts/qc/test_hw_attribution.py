@@ -453,6 +453,51 @@ def test_output_is_deterministic_and_columns_are_the_contract(tmp_path):
     assert ["a", "ALL"] in lines and ["b", "ALL"] in lines
 
 
+def test_torn_rows_are_counted_and_never_become_samples(tmp_path):
+    """The writer defect fixed 2026-09-08, read from this side.
+
+    The old flush appended to Drive from the sampling thread and could land PART of a
+    write, leaving fragments: hw_spdg.csv holds a line whose `ts_utc` reads `200.5` and
+    whose `gpu_mem_util_pct` reads `train_2017k` — the tail of one sample on a line of
+    its own. Those were already dropped, for the unreadable timestamp, but SILENTLY, so
+    the archive reported no read errors at all. The other shape the same failure can
+    produce is worse and was not handled: a line carrying a whole row plus a fragment
+    has a valid `ts_utc` and cells from two samples, and it SURVIVED.
+
+    Both are dropped on arity here, both are counted, and `samples_parsed` — the
+    session's own accounting — excludes them, because a torn line is not a sample that
+    went unattributed, it is a line that was never a sample. Measured on the archive the
+    day this landed: 147 such rows across the lake's hw files, previously reported as
+    none.
+    """
+    logs = tmp_path / "logs"
+    logs.mkdir()
+    good = _v2(0, 90, 60, 0, 0, 0, 0, 2, "train_2017")
+    (logs / "hw_torn.csv").write_text("\n".join([
+        V2_HEADER,
+        good,
+        good + ",spliced,extra",                  # torn head: valid ts, too many cells
+        "0,0,5582,60.0",                          # tail fragment: too few cells
+        "200.5,0,0,0,50.0,1,0,0,0,0,50.0,200.0,1,train_2017k,t",  # ts is not a time
+    ]) + "\n", encoding="utf-8", newline="")
+
+    stats = {}
+    rows = _by_step(build_rows(logs, stats=stats), "torn")
+    assert stats["rows_dropped_malformed"] == 3
+    assert rows["ALL"]["samples"] == 1
+    assert rows["ALL"]["samples_parsed"] == 1, "a torn line is not an unattributed sample"
+    assert set(rows) == {"train", "ALL"}, "the spliced row must not name a step"
+
+
+def test_stats_is_optional_so_every_existing_caller_is_unchanged(tmp_path):
+    """`stats` is an out-parameter, not a return-type change: build_rows still returns
+    the list, and a caller that does not care passes nothing."""
+    logs = tmp_path / "logs"
+    logs.mkdir()
+    _write(logs / "hw_ok.csv", V2_HEADER, [_v2(0, 0, 1, 0, 0, 0, 0, 1, "train_2017")])
+    assert [r["step"] for r in build_rows(logs)] == ["ALL", "train"]
+
+
 def test_dry_run_writes_nothing(tmp_path):
     logs = tmp_path / "logs"
     logs.mkdir()

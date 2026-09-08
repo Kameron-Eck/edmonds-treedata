@@ -70,10 +70,19 @@ GROUP's parsed rows — not over the session, which may own two groups) is the c
 clock, and `span_hours − hours` is time the logger did not sample at all. Measured 2026-09-07 over
 the 18 archived sessions, the three sum to 72.63 h covered / 60.35 h sampled / 48.82 h
 attributed: 17% lost to logger gaps, a further 19% of samples to ambiguity. Reading
-ALL.hours as the campaign's VM time is therefore a third low. (`vm_hwlogger.py::main`
-appends to Drive inside the sampling loop, so a slow FUSE write stalls sampling — read
-in the writer, not tested here; if the stalls fall in quiet periods then `nothing_frac`
-is biased LOW, i.e. this instrument would understate the very effect it measures.)
+ALL.hours as the campaign's VM time is therefore a third low.
+
+WHERE THE 17% WENT, and why the number describes the ARCHIVE rather than the writer.
+Until 2026-09-08 `vm_hwlogger.py::main` appended to Drive from inside the sampling loop,
+so a slow FUSE write stalled sampling: measured on the live pilots the day it was fixed,
+hw_spdg.csv had 22.3 min of a 75.1 min span with no samples in it and hw_spdc1.csv 9.6
+of 49.9, in gaps one flush-cadence long. The logger now spools locally and mirrors on
+its own thread, so files written after that date should show `span_hours` ≈ `hours`;
+every file already on the lake still carries the gaps. If the stalls fell in quiet
+periods then `nothing_frac` is biased LOW for those files — this instrument would
+understate the very effect it measures. Same defect, second symptom: a flush that failed
+part way left a TORN row, which `read_hw` now counts and reports as
+`rows_dropped_malformed` instead of skipping in silence.
 
 ASSUMPTION, stated because it is not verified: step-log `started:` / `completed:`
 timestamps are naive local time on the VM that wrote them, while hw `ts_utc` is stamped
@@ -234,15 +243,35 @@ def session_of(path):
 
 
 def read_hw(path):
-    """-> (rows, has_step_column). Rows with an unreadable ts_utc are dropped: they can
-    be attributed on neither basis."""
+    """-> (rows, has_step_column, dropped_malformed).
+
+    TORN ROWS ARE COUNTED, NOT JUST SKIPPED. Until 2026-09-08 the logger's flush ran on
+    its sampling thread and could land PART of an append, so the archive carries lines
+    that are fragments of a sample: hw_spdg.csv holds one whose `ts_utc` cell reads
+    `200.5` and whose `gpu_mem_util_pct` cell reads `train_2017k`. Those are read errors,
+    and a silent `continue` reported them as no error at all — 147 of them across the
+    lake's hw files, measured 2026-09-08 with this counter's first run.
+
+    Three shapes, all dropped and all counted. A row with MORE cells than the header
+    lands its extras under the key None (DictReader's restkey); a SHORT row gets None
+    for the fields the line never reached (restval); and a row whose ts_utc is not a
+    timestamp cannot be attributed on either basis. Only the third was handled before,
+    and the over-long shape is the dangerous one: a fragment followed by a whole row
+    carries a perfectly valid ts_utc and used to SURVIVE, contributing a sample whose
+    every other reading is another row's cell or a blank.
+    """
     text = Path(path).read_text(encoding="utf-8", errors="replace")
     rdr = csv.DictReader(text.splitlines())
     has_step = "step" in (rdr.fieldnames or [])
     rows = []
+    dropped = 0
     for r in rdr:
+        if None in r or any(v is None for v in r.values()):
+            dropped += 1                  # wrong arity: a spliced or truncated line
+            continue
         t = _ts(r.get("ts_utc"))
         if t is None:
+            dropped += 1
             continue
         rows.append({
             "ts": t,
@@ -255,7 +284,7 @@ def read_hw(path):
             "tx": _num(r.get("net_tx_mb_s")),
             "step": r.get("step"),
         })
-    return rows, has_step
+    return rows, has_step, dropped
 
 
 def read_step_logs(logs_dir):
@@ -385,8 +414,15 @@ def summarise(session, step, basis, rows, secs, dropped, parsed, span_hours,
     }
 
 
-def build_rows(logs_dir, hw_files=None):
+def build_rows(logs_dir, hw_files=None, stats=None):
     """One row per (session, step, BASIS, phase).
+
+    `stats`, when a dict is passed in, is FILLED with counts that belong to the harvest
+    rather than to any one row — today just `rows_dropped_malformed`, the torn lines
+    read_hw refused. It is an out-parameter and not a column because the number is a
+    fact about the reading, not about a machine's step: a session's own accounting is
+    already closed by `samples_parsed` = `ALL.samples` + `ambiguous_dropped`, and adding
+    a column would move every existing reader's field indices.
 
     Each FILE is attributed on its own basis. A session that owns both a legacy and a
     v2 file (the logger forks `hw_{s}_v2.csv` rather than append a wider row, so a
@@ -400,8 +436,10 @@ def build_rows(logs_dir, hw_files=None):
     intervals = None
 
     groups = {}
+    malformed = 0
     for p in files:
-        rows, has_step = read_hw(p)
+        rows, has_step, torn = read_hw(p)
+        malformed += torn
         # The column must be present AND used at least once — see the module docstring.
         # A v2 file with nothing but blanks in it has proved nothing about the marker,
         # so it is demoted rather than published as an all-`(between)` machine.
@@ -477,6 +515,8 @@ def build_rows(logs_dir, hw_files=None):
         out.append(summarise(session, ALL, basis, kept, secs, dropped, parsed,
                              span_h, source, has_iowait))
     out.sort(key=lambda r: (r["session"], r["step"], r["basis"], r["phase"]))
+    if stats is not None:
+        stats["rows_dropped_malformed"] = malformed
     return out
 
 
@@ -505,7 +545,8 @@ def main(argv=None):
               f"       this instrument reads the lake — mount it, or pass --logs-dir")
         return 2
 
-    rows = build_rows(logs_dir)
+    stats = {}
+    rows = build_rows(logs_dir, stats=stats)
     buf = io.StringIO(newline="")
     w = csv.DictWriter(buf, fieldnames=COLS, lineterminator="\n")
     w.writeheader()
@@ -518,6 +559,10 @@ def main(argv=None):
     alls = [r for r in rows if r["step"] == ALL]
     print(f"{'DRY RUN: ' if a.dry_run else ''}{len(rows)} rows over {len(alls)} "
           f"(session, basis) groups → {out.name}")
+    # Not a column: a torn line belongs to no session's step. Printed because a rising
+    # count is the signature of the writer defect fixed 2026-09-08 (vm_hwlogger.py
+    # ::mirror_once) coming back, and a silent skip is how it stayed invisible.
+    print(f"  rows_dropped_malformed {stats.get('rows_dropped_malformed', 0)}")
     print(f"  {'session':12} {'basis':9} {'hours':>7} {'span_h':>7} {'gpu?':>6} "
           f"{'nothing':>8} {'ambig':>7}")
     for r in alls:

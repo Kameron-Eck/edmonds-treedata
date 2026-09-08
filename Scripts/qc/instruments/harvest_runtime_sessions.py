@@ -112,10 +112,26 @@ before believing a large value.
 it appends the row in state `RUNNING` and never re-stamps it; the completion `rec.update`
 changes `state`/`minutes` and leaves `ts` alone. So `idle_tail_min` as defined here —
 alive_end minus that stamp — INCLUDES the final step's own run time whenever the last
-row is a step row. It does not when the last row is a `VERIFY` row, which is appended
-after its step finished and takes seconds. Read `idle_tail_min` as an UPPER BOUND on
-the idle tail; the `minutes` column of that last row is the correction, and joining it
-is deliberately left out of this table rather than half-done.
+row is a step row. It does not when the last row is a `VERIFY:{step}` row, and the reason
+is the STAMP, not the ordering: `queue_verify.py::verify_step` builds its record — `ts`
+included — after the check has finished, so that cell is a completion time. (The job-end
+`VERIFY` row is the other way round: `phase4_train_queue.py::verify` stamps `ts` before
+`_check_prob_raster`, so it is a start stamp, of an interval that begins after the last
+step ended.)
+
+HOW LONG A VERIFY TAKES WAS UNRECORDED UNTIL 2026-09-07, and this docstring used to
+assert "takes seconds" with nothing behind it. All 246 VERIFY rows in
+`phase4/qc/ledger_recovery/train_queue_status_recovered_20260901_20260907.csv` carry a
+BLANK `minutes`; the only bound the archive gives is the adjacent stamps on session
+`spdc1` — `labels` stamped 21:51:58 with `minutes` 6.8 (so it ended 21:58:46),
+`VERIFY:labels` stamped 21:58:49, and the next step's row on that same second. Seconds,
+there. Commit c5dc91c now stamps `minutes` on all four VERIFY write sites, so the
+question is answered on the row instead of assumed: the first rows to carry it read 0.0
+and 0.0 (session `spdc2`, in the LAKE copy of
+`train_queue_status_pilot_offload_2017k_cpu2_20260907T235535Z.csv` — live and untracked,
+read 2026-09-08). Read `idle_tail_min` as an UPPER BOUND on the idle
+tail; the `minutes` column of that last row is the correction, and joining it is still
+deliberately left out of this table rather than half-done.
 
 NOR IS IT A TAIL WHERE THE LEDGER STOPPED NAMING THE SESSION. `queue_last_row_ts` is
 the last row that says `session=<s>`, which is the last row of the RUN only while every

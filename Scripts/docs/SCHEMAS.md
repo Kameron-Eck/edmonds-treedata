@@ -404,7 +404,11 @@ Metrics: `step_minutes` (the queue ledger's OK-row `minutes`, orchestrator wall 
 differ by 1-3 min per step), `machine`, `a100_span_min` / `total_span_min`,
 `sem_best_mb` / `prob_raster_mb` / `mask_mb` / `gpkg_mb` (decimal MB, bytes/1e6),
 `tileset_id` / `n_tiles` / `tileset_id_match`, `eval_ap` / `eval_auroc`, and
-`hw_nothing_frac` / `hw_gpu_busy_frac` per step.
+`hw_nothing_frac` / `hw_gpu_busy_frac` per step. Six rows read off the pinned postproc
+step log describe WHAT that step produced, not just how long it took —
+`operating_threshold` (each arm picks its own cut from its own eval report),
+`canopy_pct`, `canopy_ha`, `n_polygons`, `polygonize_s`, and `stage_prob_s` (blank on an
+arm that printed no staging line, i.e. read the probability raster over FUSE).
 
 READER RULE: **a blank cell means NOT MEASURED — never zero.** Every row is emitted
 whether or not the arm has run. The one exception is a step that ran and FAILED (kill
@@ -644,9 +648,22 @@ READER RULES, each earned on a measured row:
 - **`queue_last_row_ts` is the last step's START, not its end.**
   `phase4_train_queue.py::run_step` stamps `ts` when it appends the row in state
   `RUNNING` and never re-stamps it. So `idle_tail_min` INCLUDES that final step's
-  run time whenever the last row is a step row (not when it is a `VERIFY` row,
-  appended after its step finished). Read it as an UPPER BOUND; the row's own
-  `minutes` is the correction, deliberately not joined here.
+  run time whenever the last row is a step row. A `VERIFY:{step}` row is the
+  exception, on the STAMP rather than the ordering: `queue_verify.py::verify_step`
+  builds its record — `ts` included — after the check has run, so that cell is a
+  completion time (the job-end `VERIFY` row is the other way round;
+  `phase4_train_queue.py::verify` stamps `ts` before `_check_prob_raster`). **How
+  long a VERIFY takes was UNRECORDED until 2026-09-07**: all 246 VERIFY rows in
+  `phase4/qc/ledger_recovery/train_queue_status_recovered_20260901_20260907.csv`
+  carry a blank `minutes`, and the archive's only bound is the adjacent stamps on
+  session `spdc1` — `labels` stamped 21:51:58 with `minutes` 6.8 (ending 21:58:46),
+  `VERIFY:labels` stamped 21:58:49, the next step's row on the same second.
+  Commit c5dc91c stamps `minutes` on all four VERIFY write sites, so it is now read
+  rather than assumed: the first rows to carry it read 0.0 and 0.0 (session `spdc2`,
+  in the LAKE copy of `train_queue_status_pilot_offload_2017k_cpu2_20260907T235535Z.csv`
+  — live, untracked, so not a path this repo can resolve; read 2026-09-08). Read
+  `idle_tail_min` as an UPPER BOUND; the row's own `minutes` is the correction,
+  still deliberately not joined here.
 - **`idle_tail_min` is not a tail at all while the queue is still running.**
   `run_step` appends its row in state `RUNNING`, so a session whose newest row is
   `RUNNING` has a value that grows with the current step: measured on the live

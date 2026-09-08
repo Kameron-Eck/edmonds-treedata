@@ -93,8 +93,8 @@ verdict: >
   (inferred) into about 9 extra minutes on the critical path unless pipelined. Whether the
   staged read beats the FUSE read on the SAME machine is UNDETERMINED here - the machine
   changed too. A larger CPU tier is untested. R4 (direction only; marker basis for the
-  pilot) - train GPU-busy 0.1961 vs 0.2039 on the interval-basis baseline, inference
-  0.7426 vs 0.7013; the marker basis confirms the interval basis on this arm, with the
+  pilot) - train GPU-busy 0.1961 vs 0.1792 on the interval-basis baseline, inference
+  0.7426 vs 0.7586; the marker basis confirms the interval basis on this arm, with the
   caveat that the A100 session's logger lost 26% of its samples to its own Drive flush
   (fix in progress). R5 sanity - AP 0.4338 vs 0.4275, AUROC 0.8860 vs 0.8851; the retrained
   model is the same model. Total wall-clock 154.9 min vs 113, as pre-stated (three

@@ -1047,3 +1047,305 @@ second reads as a revocation to `_completed_steps`, so the candidate still says
 Gate: `qc/test_rebuild_queue_ledger.py`. Regenerate:
 `py -3.12 qc/instruments/rebuild_queue_ledger.py` (reads the lake's
 `phase4/logs/` read-only; deterministic — two runs are byte-identical).
+
+## heal_fill_audit_sample.csv + heal_fill_audit_design.txt (phase4/qc/, GENERATED then HAND-LABELLED)
+
+Written by `qc/instruments/heal_fill_audit_sample.py::main` (columns:
+`heal_fill_audit_sample.py::COLS`; the draw: `::build`). The CSV is a **worksheet**: the
+instrument writes every column except the last two, a human fills those two in, and
+nothing else in the file may be edited — the estimator reads the design columns back.
+`heal_fill_audit_design.txt` is its metadata sidecar (this instrument's equivalent of
+`phase4_accuracy_sample.py`'s `sample_{year}_meta.json`), carrying strata populations,
+Olofsson weights, the refusal list and the detectable-effect table. **The manifest
+deliberately carries no `#` trailer** — a human edits it, and trailing comment rows do
+not survive a spreadsheet round-trip.
+
+One row per AUDIT UNIT. The unit is a **fill component**, a connected patch of the
+healer's own output at or above `temporal_heal.py::MIN_AREA_M2` (28 m2, one mature
+crown) — not a 2 m cell. Every count and bound in the sidecar is per component.
+
+| column | meaning |
+|---|---|
+| `unit_id` | `F`/`C` + filled epoch + zero-padded `row`_`col` of the anchor cell — stable across reruns of the same stack |
+| `blind_order` | seeded presentation order, 1..N. Reading in `unit_id` order would present all fills before all controls |
+| `is_control` | 1 = a control unit the healer did NOT touch; 0 = a fill |
+| `stratum_id` | index into the DECLARED stratum universe (tier x gap bucket x size class), stable as populations change |
+| `stratum_name` | the three stratum axes joined by a pipe: tier, gap bucket, size class |
+| `tier` | `HEAL` / `REVIEW` / `BLIND`, from `temporal_heal.py::tier_for` |
+| `gap_left_yr` | years from `epoch_prev` to `epoch_filled` |
+| `gap_right_yr` | years from `epoch_filled` to `epoch_next` |
+| `gap_years` | `max(gap_left_yr, gap_right_yr)` — the quantity the tier rule itself keys on |
+| `gap_bucket` | `1-2` / `3` / `4+` on `gap_years` |
+| `size_class` | crown-diameter bin from `detectability_curve.py::BINS`, on the component's equivalent-area diameter |
+| `bracket_years` | `epoch_next - epoch_prev`, the unobserved span a cut-and-regrow could hide in |
+| `epoch_prev` | the epoch BEFORE the gap — first of the three the reader views |
+| `epoch_filled` | the epoch judged: was canopy truly there? |
+| `epoch_next` | the epoch AFTER the gap |
+| `x` | easting of the anchor cell centre |
+| `y` | northing of the anchor cell centre |
+| `epsg` | `config.ANALYSIS_GRID_EPSG` — the analysis grid, never a native acquisition grid |
+| `row` | anchor cell's row on the 2 m stack lattice |
+| `col` | anchor cell's column. The anchor is the member nearest the centroid, so it is always INSIDE the component — a concave patch's centroid can fall outside it |
+| `n_cells` | component size in 2 m cells |
+| `area_m2` | `n_cells` x 4 |
+| `equiv_diam_m` | `2*sqrt(area/pi)` — the same estimator `pipeline/frozen/phase0_instance_seg.py` used for the crowns' `diameter_m`, so the bins transfer |
+| `control_flank` | controls only: which flank showed canopy (`prev` / `next`). Blank on a fill |
+| `adjudicable` | 1 = an independent modality covers this point within `ADJ_MAX_DYEAR` of `epoch_filled` |
+| `adjudicator` | the modality's name (lidar CHM), blank when none |
+| `adjudicator_dyear` | `epoch_filled - modality year`; 0 means temporally native |
+| `adjudicate` | 1 = in the adjudicator sub-draw, stratified by tier AND `is_control` |
+| `present_in_filled_epoch` | **THE HUMAN COLUMN.** `yes` / `no` / `unsure`. `no` at a fill is a laundering event; `unsure` is first-class and excluded from the rate, never coerced (CLAUDE.md 3.6) |
+| `notes` | free text from the reader |
+
+READER RULES.
+
+**A `no` on a `REVIEW` or `BLIND` row is not a laundered mask.** Those tiers write
+IGNORE, not canopy (`temporal_heal.py::build`). A `no` there says what the both-sides
+rule WOULD have laundered had the tier been promoted — evidence about the tier policy,
+not about delivered output. Only `HEAL` rows score written canopy.
+
+**The control is a DISCRIMINATION control, not a blinded error-rate control.** It is
+drawn from absences with exactly ONE aligned flank present, because the literal
+population (untouched absences with BOTH flanks present) is empty by the operator's own
+definition — a count the sidecar MEASURES rather than asserts. Its flanks look different
+from a fill's, so `blind_order` randomises order but cannot blind the reader to which is
+which. The only independent evidence in the file is the `adjudicate` sub-draw.
+
+**No CHM value appears here, deliberately.** `adjudicable` is a coverage flag. Writing
+the height would hand the reader the answer the adjudication step exists to check
+independently.
+
+Gate: `qc/test_heal_fill_audit_sample.py` (which also holds this column list to
+`heal_fill_audit_sample.py::COLS`). Regenerate:
+`py -3.12 qc/instruments/heal_fill_audit_sample.py` — deterministic under its seed;
+**regenerating discards any labels already entered.**
+
+## heal_gap_spectrum.csv (phase4/qc/, GENERATED)
+
+Written by `heal_gap_spectrum.py::main` from `heal_gap_spectrum.py::spectrum`. One row
+per GAP-LENGTH BUCKET, plus one negative-control row. The bucket key `L_years` is the
+bracket span in whole calendar years, `int(next) - int(prev)` via
+`temporal_heal.py::_year_int` — the healer's own arithmetic, and the same quantity
+`temporal_heal.py::tier_for` thresholds on, so a row's tier composition and its L are
+derived from one definition rather than two.
+
+Why the file exists: the healer's safety number was one scalar (zero of 42 verified
+losses laundered) and the fill-odds expression four fields converge on carries
+`(1-gamma)^(k-1)` in its change-path denominator, so the risk per fill is a function of
+bracket length and must be published as one
+(`Reports/LIT_HEALING_ANALOGUES_2026-09-08.md`, G3). The scalar also had no denominator,
+and a zero with no denominator cannot distinguish an operator that refused from a
+population that could not contain the event.
+
+| column | meaning |
+|---|---|
+| `row_kind` | `spectrum` (one per bucket) or `negative_control` (median-L bucket, gold labels permuted) |
+| `L_years` | bracket span in whole calendar years — the bucket key |
+| `n_epochs` | interior epochs whose bracket spans this L |
+| `epochs` | those epoch labels, `\|`-joined |
+| `L_days_measured` | median span in DAYS over the epochs in the bucket whose BOTH endpoints resolve in `qc/imagery_pixelsize_and_date.csv`; blank when none do |
+| `n_epochs_dated` | how many of `n_epochs` contributed to it — read this before `L_days_measured` |
+| `tier_HEAL` | epochs in this bucket the healer let assert canopy — a lidar epoch could have vetoed a real removal and did not |
+| `tier_REVIEW` | epochs post-lidar with gaps under three years: flagged, IGNORE-written, never silently healed |
+| `tier_BLIND` | epochs whose bracket has a gap wide enough for coppice to cross. L does NOT determine the tier — `temporal_heal.py::tier_for` keys BLIND on the LARGER single gap, so one L can hold both |
+| `n_eligible` | 2 m cells that COULD have been filled at this L — absent at the epoch, canopy on both aligned flanks, all three epochs valid. The bracketed-absence denominator |
+| `n_fills` | cells the healer actually wrote (canopy + IGNORE), read off the healed array rather than the overlay |
+| `n_fills_canopy` | of those, written 0 -> 1. Only the HEAL tier asserts canopy |
+| `n_fills_ignore` | of those, written 0 -> 255 (REVIEW and BLIND mark the cell unknowable) |
+| `fill_rate` | `n_fills / n_eligible` — what the size floor let through, not a probability |
+| `fills_outside_eligible` | cells written where the bracket predicate is FALSE. Must be 0; non-zero means the candidate reconstruction has drifted from `temporal_heal.py::build` |
+| `gold_loss_n` | verified losses scored on this run (on-grid) |
+| `laundered` | point-epochs at this L where a verified loss's TERMINAL absence was filled to canopy — the harm, attributed to the bracket that made it |
+| `laundered_points` | distinct verified losses behind `laundered` |
+| `laundered_eligible` | POSITIONAL denominator: verified losses whose terminal absence overlaps a bracket of this L |
+| `laundered_at_risk` | the denominator with teeth: of those, the ones where the bracket predicate actually fires at the cell. Zero here means `laundered = 0` is pinned by trajectory shape, not earned |
+| `laundered_rate_ci95_upper` | one-sided 95% ceiling on the laundering rate over `laundered_at_risk`; `1-0.05^(1/n)` when the count is 0. BLANK when nothing is at risk — a ceiling over an empty denominator is not a ceiling |
+| `censored` | terminal absences marked 255 instead: the event is not erased but a change detector can no longer see it |
+| `triples_present` | raw present-absent-present triples centred on an epoch of this L, at the verified no-change points |
+| `triples_removed` | of those, the ones healing closed. The win side |
+| `crowns_eligible` | crowns whose RAW ladder holds a SINGLE-epoch ABSENT at this L flanked by PRESENT — a validity-interval boundary pair |
+| `crowns_deleted` | of those, the ones healing closed, merging two presence episodes into one. Blank on the control row: crowns do not depend on the gold labels |
+| `notes` | free text; carries the shuffle seed on the control row |
+
+**Read `laundered_at_risk` before `laundered`.** A verified loss's terminal absence runs
+to the END of the series (`heal_vs_gold.py::build` defines it by walking back from the
+last epoch), so the epoch after any interior epoch inside that run also reads absent and
+a both-sides fill predicate cannot fire there. Every alignment shift on the trend8 stack
+rounds to zero cells — `temporal_heal.py::shift_mask` quantises to whole 2 m cells and
+the largest published shift is 1.0 m — so nothing rescues it. `laundered = 0` on this
+stack is therefore a criterion with no power rather than a bound, and the file publishes
+both denominators so a reader cannot mistake one for the other.
+
+**A non-zero `crowns_deleted` in an all-BLIND bucket is not a fill.** BLIND epochs write
+255, and `detectability_curve.py::per_crown_cover` divides by the VALID cell count, so an
+IGNORE write shrinks the denominator and can lift a crown out of ABSENT with no canopy
+asserted anywhere. Multi-epoch absent runs sit inside more than one bracket and are held
+out of the per-L attribution entirely; the trailer counts them as
+`crown_multi_epoch_runs`.
+
+**Trailer.** `epochs`, `n_gold_points_on_grid`, `off_grid`, `median_L_years`,
+`shuffle_seed`, the `*_total` sums, `crown_multi_epoch_runs`, `analytic_null` (the base
+rate scaled to the verified-loss count — exact, where one permutation of 42 from 1,214 is
+not), one `date_basis_{epoch}` per epoch (`measured` / `undated` / `ambiguous` /
+`no-row`), and `crosscheck_heal_vs_gold`, which reports whether the per-L triple
+attribution sums to the aggregate `heal_vs_gold.csv` published. Reported rather than
+asserted: a stale `heal_vs_gold.csv` is a reason to re-run that instrument, not to fail
+this one — the assertion lives in
+`qc/test_heal_gap_spectrum.py::test_real_csv_agrees_with_heal_vs_gold_on_the_totals_it_shares`.
+
+Gate: `qc/test_heal_gap_spectrum.py`, whose two mutation tests are the only evidence the
+laundering counter can move at all (CLAUDE.md 3.4c). Regenerate:
+`py -3.12 qc/instruments/heal_gap_spectrum.py` (~100 s local; `--no-crowns` drops to
+~12 s by skipping the 2020 crown raster). Deterministic — two runs are byte-identical.
+
+## heal_fill_odds.csv (phase4/qc/, GENERATED — an AUDIT column, never a licence)
+
+Written by `qc/instruments/heal_fill_odds.py::build`, one row per fill the healer made —
+the connected component `temporal_heal.csv` counts as `n_components`, re-labelled from
+the healer's own kept mask with the same 8-connectivity, so the per-epoch counts match
+that file exactly (the instrument prints the comparison). Carries the fill odds four
+literatures converge on (`Reports/LIT_HEALING_ANALOGUES_2026-09-08.md` §3, §6 G7;
+requested as §14 (d) of `Reports/HEALING_TOOL_REASONING_2026-09-07.md`):
+
+    Λ = ∏(1-ε_i) · ∏_{t in gap}(1-p_t) / [ ε_first · γ · (1-γ)^(k-1) ]
+
+Columns: `fill_id, epoch, prev_epoch, next_epoch, tier, k, gap_years, dt_left_yr,
+dt_right_yr, dt_basis, n_cells, area_m2, crown_id, crown_diam_m, size_class, crown_cells,
+fill_cells_in_crown, fill_share_of_crown, crown_cover_raw, p_t_list, p_t_source,
+miss_product, epsilon_interval, epsilon_interval_next, gamma_interval_colonisation,
+gamma_interval_emptysite, lambda_colonisation, lambda_colonisation_emptysite,
+lambda_rule, log10_lambda_colonisation, log10_lambda_rule, posterior_fill_colonisation,
+posterior_fill_colonisation_emptysite, posterior_fill_rule`
+
+**READER RULE, and it is the whole point of the file: Λ IS NOT A LICENCE.** The `tier`
+column is what licensed the fill. Λ's denominator needs γ_conditional =
+P(regain | recent removal), which is UNMEASURED; the two γ columns are stand-ins of
+different kinds and are never interchangeable:
+
+- `*_colonisation` — MEASURED, WRONG QUANTITY. P(colonisation | empty site) from the
+  panel's gains, on two denominators: all gold points (`lambda_colonisation`) and
+  empty sites only (`lambda_colonisation_emptysite`). §3's ~422 empty sites is
+  `[inferred]` in `Reports/CHANGE_DETECTOR_DESIGN_2026-09-06.md`; the trailer publishes
+  BOTH it (`empty_site_denom_reported`) and the count measured here from the gold's own
+  trajectories at the interval's first epoch (`empty_site_denom_measured`), and names
+  which one the column used (`empty_site_denom_used`). Under either, the posterior is
+  ~1 for every fill — §3's finding reproduced, not a result about any given fill.
+- `*_rule` — RULE-IMPLIED, NOT MEASURED, and the trailer says so in a machine-readable
+  cell (`gamma_rule_is_measured,0`). γ = 0.20 is the value at which §3's sensitivity says
+  the posterior reproduces the project's tier logic. It is NOT Δt-scaled, because §3 uses
+  it directly at k = 1 (pinned by
+  `qc/test_heal_fill_odds.py::test_reproduces_the_reports_gamma_rule_crossing`), while ε
+  IS per-interval — the two sit on different bases, deliberately and visibly.
+
+`p_t_list` is the detection probability per absent acquisition and `p_t_source` names the
+exact row it came from, `{epoch}|bin|{size_class}` in the file the trailer's
+`p_t_source_file` points at (`phase4/qc/detectability_curve.csv`, `kind=bin`). **A blank
+Λ means the curve had no value — never a default.** That happens when the fill overlaps no
+2020 crown, so no size class exists; `qc/test_heal_fill_odds.py` pins that a blank Λ never
+sits beside a populated `p_t_list`, and that a populated Λ always names its source.
+
+`k = 1` on every row on this stack: `temporal_heal.py::build` only ever tests a single
+absent epoch, so `(1-γ)^(k-1)` is inert here. The column is kept because the formula is
+general and the healer's candidate rule is not a property of the formula.
+
+**The fill is not the crown, and the curve only models crowns.** `p_t` is
+P(a crown reads ≥ 0.50 cover | both flanks saw it) — crown-level — while a fill may be a
+sliver of an otherwise-detected crown. Read `crown_cover_raw` (the dominant 2020 crown's
+RAW canopy fraction at the gap epoch) and `fill_share_of_crown` before reading Λ: near 0
+cover is the whole-crown miss the curve models, mid-range cover is a partial miss it does
+not. Crown attribution is max-overlap against the 2020 delineation rasterised by
+`detectability_curve.py::load`, the same geometry the curve itself was measured on.
+
+`dt_basis` says whether each side's Δt came from acquisition dates
+(`qc/imagery_pixelsize_and_date.csv`, midpoint of the flight window) or fell back to the
+year labels. 2011s has no date in that table at all, so both of its intervals fall back.
+Dated, 2013→2015 is 1.73 yr and 2015→2016 is 1.46 yr because the 2015 acquisition is a
+February–March flight — the same leaf-off flight behind that epoch's low measured recall,
+which is why Λ argues loudest for filling where the SEASON changed. The formula has no
+term for that, and none of the four biases in the instrument's docstring is corrected.
+
+Gate: `qc/test_heal_fill_odds.py`, whose mutation pair is the evidence the statistic's
+kill direction works at all (CLAUDE.md 3.4c): p_t → 1 must drive Λ → 0 and the posterior
+below 0.5; p_t → 0 must drive it up. Regenerate:
+`py -3.12 qc/instruments/heal_fill_odds.py` (~95 s local; reads the trend8 stack and the
+2020 crown GPKG read-only, writes nothing outside `phase4/qc/`).
+
+## heal_closing_baseline.csv (phase4/qc/, GENERATED — the comparator baseline)
+
+Written by `qc/instruments/heal_closing_baseline.py::build`: the plain 1-D temporal
+closing §4.9 of `Reports/LIT_HEALING_ANALOGUES_2026-09-08.md` holds as the baseline "any
+learned or tiered heal must beat" (M3, STANDS as comparator), swept over gap caps and put
+beside the healer's own row. One row per arm.
+
+Columns: `arm, rule, K, K_unit, n_gold_points, gold_cells_filled, gold_points_filled,
+loss_cells_filled, loss_points_filled, laundered_terminal, n_eligible_terminal,
+laundered_in_interval, n_eligible_in_interval, terminal_censored, nochange_triples_raw,
+nochange_triples_after, nochange_triples_removed, nochange_triples_removed_canopy_only,
+loss_triples_raw, loss_triples_after, citywide_cells_filled, citywide_ha,
+citywide_cells_ignored`
+
+`rule` is the cap's unit, because the units disagree and the disagreement is §4.9's
+central objection: `acq` caps the run in acquisitions (the literal closing), `step_years`
+caps the largest inter-acquisition step in the bracket — the unit
+`temporal_heal.py::tier_for` actually uses — `span_years` caps the total bracket span, and
+`tier_matched` is `acq ≤ 1 AND step ≤ 2 yr`, the healer's non-BLIND candidate set with no
+floor, no alignment and no tier. `arm=healer` is the healer's own row, scored through the
+same function from the trajectories `heal_vs_gold.csv` publishes.
+
+**READER RULE: `laundered_terminal` CANNOT FIRE, and `n_eligible_terminal` is why.** A
+both-sides rule needs a detection AFTER the cell it fills; a terminal absence
+(`heal_vs_gold.py::build`, walking back from the last epoch) has none. So the count is
+structurally pinned at 0 for the closing at every K, for the healer, and for any
+both-sides rule — `0 of 42 laundered` certifies nothing about this family (§6 G2, §4.9
+M7). `laundered_in_interval` is the counter that can move: fills at verified LOSS points
+on the epochs strictly inside the panel's own interval (read from `panel_a_meta.json`;
+2019 and 2021 on this stack), with `n_eligible_in_interval` — the losses an UNBOUNDED
+both-sides rule could fill there — as its denominator. Publish the pair, never the count.
+Both denominators come from `heal_closing_baseline.py::eligibility`, which uses the
+unbounded rule so a narrow cap cannot flatter itself by shrinking its own at-risk set.
+
+**`laundered_in_interval` is an UPPER BOUND, not an erasure count.** Asserting canopy at an
+interior epoch of a verified loss is a NECESSARY signature of laundering, not a sufficient
+one: if the trajectory still ends absent, the removal event survives and a change detector
+still sees it — the same reasoning `heal_vs_gold.py` applies to the 5 upstream fills it
+refuses to call harm. Read the shapes in `heal_vs_gold.csv` wherever the count fires. On
+the trend8 stack all 4 eligible losses carry the identical shape `CCCCC.C.` (2016 canopy,
+2019 absent, 2021 canopy, 2024 absent), so every in-interval fill available to any arm here
+lands on 2019 and leaves the 2024 removal standing.
+
+**`nochange_triples_removed` credits an IGNORE mark; `nochange_triples_removed_canopy_only`
+does not.** `triples` tests `t[i] == 0`, so a cell marked 255 stops being a triple's
+middle with no tree asserted anywhere. The healer's REVIEW/BLIND tiers write 255 by design
+and the closing has no such state, so only the `_canopy_only` column compares like with
+like (`heal_closing_baseline.py::canopy_only`). The two are equal by construction on every
+`arm=closing` row.
+
+`citywide_cells_filled` counts 0 → 1 writes over the whole city
+(`heal_closing_baseline.py::citywide_fills`, enumerating every interior window through the
+same `admits` the trajectory closing uses). For `arm=healer` it is `heal_tier_cells` from
+`temporal_heal.csv` — HEAL-tier canopy only — and `citywide_cells_ignored` is what its
+REVIEW/BLIND tiers marked unknowable instead. The closing has no IGNORE state, so that
+column is 0 on every closing row.
+
+**The closing runs on the UNALIGNED stack**; the healer shifts each flank by its validated
+global offset first. On this stack that difference is nil and the file measures it rather
+than assuming it: the instrument prints the largest whole-cell translation per epoch from
+`temporal_heal.csv`'s own published shifts, and every one rounds to zero at 2 m
+(`temporal_heal.py::shift_mask` translates whole cells). At an equal cap, therefore, the
+healer minus the closing is the 28 m² size floor and the tier — not the transform, whose
+claim is about native-resolution masks.
+
+**Scoring is `heal_vs_gold.py`'s, re-implemented rather than re-factored** — that module
+computes its scores inline inside `build()` and exposes no scoring function, so this file
+calls it the way its own `main()` does (`heal_vs_gold.build()`) and re-scores the
+trajectories it publishes. `build()` checks the re-implementation against
+`heal_vs_gold.py`'s OWN per-row numbers for every gold point first and REFUSES to print or
+write the table on any mismatch; the trailer records
+`scoring_parity_mismatches`. Trailer also carries `panel_interval`, `interior_epochs`,
+both `n_eligible_*`, and `closing_runs_on_the_unaligned_stack`.
+
+Gate: `qc/test_heal_closing_baseline.py`, whose mutation pair pins both directions
+(CLAUDE.md 3.4c): an injected in-interval loss registers at the cap that first admits its
+run and not at the cap below, and the terminal counter stays at zero on adversarial input
+built to trip it — the second is a criterion documented as unable to fire, not a pass.
+Regenerate: `py -3.12 qc/instruments/heal_closing_baseline.py` (~22 s local).

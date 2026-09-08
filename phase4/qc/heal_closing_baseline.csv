@@ -1,0 +1,29 @@
+arm,rule,K,K_unit,n_gold_points,gold_cells_filled,gold_points_filled,loss_cells_filled,loss_points_filled,laundered_terminal,n_eligible_terminal,laundered_in_interval,n_eligible_in_interval,terminal_censored,nochange_triples_raw,nochange_triples_after,nochange_triples_removed,nochange_triples_removed_canopy_only,loss_triples_raw,loss_triples_after,citywide_cells_filled,citywide_ha,citywide_cells_ignored
+closing,acq,1,acquisitions,1214,139,112,13,11,0,0,4,4,0,124,0,124,124,13,0,838834,335.5,0
+closing,acq,2,acquisitions,1214,215,138,15,12,0,0,4,4,0,124,0,124,124,13,0,1482282,592.9,0
+closing,acq,3,acquisitions,1214,263,151,18,13,0,0,4,4,0,124,0,124,124,13,0,1797732,719.1,0
+closing,acq,4,acquisitions,1214,283,156,18,13,0,0,4,4,0,124,0,124,124,13,0,2004236,801.7,0
+closing,acq,5,acquisitions,1214,308,161,18,13,0,0,4,4,0,124,0,124,124,13,0,2146631,858.7,0
+closing,acq,6,acquisitions,1214,326,164,18,13,0,0,4,4,0,124,0,124,124,13,0,2182547,873.0,0
+closing,step_years,1,years_per_step,1214,0,0,0,0,0,0,0,4,0,124,124,0,0,13,13,0,0.0,0
+closing,step_years,2,years_per_step,1214,114,89,10,7,0,0,0,4,0,124,56,68,68,13,6,836575,334.6,0
+closing,step_years,3,years_per_step,1214,326,164,18,13,0,0,4,4,0,124,0,124,124,13,0,2182547,873.0,0
+closing,step_years,4,years_per_step,1214,326,164,18,13,0,0,4,4,0,124,0,124,124,13,0,2182547,873.0,0
+closing,step_years,5,years_per_step,1214,326,164,18,13,0,0,4,4,0,124,0,124,124,13,0,2182547,873.0,0
+closing,step_years,8,years_per_step,1214,326,164,18,13,0,0,4,4,0,124,0,124,124,13,0,2182547,873.0,0
+closing,span_years,2,years_of_span,1214,0,0,0,0,0,0,0,4,0,124,124,0,0,13,13,0,0.0,0
+closing,span_years,3,years_of_span,1214,45,45,4,4,0,0,0,4,0,124,83,41,41,13,9,240245,96.1,0
+closing,span_years,4,years_of_span,1214,97,87,9,7,0,0,0,4,0,124,36,88,88,13,4,558476,223.4,0
+closing,span_years,5,years_of_span,1214,161,121,13,11,0,0,4,4,0,124,0,124,124,13,0,1074624,429.8,0
+closing,span_years,6,years_of_span,1214,201,136,15,12,0,0,4,4,0,124,0,124,124,13,0,1393234,557.3,0
+closing,span_years,8,years_of_span,1214,251,149,18,13,0,0,4,4,0,124,0,124,124,13,0,1757040,702.8,0
+closing,span_years,10,years_of_span,1214,283,156,18,13,0,0,4,4,0,124,0,124,124,13,0,1963120,785.2,0
+closing,span_years,15,years_of_span,1214,326,164,18,13,0,0,4,4,0,124,0,124,124,13,0,2182547,873.0,0
+closing,tier_matched,0,acq<=1 & step<=2yr,1214,75,71,7,6,0,0,0,4,0,124,56,68,68,13,6,449663,179.9,0
+healer,tier_matched,0,acq<=1 & step<=2yr,1214,63,61,5,5,0,0,0,4,0,124,25,99,58,13,3,319897,128.0,266460
+# panel_interval,2016->2024
+# interior_epochs,2019|2021
+# n_eligible_terminal,0
+# n_eligible_in_interval,4
+# scoring_parity_mismatches,0
+# closing_runs_on_the_unaligned_stack,1

@@ -18,18 +18,23 @@ two invariants that matter operationally:
 
   * it NEVER raises, because a staging problem must cost speed, not the run; and
   * it never hands step_postproc a scratch file whose size disagrees with the Drive
-    original. common.py::_stage_imagery_local copies with a bare shutil.copy2 (no
-    atomic rename, no post-copy verify) and swallows its own failures, so a killed copy
-    leaves a truncated multi-GB file that nothing sweeps. Both guards against that —
-    the pre-check on an inherited copy and the post-check on one we made — are SHOWN
-    here to FIRE on a known-bad input, per CLAUDE.md §3.4c; and
+    original. This used to read "common.py::_stage_imagery_local copies with a bare
+    shutil.copy2 (no atomic rename, no post-copy verify) … a killed copy leaves a
+    truncated multi-GB file that nothing sweeps" — and since the scratch cache none of
+    that is true: staging publishes `.part` + os.replace and scratchcache.py::sweep
+    removes orphans by PID (scratchcache.py::stage). The guards stay, and stay SHOWN
+    here to FIRE on a known-bad input per CLAUDE.md §3.4c, for two reasons that the new
+    atomicity does not cover: case (a) also serves copies step_inference ADOPTED and
+    stumps from runtimes predating the cache, and a cache makes size-only trust OUTLIVE
+    the step that created it instead of dying with it; and
   * it never LEAKS a copy it made. The two invariants above collide in one window: a
     raise after the copy finished must still degrade to the Drive path, and must take
     the finished copy with it. Before 2026-09-07 it returned `staged_here=False` and
     left the file, so step_postproc's `finally` released nothing.
 
 Everything is monkeypatched (`_local_artifact_path`, `_stage_imagery_local`,
-`_unstage_imagery_local`, `_is_drive_path`, `shutil.disk_usage`,
+`_unstage_imagery_local`, `_invalidate_staged`, `_pin_staged`, `_reserve_scratch`,
+`_is_drive_path`, `shutil.disk_usage`,
 `postproc.LOCAL_SCRATCH`) and every real path lives under tmp_path — no lake write, no
 /content, no multi-GB copy (the fake staging moves the fixture's 4 KB so the size checks
 have something real to compare).
@@ -102,6 +107,19 @@ def env(tmp_path, monkeypatch):
             pass
 
     monkeypatch.setattr(postproc, "_unstage_imagery_local", _unstage)
+    # The two DISCARD sites moved from `_unstage_imagery_local` to
+    # `scratchcache.invalidate` when LOCAL_SCRATCH became a cache: a release now KEEPS
+    # the bytes (that is the point), and these two discards are correctness, not space.
+    # `unstaged` therefore records both helpers — the guards it proves are the same
+    # guards, and the assertions below are unchanged.
+    monkeypatch.setattr(postproc, "_invalidate_staged", _unstage)
+    # A hit on case (a) now PINS what it is about to read, so nothing can evict the
+    # raster between step_postproc's two rasterio.open calls. It moves no bytes; here it
+    # must simply not touch the filesystem.
+    monkeypatch.setattr(postproc, "_pin_staged", lambda p, **kw: True)
+    # reserve() evicts toward the floor before the STAGE_FREE_MARGIN pre-check. It must
+    # not manufacture space the check below is testing for, so it is inert here.
+    monkeypatch.setattr(postproc, "_reserve_scratch", lambda n, **kw: True)
     monkeypatch.setattr(shutil, "disk_usage",
                         lambda p: SimpleNamespace(total=0, used=0, free=100 * GB))
     prob_final = drive / "edmonds_canopy_prob_2013.tif"
@@ -137,6 +155,36 @@ def test_inference_copy_is_used_and_nothing_is_staged(env):
     assert staged_here is False        # that copy belongs to step_inference, not us
     assert env.calls == []
     assert env.unstaged == []
+
+
+def test_the_inherited_copy_is_pinned_and_THEN_reserved_against(env):
+    """Case (a) must run the evictor, and must run it AFTER the pin.
+
+    THE HOLE THIS CLOSES. Case (b) reserves and then applies STAGE_FREE_MARGIN, but case
+    (a) used to return having asked for nothing at all — and case (a) is the branch the
+    QUEUE now takes, because step_inference adopts the probability raster instead of
+    unlinking it (core.py::step_inference). step_postproc then writes the mask and the
+    gpkg into LOCAL_SCRATCH beside a raster it holds open, on a disk that also keeps the
+    cached ortho every step used to delete on exit. That accidental headroom is exactly
+    what the scratch cache removes, so the slack has to be asked for.
+
+    ORDER IS THE ASSERTION. Reserving first could evict the very raster this call is
+    about to hand back: reserve() may delete any `ready` entry that nothing has pinned.
+    """
+    order = []
+    env.monkeypatch.setattr(postproc, "_pin_staged",
+                            lambda p, **kw: order.append(("pin", Path(p))) or True)
+    env.monkeypatch.setattr(postproc, "_reserve_scratch",
+                            lambda n, **kw: order.append(("reserve", n)) or True)
+    local = _write_local(env, SRC_BYTES)
+
+    out, staged_here = postproc._resolve_prob_source(env.prob_final)
+
+    assert out == local and staged_here is False
+    assert [k for k, _ in order] == ["pin", "reserve"], order
+    assert order[0][1] == local
+    # the MARGIN's slack, not the raster: the bytes it names are already on this disk
+    assert order[1][1] == int((postproc.STAGE_FREE_MARGIN - 1.0) * SRC_BYTES)
 
 
 def test_short_local_copy_is_discarded_and_restaged(env):
@@ -414,6 +462,34 @@ def test_staged_raster_is_released_when_postproc_raises(env, tmp_path):
     staged.write_bytes(b"z" * 64)
     env.monkeypatch.setattr(postproc, "_resolve_prob_source",
                             lambda p, allow_stage=True: (staged, True))
+    env.monkeypatch.setattr(postproc, "_local_artifact_path",
+                            lambda f: tmp_path / Path(f).name)
+
+    def _boom(*a, **kw):
+        raise RuntimeError("rasterio open failed")
+
+    env.monkeypatch.setattr(postproc.rasterio, "open", _boom)
+    env.monkeypatch.setattr(postproc, "_unstage_imagery_local",
+                            lambda p: env.unstaged.append(Path(p)))
+
+    with pytest.raises(RuntimeError):
+        postproc.step_postproc("2013")
+
+    assert env.unstaged == [staged]
+
+
+def test_the_inherited_copy_is_RELEASED_not_unlinked(env, tmp_path):
+    """THE OTHER `finally` BRANCH — the one step_inference's copy takes, and the one the
+    queue actually reaches. It used to be a bare ``prob_out.unlink()``, which under the
+    queue deleted the ADOPTED probability raster, so a rerun of the same year+tag
+    re-staged 2.4-6.7 GB that was already on the disk. It must go through the release
+    helper, where an owned cache entry survives (evictable) and an un-owned file still
+    unlinks. Without this assertion a revert to `unlink()` fires no test at all.
+    """
+    staged = tmp_path / "inference_left_this.tif"
+    staged.write_bytes(b"z" * 64)
+    env.monkeypatch.setattr(postproc, "_resolve_prob_source",
+                            lambda p, allow_stage=True: (staged, False))  # NOT staged here
     env.monkeypatch.setattr(postproc, "_local_artifact_path",
                             lambda f: tmp_path / Path(f).name)
 

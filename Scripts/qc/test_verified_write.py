@@ -186,6 +186,154 @@ def test_publish_restores_the_previous_artifact_when_it_fails(tmp_path, monkeypa
     assert dst.exists() and dst.read_bytes() == b"old"
 
 
+# ── the aside rename's error is not always FileNotFoundError ─────────────────
+# Ported from queue_ledger.py::_replace_absent (c5dc91c), which met this first on
+# the STATUS table. _publish_replace renamed the destination aside guarded ONLY
+# against FileNotFoundError — which reads "dest vanished under us, so there is no
+# aside". True for ENOENT and false for everything else. On this rclone FUSE mount
+# a transient EIO is documented (queue_verify.py::_check_prob_raster retries
+# for it), and an EIO can be raised AFTER the rename has already landed. The old
+# code let that OSError propagate with the destination GONE and the only copy of
+# the checkpoint stranded under a `.prev.<hex>` name no reader globs (they are all
+# extension-anchored) and only common.py::_sweep_part_orphans reclaims, past its
+# 24 h age gate — unreachable for a day, then deleted. The three `.prev.*` orphans
+# found on the lake 2026-09-07 (e499355's
+# closing note) were STATUS TABLES, not checkpoints — the same mechanism, on the
+# path that met it first; this one carried the identical guard.
+
+def _eio():
+    import errno
+    return OSError(errno.EIO, "input/output error")
+
+
+def _replace_spy(monkeypatch, script):
+    """Patch os.replace with a scripted sequence. Each entry is 'ok', 'eio_after'
+    (perform the rename, THEN raise EIO — the case the old guard could not see), or
+    'eio_before' (raise without renaming). Returns the call log, which records
+    whether the destination EXISTED at each call so the D4 syscall invariant can be
+    asserted on the same evidence."""
+    real = common.os.replace
+    calls = []
+
+    def _spy(a, b):
+        act = script[len(calls)] if len(calls) < len(script) else "ok"
+        calls.append((Path(a).name, Path(b).name, Path(b).exists(), act))
+        if act == "eio_before":
+            raise _eio()
+        real(a, b)
+        if act == "eio_after":
+            raise _eio()
+
+    monkeypatch.setattr(common.os, "replace", _spy)
+    return calls
+
+
+def _seed_publish(tmp_path):
+    dst = _write(tmp_path / "d" / "sem_best_2009_x.pt", b"old")
+    part = _write(tmp_path / "d" / "sem_best_2009_x.pt.part.123", b"new")
+    return part, dst
+
+
+def test_an_eio_after_the_aside_rename_does_not_lose_the_checkpoint(
+        tmp_path, monkeypatch):
+    """THE ORPHAN'S MECHANISM. The rename landed and then reported EIO. The old
+    guard caught only FileNotFoundError, so this escaped _publish_replace entirely
+    with the destination GONE — a scoring run would find no checkpoint at all.
+    Re-probing the filesystem — dest absent, aside present — says the rename
+    completed, so the publish must proceed."""
+    part, dst = _seed_publish(tmp_path)
+    calls = _replace_spy(monkeypatch, ["eio_after"])
+    common._publish_replace(part, dst)
+    assert dst.exists(), "the destination was lost to an EIO that had already renamed it"
+    assert dst.read_bytes() == b"new"
+    assert not list(dst.parent.glob("*.prev.*")), "the previous checkpoint was orphaned"
+    assert not list(dst.parent.glob("*.part.*"))
+    assert not any(existed for _, _, existed, _ in calls), \
+        f"replaced over an existing destination: {calls}"
+
+
+def test_an_eio_on_both_renames_restores_the_previous_checkpoint(
+        tmp_path, monkeypatch):
+    """Aside rename completes-then-EIOs, and the publish fails too. The aside is the
+    only copy of the checkpoint, so it goes back where it came from — the
+    destination still holds the PREVIOUS artifact and no `.prev.*` is left behind."""
+    part, dst = _seed_publish(tmp_path)
+    _replace_spy(monkeypatch, ["eio_after", "eio_before"])
+    with pytest.raises(OSError):
+        common._publish_replace(part, dst)
+    assert dst.exists()
+    assert dst.read_bytes() == b"old", "the previous checkpoint was not restored"
+    assert not list(dst.parent.glob("*.prev.*"))
+
+
+def test_an_eio_that_did_not_rename_never_publishes_over_the_destination(
+        tmp_path, monkeypatch):
+    """The other half of the re-probe: dest is STILL THERE, so the rename did not
+    land. Publishing now would run os.replace over an existing destination on this
+    mount — the unproven case D4 exists to avoid — so it re-raises instead. The
+    raise leaves _copy_to_drive (whose retry loop covers the copy, not the publish)
+    and what stays on Drive is the previous checkpoint, intact."""
+    part, dst = _seed_publish(tmp_path)
+    calls = _replace_spy(monkeypatch, ["eio_before"])
+    with pytest.raises(OSError):
+        common._publish_replace(part, dst)
+    assert dst.read_bytes() == b"old"
+    assert len(calls) == 1, f"published over an existing destination: {calls}"
+    assert not list(dst.parent.glob("*.prev.*"))
+
+
+# ── the same completes-then-fails shape, one line lower ──────────────────────
+# The two tests below cover the PUBLISH rename and the aside-that-landed-anyway.
+# Both were written against the restore path, which used to act on the exception
+# alone: `os.replace(aside, dest)` on any OSError, and `aside.unlink()` whenever
+# dest re-probed present. Each destroys data in exactly the case the probe is
+# what is wrong, and the first of them also runs the D4-forbidden replace.
+
+def test_a_landed_publish_is_never_reverted_by_the_restore(tmp_path, monkeypatch):
+    """The publish rename lands and THEN reports EIO. Restoring the aside now would
+    (a) run os.replace over an EXISTING destination — the case this whole function
+    exists to avoid — and (b) revert a good new checkpoint to the previous one while
+    the caller is told the publish failed. The probe stops both; the aside stays for
+    _sweep_part_orphans, because deleting it is only ever safe if the probe is
+    honest, and the probe is the thing in doubt."""
+    part, dst = _seed_publish(tmp_path)
+    calls = _replace_spy(monkeypatch, ["ok", "eio_after"])
+    with pytest.raises(OSError):
+        common._publish_replace(part, dst)
+    assert dst.read_bytes() == b"new", "a landed checkpoint was reverted"
+    assert not any(existed for _, _, existed, _ in calls), \
+        f"replaced over an existing destination: {calls}"
+    asides = list(dst.parent.glob("*.prev.*"))
+    assert len(asides) == 1 and asides[0].read_bytes() == b"old", \
+        f"the previous checkpoint was not kept: {asides}"
+
+
+def test_an_aside_that_landed_anyway_keeps_the_last_copy(tmp_path, monkeypatch):
+    """The aside rename lands, reports EIO, and dest then re-probes PRESENT — the
+    one reading under which the old code unlinked the aside. If that probe is right
+    the unlink drops a duplicate the sweep would collect anyway; if it is wrong it
+    drops the only copy of the checkpoint, because the caller's `finally` takes the
+    `.part.*` with it. So the aside survives, and nothing is published."""
+    part, dst = _seed_publish(tmp_path)
+    calls = _replace_spy(monkeypatch, ["eio_after"])
+    real_exists = Path.exists
+
+    def _lie(self):
+        # only after the rename has moved dest, and only for dest itself
+        if calls and self.name == dst.name:
+            return True
+        return real_exists(self)
+
+    monkeypatch.setattr(Path, "exists", _lie)
+    with pytest.raises(OSError):
+        common._publish_replace(part, dst)
+    asides = list(dst.parent.glob("*.prev.*"))
+    assert len(asides) == 1 and asides[0].read_bytes() == b"old", \
+        f"the last copy of the checkpoint was unlinked: {asides}"
+    assert part.read_bytes() == b"new", "the staged copy was touched"
+    assert len(calls) == 1, f"published while the destination read present: {calls}"
+
+
 def test_copy_to_drive_overwrites_an_existing_destination(tmp_path, monkeypatch):
     """THE HOT LOOP, end to end: the checkpoint already exists and is replaced,
     once per improving epoch, on the mount.

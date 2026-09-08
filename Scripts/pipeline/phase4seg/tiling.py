@@ -455,6 +455,16 @@ def _gather_citywide_coarse(label, sites, stride_override=None, dry_run=False):
         if asrc is not None:
             asrc.close()
         if not dry_run:
+            # RELEASE, all three, since the scratch cache — they used to be unlinks.
+            # MASK_2020 and the overlay are the CROSS-YEAR wins: every tile step of
+            # every year stages the same 2020 mask, and the count only grows — it is
+            # measured in phase4/qc/timing_events.csv and carried in ONE place,
+            # scratchcache.py's module docstring, rather than restated per site.
+            # On a multi-year queue on ONE VM each of those
+            # after the first is now a hit, which is the part of the saving that scales
+            # with QUEUE LENGTH rather than with year count. The wider shared-asset
+            # arithmetic is in scratchcache.py's module docstring; the ledger of why each
+            # historical delete existed is in common.py::_unstage_imagery_local.
             if local != native:
                 _unstage_imagery_local(local)
             if mask_local != MASK_2020:

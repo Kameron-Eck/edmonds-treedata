@@ -350,6 +350,9 @@ def step_labels(label, sites, dry_run=False, anchor_labels=False,
                                      covered=covered, canopy_frac=round(frac, 4)))
     finally:
         if not dry_run:
+            # RELEASE since the scratch cache, not unlink: tiling.py re-stages THIS
+            # EXACT FILE as its next act. The per-site ledger of why each historical
+            # delete existed is in common.py::_unstage_imagery_local.
             _unstage_imagery_local(local)
 
     n_cov = sum(r["covered"] for r in cov_rows)

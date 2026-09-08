@@ -3,6 +3,14 @@ from phase4seg import config
 from phase4seg.common import (_tag_sfx, entry_for, tick, tock,
                               _copy_to_drive, _local_artifact_path, _crs_unit_m,
                               _stage_imagery_local, _unstage_imagery_local)
+from phase4seg import scratchcache
+
+# Module-level aliases for the three scratch-cache calls this module makes, so each is a
+# patchable surface of THIS module — the same reason `_is_drive_path` exists here at all,
+# and the reason qc/test_postproc_source.py can drive these paths without a Drive mount.
+_invalidate_staged = scratchcache.invalidate
+_pin_staged = scratchcache.pin
+_reserve_scratch = scratchcache.reserve
 
 import gc
 import shutil
@@ -151,19 +159,42 @@ def _resolve_prob_source(prob_final, allow_stage=True):
     _scratch_name(p) for the same `p` (common.py::_local_artifact_path,
     ::_stage_imagery_local). So (b) simply creates the file (a) would have found.
 
-    THE SIZE CHECK, both sides. common.py::_stage_imagery_local is a bare shutil.copy2
-    with no atomic rename and no post-copy verify, and it CATCHES its own failures and
-    returns its source — so a copy killed midway (step timeout, VM preemption, drivefs
-    EIO, a full disk) leaves a truncated multi-GB file at the scratch path while the run
-    reports success over FUSE. Nothing sweeps it: common.py::_sweep_part_orphans only
-    removes ``*.part.*`` / ``*.prev.*``, and this name is neither. Case (a)'s old
-    ``exists()``-only test would then hand that stump to rasterio, whose header still
-    reports the full height and width, so the failure surfaces as a mid-loop read error
-    on every retry until someone clears the scratch directory by hand. So: (a) compares
-    sizes against the Drive original and DISCARDS a mismatch (which also drops a stale
-    complete copy left by a superseded run at the same year+tag path), and (b) re-checks
-    the size after copying. A size check is NOT a content check — it cannot catch a
-    same-length substitution, only a short or differently-sized one.
+    THE SIZE CHECK, both sides. This paragraph used to say that
+    common.py::_stage_imagery_local is a bare shutil.copy2 with no atomic rename, and
+    that nothing sweeps the stump a killed copy leaves. AS OF THE SCRATCH CACHE, ALL
+    THREE OF THOSE CLAIMS ARE FALSE and the amendment matters, because they are the
+    premises the guards below were built on: staging now copies to
+    ``<payload>.part.<pid>.<token>`` and publishes with os.replace
+    (scratchcache.py::stage, ::_publish_payload), and scratchcache.py::sweep removes
+    ``.part`` orphans BY PID rather than waiting out common.py::_sweep_part_orphans'
+    24 h. A copy killed midway therefore no longer leaves a truncated multi-GB file at
+    the path a later reader trusts.
+
+    THE GUARDS STAY ANYWAY, and are still shown to fire in qc/test_postproc_source.py.
+    Two reasons. First, this function also serves case (a): a copy that step_inference
+    ADOPTED, or a pre-cache stump from a runtime that predates this change, neither of
+    which the new atomicity covers retroactively. Second, the cache EXTENDS the reach of
+    size-only trust — a stale same-size copy used to die with the step and can now
+    survive into the next one — so validating on read is more load-bearing, not less.
+    So: (a) compares sizes against the Drive original and DISCARDS a mismatch (which
+    also drops a stale complete copy left by a superseded run at the same year+tag
+    path), and (b) re-checks the size after copying. A size check is NOT a content check
+    — it cannot catch a same-length substitution, only a short or differently-sized one.
+
+    (a) ALSO PINS WHAT IT IS ABOUT TO READ. Under the queue that inherited copy is the
+    adopted probability raster — a `ready`, UNPINNED cache entry — and this step then
+    holds it open for 60-99 min across two separate ``rasterio.open`` calls. A
+    concurrent ``stage()``/``reserve()`` from the other arm on the VM could evict it
+    between them, so the pin is taken before the first open. It is a no-op for a
+    sidecar-less copy, which is exactly today's trust level for one.
+
+    (a) ALSO RESERVES, for the same reason (b) does. Until the scratch cache, case (a)
+    was the branch that reached step_postproc having run NO evictor: it returns before
+    the STAGE_FREE_MARGIN pre-check below, and step_postproc then writes the mask and the
+    gpkg into LOCAL_SCRATCH beside a raster it holds open — on a disk that now also keeps
+    the ortho every step used to delete. Pin first, then reserve, so the call cannot evict
+    what it just pinned; the reservation is the margin's SLACK only (``STAGE_FREE_MARGIN
+    - 1``), because the raster itself is already on the disk being measured.
 
     Never raises — the whole body sits inside one try, because on a wedged mount even
     ``prob_final.exists()`` re-raises drivefs EIO (CPython's pathlib swallows only
@@ -192,13 +223,29 @@ def _resolve_prob_source(prob_final, allow_stage=True):
             except OSError:
                 same_size = True     # cannot compare -> keep the pre-check behaviour
             if same_size:
+                _pin_staged(local)      # nothing may evict this out from under us
+                # PIN FIRST, THEN RESERVE — this call cannot evict what we just pinned.
+                # THE BRANCH THAT RAN NO EVICTOR AT ALL: case (b) reserves and then
+                # applies STAGE_FREE_MARGIN, but case (a) returned here having asked for
+                # nothing, and it is now the branch the QUEUE takes (inference adopts the
+                # raster instead of unlinking it, so postproc inherits a hit). The mask
+                # and the gpkg still get written into this same directory while the
+                # raster is open, on a disk that now also holds the cached ortho — the
+                # accident that used to leave room (every step deleting its ortho on
+                # exit) is exactly what the cache removes. So reserve the same slack case
+                # (b) does: the margin MINUS the raster itself, which is already on disk.
+                _reserve_scratch(int((STAGE_FREE_MARGIN - 1.0) * local.stat().st_size))
                 print(f"  reading the staged local probability raster "
                       f"({local.stat().st_size / 1e6:.0f} MB) — no FUSE round-trip")
                 return local, False
             print(f"  discarding a short/stale local probability raster "
                   f"({local.stat().st_size / 1e6:.0f} MB against a "
                   f"{prob_final.stat().st_size / 1e6:.0f} MB source) — not this raster")
-            _unstage_imagery_local(local)
+            # INVALIDATE, not release: this discard is CORRECTNESS, not space management
+            # (the ledger in common.py::_unstage_imagery_local separates the two). It is
+            # the one call that still deletes — and it refuses under a live reader,
+            # leaving us on the degrade path below rather than unlinking an open file.
+            _invalidate_staged(local)
         if not allow_stage:
             return prob_final, False
         if not prob_final.exists():
@@ -208,6 +255,13 @@ def _resolve_prob_source(prob_final, allow_stage=True):
             return prob_final, False
         LOCAL_SCRATCH.mkdir(parents=True, exist_ok=True)
         size = prob_final.stat().st_size
+        # EVICT FIRST, then apply the existing margin to what is left. The scratch cache
+        # now holds orthos that every step used to delete on exit, so "free" here is no
+        # longer whatever the last step happened to leave behind. reserve() is not
+        # allowed to REPLACE the margin below — collapsing the two would relax a check
+        # that is pinned by qc/test_postproc_source.py and sized for the mask and gpkg
+        # this step writes into the same directory while the raster is still open.
+        _reserve_scratch(int(STAGE_FREE_MARGIN * size))
         free = shutil.disk_usage(LOCAL_SCRATCH).free
         if free < STAGE_FREE_MARGIN * size:
             print(f"  NOT staging the probability raster: {size / 1e9:.1f} GB needs "
@@ -221,7 +275,7 @@ def _resolve_prob_source(prob_final, allow_stage=True):
                 print(f"  WARNING: the staged probability raster is "
                       f"{staged_size / 1e9:.2f} GB, not {size / 1e9:.2f} GB — "
                       f"discarding it and reading windowed over FUSE")
-                _unstage_imagery_local(staged)
+                _invalidate_staged(staged)   # correctness discard; see case (a) above
                 return prob_final, False
             print(f"  staged the probability raster to local scratch "
                   f"({size / 1e9:.1f} GB, one sequential copy) — the windowed read "
@@ -446,13 +500,18 @@ def step_postproc(label, dry_run=False):
         # first branch needs no dry-run guard. The second does: --dry-run reads nothing
         # and must not consume the copy step_inference left for the REAL run, which is
         # what the pre-`finally` code did by returning above this block.
+        # BOTH BRANCHES NOW RELEASE, and the second one is the change. It used to
+        # `unlink()` the copy step_inference left, which under the queue is the ADOPTED
+        # probability raster — so a rerun of the same year+tag re-staged 2.4-6.7 GB that
+        # was already on the disk. Releasing drops our pin and leaves the entry
+        # evictable, which is the same disk bound expressed as a floor instead of an
+        # unconditional delete. A payload with no cache record still unlinks (that is
+        # common.py::_unstage_imagery_local's historical contract for an un-owned file),
+        # so the leak this `finally` exists to bound is bounded either way.
         if prob_staged_here:
             _unstage_imagery_local(prob_out)   # guarded to LOCAL_SCRATCH; never raises
         elif prob_out != prob_final and not dry_run:
-            try:
-                prob_out.unlink()
-            except OSError:
-                pass
+            _unstage_imagery_local(prob_out)
 
 
 def _append_area_summary(label, entry, canopy_area_m2, canopy_pct, valid_px,

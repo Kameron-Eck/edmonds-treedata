@@ -494,6 +494,40 @@ Measured 2026-09-07 over 2,823 events in 362 step logs: `stage` median **39.0 MB
 
 READER RULES.
 
+- **THE ROWS OVERLAP — SUM WITHIN ONE FAMILY, NEVER ACROSS.** "One row per `⏱` line" is
+  still true of the file, but since 2026-09-07 the lines themselves NEST, so a total over
+  every row in a step double-counts. Three families now share a log. (1) The pre-existing
+  POINT events: `stage <file>`, `stage tiles <label>`, `copy <file>`, `inference`,
+  `postproc`, `bundle copy <label>`. (2) The per-epoch BUCKETS
+  `epoch <A|B><n> <bucket>`, bucket ∈ `data` / `gpu (sync at epoch end)` / `val` /
+  `save` / `other`, written by `core.py::_publish_epoch_phases` (the `data` bucket is
+  measured by `core.py::_timed_batches`). (3) The five `eval` SPANS
+  `core.py::step_evaluate` opens: `eval tiles local`, `eval model load`, `eval forward`,
+  `eval metrics`, `eval report`.
+  Families (2) and (3) ENCLOSE members of (1): `epoch <A|B><n> save` contains the
+  `copy sem_best_*.pt` row `common.py::_copy_to_drive` prints (and `copy sem_latest_*.pt`
+  where that file is still Drive-backed — see `core.py::step_train`'s `LATEST_CKPT_LOCAL`
+  branch); `eval report` contains both `copy semantic_eval_report*.csv` rows; and on a
+  COLD run `eval tiles local` contains `stage tiles <label>`. Those seconds are in two
+  rows each, by design.
+- **The buckets do not partition the STEP either, so they under-cover as well as
+  overlap.** The five epoch buckets sum to Σ(epoch walls), not to the train step: tile
+  staging sits before the loops (it publishes its own `stage tiles` row), and the
+  DataLoader plus `ckpt.py::build_model` construction and the deploy publish emit NO row
+  at all. The `eval` spans are disjoint from one another but leave gaps between them.
+  `gpu (sync at epoch end)` is kernel launch + host-side python + device WAIT, **not**
+  GPU-busy time — `loss.item()` already syncs every batch — which is why the caveat is
+  in the harvested label itself and not only in the source. Do not reconcile a bucket
+  against `hw_step_attribution.csv`'s step-scoped fractions without adding the staging
+  row back and allowing for the two unrowed costs.
+- **`⏱ train epoch phases: …` is a summary line the parser deliberately does not
+  match.** `core.py::_print_phase_summary` restates numbers already published one row
+  each; if it parsed it would double every bucket in this CSV. `_EVENT`'s end anchor is
+  what rejects it (the line ends in a parenthetical, not in `<N>s`), and
+  `qc/test_train_timing.py::test_summary_line_is_not_harvested` pins that negative.
+  `core.py::_tock_total` prints the buckets in `common.py::tock`'s exact format — it has
+  to restate the format string, so `::test_tock_total_is_byte_identical_to_common_tock`
+  pins the restatement rather than trusting it.
 - **`stage` and `copy` measure opposite directions and different media.**
   `common.py::_stage_imagery_local` and `staging.py::_stage_tiles_local` copy
   Drive → local NVMe: that is a Drive READ and the only rows that are Drive throughput.
@@ -533,13 +567,19 @@ READER RULES.
   events are sub-cadence zeros — all 43 `copy semantic_eval_report.csv` events among
   them. A sub-cadence operation is real; a division by zero is not a rate.
 - **A `stage` row is a COLD Drive read only the first time a runtime touches the file.**
-  `common.py::_unstage_imagery_local` deletes the scratch copy after each step, so a
+  Every row in the archive to date predates the scratch cache, when
+  `common.py::_unstage_imagery_local` DELETED the scratch copy after each step, so a
   later step re-staging the same file reads it back out of the warm rclone VFS / OS page
   cache: 3 of 281 sized rows exceed 500 MB/s for that reason (max
   `stage 2006_snoh_1m_rgb.tif` at 1092.72 MB/s, the same basename that read 156.10 MB/s
   three minutes earlier in the same session). Drop the >300 MB/s tail before quoting
   `stage` as Drive throughput — it moves the median 39.0 → 38.3 and p90 87.2 → 84.1, so
-  the headline figures above stand either way.
+  the headline figures above stand either way. THAT WARM-CACHE TAIL SHOULD NOW THIN, and
+  the reason is a change in what a missing row means: `_unstage_imagery_local` releases
+  instead of deleting, and a same-VM re-stage is a cache HIT that publishes NO row at all
+  (`scratchcache.py::stage` — emitting `⏱ stage <file>: 0.0s` under the event name this
+  saving is measured from would fabricate the win). So after 2026-09-07 an absent second
+  `stage` row for a file is evidence of a hit, not of a step that never staged it.
 - **Per-event rates are throughput UNDER CAMPAIGN CONCURRENCY, not a clean single-stream
   number.** The P11.4 staging lock serialises bulk copies within one VM, but concurrent
   VMs share the Drive link — `2017_king_rgb.tif` (11.55 GB) staged at 93.5 and

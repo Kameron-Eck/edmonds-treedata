@@ -6,6 +6,7 @@ from phase4seg.common import (
     read_hillshade_chip, close_thread_hillshade, tick, tock,
     _copy_to_drive, _local_artifact_path, tile_dir_for,
 )
+from phase4seg import scratchcache
 from phase4seg.tiling import _origins_from_manifest
 
 import datetime as _dt
@@ -376,14 +377,148 @@ from phase4seg.select import (             # noqa: E402,F401
 
 
 
+# ── Per-epoch phase attribution (2026-09-07) ─────────────────────────────────
+# The epoch line has always printed ONE wall number ("A E  6/20 … 53s") and nothing
+# else, so a slow epoch could not be told apart from a starved one. The pilot's
+# marker-basis telemetry (phase4/qc/hw_step_attribution.csv) said the train step is
+# GPU-busy 19.6% of the time and nothing-busy 32.6%, but marker basis cannot say
+# WHICH part of the epoch the idle sits in. These buckets locate it WITHIN an epoch.
+#
+# SCOPE — narrower than that statistic's, and the two do NOT share a denominator.
+# These buckets partition the EPOCH LOOPS. hw_step_attribution's fractions are
+# step-scoped (marker basis covers the whole StepLogger step), and three real costs
+# sit inside that step but inside no bucket:
+#   · the tile staging `staging.py::_stage_tiles_local` does BEFORE the loops. It
+#     publishes its own `⏱ stage tiles <label>` row, so it is the one of the three
+#     that is MEASURED — and it runs minutes to hours, i.e. it can exceed the whole
+#     epoch budget it sits outside of. Derive the current spread rather than trusting
+#     a number restated here (they rot; this file's own history says so):
+#       rows in phase4/qc/timing_events.csv with step=train, label ^"stage tiles";
+#     as of this writing that was n=76, median 303 s, max 7879 s (2.19 h);
+#   · the DataLoader and `ckpt.py::build_model` construction after it, which publish
+#     NO timing row at all — this cost is unmeasured, not merely unbucketed;
+#   · the deploy publish `select.py::_finish_selection` does AFTER the summary prints.
+# So reconciling a bucket fraction against 19.6% / 32.6% means adding the staging row
+# back and allowing for the two unrowed costs. Comparing them directly is an error.
+#
+# WHAT A BUCKET MEANS, and the honest limits:
+#   data   wall time blocked in the DataLoader iterator — including `iter(loader)`
+#          itself, because with persistent_workers=True the first epoch pays worker
+#          spawn (config.NUM_WORKERS=16 processes on a 12-vCPU runtime) there, and
+#          outside the timer that cost would silently land in `other`.
+#   gpu    everything else inside the epoch's batch loop: kernel launch, the H2D
+#          copies, the loss/optimizer python, AND the wall spent waiting on the GPU.
+#          THIS IS NOT A GPU-BUSY NUMBER. `loss.item()` (and GradScaler's inf check)
+#          already force a device sync every batch, so the wait is folded in here and
+#          this instrument cannot separate launch-overhead from device time. Expect it
+#          to read far above hw_step_attribution's 19.6% GPU-busy for that reason.
+#   val    the whole _validate call (its own forward pass included).
+#   save   the whole _save_ckpt call(s) — hash, verify and the Drive copy.
+#   other  epoch wall minus the four above: the scheduler, history bookkeeping, the
+#          smoothed-selector observe, and whatever is not yet named.
+_PHASE_KEYS = ("data", "gpu", "val", "save", "other")
+
+
+def _new_phases():
+    return {k: 0.0 for k in _PHASE_KEYS}
+
+
+def _add_phases(total, ep):
+    for k in _PHASE_KEYS:
+        total[k] += ep[k]
+
+
+def _tock_total(label, seconds):
+    """Publish an ACCUMULATED duration in `common.py::tock`'s exact line format.
+
+    tock times one contiguous interval through a module-level start dict; these
+    buckets are sums over many disjoint intervals, so there is no single start time
+    to hand it. Restating the format string is the drift risk `common.py::untick`'s
+    docstring warns about, so it is pinned instead of trusted:
+    `qc/test_train_timing.py::test_tock_total_is_byte_identical_to_common_tock`
+    fails if either side is reformatted, and
+    `qc/instruments/harvest_timing_events.py::_EVENT` is the parser both must satisfy.
+    """
+    print(f"  ⏱ {label}: {seconds:.1f}s")
+
+
+# The bucket name each phase is PUBLISHED under. `gpu` carries its caveat in the
+# harvested label itself, not only in this file's comments: the number lands in
+# phase4/qc/timing_events.csv and gets quoted from there, so "gpu" alone would be read
+# as GPU-busy time, which it is not (see _train_one_epoch's header).
+_PHASE_LABELS = {"data": "data", "gpu": "gpu (sync at epoch end)",
+                 "val": "val", "save": "save", "other": "other"}
+
+
+def _publish_epoch_phases(phase, ep, ep_ph, wall, totals=None):
+    """Close out one epoch's buckets: fill `other`, print them, fold into `totals`.
+
+    NESTING WARNING, deliberate and unfixed here: `epoch A6 save` ENCLOSES the
+    `⏱ copy sem_best_*.pt` event `common.py::_copy_to_drive` already prints, so a
+    reader who sums every `⏱` row in a step log now double-counts those seconds.
+    The buckets are a partition of the EPOCH; the pre-existing events are a partition
+    of nothing. Sum within one family, never across.
+
+    AND THE UNDER-COUNTING HALF, which the warning above does not cover: these five
+    buckets do not add up to the train STEP either. Tile staging, the DataLoader and
+    `ckpt.py::build_model` construction, and the deploy publish all fall outside every
+    epoch and so outside every bucket — see this module's phase-attribution header for
+    which of them publish a row of their own and which are unmeasured.
+    """
+    ep_ph["other"] = max(0.0, wall - sum(ep_ph[k] for k in _PHASE_KEYS if k != "other"))
+    for k in _PHASE_KEYS:
+        _tock_total(f"epoch {phase}{ep} {_PHASE_LABELS[k]}", ep_ph[k])
+    if totals is not None:
+        _add_phases(totals, ep_ph)
+
+
+def _print_phase_summary(totals):
+    """One line summing the epoch buckets — Σ(epoch walls), NOT the train step's wall
+    (exact to within `_publish_epoch_phases`'s `other` clamp: if the four named buckets
+    ever exceed an epoch's wall, the clamp holds `other` at 0 and this sum reads high by
+    that amount);
+    the label says "epoch phases" for that reason. Deliberately NOT in `⏱ <label>: <N>s` shape: it is a
+    human summary of rows that were already published individually, and
+    `harvest_timing_events.py::_EVENT` must not turn it into a sixth event row.
+    `qc/test_train_timing.py::test_summary_line_is_not_harvested` pins that."""
+    print("  ⏱ train epoch phases: "
+          + " ".join(f"{k}={totals[k]:.1f}s" for k in _PHASE_KEYS)
+          + "   (epochs only — excludes tile staging, loader/model build and deploy;"
+            " gpu = launch + device wait, sync at epoch end)")
+
+
+def _timed_batches(loader, phases):
+    """Yield `loader`'s batches, charging time blocked in the iterator to phases[data].
+
+    The generator wraps the iterator, not the batch body, so nothing inside the
+    numeric loop moves — `qc/bench.py` re-runs that body against a stored reference.
+    """
+    t0 = time.perf_counter()
+    it = iter(loader)
+    phases["data"] += time.perf_counter() - t0
+    while True:
+        t0 = time.perf_counter()
+        try:
+            batch = next(it)
+        except StopIteration:
+            phases["data"] += time.perf_counter() - t0
+            return
+        phases["data"] += time.perf_counter() - t0
+        yield batch
+
+
 def _train_one_epoch(model, loader, optimizer, scaler, criterion, device,
-                     loss_mode="bce_dice", freeze_bn=False, boundary_w=0.0):
+                     loss_mode="bce_dice", freeze_bn=False, boundary_w=0.0,
+                     phases=None):
     model.train()
+    _ph = phases if phases is not None else _new_phases()
+    _data0 = _ph["data"]
+    _t_epoch = time.perf_counter()
     if freeze_bn:
         _set_encoder_bn_eval(model)   # re-pin frozen-encoder BN after train()
     loss_sum = seg_sum = 0.0       # seg_sum tracks the combined seg loss (no L1)
     n = 0
-    for batch in loader:
+    for batch in _timed_batches(loader, _ph):
         if config.AUX_HEIGHT:
             imgs, masks, heights, meta = batch
             heights = heights.to(device, non_blocking=True)
@@ -415,6 +550,15 @@ def _train_one_epoch(model, loader, optimizer, scaler, criterion, device,
         scaler.step(optimizer)
         scaler.update()
         loss_sum += loss.item(); seg_sum += seg.item(); n += 1
+    # ONE sync, at the epoch boundary — never per batch. A per-batch
+    # torch.cuda.synchronize() would drain the queue every iteration and destroy the
+    # overlap the loop is built on (the next batch's H2D copy and kernel launches
+    # currently proceed while the previous batch is still executing), so it would
+    # change the very throughput it is trying to measure. Here it costs one drain per
+    # epoch and only pulls the epoch's trailing kernels inside the timed window.
+    if device.type == "cuda":
+        torch.cuda.synchronize()
+    _ph["gpu"] += (time.perf_counter() - _t_epoch) - (_ph["data"] - _data0)
     return loss_sum / max(n, 1), seg_sum / max(n, 1)
 
 
@@ -752,6 +896,9 @@ def step_train(label, batch_size=BATCH_SIZE, p3_ckpt=None, dry_run=False, compil
     sel = (_SmoothCkptSelector(smooth_k, es_maximize,
                                model_mb=_state_mb(model)) if smooth_k > 1 else None)
 
+    # Step-level roll-up of the per-epoch buckets, across BOTH phases.
+    totals = _new_phases()
+
     # ── Phase A: frozen encoder ──
     print(f"\n  PHASE A — frozen encoder | {config.EPOCHS_PHASE_A} ep | LR={config.LR_PHASE_A}")
     _freeze_encoder(model)
@@ -767,6 +914,10 @@ def step_train(label, batch_size=BATCH_SIZE, p3_ckpt=None, dry_run=False, compil
     es = 0
     for ep in range(config.EPOCHS_PHASE_A):
         t0 = time.time()
+        # One clock for every quantity that gets subtracted (perf_counter), so `other`
+        # cannot go negative from clock skew against the epoch line's time.time().
+        ep_ph = _new_phases()
+        _t_ep0 = time.perf_counter()
         _, tr_bce = _train_one_epoch(model, train_loader, opt, scaler, criterion,
                                      device, loss_mode,
                                      freeze_bn=config.FREEZE_ENCODER_BN,
@@ -774,9 +925,12 @@ def step_train(label, batch_size=BATCH_SIZE, p3_ckpt=None, dry_run=False, compil
                                      # resolution with the encoder frozen. Edges are
                                      # Phase B's job (Kam, 2026-08-30), so the boundary
                                      # term is explicitly OFF here, not merely unset.
-                                     boundary_w=0.0)
+                                     boundary_w=0.0,
+                                     phases=ep_ph)
+        _t_val0 = time.perf_counter()
         v_bce, v_iou, v_iou_bt, v_thr = _validate(model, val_loader, criterion,
                                                   device, loss_mode)
+        ep_ph["val"] += time.perf_counter() - _t_val0
         es_val = (v_iou_bt if es_metric == "val_iou_bt"      # tier-selected metric
                   else v_iou if es_metric == "val_iou" else v_bce)
         sched.step(es_val)
@@ -789,18 +943,24 @@ def step_train(label, batch_size=BATCH_SIZE, p3_ckpt=None, dry_run=False, compil
         if best:
             best_val = es_val; es = 0
             raw_best[:] = ["A", ep + 1]
+            _t_sv0 = time.perf_counter()
             _save_ckpt("A", ep + 1, model, opt, sched, history, best_val, best_ckpt)
+            ep_ph["save"] += time.perf_counter() - _t_sv0
         else:
             es += 1
         if sel is not None:
             sel.observe("A", ep + 1, es_val, model)
         if (ep + 1) % SAVE_EVERY == 0 or ep == config.EPOCHS_PHASE_A - 1:
+            _t_sv0 = time.perf_counter()
             _save_ckpt("A", ep + 1, model, opt, sched, history, best_val, latest_ckpt)
+            ep_ph["save"] += time.perf_counter() - _t_sv0
         print(f"  A E{ep+1:>3}/{config.EPOCHS_PHASE_A} tr_bce={tr_bce:.4f} "
               f"val_bce={v_bce:.4f} val_iou={v_iou:.4f} "
               f"iou_bt={v_iou_bt:.4f}@{v_thr:.1f} "
               f"lr={opt.param_groups[0]['lr']:.2e} {time.time()-t0:.0f}s"
               f"{' ★' if best else f'  [{es}/{EARLY_STOP_PAT}]'}")
+        _publish_epoch_phases("A", ep + 1, ep_ph,
+                              time.perf_counter() - _t_ep0, totals)
         if es >= EARLY_STOP_PAT:
             print("  Early stop — Phase A"); break
     # WHY training stopped, not just that it did. Four of five 2009 arms hit the
@@ -823,7 +983,11 @@ def step_train(label, batch_size=BATCH_SIZE, p3_ckpt=None, dry_run=False, compil
         best_val, stop_b, ran_b = _run_phase_b(
             model, train_loader, val_loader, criterion, device, loss_mode,
             es_metric, es_maximize, sched_mode, best_val, best_ckpt,
-            latest_ckpt, history, raw_best, sel)
+            latest_ckpt, history, raw_best, sel, phases=totals)
+
+    # After the Phase-B branch, so a `--epochs-phase-b 0` diagnostic run still
+    # reports its Phase-A attribution.
+    _print_phase_summary(totals)
 
     # ── deploy: raw peak (default) or the smoothed peak's REAL weights ────────
     summary = _finish_selection(label, history, es_metric, es_maximize, best_val,
@@ -838,7 +1002,7 @@ def step_train(label, batch_size=BATCH_SIZE, p3_ckpt=None, dry_run=False, compil
 
 def _run_phase_b(model, train_loader, val_loader, criterion, device, loss_mode,
                  es_metric, es_maximize, sched_mode, best_val, best_ckpt,
-                 latest_ckpt, history, raw_best=None, sel=None):
+                 latest_ckpt, history, raw_best=None, sel=None, phases=None):
     if raw_best is None:
         raw_best = [None, None]
     n_before = len(history["epoch"])
@@ -859,11 +1023,16 @@ def _run_phase_b(model, train_loader, val_loader, criterion, device, loss_mode,
     es = 0
     for ep in range(config.EPOCHS_PHASE_B):
         t0 = time.time()
+        ep_ph = _new_phases()
+        _t_ep0 = time.perf_counter()
         _, tr_bce = _train_one_epoch(model, train_loader, opt, scaler, criterion,
                                      device, loss_mode,
-                                     boundary_w=config.BOUNDARY_WEIGHT)
+                                     boundary_w=config.BOUNDARY_WEIGHT,
+                                     phases=ep_ph)
+        _t_val0 = time.perf_counter()
         v_bce, v_iou, v_iou_bt, v_thr = _validate(model, val_loader, criterion,
                                                   device, loss_mode)
+        ep_ph["val"] += time.perf_counter() - _t_val0
         es_val = (v_iou_bt if es_metric == "val_iou_bt"      # tier-selected metric
                   else v_iou if es_metric == "val_iou" else v_bce)
         sched.step(es_val)
@@ -876,18 +1045,24 @@ def _run_phase_b(model, train_loader, val_loader, criterion, device, loss_mode,
         if best:
             best_val = es_val; es = 0
             raw_best[:] = ["B", ep + 1]
+            _t_sv0 = time.perf_counter()
             _save_ckpt("B", ep + 1, model, opt, sched, history, best_val, best_ckpt)
+            ep_ph["save"] += time.perf_counter() - _t_sv0
         else:
             es += 1
         if sel is not None:
             sel.observe("B", ep + 1, es_val, model)
         if (ep + 1) % SAVE_EVERY == 0 or ep == config.EPOCHS_PHASE_B - 1:
+            _t_sv0 = time.perf_counter()
             _save_ckpt("B", ep + 1, model, opt, sched, history, best_val, latest_ckpt)
+            ep_ph["save"] += time.perf_counter() - _t_sv0
         print(f"  B E{ep+1:>3}/{config.EPOCHS_PHASE_B} tr_bce={tr_bce:.4f} "
               f"val_bce={v_bce:.4f} val_iou={v_iou:.4f} "
               f"iou_bt={v_iou_bt:.4f}@{v_thr:.1f} "
               f"lr={opt.param_groups[0]['lr']:.2e} {time.time()-t0:.0f}s"
               f"{' ★' if best else f'  [{es}/{EARLY_STOP_PAT}]'}")
+        _publish_epoch_phases("B", ep + 1, ep_ph,
+                              time.perf_counter() - _t_ep0, phases)
         if es >= EARLY_STOP_PAT:
             print("  Early stop — Phase B"); break
 
@@ -990,6 +1165,18 @@ def step_evaluate(label, dry_run=False):
     index_path = tile_dir_for(label) / f"tile_index_{label}.csv"
     if not index_path.exists():
         print(f"  ERROR: {index_path} not found — run step tile first"); return
+    # NOTHING inside evaluate was timed. The pilot spent 2.1 min here against the
+    # baseline's 1.0 min with tiles already local in both, and the only two tick lines
+    # the step emitted were the 0.0 s report copy — so the extra minute had nowhere to
+    # be. These five buckets cover the step end to end.
+    #
+    # There is NO DataLoader in evaluate (the loop below reads each tile with rasterio,
+    # one at a time, on the main thread), so tile staging is the analog of the train
+    # step's loader build. On a warm run — the pilot's shape — `eval tiles local`
+    # measures the reuse check alone. NESTED on a cold run: it encloses
+    # `staging.py::_stage_tiles_local`'s own `⏱ stage tiles <label>` event, so those
+    # seconds appear in both rows and must not be summed together.
+    tick("eval tiles local")
     idx_df = pd.read_csv(index_path)
     # P4.2 parity (2026-09-02): step_train has staged tiles to NVMe since P4.2;
     # evaluate kept reading FUSE — measured on t1gpuA as 3->18 s/batch jitter
@@ -1021,6 +1208,7 @@ def step_evaluate(label, dry_run=False):
         eval_df = idx_df.reset_index(drop=True)
         eval_scope = "IN-SAMPLE (no held-out test at this GSD)"
     print(f"  Eval tiles: {len(eval_df)}  [{eval_scope}]")
+    tock("eval tiles local")
     if dry_run or len(eval_df) == 0:
         if len(eval_df) == 0:
             print("  No tiles to evaluate."); 
@@ -1029,12 +1217,16 @@ def step_evaluate(label, dry_run=False):
     ckpt = MODELS_DIR / f"sem_best_{label}{_tag_sfx()}.pt"
     if not ckpt.exists():
         print(f"  ERROR: {ckpt} not found — run step train first"); return
+    # Encoder construction plus a 371 MB checkpoint read — a live suspect for the
+    # un-instrumented minute, and never separated from the forward pass until now.
+    tick("eval model load")
     with rasterio.open(eval_df.iloc[0]["img_path"]) as _s0:
         config.IN_CHANNELS = _s0.count           # match the model to the eval tiles
     _sync_hs_source_from_tile(eval_df.iloc[0]["img_path"])
     model = build_model(device, compile_model=False)
     ck = load_state_into(model, ckpt, device, what="deployed checkpoint -> evaluate/inference")
     model.eval()
+    tock("eval model load")
     print(f"  Model: {ckpt.name}  (phase={ck.get('phase','?')} "
           f"val_bce={ck.get('best_val','?')})")
 
@@ -1043,6 +1235,10 @@ def step_evaluate(label, dry_run=False):
     tp = fp = fn = tn = 0
     site_cm = {}
     all_prob, all_gt = [], []   # pooled pixels for threshold-independent metrics
+    # Batch size 1, one rasterio open per tile, no prefetch: this loop is as much
+    # tile I/O and numpy as it is GPU, and the tqdm bar reports rate but nothing
+    # writes the total anywhere a harvest can read.
+    tick("eval forward")
     with torch.no_grad():
         for _, row in tqdm(eval_df.iterrows(), total=len(eval_df), desc="  Eval"):
             with rasterio.open(row["img_path"]) as src:
@@ -1067,6 +1263,7 @@ def step_evaluate(label, dry_run=False):
             s = row["site"]
             sm = site_cm.setdefault(s, [0, 0, 0, 0])
             sm[0] += a; sm[1] += b; sm[2] += c; sm[3] += d
+    tock("eval forward")
 
     overall = _metrics(tp, fp, fn, tn)   # at the fixed 0.5 cutoff
 
@@ -1075,6 +1272,10 @@ def step_evaluate(label, dry_run=False):
     # critical for coarse years where the distribution piles up near 0.5 and the
     # fixed threshold is brutally sensitive. best_f1_thresh is the per-year
     # operating point to use instead of 0.5.
+    # AUROC / AP / log-loss over EVERY valid eval pixel pooled — a sort of a vector
+    # that is tiles x 512 x 512 long. The other live suspect for the missing minute,
+    # and it is pure CPU: the GPU is idle for all of it.
+    tick("eval metrics")
     ti = _threshold_independent_metrics(all_prob, all_gt, overall["f1"])
 
     # v039: also compute confusion metrics at the DEPLOYED operating threshold
@@ -1092,6 +1293,7 @@ def step_evaluate(label, dry_run=False):
         fn_o = int((~pop & (yt == 1)).sum()); tn_o = int((~pop & (yt == 0)).sum())
         overall_op = _metrics(tp_o, fp_o, fn_o, tn_o)
     del all_prob, all_gt
+    tock("eval metrics")
 
     print(f"  {'-'*52}")
     print(f"  IoU={overall['iou']:.4f}  Dice={overall['dice']:.4f}  "
@@ -1114,6 +1316,11 @@ def step_evaluate(label, dry_run=False):
             print(f"  Precision-floor {PRECISION_FLOOR} unreachable at any threshold "
                   f"(stick with best-F1)")
 
+    # Row assembly plus the cumulative-report read/rewrite/publish. NESTED: this
+    # encloses the `⏱ copy semantic_eval_report*.csv` events `_copy_to_drive` prints
+    # (both the superseded archive and the report itself), so the two families of row
+    # overlap and must not be summed together.
+    tick("eval report")
     EVAL_DIR.mkdir(parents=True, exist_ok=True)
     # Input-arm label so ablation rows (rgb / rgb+fr / rgb+struct) coexist in the
     # report instead of silently overwriting each other. (VI unused in phase 4.)
@@ -1208,6 +1415,7 @@ def step_evaluate(label, dry_run=False):
             pass
     print(f"  ✓ Eval rows written → {EVAL_CSV.name}  (channels={chan_desc}, "
           f"run_tag={config.RUN_TAG or '(none)'})")
+    tock("eval report")
 
     if tier == "coarse":
         bf = f", best-F1 thresh={ti['best_f1_thresh']:.3f}" if ti else ""
@@ -1330,7 +1538,11 @@ def step_inference(label, batch_size=INFER_BATCH_SIZE, dry_run=False, citywide=F
             print("  ERROR: --infer-aoi has no overlap with this ortho"); return
     if dry_run:
         print("  Dry run — not running inference")
-        _unstage_imagery_local(local) if local != native else None
+        # NOTHING TO RELEASE HERE: `local = native if dry_run else …` above, so a dry run
+        # never staged anything and the `local != native` unlink that used to sit here
+        # was dead by construction. Removed rather than converted to a release, so the
+        # ledger in common.py::_unstage_imagery_local does not carry a row for a site
+        # that never fired.
         return
 
     # in_channels is recorded in the ckpt (3=RGB, 4=RGB+structure); set IN_CHANNELS
@@ -1411,6 +1623,41 @@ def step_inference(label, batch_size=INFER_BATCH_SIZE, dry_run=False, citywide=F
             print(f"  AOI-restricted tile positions: {len(origins):,}  |  batch={batch_size}")
         else:
             print(f"  Tile positions: {len(origins):,}  |  batch={batch_size}")
+
+    # THE DESTINATION MUST STOP BEING A CACHE ENTRY BEFORE WE OPEN IT FOR WRITE.
+    # After a previous run adopted it (see the _copy_to_drive tail below), `prob_out` is
+    # a `ready`, UNPINNED entry at exactly this path. A same-VM rerun of this year+tag
+    # opens it "w" — and mid-write a peer's scratchcache.stage()/reserve() could evict
+    # it, unlinking the file under our open fd: the write then completes into an
+    # orphaned inode and _copy_to_drive fails on a missing path, burning a 480-min
+    # inference. reserve() covers HEADROOM, not the destination, so invalidate first.
+    # A refusal (a live reader holds it) leaves today's behaviour: we overwrite, exactly
+    # as this step always has.
+    scratchcache.invalidate(prob_out)
+    # …then make room for the write itself — SIZED FROM A RASTER, NOT FROM THE GRID.
+    # This asked for img_h*img_w, the UNCOMPRESSED grid, which for the 5 cm epochs is
+    # 148736x211968 = 31.5 GB against a 6.72 GB LZW file — the spread and its derivation
+    # are in scratchcache.py::PROB_RASTER_BYTES_ASSUMED, one home. A request that large
+    # put the eviction target out of reach of an ~87 GB runtime with the ortho pinned, so
+    # the evictor deleted every unpinned entry at every inference step and destroyed the
+    # cross-year hits this change exists to buy (the tile step's shared rasters; the
+    # count is in tiling.py::_gather_citywide_coarse and it grows with every run).
+    #
+    # THE LARGER OF THE TWO, AND THE ASYMMETRY IS WHY. The previous raster at this exact
+    # year+tag is the only MEASURED answer available, but it is not a safe answer on its
+    # own: an AOI or SAMPLE run writes a mostly-nodata raster at the same path, so a full
+    # run following one would size itself off that stump and UNDER-reserve — and an
+    # under-reserve is an ENOSPC partway through a 480-minute write, while an
+    # over-reserve costs one re-stage. The stat therefore only ever raises the request,
+    # never lowers it, which means it matters exactly when it should: when a raster has
+    # grown past what PROB_RASTER_BYTES_ASSUMED was sized against. It is also a DRIVE
+    # stat, and on a wedged mount even that raises (postproc.py::_resolve_prob_source
+    # documents the drivefs EIO), so a failure falls back to the constant alone.
+    try:
+        _want = max(prob_final.stat().st_size, scratchcache.PROB_RASTER_BYTES_ASSUMED)
+    except OSError:
+        _want = scratchcache.PROB_RASTER_BYTES_ASSUMED
+    scratchcache.reserve(_want)
 
     # uint8 prob raster; 255 reserved as a nodata sentinel (blanks un-imaged areas
     # of partial-coverage years). Real probabilities clipped to 0–254.
@@ -1578,23 +1825,38 @@ def step_inference(label, batch_size=INFER_BATCH_SIZE, dry_run=False, citywide=F
     tock("inference")
     if prob_out != prob_final:
         _copy_to_drive(prob_out, prob_final)      # raises loudly on size/sha mismatch
+        # ADOPT IT, don't just keep it. _copy_to_drive has this instant proved size and
+        # sha256 of `prob_out` against `prob_final`, so this is the one place in the
+        # pipeline where a write artifact is KNOWN to be a valid copy of its Drive
+        # original — which is exactly the evidence a cache entry needs. adopt() writes a
+        # `ready` sidecar for a file already in place; no bytes move.
+        scratchcache.adopt(prob_out, prob_final)
         # P4.3 (2026-09-07): KEEP the staged copy when postproc runs in this same
         # invocation. It used to be unlinked here unconditionally, so postproc — which
         # follows immediately on the default full-pipeline path — re-read the same
         # multi-GB file back over FUSE. Postproc's elapsed time tracks the raster's
         # size at r = +0.886 across 38 runs, so that round-trip is most of what the
-        # step costs on the 5 cm epochs (3.0-6.7 GB, 66-99 min). postproc unlinks it
-        # when it is done; if postproc is NOT part of this run the file goes now, so
-        # a long inference-only queue cannot fill the VM's local disk.
+        # step costs on the 5 cm epochs (3.0-6.7 GB, 66-99 min).
+        # THE `not POSTPROC_FOLLOWS` BRANCH IS THE ONE THE QUEUE ACTUALLY TAKES:
+        # POSTPROC_FOLLOWS is set in exactly one place (cli.py), on the single-invocation
+        # path, and phase4_train_queue.py::run_step launches ONE PROCESS PER --step. So
+        # under the queue this unlinked the raster and the separate postproc process
+        # re-staged the whole 2.4-6.7 GB back down (_resolve_prob_source case (b)). It
+        # is now a RELEASE: the entry stays, unpinned and evictable, and postproc hits
+        # it. The explicit disk bound this unlink used to be — "a long inference-only
+        # queue cannot fill the VM's local disk" — is now the evictor's floor
+        # (scratchcache.py::FLOOR_ABS), which frees the same bytes on demand instead of
+        # unconditionally.
         if not getattr(config, "POSTPROC_FOLLOWS", False):
-            try:
-                prob_out.unlink()
-            except OSError:
-                pass
+            _unstage_imagery_local(prob_out)
     print(f"  ✓ Probability raster: {prob_final.name} "
           f"({prob_final.stat().st_size/1e6:.0f} MB)")
 
     if local != native:
+        # RELEASE. This is the site the measurement is clearest at: on the baseline A100
+        # box `2017_king_rgb.tif` (11.5 GB) was staged by tile at 123.5 s and then again
+        # HERE at 87.1 s (phase4/qc/timing_events.csv), because tile unlinked it on the
+        # way out. Ledger: common.py::_unstage_imagery_local.
         _unstage_imagery_local(local)
     model = None  # free the ref (GPU mem) WITHOUT unbinding: _forward closes over
                   # this name, and `del` of a cell var makes any later call a NameError

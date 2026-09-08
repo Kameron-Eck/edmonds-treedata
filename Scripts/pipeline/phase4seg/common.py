@@ -14,6 +14,12 @@ from pathlib import Path
 
 from phase4seg.config import *
 from phase4seg import config
+# The scratch cache. Imported at module scope BECAUSE it imports nothing from here at
+# module scope — scratchcache reaches back into common (for _scratch_name, tick/tock,
+# _staging_lock_for, _sweep_part_orphans) through function-local imports only, the same
+# lazy-import discipline phase4seg/CLAUDE.md sets for torch. A cycle in both directions
+# would half-initialise both modules.
+from phase4seg import scratchcache
 
 
 # The bootstrap MECHANISM lives in phase4seg/deps.py since 2026-08-31 (refactor 2.3).
@@ -443,38 +449,86 @@ def _staging_lock_for(src_path):
 
 
 def _stage_imagery_local(src_path):
-    """Copy a Drive ortho to local NVMe; return the local path (or src on failure)."""
+    """Copy a Drive ortho to local NVMe; return the local path (or src on failure).
+
+    THIS FUNCTION WAS ALREADY A CACHE. Its `dst.exists() and size == src_size` early
+    return is a hit, and it worked — it just never fired across steps, because every
+    step DELETED the payload on its way out (the ledger in `_unstage_imagery_local`
+    below). phase4seg/scratchcache.py adds the journal that lets the hit survive the
+    step: pins so a peer cannot evict what someone is reading, a floor so a full disk
+    still refuses gracefully, and an atomic `.part` + os.replace so a copy killed midway
+    can no longer leave a truncated multi-GB file at the exact path a later reader
+    trusts (the failure postproc.py::_resolve_prob_source documents at length).
+
+    The two contracts of this shim are UNCHANGED and are the reason it stays a shim:
+    the `/content/drive` prefix early return (so nothing off-Colab is ever cached, and
+    no cache function has to test for a mount), and the returns-SOURCE-on-failure
+    except. The payload path is unchanged too — LOCAL_SCRATCH / _scratch_name(src) —
+    which is what preserves postproc.py::_resolve_prob_source's "(a) and (b) resolve to
+    the SAME scratch path by construction" and the LOCAL_SCRATCH guard below.
+
+    D18 was applied to _local_artifact_path (the WRITE side) and not here (the READ
+    side), though the collision is the same one: two Drive orthos whose basenames match
+    — different years' native/ files routinely do — staged to one scratch file, and the
+    exists+size test then hands the second caller the first one's imagery. Same
+    deterministic full-path hash, same reasoning; scratchcache keys on that same hash.
+    """
     src_path = Path(src_path)
     if not str(src_path).startswith("/content/drive"):
         return src_path  # already local
-    LOCAL_SCRATCH.mkdir(parents=True, exist_ok=True)
-    # D18 was applied to _local_artifact_path (the WRITE side) and not here (the
-    # READ side), though the collision is the same one: two Drive orthos whose
-    # basenames match — different years' native/ files routinely do — staged to one
-    # scratch file, and the exists+size test then hands the second caller the first
-    # one's imagery. Same deterministic full-path hash, same reasoning.
-    dst = LOCAL_SCRATCH / _scratch_name(src_path)
     try:
-        src_size = src_path.stat().st_size
-        if dst.exists() and dst.stat().st_size == src_size:
-            return dst
-        with _staging_lock_for(src_path):          # P11.4: one bulk Drive copy at a time
-            if dst.exists() and dst.stat().st_size == src_size:
-                return dst                         # a same-VM peer staged it while we waited
-            tick(f"stage {src_path.name}")
-            shutil.copy2(src_path, dst)
-            tock(f"stage {src_path.name}")
-        return dst
-    except Exception as e:
+        return scratchcache.stage(src_path)
+    except Exception as e:                                   # noqa: BLE001
         print(f"  WARNING: local staging failed ({e}); reading from Drive")
         return src_path
 
 
 def _unstage_imagery_local(local_path):
+    """RELEASE a staged file — drop our claim on it; the bytes stay, evictable.
+
+    IT USED TO UNLINK, AND THAT IS WHAT THIS CHANGE IS. The same 11.5 GB ortho
+    `2017_king_rgb.tif` was staged FOUR times across the pilot and its baseline; on the
+    baseline A100 box tile paid 123.5 s and inference then paid 87.1 s for the identical
+    file (phase4/qc/timing_events.csv). Re-staging is 42% of all staged seconds
+    all-time, 53% post-08-30 (Reports/PIPELINE_SPEEDUP_OPTIONS_2026-09-07.md §2).
+
+    THE LEDGER — why each historical delete existed, so the next reader knows which
+    were space management (now the evictor's job) and which were correctness (still
+    deletes, via scratchcache.invalidate):
+
+      labels.py::step_labels finally            the year's ortho — space; tiling.py
+                                                re-stages the SAME file next  -> release
+      tiling.py::_gather_citywide_coarse (x3)   ortho, MASK_2020, the --add-canopy-mask
+                                                overlay — space. The two shared rasters
+                                                are the CROSS-YEAR hits; the measured
+                                                count has ONE home, scratchcache.py's
+                                                module docstring -> release
+      core.py::step_inference dry-run return    NOT A SITE. It read `_unstage_imagery_
+                                                local(local) if local != native`, but a
+                                                dry run sets `local = native`, so it
+                                                never fired and nothing was ever staged
+                                                there. Deleted, not converted.
+      core.py::step_inference tail              the ortho — space -> release
+      core.py::step_inference (not POSTPROC_
+        FOLLOWS) prob_out.unlink()              an explicit disk bound, so a long
+                                                inference-only queue could not fill the
+                                                VM — now the evictor's floor -> adopt
+                                                + release
+      postproc.py::step_postproc finally        the prob raster, both branches — bound
+                                                the per-year leak -> release
+      postproc.py::_resolve_prob_source         a short/stale copy — CORRECTNESS, not
+        discard-on-size-mismatch                space -> scratchcache.invalidate
+      postproc.py mask/gpkg after _copy_to_
+        drive; staging.py local_tar.unlink      write-side / transient -> UNCHANGED
+
+    A payload with no cache record is not an entry — nobody would ever free it — so
+    scratchcache.release keeps this function's historical unlink for that case. Only
+    OWNED entries survive a release.
+    """
     local_path = Path(local_path)
     try:
-        if str(local_path).startswith(str(LOCAL_SCRATCH)) and local_path.exists():
-            local_path.unlink()
+        if str(local_path).startswith(str(LOCAL_SCRATCH)):
+            scratchcache.release(local_path)
     except Exception:
         pass
 
@@ -626,24 +680,102 @@ def _publish_replace(part, dest):
 
     Rename-aside makes BOTH renames absent-destination, and unlike
     unlink-then-replace it never destroys the previous artifact before the new one
-    is in place: if the publish fails, the old file is restored from the aside name
-    and the caller still has something valid on Drive.
+    is in place: if the publish fails WITHOUT landing, the old file is restored from
+    the aside name, and either way the caller still has something valid on Drive.
 
     The aside suffix goes AFTER the extension (`sem_best_2009_x.pt.prev.a1b2c3`).
     Every artifact glob in this repo is extension-anchored, so `.prev.*` matches
     none of them — the same reason `.part.*` is spelled that way.
+
+    THE ASIDE RENAME'S ERROR IS NOT ALWAYS FileNotFoundError. It was guarded against
+    that alone, which reads "dest vanished under us, so there is no aside" — true for
+    ENOENT and false for everything else. On this rclone FUSE mount a transient EIO
+    is documented (queue_verify.py::_check_prob_raster retries for it), and an
+    EIO can be raised AFTER the rename has already landed: dest is then gone, `aside`
+    is set to None by the old code as if nothing had moved, and the publish proceeds
+    with the previous CHECKPOINT stranded under a `.prev.<hex>` name no reader globs
+    — every artifact glob in this repo is extension-anchored — and only
+    _sweep_part_orphans reclaims, past its 24 h age gate, on the next _copy_to_drive
+    into that directory. So the previous checkpoint is unreachable to every reader
+    for up to a day and is then deleted: not kept, just slowly lost, which is why it
+    must not be stranded in the first place. The three `.prev.*` orphans found on the
+    lake 2026-09-07 (e499355's closing note) were STATUS TABLES, not checkpoints — but
+    this path carried the same guard byte-for-byte, so the same mechanism was
+    available to it, and here it is worse: if the publish then failed too, the
+    restore never ran and the destination — the file a scoring run loads — stayed
+    EMPTY.
+
+    So: catch OSError, then RE-PROBE the filesystem rather than trust the exception's
+    type. dest still there means the rename did not land — re-raise without
+    publishing, because publishing over an existing destination is the unproven
+    os.replace case this function exists to avoid. The raise propagates out of
+    _copy_to_drive — its retry loop covers the COPY, not the publish — and its
+    `finally` drops the `.part.*`, so what is left on Drive is the previous
+    checkpoint, intact and complete, which is the recoverable state. That branch does
+    NOT unlink an aside that landed anyway. The probe is the only evidence either
+    way, and the two mistakes are not the same size: if it is right, the file it
+    would delete is a duplicate of a `dest` that is still published and the sweep
+    collects it; if it is wrong, that file is the LAST copy of a 371 MB checkpoint.
+    Under equal uncertainty, keep the copy. dest gone AND the aside present means the
+    rename DID complete: the aside holds the only copy of the previous checkpoint,
+    so the publish below proceeds and restores from it only where it can still see an
+    absent destination. dest gone and no aside is the original ENOENT reading.
+
+    THE PUBLISH RENAME COMPLETES-THEN-FAILS THE SAME WAY, and the restore did not ask.
+    `os.replace(aside, dest)` ran on ANY OSError from the publish, so an EIO raised
+    after the publish had already landed put the previous checkpoint back over an
+    EXISTING destination — the unproven case, inside the function whose only reason to
+    exist is avoiding it — and silently reverted a good new checkpoint while telling
+    the caller the publish had failed. Same shape as the aside bug, one line lower.
+    The restore now probes first: a present dest means a checkpoint IS published
+    there, so leave it, leave the aside for the sweep, and re-raise without
+    clobbering. Only an absent dest is restored into. It re-raises rather than
+    reporting success because it cannot PROVE which file landed — verify_on_drive
+    downstream reports and never refuses, so a returned success would pass a gate
+    that cannot push back. The caller-visible behaviour is unchanged from before this
+    fix (publish error → raise); only the clobber is gone.
+
+    COVERAGE, INFERRED not measured: both probes read the LOCAL view of a FUSE mount.
+    They cover the case that was reproduced — the rename landed and the error came
+    back afterwards. A stale view the other way (the kernel believes the rename
+    failed, dest reads absent while the server has it) would still take the old
+    branch. Nothing on this box can measure rclone's cache behaviour.
+
+    The aside-rename guard was ported from queue_ledger.py::_replace_absent (c5dc91c),
+    which met that bug first; the two probe-before-destroy fixes above were made HERE
+    first (2026-09-07). Whether the ledger twin has caught up is stated in
+    queue_ledger.py::_replace_absent's own docstring — this one does not restate it.
     """
     aside = None
     if dest.exists():
         aside = dest.with_name(dest.name + f".prev.{secrets.token_hex(3)}")
         try:
             os.replace(dest, aside)                    # absent destination
-        except FileNotFoundError:                      # vanished under us — fine
-            aside = None
+        except OSError:
+            if dest.exists():
+                # the rename did not happen; the previous checkpoint is still
+                # published, so re-raise without publishing over it. An aside that
+                # landed anyway is NOT unlinked here: that unlink is a no-op in
+                # every case except the one where this probe is what is wrong, and
+                # there it deletes the last copy of the checkpoint.
+                raise
+            if not aside.exists():
+                aside = None               # dest vanished under us — nothing to keep
+            # else: the rename completed and THEN failed. Fall through: `aside` holds
+            # the only copy of the previous checkpoint, and the publish below
+            # restores it if it cannot land the new one — but only where the
+            # destination still reads absent, never over a published file.
     try:
         os.replace(part, dest)                         # absent destination
     except OSError:
-        if aside is not None:
+        if dest.exists():
+            # the publish landed and THEN reported the error: a checkpoint is
+            # published. Restoring would replace over an EXISTING destination and
+            # revert it to the previous one. Leave both files and re-raise.
+            print(f"  ! {dest.name} is published but its rename reported an error; "
+                  f"not restoring over it"
+                  + (f" (previous copy at {aside.name})" if aside is not None else ""))
+        elif aside is not None:
             try:
                 os.replace(aside, dest)                # put the old one back
             except OSError:
@@ -892,7 +1024,16 @@ def _hillshade_ds():
               f"falling back to RGB-only despite USE_HILLSHADE.")
         return None
     local = _stage_imagery_local(path)          # idempotent; returns the staged copy
-    _HILLSHADE_DS[key] = local                  # remembered for _unstage/teardown
+    # "remembered for _unstage/teardown" — AND THERE IS NO TEARDOWN. The only other
+    # references to _HILLSHADE_DS are its definition above and tiling.py's
+    # _hillshade_ds() calls; nothing ever reads it back to release anything. So the
+    # staged CHM/hillshade master has been un-swept garbage on every VM, outliving the
+    # step that made it with no owner. The scratch cache does not add a release site
+    # here — the handle is deliberately held for the life of the process — but the
+    # staged master now carries a `ready` sidecar, so for the first time it is
+    # EVICTABLE once this pid is gone, instead of sitting there until the runtime dies.
+    # It is pinned while we hold it open, which is correct: it is open.
+    _HILLSHADE_DS[key] = local
     cache[key] = rasterio.open(local)
     return cache[key]
 

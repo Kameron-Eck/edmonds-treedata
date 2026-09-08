@@ -637,8 +637,10 @@ def _replace_absent(tmp, dest):
     engine's environment is broken, so it imports no engine module and no third
     party at import time. Importing common.py here would pull geopandas, rasterio,
     shapely, fiona and sklearn into the process whose whole job is to survive them.
-    NO LONGER BYTE-IDENTICAL as of the aside-rename fix below; common.py still
-    carries the old FileNotFoundError-only guard.
+    STILL NOT BYTE-IDENTICAL, but no longer for that reason: common.py caught up on
+    the aside rename (OSError, then re-probe) on 2026-09-07, and the two guards that
+    now differ are both in this twin — it unlinks a landed aside when `dest` survives,
+    and its publish-failure restore replaces over `dest` without probing it first.
 
     Same reasoning as there: the mount canary only ever proved the
     absent-destination case of os.replace, and the aside suffix goes AFTER the

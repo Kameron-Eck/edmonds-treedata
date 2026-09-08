@@ -18,6 +18,7 @@ import tarfile
 from pathlib import Path, PurePosixPath
 
 from phase4seg import config
+from phase4seg import scratchcache
 from phase4seg.config import LOCAL_SCRATCH
 from phase4seg.common import (_sha256, _StagingLock, STAGE_LOCK_MIN_BYTES,
                               tick, tock, untick)
@@ -382,6 +383,14 @@ def _stage_from_bundle(src_root, dst_root, idx_df, cols, kinds, label,
     tar_dir = Path(tar_dir) if tar_dir else (LOCAL_SCRATCH / "bundles")
     tar_dir.mkdir(parents=True, exist_ok=True)
     local_tar = tar_dir / f"{dst_root.name}__{want}.tar"
+    # THE SCRATCH CACHE COMPETES WITH THIS WRITER FOR THE SAME DISK. Until now the big
+    # writers into LOCAL_SCRATCH found room only BECAUSE every step deleted its ortho on
+    # exit; with a cache holding those orthos that accident is gone, so ask for the room
+    # explicitly. 2x tar_size because the tar and the tree it extracts coexist until the
+    # `finally` below unlinks the tar. The answer is ADVISORY and deliberately not
+    # gated on: today's path checks free space nowhere at all, and refusing a bundle
+    # where today would have copied one would be a regression, not a guard.
+    scratchcache.reserve(2 * int(sidecar.get("tar_size") or 0))
     tick(f"bundle copy {label}")
     try:
         shutil.copyfile(src_root / tar_name, local_tar)

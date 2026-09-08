@@ -1,42 +1,48 @@
 metric,step,baseline,pilot,unit,baseline_source,pilot_source,note
-step_minutes,labels,2.3,,min,train_queue_status.csv session=of2017k2,,
-step_minutes,tile,21.1,,min,train_queue_status.csv session=of2017k2,,
-step_minutes,train,47.8,,min,train_queue_status.csv session=of2017k2,,
-step_minutes,evaluate,1.1,,min,train_queue_status.csv session=of2017k2,,
-step_minutes,inference,20.3,,min,train_queue_status.csv session=of2017k2,,
-step_minutes,postproc,19.0,,min,train_queue_status.csv session=of2017k2,,
-step_elapsed_log,labels,0.00,,min,phase4_semantic_finetune_labels_2017k_2026-09-06T01-42.log,,"engine time, `elapsed:` normalised to minutes"
-step_elapsed_log,tile,18.50,,min,phase4_semantic_finetune_tile_2017k_2026-09-06T02-03.log,,"engine time, `elapsed:` normalised to minutes"
-step_elapsed_log,train,46.40,,min,phase4_semantic_finetune_train_2017k_2026-09-06T02-50.log,,"engine time, `elapsed:` normalised to minutes"
-step_elapsed_log,evaluate,0.99,,min,phase4_semantic_finetune_evaluate_2017k_2026-09-06T02-53.log,,"engine time, `elapsed:` normalised to minutes"
-step_elapsed_log,inference,19.40,,min,phase4_semantic_finetune_inference_2017k_2026-09-06T03-13.log,,"engine time, `elapsed:` normalised to minutes"
-step_elapsed_log,postproc,18.00,,min,phase4_semantic_finetune_postproc_2017k_2026-09-06T03-32.log,,"engine time, `elapsed:` normalised to minutes"
-machine,labels,GPU,,GPU|CPU,run_passport.csv 20260906T014036Z_2017k_of_2017k_labels,,baseline basis run_passport.gpu=NVIDIA A100-SXM4-40GB
-machine,tile,GPU,,GPU|CPU,run_passport.csv 20260906T014248Z_2017k_of_2017k_tile,,baseline basis run_passport.gpu=NVIDIA A100-SXM4-40GB
-machine,train,GPU,,GPU|CPU,run_passport.csv 20260906T020357Z_2017k_of_2017k_train,,baseline basis run_passport.gpu=NVIDIA A100-SXM4-40GB
-machine,evaluate,GPU,,GPU|CPU,run_passport.csv 20260906T025227Z_2017k_of_2017k_evaluate,,baseline basis run_passport.gpu=NVIDIA A100-SXM4-40GB
-machine,inference,GPU,,GPU|CPU,run_passport.csv 20260906T025334Z_2017k_of_2017k_inference,,baseline basis run_passport.gpu=NVIDIA A100-SXM4-40GB
-machine,postproc,GPU,,GPU|CPU,run_passport.csv 20260906T031357Z_2017k_of_2017k_postproc,,baseline basis run_passport.gpu=NVIDIA A100-SXM4-40GB
-a100_span_min,,113.0,,min,"13 rows, train_queue_status.csv",,baseline session of2017k2; first ts to last VERIFY* ts
-total_span_min,,113.0,,min,"13 rows, train_queue_status.csv",,all rows of the tag; the pilot's is EXPECTED to exceed the baseline's (three bootstraps in sequence) — see the yaml
-sem_best_mb,train,1113.2,,MB (bytes/1e6),sem_best_2017k_of_2017k.pt,sem_best_2017k_spd_2017k.pt,stat on the lake; blank = the file is not there
-prob_raster_mb,inference,2368.4,,MB (bytes/1e6),edmonds_canopy_prob_2017k_of_2017k.tif,edmonds_canopy_prob_2017k_spd_2017k.tif,stat on the lake; blank = the file is not there
-mask_mb,postproc,95.9,,MB (bytes/1e6),edmonds_canopy_mask_2017k_of_2017k.tif,edmonds_canopy_mask_2017k_spd_2017k.tif,stat on the lake; blank = the file is not there
-gpkg_mb,postproc,26.9,,MB (bytes/1e6),edmonds_canopy_mask_2017k_of_2017k.gpkg,edmonds_canopy_mask_2017k_spd_2017k.gpkg,stat on the lake; blank = the file is not there
-tileset_id,tile,a36d6772e88b,,id,tileset_registry.csv,,
-n_tiles,tile,632,,tiles,tileset_registry.csv,,
-tileset_id_match,tile,a36d6772e88b,,id,tileset_registry.csv,,pilot not tiled yet — or tileset_registry.csv has not been re-harvested (qc/instruments/harvest_tilesets.py)
-eval_ap,evaluate,0.4275,,fraction (4dp),semantic_eval_report.csv,,"OVERALL row, held-out test; R5 is REPORTED, not gated"
-eval_auroc,evaluate,0.8851,,fraction (4dp),semantic_eval_report.csv,,"OVERALL row, held-out test; R5 is REPORTED, not gated"
-hw_nothing_frac,labels,,,fraction,,,sessions taken from the queue rows (the file carries no run_tag)
-hw_nothing_frac,tile,0.7563,,fraction,hw_of2017k2.csv basis=interval,,sessions taken from the queue rows (the file carries no run_tag)
-hw_nothing_frac,train,0.2618,,fraction,hw_of2017k2.csv basis=interval,,sessions taken from the queue rows (the file carries no run_tag)
-hw_nothing_frac,evaluate,0.7143,,fraction,hw_of2017k2.csv basis=interval,,sessions taken from the queue rows (the file carries no run_tag)
-hw_nothing_frac,inference,0.0985,,fraction,hw_of2017k2.csv basis=interval,,sessions taken from the queue rows (the file carries no run_tag)
-hw_nothing_frac,postproc,1.0000,,fraction,hw_of2017k2.csv basis=interval,,sessions taken from the queue rows (the file carries no run_tag)
-hw_gpu_busy_frac,labels,,,fraction,,,sessions taken from the queue rows (the file carries no run_tag)
-hw_gpu_busy_frac,tile,0.0000,,fraction,hw_of2017k2.csv basis=interval,,sessions taken from the queue rows (the file carries no run_tag)
-hw_gpu_busy_frac,train,0.1792,,fraction,hw_of2017k2.csv basis=interval,,sessions taken from the queue rows (the file carries no run_tag)
-hw_gpu_busy_frac,evaluate,0.2857,,fraction,hw_of2017k2.csv basis=interval,,sessions taken from the queue rows (the file carries no run_tag)
-hw_gpu_busy_frac,inference,0.7586,,fraction,hw_of2017k2.csv basis=interval,,sessions taken from the queue rows (the file carries no run_tag)
-hw_gpu_busy_frac,postproc,0.0000,,fraction,hw_of2017k2.csv basis=interval,,sessions taken from the queue rows (the file carries no run_tag)
+step_minutes,labels,,6.8,min,,train_queue_status_recovered_20260901_20260907.csv session=spdc1,baseline NO SURVIVING ROW under this arm's pin — 1 row(s) for this step carry the tag but belong to another launch and were refused; the step is not known to have been skipped
+step_minutes,tile,,34.1,min,,train_queue_status_recovered_20260901_20260907.csv session=spdc1,baseline NO SURVIVING ROW under this arm's pin — 2 row(s) for this step carry the tag but belong to another launch and were refused; the step is not known to have been skipped
+step_minutes,train,47.8,40.4,min,"train_queue_status_recovered_20260901_20260907.csv blank-session, in-window",train_queue_status.csv session=spdg,
+step_minutes,evaluate,1.1,3.0,min,"train_queue_status_recovered_20260901_20260907.csv blank-session, in-window",train_queue_status.csv session=spdg,
+step_minutes,inference,20.3,22.8,min,"train_queue_status_recovered_20260901_20260907.csv blank-session, in-window",train_queue_status.csv session=spdg,
+step_minutes,postproc,19.0,27.1,min,"train_queue_status_recovered_20260901_20260907.csv blank-session, in-window",train_queue_status_pilot_offload_2017k_cpu2_20260907T235535Z.csv session=spdc2,
+step_elapsed_log,labels,0.00,0.00,min,phase4_semantic_finetune_labels_2017k_2026-09-06T01-42.log,phase4_semantic_finetune_labels_2017k_2026-09-07T21-58.log,"engine time, `elapsed:` normalised to minutes"
+step_elapsed_log,tile,18.50,24.80,min,phase4_semantic_finetune_tile_2017k_2026-09-06T02-03.log,phase4_semantic_finetune_tile_2017k_2026-09-07T22-32.log,"engine time, `elapsed:` normalised to minutes"
+step_elapsed_log,train,46.40,39.90,min,phase4_semantic_finetune_train_2017k_2026-09-06T02-50.log,phase4_semantic_finetune_train_2017k_2026-09-07T23-24.log,"engine time, `elapsed:` normalised to minutes"
+step_elapsed_log,evaluate,0.99,2.10,min,phase4_semantic_finetune_evaluate_2017k_2026-09-06T02-53.log,phase4_semantic_finetune_evaluate_2017k_2026-09-07T23-28.log,"engine time, `elapsed:` normalised to minutes"
+step_elapsed_log,inference,19.40,21.60,min,phase4_semantic_finetune_inference_2017k_2026-09-06T03-13.log,phase4_semantic_finetune_inference_2017k_2026-09-07T23-51.log,"engine time, `elapsed:` normalised to minutes"
+step_elapsed_log,postproc,18.00,26.90,min,phase4_semantic_finetune_postproc_2017k_2026-09-06T03-32.log,phase4_semantic_finetune_postproc_2017k_2026-09-08T00-26.log,"engine time, `elapsed:` normalised to minutes"
+machine,labels,GPU,CPU,GPU|CPU,run_passport.csv 20260906T014036Z_2017k_of_2017k_labels,run_passport.csv 20260907T215207Z_2017k_spd_2017k_labels,baseline basis run_passport.gpu=NVIDIA A100-SXM4-40GB; pilot basis run_passport.gpu=(null)
+machine,tile,GPU,CPU,GPU|CPU,run_passport.csv 20260906T014248Z_2017k_of_2017k_tile,run_passport.csv 20260907T215851Z_2017k_spd_2017k_tile,baseline basis run_passport.gpu=NVIDIA A100-SXM4-40GB; pilot basis run_passport.gpu=(null)
+machine,train,GPU,GPU,GPU|CPU,run_passport.csv 20260906T020357Z_2017k_of_2017k_train,run_passport.csv 20260907T224440Z_2017k_spd_2017k_train,baseline basis run_passport.gpu=NVIDIA A100-SXM4-40GB; pilot basis run_passport.gpu=NVIDIA A100-SXM4-40GB
+machine,evaluate,GPU,GPU,GPU|CPU,run_passport.csv 20260906T025227Z_2017k_of_2017k_evaluate,run_passport.csv 20260907T232559Z_2017k_spd_2017k_evaluate,baseline basis run_passport.gpu=NVIDIA A100-SXM4-40GB; pilot basis run_passport.gpu=NVIDIA A100-SXM4-40GB
+machine,inference,GPU,GPU,GPU|CPU,run_passport.csv 20260906T025334Z_2017k_of_2017k_inference,run_passport.csv 20260907T232903Z_2017k_spd_2017k_inference,baseline basis run_passport.gpu=NVIDIA A100-SXM4-40GB; pilot basis run_passport.gpu=NVIDIA A100-SXM4-40GB
+machine,postproc,GPU,CPU,GPU|CPU,run_passport.csv 20260906T031357Z_2017k_of_2017k_postproc,run_passport.csv 20260907T235948Z_2017k_spd_2017k_postproc,baseline basis run_passport.gpu=NVIDIA A100-SXM4-40GB; pilot basis run_passport.gpu=(null)
+a100_span_min,,,67.3,min,"8 rows, train_queue_status_recovered_20260901_20260907.csv","7 rows, train_queue_status.csv","baseline session of2017k2 (pinned; the admitted rows carry no session of their own); NOT PUBLISHED: the span opens and closes on a RECOVERED-FROM-LOGS row, whose ts is the engine's `completed:` and not the queue-side start (rebuild_queue_ledger.py) — first ts to last VERIFY* ts over the surviving rows would read 41.7 min, which is a LOWER BOUND on the real span, not the span; pilot session spdg; first ts to last VERIFY* ts"
+total_span_min,,,154.9,min,"9 rows, train_queue_status_recovered_20260901_20260907.csv","13 rows, train_queue_status_recovered_20260901_20260907.csv","all admitted rows of the arm; the pilot's is EXPECTED to exceed the baseline's (three bootstraps in sequence) — see the yaml. baseline NOT PUBLISHED: the span opens and closes on a RECOVERED-FROM-LOGS row, whose ts is the engine's `completed:` and not the queue-side start (rebuild_queue_ledger.py) — first ts to last ts over the surviving rows would read 41.7 min, which is a LOWER BOUND on the real span, not the span; pilot first ts to last ts"
+sem_best_mb,train,1113.2,371.4,MB (bytes/1e6),sem_best_2017k_of_2017k.pt,sem_best_2017k_spd_2017k.pt,stat on the lake; blank = the file is not there
+prob_raster_mb,inference,2368.4,2375.9,MB (bytes/1e6),edmonds_canopy_prob_2017k_of_2017k.tif,edmonds_canopy_prob_2017k_spd_2017k.tif,stat on the lake; blank = the file is not there
+mask_mb,postproc,95.9,95.7,MB (bytes/1e6),edmonds_canopy_mask_2017k_of_2017k.tif,edmonds_canopy_mask_2017k_spd_2017k.tif,stat on the lake; blank = the file is not there
+gpkg_mb,postproc,26.9,26.9,MB (bytes/1e6),edmonds_canopy_mask_2017k_of_2017k.gpkg,edmonds_canopy_mask_2017k_spd_2017k.gpkg,stat on the lake; blank = the file is not there
+operating_threshold,postproc,0.558,0.594,prob,phase4_semantic_finetune_postproc_2017k_2026-09-06T03-32.log,phase4_semantic_finetune_postproc_2017k_2026-09-08T00-26.log,"each arm's own best_f1_thresh, read from ITS eval report — never assumed equal across arms"
+canopy_pct,postproc,19.6,19.1,% of imaged area,phase4_semantic_finetune_postproc_2017k_2026-09-06T03-32.log,phase4_semantic_finetune_postproc_2017k_2026-09-08T00-26.log,"of the imaged area, as postproc printed"
+canopy_ha,postproc,1408.5,1373.1,ha,phase4_semantic_finetune_postproc_2017k_2026-09-06T03-32.log,phase4_semantic_finetune_postproc_2017k_2026-09-08T00-26.log,"true-area hectares, as postproc printed"
+n_polygons,postproc,45532,46150,polygons,phase4_semantic_finetune_postproc_2017k_2026-09-06T03-32.log,phase4_semantic_finetune_postproc_2017k_2026-09-08T00-26.log,the GeoPackage's polygon count
+polygonize_s,postproc,436.1,653.1,s,phase4_semantic_finetune_postproc_2017k_2026-09-06T03-32.log,phase4_semantic_finetune_postproc_2017k_2026-09-08T00-26.log,the ⏱ polygonize tick
+stage_prob_s,postproc,,114.1,s,phase4_semantic_finetune_postproc_2017k_2026-09-06T03-32.log,phase4_semantic_finetune_postproc_2017k_2026-09-08T00-26.log,"the ⏱ tick for staging the probability raster to local scratch — BLANK means the arm printed no staging line at all (it read the raster over FUSE), which is the P4.3 difference between these two arms, not a missing measurement"
+tileset_id,tile,a36d6772e88b,a36d6772e88b,id,tileset_registry.csv,tileset_registry.csv,
+n_tiles,tile,632,632,tiles,tileset_registry.csv,tileset_registry.csv,
+tileset_id_match,tile,a36d6772e88b,a36d6772e88b,id,tileset_registry.csv,tileset_registry.csv,MATCH — K2 satisfied: CPU tiling reproduced the GPU-tiled set
+eval_ap,evaluate,0.4275,0.4338,fraction (4dp),semantic_eval_report_superseded.csv,semantic_eval_report.csv,"OVERALL row, held-out test; R5 is REPORTED, not gated"
+eval_auroc,evaluate,0.8851,0.8860,fraction (4dp),semantic_eval_report_superseded.csv,semantic_eval_report.csv,"OVERALL row, held-out test; R5 is REPORTED, not gated"
+hw_nothing_frac,labels,,,fraction,,,"sessions from the arm's PIN first, then its admitted queue rows (the file carries no run_tag); every admitted baseline row has a blank session, so the pin is what supplies the join key"
+hw_nothing_frac,tile,0.7563,0.3056,fraction,hw_of2017k2.csv basis=interval,hw_spdc1.csv basis=marker,"sessions from the arm's PIN first, then its admitted queue rows (the file carries no run_tag); every admitted baseline row has a blank session, so the pin is what supplies the join key"
+hw_nothing_frac,train,0.2618,0.2376,fraction,hw_of2017k2.csv basis=interval,hw_spdg.csv basis=marker,"sessions from the arm's PIN first, then its admitted queue rows (the file carries no run_tag); every admitted baseline row has a blank session, so the pin is what supplies the join key"
+hw_nothing_frac,evaluate,0.7143,0.9231,fraction,hw_of2017k2.csv basis=interval,hw_spdg.csv basis=marker,"sessions from the arm's PIN first, then its admitted queue rows (the file carries no run_tag); every admitted baseline row has a blank session, so the pin is what supplies the join key"
+hw_nothing_frac,inference,0.0985,0.1485,fraction,hw_of2017k2.csv basis=interval,hw_spdg.csv basis=marker,"sessions from the arm's PIN first, then its admitted queue rows (the file carries no run_tag); every admitted baseline row has a blank session, so the pin is what supplies the join key"
+hw_nothing_frac,postproc,1.0000,0.0451,fraction,hw_of2017k2.csv basis=interval,hw_spdc2.csv basis=marker,"sessions from the arm's PIN first, then its admitted queue rows (the file carries no run_tag); every admitted baseline row has a blank session, so the pin is what supplies the join key"
+hw_gpu_busy_frac,labels,,,fraction,,,"sessions from the arm's PIN first, then its admitted queue rows (the file carries no run_tag); every admitted baseline row has a blank session, so the pin is what supplies the join key"
+hw_gpu_busy_frac,tile,0.0000,,fraction,hw_of2017k2.csv basis=interval,hw_spdc1.csv basis=marker,"sessions from the arm's PIN first, then its admitted queue rows (the file carries no run_tag); every admitted baseline row has a blank session, so the pin is what supplies the join key"
+hw_gpu_busy_frac,train,0.1792,0.1961,fraction,hw_of2017k2.csv basis=interval,hw_spdg.csv basis=marker,"sessions from the arm's PIN first, then its admitted queue rows (the file carries no run_tag); every admitted baseline row has a blank session, so the pin is what supplies the join key"
+hw_gpu_busy_frac,evaluate,0.2857,0.0769,fraction,hw_of2017k2.csv basis=interval,hw_spdg.csv basis=marker,"sessions from the arm's PIN first, then its admitted queue rows (the file carries no run_tag); every admitted baseline row has a blank session, so the pin is what supplies the join key"
+hw_gpu_busy_frac,inference,0.7586,0.7426,fraction,hw_of2017k2.csv basis=interval,hw_spdg.csv basis=marker,"sessions from the arm's PIN first, then its admitted queue rows (the file carries no run_tag); every admitted baseline row has a blank session, so the pin is what supplies the join key"
+hw_gpu_busy_frac,postproc,0.0000,,fraction,hw_of2017k2.csv basis=interval,hw_spdc2.csv basis=marker,"sessions from the arm's PIN first, then its admitted queue rows (the file carries no run_tag); every admitted baseline row has a blank session, so the pin is what supplies the join key"

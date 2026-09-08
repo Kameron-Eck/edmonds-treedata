@@ -1,7 +1,7 @@
 # EXPERIMENT REGISTRY INDEX — GENERATED, do not edit
 
 Regenerate: `py -3.12 qc/experiments_index.py` (drift-gated by `test_experiments.py::test_index_is_fresh`).
-Authored layer + schema: this directory's `README.md`. 45 entries: 34 complete · 5 needs-kam · 5 queued · 1 tabled.
+Authored layer + schema: this directory's `README.md`. 45 entries: 35 complete · 5 needs-kam · 4 queued · 1 tabled.
 
 ## Awaiting Kam sign-off
 
@@ -15,6 +15,7 @@ Authored layer + schema: this directory's `README.md`. 45 entries: 34 complete �
 
 | entry | kind | status | decided | N | imagery | headline |
 |---|---|---|---|---|---|---|
+| offload_pilot_2017k | experiment | complete | 2026-09-08 | — | 2017k | RAN 2026-09-07 21:45Z to 2026-09-08 00:27Z on three runtimes (spdc1 CPU, spdg A100, spdc2 CPU); |
 | change_detector_design | measurement-campaign | complete | 2026-09-06 | — | 2009,2011s,2013,2015,2016,2019,2021,2024 | THE STEP-SHAPE CERTIFIER WINS AND THE SHIPPED PERSISTENCE FILTER IS A PURE RECALL TAX. |
 | flicker_parcels_census | measurement-campaign | complete | 2026-09-06 | — | 2009,2011s,2013,2015,2016,2019,2021,2024 | THE MODEL DOES NOT HALLUCINATE CANOPY ON BARE GROUND; THE INSTABILITY LIVES IN SENSITIVITY ON REAL VEGETATION. |
 | lit_hunt_temporal_inconsistency | measurement-campaign | complete | 2026-09-06 | — | — | NO TWIN EXISTS, AND THE ONE DESIGN THAT PASSED THE CHECKLIST WAS REFUSED ON ITS OWN PILOT. |
@@ -57,7 +58,6 @@ Authored layer + schema: this directory's `README.md`. 45 entries: 34 complete �
 | full_archive_e3 | experiment | queued | — | — | — | The hard-year pilot confirmed the unified citywide EPOCH-3 recipe explains the historical weak tail (2011s 0.471 -> 0.756; 2006s 0.470 -> 0.707 with three measured imagery strikes). |
 | fusion_5band_nir_chm | measurement-campaign | needs-kam | — | — | 2016 | Before spending an A100 on input-level 5-band (RGB+NIR+CHM) training, ask the cheap question first: do the 2016 CHM-input arm and the 2016 NIR-input arm miss the SAME trees? If their errors largely co… |
 | heal_infill_2017_2023 | experiment | queued | — | — | 2017,2020,2022,2023 | The healing operator cannot currently be scored. |
-| offload_pilot_2017k | experiment | queued | — | — | 2017k | Three speedup changes landed on 2026-09-07 (Reports/PIPELINE_SPEEDUP_OPTIONS_2026-09-07.md §7, and the four commits that implement it): (P1) phase4seg checkpoints no longer carry optimizer/scheduler s… |
 | resolution_1x2x4 | experiment | queued | — | — | — | The measured coarse-over-medium gap (support-matched, program-confound narrowed to one flight processed two ways) is a genuine resolution effect: ONE acquisition trained at native, 2x and 4x downsampl… |
 | shadow_fp_fn_2016 | measurement-campaign | needs-kam | — | — | 2000,2002,2013,2015,2016 | Kam's hypothesis (2026-08-26), in two halves. |
 

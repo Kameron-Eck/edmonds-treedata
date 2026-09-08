@@ -20,6 +20,22 @@ quietly lie are the ways the verdict could quietly be wrong:
   e  two runs, byte-identical. A tracked CSV that churns produces a diff on every
      harvest and stops being read.
 
+  f  THE PIN. A tag is not an arm: after the 2026-09-07 ledger recovery, `of_2017k`
+     resolves to rows from THREE launches, two of which FAILED, and the run before the
+     pin published `tile 9.0 min` and `a100_span 11.5 min` from them. So: the session pin
+     picks the right launch out of three; a blank-session row (every row the recovery
+     synthesised carries `session=""`) is admitted ONLY inside the window; and both the
+     ORACLE shape (an undamaged ledger, full equality with
+     `git show 3131741:phase4/qc/offload_pilot_2017k.csv`) and the DAMAGED shape (today's
+     real ledger) are asserted — the second one for its exact known blanks and nothing
+     else. Two fixtures because a synthetic undamaged ledger tests the pin code and says
+     nothing about the archive (CLAUDE.md 3.4c).
+  g  the postproc reads: threshold, canopy, polygon count and the two ⏱ ticks. The traps
+     are real lines from real logs — `Polygonizing…` and `(vectorized shapely 2.x
+     polygonize)` both carry the word and neither is a measurement; `45,532 polygons`
+     arrives thousands-separated; and `stage_prob_s` is ABSENT on the arm that read the
+     probability raster over FUSE, which is the P4.3 difference under test, not a gap.
+
 Plus the three joins that are easy to get wrong and expensive to get wrong:
   · K1 — a step that RAN AND FAILED must not look like a step that never ran.
   · the machine per step, on each of its three bases in turn (run manifest via
@@ -35,7 +51,8 @@ Run:  PYTHONUTF8=1 py -3.12 -m pytest qc/test_offload_pilot_compare.py -q
 import csv
 import json
 
-from instruments.offload_pilot_compare import COLS, STEPS, main
+from instruments.offload_pilot_compare import (
+    COLS, RECOVERED_PREFIX, STEPS, Pin, main, parse_window, postproc_metrics)
 from phase4seg.names import is_status_file
 
 YEAR = "2017k"
@@ -87,14 +104,108 @@ PILOT = [
 EVAL_HEADER = ("year,gsd_cm,tier,channels,eval_scope,scope,site,iou,auroc,ap,"
                "run_tag,run_id,written_utc")
 
+# ── the pin fixtures ──────────────────────────────────────────────────────────
+# The arm experiments/offload_pilot_2017k.yaml pre-registered, and the two failed
+# launches that share its tag.  See `case f` above.
+BASE_SESSION = "of2017k2"
+BASE_WINDOW = "2026-09-06T01:40:00..2026-09-06T03:34:00"
+
+# THE ORACLE, as the ledger held it before the recovery: 13 queue-written rows, session
+# of2017k2, `ts` = the queue-side START of each step. 01:40:30 -> 03:33:31 = 113.0 min.
+# The minutes are the baseline column of `git show 3131741:phase4/qc/offload_pilot_2017k.csv`.
+ORACLE_MINUTES = {"labels": "2.3", "tile": "21.1", "train": "47.8",
+                  "evaluate": "1.1", "inference": "20.3", "postproc": "19.0"}
+ORACLE_A100_SPAN = "113.0"
+UNDAMAGED = [
+    ("labels", "OK", "2.3", "2026-09-06 01:40:30", BASE_SESSION),
+    ("VERIFY:labels", "OK", "", "2026-09-06 01:42:50", BASE_SESSION),
+    ("tile", "OK", "21.1", "2026-09-06 01:42:50", BASE_SESSION),
+    ("VERIFY:tile", "OK", "", "2026-09-06 02:03:57", BASE_SESSION),
+    ("train", "OK", "47.8", "2026-09-06 02:03:57", BASE_SESSION),
+    ("VERIFY:train", "OK", "", "2026-09-06 02:51:45", BASE_SESSION),
+    ("evaluate", "OK", "1.1", "2026-09-06 02:51:45", BASE_SESSION),
+    ("VERIFY:evaluate", "OK", "", "2026-09-06 02:52:52", BASE_SESSION),
+    ("inference", "OK", "20.3", "2026-09-06 02:52:52", BASE_SESSION),
+    ("VERIFY:inference", "OK", "", "2026-09-06 03:13:10", BASE_SESSION),
+    ("postproc", "OK", "19.0", "2026-09-06 03:13:10", BASE_SESSION),
+    ("VERIFY:postproc", "OK", "", "2026-09-06 03:32:10", BASE_SESSION),
+    ("VERIFY", "OK", "", "2026-09-06 03:33:31", BASE_SESSION),
+]
+
+# The two FAILED launches, copied from the shape of the real ledger dump: the 09-05
+# overlap-floor session where VERIFY:tile came back MISSING, and the 09-06 00:22 launch
+# that died. Same year, same tag, different work.
+FAILED = [
+    ("labels", "OK", "6.4", "2026-09-05 15:02:36", "ofB"),
+    ("VERIFY:labels", "OK", "", "2026-09-05 15:09:52", "ofB"),
+    ("tile", "OK", "4.1", "2026-09-05 15:09:53", "ofB"),
+    ("VERIFY:tile", "MISSING", "", "2026-09-05 15:14:04", "ofB"),
+    ("tile", "OK", "9.0", "2026-09-06 00:28:55", "of2017k"),
+]
+
+# TODAY'S REAL SHAPE. of2017k2's rows were erased from the shared status CSV by a later
+# launch; `rebuild_queue_ledger.py` re-synthesised only the four steps NO snapshot row
+# already covered (labels and tile were suppressed, because the failed launches above had
+# written rows under those keys), every one with `session=""` and with `ts` set to the
+# ENGINE's `completed:` rather than the queue-side start.
+_REC = RECOVERED_PREFIX + 'nohup outcome verbatim: "…"; ts=engine-completed@…'
+DAMAGED = [
+    ("train", "OK", "47.8", "2026-09-06 02:50:58", "", _REC),
+    ("VERIFY:train", "OK", "", "2026-09-06 02:50:58", "", _REC),
+    ("evaluate", "OK", "1.1", "2026-09-06 02:53:29", "", _REC),
+    ("VERIFY:evaluate", "OK", "", "2026-09-06 02:53:29", "", _REC),
+    ("inference", "OK", "20.3", "2026-09-06 03:13:02", "", _REC),
+    ("VERIFY:inference", "OK", "", "2026-09-06 03:13:02", "", _REC),
+    ("postproc", "OK", "19.0", "2026-09-06 03:32:42", "", _REC),
+    ("VERIFY:postproc", "OK", "", "2026-09-06 03:32:42", "", _REC),
+    ("VERIFY", "OK", "", "2026-09-06 03:32:42", "", _REC),
+]
+
 
 def _status(path, blocks):
-    lines = [STATUS_HEADER]
-    for tag, rows in blocks:
-        for step, state, mins, ts, sess in rows:
-            lines.append(f"j1,{YEAR},{tag},{step},{state},0,{mins},,"
-                         f"2026-09-06 {ts},h1,{sess}")
-    path.write_text("\n".join(lines) + "\n", encoding="utf-8", newline="")
+    """`ts` may be a bare time (dated 2026-09-06) or a full stamp; `detail` is optional.
+
+    Written with `csv.writer`, the way `queue_ledger.py::_status_write` writes the real
+    ledger — NOT by string-joining with hand-placed quotes. A recovered row's `detail`
+    quotes the nohup log's outcome line verbatim and so contains `"` of its own; hand
+    quoting emits a field the csv reader only recovers from because it is non-strict, and
+    a fixture that parses by accident is the failure this file's own docstring warns
+    about twice.
+    """
+    with open(path, "w", encoding="utf-8", newline="") as fh:
+        w = csv.writer(fh, lineterminator="\n")
+        w.writerow(STATUS_HEADER.split(","))
+        for tag, rows in blocks:
+            for row in rows:
+                step, state, mins, ts, sess = row[:5]
+                detail = row[5] if len(row) > 5 else ""
+                if "-" not in ts:
+                    ts = f"2026-09-06 {ts}"
+                w.writerow(["j1", YEAR, tag, step, state, "0", mins, detail,
+                            ts, "h1", sess])
+
+
+def _postproc_stdout(tag, threshold, ha, pct, npoly, polyg_s, stage_s=None):
+    """The postproc stdout block, VERBATIM in shape from the real logs — including the
+    two decoys (`Polygonizing…`, `(vectorized shapely 2.x polygonize)`) that carry the
+    word `polygonize` and are not measurements."""
+    stage = (f"  ⏱ stage edmonds_canopy_prob_{YEAR}_{tag}.tif: {stage_s}s\n"
+             "  staged the probability raster to local scratch (2.4 GB, one sequential "
+             "copy)\n") if stage_s else ""
+    return (
+        f"\n── [{YEAR}] Step 6: Post-processing ──\n"
+        + stage +
+        f"  threshold={threshold} [best_f1_thresh (best_f1, rgb, "
+        f"semantic_eval_report.csv)] (u8≥142)  min_patch=3.0m²(299px)  "
+        f"morph=3×3\n"
+        f"  ✓ Mask (local): edmonds_canopy_mask_{YEAR}_{tag}__53fa9684.tif (96 MB)\n"
+        f"  Canopy: 1,401,177,099px = {ha} ha true ({pct}% of imaged area)\n"
+        f"  Polygonizing…\n"
+        f"  (vectorized shapely 2.x polygonize)\n"
+        f"  ⏱ polygonize: {polyg_s}s\n"
+        f"  ✓ Canopy GeoPackage: edmonds_canopy_mask_{YEAR}_{tag}__a9b212a6.gpkg  "
+        f"({npoly} polygons)\n"
+        f"  ⏱ postproc: 1079.5s\n")
 
 
 def _steplog(logs, step, tag, started, elapsed, extra=""):
@@ -164,9 +275,21 @@ def _sized(path, nbytes):
 class Lake:
     """A whole fixture lake under tmp_path, plus the runner that reads it."""
 
+    # The fixture's own sessions ARE its pin. Passing them explicitly (rather than
+    # letting the production defaults `of2017k2` / `spdc1,spdg,spdc2` apply) is the
+    # point: with the shipped defaults every fixture row would be refused and every
+    # assertion below would pass for the wrong reason — blank because nothing matched.
+    BASE_PIN = "base1"
+    PILOT_PIN = "cpu1,gpu1,cpu2"
+
     def __init__(self, tmp_path, pilot_rows=PILOT, ids=("ts_base", "ts_pilot"),
                  with_hw=True, with_passport=True, with_heartbeats=True,
-                 split_status=False):
+                 split_status=False, base_pin=None, pilot_pin=None,
+                 base_window="", pilot_window="", baseline_rows=BASELINE,
+                 extra_baseline=(), with_late_tile_log=False):
+        self.base_pin = self.BASE_PIN if base_pin is None else base_pin
+        self.pilot_pin = self.PILOT_PIN if pilot_pin is None else pilot_pin
+        self.base_window, self.pilot_window = base_window, pilot_window
         self.root = tmp_path
         self.status = tmp_path / "status"
         self.logs = tmp_path / "logs"
@@ -175,7 +298,7 @@ class Lake:
         for d in (self.status, self.logs, self.models, self.masks):
             d.mkdir(parents=True)
 
-        blocks = [(BASE_TAG, BASELINE)]
+        blocks = [(BASE_TAG, list(baseline_rows) + list(extra_baseline))]
         if pilot_rows and not split_status:
             blocks.append((PILOT_TAG, pilot_rows))
         _status(self.status / STATUS_NAME, blocks)
@@ -191,9 +314,20 @@ class Lake:
         _steplog(self.logs, "tile", BASE_TAG, "00-30-00", "9.9min")      # older attempt
         _steplog(self.logs, "tile", BASE_TAG, "01-02-00", "20.5min")     # the latest
         _steplog(self.logs, "train", BASE_TAG + "_b", "23-00-00", "99.9min")   # decoy
+        if with_late_tile_log:
+            # A LATER attempt under the SAME tag — the real shape of the of_2017k logs,
+            # where two failed launches wrote 2017k step logs carrying `--run-tag
+            # of_2017k`. Latest-by-`started:` picks this one; only the window rejects it.
+            _steplog(self.logs, "tile", BASE_TAG, "04-00-00", "77.7min")
+        # (g) the postproc reads. The baseline prints NO staging line — that arm read the
+        # probability raster over FUSE — so `stage_prob_s` must come out blank for it.
+        _steplog(self.logs, "postproc", BASE_TAG, "02-13-00", "5.0min",
+                 _postproc_stdout(BASE_TAG, "0.558", "1408.5", "19.6", "45,532", "436.1"))
         if pilot_rows:
             _steplog(self.logs, "train", PILOT_TAG, "02-00-00", "1.02h")
-            _steplog(self.logs, "postproc", PILOT_TAG, "03-30-00", "600.0s")
+            _steplog(self.logs, "postproc", PILOT_TAG, "03-30-00", "600.0s",
+                     _postproc_stdout(PILOT_TAG, "0.594", "1373.1", "19.1", "46,150",
+                                      "653.1", stage_s="114.1"))
 
         if with_heartbeats:
             a100 = {"name": "NVIDIA A100-SXM4-40GB", "util_pct": 0, "util_n": 15}
@@ -254,6 +388,10 @@ class Lake:
         out = self.root / out_name
         assert main(["--year", YEAR, "--baseline-tag", BASE_TAG,
                      "--pilot-tag", PILOT_TAG, "--out", str(out),
+                     "--baseline-session", self.base_pin,
+                     "--pilot-sessions", self.pilot_pin,
+                     "--baseline-window", self.base_window,
+                     "--pilot-window", self.pilot_window,
                      "--status-dir", str(self.status), "--logs-dir", str(self.logs),
                      "--models-dir", str(self.models), "--masks-dir", str(self.masks),
                      "--tileset-registry", str(self.registry),
@@ -462,3 +600,215 @@ def test_absent_hardware_attribution_is_reported_not_zeroed(tmp_path):
         assert t[("hw_gpu_busy_frac", s)]["pilot"] == ""
         assert t[("hw_nothing_frac", s)]["note"] == "hw_step_attribution.csv absent"
     assert t[("step_minutes", "train")]["baseline"] == "40.0"     # nothing else broke
+
+
+# ── f — THE PIN: a tag is not an arm ──────────────────────────────────────────
+
+class Ledger:
+    """A status dir and one heartbeat, and NOTHING else — the pin under a microscope.
+
+    Every other home is deliberately absent (no passport, no registry, no eval report, no
+    hardware attribution), so an assertion here can only be about which QUEUE ROWS the
+    pin admitted. The machine column then resolves on the heartbeat, which is what makes
+    this fixture also exercise `step_session`'s fall-back to the pin: the damaged rows
+    carry `session=""` and would otherwise have no session to look a beacon up by.
+    """
+
+    def __init__(self, tmp_path, rows, base_pin=BASE_SESSION, base_window=BASE_WINDOW,
+                 with_failed=True):
+        self.root = tmp_path
+        self.base_pin, self.base_window = base_pin, base_window
+        for name in ("status", "logs", "models", "masks"):
+            setattr(self, name, tmp_path / name)
+            getattr(self, name).mkdir(parents=True)
+        _status(self.status / STATUS_NAME,
+                [(BASE_TAG, list(rows) + (list(FAILED) if with_failed else []))])
+        _heartbeat(self.logs, BASE_SESSION,
+                   {"name": "NVIDIA A100-SXM4-40GB", "util_pct": 0, "util_n": 15})
+
+    def table(self, out_name="out.csv"):
+        out = self.root / out_name
+        assert main(["--year", YEAR, "--baseline-tag", BASE_TAG,
+                     "--pilot-tag", PILOT_TAG, "--out", str(out),
+                     "--baseline-session", self.base_pin,
+                     "--baseline-window", self.base_window,
+                     "--pilot-sessions", "", "--pilot-window", "",
+                     "--status-dir", str(self.status), "--logs-dir", str(self.logs),
+                     "--models-dir", str(self.models), "--masks-dir", str(self.masks),
+                     "--tileset-registry", str(self.root / "nope_registry.csv"),
+                     "--eval-report", str(self.root / "nope_eval.csv"),
+                     "--run-passport", str(self.root / "nope_passport.csv"),
+                     "--hw-attribution", str(self.root / "nope_hw.csv")]) == 0
+        rows = list(csv.DictReader(out.read_text(encoding="utf-8").splitlines()))
+        return {(r["metric"], r["step"]): r for r in rows}, out
+
+
+def test_the_session_pin_picks_one_launch_out_of_three_that_share_the_tag(tmp_path):
+    """THE DEFECT THIS ARGUMENT EXISTS FOR. After the ledger recovery landed on the lake,
+    `of_2017k` resolved to rows from three launches — the pre-registered `of2017k2`, an
+    earlier 09-06 launch that died, and the 09-05 session where the arm failed at
+    VERIFY:tile — and the tag-only selector published `labels 6.4` and `tile 9.0` from
+    the failures. Pinning the session has to leave the failures out and say so."""
+    t, _ = Ledger(tmp_path, UNDAMAGED).table()
+    assert _col(t, "step_minutes", "baseline") == [ORACLE_MINUTES[s] for s in STEPS]
+    assert t[("step_minutes", "labels")]["baseline"] != "6.4"     # ofB's
+    assert t[("step_minutes", "tile")]["baseline"] not in ("4.1", "9.0")
+    for s in STEPS:
+        assert f"session={BASE_SESSION}" in t[("step_minutes", s)]["baseline_source"]
+
+
+def test_the_oracle_baseline_is_reproduced_from_an_undamaged_ledger(tmp_path):
+    """EQUALITY WITH THE PUBLISHED ORACLE — the baseline column of
+    `git show 3131741:phase4/qc/offload_pilot_2017k.csv`, harvested BEFORE the recovered
+    ledger reached the lake. What this proves is that the pin reads an intact ledger the
+    way the pre-pin instrument did; it says nothing about today's archive, which is what
+    the next case is for (CLAUDE.md 3.4c: a synthetic fixture validates the code, never
+    the claim)."""
+    t, _ = Ledger(tmp_path, UNDAMAGED).table()
+    for step, minutes in ORACLE_MINUTES.items():
+        assert t[("step_minutes", step)]["baseline"] == minutes, step
+    # 01:40:30 -> 03:33:31, first ts to last VERIFY* ts, over the one pinned session
+    assert t[("a100_span_min", "")]["baseline"] == ORACLE_A100_SPAN
+    assert t[("total_span_min", "")]["baseline"] == ORACLE_A100_SPAN
+    assert f"session {BASE_SESSION}" in t[("a100_span_min", "")]["note"]
+
+
+def test_the_damaged_ledger_blanks_exactly_what_the_recovery_lost(tmp_path):
+    """TODAY'S REAL SHAPE, and the exact diff against the oracle — no more, no less.
+
+    of2017k2's rows were erased from the shared status CSV and exist only as rows
+    `rebuild_queue_ledger.py` re-synthesised from a nohup log. Two consequences, both of
+    which have to show on the face of the file:
+
+      · `labels` and `tile` were never synthesised at all — the recovery writes a row
+        only for a key NO snapshot row covers, and the two failed launches had already
+        written rows under those keys. Blank, with a note that distinguishes it from a
+        step that never ran.
+      · a recovered row's `ts` is the engine's `completed:`, so the span opens 46 minutes
+        late: 41.7 min against the session's real 113.0. Publishing that next to the
+        pilot's 67.3 would read as a REGRESSION. Blank, with the would-be number in the
+        note so nobody recomputes it by hand and trusts it.
+
+    Everything else must be untouched, which is why the assertion is on the DIFF SET."""
+    good, _ = Ledger(tmp_path / "undamaged", UNDAMAGED).table()
+    bad, _ = Ledger(tmp_path / "damaged", DAMAGED).table()
+
+    changed = {k for k in good if good[k]["baseline"] != bad[k]["baseline"]}
+    assert changed == {("step_minutes", "labels"), ("step_minutes", "tile"),
+                       ("a100_span_min", ""), ("total_span_min", "")}
+
+    for step in ("labels", "tile"):
+        assert bad[("step_minutes", step)]["baseline"] == ""
+        assert "NO SURVIVING ROW" in bad[("step_minutes", step)]["note"]
+    # the four steps the recovery DID reconstruct still publish their minutes
+    for step in ("train", "evaluate", "inference", "postproc"):
+        assert bad[("step_minutes", step)]["baseline"] == ORACLE_MINUTES[step]
+        assert "blank-session, in-window" in \
+            bad[("step_minutes", step)]["baseline_source"]
+
+    for metric in ("a100_span_min", "total_span_min"):
+        note = bad[(metric, "")]["note"]
+        assert bad[(metric, "")]["baseline"] == ""
+        assert "NOT PUBLISHED" in note and "RECOVERED-FROM-LOGS" in note
+        assert "41.7" in note          # the lower bound, stated rather than published
+
+
+def test_a_blank_session_row_is_admitted_only_inside_the_window(tmp_path):
+    """The window is the ONLY thing standing between a blank-session row and the arm, so
+    it has to hold at both edges and be genuinely optional."""
+    inside = list(DAMAGED) + [("labels", "OK", "99.9", "2026-09-06 01:45:00", "", _REC)]
+    t, _ = Ledger(tmp_path / "in", inside).table()
+    assert t[("step_minutes", "labels")]["baseline"] == "99.9"
+    assert "blank-session, in-window" in t[("step_minutes", "labels")]["baseline_source"]
+
+    outside = list(DAMAGED) + [("labels", "OK", "99.9", "2026-09-06 00:50:00", "", _REC)]
+    t2, _ = Ledger(tmp_path / "out", outside).table()
+    assert t2[("step_minutes", "labels")]["baseline"] == ""
+
+    # no window at all: a blank-session row has nothing to be admitted BY, so the whole
+    # recovered baseline drops out — which is why the window is not optional in practice
+    t3, _ = Ledger(tmp_path / "nowin", DAMAGED, base_window="").table()
+    for s in STEPS:
+        assert t3[("step_minutes", s)]["baseline"] == ""
+
+
+def test_the_pin_admits_nothing_it_was_not_asked_for():
+    """A pin that is too tight is the same defect mirrored, so an empty pin still has to
+    mean the pre-pin behaviour exactly — every row of the tag, blank sessions included."""
+    assert Pin().empty
+    assert Pin().admits({"session": "", "ts": "2026-01-01 00:00:00"}) == (True, "")
+    assert Pin(["a"]).admits({"session": "a"}) == (True, "session=a")
+    ok, rule = Pin(["a"]).admits({"session": "b"})
+    assert not ok and "not this arm" in rule
+    ok, rule = Pin(["a"]).admits({"session": "", "ts": "2026-01-01 00:00:00"})
+    assert not ok and "no window" in rule
+
+
+def test_the_window_reads_all_three_timestamp_shapes():
+    """One window is compared against the ledger's `ts`, the step log's `started:` and
+    run_passport's `ts_utc`, which are written in three different formats by three
+    different writers. All three are UTC on the same clock."""
+    pin = Pin([BASE_SESSION], parse_window(BASE_WINDOW))
+    assert pin.in_window("2026-09-06 02:50:58")              # ledger
+    assert pin.in_window("2026-09-06T02:04:35.961159")       # step log
+    assert pin.in_window("20260906T014248Z")                 # run_passport
+    assert not pin.in_window("2026-09-06 00:28:55")          # the failed 00:22 launch
+    assert not pin.in_window("20260905T150242Z")             # the 09-05 session
+    assert not pin.in_window("")                             # unreadable is never inside
+
+
+def test_a_later_failed_attempt_does_not_win_the_step_log(tmp_path):
+    """`--run-tag` equality is not enough to identify a step log: the failed launches ran
+    under the SAME tag and wrote their own. Without the window, latest-by-`started:`
+    picks the retry; with it, the arm's own log wins. The passport is pinned on the same
+    window for the same reason, so here it drops out and the machine column falls through
+    to the heartbeat."""
+    t, _ = Lake(tmp_path / "nowin", with_late_tile_log=True).table()
+    assert t[("step_elapsed_log", "tile")]["baseline"] == "77.70"   # the wrong log
+
+    t2, _ = Lake(tmp_path / "win", with_late_tile_log=True,
+                 base_window="2026-09-06T01:00:00..2026-09-06T02:30:00").table()
+    assert t2[("step_elapsed_log", "tile")]["baseline"] == "20.50"
+    assert "heartbeat" in t2[("machine", "train")]["note"]      # passport windowed out
+    assert t2[("step_minutes", "train")]["baseline"] == "40.0"  # session-pinned rows
+
+
+# ── g — what postproc actually produced ───────────────────────────────────────
+
+def test_the_postproc_reads_come_off_the_pinned_step_log(tmp_path):
+    """R3 is an elapsed time, but a cheaper postproc that segmented a different city is
+    not a win. The two arms pick their operating threshold independently — each from its
+    OWN eval report — so the cut, the canopy and the polygon count are read, never
+    assumed equal."""
+    t, _ = Lake(tmp_path).table()
+    assert t[("operating_threshold", "postproc")]["baseline"] == "0.558"
+    assert t[("operating_threshold", "postproc")]["pilot"] == "0.594"
+    assert t[("canopy_pct", "postproc")]["baseline"] == "19.6"
+    assert t[("canopy_pct", "postproc")]["pilot"] == "19.1"
+    assert t[("canopy_ha", "postproc")]["baseline"] == "1408.5"
+    assert t[("canopy_ha", "postproc")]["pilot"] == "1373.1"
+    assert t[("n_polygons", "postproc")]["baseline"] == "45532"     # comma stripped
+    assert t[("n_polygons", "postproc")]["pilot"] == "46150"
+    assert t[("polygonize_s", "postproc")]["baseline"] == "436.1"
+    assert t[("polygonize_s", "postproc")]["pilot"] == "653.1"
+    # the P4.3 difference: the baseline printed no staging line at all
+    assert t[("stage_prob_s", "postproc")]["baseline"] == ""
+    assert t[("stage_prob_s", "postproc")]["pilot"] == "114.1"
+    assert "BLANK means" in t[("stage_prob_s", "postproc")]["note"]
+
+
+def test_postproc_parsing_ignores_the_lines_that_only_look_like_measurements():
+    """`Polygonizing…` and `(vectorized shapely 2.x polygonize)` both carry the word and
+    neither is a number; `staged write:` is not the probability-raster staging tick."""
+    text = ("  Polygonizing…\n"
+            "  (vectorized shapely 2.x polygonize)\n"
+            "  staged write: edmonds_canopy_mask_2017k_of_2017k.tif (96 MB)\n"
+            "  ⏱ copy edmonds_canopy_mask_2017k_of_2017k.tif: 0.2s\n"
+            "  ⏱ postproc: 1079.5s\n")
+    assert postproc_metrics(text) == {}
+    assert postproc_metrics("") == {}
+    got = postproc_metrics(_postproc_stdout(
+        BASE_TAG, "0.594", "1373.1", "19.1", "1,046,150", "653.1", stage_s="114.1"))
+    assert got == {"operating_threshold": "0.594", "canopy_ha": "1373.1",
+                   "canopy_pct": "19.1", "n_polygons": "1046150",
+                   "polygonize_s": "653.1", "stage_prob_s": "114.1"}

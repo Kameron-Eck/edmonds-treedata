@@ -310,3 +310,32 @@ reconciled here — it is neither cluster, nor their plain mean (943.1 MB), nor 
 a PROJECTION built on that figure, not a measurement.** Independent measured support for
 the change itself is §7.2: net TX exceeds 1 MB/s in 26% of `train` hardware samples,
 ~2.2 h of the 8.6 h sampled — which is this upload path — subject to the §7.5 caveat.
+
+---
+
+## 9. The pilot ran — what held, what did not (2026-09-08)
+
+One acquisition (2017k), the same recipe as its baseline, split across three runtimes.
+The verdict with every number and its pointer lives in
+`experiments/offload_pilot_2017k.yaml`; the comparison table is
+`phase4/qc/offload_pilot_2017k.csv`. In one line each:
+
+- **Tile offload promoted.** CPU tiling reproduced the baseline tile set byte-for-byte
+  (`a36d6772e88b`, 632 tiles) and the A100-bearing span fell 113.0 → **67.3 min**.
+- **Checkpoint diet validated.** 1113.2 → **371.4 MB** on Drive; train 46.4 → 39.9 min with
+  the tile copy identical in both runs.
+- **Postproc staging validated as a mechanism, not as a default.** The staged read
+  engaged (2.4 GB in 114 s, then NVMe), but a 2-vCPU runtime polygonizes 1.5× slower
+  than the A100 box (653 vs 436 s), so postproc stays on the GPU box until a bigger CPU
+  tier is measured. Same-machine benefit: UNDETERMINED.
+- **Model unchanged.** AP 0.4338 vs 0.4275, AUROC 0.8860 vs 0.8851 — and yet the delivered
+  canopy fraction moved 19.6% → 19.1% because the best-F1 threshold moved 0.558 → 0.594:
+  a measured single-seed noise sample for any map number quoted at a delivered cut.
+- **Four new bottlenecks measured, all now instrumented:** the ~230 s per-file tile copy
+  on every train (bundle handoff in progress), the same 11.5 GB ortho staged four times
+  at 37–133 MB/s (scratch cache next), 359 s of status-file merging at every queue start
+  (`94cb8df`, unvalidated until the next launch), and the hardware logger losing 26% of
+  samples to its own flush (fix in progress).
+- **§3's concurrency table stands, with a smaller numerator:** per-acquisition GPU-bearing
+  time measured here is train 39.9 + evaluate 2.1 + inference 21.6 ≈ 64 min — the tile
+  and postproc minutes are off the device, and the model is the same.

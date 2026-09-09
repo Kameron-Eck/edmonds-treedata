@@ -10,10 +10,45 @@ Washington Regional Orthophotography consortium ILA the report already cited (Ki
 88 participants) for the $3,696.21 figure — previously sourced only to an unsourced free-text
 `notes` field in the project's own QC ledger (report §4). Retrieved directly as
 Reports/sources/raw/kc2015-aerials-ila-1465848.pdf (doc id 1465848); pypdf extraction returned
-only 902 characters across 42 pages — this is another scanned PDF with no text layer, same
-situation as ila-1462454. Queued for the same OCR pass (see §10.8 in the report).
+only 902 characters across 42 pages — a scanned PDF with no text layer, same situation as
+ila-1462454. OCR'd 2026-09-09 with qc/ocr_scanned_pdf.py (see report §10.8.3) — see
+Reports/sources/text/kc2015-aerials-ila-1465848.txt for the full 103,041-character result, which
+confirms the $3,696.21 figure verbatim from the contract's own Section 25 signature page.
 
 Remaining 19 results on this page are unrelated building-permit wetland/critical-area/geotech
 reports (boilerplate references to "aerial imagery" as a base-map source). Pages 2-7 of 127
 results not examined — the pattern (permit noise) is consistent with other high-count general
 terms in this sweep.
+
+=== VERBATIM CAPTURE (mcp__claude-in-chrome__get_page_text, page 1 of results) ===
+
+Sort results by: Relevance
+Results 1 - 20 of 127
+King County 2015 Regional Aerials Funding Interlocal Agreement
+Contracts - 42 pages
+Fields
+Contract Start Date:6/23/2015
+Contract Title:King County 2015 Regional Aerials Funding Interlocal Agreement
+Contract Type:Interlocal
+Contract/Project Number:06560
+Okay to Expire:NO
+BLD2024-1504_Site_Plan_11.14.2024_1.07.15_PM_4619620 (TRAKiT Document - 1 pages, 23028 102ND PL W)
+23511 74th wetland report.pdf (PermitTrax Document - 21 pages, 23511 74TH AVE W, Permit ADR127284)
+23511 74th wetland report.pdf (PermitTrax Document - 21 pages, 23511 74TH AVE W, Permit DRC20170051)
+Wetland Determination (TRAKiT Document - 56 pages, 8415 TALBOT RD, BLD2021-0940)
+Wetland Determination Report (TRAKiT Document - 23 pages, 23511 74TH AVE W, BLD2022-1025)
+REVIEWED RESUB1 BLD2023-1421+Wetland and Stream+3.8.2024 (TRAKiT Document - 7 pages, 7824 175TH ST SW)
+REVIEWED BLD ENG BLD2021-0940+Geotech report+7.2.2021 (TRAKiT Document - 30 pages, 8415 TALBOT RD)
+160804 MAD (Wetland Delineation Report).pdf (TRAKiT Document - 94 pages, 9300 236TH ST SW, BLD2016-1599)
+REVIEWED PLN RESUB 4-BLD2023-0660+Wetland Report (TRAKiT Document - 51 pages, 1159 7TH AVE S)
+Wetland and Stream Report - Hopper_Interrupted Buffer (TRAKiT Document - 29 pages, 1005 OLYMPIC AVE, BLD2023-1083)
+Wetland and Stream Report - Hopper_Interrupted Buffer (2) (TRAKiT Document - 29 pages, 1005 OLYMPIC AVE, BLD2023-1083)
+FOR REFERENCE RESUB1 BLD2024-0085+CRITICAL AREA & MITIGATION STUDY (TRAKiT Document - 36 pages, 951 MAIN ST)
+REVIEWED RESUB3 BLD2023-1596+CRA & MITIGATION REPORT (TRAKiT Document - 36 pages, 951 MAIN ST)
+REFERENCE ONLY BLD2023-1596+CAR (TRAKiT Document - 36 pages, 951 MAIN ST)
+RESUB1 BLD2023-1499+Critical_Areas_Report (TRAKiT Document - 50 pages, 215 10TH PL N)
+REVIEWED PLN_RESUB1 BLD2022-0502+OUTSIDE CR AREAS REPORT (TRAKiT Document - 32 pages, 901 BELL ST)
+APPROVED RESUB 3-BLD2022-1135+Biologist Report (TRAKiT Document - 11 pages, 17727 76TH AVE W)
+REVIEWED PLN RESUB1 BLD2023-1300+WETLAND REPORT (TRAKiT Document - 14 pages, 9222 183RD PL SW)
+BLD2023-0650_Other_5.30.2023 / OVERHEAD VIEW (TRAKiT Document - 1 pages, 7205 224TH ST SW M-1)
+First 123456 Last

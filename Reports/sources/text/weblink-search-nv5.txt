@@ -10,3 +10,32 @@ document found under "lidar". Confirms NV5 is named inside it (NV5 Geospatial, I
 lidar contractor, per the full text already retrieved as ila-3106507). The remaining 12 hits
 are unrelated building-permit records (drywall repairs, ADR files) with no connection to NV5.
 No separate/direct Edmonds-NV5 contract exists in this index.
+
+=== VERBATIM CAPTURE (mcp__claude-in-chrome__get_page_text) ===
+
+Sort results by: Relevance
+Results 1 - 13 of 13
+Snohomish County 26-27 ILA - Urban Tree Canopy Mapping Project
+Contracts - 16 pages
+Fields
+City Department:Finance / Information Services
+Contract Expiration Date:6/30/2026
+Contract Start Date:7/20/2026
+Contract Title:Intergovernmental Services Agreement between Snohomish County and City of Edmonds for Urban Tree Canopy Mapping Project
+Contract Type:Interlocal
+Contract/Project Number:IS-20260720-SNOCOTRMAP
+Okay to Expire:NO
+Vendor:Snohomish County
+BLD2021-0917+Site_Plan+7.1.2021_1.10.16_PM+2279718 (TRAKiT Document - 1 pages, 8017 234TH ST SW 313, BREVE CONDOS- DRYWALL REPAIR)
+BLD2021-0922+Site_Plan+7.1.2021_1.47.35_PM+2279921 (TRAKiT Document - 1 pages, 8017 234TH ST SW 307, BREVE CONDOS- DRYWALL REPAIR)
+BLD2021-0914+Site_Plan+7.1.2021_1.44.10_PM+2279899 (TRAKiT Document - 1 pages, 8021 234TH ST SW 225, BREVE CONDOS- DRYWALL REPAIR & MECH)
+BLD2021-0915+Site_Plan+7.1.2021_1.14.07_PM+2279735 (TRAKiT Document - 1 pages, 8021 234TH ST SW 211, BREVE CONDOS- DRYWALL REPAIR)
+BLD2021-0916+Site_Plan+7.1.2021_1.30.23_PM+2279818 (TRAKiT Document - 1 pages, 8021 234TH ST SW 213, BREVE CONDOS- DRYWALL REPAIR)
+BLD2021-0918+Site_Plan+7.1.2021_1.37.27_PM+2279856 (TRAKiT Document - 1 pages, 8021 234TH ST SW 215, BREVE CONDOS- DRYWALL REPAIR)
+BLD2021-0919+Site_Plan+7.1.2021_1.05.57_PM+2279700 (TRAKiT Document - 1 pages, 8021 234TH ST SW 205, BREVE CONDOS- DRYWALL REPAIR)
+BLD2021-0920+Site_Plan+7.1.2021_1.41.06_PM+2279880 (TRAKiT Document - 1 pages, 8021 234TH ST SW 219, BREVE CONDOS- DRYWALL REPAIR)
+BLD2021-0921+Site_Plan+7.1.2021_12.58.19_PM+2279656 (TRAKiT Document - 1 pages, 8025 234TH ST SW 123, BREVE CONDOS- DRYWALL REPAIR & MECH)
+18021 ANDOVER ST.PDF (PermitTrax Document - 28 pages, 18021 ANDOVER ST)
+660442.pdf (PermitTrax Document - 2 pages, 931 MOUNTAIN LN, BLD19660442)
+23320 HIGHWAY 99.PDF (PermitTrax Document - 596 pages, 23320 HIGHWAY 99)
+Page 1 of 1

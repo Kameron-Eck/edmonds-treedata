@@ -48,9 +48,17 @@ report body and in ila-3106507.txt):
   - NV5 Geospatial proposal ("Snohomish County Leaf-on Lidar Mapping Services, Washington",
     dated April 15, 2026, under DNR lidar RFP No. 22-03 — the SAME master RFP number behind the
     2022 WA_LidarGaps_C22 project already in the report's §2/§10.3) covers 823 square miles
-    across Snohomish County and 12 participating cities including Edmonds.
-  - Collection window: "leaf on conditions in mid-June to July 2026" — genuine leaf-ON summer
-    2026 acquisition, matching the staff email's "summer 2026 fly-overs" almost verbatim.
+    across unincorporated Snohomish County and 11 participating cities (Stanwood, Marysville,
+    Arlington, Granite Falls, Mukilteo, Everett, Snohomish, Lake Stevens, Brier, Bothell,
+    Edmonds).
+  - Collection window per NV5's proposal: "leaf on conditions in mid-June to July 2026" —
+    scheduled, matching the staff email's "summer 2026 fly-overs" almost verbatim. NOTE: this is
+    the vendor's proposed window, not confirmed completion — Exhibit B was countersigned by DNR
+    on 2026-07-22 (Teigen, Thomas signature block), i.e. after the proposal's stated collection
+    window, and the cost-share's own "period of performance" runs "July 17, 2026, or the date of
+    execution, whichever is later, to January 31, 2027." Whether NV5 flew ahead of the paperwork
+    (common in practice) or collection slipped past the stated window cannot be determined from
+    these records alone. This bears directly on the "next year or 2028" hedge in the staff email.
   - Deliverables: full QL1 lidar spec — classified point cloud (LAS 1.4), hydro-flattened bare-
     earth DEM, DSM, breaklines, intensity imagery, FGDC metadata — at >=8 pulses/m2, <=10cm
     vertical accuracy (RMSEz).
@@ -63,3 +71,84 @@ report body and in ila-3106507.txt):
 No further pages of the 549-result "lidar" search were examined; the one Contracts-template hit
 on page 1 is corroborated independently by the "NV5" and "photogrammetric" searches below, which
 is strong evidence it is the only Edmonds-lidar contract in the index, not one of many.
+
+=== VERBATIM CAPTURE (mcp__claude-in-chrome__get_page_text, page 1 of results) ===
+
+Title: Search
+URL: https://weblink.edmondswa.gov/WebLink/Search.aspx?dbid=0&repo=Edmonds
+---
+Sort results by: Relevance
+Results 1 - 20 of 549
+Exhibit A - Edmonds, WA Speed Validation June 2025
+No template assigned - 14 pages
+There are no fields set.
+Exhibit A - Edmonds, WA Speed Validation November 2024
+No template assigned - 10 pages
+There are no fields set.
+Exhibit A - Edmonds, WA Speed Validation December 2024
+No template assigned - 10 pages
+There are no fields set.
+Exhibit A - Edmonds, WA Speed Validation December 2024
+No template assigned - 10 pages
+There are no fields set.
+Exhibit A - Edmonds, WA Speed Validation March 2025
+No template assigned - 10 pages
+There are no fields set.
+Exhibit A - Edmonds, WA Speed Validation May 2025
+No template assigned - 10 pages
+There are no fields set.
+Snohomish County 26-27 ILA - Urban Tree Canopy Mapping Project
+Contracts - 16 pages
+Fields
+City Department:Finance / Information Services
+Contract Expiration Date:6/30/2026
+Contract Start Date:7/20/2026
+Contract Title:Intergovernmental Services Agreement between Snohomish County and City of Edmonds for Urban Tree Canopy Mapping Project
+Contract Type:Interlocal
+Contract/Project Number:IS-20260720-SNOCOTRMAP
+Okay to Expire:NO
+Vendor:Snohomish County
+Exhibit A - Edmonds, WA Speed Validation February 2025
+No template assigned - 10 pages
+There are no fields set.
+Exhibit A - Edmonds, WA Speed Validation April 2025
+No template assigned - 10 pages
+There are no fields set.
+Exhibit A - Edmonds, WA Speed Validation Report - September 2025
+No template assigned - 13 pages
+There are no fields set.
+Exhibit A - Edmonds, WA Speed Validation Report
+No template assigned - 13 pages
+There are no fields set.
+Exhibit A - Edmonds, WA Speed Validation Report
+No template assigned - 15 pages
+There are no fields set.
+Exhibit A - Edmonds, WA Speed Validation Report - July 2025
+No template assigned - 6 pages
+There are no fields set.
+Exhibit A - Edmonds, WA Speed Validation Report
+No template assigned - 11 pages
+There are no fields set.
+Exhibit A - Edmonds, WA Speed Validation Report - August 2025
+No template assigned - 10 pages
+There are no fields set.
+Exhibit A - Edmonds, WA Speed Validation Report - October 2025
+No template assigned - 10 pages
+There are no fields set.
+Exhibit A - Edmonds, WA Speed Validation Report
+No template assigned - 12 pages
+There are no fields set.
+Exhibit A - Edmonds, WA Speed Validation Report
+No template assigned - 12 pages
+There are no fields set.
+Exhibit A - Edmonds, WA Speed Validation Report -November 2025
+No template assigned - 11 pages
+There are no fields set.
+Exhibit A - Edmonds, WA Speed Validation Report - December 2025
+No template assigned - 11 pages
+There are no fields set.
+First 123456 Last
+
+(Field labels "There are no fields set." and "Show more information..." links present per-row in
+the live UI are omitted/condensed above where repetitive; the ordering, titles, page counts, and
+the full Contracts-template field block for the decisive hit are reproduced exactly as returned.)

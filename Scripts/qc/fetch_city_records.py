@@ -263,20 +263,32 @@ def record(rid, status, *, http=0, ct="", body=b"", req="", final="", raw="",
 # damaging error this tool could make. Detected and quarantined, never reported as ok.
 UNEXECUTED_SEARCH = re.compile(r"Results\s+0\s*-\s*0\s+of\s+0", re.I)
 
+# 2026-09-09: a SECOND unexecuted-search shape was observed in the wild — the click/type never
+# landed at all, so the page rendered with no "Results" line whatsoever (not even 0-0-of-0),
+# just the empty form's field labels. That shape has no zero-hit text to match, so it slipped
+# past UNEXECUTED_SEARCH above and was recorded as "ok". Any page with no results-count line at
+# all, when a term was supplied, gets the same quarantine treatment.
+RESULTS_LINE = re.compile(r"Results\s+\d+\s*-\s*\d+\s+of\s+\d+", re.I)
+
 
 def looks_like_unexecuted_search(text: str, term: str = "") -> bool:
-    """True when a page reports zero hits but shows no sign of having run the query.
+    """True when a page shows no sign of having actually run the query.
 
-    The rule: zero results AND the search term appears nowhere on the rendered page. A page
-    that genuinely searched echoes the term — in the query box, a "results for X" heading, or
-    a breadcrumb. A page that ignored the URL's searchcommand shows an empty form. With no
-    term configured we stay conservative and treat any zero-hit page as unproven.
+    Two shapes, both observed in production against this exact source:
+      1. Zero results AND the search term appears nowhere on the rendered page. A page that
+         genuinely searched echoes the term — in the query box, a "results for X" heading, or a
+         breadcrumb. A page that ignored the URL's searchcommand shows an empty form.
+      2. No "Results N - M of K" line at all when a term was supplied — the submit never
+         registered, so the page never left its initial empty-form state.
+    With no term configured we stay conservative and treat only shape 1 as unproven.
     """
-    if not UNEXECUTED_SEARCH.search(text):
-        return False
-    if term and term.lower() in text.lower():
-        return False        # the term is echoed back: a real zero-hit result
-    return True
+    if UNEXECUTED_SEARCH.search(text):
+        if term and term.lower() in text.lower():
+            return False     # the term is echoed back: a real zero-hit result
+        return True
+    if term and not RESULTS_LINE.search(text):
+        return True
+    return False
 
 
 def browser_fetch(url: str, search_term: str = "") -> tuple[bytes, str, str, str]:

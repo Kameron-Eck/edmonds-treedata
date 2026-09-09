@@ -20,7 +20,9 @@ absence of one.
 
 **UPDATED 2026-09-09 (§10.8): staff's "we've funded LIDAR imagery from summer 2026 fly-overs"
 claim is CONFIRMED — the City of Edmonds is paying for a genuine LiDAR acquisition, funded and
-under contract, flown leaf-on in mid-June–July 2026.** This reverses the report's original
+under contract, with collection scheduled leaf-on for mid-June–July 2026.** (Whether the flight
+has actually happened yet is not established by these records — see the timing note in §10.8.2.)
+This reverses the report's original
 "no city-funded LiDAR acquisition of any year surfaced" conclusion, which rested on the
 Laserfiche full-text search never having actually executed (§7, §10.5, §10.6). Once driven by
 hand in a browser, that search returned the record: an **Intergovernmental Services Agreement
@@ -31,9 +33,11 @@ between Snohomish County and the City of Edmonds for the Urban Tree Canopy Mappi
 - The City requested to "procure high-definition LiDAR data for the area within the city limits
   of City of Edmonds" (8.92 square miles) and agreed to pay Snohomish County **up to $3,300**.
 - The County rides a **Cost Sharing Agreement with WA DNR** (DNR Contract No. 93-111079,
-  **$304,606 total** across the County and 12 participating cities, funded in part through a
-  WA Department of Commerce **Salmon Recovery Through Local Planning Grant**, Agreement
-  No. 26-63117-011) for 823 square miles of Snohomish County.
+  **$304,606 total** across the unincorporated county plus **11 participating cities** —
+  Stanwood, Marysville, Arlington, Granite Falls, Mukilteo, Everett, Snohomish, Lake Stevens,
+  Brier, Bothell, and Edmonds — funded in part through a WA Department of Commerce **Salmon
+  Recovery Through Local Planning Grant**, Agreement No. 26-63117-011) for 823 square miles of
+  Snohomish County. The per-area rate is flat across participants, ~$370/sq mi ($304,606 ÷ 823).
 - DNR's contractor is **NV5 Geospatial, Inc.** (DNR Contract #93-102831) — the same firm behind
   the 2022 `WA_LidarGaps_C22` project already in §2/§10.3, under the same master lidar RFP
   (DNR RFP No. 22-03).
@@ -90,7 +94,8 @@ and intersected with the Edmonds bounding box (−122.42…−122.32, 47.77…47
 | 2016-03-17 → 2017-06-06 (**Edmonds tiles: 2016-03-30**) | Western Washington 3DEP QL1 (`m6331`, WESM `WA_Western_North_2016`) | **USGS in collaboration with WA DNR** | Quantum Spatial | 41 | 47.7765–47.8750 | **Full city** | No |
 | 2016-02-24 → 2017-05-25 | PSLC King County 2016–2017 (`m8588`) | PSLC with Kitsap County DEM | Quantum Spatial | — | reaches only 47.829 | Southern margin | No |
 | 2021-04-01 → 2021-04-24 | 3DEP King County Delivery 1 (WESM `WA_KingCo_1_2021`) | USGS | NV5 Geospatial | — | reaches ~47.79 | Southern city limit only | No |
-| **2018, 2019, 2020, 2022, 2023, 2024, 2025, 2026** | **— nothing —** | | | **0** | | **No lidar exists** | |
+| **2018, 2019, 2020, 2022, 2023, 2024, 2025** | **— nothing —** | | | **0** | | **No lidar exists** | |
+| 2026 | Snohomish County/WA DNR/NV5 (`IS-20260720-SNOCOTRMAP`, DNR #93-111079) | Snohomish County via DNR cost-share, City pays $3,300 | NV5 Geospatial | 0 (not yet catalogued) | — | **Contracted; collection scheduled leaf-on mid-June–July 2026 (§1, §10.8) — not yet confirmed flown or in any catalog** | **Yes — first year this is true** |
 
 The funding line for the dataset you actually use is explicit in the delivery record:
 
@@ -174,19 +179,36 @@ LidarGaps case proves the staging mirror can hold projects the index misses. But
 lidar overwhelmingly flows through the USGS/WA DNR partnership, and both mirrors were checked.
 A regional flight invisible to both would be unusual — not impossible.*
 
+**Update 2026-09-09: this is exactly what happened.** The 2026 Snohomish County/DNR/NV5
+acquisition (§1, §10.8) rides the same DNR/NV5 partnership as `WA_LidarGaps_C22`, so it is
+unlikely to stay invisible to WESM/NOAA indefinitely — but as of this report it has not yet
+appeared in either, which is expected for a contract executed in July 2026 with a leaf-on
+collection window that may not have completed yet (§10.8.1) and delivery due ~90 business days
+after successful acquisition.
+
 ---
 
 ## 3. Evidence that the City acquires or funds LiDAR
 
-**None was found — but read this section's evidentiary weight carefully.** The catalog evidence
-in §2 is machine-verified and strong. This section is *not*: no agent could open a single
-Edmonds budget, council packet, ordinance, RFP or contract, because the network blocked every
-city host (§7). What follows is "nothing surfaced in indexed search", not "the records were
-searched and are empty". Four of ten channels returned zero findings for this reason.
+**SUPERSEDED 2026-09-09 (§10.8) — evidence now exists.** This section originally reported that
+none was found; that is no longer true. A July 2026 Intergovernmental Services Agreement
+(`IS-20260720-SNOCOTRMAP`, `Reports/sources/text/ila-3106507.txt`) ties the City directly to a
+LiDAR acquisition — see §1 for the full chain. The searches below are kept as the record of what
+this investigation's original, network-restricted sweep could and couldn't find, and they were
+correct on their own terms at the time: none of the channels below is what surfaced the eventual
+answer, which came only once the Laserfiche full-text search actually ran (§10.8.2).
 
-With that scoping: not one contract, purchase order, budget line, interlocal agreement, grant
-application, consortium membership or vendor project page ties the City of Edmonds to a LiDAR
-acquisition, in any year.
+**None was found by this section's own searches — but read this section's evidentiary weight
+carefully.** The catalog evidence in §2 is machine-verified and strong. This section is *not*: no
+agent could open a single Edmonds budget, council packet, ordinance, RFP or contract, because the
+network blocked every city host (§7). What follows is "nothing surfaced in indexed search", not
+"the records were searched and are empty". Four of ten channels returned zero findings for this
+reason.
+
+With that scoping, and as of the original sweep: not one contract, purchase order, budget line,
+interlocal agreement, grant application, consortium membership or vendor project page *found by
+these specific searches* tied the City of Edmonds to a LiDAR acquisition. One now has been found,
+by a different channel — see §1 and §10.8.
 
 Specifically searched and empty:
 
@@ -245,8 +267,15 @@ The chain, each link independently recorded:
 And Edmonds *does* pay into imagery cost-shares — just not lidar ones. The City is a named
 participant in the 2015 Western Washington Regional Orthophotography consortium (King County
 lead, 88 participants, agreement signed 2015-06-23) at a cost of **$3,696.21**. That is the
-shape of Edmonds' aerial-data spending: a few thousand dollars to join a county photo buy —
-roughly three orders of magnitude below what a dedicated municipal lidar flight costs.
+shape of Edmonds' aerial-data spending outside a cost-share: a few thousand dollars to join a
+county photo buy — roughly three orders of magnitude below what a dedicated, City-commissioned
+municipal lidar flight would cost. **This gap does not hold for a regional cost-share**, which is
+exactly the mechanism that funded the actual 2026 lidar acquisition (§1, §10.8): the 2021 SWO
+20-01 EagleView imagery buy-in (Exhibit A p.18, `ila-1462454.txt`) runs $6,930 per acquisition
+(22 sq mi × $300/sq mi + 5% admin) for Edmonds' orthoimagery, and the 2026 lidar buy-in is
+$3,300 — the same order of magnitude. A county-brokered cost-share is genuinely inexpensive for
+either product, which is the real answer to why staff could fund lidar with, apparently, no
+dedicated budget line.
 
 **Verdict: staff's general "our LiDAR fly-overs are in even years" framing describes the
 Snohomish County EagleView orthoimagery cycle, not lidar. Confidence: HIGH — resolved 2026-09-09
@@ -795,7 +824,20 @@ pages, doc id 3106507, Contract/Project No. `IS-20260720-SNOCOTRMAP`) — surfac
 (`https://weblink.edmondswa.gov/WebLink/0/edoc/3106507/document.pdf`, born-digital PDF, clean
 pypdf extraction, no OCR needed) to `Reports/sources/text/ila-3106507.txt`. **This is the
 authorizing record for the entire §1 finding** — see there for the full chain of funding and
-delivery detail. One Laserfiche metadata quirk worth flagging rather than hiding: its "Contract
+delivery detail.
+
+**Timing tension worth stating plainly: these records do not establish whether the flight has
+actually happened.** NV5's proposal (dated 2026-04-15) schedules collection for "leaf on
+conditions in mid-June to July 2026," but DNR's own countersignature on Exhibit B (the Cost
+Share Agreement) is dated **2026-07-22** — after that window closes — and the cost-share's
+Section 6 sets the "period of performance" as "July 17, 2026, or the date of execution,
+whichever is later, to January 31, 2027." Either NV5 flew ahead of the final paperwork (common
+in practice, since acquisition vendors often work from an earlier task order or letter of
+intent) or the collection slipped past its originally proposed window. This report cannot
+distinguish the two from the documents retrieved, and it bears directly on the staff email's own
+hedge, "to be completed next year or in 2028, depending on budget outcomes."
+
+One Laserfiche metadata quirk worth flagging rather than hiding: its "Contract
 Start Date" (7/20/2026) and "Contract Expiration Date" (6/30/2026) fields are entered in an
 order that reads as backwards; the document body's own Section 2 is authoritative and states the
 term runs "from execution" to June 2027, consistent with the document's title, "From Execution
@@ -853,6 +895,12 @@ session declined to guess one.
 4. **Nothing else from §8/§10.7's remaining list has changed** — the planning channel (UFMP,
    Comprehensive Plan, PlanIT Geo/SavATree scopes) was still not re-run this pass, and remains
    the largest unexamined channel in the whole investigation.
+5. **Only page 1 of the "lidar" search's 549 results was examined**, sorted by relevance — the
+   two contracts found are strong signal, but a systematic pass was not done. If pursuing the
+   still-unverified June 2026 staff quote (§10.5), filter the search by Template = "Meetings and
+   Hearings" rather than paging through 549 relevance-sorted hits; the **"2026-02-03 Council
+   Packet"** recurred across the EagleView, Pictometry, and photogrammetric searches this session
+   and was never opened — it is the single most-flagged unopened document in this report.
 
 ---
 

@@ -5970,6 +5970,7 @@
           "canary_bb18_2006s_base",
           "canary_bb50_2006s_base"
         ],
+        "cross_vm_eval_report_clobber": "OBSERVED 2026-09-09 05:44Z, first hour of the sweep. Both A100 runtimes rewrite the shared phase4/eval/semantic_eval_report.csv on every evaluate (read-modify-write behind an rclone write cache whose uploads land asynchronously). bb50_2006s_base wrote at 05:43:09Z; bb18_2006s_base wrote ~05:44Z and its VERIFY:evaluate read MISSING (a stale view still showing t1_2006s_in05); the live file now carries bb50's rows only and bb18's rows are in neither the live report nor the superseded archive. NOTHING SCIENTIFIC LOST: every evaluate's metrics are in its step log (phase4/logs/phase4_semantic_finetune_ evaluate_<year>_<ts>.log, e.g. bb18_2006s_base IoU 0.2939 Dice 0.4543 Prec 0.5776 Rec 0.3744, in-sample at this GSD) and the sweep's primary metric is the LOSO sample-test score from the inference+scoring step that follows. CONSEQUENCES: (1) any VERIFY:evaluate MISSING/STALE row in this campaign's ledgers is this defect until shown otherwise; (2) registry_from_manifests reads held-out metrics from the eval CSV and will read the wrong arm's or none for clobbered rows — rebuild those rows from the step logs before the registry is trusted for bb arms; (3) the same class as the 2026-09 ledger erasure, on a different file: the eval report needs per-run files (WORKPLAN system-work item 3) before two runtimes share a year again.\n",
         "encoders": [
           "resnet18",
           "resnet50"

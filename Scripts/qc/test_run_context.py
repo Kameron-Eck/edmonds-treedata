@@ -562,6 +562,30 @@ def test_ask_answers_every_subject_kind():
     assert any("does not know yet" in ln.lower() for ln in gaps)
 
 
+def test_the_scratch_cache_enoent_signature_is_diagnosed():
+    """The 2026-09-09 CHM loss must match its known_failures.yaml entry AFTER
+    normalisation — and not the older `--infer-aoi` ENOENT entry, whose message quotes
+    the path. `normalise()` swallows `/content/...` through the trailing colon, so the
+    signature it produces is not the one the log shows; a pattern written against the
+    raw text would diagnose nothing. The only other gate on the yaml compiles regexes."""
+    import re as _re
+    import yaml
+    from instruments.harvest_failures import normalise
+    raw = ("/content/phase4_scratch/lidar_chm2005_2m__cc5263da.tif: "
+           "No such file or directory")
+    sig = normalise(raw)
+    spec = yaml.safe_load((SCRIPTS / "qc" / "known_failures.yaml")
+                          .read_text(encoding="utf-8")) or {}
+    hits = [f for f in spec.get("failures", [])
+            if _re.compile(f["match"], _re.I).search(sig)
+            or _re.compile(f["match"], _re.I).search("rasterio.errors.RasterioIOError")]
+    assert len(hits) == 1, (sig, [f["match"] for f in hits])
+    assert "scratch" in hits[0]["cause"].lower(), (sig, hits[0]["match"])
+    aoi = normalise("[Errno 2] No such file or directory: '/content/x/aoi.gpkg'")
+    assert not _re.compile(hits[0]["match"], _re.I).search(aoi), (
+        "the scratch-cache entry also swallows the --infer-aoi ENOENT")
+
+
 def test_failure_ids_are_stable_across_processes():
     """An id must not change when nothing changed.
 

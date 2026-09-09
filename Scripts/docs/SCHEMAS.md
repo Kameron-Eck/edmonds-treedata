@@ -431,6 +431,44 @@ gap in the file, and it surfaces in `py -3.12 qc/ask.py --gaps` until someone wr
 the mechanism down. A status other than `undiagnosed` with no cause fails the gate
 (`test_failure_registry_states_a_cause_or_says_it_has_none`).
 
+## The scratch cache journal (VM `LOCAL_SCRATCH/.cache/`, EPHEMERAL — lives as long as the runtime)
+
+Written and read only by `pipeline/phase4seg/scratchcache.py`; nothing here reaches
+the lake or the repo, and the whole tree dies with `/content`. Documented because two
+processes on one VM and many threads in one process all read it, and its semantics are
+what decide whether a multi-GB payload is still there when a step opens it.
+
+| file | writer | meaning |
+|---|---|---|
+| `{key}.json` | `stage` (temp + os.replace), `adopt`, `sweep` | one entry record. `key` = 8-hex sha256 of the FULL source path (`_key`; the same hash `common.py::_scratch_name` puts in the payload name). Fields: `state` (`copying` \| `ready`), `key`, `src`, `src_size`, `src_mtime`, `payload` (basename under `LOCAL_SCRATCH`), `bytes`, `pid`, `host`, `ts_start`, `ts_ready`, `last_use`, optional `adopted`. A hit re-validates `src`, `bytes`, `src_size` and `src_mtime` (±`MTIME_TOL_SEC`) against a live stat of the source — a size/mtime check, NOT a content check |
+| `pins/{key}.{pid}.pin` | `_lookup` (hit), `stage` (after publish), `pin`, `adopt` | a reader's claim on the entry. Dropped by `release` / `common.py::_unstage_imagery_local`, by `_delete_entry`, or by the reaper when its pid is dead (`names.pid_alive`) or it is older than `PIN_MAX_MIN` |
+| `cache.lock` | `_cache_lock` | the flock serialising metadata work between processes (a no-op off POSIX) |
+| `{payload}.part.{pid}.{hex}` | `stage` | an in-flight copy; swept by pid on the next `stage()`, or by age (24 h) |
+
+READER RULES.
+- **The sidecar defines ownership.** The evictor may delete only a payload with a
+  `ready` record; everything else under `LOCAL_SCRATCH` (`tiles/`, `bundles/`, write
+  artifacts, stumps) is un-owned and untouchable.
+- **A live pin protects the entry from `reserve()` / `stage()` eviction, from
+  `invalidate()` and from the pre-clear — whoever holds it, this pid included.** The
+  one place an OWN pin is not honoured is `_lookup`'s stale-entry delete, where that pin
+  is `adopt`'s keep-for-postproc claim and refusing would cost a 60-100 min FUSE read.
+- **Pins are per PID, so one process's threads share one pin and cannot see each
+  other through it.** `stage()` therefore serialises same-key callers within a process
+  (`_key_lock`, held for its whole body): the first copies, the rest hit. Before that
+  lock existed, step_inference's 8 reader threads staged the CHM concurrently, 7 of them
+  copied, and each publish unlinked the name a sibling had just been handed
+  (2026-09-09, `qc/known_failures.yaml` "No such file or directory" scratch entry).
+- **The publish is a bare atomic `os.replace`.** The canonical name is made absent once,
+  by `_clear_destination` BEFORE the `copying` record is journalled (that is what keeps
+  `sweep`'s size-based promotion sound); it is never unlinked again, so a name that
+  resolved once keeps resolving — to the old bytes or the new, never to nothing.
+- `reserve()` is advisory: it evicts toward the floor and reports whether the bytes fit,
+  and no caller gates on it. Its eviction ladder and the floor are in the module
+  docstring, one home.
+
+Gate: `qc/test_scratch_cache.py` (every guard in a mutation pair).
+
 ## semantic_eval_<run_id>.csv (lake `phase4/eval/runs/`, WRITE-ONCE per evaluate)
 
 Written by `phase4seg/core.py::_write_per_run_eval`, called from `step_evaluate` BEFORE

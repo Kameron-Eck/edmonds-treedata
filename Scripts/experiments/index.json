@@ -6237,7 +6237,7 @@
       "outputs": [
         "phase4/qc/backbone_benchmark.csv"
       ],
-      "registry_rows": 107,
+      "registry_rows": 108,
       "reports": [],
       "retrospective": false,
       "run_ids": [],

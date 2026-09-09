@@ -1192,3 +1192,241 @@ def test_json_sidecars_survive_a_torn_read(env):
     assert scratchcache._read_sidecar(e.key, env.root) is None
     assert scratchcache.stage(e.src, root=env.root) == e.payload
     assert json.loads(side.read_text(encoding="utf-8"))["state"] == "ready"
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+#  ONE PROCESS, MANY THREADS — the 2026-09-09 CHM loss
+# ══════════════════════════════════════════════════════════════════════════════
+#
+# THE FAILURE (phase4/logs/phase4_semantic_finetune_inference_2016_2026-09-09T22-09.log,
+# wb50_2016_in05, code sha a3da8298): the ortho was a cache hit, then
+# `⏱ stage lidar_chm2005_2m.tif: 171.5s`, then every reader thread died on
+# `RasterioIOError: /content/phase4_scratch/lidar_chm2005_2m__cc5263da.tif: No such
+# file or directory`. The process was ALONE on the VM (the queue's sibling jobs are
+# sequential in the sibling logs), reserve() had already run at core.py::step_inference
+# before the CHM was ever staged, and a staged entry is pinned by its own pid — so
+# neither a peer evictor nor reserve() can have taken it. The deleter was the process
+# itself: core.py::step_inference stages the CHM lazily from INFER_READ_WORKERS reader
+# threads (`_prep` -> common.py::read_hillshade_chip -> `_hillshade_ds`), the 6.4 MB
+# CHM is far under STAGE_LOCK_MIN_BYTES so `_staging_lock_for` is a nullcontext, and
+# every guard in the cache is keyed by PID — so the threads were invisible to each
+# other. Each that passed both `_lookup`s before the first `copying` sidecar landed ran
+# `_clear_destination` (which refused only FOREIGN pins), copied, and then unlinked the
+# canonical name before its own os.replace — deleting the file a sibling thread had
+# just been handed and was opening. The tile step calls `_hillshade_ds()` on the main
+# thread (tiling.py::step_tile), which is why tile survived and inference did not.
+
+def _stage_from_threads(env, src, n):
+    """`n` threads call stage(src) at once, each recording what it got and whether the
+    path was there the instant stage() returned — the moment `_hillshade_ds` opens it."""
+    import threading
+    results = []
+    go = threading.Barrier(n)
+
+    def _worker():
+        go.wait(timeout=10)
+        got = scratchcache.stage(src, root=env.root)
+        results.append((got, got.exists()))
+
+    ts = [threading.Thread(target=_worker, name=f"reader-{i}") for i in range(n)]
+    for t in ts:
+        t.start()
+    for t in ts:
+        t.join(timeout=30)
+    assert len(results) == n, "a reader thread did not return"
+    return results
+
+
+def test_two_threads_staging_one_source_copy_it_once_and_both_keep_their_payload(env):
+    """THE MUTATION GATE for the CHM loss. Two reader threads stage the same source at
+    once. The journal hook parks the first thread just before it writes its `copying`
+    record — exactly the position the pool's threads race through — so the second
+    thread's two `_lookup`s see NO record and it, too, judges "miss". On the pre-fix
+    code both then copy (two `.part`s, two publishes, each unlinking the other's), and
+    `env.copies` counts TWO. With same-key staging serialised per process the second
+    thread cannot look up until the first has published, hits, and copies nothing.
+
+    The barrier carries a timeout because on the FIXED code the second thread never
+    reaches the journal at all (it is blocked behind the first), so the first would
+    otherwise wait forever; 2 s is the cost of that on the passing path, and on the
+    old code both threads arrive in milliseconds.
+    """
+    import contextlib
+    import threading
+    src = env.src("chm.tif", UNIT)
+    payload = scratchcache._payload_path(src, root=env.root)
+    real_ws = scratchcache._write_sidecar
+    both_about_to_journal = threading.Barrier(2)
+
+    def _ws(key, root, record):
+        if record.get("state") == "copying":
+            with contextlib.suppress(threading.BrokenBarrierError):
+                both_about_to_journal.wait(timeout=2.0)
+        return real_ws(key, root, record)
+
+    env.monkeypatch.setattr(scratchcache, "_write_sidecar", _ws)
+
+    results = _stage_from_threads(env, src, 2)
+
+    assert len(env.copies) == 1, (
+        f"{len(env.copies)} copies of one source by one process — the reader threads "
+        "raced each other through stage()")
+    assert all(got == payload for got, _ in results), results
+    assert all(there for _, there in results), (
+        "a thread was handed a payload that was already gone when it opened it")
+    assert payload.exists()
+    key = scratchcache._key(src)
+    assert _pins(env, key) == [f"{key}.{os.getpid()}.pin"]
+    assert scratchcache._read_sidecar(key, env.root)["state"] == "ready"
+
+
+def test_eight_threads_staging_one_source_all_get_the_payload(env):
+    """INFER_READ_WORKERS is 8. Without a hook, every thread must come back with the
+    payload path AND find it there: the threads that used to see a peer `copying`
+    record answered "wait" and — because the CHM is under STAGE_LOCK_MIN_BYTES, so
+    there was no lock to wait on — silently took the SOURCE path, reading the CHM
+    windowed over FUSE for every tile of the step. Serialised, they all hit."""
+    src = env.src("chm.tif", UNIT)
+    payload = scratchcache._payload_path(src, root=env.root)
+
+    results = _stage_from_threads(env, src, 8)
+
+    assert len(env.copies) == 1, len(env.copies)
+    assert [got for got, _ in results] == [payload] * 8, (
+        "a reader thread was sent to the source instead of the staged copy")
+    assert all(there for _, there in results)
+
+
+def test_the_pre_clear_refuses_under_this_process_own_live_pin(env):
+    """A pin is a reader's claim WHOEVER holds it. `_clear_destination` refused only
+    FOREIGN pins, so a sibling thread of the same process — the one configuration a
+    pid-keyed pin cannot distinguish — could unlink a payload this process had open
+    (`_hillshade_ds` holds the CHM open for the life of the process). The pre-clear is
+    reached only after `_lookup` answered "miss", and every path that turns a `ready`
+    entry into a miss drops our own pin first (`_delete_entry`), so an own pin here can
+    only mean another part of this process still holds the payload."""
+    e = env.entry("a.tif")
+    scratchcache.pin(e.payload, root=env.root)
+
+    assert scratchcache._clear_destination(e.key, e.payload, env.root) is False
+    assert e.payload.exists(), "the pre-clear unlinked a payload this process holds"
+
+
+def test_with_that_pin_released_the_pre_clear_proceeds(env):
+    """THE MUTATION on the test above: same entry, pin released — cleared."""
+    e = env.entry("a.tif")
+    scratchcache.pin(e.payload, root=env.root)
+    scratchcache.release(e.payload, root=env.root)
+
+    assert scratchcache._clear_destination(e.key, e.payload, env.root) is True
+    assert not e.payload.exists()
+
+
+def test_a_publish_never_leaves_the_canonical_name_absent(env):
+    """The publish is an atomic os.replace; it must not be preceded by an unlink. The
+    unlink existed to cover a peer that published into the name while we copied — but
+    os.replace already replaces atomically, and the unlink is what opened a window in
+    which the name resolved to NOTHING. Here a peer publishes (and pins — it has the
+    file open) mid-copy; our publish must go over the top of it without the name ever
+    being absent, and the peer's pin must survive."""
+    src = env.src("a.tif", UNIT)
+    payload = scratchcache._payload_path(src, root=env.root)
+    key = scratchcache._key(src)
+    peer = os.getpid() + 1
+    env.monkeypatch.setattr(names, "pid_alive", lambda pid: True)
+    counting_copy2 = shutil.copy2
+
+    def _peer_publishes_meanwhile(s, d, *a, **kw):
+        payload.write_bytes(b"x" * UNIT)
+        st = src.stat()
+        scratchcache._write_sidecar(key, env.root, {
+            "state": "ready", "key": key, "src": str(src), "src_size": st.st_size,
+            "src_mtime": st.st_mtime, "payload": payload.name, "bytes": UNIT,
+            "pid": peer, "host": "test", "ts_start": time.time(),
+            "ts_ready": time.time(), "last_use": time.time()})
+        scratchcache._pin_dir(env.root).mkdir(parents=True, exist_ok=True)
+        (scratchcache._pin_dir(env.root) / f"{key}.{peer}.pin").write_text("{}")
+        return counting_copy2(s, d, *a, **kw)
+
+    env.monkeypatch.setattr(shutil, "copy2", _peer_publishes_meanwhile)
+    seen = []
+    real_replace = os.replace
+
+    def _replace(a, b):
+        if Path(b) == payload:
+            seen.append(payload.exists())
+        return real_replace(a, b)
+
+    env.monkeypatch.setattr(os, "replace", _replace)
+
+    got = scratchcache.stage(src, root=env.root)
+
+    assert got == payload
+    assert seen == [True], (
+        "the publish made the canonical name ABSENT under a peer's pin before replacing it")
+    assert f"{key}.{peer}.pin" in _pins(env, key)
+    assert scratchcache._read_sidecar(key, env.root)["state"] == "ready"
+
+
+def test_what_this_process_staged_survives_its_own_reserve_until_it_unstages(env):
+    """The guarantee the task named, through the real call pair: what stage() hands a
+    step is pinned for that pid, so the step's own reserve() cannot take it — an
+    unpinned cold entry goes instead — and common.py::_unstage_imagery_local is what
+    releases the pin, after which the same reserve() does take it."""
+    stale = env.entry("stale.tif", last_use=1.0)             # cold, unpinned
+    src = env.src("chm.tif", UNIT)
+    got = scratchcache.stage(src, root=env.root)
+    assert got != src
+    env.state["reserved"] = TOTAL - 2 * UNIT - 500           # free = 500
+
+    scratchcache.reserve(UNIT, root=env.root)
+
+    assert got.exists(), "a step's own reserve() evicted what the step had staged"
+    assert not stale.payload.exists(), "the evictor did not take the unpinned entry"
+
+    env.monkeypatch.setattr(common, "LOCAL_SCRATCH", env.root)
+    env.monkeypatch.setattr(scratchcache, "_DEFAULT_ROOT_OVERRIDE", env.root)
+    common._unstage_imagery_local(got)
+    assert _pins(env, scratchcache._key(src)) == []
+
+    scratchcache.reserve(UNIT, root=env.root)
+
+    assert not got.exists(), "an unstaged (released) entry was not evictable"
+
+
+def test_a_second_process_pin_is_respected_by_reserve(env):
+    """Two arms per VM: the other arm's pin on the coldest entry holds it against OUR
+    reserve(), which takes the next-coldest unpinned entry instead."""
+    held = env.entry("held.tif", last_use=1.0)               # the coldest
+    stale = env.entry("stale.tif", last_use=2.0)
+    peer = os.getpid() + 1
+    scratchcache._pin_dir(env.root).mkdir(parents=True, exist_ok=True)
+    (scratchcache._pin_dir(env.root) / f"{held.key}.{peer}.pin").write_text("{}")
+    env.monkeypatch.setattr(names, "pid_alive",
+                            lambda pid: int(pid) in (os.getpid(), peer))
+    # free = 1000: with only `stale` evictable, reach = 2000 = the floor rung, so
+    # the evictor takes exactly `stale` and stops. Same number in the twin below.
+    env.state["reserved"] = TOTAL - 2 * UNIT - 1000
+
+    scratchcache.reserve(UNIT, root=env.root)
+
+    assert held.payload.exists(), "a live peer's pin was ignored by reserve()"
+    assert not stale.payload.exists()
+
+
+def test_the_same_peer_pin_is_not_protection_once_that_process_is_gone(env):
+    """THE MUTATION on the test above: same layout, same free space, the peer pid
+    dead — its pin is dropped and the coldest entry is exactly what LRU takes first;
+    with reach short of the `floor + slack` rung the evictor stops at the floor, so
+    the next-coldest survives."""
+    held = env.entry("held.tif", last_use=1.0)
+    stale = env.entry("stale.tif", last_use=2.0)
+    peer = os.getpid() + 1
+    scratchcache._pin_dir(env.root).mkdir(parents=True, exist_ok=True)
+    (scratchcache._pin_dir(env.root) / f"{held.key}.{peer}.pin").write_text("{}")
+    env.state["reserved"] = TOTAL - 2 * UNIT - 1000
+
+    scratchcache.reserve(UNIT, root=env.root)
+
+    assert not held.payload.exists()
+    assert stale.payload.exists()

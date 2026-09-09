@@ -73,6 +73,37 @@ Both gates are shown to FIRE on a known-bad input in qc/test_scratch_cache.py, i
 mutation PAIRS ((a)/(b) for the pin, (e)/(f) and (u)/(v) for the floor, and the
 crash pair for `_clear_destination`), per CLAUDE.md §3.4c.
 
+  THE PIN IS PER PID, SO ONE PROCESS'S THREADS SHARE ONE — AND THAT LOST A PAYLOAD.
+  2026-09-09 22:09Z (phase4_semantic_finetune_inference_2016_2026-09-09T22-09.log,
+  wb50_2016_in05): core.py::step_inference stages the CHM lazily from its
+  INFER_READ_WORKERS reader threads (`_prep` → common.py::_hillshade_ds), the 6.4 MB
+  CHM is under common.py::STAGE_LOCK_MIN_BYTES so the P11.4 lock is a nullcontext, and
+  nothing else serialised same-key `stage()` calls inside one process. At least two
+  threads passed both `_lookup`s before the first `copying` record landed — the VM log
+  cannot count them: same-label ticks collapse to ONE `⏱` line whatever K was, and the
+  ENOENT itself needs a second publisher, so K ≥ 2 is what the log PROVES; 7 of 8 is
+  what the pre-fix code MEASURED when reproduced unhooked on the dev box
+  (qc/test_scratch_cache.py::test_eight_threads_staging_one_source_all_get_the_payload).
+  Each such thread ran `_clear_destination` — which refused only FOREIGN pins — copied, and
+  each unlinked the canonical name ahead of its own os.replace, deleting the file a
+  sibling had just been handed and was opening: `RasterioIOError: …
+  lidar_chm2005_2m__cc5263da.tif: No such file or directory` in every worker. The
+  process was alone on the VM and reserve() had run before the CHM was staged, so no
+  peer and no evictor was involved. Three things close the class:
+    • `stage()` holds a PROCESS-LOCAL lock per key for its whole body (`_key_lock`), so
+      same-key callers in one process serialise: the first copies, the rest hit. The
+      threads that used to see `copying` and answer "wait" → source were silently
+      reading the CHM windowed over FUSE for the whole step; they now hit too.
+    • `_clear_destination` refuses under ANY live pin, our own pid included. A pin is a
+      reader's claim whoever holds it; the pre-clear is reached only after a "miss",
+      and every path that turns a `ready` entry into a miss drops our own pin first
+      (`_delete_entry`), so an own pin there can only be another part of this process.
+    • the publish is a bare atomic os.replace — no unlink ahead of it, so the canonical
+      name is never absent, for a peer's open fd or for our own sibling thread.
+  Own pins are deliberately NOT honoured by `_lookup`'s stale-entry delete: there the
+  own pin is a keep-for-postproc claim (`adopt`), and refusing would turn a stale
+  adopted raster into a 60-100 min FUSE read instead of a re-copy.
+
 ── NAMESPACE: THE SIDECAR DEFINES OWNERSHIP ───────────────────────────────────
 The evictor may delete ONLY a payload this cache wrote a `ready` sidecar for. Everything
 else under LOCAL_SCRATCH is un-owned and untouchable — `tiles/`, `bundles/`, `tileout/`,
@@ -156,6 +187,7 @@ import os
 import secrets
 import shutil
 import socket
+import threading
 import time
 from pathlib import Path
 
@@ -309,6 +341,26 @@ def _cache_lock(root=None):
             fcntl.flock(fh, fcntl.LOCK_UN)
     finally:
         fh.close()
+
+
+# ── The per-key lock (one process, many threads) ──────────────────────────────
+
+_KEY_LOCKS = {}
+_KEY_LOCKS_GUARD = threading.Lock()
+
+
+def _key_lock(key):
+    """The process-local lock for one entry key. See the module docstring's
+    "THE PIN IS PER PID" paragraph: every other guard here is keyed by pid, so the
+    reader threads of one process are invisible to each other, and `stage()` holds
+    this for its whole body so same-key callers serialise — first copies, rest hit.
+    A plain Lock, not an RLock: nothing in `stage()` re-enters it for the same key
+    (the P11.4 lock is a separate mechanism, and it is entered INSIDE this one)."""
+    with _KEY_LOCKS_GUARD:
+        lk = _KEY_LOCKS.get(key)
+        if lk is None:
+            lk = _KEY_LOCKS[key] = threading.Lock()
+        return lk
 
 
 # ── The journal ───────────────────────────────────────────────────────────────
@@ -871,9 +923,13 @@ def _clear_destination(key, payload, root):
     count it: clearing first hands the evictor the space the stump was holding instead
     of making it delete a real entry to find the same bytes.
 
-    NEVER UNDER A PINNED READER. A live foreign pin on this key means somebody has it
-    open, so this refuses and `stage()` degrades to the source rather than unlinking
-    under an open fd.
+    NEVER UNDER A PINNED READER — OURS INCLUDED. A live pin on this key means somebody
+    has it open, so this refuses and `stage()` degrades to the source rather than
+    unlinking under an open fd. It used to exempt our own pid, and that exemption is
+    how one inference process deleted its own CHM out from under its reader threads
+    (module docstring, "THE PIN IS PER PID"): a pin is a reader's claim whoever holds
+    it, and since every path from `ready` to "miss" drops our own pin first
+    (`_delete_entry`), an own pin here can only be another thread of this process.
 
     THE EXPOSURE THAT LEAVES, STATED RATHER THAN HIDDEN: a pin needs a sidecar, so an
     UN-OWNED reader has none. postproc.py::_resolve_prob_source case (a) is exactly that
@@ -886,7 +942,7 @@ def _clear_destination(key, payload, root):
     but it IS a widening, and it is the reason case (a) pins whenever it can.
     """
     with _cache_lock(root):
-        if [pid for pid, _f in _live_pins(key, root) if pid != os.getpid()]:
+        if _live_pins(key, root):
             print(f"  (scratch cache: {payload.name} is held by a live reader — "
                   f"not re-staging over it)", flush=True)
             return False
@@ -896,7 +952,18 @@ def _clear_destination(key, payload, root):
 
 
 def _publish_payload(part, payload):
-    """`os.replace(part, payload)` with the destination made ABSENT by the caller.
+    """`os.replace(part, payload)` — atomic, and NOT preceded by an unlink.
+
+    The name was made absent by `_clear_destination` before the journal (that is what
+    keeps `sweep`'s size-based promotion sound). Anything at it NOW was published by a
+    peer while we copied, and os.replace goes over the top of it atomically: the name
+    resolves to the old bytes or to ours, never to nothing, and a peer's open fd keeps
+    its inode on POSIX. The unlink that used to sit ahead of this call existed for that
+    same peer case and was redundant with the rename — while being exactly the window
+    in which one process's sibling thread found the CHM gone (module docstring, "THE
+    PIN IS PER PID"). Off POSIX a replace over a file another process holds open fails
+    with PermissionError, and the re-probe below answers True for the peer's copy, the
+    same outcome the suppressed unlink produced before.
 
     NOT a third copy of common.py::_publish_replace / queue_ledger.py::_replace_absent.
     Those exist to keep a PREVIOUS GOOD ARTIFACT recoverable when a publish fails, which
@@ -927,112 +994,126 @@ def stage(src, root=None):
     Drive-throughput median comes off. Today's exists+size early return emits nothing; a
     hit keeps emitting nothing and prints a distinct `cache hit` line instead. Same
     discipline as staging.py::_stage_tiles_local's `untick` calls.
+
+    SAME-PROCESS CALLERS OF ONE KEY ARE SERIALISED (`_key_lock`), for the whole body:
+    the eight inference reader threads that stage the CHM at once now produce one copy
+    and seven hits, where they produced seven copies and one lost payload (module
+    docstring, "THE PIN IS PER PID"). Cross-process peers are still the pin's and the
+    flock's business, unchanged.
     """
     src = Path(src)
     try:
         r = cache_root(root)
         r.mkdir(parents=True, exist_ok=True)
         key = _key(src)
-        st = _src_stat(src)
-        if st is None:
-            return src                          # unverifiable source: fail closed
-        sweep(root=r)
-        with _cache_lock(r):
-            kind, payload = _lookup(key, src, st, r)
-        if kind == "hit":
-            print(f"  cache hit {payload.name} ({st.st_size / 1e6:.0f} MB) — "
-                  f"no Drive copy")
-            return payload
-        if kind == "degrade":
-            return src
-        # "wait" falls through: a peer is mid-copy, and the P11.4 lock is exactly the
-        # thing that serialises us behind it. That is today's behaviour for a bulk ortho
-        # and it must not regress — a waiter that gave up here would read the whole file
-        # windowed over FUSE for its entire step.
-
-        from phase4seg.common import _staging_lock_for, tick, tock, untick
-        with _staging_lock_for(src):            # P11.4: one bulk Drive copy at a time
-            with _cache_lock(r):
-                kind, payload = _lookup(key, src, st, r)
-            if kind == "hit":                   # a same-VM peer staged it while we waited
-                print(f"  cache hit {payload.name} ({st.st_size / 1e6:.0f} MB) — "
-                      f"no Drive copy")
-                return payload
-            if kind in ("degrade", "wait"):
-                # Still copying after the lock (or below STAGE_LOCK_MIN_BYTES, where the
-                # lock is a nullcontext and there was nothing to wait on). Take the
-                # source rather than copy2 into a destination a peer is writing —
-                # today's code races there, so this is strictly safer than today.
-                return src
-            payload = _payload_path(src, root=r)
-            # ABSENT BEFORE THE JOURNAL, not merely before the publish. `_clear_
-            # destination` says why the atomic `.part` rename below is not enough on its
-            # own — `sweep` promotes by SIZE at this name, and a pre-existing payload of
-            # the right size is indistinguishable from our own result. It also runs
-            # ahead of the evictor on purpose: the bytes it frees are bytes the evictor
-            # would otherwise have deleted a real entry to find.
-            if not _clear_destination(key, payload, r):
-                return src                      # a live reader holds it: degrade
-            _evict_to_target(st.st_size, r, keep_key=key)
-            if shutil.disk_usage(r).free < st.st_size:
-                print(f"  NOT caching {src.name}: {st.st_size / 1e9:.1f} GB does not "
-                      f"fit in {shutil.disk_usage(r).free / 1e9:.1f} GB of scratch — "
-                      f"reading from the source")
-                return src
-            _write_sidecar(key, r, {
-                "state": "copying", "key": key, "src": str(src),
-                "src_size": st.st_size, "src_mtime": st.st_mtime,
-                "payload": payload.name, "bytes": 0, "pid": os.getpid(),
-                "host": socket.gethostname(), "ts_start": time.time()})
-            part = payload.with_name(
-                payload.name + f".part.{os.getpid()}.{secrets.token_hex(3)}")
-            # THE TIMER IS RE-ARMED PER ATTEMPT, and that is not a detail. `⏱ stage
-            # <file>` is the exact row qc/instruments/harvest_timing_events.py ingests
-            # into phase4/qc/timing_events.csv — the series this change is validated
-            # against, and the one the 39.7 MB/s Drive-throughput median is computed
-            # from. A single tick outside this loop would have put the FAILED attempt
-            # and the eviction between attempts inside the interval the published row
-            # names, so the row would report a duration that is not the duration of the
-            # copy it describes, and MB/s would come out wrong LOW — precisely in the
-            # constrained-disk regime the cache creates, where the retry fires.
-            for attempt in (0, 1):
-                tick(f"stage {src.name}")
-                try:
-                    shutil.copy2(src, part)
-                    break
-                except OSError as e:
-                    untick(f"stage {src.name}")   # this attempt is not the measurement
-                    with contextlib.suppress(OSError):
-                        part.unlink()
-                    if attempt == 0:
-                        # ENOSPC is the realistic one and it is recoverable: evict hard
-                        # and try once more before giving the caller the source path.
-                        _evict_to_target(st.st_size, r, keep_key=key)
-                        continue
-                    _drop_record(key, r)          # no event: nothing was staged
-                    print(f"  WARNING: staging {src.name} failed ({e}); "
-                          f"reading from the source")
-                    return src
-            tock(f"stage {src.name}")
-            with _cache_lock(r):
-                with contextlib.suppress(OSError):
-                    # `_clear_destination` already emptied this name before the journal;
-                    # this covers only a peer that published into it while we copied.
-                    payload.unlink()            # destination ABSENT by construction
-                if not _publish_payload(part, payload):
-                    _drop_record(key, r)        # we unlinked the payload just above
-                    with contextlib.suppress(OSError):
-                        part.unlink()
-                    return src
-                _write_sidecar(key, r, {
-                    "state": "ready", "key": key, "src": str(src),
-                    "src_size": st.st_size, "src_mtime": st.st_mtime,
-                    "payload": payload.name, "bytes": payload.stat().st_size,
-                    "pid": os.getpid(), "host": socket.gethostname(),
-                    "ts_start": time.time(), "ts_ready": time.time(),
-                    "last_use": time.time()})
-                _write_pin(key, r)
-        return payload
+        with _key_lock(key):
+            return _stage_under_key_lock(src, r, key)
     except Exception as e:                                   # noqa: BLE001
         print(f"  WARNING: scratch cache error ({e!r}); reading from the source")
         return src
+
+
+def _stage_under_key_lock(src, r, key):
+    """The body of `stage()`, entered with this process's lock on `key` held. Raises
+    freely — `stage()` owns the degrade-to-source except."""
+    st = _src_stat(src)
+    if st is None:
+        return src                          # unverifiable source: fail closed
+    sweep(root=r)
+    with _cache_lock(r):
+        kind, payload = _lookup(key, src, st, r)
+    if kind == "hit":
+        print(f"  cache hit {payload.name} ({st.st_size / 1e6:.0f} MB) — "
+              f"no Drive copy")
+        return payload
+    if kind == "degrade":
+        return src
+    # "wait" falls through: a peer is mid-copy, and the P11.4 lock is exactly the
+    # thing that serialises us behind it. That is today's behaviour for a bulk ortho
+    # and it must not regress — a waiter that gave up here would read the whole file
+    # windowed over FUSE for its entire step.
+
+    from phase4seg.common import _staging_lock_for, tick, tock, untick
+    with _staging_lock_for(src):            # P11.4: one bulk Drive copy at a time
+        with _cache_lock(r):
+            kind, payload = _lookup(key, src, st, r)
+        if kind == "hit":                   # a same-VM peer staged it while we waited
+            print(f"  cache hit {payload.name} ({st.st_size / 1e6:.0f} MB) — "
+                  f"no Drive copy")
+            return payload
+        if kind in ("degrade", "wait"):
+            # Still copying after the lock (or below STAGE_LOCK_MIN_BYTES, where the
+            # lock is a nullcontext and there was nothing to wait on). Take the
+            # source rather than copy2 into a destination a peer is writing —
+            # today's code races there, so this is strictly safer than today.
+            return src
+        payload = _payload_path(src, root=r)
+        # ABSENT BEFORE THE JOURNAL, not merely before the publish. `_clear_
+        # destination` says why the atomic `.part` rename below is not enough on its
+        # own — `sweep` promotes by SIZE at this name, and a pre-existing payload of
+        # the right size is indistinguishable from our own result. It also runs
+        # ahead of the evictor on purpose: the bytes it frees are bytes the evictor
+        # would otherwise have deleted a real entry to find.
+        if not _clear_destination(key, payload, r):
+            return src                      # a live reader holds it: degrade
+        _evict_to_target(st.st_size, r, keep_key=key)
+        if shutil.disk_usage(r).free < st.st_size:
+            print(f"  NOT caching {src.name}: {st.st_size / 1e9:.1f} GB does not "
+                  f"fit in {shutil.disk_usage(r).free / 1e9:.1f} GB of scratch — "
+                  f"reading from the source")
+            return src
+        _write_sidecar(key, r, {
+            "state": "copying", "key": key, "src": str(src),
+            "src_size": st.st_size, "src_mtime": st.st_mtime,
+            "payload": payload.name, "bytes": 0, "pid": os.getpid(),
+            "host": socket.gethostname(), "ts_start": time.time()})
+        part = payload.with_name(
+            payload.name + f".part.{os.getpid()}.{secrets.token_hex(3)}")
+        # THE TIMER IS RE-ARMED PER ATTEMPT, and that is not a detail. `⏱ stage
+        # <file>` is the exact row qc/instruments/harvest_timing_events.py ingests
+        # into phase4/qc/timing_events.csv — the series this change is validated
+        # against, and the one the 39.7 MB/s Drive-throughput median is computed
+        # from. A single tick outside this loop would have put the FAILED attempt
+        # and the eviction between attempts inside the interval the published row
+        # names, so the row would report a duration that is not the duration of the
+        # copy it describes, and MB/s would come out wrong LOW — precisely in the
+        # constrained-disk regime the cache creates, where the retry fires.
+        for attempt in (0, 1):
+            tick(f"stage {src.name}")
+            try:
+                shutil.copy2(src, part)
+                break
+            except OSError as e:
+                untick(f"stage {src.name}")   # this attempt is not the measurement
+                with contextlib.suppress(OSError):
+                    part.unlink()
+                if attempt == 0:
+                    # ENOSPC is the realistic one and it is recoverable: evict hard
+                    # and try once more before giving the caller the source path.
+                    _evict_to_target(st.st_size, r, keep_key=key)
+                    continue
+                _drop_record(key, r)          # no event: nothing was staged
+                print(f"  WARNING: staging {src.name} failed ({e}); "
+                      f"reading from the source")
+                return src
+        tock(f"stage {src.name}")
+        with _cache_lock(r):
+            # NO unlink ahead of the publish: `_clear_destination` emptied this
+            # name before the journal, and anything at it now is a peer's copy
+            # that the atomic os.replace goes over the top of. The unlink that
+            # used to sit here is the window in which a sibling thread found the
+            # CHM gone (`_publish_payload`, module docstring "THE PIN IS PER PID").
+            if not _publish_payload(part, payload):
+                _drop_record(key, r)
+                with contextlib.suppress(OSError):
+                    part.unlink()
+                return src
+            _write_sidecar(key, r, {
+                "state": "ready", "key": key, "src": str(src),
+                "src_size": st.st_size, "src_mtime": st.st_mtime,
+                "payload": payload.name, "bytes": payload.stat().st_size,
+                "pid": os.getpid(), "host": socket.gethostname(),
+                "ts_start": time.time(), "ts_ready": time.time(),
+                "last_use": time.time()})
+            _write_pin(key, r)
+    return payload

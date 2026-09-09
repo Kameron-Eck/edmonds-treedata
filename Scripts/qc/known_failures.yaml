@@ -113,6 +113,37 @@ failures:
       Preflight every launch-time path VM-side before the queue starts. Same class as
       the of_2017k failures, where imagery existed only on the local mirror.
 
+  - match: "^<path>:? No such file or directory$"
+    status: fixed
+    cause: >-
+      A staged scratch-cache payload vanished between stage() handing it out and the
+      caller opening it (RasterioIOError on /content/phase4_scratch/<file>__<hex>.tif,
+      wb50_2016_in05 inference 2026-09-09T22-09). step_inference stages the CHM lazily
+      from its 8 reader threads; the 6.4 MB CHM is under STAGE_LOCK_MIN_BYTES so the
+      P11.4 lock was a nullcontext, and every scratch-cache guard is keyed by PID, so
+      the threads were invisible to each other: at least two judged "miss" (the log
+      proves K >= 2 — same-label ticks collapse to one line; 7 of 8 when reproduced on
+      the dev box), copied, and each unlinked the canonical name ahead of its own
+      os.replace — deleting the file a sibling thread had just been handed. The
+      process was alone on the VM and reserve() had run before the CHM was staged, so
+      no peer and no evictor was involved; the staged entry was pinned by its own pid
+      throughout.
+    fix: >-
+      scratchcache.stage() now holds a process-local per-key lock for its whole body
+      (same-key threads serialise: first copies, rest hit), _clear_destination refuses
+      under ANY live pin (own pid included), and the publish is a bare atomic
+      os.replace with no unlink ahead of it. Gates: qc/test_scratch_cache.py, the
+      "ONE PROCESS, MANY THREADS" section (fail on the pre-fix code). Re-run the arm.
+    notes: >-
+      The signature is what harvest_failures.normalise() produces — it swallows the
+      /content path through its trailing colon — not the raw log text; the match is
+      pinned against the real message by qc/test_run_context.py
+      ::test_the_scratch_cache_enoent_signature_is_diagnosed. Distinct from the quoted
+      "'<path>'$" entry above (a missing --infer-aoi file). LIMIT: after normalisation
+      a vanished /content/drive/... source produces this SAME signature, so a future
+      Drive-side ENOENT would be diagnosed as this fixed entry — open the example log
+      and check the path is under /content/phase4_scratch before trusting the match.
+
   - match: "Read failed. See previous exception"
     status: environmental
     cause: >-

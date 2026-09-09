@@ -1072,6 +1072,13 @@ def _hillshade_ds():
         print(f"  WARNING: --hs-source {key} raster not found at {path} — "
               f"falling back to RGB-only despite USE_HILLSHADE.")
         return None
+    # EVERY READER THREAD ARRIVES HERE AT ONCE on its first tile (core.py::step_inference
+    # has INFER_READ_WORKERS of them and stages nothing up front), so this is a same-key
+    # fan-in of `stage()` calls from ONE pid. scratchcache serialises those per key —
+    # first copies, the rest hit. Before it did, at least two threads copied the 6.4 MB
+    # CHM (7 of 8 when reproduced on the dev box; the VM log cannot count them) and
+    # each publish unlinked the name a sibling had just been handed
+    # (2026-09-09, scratchcache.py module docstring "THE PIN IS PER PID").
     local = _stage_imagery_local(path)          # idempotent; returns the staged copy
     # "remembered for _unstage/teardown" — AND THERE IS NO TEARDOWN. The only other
     # references to _HILLSHADE_DS are its definition above and tiling.py's

@@ -186,9 +186,12 @@ def test_hand_split_queues_are_subsets_of_the_generated_queue():
     assert len(files) == 2, [f.name for f in files]
     # phase 2 (warm-started wb50 arms): two hand-split files, NO canary — the flag
     # and the cycle were proven by phase 1; every job carries --ckpt.
-    p2_files = sorted((SCRIPTS / "pipeline").glob("queue_wb50_*.yaml"))
-    assert [f.name for f in p2_files] == ["queue_wb50_a.yaml", "queue_wb50_b.yaml"]
+    p2_all = sorted((SCRIPTS / "pipeline").glob("queue_wb50_*.yaml"))
+    assert [f.name for f in p2_all] == ["queue_wb50_a.yaml", "queue_wb50_b.yaml",
+                                        "queue_wb50_score.yaml"]
+    p2_files, score_file = p2_all[:2], p2_all[2]
     covered = set()
+    trained = {}
     for q in p2_files:
         head = q.read_text(encoding="utf-8")
         assert head.startswith("# HAND-SPLIT from experiments/backbone_sweep.yaml"), q.name
@@ -201,6 +204,27 @@ def test_hand_split_queues_are_subsets_of_the_generated_queue():
                 assert j[k] == g[k], (q.name, j["id"], k, j[k], g[k])
             assert j["id"] not in covered, ("job launched twice", j["id"])
             covered.add(j["id"])
+            trained[j["id"]] = j
+    # The SCORING queue (Tier-1 Phase-B2 shape, commit ac0e79e): one inference-only job
+    # per trained wb50 job, same id/year/tag, the training flags with the
+    # --sample-manifest pair removed and --infer-aoi <science blocks> appended. --encoder
+    # and --ckpt ride along (see the file header for why inference needs both).
+    head = score_file.read_text(encoding="utf-8")
+    assert head.startswith("# HAND-WRITTEN from experiments/backbone_sweep.yaml"), score_file.name
+    score_jobs = yaml.safe_load(head)
+    assert [j["id"] for j in score_jobs] == list(trained), "one scoring job per trained job, same order"
+    assert score_jobs[-1]["tag"] == "wb50_2020_base", "the slow 2020 arm runs last"
+    for j in score_jobs:
+        t = trained[j["id"]]
+        assert j["steps"] == ["inference"], (j["id"], j["steps"])
+        assert (j["year"], j["tag"]) == (t["year"], t["tag"]), j["id"]
+        ex, tx = [str(x) for x in j["extra"]], [str(x) for x in t["extra"]]
+        assert "--sample-manifest" not in ex, j["id"]
+        i = tx.index("--sample-manifest")
+        assert ex[:-2] == tx[:i] + tx[i + 2:], (j["id"], ex, tx)
+        assert ex[-2:] == ["--infer-aoi", "/content/drive/MyDrive/treedata/phase4/qc/"
+                                          "science_sample_blocks.gpkg"], j["id"]
+        assert ex[ex.index("--encoder") + 1] == "resnet50" and "--ckpt" in ex, j["id"]
     for q in files:
         head = q.read_text(encoding="utf-8")
         assert head.startswith("# HAND-SPLIT from experiments/backbone_sweep.yaml"), q.name

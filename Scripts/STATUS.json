@@ -1,5 +1,5 @@
 {
- "generated_utc": "2026-09-09T17:22:10Z",
+ "generated_utc": "2026-09-09T20:53:08Z",
  "lake_mounted": true,
  "code": {
   "engine_version": "v048",
@@ -166,10 +166,10 @@
    "year": "2011s",
    "gsd_cm": 30.5,
    "tiles": "\u2014",
-   "models": 20,
+   "models": 24,
    "prob": "2011s_hy_e3_2011s.tif[334MB]; 2011s_sectors_v1.tif[62MB]; 2011s_t1_2011s_add05.tif[64MB]; 2011s_t1_2011s_add16.tif[60MB]; 2011s_t1_2011s_base.tif[62MB]; 2011s_t1_2011s_base_s2.tif[59MB]; 2011s_t1_2011s_base_s3.tif[62MB]; 2011s_t1_2011s_cor05.tif[61MB]; 2011s_t1_2011s_cor10.tif[61MB]; 2011s_t1_2011s_in05.tif[59MB]; 2011s_t1_2011s_in16.tif[60MB]; 2011s_trend8_2011s.tif[328MB]",
    "mask": "Y",
-   "verify": "sectors_v1:OK; hy_e3_2011s:OK; t1_2011s_base:OK; t1_2011s_base_s2:OK; t1_2011s_add05:OK; t1_2011s_in05:OK; t1_2011s_cor05:OK; t1_2011s_cor02:MISSING; t1_2011s_cor10:OK; t1_2011s_base_s3:OK; t1_2011s_add16:OK; t1_2011s_in16:OK; trend8_2011s:OK; bb50_2011s_base:MISSING; bb18_2011s_base:OK; bb18_2011s_base_s2:OK; bb50_2011s_base_s2:MISSING; bb18_2011s_base_s3:OK; bb50_2011s_base_s3:MISSING; bb18_2011s_cor05:OK; bb50_2011s_cor05:OK",
+   "verify": "sectors_v1:OK; hy_e3_2011s:OK; t1_2011s_base:OK; t1_2011s_base_s2:OK; t1_2011s_add05:OK; t1_2011s_in05:OK; t1_2011s_cor05:OK; t1_2011s_cor02:MISSING; t1_2011s_cor10:OK; t1_2011s_base_s3:OK; t1_2011s_add16:OK; t1_2011s_in16:OK; trend8_2011s:OK; bb50_2011s_base:MISSING; bb18_2011s_base:OK; bb18_2011s_base_s2:OK; bb50_2011s_base_s2:MISSING; bb18_2011s_base_s3:OK; bb50_2011s_base_s3:MISSING; bb18_2011s_cor05:OK; bb50_2011s_cor05:OK; wb50_2011s_base:OK; wb50_2011s_base_s2:OK; wb50_2011s_base_s3:OK; wb50_2011s_cor05:OK",
    "honest": "rec 0.573 prec 0.451"
   },
   {
@@ -236,7 +236,7 @@
    "year": "2016",
    "gsd_cm": 30.5,
    "tiles": "Y",
-   "models": 18,
+   "models": 20,
    "prob": "2016.tif[471MB]; 2016_corrected.tif[586MB]; 2016_fullext_sectors_v1.tif[61MB]; 2016_golden_v1_2016corr.tif[29MB]; 2016_golden_v1_2016cw.tif[28MB]; 2016_golden_v1_2016fx.tif[29MB]; 2016_nir_m06.tif[67MB]; 2016_t1_2016_add05.tif[63MB]; 2016_t1_2016_add16.tif[61MB]; 2016_t1_2016_base.tif[61MB]; 2016_t1_2016_in05.tif[60MB]; 2016_t1_2016_in16.tif[61MB]; 2016_t1_2016_nir.tif[61MB]; 2016_trend8_2016.tif[362MB]",
    "mask": "Y",
    "verify": "fullext_sectors_v1:OK; nir_m06:OK; golden_v1_2016cw:MOSTLY_NODATA; golden_v1_2016corr:MOSTLY_NODATA; golden_v1_2016fx:MOSTLY_NODATA; t1_2016_base:OK; t1_2016_in05:OK; t1_2016_in16:OK; t1_2016_nir:OK; t1_2016_add05:OK; t1_2016_add16:OK; trend8_2016:OK; bb18_2016_base:OK; bb50_2016_base:MISSING; bb18_2016_in05:OK; bb50_2016_in05:OK",
@@ -326,7 +326,7 @@
    "year": "2020",
    "gsd_cm": 5.0,
    "tiles": "\u2014",
-   "models": 10,
+   "models": 11,
    "prob": "2020_heal_2020.tif[4161MB]; 2020_of_2020.tif[4165MB]; 2020_t1_2020_add05.tif[735MB]; 2020_t1_2020_add16.tif[681MB]; 2020_t1_2020_base.tif[723MB]; 2020_t1_2020_in05.tif[708MB]; 2020_t1_2020_in16.tif[650MB]",
    "mask": "Y",
    "verify": "t1_2020_base:OK; t1_2020_add05:OK; t1_2020_in05:OK; t1_2020_in16:OK; t1_2020_add16:WEAK_CALIBRATION; of_2020:OK; heal_2020:OK; bb18_2020_base:OK; bb50_2020_base:OK",

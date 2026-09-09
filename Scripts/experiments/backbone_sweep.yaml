@@ -149,6 +149,21 @@ supersedes: []
 superseded_by: []
 
 extra:
+  phase2_results_evaluate_iou: >
+    2026-09-09 20:47Z, seven wb50 arms landed (wb50a: 2011s base/s2/s3/cor05; wb50b: 2016
+    base/in05, 2020 base), both runtimes stopped. Evaluate IoU on the held-out test tiles,
+    from step logs (phase4/qc/eval_from_logs.csv): 2011s base 0.516 / s2 0.510 / s3 0.517
+    (SEED SPREAD 0.0066 - equal to the resnet101 Tier-1 spread 0.0066; the ImageNet-start
+    bb50 spread was 0.078); cor05 0.504 (null pair -0.0125 vs base); 2016 base 0.532,
+    in05 0.540 (positive pair +0.0078); 2020 base 0.848 vs the 101's 0.895. Train minutes
+    14-30 vs 20-37 on the 101 (I/O-bound, ~25-35% faster). READ: (b) noise PASSES with the
+    trained start; (a) at or above the 101 on the sample years, below on 2020; (c) rank
+    agreement UNDETERMINED at this metric - both pairs read within ~2x the floor for every
+    encoder, because evaluate IoU vs projected labels is NOT the pre-registered score; the
+    101's +0.075 positive pair is a matched-cut LOSO recall vs C-CAP. The LOSO
+    inference+scoring pass on the 33 blocks (steps [inference] + qc/phase4_qc_indep.py
+    --aoi, then harvest_arm_metrics) is what decides (c); not yet run for wb50. ResNet-18
+    phase 2 stays gated on (c).
   cross_vm_eval_report_clobber: >
     OBSERVED 2026-09-09 05:44Z, first hour of the sweep. Both A100 runtimes rewrite the
     shared phase4/eval/semantic_eval_report.csv on every evaluate (read-modify-write behind

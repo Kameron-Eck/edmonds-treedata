@@ -20,7 +20,7 @@ than selected. Everything below is resolved from them at build time.
   <br>evidence `phase4/qc/lidar_decimation_null.csv#csv:km2@quantity=artifact_gain`
 - **80** — The archive holds 80 distinct tile sets, one tracked tile list each — fewer than the tile directories on disk, because arms sharing a set share its tiles exactly, which is what makes those comparisons clean.
   <br>evidence `phase4/qc/tilesets#dir_csv_count`
-- **108** — Those sets are materialised in 108 tile directories (a count that grows by one per tile directory; refresh at landed.py) — one registry row per directory, keyed (label, run_tag), so a set built again under a second run tag is one set counted once and two directories on disk. Counting rows as sets is the defect `qc/coverage_map.py::tileset_census` exists to prevent.
+- **115** — Those sets are materialised in 115 tile directories (a count that grows by one per tile directory; refresh at landed.py) — one registry row per directory, keyed (label, run_tag), so a set built again under a second run tag is one set counted once and two directories on disk. Counting rows as sets is the defect `qc/coverage_map.py::tileset_census` exists to prevent.
   <br>evidence `phase4/qc/tileset_registry.csv#rows`
 - **88** — Every scored arm's full precision-recall sweep is tracked: 88 curves.
   <br>evidence `phase4/qc/curves#dir_csv_count`

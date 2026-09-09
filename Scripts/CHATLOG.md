@@ -984,3 +984,45 @@ files:   pipeline/phase4_train_queue.py, pipeline/queue_ledger.py, qc/landed.py,
          qc/test_status_discovery.py.
 next:    nothing queued; healer stays tabled; the reused-verdict path validates itself
          on the next campaign launch (watch for "reusing VERIFY:inference" in the log).
+
+## 2026-09-09  backbone-sweep-and-encoder-bases
+goal:    Kam: benchmark the 101, run resnet18/50 on the same Tier-1 sample arms overnight
+         on two A100s with canaries; "I don't want to wake up and find out we had an issue
+         with logging." Then: "Begin ResNet-50 base and the ResNet-18 base."
+did:     --encoder run flag (b054128; config append-only, BENCH MATCH), 101 BENCHMARK table
+         phase4/qc/backbone_benchmark.csv (nine arms at matched_p75; noise floor 0.0085
+         recall from the 2011s reseeds). PREMISE CORRECTED: fine-tunes warm-start from the
+         Phase-3 2020 base (resnet101) - small encoders started from ImageNet + random
+         decoder. SWEEP RAN: bb18 nine arms clean; bb50 six, one train FAIL (Drive EIO on a
+         stat, epoch 17), runtime reclaimed at 10:11Z mid-tile, relaunched bb50b, resumed
+         correctly, last arm cut on Kam's stop. LOGGING ISSUES FOUND: (1) two VMs clobber
+         the shared semantic_eval_report.csv (bb18 2006s rows lost from live AND archive;
+         metrics safe in step logs) -> eval_rows_from_logs.py (4ca40c4); (2) resume wrote
+         false VERIFY MISSING for five steps-subset jobs; (3) exec handle 404 hours into a
+         run. PROVISIONAL READ (evaluate IoU at 0.5, held-out): small encoders worse,
+         ~10x noisier across seeds (0.08 vs 0.006), NOT faster (train I/O-bound, ran to the
+         epoch cap) - the warm start dominated. BASES: Phase-3 hand-crown tiles
+         materialized as tagged tilesets (748 index rows; 141 orphan tiles not copied;
+         9035b4b); base18 IoU 0.754 AP 0.919 in 44 min, base50 IoU 0.765 AP 0.930 in 59 min
+         vs the 101's 0.772 / 0.944 (Phase-0 init; split not byte-identical). DEBUGGED
+         (f85bb3e, referee PASS, BENCH MATCH): per-run eval files + verify evidence; resume
+         re-check mirrors verify(); EIO/ENOTCONN retry around publish probes; md5 wait
+         logged per poll; lost handle = CLI kernel culled after 1.3-6.3 h idle, not ours
+         (documented, mailbox fallback).
+decided: encoder_bases COMPLETE, neither promoted; each is the warm start for a
+         backbone_sweep re-run (--ckpt sem_best_2020_base{18,50}.pt). backbone_sweep
+         stays queued for that re-run; last night's arms are the ImageNet-start record.
+killed:  "small encoders are noisier/worse" as an encoder claim - it was the warm start.
+bugs:    SECRET EXPOSURE (Kam to act): ~/.config/colab-cli/colab.log holds the SA private
+         key + gh token in plaintext (every bootstrap execute_request logged at DEBUG); a
+         grep of it persisted ~272 KB incl. the key into this session's tool-results file
+         bzwe19wcn.txt (deletion blocked by the classifier). Rotate both, delete the file,
+         truncate the log.
+files:   phase4seg/{cli,ckpt,core,config,common,names}.py, queue_verify.py,
+         phase4_train_queue.py, vm_ops.py; qc/instruments/{backbone_benchmark,
+         eval_rows_from_logs,phase3_tiles_as_tileset}.py + tests; experiments/
+         {backbone_sweep,encoder_bases}.yaml; queues; phase4/qc/{backbone_benchmark,
+         eval_from_logs,eval_report_gaps}.csv; COLAB_AUTONOMY_SETUP.md; known_failures.
+next:    Kam: rotate keys; go/no-go on the warm-started sweep re-run (18 arms, ~2 A100
+         x 5-6 h at last night's pace; first live test of the per-run eval files);
+         then the LOSO inference+scoring pass for the pre-registered metric.

@@ -74,8 +74,9 @@ count beside it.
 
 16 of 37 acquisitions have a matched-cut read. ★ = designated champion.
 
-## 3. What 37 completed investigations concluded
+## 3. What 38 completed investigations concluded
 
+- **encoder_bases** (2026-09-09) — BOTH BASES LANDED 2026-09-09 (one A100 each; no runtime remains).
 - **bundle_validation_2017k** (2026-09-08) — RAN 2026-09-08 02:02Z to 03:49Z (spdvc1 CPU labels+tile, spdvg A100 train), scored by an independent referee against the rule above; every number below names its file.
 - **lit_healing_analogues** (2026-09-08) — NO FIELD SUPPLIES A MEASURED LAUNDERING RATE for a one-directional temporal correction on real gold.
 - **offload_pilot_2017k** (2026-09-08) — RAN 2026-09-07 21:45Z to 2026-09-08 00:27Z on three runtimes (spdc1 CPU, spdg A100, spdc2 CPU);

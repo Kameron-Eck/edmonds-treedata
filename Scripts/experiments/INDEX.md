@@ -1,7 +1,7 @@
 # EXPERIMENT REGISTRY INDEX — GENERATED, do not edit
 
 Regenerate: `py -3.12 qc/experiments_index.py` (drift-gated by `test_experiments.py::test_index_is_fresh`).
-Authored layer + schema: this directory's `README.md`. 49 entries: 37 complete · 5 needs-kam · 5 queued · 2 tabled.
+Authored layer + schema: this directory's `README.md`. 49 entries: 38 complete · 5 needs-kam · 4 queued · 2 tabled.
 
 ## Awaiting Kam sign-off
 
@@ -15,6 +15,7 @@ Authored layer + schema: this directory's `README.md`. 49 entries: 37 complete �
 
 | entry | kind | status | decided | N | imagery | headline |
 |---|---|---|---|---|---|---|
+| encoder_bases | experiment | complete | 2026-09-09 | 150 | 2020 | BOTH BASES LANDED 2026-09-09 (one A100 each; no runtime remains). |
 | bundle_validation_2017k | experiment | complete | 2026-09-08 | — | 2017k | RAN 2026-09-08 02:02Z to 03:49Z (spdvc1 CPU labels+tile, spdvg A100 train), scored by an independent referee against the rule above; every number below names its file. |
 | heal_infill_2017_2023 | experiment | tabled | 2026-09-08 | — | 2017,2020,2022,2023 | NO VERDICT — TABLED 2026-09-08 with the decision rule NOT evaluated. |
 | lit_healing_analogues | instrument-finding | complete | 2026-09-08 | — | — | NO FIELD SUPPLIES A MEASURED LAUNDERING RATE for a one-directional temporal correction on real gold. |
@@ -57,7 +58,6 @@ Authored layer + schema: this directory's `README.md`. 49 entries: 37 complete �
 | backbone_sweep | experiment | queued | — | 30 | 2006s,2011s,2016,2019n,2020 | Recipe rankings measured on a small encoder agree with resnet101 within the noise floor, so recipe search (the dozens of label/input/loss knobs still open after Tier-1) can move to the small encoder a… |
 | ccap_mixed_sign_bias | instrument-finding | needs-kam | — | — | 2016 | C-CAP is the reference nearly every score in this project is measured against, and the standing temptation is to treat its disagreement with our masks as one-directional — "C-CAP over-calls canopy, so… |
 | degradation_synth_2000 | experiment | queued | — | — | — | Training on 2020 imagery synthetically degraded to 2000's measured resolution and radiometry (resample-first, gain-only — qc/instruments/degrade_synth.py) beats the plain citywide-projection arm on 20… |
-| encoder_bases | experiment | queued | — | 150 | 2020 | A 2020-trained base for EACH encoder — resnet50 and resnet18, trained on the SAME tiles the Phase-3 resnet101 base (phase3/sem_best_2020.pt) was trained on — removes the warm-start confound stated in … |
 | epoch_decay_mvv0 | instrument-finding | needs-kam | — | — | 2006s,2011s,2016,2020 | King County holds lidar epochs Edmonds cannot get, and buying them was on the table. |
 | era_matched_rescore | measurement-campaign | needs-kam | — | — | 2006s,2011s,2016 | Every Tier-1 score is measured against a C-CAP reference whose vintage is years away from the imagery it judges. |
 | full_archive_e3 | experiment | queued | — | — | — | The hard-year pilot confirmed the unified citywide EPOCH-3 recipe explains the historical weak tail (2011s 0.471 -> 0.756; 2006s 0.470 -> 0.707 with three measured imagery strikes). |

@@ -1,6 +1,6 @@
 name: encoder_bases
 kind: experiment
-status: queued
+status: complete
 retrospective: false
 category: machinery
 tags: [backbone, encoder, resnet18, resnet50, warm-start, phase3-tiles, base-model]
@@ -82,8 +82,23 @@ decision_rule: >
   is recorded here. CONFOUND REMOVED by these arms: the 2020-trained start is now
   available for all three encoders. CONFOUND REMAINING: extra.remaining_confound.
 
-verdict: null
-decided: null
+verdict: >
+  BOTH BASES LANDED 2026-09-09 (one A100 each; no runtime remains). Held-out test on the
+  150 Phase-3 hand-crown tiles, from the evaluate step logs (phase4/qc/eval_from_logs.csv):
+  base18 (resnet18, ImageNet start) IoU 0.7538 Dice 0.8596 Prec 0.8064 Rec 0.9203
+  AUROC 0.9488 AP 0.9192, train 43.9 min, best epoch B26; base50 (resnet50) IoU 0.7648
+  Dice 0.8667 Prec 0.8340 Rec 0.9021 AUROC 0.9551 AP 0.9303, train 59.1 min, best epoch
+  B30 (still improving at the cap). Reference, NOT a same-split comparison: the Phase-3
+  resnet101 base's own report (lake phase3/semantic_eval_report.csv OVERALL, Phase-0
+  init, test split as it was then) IoU 0.7720 AP 0.9435 AUROC 0.9613 Prec 0.8224
+  Rec 0.9263. Read: resnet18 reaches 98% of the 101's IoU and 97% of its AP, resnet50
+  99% / 99%, without the Phase-0 head start — an UPPER BOUND on the encoder's cost.
+  Per the rule, neither is promoted; each is the warm start for its encoder in the
+  backbone_sweep re-run (--ckpt phase4/models/sem_best_2020_base18.pt / _base50.pt).
+  Checkpoints present on the lake. This resolves last night's reading: the unstable,
+  low sample fine-tunes measured the ImageNet+random-decoder start on 40-140
+  projected-label tiles, not the encoder.
+decided: '2026-09-09'
 
 instruments:
   - Scripts/qc/instruments/phase3_tiles_as_tileset.py

@@ -257,8 +257,33 @@ def record(rid, status, *, http=0, ct="", body=b"", req="", final="", raw="",
 
 # ── browser fallback ──────────────────────────────────────────────────────────────────────
 
-def browser_fetch(url: str) -> tuple[bytes, str, str, str]:
+# A rendered search page that reports zero hits with an EMPTY query box did not run the
+# search — the URL's searchcommand was not honoured. Recording that as a result would
+# manufacture a false negative ("the City has no lidar records"), which is the single most
+# damaging error this tool could make. Detected and quarantined, never reported as ok.
+UNEXECUTED_SEARCH = re.compile(r"Results\s+0\s*-\s*0\s+of\s+0", re.I)
+
+
+def looks_like_unexecuted_search(text: str, term: str = "") -> bool:
+    """True when a page reports zero hits but shows no sign of having run the query.
+
+    The rule: zero results AND the search term appears nowhere on the rendered page. A page
+    that genuinely searched echoes the term — in the query box, a "results for X" heading, or
+    a breadcrumb. A page that ignored the URL's searchcommand shows an empty form. With no
+    term configured we stay conservative and treat any zero-hit page as unproven.
+    """
+    if not UNEXECUTED_SEARCH.search(text):
+        return False
+    if term and term.lower() in text.lower():
+        return False        # the term is echoed back: a real zero-hit result
+    return True
+
+
+def browser_fetch(url: str, search_term: str = "") -> tuple[bytes, str, str, str]:
     """Render with Playwright; capture a PDF the page loads, else the rendered text.
+
+    If `search_term` is given, actually type it into the page's search box and submit,
+    rather than trusting a hand-crafted searchcommand URL to run the query.
 
     Returns (body, content_type, final_url, error). Requires:
         pip install playwright && playwright install chromium
@@ -285,6 +310,23 @@ def browser_fetch(url: str) -> tuple[bytes, str, str, str]:
             page.on("response", on_response)
             page.goto(url, wait_until="networkidle", timeout=90_000)
             page.wait_for_timeout(3_000)
+
+            if search_term:
+                # Drive the form the way a person would. Try the likeliest inputs in order.
+                for sel in ('input[type="search"]', "#searchTerms", "#SearchTerms",
+                            'input[name*="search" i]', 'input[id*="search" i]',
+                            'input[type="text"]'):
+                    try:
+                        box = page.locator(sel).first
+                        if box.count() == 0 or not box.is_visible():
+                            continue
+                        box.fill(search_term)
+                        box.press("Enter")
+                        page.wait_for_timeout(6_000)
+                        break
+                    except Exception:                   # noqa: BLE001 - try the next selector
+                        continue
+
             final = page.url
             text = page.inner_text("body")
             browser.close()
@@ -338,11 +380,18 @@ def process(src: dict, use_browser: bool) -> dict:
                       text=text_rel, method="http", note=src.get("note", ""))
 
     if use_browser:
+        term = src.get("search_term", "")
         for url in [u.strip() for u in src["url"].split("|") if u.strip()][:2]:
-            print(f"  -> [browser] {url}", flush=True)
-            body, ct, final, err = browser_fetch(url)
+            print(f"  -> [browser] {url}" + (f"  (typing '{term}')" if term else ""), flush=True)
+            body, ct, final, err = browser_fetch(url, term)
             if body:
                 ext = extension_for(ct, final)
+                rendered = body.decode("utf-8", "replace") if ext in ("txt", "html") else ""
+                if rendered and looks_like_unexecuted_search(rendered, term):
+                    # Quarantine: a zero-hit page with an empty query box proves nothing.
+                    tried.append(f"[browser] {url} => search form rendered but NOT executed "
+                                 f"(empty query box, 'Results 0 - 0 of 0')")
+                    continue
                 raw_path, text_rel = save(rid, body, ext)
                 return record(rid, "ok" if text_rel else "fetched_no_text", http=200, ct=ct,
                               body=body, req=url, final=final,

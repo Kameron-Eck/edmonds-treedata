@@ -629,7 +629,40 @@ One lead I chased and dropped: grant agreement **93-105566**, which appears in t
 as reference material. It is not an Edmonds grant and not lidar. The grant-funding hypothesis
 for the 2026 work is therefore still open, not confirmed.
 
-### 10.6 Revised next steps
+### 10.6 Third pass — the browser run, and a WA DNR cross-check
+
+A second run with Playwright installed took the fetch to 16/16. Two results.
+
+**The Laserfiche search still has not run — and the page it returned is a trap.** It
+rendered with an **empty query box** and "Results 0 - 0 of 0". Read naively that says "the
+City has no lidar records"; in fact it says the `searchcommand` URL syntax was not honoured
+and **no search was performed**. The tool recorded it as `ok`, which was wrong. Fixed: the
+browser pass now types the term into the box and submits, and a guard quarantines any
+zero-hit page that does not echo the search term back. The manifest row was deleted so the
+next run re-attempts it. **Nothing about Edmonds' Laserfiche holdings has been established.**
+
+**The WA DNR Lidar Portal is a third independent confirmation.** Its project list — 340
+projects — was retrieved and cross-checked against the S3-derived inventory in §2:
+
+- **No project covers the Edmonds area after 2016.** That now agrees across three
+  independent authorities: USGS WESM, NOAA Digital Coast, and WA DNR's own portal.
+- **No 2026 project exists at all.** The most recent anywhere in the state are 2025.
+- It confirms two §2 rows by name: *"Puget Sound Topobathy **Edmonds** 2014"* and
+  *"Puget Lowlands 2005"*.
+- **It also lists projects WESM does not** — notably *"Snohomish River Valley Refresh24
+  **2025**"*, plus a family of "Refresh23/Refresh24" acquisitions. This makes the §2 WESM
+  blind spot a documented pattern rather than the one-off `WA_LidarGaps_C22` case. The 2025
+  Snohomish project is the river valley — Everett/Monroe and north — not Edmonds, which sits
+  on Puget Sound in the far southwest of the county.
+
+**Two new early-vintage leads for the pipeline**, both plausibly covering Edmonds and
+neither currently in `IMAGERY_FACTS.md` §8: **"Snohoco Southwest 2003"** and **"Snohoco West
+2006"**. Southwest Snohomish County is the Edmonds / Lynnwood / Mountlake Terrace corner.
+Given the project baseline is 2000 and only PSLC 2005 and USGS 2016 are currently held,
+either could be a genuinely useful era-matched height layer. Footprints unverified — check
+them before trusting the names.
+
+### 10.7 Revised next steps
 
 1. **Install Playwright and re-run** — `pip install playwright && playwright install chromium`,
    then `Scripts\qc\fetch_city_records.cmd`. This recovers the Laserfiche full-text search, the

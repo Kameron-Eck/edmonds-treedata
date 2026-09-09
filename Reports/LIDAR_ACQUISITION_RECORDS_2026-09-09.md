@@ -394,6 +394,59 @@ already settles it — it is a 2020 number, repeatedly miscited.
 
 ---
 
+## 9. Closing the gap from an unrestricted network
+
+The §7 limitation is mechanical, not analytical: the documents exist and are public, this
+session just could not reach the hosts. That is fixed by running the fetch somewhere with
+ordinary network access and committing the retrieved text back here, where any later session
+reads it without egress.
+
+**On a machine with normal internet (home wifi), run:**
+
+```
+Scripts\qc\fetch_city_records.cmd
+```
+
+It checks out this branch, pulls, retrieves every source in `Reports/sources/SOURCES.tsv`,
+extracts the text, commits it, and pushes. Safe to re-run — sources already fetched are
+skipped, so a second run only retries failures. To re-attempt just the failures:
+
+```
+Scripts\qc\fetch_city_records.cmd --retry-failed
+```
+
+**Then, in a Claude Code session on that machine**, one line is enough to resume the work:
+
+> Read `Reports/LIDAR_ACQUISITION_RECORDS_2026-09-09.md`, then the retrieved documents in
+> `Reports/sources/text/`. Answer the open questions in §8: does RFP 18-26 buy a flight or a
+> desk analysis; does the 2021 interlocal work order list any elevation deliverable or have a
+> 2026 successor; and is the 2026 canopy work grant-funded. Update the report with what the
+> documents actually say.
+
+### What lands, and what is deliberately not tracked
+
+`Reports/sources/` holds three tracked things and one untracked one:
+
+| Path | Tracked | What it is |
+|---|---|---|
+| `SOURCES.tsv` | yes | The target list — 16 sources, ranked, each with why it matters. Rows are marked VERIFIED (retrieved in this investigation, or recorded in `inventory.csv`) or **UNVERIFIED** (reconstructed from search indexing and never opened). An UNVERIFIED URL that 404s is information, not a bug. |
+| `MANIFEST.tsv` | yes | Provenance per fetch: HTTP status, final URL after redirects, content type, byte count, sha256, UTC timestamp. A failure is recorded **as a failure with its error**, so a later reader can tell "checked, absent" from "never checked". |
+| `text/*.txt` | yes | Extracted text — small, diffable, greppable. This is the point: the record becomes readable from a sandboxed session. |
+| `raw/` | **no** | The bytes as served. Git-ignored for the same reason the consultant PDFs are: the planning-board packet alone is 16 MB and they re-download. |
+
+### The one thing the script cannot do
+
+It does not execute JavaScript. **Laserfiche WebLink and PrimeGov are portal applications**, so
+a plain GET may return an application shell rather than the document. The script tries three
+known WebLink endpoint forms for the interlocal agreement and refuses to accept an HTML
+response under 8 KB as a document — such a response is logged as a portal shell, not silently
+saved as if it were the record. If those rows come back FAILED, the fallback is a browser
+(Playwright, or simply saving the PDF by hand from the viewer). The two highest-value targets —
+Laserfiche doc 1462454 and the Laserfiche full-text search for "lidar" — are the most likely to
+need that manual step, and they are also the two that would most change the report.
+
+---
+
 ## Appendix A — drafted Public Records Act request
 
 *Verify the recipient address and intake channel on the City's public records page before

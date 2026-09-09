@@ -80,6 +80,20 @@ desktop.ini
 !/Reports/*.md
 !/Reports/*.csv
 
+# Reports/sources: the retrieved public record, added 2026-09-09. The lidar-acquisition
+# investigation could not reach any city or county host from the sandboxed session, so
+# Scripts/qc/fetch_city_records.py retrieves them from an unrestricted network and lands
+# them here. Track the TARGET LIST, the PROVENANCE MANIFEST and the EXTRACTED TEXT —
+# those are small, diffable, greppable, and are the whole point: a later session must be
+# able to read the record without egress. The raw/ bytes stay out for the same reason the
+# consultant PDFs do (the planning-board packet alone is 16 MB, and they re-download).
+!/Reports/sources/
+/Reports/sources/*
+!/Reports/sources/SOURCES.tsv
+!/Reports/sources/MANIFEST.tsv
+!/Reports/sources/text/
+!/Reports/sources/text/*.txt
+
 # ── .github: track the CI workflow, nothing else ──────────────────────────
 # Added 2026-08-25 (overhaul E03). The /* rule at the top ignored .github/
 # wholesale, so .github/workflows/ci.yml was invisible to git — `git add` on it

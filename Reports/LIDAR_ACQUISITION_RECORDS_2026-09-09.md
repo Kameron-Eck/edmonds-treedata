@@ -38,11 +38,21 @@ the staff statement exactly. The City republishes each as `2020_Aerial_Cached`,
 orthoimagery cycle and calling it LiDAR. Confidence: high.**
 
 **On the funded summer-2026 flight, no authorising record was found**, and no 2026 lidar
-acquisition is registered anywhere in 3DEP nationally. What does exist is an Edmonds
-solicitation — *2026 Tree Canopy Assessment (RFP 18-26)*, indexed around 11 March 2026 — whose
-scope of work could not be retrieved. That RFP is the most likely referent of "we've funded",
-and whether it buys a **flight** or only an **analysis of existing imagery** is the single
-unresolved question. It is answerable in one phone call or one records request (§8).
+acquisition is registered anywhere in 3DEP nationally. This paragraph originally named an
+Edmonds solicitation — *2026 Tree Canopy Assessment (RFP 18-26)* — as the most likely referent
+of "we've funded". **That is now refuted: §10.1 retrieved the listing and it was issued by the
+City of Vancouver, not Edmonds.** Edmonds' own bids page, retrieved the same day, carries one
+open solicitation: park concessions. So there is **no candidate at all** for what Edmonds
+funded, and the question goes to staff directly or into the PRA request at Appendix A Part 2.
+
+**A second pass (§10) retrieved 14 of 16 target documents** from an unrestricted network and
+settled several questions §7 could not. Two results matter most. The conflation is now confirmed
+**first-hand and rises to high confidence** — the City's own GIS server publishes five
+aerial-imagery services (2015, 2017, 2020, 2022, 2024) and **no lidar service of any kind**. And
+the Snohomish County lidar cost-share this investigation was originally asked to look for
+**does exist**: a DNR/NV5 work order that Everett bought into for 63 square miles at $21,168.
+It is the "Snohomish **Gap**" project §2 already proved does not reach Edmonds — so the
+mechanism is real and available, Edmonds is simply not in it.
 
 Two side findings worth your attention: the **"2017 LiDAR"** in the SavATree/UVM report is
 almost certainly the USGS/WADNR 2016 acquisition under its 2017 publication date, not a separate
@@ -486,6 +496,151 @@ saved as if it were the record. If those rows come back FAILED, the fallback is 
 (Playwright, or simply saving the PDF by hand from the viewer). The two highest-value targets —
 Laserfiche doc 1462454 and the Laserfiche full-text search for "lidar" — are the most likely to
 need that manual step, and they are also the two that would most change the report.
+
+---
+
+## 10. Second pass — what the retrieved records actually say
+
+The §9 fetch ran successfully from an unrestricted network: **14 of 16 sources retrieved**, text
+committed to `Reports/sources/text/`, provenance in `MANIFEST.tsv`. This section is what those
+documents changed. Everything here is first-hand from a retrieved document, not search
+indexing.
+
+### 10.1 RFP 18-26 is the City of **Vancouver** — not Edmonds. Hypothesis refuted.
+
+The "2026 Tree Canopy Assessment (RFP 18-26)" that three research channels and §1 named as the
+most likely referent of "we've funded" **is not an Edmonds solicitation**:
+
+> "The City of Vancouver is seeking proposals from qualified firms or individuals for consulting
+> services to develop and produce an Urban Tree Canopy Assessment… The assessment will be
+> conducted within the geographic boundaries of the City of Vancouver."
+> — HigherGov listing, `Reports/sources/text/rfp-18-26-highergov.txt`
+
+"On 3/11/26 City of Vancouver in Washington issued RFP 2026 Tree Canopy Assessment with ID
+RFP 18-26 due 4/8/26." The completeness critic flagged exactly this risk — "the one item where
+the aggregator listing might not even be Edmonds" — and was right. Note also that even for
+Vancouver the scope is a **desk analysis**: the contractor is to "provide tree canopy data from
+2024 or more recent data if available", plus land-cover mapping and i-Tree ecosystem services.
+No flight.
+
+**Consequence: there is now no known candidate for what Edmonds "funded" for summer 2026.**
+The City's own bids page, retrieved the same day, lists one open solicitation — a *Concessions
+in Parks* RFP due 21 August 2026. No canopy assessment, no lidar, no aerial imagery.
+
+### 10.2 The conflation is now confirmed first-hand — confidence HIGH
+
+Two documents previously known only through our own QC ledger were retrieved directly:
+
+**The City's own GIS service list** (`maps.edmondswa.gov/gis/rest/services/Basemap?f=json`) —
+the complete inventory, verbatim:
+
+> `2015_Aerial_Cached`, `2017_Aerial_Cached`, `2020_Aerial_Cached`, `2022_Aerial_Cached`,
+> `2024_Aerial_Cached`, `Aerial_Overlay`, `Contour_Lines`, `Edmonds_Addresses`,
+> `Edmonds_Basemap`, `Edmonds_Marsh_2018`, `Property`
+
+Eleven services. Five are aerial imagery on exactly the cadence staff described. **There is no
+lidar, DEM, DSM, hillshade, point-cloud or canopy-height service of any kind, and there is no
+2026 service.**
+
+**Snohomish County's SCOPI page**, in its own words: *"The 2024 3 inch resolution aerial photos
+in the urban areas, were captured between March 31, 2024 and May, 31 2024"*; likewise 2022,
+2021, 2020 and 2018. Aerial **photos**. The word lidar does not appear. (Note the cycle is not
+purely even-year — 2018 and 2021 acquisitions exist too, at 6-inch.)
+
+This raises §4's verdict from moderate-to-high to **high**. The one caveat that remains is that
+the interlocal work order's own sentence still has not been read — see §10.5.
+
+### 10.3 The Snohomish County lidar cost-share exists — and it is the Gap project
+
+This is the "cost sharing program" the original question asked about, and it is real,
+recent, and fully documented in the retrieved Everett council item:
+
+> "the Department of Natural Resources ('DNR') has contracted with Quantum Spatial to collect,
+> process, and deliver certified Lidar data… the cost for the Snohomish County region Lidar data
+> is Sixty-Six Thousand Eight Hundred Sixty-Four Dollars ($66,864.00)… the County executed a
+> **Cost Share Agreement on August 19, 2024**, to pay DNR Forty-Eight Thousand Two Hundred
+> Twenty-Four Dollars ($48,224.00)… and receive the Lidar data for the Snohomish County region
+> (including Everett and Marysville)"
+
+Everett bought its share through Supplemental Work Order **SWO 20-02**: **63 square miles for
+$21,168**, term to 10 December 2025. And the attachment names the project outright:
+
+> "Attachment 1 – **NV5 Geospatial, Inc.** Proposal for Lidar Collection RE: Mapping Services for
+> Washington State Six Counties and the **Thurston, Adams, Snohomish Gap Lidar Project**"…
+> "the Lidar RFP **No. 22-03** issued by DNR"
+
+That is `WA_LidarGaps_C22` — the project §2 identified from the S3 mirror and proved does not
+reach Edmonds (48,596 tiles, zero over the city; northern block begins ~13 miles north). The
+document corroborates it independently: the word is **Gap**, the named beneficiaries are Everett
+and Marysville, and Everett's slice is 63 square miles, not a countywide buy.
+
+**So the mechanism Edmonds could use exists** — a County ILA plus a supplemental work order,
+riding a DNR/NV5 contract, at a few tens of thousands of dollars. Edmonds simply is not in it,
+and this particular acquisition would not have covered Edmonds if it were. That is a far more
+useful thing to tell staff than a bare negative.
+
+### 10.4 The 2018 Davey assessment — opened for the first time
+
+`Edmonds-UTC-Assessment---FINAL-no-watermark-20180308.pdf` appears in no prior project document.
+It is the parent of the 30.3% benchmark the 2019 UFMP inherited:
+
+> "Edmonds contracted with Davey Resource Group (DRG) in 2017 to conduct a [UTC assessment]…
+> Using high-resolution aerial imagery from **August 7th, 2015 (USDA, Farm Service Agency)** and
+> GIS analysis" … "From 2005 to 2015 tree canopy decreased from 32.3% to 30.3%"
+
+**Imagery only — no lidar.** This confirms the provenance the ledger had inferred for the
+"Aug 7 2015 / 4.8 in" note, and it means the 30.3% and 34.3% figures for 2015 differ partly
+because one used 2015 NAIP imagery alone and the other added lidar height.
+
+On the SavATree side, the retrieved report attributes its inputs generically — "datasets, which
+various governmental agencies in the region have acquired" — and its Figure 1 caption reads
+"2020 Imagery (top) and 2017 LiDAR (bottom)". Nothing credits the City with supplying lidar,
+which is consistent with §6.
+
+### 10.5 What the fetch did NOT establish, stated plainly
+
+**Two sources failed outright**: `weblink-search-lidar` (the Laserfiche full-text search) and
+`dnr-lidar-portal`. Both are JavaScript applications; they need the `--browser` pass, which was
+skipped because Playwright was not installed.
+
+**The interlocal agreement is a scan.** `ila-1462454` retrieved an 11.4 MB PDF — the right
+document, by DocuSign envelope `56893476-C5A3-451C-9B19-3F77FBF19647`, dated 3/22/2021 — but
+extraction yielded only 1,152 characters: the blank contract-routing-form field labels. **The
+body is images.** It needs OCR before the operative sentence can be read from the source rather
+than from our ledger. Until then the circularity noted in §4 stands.
+
+**Three sources returned the wrong document while reporting `ok`.** This is a real limitation of
+the fetch tool and must not be mistaken for evidence:
+
+| id | what it actually retrieved |
+|---|---|
+| `rfp-18-26-djc` | DJC site navigation chrome, not the legal notice — the link harvester followed to `myDownloads.php` |
+| `dnr-ucf-grants` | an Arbor Day **coloring book** PDF, harvested from the DNR urban-forestry page |
+| `myedmondsnews-june-2026` | the June 2026 council study-session mini-packet, not the news article — useful, but not the staff quote |
+
+**`ok` in the manifest means "a document was retrieved and text extracted", not "the right
+document".** Every finding in this section was confirmed by reading the text, not by trusting
+the status column. The June 2026 packet mentions lidar only generically (describing what a UTC
+assessment uses); it contains no Edmonds lidar funding statement, so **the staff "will work with
+LIDAR teams that do flyovers" quote remains unverified against any primary source.**
+
+One lead I chased and dropped: grant agreement **93-105566**, which appears in that packet, is a
+**King County** DNR Urban & Community Forestry grant funding a tree-regulations guide included
+as reference material. It is not an Edmonds grant and not lidar. The grant-funding hypothesis
+for the 2026 work is therefore still open, not confirmed.
+
+### 10.6 Revised next steps
+
+1. **Install Playwright and re-run** — `pip install playwright && playwright install chromium`,
+   then `Scripts\qc\fetch_city_records.cmd`. This recovers the Laserfiche full-text search, the
+   single highest-value untried search in the whole investigation.
+2. **OCR the interlocal agreement** so §4's conclusion rests on the document rather than our own
+   transcription of it.
+3. **Ask Snohomish County DoIT directly** whether Edmonds can buy into a future lidar work order
+   the way Everett did under SWO 20-02 — now a concrete, named, priced mechanism.
+4. **Drop RFP 18-26 entirely.** It was Vancouver's. The question "what did Edmonds fund for
+   summer 2026" has no candidate answer and should go to staff directly, or into the PRA request
+   at Appendix A Part 2.
 
 ---
 

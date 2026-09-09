@@ -431,6 +431,40 @@ gap in the file, and it surfaces in `py -3.12 qc/ask.py --gaps` until someone wr
 the mechanism down. A status other than `undiagnosed` with no cause fails the gate
 (`test_failure_registry_states_a_cause_or_says_it_has_none`).
 
+## semantic_eval_<run_id>.csv (lake `phase4/eval/runs/`, WRITE-ONCE per evaluate)
+
+Written by `phase4seg/core.py::_write_per_run_eval`, called from `step_evaluate` BEFORE
+the shared `semantic_eval_report.csv` is read or rewritten. One file per evaluate run,
+named by the run's `run_id` (`cli.py`: `<utc>_<years>_<tag>_<step>`;
+`unrecorded_<utc>_<label>_<tag>_evaluate` when the engine is driven with no manifest).
+Path rule and glob live in `phase4seg/names.py` (`EVAL_RUNS_DIRNAME`, `eval_run_name`,
+`eval_run_files`) — three readers, one spelling.
+
+WHY IT EXISTS (2026-09-09, `experiments/backbone_sweep.yaml`
+`extra.cross_vm_eval_report_clobber`). The shared report is read-modify-written by every
+evaluate step through rclone's async upload cache; two runtimes evaluating one year
+minutes apart each read a copy lacking the other's rows and the last upload wins.
+bb18_2006s_base's rows vanished from both the live report and the superseded archive.
+This file cannot be clobbered: nothing but its own run ever opens it for writing, and
+a second write under an existing name is refused (the file is left as written).
+
+COLUMNS: exactly the shared report's, for the same run — `year gsd_cm tier channels
+eval_scope scope site` + the metric columns + `op_thresh *_op` + `run_tag run_id
+written_utc encoder warm_start` — both the `site` rows and the single `OVERALL` row.
+It is the report's rows for this run, verbatim, in a file of their own.
+
+READER RULES. (1) `VERIFY:evaluate` (`queue_verify.py::_verify_eval_rows`) asks the
+shared report first; when that reads MISSING or STALE_EVAL it accepts a per-run file
+under this year and tag written since the step started, records OK, and its `detail`
+NAMES the file (`… in runs/semantic_eval_<run_id>.csv …`) — so a ledger row says which
+home the pass stands on. Neither home → still MISSING. (2) The shared report is STILL the
+deployed-threshold source (`postproc._operating_threshold` reads its last row per
+arm); this file is evidence and archive, never a threshold input. (3)
+`eval_rows_from_logs.py --compare` counts these files: a gap whose run_id has one is
+`per_run_file`, on record in full. Gates: `qc/test_eval_per_run.py` (write side,
+ordering), `qc/test_queue_verify.py` (accept / still-MISSING),
+`qc/test_eval_rows_from_logs.py` (verdict).
+
 ## eval_from_logs.csv + eval_report_gaps.csv (phase4/qc/, HARVESTED — re-harvest, never edit)
 
 Written by `qc/instruments/eval_rows_from_logs.py` (`--compare` for the second file).
@@ -461,6 +495,10 @@ run_ids the live report's OVERALL rows lack. READER RULE: a gap is not a clobber
 `verdict`. `superseded` = the run_id sits in `semantic_eval_report_superseded.csv`: a
 later evaluate's write archived it (the archive key is year/channels, e.g. `2006s/rgb`,
 not the arm — observed in the bb18 log, which archived 8 rows). On record, not lost.
+`per_run_file` = the run_id has its own `phase4/eval/runs/semantic_eval_<run_id>.csv`
+(section above; every evaluate since 2026-09-09, written before the shared report):
+on record in full, the shared report merely never received or later dropped it.
+`--runs-dir` overrides the default `<eval report dir>/runs`.
 `pre_run_id_era` = the run_id
 sorts before the earliest run_id either report file carries (the report gained the column
 2026-08-31); those rows cannot be joined and their absence is a schema gap, not a loss.

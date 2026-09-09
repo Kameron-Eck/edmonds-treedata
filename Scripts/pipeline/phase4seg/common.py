@@ -1,4 +1,5 @@
 import contextlib
+import errno
 import hashlib
 import json
 import os
@@ -668,6 +669,46 @@ def verify_on_drive(drive_path, want_md5, wait_s=0.0, poll_s=10.0):
                        f" after {waited}s")
 
 
+_PROBE_RETRY_ERRNOS = (errno.EIO, errno.ENOTCONN)
+_PROBE_BACKOFF_S = (2, 4, 8, 16, 30)
+
+
+def _probe_retry(fn, what, tries=5, backoff=_PROBE_BACKOFF_S):
+    """Call `fn()` — a metadata probe (exists / stat) on the FUSE mount — retrying
+    ONLY a transient-mount errno, bounded, logging every retry. → fn()'s result.
+
+    WHY (2026-09-09). bb50_2011s_cor05 died at epoch A17 with
+    `OSError: [Errno 5] Input/output error` raised by `dest.exists()` — the very
+    first line of _publish_replace — after 16 epochs of clean publishes
+    (phase4/logs/phase4_semantic_finetune_train_2011s_2026-09-09T09-03.log). The
+    checkpoint was already safe on local NVMe and the copy to the `.part` had
+    succeeded; what failed was one stat() the mount answered with EIO, and it took
+    the whole train step with it. _copy_to_drive already retries EIO on the COPY
+    (2009_corrupt25, 2026-08-29) — the probes were the one call in the publish path
+    that a single mount hiccup could still turn into a dead run.
+
+    BOUNDED AND NARROW, on purpose. Five tries, 2..30 s backoff (~60 s total): a mount
+    that is still refusing after a minute is a dead mount, and the step should die
+    loudly rather than hang. Only EIO and ENOTCONN are retried — the two errnos an
+    rclone FUSE mount returns for a transient transport failure. Every other OSError
+    (ENOENT, EACCES, ...) is a real answer about the path and propagates on the first
+    call, unchanged; masking those would hide exactly the kind of failure this
+    module exists to surface. The final EIO propagates as the ORIGINAL exception so
+    the log and known_failures.yaml's "Errno 5" match keep working.
+    """
+    for i in range(tries):
+        try:
+            return fn()
+        except OSError as e:
+            if e.errno not in _PROBE_RETRY_ERRNOS or i >= tries - 1:
+                raise
+            wait = backoff[min(i, len(backoff) - 1)]
+            print(f"  ! {what} raised {type(e).__name__} [Errno {e.errno}] "
+                  f"{e.strerror or e} — mount hiccup? retrying in {wait}s "
+                  f"[{i + 1}/{tries}]", flush=True)
+            time.sleep(wait)
+
+
 def _publish_replace(part, dest):
     """os.replace `part` onto `dest` with the destination guaranteed ABSENT.
 
@@ -747,19 +788,22 @@ def _publish_replace(part, dest):
     queue_ledger.py::_replace_absent's own docstring — this one does not restate it.
     """
     aside = None
-    if dest.exists():
+    # Every probe below goes through _probe_retry: one EIO on a stat() must not end
+    # a train step (2026-09-09, see the helper). The retry changes nothing about
+    # WHAT the probes decide — only whether one transient answer is final.
+    if _probe_retry(lambda: dest.exists(), f"probe {dest.name}"):
         aside = dest.with_name(dest.name + f".prev.{secrets.token_hex(3)}")
         try:
             os.replace(dest, aside)                    # absent destination
         except OSError:
-            if dest.exists():
+            if _probe_retry(lambda: dest.exists(), f"re-probe {dest.name}"):
                 # the rename did not happen; the previous checkpoint is still
                 # published, so re-raise without publishing over it. An aside that
                 # landed anyway is NOT unlinked here: that unlink is a no-op in
                 # every case except the one where this probe is what is wrong, and
                 # there it deletes the last copy of the checkpoint.
                 raise
-            if not aside.exists():
+            if not _probe_retry(lambda: aside.exists(), f"probe {aside.name}"):
                 aside = None               # dest vanished under us — nothing to keep
             # else: the rename completed and THEN failed. Fall through: `aside` holds
             # the only copy of the previous checkpoint, and the publish below
@@ -768,7 +812,7 @@ def _publish_replace(part, dest):
     try:
         os.replace(part, dest)                         # absent destination
     except OSError:
-        if dest.exists():
+        if _probe_retry(lambda: dest.exists(), f"re-probe {dest.name}"):
             # the publish landed and THEN reported the error: a checkpoint is
             # published. Restoring would replace over an EXISTING destination and
             # revert it to the previous one. Leave both files and re-raise.
@@ -949,7 +993,8 @@ def _copy_to_drive(local_path, drive_path, checksum=True, retries=3,
             except OSError as e:
                 print(f"  (copystat skipped on {part.name}: {e})")
             tock(f"copy {drive_path.name}")
-            got_size = part.stat().st_size
+            got_size = _probe_retry(lambda: part.stat().st_size,
+                                    f"stat {part.name}")
             if got_size != want_size:
                 problem = f"size {got_size} != {want_size}"
             elif checksum and _sha256(part) != want_sha:
@@ -977,7 +1022,11 @@ def _copy_to_drive(local_path, drive_path, checksum=True, retries=3,
             except OSError:
                 pass
     finally:
-        if part.exists():
+        try:
+            _part_left = _probe_retry(lambda: part.exists(), f"probe {part.name}")
+        except OSError:
+            _part_left = True              # cannot tell — try the unlink anyway
+        if _part_left:
             try:
                 part.unlink()
             except OSError:

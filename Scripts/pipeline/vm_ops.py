@@ -143,10 +143,38 @@ def bootstrap(session, branch=None):
         print(f"  token script deleted: {script.name}")
 
 
+# The CLI's own wording when its kernel handle is gone. NOT a VM death: measured
+# on all ten lost-handle events examined (2026-08-26 → 09-09) in
+# ~/.config/colab-cli/colab.log, the
+# exec first asks the runtime for the kernel it created at launch
+# (`GET /api/kernels/<kernel_id>` -> 404), tries to make a new one (`POST
+# /api/kernels` -> 404), and then prunes the session - while the OAuth refresh and
+# `GET /tun/m/assignments` succeed seconds later (200) and the keep-alive pid is
+# still alive. So it is the KERNEL that is gone (culled once idle: our queue is
+# nohup-detached and never touches it), not the token and not the runtime; the
+# gap from the last exec to the 404 was 1.3-6.3 h across ten launches. Details:
+# COLAB_AUTONOMY_SETUP.md "A LOST HANDLE IS NOT A DEAD VM".
+def _lost_handle_sigs(session):
+    """The CLI's session-qualified wordings ONLY. `out` also carries the payload's
+    own stdout, so a bare "not found" (a missing tile index, say) would raise this
+    banner on a live handle."""
+    return (f"Session '{session}' appears to be lost",
+            f"Session '{session}' not found")
+
+
 def exec_file(session, file, timeout):
     code, out = _cli(["exec", "-s", session, "-f", str(file),
                       "--timeout", str(timeout)], timeout=timeout)
     print(out[-2000:])
+    if any(sig in out for sig in _lost_handle_sigs(session)):
+        print(f"\n  ! {session}: the CLI HANDLE is gone (kernel 404), and `Cleaning up` "
+              f"has now pruned it - this is NOT evidence the VM is dead. The queue is "
+              f"nohup-detached and keeps running. From here on, control is handle-free:\n"
+              f"      py -3.12 pipeline/vm_ops.py cmd --session {session} --command status\n"
+              f"      py -3.12 pipeline/vm_ops.py cmd --session {session} --command stop\n"
+              f"      py -3.12 pipeline/vm_ops.py sessions      (account-level census)\n"
+              f"    and the ledger/heartbeat on the lake are the record of its work.",
+              flush=True)
     return code, out
 
 

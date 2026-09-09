@@ -496,3 +496,34 @@ def clean_argv(argv=None):
         keep.append(a)
         prev = a
     return keep
+
+
+# ── per-run evaluate files (2026-09-09, the cross-VM eval-report clobber) ────
+# `phase4/eval/semantic_eval_report.csv` is one shared file every evaluate step
+# read-modify-writes through an async upload cache; two runtimes on one year lose
+# rows (bb18_2006s_base, 05:44Z). Each evaluate therefore ALSO writes its rows,
+# once, to `phase4/eval/runs/semantic_eval_<run_id>.csv` — core.py::
+# _write_per_run_eval writes it, queue_verify.py::_verify_eval_rows accepts it as
+# evidence when the shared report lacks the row, and
+# qc/instruments/eval_rows_from_logs.py counts it. Three readers, one spelling.
+EVAL_RUNS_DIRNAME = "runs"
+EVAL_RUN_PREFIX = "semantic_eval_"
+
+
+def eval_run_name(run_id):
+    """The per-run eval file for `run_id` — the formatter, paired with the glob."""
+    return f"{EVAL_RUN_PREFIX}{run_id}.csv"
+
+
+def eval_run_files(runs_dir, tag=None):
+    """Per-run eval files under `runs_dir`, sorted; with `tag`, only those whose
+    name carries `_<tag>_` — run_ids are `<utc>_<years>_<tag>_<step>` (cli.py), so
+    the name filter is exact for the tag and spares the verifier one FUSE read per
+    unrelated arm. A file whose name matched is still checked by its ROWS."""
+    runs_dir = Path(runs_dir)
+    if not runs_dir.exists():
+        return []
+    files = sorted(runs_dir.glob(f"{EVAL_RUN_PREFIX}*.csv"))
+    if tag:
+        files = [f for f in files if f"_{tag}_" in f.name]
+    return files

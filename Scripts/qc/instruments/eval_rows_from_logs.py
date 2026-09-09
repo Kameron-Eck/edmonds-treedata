@@ -19,6 +19,10 @@ A GAP IS NOT A CLOBBER. Each gap row carries a `verdict`:
                       evaluate's write archived it (the log says so: "N superseded
                       row(s) for 2006s/rgb archived ... before replacement"; the key is
                       year/channels, not the arm). On record, not lost.
+    per_run_file      the run_id has its own phase4/eval/runs/semantic_eval_<run_id>.csv
+                      (core.py::_write_per_run_eval, every evaluate since 2026-09-09,
+                      written BEFORE the shared report). On record in full, not lost —
+                      the shared report merely never received or later dropped it.
     pre_run_id_era    the run_id sorts before the EARLIEST run_id either report file
                       carries — the report did not record run_id/run_tag yet, so its rows
                       from then are unjoinable; absence is a schema gap, not a loss
@@ -46,7 +50,7 @@ ever present and is empty by observation otherwise.
 Read-only on the lake. Writes only the two repo CSVs. Output is byte-identical across
 runs (sorted by run_id then log_file; nothing clock-derived).
 
-Run:  py -3.12 qc/instruments/eval_rows_from_logs.py [--logs-dir D] [--compare [--eval-report F]]
+Run:  py -3.12 qc/instruments/eval_rows_from_logs.py [--logs-dir D] [--compare [--eval-report F] [--runs-dir D]]
 """
 from __future__ import annotations
 
@@ -166,11 +170,25 @@ def _report_run_ids(path):
                 if r.get("scope", "OVERALL") == "OVERALL"} - {"", "unrecorded"}
 
 
-def compare(rows, eval_report, superseded=None):
+def _per_run_ids(runs_dir):
+    """run_ids on record as per-run files (`<runs_dir>/semantic_eval_<run_id>.csv`):
+    each file's own OVERALL run_id column, else the run_id in its name. Missing dir →
+    empty set. Names via phase4seg.names so the three readers cannot drift."""
+    from phase4seg.names import EVAL_RUN_PREFIX, eval_run_files
+    if not runs_dir:
+        return set()
+    ids = set()
+    for f in eval_run_files(runs_dir):
+        ids |= _report_run_ids(f) or {f.stem[len(EVAL_RUN_PREFIX):]}
+    return ids
+
+
+def compare(rows, eval_report, superseded=None, runs_dir=None):
     """Rows whose run_id the live report lacks. Unjoinable run_ids (blank / unrecorded)
     are skipped and counted, not listed."""
     live = _report_run_ids(eval_report)
     sup = _report_run_ids(superseded) if superseded else set()
+    per_run = _per_run_ids(runs_dir)
     # run_ids are `YYYYMMDDTHHMMSSZ_...`, so string order is time order.
     first_recorded = min(live | sup) if (live | sup) else ""
     gaps, skipped = [], 0
@@ -182,6 +200,8 @@ def compare(rows, eval_report, superseded=None):
             continue
         if r["run_id"] in sup:
             verdict = "superseded"
+        elif r["run_id"] in per_run:
+            verdict = "per_run_file"
         elif first_recorded and r["run_id"] < first_recorded:
             verdict = "pre_run_id_era"
         else:
@@ -203,6 +223,8 @@ def main(argv=None):
                     help="also write eval_report_gaps.csv against the live eval report")
     ap.add_argument("--eval-report", default=None,
                     help="default: the lake's phase4/eval/semantic_eval_report.csv")
+    ap.add_argument("--runs-dir", default=None,
+                    help="per-run eval files; default: <eval report dir>/runs")
     ap.add_argument("--out-dir", default=None, help="default: <repo>/phase4/qc")
     ap.add_argument("--dry-run", action="store_true")
     a = ap.parse_args(clean_argv() if argv is None else argv)
@@ -226,7 +248,9 @@ def main(argv=None):
         report = Path(a.eval_report) if a.eval_report else \
             _lake_default("EVAL_DIR") / "semantic_eval_report.csv"
         superseded = report.with_name(report.stem + "_superseded" + report.suffix)
-        gaps, skipped = compare(rows, report, superseded)
+        from phase4seg.names import EVAL_RUNS_DIRNAME
+        runs_dir = Path(a.runs_dir) if a.runs_dir else report.parent / EVAL_RUNS_DIRNAME
+        gaps, skipped = compare(rows, report, superseded, runs_dir)
         if not a.dry_run:
             (out_dir / OUT_GAPS.name).write_text(_csv_text(gaps, GAP_COLS),
                                                  encoding="utf-8", newline="")
@@ -236,6 +260,7 @@ def main(argv=None):
         print(f"  live report {report.name}: {len(gaps)} log run_ids absent "
               f"({skipped} unjoinable skipped) → {out_dir / OUT_GAPS.name}")
         print(f"  superseded {n['superseded']} (in {superseded.name}, replaced on purpose) · "
+              f"per_run_file {n['per_run_file']} (own file in {runs_dir.name}/, on record) · "
               f"pre_run_id_era {n['pre_run_id_era']} (report had no run_id column yet) · "
               f"clobber_candidate {len(lost)}:")
         for x in lost:

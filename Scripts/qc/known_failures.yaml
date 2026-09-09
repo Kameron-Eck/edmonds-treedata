@@ -60,9 +60,18 @@ failures:
       Re-run the step. To stop it recurring, stage tiles to local NVMe for the epoch
       rather than reading them per-batch off the mount (CLAUDE.md 3.9 is the same
       lesson on the write side). Never treat an EIO as evidence about the data.
+      WRITE-SIDE PROBES (2026-09-09): bb50_2011s_cor05 died at epoch A17 on
+      `dest.exists()` inside common.py::_publish_replace, the copy already done and
+      the checkpoint safe on NVMe (phase4_semantic_finetune_train_2011s_2026-09-09
+      T09-03.log). The exists/stat probes on the publish path now go through
+      common.py::_probe_retry — EIO and ENOTCONN only, 5 tries, 2..30 s backoff, one
+      log line per retry — so a single mount hiccup on a metadata call no longer ends
+      a train step; a mount still refusing after ~1 min raises the original EIO. The
+      READ side (tiles off the mount) is unchanged by that fix.
     notes: >-
       Mechanism inferred from the errno + the /content/drive path on all five, not
-      from an instrumented reproduction.
+      from an instrumented reproduction. The 2026-09-09 instance is the one with a
+      traceback naming the exact call (common.py line 750, `dest.exists()`).
 
   - match: "No such file or directory.*(images|masks)|pathlib.*mkdir"
     status: environmental

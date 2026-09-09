@@ -189,6 +189,12 @@ what strands other sessions.
   use (they embed both).
 - Blast radius of a leaked SA key = the shared `treedata` folder (revocable by unsharing
   or deleting the key in the console), not the Google account.
+- **`~/.config/colab-cli/colab.log` RETAINS EVERY BOOTSTRAP PAYLOAD IN PLAINTEXT** (found
+  2026-09-09). The CLI logs each `execute_request` at DEBUG level with its full `code`
+  field, and the bootstrap script embeds the SA key and the gh token — so deleting the
+  scratch script (which we do) does not remove the secrets from this log, and the log is
+  ~400k lines and grows. Treat it as secret-bearing: never grep it broadly into a tool
+  result or a chat, never attach it, and truncate or purge it after rotating the key.
 
 ## STATUS: setup COMPLETE 2026-08-26 (all steps done via browser automation with Kam present)
 - Project `edmonds-pipeline` created (billing attached; Drive API usage is $0).
@@ -464,6 +470,43 @@ beacons, and the original's beacon was stale, so the clash was invisible to it.
 
 > Before relaunching an arm you believe is dead: check the LEDGER's last step against that
 > step's median and max. Only then probe — and know that probing may cost the handle.
+
+### What "appears to be lost (404/401)" actually is — read from the CLI's own log (2026-09-09)
+
+healC and bb50 both returned `Session '<name>' appears to be lost (404/401). Cleaning up.`
+hours into runs the ledgers show finishing normally. The message is the colab CLI's
+(`~/.local/bin/colab.exe`; `pipeline/vm_ops.py::exec_file` only shells out to it), and its
+DEBUG log `~/.config/colab-cli/colab.log` records exactly what failed. Every one of the
+ten lost-handle events examined (launches 2026-08-26 → 09-09) has the same shape:
+
+1. `colab exec` asks the runtime for the kernel it created at launch:
+   `GET https://8080-<machine>.prod.colab.dev/api/kernels/<kernel_id>` → **404**
+   (`jupyter_kernel_client - WARNING - Kernel not found at: …`).
+2. It tries to start a fresh one: `POST …/api/kernels` → **404**.
+3. It prints "appears to be lost" and prunes the session from `sessions.json`.
+4. Seconds later the SAME process refreshes OAuth (`oauth2.googleapis.com`) and calls
+   `GET https://colab.research.google.com/tun/m/assignments` → **200**. The keep-alive
+   process (`keep_alive_pid` in `sessions.json`, one python.exe per session) is alive and
+   its `…/tun/m/<machine>/keep-alive/` pings were answered right up to the event.
+
+So it is neither the token (no 401 response was observed in any of the ten events, and
+auth works seconds later) nor the runtime (assignment alive, keep-alive alive, ledger
+still moving). It is
+the JUPYTER KERNEL the CLI created at launch: our queue is `nohup`-detached from it
+(`vm_ops.py::launch_queue`) and nothing touches that kernel again, so the runtime culls it
+as idle, and the CLI cannot re-create one through the path it uses. Measured gap from the
+last successful exec to the 404, ten launches 2026-08-26 → 09-09: **1.3–6.3 h** (e.g.
+09-08 08:37 → 12:42; 09-08 21:46 → 09-09 02:11; 09-02 03:38 → 09:54). The 2026-08-22
+events, where a 404 followed a 200 within a minute during active execs, are a different
+mechanism (runtime restarts) and are not this.
+
+Not fixable in our code — the kernel lifecycle is the CLI's and Colab's. What IS ours:
+`vm_ops exec` now prints the handle-free fallbacks when it sees the CLI's wording, and the
+rule stands: **after the launch exec, do not `colab exec` a working VM at all.** Use
+`py -3.12 pipeline/vm_ops.py cmd --session <s> --command status|stop` (the Drive mailbox
+the babysitter polls, RULE 4; minutes, not seconds), `vm_ops sessions` for the census, and
+the ledger/heartbeat on the lake for the work. Each exec after launch is a coin toss on a
+kernel that will not be there, and a lost toss costs the handle.
 
 ## Diagnosing a suspected-dead runtime: the checks that actually separate the cases
 

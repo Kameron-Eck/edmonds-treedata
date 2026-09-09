@@ -269,6 +269,105 @@ def test_a_resume_recheck_has_no_step_to_be_newer_than(tmp_path):
     assert state == "OK"
 
 
+# ── the per-run eval file is VERIFY:evaluate evidence (2026-09-09) ───────────
+# bb18_2006s_base's evaluate wrote its rows into the shared report at ~05:44Z while
+# bb50_2006s_base's upload from 05:43Z was still landing from the other A100; the
+# report bb18 read back lacked its own rows and VERIFY:evaluate said MISSING.
+# core.py::_write_per_run_eval now writes phase4/eval/runs/semantic_eval_<run_id>.csv
+# BEFORE the shared report; the verifier accepts that file when the report cannot
+# answer — and ONLY then, and only for this year, this tag, this step.
+
+def _per_run(rep, run_id, year="2009", tag="citywide_rgb", written=None):
+    """A per-run file next to `rep`, named and shaped the way core.py writes it."""
+    from phase4seg.names import EVAL_RUNS_DIRNAME, eval_run_name
+    d = rep.parent / EVAL_RUNS_DIRNAME
+    d.mkdir(exist_ok=True)
+    f = d / eval_run_name(run_id)
+    written = AFTER if written is None else written
+    _eval_csv(f, [dict(year=year, scope="site", iou="0.5", run_tag=tag, run_id=run_id,
+                       written_utc=written),
+                  dict(year=year, scope="OVERALL", iou="0.5", run_tag=tag, run_id=run_id,
+                       written_utc=written)])
+    return f
+
+
+def _other_arm_report(tmp_path):
+    rep = tmp_path / "semantic_eval_report.csv"
+    _eval_csv(rep, [dict(year="2009", scope="OVERALL", iou="0.7",
+                         run_tag="some_other_arm", written_utc=AFTER)])
+    return rep
+
+
+def test_a_per_run_file_passes_evaluate_when_the_shared_report_lost_the_row(tmp_path):
+    """THE CLOBBER, replayed: the report holds only the OTHER arm's rows (bb50's
+    survived, bb18's did not). The per-run file under this tag, written after the
+    step started, is the evidence — OK, and the detail NAMES the file."""
+    rep = _other_arm_report(tmp_path)
+    f = _per_run(rep, "20260829T010000Z_2009_citywide_rgb_evaluate")
+    state, detail = q._verify_eval_rows(rep, "2009", "citywide_rgb", T0)
+    assert state == "OK", detail
+    assert f.name in detail and "runs/" in detail, detail
+    assert "per-run file is the record" in detail
+
+
+def test_a_per_run_file_also_covers_a_report_that_does_not_exist_at_all(tmp_path):
+    rep = tmp_path / "gone.csv"
+    _per_run(rep, "20260829T010000Z_2009_citywide_rgb_evaluate")
+    state, detail = q._verify_eval_rows(rep, "2009", "citywide_rgb", T0)
+    assert state == "OK" and "runs/" in detail
+
+
+def test_a_stale_report_row_yields_to_a_fresh_per_run_file(tmp_path):
+    """A re-run of the same tag: the report still holds the PREVIOUS run's rows
+    (STALE_EVAL on its own) while this run's rows exist only in its per-run file —
+    the clobber shape when the arm has run before."""
+    rep = tmp_path / "semantic_eval_report.csv"
+    _eval_csv(rep, [dict(year="2009", scope="OVERALL", iou="0.7",
+                         run_tag="citywide_rgb", written_utc=BEFORE)])
+    _per_run(rep, "20260829T010000Z_2009_citywide_rgb_evaluate")
+    state, detail = q._verify_eval_rows(rep, "2009", "citywide_rgb", T0)
+    assert state == "OK" and "runs/" in detail
+
+
+def test_no_report_row_and_no_per_run_file_is_still_missing(tmp_path):
+    """THE MUTATION GATE. The per-run file widens the EVIDENCE, never the verdict:
+    with neither home holding this run's rows the step is MISSING, a hard fail."""
+    rep = _other_arm_report(tmp_path)
+    from phase4seg.names import EVAL_RUNS_DIRNAME
+    (rep.parent / EVAL_RUNS_DIRNAME).mkdir()                       # exists, empty
+    state, detail = q._verify_eval_rows(rep, "2009", "citywide_rgb", T0)
+    assert state == "MISSING" and state in q._VERIFY_HARD_FAIL, detail
+    assert "NONE under tag" in detail
+    # and with no runs/ directory at all
+    state, _ = q._verify_eval_rows(tmp_path / "absent" / "r.csv", "2009", "citywide_rgb", T0)
+    assert state == "MISSING"
+
+
+def test_another_arms_per_run_file_is_not_this_runs_evidence(tmp_path):
+    rep = _other_arm_report(tmp_path)
+    _per_run(rep, "20260829T010000Z_2009_noise_r2_evaluate", tag="noise_r2")
+    # ...and a same-tag file for a DIFFERENT year, and one whose rows contradict
+    # its name (tag in the filename, another arm in the rows) — none count
+    _per_run(rep, "20260829T010000Z_2020_citywide_rgb_evaluate", year="2020")
+    _per_run(rep, "20260829T010000Z_2009_citywide_rgb_full", tag="noise_r2")
+    state, _ = q._verify_eval_rows(rep, "2009", "citywide_rgb", T0)
+    assert state == "MISSING"
+
+
+def test_a_per_run_file_from_before_this_step_started_is_not_accepted(tmp_path):
+    """A previous run of this tag left its per-run file; this step exited 0 without
+    writing anything. That file is not this step's evidence, so the report's own
+    verdict stands."""
+    rep = _other_arm_report(tmp_path)
+    _per_run(rep, "20260828T200000Z_2009_citywide_rgb_evaluate", written=BEFORE)
+    state, _ = q._verify_eval_rows(rep, "2009", "citywide_rgb", T0)
+    assert state == "MISSING"
+    # on a re-verify (no step to be newer than) the file IS accepted, as the
+    # report path would accept its own rows
+    state, detail = q._verify_eval_rows(rep, "2009", "citywide_rgb", None)
+    assert state == "OK" and "runs/" in detail
+
+
 def test_parse_utc_is_timezone_aware():
     """written_utc is real UTC; comparing it through a naive datetime would put the
     freshness check hours out and pass everything."""
@@ -368,6 +467,47 @@ def test_skipped_job_recheck_without_a_recorded_size_is_unverified(tmp_path, mon
 
 def test_mb_from_verdict_only_reads_the_anchored_size():
     assert q._mb_from_verdict("146MB valid=99.1% maxprob=0.996 p99.9=0.9") == 146
+
+
+# ── the FALSE MISSING on resume (2026-09-09, bb50b relaunch) ─────────────────
+# verify() has had a steps-subset branch since 2026-09-02; the resume recheck did
+# not. A sample-tier job [labels, tile, train, evaluate] never writes a prob
+# raster, so the recheck stat'd a file that was never meant to exist and recorded
+# MISSING — a HARD-FAIL state — for five finished arms (the r50 relaunch ledger,
+# 12:09Z rows: "recorded OK at ... but the raster is GONE now").
+
+SUBSET_PRIOR = ("OK", "steps subset ['labels', 'tile', 'train', 'evaluate'] — no prob "
+                      "raster expected; per-step verifies are the record",
+                "2026-09-09 05:44:41")
+
+
+def test_a_steps_subset_job_without_inference_is_not_missing_on_resume(
+        tmp_path, monkeypatch):
+    """THE OLD INPUT, replayed: the bb50 job shape, its recorded VERIFY OK row, and
+    no raster on disk (there never was one). MISSING would stop the arm and flip the
+    queue's exit code for work that finished cleanly hours earlier."""
+    job, rows = _skipjob(monkeypatch, tmp_path)
+    job["steps"] = ["labels", "tile", "train", "evaluate"]
+    ok = q._recheck_skipped_verify(job, rows, SUBSET_PRIOR)
+    assert ok is True
+    assert rows[-1]["state"] == "OK_CACHED", rows[-1]
+    assert rows[-1]["state"] not in q._VERIFY_HARD_FAIL
+    assert "per-step verifies are the record" in rows[-1]["detail"]
+    assert "2026-09-09 05:44:41" in rows[-1]["detail"], "the prior verdict is not quoted"
+    assert not (tmp_path / "edmonds_canopy_prob_2018s_fx.tif").exists()   # still none
+
+
+def test_a_job_with_inference_and_no_raster_still_reads_missing(tmp_path, monkeypatch):
+    """The other half, kept sharp: a job whose steps INCLUDE inference — or that
+    lists no steps at all and so runs every step — has a raster to answer for. Its
+    absence is still MISSING; the fix above must not widen into a blanket pass."""
+    job, rows = _skipjob(monkeypatch, tmp_path)
+    job["steps"] = ["labels", "tile", "train", "evaluate", "inference", "postproc"]
+    assert q._recheck_skipped_verify(job, rows, PRIOR) is False
+    assert rows[-1]["state"] == "MISSING"
+    job.pop("steps")                                   # the default: every step
+    assert q._recheck_skipped_verify(job, rows, PRIOR) is False
+    assert rows[-1]["state"] == "MISSING"
     assert q._mb_from_verdict("valid=99.1% 146MB") is None      # not anchored
     assert q._mb_from_verdict("") is None
     assert q._mb_from_verdict(None) is None
@@ -617,6 +757,38 @@ def test_a_drained_checkpoint_passes(tmp_path, monkeypatch):
     monkeypatch.setattr(q.subprocess, "run", _fake_rclone(remote_md5=q._md5_of(ck)))
     state, note = q._drive_matches_mount(ck, wait_s=0)
     assert state == "ok" and "drive md5 ok" in note
+
+
+def test_an_undrained_upload_is_polled_visibly_and_the_note_counts_the_polls(
+        tmp_path, monkeypatch, capsys):
+    """WHERE VERIFY:train's 1.9-7.1 MINUTES WENT (r50 sweep, 2026-09-09): this loop,
+    waiting for rclone's async upload to drain — bounded all along, but silent. Drive
+    answers the wrong md5 twice, then the right one: two poll lines must reach the
+    log while it waits, the bound must be announced before the first poll, and the
+    verdict must say how many polls it took. The wait itself is NOT shortened — the
+    mismatch gate above is unchanged."""
+    ck = tmp_path / "sem_best_2009_x.pt"
+    ck.write_bytes(b"epoch24-bytes")
+    right = q._md5_of(ck)
+    answers = iter(["a" * 32, "b" * 32, right])
+    listremotes = _fake_rclone(remote_md5="x")
+
+    def run(cmd, **kw):
+        if cmd[:2] == ["rclone", "md5sum"]:
+            return _fake_rclone(remote_md5=next(answers))(cmd, **kw)
+        return listremotes(cmd, **kw)
+
+    monkeypatch.setattr(q, "_DRIVE_MOUNT_PREFIX", str(tmp_path) + os.sep)
+    monkeypatch.setattr(q.subprocess, "run", run)
+    slept = []
+    monkeypatch.setattr(q.time, "sleep", lambda s: slept.append(s))
+    state, note = q._drive_matches_mount(ck, wait_s=600, poll_s=15)
+    assert state == "ok" and "drive md5 ok" in note and "3 polls" in note, note
+    assert slept == [15, 15], slept
+    out = capsys.readouterr().out
+    assert "waiting up to 600s" in out, out
+    assert out.count("drive md5 poll") == 2, out
+    assert "poll 1: drive aaaaaaaa vs mount" in out and "poll 2: drive bbbbbbbb" in out
 
 
 def test_no_sa_remote_is_unavailable_not_ok(tmp_path, monkeypatch):

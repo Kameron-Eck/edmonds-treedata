@@ -7,6 +7,7 @@ from phase4seg.common import (
     _copy_to_drive, _local_artifact_path, tile_dir_for,
 )
 from phase4seg import scratchcache
+from phase4seg import names as _names
 from phase4seg.tiling import _origins_from_manifest
 
 import datetime as _dt
@@ -1220,6 +1221,55 @@ def _threshold_independent_metrics(all_prob, all_gt, f1_at_default):
         return {}
 
 
+def _write_per_run_eval(new, label):
+    """Write THIS run's eval rows to their own write-once file → its path.
+
+    THE CLOBBER (2026-09-09; experiments/backbone_sweep.yaml
+    extra.cross_vm_eval_report_clobber). semantic_eval_report.csv is one shared lake
+    file that every evaluate step read-modify-writes through rclone's async upload
+    cache. Two runtimes evaluating the same year minutes apart each read a copy that
+    lacks the other's rows, and the last upload wins: bb18_2006s_base's rows vanished
+    from BOTH the live report and the superseded archive at 05:44Z while
+    bb50_2006s_base's survived, and bb18's VERIFY:evaluate read MISSING against a
+    stale view. The shared file cannot be made safe without a lock this mount does
+    not offer, so this run's rows go FIRST to a file nothing else ever touches:
+
+        phase4/eval/runs/semantic_eval_<run_id>.csv
+
+    same columns, site + OVERALL rows, written ONCE — a run_id is one process, and a
+    second write under it would be a different run wearing its name, so an existing
+    file is left as written. queue_verify.py::_verify_eval_rows accepts it as
+    VERIFY:evaluate evidence when the shared report lacks this run's row, and
+    qc/instruments/eval_rows_from_logs.py --compare counts it. The shared report is
+    then written exactly as before: every reader of it is unchanged and it stays the
+    deployed-threshold source (postproc._operating_threshold). Path rule and glob:
+    phase4seg.names (EVAL_RUNS_DIRNAME, eval_run_name, eval_run_files).
+    """
+    run_id = config.RUN_ID
+    if not run_id:
+        # driven directly, no manifest (config.RUN_ID's own comment): still one file
+        # per process, and still carrying the `_<tag>_` the verifier's name filter
+        # keys on.
+        _utc = _dt.datetime.now(_dt.timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+        run_id = f"unrecorded_{_utc}_{label}_{config.RUN_TAG or 'untagged'}_evaluate"
+    out = EVAL_DIR / _names.EVAL_RUNS_DIRNAME / _names.eval_run_name(run_id)
+    if out.exists():
+        print(f"  (per-run eval file already exists — left as written: {out.name})")
+        return out
+    out.parent.mkdir(parents=True, exist_ok=True)
+    local = _local_artifact_path(out)
+    new.to_csv(local, index=False)
+    if local != out:
+        _copy_to_drive(local, out)
+        try:
+            local.unlink()
+        except OSError:
+            pass
+    print(f"  ✓ Per-run eval rows written → {out.parent.name}/{out.name}  "
+          f"({len(new)} rows; the shared report is written next)")
+    return out
+
+
 def step_evaluate(label, dry_run=False):
     _ensure_torch()
     entry = entry_for(label)
@@ -1435,6 +1485,12 @@ def step_evaluate(label, dry_run=False):
     # encoders on one year/channel supersede into the archive like any two tags.
     new["encoder"] = str(config.ENCODER)
     new["warm_start"] = str(ck.get("warm_start", "") or "")
+
+    # THIS RUN'S OWN FILE FIRST (2026-09-09): the shared report below can lose
+    # these rows to a peer runtime's upload; the per-run file cannot. Written
+    # before the report is even read, so a crash or clobber anywhere after this
+    # line still leaves the metrics on the lake under this run_id.
+    _write_per_run_eval(new, label)
 
     # Append/replace this (year, channels) arm's rows in the cumulative report.
     # Pre-channels rows were RGB-only — treat missing as "rgb" so a re-run still

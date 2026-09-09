@@ -188,6 +188,41 @@ def test_compare_lists_run_ids_absent_from_the_eval_report(tmp_path):
     assert not rep.read_text(encoding="utf-8").count("bb18")   # report never modified
 
 
+def test_a_per_run_file_turns_a_clobber_candidate_into_on_record(tmp_path):
+    """core.py::_write_per_run_eval (2026-09-09) writes every evaluate's rows to
+    phase4/eval/runs/semantic_eval_<run_id>.csv before the shared report. A log whose
+    run_id has such a file is on record in full — `per_run_file`, not a clobber."""
+    from phase4seg.names import EVAL_RUNS_DIRNAME, eval_run_name
+    logs = _logs(tmp_path)
+    rep = tmp_path / "semantic_eval_report.csv"
+    with rep.open("w", encoding="utf-8", newline="") as fh:
+        w = csv.DictWriter(fh, fieldnames=REPORT_COLS)
+        w.writeheader()
+        w.writerow({"year": "2021s", "scope": "OVERALL", "site": "ALL", "iou": "0.7544",
+                    "run_tag": "noise_r5",
+                    "run_id": "20260827T014454Z_2021s_noise_r5_evaluate"})
+    runs = tmp_path / EVAL_RUNS_DIRNAME
+    runs.mkdir()
+    bb18 = "20260909T054202Z_2006s_bb18_2006s_base_evaluate"
+    with (runs / eval_run_name(bb18)).open("w", encoding="utf-8", newline="") as fh:
+        w = csv.DictWriter(fh, fieldnames=REPORT_COLS)
+        w.writeheader()
+        w.writerow({"year": "2006s", "scope": "OVERALL", "site": "ALL", "iou": "0.2939",
+                    "run_tag": "bb18_2006s_base", "run_id": bb18})
+    # a file named for a run whose rows carry no run_id column: the NAME is the id
+    (runs / eval_run_name("20260901T210930Z_2011s_hy_e3_2011s_evaluate")).write_text(
+        "year,scope,iou\n2011s,OVERALL,\n", encoding="utf-8")
+    out = tmp_path / "out"
+    assert m.main(["--logs-dir", str(logs), "--out-dir", str(out), "--compare",
+                   "--eval-report", str(rep)]) == 0        # default runs dir: <rep dir>/runs
+    by_id = {g["run_id"]: g for g in _read(out / "eval_report_gaps.csv")}
+    assert by_id[bb18]["verdict"] == "per_run_file"
+    assert by_id["20260901T210930Z_2011s_hy_e3_2011s_evaluate"]["verdict"] == "per_run_file"
+    # and WITHOUT the per-run files, the same logs are clobber candidates again
+    gaps, _ = m.compare(m.harvest(logs), rep, runs_dir=tmp_path / "no_such_dir")
+    assert {g["verdict"] for g in gaps} == {"clobber_candidate"}
+
+
 def test_pre_run_id_era_gaps_are_not_called_clobbers(tmp_path):
     """The report only started carrying run_id on 2026-08-31; a log from before the
     earliest recorded run_id cannot be joined and must not be reported as lost."""

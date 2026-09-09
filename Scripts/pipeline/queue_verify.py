@@ -23,6 +23,9 @@ from pathlib import Path
 # at the moment someone edits one side. queue_ledger imports only phase4seg.names,
 # so this adds no cycle and no engine dependency.
 from queue_ledger import _q, clear_phase_marker, publish_phase_marker
+# The per-run eval file rule (2026-09-09) — one home, three readers; this is the
+# same module queue_ledger already depends on, so no new dependency class.
+from phase4seg.names import EVAL_RUNS_DIRNAME, eval_run_files
 
 # from-imported, unlike everything else here, and deliberately: these two read NO
 # queue global — they resolve their path from phase4seg.names and their pid from the
@@ -176,8 +179,23 @@ def _drive_matches_mount(path, wait_s=600, poll_s=15):
         want = _md5_of(path)                     # as THIS VM sees it, cache and all
     except OSError as e:
         return "unavailable", f"drive check n/a (local md5 failed: {type(e).__name__})"
+    # WHERE VERIFY:train's MINUTES GO (measured 2026-09-09, the r50 sweep ledger):
+    # every slow row reads `drive md5 ok (111s|201s|276s|423s)` and every fast one
+    # `(2s|3s)` — the time is THIS loop, waiting for rclone's async upload of a
+    # 295 MB checkpoint to drain so the server-side md5 can match. It was always
+    # bounded (wait_s, plus <=120 s per rclone call) but it was SILENT: seven
+    # minutes with no line, on a step whose docstring says it "costs nothing in the
+    # normal case". Now the bound is announced up front and every poll prints what
+    # it saw, so a stalled upload is distinguishable from a hung check while it is
+    # happening, and the note carries the poll count. The bound and the poll cadence
+    # are unchanged — shortening them would only turn a slow pass into a false
+    # mismatch.
+    print(f"    drive md5 check: waiting up to {int(wait_s)}s (poll every "
+          f"{int(poll_s)}s, each rclone call capped at 120s) for Drive to hold "
+          f"{want[:8]} at {rel}", flush=True)
     t0 = time.time()
     got = None
+    polls = 0
     while True:
         try:
             r = subprocess.run(["rclone", "md5sum", f"{q._SA_REMOTE}:{rel}"],
@@ -186,13 +204,18 @@ def _drive_matches_mount(path, wait_s=600, poll_s=15):
             got = tok[0].lower() if r.returncode == 0 and tok and len(tok[0]) == 32 else None
         except Exception:                                       # noqa: BLE001
             got = None
+        polls += 1
+        elapsed = int(time.time() - t0)
         if got == want:
-            return "ok", f"drive md5 ok ({int(time.time() - t0)}s)"
+            return "ok", f"drive md5 ok ({elapsed}s, {polls} poll{'s' if polls != 1 else ''})"
         if time.time() - t0 >= wait_s:
             return "mismatch", (
                 f"DRIVE HOLDS DIFFERENT BYTES: mount md5 {want[:8]}, drive "
-                f"{(got or 'absent')[:8]} after {int(time.time() - t0)}s — this VM is "
-                f"reading a file the lake does not have")
+                f"{(got or 'absent')[:8]} after {elapsed}s and {polls} polls — this "
+                f"VM is reading a file the lake does not have")
+        print(f"    drive md5 poll {polls}: drive {(got or 'absent')[:8]} vs mount "
+              f"{want[:8]}, {elapsed}s of {int(wait_s)}s — next in {int(poll_s)}s",
+              flush=True)
         time.sleep(poll_s)
 
 def _verify_ckpt_identity(ck, year, tag, mb, step_start):
@@ -274,7 +297,72 @@ def _verify_ckpt_identity(ck, year, tag, mb, step_start):
                               " comparison are not available on a re-verify")
     return "OK", ", ".join(parts)
 
+def _per_run_eval_evidence(runs_dir, y, tag, step_start):
+    """This run's rows in phase4/eval/runs/ → a detail string, or None if there are none.
+
+    THE CLOBBER (2026-09-09). bb18_2006s_base evaluated at ~05:44Z on one A100
+    while bb50_2006s_base's report upload from 05:43Z was still landing from the
+    other; the report bb18 read back lacked its own rows, VERIFY:evaluate said
+    MISSING, and the rows were in neither the live file nor the superseded archive.
+    core.py::_write_per_run_eval now writes every evaluate's rows to a file only
+    that run touches, BEFORE the shared report; this looks for that file when the
+    report cannot answer. Same tests as the report path: rows for this year under
+    THIS tag, written since this step started (a per-run file from a previous run
+    of the same tag is not this step's evidence). The filename filter is exact for
+    the tag (names.eval_run_files) so unrelated arms cost no FUSE read.
+    """
+    q = _q()
+    if not tag:
+        return None
+    import pandas as pd
+    best = None
+    for f in eval_run_files(runs_dir, tag):
+        try:
+            df = pd.read_csv(f)
+        except Exception:                                       # noqa: BLE001
+            continue
+        if not {"year", "run_tag", "written_utc"} <= set(df.columns):
+            continue
+        mine = df[(df["year"].astype(str) == str(y)) &
+                  (df["run_tag"].astype(str) == str(tag))]
+        if not len(mine):
+            continue
+        written = [_parse_utc(w) for w in mine["written_utc"]]
+        newest = max([w for w in written if w is not None], default=None)
+        if newest is None:
+            continue
+        if step_start and newest < step_start - 5:
+            continue                       # a previous run's file, not this step's
+        if best is None or newest > best[0]:
+            best = (newest, f, len(mine))
+    if best is None:
+        return None
+    newest, f, n = best
+    when = _dt.datetime.fromtimestamp(newest).strftime("%H:%M:%S")
+    return (f"{n} rows for {y}/{tag} in {f.parent.name}/{f.name}, written {when} — "
+            f"the shared report lacks them (cross-VM clobber class, 2026-09-09); "
+            f"the per-run file is the record")
+
 def _verify_eval_rows(rep, y, tag, step_start):
+    """Did THIS run's evaluate step write its rows? → (state, detail).
+
+    Two homes, asked in order. The shared report first (_report_eval_verdict, the
+    D6 check below, unchanged). When that says MISSING or STALE_EVAL — the report
+    lacks THIS run's row — the per-run file phase4/eval/runs/semantic_eval_<run_id>.csv
+    is asked (_per_run_eval_evidence), and a fresh one under this tag is OK with a
+    detail that NAMES the file, so the ledger says which home the pass stands on.
+    Both absent is still MISSING: the per-run file widens the evidence, never the
+    verdict.
+    """
+    q = _q()
+    state, detail = _report_eval_verdict(rep, y, tag, step_start)
+    if state in ("MISSING", "STALE_EVAL"):
+        alt = _per_run_eval_evidence(rep.parent / EVAL_RUNS_DIRNAME, y, tag, step_start)
+        if alt is not None:
+            return "OK", alt
+    return state, detail
+
+def _report_eval_verdict(rep, y, tag, step_start):
     """Did THIS run's evaluate step write rows to the shared report? → (state, detail).
 
     D6 (2026-08-29). The old check was `(df["year"] == y).any()` against
@@ -506,7 +594,22 @@ def _recheck_skipped_verify(job, rows, prior):
     out = q.MASKS / f"edmonds_canopy_prob_{job['year']}_{job['tag']}.tif"
     p_state, p_detail, p_ts = prior if prior else ("", "", "")
     try:
-        if not out.exists():
+        if "steps" in job and "inference" not in job["steps"]:
+            # THE FALSE MISSING (2026-09-09, bb50b relaunch). verify() has had the
+            # steps-subset branch since 2026-09-02: a job whose steps never reach
+            # inference makes no prob raster, and its job-level VERIFY OK says so
+            # in its own detail. This recheck did not mirror it — it went straight
+            # to the raster stat, found nothing (correctly: nothing was ever
+            # written), and recorded MISSING, a HARD-FAIL state, for five arms
+            # that had finished cleanly hours earlier (the r50 relaunch ledger,
+            # 12:09Z). Same rule as verify(): the per-step verifies ARE the
+            # record; OK_CACHED because this launch re-read nothing, and the
+            # prior verdict is quoted so the row still says what it stands on.
+            state = "OK_CACHED"
+            detail = (f"steps subset {job['steps']} — per-step verifies are the "
+                      f"record; no prob raster expected (recorded {p_state or '?'} "
+                      f"at {p_ts or '?'})")
+        elif not out.exists():
             state, detail = "MISSING", (f"recorded {p_state} at {p_ts} but the raster "
                                         f"is GONE now: {out.name}")
         else:

@@ -458,3 +458,110 @@ def test_aside_and_part_suffixes_sort_after_the_extension():
         part = p.with_name(p.name + ".part.999abc")
         for staged in (aside, part):
             assert not staged.name.endswith(p.suffix), staged.name
+
+
+# ── an EIO on a STAT is not a verdict about the checkpoint (2026-09-09) ──────
+# bb50_2011s_cor05 died at epoch A17 inside _publish_replace's very first line,
+# `dest.exists()`, with `OSError: [Errno 5] Input/output error`
+# (phase4/logs/phase4_semantic_finetune_train_2011s_2026-09-09T09-03.log). The copy
+# had succeeded and the checkpoint was on local NVMe; one metadata call the mount
+# answered with EIO ended the train step. The probes now retry EIO/ENOTCONN,
+# bounded — and NOTHING ELSE, which the third test is there to prove.
+
+def _flaky_exists(monkeypatch, name, exc, times):
+    """Path.exists raises `exc` the first `times` calls for `name`, then answers
+    honestly. Returns the call log (one entry per probe of `name`)."""
+    real = Path.exists
+    calls = []
+
+    def _probe(self):
+        if self.name == name:
+            calls.append(len(calls))
+            if len(calls) <= times:
+                raise exc
+        return real(self)
+
+    monkeypatch.setattr(Path, "exists", _probe)
+    return calls
+
+
+def _no_sleep(monkeypatch):
+    slept = []
+    monkeypatch.setattr(common.time, "sleep", lambda s: slept.append(s))
+    return slept
+
+
+def test_an_eio_on_the_publish_probe_is_retried_and_the_publish_completes(
+        tmp_path, monkeypatch, capsys):
+    """THE 2011s_cor05 SHAPE: exists() raises EIO twice, then answers. The publish
+    must complete, and each retry must be logged so the mount hiccup is visible in
+    the step log rather than silently absorbed."""
+    part, dst = _seed_publish(tmp_path)
+    calls = _flaky_exists(monkeypatch, dst.name, _eio(), times=2)
+    slept = _no_sleep(monkeypatch)
+    common._publish_replace(part, dst)
+    assert dst.read_bytes() == b"new", "the publish did not land"
+    assert not list(dst.parent.glob("*.prev.*")) and not part.exists()
+    assert len(calls) >= 3, f"the probe was not retried: {calls}"
+    assert slept == [2, 4], f"backoff 2 s then 4 s expected, slept {slept}"
+    out = capsys.readouterr().out
+    assert out.count("retrying in") == 2, out
+
+
+def test_a_mount_that_keeps_raising_eio_still_kills_the_step(tmp_path, monkeypatch):
+    """Bounded: six EIOs in a row exceed the five tries, and the ORIGINAL OSError
+    propagates (errno 5 intact, so known_failures.yaml's 'Errno 5' match still
+    fires). A mount refusing for a minute is dead; hanging would be worse."""
+    part, dst = _seed_publish(tmp_path)
+    calls = _flaky_exists(monkeypatch, dst.name, _eio(), times=6)
+    slept = _no_sleep(monkeypatch)
+    with pytest.raises(OSError) as ei:
+        common._publish_replace(part, dst)
+    assert ei.value.errno == 5
+    assert len(calls) == 5, f"expected exactly 5 tries, saw {len(calls)}"
+    assert slept == [2, 4, 8, 16], slept
+    assert dst.read_bytes() == b"old", "the previous checkpoint was touched"
+
+
+def test_only_eio_and_enotconn_are_retried(tmp_path, monkeypatch):
+    """THE GATE ON THE MASK. A PermissionError (errno 13) is a real answer about the
+    path, not a mount hiccup: it must propagate on the FIRST probe, with no sleep.
+    Widening the retry to every OSError would hide exactly the failures this
+    module exists to surface."""
+    import errno as _errno
+    part, dst = _seed_publish(tmp_path)
+    calls = _flaky_exists(monkeypatch, dst.name,
+                          PermissionError(_errno.EACCES, "denied"), times=1)
+    slept = _no_sleep(monkeypatch)
+    with pytest.raises(PermissionError):
+        common._publish_replace(part, dst)
+    assert len(calls) == 1 and slept == [], (calls, slept)
+    # ...and ENOTCONN (transport endpoint not connected — a dropped FUSE mount) IS
+    # in the retried set, on the same bounded terms as EIO.
+    part2, dst2 = _seed_publish(tmp_path / "b")
+    calls2 = _flaky_exists(monkeypatch, dst2.name,
+                           OSError(_errno.ENOTCONN, "not connected"), times=1)
+    common._publish_replace(part2, dst2)
+    assert dst2.read_bytes() == b"new" and len(calls2) >= 2
+
+
+def test_copy_to_drive_survives_an_eio_on_the_part_stat(tmp_path, monkeypatch):
+    """The other probe on the publish path: `part.stat()` right after the copy. One
+    EIO there used to fall through _copy_to_drive's retry loop as an unhandled
+    exception (the loop catches the COPY's OSError, not the stat's)."""
+    import errno as _errno
+    src = _write(tmp_path / "local" / "sem_best_2009_x.pt", b"payload")
+    dst = tmp_path / "drive" / "sem_best_2009_x.pt"
+    real_stat = Path.stat
+    n = {"raised": 0}
+
+    def _stat(self, *a, **k):
+        if ".part." in self.name and n["raised"] < 1:
+            n["raised"] += 1
+            raise OSError(_errno.EIO, "input/output error")
+        return real_stat(self, *a, **k)
+
+    monkeypatch.setattr(Path, "stat", _stat)
+    slept = _no_sleep(monkeypatch)
+    common._copy_to_drive(src, dst)
+    assert dst.read_bytes() == b"payload" and n["raised"] == 1 and slept == [2]

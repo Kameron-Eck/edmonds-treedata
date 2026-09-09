@@ -961,3 +961,26 @@ next:    the system work above (next session); on resumption: regenerate the que
          spectrum / fill-audit for the experiment's verdict; Kam: reader session on
          the 300+300, the two registered decisions (augmentation seeding, selection
          metric).
+
+## 2026-09-08  logging-blocks-fixed
+goal:    Kam, after scrapping the redesign: "precise fixes to ensure our logging works
+         appropriately ... targeted fixes that we have identified as blocks today."
+did:     FOUND THE STALL: healC's nohup log (mirrored late) shows heal_2020 VERIFY:postproc
+         OK at 19:28Z then silence; the job-level verify() re-opened the 4.1 GB prob
+         raster through FUSE with no announcement and no bound (the 2018s_fx class).
+         verify() now reuses this launch's VERIFY:inference verdict on a size match
+         (postproc never touches the prob raster) and announces the slow path before any
+         read. queue_ledger._status_write: shared-ledger fallback REMOVED (refuses out
+         loud when STATUS_OUT is unset — the erasure mechanism itself). landed.py: an
+         unmounted lake FAILS unless --no-lake is passed on purpose. heal_stack_build
+         progress lines flush. qc/test_queue_logging_fixes.py pins all four, each fired
+         on the input that slipped. Full ladder green (59f6e8f).
+decided: Kam: the repo redesign is SCRAPPED ("I got carried away ... we have a decent
+         system going"); overhaul branch deleted; system-work rows in WORKPLAN are
+         optional hardening, not a mandate. Appending CSVs on Drive is fine as a
+         convention for small laptop-side tables; it closes only the erasure class.
+files:   pipeline/phase4_train_queue.py, pipeline/queue_ledger.py, qc/landed.py,
+         qc/instruments/heal_stack_build.py, qc/test_queue_logging_fixes.py,
+         qc/test_status_discovery.py.
+next:    nothing queued; healer stays tabled; the reused-verdict path validates itself
+         on the next campaign launch (watch for "reusing VERIFY:inference" in the log).

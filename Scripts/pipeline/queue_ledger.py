@@ -727,7 +727,18 @@ def _status_write(rows):
     tmp = None
     try:
         q.QC_DIR.mkdir(parents=True, exist_ok=True)
-        out = q.STATUS_OUT if q.STATUS_OUT is not None else q.STATUS
+        # NO FALLBACK TO THE SHARED LEDGER. The `else q.STATUS` branch that used to
+        # sit here is the erased-ledger mechanism itself (2026-09-01..07): a flush
+        # with no per-launch file set replaced the whole shared table with one
+        # launch's rows. A launch without STATUS_OUT is a launch mis-wired, and the
+        # honest response is to refuse loudly and keep the rows in memory — they are
+        # re-flushed on the next step once main() has set STATUS_OUT — never to
+        # write over everyone else's history (fixed 2026-09-08, Kam's targeted list).
+        if q.STATUS_OUT is None:
+            print("  ! WARN status not written: STATUS_OUT is unset — refusing the "
+                  "shared ledger (the 2026-09 erasure path); rows kept in memory")
+            return
+        out = q.STATUS_OUT
         cols = ["job", "year", "tag", "step", "state", "exit", "minutes",
                 "detail", "ts", "host", "session"]
         tmp = out.with_name(out.name + f".part.{os.getpid()}{secrets.token_hex(3)}")

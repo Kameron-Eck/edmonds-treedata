@@ -615,6 +615,38 @@ def _load_queue(path):
     return jobs
 
 
+def _prior_inference_verdict(job, rows, out, tol=0.01):
+    """The VERIFY:inference verdict this launch already recorded for `job`, if the
+    prob raster's size still matches it — (state, detail) — else None.
+
+    Reuse is allowed only when: the row is THIS job's, its state is not a hard
+    failure, its detail opens with the "{mb}MB " anchor queue_verify writes, and
+    the file's current size is within `tol` of that figure. The returned detail
+    keeps the anchor (harvesters parse it) and says it was reused, so a reader can
+    never mistake a stat for a read.
+    """
+    import re as _re
+    prior = None
+    for r in rows:
+        if r.get("job") == job["id"] and r.get("step") == "VERIFY:inference":
+            prior = r                      # the last one wins (a retry supersedes)
+    if prior is None or prior.get("state") in _VERIFY_HARD_FAIL:
+        return None
+    m = _re.match(r"^(\d+)MB ", str(prior.get("detail", "")))
+    if not m:
+        return None
+    try:
+        mb_now = out.stat().st_size / 1e6
+    except OSError:
+        return None
+    mb_then = float(m.group(1))
+    if mb_then <= 0 or abs(mb_now - mb_then) / mb_then > tol:
+        return None
+    return (prior["state"],
+            f"{mb_now:.0f}MB reused-from-inference (stat only, no re-read): "
+            f"{prior.get('detail', '')}"[:200])
+
+
 def verify(job, rows):
     """Job-end raster check (the historical VERIFY row scoring flows expect).
     Never raises — this is unattended. False on a hard failure.
@@ -667,8 +699,29 @@ def verify(job, rows):
                    state="", exit="", minutes="", detail="", **_ident(),
                    ts=_dt.datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
         try:
-            state, detail = _check_prob_raster(out)
-            rec.update(state=state, detail=detail)
+            # THE 2026-09-08 STALL. healC finished heal_2020's postproc at 19:28Z,
+            # printed "VERIFY:postproc OK", then went silent for 30+ minutes and
+            # never started heal_2022: this check re-opened the 4.1 GB prob raster
+            # through the FUSE mount with no line announcing it and no bound on the
+            # read (the same uninterruptible-sleep class as 2018s_fx, 2026-08-27).
+            # Postproc does not change the prob raster, and VERIFY:inference already
+            # read it in THIS launch — so when that verdict exists and the file's
+            # size still matches it, record the verdict again on a stat and skip the
+            # read. Either way, say what is about to happen before it happens.
+            prior = _prior_inference_verdict(job, rows, out)
+            if prior is not None:
+                rec.update(state=prior[0], detail=prior[1])
+                print(f"  VERIFY {job['id']}: reusing VERIFY:inference on a size match "
+                      f"— no re-read of {out.name}", flush=True)
+            else:
+                try:
+                    _mb = out.stat().st_size / 1e6
+                except OSError:
+                    _mb = float("nan")
+                print(f"  VERIFY {job['id']}: reading {out.name} ({_mb:.0f} MB) through "
+                      f"the mount — this is the slow path", flush=True)
+                state, detail = _check_prob_raster(out)
+                rec.update(state=state, detail=detail)
         except Exception as e:                                  # noqa: BLE001
             rec.update(state="UNCHECKED", detail=f"{type(e).__name__}: {e}"[:200])
         rec["minutes"] = round((_dt.datetime.now() - t0).total_seconds() / 60, 1)

@@ -266,6 +266,7 @@ _DISCOVERY_EXEMPT = {
     "conftest.py":         "names the lake paths a test must never write; reads none",
     "test_status_discovery.py": "this file",
     "test_queue_verify.py":     "constructs fixtures under tmp_path",
+    "test_queue_logging_fixes.py": "constructs fixtures under tmp_path; reads none",
     "test_verified_write.py":   "constructs fixtures under tmp_path",
     # REASON REWRITTEN 2026-08-31. The previous one was FALSE: it said _newest "cannot
     # pick up a file renamed aside because the rename breaks the _{stem}_ match it

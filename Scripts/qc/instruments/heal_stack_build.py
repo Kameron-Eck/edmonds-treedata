@@ -153,7 +153,13 @@ def grid_from_stack(path):
     return Affine(*[float(v) for v in d["transform"][:6]]), w, h, inside
 
 
-def build(epochs, masks_dir=MASKS, grid=None, log=print):
+def _log_flush(msg):
+    # Redirected to a file, plain print buffers until exit: a 40-minute build looked
+    # dead for its whole duration on 2026-09-08. Flush every progress line.
+    print(msg, flush=True)
+
+
+def build(epochs, masks_dir=MASKS, grid=None, log=_log_flush):
     """Warp every epoch onto the lattice. Returns the dict `write` saves.
 
     `grid` is (tf, w, h, inside); None means `trend8_transition_census.py::city_grid`.

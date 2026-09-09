@@ -52,6 +52,9 @@ def run(name, cmd, dry):
 def main():
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--dry-run", action="store_true")
+    ap.add_argument("--no-lake", action="store_true",
+                    help="run without the lake ON PURPOSE: harvests skipped and said so; "
+                         "without this flag an unmounted lake is a failed rung")
     a = ap.parse_args()
     py = sys.executable
     fails = 0
@@ -102,9 +105,16 @@ def main():
                               "instruments/harvest_qc_indep.py")):
             fails += run(f"harvest: {name}",
                          [py, str(SCRIPTS / "qc" / script)], a.dry_run) != 0
-    else:
-        print("\n── STATUS regen skipped — lake not mounted")
+    elif a.no_lake:
+        print("\n── STATUS regen skipped — --no-lake (harvested tables NOT refreshed)")
         print("── harvests skipped — they read the lake; tracked views still regenerate")
+    else:
+        # A green landed run with every harvest silently skipped is how a tracked
+        # table describes last week's lake. Skipping is allowed only when said on
+        # purpose (2026-09-08, Kam's targeted list).
+        print("\n── FAIL: lake not mounted and --no-lake not given — the eight harvests "
+              "did not run, so the tracked context tables are NOT refreshed")
+        fails += 1
 
     # Derived from TRACKED homes only, so these regenerate with or without the lake —
     # and their freshness gates fail the suite if they are not run.

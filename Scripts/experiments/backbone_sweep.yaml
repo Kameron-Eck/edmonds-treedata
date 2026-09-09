@@ -52,6 +52,17 @@ arms:
   - {year: "2016", tag: bb50_2016_in05, extra: [--encoder, resnet50, --hs-source, chm2005, --sample-manifest, /content/drive/MyDrive/treedata/phase4/qc/sample_tiles_2016.csv]}
   - {year: 2019n, tag: bb50_2019n_base, extra: [--encoder, resnet50, --no-hillshade, --sample-manifest, /content/drive/MyDrive/treedata/phase4/qc/sample_tiles_2019n.csv]}
   - {year: "2020", tag: bb50_2020_base, extra: [--encoder, resnet50, --no-hillshade, --sample-manifest, /content/drive/MyDrive/treedata/phase4/qc/sample_tiles_2020.csv]}
+  # PHASE 2 (2026-09-09, Kam: "fewer arms, two GPUs"): the WARM-STARTED resnet50
+  # re-run — seven of the nine, each its bb50_ twin's flags plus --ckpt (the
+  # encoder_bases base50 checkpoint, spliced before the trailing --sample-manifest).
+  # Tags wb50_<treatment-tag>; the bb50_ rows above stay as the ImageNet-start record.
+  - {year: 2011s, tag: wb50_2011s_base, extra: [--encoder, resnet50, --no-hillshade, --ckpt, /content/drive/MyDrive/treedata/phase4/models/sem_best_2020_base50.pt, --sample-manifest, /content/drive/MyDrive/treedata/phase4/qc/sample_tiles_2011s.csv]}
+  - {year: 2011s, tag: wb50_2011s_base_s2, extra: [--encoder, resnet50, --no-hillshade, --seed, '43', --ckpt, /content/drive/MyDrive/treedata/phase4/models/sem_best_2020_base50.pt, --sample-manifest, /content/drive/MyDrive/treedata/phase4/qc/sample_tiles_2011s.csv]}
+  - {year: 2011s, tag: wb50_2011s_base_s3, extra: [--encoder, resnet50, --no-hillshade, --seed, '44', --ckpt, /content/drive/MyDrive/treedata/phase4/models/sem_best_2020_base50.pt, --sample-manifest, /content/drive/MyDrive/treedata/phase4/qc/sample_tiles_2011s.csv]}
+  - {year: 2011s, tag: wb50_2011s_cor05, extra: [--encoder, resnet50, --no-hillshade, --add-canopy-mask, /content/drive/MyDrive/treedata/phase4/labels_corrected/add_corrupt5_2011s.tif, --ckpt, /content/drive/MyDrive/treedata/phase4/models/sem_best_2020_base50.pt, --sample-manifest, /content/drive/MyDrive/treedata/phase4/qc/sample_tiles_2011s.csv]}
+  - {year: "2016", tag: wb50_2016_base, extra: [--encoder, resnet50, --no-hillshade, --ckpt, /content/drive/MyDrive/treedata/phase4/models/sem_best_2020_base50.pt, --sample-manifest, /content/drive/MyDrive/treedata/phase4/qc/sample_tiles_2016.csv]}
+  - {year: "2016", tag: wb50_2016_in05, extra: [--encoder, resnet50, --hs-source, chm2005, --ckpt, /content/drive/MyDrive/treedata/phase4/models/sem_best_2020_base50.pt, --sample-manifest, /content/drive/MyDrive/treedata/phase4/qc/sample_tiles_2016.csv]}
+  - {year: "2020", tag: wb50_2020_base, extra: [--encoder, resnet50, --no-hillshade, --ckpt, /content/drive/MyDrive/treedata/phase4/models/sem_best_2020_base50.pt, --sample-manifest, /content/drive/MyDrive/treedata/phase4/qc/sample_tiles_2020.csv]}
 
 # --force-citywide: polygons/ was overwritten with accept-all test data (CLAUDE.md §4);
 # every Tier-1 arm carried it and queue_verify refuses a fine-tier job without a label
@@ -104,6 +115,12 @@ decision_rule: >
   full labels->tile->train->evaluate cycle lands under --encoder before the nine arms
   spend; the canary's numbers are plumbing evidence only and are never scored.
   GPU: the 2-concurrent-A100 cap; one queue file per A100.
+  PHASE 2 (added 2026-09-09, before any wb50 arm ran): the warm-started wb50_ arms are
+  the read that counts for (a), (b) and (c) — they start from the encoder_bases base50
+  checkpoint, so (a) is an encoder comparison without the warm-start confound stated
+  in the hypothesis. The bb50_ rows remain the ImageNet-start record. Phase-2 launch
+  files carry NO canary: --encoder and the labels->tile->train->evaluate cycle were
+  proven by phase 1, and the --ckpt load path is the engine's ordinary p3_ckpt route.
 
 verdict: null
 decided: null
@@ -167,5 +184,29 @@ extra:
     (4a04d62); the same split is available here by generating a CPU launch file with
     steps [labels, tile] and launching the GPU files after VERIFY:tile is OK.
   canary_tags: [canary_bb18_2006s_base, canary_bb50_2006s_base]
+  phase2_warm_started: >
+    ADDED 2026-09-09 (Kam: "Yes to the fewer arms and use TWO gpus"). Seven wb50_ arms
+    (three 2011s seeds = floor, 2011s cor05 = null pair, 2016 base + in05 = positive
+    pair, 2020 base = absolute gap) re-run the bb50_ recipe warm-started from
+    phase4/models/sem_best_2020_base50.pt (experiments/encoder_bases.yaml verdict:
+    resnet50, ImageNet start, Phase-3 crown tiles; its numbers live THERE). The 2006s and
+    2019n arms are dropped from phase 2 — none of (a)(b)(c) needs them. STAMP CAVEAT:
+    ckpt.warm_start_kind returns "p3_ckpt" for ANY explicit --ckpt, so these rows read
+    warm_start=p3_ckpt like a resnet101 arm; the base50 start is visible only in the
+    manifest argv (phase4/qc/run_passport.csv). LOAD PATH, verified locally 2026-09-09
+    against the lake copy of the checkpoint: cli.warm_start_kind(--ckpt) -> p3_ckpt;
+    core.step_train resolve_p3_ckpt(override) returns the path (SystemExit if missing);
+    load_state_into -> _assert_state_fits: 380/380 keys, 0 missing / 0 unexpected into
+    a 3-band resnet50 U-Net, and _inflate_first_conv zero-pads conv1 3->4 for the in05
+    arm (0/0 again). preflight PASSES the full arm command line, but --check is
+    parse-only (cli.py returns before resolve_p3_ckpt), so the path itself is proven by
+    the local load, not by preflight. COST: every wb50 tag re-tiles (tile_dir_for keys
+    on the tag; the bb50 tiles are byte-identical but under another name) — the same
+    labels+tile minutes as phase 1 per arm. Launch files: pipeline/queue_wb50_a.yaml
+    (2011s base, s2, s3, cor05) and queue_wb50_b.yaml (2016 base, 2016 in05, 2020
+    base), no canary. ResNet-18 phase 2 (wb18_, --ckpt sem_best_2020_base18.pt) runs
+    ONLY if resnet50 passes rank agreement (c).
+  phase2_ckpt: phase4/models/sem_best_2020_base50.pt
+  phase2_tags: [wb50_2011s_base, wb50_2011s_base_s2, wb50_2011s_base_s3, wb50_2011s_cor05, wb50_2016_base, wb50_2016_in05, wb50_2020_base]
   positive_pair: [bbNN_2016_in05, bbNN_2016_base]
   null_pair: [bbNN_2011s_cor05, bbNN_2011s_base]

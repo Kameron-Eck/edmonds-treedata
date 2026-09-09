@@ -257,16 +257,23 @@ def test_dry_run_writes_nothing(tmp_path):
 
 
 # ── the queue files that consume the real set ───────────────────────────────────
-def test_hand_split_encoder_base_queues_match_the_generated_queue():
+def test_hand_split_encoder_base_queues_match_the_generated_queue(tmp_path):
     """pipeline/queue_base50.yaml / queue_base18.yaml are HAND-SPLIT one-job files;
     each job must equal its job in the in-memory regeneration of
-    experiments/encoder_bases.yaml, and the two must cover every arm."""
+    experiments/encoder_bases.yaml, and the two must cover every arm.
+
+    The experiment is COMPLETE (2026-09-09) and experiment_queue.generate refuses a
+    complete experiment by design, so the regeneration runs on a copy with the status
+    flipped to queued — the arms and launch defaults are what the gate compares."""
     spec = importlib.util.spec_from_file_location(
         "experiment_queue", SCRIPTS / "qc" / "experiment_queue.py")
     eq = importlib.util.module_from_spec(spec)
     sys.modules.setdefault("experiment_queue", eq)
     spec.loader.exec_module(eq)
-    text, _ = eq.generate(SCRIPTS / "experiments" / "encoder_bases.yaml")
+    src = (SCRIPTS / "experiments" / "encoder_bases.yaml").read_text(encoding="utf-8")
+    copy = tmp_path / "encoder_bases.yaml"
+    copy.write_text(src.replace("status: complete", "status: queued", 1), encoding="utf-8")
+    text, _ = eq.generate(copy)
     gen = {j["id"]: j for j in yaml.safe_load(text)}
     covered = set()
     for name in ("queue_base50.yaml", "queue_base18.yaml"):

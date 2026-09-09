@@ -1,0 +1,79 @@
+# HAND-SPLIT from experiments/backbone_sweep.yaml — PHASE 2 (warm-started resnet50),
+# one A100 runtime per file. Deliberately NOT carrying the GENERATED header:
+# test_generated_queues_match_their_experiments requires a headered file to equal the
+# full regeneration, which a split file cannot; instead
+# qc/test_backbone_benchmark.py::test_hand_split_queues_are_subsets_of_the_generated_queue
+# checks every job here byte-equals its job in pipeline/queue_backbone_sweep.yaml
+# (regenerate that from the experiment, then re-split; never edit jobs here by hand).
+# Hypothesis, decision rule and baseline live in the experiment file, not here.
+#
+# NO CANARY: --encoder resnet50 and the full labels->tile->train->evaluate cycle were
+# proven by the phase-1 files (queue_backbone_r50.yaml: canary + nine bb50 arms,
+# 2026-09-09). The one new flag, --ckpt <sem_best_2020_base50.pt>, takes the engine's
+# ordinary p3_ckpt route (core.step_train -> resolve_p3_ckpt -> load_state_into ->
+# _assert_state_fits), verified locally against the lake copy of the checkpoint:
+# 380/380 keys, 0 missing / 0 unexpected, conv1 inflated 3->4 for the in05 arm
+# (experiments/backbone_sweep.yaml extra.phase2_warm_started). A missing path STOPS
+# the run (ckpt.resolve_p3_ckpt refuses to fall back), so a wrong path cannot spend.
+#
+# This file: the 2016 positive pair (c) and the 2020 base (a).
+# Launch (COLAB_AUTONOMY_SETUP.md): py -3.12 pipeline/vm_ops.py launch --queue queue_wb50_b.yaml
+# The 2-concurrent-A100 cap: this file and queue_wb50_a.yaml are the two.
+- id: backbone_sweep_wb50_2016_base
+  year: '2016'
+  tag: wb50_2016_base
+  extra:
+  - --force-citywide
+  - --encoder
+  - resnet50
+  - --no-hillshade
+  - --ckpt
+  - /content/drive/MyDrive/treedata/phase4/models/sem_best_2020_base50.pt
+  - --sample-manifest
+  - /content/drive/MyDrive/treedata/phase4/qc/sample_tiles_2016.csv
+  why: arm of experiments/backbone_sweep.yaml — hypothesis and decision rule live
+    THERE, not here.
+  steps:
+  - labels
+  - tile
+  - train
+  - evaluate
+- id: backbone_sweep_wb50_2016_in05
+  year: '2016'
+  tag: wb50_2016_in05
+  extra:
+  - --force-citywide
+  - --encoder
+  - resnet50
+  - --hs-source
+  - chm2005
+  - --ckpt
+  - /content/drive/MyDrive/treedata/phase4/models/sem_best_2020_base50.pt
+  - --sample-manifest
+  - /content/drive/MyDrive/treedata/phase4/qc/sample_tiles_2016.csv
+  why: arm of experiments/backbone_sweep.yaml — hypothesis and decision rule live
+    THERE, not here.
+  steps:
+  - labels
+  - tile
+  - train
+  - evaluate
+- id: backbone_sweep_wb50_2020_base
+  year: '2020'
+  tag: wb50_2020_base
+  extra:
+  - --force-citywide
+  - --encoder
+  - resnet50
+  - --no-hillshade
+  - --ckpt
+  - /content/drive/MyDrive/treedata/phase4/models/sem_best_2020_base50.pt
+  - --sample-manifest
+  - /content/drive/MyDrive/treedata/phase4/qc/sample_tiles_2020.csv
+  why: arm of experiments/backbone_sweep.yaml — hypothesis and decision rule live
+    THERE, not here.
+  steps:
+  - labels
+  - tile
+  - train
+  - evaluate

@@ -401,27 +401,69 @@ session just could not reach the hosts. That is fixed by running the fetch somew
 ordinary network access and committing the retrieved text back here, where any later session
 reads it without egress.
 
-**On a machine with normal internet (home wifi), run:**
+### It runs in an isolated clone, not your working tree
+
+`D:\edmonds-pipeline\treedata` may have a Claude session or a pipeline run active on it, and
+both `README.md` and `Scripts/CLAUDE.md` rule 1b warn that parallel sessions share that tree.
+So the fetch does **all** of its work in a throwaway clone under
+`%LOCALAPPDATA%\edmonds-records-fetch`:
+
+- Every git command is `git -C "<clone>"` or a `git clone` into it. There is no `checkout`,
+  `pull`, `reset`, `add`, `commit` or `push` against your working tree.
+- Nothing runs with your tree as its working directory. The origin URL is hardcoded rather
+  than read from your tree, because even `git remote get-url` would mean running a git command
+  there.
+- The clone is disposable: it is `reset --hard` to origin on each run. Results live on the
+  branch, not in the clone, so deleting it loses nothing.
+
+Your own session picks the results up whenever **it** chooses, with no interruption:
+
+```
+git fetch origin claude/edmonds-lidar-records-hzb7fy
+```
+
+### Running it
 
 ```
 Scripts\qc\fetch_city_records.cmd
 ```
 
-It checks out this branch, pulls, retrieves every source in `Reports/sources/SOURCES.tsv`,
-extracts the text, commits it, and pushes. Safe to re-run — sources already fetched are
-skipped, so a second run only retries failures. To re-attempt just the failures:
+Five steps, in order: create/refresh the isolated clone; **self-test**; fetch over plain HTTP;
+a browser pass for the JavaScript portals; commit and push from the clone. Safe to re-run —
+sources already fetched are skipped, so a second run only retries failures.
+
+The self-test is the part worth insisting on. It exercises the whole pipeline — fetch, save,
+extract, manifest — against two public AWS S3 documents unrelated to the city servers, and
+checks for an expected string in the extracted text. If it passes, the network, the PDF
+extractor and the file writing all work, and **any later failure is about the target server,
+not the tool**. If it fails, the script refuses to contact the city servers at all and tells
+you which of the two things is wrong (no network, or no PDF extractor — `pip install pypdf`).
+
+### Then analyse — in a separate session
+
+Open a **new** Claude Code session *in the isolated clone*, not in your working tree:
 
 ```
-Scripts\qc\fetch_city_records.cmd --retry-failed
+cd /d %LOCALAPPDATA%\edmonds-records-fetch
+claude
 ```
 
-**Then, in a Claude Code session on that machine**, one line is enough to resume the work:
+and give it the prompt below. That session pushes its analysis to the same branch, still
+without touching your tree.
 
-> Read `Reports/LIDAR_ACQUISITION_RECORDS_2026-09-09.md`, then the retrieved documents in
-> `Reports/sources/text/`. Answer the open questions in §8: does RFP 18-26 buy a flight or a
-> desk analysis; does the 2021 interlocal work order list any elevation deliverable or have a
-> 2026 successor; and is the 2026 canopy work grant-funded. Update the report with what the
-> documents actually say.
+> Read `Reports/LIDAR_ACQUISITION_RECORDS_2026-09-09.md` in full, then every file in
+> `Reports/sources/text/` and the provenance in `Reports/sources/MANIFEST.tsv`.
+>
+> Answer the open questions in §8 from what the documents actually say, quoting them: (1) does
+> RFP 18-26 buy a new LiDAR flight or a desk analysis of existing data; (2) does the 2021
+> Edmonds–Snohomish interlocal work order list any elevation, DSM, DTM, contour or point-cloud
+> deliverable alongside the orthogonal imagery, and is there a 2026 successor or amendment;
+> (3) is the 2026 canopy work grant-funded (WA DNR Urban & Community Forestry / IRA subaward).
+>
+> Then update the report: promote any finding the documents confirm, correct anything they
+> contradict, and move what is now verified out of §7's "search-index-level" caveat. Where a
+> source came back FAILED, say so plainly rather than treating it as absent. Commit and push to
+> this branch. Do not touch any other repository or checkout.
 
 ### What lands, and what is deliberately not tracked
 

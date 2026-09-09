@@ -1069,6 +1069,31 @@ def test_a_coarse_year_is_exempt(tmp_path):
     assert len(q._load_queue(qf)) == 1, f"{coarse} is coarse and should be exempt"
 
 
+def test_a_job_that_never_labels_or_tiles_is_exempt(tmp_path):
+    """The polygon path lives in step_labels / step_tile and nowhere else; a job with
+    steps [train, evaluate] consumes a PRE-MATERIALIZED tagged tile directory (the
+    Phase-3 crown tiles under qc/instruments/phase3_tiles_as_tileset.py) and cannot
+    choose a label source. Forcing --force-citywide onto it would stamp a citywide
+    provenance onto a run trained on hand-traced crowns."""
+    qf = _queue_file(tmp_path, [{"id": "j1", "year": "2020", "tag": "base50",
+                                 "extra": ["--encoder", "resnet50", "--no-hillshade"],
+                                 "steps": ["train", "evaluate"]}])
+    jobs = q._load_queue(qf)
+    assert len(jobs) == 1 and jobs[0]["steps"] == ["train", "evaluate"]
+
+
+@pytest.mark.parametrize("steps", [["tile", "train"], ["labels"],
+                                   ["labels", "tile", "train", "evaluate"]])
+def test_the_exemption_needs_both_steps_absent(tmp_path, steps):
+    """MUTATION: the moment labels or tile is in the list the run CAN take the polygon
+    path, and the guard must fire exactly as it does for a job with no step list."""
+    qf = _queue_file(tmp_path, [{"id": "j1", "year": "2020", "tag": "t",
+                                 "extra": ["--no-hillshade"], "steps": steps}])
+    with pytest.raises(SystemExit) as e:
+        q._load_queue(qf)
+    assert "does not declare a label source" in str(e.value)
+
+
 def _shipped_queue_files():
     """Every queue file in pipeline/, found by SHAPE — a YAML list of dicts with an id.
 

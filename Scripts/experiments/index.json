@@ -6151,6 +6151,97 @@
     },
     {
       "arm_scores": {},
+      "arms": [
+        {
+          "extra": [
+            "--encoder",
+            "resnet50",
+            "--no-hillshade"
+          ],
+          "tag": "base50",
+          "year": "2020"
+        },
+        {
+          "extra": [
+            "--encoder",
+            "resnet18",
+            "--no-hillshade"
+          ],
+          "tag": "base18",
+          "year": "2020"
+        }
+      ],
+      "category": "machinery",
+      "champion_tags": [],
+      "commit": null,
+      "decided": null,
+      "decision_rule": "PRE-REGISTERED. The two arms are NOT compared to each other and neither is promoted: each becomes the warm start for its encoder in a re-run of backbone_sweep. HOW: the checkpoint lands at phase4/models/sem_best_2020_{tag}.pt (core.step_evaluate: MODELS_DIR / f\"sem_best_{label}{_tag_sfx()}.pt\"), so a sweep arm passes --ckpt /content/drive/MyDrive/treedata/phase4/models/sem_best_2020_base50.pt (or _base18.pt) with the matching --encoder; ckpt.resolve_p3_ckpt refuses a missing path, ckpt._assert_state_fits refuses a key mismatch, and load_state_into inflates the first conv for a 4-band arm as it does for the P3 base. NOTE the stamp: ckpt.warm_start_kind(override) returns \"p3_ckpt\" for ANY explicit --ckpt, so those sweep rows will read warm_start=p3_ckpt with a base50/base18 start — distinguishable only through the manifest argv (run_passport.csv), and they need NEW tags (every tag is owned by one entry). GATE per arm: VERIFY:train OK with the checkpoint stamped encoder=resnet50|resnet18; an evaluate log with the four metrics over 150 tiles; a base whose test IoU sits far below the Phase-3 report on the same tiles (read from the lake file named in baseline) is NOT used as a start and the failure is recorded here. CONFOUND REMOVED by these arms: the 2020-trained start is now available for all three encoders. CONFOUND REMAINING: extra.remaining_confound.\n",
+      "design_doc": null,
+      "extra": {
+        "checkpoints": [
+          "phase4/models/sem_best_2020_base50.pt",
+          "phase4/models/sem_best_2020_base18.pt"
+        ],
+        "hazard": "NEVER run --step tile or --force-retile under tags base50 / base18: the materialized meta cannot equal a live tiling._tile_signature, so step_tile would re-tile the citywide recipe over the crown tiles. Both queue files stop at [train, evaluate].\n",
+        "measured_cost": "Comparators from the tracked ledger, A100-40GB: t1_2020_base (resnet101, 343 train / 134 val tiles, blocked split) train 37.3 min + evaluate 4.2 min (phase4/qc/train_queue_status_*.csv, job tier1_science_sample_t1_2020_base); heal_2020 (438 train) train 39.2 min (run_registry.csv step_minutes). The lake's per-launch backbone ledger (untracked, read 2026-09-09) has bb18_2020_base (resnet18, same 343/134 set) train 41.2 min — resnet18 was NOT faster at this size, so no small-encoder discount is assumed. These arms train on ~478 of 598 (fold 0 of the 5-fold buffer split, buffer 512 px at stride 512 retains every neighbour) with ~120 val — ~1.4x the tile count — plus tile staging (timing_events `stage tiles 2020` 478.6 s for t1_2020_base) and ~150-tile evaluate: EXPECTED 50-60 min train + ~8 min staging + 3-5 min evaluate, ~60-75 min per queue, two queues on two A100s (the cap). An estimate, not a measurement.\n",
+        "recipe_deltas": "Matched: EPOCHS_PHASE_A 20 / EPOCHS_PHASE_B 30, LR 5e-5 / 5e-6, BATCH_SIZE 10, EARLY_STOP_PAT 15, ReduceLROnPlateau(factor 0.5, patience 5), SAVE_EVERY 5, ImageNet encoder weights (config.py vs phase3_semantic_dev.py, grepped 2026-09-09). Differ: the phase4 engine pins the frozen encoder's BatchNorm (FREEZE_ENCODER_BN True, no Phase-3 equivalent), selects with SELECT_SMOOTH_K 1 (no smoothing), draws its val fold by splits._choose_val_split, and applies its own loss/aug stack (losses.py, IGNORE-aware); Phase-3's WARMUP_EPOCHS 3 is only wired in its discriminative-unfreeze mode, not the baseline. Deltas beyond these constants were NOT audited.\n",
+        "remaining_confound": "The Phase-3 resnet101 base was initialised from the Phase-0 DDT instance- segmentation checkpoint (phase3_semantic_dev.py: ddt_best_v7_global.pt, encoder + decoder) BEFORE its Phase A/B, and that checkpoint exists only for resnet101 — it is not reproducible for resnet18/50, so these bases start from ImageNet encoder weights + a random decoder (ckpt.load_imagenet_encoder). Also the Phase-3 base was trained by the Phase-3 script, these by the phase4 engine (recipe_deltas).\n",
+        "tile_dirs": [
+          "phase4/tiles/2020__base50",
+          "phase4/tiles/2020__base18"
+        ],
+        "tileset_id": "523f021cba6b"
+      },
+      "headline": "A 2020-trained base for EACH encoder — resnet50 and resnet18, trained on the SAME tiles the Phase-3 resnet101 base (phase3/sem_best_2020.pt) was trained on — removes the warm-start confound stated in …",
+      "hypothesis": "A 2020-trained base for EACH encoder — resnet50 and resnet18, trained on the SAME tiles the Phase-3 resnet101 base (phase3/sem_best_2020.pt) was trained on — removes the warm-start confound stated in experiments/backbone_sweep.yaml: today every resnet101 arm starts from a 2020-trained encoder AND decoder while a resnet18/50 arm starts from ImageNet encoder weights and a random decoder (config.py, ENCODER AS A RUN FLAG block; warm_start stamp p3_ckpt vs imagenet). With a same-trained start per encoder, a re-run of the sweep reads as an ENCODER comparison. The tiles are the Phase-3 crown tiles, materialized under phase4 tags by qc/instruments/phase3_tiles_as_tileset.py from phase3/tiles/tile_index_semantic.csv — the INDEX rows, which are what Phase-3 train/evaluate read, not the directory (counts: phase4/qc/tileset_registry.csv row 2020__base50; the tiles on disk that no index row names are counted in the directory's meta sidecar, split_status.orphan_tiles_not_indexed). What would change our mind: a base whose held-out test score on the Phase-3 test tiles is far below the Phase-3 resnet101 report on the same tiles (baseline, on the lake) is a base that did not train, and must not be used as a start. STATED HONESTLY: this is the Phase-3 TILES under the phase4 engine's fine-tier recipe, not a re-run of the Phase-3 script — see extra.recipe_deltas — and the one confound that REMAINS is extra.remaining_confound.\n",
+      "imagery": [
+        {
+          "bands": 3,
+          "gsd_cm": 5.0,
+          "label": "2020"
+        }
+      ],
+      "inputs": [
+        "G:/My Drive/treedata/phase3/tiles/tile_index_semantic.csv",
+        "G:/My Drive/treedata/phase3/labels/*_canopy_mask.tif"
+      ],
+      "instruments": [
+        "Scripts/qc/instruments/phase3_tiles_as_tileset.py",
+        "Scripts/qc/instruments/harvest_tilesets.py",
+        "Scripts/qc/instruments/eval_rows_from_logs.py"
+      ],
+      "kind": "experiment",
+      "last_run": null,
+      "metric": "PRIMARY: held-out test IoU / Dice / Prec / Rec on the 150 Phase-3 test tiles from each arm's evaluate step log, phase4/logs/phase4_semantic_finetune_evaluate_2020_ <ts>.log (the durable home; phase4/eval/semantic_eval_report.csv is shared across runtimes and was clobbered 2026-09-09 — backbone_sweep.yaml extra.cross_vm_eval_report_clobber — so a VERIFY:evaluate MISSING row is that defect until shown otherwise). The row is harvested to phase4/qc/eval_from_logs.csv by qc/instruments/eval_rows_from_logs.py. This split is sitewise_random_test at stride 512: non-overlapping tiles, NOT spatially blocked, NOT LOSO — read it as a training sanity number, never as an honest hold-out; the honest Phase-3 number is the LOSO report. COST: train and evaluate minutes from the per-launch train_queue_status_*.csv ledger (column minutes) and the step logs.\n",
+      "n": 150,
+      "n_source": "phase4/qc/tilesets/523f021cba6b.csv#rows:split=test",
+      "name": "encoder_bases",
+      "outputs": [
+        "phase4/qc/tileset_registry.csv",
+        "phase4/qc/eval_from_logs.csv"
+      ],
+      "registry_rows": 0,
+      "reports": [],
+      "retrospective": false,
+      "run_ids": [],
+      "sample": "The Phase-3 crown tiles over seven sites (Forest_1/2/3/4/6 and the Negative_Water / Negative_Parking true-negative sites), 512 px at the 2020 5 cm site photos, train/test by a site-stratified random split (sitewise_random_test; counts in phase4/qc/tileset_registry.csv row 2020__base50, tile list phase4/qc/tilesets/523f021cba6b.csv). The engine's fine-tier train step draws its own val fold from the train rows (splits._choose_val_split: 5-fold spatial-buffer split, fold 0). The unit scored is the test tiles, pooled pixels — n below.\n",
+      "status": "queued",
+      "superseded_by": [],
+      "supersedes": [],
+      "tags": [
+        "backbone",
+        "encoder",
+        "resnet18",
+        "resnet50",
+        "warm-start",
+        "phase3-tiles",
+        "base-model"
+      ],
+      "tilesets": [],
+      "verdict": null
+    },
+    {
+      "arm_scores": {},
       "arms": [],
       "category": "lidar",
       "champion_tags": [],

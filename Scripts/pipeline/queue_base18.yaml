@@ -1,0 +1,37 @@
+# HAND-SPLIT from experiments/encoder_bases.yaml — one A100 runtime per file (the
+# resnet18 base only). Deliberately NOT carrying the GENERATED header: the drift gate
+# requires a headered file to equal the full regeneration, which a split file cannot;
+# instead qc/test_phase3_tiles_as_tileset.py::
+# test_hand_split_encoder_base_queues_match_the_generated_queue checks this job
+# byte-equals its job in pipeline/queue_encoder_bases.yaml (regenerate that from the
+# experiment, then re-split; never edit the job here by hand). Hypothesis, decision
+# rule and baseline live in the experiment file, not here.
+#
+# NO CANARY: --encoder is proven live (backbone_sweep canaries + nine bb arms,
+# 2026-09-09), and the tiles are PRE-MATERIALIZED — phase4/tiles/2020__base18/ was
+# written by qc/instruments/phase3_tiles_as_tileset.py (the Phase-3 crown tiles,
+# tileset_id 523f021cba6b — the same set as 2020__base50), so steps are train +
+# evaluate ONLY.
+#
+# NEVER add `tile` (or --force-retile) to this job: the materialized meta cannot
+# equal a live tiling._tile_signature, so step_tile would re-tile the citywide
+# 2020-mask recipe over the crown tiles.
+#
+# Launch (COLAB_AUTONOMY_SETUP.md): py -3.12 pipeline/vm_ops.py launch --queue queue_base18.yaml
+# The 2-concurrent-A100 cap: this file and queue_base50.yaml are the two.
+- id: encoder_bases_base18
+  year: '2020'
+  tag: base18
+  extra:
+  - --encoder
+  - resnet18
+  - --no-hillshade
+  why: arm of experiments/encoder_bases.yaml — hypothesis and decision rule live THERE,
+    not here.
+  expect: sem_best_2020_base18.pt stamped encoder=resnet18 warm_start=imagenet;
+    VERIFY:train OK; evaluate log with IoU/Dice/Prec/Rec over 150 held-out test tiles
+    (VERIFY:evaluate may read MISSING under the shared-eval-report clobber — the step
+    log is the record).
+  steps:
+  - train
+  - evaluate

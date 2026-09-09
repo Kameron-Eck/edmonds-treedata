@@ -303,6 +303,38 @@ where bytes live today, not what the set is. `id_basis: none` with a stated `not
 marks a directory whose sidecar is absent (the 6-site path writes none) — an empty ID
 is legitimate, a fabricated one is not.
 
+#### Materialized tile sets — `tile_index_2020.meta.json` under `phase4/tiles/2020__{tag}/` (lake, written by `qc/instruments/phase3_tiles_as_tileset.py`)
+
+The one tile-set writer that is not the engine. It copies the tiles the Phase-3 index
+(`phase3/tiles/tile_index_semantic.csv`) names — the rows, never the directory: the
+directories hold tiles no row names, and Phase-3 train/evaluate read the index — into a
+tagged phase4 tile directory and writes the index in the engine's exact column shape
+(`tile_name, site, split, row_off, col_off, canopy_frac, block, split_mode, img_path,
+mask_path, height_path`; `block`/`height_path` empty, `split_mode` =
+`config.SPLIT_MODE_SITEWISE`, paths Colab-absolute under the new directory; gated
+against `tiling.py` by `test_phase3_tiles_as_tileset.py::test_index_columns_match_the_engine`).
+The sidecar is the same file the engine writes and the harvest above reads, so the set
+gets a registry row and `cli._record_tilesets` stamps run manifests with its id. Its
+keys, and which side of the hash each sits on:
+
+| key | hashed into `tileset_id`? | meaning |
+|---|---|---|
+| `label`, `materializer` | yes | `"2020"`; the writer's name, so a reader never mistakes this for an engine signature |
+| `citywide`, `stride`, `max_tiles`, `tile_size`, `use_hillshade`, `hs_source`, `use_vi` | yes | the engine's own knob names, with the values the source tiles were cut at (`stride` MEASURED from the index offsets, never assumed) |
+| `label_masks` | yes | `[{name, size}]` of `phase3/labels/*_canopy_mask.tif` — the label rasters the tiles were cut from, in the engine's 6-site shape, so the registry's `label_source` column names them |
+| `provenance` | yes | `source`, `source_index`, `source_index_sha256`, `source_imagery`, `source_labels`, `n_train`, `n_test` |
+| `split_status` | **no** (`config.META_NONSIG_KEYS`) | the engine's fields (`mode`, `degraded`, `stride`, `tile_size`, `overlapping`, `test_frac` computed, `train`/`val`/`test`/`dropped`) PLUS the per-run fields: `materialized_utc`, `materialized_by`, `run_tag`, `orphan_tiles_not_indexed` |
+
+READER RULES. **Same source ⇒ same id across tags**, by construction: everything per-run
+sits under `split_status`, so two directories materialized from one index (2026-09-09:
+`2020__base50` and `2020__base18`, both `523f021cba6b`) are one tile set in the registry —
+which is what makes "both bases trained on the same tiles" a checkable claim rather than
+an assumption. An idempotent re-run keeps the original `materialized_utc`. The recorded
+split is `sitewise_random_test`: non-overlapping at stride 512 but NOT spatially blocked
+and NOT LOSO — evaluate rows on it are training sanity numbers, not honest hold-outs.
+**Never run `--step tile` under one of these tags**: the meta can never equal a live
+`_tile_signature`, so the engine would judge the cache invalid and re-tile over the set.
+
 ### run_passport.csv
 
 Written by `qc/instruments/harvest_run_passport.py` from every

@@ -554,6 +554,21 @@ def _assert_label_source_declared(job, queue_path):
     if any(f in extra for f in ("--force-citywide", "--anchor-labels",
                                 "--coarse-site-tiling")):
         return
+    # 2026-09-09: a job whose step list holds NEITHER labels NOR tile never chooses
+    # a label source — the polygon path lives in those two steps and nowhere else
+    # (cli.py: `citywide` is consulted by step_labels / step_tile / step_inference;
+    # step_train and step_evaluate read only tile_dir_for(label)/tile_index_*.csv).
+    # Such a job consumes a PRE-MATERIALIZED tagged tile directory, whose label
+    # source is recorded in its own meta sidecar (e.g. qc/instruments/
+    # phase3_tiles_as_tileset.py, the Phase-3 crown tiles under a phase4 tag), and
+    # with no tile directory it simply errors "run step tile first". Demanding
+    # --force-citywide here would stamp `force_citywide: true` into the manifest of a
+    # run that trained on hand-traced crowns — a provenance lie, not a declaration.
+    # Gated: qc/test_queue_verify.py::test_a_job_that_never_labels_or_tiles_is_exempt
+    # and ::test_the_exemption_needs_both_steps_absent (the mutation).
+    steps = job.get("steps")
+    if steps and not ({"labels", "tile"} & set(steps)):
+        return
     # Look the entry up directly rather than via common.entry_for — common.py carries
     # the heavy imports this module exists to avoid, and config.py is stdlib-only.
     # (The first version called config.entry_for, which does not exist; the lookup

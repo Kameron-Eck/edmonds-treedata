@@ -27,7 +27,10 @@ This reverses the report's original
 Laserfiche full-text search never having actually executed (§7, §10.5, §10.6). Once driven by
 hand in a browser, that search returned the record: an **Intergovernmental Services Agreement
 between Snohomish County and the City of Edmonds for the Urban Tree Canopy Mapping Project**
-(Contract/Project No. `IS-20260720-SNOCOTRMAP`), executed mid-to-late July 2026. Full text at
+(Contract/Project No. `IS-20260720-SNOCOTRMAP`), executed mid-to-late July 2026 (the City's
+signature block carries a 7/16/2026 date and 7/20/2026 appears as the Laserfiche start-date
+field; the County Executive's own signature date did not extract as legible text, likely an
+image, so is not independently confirmed here). Full text at
 `Reports/sources/text/ila-3106507.txt`; the chain, all first-hand from that document:
 
 - The City requested to "procure high-definition LiDAR data for the area within the city limits
@@ -793,8 +796,11 @@ for a specific zero-hit string; a *different* failure to submit slips past it en
 automated Playwright pass still cannot reliably drive this Laserfiche form. Do not trust its
 `ok` status for this source without opening the saved text and checking for an actual
 `Results X - Y of Z` line naming a nonzero total.** This is now the second distinct way the
-automated run has produced a false `ok` on the same source (§10.6 documents the first). The
-fix applied this session was procedural, not code: drive it by hand.
+automated run has produced a false `ok` on the same source (§10.6 documents the first). The fix
+for *this run* was procedural — drive it by hand — but the guard itself was hardened afterward:
+`looks_like_unexecuted_search()` now also quarantines any page missing a Results-count line
+entirely when a search term was supplied (the `RESULTS_LINE` check), tested against five cases
+including the real 549-hit page, so a future automated run should catch this shape too.
 
 ### 10.8.2 Manually driving the search — eight terms, and the decisive hit
 

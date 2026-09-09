@@ -12,7 +12,11 @@ and a 2024-01-23 Council Packet / 2024-01-16 Council Minutes, not opened in this
 boilerplate GIS-department budget or consultant-scope language), plus one unrelated permit
 critical-areas report. No additional distinct vendor contract surfaced.
 
-=== VERBATIM CAPTURE (mcp__claude-in-chrome__get_page_text) ===
+=== CONDENSED CAPTURE (mcp__claude-in-chrome__get_page_text) ===
+The two Contracts-template rows (King County 2015 ILA, Snohomish County 26-27 ILA) below are
+reproduced in full, verbatim. The council-packet/minutes and permit rows are condensed from
+their multi-line blocks to a single title/type line each — no field values were altered, only
+reformatted for brevity.
 
 Sort results by: Relevance
 Results 1 - 10 of 10

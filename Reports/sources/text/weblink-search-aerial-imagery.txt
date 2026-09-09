@@ -20,7 +20,11 @@ reports (boilerplate references to "aerial imagery" as a base-map source). Pages
 results not examined — the pattern (permit noise) is consistent with other high-count general
 terms in this sweep.
 
-=== VERBATIM CAPTURE (mcp__claude-in-chrome__get_page_text, page 1 of results) ===
+=== CONDENSED CAPTURE (mcp__claude-in-chrome__get_page_text, page 1 of results) ===
+The Contracts-template row (King County 2015 Regional Aerials ILA) below is reproduced in full,
+verbatim. The TRAKiT/PermitTrax permit rows are condensed from their multi-line field blocks to
+a single title/type/situs line each — no field values were altered, only reformatted for
+brevity.
 
 Sort results by: Relevance
 Results 1 - 20 of 127

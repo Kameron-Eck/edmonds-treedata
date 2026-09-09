@@ -11,7 +11,10 @@ lidar contractor, per the full text already retrieved as ila-3106507). The remai
 are unrelated building-permit records (drywall repairs, ADR files) with no connection to NV5.
 No separate/direct Edmonds-NV5 contract exists in this index.
 
-=== VERBATIM CAPTURE (mcp__claude-in-chrome__get_page_text) ===
+=== CONDENSED CAPTURE (mcp__claude-in-chrome__get_page_text) ===
+The Contracts-template row (Snohomish County 26-27 ILA) below is reproduced in full, verbatim.
+The TRAKiT/PermitTrax permit rows are condensed from their multi-line field blocks to a single
+title/type/situs line each — no field values were altered, only reformatted for brevity.
 
 Sort results by: Relevance
 Results 1 - 13 of 13

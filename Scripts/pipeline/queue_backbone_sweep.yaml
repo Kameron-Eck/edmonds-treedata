@@ -1,0 +1,326 @@
+# GENERATED from experiments/backbone_sweep.yaml — DO NOT EDIT.
+# Edit the experiment file and rerun:
+#   py -3.12 qc/experiment_queue.py --experiment experiments/backbone_sweep.yaml
+# test_experiments.py::test_generated_queues_match_their_experiments fails on drift.
+# ONE QUEUE PER RUNTIME (COLAB_AUTONOMY_SETUP.md); arms wanting parallel
+# runtimes get split into per-arm files by hand, still generated-headered.
+- id: backbone_sweep_bb18_2006s_base
+  year: 2006s
+  tag: bb18_2006s_base
+  extra:
+  - --force-citywide
+  - --encoder
+  - resnet18
+  - --no-hillshade
+  - --sample-manifest
+  - /content/drive/MyDrive/treedata/phase4/qc/sample_tiles_2006s.csv
+  why: arm of experiments/backbone_sweep.yaml — hypothesis and decision rule live
+    THERE, not here.
+  steps:
+  - labels
+  - tile
+  - train
+  - evaluate
+- id: backbone_sweep_bb18_2011s_base
+  year: 2011s
+  tag: bb18_2011s_base
+  extra:
+  - --force-citywide
+  - --encoder
+  - resnet18
+  - --no-hillshade
+  - --sample-manifest
+  - /content/drive/MyDrive/treedata/phase4/qc/sample_tiles_2011s.csv
+  why: arm of experiments/backbone_sweep.yaml — hypothesis and decision rule live
+    THERE, not here.
+  steps:
+  - labels
+  - tile
+  - train
+  - evaluate
+- id: backbone_sweep_bb18_2011s_base_s2
+  year: 2011s
+  tag: bb18_2011s_base_s2
+  extra:
+  - --force-citywide
+  - --encoder
+  - resnet18
+  - --no-hillshade
+  - --seed
+  - '43'
+  - --sample-manifest
+  - /content/drive/MyDrive/treedata/phase4/qc/sample_tiles_2011s.csv
+  why: arm of experiments/backbone_sweep.yaml — hypothesis and decision rule live
+    THERE, not here.
+  steps:
+  - labels
+  - tile
+  - train
+  - evaluate
+- id: backbone_sweep_bb18_2011s_base_s3
+  year: 2011s
+  tag: bb18_2011s_base_s3
+  extra:
+  - --force-citywide
+  - --encoder
+  - resnet18
+  - --no-hillshade
+  - --seed
+  - '44'
+  - --sample-manifest
+  - /content/drive/MyDrive/treedata/phase4/qc/sample_tiles_2011s.csv
+  why: arm of experiments/backbone_sweep.yaml — hypothesis and decision rule live
+    THERE, not here.
+  steps:
+  - labels
+  - tile
+  - train
+  - evaluate
+- id: backbone_sweep_bb18_2011s_cor05
+  year: 2011s
+  tag: bb18_2011s_cor05
+  extra:
+  - --force-citywide
+  - --encoder
+  - resnet18
+  - --no-hillshade
+  - --add-canopy-mask
+  - /content/drive/MyDrive/treedata/phase4/labels_corrected/add_corrupt5_2011s.tif
+  - --sample-manifest
+  - /content/drive/MyDrive/treedata/phase4/qc/sample_tiles_2011s.csv
+  why: arm of experiments/backbone_sweep.yaml — hypothesis and decision rule live
+    THERE, not here.
+  steps:
+  - labels
+  - tile
+  - train
+  - evaluate
+- id: backbone_sweep_bb18_2016_base
+  year: '2016'
+  tag: bb18_2016_base
+  extra:
+  - --force-citywide
+  - --encoder
+  - resnet18
+  - --no-hillshade
+  - --sample-manifest
+  - /content/drive/MyDrive/treedata/phase4/qc/sample_tiles_2016.csv
+  why: arm of experiments/backbone_sweep.yaml — hypothesis and decision rule live
+    THERE, not here.
+  steps:
+  - labels
+  - tile
+  - train
+  - evaluate
+- id: backbone_sweep_bb18_2016_in05
+  year: '2016'
+  tag: bb18_2016_in05
+  extra:
+  - --force-citywide
+  - --encoder
+  - resnet18
+  - --hs-source
+  - chm2005
+  - --sample-manifest
+  - /content/drive/MyDrive/treedata/phase4/qc/sample_tiles_2016.csv
+  why: arm of experiments/backbone_sweep.yaml — hypothesis and decision rule live
+    THERE, not here.
+  steps:
+  - labels
+  - tile
+  - train
+  - evaluate
+- id: backbone_sweep_bb18_2019n_base
+  year: 2019n
+  tag: bb18_2019n_base
+  extra:
+  - --force-citywide
+  - --encoder
+  - resnet18
+  - --no-hillshade
+  - --sample-manifest
+  - /content/drive/MyDrive/treedata/phase4/qc/sample_tiles_2019n.csv
+  why: arm of experiments/backbone_sweep.yaml — hypothesis and decision rule live
+    THERE, not here.
+  steps:
+  - labels
+  - tile
+  - train
+  - evaluate
+- id: backbone_sweep_bb18_2020_base
+  year: '2020'
+  tag: bb18_2020_base
+  extra:
+  - --force-citywide
+  - --encoder
+  - resnet18
+  - --no-hillshade
+  - --sample-manifest
+  - /content/drive/MyDrive/treedata/phase4/qc/sample_tiles_2020.csv
+  why: arm of experiments/backbone_sweep.yaml — hypothesis and decision rule live
+    THERE, not here.
+  steps:
+  - labels
+  - tile
+  - train
+  - evaluate
+- id: backbone_sweep_bb50_2006s_base
+  year: 2006s
+  tag: bb50_2006s_base
+  extra:
+  - --force-citywide
+  - --encoder
+  - resnet50
+  - --no-hillshade
+  - --sample-manifest
+  - /content/drive/MyDrive/treedata/phase4/qc/sample_tiles_2006s.csv
+  why: arm of experiments/backbone_sweep.yaml — hypothesis and decision rule live
+    THERE, not here.
+  steps:
+  - labels
+  - tile
+  - train
+  - evaluate
+- id: backbone_sweep_bb50_2011s_base
+  year: 2011s
+  tag: bb50_2011s_base
+  extra:
+  - --force-citywide
+  - --encoder
+  - resnet50
+  - --no-hillshade
+  - --sample-manifest
+  - /content/drive/MyDrive/treedata/phase4/qc/sample_tiles_2011s.csv
+  why: arm of experiments/backbone_sweep.yaml — hypothesis and decision rule live
+    THERE, not here.
+  steps:
+  - labels
+  - tile
+  - train
+  - evaluate
+- id: backbone_sweep_bb50_2011s_base_s2
+  year: 2011s
+  tag: bb50_2011s_base_s2
+  extra:
+  - --force-citywide
+  - --encoder
+  - resnet50
+  - --no-hillshade
+  - --seed
+  - '43'
+  - --sample-manifest
+  - /content/drive/MyDrive/treedata/phase4/qc/sample_tiles_2011s.csv
+  why: arm of experiments/backbone_sweep.yaml — hypothesis and decision rule live
+    THERE, not here.
+  steps:
+  - labels
+  - tile
+  - train
+  - evaluate
+- id: backbone_sweep_bb50_2011s_base_s3
+  year: 2011s
+  tag: bb50_2011s_base_s3
+  extra:
+  - --force-citywide
+  - --encoder
+  - resnet50
+  - --no-hillshade
+  - --seed
+  - '44'
+  - --sample-manifest
+  - /content/drive/MyDrive/treedata/phase4/qc/sample_tiles_2011s.csv
+  why: arm of experiments/backbone_sweep.yaml — hypothesis and decision rule live
+    THERE, not here.
+  steps:
+  - labels
+  - tile
+  - train
+  - evaluate
+- id: backbone_sweep_bb50_2011s_cor05
+  year: 2011s
+  tag: bb50_2011s_cor05
+  extra:
+  - --force-citywide
+  - --encoder
+  - resnet50
+  - --no-hillshade
+  - --add-canopy-mask
+  - /content/drive/MyDrive/treedata/phase4/labels_corrected/add_corrupt5_2011s.tif
+  - --sample-manifest
+  - /content/drive/MyDrive/treedata/phase4/qc/sample_tiles_2011s.csv
+  why: arm of experiments/backbone_sweep.yaml — hypothesis and decision rule live
+    THERE, not here.
+  steps:
+  - labels
+  - tile
+  - train
+  - evaluate
+- id: backbone_sweep_bb50_2016_base
+  year: '2016'
+  tag: bb50_2016_base
+  extra:
+  - --force-citywide
+  - --encoder
+  - resnet50
+  - --no-hillshade
+  - --sample-manifest
+  - /content/drive/MyDrive/treedata/phase4/qc/sample_tiles_2016.csv
+  why: arm of experiments/backbone_sweep.yaml — hypothesis and decision rule live
+    THERE, not here.
+  steps:
+  - labels
+  - tile
+  - train
+  - evaluate
+- id: backbone_sweep_bb50_2016_in05
+  year: '2016'
+  tag: bb50_2016_in05
+  extra:
+  - --force-citywide
+  - --encoder
+  - resnet50
+  - --hs-source
+  - chm2005
+  - --sample-manifest
+  - /content/drive/MyDrive/treedata/phase4/qc/sample_tiles_2016.csv
+  why: arm of experiments/backbone_sweep.yaml — hypothesis and decision rule live
+    THERE, not here.
+  steps:
+  - labels
+  - tile
+  - train
+  - evaluate
+- id: backbone_sweep_bb50_2019n_base
+  year: 2019n
+  tag: bb50_2019n_base
+  extra:
+  - --force-citywide
+  - --encoder
+  - resnet50
+  - --no-hillshade
+  - --sample-manifest
+  - /content/drive/MyDrive/treedata/phase4/qc/sample_tiles_2019n.csv
+  why: arm of experiments/backbone_sweep.yaml — hypothesis and decision rule live
+    THERE, not here.
+  steps:
+  - labels
+  - tile
+  - train
+  - evaluate
+- id: backbone_sweep_bb50_2020_base
+  year: '2020'
+  tag: bb50_2020_base
+  extra:
+  - --force-citywide
+  - --encoder
+  - resnet50
+  - --no-hillshade
+  - --sample-manifest
+  - /content/drive/MyDrive/treedata/phase4/qc/sample_tiles_2020.csv
+  why: arm of experiments/backbone_sweep.yaml — hypothesis and decision rule live
+    THERE, not here.
+  steps:
+  - labels
+  - tile
+  - train
+  - evaluate

@@ -366,8 +366,8 @@ from sklearn.model_selection import train_test_split  # noqa: E402,F401 — faca
 # since 2026-09-01. Same facade contract as losses above.
 from phase4seg.ckpt import (               # noqa: E402,F401
     ARCHS, _assert_state_fits, _build_unet_with_height, _inflate_first_conv, _inject_dropout,
-    _model_state_of, _save_ckpt, _save_ckpt_state, build_model, load_state_into,
-    resolve_p3_ckpt,
+    _model_state_of, _save_ckpt, _save_ckpt_state, build_model, load_imagenet_encoder,
+    load_state_into, resolve_p3_ckpt, warm_start_kind,
 )
 from phase4seg.select import (             # noqa: E402,F401
     _SmoothCkptSelector, _centred_moving_average, _deploy_smoothed_keeping_raw,
@@ -855,21 +855,37 @@ def step_train(label, batch_size=BATCH_SIZE, p3_ckpt=None, dry_run=False, compil
                             drop_last=False, persistent_workers=True, prefetch_factor=4,
                             worker_init_fn=_worker_init)
 
-    # Fine-tune START = Phase 3 2020 semantic checkpoint (every year, independently).
-    p3 = resolve_p3_ckpt(p3_ckpt)
-    if p3 is None:
-        print("  ERROR: Phase 3 checkpoint (sem_best_2020.pt) not found — "
-              "run Phase 3 first or pass --ckpt.")
-        return
-    model = build_model(device, compile_model=compile_model)
-    # The ONE legitimate gap in the pipeline: the Phase-3 2020 base predates the
-    # aux height head, so a --aux-height model has keys it cannot supply. Named
-    # here rather than waved through globally, so any OTHER gap still stops the run.
-    ck = load_state_into(model, p3, device,
-                         allow_missing=("height_head.",),
-                         what="Phase-3 2020 base -> this fine-tune model")
-    print(f"  ✓ Fine-tune start: {Path(p3).name}  "
-          f"(P3 val_bce={ck.get('best_val', '?')})")
+    # Fine-tune START = Phase 3 2020 semantic checkpoint (every year, independently)
+    # — WHEN the encoder can load it. The P3 base is a resnet101 U-Net; under
+    # --encoder resnet18/50 (2026-09-08) there is no 2020-trained start to load, so
+    # the run begins from ImageNet encoder weights with a random decoder, and says
+    # so (ckpt.warm_start_kind — stamped into manifest, checkpoint and eval row).
+    # An explicit --ckpt always takes the checkpoint path; a mismatch there STOPS.
+    start = warm_start_kind(p3_ckpt)
+    config.WARM_START = start
+    if start == "p3_ckpt":
+        p3 = resolve_p3_ckpt(p3_ckpt)
+        if p3 is None:
+            print("  ERROR: Phase 3 checkpoint (sem_best_2020.pt) not found — "
+                  "run Phase 3 first or pass --ckpt.")
+            return
+        model = build_model(device, compile_model=compile_model)
+        # The ONE legitimate gap in the pipeline: the Phase-3 2020 base predates the
+        # aux height head, so a --aux-height model has keys it cannot supply. Named
+        # here rather than waved through globally, so any OTHER gap still stops the run.
+        ck = load_state_into(model, p3, device,
+                             allow_missing=("height_head.",),
+                             what="Phase-3 2020 base -> this fine-tune model")
+        print(f"  ✓ Fine-tune start: {Path(p3).name}  "
+              f"(P3 val_bce={ck.get('best_val', '?')})")
+    else:
+        model = build_model(device, compile_model=compile_model)
+        info = load_imagenet_encoder(model)
+        print(f"  ✓ Fine-tune start: ImageNet {info['encoder']} encoder "
+              f"({info['encoder_params']:,} params) + RANDOM decoder — no 2020-trained "
+              f"start exists for this encoder (P3 base is {config.P3_CKPT_ENCODER}). "
+              f"NOT the same start as a {config.P3_CKPT_ENCODER} arm; read the "
+              f"warm_start stamp before comparing.")
 
     # pos_weight for class imbalance. Principled Edit 1: coarse retires
     # pos_weight (sampler owns class balance) unless COARSE_USE_POS_WEIGHT is
@@ -1412,6 +1428,13 @@ def step_evaluate(label, dry_run=False):
     new["run_id"] = config.RUN_ID
     new["written_utc"] = (_dt.datetime.now(_dt.timezone.utc)
                           .strftime("%Y-%m-%dT%H:%M:%SZ"))
+    # Encoder + warm start (2026-09-08): same ADDITIVE shape as the four columns
+    # above — new rows carry them, pre-flag rows read blank (every pre-flag row was
+    # resnet101 from the P3 base; readers infer, the writer does not backfill). The
+    # replace key stays (year, channels); the encoder is not part of it, so two
+    # encoders on one year/channel supersede into the archive like any two tags.
+    new["encoder"] = str(config.ENCODER)
+    new["warm_start"] = str(ck.get("warm_start", "") or "")
 
     # Append/replace this (year, channels) arm's rows in the cumulative report.
     # Pre-channels rows were RGB-only — treat missing as "rgb" so a re-run still

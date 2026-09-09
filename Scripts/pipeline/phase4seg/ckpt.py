@@ -18,8 +18,11 @@ from pathlib import Path
 
 from phase4seg import config
 from phase4seg.config import (
-    DECODER_CHANNELS, DECODER_DROPOUT, ENCODER, P3_CKPT_CANDIDATES,
+    DECODER_CHANNELS, DECODER_DROPOUT, P3_CKPT_CANDIDATES,
 )
+# ENCODER is deliberately NOT imported as a constant (2026-09-08): cli --encoder sets
+# config.ENCODER per run, and a frozen module-level copy would have built every model
+# with the default while the manifest recorded the flag. Builders read config.ENCODER.
 from phase4seg.common import _copy_to_drive, _local_artifact_path
 
 def _inject_dropout(module, p):
@@ -53,7 +56,7 @@ def _build_unet_with_height():
             dec = self.decoder(feats)            # smp>=0.4: decoder takes the feature list
             return self.segmentation_head(dec), self.height_head(dec)
 
-    return UnetWithHeight(encoder_name=ENCODER, encoder_weights=None,
+    return UnetWithHeight(encoder_name=config.ENCODER, encoder_weights=None,
                           decoder_channels=DECODER_CHANNELS, in_channels=config.IN_CHANNELS,
                           classes=1, activation=None)
 
@@ -64,7 +67,7 @@ def _build_unet():
     that P3/P0 warm starts depend on."""
     import segmentation_models_pytorch as smp
     return _build_unet_with_height() if config.AUX_HEIGHT else smp.Unet(
-        encoder_name=ENCODER, encoder_weights=None,
+        encoder_name=config.ENCODER, encoder_weights=None,
         decoder_channels=DECODER_CHANNELS, in_channels=config.IN_CHANNELS,
         classes=1, activation=None)
 
@@ -76,7 +79,7 @@ def _build_deeplabv3plus():
     recorded in config.py's ARCH block."""
     import segmentation_models_pytorch as smp
     return smp.DeepLabV3Plus(
-        encoder_name=ENCODER, encoder_weights=None,
+        encoder_name=config.ENCODER, encoder_weights=None,
         encoder_output_stride=config.DEEPLAB_OUTPUT_STRIDE,
         decoder_channels=config.DEEPLAB_DECODER_CH,
         in_channels=config.IN_CHANNELS, classes=1, activation=None)
@@ -247,6 +250,57 @@ def load_state_into(model, ckpt_path, device, allow_missing=(), what=""):
     return ckpt
 
 
+def warm_start_kind(override=None):
+    """Where this run's fine-tune STARTS: "p3_ckpt" or "imagenet".
+
+    The Phase-3 2020 base is a resnet101 U-Net (config.P3_CKPT_ENCODER). Any other
+    encoder cannot load it — _assert_state_fits refuses the key mismatch, and that
+    refusal is the guard, not a bug — so such a run starts from ImageNet encoder
+    weights with a random decoder. An explicit --ckpt is a statement of intent
+    (resolve_p3_ckpt) and always takes the checkpoint path, where a mismatch STOPS
+    the run rather than silently switching starts. Stamped into the manifest, the
+    checkpoint payload and the eval row, because a resnet101 arm (2020-trained
+    encoder AND decoder) and a resnet18 arm (ImageNet encoder, fresh decoder) differ
+    in two things, and a reader comparing them has to be told which two.
+    """
+    if override:
+        return "p3_ckpt"
+    return ("p3_ckpt" if str(config.ENCODER) == str(config.P3_CKPT_ENCODER)
+            else "imagenet")
+
+
+def load_imagenet_encoder(model):
+    """Warm-start ONLY the encoder from smp's ImageNet weights; decoder stays random.
+
+    Goes through the engine's own _inflate_first_conv (RGB weights kept, extra
+    input channel ZERO-initialised) rather than smp's `set_in_channels`, which
+    REPEATS and rescales the RGB filters into band 4 — a different convention from
+    the one every P3-started 4-channel arm used, and an encoder sweep must not
+    change two things at once. The load is asserted: the ONLY keys allowed missing
+    are the decoder, the segmentation head and the height head; any unexpected key
+    is a wrong-encoder signal and stops the run.
+
+    Downloads the weight set on first use (smp: HF hub, falling back to the
+    original URL) — a Colab VM has the network for it; local gates never reach this
+    function because build_model keeps encoder_weights=None.
+    """
+    from phase4seg.core import _ensure_torch  # lazy: no module-level cycle
+    _ensure_torch()                            # deps bootstrap still fires here
+    import segmentation_models_pytorch as smp
+    enc = smp.encoders.get_encoder(config.ENCODER, in_channels=3, depth=5,
+                                   weights=config.ENCODER_FALLBACK_WEIGHTS)
+    state = {f"encoder.{k}": v for k, v in enc.state_dict().items()}
+    tgt = model._orig_mod if hasattr(model, "_orig_mod") else model
+    state = _inflate_first_conv(state, tgt.state_dict())
+    res = tgt.load_state_dict(state, strict=False)
+    _assert_state_fits(res, f"{config.ENCODER}.{config.ENCODER_FALLBACK_WEIGHTS}",
+                       allow_missing=("decoder.", "segmentation_head.", "height_head."),
+                       what=f"ImageNet {config.ENCODER} encoder -> fresh decoder")
+    n = sum(v.numel() for v in state.values())
+    return {"encoder": config.ENCODER, "weights": config.ENCODER_FALLBACK_WEIGHTS,
+            "encoder_params": int(n)}
+
+
 def resolve_p3_ckpt(override=None):
     """Which checkpoint does this fine-tune start from?
 
@@ -336,6 +390,12 @@ def _save_ckpt_state(phase, epoch, state, optim_state, sched_state,
                # checkpoint and a U-Net one are indistinguishable, and smp gives them the
                # same encoder.* prefix so a cross-load is a PARTIAL load, not an error.
                "arch": str(getattr(config, "ARCH", "unet")).lower(),
+               # Which ENCODER, and where the fine-tune started (2026-09-08). A
+               # resnet18 and a resnet101 checkpoint differ in key SHAPES, so a
+               # cross-load already fails loudly — the stamp is for the READER, who
+               # otherwise cannot tell a 2020-warm-started arm from an ImageNet one.
+               "encoder": str(config.ENCODER),
+               "warm_start": str(getattr(config, "WARM_START", "") or ""),
                "hs_source": config.HS_SOURCE,             # which raster band 4 was
                # ── identity (2026-08-29, D2/D17) ──────────────────────────────
                # Without these a checkpoint cannot say which run produced it, so

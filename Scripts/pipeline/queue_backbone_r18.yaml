@@ -1,0 +1,203 @@
+# HAND-SPLIT from experiments/backbone_sweep.yaml — one A100 runtime per file
+# (resnet18 arms only). Deliberately NOT carrying the GENERATED header:
+# test_generated_queues_match_their_experiments requires a headered file to equal the
+# full regeneration, which a split file cannot; instead
+# qc/test_backbone_benchmark.py::test_hand_split_queues_are_subsets_of_the_generated_queue
+# checks every non-canary job here byte-equals its job in pipeline/queue_backbone_sweep.yaml
+# (regenerate that from the experiment, then re-split; never edit jobs here by hand).
+# Hypothesis, decision rule and baseline live in the experiment file, not here.
+#
+# FIRST JOB = CANARY (id/tag prefix canary_): a DISTINCT-tag copy of the 2006s base arm
+# at --epochs-phase-a 1 --epochs-phase-b 1, so one full labels->tile->train->evaluate
+# cycle lands under --encoder resnet18 — the ImageNet warm start, the checkpoint stamps,
+# the eval row — before the nine real arms spend. 2006s is the cheapest sample year
+# (49 manifest tiles; labels ~8 / tile ~11 min in the recovered ledger). Its numbers
+# are plumbing evidence only and are never scored. Distinct tag because the queue's
+# resume ledger keys on (job, year, tag, step) and tile/ckpt paths key on the tag: a
+# shared tag would let the real arm skip its own train step on the canary's credit.
+#
+# Launch (COLAB_AUTONOMY_SETUP.md): py -3.12 pipeline/vm_ops.py launch --queue queue_backbone_r18.yaml
+# The 2-concurrent-A100 cap: this file and its sibling are the two.
+- id: canary_bb18_2006s_base
+  year: 2006s
+  tag: canary_bb18_2006s_base
+  extra:
+  - --force-citywide
+  - --encoder
+  - resnet18
+  - --epochs-phase-a
+  - '1'
+  - --epochs-phase-b
+  - '1'
+  - --no-hillshade
+  - --sample-manifest
+  - /content/drive/MyDrive/treedata/phase4/qc/sample_tiles_2006s.csv
+  why: CANARY — one full cycle under --encoder before the nine arms spend; 1+1 epochs,
+    own tag, never scored.
+  expect: manifest + sem_best ckpt stamped encoder=resnet18 warm_start=imagenet; eval
+    row carries encoder/warm_start; VERIFY:train and VERIFY:evaluate OK
+  steps:
+  - labels
+  - tile
+  - train
+  - evaluate
+- id: backbone_sweep_bb18_2006s_base
+  year: 2006s
+  tag: bb18_2006s_base
+  extra:
+  - --force-citywide
+  - --encoder
+  - resnet18
+  - --no-hillshade
+  - --sample-manifest
+  - /content/drive/MyDrive/treedata/phase4/qc/sample_tiles_2006s.csv
+  why: arm of experiments/backbone_sweep.yaml — hypothesis and decision rule live
+    THERE, not here.
+  steps:
+  - labels
+  - tile
+  - train
+  - evaluate
+- id: backbone_sweep_bb18_2011s_base
+  year: 2011s
+  tag: bb18_2011s_base
+  extra:
+  - --force-citywide
+  - --encoder
+  - resnet18
+  - --no-hillshade
+  - --sample-manifest
+  - /content/drive/MyDrive/treedata/phase4/qc/sample_tiles_2011s.csv
+  why: arm of experiments/backbone_sweep.yaml — hypothesis and decision rule live
+    THERE, not here.
+  steps:
+  - labels
+  - tile
+  - train
+  - evaluate
+- id: backbone_sweep_bb18_2011s_base_s2
+  year: 2011s
+  tag: bb18_2011s_base_s2
+  extra:
+  - --force-citywide
+  - --encoder
+  - resnet18
+  - --no-hillshade
+  - --seed
+  - '43'
+  - --sample-manifest
+  - /content/drive/MyDrive/treedata/phase4/qc/sample_tiles_2011s.csv
+  why: arm of experiments/backbone_sweep.yaml — hypothesis and decision rule live
+    THERE, not here.
+  steps:
+  - labels
+  - tile
+  - train
+  - evaluate
+- id: backbone_sweep_bb18_2011s_base_s3
+  year: 2011s
+  tag: bb18_2011s_base_s3
+  extra:
+  - --force-citywide
+  - --encoder
+  - resnet18
+  - --no-hillshade
+  - --seed
+  - '44'
+  - --sample-manifest
+  - /content/drive/MyDrive/treedata/phase4/qc/sample_tiles_2011s.csv
+  why: arm of experiments/backbone_sweep.yaml — hypothesis and decision rule live
+    THERE, not here.
+  steps:
+  - labels
+  - tile
+  - train
+  - evaluate
+- id: backbone_sweep_bb18_2011s_cor05
+  year: 2011s
+  tag: bb18_2011s_cor05
+  extra:
+  - --force-citywide
+  - --encoder
+  - resnet18
+  - --no-hillshade
+  - --add-canopy-mask
+  - /content/drive/MyDrive/treedata/phase4/labels_corrected/add_corrupt5_2011s.tif
+  - --sample-manifest
+  - /content/drive/MyDrive/treedata/phase4/qc/sample_tiles_2011s.csv
+  why: arm of experiments/backbone_sweep.yaml — hypothesis and decision rule live
+    THERE, not here.
+  steps:
+  - labels
+  - tile
+  - train
+  - evaluate
+- id: backbone_sweep_bb18_2016_base
+  year: '2016'
+  tag: bb18_2016_base
+  extra:
+  - --force-citywide
+  - --encoder
+  - resnet18
+  - --no-hillshade
+  - --sample-manifest
+  - /content/drive/MyDrive/treedata/phase4/qc/sample_tiles_2016.csv
+  why: arm of experiments/backbone_sweep.yaml — hypothesis and decision rule live
+    THERE, not here.
+  steps:
+  - labels
+  - tile
+  - train
+  - evaluate
+- id: backbone_sweep_bb18_2016_in05
+  year: '2016'
+  tag: bb18_2016_in05
+  extra:
+  - --force-citywide
+  - --encoder
+  - resnet18
+  - --hs-source
+  - chm2005
+  - --sample-manifest
+  - /content/drive/MyDrive/treedata/phase4/qc/sample_tiles_2016.csv
+  why: arm of experiments/backbone_sweep.yaml — hypothesis and decision rule live
+    THERE, not here.
+  steps:
+  - labels
+  - tile
+  - train
+  - evaluate
+- id: backbone_sweep_bb18_2019n_base
+  year: 2019n
+  tag: bb18_2019n_base
+  extra:
+  - --force-citywide
+  - --encoder
+  - resnet18
+  - --no-hillshade
+  - --sample-manifest
+  - /content/drive/MyDrive/treedata/phase4/qc/sample_tiles_2019n.csv
+  why: arm of experiments/backbone_sweep.yaml — hypothesis and decision rule live
+    THERE, not here.
+  steps:
+  - labels
+  - tile
+  - train
+  - evaluate
+- id: backbone_sweep_bb18_2020_base
+  year: '2020'
+  tag: bb18_2020_base
+  extra:
+  - --force-citywide
+  - --encoder
+  - resnet18
+  - --no-hillshade
+  - --sample-manifest
+  - /content/drive/MyDrive/treedata/phase4/qc/sample_tiles_2020.csv
+  why: arm of experiments/backbone_sweep.yaml — hypothesis and decision rule live
+    THERE, not here.
+  steps:
+  - labels
+  - tile
+  - train
+  - evaluate

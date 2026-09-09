@@ -1150,3 +1150,30 @@ YEAR_CATALOG.append({
     "seg_tier": "semantic_only",
     "native_file": "2017_king_rgb.tif",
 })
+
+# ── ENCODER AS A RUN FLAG                                     APPENDED 2026-09-08 ──
+# Kam: "create the benchmark table, and run the resnet 18 and 50 tonight". ENCODER
+# above (line ~96) stays the DEFAULT; cli --encoder overrides it per run and every
+# builder in ckpt.py reads config.ENCODER at CALL time. Deliberately NOT in
+# _tile_signature — an encoder sweep must reuse the tiles or it is unaffordable
+# (gated: qc/test_encoder_flag.py::test_encoder_does_not_invalidate_the_tile_cache).
+#
+# THE WARM-START CONSEQUENCE, stated here because it is the confound in any
+# cross-encoder read: core.step_train starts every fine-tune from the Phase-3 2020
+# base checkpoint (P3_CKPT_CANDIDATES), whose weights are a resnet101 U-Net. A
+# different encoder cannot load them (ckpt._assert_state_fits refuses the key
+# mismatch, by design), so a run whose ENCODER != P3_CKPT_ENCODER and names no
+# --ckpt starts from ImageNet encoder weights (ENCODER_FALLBACK_WEIGHTS) with a
+# RANDOM decoder — ckpt.load_imagenet_encoder. The manifest, the checkpoint
+# payload and the eval row all record `encoder` and `warm_start` so a reader can
+# tell the two starts apart; an explicit --ckpt always wins and is refused on
+# mismatch (resolve_p3_ckpt's intent rule). ENCODER_CHOICES is the closed set the
+# CLI accepts; every member is an smp resnet with an `imagenet` weight set.
+ENCODER_CHOICES          = ("resnet18", "resnet34", "resnet50", "resnet101")
+P3_CKPT_ENCODER          = "resnet101"   # what sem_best_2020.pt was trained with
+ENCODER_FALLBACK_WEIGHTS = "imagenet"    # smp weight-set name for the non-P3 start
+# Per-run marker, set by cli from ckpt.warm_start_kind() once --encoder/--ckpt are
+# known: "p3_ckpt" | "imagenet". Recorded by the manifest, checkpoint and eval
+# writers; never a tuning knob, never in _tile_signature (same shape as
+# OVERRIDES_APPLIED above).
+WARM_START               = ""

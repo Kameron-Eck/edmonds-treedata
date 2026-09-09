@@ -349,6 +349,41 @@ populations is how a coverage gap gets misread as a skill gap (2017's deliveries
 15.8 M to 5.7 B scored pixels). Joins the tile counts and the champion star.
 Gate: `test_run_context.py::test_year_scoreboard_is_fresh`.
 
+### backbone_benchmark.csv (GENERATED — byte-compared)
+
+Written by `qc/instruments/backbone_benchmark.py`: the resnet101 reference table the
+backbone sweep (`experiments/backbone_sweep.yaml`) has to reproduce on a smaller
+encoder. A PROJECTION of `phase4/qc/arm_metrics.csv` — no lake, no GPU — copying, for
+each of the nine benchmark arms (`BENCHMARK_ARMS` in the instrument: the five Tier-1
+base arms, the two 2011s seed replicates, the confirmed-positive `t1_2016_in05` and
+the null `t1_2011s_cor05`), the `matched_p75` and `best_f1` rows measured on ONE
+population: `ref = ccap_2021_hires_lc.tif`, `canopy_def = forest_wetland`,
+`eval_scope = sample-test` — the same basis as `phase4/qc/tier1_results.csv` and the
+Tier-1 verdict. Values are copied as strings, never re-rounded, so the file is
+byte-identical across runs. Columns: `arm, year_label, treatment, encoder, policy,
+population, recall, precision, f1, pr_auc, thresh, n_eligible_cuts, curve_id, source`.
+`treatment` is the tag with its `t1_{year}_` prefix removed; `curve_id` joins back to
+`curves/{id}.csv`.
+
+READER RULE: **the population is fixed by construction, so a second `ref` never
+appears here** — that is the point. `arm_metrics.csv` holds 2-3 rows per arm-policy
+(one per reference raster), and picking 2016's `ccap_2016` row over its `ccap_2021`
+row moves matched recall by 5 pp; the instrument refuses anything but exactly one hit.
+
+The **noise-floor block** (`arm = NOISE_FLOOR_2011s`, `treatment` in `min | max |
+spread`) is derived in the same run from the three 2011s seeds
+(`t1_2011s_base`, `_s2`, `_s3`), per policy, for recall / precision / f1 / pr_auc;
+`population`, `thresh`, `n_eligible_cuts`, `curve_id` are blank and `source` names the
+three tags. `spread` of recall at `matched_p75` is the max pairwise |delta| the Tier-1
+verdict used as its floor; the gate pins it to the verdict text. An encoder's own
+floor comes from ITS three seeds, never from this block. Gates:
+`test_backbone_benchmark.py::test_benchmark_csv_is_fresh` (byte-compare),
+`::test_noise_floor_rows_are_derived_from_the_three_seeds`,
+`::test_the_recall_floor_matches_the_tier1_verdict`,
+`::test_benchmark_encoder_matches_the_run_passports` (the `encoder` column is what
+the Tier-1 train manifests recorded, via `run_passport.csv`), and
+`::test_sweep_arms_are_derived_from_the_benchmark_list`.
+
 ## failure_registry.csv (phase4/qc/, HARVESTED) + qc/known_failures.yaml (AUTHORED)
 
 Written by `qc/instruments/harvest_failures.py` from step logs with `errors: N>0`.

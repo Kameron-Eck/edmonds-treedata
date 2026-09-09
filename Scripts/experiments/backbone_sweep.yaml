@@ -1,0 +1,154 @@
+name: backbone_sweep
+kind: experiment
+status: queued
+retrospective: false
+category: machinery
+tags: [backbone, encoder, resnet18, resnet50, recipe-search, tier1-sample, loso]
+
+hypothesis: >
+  Recipe rankings measured on a small encoder agree with resnet101 within the noise
+  floor, so recipe search (the dozens of label/input/loss knobs still open after
+  Tier-1) can move to the small encoder and resnet101 is reserved for confirmation and
+  deliverables. The nine Tier-1 arms in phase4/qc/backbone_benchmark.csv are the
+  reference: five base years, the 2011s three-seed floor, one CONFIRMED-POSITIVE pair
+  (2016 in05 vs 2016 base, lidar input, the largest of the 3/3 confirmed deltas in
+  tier1_results.csv) and one NULL pair (2011s cor05 vs 2011s base, the flat corruption
+  dose inside the floor). Each is re-run on resnet18 and resnet50 with everything else
+  held: same tiles recipe (--force-citywide --sample-manifest, no hillshade except the
+  in05 arm's chm2005 band 4), same decoder (config.DECODER_CHANNELS), same epoch
+  budgets, same seeds. What would change our mind: the positive pair failing to read
+  positive, or the null pair reading positive, against the encoder's OWN three-seed
+  floor — then the small encoder cannot be trusted to rank recipes and search stays on
+  101. STATED CONFOUND (config.py, ENCODER AS A RUN FLAG block): every resnet101 arm
+  warm-started from the Phase-3 2020 base — a 2020-trained encoder AND decoder — while a
+  resnet18/50 arm has no such base and starts from ImageNet encoder weights with a
+  random decoder (warm_start stamp: p3_ckpt vs imagenet). Question (a) below therefore
+  measures encoder PLUS warm start; (b) and (c) are within-encoder reads and do not
+  carry that confound. A resnet101-from-ImageNet control arm would separate the two and
+  is recommended before (a) is read as an encoder effect.
+
+# Nine arms x two encoders. Tags: bb18_<treatment-tag> / bb50_<treatment-tag>, where
+# <treatment-tag> is the Tier-1 tag with its t1_ prefix dropped, so the pairing back to
+# backbone_benchmark.csv is by name. Per-year --sample-manifest goes LAST in each list:
+# the queue's missing-input check tests the final element as a path when it is not a
+# flag. Flags copied from the Tier-1 Phase-B queue shape (commit 4a04d62), which trained
+# and evaluated the reference arms; --force-citywide is the launch default.
+arms:
+  - {year: 2006s, tag: bb18_2006s_base, extra: [--encoder, resnet18, --no-hillshade, --sample-manifest, /content/drive/MyDrive/treedata/phase4/qc/sample_tiles_2006s.csv]}
+  - {year: 2011s, tag: bb18_2011s_base, extra: [--encoder, resnet18, --no-hillshade, --sample-manifest, /content/drive/MyDrive/treedata/phase4/qc/sample_tiles_2011s.csv]}
+  - {year: 2011s, tag: bb18_2011s_base_s2, extra: [--encoder, resnet18, --no-hillshade, --seed, '43', --sample-manifest, /content/drive/MyDrive/treedata/phase4/qc/sample_tiles_2011s.csv]}
+  - {year: 2011s, tag: bb18_2011s_base_s3, extra: [--encoder, resnet18, --no-hillshade, --seed, '44', --sample-manifest, /content/drive/MyDrive/treedata/phase4/qc/sample_tiles_2011s.csv]}
+  - {year: 2011s, tag: bb18_2011s_cor05, extra: [--encoder, resnet18, --no-hillshade, --add-canopy-mask, /content/drive/MyDrive/treedata/phase4/labels_corrected/add_corrupt5_2011s.tif, --sample-manifest, /content/drive/MyDrive/treedata/phase4/qc/sample_tiles_2011s.csv]}
+  - {year: "2016", tag: bb18_2016_base, extra: [--encoder, resnet18, --no-hillshade, --sample-manifest, /content/drive/MyDrive/treedata/phase4/qc/sample_tiles_2016.csv]}
+  - {year: "2016", tag: bb18_2016_in05, extra: [--encoder, resnet18, --hs-source, chm2005, --sample-manifest, /content/drive/MyDrive/treedata/phase4/qc/sample_tiles_2016.csv]}
+  - {year: 2019n, tag: bb18_2019n_base, extra: [--encoder, resnet18, --no-hillshade, --sample-manifest, /content/drive/MyDrive/treedata/phase4/qc/sample_tiles_2019n.csv]}
+  - {year: "2020", tag: bb18_2020_base, extra: [--encoder, resnet18, --no-hillshade, --sample-manifest, /content/drive/MyDrive/treedata/phase4/qc/sample_tiles_2020.csv]}
+  - {year: 2006s, tag: bb50_2006s_base, extra: [--encoder, resnet50, --no-hillshade, --sample-manifest, /content/drive/MyDrive/treedata/phase4/qc/sample_tiles_2006s.csv]}
+  - {year: 2011s, tag: bb50_2011s_base, extra: [--encoder, resnet50, --no-hillshade, --sample-manifest, /content/drive/MyDrive/treedata/phase4/qc/sample_tiles_2011s.csv]}
+  - {year: 2011s, tag: bb50_2011s_base_s2, extra: [--encoder, resnet50, --no-hillshade, --seed, '43', --sample-manifest, /content/drive/MyDrive/treedata/phase4/qc/sample_tiles_2011s.csv]}
+  - {year: 2011s, tag: bb50_2011s_base_s3, extra: [--encoder, resnet50, --no-hillshade, --seed, '44', --sample-manifest, /content/drive/MyDrive/treedata/phase4/qc/sample_tiles_2011s.csv]}
+  - {year: 2011s, tag: bb50_2011s_cor05, extra: [--encoder, resnet50, --no-hillshade, --add-canopy-mask, /content/drive/MyDrive/treedata/phase4/labels_corrected/add_corrupt5_2011s.tif, --sample-manifest, /content/drive/MyDrive/treedata/phase4/qc/sample_tiles_2011s.csv]}
+  - {year: "2016", tag: bb50_2016_base, extra: [--encoder, resnet50, --no-hillshade, --sample-manifest, /content/drive/MyDrive/treedata/phase4/qc/sample_tiles_2016.csv]}
+  - {year: "2016", tag: bb50_2016_in05, extra: [--encoder, resnet50, --hs-source, chm2005, --sample-manifest, /content/drive/MyDrive/treedata/phase4/qc/sample_tiles_2016.csv]}
+  - {year: 2019n, tag: bb50_2019n_base, extra: [--encoder, resnet50, --no-hillshade, --sample-manifest, /content/drive/MyDrive/treedata/phase4/qc/sample_tiles_2019n.csv]}
+  - {year: "2020", tag: bb50_2020_base, extra: [--encoder, resnet50, --no-hillshade, --sample-manifest, /content/drive/MyDrive/treedata/phase4/qc/sample_tiles_2020.csv]}
+
+# --force-citywide: polygons/ was overwritten with accept-all test data (CLAUDE.md §4);
+# every Tier-1 arm carried it and queue_verify refuses a fine-tier job without a label
+# source. Steps stop at evaluate on purpose — see decision_rule, "second queue shape".
+launch_defaults:
+  - --force-citywide
+steps: [labels, tile, train, evaluate]
+
+baseline: phase4/qc/backbone_benchmark.csv (the nine t1_* arms on resnet101)
+
+metric: >
+  PRIMARY: LOSO sample-test recall at held precision 0.75 (policy matched_p75) per arm,
+  from phase4/qc/arm_metrics.csv rows with ref ccap_2021_hires_lc.tif, canopy_def
+  forest_wetland, eval_scope sample-test — the identical basis as the resnet101 rows in
+  phase4/qc/backbone_benchmark.csv. Deltas are read arm minus its resnet101 twin, and
+  pair deltas within an encoder (in05 minus base; cor05 minus base). COST: wall-clock
+  minutes per step from the per-launch train_queue_status_*.csv ledger (column minutes)
+  and the step logs under phase4/logs/; peak GPU memory from the raw hw_{session}.csv
+  telemetry (gpu_mem_used_mb, sliced by the run_tag column of the v2 schema) — no
+  per-arm peak column exists yet and one must be harvested, not typed. SECONDARY:
+  best_f1 rows of the same population; the circular semantic_eval_report.csv row is
+  recorded (it now carries encoder + warm_start) but is never the headline.
+
+decision_rule: >
+  PRE-REGISTERED, before any arm has run. Three questions, answered per encoder.
+  (a) ABSOLUTE GAP: for each of the nine arms, small-encoder recall@p75 minus the
+  resnet101 row of backbone_benchmark.csv. Reported as a table with the encoder's own
+  floor beside it; a gap inside the floor is UNDETERMINED, never "no difference". This
+  number carries the warm-start confound stated in the hypothesis and is reported as
+  encoder-plus-warm-start until a resnet101-from-ImageNet control exists.
+  (b) SEED SPREAD: the encoder's own floor = max pairwise |delta| of recall@p75 among
+  bbNN_2011s_base, _s2, _s3, compared with the resnet101 spread row of
+  backbone_benchmark.csv (NOISE_FLOOR_2011s / spread / matched_p75). "Comparable" means
+  within 2x; a floor above 2x the reference says the small encoder is too noisy to rank
+  recipes at this sample size, regardless of (c).
+  (c) RANK AGREEMENT — the licensing question: the positive pair (bbNN_2016_in05 minus
+  bbNN_2016_base) must exceed the encoder's own floor from (b) with the SAME sign as
+  resnet101, and the null pair (bbNN_2011s_cor05 minus bbNN_2011s_base) must fall
+  inside it. If (c) holds for an encoder, recipe search is LICENSED on that encoder,
+  with resnet101 reserved for confirmation runs and deliverables; if it fails, search
+  stays on resnet101 and the failure mode (missed positive vs false positive) is
+  recorded. Two encoders can license independently; the cheaper one that passes wins.
+  SECOND QUEUE SHAPE: the primary metric needs the Phase-B2 inference over the sample
+  blocks (--infer-aoi science_sample_blocks.gpkg WITHOUT --sample-manifest, the Tier-1
+  commit ac0e79e shape), then qc/phase4_qc_indep.py scoring on the LOSO test blocks and
+  a harvest_arm_metrics re-run. Per-step flags are impossible in one queue job, so that
+  is a follow-up queue generated from this file with steps [inference]; (a)-(c) are not
+  readable before it runs. CANARY: each launch file runs a distinct-tag, 1+1-epoch copy
+  of the 2006s base arm FIRST (canary_bb18_2006s_base / canary_bb50_2006s_base) so one
+  full labels->tile->train->evaluate cycle lands under --encoder before the nine arms
+  spend; the canary's numbers are plumbing evidence only and are never scored.
+  GPU: the 2-concurrent-A100 cap; one queue file per A100.
+
+verdict: null
+decided: null
+
+instruments:
+  - Scripts/qc/instruments/backbone_benchmark.py
+  - Scripts/qc/instruments/harvest_arm_metrics.py
+inputs:
+  - phase4/qc/arm_metrics.csv
+  - phase4/qc/tier1_results.csv
+  - phase4/qc/science_sample_manifest.csv
+outputs:
+  - phase4/qc/backbone_benchmark.csv
+imagery: [2006s, 2011s, "2016", 2019n, "2020"]
+sample: >
+  The Tier-1 ground sample: 33 screened blocks split once (30 test, 2 train, 1
+  selection; phase4/qc/science_sample_manifest.csv), the same fixed blocks for every arm
+  and every encoder. Train and early-stop on the manifest tiles; scores read from the
+  test blocks only. Every arm re-tiles under its own tag (tile_dir_for keys on
+  {label}__{run_tag}); the offload pilot measured a re-tile as byte-identical, so the
+  tiles are the same set under a new name, at the cost recorded in extra.measured_cost.
+n: 30
+n_source: phase4/qc/science_sample_manifest.csv#rows:role=test
+
+supersedes: []
+superseded_by: []
+
+extra:
+  encoders: [resnet18, resnet50]
+  reference_encoder: resnet101
+  benchmark_arms_source: Scripts/qc/instruments/backbone_benchmark.py#BENCHMARK_ARMS
+  measured_cost: >
+    Per-step minutes for the resnet101 Tier-1 arms, read from
+    phase4/qc/ledger_recovery/train_queue_status_recovered_20260901_20260907.csv
+    (a recovered CANDIDATE ledger, docs/SCHEMAS.md) — A100-40GB for train/evaluate,
+    free CPU VMs for labels/tile: labels 5-15 min, tile 7-53 min (2020 in05/in16 at
+    30-53 min are the slow end; 2006s 7-12 min), train 19-28 min, evaluate 7-36 min.
+    At that shape one arm is ~60-90 min end to end, so nine arms plus a canary is
+    ~8-12 hours per A100 queue with labels+tile on the GPU runtime, of which
+    ~15-40 min per arm is tiling the GPU sits idle for. Train is expected faster on
+    resnet18/50 (fewer encoder FLOPs; the decoder is unchanged) — NOT measured yet,
+    which is what the wall-clock metric records. The Tier-1 campaign ran labels+tile
+    on CPU runtimes first (commit 7ef2f11) and only train+evaluate on the A100s
+    (4a04d62); the same split is available here by generating a CPU launch file with
+    steps [labels, tile] and launching the GPU files after VERIFY:tile is OK.
+  canary_tags: [canary_bb18_2006s_base, canary_bb50_2006s_base]
+  positive_pair: [bbNN_2016_in05, bbNN_2016_base]
+  null_pair: [bbNN_2011s_cor05, bbNN_2011s_base]

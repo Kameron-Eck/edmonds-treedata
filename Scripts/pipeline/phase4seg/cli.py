@@ -373,6 +373,16 @@ def main():
                         "the manifest and the checkpoint, because smp gives both the same "
                         "encoder.* prefix and a cross-load would be a partial load rather "
                         "than an error. Does NOT invalidate the tile cache.")
+    p.add_argument("--encoder", default=None, choices=list(config.ENCODER_CHOICES),
+                   help=f"smp encoder for the U-Net (default config.ENCODER = "
+                        f"{config.ENCODER}). A run flag, not a migration: the "
+                        f"backbone sweep (experiments/backbone_sweep.yaml) asks whether "
+                        f"recipe rankings survive on a small encoder. NOTE the warm "
+                        f"start changes with it — only {config.P3_CKPT_ENCODER} can "
+                        f"load the Phase-3 2020 base; any other encoder starts from "
+                        f"ImageNet encoder weights + a random decoder, and the manifest, "
+                        f"checkpoint and eval row record which (warm_start). Does NOT "
+                        f"invalidate the tile cache.")
     p.add_argument("--boundary-weight", type=float, default=None,
                    help="Weight on the signed-distance BOUNDARY loss (Kervadec), "
                         "added to the region loss in PHASE B ONLY; Phase A always "
@@ -560,7 +570,14 @@ def main():
                 # indistinguishable to every downstream reader. That had to land before
                 # a second architecture could exist at all.
                 "arch": str(getattr(config, "ARCH", "unet")).lower(),
-                "encoder": ENCODER,
+                # config.ENCODER, not the star-imported constant: --encoder sets the
+                # module attribute and a frozen copy would record the default.
+                "encoder": str(config.ENCODER),
+                # Where the fine-tune STARTED (2026-09-08): "p3_ckpt" (the 2020
+                # base, resnet101 only) or "imagenet" (encoder weights only, random
+                # decoder). Two arms with different values differ in the start as
+                # well as the encoder — the confound a reader must be told about.
+                "warm_start": str(getattr(config, "WARM_START", "") or ""),
                 "seed": int(RANDOM_SEED),
                 # T4: the two seeds are separate knobs and the manifest now says
                 # so. `seed` is training stochasticity; `split_seed` owns the
@@ -638,6 +655,16 @@ def main():
         print(f"  [--arch] {config.ARCH}"
               + ("  (ARM, not a migration — see config.ARCH)"
                  if config.ARCH != "unet" else ""))
+    if args.encoder is not None:
+        config.ENCODER = str(args.encoder)
+    # Warm-start kind is a function of (encoder, --ckpt) and nothing else, so it is
+    # resolved HERE — before the manifest is written — not inside step_train.
+    from phase4seg.ckpt import warm_start_kind
+    config.WARM_START = warm_start_kind(args.ckpt)
+    if args.encoder is not None:
+        print(f"  [--encoder] {config.ENCODER}  (warm start: {config.WARM_START}"
+              + (f" — no 2020-trained base for this encoder; ImageNet encoder + "
+                 f"random decoder" if config.WARM_START == "imagenet" else "") + ")")
     if args.boundary_weight is not None:
         config.BOUNDARY_WEIGHT = float(args.boundary_weight)
         print(f"  [--boundary-weight] {config.BOUNDARY_WEIGHT} on the signed-distance "
@@ -840,7 +867,12 @@ def main():
 
     p3 = resolve_p3_ckpt(args.ckpt)
     if "train" in per_year:
-        print(f"  Fine-tune start: {p3 if p3 else 'NOT FOUND — train will abort'}")
+        if config.WARM_START == "imagenet":
+            print(f"  Fine-tune start: ImageNet {config.ENCODER} encoder + random "
+                  f"decoder (no {config.P3_CKPT_ENCODER} base can load into this "
+                  f"encoder; --ckpt would override)")
+        else:
+            print(f"  Fine-tune start: {p3 if p3 else 'NOT FOUND — train will abort'}")
 
     # Process each year end-to-end (so a crash leaves complete years behind).
     for e in entries:

@@ -1,0 +1,13 @@
+Laserfiche WebLink full-text search — term: photogrammetric
+Retrieved manually via browser (Claude-in-Chrome), 2026-09-09.
+URL: https://weblink.edmondswa.gov/WebLink/Search.aspx?dbid=0&repo=Edmonds
+
+Results 1 - 10 of 10
+
+Both key contracts recur here: "King County 2015 Regional Aerials Funding Interlocal Agreement"
+and "Snohomish County 26-27 ILA - Urban Tree Canopy Mapping Project" — consistent with both
+being genuine geospatial-acquisition agreements that use the word "photogrammetric"/"orthophoto"
+terminology internally. Remaining hits are large 2013 City Council packets (964-2031 pages each)
+and a 2024-01-23 Council Packet / 2024-01-16 Council Minutes, not opened in this pass (likely
+boilerplate GIS-department budget or consultant-scope language), plus one unrelated permit
+critical-areas report. No additional distinct vendor contract surfaced.

@@ -1,0 +1,12 @@
+Laserfiche WebLink full-text search — term: NV5
+Retrieved manually via browser (Claude-in-Chrome), 2026-09-09.
+URL: https://weblink.edmondswa.gov/WebLink/Search.aspx?dbid=0&repo=Edmonds
+
+Results 1 - 13 of 13
+
+Top hit (and only relevant one): "Snohomish County 26-27 ILA - Urban Tree Canopy Mapping
+Project" (Contracts, 16 pages, Contract/Project Number IS-20260720-SNOCOTRMAP) — the same
+document found under "lidar". Confirms NV5 is named inside it (NV5 Geospatial, Inc. is DNR's
+lidar contractor, per the full text already retrieved as ila-3106507). The remaining 12 hits
+are unrelated building-permit records (drywall repairs, ADR files) with no connection to NV5.
+No separate/direct Edmonds-NV5 contract exists in this index.

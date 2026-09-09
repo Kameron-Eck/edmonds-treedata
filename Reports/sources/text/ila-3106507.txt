@@ -1,0 +1,767 @@
+INTERGOVERNMENTAL SERVICES AGREEMENT BETWEEN SNOHOMISH COUNTY AND pg. 1 
+________________ FOR THE URBAN TREE CANOPY MAPPING PROJECT 
+INTERGOVERNMENTAL SERVICES AGREEMENT BETWEEN SNOHOMISH COUNTY AND 
+CITY OF EDMONDS FOR THE URBAN TREE CANOPY MAPPING PROJECT 
+From Execution to July 2027 
+ 
+ 
+This Intergovernmental Services Agreement between Snohomish County and City of Edmonds for 
+Urban Tree Canopy Mapping Project (this Agreement), is made and entered into, by and between 
+Snohomish County, a political subdivision of the State of Washington (the County), and City of 
+Edmonds, a governmental subdivision of the State of Washington established pursuant to chapter 35A.12 
+RCW (the City of Edmonds). 
+ 
+RECITALS 
+ 
+A. WHEREAS, Snohomish County has established ambitious urban tree canopy goals, objectives, 
+and policies within the Natural Environment Element of the 2024 Comprehensive Plan; and 
+ 
+B. WHEREAS, strengthening the Countys urban tree canopy is essential to improving 
+environmental health, enhancing climate resilience, supporting stormwater management, and 
+promoting community well-being; and 
+ 
+C. WHEREAS, the County seeks to develop a comprehensive roadmap for implementing its urban 
+forestry objectives through improved data collection, mapping analysis, stewardship 
+programming, and public participation; and 
+ 
+D. WHEREAS, acquisition of high-definition LiDAR data will enable accurate tree canopy mapping 
+and support stormwater management efforts on county-owned and county-operated properties; 
+and 
+ 
+E. WHEREAS, successful implementation of the urban tree canopy goals will be furthered by 
+coordination with DNR and with cities and towns within Snohomish County; and 
+ 
+F. WHEREAS, the County entered into the Salmon Recovery Through Local Planning Grant 
+Agreement No. 26-63117-011 with the Washington Department of Commerce (Council Motion 
+No. 26-104), which provides funds to the County for the acquisition of LiDAR data; and 
+ 
+G. WHEREAS, the Washington Department of Natural Resources (DNR) has offered to enter into a 
+cost share agreement with the County to allow the County to receive LiDAR data and mapping 
+services from DNRs contractor, NV5 Geospatial, Inc.; and  
+ 
+H. WHEREAS, certain cities in Snohomish County (Participating Cities) desire LiDAR data for their 
+jurisdictions and have requested to enter into intergovernmental services agreements with the 
+County so they can acquire that data and pay their share of costs for the LiDAR data; and 
+ 
+I. WHEREAS, the City of Edmonds has requested to enter into this Intergovernmental agreement to 
+procure high-definition LiDAR data for the area within the city limits of City of Edmonds; and  
+ 
+ 
+J. NOW, THEREFORE, ON MOTION, the Snohomish County Council approves and authorizes the 
+County Executive to execute the Cost Sharing Agreement with DNR, attached as Exhibit B to this 
+motion, Contract No. 93-111079, in the amount of $304,606, and funded through the Salmon 
+Recovery Grant and the Snohomish County Council further approves and authorizes the County 
+
+=== PAGE BREAK ===
+
+INTERGOVERNMENTAL SERVICES AGREEMENT BETWEEN SNOHOMISH COUNTY AND pg. 2 
+________________ FOR THE URBAN TREE CANOPY MAPPING PROJECT 
+Executive to execute intergovernmental services agreements in the form provided with 
+Participating Cities.
+ 
+ 
+AGREEMENT 
+ 
+NOW, THEREFORE, in consideration of the respective agreements set forth below and for other 
+good and valuable consideration, the receipt and sufficiency of which are hereby acknowledged, the County 
+and the City of Edmonds agree as follows: 
+ 
+ 
+1.  PURPOSE OF AGREEMENT  
+ 
+The purpose of this Agreement is to facilitate the acquisition high-definition aerial data for tree 
+canopy mapping. The County has entered into an agreement with the Washington State Department 
+of Natural Resources (DNR) for LiDAR and imagery collection and geospatial mapping. The City 
+seeks that data for the incorporated area of the City and agrees to pay for the Countys provision of 
+that data to the City.  
+ 
+2.  DURATION OF AGREEMENT  
+  
+This Agreement shall remain in full force and effect for one year.  The term of this Agreement shall 
+commence upon execution and extend until June 2027 (the Term). The Countys obligations after 
+December 31, 2026, are contingent upon local legislative appropriation of necessary funds in 
+accordance with applicable laws and the Snohomish County Charter. 
+ 
+ 
+3.  SCOPE OF WORK  
+ 
+The scope of work is as described in Exhibit A to this Agreement. The County will not be required 
+to perform work for the City of Edmonds in excess of work specified in Exhibit B except by mutual 
+agreement to a written amendment to this Agreement. 
+ 
+4.  PERFORMANCE  
+ 
+The County agrees to satisfy all aspects of this Agreement in a timely and professional manner.  At 
+any time that the County cannot fulfill its responsibilities under this Agreement, the County shall 
+notify the City of Edmonds thereof in writing, together with an explanation of why said 
+responsibilities cannot be fulfilled.   
+ 
+5.  SUBCONTRACTING 
+ 
+The County has entered into a Cost Sharing Agreement with the Washington Department of Natural 
+Resources for LiDAR and imagery collection and geospatial mapping, as described in Exhibit B to 
+this Agreement.   
+6.  ADMINISTRATION OF AGREEMENT 
+ 
+
+=== PAGE BREAK ===
+
+INTERGOVERNMENTAL SERVICES AGREEMENT BETWEEN SNOHOMISH COUNTY AND pg. 3 
+________________ FOR THE URBAN TREE CANOPY MAPPING PROJECT 
+  Each party to this Agreement shall designate an individual who may be designated by title or 
+position to oversee and administer such partys participation in this Agreement. The parties initial 
+Administrators shall be the following individuals: 
+   
+Countys Initial Administrator:  City of Edmonds Initial Administrator: 
+Eric Smith, DCNR, OES 
+Snohomish County Dept. of Public Works 
+3000 Rockefeller Ave, M/S 607 
+Everett, WA 98201    
+  
+David Rohde 
+City of Edmonds 
+121 5th Ave N 
+Edmonds, WA 98020 
+ 
+7.  COMPENSATION  
+ 
+The compensation due to the County under this Agreement shall in no event exceed ($3,300).  
+The City of Edmonds shall have no obligation to pay any invoice from the County that would 
+cause the total payments made to the County under this agreement to exceed $3,300. 
+ 
+ 
+8.   INVOICING AND PAYMENT  
+ 
+  The County shall submit an invoice to the City of Edmonds on delivery of work product. The costs 
+for work completed on the City of Edmondss portion of the project as outlined in the scope of 
+work shall be included on the invoice.  The City of Edmonds shall pay the invoice within (20) days 
+of receipt.  The invoice shall be sent to the following address: 
+ 
+  Nori Jacobson 
+nori.jacobson@edmondswa.gov 
+121 5th Ave N 
+  Edmonds, WA 98020 
+ 
+9.   AUDIT AND INSPECTION 
+ 
+ The City of Edmonds shall maintain records pursuant to this Agreement in accordance with 
+generally accepted accounting principles and practices consistently applied.  The City of 
+Edmondss records shall be available for inspection and audit by the County, the State Auditor, 
+federal auditors, and any persons duly authorized by the parties.  The City of Edmonds shall 
+preserve and make such records available to said parties until expiration of six (6) years from the 
+date of final payment under this Agreement. 
+  
+10.  ENTIRETY OF AGREEMENT 
+ 
+ This Agreement constitutes the entire agreement between the County and the City of Edmonds and 
+supersedes all proposals, oral and written, and all other communication between the parties in 
+relation to the subject matter of this Agreement.  No other agreement exists between the County 
+and the City of Edmonds with regards to the instant subject matter except as expressly set forth in 
+this instrument. Except as otherwise provided herein, no modification of this Agreement shall be 
+effective until placed in writing and executed by both parties. 
+ 
+11.  AGREEMENT ALTERATIONS AND AMENDMENTS 
+
+=== PAGE BREAK ===
+
+INTERGOVERNMENTAL SERVICES AGREEMENT BETWEEN SNOHOMISH COUNTY AND pg. 4 
+________________ FOR THE URBAN TREE CANOPY MAPPING PROJECT 
+ This Agreement may be altered or amended by mutual agreement of both parties.  Such alterations 
+or amendments shall not be binding unless they are in writing and signed by personnel authorized 
+to bind each of the parties.  
+ 
+12. TERMINATION  
+ 
+A. In the event DNR terminates the LiDAR agreement with the County (Exhibit B), the County 
+may, without advance notice and without liability for damages, terminate this Agreement by 
+providing written notice to the City. The termination shall be effective on the date specified in 
+the termination notice. The obligation of the City of Edmonds to make final payment shall 
+survive the termination of this Agreement.  
+B. Either party may terminate this Agreement at any time on or before July 17, 2026. If this 
+Agreement is so terminated, the parties shall be liable only for performance rendered or costs 
+incurred in accordance with the terms of this Agreement prior to the effective date of 
+termination.  
+ 
+ 
+13.  RESPONSIBILITIES OF THE PARTIES  
+  
+ Each party to this Agreement hereby assumes responsibility for claims and/or damages to persons 
+and/or property resulting from any act or omission on the part of itself, its employees, its officers, 
+and its agents. Neither party assumes any responsibility to the other party for the consequences of 
+any claim, act or omission of any person, agency, firm, or corporation not a party to this Agreement.  
+ 
+14.  RIGHTS AND REMEDIES 
+A. In no event shall any payment by the City of Edmonds to the County constitute a waiver by the 
+City of Edmonds of any breach of covenant or any default that may exist on the part of the 
+County.  The making of any such payment by the City of Edmonds while any such breach or 
+default exists shall in no way impair or prejudice any of the City of Edmondss rights and 
+remedies, hereby expressly recognized, to recover payments or portions thereof, to which the 
+County was not entitled under this Agreement, where any payments were made by mistake, or 
+to pursue any other remedy available to the City of Edmonds with respect to breach or default 
+of this Agreement. 
+ 
+B. Performance pursuant to this Agreement may, where appropriate, be offered in satisfaction of 
+an obligation, duty, or responsibility conveyed to the County or the City of Edmonds where 
+allowed by law.  The City of Edmonds, where legally authorized, may delegate any 
+responsibility to the County where contemplated under an Appendix or included in the scope 
+of work. 
+ 
+15.  HOLD HARMLESS 
+ 
+ The City of Edmonds agrees to protect, defend and hold harmless the County, its elected and 
+appointed officials, employees and agents, from and against all claims, demands and causes of 
+action of any kind or character, including any cost of defense and attorneys fees, arising out of any 
+actions, errors or omissions of the City of Edmonds, its officials, employees and agents in 
+performing this Agreement except for those arising out of the negligence of the County. 
+ 
+
+=== PAGE BREAK ===
+
+INTERGOVERNMENTAL SERVICES AGREEMENT BETWEEN SNOHOMISH COUNTY AND pg. 5 
+________________ FOR THE URBAN TREE CANOPY MAPPING PROJECT
+16.  RELATIONSHIP TO EXISTING LAWS 
+ This Agreement is entered into pursuant to and under the authority granted by the laws of the state of 
+Washington and any applicable federal laws.  The provisions of this Agreement shall be construed to conform 
+to those laws.   In the even to of an inconsistency in the terms of this Agreement, or between its terms and 
+any applicable statue or rule, the inconsistency shall be resolved by giving precedence in the following order: 
+1. Applicable state and federal statues and rules; 
+2. Any provisions of the Grant funding associated with the Agreement; 
+3. Statement of Work; and 
+4. Any other provisions of the Agreement, including materials incorporated by reference. 
+ The parties stipulate that any lawsuit regarding this Agreement must be brought in Snohomish County, 
+Washington. 
+17.  NONASSIGNMENT 
+ The County shall not subcontract, assign or delegate any of the rights, duties or obligations covered by this 
+Agreement without prior express written consent by the City of Edmonds. 
+18.  SEVERABILITY 
+ If any provision of this Agreement is held invalid, the remainder of this Agreement shall not be affected 
+thereby if such remainder would then continue to serve the purposes and objectives of the Agreement as 
+determined by the County. 
+19.  MISCELLANEOUS 
+A. No obligation in this Agreement shall limit the City of Edmonds in fulfilling its responsibilities otherwise 
+defined by law. 
+B. No obligation in this Agreement shall limit the County in fulfilling its responsibilities otherwise defined 
+by law. 
+IN WITNESS WHEREOF, the County and the City of Edmonds have executed this Agreement as of the date of the 
+last party to sign. . 
+SNOHOMISH COUNTY: CITY OF EDMONDS: 
+By:   
+  
+By:  
+County Executive  Title: 
+Approved as to Form:   
+Deputy Prosecuting Attorney   
+Acting IT Supervisor
+7/16/2026
+
+=== PAGE BREAK ===
+
+INTERGOVERNMENTAL SERVICES AGREEMENT BETWEEN SNOHOMISH COUNTY AND pg. 6 
+________________ FOR THE URBAN TREE CANOPY MAPPING PROJECT 
+EXHIBIT A 
+SCOPE OF WORK AND BUDGET 
+ 
+ 
+Scope of Work 
+1. The County will administer the cost sharing agreement with WA DNR, which is attached hereto 
+as Exhibit B. 
+2. The County will invoice the City and manage payment of the WA DNR contract.  
+3. The County will oversee validation and verification of work product by DNRs contractor. 
+4. The County will receive the data from WA DNR and transmit the applicable data to the City. 
+ 
+Budget 
+$3,300 
+
+=== PAGE BREAK ===
+
+Cost Share Agreement – DNR #93-111079 
+Page | 1 
+DNR Contract No. 93-111079 
+Snohomish County Contract No. 2026 DNR-OES Cost Share Agreement 05062026 
+In accordance with Chapter 39.34 RCW, Washington State Department of Natural Resources 
+(DNR) and Snohomish County agree to a Cost Share Agreement, hereafter, “Agreement” for 
+Lidar and imagery collection and geospatial mapping (“Lidar services”).  
+DNR contracted with NV5 Geospatial, Inc. (DNR Contract #93-102831) for remote sensing 
+services, including collection of Lidar data, processing, quality assurance (QA) / quality control 
+(QC), and delivering Lidar and derivative products, and other remote sensing data for natural 
+resource mapping. DNR #93-102831 allows other state agencies, local and tribal governments, 
+and private companies access to this contract through specific Work Orders. Snohomish County 
+is entering into this Agreement with DNR for a specific Work Order that provides Snohomish 
+County with Lidar services.
+ 
+DNR and Snohomish County: 
+1. Snohomish County wishes to acquire certified Lidar data and derivatives for 823 square
+miles of area through DNR’s contract with NV5 Geospatial, Inc.
+2. Per the Agreement, DNR will act as the agent for this purchase.
+3. Th
+is Agreement covers services for the collection, processing, and delivery of Lidar data
+and derivative products provided by a specific work order between DNR and NV5
+Geospatial, Inc.  which is outlined in the attached Exhibit A – NV5 Geospatial, Inc.
+proposal, titled Snohomish County Leaf-on Lidar Mapping Services, Washington, dated
+April 15, 2026.
+4. T
+he total cost expected from Snohomish County will not exceed Three Hundred Four
+Thousand Six Hundred Six Dollars ($304,606) which reflects the following costs:
+• $260,739 f
+or Snohomish County for unincorporated areas – 704.7 Square Miles
+• $1,103 for the City of Stanwood – 2.9 Square Miles
+• $7,792 for the City of Marysville -21.06 Square Miles
+• $3,682 for the City of Arlington – 9.95 Square Miles
+• $821 for the City of Granite Falls – 2.22 Square Miles
+• $2,346 for the City of Mukilteo – 6.34 Square Miles
+• $13,146 for the City of Everett – 35.53 Square Miles
+• $1,473 for the City of Snohomish – 3.98 Square Miles
+• $4,362 for the City of Lake Stevens – 11.79 Square Miles
+• $810 for the City of Brier – 2.19 Square Miles
+Cost Share
+Agreement        
+EXHIBIT B
+
+=== PAGE BREAK ===
+
+Cost Share Agreement – DNR #93-111079 
+Page | 2 
+ 
+• $5,032 for the City of Bothell – 13.60 Square Miles 
+• $3,300 for the City of Edmonds – 8.92 Square Miles  
+ 
+5. No later than July 17, 2026, Snohomish County may notify DNR of a reduction in the 
+scope and cost of this Agreement due to one or more cities identified in Section 4 opting 
+out of participation. This notification must be delivered via email to Abigail Gleason, 
+Abigail.Gleason@dnr.wa.gov 360-902-1560. Snohomish County and DNR agree that the 
+geographic scope and cost of this Agreement will be reduced by the dollar amount and 
+square mileage listed in Section 4 associated with any city identified as no longer 
+participating. Any modification to this Agreement must be made in writing by an 
+amendment and executed by both parties.  
+ 
+6. The period of performance for this agreement is July 17, 2026, or the date of execution, 
+whichever is later, to January 31, 2027.  
+ 
+7. DNR shall submit two invoices for Snohomish County’s share of the services, the first after 
+successful collection and submission of a collection status report, and the second after 
+delivery and acceptance of the data and deliverables by DNR. Payment for the approved 
+good/services will be made by check, warrant or account transfer within 30 days of receipt 
+of the invoice. Upon expiration of the Agreement, invoice shall be paid, if received within 
+30 days after the expiration date. However, invoices for all work done within a fiscal year 
+must be submitted within 30 days after the end of the fiscal year. 
+ 
+8. This Agreement may be revoked at any time in writing by either party, provided, however, 
+Snohomish County agrees to pay for any services rendered under this Agreement prior to 
+termination. 
+ 
+ 
+Accepted for: Snohomish County 
+ 
+Accepted for: Washington State Department of 
+Natural Resources 
+ 
+   
+   
+Date:   Date:  
+ 
+ 
+ 
+ 
+ 
+Teigen, 
+Thomas
+Digitally signed by Teigen, 
+Thomas 
+Date: 2026.06.24 
+17:06:19 -07'00'
+Executive Director 
+7/22/2026
+EXHIBIT B
+
+=== PAGE BREAK ===
+
+Cost Share Agreement – DNR #93-111079 
+Page | 3 
+ 
+Exhibit A – NV5 Geospatial, Inc. Proposal for Lidar Collection, dated April 15, 2026 
+ 
+RE: Snohomish County Leaf-on Lidar Mapping Services, Washington 
+NV5 Geospatial , Inc.  appreciates the opportunity to present Washington State Department of 
+Natural Resources (DNR) and project partners with a quote and brief Statement of W ork for 
+geospatial mapping services over a substantial area of Snohomish County. The following provides 
+an overview of services, including product deliverables and timeline. All specifications and 
+deliverables follow those outlined in the NV5G , Inc. proposal response to the Lidar Request for 
+Proposal (RFP) No. 22-03 issued by DNR (WGS RFP).  
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+Figure 1:  Limits of the Area of Interest (AOI) in green.  AOI is approximately 823 square miles (526,720 acres). 
+Technical Approach 
+NIR (Topographic) Lidar  
+NV5G, Inc. will collect NIR Lidar data using a high pulse 
+rate Lidar system to produce a highly accurate, high 
+resolution ≥ 8 pulses/m2 Lidar dataset with no gaps and 
+ample buffers (at least 100m) around project boundaries.  
+This state-of-the-art sensor is ideal for yielding a high 
+density, multi -return Lidar point cloud suitable forest 
+canopy mapping.  Data will be collected at a minimum of 40º field of view (+/- 20º from nadir), with at 
+sufficient overlap among swaths to minimize gaps and laser shadowing.  
+The Lidar system records up to four range measurements (returns) per pulse (first, second, third, and last). 
+All overlapping flight lines will be flown in opposing directions to maximize detection of swath -to-swath 
+inconsistencies and used to resolve system misalignments. Using a combination of automated and manual 
+techniques that are tailored to the particular land cover and terrain of the study area, Lidar processing will 
+Lidar Specifications Summary 
+Multi-Swath Pulse Density ≥ 8 pulses/m2 
+Returns Collected Per Laser 
+Pl  
+At least 3 
+Intensity Range 1-65535 (16 bit) 
+Vertical Accuracy (σ), slope 
+20o 
+≤ 10 cm 
+Horizontal Accuracy (σ) ≤ 30 cm 
+EXHIBIT B
+
+=== PAGE BREAK ===
+
+Cost Share Agreement – DNR #93-111079 
+Page | 4 
+ 
+include kinematic corrections, calculation of laser point position, relative accuracy testing and calibrations, 
+classification of ground and non- ground points, assessments of statistical absolute accuracy, and creation 
+of ground surface models.     
+ 
+Survey Control 
+NV5G, Inc., survey team will perform the ground survey work. Depending on acquisition logistics 
+(configuration of sites, access, schedule, and weather), the NV5G, Inc. team will use one or more 
+appropriate methods to enable geo- spatial correction of aircraft positional coordinate data. These include 
+conventional base supported (‘BS’) survey control, TerraPos Precise Point Positioning (‘PPP’), or Trimble 
+CenterPoint Post-Processed Real-Time Extended (‘PP-RTX’). To verify Lidar point calibration and enable 
+accuracy assessment, the NV5G, Inc. field crew will collect ground check points (GCPs) using GPS-based 
+real-time kinematic (RTK) survey techniques. For an RTK survey, the NV5G, Inc. ground crew uses a 
+roving unit to receive radio-relayed corrected positional coordinates for all ground points from a GPS base 
+unit set up over a survey control monument. The roving unit records precise location measurements with 
+an error (σ) of ≤3 cm relative to the base control.  The NV5G, Inc. team will distribute a suitable number 
+of hard, bare earth ground check points (GCPs) on level slope throughout project areas, as feasible given 
+road access and GPS conditions.   
+ 
+NV5G, Inc. will collect checkpoints for the Non-vegetated Vertical Accuracy/Vegetated Vertical 
+Accuracy (NVA/VVA) calculations.  All checkpoints for VVA will fall within the DEM footprint.  All 
+ground survey operations will be conducted under the supervision of a Washington State Professional 
+Licensed Surveyor who will also certify the 
+accuracy of control monument locations.  
+The techniques for establishing all ground 
+check points will be outlined in the Report 
+of Survey, including the identity, locations, 
+and position residuals of all GCPs used to evaluate survey accuracy.  The following vertical accuracies 
+will be met or exceeded:   
+ 
+o RMSEZ ≤ 10 cm (non-vegetated Swath, DEM) 
+o NVA ≤ 19.6 cm 95% Confidence Level (Swath, DEM) 
+o VVA ≤ 30 cm 95th Percentile (DEM) 
+ 
+Processing 
+Generally, Lidar processing tasks include GPS control computations, kinematic corrections, calculation of 
+laser point position, calibration for optimal relative and absolute accuracy, classification of ground and non-
+ground points, and creation of ground/DSM models.  Bare  earth classification is accomplished using an 
+automated ground modeling process with visual QA/QC inspection to identify any misclassifications.  
+NV5G, Inc. will employ Lidar ground model parameters appropriate for the project land cover and terrain 
+based on  past experience. All methodology and subsequent data products will comply with the most recent 
+U.S. Geological Survey (USGS) Lidar Base Specifications. 
+The bare earth Digital Elevation Model (DEM) will be hydro- flattened to ensure all water bodies are 
+cartographically acceptable and that streams are at or below surrounding terrain. The Riffe Lake edge of 
+water will be defined by the water level at the tim e of the fall collection.  NV5G, Inc. hydroflattening 
+Area NVA 
+Count 
+VVA 
+Count 
+Checkpoints 
+(823 square miles/526,720 
+acres) 
+50+ 30+ 20 
+EXHIBIT B
+
+=== PAGE BREAK ===
+
+Cost Share Agreement – DNR #93-111079 
+Page | 5 
+ 
+methods use a combination of automated feature edge detection and traditional LiDARgrammetric 
+techniques. The 3 -D hydro-line will be used for reclassifying ground points within the wetted area or 
+channel to ‘water.’  Ponds and lakes > 2 acres in size will be hydroflattened at a single elevation with the 
+entire water surface edge at or below the immediate surrounding terrain.  Long impoundments whose 
+elevations drop moving downstream will be treated as a river.  For rivers > 30 m (100’) in average width, 
+hydro-lines will follow the direction of flow (gradient to follow the immediate surrounding terrain) and will 
+be flat and level from bank to bank and at or below immediately surrounding terrain.  Streams will break at 
+road crossings, but road fills will not be removed from the DEM.  Bridges will be delineated and removed 
+from the DEM.  Variations in water surface elevation from tidal variations will not be removed.  However, 
+a pseudo-line (no elevation values) will be generated along the tidal shoreline to depict a best estimate of 
+the water’s edge at time of collection.   
+ 
+QA/QC of Lidar and Derived Products 
+During both the planning and processing phases, all personnel involved operate under the guidance of the 
+quality manual which follows principles of the QMS. In addition to outlining responsibilities, 
+accountability, and reporting requirements throughout the life of a project, the Project Execution Plan 
+outlines quality control checks for each phase of execution including detailed QC procedures. 
+Accuracy Analysis and Reporting: Absolute accuracy assessments will compare the x, y, z locations of 
+known ground survey points (not clustered) to the triangulated ground surface generated from the L idar 
+points. Accuracies are described as the mean and standard deviation (sigma~s) of divergence from ground 
+survey point coordinates. All accuracy statistics (RMSEz, Accuracyz - 1.96 s, skewness/distribution, and 
+percentile deviations) are reported in the Report of Survey. 
+ 
+ 
+Figure 2.  NV5 Geospatial, Inc’s Lidar quality control approach. 
+ 
+NV5 Geospatial, Inc. staff play an important role in the quality control system, and we empower employees 
+to take ownership of project quality by training all NG5G Inc. team members to participate in quality 
+checks. Each employee is given a clear understanding of the quality expectations for the processes they 
+participate in, allowing them to rapidly identify any potential problems and resolve them with minimal 
+impact to the project schedule. 
+EXHIBIT B
+
+=== PAGE BREAK ===
+
+Cost Share Agreement – DNR #93-111079 
+Page | 6 
+ 
+ 
+Metadata and Reports 
+NV5 Geospatial, Inc. will generate Federal Geographic Data Committee (FGDC)-compliant metadata for 
+all geospatial data products at the project level for each product. These files will be analyzed to confirm 
+accurate data generation and naming. Each dataset produced will include a metadata document in 
+compliance with the FGDC Content Standards for Digital Geospatial Metadata. NV5 Geospatial, Inc. will 
+describe the production process, the project specifications, and a variety of other factors that led to the 
+generation of a digital deliverable. Once a metadata template has been comp iled for a geospatial product, 
+and all data quality tests have been completed successfully, the metadata will be evaluated for compliance 
+with FGDC standards. The NV5 Geospatial , Inc. t eam checks the compliance of metadata records using 
+various FGDC recognized and proprietary tools. 
+Deliverables 
+All geospatial data products will be delivered in Washington State Plane South, North American Datum 
+of 1983 NAD83 High Accuracy Reference Network (HARN), North American Vertical Datum of 1988 
+NAVD88 (Geoid 12b), US Survey Feet.  All Lidar products will follow the most current version of USGS 
+Lidar Based Specification Deliverables. 
+ 
+Classified Point Cloud 
+• Fully compliant LAS v1.4, Point Record Format 6, 7, 8, 9, or 10 including “File Source ID.” 
+• Proper use of the LAS (Laser) withheld and overlap bits is required. Outlier, blunders, geometrically 
+unreliable points near the extreme edge of the swath, and any other points the data producer deems 
+unusable are to be identified using the withheld bit flag, as defined in LAS specification version 1.4-
+R13 (ASPRS, 2011).Use of the overlap bit flag is intended to identify overage points, which are 
+described as those points within a given swath that would be excluded when constructing a coverage 
+with a uniform depth of swaths at any location within the project. 
+• Georeferenced information included in LAS header Open Geospatial Consortium (OGC) Well-Known 
+Text (WKT). 
+• GPS times are to be recorded as Adjusted GPS Time, at a precision sufficient to allow unique 
+timestamps for each return. In compliance with LAS specification requirements, the encoding tag in 
+the LAS header must be properly set. 
+• Tiled delivery, without overlap  
+• Classification Scheme (minimum): 
+o Class 1 – Processed, but unclassified 
+o Class 2 – Bare-earth ground 
+o Class 7 – Low Noise (low, manually identified, if necessary) 
+o Class 9 — Water 
+o Class 17 — Bridge Decks 
+o Class 18 – High Noise (high, manually identified, if necessary) 
+o Class 20 — Ignored Ground (Break line Proximity) 
+o Class 21 – Snow (where reliably identified) 
+o Class 22 – Temporal Exclusion (typically non-favored data in intertidal zones) 
+ 
+Class 1 will be used for feature points that are not in Classes 2, 7, 8, 9, 10, 17 or 18. These typically 
+represent returns from man-made structures, vegetation etc. 
+ 
+Class 7 will be used for artifacts that do not represent the ground, manmade structures or vegetation. 
+Typically, these are extraneous points that are below the surface not representing any true feature. 
+ 
+Class 18 will be used for artifacts that do not represent the ground, manmade structures or vegetation.  
+ 
+EXHIBIT B
+
+=== PAGE BREAK ===
+
+Cost Share Agreement – DNR #93-111079 
+Page | 7 
+ 
+Typically, these are extraneous points that are well above the surface not representing any true 
+feature. No points will be deleted from the LAS file. 
+ 
+Hydro-flattened Bare Earth Surface (Raster DEM) 
+• Cell Size no greater than 1.5 U.S. Survey Feet for QL1, and no less than the design Aggregate Nominal 
+Pulse Spacing (ANPS). 
+• Delivered in industry-standard, GIS-compatible, 32-bit floating point raster format in GeoTiff Format. 
+• Georeferenced information will be included in raster file 
+• Tiled delivery, without overlap or gaps 
+• Tiles will be suitable for creating seamless data mosaics 
+• DEM tiles will show no edge artifacts or mismatch 
+• Void areas (i.e., areas outside the project boundary but within the tiling scheme) will be coded using 
+a unique “NODATA” value. This value will be identified in the appropriate location within the file 
+header. 
+• A report on the assessed absolute vertical accuracy (NVA and VVA) of the bare- earth surface in 
+accordance with the guidelines set forth in the “Positional Accuracy Standards for Digital Geospatial 
+Data” (American Society for Photogrammetry and Remote Sensing (ASPRS), 2014). Absolute vertical 
+accuracy requirements using the ASPRS methodology for the bare-earth DEM are listed in “Absolute 
+vertical accuracy for digital elevation models, Quality Level 0–Quality Level 3” (table 5). 
+• Depressions (sinks), natural or man -made, are not to be filled (as in hydro- conditioning and hydro-
+enforcement). 
+• Water Bodies (ponds and lakes), wide streams and rivers (“double -line”), and other non- tidal water 
+bodies as defined in Section III are to be hydro-flattened within the DEM.  
+• Bridges (as defined in the USGS Lidar Base Specification V2.0) will be removed from the DEM. 
+Roads or other travel ways over culverts will remain intact in the surface. 
+• The bare earth surface below a bridge will be a continuous logical interpolation of the apparent non-
+hydrographic terrain lateral to the bridge deck. Where abutments are clearly visible, the bare earth 
+interpolation will begin at the junction of the bridge deck and approach structure. Where this junction 
+is not clear, NV5G, Inc. will use their best judgment to delineate the separation of below-bridge terrain 
+from elevated bridge surface. 
+• No geometric change will be made to the originally computed Lidar points. Bare -earth Lidar points 
+that are near break lines will be classified as Ignored Ground (class value equal to 10) and will be 
+excluded from the DEM generation process. This process pr events unnatural surface artifacts from 
+being created between mass points and break line vertices. The proximity threshold for reclassification 
+as Ignored Ground is at the discretion of the data producer, but in general will not exceed the ANPS. 
+• Streams, rivers, and water bodies meeting the criteria for hydro- flattening will be monotonically 
+continuous where bridge decks have been removed. 
+• Any break lines used to enforce a logical terrain surface below a bridge will be considered a required 
+deliverable. 
+ 
+Digital Surface Model (DSM) product will have same resolution, format and tiling specifications as the 
+Raster DEM. 
+ 
+Break Lines: 
+• Break lines for all hydro- flattened areas will be delivered, regardless of technique used for hydro -
+flattening the DEM. 
+• Break lines will be delivered in Esri  file geodatabase formats, as PolylineZ and PolygonZ feature 
+classes, as appropriate to the type of feature represented and the methodology used by the data 
+producer. 
+• Break lines will be developed to the limit of the buffered project boundary area. 
+EXHIBIT B
+
+=== PAGE BREAK ===
+
+Cost Share Agreement – DNR #93-111079 
+Page | 8 
+ 
+• Break lines will be delivered in the same coordinate reference system and units (horizontal and 
+vertical) as the Lidar point delivery. 
+• Break line delivery may be in a single layer or in tiles, at the discretion of the data producer. 
+• In the case of tiled deliveries, all features will edge- match exactly across tile boundaries in both the 
+horizontal (x, y) and vertical (z) spatial dimensions. 
+• Delivered data will be sufficient for the USGS to effectively re- create the delivered DEMs using the 
+Lidar points and break lines without substantial editing. 
+ 
+Intensity Image 
+• 1.5 U.S. Survey Feet cell size 
+• Intensities 16-bit, linear rescaled 
+• Image 8-bit, 256 color gray scale and GeoTIFF format 
+• Images will be tiled to match the Classified LAS and DEMs. 
+ 
+Delivery Diagram: A final project-wide delivery diagram is required for QL1 projects over 1,000 square 
+miles. At the completion of acquisition NV5G, Inc. will supply a diagram delineating the delivery blocks.  
+ 
+Metadata: Task Order requirements will be met and generally include: 
+• Ancillary products used to support processing of the Lidar dataset will be delivered. 
+• Collection Report detailing mission planning and flight logs. Additionally, a flight index will be 
+delivered as an Esri  file geodatabase. Flight index will contain flight line ID, acquisition date, start 
+time and end time for each flight line. 
+• Georeferenced, polygonal extents detailing actual coverage of each of the Lidar swaths will be 
+delivered as defined in the referenced Version 1.3 specification. Esri geodatabase is required. 
+• Survey Report detailing the collection of control and reference points used for calibration and QA/QC. 
+• Processing Report detailing calibration, classification, and product generation procedures including 
+methodology used. 
+• QA/QC Reports (detailing the analysis, accuracy assessment and validation of: 
+o The point data (absolute, within swath, and between swath)  
+o The bare-earth surface (absolute) 
+o All other optional deliverables, if appropriate 
+• Control points and check points: All control and check points used to calibrate, control, process, and 
+validate the Lidar point data or any derivative products are to be delivered.  
+• Geo-referenced, digital spatial representation of the precise extents of each delivered dataset. This 
+should reflect the extents of the actual Lidar source or derived product data, exclusive of Triangular 
+Irregular Network (TIN) artifacts or raster NODATA areas. A union of tile boundaries or minimum 
+bounding rectangle is not acceptable. Esri Polygon shapefile is preferred. 
+• Product metadata FGDC compliant, XML format metadata). One file for each: 
+o Tiled deliverable product group (classified point data, bare -earth DEMs, etc.) Product group 
+metadata should contain contents unique and specific to that product group, a renamed copy of the 
+project level metadata is not sufficient. Metadata files for individual tiles are not required.  
+ 
+Note that the NGP version 1.3 of the Lidar Base Specification, has a modified XML metadata template to 
+reflect other updates in the specification, careful review is advised. 
+ 
+Project Report: NV5G, Inc. will deliver a production report which details: 
+• A record of field work procedures. 
+• Data derivation and adjustments. 
+• Quality control procedures and results. 
+• Any problems encountered, and solutions used in resolving such problems. 
+EXHIBIT B
+
+=== PAGE BREAK ===
+
+Cost Share Agreement – DNR #93-111079 
+Page | 9 
+ 
+• Statistical report summarizing the results of the airborne GPS adjustment and the overall accuracy of 
+the adjusted Inertial Measurement Unit (IMU) data. 
+• Production report will be Microsoft Word, Adobe PDF format or another compatible digital format. 
+ 
+Acquisition Reports: NV5G, Inc. will provide regular progress updates to the technical point of contact 
+throughout the data acquisition process.  
+• Update frequency will be based upon the collection period, but no less that once a week.  
+• Reports will be delivered as shapefiles which represent the geographic extent of the acquired data.  
+• Updates will commence at acquisition onset and will continue until acquisition is complete 
+ 
+Projection Information 
+• Washington State Plane South, NAD83 (HARN), NAVD88 (Geoid 12b), US Survey Feet 
+ 
+Tiling Scheme 
+DNR Format: All geospatial products will be delivered in a 4500 x 4500-foot tiling scheme unless otherwise 
+specified.  Esri grids and shapefiles will have complete and correct associated projection files. Tiled products 
+will be edge matched, without gaps or overlap. 
+ 
+Vectors 
+• Survey boundary, shapefile format 
+• Tile layout, shapefile format 
+ 
+Reporting 
+• Final Project Report including:  Methods, Results, Survey and Accuracy Assessments 
+• FGDC-CSDGM compliant Metadata 
+Schedule & Timeline 
+NV5G, Inc. will work with DNR and project partners to coordinate data collection to coincide with optimal 
+weather conditions and as best meets the needs of the project.  Collection will occur during leaf on  
+conditions in mid-June to July 2026. Lidar products will be delivered 90 business days from the date of 
+successful acquisition and receipt of survey.   
+Cost Estimate 
+Costs are provided below for the study area portrayed in Figure 1 above, assuming timeline and deliverables 
+listed above.  Changes in the size and/or shape of the area of interest as well as changes to the products 
+below will result in modifications to the cost structure.  Costs include mobilization, acquisition, survey, 
+processing to products and reporting.  
+  
+ 
+ Snohomish County and Partners Project Limits (823 square miles) Cost 
+Unincorporated County (704.7 square miles) $260,739 
+Stanwood (2.98 square miles) $1,103 
+Marysville (21.06 square miles) $7,792 
+Arlington (9.95 square miles) $3,682 
+EXHIBIT B
+
+=== PAGE BREAK ===
+
+Cost Share Agreement – DNR #93-111079 
+Page | 10 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+Granite Falls (2.22 square miles) $821 
+Mukilteo (6.34 square miles) $2,346 
+Everett (35.53 square miles) $13,146 
+Snohomish (3.98 square miles) $1,473 
+Lake Stevens (11.79 square miles) $4,362 
+Brier (2.19 square miles) $810 
+Bothell (13.60 square miles) $5,032 
+Edmonds (8.92 square miles) $3,300 
+Total Cost   $304,606 
+EXHIBIT B

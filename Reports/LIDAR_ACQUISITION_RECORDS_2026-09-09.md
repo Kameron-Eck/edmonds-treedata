@@ -7,57 +7,72 @@ conducted in even years, (i.e. 2020, 2022, 2024, etc.)"* and (b) *"we've funded 
 from summer 2026 fly-overs ... to be completed next year or in 2028, depending on budget
 outcomes."*
 
-Method: a ten-channel multi-agent sweep of the public record, plus direct machine verification
-against the USGS and NOAA lidar catalogs. **Read §7 (Limitations) before relying on any negative
-finding** — this session's network egress was heavily restricted and the city-side record could
-not be opened directly.
+Method: a ten-channel multi-agent sweep of the public record, direct machine verification
+against the USGS and NOAA lidar catalogs, and — as of the **2026-09-09 fourth pass (§10.8)** —
+a fully-executed Laserfiche WebLink full-text search of the City's own records, which surfaced
+the authorizing contract itself. **Read §7 (Limitations) for what is still unresolved**, but the
+central question this report was written to answer now has a documentary answer, not an
+absence of one.
 
 ---
 
 ## 1. Bottom line
 
-**No LiDAR was flown over Edmonds in 2020, 2022 or 2024, and no city-funded LiDAR acquisition
-of any year surfaced.** The authoritative USGS national lidar index (WESM, retrieved 2026-09-09,
-the day of writing) contains **3,276 work units nationally and not one collected after 2016 that
-covers Edmonds**, apart from a sliver of the 2021 King County project along the southern city
-limit. Independently, NOAA's coastal lidar catalog shows nothing over Edmonds after 2016 either.
-The one live threat to that conclusion — a cost-shared 2022 NV5 project, `WA_LidarGaps_C22`,
-that is *missing from WESM entirely* — was chased down separately: all 48,596 of its tiles were
-tested and **none touches Edmonds** (see §2). That closes the gap rather than leaving it open.
+**UPDATED 2026-09-09 (§10.8): staff's "we've funded LIDAR imagery from summer 2026 fly-overs"
+claim is CONFIRMED — the City of Edmonds is paying for a genuine LiDAR acquisition, funded and
+under contract, flown leaf-on in mid-June–July 2026.** This reverses the report's original
+"no city-funded LiDAR acquisition of any year surfaced" conclusion, which rested on the
+Laserfiche full-text search never having actually executed (§7, §10.5, §10.6). Once driven by
+hand in a browser, that search returned the record: an **Intergovernmental Services Agreement
+between Snohomish County and the City of Edmonds for the Urban Tree Canopy Mapping Project**
+(Contract/Project No. `IS-20260720-SNOCOTRMAP`), executed mid-to-late July 2026. Full text at
+`Reports/sources/text/ila-3106507.txt`; the chain, all first-hand from that document:
 
-The two halves of this report differ in strength and should be cited differently: **the "no
-lidar exists" finding is machine-verified against primary USGS/NOAA catalogs and is solid**; the
-"no city record exists" finding is search-index-level only, because the network blocked every
-city-side host this session (§7).
+- The City requested to "procure high-definition LiDAR data for the area within the city limits
+  of City of Edmonds" (8.92 square miles) and agreed to pay Snohomish County **up to $3,300**.
+- The County rides a **Cost Sharing Agreement with WA DNR** (DNR Contract No. 93-111079,
+  **$304,606 total** across the County and 12 participating cities, funded in part through a
+  WA Department of Commerce **Salmon Recovery Through Local Planning Grant**, Agreement
+  No. 26-63117-011) for 823 square miles of Snohomish County.
+- DNR's contractor is **NV5 Geospatial, Inc.** (DNR Contract #93-102831) — the same firm behind
+  the 2022 `WA_LidarGaps_C22` project already in §2/§10.3, under the same master lidar RFP
+  (DNR RFP No. 22-03).
+- Collection window, per NV5's proposal: **"leaf on conditions in mid-June to July 2026"** —
+  this is the "summer 2026 fly-overs" the staff email described, essentially verbatim.
+  Deliverables follow **"90 business days from the date of successful acquisition"**, and the
+  County's obligations after 2026-12-31 are contingent on appropriation — which is exactly why
+  staff hedged "to be completed next year or in 2028, depending on budget outcomes."
+- Deliverables are full QL1 lidar: classified point cloud (LAS 1.4), hydro-flattened bare-earth
+  DEM, DSM, breaklines, intensity imagery, FGDC metadata, ≥8 pulses/m², ≤10cm vertical accuracy.
 
-**The even-year cadence is real — but it is aerial photography, not LiDAR.** A 2021
-Edmonds–Snohomish County interlocal agreement commits the County to deliver Edmonds orthogonal
-imagery from the *2020, 2022 and 2024* EagleView regional acquisitions. That year list matches
-the staff statement exactly. The City republishes each as `2020_Aerial_Cached`,
-`2022_Aerial_Cached`, `2024_Aerial_Cached`. **Assessment: staff are describing the County
-orthoimagery cycle and calling it LiDAR. Confidence: high.**
+**What is still correct from the original investigation, and what changes:**
 
-**On the funded summer-2026 flight, no authorising record was found**, and no 2026 lidar
-acquisition is registered anywhere in 3DEP nationally. This paragraph originally named an
-Edmonds solicitation — *2026 Tree Canopy Assessment (RFP 18-26)* — as the most likely referent
-of "we've funded". **That is now refuted: §10.1 retrieved the listing and it was issued by the
-City of Vancouver, not Edmonds.** Edmonds' own bids page, retrieved the same day, carries one
-open solicitation: park concessions. So there is **no candidate at all** for what Edmonds
-funded, and the question goes to staff directly or into the PRA request at Appendix A Part 2.
+- **The 2020/2022/2024 "even-year" cadence is still aerial photography, not lidar** — that part
+  of staff's framing remains a conflation, now confirmed by primary source rather than the
+  project's own ledger (§4, §10.8). Staff's *general* claim ("our LiDAR fly-overs are conducted
+  in even years") describes a real recurring EagleView orthoimagery cycle that is not lidar.
+- **Staff's *specific* claim about a funded summer-2026 lidar flight is true and precisely
+  documented.** This is a single, first-of-its-kind acquisition under a brand-new July 2026
+  contract — not evidence of a recurring biennial lidar program, and not something that existed
+  before this year. The original conflation finding and the new confirmed-lidar finding are both
+  correct; they answer different halves of the staff email.
+- **The catalog evidence in §2 (no post-2016 lidar over Edmonds through the date WESM/NOAA/DNR
+  portal were queried) still stands** — it predates this contract and is not contradicted by it.
+  A 2026 acquisition, mid-flight or just-delivered, would not yet appear in any of those indexes.
+- The RFP 18-26 refutation (§10.1) and the "no candidate for what was funded" statement in the
+  original §1 are now moot — the candidate has been found. Appendix A Part 2 no longer needs to
+  ask staff what was funded; it can ask for the delivered data instead.
 
-**A second pass (§10) retrieved 14 of 16 target documents** from an unrestricted network and
-settled several questions §7 could not. Two results matter most. The conflation is now confirmed
-**first-hand and rises to high confidence** — the City's own GIS server publishes five
-aerial-imagery services (2015, 2017, 2020, 2022, 2024) and **no lidar service of any kind**. And
-the Snohomish County lidar cost-share this investigation was originally asked to look for
-**does exist**: a DNR/NV5 work order that Everett bought into for 63 square miles at $21,168.
-It is the "Snohomish **Gap**" project §2 already proved does not reach Edmonds — so the
-mechanism is real and available, Edmonds is simply not in it.
+The two-year cadence question itself remains open: this is the *first* Edmonds-specific lidar
+contract this investigation has found in any year, so whether it repeats in 2028 is unverified,
+not confirmed or refuted.
 
-Two side findings worth your attention: the **"2017 LiDAR"** in the SavATree/UVM report is
-almost certainly the USGS/WADNR 2016 acquisition under its 2017 publication date, not a separate
-city holding (§6); and **two lidar vintages over Edmonds are missing from `IMAGERY_FACTS.md`** —
-PSLC 2000 and a 2014 USACE/USGS survey whose project area is literally named "Edmonds" (§5).
+Two side findings from the original investigation are unaffected: the **"2017 LiDAR"** in the
+SavATree/UVM report is almost certainly the USGS/WADNR 2016 acquisition under its 2017
+publication date, not a separate city holding (§6); and **two lidar vintages over Edmonds are
+missing from `IMAGERY_FACTS.md`** — PSLC 2000 and a 2014 USACE/USGS survey whose project area is
+literally named "Edmonds" (§5), now joined by two more candidate vintages, Snohoco Southwest
+2003 and Snohoco West 2006, bbox-confirmed over Edmonds but not yet tile-verified (§5, §10.8).
 
 ---
 
@@ -233,17 +248,39 @@ lead, 88 participants, agreement signed 2015-06-23) at a cost of **$3,696.21**. 
 shape of Edmonds' aerial-data spending: a few thousand dollars to join a county photo buy —
 roughly three orders of magnitude below what a dedicated municipal lidar flight costs.
 
-**Verdict: staff almost certainly mean the Snohomish County EagleView orthoimagery cycle.
-Confidence: moderate-to-high.** Every element of the staff statement — the even years, the
-specific list 2020/2022/2024, the word "fly-overs" — maps onto it exactly, and no competing
-lidar explanation survives the catalog evidence in §2.
+**Verdict: staff's general "our LiDAR fly-overs are in even years" framing describes the
+Snohomish County EagleView orthoimagery cycle, not lidar. Confidence: HIGH — resolved 2026-09-09
+(§10.8).** Every element of the staff statement — the even years, the specific list 2020/2022/
+2024, the word "fly-overs" — maps onto it exactly, and no competing lidar explanation survives
+the catalog evidence in §2. **But this verdict now applies only to the 2020/2022/2024 pattern.
+It does not extend to summer 2026: that flight is genuine lidar, under a separate, newly
+executed contract — see §1 and §10.8.**
 
-*Why not "high": the single ILA sentence carrying this conclusion was never read from the live
-Laserfiche document this session. It is quoted from your own QC ledger, which transcribed it
-earlier — so citing it back to the ledger is circular. The $3,696.21 consortium figure has the
-same weakness: it sits in an unsourced free-text `notes` field with no contract number or
-document ID. Both are almost certainly right, and both need one look at the source document
-(next steps 2 and 3) before you put them in writing to the City.*
+*Resolved 2026-09-09: both weaknesses flagged below have been closed.* The ILA sentence was
+OCR'd directly from the live document (`Reports/sources/raw/ila-1462454.pdf`, sha256
+`2682cb46...eb68`, matching the manifest) after the original network block made it
+unreachable and pypdf's text extraction returned only 1,152 characters of blank form labels.
+Page 14 of 21 reads, verbatim: *"Upon completion of the 2020, 2022 and 2024 EagleView regional
+aerial imagery acquisition projects and receipt of imagery by County, County will provide
+Edmonds with orthogonal imagery for Edmonds's identified area of interest, which includes aerial
+imagery within the Edmonds city limits and additional surrounding area."* No elevation, DSM,
+DTM, contour, or point-cloud deliverable appears anywhere in this ILA or its Exhibit A
+(Supplemental Work Order 20-01) — the whole document concerns EagleView/Pictometry orthoimagery
+licensing and general network/IT services. Its Contract Routing Form gives a completion date of
+**01/27/2026** (five years from a 01/27/2021 effective date) — **this ILA has already expired**
+as of this report's writing, and it contains no amendment or 2026 renewal. The 2026 lidar work
+found in §10.8 is a wholly separate, newly executed agreement (`ila-3106507`), not a successor
+to this one.
+
+The $3,696.21 consortium figure is likewise now source-verified rather than ledger-circular:
+OCR of `Reports/sources/raw/kc2015-aerials-ila-1465848.pdf` (the King County 2015 Regional
+Aerials Funding Interlocal Agreement, doc id 1465848) found the figure verbatim in its Section
+25 Counterparts signature page, itemized: Standard Deliverables $1,945.41 + Supplemental
+Deliverables $0.00 + Shared Participant Costs $1,699.57 + Individual Participant costs $51.23 =
+**TOTAL $3,696.21**. Edmonds' Supplemental Deliverables line — the only component that could
+have included a DTM/contour add-on, and that add-on is itself photogrammetrically derived, not
+lidar — is $0.00. Edmonds bought imagery only. The word "lidar" does not appear anywhere in the
+document's 103,041-character OCR text.*
 
 One point of genuine ambiguity in staff's favour: EagleView delivers photogrammetric 3D
 products (a DSM and point-cloud-like surface) alongside its imagery, and those are loosely
@@ -253,7 +290,7 @@ returns.
 
 ---
 
-## 5. Two lidar vintages missing from your inventory
+## 5. Two lidar vintages missing from your inventory — now four candidates
 
 `IMAGERY_FACTS.md` §8.1 records exactly two vintages, PSLC 2005 and USGS 2016. Two more cover
 Edmonds:
@@ -272,6 +309,22 @@ nine project areas, the relevant one **named "Edmonds"** in the metadata; sample
 `20140904_usgs_wa_edmonds_47122g4b.copc.laz`. Only **3 tiles** overlap the city: a coastal
 strip. Classified topo/bathy (classes 1, 2, 7, 9, 29). Not usable for citywide canopy, but it is
 a dated height reference in the middle of your 2013–2015 imagery gap.
+
+**Snohoco Southwest 2003 and Snohoco West 2006** (leads from §10.6, checked 2026-09-09 in
+§10.8) — WA DNR lidar portal project names, both carrying DSM and DTM layers (genuine lidar
+products, confirmed from the portal's own project list) plus a metadata link this session could
+not reach without guessing at a URL. **Bbox-level only, not tile-verified** — the portal exposes
+no public vector footprint layer; the closest primary source is its own geocoder
+(`wadnr_composite_locator` GeocodeServer), queried directly:
+
+| Project | Extent (WGS84, from the DNR geocoder) | vs. Edmonds bbox (−122.42…−122.32, 47.77…47.87) |
+|---|---|---|
+| Snohoco Southwest 2003 | −122.40657…−121.961173 lon, 47.683223…47.922755 lat | Edmonds' full latitude range sits inside; longitude overlap is near-total |
+| Snohoco West 2006 | −122.401623…−121.720791 lon, 47.7762…48.2732 lat | Same longitude situation; the project's ymin (47.7762) sits ~700m north of Edmonds' southern edge (47.77), so the extreme southern sliver of the city may fall outside |
+
+Both are plausibly era-matched height layers for the 2000–2005 gap in your inventory, but treat
+this as a lead, not a confirmed vintage, until tile envelopes (not just the project bbox) are
+checked the way §2 and Appendix B check every other dataset in this report.
 
 > **Correction to a hypothesis raised mid-investigation.** The WESM footprint polygon for
 > `WA_Western_North_2016` appears to stop near latitude 47.82, which would leave north Edmonds
@@ -308,6 +361,12 @@ on **the same** height data, so they are not independent in the way the vendor l
 
 ## 7. Limitations — read before citing any negative
 
+**Updated 2026-09-09 (§10.8): the Laserfiche full-text search and the two scanned-PDF gaps this
+section originally flagged are now closed** — see §10.8 for what changed and §1 for the
+resulting reversal of the "no city-funded lidar" conclusion. The narrative below describes the
+original session's constraints and is kept as the record of what was and wasn't known at each
+point; it is no longer a live list of open gaps for those two items.
+
 **This session's network egress was blocked for essentially every relevant host.** The proxy
 returned HTTP 403 at CONNECT for `edmondswa.gov`, `weblink.edmondswa.gov` (the City's Laserfiche
 repository), `edmondswa.primegov.com` (the agenda portal), `cdnsm5-hosted.civiclive.com` (the
@@ -336,6 +395,16 @@ finding is labelled rather than dressed up.
 ---
 
 ## 8. Recommended next steps, ranked
+
+**Superseded 2026-09-09 (§10.8): items 2 and 3 below are done** — Laserfiche document 1462454
+was OCR'd and read (§4), and the Laserfiche full-text search found the authorizing 2026 lidar
+contract directly, which is a stronger answer than the PRA request would have produced. The
+"grant funding — never searched by any channel" lead under "Still open" below **was correct**:
+the 2026 lidar is funded in part through a WA Department of Commerce Salmon Recovery Through
+Local Planning Grant, not a WA DNR Urban & Community Forestry award as originally guessed, but
+the same reasoning (funding with no appropriation, schedule contingent on a legislative outcome)
+that flagged it as worth checking. See §10.8 for current state; the list below is kept as the
+original record of what this investigation still didn't know as of the second pass.
 
 1. **Ask the question directly — highest value, lowest cost.** Reply to the staff member:
    *"Could you point me to the vendor or contract for the 2020/2022/2024 flights? I'd like the
@@ -677,6 +746,116 @@ them before trusting the names.
 
 ---
 
+## 10.8 Fourth pass — the Laserfiche search finally ran, and it found the answer
+
+All three items §10.7 called out as the highest-value untried work were completed 2026-09-09
+from an unrestricted network with a real browser (Claude-in-Chrome), driving the pages by hand
+rather than trusting the automated `--browser` pass. **Item 4 above is now itself superseded —
+there is a candidate answer, and it is not RFP 18-26.**
+
+### 10.8.1 The automated Laserfiche run still doesn't work — and the failure mode changed
+
+`py -3.12 qc\fetch_city_records.py --only weblink-search-lidar --browser` was run again, as
+directed. It again reported `ok` — and it was again wrong, in a *new* way. §10.6's guard
+(`UNEXECUTED_SEARCH`, which quarantines a rendered page matching `Results 0 - 0 of 0`) did not
+fire, because this run's rendered page had no "Results" line at all: just the empty search
+form's field labels (420 bytes — "Search terms", "Submit Reset", nothing else). The guard checks
+for a specific zero-hit string; a *different* failure to submit slips past it entirely. **The
+automated Playwright pass still cannot reliably drive this Laserfiche form. Do not trust its
+`ok` status for this source without opening the saved text and checking for an actual
+`Results X - Y of Z` line naming a nonzero total.** This is now the second distinct way the
+automated run has produced a false `ok` on the same source (§10.6 documents the first). The
+fix applied this session was procedural, not code: drive it by hand.
+
+### 10.8.2 Manually driving the search — eight terms, and the decisive hit
+
+Typing each term into the General Search box and clicking Submit (verified via screenshot before
+submitting, and via the rendered `Results 1 - N of M` line after) DID execute, for all eight
+terms the original report and §10.6 called for: **lidar** (549 results), **orthophoto** (47),
+**EagleView** (16), **Pictometry** (5), **NV5** (13), **Quantum Spatial** (4), **aerial imagery**
+(127), **photogrammetric** (10). Full result-page text for each is saved under
+`Reports/sources/text/weblink-search-*.txt`; MANIFEST.tsv rows corrected/added accordingly (the
+`lidar` row's text was replaced — the automated run's saved text was the false-empty page, not
+what the manual search actually returned).
+
+Every high-count term (orthophoto, aerial imagery generally) surfaced almost entirely TRAKiT/
+PermitTrax building-permit boilerplate — geotech reports, drainage reports, critical-areas
+studies — where these words appear as generic references to base-map imagery, not City
+procurement records. The "lidar" search surfaced mostly police "Speed Validation" reports (a
+different sense of the word — traffic-enforcement lidar speed guns), which is itself useful
+confirmation that the search engine is doing genuine full-text matching rather than returning a
+canned result set.
+
+Two documents recur across multiple vendor-name searches and are the entire signal in an
+otherwise noisy index:
+
+**Snohomish County 26-27 ILA - Urban Tree Canopy Mapping Project** (Contracts template, 16
+pages, doc id 3106507, Contract/Project No. `IS-20260720-SNOCOTRMAP`) — surfaced by "lidar",
+"NV5", and "photogrammetric". Downloaded directly
+(`https://weblink.edmondswa.gov/WebLink/0/edoc/3106507/document.pdf`, born-digital PDF, clean
+pypdf extraction, no OCR needed) to `Reports/sources/text/ila-3106507.txt`. **This is the
+authorizing record for the entire §1 finding** — see there for the full chain of funding and
+delivery detail. One Laserfiche metadata quirk worth flagging rather than hiding: its "Contract
+Start Date" (7/20/2026) and "Contract Expiration Date" (6/30/2026) fields are entered in an
+order that reads as backwards; the document body's own Section 2 is authoritative and states the
+term runs "from execution" to June 2027, consistent with the document's title, "From Execution
+to July 2027."
+
+**King County 2015 Regional Aerials Funding Interlocal Agreement** (Contracts template, 42
+pages, doc id 1465848, Contract/Project No. 06560) — surfaced by "aerial imagery" and
+"photogrammetric". This is the primary source for the $3,696.21 figure in §4 — see there.
+
+### 10.8.3 OCR closes both remaining scanned-document gaps
+
+Both `ila-1462454.pdf` (11.4 MB, 21 pages) and the newly found `kc2015-aerials-ila-1465848.pdf`
+(2.4 MB, 42 pages) are scans with no text layer — pypdf returned 1,152 and 902 characters
+respectively, both just blank form-field labels. Tesseract was not available on this machine and
+was not installed; instead, `Scripts/qc/ocr_scanned_pdf.py` (new, this session) renders each
+page with PyMuPDF at 220 DPI and OCRs it with the **built-in Windows OCR engine** via the
+`winocr` package (`winocr.recognize_pil_sync`) — no external binary install required. Both PDFs
+were re-downloaded fresh from the URLs in MANIFEST.tsv rather than reused from any other
+checkout; `ila-1462454.pdf`'s sha256 (`2682cb46...eb68`) matches the original manifest entry
+exactly, confirming it is the same document. Results: 34,141 OCR'd characters from ila-1462454
+(fully legible, including the page-14 sentence quoted in §4) and 103,041 from the King County
+ILA (fully legible, including the $3,696.21 cost breakdown quoted in §4). Both are now `status:
+ok` in MANIFEST.tsv with `method: ocr`.
+
+Both documents were also checked for the specific items the task asked about: neither contains
+any elevation, DSM, DTM, contour, or point-cloud deliverable, and neither contains any 2026
+successor or amendment — ila-1462454 (the general IT-services ILA that happens to carry the
+EagleView orthoimagery provision) expired 01/27/2026 on its own terms and was not renewed; the
+2026 lidar work is a separate, unrelated new contract (§10.8.2).
+
+### 10.8.4 Snohoco Southwest 2003 / Snohoco West 2006 — bbox-confirmed, not tile-verified
+
+Per §5: both project names resolve, via the WA DNR lidar portal's own geocoder service
+(`lidar/wadnr_composite_locator`, discovered from the portal's public REST catalog — no URL
+guessing involved, the catalog is self-documenting at
+`https://lidarportal.dnr.wa.gov/arcgis/rest/services/lidar?f=json`), to bounding extents that
+substantially overlap the Edmonds bbox. No public vector footprint layer exists on this portal
+(only a raster hillshade `MapServer` keyed by opaque per-project layer IDs, and the geocoder),
+so this is graded bbox-level, consistent with the weaker-evidence standard §5 already applies to
+WESM polygon edges. Not pursued further: a metadata-page URL pattern was not evident and this
+session declined to guess one.
+
+### 10.8.5 Revised bottom line for next steps
+
+1. **The staff email is answered.** Forward or summarize `ila-3106507.txt` to the staff member
+   who sent the September email — it independently confirms exactly what they said about summer
+   2026, with a contract number, a dollar figure, and a delivery schedule they can cross-check
+   against their own records.
+2. **Track delivery.** Products are due 90 business days from successful acquisition; the
+   Agreement's own obligations lapse after 2026-12-31 absent appropriation. Follow up around
+   Q4 2026 / Q1 2027 for delivery status, and watch for whether it slips per the staff email's own
+   hedge ("or in 2028").
+3. **Tile-verify Snohoco Southwest 2003 / West 2006** the way §2 verifies every other dataset,
+   if either is to be added to `IMAGERY_FACTS.md` §8 as a usable height layer.
+4. **Nothing else from §8/§10.7's remaining list has changed** — the planning channel (UFMP,
+   Comprehensive Plan, PlanIT Geo/SavATree scopes) was still not re-run this pass, and remains
+   the largest unexamined channel in the whole investigation.
+
+---
+
 ## Appendix A — drafted Public Records Act request
 
 *Verify the recipient address and intake channel on the City's public records page before
@@ -720,6 +899,11 @@ from LiDAR)**
    current version and any earlier version showing LiDAR holdings.
 
 **Part 2 — The stated summer 2026 flight**
+
+*Note (2026-09-09, §10.8): item 1's contract, task order and interlocal agreement have been
+found — `IS-20260720-SNOCOTRMAP` — and read in full (`Reports/sources/text/ila-3106507.txt`).
+This part of the request can now be narrowed to ask for the delivered data and any post-delivery
+correspondence, rather than asking the City to locate the authorizing record itself.*
 
 4. All records documenting the acquisition described by City staff as "LIDAR imagery from
    summer 2026 fly-overs," including any contract, task order, purchase order, interlocal

@@ -1,0 +1,14 @@
+Laserfiche WebLink full-text search — term: orthophoto
+Retrieved manually via browser (Claude-in-Chrome), 2026-09-09.
+URL: https://weblink.edmondswa.gov/WebLink/Search.aspx?dbid=0&repo=Edmonds (General Search > Search terms box, typed "orthophoto", Submit clicked)
+
+Results 1 - 20 of 47
+
+All 20 visible hits are TRAKiT/PermitTrax building-permit documents (geotech reports, storm
+drainage reports, critical-areas studies, street files) for individual residential parcels.
+None is a City contract, budget item, or GIS-catalog record naming an orthophoto acquisition
+or vendor. The word "orthophoto" is evidently boilerplate in these engineering report templates
+(referencing base-map imagery used for site context), not a City procurement record.
+
+No further pages examined — the result composition (permit paperwork) is consistent across the
+visible page and does not resemble what page 2+ would need to contain to change this reading.

@@ -1,0 +1,19 @@
+Laserfiche WebLink full-text search — term: aerial imagery
+Retrieved manually via browser (Claude-in-Chrome), 2026-09-09.
+URL: https://weblink.edmondswa.gov/WebLink/Search.aspx?dbid=0&repo=Edmonds
+
+Results 1 - 20 of 127
+
+Top hit: "King County 2015 Regional Aerials Funding Interlocal Agreement" (Contracts, 42 pages,
+Contract Start Date 6/23/2015, Contract/Project Number 06560). This is the 2015 Western
+Washington Regional Orthophotography consortium ILA the report already cited (King County lead,
+88 participants) for the $3,696.21 figure — previously sourced only to an unsourced free-text
+`notes` field in the project's own QC ledger (report §4). Retrieved directly as
+Reports/sources/raw/kc2015-aerials-ila-1465848.pdf (doc id 1465848); pypdf extraction returned
+only 902 characters across 42 pages — this is another scanned PDF with no text layer, same
+situation as ila-1462454. Queued for the same OCR pass (see §10.8 in the report).
+
+Remaining 19 results on this page are unrelated building-permit wetland/critical-area/geotech
+reports (boilerplate references to "aerial imagery" as a base-map source). Pages 2-7 of 127
+results not examined — the pattern (permit noise) is consistent with other high-count general
+terms in this sweep.

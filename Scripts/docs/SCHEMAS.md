@@ -399,6 +399,44 @@ gap in the file, and it surfaces in `py -3.12 qc/ask.py --gaps` until someone wr
 the mechanism down. A status other than `undiagnosed` with no cause fails the gate
 (`test_failure_registry_states_a_cause_or_says_it_has_none`).
 
+## eval_from_logs.csv + eval_report_gaps.csv (phase4/qc/, HARVESTED — re-harvest, never edit)
+
+Written by `qc/instruments/eval_rows_from_logs.py` (`--compare` for the second file).
+
+WHY THE FILE EXISTS. `phase4/eval/semantic_eval_report.csv` is one shared lake file that
+every evaluate step read-modify-writes through Drive's async upload cache. Two Colab
+runtimes evaluating minutes apart each read a copy lacking the other's rows, and the
+last upload wins: observed 2026-09-09 05:44Z, bb18_2006s_base and bb50_2006s_base on
+two VMs, the report kept bb50 and lost bb18. The per-step log
+`phase4/logs/phase4_semantic_finetune_evaluate_<year>_<stamp>.log` is one file per run
+and carries the same headline metrics, so it is the record that survives.
+
+`eval_from_logs.csv` — one row per evaluate log, sorted by `run_id` then `log_file`,
+byte-identical across runs. `run_id` may be `unrecorded` (filter the column to see which).
+`encoder` is the `--encoder` flag, `resnet101` when absent. `warm_start` is the
+`--warm-start` flag if ever present — empty on every row by observation (no log prints
+it), not by bug. `eval_scope` is the bracketed text after `Eval tiles:` (`held-out test`
+or `IN-SAMPLE (no held-out test at this GSD)`); `n_eval_tiles` the count before it.
+`model_file`, `phase`, `val_bce` from the `Model:` line. `iou dice acc prec rec` are the
+headline line at the 0.50 cut; `op_thresh iou_op dice_op prec_op rec_op` the
+`@ operating thresh` line; `auroc`, `best_f1_thresh` their own lines. `written_utc` is
+the log's `completed:` stamp (Colab clock, UTC) in the report's own `…Z` form, the
+filename time if no stamp line. `note` is `no metrics line` when the step died before
+scoring (metrics blank), else empty.
+
+`eval_report_gaps.csv` — `run_id year run_tag encoder iou log_file verdict`: the logged
+run_ids the live report's OVERALL rows lack. READER RULE: a gap is not a clobber; read
+`verdict`. `superseded` = the run_id sits in `semantic_eval_report_superseded.csv`: a
+later evaluate's write archived it (the archive key is year/channels, e.g. `2006s/rgb`,
+not the arm — observed in the bb18 log, which archived 8 rows). On record, not lost.
+`pre_run_id_era` = the run_id
+sorts before the earliest run_id either report file carries (the report gained the column
+2026-08-31); those rows cannot be joined and their absence is a schema gap, not a loss.
+`clobber_candidate` = in neither file and inside the recorded era — the log is the only
+copy of those metrics. Blank / `unrecorded` run_ids are skipped and counted on stdout.
+The instrument never writes the eval report; recovering a row into it is a separate,
+deliberate act.
+
 ## coverage_map.md (phase4/qc/, GENERATED — byte-compared)
 
 Written by `qc/coverage_map.py`: one row per acquisition — tile sets, tiles, tile

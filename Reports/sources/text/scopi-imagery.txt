@@ -1,0 +1,174 @@
+Interactive Map (SCOPI) | Snohomish County, WA - Official Website 
+
+ Skip to Main Content 
+
+ Search 
+
+ Home 
+
+ My Account 
+
+ Printer Friendly 
+
+ Email Page 
+
+ Contact Us 
+
+ RSS 
+
+ Site Map 
+
+ Translate Page 
+
+ Notifications 
+
+ Documents 
+
+ Assessor Divisions 
+ Online Services 
+ Forms & Publications 
+ Information 
+
+ Home 
+ Your Government 
+ Finance & Records 
+ Assessor 
+ Assessor Divisions 
+ GIS & Mapping 
+ Interactive Map (SCOPI) 
+
+ The Snohomish County Online Property Information ( SCOPI ) interactive web map provides a visual method of locating and viewing property information. Below, you can find information about how sales, appraisal neighborhoods, parcels, and other layers are displayed in SCOPI. To view or download a PDF guide on how to use SCOPI please click the link applicable to your device: Desktop/Tablet or Mobile (phone) . 
+ View Property Information
+
+ The SCOPI web application provides basic property information such as Parcel ID, Property Address, and Owner name when a parcel is selected on the map. Some additional information such as Taxpayer, Gross Acres, Market Value, Tax Code Area number, etc., can be accessed by clicking a record from the results list in the left hand results panel after a parcel has been selected. 
+ To access even more detailed property information such as sales history, property tax history, legal descriptions, detailed structure data, etc., click the "Property Account Summary" link in the additional parcel details results panel for each parcel. When the link is clicked, a separate browser tab will open displaying the Property Account Summary page.
+ View Map Labels
+ Check on the appropriate map labels in the Layers list panel. The labels are scale dependent. If they do not display on the map after the labels are loaded, zoom in until they display. *Note: Parcel Number Labels and House Number Labels for properties with multiple tax parcels will display " Multiple Parcels (Click for Info) " instead of displaying every parcel or house number.
+ SCOPI "Blank" Accounts
+ The SCOPI web application displays parcels with no parcel number as either "Shared Interest Parcels" or "Not a Legal Tax Parcel". Shared Interest Parcels are pieces of land that are owned by multiple separate property owners. One example of this would be a common element (area) in a condominium complex; each of the condominium owners may have a specific percentage or an equal and undivided interest (ownership) in the common element. When a Shared Interest Parcel is selected in the map, a list of the associated parcels is returned.
+ Parcels that display as Not a Legal Tax Parcel are typically gap areas where adjacent legal descriptions do not come to a common boundary and leave a hole or gap between the parcels. 
+ Parcel Size
+ The property account info panel may or may not display the “gross” size (in acres) of the property. More recently captured sizes will reflect the size of the primary parcel, and will not include the area of any shared interest accounts.
+ Older captured parcel sizes reflect the gross size, which is the total area of ownership, and may include additional acreage from ownership interest in a shared tract. For example: If you own Lot 4 of a subdivision, which is 0.25 acres, and also have a ¼ interest in Tract 998, which is 2 acres, then you have a gross size of 0.75 acres.
+ Lot 4 = 0.25 acres, Tract 998 = 2.00 acres
+ Lot 4’s interest in Tract 998 : 2.00 acres x ¼ interest = 0.5 acres
+ (0.25 acres) + (0.5 shared interest acres) = 0.75 gross acres 
+ Recent Sales
+ Recent sales of property can be highlighted on the map by checking on boxes in the "Recent Sales" section of the Layers Panel. Click on the box next to the year indicated to display sales for that year.
+ SAMPLE: " Recent Sales 2026"
+ Definition of Recent Sales:
+ occurred between 01/01/2024 and the present
+ are not a leased site
+ are valid market transactions
+ are improved with a dwelling of one of the following: Single Family Residence
+ Manufactured Home
+ Duplex/Triplex
+ Condominium
+ 
+ Sales types that are not shown are: Sales involving multiple parcels
+ Sales involving Quit Claim deeds, estate sales, gifts, or any other transaction not considered to be a "market" transaction
+ 
+ Appraisal Neighborhood Numbers
+ An Appraisal Neighborhood is "a geographic area (in which there are typically fewer than several thousand properties) defined for some useful purpose, such as to ensure for later multiple regression modeling that the properties are homogeneous and share important locational characteristics. " - IAAO
+ In Snohomish County, each appraisal neighborhood is assigned a 7 digit identification number. Residential neighborhoods begin with the number 1, 2, 3, or 4 (e.g. 1106000). Commercial neighborhoods begin with the number 5 or 6 (e.g. 5102000).
+ In SCOPI, the neighborhood areas can be turned on or off by clicking the check box next to "Appraisal Neighborhoods".
+ Find a Specific Appraisal Neighborhood
+ Specific appraisal neighborhoods can be located using the neighborhood "NBHD Search" tool. Selecting one of the neighborhood identification numbers from the drop down list and clicking the "Search" button will pan & zoom the map to the selected neighborhood.
+ The neighborhood number for a specific property can be located by clicking on a parcel on the map to bring up its selection record in the info panel on the left side of the application. Clicking on this record will display the property info panel. In this panel, the 7 digit neighborhood ID can be found by the "Neighborhood" label.
+ The neighborhood ID can also be found on the Assessor Public Access website's "Property Account Summary" page. The Neighborhood identification number is found at the top right corner of the page in the section titled Property Information.
+ View Aerial Imagery
+ The aerial imagery toggle can be found at the bottom of the layers list in the Layers tab of the Info Panel.
+ The 2024 3 inch resolution aerial photos in the urban areas, were captured between March 31, 2024 and May, 31 2024. The 2024 9 inch resolution aerial photos in the rural areas, were captured between March, 16 2024 and June, 9 2024.
+ The 2022 3 inch resolution aerial photos in the urban areas, were captured between April 6, 2022 and July, 11 2022. The 2022 9 inch resolution aerial photos in the rural areas, were captured between May, 31 2022 and August, 11 2022.
+ The 2021 aerial photos are 6 inch resolution and cover mainly the urban areas. The imagery was collected between June 25, 2021 and November 11, 2021.
+ The 2020 aerial photos are 3 inch resolution in the urban areas and 9 inch resolution in the rural areas, excluding much of the unpopulated mountainous portion of eastern Snohomish County, and were taken between April 13th and July 13th, 2020.
+ The 2018 aerial photos are 6 inch resolution and cover most of the urban areas of Snohomish County.
+ The 2017 aerial photos are 12 inch resolution and cover the entire county. 
+ Screen Resolution
+ If you launch SCOPI in a narrow browser window, you may get served the SCOPI mobile version instead of the desktop version. If this happens, close out of SCOPI and relaunch the application in a full size browser window.
+ More Information
+ More information about tax parcels and the Assessor’s Office can be found on the Assessor’s FAQ web page.
+ 
+ Contact Information
+ Send questions and comments to the Assessor’s Office .
+
+ Contact Us
+
+ GIS & Mapping Division
+
+ Email the GIS and Mapping Division 
+
+ 3000 Rockefeller Avenue M/S 510
+ Everett, WA 98201-4046
+
+ GIS Supervisor: 425-388-3581
+ Division Phone: 425-388-3358
+ Fax: 425-388-3961
+
+ GIS Homepage 
+
+ Interactive Map (SCOPI) 
+
+ Static Parcel Maps 
+
+ GIS Open Data 
+
+ Frequently Asked Questions 
+
+ Property Summary Search 
+
+ Contact Us 
+
+ Historical
+Records 
+
+ SCOPI
+Interactive Map 
+
+ eFile 
+
+ Static
+Parcel Maps 
+
+ How Do I 
+
+ Property
+Sales 
+
+ Property
+Tax Relief 
+
+ Accessibility 
+
+ Copyright 
+
+ Privacy Policy 
+
+ Site Information 
+
+ Webpage Feedback 
+
+ Translate 
+
+ /QuickLinks.aspx
+
+ Snohomish County Assessor 3000 Rockefeller Avenue Everett, WA 98201 Phone: 425-388-3433 
+
+ Government Websites by CivicPlus® 
+
+ Loading
+
+ Loading
+
+ Do Not Show Again 
+ Close 
+
+ Arrow Left 
+
+ Arrow Right 
+
+ []
+
+ Slideshow Left Arrow 
+
+ Slideshow Right Arrow

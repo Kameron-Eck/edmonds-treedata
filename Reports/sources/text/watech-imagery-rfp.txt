@@ -1,0 +1,1277 @@
+ 
+Request for Proposal Number 
+ 
+26-RFP-004 
+ 
+ 
+For 
+ 
+ 
+Statewide Imagery Consortium 
+ 
+By the 
+ 
+Washington State Technology Solutions  
+ 
+ 
+ 
+ 
+Released: April 28, 2026 
+  
+State of Washington Statewide Imagery Consortium 
+Washington Technology Solutions 26-RFP-004  
+                               
+1. INTRODUCTION ............................................................................................................................................................ 4 
+1.1 BACKGROUND ............................................................................................................................................. 4 
+1.2 ACQUISITION AUTHORITY ........................................................................................................................... 4 
+1.3 BUSINESS OBJECTIVE .................................................................................................................................. 4 
+1.4 CONTRACT TERM......................................................................................................................................... 4 
+1.5 DEFINITIONS ................................................................................................................................................ 5 
+1.6 OVERVIEW OF SOLICITATION PROCESS ........................................................................................................ 6 
+1.7 FUNDING...................................................................................................................................................... 6 
+1.8 ADDITIONAL PRODUCTS AND SERVICES ...................................................................................................... 6 
+2. SCHEDULE ...................................................................................................................................................................... 7 
+3. INSTRUCTIONS TO RESPONDING VENDORS ....................................................................................................... 8 
+3.1 RFP COORDINATOR (PROPER COMMUNICATION) ........................................................................................ 8 
+3.2 VENDOR QUESTIONS ................................................................................................................................... 8 
+3.3 PREPROPOSAL CONFERENCE ........................................................................................................................ 8 
+3.4 VENDOR COMPLAINTS REGARDING REQUIREMENTS AND SPECIFICATIONS ................................................. 9 
+3.5 RESPONSE CONTENTS .................................................................................................................................. 9 
+3.6 RESPONSE REQUIREMENTS .......................................................................................................................... 9 
+3.1 DELIVERY OF RESPONSES ...........................................................................................................................10  
+3.2 PROPRIETARY OR CONFIDENTIAL INFORMATION ........................................................................................10  
+3.3 WAIVE MINOR ADMINISTRATIVE IRREGULARITIES ....................................................................................10  
+3.4 ERRORS IN RESPONSE ................................................................................................................................. 11 
+3.5 ADMINISTRATIVE CLARIFICATIONS ............................................................................................................11  
+3.6 AMENDMENTS/ADDENDA ...........................................................................................................................11  
+3.7 RIGHT TO CANCEL ......................................................................................................................................11  
+3.8 CONTRACT REQUIREMENTS ........................................................................................................................11  
+3.9 INCORPORATION OF DOCUMENTS INTO CONTRACT ....................................................................................11  
+3.10 MINORITY AND WOMEN’S BUSINESS ENTERPRISES (MWBE) ....................................................................12  
+3.11 SUBCONTRACTOR PARTICIPATION MONITORING AND REPORTING .............................................................12  
+3.12 NO OBLIGATION TO CONTRACT/BUY .........................................................................................................12  
+3.13 NON-ENDORSEMENT AND PUBLICITY .........................................................................................................12  
+3.14 OPTIONAL VENDOR DEBRIEFING ................................................................................................................12  
+3.15 PROTEST PROCEDURES ...............................................................................................................................13  
+3.16 VENDOR ASSUMPTION AND DEPENDENCIES ...............................................................................................13  
+3.17 SELECTION OF APPARENTLY SUCCESSFUL VENDOR ...................................................................................13  
+4. VENDOR REQUIREMENTS ....................................................................................................................................... 14 
+4.1 (M) VENDOR PROFILE(S) ............................................................................................................................14  
+4.2 (M) VENDOR LICENSED TO DO BUSINESS IN WASHINGTON ........................................................................14  
+4.3 (M) USE OF SUBCONTRACTORS ..................................................................................................................14  
+4.4 (M) PRIOR CONTRACT PERFORMANCE .......................................................................................................14  
+4.5 (D) VENDOR EMPLOYEE ARBITRATION CLAUSE ........................................................................................14  
+4.6 (MS 100) CLIENT REFERENCES ..................................................................................................................15  
+4.7 (MS 100) DEMONSTRATION’S ....................................................................................................................15  
+5. EXPERIENCE, SKILLS AND APPROACH .............................................................................................................. 16 
+5.1 (MS 1000) MINIMUM REQUIREMENTS ........................................................................................................16  
+6. FINANCIAL QUOTE .................................................................................................................................................... 18 
+6.1 OVERVIEW ..................................................................................................................................................18  
+6.2 (MS 500) VENDOR COST PROPOSAL FORM ................................................................................................18  
+6.3 (M) RESPONSES ..........................................................................................................................................18  
+6.4 (M) TAXES ..................................................................................................................................................18  
+6.5 (M) PRESENTATION OF ALL COST COMPONENTS........................................................................................18  
+State of Washington Statewide Imagery Consortium 
+Washington Technology Solutions 26-RFP-004  
+                               
+6.6 (M) PRICE PROTECTION ..............................................................................................................................18  
+7. EVALUATION ............................................................................................................................................................... 19 
+7.1 OVERVIEW ..................................................................................................................................................19  
+7.2 ADMINISTRATIVE SCREENING ....................................................................................................................19  
+7.3 MANDATORY REQUIREMENTS ....................................................................................................................19  
+7.4 QUALITATIVE REVIEW AND SCORING .........................................................................................................19  
+7.5 EVALUATION OF SECTIONS 4 & 5 ...............................................................................................................19  
+7.6 TECHNICAL EVALUATION – (SECTION 5) ....................................................................................................20  
+7.7 FINANCIAL PROPOSAL EVALUATION – (SECTION 6) ...................................................................................20  
+7.8 PHASE II -OPTIONAL EVALUATION ...........................................................................................................21  
+7.9 ALLOCATION OF POINTS .............................................................................................................................21  
+7.10 VENDOR TOTAL SCORE ..............................................................................................................................22  
+7.11 SELECTION OF APPARENTLY SUCCESSFUL VENDOR ...................................................................................22  
+7.12 CONTRACT NEGOTIATIONS .........................................................................................................................22  
+  
+State of Washington Statewide Imagery Consortium 
+Washington Technology Solutions 26-RFP-004  
+                               
+SECTION 1  
+1. INTRODUCTION 
+Responding Vendors are strongly encouraged to read this RFP thoroughly and completely. 
+1.1 Background 
+Washington Technology Solutions (WaTech) provides telecommunications, computing and digital 
+government services to more than 700 state agencies, boards and commissions, local governments, tribal 
+organizations and qualifying non-profits.   
+ 
+The Statewide Imagery Consortium has been in place since 2017.  This RFP is to continue the overall 
+program by selecting a vendor that can provide orthoimagery to WaTech and consortium members for the 
+next two years or more.  Details on orthoimagery product to be purchased are detailed in section 5 below. 
+1.2 Acquisition Authority 
+The Department of Enterprise Services (DES) has authority over goods and services under RCW 39.26 
+and sets processes for procuring information technology based on the policies and standards set by the 
+Technology Services Board. Chapter 43.41A of the Revised Code of Washington (RCW) as amended 
+establishes the Washington State Technology Services Board (TSB). While the TSB does not purchase 
+for agencies, it establishes policies and standards addressing how the manner in which state agencies may 
+acquire information technology equipment, software, and services. 
+RCW 39.26.100(2) provides WaTech with an exemption from the Department of Enterprise Services 
+procurement rules and requirements. Specifically, the competitive procurement rules stated by 
+Department of Enterprise Services do not apply to WaTech when it is contracting for the following: 
+1. Services and activities that are necessary to establish, operate, or manage the state data center, 
+including architecture, design, engineering, installation, and operation of the facility, that are 
+approved by the technology services board or  
+2. The acquisition of proprietary software, equipment, or IT services for or part of the provision of 
+services offered by the Washington Technology Solutions agency. 
+This procurement is within the exemption and is performed consistent with WaTech’s internal 
+Procurement Policy.  
+This RFP is issued in good faith but it does not guarantee an award of contract, nor does it represent any 
+commitment to purchase whatsoever. 
+1.3 Business Objective 
+Washington Technology Solutions (WaTech) is initiating this Request for Proposals (RFP) for 
+orthoimagery for use by consortium members which include state agencies and other contributing tribal 
+and local agencies.   
+1.4 Contract Term 
+It is anticipated that the Initial Term of the resulting Contract will be through July 1, 2028 commencing 
+on the effective date of the Contract.  It is anticipated that the contract may be extended at WaTech’s sole 
+option for up to an additional five (5) years. 
+State of Washington Statewide Imagery Consortium 
+Washington Technology Solutions 26-RFP-004  
+                               
+1.5 Definitions 
+“Apparently Successful Vendor” (ASV) shall mean the Vendor(s) who: best meets all the requirements 
+of this RFP and is selected to provide the service. 
+“Business Days” or “Business Hours” shall mean Monday through Friday, 8 AM to 5 PM, local time in 
+Olympia, Washington, excluding Washington State holidays. 
+“Contract” shall mean the RFP, the Response, Contract document, all schedules and exhibits, and all 
+amendments awarded pursuant to this RFP. 
+“WaTech” shall mean Washington Technology Solutions  
+“Desirable Scored” or “(DS)” shall mean that answering is optional, and the Response will be scored.  
+“Imagery Year” shall mean the imagery collected during a single flying season. 
+“Mandatory” or “(M)” shall mean the Vendor must comply with the requirement, and the Response will 
+be evaluated on a pass/fail basis. 
+“Mandatory Scored” or “(MS)” shall mean the Vendor must comply with the requirement, and the 
+Response will be scored. 
+“Purchaser” shall mean the Washington Technology Solutions  
+“RCW” means the Revised Code of Washington. 
+“Response” shall mean the written proposal submitted by Vendor to WaTech in accordance with this 
+RFP. The Response shall include all written material submitted by Vendor as of the date set forth in the 
+RFP schedule or as further requested by WaTech. The Response shall be in the English language, and all 
+measurements and qualities will be stated in units required by law in the United States.  
+“Services” includes Purchased Services and shall mean those Services provided by Vendor relating to the 
+solicitation, deployment, development and/or implementation activities that are appropriate to the scope 
+of this solicitation. 
+“Software” shall mean the object code version of computer programs Licensed pursuant to the Contract. 
+Software also means the source code version, where provided by Vendor. Embedded code, firmware, 
+internal code, microcode, and any other term referring to software residing in the Equipment that is 
+necessary for the proper operation of the Equipment is not included in this definition of Software. 
+Software includes all prior, current, and future versions of the Software and all maintenance updates and 
+error corrections. 
+“State” shall mean the state of Washington. 
+“Subcontractor” shall mean one not in the employment of Vendor, who is performing all or part of the 
+Products under the resulting Contract under a separate contract with Vendor. The term “Subcontractor” 
+means Subcontractor(s) of any tier. 
+“Solution” shall mean a product, combination of products, services, or a mix of products and services 
+that an original equipment manufacturer, vendor, service provider or value added reseller offers to 
+customers to address a specific business problem or scenario. The requirements stated must be part of the 
+Solution that is commercially available at the time of the Vendor’s response to the RFP. Functionality and 
+requirements may not be on the Vendor’s roadmap or soon to be released.  
+“Vendor” shall mean the company, organization, or entity submitting a Response to this RFP, its 
+subcontractors and affiliates. 
+State of Washington Statewide Imagery Consortium 
+Washington Technology Solutions 26-RFP-004  
+                               
+1.6 Overview of Solicitation Process  
+The evaluation process applies successive rounds of evaluation that will narrow the pool of competitors to 
+assure only the highest scoring finalists’ move to the next Round in the evaluation process. WaTech, at its 
+sole discretion, will determine the number of top scoring competitors to move to the next Round.    
+Step 1: A preliminary examination of the completeness and validity of responses. All responsive 
+vendors will move to Round 2.  
+Step 2:  Round 2 will be an evaluation to determine compliance with requirements and financial 
+evaluation. Only the top 2 scoring vendors will move to Round 3. The financial review will look 
+at commercial risk and cost analysis of all pricing, project schedules, terms and conditions 
+contained within the Response. WaTech, in its sole discretion, will determine if it will conduct 
+Step 3, and the number of top scoring vendors to move to the next Round.   
+Optional Step 3: Demonstrations and reference check. 
+Step 3 is discretionary. If WaTech chooses to move forward with Step 3, WaTech will interview 
+the top scoring finalists and representative staff who will work on the project and conduct a 
+reference check of the top scoring vendors.  
+Step 4: Announce Apparently Successful Vendor. 
+After completing the evaluation phases of the process as set forth above, WaTech plans to enter 
+into contractual negotiations with one Apparently Successful Vendor (“ASV”) with a goal of 
+finalizing a contract. Award of contract will depend on the satisfactory outcome to these 
+negotiations.  
+1.7 Funding 
+Any contract awarded as a result of this procurement is contingent upon the availability of funding. 
+1.8 Additional Products and Services 
+Additional products or services that are determined by WaTech to be appropriate to the scope of this 
+acquisition may be added to the Contract. 
+ 
+  
+State of Washington Statewide Imagery Consortium 
+Washington Technology Solutions 26-RFP-004  
+                               
+SECTION 2  
+2. SCHEDULE 
+This RFP is being issued under the following schedule. The Response deadlines are mandatory and non-
+negotiable. Failure to meet any of the required deadlines will result in disqualification from participation. 
+All times are local time, Olympia, WA. 
+ 
+EVENT DATE 
+RFP Issued April 28, 2026 
+Preproposal Conference April 30, 2026, 2:00pm PST  
+Final Vendor Questions & Comments  May 6, 2026, by 12:00pm (noon) PST 
+State’s Final Written Answers issued  May 11, 2026 
+Responses due by NOON May 18, 2026, by 12:00pm (noon) PST 
+Evaluation period  May 18, 2026 
+Top finalist’s demonstrations and reference check 
+(optional) 
+May 19, 2026 
+Announcement of ASV May 26, 2026 
+Vendor Request for Optional Debriefing due May 27, 2026 
+Optional Vendor Debriefings May 29, 2026 
+Contract available for work on or before June 8, 2026 
+ 
+ 
+ 
+WaTech reserves the right to revise the above schedule. 
+State of Washington Statewide Imagery Consortium 
+Washington Technology Solutions 26-RFP-004  
+                               
+SECTION 3 
+ 
+3. INSTRUCTIONS TO RESPONDING VENDORS 
+COMPLIANCE WITH ALL SECTIONS OF SECTION 3 IS REQUIRED. FAILURE TO FOLLOW THESE 
+ADMINISTRATIVE REQUIREMENTS MAY RESULT IN IMMEDIATE DISQUALIFICATION. 
+3.1 RFP Coordinator (Proper Communication) 
+Upon release of this RFP, all Vendor communications concerning this solicitation must be directed to the 
+RFP Coordinator listed below. With the exception of the Office of Minority and Women’s Business 
+Enterprises, (reference Subsection 3.16), unauthorized contact regarding this solicitation with other state 
+employees involved with the solicitation may result in disqualification. All oral communications will be 
+considered unofficial and non-binding on the State. Vendors should rely only on written statements issued 
+by the RFP Coordinator. 
+Jessica Smith, RFP Coordinator 
+Washington Technology Solutions (WaTech) 
+1500 Jefferson Street S.E. 
+P.O. Box 41501 
+Olympia, Washington 98504-1501 
+Email: jessica.smith@WaTech.wa.gov 
+3.2 Vendor Questions 
+It is the Vendor’s responsibility to remedy any ambiguity, inconsistency, error or omission within this 
+document before submitting their Response. Vendors shall submit all requests to the contact above no 
+later than 12:00 pm (noon) on the closing date stated in Section 2. An official written WaTech response 
+will be provided for Vendor questions received by this deadline. Written responses to Vendor questions 
+will be posted on the WaTech website: http://WaTech.wa.gov/procurement-announcements. 
+ 
+Vendors who wish to submit a response to this RFP may participate in an Optional Preproposal 
+Conference on the date and time identified in the Schedule (Section 2). Vendors are not required to attend 
+in order to submit a Response. The Preproposal Conference will be held virtually via Teams and WaTech 
+will communicate the details (e.g. time and call-in info) of the Pre-Response Conference via amendment. 
+ 
+The purpose of this conference is to provide Vendors with an opportunity to address questions they may 
+have concerning the RFP. Verbal answers to additional Vendor questions at the time of the conference 
+will be unofficial. Vendors should rely only on written statements issued by the RFP Coordinator. 
+3.3 Preproposal Conference  
+WaTech shall conduct a pre-proposal conference on the time and date provided in the Schedule, via a 
+teleconference, which is also listed below. Attendance is not mandatory, however a pre-proposal 
+amendment, and amended RFP, if applicable, will be posted by the timeline stated in the Schedule. 
+ 
+Microsoft Teams meeting  
+Join: https://teams.microsoft.com/meet/299936994645543?p=4LM0TLSrdMuA3s4BdX  
+Meeting ID: 299 936 994 645 543  
+Passcode: ry9hF6yL  
+ 
+State of Washington Statewide Imagery Consortium 
+Washington Technology Solutions 26-RFP-004  
+                               
+Need help? | System reference  
+Dial in by phone  
++1 564-999-2000,,300459457# United States, Olympia  
+Find a local number  
+Phone conference ID: 300 459 457#  
+For organizers: Meeting options | Reset dial-in PIN  
+ 
+3.4 Vendor Complaints Regarding Requirements and Specifications 
+Vendors may submit specific complaints in writing to the RFP Coordinator, if Vendor believes 
+requirements exist that unduly constrain competition. The complaint must be made in writing to the RFP 
+Coordinator before the Response due date.  The complaint must state how the requirement unduly 
+constrains competition and provide the relevant facts, circumstances and documentation. The solicitation 
+process may continue. 
+3.5 Response Contents 
+3.5.1 The Response must contain information responding to all mandatory requirements contained in 
+this RFP, completed client references, and must include the signature of an authorized Vendor 
+representative on all documents required in the appendices. 
+3.5.2 The Response should be submitted in two (2) volumes containing what is listed below. This 
+separation of documentation protects the integrity of the State’s evaluation process. No mention 
+of the cost response may be made in Volume 1. 
+Volume 1: 
+• Vendor’s cover letter explicitly acknowledging receipt of all RFP revisions issued, if any. 
+• The Response to the Vendor Requirements (Section 4). 
+• The Response to Technical and Service Requirements (Section 5). 
+Volume 2: 
+• The Responses to the Financial Requirements (Section 6) and Cost Model (Appendix E). 
+• Vendor’s signed and completed Certifications and Assurances (Appendix A). 
+• Vendor’s exceptions and/or proposed revisions to the General Terms and Conditions 
+(Appendix B). 
+• Vendor’s MWBE Certification (Appendix C), if applicable. 
+3.5.3 Failure to provide any requested information in the prescribed format may result in 
+disqualification of the Vendor. 
+3.6 Response Requirements 
+Please pay attention to the following: 
+The signature block in Certifications and Assurances (Appendix A), must be signed by a representative 
+authorized to bind the company to the offer. 
+3.6.1 Vendor must respond to each requirement. Failure to comply with any applicable item may result 
+in the Response being disqualified. In each requirement title is a designation indicating how the 
+Response will be evaluated: 
+State of Washington Statewide Imagery Consortium 
+Washington Technology Solutions 26-RFP-004  
+                               
+For Mandatory Requirements (M), the Response must always indicate explicitly whether or not 
+the Vendor’s proposed Services meet the requirement. A statement, “(Vendor Name) has read, 
+understands, and fully complies with this requirement” is acceptable, along with any additional 
+information requested. 
+For Mandatory Scored (MS) and Desirable Scored (DS) items, the Response must always 
+indicate explicitly whether or not the Vendor's proposed Services will accomplish each 
+requirement or are desirable as it relates to the service(s) proposed. 
+3.6.2 Response prices must be submitted using the form provided. Separate price quotes attached to 
+this document or submitted in some other form will not be accepted as a valid Response. 
+3.6.3 The Response, as well as any reference materials presented by Vendor, must be written in English 
+and Vendor must provide all rates in United States dollars. 
+ 
+1.7 Delivery of Responses 
+All proposals must arrive via an attachment to e-mail to the RFP Coordinator at the email address above, 
+on the proposal due date and time stated in Section 2. Responses arriving in the RFP Coordinator’s in-box 
+after the time stated in Section 2 will be disqualified.  The "receive date/time" posted by WaTech’ email 
+system will be used as the official time stamp but may not reflect the exact time received. 
+Vendors should allow sufficient time to ensure timely receipt of the proposal by the RFP Coordinator.  
+Late Responses will not be accepted and will be automatically disqualified from further consideration.   
+WaTech assumes no responsibility for delays caused by Vendor’s e-mail, network problems or any other 
+party.  Zipped files cannot be received by WaTech and cannot be used for submission of Responses. 
+1.8 Proprietary or Confidential Information 
+Any information contained in the Response that is proprietary or confidential must be clearly designated. 
+Marking of the entire Response or entire sections of the Response as proprietary or confidential will not 
+be accepted nor honored. WaTech will not accept Responses where pricing is marked proprietary or 
+confidential, and the Response will be rejected. 
+To the extent consistent with Chapter 42.56 RCW, the Public Disclosure Act, WaTech shall maintain the 
+confidentiality of Vendor’s information marked confidential or proprietary. If a request is made to view 
+Vendor’s proprietary information, WaTech will notify Vendor of the request and of the date that the 
+records will be released to the requester unless Vendor obtains a court order enjoining that disclosure. If 
+Vendor fails to obtain the court order enjoining disclosure, WaTech will release the requested information 
+on the date specified. 
+The State’s sole responsibility shall be limited to maintaining the above data in a secure area and to notify 
+Vendor of any request(s) for disclosure for so long as WaTech retains Vendor’s information in WaTech 
+records. Failure to label such materials or failure to respond timely after notice of request for public 
+disclosure has been given shall be deemed a waiver by Vendor of any claim that such materials are 
+exempt from disclosure. 
+1.9 Waive Minor Administrative Irregularities 
+WaTech reserves the right to waive minor administrative irregularities contained in any Response. 
+Additionally, WaTech reserves the right, at its sole option, to make corrections to Vendors’ Responses 
+when an obvious arithmetical error has been made in the price quotation. Vendors will not be allowed to 
+make changes to their quoted price after the Response submission deadline 
+State of Washington Statewide Imagery Consortium 
+Washington Technology Solutions 26-RFP-004  
+                               
+1.10 Errors in Response 
+Vendors are liable for all errors or omissions contained in their Responses. Vendors will not be allowed to 
+alter Response documents after the deadline for Response submission. WaTech is not liable for any errors 
+in Responses. 
+1.11 Administrative Clarifications 
+WaTech reserves the right to contact Vendor for clarification of Response contents.  
+1.12 Amendments/Addenda 
+WaTech reserves the right to change the Schedule or other portions of this RFP at any time. Any changes 
+or corrections will be by one or more written amendment(s), dated, and attached to or incorporated in and 
+made a part of this solicitation document. If there is any conflict between amendments, or between an 
+amendment and the RFP, whichever document was issued last in time shall be controlling.  
+1.13 Right to Cancel 
+With respect to all or part of this RFP, WaTech reserves the right to cancel or reissue at any time without 
+obligation or liability. 
+1.14 Contract Requirements 
+To be responsive, Vendors must indicate a willingness to enter a Contract substantially the same as the 
+Contract in Appendix B, by signing the Certifications and Assurances located in Appendix A. Any 
+specific areas of dispute with the attached terms and conditions must be identified in the Response and 
+may, at the sole discretion of WaTech, be grounds for disqualification from further consideration in the 
+award of a Contract. 
+Vendor must explain why each item proposed as additional contract terms is in WaTech’ s best interest as 
+a customer and how it will support WaTech’ s business objectives. Under no circumstances is a Vendor to 
+submit their own standard contract terms and conditions as a response to this solicitation. 
+Instead, Vendor must review and identify the language in Appendix B that Vendor finds problematic, 
+state the issue, and propose the language or contract modification Vendor is requesting. WaTech expects 
+the final Contract signed by the ASV to be substantially the same as the contract located in Appendix B. 
+Where terms and conditions cannot be changed and may have negative consequences on the quality of 
+goods and services or their supply, Vendors are required to recommend methods of mitigating or limiting 
+these negative consequences. 
+The foregoing should not be interpreted to prohibit either party from proposing additional contract terms 
+and conditions during negotiation of the final Contract. 
+The ASV will be expected to execute the Contract within three (3) Business Days of its receipt of the 
+final Contract. If the selected Vendor fails to sign the Contract within the allotted three (3) days’ time 
+frame, WaTech may elect to cancel the award, and award the Contract to the next ranked Vendor, or 
+cancel or reissue this solicitation. 
+1.15 Incorporation of Documents into Contract 
+This solicitation document and the Response will be incorporated into any resulting Contract. 
+State of Washington Statewide Imagery Consortium 
+Washington Technology Solutions 26-RFP-004  
+                               
+1.16 Minority and Women’s Business Enterprises (MWBE) 
+WaTech strongly encourages participation of minority and women’s businesses. Vendors who are MWBE 
+certified or intend on using MWBE certified Subcontractors are encouraged to identify the participating 
+firm on Appendix C. No minimum level of MWBE participation is required as a condition of receiving an 
+award and no preference will be included in the evaluation of Responses in accordance with chapter 39 
+RCW. For questions regarding the above, contact Office of MWBE at (360) 753-9693. 
+1.17 Subcontractor Participation Monitoring and Reporting 
+Once a contract is awarded through the solicitation or proposal process, the awarded Prime Contractor is 
+obligated to complete the vendor registration in Access Equity. Access Equity is a secure online vendor 
+management system (B2GNow). Confidential information (Tax ID, etc.) will not be published. Prime 
+Contractors that have previously registered with B2Gnow for any public entity, must verify the system 
+has updated information. Contractors can access the system at https://omwbe.diversitycompliance.com/ or 
+through a direct link on the Office of Minority and Women’s Business Enterprises (OMWBE)  website at: 
+https://omwbe.wa.gov/. 
+ 
+Each month during the contract, the Prime Contractor will report payments to ALL Subcontractors 
+through the Access Equity system. This monthly reporting information includes total payment in dollars 
+made to the Subcontractor, payment dates, and any additional information required to verify payment to 
+Subcontractors. The Prime Contractor will enter this payment information into the Access Equity system, 
+and the Subcontractors will verify this payment information in the system. Online training is available 
+through the Access Equity/B2Gnow system. This requirement applies to both Prime Contractors and 
+Subcontractors. 
+1.18 No Obligation to Contract/Buy 
+WaTech reserves the right to refrain from Contracting with any and all Vendors. Neither the release of 
+this solicitation document nor the execution of a resulting Contract obligates WaTech to make any 
+purchases. WaTech reserves the right to cancel the procurement at any time during the procurement or 
+resulting contract negotiation process.  
+1.19 Non-Endorsement and Publicity 
+In selecting a Vendor to supply Services to the state of Washington, the State is neither endorsing 
+Vendor’s Product nor suggesting that they are the best or only solution to the State’s needs. By submitting 
+a Response, Vendor agrees to make no reference to WaTech or the state of Washington in any literature, 
+promotional material, brochures, sales presentation or the like, regardless of method of distribution, 
+without the prior review and express written consent of WaTech. 
+1.20 Optional Vendor Debriefing 
+Only Vendors who submit a response may request an optional debriefing conference to discuss the 
+evaluation of their Response. The requested debriefing conference must occur on or before the date 
+specified in the Schedule (Section 2). The request must be in writing (e-mail acceptable) addressed to the 
+RFP Coordinator. 
+The optional debriefing will not include any comparison between the Response and any other Responses 
+submitted. However, WaTech will discuss the factors considered in the evaluation of the vendor 
+requesting the Response and address questions and concerns about the Vendor’s performance with regard 
+to the solicitation requirements. 
+State of Washington Statewide Imagery Consortium 
+Washington Technology Solutions 26-RFP-004  
+                               
+1.21 Protest Procedures 
+Vendors who have submitted a Response to this solicitation and have had a debriefing conference may 
+make protests. Upon completion of the debriefing conference, a Vendor is allowed five (5) Business Days 
+to file a formal protest of the solicitation with the RFP Coordinator. Further information regarding the 
+grounds for, filing and resolution of protests is contained in Appendix D, Protest Procedures. 
+1.22 Vendor Assumption and Dependencies 
+WaTech will rely upon representations made in the Response. If the Vendor chooses to identify 
+assumption or dependencies on which it has based its proposal, WaTech retains the right to determine if 
+the Vendor’s assumptions/dependencies render the Response non-responsive. 
+1.23 Selection of Apparently Successful Vendor 
+All Vendors responding to this solicitation will be notified by e-mail when WaTech has determined the 
+ASV. The ASV will be the respondent who: (1) meets all the requirements of this RFP; and (2) receives 
+the highest number of total points as described herein.  
+  
+State of Washington Statewide Imagery Consortium 
+Washington Technology Solutions 26-RFP-004  
+                               
+SECTION 4 
+2. VENDOR REQUIREMENTS 
+COMPLIANCE WITH ALL SECTIONS OF SECTION 4 IS REQUIRED. FAILURE TO FOLLOW THESE 
+ADMINISTRATIVE REQUIREMENTS MAY RESULT IN IMMEDIATE DISQUALIFICATION 
+2.1 (M) Vendor Profile(s) 
+The following detail about the Vendor’s organization is required to ensure that it can meet WaTech’s 
+requirements. The Vendor working on its behalf shall each provide the following information: 
+1. The legal entity — for example, a private or public corporation — together with its name and 
+registered address. 
+2. The total number of years the legal entity has been in business and, if appropriate, the number of 
+years under the present business name. 
+2.2 (M) Vendor Licensed to do Business in Washington  
+Within thirty (30) days of being identified as the ASV, Vendor must be licensed to conduct business in 
+Washington, including registering with the Washington State Department of Revenue. The Vendor must 
+collect and report all applicable taxes. The Vendor must submit Vendor’s Unified Business Identification 
+(UBI) number within 30 days of being identified as the ASV.  
+2.3 (M) Use of Subcontractors  
+WaTech will accept Responses that include third party involvement only if the Vendor submitting the 
+Response agrees to take complete responsibility for all actions of such Subcontractors. Vendors must state 
+whether Subcontractors are/are not being used, and if they are being used, Vendor must list them in 
+response to this subsection. WaTech reserves the right to approve or reject any and all Subcontractors that 
+Vendor proposes. Any Subcontractors engaged after award of the Contract must be pre-approved, in 
+writing, by WaTech. 
+Specific restrictions apply to contracting with current or former state employees pursuant to chapter 42.52 
+RCW. Vendors should familiarize themselves with the requirements prior to submitting a Response. 
+2.4 (M) Prior Contract Performance 
+Vendor must submit full details of all Terminations for Default for performance similar to the 
+Software/Services requested by this RFP experienced by the Vendor in the past five (5) years, including 
+the other party’s name, address and telephone number. If the Vendor has experienced no such 
+Terminations for Default in the past five years, they must so declare. If the Vendor has been suspended or 
+debarred by the Department of Enterprise Services, they must so declare and provide details surrounding 
+the suspension/debarment. WaTech will evaluate the information and may, at its sole discretion, reject the 
+Response if the information indicates that completion of a Contract resulting from this RFP may be 
+jeopardized by selection of the Vendor. 
+2.5 (D) Vendor Employee Arbitration Clause 
+Pursuant to Executive Order 18-03, WaTech seeks to contract with qualified Vendors that can 
+demonstrate or will certify that their employees are not required to sign, as a condition of employment, 
+mandatory individual arbitration clauses and class or collective action waivers. Please demonstrate or 
+certify.   
+State of Washington Statewide Imagery Consortium 
+Washington Technology Solutions 26-RFP-004  
+                               
+RFP Scoring Phase II- OPTIONAL FOR WATECH 
+2.6 (MS 100) Client References 
+WaTech at its sole discretion may elect to check the references provided for the top scoring vendor as part 
+of the evaluation process.  WaTech reserves the right to disqualify a vendor and move to the next top 
+scoring vendor if a vendor receives a negative reference. 
+All responding Vendors shall provide as references the names, addresses, telephone numbers, e-mail 
+addresses, and contact person for three (3) representative customers.  References must be for projects that 
+are of a similar size and scope of the project anticipated in this RFP.  
+References must not be from a person, company or organization with any special interest, financial or 
+otherwise, in the Vendor. 
+WaTech may contact, at its discretion, other Vendor clients for references. WaTech will use a Client 
+Reference Form to check references.   
+To the extent a Response may give rise to confidentiality obligations, WaTech will not sign an NDA to 
+receive the information. Instead, please respond with sufficient information to enable WaTech to evaluate 
+and contact the Client Reference.  WaTech expects the contact information to be provided and will not 
+coordinate contacting a reference through the Vendor.  
+In the event that one of the provided references is a member of the evaluation team, WaTech will contact 
+the Vendor for an alternate reference. The alternate reference shall be provided timely and must be 
+available during the evaluation period. 
+WaTech will make one (1) attempt to contact the client and obtain a reference, WaTech will leave a 
+voicemail, and send an email and it is acceptable if a return call is received within the timeframe set forth 
+in Schedule – Section 2.  If a contact cannot be made, the reference will be disallowed. It is the Vendor’s 
+responsibility to provide WaTech with references that will be timely and available during the evaluation 
+period set forth in Schedule – Section 2. WaTech reserves the right to eliminate from further 
+consideration in this RFP process any Vendor who, in the opinion of WaTech, receives an unfavorable 
+report from a Vendor. WaTech also reserves the right to contact other Vendor Purchasers for additional 
+references for consideration.  
+2.7 (MS 100) Demonstration’s 
+WaTech at its sole discretion may elect to select the top scoring finalists for an interview as part of the 
+evaluation process.  If WaTech elects to hold demonstrations, it will contact the top scoring Vendors. 
+Vendors must ensure 
+ that they are available. Representations made by the Vendor during the interview will be considered 
+binding. The Vendor’s must be available for online demonstrations via Teams on the dates stated in 
+Section 2.   In its RFP response, Vendor must acknowledge its availability.  
+ 
+  
+State of Washington Statewide Imagery Consortium 
+Washington Technology Solutions 26-RFP-004  
+                               
+SECTION 5 
+3. EXPERIENCE, SKILLS AND APPROACH 
+Respond to the following requirements per the instructions in Section 3. 
+ 
+3.1 (MS 1000) Minimum Requirements 
+ 
+Number Type Score Description 
+Orthoimagery offered to WaTech and Consortium members 
+ 
+1 Pass/Fail  Orthoimagery must provide statewide coverage with 
+reasonable temporal consistency. 
+ 
+2 Pass/Fail  Orthoimagery must include color infrared (CIR) 4-
+band product. 
+ 
+3 Pass/Fail  Provide copy of metadata for orthoimagery offered 
+to WaTech and consortium members. 
+ 
+4 Mandatory - Scored  (MS 500) Provide clear list of orthoimagery available and 
+offered to WaTech and consortium partners.  (e.g. 
+Statewide 4band 2023 imagery at 1 ft resolution.)  
+ 
+Imagery Quality 
+ 
+5 Pass/Fail  
+Horizontal Accuracy must meet the following 
+minimum standards: 
+6 inch  
+RMSE x/y = 0.5m or better 
+RMSEr=0.71m or better 
+CE90 = 1.07m or better 
+CE95 = 1.22m or better 
+ 
+1 foot 
+RMSE x/y = 1.2m or better 
+RMSEr = 1.7m or better 
+CE90 = 2.6m or better 
+CE95 = 3.0m or better 
+6 Mandatory Scored  (MS 100) 
+Orthophoto quality must be free from smears or 
+voids and have minimal smoke, haze or fog. 
+Deliverables and Licensing Requirements 
+ 
+7 Pass/Fail  
+All orthoimagery products will be delivered in 
+uncompressed GeoTiff format for WaTech on-site 
+hosting in UTM projection. 
+ 
+8 Pass/Fail  
+Licensing must allow all Washington State Imagery 
+Consortium Participants unlimited access/licenses.  
+State of Washington Statewide Imagery Consortium 
+Washington Technology Solutions 26-RFP-004  
+                               
+Consortium participants may include: Washington 
+State Agencies, Regents-level institutions, all county 
+and city governments, all public safety and 
+municipalities (PSAP, Water, Fire Districts, PUDs) 
+and Tribes. 
+9 Pass/Fail  
+Any commercial firm doing work on behalf of the 
+above governmental entities will be able to access 
+the data for the duration of that contracted work. 
+10 Pass/Fail  
+Licensing must allow for using the data in 
+perpetuity. 
+11 Pass/Fail  Streaming service available for consortium partners. 
+11 Mandatory - Scored MS (100) 
+Please describe how the licensing would work with 
+the public disclosure laws.  E.g. Conditions that it 
+could be released based on maximum square mile, 
+etc. 
+15 Non-scored Item  
+What is your company’s expected refresh rate for 
+orthoimagery for Washington state? 
+16 Non-scored Item  
+Does your company offer Digital Surface Model 
+(DSM) data?  If yes, please provide clear pricing for 
+that as an optional purchase in the costing 
+spreadsheet. 
+Support for State Program 
+ 
+18 Mandatory - Scored (MS 100) 
+When will the orthoimagery be available for use by 
+WaTech and the Statewide Imagery Consortium 
+members? 
+19 Mandatory - Scored  (MS 100) 
+What level of support is available for quality control 
+issues of the orthoimagery? 
+20 Mandatory - Scored (MS 100) 
+Ability for consortium agencies to purchase 
+expanded coverage or resolution as a separate option. 
+ 
+  
+State of Washington Statewide Imagery Consortium 
+Washington Technology Solutions 26-RFP-004  
+                               
+SECTION 6 
+4. FINANCIAL QUOTE 
+SUBMISSION OF A RESPONSE TO WATECH INDICATES THAT THE VENDOR HAS READ, 
+UNDERSTANDS AND WILL COMPLY WITH EACH OF THE MANDATORY REQUIREMENTS LISTED 
+IN THE FINANCIAL QUOTE REQUIREMENT SECTION. 
+4.1 Overview 
+WaTech seeks to acquire Services and products that best meet the State’s needs at the lowest cost and best 
+value.  Prices must include all aspects WaTech needed for the provision of the Services described in this 
+RFP.  Failure to identify all costs in a manner consistent with the instructions in this RFP is sufficient 
+grounds for disqualification. 
+4.2 (MS 500) Vendor Cost Proposal Form 
+Vendor must include in its Response a completed Cost Proposal Form for the Fixed Price Planning 
+Deliverable and Hourly Rate sections contained in Appendix E.  The Cost Proposal Form will be the 
+basis for evaluation of the Financial Response as specified in Section 7. 
+4.3 (M) Responses 
+Responses must be complete and include pricing for all tasks and deliverables.  Present all costs for items 
+necessary to perform the services described in the Statement of Work.  Vendor’s Responses to Cost 
+Proposal Form, Appendix E will be the basis of evaluation of the Financial Proposal as specified in 
+Section 7. Where there is no charge or rate, enter N/C (no charge) or zero (0) on the Cost Proposal Form, 
+as applicable. If the Vendor fails to provide a price, the State will assume the item is free. If the Vendor 
+states “no charge” for an item in the model, the State will receive that item free for the period represented 
+in the model. 
+4.4 (M) Taxes 
+Vendor must collect and report all applicable state taxes as set forth in Section 4.2, Vendor Licensed to do 
+Business in Washington. 
+4.5 (M) Presentation of All Cost Components 
+Identify all elements of recurring and non-recurring costs and include prices set forth in the Vendor Cost 
+Proposal Form (Appendix E). This must include, but is not limited to, all taxes, administrative fees, labor, 
+travel time, consultation services, and supplies needed for the provisioning of the Services described 
+within this RFP. 
+Please do not include travel fees. WaTech shall reimburse Vendor for travel and other expenses in 
+accordance with the then-current rules and regulations set forth in the Washington State Administrative 
+and Accounting Manual (http://www.ofm.wa.gov/policy/contents.asp)  
+Vendor shall provide a detailed itemization of expenses, including description, amounts and dates, and 
+receipts for amounts of fifty dollars ($50) or more when requesting reimbursement under the authorizing 
+SOW. 
+4.6 (M) Price Protection 
+For the entire initial term of the Contract, the Vendor must guarantee to provide the Services at the 
+proposed hourly rates unless a Contract amendment is mutually negotiated.   
+State of Washington Statewide Imagery Consortium 
+Washington Technology Solutions 26-RFP-004  
+                               
+SECTION 7 
+5. Evaluation  
+5.1 Overview 
+The Vendor who meets all of the RFP requirements and receives the highest number of total points as 
+described below will be declared the ASV and enter into contract negotiations with WaTech. 
+5.2 Administrative Screening 
+The RFP Coordinator will review responses to determine pass/fail basis compliance with administrative 
+requirements as specified in Section 3, Administrative Requirements. Evaluation teams will only evaluate 
+Responses meeting all administrative requirements. 
+5.3 Mandatory Requirements  
+Responses meeting all of the administrative requirements will then be reviewed on a pass/fail basis to 
+determine if the Response meets the Mandatory requirements. Only Responses meeting all Mandatory 
+requirements will be further evaluated. 
+The State reserves the right to determine at its sole discretion whether Vendor’s response to a Mandatory 
+requirement is sufficient to pass. If, however, all responding Vendors fail to meet any single Mandatory 
+item, WaTech reserves the following options: (1) cancel the procurement, or (2) revise or delete the 
+Mandatory item. 
+5.4 Qualitative Review and Scoring 
+Only Responses that pass the administrative screening and Mandatory requirements review will be 
+evaluated and scored based on responses to the scored requirements in the RFP.  Responses receiving a 
+“0” on any Mandatory Scored (MS) element(s) will be disqualified. 
+5.5 Evaluation of Sections 4 & 5 
+a) Section 4- Mandatory Requirement review by Evaluation team.  
+b) Section 5, Experience, Skills and Approach by Evaluation team 
+ 
+Each scored element in the Experience, Skills and Approach Requirements section of the Response will 
+be given a score by each technical evaluation team evaluator. Then, the scores will be totaled and an 
+average score for each Vendor will be calculated as set forth below. This will be used in the calculation of 
+Vendor’s total score, as set forth in Section 7.10, Vendor Total Score. 
+ 
+Evaluation points will be assigned based on the effectiveness of the Response to each technical 
+requirement. For example, if a response is worth 10 points, a scale of zero to ten will be used, defined as 
+follows: 
+ 
+ 
+ 
+ 
+ 
+State of Washington Statewide Imagery Consortium 
+Washington Technology Solutions 26-RFP-004  
+                               
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+5.6 Technical Evaluation – (Section 5)  
+WaTech will review all mathematical computations and will allocate 40 points to the Vendor with the 
+highest total Technical Score. The point value for every other bid will be calculated using the ratio of 
+each Vendor’s Technical Score to the highest Vendor’s Technical Score. This ratio will be multiplied by 
+the 1000 points allocated for the Mandatory Technical Requirements to arrive at the Total Technical 
+Score for each Vendor.  
+ 
+Vendor’s Technical Score x 1000 points  = Vendor’s Total Technical Score 
+Highest Vendor’s Technical Score 
+These scores will be carried over in the calculation of the Vendor Total Score as explained below. 
+ 
+5.7 Financial Proposal Evaluation – (Section 6)  
+The financial evaluation team will calculate the financial score for the Financial Proposal section of the 
+Response using Vendor’s Cost Proposal Form. That number will represent the Lowest/Vendor’s Total 
+Proposal set forth below. 
+ 
+ 
+ 
+ 
+Score Description Discussion 
+0 No value Vendor has omitted any discussion of this requirement or the 
+information provided is of no value.  
+1-3 Poor Vendor has not fully established the capability to perform the 
+requirement, has marginally described its approach, or has simply 
+restated the requirement.  
+4-6 Average Vendor has an acceptable capability or solution to meet this criterion 
+and has described its approach in sufficient detail to be considered "as 
+meeting minimum requirements". 
+7-9 Good Vendor has demonstrated an above-average capability, approach, or 
+solution and has provided a complete description of the capability, 
+approach, or solution. 
+10 Excellent Vendor has provided an innovative, detailed, efficient approach or 
+established, by references and presentation of material, far superior 
+capability in this area. 
+Lowest Vendor Cost for orthoimagery              x 300 = Total Cost orthoimagery 
+Vendor’s Cost for orthoimagery  
+State of Washington Statewide Imagery Consortium 
+Washington Technology Solutions 26-RFP-004  
+                               
+ 
+ 
+5.8 PHASE II -Optional Evaluation  
+1. Client References 
+The RFP Coordinator will calculate the scores for each Client Reference Form, Appendix G. The total 
+scores of each Vendor’s Client References will be summed together and a Vendor’s average score will be 
+calculated (Step 1).  Each Vendor’s Average Score will be valued using the score of the highest scored 
+vendor to determine each Vendor’s Reference Score (Step 2).  The Vendor’s Reference Score will be 
+used in the calculation of Vendor’s total score, as set forth in Section 7.8, Vendor Total Score. 
+Step 1 
+References Total Scores                        = Vendor’s Average Score 
+Number of Vendor’s References 
+Step 2 
+Vendor’s Average Score                        x 100      = Client Reference Score 
+Highest Vendor Average Score 
+ 
+2. Demonstrations 
+WaTech may elect, after evaluating the written proposals, to schedule Demonstrations of the top scoring 
+finalists.  
+Final points for the Demonstrations will be calculated by an average of the individual scores as set forth 
+below. This will be used in the calculation of Vendor’s total score, as set forth in Section 7.8, Vendor 
+Total Score. 
+ 
+Sum of Evaluators Demonstration Scores = Vendor’s Avg. Demonstration Score 
+Number of Evaluators 
+ 
+Vendor’s Avg. Demonstration Score          x 100 = Demonstration Score 
+Highest Avg. Demonstration Score 
+5.9 Allocation of Points 
+The scores for Response will be assigned a relative importance for each scored section. The relative 
+importance for each section is as follows: 
+ 
+PHASE I 
+• Vendor Requirements, including Experience and Skill 
+Qualifications (Section 5) 
+• Financial Proposal (Section 6.2) 
+ 
+1000 points 
+ 
+500 points 
+Phase I Subtotal 1500 points 
+PHASE II- optional for WaTech  
+Lowest Vendor Cost for Streaming service               x 200 = Total Cost for Streaming Service 
+Vendor’s Cost for Streaming service 
+State of Washington Statewide Imagery Consortium 
+Washington Technology Solutions 26-RFP-004  
+                               
+• Client References (Section 4.6) 
+• Demonstrations (Section 4.7) 
+100 points 
+100 points 
+Phase II Subtotal 200 points 
+TOTAL 1700 
+5.10 Vendor Total Score 
+Vendors will be ranked using the Vendor’s Total Score for its Response, with the highest score ranked 
+first and the next highest score ranked second, and so forth. Vendor’s Total Score will be calculated as 
+follows: 
+Total Score = (Technical Score) + (Financial Score) + (Optional Phase 2 Score)  
+5.11 Selection of Apparently Successful Vendor 
+The Vendor with the highest Vendor total score will be declared the ASV.  WaTech will enter into 
+contract negotiations with the ASV. Should contract negotiations fail to be completed as described in 
+Section 7.12, WaTech may immediately cease contract negotiations, declare the Vendor with the second 
+highest score as the new ASV, and enter into contract negotiations with that Vendor. This process will 
+continue until (1) the Contract is signed, (2) no qualified Vendors remain, or (3) WaTech cancels the 
+award or solicitation consistent with this RFP.  
+5.12 Contract Negotiations 
+Upon selection of an Apparently Successful Vendor (ASV), WaTech will enter into contract negotiations 
+with the ASV. Vendors must be willing to enter into a Contract and End User License Agreement in 
+substantially the same form and the same terms and conditions as the Contract in Appendix B.  The 
+Apparently Successful Vendor will be expected to complete contract negotiations within one (1) calendar 
+day of announcement of the ASV. The Apparently Successful Vendor will be expected to execute the 
+Contract within five (5) calendar days of its receipt of the final contract.  If the selected Vendor fails or 
+refuses to sign the Contract within the allotted five (5)-calendar day period, WaTech may immediately 
+cease contract negotiations and elect to cancel the award.  WaTech may then award the Contract to the 
+next ranked Vendor, or cancel or reissue this solicitation.  Vendor’s submission of a Response to this 
+solicitation constitutes acceptance of these Contract requirements. 
+ 
+ 
+State of Washington Statewide Imagery Consortium 
+Washington Technology Solutions 26-RFP-004  
+                               
+APPENDIX A 
+CERTIFICATIONS AND ASSURANCES 
+Issued by the State of Washington 
+ 
+We make the following certifications and assurances as a required element of the Response, to which it is 
+attached, affirming the truthfulness of the WaTech declared here and acknowledging that the continuing 
+compliance with these statements and all requirements of the RFP are conditions precedent to the award or 
+continuation of the resulting Contract. 
+The prices in this Response have been arrived at independently, without, for the purpose of restricting 
+competition, any consultation, communication, or agreement with any other offer or competitor relating to 
+(i) those prices, (ii) the intention to submit an offer, or (iii) the methods or factors used to calculate the prices 
+offered. The prices in this Response have not been and will not be knowingly disclosed by the offer, directly or 
+indirectly, to any other offer or competitor before Contract award unless otherwise required by law. No attempt 
+has been made or will be made by the offer to induce any other concern to submit or not to submit an offer for 
+restricting competition. However, we may freely join with other persons or organizations for presenting a single 
+proposal or bid. 
+The attached Response is a firm offer for a period of 90 days following the Response Due Date specified in the 
+RFP, and it may be accepted by WaTech without further negotiation (except where obviously required by lack 
+of certainty in key terms) at any time within the 90 day period. In the case of protest, your Response will remain 
+valid for 120 days or until the protest is resolved, whichever is later. 
+In preparing this Response, we have not been assisted by any current or former employee of the state of 
+Washington whose duties relate (or did relate) to the State's solicitation, or prospective Contract, and who was 
+assisting in other than his or her official, public capacity. Neither does such a person nor any member of his or 
+her immediate family have any financial interest in the outcome of this Response. (Any exceptions to these 
+assurances are described in full detail on a separate page and attached to this document.) 
+We understand that the State will not reimburse us for any costs incurred in the preparation of this Response. All 
+Responses become the property of the State, and we claim no proprietary right to the ideas, writings, items or 
+samples unless so stated in the Response. Submission of the attached Response constitutes an acceptance of the 
+evaluation criteria and an agreement to abide by the procedures, compliance with Mandatory and all other 
+administrative requirements described in the solicitation document. 
+We understand that any Contract awarded, as a result of this Response will incorporate all the solicitation 
+requirements. Submission of a Response and execution of this Certifications and Assurances document certify 
+our willingness to comply with the Contract terms and conditions appearing in Appendix B, or substantially 
+similar terms, if selected as a contractor. It is further understood that our standard contract will not be considered 
+as a replacement for the terms and conditions appearing in Appendix B of this solicitation. 
+We (circle one) are / are not submitting proposed Contract exceptions (see Subsection 3.14, Contract 
+Requirements). 
+ 
+   
+Vendor Signature  Vendor Company Name 
+   
+Title  Date 
+ 
+State of Washington Statewide Imagery Consortium 
+Washington Technology Solutions 26-RFP-004  
+                               
+APPENDIX B 
+PROPOSED CONTRACT 
+ 
+ 
+ 
+Posted separately on the WaTech Web site at: 
+http://WaTech.wa.gov/procurement/procurement.aspx 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+  
+ 
+ 
+State of Washington Statewide Imagery Consortium 
+Washington Technology Solutions 26-RFP-004  
+                               
+APPENDIX C 
+(If Applicable) MWBE Participation Form  
+Minority and Women's Business Enterprises (MWBE) 
+Participation Form 
+ 
+ 
+MWBE participation is defined as: Certified MBEs and WBEs bidding as prime Vendor, or prime Vendor 
+firms subcontracting with certified MWBEs. For questions regarding the above, contact Office of 
+MWBE, (360) 664-9770. 
+ 
+In accordance with WAC 326-30-046, WaTech goals for acquisitions have been established as follows: 
+12% MBE or WBE. 
+MBE FIRM NAME *MBE CERTIFICATION NO. PARTICIPATION % 
+   
+   
+   
+   
+WBE FIRM NAME *WBE CERTIFICATION NO. PARTICIPATION % 
+   
+   
+ 
+*Certification number issued by the Washington State Office of Minority and Women's Business Enterprises.  
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+Name of Vendor completing this Certification: ______________________________________________ 
+ 
+ 
+State of Washington Statewide Imagery Consortium 
+Washington Technology Solutions 26-RFP-004  
+                               
+APPENDIX D 
+PROTEST PROCEDURE 
+ 
+A Vendor who is aggrieved in connection with the solicitation or award of a contract, who has submitted 
+a response and participated in a debriefing conference, may submit a written protest to the Contracts & 
+Procurement Manager at WaTech, 1500 Jefferson Street SE, 5th Floor, Olympia WA 98501 or 
+Matt.hanson@WaTech.wa.gov 
+ 
+Grounds 
+Protests may be based only on alleged bias on the part of an evaluator, mathematical error in the 
+computation of the score, or failure to follow the process or standards stated in the related procurement 
+document.  
+ 
+Timing 
+A protest shall be presented to WaTech in writing no later than 5 business days after the post award 
+debrief has occurred. The written letter shall state the grounds for the protest and state the relevant facts, 
+circumstances and documents in support of the Vendor’s position. 
+ 
+Process 
+In conducting its review, WaTech will consider all available relevant facts. WaTech will resolve the 
+protest in one of the following ways: 
+ 
+1. Find that the protest lacks merit and upholding the agency's action. 
+2. Find only technical or harmless errors in the agency's acquisition process, determining the 
+agency to be in substantial compliance, and rejecting the protest; or 
+3. Find merit in the protest and provide options to the agency, including: 
+a. Correcting errors and reevaluating all Responses; 
+b. Reissuing the solicitation document; or 
+c. Making other findings and determining other courses of action as appropriate. 
+Except as stated otherwise below, the Contracts & Procurement Manager will review protests on behalf of 
+the agency. The agency will deliver its written decision to the protesting Vendor within five business days 
+after receiving the protest, unless more time is needed. The protesting Vendor will be notified if 
+additional time is necessary. Exempt Purchases under $100,000 shall be reviewed only by the Contracts 
+& Procurement Manager, whose opinion is final. 
+ 
+Vendors may appeal the Contracts & Procurement Manager’s determination, on Exempt Purchases over 
+$100,000, by submitting an appeal in writing to the Director. An appeal shall be filed no later than 5 
+business days after Contracts & Procurement Manager’s decision. Decisions made by the Director or 
+designee are final. 
+ 
+In the event the Contracts & Procurement Manager has a conflict of interest, the protest or appeal will be 
+managed by a WaTech senior level manager appointed by the Deputy Director. This individual must not 
+be involved with the business that is the subject matter of the protest appeal. 
+ 
+ 
+ 
+State of Washington Statewide Imagery Consortium 
+Washington Technology Solutions 26-RFP-004  
+                               
+APPENDIX E 
+(MS 500) COST PROPOSAL FORM  
+ 
+Please complete the following Cost Model pursuant to the instruction in the RFP.  Please note- 
+WaTech is not able to prepay more than sixty months in advance for equipment maintenance, 
+twelve months for software, software maintenance and all other purchases   
+(MS 500) Product Costs 
+Vendor must provide the Total Price if paid in a single year & Price per year if paid over 2 years. 
+(Vendor shall complete the yellow shaded cells).   
+A.1 Imagery Product Purchase  
+Item Total Price if paid in a 
+single year (Including Tax) 
+ 
+Total Price per year if paid 
+over 2 years (including tax) 
+ 
+(MS 300) Provide clear pricing of 
+orthoimagery available and 
+offered to WaTech and 
+Consortium partners.  (e.g. 
+Statewide 4band 2023 imagery at 
+1 ft resolution will cost $$) 
+ 
+  
+(MS 200) Streaming service for 
+the same imagery as above 
+  
+Digital Surface Model pricing 
+(optional) 
+  
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+State of Washington Statewide Imagery Consortium 
+Washington Technology Solutions 26-RFP-004  
+                               
+APPENDIX F 
+A Few Critical Things to Keep in Mind When Responding to an RFP for WaTech 
+ 
+This document is explanatory only and has no consequence on the processes stated in any 
+particular procurement. Please do not submit this checklist, it is merely a resource.  
+ 
+1. ______ Read the entire document. Note critical items such as: mandatory requirements; 
+supplies/services required; submittal dates; number of copies required for 
+submittal; funding amount and source; contract requirements (i.e., contract 
+performance security, insurance requirements, performance and/or reporting 
+requirements, etc.). 
+ 
+2. _______ Note the procurement officer's name, address, phone numbers and e-mail 
+address.  This is the only person you are allowed to communicate with regarding 
+the RFP and is an excellent source of information for any questions you may have. 
+ 
+3. _______ Take advantage of the “question and answer” period. Submit your questions to 
+the RFP Coordinator by the due date listed in the Schedule of Events and view the 
+answers given in the formal “addenda” issued for the RFP. All addenda issued for 
+an RFP are posted on the State’s website and will include all questions asked and 
+answered concerning the RFP. 
+ 
+4. _______ Follow the format required in the RFP when preparing your response. Provide 
+point-by-point responses to all sections in a clear and concise manner. Make sure 
+to address each subpart. 
+ 
+5. _______ Provide complete answers/descriptions. Read and answer all questions and 
+requirements. Do not assume the State or evaluator/evaluation committee will 
+know what your company capabilities are or what items/services you can provide, 
+even if you have previously contracted with the State. The proposals are evaluated 
+based solely on the information and materials provided in your response. 
+ 
+6. _______ Check the State’s website for RFP addenda. Before submitting your response, 
+check the State’s website at
+ http://WaTech.wa.gov/procurement/procurement.aspx 
+to see whether any addenda were issued for the RFP. 
+ 
+7. _______ Review and read the RFP document again to make sure that you have 
+addressed all requirements and have followed all of the instructions. Once you 
+have done that, read the RFP document again.  
+ 
+8. _______ Submit your response on time. Note all the dates and times listed in the 
+Schedule of Events and within the document, and be sure to submit all required 
+items on time. Late proposal responses are never accepted. 
+ 
+9.        ______  Address each mandatory/mandatory scored item.  Any time you see an “M” or 
+“MS”- make sure to respond, even in the financial sections. For Mandatory items, 
+A statement, “(Vendor Name) has read, understands, and fully complies with the 
+stated requirements.” 
+ 
+State of Washington Statewide Imagery Consortium 
+Washington Technology Solutions 26-RFP-004  
+                               
+APPENDIX G 
+VENDOR CLIENT REFERENCE FORM 
+ 
+Name of vendor for whom reference is given:  __________________________________________ 
+Your name and title: _______________________________________________________________ 
+Vendor: Telephone number: ________________   E-Mail address: __________________________ 
+ 
+For each of the questions, please rate the response on the following scale and provide any comments 
+you wish to add. 
+ 0 1 2 3 4 5 
+ Unsatisfactory Below 
+Average 
+Average Above 
+Average 
+Exceptional 
+Best 
+ 
+1. What were you hoping to achieve by hiring the vendor’s services? Do you feel you achieved them? 
+_________________________________________________________________________________ 
+_________________________________________________________________________________ 
+ 
+2. What would you wish had been different about your project or your relationship with the vendor? If 
+you could have changed one thing, what would it have been? 
+_________________________________________________________________________________ 
+_________________________________________________________________________________ 
+ 
+3. How long did it take before you saw the results of the project? Did the vendor stay on schedule? 
+_________________________________________________________________________________ 
+_________________________________________________________________________________ 
+ 
+4. How did you know when the vendor succeeded at what was promised? 
+_________________________________________________________________________________ 
+_________________________________________________________________________________ 
+ 
+5. How well did they understand your needs? 
+_________________________________________________________________________________ 
+_________________________________________________________________________________ 
+ 
+6. How did they handle conflict-resolution? 
+_________________________________________________________________________________ 
+_________________________________________________________________________________ 
+ 
+7. What was their response time to your questions or requests? 
+ 
+State of Washington Statewide Imagery Consortium 
+Washington Technology Solutions 26-RFP-004  
+                               
+_________________________________________________________________________________ 
+_________________________________________________________________________________ 
+ 
+8. Did the vendor exceed your expectations? 
+_________________________________________________________________________________ 
+_________________________________________________________________________________ 
+ 
+9. Is there anything else I should consider before I hire this vendor? 
+_________________________________________________________________________________ 
+_________________________________________________________________________________ 
+ 
+10. Would you hire this vendor again? Do you have plans to hire them again? 
+__________________________________________________________________________
+__________________________________________________________________________ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+State of Washington Statewide Imagery Consortium 
+Washington Technology Solutions 26-RFP-004  
+                               
+APPENDIX G 
+SPECIAL TERMS AND CONDITIONS 
+ 
+Outlined are the Special Terms and Conditions, which are granted to State Government with regards to 
+the orthoimagery products offered in this RFP.  
+ 
+Special Terms and Conditions  
+ 
+1. The following stakeholders and partners authorized by the state shall be allowed access licenses. 
+a. All State Government Agencies and Regents-level institutions  
+b. All County-level governments  
+c. All Municipal (city) governments  
+d. All Public Safety Answering Points (PSAP)  
+e. All State Tribal Communities  
+ 
+2. Authorized users shall be allowed to develop and publish, not for monetary gain, publicly 
+available web applications, which utilize orthoimagery or web based service(s), in a view-only 
+mode with no download capability.  
+ 
+3. Authorized users shall be allowed to print and distribute, not for monetary gain, hardcopy format 
+maps that display the orthoimagery.  
+ 
+4. Commercial firms or organizations holding an active contract with the State Government or any 
+of the authorized partners listed above to conduct work on behalf of a State Agency using 
+Geospatial Data 
+ 
+5. The data purchased through this contract will enter into a perpetual license at the end of the initial 
+contract term. If the data is refreshed during the term of the agreement, the refresh data will enter 
+into a perpetual license upon completion of a subsequent agreement. At the end of the period, the 
+web services will no longer be provided. However, data classified as perpetual use data will be 
+available for all approved users via digital copies of the orthoimagery.  
+ 

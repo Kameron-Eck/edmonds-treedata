@@ -1,0 +1,1481 @@
+ 
+ 
+ 
+City of Edmonds, Washington 
+Urban Tree Canopy Assessment 
+2017  
+Wikimedia Commons. 2011 Edmonds, Washington. Point Edwards, Edmonds, Washington 02.jpg. Photo. 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+  
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+Edmonds, Washington 
+Urban Tree Canopy Assessment 
+2017 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+Prepared for:  
+City of Edmonds 
+Attention: Shane Hope 
+121 Fifth Avenue North 
+Edmonds, WA 98020 
+ 
+Prepared by: 
+Davey Resource Group 
+A Division of the Davey Tree Expert Company 
+6005 Capistrano Avenue, Suite A 
+Atascadero, California 93422 
+Phone:  805-461-7500 
+Toll Free:  800-966-2021 
+Fax:  805-461-8501 
+www.davey.com/drg 
+ 
+ 
+ 
+ 
+ 
+All Photos Provided by the City of Edmonds or Davey Resource Group unless otherwise noted. 
+ 
+
+Table of Contents 
+Executive Summary ............................................................................................................................................... 1 
+Land Cover ........................................................................................................................................................ 2 
+Benefits ............................................................................................................................................................. 2 
+Management Applications ................................................................................................................................ 3 
+Introduction .......................................................................................................................................................... 5 
+Urban Tree Canopy and Geographic Information Systems .............................................................................. 5 
+Benefits of Urban Tree Canopy ......................................................................................................................... 7 
+Air Quality ..................................................................................................................................................... 7 
+Carbon Reduction ......................................................................................................................................... 7 
+Stormwater Runoff Reduction ...................................................................................................................... 8 
+Energy Savings .............................................................................................................................................. 9 
+Aesthetics and Socioeconomics .................................................................................................................... 9 
+Calculating Tree Benefits .................................................................................................................................. 9 
+Land Cover in Edmonds ...................................................................................................................................... 11 
+Overall Land Cover .......................................................................................................................................... 11 
+Tree Canopy and Historic Change ................................................................................................................... 14 
+Tree Canopy in Neighboring Communities ..................................................................................................... 15 
+Environmental Benefits .................................................................................................................................. 16 
+Carbon sequestration and Storage ............................................................................................................. 16 
+Stormwater Runoff Benefits ....................................................................................................................... 16 
+Air Quality Benefits ..................................................................................................................................... 18 
+Tree Canopy by Land Use................................................................................................................................ 20 
+Tree Canopy by Park ....................................................................................................................................... 22 
+Canopy Fragmentation ................................................................................................................................... 26 
+Critical Areas ................................................................................................................................................... 28 
+Priority Planting .................................................................................................................................................. 32 
+Conclusion ........................................................................................................................................................... 34 
+Appendix A: References ...................................................................................................................................... 36 
+Appendix B: Methods ......................................................................................................................................... 38 
+Land Cover Assessment .................................................................................................................................. 38 
+Classification Workflow .............................................................................................................................. 38 
+Automated Feature Extraction Files ........................................................................................................... 39 
+Accuracy Assessment Protocol ................................................................................................................... 40 
+Land Cover Accuracy ................................................................................................................................... 40 
+Benefit Calculations ........................................................................................................................................ 43 
+Stormwater ................................................................................................................................................. 43 
+Pollutant Removal ....................................................................................................................................... 43 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+Figures 
+Figure 1. Land Cover Classes .............................................................................................................................. 2 
+Figure 2. Planting Priority Mapping ................................................................................................................... 3 
+Figure 3: High-resolution aerial imagery (Top Left) is used to remotely identify existing land c over. Infrared 
+technology delineates living vegetation including tree canopy (Top Right). Remote sensing software 
+identifies and maps tree canopy and other land cover (Bottom). ..................................................................... 6 
+Figure 4: Tree canopies in Edmonds’ business districts encourage people to stay and shop longer. ............. 10 
+Figure 5. Land Cover Class ................................................................................................................................ 12 
+Figure 6. Percent (%) Tree Canopy in Neighboring Communities .................................................................... 15 
+Figure 7. Annual Environmental Benefits......................................................................................................... 16 
+Figure 8. Role of Trees in Reducing Stormwater Runoff .................................................................................. 16 
+Figure 9. The canopy from a mature ash tree in Edmonds provides $116 in annual environmental benefits 19 
+Figure 10. % Tree Canopy by Land Use Type ................................................................................................... 20 
+Figure 11. Haines Wharf Park has a high potential for tree canopy compared to what exists today ............. 22 
+Figure 12. Maplewood Hill park is considered fully stocked with 100% tree canopy cover ............................ 25 
+Figure 13: Canopy Fragmentation Comparison ............................................................................................... 26 
+Figure 14. Bald Eagles (upper) and Great Blue Heron (lower) need tree canopy in order to have suitable 
+habitat. ............................................................................................................................................................. 32 
+Figure 15. Tree Canopy objectives can vary throughout the City from the shoreline to upland areas, but 
+overall canopy cover across the city needs to be sustained. ........................................................................... 35 
+Tables 
+Table 1. Land Cover Classes ............................................................................................................................. 11 
+Table 2. Tree Canopy Change over Time .......................................................................................................... 14 
+Table 3. Avoided Runoff and Pollutant Load .................................................................................................... 17 
+Table 4. Air Quality Benefits ............................................................................................................................. 18 
+Table 5. Proportion of Tree Canopy Cover by Land Use Type.......................................................................... 20 
+Table 6. Land Cover by Park ............................................................................................................................. 24 
+Table 7. Sensitive Areas by Forest Fragmentation Class .................................................................................. 28 
+Table 8. Steep Slope by Land Cover Class ........................................................................................................ 30 
+Table 9. Factors Used to Prioritize Tree Planting Sites .................................................................................... 32 
+Table 10. Tree Planting Priorities ..................................................................................................................... 32 
+Table 11. Classification Matrix ......................................................................................................................... 41 
+Table 12. Confidence Intervals ......................................................................................................................... 42 
+Maps 
+Map 1. Aerial Overview of Edmonds.................................................................................................................. 4 
+Map 2. Land Cover Classes in Edmonds ........................................................................................................... 13 
+Map 3. Tree Canopy according to Land Type in Edmonds ............................................................................... 21 
+Map 4. Canopy Cover in Parks in Edmonds ...................................................................................................... 24 
+Map 5. Forest Fragmentation in Edmonds ...................................................................................................... 27 
+Map 6. Planting Priority in Edmonds................................................................................................................ 33 
+ 
+ 
+ 
+ 
+
+1     Executive Summary    
+Executive Summary 
+Edmonds is located 11 miles north of Seattle, Washington on the coast of the Puget Sound. This waterfront 
+location allows Edmonds  to serve  as a port in the Washington State Ferries service . The community's 
+location along the west-facing slopes of Puget Sound provides many comf orts, including extensive views of 
+the water and the Olympic Mountains , access to  four beaches and waterfront parks, and easy access to a 
+compact, walkable downtown area. The city is home to more than  40,000 residents in just over 9.5 square 
+miles of land. Residents enjoy average summer temperatures of 64.5°F, dropping during the winter months 
+to about 42.2°F. Although the community generally receives around 37.2 inches of precipitation throughout 
+the year, mostly during the winter mont hs, summers are compa ratively dry   ( City of Edmonds Website 
+‘About’, 2018). The trees in Edmonds ’ urban forest play a significant role in maintaining this  favorable and 
+healthy environment. The urban forest includes all trees located within the city limits. Every tree, private  
+and public, is a component of the urban forest and the urban tree canopy.  
+To evaluate the urban forest, Edmonds contracted with Davey Resource Group (DRG) in 2017  to conduct a 
+comprehensive Urban Tree Canopy (UTC) Assessment. The UTC Assessment provides a birds-eye view of 
+the entire urban forest  and establishes  a tree canopy baseline of known accuracy and classification 
+methodology. This helps managers understand several factors about the tree canopy, including: 
+ Quantity and distribution of existing tree canopy 
+ Potential impacts of tree planting and removal 
+ Quantified annual benefits trees provide to the community 
+ Benchmark canopy percent values 
+The City of Edmonds has instated a coordinated set of plans and programs designed to lead the City toward 
+sustainability. The Comprehensive Plan of Edmonds includes a Community Sustainability Element . 
+Components of the element  include a reduction in energy co nsumption and carbon emissions. Canopy 
+distribution w as evaluated at several levels, including by parks and zoning.  Functional values, including 
+carbon sequestration and stormwater, were also determined.  In this way, as Edmonds strives for a healthy 
+urban tree canopy, the city is also demonstrating their  progress towards managing energy demands and 
+reductions in carbon emissions. 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+   Executive Summary     2 
+Land Cover  
+The City of Edmonds encompasses a total area of 9.5 square miles (6,095 acres). Edmonds contains 2.9 
+square miles (1,844 acres) of tree canopy (Figure 1). Excluding 3.3 square miles of impervious surfaces 
+(2,080 acres) and 0.6 square miles of open water (402 acres), Edmonds includes 2.6 square miles (1,651 
+acres) with the potential to support additional tree canopy . Using high -resolution aerial imagery from 
+August 7th, 2015 (USDA, Farm Service Agency) and GIS ana lysis, Davey Resource Group ( DRG) determined 
+the following land cover characteristics within the City of Edmonds: 
+ 30% existing canopy, including trees and woody shrubs (525 acres) 
+ 57% total possible canopy, considering suitable planting areas (1,651 acres) and the existing canopy 
+(1,844 acres), for a total of 3,495 acres 
+ The zoning class Private has most of the canopy (83%), followed by Public (13%), and Residential 
+(4%) zones. 
+ Among Parks, Snohomish County park has the most canopy cover (117 acres) followed by Yost 
+Memorial Park (44 acres) and Meadowdale Beach Park (26 acres). Maplewood Hill Park and Willow 
+Creek Park have the highest canopy cover at 100%. 
+ From 2005 to 2015 tree canopy decreased from 32.3% to 30.3%  
+ 2% (99 acres) dry vegetation and bare ground 
+ 7% (402 acres) open water, where tree canopy is unfeasible  
+ 27% (1,670 acres) of grass and low-lying vegetation 
+ 34% impervious surfaces, including roads, parking lots, and structures (2,080 acres) 
+ 
+Figure 1. Land Cover Classes 
+Benefits 
+Edmond’s land cover data was used with  i-Tree Canopy (Appendix  B) to estimate the environmental 
+benefits from the entire urban forest ( all public and private trees). The trees in Edmond’s are providing air 
+quality and stormwater benefits w orth nearly $1.6 million annually. To date, trees in Edmonds are stor ing 
+187,590 tons of carbon in their leaves and woody biomass. The stored carbon is valued at $6.8 million.  
+Annually, tree canopy in Edmonds provides the following environmental services: 
+ Reduces 42.8 million gallons of stormwater runoff, a benefit worth nearly $1.2 million 
+ Improves air quality by removing 42.2 tons of pollutants (CO, NO2, O3, SO2, and PM10), valued at 
+$146,823 
+ Sequesters 6,294 tons of carbon, valued at $221,885 annually 
+Tree Canopy 
+30% 
+Impervious 
+34% 
+Grass/Vegetation 
+27% 
+Bare Soils 
+2% 
+Water 
+7% 
+3     Executive Summary    
+Management Applications 
+Understanding the location and extent of tree canopy is key to developing and implementing sound 
+management strategies that promote the sustainability of Edmond’s urban forest resource and the benefits 
+it provides. The data, combined  with existing and emerging urban forestry research , enable managers to 
+uncover a balance between urban development  and tree preservation by identifying and assessing urban 
+forestry opportunities. Spatial understanding of the past, present, and potential future for tree canopy is an 
+essential consideration to help managers align urban forestry activities with the community’s vision. 
+Edmonds has an existing tree canopy of 30.3 %, and 1,651 acres of potential planting area. To help identify 
+the most beneficial sites for canopy expansion, potential sites were  mapped and then prioritized based on 
+weighted regional factors (Figure 2 ). These maps guide tree canopy expansion strategies.  
+Recommendations for maintaining healthy trees and canopy include:  
+ Define canopy goals for the community and 
+identify actions that will support these 
+goal(s). 
+ Use priority planting site analysis to identify 
+new tree planting locations to reduce erosion 
+and soil degradation. 
+ Use GIS canopy and land cover mapping to 
+explore under-treed neighborhoods and 
+identify potential planting sites. 
+ Incentivize tree planting on private property, 
+particularly in very high planting priority 
+areas. 
+ Increase canopy in areas of patch and 
+fragmented canopy to reduce forest 
+fragmentation and improve wildlife habitat 
+and corridors. 
+ Conducting outreach to the community with 
+this report as an important tool for engaging 
+public interest and support. 
+ Developing strategic planting plans with 
+prioritized GIS maps to increase the tree 
+population and canopy that will enhance the 
+numerous benefits provided by trees. 
+ Siting projects which must meet the 30% native vegetation requirement in ECDC 23.90.040.C 
+(Retention of Vegetation on Subdividable, Undeveloped Parcels) in undeveloped (or redeveloped) 
+subdividable lands zoned in RS-12 or RS-20, that contain a stream or stream buffer, or a wetland or 
+wetland buffer. Conducting outreach to the community with this report as an important tool for 
+engaging public interest and support. 
+Figure 2. Planting Priority Mapping 
+ 
+ 
+ 
+ 
+   Executive Summary     4 
+ 
+Map 1. Aerial Overview of Edmonds 
+
+5     Introduction    
+Introduction 
+Urban tree canopy is the layer of leaves, branches, and stems of trees that cover the ground when viewed 
+from above. Since trees provide benefits to the community that extend beyond property lines, the 
+assessment considers all tree canopy within the borders of the communit y. To contextualize  tree canopy 
+and better understand its relationship within the community, t he assessment included other landcover  
+classifications. These land classes include impervious surfaces, pervious surfaces, bare soils, and open 
+water.  
+Urban Tree Canopy and Geographic Information 
+Systems  
+As more communities focus attention on environmental sustainability, community forest management has 
+become increasingly dependent on geographic information systems (GIS) . GIS is a powerful tool  for urban 
+tree canopy mapping and analysis. Understanding the extent and location of the existing canopy is key to 
+identifying various types of community forest management opportunities, including: 
+ Future planting plans 
+ Stormwater management 
+ Water resource and quality management 
+ Impact and management of invasive species 
+ Preservation of environmental benefits 
+ Outreach and education 
+High-resolution aerial imagery (2015) and infrared technology were used to remotely map tree canopy and 
+land cover (Figure 3). The results of the study provide a clear picture of the extent and distribution of tree  
+canopy within Edmonds. The data set developed during the assessment becomes an important part of the 
+City's GIS database and provides a foundation for developing commu nity goals and urban forest policies. 
+With these data, managers can determine: 
+ The location and extent of canopy over time 
+ The location of available planting space (potential planting area)  
+ The best strategies to increase canopy in underserved areas 
+In addition to quantifying existing UTC, the assessment illustrates the potential for increasing tree canopy 
+across Edmonds. The data, combined with existing and emerging urban forestry research and applications, 
+can provide additional guidance for determining a balance between growth and preservation. The data also 
+aids in identifying and assessing urban forestry opportunities. 
+ 
+   Introduction     6 
+ 
+ 
+ 
+ 
+Figure 3: High-resolution aerial imagery (Top Left) is used to remotely identify existing land cover. Infrared 
+technology delineates living vegetation including tree canopy (Top Right). Remote sensing software identifies 
+and maps tree canopy and other land cover (Bottom). 
+ 
+ 
+ 
+ 
+ 
+ 
+
+7     Introduction    
+Benefits of Urban Tree Canopy 
+Urban forests continuously mitigate the effects of urban development and protect and enhance lives within 
+the community. The amount and distribution of leaf surface area are the driving force s behind the urban 
+forest’s ability to produce benefits (Clark et al, 1997). The environmental, socio -economic, and aesthetic 
+benefits of trees and urban forests include:  
+Air Quality 
+Urban trees improve air quality in five fundamental ways: 
+ Reducing particulate matter (dust) 
+ Absorbing gaseous pollutants  
+ Providing shade and transpiration  
+ Reducing power plant emissions  
+ Increasing oxygen levels 
+Urban trees protect and improve air quality by intercepting particulate matter (PM 10), including dust, ash, 
+pollen, and smoke. The particulates are filtered and held in the tree canopy . Trees and forests also absorb 
+harmful gaseous pollutants like ozone (O 3), nitrogen dioxide (NO 2), and sulfur dioxide (SO 2).  Shade and 
+transpiration reduce the formation of O3, which is created during higher temperatures. In fact, scientists are 
+now finding that some trees may absorb more vola tile organic compounds (VOC's) than previously thought 
+(Karl, T. et al; Science NOW , 2010). VOC's are a class of carbon- based particles emitted from automobile 
+exhaust, lawnmowers, and other human activiti es. By reducing energy needs, trees also reduce emi ssions 
+from the generation of power. Also, through photosynthesis, trees and forests increase oxygen levels.  
+In Edmonds, trees annually improve air quality by removing 42.2 tons of pollutants (CO, NO 2, O3, SO2, and 
+PM10), valued at $146,823.  
+Carbon Reduction 
+Trees and forests directly reduce CO 2 in the atmosphere through  growth and sequestration of carbon  as 
+woody and foliar biomass. Indirectly, trees and forests reduce CO 2 by lowering the demand for energy and 
+reducing the CO2 emissions from the consumption of natural gas and the generation of electric power. 
+ 
+ 
+  
+
+   Introduction     8 
+As environmental awareness continues to increase, governments and individuals are paying attention  to 
+climate change and the effects of greenhouse gas emissions. In 2015, a greenhouse gas cap -and-trade 
+system, aimed at reducing atmospheric CO 2 and other greenhouse gases was announced by the US 
+Environmental Protection Agency (US EPA). The program was released as part of the Clean Power Plan, with 
+a goal of strengthening the trend toward cleaner and lower -polluting energy (US EPA, 2016). In a cap- and-
+trade system, an upper limit (or cap) is placed on levels of greenhouse gas emissions and the regulated 
+entities are required to either reduce emissions to required limits or purchase emissions allowances to 
+meet the cap (Williams et al, 2007). 
+The concept of purchasing emission allowances (offsets) has led to the acceptance of carbon credits as a 
+commodity that can be exchanged for financial gain. Thus , some communities are exploring the concept of 
+planting trees to develop a carbon offset (or credit). UESPD and USDA Forest Service recently led the 
+development of Urban Forest Greenhouse Gas Reporting Protocol  (McPherson et al, 2008/2010). The 
+protocol incorporates methods of the Kyoto Protocol and Voluntary Carbon Standard and establishes 
+methods for calculating reductions, provides guidance for accounting and reporting, and guides urban 
+forest managers in dev eloping tree planting and stewardship projects that could be registered for 
+greenhouse gas reduction credits. 
+In Edmonds, community trees store 187,590 tons of carbon, valued at $6.8 million. Trees in Edmonds’ 
+community forest also annually sequester an additional 6,294 tons of carbon, valued at $221,885. 
+Stormwater Runoff Reduction 
+Trees and forests improve and protect the quality of surface waters, such as creeks, rivers, and lakes, by 
+reducing the impacts of stormwater runoff through: 
+ Interception 
+ Increasing soil capacity and rate of infiltration 
+ Reducing soil erosion 
+Trees intercept precipitation in their canopy, which acts as a mini-reservoir (Xiao et al, 1998). During storm 
+events, this interception reduces and slows runoff. In addition to catching stormwater, canopy interception 
+lessens the erosive impact of raindrops on bare soil . Root growth and root decomposition increase the 
+capacity and rate of soil infiltration by rainfall and snowmelt (McPherson et al, 2002). Each of  these 
+processes greatly reduces the flow and volume of stormwater runoff, avoiding erosion and preventing 
+sediments and other pollutants from entering local creeks and waterways.  
+
+9     Introduction    
+Energy Savings 
+Urban trees and forests modify climate and conserve energy in three principal ways: 
+ Shading dwellings and hardscape 
+ Transpiration  
+ Wind reduction  
+Shade from trees reduces the amount of radiant energy absorbed and stored by hardscapes and other 
+impervious surfaces, thereby reducing the heat island effect, a term that describes the increase  in urban 
+temperatures in relation to surrounding locations. Transpiration releases water vapor from tree canopies, 
+which cools the surrounding area. Through shade and transpiration, trees and other vegetation within an 
+urban setting modify the environment  and reduce heat island effects. Temperature differences of more 
+than 9°F (5°C) have been observed between city centers without adequate canopy cover and more 
+vegetated suburban areas (Akbari et al, 1997).     
+Trees reduce wind speeds relative to their canopy size and height by up to 50% . Trees also  influence the 
+movement of warm air and pollutants along streets and out of urban canyons. By reducing air movement 
+into buildings and against c onductive surfaces (e.g., glass and  metal siding), trees reduce cond uctive heat 
+loss from buildings, translating into potential annual heating savings of 25% (Heisler, 1986). Reducing  
+energy needs has  the bonus of reducing carbon dioxide (CO 2) e missions from fossil fuel power plants.  
+Energy savings from providing shade to structures contributes positively to the city’s community 
+sustainability element that includes decreasing Edmonds’s energy demands.  
+Aesthetics and Socioeconomics  
+While perhaps the most difficult to quantify, the aesthetic and socioeconomic benefits from trees may be 
+among their greatest contributions, including: 
+ Beautification, comfort, and aesthetics 
+ Shade and privacy 
+ Wildlife habitat and ecosystem health 
+ Opportunities for recreation  
+ Creation of a sense of place and history 
+ Human health 
+Many of these benefits are captured as a percentage of property values, through higher sales prices where 
+individual trees and forests are located.    
+Calculating Tree Benefits 
+While all these tree benefits are provided by the urban forest, it 
+can be useful to understand the contribution of just one tree. 
+Individuals can calculate the benefits of  individual trees to their 
+property by using the National Tree Benefit Calculator  or with           
+i-Tree Design. (design.itreetools.org). 
+ 
+ 
+ 
+Calculate My Tree 
+Benefits 
+ 
+
+   Introduction     10 
+ 
+ 
+ 
+ 
+Figure 4: Tree canopies in Edmonds’ business districts encourage people to stay and shop longer. 
+ 
+Wikimedia Commons. 2005. Edmonds Fountain. Edmonds Fountain 7824.jpg. Photo. 
+ 
+11     Land Cover in Edmonds    
+ 
+ 
+ 
+Land Cover in Edmonds 
+Overall Land Cover  
+The City of Edmonds encompasses a total area of 9.5  square miles (6,095) (Figure 5 , Map 2). Within this 
+total area exists 1,844 acres of tree canopy (Table 1). Land cover classification within the city limits includes 
+30% tree canopy, 27% grass and low vegetation, and 34% impervious surfaces, including roa ds and 
+buildings. Bare soil, grass, and low vegetation are considered the eligible planting areas which cover 1,769 
+acres, 2 9% of the community. Considering the existing tree canopy and possible tree canopy over 
+impervious areas, the canopy potential of Edmonds  is 57%%, although the actual potential may be higher 
+where tree canopy can shade impervious surfaces such as roads, parking lots, and buildings.  
+The potential future tree canopy can be estimated by comparing  the area of existing canopy to the area of 
+low-lying vegetation and impervious  surface.  This analysis excludes sports fields, cemeteries, and other 
+sites not suitable for trees. Based on this methodology, the analysis found an additional 1,651 acres (27.1%) 
+where trees could be planted to augm ent existing canopy. If Edmonds were to plant trees to cover all this 
+area, then the overall tree canopy could be 
+increased to 57.4%. 
+  
+Class Acreage Percentage 
+Tree Canopy 1,844 30.3 
+Impervious 2,080 34.1 
+Grass/Vegetation 1,670 27.4 
+Bare Soils 99 1.6 
+Water 402 6.6 
+Total 6,095 100 
+ 
+Table 1. Land Cover Classes 
+ 
+   Land Cover in Edmonds     12 
+ 
+Figure 5. Land Cover Class 
+Tree Canopy 
+30% 
+Impervious 
+34% 
+Grass/Vegetat
+ion 
+27% 
+Bare Soils 
+2% 
+Water 
+7% 
+Tree Canopy
+Impervious
+13     Land Cover in Edmonds    
+ 
+Map 2. Land Cover Classes in Edmonds 
+
+   Land Cover in Edmonds     14 
+Tree Canopy and Historic Change 
+The 2005 land cover percentages were estimated using i -Tree Canopy by plotting 1,000 points in the 
+application. Those 1,000 points were then placed into Google Earth for a land change analysis using a 2005 
+image from Google Earth timescale slider. The points were changed if the land cover was different than the 
+current land cover. Through this method, a difference in canopy over time was determined. This provided 
+information which closely matched the land cover percentages from the UTC mapping. 
+Because the 2005 land cover percentages were derived using point sampling statistics, they are not 
+considered as accurate as the percentages from the UTC. When comparing these years, there could be 
+some noise in the data based on how they were estimated. From 2005 to 2015, the population of Edmonds 
+grew from about 39,541 residents to 40,689 residents. That's an increase of nearly 3% in 10 years. During 
+this population growth, impervious surfaces decreased by 16%  which suggests that there has been some 
+reversion of the city’s hardscape  back into pervious surface.  This could mean more opportunities for new 
+tree planting.  However, the tree canopy decreased by 6% , further suggesting that while more space has 
+opened up, new trees have not been planted at a pace better than the rate of canopy loss.  (Table 2). 
+Table 2. Tree Canopy Change over Time 
+Land Cover Classification % in 2005 % in 2015 % Change 
+Tree Canopy 32.3 30.3 -6.2 
+Impervious Surfaces 40.6 34.1 -16.0 
+Population 39,541 40,689 +2.9 
+Total       
+ 
+While continued growth and development is vital to the social and economic well- being and sustainability 
+of the community, the growth and preservation of sufficient tree and forest canopy is equally vital to the 
+continued livability and attractiveness of the community. Enacting proactive preservation strategies is much 
+more cost- effective then trying to rebuild a healthy, working urban forest. Smart growth involves 
+consideration of natural resources, and an effective strategy aims to conserve, and increase,  the overall 
+level of tree canopy.  
+  
+15     Land Cover in Edmonds    
+Tree Canopy in Neighboring Communities 
+Several communities in the Pacific Northwest have employed canopy studies as a metric in their urban 
+forestry management strategies (Figure 6).  Among these communities, the average tree canopy cover is 
+32%. Bonney Lake ha d the highest tree canopy cover (43% , 2012), and the City of Tacoma has had the 
+lowest tree canopy cover (13% ,2012). Edmonds, with a tree canopy cover of 30% (2015) is just below the 
+average.  Since the timing  of these studies varied, it’s important to note that similar canopied cities  like 
+Shoreline and Renton may have lost additional canopy in subsequent years.  Ultimately , the total canopy 
+coverage percentages for these communities are not directly comparabl e to Edmonds because of  different 
+land use patterns , and the year when these analyses were performed . What they do provide is suitable 
+context for understanding the variety of canopy coverage found around municipalities in the region. 
+ 
+Figure 6.  Percent (%)Tree Canopy in Neighboring Communities 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+0
+5
+10
+15
+20
+25
+30
+35
+40
+45
+50
+% Canopy Cover 
+Nearby Community 
+   Land Cover in Edmonds     16 
+Environmental Benefits 
+Edmonds’ land cover data was used with i-Tree Hydro (v5.0) and Canopy (v6.1) (Appendix B) to estimate the 
+environmental benefits from urban tree canopy. The se models estimate the Carbon sequestered by trees, 
+their value for stormwater mitigation and air quality for a total estimated benefit of $1.5 Million (Figure 7.) 
+ 
+Figure 7. Annual Environmental Benefits 
+Carbon sequestration and Storage 
+Climate change is an issue of global concern. Urban trees can help mitigate climate change by sequestering 
+atmospheric carbon (from carbon dioxide) in tissue and by altering energy use in buildings, and 
+consequently altering carbon dioxide emissions from fossil -fuel based power plants (Nowak & Dwyer, 
+2007). Trees reduce the amount of carbon in the atmosphere by sequestering carbon in new growth every 
+year. In Edmonds, trees sequester 6,294 tons of 
+carbon valued at $221,885 annually.   
+As trees grow the y store more carbon as wood. 
+When trees die and decay, they release much of 
+the stored carbon back to the atmosphere. In 
+urban environments, most trees that die are 
+removed and chipped or disposed of as firewood, 
+releasing stored carbon. Thus, carbon storage is an 
+indication of the amount of carbon that can be 
+lost if trees are allowed to die and decompose. 
+Trees in Edmonds are storing 187,590 tons of 
+carbon in their leaves and woody biomass. The 
+stored carbon is valued at $6.8 million.  
+ 
+Stormwater Runoff Benefits 
+Surface runoff is  a cause for concern in many 
+urban areas as it contribute s pollution to streams, 
+wetlands, rivers, lakes, and oceans. During 
+precipitation events, some portion of the 
+precipitation is intercepted by vegetation (trees, 
+grasses, forbs, and shrubs) while the other portion 
+reaches the ground  (Figure 8). The portion of the 
+Air Quality, 
+$146,823, 
+10% 
+Carbon 
+Sequestrat
+ion, 
+$221,885, 
+14% 
+Stormwate
+r 
+Managem
+ent, 
+$1,189,791
+, 76% 
+Figure 8. Role of Trees in Reducing 
+Stormwater Runoff 
+17     Land Cover in Edmonds    
+precipitation that reaches the ground and does not infiltrate into the soil becomes surface runoff 
+(Hirabayashi, 2012). In urban areas, the large extent of impervious surfaces increases the amount of surface 
+runoff, and the cost of infrastructure a community must invest in managing stormwater for the safety of 
+residents and property.  In Edmonds, trees are estimated to reduce an average of 42.8 million gallons of 
+stormwater runoff, a benefit worth nearly $1.2 million annually (Table 3). 
+  
+ 
+ 
+ 
+ 
+ 
+Table 3. Avoided Runoff and Pollutant Load 
+Year Rainfall 
+(Inches) 
+Total Runoff 
+(Gallons) 
+Avoided Runoff 
+(Gallons) 
+Total Pollutant Load 
+(Mean lbs.) 
+2005 28 2,042,042,480 43,454,683 39,013 
+2006 35 2,777,203,093 46,034,032 42,007 
+2007 29 2,050,827,626 63,114,310 65,658 
+2008 27 1,937,608,262 44,172,596 41,215 
+2009 28 2,186,003,461 30,221,382 30,223 
+2010 34 2,655,550,276 54,200,460 58,783 
+2011 31 2,323,228,346 35,735,762 40,263 
+2012 41 3,382,916,626 25,575,944 23,109 
+Average 32 2,419,422,521 42,813,646 42,534 
+          
+ 
+  
+   Land Cover in Edmonds     18 
+Air Quality Benefits 
+Poor air quality is a common problem in many urban areas. It can lead to decreased human health, damage 
+to trees and shrubs and ecosystem processes, and reduced visibility. The urban forest can help improve air 
+quality by reducing air temperature, directly removing pollutants from the air, and reducing energy 
+consumption in buildings, which consequently reduces air pollutant emissions from the power plants. Trees 
+also emit volatile organic compounds that can contribute to ozone formation. However, integrative studies 
+have revealed that an increase in tree cover leads to reduced ozone formation (Nowak & Dwyer, 2007). 
+Trees improve and preserve air quality by absorbing and intercepting harmful gases and particulates.  
+Annually, the tree canopy in Edmonds i mproves air quality by rem oving 42.2 tons of pollutants (CO, NO 2, 
+O3, SO2, and PM10), valued at $146,823 (Table 4). 
+Table 4. Air Quality Benefits 
+Air Quality Units (lbs) Value ($) 
+CO 1,114 $740 
+NO2 10,980 $2,209 
+O3 47,640 $78,402 
+SO2 3,820 $278 
+PM10 20,880 $65,194 
+      
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+19     Land Cover in Edmonds    
+ 
+Figure 9. The canopy from a mature ash tree in Edmonds provides $116 in annual environmental benefits 
+ 
+ 
+ 
+ 
+Wikimedia Commons. 2012. Tree Canopy. Leaves-Canopy-5021.jpg. 
+ 
+ 
+   Land Cover in Edmonds     20 
+Tree Canopy by Land Use 
+Edmonds’ UTC was analyzed across three major land use categories; public lands, private lands, and 
+commercial properties (Table 5 , Figure 10 , Map 3). Public lands include all government -owned properties. 
+Private lands are residential ho mes. Commercial properties include retail, commercial, and industrial land 
+uses. The private zoning class has the highest canopy cover (83%), as well as the largest overall acreage of 
+canopy (1,526 acres). The public lands zoning class has 13% canopy cover  with 238 acres of canopy. This 
+zoning class includes all parks that are maintained by the Parks and Recreation Department. In addition, this 
+zoning class has the potential to increase its canopy cover with 15 acres of possible planting area. 
+Commercial zoning class has the lowest canopy acreage at 75 acres (4%). This is typical, based on site uses.  
+Table 5. Proportion of Tree Canopy Cover by Land Use Type 
+Land Use Type Acreage Percentage 
+Commercial 75 4.1 
+Public 238 12.9 
+Private 1,526 83.0 
+Total Canopy 1,839 100 
+ 
+ 
+Figure 10. % Tree Canopy by Land Use Type 
+  
+4.1 
+12.9 
+83.0 
+0
+10
+20
+30
+40
+50
+60
+70
+80
+90
+Commercial Public Private
+Proportion of Canopy Cover (%) 
+Land Use Type 
+21     Land Cover in Edmonds    
+ 
+ 
+Map 3. Tree Canopy according to Land Type in Edmonds 
+
+   Land Cover in Edmonds     22 
+Tree Canopy by Park  
+The City of Edmonds includes  47 parks covering 343.7 acres  and 5.6% of all land area (Map 4, Table 6) The 
+average tree canopy cover is 44.1%. Centennial Plaza is the smallest park (0.1 acres) and Snohomish County 
+Park (118.6 acres) is the largest. Centennial Plaza contains 19.9% canopy cover and Snohomish County Park 
+has 98.7%. The 8 th largest park, Civic Center Playfield, has only 1.8% canopy and 24.2% impervious land 
+cover. There is a wide range of potential canopy cover amongst these parks because parks have different 
+physical environments and uses. 
+Of the four largest parks (Snohomish County, Yost Memorial, Me adowdale Beach, and Pine Ridge) all have 
+high tree canopy potential (greater than 96%). However, of the se parks, only Pine Ridge Park is not 
+currently near maximum potential canopy. An acceptable strategy is to focus attention on the parks where 
+there is a much larger gap between current canopy cover and potential canopy cover. For example, Mathay 
+Ballinger Park has  54.4% canopy cover, but the potential is 93.8%. Haines Wharf is another example where 
+the potential canopy (40.6%) is much higher than the existing canopy (11.9%).   Although this method 
+provides a measurable target for increased canopy, it doesn’t exclude sites where views or other 
+landscaping considerations would limit planting opportunities.  
+ 
+Figure 11. Haines Wharf Park has a high potential for tree canopy compared to what exists today  but may not 
+get trees to avoid view conflicts with the shoreline. 
+ 
+ 
+ 
+
+23     Land Cover in Edmonds    
+ 
+ 
+
+   Land Cover in Edmonds     24 
+Map 4. Canopy Cover in Parks in Edmonds 
+ 
+Table 6. Land Cover by Park 
+Park Name Total Acres Canopy Acres % Canopy % Impervious % Pervious % Potential Canopy* 
+Snohomish County Park 118.6 117.1 98.7 0.5 0.6 99.5 
+Yost Memorial Park 44.1 41.3 93.5 2.1 4.4 97.5 
+Meadowdale Beach Park 25.5 25.2 98.5 0.2 1.3 99.8 
+Pine Ridge Park 23.8 21.4 89.8 0.1 6.8 96.7 
+Edmonds Marsh 23.4 5.7 24.2 0.0 73.9 24.9 
+City Park 14.0 8.3 59.3 11.5 25.2 75.2 
+Maplewood Hill Park 10.0 10.0 100.0 0.0 0.0 100.0 
+Civic Center Playfield 7.9 0.1 1.8 24.2 38.6 2.5 
+Edmonds Memorial Cemetery 6.6 1.3 19.6 6.8 71.0 19.6 
+Seaview Park 6.1 3.1 51.5 7.0 37.0 57.9 
+Hickman Park 5.6 2.5 45.1 10.0 41.6 45.9 
+Sierra Park 5.5 3.6 64.8 3.8 26.8 70.9 
+Brackett's Landing North 5.1 0.1 2.1 13.1 1.8 2.1 
+Hutt Park 4.5 4.5 98.9 0.0 1.1 100.0 
+Interurban Trail 4.0 1.2 30.2 5.9 62.9 30.2 
+Marina Beach Park 3.4 0.3 7.6 25.1 20.8 7.6 
+Olympic Beach 2.9 0.0 0.7 15.2 14.6 0.7 
+Senior Center 2.6 0.2 6.5 44.1 4.1 6.5 
+Wade James Theatre 2.3 1.7 70.8 21.0 8.2 79.0 
+Willow Creek Park 2.3 2.3 100.0 0.0 0.0 100.0 
+Brackett's Landing South 2.2 0.2 8.8 8.8 41.0 8.8 
+Frances Anderson Center Field 1.9 0.1 6.0 0.1 83.6 21.9 
+Elm St Park 1.9 1.6 86.9 0.0 11.2 100.0 
+Mathay Ballinger Park 1.8 1.0 54.4 6.2 37.7 93.8 
+Willow Creek Hatchery 1.7 1.4 83.5 9.4 7.0 90.6 
+Frances Anderson Center 1.6 0.2 12.7 65.7 17.9 34.3 
+Pine St Park 1.5 0.0 2.3 15.1 60.5 5.0 
+Seaview Reservoir 1.3 0.7 51.8 0.0 15.0 100.0 
+Edmonds Library and Plaza Room 1.3 0.4 28.1 61.8 9.4 38.2 
+Hummingbird Hill Park 1.2 0.3 25.5 3.2 68.9 37.4 
+Sunset Ave 1.1 0.0 0.0 4.1 85.5 92.4 
+Meadowdale Clubhouse 1.1 0.7 63.1 21.2 15.7 78.8 
+Meadowdale Natural Areas 1.1 1.0 92.5 0.0 7.5 100.0 
+Shell Creek Open Space 1.0 1.0 98.2 0.0 1.8 100.0 
+144 Railroad Ave Tidelands 0.9 0.0 0.1 3.8 3.4 0.1 
+Edmonds Marsh Open Space 0.8 0.4 48.0 0.0 52.0 69.0 
+Haines Wharf 0.7 0.1 11.9 25.0 63.0 40.6 
+Olympic View Open Space 0.5 0.4 85.6 0.0 14.4 100.0 
+Haines Tidelands 0.4 0.0 0.0 0.0 0.0 0.0 
+Stamm Overlook 0.4 0.3 77.0 3.7 19.3 96.3 
+Dayton St Plaza 0.4 0.1 27.5 49.2 23.3 50.8 
+Ocean Ave Viewpoint 0.2 0.0 2.2 75.1 17.4 24.9 
+Lake Ballinger Access 0.2 0.0 0.0 19.7 52.9 52.9 
+Richard F. Anway Park 0.2 0.1 76.8 11.3 11.9 88.7 
+Wharf Street 0.1 0.1 42.1 2.9 46.0 97.1 
+Hazel Miller Park 0.1 0.0 5.1 94.9 0.0 5.1 
+Centennial Plaza 0.1 0.0 19.9 38.7 41.3 61.3 
+  
+      *Potential Canopy is proposed from computer models to help prioritize planting opportunities and may not 
+reflect actual site conditions.  Park sites should be field verified for actual planting potential. 
+25     Land Cover in Edmonds    
+ 
+ 
+ 
+Figure 12. Maplewood Hill park is considered fully stocked with 100% tree canopy cover  
+Google Maps, 2017. Maplewood Hill Park. Photo. 
+ 
+   Land Cover in Edmonds     26 
+Canopy Fragmentation 
+The urban ecosystem is extremely complex and diverse; existing in a multitude of small, functional 
+ecosystems that together form a larger system. The overall health of the urban ecosystem d epends highly 
+on the ability of the trees, plants, wildlife, insect s, and humans to interact . A key factor impacting urban 
+forest health is urban build-up and sprawl. This human development can lead to the removal and decrease 
+of canopy across a community (Figure 13). This often causes canopies to become fragmented which leads a 
+decline in habitat quality and the degradation of ecosystem health . Furthermore, this degradation causes  
+an imbalance to microclimates which increases their risk and susceptibility to invasive species  damaging 
+urban forest health and sustainability. 
+As a part of the UTC assessment, Edmonds' existing UTC was analyzed for fragmentation to discover the 
+distribution of canopy (Map 5). Often, the health and diversity of the overall canopy will vastly improve by 
+creating linkages between multiple  patches of forest. The analysis found that Edmonds ' urban forest 
+includes the following:  
+ 10.3% (190 acres) of Core Canopy: Tree canopy that exists within and relatively far from the 
+forest/non-forest boundary (i.e., forested areas surrounded by more forested areas). 
+ 8.2% (151 acres) of Perforated Canopy: Tree canopy that defines the boundary between core 
+forests and relatively small clearings (perforations) within the forest landscape. 
+ 55.5% (1,023 acres) of Patch Canopy: Tree canopy of a small-forested area that is surrounded by 
+non-forested land cover.  
+ 26.0% (480 acres) of Edge Canopy: Tree canopy that defines the boundary between core forests 
+and large core forests and large non-forested land cover features, approximately 328ft (Ritters et 
+al, 2000). When large enough, edge canopy may appear to be unassociated with core forests.  
+ 
+ 
+ 
+ Figure 13: Canopy Fragmentation Comparison 
+Wildlife corridors (far left) link habitats while fragmented forests (left) 
+lead to a decline habitat quality. 
+27     Land Cover in Edmonds    
+ 
+Map 5. Forest Fragmentation in Edmonds 
+
+   Land Cover in Edmonds     28 
+Critical Areas 
+The Washington State Growth Management Act (GMA) mandates that all cities and counties in Washington 
+are required to adopt critical areas re gulations. The GMA states that c ritical areas include the following 
+categories and ecosystems (Table 7): 
+ Wetlands 
+ Areas with a critical recharging effect on aquifers used for potable water 
+ Fish and wildlife habitat conservation areas 
+ Frequently flooded areas; and 
+ Geologically hazardous areas 
+Analysis of critical areas in conjunction with tree canopy can reveal the important relationship that trees  
+provide in the conservation and protection of these environments. Two critical are a designations are 
+especially important to urban forest management in Edmonds; sensitive areas and steep slopes (Table 6). 
+Sensitive areas include  high priority habitats and species that have been identified for conservation and 
+management. DRG analyzed the relationship between forest fragmentation and the following priority 
+habitat and species list categories: 
+ Biodiversity and Corridor Areas (Breeding and Refuge) 
+ Nesting Habitat (Blue Heron) 
+ Sensitive Aquatic Habitat (Trout/Salmon) 
+ Sensitive Habitat (Bald Eagle) 
+ Wetlands Area 
+The assessment provides a new metric, the percentage of fragmented tree canopy, as a benchmark to 
+support management objectives within these sensitive areas.  
+Table 7. Sensitive Areas by Forest Fragmentation Class 
+Sensitive Area (Acres) Total  Patch 
+Forest 
+Edge 
+Forest 
+Perforated 
+Forest 
+Core 
+Forest Non Forest  
+Biodiversity Areas and Corridor 252 1 54 27 148 22 
+Nesting Habitat Area (Great Blue Heron) 3 0 1 0 0 1 
+Sensitive Aquatic Habitat Area 118 11 35 5 17 51 
+Sensitive Habitat Area (Bald Eagle) 78 14 9 0 3 51 
+Wetlands Area 81 5 14 1 2 59 
+Sensitive Area (Percentage)       
+Biodiversity Areas and Corridor -- 0.5% 21.4% 10.8% 58.6% 8.7% 
+Nesting Habitat Area (Great Blue Heron) -- 1.4% 25.0% 0.0% 15.7% 58.0% 
+Sensitive Aquatic Habitat Area -- 8.9% 29.9% 3.9% 14.0% 43.4% 
+Sensitive Habitat Area (Bald Eagle) -- 18.6% 11.9% 0.2% 3.5% 65.8% 
+Wetlands Area -- 6.8% 16.8% 0.6% 2.2% 73.6% 
+              
+ 
+ 
+ 
+ 
+ 
+29     Land Cover in Edmonds    
+Biodiversity Areas and Corridors 
+Biodiversity areas and corridors, identified by the Washington Department of Fish and Wildlife are areas of 
+habitat that are relatively important to various species of native fish and wildlif e. Biodiversity areas receive 
+this designation through rigorous scientific assessments which show biological diversity. Areas can also be 
+designated as biodiversity area if they are within an urban growth area which contains valuable habitat for  
+wildlife and is mostly comprised of native vegetation. Corridor areas are relatively undisturbed tracts of 
+relatively continuous vegetation that connects fish and wildlife habitat conservation areas, priority habitats, 
+or valuable habitats within a city (Washington Department of Fish and Wildlife, 2008). In Edmonds, most of 
+the biodiversity areas and corridors are in core (58.6%) or edge (21.4%) forest.  This is congruent with what 
+theory would suggest, because corridors are  continuous areas of habitat.  Edmonds should focus plantings 
+on areas that will reduce patch and perforated canopy to improve this forest continuity.  
+Nesting Habitat (Great Blue Heron) 
+Nesting habitat for the Great Blue Heron is comprised of several elements; the nesting colony, year -round 
+and seasonal buffer s, foraging habitat, and a pre -nesting congregation area. For a given nesting area, 
+habitats are delineated by a buffer created from the outermost perimeter of Great Blue Heron nests. In 
+addition, there is a larger seasonal buffer to reduce human noise pollution during the breeding months 
+(February-September). Unusually loud land use activity must be  a minimum of  656 feet from the nesting 
+habitat and blasting noise must be 3,280  feet from nesting habitat (Washington Department of Fish and 
+Wildlife, 2012). 
+Nesting habitat in Edmonds is located primarily in non- forest areas (58%). This value warrants further 
+investigation to determine optimal canopy levels.  Great Blue Herons tend to create nests in trees adjacent 
+to water and feeding sites. For Edmonds, only 25% of nesting habitat is in  the edge forest canopy which 
+suggests challenges to habitat quality. However, Great Blue Herons have also been observed nesting on 
+ground level when the area is safe from predators, which could moderate any concerns about the high non-
+forest percent.  
+Sensitive Aquatic Habitat (Trout/Salmon) 
+Sensitive aquatic habitat is determined by  in-stream physical characteristics (temperature, water quantity, 
+structure, substrate conditions, etc.) . However sensitive aquatic  habitat is also strongly influenced by 
+watershed processes beyond the waterline, including canopy cover, riparian condition, large woody debris, 
+impervious surfaces and stormwater discharge, sediment delivery, road location and m aintenance, 
+watershed hydrology, and nutrient dynamics  (Washington Department of Fish and Wildlife, 2009) . 
+Therefore, planning for salmon, steelhead, and trout habitats must address the condition and extent of 
+water-related resources as well as upland processes that influence aquatic habitat. 
+Sensitive aquatic habitat can include open water. In Edmonds, 43.4% of sensitive aquatic habitat is found in 
+non-forest areas.  The second largest forest fragmentation category for sensitive aquatic habitat is edge 
+forest (29.9%) . Th ese figures are sensible because this edge forest  includes the trees along watersheds 
+where the forest meets riparian zones.  
+Sensitive Habitat (Bald Eagle) 
+Since 2011, when the Washington Fish and Wildlife Commission changed the b ald eagle’s status from 
+“threatened” to “sensitive,” many of the state’s special protective measures for bald eagles have been 
+eliminated. Currently, the primary responsibility for managing bald eagles falls to the U.S. Fish and Wildlife 
+Service for the  Bald and Golden Eagle Protection Act  and the  Migratory Bird Treaty Ac t (Washington 
+Department of Fish and Wildlife, 2017) . In addition to immediate im pacts, this also covers impacts that 
+result from human-induced alterations around nest sites during a time when eagles are not present. 
+Nesting habitat for bald e agles is typically defined by areas of large, mature trees close to large bodies of 
+water and generally buffered from human activity ( Department of Fish and Wildlife, 2016 ). This nesting 
+behavior is reflected in the 11.9% of nesting area located in edge forest. However, n est trees are often 
+among the largest trees in a forest patch ( Department of F ish and Wildlife, 2016 ). This tree preference is 
+   Land Cover in Edmonds     30 
+reflected in 18.6% of nesting habitat being found in patch forest. The height or position of the selected tree 
+typically provides easy access on approach and good visibility of the surrounding landscape. Nests are often 
+used for more than one year, so protecting the area from disturbance is vital to minimizing negative 
+impacts. 
+Human development has a significant impact on eagle behavior and nest site selection. Several studies 
+conducted in Washington have demonstrated b ald eagle sensitivity to human disturbance ( Department of 
+Fish and Wildlife, 2016 ), including behavior changes and avoidance of areas with vis ible or audible human 
+activity. The sensitive habitat for bald eagles is defined by a buffer area of at least 330 feet around recorded 
+nests. Of the bald eagle sensitive habitat in Edmonds , 65.8% is in non-forest areas, which suggests the 
+raptors are selecting non-traditional nest sites further from human activity. An increase of edge forest close 
+to open water, and with good sightlines, will provide an improved nesting environment for bald eagles. 
+Wetlands Area 
+Under Washington’s Growth Management Act, local governments are required to use the best available 
+science when reviewing and revising their policies and regulations on wetlands. The Washington 
+Department of Ecology defines buffers as  vegetated areas adjacent to aquatic resources that can  reduce 
+impacts from adjacent land uses  (Washington Department of Ecology, 2013) . Buffers also provide some of 
+the terrestrial habitats necessary for wetland -dependent species that require both aquatic and terrestrial 
+habitats. 73.6% of wetlands was classified in non- forest areas, and 16.8% were classified in edge forest, 
+with only 2.2% in the core forest. 
+Geologically Sensitive Slopes 
+The protection of steep  slopes against landslides and erosion is a key benefit of vegetation (Washington 
+Department of Ecology, 2017). Trees provide several benefits to the structural integrity of slopes and the 
+prevention of soil erosion: 
+ Foliage intercepts rainfall, causing absorptive and evaporative losses that reduce rainfall available 
+for infiltration. 
+ Roots extract moisture from the soil which is lost to the atmosphere via transpiration, leading to a 
+lower pore-water pressure. 
+ Roots reinforce the soil, increasing soil shear strength. 
+It is important to understand the significance of steep slopes because of their influences on local wildlife 
+and habitat quality. For example, increased erosion can negatively impact spawning salmon by increasing 
+sediment and particulates in streams and other water bodies . In this way, r iparian vegetation which 
+prevents erosion pro tects critical habitat for wildlife. Steep slopes were categorized by land cover class 
+(Table 8).  
+Table 8. Steep Slope by Land Cover Class 
+Slope Severity Total 
+Area Canopy  Impervious  Pervious  Bare 
+Soils  Water  Preferred 
+Plantable  
+Potential 
+UTC (%) 
+Slopes over 12 degrees (Acres) 296 196 42 56 2 0 57 85% 
+         
+Slopes over 12 degrees 
+(Percentage) -- 66.1% 14.3% 19.0% 0.6% 0.0% 19.3% 85% 
+         
+ 
+Most steep slopes (66.1%) are in areas with tree canopy. This figure presents an excellent baseline, as trees 
+are a vital tool for securing soil and minimizing erosion. However,  19% of slopes over 12 degrees are in  
+pervious areas. These areas are prone to  flooding and  may pose  additional challenges to stormwater 
+management. A key management recommendation is th at planting strategies should focus tr ee planting 
+efforts in steep slope areas to provide these structural benefits.  
+31     Land Cover in Edmonds    
+ 
+ 
+ 
+ 
+U.S. Fish and Wildlife Service, October 13, 2016. Bald Eagle. Photo. 
+Wikimedia Commons. 2007. Blue Heron. Japanese Garden – Seattle – heron 01.jpg. Photo. 
+ 
+   Priority Planting     32 
+Figure 14. Bald Eagles (upper) and Great Blue Heron (lower) need tree canopy in order to have suitable habitat.  
+Priority Planting 
+Tree planting at certain sites will produce a greater return on investment over other sites. DRG identified 
+priority planting sites based on possible planting sites and then comparing how a tree planted in these sites 
+would impact several environmental benefits. These benefits are related to stormwater interception and 
+erosion control, urban heat islands, and proximity to tree canopy. Increasing the number and size of trees in 
+high priority sites will yield the highest return on investment . There are 1,619.55 acres ranked as priority 
+planting areas.  
+Although all grass, low -lying vegetation, and bare soil cover types are potential planting locations , 
+realistically, not all areas are suitable planting sites due to intended site uses.  Examples of sites with limited 
+canopy potential include G olf courses, cemeteries, and sports fields. To identify and prioritize planting 
+potential, Davey Resour ce Group assessed several environmental features, including proximity to 
+hardscape and canopy, soil permeability, slope, soil erosion factor (K -factor), and urban heat island.  Each 
+factor was assessed using data from various sources and analyzed using separate grid maps (Table 9).  
+Table 9. Factors Used to Prioritize Tree Planting Sites 
+Dataset Source Weight 
+Proximity to Hardscape Urban Tree Canopy Assessment 0.30 
+Slope National Elevation Dataset 0.25 
+Road Density National Hydrologic Dataset 0.15 
+Soil Permeability Natural Resource Conservation Service 0.10 
+Soil Erosion (K-factor) Natural Resource Conservation Service 0.10 
+Canopy Fragmentation Urban Tree Canopy Assessment 0.10 
+   
+ 
+Sites were given an overall priority rank based on a composite of stormwater reduction and urban h eat 
+island mitigation priorities . The averages were binned into five (5) classes ranging from Very Low to Very 
+High with the higher numbers indicating a higher priority for planting  (Table 10). While available planting 
+sites may ultimately be planted over the next several decades, trees that are planted in the next seve ral 
+years should be planned within the acres of greatest need, and where they will provide the most benefits 
+and return on investment. A very low priority area is one where planting a tree will have a lesser impact on 
+stormwater, heat islands, and environmental conditions. A very high priority planting site likely has high 
+rankings in at least two factors, and thus tree planting in t hese areas is highly strategic, addressing multiple 
+urban issues at once  (Map 6). City leadership should incentivize tree planting in very high planting priority 
+areas. 
+Table 10. Tree Planting Priorities 
+  Priority Level Potential Acres 
+  Very Low 101.7 
+  Low 388.1 
+  Moderate 284.0 
+  High 459.0 
+  Very High 383.6 
+      
+33     Priority Planting    
+ 
+Map 6. Planting Priority in Edmonds 
+
+   Conclusion     34 
+Conclusion 
+In 2004 Edmonds’ tree canopy was 32.3%. Today, Edmond s’ existing tree canopy 30.3% . Action must be 
+taken to reverse the loss of canopy. C ontinued planting, maintenance, and protection of this resource is  
+essential if the community is  to continue to realize the level of benefits trees provide. Proactive 
+preservation, mitigation policies, and ongoing tree replacement can ensure that  canopy cover grows over 
+time. Based on the existing land cover, Edmonds has a maximum canopy potential of 3,495 acres (57.4%).  
+Although this may not be a realistic goal, it does highlight the opportunity to im prove upon the 
+environmental services provided by the urban forest. 
+This Urban Tree Canopy Assessment establishes a GIS data layer that can be used in conjunction with other 
+infrastructure layers to prioritize planting sites and increase canopy cover strat egically by neighborhood, 
+park, or land use.  This assessment establishes a baseline for developing urban forest management 
+strategies and measuring the success of those strategies over time.  
+Based on this assessment, urban forest managers have the following opportunities: 
+ Define canopy goals for the community and identify actions that will support these goal(s). 
+ Use priority planting site analysis to identify new tree planting locations to reduce erosion and soil 
+degradation. 
+ Use GIS canopy and land cover mapping to explore under-treed neighborhoods and identify 
+potential planting sites. 
+ Incentivize tree planting on private property, particularly in very high planting priority areas. 
+ Increase canopy in areas of patch and fragmented canopy to reduce forest fragmentation and 
+improve wildlife habitat and corridors. 
+ Conducting outreach to the community with this report as an important tool for engaging public 
+interest and support. 
+ Developing strategic planting plans with prioritized GIS maps to increase the tree population and 
+canopy that will enhance the numerous benefits provided by trees. 
+ Siting projects which must meet the 30% native vegetation requirement in ECDC 23.90.040.C 
+(Retention of Vegetation on Sub dividable, Undeveloped Parcels) in undeveloped (or redeveloped) 
+sub dividable lands zoned in RS-12 or RS-20, that contain a stream or stream buffer, or a wetland or 
+wetland buffer. Conducting outreach to the community with this report as an important tool for 
+engaging public interest and support. 
+The accompanying GIS layer that maps the location and extent of existing landcover  can support a vast 
+range of additional analysis when used in conjunction with other  data layers. The data support s analysis 
+from an overall community level down to the neighborhood  level and can provide an important tool for 
+investigating the relationship of tree canopy in correlation with other important issues, including 
+transportation, walkability, human health, and social and economic concerns. This spatial understanding of 
+existing canopy is a valuable tool to help managers align urban forestry management strategies with canopy 
+goals.  
+ 
+ 
+ 
+35     Conclusion    
+ 
+ 
+Figure 15. Tree Canopy objectives can vary throughout the City from the shoreline to upland areas, but overall 
+canopy cover across the city needs to be sustained.  
+ 
+
+   Appendix A: References     36 
+Appendix A: References 
+Akbari, H., D. Kurn, et al. 1997. Peak power and cooling energy savings of shade trees. Energy and Buildings 
+25:139–148. 
+Clark JR, Matheny NP, Cross G, Wake V. 1997. A model of urban forest sustainability.  
+Journal of Arboriculture 23(1):17-30. 
+Driver, N. E., Mustard, M. H., Rhinesmith, R. B., and Middelburg, R. F. 1985. U.S. Geological Survey urban-
+stormwater data base for 22 metropolitan areas throughout the United States. United States Geological 
+Survey, Open-File Report 85- 337, Lakewood, CO. 
+Google Maps, 2017. Maplewood Hill Park. Photo. 
+Heisler GM. 1986. Energy Savings with Trees. J Arbor 12(5):113–125. 
+“Home.” City of Edmonds Washington, www.edmondswa.gov/homepage/about-edmonds.html. 
+Howard, Luke. 1820. The Climate of London, [Accessed 15 January 2017] http://www.urban-
+climate.org/documents/LukeHoward_Climate-of-London-V1.pdf 
+i-Tree Hydro v5.0 (beta). i-Tree Software Suite. [Accessed 10 August 2015] 
+http://www.itreetools.org/hydro/index.php  
+McPherson et al.  Urban Forest Greenhouse Gas Reporting Protocol. June 2008 (Updated March 2010).  
+Center for Urban Forest Research Pacific Southwest Research Station.  
+http://www.fs.fed.us/ccrc/topics/urban-forests/docs/Urban_Forest_Project_Protocol_Version _1.1.pdf 
+McPherson, EG., Xiao, Xl, Maco, S.E., VanDerZanden, A., Simpson, J.R., Bell, N., Peper, P.J. 2002 Western 
+Washington and Oregon Community Tree Guide: Benefits, Costs and Strategic Planting. Center for Urban 
+Forest Research Pacific Southwest Research Station. Fs.fed.us/psw. 
+Riitters, K., J. Wickham, R. O'Neill, B. Jones, and E. Smith. 2000. Global-scale patterns of forest 
+fragmentation. Conservation Ecology 4(2): 3. [online] URL: http://www.consecol.org/vol4/iss2/art3/  
+Smullen, J. T., Shallcross,A. L., and Cave, K. A. 1999. Updating the U.S. nationwide urban runoff quality 
+database. Water Science Technology 39(12), 9-16. 
+U.S. Environmental Protection Agency (USEPA). Clean Power Plan. https://www.epa.gov/cleanpowerplan 
+[Accessed January, 7, 2017] 
+U.S. Fish and Wildlife Service, October 13, 2016. Bald Eagle. Photo. 
+Washington Department of Ecology. 2013. Update on Wetland Buffers: The State of the Science Final 
+Report. https://fortress.wa.gov/ecy/publications/documents/1306011.pdf 
+Washington Department of Ecology. 2017. Slope Stabilization and Erosion Control The Role of Vegetation. 
+http://www.ecy.wa.gov/programs/sea/pubs/93-30/vege01.html [Accessed September, 25, 2017] 
+Washington Department of Fish and Wildlife. 2008. Priority Habitats and Species List.  
+http://wdfw.wa.gov/publications/00165/wdfw00165.pdf 
+Washington Department of Fish and Wildlife. 2009. Land Use Planning For Salmon, Steelhead and Trout.  
+http://wdfw.wa.gov/publications/00033/psst_externalreviewdraft_june152009.pdf 
+Washington Department of Fish and Wildlife. 2012. Management Recommendations for Washington’s 
+Priority Species Great Blue Heron (Ardea Herodias).  
+http://wdfw.wa.gov/publications/00026/abbreviated_great_blue_heron.pdf 
+Washington Department of Fish and Wildlife. 2016. Periodic Status Review for the Bald Eagle.  
+http://wdfw.wa.gov/publications/01825/draft_wdfw01825.pdf 
+Washington Department of Fish and Wildlife. 2017. Bald eagles in Washington.  
+http://wdfw.wa.gov/conservation/bald_eagle/ [Accessed September 25, 2017] 
+37     Appendix A: References    
+Wikimedia Commons. 2005. Edmonds Fountain. Edmonds Fountain 7824.jpg. Photo. 
+Wikimedia Commons. 2011 Edmonds, Washington. Point Edwards, Edmonds, Washington 02.jpg. Photo. 
+Wikimedia Commons. 2007. Blue Heron. Japanese Garden – Seattle – heron 01.jpg. Photo. 
+Wikimedia Commons. 2012. Tree Canopy. Leaves-Canopy-5021.jpg. Photo. 
+Williams E, Lotstein R, Galik C, Knuffman H. 2007. A Convenient Guide to Climate Change Policy and 
+Technology.  Vol2: 134 p. 
+Xiao, Q., McPherson, E.G., Simpson, J.R., Ustin, S.L. 1998.  Rainfall Interception by Sacramento's Urban 
+Forest.  Journal of Arboriculture.  24(4): 235-244. 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+   Appendix B: Methods     38 
+Appendix B: Methods 
+Land Cover Assessment  
+Davey Resource Group utilized an object -based image analysis (OBIA) semi- automated feature extraction 
+method to process and analyze current high -resolution color infrared (CIR) aerial imagery  to remotely-
+sensed data to identify tree canopy cover and land cover classifications. The use of imagery analysis is cost-
+effective and provides a highly accurate approach to assessing your community's existing tree canopy 
+coverage. This supports responsible tree management, facilitates c ommunity forestry goal -setting, and 
+improves urban resource planning for healthier and more sustainable urban environments. 
+Advanced image analysis methods were used to classify, or separate, the land cover layers from the overall 
+imagery. The semi -automated extraction process was completed using Feature Analyst, an extension of 
+ArcGIS®. Feature Analyst uses an object -oriented approach to cluster together objects with similar spectral 
+(i.e., color) and spatial/contextual (e.g., texture, size, shape, pattern, and spatial association) characteristics. 
+The land cover results of the extraction process was post -processed and clipped to each project boundary 
+prior to the manual editing process in order to create smaller, manageable, and more efficient file sizes. 
+Secondary source data,  such as planimetric (buildings, roads, other impervious), hydrology, and parks 
+provided by  Edmonds’, and custom ArcGIS ® tools were used to aid in the final manual editing, quality 
+checking, and quality assurance processes (QA/QC). The manual QA/QC process was implemented to 
+identify, define, and correct any misclassifications or omission errors in the final land cover layer.   
+Classification Workflow 
+1) Prepare imagery for feature extraction (resampling, rectification, etc.), if needed.  
+2) Gather training set data for all desired land cover classes (canopy, impervious, grass, bare soil, 
+shadows). Water samples are not always needed since hydrologic data are available for most areas. 
+Training data for impervious features were not collected because the City maintained a completed 
+impervious layer. 
+3) Extract canopy layer only; this decreases the amount of shadow removal from large tree canopy 
+shadows. Fill small holes and smooth to remove rigid edges. 
+4) Edit and finalize canopy layer at 1:2000 scale. A point file is created to digitize-in small individual 
+trees that will be missed during the extraction. These points are buffered to represent the tree 
+canopy. This process is done to speed up editing time and improve accuracy by including smaller 
+individual trees.  
+5) Extract remaining land cover classes using the canopy layer as a mask; this keeps canopy shadows 
+that occur within groups of canopy while decreasing the amount of shadow along edges. 
+6) Edit the impervious layer to reflect actual impervious features, such as roads, buildings, parking lots, 
+etc. to update features. 
+7) Using canopy and actual impervious surfaces as a mask; input the bare soils training data and extract 
+them from the imagery. Quickly edit the layer to remove or add any features. Davey Resource Group 
+tries to delete dry vegetation areas that are associated with lawns, grass/meadows, and agricultural 
+fields. 
+8) Assemble any hydrological datasets, if provided. Add or remove any water features to create the 
+hydrology class. Perform a feature extraction if no water feature datasets exist. 
+9) Use geoprocessing tools to clean, repair, and clip all edited land cover layers to remove any self-
+intersections or topology errors that sometimes occur during editing. 
+39     Appendix B: Methods    
+10) Input canopy, impervious, bare soil, and hydrology layers into Davey Resource Group’s Five-Class 
+Land Cover Model to complete the classification. This model generates the pervious (grass/low-lying 
+vegetation) class by taking all other areas not previously classified and combining them.  
+11) Thoroughly inspect final land cover dataset for any classification errors and correct as needed. 
+12) Perform accuracy assessment. Repeat Step 11, if needed. 
+Automated Feature Extraction Files 
+The automated feature extraction (AFE) files allow other users to run the ex traction process by replicating 
+the methodology. Since Feature Analyst does not contain all geoprocessing operations that Davey Resource 
+Group utilizes, the AFE only accounts for part of the extraction process. Using Feature Analyst, Davey 
+Resource Group c reated the training set data, ran the extraction, and then smoothed the features to 
+alleviate the blocky appearance. To complete the actual extraction process, Davey Resource Group uses 
+additional geoprocessing tools within ArcGIS ®. From the AFE file resul ts, the following steps are taken to 
+prepare the extracted data for manual editing.  
+1) Davey Resource Group fills all holes in the canopy that are less than 30 square meters. This 
+eliminates small gaps that were created during the extraction process while still allowing for natural 
+canopy gaps. 
+2) Davey Resource Group deletes all features that are less than 9 square meters for canopy (50 square 
+meters for impervious surfaces). This process reduces the number of small features that could result 
+in incorrect classifications and helps computer performance. 
+3) The Repair Geometry, Dissolve, and Multipart to Singlepart (in that order) geoprocessing tools are 
+run to complete the extraction process. 
+4) The Multipart to Singlepart shapefile is given to GIS personnel for manual editing to add, remove, or 
+reshape features.  
+  
+   Appendix B: Methods     40 
+Accuracy Assessment Protocol  
+Determining the accuracy of spatial data is of high importance to Davey Resource Group and our clients. To 
+achieve t he best possible result, Davey Resource Group manually edits and conducts thorough QA/QC 
+checks on all urban tree canopy and land cover layers. A QA/QC process was  completed using ArcGIS ® to 
+identify, clean, and correct any misclassification or topology errors in the final land cover dataset. The initial 
+land cover layer extractions was  edited at a 1: 1500 quality control scale utilizing the most current high-
+resolution aerial imagery to aid in the quality control process.  
+To test for accuracy, random plot lo cations were generated throughout the project area and verified to 
+ensure that the data meet the client standards. Each point was compared with the most current NAIP high-
+resolution imagery (reference image) to determine the accuracy of the final land cove r layer. Points were  
+classified as either correct or incorrect and recorded in a classification matrix. Accuracy was  assessed using 
+four metrics: overall accuracy, kappa, quantity disagreement, and allocation disagreement. These metrics 
+were calculated using a custom Excel® spreadsheet. 
+Land Cover Accuracy 
+The following describes Davey Resource Group’s accuracy assessment techniques and outlines procedural 
+steps used to conduct the assessment.  
+1) Random Point Generation—Using ArcGIS, 1,000 
+random assessment points are generated.  
+2) Point Determination—Each point is carefully 
+assessed by the GIS analyst for likeness with the 
+aerial photography. To record findings, two new 
+fields, CODE and TRUTH, are added to the 
+accuracy assessment point shapefile. CODE is a 
+numeric value (1–5) assigned to each land cover 
+class and TRUTH is the actual land cover class as 
+identified according to the reference image. If 
+CODE and TRUTH are the same, then the point is 
+counted as a correct classification. Likewise, if 
+the CODE and TRUTH are not the same, then the point is classified as incorrect. In most cases, 
+distinguishing if a point is correct or incorrect is straightforward. Points will rarely be 
+misclassified by an egregious classification or editing error. Often incorrect points occur where 
+one feature stops and the other begins.  
+3) Classification Matrix—During the accuracy assessment, if a point is considered incorrect, it is 
+given the correct classification in the TRUTH column. Points are first assessed on the NAIP 
+imagery for their correctness using a “blind” assessment—meaning that the analyst does not 
+know the actual classification (the GIS analyst is strictly going off the NAIP imagery to determine 
+cover class). Any incorrect classifications found during the “blind” assessment are scrutinized 
+further using sub-meter imagery provided by the client to determine if the point was incorrectly 
+classified due to the fuzziness of the NAIP imagery or an actual misclassification. After all random 
+points are assessed and recorded; a classification (or confusion) matrix is created.  
+ 
+ 
+ 
+ 
+ 
+ 
+41     Appendix B: Methods    
+ 
+Table 11. Classification Matrix 
+  Classification Data               
+Reference Data 
+Classes Tree 
+Canopy Impervious Grass/ 
+Vegetation 
+Bare 
+Soils Water Row 
+Total 
+Producer's 
+Accuracy 
+Errors of 
+Omission 
+Tree Canopy 275 7 23 1 0 306 89.87% 10.13% 
+Impervious 0 344 27 1 1 373 92.23% 7.77% 
+Grass/ Vegetation 3 3 233 0 0 239 97.49% 2.51% 
+Bare Soils 0 0 0 15 1 16 93.75% 6.25% 
+Water 0 0 0 0 66 66 100.00% 0.00% 
+Column Total 278 354 283 17 68 1000     
+User's Accuracy 98.92% 97.18% 82.33% 88.24% 97.06%   Overall 
+Accuracy 93.30% 
+Errors of Commission 1.08% 2.82% 17.67% 11.76% 2.94%   Kappa 
+Coefficient 0.906 
+Following are descriptions of each statistic as well as the results from some of the accuracy assessment 
+tests.  
+ Overall Accuracy – Percentage of correctly classified pixels; for example, the sum of the diagonals 
+divided by the total points ((102+298+182+232+9)/1,000 = 82.30%). 
+ User’s Accuracy – Probability that a pixel classified on the map actually represents that category on 
+the ground (correct land cover classifications divided by the column total [102/107 = 95.33%]). 
+ Producer’s Accuracy – Probability of a reference pixel being correctly classified (correct land cover 
+classifications divided by the row total [102/138 = 73.91%]). 
+ Kappa Coefficient – A statistical metric used to assess the accuracy of classification data. It has 
+been generally accepted as a better determinant of accuracy partly because it accounts for random 
+chance agreement. A value of 0.80 or greater is regarded as “very good” agreement between the 
+land cover classification and reference image. 
+ Errors of Commission – A pixel reports the presence of a feature (such as trees) that, in reality, is 
+absent (no trees are actually present). This is termed as a false positive. In the matrix above, we 
+can determine that 4.67% of the area classified as canopy is most likely not canopy.  
+ Errors of Omission – A pixel reports the absence of a feature (such as trees) when, in reality, they 
+are actually there. In the matrix above, we can conclude that 26.09% of all canopy classified as 
+another land cover type. This type of error usually occurs around the transition pixels in the 
+imagery where it is difficult to determine which class the point falls.  
+Allocation Disagreement – The amount of difference between the reference image and the classified land 
+cover map that is due to less than optimal match in the spatial allocation (or position) of the classes.  
+Quantity Disagreement – The amount of difference between the reference image and the classified land 
+cover map that is due to less than perfect match in the proportions (or area) of the classes. 
+ Confidence Intervals – A confidence interval is a type of interval estimate of a population 
+parameter and is used to indicate the reliability of an estimate. Confidence intervals consist of a 
+range of values (interval) that act as good estimates of the unknown population parameter based 
+on the observed probability of successes and failures. Since all assessments have innate error, 
+defining a lower and upper bound estimate is essential. 
+ 
+ 
+ 
+   Appendix B: Methods     42 
+ 
+Table 12. Confidence Intervals 
+Landcover Assignment 
+Class Acreage % Lower Bound Upper Bound 
+Tree Canopy 1,844 30% 30% 31% 
+Impervious 2,080 34% 34% 35% 
+Grass/Vegetation 1,670 27% 27% 28% 
+Bare Soils 99 2% 1% 2% 
+Water 402 7% 6% 7% 
+Total 6,095 
+    
+Statistical Metrics Summary: % 
+Overall Accuracy = 93% 
+Kappa Coefficient = 0.9057 
+Allocation Disagreement = 2% 
+Quantity Disagreement = 5% 
+  
+  
+Accuracy Assessment 
+Class 
+User's 
+Accuracy 
+Lower 
+Bound 
+Upper 
+Bound 
+Producer's 
+Accuracy 
+Lower 
+Bound 
+Upper 
+Bound 
+Tree Canopy 0.99 98% 100% 90% 88% 92% 
+Impervious 0.97 96% 98% 92% 91% 94% 
+Grass/Vegetation 0.82 80% 85% 97% 96% 99% 
+Bare Soils 0.88 80% 96% 94% 88% 100% 
+Water 0.97 95% 99% 100% 100% 100% 
+  
+       
+  
+43     Appendix B: Methods    
+Benefit Calculations 
+Stormwater 
+The i-Tree Hydro v5.0 Model was used to quantify the value of ecosystem services for stormwater runoff. i -
+Tree Hydro was designed for users interested in analysis of vegetation and impervious cover effects on 
+urban hydrology. This most recent version (v5.0) allows users to report hydrologic data on the city level 
+rather than just a watershed scale giving users more flexibility. For m ore information about the model, 
+consult the i-Tree Hydro v5.0 manual (http://www.itreetools.org). 
+To calculate ecosystem services for the study area, land cover percentages derived for the project area 
+were used as inputs into the model. Precipitation data from 2005-2012 was modeled within i-Tree Hydro to 
+best represent the average conditions over an eight -year time period. Model simulations were run under a 
+Base Case as well as an Alternate Case. The Alterative Case set tree canopy equal to 0% and assumed that 
+impervious and vegetation cover would increase based on the removal of tree canopy. Impervious surface 
+was increased 6% based on the amount of impervious surface under tree canopy and the rest was added to 
+the vegetation cover class. This process was completed to assess the runoff reduction volume associated 
+with tree canopy since i- Tree Hydro does not directly report the volume of runoff reduced by tree canopy. 
+The volume (in cubic meters) was converted to gallons to retrieve the overall volume of runoff avoided with 
+the current tree canopy.   
+Through model simulation, it was determined that tree canopy decreases the runoff volume in the project 
+area by 44.7 m illion gallons per year using precipitation data fr om 2005 -2012. This equates to 
+approximately 47,809 gallons per acre of tree canopy (44.7 million gals/934.6 acres). 
+To place a monetary value on stormwater reduction, the cost to treat a gallon of storm/waste water was 
+given by the City of Edmonds . This value was $0.0118 per gallon. Tree canopy was estimated to contribute 
+roughly $527,000 to avoided runoff annually to the project area.  
+Pollutant Removal 
+Using i-Tree software, the amount of pollutants in storm water runoff were generated. Data spanning from  
+2005-2012 was analyzed to get the average pollutant runoff within the city limits. This is essential in 
+determining water quality measures and setting goals focused on stream restoration or preservation. 
+Estimated average annual pollutant runoff for total  suspended solids, oxygen compounds, phosphorus, 
+nitrogen, and other pollutants was reported. 
+Davey Resource Group used the i -Tree Hydro model to help clarify the impacts of changes in surface cover 
+and vegetation on pollutant load in streams by making use  of a statistical parameter known as event mean 
+concentration (EMC).  An EMC value represents the flow -proportional average concentration of a given 
+pollutant during a storm event and is measured in units of mass per volume, usually milligrams per 
+liter.  EMC can be multiplied by actual flow to estimate the mass of pollutants entering a body of 
+water.  Changes in flow resulting from changes in tree canopy cover will be reflected in changes in pollutant 
+load.  
+i-Tree Hydro uses EMC population means and media ns for 10 pollutants based on a study by  Smullen et al. 
+in 1999. The study pools results from the EPA's Nationwide Urban Runoff Program  of 1977 with two other 
+nationwide pollutant loading studies. Other studies are: the  U.S. Geological Survey urban-stormwater data 
+base for 22 metropolitan areas throughout the United States (Driver et al., 1985 ); and monitoring results 
+from the National Pollutant Discharge Elimination System (NPDES). For more info on NPDES data, a more 
+recent study of that data source is available online from Maestre et al., 2005. 
+For a more  detailed explanation of Hydro nationwide pollutant load calculations is in the user 
+manual: www.itreetools.org/resources/manuals/Hydro_Manual_v5.1.pdf#page=59. 

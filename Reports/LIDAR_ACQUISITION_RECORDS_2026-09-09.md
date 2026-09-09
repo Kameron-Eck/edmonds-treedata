@@ -62,7 +62,7 @@ and intersected with the Edmonds bounding box (−122.42…−122.32, 47.77…47
 | 2000-12-01 → 2001-01-30 | PSLC 2000 Puget Sound Lowlands (`m2485`, WESM `WA_PSLC_2000`) | Puget Sound Lidar Consortium | TerraPoint | 28 | 47.7624–47.8129 | **Southern Edmonds only** — stops around downtown | No |
 | 2004-11-11 → 2005-07-15 | PSLC 2005 North Puget Lowlands (`m2579`) | Puget Sound Lidar Consortium | Terrapoint | 48 | 47.7769–47.8754 | **Full city** | No |
 | 2014-09-04 | USACE/USGS Puget Sound topo-bathy (`m4909`) — project area named **"Edmonds"** | USGS / USACE JALBTCX | JALBTCX (CZMIL) | 3 | 47.7981–47.8753 | **Shoreline strip only** | No |
-| 2016-03-17 → 2017-06-06 | Western Washington 3DEP QL1 (`m6331`, WESM `WA_Western_North_2016`) | **USGS in collaboration with WA DNR** | Quantum Spatial | 41 | 47.7765–47.8750 | **Full city** | No |
+| 2016-03-17 → 2017-06-06 (**Edmonds tiles: 2016-03-30**) | Western Washington 3DEP QL1 (`m6331`, WESM `WA_Western_North_2016`) | **USGS in collaboration with WA DNR** | Quantum Spatial | 41 | 47.7765–47.8750 | **Full city** | No |
 | 2016-02-24 → 2017-05-25 | PSLC King County 2016–2017 (`m8588`) | PSLC with Kitsap County DEM | Quantum Spatial | — | reaches only 47.829 | Southern margin | No |
 | 2021-04-01 → 2021-04-24 | 3DEP King County Delivery 1 (WESM `WA_KingCo_1_2021`) | USGS | NV5 Geospatial | — | reaches ~47.79 | Southern city limit only | No |
 | **2018, 2019, 2020, 2022, 2023, 2024, 2025, 2026** | **— nothing —** | | | **0** | | **No lidar exists** | |
@@ -77,7 +77,21 @@ The funding line for the dataset you actually use is explicit in the delivery re
 > — [Western Washington North 3DEP USGS Cover Letter, Quantum Spatial to USGS NGTOC, 1 Sept 2017](https://prd-tnm.s3.amazonaws.com/StagedProducts/Elevation/metadata/WA_Western_WA_QL1_LiDAR__2016__B16/WA_Western-North_2016/reports/Western_Washington_North_3DEP_USGS_Cover_Letter.pdf)
 
 Thirteen counties including Snohomish. **USGS and WADNR are the only funders named. No city,
-no county, no cost-share partner appears anywhere in the acquisition record.**
+no county, no cost-share partner appears anywhere in the acquisition record.** (The report says
+"thirteen counties" and then lists ten — an internal inconsistency in the source, noted so it
+does not get cited as a clean fact.)
+
+### A pipeline-relevant detail: the Edmonds 2016 lidar is a single leaf-off day
+
+The project as a whole ran 2016-03-17 to 2017-06-06, which is what `IMAGERY_FACTS.md` §8.1
+records. But **all 41 tiles covering Edmonds carry one acquisition date: 2016-03-30** — late
+March, leaf-off. That is the same structural situation §8.1 already documents for PSLC 2005
+("ALL named 20050227 — one leaf-off Feb-27-2005 acquisition"). Both of the full-coverage lidar
+vintages over Edmonds are therefore **single-day leaf-off** acquisitions, which bears directly
+on any deciduous canopy or crown-height inference drawn from either. Worth adding to §8.1.
+
+Note also that "Edmonds" appearing in the PSLC 2005 metadata is a **delivery-area name**, not a
+funding credit — the same wording lists Arlington, Marysville, Mukilteo and others.
 
 ### The definitive negative
 
@@ -210,9 +224,16 @@ shape of Edmonds' aerial-data spending: a few thousand dollars to join a county 
 roughly three orders of magnitude below what a dedicated municipal lidar flight costs.
 
 **Verdict: staff almost certainly mean the Snohomish County EagleView orthoimagery cycle.
-Confidence: high.** Every element of the staff statement — the even years, the specific list
-2020/2022/2024, the word "fly-overs" — maps onto it exactly, and no competing lidar explanation
-survives the catalog evidence in §2.
+Confidence: moderate-to-high.** Every element of the staff statement — the even years, the
+specific list 2020/2022/2024, the word "fly-overs" — maps onto it exactly, and no competing
+lidar explanation survives the catalog evidence in §2.
+
+*Why not "high": the single ILA sentence carrying this conclusion was never read from the live
+Laserfiche document this session. It is quoted from your own QC ledger, which transcribed it
+earlier — so citing it back to the ledger is circular. The $3,696.21 consortium figure has the
+same weakness: it sits in an unsourced free-text `notes` field with no contract number or
+document ID. Both are almost certainly right, and both need one look at the source document
+(next steps 2 and 3) before you put them in writing to the City.*
 
 One point of genuine ambiguity in staff's favour: EagleView delivers photogrammetric 3D
 products (a DSM and point-cloud-like surface) alongside its imagery, and those are loosely

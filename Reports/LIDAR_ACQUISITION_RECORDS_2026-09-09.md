@@ -17,11 +17,18 @@ not be opened directly.
 ## 1. Bottom line
 
 **No LiDAR was flown over Edmonds in 2020, 2022 or 2024, and no city-funded LiDAR acquisition
-of any year appears in any record found.** The authoritative USGS national lidar index (WESM,
-retrieved 2026-09-09, the day of writing) contains **3,276 work units nationally and not one
-collected after 2016 that covers Edmonds**, apart from a sliver of the 2021 King County project
-along the southern city limit. Independently, NOAA's coastal lidar catalog shows nothing over
-Edmonds after 2016 either.
+of any year surfaced.** The authoritative USGS national lidar index (WESM, retrieved 2026-09-09,
+the day of writing) contains **3,276 work units nationally and not one collected after 2016 that
+covers Edmonds**, apart from a sliver of the 2021 King County project along the southern city
+limit. Independently, NOAA's coastal lidar catalog shows nothing over Edmonds after 2016 either.
+The one live threat to that conclusion — a cost-shared 2022 NV5 project, `WA_LidarGaps_C22`,
+that is *missing from WESM entirely* — was chased down separately: all 48,596 of its tiles were
+tested and **none touches Edmonds** (see §2). That closes the gap rather than leaving it open.
+
+The two halves of this report differ in strength and should be cited differently: **the "no
+lidar exists" finding is machine-verified against primary USGS/NOAA catalogs and is solid**; the
+"no city record exists" finding is search-index-level only, because the network blocked every
+city-side host this session (§7).
 
 **The even-year cadence is real — but it is aerial photography, not LiDAR.** A 2021
 Edmonds–Snohomish County interlocal agreement commits the County to deliver Edmonds orthogonal
@@ -88,15 +95,57 @@ collection start in 2025 or later. Queried on the copy last modified **2026-09-0
 - Work units **anywhere in the United States** with a collection start on or after 2026-01-01:
   **zero.**
 
-*Caveat: a purely city- or county-funded flight need not enter 3DEP. But in Washington, lidar
-overwhelmingly flows through the USGS/WA DNR partnership, and WA DNR's own portal republishes
-it. A regional flight invisible to both would be unusual.*
+### WESM has a blind spot — it was found, checked, and closed
+
+WESM is not complete. Diffing the 24 Washington project folders on the USGS staging mirror
+against WESM project names turns up **two staged Washington projects with no WESM rows at all**:
+`Elwha_River_WA_LiDAR` (Olympic Peninsula, irrelevant here) and — the one that matters —
+**`WA_LidarGaps_C22`**, a delivered QL1 project flown by NV5 Geospatial from **2022-07-23 to
+2023-02-24** under contract mechanism **"Contributed"** (i.e. cost-shared). A 2022 Washington
+lidar project, cost-shared, invisible to the index every negative above rests on, is precisely
+the way the staff claim of a 2022 flight could have been correct.
+
+**It was checked directly and it does not cover Edmonds.** All four work-unit tile indexes were
+downloaded and every tile envelope tested against the Edmonds bounding box (E 1,168,240–1,193,670,
+N 893,816–930,872 ftUS in EPSG:2927):
+
+| Work-unit block | Extent (EPSG:2927 ftUS) | Where that is | Tiles over Edmonds |
+|---|---|---|---|
+| 1 | E 1,050,750–1,617,750 / N 150,750–679,828 | southern Washington | 0 |
+| 2 | E 717,750–1,001,250 / N 794,250–1,028,250 | Olympic Peninsula / west | 0 |
+| 3 | E 1,017,000–1,390,500 / N 978,750–1,352,250 | **north of Everett** | 0 |
+| 4 | E 1,338,750–1,599,750 / N 888,750–1,343,250 | eastern Washington | 0 |
+| | | **48,596 tiles total** | **0** |
+
+The four blocks surround Edmonds without touching it — which is exactly what a project named
+"LidarGaps" should do, since Edmonds already had QL1 coverage from 2016 and was therefore not a
+gap. Block 3 is the "Snohomish gap": its southern edge sits at N 978,750, about **13 miles north
+of Edmonds** (N 909,098), starting just above Everett (N 969,404) and running north over
+Marysville and Arlington.
+
+This also explains a lead that surfaced from the Everett side — a City of Everett council item
+cost-sharing (~$21,268 from its utilities fund) into an NV5 lidar collection under a WA DNR work
+order covering "Thurston, Adams, and Snohomish Counties and the Cities of Marysville and
+Everett". That is this project. **Snohomish County's portion of it is the northern county, not
+Edmonds** — so it is a genuine post-2016 Puget Sound lidar cost-share that nonetheless delivers
+nothing over Edmonds.
+
+*Remaining caveat: a purely city- or county-funded flight need not enter 3DEP at all, and the
+LidarGaps case proves the staging mirror can hold projects the index misses. But in Washington
+lidar overwhelmingly flows through the USGS/WA DNR partnership, and both mirrors were checked.
+A regional flight invisible to both would be unusual — not impossible.*
 
 ---
 
 ## 3. Evidence that the City acquires or funds LiDAR
 
-**None was found.** Not one contract, purchase order, budget line, interlocal agreement, grant
+**None was found — but read this section's evidentiary weight carefully.** The catalog evidence
+in §2 is machine-verified and strong. This section is *not*: no agent could open a single
+Edmonds budget, council packet, ordinance, RFP or contract, because the network blocked every
+city host (§7). What follows is "nothing surfaced in indexed search", not "the records were
+searched and are empty". Four of ten channels returned zero findings for this reason.
+
+With that scoping: not one contract, purchase order, budget line, interlocal agreement, grant
 application, consortium membership or vendor project page ties the City of Edmonds to a LiDAR
 acquisition, in any year.
 
@@ -147,7 +196,12 @@ The chain, each link independently recorded:
    a MrSID photo mosaic whose service metadata records only `"IMAGE__MODIFICATIONS":"COMPRESSED
    EMBEDDED MASKED MOSAICKED"`. That is an orthophoto, with no elevation channel.
 5. **Your own ledger's summary line**: *"The odd/even supplier pattern stands: odd years King
-   County, even years Snohomish County"* (`IMAGERY_FACTS.md` §9.2).
+   County, even years Snohomish County"* (`IMAGERY_FACTS.md` §9.2). **Qualify this before using
+   it:** it holds cleanly for the *modern regional programs* — the held King County series runs
+   2013, 2015, 2017, 2019, 2021, 2023 and the Snohomish regional deliveries are 2020, 2022,
+   2024 — but the pre-2013 King holdings (2000, 2005, 2007, 2009, 2012) are mixed, and the 2016
+   and 2021 Snohomish rows are Hexagon HXIP statewide flights, a separate program. The
+   even-year=Snohomish half of the pattern, which is the half that matters here, is sound.
 
 And Edmonds *does* pay into imagery cost-shares — just not lidar ones. The City is a named
 participant in the 2015 Western Washington Regional Orthophotography consortium (King County
@@ -274,6 +328,49 @@ finding is labelled rather than dressed up.
 6. **Note for the dossier** (§6): the 2020 SavATree figure and your 2016 lidar share a single
    height source, so they are not independent measurements.
 
+### Still open — modalities never searched
+
+A completeness pass over the sweep found whole funding routes that no channel touched. These are
+where a genuine city-funded acquisition would hide if one exists, ranked by how likely they are
+to change the answer:
+
+- **Grant funding — never searched by any channel.** "We've funded… depending on budget
+  outcomes" plus no council action plus no budget line fits *grant* money, not city money. Check
+  WA DNR Urban & Community Forestry awards FY2024–FY2026 for "Edmonds", including federal
+  Inflation Reduction Act urban-forestry subawards. A grant explains funding with no
+  appropriation and a schedule contingent on a legislative outcome — every feature of the email.
+- **Expenditure records, not appropriations.** Every "no budget line" negative looked in the
+  wrong place for a purchase this size. A $3,700–$25,000 buy-in never generates an appropriation;
+  it appears only as a vendor name on a claim-check voucher listing in a council consent packet.
+  Pull those for 2019–2026 and search for EagleView, Pictometry, NV5, Quantum Spatial, GeoTerra,
+  Nearmap, Vexcel, Snohomish County, PlanIT Geo, SavATree.
+- **Capital-project survey budgets** — the most common way a small Washington city actually pays
+  for a flight, and the most likely thing a non-GIS staffer would generalise into "our
+  fly-overs". Check Hwy 99 Revitalization task orders, the Edmonds Marsh / Willow Creek
+  daylighting basis-of-design, and the Storm & Surface Water Comprehensive Plan (stormwater
+  utilities are the usual municipal lidar funder — that is exactly the fund Everett used).
+- **Laserfiche WebLink full-text search** — recommended by six channels, executed by none. It is
+  the only Edmonds system with true full-text search across packets, contracts and vouchers.
+- **The June 2026 council video/captions.** Every account of what the Urban Forest Planner said
+  is a search-engine paraphrase of an article nobody opened, and it is *prospective* ("will work
+  with lidar teams") where the email is *past tense* ("we've funded"). A verbatim transcript
+  decides whether this is a staff misstatement or a reporter's compression — the difference
+  between a correction and an accusation. Worth getting before you write back.
+- **Whether EagleView's even-year delivery includes a photogrammetric DSM or point cloud.** This
+  is the strongest good-faith reading of the staff claim and it currently rests on nothing. If
+  Edmonds does receive a 3D product, staff are loosely labelling something real and your reply
+  should say so; if it is RGB rasters only, it is a category error. Ask Snohomish County DoIT.
+- **Neighbouring jurisdictions never searched** (the county channel ran out of search budget):
+  Lynnwood, Mountlake Terrace, Woodway, Shoreline, plus Sound Transit's Lynnwood Link and WSDOT
+  SR-104/SR-99 mapping. A neighbour-led buy is one of the few remaining routes to lidar over
+  Edmonds without an Edmonds contract.
+- **PlanIT Geo's TreePlotter CANOPY** instance for Edmonds, if one exists — a live vendor-hosted
+  viewer states its source imagery and lidar vintage in layer metadata, which would resolve the
+  unexplained "2021 canopy data" provenance without the City having to produce anything.
+
+One item explicitly *not* worth further effort: the "34.6% in 2023" press figure. Your dossier
+already settles it — it is a 2020 number, repeatedly miscited.
+
 ---
 
 ## Appendix A — drafted Public Records Act request
@@ -397,6 +494,7 @@ Every §2 finding is reproducible from two public S3 buckets, no credentials req
 | PSLC 2000 per-tile bounds + COPC tiles | `s3://noaa-nos-coastal-lidar-pds/laz/geoid18/2485/` |
 | 2014 USACE/USGS "Edmonds" tiles | `s3://noaa-nos-coastal-lidar-pds/laz/geoid18/4909/` |
 | Dataset-level descriptions (STAC) | `s3://noaa-nos-coastal-lidar-pds/entwine/stac/DigitalCoast_mission_<id>.json` |
+| The 2022 project missing from WESM | `s3://prd-tnm/StagedProducts/Elevation/metadata/WA_LidarGaps_C22/` — project report, and tile indexes under `vertical_accuracy/USGS/created_gpkg/gdal_tile_index_{1,2,3,4}.gpkg` |
 
 Method for the coverage column: parse each `minmax_*.csv`, reproject the Edmonds bounding box to
 EPSG:26910, intersect, and report the latitude span of the overlapping tiles. WESM was queried

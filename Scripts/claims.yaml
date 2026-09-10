@@ -85,19 +85,19 @@ claims:
 
   - id: tileset-directories
     statement: >-
-      Those sets are materialised in 115 tile directories (a count that grows by one per tile directory; refresh at landed.py) — one registry row per
+      Those sets are materialised in 122 tile directories (a count that grows by one per tile directory; refresh at landed.py) — one registry row per
       directory, keyed (label, run_tag), so a set built again under a second run tag is
       one set counted once and two directories on disk. Counting rows as sets is the
       defect `qc/coverage_map.py::tileset_census` exists to prevent.
-    value: "115"
+    value: "122"
     evidence: "phase4/qc/tileset_registry.csv#rows"
     stated_in:
       - docs/SCHEMAS.md
     entry: null
 
   - id: curves-tracked
-    statement: "Every scored arm's full precision-recall sweep is tracked: 95 curves."
-    value: "95"
+    statement: "Every scored arm's full precision-recall sweep is tracked: 102 curves."
+    value: "102"
     evidence: "phase4/qc/curves#dir_csv_count"
     stated_in:
       - docs/SCHEMAS.md

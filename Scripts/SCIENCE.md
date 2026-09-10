@@ -20,9 +20,9 @@ than selected. Everything below is resolved from them at build time.
   <br>evidence `phase4/qc/lidar_decimation_null.csv#csv:km2@quantity=artifact_gain`
 - **80** — The archive holds 80 distinct tile sets, one tracked tile list each — fewer than the tile directories on disk, because arms sharing a set share its tiles exactly, which is what makes those comparisons clean.
   <br>evidence `phase4/qc/tilesets#dir_csv_count`
-- **115** — Those sets are materialised in 115 tile directories (a count that grows by one per tile directory; refresh at landed.py) — one registry row per directory, keyed (label, run_tag), so a set built again under a second run tag is one set counted once and two directories on disk. Counting rows as sets is the defect `qc/coverage_map.py::tileset_census` exists to prevent.
+- **122** — Those sets are materialised in 122 tile directories (a count that grows by one per tile directory; refresh at landed.py) — one registry row per directory, keyed (label, run_tag), so a set built again under a second run tag is one set counted once and two directories on disk. Counting rows as sets is the defect `qc/coverage_map.py::tileset_census` exists to prevent.
   <br>evidence `phase4/qc/tileset_registry.csv#rows`
-- **95** — Every scored arm's full precision-recall sweep is tracked: 95 curves.
+- **102** — Every scored arm's full precision-recall sweep is tracked: 102 curves.
   <br>evidence `phase4/qc/curves#dir_csv_count`
 - **0.9089** — At the held precision of the matched-cut series, reported canopy fraction tracks the model's recall at r = 0.9089 (exact permutation p = 0.0018 over all 40,320 orderings). The residual year-to-year sawtooth is detector sensitivity moving, not canopy moving — which is what licenses an ASYMMETRIC correction, since the error is one-sided (the model misses real trees, it does not invent them).
   <br>evidence `phase4/qc/sensitivity_sawtooth.csv#csv:value@statistic=pearson_r_recall_vs_frac`
@@ -67,15 +67,16 @@ count beside it.
 | 2017s | of_2017s | 0.7462 | 0.751 | 0.8191 | ccap_2021_hires_lc.tif / citywide | 149,422,078 | 557 |
 | 2019 | trend8_2019 | 0.752 | 0.7582 | 0.8093 | ccap_2021_hires_lc.tif / citywide | 1,371,436,455 | 1792 |
 | 2019n | t1_2019n_nir | 0.7146 | 0.7507 | 0.8105 | ccap_2021_hires_lc.tif / sample-test | 2,060,933 | 1929 |
-| 2020 | t1_2020_add16 | 0.7005 | 0.7664 | 0.7739 | ccap_2021_hires_lc.tif / sample-test | 289,376,644 | 5241 |
+| 2020 | wb18_2020_base | 0.7396 | 0.7527 | 0.7825 | ccap_2021_hires_lc.tif / sample-test | 296,424,567 | 5241 |
 | 2021 | trend8_2021 | 0.8157 | 0.7502 | 0.8391 | ccap_2021_hires_lc.tif / citywide | 1,406,539,700 | 1220 |
 | 2022 | of_2022 | 0.743 | 0.7511 | 0.7848 | ccap_2021_hires_lc.tif / citywide | 5,178,270,225 | 1226 |
 | 2024 | trend8_2024 | 0.6955 | 0.7524 | 0.7449 | ccap_2021_hires_lc.tif / citywide | 5,436,883,153 | 1254 |
 
 16 of 37 acquisitions have a matched-cut read. ★ = designated champion.
 
-## 3. What 38 completed investigations concluded
+## 3. What 39 completed investigations concluded
 
+- **backbone_sweep** (2026-09-10) — DECIDED 2026-09-10 on Kam's gate (extra.kam_decision_2026_09_09): RECIPE REFINEMENT MOVES TO RESNET-18, warm-started from phase4/models/sem_best_2020_base18.pt.
 - **encoder_bases** (2026-09-09) — BOTH BASES LANDED 2026-09-09 (one A100 each; no runtime remains).
 - **bundle_validation_2017k** (2026-09-08) — RAN 2026-09-08 02:02Z to 03:49Z (spdvc1 CPU labels+tile, spdvg A100 train), scored by an independent referee against the rule above; every number below names its file.
 - **lit_healing_analogues** (2026-09-08) — NO FIELD SUPPLIES A MEASURED LAUNDERING RATE for a one-directional temporal correction on real gold.

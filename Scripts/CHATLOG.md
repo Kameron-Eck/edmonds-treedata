@@ -1057,3 +1057,21 @@ files:   phase4seg/scratchcache.py, common.py + tests; queue_wb50_score.yaml;
          phase4/qc/arm_metrics.csv, curves/ (+7), run_passport, registry.
 next:    Kam's call above; then ResNet-18 phase 2 or the 2016 base reseed; key
          rotation still open.
+
+## 2026-09-10  resnet18-licensed-for-recipe-search
+goal:    Kam: "move forward with using resnet 18 to refine the recipe" - run the same
+         seven-arm check warm-started from base18 and score it.
+did:     wb18a/wb18b on two A100s 01:12-03:50Z, seven arms clean (train 14-31 min);
+         wb18s sample-block inference 03:55-05:04Z (in05 clean - cache fix confirmed a
+         second time); scored 7/7 with the Tier-1 shape, harvested (+7 curves). READ at
+         matched_p75: resnet18 at or above the 101 on every arm (2011s equal 0.720-0.727,
+         2016 base 0.743 vs 0.669, 2020 0.740 vs 0.640), seed spread 0.0069 (< the 101's
+         0.0085), null pair +0.006 inside the floor, positive pair +0.008 (the 101's lidar
+         "gain" again absent). vs resnet50: ~0.03 lower on 2011s, equal 2016, higher 2020.
+decided: backbone_sweep COMPLETE: recipe refinement runs on resnet18 from base18; the
+         101 is reserved for confirmation + deliverables; 2016 lidar effect UNRESOLVED
+         until the 101's 2016 base is reseeded (on the board).
+files:   experiments/backbone_sweep.yaml; phase4/qc/arm_metrics.csv, curves/ (+7);
+         registry/harvests.
+next:    first recipe experiments on resnet18 (Kam picks the hypotheses); the 101's
+         2016 base reseed; key rotation still open.

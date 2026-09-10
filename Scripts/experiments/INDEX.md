@@ -1,7 +1,7 @@
 # EXPERIMENT REGISTRY INDEX — GENERATED, do not edit
 
 Regenerate: `py -3.12 qc/experiments_index.py` (drift-gated by `test_experiments.py::test_index_is_fresh`).
-Authored layer + schema: this directory's `README.md`. 49 entries: 38 complete · 5 needs-kam · 4 queued · 2 tabled.
+Authored layer + schema: this directory's `README.md`. 49 entries: 39 complete · 5 needs-kam · 3 queued · 2 tabled.
 
 ## Awaiting Kam sign-off
 
@@ -15,6 +15,7 @@ Authored layer + schema: this directory's `README.md`. 49 entries: 38 complete �
 
 | entry | kind | status | decided | N | imagery | headline |
 |---|---|---|---|---|---|---|
+| backbone_sweep | experiment | complete | 2026-09-10 | 30 | 2006s,2011s,2016,2019n,2020 | DECIDED 2026-09-10 on Kam's gate (extra.kam_decision_2026_09_09): RECIPE REFINEMENT MOVES TO RESNET-18, warm-started from phase4/models/sem_best_2020_base18.pt. |
 | encoder_bases | experiment | complete | 2026-09-09 | 150 | 2020 | BOTH BASES LANDED 2026-09-09 (one A100 each; no runtime remains). |
 | bundle_validation_2017k | experiment | complete | 2026-09-08 | — | 2017k | RAN 2026-09-08 02:02Z to 03:49Z (spdvc1 CPU labels+tile, spdvg A100 train), scored by an independent referee against the rule above; every number below names its file. |
 | heal_infill_2017_2023 | experiment | tabled | 2026-09-08 | — | 2017,2020,2022,2023 | NO VERDICT — TABLED 2026-09-08 with the decision rule NOT evaluated. |
@@ -55,7 +56,6 @@ Authored layer + schema: this directory's `README.md`. 49 entries: 38 complete �
 | imagery_qc_suite_2026_08_24 | measurement-campaign | complete | 2026-08-24 | 38 | — | THE ARCHIVE IS USABLE, AND ITS REGISTRATION IS THE THING THAT NEEDED WATCHING. |
 | rescore_2013_citywide | instrument-finding | complete | 2026-08-22 | — | 2013 | THE PREDICTED MOVEMENT DID NOT HAPPEN. |
 | chm_gap_2016 | instrument-finding | complete | 2026-08-18 | 2 | 2016 | THE ASSUMPTION HOLDS AND IS NOW CHECKED RATHER THAN ASSERTED. |
-| backbone_sweep | experiment | queued | — | 30 | 2006s,2011s,2016,2019n,2020 | Recipe rankings measured on a small encoder agree with resnet101 within the noise floor, so recipe search (the dozens of label/input/loss knobs still open after Tier-1) can move to the small encoder a… |
 | ccap_mixed_sign_bias | instrument-finding | needs-kam | — | — | 2016 | C-CAP is the reference nearly every score in this project is measured against, and the standing temptation is to treat its disagreement with our masks as one-directional — "C-CAP over-calls canopy, so… |
 | degradation_synth_2000 | experiment | queued | — | — | — | Training on 2020 imagery synthetically degraded to 2000's measured resolution and radiometry (resample-first, gain-only — qc/instruments/degrade_synth.py) beats the plain citywide-projection arm on 20… |
 | epoch_decay_mvv0 | instrument-finding | needs-kam | — | — | 2006s,2011s,2016,2020 | King County holds lidar epochs Edmonds cannot get, and buying them was on the table. |

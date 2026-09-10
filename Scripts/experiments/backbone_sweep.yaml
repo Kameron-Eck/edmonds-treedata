@@ -1,6 +1,6 @@
 name: backbone_sweep
 kind: experiment
-status: queued
+status: complete
 retrospective: false
 category: machinery
 tags: [backbone, encoder, resnet18, resnet50, recipe-search, tier1-sample, loso]
@@ -134,8 +134,25 @@ decision_rule: >
   files carry NO canary: --encoder and the labels->tile->train->evaluate cycle were
   proven by phase 1, and the --ckpt load path is the engine's ordinary p3_ckpt route.
 
-verdict: null
-decided: null
+verdict: >
+  DECIDED 2026-09-10 on Kam's gate (extra.kam_decision_2026_09_09): RECIPE REFINEMENT
+  MOVES TO RESNET-18, warm-started from phase4/models/sem_best_2020_base18.pt. The
+  pre-registered metric (matched_p75 recall vs C-CAP 2021 on the LOSO sample-test
+  blocks; phase4/qc/arm_metrics.csv joined to backbone_benchmark.csv), resnet18 (base18
+  start) vs the resnet101 record: 2011s base/s2/s3 0.720/0.725/0.727 vs 0.725/0.720/
+  0.717 (SEED SPREAD 0.0069 vs 0.0085); cor05 0.727 vs 0.725; 2016 base 0.743 vs
+  0.669; 2016 in05 0.751 vs 0.744; 2020 base 0.740 (P 0.753) vs 0.640 (P 0.800). AP
+  0.803-0.830 vs 0.755-0.820. (a) at or above the 101 on every arm; (b) noise better
+  than the 101's; null pair +0.006, inside the floor. Positive pair +0.008 (inside the
+  floor) — as on resnet50, the 101's +0.075 lidar-input effect does not reproduce with
+  a sound baseline; the 2016 lidar effect stays UNRESOLVED pending the 101's 2016
+  reseed. Against resnet50 (base50 start): resnet18 is ~0.03 lower on 2011s, equal on
+  2016, higher on 2020; train 14-31 min vs 14-30 (both ~25-35% under the 101; the
+  pipeline is I/O-bound, so the small encoder's saving is in fine-tune minutes, not
+  inference). Phase-1 (ImageNet-start) arms stand as the record of why a trained base
+  per encoder is required. Cache fix (0080cce) validated live twice (in05 inference on
+  both encoders).
+decided: '2026-09-10'
 
 instruments:
   - Scripts/qc/instruments/backbone_benchmark.py

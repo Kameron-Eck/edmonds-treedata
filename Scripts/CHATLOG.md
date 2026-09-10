@@ -1102,3 +1102,25 @@ files:   experiments/heal_infill_2017_2023.yaml, harmonization_h1_h2.yaml; docs/
          curves (+14), tilesets (+5), harvests.
 next:    H2 finish -> stop harmh2 -> queue_harm_h2_score -> K1/K2/K3/K4 + verdict; morning
          summary; key rotation still open.
+
+## 2026-09-10  EXP-H2 KILLED (epoch leak + change laundering); crown state model pre-registered
+goal:    close harmonization H2; start method 1 (Kam: "I'm on board for method 1").
+did:     H2 five arms trained on harmh2 (all clean, AE20/BE25/BE12); A100 refused 6x
+         (Service Unavailable, after Kam loaded credits) -> scored on an L4 (harmh2s2,
+         5 arms 3-28 min each); harmh2/harmh2s2 stopped, no runtimes live. Four arms
+         scored locally vs both refs (2020_in16's 999 MB raster still mirroring; waiter
+         armed). K2 instrument run on real rasters. heal_2022/2023 scored citywide for
+         crown-model rates; heal_2020 read faulted on the mirror mid-raster, rescoring.
+read:    H1 CONFIRMED (base spread 0.140/0.154, no kill). H2: converges (-0.084/-0.119)
+         BUT K1 LEAK fires both refs (0.043/0.019 > 0.0069), K2 CHANGE LAUNDERING fires
+         every year (+0.035..+0.082 extra call-rate rise on lidar-certified gain cells),
+         K3 same-flight gap unchanged. Verdict on harmonization_h1_h2.yaml, decided.
+decided: fixed-epoch structure channel is a time-stamped prior, not a harmonizer; the
+         workstream needs a survey-invariant input or it stops. crown_state_model.yaml
+         pre-registered (K1-K4, referee split, dated amendment after the implementer's
+         dry-run); instrument + 15 tests landed (9673a03), no model run yet.
+files:   experiments/harmonization_h1_h2.yaml (verdict), crown_state_model.yaml;
+         phase4/qc/harm_spread.csv, harm_change_laundering.csv, arm_metrics, curves,
+         qc_indep harvests; qc/instruments/crown_state_model.py + test.
+next:    heal_2020 rate -> referee runs crown_state_model + scores vs gold (K1-K3),
+         K4 rate sensitivity incl. 2005/2016 lidar rates; Kam: GitHub push, key rotation.

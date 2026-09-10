@@ -1,6 +1,6 @@
 name: harmonization_h1_h2
 kind: experiment
-status: queued
+status: complete
 retrospective: false
 category: science
 tags: [harmonization, time-series, cross-survey-spread, lidar-input, epoch-leak, same-flight, resnet18]
@@ -172,8 +172,32 @@ decision_rule: >
   the placebo, because an in16 promotion without H2-K1 is exactly the kind of
   self-validated design CLAUDE.md 3.4c exists to stop.
 
-verdict: null
-decided: null
+verdict: >
+  EXP-H1 CONFIRMED (premise stands): five-year base spread 0.140 vs C-CAP 2021 / 0.154
+  vs C-CAP 2016 (harm_spread.csv, prefix wb18, treatment base, n_years 5); H1-K1 and
+  H1-K2 did not fire. EXP-H2 KILLED, on four of five arms scored (2019s base/in16,
+  2016_in16, 2011s_in16 landed and scored; 2020_in16 inferred and verified on harmh2s2
+  but its 999 MB raster had not reached the Windows mirror at decision time — its score
+  cannot change the verdict because the kills are unanimous and independent of it).
+  (P) convergence DID occur: in16 minus base spread on the common years -0.084 (vs 2021)
+  / -0.119 (vs 2016), well past the -0.014 promote line — the channel does pull the
+  surveys together. But it does so by the mechanism the design was built to catch:
+  H2-K1 EPOCH LEAK fires on both references (interaction 0.043 vs 2021, 0.019 vs 2016;
+  floor 0.0069; harm_spread rows k1_interaction / k1_ref_verdict): the 2016 structure
+  channel raises 2006s recall MORE than it raises 2016's own, which a survey-invariant
+  input cannot do. H2-K2 CHANGE LAUNDERING fires on every scored year
+  (harm_change_laundering.csv, gain_minus_all: 2006s +0.040, 2011s +0.053, 2016 +0.035,
+  2019n +0.060, 2019s +0.082): on cells lidar certifies as 2005->2016 canopy GAIN, the
+  in16 arm's call rate rises by that much more than on all cells — the model is calling
+  2016 trees in 2006 and 2011 imagery where they had not yet grown. H2-K3: the same-flight
+  2019n/2019s gap does not shrink (0.004 / 0.007 change, at the floor), so the convergence
+  is not delivery harmonization either. H2-K4 (2016 null) passes vs 2021 (0.0015) and is
+  outside the floor vs 2016 (0.015) — consistent with the channel matching 2016's own
+  reference. READ: a fixed-epoch structure channel is not a harmonizer; it is a
+  time-stamped prior that launders change. Any future harmonization input must be
+  survey-invariant by construction (per-survey, or change-free by design) and must pass
+  K2 on the lidar-certified gain cells before its spread number means anything.
+decided: 2026-09-10
 
 design_doc: Reports/HARMONIZATION_DESIGN_2026-09-10.md
 reports: [Reports/HARMONIZATION_DESIGN_2026-09-10.md]

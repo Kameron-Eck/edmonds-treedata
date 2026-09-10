@@ -1,0 +1,21 @@
+year,base_tag,in16_tag,ref,population,n_cells,base_thresh,in16_thresh,base_call_rate,in16_call_rate,rise,floor,flag,note
+2006s,wb18_2006s_base,wb18_2006s_in16,ccap_2021_hires_lc.tif,gain,46805,0.401574,0.188976,0.27110,0.34584,0.07474,0.0069,,"certified 2005->2016 canopy gain, sample-test only"
+2006s,wb18_2006s_base,wb18_2006s_in16,ccap_2021_hires_lc.tif,flat,40609,0.401574,0.188976,0.04349,0.03935,-0.00414,0.0069,,"certified flat (absolute FP control), sample-test only"
+2006s,wb18_2006s_base,wb18_2006s_in16,ccap_2021_hires_lc.tif,all,468750,0.401574,0.188976,0.31830,0.35272,0.03441,0.0069,,every valid sample-test cell
+2006s,wb18_2006s_base,wb18_2006s_in16,ccap_2021_hires_lc.tif,gain_minus_all,,0.401574,0.188976,,,0.04032,0.0069,H2-K2 CHANGE LAUNDERING,K2 = gain-cell rise minus all-cell rise; kill above the floor
+2011s,wb18_2011s_base,wb18_2011s_in16,ccap_2021_hires_lc.tif,gain,46805,0.240157,0.118110,0.42327,0.50151,0.07824,0.0069,,"certified 2005->2016 canopy gain, sample-test only"
+2011s,wb18_2011s_base,wb18_2011s_in16,ccap_2021_hires_lc.tif,flat,40609,0.240157,0.118110,0.12633,0.07858,-0.04775,0.0069,,"certified flat (absolute FP control), sample-test only"
+2011s,wb18_2011s_base,wb18_2011s_in16,ccap_2021_hires_lc.tif,all,468750,0.240157,0.118110,0.37561,0.40112,0.02551,0.0069,,every valid sample-test cell
+2011s,wb18_2011s_base,wb18_2011s_in16,ccap_2021_hires_lc.tif,gain_minus_all,,0.240157,0.118110,,,0.05273,0.0069,H2-K2 CHANGE LAUNDERING,K2 = gain-cell rise minus all-cell rise; kill above the floor
+2016,wb18_2016_base,wb18_2016_in16,ccap_2021_hires_lc.tif,gain,46805,0.279527,0.122047,0.49984,0.54768,0.04784,0.0069,,"certified 2005->2016 canopy gain, sample-test only"
+2016,wb18_2016_base,wb18_2016_in16,ccap_2021_hires_lc.tif,flat,40609,0.279527,0.122047,0.14529,0.12603,-0.01926,0.0069,,"certified flat (absolute FP control), sample-test only"
+2016,wb18_2016_base,wb18_2016_in16,ccap_2021_hires_lc.tif,all,468750,0.279527,0.122047,0.38995,0.40275,0.01279,0.0069,,every valid sample-test cell
+2016,wb18_2016_base,wb18_2016_in16,ccap_2021_hires_lc.tif,gain_minus_all,,0.279527,0.122047,,,0.03504,0.0069,H2-K2 CHANGE LAUNDERING,K2 = gain-cell rise minus all-cell rise; kill above the floor
+2019n,wb18_2019n_base,wb18_2019n_in16,ccap_2021_hires_lc.tif,gain,46805,0.496062,0.129921,0.34221,0.48388,0.14167,0.0069,,"certified 2005->2016 canopy gain, sample-test only"
+2019n,wb18_2019n_base,wb18_2019n_in16,ccap_2021_hires_lc.tif,flat,40609,0.496062,0.129921,0.13566,0.08498,-0.05068,0.0069,,"certified flat (absolute FP control), sample-test only"
+2019n,wb18_2019n_base,wb18_2019n_in16,ccap_2021_hires_lc.tif,all,468750,0.496062,0.129921,0.30467,0.38666,0.08199,0.0069,,every valid sample-test cell
+2019n,wb18_2019n_base,wb18_2019n_in16,ccap_2021_hires_lc.tif,gain_minus_all,,0.496062,0.129921,,,0.05968,0.0069,H2-K2 CHANGE LAUNDERING,K2 = gain-cell rise minus all-cell rise; kill above the floor
+2019s,wb18_2019s_base,wb18_2019s_in16,ccap_2021_hires_lc.tif,gain,46805,0.437007,0.129921,0.33473,0.50956,0.17483,0.0069,,"certified 2005->2016 canopy gain, sample-test only"
+2019s,wb18_2019s_base,wb18_2019s_in16,ccap_2021_hires_lc.tif,flat,40609,0.437007,0.129921,0.17075,0.06964,-0.10111,0.0069,,"certified flat (absolute FP control), sample-test only"
+2019s,wb18_2019s_base,wb18_2019s_in16,ccap_2021_hires_lc.tif,all,468750,0.437007,0.129921,0.29405,0.38644,0.09239,0.0069,,every valid sample-test cell
+2019s,wb18_2019s_base,wb18_2019s_in16,ccap_2021_hires_lc.tif,gain_minus_all,,0.437007,0.129921,,,0.08244,0.0069,H2-K2 CHANGE LAUNDERING,K2 = gain-cell rise minus all-cell rise; kill above the floor

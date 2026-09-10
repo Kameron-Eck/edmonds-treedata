@@ -1,7 +1,7 @@
 # EXPERIMENT REGISTRY INDEX — GENERATED, do not edit
 
 Regenerate: `py -3.12 qc/experiments_index.py` (drift-gated by `test_experiments.py::test_index_is_fresh`).
-Authored layer + schema: this directory's `README.md`. 51 entries: 39 complete · 5 needs-kam · 6 queued · 1 tabled.
+Authored layer + schema: this directory's `README.md`. 51 entries: 40 complete · 5 needs-kam · 5 queued · 1 tabled.
 
 ## Awaiting Kam sign-off
 
@@ -16,6 +16,7 @@ Authored layer + schema: this directory's `README.md`. 51 entries: 39 complete �
 | entry | kind | status | decided | N | imagery | headline |
 |---|---|---|---|---|---|---|
 | backbone_sweep | experiment | complete | 2026-09-10 | 30 | 2006s,2011s,2016,2019n,2020 | DECIDED 2026-09-10 on Kam's gate (extra.kam_decision_2026_09_09): RECIPE REFINEMENT MOVES TO RESNET-18, warm-started from phase4/models/sem_best_2020_base18.pt. |
+| harmonization_h1_h2 | experiment | complete | 2026-09-10 | 30 | 2006s,2011s,2016,2019n,2019s,2020 | EXP-H1 CONFIRMED (premise stands): five-year base spread 0.140 vs C-CAP 2021 / 0.154 vs C-CAP 2016 (harm_spread.csv, prefix wb18, treatment base, n_years 5); H1-K1 and H1-K2 did not fire. |
 | encoder_bases | experiment | complete | 2026-09-09 | 150 | 2020 | BOTH BASES LANDED 2026-09-09 (one A100 each; no runtime remains). |
 | bundle_validation_2017k | experiment | complete | 2026-09-08 | — | 2017k | RAN 2026-09-08 02:02Z to 03:49Z (spdvc1 CPU labels+tile, spdvg A100 train), scored by an independent referee against the rule above; every number below names its file. |
 | lit_healing_analogues | instrument-finding | complete | 2026-09-08 | — | — | NO FIELD SUPPLIES A MEASURED LAUNDERING RATE for a one-directional temporal correction on real gold. |
@@ -62,7 +63,6 @@ Authored layer + schema: this directory's `README.md`. 51 entries: 39 complete �
 | era_matched_rescore | measurement-campaign | needs-kam | — | — | 2006s,2011s,2016 | Every Tier-1 score is measured against a C-CAP reference whose vintage is years away from the imagery it judges. |
 | full_archive_e3 | experiment | queued | — | — | — | The hard-year pilot confirmed the unified citywide EPOCH-3 recipe explains the historical weak tail (2011s 0.471 -> 0.756; 2006s 0.470 -> 0.707 with three measured imagery strikes). |
 | fusion_5band_nir_chm | measurement-campaign | needs-kam | — | — | 2016 | Before spending an A100 on input-level 5-band (RGB+NIR+CHM) training, ask the cheap question first: do the 2016 CHM-input arm and the 2016 NIR-input arm miss the SAME trees? If their errors largely co… |
-| harmonization_h1_h2 | experiment | queued | — | 30 | 2006s,2011s,2016,2019n,2019s,2020 | TWO PRE-REGISTERED EXPERIMENTS IN ONE ENTRY, because EXP-H2 is read against a baseline EXP-H1 measures and neither is interpretable alone. |
 | heal_infill_2017_2023 | experiment | queued | — | — | 2017,2020,2022,2023 | The healing operator cannot currently be scored. |
 | resolution_1x2x4 | experiment | queued | — | — | — | The measured coarse-over-medium gap (support-matched, program-confound narrowed to one flight processed two ways) is a genuine resolution effect: ONE acquisition trained at native, 2x and 4x downsampl… |
 | shadow_fp_fn_2016 | measurement-campaign | needs-kam | — | — | 2000,2002,2013,2015,2016 | Kam's hypothesis (2026-08-26), in two halves. |

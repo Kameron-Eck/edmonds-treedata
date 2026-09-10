@@ -18,11 +18,11 @@ than selected. Everything below is resolved from them at build time.
   <br>evidence `phase4/qc/sameflight_consistency.csv#csv:canopy_iou@grid_px_m=1.0`
 - **1.5008** — Bernoulli-thinning the dense lidar epoch to the sparse one's density fabricates 1.5008 km2 of apparent GAIN and essentially no loss — density cannot fake loss.
   <br>evidence `phase4/qc/lidar_decimation_null.csv#csv:km2@quantity=artifact_gain`
-- **86** — The archive holds 86 distinct tile sets, one tracked tile list each — fewer than the tile directories on disk, because arms sharing a set share its tiles exactly, which is what makes those comparisons clean.
+- **88** — The archive holds 88 distinct tile sets, one tracked tile list each — fewer than the tile directories on disk, because arms sharing a set share its tiles exactly, which is what makes those comparisons clean.
   <br>evidence `phase4/qc/tilesets#dir_csv_count`
-- **131** — Those sets are materialised in 131 tile directories (a count that grows by one per tile directory; refresh at landed.py) — one registry row per directory, keyed (label, run_tag), so a set built again under a second run tag is one set counted once and two directories on disk. Counting rows as sets is the defect `qc/coverage_map.py::tileset_census` exists to prevent.
+- **133** — Those sets are materialised in 133 tile directories (a count that grows by one per tile directory; refresh at landed.py) — one registry row per directory, keyed (label, run_tag), so a set built again under a second run tag is one set counted once and two directories on disk. Counting rows as sets is the defect `qc/coverage_map.py::tileset_census` exists to prevent.
   <br>evidence `phase4/qc/tileset_registry.csv#rows`
-- **116** — Every scored arm's full precision-recall sweep is tracked: 116 curves.
+- **126** — Every scored arm's full precision-recall sweep is tracked: 126 curves.
   <br>evidence `phase4/qc/curves#dir_csv_count`
 - **0.9089** — At the held precision of the matched-cut series, reported canopy fraction tracks the model's recall at r = 0.9089 (exact permutation p = 0.0018 over all 40,320 orderings). The residual year-to-year sawtooth is detector sensitivity moving, not canopy moving — which is what licenses an ASYMMETRIC correction, since the error is one-sided (the model misses real trees, it does not invent them).
   <br>evidence `phase4/qc/sensitivity_sawtooth.csv#csv:value@statistic=pearson_r_recall_vs_frac`
@@ -57,7 +57,7 @@ count beside it.
 |---|---|---|---|---|---|---|---|
 | 2006s | wb18_2006s_in16 | 0.7743 | 0.7514 | 0.8547 | ccap_2016_hires_lc.tif / sample-test | 796,238 | 1562 |
 | 2009 | trend8_2009 | 0.7424 | 0.75 | 0.81 | ccap_2021_hires_lc.tif / citywide | 344,975,021 | 6124 |
-| 2011s | hy_e3_2011s | 0.8333 | 0.7516 | 0.866 | ccap_2016_hires_lc.tif / citywide | 163,466,339 | 3707 |
+| 2011s | hy_e3_2011s | 0.8333 | 0.7516 | 0.866 | ccap_2016_hires_lc.tif / citywide | 163,466,339 | 3988 |
 | 2013 | trend8_2013 | 0.7748 | 0.7512 | 0.8116 | ccap_2021_hires_lc.tif / citywide | 1,390,014,655 | 1256 |
 | 2015 | trend8_2015 | 0.71 | 0.751 | 0.7746 | ccap_2021_hires_lc.tif / citywide | 1,366,533,758 | 934 |
 | 2016 | t1_2016_in16 | 0.8713 | 0.7506 | 0.9069 | _chm2_canopy2m_binary.tif / sample-test | 7,643,036 | 5822 |
@@ -67,16 +67,19 @@ count beside it.
 | 2017s | of_2017s | 0.7462 | 0.751 | 0.8191 | ccap_2021_hires_lc.tif / citywide | 149,422,078 | 557 |
 | 2019 | trend8_2019 | 0.752 | 0.7582 | 0.8093 | ccap_2021_hires_lc.tif / citywide | 1,371,436,455 | 1792 |
 | 2019n | wb18_2019n_in16 | 0.7877 | 0.7539 | 0.8629 | ccap_2016_hires_lc.tif / sample-test | 2,212,370 | 2164 |
-| 2020 | wb18_2020_base | 0.7479 | 0.7555 | 0.8006 | ccap_2016_hires_lc.tif / sample-test | 312,975,674 | 5241 |
+| 2019s | wb18_2019s_in16 | 0.7957 | 0.7515 | 0.8644 | ccap_2016_hires_lc.tif / sample-test | 8,617,953 | 1123 |
+| 2020 | wb18_2020_base | 0.7479 | 0.7555 | 0.8006 | ccap_2016_hires_lc.tif / sample-test | 312,975,674 | 5872 |
 | 2021 | trend8_2021 | 0.8157 | 0.7502 | 0.8391 | ccap_2021_hires_lc.tif / citywide | 1,406,539,700 | 1220 |
-| 2022 | of_2022 | 0.743 | 0.7511 | 0.7848 | ccap_2021_hires_lc.tif / citywide | 5,178,270,225 | 1226 |
+| 2022 | heal_2022 | 0.7452 | 0.7586 | 0.7976 | ccap_2021_hires_lc.tif / citywide | 5,140,742,959 | 1226 |
+| 2023 | heal_2023 | 0.8009 | 0.7514 | 0.8375 | ccap_2021_hires_lc.tif / citywide | 1,399,293,293 | 1181 |
 | 2024 | trend8_2024 | 0.6955 | 0.7524 | 0.7449 | ccap_2021_hires_lc.tif / citywide | 5,436,883,153 | 1254 |
 
-16 of 37 acquisitions have a matched-cut read. ★ = designated champion.
+18 of 37 acquisitions have a matched-cut read. ★ = designated champion.
 
-## 3. What 39 completed investigations concluded
+## 3. What 40 completed investigations concluded
 
 - **backbone_sweep** (2026-09-10) — DECIDED 2026-09-10 on Kam's gate (extra.kam_decision_2026_09_09): RECIPE REFINEMENT MOVES TO RESNET-18, warm-started from phase4/models/sem_best_2020_base18.pt.
+- **harmonization_h1_h2** (2026-09-10) — EXP-H1 CONFIRMED (premise stands): five-year base spread 0.140 vs C-CAP 2021 / 0.154 vs C-CAP 2016 (harm_spread.csv, prefix wb18, treatment base, n_years 5); H1-K1 and H1-K2 did not fire.
 - **encoder_bases** (2026-09-09) — BOTH BASES LANDED 2026-09-09 (one A100 each; no runtime remains).
 - **bundle_validation_2017k** (2026-09-08) — RAN 2026-09-08 02:02Z to 03:49Z (spdvc1 CPU labels+tile, spdvg A100 train), scored by an independent referee against the rule above; every number below names its file.
 - **lit_healing_analogues** (2026-09-08) — NO FIELD SUPPLIES A MEASURED LAUNDERING RATE for a one-directional temporal correction on real gold.
@@ -119,7 +122,7 @@ count beside it.
 ## 4. What is NOT known
 
 - never tiled (13): 2002s, 2003s, 2007s, 2009s, 2012s, 2013s, 2015n, 2015s, 2020s, 2021n, 2022s, 2023n, 2024s
-- no matched-cut read (21): 2000, 2002, 2002s, 2003s, 2005, 2007, 2007s, 2009s, 2012s, 2013s, 2015n, 2015s, 2018s, 2019s, 2020s, 2021n, 2021s, 2022s, 2023, 2023n, 2024s
+- no matched-cut read (19): 2000, 2002, 2002s, 2003s, 2005, 2007, 2007s, 2009s, 2012s, 2013s, 2015n, 2015s, 2018s, 2020s, 2021n, 2021s, 2022s, 2023n, 2024s
 - no champion (20): 2000, 2002, 2002s, 2007s, 2009s, 2013, 2013s, 2015, 2015n, 2015s, 2016, 2017, 2017k, 2017n, 2017s, 2019s, 2020, 2021n, 2022s, 2024s
 - results documented but UNSIGNED (5): ccap_mixed_sign_bias, epoch_decay_mvv0, era_matched_rescore, fusion_5band_nir_chm, shadow_fp_fn_2016
 

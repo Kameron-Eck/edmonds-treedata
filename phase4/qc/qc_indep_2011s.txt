@@ -1,37 +1,37 @@
 QC score vs INDEPENDENT reference — year 2011s
   ref  : G:\My Drive\treedata\Full_Image\Pipeline Imagery\ccap_2016_hires_lc.tif   (scheme=ccap)
-  prob : G:\My Drive\treedata\phase4\masks\edmonds_canopy_prob_2011s_wb18_2011s_base.tif
+  prob : G:\My Drive\treedata\phase4\masks\edmonds_canopy_prob_2011s_wb18_2011s_in16.tif
   deployed threshold : 0.4206
   valid px           : 19,813,191   (≈ 1,840,713 independent 1 m² cells)
-  model canopy frac  : 27.39%
+  model canopy frac  : 24.30%
 
   CANOPY DEFINITIONS (nested):
     definition             recall   precision   grass_rej   ref_canopy%   TP / FN(missed)
-    forest_only            0.6489    0.8040    0.8740       33.94%   4,363,768 / 2,361,380
-    forest_wetland         0.6528    0.8206    0.8740       34.43%   4,453,908 / 2,368,490  <-- PRIMARY
-    forest_wetland_scrub   0.6040    0.8378    0.8740       38.00%   4,547,196 / 2,981,408
+    forest_only            0.6174    0.8624    0.9345       33.94%   4,152,293 / 2,572,855
+    forest_wetland         0.6213    0.8803    0.9345       34.43%   4,238,458 / 2,583,940  <-- PRIMARY
+    forest_wetland_scrub   0.5716    0.8938    0.9345       38.00%   4,303,253 / 3,225,351
 
   PER-SURFACE DELINEATION (canopy-call rate = recall for canopy, FP-rate otherwise):
     group                kind         px          area%    canopy-call
-    forest               canopy          6,725,148   33.94%    0.6489 (recall)
-    wetland              canopy             97,250    0.49%    0.9269 (recall)
-    scrub                canopy            706,206    3.56%    0.1321 (recall)
-    grass                non-canopy      3,887,768   19.62%    0.1260 (FP-rate)
+    forest               canopy          6,725,148   33.94%    0.6174 (recall)
+    wetland              canopy             97,250    0.49%    0.8860 (recall)
+    scrub                canopy            706,206    3.56%    0.0918 (recall)
+    grass                non-canopy      3,887,768   19.62%    0.0655 (FP-rate)
     cropland             non-canopy              0    0.00%       nan (FP-rate)
-    developed            non-canopy      7,959,539   40.17%    0.0316 (FP-rate)
-    barren               non-canopy        113,086    0.57%    0.0860 (FP-rate)
-    emergent_wetland     non-canopy        268,484    1.36%    0.4623 (FP-rate)
-    water                non-canopy         55,710    0.28%    0.0973 (FP-rate)
+    developed            non-canopy      7,959,539   40.17%    0.0258 (FP-rate)
+    barren               non-canopy        113,086    0.57%    0.0068 (FP-rate)
+    emergent_wetland     non-canopy        268,484    1.36%    0.1730 (FP-rate)
+    water                non-canopy         55,710    0.28%    0.0712 (FP-rate)
     other                non-canopy              0    0.00%       nan (FP-rate)
 
   THRESHOLD SWEEP (primary def = forest_wetland):
     thresh    recall   precision   TP / missed
-    0.2000   0.7353    0.7768     5,016,544 / 1,805,854
-    0.2500   0.7111    0.7907     4,851,216 / 1,971,182
-    0.3000   0.6917    0.8013     4,718,970 / 2,103,428
-    0.3767   0.6667    0.8141     4,548,589 / 2,273,809
-    0.4500   0.6428    0.8253     4,385,242 / 2,437,156
-    0.5000   0.6272    0.8324     4,278,714 / 2,543,684
+    0.2000   0.6994    0.8383     4,771,851 / 2,050,547
+    0.2500   0.6758    0.8523     4,610,797 / 2,211,601
+    0.3000   0.6571    0.8624     4,482,751 / 2,339,647
+    0.3767   0.6338    0.8743     4,323,935 / 2,498,463
+    0.4500   0.6123    0.8844     4,177,052 / 2,645,346
+    0.5000   0.5984    0.8906     4,082,358 / 2,740,040
 
   CLASS MAP USED (audit — VERIFY vs the reference's own legend):
     canopy order : ['forest_only', 'forest_wetland', 'forest_wetland_scrub']

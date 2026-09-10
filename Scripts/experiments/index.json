@@ -1272,6 +1272,721 @@
       "verdict": "DECIDED 2026-09-10 on Kam's gate (extra.kam_decision_2026_09_09): RECIPE REFINEMENT MOVES TO RESNET-18, warm-started from phase4/models/sem_best_2020_base18.pt. The pre-registered metric (matched_p75 recall vs C-CAP 2021 on the LOSO sample-test blocks; phase4/qc/arm_metrics.csv joined to backbone_benchmark.csv), resnet18 (base18 start) vs the resnet101 record: 2011s base/s2/s3 0.720/0.725/0.727 vs 0.725/0.720/ 0.717 (SEED SPREAD 0.0069 vs 0.0085); cor05 0.727 vs 0.725; 2016 base 0.743 vs 0.669; 2016 in05 0.751 vs 0.744; 2020 base 0.740 (P 0.753) vs 0.640 (P 0.800). AP 0.803-0.830 vs 0.755-0.820. (a) at or above the 101 on every arm; (b) noise better than the 101's; null pair +0.006, inside the floor. Positive pair +0.008 (inside the floor) — as on resnet50, the 101's +0.075 lidar-input effect does not reproduce with a sound baseline; the 2016 lidar effect stays UNRESOLVED pending the 101's 2016 reseed. Against resnet50 (base50 start): resnet18 is ~0.03 lower on 2011s, equal on 2016, higher on 2020; train 14-31 min vs 14-30 (both ~25-35% under the 101; the pipeline is I/O-bound, so the small encoder's saving is in fine-tune minutes, not inference). Phase-1 (ImageNet-start) arms stand as the record of why a trained base per encoder is required. Cache fix (0080cce) validated live twice (in05 inference on both encoders).\n"
     },
     {
+      "arm_scores": {
+        "wb18_2006s_base": {
+          "best_f1": {
+            "curve": "phase4/qc/curves/4baef03249dc.csv",
+            "eval_scope": "sample-test",
+            "population": "859825",
+            "pr_auc": "0.8038",
+            "precision": "0.6905",
+            "recall": "0.7954",
+            "ref": "ccap_2016_hires_lc.tif",
+            "thresh": "0.102362"
+          },
+          "matched_p50": {
+            "curve": "phase4/qc/curves/4baef03249dc.csv",
+            "eval_scope": "sample-test",
+            "population": "1211639",
+            "pr_auc": "0.8038",
+            "precision": "0.5103",
+            "recall": "0.9498",
+            "ref": "ccap_2016_hires_lc.tif",
+            "thresh": "0.027559"
+          },
+          "matched_p75": {
+            "curve": "phase4/qc/curves/4baef03249dc.csv",
+            "eval_scope": "sample-test",
+            "population": "783068",
+            "pr_auc": "0.8038",
+            "precision": "0.7509",
+            "recall": "0.7099",
+            "ref": "ccap_2016_hires_lc.tif",
+            "thresh": "0.220472"
+          },
+          "matched_p90": {
+            "curve": "phase4/qc/curves/4baef03249dc.csv",
+            "eval_scope": "sample-test",
+            "population": "652475",
+            "pr_auc": "0.8038",
+            "precision": "0.9022",
+            "recall": "0.2713",
+            "ref": "ccap_2016_hires_lc.tif",
+            "thresh": "0.688976"
+          },
+          "scored_live": {
+            "curve": "",
+            "eval_scope": "",
+            "population": "707483",
+            "pr_auc": "",
+            "precision": "0.8076",
+            "recall": "0.5558",
+            "ref": "ccap_2016_hires_lc.tif",
+            "thresh": "0.552"
+          }
+        },
+        "wb18_2006s_in05": {
+          "best_f1": {
+            "curve": "phase4/qc/curves/3e86e170da47.csv",
+            "eval_scope": "sample-test",
+            "population": "816219",
+            "pr_auc": "0.7981",
+            "precision": "0.6806",
+            "recall": "0.7687",
+            "ref": "ccap_2021_hires_lc.tif",
+            "thresh": "0.165354"
+          },
+          "matched_p50": {
+            "curve": "phase4/qc/curves/3e86e170da47.csv",
+            "eval_scope": "sample-test",
+            "population": "1144115",
+            "pr_auc": "0.7981",
+            "precision": "0.5066",
+            "recall": "0.9317",
+            "ref": "ccap_2021_hires_lc.tif",
+            "thresh": "0.043307"
+          },
+          "matched_p75": {
+            "curve": "phase4/qc/curves/3e86e170da47.csv",
+            "eval_scope": "sample-test",
+            "population": "732718",
+            "pr_auc": "0.7981",
+            "precision": "0.7506",
+            "recall": "0.6671",
+            "ref": "ccap_2021_hires_lc.tif",
+            "thresh": "0.401574"
+          },
+          "matched_p90": {
+            "curve": "phase4/qc/curves/3e86e170da47.csv",
+            "eval_scope": "sample-test",
+            "population": "621951",
+            "pr_auc": "0.7981",
+            "precision": "0.9012",
+            "recall": "0.3367",
+            "ref": "ccap_2021_hires_lc.tif",
+            "thresh": "0.716535"
+          },
+          "scored_live": {
+            "curve": "",
+            "eval_scope": "",
+            "population": "710612",
+            "pr_auc": "",
+            "precision": "0.8336",
+            "recall": "0.6069",
+            "ref": "ccap_2016_hires_lc.tif",
+            "thresh": "0.552"
+          }
+        },
+        "wb18_2006s_in16": {
+          "best_f1": {
+            "curve": "phase4/qc/curves/a9c30a326857.csv",
+            "eval_scope": "sample-test",
+            "population": "805516",
+            "pr_auc": "0.8547",
+            "precision": "0.7431",
+            "recall": "0.7837",
+            "ref": "ccap_2016_hires_lc.tif",
+            "thresh": "0.102362"
+          },
+          "matched_p50": {
+            "curve": "phase4/qc/curves/a9c30a326857.csv",
+            "eval_scope": "sample-test",
+            "population": "1184476",
+            "pr_auc": "0.8547",
+            "precision": "0.5214",
+            "recall": "0.9464",
+            "ref": "ccap_2016_hires_lc.tif",
+            "thresh": "0.027559"
+          },
+          "matched_p75": {
+            "curve": "phase4/qc/curves/a9c30a326857.csv",
+            "eval_scope": "sample-test",
+            "population": "796238",
+            "pr_auc": "0.8547",
+            "precision": "0.7514",
+            "recall": "0.7743",
+            "ref": "ccap_2016_hires_lc.tif",
+            "thresh": "0.110236"
+          },
+          "matched_p90": {
+            "curve": "phase4/qc/curves/a9c30a326857.csv",
+            "eval_scope": "sample-test",
+            "population": "671477",
+            "pr_auc": "0.8547",
+            "precision": "0.9001",
+            "recall": "0.5353",
+            "ref": "ccap_2016_hires_lc.tif",
+            "thresh": "0.586614"
+          },
+          "scored_live": {
+            "curve": "",
+            "eval_scope": "",
+            "population": "660268",
+            "pr_auc": "",
+            "precision": "0.8457",
+            "recall": "0.5526",
+            "ref": "ccap_2021_hires_lc.tif",
+            "thresh": "0.552"
+          }
+        },
+        "wb18_2011s_in16": {
+          "best_f1": {
+            "curve": "phase4/qc/curves/b905174cdc2f.csv",
+            "eval_scope": "sample-test",
+            "population": "8502892",
+            "pr_auc": "0.8646",
+            "precision": "0.7639",
+            "recall": "0.7971",
+            "ref": "ccap_2016_hires_lc.tif",
+            "thresh": "0.086614"
+          },
+          "matched_p50": {
+            "curve": "phase4/qc/curves/b905174cdc2f.csv",
+            "eval_scope": "sample-test",
+            "population": "12773274",
+            "pr_auc": "0.8646",
+            "precision": "0.5247",
+            "recall": "0.9628",
+            "ref": "ccap_2016_hires_lc.tif",
+            "thresh": "0.015748"
+          },
+          "matched_p75": {
+            "curve": "phase4/qc/curves/b905174cdc2f.csv",
+            "eval_scope": "sample-test",
+            "population": "8639527",
+            "pr_auc": "0.8646",
+            "precision": "0.7524",
+            "recall": "0.8093",
+            "ref": "ccap_2016_hires_lc.tif",
+            "thresh": "0.07874"
+          },
+          "matched_p90": {
+            "curve": "phase4/qc/curves/b905174cdc2f.csv",
+            "eval_scope": "sample-test",
+            "population": "7255975",
+            "pr_auc": "0.8646",
+            "precision": "0.9004",
+            "recall": "0.5743",
+            "ref": "ccap_2016_hires_lc.tif",
+            "thresh": "0.574803"
+          },
+          "scored_live": {
+            "curve": "",
+            "eval_scope": "",
+            "population": "7247453",
+            "pr_auc": "",
+            "precision": "0.8125",
+            "recall": "0.6166",
+            "ref": "ccap_2021_hires_lc.tif",
+            "thresh": "0.4206"
+          }
+        },
+        "wb18_2016_in16": {
+          "best_f1": {
+            "curve": "phase4/qc/curves/5ebeacd83763.csv",
+            "eval_scope": "sample-test",
+            "population": "8501132",
+            "pr_auc": "0.8643",
+            "precision": "0.7626",
+            "recall": "0.7902",
+            "ref": "ccap_2016_hires_lc.tif",
+            "thresh": "0.082677"
+          },
+          "matched_p50": {
+            "curve": "phase4/qc/curves/5ebeacd83763.csv",
+            "eval_scope": "sample-test",
+            "population": "13101326",
+            "pr_auc": "0.8643",
+            "precision": "0.5105",
+            "recall": "0.9599",
+            "ref": "ccap_2016_hires_lc.tif",
+            "thresh": "0.011811"
+          },
+          "matched_p75": {
+            "curve": "phase4/qc/curves/5ebeacd83763.csv",
+            "eval_scope": "sample-test",
+            "population": "8622706",
+            "pr_auc": "0.8643",
+            "precision": "0.7521",
+            "recall": "0.8007",
+            "ref": "ccap_2016_hires_lc.tif",
+            "thresh": "0.074803"
+          },
+          "matched_p90": {
+            "curve": "phase4/qc/curves/5ebeacd83763.csv",
+            "eval_scope": "sample-test",
+            "population": "7268343",
+            "pr_auc": "0.8643",
+            "precision": "0.9001",
+            "recall": "0.5885",
+            "ref": "ccap_2016_hires_lc.tif",
+            "thresh": "0.515748"
+          },
+          "scored_live": {
+            "curve": "",
+            "eval_scope": "",
+            "population": "7260559",
+            "pr_auc": "",
+            "precision": "0.9013",
+            "recall": "0.5861",
+            "ref": "ccap_2016_hires_lc.tif",
+            "thresh": "0.5223"
+          }
+        },
+        "wb18_2019n_base": {
+          "best_f1": {
+            "curve": "phase4/qc/curves/55f102d35e6e.csv",
+            "eval_scope": "sample-test",
+            "population": "2354226",
+            "pr_auc": "0.767",
+            "precision": "0.6572",
+            "recall": "0.7924",
+            "ref": "ccap_2021_hires_lc.tif",
+            "thresh": "0.23622"
+          },
+          "matched_p50": {
+            "curve": "phase4/qc/curves/55f102d35e6e.csv",
+            "eval_scope": "sample-test",
+            "population": "3227133",
+            "pr_auc": "0.767",
+            "precision": "0.5013",
+            "recall": "0.9423",
+            "ref": "ccap_2021_hires_lc.tif",
+            "thresh": "0.047244"
+          },
+          "matched_p75": {
+            "curve": "phase4/qc/curves/55f102d35e6e.csv",
+            "eval_scope": "sample-test",
+            "population": "1999272",
+            "pr_auc": "0.767",
+            "precision": "0.7507",
+            "recall": "0.6032",
+            "ref": "ccap_2021_hires_lc.tif",
+            "thresh": "0.496062"
+          },
+          "matched_p90": {
+            "curve": "phase4/qc/curves/55f102d35e6e.csv",
+            "eval_scope": "sample-test",
+            "population": "1699431",
+            "pr_auc": "0.767",
+            "precision": "0.9017",
+            "recall": "0.1861",
+            "ref": "ccap_2021_hires_lc.tif",
+            "thresh": "0.755905"
+          },
+          "scored_live": {
+            "curve": "",
+            "eval_scope": "",
+            "population": "2057565",
+            "pr_auc": "",
+            "precision": "0.766",
+            "recall": "0.5877",
+            "ref": "ccap_2021_hires_lc.tif",
+            "thresh": "0.4951"
+          }
+        },
+        "wb18_2019n_in16": {
+          "best_f1": {
+            "curve": "phase4/qc/curves/d8d98fcbe76c.csv",
+            "eval_scope": "sample-test",
+            "population": "2173356",
+            "pr_auc": "0.8629",
+            "precision": "0.7673",
+            "recall": "0.7748",
+            "ref": "ccap_2016_hires_lc.tif",
+            "thresh": "0.106299"
+          },
+          "matched_p50": {
+            "curve": "phase4/qc/curves/d8d98fcbe76c.csv",
+            "eval_scope": "sample-test",
+            "population": "3408491",
+            "pr_auc": "0.8629",
+            "precision": "0.5045",
+            "recall": "0.9539",
+            "ref": "ccap_2016_hires_lc.tif",
+            "thresh": "0.019685"
+          },
+          "matched_p75": {
+            "curve": "phase4/qc/curves/d8d98fcbe76c.csv",
+            "eval_scope": "sample-test",
+            "population": "2212370",
+            "pr_auc": "0.8629",
+            "precision": "0.7539",
+            "recall": "0.7877",
+            "ref": "ccap_2016_hires_lc.tif",
+            "thresh": "0.094488"
+          },
+          "matched_p90": {
+            "curve": "phase4/qc/curves/d8d98fcbe76c.csv",
+            "eval_scope": "sample-test",
+            "population": "1874122",
+            "pr_auc": "0.8629",
+            "precision": "0.9004",
+            "recall": "0.5865",
+            "ref": "ccap_2016_hires_lc.tif",
+            "thresh": "0.590551"
+          },
+          "scored_live": {
+            "curve": "",
+            "eval_scope": "",
+            "population": "2071069",
+            "pr_auc": "",
+            "precision": "0.8955",
+            "recall": "0.569",
+            "ref": "ccap_2016_hires_lc.tif",
+            "thresh": "0.4951"
+          }
+        },
+        "wb18_2019s_base": {
+          "best_f1": {
+            "curve": "phase4/qc/curves/3f6d751a239f.csv",
+            "eval_scope": "sample-test",
+            "population": "9612383",
+            "pr_auc": "0.7692",
+            "precision": "0.6633",
+            "recall": "0.8056",
+            "ref": "ccap_2016_hires_lc.tif",
+            "thresh": "0.185039"
+          },
+          "matched_p50": {
+            "curve": "phase4/qc/curves/3f6d751a239f.csv",
+            "eval_scope": "sample-test",
+            "population": "13294368",
+            "pr_auc": "0.7692",
+            "precision": "0.5011",
+            "recall": "0.9529",
+            "ref": "ccap_2016_hires_lc.tif",
+            "thresh": "0.043307"
+          },
+          "matched_p75": {
+            "curve": "phase4/qc/curves/3f6d751a239f.csv",
+            "eval_scope": "sample-test",
+            "population": "8261158",
+            "pr_auc": "0.7692",
+            "precision": "0.7501",
+            "recall": "0.633",
+            "ref": "ccap_2016_hires_lc.tif",
+            "thresh": "0.350393"
+          },
+          "matched_p90": {
+            "curve": "phase4/qc/curves/3f6d751a239f.csv",
+            "eval_scope": "sample-test",
+            "population": "6940760",
+            "pr_auc": "0.7692",
+            "precision": "0.9028",
+            "recall": "0.1609",
+            "ref": "ccap_2016_hires_lc.tif",
+            "thresh": "0.720472"
+          },
+          "scored_live": {
+            "curve": "",
+            "eval_scope": "",
+            "population": "8243306",
+            "pr_auc": "",
+            "precision": "0.7348",
+            "recall": "0.6254",
+            "ref": "ccap_2016_hires_lc.tif",
+            "thresh": "0.3527"
+          }
+        },
+        "wb18_2019s_in16": {
+          "best_f1": {
+            "curve": "phase4/qc/curves/c055c189f5c2.csv",
+            "eval_scope": "sample-test",
+            "population": "8333125",
+            "pr_auc": "0.8346",
+            "precision": "0.7277",
+            "recall": "0.7762",
+            "ref": "ccap_2021_hires_lc.tif",
+            "thresh": "0.106299"
+          },
+          "matched_p50": {
+            "curve": "phase4/qc/curves/c055c189f5c2.csv",
+            "eval_scope": "sample-test",
+            "population": "12595944",
+            "pr_auc": "0.8346",
+            "precision": "0.5021",
+            "recall": "0.9585",
+            "ref": "ccap_2021_hires_lc.tif",
+            "thresh": "0.027559"
+          },
+          "matched_p75": {
+            "curve": "phase4/qc/curves/c055c189f5c2.csv",
+            "eval_scope": "sample-test",
+            "population": "8043048",
+            "pr_auc": "0.8346",
+            "precision": "0.7525",
+            "recall": "0.7466",
+            "ref": "ccap_2021_hires_lc.tif",
+            "thresh": "0.129921"
+          },
+          "matched_p90": {
+            "curve": "phase4/qc/curves/c055c189f5c2.csv",
+            "eval_scope": "sample-test",
+            "population": "6804388",
+            "pr_auc": "0.8346",
+            "precision": "0.9004",
+            "recall": "0.4855",
+            "ref": "ccap_2021_hires_lc.tif",
+            "thresh": "0.681102"
+          },
+          "scored_live": {
+            "curve": "",
+            "eval_scope": "",
+            "population": "7218764",
+            "pr_auc": "",
+            "precision": "0.8403",
+            "recall": "0.6205",
+            "ref": "ccap_2021_hires_lc.tif",
+            "thresh": "0.3527"
+          }
+        }
+      },
+      "arms": [
+        {
+          "extra": [
+            "--encoder",
+            "resnet18",
+            "--no-hillshade",
+            "--ckpt",
+            "/content/drive/MyDrive/treedata/phase4/models/sem_best_2020_base18.pt",
+            "--sample-manifest",
+            "/content/drive/MyDrive/treedata/phase4/qc/sample_tiles_2006s.csv"
+          ],
+          "tag": "wb18_2006s_base",
+          "year": "2006s"
+        },
+        {
+          "extra": [
+            "--encoder",
+            "resnet18",
+            "--no-hillshade",
+            "--ckpt",
+            "/content/drive/MyDrive/treedata/phase4/models/sem_best_2020_base18.pt",
+            "--sample-manifest",
+            "/content/drive/MyDrive/treedata/phase4/qc/sample_tiles_2019n.csv"
+          ],
+          "tag": "wb18_2019n_base",
+          "year": "2019n"
+        },
+        {
+          "extra": [
+            "--encoder",
+            "resnet18",
+            "--hs-source",
+            "chm2",
+            "--ckpt",
+            "/content/drive/MyDrive/treedata/phase4/models/sem_best_2020_base18.pt",
+            "--sample-manifest",
+            "/content/drive/MyDrive/treedata/phase4/qc/sample_tiles_2006s.csv"
+          ],
+          "tag": "wb18_2006s_in16",
+          "year": "2006s"
+        },
+        {
+          "extra": [
+            "--encoder",
+            "resnet18",
+            "--hs-source",
+            "chm2",
+            "--ckpt",
+            "/content/drive/MyDrive/treedata/phase4/models/sem_best_2020_base18.pt",
+            "--sample-manifest",
+            "/content/drive/MyDrive/treedata/phase4/qc/sample_tiles_2011s.csv"
+          ],
+          "tag": "wb18_2011s_in16",
+          "year": "2011s"
+        },
+        {
+          "extra": [
+            "--encoder",
+            "resnet18",
+            "--hs-source",
+            "chm2",
+            "--ckpt",
+            "/content/drive/MyDrive/treedata/phase4/models/sem_best_2020_base18.pt",
+            "--sample-manifest",
+            "/content/drive/MyDrive/treedata/phase4/qc/sample_tiles_2016.csv"
+          ],
+          "tag": "wb18_2016_in16",
+          "year": "2016"
+        },
+        {
+          "extra": [
+            "--encoder",
+            "resnet18",
+            "--hs-source",
+            "chm2",
+            "--ckpt",
+            "/content/drive/MyDrive/treedata/phase4/models/sem_best_2020_base18.pt",
+            "--sample-manifest",
+            "/content/drive/MyDrive/treedata/phase4/qc/sample_tiles_2019n.csv"
+          ],
+          "tag": "wb18_2019n_in16",
+          "year": "2019n"
+        },
+        {
+          "extra": [
+            "--encoder",
+            "resnet18",
+            "--hs-source",
+            "chm2",
+            "--ckpt",
+            "/content/drive/MyDrive/treedata/phase4/models/sem_best_2020_base18.pt",
+            "--sample-manifest",
+            "/content/drive/MyDrive/treedata/phase4/qc/sample_tiles_2020.csv"
+          ],
+          "tag": "wb18_2020_in16",
+          "year": "2020"
+        },
+        {
+          "extra": [
+            "--encoder",
+            "resnet18",
+            "--hs-source",
+            "chm2005",
+            "--ckpt",
+            "/content/drive/MyDrive/treedata/phase4/models/sem_best_2020_base18.pt",
+            "--sample-manifest",
+            "/content/drive/MyDrive/treedata/phase4/qc/sample_tiles_2006s.csv"
+          ],
+          "tag": "wb18_2006s_in05",
+          "year": "2006s"
+        },
+        {
+          "extra": [
+            "--encoder",
+            "resnet18",
+            "--no-hillshade",
+            "--ckpt",
+            "/content/drive/MyDrive/treedata/phase4/models/sem_best_2020_base18.pt",
+            "--sample-manifest",
+            "/content/drive/MyDrive/treedata/phase4/qc/sample_tiles_2019s.csv"
+          ],
+          "tag": "wb18_2019s_base",
+          "year": "2019s"
+        },
+        {
+          "extra": [
+            "--encoder",
+            "resnet18",
+            "--hs-source",
+            "chm2",
+            "--ckpt",
+            "/content/drive/MyDrive/treedata/phase4/models/sem_best_2020_base18.pt",
+            "--sample-manifest",
+            "/content/drive/MyDrive/treedata/phase4/qc/sample_tiles_2019s.csv"
+          ],
+          "tag": "wb18_2019s_in16",
+          "year": "2019s"
+        }
+      ],
+      "category": "science",
+      "champion_tags": [],
+      "commit": null,
+      "decided": "2026-09-10",
+      "decision_rule": "PRE-REGISTERED, before any arm has run. All constants are read from the design, not chosen after the fact. Every kill a metrics table can carry — H1-K1, H1-K2, H2-K1 INCLUDING its two-reference clause, H2-K3 and H2-K4 — is computed by qc/instruments/harm_spread.py, and H2-K2, which needs rasters, by qc/instruments/harm_change_laundering.py. Nothing is left for a reader to assemble by hand once the numbers exist. NOISE FLOOR = 0.0069 recall — the wb18 three-seed 2011s spread stated in the experiments/backbone_sweep.yaml verdict. Any per-arm delta inside it is UNDETERMINED, never \"no difference\" (CLAUDE.md 3.5). A SPREAD is a max-min of five draws and is noisier than one delta, so a spread change must exceed 2x floor = 0.014 to count. EXP-H1. H1-K1 (kills the workstream, and can fire): if the five-year base spread on resnet18 is <= 0.014, there is no cross-survey detection disagreement to harmonize at this sample and this encoder, and EXP-H2's premise is dead. This is not a formality: the resnet101 prior is large but the three-year resnet18 spread is small, and resnet18 gained most on exactly the two years that were worst (arm_metrics.csv / backbone_benchmark.csv). The flag fires only on a COMPLETE five-year set; a short set reads INCOMPLETE, never a pass. H1-K2 (kills the metric, not the workstream): if the 2016-referenced spread is <= 0.4x the 2021-referenced spread on the common years — i.e. >= 60% of the spread is reference epoch — then matched_p75 recall vs C-CAP 2021 is not a convergence metric and EXP-H2 must be read on the same-flight gap alone. The 0.4 is arbitrary but fixed here before any number exists, precisely so it cannot be chosen afterwards. Otherwise the spread is the pre-registered baseline EXP-H2 is read against. EXP-H2 — PROMOTE only if (P) holds AND H2-K1, H2-K2 and H2-K3 all pass. (P) CONVERGENCE: the five-year spread shrinks by >= 0.014 (2x floor). H2-K1 EPOCH LEAK, AS AN INTERACTION (this criterion has power; the record predicts it fires). \"in16 > in05 on 2006s\" alone is broken as a test, because chm2005 and chm2 differ in lidar density and product as well as in epoch (experiments/old_chm_defect.yaml verdict), so a uniform in16 advantage on every year is a CHM-QUALITY effect and not a leak. The leak signature is the interaction — the 2016 CHM should help a 2006 image MORE than it helps a 2016 image only if it is carrying 2016 canopy: K1 = [(in16 - in05) @ 2006s] - [(in16 - in05) @ 2016] > floor -> LEAK. Both 2016 terms are already on disk (wb18_2016_in05, wb18_2016_base) or are arm wb18_2016_in16, so the interaction costs no extra GPU. A leak verdict DISQUALIFIES in16 for time series regardless of (P). Scored against BOTH references: an interaction that appears only against C-CAP 2021 and vanishes against C-CAP 2016 is reference-epoch confounding and is reported UNDETERMINED, not as a pass. H2-K2 CHANGE LAUNDERING (direct, non-circular): over the sample-TEST blocks only, canopy-call rate of the in16 arm minus the base arm on certified 2005->2016 GAIN cells, against the same difference over all sample-test cells. If the gain-cell rise exceeds the all-cell rise beyond the floor, the channel is painting 2016 trees onto older imagery -> KILL, whatever (P) says. Certified-FLAT cells are reported in the same pass as an absolute false-positive control, separating \"adds canopy everywhere\" from \"adds canopy where 2016 grew trees\". The precedent is on the ADDER path, not the input band (experiments/tier1_science_sample.yaml verdict, add16), which is why the input band must be checked and not assumed clean. Instrument: qc/instruments/harm_change_laundering.py, written BEFORE the arms land so the kill can fire; UNVALIDATED on real rasters until it has run on them. H2-K3 MECHANISM: if the same-flight 2019s/2019n gap does not shrink beyond the floor, the treatment is NOT harmonizing delivery differences; a cross-year spread that compresses while the same-flight gap holds is evidence the compression came from reference-epoch effects -> report the cross-year result as UNINTERPRETABLE for this goal. H2-K3 reads the CHANGE in the gap, as the design writes it (in16 versus base); the ABSOLUTE gap is reported beside it and is readable, because --force-citywide gives both 2019 acquisitions ONE training recipe across their two tiers (extra.tier_flag_is_inert) — what is left between them is delivery, sensor and sampling support. VERIFY BEFORE READING IT, and it is a check on the run rather than a finding: both 2019 arms must print the same tile-index split mode at tiling. _block_partition falls back to a random split when a year has too few blocks, and a fallback on one year only would be a real recipe divergence — read it from the tile step log (CLAUDE.md 3.11), never assume it. If the 2019s arms are dropped for time, H2-K3 is UNMEASURED and the mechanism claim is UNDETERMINED for the night — it is not permitted to promote on (P) alone. H2-K4 PRE-REGISTERED NON-EVENT (so it is not read after the fact): the 2016 in16-base delta is EXPECTED to land inside the floor — resnet18 and resnet50 both read the in05 version of that delta inside their floors, and the backbone_sweep verdict attributes the resnet101's large value to a suspect-low t1_2016_base. A null on 2016 is neither a win nor a failure. SECOND QUEUE SHAPE, as the record requires: steps [labels, tile, train, evaluate] first (labels+tile on FREE CPU runtimes, the proven split, commit 7ef2f11), then a second queue with steps [inference] carrying --infer-aoi science_sample_blocks.gpkg and NO --sample-manifest (the Tier-1 ac0e79e shape), then the scoring pass (qc/instruments/score_wb50_loso.py --arms ... --refs ..., then harvest_arm_metrics). 2020 runs LAST and unbounded — the Tier-1 conveyor died at 1200 s on the 2020 arm. QUEUE-SPLIT RULE, operational and not stylistic: ALL ARMS OF ONE YEAR GO ON ONE RUNTIME. Two A100 runtimes rewrite the shared phase4/eval/semantic_eval_report.csv on every evaluate behind an async write cache, and on 2026-09-09 one arm's rows landed in neither the live report nor the archive (backbone_sweep.yaml extra.cross_vm_eval_report_clobber). Tonight that would bite on 2006s (three arms), 2019n (two) and 2019s (two). IF IT DOES NOT FIT the GPU budget, cut whole years in this order: 2020 in16, then 2011s in16. Never cut the 2006s arms — 2006s is where the spread lives — and never cut the placebo, because an in16 promotion without H2-K1 is exactly the kind of self-validated design CLAUDE.md 3.4c exists to stop.\n",
+      "design_doc": "Reports/HARMONIZATION_DESIGN_2026-09-10.md",
+      "extra": {
+        "arm_count_note": "The design section 3 says \"Arms (7 new)\" for EXP-H2 and costs 7 x 1.2 A100-h, but the arm block it then lists holds EIGHT (five in16 + one placebo + the two same-flight arms). This entry carries the eight, plus EXP-H1's two = TEN new arms. The design's arithmetic is left as written rather than silently corrected; the cost estimate in extra.measured_cost_basis is rebuilt from the ledger for ten.\n",
+        "channels_are_within_the_verified_range": "cli.py::main sets IN_CHANNELS = 3 + VI + hillshade, and common.py::read_rgb_window reads only the first three bands of an ortho (RGBI years drop NIR there). So every arm here loads the base18 checkpoint at in_channels 3 (base arms) or 4 (in16/in05 arms) — the two the checkpoint was measured to accept, 0 missing / 0 unexpected keys, conv1 zero-inflated (backbone_sweep.yaml extra.phase3_warm_started_resnet18). The 4-band 2019n and 2019s orthos do NOT push this to 5.\n",
+        "h1_read_2026_09_10": "EXP-H1 COMPLETE (five wb18 base arms scored against BOTH references; harm_spread.csv rows prefix=wb18 treatment=base, n_years=5). Matched_p75 recall vs C-CAP 2021: 2006s 0.633, 2011s 0.720, 2016 0.743, 2019n 0.603, 2020 0.740 — spread 0.1396. vs C-CAP 2016: 0.710, 0.774, 0.786, 0.632, 0.748 — spread 0.1538. H1-K1 does NOT fire on either reference (both >> 0.014): there IS a cross-survey detection disagreement to harmonize on resnet18, so EXP-H2's premise stands. H1-K2 does NOT fire: ref_epoch_share on the base set is -0.10 (the 2016-referenced spread is the LARGER one), so the spread is not reference-epoch distance and matched_p75 recall remains a usable convergence metric; the pre-registered baseline for EXP-H2 is the five-year base spread above. Two things the numbers say that the design did not predict: (1) the worst survey on resnet18 is 2019n (0.603 / 0.632), not 2006s — 2006s recovered most under the smaller encoder, 2019n did not, and 2019n is the only late-spring Snohomish flight in the set; (2) the in16 rows carry a ref_epoch_share of 0.76 on their two scored years (2016-referenced spread 0.013 vs 2021-referenced 0.056): with a 2016 structure channel in the input the output tracks 2016 canopy closely enough that scoring against 2016 collapses the spread. That is the epoch-leak signature H2-K1/H2-K2 exist to test and is READ THERE, not here — the \"H1-K2 METRIC KILLED\" flag harm_spread.py stamps on the in16 rows is the K2 arithmetic applied to a treatment, whereas K2 is pre-registered on the base. H2 arms (2019s base/in16, 2016_in16, 2011s_in16, 2020_in16) still on harmh2.\n",
+        "h2_queue_order": "queue_harm_h2 runs 2019s FIRST and 2020 LAST, deliberately. 2019s has never been trained under this recipe and its manifest was built today, so its plumbing fails earliest if it is going to; 2020 is the slow arm at inference (167M cells) and is also the first arm the decision_rule says to cut, so a runtime that runs out of time drops the arms the rule already nominated.\n",
+        "hs_source_chm2_never_run_on_resnet18": "STATED, NOT PROVEN. Warm-started resnet18 has run --hs-source chm2005 (wb18_2016_in05) but never chm2. The load path is identical — the 4th band is one more input channel and the same conv1 3->4 zero-inflation — so the only untested piece is the HS_STATS[\"chm2\"] normalisation row (config.py HS_STATS) and the chm2 raster's presence on the VM. Preflight cannot prove either: cli.py --check returns before resolve_p3_ckpt and before any raster is opened, so it is a PARSE check only.\n",
+        "measured_cost_basis": "A100-hours are NOT typed here. They are read per step from the ledgers named in docs/SCHEMAS.md (phase4/qc/train_queue_status_*.csv, column minutes) joined to Scripts/run_registry.csv on run_tag, for the landed wb18_ arms — 2016 as the coarse proxy for 2006s / 2019n / 2019s, 2011s for 2011s, 2020 for 2020. labels+tile go to FREE CPU runtimes (0 compute units) and are excluded from the GPU figure.\n",
+        "queue_files": "Generated: pipeline/queue_harmonization_h1_h2.yaml (GENERATED header, the drift gate's source of truth). Hand-split for the one-year-one-runtime rule: pipeline/queue_harm_h1.yaml (2006s base + in05 + in16, 2019n base + in16) and pipeline/queue_harm_h2.yaml (2019s base + in16, 2016 in16, 2011s in16, 2020 in16). Scoring (steps [inference]): pipeline/queue_harm_h1_score.yaml and pipeline/queue_harm_h2_score.yaml, same order, 2020 last. Gate: qc/test_harmonization.py — every split job byte-equals its job in the generated file, the union covers all ten exactly once, each year's jobs sit in ONE file (that rule is mutation-tested), and each score job is its train twin minus the --sample-manifest pair plus --infer-aoi.\n",
+        "reference_epoch_is_part_of_the_disagreement": "Why every arm is scored twice. experiments/metric_tolerance_c2b.yaml and the direct measurement in phase4/qc/arm_metrics.csv (one frozen 2006s in16 mask, two references) show the reference year alone moves recall by ~0.1. \"Recall vs C-CAP 2021\" therefore confounds detector sensitivity with fifteen years of real canopy change, and driving an old year's recall toward 2020's IS laundering under that metric. H1-K2 is the gate that says so in a number.\n",
+        "sample_manifest_2019s": "BUILT 2026-09-09, before the arms: py -3.12 pipeline/builders/build_sample_manifests.py --years 2019s wrote exactly one file, {lake}/phase4/qc/sample_tiles_2019s.csv — 412 tiles over the three train+selection regions (TR00 196, TR01 108, SE00 108), 17,174 bytes, no subsampling (412 is under the seeded cap of 1200). SAMPLING-DENSITY CAVEAT, stated because it lands on the same-flight pair: the builder draws candidate origins on the stride of the year's OWN tier (2019s medium, stride 256 px at 30.5 cm) while 2019n was drawn at coarse stride 128 px at 60 cm and kept 306. The manifest path is part of the tile signature (path+size+mtime), so this file is now pinned for these arms.\n",
+        "tier_flag_is_inert": "MEASURED 2026-09-09: the design specifies `--tier coarse` on both 2019s arms so the same-flight pair differs only in delivery and not in recipe. That flag CANNOT do it. pipeline/phase4seg/cli.py::_resolve_years consults `args.tier` only in the branch where `--year` is ABSENT, and even there it FILTERS the catalog (`[e for e in entries if tier_for(e) == args.tier]`) rather than overriding the tier. Every queue job passes `--year` (pipeline/phase4_train_queue.py::run_step), so `--tier` is a no-op for a queued arm; passing it would put a recipe claim in the record that the run did not honour. It is therefore NOT passed, and qc/test_harmonization.py::test_no_arm_passes_the_inert_tier_flag locks that in. WHAT THIS DOES NOT COST US, corrected 2026-09-10 after a referee found the earlier claim here false: `--tier` was never the lever the design needed. What it wanted from it — ONE recipe for both 2019 acquisitions — is what `--force-citywide` already does, and all ten arms carry it (launch_defaults). Its own help text (pipeline/phase4seg/cli.py::main) states the purpose: apply the citywide 2020-mask COARSE recipe (labels + sampler + selection metric) to EVERY tier, \"so only the sensor/GSD varies\". Read in the code and not from the help text: the early-stop / best-checkpoint metric is keyed on `use_blocked_val`, NOT on the tier (pipeline/phase4seg/core.py::step_train — \"Early-stop / best-checkpoint criterion follows the POOL, not the GSD tier ... Keying on use_blocked_val makes --force-citywide fully unify the recipe\"), and so is the pos_weight channel; `TIER_LOSS_MODE` is bce_dice at all three tiers; both years are split by pipeline/phase4seg/tiling.py::_block_partition at COARSE_VAL_FRAC / COARSE_TEST_FRAC (0.20 / 0.20); and `TIER_TILE_PARAMS[tier][\"neg_rate\"]` / `[\"test_frac\"]` are reached only on the legacy 6-site path. So the two 2019 arms train on one recipe, and the ABSOLUTE same-flight gap is readable as the design's second primary metric. WHAT DOES STILL DIFFER, and it is sampling SUPPORT rather than recipe: a 512 px tile is 156 m of ground at 2019s (30.5 cm) and 307 m at 2019n (60 cm), and the two sample manifests hold 412 and 306 tiles (extra.sample_manifest_2019s). The curated negative-site tiles are still cut at the tier stride (pipeline/phase4seg/tiling.py::_gather_citywide_coarse) — 256 px at 2019s, 128 px at 2019n, i.e. 78.1 m against 76.8 m of ground once GSD is applied, a 1.7% difference and not a switch. And with a --sample-manifest the tile ORIGINS come from the manifest, so the tier stride otherwise reaches only the tile-cache signature (pipeline/phase4seg/tiling.py::_tile_signature). One asymmetry is DATA-DEPENDENT and is checked after tiling, not assumed: `_block_partition` degrades to a random split when a year has too few blocks, and a degrade on one year only would be a genuine recipe divergence — the tile step prints the mode and the tile index records it (pipeline/phase4seg/splits.py::_index_split_mode). That check is written into decision_rule. THE PRIOR IS BETTER THAN THE DESIGN SAYS, and this was checked rather than assumed: Reports/HARMONIZATION_DESIGN_2026-09-10.md reads the 0.0563 gap and the 0.7376 IoU in phase4/qc/sameflight_consistency.csv as \"THEMSELVES tier-confounded\" because the masks are named 2019s_pilot_e2_MEDIUM / 2019n_pilot_e2_COARSE. MEASURED in phase4/qc/run_passport.csv, the step=train rows: both pilot arms ran `--force-citywide --no-hillshade`, so the names record the TIER and not a recipe split, and the same unification argued above applies to them too. What those two DO differ in is the code commit (222dc3f53ac6 for 2019s, 06c7b9888750 for 2019n) and the GPU (A100 vs L4), and neither carried a --sample-manifest. They stay cited as priors; tonight's comparator is wb18_2019s_base vs wb18_2019n_base, one commit and one recipe.\n"
+      },
+      "headline": "EXP-H1 CONFIRMED (premise stands): five-year base spread 0.140 vs C-CAP 2021 / 0.154 vs C-CAP 2016 (harm_spread.csv, prefix wb18, treatment base, n_years 5); H1-K1 and H1-K2 did not fire.",
+      "hypothesis": "TWO PRE-REGISTERED EXPERIMENTS IN ONE ENTRY, because EXP-H2 is read against a baseline EXP-H1 measures and neither is interpretable alone. Both are specified in Reports/HARMONIZATION_DESIGN_2026-09-10.md; this file is the commitment, the design is the derivation, and every prior number lives in the measured files the design cites. EXP-H1 — the cross-survey spread of matched_p75 recall on the working encoder cannot currently be stated: the two acquisitions that carry the resnet101 spread (2006s and 2019n) have never been run on warm-started resnet18, and resnet18 already beat resnet101 on exactly the two years that were worst (backbone_sweep.yaml verdict). Every harmonization claim is a claim about a number that does not yet exist, so H1 measures it. EXP-H2 — per-survey detection differences are driven by per-survey APPEARANCE (delivery radiometry, design 1.3; the processing-chain floor, design 1.5). Giving every year the same survey-invariant fourth band (--hs-source chm2) gives the detector a cue that does not vary by survey, so the cross-survey spread should compress, most on the years whose appearance is furthest from the training survey. WHAT WOULD CHANGE OUR MIND, stated before running: if the channel compresses the spread by IMPORTING 2016 CANOPY rather than by supplying generic structure, it manufactures false temporal stability — the precise failure this project exists to avoid. H2-K1 (an interaction) and H2-K2 (a direct per-cell count on certified change ground) are built to catch that, and the resnet101 record predicts H2-K1 FIRES. Threshold harmonization is already done and was not enough: matching the operating point moved the mean absolute year-to-year step the wrong way (phase4/qc/sensitivity_sawtooth.csv), so what is left is per-survey detector sensitivity, and the only way to remove it is to make the detector respond to the surveys more alike.\n",
+      "imagery": [
+        {
+          "bands": 3,
+          "gsd_cm": 100.0,
+          "label": "2006s"
+        },
+        {
+          "bands": 3,
+          "gsd_cm": 30.5,
+          "label": "2011s"
+        },
+        {
+          "bands": 4,
+          "gsd_cm": 30.5,
+          "label": "2016"
+        },
+        {
+          "bands": 4,
+          "gsd_cm": 60.0,
+          "label": "2019n"
+        },
+        {
+          "bands": 4,
+          "gsd_cm": 30.5,
+          "label": "2019s"
+        },
+        {
+          "bands": 3,
+          "gsd_cm": 5.0,
+          "label": "2020"
+        }
+      ],
+      "inputs": [
+        "phase4/qc/arm_metrics.csv",
+        "phase4/qc/science_sample_manifest.csv",
+        "phase4/qc/backbone_benchmark.csv"
+      ],
+      "instruments": [
+        "Scripts/qc/instruments/harm_spread.py",
+        "Scripts/qc/instruments/harm_change_laundering.py",
+        "Scripts/qc/instruments/score_wb50_loso.py",
+        "Scripts/qc/instruments/harvest_arm_metrics.py"
+      ],
+      "kind": "experiment",
+      "last_run": "2026-09-10",
+      "metric": "PRIMARY, and it is a SPREAD, not a recall, because the goal is convergence: max - min of matched_p75 recall across {2006s, 2011s, 2016, 2019n, 2020}, from phase4/qc/arm_metrics.csv rows with policy matched_p75, eval_scope sample-test, canopy_def forest_wetland — the identical basis as phase4/qc/backbone_benchmark.csv. EXP-H1 reports the base spread; EXP-H2 reports in16 spread minus base spread on the years both hold. SECOND PRIMARY (EXP-H2): the SAME-FLIGHT GAP, |recall(2019s) - recall(2019n)| at the matched cut, in16 versus base — the only zero-circularity convergence read in the archive (same date, same ground, same reference distance), so nothing in it can be satisfied by laundering change. SECONDARY, and it is what keeps the spread honest: EVERY arm is scored against BOTH ccap_2021_hires_lc.tif AND ccap_2016_hires_lc.tif (qc/instruments/score_wb50_loso.py --arms ... --refs ...). Design 1.7 measures a 0.097 recall swing on one frozen 2006s mask from changing only the reference year, so the part of a spread that moves with the reference is REFERENCE-EPOCH DISTANCE, not detector sensitivity, and must never be counted as harmonizable. All of it is computed by qc/instruments/harm_spread.py -> phase4/qc/harm_spread.csv (columns and kill flags in docs/SCHEMAS.md); H2-K2 by qc/instruments/harm_change_laundering.py -> phase4/qc/harm_change_laundering.csv. Per-arm recalls are secondary and every one is reported with the floor beside it.\n",
+      "n": 30,
+      "n_source": "phase4/qc/science_sample_manifest.csv#rows:role=test",
+      "name": "harmonization_h1_h2",
+      "outputs": [
+        "phase4/qc/harm_spread.csv"
+      ],
+      "registry_rows": 49,
+      "reports": [
+        "Reports/HARMONIZATION_DESIGN_2026-09-10.md"
+      ],
+      "retrospective": false,
+      "run_ids": [],
+      "sample": "The Tier-1 ground sample: 33 screened blocks split once (30 test, 2 train, 1 selection; phase4/qc/science_sample_manifest.csv), the same fixed blocks for every arm. Train and early-stop on the per-year manifest tiles; scores read from the test blocks only.\n",
+      "status": "complete",
+      "superseded_by": [],
+      "supersedes": [],
+      "tags": [
+        "harmonization",
+        "time-series",
+        "cross-survey-spread",
+        "lidar-input",
+        "epoch-leak",
+        "same-flight",
+        "resnet18"
+      ],
+      "tilesets": [
+        "46ed2ca6a0bf",
+        "568aefb6fb7c",
+        "56babde6374f",
+        "5a680997554d",
+        "5ae71b9dd2ce",
+        "73b582aeaf6c",
+        "87e4f15dfc11",
+        "925b50ca2f34",
+        "a225286a1b42",
+        "eedde0c85a28"
+      ],
+      "verdict": "EXP-H1 CONFIRMED (premise stands): five-year base spread 0.140 vs C-CAP 2021 / 0.154 vs C-CAP 2016 (harm_spread.csv, prefix wb18, treatment base, n_years 5); H1-K1 and H1-K2 did not fire. EXP-H2 KILLED, on four of five arms scored (2019s base/in16, 2016_in16, 2011s_in16 landed and scored; 2020_in16 inferred and verified on harmh2s2 but its 999 MB raster had not reached the Windows mirror at decision time — its score cannot change the verdict because the kills are unanimous and independent of it). (P) convergence DID occur: in16 minus base spread on the common years -0.084 (vs 2021) / -0.119 (vs 2016), well past the -0.014 promote line — the channel does pull the surveys together. But it does so by the mechanism the design was built to catch: H2-K1 EPOCH LEAK fires on both references (interaction 0.043 vs 2021, 0.019 vs 2016; floor 0.0069; harm_spread rows k1_interaction / k1_ref_verdict): the 2016 structure channel raises 2006s recall MORE than it raises 2016's own, which a survey-invariant input cannot do. H2-K2 CHANGE LAUNDERING fires on every scored year (harm_change_laundering.csv, gain_minus_all: 2006s +0.040, 2011s +0.053, 2016 +0.035, 2019n +0.060, 2019s +0.082): on cells lidar certifies as 2005->2016 canopy GAIN, the in16 arm's call rate rises by that much more than on all cells — the model is calling 2016 trees in 2006 and 2011 imagery where they had not yet grown. H2-K3: the same-flight 2019n/2019s gap does not shrink (0.004 / 0.007 change, at the floor), so the convergence is not delivery harmonization either. H2-K4 (2016 null) passes vs 2021 (0.0015) and is outside the floor vs 2016 (0.015) — consistent with the channel matching 2016's own reference. READ: a fixed-epoch structure channel is not a harmonizer; it is a time-stamped prior that launders change. Any future harmonization input must be survey-invariant by construction (per-survey, or change-free by design) and must pass K2 on the lidar-certified gain cells before its spread number means anything.\n"
+    },
+    {
       "arm_scores": {},
       "arms": [
         {
@@ -7470,511 +8185,6 @@
     },
     {
       "arm_scores": {
-        "wb18_2006s_base": {
-          "best_f1": {
-            "curve": "phase4/qc/curves/4baef03249dc.csv",
-            "eval_scope": "sample-test",
-            "population": "859825",
-            "pr_auc": "0.8038",
-            "precision": "0.6905",
-            "recall": "0.7954",
-            "ref": "ccap_2016_hires_lc.tif",
-            "thresh": "0.102362"
-          },
-          "matched_p50": {
-            "curve": "phase4/qc/curves/4baef03249dc.csv",
-            "eval_scope": "sample-test",
-            "population": "1211639",
-            "pr_auc": "0.8038",
-            "precision": "0.5103",
-            "recall": "0.9498",
-            "ref": "ccap_2016_hires_lc.tif",
-            "thresh": "0.027559"
-          },
-          "matched_p75": {
-            "curve": "phase4/qc/curves/4baef03249dc.csv",
-            "eval_scope": "sample-test",
-            "population": "783068",
-            "pr_auc": "0.8038",
-            "precision": "0.7509",
-            "recall": "0.7099",
-            "ref": "ccap_2016_hires_lc.tif",
-            "thresh": "0.220472"
-          },
-          "matched_p90": {
-            "curve": "phase4/qc/curves/4baef03249dc.csv",
-            "eval_scope": "sample-test",
-            "population": "652475",
-            "pr_auc": "0.8038",
-            "precision": "0.9022",
-            "recall": "0.2713",
-            "ref": "ccap_2016_hires_lc.tif",
-            "thresh": "0.688976"
-          },
-          "scored_live": {
-            "curve": "",
-            "eval_scope": "",
-            "population": "707483",
-            "pr_auc": "",
-            "precision": "0.8076",
-            "recall": "0.5558",
-            "ref": "ccap_2016_hires_lc.tif",
-            "thresh": "0.552"
-          }
-        },
-        "wb18_2006s_in05": {
-          "best_f1": {
-            "curve": "phase4/qc/curves/3e86e170da47.csv",
-            "eval_scope": "sample-test",
-            "population": "816219",
-            "pr_auc": "0.7981",
-            "precision": "0.6806",
-            "recall": "0.7687",
-            "ref": "ccap_2021_hires_lc.tif",
-            "thresh": "0.165354"
-          },
-          "matched_p50": {
-            "curve": "phase4/qc/curves/3e86e170da47.csv",
-            "eval_scope": "sample-test",
-            "population": "1144115",
-            "pr_auc": "0.7981",
-            "precision": "0.5066",
-            "recall": "0.9317",
-            "ref": "ccap_2021_hires_lc.tif",
-            "thresh": "0.043307"
-          },
-          "matched_p75": {
-            "curve": "phase4/qc/curves/3e86e170da47.csv",
-            "eval_scope": "sample-test",
-            "population": "732718",
-            "pr_auc": "0.7981",
-            "precision": "0.7506",
-            "recall": "0.6671",
-            "ref": "ccap_2021_hires_lc.tif",
-            "thresh": "0.401574"
-          },
-          "matched_p90": {
-            "curve": "phase4/qc/curves/3e86e170da47.csv",
-            "eval_scope": "sample-test",
-            "population": "621951",
-            "pr_auc": "0.7981",
-            "precision": "0.9012",
-            "recall": "0.3367",
-            "ref": "ccap_2021_hires_lc.tif",
-            "thresh": "0.716535"
-          },
-          "scored_live": {
-            "curve": "",
-            "eval_scope": "",
-            "population": "710612",
-            "pr_auc": "",
-            "precision": "0.8336",
-            "recall": "0.6069",
-            "ref": "ccap_2016_hires_lc.tif",
-            "thresh": "0.552"
-          }
-        },
-        "wb18_2006s_in16": {
-          "best_f1": {
-            "curve": "phase4/qc/curves/a9c30a326857.csv",
-            "eval_scope": "sample-test",
-            "population": "805516",
-            "pr_auc": "0.8547",
-            "precision": "0.7431",
-            "recall": "0.7837",
-            "ref": "ccap_2016_hires_lc.tif",
-            "thresh": "0.102362"
-          },
-          "matched_p50": {
-            "curve": "phase4/qc/curves/a9c30a326857.csv",
-            "eval_scope": "sample-test",
-            "population": "1184476",
-            "pr_auc": "0.8547",
-            "precision": "0.5214",
-            "recall": "0.9464",
-            "ref": "ccap_2016_hires_lc.tif",
-            "thresh": "0.027559"
-          },
-          "matched_p75": {
-            "curve": "phase4/qc/curves/a9c30a326857.csv",
-            "eval_scope": "sample-test",
-            "population": "796238",
-            "pr_auc": "0.8547",
-            "precision": "0.7514",
-            "recall": "0.7743",
-            "ref": "ccap_2016_hires_lc.tif",
-            "thresh": "0.110236"
-          },
-          "matched_p90": {
-            "curve": "phase4/qc/curves/a9c30a326857.csv",
-            "eval_scope": "sample-test",
-            "population": "671477",
-            "pr_auc": "0.8547",
-            "precision": "0.9001",
-            "recall": "0.5353",
-            "ref": "ccap_2016_hires_lc.tif",
-            "thresh": "0.586614"
-          },
-          "scored_live": {
-            "curve": "",
-            "eval_scope": "",
-            "population": "660268",
-            "pr_auc": "",
-            "precision": "0.8457",
-            "recall": "0.5526",
-            "ref": "ccap_2021_hires_lc.tif",
-            "thresh": "0.552"
-          }
-        },
-        "wb18_2019n_base": {
-          "best_f1": {
-            "curve": "phase4/qc/curves/55f102d35e6e.csv",
-            "eval_scope": "sample-test",
-            "population": "2354226",
-            "pr_auc": "0.767",
-            "precision": "0.6572",
-            "recall": "0.7924",
-            "ref": "ccap_2021_hires_lc.tif",
-            "thresh": "0.23622"
-          },
-          "matched_p50": {
-            "curve": "phase4/qc/curves/55f102d35e6e.csv",
-            "eval_scope": "sample-test",
-            "population": "3227133",
-            "pr_auc": "0.767",
-            "precision": "0.5013",
-            "recall": "0.9423",
-            "ref": "ccap_2021_hires_lc.tif",
-            "thresh": "0.047244"
-          },
-          "matched_p75": {
-            "curve": "phase4/qc/curves/55f102d35e6e.csv",
-            "eval_scope": "sample-test",
-            "population": "1999272",
-            "pr_auc": "0.767",
-            "precision": "0.7507",
-            "recall": "0.6032",
-            "ref": "ccap_2021_hires_lc.tif",
-            "thresh": "0.496062"
-          },
-          "matched_p90": {
-            "curve": "phase4/qc/curves/55f102d35e6e.csv",
-            "eval_scope": "sample-test",
-            "population": "1699431",
-            "pr_auc": "0.767",
-            "precision": "0.9017",
-            "recall": "0.1861",
-            "ref": "ccap_2021_hires_lc.tif",
-            "thresh": "0.755905"
-          },
-          "scored_live": {
-            "curve": "",
-            "eval_scope": "",
-            "population": "2057565",
-            "pr_auc": "",
-            "precision": "0.766",
-            "recall": "0.5877",
-            "ref": "ccap_2021_hires_lc.tif",
-            "thresh": "0.4951"
-          }
-        },
-        "wb18_2019n_in16": {
-          "best_f1": {
-            "curve": "phase4/qc/curves/d8d98fcbe76c.csv",
-            "eval_scope": "sample-test",
-            "population": "2173356",
-            "pr_auc": "0.8629",
-            "precision": "0.7673",
-            "recall": "0.7748",
-            "ref": "ccap_2016_hires_lc.tif",
-            "thresh": "0.106299"
-          },
-          "matched_p50": {
-            "curve": "phase4/qc/curves/d8d98fcbe76c.csv",
-            "eval_scope": "sample-test",
-            "population": "3408491",
-            "pr_auc": "0.8629",
-            "precision": "0.5045",
-            "recall": "0.9539",
-            "ref": "ccap_2016_hires_lc.tif",
-            "thresh": "0.019685"
-          },
-          "matched_p75": {
-            "curve": "phase4/qc/curves/d8d98fcbe76c.csv",
-            "eval_scope": "sample-test",
-            "population": "2212370",
-            "pr_auc": "0.8629",
-            "precision": "0.7539",
-            "recall": "0.7877",
-            "ref": "ccap_2016_hires_lc.tif",
-            "thresh": "0.094488"
-          },
-          "matched_p90": {
-            "curve": "phase4/qc/curves/d8d98fcbe76c.csv",
-            "eval_scope": "sample-test",
-            "population": "1874122",
-            "pr_auc": "0.8629",
-            "precision": "0.9004",
-            "recall": "0.5865",
-            "ref": "ccap_2016_hires_lc.tif",
-            "thresh": "0.590551"
-          },
-          "scored_live": {
-            "curve": "",
-            "eval_scope": "",
-            "population": "2071069",
-            "pr_auc": "",
-            "precision": "0.8955",
-            "recall": "0.569",
-            "ref": "ccap_2016_hires_lc.tif",
-            "thresh": "0.4951"
-          }
-        }
-      },
-      "arms": [
-        {
-          "extra": [
-            "--encoder",
-            "resnet18",
-            "--no-hillshade",
-            "--ckpt",
-            "/content/drive/MyDrive/treedata/phase4/models/sem_best_2020_base18.pt",
-            "--sample-manifest",
-            "/content/drive/MyDrive/treedata/phase4/qc/sample_tiles_2006s.csv"
-          ],
-          "tag": "wb18_2006s_base",
-          "year": "2006s"
-        },
-        {
-          "extra": [
-            "--encoder",
-            "resnet18",
-            "--no-hillshade",
-            "--ckpt",
-            "/content/drive/MyDrive/treedata/phase4/models/sem_best_2020_base18.pt",
-            "--sample-manifest",
-            "/content/drive/MyDrive/treedata/phase4/qc/sample_tiles_2019n.csv"
-          ],
-          "tag": "wb18_2019n_base",
-          "year": "2019n"
-        },
-        {
-          "extra": [
-            "--encoder",
-            "resnet18",
-            "--hs-source",
-            "chm2",
-            "--ckpt",
-            "/content/drive/MyDrive/treedata/phase4/models/sem_best_2020_base18.pt",
-            "--sample-manifest",
-            "/content/drive/MyDrive/treedata/phase4/qc/sample_tiles_2006s.csv"
-          ],
-          "tag": "wb18_2006s_in16",
-          "year": "2006s"
-        },
-        {
-          "extra": [
-            "--encoder",
-            "resnet18",
-            "--hs-source",
-            "chm2",
-            "--ckpt",
-            "/content/drive/MyDrive/treedata/phase4/models/sem_best_2020_base18.pt",
-            "--sample-manifest",
-            "/content/drive/MyDrive/treedata/phase4/qc/sample_tiles_2011s.csv"
-          ],
-          "tag": "wb18_2011s_in16",
-          "year": "2011s"
-        },
-        {
-          "extra": [
-            "--encoder",
-            "resnet18",
-            "--hs-source",
-            "chm2",
-            "--ckpt",
-            "/content/drive/MyDrive/treedata/phase4/models/sem_best_2020_base18.pt",
-            "--sample-manifest",
-            "/content/drive/MyDrive/treedata/phase4/qc/sample_tiles_2016.csv"
-          ],
-          "tag": "wb18_2016_in16",
-          "year": "2016"
-        },
-        {
-          "extra": [
-            "--encoder",
-            "resnet18",
-            "--hs-source",
-            "chm2",
-            "--ckpt",
-            "/content/drive/MyDrive/treedata/phase4/models/sem_best_2020_base18.pt",
-            "--sample-manifest",
-            "/content/drive/MyDrive/treedata/phase4/qc/sample_tiles_2019n.csv"
-          ],
-          "tag": "wb18_2019n_in16",
-          "year": "2019n"
-        },
-        {
-          "extra": [
-            "--encoder",
-            "resnet18",
-            "--hs-source",
-            "chm2",
-            "--ckpt",
-            "/content/drive/MyDrive/treedata/phase4/models/sem_best_2020_base18.pt",
-            "--sample-manifest",
-            "/content/drive/MyDrive/treedata/phase4/qc/sample_tiles_2020.csv"
-          ],
-          "tag": "wb18_2020_in16",
-          "year": "2020"
-        },
-        {
-          "extra": [
-            "--encoder",
-            "resnet18",
-            "--hs-source",
-            "chm2005",
-            "--ckpt",
-            "/content/drive/MyDrive/treedata/phase4/models/sem_best_2020_base18.pt",
-            "--sample-manifest",
-            "/content/drive/MyDrive/treedata/phase4/qc/sample_tiles_2006s.csv"
-          ],
-          "tag": "wb18_2006s_in05",
-          "year": "2006s"
-        },
-        {
-          "extra": [
-            "--encoder",
-            "resnet18",
-            "--no-hillshade",
-            "--ckpt",
-            "/content/drive/MyDrive/treedata/phase4/models/sem_best_2020_base18.pt",
-            "--sample-manifest",
-            "/content/drive/MyDrive/treedata/phase4/qc/sample_tiles_2019s.csv"
-          ],
-          "tag": "wb18_2019s_base",
-          "year": "2019s"
-        },
-        {
-          "extra": [
-            "--encoder",
-            "resnet18",
-            "--hs-source",
-            "chm2",
-            "--ckpt",
-            "/content/drive/MyDrive/treedata/phase4/models/sem_best_2020_base18.pt",
-            "--sample-manifest",
-            "/content/drive/MyDrive/treedata/phase4/qc/sample_tiles_2019s.csv"
-          ],
-          "tag": "wb18_2019s_in16",
-          "year": "2019s"
-        }
-      ],
-      "category": "science",
-      "champion_tags": [],
-      "commit": null,
-      "decided": null,
-      "decision_rule": "PRE-REGISTERED, before any arm has run. All constants are read from the design, not chosen after the fact. Every kill a metrics table can carry — H1-K1, H1-K2, H2-K1 INCLUDING its two-reference clause, H2-K3 and H2-K4 — is computed by qc/instruments/harm_spread.py, and H2-K2, which needs rasters, by qc/instruments/harm_change_laundering.py. Nothing is left for a reader to assemble by hand once the numbers exist. NOISE FLOOR = 0.0069 recall — the wb18 three-seed 2011s spread stated in the experiments/backbone_sweep.yaml verdict. Any per-arm delta inside it is UNDETERMINED, never \"no difference\" (CLAUDE.md 3.5). A SPREAD is a max-min of five draws and is noisier than one delta, so a spread change must exceed 2x floor = 0.014 to count. EXP-H1. H1-K1 (kills the workstream, and can fire): if the five-year base spread on resnet18 is <= 0.014, there is no cross-survey detection disagreement to harmonize at this sample and this encoder, and EXP-H2's premise is dead. This is not a formality: the resnet101 prior is large but the three-year resnet18 spread is small, and resnet18 gained most on exactly the two years that were worst (arm_metrics.csv / backbone_benchmark.csv). The flag fires only on a COMPLETE five-year set; a short set reads INCOMPLETE, never a pass. H1-K2 (kills the metric, not the workstream): if the 2016-referenced spread is <= 0.4x the 2021-referenced spread on the common years — i.e. >= 60% of the spread is reference epoch — then matched_p75 recall vs C-CAP 2021 is not a convergence metric and EXP-H2 must be read on the same-flight gap alone. The 0.4 is arbitrary but fixed here before any number exists, precisely so it cannot be chosen afterwards. Otherwise the spread is the pre-registered baseline EXP-H2 is read against. EXP-H2 — PROMOTE only if (P) holds AND H2-K1, H2-K2 and H2-K3 all pass. (P) CONVERGENCE: the five-year spread shrinks by >= 0.014 (2x floor). H2-K1 EPOCH LEAK, AS AN INTERACTION (this criterion has power; the record predicts it fires). \"in16 > in05 on 2006s\" alone is broken as a test, because chm2005 and chm2 differ in lidar density and product as well as in epoch (experiments/old_chm_defect.yaml verdict), so a uniform in16 advantage on every year is a CHM-QUALITY effect and not a leak. The leak signature is the interaction — the 2016 CHM should help a 2006 image MORE than it helps a 2016 image only if it is carrying 2016 canopy: K1 = [(in16 - in05) @ 2006s] - [(in16 - in05) @ 2016] > floor -> LEAK. Both 2016 terms are already on disk (wb18_2016_in05, wb18_2016_base) or are arm wb18_2016_in16, so the interaction costs no extra GPU. A leak verdict DISQUALIFIES in16 for time series regardless of (P). Scored against BOTH references: an interaction that appears only against C-CAP 2021 and vanishes against C-CAP 2016 is reference-epoch confounding and is reported UNDETERMINED, not as a pass. H2-K2 CHANGE LAUNDERING (direct, non-circular): over the sample-TEST blocks only, canopy-call rate of the in16 arm minus the base arm on certified 2005->2016 GAIN cells, against the same difference over all sample-test cells. If the gain-cell rise exceeds the all-cell rise beyond the floor, the channel is painting 2016 trees onto older imagery -> KILL, whatever (P) says. Certified-FLAT cells are reported in the same pass as an absolute false-positive control, separating \"adds canopy everywhere\" from \"adds canopy where 2016 grew trees\". The precedent is on the ADDER path, not the input band (experiments/tier1_science_sample.yaml verdict, add16), which is why the input band must be checked and not assumed clean. Instrument: qc/instruments/harm_change_laundering.py, written BEFORE the arms land so the kill can fire; UNVALIDATED on real rasters until it has run on them. H2-K3 MECHANISM: if the same-flight 2019s/2019n gap does not shrink beyond the floor, the treatment is NOT harmonizing delivery differences; a cross-year spread that compresses while the same-flight gap holds is evidence the compression came from reference-epoch effects -> report the cross-year result as UNINTERPRETABLE for this goal. H2-K3 reads the CHANGE in the gap, as the design writes it (in16 versus base); the ABSOLUTE gap is reported beside it and is readable, because --force-citywide gives both 2019 acquisitions ONE training recipe across their two tiers (extra.tier_flag_is_inert) — what is left between them is delivery, sensor and sampling support. VERIFY BEFORE READING IT, and it is a check on the run rather than a finding: both 2019 arms must print the same tile-index split mode at tiling. _block_partition falls back to a random split when a year has too few blocks, and a fallback on one year only would be a real recipe divergence — read it from the tile step log (CLAUDE.md 3.11), never assume it. If the 2019s arms are dropped for time, H2-K3 is UNMEASURED and the mechanism claim is UNDETERMINED for the night — it is not permitted to promote on (P) alone. H2-K4 PRE-REGISTERED NON-EVENT (so it is not read after the fact): the 2016 in16-base delta is EXPECTED to land inside the floor — resnet18 and resnet50 both read the in05 version of that delta inside their floors, and the backbone_sweep verdict attributes the resnet101's large value to a suspect-low t1_2016_base. A null on 2016 is neither a win nor a failure. SECOND QUEUE SHAPE, as the record requires: steps [labels, tile, train, evaluate] first (labels+tile on FREE CPU runtimes, the proven split, commit 7ef2f11), then a second queue with steps [inference] carrying --infer-aoi science_sample_blocks.gpkg and NO --sample-manifest (the Tier-1 ac0e79e shape), then the scoring pass (qc/instruments/score_wb50_loso.py --arms ... --refs ..., then harvest_arm_metrics). 2020 runs LAST and unbounded — the Tier-1 conveyor died at 1200 s on the 2020 arm. QUEUE-SPLIT RULE, operational and not stylistic: ALL ARMS OF ONE YEAR GO ON ONE RUNTIME. Two A100 runtimes rewrite the shared phase4/eval/semantic_eval_report.csv on every evaluate behind an async write cache, and on 2026-09-09 one arm's rows landed in neither the live report nor the archive (backbone_sweep.yaml extra.cross_vm_eval_report_clobber). Tonight that would bite on 2006s (three arms), 2019n (two) and 2019s (two). IF IT DOES NOT FIT the GPU budget, cut whole years in this order: 2020 in16, then 2011s in16. Never cut the 2006s arms — 2006s is where the spread lives — and never cut the placebo, because an in16 promotion without H2-K1 is exactly the kind of self-validated design CLAUDE.md 3.4c exists to stop.\n",
-      "design_doc": "Reports/HARMONIZATION_DESIGN_2026-09-10.md",
-      "extra": {
-        "arm_count_note": "The design section 3 says \"Arms (7 new)\" for EXP-H2 and costs 7 x 1.2 A100-h, but the arm block it then lists holds EIGHT (five in16 + one placebo + the two same-flight arms). This entry carries the eight, plus EXP-H1's two = TEN new arms. The design's arithmetic is left as written rather than silently corrected; the cost estimate in extra.measured_cost_basis is rebuilt from the ledger for ten.\n",
-        "channels_are_within_the_verified_range": "cli.py::main sets IN_CHANNELS = 3 + VI + hillshade, and common.py::read_rgb_window reads only the first three bands of an ortho (RGBI years drop NIR there). So every arm here loads the base18 checkpoint at in_channels 3 (base arms) or 4 (in16/in05 arms) — the two the checkpoint was measured to accept, 0 missing / 0 unexpected keys, conv1 zero-inflated (backbone_sweep.yaml extra.phase3_warm_started_resnet18). The 4-band 2019n and 2019s orthos do NOT push this to 5.\n",
-        "h1_read_2026_09_10": "EXP-H1 COMPLETE (five wb18 base arms scored against BOTH references; harm_spread.csv rows prefix=wb18 treatment=base, n_years=5). Matched_p75 recall vs C-CAP 2021: 2006s 0.633, 2011s 0.720, 2016 0.743, 2019n 0.603, 2020 0.740 — spread 0.1396. vs C-CAP 2016: 0.710, 0.774, 0.786, 0.632, 0.748 — spread 0.1538. H1-K1 does NOT fire on either reference (both >> 0.014): there IS a cross-survey detection disagreement to harmonize on resnet18, so EXP-H2's premise stands. H1-K2 does NOT fire: ref_epoch_share on the base set is -0.10 (the 2016-referenced spread is the LARGER one), so the spread is not reference-epoch distance and matched_p75 recall remains a usable convergence metric; the pre-registered baseline for EXP-H2 is the five-year base spread above. Two things the numbers say that the design did not predict: (1) the worst survey on resnet18 is 2019n (0.603 / 0.632), not 2006s — 2006s recovered most under the smaller encoder, 2019n did not, and 2019n is the only late-spring Snohomish flight in the set; (2) the in16 rows carry a ref_epoch_share of 0.76 on their two scored years (2016-referenced spread 0.013 vs 2021-referenced 0.056): with a 2016 structure channel in the input the output tracks 2016 canopy closely enough that scoring against 2016 collapses the spread. That is the epoch-leak signature H2-K1/H2-K2 exist to test and is READ THERE, not here — the \"H1-K2 METRIC KILLED\" flag harm_spread.py stamps on the in16 rows is the K2 arithmetic applied to a treatment, whereas K2 is pre-registered on the base. H2 arms (2019s base/in16, 2016_in16, 2011s_in16, 2020_in16) still on harmh2.\n",
-        "h2_queue_order": "queue_harm_h2 runs 2019s FIRST and 2020 LAST, deliberately. 2019s has never been trained under this recipe and its manifest was built today, so its plumbing fails earliest if it is going to; 2020 is the slow arm at inference (167M cells) and is also the first arm the decision_rule says to cut, so a runtime that runs out of time drops the arms the rule already nominated.\n",
-        "hs_source_chm2_never_run_on_resnet18": "STATED, NOT PROVEN. Warm-started resnet18 has run --hs-source chm2005 (wb18_2016_in05) but never chm2. The load path is identical — the 4th band is one more input channel and the same conv1 3->4 zero-inflation — so the only untested piece is the HS_STATS[\"chm2\"] normalisation row (config.py HS_STATS) and the chm2 raster's presence on the VM. Preflight cannot prove either: cli.py --check returns before resolve_p3_ckpt and before any raster is opened, so it is a PARSE check only.\n",
-        "measured_cost_basis": "A100-hours are NOT typed here. They are read per step from the ledgers named in docs/SCHEMAS.md (phase4/qc/train_queue_status_*.csv, column minutes) joined to Scripts/run_registry.csv on run_tag, for the landed wb18_ arms — 2016 as the coarse proxy for 2006s / 2019n / 2019s, 2011s for 2011s, 2020 for 2020. labels+tile go to FREE CPU runtimes (0 compute units) and are excluded from the GPU figure.\n",
-        "queue_files": "Generated: pipeline/queue_harmonization_h1_h2.yaml (GENERATED header, the drift gate's source of truth). Hand-split for the one-year-one-runtime rule: pipeline/queue_harm_h1.yaml (2006s base + in05 + in16, 2019n base + in16) and pipeline/queue_harm_h2.yaml (2019s base + in16, 2016 in16, 2011s in16, 2020 in16). Scoring (steps [inference]): pipeline/queue_harm_h1_score.yaml and pipeline/queue_harm_h2_score.yaml, same order, 2020 last. Gate: qc/test_harmonization.py — every split job byte-equals its job in the generated file, the union covers all ten exactly once, each year's jobs sit in ONE file (that rule is mutation-tested), and each score job is its train twin minus the --sample-manifest pair plus --infer-aoi.\n",
-        "reference_epoch_is_part_of_the_disagreement": "Why every arm is scored twice. experiments/metric_tolerance_c2b.yaml and the direct measurement in phase4/qc/arm_metrics.csv (one frozen 2006s in16 mask, two references) show the reference year alone moves recall by ~0.1. \"Recall vs C-CAP 2021\" therefore confounds detector sensitivity with fifteen years of real canopy change, and driving an old year's recall toward 2020's IS laundering under that metric. H1-K2 is the gate that says so in a number.\n",
-        "sample_manifest_2019s": "BUILT 2026-09-09, before the arms: py -3.12 pipeline/builders/build_sample_manifests.py --years 2019s wrote exactly one file, {lake}/phase4/qc/sample_tiles_2019s.csv — 412 tiles over the three train+selection regions (TR00 196, TR01 108, SE00 108), 17,174 bytes, no subsampling (412 is under the seeded cap of 1200). SAMPLING-DENSITY CAVEAT, stated because it lands on the same-flight pair: the builder draws candidate origins on the stride of the year's OWN tier (2019s medium, stride 256 px at 30.5 cm) while 2019n was drawn at coarse stride 128 px at 60 cm and kept 306. The manifest path is part of the tile signature (path+size+mtime), so this file is now pinned for these arms.\n",
-        "tier_flag_is_inert": "MEASURED 2026-09-09: the design specifies `--tier coarse` on both 2019s arms so the same-flight pair differs only in delivery and not in recipe. That flag CANNOT do it. pipeline/phase4seg/cli.py::_resolve_years consults `args.tier` only in the branch where `--year` is ABSENT, and even there it FILTERS the catalog (`[e for e in entries if tier_for(e) == args.tier]`) rather than overriding the tier. Every queue job passes `--year` (pipeline/phase4_train_queue.py::run_step), so `--tier` is a no-op for a queued arm; passing it would put a recipe claim in the record that the run did not honour. It is therefore NOT passed, and qc/test_harmonization.py::test_no_arm_passes_the_inert_tier_flag locks that in. WHAT THIS DOES NOT COST US, corrected 2026-09-10 after a referee found the earlier claim here false: `--tier` was never the lever the design needed. What it wanted from it — ONE recipe for both 2019 acquisitions — is what `--force-citywide` already does, and all ten arms carry it (launch_defaults). Its own help text (pipeline/phase4seg/cli.py::main) states the purpose: apply the citywide 2020-mask COARSE recipe (labels + sampler + selection metric) to EVERY tier, \"so only the sensor/GSD varies\". Read in the code and not from the help text: the early-stop / best-checkpoint metric is keyed on `use_blocked_val`, NOT on the tier (pipeline/phase4seg/core.py::step_train — \"Early-stop / best-checkpoint criterion follows the POOL, not the GSD tier ... Keying on use_blocked_val makes --force-citywide fully unify the recipe\"), and so is the pos_weight channel; `TIER_LOSS_MODE` is bce_dice at all three tiers; both years are split by pipeline/phase4seg/tiling.py::_block_partition at COARSE_VAL_FRAC / COARSE_TEST_FRAC (0.20 / 0.20); and `TIER_TILE_PARAMS[tier][\"neg_rate\"]` / `[\"test_frac\"]` are reached only on the legacy 6-site path. So the two 2019 arms train on one recipe, and the ABSOLUTE same-flight gap is readable as the design's second primary metric. WHAT DOES STILL DIFFER, and it is sampling SUPPORT rather than recipe: a 512 px tile is 156 m of ground at 2019s (30.5 cm) and 307 m at 2019n (60 cm), and the two sample manifests hold 412 and 306 tiles (extra.sample_manifest_2019s). The curated negative-site tiles are still cut at the tier stride (pipeline/phase4seg/tiling.py::_gather_citywide_coarse) — 256 px at 2019s, 128 px at 2019n, i.e. 78.1 m against 76.8 m of ground once GSD is applied, a 1.7% difference and not a switch. And with a --sample-manifest the tile ORIGINS come from the manifest, so the tier stride otherwise reaches only the tile-cache signature (pipeline/phase4seg/tiling.py::_tile_signature). One asymmetry is DATA-DEPENDENT and is checked after tiling, not assumed: `_block_partition` degrades to a random split when a year has too few blocks, and a degrade on one year only would be a genuine recipe divergence — the tile step prints the mode and the tile index records it (pipeline/phase4seg/splits.py::_index_split_mode). That check is written into decision_rule. THE PRIOR IS BETTER THAN THE DESIGN SAYS, and this was checked rather than assumed: Reports/HARMONIZATION_DESIGN_2026-09-10.md reads the 0.0563 gap and the 0.7376 IoU in phase4/qc/sameflight_consistency.csv as \"THEMSELVES tier-confounded\" because the masks are named 2019s_pilot_e2_MEDIUM / 2019n_pilot_e2_COARSE. MEASURED in phase4/qc/run_passport.csv, the step=train rows: both pilot arms ran `--force-citywide --no-hillshade`, so the names record the TIER and not a recipe split, and the same unification argued above applies to them too. What those two DO differ in is the code commit (222dc3f53ac6 for 2019s, 06c7b9888750 for 2019n) and the GPU (A100 vs L4), and neither carried a --sample-manifest. They stay cited as priors; tonight's comparator is wb18_2019s_base vs wb18_2019n_base, one commit and one recipe.\n"
-      },
-      "headline": "TWO PRE-REGISTERED EXPERIMENTS IN ONE ENTRY, because EXP-H2 is read against a baseline EXP-H1 measures and neither is interpretable alone.",
-      "hypothesis": "TWO PRE-REGISTERED EXPERIMENTS IN ONE ENTRY, because EXP-H2 is read against a baseline EXP-H1 measures and neither is interpretable alone. Both are specified in Reports/HARMONIZATION_DESIGN_2026-09-10.md; this file is the commitment, the design is the derivation, and every prior number lives in the measured files the design cites. EXP-H1 — the cross-survey spread of matched_p75 recall on the working encoder cannot currently be stated: the two acquisitions that carry the resnet101 spread (2006s and 2019n) have never been run on warm-started resnet18, and resnet18 already beat resnet101 on exactly the two years that were worst (backbone_sweep.yaml verdict). Every harmonization claim is a claim about a number that does not yet exist, so H1 measures it. EXP-H2 — per-survey detection differences are driven by per-survey APPEARANCE (delivery radiometry, design 1.3; the processing-chain floor, design 1.5). Giving every year the same survey-invariant fourth band (--hs-source chm2) gives the detector a cue that does not vary by survey, so the cross-survey spread should compress, most on the years whose appearance is furthest from the training survey. WHAT WOULD CHANGE OUR MIND, stated before running: if the channel compresses the spread by IMPORTING 2016 CANOPY rather than by supplying generic structure, it manufactures false temporal stability — the precise failure this project exists to avoid. H2-K1 (an interaction) and H2-K2 (a direct per-cell count on certified change ground) are built to catch that, and the resnet101 record predicts H2-K1 FIRES. Threshold harmonization is already done and was not enough: matching the operating point moved the mean absolute year-to-year step the wrong way (phase4/qc/sensitivity_sawtooth.csv), so what is left is per-survey detector sensitivity, and the only way to remove it is to make the detector respond to the surveys more alike.\n",
-      "imagery": [
-        {
-          "bands": 3,
-          "gsd_cm": 100.0,
-          "label": "2006s"
-        },
-        {
-          "bands": 3,
-          "gsd_cm": 30.5,
-          "label": "2011s"
-        },
-        {
-          "bands": 4,
-          "gsd_cm": 30.5,
-          "label": "2016"
-        },
-        {
-          "bands": 4,
-          "gsd_cm": 60.0,
-          "label": "2019n"
-        },
-        {
-          "bands": 4,
-          "gsd_cm": 30.5,
-          "label": "2019s"
-        },
-        {
-          "bands": 3,
-          "gsd_cm": 5.0,
-          "label": "2020"
-        }
-      ],
-      "inputs": [
-        "phase4/qc/arm_metrics.csv",
-        "phase4/qc/science_sample_manifest.csv",
-        "phase4/qc/backbone_benchmark.csv"
-      ],
-      "instruments": [
-        "Scripts/qc/instruments/harm_spread.py",
-        "Scripts/qc/instruments/harm_change_laundering.py",
-        "Scripts/qc/instruments/score_wb50_loso.py",
-        "Scripts/qc/instruments/harvest_arm_metrics.py"
-      ],
-      "kind": "experiment",
-      "last_run": "2026-09-10",
-      "metric": "PRIMARY, and it is a SPREAD, not a recall, because the goal is convergence: max - min of matched_p75 recall across {2006s, 2011s, 2016, 2019n, 2020}, from phase4/qc/arm_metrics.csv rows with policy matched_p75, eval_scope sample-test, canopy_def forest_wetland — the identical basis as phase4/qc/backbone_benchmark.csv. EXP-H1 reports the base spread; EXP-H2 reports in16 spread minus base spread on the years both hold. SECOND PRIMARY (EXP-H2): the SAME-FLIGHT GAP, |recall(2019s) - recall(2019n)| at the matched cut, in16 versus base — the only zero-circularity convergence read in the archive (same date, same ground, same reference distance), so nothing in it can be satisfied by laundering change. SECONDARY, and it is what keeps the spread honest: EVERY arm is scored against BOTH ccap_2021_hires_lc.tif AND ccap_2016_hires_lc.tif (qc/instruments/score_wb50_loso.py --arms ... --refs ...). Design 1.7 measures a 0.097 recall swing on one frozen 2006s mask from changing only the reference year, so the part of a spread that moves with the reference is REFERENCE-EPOCH DISTANCE, not detector sensitivity, and must never be counted as harmonizable. All of it is computed by qc/instruments/harm_spread.py -> phase4/qc/harm_spread.csv (columns and kill flags in docs/SCHEMAS.md); H2-K2 by qc/instruments/harm_change_laundering.py -> phase4/qc/harm_change_laundering.csv. Per-arm recalls are secondary and every one is reported with the floor beside it.\n",
-      "n": 30,
-      "n_source": "phase4/qc/science_sample_manifest.csv#rows:role=test",
-      "name": "harmonization_h1_h2",
-      "outputs": [
-        "phase4/qc/harm_spread.csv"
-      ],
-      "registry_rows": 35,
-      "reports": [
-        "Reports/HARMONIZATION_DESIGN_2026-09-10.md"
-      ],
-      "retrospective": false,
-      "run_ids": [],
-      "sample": "The Tier-1 ground sample: 33 screened blocks split once (30 test, 2 train, 1 selection; phase4/qc/science_sample_manifest.csv), the same fixed blocks for every arm. Train and early-stop on the per-year manifest tiles; scores read from the test blocks only.\n",
-      "status": "queued",
-      "superseded_by": [],
-      "supersedes": [],
-      "tags": [
-        "harmonization",
-        "time-series",
-        "cross-survey-spread",
-        "lidar-input",
-        "epoch-leak",
-        "same-flight",
-        "resnet18"
-      ],
-      "tilesets": [
-        "46ed2ca6a0bf",
-        "568aefb6fb7c",
-        "56babde6374f",
-        "5a680997554d",
-        "5ae71b9dd2ce",
-        "87e4f15dfc11",
-        "925b50ca2f34",
-        "a225286a1b42"
-      ],
-      "verdict": null
-    },
-    {
-      "arm_scores": {
         "heal_2017": {
           "best_f1": {
             "curve": "phase4/qc/curves/efb2813b8a46.csv",
@@ -8025,6 +8235,110 @@
             "recall": "0.3154",
             "ref": "ccap_2021_hires_lc.tif",
             "thresh": "0.4986"
+          }
+        },
+        "heal_2022": {
+          "best_f1": {
+            "curve": "phase4/qc/curves/a0f0358edef6.csv",
+            "eval_scope": "",
+            "population": "5238631583",
+            "pr_auc": "0.7976",
+            "precision": "0.7452",
+            "recall": "0.7626",
+            "ref": "ccap_2021_hires_lc.tif",
+            "thresh": "0.090551"
+          },
+          "matched_p50": {
+            "curve": "phase4/qc/curves/a0f0358edef6.csv",
+            "eval_scope": "",
+            "population": "6546583286",
+            "pr_auc": "0.7976",
+            "precision": "0.6015",
+            "recall": "0.8687",
+            "ref": "ccap_2021_hires_lc.tif",
+            "thresh": "0.07874"
+          },
+          "matched_p75": {
+            "curve": "phase4/qc/curves/a0f0358edef6.csv",
+            "eval_scope": "",
+            "population": "5140742959",
+            "pr_auc": "0.7976",
+            "precision": "0.7586",
+            "recall": "0.7452",
+            "ref": "ccap_2021_hires_lc.tif",
+            "thresh": "0.094488"
+          },
+          "matched_p90": {
+            "curve": "phase4/qc/curves/a0f0358edef6.csv",
+            "eval_scope": "",
+            "population": "4296232091",
+            "pr_auc": "0.7976",
+            "precision": "0.9001",
+            "recall": "0.3055",
+            "ref": "ccap_2021_hires_lc.tif",
+            "thresh": "0.61811"
+          },
+          "scored_live": {
+            "curve": "",
+            "eval_scope": "",
+            "population": "4741059669",
+            "pr_auc": "",
+            "precision": "0.8188",
+            "recall": "0.6372",
+            "ref": "ccap_2021_hires_lc.tif",
+            "thresh": "0.4988"
+          }
+        },
+        "heal_2023": {
+          "best_f1": {
+            "curve": "phase4/qc/curves/950f83e6ca5f.csv",
+            "eval_scope": "",
+            "population": "1384026362",
+            "pr_auc": "0.8375",
+            "precision": "0.7593",
+            "recall": "0.7926",
+            "ref": "ccap_2021_hires_lc.tif",
+            "thresh": "0.137795"
+          },
+          "matched_p50": {
+            "curve": "phase4/qc/curves/950f83e6ca5f.csv",
+            "eval_scope": "",
+            "population": "2088097838",
+            "pr_auc": "0.8375",
+            "precision": "0.5162",
+            "recall": "0.9472",
+            "ref": "ccap_2021_hires_lc.tif",
+            "thresh": "0.070866"
+          },
+          "matched_p75": {
+            "curve": "phase4/qc/curves/950f83e6ca5f.csv",
+            "eval_scope": "",
+            "population": "1399293293",
+            "pr_auc": "0.8375",
+            "precision": "0.7514",
+            "recall": "0.8009",
+            "ref": "ccap_2021_hires_lc.tif",
+            "thresh": "0.133858"
+          },
+          "matched_p90": {
+            "curve": "phase4/qc/curves/950f83e6ca5f.csv",
+            "eval_scope": "",
+            "population": "1162868765",
+            "pr_auc": "0.8375",
+            "precision": "0.9004",
+            "recall": "0.4636",
+            "ref": "ccap_2021_hires_lc.tif",
+            "thresh": "0.653543"
+          },
+          "scored_live": {
+            "curve": "",
+            "eval_scope": "",
+            "population": "1210730827",
+            "pr_auc": "",
+            "precision": "0.8656",
+            "recall": "0.609",
+            "ref": "ccap_2021_hires_lc.tif",
+            "thresh": "0.5103"
           }
         }
       },
@@ -8116,7 +8430,7 @@
         "phase4/qc/heal_vs_gold.csv",
         "phase4/qc/crown_trajectories.csv"
       ],
-      "registry_rows": 21,
+      "registry_rows": 23,
       "reports": [
         "Reports/HEALING_TOOL_REASONING_2026-09-07.md"
       ],

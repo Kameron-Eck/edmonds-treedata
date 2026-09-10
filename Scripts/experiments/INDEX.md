@@ -1,7 +1,7 @@
 # EXPERIMENT REGISTRY INDEX — GENERATED, do not edit
 
 Regenerate: `py -3.12 qc/experiments_index.py` (drift-gated by `test_experiments.py::test_index_is_fresh`).
-Authored layer + schema: this directory's `README.md`. 50 entries: 39 complete · 5 needs-kam · 5 queued · 1 tabled.
+Authored layer + schema: this directory's `README.md`. 51 entries: 39 complete · 5 needs-kam · 6 queued · 1 tabled.
 
 ## Awaiting Kam sign-off
 
@@ -56,6 +56,7 @@ Authored layer + schema: this directory's `README.md`. 50 entries: 39 complete �
 | rescore_2013_citywide | instrument-finding | complete | 2026-08-22 | — | 2013 | THE PREDICTED MOVEMENT DID NOT HAPPEN. |
 | chm_gap_2016 | instrument-finding | complete | 2026-08-18 | 2 | 2016 | THE ASSUMPTION HOLDS AND IS NOW CHECKED RATHER THAN ASSERTED. |
 | ccap_mixed_sign_bias | instrument-finding | needs-kam | — | — | 2016 | C-CAP is the reference nearly every score in this project is measured against, and the standing temptation is to treat its disagreement with our masks as one-directional — "C-CAP over-calls canopy, so… |
+| crown_state_model | measurement-campaign | queued | — | — | — | Kam, 2026-09-10: "I'm on board for method 1." The twelve-epoch series is a set of 0/1 observations per unit whose per-survey detection quality is KNOWN — matched-cut precision and recall exist for eve… |
 | degradation_synth_2000 | experiment | queued | — | — | — | Training on 2020 imagery synthetically degraded to 2000's measured resolution and radiometry (resample-first, gain-only — qc/instruments/degrade_synth.py) beats the plain citywide-projection arm on 20… |
 | epoch_decay_mvv0 | instrument-finding | needs-kam | — | — | 2006s,2011s,2016,2020 | King County holds lidar epochs Edmonds cannot get, and buying them was on the table. |
 | era_matched_rescore | measurement-campaign | needs-kam | — | — | 2006s,2011s,2016 | Every Tier-1 score is measured against a C-CAP reference whose vintage is years away from the imagery it judges. |

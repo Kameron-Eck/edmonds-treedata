@@ -307,3 +307,24 @@ extra:
     confounds detector sensitivity with fifteen years of real canopy change, and driving
     an old year's recall toward 2020's IS laundering under that metric. H1-K2 is the gate
     that says so in a number.
+  h1_read_2026_09_10: >
+    EXP-H1 COMPLETE (five wb18 base arms scored against BOTH references; harm_spread.csv
+    rows prefix=wb18 treatment=base, n_years=5). Matched_p75 recall vs C-CAP 2021:
+    2006s 0.633, 2011s 0.720, 2016 0.743, 2019n 0.603, 2020 0.740 — spread 0.1396.
+    vs C-CAP 2016: 0.710, 0.774, 0.786, 0.632, 0.748 — spread 0.1538. H1-K1 does NOT
+    fire on either reference (both >> 0.014): there IS a cross-survey detection
+    disagreement to harmonize on resnet18, so EXP-H2's premise stands. H1-K2 does NOT
+    fire: ref_epoch_share on the base set is -0.10 (the 2016-referenced spread is the
+    LARGER one), so the spread is not reference-epoch distance and matched_p75 recall
+    remains a usable convergence metric; the pre-registered baseline for EXP-H2 is the
+    five-year base spread above. Two things the numbers say that the design did not
+    predict: (1) the worst survey on resnet18 is 2019n (0.603 / 0.632), not 2006s —
+    2006s recovered most under the smaller encoder, 2019n did not, and 2019n is the
+    only late-spring Snohomish flight in the set; (2) the in16 rows carry a
+    ref_epoch_share of 0.76 on their two scored years (2016-referenced spread 0.013 vs
+    2021-referenced 0.056): with a 2016 structure channel in the input the output
+    tracks 2016 canopy closely enough that scoring against 2016 collapses the spread.
+    That is the epoch-leak signature H2-K1/H2-K2 exist to test and is READ THERE, not
+    here — the "H1-K2 METRIC KILLED" flag harm_spread.py stamps on the in16 rows is the
+    K2 arithmetic applied to a treatment, whereas K2 is pre-registered on the base.
+    H2 arms (2019s base/in16, 2016_in16, 2011s_in16, 2020_in16) still on harmh2.

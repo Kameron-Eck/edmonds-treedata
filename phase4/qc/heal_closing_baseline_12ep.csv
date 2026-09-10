@@ -1,0 +1,29 @@
+arm,rule,K,K_unit,n_gold_points,gold_cells_filled,gold_points_filled,loss_cells_filled,loss_points_filled,laundered_terminal,n_eligible_terminal,laundered_in_interval,n_eligible_in_interval,terminal_censored,nochange_triples_raw,nochange_triples_after,nochange_triples_removed,nochange_triples_removed_canopy_only,loss_triples_raw,loss_triples_after,citywide_cells_filled,citywide_ha,citywide_cells_ignored
+closing,acq,1,acquisitions,1214,342,240,14,12,0,0,7,15,0,327,0,327,327,14,0,1723911,689.6,0
+closing,acq,2,acquisitions,1214,510,270,22,14,0,0,10,15,0,327,0,327,327,14,0,2858701,1143.5,0
+closing,acq,3,acquisitions,1214,609,284,40,19,0,0,15,15,0,327,0,327,327,14,0,3543691,1417.5,0
+closing,acq,4,acquisitions,1214,661,291,40,19,0,0,15,15,0,327,0,327,327,14,0,4010299,1604.1,0
+closing,acq,5,acquisitions,1214,691,294,40,19,0,0,15,15,0,327,0,327,327,14,0,4337729,1735.1,0
+closing,acq,6,acquisitions,1214,733,297,40,19,0,0,15,15,0,327,0,327,327,14,0,4660835,1864.3,0
+closing,step_years,1,years_per_step,1214,286,192,6,4,0,0,4,15,0,327,137,190,190,14,11,1591310,636.5,0
+closing,step_years,2,years_per_step,1214,809,304,40,19,0,0,15,15,0,327,0,327,327,14,0,5057313,2022.9,0
+closing,step_years,3,years_per_step,1214,809,304,40,19,0,0,15,15,0,327,0,327,327,14,0,5057313,2022.9,0
+closing,step_years,4,years_per_step,1214,809,304,40,19,0,0,15,15,0,327,0,327,327,14,0,5057313,2022.9,0
+closing,step_years,5,years_per_step,1214,809,304,40,19,0,0,15,15,0,327,0,327,327,14,0,5057313,2022.9,0
+closing,step_years,8,years_per_step,1214,809,304,40,19,0,0,15,15,0,327,0,327,327,14,0,5057313,2022.9,0
+closing,span_years,2,years_of_span,1214,194,168,3,3,0,0,3,15,0,327,137,190,190,14,11,950792,380.3,0
+closing,span_years,3,years_of_span,1214,376,238,11,10,0,0,7,15,0,327,27,300,300,14,3,1966527,786.6,0
+closing,span_years,4,years_of_span,1214,504,264,25,15,0,0,11,15,0,327,0,327,327,14,0,2630687,1052.3,0
+closing,span_years,5,years_of_span,1214,572,276,34,18,0,0,14,15,0,327,0,327,327,14,0,3355141,1342.1,0
+closing,span_years,6,years_of_span,1214,636,289,37,19,0,0,15,15,0,327,0,327,327,14,0,3795165,1518.1,0
+closing,span_years,8,years_of_span,1214,700,294,40,19,0,0,15,15,0,327,0,327,327,14,0,4424894,1770.0,0
+closing,span_years,10,years_of_span,1214,741,296,40,19,0,0,15,15,0,327,0,327,327,14,0,4710920,1884.4,0
+closing,span_years,15,years_of_span,1214,809,304,40,19,0,0,15,15,0,327,0,327,327,14,0,5057313,2022.9,0
+closing,tier_matched,0,acq<=1 & step<=2yr,1214,342,240,14,12,0,0,7,15,0,327,0,327,327,14,0,1723911,689.6,0
+healer,tier_matched,0,acq<=1 & step<=2yr,1214,63,61,5,5,0,0,0,15,0,327,87,240,58,14,6,319897,128.0,885743
+# panel_interval,2016->2024
+# interior_epochs,2017|2019|2020|2021|2022|2023
+# n_eligible_terminal,0
+# n_eligible_in_interval,15
+# scoring_parity_mismatches,0
+# closing_runs_on_the_unaligned_stack,1

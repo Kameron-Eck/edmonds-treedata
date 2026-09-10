@@ -1075,3 +1075,30 @@ files:   experiments/backbone_sweep.yaml; phase4/qc/arm_metrics.csv, curves/ (+7
          registry/harvests.
 next:    first recipe experiments on resnet18 (Kam picks the hypotheses); the 101's
          2016 base reseed; key rotation still open.
+
+## 2026-09-10  overnight: heal_2022 + 12-epoch healer reads, EXP-H1 complete
+goal:    Kam (overnight brief): bring the surveys closer for time-series analysis
+         (harmonization H1/H2 on resnet18) and work the healer to its 12-epoch verdict.
+did:     heal_2022 landed (heal22, BE25, maxprob 0.776); 12-epoch stack built (parity on
+         the 8 shared epochs); temporal_heal / heal_vs_gold / closing / spectrum /
+         fill-audit run on it -> phase4/qc/*_12ep.csv (SCHEMAS "_12ep"). H1 five arms
+         inferred on harmh1s, scored vs BOTH C-CAP refs (2011s/2016/2020 bases + 2016_in05
+         re-scored vs 2016 locally), harm_spread rebuilt; harmh1s stopped. H2 arms on
+         harmh2 (2019s base AE20 + 2019s_in16 AE20 clean; 2016_in16 running).
+read:    HEALER - BLIND inside 2016-2024 is zero; laundered/censored 0/42 (no power, as
+         amended); no-change triples 240/327 removed vs 99/124 on 8 epochs (count up,
+         share down 6.4 pp: UNDETERMINED on the rule as written); MECHANISM: HEAL tier
+         needs a lidar epoch downstream (tier_for, LIDAR_LAST=2016), so the dense stack
+         writes NO canopy inside the Panel A window - only REVIEW/IGNORE. The hypothesis's
+         first clause is false about the instrument as built. H1 - base spread 0.140 (vs
+         2021) / 0.154 (vs 2016): K1 and K2 both NOT fired, premise stands; 2019n is now
+         the worst survey (0.603), not 2006s; in16 rows show the epoch-leak signature
+         (2016-ref spread collapses to 0.013) - to be read at H2-K1/K2.
+decided: nothing promoted. heal_infill verdict stays null pending Kam's fill-audit read
+         (598-unit worksheet redrawn on 12 epochs). REVIEW-tier resolution by size
+         trajectory is the build that would let the gold score a fill - Kam's call.
+files:   experiments/heal_infill_2017_2023.yaml, harmonization_h1_h2.yaml; docs/SCHEMAS.md;
+         claims.yaml (curves 116); phase4/qc/*_12ep.*, harm_spread.csv, arm_metrics.csv,
+         curves (+14), tilesets (+5), harvests.
+next:    H2 finish -> stop harmh2 -> queue_harm_h2_score -> K1/K2/K3/K4 + verdict; morning
+         summary; key rotation still open.

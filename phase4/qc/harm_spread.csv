@@ -39,12 +39,37 @@ t1,resnet101,p3_ckpt,in16_minus_base,ccap_2021_hires_lc.tif,k4_2016_null,2016,0.
 t1,resnet101,p3_ckpt,in16_minus_in05,ccap_2016_hires_lc.tif,k1_interaction,,0.0256,2,"2006s,2016",0.0069,H2-K1 LEAK,[(in16-in05)@2006s] - [(in16-in05)@2016]
 t1,resnet101,p3_ckpt,in16_minus_in05,ccap_2016_hires_lc.tif|ccap_2021_hires_lc.tif,k1_ref_verdict,,0.0256,2,"2006s,2016",0.0069,H2-K1 LEAK (BOTH REFS),"the SMALLER of the two per-reference interactions; one-reference-only is UNDETERMINED, not a pass"
 t1,resnet101,p3_ckpt,in16_minus_in05,ccap_2021_hires_lc.tif,k1_interaction,,0.0325,2,"2006s,2016",0.0069,H2-K1 LEAK,[(in16-in05)@2006s] - [(in16-in05)@2016]
-wb18,resnet18,p3_ckpt,base,ccap_2021_hires_lc.tif,h1_premise,,0.0224,3,"2011s,2016,2020",0.0069,INCOMPLETE,EXP-H1 K1 at 2xfloor 0.014
+wb18,resnet18,p3_ckpt,base,ccap_2016_hires_lc.tif,h1_premise,,0.1538,5,"2006s,2011s,2016,2019n,2020",0.0069,SPREAD EXCEEDS 2xFLOOR,EXP-H1 K1 at 2xfloor 0.014
+wb18,resnet18,p3_ckpt,base,ccap_2016_hires_lc.tif,recall,2006s,0.7099,,,0.0069,,
+wb18,resnet18,p3_ckpt,base,ccap_2016_hires_lc.tif,recall,2011s,0.7737,,,0.0069,,
+wb18,resnet18,p3_ckpt,base,ccap_2016_hires_lc.tif,recall,2016,0.7858,,,0.0069,,
+wb18,resnet18,p3_ckpt,base,ccap_2016_hires_lc.tif,recall,2019n,0.6320,,,0.0069,,
+wb18,resnet18,p3_ckpt,base,ccap_2016_hires_lc.tif,recall,2020,0.7479,,,0.0069,,
+wb18,resnet18,p3_ckpt,base,ccap_2016_hires_lc.tif,spread,,0.1538,5,"2006s,2011s,2016,2019n,2020",0.0069,,max-min over the years listed
+wb18,resnet18,p3_ckpt,base,ccap_2016_hires_lc.tif|ccap_2021_hires_lc.tif,ref_epoch_share,,-0.1017,5,"2006s,2011s,2016,2019n,2020",0.0069,,1 - s2016/s2021 on the common years; cut 0.4
+wb18,resnet18,p3_ckpt,base,ccap_2021_hires_lc.tif,h1_premise,,0.1396,5,"2006s,2011s,2016,2019n,2020",0.0069,SPREAD EXCEEDS 2xFLOOR,EXP-H1 K1 at 2xfloor 0.014
+wb18,resnet18,p3_ckpt,base,ccap_2021_hires_lc.tif,recall,2006s,0.6328,,,0.0069,,
 wb18,resnet18,p3_ckpt,base,ccap_2021_hires_lc.tif,recall,2011s,0.7204,,,0.0069,,
 wb18,resnet18,p3_ckpt,base,ccap_2021_hires_lc.tif,recall,2016,0.7428,,,0.0069,,
+wb18,resnet18,p3_ckpt,base,ccap_2021_hires_lc.tif,recall,2019n,0.6032,,,0.0069,,
 wb18,resnet18,p3_ckpt,base,ccap_2021_hires_lc.tif,recall,2020,0.7396,,,0.0069,,
-wb18,resnet18,p3_ckpt,base,ccap_2021_hires_lc.tif,spread,,0.0224,3,"2011s,2016,2020",0.0069,INCOMPLETE,max-min over the years listed
+wb18,resnet18,p3_ckpt,base,ccap_2021_hires_lc.tif,spread,,0.1396,5,"2006s,2011s,2016,2019n,2020",0.0069,,max-min over the years listed
+wb18,resnet18,p3_ckpt,in05,ccap_2016_hires_lc.tif,recall,2006s,0.7512,,,0.0069,,
+wb18,resnet18,p3_ckpt,in05,ccap_2016_hires_lc.tif,recall,2016,0.7966,,,0.0069,,
+wb18,resnet18,p3_ckpt,in05,ccap_2016_hires_lc.tif,spread,,0.0454,2,"2006s,2016",0.0069,INCOMPLETE,max-min over the years listed
+wb18,resnet18,p3_ckpt,in05,ccap_2016_hires_lc.tif|ccap_2021_hires_lc.tif,ref_epoch_share,,0.4582,2,"2006s,2016",0.0069,,1 - s2016/s2021 on the common years; cut 0.4
+wb18,resnet18,p3_ckpt,in05,ccap_2021_hires_lc.tif,recall,2006s,0.6671,,,0.0069,,
 wb18,resnet18,p3_ckpt,in05,ccap_2021_hires_lc.tif,recall,2016,0.7509,,,0.0069,,
+wb18,resnet18,p3_ckpt,in05,ccap_2021_hires_lc.tif,spread,,0.0838,2,"2006s,2016",0.0069,INCOMPLETE,max-min over the years listed
+wb18,resnet18,p3_ckpt,in16,ccap_2016_hires_lc.tif,recall,2006s,0.7743,,,0.0069,,
+wb18,resnet18,p3_ckpt,in16,ccap_2016_hires_lc.tif,recall,2019n,0.7877,,,0.0069,,
+wb18,resnet18,p3_ckpt,in16,ccap_2016_hires_lc.tif,spread,,0.0134,2,"2006s,2019n",0.0069,INCOMPLETE,max-min over the years listed
+wb18,resnet18,p3_ckpt,in16,ccap_2016_hires_lc.tif|ccap_2021_hires_lc.tif,ref_epoch_share,,0.7594,2,"2006s,2019n",0.0069,H1-K2 METRIC KILLED,1 - s2016/s2021 on the common years; cut 0.4
+wb18,resnet18,p3_ckpt,in16,ccap_2021_hires_lc.tif,recall,2006s,0.7039,,,0.0069,,
+wb18,resnet18,p3_ckpt,in16,ccap_2021_hires_lc.tif,recall,2019n,0.7596,,,0.0069,,
+wb18,resnet18,p3_ckpt,in16,ccap_2021_hires_lc.tif,spread,,0.0557,2,"2006s,2019n",0.0069,INCOMPLETE,max-min over the years listed
+wb18,resnet18,p3_ckpt,in16_minus_base,ccap_2016_hires_lc.tif,convergence_p,,-0.0645,2,"2006s,2019n",0.0069,INCOMPLETE,spread(in16)-spread(base) on the common years; promote at <= -0.014
+wb18,resnet18,p3_ckpt,in16_minus_base,ccap_2021_hires_lc.tif,convergence_p,,0.0261,2,"2006s,2019n",0.0069,INCOMPLETE,spread(in16)-spread(base) on the common years; promote at <= -0.014
 wb50,resnet50,p3_ckpt,base,ccap_2021_hires_lc.tif,h1_premise,,0.0841,3,"2011s,2016,2020",0.0069,INCOMPLETE,EXP-H1 K1 at 2xfloor 0.014
 wb50,resnet50,p3_ckpt,base,ccap_2021_hires_lc.tif,recall,2011s,0.7620,,,0.0069,,
 wb50,resnet50,p3_ckpt,base,ccap_2021_hires_lc.tif,recall,2016,0.7513,,,0.0069,,

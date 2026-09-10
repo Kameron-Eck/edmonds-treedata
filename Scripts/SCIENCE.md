@@ -18,11 +18,11 @@ than selected. Everything below is resolved from them at build time.
   <br>evidence `phase4/qc/sameflight_consistency.csv#csv:canopy_iou@grid_px_m=1.0`
 - **1.5008** — Bernoulli-thinning the dense lidar epoch to the sparse one's density fabricates 1.5008 km2 of apparent GAIN and essentially no loss — density cannot fake loss.
   <br>evidence `phase4/qc/lidar_decimation_null.csv#csv:km2@quantity=artifact_gain`
-- **80** — The archive holds 80 distinct tile sets, one tracked tile list each — fewer than the tile directories on disk, because arms sharing a set share its tiles exactly, which is what makes those comparisons clean.
+- **85** — The archive holds 85 distinct tile sets, one tracked tile list each — fewer than the tile directories on disk, because arms sharing a set share its tiles exactly, which is what makes those comparisons clean.  **[DRIFTED: evidence says '86', claim says '85']**
   <br>evidence `phase4/qc/tilesets#dir_csv_count`
-- **122** — Those sets are materialised in 122 tile directories (a count that grows by one per tile directory; refresh at landed.py) — one registry row per directory, keyed (label, run_tag), so a set built again under a second run tag is one set counted once and two directories on disk. Counting rows as sets is the defect `qc/coverage_map.py::tileset_census` exists to prevent.
+- **130** — Those sets are materialised in 130 tile directories (a count that grows by one per tile directory; refresh at landed.py) — one registry row per directory, keyed (label, run_tag), so a set built again under a second run tag is one set counted once and two directories on disk. Counting rows as sets is the defect `qc/coverage_map.py::tileset_census` exists to prevent.  **[DRIFTED: evidence says '131', claim says '130']**
   <br>evidence `phase4/qc/tileset_registry.csv#rows`
-- **102** — Every scored arm's full precision-recall sweep is tracked: 102 curves.
+- **116** — Every scored arm's full precision-recall sweep is tracked: 116 curves.
   <br>evidence `phase4/qc/curves#dir_csv_count`
 - **0.9089** — At the held precision of the matched-cut series, reported canopy fraction tracks the model's recall at r = 0.9089 (exact permutation p = 0.0018 over all 40,320 orderings). The residual year-to-year sawtooth is detector sensitivity moving, not canopy moving — which is what licenses an ASYMMETRIC correction, since the error is one-sided (the model misses real trees, it does not invent them).
   <br>evidence `phase4/qc/sensitivity_sawtooth.csv#csv:value@statistic=pearson_r_recall_vs_frac`
@@ -55,19 +55,19 @@ count beside it.
 
 | year | best arm | recall | prec | AP | ref / scope | pop | tiles (distinct sets) |
 |---|---|---|---|---|---|---|---|
-| 2006s | t1_2006s_in16 | 0.7278 | 0.7526 | 0.8249 | ccap_2016_hires_lc.tif / sample-test | 785,426 | 1464 |
+| 2006s | wb18_2006s_in16 | 0.7743 | 0.7514 | 0.8547 | ccap_2016_hires_lc.tif / sample-test | 796,238 | 1562 |
 | 2009 | trend8_2009 | 0.7424 | 0.75 | 0.81 | ccap_2021_hires_lc.tif / citywide | 344,975,021 | 6124 |
 | 2011s | hy_e3_2011s | 0.8333 | 0.7516 | 0.866 | ccap_2016_hires_lc.tif / citywide | 163,466,339 | 3707 |
 | 2013 | trend8_2013 | 0.7748 | 0.7512 | 0.8116 | ccap_2021_hires_lc.tif / citywide | 1,390,014,655 | 1256 |
 | 2015 | trend8_2015 | 0.71 | 0.751 | 0.7746 | ccap_2021_hires_lc.tif / citywide | 1,366,533,758 | 934 |
-| 2016 | t1_2016_in16 | 0.8713 | 0.7506 | 0.9069 | _chm2_canopy2m_binary.tif / sample-test | 7,643,036 | 5311 |
+| 2016 | t1_2016_in16 | 0.8713 | 0.7506 | 0.9069 | _chm2_canopy2m_binary.tif / sample-test | 7,643,036 | 5822 |
 | 2017 | heal_2017 | 0.7962 | 0.7529 | 0.7865 | ccap_2021_hires_lc.tif / citywide | 5,580,636,711 | 1291 |
 | 2017k | of_2017k | 0.8159 | 0.75 | 0.8223 | ccap_2021_hires_lc.tif / citywide | 1,406,952,724 | 632 |
 | 2017n | of_2017n | 0.1982 | 0.7632 | 0.7012 | ccap_2021_hires_lc.tif / citywide | 11,805,490 | 582 |
 | 2017s | of_2017s | 0.7462 | 0.751 | 0.8191 | ccap_2021_hires_lc.tif / citywide | 149,422,078 | 557 |
 | 2019 | trend8_2019 | 0.752 | 0.7582 | 0.8093 | ccap_2021_hires_lc.tif / citywide | 1,371,436,455 | 1792 |
-| 2019n | t1_2019n_nir | 0.7146 | 0.7507 | 0.8105 | ccap_2021_hires_lc.tif / sample-test | 2,060,933 | 1929 |
-| 2020 | wb18_2020_base | 0.7396 | 0.7527 | 0.7825 | ccap_2021_hires_lc.tif / sample-test | 296,424,567 | 5241 |
+| 2019n | wb18_2019n_in16 | 0.7877 | 0.7539 | 0.8629 | ccap_2016_hires_lc.tif / sample-test | 2,212,370 | 2164 |
+| 2020 | wb18_2020_base | 0.7479 | 0.7555 | 0.8006 | ccap_2016_hires_lc.tif / sample-test | 312,975,674 | 5241 |
 | 2021 | trend8_2021 | 0.8157 | 0.7502 | 0.8391 | ccap_2021_hires_lc.tif / citywide | 1,406,539,700 | 1220 |
 | 2022 | of_2022 | 0.743 | 0.7511 | 0.7848 | ccap_2021_hires_lc.tif / citywide | 5,178,270,225 | 1226 |
 | 2024 | trend8_2024 | 0.6955 | 0.7524 | 0.7449 | ccap_2021_hires_lc.tif / citywide | 5,436,883,153 | 1254 |

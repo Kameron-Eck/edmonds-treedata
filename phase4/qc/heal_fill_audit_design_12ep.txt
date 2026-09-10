@@ -1,0 +1,168 @@
+HEAL FILL-SIDE LAUNDERING AUDIT — SAMPLE DESIGN
+  instrument : qc/instruments/heal_fill_audit_sample.py  (seed 20260908)
+  manifest   : phase4/qc/heal_fill_audit_sample.csv
+  stack      : D:\edmonds-pipeline\heal_stack_2m.npz  (12 epochs: 2009, 2011s, 2013, 2015, 2016, 2017, 2019, 2020, 2021, 2022, 2023, 2024)
+  operator   : qc/instruments/temporal_heal.py  (min component 28 m2 = one mature crown)
+  unit       : one FILL COMPONENT (a crown-scale patch), not a 2 m cell.
+  drawn      : 299 fills + 299 matched controls = 598   (target 300 fills)
+
+-- CADENCE: what the operator did, per interior epoch ------------
+  epoch   bracket       tier      gap    fills  controls  untouched2
+  2011s   2009-2013     HEAL        2    4,473    11,445           0
+  2013    2011s-2015    HEAL        2    3,015    15,428           0
+  2015    2013-2016     HEAL        2    9,441    17,022           0
+  2016    2015-2017     REVIEW      1    3,629     9,769           0
+  2017    2016-2019     REVIEW      2   10,264    18,129           0
+  2019    2017-2020     REVIEW      2    1,439     6,969           0
+  2020    2019-2021     REVIEW      1   16,506    18,518           0
+  2021    2020-2022     REVIEW      1      583     3,850           0
+  2022    2021-2023     REVIEW      1    7,132    16,974           0
+  2023    2022-2024     REVIEW      1    6,340    19,789           0
+
+  untouched2 = absences with BOTH aligned flanks present, >= the size floor, that the
+  healer did not fill — the brief's literal control population. MEASURED total: 0.
+  Filling exactly those is the operator's definition, which is why the control below
+  is drawn from ONE-SIDED absences instead: the substitution is forced by the
+  operator, not chosen for convenience, and the count above is how we know.
+
+  COLLINEAR AXES on this stack — a property of the flight cadence, not of this
+  design: HEAL only at gap 1-2; REVIEW only at gap 1-2. Tier and gap length are therefore
+  NOT separable here: a tier effect and a gap-length effect would be the same
+  column. The two are still declared as separate axes because the density
+  experiment breaks the collinearity; until it lands, read them as one.
+
+-- STRATA --------------------------------------------------------
+    id stratum (tier|gap|size)        N_fill      W_h  nominal  drawn   N_ctrl  ctrl
+     5 HEAL|1-2|5-6                    2,219   0.0353        6      6    4,904     6
+     6 HEAL|1-2|6-8                    6,523   0.1038       18     18   15,055    18
+     7 HEAL|1-2|8-10                   3,733   0.0594       10     10    9,866    10
+     8 HEAL|1-2|10-14                  3,137   0.0499        9      9    9,039     9
+     9 HEAL|1-2|14+                    1,317   0.0210        4      4    5,031     4
+    32 REVIEW|1-2|5-6                  6,381   0.1016       35     35   10,868    35
+    33 REVIEW|1-2|6-8                 17,738   0.2824       98     98   32,540    98
+    34 REVIEW|1-2|8-10                10,037   0.1598       55     55   20,563    55
+    35 REVIEW|1-2|10-14                7,863   0.1252       43     43   18,866    43
+    36 REVIEW|1-2|14+                  3,874   0.0617       21     21   11,161    21
+       TOTAL                          62,822   1.0000      299    299  137,893   299
+
+  Allocation: proportional to N_fill x tier oversample (HEAL 1x, REVIEW 2x, BLIND 2x), floor 2 per live stratum
+  (below 2 the within-stratum variance is undefined), then CAPPED at population.
+  Controls take the fill's per-stratum count, capped at their own population.
+
+-- REFUSED: strata with zero population ---------------------------
+  These are NOT reweighted into their neighbours. A design that silently spreads an
+  empty stratum's points reports a draw it did not make.
+  HEAL|1-2         4 of 9 empty: 0-2, 2-3, 3-4, 4-5
+  HEAL|3           ALL 9 strata empty — no epoch has this (tier, gap) in the cadence.
+  HEAL|4+          ALL 9 strata empty — no epoch has this (tier, gap) in the cadence.
+  REVIEW|1-2       4 of 9 empty: 0-2, 2-3, 3-4, 4-5
+  REVIEW|3         ALL 9 strata empty — no epoch has this (tier, gap) in the cadence.
+  REVIEW|4+        ALL 9 strata empty — no epoch has this (tier, gap) in the cadence.
+  BLIND|1-2        ALL 9 strata empty — no BLIND epoch exists in this cadence.
+  BLIND|3          ALL 9 strata empty — no BLIND epoch exists in this cadence.
+  BLIND|4+         ALL 9 strata empty — no BLIND epoch exists in this cadence.
+
+  Size classes below the sieve are empty BY CONSTRUCTION: a component of 28 m2
+  has equivalent diameter 5.97 m, so no unit can land under it.
+  Shortfall from population caps: 0 fills, 0 controls — reported, not redistributed.
+
+-- OLOFSSON WEIGHTS AND THE ESTIMATOR -----------------------------
+  Population = the healer's own fill components. W_h = N_h / N over fills.
+  Weighted laundering rate:      lambda_hat = sum_h W_h * (k_h / n_h)
+  Variance (the convention of phase4_qc_design_power.py::estimate — within-stratum
+  Var(p_h) = p_h(1-p_h)/(n_h - 1), a single binary outcome being the two-cell case
+  of its multinomial covariance):
+        Var(lambda_hat) = sum_h W_h^2 * p_h(1-p_h)/(n_h - 1)
+        95% half-width  = 1.959963985 * sqrt(Var)
+
+    assumed p   half-width  (weighted, at the realised allocation)
+        0.005       0.0086
+        0.010       0.0122
+        0.020       0.0171
+        0.050       0.0267
+        0.100       0.0367
+
+-- DETECTABLE EFFECT ----------------------------------------------
+  The endpoint bound this replaces, READ from heal_vs_gold.csv: 0 of 42
+  verified losses laundered -> exact one-sided 95% upper bound
+  1 - 0.05^(1/42) = 0.0688 (6.88%). Those 42 are spent: no draw
+  on the panel can tighten it, which is why this audit samples the fills instead.
+
+  At n = 299 fills, k laundered, exact one-sided 95% upper bound (Clopper-Pearson;
+  k = 0 is G1's closed form 1 - 0.05^(1/n)):
+     k      k/n   upper bound   verdict vs the 6.9% endpoint bound
+     0   0.0000        0.0100   tighter
+     1   0.0033        0.0158   tighter
+     2   0.0067        0.0209   tighter
+     3   0.0100        0.0257   tighter
+     5   0.0167        0.0348   tighter
+    10   0.0334        0.0561   tighter
+    20   0.0669        0.0957   NO IMPROVEMENT
+
+  So the audit beats the endpoint bound for any k <= 13 of 299, and at k = 0 it
+  reports < 1.00% — a 6.9x tightening.
+  G1's teeth, quoted from Reports/LIT_HEALING_ANALOGUES_2026-09-08.md §7: the base
+  loss rate is 3.47%, so a fill-side rate below 1% requires the heal to fill
+  real-loss cells at under 29% of the rate it fills random cells.
+
+  THE SRS CAVEAT, stated because it is easy to miss: 1 - 0.05^(1/n) is a BINOMIAL
+  bound and this draw is stratified with deliberate 2x oversampling. It applies
+  exactly to the UNWEIGHTED sample rate. The city-level weighted rate carries the
+  stratified variance above instead, and the two answer different questions.
+
+-- THE READER'S OWN ERROR RATE ------------------------------------
+  Control draw: 299 units, matched stratum-for-stratum, from absences with
+  EXACTLY ONE aligned flank present — the nearest untouched population at the same
+  scale (see CADENCE above for why the literal both-flanks control is empty).
+  Let eps = the rate at which the reader calls canopy ABSENT where it was present.
+  Rogan-Gladen: lambda_hat = (p_obs - eps) / (1 - beta - eps), beta the miss rate;
+  SE(eps) = sqrt(eps(1-eps)/m), and a lambda under Z*SE(eps) is UNDETERMINED, not
+  zero (CLAUDE.md 3.5).
+
+  WHICH m, and this is the binding fact of the whole design: eps is only knowable
+  where truth is known INDEPENDENTLY of the reader, i.e. on the ADJUDICATED rows —
+  not on the 299-unit control draw as a whole. m is bracketed, not fixed:
+    lower  m = 54   adjudicated CONTROLS alone
+    upper  m = 120   every adjudicated row, fills included — an adjudicated fill
+                whose lidar reads PRESENT is as valid an eps observation as a
+                control is, under the double-sampling reading
+  Which of the two applies is settled only once the lidar is read, because only
+  then is it known how many adjudicated rows carry a PRESENT truth at all.
+   assumed eps    SE at m=54    floor   SE at m=120    floor   (floor = Z*SE)
+          0.02        0.0191   0.0373        0.0128   0.0250
+          0.05        0.0297   0.0581        0.0199   0.0390
+          0.10        0.0408   0.0800        0.0274   0.0537
+
+  THE ASYMMETRY THIS EXPOSES, and it is the most decision-relevant line in the note:
+  n = 299 fills buys a k/n bound near 1.0%, while the floor under a
+  resolvable lambda sits several times higher. The bound and the floor are bought by
+  DIFFERENT numbers — the 299 fills and the adjudicated rows — and enlarging one
+  without the other moves nothing. ADJUDICATE_SHARE is a chosen constant, not a
+  sourced one: G1 says 'a sub-sample' and names no size. Raising it is Kam's call.
+
+  ASSUMED, and not testable inside this design: that the reader errs at the same
+  rate on fills and on controls. The control's flanks differ, so a reader can tell
+  the two apart — it is a DISCRIMINATION control (does the both-sides rule buy
+  anything in the reader's eyes), not a blinded error-rate control. blind_order
+  randomises presentation order only; it cannot blind the flanks.
+
+-- ADJUDICATOR SUB-SAMPLE -----------------------------------------
+  adjudicable rows: 196 of 598; flagged for adjudication: 120  (20% target, stratified by tier and is_control)
+  modality: lidar_chm2_2016_50cm (2016), |epoch - modality| <= 1 yr, coverage only.
+  Without this step k/n bounds HUMAN-MODEL AGREEMENT, not laundering: a human
+  re-reading the same ortho the model read is not independent of the model
+  (G1 step iv-b). No CHM value is written to the manifest — that would hand the
+  reader the answer.
+
+-- WHAT IS MEASURED, DERIVED, ASSUMED -----------------------------
+  MEASURED: every population and cell count above, from the healer's own output on
+            the 12-epoch stack; the untouched-two-sided count; lidar coverage.
+  DERIVED : the allocation, the weights, the bounds and half-widths — arithmetic on
+            those counts under the stated formulas.
+  ASSUMED : that reader error is equal on fills and controls; that a component's
+            equivalent-area diameter is comparable to the crown polygons' diameter_m
+            (same estimator, quantised to the 2 m lattice); that units are
+            independent — they are not strictly, since one crown can be a fill in
+            two epochs, which makes the binomial bound mildly optimistic.
+  NOT MEASURED HERE: whether any fill is laundering. This instrument draws the
+            sample and states the design; the human reads it.

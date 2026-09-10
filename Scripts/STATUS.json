@@ -1,5 +1,5 @@
 {
- "generated_utc": "2026-09-10T05:51:43Z",
+ "generated_utc": "2026-09-10T12:26:41Z",
  "lake_mounted": true,
  "code": {
   "engine_version": "v048",
@@ -116,10 +116,10 @@
    "year": "2006s",
    "gsd_cm": 100.0,
    "tiles": "Y",
-   "models": 11,
-   "prob": "2006s_hy_e3_2006s.tif[33MB]; 2006s_sectors_v1.tif[9MB]; 2006s_t1_2006s_add05.tif[11MB]; 2006s_t1_2006s_add16.tif[7MB]; 2006s_t1_2006s_base.tif[10MB]; 2006s_t1_2006s_in05.tif[10MB]; 2006s_t1_2006s_in16.tif[11MB]",
+   "models": 14,
+   "prob": "2006s_hy_e3_2006s.tif[33MB]; 2006s_sectors_v1.tif[9MB]; 2006s_t1_2006s_add05.tif[11MB]; 2006s_t1_2006s_add16.tif[7MB]; 2006s_t1_2006s_base.tif[10MB]; 2006s_t1_2006s_in05.tif[10MB]; 2006s_t1_2006s_in16.tif[11MB]; 2006s_wb18_2006s_base.tif[12MB]; 2006s_wb18_2006s_in05.tif[12MB]; 2006s_wb18_2006s_in16.tif[12MB]",
    "mask": "Y",
-   "verify": "sectors_v1:OK; hy_e3_2006s:OK; t1_2006s_base:OK; t1_2006s_add05:OK; t1_2006s_add16:WEAK_CALIBRATION; t1_2006s_in05:OK; t1_2006s_in16:OK; canary_bb18_2006s_base:OK; canary_bb50_2006s_base:MISSING; bb18_2006s_base:MISSING; bb50_2006s_base:MISSING",
+   "verify": "sectors_v1:OK; hy_e3_2006s:OK; t1_2006s_base:OK; t1_2006s_add05:OK; t1_2006s_add16:WEAK_CALIBRATION; t1_2006s_in05:OK; t1_2006s_in16:OK; canary_bb18_2006s_base:OK; canary_bb50_2006s_base:MISSING; bb18_2006s_base:MISSING; bb50_2006s_base:MISSING; wb18_2006s_base:OK; wb18_2006s_in05:OK; wb18_2006s_in16:OK",
    "honest": "rec 0.638 prec 0.442"
   },
   {
@@ -239,7 +239,7 @@
    "models": 22,
    "prob": "2016.tif[471MB]; 2016_corrected.tif[586MB]; 2016_fullext_sectors_v1.tif[61MB]; 2016_golden_v1_2016corr.tif[29MB]; 2016_golden_v1_2016cw.tif[28MB]; 2016_golden_v1_2016fx.tif[29MB]; 2016_nir_m06.tif[67MB]; 2016_t1_2016_add05.tif[63MB]; 2016_t1_2016_add16.tif[61MB]; 2016_t1_2016_base.tif[61MB]; 2016_t1_2016_in05.tif[60MB]; 2016_t1_2016_in16.tif[61MB]; 2016_t1_2016_nir.tif[61MB]; 2016_trend8_2016.tif[362MB]; 2016_wb18_2016_base.tif[68MB]; 2016_wb18_2016_in05.tif[68MB]; 2016_wb50_2016_base.tif[65MB]; 2016_wb50_2016_in05.tif[64MB]",
    "mask": "Y",
-   "verify": "fullext_sectors_v1:OK; nir_m06:OK; golden_v1_2016cw:MOSTLY_NODATA; golden_v1_2016corr:MOSTLY_NODATA; golden_v1_2016fx:MOSTLY_NODATA; t1_2016_base:OK; t1_2016_in05:OK; t1_2016_in16:OK; t1_2016_nir:OK; t1_2016_add05:OK; t1_2016_add16:OK; trend8_2016:OK; bb18_2016_base:OK; bb50_2016_base:MISSING; bb18_2016_in05:OK; bb50_2016_in05:OK; wb50_2016_base:OK; wb50_2016_in05:OK; wb18_2016_base:OK; wb18_2016_in05:OK",
+   "verify": "fullext_sectors_v1:OK; nir_m06:OK; golden_v1_2016cw:MOSTLY_NODATA; golden_v1_2016corr:MOSTLY_NODATA; golden_v1_2016fx:MOSTLY_NODATA; t1_2016_base:OK; t1_2016_in05:OK; t1_2016_in16:OK; t1_2016_nir:OK; t1_2016_add05:OK; t1_2016_add16:OK; trend8_2016:OK; bb18_2016_base:OK; bb50_2016_base:MISSING; bb18_2016_in05:OK; bb50_2016_in05:OK; wb50_2016_base:OK; wb50_2016_in05:OK; wb18_2016_base:OK; wb18_2016_in05:OK; wb18_2016_in16:OK",
    "honest": "\u2014"
   },
   {
@@ -306,20 +306,20 @@
    "year": "2019n",
    "gsd_cm": 60.0,
    "tiles": "Y",
-   "models": 7,
-   "prob": "2019n_nir_m06.tif[17MB]; 2019n_p2nir.tif[66MB]; 2019n_pilot_e2_coarse.tif[75MB]; 2019n_t1_2019n_base.tif[21MB]; 2019n_t1_2019n_nir.tif[22MB]",
+   "models": 9,
+   "prob": "2019n_nir_m06.tif[17MB]; 2019n_p2nir.tif[66MB]; 2019n_pilot_e2_coarse.tif[75MB]; 2019n_t1_2019n_base.tif[21MB]; 2019n_t1_2019n_nir.tif[22MB]; 2019n_wb18_2019n_base.tif[26MB]; 2019n_wb18_2019n_in16.tif[23MB]",
    "mask": "Y",
-   "verify": "nir_m06:OK; pilot_e2_coarse:OK; t1_2019n_base:OK; t1_2019n_nir:OK; bb18_2019n_base:OK; bb50_2019n_base:OK",
+   "verify": "nir_m06:OK; pilot_e2_coarse:OK; t1_2019n_base:OK; t1_2019n_nir:OK; bb18_2019n_base:OK; bb50_2019n_base:OK; wb18_2019n_base:OK; wb18_2019n_in16:OK",
    "honest": "rec 0.650 prec 0.854"
   },
   {
    "year": "2019s",
    "gsd_cm": 30.5,
    "tiles": "\u2014",
-   "models": 1,
+   "models": 3,
    "prob": "2019s_pilot_e2_medium.tif[152MB]",
    "mask": "Y",
-   "verify": "pilot_e2_medium:OK",
+   "verify": "pilot_e2_medium:OK; wb18_2019s_base:OK; wb18_2019s_in16:OK",
    "honest": "\u2014"
   },
   {
@@ -376,8 +376,8 @@
    "year": "2022",
    "gsd_cm": 5.0,
    "tiles": "Y",
-   "models": 3,
-   "prob": "2022_citywide_rgb.tif[3927MB]; 2022_of_2022.tif[5357MB]; 2022_xsensor_train.tif[1198MB]",
+   "models": 4,
+   "prob": "2022_citywide_rgb.tif[3927MB]; 2022_heal_2022.tif[4217MB]; 2022_of_2022.tif[5357MB]; 2022_xsensor_train.tif[1198MB]",
    "mask": "Y",
    "verify": "citywide_rgb:OK; of_2022:OK",
    "honest": "rec 0.682 prec 0.801"

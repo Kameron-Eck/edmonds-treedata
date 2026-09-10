@@ -175,4 +175,37 @@ extra:
     at the cap), held-out IoU 0.686 / F1 0.813, recall 0.865 / precision 0.768; in the
     10-epoch trial its bracket 2021–2024 carried the largest REVIEW fill (268,262
     cells, 4.35 pp of city) — the 2023 King acquisition misses canopy both neighbours
-    see; not yet scored against C-CAP. heal_2022 — not run.
+    see; not yet scored against C-CAP. heal_2022 — clean: BE25, verify OK, maxprob 0.776 (landed 2026-09-10 on heal22).
+  reads_12ep_2026_09_10: >
+    heal_2022 landed 2026-09-10 (BE25, verify OK, maxprob 0.776); the twelve-epoch stack
+    built at D:\edmonds-pipeline\heal_stack_2m.npz (parity: 8 shared epochs identical to
+    the trend8 cache) and the pre-registered instruments run on it — every number below
+    is read from the phase4/qc/*_12ep.csv files (docs/SCHEMAS.md, "_12ep").
+    (c) BLIND inside 2016-2024: ZERO — every interior bracket is now REVIEW
+    (temporal_heal_12ep.csv). Arithmetic, as pre-registered, and it holds.
+    (a) laundered 0 of 42, terminal-censored 0 of 42 (heal_vs_gold_12ep.csv); at-risk is
+    0 in every gap bucket (heal_gap_spectrum_12ep.csv), so per the 2026-09-08 amendment
+    this is a criterion with NO POWER, not a bound — unchanged by density.
+    (b) impossible triples at the 1,170 no-change points: 240 removed of 327 (73.4%)
+    against 99 of 124 (79.8%) on eight epochs. By COUNT better, by SHARE 6.4 pp worse;
+    the population itself grew 2.6x because the inserted epochs flicker against their
+    neighbours (heal_2017 sits on a probability cliff, arm_notes). 58 of the 240 are
+    removed by a canopy assertion and 182 by IGNORE. "No worse than 99 of 124" was
+    written without saying count or share; the read is UNDETERMINED on the rule as
+    written and both numbers are on the record. Plain closing at K=1 removes all 327 but
+    launders 7 of 15 in-interval-eligible losses where the healer launders 0
+    (heal_closing_baseline_12ep.csv) — the tiers, not the formula, are what refuse.
+    MECHANISM FINDING, against the hypothesis's first clause: healing does NOT begin
+    firing where the human truth lives. temporal_heal.py::tier_for grants HEAL only when
+    the bracket ends on or before LIDAR_LAST (2016); every post-2016 bracket is REVIEW by
+    construction regardless of gap, and REVIEW writes IGNORE. So the dense stack converts
+    BLIND to REVIEW (unknowable stays unknowable, now with a smaller bracket) but writes
+    NO canopy inside the Panel A window: HEAL-tier canopy is still 2011s/2013/2015 only
+    (319,897 cells, 128 ha). The gold therefore scores REVIEW censoring and flicker, not
+    a fill. That is the instrument as designed, not a defect, and it means the
+    hypothesis's second clause — resolving REVIEW by size trajectory at annual cadence
+    (small-and-growing vs full-size-and-static) — is the build that would let the gold
+    score a fill inside the window. Not built; a design decision for Kam.
+    The fill-side audit worksheet was redrawn on the twelve epochs
+    (heal_fill_audit_sample_12ep.csv: 598 units, 196 lidar-adjudicable, 120 flagged) and
+    is the human step the PROMOTE needs. Verdict stays null until it is read.

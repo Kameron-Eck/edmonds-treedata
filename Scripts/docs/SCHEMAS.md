@@ -1234,6 +1234,30 @@ Gate: `qc/test_rebuild_queue_ledger.py`. Regenerate:
 `py -3.12 qc/instruments/rebuild_queue_ledger.py` (reads the lake's
 `phase4/logs/` read-only; deterministic — two runs are byte-identical).
 
+## The `_12ep` healer files (phase4/qc/, GENERATED — the dense-stack reads)
+
+`temporal_heal_12ep.csv`, `heal_vs_gold_12ep.csv`, `heal_closing_baseline_12ep.csv`,
+`heal_gap_spectrum_12ep.csv`, `heal_fill_audit_sample_12ep.csv` and
+`heal_fill_audit_design_12ep.txt` are the SAME instruments, SAME columns (headers
+byte-identical to their un-suffixed siblings, checked 2026-09-10), run on the twelve-epoch
+stack `D:\edmonds-pipeline\heal_stack_2m.npz` (built by `qc/instruments/heal_stack_build.py`;
+8 trend8 epochs + heal_2017/2020/2022/2023; parity gate: the 8 shared epochs identical to
+`trend8_stack_2m.npz`). The un-suffixed files stay the published 8-epoch reads — the
+trend8 series the recalibration campaign ruled on — and are NOT overwritten, because the
+two stacks answer different questions: 8 epochs is what the annual fraction series was
+built from, 12 is what the healer's decision rule (`experiments/heal_infill_2017_2023.yaml`)
+is scored on. Read the suffix as "which stack", never as a version. Reproduce:
+
+    py -3.12 qc/instruments/temporal_heal.py        --stack <stack> --out phase4/qc/temporal_heal_12ep.csv
+    py -3.12 qc/instruments/heal_vs_gold.py         --stack <stack> --out phase4/qc/heal_vs_gold_12ep.csv
+    py -3.12 qc/instruments/heal_closing_baseline.py --stack <stack> --heal phase4/qc/temporal_heal_12ep.csv --out ..._12ep.csv
+    py -3.12 qc/instruments/heal_gap_spectrum.py    --stack <stack> --heal-vs-gold phase4/qc/heal_vs_gold_12ep.csv --out ..._12ep.csv
+    py -3.12 qc/instruments/heal_fill_audit_sample.py --heal <stack> --out ..._12ep.csv --design-out ..._12ep.txt
+
+One column is EMPTY by construction on the 12-epoch spectrum: `crowns_eligible` /
+`crowns_deleted` (the crown rasters are 8-epoch; the instrument prints the SKIP).
+
+
 ## heal_fill_audit_sample.csv + heal_fill_audit_design.txt (phase4/qc/, GENERATED then HAND-LABELLED)
 
 Written by `qc/instruments/heal_fill_audit_sample.py::main` (columns:

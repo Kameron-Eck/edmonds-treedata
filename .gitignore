@@ -117,3 +117,7 @@ desktop.ini
 # never track per-session Claude Code settings (the Scripts/ whitelist would otherwise catch them)
 Scripts/.claude/
 *.egg-info/
+
+# per-crown products of the crown state model: 18 MB each, regenerated in ~100 s (docs/SCHEMAS.md)
+phase4/qc/crown_state*_intervals.csv
+phase4/qc/crown_state*_posterior.npz

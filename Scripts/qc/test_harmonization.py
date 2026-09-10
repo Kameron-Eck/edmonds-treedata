@@ -64,7 +64,26 @@ def _jobs(path):
 
 
 def _generated():
-    return {j["id"]: j for j in _jobs(GEN)}
+    """The generated queue view of the experiment. While the experiment was live this
+    was the tracked pipeline/queue_harmonization_h1_h2.yaml; a complete experiment
+    carries no generated queue (test_experiments.py), so the view is rebuilt in memory
+    from the spec with its status forced back to queued — the historical split checks
+    below stay meaningful without a stale file on disk."""
+    if GEN.exists():
+        return {j["id"]: j for j in _jobs(GEN)}
+    import tempfile
+    from experiment_queue import generate
+    spec = yaml.safe_load(EXP.read_text(encoding="utf-8"))
+    spec["status"] = "queued"
+    with tempfile.NamedTemporaryFile("w", suffix=".yaml", dir=EXP.parent, delete=False,
+                                     encoding="utf-8", prefix="_tmp_harm_") as fh:
+        fh.write(yaml.safe_dump(spec, sort_keys=False, allow_unicode=True))
+        tmp = Path(fh.name)
+    try:
+        text, _ = generate(tmp)
+    finally:
+        tmp.unlink(missing_ok=True)
+    return {j["id"]: j for j in yaml.safe_load(text)}
 
 
 # --------------------------------------------------------------- the queue split
@@ -155,9 +174,11 @@ def test_score_queues_are_the_inference_twins():
 def test_no_arm_passes_the_inert_tier_flag():
     """--tier is consulted only when --year is absent (cli.py::_resolve_years) and the queue always
     passes --year, so a --tier in a job is a recipe claim the run will not honour."""
-    for name in TRAIN_FILES + SCORE_FILES + [GEN.name]:
+    for name in TRAIN_FILES + SCORE_FILES:
         for j in _jobs(PIPE / name):
             assert "--tier" not in [str(x) for x in j["extra"]], (name, j["id"])
+    for j in _generated().values():
+        assert "--tier" not in [str(x) for x in j["extra"]], ("generated", j["id"])
 
 
 # --------------------------------------------------------------- harm_spread

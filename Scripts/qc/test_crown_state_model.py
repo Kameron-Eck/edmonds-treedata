@@ -11,7 +11,12 @@ crown gpkg, no lake (qc/conftest.py blocks lake writes anyway). What is pinned:
   3. a low-recall epoch WIDENS the first-seen interval versus a high-recall one;
   4. --placebo-seed changes the assignment and stamps the provenance;
   5. an unscored arm FAILS LOUDLY unless --allow-missing;
-  6. a MISSING observation leaves the posterior identical to having no emission at all.
+  6. a MISSING observation leaves the posterior identical to having no emission at all;
+  7. THE EMISSION GATE (crown_state_model_v2.yaml decision_rule 2), mutation-tested: on a
+     synthetic stack whose crown-pooled prevalence far exceeds its pixel prevalence, the
+     v1 derivation (--emission-plugin crown) makes f >= r and the gate FIRES; the pixel
+     derivation on the SAME stack passes with f < r in every epoch, and the clip that used
+     to be silent announces itself on stderr.
 
 Run:  PYTHONUTF8=1 py -3.12 -m pytest qc/test_crown_state_model.py -q
 """
@@ -179,6 +184,14 @@ def _tiny_result(placebo_seed=-1, permutation=(0, 1, 2)):
         "policy": "scored_live", "ref": "ccap_2021_hires_lc.tif",
         "canopy_def": "forest_wetland", "q_gain": 0.02, "q_loss": 0.02,
         "persistence": True, "dropped_tags": [], "stack_path": "synthetic",
+        "emission_plugin": "pixel", "pixel_scope": M.PIXEL_SCOPE,
+        "pi_grid": np.array([0.2, 0.3, 0.25]),
+        "pi_crownpx": np.array([0.4, 0.5, 0.45]),
+        "pi_pooled": np.array([0.8, 0.9, 0.85]),
+        "f_grid": np.array([0.02, 0.03, 0.04]),
+        "f_crownpx": np.array([0.2, 0.3, 0.4]),
+        "f_pixel": np.array([0.02, 0.03, 0.04]),
+        "f_crown": np.array([0.9, 0.95, 0.99]),
     }
 
 
@@ -269,3 +282,103 @@ def test_observations_follow_the_project_ladder():
 def test_positive_fraction_ignores_missing():
     row = np.array([1, 1, 0, -1, -1, -1], dtype=np.int8)
     assert M.positive_fraction(row) == pytest.approx(2 / 3)
+
+
+# ---------------------------------------------------------------- 7. the emission gate
+
+# A SYNTHETIC stack of non-default shape: 3 epochs (never 12), a 10x8 lattice, ten crowns
+# rasterised as 2x2 blocks. Nine crowns are exactly half canopy — cover 0.50, the PRESENT
+# rung — and one is bare, so the crown-POOLED prevalence is 0.9 while only 18 of the 40
+# crown-covered cells and 18 of the 80 inside cells are canopy. That gap between the crown
+# unit and the pixel unit IS the v1 defect, reproduced in miniature.
+GATE_R, GATE_P = 0.7, 0.8
+GATE_TAGS = ["synth_a", "synth_b", "synth_c"]
+
+
+def _gate_stack():
+    ids = np.zeros((10, 8), dtype=np.int32)
+    k = 0
+    for r0 in range(0, 10, 2):
+        for c0 in range(0, 8, 2):
+            k += 1
+            if k <= 10:
+                ids[r0:r0 + 2, c0:c0 + 2] = k
+    epoch = np.zeros((10, 8), dtype=np.uint8)
+    for cid in range(1, 10):                       # crowns 1-9 half canopy, crown 10 bare
+        rr, cc = np.nonzero(ids == cid)
+        epoch[rr[:2], cc[:2]] = 1
+    stack = np.stack([epoch, epoch, epoch])
+    inside = np.ones((10, 8), dtype=bool)
+    return stack, inside, ids
+
+
+def _gate_rows(plugin):
+    stack, inside, ids = _gate_stack()
+    obs = M.observations(stack, ids, 10)[:, 1:]
+    pi_grid, pi_crownpx, pi_pooled = M.epoch_prevalences(stack, inside, ids, obs)
+    rate_rows = {t: {"recall": GATE_R, "precision": GATE_P} for t in GATE_TAGS}
+    return M.derive_emissions(GATE_TAGS, rate_rows, pi_grid, pi_crownpx, pi_pooled,
+                              plugin), (pi_grid, pi_crownpx, pi_pooled)
+
+
+def test_pixel_and_crown_prevalences_are_different_numbers():
+    """The plug-ins must actually disagree, or the mutation test below proves nothing."""
+    _, (pi_grid, pi_crownpx, pi_pooled) = _gate_rows("pixel")
+    assert pi_pooled == pytest.approx([0.9] * 3)          # crowns judged PRESENT
+    assert pi_crownpx == pytest.approx([0.45] * 3)        # 18 of 40 crown-covered cells
+    assert pi_grid == pytest.approx([0.225] * 3)          # 18 of 80 inside cells
+
+
+def test_emission_gate_fires_on_the_v1_crown_plugin():
+    """MUTATION TEST (CLAUDE.md 3.4c): the gate is SHOWN firing on a known-bad input —
+    the v1 derivation this fix replaces. pooled 0.9 with r=.7, p=.8 gives f = 1.575."""
+    rows, _ = _gate_rows("crown")
+    for row in rows:
+        assert row["f_crown"] >= row["r"]
+    with pytest.raises(SystemExit) as e:
+        M.emission_gate(rows, "crown")
+    msg = str(e.value)
+    assert "EMISSION GATE: f >= r for epochs" in msg
+    for t in GATE_TAGS:
+        assert t in msg
+
+
+def test_emission_gate_passes_on_the_pixel_plugin():
+    """The SAME stack, the same rates, only the plug-in unit changed."""
+    rows, _ = _gate_rows("pixel")
+    for row in rows:
+        assert row["f_applied"] < row["r"], row
+    assert M.emission_gate(rows, "pixel") is rows
+
+
+def test_both_plugins_are_reported_side_by_side():
+    rows, _ = _gate_rows("pixel")
+    for row in rows:
+        assert row["f_grid"] == pytest.approx(0.225 * 0.7 * 0.2 / (0.775 * 0.8))
+        assert row["f_crownpx"] == pytest.approx(0.45 * 0.7 * 0.2 / (0.55 * 0.8))
+        assert row["f_crown"] == pytest.approx(1.0 - M.EPS)      # 1.575, clipped
+        assert row["f_pixel"] == pytest.approx(
+            row["f_grid"] if M.PIXEL_SCOPE == "grid" else row["f_crownpx"])
+    table = M.emission_table(rows, "pixel", ["2009", "2013", "2016"])
+    for head in ("pi_grid", "pi_crwnpx", "pi_pooled", "f_grid", "f_crwnpx", "f_crown"):
+        assert head in table
+
+
+def test_the_clip_is_loud(capsys):
+    f = M.emission_fp(GATE_R, GATE_P, 0.9, "synth_a")
+    assert f == pytest.approx(1.0 - M.EPS)
+    err = capsys.readouterr().err
+    assert "EMISSION CLIP" in err and "synth_a" in err
+    assert "1.575" in err                     # the unclipped value is named, not hidden
+
+
+def test_the_trailer_carries_every_plugin():
+    text = M.intervals_csv(_tiny_result())
+    for key in ("# emission_plugin,", "# pixel_scope,", "# pi_grid,", "# pi_crownpx,",
+                "# pi_pooled,", "# f_grid,", "# f_crownpx,", "# f_crown,"):
+        assert key in text, key
+
+
+def test_an_unknown_plugin_is_refused():
+    with pytest.raises(SystemExit):
+        M.derive_emissions(["a"], {}, [0.2], [0.4], [0.8], plugin="whatever")

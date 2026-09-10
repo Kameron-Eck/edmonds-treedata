@@ -1675,3 +1675,29 @@ its grid handling and its kill firing are gated on synthetic rasters
 (`qc/test_harmonization.py`), which tests the CODE and not the CLAIM — CLAUDE.md §3.4c:
 a design validated only on synthetic data is UNVALIDATED, in those words.
 `--dry-run` lists every input and writes nothing.
+
+## crown_state_vs_gold.csv + crown_state_placebo.csv (phase4/qc/, GENERATED — the referee's files)
+
+Written by `qc/instruments/crown_state_vs_gold.py` (the independent referee's scorer for
+`experiments/crown_state_model.yaml` and its successors). One row per Panel A gold point
+(`phase4/qc/panel_a_gold.csv`, 1,214), scored through the crown state model's per-crown
+trajectory (`qc/instruments/crown_state_model.py` → `phase4/qc/crown_state_posterior.npz`,
+untracked: 6.6 MB binary, rebuilt in ~100 s) with the SAME definitions as `heal_vs_gold.py`
+— laundered (terminal absence of a verified loss asserted as canopy), terminal-censored,
+impossible triples raw / after / fixed — so the two trailers read side by side. Points
+outside every 2020 crown are OFF-CROWN (`offcrown_n` in the trailer; 726 of 1,214 on the
+first run) and are excluded from every kill denominator: the crown unit is scored on the
+on-crown subset only, and any verdict must say so. Trailer keys mirror `heal_vs_gold.csv`
+(`nochange_triples_raw/_healed/_fixed`, `loss_laundered`, `loss_laundered_points`,
+`loss_has_terminal_absence` = the K1 at-risk denominator, `loss_term_censored` — zero by
+construction, the model has no IGNORE state — plus `laundered_crown_obs0`, the count of
+laundered epochs where the crown itself observed ABSENT).
+
+`crown_state_placebo.csv`: one row per shuffled-rate draw (`--placebo-seed` 1..20) with
+that draw's K1 and K2 counts and wall time (`secs`), and a trailer with `k3_true`,
+`k3_p95` (nearest-rank 19/20), `k3_true_above_p95`, `k3_n_draws_ge_true`. This is kill K3.
+
+`crown_state_intervals.csv` (18 MB, one row per crown: first_seen / last_seen and their
+interval bounds) is a product, not evidence, and is NOT tracked; regenerate with the model.
+Version suffixes: the v2 pre-registration writes `crown_state_v2_vs_gold.csv` and
+`crown_state_v2_placebo.csv` so the killed v1 numbers stay on the record beside them.

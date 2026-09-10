@@ -25,8 +25,27 @@ read:
 
     p = pi*r / (pi*r + (1-pi)*f)   =>   f = pi*r*(1-p) / ((1-pi)*p)
 
-with pi the epoch's OBSERVED positive fraction used as a plug-in for the true prevalence.
-That plug-in is an assumption and it is printed in the trailer every run.
+with pi a plug-in for the true prevalence. THE UNIT OF THAT PLUG-IN IS THE FIX registered
+in `crown_state_model_v2.yaml`: v1 inverted a PIXEL-measured precision with a CROWN-POOLED
+prevalence (the share of crowns judged PRESENT, 0.80-0.95), which put f >= r in 11 of 12
+epochs and collapsed every crown to a constant path. The plug-in is now measured in the
+same unit the precision was — PIXELS on that epoch's mask:
+
+    pi_grid      positive fraction over the whole valid inside grid
+    pi_crownpx   positive fraction over the valid CROWN-COVERED cells
+    pi_pooled    v1's crown-pooled share of PRESENT crowns  (reproducible, never default)
+
+Both pixel figures are reported in the epoch table and the trailer every run;
+`--emission-plugin pixel` (the default) uses the population named by `PIXEL_SCOPE` —
+measured to be `pi_grid`, the citywide unit the precision itself was scored in; the
+constant carries the measurement that rejected `pi_crownpx`.
+`--emission-plugin crown` reproduces the v1 derivation and exists ONLY so the gate below
+can be shown FIRING on it (CLAUDE.md 3.4c mutation-test rule) — never for a scored run.
+
+THE EMISSION GATE. Before any inference the derived rates are checked: if f_e >= r_e for
+ANY rated epoch the model prints the epoch table and REFUSES to run. An observation of
+canopy that does not raise P(canopy) is not evidence, and v1 ran twelve such epochs
+silently. The clip to 1-EPS that hid it is now a loud warning naming the epoch.
 
 TRANSITIONS. A loss may happen at any step; a gain must PERSIST (the coppice rule). That is
 a three-state expanded chain {absent, canopy_new, canopy}:
@@ -53,6 +72,7 @@ Outputs (repo-side, never the lake):
 Run:  py -3.12 qc/instruments/crown_state_model.py --dry-run
       py -3.12 qc/instruments/crown_state_model.py
       py -3.12 qc/instruments/crown_state_model.py --placebo-seed 7
+      py -3.12 qc/instruments/crown_state_model.py --dry-run --emission-plugin crown
 """
 from __future__ import annotations
 
@@ -83,6 +103,21 @@ DEFAULT_REF = "ccap_2021_hires_lc.tif"
 DEFAULT_CANOPY_DEF = "forest_wetland"
 DEFAULT_Q_LOSS = 0.02
 DEFAULT_Q_GAIN = 0.02
+PLUGINS = ("pixel", "crown")
+DEFAULT_PLUGIN = "pixel"
+# WHICH pixel population the `pixel` plug-in measures. decision_rule item (1) permits
+# either the crown-covered area or the whole valid grid — "state which, and report both".
+# MEASURED 2026-09-10 on the real twelve-epoch stack: pi_crownpx (0.82-0.96) reproduces
+# pi_pooled (0.80-0.95) to within 0.02 in every epoch — a crown judged PRESENT is >= 50%
+# canopy pixels and ~85% of crowns are PRESENT, so the crown-covered fraction is the
+# crown-pooled fraction restated, and it trips the gate below on the same 11 of 12 epochs
+# as the v1 defect. GRID is the unit-consistent choice: AMENDMENT (1) of
+# crown_state_model.yaml records the precision rows as CITYWIDE scores, and the inversion
+# p = pi*r/(pi*r+(1-pi)*f) only holds with p, r, pi and f over ONE population. pi_grid
+# (0.245-0.376) reproduces the referee's f = 0.02-0.11 exactly. Flip this to "crownpx"
+# for the narrower reading; BOTH columns are reported either way, always.
+PIXEL_SCOPE = "grid"
+IGNORE = 255               # heal_stack_build.py / detectability_curve.py: 0/1/255
 
 EPS = 1e-6
 MISSING = -1
@@ -141,15 +176,103 @@ def load_rates(csv_path, tags, policy=DEFAULT_POLICY, ref=DEFAULT_REF,
     return rates, missing
 
 
-def emission_fp(recall, precision, pi):
+def emission_fp(recall, precision, pi, label=None):
     """False-positive rate f = P(obs=1 | not canopy), derived from precision and the
-    epoch's observed positive fraction pi used as the prevalence plug-in."""
+    prevalence plug-in pi. The formula is unchanged from v1; what changed is the UNIT of
+    pi (see the module docstring) and that a clip is now LOUD, not silent."""
+    who = f"epoch {label}: " if label is not None else ""
     if precision <= 0 or pi <= 0:
         return EPS
     if pi >= 1:
+        print(f"  ⚠ EMISSION CLIP — {who}prevalence plug-in pi={pi:.6f} >= 1; "
+              f"f forced to 1-EPS ({1.0 - EPS:.6f}). The inversion is undefined here.",
+              file=sys.stderr)
         return 1.0 - EPS
     f = pi * recall * (1.0 - precision) / ((1.0 - pi) * precision)
+    if f >= 1.0 - EPS:
+        print(f"  ⚠ EMISSION CLIP — {who}derived f={f:.6f} clipped to "
+              f"{1.0 - EPS:.6f} (r={recall:.4f}, p={precision:.4f}, pi={pi:.6f}). "
+              f"A false-positive rate at the ceiling is not a rate.", file=sys.stderr)
+    elif f <= EPS:
+        print(f"  ⚠ EMISSION CLIP — {who}derived f={f:.6g} raised to {EPS:.6g} "
+              f"(r={recall:.4f}, p={precision:.4f}, pi={pi:.6f}).", file=sys.stderr)
     return float(min(max(f, EPS), 1.0 - EPS))
+
+
+def derive_emissions(tags, rate_rows, pi_grid, pi_crownpx, pi_pooled,
+                     plugin=DEFAULT_PLUGIN):
+    """Pure: -> one row per epoch with both derivations side by side.
+
+    `f_grid` / `f_crownpx` invert the precision with each PIXEL prevalence, `f_crown` with
+    the crown-pooled share (the v1 defect, kept reproducible). `f_pixel` is whichever pixel
+    population `PIXEL_SCOPE` names — see that constant for the measurement behind it.
+    `f_applied` is whichever `plugin` names. Unrated epochs carry None for every rate."""
+    if plugin not in PLUGINS:
+        raise SystemExit(f"FATAL: --emission-plugin must be one of {sorted(PLUGINS)}")
+    rows = []
+    for e, t in enumerate(tags):
+        rr = rate_rows.get(t)
+        row = {"epoch": e, "tag": t,
+               "pi_grid": float(pi_grid[e]), "pi_crownpx": float(pi_crownpx[e]),
+               "pi_pooled": float(pi_pooled[e]),
+               "r": None, "p": None, "f_grid": None, "f_crownpx": None,
+               "f_pixel": None, "f_crown": None,
+               "f_applied": None, "rated": False}
+        if rr is not None:
+            r, p = rr["recall"], rr["precision"]
+            row["r"], row["p"], row["rated"] = r, p, True
+            row["f_grid"] = emission_fp(r, p, float(pi_grid[e]), f"{t}[grid]")
+            row["f_crownpx"] = emission_fp(r, p, float(pi_crownpx[e]), f"{t}[crownpx]")
+            row["f_pixel"] = (row["f_grid"] if PIXEL_SCOPE == "grid"
+                              else row["f_crownpx"])
+            row["f_crown"] = emission_fp(r, p, float(pi_pooled[e]), f"{t}[crown]")
+            row["f_applied"] = row["f_pixel"] if plugin == "pixel" else row["f_crown"]
+        rows.append(row)
+    return rows
+
+
+def emission_table(rows, plugin, years=None):
+    """-> the printable epoch table (also the gate's failure message body)."""
+    out = [f"  {'epoch':>8}{'tag':>16}{'recall':>9}{'prec':>8}{'pi_grid':>9}"
+           f"{'pi_crwnpx':>11}{'pi_pooled':>11}{'f_grid':>9}{'f_crwnpx':>10}"
+           f"{'f_crown':>9}{'applied':>10}  gate"]
+    for row in rows:
+        y = years[row["epoch"]] if years else str(row["epoch"])
+        if not row["rated"]:
+            out.append(f"  {y:>8}{row['tag']:>16}{'—':>9}{'—':>8}"
+                       f"{row['pi_grid']:>9.4f}{row['pi_crownpx']:>11.4f}"
+                       f"{row['pi_pooled']:>11.4f}{'—':>9}{'—':>10}{'—':>9}"
+                       f"{'—':>10}  NO ROW")
+            continue
+        ok = row["f_applied"] < row["r"]
+        out.append(f"  {y:>8}{row['tag']:>16}{row['r']:>9.4f}{row['p']:>8.4f}"
+                   f"{row['pi_grid']:>9.4f}{row['pi_crownpx']:>11.4f}"
+                   f"{row['pi_pooled']:>11.4f}{row['f_grid']:>9.4f}"
+                   f"{row['f_crownpx']:>10.4f}{row['f_crown']:>9.4f}"
+                   f"{row['f_applied']:>10.4f}"
+                   f"  {'ok' if ok else 'FIRE  f>=r'}")
+    out.append(f"  plug-in in force: {plugin}  (pixel = pi_{PIXEL_SCOPE}, "
+               f"crown = v1 pooled)")
+    return "\n".join(out)
+
+
+def emission_gate(rows, plugin, years=None):
+    """HARD GATE (decision_rule item 2). Raises SystemExit if f >= r for any rated epoch.
+
+    An observation of canopy under f >= r LOWERS P(canopy); a model with such an emission
+    is not measuring anything, so it refuses to run rather than producing a number."""
+    bad = [row for row in rows if row["rated"] and row["f_applied"] >= row["r"]]
+    if not bad:
+        return rows
+    names = ", ".join(f"{row['tag']}(f={row['f_applied']:.4f} >= r={row['r']:.4f})"
+                      for row in bad)
+    raise SystemExit(
+        emission_table(rows, plugin, years)
+        + f"\n\nEMISSION GATE: f >= r for epochs {names}\n"
+          "  The derived false-positive rate is at or above the recall, so an observed\n"
+          "  canopy is evidence AGAINST canopy. Refusing to run. This is the v1 defect\n"
+          "  (crown_state_model.yaml verdict); --emission-plugin crown reproduces it on\n"
+          "  purpose and is never valid for a scored run.")
 
 
 def assign_rates(pairs, seed=None):
@@ -212,6 +335,35 @@ def observations(stack, ids, n_crowns, per_crown_cover=None):
     obs[fin & (cov >= PRESENT_AT)] = 1
     obs[fin & (cov <= ABSENT_AT)] = 0
     return obs
+
+
+def pixel_positive_fraction(epoch, where):
+    """PIXEL-level positive fraction of one epoch's mask: share of `epoch == 1` among the
+    VALID (`!= 255`) cells of `where`. This is the unit the precision was measured in."""
+    import numpy as np
+    m = np.asarray(where) & (np.asarray(epoch) != IGNORE)
+    n = int(m.sum())
+    if n == 0:
+        return 0.0
+    return float(np.count_nonzero(np.asarray(epoch)[m] == 1) / n)
+
+
+def epoch_prevalences(stack, inside, ids, obs):
+    """-> (pi_grid, pi_crownpx, pi_pooled), one value per epoch.
+
+    pi_grid    pixels: whole valid inside grid
+    pi_crownpx pixels: valid cells covered by a 2020 crown (the crown rasterisation the
+               model already builds is reused — no second pass over the polygons)
+    pi_pooled  crowns: the v1 plug-in, share of crowns this epoch judged PRESENT"""
+    import numpy as np
+    inside = np.asarray(inside).astype(bool)
+    crown_px = inside & (np.asarray(ids) > 0)
+    pi_grid = np.array([pixel_positive_fraction(stack[e], inside)
+                        for e in range(len(stack))])
+    pi_crownpx = np.array([pixel_positive_fraction(stack[e], crown_px)
+                           for e in range(len(stack))])
+    pi_pooled = np.array([positive_fraction(obs[e]) for e in range(obs.shape[0])])
+    return pi_grid, pi_crownpx, pi_pooled
 
 
 def positive_fraction(obs_row):
@@ -371,7 +523,7 @@ def intervals(pcan):
 def build(stack=None, crowns=None, rates_csv=None, policy=DEFAULT_POLICY,
           ref=DEFAULT_REF, canopy_def=DEFAULT_CANOPY_DEF, q_gain=DEFAULT_Q_GAIN,
           q_loss=DEFAULT_Q_LOSS, placebo_seed=None, allow_missing=False,
-          persistence=True):
+          persistence=True, plugin=DEFAULT_PLUGIN, quiet=False):
     """-> (result dict, error string). Rates are resolved BEFORE the crowns are
     rasterised, so a missing arm fails in a second rather than after a two-minute burn."""
     import numpy as np
@@ -392,19 +544,30 @@ def build(stack=None, crowns=None, rates_csv=None, policy=DEFAULT_POLICY,
     n = len(g)
     obs = observations(stack_arr, ids, n)[:, 1:]          # drop the unused id-0 column
 
-    pi = np.array([positive_fraction(obs[e]) for e in range(len(tags))])
+    pi_grid, pi_crownpx, pi_pooled = epoch_prevalences(stack_arr, inside, ids, obs)
+    erows = derive_emissions(tags, rate_rows, pi_grid, pi_crownpx, pi_pooled, plugin)
+
+    # THE GATE runs on the TRUE per-tag pairs, BEFORE any placebo permutation, so
+    # --placebo-seed can never route around it.
+    emission_gate(erows, plugin, years)
+    if not quiet:
+        print(emission_table(erows, plugin, years))
+
+    _pi_key = (("pi_grid" if PIXEL_SCOPE == "grid" else "pi_crownpx")
+               if plugin == "pixel" else "pi_pooled")
+    pi = np.array([erows[e][_pi_key] for e in range(len(tags))])
     rated_ix = [e for e, t in enumerate(tags) if t in rate_rows]
-    pairs = [(rate_rows[tags[e]]["recall"],
-              emission_fp(rate_rows[tags[e]]["recall"],
-                          rate_rows[tags[e]]["precision"], pi[e]))
-             for e in rated_ix]
+    pairs = [(erows[e]["r"], erows[e]["f_applied"]) for e in rated_ix]
     pairs, perm = assign_rates(pairs, placebo_seed)
 
     rates = [None] * len(tags)
     for slot, e in enumerate(rated_ix):
         rates[e] = pairs[slot]
 
-    prior = np.array([1.0 - pi[0], 0.0, pi[0]])
+    # The prior is a CROWN-state prior and stays on the crown-pooled fraction, exactly as
+    # in v1 — only the emission plug-in changed.
+    p0 = float(pi_pooled[0])
+    prior = np.array([1.0 - p0, 0.0, p0])
     post = forward_backward(obs, rates, q_gain, q_loss, prior, persistence)
     path = viterbi(obs, rates, q_gain, q_loss, prior, persistence)
     pcan = canopy_posterior(post)
@@ -412,9 +575,11 @@ def build(stack=None, crowns=None, rates_csv=None, policy=DEFAULT_POLICY,
 
     # r/f are the APPLIED rates (permuted under placebo); r_true/f_true stay with their
     # own tag, so a referee can join the two through `permutation`.
-    r_true = np.array([rate_rows[t]["recall"] if t in rate_rows else np.nan for t in tags])
-    f_true = np.array([emission_fp(rate_rows[t]["recall"], rate_rows[t]["precision"], pi[e])
-                       if t in rate_rows else np.nan for e, t in enumerate(tags)])
+    def _col(key):
+        return np.array([np.nan if row[key] is None else row[key] for row in erows])
+
+    r_true = _col("r")
+    f_true = _col("f_applied")
     r_arr = np.array([rates[e][0] if rates[e] else np.nan for e in range(len(tags))])
     f_arr = np.array([rates[e][1] if rates[e] else np.nan for e in range(len(tags))])
     p_arr = np.array([rate_rows[t]["precision"] if t in rate_rows else np.nan
@@ -424,6 +589,11 @@ def build(stack=None, crowns=None, rates_csv=None, policy=DEFAULT_POLICY,
         "post": post, "viterbi": path, "intervals": iv,
         "crown_id": g["crown_id"].to_numpy().astype(str),
         "r": r_arr, "f": f_arr, "r_true": r_true, "f_true": f_true, "p": p_arr, "pi": pi,
+        "pi_grid": pi_grid, "pi_crownpx": pi_crownpx, "pi_pooled": pi_pooled,
+        "f_pixel": _col("f_pixel"), "f_crown": _col("f_crown"),
+        "f_grid": _col("f_grid"), "f_crownpx": _col("f_crownpx"),
+        "pixel_scope": PIXEL_SCOPE,
+        "emission_plugin": plugin, "emission_rows": erows,
         "curve_ids": np.array([rate_rows.get(t, {}).get("curve_id", "") for t in tags]),
         "rated_tags": [tags[e] for e in rated_ix], "dropped_tags": missing,
         "permutation": perm, "placebo_seed": -1 if placebo_seed is None else int(placebo_seed),
@@ -479,6 +649,20 @@ def intervals_csv(res):
     buf.write(f"# q_gain,{res['q_gain']}\n# q_loss,{res['q_loss']}\n")
     buf.write(f"# persistence,{int(res['persistence'])}\n")
     buf.write(f"# dropped_tags,\"{','.join(res['dropped_tags'])}\"\n")
+
+    def _vec(key):
+        return ",".join("" if v is None or (isinstance(v, float) and np.isnan(v))
+                        else f"{float(v):.6f}" for v in res.get(key, []))
+
+    buf.write(f"# emission_plugin,{res.get('emission_plugin', DEFAULT_PLUGIN)}\n")
+    buf.write(f"# pi_grid,\"{_vec('pi_grid')}\"\n")
+    buf.write(f"# pi_crownpx,\"{_vec('pi_crownpx')}\"\n")
+    buf.write(f"# pi_pooled,\"{_vec('pi_pooled')}\"\n")
+    buf.write(f"# pixel_scope,{res.get('pixel_scope', PIXEL_SCOPE)}\n")
+    buf.write(f"# f_grid,\"{_vec('f_grid')}\"\n")
+    buf.write(f"# f_crownpx,\"{_vec('f_crownpx')}\"\n")
+    buf.write(f"# f_pixel,\"{_vec('f_pixel')}\"\n")
+    buf.write(f"# f_crown,\"{_vec('f_crown')}\"\n")
     buf.write(f"# stack,{res['stack_path']}\n")
     _ = np
     return buf.getvalue()
@@ -500,6 +684,12 @@ def _parser():
     ap.add_argument("--canopy-def", default=DEFAULT_CANOPY_DEF)
     ap.add_argument("--q-loss", type=float, default=DEFAULT_Q_LOSS)
     ap.add_argument("--q-gain", type=float, default=DEFAULT_Q_GAIN)
+    ap.add_argument("--emission-plugin", choices=list(PLUGINS), default=DEFAULT_PLUGIN,
+                    help="prevalence plug-in for the false-positive inversion. "
+                         "pixel (default) = the crown-covered PIXEL fraction, the unit the "
+                         "precision was measured in; crown = the v1 crown-pooled fraction, "
+                         "a MUTATION SWITCH that exists only to show the emission gate "
+                         "firing. Never for a scored run")
     ap.add_argument("--placebo-seed", type=int, default=None,
                     help="shuffle the epoch-to-rate assignment (kill K3). Stamped in every "
                          "output and in the trailer — never silent")
@@ -515,7 +705,12 @@ def _parser():
 
 
 def _plan(a):
-    """Dry-run: resolve rates and print the epoch table WITHOUT reading the mask stack."""
+    """Dry-run: resolve rates, MEASURE both prevalences off the stack, print the epoch
+    table with r, f_grid, f_crownpx, f_crown and the gate verdict. Writes nothing.
+
+    It reads the stack and rasterises the crowns (v1's dry-run did neither) because the
+    gate verdict cannot be shown without the prevalence — which was exactly how the v1
+    defect survived a dry-run."""
     import numpy as np
     sp = Path(a.stack)
     if not sp.exists():
@@ -535,17 +730,24 @@ def _plan(a):
           f"canopy_def={a.canopy_def}")
     print(f"  q_gain={a.q_gain} q_loss={a.q_loss} persistence="
           f"{not a.no_persistence} placebo_seed={a.placebo_seed}")
-    print(f"\n  {'epoch':>8}{'tag':>16}{'recall':>9}{'precision':>11}   curve_id")
-    for y, t in zip(years, tags):
-        r = rates.get(t)
-        if r is None:
-            print(f"  {y:>8}{t:>16}{'—':>9}{'—':>11}   NO ROW")
-        else:
-            print(f"  {y:>8}{t:>16}{r['recall']:>9.4f}{r['precision']:>11.4f}   "
-                  f"{r['curve_id']}")
-    print("\n  f_e (false-positive rate) is DERIVED at run time from precision and the "
-          "epoch's\n  observed positive fraction pi_e — it cannot be shown before the "
-          "crowns are read.")
+    print(f"  emission plug-in: {a.emission_plugin}")
+    cp = Path(a.crowns)
+    if not cp.exists():
+        print(f"FATAL: {cp} not found (local mirror)")
+        return 2
+    stack_arr, inside, years, tags, g, ids = load_crowns(sp, cp)
+    obs = observations(stack_arr, ids, len(g))[:, 1:]
+    pi_grid, pi_crownpx, pi_pooled = epoch_prevalences(stack_arr, inside, ids, obs)
+    erows = derive_emissions(tags, rates, pi_grid, pi_crownpx, pi_pooled,
+                             a.emission_plugin)
+    print()
+    try:
+        emission_gate(erows, a.emission_plugin, years)
+    except SystemExit as e:
+        print(str(e))
+        return 2
+    print(emission_table(erows, a.emission_plugin, years))
+    print("\n  EMISSION GATE: PASS — f < r for every rated epoch.")
     print(f"\n  would write: {a.out_npz}\n               {a.out}")
     if missing and not a.allow_missing:
         print(f"\n  BLOCKED — no rate row for: {', '.join(missing)}")
@@ -571,7 +773,7 @@ def main(argv=None):
                          policy=a.policy, ref=a.rates_ref, canopy_def=a.canopy_def,
                          q_gain=a.q_gain, q_loss=a.q_loss,
                          placebo_seed=a.placebo_seed, allow_missing=a.allow_missing,
-                         persistence=not a.no_persistence)
+                         persistence=not a.no_persistence, plugin=a.emission_plugin)
     except SystemExit as e:
         print(str(e))
         return 2
@@ -587,7 +789,12 @@ def main(argv=None):
         viterbi=res["viterbi"], crown_id=res["crown_id"],
         years=np.array(res["years"]), tags=np.array(res["tags"]),
         r=res["r"], f=res["f"], r_true=res["r_true"], f_true=res["f_true"],
-        p=res["p"], pi=res["pi"],
+        p=res["p"], pi=res["pi"], pi_grid=res["pi_grid"],
+        pi_crownpx=res["pi_crownpx"], pi_pooled=res["pi_pooled"],
+        f_pixel=res["f_pixel"], f_crown=res["f_crown"],
+        f_grid=res["f_grid"], f_crownpx=res["f_crownpx"],
+        pixel_scope=res["pixel_scope"],
+        emission_plugin=res["emission_plugin"],
         curve_ids=res["curve_ids"], prior=res["prior"],
         first_seen=iv["first_seen"], last_seen=iv["last_seen"],
         first_lo=iv["first_lo"], last_hi=iv["last_hi"],
@@ -611,10 +818,10 @@ def main(argv=None):
       f"{float(np.median(iv['first_width'][seen])) if seen.any() else float('nan'):.2f} epochs")
     A(f"  median last-seen interval width:  "
       f"{float(np.median(iv['last_width'][seen])) if seen.any() else float('nan'):.2f} epochs")
-    A(f"\n  {'epoch':>8}{'tag':>16}{'recall':>9}{'precision':>11}{'pi_obs':>9}{'f_derived':>11}")
-    for i, (y, t) in enumerate(zip(res["years"], res["tags"])):
-        A(f"  {y:>8}{t:>16}{res['r'][i]:>9.4f}{res['p'][i]:>11.4f}"
-          f"{res['pi'][i]:>9.4f}{res['f'][i]:>11.4f}")
+    A("")
+    A(emission_table(res["emission_rows"], res["emission_plugin"], res["years"]))
+    A("  (rates above are the TRUE per-tag pairs; under --placebo-seed the APPLIED "
+      "assignment is permuted — see `permutation`.)")
 
     A("\n-- WHAT IS MEASURED, DERIVED, ASSUMED " + "-" * 29)
     A(f"  MEASURED: recall and precision per epoch, read from {Path(a.rates_csv).name} at "
@@ -626,12 +833,21 @@ def main(argv=None):
       "path; the first/last-seen intervals.")
     A("  ASSUMED : (1) pi_e OBSERVED is a plug-in for the TRUE prevalence — the "
       "inversion is only as\n            good as that substitution; (2) rates measured "
-      "on PIXELS transfer to a CROWN's pooled\n            vote; (3) detection quality is "
+      "on PIXELS are inverted with a PIXEL\n            prevalence (v2 fix) but applied to "
+      "a CROWN's pooled vote; (3) detection quality is "
       "uniform across the city (yaml: 'only approximately');\n            (4) q_gain / "
       "q_loss are per STEP, though the epochs are unevenly spaced;\n            (5) the "
       "initial prior puts pi_2009 on `canopy`, none on `canopy_new`.")
     A(f"  PROVENANCE: placebo_seed={res['placebo_seed']} "
-      f"permutation={res['permutation']} persistence={res['persistence']}")
+      f"permutation={res['permutation']} persistence={res['persistence']} "
+      f"emission_plugin={res['emission_plugin']}")
+    A("  PREVALENCE PLUG-INS, all three reported (the applied one is "
+      f"{('pi_' + PIXEL_SCOPE) if res['emission_plugin'] == 'pixel' else 'pi_pooled'}):")
+    A(f"    pi_grid    (pixels, whole valid inside grid): {np.round(res['pi_grid'], 4)}")
+    A(f"    pi_crownpx (pixels, crown-covered cells)    : "
+      f"{np.round(res['pi_crownpx'], 4)}")
+    A(f"    pi_pooled  (crowns judged PRESENT, v1)      : "
+      f"{np.round(res['pi_pooled'], 4)}")
     if res["dropped_tags"]:
         A(f"  DROPPED (no rate row, treated as MISSING): {', '.join(res['dropped_tags'])}")
     A("  NOT SCORED HERE: this instrument produces no comparison against the Panel A "
@@ -645,7 +861,8 @@ def main(argv=None):
                        logs_dir=BASE / "phase4" / "logs", stdout_text=out.getvalue(),
                        errors=0, crowns=res["n_crowns"], epochs=len(res["tags"]),
                        placebo_seed=res["placebo_seed"], policy=res["policy"],
-                       ref=res["ref"], dropped_tags=res["dropped_tags"])
+                       ref=res["ref"], dropped_tags=res["dropped_tags"],
+                       emission_plugin=res["emission_plugin"])
     except Exception as e:                                        # noqa: BLE001
         print(f"  ⚠ step log not written — {e}")
     return 0

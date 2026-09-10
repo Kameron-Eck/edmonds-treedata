@@ -1124,3 +1124,28 @@ files:   experiments/harmonization_h1_h2.yaml (verdict), crown_state_model.yaml;
          qc_indep harvests; qc/instruments/crown_state_model.py + test.
 next:    heal_2020 rate -> referee runs crown_state_model + scores vs gold (K1-K3),
          K4 rate sensitivity incl. 2005/2016 lidar rates; Kam: GitHub push, key rotation.
+
+## 2026-09-10  crown state model v1 KILLED by a unit defect; v2 pre-registered
+goal:    referee the pre-registered crown state model on the real 12-epoch stack.
+did:     all twelve delivered-cut rates in place (heal_2020/2022/2023 scored citywide;
+         heal_2020 needed a rescore after a mid-raster read fault on the mirror). Opus
+         referee ran the model (222,435 crowns, ~100 s), wrote crown_state_vs_gold.py
+         (+tests, mutation-tested laundering counter), scored vs gold, ran 20 placebo
+         draws; K4 not evaluable (no 2016/lidar-referenced rows for the stack tags).
+read:    K1 FIRES (3 of 11 at-risk on-crown losses laundered, 12 epochs); K2 111/327 vs
+         the healer's 240/327; K3 placebo identical in all 20 draws. MECHANISM (referee,
+         demonstrated): emission_fp inverts pixel-measured precision with crown-pooled
+         prevalence -> f >= r in 11/12 epochs, saturating in 8 -> observing canopy LOWERS
+         P(canopy) -> Viterbi collapses to two constant paths citywide; first_seen never
+         moves. Pixel-level prevalence gives f 0.02-0.11 < r everywhere. Also: 60% of the
+         gold points are off-crown - the crown unit sees 40% of the gold.
+decided: v1 verdict KILLED AS RUN on the yaml (decided). crown_state_model_v2.yaml
+         pre-registered BEFORE the fix is written: pixel-level plug-in, a hard f<r gate
+         shown FIRING on the v1 derivation, loud warning; kills and denominators
+         unchanged; K4 stays not evaluable until 2016/lidar-referenced rates are scored.
+         Implementer (Opus) launched on v2; referee to follow.
+files:   experiments/crown_state_model.yaml (verdict), crown_state_model_v2.yaml;
+         qc/instruments/crown_state_vs_gold.py + test; phase4/qc/crown_state_vs_gold.csv,
+         crown_state_placebo.csv, crown_state_intervals.csv, crown_state_posterior.npz.
+next:    v2 implement -> referee -> verdict; score stack tags vs ccap_2016 + lidar
+         binaries (CPU) for K4; 2020_in16 H2 arm scores when its raster mirrors.

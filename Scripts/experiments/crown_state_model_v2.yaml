@@ -1,0 +1,93 @@
+name: crown_state_model_v2
+kind: measurement-campaign
+status: queued
+retrospective: false
+category: change
+tags: [time-series, hidden-state, crowns, emission-rates, panel-a, scoreable, cpu-only]
+
+hypothesis: >
+  Same hypothesis as crown_state_model (Kam, 2026-09-10: "I'm on board for method 1"),
+  re-registered because the first run was killed by a unit defect, not by the data: the
+  emission false-positive rate was derived by inverting a PIXEL-measured precision with a
+  CROWN-pooled prevalence, which put f >= r in 11 of 12 epochs and collapsed every crown
+  to a constant path (crown_state_model.yaml verdict). With f derived from the pixel-level
+  prevalence of each epoch's mask (the same unit the precision was measured in), f falls
+  below r in every epoch (referee's recomputation: 0.02-0.11) and the observations carry
+  evidence again. The claims (a)-(c) of the original hypothesis are then testable for the
+  first time. What would change our mind: unchanged.
+
+arms: []
+baseline: temporal_heal_12ep
+launch_defaults: []
+
+metric: >
+  phase4/qc/crown_state_v2_vs_gold.csv and crown_state_v2_placebo.csv — same scorer
+  (qc/instruments/crown_state_vs_gold.py), same gold, same trailer keys as the v1 files,
+  written to NEW names so v1's killed numbers stay on the record beside them.
+
+decision_rule: >
+  PRE-REGISTERED 2026-09-10 before the fix is written. THE FIX, and only the fix: (1)
+  emission_fp uses the pixel-level positive fraction of that epoch's mask inside the
+  crown-covered area (or the whole valid grid — state which, and report both) as the
+  prevalence plug-in; (2) a hard gate: the model REFUSES to run if f >= r for any epoch,
+  printing the epoch table — and qc/test_crown_state_model.py must show this gate FIRING
+  on the v1 derivation (mutation test: with the crown-pooled plug-in the gate trips; with
+  the pixel plug-in it passes), per CLAUDE.md 3.4c; (3) the silent clip to 1-EPS becomes a
+  loud warning. No other change: q_loss, q_gain, the persistence rule, the ladder and the
+  interval definition stay exactly as amended in crown_state_model.yaml.
+  AMENDMENT 2026-09-10, before the referee runs, original text intact: the pixel
+  population for the plug-in is the WHOLE VALID GRID inside the city. The implementer
+  measured the crown-covered alternative on the real stack and it reproduces the defect:
+  pi over crown-covered pixels is 0.82-0.96, within 0.02 of v1's crown-pooled 0.80-0.95
+  in every epoch (a crown judged PRESENT is >= 50% canopy pixels and ~85% of crowns are
+  PRESENT), and it trips the f < r gate on the same 11 of 12 epochs. Both pi's and both
+  f's are reported in the epoch table and trailer regardless (PIXEL_SCOPE = "grid";
+  "crownpx" is the measured-equivalent-to-the-defect option and must not be re-proposed
+  as a fix). Gate demonstrated on the real stack: --emission-plugin crown FIRES on 11 of
+  12 epochs (eight saturated at 1.0), pixel passes all 12 with f 0.020-0.106.
+
+  KILLS, unchanged from v1 with the SAME denominators (on-crown gold only, stated):
+  K1 laundering 0 permitted of the 11 at-risk on-crown verified losses; K2 no-change
+  triples fixed, COUNT and SHARE, vs the healer's 240 of 327 (and vs v1's 111); K3 the
+  20-draw shuffled-rate placebo — the true assignment must exceed the 95th percentile;
+  K4 rate sensitivity is NOT EVALUABLE until 2016-referenced or lidar-referenced
+  delivered-cut rows exist for the twelve stack tags — scoring those is a separate CPU
+  job (qc/phase4_qc_indep.py citywide vs ccap_2016 and vs the lidar canopy binaries) and
+  its absence makes any PROMOTE provisional, never final.
+  ADDED READ, not a kill: the gold coverage. 726 of 1,214 gold points are off-crown; the
+  verdict must state that the crown model is scored on 40% of the gold, and a promote
+  licenses the crown TRAJECTORY layer only. The pixel-unit model is the follow-on that
+  reaches the other 60%, pre-registered separately if v2 promotes.
+  DESIGN CONTRACT unchanged: an Opus implementer writes the fix; the independent referee
+  runs and scores; every number in the verdict is read from the referee's files.
+
+verdict: null
+decided: null
+
+design_doc: null
+reports: []
+instruments:
+  - Scripts/qc/instruments/crown_state_model.py
+  - Scripts/qc/instruments/crown_state_vs_gold.py
+inputs:
+  - phase4/qc/panel_a_gold.csv
+  - phase4/qc/arm_metrics.csv
+  - phase4/qc/heal_vs_gold_12ep.csv
+  - phase4/qc/crown_state_vs_gold.csv
+outputs: []   # crown_state_v2_vs_gold.csv, crown_state_v2_placebo.csv — listed once written
+imagery: []
+sample: >
+  Unchanged: all 222,435 frozen 2020 crowns against the twelve-epoch 2 m stack; scored
+  on the on-crown subset of the 1,214 Panel A gold points (488 points). CPU only.
+
+supersedes: [crown_state_model]
+superseded_by: []
+
+extra:
+  why_not_a_retune: >
+    AMENDMENT (3) of crown_state_model.yaml says a q sweep after a K2 failure is a new
+    pre-registration; the same discipline applies to the emission derivation, which is
+    the model's load-bearing assumption. The fix was identified by the REFEREE, not by
+    reading the score, and is a unit correction with one right answer, but it still
+    changes the model after a result exists — so it is registered here with its own
+    gate, and v1's numbers stay on the record.

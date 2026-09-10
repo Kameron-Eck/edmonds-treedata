@@ -1,6 +1,6 @@
 name: crown_state_model
 kind: measurement-campaign
-status: queued
+status: complete
 retrospective: false
 category: change
 tags: [time-series, hidden-state, crowns, emission-rates, panel-a, scoreable, cpu-only]
@@ -93,17 +93,44 @@ decision_rule: >
   (the resolution and leaf-off findings say only approximately). Per-size-class recall
   (by 2020 crown diameter) is the first refinement if K3 passes narrowly.
 
-verdict: null
-decided: null
+verdict: >
+  KILLED AS RUN (independent Opus referee, 2026-09-10; every number from
+  phase4/qc/crown_state_vs_gold.csv and crown_state_placebo.csv). K1 FIRES: 3 of the 11
+  on-crown verified losses with a terminal absence are laundered (12 epochs asserted
+  canopy; the crown itself observed ABSENT in every one — the chain smoothed over a real
+  absence). K2 FAILS: 111 of 327 no-change impossible triples removed (0.339) against the
+  healer's 240 of 327 (0.734); 149 of the healer's fixes are IGNORE markings this model
+  cannot make. K3 FAILS: all 20 shuffled-rate draws give exactly 111 — the rates do not
+  move the triple count at all (they do move K1: shuffled laundering 8-27). K4 NOT
+  EVALUABLE: no 2016-referenced or lidar-referenced delivered-cut rows exist for any of
+  the twelve stack tags. MECHANISM, demonstrated by the referee: emission_fp inverts the
+  PIXEL-measured precision with a CROWN-pooled prevalence (0.80-0.95), so the derived
+  false-positive rate is >= recall in 11 of 12 epochs and saturates at 1.0 in 8; under
+  those emissions an observed canopy LOWERS P(canopy), and the Viterbi collapses to two
+  constant paths over all 222,435 crowns (163,607 all-absent, 58,828 all-canopy) despite
+  88% canopy observations; first_seen never moves, so hypothesis clause (c) was never
+  tested. Recomputing f with the pixel-level prevalence from the stack (0.245-0.376) gives
+  f = 0.02-0.11, below r in every epoch — the fix is known but is a NEW pre-registration
+  under AMENDMENT (3), not a retune: see crown_state_model_v2.yaml. Two further findings
+  stand regardless: (i) 726 of 1,214 gold points (59.8%) lie outside every 2020 crown, so
+  the crown unit can be scored on 40% of the gold at most — the pixel version is where the
+  gold lives; (ii) the implementer's code clips the derived rate to 1-EPS silently and
+  asserts nowhere that f < r — the gate the v2 pre-registration must carry and show firing.
+decided: 2026-09-10
 
 design_doc: null
 reports: []
-instruments: []   # crown_state_model.py + crown_state_vs_gold.py, added when they exist
+instruments:
+  - Scripts/qc/instruments/crown_state_model.py
+  - Scripts/qc/instruments/crown_state_vs_gold.py
 inputs:
   - phase4/qc/panel_a_gold.csv
   - phase4/qc/arm_metrics.csv
   - phase4/qc/heal_vs_gold_12ep.csv
-outputs: []   # crown_state_vs_gold.csv + crown_state_intervals.csv, listed once written
+outputs:
+  - phase4/qc/crown_state_vs_gold.csv
+  - phase4/qc/crown_state_placebo.csv
+  - phase4/qc/crown_state_intervals.csv
 imagery: []
 sample: >
   All 222,435 frozen 2020 crowns against the twelve-epoch 2 m stack
@@ -111,7 +138,7 @@ sample: >
   CPU only, torch-free; runs locally or on a free CPU runtime.
 
 supersedes: []
-superseded_by: []
+superseded_by: [crown_state_model_v2]
 
 extra:
   why_crowns_first: >

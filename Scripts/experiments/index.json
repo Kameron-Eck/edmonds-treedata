@@ -1272,6 +1272,64 @@
       "verdict": "DECIDED 2026-09-10 on Kam's gate (extra.kam_decision_2026_09_09): RECIPE REFINEMENT MOVES TO RESNET-18, warm-started from phase4/models/sem_best_2020_base18.pt. The pre-registered metric (matched_p75 recall vs C-CAP 2021 on the LOSO sample-test blocks; phase4/qc/arm_metrics.csv joined to backbone_benchmark.csv), resnet18 (base18 start) vs the resnet101 record: 2011s base/s2/s3 0.720/0.725/0.727 vs 0.725/0.720/ 0.717 (SEED SPREAD 0.0069 vs 0.0085); cor05 0.727 vs 0.725; 2016 base 0.743 vs 0.669; 2016 in05 0.751 vs 0.744; 2020 base 0.740 (P 0.753) vs 0.640 (P 0.800). AP 0.803-0.830 vs 0.755-0.820. (a) at or above the 101 on every arm; (b) noise better than the 101's; null pair +0.006, inside the floor. Positive pair +0.008 (inside the floor) — as on resnet50, the 101's +0.075 lidar-input effect does not reproduce with a sound baseline; the 2016 lidar effect stays UNRESOLVED pending the 101's 2016 reseed. Against resnet50 (base50 start): resnet18 is ~0.03 lower on 2011s, equal on 2016, higher on 2020; train 14-31 min vs 14-30 (both ~25-35% under the 101; the pipeline is I/O-bound, so the small encoder's saving is in fine-tune minutes, not inference). Phase-1 (ImageNet-start) arms stand as the record of why a trained base per encoder is required. Cache fix (0080cce) validated live twice (in05 inference on both encoders).\n"
     },
     {
+      "arm_scores": {},
+      "arms": [],
+      "category": "change",
+      "champion_tags": [],
+      "commit": null,
+      "decided": "2026-09-10",
+      "decision_rule": "PRE-REGISTERED 2026-09-10 before any model code exists. Emission rates: for every epoch of the twelve-epoch stack, precision and recall AT THE DELIVERED CUT of the mask that sits in the stack (the u8 cut each mask was written at, read off that arm's tracked curve in phase4/qc/curves/), NOT the matched_p75 pair — the stack holds delivered masks, so the rates must describe the cut the observations were made at. Reference for the primary run: ccap_2021_hires_lc.tif, sample-test blocks (the only reference every epoch is scored against). Three epochs (heal_2020/2022/2023) have no score yet and are being scored the same way before the model runs.\nKILLS, each to be shown to FIRE on a known-bad input before it counts (CLAUDE.md 3.4c): K1 LAUNDERING — the model asserts canopy at the terminal absence of any of the 42\n   verified losses: 0 permitted. (Same power caveat as the healer's: at-risk may be\n   zero by trajectory shape; report at-risk beside it, never the ratio alone.)\nK2 TRIPLES — impossible-triple removal at the 1,170 no-change points below the\n   healer's 240 of 327 on the same stack (heal_vs_gold_12ep.csv). Read as COUNT and\n   SHARE, both stated, so the ambiguity that left heal_infill undetermined cannot recur.\nK3 PLACEBO — the survey-to-rate assignment is shuffled (seeded, 20 draws); if the\n   gold agreement (K2 count) under the true assignment is not above the 95th\n   percentile of the shuffled draws, the rates are not doing the work: KILL.\nK4 RATE SENSITIVITY — the model is re-run with (i) 2016-referenced rates where they\n   exist (harm_spread.csv / arm_metrics rows with ref ccap_2016), (ii) lidar-referenced\n   rates for the epochs within two years of the 2005 and 2016 CHMs (Kam, 2026-09-10:\n   \"We could also reference against 2005 and 2016 lidar\"). If first-seen / last-seen\n   moves by more than one epoch for more than 5% of gold-point crowns between rate sets,\n   the verdict is UNDETERMINED on the rates, not a promote.\nPROMOTE only if K1-K3 pass and K4 is inside its bound. A promote licenses the crown model as the TRAJECTORY layer (validity intervals, change maps); it never feeds the annual fraction series (endpoints are unobserved by construction, as for the healer).\nDESIGN CONTRACT: the proposer does not score the proposal. The model is written by one agent; an independent Opus referee re-runs it on the real stack and produces crown_state_vs_gold.csv; every number in the verdict is read from that file.\nAMENDMENT 2026-09-10 (written after the implementer's dry-run, BEFORE any model run, original text above left intact): (1) RATES. The delivered-cut rates are the scored_live rows of phase4/qc/arm_metrics.csv (policy scored_live, ref ccap_2021_hires_lc.tif, canopy_def forest_wetland, exactly one row per tag), which are CITYWIDE scores (qc_indep_report.csv aoi column empty for every trend8 and heal_2017 live row) — not the sample-test blocks the paragraph above named. The three unscored epochs are therefore scored citywide the same way, so all twelve rates share one scope. Curve files are the provenance (curve_id carried), not the source of the cut. (2) INTERVALS. \"Last epoch with P<0.5 before first_seen\" is first_seen-1 by construction and would make the interval width uninformative; the lower bound is the last epoch at or below the 0.15 ABSENT rung, so the interval spans the UNSURE run. Symmetric at last_seen. (3) PERSISTENCE. At the pre-registered q_gain = q_loss = 0.02 the two-epoch rule is a weak lever (prior odds of a one-epoch blip 4e-4 vs 2e-2); the mutation test isolates it at q_gain 0.3 / q_loss 0.9. K2 must be read knowing the rule contributes little at the defaults; if K2 fails, a q sweep is a NEW pre- registration, not a retune. (4) Pixel-level precision/recall are applied to a crown's pooled vote; the crown's present-fraction ladder (0.5 / 0.15) is the observation operator. Stated as an assumption; per-size-class rates are the refinement.\nAssumed until measured: that a survey's detection quality is uniform across the city (the resolution and leaf-off findings say only approximately). Per-size-class recall (by 2020 crown diameter) is the first refinement if K3 passes narrowly.\n",
+      "design_doc": null,
+      "extra": {
+        "relation_to_healer": "The healer's HEAL / REVIEW / BLIND tiers are a discrete stand-in for emission rates plus a gap-length prior. temporal_heal.py::tier_for grants HEAL only with a lidar epoch downstream, so post-2016 it writes IGNORE and never canopy (heal_infill reads, 2026-09-10). The state model has no such gate; its post-2016 assertions are bounded by the rates instead, which is exactly what K1-K3 test.\n",
+        "why_crowns_first": "A crown pools a few hundred cells into one vote per year, so boundary jitter and sub-cell registration error cancel before the model sees them; the pixel version is the same model with noisier input and no gold of its own. Crowns are a 2020 snapshot: trees removed before 2020 or planted after have no polygon and are invisible to this layer — the pixel version, if the crown one promotes, is where that is recovered.\n"
+      },
+      "headline": "KILLED AS RUN (independent Opus referee, 2026-09-10; every number from phase4/qc/crown_state_vs_gold.csv and crown_state_placebo.csv).",
+      "hypothesis": "Kam, 2026-09-10: \"I'm on board for method 1.\" The twelve-epoch series is a set of 0/1 observations per unit whose per-survey detection quality is KNOWN — matched-cut precision and recall exist for every survey (phase4/qc/arm_metrics.csv) — and the healer's tiers are a hand-written stand-in for using those rates. A two-state hidden model (canopy / not canopy) per 2020 crown, with per-survey emission probabilities read from the measured rates and a transition rule that lets a loss happen any year but requires a gain to persist two consecutive epochs (the coppice rule), should (a) reproduce the healer's no-change triple removal on the frozen gold without hand-set tiers, (b) launder no verified loss, and (c) return first-seen / last-seen as INTERVALS whose width tracks the surveys' measured recall, so that an absence in a coarse survey (2005 resolves at 81 cm; Kam expects the 2000s to skew down) widens the interval instead of inventing a planting date.\nWhat would change our mind: gold agreement that does not fall when the survey-to-rate assignment is shuffled (the rates are then not doing the work), or trajectories that move materially between C-CAP-referenced and lidar-referenced rate sets (the rates are then the finding, and the model waits on them).\n",
+      "imagery": [],
+      "inputs": [
+        "phase4/qc/panel_a_gold.csv",
+        "phase4/qc/arm_metrics.csv",
+        "phase4/qc/heal_vs_gold_12ep.csv"
+      ],
+      "instruments": [
+        "Scripts/qc/instruments/crown_state_model.py",
+        "Scripts/qc/instruments/crown_state_vs_gold.py"
+      ],
+      "kind": "measurement-campaign",
+      "last_run": null,
+      "metric": "phase4/qc/crown_state_vs_gold.csv — the 1,214 Panel A gold points scored through the crown model's posterior exactly as heal_vs_gold.py scores the healer (same population, same laundered / censored / impossible-triple definitions), beside the healer's own twelve-epoch numbers in phase4/qc/heal_vs_gold_12ep.csv. Secondary: phase4/qc/crown_state_intervals.csv — first-seen / last-seen interval width per crown by survey-recall class, the quantity hypothesis clause (c) is about.\n",
+      "n": null,
+      "n_source": null,
+      "name": "crown_state_model",
+      "outputs": [
+        "phase4/qc/crown_state_vs_gold.csv",
+        "phase4/qc/crown_state_placebo.csv",
+        "phase4/qc/crown_state_intervals.csv"
+      ],
+      "registry_rows": 0,
+      "reports": [],
+      "retrospective": false,
+      "run_ids": [],
+      "sample": "All 222,435 frozen 2020 crowns against the twelve-epoch 2 m stack (D:\\edmonds-pipeline\\heal_stack_2m.npz); scored on the 1,214 Panel A gold points. CPU only, torch-free; runs locally or on a free CPU runtime.\n",
+      "status": "complete",
+      "superseded_by": [
+        "crown_state_model_v2"
+      ],
+      "supersedes": [],
+      "tags": [
+        "time-series",
+        "hidden-state",
+        "crowns",
+        "emission-rates",
+        "panel-a",
+        "scoreable",
+        "cpu-only"
+      ],
+      "tilesets": [],
+      "verdict": "KILLED AS RUN (independent Opus referee, 2026-09-10; every number from phase4/qc/crown_state_vs_gold.csv and crown_state_placebo.csv). K1 FIRES: 3 of the 11 on-crown verified losses with a terminal absence are laundered (12 epochs asserted canopy; the crown itself observed ABSENT in every one — the chain smoothed over a real absence). K2 FAILS: 111 of 327 no-change impossible triples removed (0.339) against the healer's 240 of 327 (0.734); 149 of the healer's fixes are IGNORE markings this model cannot make. K3 FAILS: all 20 shuffled-rate draws give exactly 111 — the rates do not move the triple count at all (they do move K1: shuffled laundering 8-27). K4 NOT EVALUABLE: no 2016-referenced or lidar-referenced delivered-cut rows exist for any of the twelve stack tags. MECHANISM, demonstrated by the referee: emission_fp inverts the PIXEL-measured precision with a CROWN-pooled prevalence (0.80-0.95), so the derived false-positive rate is >= recall in 11 of 12 epochs and saturates at 1.0 in 8; under those emissions an observed canopy LOWERS P(canopy), and the Viterbi collapses to two constant paths over all 222,435 crowns (163,607 all-absent, 58,828 all-canopy) despite 88% canopy observations; first_seen never moves, so hypothesis clause (c) was never tested. Recomputing f with the pixel-level prevalence from the stack (0.245-0.376) gives f = 0.02-0.11, below r in every epoch — the fix is known but is a NEW pre-registration under AMENDMENT (3), not a retune: see crown_state_model_v2.yaml. Two further findings stand regardless: (i) 726 of 1,214 gold points (59.8%) lie outside every 2020 crown, so the crown unit can be scored on 40% of the gold at most — the pixel version is where the gold lives; (ii) the implementer's code clips the derived rate to 1-EPS silently and asserts nowhere that f < r — the gate the v2 pre-registration must carry and show firing.\n"
+    },
+    {
       "arm_scores": {
         "wb18_2006s_base": {
           "best_f1": {
@@ -2961,44 +3019,44 @@
       "arm_scores": {
         "trend8_2009": {
           "best_f1": {
-            "curve": "phase4/qc/curves/6a5c3556d7d3.csv",
+            "curve": "phase4/qc/curves/72e869686525.csv",
             "eval_scope": "",
-            "population": "370374999",
-            "pr_auc": "0.81",
-            "precision": "0.7046",
-            "recall": "0.8093",
-            "ref": "ccap_2021_hires_lc.tif",
-            "thresh": "0.122047"
+            "population": "376815270",
+            "pr_auc": "0.8457",
+            "precision": "0.7482",
+            "recall": "0.8127",
+            "ref": "ccap_2016_hires_lc.tif",
+            "thresh": "0.11811"
           },
           "matched_p50": {
-            "curve": "phase4/qc/curves/6a5c3556d7d3.csv",
+            "curve": "phase4/qc/curves/72e869686525.csv",
             "eval_scope": "",
-            "population": "501824826",
-            "pr_auc": "0.81",
-            "precision": "0.5362",
-            "recall": "0.9419",
-            "ref": "ccap_2021_hires_lc.tif",
+            "population": "504434638",
+            "pr_auc": "0.8457",
+            "precision": "0.5707",
+            "recall": "0.9369",
+            "ref": "ccap_2016_hires_lc.tif",
             "thresh": "0.086614"
           },
           "matched_p75": {
-            "curve": "phase4/qc/curves/6a5c3556d7d3.csv",
+            "curve": "phase4/qc/curves/72e869686525.csv",
             "eval_scope": "",
-            "population": "344975021",
-            "pr_auc": "0.81",
-            "precision": "0.75",
-            "recall": "0.7424",
-            "ref": "ccap_2021_hires_lc.tif",
-            "thresh": "0.452755"
+            "population": "374538354",
+            "pr_auc": "0.8457",
+            "precision": "0.7524",
+            "recall": "0.8077",
+            "ref": "ccap_2016_hires_lc.tif",
+            "thresh": "0.122047"
           },
           "matched_p90": {
-            "curve": "phase4/qc/curves/6a5c3556d7d3.csv",
+            "curve": "phase4/qc/curves/72e869686525.csv",
             "eval_scope": "",
-            "population": "286272250",
-            "pr_auc": "0.81",
-            "precision": "0.9007",
-            "recall": "0.3194",
-            "ref": "ccap_2021_hires_lc.tif",
-            "thresh": "0.543307"
+            "population": "310506103",
+            "pr_auc": "0.8457",
+            "precision": "0.9044",
+            "recall": "0.467",
+            "ref": "ccap_2016_hires_lc.tif",
+            "thresh": "0.511811"
           },
           "scored_live": {
             "curve": "",
@@ -3065,44 +3123,44 @@
         },
         "trend8_2013": {
           "best_f1": {
-            "curve": "phase4/qc/curves/4f31ed3fa74a.csv",
+            "curve": "phase4/qc/curves/7cb86320383b.csv",
             "eval_scope": "",
-            "population": "1412111645",
-            "pr_auc": "0.8116",
-            "precision": "0.7403",
-            "recall": "0.7885",
-            "ref": "ccap_2021_hires_lc.tif",
-            "thresh": "0.145669"
+            "population": "1436659150",
+            "pr_auc": "0.8588",
+            "precision": "0.7895",
+            "recall": "0.8017",
+            "ref": "ccap_2016_hires_lc.tif",
+            "thresh": "0.141732"
           },
           "matched_p50": {
-            "curve": "phase4/qc/curves/4f31ed3fa74a.csv",
+            "curve": "phase4/qc/curves/7cb86320383b.csv",
             "eval_scope": "",
-            "population": "2085002632",
-            "pr_auc": "0.8116",
-            "precision": "0.5133",
-            "recall": "0.9333",
-            "ref": "ccap_2021_hires_lc.tif",
-            "thresh": "0.082677"
+            "population": "2263747608",
+            "pr_auc": "0.8588",
+            "precision": "0.5101",
+            "recall": "0.9501",
+            "ref": "ccap_2016_hires_lc.tif",
+            "thresh": "0.074803"
           },
           "matched_p75": {
-            "curve": "phase4/qc/curves/4f31ed3fa74a.csv",
+            "curve": "phase4/qc/curves/7cb86320383b.csv",
             "eval_scope": "",
-            "population": "1390014655",
-            "pr_auc": "0.8116",
-            "precision": "0.7512",
-            "recall": "0.7748",
-            "ref": "ccap_2021_hires_lc.tif",
-            "thresh": "0.153543"
+            "population": "1497562578",
+            "pr_auc": "0.8588",
+            "precision": "0.7577",
+            "recall": "0.8294",
+            "ref": "ccap_2016_hires_lc.tif",
+            "thresh": "0.129921"
           },
           "matched_p90": {
-            "curve": "phase4/qc/curves/4f31ed3fa74a.csv",
+            "curve": "phase4/qc/curves/7cb86320383b.csv",
             "eval_scope": "",
-            "population": "1148820712",
-            "pr_auc": "0.8116",
-            "precision": "0.9005",
-            "recall": "0.3495",
-            "ref": "ccap_2021_hires_lc.tif",
-            "thresh": "0.645669"
+            "population": "1255080423",
+            "pr_auc": "0.8588",
+            "precision": "0.9023",
+            "recall": "0.5577",
+            "ref": "ccap_2016_hires_lc.tif",
+            "thresh": "0.559055"
           },
           "scored_live": {
             "curve": "",
@@ -7719,36 +7777,41 @@
       "champion_tags": [],
       "commit": null,
       "decided": null,
-      "decision_rule": "PRE-REGISTERED 2026-09-10 before any model code exists. Emission rates: for every epoch of the twelve-epoch stack, precision and recall AT THE DELIVERED CUT of the mask that sits in the stack (the u8 cut each mask was written at, read off that arm's tracked curve in phase4/qc/curves/), NOT the matched_p75 pair — the stack holds delivered masks, so the rates must describe the cut the observations were made at. Reference for the primary run: ccap_2021_hires_lc.tif, sample-test blocks (the only reference every epoch is scored against). Three epochs (heal_2020/2022/2023) have no score yet and are being scored the same way before the model runs.\nKILLS, each to be shown to FIRE on a known-bad input before it counts (CLAUDE.md 3.4c): K1 LAUNDERING — the model asserts canopy at the terminal absence of any of the 42\n   verified losses: 0 permitted. (Same power caveat as the healer's: at-risk may be\n   zero by trajectory shape; report at-risk beside it, never the ratio alone.)\nK2 TRIPLES — impossible-triple removal at the 1,170 no-change points below the\n   healer's 240 of 327 on the same stack (heal_vs_gold_12ep.csv). Read as COUNT and\n   SHARE, both stated, so the ambiguity that left heal_infill undetermined cannot recur.\nK3 PLACEBO — the survey-to-rate assignment is shuffled (seeded, 20 draws); if the\n   gold agreement (K2 count) under the true assignment is not above the 95th\n   percentile of the shuffled draws, the rates are not doing the work: KILL.\nK4 RATE SENSITIVITY — the model is re-run with (i) 2016-referenced rates where they\n   exist (harm_spread.csv / arm_metrics rows with ref ccap_2016), (ii) lidar-referenced\n   rates for the epochs within two years of the 2005 and 2016 CHMs (Kam, 2026-09-10:\n   \"We could also reference against 2005 and 2016 lidar\"). If first-seen / last-seen\n   moves by more than one epoch for more than 5% of gold-point crowns between rate sets,\n   the verdict is UNDETERMINED on the rates, not a promote.\nPROMOTE only if K1-K3 pass and K4 is inside its bound. A promote licenses the crown model as the TRAJECTORY layer (validity intervals, change maps); it never feeds the annual fraction series (endpoints are unobserved by construction, as for the healer).\nDESIGN CONTRACT: the proposer does not score the proposal. The model is written by one agent; an independent Opus referee re-runs it on the real stack and produces crown_state_vs_gold.csv; every number in the verdict is read from that file.\nAMENDMENT 2026-09-10 (written after the implementer's dry-run, BEFORE any model run, original text above left intact): (1) RATES. The delivered-cut rates are the scored_live rows of phase4/qc/arm_metrics.csv (policy scored_live, ref ccap_2021_hires_lc.tif, canopy_def forest_wetland, exactly one row per tag), which are CITYWIDE scores (qc_indep_report.csv aoi column empty for every trend8 and heal_2017 live row) — not the sample-test blocks the paragraph above named. The three unscored epochs are therefore scored citywide the same way, so all twelve rates share one scope. Curve files are the provenance (curve_id carried), not the source of the cut. (2) INTERVALS. \"Last epoch with P<0.5 before first_seen\" is first_seen-1 by construction and would make the interval width uninformative; the lower bound is the last epoch at or below the 0.15 ABSENT rung, so the interval spans the UNSURE run. Symmetric at last_seen. (3) PERSISTENCE. At the pre-registered q_gain = q_loss = 0.02 the two-epoch rule is a weak lever (prior odds of a one-epoch blip 4e-4 vs 2e-2); the mutation test isolates it at q_gain 0.3 / q_loss 0.9. K2 must be read knowing the rule contributes little at the defaults; if K2 fails, a q sweep is a NEW pre- registration, not a retune. (4) Pixel-level precision/recall are applied to a crown's pooled vote; the crown's present-fraction ladder (0.5 / 0.15) is the observation operator. Stated as an assumption; per-size-class rates are the refinement.\nAssumed until measured: that a survey's detection quality is uniform across the city (the resolution and leaf-off findings say only approximately). Per-size-class recall (by 2020 crown diameter) is the first refinement if K3 passes narrowly.\n",
+      "decision_rule": "PRE-REGISTERED 2026-09-10 before the fix is written. THE FIX, and only the fix: (1) emission_fp uses the pixel-level positive fraction of that epoch's mask inside the crown-covered area (or the whole valid grid — state which, and report both) as the prevalence plug-in; (2) a hard gate: the model REFUSES to run if f >= r for any epoch, printing the epoch table — and qc/test_crown_state_model.py must show this gate FIRING on the v1 derivation (mutation test: with the crown-pooled plug-in the gate trips; with the pixel plug-in it passes), per CLAUDE.md 3.4c; (3) the silent clip to 1-EPS becomes a loud warning. No other change: q_loss, q_gain, the persistence rule, the ladder and the interval definition stay exactly as amended in crown_state_model.yaml. AMENDMENT 2026-09-10, before the referee runs, original text intact: the pixel population for the plug-in is the WHOLE VALID GRID inside the city. The implementer measured the crown-covered alternative on the real stack and it reproduces the defect: pi over crown-covered pixels is 0.82-0.96, within 0.02 of v1's crown-pooled 0.80-0.95 in every epoch (a crown judged PRESENT is >= 50% canopy pixels and ~85% of crowns are PRESENT), and it trips the f < r gate on the same 11 of 12 epochs. Both pi's and both f's are reported in the epoch table and trailer regardless (PIXEL_SCOPE = \"grid\"; \"crownpx\" is the measured-equivalent-to-the-defect option and must not be re-proposed as a fix). Gate demonstrated on the real stack: --emission-plugin crown FIRES on 11 of 12 epochs (eight saturated at 1.0), pixel passes all 12 with f 0.020-0.106.\nKILLS, unchanged from v1 with the SAME denominators (on-crown gold only, stated): K1 laundering 0 permitted of the 11 at-risk on-crown verified losses; K2 no-change triples fixed, COUNT and SHARE, vs the healer's 240 of 327 (and vs v1's 111); K3 the 20-draw shuffled-rate placebo — the true assignment must exceed the 95th percentile; K4 rate sensitivity is NOT EVALUABLE until 2016-referenced or lidar-referenced delivered-cut rows exist for the twelve stack tags — scoring those is a separate CPU job (qc/phase4_qc_indep.py citywide vs ccap_2016 and vs the lidar canopy binaries) and its absence makes any PROMOTE provisional, never final. ADDED READ, not a kill: the gold coverage. 726 of 1,214 gold points are off-crown; the verdict must state that the crown model is scored on 40% of the gold, and a promote licenses the crown TRAJECTORY layer only. The pixel-unit model is the follow-on that reaches the other 60%, pre-registered separately if v2 promotes. DESIGN CONTRACT unchanged: an Opus implementer writes the fix; the independent referee runs and scores; every number in the verdict is read from the referee's files.\n",
       "design_doc": null,
       "extra": {
-        "relation_to_healer": "The healer's HEAL / REVIEW / BLIND tiers are a discrete stand-in for emission rates plus a gap-length prior. temporal_heal.py::tier_for grants HEAL only with a lidar epoch downstream, so post-2016 it writes IGNORE and never canopy (heal_infill reads, 2026-09-10). The state model has no such gate; its post-2016 assertions are bounded by the rates instead, which is exactly what K1-K3 test.\n",
-        "why_crowns_first": "A crown pools a few hundred cells into one vote per year, so boundary jitter and sub-cell registration error cancel before the model sees them; the pixel version is the same model with noisier input and no gold of its own. Crowns are a 2020 snapshot: trees removed before 2020 or planted after have no polygon and are invisible to this layer — the pixel version, if the crown one promotes, is where that is recovered.\n"
+        "why_not_a_retune": "AMENDMENT (3) of crown_state_model.yaml says a q sweep after a K2 failure is a new pre-registration; the same discipline applies to the emission derivation, which is the model's load-bearing assumption. The fix was identified by the REFEREE, not by reading the score, and is a unit correction with one right answer, but it still changes the model after a result exists — so it is registered here with its own gate, and v1's numbers stay on the record.\n"
       },
-      "headline": "Kam, 2026-09-10: \"I'm on board for method 1.\" The twelve-epoch series is a set of 0/1 observations per unit whose per-survey detection quality is KNOWN — matched-cut precision and recall exist for eve…",
-      "hypothesis": "Kam, 2026-09-10: \"I'm on board for method 1.\" The twelve-epoch series is a set of 0/1 observations per unit whose per-survey detection quality is KNOWN — matched-cut precision and recall exist for every survey (phase4/qc/arm_metrics.csv) — and the healer's tiers are a hand-written stand-in for using those rates. A two-state hidden model (canopy / not canopy) per 2020 crown, with per-survey emission probabilities read from the measured rates and a transition rule that lets a loss happen any year but requires a gain to persist two consecutive epochs (the coppice rule), should (a) reproduce the healer's no-change triple removal on the frozen gold without hand-set tiers, (b) launder no verified loss, and (c) return first-seen / last-seen as INTERVALS whose width tracks the surveys' measured recall, so that an absence in a coarse survey (2005 resolves at 81 cm; Kam expects the 2000s to skew down) widens the interval instead of inventing a planting date.\nWhat would change our mind: gold agreement that does not fall when the survey-to-rate assignment is shuffled (the rates are then not doing the work), or trajectories that move materially between C-CAP-referenced and lidar-referenced rate sets (the rates are then the finding, and the model waits on them).\n",
+      "headline": "Same hypothesis as crown_state_model (Kam, 2026-09-10: \"I'm on board for method 1\"), re-registered because the first run was killed by a unit defect, not by the data: the emission false-positive rate …",
+      "hypothesis": "Same hypothesis as crown_state_model (Kam, 2026-09-10: \"I'm on board for method 1\"), re-registered because the first run was killed by a unit defect, not by the data: the emission false-positive rate was derived by inverting a PIXEL-measured precision with a CROWN-pooled prevalence, which put f >= r in 11 of 12 epochs and collapsed every crown to a constant path (crown_state_model.yaml verdict). With f derived from the pixel-level prevalence of each epoch's mask (the same unit the precision was measured in), f falls below r in every epoch (referee's recomputation: 0.02-0.11) and the observations carry evidence again. The claims (a)-(c) of the original hypothesis are then testable for the first time. What would change our mind: unchanged.\n",
       "imagery": [],
       "inputs": [
         "phase4/qc/panel_a_gold.csv",
         "phase4/qc/arm_metrics.csv",
-        "phase4/qc/heal_vs_gold_12ep.csv"
+        "phase4/qc/heal_vs_gold_12ep.csv",
+        "phase4/qc/crown_state_vs_gold.csv"
       ],
-      "instruments": [],
+      "instruments": [
+        "Scripts/qc/instruments/crown_state_model.py",
+        "Scripts/qc/instruments/crown_state_vs_gold.py"
+      ],
       "kind": "measurement-campaign",
       "last_run": null,
-      "metric": "phase4/qc/crown_state_vs_gold.csv — the 1,214 Panel A gold points scored through the crown model's posterior exactly as heal_vs_gold.py scores the healer (same population, same laundered / censored / impossible-triple definitions), beside the healer's own twelve-epoch numbers in phase4/qc/heal_vs_gold_12ep.csv. Secondary: phase4/qc/crown_state_intervals.csv — first-seen / last-seen interval width per crown by survey-recall class, the quantity hypothesis clause (c) is about.\n",
+      "metric": "phase4/qc/crown_state_v2_vs_gold.csv and crown_state_v2_placebo.csv — same scorer (qc/instruments/crown_state_vs_gold.py), same gold, same trailer keys as the v1 files, written to NEW names so v1's killed numbers stay on the record beside them.\n",
       "n": null,
       "n_source": null,
-      "name": "crown_state_model",
+      "name": "crown_state_model_v2",
       "outputs": [],
       "registry_rows": 0,
       "reports": [],
       "retrospective": false,
       "run_ids": [],
-      "sample": "All 222,435 frozen 2020 crowns against the twelve-epoch 2 m stack (D:\\edmonds-pipeline\\heal_stack_2m.npz); scored on the 1,214 Panel A gold points. CPU only, torch-free; runs locally or on a free CPU runtime.\n",
+      "sample": "Unchanged: all 222,435 frozen 2020 crowns against the twelve-epoch 2 m stack; scored on the on-crown subset of the 1,214 Panel A gold points (488 points). CPU only.\n",
       "status": "queued",
       "superseded_by": [],
-      "supersedes": [],
+      "supersedes": [
+        "crown_state_model"
+      ],
       "tags": [
         "time-series",
         "hidden-state",
@@ -8237,6 +8300,58 @@
             "thresh": "0.4986"
           }
         },
+        "heal_2020": {
+          "best_f1": {
+            "curve": "phase4/qc/curves/4c058b552d66.csv",
+            "eval_scope": "",
+            "population": "5206532492",
+            "pr_auc": "0.7774",
+            "precision": "0.7456",
+            "recall": "0.7416",
+            "ref": "ccap_2021_hires_lc.tif",
+            "thresh": "0.114173"
+          },
+          "matched_p50": {
+            "curve": "phase4/qc/curves/4c058b552d66.csv",
+            "eval_scope": "",
+            "population": "6205288778",
+            "pr_auc": "0.7774",
+            "precision": "0.6229",
+            "recall": "0.815",
+            "ref": "ccap_2021_hires_lc.tif",
+            "thresh": "0.110236"
+          },
+          "matched_p75": {
+            "curve": "phase4/qc/curves/4c058b552d66.csv",
+            "eval_scope": "",
+            "population": "4990132185",
+            "pr_auc": "0.7774",
+            "precision": "0.7779",
+            "recall": "0.7036",
+            "ref": "ccap_2021_hires_lc.tif",
+            "thresh": "0.11811"
+          },
+          "matched_p90": {
+            "curve": "phase4/qc/curves/4c058b552d66.csv",
+            "eval_scope": "",
+            "population": "4223616918",
+            "pr_auc": "0.7774",
+            "precision": "0.9",
+            "recall": "0.1479",
+            "ref": "ccap_2021_hires_lc.tif",
+            "thresh": "0.661417"
+          },
+          "scored_live": {
+            "curve": "",
+            "eval_scope": "",
+            "population": "4715837501",
+            "pr_auc": "",
+            "precision": "0.8209",
+            "recall": "0.6184",
+            "ref": "ccap_2021_hires_lc.tif",
+            "thresh": "0.4197"
+          }
+        },
         "heal_2022": {
           "best_f1": {
             "curve": "phase4/qc/curves/a0f0358edef6.csv",
@@ -8430,7 +8545,7 @@
         "phase4/qc/heal_vs_gold.csv",
         "phase4/qc/crown_trajectories.csv"
       ],
-      "registry_rows": 23,
+      "registry_rows": 24,
       "reports": [
         "Reports/HEALING_TOOL_REASONING_2026-09-07.md"
       ],

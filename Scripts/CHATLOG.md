@@ -1174,3 +1174,18 @@ files:   experiments/crown_state_model_v2.yaml (verdict); phase4/qc/crown_state_
          crown_state_v2_placebo.csv; qc/instruments/crown_state_model.py (help text).
 next:    Kam decides the unit; K4 rate scoring lands (12 epochs vs ccap_2016, CPU);
          2020_in16 H2 arm scores when its raster mirrors; GitHub push + key rotation (Kam).
+
+## 2026-09-10  brainstorming brief: temporal + spatial consistency (source of truth)
+goal:    Kam: "wrap this all up into a brain storming brief for temporal and spatial
+         consistency ... a source of truth."
+did:     Reports/TEMPORAL_SPATIAL_CONSISTENCY_BRAINSTORM_2026-09-10.md - measured
+         constraints (healer 12ep, H2 kill, crown v1/v2, what exists for space and
+         buildings, the MUSCLE-Net paper) separated from the proposed design (three axes
+         of agreement, development as a dated local prior, lidar as teacher in three
+         roles, deep supervision + resolution curriculum, the LR arithmetic that links
+         precision/recall to year-of trust), the kills every design must carry, four
+         open questions for Kam, a cheapest-first order. Nothing in it is built.
+decided: nothing; the brief is the discussion's home. First move when Kam says go:
+         the building-proximity enrichment count on the gold (CPU, ~1 h).
+files:   Reports/TEMPORAL_SPATIAL_CONSISTENCY_BRAINSTORM_2026-09-10.md; WORKPLAN row.
+next:    Kam's answers to brief section 6; K4 rate scoring finishing; 2020_in16 raster.

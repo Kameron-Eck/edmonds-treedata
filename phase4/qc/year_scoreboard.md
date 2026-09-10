@@ -166,6 +166,12 @@ champion (pipeline/champion_arms.csv).
 
 ## 2015
 
+**ref `ccap_2016_hires_lc.tif`** · scope `citywide` — single arm, nothing to rank against
+
+| arm | recall | precision | thresh | pr_auc | population | eligible cuts | tiles (train) | curve |
+|---|---|---|---|---|---|---|---|---|
+| trend8_2015 | 0.7894 | 0.7547 | 0.129921 | 0.8229 | 1,487,220,960 | 186 | 601 (241) | `phase4/qc/curves/fd32756701f0.csv` |
+
 **ref `ccap_2021_hires_lc.tif`** · scope `citywide` — single arm, nothing to rank against
 
 | arm | recall | precision | thresh | pr_auc | population | eligible cuts | tiles (train) | curve |
@@ -180,6 +186,12 @@ champion (pipeline/champion_arms.csv).
 |---|---|---|---|---|---|---|---|---|
 | t1_2016_in16 | 0.8713 | 0.7506 | 0.125984 | 0.9069 | 7,643,036 | 202 | 511 (137) | `phase4/qc/curves/f035d0766a4c.csv` |
 | t1_2016_base | 0.681 | 0.757 | 0.515748 | 0.7992 | 7,222,746 | 91 | 511 (137) | `phase4/qc/curves/59d4b7bc805d.csv` |
+
+**ref `ccap_2016_hires_lc.tif`** · scope `citywide` — single arm, nothing to rank against
+
+| arm | recall | precision | thresh | pr_auc | population | eligible cuts | tiles (train) | curve |
+|---|---|---|---|---|---|---|---|---|
+| trend8_2016 | 0.8334 | 0.7552 | 0.145669 | 0.8725 | 162,820,107 | 193 | 612 (293) | `phase4/qc/curves/91f251bde672.csv` |
 
 **ref `ccap_2016_hires_lc.tif`** · scope `sample-test`
 
@@ -227,6 +239,12 @@ champion (pipeline/champion_arms.csv).
 
 ## 2017
 
+**ref `ccap_2016_hires_lc.tif`** · scope `citywide` — single arm, nothing to rank against
+
+| arm | recall | precision | thresh | pr_auc | population | eligible cuts | tiles (train) | curve |
+|---|---|---|---|---|---|---|---|---|
+| heal_2017 | 0.8539 | 0.7502 | 0.15748 | 0.8407 | 6,080,628,852 | 112 | 650 (404) | `phase4/qc/curves/657602804aac.csv` |
+
 **ref `ccap_2021_hires_lc.tif`** · scope `citywide`
 
 | arm | recall | precision | thresh | pr_auc | population | eligible cuts | tiles (train) | curve |
@@ -259,6 +277,12 @@ champion (pipeline/champion_arms.csv).
 | of_2017s | 0.7462 | 0.751 | 0.165354 | 0.8191 | 149,422,078 | 184 | 557 (212) | `phase4/qc/curves/0b157d79812c.csv` |
 
 ## 2019
+
+**ref `ccap_2016_hires_lc.tif`** · scope `citywide` — single arm, nothing to rank against
+
+| arm | recall | precision | thresh | pr_auc | population | eligible cuts | tiles (train) | curve |
+|---|---|---|---|---|---|---|---|---|
+| trend8_2019 | 0.7989 | 0.7501 | 0.098425 | 0.8374 | 1,498,575,581 | 223 | 600 (264) | `phase4/qc/curves/48135ad489f3.csv` |
 
 **ref `ccap_2021_hires_lc.tif`** · scope `citywide` — single arm, nothing to rank against
 
@@ -309,6 +333,12 @@ champion (pipeline/champion_arms.csv).
 
 ## 2020
 
+**ref `ccap_2016_hires_lc.tif`** · scope `citywide` — single arm, nothing to rank against
+
+| arm | recall | precision | thresh | pr_auc | population | eligible cuts | tiles (train) | curve |
+|---|---|---|---|---|---|---|---|---|
+| heal_2020 | 0.7229 | 0.7759 | 0.114173 | 0.7975 | 5,362,240,843 | 183 | 690 (438) | `phase4/qc/curves/bceefac11247.csv` |
+
 **ref `ccap_2016_hires_lc.tif`** · scope `sample-test` — single arm, nothing to rank against
 
 | arm | recall | precision | thresh | pr_auc | population | eligible cuts | tiles (train) | curve |
@@ -346,6 +376,12 @@ champion (pipeline/champion_arms.csv).
 
 ## 2021
 
+**ref `ccap_2016_hires_lc.tif`** · scope `citywide` — single arm, nothing to rank against
+
+| arm | recall | precision | thresh | pr_auc | population | eligible cuts | tiles (train) | curve |
+|---|---|---|---|---|---|---|---|---|
+| trend8_2021 | 0.8076 | 0.754 | 0.098425 | 0.8465 | 1,495,425,847 | 192 | 615 (287) | `phase4/qc/curves/47c966893a21.csv` |
+
 **ref `ccap_2021_hires_lc.tif`** · scope `citywide` — single arm, nothing to rank against
 
 | arm | recall | precision | thresh | pr_auc | population | eligible cuts | tiles (train) | curve |
@@ -353,6 +389,12 @@ champion (pipeline/champion_arms.csv).
 | trend8_2021 | 0.8157 | 0.7502 | 0.106299 | 0.8391 | 1,406,539,700 | 190 | 615 (287) | `phase4/qc/curves/e1db5afaea4b.csv` |
 
 ## 2022
+
+**ref `ccap_2016_hires_lc.tif`** · scope `citywide` — single arm, nothing to rank against
+
+| arm | recall | precision | thresh | pr_auc | population | eligible cuts | tiles (train) | curve |
+|---|---|---|---|---|---|---|---|---|
+| heal_2022 | 0.7405 | 0.7725 | 0.090551 | 0.807 | 5,403,617,524 | 179 | 660 (423) | `phase4/qc/curves/a7c48c5e5a09.csv` |
 
 **ref `ccap_2021_hires_lc.tif`** · scope `citywide`
 
@@ -363,6 +405,12 @@ champion (pipeline/champion_arms.csv).
 
 ## 2023
 
+**ref `ccap_2016_hires_lc.tif`** · scope `citywide` — single arm, nothing to rank against
+
+| arm | recall | precision | thresh | pr_auc | population | eligible cuts | tiles (train) | curve |
+|---|---|---|---|---|---|---|---|---|
+| heal_2023 | 0.7841 | 0.7538 | 0.125984 | 0.8379 | 1,486,685,030 | 198 | 597 (271) | `phase4/qc/curves/da0663e2b3f6.csv` |
+
 **ref `ccap_2021_hires_lc.tif`** · scope `citywide` — single arm, nothing to rank against
 
 | arm | recall | precision | thresh | pr_auc | population | eligible cuts | tiles (train) | curve |
@@ -370,6 +418,12 @@ champion (pipeline/champion_arms.csv).
 | heal_2023 | 0.8009 | 0.7514 | 0.133858 | 0.8375 | 1,399,293,293 | 196 | 597 (271) | `phase4/qc/curves/950f83e6ca5f.csv` |
 
 ## 2024
+
+**ref `ccap_2016_hires_lc.tif`** · scope `citywide` — single arm, nothing to rank against
+
+| arm | recall | precision | thresh | pr_auc | population | eligible cuts | tiles (train) | curve |
+|---|---|---|---|---|---|---|---|---|
+| trend8_2024 | 0.6665 | 0.7716 | 0.055118 | 0.7487 | 5,668,455,442 | 180 | 646 (423) | `phase4/qc/curves/7d9f9a5a47ac.csv` |
 
 **ref `ccap_2021_hires_lc.tif`** · scope `citywide` — single arm, nothing to rank against
 

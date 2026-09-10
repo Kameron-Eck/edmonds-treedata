@@ -1189,3 +1189,10 @@ decided: nothing; the brief is the discussion's home. First move when Kam says g
          the building-proximity enrichment count on the gold (CPU, ~1 h).
 files:   Reports/TEMPORAL_SPATIAL_CONSISTENCY_BRAINSTORM_2026-09-10.md; WORKPLAN row.
 next:    Kam's answers to brief section 6; K4 rate scoring finishing; 2020_in16 raster.
+
+## 2026-09-10  K4 rates landed: all twelve stack epochs scored citywide vs C-CAP 2016
+did:     12/12 epochs scored (CPU, ~6 h incl. one mirror-fault retry), harvested into
+         qc_indep_report + arm_metrics (scored_live 590 rows); crown_state_model
+         --rates-ref ccap_2016 passes its emission gate on all 12. Brief section 2.3 and
+         the v2 yaml (extra) updated; the v2 verdict stands (K4 was not evaluable then).
+next:    successor designs run K4 from the start; lidar-referenced rates still absent.

@@ -68,7 +68,10 @@ real clearing stays a clearing, and every assertion carries the uncertainty it e
   unchanged; memory as written ≈ 15 GB for 13.3 M cells × 12, so float32 + row-block
   chunking. Per-survey emission rates exist for all 12 stack tags (delivered cut,
   citywide, vs C-CAP 2021; `arm_metrics.csv` scored_live rows). 2016-referenced rates
-  are being scored (the K4 job); lidar-referenced rates do not exist yet.
+  now exist for all 12 stack tags (citywide, delivered cut, vs C-CAP 2016; landed
+  2026-09-10 22:00Z, `arm_metrics.csv` scored_live rows, ref ccap_2016_hires_lc.tif) and
+  the model's emission gate passes on them (f 0.011–0.082 < r). Lidar-referenced rates
+  do not exist yet.
 
 ### 2.4 What exists for space and for buildings
 - Spatial operators in the repo: ONE 3×3 opening/closing at postproc

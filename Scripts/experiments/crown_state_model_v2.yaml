@@ -123,3 +123,10 @@ extra:
     reading the score, and is a unit correction with one right answer, but it still
     changes the model after a result exists — so it is registered here with its own
     gate, and v1's numbers stay on the record.
+  k4_rates_landed_2026_09_10: >
+    After the verdict: the twelve 2016-referenced delivered-cut rows now exist (citywide
+    vs ccap_2016_hires_lc.tif, harvested 22:00Z) and `--dry-run --rates-ref
+    ccap_2016_hires_lc.tif` passes the emission gate on all 12 epochs. K4 was not
+    evaluable at decision time and the verdict stands; any successor design can run its
+    rate-sensitivity read from the start.
+

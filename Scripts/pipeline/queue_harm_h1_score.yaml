@@ -1,0 +1,113 @@
+# HAND-WRITTEN from experiments/harmonization_h1_h2.yaml — THE SECOND QUEUE SHAPE, the
+# LOSO inference pass over the 33 science blocks for the arms of queue_harm_h1.yaml.
+# The exact twin of pipeline/queue_wb18_score.yaml with the arms swapped; that file's
+# header carries the full derivation and it is not restated here.
+# Not GENERATED-headered: the generator emits one command shape per job and the
+# experiment's steps are [labels, tile, train, evaluate]; this is the "second queue
+# shape" the decision rule names — steps [inference] only, per-step flags being
+# impossible in one job. qc/test_harmonization.py checks every job here against its twin
+# in queue_harm_h1.yaml: same id/year/tag, same flags minus the --sample-manifest pair, plus
+# --infer-aoi, and --hs-source carried through.
+#
+# The two flags Tier-1's shape did not carry, both required here: --encoder resnet18,
+# because core.step_inference builds from config.ENCODER and adopts only in_channels /
+# hs_source from the checkpoint, so without it the default resnet101 U-Net is built and
+# the strict load refuses sem_best_<year>_wb18_*.pt; and --ckpt <base18>, never loaded by
+# inference but RESOLVED for every step by cli.main (a missing path is a SystemExit) and
+# carried so the manifest stamps warm_start=p3_ckpt rather than imagenet.
+#
+# RUN ORDER matches the training file, and 2020 is last where it appears — it is the slow
+# one (167M cells). MEASURED on resnet50 (run_registry.csv, step=inference): 2011s
+# 1.9-3.2 min, 2016 base 3.2 / in05 4.0, 2020 base 17.1; resnet18 inference is UNMEASURED.
+# After it lands, score each arm against BOTH references:
+#   py -3.12 qc/instruments/score_wb50_loso.py --arms wb18_2006s_base wb18_2006s_in05 wb18_2006s_in16 wb18_2019n_base wb18_2019n_in16 \
+#       --refs ccap_2021_hires_lc.tif ccap_2016_hires_lc.tif
+#   py -3.12 qc/instruments/harm_spread.py
+#
+# Launch (COLAB_AUTONOMY_SETUP.md):
+#   py -3.12 pipeline/vm_ops.py launch --queue queue_harm_h1_score.yaml
+# One A100; the dry run's "! MISSING INPUT" line is the local absence of the /content/...
+# gpkg path (the queue tests extra[-1] as a path) — Tier-1's file printed the same and ran.
+- id: harmonization_h1_h2_wb18_2006s_base
+  year: 2006s
+  tag: wb18_2006s_base
+  extra:
+  - --force-citywide
+  - --encoder
+  - resnet18
+  - --no-hillshade
+  - --ckpt
+  - /content/drive/MyDrive/treedata/phase4/models/sem_best_2020_base18.pt
+  - --infer-aoi
+  - /content/drive/MyDrive/treedata/phase4/qc/science_sample_blocks.gpkg
+  why: LOSO scoring pass of an arm of experiments/harmonization_h1_h2.yaml — hypothesis
+    and decision rule live THERE, not here.
+  steps:
+  - inference
+- id: harmonization_h1_h2_wb18_2006s_in05
+  year: 2006s
+  tag: wb18_2006s_in05
+  extra:
+  - --force-citywide
+  - --encoder
+  - resnet18
+  - --hs-source
+  - chm2005
+  - --ckpt
+  - /content/drive/MyDrive/treedata/phase4/models/sem_best_2020_base18.pt
+  - --infer-aoi
+  - /content/drive/MyDrive/treedata/phase4/qc/science_sample_blocks.gpkg
+  why: LOSO scoring pass of an arm of experiments/harmonization_h1_h2.yaml — hypothesis
+    and decision rule live THERE, not here.
+  steps:
+  - inference
+- id: harmonization_h1_h2_wb18_2006s_in16
+  year: 2006s
+  tag: wb18_2006s_in16
+  extra:
+  - --force-citywide
+  - --encoder
+  - resnet18
+  - --hs-source
+  - chm2
+  - --ckpt
+  - /content/drive/MyDrive/treedata/phase4/models/sem_best_2020_base18.pt
+  - --infer-aoi
+  - /content/drive/MyDrive/treedata/phase4/qc/science_sample_blocks.gpkg
+  why: LOSO scoring pass of an arm of experiments/harmonization_h1_h2.yaml — hypothesis
+    and decision rule live THERE, not here.
+  steps:
+  - inference
+- id: harmonization_h1_h2_wb18_2019n_base
+  year: 2019n
+  tag: wb18_2019n_base
+  extra:
+  - --force-citywide
+  - --encoder
+  - resnet18
+  - --no-hillshade
+  - --ckpt
+  - /content/drive/MyDrive/treedata/phase4/models/sem_best_2020_base18.pt
+  - --infer-aoi
+  - /content/drive/MyDrive/treedata/phase4/qc/science_sample_blocks.gpkg
+  why: LOSO scoring pass of an arm of experiments/harmonization_h1_h2.yaml — hypothesis
+    and decision rule live THERE, not here.
+  steps:
+  - inference
+- id: harmonization_h1_h2_wb18_2019n_in16
+  year: 2019n
+  tag: wb18_2019n_in16
+  extra:
+  - --force-citywide
+  - --encoder
+  - resnet18
+  - --hs-source
+  - chm2
+  - --ckpt
+  - /content/drive/MyDrive/treedata/phase4/models/sem_best_2020_base18.pt
+  - --infer-aoi
+  - /content/drive/MyDrive/treedata/phase4/qc/science_sample_blocks.gpkg
+  why: LOSO scoring pass of an arm of experiments/harmonization_h1_h2.yaml — hypothesis
+    and decision rule live THERE, not here.
+  steps:
+  - inference

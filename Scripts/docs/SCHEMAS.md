@@ -1546,3 +1546,108 @@ Gate: `qc/test_heal_closing_baseline.py`, whose mutation pair pins both directio
 run and not at the cap below, and the terminal counter stays at zero on adversarial input
 built to trip it — the second is a criterion documented as unable to fire, not a pass.
 Regenerate: `py -3.12 qc/instruments/heal_closing_baseline.py` (~22 s local).
+
+---
+
+## harm_spread.csv (phase4/qc/, GENERATED — byte-compared)
+
+Written by `qc/instruments/harm_spread.py::render`, the cross-survey CONVERGENCE read for
+`experiments/harmonization_h1_h2.yaml` (design: `Reports/HARMONIZATION_DESIGN_2026-09-10.md`).
+A projection of `arm_metrics.csv`, so it cannot drift from it; regenerate, never edit:
+`py -3.12 qc/instruments/harm_spread.py`.
+
+Columns: `prefix, encoder, warm_start, treatment, ref, quantity, year, value, n_years,
+years, floor, flag, note`
+
+**The row's meaning is in `quantity`, and the file is long-format on purpose** — a spread
+over four years and a spread over five are different statistics, so every derived number
+carries the exact `years` it was computed on rather than an implied year set. Every
+aggregate (`spread`, `h1_premise`, `ref_epoch_share`, `convergence_p`) is computed on the
+FIVE pre-registered EXP-H1 years and on nothing else: a sixth acquisition — and the design
+queues 2019s — keeps its `recall` row and never enters the statistic. Reading "whatever
+years are present" instead once turned a 0.1400 base spread into 0.3400 and a promoting
+(P) into a null, unflagged.
+
+| `quantity` | value |
+|---|---|
+| `recall` | one arm's `matched_p75` recall at `year` |
+| `spread` | max − min over `years` |
+| `same_flight_gap` | \|recall(2019n) − recall(2019s)\| |
+| `h1_premise` | the base spread, read as EXP-H1's K1 |
+| `ref_epoch_share` | 1 − spread(C-CAP 2016)/spread(C-CAP 2021) on the common years — EXP-H1's K2 |
+| `k1_interaction` | [(in16−in05)@2006s] − [(in16−in05)@2016] — EXP-H2's K1 |
+| `k1_ref_verdict` | the two-reference clause of K1 APPLIED: fires against both references → leak; against one only → UNDETERMINED |
+| `k3_gap_change` | gap(in16) − gap(base) — EXP-H2's K3, the mechanism read |
+| `k4_2016_null` | (in16−base)@2016 — EXP-H2's K4, the pre-registered non-event |
+| `convergence_p` | spread(in16) − spread(base) on the common years — EXP-H2's (P) |
+
+**READER RULE — `prefix` is the population, not `encoder`.** `bb18` and `wb18` are the same
+encoder from different starts (ImageNet vs the Phase-3 base checkpoint) and are not one
+population; `warm_start` records which. Rows are keyed on the run tag parsed as
+`<prefix>_<year>_<treatment>` with `treatment` in {`base`, `in05`, `in16`} — seed
+replicates (`_base_s2`), corruption doses (`cor05`), adders (`add16`) and other inputs
+(`nir`) are SKIPPED, never coerced into a treatment.
+
+**READER RULE — `flag` is a pre-registered kill, and an empty `flag` is not a pass.**
+`INCOMPLETE` means the year set is short of the five EXP-H1 years and the criterion cannot
+be read at all; per CLAUDE.md §3.5 that is UNDETERMINED, never "no difference". Only
+`h1_premise` on a complete five-year set can read `H2 premise dead`. Thresholds are the
+design's, fixed before any arm ran: floor **0.0069** (the wb18 three-seed 2011s spread,
+`experiments/backbone_sweep.yaml` verdict), spread floor **0.014** (2× floor, because a
+spread is a max−min of five draws), reference-epoch cut **0.4**.
+
+**READER RULE — `same_flight_gap` is a RECIPE-MATCHED number, and what differs is sampling
+support.** `--tier` is inert for a queued arm (`cli.py::_resolve_years` filters rather than
+overrides, and only when `--year` is absent), but the arms carry `--force-citywide`, which
+applies the citywide COARSE recipe to every tier: the early-stop metric and the pos_weight
+channel key on `use_blocked_val`, not the tier (`core.py::step_train`), `TIER_LOSS_MODE` is
+one value at all tiers, and both years split through `tiling.py::_block_partition` at
+0.20/0.20. So the two 2019 arms train alike; a 512 px tile is still 156 m of ground at
+2019s and 307 m at 2019n, with 412 and 306 manifest tiles. Before quoting the ABSOLUTE gap,
+confirm from the tile step logs that both arms recorded the same split mode — a
+`_block_partition` degrade on one year only is a real recipe divergence. K3 reads the
+CHANGE from `base` to `in16` (`k3_gap_change`), as the design writes it.
+
+Gate: `qc/test_harmonization.py` — byte-freshness, parser strictness, and every kill shown
+to FIRE on a known-bad synthetic input and stay silent on the matched control, plus a
+REAL-DATA pin that the instrument reproduces the spreads the design cites from
+`arm_metrics.csv`.
+
+---
+
+## harm_change_laundering.csv (phase4/qc/, GENERATED — UNVALIDATED on real rasters)
+
+Written by `qc/instruments/harm_change_laundering.py::render`: EXP-H2's **K2**, the direct
+non-circular test of whether `--hs-source chm2` compresses the cross-survey spread by
+supplying generic structure or by PAINTING 2016 TREES onto older imagery.
+
+Columns: `year, base_tag, in16_tag, ref, population, n_cells, base_thresh, in16_thresh,
+base_call_rate, in16_call_rate, rise, floor, flag, note`
+
+`population` is `gain` (certified 2005→2016 canopy gain), `flat` (certified-flat ground —
+an absolute false-positive control), `all` (every valid sample-test cell), or
+`gain_minus_all` — the K2 row, whose `rise` is `rise(gain) − rise(all)` and whose `flag`
+reads `H2-K2 CHANGE LAUNDERING` above the floor, `K2 PASSES` below it.
+
+**The GAIN population is REBUILT, not read.** `certified_change_cells.csv` is a four-column
+COUNT table and cannot be intersected with a prediction, so this instrument re-derives the
+mask from the rule inside its writer (`qc/instruments/certified_flat_scoring.py`):
+`both & (h05 < 2 m) & (h16 ≥ 5 m)` with `h = (DN − 1) × 0.2`, on the **chm2005 2 m grid** —
+the grid the rule is defined on. Probability rasters warp onto it with `Resampling.max`
+(that file's stated convention, "asserts vegetation anywhere in the cell"); the
+certified-flat mask warps with `nearest`, because it is an already-eroded binary that `max`
+would regrow.
+
+**READER RULE — every rate is inside the LOSO sample-TEST blocks and nowhere else.** These
+arms infer only within `science_sample_blocks.gpkg`; outside it the prob raster is
+`PROB_NODATA`, so there is no citywide rate to compare against. Both arms are scored on the
+intersection of their valid cells, each at its OWN deployed `matched_p75` cut read from
+`arm_metrics.csv` — the instrument REFUSES rather than inventing a cut for an unscored arm.
+`--thresh` applies one cut to both arms and is for tests and diagnostics only.
+
+**READER RULE — nothing in this file may be cited yet.** As of 2026-09-10 no `in16` arm
+exists on resnet18, so the instrument has never run against a real pair. Its arithmetic,
+its grid handling and its kill firing are gated on synthetic rasters
+(`qc/test_harmonization.py`), which tests the CODE and not the CLAIM — CLAUDE.md §3.4c:
+a design validated only on synthetic data is UNVALIDATED, in those words.
+`--dry-run` lists every input and writes nothing.

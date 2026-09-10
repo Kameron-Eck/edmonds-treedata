@@ -5,6 +5,19 @@
 this file) or wb18 (phase 3, resnet18). The seven treatment tags are identical across
 phases — only the prefix moves — so the qc_indep invocation is byte-for-byte the same.
 
+--arms REPLACES the seven-tag phase list with an explicit tag list, and --refs scores every
+arm against more than one reference. Both arrived 2026-09-09 for the harmonization design
+(Reports/HARMONIZATION_DESIGN_2026-09-10.md), whose arms are not a backbone_sweep phase and
+whose EXP-H1 secondary read requires the SAME arm scored against ccap_2021_hires_lc.tif AND
+ccap_2016_hires_lc.tif — one frozen 2006s mask already swings 0.097 in recall on the
+reference alone (design section 1.7), so a spread read against 2021 alone confounds detector
+sensitivity with fifteen years of real canopy change. Each arm's year is parsed out of its
+tag (`<prefix>_<year>_<treatment>`) and validated against config.YEAR_CATALOG — a tag
+carrying no catalog label is REFUSED, never guessed. Commands run arms OUTER, refs INNER, so
+with one reference the order is exactly what it was. qc/phase4_qc_indep.py names its sweep
+file after the reference stem (qc_indep_sweep_{year}_{arm}_{refstem}_sample-test.csv), so the
+two reads land as separate arm_metrics rows and cannot overwrite each other.
+
 WHAT IT RUNS, in sequence, for each of the seven <prefix>_ tags:
 
     py -3.12 qc/phase4_qc_indep.py --year <label> --ref <ccap_2021_hires_lc.tif>
@@ -33,6 +46,9 @@ Run:
   PYTHONUTF8=1 py -3.12 qc/instruments/score_wb50_loso.py --dry-run
   PYTHONUTF8=1 py -3.12 qc/instruments/score_wb50_loso.py
   PYTHONUTF8=1 py -3.12 qc/instruments/score_wb50_loso.py --prefix wb18
+  PYTHONUTF8=1 py -3.12 qc/instruments/score_wb50_loso.py --dry-run \
+      --arms wb18_2006s_base wb18_2006s_in16 \
+      --refs ccap_2021_hires_lc.tif ccap_2016_hires_lc.tif
 """
 import argparse
 import subprocess
@@ -65,6 +81,11 @@ def arms_for(prefix):
 
 ARMS = arms_for("wb50")     # the default phase; kept as a module constant
 REF_NAME = "ccap_2021_hires_lc.tif"
+REF_2016 = "ccap_2016_hires_lc.tif"
+# What --refs accepts as a bare name. Both are tracked reference products that already
+# carry arm_metrics rows (design section 1.7); anything else must be given as a path.
+KNOWN_REFS = (REF_NAME, REF_2016)
+REF_DIR = ("Full_Image", "Pipeline Imagery")
 QC_INDEP = SCRIPTS / "qc" / "phase4_qc_indep.py"
 HARVEST = SCRIPTS / "qc" / "instruments" / "harvest_arm_metrics.py"
 AOI_DEFAULT = REPO / "phase4" / "qc" / "science_sample_manifest.csv"
@@ -74,17 +95,51 @@ def prob_path(base, year, tag):
     return Path(base) / "phase4" / "masks" / f"edmonds_canopy_prob_{year}_{tag}.tif"
 
 
-def build_commands(base, ref, aoi, python, arms=ARMS):
-    """The seven qc_indep command lines (argv lists), Tier-1 shape."""
+def year_of(tag):
+    """The catalog label inside a run tag: `<prefix>_<year>_<treatment>`.
+
+    Validated against config.YEAR_CATALOG, never inferred — a year label is a catalog
+    key, not a calendar year (CLAUDE.md 2.2), and a mis-parsed year would score an arm
+    against the wrong acquisition's AOI and deployed cut.
+    """
+    from phase4seg.config import YEAR_CATALOG
+    labels = {str(e["label"]) for e in YEAR_CATALOG}
+    hits = [p for p in str(tag).split("_")[1:] if p in labels]
+    if len(hits) != 1:
+        raise SystemExit(
+            f"--arms {tag!r}: cannot read exactly one YEAR_CATALOG label out of it "
+            f"(found {hits or 'none'}). Tags are <prefix>_<year>_<treatment>.")
+    return hits[0]
+
+
+def arms_from_tags(tags):
+    """[(year, tag)] for an explicit --arms list, order preserved."""
+    return [(year_of(t), t) for t in tags]
+
+
+def resolve_refs(base, names):
+    """A bare name resolves under <base>/Full_Image/Pipeline Imagery/; a path passes
+    through untouched, so --refs stays usable against a local mirror."""
+    out = []
+    for n in names:
+        q = Path(n)
+        out.append(q if (q.is_absolute() or len(q.parts) > 1)
+                   else Path(base).joinpath(*REF_DIR, n))
+    return out
+
+
+def build_commands(base, refs, aoi, python, arms=ARMS):
+    """The qc_indep command lines (argv lists), Tier-1 shape — arms OUTER, refs INNER."""
     return [[python, str(QC_INDEP), "--year", year, "--ref", str(ref),
              "--prob", str(prob_path(base, year, tag)),
              "--aoi", str(aoi), "--aoi-roles", "test"]
-            for year, tag in arms]
+            for year, tag in arms for ref in refs]
 
 
-def missing_inputs(base, ref, aoi, arms=ARMS):
+def missing_inputs(base, refs, aoi, arms=ARMS):
     """Every input that must exist before the first command runs."""
-    want = [Path(ref), Path(aoi)] + [prob_path(base, y, t) for y, t in arms]
+    want = [Path(r) for r in refs] + [Path(aoi)]
+    want += [prob_path(base, y, t) for y, t in arms]
     return [p for p in want if not p.exists()]
 
 
@@ -95,8 +150,18 @@ def main(argv=None):
                     help="Lake root (default lake.BASE). Prob rasters are read from "
                          "<base>/phase4/masks/.")
     ap.add_argument("--ref", default=None,
-                    help=f"Reference raster (default <base>/Full_Image/Pipeline Imagery/"
-                         f"{REF_NAME}, the Tier-1 reference).")
+                    help=f"ONE reference raster, by path (the Tier-1 flag). Overrides "
+                         f"--refs. Default <base>/Full_Image/Pipeline Imagery/"
+                         f"{REF_NAME}.")
+    ap.add_argument("--refs", nargs="+", default=[REF_NAME],
+                    help=f"Reference(s) by bare name under <base>/Full_Image/Pipeline "
+                         f"Imagery/ (or by path). Default {REF_NAME}; the harmonization "
+                         f"design also scores {REF_2016}, so the reference-epoch share "
+                         f"of a spread can be separated from detector sensitivity.")
+    ap.add_argument("--arms", nargs="+", default=None,
+                    help="Explicit run tags to score, replacing the --prefix phase's "
+                         "seven. Each year is parsed from its tag and validated against "
+                         "config.YEAR_CATALOG.")
     ap.add_argument("--aoi", default=str(AOI_DEFAULT),
                     help="Ground-block manifest (default the tracked "
                          "phase4/qc/science_sample_manifest.csv).")
@@ -119,18 +184,18 @@ def main(argv=None):
     else:
         from lake import BASE
         base = Path(BASE)
-    ref = Path(a.ref) if a.ref else base / "Full_Image" / "Pipeline Imagery" / REF_NAME
+    refs = [Path(a.ref)] if a.ref else resolve_refs(base, a.refs)
     aoi = Path(a.aoi)
 
-    arms = arms_for(a.prefix)
-    miss = missing_inputs(base, ref, aoi, arms)
+    arms = arms_from_tags(a.arms) if a.arms else arms_for(a.prefix)
+    miss = missing_inputs(base, refs, aoi, arms)
     if miss:
         print("REFUSING to start — missing input(s):", file=sys.stderr)
         for p in miss:
             print(f"  {p}", file=sys.stderr)
         raise SystemExit(2)
 
-    cmds = build_commands(base, ref, aoi, a.python, arms)
+    cmds = build_commands(base, refs, aoi, a.python, arms)
     harvest = [a.python, str(HARVEST)]
     if a.dry_run:
         print("DRY RUN — commands that would run, in order:")
@@ -141,11 +206,13 @@ def main(argv=None):
         return 0
 
     results = []
-    for (year, tag), c in zip(arms, cmds):
-        print(f"\n[{tag}] {subprocess.list2cmdline(c)}", flush=True)
+    pairs = [(year, tag, ref) for year, tag in arms for ref in refs]
+    for (year, tag, ref), c in zip(pairs, cmds):
+        label = tag if len(refs) == 1 else f"{tag}@{Path(ref).stem}"
+        print(f"\n[{label}] {subprocess.list2cmdline(c)}", flush=True)
         rc = subprocess.run(c).returncode          # no timeout: 2020 is 167M cells
-        print(f"[{tag}] exit={rc}", flush=True)
-        results.append((year, tag, rc))
+        print(f"[{label}] exit={rc}", flush=True)
+        results.append((year, label, rc))
     rc_h = None
     if not a.no_harvest:
         print(f"\n[harvest] {subprocess.list2cmdline(harvest)}", flush=True)
@@ -159,8 +226,8 @@ def main(argv=None):
     from pipeline_log import write_step_log
     write_step_log(f"score_{a.prefix}_loso", step="score", logs_dir=base / "phase4" / "logs",
                    scored=len(results) - len(failed), failed=",".join(failed),
-                   harvest_exit="" if rc_h is None else rc_h, ref=ref.name,
-                   aoi=aoi.name)
+                   harvest_exit="" if rc_h is None else rc_h,
+                   ref=",".join(r.name for r in refs), aoi=aoi.name)
     return 1 if failed or (rc_h not in (None, 0)) else 0
 
 

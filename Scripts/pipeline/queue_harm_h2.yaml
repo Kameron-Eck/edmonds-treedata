@@ -1,0 +1,152 @@
+# HAND-SPLIT from experiments/harmonization_h1_h2.yaml — EXP-H1 + EXP-H2
+# (Reports/HARMONIZATION_DESIGN_2026-09-10.md), one A100 runtime per file.
+# Deliberately NOT carrying the GENERATED header: test_experiments.py
+# ::test_generated_queues_match_their_experiments requires a headered file to equal the
+# FULL regeneration, which a split file cannot; instead qc/test_harmonization.py
+# ::test_hand_split_queues_are_subsets_of_the_generated_queue checks that every job here
+# byte-equals its job in pipeline/queue_harmonization_h1_h2.yaml, that the two files
+# together cover all ten arms exactly once, and that every arm of one YEAR sits in ONE
+# file. Regenerate the generated file from the experiment, then re-split; never edit
+# jobs here by hand.
+#
+# WHY THE SPLIT IS BY YEAR AND NOT BY EXPERIMENT — it is operational, not stylistic.
+# Two A100 runtimes rewrite the shared phase4/eval/semantic_eval_report.csv on every
+# `evaluate`, read-modify-write behind an async write cache; on 2026-09-09 one arm's rows
+# landed in neither the live report nor the archive
+# (experiments/backbone_sweep.yaml extra.cross_vm_eval_report_clobber). Nothing
+# scientific is lost when it happens — every evaluate's metrics are also in its step log
+# — but the registry and the ledger read the wrong arm. So 2006s (three arms), 2019n
+# (two) and 2019s (two) each stay whole, on one runtime.
+#
+# NO CANARY: --encoder resnet18 with --ckpt sem_best_2020_base18.pt ran the full
+# labels->tile->train->evaluate cycle in pipeline/queue_wb18_a.yaml / queue_wb18_b.yaml,
+# and --hs-source chm2005 ran on wb18_2016_in05. The one input never run on this encoder
+# is --hs-source chm2; it is the same conv1 3->4 zero-inflation and one more HS_STATS row
+# (config.py HS_STATS), which preflight CANNOT prove — cli.py --check is parse-only.
+#
+# --tier IS NOT PASSED, and the design asked for it — but --tier was never the lever the
+# design needed. cli.py::_resolve_years consults --tier only when --year is absent, and even
+# there it FILTERS the catalog rather than overriding the tier; the queue always passes
+# --year (phase4_train_queue.py::run_step), so passing it would put a recipe claim in the record
+# that the run did not honour. What the design wanted FROM it — one recipe for both 2019
+# acquisitions — is what --force-citywide already does, and every arm here carries it: it
+# applies the citywide 2020-mask COARSE recipe (labels + sampler + selection metric) to
+# EVERY tier, "so only the sensor/GSD varies" (its own help text, cli.py::main). Read in
+# code, not from the help text: the early-stop/best-checkpoint metric and the pos_weight
+# channel are keyed on use_blocked_val rather than the tier (core.py::step_train),
+# TIER_LOSS_MODE is bce_dice at all three tiers, both years split through
+# tiling._block_partition at COARSE_VAL_FRAC/COARSE_TEST_FRAC (0.20/0.20), and the tier's
+# neg_rate / test_frac are reached only on the legacy 6-site path. What still differs is
+# sampling SUPPORT, not recipe: a 512 px tile is 156 m of ground at 2019s (30.5 cm) and
+# 307 m at 2019n (60 cm), and the manifests hold 412 and 306 tiles. VERIFY AFTER TILING —
+# both 2019 arms must print the same tile-index split mode; _block_partition's random
+# fallback on one year only WOULD be a recipe divergence. See
+# experiments/harmonization_h1_h2.yaml extra.tier_flag_is_inert.
+#
+# THIS FILE: the remaining EXP-H2 arms. ORDER IS DELIBERATE — 2019s FIRST because it has
+# never been trained under this recipe and its sample manifest was built today
+# (sample_tiles_2019s.csv, 412 tiles), so its plumbing fails earliest if it is going to;
+# 2020 LAST because it is the slow arm and is also the first arm the decision_rule
+# nominates to cut, so a runtime that runs out of time drops exactly what the rule says
+# to drop (2020 in16, then 2011s in16).
+# Launch (COLAB_AUTONOMY_SETUP.md):
+#   py -3.12 pipeline/vm_ops.py launch --queue queue_harm_h2.yaml
+- id: harmonization_h1_h2_wb18_2019s_base
+  year: 2019s
+  tag: wb18_2019s_base
+  extra:
+  - --force-citywide
+  - --encoder
+  - resnet18
+  - --no-hillshade
+  - --ckpt
+  - /content/drive/MyDrive/treedata/phase4/models/sem_best_2020_base18.pt
+  - --sample-manifest
+  - /content/drive/MyDrive/treedata/phase4/qc/sample_tiles_2019s.csv
+  why: arm of experiments/harmonization_h1_h2.yaml — hypothesis and decision rule
+    live THERE, not here.
+  steps:
+  - labels
+  - tile
+  - train
+  - evaluate
+- id: harmonization_h1_h2_wb18_2019s_in16
+  year: 2019s
+  tag: wb18_2019s_in16
+  extra:
+  - --force-citywide
+  - --encoder
+  - resnet18
+  - --hs-source
+  - chm2
+  - --ckpt
+  - /content/drive/MyDrive/treedata/phase4/models/sem_best_2020_base18.pt
+  - --sample-manifest
+  - /content/drive/MyDrive/treedata/phase4/qc/sample_tiles_2019s.csv
+  why: arm of experiments/harmonization_h1_h2.yaml — hypothesis and decision rule
+    live THERE, not here.
+  steps:
+  - labels
+  - tile
+  - train
+  - evaluate
+- id: harmonization_h1_h2_wb18_2016_in16
+  year: '2016'
+  tag: wb18_2016_in16
+  extra:
+  - --force-citywide
+  - --encoder
+  - resnet18
+  - --hs-source
+  - chm2
+  - --ckpt
+  - /content/drive/MyDrive/treedata/phase4/models/sem_best_2020_base18.pt
+  - --sample-manifest
+  - /content/drive/MyDrive/treedata/phase4/qc/sample_tiles_2016.csv
+  why: arm of experiments/harmonization_h1_h2.yaml — hypothesis and decision rule
+    live THERE, not here.
+  steps:
+  - labels
+  - tile
+  - train
+  - evaluate
+- id: harmonization_h1_h2_wb18_2011s_in16
+  year: 2011s
+  tag: wb18_2011s_in16
+  extra:
+  - --force-citywide
+  - --encoder
+  - resnet18
+  - --hs-source
+  - chm2
+  - --ckpt
+  - /content/drive/MyDrive/treedata/phase4/models/sem_best_2020_base18.pt
+  - --sample-manifest
+  - /content/drive/MyDrive/treedata/phase4/qc/sample_tiles_2011s.csv
+  why: arm of experiments/harmonization_h1_h2.yaml — hypothesis and decision rule
+    live THERE, not here.
+  steps:
+  - labels
+  - tile
+  - train
+  - evaluate
+- id: harmonization_h1_h2_wb18_2020_in16
+  year: '2020'
+  tag: wb18_2020_in16
+  extra:
+  - --force-citywide
+  - --encoder
+  - resnet18
+  - --hs-source
+  - chm2
+  - --ckpt
+  - /content/drive/MyDrive/treedata/phase4/models/sem_best_2020_base18.pt
+  - --sample-manifest
+  - /content/drive/MyDrive/treedata/phase4/qc/sample_tiles_2020.csv
+  why: arm of experiments/harmonization_h1_h2.yaml — hypothesis and decision rule
+    live THERE, not here.
+  steps:
+  - labels
+  - tile
+  - train
+  - evaluate

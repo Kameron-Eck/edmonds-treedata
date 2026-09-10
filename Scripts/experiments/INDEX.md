@@ -1,7 +1,7 @@
 # EXPERIMENT REGISTRY INDEX — GENERATED, do not edit
 
 Regenerate: `py -3.12 qc/experiments_index.py` (drift-gated by `test_experiments.py::test_index_is_fresh`).
-Authored layer + schema: this directory's `README.md`. 52 entries: 41 complete · 5 needs-kam · 5 queued · 1 tabled.
+Authored layer + schema: this directory's `README.md`. 52 entries: 42 complete · 5 needs-kam · 4 queued · 1 tabled.
 
 ## Awaiting Kam sign-off
 
@@ -17,6 +17,7 @@ Authored layer + schema: this directory's `README.md`. 52 entries: 41 complete �
 |---|---|---|---|---|---|---|
 | backbone_sweep | experiment | complete | 2026-09-10 | 30 | 2006s,2011s,2016,2019n,2020 | DECIDED 2026-09-10 on Kam's gate (extra.kam_decision_2026_09_09): RECIPE REFINEMENT MOVES TO RESNET-18, warm-started from phase4/models/sem_best_2020_base18.pt. |
 | crown_state_model | measurement-campaign | complete | 2026-09-10 | — | — | KILLED AS RUN (independent Opus referee, 2026-09-10; every number from phase4/qc/crown_state_vs_gold.csv and crown_state_placebo.csv). |
+| crown_state_model_v2 | measurement-campaign | complete | 2026-09-10 | — | — | KILLED (independent Opus referee, 2026-09-10; numbers from phase4/qc/crown_state_v2_vs_gold.csv and crown_state_v2_placebo.csv). |
 | harmonization_h1_h2 | experiment | complete | 2026-09-10 | 30 | 2006s,2011s,2016,2019n,2019s,2020 | EXP-H1 CONFIRMED (premise stands): five-year base spread 0.140 vs C-CAP 2021 / 0.154 vs C-CAP 2016 (harm_spread.csv, prefix wb18, treatment base, n_years 5); H1-K1 and H1-K2 did not fire. |
 | encoder_bases | experiment | complete | 2026-09-09 | 150 | 2020 | BOTH BASES LANDED 2026-09-09 (one A100 each; no runtime remains). |
 | bundle_validation_2017k | experiment | complete | 2026-09-08 | — | 2017k | RAN 2026-09-08 02:02Z to 03:49Z (spdvc1 CPU labels+tile, spdvg A100 train), scored by an independent referee against the rule above; every number below names its file. |
@@ -58,7 +59,6 @@ Authored layer + schema: this directory's `README.md`. 52 entries: 41 complete �
 | rescore_2013_citywide | instrument-finding | complete | 2026-08-22 | — | 2013 | THE PREDICTED MOVEMENT DID NOT HAPPEN. |
 | chm_gap_2016 | instrument-finding | complete | 2026-08-18 | 2 | 2016 | THE ASSUMPTION HOLDS AND IS NOW CHECKED RATHER THAN ASSERTED. |
 | ccap_mixed_sign_bias | instrument-finding | needs-kam | — | — | 2016 | C-CAP is the reference nearly every score in this project is measured against, and the standing temptation is to treat its disagreement with our masks as one-directional — "C-CAP over-calls canopy, so… |
-| crown_state_model_v2 | measurement-campaign | queued | — | — | — | Same hypothesis as crown_state_model (Kam, 2026-09-10: "I'm on board for method 1"), re-registered because the first run was killed by a unit defect, not by the data: the emission false-positive rate … |
 | degradation_synth_2000 | experiment | queued | — | — | — | Training on 2020 imagery synthetically degraded to 2000's measured resolution and radiometry (resample-first, gain-only — qc/instruments/degrade_synth.py) beats the plain citywide-projection arm on 20… |
 | epoch_decay_mvv0 | instrument-finding | needs-kam | — | — | 2006s,2011s,2016,2020 | King County holds lidar epochs Edmonds cannot get, and buying them was on the table. |
 | era_matched_rescore | measurement-campaign | needs-kam | — | — | 2006s,2011s,2016 | Every Tier-1 score is measured against a C-CAP reference whose vintage is years away from the imagery it judges. |

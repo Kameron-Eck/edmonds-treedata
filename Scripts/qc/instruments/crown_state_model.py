@@ -686,8 +686,11 @@ def _parser():
     ap.add_argument("--q-gain", type=float, default=DEFAULT_Q_GAIN)
     ap.add_argument("--emission-plugin", choices=list(PLUGINS), default=DEFAULT_PLUGIN,
                     help="prevalence plug-in for the false-positive inversion. "
-                         "pixel (default) = the crown-covered PIXEL fraction, the unit the "
-                         "precision was measured in; crown = the v1 crown-pooled fraction, "
+                         "pixel (default) = the PIXEL fraction over the whole valid grid "
+                         "(PIXEL_SCOPE), the unit the precision was measured in; the "
+                         "crown-covered pixel fraction is reported beside it but measured "
+                         "equivalent to the defect (v2 AMENDMENT); crown = the v1 "
+                         "crown-pooled fraction, "
                          "a MUTATION SWITCH that exists only to show the emission gate "
                          "firing. Never for a scored run")
     ap.add_argument("--placebo-seed", type=int, default=None,

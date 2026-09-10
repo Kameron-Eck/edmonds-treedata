@@ -1149,3 +1149,28 @@ files:   experiments/crown_state_model.yaml (verdict), crown_state_model_v2.yaml
          crown_state_placebo.csv, crown_state_intervals.csv, crown_state_posterior.npz.
 next:    v2 implement -> referee -> verdict; score stack tags vs ccap_2016 + lidar
          binaries (CPU) for K4; 2020_in16 H2 arm scores when its raster mirrors.
+
+## 2026-09-10  crown state model v2 KILLED — the crown unit is the wrong unit for the gold
+goal:    referee the pre-registered emission-unit fix (v2).
+did:     Opus implementer: pixel-level prevalence over the whole valid grid (crown-covered
+         measured equivalent to the defect, 0.82-0.96, recorded in a dated amendment), hard
+         f<r gate, loud clip warning; 33 tests. Opus referee: gate PASSES on the real stack
+         (f 0.020-0.106) and FIRES on the v1 derivation (11/12 epochs); model 103 s, 12
+         distinct paths (v1: 2), first_seen spreads 2015-2024; scored vs gold; 20 placebo
+         draws; K4 not evaluable (2016-referenced rates still scoring).
+read:    K1 WORSE: 11/11 at-risk on-crown losses laundered (33 epochs, all 2021-2024, 26
+         with the crown observed ABSENT) - at r~0.61 one absence is only LR 2.5, four are
+         39:1, and q_loss 0.02 costs 49:1, so the persistence prior beats four absences.
+         K2 = 111/111 on-crown = 111/327 on the pre-registered denominator - a CEILING:
+         216 of the 327 triples are off-crown, unreachable by any crown model. K3 flat
+         for the same reason.
+decided: v2 KILLED (yaml, decided). Structural, not tuning: the crown unit sees 40% of
+         the gold and cannot beat the healer on K2 by construction; pixel-measured
+         recall understates a present crown's observability. Next design is Kam's call:
+         pixel-unit model (where the gold lives) and/or crown-level rates measured on
+         the 475 on-crown no-change gold points (spends the gold twice - dev-set caveat).
+         Neither built. Stale help text fixed; emission_fp's silent EPS return noted.
+files:   experiments/crown_state_model_v2.yaml (verdict); phase4/qc/crown_state_v2_vs_gold.csv,
+         crown_state_v2_placebo.csv; qc/instruments/crown_state_model.py (help text).
+next:    Kam decides the unit; K4 rate scoring lands (12 epochs vs ccap_2016, CPU);
+         2020_in16 H2 arm scores when its raster mirrors; GitHub push + key rotation (Kam).

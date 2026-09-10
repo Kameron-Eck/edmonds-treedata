@@ -22,7 +22,7 @@ than selected. Everything below is resolved from them at build time.
   <br>evidence `phase4/qc/tilesets#dir_csv_count`
 - **133** — Those sets are materialised in 133 tile directories (a count that grows by one per tile directory; refresh at landed.py) — one registry row per directory, keyed (label, run_tag), so a set built again under a second run tag is one set counted once and two directories on disk. Counting rows as sets is the defect `qc/coverage_map.py::tileset_census` exists to prevent.
   <br>evidence `phase4/qc/tileset_registry.csv#rows`
-- **126** — Every scored arm's full precision-recall sweep is tracked: 126 curves.  **[DRIFTED: evidence says '130', claim says '126']**
+- **127** — Every scored arm's full precision-recall sweep is tracked: 127 curves.  **[DRIFTED: evidence says '130', claim says '127']**
   <br>evidence `phase4/qc/curves#dir_csv_count`
 - **0.9089** — At the held precision of the matched-cut series, reported canopy fraction tracks the model's recall at r = 0.9089 (exact permutation p = 0.0018 over all 40,320 orderings). The residual year-to-year sawtooth is detector sensitivity moving, not canopy moving — which is what licenses an ASYMMETRIC correction, since the error is one-sided (the model misses real trees, it does not invent them).
   <br>evidence `phase4/qc/sensitivity_sawtooth.csv#csv:value@statistic=pearson_r_recall_vs_frac`
@@ -76,10 +76,11 @@ count beside it.
 
 18 of 37 acquisitions have a matched-cut read. ★ = designated champion.
 
-## 3. What 41 completed investigations concluded
+## 3. What 42 completed investigations concluded
 
 - **backbone_sweep** (2026-09-10) — DECIDED 2026-09-10 on Kam's gate (extra.kam_decision_2026_09_09): RECIPE REFINEMENT MOVES TO RESNET-18, warm-started from phase4/models/sem_best_2020_base18.pt.
 - **crown_state_model** (2026-09-10) — KILLED AS RUN (independent Opus referee, 2026-09-10; every number from phase4/qc/crown_state_vs_gold.csv and crown_state_placebo.csv).
+- **crown_state_model_v2** (2026-09-10) — KILLED (independent Opus referee, 2026-09-10; numbers from phase4/qc/crown_state_v2_vs_gold.csv and crown_state_v2_placebo.csv).
 - **harmonization_h1_h2** (2026-09-10) — EXP-H1 CONFIRMED (premise stands): five-year base spread 0.140 vs C-CAP 2021 / 0.154 vs C-CAP 2016 (harm_spread.csv, prefix wb18, treatment base, n_years 5); H1-K1 and H1-K2 did not fire.
 - **encoder_bases** (2026-09-09) — BOTH BASES LANDED 2026-09-09 (one A100 each; no runtime remains).
 - **bundle_validation_2017k** (2026-09-08) — RAN 2026-09-08 02:02Z to 03:49Z (spdvc1 CPU labels+tile, spdvg A100 train), scored by an independent referee against the rule above; every number below names its file.

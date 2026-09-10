@@ -1026,3 +1026,34 @@ files:   phase4seg/{cli,ckpt,core,config,common,names}.py, queue_verify.py,
 next:    Kam: rotate keys; go/no-go on the warm-started sweep re-run (18 arms, ~2 A100
          x 5-6 h at last night's pace; first live test of the per-run eval files);
          then the LOSO inference+scoring pass for the pre-registered metric.
+
+## 2026-09-09  warm-started-resnet50-scored
+goal:    Kam: "Yes to scoring" - the pre-registered LOSO matched-cut read for the seven
+         warm-started resnet50 arms.
+did:     A100 quota refused at first (A100, L4 rejected; T4 unavailable x6) until Kam
+         loaded credits; seven sample-block inferences on one A100 (2-17 min each; the
+         job-level verify REUSED the inference verdict every time - the stall fix live).
+         wb50_2016_in05 FAILED: RasterioIOError on the staged CHM. Diagnosed by an Opus
+         workflow (my eviction hypothesis was WRONG): the 8 reader threads of one process
+         each staged the 6 MB CHM (below the staging-lock floor; every cache guard was
+         pid-keyed), and a sibling's publish unlinked the file another had just opened;
+         reproduced unhooked 7-of-8. Fix (0080cce): per-key in-process lock, pre-clear
+         refuses under any live pin, bare atomic replace; 9 tests, 4 fail on the old
+         code; BENCH MATCH. Validated live on the re-run: one stage line (1.9 s), cache
+         hits, no error. Scored 7/7 with the Tier-1 shape (qc_indep --aoi sample-test),
+         harvested (+7 curves). RESULT at matched_p75: resnet50 ABOVE the 101 on every
+         arm (+0.014..+0.082 recall), seed spread 0.011 vs 0.0085, null pair agrees;
+         positive pair DISAGREES (+0.007 vs +0.075) because the 101's 2016 base (0.669)
+         was suspect-low and resnet50's sits at the ceiling (0.751).
+decided: backbone_sweep -> needs-kam: license recipe search on resnet50 treating the
+         2016 lidar effect as unresolved (reseed the 101's 2016 base first), or hold
+         the rule literally. ResNet-18 phase 2 gated on that.
+bugs:    editable install lost its module map mid-session (champion import) - pip -e
+         reinstall; a launch chain proceeded past a failed step because pipefail did
+         not bind inside the heredoc chain - the runtime (wb50s3) never started its
+         queue and was stopped; relaunched cleanly (wb50s4).
+files:   phase4seg/scratchcache.py, common.py + tests; queue_wb50_score.yaml;
+         qc/instruments/score_wb50_loso.py; experiments/backbone_sweep.yaml;
+         phase4/qc/arm_metrics.csv, curves/ (+7), run_passport, registry.
+next:    Kam's call above; then ResNet-18 phase 2 or the 2016 base reseed; key
+         rotation still open.

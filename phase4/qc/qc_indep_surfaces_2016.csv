@@ -1,11 +1,11 @@
 group,kind,px,area_pct,canopy_call_rate,ref,prob,thresh,ts
-forest,canopy,118250956,27.726,0.664,ccap_2021_hires_lc.tif,edmonds_canopy_prob_2016_trend8_2016.tif,0.5,2026-09-06 01:34:06
-wetland,canopy,1540208,0.361,0.887,ccap_2021_hires_lc.tif,edmonds_canopy_prob_2016_trend8_2016.tif,0.5,2026-09-06 01:34:06
-scrub,canopy,4934897,1.157,0.3666,ccap_2021_hires_lc.tif,edmonds_canopy_prob_2016_trend8_2016.tif,0.5,2026-09-06 01:34:06
-grass,non-canopy,72240237,16.938,0.0856,ccap_2021_hires_lc.tif,edmonds_canopy_prob_2016_trend8_2016.tif,0.5,2026-09-06 01:34:06
-cropland,non-canopy,15207,0.004,0.0203,ccap_2021_hires_lc.tif,edmonds_canopy_prob_2016_trend8_2016.tif,0.5,2026-09-06 01:34:06
-developed,non-canopy,153080640,35.892,0.0506,ccap_2021_hires_lc.tif,edmonds_canopy_prob_2016_trend8_2016.tif,0.5,2026-09-06 01:34:06
-barren,non-canopy,4151585,0.973,0.1279,ccap_2021_hires_lc.tif,edmonds_canopy_prob_2016_trend8_2016.tif,0.5,2026-09-06 01:34:06
-emergent_wetland,non-canopy,785909,0.184,0.2302,ccap_2021_hires_lc.tif,edmonds_canopy_prob_2016_trend8_2016.tif,0.5,2026-09-06 01:34:06
-water,non-canopy,71500694,16.765,0.0121,ccap_2021_hires_lc.tif,edmonds_canopy_prob_2016_trend8_2016.tif,0.5,2026-09-06 01:34:06
-other,non-canopy,0,0.0,nan,ccap_2021_hires_lc.tif,edmonds_canopy_prob_2016_trend8_2016.tif,0.5,2026-09-06 01:34:06
+forest,canopy,6345470,32.026,0.6069,ccap_2021_hires_lc.tif,edmonds_canopy_prob_2016_wb50_2016_in05.tif,0.5223,2026-09-09 16:55:28
+wetland,canopy,111985,0.565,0.8099,ccap_2021_hires_lc.tif,edmonds_canopy_prob_2016_wb50_2016_in05.tif,0.5223,2026-09-09 16:55:28
+scrub,canopy,305027,1.54,0.2553,ccap_2021_hires_lc.tif,edmonds_canopy_prob_2016_wb50_2016_in05.tif,0.5223,2026-09-09 16:55:28
+grass,non-canopy,3546675,17.901,0.069,ccap_2021_hires_lc.tif,edmonds_canopy_prob_2016_wb50_2016_in05.tif,0.5223,2026-09-09 16:55:28
+cropland,non-canopy,0,0.0,nan,ccap_2021_hires_lc.tif,edmonds_canopy_prob_2016_wb50_2016_in05.tif,0.5223,2026-09-09 16:55:28
+developed,non-canopy,8979416,45.32,0.0401,ccap_2021_hires_lc.tif,edmonds_canopy_prob_2016_wb50_2016_in05.tif,0.5223,2026-09-09 16:55:28
+barren,non-canopy,196678,0.993,0.0149,ccap_2021_hires_lc.tif,edmonds_canopy_prob_2016_wb50_2016_in05.tif,0.5223,2026-09-09 16:55:28
+emergent_wetland,non-canopy,248741,1.255,0.3271,ccap_2021_hires_lc.tif,edmonds_canopy_prob_2016_wb50_2016_in05.tif,0.5223,2026-09-09 16:55:28
+water,non-canopy,79198,0.4,0.1279,ccap_2021_hires_lc.tif,edmonds_canopy_prob_2016_wb50_2016_in05.tif,0.5223,2026-09-09 16:55:28
+other,non-canopy,0,0.0,nan,ccap_2021_hires_lc.tif,edmonds_canopy_prob_2016_wb50_2016_in05.tif,0.5223,2026-09-09 16:55:28

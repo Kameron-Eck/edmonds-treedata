@@ -1,5 +1,6 @@
 run_id,year,run_tag,step,label,seconds,bytes,mb_per_s,log_file
 ,2009,nodec_s2024,inference,stage 2009_king_rgb.tif,164.5,3000263130,18.24,phase4_semantic_finetune_inference_2009_2026-08-29T16-04.log
+,2016,wb50_2016_in05,inference,stage lidar_chm2005_2m.tif,171.5,6393504,0.04,phase4_semantic_finetune_inference_2016_2026-09-09T22-09.log
 ,2006s,sectors_v1,tile,stage 2006_snoh_1m_rgb.tif,1.4,218544136,156.10,phase4_semantic_finetune_tile_2006s_2026-08-25T05-48.log
 ,2006s,sectors_v1,tile,stage edmonds_canopy_mask_2020.tif,3.3,287816390,87.22,phase4_semantic_finetune_tile_2006s_2026-08-25T05-48.log
 ,2011s,t1_2011s_base_s3,train,stage tiles 2011s,246.1,,,phase4_semantic_finetune_train_2011s_2026-09-02T12-38.log
@@ -10330,6 +10331,25 @@ run_id,year,run_tag,step,label,seconds,bytes,mb_per_s,log_file
 20260909T204452Z_2020_wb50_2020_base_evaluate,2020,wb50_2020_base,evaluate,copy semantic_eval_report_superseded.csv,0.0,53277,,phase4_semantic_finetune_evaluate_2020_2026-09-09T20-46.log
 20260909T204452Z_2020_wb50_2020_base_evaluate,2020,wb50_2020_base,evaluate,copy semantic_eval_report.csv,0.0,,,phase4_semantic_finetune_evaluate_2020_2026-09-09T20-46.log
 20260909T204452Z_2020_wb50_2020_base_evaluate,2020,wb50_2020_base,evaluate,eval report,5.8,,,phase4_semantic_finetune_evaluate_2020_2026-09-09T20-46.log
+20260909T215131Z_2011s_wb50_2011s_base_inference,2011s,wb50_2011s_base,inference,stage 2011_snoh_1ft_rgb.tif,16.3,1987295246,121.92,phase4_semantic_finetune_inference_2011s_2026-09-09T21-53.log
+20260909T215131Z_2011s_wb50_2011s_base_inference,2011s,wb50_2011s_base,inference,inference,60.6,,,phase4_semantic_finetune_inference_2011s_2026-09-09T21-53.log
+20260909T215131Z_2011s_wb50_2011s_base_inference,2011s,wb50_2011s_base,inference,copy edmonds_canopy_prob_2011s_wb50_2011s_base.tif,0.2,65513310,327.57,phase4_semantic_finetune_inference_2011s_2026-09-09T21-53.log
+20260909T215352Z_2011s_wb50_2011s_base_s2_inference,2011s,wb50_2011s_base_s2,inference,inference,59.6,,,phase4_semantic_finetune_inference_2011s_2026-09-09T21-55.log
+20260909T215352Z_2011s_wb50_2011s_base_s2_inference,2011s,wb50_2011s_base_s2,inference,copy edmonds_canopy_prob_2011s_wb50_2011s_base_s2.tif,0.1,66539821,665.40,phase4_semantic_finetune_inference_2011s_2026-09-09T21-55.log
+20260909T215550Z_2011s_wb50_2011s_base_s3_inference,2011s,wb50_2011s_base_s3,inference,inference,60.5,,,phase4_semantic_finetune_inference_2011s_2026-09-09T21-57.log
+20260909T215550Z_2011s_wb50_2011s_base_s3_inference,2011s,wb50_2011s_base_s3,inference,copy edmonds_canopy_prob_2011s_wb50_2011s_base_s3.tif,0.1,66350611,663.51,phase4_semantic_finetune_inference_2011s_2026-09-09T21-57.log
+20260909T215845Z_2011s_wb50_2011s_cor05_inference,2011s,wb50_2011s_cor05,inference,inference,60.8,,,phase4_semantic_finetune_inference_2011s_2026-09-09T22-01.log
+20260909T215845Z_2011s_wb50_2011s_cor05_inference,2011s,wb50_2011s_cor05,inference,copy edmonds_canopy_prob_2011s_wb50_2011s_cor05.tif,0.1,66930358,669.30,phase4_semantic_finetune_inference_2011s_2026-09-09T22-01.log
+20260909T220246Z_2016_wb50_2016_base_inference,2016,wb50_2016_base,inference,stage 2016_snoh_1ft_rgbi.tif,77.3,2586179492,33.46,phase4_semantic_finetune_inference_2016_2026-09-09T22-05.log
+20260909T220246Z_2016_wb50_2016_base_inference,2016,wb50_2016_base,inference,inference,59.9,,,phase4_semantic_finetune_inference_2016_2026-09-09T22-05.log
+20260909T220246Z_2016_wb50_2016_base_inference,2016,wb50_2016_base,inference,copy edmonds_canopy_prob_2016_wb50_2016_base.tif,0.1,65361172,653.61,phase4_semantic_finetune_inference_2016_2026-09-09T22-05.log
+20260909T220954Z_2020_wb50_2020_base_inference,2020,wb50_2020_base,inference,stage 2020_coe_rgb.tif,354.3,27147166704,76.62,phase4_semantic_finetune_inference_2020_2026-09-09T22-26.log
+20260909T220954Z_2020_wb50_2020_base_inference,2020,wb50_2020_base,inference,inference,459.6,,,phase4_semantic_finetune_inference_2020_2026-09-09T22-26.log
+20260909T220954Z_2020_wb50_2020_base_inference,2020,wb50_2020_base,inference,copy edmonds_canopy_prob_2020_wb50_2020_base.tif,1.9,936496512,492.89,phase4_semantic_finetune_inference_2020_2026-09-09T22-26.log
+20260909T233553Z_2016_wb50_2016_in05_inference,2016,wb50_2016_in05,inference,stage 2016_snoh_1ft_rgbi.tif,84.6,2586179492,30.57,phase4_semantic_finetune_inference_2016_2026-09-09T23-42.log
+20260909T233553Z_2016_wb50_2016_in05_inference,2016,wb50_2016_in05,inference,stage lidar_chm2005_2m.tif,1.9,6393504,3.37,phase4_semantic_finetune_inference_2016_2026-09-09T23-42.log
+20260909T233553Z_2016_wb50_2016_in05_inference,2016,wb50_2016_in05,inference,inference,87.7,,,phase4_semantic_finetune_inference_2016_2026-09-09T23-42.log
+20260909T233553Z_2016_wb50_2016_in05_inference,2016,wb50_2016_in05,inference,copy edmonds_canopy_prob_2016_wb50_2016_in05.tif,0.1,64457819,644.58,phase4_semantic_finetune_inference_2016_2026-09-09T23-42.log
 unrecorded,2011s,t1_2011s_in05,evaluate,copy semantic_eval_report.csv,0.0,,,phase4_semantic_finetune_evaluate_2011s_2026-09-02T14-40.log
 unrecorded,2020,base50,evaluate,eval tiles local,158.3,,,phase4_semantic_finetune_evaluate_2020_2026-09-09T17-14.log
 unrecorded,2020,base50,evaluate,eval model load,1.9,,,phase4_semantic_finetune_evaluate_2020_2026-09-09T17-14.log

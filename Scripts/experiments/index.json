@@ -5836,7 +5836,302 @@
       "verdict": "THE ASSUMPTION HOLDS AND IS NOW CHECKED RATHER THAN ASSERTED. The worst-case understatement of city canopy from the coverage gap is up to +0.02 pp of imaged area, identical at all three NDVI cuts — read from phase4/qc/chm_gap_2016.txt, which carries the coverage split and both zones' NDVI profiles in the same file. THAT BOUND WAS MEASURED ON A CLIPPED FOOTPRINT AND MUST BE QUOTED THAT WAY: the ortho this instrument opened is the file Scripts/pipeline/phase4seg/config.py records as \"2016_snoh_rgbi.tif (0.5 ft served upsample, 53.4% clip)\", replaced 2026-08-23 by the native 1 ft delivery whose catalog coverage string in that same file reads \"100% of city polygon, 82.3% of study extent (measured 2026-08-23; remainder is Puget Sound)\". The imaged-pixel denominator and the has-CHM / no-CHM split the bound is computed over therefore describe the clipped predecessor, not the footprint the catalog now resolves to, and nothing has re-measured the bound on the replacement. The mechanism is unambiguous: almost the whole no-CHM zone reads negative in NDVI while the has-CHM zone reads like a mixed urban-forest scene, so the uncovered strip is water, exactly as the standing assumption said. Three bounds travel with this result and none of them is optional. (1) It bounds COVERAGE bias ONLY — it says nothing about whether the height raster is accurate where it does exist, and that separate question is answered badly for the raster this instrument reads: see old_chm_defect. (2) NDVI here is computed on decimated, averaged reflectance, so mixed pixels are smoothed and the percentiles are indicative rather than exact. (3) Turbid or sun-glinted water can read slightly positive, so the negative-NDVI share understates water a little — which pushes in the conservative direction for this conclusion. One unreconciled figure is recorded rather than smoothed over: the human accuracy sampler's stratum design cites a materially lower CHM coverage of the city than this file measures over imaged 2016 pixels. The two use different denominators, no tracked file reconciles them, and they must not be averaged or quoted as a contradiction.\n"
     },
     {
-      "arm_scores": {},
+      "arm_scores": {
+        "wb50_2011s_base": {
+          "best_f1": {
+            "curve": "phase4/qc/curves/12a0e0825b4b.csv",
+            "eval_scope": "sample-test",
+            "population": "8398964",
+            "pr_auc": "0.8162",
+            "precision": "0.7255",
+            "recall": "0.7952",
+            "ref": "ccap_2021_hires_lc.tif",
+            "thresh": "0.098425"
+          },
+          "matched_p50": {
+            "curve": "phase4/qc/curves/12a0e0825b4b.csv",
+            "eval_scope": "sample-test",
+            "population": "12537909",
+            "pr_auc": "0.8162",
+            "precision": "0.5048",
+            "recall": "0.9603",
+            "ref": "ccap_2021_hires_lc.tif",
+            "thresh": "0.019685"
+          },
+          "matched_p75": {
+            "curve": "phase4/qc/curves/12a0e0825b4b.csv",
+            "eval_scope": "sample-test",
+            "population": "8081144",
+            "pr_auc": "0.8162",
+            "precision": "0.7518",
+            "recall": "0.762",
+            "ref": "ccap_2021_hires_lc.tif",
+            "thresh": "0.133858"
+          },
+          "matched_p90": {
+            "curve": "phase4/qc/curves/12a0e0825b4b.csv",
+            "eval_scope": "sample-test",
+            "population": "6712752",
+            "pr_auc": "0.8162",
+            "precision": "0.9",
+            "recall": "0.3573",
+            "ref": "ccap_2021_hires_lc.tif",
+            "thresh": "0.728346"
+          }
+        },
+        "wb50_2011s_base_s2": {
+          "best_f1": {
+            "curve": "phase4/qc/curves/26320849ed17.csv",
+            "eval_scope": "sample-test",
+            "population": "8433748",
+            "pr_auc": "0.8165",
+            "precision": "0.7208",
+            "recall": "0.7906",
+            "ref": "ccap_2021_hires_lc.tif",
+            "thresh": "0.122047"
+          },
+          "matched_p50": {
+            "curve": "phase4/qc/curves/26320849ed17.csv",
+            "eval_scope": "sample-test",
+            "population": "12503952",
+            "pr_auc": "0.8165",
+            "precision": "0.5057",
+            "recall": "0.9581",
+            "ref": "ccap_2021_hires_lc.tif",
+            "thresh": "0.023622"
+          },
+          "matched_p75": {
+            "curve": "phase4/qc/curves/26320849ed17.csv",
+            "eval_scope": "sample-test",
+            "population": "8058974",
+            "pr_auc": "0.8165",
+            "precision": "0.7515",
+            "recall": "0.7506",
+            "ref": "ccap_2021_hires_lc.tif",
+            "thresh": "0.177165"
+          },
+          "matched_p90": {
+            "curve": "phase4/qc/curves/26320849ed17.csv",
+            "eval_scope": "sample-test",
+            "population": "6727118",
+            "pr_auc": "0.8165",
+            "precision": "0.9004",
+            "recall": "0.3789",
+            "ref": "ccap_2021_hires_lc.tif",
+            "thresh": "0.720472"
+          }
+        },
+        "wb50_2011s_base_s3": {
+          "best_f1": {
+            "curve": "phase4/qc/curves/a3a306f30682.csv",
+            "eval_scope": "sample-test",
+            "population": "8405912",
+            "pr_auc": "0.8156",
+            "precision": "0.7231",
+            "recall": "0.7883",
+            "ref": "ccap_2021_hires_lc.tif",
+            "thresh": "0.11811"
+          },
+          "matched_p50": {
+            "curve": "phase4/qc/curves/a3a306f30682.csv",
+            "eval_scope": "sample-test",
+            "population": "12561312",
+            "pr_auc": "0.8156",
+            "precision": "0.5036",
+            "recall": "0.9594",
+            "ref": "ccap_2021_hires_lc.tif",
+            "thresh": "0.023622"
+          },
+          "matched_p75": {
+            "curve": "phase4/qc/curves/a3a306f30682.csv",
+            "eval_scope": "sample-test",
+            "population": "8065159",
+            "pr_auc": "0.8156",
+            "precision": "0.7514",
+            "recall": "0.753",
+            "ref": "ccap_2021_hires_lc.tif",
+            "thresh": "0.161417"
+          },
+          "matched_p90": {
+            "curve": "phase4/qc/curves/a3a306f30682.csv",
+            "eval_scope": "sample-test",
+            "population": "6701686",
+            "pr_auc": "0.8156",
+            "precision": "0.9016",
+            "recall": "0.3479",
+            "ref": "ccap_2021_hires_lc.tif",
+            "thresh": "0.73622"
+          }
+        },
+        "wb50_2011s_cor05": {
+          "best_f1": {
+            "curve": "phase4/qc/curves/dc039f2f4a71.csv",
+            "eval_scope": "sample-test",
+            "population": "8510522",
+            "pr_auc": "0.8125",
+            "precision": "0.7154",
+            "recall": "0.7995",
+            "ref": "ccap_2021_hires_lc.tif",
+            "thresh": "0.122047"
+          },
+          "matched_p50": {
+            "curve": "phase4/qc/curves/dc039f2f4a71.csv",
+            "eval_scope": "sample-test",
+            "population": "12670650",
+            "pr_auc": "0.8125",
+            "precision": "0.5004",
+            "recall": "0.9641",
+            "ref": "ccap_2021_hires_lc.tif",
+            "thresh": "0.031496"
+          },
+          "matched_p75": {
+            "curve": "phase4/qc/curves/dc039f2f4a71.csv",
+            "eval_scope": "sample-test",
+            "population": "8065126",
+            "pr_auc": "0.8125",
+            "precision": "0.7511",
+            "recall": "0.7518",
+            "ref": "ccap_2021_hires_lc.tif",
+            "thresh": "0.181102"
+          },
+          "matched_p90": {
+            "curve": "phase4/qc/curves/dc039f2f4a71.csv",
+            "eval_scope": "sample-test",
+            "population": "6690983",
+            "pr_auc": "0.8125",
+            "precision": "0.9008",
+            "recall": "0.3297",
+            "ref": "ccap_2021_hires_lc.tif",
+            "thresh": "0.771653"
+          }
+        },
+        "wb50_2016_base": {
+          "best_f1": {
+            "curve": "phase4/qc/curves/b64cc922d474.csv",
+            "eval_scope": "sample-test",
+            "population": "8488371",
+            "pr_auc": "0.8187",
+            "precision": "0.7171",
+            "recall": "0.7971",
+            "ref": "ccap_2021_hires_lc.tif",
+            "thresh": "0.122047"
+          },
+          "matched_p50": {
+            "curve": "phase4/qc/curves/b64cc922d474.csv",
+            "eval_scope": "sample-test",
+            "population": "12067652",
+            "pr_auc": "0.8187",
+            "precision": "0.5218",
+            "recall": "0.9481",
+            "ref": "ccap_2021_hires_lc.tif",
+            "thresh": "0.019685"
+          },
+          "matched_p75": {
+            "curve": "phase4/qc/curves/b64cc922d474.csv",
+            "eval_scope": "sample-test",
+            "population": "8068505",
+            "pr_auc": "0.8187",
+            "precision": "0.7507",
+            "recall": "0.7513",
+            "ref": "ccap_2021_hires_lc.tif",
+            "thresh": "0.185039"
+          },
+          "matched_p90": {
+            "curve": "phase4/qc/curves/b64cc922d474.csv",
+            "eval_scope": "sample-test",
+            "population": "6729558",
+            "pr_auc": "0.8187",
+            "precision": "0.9001",
+            "recall": "0.3798",
+            "ref": "ccap_2021_hires_lc.tif",
+            "thresh": "0.720472"
+          }
+        },
+        "wb50_2016_in05": {
+          "best_f1": {
+            "curve": "phase4/qc/curves/af1f3bb23444.csv",
+            "eval_scope": "sample-test",
+            "population": "8521960",
+            "pr_auc": "0.8241",
+            "precision": "0.7161",
+            "recall": "0.8066",
+            "ref": "ccap_2021_hires_lc.tif",
+            "thresh": "0.094488"
+          },
+          "matched_p50": {
+            "curve": "phase4/qc/curves/af1f3bb23444.csv",
+            "eval_scope": "sample-test",
+            "population": "12311650",
+            "pr_auc": "0.8241",
+            "precision": "0.5137",
+            "recall": "0.9576",
+            "ref": "ccap_2021_hires_lc.tif",
+            "thresh": "0.015748"
+          },
+          "matched_p75": {
+            "curve": "phase4/qc/curves/af1f3bb23444.csv",
+            "eval_scope": "sample-test",
+            "population": "8074606",
+            "pr_auc": "0.8241",
+            "precision": "0.7516",
+            "recall": "0.7579",
+            "ref": "ccap_2021_hires_lc.tif",
+            "thresh": "0.149606"
+          },
+          "matched_p90": {
+            "curve": "phase4/qc/curves/af1f3bb23444.csv",
+            "eval_scope": "sample-test",
+            "population": "6756590",
+            "pr_auc": "0.8241",
+            "precision": "0.901",
+            "recall": "0.4216",
+            "ref": "ccap_2021_hires_lc.tif",
+            "thresh": "0.73622"
+          }
+        },
+        "wb50_2020_base": {
+          "best_f1": {
+            "curve": "phase4/qc/curves/f49746d67852.csv",
+            "eval_scope": "sample-test",
+            "population": "298018978",
+            "pr_auc": "0.7749",
+            "precision": "0.7424",
+            "recall": "0.7199",
+            "ref": "ccap_2021_hires_lc.tif",
+            "thresh": "0.019685"
+          },
+          "matched_p50": {
+            "curve": "phase4/qc/curves/f49746d67852.csv",
+            "eval_scope": "sample-test",
+            "population": "337114497",
+            "pr_auc": "0.7749",
+            "precision": "0.6602",
+            "recall": "0.8038",
+            "ref": "ccap_2021_hires_lc.tif",
+            "thresh": "0.015748"
+          },
+          "matched_p75": {
+            "curve": "phase4/qc/curves/f49746d67852.csv",
+            "eval_scope": "sample-test",
+            "population": "286500632",
+            "pr_auc": "0.7749",
+            "precision": "0.7709",
+            "recall": "0.6779",
+            "ref": "ccap_2021_hires_lc.tif",
+            "thresh": "0.023622"
+          },
+          "matched_p90": {
+            "curve": "phase4/qc/curves/f49746d67852.csv",
+            "eval_scope": "sample-test",
+            "population": "244736613",
+            "pr_auc": "0.7749",
+            "precision": "0.9009",
+            "recall": "0.2392",
+            "ref": "ccap_2021_hires_lc.tif",
+            "thresh": "0.728346"
+          }
+        }
+      },
       "arms": [
         {
           "extra": [
@@ -6172,6 +6467,7 @@
           "bbNN_2011s_base"
         ],
         "phase2_ckpt": "phase4/models/sem_best_2020_base50.pt",
+        "phase2_result_pending_kam": "PHASE 2 SCORED 2026-09-09 (the pre-registered metric: matched_p75 recall at held ~0.75 precision vs C-CAP 2021 on the LOSO sample-test blocks; phase4/qc/arm_metrics.csv, eval_scope sample-test, joined to backbone_benchmark.csv). Warm-started resnet50 vs the resnet101 record, recall (precision): 2011s base 0.762 (0.752) vs 0.725 (0.750); s2 0.751 vs 0.720; s3 0.753 vs 0.717; cor05 0.752 vs 0.725; 2016 base 0.751 vs 0.669 (0.758); 2016 in05 0.758 vs 0.744; 2020 base 0.678 (0.771) vs 0.640 (0.800). AP within +/-0.006 on 2011s/2016, +0.02 on 2020. (a) ABSOLUTE GAP: none - resnet50 from the base50 start is ABOVE the 101 on every arm (+0.014 to +0.082 recall at the held cut). (b) NOISE: seed spread 0.0114 vs the 101's 0.0085 - comparable (1.3x). (c) RANK AGREEMENT, as pre-registered: NOT MET on the positive pair. The 101 read 2016 in05 - base = +0.075 (9x its floor); resnet50 reads +0.0066 (0.6x its floor), i.e. no effect. The null pair agrees (-0.010 vs -0.0002, both inside the floor). THE DISAGREEMENT SITS IN THE 101'S BASELINE, not in the small encoder: t1_2016_base (0.669) was already recorded as suspect-low in the 2026-09-03 plan (\"all five 2016 treatments cluster at the same ceiling\"), and resnet50's 2016 base lands at that ceiling (0.751), so the lidar-input \"gain\" on the 101 is consistent with a low baseline rather than a treatment effect. The rule as written does not license recipe search on resnet50; the evidence says the rule's own reference arm is the doubtful one. NEEDS KAM: (i) accept resnet50 (base50 start) for recipe search on (a)(b) and the null pair, treating the 2016 lidar effect as UNRESOLVED until the 101's 2016 base is reseeded (already on the board), or (ii) hold the rule literally and reseed first. ResNet-18 phase 2 stays gated on that decision. Cache fix validated on the in05 re-run (one stage line, cache hits, no ENOENT).\n",
         "phase2_results_evaluate_iou": "2026-09-09 20:47Z, seven wb50 arms landed (wb50a: 2011s base/s2/s3/cor05; wb50b: 2016 base/in05, 2020 base), both runtimes stopped. Evaluate IoU on the held-out test tiles, from step logs (phase4/qc/eval_from_logs.csv): 2011s base 0.516 / s2 0.510 / s3 0.517 (SEED SPREAD 0.0066 - equal to the resnet101 Tier-1 spread 0.0066; the ImageNet-start bb50 spread was 0.078); cor05 0.504 (null pair -0.0125 vs base); 2016 base 0.532, in05 0.540 (positive pair +0.0078); 2020 base 0.848 vs the 101's 0.895. Train minutes 14-30 vs 20-37 on the 101 (I/O-bound, ~25-35% faster). READ: (b) noise PASSES with the trained start; (a) at or above the 101 on the sample years, below on 2020; (c) rank agreement UNDETERMINED at this metric - both pairs read within ~2x the floor for every encoder, because evaluate IoU vs projected labels is NOT the pre-registered score; the 101's +0.075 positive pair is a matched-cut LOSO recall vs C-CAP. The LOSO inference+scoring pass on the 33 blocks (steps [inference] + qc/phase4_qc_indep.py --aoi, then harvest_arm_metrics) is what decides (c); not yet run for wb50. ResNet-18 phase 2 stays gated on (c).\n",
         "phase2_scoring": "BUILT 2026-09-09 (Kam: \"Yes to scoring\"), before any wb50 arm was scored. The second queue shape, hand-written: pipeline/queue_wb50_score.yaml — seven jobs, steps [inference], each its queue_wb50_a/b twin's flags minus the --sample-manifest pair plus --infer-aoi science_sample_blocks.gpkg (the Tier-1 Phase-B2 shape, commit ac0e79e), one A100, 2020 last. Two flags Tier-1 did not need: --encoder resnet50 (core.step_inference builds from config.ENCODER and adopts only in_channels / hs_source from the checkpoint) and --ckpt (never loaded by inference, but resolved for every step by cli.main — a missing path is a SystemExit — and carried so the manifest stamps warm_start=p3_ckpt rather than imagenet). Then, LOCALLY against the lake: qc/instruments/score_wb50_loso.py runs qc/phase4_qc_indep.py --year <label> --ref ccap_2021_hires_lc.tif --prob phase4/masks/edmonds_canopy_prob_<label>_<tag>.tif --aoi phase4/qc/science_sample_manifest.csv --aoi-roles test for each tag in sequence (refuses to start on any missing raster; no timeout — the Tier-1 conveyor died at 1200 s on 2020), then harvest_arm_metrics.py. YIELD: one sweep qc_indep_sweep_<year>_<tag>_ccap_2021_hires_lc_sample-test.csv per arm, harvested into phase4/qc/arm_metrics.csv as eval_scope sample-test; the pre-registered number is the recall of the policy matched_p75 row, canopy_def forest_wetland, ref ccap_2021_hires_lc.tif — joined to backbone_benchmark.csv by dropping the wb50_ prefix from the tag (wb50_2016_in05 -> t1_2016_in05). COST ESTIMATE (resnet101 inference on A100, the recovered candidate ledger, step=inference): 2011s 4.2-7.6 min, 2016 base 5.7 / in05 12.0, 2020 base 34.9 — ~75 min for the seven; resnet50 inference is UNMEASURED. Scoring is CPU, local, unbounded on 2020.\n",
         "phase2_tags": [
@@ -6226,7 +6522,8 @@
       ],
       "instruments": [
         "Scripts/qc/instruments/backbone_benchmark.py",
-        "Scripts/qc/instruments/harvest_arm_metrics.py"
+        "Scripts/qc/instruments/harvest_arm_metrics.py",
+        "Scripts/qc/instruments/score_wb50_loso.py"
       ],
       "kind": "experiment",
       "last_run": "2026-09-09",
@@ -6237,12 +6534,12 @@
       "outputs": [
         "phase4/qc/backbone_benchmark.csv"
       ],
-      "registry_rows": 108,
+      "registry_rows": 115,
       "reports": [],
       "retrospective": false,
       "run_ids": [],
       "sample": "The Tier-1 ground sample: 33 screened blocks split once (30 test, 2 train, 1 selection; phase4/qc/science_sample_manifest.csv), the same fixed blocks for every arm and every encoder. Train and early-stop on the manifest tiles; scores read from the test blocks only. Every arm re-tiles under its own tag (tile_dir_for keys on {label}__{run_tag}); the offload pilot measured a re-tile as byte-identical, so the tiles are the same set under a new name, at the cost recorded in extra.measured_cost.\n",
-      "status": "queued",
+      "status": "needs-kam",
       "superseded_by": [],
       "supersedes": [],
       "tags": [

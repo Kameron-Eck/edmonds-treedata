@@ -175,12 +175,20 @@ def test_phase2_arms_are_their_bb50_twins_plus_the_base50_ckpt():
         assert a["extra"][-2] == "--sample-manifest", ("manifest path must stay LAST", tag)
 
 
-def test_hand_split_queues_are_subsets_of_the_generated_queue():
+def test_hand_split_queues_are_subsets_of_the_generated_queue(tmp_path):
     """queue_backbone_r18/r50.yaml are HAND-SPLIT (not GENERATED-headered, so the
     drift gate skips them). Every non-canary job must equal a job of the in-memory
     regeneration; canary jobs are short-budget, distinct-tag copies that run first."""
     from experiment_queue import generate
-    text, _ = generate(SCRIPTS / "experiments" / "backbone_sweep.yaml")
+    # The experiment is needs-kam / complete after its runs, and generate() refuses
+    # those by design (the result is unsigned; launching is not the next move), so the
+    # regeneration this gate compares against runs on a copy with the status flipped
+    # to queued — the arms and launch defaults are what the gate compares.
+    src = (SCRIPTS / "experiments" / "backbone_sweep.yaml").read_text(encoding="utf-8")
+    copy = tmp_path / "backbone_sweep.yaml"
+    copy.write_text(src.replace("status: needs-kam", "status: queued", 1)
+                       .replace("status: complete", "status: queued", 1), encoding="utf-8")
+    text, _ = generate(copy)
     gen = {j["id"]: j for j in yaml.safe_load(text)}
     files = sorted((SCRIPTS / "pipeline").glob("queue_backbone_r*.yaml"))
     assert len(files) == 2, [f.name for f in files]

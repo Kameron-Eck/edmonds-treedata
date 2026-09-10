@@ -22,7 +22,7 @@ than selected. Everything below is resolved from them at build time.
   <br>evidence `phase4/qc/tilesets#dir_csv_count`
 - **115** — Those sets are materialised in 115 tile directories (a count that grows by one per tile directory; refresh at landed.py) — one registry row per directory, keyed (label, run_tag), so a set built again under a second run tag is one set counted once and two directories on disk. Counting rows as sets is the defect `qc/coverage_map.py::tileset_census` exists to prevent.
   <br>evidence `phase4/qc/tileset_registry.csv#rows`
-- **88** — Every scored arm's full precision-recall sweep is tracked: 88 curves.
+- **95** — Every scored arm's full precision-recall sweep is tracked: 95 curves.
   <br>evidence `phase4/qc/curves#dir_csv_count`
 - **0.9089** — At the held precision of the matched-cut series, reported canopy fraction tracks the model's recall at r = 0.9089 (exact permutation p = 0.0018 over all 40,320 orderings). The residual year-to-year sawtooth is detector sensitivity moving, not canopy moving — which is what licenses an ASYMMETRIC correction, since the error is one-sided (the model misses real trees, it does not invent them).
   <br>evidence `phase4/qc/sensitivity_sawtooth.csv#csv:value@statistic=pearson_r_recall_vs_frac`
@@ -120,7 +120,7 @@ count beside it.
 - never tiled (13): 2002s, 2003s, 2007s, 2009s, 2012s, 2013s, 2015n, 2015s, 2020s, 2021n, 2022s, 2023n, 2024s
 - no matched-cut read (21): 2000, 2002, 2002s, 2003s, 2005, 2007, 2007s, 2009s, 2012s, 2013s, 2015n, 2015s, 2018s, 2019s, 2020s, 2021n, 2021s, 2022s, 2023, 2023n, 2024s
 - no champion (20): 2000, 2002, 2002s, 2007s, 2009s, 2013, 2013s, 2015, 2015n, 2015s, 2016, 2017, 2017k, 2017n, 2017s, 2019s, 2020, 2021n, 2022s, 2024s
-- results documented but UNSIGNED (5): ccap_mixed_sign_bias, epoch_decay_mvv0, era_matched_rescore, fusion_5band_nir_chm, shadow_fp_fn_2016
+- results documented but UNSIGNED (6): backbone_sweep, ccap_mixed_sign_bias, epoch_decay_mvv0, era_matched_rescore, fusion_5band_nir_chm, shadow_fp_fn_2016
 
 A gap here is a record, not a backlog — some acquisitions are deliberately out of scope. `phase4/qc/coverage_map.md` has the matrix.
 

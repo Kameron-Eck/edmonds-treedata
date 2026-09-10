@@ -1,6 +1,6 @@
 name: backbone_sweep
 kind: experiment
-status: queued
+status: needs-kam
 retrospective: false
 category: machinery
 tags: [backbone, encoder, resnet18, resnet50, recipe-search, tier1-sample, loso]
@@ -128,6 +128,7 @@ decided: null
 instruments:
   - Scripts/qc/instruments/backbone_benchmark.py
   - Scripts/qc/instruments/harvest_arm_metrics.py
+  - Scripts/qc/instruments/score_wb50_loso.py
 inputs:
   - phase4/qc/arm_metrics.csv
   - phase4/qc/tier1_results.csv
@@ -149,6 +150,31 @@ supersedes: []
 superseded_by: []
 
 extra:
+  phase2_result_pending_kam: >
+    PHASE 2 SCORED 2026-09-09 (the pre-registered metric: matched_p75 recall at held ~0.75
+    precision vs C-CAP 2021 on the LOSO sample-test blocks; phase4/qc/arm_metrics.csv,
+    eval_scope sample-test, joined to backbone_benchmark.csv). Warm-started resnet50 vs the
+    resnet101 record, recall (precision): 2011s base 0.762 (0.752) vs 0.725 (0.750);
+    s2 0.751 vs 0.720; s3 0.753 vs 0.717; cor05 0.752 vs 0.725; 2016 base 0.751 vs 0.669
+    (0.758); 2016 in05 0.758 vs 0.744; 2020 base 0.678 (0.771) vs 0.640 (0.800). AP within
+    +/-0.006 on 2011s/2016, +0.02 on 2020.
+    (a) ABSOLUTE GAP: none - resnet50 from the base50 start is ABOVE the 101 on every arm
+    (+0.014 to +0.082 recall at the held cut).
+    (b) NOISE: seed spread 0.0114 vs the 101's 0.0085 - comparable (1.3x).
+    (c) RANK AGREEMENT, as pre-registered: NOT MET on the positive pair. The 101 read 2016
+    in05 - base = +0.075 (9x its floor); resnet50 reads +0.0066 (0.6x its floor), i.e. no
+    effect. The null pair agrees (-0.010 vs -0.0002, both inside the floor). THE
+    DISAGREEMENT SITS IN THE 101'S BASELINE, not in the small encoder: t1_2016_base
+    (0.669) was already recorded as suspect-low in the 2026-09-03 plan ("all five 2016
+    treatments cluster at the same ceiling"), and resnet50's 2016 base lands at that
+    ceiling (0.751), so the lidar-input "gain" on the 101 is consistent with a low
+    baseline rather than a treatment effect. The rule as written does not license recipe
+    search on resnet50; the evidence says the rule's own reference arm is the doubtful
+    one. NEEDS KAM: (i) accept resnet50 (base50 start) for recipe search on (a)(b) and the
+    null pair, treating the 2016 lidar effect as UNRESOLVED until the 101's 2016 base is
+    reseeded (already on the board), or (ii) hold the rule literally and reseed first.
+    ResNet-18 phase 2 stays gated on that decision. Cache fix validated on the in05
+    re-run (one stage line, cache hits, no ENOENT).
   phase2_results_evaluate_iou: >
     2026-09-09 20:47Z, seven wb50 arms landed (wb50a: 2011s base/s2/s3/cor05; wb50b: 2016
     base/in05, 2020 base), both runtimes stopped. Evaluate IoU on the held-out test tiles,

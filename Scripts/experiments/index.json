@@ -1370,172 +1370,6 @@
       "verdict": "RAN 2026-09-08 02:02Z to 03:49Z (spdvc1 CPU labels+tile, spdvg A100 train), scored by an independent referee against the rule above; every number below names its file. K1 PASS - tileset_registry.csv row 2017k/spdv_2017k = a36d6772e88b, 632 tiles (third directory on that id). K2 PASS - no refusal or fallback string in the train log; the bundle path ran all thirteen checks and staged 1264 files from one read. R1 FAIL - timing_events.csv: \"stage tiles 2017k\" 123.7 s (\"bundle copy\" 119.2 s) against the 60 s bar and the 13-17 s prediction; 1.85x faster than the pilot's 228.2 s, which the rule does not credit. The flag is NOT promoted. Mechanism from hw_spdvg.csv: net rx moved ~0.41 GB in the first ~15 s, then >= 86 s with zero bytes on every channel, CPU 0.4-4.5%, iowait pinned at 8.4% (one of twelve vCPUs blocked) - a stall, not a slow copy. The comparator was wrong at this size class: stage rows for 0.10-0.33 GB objects (the band that reproduces on the tracked CSV; the referee wrote 0.01, whose p10 is 2.6) (n=82) run p10 7.5 / median 48.0 / max 959 MB/s, 16 of 82 under 10 MB/s. Transport (shutil.copyfile over the mount) ruled out - the same call moved 11.5 GB at 40.3 MB/s one step earlier; sha256 read-back and contention ruled out by the timer scope and the trace; a Drive latency window is SUPPORTED - spdvc1's rclone upload of the identical 1264 files took 1302 s against the pilot's 522 s on a byte-identical command line - and object freshness is NOT ruled out (n=1 comparable read). Design gap named: the read is a bare copyfile with no timeout, throughput floor or slow-path escape; its worst case is unbounded where the rclone path it replaces is not. R2 PASS - \"startup:\" lines: 79 status files in 5.1 s (spdvg) and 5.9 s (spdvc1), 78 bulk-copied, against the 60 s bar and the 359 s the ledger docstrings record for spdc1 (the pilot had no startup line). spdvg's beacon scan read 47.1 s with one open; the timer cannot separate the listing from the open, so that cost is UNDETERMINED. R3 PASS - zero \"* installing\" lines across both sessions' five logs (pilot: three). R4 PASS - hw_spdvc1.csv 792 rows, sampled/span 100.08%, 0 gaps, 0 torn; hw_spdvg.csv 468 rows, 99.28%, 0 gaps, 0 torn; the pilot's three files ran 76-85% with 1-4 torn rows. R5 PASS - hw_step_attribution.csv carries launching/open/verifying for both sessions; all five VERIFY rows in the two per-launch status files carry minutes (0.0-0.1).\nDECISION - PHASE4SEG_TILE_BUNDLE stays OFF by default (R1 failed its bar). The four other changes validated on their own reads and stand: queue start-up bulk fetch (94cb8df), bootstrap requirements install (3f60b0f), hw logger spool+mirror (e8dec13), queue-side phases and VERIFY minutes (c5dc91c).\nALSO MEASURED, not decided. (i) Tile regressed +864 s engine time vs the pilot's CPU slice; ~780 s of it is the rclone upload of the same files (1302 vs 522 s), the bundle cost 31 s; host CPU is UNDETERMINED (no cpu_model on either meta; now recorded for future sessions, 8bd256c). Launching phases measured exactly: labels 9.25 min, tile 12.75 min at 36-50% iowait on 2 vCPU - the site-footprint discovery that 6276207 removed/moved AFTER this runtime cloned. (ii) Train 35.9 min engine vs 39.9 pilot: -104.5 s is the staging line (the only part the rule credits to the bundle); -148 s is one fewer checkpoint save and per-save variance over the same 50 epochs. Saving epochs average 58.0 s vs 24.4 s non-saving: 674 s over 20 saves, of which the timed copy is 49.6 s - the remaining 11-13 min per train step (torch.save, sha256 read-back through the mount, publish, Drive verify) is UNTIMED and the A100 idles through it. (iii) The one 35.9 s sem_best copy was the mount's write blocking with net tx at zero; its Drive verification succeeded BECAUSE the copy was slow, not the reverse.\nNEXT, in order - (1) re-stage the now-aged a36d6772e88b bundle on a fresh A100 with the trace running (~1 min GPU): >= 30 MB/s says window/freshness, ~4 MB/s with the same zero-traffic stall says structural; (2) if structural, a chunked copy with a per-chunk tick, a throughput floor and a slow-path escape to the rclone transport; (3) regardless of the bundle, ticks around torch.save, _sha256(part) and verify_on_drive - four times the bundle's whole saving sits there, untimed.\n"
     },
     {
-      "arm_scores": {
-        "heal_2017": {
-          "best_f1": {
-            "curve": "phase4/qc/curves/efb2813b8a46.csv",
-            "eval_scope": "",
-            "population": "5580636711",
-            "pr_auc": "0.7865",
-            "precision": "0.7529",
-            "recall": "0.7962",
-            "ref": "ccap_2021_hires_lc.tif",
-            "thresh": "0.161417"
-          },
-          "matched_p50": {
-            "curve": "phase4/qc/curves/efb2813b8a46.csv",
-            "eval_scope": "",
-            "population": "6051888200",
-            "pr_auc": "0.7865",
-            "precision": "0.698",
-            "recall": "0.8502",
-            "ref": "ccap_2021_hires_lc.tif",
-            "thresh": "0.15748"
-          },
-          "matched_p75": {
-            "curve": "phase4/qc/curves/efb2813b8a46.csv",
-            "eval_scope": "",
-            "population": "5580636711",
-            "pr_auc": "0.7865",
-            "precision": "0.7529",
-            "recall": "0.7962",
-            "ref": "ccap_2021_hires_lc.tif",
-            "thresh": "0.161417"
-          },
-          "matched_p90": {
-            "curve": "phase4/qc/curves/efb2813b8a46.csv",
-            "eval_scope": "",
-            "population": "4428773382",
-            "pr_auc": "0.7865",
-            "precision": "0.9003",
-            "recall": "0.0087",
-            "ref": "ccap_2021_hires_lc.tif",
-            "thresh": "0.515748"
-          },
-          "scored_live": {
-            "curve": "",
-            "eval_scope": "",
-            "population": "4638575821",
-            "pr_auc": "",
-            "precision": "0.867",
-            "recall": "0.3154",
-            "ref": "ccap_2021_hires_lc.tif",
-            "thresh": "0.4986"
-          }
-        }
-      },
-      "arms": [
-        {
-          "extra": [
-            "--no-hillshade"
-          ],
-          "tag": "heal_2017",
-          "year": "2017"
-        },
-        {
-          "extra": [
-            "--no-hillshade"
-          ],
-          "tag": "heal_2020",
-          "year": "2020"
-        },
-        {
-          "extra": [
-            "--no-hillshade"
-          ],
-          "tag": "heal_2022",
-          "year": "2022"
-        },
-        {
-          "extra": [
-            "--no-hillshade"
-          ],
-          "tag": "heal_2023",
-          "year": "2023"
-        }
-      ],
-      "category": "change",
-      "champion_tags": [],
-      "commit": null,
-      "decided": "2026-09-08",
-      "decision_rule": "PRE-REGISTERED, before any run. PRIMARY KILL: healing must launder ZERO verified losses once it operates inside the Panel A window — the terminal absence of a verified loss may never be filled. That is the one result that stops the design outright, and the current 0 of 42 was measured only OUTSIDE the window, so it is not yet evidence about the case that matters.\nAMENDMENT 2026-09-08, written before any arm of this campaign has a verdict and with the original text above left intact: phase4/qc/heal_gap_spectrum.csv (qc/instruments/ heal_gap_spectrum.py) measured that the PRIMARY KILL as written cannot fire. A verified loss has a terminal absence that runs to the end of the series, so the epoch after any interior epoch inside it also reads absent and a both-sides fill can never touch it; laundered_at_risk is 0 in every gap bucket on the 8-epoch stack and every alignment shift quantises to zero cells. 0 of 42 is therefore a criterion with no power, not a bound. The operative laundering test for this campaign is the FILL-SIDE audit (qc/instruments/heal_fill_audit_sample.py, ~300 fills sampled from the healer output with a null-change control, human-read, k/300 reported with its exact upper bound), together with the impossible-triple criterion at the no-change points, which keeps its power. The 42 remain the population for the ONE-SIDED failure a REVIEW-tier rule could commit (laundered_eligible = 28 at L=5). Source: Reports/LIT_HEALING_ANALOGUES_2026-09-08.md section 0 item 4 and Reports/HEALING_TOOL_REASONING_2026-09-07.md section 14.\nPROMOTE if, on the 12-epoch stack: (a) laundered = 0 and terminal-censored = 0 against the frozen gold; (b) impossible-triple removal at verified no-change points is no worse than the 99 of 124 measured on 8 epochs; (c) BLIND brackets inside 2016-2024 fall to zero, which is arithmetic and therefore a check on the run rather than a finding.\nRECIPE DISCIPLINE: all four arms run the trend8 recipe. The existing of_2017, of_2020 and of_2022 masks are NOT used, despite already being on disk with matched cuts, because they come from the overlap-floor campaign and mixing training recipes across a trajectory series reintroduces exactly the confound trend8 was built to control. Matched cuts collapse DELIVERY differences to 0.15 pp; that is not evidence they collapse RECIPE differences, and no measurement in the repo says they do.\nReport every recall figure with the gold's measured +/- 7.3 pp. The gold is a development set: a promote here licenses the enriched confirmatory draw, not a published number.\n",
-      "design_doc": "Reports/TEMPORAL_REFINEMENT_DESIGN_2026-09-06.md",
-      "extra": {
-        "arm_notes": "heal_2017 — WEAK_CALIBRATION at verify (maxprob < 0.75); trained to epoch 7 of 12 then never improved; probabilities compressed around 0.5 (held-out F1 0.763 at 0.490 vs 0.377 at 0.500). Independent score vs C-CAP 2021 (qc_indep_sweep, curve efb2813b8a46): at the held 0.75-precision cut R 0.796 / P 0.753 (AP 0.787, 99 eligible cuts) beside of_2017's 0.788 / 0.753 (AP 0.796, 193 cuts) — same recipe, same flight, inside the ~1 pp floor, UNDETERMINED. Delivered mask cut at u8 124 (best-F1 thresh 0.490): R 0.705 / P 0.805 vs C-CAP; two u8 steps above it recall falls to 0.315. In the stack this layer is the strict side of a cliff, and the 10-epoch trial showed it flickering against 2016/2019 (204,563 REVIEW-tier cells). heal_2020 — clean: AE11, held-out IoU 0.912 / F1 0.954 at 0.50, best-F1 thresh 0.501; the 2017 divergence did not recur. heal_2023 — clean: BE12 (still improving at the cap), held-out IoU 0.686 / F1 0.813, recall 0.865 / precision 0.768; in the 10-epoch trial its bracket 2021–2024 carried the largest REVIEW fill (268,262 cells, 4.35 pp of city) — the 2023 King acquisition misses canopy both neighbours see; not yet scored against C-CAP. heal_2022 — not run.\n",
-        "measured_cost": "From the trend8 step logs: mean 2.1 A100-hours per year across the eight trend8 years, range 1.1-4.9 h. Four years is therefore ~8 A100-hours serial, ~4 hours wall-clock on the 2-concurrent-A100 cap. ADD ~1.2 h of tiling (4 x the 18.6 min measured median) that the sample: block above wrongly assumed was already paid. That tiling is GPU-busy 0% of the time and belongs on a free CPU runtime; running it there first is the no-cost pilot for the tile-offload proposal in Reports/PIPELINE_SPEEDUP_OPTIONS_2026-09-07.md section 7.3. An earlier estimate of \"one to two A100-days\" in chat was wrong by roughly 6x — it misread the recalibration campaign's total compute (which included sweeps, recuts and the free CPU fleet) as engine time.\n",
-        "tabled": "2026-09-08, Kam: \"any runtime that is almost finished can continue; don't start any new epochs.\" Three of four arms ran (heal_2017 on healA/healB, heal_2020 on healC, heal_2023 on healD); heal_2022 was never started — healC finished heal_2020 at 19:28Z and idled with its command channel lost, and was stopped. The campaign closes at ELEVEN epochs, cached by qc/instruments/heal_stack_build.py at its default D:\\edmonds-pipeline\\heal_stack_2m.npz (8 trend8 + heal_2017/2020/2023; parity vs the published trend8 cache on the shared epochs). NO verdict: the decision rule's tests (fill-side audit, impossible triples, heal_vs_gold / closing / spectrum on the dense stack) have NOT been run on it — only a 10-epoch scratch trial (2017 + 2023 in) that exposed and fixed two instrument unit defects (802a0c8). heal_2022 stays in arms: above; its queue file is regenerated by qc/experiment_queue.py when the status returns to queued (a tabled experiment carries no generated queue). Resume after the system work in WORKPLAN.md (measured-file registry, rehearsal lake, append-only lake writes).\n",
-        "what_this_does_not_do": "It does not license healed masks feeding the annual canopy fraction. That restriction is structural — endpoints cannot be healed, so the bias never cancels — and more epochs do not change it. Healed output feeds trajectories, validity intervals and change maps only.\n",
-        "why_these_four": "They are the epochs that close the brackets inside Panel A's interval. With them, 2016/2017/2019/2020/2021/2022/2023 all become REVIEW rather than BLIND; without them, 2016/2019/2021 are BLIND and the window carries no heal evidence at all.\n"
-      },
-      "headline": "NO VERDICT — TABLED 2026-09-08 with the decision rule NOT evaluated.",
-      "hypothesis": "The healing operator cannot currently be scored. Panel A ruled on 2016->2024, but the HEAL tier fires only on 2011s, 2013 and 2015 — every later bracket in the trend8 stack spans >= 3 years, the distance bigleaf maple coppice crosses, and is therefore BLIND. So the operator runs entirely upstream of the interval the human gold covers, and the 42 verified losses and 1,170 verified no-change points cannot judge it (measured: Reports/HEALING_TOOL_REASONING_2026-09-07.md §10).\nAdding 2017, 2020, 2022 and 2023 on the SAME trend8 recipe closes every interior bracket inside the Panel A window to under three years. Two things should follow, and both are testable. First, healing begins firing where the human truth lives, so the frozen gold can score the HEAL tier directly instead of only its censoring behaviour. Second, annual cadence makes the REVIEW tier resolvable at all: post-2016 has no lidar to veto the laundering path (a real clearing whose regrowth reads as canopy), and at three-year gaps nothing in the mask distinguishes that from a detection failure — but at one-year gaps a replacement returns SMALL AND GROWING while an artifact returns FULL-SIZE AND STATIC. That is Kam's own design note, and it needs density to work.\nWhat would change our mind: healing that launders verified losses once it operates inside the validated window, or a size-trajectory signal that fails to separate the two return shapes even at annual cadence.\n",
-      "imagery": [
-        {
-          "bands": 3,
-          "gsd_cm": 5.0,
-          "label": "2017"
-        },
-        {
-          "bands": 3,
-          "gsd_cm": 5.0,
-          "label": "2020"
-        },
-        {
-          "bands": 3,
-          "gsd_cm": 5.0,
-          "label": "2022"
-        },
-        {
-          "bands": 3,
-          "gsd_cm": 10.0,
-          "label": "2023"
-        }
-      ],
-      "inputs": [
-        "phase4/qc/panel_a_gold.csv",
-        "phase4/qc/temporal_heal.csv"
-      ],
-      "instruments": [
-        "Scripts/qc/instruments/temporal_heal.py",
-        "Scripts/qc/instruments/heal_vs_gold.py",
-        "Scripts/qc/instruments/crown_trajectories.py"
-      ],
-      "kind": "experiment",
-      "last_run": "2026-09-08",
-      "metric": "phase4/qc/heal_vs_gold.csv rebuilt on the 12-epoch stack — laundered and censored counts against the 42 verified losses, and impossible-triple removal against the 1,170 verified no-change points. Secondary: phase4/qc/temporal_heal.csv tier distribution (BLIND should fall to zero inside 2016-2024), and phase4/qc/crown_trajectories.csv TERMINAL share, which today is 64% of all LOST crowns.\n",
-      "n": null,
-      "n_source": null,
-      "name": "heal_infill_2017_2023",
-      "outputs": [
-        "phase4/qc/heal_vs_gold.csv",
-        "phase4/qc/crown_trajectories.csv"
-      ],
-      "registry_rows": 16,
-      "reports": [
-        "Reports/HEALING_TOOL_REASONING_2026-09-07.md"
-      ],
-      "retrospective": false,
-      "run_ids": [],
-      "sample": "Citywide inference if the budget allows; otherwise a spatial sample that MUST contain the 1,214 Panel A gold points. Sampling at random would remove the only population that can score the result and would defeat the experiment's whole purpose. All four years re-tile. Tile dirs exist for every one of them, but under OTHER campaigns' tags (of_2017, of_2020, t1_2020_*, of_2022, untagged 2023), and tile_dir_for() keys the directory on {label}__{run_tag} — so heal_2017 and its siblings resolve to directories that do not exist. Recipe discipline forbids borrowing the old tags in any case. Corrected 2026-09-07: an earlier version of this line claimed the tiling was already paid for on three of the four, which is false in both directions.\n",
-      "status": "tabled",
-      "superseded_by": [],
-      "supersedes": [],
-      "tags": [
-        "healing",
-        "temporal-backfill",
-        "density",
-        "panel-a",
-        "scoreable",
-        "trend8-recipe"
-      ],
-      "tilesets": [
-        "0d4456027a30",
-        "a105c1937d57",
-        "e955bb67a335"
-      ],
-      "verdict": "NO VERDICT — TABLED 2026-09-08 with the decision rule NOT evaluated. Three of four arms ran (heal_2017, heal_2020, heal_2023; heal_2022 never started) and the eleven epochs that exist are cached; the fill-side audit, the impossible-triple count and heal_vs_gold / closing / spectrum on the dense stack have not been run on them. The only dense-stack reads are a 10-epoch SCRATCH trial (extra.tabled) whose numbers are provisional and untracked. Resumes after the system work in WORKPLAN.md.\n"
-    },
-    {
       "arm_scores": {},
       "arms": [],
       "category": "literature",
@@ -7513,6 +7347,173 @@
         "2016"
       ],
       "tilesets": [],
+      "verdict": null
+    },
+    {
+      "arm_scores": {
+        "heal_2017": {
+          "best_f1": {
+            "curve": "phase4/qc/curves/efb2813b8a46.csv",
+            "eval_scope": "",
+            "population": "5580636711",
+            "pr_auc": "0.7865",
+            "precision": "0.7529",
+            "recall": "0.7962",
+            "ref": "ccap_2021_hires_lc.tif",
+            "thresh": "0.161417"
+          },
+          "matched_p50": {
+            "curve": "phase4/qc/curves/efb2813b8a46.csv",
+            "eval_scope": "",
+            "population": "6051888200",
+            "pr_auc": "0.7865",
+            "precision": "0.698",
+            "recall": "0.8502",
+            "ref": "ccap_2021_hires_lc.tif",
+            "thresh": "0.15748"
+          },
+          "matched_p75": {
+            "curve": "phase4/qc/curves/efb2813b8a46.csv",
+            "eval_scope": "",
+            "population": "5580636711",
+            "pr_auc": "0.7865",
+            "precision": "0.7529",
+            "recall": "0.7962",
+            "ref": "ccap_2021_hires_lc.tif",
+            "thresh": "0.161417"
+          },
+          "matched_p90": {
+            "curve": "phase4/qc/curves/efb2813b8a46.csv",
+            "eval_scope": "",
+            "population": "4428773382",
+            "pr_auc": "0.7865",
+            "precision": "0.9003",
+            "recall": "0.0087",
+            "ref": "ccap_2021_hires_lc.tif",
+            "thresh": "0.515748"
+          },
+          "scored_live": {
+            "curve": "",
+            "eval_scope": "",
+            "population": "4638575821",
+            "pr_auc": "",
+            "precision": "0.867",
+            "recall": "0.3154",
+            "ref": "ccap_2021_hires_lc.tif",
+            "thresh": "0.4986"
+          }
+        }
+      },
+      "arms": [
+        {
+          "extra": [
+            "--no-hillshade"
+          ],
+          "tag": "heal_2017",
+          "year": "2017"
+        },
+        {
+          "extra": [
+            "--no-hillshade"
+          ],
+          "tag": "heal_2020",
+          "year": "2020"
+        },
+        {
+          "extra": [
+            "--no-hillshade"
+          ],
+          "tag": "heal_2022",
+          "year": "2022"
+        },
+        {
+          "extra": [
+            "--no-hillshade"
+          ],
+          "tag": "heal_2023",
+          "year": "2023"
+        }
+      ],
+      "category": "change",
+      "champion_tags": [],
+      "commit": null,
+      "decided": null,
+      "decision_rule": "PRE-REGISTERED, before any run. PRIMARY KILL: healing must launder ZERO verified losses once it operates inside the Panel A window — the terminal absence of a verified loss may never be filled. That is the one result that stops the design outright, and the current 0 of 42 was measured only OUTSIDE the window, so it is not yet evidence about the case that matters.\nAMENDMENT 2026-09-08, written before any arm of this campaign has a verdict and with the original text above left intact: phase4/qc/heal_gap_spectrum.csv (qc/instruments/ heal_gap_spectrum.py) measured that the PRIMARY KILL as written cannot fire. A verified loss has a terminal absence that runs to the end of the series, so the epoch after any interior epoch inside it also reads absent and a both-sides fill can never touch it; laundered_at_risk is 0 in every gap bucket on the 8-epoch stack and every alignment shift quantises to zero cells. 0 of 42 is therefore a criterion with no power, not a bound. The operative laundering test for this campaign is the FILL-SIDE audit (qc/instruments/heal_fill_audit_sample.py, ~300 fills sampled from the healer output with a null-change control, human-read, k/300 reported with its exact upper bound), together with the impossible-triple criterion at the no-change points, which keeps its power. The 42 remain the population for the ONE-SIDED failure a REVIEW-tier rule could commit (laundered_eligible = 28 at L=5). Source: Reports/LIT_HEALING_ANALOGUES_2026-09-08.md section 0 item 4 and Reports/HEALING_TOOL_REASONING_2026-09-07.md section 14.\nPROMOTE if, on the 12-epoch stack: (a) laundered = 0 and terminal-censored = 0 against the frozen gold; (b) impossible-triple removal at verified no-change points is no worse than the 99 of 124 measured on 8 epochs; (c) BLIND brackets inside 2016-2024 fall to zero, which is arithmetic and therefore a check on the run rather than a finding.\nRECIPE DISCIPLINE: all four arms run the trend8 recipe. The existing of_2017, of_2020 and of_2022 masks are NOT used, despite already being on disk with matched cuts, because they come from the overlap-floor campaign and mixing training recipes across a trajectory series reintroduces exactly the confound trend8 was built to control. Matched cuts collapse DELIVERY differences to 0.15 pp; that is not evidence they collapse RECIPE differences, and no measurement in the repo says they do.\nReport every recall figure with the gold's measured +/- 7.3 pp. The gold is a development set: a promote here licenses the enriched confirmatory draw, not a published number.\n",
+      "design_doc": "Reports/TEMPORAL_REFINEMENT_DESIGN_2026-09-06.md",
+      "extra": {
+        "arm_notes": "heal_2017 — WEAK_CALIBRATION at verify (maxprob < 0.75); trained to epoch 7 of 12 then never improved; probabilities compressed around 0.5 (held-out F1 0.763 at 0.490 vs 0.377 at 0.500). Independent score vs C-CAP 2021 (qc_indep_sweep, curve efb2813b8a46): at the held 0.75-precision cut R 0.796 / P 0.753 (AP 0.787, 99 eligible cuts) beside of_2017's 0.788 / 0.753 (AP 0.796, 193 cuts) — same recipe, same flight, inside the ~1 pp floor, UNDETERMINED. Delivered mask cut at u8 124 (best-F1 thresh 0.490): R 0.705 / P 0.805 vs C-CAP; two u8 steps above it recall falls to 0.315. In the stack this layer is the strict side of a cliff, and the 10-epoch trial showed it flickering against 2016/2019 (204,563 REVIEW-tier cells). heal_2020 — clean: AE11, held-out IoU 0.912 / F1 0.954 at 0.50, best-F1 thresh 0.501; the 2017 divergence did not recur. heal_2023 — clean: BE12 (still improving at the cap), held-out IoU 0.686 / F1 0.813, recall 0.865 / precision 0.768; in the 10-epoch trial its bracket 2021–2024 carried the largest REVIEW fill (268,262 cells, 4.35 pp of city) — the 2023 King acquisition misses canopy both neighbours see; not yet scored against C-CAP. heal_2022 — not run.\n",
+        "measured_cost": "From the trend8 step logs: mean 2.1 A100-hours per year across the eight trend8 years, range 1.1-4.9 h. Four years is therefore ~8 A100-hours serial, ~4 hours wall-clock on the 2-concurrent-A100 cap. ADD ~1.2 h of tiling (4 x the 18.6 min measured median) that the sample: block above wrongly assumed was already paid. That tiling is GPU-busy 0% of the time and belongs on a free CPU runtime; running it there first is the no-cost pilot for the tile-offload proposal in Reports/PIPELINE_SPEEDUP_OPTIONS_2026-09-07.md section 7.3. An earlier estimate of \"one to two A100-days\" in chat was wrong by roughly 6x — it misread the recalibration campaign's total compute (which included sweeps, recuts and the free CPU fleet) as engine time.\n",
+        "resumed_2026_09_10": "Kam (2026-09-10, overnight brief): \"Also work on the healer.\" Resumed from tabled to run the one arm never started (heal_2022) so the stack reaches twelve epochs, then rebuild the stack and run the pre-registered instruments on it. The 2026-09-08 close-out text is preserved below under extra.tabled as history.\n",
+        "tabled": "2026-09-08, Kam: \"any runtime that is almost finished can continue; don't start any new epochs.\" Three of four arms ran (heal_2017 on healA/healB, heal_2020 on healC, heal_2023 on healD); heal_2022 was never started — healC finished heal_2020 at 19:28Z and idled with its command channel lost, and was stopped. The campaign closes at ELEVEN epochs, cached by qc/instruments/heal_stack_build.py at its default D:\\edmonds-pipeline\\heal_stack_2m.npz (8 trend8 + heal_2017/2020/2023; parity vs the published trend8 cache on the shared epochs). NO verdict: the decision rule's tests (fill-side audit, impossible triples, heal_vs_gold / closing / spectrum on the dense stack) have NOT been run on it — only a 10-epoch scratch trial (2017 + 2023 in) that exposed and fixed two instrument unit defects (802a0c8). heal_2022 stays in arms: above; its queue file is regenerated by qc/experiment_queue.py when the status returns to queued (a tabled experiment carries no generated queue). Resume after the system work in WORKPLAN.md (measured-file registry, rehearsal lake, append-only lake writes).\n",
+        "what_this_does_not_do": "It does not license healed masks feeding the annual canopy fraction. That restriction is structural — endpoints cannot be healed, so the bias never cancels — and more epochs do not change it. Healed output feeds trajectories, validity intervals and change maps only.\n",
+        "why_these_four": "They are the epochs that close the brackets inside Panel A's interval. With them, 2016/2017/2019/2020/2021/2022/2023 all become REVIEW rather than BLIND; without them, 2016/2019/2021 are BLIND and the window carries no heal evidence at all.\n"
+      },
+      "headline": "The healing operator cannot currently be scored.",
+      "hypothesis": "The healing operator cannot currently be scored. Panel A ruled on 2016->2024, but the HEAL tier fires only on 2011s, 2013 and 2015 — every later bracket in the trend8 stack spans >= 3 years, the distance bigleaf maple coppice crosses, and is therefore BLIND. So the operator runs entirely upstream of the interval the human gold covers, and the 42 verified losses and 1,170 verified no-change points cannot judge it (measured: Reports/HEALING_TOOL_REASONING_2026-09-07.md §10).\nAdding 2017, 2020, 2022 and 2023 on the SAME trend8 recipe closes every interior bracket inside the Panel A window to under three years. Two things should follow, and both are testable. First, healing begins firing where the human truth lives, so the frozen gold can score the HEAL tier directly instead of only its censoring behaviour. Second, annual cadence makes the REVIEW tier resolvable at all: post-2016 has no lidar to veto the laundering path (a real clearing whose regrowth reads as canopy), and at three-year gaps nothing in the mask distinguishes that from a detection failure — but at one-year gaps a replacement returns SMALL AND GROWING while an artifact returns FULL-SIZE AND STATIC. That is Kam's own design note, and it needs density to work.\nWhat would change our mind: healing that launders verified losses once it operates inside the validated window, or a size-trajectory signal that fails to separate the two return shapes even at annual cadence.\n",
+      "imagery": [
+        {
+          "bands": 3,
+          "gsd_cm": 5.0,
+          "label": "2017"
+        },
+        {
+          "bands": 3,
+          "gsd_cm": 5.0,
+          "label": "2020"
+        },
+        {
+          "bands": 3,
+          "gsd_cm": 5.0,
+          "label": "2022"
+        },
+        {
+          "bands": 3,
+          "gsd_cm": 10.0,
+          "label": "2023"
+        }
+      ],
+      "inputs": [
+        "phase4/qc/panel_a_gold.csv",
+        "phase4/qc/temporal_heal.csv"
+      ],
+      "instruments": [
+        "Scripts/qc/instruments/temporal_heal.py",
+        "Scripts/qc/instruments/heal_vs_gold.py",
+        "Scripts/qc/instruments/crown_trajectories.py"
+      ],
+      "kind": "experiment",
+      "last_run": "2026-09-08",
+      "metric": "phase4/qc/heal_vs_gold.csv rebuilt on the 12-epoch stack — laundered and censored counts against the 42 verified losses, and impossible-triple removal against the 1,170 verified no-change points. Secondary: phase4/qc/temporal_heal.csv tier distribution (BLIND should fall to zero inside 2016-2024), and phase4/qc/crown_trajectories.csv TERMINAL share, which today is 64% of all LOST crowns.\n",
+      "n": null,
+      "n_source": null,
+      "name": "heal_infill_2017_2023",
+      "outputs": [
+        "phase4/qc/heal_vs_gold.csv",
+        "phase4/qc/crown_trajectories.csv"
+      ],
+      "registry_rows": 16,
+      "reports": [
+        "Reports/HEALING_TOOL_REASONING_2026-09-07.md"
+      ],
+      "retrospective": false,
+      "run_ids": [],
+      "sample": "Citywide inference if the budget allows; otherwise a spatial sample that MUST contain the 1,214 Panel A gold points. Sampling at random would remove the only population that can score the result and would defeat the experiment's whole purpose. All four years re-tile. Tile dirs exist for every one of them, but under OTHER campaigns' tags (of_2017, of_2020, t1_2020_*, of_2022, untagged 2023), and tile_dir_for() keys the directory on {label}__{run_tag} — so heal_2017 and its siblings resolve to directories that do not exist. Recipe discipline forbids borrowing the old tags in any case. Corrected 2026-09-07: an earlier version of this line claimed the tiling was already paid for on three of the four, which is false in both directions.\n",
+      "status": "queued",
+      "superseded_by": [],
+      "supersedes": [],
+      "tags": [
+        "healing",
+        "temporal-backfill",
+        "density",
+        "panel-a",
+        "scoreable",
+        "trend8-recipe"
+      ],
+      "tilesets": [
+        "0d4456027a30",
+        "a105c1937d57",
+        "e955bb67a335"
+      ],
       "verdict": null
     },
     {

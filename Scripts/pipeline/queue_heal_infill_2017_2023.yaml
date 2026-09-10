@@ -1,0 +1,38 @@
+# GENERATED from experiments/heal_infill_2017_2023.yaml — DO NOT EDIT.
+# Edit the experiment file and rerun:
+#   py -3.12 qc/experiment_queue.py --experiment experiments/heal_infill_2017_2023.yaml
+# test_experiments.py::test_generated_queues_match_their_experiments fails on drift.
+# ONE QUEUE PER RUNTIME (COLAB_AUTONOMY_SETUP.md); arms wanting parallel
+# runtimes get split into per-arm files by hand, still generated-headered.
+- id: heal_infill_2017_2023_heal_2017
+  year: '2017'
+  tag: heal_2017
+  extra:
+  - --force-citywide
+  - --no-hillshade
+  why: arm of experiments/heal_infill_2017_2023.yaml — hypothesis and decision rule
+    live THERE, not here.
+- id: heal_infill_2017_2023_heal_2020
+  year: '2020'
+  tag: heal_2020
+  extra:
+  - --force-citywide
+  - --no-hillshade
+  why: arm of experiments/heal_infill_2017_2023.yaml — hypothesis and decision rule
+    live THERE, not here.
+- id: heal_infill_2017_2023_heal_2022
+  year: '2022'
+  tag: heal_2022
+  extra:
+  - --force-citywide
+  - --no-hillshade
+  why: arm of experiments/heal_infill_2017_2023.yaml — hypothesis and decision rule
+    live THERE, not here.
+- id: heal_infill_2017_2023_heal_2023
+  year: '2023'
+  tag: heal_2023
+  extra:
+  - --force-citywide
+  - --no-hillshade
+  why: arm of experiments/heal_infill_2017_2023.yaml — hypothesis and decision rule
+    live THERE, not here.

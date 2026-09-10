@@ -1,6 +1,6 @@
 name: heal_infill_2017_2023
 kind: experiment
-status: tabled
+status: queued
 retrospective: false
 category: change
 tags: [healing, temporal-backfill, density, panel-a, scoreable, trend8-recipe]
@@ -89,14 +89,8 @@ decision_rule: >
   development set: a promote here licenses the enriched confirmatory draw, not a
   published number.
 
-verdict: >
-  NO VERDICT — TABLED 2026-09-08 with the decision rule NOT evaluated. Three of four
-  arms ran (heal_2017, heal_2020, heal_2023; heal_2022 never started) and the eleven
-  epochs that exist are cached; the fill-side audit, the impossible-triple count and
-  heal_vs_gold / closing / spectrum on the dense stack have not been run on them. The
-  only dense-stack reads are a 10-epoch SCRATCH trial (extra.tabled) whose numbers are
-  provisional and untracked. Resumes after the system work in WORKPLAN.md.
-decided: '2026-09-08'
+verdict: null
+decided: null
 
 design_doc: Reports/TEMPORAL_REFINEMENT_DESIGN_2026-09-06.md
 reports:
@@ -127,6 +121,11 @@ supersedes: []
 superseded_by: []
 
 extra:
+  resumed_2026_09_10: >
+    Kam (2026-09-10, overnight brief): "Also work on the healer." Resumed from tabled to
+    run the one arm never started (heal_2022) so the stack reaches twelve epochs, then
+    rebuild the stack and run the pre-registered instruments on it. The 2026-09-08
+    close-out text is preserved below under extra.tabled as history.
   measured_cost: >
     From the trend8 step logs: mean 2.1 A100-hours per year across the eight trend8
     years, range 1.1-4.9 h. Four years is therefore ~8 A100-hours serial, ~4 hours

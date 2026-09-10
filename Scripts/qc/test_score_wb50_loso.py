@@ -24,11 +24,11 @@ def _mod():
     return m
 
 
-def _layout(tmp_path, drop=None):
+def _layout(tmp_path, drop=None, prefix="wb50"):
     m = _mod()
     base = tmp_path / "lake"
     (base / "phase4" / "masks").mkdir(parents=True)
-    for year, tag in m.ARMS:
+    for year, tag in m.arms_for(prefix):
         if tag != drop:
             m.prob_path(base, year, tag).write_bytes(b"x")
     ref = base / "Full_Image" / "Pipeline Imagery" / m.REF_NAME
@@ -78,6 +78,28 @@ def test_refuses_on_a_missing_prob_raster(tmp_path, capsys):
 def test_refuses_on_a_missing_reference(tmp_path):
     m, base, aoi = _layout(tmp_path)
     (base / "Full_Image" / "Pipeline Imagery" / m.REF_NAME).unlink()
+    with pytest.raises(SystemExit) as e:
+        m.main(["--base", str(base), "--aoi", str(aoi), "--dry-run"])
+    assert e.value.code == 2
+
+
+def test_prefix_wb18_scores_the_resnet18_arms(tmp_path, capsys):
+    """--prefix wb18 (phase 3) is the same conveyor over the wb18_ tags: seven
+    commands, identical shape, 2020 last. tmp_path only — lake.BASE is never resolved."""
+    m, base, aoi = _layout(tmp_path, prefix="wb18")
+    rc = m.main(["--base", str(base), "--aoi", str(aoi), "--python", "PY",
+                 "--prefix", "wb18", "--dry-run"])
+    assert rc == 0
+    lines = [ln.strip() for ln in capsys.readouterr().out.splitlines()
+             if "phase4_qc_indep.py" in ln]
+    assert len(lines) == 7
+    for (year, tag), ln in zip(m.arms_for("wb18"), lines):
+        assert tag.startswith("wb18_")
+        assert f"--year {year} " in ln
+        assert f"edmonds_canopy_prob_{year}_{tag}.tif" in ln
+        assert ln.endswith("--aoi-roles test") and "--thresh" not in ln
+    assert m.arms_for("wb18")[-1][1] == "wb18_2020_base", "2020 (the slow arm) runs last"
+    # the wb50 rasters are absent from this layout, so the default prefix must refuse
     with pytest.raises(SystemExit) as e:
         m.main(["--base", str(base), "--aoi", str(aoi), "--dry-run"])
     assert e.value.code == 2

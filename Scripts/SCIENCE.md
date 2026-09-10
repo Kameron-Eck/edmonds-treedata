@@ -120,7 +120,7 @@ count beside it.
 - never tiled (13): 2002s, 2003s, 2007s, 2009s, 2012s, 2013s, 2015n, 2015s, 2020s, 2021n, 2022s, 2023n, 2024s
 - no matched-cut read (21): 2000, 2002, 2002s, 2003s, 2005, 2007, 2007s, 2009s, 2012s, 2013s, 2015n, 2015s, 2018s, 2019s, 2020s, 2021n, 2021s, 2022s, 2023, 2023n, 2024s
 - no champion (20): 2000, 2002, 2002s, 2007s, 2009s, 2013, 2013s, 2015, 2015n, 2015s, 2016, 2017, 2017k, 2017n, 2017s, 2019s, 2020, 2021n, 2022s, 2024s
-- results documented but UNSIGNED (6): backbone_sweep, ccap_mixed_sign_bias, epoch_decay_mvv0, era_matched_rescore, fusion_5band_nir_chm, shadow_fp_fn_2016
+- results documented but UNSIGNED (5): ccap_mixed_sign_bias, epoch_decay_mvv0, era_matched_rescore, fusion_5band_nir_chm, shadow_fp_fn_2016
 
 A gap here is a record, not a backlog — some acquisitions are deliberately out of scope. `phase4/qc/coverage_map.md` has the matrix.
 

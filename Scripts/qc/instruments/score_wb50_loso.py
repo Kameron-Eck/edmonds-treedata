@@ -1,7 +1,11 @@
-"""LOSO scoring pass for the seven warm-started resnet50 arms (experiments/backbone_sweep.yaml
-phase 2) — the reconstruction of the Tier-1 scoring conveyor, as a tracked driver.
+"""LOSO scoring pass for a seven-arm warm-started phase of experiments/backbone_sweep.yaml
+— the reconstruction of the Tier-1 scoring conveyor, as a tracked driver.
 
-WHAT IT RUNS, in sequence, for each of the seven wb50_ tags:
+--prefix picks the phase: wb50 (phase 2, resnet50; the default and the original name of
+this file) or wb18 (phase 3, resnet18). The seven treatment tags are identical across
+phases — only the prefix moves — so the qc_indep invocation is byte-for-byte the same.
+
+WHAT IT RUNS, in sequence, for each of the seven <prefix>_ tags:
 
     py -3.12 qc/phase4_qc_indep.py --year <label> --ref <ccap_2021_hires_lc.tif>
         --prob <BASE>/phase4/masks/edmonds_canopy_prob_<label>_<tag>.tif
@@ -28,6 +32,7 @@ existence checks — it never writes.
 Run:
   PYTHONUTF8=1 py -3.12 qc/instruments/score_wb50_loso.py --dry-run
   PYTHONUTF8=1 py -3.12 qc/instruments/score_wb50_loso.py
+  PYTHONUTF8=1 py -3.12 qc/instruments/score_wb50_loso.py --prefix wb18
 """
 import argparse
 import subprocess
@@ -38,17 +43,27 @@ HERE = Path(__file__).resolve().parent            # Scripts/qc/instruments
 SCRIPTS = HERE.parents[1]                          # Scripts/
 REPO = SCRIPTS.parent
 
-# (year label, run tag) — experiments/backbone_sweep.yaml extra.phase2_tags, in queue
-# order (pipeline/queue_wb50_score.yaml): 2020 last, it is the slow one.
-ARMS = [
-    ("2011s", "wb50_2011s_base"),
-    ("2011s", "wb50_2011s_base_s2"),
-    ("2011s", "wb50_2011s_base_s3"),
-    ("2011s", "wb50_2011s_cor05"),
-    ("2016", "wb50_2016_base"),
-    ("2016", "wb50_2016_in05"),
-    ("2020", "wb50_2020_base"),
+# (year label, treatment tag) — experiments/backbone_sweep.yaml extra.phase2_tags /
+# phase3_tags with the phase prefix dropped, in queue order
+# (pipeline/queue_<prefix>_score.yaml): 2020 last, it is the slow one.
+TREATMENTS = [
+    ("2011s", "2011s_base"),
+    ("2011s", "2011s_base_s2"),
+    ("2011s", "2011s_base_s3"),
+    ("2011s", "2011s_cor05"),
+    ("2016", "2016_base"),
+    ("2016", "2016_in05"),
+    ("2020", "2020_base"),
 ]
+PREFIXES = ("wb50", "wb18")
+
+
+def arms_for(prefix):
+    """The seven (year, run tag) pairs of one warm-started phase."""
+    return [(y, f"{prefix}_{t}") for y, t in TREATMENTS]
+
+
+ARMS = arms_for("wb50")     # the default phase; kept as a module constant
 REF_NAME = "ccap_2021_hires_lc.tif"
 QC_INDEP = SCRIPTS / "qc" / "phase4_qc_indep.py"
 HARVEST = SCRIPTS / "qc" / "instruments" / "harvest_arm_metrics.py"
@@ -85,6 +100,9 @@ def main(argv=None):
     ap.add_argument("--aoi", default=str(AOI_DEFAULT),
                     help="Ground-block manifest (default the tracked "
                          "phase4/qc/science_sample_manifest.csv).")
+    ap.add_argument("--prefix", default="wb50", choices=list(PREFIXES),
+                    help="Which warm-started phase to score (default wb50 = phase 2, "
+                         "resnet50; wb18 = phase 3, resnet18).")
     ap.add_argument("--python", default=sys.executable,
                     help="Interpreter for the subprocesses (default this one).")
     ap.add_argument("--no-harvest", action="store_true",
@@ -104,14 +122,15 @@ def main(argv=None):
     ref = Path(a.ref) if a.ref else base / "Full_Image" / "Pipeline Imagery" / REF_NAME
     aoi = Path(a.aoi)
 
-    miss = missing_inputs(base, ref, aoi)
+    arms = arms_for(a.prefix)
+    miss = missing_inputs(base, ref, aoi, arms)
     if miss:
         print("REFUSING to start — missing input(s):", file=sys.stderr)
         for p in miss:
             print(f"  {p}", file=sys.stderr)
         raise SystemExit(2)
 
-    cmds = build_commands(base, ref, aoi, a.python)
+    cmds = build_commands(base, ref, aoi, a.python, arms)
     harvest = [a.python, str(HARVEST)]
     if a.dry_run:
         print("DRY RUN — commands that would run, in order:")
@@ -122,7 +141,7 @@ def main(argv=None):
         return 0
 
     results = []
-    for (year, tag), c in zip(ARMS, cmds):
+    for (year, tag), c in zip(arms, cmds):
         print(f"\n[{tag}] {subprocess.list2cmdline(c)}", flush=True)
         rc = subprocess.run(c).returncode          # no timeout: 2020 is 167M cells
         print(f"[{tag}] exit={rc}", flush=True)
@@ -138,7 +157,7 @@ def main(argv=None):
           + (f"; FAILED: {failed}" if failed else "")
           + (f"; harvest exit={rc_h}" if rc_h is not None else ""))
     from pipeline_log import write_step_log
-    write_step_log("score_wb50_loso", step="score", logs_dir=base / "phase4" / "logs",
+    write_step_log(f"score_{a.prefix}_loso", step="score", logs_dir=base / "phase4" / "logs",
                    scored=len(results) - len(failed), failed=",".join(failed),
                    harvest_exit="" if rc_h is None else rc_h, ref=ref.name,
                    aoi=aoi.name)

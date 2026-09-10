@@ -1,0 +1,108 @@
+# HAND-SPLIT from experiments/backbone_sweep.yaml — PHASE 3 (warm-started resnet18),
+# one A100 runtime per file. Deliberately NOT carrying the GENERATED header:
+# test_generated_queues_match_their_experiments requires a headered file to equal the
+# full regeneration, which a split file cannot; instead
+# qc/test_backbone_benchmark.py::test_hand_split_queues_are_subsets_of_the_generated_queue
+# checks every job here byte-equals its job in pipeline/queue_backbone_sweep.yaml
+# (regenerate that from the experiment, then re-split; never edit jobs here by hand).
+# Hypothesis, decision rule and baseline live in the experiment file, not here; the
+# decision that these arms run at all is extra.kam_decision_2026_09_09.
+#
+# NO CANARY: --encoder resnet18 and the full labels->tile->train->evaluate cycle were
+# proven by the phase-1 file pipeline/queue_backbone_r18.yaml (canary + nine bb18 arms,
+# 2026-09-09): run_registry.csv carries 40 bb18_ rows, 10 of them step=evaluate, so the
+# full cycle completed under --encoder resnet18. Their rows on the SHARED eval CSV were
+# clobbered (extra.cross_vm_eval_report_clobber); the metrics are in the step logs. The one new flag, --ckpt <sem_best_2020_base18.pt>, takes the engine's ordinary
+# p3_ckpt route (core.step_train -> resolve_p3_ckpt -> load_state_into ->
+# _assert_state_fits), MEASURED LOCALLY for resnet18 against the lake copy: a 182-key
+# resnet18 U-Net, 0 missing / 0 unexpected at in_channels 3 and 4, conv1 zero-inflated
+# (64,3,7,7)->(64,4,7,7) for the in05 arm (experiments/backbone_sweep.yaml
+# extra.phase3_warm_started_resnet18). A missing path STOPS the run
+# (ckpt.resolve_p3_ckpt refuses to fall back), so a wrong path cannot spend.
+#
+# This file: the 2011s arms — the three-seed noise floor (b) and the cor05 null pair (c).
+# Launch (COLAB_AUTONOMY_SETUP.md): py -3.12 pipeline/vm_ops.py launch --queue queue_wb18_a.yaml
+# The 2-concurrent-A100 cap: this file and queue_wb18_b.yaml are the two — so the wb18 pair
+# cannot run alongside the wb50 files; those arms are already landed and scored.
+- id: backbone_sweep_wb18_2011s_base
+  year: 2011s
+  tag: wb18_2011s_base
+  extra:
+  - --force-citywide
+  - --encoder
+  - resnet18
+  - --no-hillshade
+  - --ckpt
+  - /content/drive/MyDrive/treedata/phase4/models/sem_best_2020_base18.pt
+  - --sample-manifest
+  - /content/drive/MyDrive/treedata/phase4/qc/sample_tiles_2011s.csv
+  why: arm of experiments/backbone_sweep.yaml — hypothesis and decision rule live
+    THERE, not here.
+  steps:
+  - labels
+  - tile
+  - train
+  - evaluate
+- id: backbone_sweep_wb18_2011s_base_s2
+  year: 2011s
+  tag: wb18_2011s_base_s2
+  extra:
+  - --force-citywide
+  - --encoder
+  - resnet18
+  - --no-hillshade
+  - --seed
+  - '43'
+  - --ckpt
+  - /content/drive/MyDrive/treedata/phase4/models/sem_best_2020_base18.pt
+  - --sample-manifest
+  - /content/drive/MyDrive/treedata/phase4/qc/sample_tiles_2011s.csv
+  why: arm of experiments/backbone_sweep.yaml — hypothesis and decision rule live
+    THERE, not here.
+  steps:
+  - labels
+  - tile
+  - train
+  - evaluate
+- id: backbone_sweep_wb18_2011s_base_s3
+  year: 2011s
+  tag: wb18_2011s_base_s3
+  extra:
+  - --force-citywide
+  - --encoder
+  - resnet18
+  - --no-hillshade
+  - --seed
+  - '44'
+  - --ckpt
+  - /content/drive/MyDrive/treedata/phase4/models/sem_best_2020_base18.pt
+  - --sample-manifest
+  - /content/drive/MyDrive/treedata/phase4/qc/sample_tiles_2011s.csv
+  why: arm of experiments/backbone_sweep.yaml — hypothesis and decision rule live
+    THERE, not here.
+  steps:
+  - labels
+  - tile
+  - train
+  - evaluate
+- id: backbone_sweep_wb18_2011s_cor05
+  year: 2011s
+  tag: wb18_2011s_cor05
+  extra:
+  - --force-citywide
+  - --encoder
+  - resnet18
+  - --no-hillshade
+  - --add-canopy-mask
+  - /content/drive/MyDrive/treedata/phase4/labels_corrected/add_corrupt5_2011s.tif
+  - --ckpt
+  - /content/drive/MyDrive/treedata/phase4/models/sem_best_2020_base18.pt
+  - --sample-manifest
+  - /content/drive/MyDrive/treedata/phase4/qc/sample_tiles_2011s.csv
+  why: arm of experiments/backbone_sweep.yaml — hypothesis and decision rule live
+    THERE, not here.
+  steps:
+  - labels
+  - tile
+  - train
+  - evaluate

@@ -6442,6 +6442,104 @@
           ],
           "tag": "wb50_2020_base",
           "year": "2020"
+        },
+        {
+          "extra": [
+            "--encoder",
+            "resnet18",
+            "--no-hillshade",
+            "--ckpt",
+            "/content/drive/MyDrive/treedata/phase4/models/sem_best_2020_base18.pt",
+            "--sample-manifest",
+            "/content/drive/MyDrive/treedata/phase4/qc/sample_tiles_2011s.csv"
+          ],
+          "tag": "wb18_2011s_base",
+          "year": "2011s"
+        },
+        {
+          "extra": [
+            "--encoder",
+            "resnet18",
+            "--no-hillshade",
+            "--seed",
+            "43",
+            "--ckpt",
+            "/content/drive/MyDrive/treedata/phase4/models/sem_best_2020_base18.pt",
+            "--sample-manifest",
+            "/content/drive/MyDrive/treedata/phase4/qc/sample_tiles_2011s.csv"
+          ],
+          "tag": "wb18_2011s_base_s2",
+          "year": "2011s"
+        },
+        {
+          "extra": [
+            "--encoder",
+            "resnet18",
+            "--no-hillshade",
+            "--seed",
+            "44",
+            "--ckpt",
+            "/content/drive/MyDrive/treedata/phase4/models/sem_best_2020_base18.pt",
+            "--sample-manifest",
+            "/content/drive/MyDrive/treedata/phase4/qc/sample_tiles_2011s.csv"
+          ],
+          "tag": "wb18_2011s_base_s3",
+          "year": "2011s"
+        },
+        {
+          "extra": [
+            "--encoder",
+            "resnet18",
+            "--no-hillshade",
+            "--add-canopy-mask",
+            "/content/drive/MyDrive/treedata/phase4/labels_corrected/add_corrupt5_2011s.tif",
+            "--ckpt",
+            "/content/drive/MyDrive/treedata/phase4/models/sem_best_2020_base18.pt",
+            "--sample-manifest",
+            "/content/drive/MyDrive/treedata/phase4/qc/sample_tiles_2011s.csv"
+          ],
+          "tag": "wb18_2011s_cor05",
+          "year": "2011s"
+        },
+        {
+          "extra": [
+            "--encoder",
+            "resnet18",
+            "--no-hillshade",
+            "--ckpt",
+            "/content/drive/MyDrive/treedata/phase4/models/sem_best_2020_base18.pt",
+            "--sample-manifest",
+            "/content/drive/MyDrive/treedata/phase4/qc/sample_tiles_2016.csv"
+          ],
+          "tag": "wb18_2016_base",
+          "year": "2016"
+        },
+        {
+          "extra": [
+            "--encoder",
+            "resnet18",
+            "--hs-source",
+            "chm2005",
+            "--ckpt",
+            "/content/drive/MyDrive/treedata/phase4/models/sem_best_2020_base18.pt",
+            "--sample-manifest",
+            "/content/drive/MyDrive/treedata/phase4/qc/sample_tiles_2016.csv"
+          ],
+          "tag": "wb18_2016_in05",
+          "year": "2016"
+        },
+        {
+          "extra": [
+            "--encoder",
+            "resnet18",
+            "--no-hillshade",
+            "--ckpt",
+            "/content/drive/MyDrive/treedata/phase4/models/sem_best_2020_base18.pt",
+            "--sample-manifest",
+            "/content/drive/MyDrive/treedata/phase4/qc/sample_tiles_2020.csv"
+          ],
+          "tag": "wb18_2020_base",
+          "year": "2020"
         }
       ],
       "category": "machinery",
@@ -6461,6 +6559,7 @@
           "resnet18",
           "resnet50"
         ],
+        "kam_decision_2026_09_09": "KAM, 2026-09-09, on extra.phase2_result_pending_kam: \"move forward with using resnet 18 to refine the recipe.\" READ AS OPTION (i): resnet50 from the base50 start is accepted on (a) the absolute gap, (b) the seed spread and the null pair, and recipe refinement now moves DOWN to resnet18 — PROVIDED the resnet18 phase-2 check holds the way resnet50's did: (a) at or above the resnet101 record at the held cut (matched_p75 recall, phase4/qc/backbone_benchmark.csv), (b) its own three-seed spread comparable to the 101's 0.0085 (the pre-registered \"within 2x\"), and the null pair (wb18_2011s_cor05 minus wb18_2011s_base) inside that floor. If any of the three fails, recipe search does NOT move to resnet18 and the failure is recorded here. WHAT THIS GATE DROPS, stated plainly: the pre-registered (c) also required the POSITIVE pair (2016 in05 minus base) to clear the encoder's floor with the 101's sign. resnet50 did not meet it and this decision does not require resnet18 to. The reason is the reference arm, not the small encoder — the 101's t1_2016_base (0.669) was recorded suspect-low on 2026-09-03 while every warm-started encoder lands at the ~0.751 ceiling. THE 2016 LIDAR EFFECT THEREFORE STAYS **UNRESOLVED**, not disproven: it cannot be read until the 101's 2016 base is reseeded, which is already on the board. No verdict is written for this experiment on the strength of the positive pair either way. The older extra.phase2_warm_started sentence (\"ResNet-18 phase 2 runs ONLY if resnet50 passes rank agreement (c)\") is the pre-decision record; this note supersedes it.\n",
         "measured_cost": "Per-step minutes for the resnet101 Tier-1 arms, read from phase4/qc/ledger_recovery/train_queue_status_recovered_20260901_20260907.csv (a recovered CANDIDATE ledger, docs/SCHEMAS.md) — A100-40GB for train/evaluate, free CPU VMs for labels/tile: labels 5-15 min, tile 7-53 min (2020 in05/in16 at 30-53 min are the slow end; 2006s 7-12 min), train 19-28 min, evaluate 7-36 min. At that shape one arm is ~60-90 min end to end, so nine arms plus a canary is ~8-12 hours per A100 queue with labels+tile on the GPU runtime, of which ~15-40 min per arm is tiling the GPU sits idle for. Train is expected faster on resnet18/50 (fewer encoder FLOPs; the decoder is unchanged) — NOT measured yet, which is what the wall-clock metric records. The Tier-1 campaign ran labels+tile on CPU runtimes first (commit 7ef2f11) and only train+evaluate on the A100s (4a04d62); the same split is available here by generating a CPU launch file with steps [labels, tile] and launching the GPU files after VERIFY:tile is OK.\n",
         "null_pair": [
           "bbNN_2011s_cor05",
@@ -6480,6 +6579,17 @@
           "wb50_2020_base"
         ],
         "phase2_warm_started": "ADDED 2026-09-09 (Kam: \"Yes to the fewer arms and use TWO gpus\"). Seven wb50_ arms (three 2011s seeds = floor, 2011s cor05 = null pair, 2016 base + in05 = positive pair, 2020 base = absolute gap) re-run the bb50_ recipe warm-started from phase4/models/sem_best_2020_base50.pt (experiments/encoder_bases.yaml verdict: resnet50, ImageNet start, Phase-3 crown tiles; its numbers live THERE). The 2006s and 2019n arms are dropped from phase 2 — none of (a)(b)(c) needs them. STAMP CAVEAT: ckpt.warm_start_kind returns \"p3_ckpt\" for ANY explicit --ckpt, so these rows read warm_start=p3_ckpt like a resnet101 arm; the base50 start is visible only in the manifest argv (phase4/qc/run_passport.csv). LOAD PATH, verified locally 2026-09-09 against the lake copy of the checkpoint: cli.warm_start_kind(--ckpt) -> p3_ckpt; core.step_train resolve_p3_ckpt(override) returns the path (SystemExit if missing); load_state_into -> _assert_state_fits: 380/380 keys, 0 missing / 0 unexpected into a 3-band resnet50 U-Net, and _inflate_first_conv zero-pads conv1 3->4 for the in05 arm (0/0 again). preflight PASSES the full arm command line, but --check is parse-only (cli.py returns before resolve_p3_ckpt), so the path itself is proven by the local load, not by preflight. COST: every wb50 tag re-tiles (tile_dir_for keys on the tag; the bb50 tiles are byte-identical but under another name) — the same labels+tile minutes as phase 1 per arm. Launch files: pipeline/queue_wb50_a.yaml (2011s base, s2, s3, cor05) and queue_wb50_b.yaml (2016 base, 2016 in05, 2020 base), no canary. ResNet-18 phase 2 (wb18_, --ckpt sem_best_2020_base18.pt) runs ONLY if resnet50 passes rank agreement (c).\n",
+        "phase3_ckpt": "phase4/models/sem_best_2020_base18.pt",
+        "phase3_tags": [
+          "wb18_2011s_base",
+          "wb18_2011s_base_s2",
+          "wb18_2011s_base_s3",
+          "wb18_2011s_cor05",
+          "wb18_2016_base",
+          "wb18_2016_in05",
+          "wb18_2020_base"
+        ],
+        "phase3_warm_started_resnet18": "ADDED 2026-09-09 after kam_decision_2026_09_09. Seven wb18_ arms — the exact twins of the wb50_ arms (three 2011s seeds = floor, 2011s cor05 = null pair, 2016 base + in05 = positive pair, 2020 base = absolute gap) with --encoder resnet18 and --ckpt phase4/models/sem_best_2020_base18.pt (experiments/encoder_bases.yaml verdict: resnet18, ImageNet start, Phase-3 crown tiles; its numbers live THERE and are not restated here). Same recipe otherwise: --force-citywide, per-year --sample-manifest LAST, no hillshade except the in05 arm's chm2005 band 4. LOAD PATH, MEASURED LOCALLY 2026-09-09 against the lake copy of sem_best_2020_base18.pt (NOT copied from the base50 note — these are resnet18 numbers): ckpt.build_model with ENCODER=resnet18 gives a 182-key U-Net; ckpt.load_state_into loads the checkpoint into it with 0 missing / 0 unexpected keys at both in_channels=3 and 4 (_assert_state_fits would SystemExit otherwise), _inflate_first_conv zero-pads encoder.conv1.weight (64,3,7,7) -> (64,4,7,7) for the in05 arm, and the checkpoint reports phase B epoch 26, matching the encoder_bases verdict. ckpt.warm_start_kind(--ckpt) -> p3_ckpt, so these rows read warm_start=p3_ckpt like a resnet101 arm; the base18 start is visible only in the manifest argv (phase4/qc/run_passport.csv) — same stamp caveat as phase 2. COST: every wb18 tag re-tiles (tile_dir_for keys on the tag), the same labels+tile minutes per arm as phases 1 and 2. Launch files: pipeline/queue_wb18_a.yaml (2011s base, s2, s3, cor05) and queue_wb18_b.yaml (2016 base, 2016 in05, 2020 base), no canary — --encoder resnet18 and the full labels->tile->train->evaluate cycle ran in phase 1 (pipeline/queue_backbone_r18.yaml, the nine bb18 arms; their evaluate CSV rows were clobbered per extra.cross_vm_eval_report_clobber, but the cycle itself ran and its metrics are in the step logs). Scoring: pipeline/queue_wb18_score.yaml, then py -3.12 qc/instruments/score_wb50_loso.py --prefix wb18.\n",
         "positive_pair": [
           "bbNN_2016_in05",
           "bbNN_2016_base"
@@ -6539,7 +6649,7 @@
       "retrospective": false,
       "run_ids": [],
       "sample": "The Tier-1 ground sample: 33 screened blocks split once (30 test, 2 train, 1 selection; phase4/qc/science_sample_manifest.csv), the same fixed blocks for every arm and every encoder. Train and early-stop on the manifest tiles; scores read from the test blocks only. Every arm re-tiles under its own tag (tile_dir_for keys on {label}__{run_tag}); the offload pilot measured a re-tile as byte-identical, so the tiles are the same set under a new name, at the cost recorded in extra.measured_cost.\n",
-      "status": "needs-kam",
+      "status": "queued",
       "superseded_by": [],
       "supersedes": [],
       "tags": [

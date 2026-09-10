@@ -1,0 +1,149 @@
+# HAND-WRITTEN from experiments/backbone_sweep.yaml — PHASE 3 SCORING (the LOSO
+# inference pass over the 33 science blocks for the seven warm-started resnet18 arms).
+# The exact twin of pipeline/queue_wb50_score.yaml with the encoder and the checkpoint
+# swapped; that file's header carries the full derivation and it is not restated here.
+# Not GENERATED-headered: the generator emits one command shape per job and the
+# experiment's steps are [labels, tile, train, evaluate]; this file is the
+# "second queue shape" the decision rule names — steps [inference] only, per-step
+# flags being impossible in one job. qc/test_backbone_benchmark.py
+# ::test_hand_split_queues_are_subsets_of_the_generated_queue checks every job here
+# against its twin in queue_wb18_a.yaml / queue_wb18_b.yaml: same id/year/tag, same
+# flags minus the --sample-manifest pair, plus --infer-aoi.
+#
+# The two flags the Tier-1 shape did not carry, both required here (mechanism in
+# queue_wb50_score.yaml): --encoder resnet18, because core.step_inference builds from
+# config.ENCODER and adopts only in_channels / hs_source from the checkpoint, so without
+# it the default resnet101 U-Net is built and the strict load refuses
+# sem_best_<year>_wb18_*.pt; and --ckpt <base18>, never loaded by inference but RESOLVED
+# for every step by cli.main (a missing path is a SystemExit) and carried so the manifest
+# stamps warm_start=p3_ckpt rather than imagenet.
+#
+# Order: the 2020 arm LAST — it is the slow one (167M cells). MEASURED, run_registry.csv,
+# the wb50 scoring queue that already ran (step=inference): resnet50 took 2011s 1.9-3.2
+# min, 2016 base 3.2 / in05 4.0, 2020 base 17.1 — ~35 min for the seven, against
+# resnet101's 34.9 min on 2020 alone. resnet18 inference is UNMEASURED.
+# After it lands: py -3.12 qc/instruments/score_wb50_loso.py --prefix wb18.
+#
+# Launch (COLAB_AUTONOMY_SETUP.md): py -3.12 pipeline/vm_ops.py launch --queue queue_wb18_score.yaml
+# One A100; the dry run's "! MISSING INPUT" line is the local absence of the
+# /content/... gpkg path (the queue tests extra[-1] as a path) — Tier-1's file printed
+# the same and ran.
+- id: backbone_sweep_wb18_2011s_base
+  year: 2011s
+  tag: wb18_2011s_base
+  extra:
+  - --force-citywide
+  - --encoder
+  - resnet18
+  - --no-hillshade
+  - --ckpt
+  - /content/drive/MyDrive/treedata/phase4/models/sem_best_2020_base18.pt
+  - --infer-aoi
+  - /content/drive/MyDrive/treedata/phase4/qc/science_sample_blocks.gpkg
+  why: LOSO scoring pass of an arm of experiments/backbone_sweep.yaml — hypothesis
+    and decision rule live THERE, not here.
+  steps:
+  - inference
+- id: backbone_sweep_wb18_2011s_base_s2
+  year: 2011s
+  tag: wb18_2011s_base_s2
+  extra:
+  - --force-citywide
+  - --encoder
+  - resnet18
+  - --no-hillshade
+  - --seed
+  - '43'
+  - --ckpt
+  - /content/drive/MyDrive/treedata/phase4/models/sem_best_2020_base18.pt
+  - --infer-aoi
+  - /content/drive/MyDrive/treedata/phase4/qc/science_sample_blocks.gpkg
+  why: LOSO scoring pass of an arm of experiments/backbone_sweep.yaml — hypothesis
+    and decision rule live THERE, not here.
+  steps:
+  - inference
+- id: backbone_sweep_wb18_2011s_base_s3
+  year: 2011s
+  tag: wb18_2011s_base_s3
+  extra:
+  - --force-citywide
+  - --encoder
+  - resnet18
+  - --no-hillshade
+  - --seed
+  - '44'
+  - --ckpt
+  - /content/drive/MyDrive/treedata/phase4/models/sem_best_2020_base18.pt
+  - --infer-aoi
+  - /content/drive/MyDrive/treedata/phase4/qc/science_sample_blocks.gpkg
+  why: LOSO scoring pass of an arm of experiments/backbone_sweep.yaml — hypothesis
+    and decision rule live THERE, not here.
+  steps:
+  - inference
+- id: backbone_sweep_wb18_2011s_cor05
+  year: 2011s
+  tag: wb18_2011s_cor05
+  extra:
+  - --force-citywide
+  - --encoder
+  - resnet18
+  - --no-hillshade
+  - --add-canopy-mask
+  - /content/drive/MyDrive/treedata/phase4/labels_corrected/add_corrupt5_2011s.tif
+  - --ckpt
+  - /content/drive/MyDrive/treedata/phase4/models/sem_best_2020_base18.pt
+  - --infer-aoi
+  - /content/drive/MyDrive/treedata/phase4/qc/science_sample_blocks.gpkg
+  why: LOSO scoring pass of an arm of experiments/backbone_sweep.yaml — hypothesis
+    and decision rule live THERE, not here.
+  steps:
+  - inference
+- id: backbone_sweep_wb18_2016_base
+  year: '2016'
+  tag: wb18_2016_base
+  extra:
+  - --force-citywide
+  - --encoder
+  - resnet18
+  - --no-hillshade
+  - --ckpt
+  - /content/drive/MyDrive/treedata/phase4/models/sem_best_2020_base18.pt
+  - --infer-aoi
+  - /content/drive/MyDrive/treedata/phase4/qc/science_sample_blocks.gpkg
+  why: LOSO scoring pass of an arm of experiments/backbone_sweep.yaml — hypothesis
+    and decision rule live THERE, not here.
+  steps:
+  - inference
+- id: backbone_sweep_wb18_2016_in05
+  year: '2016'
+  tag: wb18_2016_in05
+  extra:
+  - --force-citywide
+  - --encoder
+  - resnet18
+  - --hs-source
+  - chm2005
+  - --ckpt
+  - /content/drive/MyDrive/treedata/phase4/models/sem_best_2020_base18.pt
+  - --infer-aoi
+  - /content/drive/MyDrive/treedata/phase4/qc/science_sample_blocks.gpkg
+  why: LOSO scoring pass of an arm of experiments/backbone_sweep.yaml — hypothesis
+    and decision rule live THERE, not here.
+  steps:
+  - inference
+- id: backbone_sweep_wb18_2020_base
+  year: '2020'
+  tag: wb18_2020_base
+  extra:
+  - --force-citywide
+  - --encoder
+  - resnet18
+  - --no-hillshade
+  - --ckpt
+  - /content/drive/MyDrive/treedata/phase4/models/sem_best_2020_base18.pt
+  - --infer-aoi
+  - /content/drive/MyDrive/treedata/phase4/qc/science_sample_blocks.gpkg
+  why: LOSO scoring pass of an arm of experiments/backbone_sweep.yaml — hypothesis
+    and decision rule live THERE, not here.
+  steps:
+  - inference

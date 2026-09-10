@@ -14,6 +14,7 @@ import csv
 import io
 from pathlib import Path
 
+import pytest
 import yaml
 
 SCRIPTS = Path(__file__).resolve().parent.parent
@@ -117,9 +118,19 @@ def _phase1_arms(spec):
     return [a for a in spec["arms"] if a["tag"].startswith("bb")]
 
 
-def _phase2_arms(spec):
-    """wb50_ arms — the warm-started re-run (phase 2, 2026-09-09)."""
-    return [a for a in spec["arms"] if a["tag"].startswith("wb")]
+def _warm_arms(spec, prefix="wb"):
+    """Warm-started arms. `wb` (any) is the phase-1/phase-2+3 split used by the arm
+    census; a full prefix (wb50 / wb18) selects one phase."""
+    return [a for a in spec["arms"] if a["tag"].startswith(prefix + "_")
+            or (prefix == "wb" and a["tag"].startswith("wb"))]
+
+
+# (arm prefix, phase-1 twin prefix, ckpt key, tags key, encoder) — one row per warm
+# phase, so a new encoder is a row here and not a fork of every gate below.
+WARM_PHASES = [
+    ("wb50", "bb50", "phase2_ckpt", "phase2_tags", "resnet50"),
+    ("wb18", "bb18", "phase3_ckpt", "phase3_tags", "resnet18"),
+]
 
 
 def test_sweep_arms_are_derived_from_the_benchmark_list():
@@ -136,7 +147,7 @@ def test_sweep_arms_are_derived_from_the_benchmark_list():
             want.add((year, pre + tag[len("t1_"):]))
     got = {(str(a["year"]), a["tag"]) for a in _phase1_arms(spec)}
     assert got == want, {"missing": sorted(want - got), "extra": sorted(got - want)}
-    assert len(_phase1_arms(spec)) + len(_phase2_arms(spec)) == len(spec["arms"]), (
+    assert len(_phase1_arms(spec)) + len(_warm_arms(spec)) == len(spec["arms"]), (
         "an arm is neither bb (phase 1) nor wb (phase 2)")
     for a in _phase1_arms(spec):
         enc = next(e for e in encoders if a["tag"].startswith(f"bb{e.replace('resnet', '')}_"))
@@ -146,33 +157,37 @@ def test_sweep_arms_are_derived_from_the_benchmark_list():
         assert "--ckpt" not in ex, ("phase-1 arms are the ImageNet-start record", a)
 
 
-def test_phase2_arms_are_their_bb50_twins_plus_the_base50_ckpt():
-    """Phase 2 (extra.phase2_warm_started): each wb50_<t> arm is exactly the
-    bb50_<t> arm's flags with `--ckpt <phase2_ckpt>` spliced in before the trailing
-    --sample-manifest, and the set is the declared phase2_tags — which must be the
-    subset (a)(b)(c) need: the three-seed floor, the null pair, the positive pair
-    and the 2020 base, all derived from the instrument's constants."""
+@pytest.mark.parametrize("prefix,twin_prefix,ckpt_key,tags_key,encoder", WARM_PHASES,
+                         ids=[w[0] for w in WARM_PHASES])
+def test_warm_arms_are_their_imagenet_twins_plus_the_base_ckpt(
+        prefix, twin_prefix, ckpt_key, tags_key, encoder):
+    """Phases 2 and 3 (extra.phase2_warm_started / phase3_warm_started_resnet18): each
+    wbNN_<t> arm is exactly the bbNN_<t> arm's flags with `--ckpt <base ckpt>` spliced
+    in before the trailing --sample-manifest, and the set is the declared tags — which
+    must be the subset (a)(b)(c) need: the three-seed floor, the null pair, the positive
+    pair and the 2020 base, all derived from the instrument's constants."""
     bb = _bb()
     spec = _sweep_spec()
     ex_ = spec["extra"]
-    ck = "/content/drive/MyDrive/treedata/" + ex_["phase2_ckpt"]
-    p2 = {a["tag"]: a for a in _phase2_arms(spec)}
-    assert set(p2) == set(ex_["phase2_tags"]), (set(p2) ^ set(ex_["phase2_tags"]))
+    ck = "/content/drive/MyDrive/treedata/" + ex_[ckpt_key]
+    pw = {a["tag"]: a for a in _warm_arms(spec, prefix)}
+    assert set(pw) == set(ex_[tags_key]), (set(pw) ^ set(ex_[tags_key]))
     # the subset the decision rule needs, from instrument constants + the declared pairs
-    need = {f"wb50_{t[len('t1_'):]}" for t in bb.NOISE_FLOOR_ARMS}
+    need = {f"{prefix}_{t[len('t1_'):]}" for t in bb.NOISE_FLOOR_ARMS}
     for pair in (ex_["positive_pair"], ex_["null_pair"]):
-        need |= {t.replace("bbNN_", "wb50_") for t in pair}
-    need.add("wb50_2020_base")
-    assert set(p2) == need, {"missing": sorted(need - set(p2)), "extra": sorted(set(p2) - need)}
-    bb50 = {a["tag"]: a for a in _phase1_arms(spec) if a["tag"].startswith("bb50_")}
-    for tag, a in p2.items():
-        twin = bb50["bb50_" + tag[len("wb50_"):]]
+        need |= {t.replace("bbNN_", prefix + "_") for t in pair}
+    need.add(f"{prefix}_2020_base")
+    assert set(pw) == need, {"missing": sorted(need - set(pw)), "extra": sorted(set(pw) - need)}
+    twins = {a["tag"]: a for a in _phase1_arms(spec) if a["tag"].startswith(twin_prefix + "_")}
+    for tag, a in pw.items():
+        twin = twins[twin_prefix + "_" + tag[len(prefix) + 1:]]
         assert str(a["year"]) == str(twin["year"]), (tag, a["year"], twin["year"])
         tex = [str(x) for x in twin["extra"]]
         i = tex.index("--sample-manifest")
         want = tex[:i] + ["--ckpt", ck] + tex[i:]
         assert [str(x) for x in a["extra"]] == want, (tag, a["extra"], want)
         assert a["extra"][-2] == "--sample-manifest", ("manifest path must stay LAST", tag)
+        assert want[want.index("--encoder") + 1] == encoder, tag
 
 
 def test_hand_split_queues_are_subsets_of_the_generated_queue(tmp_path):
@@ -192,47 +207,49 @@ def test_hand_split_queues_are_subsets_of_the_generated_queue(tmp_path):
     gen = {j["id"]: j for j in yaml.safe_load(text)}
     files = sorted((SCRIPTS / "pipeline").glob("queue_backbone_r*.yaml"))
     assert len(files) == 2, [f.name for f in files]
-    # phase 2 (warm-started wb50 arms): two hand-split files, NO canary — the flag
-    # and the cycle were proven by phase 1; every job carries --ckpt.
-    p2_all = sorted((SCRIPTS / "pipeline").glob("queue_wb50_*.yaml"))
-    assert [f.name for f in p2_all] == ["queue_wb50_a.yaml", "queue_wb50_b.yaml",
-                                        "queue_wb50_score.yaml"]
-    p2_files, score_file = p2_all[:2], p2_all[2]
+    # phases 2 and 3 (warm-started wbNN arms): two hand-split files each, NO canary —
+    # the flag and the cycle were proven by phase 1; every job carries --ckpt.
     covered = set()
-    trained = {}
-    for q in p2_files:
-        head = q.read_text(encoding="utf-8")
-        assert head.startswith("# HAND-SPLIT from experiments/backbone_sweep.yaml"), q.name
-        for j in yaml.safe_load(head):
-            assert j["tag"].startswith("wb50_"), (q.name, j["id"])
-            assert "--ckpt" in [str(x) for x in j["extra"]], (q.name, j["id"])
-            g = gen.get(j["id"])
-            assert g, f"{q.name}: job {j['id']} is not in the generated queue"
-            for k in ("year", "tag", "extra", "steps"):
-                assert j[k] == g[k], (q.name, j["id"], k, j[k], g[k])
-            assert j["id"] not in covered, ("job launched twice", j["id"])
-            covered.add(j["id"])
-            trained[j["id"]] = j
-    # The SCORING queue (Tier-1 Phase-B2 shape, commit ac0e79e): one inference-only job
-    # per trained wb50 job, same id/year/tag, the training flags with the
-    # --sample-manifest pair removed and --infer-aoi <science blocks> appended. --encoder
-    # and --ckpt ride along (see the file header for why inference needs both).
-    head = score_file.read_text(encoding="utf-8")
-    assert head.startswith("# HAND-WRITTEN from experiments/backbone_sweep.yaml"), score_file.name
-    score_jobs = yaml.safe_load(head)
-    assert [j["id"] for j in score_jobs] == list(trained), "one scoring job per trained job, same order"
-    assert score_jobs[-1]["tag"] == "wb50_2020_base", "the slow 2020 arm runs last"
-    for j in score_jobs:
-        t = trained[j["id"]]
-        assert j["steps"] == ["inference"], (j["id"], j["steps"])
-        assert (j["year"], j["tag"]) == (t["year"], t["tag"]), j["id"]
-        ex, tx = [str(x) for x in j["extra"]], [str(x) for x in t["extra"]]
-        assert "--sample-manifest" not in ex, j["id"]
-        i = tx.index("--sample-manifest")
-        assert ex[:-2] == tx[:i] + tx[i + 2:], (j["id"], ex, tx)
-        assert ex[-2:] == ["--infer-aoi", "/content/drive/MyDrive/treedata/phase4/qc/"
-                                          "science_sample_blocks.gpkg"], j["id"]
-        assert ex[ex.index("--encoder") + 1] == "resnet50" and "--ckpt" in ex, j["id"]
+    for prefix, _twin, _ck, _tags, encoder in WARM_PHASES:
+        p2_all = sorted((SCRIPTS / "pipeline").glob(f"queue_{prefix}_*.yaml"))
+        assert [f.name for f in p2_all] == [f"queue_{prefix}_a.yaml",
+                                            f"queue_{prefix}_b.yaml",
+                                            f"queue_{prefix}_score.yaml"]
+        p2_files, score_file = p2_all[:2], p2_all[2]
+        trained = {}
+        for q in p2_files:
+            head = q.read_text(encoding="utf-8")
+            assert head.startswith("# HAND-SPLIT from experiments/backbone_sweep.yaml"), q.name
+            for j in yaml.safe_load(head):
+                assert j["tag"].startswith(prefix + "_"), (q.name, j["id"])
+                assert "--ckpt" in [str(x) for x in j["extra"]], (q.name, j["id"])
+                g = gen.get(j["id"])
+                assert g, f"{q.name}: job {j['id']} is not in the generated queue"
+                for k in ("year", "tag", "extra", "steps"):
+                    assert j[k] == g[k], (q.name, j["id"], k, j[k], g[k])
+                assert j["id"] not in covered, ("job launched twice", j["id"])
+                covered.add(j["id"])
+                trained[j["id"]] = j
+        # The SCORING queue (Tier-1 Phase-B2 shape, commit ac0e79e): one inference-only
+        # job per trained job, same id/year/tag, the training flags with the
+        # --sample-manifest pair removed and --infer-aoi <science blocks> appended.
+        # --encoder and --ckpt ride along (see the file header for why inference needs both).
+        head = score_file.read_text(encoding="utf-8")
+        assert head.startswith("# HAND-WRITTEN from experiments/backbone_sweep.yaml"), score_file.name
+        score_jobs = yaml.safe_load(head)
+        assert [j["id"] for j in score_jobs] == list(trained), "one scoring job per trained job, same order"
+        assert score_jobs[-1]["tag"] == f"{prefix}_2020_base", "the slow 2020 arm runs last"
+        for j in score_jobs:
+            t_ = trained[j["id"]]
+            assert j["steps"] == ["inference"], (j["id"], j["steps"])
+            assert (j["year"], j["tag"]) == (t_["year"], t_["tag"]), j["id"]
+            ex, tx = [str(x) for x in j["extra"]], [str(x) for x in t_["extra"]]
+            assert "--sample-manifest" not in ex, j["id"]
+            i = tx.index("--sample-manifest")
+            assert ex[:-2] == tx[:i] + tx[i + 2:], (j["id"], ex, tx)
+            assert ex[-2:] == ["--infer-aoi", "/content/drive/MyDrive/treedata/phase4/qc/"
+                                              "science_sample_blocks.gpkg"], j["id"]
+            assert ex[ex.index("--encoder") + 1] == encoder and "--ckpt" in ex, j["id"]
     for q in files:
         head = q.read_text(encoding="utf-8")
         assert head.startswith("# HAND-SPLIT from experiments/backbone_sweep.yaml"), q.name

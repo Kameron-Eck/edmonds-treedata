@@ -969,6 +969,26 @@ def _duplicate_tag_guard(todo, rows, at_launch=True, max_age_s=300):
     return True
 
 
+def _artifact_gone(job, step, masks_dir=None):
+    """True when a step recorded OK has no artifact on the lake any more.
+
+    Only the inference step owns a lake artifact the queue can stat cheaply (the prob
+    raster); every other step's evidence is its own VERIFY row. A job whose steps
+    subset never reaches inference makes no raster and is never "gone".
+    """
+    if step != "inference":
+        return False
+    if "steps" in job and "inference" not in job["steps"]:
+        return False
+    from queue_verify import _q
+    masks = masks_dir if masks_dir is not None else _q().MASKS
+    out = Path(masks) / f"edmonds_canopy_prob_{job['year']}_{job['tag']}.tif"
+    try:
+        return not out.exists()
+    except OSError:
+        return False
+
+
 def main():
     argv = sys.argv[1:]
     for i, a in enumerate(argv):
@@ -1116,8 +1136,19 @@ def main():
                               f"FAILED verification. Stopping this job.")
                         ok = False
                         break
+                elif _artifact_gone(j, st):
+                    # 2026-09-11 (harmh2s3): the record said inference OK, the
+                    # raster was GONE from the lake (its runtime was stopped with
+                    # the upload still dirty), and the queue skipped the step,
+                    # wrote VERIFY MISSING, and ended — an idle L4 and no raster.
+                    # A skipped step whose artifact no longer exists is NOT done;
+                    # re-run it. One stat() on the lake, no re-read.
+                    print(f"  ! {j['id']}/{st} recorded OK but its artifact is GONE "
+                          f"from the lake — re-running the step, not skipping it")
                 else:
                     print(f"  - skip {j['id']}/{st} (already OK)")
+                    continue
+            if _k in done and not _artifact_gone(j, st):
                 continue
             ran_any = True
             _declare_run_tags(todo, args.queue or "JOBS", job=j["id"], step=st)

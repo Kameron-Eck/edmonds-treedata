@@ -1196,3 +1196,23 @@ did:     12/12 epochs scored (CPU, ~6 h incl. one mirror-fault retry), harvested
          --rates-ref ccap_2016 passes its emission gate on all 12. Brief section 2.3 and
          the v2 yaml (extra) updated; the v2 verdict stands (K4 was not evaluable then).
 next:    successor designs run K4 from the start; lidar-referenced rates still absent.
+
+## 2026-09-10  a 999 MB raster died with its runtime: the stop did not wait for the upload backlog
+what:    wb18_2020_in16's sample-block raster: ledger VERIFY OK 16:13Z on harmh2s2, but
+         the Drive copy was "NOT CONFIRMED" (md5 absent after 1 s) and I stopped the
+         runtime on the verify row. Twelve hours later the file is absent from Drive
+         (Drive API search: not found; every sibling found). VERIFY reuses the inference
+         stat (size match, no re-read) - it verified the LOCAL file, not the published one.
+fix:     vm_ops stop is drain-aware: waits on the heartbeat's vfs_dirty_gb (DRAINED /
+         NO_HEARTBEAT / STALE proceed with a printed verdict; TIMEOUT refuses unless
+         --force); 3 tests; known_failures.yaml entry. The arm is re-run on an L4, never
+         salvaged; the H2 verdict does not depend on it.
+
+## 2026-09-11  resume self-heal: a skipped step whose artifact is GONE is re-run
+what:    the rerun launch (harmh2s3, L4) resumed from the merged ledgers, saw inference
+         OK for wb18_2020_in16, skipped it, re-checked the raster (stat: GONE), wrote
+         VERIFY MISSING and ENDED - an idle L4 and still no raster. Honest, not useful.
+fix:     phase4_train_queue: a skipped inference step whose prob raster no longer exists
+         on the lake is re-run, not skipped (_artifact_gone, one stat, no re-read;
+         steps-subset jobs exempt); test added. The live VM runs the pre-fix clone, so
+         the queue was re-launched on it with --no-resume --only <job>; monitor armed.

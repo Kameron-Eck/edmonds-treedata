@@ -416,7 +416,65 @@ def cmd(session, command, wait_s=240):
           f"or a dead VM; check `vm_ops sessions` for existence")
 
 
-def stop(session):
+def _drain_state(session):
+    """(dirty_gb|None, beat_age_s|None) from the session heartbeat on the lake."""
+    from lake import BASE, read_retry   # installed module — no path hack
+    import datetime as _dt
+    hb = BASE / "phase4" / "logs" / f"heartbeat_{session}.json"
+    data = read_retry(lambda: hb.read_text(encoding="utf-8") if hb.exists() else "")
+    if not data:
+        return None, None
+    try:
+        d = json.loads(data)
+        ts = _dt.datetime.strptime(d["ts_utc"], "%Y-%m-%dT%H:%M:%SZ")
+        age = (_dt.datetime.utcnow() - ts).total_seconds()
+        return d.get("vfs_dirty_gb"), age
+    except (ValueError, KeyError, TypeError):
+        return None, None
+
+
+def wait_for_drain(session, max_wait_s=1800, stale_s=600, poll_s=30, _state=_drain_state,
+                   _sleep=None):
+    """Block until the runtime's rclone UPLOAD BACKLOG is empty, then return a verdict.
+
+    WHY (2026-09-10): the queue's staged write confirms sha256 LOCALLY and reports the
+    Drive md5 as "NOT CONFIRMED" on large files, relying on the backlog draining
+    "before the VM stops". An external `vm_ops stop` issued right after the ledger's
+    VERIFY row killed the VM with a 999 MB raster still dirty in the cache
+    (wb18_2020_in16, harmh2s2): the file never reached Drive and the local copy died
+    with the runtime. The heartbeat already publishes `vfs_dirty_gb`, so the stop can
+    wait on it. Verdicts: DRAINED (dirty == 0), NO_HEARTBEAT (never any beat — legacy
+    or dead VM: proceed, nothing to wait for), STALE (beat older than stale_s — the
+    beacon is dead, the backlog is unknowable: proceed, say so), TIMEOUT (still dirty
+    after max_wait_s: REFUSE to stop unless --force)."""
+    import time as _t
+    sl = _sleep or _t.sleep
+    t0 = _t.time()
+    last = None
+    while True:
+        dirty, age = _state(session)
+        if age is None:
+            return "NO_HEARTBEAT", dirty
+        if age > stale_s:
+            return "STALE", dirty
+        if dirty is not None and dirty <= 0.0:
+            return "DRAINED", dirty
+        if dirty != last:
+            print(f"  upload backlog {dirty} GB (beat {int(age)}s ago) — waiting", flush=True)
+            last = dirty
+        if _t.time() - t0 >= max_wait_s:
+            return "TIMEOUT", dirty
+        sl(poll_s)
+
+
+def stop(session, force=False):
+    if not force:
+        verdict, dirty = wait_for_drain(session)
+        print(f"  drain check {session}: {verdict} (dirty {dirty} GB)")
+        if verdict == "TIMEOUT":
+            raise SystemExit(f"REFUSING to stop {session}: {dirty} GB still not on Drive "
+                             f"after the wait. Investigate the mount, or `stop --force` "
+                             f"to accept losing it.")
     code, out = _cli(["stop", "-s", session], timeout=180)
     if "Not Found" in out or "404" in out:
         print(f"  {session}: already gone (self-stop won the race — normal)")
@@ -452,6 +510,8 @@ def main():
     S.add_argument("--session", required=True)
     X = sub.add_parser("stop")
     X.add_argument("--session", required=True)
+    X.add_argument("--force", action="store_true",
+                   help="skip the upload-backlog drain check (accepts losing dirty files)")
     sub.add_parser("sessions", help="account-level runtime census "
                                     "(survives dead handles) + fresh heartbeats")
     C = sub.add_parser("cmd", help="handle-free control via the Drive mailbox "
@@ -495,7 +555,7 @@ def main():
     elif a.cmd == "status":
         status(a.session)
     elif a.cmd == "stop":
-        stop(a.session)
+        stop(a.session, force=a.force)
     elif a.cmd == "sessions":
         sessions()
     elif a.cmd == "cmd":

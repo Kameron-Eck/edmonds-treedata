@@ -152,3 +152,21 @@ failures:
       family above.
     fix: >-
       Read the exception immediately above it in the log; do not diagnose this line.
+
+  - match: "Drive NOT CONFIRMED|drive md5 absent"
+    status: fixed
+    cause: >-
+      The staged write confirms sha256 on the LOCAL copy and reports the Drive md5 as
+      absent on large files, trusting the rclone upload backlog to drain before the VM
+      stops. An external `vm_ops stop` issued the moment the ledger showed VERIFY OK
+      killed harmh2s2 with a 999 MB raster still dirty in the write cache
+      (wb18_2020_in16, 2026-09-10); the file never reached Drive and the local copy
+      died with the runtime. The ledger said OK because VERIFY reuses the inference
+      stat (size match, no re-read) — it verified the local file, not the published one.
+    fix: >-
+      `vm_ops stop` now waits on the heartbeat's vfs_dirty_gb until the backlog is 0
+      (DRAINED), proceeds on NO_HEARTBEAT/STALE with a printed verdict, and REFUSES on
+      TIMEOUT unless --force. Before stopping any runtime whose last step wrote a large
+      artifact, read `vm_ops status` dirty first. The lost arm is re-run, never salvaged.
+    notes: the verify row is not a publish receipt; the heartbeat's dirty bytes are
+

@@ -171,3 +171,16 @@ def test_landed_no_lake_skips_on_purpose_and_stays_green(tmp_path, monkeypatch):
     rc, calls, out = _landed_main(["--dry-run", "--no-lake"], monkeypatch, tmp_path)
     assert rc in (0, None)
     assert "--no-lake" in out and "NOT refreshed" in out
+
+
+# ---------------------------------------------------- skipped step whose artifact is gone
+
+def test_artifact_gone_only_for_inference_with_a_missing_raster(tmp_path):
+    import phase4_train_queue as q
+    job = {"id": "x", "year": "2020", "tag": "t"}
+    assert q._artifact_gone(job, "inference", masks_dir=tmp_path) is True
+    (tmp_path / "edmonds_canopy_prob_2020_t.tif").write_bytes(b"x")
+    assert q._artifact_gone(job, "inference", masks_dir=tmp_path) is False
+    assert q._artifact_gone(job, "train", masks_dir=tmp_path) is False
+    sub = {"id": "y", "year": "2020", "tag": "t2", "steps": ["labels", "tile", "train"]}
+    assert q._artifact_gone(sub, "inference", masks_dir=tmp_path) is False

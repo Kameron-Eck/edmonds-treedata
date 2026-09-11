@@ -303,3 +303,42 @@ def test_bench_reference_is_present_and_coherent():
     d = json.loads(ref.read_text(encoding="utf-8"))
     assert d.get("metrics") and d.get("torch") and d.get("seed") == 1337
     assert {"e1_loss", "val_loss", "postproc_canopy_px"} <= set(d["metrics"])
+
+
+# --------------------------------------------------------------- drain-aware stop (2026-09-10)
+
+def _states(seq):
+    it = iter(seq)
+    return lambda session: next(it)
+
+
+def test_stop_waits_for_the_upload_backlog_then_drains():
+    import vm_ops
+    slept = []
+    v, d = vm_ops.wait_for_drain("s", max_wait_s=999, poll_s=1,
+                                 _state=_states([(0.9, 10), (0.4, 40), (0.0, 70)]),
+                                 _sleep=slept.append)
+    assert (v, d) == ("DRAINED", 0.0)
+    assert len(slept) == 2
+
+
+def test_stop_refuses_on_timeout_with_a_dirty_backlog(monkeypatch):
+    import pytest
+    import vm_ops
+    v, d = vm_ops.wait_for_drain("s", max_wait_s=0, poll_s=1, _state=lambda s: (0.999, 10),
+                                 _sleep=lambda n: None)
+    assert (v, d) == ("TIMEOUT", 0.999)
+    monkeypatch.setattr(vm_ops, "wait_for_drain", lambda session: ("TIMEOUT", 0.999))
+    called = []
+    monkeypatch.setattr(vm_ops, "_cli", lambda args, timeout: called.append(args) or (0, ""))
+    with pytest.raises(SystemExit) as e:
+        vm_ops.stop("s")
+    assert "REFUSING" in str(e.value) and not called
+    vm_ops.stop("s", force=True)          # --force skips the drain check and stops
+    assert called == [["stop", "-s", "s"]]
+
+
+def test_stop_proceeds_when_the_beacon_is_stale_or_absent():
+    import vm_ops
+    assert vm_ops.wait_for_drain("s", _state=lambda s: (None, None))[0] == "NO_HEARTBEAT"
+    assert vm_ops.wait_for_drain("s", stale_s=600, _state=lambda s: (2.0, 3600))[0] == "STALE"

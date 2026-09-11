@@ -1,0 +1,865 @@
+# Spatio-temporal consistency — literature review
+
+**Status: LITERATURE REVIEW. Nothing here is a measurement on our data.** Every claim is
+one of three kinds, and each is labelled: what a PAPER measured, what THIS REVIEW infers
+about transfer, and what remains UNSEARCHED or ABSENT from the literature. Written
+2026-09-10 to support `TEMPORAL_SPATIAL_CONSISTENCY_BRAINSTORM_2026-09-10.md` (the brief);
+section numbers below (§2.3, §4.1, §6.2 …) refer to that file, which stays the source of
+truth for every measured number about our own stack. Owner: Kam.
+
+---
+
+## 1. The answer in one paragraph
+
+**The field has no validated fix for the laundering problem. It has better-documented
+instances of it.** Across 92 verified works in eleven search threads, change-stratified
+reporting is rare: the standard evidence offered for a consistency layer is how much *more*
+the map agrees with itself after smoothing, which a strong enough prior produces regardless
+of correctness. Gong et al. 2017 — verified verbatim from full text — states it plainly:
+"we culled a few locations where the land cover labels changed," and that same reference
+set supplies the cross-validation test folds. Its headline consistency gain
+(18.91% → 73% unchanged) was scored on a pool from which changed locations had been
+removed. The same algorithm shipped globally as MODIS Collection 6 with a caution against
+using the smoothed product for change detection. A 2025 post-processing paper on the global
+30 m product removed **74% of all mapped change** (7,537 → 1,981 Mha) while reporting a
+1.2-point accuracy *gain* — the exact signature §2.3's arithmetic predicts a persistence
+prior would produce, though to its credit that paper *does* also report a change/no-change
+error matrix against independent reference data, and finds changed-pixel accuracy markedly
+lower (§4.11). The
+strongest transferable ideas are not new architectures but four cheap, specific
+instruments: grading each cell by its own forward-backward joint probability (Yang et al.
+2020), estimating transitions from a *certified* subset rather than from projected labels
+(Miller et al. 2013; Perantoni et al. 2025), gating how much the prior may override a cell
+by that cell's own local confidence (Martinis & Twele 2010), and keeping the layer in
+probability space rather than downstream of a stage that has already hardened its output
+(Cheng & Liu 2020; Li et al. 2019). Two designs in the brief have **no prior art in any
+domain searched**: §4.2's dated, directional, decaying development prior, and §6.2's hard
+ancillary veto — for which the nearest urban-forestry convention runs the *opposite* way.
+
+---
+
+## 2. How to read the evidence grades
+
+Each citation carries a grade for how strongly it was verified. This matters more than
+the citation count: about a quarter of the corpus rests on bibliographic metadata plus
+search-engine paraphrase, because publishers returned HTTP 403 to automated fetching.
+
+| Grade | Means |
+|---|---|
+| **PRIMARY** | Full text or open-access PDF fetched and read this session; numbers taken from the paper's own tables |
+| **ABSTRACT** | Record confirmed and the publisher's abstract retrieved; numbers beyond the abstract not seen |
+| **METADATA** | Existence, authors, year, venue, DOI confirmed via Crossref/Semantic Scholar; no abstract retrievable |
+| **⚠ NUMBERS** | A quantitative figure in this review came from a search snippet, not fetched text — treat as unconfirmed |
+
+Every citation was confirmed to exist through a Crossref or Semantic Scholar record or a
+fetched publisher page. Nothing in the bibliography is recalled from model memory. Three
+entries were independently re-verified after a critic flagged them; all three are real
+works, correctly attributed (Mobsite et al. 2026, Guo et al. 2018, Pedley & Morgenroth
+2025), but the specific *numbers* attributed to two of them remain unverified and are
+flagged below wherever used.
+
+---
+
+## 3. Decision table
+
+| Brief item | Closest prior art | What it MEASURED | What it does NOT settle | What we would measure |
+|---|---|---|---|---|
+| §2.3 persistence prior beats 4 absences | Gong et al. 2017 **PRIMARY** | Unchanged-label share 18.91% → 73% under a hand-set prior | Validation set had every changed location removed first | Recall on the 42 gold losses, at our own q_loss |
+| §2.3 where q_loss comes from | Miller et al. 2013 **ABSTRACT**; Perantoni et al. 2025 **PRIMARY** | Transitions estimated from data while correcting for both error rates; per-year-pair matrices | Neither uses a projected-label archive like ours | q_loss/q_gain from the lidar-certified GAIN/FLAT populations |
+| §4.1 joint space+time field | Hoberg et al. 2015 **METADATA**; Benedek & Sziranyi 2009 **METADATA** | Joint spatial+temporal CRF/MRF energies exist and are mature | No measured spatial-vs-temporal weight, no sweep, no scaling evidence | The local/global weight, swept, read against the gold |
+| §4.1 how much the prior may override a cell | Martinis & Twele 2010 **ABSTRACT** | Entropy-gated exchange: locally confident evidence is protected from contextual override | No numeric change-size threshold | Whether per-cell gating by measured r,f beats one global weight |
+| §4.2 dated directional loss prior | **Nothing.** Seven search angles | Every source joins construction records to change *post hoc* | The forward-fed construct has no precedent at all | The §4.2 enrichment count is the right first move — nobody has done it |
+| §4.2 where-vs-when risk | Rosa et al. 2013 **PRIMARY** | Ancillary prior 80% right on WHERE (10 km, cumulative), ~2% right on WHEN (exact year) | Not urban, not permits, not a sequential update | Whether a building anchor moves the year of loss, not just the place |
+| §4.3 lidar as teacher | Vapnik & Vashist 2009 **METADATA**; Lang et al. 2023 **PRIMARY** | Privileged-at-train/absent-at-test contract; honest geographic hold-out; RMSE 7.9 m vs independent ALS | Every precedent tests cross-REGION. None tests cross-YEAR | The exam that killed H2: teacher from a lidar year, student examined on a non-lidar year |
+| §4.4a deep supervision | Ma et al. 2021 **PRIMARY**; PSPNet 2017 **ABSTRACT** | A naively-specified auxiliary target scored *worse* than no deep supervision (DSC 88.74 vs 88.95) | No published ablation uses a 0/1/255 ignore convention | Our own weight sweep; the ignore-aware loss is the load-bearing part |
+| §4.4b resolution curriculum | **Nothing direct.** FixRes 2019 **ABSTRACT** | Train-coarse/fine-tune-native gains exist for classification, with no label degradation | Part of any such gain can be batch-norm recalibration, not learning | Control for the recalibration confound before crediting the curriculum |
+| §4.4d GSD not monotonic | Brown et al. 2022 **ABSTRACT** | At FIXED GSD, optics alone swung detector mAP by >50% | Animal detection, synthetic degradation | Independent confirmation of our own season/sensor-over-GSD finding — already aligned |
+| §4.5 layer placement | Cheng & Liu 2020 **PRIMARY**; Li et al. 2019 **ABSTRACT** | Deferring argmax to the end of a soft chain: +0.8–1.5 mIoU (4 backbones); probability-domain smoothing +7.0/+6.9 pts OA | Nobody studies IGNORE-sentinel propagation through a chain | Whether reasoning over the healer's 255s loses more than it gains |
+| §6.2 buildings as HARD negative context | King & Locke 2013 **ABSTRACT**; Sun et al. 2022 **ABSTRACT** | Urban-forestry convention resolves canopy-over-roof in FAVOUR of canopy; CG-Net encodes footprints as a *soft* prior robust to positional error | *Not found* (~10 queries): any A/B test of hard veto vs soft prior on the same layer, or any measured cost of a veto at its edges | The at-risk count a hard veto needs (§3 rule 3) — none found to borrow |
+| §6.3 build a buildings vision model? | Li et al. 2022 **PRIMARY** | Purpose-built CNN flagging cadastral gaps: F1 85.14%, **82.27% precision** on undocumented buildings | — | Answer: it trades error profiles, not eliminates error. Run the §4.2 count first |
+| §6.1 how much may it reshape | Pasquarella et al. 2022 **PRIMARY** | BOTH LandTrendr and CCDC replace every in-segment observation with a fitted value | — | Segmentation is the *strong*-reshaping end. See §4.3 below |
+| §6.1 a fill-or-veto alternative | Reiche et al. 2015/2021 **ABSTRACT** | Provisional alert held pending, confirmed or dropped as evidence accrues | Assumes 6–12 day revisit, not 12 surveys in 15 years | Whether a confirmation rule recalibrated to our r,f beats the chain |
+| §2.4 the gold set | Foody 2010 **ABSTRACT**; Radoux & Bogaert 2020 **ABSTRACT** | *Argues, from simulation:* 10% reference error → 12–18% bias in producer's accuracy, worst when change is rare | Neither is a measurement on data like ours; both read at abstract level only | Whether our own r,f are biased, not merely noisy |
+| §2.4 the missing FP class | **Nothing.** Field-wide | No protocol found anywhere includes a tree-on-a-roof reference class | Cannot be fixed by copying anyone's protocol | A false-positive stratum is ours to invent |
+
+---
+
+## 4. Findings by brief section
+
+### 4.1 §2.3 — the persistence prior, and where transitions come from
+
+**The trap is documented, universal, and unresolved.** Three independent instances:
+
+- **Gong et al. 2017** (**PRIMARY**, full text read, then independently re-verified
+  verbatim) is the most on-point paper in the review. It runs per-year SVM → HMM Viterbi
+  with a single hand-set transition matrix across nine epochs, and reports the
+  unchanged-label share rising **18.91% → 73%**, illogical transitions falling
+  **29.44% → ~2.6%**, and pixels flipping more than five times falling
+  **23.36% → ~0.03%** (all four figures confirmed against the paper's own text).
+  On how the reference set was built, §2.2 of that paper reads:
+
+  > "Eventually, we selected 7,308 locations and recorded their ground information… The
+  > locations of the samples are basically the same from 2007 to 2015. In addition, **we
+  > culled a few locations where the land cover labels changed.**"
+
+  That same set is then split by 5-fold cross-validation, so the *test* folds are drawn
+  from a pool with changed locations removed. *This review's inference:* the headline
+  consistency gain was scored on ground held out from the very phenomenon the method is
+  supposed to preserve. It is the same criterion structure as our no-change triples (§2.1)
+  and has the same blind spot — a strong enough prior produces the number regardless of
+  correctness. Note the authors' own wording is "a few," so this is a design choice stated
+  in passing, not a large announced exclusion; the effect on what the number can prove is
+  the same either way.
+- **Sulla-Menashe et al. 2019** (**ABSTRACT**, ⚠ NUMBERS) documents the same algorithm
+  operating globally as MODIS Collection 6. Spurious inter-annual transitions reportedly
+  fell 11.4% → 1.6% (⚠ snippet, not primary-verified), and product documentation cautions
+  against using the smoothed output for change detection. *Inference:* institutional
+  acknowledgment of the risk, not a resolution of it.
+- **Perantoni et al. 2025** (**PRIMARY**, arXiv HTML) reports F1 70.88 → 73.59 from adding
+  an HMM layer, and states that evaluating on parcels that actually changed is future
+  work.
+
+**How transitions are set, across the whole thread:** hand-set 90%/10%÷(K−1)
+(Abercrombie & Friedl 2016, **METADATA**); hand-set site-knowledge tiers (Gong et al.
+2017); expert "illogical transition" rules (Cai et al. 2014, **METADATA**). Only two
+estimate from data:
+
+- **Bogaert et al. 2022** (**ABSTRACT**) estimates *both* transition and emission
+  parameters from real classified series and explicitly handles missing dates.
+  *Inference:* the missing-data handling transfers directly to our irregular calendar; the
+  estimation itself would be circular here, because eleven of our twelve years are 2020
+  projections (§2.3) — an EM fit would learn and reinforce the labeling error.
+- **Perantoni et al. 2025** estimates a **separate transition matrix per year-pair** from
+  label co-occurrence, explicitly rejecting one stationary matrix.
+
+**The transferable form of both, and the review's single best structural find:**
+**Miller et al. 2013** (**ABSTRACT**), a multi-season occupancy model from ecology, is the
+closest mathematical object to §2.3 found anywhere. Its latent per-site binary state
+sequence carries *both* a non-detection rate and a false-positive rate in the emission —
+the same shape as our per-survey (r, f) — and it estimates the gain/loss transitions
+(colonization/extinction) **while correcting for both error rates**, identifying the
+false-positive channel from a subset of surveys treated as *certain* (radio-collared
+locations). It independently reproduces our diagnosis in another field: ignoring the
+false-positive channel biases both the state estimate and the turnover rate.
+
+> *This review's inference, stated as a design pointer:* the Edmonds analog of Miller's
+> "certain subset" already exists — the lidar-certified GAIN (46,805) and FLAT (40,609)
+> populations (§2.2). Estimating q_loss/q_gain from those, rather than assuming 0.02 or
+> fitting to projected labels, is the one route in the literature that escapes the
+> circularity Bogaert would otherwise hit. Perantoni's per-pair (non-stationary) matrices
+> are the same idea reached from a different direction.
+
+**The cheapest instrument in the whole review: Yang et al. 2020** (**ABSTRACT**) grades
+each pixel by the joint probability of its observed sequence under the HMM, as a
+reliability score, instead of only emitting the Viterbi label. *Inference:* our
+forward-backward pass already computes what this needs; it is a companion output, not a
+model change, and it can be tested against the 42 gold losses without touching the engine.
+Whether the score actually correlates with real loss is untested here and untested in the
+paper.
+
+### 4.2 §4.1 — space and time as one field
+
+Architectures exist and are mature. **Hoberg et al. 2015** (**METADATA**) is a pairwise
+CRF spanning multiple epochs *and resolutions* in one energy — structurally the closest to
+what §4.1 wants. **Benedek & Sziranyi 2009** (**METADATA**) folds a spatial layer and a
+change layer into one joint mixed-Markov energy for bitemporal *aerial* imagery across
+large seasonal/sensor gaps — closer in spirit to our cross-flight problem than most
+Landsat-cadence work. **Melgani & Serpico 2003** (**METADATA**) is the ancestor. On the
+separable side, **Liu et al. 2021** (**ABSTRACT**) stages spatial smoothing first, then an
+EM-trained HMM.
+
+**Three things §4.1 needs, and the literature does not have:**
+
+1. **No measured local/global weight with a sensitivity sweep.** Where a spatial term
+   appears at all, it is described qualitatively or hand-tuned.
+2. **No change-size erasure threshold.** Targeted searches for the size below which
+   spatial smoothing deletes true change returned nothing. Nobody reports it.
+3. **No inference at anything near 13.3 M cells × 12 epochs.** Every demonstrated system
+   runs at scene, segment, or few-epoch scale.
+
+**The one genuine design pointer: Martinis & Twele 2010** (**ABSTRACT**) gates how much
+contextual information a unit absorbs by an *entropy-based confidence measure* — locally
+confident evidence is largely left alone; only uncertain units are pulled toward context.
+*Inference:* this is the mechanism §4.1 is reaching for when it says the local/global
+weight is "a parameter to be MEASURED, not set." The per-cell version here is to derive
+that weight from the survey's own measured r and f, so a confident year resists the
+twelve-year consensus and an unreliable one yields to it. Nothing in the literature has
+done this with per-survey measured rates.
+
+**Useful negative evidence on ordering:** Liu et al. 2021 smooths spatially *before* the
+temporal stage. *Inference:* that bakes spatial-consensus error into the sequence before
+the temporal chain ever sees a raw per-cell observation — the same shape as the H2 failure
+(§2.2), and an argument for the brief's §4.5 instinct to sit beside the healer rather than
+downstream of it.
+
+### 4.3 §6.1 — how much may the layer reshape a mask
+
+**This is the best-answered question in the review, and the answer corrects the intuition
+behind it.** **Pasquarella et al. 2022** (**PRIMARY**) confirms from primary text that
+**both** canonical segmenters replace every observation inside a stable segment with a
+fitted model value — LandTrendr's regression vertices, CCDC's harmonic coefficients.
+Trajectory segmentation sits at the **"apply the consensus shape"** end of §6.1's
+spectrum, not the conservative fill-or-veto end.
+
+Concrete anchors from that family:
+
+- **CCDC** (Zhu & Woodcock 2014, **PRIMARY**): a break requires **three consecutive**
+  threshold-exceeding observations — a *duration* test, not a prior-versus-evidence odds
+  ratio. Reported producer's 98% / user's 86% for change. *Inference:* the rule does not
+  port. At our measured miss rate a naive "three consecutive absences" fires on ordinary
+  label noise about as often as on real loss (§2.3 gives the arithmetic). The
+  *transferable* idea is requiring several same-direction observations before acting, with
+  the count re-derived from our own r and f.
+- **BFAST** (Verbesselt et al. 2010, **PRIMARY**): detects steps >0.1 NDVI under stated
+  noise. Needs ~23 observations/year to identify a seasonal term. Does not transfer — we
+  have under one observation per year and no continuous index.
+- **Murakami & Tsutsumida 2025** (**METADATA**): all three top out below 80% F1 (CCDC
+  78.14%) once the domain is urban rather than forest. *Inference:* the accuracy ceiling
+  drops in exactly the direction we are moving.
+- **Rodman et al. 2021** (**ABSTRACT**, ⚠ NUMBERS): detectability tracks disturbance
+  severity — diffuse low-contrast mortality is disproportionately missed. *Inference:*
+  a segmentation-style layer trades one omission pattern for another; it is not immune.
+
+**The fill-or-veto alternative the brief is reaching for does exist, in a different
+literature.** **Reiche et al. 2015** (**ABSTRACT**) and the operational **RADD** system
+(Reiche et al. 2021, **ABSTRACT**) hold a provisional change call *pending* and either
+confirm or drop it as later observations arrive — evidence accumulates, and a later
+observation can overturn an earlier call. RADD reports user's 97.6% / producer's 95.0% for
+confirmed alerts ≥0.2 ha. *Inference:* the confirm-or-reject dynamic is the closest
+published analog to "fill or veto single cells, never redraw," but its statistics assume
+6–12 day revisit; only the design pattern transfers, not the thresholds.
+
+**And the underlying theory for our exact object exists but has never been applied here.**
+**Polunchenko & Tartakovsky 2012** (**PRIMARY**) surveys sequential change-point detection
+for Bernoulli sequences with *known* pre- and post-change parameters — CUSUM,
+Shiryaev-Roberts, GLR — which is literally the arithmetic of §2.3. A dedicated search
+found **no remote-sensing paper applying formal change-point statistics to a binary
+land-cover mask sequence with pre-measured per-epoch recall and false-positive rates.**
+That combination appears to be genuinely absent from the indexed literature.
+
+### 4.4 §4.2 — development as a dated, local, directional prior
+
+**This is the largest negative finding in the review, and it should change how §4.2 is
+scoped.** Every source that pairs dated construction records with canopy change uses them
+as a **post-hoc explanatory join over an already-independent change map** — never as an
+input that asserts or weights evidence during detection:
+
+- **City of Seattle 2023** (**PRIMARY**, 32-page PDF read incl. appendix tables) is the
+  cleanest instance and the most locally relevant source in the review. Redevelopment
+  parcels are 1.0% of city land but account for 13.7% of citywide **net** loss; by zone,
+  2.9% of Multifamily land carries 78% of that zone's net loss. *Inference, and it is
+  load-bearing:* those are **net-over-net** ratios. Calibrating q_loss needs **gross**
+  flip rates, which the report does not break out; the gross upper bound is ~4.9%
+  citywide. Do not carry the 13.7–78% figures into a prior without that correction.
+- **Guo et al. 2018 / 2019, Morgenroth et al. 2017, Pedley & Morgenroth 2025** — four
+  papers from one Christchurch group (**ABSTRACT**/**METADATA**, ⚠ NUMBERS). This is a
+  monoculture rather than a corpus; weight accordingly. The often-quoted 1.4 m
+  tree-to-building removal radius could not be verified against the publisher's own text
+  and should not be used as a parameter.
+- **Ossola & Hopton 2017** (**PRIMARY**, PMC full text) tracked 28,427 lost stems at 92–97%
+  detection accuracy and found loss associated with neighbourhoods developed **before the
+  1970s** — standing stock and neighbourhood age, not new construction.
+
+**What has no prior art at all:** feeding a single **dated point event** forward as a
+**time-decaying, directional** prior on a transition probability. Seven search angles
+across remote sensing, deforestation risk modelling, and crime/disease mapping returned
+nothing. §4.2's core construct is novel.
+
+**The sharpest warning: Rosa et al. 2013** (**PRIMARY**, PLOS ONE full page). An
+ancillary-layer-modulated deforestation prior achieved AUC 0.92 and put ~80% of cumulative
+deforestation within 10 km of its predicted high-probability areas — while matching the
+predicted location *and* year exactly only ~2% of the time. *Inference:* this is the
+where-versus-when failure in its purest form. A building anchor could be right about which
+cells are at risk and still be wrong about the year — and the year is precisely what a
+per-epoch chain consumes. Any §4.2 validation must score the *year*, not only the place.
+
+**Also absent, all four of them:** no measured clearing-to-completion lag (the brief's
+1–3 year, bare-graded-earth hypothesis is unvalidated in the literature); no assessor
+year-built reliability assessment against imagery that could be retrieved; no
+false-positive check on parcels that stayed vegetated near new construction; and no clean
+decomposition of canopy loss into development versus storm, disease and single-lot
+removals. *Inference:* the brief's proposed first measurement — the enrichment count at
+30/60/100 m on the gold points (§4.2) — is not a shortcut past the literature. It is the
+measurement the literature never made.
+
+### 4.5 §4.3 — lidar as teacher
+
+**The contract is well defined.** **Vapnik & Vashist 2009** (**METADATA**) and
+**Lopez-Paz et al. 2016** (**ABSTRACT**) define privileged information as present at
+training and *structurally absent* at inference, with generalized distillation as the
+teacher/student form. *Inference:* this gives a one-line audit for why H2 died (§2.2) —
+the 2016 structure channel was a live input at inference, so it never satisfied the
+contract — and it is the test any §4.3 build must pass.
+
+**Four real precedents train on lidar and deploy lidar-free:**
+
+- **Lang et al. 2023** (**PRIMARY**, PMC mirror, numbers confirmed) — the honest exam
+  design worth copying: validation on **geographically held-out** tiles, plus a check
+  against fully independent airborne lidar never used in training (RMSE 7.9 m, bias
+  1.7 m). That degradation is the price of losing the privileged signal.
+- **Tolan et al. 2024** (**ABSTRACT**, ⚠ NUMBERS) — MAE 2.8 m at ~0.5–1 m resolution,
+  closest to our GSD tier.
+- **Lai et al. 2026**, **Pesonen et al. 2026** (**ABSTRACT**, both arXiv preprints) — the
+  second is closest to §4.3's add-only label-correction role: lidar-derived pseudo-labels
+  refined against the image itself before being used as supervision.
+- **Song et al. 2026** (**ABSTRACT**) is a one-directional, lidar-anchored correction —
+  architecturally close to add-only — but it trains **and evaluates only on
+  lidar-intersected pixels**. It never leaves lidar coverage, so it cannot be cited as
+  evidence such corrections generalize.
+
+**The residual, and it is the whole question:** every precedent tests **cross-region**
+generalization. **None tests cross-year or cross-sensor.** The precise failure that killed
+H2 — one epoch's structure bleeding into a different year — has no literature precedent.
+
+What the field does instead is **avoid** the hazard: **Kalinicheva et al. 2025** restricts
+training pairs to the same calendar year as the lidar reference *by design*; **Pauls et
+al. 2025** uses continuously-arriving GEDI footprints so no epoch is ever frozen; **Zhou
+et al. 2020** (USGS LCMAP, **ABSTRACT**) refreshes training data per year and reports ~10
+points of accuracy improvement from doing so. All three mitigations are structurally
+unavailable to us — we have one hand-labeled flight. **Islam et al. 2026** (**METADATA**)
+is the nearest affirmative check: it tests whether a training footprint's *year* predicts
+accuracy and reports no meaningful degradation (R² 0.72, 539,611 held-out footprints) —
+but only for years the lidar actually flew, which is exactly not our case for ten of
+twelve surveys.
+
+Adjacent and quantified: **Capliez et al. 2023** (two papers, **ABSTRACT**) measures
+source-year → target-year classifier transfer and reports unadapted transfer losing
+**7–12 F1 points**. *Inference:* cross-year transfer degrades by a double-digit margin
+even in a far more forgiving setting than ours.
+
+### 4.6 §4.4 — the two training levers
+
+**(a) Deep supervision.** The mechanism is well established: **Lee et al. 2015**
+(**ABSTRACT**) is the origin; **PSPNet** (Zhao et al. 2017, **ABSTRACT**) is the
+production precedent, with an auxiliary weight of **0.4** found best in its own ablation.
+The brief's proposed 0.1 comes from Mobsite et al. 2026, whose numbers live in §2.5 (Kam
+read the paper; this review confirmed the record exists — DOI 10.1016/j.aiig.2026.100222 —
+but could not re-fetch the ablation table behind a 403).
+
+> *Inference: the disagreement between 0.4 and 0.1 is itself the finding.* The right
+> auxiliary weight is architecture- and head-count-dependent. Neither number should be
+> imported; §4.4a needs its own sweep at the 33-block tier.
+
+**The load-bearing caution is Ma et al. 2021** (**PRIMARY**, PMC full text with ablation
+tables): a **naively-specified auxiliary target scored worse than no deep supervision at
+all** — DSC 88.74 vs 88.95, sensitivity 87.95 vs 89.56 — and only helped once the
+auxiliary targets were made task-appropriate (89.18). *Inference:* this is direct support
+for the brief's IGNORE-aware requirement. A downsampled auxiliary label that folds 255
+into background is the exact shape of "naively specified," and the published expectation
+is that it makes things worse, not merely neutral. **No published ablation anywhere uses a
+three-state 0/1/255 convention** — that part is ours to test.
+
+Domain-matched precedent exists: **Chen et al. 2018** (**ABSTRACT**) applies deep
+supervision to true-orthophoto aerial imagery at 5–9 cm GSD — essentially our finest tier
+— and reports that deep supervision contributes independently of multi-scale fusion
+(qualitative; the numeric tables were not retrievable).
+
+**(b) Resolution curriculum.** **Zero direct hits** across multiple phrasings for a
+segmentation curriculum that degrades imagery *and* labels to a coarse GSD, trains, then
+fine-tunes at native resolution. The nearest analogs are a *label-taxonomy* curriculum
+(Chen et al. 2024, **METADATA** — a different axis entirely) and **FixRes** (Touvron et al.
+2019, **ABSTRACT**), which is classification with no label degradation.
+
+> *FixRes is nonetheless a real methodological caution:* part of any coarse-then-fine gain
+> can be a train/test scale-calibration artifact — batch-norm statistics and apparent
+> object size — recoverable by a cheap recalibration alone, with no curriculum learning at
+> all. §4.4b must control for this, or it will credit the curriculum for a free
+> normalisation fix.
+
+This compounds a conclusion we already reached internally:
+`DEGRADED_IMAGERY_RESEARCH_2026-08-27.md` established that a naive downsample→blur→noise
+chain yields a model that works on the fakes, and chose a separately-trained coarse head
+over a curriculum schedule. That report is the home for the degradation-synthesis
+decision; §4.4b inherits its constraint rather than reopening it.
+
+**(d) Is detectability ordered by GSD? No — independently confirmed.** **Brown et al.
+2022** (**ABSTRACT**) held GSD fixed at 0.5 m/px and varied only the optical
+point-spread-function: detector mAP moved by **>50%** from aperture type alone.
+*Inference:* outside confirmation, in a different task, of the measured finding that
+season and sensor dominate over nominal resolution (§4.4).
+
+### 4.7 §2.4 — what the gold set can and cannot carry
+
+Two literatures apply, and neither was written for our situation.
+
+**Design-based accuracy assessment** — **Olofsson et al. 2014** (**PRIMARY**, full PDF),
+Olofsson et al. 2013, Stehman & Czaplewski 1998, **Stehman & Foody 2019** — prescribes
+stratifying toward rare classes and using design-consistent estimators for area and
+confidence intervals rather than counting mapped cells. **Stehman & Wagner 2024**
+(**PRIMARY**, ⚠ NUMBERS) works the rare-class regime specifically and defines it as ≲10%
+prevalence; our loss class (~3.5% of gold points) and gain class (~0.16%) sit well below
+that, gain by roughly 60×. Its central result: **no single sample allocation optimally
+serves user's accuracy, producer's accuracy and area estimation at once.**
+
+> *Inference:* these transfer as a design template for the *next* round of gold collection
+> — deliberately oversample predicted-loss and predicted-gain cells — not as a retrofit.
+> The unbiased estimators require documented per-stratum inclusion probabilities, and
+> §2.4 does not record how the 1,214 points were drawn.
+
+**Reference-data error** — and this strand bites harder, because it attacks the emission
+rates themselves:
+
+- **Foody 2010** (**ABSTRACT**): a 10% reference error rate produced ~18.5%
+  underestimation or ~12.3% overestimation of producer's accuracy depending on whether
+  reference and map errors were *correlated*, and the bias was worst when change was rare.
+- **Radoux & Bogaert 2020** (**ABSTRACT**): if reference labels carry error correlated
+  with the map's own error, the observed confusion matrix is biased in a *direction*, not
+  merely noisy.
+- **Radoux, Waldner & Bogaert 2020** (**ABSTRACT**): reference-label reliability is worst
+  in class-mixed units.
+
+> *Inference, and this is the sharpest thing in this section:* our r and f are scored
+> against references that stare at the same ambiguous canopy edges the model does, and the
+> 42 loss points are disproportionately edge-adjacent, class-mixed cases. If that error is
+> correlated, the likelihood ratios in §2.3 (2.5 per absence, ~39:1 for four, ~49:1 for
+> q_loss) could be systematically off rather than merely uncertain. The arithmetic that
+> killed crown state v2 rests on rates whose bias direction is unmeasured.
+
+**The missing false-positive class is field-wide, not an Edmonds defect.** No reference
+protocol found in any thread — Nowak & Greenfield's point sampling, Ossola & Hopton's
+200-stem check, Coupland et al.'s 342-polygon test — includes a "canopy asserted where
+none exists" class. *Inference:* it cannot be fixed by adopting anyone's protocol. If the
+consistency layer is allowed to *add* canopy, the stratum that would catch its
+characteristic error does not exist yet, here or anywhere.
+
+### 4.8 §1 — prior art on our actual problem: heterogeneous archives
+
+- **Walton 2008** (**ABSTRACT**) is the mirror image of our failure and worth holding
+  next to it: comparing two heterogeneously-produced canopy products manufactured apparent
+  *change* where photo-interpreted truth showed little. Uncorrected survey heterogeneity
+  launders in both directions — no-change into false change, and (our case) real change
+  into agreement. Same root cause.
+- **Blackman & Yuan 2020** (**ABSTRACT**) works an 81-year heterogeneous aerial archive
+  and reports our asymmetry: an abrupt disturbance (tornado) stayed detectable while
+  diffuse decline (disease) did not.
+- **Coupland et al. 2022** (**PRIMARY**, full text) is the methodological standout:
+  before trusting a 1949→2015 difference, they ran **both** 2015 sensors through the same
+  pipeline on the **same date** and established statistical equivalence (TOST, ±5.38% TCC)
+  first. They also concede plainly that resampling "cannot correct for differences in
+  shadows and color." *Inference:* the same-date equivalence test is the right instrument
+  and we cannot run it — no epoch in our archive has two sensors on one date.
+- **MacFaden et al. 2012** and **O'Neil-Dunne et al. 2014** (**ABSTRACT**) solve
+  rooftop/shadow confusion by co-acquiring lidar at **every** epoch — the resource we do
+  not have and, per §2.2, cannot safely substitute.
+- **Pedley & Morgenroth 2025** (ISPRS Open J., **METADATA**) is the closest problem shape:
+  fine-scale, property-level canopy *loss* from misaligned multi-date imagery, deliberately
+  tuned precision-high (0.941) over recall (0.811). *Inference:* that is the mirror of our
+  operating point — they suppress false loss calls, we suppress true ones. Adopting their
+  threshold relocates the failure rather than fixing it.
+
+### 4.9 §4.5 — where the layer sits, and why probabilities matter
+
+**The literature supports the brief's instinct, and gives it a sharper reason than the one
+§4.5 states.** §4.5 argues for sitting beside the healer because seven of ten interior
+epochs carry only IGNORE. The published argument is broader: **hard decisions destroy
+information that post-processing needs, and deferring them measurably wins.**
+
+- **Cheng & Liu 2020** (**PRIMARY**, full text with tables) defers argmax to the end of a
+  two-stage soft filter chain: mIoU rises across all four backbones tested — FCN
+  0.5245→0.5349, FastFCN 0.6286→0.6432, DeepLab 0.6294→0.6431, PSPNet 0.7940→0.8024
+  (+0.8 to +1.5 points), with pixel accuracy +0.38 to +0.62 points.
+- **Li, Liu & Pfeifer 2019** (**ABSTRACT**, numbers from fetched abstract) smooths *label
+  probabilities* by probabilistic relaxation instead of post-hoc on hardened labels:
+  **+7.01%** overall accuracy (Vienna) and **+6.88%** (Vaihingen), and the authors note
+  small/fragmented features survive better this way.
+- **Wu et al. 2017** (**ABSTRACT**) and **Câmara et al. 2024** (**ABSTRACT**) are explicit
+  stay-in-probability-space architectures; Câmara's is a current, shipped implementation
+  (the R `sits` package) with a non-isotropic neighbourhood prior designed *not* to blur
+  across real class borders.
+
+> *Inference:* this is direct support for placing the layer where evidence is still soft.
+> It also raises a question §4.5 does not ask: our masks are hardened to 0/1/255 at
+> `threshold_and_clean`, so even the "raw" stack is already post-argmax. The strongest
+> version of §4.5 is not merely "beside the healer" but "upstream of the hard threshold"
+> — which is a bigger change than the brief currently scopes, and worth deciding
+> deliberately rather than by default.
+
+**One contrast worth recording, not glossing.** Cheng & Liu's two stacked soft filters
+**composed** (a parameter sweep shows they do not cancel across a 0.5–0.8 weight range).
+That is the opposite direction from our own measured finding that 3×3 opening and closing
+are neutral because they cancel (§2.4). *Inference:* stacking is not universally
+lossy — the cancellation we measured is a property of that operator pair, not a general
+law. Do not generalise our open/close result into "stacked post-processing cancels."
+
+**A genuine gap:** no peer-reviewed treatment was found of **no-data/IGNORE sentinel
+propagation through a multi-stage raster post-processing chain** — the exact §4.5 worry
+that a stage cannot distinguish "not canopy" from "not observed." Multiple phrasings
+returned only GIS tooling documentation. That failure mode is ours to characterise.
+
+### 4.10 §6.2 and §6.3 — buildings and water as hard negative context
+
+**§6.2 asks whether a roof is a roof every year, entering as a HARD negative. The
+literature's answer is more discouraging than expected.**
+
+- Hard ancillary vetoes over a classifier's output are **standard, unremarkable practice**
+  — so the technique itself is not exotic.
+- **But nobody measures what the veto costs at its failure edges.** No verified paper
+  quantifies the damage from a footprint offset, a demolished-but-still-registered
+  structure, or canopy overhanging a roof. Searched directly; the limitations sections are
+  silent.
+- **And the one paper that squarely addresses canopy over buildings points the other way.**
+  **King & Locke 2013** (**ABSTRACT**) documents that the urban-forestry field's own
+  convention for GIS land-cover summarisation resolves canopy-over-building **in favour of
+  keeping the canopy**, not vetoing it. *Inference:* a hard building veto would put us
+  against the prevailing convention in our own application domain, and would delete real
+  overhanging canopy — a class of error our gold set (§2.4) has no label for and therefore
+  cannot detect.
+- **The soft alternative has a concrete precedent.** **Sun et al. 2022** (CG-Net,
+  **ABSTRACT**) conditions a segmentation network on GIS footprints by feature
+  normalisation rather than pixel-wise masking, and is explicitly engineered to tolerate
+  positional error in the GIS layer instead of assuming the footprint is exact.
+
+> *Inference, as a direct answer to §6.2:* the literature gives no basis for the hard
+> form, one domain convention against it, and a workable soft form. Under §3 rule 3, a
+> hard veto is a rule that can reach a terminal absence through an ancillary layer, so it
+> needs its own at-risk count — and **nobody in the literature has one to borrow**.
+> Entering buildings as a soft, one-directional prior on the transition (the same shape
+> §4.2 already proposes for development) is the form the evidence supports.
+
+**§6.3 — is a buildings vision model worth building before the enrichment count? The
+literature answers this one cleanly: no.** **Li et al. 2022** (**PRIMARY**, full text via
+the DLR open-access mirror) is exactly this study: an FC-DenseNet detects buildings from
+40 cm orthophotos plus a normalised DSM, overlays them on the official cadastral register,
+and flags what the register is missing. Detection F1 **85.14% ± 0.55**; precision at
+flagging genuinely undocumented buildings, ground-truthed by manual interpretation in a
+held-out city, **82.27%** (1,271 of 1,545).
+
+> *Inference:* a purpose-built detector for this exact task does not replace the assessor
+> clock with ground truth — it trades our known ~2.5% coverage gap (§2.4) for a different
+> error of comparable size, and adds its own false positives. That supports the brief's
+> own ordering (§7 item 1): run the cheap enrichment count first. The paper also names a
+> failure mode §4.2 has not budgeted for — buildings missing from the register for reasons
+> **other than recency** ("old undocumented"), which a `yr_built`-driven prior would place
+> at the wrong date entirely rather than merely miss.
+
+### 4.11 Operational products — what "temporally consistent" means in print
+
+Three shipped systems were examined because two of them sat in our own PDF library. All
+three share one architecture: **carry a stable reference year forward except where an
+external change mask fires.** None reports recall on confirmed real change.
+
+- **Li et al. 2025, GLC_FCS30D post-processing** (**PRIMARY** — full text read directly to
+  settle this entry; see the correction note below). Spatiotemporal majority filtering plus
+  LandTrendr-based removal of "excessively frequent" transitions cut cumulative mapped
+  change from **7,537 Mha to 1,981 Mha — a 74% reduction in all labelled change** — while
+  overall accuracy rose 73.04% (±0.30) → 74.24% (±0.29), a 1.20-point gain. Both figures
+  verified verbatim.
+  **Correction to an earlier draft of this review:** it is *not* true that this paper lacks
+  a change-stratified number. Its Table 6 gives a changed/unchanged error matrix against
+  two independent reference sets (LCMAP_Val, LUCAS), reaching OA 91.53% (±0.33) and 91.16%
+  (±0.05), and the authors state plainly that "the O.A. is primarily contributed to by
+  unchanged pixels, while the P.A. and U.A. for changed pixels are relatively lower,
+  indicating that land cover-change pixels are more difficult to capture."
+  *Inference, revised:* this is the **best-practice example in the review**, not the worst.
+  The headline pair (74% of change removed, +1.2 points OA) still cannot by itself show
+  real change survived — but the paper does not stop there, and its change-stratified
+  matrix is the reporting template §5 of the brief should copy. That the changed-pixel
+  producer's accuracy falls well below the aggregate is exactly the effect we should expect
+  to see in our own numbers, and should look for.
+- **Reis et al. 2020, CMAP** (**ABSTRACT**) builds transition validity into the classifier
+  so invalid trajectories are impossible by construction; the baseline produced invalid
+  trajectories in >50% of images. *Inference, and it matters for our own criterion:* the
+  metric is **gameable in the same way ours is** — a classifier that always repeats the
+  prior label scores zero invalid transitions trivially. The paper does not test that
+  degenerate case. Our impossible-triples criterion (§2.1, §5) has the same property, which
+  is why §2.1 already records that the both-sides rule had **no power** at this cadence.
+- **Liu et al. 2026, NAIP** (**PRIMARY**, read twice, independently) reports overall
+  accuracy rising with survey quality tier, and tree-canopy F1 rising 0.702 → 0.903 across
+  those tiers. **⚠ Version discrepancy, recorded rather than resolved:** the published
+  *Landscape Ecology* PDF held locally gives OA 0.733 (2004) / 0.887 (2014) / 0.886 (2017),
+  while the open-access PMC mirror — which is the Research Square *preprint* — gives 0.788
+  / 0.874 / 0.848 for the same years. Same paper, two versions, different numbers. Prefer
+  the published PDF we hold; do not cite the preprint figures. Crucially, and consistent in
+  both versions, **track assignment is fixed by acquisition year and known sensor quality,
+  not by a measured per-year accuracy.**
+  *Inference:* that is a documented **anti-pattern** against §3 rule 4, which requires each
+  survey's vote to be weighted by its *measured* eyesight. The authors concede their label
+  propagation "can introduce coarse boundaries and miss fine-scale transitions such as
+  small new constructions" — our failure mode, admitted and unquantified.
+- **Li et al. 2026, ALCC** (**ABSTRACT**; mean OA 81.11 ± 0.67% primary-verified via the
+  Zenodo release) uses ensemble change detection (CCDC + BFASTm + Chow test) to flag change
+  years, then classifies only flagged pixels. *Correction to a figure worth flagging:* the
+  often-quoted "8.52–34.24% improvement" measures accuracy in areas where prior *products
+  disagreed with each other* — not recall on independently confirmed change. It does not
+  answer the question it appears to answer, and it is ⚠ snippet-only besides.
+
+*Inference across all three:* the ensemble-change-gate idea is attractive but depends on a
+dense same-sensor series (CCDC/BFAST need it) that our twelve irregular aerial surveys do
+not provide. What transfers is the reporting discipline: an aggregate accuracy number plus
+a change-area-reduction number, reported *alone*, cannot show real change was preserved —
+Li et al. 2025 does not stop there, and neither should we. Their change/no-change error
+matrix against independent reference data is the shape to copy; the lidar-certified
+GAIN/FLAT populations (§2.2) give us a denominator built from an independent instrument
+rather than photo-interpretation, which is a stronger reference than they had.
+
+There is also no standard metric to adopt: searches for a settled "trajectory validity" or
+"inter-annual agreement" definition found none. The field uses ad hoc, per-paper phrasing
+("illogical transition," "invalid transition," "erroneous change"). *Inference:* we will
+have to define ours, and should define it against a change-stratified denominator from the
+start.
+
+---
+
+## 5. What the literature does not have
+
+Stated plainly, because these are decision-grade and each one was searched for
+deliberately:
+
+1. **Change-stratified reporting is rare, but it is not absent** — see the correction in
+   §4.11. Most consistency papers in the corpus report only self-agreement. Li et al. 2025
+   is the counter-example and the model to copy. No paper found reports a
+   recall-on-real-change figure for a *canopy* consistency layer at our resolution, so
+   there is still no like-for-like benchmark for 240/327 — but the weaker, verified claim
+   is the one to rely on.
+2. **No forward-fed dated event prior** (§4.2). Zero prior art, seven search angles.
+3. **No measured spatial-vs-temporal weight, no sensitivity sweep, no change-size erasure
+   threshold** (§4.1).
+4. **No inference evidence near 13.3 M cells × 12 epochs** for any joint spatio-temporal
+   field.
+5. **No deep-supervision ablation using a three-state ignore label** (§4.4a).
+6. **No resolution curriculum that degrades imagery and labels together** (§4.4b).
+7. **No method for validating a correction layer as distinct from validating the map it
+   corrects.** Searched explicitly; only generic post-processing papers returned.
+8. **No reference protocol containing a false-positive class** (§2.4).
+9. **No measured cross-year lidar leakage rate** — nothing of the form "X% of year Y's
+   label is leftover structure from lidar epoch Z" (§4.3).
+10. **No change-point method applied to a binary mask sequence with pre-measured (r, f).**
+    The statistics exist; the remote-sensing application does not.
+11. **No A/B test of a hard veto against a soft prior on the same ancillary layer**, and no
+    measured cost of a hard veto at its failure edges — offset footprints, demolished
+    structures, canopy overhanging a roof (§6.2).
+12. **No study of IGNORE/no-data sentinel propagation through a multi-stage raster
+    post-processing chain** (§4.5).
+13. **No standard temporal-consistency metric.** The field uses ad hoc per-paper
+    definitions; there is nothing to adopt.
+
+*Inference:* items 2, 5, 6, 8, 9, 10, 11 and 12 are places where the brief proposes
+something this search did not find in the field. That is a reason to pre-register carefully
+and measure, not a reason to abandon — but it does mean none can be de-risked by reading
+further.
+
+> **How much to trust these negatives.** They are search results, not proofs. Every item
+> above means "not found by this review," never "does not exist." That distinction is not
+> hypothetical: item 1 originally read "not one paper pairs a consistency metric with a
+> recall-on-real-change number," and it was **falsified** when spot-checked directly against
+> Li et al. 2025's full text, which contains exactly such a table (§4.11). Exactly one
+> negative claim in this report was checked against full text, and it was wrong. The other
+> twelve were produced the same way — an agent asserting an absence, often from an abstract
+> rather than a full text — and carry the same risk. Before any of them is used to justify
+> building something novel, spend the hour to read the one paper closest to the claim.
+
+*What does survive:* the lidar-certified GAIN (46,805) and FLAT (40,609) populations (§2.2)
+give us a change-stratified denominator built from an independent instrument rather than
+from photo-interpretation. Li et al. 2025 shows the reporting shape to copy; §2.2 gives us
+a stronger reference than they had.
+
+---
+
+## 6. Actionable, cheapest first
+
+Ordered by cost, not by importance. Each states what it would settle.
+
+1. **Grade every cell by its own forward-backward joint probability** (Yang et al. 2020)
+   and score that against the 42 gold losses. No model change; the pass already computes
+   it. *Settles:* whether the chain already knows which persistence runs it should not
+   trust — i.e. whether laundering is detectable from inside the model.
+2. **Re-estimate q_loss/q_gain from the lidar-certified GAIN/FLAT populations** rather than
+   from the pre-registered 0.02 or from projected labels (Miller et al. 2013; Perantoni et
+   al. 2025). *Settles:* whether the 49:1 cost is real or an artifact of a hand-set prior.
+   This is the only route found that avoids fitting to our own label error.
+3. **Run the §4.2 enrichment count** as the brief already proposes. The literature does
+   not contain the answer, and Rosa et al. 2013 says to score the **year**, not only the
+   place. *Settles:* whether the assessor clock suffices, and whether the anchor moves
+   timing at all.
+4. **Check whether r and f are biased rather than merely noisy** (Foody 2010; Radoux &
+   Bogaert 2020) by testing whether reference errors correlate with model errors on the
+   class-mixed edge cells where the 42 losses live. *Settles:* whether the §2.3 arithmetic
+   stands.
+5. **Answer §6.2 as "soft, not hard."** The literature gives no basis for a hard ancillary
+   veto, one domain convention against it (King & Locke 2013), and a working soft form
+   (Sun et al. 2022). *Settles:* §6.2, unless someone is willing to produce the at-risk
+   count §3 rule 3 demands — which nobody in the literature has.
+6. **Answer §6.3 as "not yet."** A purpose-built detector for exactly this task reaches
+   82.27% precision (Li et al. 2022); it trades our coverage gap for a comparable error.
+   *Settles:* §6.3 — the enrichment count comes first, as the brief already ordered it.
+7. **Derive the local/global weight per cell from measured confidence**, not as one global
+   constant (Martinis & Twele 2010). *Settles:* §4.1's open parameter, in the form the
+   brief already wants it — measured, not chosen.
+8. **Decide deliberately how far upstream the layer sits.** The evidence for reasoning over
+   probabilities rather than hardened labels is consistent and measured (Cheng & Liu 2020;
+   Li et al. 2019). §4.5 currently proposes "beside the healer" on a stack that is already
+   hardened at `threshold_and_clean`. *Settles:* whether §4.5's real target is the raw mask
+   or the pre-threshold probability — a scope question, not a tuning one.
+9. **When §4.4a is built, sweep the auxiliary weight** (0.1 vs 0.4 vs 0) and make the
+   ignore handling explicit, because the published expectation (Ma et al. 2021) is that
+   getting it wrong is *worse than not doing it*.
+
+*Whatever ships, define its consistency metric against a change-stratified denominator from
+the first run.* Li et al. 2025 (§4.11) shows the reporting shape — a changed/unchanged
+error matrix against independent reference data, reported alongside the headline consistency
+number, never instead of it. Adopt it from the first run rather than retrofitting it.
+
+---
+
+## 7. Coverage and limits of this review
+
+- **Eleven threads, 92 unique verified works.** Search ran in two rounds: eight threads,
+  then a completeness critique, then three targeted gap-fill threads closing the gaps it
+  named (§4.5, §6.2/§6.3, and operational product consistency). Every citation was
+  confirmed against a Crossref/Semantic Scholar record or a fetched page; nothing is
+  recalled from memory. Papers that could not be confirmed were dropped, not guessed.
+- **Two claims were adversarially spot-checked** against full text after drafting, chosen
+  because the report leaned hardest on them. Gong et al. 2017's validation-culling claim,
+  and all four of its numbers: **confirmed verbatim.** The claim that Li et al. 2025 lacks
+  a change-stratified accuracy figure: **refuted** — see §4.11 and the box in §5. One of
+  the two survived. That is a sample of two, too small to give an error rate, but it is
+  enough to show the agent-derived negatives are not safe to build on unchecked — which is
+  what the §5 box says and why it says it.
+- **One process defect worth recording.** The round-1 agents could not read the brief: it
+  lives on `work/20260906-healing-tool`, and the review branch was initially cut from
+  `main`, where the file does not exist. They worked from a prose summary instead, which is
+  why several round-1 entries cite brief sections loosely; every section reference in this
+  report was re-mapped by hand against the actual file. Round 2 read the brief directly.
+- **Verification is uneven and concentrated.** Roughly a dozen entries rest on directly
+  read primary sources; a majority rest on bibliographic metadata plus abstract or
+  snippet. Publisher 403s were the binding constraint. Grades are on every citation for
+  this reason — weight the corpus accordingly rather than treating entries as equal.
+- **Known monoculture:** the §4.2 evidence is four-sevenths one Christchurch research
+  group. Treat that thread as one group's findings, not a field consensus.
+- **Numbers flagged ⚠ are not primary-verified** and should not be carried into a design
+  or a pre-registration without independent confirmation. In particular: the MODIS
+  11.4%→1.6% figure, the Guo et al. 1.4 m radius, and the Pedley & Morgenroth 2025
+  percentage splits.
+- **Highest-priority paper we could not read:** Abercrombie & Friedl 2016 — the likely
+  direct ancestor of `crown_state_model.py` — is **metadata-only** in both rounds. IEEE
+  elided the abstract and blocked full text on every attempt. Its treatment of
+  validation-on-real-change is therefore unknown. An open-source implementation exists
+  (`BU-LCSC/mtlchmm`), which is a second route in if institutional access is unavailable.
+- **Not searched:** §6.4 (which training lever first) is a cost/sequencing decision no
+  literature settles; the material for it is in §4.6. §6.2 and §6.3 *were* searched in
+  round 2 and are answered in §4.10.
+- **Local library, already on disk** (`D:\edmonds-pipeline\Literture\`) was triaged
+  separately and folded in above where relevant. Van den Broeck et al. 2022 is already
+  cited by `DEGRADED_IMAGERY_RESEARCH_2026-08-27.md`; that report remains its home.
+
+---
+
+## 8. Bibliography
+
+Grades as defined in §2. Grouped by the brief section they bear on.
+
+### §2.3 — temporal chain, transitions, emissions
+- Abercrombie, S.P. & Friedl, M.A. (2016). Improving the Consistency of Multitemporal Land Cover Maps Using a Hidden Markov Model. *IEEE TGRS* 54(2). doi:10.1109/TGRS.2015.2463689 — **METADATA**
+- Bogaert, P., Lamarche, C. & Defourny, P. (2022). Hidden Markov Models for Annual Land Cover Mapping — Increasing Temporal Consistency and Completeness. *IEEE TGRS* 60. doi:10.1109/TGRS.2021.3123738 — **ABSTRACT**
+- Cai, S., Liu, D., Sulla-Menashe, D. & Friedl, M.A. (2014). Enhancing MODIS land cover product with a spatial–temporal modeling algorithm. *RSE* 147. doi:10.1016/j.rse.2014.03.012 — **METADATA**
+- Gong, W., Fang, S., Yang, G. & Ge, M. (2017). Using a Hidden Markov Model for Improving the Spatial-Temporal Consistency of Time Series Land Cover Classification. *ISPRS IJGI* 6(10):292. doi:10.3390/ijgi6100292 — **PRIMARY**
+- Miller, D.A.W. et al. (2013). Determining Occurrence Dynamics when False Positives Occur. *PLOS ONE* 8(10):e65808. doi:10.1371/journal.pone.0065808 — **ABSTRACT**
+- Perantoni, G., Weikmann, G. & Bruzzone, L. (2025). Bayesian Modelling of Multi-Year Crop Type Classification Using Deep Neural Networks and Hidden Markov Models. arXiv:2510.07008 — **PRIMARY** (preprint)
+- Sulla-Menashe, D., Gray, J.M., Abercrombie, S.P. & Friedl, M.A. (2019). Hierarchical mapping of annual global land cover 2001 to present: MODIS Collection 6. *RSE* 222. doi:10.1016/j.rse.2018.12.013 — **ABSTRACT ⚠ NUMBERS**
+- Wehmann, A. & Liu, D. (2015). A spatial–temporal contextual Markovian kernel method for multi-temporal land cover mapping. *ISPRS J.* 107. doi:10.1016/j.isprsjprs.2015.04.009 — **METADATA**
+- Yang, G., Fang, S., Gong, W., Zhao, Y. & Ge, M. (2020). Evaluating the reliability of time series land cover maps by exploiting the hidden Markov model. *SERRA* 35. doi:10.1007/s00477-020-01915-9 — **ABSTRACT**
+- Yuan, Y. et al. (2015). Continuous Change Detection and Classification Using Hidden Markov Model: Beijing. *Remote Sensing* 7(11):15318. doi:10.3390/rs71115318 — **METADATA**
+
+### §4.1 — joint space and time
+- Benedek, C. & Sziranyi, T. (2009). Change Detection in Optical Aerial Images by a Multilayer Conditional Mixed Markov Model. *IEEE TGRS* 47(10). doi:10.1109/TGRS.2009.2022633 — **METADATA**
+- Benedek, C., Shadaydeh, M., Kato, Z., Sziranyi, T. & Zerubia, J. (2015). Multilayer Markov Random Field models for change detection in optical remote sensing images. *ISPRS J.* 107. doi:10.1016/j.isprsjprs.2015.02.006 — **METADATA**
+- Hoberg, T., Rottensteiner, F., Feitosa, R.Q. & Heipke, C. (2015). Conditional Random Fields for Multitemporal and Multiscale Classification of Optical Satellite Imagery. *IEEE TGRS* 53(2). doi:10.1109/TGRS.2014.2326886 — **METADATA**
+- Liu, C., Song, W., Lu, C. & Xia, J. (2021). Spatial-Temporal Hidden Markov Model for Land Cover Classification. *IEEE Access* 9. doi:10.1109/ACCESS.2021.3080926 — **ABSTRACT**
+- Martinis, S. & Twele, A. (2010). A Hierarchical Spatio-Temporal Markov Model for Improved Flood Mapping Using Multi-Temporal X-Band SAR Data. *Remote Sensing* 2(9). doi:10.3390/rs2092240 — **ABSTRACT**
+- Melgani, F. & Serpico, S.B. (2003). A Markov random field approach to spatio-temporal contextual image classification. *IEEE TGRS* 41(11). doi:10.1109/TGRS.2003.817269 — **METADATA**
+
+### §6.1 — reshaping, segmentation, confirm-or-veto
+- Cohen, W.B., Yang, Z., Healey, S.P., Kennedy, R.E. & Gorelick, N. (2018). A LandTrendr multispectral ensemble for forest disturbance detection. *RSE* 205. doi:10.1016/j.rse.2017.11.015 — **METADATA ⚠ NUMBERS**
+- Kennedy, R.E., Yang, Z. & Cohen, W.B. (2010). Detecting trends in forest disturbance and recovery using yearly Landsat time series: 1. LandTrendr. *RSE* 114. doi:10.1016/j.rse.2010.07.008 — **PRIMARY**
+- Murakami, T. & Tsutsumida, N. (2025). Comparative Global Assessment and Optimization of LandTrendr, CCDC, and BFAST for Urban Land Cover Change Detection. *Remote Sensing* 17(14):2402. doi:10.3390/rs17142402 — **METADATA**
+- Pasquarella, V.J. et al. (2022). Demystifying LandTrendr and CCDC temporal segmentation. *IJAEOG* 110:102806. doi:10.1016/j.jag.2022.102806 — **PRIMARY**
+- Polunchenko, A.S. & Tartakovsky, A.G. (2012). State-of-the-Art in Sequential Change-Point Detection. *Meth. Comput. Appl. Probab.* doi:10.1007/s11009-011-9256-5 — **PRIMARY**
+- Reiche, J., de Bruin, S., Hoekman, D., Verbesselt, J. & Herold, M. (2015). A Bayesian Approach to Combine Landsat and ALOS PALSAR Time Series for Near Real-Time Deforestation Detection. *Remote Sensing* 7(5). doi:10.3390/rs70504973 — **ABSTRACT**
+- Reiche, J. et al. (2021). Forest disturbance alerts for the Congo Basin using Sentinel-1. *ERL* 16. doi:10.1088/1748-9326/abd0a8 — **ABSTRACT**
+- Rodman, K.C., Andrus, R.A., Veblen, T.T. & Hart, S.J. (2021). Disturbance detection in Landsat time series is influenced by tree mortality agent and severity. *RSE* 254:112244. doi:10.1016/j.rse.2020.112244 — **ABSTRACT ⚠ NUMBERS**
+- Verbesselt, J., Hyndman, R., Newnham, G. & Culvenor, D. (2010). Detecting trend and seasonal changes in satellite image time series. *RSE* 114(1). doi:10.1016/j.rse.2009.08.014 — **PRIMARY**
+- Wendelberger, L.J., Reich, B.J., Wilson, A.G. & Gray, J.M. (2026). Detecting Deforestation Using Robust Online Bayesian Monitoring. *Data Science in Science*. doi:10.1080/26941899.2026.2687150 — **METADATA**
+- Zhu, Z. & Woodcock, C.E. (2014). Continuous change detection and classification of land cover using all available Landsat data. *RSE* 144. doi:10.1016/j.rse.2014.01.011 — **PRIMARY**
+
+### §4.2 — ancillary and cadastral priors
+- Cardille, J.A. & Fortin, J.A. (2016). Bayesian updating of land-cover estimates in a data-rich environment. *RSE* 186. doi:10.1016/j.rse.2016.08.021 — **METADATA ⚠ NUMBERS**
+- City of Seattle OSE / University of Vermont SAL (2023). *City of Seattle Tree Canopy Assessment: Final Report (2016–2021)*. Agency report — **PRIMARY**
+- Guo, T., Morgenroth, J. & Conway, T.M. (2018). Redeveloping the urban forest: the effect of redevelopment and property-scale variables on tree removal and retention. *UFUG* 35. doi:10.1016/j.ufug.2018.08.012 — **ABSTRACT ⚠ NUMBERS**
+- Guo, T., Morgenroth, J., Conway, T.M. & Xu, C. (2019). City-wide canopy cover decline due to residential property redevelopment in Christchurch. *STOTEN* 681. doi:10.1016/j.scitotenv.2019.05.122 — **ABSTRACT**
+- Morgenroth, J., O'Neil-Dunne, J. & Apiolaza, L.A. (2017). Redevelopment and the urban forest: tree removal and retention during demolition. *Applied Geography* 82. doi:10.1016/j.apgeog.2017.02.011 — **METADATA ⚠ NUMBERS**
+- Ossola, A. & Hopton, M.E. (2017). Measuring urban tree loss dynamics across residential landscapes. *STOTEN*. doi:10.1016/j.scitotenv.2017.08.103 — **PRIMARY**
+- Pedley, D. & Morgenroth, J. (2025). Green vs growth: residential intensification and urban tree canopy loss in Christchurch. *Sustainable Cities and Society* 130:106678. doi:10.1016/j.scs.2025.106678 — **METADATA ⚠ NUMBERS**
+- Rosa, I.M.D., Purves, D., Souza, C. Jr. & Ewers, R.M. (2013). Predictive Modelling of Contagious Deforestation in the Brazilian Amazon. *PLOS ONE* 8(10):e77231. doi:10.1371/journal.pone.0077231 — **PRIMARY**
+
+### §4.3 — privileged information, lidar as teacher, cross-year transfer
+- Capliez, E., Ienco, D., Gaetano, R., Baghdadi, N. & Hadj Salah, A. (2023). Temporal-Domain Adaptation for Satellite Image Time-Series Land-Cover Mapping. *IEEE JSTARS*. doi:10.1109/JSTARS.2023.3263755 — **ABSTRACT ⚠ NUMBERS**
+- Capliez, E. et al. (2023). Multisensor Temporal Unsupervised Domain Adaptation for Land Cover Mapping. *IEEE TGRS*. doi:10.1109/TGRS.2023.3297077 — **ABSTRACT**
+- Islam, M.D. et al. (2026). High-resolution multi-temporal forest canopy height mapping in California using GEDI LiDAR and multi-sensor remote sensing. *Science of Remote Sensing*. doi:10.1016/j.srs.2026.100488 — **METADATA**
+- Kalinicheva, E., Helen, F., Mermoz, S., Mouret, F. & Planells, M. (2025). Super-Resolved Canopy Height Mapping from Sentinel-2 Time Series Using Airborne LiDAR HD. arXiv:2512.11524 — **ABSTRACT** (preprint)
+- Lai, Y. et al. (2026). Forest canopy height estimation from satellite RGB imagery using large-scale airborne LiDAR-derived training data. arXiv:2602.06503 — **ABSTRACT ⚠ NUMBERS** (preprint)
+- Lang, N., Jetz, W., Schindler, K. & Wegner, J.D. (2023). A high-resolution canopy height model of the Earth. *Nature Ecology & Evolution*. doi:10.1038/s41559-023-02206-6 — **PRIMARY**
+- Lopez-Paz, D., Bottou, L., Schölkopf, B. & Vapnik, V. (2016). Unifying distillation and privileged information. *ICLR 2016*; arXiv:1511.03643 — **ABSTRACT**
+- Pauls, J. et al. (2025). Capturing Temporal Dynamics in Large-Scale Canopy Tree Height Estimation. arXiv:2501.19328 — **ABSTRACT** (preprint)
+- Pesonen, J. et al. (2026). Learning Image-based Tree Crown Segmentation from Enhanced Lidar-based Pseudo-labels. arXiv:2602.13022 — **ABSTRACT** (preprint)
+- Song, J., Chen, H. & Yokoya, N. (2026). Enhancing monocular height estimation via sparse LiDAR-guided correction. *ISPRS J.* 232. doi:10.1016/j.isprsjprs.2025.12.004 — **ABSTRACT**
+- Tolan, J. et al. (2024). Very high resolution canopy height maps from RGB imagery using self-supervised vision transformer and convolutional decoder trained on aerial lidar. *RSE*. doi:10.1016/j.rse.2023.113888 — **ABSTRACT ⚠ NUMBERS**
+- Vapnik, V. & Vashist, A. (2009). A new learning paradigm: Learning using privileged information. *Neural Networks* 22(5–6). doi:10.1016/j.neunet.2009.06.042 — **METADATA**
+- Zhou, Q., Tollerud, H., Barber, C., Smith, K. & Zelenak, D. (2020). Training Data Selection for Annual Land Cover Classification for LCMAP. *Remote Sensing* 12(4):699. doi:10.3390/rs12040699 — **ABSTRACT**
+
+### §4.4 — deep supervision and resolution
+- Brown, J. et al. (2022). Automated aerial animal detection when spatial resolution conditions are varied. *Computers and Electronics in Agriculture*. doi:10.1016/j.compag.2022.106689 — **ABSTRACT**
+- Chen, H., Yang, W., Liu, L. & Xia, G.S. (2024). Coarse-to-fine semantic segmentation of satellite images. *ISPRS J.* 217. doi:10.1016/j.isprsjprs.2024.07.028 — **METADATA**
+- Chen, K. et al. (2018). Semantic Segmentation of Aerial Imagery via Multi-Scale Shuffling CNNs with Deep Supervision. *ISPRS Annals* IV-1. doi:10.5194/isprs-annals-IV-1-29-2018 — **ABSTRACT**
+- Lee, C.Y., Xie, S., Gallagher, P., Zhang, Z. & Tu, Z. (2015). Deeply-Supervised Nets. *AISTATS*, PMLR 38 — **ABSTRACT**
+- Ma, S., Tang, J. & Guo, F. (2021). Multi-Task Deep Supervision on Attention R2U-Net for Brain Tumor Segmentation. *Frontiers in Oncology* 11:704850. doi:10.3389/fonc.2021.704850 — **PRIMARY**
+- Mobsite, S., Hostache, R., Berti-Équille, L., Roux, E., Catry, T. & Guérin, J. (2026). Enhancing land cover semantic segmentation with convolutional block attention modules and deep supervision. *Artificial Intelligence in Geosciences* 7:100222. doi:10.1016/j.aiig.2026.100222 — **METADATA** (numbers' home is brief §2.5)
+- Touvron, H., Vedaldi, A., Douze, M. & Jégou, H. (2019). Fixing the Train-Test Resolution Discrepancy. *NeurIPS 32*; arXiv:1906.06423 — **ABSTRACT**
+- Zhao, H., Shi, J., Qi, X., Wang, X. & Jia, J. (2017). Pyramid Scene Parsing Network. *CVPR 2017*. doi:10.1109/CVPR.2017.660 — **ABSTRACT**
+
+### §2.4 — accuracy assessment for rare change
+- Foody, G.M. (2010). Assessing the accuracy of land cover change with imperfect ground reference data. *RSE* 114. doi:10.1016/j.rse.2010.05.003 — **ABSTRACT**
+- Olofsson, P., Foody, G.M., Stehman, S.V. & Woodcock, C.E. (2013). Making better use of accuracy data in land change studies. *RSE* 129. doi:10.1016/j.rse.2012.10.031 — **METADATA**
+- Olofsson, P., Foody, G.M., Herold, M., Stehman, S.V., Woodcock, C.E. & Wulder, M.A. (2014). Good practices for estimating area and assessing accuracy of land change. *RSE* 148. doi:10.1016/j.rse.2014.02.015 — **PRIMARY**
+- Radoux, J. & Bogaert, P. (2020). About the Pitfall of Erroneous Validation Data in the Estimation of Confusion Matrices. *Remote Sensing* 12(24):4128. doi:10.3390/rs12244128 — **ABSTRACT**
+- Radoux, J., Waldner, F. & Bogaert, P. (2020). How Response Designs and Class Proportions Affect the Accuracy of Validation Data. *Remote Sensing* 12(2):257. doi:10.3390/rs12020257 — **ABSTRACT**
+- Stehman, S.V. & Czaplewski, R.L. (1998). Design and Analysis for Thematic Map Accuracy Assessment. *RSE* 64. doi:10.1016/S0034-4257(98)00010-8 — **METADATA**
+- Stehman, S.V. & Foody, G.M. (2019). Key issues in rigorous accuracy assessment of land cover products. *RSE* 231:111199. doi:10.1016/j.rse.2019.05.018 — **ABSTRACT**
+- Stehman, S.V. & Wagner, J.E. (2024). Choosing a sample size allocation to strata based on trade-offs in precision when estimating accuracy and area of a rare class. *RSE* 300:113881. doi:10.1016/j.rse.2023.113881 — **PRIMARY ⚠ NUMBERS**
+
+### §1 — heterogeneous archives, shadow and rooftop error
+- Blackman, R. & Yuan, F. (2020). Detecting Long-Term Urban Forest Cover Change and Impacts of Natural Disasters. *Remote Sensing* 12(11):1820. doi:10.3390/rs12111820 — **ABSTRACT**
+- Coupland, K., Hamilton, D. & Griess, V.C. (2022). Combining aerial photos and LiDAR data to detect canopy cover change in urban forests. *PLOS ONE*. doi:10.1371/journal.pone.0273487 — **PRIMARY**
+- MacFaden, S.W., O'Neil-Dunne, J.P.M., Royar, A.R., Lu, J.W.T. & Rundle, A.G. (2012). High-resolution tree canopy mapping for New York City using LIDAR and object-based image analysis. *JARS* 6:063567. doi:10.1117/1.JRS.6.063567 — **ABSTRACT**
+- Nowak, D.J. & Greenfield, E.J. (2012). Tree and impervious cover change in U.S. cities. *UFUG*. doi:10.1016/j.ufug.2011.11.005 — **ABSTRACT**
+- O'Neil-Dunne, J.P.M., MacFaden, S.W. & Royar, A.R. (2014). A Versatile, Production-Oriented Approach to High-Resolution Tree-Canopy Mapping. *Remote Sensing* 6(12). doi:10.3390/rs61212837 — **ABSTRACT**
+- Pedley, D. & Morgenroth, J. (2025). Detecting and measuring fine-scale urban tree canopy loss with deep learning and remote sensing. *ISPRS Open J. Photogramm. Remote Sens.* doi:10.1016/j.ophoto.2025.100082 — **METADATA**
+- Walton, J.T. (2008). Difficulties with estimating city-wide urban forest cover change from national, remotely-sensed tree canopy maps. *Urban Ecosystems*. doi:10.1007/s11252-007-0040-9 — **ABSTRACT**
+
+### §4.5 — layer placement, soft versus hard decisions
+- Câmara, G. et al. (2024). Bayesian Inference for Post-Processing of Remote-Sensing Image Classification. *Remote Sensing* 16(23):4572. doi:10.3390/rs16234572 — **ABSTRACT**
+- Cheng, X. & Liu, H. (2020). A Novel Post-Processing Method Based on a Weighted Composite Filter for Enhancing Semantic Segmentation Results. *Sensors* 20(19):5500. doi:10.3390/s20195500 — **PRIMARY**
+- Li, N., Liu, C. & Pfeifer, N. (2019). Improving LiDAR classification accuracy by contextual label smoothing in post-processing. *ISPRS J.* 148. doi:10.1016/j.isprsjprs.2018.11.022 — **ABSTRACT**
+- Papadopoulos, S., Koukiou, G. & Anastassopoulos, V. (2024). Decision Fusion at Pixel Level of Multi-Band Data for Land Cover Classification — A Review. *Journal of Imaging* 10(1):15. doi:10.3390/jimaging10010015 — **ABSTRACT**
+- Wu, C., Du, B., Cui, X. & Zhang, L. (2017). A post-classification change detection method based on iterative slow feature analysis and Bayesian soft fusion. *RSE*. doi:10.1016/j.rse.2017.07.009 — **ABSTRACT**
+
+### §6.2 / §6.3 — buildings as ancillary context, and cadastral completeness
+- Abellera, L.V. & Stenstrom, M.K. (2005). Impervious Surface Detection from Satellite Imagery with Knowledge-Based Systems and GIS. *Computing in Civil Engineering 2005* (ASCE). doi:10.1061/40794(179)45 — **METADATA ⚠ NUMBERS**
+- Hecht, R., Meinel, G. & Buchroithner, M. (2015). Automatic identification of building types based on topographic databases — a comparison of different data sources. *Int. J. Cartography* 1(1). doi:10.1080/23729333.2015.1055644 — **METADATA ⚠ NUMBERS**
+- King, K. & Locke, D. (2013). A Comparison of Three Methods for Measuring Local Urban Tree Canopy Cover. *Arboriculture & Urban Forestry* 39(2). doi:10.48044/jauf.2013.009 — **ABSTRACT** (the canopy-over-roof convention finding, §4.10)
+- Li, Q., Taubenböck, H., Shi, Y., Auer, S., Roschlaub, R., Glock, C., Kruspe, A. & Zhu, X.X. (2022). Identification of undocumented buildings in cadastral data using remote sensing. *IJAEOG* 112:102909. doi:10.1016/j.jag.2022.102909 — **PRIMARY** (full text via DLR mirror elib.dlr.de/187878)
+- Sun, Y., Hua, Y., Mou, L. & Zhu, X.X. (2022). CG-Net: Conditional GIS-Aware Network for Individual Building Segmentation in VHR SAR Images. *IEEE TGRS*. doi:10.1109/TGRS.2020.3043089 — **ABSTRACT**
+- Yi, S., Li, X., Liu, Y., Dong, X. & Tu, W. (2025). A sub-meter resolution urban surface albedo dataset for 34 U.S. cities based on deep learning. *Scientific Data* 12:789. doi:10.1038/s41597-025-05109-2 — **PRIMARY** (the unmeasured hard-veto instance, §4.10)
+
+### Operational products and their consistency claims
+- Li, Z., Zhang, X., Liu, W., Zhao, T., Ai, W., Wang, J. & Liu, L. (2025). Post-Processing Optimization of the Global 30 m Land Cover Dynamic Monitoring Product. *Remote Sensing* 17(9):1558. doi:10.3390/rs17091558 — **PRIMARY** (full text; §4.11 — the change-stratified reporting template, and the source of the correction in §5)
+- Reis, M.S., Dutra, L.V., Escada, M.I.S. & Sant'Anna, S.J.S. (2020). Avoiding Invalid Transitions in Land Cover Trajectory Classification With a Compound Maximum a Posteriori Approach. *IEEE Access* 8. doi:10.1109/ACCESS.2020.2997019 — **ABSTRACT**
+- Yang, J. & Huang, X. (2021). The 30 m Annual Land Cover Dataset and Its Dynamics in China from 1990 to 2019 (CLCD). *ESSD* 13(8). doi:10.5194/essd-13-3907-2021 — **METADATA ⚠ NUMBERS**
+
+### Held locally (`D:\edmonds-pipeline\Literture\`), read directly from PDF
+- Li, B., Liu, X., Zhuang, H., Shi, Q., Zeng, L., Cai, Y., Zhang, H., Cai, Y., Wu, C. & Xu, X. (2026). ALCC: Temporally Consistent Annual Land Cover Maps over China from 1985 to 2022 Based on an Ensemble Change Detection Method. *J. Remote Sens.* 6:1029. doi:10.34133/remotesensing.1029 — **PRIMARY** (local PDF; record and OA figures independently re-verified in round 2)
+- Liu, J., Tang, X., Wang, C., Yan, Z., Dai, Y., Zhang, Q. & Song, C. (2026). Using GeoAI and Machine Learning Tools for Consistent High-Resolution Land Cover Mapping Based on Time-Series NAIP Imagery. *Landscape Ecology* 41(6). doi:10.1007/s10980-026-02358-3 — **PRIMARY** (local PDF; full text also read in round 2 via PMC12869689)
+- Artikanur, S.D. et al. (2026). Evaluating Accuracy and Temporal Consistency of Machine Learning Models for LULC Mapping in the Cimanuk Watershed. *J. Nat. Resour. Environ. Manag.* 16(3):284. doi:10.29244/jpsl.16.3.284 — **PRIMARY**
+- Van den Broeck, W.A.J., Goedemé, T. & Loopmans, M. (2022). Multiclass Land Cover Mapping from Historical Orthophotos Using Domain Adaptation and Spatio-Temporal Transfer Learning. *Remote Sensing* 14(23):5911. doi:10.3390/rs14235911 — **PRIMARY** (already cited by `DEGRADED_IMAGERY_RESEARCH_2026-08-27.md`)
+- Maclaurin, G.J. & Leyk, S. (2016). Temporal replication of the national land cover database using active machine learning. *GIScience & Remote Sensing*. doi:10.1080/15481603.2016.1235009 — **PRIMARY**
+- Torres, D.L. et al. (2021). Deforestation Detection with Fully Convolutional Networks in the Amazon Forest from Landsat-8 and Sentinel-2 Images. *Remote Sensing* 13(24):5084. doi:10.3390/rs13245084 — **PRIMARY**
+- Pearse, G.D., Watt, M.S., Soewarto, J. & Tan, A.Y.S. (2021). Deep Learning and Phenology Enhance Large-Scale Tree Species Classification in Aerial Imagery during a Biosecurity Response. *Remote Sensing* 13(9):1789. doi:10.3390/rs13091789 — **PRIMARY**

@@ -1856,6 +1856,48 @@
             "ref": "ccap_2021_hires_lc.tif",
             "thresh": "0.3527"
           }
+        },
+        "wb18_2020_in16": {
+          "best_f1": {
+            "curve": "phase4/qc/curves/912f90299113.csv",
+            "eval_scope": "sample-test",
+            "population": "300252910",
+            "pr_auc": "0.8087",
+            "precision": "0.7918",
+            "recall": "0.7286",
+            "ref": "ccap_2016_hires_lc.tif",
+            "thresh": "0.011811"
+          },
+          "matched_p50": {
+            "curve": "phase4/qc/curves/912f90299113.csv",
+            "eval_scope": "sample-test",
+            "population": "326045882",
+            "pr_auc": "0.8087",
+            "precision": "0.725",
+            "recall": "0.7749",
+            "ref": "ccap_2016_hires_lc.tif",
+            "thresh": "0.007874"
+          },
+          "matched_p75": {
+            "curve": "phase4/qc/curves/912f90299113.csv",
+            "eval_scope": "sample-test",
+            "population": "300252910",
+            "pr_auc": "0.8087",
+            "precision": "0.7918",
+            "recall": "0.7286",
+            "ref": "ccap_2016_hires_lc.tif",
+            "thresh": "0.011811"
+          },
+          "matched_p90": {
+            "curve": "phase4/qc/curves/912f90299113.csv",
+            "eval_scope": "sample-test",
+            "population": "264026980",
+            "pr_auc": "0.8087",
+            "precision": "0.9006",
+            "recall": "0.4331",
+            "ref": "ccap_2016_hires_lc.tif",
+            "thresh": "0.610236"
+          }
         }
       },
       "arms": [
@@ -2008,6 +2050,7 @@
         "channels_are_within_the_verified_range": "cli.py::main sets IN_CHANNELS = 3 + VI + hillshade, and common.py::read_rgb_window reads only the first three bands of an ortho (RGBI years drop NIR there). So every arm here loads the base18 checkpoint at in_channels 3 (base arms) or 4 (in16/in05 arms) — the two the checkpoint was measured to accept, 0 missing / 0 unexpected keys, conv1 zero-inflated (backbone_sweep.yaml extra.phase3_warm_started_resnet18). The 4-band 2019n and 2019s orthos do NOT push this to 5.\n",
         "h1_read_2026_09_10": "EXP-H1 COMPLETE (five wb18 base arms scored against BOTH references; harm_spread.csv rows prefix=wb18 treatment=base, n_years=5). Matched_p75 recall vs C-CAP 2021: 2006s 0.633, 2011s 0.720, 2016 0.743, 2019n 0.603, 2020 0.740 — spread 0.1396. vs C-CAP 2016: 0.710, 0.774, 0.786, 0.632, 0.748 — spread 0.1538. H1-K1 does NOT fire on either reference (both >> 0.014): there IS a cross-survey detection disagreement to harmonize on resnet18, so EXP-H2's premise stands. H1-K2 does NOT fire: ref_epoch_share on the base set is -0.10 (the 2016-referenced spread is the LARGER one), so the spread is not reference-epoch distance and matched_p75 recall remains a usable convergence metric; the pre-registered baseline for EXP-H2 is the five-year base spread above. Two things the numbers say that the design did not predict: (1) the worst survey on resnet18 is 2019n (0.603 / 0.632), not 2006s — 2006s recovered most under the smaller encoder, 2019n did not, and 2019n is the only late-spring Snohomish flight in the set; (2) the in16 rows carry a ref_epoch_share of 0.76 on their two scored years (2016-referenced spread 0.013 vs 2021-referenced 0.056): with a 2016 structure channel in the input the output tracks 2016 canopy closely enough that scoring against 2016 collapses the spread. That is the epoch-leak signature H2-K1/H2-K2 exist to test and is READ THERE, not here — the \"H1-K2 METRIC KILLED\" flag harm_spread.py stamps on the in16 rows is the K2 arithmetic applied to a treatment, whereas K2 is pre-registered on the base. H2 arms (2019s base/in16, 2016_in16, 2011s_in16, 2020_in16) still on harmh2.\n",
         "h2_queue_order": "queue_harm_h2 runs 2019s FIRST and 2020 LAST, deliberately. 2019s has never been trained under this recipe and its manifest was built today, so its plumbing fails earliest if it is going to; 2020 is the slow arm at inference (167M cells) and is also the first arm the decision_rule says to cut, so a runtime that runs out of time drops the arms the rule already nominated.\n",
+        "h2_table_completed_2026_09_11": "The fifth arm (wb18_2020_in16) was re-inferred on harmh2s3 after its first raster died with its runtime (known_failures: \"Drive NOT CONFIRMED\"), published under the drain-aware stop, and scored against both references. Five-year in16 spread 0.0557 (vs 2021) / 0.0807 (vs 2016) against base 0.1396 / 0.1538; convergence_p -0.0839 / -0.0731 on five years; K1, K3, K4 readings unchanged from the four-arm decision. The verdict above stands and is not re-read: nothing in the fifth arm touches a kill.\n",
         "hs_source_chm2_never_run_on_resnet18": "STATED, NOT PROVEN. Warm-started resnet18 has run --hs-source chm2005 (wb18_2016_in05) but never chm2. The load path is identical — the 4th band is one more input channel and the same conv1 3->4 zero-inflation — so the only untested piece is the HS_STATS[\"chm2\"] normalisation row (config.py HS_STATS) and the chm2 raster's presence on the VM. Preflight cannot prove either: cli.py --check returns before resolve_p3_ckpt and before any raster is opened, so it is a PARSE check only.\n",
         "measured_cost_basis": "A100-hours are NOT typed here. They are read per step from the ledgers named in docs/SCHEMAS.md (phase4/qc/train_queue_status_*.csv, column minutes) joined to Scripts/run_registry.csv on run_tag, for the landed wb18_ arms — 2016 as the coarse proxy for 2006s / 2019n / 2019s, 2011s for 2011s, 2020 for 2020. labels+tile go to FREE CPU runtimes (0 compute units) and are excluded from the GPU figure.\n",
         "queue_files": "Generated: pipeline/queue_harmonization_h1_h2.yaml (GENERATED header, the drift gate's source of truth). Hand-split for the one-year-one-runtime rule: pipeline/queue_harm_h1.yaml (2006s base + in05 + in16, 2019n base + in16) and pipeline/queue_harm_h2.yaml (2019s base + in16, 2016 in16, 2011s in16, 2020 in16). Scoring (steps [inference]): pipeline/queue_harm_h1_score.yaml and pipeline/queue_harm_h2_score.yaml, same order, 2020 last. Gate: qc/test_harmonization.py — every split job byte-equals its job in the generated file, the union covers all ten exactly once, each year's jobs sit in ONE file (that rule is mutation-tested), and each score job is its train twin minus the --sample-manifest pair plus --infer-aoi.\n",
@@ -2061,7 +2104,7 @@
         "Scripts/qc/instruments/harvest_arm_metrics.py"
       ],
       "kind": "experiment",
-      "last_run": "2026-09-10",
+      "last_run": "2026-09-11",
       "metric": "PRIMARY, and it is a SPREAD, not a recall, because the goal is convergence: max - min of matched_p75 recall across {2006s, 2011s, 2016, 2019n, 2020}, from phase4/qc/arm_metrics.csv rows with policy matched_p75, eval_scope sample-test, canopy_def forest_wetland — the identical basis as phase4/qc/backbone_benchmark.csv. EXP-H1 reports the base spread; EXP-H2 reports in16 spread minus base spread on the years both hold. SECOND PRIMARY (EXP-H2): the SAME-FLIGHT GAP, |recall(2019s) - recall(2019n)| at the matched cut, in16 versus base — the only zero-circularity convergence read in the archive (same date, same ground, same reference distance), so nothing in it can be satisfied by laundering change. SECONDARY, and it is what keeps the spread honest: EVERY arm is scored against BOTH ccap_2021_hires_lc.tif AND ccap_2016_hires_lc.tif (qc/instruments/score_wb50_loso.py --arms ... --refs ...). Design 1.7 measures a 0.097 recall swing on one frozen 2006s mask from changing only the reference year, so the part of a spread that moves with the reference is REFERENCE-EPOCH DISTANCE, not detector sensitivity, and must never be counted as harmonizable. All of it is computed by qc/instruments/harm_spread.py -> phase4/qc/harm_spread.csv (columns and kill flags in docs/SCHEMAS.md); H2-K2 by qc/instruments/harm_change_laundering.py -> phase4/qc/harm_change_laundering.csv. Per-arm recalls are secondary and every one is reported with the floor beside it.\n",
       "n": 30,
       "n_source": "phase4/qc/science_sample_manifest.csv#rows:role=test",
@@ -2069,7 +2112,7 @@
       "outputs": [
         "phase4/qc/harm_spread.csv"
       ],
-      "registry_rows": 49,
+      "registry_rows": 51,
       "reports": [
         "Reports/HARMONIZATION_DESIGN_2026-09-10.md"
       ],

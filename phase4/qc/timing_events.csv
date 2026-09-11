@@ -15005,7 +15005,11 @@ run_id,year,run_tag,step,label,seconds,bytes,mb_per_s,log_file
 20260910T153851Z_2011s_wb18_2011s_in16_inference,2011s,wb18_2011s_in16,inference,copy edmonds_canopy_prob_2011s_wb18_2011s_in16.tif,0.1,65468501,654.69,phase4_semantic_finetune_inference_2011s_2026-09-10T15-44.log
 20260910T154530Z_2020_wb18_2020_in16_inference,2020,wb18_2020_in16,inference,stage 2020_coe_rgb.tif,487.6,27147166704,55.68,phase4_semantic_finetune_inference_2020_2026-09-10T16-12.log
 20260910T154530Z_2020_wb18_2020_in16_inference,2020,wb18_2020_in16,inference,inference,887.3,,,phase4_semantic_finetune_inference_2020_2026-09-10T16-12.log
-20260910T154530Z_2020_wb18_2020_in16_inference,2020,wb18_2020_in16,inference,copy edmonds_canopy_prob_2020_wb18_2020_in16.tif,2.2,,,phase4_semantic_finetune_inference_2020_2026-09-10T16-12.log
+20260910T154530Z_2020_wb18_2020_in16_inference,2020,wb18_2020_in16,inference,copy edmonds_canopy_prob_2020_wb18_2020_in16.tif,2.2,999115669,454.14,phase4_semantic_finetune_inference_2020_2026-09-10T16-12.log
+20260911T041021Z_2020_wb18_2020_in16_inference,2020,wb18_2020_in16,inference,stage 2020_coe_rgb.tif,1142.0,27147166704,23.77,phase4_semantic_finetune_inference_2020_2026-09-11T04-52.log
+20260911T041021Z_2020_wb18_2020_in16_inference,2020,wb18_2020_in16,inference,stage lidar_chm2_2016_50cm.tif,3.6,93830836,26.06,phase4_semantic_finetune_inference_2020_2026-09-11T04-52.log
+20260911T041021Z_2020_wb18_2020_in16_inference,2020,wb18_2020_in16,inference,inference,885.0,,,phase4_semantic_finetune_inference_2020_2026-09-11T04-52.log
+20260911T041021Z_2020_wb18_2020_in16_inference,2020,wb18_2020_in16,inference,copy edmonds_canopy_prob_2020_wb18_2020_in16.tif,2.3,999115669,434.40,phase4_semantic_finetune_inference_2020_2026-09-11T04-52.log
 unrecorded,2011s,t1_2011s_in05,evaluate,copy semantic_eval_report.csv,0.0,,,phase4_semantic_finetune_evaluate_2011s_2026-09-02T14-40.log
 unrecorded,2020,base50,evaluate,eval tiles local,158.3,,,phase4_semantic_finetune_evaluate_2020_2026-09-09T17-14.log
 unrecorded,2020,base50,evaluate,eval model load,1.9,,,phase4_semantic_finetune_evaluate_2020_2026-09-09T17-14.log

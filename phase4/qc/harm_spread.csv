@@ -70,20 +70,22 @@ wb18,resnet18,p3_ckpt,in16,ccap_2016_hires_lc.tif,recall,2011s,0.8093,,,0.0069,,
 wb18,resnet18,p3_ckpt,in16,ccap_2016_hires_lc.tif,recall,2016,0.8007,,,0.0069,,
 wb18,resnet18,p3_ckpt,in16,ccap_2016_hires_lc.tif,recall,2019n,0.7877,,,0.0069,,
 wb18,resnet18,p3_ckpt,in16,ccap_2016_hires_lc.tif,recall,2019s,0.7957,,,0.0069,,
+wb18,resnet18,p3_ckpt,in16,ccap_2016_hires_lc.tif,recall,2020,0.7286,,,0.0069,,
 wb18,resnet18,p3_ckpt,in16,ccap_2016_hires_lc.tif,same_flight_gap,,0.0080,2,"2019n,2019s",0.0069,,one recipe under --force-citywide; differs in sampling support (156m vs 307m tiles). H2-K3 reads its CHANGE
-wb18,resnet18,p3_ckpt,in16,ccap_2016_hires_lc.tif,spread,,0.0350,4,"2006s,2011s,2016,2019n",0.0069,INCOMPLETE,max-min over the years listed
-wb18,resnet18,p3_ckpt,in16,ccap_2016_hires_lc.tif|ccap_2021_hires_lc.tif,ref_epoch_share,,0.3716,4,"2006s,2011s,2016,2019n",0.0069,,1 - s2016/s2021 on the common years; cut 0.4
+wb18,resnet18,p3_ckpt,in16,ccap_2016_hires_lc.tif,spread,,0.0807,5,"2006s,2011s,2016,2019n,2020",0.0069,,max-min over the years listed
+wb18,resnet18,p3_ckpt,in16,ccap_2016_hires_lc.tif|ccap_2021_hires_lc.tif,ref_epoch_share,,-0.4488,5,"2006s,2011s,2016,2019n,2020",0.0069,,1 - s2016/s2021 on the common years; cut 0.4
 wb18,resnet18,p3_ckpt,in16,ccap_2021_hires_lc.tif,recall,2006s,0.7039,,,0.0069,,
 wb18,resnet18,p3_ckpt,in16,ccap_2021_hires_lc.tif,recall,2011s,0.7563,,,0.0069,,
 wb18,resnet18,p3_ckpt,in16,ccap_2021_hires_lc.tif,recall,2016,0.7443,,,0.0069,,
 wb18,resnet18,p3_ckpt,in16,ccap_2021_hires_lc.tif,recall,2019n,0.7596,,,0.0069,,
 wb18,resnet18,p3_ckpt,in16,ccap_2021_hires_lc.tif,recall,2019s,0.7466,,,0.0069,,
+wb18,resnet18,p3_ckpt,in16,ccap_2021_hires_lc.tif,recall,2020,0.7422,,,0.0069,,
 wb18,resnet18,p3_ckpt,in16,ccap_2021_hires_lc.tif,same_flight_gap,,0.0130,2,"2019n,2019s",0.0069,,one recipe under --force-citywide; differs in sampling support (156m vs 307m tiles). H2-K3 reads its CHANGE
-wb18,resnet18,p3_ckpt,in16,ccap_2021_hires_lc.tif,spread,,0.0557,4,"2006s,2011s,2016,2019n",0.0069,INCOMPLETE,max-min over the years listed
-wb18,resnet18,p3_ckpt,in16_minus_base,ccap_2016_hires_lc.tif,convergence_p,,-0.1188,4,"2006s,2011s,2016,2019n",0.0069,INCOMPLETE,spread(in16)-spread(base) on the common years; promote at <= -0.014
+wb18,resnet18,p3_ckpt,in16,ccap_2021_hires_lc.tif,spread,,0.0557,5,"2006s,2011s,2016,2019n,2020",0.0069,,max-min over the years listed
+wb18,resnet18,p3_ckpt,in16_minus_base,ccap_2016_hires_lc.tif,convergence_p,,-0.0731,5,"2006s,2011s,2016,2019n,2020",0.0069,H2-P CONVERGENCE,spread(in16)-spread(base) on the common years; promote at <= -0.014
 wb18,resnet18,p3_ckpt,in16_minus_base,ccap_2016_hires_lc.tif,k3_gap_change,,0.0070,2,"2019n,2019s",0.0069,H2-K3 NO SHRINK - CROSS-YEAR UNINTERPRETABLE,gap(in16)-gap(base); shrink at <= -0.0069
 wb18,resnet18,p3_ckpt,in16_minus_base,ccap_2016_hires_lc.tif,k4_2016_null,2016,0.0149,1,2016,0.0069,H2-K4 OUTSIDE THE FLOOR,"neither a win nor a failure (design, K4)"
-wb18,resnet18,p3_ckpt,in16_minus_base,ccap_2021_hires_lc.tif,convergence_p,,-0.0839,4,"2006s,2011s,2016,2019n",0.0069,INCOMPLETE,spread(in16)-spread(base) on the common years; promote at <= -0.014
+wb18,resnet18,p3_ckpt,in16_minus_base,ccap_2021_hires_lc.tif,convergence_p,,-0.0839,5,"2006s,2011s,2016,2019n,2020",0.0069,H2-P CONVERGENCE,spread(in16)-spread(base) on the common years; promote at <= -0.014
 wb18,resnet18,p3_ckpt,in16_minus_base,ccap_2021_hires_lc.tif,k3_gap_change,,0.0041,2,"2019n,2019s",0.0069,H2-K3 NO SHRINK - CROSS-YEAR UNINTERPRETABLE,gap(in16)-gap(base); shrink at <= -0.0069
 wb18,resnet18,p3_ckpt,in16_minus_base,ccap_2021_hires_lc.tif,k4_2016_null,2016,0.0015,1,2016,0.0069,H2-K4 NULL AS PRE-REGISTERED,"neither a win nor a failure (design, K4)"
 wb18,resnet18,p3_ckpt,in16_minus_in05,ccap_2016_hires_lc.tif,k1_interaction,,0.0190,2,"2006s,2016",0.0069,H2-K1 LEAK,[(in16-in05)@2006s] - [(in16-in05)@2016]

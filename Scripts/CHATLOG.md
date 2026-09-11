@@ -1223,3 +1223,9 @@ did:     harmh2s3 (L4) --no-resume rerun: inference 43 min, VERIFY OK 04:53Z. Th
          DRAINED, then stopped. Drive API search: the raster exists (999,115,669 B,
          04:53Z) - the first launch's copy never did. Local scoring waits on the Windows
          mirror (up to 8 h); the H2 verdict does not depend on it.
+
+## 2026-09-11  H2 table complete (5/5 arms scored); verdict unchanged
+did:     mirror delivered the re-published 2020_in16 raster in 1 min (the first never
+         existed on Drive); scored vs both refs; harm_spread 98 rows. Five-year in16
+         spread 0.056 / 0.081 vs base 0.140 / 0.154; convergence -0.084 / -0.073; K1/K3/K4
+         unchanged. Completion note on the yaml (extra); verdict untouched.

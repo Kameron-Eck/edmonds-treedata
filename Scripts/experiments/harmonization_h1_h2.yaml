@@ -352,3 +352,11 @@ extra:
     here — the "H1-K2 METRIC KILLED" flag harm_spread.py stamps on the in16 rows is the
     K2 arithmetic applied to a treatment, whereas K2 is pre-registered on the base.
     H2 arms (2019s base/in16, 2016_in16, 2011s_in16, 2020_in16) still on harmh2.
+  h2_table_completed_2026_09_11: >
+    The fifth arm (wb18_2020_in16) was re-inferred on harmh2s3 after its first raster
+    died with its runtime (known_failures: "Drive NOT CONFIRMED"), published under the
+    drain-aware stop, and scored against both references. Five-year in16 spread 0.0557
+    (vs 2021) / 0.0807 (vs 2016) against base 0.1396 / 0.1538; convergence_p -0.0839 /
+    -0.0731 on five years; K1, K3, K4 readings unchanged from the four-arm decision.
+    The verdict above stands and is not re-read: nothing in the fifth arm touches a kill.
+

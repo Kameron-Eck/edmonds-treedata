@@ -96,8 +96,8 @@ claims:
     entry: null
 
   - id: curves-tracked
-    statement: "Every scored arm's full precision-recall sweep is tracked: 139 curves."
-    value: "139"
+    statement: "Every scored arm's full precision-recall sweep is tracked: 141 curves."
+    value: "141"
     evidence: "phase4/qc/curves#dir_csv_count"
     stated_in:
       - docs/SCHEMAS.md

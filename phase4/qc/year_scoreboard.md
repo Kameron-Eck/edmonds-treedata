@@ -339,11 +339,12 @@ champion (pipeline/champion_arms.csv).
 |---|---|---|---|---|---|---|---|---|
 | heal_2020 | 0.7229 | 0.7759 | 0.114173 | 0.7975 | 5,362,240,843 | 183 | 690 (438) | `phase4/qc/curves/bceefac11247.csv` |
 
-**ref `ccap_2016_hires_lc.tif`** · scope `sample-test` — single arm, nothing to rank against
+**ref `ccap_2016_hires_lc.tif`** · scope `sample-test`
 
 | arm | recall | precision | thresh | pr_auc | population | eligible cuts | tiles (train) | curve |
 |---|---|---|---|---|---|---|---|---|
 | wb18_2020_base | 0.7479 | 0.7555 | 0.031496 | 0.8006 | 312,975,674 | 245 | 631 (343) | `phase4/qc/curves/439978a1c68f.csv` |
+| wb18_2020_in16 | 0.7286 | 0.7918 | 0.011811 | 0.8087 | 300,252,910 | 248 | 631 (343) | `phase4/qc/curves/912f90299113.csv` |
 
 **ref `ccap_2021_hires_lc.tif`** · scope `citywide`
 
@@ -366,6 +367,7 @@ champion (pipeline/champion_arms.csv).
 
 | arm | recall | precision | thresh | pr_auc | population | eligible cuts | tiles (train) | curve |
 |---|---|---|---|---|---|---|---|---|
+| wb18_2020_in16 | 0.7422 | 0.7633 | 0.011811 | 0.7857 | 293,343,150 | 248 | 631 (343) | `phase4/qc/curves/035aa84f9553.csv` |
 | wb18_2020_base | 0.7396 | 0.7527 | 0.035433 | 0.7825 | 296,424,567 | 242 | 631 (343) | `phase4/qc/curves/b4c68c6c0ca6.csv` |
 | t1_2020_add16 | 0.7005 | 0.7664 | 0.110236 | 0.7739 | 289,376,644 | 149 | 637 (339) | `phase4/qc/curves/5a82948bc617.csv` |
 | t1_2020_add05 | 0.6871 | 0.7889 | 0.122047 | 0.7972 | 282,309,538 | 204 | 642 (338) | `phase4/qc/curves/1f54f9e72dc3.csv` |

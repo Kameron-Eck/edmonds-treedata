@@ -426,8 +426,9 @@ def _drain_state(session):
         return None, None
     try:
         d = json.loads(data)
-        ts = _dt.datetime.strptime(d["ts_utc"], "%Y-%m-%dT%H:%M:%SZ")
-        age = (_dt.datetime.utcnow() - ts).total_seconds()
+        ts = _dt.datetime.strptime(d["ts_utc"], "%Y-%m-%dT%H:%M:%SZ").replace(
+            tzinfo=_dt.timezone.utc)
+        age = (_dt.datetime.now(_dt.timezone.utc) - ts).total_seconds()
         return d.get("vfs_dirty_gb"), age
     except (ValueError, KeyError, TypeError):
         return None, None

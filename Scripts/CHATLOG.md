@@ -1216,3 +1216,10 @@ fix:     phase4_train_queue: a skipped inference step whose prob raster no longe
          on the lake is re-run, not skipped (_artifact_gone, one stat, no re-read;
          steps-subset jobs exempt); test added. The live VM runs the pre-fix clone, so
          the queue was re-launched on it with --no-resume --only <job>; monitor armed.
+
+## 2026-09-11  2020_in16 raster re-inferred and PUBLISHED; the drain gate fired live
+did:     harmh2s3 (L4) --no-resume rerun: inference 43 min, VERIFY OK 04:53Z. The new
+         drain-aware stop found 0.999 GB still dirty on its first poll, waited, reported
+         DRAINED, then stopped. Drive API search: the raster exists (999,115,669 B,
+         04:53Z) - the first launch's copy never did. Local scoring waits on the Windows
+         mirror (up to 8 h); the H2 verdict does not depend on it.

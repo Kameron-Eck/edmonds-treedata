@@ -465,7 +465,7 @@ one GPU-shaped cost, or permutohedral on CPU. Nothing here needs training.
 | # | Gap | Blocks | Cheapest closing step | Kill that must FIRE on a known-bad input | State |
 |---|---|---|---|---|---|
 | 1 | Emission model: `K`-bin (§2.3 A) vs calibrated log-odds (B) | the logits patch; everything upstream of the threshold | held-out log-likelihood of `e_t(b\|z)` on certified cells across `K` | placebo rate shuffle (brief §5): likelihood must fall | **[D] open — decides the patch** |
-| 2 | ~~Two-sided CUSUM thresholds at `T = 12`~~ → one-sided chart per certified population, threshold per `(population, band, α)` | the detector (§2.2, §12.3) | Monte Carlo on null sequences, `(r_{t,b}, f_{t,b})` | null sequences must not alarm above `α`; placebo must fall | **[D] resolved in form (§12.3); threshold still to run** |
+| 2 | ~~Two-sided CUSUM thresholds at `T = 12`~~ → one-sided chart per certified population, threshold per `(population, band, α)` | the detector (§2.2, §12.3) | Monte Carlo on null sequences, `(r_{t,b}, f_{t,b})` | null sequences must not alarm above `α`; placebo must fall | **form [D] (§12.3); threshold by exact Markov-chain run length [Q] (§17.7); still to run** |
 | 3 | `(β, γ)` estimation | the spatial layer (§3) | Gräler protocol on `𝒢 ∪ ℱ` with `(0,γ̂)`, `(β̂,0)`, `(0,0)` | `(0,0)` reported; an inert weight is a result | **model + MPLE + bootstrap SEs published for equal intervals [Q] (§17.3); interval-dependent temporal term [D]** |
 | 4 | Erasure radius for the smoother actually chosen | §3.3; the "never redraw" question (brief §6.1) | TV-L1 / area opening: exact, `R_erase = 2/λ` (§13.2); mean-field: injected disks on real rasters only | 42 losses and `𝒢` (claim) | **closed-form for TV-L1 [Q→S]; TV-flow extinction `t = R/2` [Q] (§16.2); open only if mean-field is chosen (§13.2)** |
 | 5 | Leave-one-epoch-out scoring identity under Bernoulli noise | §5.2 | derived: §12.4 (Brier form; needs stratum prevalence `π_t`) | a deliberately leaking (median-type) layer must score *below* the noise floor | **[D] derived (§12.4); check not run** |
@@ -1269,8 +1269,10 @@ Galerne 2011, Eq. 2 (review §4.18.1): for any measurable planar set the perimet
 `(2/π)·ρ_P·|s|` (with `ρ_P = Per/area`) is therefore Matheron's result, attributed by
 Galerne to Haas et al. 1967, Matheron 1975 and Serra 1982. Two consequences: (i) the
 numeric self-check in §14.5 now checks a theorem, not a derivation; (ii) Eq. 1 supplies
-the **directional** version — slope in direction `u` equals `−V_u(Ω)`, the directional
-variation (for a smooth boundary, the total projected width in that direction). The
+the **directional** version — the slope in direction `u` is `−V_u(Ω)/2`, half the
+directional variation (for a smooth boundary, half the total projected width in that
+direction), so a shift `s` along `u` gives `|Ω Δ (Ω+s)| ≈ |s|·V_u(Ω)`; averaging `V_u`
+over directions gives `2·Per/π`, which recovers Eq. 2's `(2/π)·Per·|s|`. The
 per-axis systematic medians in `coregistration.csv` are a directional shift, so the
 correctable component uses Eq. 1 with `u` along the measured axis and the isotropic
 residual uses Eq. 2. The kill in §14.5 (linear term over-predicts at large `s`) stands;
@@ -1343,11 +1345,12 @@ subsampling; Roberts 2017 / Valavi 2018 give "at least the autocorrelation range
 ### 17.6 Row 11a — the guard is the theorem; and what to do when it fails [Q]
 
 Kingman 1962 Proposition 2 (review §4.18.5): a 2 × 2 stochastic matrix has a
-continuous-time generator iff `det P > 0` and `tr P > 1`. With `λ = tr P − 1` for two
+continuous-time generator iff `|P| > 0`, equivalently `tr P > 1`, equivalently
+`p₁₂ + p₂₁ < 1` (Kingman credits D. G. Kendall). With `λ = tr P − 1` for two
 states, that is `0 < λ < 1` — §15.2's existence guard is the necessary-and-sufficient
 condition, not a heuristic. Israel, Rosenthal & Wei 2001 Theorem 2: `p_ii > 1/2` for all
-`i` guarantees the log-series converges and (Cuthbert) the generator is unique — for a
-persistence chain both diagonals exceed one half by construction, so the yearly root is
+`i` guarantees the log-series converges and (Cuthbert) the generator is unique — in our
+regime (persistence rates well above one half on both diagonals) the yearly root is
 unique when it exists. When a multi-state matrix (the `K`-bin emission chain of §2.3 A, or
 a mixed stratum) fails: Israel's §3 fix (zero small negative off-diagonals, redistribute
 along the row) or Charitos 2008's minimum-distance row regularisation, both [Q]; the
@@ -1363,7 +1366,9 @@ inverting that run-length formula for `h`; the Monte Carlo on null sequences bec
 check that the implementation matches the formula. The transition matrix itself is in
 the 1999 *JQT* paper (indexed, behind the challenge); until it is read, the construction
 is [Q] by description and the matrix is rebuilt from the chart definition [D] — a
-one-page derivation, checkable against Lucas & Crosier's Table 1 values.
+one-page derivation, checkable against Reynolds & Stoumbos's own §8 values (their
+p-chart example: in-control ANSS 291.348 at the adjusted limit). Lucas & Crosier's
+Table 1 is the normal-data chart and is not a check for the Bernoulli matrix.
 
 ### 17.8 Ledger deltas from round 9
 

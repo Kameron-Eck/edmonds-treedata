@@ -70,7 +70,7 @@ flagged below wherever used.
 | §4.1 how much the prior may override a cell | Martinis & Twele 2010 **ABSTRACT** | Entropy-gated exchange: locally confident evidence is protected from contextual override | No numeric change-size threshold | Whether per-cell gating by measured r,f beats one global weight |
 | §4.2 dated directional loss prior | **Nothing.** Seven search angles | Every source joins construction records to change *post hoc* | The forward-fed construct has no precedent at all | The §4.2 enrichment count is the right first move — nobody has done it |
 | §4.2 where-vs-when risk | Rosa et al. 2013 **PRIMARY** | Ancillary prior 80% right on WHERE (10 km, cumulative), ~2% right on WHEN (exact year) | Not urban, not permits, not a sequential update | Whether a building anchor moves the year of loss, not just the place |
-| §4.3 lidar as teacher | Vapnik & Vashist 2009 **METADATA**; Lang et al. 2023 **PRIMARY** | Privileged-at-train/absent-at-test contract; honest geographic hold-out; RMSE 7.9 m vs independent ALS | Every precedent tests cross-REGION. None tests cross-YEAR | The exam that killed H2: teacher from a lidar year, student examined on a non-lidar year |
+| §4.3 lidar as teacher | Lang et al. 2023 **PRIMARY**; Tolan et al. 2024 **PRIMARY** | Two honest exams against reference data outside lidar coverage (independent ALS; GEDI + forest-inventory field plots). Accuracy degrades off home ground: Tolan MAE 2.8 m (NEON) → 5.1 m (São Paulo) | Four systems engineer the lidar-year/imagery-year gap away (Tolan: "<two years"); none publishes the cost of not doing so | The exam that killed H2: teacher from a lidar year, student examined on a non-lidar year |
 | §4.4a deep supervision | Ma et al. 2021 **PRIMARY**; PSPNet 2017 **ABSTRACT** | A naively-specified auxiliary target scored *worse* than no deep supervision (DSC 88.74 vs 88.95) | No published ablation uses a 0/1/255 ignore convention | Our own weight sweep; the ignore-aware loss is the load-bearing part |
 | §4.4b resolution curriculum | **Nothing direct.** FixRes 2019 **ABSTRACT** | Train-coarse/fine-tune-native gains exist for classification, with no label degradation | Part of any such gain can be batch-norm recalibration, not learning | Control for the recalibration confound before crediting the curriculum |
 | §4.4d GSD not monotonic | Brown et al. 2022 **ABSTRACT** | At FIXED GSD, optics alone swung detector mAP by >50% | Animal detection, synthetic degradation | Independent confirmation of our own season/sensor-over-GSD finding — already aligned |
@@ -297,8 +297,21 @@ contract — and it is the test any §4.3 build must pass.
   design worth copying: validation on **geographically held-out** tiles, plus a check
   against fully independent airborne lidar never used in training (RMSE 7.9 m, bias
   1.7 m). That degradation is the price of losing the privileged signal.
-- **Tolan et al. 2024** (**ABSTRACT**, ⚠ NUMBERS) — MAE 2.8 m at ~0.5–1 m resolution,
-  closest to our GSD tier.
+- **Tolan et al. 2024** (**PRIMARY** — upgraded 2026-09-11 by reading the open-access
+  preprint, arXiv:2304.07213; the Elsevier version stays paywalled) is a **second honest
+  exam worth copying, and the numbers now attribute properly.** It is evaluated not only on
+  held-out aerial lidar but against reference data from outside any aerial-lidar coverage:
+  ~2×10⁴ GEDI spaceborne samples drawn globally, the Brazilian National Forest Inventory
+  (1,450 10×10 m subplots across 87 plots), and 8,903 human-annotated tree/no-tree
+  thumbnails. Figures by reference set: **MAE 2.8 m** on the NEON aerial-lidar test (USA);
+  **MAE 2.7 m** SSL+GEDI average; **MAE 5.1 m in São Paulo**; ME 0.6 m; **RMSE 4.25 m**
+  against NFI field data. *Inference:* the headline 2.8 m is the best case, on home ground
+  against the same instrument it trained on — the independent-region field check is nearly
+  double that. Read our own r/f the same way: the number against the reference you trained
+  toward is not the number you get elsewhere.
+  It also reports saturation above 30 m (GEDI RH95) and a negative bias for trees >15 m
+  (ME −1.00 m) — height-regression artifacts that do not bind directly on binary presence,
+  but which say the model's grip weakens exactly on mature canopy.
 - **Lai et al. 2026**, **Pesonen et al. 2026** (**ABSTRACT**, both arXiv preprints) — the
   second is closest to §4.3's add-only label-correction role: lidar-derived pseudo-labels
   refined against the image itself before being used as supervision.
@@ -311,12 +324,22 @@ contract — and it is the test any §4.3 build must pass.
 generalization. **None tests cross-year or cross-sensor.** The precise failure that killed
 H2 — one epoch's structure bleeding into a different year — has no literature precedent.
 
-What the field does instead is **avoid** the hazard: **Kalinicheva et al. 2025** restricts
-training pairs to the same calendar year as the lidar reference *by design*; **Pauls et
-al. 2025** uses continuously-arriving GEDI footprints so no epoch is ever frozen; **Zhou
-et al. 2020** (USGS LCMAP, **ABSTRACT**) refreshes training data per year and reports ~10
-points of accuracy improvement from doing so. All three mitigations are structurally
-unavailable to us — we have one hand-labeled flight. **Islam et al. 2026** (**METADATA**)
+What the field does instead is **avoid** the hazard, and the pattern is now confirmed in
+four independent systems. **Tolan et al. 2024** states its site-selection rule outright —
+"we selected sites with imagery acquired less than two years from the observation date" —
+i.e. the temporal gap is engineered *down to under two years* and then not measured;
+**Kalinicheva et al. 2025** restricts training pairs to the same calendar year as the lidar
+reference *by design*; **Pauls et al. 2025** uses continuously-arriving GEDI footprints so
+no epoch is ever frozen; **Zhou et al. 2020** (USGS LCMAP, **ABSTRACT**) refreshes training
+data per year and reports ~10 points of accuracy improvement from doing so.
+
+> *Inference, and this is the firmest conclusion in §4.3:* four well-resourced teams all
+> treat lidar-year/imagery-year mismatch as serious enough to design around, and **none of
+> them publishes the cost of not doing so.** Our stack cannot use any of the four
+> mitigations — one hand-labeled flight, lidar in one year, a fifteen-year span. The gap
+> between a two-year tolerance and our worst case is roughly eightfold, and it is
+> unmeasured everywhere. That is not a reason to abandon §4.3; it is the reason §4.3's exam
+> has to be run on our own data before the teacher is trusted. **Islam et al. 2026** (**METADATA**)
 is the nearest affirmative check: it tests whether a training footprint's *year* predicts
 accuracy and reports no meaningful degradation (R² 0.72, 539,611 held-out footprints) —
 but only for years the lidar actually flew, which is exactly not our case for ten of
@@ -735,6 +758,15 @@ number, never instead of it. Adopt it from the first run rather than retrofittin
   elided the abstract and blocked full text on every attempt. Its treatment of
   validation-on-real-change is therefore unknown. An open-source implementation exists
   (`BU-LCSC/mtlchmm`), which is a second route in if institutional access is unavailable.
+- **Paywalls here are usually routable, and a ⚠ grade is often just a dead end in the
+  fetch, not a closed door.** Tolan et al. 2024 was upgraded **ABSTRACT ⚠ → PRIMARY** on
+  2026-09-11 by reading the open-access preprint (arXiv:2304.07213) instead of the Elsevier
+  version, which changed the §4.3 conclusion materially. Any remaining ⚠ or METADATA entry
+  is worth one check for a preprint, an institutional-repository mirror, or a
+  society-journal precursor before it is treated as unreadable. Two leads not yet pulled:
+  Hoberg et al. 2015 has a 2012 ISPRS Annals precursor (Copernicus, open access — a
+  searcher located it but its PDF would not parse), and Li et al. 2022 was recovered this
+  way already, via the DLR repository mirror.
 - **Not searched:** §6.4 (which training lever first) is a cost/sequencing decision no
   literature settles; the material for it is in §4.6. §6.2 and §6.3 *were* searched in
   round 2 and are answered in §4.10.
@@ -802,7 +834,7 @@ Grades as defined in §2. Grouped by the brief section they bear on.
 - Pauls, J. et al. (2025). Capturing Temporal Dynamics in Large-Scale Canopy Tree Height Estimation. arXiv:2501.19328 — **ABSTRACT** (preprint)
 - Pesonen, J. et al. (2026). Learning Image-based Tree Crown Segmentation from Enhanced Lidar-based Pseudo-labels. arXiv:2602.13022 — **ABSTRACT** (preprint)
 - Song, J., Chen, H. & Yokoya, N. (2026). Enhancing monocular height estimation via sparse LiDAR-guided correction. *ISPRS J.* 232. doi:10.1016/j.isprsjprs.2025.12.004 — **ABSTRACT**
-- Tolan, J. et al. (2024). Very high resolution canopy height maps from RGB imagery using self-supervised vision transformer and convolutional decoder trained on aerial lidar. *RSE*. doi:10.1016/j.rse.2023.113888 — **ABSTRACT ⚠ NUMBERS**
+- Tolan, J. et al. (2024). Very high resolution canopy height maps from RGB imagery using self-supervised vision transformer and convolutional decoder trained on aerial lidar. *RSE*. doi:10.1016/j.rse.2023.113888 — **PRIMARY** via the open-access preprint arXiv:2304.07213 (publisher version paywalled); inference code at `facebookresearch/HighResCanopyHeight`
 - Vapnik, V. & Vashist, A. (2009). A new learning paradigm: Learning using privileged information. *Neural Networks* 22(5–6). doi:10.1016/j.neunet.2009.06.042 — **METADATA**
 - Zhou, Q., Tollerud, H., Barber, C., Smith, K. & Zelenak, D. (2020). Training Data Selection for Annual Land Cover Classification for LCMAP. *Remote Sensing* 12(4):699. doi:10.3390/rs12040699 — **ABSTRACT**
 

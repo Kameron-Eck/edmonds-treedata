@@ -1281,12 +1281,17 @@ cross-sectional or two-point; no study reports loss as a function of years-since
 three or more steps. What the field does supply is a *distance* structure and a *window*.
 
 - **Hilbert, Roman et al. 2019** (**PRIMARY**, already filed; the synthesis table read
-  this round). Two rows carry the numbers. *Steenberg et al. (2018), Toronto* — yard,
-  street and public right-of-way trees, `n = 806`, a 6–7-year follow-up, with "presence and
-  number of building permits" as a mortality predictor. *Morgenroth et al. (2017),
-  Christchurch* — `n = 1,209`, predictors "small trees closer than 0.7 m to demolished
-  building (↑), large trees closer than 20 m to driveway (↑)". The second is a published
-  distance-band result of exactly the `K_R(d)` shape, with two radii for two tree sizes.
+  this round). Three rows carry the numbers, two of them Steenberg's. *Steenberg et al.
+  (2017), Toronto* — the human-factor predictor "Presence and number of building permits
+  (↑), multi-unit housing (street-level scale) (↑)". *Steenberg et al. (2018), Toronto* —
+  yard, street and public right-of-way trees, `n = 806`, a 6–7-year follow-up. Whether the
+  two rows are one paper (the JEPM article was online in 2017 and in print as 61(3) in
+  2018) or two (a 2018 Environment & Planning B paper exists, doi:10.1177/2399808317752927)
+  could not be settled from the table alone; the reference list is not cleanly extracted.
+  *Morgenroth et al. (2017), Christchurch* — `n = 1,209`, predictors "small trees closer
+  than 0.7 m to demolished building (↑), large trees closer than 20 m to driveway (↑)".
+  The last is a published distance-band result of exactly the `K_R(d)` shape, with two
+  radii for two tree sizes.
 - **Steenberg, Robinson & Millward 2017** (J. Environ. Planning & Management 61(3);
   doi:10.1080/09640568.2017.1326883) — **ABSTRACT**: tree inventories joined to
   building-permit open data; "presence and number of building permits significantly
@@ -1629,9 +1634,11 @@ number, never instead of it. Adopt it from the first run rather than retrofittin
   reading":** Markov stationarity tests and annualised transition matrices; temporal
   dependence of classification error; the correlated-binary generative model; `D_k(τ)`
   and Steenberg 2017; misalignment / registration-uncertainty priors. Three Sonnet
-  searchers on open routes, then the closed remainder fetched by DOI. 35 works surfaced;
-  14 reviewer-read (one as page images), 8 searcher-read PRIMARY, 6 ABSTRACT, 12
-  METADATA; findings in §4.14. Efron 2004's assumption statement was closed from his own
+  searchers on open routes, then the closed remainder fetched by DOI. The round-5
+  bibliography block holds 31 entries: 11 reviewer-read PRIMARY (7 new — one as page
+  images — plus re-reads of Hilbert, Hauer, Hughes–Guttorp and the newly filed Efron
+  2021), 7 searcher-read PRIMARY, 6 ABSTRACT, 10 METADATA, 1 filed-unread (Burnicki
+  2011); findings in §4.14. Efron 2004's assumption statement was closed from his own
   2021 restatement (author's page). Still unobtained and worth a library request: Dai &
   Khorram 1998, Takada et al. 2010, Steenberg et al. 2017, Guo et al. 2018, Besag 1974.
 - **Not searched:** §6.4 (which training lever first) is a cost/sequencing decision no
@@ -1841,7 +1848,7 @@ All filed PDFs under `D:\edmonds-pipeline\Literture\Validation\`.
 - Takada, Miyamoto & Hasegawa (2010). Derivation of a yearly transition probability matrix for land-use dynamics and its applications. *Landscape Ecology* 25(4):561–572. doi:10.1007/s10980-009-9433-x — **METADATA** (closed; not in archive).
 - Hasegawa & Takada (2019). Probability of Deriving a Yearly Transition Probability Matrix for Land-Use Dynamics. *Sustainability* 11(22):6355. doi:10.3390/su11226355 — **ABSTRACT** (MDPI 403; Hokkaido mirror unreachable).
 - Burnicki, Brown & Goovaerts (2007). Simulating error propagation in land-cover change analysis: the implications of temporal dependence. *Comput. Environ. Urban Syst.* 31(3):282–302. doi:10.1016/j.compenvurbsys.2006.07.005 — **PRIMARY**, reviewer-read (§5). Filed `Burnicki_2007_error_propagation_temporal_dependence`.
-- Burnicki (2011). Spatio-temporal errors in land-cover change analysis: implications for accuracy assessment. *Int. J. Remote Sensing* 32(22):7487–7512. doi:10.1080/01431161.2010.524674 — **PRIMARY** on fetch, identity only; not yet read. Filed `Burnicki_2011_spatiotemporal_errors_accuracy`.
+- Burnicki (2011). Spatio-temporal errors in land-cover change analysis: implications for accuracy assessment. *Int. J. Remote Sensing* 32(22):7487–7512. doi:10.1080/01431161.2010.524674 — filed, unread (identity verified from the text header only; no grade until read). Filed `Burnicki_2011_spatiotemporal_errors_accuracy`.
 - Burnicki, Brown & Goovaerts (2010). *Int. J. Geogr. Inf. Sci.* 24(7). doi:10.1080/13658810903279008 — **METADATA**. Burnicki (2012). *Landscape Ecology*. doi:10.1007/s10980-012-9719-2 — **METADATA**.
 - Geyer & Thompson (1992). Constrained Monte Carlo Maximum Likelihood for Dependent Data. *J. R. Stat. Soc. B* 54(3):657–699. doi:10.1111/j.2517-6161.1992.tb01443.x — **PRIMARY**, reviewer-read (abstract and the normalising-constant passages). Filed `GeyerThompson_1992_MCML_dependent_data`.
 - Besag (1974). Spatial Interaction and the Statistical Analysis of Lattice Systems. *J. R. Stat. Soc. B* 36(2). doi:10.1111/j.2517-6161.1974.tb00999.x — **METADATA** (closed; not in archive).

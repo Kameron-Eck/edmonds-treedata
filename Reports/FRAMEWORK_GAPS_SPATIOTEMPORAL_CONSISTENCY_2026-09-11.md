@@ -484,7 +484,7 @@ one GPU-shaped cost, or permutohedral on CPU. Nothing here needs training.
 increments, §2.2 substitutions and worked instance, §2.4 the `γ = 0` analogue, §3.3 the
 contrast translation, §5.1 the strata, §7.1 the lattice map, §7.2 the conservative rule)
 and every [D] (§2.1 sensitivity, §2.2 the join, §2.3 the verdict, §2.4 `k_½`, §3.1–3.4,
-§4, §5.2–5.4, §6, §7.2 `φ`, §8, §11, and all of §12–§13 — added 2026-09-12, after this
+§4, §5.2–5.4, §6, §7.2 `φ`, §8, §11, and all of §12–§14 — added 2026-09-12, after this
 ledger, which is why they sit below it) is unvalidated. The independent check for each is the
 row above that names it, run by someone other than this document's author, on real data,
 with the kill shown to fire first. A design accepted on numbers it produced about itself is
@@ -578,7 +578,9 @@ m^𝒞_k = (1 − c_k) · f + c_k · r
 ```
 
 a 2×2 linear system in `(f, r)` with determinant `a_k + c_k − 1 = (π₀ + π₁)λ^k = λ^k`.
-Hence the **estimator [D]**:
+Hence the **estimator [D; the `λ^k` decay weights and the yearly-rate closed form below
+re-binned [S] on 2026-09-12 per §14.1 — they are Bell & Hinojosa 1977 eqs. 1–2 in the
+2×2 case; the 2×2 solve and its kill remain [D]]**:
 
 ```
 f̂ = ( c_k · m^ℱ_k − (1 − a_k) · m^𝒞_k ) / λ^k

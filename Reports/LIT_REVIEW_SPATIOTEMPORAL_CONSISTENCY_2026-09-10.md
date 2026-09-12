@@ -1493,11 +1493,30 @@ are fit.
   cover change ranged from less than 5% for a 5-class AVHRR classification, to more than
   33% for a 20-class Landsat TM classification", and "the potential for false change was
   higher with more classes"; a bootstrap estimator of the false change, "unbiased" but
-  low-precision. **Salas, Boles, Frolking, Xiao & Li 2003** (IJRS 24(4);
-  doi:10.1080/0143116021000044841) — **METADATA**, not in the archive: title states the
-  perimeter/area ratio as the index of misregistration bias — the same quantity as
-  framework §14.5's `ρ_P`, published as an empirical index. The one paper in this vein
-  still worth obtaining.
+  low-precision. **Salas, Boles, Frolking, Xiao & Li 2003** (**PRIMARY**, IJRS
+  24(5):1165–1170; doi:10.1080/0143116021000044841; Kam located the archive copy; read
+  in full — a six-page Letter). Not the same object as framework §14.5, and worth
+  keeping distinct: they compute the perimeter/area ratio of each *change clump* and
+  compare it with the theoretical P/A of a one-pixel misregistration strip — "For purely
+  diagonal single pixel offsets the P/A ratio~4/x", the upper limit, and for row/column
+  offsets "the P/A ratio~2/x(1+1/n), where n is the number of pixels along the offset
+  edge", the lower limit (`x` the pixel size) — so that "False changes due to
+  co-registration errors are likely to have a near-linear shape" can be screened clump by
+  clump. On their Pearl River TM pair, "almost 10% of the total change from cropland to
+  vegetated land could be due to single pixel misregistration … but less than 4.5% of the
+  area that changed from cropland to built-up"; forcing a one-pixel offset raised those
+  to "almost 15%" and "over 7.3%". Two things carry over: (i) the mechanism — false change
+  is *linear strips along class boundaries* — is stated and tested, which is the premise
+  of §14.5's perimeter-density form; (ii) the P/A-of-clump screen is a *second*,
+  post-hoc tool for row 14: any flagged change clump whose P/A exceeds the row/column
+  limit for the epoch pair's registration offset is a candidate sliver. What it is not:
+  an a-priori rate — §14.5's `(2/π)·ρ_P·|s|` remains the review's derivation, now with
+  Salas as its stated-mechanism anchor rather than as a competing formula. Also filed
+  from the same archive: **Goodchild 2004**, the two-page editorial introduction to the
+  Leung–Ma–Goodchild series (J. Geogr. Syst. 6:323–324; doi:10.1007/s10109-004-0140-5)
+  — it frames the series ("error models must be 'retrofitted' to data, and key
+  information such as error covariance structure is frequently missing") but carries no
+  formulas; Parts 2 and 4 are still the targets.
 - Closed and absent from the archive: Shi 1998 (G-band), Leung & Yan 1998, Shi & Liu
   2000, Leung, Ma & Goodchild 2004 parts 1–4, Roy 2000, Stow 1999 — all **METADATA**.
   Perkal 1966 and Dutton 1992 have no DOI.
@@ -2034,7 +2053,8 @@ Grades and labels as in rounds 4–5. Filed under `D:\edmonds-pipeline\Literture
 - Goodchild & Hunter (1997). A simple positional accuracy measure for linear features. *Int. J. GIS* 11(3):299–306. doi:10.1080/136588197242419 — **PRIMARY**, searcher-read (scan, no text layer; visual). Filed `GoodchildHunter_1997_positional_accuracy_linear_features`.
 - Townshend, Justice, Gurney & McManus (1992). The impact of misregistration on change detection. *IEEE Trans. Geosci. Remote Sensing* 30(5):1054–1060. doi:10.1109/36.175340 — **PRIMARY**, reviewer-read. Filed `Townshend_1992_misregistration_change_detection`.
 - Verbyla & Boles (2000). Bias in land cover change estimates due to misregistration. *Int. J. Remote Sensing* 21(18):3553–3560. doi:10.1080/014311600750037570 — **PRIMARY**, reviewer-read. Filed `VerbylaBoles_2000_misregistration_bias`.
-- Salas, Boles, Frolking, Xiao & Li (2003). The perimeter/area ratio as an index of misregistration bias in land cover change estimates. *Int. J. Remote Sensing* 24(4). doi:10.1080/0143116021000044841 — **METADATA** (not in archive).
+- Salas, Boles, Frolking, Xiao & Li (2003). The perimeter/area ratio as an index of misregistration bias in land cover change estimates. *Int. J. Remote Sensing* 24(5):1165–1170. doi:10.1080/0143116021000044841 — **PRIMARY**, reviewer-read in full (archive copy located by Kam). Filed `Salas_2003_perimeter_area_misregistration_index`.
+- Goodchild (2004). A general framework for error analysis in measurement-based GIS [editorial introduction to the series]. *J. Geogr. Syst.* 6:323–324. doi:10.1007/s10109-004-0140-5 — **PRIMARY**, reviewer-read (no formulas; framing only). Filed `Goodchild_2004_JGS_editorial_intro_measurement_based_GIS`. Parts 2–4 (doi -0142-3, -0143-2, -0144-1) remain **METADATA**.
 - Shi (1998). A generic statistical approach for modelling error of geometric features in GIS. *Int. J. GIS* 12(2):131–143. doi:10.1080/136588198241923 — **METADATA**. Leung & Yan (1998). *Int. J. GIS* 12(4). doi:10.1080/136588198241699 — **METADATA**. Shi & Liu (2000). *Int. J. GIS* 14(1). doi:10.1080/136588100240958 — **METADATA**. Leung, Ma & Goodchild (2004). A general framework for error analysis in measurement-based GIS, Parts 1–4. *J. Geogr. Syst.* 6(4). doi:10.1007/s10109-004-0140-5, -0142-3, -0143-2, -0144-1 — **METADATA**. Roy (2000). *IEEE TGRS* 38(4). doi:10.1109/36.851783 — **METADATA**. Stow (1999). *Int. J. Remote Sensing* 20(12). doi:10.1080/014311699212137 — **METADATA**. Sundaresan, Varshney & Arora (2007). *PE&RS* 73(4). doi:10.14358/pers.73.4.375 — **METADATA** (OA flagged, not served).
 
 ### Held locally (`D:\edmonds-pipeline\Literture\`), read directly from PDF

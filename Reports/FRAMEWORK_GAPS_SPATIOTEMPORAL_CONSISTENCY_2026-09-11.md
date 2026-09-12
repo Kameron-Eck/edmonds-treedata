@@ -1050,3 +1050,30 @@ is wrong — and that is the finding.
 | 9 | `D_k` shape [D]; `k ≈ 5 y` window | **two-term family [Q→S]** (decaying immediate + rising delayed, truncated at the window); coefficients fit; one-vs-two-term test added to the kill |
 | 10 | blur = footprint ⊗ GRF-offset [S] | **closed form `π_in(d) = Φ(d/σ)` [D] on Leung & Yan's radial law [Q]**; `σ² = σ_reg² + σ_fp²` — `σ_reg` from the coregistration residual (quantiles converted, p95 an upper bound), `σ_fp` the footprint layer's own error, **not yet measured**; kill against a lidar building reference on the 2016 epoch |
 | 14 | `(2/π)·ρ_P·|s|` [D] | Salas et al. 2003 publish the perimeter/area ratio as the empirical index of misregistration bias (METADATA, not obtained) — the same quantity; obtain it to re-bin toward [S] |
+
+### 14.9 Row 14, addendum — Salas et al. 2003 read: a second tool, not the same formula
+
+**[Q, review §4.15.2].** Salas et al. compute the perimeter/area ratio of each *change
+clump* and compare it with the theoretical P/A of a one-pixel misregistration strip:
+`4/x` for a diagonal strip (upper limit) and `(2/x)(1 + 1/n)` for a row/column strip of
+`n` pixels (lower limit), `x` the pixel size. Clumps above the lower limit are candidate
+linear false change; on their scene the area-weighted upper bound on such change was
+9.55 % / 4.13 % of two change classes.
+
+**Relation to §14.5 [D].** Different object. §14.5 predicts the *expected* false-change
+area of a scene *a priori* from the mask's perimeter density and the registration
+offset; Salas screens *observed* change clumps *post hoc* by shape. They share the
+premise — false change is a strip along a class boundary — which Salas state and test,
+so §14.5's premise is now [Q] while its formula stays [D]. **Substitution [S] of the
+Salas screen to our grid:** on the 2 m grid with a registration offset of `s` cells, a
+sliver's P/A is bounded below by `(2/(s·x))(1 + s/n)` for a straight boundary; any
+flagged change clump above that bound and within `s_95` of a class boundary in the
+earlier epoch is a candidate sliver and goes to the CUSUM/chain as `⊘`, not as
+evidence — a rule for §7.3 that costs one connected-components pass. **Kill:** the
+screen must flag the self-shift slivers of §14.5's kill at ≥ 95 % and must *not* flag
+the 42 verified losses; a screen that removes verified change is laundering by another
+name.
+
+Ledger row 14 → premise [Q] (Salas 2003), rate formula [D] (§14.5), sliver screen [S]
+(§14.9); Leung–Ma–Goodchild Parts 2–4 still unobtained (the editorial introduction is
+filed and carries no formulas).

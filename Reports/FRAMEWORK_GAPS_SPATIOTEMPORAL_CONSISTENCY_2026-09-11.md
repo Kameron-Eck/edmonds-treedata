@@ -927,3 +927,40 @@ bootstrap.** Every piece has a home.
 | 10 | negative on prior art | blur = footprint ⊗ GRF-offset(p95) [S]; precedent for bound-as-radius [Q]; negative on a published prior stands |
 | 11a | estimator [D] | `λ^k` decay and yearly-rate closed form → [S] (Bell & Hinojosa 1977 eqs. 1–2) |
 | **15 (new)** | — | **Stationarity of `(q_g, q_l)` across lidar intervals** — test: Anderson & Goodman 1957 / Bell & Hinojosa 1977; needs a third certified date; interior-epoch bridge check is a consistency check only. Kill: the test must reject on a stratum where §6.1's development prior says rates changed (dated footprints). **[Q→S]; not runnable until a third lidar date exists** |
+
+### 14.5 Row 14 — the edge-band false-positive rate from registration error, in closed form [D]
+
+**Anchor [Q, review §4.14.3].** Dai & Khorram 1998: false change from misregistration is
+"mainly distributed spatially along the edges"; the semivariance a shift adds equals the
+autocorrelation drop at that lag (their eq. 5); on 30 m TM, one-fifth of a pixel of
+registration error keeps change error under 10 %. Empirical curves, no formula.
+
+**Derivation [D].** Let `A` be the canopy set of a binary mask and `s` a registration
+offset vector. A cell is falsely flagged as change between two epochs of the *same*
+scene shifted by `s` iff it lies in the symmetric difference `A △ (A + s)`. For a set with
+finite perimeter `Per(A)` and `|s|` small relative to the feature size, the area of that
+symmetric difference averaged over the direction of `s` is
+
+```
+E_θ |A △ (A + s)|  ≈  (2/π) · Per(A) · |s|          (Crofton / Cauchy mean-width form; [D])
+```
+
+so the false-change *fraction* of the scene is `≈ (2/π) · ρ_P · |s|` with `ρ_P` the
+perimeter density (perimeter per unit area) of the canopy mask. With `|s|` drawn from the
+epoch's registration-error distribution (`coregistration.csv`; p95 as the bound), the
+expected edge-band false-positive rate is `(2/π) · ρ_P · E|s|`, and its worst case
+`(2/π) · ρ_P · s_95`. Two consequences: (i) it is proportional to perimeter density, which
+is why fragmented residential canopy is worse than a closed stand — Dai & Khorram's
+"finer spatial frequency" in geometric terms; (ii) it is the size of the band in which
+`f_{t,b}` (§12.1) must be allowed to rise, and the width `s_95` is the erosion radius of
+§12.1 by construction. `ρ_P` is measurable from any mask in one pass.
+
+**Kill.** On the 2016 lidar-coincident epoch, shift the mask against itself by the
+measured `s_95` in eight directions and count the flagged fraction; the formula must
+reproduce the mean within its small-`|s|` error, and must *fail* (over-predict, since
+the symmetric difference is bounded by twice the area) once `|s|` approaches the typical
+crown radius, where the linear term stops holding. If it cannot be made to fail, the
+test is not testing the approximation. *Arithmetic self-check 2026-09-12, not
+validation:* on a synthetic disc (`R = 50`, `|s| = 2`) the formula gives 400 against a
+measured 393.5; on a square (`L = 100`) 509 against 502.5; at `|s| = 60 > R` it gives
+12,000 against 11,173 — the over-prediction the kill expects.

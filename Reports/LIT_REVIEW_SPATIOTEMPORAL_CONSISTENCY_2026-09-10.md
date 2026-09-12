@@ -1373,17 +1373,37 @@ an algorithm radius.
   a label prior; **Parisot et al. 2013** (**PRIMARY** on the searcher's read; ICCV; HAL
   hal-00858696) propagates registration uncertainty into segmentation potentials on a
   graphical model — the propagation step, without a closed form for a radius.
-- **Dai & Khorram 1998** (IEEE TGRS 36(5); doi:10.1109/36.718860) — **METADATA**: the
-  canonical "false change as a function of registration error" paper; closed, not in the
-  archive, not read. If a closed form for the edge-band false-positive rate exists it is
-  here, and it is the one paper in this vein still worth obtaining.
+- **Dai & Khorram 1998** (**PRIMARY**, IEEE TGRS 36(5):1566–1577; doi:10.1109/36.718860;
+  Kam located the archive copy by title after three lookup forms failed here; read in
+  full text). A *simulation*, not a closed form: each Landsat TM image is "misregistered
+  against itself" in discrete pixel steps (0 to `14.14` px total), the change detector
+  re-run at every step, and false changes counted. Three results carry over. (i) The
+  headline: "less than 0.2667 pixel of registration accuracy is needed to assure an
+  accuracy of 90% for change detection" on one site; "0.1538, 0.1838, and 0.1692 pixel"
+  on the other three; on average "less than 0.1934 pixel", i.e. "a registration accuracy
+  of less than one-fifth of a pixel is required to achieve a change detection error of
+  less than 10%." (ii) *Where* the false change lives: it is "mainly distributed
+  spatially along the edges of the images", while true changes removed by misregistration
+  "are spatially distributed away from the edges" — the edge-band finding of MASTER §3a,
+  from 1998. (iii) The mechanism, their eq. 5: the semivariance added by a shift equals
+  the drop in the image autocorrelation function at that lag, so sensitivity to
+  misregistration is set by the image's spatial structure ("the finer the spatial
+  frequency", the worse). The curves are empirical (Fig. 8) and the 0.2-px figure is for
+  30 m TM pixels and spectral differencing — it does not transfer as a number; the
+  mechanism and the edge localisation do. A second Dai & Khorram 1998 (IJRS 19(18)
+  letter, doi:10.1080/014311698213911) is a different paper, filed with a warning name.
 
 **Substitution (the review's).** Row 10's `u_i` keeps its log-odds form; the blur is now
 specified as the *expected footprint indicator under the Girard-form displacement field*
 parameterised from `coregistration.csv` per epoch — i.e. convolve the footprint with the
 offset distribution rather than with a hand-set disc — and its only parameter is measured
 (row 14). The `[D]` label stays on the construction; the offset model and the "bound as
-radius" precedent are `[Q]`.
+radius" precedent are `[Q]`. For the *edge band* (row 14), Dai & Khorram's eq. 5 gives
+the route to a closed form on a binary mask: the false change from a shift `s` is the
+mask's autocorrelation drop at lag `s`, which for an indicator field is the symmetric
+difference of the canopy set and its translate — for small `s`, of order perimeter × `|s|`
+per unit area. That derivation is the framework's (§14.3), with Dai & Khorram as its
+empirical anchor and the canopy mask's perimeter density as its one measured input.
 
 **Negatives, round 5:** no multi-point `D_k(τ)` curve anywhere (four studies, all
 two-point or cross-sectional); no Cox/hazard-ratio paper for urban tree loss with a
@@ -1876,7 +1896,7 @@ All filed PDFs under `D:\edmonds-pipeline\Literture\Validation\`.
 - Kaiser, Wegner, Lucchi, Jaggi, Hofmann & Schindler (2017). Learning Aerial Image Segmentation From Online Maps. *IEEE TGRS*; arXiv:1707.06879. doi:10.1109/tgrs.2017.2719738 — **PRIMARY**, searcher-read. Filed `Kaiser_2017_LearningAerialSegOnlineMaps`.
 - Le Folgoc, Delingette, Criminisi & Ayache (2017). Quantifying Registration Uncertainty With Sparse Bayesian Modelling. *IEEE Trans. Med. Imaging*. doi:10.1109/tmi.2016.2623608 — **PRIMARY**, searcher-read. Filed `LeFolgoc_2016_QuantifyingRegistrationUncertaintySparseBayesian`.
 - Parisot, Wells, Chemouny, Duffau & Paragios (2013). Uncertainty-Driven Efficiently-Sampled Sparse Graphical Models for Concurrent Tumor Segmentation and Atlas Registration. *ICCV 2013*. doi:10.1109/iccv.2013.85 — **PRIMARY**, searcher-read. Filed `Parisot_2013_UncertaintyDrivenTumorSegAtlasRegistration`.
-- Dai & Khorram (1998). The effects of image misregistration on the accuracy of remotely sensed change detection. *IEEE TGRS* 36(5):1566–1577. doi:10.1109/36.718860 — **METADATA** (closed; not in archive).
+- Dai & Khorram (1998). The Effects of Image Misregistration on the Accuracy of Remotely Sensed Change Detection. *IEEE Trans. Geosci. Remote Sensing* 36(5):1566–1577. doi:10.1109/36.718860 — **PRIMARY**, reviewer-read (§III–IV, Fig. 8 discussion, conclusions). Filed `DaiKhorram_1998_TGRS_misregistration_change_detection` (archive copy located by Kam). *Not to be confused with* Dai & Khorram (1998), A hierarchical methodology framework for multisource data fusion in vegetation classification, *Int. J. Remote Sensing* 19(18):3697–3701, doi:10.1080/014311698213911 — filed `DaiKhorram_1998_IJRS_hierarchical_fusion_letter_NOT_the_misregistration_paper`, not cited.
 - Risholm et al. (2011). *ISBI*. doi:10.1109/isbi.2011.5872467 — **METADATA** (PMC copy not served).
 
 ### Held locally (`D:\edmonds-pipeline\Literture\`), read directly from PDF

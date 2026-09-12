@@ -964,3 +964,67 @@ test is not testing the approximation. *Arithmetic self-check 2026-09-12, not
 validation:* on a synthetic disc (`R = 50`, `|s| = 2`) the formula gives 400 against a
 measured 393.5; on a square (`L = 100`) 509 against 502.5; at `|s| = 60 > R` it gives
 12,000 against 11,173 — the over-prediction the kill expects.
+
+### 14.6 Row 9 — the shape family for `D_k(τ)`, sourced [Q→S]
+
+**Found [Q, review §4.15.1].** No fitted post-disturbance hazard exists (Hood et al.
+2018: models are "binary—either the tree survives or dies"). But the *shape* is stated
+with its mechanism by the fragment-ecology literature: one component that starts high
+and declines over "the first few years" (immediate death of sensitive individuals,
+acclimation, edge sealing — D'Angelo et al. 2004; Laurance et al. 2011) and one that
+*rises* as the edge ages (wind exposure of a closing edge — Laurance et al. 2011). The
+distance half is a separate regression (Mesquita et al. 1999: strongest within 0–20 m,
+penetrating 40–100 m depending on the matrix).
+
+**Substitution [S].** Replace §6.1's single decay with the two-term family
+
+```
+D(τ) = w₁ · e^{−τ/k₁}  +  w₂ · (1 − e^{−τ/k₂}) · 1[τ ≤ T_max]
+```
+
+— an immediate-clearing term that decays with `k₁` (the 2–3-year replanting horizon of
+Conway 2022 and the 4–8-year windows of §14.3 bound it) and a delayed-removal term that
+rises with `k₂` and is truncated at the window `T_max`. Under Baddeley & Turner's split
+(§13.3) `w₁, w₂` are canonical and `k₁, k₂, T_max` irregular. **The family is quoted;
+every coefficient is fit on the LOSS build near dated footprints; nothing here is a
+number.** Kill unchanged (row 9): no-change gold near new buildings must stay
+no-change; and the two-term fit must beat the one-term fit on held-out permits by more
+than the noise floor or the second term is dropped.
+
+### 14.7 Row 10 — the blurred footprint indicator, in closed form [D] on a [Q] radial law
+
+**Found [Q, review §4.15.2].** Leung & Yan 1997: a boundary with circular-normal
+positional error of scale `σ` lies within the `r`-band of its nominal position with
+probability `1 − exp(−r²/2σ²)` (their eq. 21); the exact point-in-random-polygon
+probability is bounded, not closed (their eqs. 24–25).
+
+**Derivation [D].** For a cell at signed distance `d` from the nominal footprint edge
+(positive inside), and a locally straight edge displaced by a circular-normal offset of
+scale `σ`, the probability the cell is truly inside the footprint is
+
+```
+π_in(d) = Φ(d / σ)          (Φ the standard normal CDF)
+```
+
+— the Gaussian-blurred indicator. It is exact for a straight edge, an approximation
+within a curvature radius of corners, and it is the closed-form of the Girard et al.
+2019a Gaussian-random-field offset (§14.3) for a single independent offset. §6.2's prior
+becomes `u_i = log( P(z=1 | in) π_in(d_i) + P(z=1 | out) (1 − π_in(d_i)) ) − log P(z=1 | out)`
+with `σ` the epoch's registration scale from `coregistration.csv` (median for the
+typical case, p95 for the conservative one) — **no free parameter**. The same `σ` sets
+the edge band of §14.5 and the erosion radius of §12.1, so rows 10, 12.1 and 14 now
+share one measured input.
+
+**Kill.** On the 2016 lidar-coincident epoch, take building footprints against the CHM:
+the empirical fraction of cells with CHM ≥ 5 m at signed distance `d` from the footprint
+edge must follow `1 − Φ(d/σ)`-shaped decay with the *measured* `σ`, not a fitted one;
+substituting `10σ` must visibly fail. If the empirical curve needs a fitted width to
+match, the registration table is wrong or the footprints are, and that is the finding.
+
+### 14.8 Ledger deltas from round 6
+
+| # | Was | Now |
+|---|---|---|
+| 9 | `D_k` shape [D]; `k ≈ 5 y` window | **two-term family [Q→S]** (decaying immediate + rising delayed, truncated at the window); coefficients fit; one-vs-two-term test added to the kill |
+| 10 | blur = footprint ⊗ GRF-offset [S] | **closed form `π_in(d) = Φ(d/σ)` [D] on Leung & Yan's radial law [Q]**; `σ` measured; no free parameter; kill on the 2016 CHM |
+| 14 | `(2/π)·ρ_P·|s|` [D] | Salas et al. 2003 publish the perimeter/area ratio as the empirical index of misregistration bias (METADATA, not obtained) — the same quantity; obtain it to re-bin toward [S] |

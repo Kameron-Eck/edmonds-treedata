@@ -1413,6 +1413,109 @@ segmentation; Takada 2010, Besag 1974, Dai & Khorram 1998 and six urban-forestry
 closed and absent from the archive; MDPI blocked every route to Roman 2022 / Ock 2024 /
 Hasegawa & Takada 2019.
 
+### 4.15 Round 6 (2026-09-12) — the two items "no more reading would move", taken to two fields not yet searched
+
+Kam asked why more literature would not move the `D_k(τ)` shape or the blur prior. The
+honest answer was that the *searched* fields did not hold them; two unsearched fields
+plausibly did. Round 6 searched those: disturbance ecology and forest biometrics for a
+post-disturbance hazard *shape*, and GIS positional-uncertainty theory for a boundary
+error → probability construction. Sci-Hub was used as the standing fallback (Kam's rule,
+same day) after open routes.
+
+#### 4.15.1 `D_k(τ)` — the shape family exists in words, not in a fitted curve; and it is not monotone
+
+- **Hood, Varner, van Mantgem & Cansler 2018** (**PRIMARY**, Environ. Res. Lett. 13,
+  113004; IOP gold OA; read at the modelling section). The field's own review: "Perhaps
+  the most limiting aspect of current empirical models is that predictions are
+  binary—either the tree survives or dies from fire." Post-fire mortality models are
+  logistic on tree status, not hazards in time. The negative for fire ecology is PRIMARY.
+- **Reilly, Zuspan & Yang 2023** (**PRIMARY**, Fire Ecology 19:64; SpringerOpen; read at
+  the definitions). Delayed mortality is mapped as NBR decline "between the first post-fire
+  measurement and the minimum NBR value up to 5 years" — a windowed minimum, three
+  epochs at most, no fitted `h(τ)`. **Barker, Gray & Fried 2022** (Fire 5(1):21;
+  **ABSTRACT**, MDPI 403): delayed mortality defined as death 4–9 years post-fire. Both
+  give a *window*, consistent with urban forestry's 4–8 years.
+- **Laurance et al. 2011** (**PRIMARY**, Biol. Conserv. 144(1); read at §on edge
+  effects). The shape, stated in prose with its mechanism: tree death from microclimatic
+  stress "is likely to decline over the first few years after edge creation … because the
+  edge becomes less permeable, because many drought-sensitive individuals die immediately,
+  and because surviving trees may acclimate"; whereas "mortality from wind turbulence,
+  however, probably increases as the edge ages and becomes more closed." Two components
+  with opposite sign in `τ`. **D'Angelo, Andrade, Laurance, Fearnside & Laurance 2004**
+  (**PRIMARY**, J. Trop. Ecol. 20; read): "Microclimatic stresses are clearly important
+  during the first few years after fragmentation", and "Mortality from microclimatic
+  stress may also decline over time because drought-sensitive trees near edges either die
+  or become physiologically acclimated." **Mesquita, Delamônica & Laurance 1999**
+  (**PRIMARY**, Biol. Conserv. 91; read): the *distance* half — regressions of annualised
+  mortality on edge distance in the first 5–6 years after isolation, differences
+  "greatest within 0–20 m of fragment edges", penetration "further into pasture-bordered
+  edges (ca. 60–100 m)" than regrowth-bordered ones (ca. 40–60 m). Distance and time are
+  in the same literature, never as one fitted surface.
+- Not found (searched explicitly): any paper fitting a parametric hazard `h(τ)` to ≥ 3
+  post-disturbance time points, for fire, edge creation, windthrow or root damage; a
+  Cox model with time-since-exposure decay in a forestry application; the "Shearman"
+  anchor the search was given — no such paper located, likely misremembered. Laurance
+  1998 (*Ecology*) not in the archive.
+
+**What this buys.** The shape family is now sourced and it is *not* a single decay: a
+component that starts high and falls (`e^{−τ/k}` type — microclimatic / immediate loss
+after the disturbance, the "drought-sensitive individuals die immediately") and a
+component that rises with edge age (wind exposure of a closing edge). For a building
+permit the analogue is immediate clearing plus later removals as the site matures; the
+urban-forestry windows (4–8 y) and Conway's 2–3-year replanting sit inside that. Framework
+§14.6 writes the two-term `D_k` and keeps it [S]: the family is quoted, the coefficients
+are fit.
+
+#### 4.15.2 The blur prior — GIS theory has the radial law; the point-inside probability is bounded, not closed
+
+- **Leung & Yan 1997** (**PRIMARY**, GeoInformatica 1(1); read at §2.2 and Case 3). The
+  locational error model: a point with error is circular normal (their eq. 16), so the
+  probability it lies within radius `r` of its nominal position is `1 − exp(−r²/2σ²)`
+  (eq. 17); for a polygon, "the probability that the boundary of A* locating within the
+  r-band of L_A is" the same Rayleigh law (eq. 21). For the point-in-random-polygon query
+  (Case 3) they give bounds — the point is inside "with probability 1 − Prob(A* ⊂ R(a,b))
+  at the most" (eqs. 24–25) — and are candid that computing it "is not an easy task".
+  So GIS theory supplies the *radial law of the boundary offset* from the error σ, not
+  the blurred indicator itself.
+- **Chrisman 1982** (**PRIMARY** on the searcher's read; Auto-Carto 5, no DOI; filed):
+  the epsilon band is deterministic (all points within ε), with the rule that
+  independent error sources combine by variance addition — the origin, not the
+  probabilistic form. **Goodchild & Hunter 1997** (IJGIS 11(3); **PRIMARY** on the
+  searcher's visual read of a scan with no text layer): the buffer-proportion measure
+  `p(x)` for lines — the 1-D analogue of a blurred indicator.
+- **Townshend, Justice, Gurney & McManus 1992** (**PRIMARY**, IEEE TGRS 30(5); read at
+  abstract and method). The founding misregistration simulation: for four of seven areas
+  "registration accuracies of 0.2 pixels or less are required" for 10 % error, while in
+  semi-arid areas "0.5 and 1.0 pixel were sufficient to achieve an error of 10% or less" —
+  the sensitivity depends on spatial structure, as Dai & Khorram later formalised via
+  the ACF. **Verbyla & Boles 2000** (**PRIMARY**, IJRS 21(18); read at abstract): random
+  positional error applied to identical classified images then differenced — "False land
+  cover change ranged from less than 5% for a 5-class AVHRR classification, to more than
+  33% for a 20-class Landsat TM classification", and "the potential for false change was
+  higher with more classes"; a bootstrap estimator of the false change, "unbiased" but
+  low-precision. **Salas, Boles, Frolking, Xiao & Li 2003** (IJRS 24(4);
+  doi:10.1080/0143116021000044841) — **METADATA**, not in the archive: title states the
+  perimeter/area ratio as the index of misregistration bias — the same quantity as
+  framework §14.5's `ρ_P`, published as an empirical index. The one paper in this vein
+  still worth obtaining.
+- Closed and absent from the archive: Shi 1998 (G-band), Leung & Yan 1998, Shi & Liu
+  2000, Leung, Ma & Goodchild 2004 parts 1–4, Roy 2000, Stow 1999 — all **METADATA**.
+  Perkal 1966 and Dutton 1992 have no DOI.
+
+**What this buys.** For a boundary with circular-normal positional error `σ`, the signed
+distance `d` from a cell to the nominal footprint edge gives the inside-probability
+`Φ(d/σ)` in the locally-straight case — the framework's one-line [D] (§14.7), with Leung
+& Yan's radial law as its [Q] anchor and `σ` from `coregistration.csv`. It is the same
+object as Girard's Gaussian-random-field offset (§4.14.3) written as a closed form, and
+the same `σ` that sets the edge band of §14.5. The published *prior* still does not
+exist; the pieces it is assembled from now all do.
+
+**Negatives, round 6:** no fitted post-disturbance hazard curve in disturbance ecology
+(PRIMARY: Hood's review says models are binary); no exact point-in-random-polygon
+probability in GIS theory (PRIMARY: Leung & Yan bound it and say so); Salas 2003, Shi
+1998, the Leung–Ma–Goodchild series, Laurance 1998 *Ecology* closed and absent from the
+archive; Barker 2022 behind MDPI.
+
 ---
 
 ## 5. What the literature does not have
@@ -1659,8 +1762,18 @@ number, never instead of it. Adopt it from the first run rather than retrofittin
   images — plus re-reads of Hilbert, Hauer, Hughes–Guttorp and the newly filed Efron
   2021), 7 searcher-read PRIMARY, 6 ABSTRACT, 10 METADATA, 1 filed-unread (Burnicki
   2011); findings in §4.14. Efron 2004's assumption statement was closed from his own
-  2021 restatement (author's page). Still unobtained and worth a library request: Dai &
-  Khorram 1998, Takada et al. 2010, Steenberg et al. 2017, Guo et al. 2018, Besag 1974.
+  2021 restatement (author's page). Still unobtained and worth a library request: Takada
+  et al. 2010, Steenberg et al. 2017, Guo et al. 2018, Besag 1974 (Dai & Khorram 1998
+  was located by Kam the same day).
+- **Round 6 (2026-09-12) went to two fields none of the earlier rounds had touched,**
+  because they were the only places the two unmoved items could live: disturbance
+  ecology / forest biometrics for a post-disturbance hazard shape, and GIS
+  positional-uncertainty theory for a boundary-error-to-probability construction. Two
+  Sonnet searchers on open routes, Sci-Hub by DOI for the closed remainder (standing rule
+  from Kam). The round-6 bibliography block holds 14 entries (counted): 8 reviewer-read
+  PRIMARY, 2 searcher-read PRIMARY, 1 ABSTRACT, 3 METADATA lines carrying 13 works.
+  Findings in §4.15. Still worth a library request from this round: Salas et
+  al. 2003 (the perimeter/area index), Shi 1998, Leung, Ma & Goodchild 2004.
 - **Not searched:** §6.4 (which training lever first) is a cost/sequencing decision no
   literature settles; the material for it is in §4.6. §6.2 and §6.3 *were* searched in
   round 2 and are answered in §4.10.
@@ -1898,6 +2011,27 @@ All filed PDFs under `D:\edmonds-pipeline\Literture\Validation\`.
 - Parisot, Wells, Chemouny, Duffau & Paragios (2013). Uncertainty-Driven Efficiently-Sampled Sparse Graphical Models for Concurrent Tumor Segmentation and Atlas Registration. *ICCV 2013*. doi:10.1109/iccv.2013.85 — **PRIMARY**, searcher-read. Filed `Parisot_2013_UncertaintyDrivenTumorSegAtlasRegistration`.
 - Dai & Khorram (1998). The Effects of Image Misregistration on the Accuracy of Remotely Sensed Change Detection. *IEEE Trans. Geosci. Remote Sensing* 36(5):1566–1577. doi:10.1109/36.718860 — **PRIMARY**, reviewer-read (§III–IV, Fig. 8 discussion, conclusions). Filed `DaiKhorram_1998_TGRS_misregistration_change_detection` (archive copy located by Kam). *Not to be confused with* Dai & Khorram (1998), A hierarchical methodology framework for multisource data fusion in vegetation classification, *Int. J. Remote Sensing* 19(18):3697–3701, doi:10.1080/014311698213911 — filed `DaiKhorram_1998_IJRS_hierarchical_fusion_letter_NOT_the_misregistration_paper`, not cited.
 - Risholm et al. (2011). *ISBI*. doi:10.1109/isbi.2011.5872467 — **METADATA** (PMC copy not served).
+
+### Adjacent-field theory (round 6, 2026-09-12; §4.15)
+Grades and labels as in rounds 4–5. Filed under `D:\edmonds-pipeline\Literture\Validation\`.
+
+*§4.15.1 — post-disturbance hazard shape*
+- Hood, Varner, van Mantgem & Cansler (2018). Fire and tree death: understanding and improving modeling of fire-induced tree mortality. *Environ. Res. Lett.* 13:113004. doi:10.1088/1748-9326/aae934 — **PRIMARY**, reviewer-read. Filed `Hood_2018_FireAndTreeDeath_ERL`.
+- Reilly, Zuspan & Yang (2023). Characterizing postfire delayed tree mortality with remote sensing: sizing up the elephant in the room. *Fire Ecology* 19:64. doi:10.1186/s42408-023-00223-1 — **PRIMARY**, reviewer-read. Filed `Reilly_2023_PostfireDelayedMortality_RemoteSensing`.
+- Barker, Gray & Fried (2022). The Effects of Crown Scorch on Post-fire Delayed Mortality Are Modified by Drought Exposure in California (USA). *Fire* 5(1):21. doi:10.3390/fire5010021 — **ABSTRACT** (MDPI 403).
+- Laurance, Camargo, Luizão et al. (2011). The fate of Amazonian forest fragments: A 32-year investigation. *Biol. Conserv.* 144(1):56–67. doi:10.1016/j.biocon.2010.09.021 — **PRIMARY**, reviewer-read (edge-effects section). Filed `Laurance_2011_Amazon_fragments_32yr`.
+- D'Angelo, Andrade, Laurance, Fearnside & Laurance (2004). Inferred causes of tree mortality in fragmented and intact Amazonian forests. *J. Trop. Ecol.* 20. doi:10.1017/s0266467403001032 — **PRIMARY**, reviewer-read. Filed `DAngelo_2004_tree_mortality_causes_fragments`.
+- Mesquita, Delamônica & Laurance (1999). Effect of surrounding vegetation on edge-related tree mortality in Amazonian forest fragments. *Biol. Conserv.* 91(2–3):129–134. doi:10.1016/s0006-3207(99)00086-5 — **PRIMARY**, reviewer-read. Filed `Mesquita_1999_edge_mortality_fragments`.
+- Laurance et al. (1998). Rain forest fragmentation and the dynamics of Amazonian tree communities. *Ecology* 79 — **METADATA** (not in archive).
+
+*§4.15.2 — positional uncertainty and misregistration*
+- Leung & Yan (1997). Point-in-Polygon Analysis Under Certainty and Uncertainty. *GeoInformatica* 1. doi:10.1023/A:1009764319102 — **PRIMARY**, reviewer-read (§2.2, Case 3). Filed `LeungYan_1997_point_in_polygon_uncertainty`.
+- Chrisman (1982). A theory of cartographic error and its measurement in digital data bases. *Proc. Auto-Carto 5*:159–168 (no DOI) — **PRIMARY**, searcher-read. Filed `Chrisman_1982_epsilon_band_cartographic_error`.
+- Goodchild & Hunter (1997). A simple positional accuracy measure for linear features. *Int. J. GIS* 11(3):299–306. doi:10.1080/136588197242419 — **PRIMARY**, searcher-read (scan, no text layer; visual). Filed `GoodchildHunter_1997_positional_accuracy_linear_features`.
+- Townshend, Justice, Gurney & McManus (1992). The impact of misregistration on change detection. *IEEE Trans. Geosci. Remote Sensing* 30(5):1054–1060. doi:10.1109/36.175340 — **PRIMARY**, reviewer-read. Filed `Townshend_1992_misregistration_change_detection`.
+- Verbyla & Boles (2000). Bias in land cover change estimates due to misregistration. *Int. J. Remote Sensing* 21(18):3553–3560. doi:10.1080/014311600750037570 — **PRIMARY**, reviewer-read. Filed `VerbylaBoles_2000_misregistration_bias`.
+- Salas, Boles, Frolking, Xiao & Li (2003). The perimeter/area ratio as an index of misregistration bias in land cover change estimates. *Int. J. Remote Sensing* 24(4). doi:10.1080/0143116021000044841 — **METADATA** (not in archive).
+- Shi (1998). A generic statistical approach for modelling error of geometric features in GIS. *Int. J. GIS* 12(2):131–143. doi:10.1080/136588198241923 — **METADATA**. Leung & Yan (1998). *Int. J. GIS* 12(4). doi:10.1080/136588198241699 — **METADATA**. Shi & Liu (2000). *Int. J. GIS* 14(1). doi:10.1080/136588100240958 — **METADATA**. Leung, Ma & Goodchild (2004). A general framework for error analysis in measurement-based GIS, Parts 1–4. *J. Geogr. Syst.* 6(4). doi:10.1007/s10109-004-0140-5, -0142-3, -0143-2, -0144-1 — **METADATA**. Roy (2000). *IEEE TGRS* 38(4). doi:10.1109/36.851783 — **METADATA**. Stow (1999). *Int. J. Remote Sensing* 20(12). doi:10.1080/014311699212137 — **METADATA**. Sundaresan, Varshney & Arora (2007). *PE&RS* 73(4). doi:10.14358/pers.73.4.375 — **METADATA** (OA flagged, not served).
 
 ### Held locally (`D:\edmonds-pipeline\Literture\`), read directly from PDF
 - Li, B., Liu, X., Zhuang, H., Shi, Q., Zeng, L., Cai, Y., Zhang, H., Cai, Y., Wu, C. & Xu, X. (2026). ALCC: Temporally Consistent Annual Land Cover Maps over China from 1985 to 2022 Based on an Ensemble Change Detection Method. *J. Remote Sens.* 6:1029. doi:10.34133/remotesensing.1029 — **PRIMARY** (local PDF; record and OA figures independently re-verified in round 2)

@@ -479,12 +479,20 @@ one GPU-shaped cost, or permutohedral on CPU. Nothing here needs training.
 | 12 | The `r`-convention translation of every [S] above | everything | one reader re-derives §2.1–§2.2 from the papers with `r` = recall | — | **[S] unchecked** |
 | 13 | Band-stratified emissions `(r_{t,b}, f_{t,b})` — is a scalar per epoch misspecified? | every rate above; the order of rows 1–2 | re-run the PACC band profile (MASTER §3a, "re-run before any number is cited") on the twelve tags | a scalar-rate chain scored on the 0–2 m band must show the bias; if it does not, banding is dropped | **[D] motivated by a pilot; unmeasured** |
 | 14 | Erosion radius tied to the coregistration bound; does it admit the 0–2 m band? | §12.1; `f_{t,0–2}` | read p95 from `coregistration.csv` per SCHEMAS; compare with 2 m | — | **measurement; data on hand** |
+| 16 | **Hidden state**: rows 1 and 3 are one estimator — the published space-time autologistic fit (§17.10) assumes the binary state is observed; ours is latent behind a year-specific emission | the layer as a whole; rows 1, 3, 11a | §18.1: latent-state MCML/EM on the yearly grid with `𝒞` as the anchored subset; identifiability from the certified fraction | on a synthetic hidden field the fit must recover emission and chain separately; with `𝒞` removed it must FAIL to (non-identifiable) | **[D] open — round 10 search: hidden multi-state models with misclassification** |
+| 17 | **Irregular intervals with misclassification**: continuous-time generator `Q` observed at irregular dates through an emission matrix | rows 3, 11a, 15 | §18.2: the multi-state panel-data framework (Kalbfleisch & Lawless; Jackson's msm) for the temporal part; spatial coupling added per §3 | interval-censored synthetic chain: `exp(QΔt)` fit must match the yearly root of §15.2 where both apply | **[D] → round 10 search** |
+| 18 | **Transition-rate attenuation under misclassification**: rates from observed states are biased toward change; magnitude on our strata unknown | 11a, 11b, 15 | §18.2: the misclassification correction inside row 17's framework; or the two-state bias formula on the certified populations | inject known emission error into a synthetic chain; corrected rates must recover the truth, raw rates must not | **[D] → round 10 search** |
+| 19 | **Kernel as a distributed-lag GLM**: `D_k(τ)·R(d)` under a complementary-log-log link is a lag–distance surface in a regression, not an EM | row 9; §17.4 | §18.3: distributed lag non-linear model (cross-basis in `(τ, d)`, penalised) on certified losses vs dated developments | one-term vs two-term vs surface by held-out log-likelihood; a null (shuffled dates) surface must be flat | **[D] → round 10 search** |
+| 20 | **CUSUM under dependence and multiplicity**: the exact run length (§17.10) assumes independent Bernoulli increments; the chain says they are dependent; one chart per cell across millions of cells | row 2; §12.3 | §18.4: chart the chain's residuals, not the states; per-cell `α` set by a false-discovery rule over the cell population | null residual sequences at the fitted dependence must alarm at the stated rate; raw-state charts must alarm above it | **[D] → round 10 search** |
+| 21 | **Coupling vs resolution**: one `β` cannot serve 8–80 cm effective pixels | row 3; §5.1 strata | fit `β` per resolution stratum; report the trend against `effective_cm` | `β` pooled vs per-stratum: the pooled fit must lose held-out likelihood on the coarse strata | **[D] — measurement** |
+| 22 | **Target erasure radius**: three laws (§16.2), no target — what must survive is unstated | row 4; the smoother decision (§9) | size distribution of the 2020 crown polygons (smallest real removal) vs residual blob sizes; choose `R_erase` between them | injected discs at the chosen radius: real-size survive, blob-size erased | **[D] — measurement, data on hand** |
+| 23 | **Registration in the chain**: the edge-band rate (§17.1) is known; the chain has no term that down-weights edge cells at a poorly registered epoch | rows 10, 14; §2.3 emission | §18.5: an emission covariate `dist_to_boundary × |s_t|` (or the Stow compensation, §16.3) | self-shift test (§14.5): with the covariate the false-change rate at edges must fall to the isotropic residual; without it must not | **[D] — design, then the §14.5 kill** |
 
 **Bins and checks, the 3.4c ledger.** Every [S] in this document (§1 convention, §2.1
 increments, §2.2 substitutions and worked instance, §2.4 the `γ = 0` analogue, §3.3 the
 contrast translation, §5.1 the strata, §7.1 the lattice map, §7.2 the conservative rule)
 and every [D] (§2.1 sensitivity, §2.2 the join, §2.3 the verdict, §2.4 `k_½`, §3.1–3.4,
-§4, §5.2–5.4, §6, §7.2 `φ`, §8, §11, and all of §12–§17 — added 2026-09-12, after this
+§4, §5.2–5.4, §6, §7.2 `φ`, §8, §11, and all of §12–§18 — added 2026-09-12, after this
 ledger, which is why they sit below it) is unvalidated. The independent check for each is the
 row above that names it, run by someone other than this document's author, on real data,
 with the kill shown to fire first. A design accepted on numbers it produced about itself is
@@ -1435,3 +1443,99 @@ Ledger deltas from the addendum:
 
 Unobtained after the browser pass: Steiner et al. 2000 and Conley 1999. Neither moves a
 grade. §17.9's list is superseded by this section.
+
+## 18. Second-order gaps — what the round-9 results make visible (2026-09-12)
+
+Rows 16–23 of the ledger. Rule for this section: each gap is stated as "given a result we
+now hold, this question is exposed"; nothing here is a finding. Row 15 (the stationarity
+test) lives in §14.1 and is not renumbered.
+
+### 18.1 Row 16 — the state is hidden; rows 1 and 3 are one estimator
+
+Zhu, Zheng, Carroll & Aukema 2008 (§17.10) fit `p(Y_t | Y_{t−1}, …)` to a binary field that
+is *observed*. Ours is not: the canopy state `z_{i,t}` is latent, and the observation is
+`x_{i,t}`, a model prediction whose error is year-, band- and month-specific (§2.3, row
+1). The layer is therefore a hidden space-time Markov random field:
+`p(z_t | z_{t−1}) · Π_i e_t(x_{i,t} | z_{i,t})`, with the autologistic conditional for the
+first factor and the emission of row 1 for the second. Three things follow. (i) Rows 1
+and 3 cannot be fitted separately: the emission decides how much of `x_t ≠ x_{t−1}` is
+change and how much is error, and the chain decides how much change is plausible;
+neither is identified alone. (ii) With only 2020 labelled, identifiability comes from
+the certified populations `𝒞` and LOSS (11b): cells whose state is known at some epochs
+pin the emission there, and the chain transports it. How large a certified fraction is
+enough is unknown. (iii) The published MCML has no latent layer; the applied precedents
+that do (Liu et al. 2008; Melgani & Serpico 2003; Abercrombie & Friedl 2016) use
+class-conditional emissions from a classifier and fit by EM or ICM on equal intervals.
+**Route [D]:** EM on the yearly grid — E-step by Gibbs sampling over `z` given `x` and the
+current chain and emission; M-step = the 2008 MCML for the chain plus the row-1 emission
+fit on `𝒞`. **Kill:** on a synthetic hidden field the two must be recovered separately;
+with `𝒞` removed, the fit must fail to separate them — a fit that "works" without any
+anchored cell is fitting the emission to itself.
+
+### 18.2 Rows 17–18 — irregular intervals and misclassification have a published home
+
+The archive observes each cell at irregular dates (36 acquisitions over 20 years,
+`qc/imagery_pixelsize_and_date.csv`) through a misclassifying observer. That is the
+panel-data multi-state model of medical statistics: a continuous-time chain with
+generator `Q`, transition matrix `exp(QΔt)` for any spacing, and an emission
+(misclassification) matrix, fitted by maximum likelihood (Kalbfleisch & Lawless 1985;
+Jackson's msm). If it holds as described, it replaces two [D] pieces at once: the yearly
+grid of §17.3/§17.10 (row 17) and the untreated bias of rates estimated from
+misclassified states (row 18 — misclassification makes a persistent state look like it
+flips, so raw persistence is under-estimated and the lidar-anchored rates of 11a carry
+that bias until corrected). The spatial coupling is not in that framework; §3 adds it.
+**Kill for row 17:** on an interval-censored synthetic chain, the `exp(QΔt)` fit must agree
+with §15.2's yearly root wherever both apply. **Kill for row 18:** inject a known emission
+error; corrected rates must recover the truth, raw rates must not.
+
+### 18.3 Row 19 — the development kernel is a distributed-lag regression
+
+Write the per-cell loss hazard as `h_{i,t} = 1 − exp(−(μ + Σ_{dev} g(τ, d)))`, i.e. a
+complementary-log-log link on background plus the summed kernel. Then the
+piecewise-constant kernel of §17.4/§17.10 is a set of dummy covariates (one per `(τ, d)`
+bin) in a generalised linear model, and the EM of Marsan & Lengliné is one way to fit
+what a GLM fits directly — with a smooth, penalised lag–distance surface and confidence
+bands as standard output. Epidemiology has this as the distributed lag non-linear model
+(cross-basis in lag and dose). It subsumes §14.6's two-term family (a parametric
+cross-basis) and §17.4's histogram (a step-function cross-basis) as special cases, so the
+one-vs-two-term test becomes a nested comparison inside one framework. **Kill:** a null
+surface fitted to shuffled development dates must be flat.
+
+### 18.4 Row 20 — the CUSUM's two hidden assumptions
+
+The exact run length of §17.10 is for independent Bernoulli increments. Two violations.
+(i) *Dependence:* a cell's states are the chain of §2; charting them raw inflates false
+alarms. The remedy in process control is to chart the *residuals* of the fitted model,
+here `x_{i,t} − p̂(x_{i,t} | past)`; the chart then tests the chain, which is what a
+"change the chain did not predict" means. (ii) *Multiplicity:* one chart per cell across
+millions of cells means the per-cell `α` must be set against the population — a
+false-discovery rule over alarms, or a per-population run-length target, not a per-cell
+one. §12.3 states neither. **Kill:** null residual sequences simulated at the fitted
+dependence must alarm at the stated rate; raw-state charts on the same sequences must
+alarm above it.
+
+### 18.5 Rows 21–23 — three measurements the results now demand
+
+- **Row 21, coupling vs resolution.** The strength of a lattice coupling is not invariant
+  under coarse-graining; 8 cm and 80 cm pixels do not share a `β`. Fit per resolution
+  stratum (§5.1) and report the trend; the pooled fit must lose held-out likelihood on
+  the coarse strata or the row closes as "invariant on our range".
+- **Row 22, the target radius.** Three erasure laws (§16.2) and no target. The smallest
+  real removal worth preserving is a quantile of the 2020 crown-polygon size distribution
+  (CLAUDE.md §1: 222,435 crowns); the largest noise blob is a quantile of the residual
+  blob-size distribution on `ℱ`. `R_erase` sits between them or the smoother cannot do
+  its job at any weight — that is the decision input §9 is waiting on.
+- **Row 23, registration in the chain.** The edge-band rate says how much false change a
+  shift `s_t` makes and where (the boundary band). The chain has no term for it. The
+  candidate is an emission covariate `dist_to_boundary × |s_t|` per epoch, or Stow's
+  gradient compensation (§16.3) applied before the emission. The §14.5 self-shift test is
+  the kill: with the term, the edge false-change rate must fall to the isotropic residual.
+
+### 18.6 What round 10 searches, and what it cannot find
+
+Four Sonnet searchers, launched with this section: hidden multi-state models with
+misclassification at irregular times (rows 16–18); distributed lag non-linear models and
+discrete-time self-exciting GLMs (row 19); process control under autocorrelation and
+many parallel charts (row 20); unsupervised estimation of classifier accuracy from
+agreement and a verified subset (row 16's identifiability — Dawid–Skene, Hui–Walter,
+verification-bias designs). Rows 21–23 are measurements; no paper closes them.

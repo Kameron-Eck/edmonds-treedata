@@ -1119,10 +1119,18 @@ search-derived.** Two things survive it, and they are the substitution:
   no erasure result for mean-field CRF inference**, and the search found none elsewhere.
   This is a confirmed negative: if the spatial layer is mean-field, its erasure radius can
   only be measured (injected discs on real rasters, framework row 4), never derived.
+- **Gallagher & Wise 1981** (**PRIMARY**, IEEE Trans. ASSP 29(6); fetched after the
+  search, read in full text). Theorem I: for a `2N + 1` window, "a necessary and
+  sufficient condition for the signal to be invariant under median filtering" is that the
+  extended signal consist only of constant neighbourhoods and edges, where "a constant
+  neighborhood is at least N + 1 consecutive identically valued points" and an impulse is
+  "at least one, but no more than N points" between constant neighbourhoods. So the 1-D
+  median's erasure length is exact: **runs of `≤ N` samples are erased, runs of `≥ N + 1`
+  survive.** The 2-D extension is not in this paper.
 - Morphology proper — **Vincent 1993** (area opening removes components below area `λ`
-  exactly), **Gallagher & Wise 1981** (median root signals), **Maragos 1989** (pattern
-  spectrum) — all **METADATA**: no OA copy located; the results are textbook but not
-  verified here at quote level.
+  exactly), **Maragos 1989** (pattern spectrum) — **METADATA**: no OA copy located and
+  not in the Sci-Hub archive; the results are textbook but not verified here at quote
+  level.
 
 **Substitution (the review's):** a removed tree is a *hole* — a disc of 0 in a 1-field —
 and the TV-L1 functional on binary data is symmetric under `u → 1 − u`, so the `2/λ` rule
@@ -1130,7 +1138,7 @@ applies to holes as to discs. Choosing TV-L1 (or, equivalently by Duval, an area
 makes framework row 4 a closed form and ties row 8: the conservative-mask fraction can be
 set from the opening radius rather than by hand.
 
-#### 4.13.3 Rows 9–10 — fitting the priors' free parameters: a protocol exists, the forms do not
+#### 4.13.3 Rows 9–10 — fitting the priors' free parameters: the multiplicative form and the fitting protocol are published; the covariate and its time decay are ours
 
 - **Baddeley & Turner 2005** (**PRIMARY**, J. Stat. Software 12(6)). Two lines carry the
   answer. Models "are currently fitted by the method of maximum pseudolikelihood, using a
@@ -1152,16 +1160,27 @@ set from the opening radius rather than by hand.
   Arboriculture & Urban Forestry 20(2)).
   Empirical association of street-tree decline with construction damage by exposure
   category; no fitted hazard, no time decay. Evidence that `A > 0`, not a form for it.
-- **Hughes, Guttorp & Charles 1999** (J. R. Stat. Soc. C 48(1); **ABSTRACT** — OA at OUP
-  but behind a bot challenge). Non-homogeneous HMM with covariate-dependent transition
-  probabilities fitted by EM: the structural template for making `q_loss(i, t)` a function
-  of a dated covariate inside the chain, rather than a multiplier bolted on outside it.
+- **Hughes, Guttorp & Charles 1999** (**PRIMARY**, J. R. Stat. Soc. C 48(1); fetched
+  after the OA copy's bot wall, read in full text). The transition is parameterised by
+  first rewriting it "as a base-line transition matrix and a multiplicative function of
+  the covariates", with an exponential term that "quantifies the effect of the atmospheric
+  data"; the whole is fitted by EM. **This is the form of the brief's development prior —
+  `q_loss · exp(·)` — published, inside an HMM, with its estimator.** What is ours is only
+  the covariate (distance to a dated footprint × time since); the multiplicative
+  non-homogeneous structure is not novel and should be cited as theirs.
 - **Warfield, Zou & Wells 2004** (STAPLE; **ABSTRACT** — PMC copy behind a proof-of-work
   challenge). Rater-reliability estimation, not a spatial blur; the nearest analogue for
   row 10 and not the thing itself.
-- **Verburg et al. 2004** (enrichment factor; **ABSTRACT** — WUR repository page
-  JS-gated). The neighbourhood-enrichment statistic is the closest published precedent for
-  `K_R(d)`; the paper was not read.
+- **Verburg, de Nijs, Ritsema van Eck, Visser & de Jong 2004** (**PRIMARY**, Comput.
+  Environ. Urban Syst. 28(6); full text read after the search; earlier this round it was
+  abstract-only). The enrichment factor `F` is a ratio: the share of a land-use type in a
+  location's neighbourhood "relative to the occurrence of this land use type in the study
+  area as a whole" (1 = no enrichment), over square neighbourhoods of radius `d` (5×5 at
+  `d = 2` up to 9×9 at `d = 4`), averaged per land-use type. Their finding: land-use
+  conversions can "be explained, for a large part, by the occurrence of land uses in the
+  neighbourhood." This is the brief's "enrichment count" (§4.2) with a published
+  definition and radius protocol: compute `F` for the dated-footprint class at each `d`;
+  the `d` at which `F` for subsequent canopy loss returns to 1 is the empirical `R`.
 - A 2022 *Forests* paper on construction-led tree removals on a college campus surfaced
   (doi:10.3390/f13060871; MDPI 403) — **METADATA**, direct evidence class for `A`.
 
@@ -1398,15 +1417,16 @@ number, never instead of it. Adopt it from the first run rather than retrofittin
   outside remote sensing:** Stein/SURE theory and blind-spot denoising for the penalty
   under correlated error; geometric measure theory of TV-L1 and mathematical morphology for
   the erasure radius; spatial point processes, survival analysis and urban-forestry
-  mortality for the priors' free parameters. 22 works surfaced; 10 read by this reviewer
+  mortality for the priors' free parameters. 22 works surfaced; 13 read by this reviewer
   at the load-bearing passage (two as JSTOR page images), 3 graded PRIMARY on the
-  searcher's full-text read only and marked so, 4 ABSTRACT, 6 METADATA, 1 UNREADABLE;
-  findings in §4.13. Sonnet searched, open-access routes only; Fable read. Not pulled: Steenberg et
-  al. 2017 (permitting data, named by Hilbert), Allard 2007, Efron 2004's own assumption
-  statement (no OA copy on disk), and three OA papers behind bot challenges (Hughes &
-  Guttorp 1999, STAPLE 2004, Verburg 2004). Sci-Hub was authorised by Kam for the
-  closed-access remainder and blocked by the session's permission classifier; nothing was
-  fetched that way.
+  searcher's full-text read only and marked so, 2 ABSTRACT, 4 METADATA, 1 UNREADABLE;
+  findings in §4.13. Sonnet searched on open-access routes; Fable read. After the OA pass
+  Kam authorised Sci-Hub (legal in his jurisdiction) for the remainder: it held three of
+  the ten targets (Hughes & Guttorp 1999, Verburg 2004, Gallagher & Wise 1981 — all read
+  and upgraded to PRIMARY) and not the other seven (Efron 2004, Roberts 2017, Conley 1999,
+  StructN2V 2020, STAPLE 2004, Bellettini et al. 2002, Allard 2007). Still not pulled:
+  Steenberg et al. 2017 (permitting data, named by Hilbert) and Efron 2004's own
+  assumption statement.
 - **Not searched:** §6.4 (which training lever first) is a cost/sequencing decision no
   literature settles; the material for it is in §4.6. §6.2 and §6.3 *were* searched in
   round 2 and are answered in §4.10.
@@ -1589,16 +1609,16 @@ full-text read supports the grade.
 - Kolmogorov & Boykov (2005). What Metrics Can Be Approximated by Geo-Cuts, or Global Optimization of Length/Area and Flux. *ICCV 2005* — **PRIMARY**, searcher-read (negative: no closed-form flip threshold). Filed `KolmogorovBoykov_2005_geocuts`.
 - Krähenbühl & Koltun (2011) — **PRIMARY** (round 3); re-filed `KrahenbuhlKoltun_2011_meanfield_CRF`; searcher grep for an erasure result: none.
 - Vincent (1993). Grayscale area openings and closings, their efficient implementation and applications. *Proc. Mathematical Morphology and its Applications to Signal Processing* — **METADATA**.
-- Gallagher & Wise (1981). [median-filter root signals; title not captured] — **METADATA**.
+- Gallagher & Wise (1981). A theoretical analysis of the properties of median filters. *IEEE Trans. Acoustics, Speech, and Signal Processing* 29(6). doi:10.1109/TASSP.1981.1163708 — **PRIMARY**, reviewer-read (Theorem I and definitions). Filed `GallagherWise_1981_median_root_signals` (Sci-Hub).
 - Maragos (1989). [pattern spectrum; title not captured] — **METADATA**.
 
 *Rows 9–10 — priors' free parameters (§4.13.3)*
 - Baddeley & Turner (2005). spatstat: An R Package for Analyzing Spatial Point Patterns. *J. Stat. Software* 12(6). doi:10.18637/jss.v012.i06 — **PRIMARY**, reviewer-read (fitting method; canonical vs irregular parameters). Filed `BaddeleyTurner_2005_spatstat_JSS`.
 - Hilbert, Roman et al. (2019). Urban Tree Mortality: A Literature Review. *Arboriculture & Urban Forestry* 45(5):167–200. doi:10.48044/jauf.2019.015 — **PRIMARY**, reviewer-read (the permitting-data sentence). Filed `Hilbert_2019_UrbanTreeMortalityReview`.
 - Hauer, Miller & Ouimet (1994). Street Tree Decline and Construction Damage. *J. Arboriculture* 20(2):94–97 — **PRIMARY**, searcher-read. Filed `Hauer_1994_StreetTreeDeclineConstructionDamage`.
-- Hughes, Guttorp & Charles (1999). A Non-Homogeneous Hidden Markov Model for Precipitation Occurrence. *J. R. Stat. Soc. C* 48(1):15–30 — **ABSTRACT** (OA at OUP, bot-challenged).
+- Hughes, Guttorp & Charles (1999). A Non-Homogeneous Hidden Markov Model for Precipitation Occurrence. *J. R. Stat. Soc. C* 48(1):15–30. doi:10.1111/1467-9876.00136 — **PRIMARY**, reviewer-read (transition parameterisation). Filed `HughesGuttorpCharles_1999_NHMM`.
 - Warfield, Zou & Wells (2004). Simultaneous Truth and Performance Level Estimation (STAPLE). *IEEE Trans. Med. Imaging* 23(7):903–921 — **ABSTRACT** (PMC1283110, proof-of-work gated).
-- Verburg, de Nijs, Ritsema van Eck, Visser & de Jong (2004). A method to analyse neighbourhood characteristics of land use patterns. *Comput. Environ. Urban Syst.* 28(6):667–690 — **ABSTRACT** (WUR repository JS-gated).
+- Verburg, de Nijs, Ritsema van Eck, Visser & de Jong (2004). A method to analyse neighbourhood characteristics of land use patterns. *Comput. Environ. Urban Syst.* 28(6):667–690. doi:10.1016/j.compenvurbsys.2003.07.001 — **PRIMARY**, reviewer-read (§2.1, the enrichment-factor definition). Filed `Verburg_2004_enrichment_factor`.
 - Steenberg et al. (2017) — **METADATA** (named by Hilbert et al. 2019 for permitting data; not located by title).
 - [authors not captured] (2022). Construction and Proactive Management Led to Tree Removals on an Urban College Campus. *Forests* 13(6):871. doi:10.3390/f13060871 — **METADATA** (MDPI 403).
 - Zucchini, MacDonald & Langrock. *Hidden Markov Models for Time Series* (CRC) — **METADATA** (book).

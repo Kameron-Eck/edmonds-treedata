@@ -829,9 +829,20 @@ cleaner home for the same thing: put the covariate in the transition matrix and 
 so that `A, R, k` are estimated jointly with the chain rather than bolted on. Row 10 is
 unchanged: the only principled blur radius is the coregistration bound (row 14).
 
-**What remains.** The forms `K_R`, `D_k` themselves are still ours to choose (Verburg's
-enrichment factor is the nearest published precedent and was not read); the fit needs the
-LOSS population and the permit dates; the kill is unchanged (row 9).
+**Revised after the Sci-Hub pass (same day).** Two of the "not found" forms are found.
+(i) The *multiplicative* structure `q_loss · exp(covariate term)` inside an HMM is
+Hughes, Guttorp & Charles 1999's non-homogeneous transition — "a base-line transition
+matrix and a multiplicative function of the covariates", EM-fitted (review §4.13.3,
+PRIMARY). §6.1's form is theirs; only the covariate `K_R(d)·D_k(τ)` is ours. (ii) The
+radius `R` has an empirical protocol: Verburg et al. 2004's enrichment factor `F` (share of
+a class in a radius-`d` neighbourhood over its study-area share; `F = 1` is no enrichment)
+computed for later canopy loss around dated footprints at increasing `d`; the `d` at which
+`F` returns to 1 is `R`, read off the data before any fit. (iii) For a 1-D median, the
+erasure length is exact (Gallagher & Wise 1981 Thm I: runs of `≤ N` erased under a
+`2N + 1` window) — relevant to §7.1 if a median stage is used, not to row 4's 2-D question.
+
+**What remains.** `D_k(τ)`'s form (a decay after the permit date) is still ours; the
+fit needs the LOSS population and the permit dates; the kill is unchanged (row 9).
 
 ### 13.4 Ledger deltas from round 4
 
@@ -840,5 +851,5 @@ LOSS population and the permit dates; the kill is unchanged (row 9).
 | 4 | [S→D] open; injected discs | **closed-form if TV-L1/opening** (`R_erase = 2/λ` [Q→S]); measurement only if mean-field; a smoother choice is now a §9 decision |
 | 6 | OPEN, hardest; none found | **narrowed to two measurements** (spatial + cross-epoch residual correlograms on the strata) under Efron-with-correlated-bootstrap [S] and the widened leave-out `G(t)` [S]; PRIMARY negative on any closed form |
 | 8 | hand-set `φ` | tie to the opening radius `1/λ` (row 4) |
-| 9 | framing unsearched | **fitting protocol found** (canonical/irregular split; profile likelihood; or NHMM-EM) [S]; forms still ours; same data build as 11b |
+| 9 | framing unsearched | **form and fitting protocol found**: multiplicative NHMM transition is Hughes–Guttorp–Charles 1999 [Q]; `R` from Verburg's enrichment factor vs `d` [S]; `A` canonical / `k` irregular (Baddeley & Turner) [S]; only `D_k` still ours; same data build as 11b |
 | 10 | data on hand | no published blur-prior form (negative); radius from row 14 |

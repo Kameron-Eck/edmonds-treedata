@@ -1897,6 +1897,16 @@
             "recall": "0.4331",
             "ref": "ccap_2016_hires_lc.tif",
             "thresh": "0.610236"
+          },
+          "scored_live": {
+            "curve": "",
+            "eval_scope": "",
+            "population": "260770611",
+            "pr_auc": "",
+            "precision": "0.8229",
+            "recall": "0.5242",
+            "ref": "ccap_2021_hires_lc.tif",
+            "thresh": "0.4197"
           }
         }
       },

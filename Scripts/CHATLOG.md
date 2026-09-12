@@ -1229,3 +1229,16 @@ did:     mirror delivered the re-published 2020_in16 raster in 1 min (the first 
          existed on Drive); scored vs both refs; harm_spread 98 rows. Five-year in16
          spread 0.056 / 0.081 vs base 0.140 / 0.154; convergence -0.084 / -0.073; K1/K3/K4
          unchanged. Completion note on the yaml (extra); verdict untouched.
+
+## 2026-09-11  session end: work tree finished for integration
+did:     the two byte-for-byte freshness tests (backbone_benchmark.csv, harm_spread.csv)
+         now compare CRLF-normalised bytes - a fresh Windows checkout (autocrlf=true, no
+         eol= by design) failed them on line terminators alone (flagged by the docs
+         session); the LF-only render property is still asserted separately. Generic
+         ingestion sandbox scripts written on request earlier tonight were removed from
+         the repo root (unrelated to the pipeline). landed.py run for the final registry /
+         harvest / digest refresh. crown_state*_intervals.csv and *_posterior.npz are
+         gitignored (18 MB products), so the docs branch will not see them after merge.
+state:   no runtimes live; no loops or crons; branch work/20260906-healing-tool ready
+         for Kam to push to GitHub and merge into main.
+next:    Kam: push + merge; key/token rotation; fill-audit worksheet; brief section 6.

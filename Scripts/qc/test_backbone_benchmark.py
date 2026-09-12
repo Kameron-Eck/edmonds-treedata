@@ -40,7 +40,12 @@ def test_benchmark_csv_is_fresh():
     bb = _bb()
     p = REPO / "phase4" / "qc" / "backbone_benchmark.csv"
     assert p.exists(), "run: py -3.12 qc/instruments/backbone_benchmark.py"
-    assert p.read_bytes() == bb.render().encode("utf-8"), (
+    # CRLF-safe: a fresh Windows checkout (core.autocrlf=true, no eol= by design —
+    # see .gitattributes) writes CRLF while the renderer emits LF; compare content,
+    # not line terminators. The LF-only property is asserted separately below.
+    assert p.read_bytes().replace(b"
+", b"
+") == bb.render().encode("utf-8"), (
         "backbone_benchmark.csv is STALE — regenerate: "
         "py -3.12 qc/instruments/backbone_benchmark.py")
 

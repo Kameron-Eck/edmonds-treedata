@@ -1948,6 +1948,250 @@ failed on the day; neither moves a grade). Not indexed on the first index:
 Blakemore 1984, Page 1954, Hall 1985. No DOI anywhere: Kreinin & Sidelnikova 2001,
 Lewis & Mohler 2011.
 
+### 4.19 Round 10 (2026-09-12) — the second-order gaps (framework §18), four fields searched
+
+Framework §18 stated eight gaps that rounds 8–9's results exposed and named the fields
+that might hold five of them. Four Sonnet searchers (open-access routes; Crossref for
+records) plus the reviewer's first-index fetches and a Sonnet browser agent for the
+challenged remainder. Grades are the reviewer's; PRIMARY means the cited passage was
+read. One target in the searcher briefs was wrongly cited by the reviewer (a "Browning …
+R. Soc. Open Sci." entry that does not exist; the real paper is Browning, Sulem,
+Mengersen, Rivoirard & Rousseau 2021, *PLOS ONE*) — the searcher caught it; recorded here
+so the error class stays visible.
+
+#### 4.19.1 Rows 17–18 — irregular intervals and misclassification are one published framework
+
+- **Kalbfleisch & Lawless 1985** (*JASA*, **PRIMARY**, §§1–2). The continuous-time Markov
+  model for panel data: states observed "at a sequence of discrete time points" with "no
+  information … about the timing of events between observation times"; earlier methods
+  suffered "inability to handle observation times that are not equally spaced" and could
+  not give standard errors — they supply maximum-likelihood algorithms for the transition
+  intensity matrix `Q`, with `P(t) = exp(Qt)` for time-homogeneous chains, and standard
+  errors from the information. Irregular spacing is the founding motivation of the field.
+- **Jackson 2011** (*J. Statistical Software*, CC BY, **PRIMARY**, §§1.4, 2). The
+  likelihood is the product over units and observation pairs of transition-matrix
+  entries: "Each component Li,j is the entry of the transition matrix P(t) at the S(tij)th
+  row and S(ti,j+1)th column, evaluated at t = ti,j+1 − tij". The hidden-Markov extension
+  adds a misclassification matrix "where ers is the probability of observing state s
+  conditionally on occupying true state r", and "The misclassification probabilities may
+  also be modelled in terms of covariates" — which is exactly a band- and epoch-indexed
+  emission. Fitted by `optim` on `log q_rs`, standard errors from the Hessian; software
+  `msm`.
+- **Bureau, Shiboski & Hughes 2003** (*Statist. Med.*, **PRIMARY**, abstract and §1):
+  continuous-time hidden Markov models "to longitudinal measurements of a binary disease
+  outcome" — the two-state, misclassified, irregularly observed case, ours exactly.
+- **Rosychuk & Thompson 2003** (*Statist. Med.*, **PRIMARY**, summary and results): for a
+  two-state latent process observed with misclassification, the maximum-likelihood
+  transition estimates are biased — "the naive estimators on average overestimate" the
+  transition probabilities (persistence is under-estimated), the direction framework §18.2
+  asserted — and two bias-adjusted estimators are given (asymptotic and finite-sample).
+- **Jackson & Sharples 2002** (*Statist. Med.*, **PRIMARY**, summary): the same machinery
+  on a staged process at irregular measurement times. **Satten & Longini 1996** (*Applied
+  Statistics*, filed, header-verified, unread). van den Hout 2017 (book) not obtained.
+
+#### 4.19.2 Row 19 — the kernel as a regression: distributed lags and the discrete-time Hawkes GLM
+
+- **Gasparrini, Armstrong & Kenward 2010** (*Statist. Med.*, author copy, **PRIMARY**,
+  §3). The lag dimension is a vector of lagged exposures; a basis matrix `C` over lags
+  turns it into `v` transformed covariates `W = Q·C` (their Eqs. 4–5), the implied lag
+  effects are `b̂ = C ĝ` with covariance `C V(ĝ) Cᵀ` (Eq. 6), and "the choice of the basis
+  to derive C can be considered as the application of a constraint to the shape of the
+  distributed lag curve". A step-function basis is the histogram kernel of §4.18.4; a
+  spline basis is a smooth one; the *cross-basis* extends it to a lag × dose (for us lag ×
+  distance) surface. **Gasparrini 2014** (exposure–lag–response, **ABSTRACT**),
+  **Gasparrini, Scheipl, Armstrong & Kenward 2017** (penalised splines within GAMs, with
+  "built-in model selection", **ABSTRACT**), **Gasparrini 2011** (`dlnm`, **ABSTRACT**).
+  **Almon 1965** (*Econometrica*, filed, header-verified, unread — the origin).
+- **Truccolo, Eden, Fellows, Donoghue & Brown 2005** (*J. Neurophysiol.*, **PRIMARY**,
+  abstract): the discrete-time point-process likelihood with history covariates "is
+  equivalent to the likelihood of a GLM under a Poisson distribution and log link
+  function"; and "if the point process is represented as a conditionally independent
+  Bernoulli process and the probability of the events is modeled by a logistic function,
+  then the likelihood function is equivalent to the likelihood of a GLM under a Bernoulli
+  distribution and a logistic link function". That is the statement framework §18.3 needed:
+  a self-exciting kernel on a binary outcome is a GLM with lagged-event covariates.
+  **Pillow et al. 2008** (*Nature*, **ABSTRACT**: stimulus, post-spike and coupling
+  filters, exponentiated) and **Browning et al. 2021** (*PLOS ONE*, **ABSTRACT**: a
+  discrete-time Hawkes variant) are the applied forms. Schwartz 2000 (*Epidemiology*)
+  not obtained on the first index.
+
+#### 4.19.3 Row 20 — autocorrelation and many charts
+
+- **Lu & Reynolds 2001** (*J. Quality Technology*, **PRIMARY**, abstract): for an AR(1)
+  plus noise process, "CUSUM charts based on the original observations perform as well as
+  CUSUM charts of residuals, except in the case in which the level of autocorrelation is
+  high and the shift in the process mean is large", and a design method for the
+  observations chart under autocorrelation is given. So the residual chart is not
+  automatically the answer; the correlogram measurement decides which regime we are in.
+- **Psarakis & Papaleonida 2007** (*QTQM*, **PRIMARY**, §2 review): the residual-chart
+  rationale — "assuming that the correct time series model is fitted to the data, the
+  residuals will be independently and identically distributed" — and its caveat that
+  residual charts "do not have the same properties as the traditional charts".
+- **Mei 2010** (*Biometrika*, author copy, **PRIMARY**, §1): monitoring `K` streams with
+  an unknown affected subset by "the sum of the local CUSUM statistics from each data
+  stream", shown "asymptotically optimal in a suitable sense" under a *global* false-alarm
+  constraint — the online analogue of multiple testing. **Xie & Siegmund 2013** (*Ann.
+  Statist.*, arXiv copy, **PRIMARY**, §1): a mixture procedure with an assumed fraction
+  `p₀` of affected streams; "we derive analytic approximations for its ARL and EDD".
+  **Tartakovsky & Veeravalli 2008** (**ABSTRACT**, decentralised optimality).
+  **Benjamini & Hochberg 1995** obtained as an image-only JSTOR scan (filed, unread).
+- **Steiner, Cook, Farewell & Treasure 2000** (*Biostatistics*, **PRIMARY**, §2; browser
+  fetch): the risk-adjusted CUSUM — "The risk adjustment is made though a likelihood
+  score" per subject, i.e. per-unit increments from each unit's own pre-change
+  probability. That is our band- and epoch-indexed increment `ℓ_{t,b}` under its
+  published name.
+- Alwan & Roberts 1988, Montgomery & Mastrangelo 1991, Lu & Reynolds 1999, Mousavi &
+  Reynolds 2009 (the Bernoulli CUSUM with autocorrelated binary observations — the
+  closest match to row 20): not on the first index; sent to the browser agent.
+
+#### 4.19.4 Row 16 — identifiability of the emission without labels
+
+- **Platanios, Blum & Mitchell 2014** (UAI, **PRIMARY**, abstract): "accuracy can be
+  estimated exactly from unlabeled data in the case that at least three different
+  approximations to the same function are available, so long as these functions make
+  independent errors and have better than chance accuracy" — three arms with
+  conditionally independent errors identify each arm's accuracy from agreement rates
+  alone. **Parisi, Strino, Nadler & Kluger 2014** (*PNAS*, arXiv copy, **PRIMARY**, §1):
+  under independent errors "the off-diagonal entries of their covariance matrix
+  correspond to a rank-one matrix" whose leading eigenvector is "proportional to their
+  balanced accuracies". **Jaffe, Nadler & Kluger 2015** (AISTATS, **ABSTRACT**: the
+  spectral extension to sensitivity and specificity). **Dawid & Skene 1979** (*Applied
+  Statistics*, **ABSTRACT** — the EM origin, first index). **Begg & Greenes 1983**
+  (*Biometrics*, **ABSTRACT** — verification bias when the gold subset is selected on the
+  test result, first index). **Raykar et al. 2010** (JMLR, **ABSTRACT**), **Ratner et al.
+  2017** (Snorkel, **ABSTRACT**), **Platanios, Dubey & Mitchell 2016** (filed, unread). Hui
+  & Walter 1980 (two-population identifiability) and Foody 2010 (reference-data error in
+  change accuracy) sent to the browser agent.
+- **Conley 1999** (*J. Econometrics*, **ABSTRACT**; browser fetch): covariance estimators
+  under dependence indexed by "economic distance", consistent even when distances are
+  measured with error — the spatial HAC confirmed as a variance tool, as §15.1 assumed.
+
+**What round 10 does not have.** Nothing on the coupling-versus-resolution question (row
+21) or the target erasure radius (row 22): measurements. The registration covariate
+(row 23) remains a design.
+
+### 4.19 Round 10 (2026-09-12) — the second-order gaps (framework §18), four fields searched
+
+Framework §18 stated eight gaps that rounds 8–9's results exposed and named the fields
+that might hold five of them. Four Sonnet searchers (open-access routes; Crossref for
+records) plus the reviewer's first-index fetches and a Sonnet browser agent for the
+challenged remainder. Grades are the reviewer's; PRIMARY means the cited passage was
+read. One target in the searcher briefs was wrongly cited by the reviewer (a "Browning …
+R. Soc. Open Sci." entry that does not exist; the real paper is Browning, Sulem,
+Mengersen, Rivoirard & Rousseau 2021, *PLOS ONE*) — the searcher caught it; recorded here
+so the error class stays visible.
+
+#### 4.19.1 Rows 17–18 — irregular intervals and misclassification are one published framework
+
+- **Kalbfleisch & Lawless 1985** (*JASA*, **PRIMARY**, §§1–2). The continuous-time Markov
+  model for panel data: states observed "at a sequence of discrete time points" with "no
+  information … about the timing of events between observation times"; earlier methods
+  suffered "inability to handle observation times that are not equally spaced" and could
+  not give standard errors — they supply maximum-likelihood algorithms for the transition
+  intensity matrix `Q`, with `P(t) = exp(Qt)` for time-homogeneous chains, and standard
+  errors from the information. Irregular spacing is the founding motivation of the field.
+- **Jackson 2011** (*J. Statistical Software*, CC BY, **PRIMARY**, §§1.4, 2). The
+  likelihood is the product over units and observation pairs of transition-matrix
+  entries: "Each component Li,j is the entry of the transition matrix P(t) at the S(tij)th
+  row and S(ti,j+1)th column, evaluated at t = ti,j+1 − tij". The hidden-Markov extension
+  adds a misclassification matrix "where ers is the probability of observing state s
+  conditionally on occupying true state r", and "The misclassification probabilities may
+  also be modelled in terms of covariates" — which is exactly a band- and epoch-indexed
+  emission. Fitted by `optim` on `log q_rs`, standard errors from the Hessian; software
+  `msm`.
+- **Bureau, Shiboski & Hughes 2003** (*Statist. Med.*, **PRIMARY**, abstract and §1):
+  continuous-time hidden Markov models "to longitudinal measurements of a binary disease
+  outcome" — the two-state, misclassified, irregularly observed case, ours exactly.
+- **Rosychuk & Thompson 2003** (*Statist. Med.*, **PRIMARY**, summary and results): for a
+  two-state latent process observed with misclassification, the maximum-likelihood
+  transition estimates are biased — "the naive estimators on average overestimate" the
+  transition probabilities (persistence is under-estimated), the direction framework §18.2
+  asserted — and two bias-adjusted estimators are given (asymptotic and finite-sample).
+- **Jackson & Sharples 2002** (*Statist. Med.*, **PRIMARY**, summary): the same machinery
+  on a staged process at irregular measurement times. **Satten & Longini 1996** (*Applied
+  Statistics*, filed, header-verified, unread). van den Hout 2017 (book) not obtained.
+
+#### 4.19.2 Row 19 — the kernel as a regression: distributed lags and the discrete-time Hawkes GLM
+
+- **Gasparrini, Armstrong & Kenward 2010** (*Statist. Med.*, author copy, **PRIMARY**,
+  §3). The lag dimension is a vector of lagged exposures; a basis matrix `C` over lags
+  turns it into `v` transformed covariates `W = Q·C` (their Eqs. 4–5), the implied lag
+  effects are `b̂ = C ĝ` with covariance `C V(ĝ) Cᵀ` (Eq. 6), and "the choice of the basis
+  to derive C can be considered as the application of a constraint to the shape of the
+  distributed lag curve". A step-function basis is the histogram kernel of §4.18.4; a
+  spline basis is a smooth one; the *cross-basis* extends it to a lag × dose (for us lag ×
+  distance) surface. **Gasparrini 2014** (exposure–lag–response, **ABSTRACT**),
+  **Gasparrini, Scheipl, Armstrong & Kenward 2017** (penalised splines within GAMs, with
+  "built-in model selection", **ABSTRACT**), **Gasparrini 2011** (`dlnm`, **ABSTRACT**).
+  **Almon 1965** (*Econometrica*, filed, header-verified, unread — the origin).
+- **Truccolo, Eden, Fellows, Donoghue & Brown 2005** (*J. Neurophysiol.*, **PRIMARY**,
+  abstract): the discrete-time point-process likelihood with history covariates "is
+  equivalent to the likelihood of a GLM under a Poisson distribution and log link
+  function"; and "if the point process is represented as a conditionally independent
+  Bernoulli process and the probability of the events is modeled by a logistic function,
+  then the likelihood function is equivalent to the likelihood of a GLM under a Bernoulli
+  distribution and a logistic link function". That is the statement framework §18.3 needed:
+  a self-exciting kernel on a binary outcome is a GLM with lagged-event covariates.
+  **Pillow et al. 2008** (*Nature*, **ABSTRACT**: stimulus, post-spike and coupling
+  filters, exponentiated) and **Browning et al. 2021** (*PLOS ONE*, **ABSTRACT**: a
+  discrete-time Hawkes variant) are the applied forms. Schwartz 2000 (*Epidemiology*)
+  not obtained on the first index.
+
+#### 4.19.3 Row 20 — autocorrelation and many charts
+
+- **Lu & Reynolds 2001** (*J. Quality Technology*, **PRIMARY**, abstract): for an AR(1)
+  plus noise process, "CUSUM charts based on the original observations perform as well as
+  CUSUM charts of residuals, except in the case in which the level of autocorrelation is
+  high and the shift in the process mean is large", and a design method for the
+  observations chart under autocorrelation is given. So the residual chart is not
+  automatically the answer; the correlogram measurement decides which regime we are in.
+- **Psarakis & Papaleonida 2007** (*QTQM*, **PRIMARY**, §2 review): the residual-chart
+  rationale — "assuming that the correct time series model is fitted to the data, the
+  residuals will be independently and identically distributed" — and its caveat that
+  residual charts "do not have the same properties as the traditional charts".
+- **Mei 2010** (*Biometrika*, author copy, **PRIMARY**, §1): monitoring `K` streams with
+  an unknown affected subset by "the sum of the local CUSUM statistics from each data
+  stream", shown "asymptotically optimal in a suitable sense" under a *global* false-alarm
+  constraint — the online analogue of multiple testing. **Xie & Siegmund 2013** (*Ann.
+  Statist.*, arXiv copy, **PRIMARY**, §1): a mixture procedure with an assumed fraction
+  `p₀` of affected streams; "we derive analytic approximations for its ARL and EDD".
+  **Tartakovsky & Veeravalli 2008** (**ABSTRACT**, decentralised optimality).
+  **Benjamini & Hochberg 1995** obtained as an image-only JSTOR scan (filed, unread).
+- **Steiner, Cook, Farewell & Treasure 2000** (*Biostatistics*, **PRIMARY**, §2; browser
+  fetch): the risk-adjusted CUSUM — "The risk adjustment is made though a likelihood
+  score" per subject, i.e. per-unit increments from each unit's own pre-change
+  probability. That is our band- and epoch-indexed increment `ℓ_{t,b}` under its
+  published name.
+- Alwan & Roberts 1988, Montgomery & Mastrangelo 1991, Lu & Reynolds 1999, Mousavi &
+  Reynolds 2009 (the Bernoulli CUSUM with autocorrelated binary observations — the
+  closest match to row 20): not on the first index; sent to the browser agent.
+
+#### 4.19.4 Row 16 — identifiability of the emission without labels
+
+- **Platanios, Blum & Mitchell 2014** (UAI, **PRIMARY**, abstract): "accuracy can be
+  estimated exactly from unlabeled data in the case that at least three different
+  approximations to the same function are available, so long as these functions make
+  independent errors and have better than chance accuracy" — three arms with
+  conditionally independent errors identify each arm's accuracy from agreement rates
+  alone. **Parisi, Strino, Nadler & Kluger 2014** (*PNAS*, arXiv copy, **PRIMARY**, §1):
+  under independent errors "the off-diagonal entries of their covariance matrix
+  correspond to a rank-one matrix" whose leading eigenvector is "proportional to their
+  balanced accuracies". **Jaffe, Nadler & Kluger 2015** (AISTATS, **ABSTRACT**: the
+  spectral extension to sensitivity and specificity). **Dawid & Skene 1979** (*Applied
+  Statistics*, **ABSTRACT** — the EM origin, first index). **Begg & Greenes 1983**
+  (*Biometrics*, **ABSTRACT** — verification bias when the gold subset is selected on the
+  test result, first index). **Raykar et al. 2010** (JMLR, **ABSTRACT**), **Ratner et al.
+  2017** (Snorkel, **ABSTRACT**), **Platanios, Dubey & Mitchell 2016** (filed, unread). Hui
+  & Walter 1980 (two-population identifiability) and Foody 2010 (reference-data error in
+  change accuracy) sent to the browser agent.
+- **Conley 1999** (*J. Econometrics*, **ABSTRACT**; browser fetch): covariance estimators
+  under dependence indexed by "economic distance", consistent even when distances are
+  measured with error — the spatial HAC confirmed as a variance tool, as §15.1 assumed.
+
+**What round 10 does not have.** Nothing on the coupling-versus-resolution question (row
+21) or the target erasure radius (row 22): measurements. The registration covariate
+(row 23) remains a design.
+
 ---
 
 ## 5. What the literature does not have
@@ -2237,6 +2481,12 @@ number, never instead of it. Adopt it from the first run rather than retrofittin
   [D] results became theorems (§4.18.1, §4.18.2 composition, §4.18.5), two [D]
   procedures became published estimators (§4.18.3, §4.18.6), one kill became a
   published test (§4.18.8). Findings in §4.18; framework §17.
+- **Round 10 (2026-09-12) searched four fields for the second-order gaps of framework §18:**
+  four Sonnet searchers, first-index fetches, one browser agent. The round-10
+  bibliography block holds 33 lines (counted): 14 reviewer-read PRIMARY, 12 reviewer-read
+  ABSTRACT, 4 filed-unread (one an image-only scan), 2 METADATA lines (seven works pending
+  with the browser agent; one book not obtained), and 1 line for two works already held. Findings in §4.19; framework §19. Rows 17, 18, 19 and 20 move to
+  published frameworks; row 16's identifiability condition is now quoted.
 - **Not searched:** §6.4 (which training lever first) is a cost/sequencing decision no
   literature settles; the material for it is in §4.6. §6.2 and §6.3 *were* searched in
   round 2 and are answered in §4.10.
@@ -2571,6 +2821,42 @@ All filed under `D:\edmonds-pipeline\Literture\Validation\`. Grades are the revi
 - Melgani, F. & Serpico, S.B. (2003). A Markov random field approach to spatio-temporal contextual image classification. *IEEE TGRS* 41(11):2478–2487. doi:10.1109/tgrs.2003.817269 — **ABSTRACT**, reviewer-read abstract (full PDF held). Filed `MelganiSerpico_2003_spatiotemporal_MRF_TGRS`.
 - **Indexed on the second mirror, browser fetch failed on 2026-09-12, not obtained:** Steiner, Cook, Farewell & Treasure (2000) *Biostatistics* 1(4) doi:10.1093/biostatistics/1.4.441 — **METADATA** (Conley 1999 likewise; its line is in the round-8 block).
 - **Not on the first index; no OA copy:** Blakemore (1984) *Cartographica* doi:10.3138/1005-13mg-2627-2552; Page (1954) *Biometrika* 41 doi:10.1093/biomet/41.1-2.100; Hall (1985) *Stoch. Proc. Appl.* 20 doi:10.1016/0304-4149(85)90212-1; Lahiri (2003) *Resampling Methods for Dependent Data* ch. 12 doi:10.1007/978-1-4757-3803-2_12; Matheron (1975) *Random Sets and Integral Geometry* (book) — **METADATA**. **No DOI in any index:** Kreinin & Sidelnikova (2001) *Algo Research Quarterly* 4(1/2); Lewis & Mohler (2011) preprint.
+
+### Round 10 (2026-09-12; §4.19) — the second-order gaps
+All filed under `D:\edmonds-pipeline\Literture\Validation\`.
+- Kalbfleisch, J.D. & Lawless, J.F. (1985). The analysis of panel data under a Markov assumption. *JASA* 80(392):863–871. doi:10.1080/01621459.1985.10478195 — **PRIMARY**, reviewer-read (§§1–2). Filed `KalbfleischLawless_1985_panel_data_markov` (+ `_raw.txt`).
+- Jackson, C.H. (2011). Multi-state models for panel data: the msm package for R. *J. Statistical Software* 38(8). doi:10.18637/jss.v038.i08 — **PRIMARY**, reviewer-read (§1.4, §2). Filed `Jackson_2011_msm_JSS` (+ `_raw.txt`).
+- Jackson, C.H. & Sharples, L.D. (2002). Hidden Markov models for the onset and progression of bronchiolitis obliterans syndrome in lung transplant recipients. *Statist. Med.* 21(1):113–128. doi:10.1002/sim.886 — **PRIMARY**, reviewer-read (summary). Filed `JacksonSharples_2002_BOS_HMM`.
+- Bureau, A., Shiboski, S. & Hughes, J.P. (2003). Applications of continuous time hidden Markov models to the study of misclassified disease outcomes. *Statist. Med.* 22(3):441–462. doi:10.1002/sim.1270 — **PRIMARY**, reviewer-read (abstract, §1). Filed `BureauShiboskiHughes_2003_CTHMM_misclassified` (+ `_raw.txt`).
+- Rosychuk, R.J. & Thompson, M.E. (2003). Bias correction of two-state latent Markov process parameter estimates under misclassification. *Statist. Med.* 22(12):2035–2055. doi:10.1002/sim.1473 — **PRIMARY**, reviewer-read (summary, results). Filed `RosychukThompson_2003_BiasCorrection_Misclassification` (+ `_raw.txt`).
+- Satten, G.A. & Longini, I.M. (1996). Markov chains with measurement error: estimating the 'true' course of a marker of the progression of HIV disease. *Applied Statistics* 45(3):275–309. doi:10.2307/2986089 — filed, header-verified, unread. Filed `SattenLongini_1996_MarkovMeasurementError_HIV`.
+- Gasparrini, A., Armstrong, B. & Kenward, M.G. (2010). Distributed lag non-linear models. *Statist. Med.* 29(21):2224–2234. doi:10.1002/sim.3940 — **PRIMARY**, reviewer-read (§3; author copy). Filed `Gasparrini_2010_DLNM_StatMed` (+ `_raw.txt`).
+- Gasparrini, A. (2011). Distributed lag linear and non-linear models in R: the package dlnm. *J. Statistical Software* 43(8). doi:10.18637/jss.v043.i08 — **ABSTRACT**, reviewer-read abstract (author working copy). Filed `Gasparrini_2011_dlnm_JSS`.
+- Gasparrini, A. (2014). Modeling exposure–lag–response associations with distributed lag non-linear models. *Statist. Med.* 33(5):881–899. doi:10.1002/sim.5963 — **ABSTRACT**, reviewer-read abstract. Filed `Gasparrini_2014_ExposureLagResponse_StatMed`.
+- Gasparrini, A., Scheipl, F., Armstrong, B. & Kenward, M.G. (2017). A penalized framework for distributed lag non-linear models. *Biometrics* 73(3):938–948. doi:10.1111/biom.12645 — **ABSTRACT**, reviewer-read abstract. Filed `Gasparrini_2017_PenalizedDLNM_Biometrics`.
+- Almon, S. (1965). The distributed lag between capital appropriations and expenditures. *Econometrica* 33(1):178–196. doi:10.2307/1911894 — filed (first index), header-verified, unread. Filed `Almon_1965_distributed_lag_Econometrica`.
+- Truccolo, W., Eden, U.T., Fellows, M.R., Donoghue, J.P. & Brown, E.N. (2005). A point process framework for relating neural spiking activity to spiking history, neural ensemble, and extrinsic covariate effects. *J. Neurophysiol.* 93(2):1074–1089. doi:10.1152/jn.00697.2004 — **PRIMARY**, reviewer-read (abstract). Filed `Truccolo_2005_PointProcessFramework_JNeurophysiol` (+ `_raw.txt`).
+- Pillow, J.W. et al. (2008). Spatio-temporal correlations and visual signalling in a complete neuronal population. *Nature* 454:995–999. doi:10.1038/nature07140 — **ABSTRACT**, reviewer-read opening. Filed `Pillow_2008_SpatioTemporalCorrelations_Nature`.
+- Browning, R., Sulem, D., Mengersen, K., Rivoirard, V. & Rousseau, J. (2021). Simple discrete-time self-exciting models can describe complex dynamic processes: A case study of COVID-19. *PLOS ONE* 16(4):e0250015. doi:10.1371/journal.pone.0250015 — **ABSTRACT**, reviewer-read abstract. Filed `Browning_2021_SelfExcitingCOVID19_PLOSONE`.
+- Lu, C.-W. & Reynolds, M.R. Jr. (2001). CUSUM charts for monitoring an autocorrelated process. *J. Quality Technology* 33(3):316–334. doi:10.1080/00224065.2001.11980082 — **PRIMARY**, reviewer-read (abstract; first index). Filed `LuReynolds_2001_CUSUM_autocorrelated_JQT` (+ `_raw.txt`).
+- Psarakis, S. & Papaleonida, G.E.A. (2007). SPC procedures for monitoring autocorrelated processes. *Quality Technology & Quantitative Management* 4(4):501–540. doi:10.1080/16843703.2007.11673168 — **PRIMARY**, reviewer-read (§2; first index). Filed `PsarakisPapaleonida_2007_SPC_autocorrelated_review_QTQM` (+ `_raw.txt`).
+- Mei, Y. (2010). Efficient scalable schemes for monitoring a large number of data streams. *Biometrika* 97(2):419–433. doi:10.1093/biomet/asq010 — **PRIMARY**, reviewer-read (§1; author copy). Filed `Mei_2010_scalable_monitoring_data_streams` (+ `_raw.txt`).
+- Xie, Y. & Siegmund, D. (2013). Sequential multi-sensor change-point detection. *Ann. Statist.* 41(2):670–692. doi:10.1214/13-AOS1094 (arXiv 1207.2386) — **PRIMARY**, reviewer-read (§1). Filed `Xie_Siegmund_2013_multisensor_changepoint` (+ `_raw.txt`).
+- Tartakovsky, A.G. & Veeravalli, V.V. (2008). Asymptotically optimal quickest change detection in distributed sensor systems. *Sequential Analysis* 27(4):441–475. doi:10.1080/07474940802446236 — **ABSTRACT**, reviewer-read abstract (author copy). Filed `Tartakovsky_Veeravalli_2008_distributed_sensor`.
+- Benjamini, Y. & Hochberg, Y. (1995). Controlling the false discovery rate: a practical and powerful approach to multiple testing. *J. R. Stat. Soc. B* 57(1):289–300. doi:10.1111/j.2517-6161.1995.tb02031.x — image-only JSTOR scan, filed, unread. Filed `Benjamini_Hochberg_1995_false_discovery_rate`.
+- Steiner, S.H., Cook, R.J., Farewell, V.T. & Treasure, T. (2000). Monitoring surgical performance using risk-adjusted cumulative sum charts. *Biostatistics* 1(4):441–452. doi:10.1093/biostatistics/1.4.441 — **PRIMARY**, reviewer-read (§§1–2; browser fetch, supersedes the round-9 METADATA line). Filed `Steiner_2000_risk_adjusted_CUSUM_Biostatistics` (+ `_raw.txt`).
+- Conley, T.G. (1999). GMM estimation with cross sectional dependence. *J. Econometrics* 92(1):1–45. doi:10.1016/S0304-4076(98)00084-0 — **ABSTRACT**, reviewer-read abstract (browser fetch; supersedes the round-8 METADATA line). Filed `Conley_1999_GMM_cross_sectional_dependence` (+ `_raw.txt`).
+- Platanios, E.A., Blum, A. & Mitchell, T. (2014). Estimating accuracy from unlabeled data. *UAI 2014* — **PRIMARY**, reviewer-read (abstract). Filed `Platanios_Blum_Mitchell_2014_estimating_accuracy_unlabeled` (+ `_raw.txt`).
+- Platanios, E.A., Dubey, A. & Mitchell, T. (2016). Estimating accuracy from unlabeled data: a Bayesian approach. *ICML 2016*, PMLR 48 — filed, searcher-verified, unread. Filed `Platanios_Dubey_Mitchell_2016_bayesian_estimating_accuracy_ICML`.
+- Jaffe, A., Nadler, B. & Kluger, Y. (2015). Estimating the accuracies of multiple classifiers without labeled data. *AISTATS 2015*, PMLR 38:407–415 — **ABSTRACT**, reviewer-read abstract. Filed `Jaffe_Nadler_Kluger_2015_estimating_accuracies_multiple_classifiers`.
+- Parisi, F., Strino, F., Nadler, B. & Kluger, Y. (2014). Ranking and combining multiple predictors without labeled data. *PNAS* 111(4). doi:10.1073/pnas.1219097111 (arXiv 1303.3257) — **PRIMARY**, reviewer-read (abstract, §1 statements). Filed `Parisi_Strino_Nadler_Kluger_2014_ranking_combining_predictors_PNAS` (+ `_raw.txt`).
+- Raykar, V.C. et al. (2010). Learning from crowds. *JMLR* 11:1297–1322 — **ABSTRACT**, reviewer-read abstract. Filed `Raykar_2010_learning_from_crowds`.
+- Ratner, A. et al. (2017). Snorkel: rapid training data creation with weak supervision. *VLDB* 11(3). doi:10.14778/3157794.3157797 (arXiv 1711.10160) — **ABSTRACT**, reviewer-read abstract. Filed `Ratner_2017_Snorkel_weak_supervision`.
+- Dawid, A.P. & Skene, A.M. (1979). Maximum likelihood estimation of observer error-rates using the EM algorithm. *Applied Statistics* 28(1):20–28. doi:10.2307/2346806 — **ABSTRACT**, reviewer-read title/summary (first index). Filed `DawidSkene_1979_observer_error_rates_EM`.
+- Begg, C.B. & Greenes, R.A. (1983). Assessment of diagnostic tests when disease verification is subject to selection bias. *Biometrics* 39(1):207–215. doi:10.2307/2530820 — **ABSTRACT**, reviewer-read title/summary (first index). Filed `BeggGreenes_1983_verification_bias_Biometrics`.
+- **Sent to the browser agent, pending at the time of writing:** Hui & Walter (1980) *Biometrics* 36(1) doi:10.2307/2530508; Mousavi & Reynolds (2009) *JQT* 41(4) doi:10.1080/00224065.2009.11917794; Foody (2010) *RSE* 114(10) doi:10.1016/j.rse.2010.05.003; Alwan & Roberts (1988) *JBES* 6(1) doi:10.1080/07350015.1988.10509640; Montgomery & Mastrangelo (1991) *JQT* 23(3) doi:10.1080/00224065.1991.11979321; Lu & Reynolds (1999) *JQT* 31(3) doi:10.1080/00224065.1999.11979925; Schwartz (2000) *Epidemiology* 11(3) doi:10.1097/00001648-200005000-00016 — **METADATA** until they land.
+- **Not obtained:** van den Hout (2017) *Multi-State Survival Models for Interval-Censored Data* (CRC book) doi:10.1201/9781315374321 — **METADATA**.
+- **Already held, re-verified by the searcher:** Burnicki (2007) *Comput. Environ. Urban Syst.* 31:282–302 and Burnicki (2011) *Int. J. Remote Sens.* 32(22) doi:10.1080/01431161.2010.524674 — grades unchanged from earlier blocks.
 
 ### Held locally (`D:\edmonds-pipeline\Literture\`), read directly from PDF
 - Li, B., Liu, X., Zhuang, H., Shi, Q., Zeng, L., Cai, Y., Zhang, H., Cai, Y., Wu, C. & Xu, X. (2026). ALCC: Temporally Consistent Annual Land Cover Maps over China from 1985 to 2022 Based on an Ensemble Change Detection Method. *J. Remote Sens.* 6:1029. doi:10.34133/remotesensing.1029 — **PRIMARY** (local PDF; record and OA figures independently re-verified in round 2)

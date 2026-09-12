@@ -4,10 +4,11 @@
 document assembles the halves the literature supplies into one framework and names, as
 precisely as it can, what is still ours to derive or measure. Written 2026-09-11. Owner:
 Kam. It sits under the brief (`TEMPORAL_SPATIAL_CONSISTENCY_BRAINSTORM_2026-09-10.md`, the
-home of every measured number about our stack — §-references without a prefix are to it)
-and the review (`LIT_REVIEW_SPATIOTEMPORAL_CONSISTENCY_2026-09-10.md`, the home of every
-citation — referenced as *review §x*). This file carries no bibliography and restates no
-measured number as its own; where a number appears it is cited to its home.
+home of every measured number about our stack — cited as *brief §x*) and the review
+(`LIT_REVIEW_SPATIOTEMPORAL_CONSISTENCY_2026-09-10.md`, the home of every citation — cited
+as *review §x*). **An unprefixed § is a section of this document.** This file carries no
+bibliography and restates no measured number as its own; where a number appears it is
+cited to its home.
 
 **Every equation below is in one of three bins, and the bin is marked:**
 
@@ -25,8 +26,8 @@ checks, and per 3.4c its author does not score its own proposal.
 
 ## 1. Objects and notation
 
-- Cells `i = 1..N` on the 2 m analysis grid; `N ≈ 13.3 M` (§2.3). Epochs `t = 1..T`,
-  `T = 12`, 2009–2024 (§1).
+- Cells `i = 1..N` on the 2 m analysis grid; `N ≈ 13.3 M` (brief §2.3). Epochs
+  `t = 1..T`, `T = 12`, 2009–2024 (brief §1).
 - Latent state `z_{i,t} ∈ {0, 1}` (not canopy / canopy).
 - Hard observation `x_{i,t} ∈ {0, 1, ⊘}`, `⊘` = IGNORE, from the mask
   (`phase4seg/postproc.py::threshold_and_clean`). Soft observation
@@ -35,20 +36,22 @@ checks, and per 3.4c its author does not score its own proposal.
   raster is kept per epoch alongside the mask; the float logits are not (session code
   check, 2026-09-11).
 - **Per-epoch eyesight, in the brief's convention:** `r_t = P(x = 1 | z = 1)` is
-  **recall**, `f_t = P(x = 1 | z = 0)` is the false-positive rate (§2.3: "r ≈ 0.61,
+  **recall**, `f_t = P(x = 1 | z = 0)` is the false-positive rate (brief §2.3: "r ≈ 0.61,
   f ≈ 0.05"; the emission gate "f 0.011–0.082 < r"). The miss rate is `1 − r_t`. *The
-  round-2 agents wrote r for the miss rate; every formula below has been re-expressed in
-  the brief's convention. That translation is [S] and is the first thing to check.*
+  round-3 agents wrote r for the miss rate; every formula below has been re-expressed in
+  the brief's convention. That translation is [S] and is the first thing to check (§11
+  row 12).*
 - Transitions `q_loss = P(z_{t+1} = 0 | z_t = 1)`, `q_gain = P(z_{t+1} = 1 | z_t = 0)`.
-  Pre-registered `q_loss = 0.02` (§2.3); the review's recommendation (review §6 item 2) is
-  to estimate both from the certified populations instead.
-- Certified populations (§2.2): `𝒢` = lidar-certified GAIN 2005→2016 (46,805 cells),
-  `ℱ` = lidar-certified FLAT (40,609 cells), on the sample blocks. Gold (§2.4): 1,214
-  points = 1,170 no-change / 42 loss / 2 gain, ruling on 2016→2024, no false-positive
-  class.
-- Rates in hand (§2.3): C-CAP-2021- and C-CAP-2016-referenced `(r_t, f_t)` for all twelve
-  tags at the delivered cut. **Lidar-referenced rates do not exist yet.** Everything below
-  runs on the C-CAP rates until they do, and C-CAP overestimates canopy (§4.3 item 2).
+  Pre-registered `q_loss = 0.02` (brief §2.3); the review's recommendation (review §6
+  item 2) is to estimate both from the certified populations instead.
+- Certified populations (brief §2.2): `𝒢` = lidar-certified GAIN 2005→2016 (46,805
+  cells), `ℱ` = lidar-certified FLAT (40,609 cells), on the sample blocks. Gold (brief
+  §2.4): 1,214 points = 1,170 no-change / 42 loss / 2 gain, ruling on 2016→2024, no
+  false-positive class.
+- Rates in hand (brief §2.3): C-CAP-2021- and C-CAP-2016-referenced `(r_t, f_t)` for all
+  twelve tags at the delivered cut. **Lidar-referenced rates do not exist yet.** Everything
+  below runs on the C-CAP rates until they do, and C-CAP overestimates canopy (brief §4.3
+  item 2).
 
 ---
 
@@ -68,9 +71,9 @@ paper carries no `(r, f)` symbols):
 
 This is the brief's own arithmetic written down: at `r = 0.61, f = 0.05`, one observed
 absence is evidence *for* absence of `log((1 − f)/(1 − r)) = log(0.95/0.39) ≈ 0.89` nats,
-i.e. the "likelihood ratio ≈ 2.5" of §2.3; four are `≈ 3.56` nats `≈ 35:1` (the brief's
-"≈ 39:1" rounds 2.5 first); the persistence prior's cost is `log(0.98/0.02) ≈ 3.89` nats
-`= 49:1`. Nothing new; the point is that the chain, the CUSUM (§2.2) and the gate (§4)
+i.e. the "likelihood ratio ≈ 2.5" of brief §2.3; four are `≈ 3.56` nats `≈ 35:1` (the
+brief's "≈ 39:1" rounds 2.5 first); the persistence prior's cost is `log(0.98/0.02) ≈ 3.89`
+nats `= 49:1`. Nothing new; the point is that the chain, the CUSUM (§2.2) and the gate (§4)
 all consume the same `ℓ_t`.
 
 **Sensitivity [D].** `∂ℓ_t/∂f_t = −1/f_t` on an observed 1; at `f = 0.05` a `0.01`
@@ -113,8 +116,8 @@ var{·} ∝ 1 / (1 − π₁₀ − π₀₁)².
 **Substitution [S]:** `π₁₀ = f_t`, `π₀₁ = 1 − r_t`, so the denominator is `r_t − f_t` and
 **the variance inflation from imperfect eyesight is `1 / (r_t − f_t)²`** — at the brief's
 rates `1/0.56² ≈ 3.2`. This is the noise-floor factor CLAUDE.md 3.5 asks every effect to be
-read against, in closed form, and the brief's emission gate `f < r` (§2.3) is exactly the
-condition that keeps it finite.
+read against, in closed form, and the brief's emission gate `f < r` (brief §2.3) is
+exactly the condition that keeps it finite.
 
 **The join [D] — what is not in either paper:**
 
@@ -128,14 +131,14 @@ condition that keeps it finite.
    (Ross's `h` is for long sequences). `h_loss` and `h_gain` must be calibrated by Monte
    Carlo on **null** sequences drawn with the per-year rates — for the loss chart,
    `z ≡ 1` and `x_t ~ Bernoulli(r_t)` — at the `(1 − α)` quantile of `max_t S_t`. The
-   brief's placebo (§5: shuffle the survey-to-rate assignment, 20 draws; agreement must
-   fall) is the kill that must fire on this calibration before it counts.
+   brief's placebo (brief §5: shuffle the survey-to-rate assignment, 20 draws; agreement
+   must fall) is the kill that must fire on this calibration before it counts.
 
 ### 2.3 The soft emission — the decision that settles the logits question
 
-Everything above uses hard `x`. The brief's §4.5 and the review's §4.9 argue for sitting
-*upstream of the threshold*, on `p_{i,t}`. That changes the emission from two numbers per
-epoch to a distribution `e_t(p | z)`, and there are two ways to get it:
+Everything above uses hard `x`. Brief §4.5 and review §4.9 argue for sitting *upstream of
+the threshold*, on `p_{i,t}`. That changes the emission from two numbers per epoch to a
+distribution `e_t(p | z)`, and there are two ways to get it:
 
 **Option A — binned emission [D].** Bin `p` into `K` levels `b(p) ∈ {1..K}` and estimate
 the multinomial `e_t(b | z)` per epoch on cells whose `z` is certified: `ℱ` (`z` fixed),
@@ -146,16 +149,16 @@ cell holding enough certified samples to estimate a proportion) is a placeholder
 that criterion is run. **uint8 suffices: 254 levels ≫ K.**
 
 **Option B — calibrated log-odds [D].** Use `ℓ_t = logit(p_{i,t}) + c_t` directly. This
-requires `p` to be *calibrated* per epoch, i.e. `P(z = 1 | p) = p`. The review's §4.12.3
-(Kumar, Liang & Ma 2019) says a continuous corrector's "true calibration error is
-unmeasurable with a finite number of bins" — so calibration would have to be *assumed*.
-And at the uint8 ceiling `p = 254/254 = 1` the log-odds are infinite: this option needs
-the float logits.
+requires `p` to be *calibrated* per epoch, i.e. `P(z = 1 | p) = p`. Review §4.12.3 (Kumar,
+Liang & Ma 2019) says a continuous corrector's "true calibration error is unmeasurable
+with a finite number of bins" — so calibration would have to be *assumed*. And at the
+uint8 ceiling `p = 254/254 = 1` the log-odds are infinite: this option needs the float
+logits.
 
 **Verdict [D]:** Option A, unless a per-epoch calibration audit on the certified cells
 passes at a stated tolerance — which is itself a binned test, so it collapses into A.
-**The raw-logits patch is only needed for Option B. Hold it until §11 gap 1 is
-resolved; the choice is analytic, not a preference.**
+**The raw-logits patch is only needed for Option B. Hold it until §11 row 1 is resolved;
+the choice is analytic, not a preference.**
 
 ### 2.4 Missing epochs and how long the chain remembers
 
@@ -182,10 +185,12 @@ k_½ = ln 2 / (−ln λ₂)  ≈  ln 2 / (q_loss + q_gain)   for small rates.
 
 At the pre-registered `q_loss = 0.02` with `q_gain ≪ q_loss`, `k_½ ≈ 35` epochs — three
 times the archive. **Under the brief's rates an IGNORE gap never forgets:** the chain
-carries a 2016 observation across every interior IGNORE epoch essentially undiminished.
-Seven of ten interior epochs carry only IGNORE in places (§4.5), so this number, not the
-smoothing weight, governs how far a single confident year reaches. Whatever `q_loss, q_gain`
-the certified populations yield (§11 gap 11), `k_½` should be reported next to them.
+carries a single confident observation across every intervening nodata epoch essentially
+undiminished. On the raw stack (where the layer sits, brief §4.5) IGNORE is nodata — the
+coverage gaps of the older, partial surveys — and any cell that is nodata for several
+consecutive epochs is governed by this number, not by any smoothing weight. Whatever
+`q_loss, q_gain` the certified populations yield (§11 row 11), `k_½` should be reported
+next to them.
 
 ---
 
@@ -193,8 +198,8 @@ the certified populations yield (§11 gap 11), `k_½` should be reported next to
 
 ### 3.1 The joint field, as an energy
 
-The brief's "formal object: a random field in space and time" (§4.1) written down **[D;
-shape from Krähenbühl & Koltun 2011, review §4.12.1]**:
+The brief's "formal object: a random field in space and time" (brief §4.1) written down
+**[D; shape from Krähenbühl & Koltun 2011, review §4.12.1]**:
 
 ```
 E(z) = Σ_{i,t} ψ_u(z_{i,t})
@@ -206,19 +211,20 @@ with `ψ_u(1) − ψ_u(0) = −ℓ_t` (the §2.1 evidence as the unary), `ψ_τ 
 (the chain), and `ψ_s` a Potts or contrast-sensitive pairwise term. Axis 3 (the
 twelve-year consensus) is not a separate term: it is what `γ` and the chain already
 propagate. Two limits are the baselines: `β = 0` is exactly the per-cell chain the brief
-already has (§2.3 engine); `γ = 0` is a per-epoch CRF.
+already has (brief §2.3 engine); `γ = 0` is a per-epoch CRF.
 
 ### 3.2 Estimating `(β, γ)` — the protocol, and the two warnings
 
-The brief says the local/global weight is "a parameter to be MEASURED, not set" (§4.1). The
-literature has no measured value and one protocol (Gräler et al. 2016, review §4.12.1):
-**fit the weight, then test the fitted model against the `β = 0` and `γ = 0` baselines on
-held-out data.** Here **[D]**: choose `(β, γ)` to minimise the Efron-penalised counting
-error of §5.1 summed over `𝒢 ∪ ℱ`, and report `(0, γ̂)`, `(β̂, 0)` and `(0, 0)` beside
-it. Two published outcomes are legitimate results, not failures: Gräler's (a threefold
-spread in fit bought no held-out skill) and Krähenbühl's ("the smoothness kernel
-parameters … do not significantly affect classification accuracy"). If either recurs here,
-the weight is inert on our data and the chain alone is the layer.
+The brief says the local/global weight is "a parameter to be MEASURED, not set" (brief
+§4.1). The literature has no measured value and one protocol (Gräler et al. 2016, review
+§4.12.1): **fit the weight, then test the fitted model against the `β = 0` and `γ = 0`
+baselines on held-out data.** Here **[D]**: choose `(β, γ)` to minimise the
+Efron-penalised counting error of §5.1 summed over `𝒢 ∪ ℱ`, and report `(0, γ̂)`,
+`(β̂, 0)` and `(0, 0)` beside it. Two published outcomes are legitimate results, not
+failures: Gräler's (a threefold spread in fit bought no held-out skill) and Krähenbühl's
+("the smoothness kernel parameters … do not significantly affect classification
+accuracy"). If either recurs here, the weight is inert on our data and the chain alone is
+the layer.
 
 ### 3.3 The size below which smoothing erases a real removal
 
@@ -246,21 +252,21 @@ For the smoother in §3.1 (mean-field on a CRF) there is no closed form. Two rou
 permutohedral-lattice filtering, "billions of edges" in 0.2 s — review §4.12.1) with an
 exact forward–backward temporal pass per cell. The temporal pass is `N` independent
 12-step chains — CPU-parallel, free tier (CLAUDE.md §3.4), memory ≈ 15 GB as written so
-float32 with row-block chunking (§2.3). **The spatial pass is the only expensive part.**
-Mean-field has no convergence guarantee (nor does Krähenbühl's); stop at a fixed iteration
-count and report the objective's change. Liu et al. 2021's ordering (review §4.2, spatial
-*then* temporal, once) is the thing not to do: alternate, so neither pass hardens the other's
-error in.
+float32 with row-block chunking (brief §2.3). **The spatial pass is the only expensive
+part.** Mean-field has no convergence guarantee (nor does Krähenbühl's); stop at a fixed
+iteration count and report the objective's change. Liu et al. 2021's ordering (review
+§4.2, spatial *then* temporal, once) is the thing not to do: alternate, so neither pass
+hardens the other's error in.
 
 ---
 
 ## 4. Confidence gating — where it lives, and where it does not
 
-The brief wants each survey's vote "weighted by its measured eyesight" (§3 rule 4) and a
-per-cell weight "derived from the survey's own measured r and f" (review §4.2). Martinis &
-Twele 2010, read in full (review §4.2, §4.12), gates *whether* a node enters the contextual
-update by a threshold on its posterior entropy; the weights for admitted nodes are fixed at
-1 and never swept.
+The brief wants each survey's vote "weighted by its measured eyesight" (brief §3 rule 4)
+and a per-cell weight "derived from the survey's own measured r and f" (review §4.2).
+Martinis & Twele 2010, read in full (review §4.2, §4.12), gates *whether* a node enters the
+contextual update by a threshold on its posterior entropy; the weights for admitted nodes
+are fixed at 1 and never swept.
 
 **[D] In the chain the gate is subsumed.** With per-epoch emissions, an epoch with poor
 eyesight has small `|ℓ_t|` automatically: both `|log(r_t/f_t)|` and
@@ -314,25 +320,26 @@ what it predicts. It is one forward–backward pass per cell per held-out epoch,
 noise; under Bernoulli misclassification with known `(r_t, f_t)` the decomposition of the
 self-supervised counting error into true error plus a known noise term has a different form,
 and Efron's Bernoulli penalty (§5.1) is the bridge, not Noise2Self. Deriving that
-decomposition is §11 gap 5.
+decomposition is §11 row 5.
 
 ### 5.3 What the 42 losses can and cannot resolve
 
-**[D]** The terminal-absence kill is recall on 42 verified losses (§5). At a true recall of
-`0.80`, the 95 % interval on 42 trials is `±1.96·√(0.8·0.2/42) ≈ ±0.12`. **Two layers whose
-true recall differs by less than ≈ 0.12 are indistinguishable on the gold alone.** The
-42-loss kill has power for large effects only; small effects are testable on `𝒢`
-(46,805) and `ℱ` (40,609), which is why §5.1 sums `Ω` there. The 2 gains resolve nothing.
+**[D]** The terminal-absence kill is recall on 42 verified losses (brief §5). At a true
+recall of `0.80`, the 95 % interval on 42 trials is `±1.96·√(0.8·0.2/42) ≈ ±0.12`. **Two
+layers whose true recall differs by less than ≈ 0.12 are indistinguishable on the gold
+alone.** The 42-loss kill has power for large effects only; small effects are testable on
+`𝒢` (46,805) and `ℱ` (40,609), which is why §5.1 sums `Ω` there. The 2 gains resolve
+nothing.
 
 ### 5.4 Correlated error — the open gap
 
 Every tool in §5 assumes the observation is *unbiased* for truth. Ours is not: leaf-off
 flights and an 80.7 cm effective 2005 give species- and season-correlated error (CLAUDE.md
-§4), and the reference itself may share the model's edge errors (review §4.7). Round 2 found
+§4), and the reference itself may share the model's edge errors (review §4.7). Round 3 found
 nothing for the covariance penalty under spatially and class-correlated error. **Mitigation,
 not a fix [D]:** stratify `Ω` additionally by flight month (from the acquisition-date home,
 `qc/imagery_pixelsize_and_date.csv`) and by the coregistration bound, and report per stratum.
-This is §11 gap 6 and the hardest item on the ledger.
+This is §11 row 6 and the hardest item on the ledger.
 
 ---
 
@@ -350,7 +357,7 @@ q_loss(i, t) = q_loss · exp( A · K_R(d_i) · D_k(t − t_permit,i) ),   A ≥ 
 `K_R` a spatial kernel of radius `R` around the dated footprint, `D_k` a decay over the
 `k` years before the permit, and `A ≥ 0` the one-directionality the brief requires (only
 `q_loss` moves; nothing manufactures a loss). `R, k, A` come from the enrichment count the
-brief already orders first (§4.2, §7 step 1). Two bounds from the review, both
+brief already orders first (brief §4.2, §7 step 1). Two bounds from the review, both
 Christchurch/Seattle and not ours: Pedley & Morgenroth 2025's Table 2 puts 12.78 % of
 citywide loss on 2.33 % of parcels — a per-parcel enrichment of ≈ 5.5× **[D from review
 §4.4 figures]** — and Seattle's ratios are net-over-net, not gross (review §4.4). Rosa et al.
@@ -360,7 +367,7 @@ of this form — survival analysis with time-varying covariates — was not sear
 
 ### 6.2 Buildings as a soft prior, measurable from data we already hold (brief §6.2)
 
-The review answers §6.2 "soft, not hard" (review §4.10, §6 item 5). The soft form
+The review answers brief §6.2 "soft, not hard" (review §4.10, §6 item 5). The soft form
 **[D]** is a unary offset
 
 ```
@@ -390,7 +397,7 @@ review §4.12.4). Component-wise infimum and supremum then give Kleene three-val
 propagation — `inf([0,1],[0,0]) = [0,0]`, `sup([0,1],[1,1]) = [1,1]`, and IGNORE survives
 `inf([0,1],[1,1]) = sup([0,1],[0,0]) = [0,1]` — and adjunction makes opening and closing
 idempotent inside the lattice. This replaces the 3×3 opening/closing in
-`threshold_and_clean` (§2.4) with an operator that cannot turn 255 into a class. No
+`threshold_and_clean` (brief §2.4) with an operator that cannot turn 255 into a class. No
 parameter.
 
 ### 7.2 Probability-domain smoothing — adoptable with one free parameter
@@ -419,14 +426,14 @@ author for exactly this.
 2. recall on certified **gain** (`𝒢`),
 3. false-change rate on certified **FLAT** (`ℱ`) and on the 1,170 no-change points.
 
-The impossible-triple count (§2.1) is reported as a secondary and never optimised: the brief
-records that it has no power at this cadence. Li et al. 2025's change/no-change matrix
-(review §4.11) is the reporting shape; the certified strata are a stronger denominator than
-theirs.
+The impossible-triple count (brief §2.1) is reported as a secondary and never optimised:
+the brief records that it has no power at this cadence. Li et al. 2025's change/no-change
+matrix (review §4.11) is the reporting shape; the certified strata are a stronger
+denominator than theirs.
 
 ---
 
-## 9. What this changes in the brief's order (§7)
+## 9. What this changes in the brief's order (brief §7)
 
 - **Step 2 (per-cell port)** — unchanged, but scored with §8 and §5.1, and with the
   §2.2 detector run on the same chain (same `ℓ_t`; the marginal cost is the Monte-Carlo
@@ -434,18 +441,18 @@ theirs.
 - **Step 3 (consensus features)** — becomes the `(β, γ)` fit of §3.2 with its three
   baselines; "swept and READ against the gold" becomes "fit on `𝒢 ∪ ℱ`, read on the gold
   and per stratum."
-- **The raw-logits patch** — hold until §11 gap 1 resolves (§2.3).
+- **The raw-logits patch** — hold until §11 row 1 resolves (§2.3).
 - **New, before step 3, both CPU, both on files that exist:** the `K`-bin emission audit
-  (gap 1) and the Monte-Carlo threshold (gap 2).
+  (row 1) and the Monte-Carlo threshold (row 2).
 
 ---
 
 ## 10. Where the compute goes
 
 Per-cell chain and CUSUM: `N` independent 12-step recursions — CPU, parallel, free tier;
-memory as noted in §2.3. Leave-one-epoch-out scoring (§5.2): `T` such passes. Efron
-bootstrap (§5.1): `B` reruns, strata-local. Spatial mean-field (§3.4): the one GPU-shaped
-cost, or permutohedral on CPU. Nothing here needs training.
+memory as noted in §3.4 (from brief §2.3). Leave-one-epoch-out scoring (§5.2): `T` such
+passes. Efron bootstrap (§5.1): `B` reruns, strata-local. Spatial mean-field (§3.4): the
+one GPU-shaped cost, or permutohedral on CPU. Nothing here needs training.
 
 ---
 
@@ -453,17 +460,17 @@ cost, or permutohedral on CPU. Nothing here needs training.
 
 | # | Gap | Blocks | Cheapest closing step | Kill that must FIRE on a known-bad input | State |
 |---|---|---|---|---|---|
-| 1 | Emission model: `K`-bin (§2.3 A) vs calibrated log-odds (B) | the logits patch; everything upstream of the threshold | held-out log-likelihood of `e_t(b\|z)` on certified cells across `K` | placebo rate shuffle (§5): likelihood must fall | **[D] open — decides the patch** |
+| 1 | Emission model: `K`-bin (§2.3 A) vs calibrated log-odds (B) | the logits patch; everything upstream of the threshold | held-out log-likelihood of `e_t(b\|z)` on certified cells across `K` | placebo rate shuffle (brief §5): likelihood must fall | **[D] open — decides the patch** |
 | 2 | Two-sided CUSUM thresholds at `T = 12` with per-year rates | the detector (§2.2) | Monte Carlo on null sequences, per-year `(r_t, f_t)` | null sequences must not alarm above `α`; placebo must fall | **[D] open** |
 | 3 | `(β, γ)` estimation | the spatial layer (§3) | Gräler protocol on `𝒢 ∪ ℱ` with `(0,γ̂)`, `(β̂,0)`, `(0,0)` | `(0,0)` reported; an inert weight is a result | **[D] open** |
-| 4 | Erasure radius for the smoother actually chosen | §3.3; the "never redraw" question (§6.1 of the brief) | linear: closed form; non-linear: injected disks on real rasters (operator only) | 42 losses and `𝒢` (claim) | **[S→D] open** |
+| 4 | Erasure radius for the smoother actually chosen | §3.3; the "never redraw" question (brief §6.1) | linear: closed form; non-linear: injected disks on real rasters (operator only) | 42 losses and `𝒢` (claim) | **[S→D] open** |
 | 5 | Leave-one-epoch-out scoring identity under Bernoulli noise | §5.2 | derive the counting-error decomposition with known `(r_t, f_t)` | a non-invariant (median-type) layer must show the Noise2Self failure when checked | **[D] not derived** |
 | 6 | Covariance penalty under spatially / class-correlated error | §5 as a whole | none found; stratify by flight month and registration bound | — | **OPEN, hardest** |
 | 7 | Power: 42 losses resolve `Δ ≳ 0.12` only | which kills can decide small effects | use `𝒢`, `ℱ` for small effects | — | **[D] derived, stated** |
-| 8 | Conservative mask fraction `φ` | §7.2 | tie to `R_min` (gap 4) or report hand-set | — | **[D] open** |
-| 9 | Development prior `A, R, k` | §6.1 | the enrichment count (§4.2 step 1); search survival analysis | no-change gold near new buildings stays no-change (§5) | **[D] open; framing unsearched** |
-| 10 | Building prior `u`; blur radius | §6.2 | footprint canopy fraction at the lidar epochs; `coregistration.csv` per SCHEMAS | canopy painted on `ℱ` (§5) | **[D] open; data on hand** |
-| 11 | Lidar-referenced `(r_t, f_t)`, `q_loss`, `q_gain`, and `k_½` | every `ℓ_t`; §2.4 | score the twelve tags against the lidar binaries; estimate transitions on `𝒢 ∪ ℱ` | placebo | **not built (§2.3)** |
+| 8 | Conservative mask fraction `φ` | §7.2 | tie to `R_min` (row 4) or report hand-set | — | **[D] open** |
+| 9 | Development prior `A, R, k` | §6.1 | the enrichment count (brief §4.2, §7 step 1); search survival analysis | no-change gold near new buildings stays no-change (brief §5) | **[D] open; framing unsearched** |
+| 10 | Building prior `u`; blur radius | §6.2 | footprint canopy fraction at the lidar epochs; `coregistration.csv` per SCHEMAS | canopy painted on `ℱ` (brief §5) | **[D] open; data on hand** |
+| 11 | Lidar-referenced `(r_t, f_t)`, `q_loss`, `q_gain`, and `k_½` | every `ℓ_t`; §2.4 | score the twelve tags against the lidar binaries; estimate transitions on `𝒢 ∪ ℱ` | placebo | **not built (brief §2.3)** |
 | 12 | The `r`-convention translation of every [S] above | everything | one reader re-derives §2.1–§2.2 from the papers with `r` = recall | — | **[S] unchecked** |
 
 **Bins and checks, the 3.4c ledger.** Every [S] in this document (§1 convention, §2.1

@@ -46,6 +46,61 @@ transcript before rotation). Read order: `CLAUDE.md` → `WORKPLAN.md` → `STAT
 
 ════════════════ LOG  (newest first — append new entries directly below this line) ════════════════
 
+## 2026-09-11  LIT REVIEW VERIFIED + ROUND 3 + FRAMEWORK — 31 papers read, 12 gaps ledgered (Sonnet 5 → Fable 5.1)
+
+goal:    Kam: "get the pdfs, internalize, set the record straight" on
+         `LIT_REVIEW_SPATIOTEMPORAL_CONSISTENCY_2026-09-10.md`; then "transition
+         to framework and method … theoretical and mathematical problems we have
+         yet to consider."
+did:     paper-search-mcp installed as MCP + skill (uv tool; pinned `mcp<2`,
+         v2 broke `FastMCP` import). Round-2 verify: 10 flagged citations
+         fetched full text (PLOS/PMC/HAL/GFZ/UC-Canterbury/USDA
+         Treesearch/Copernicus; Sci-Hub for 2 IEEE/Elsevier-locked). 8 -> PRIMARY.
+         Corrections landed: Abercrombie&Friedl "90/10÷(K-1)" matrix = invented
+         gloss (paper: constant p=0.1; it DOES validate vs PRODES change);
+         Capliez "7-12 F1" misattributed (real unadapted loss 15-18); King&Locke
+         = one product's method, not field convention; Martinis&Twele gates
+         WHICH cells not HOW MUCH; Guo 1.4 m = CART split, not radius.
+         Round 3: 4 adjacent-field threads, 21 works, 16 PRIMARY -> §4.12.
+         No gap closes; 3, 7, 10, 12 narrow. Framework doc written: one energy
+         E(z)=unary+β·space+γ·time, every equation binned [Q]/[S]/[D], 12-row
+         gap ledger, 3 derivations ours (∂ℓ/∂f=−1/f; IGNORE half-life
+         ln2/(q_loss+q_gain)≈35 epochs at q_loss=0.02; 42-loss kill resolves
+         Δ≳0.12 only). Convention fixed doc-wide: r = recall (round-3 agents
+         used miss rate). Code check: prob raster kept per epoch (uint8
+         0-254, 255 nodata, `core.py::step_inference`); float logits never
+         written. Commits 7d1df07, 56c8e19, 08bfd08 on
+         `docs/lit-review-spatiotemporal-consistency`.
+         close-out: `check.py --fast` ruff+compile PASS; pytest rung 5/1932
+         FAIL, all pre-existing, 0 from this session: `backbone_benchmark.csv`
+         + `harm_spread.csv` "STALE" = CRLF-vs-LF byte diff (worktree checkout
+         has CRLF, renderer emits LF — line-ending config, not content);
+         `crown_state_intervals.csv` pointer, registry 2 manifests behind
+         (20260910T154530Z / 20260911T041021Z 2020_in16), SCIENCE.md curves
+         130→139 = this docs branch behind `work/20260906-healing-tool` + lake.
+         Not regenerated here (wrong branch for lake harvests). `landed.py
+         --dry-run`: mechanical rungs = lake harvests, skipped for docs
+         milestone; CHATLOG rung clean.
+decided: raw-logits patch HELD — emission model (K-bin vs log-odds) decides it
+         analytically, not preference (framework §2.3, ledger row 1). Lidar =
+         benchmark/calibration only, never input (H2 precedent). Buildings
+         soft prior, not veto (King&Locke). Sci-Hub last resort only, OA first.
+killed:  "MASTER vs review contradiction on Hoberg 2012" — not contradiction:
+         pdftotext drops Symbol-font β/γ glyphs; MASTER's "full text obtained"
+         = pdftotext ran, review's "would not parse" = unusable; pypdf reads it.
+         2 agent launches denied by auto-mode classifier (Sci-Hub step) ->
+         relaunched OA-only, both succeeded via Unpaywall->UC repo.
+files:   `Reports/LIT_REVIEW_SPATIOTEMPORAL_CONSISTENCY_2026-09-10.md` (§4.12,
+         §5, §7, bib), `Reports/FRAMEWORK_GAPS_SPATIOTEMPORAL_CONSISTENCY_2026-09-11.md`
+         (new), `Reports/TEMPORAL_SPATIAL_CONSISTENCY_BRAINSTORM_2026-09-10.md`
+         (§8 pointer), `D:\edmonds-pipeline\Literture\Validation\Abercrombie_Friedl_2016_*.pdf`.
+next:    ledger rows 1+2 first (CPU, files on hand): K-bin emission audit on
+         certified cells; MC CUSUM thresholds at n=12 with per-year (r_t,f_t).
+         Row 11: lidar-referenced rates do not exist. Row 12: one reader
+         re-derives §2.1-2.2 with r=recall. Unsearched: survival analysis
+         (§4.2 prior), MacFaden 2012/UVM (roof convention). WORKPLAN board row
+         = Kam's call. Sci-Hub tools land after Claude Code restart.
+
 ## 2026-09-02  HANDLE-FREE CONTROL CERTIFIED — 4 fire drills, 4 real bugs, ALL PASS (Fable 5)
 
 goal:    Kam: prevent/regain runtime control after CLI-handle death (all 3

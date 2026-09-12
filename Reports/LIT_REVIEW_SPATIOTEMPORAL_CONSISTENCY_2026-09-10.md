@@ -13,7 +13,7 @@ truth for every measured number about our own stack. Owner: Kam.
 
 **The field has no validated fix for the laundering problem. It has better-documented
 instances of it.** Across 92 verified works in eleven search threads (plus 21 adjacent-field
-works in four round-2 threads, §4.12), change-stratified reporting is rare: the standard evidence offered for a consistency layer is how much *more*
+works in four round-3 threads, §4.12), change-stratified reporting is rare: the standard evidence offered for a consistency layer is how much *more*
 the map agrees with itself after smoothing, which a strong enough prior produces regardless
 of correctness. Gong et al. 2017 — verified verbatim from full text — states it plainly:
 "we culled a few locations where the land cover labels changed," and that same reference
@@ -771,15 +771,18 @@ There is also no standard metric to adopt: searches for a settled "trajectory va
 have to define ours, and should define it against a change-stratified denominator from the
 start.
 
-### 4.12 Adjacent-field theory for four of the §5 gaps (round 2, 2026-09-11)
+### 4.12 Adjacent-field theory for four of the §5 gaps (round 3, 2026-09-11)
 
-Round 1 searched remote sensing and found the gaps in §5. Round 2 (four threads, 21 new
-works, 16 read in full) searched the fields where the same mathematics recurs under other
-names — geostatistics, total-variation image analysis, statistical process control,
+Rounds 1 and 2 searched remote sensing and found the gaps in §5. Round 3 (four threads,
+21 new works, 16 read in full) searched the fields where the same mathematics recurs under
+other names — geostatistics, total-variation image analysis, statistical process control,
 biosurveillance, denoising theory, missing-data signal processing — for gaps 3, 7, 10 and
 12. **No paper closes any gap. Several supply one half of one.** Every pairing of a
 paper's result with our objects (r, f, the 0/1/255 mask, a probability raster) is this
-review's substitution and is labelled so; none of it is measured on our data. The
+review's substitution and is labelled so; none of it is measured on our data. **Convention:
+throughout this review and the brief, `r` is recall, `P(x = 1 | z = 1)`, and `f` is the
+false-positive rate; the miss rate is `1 − r`.** The round-3 agents wrote `r` for the miss
+rate; every substitution below has been re-expressed in the brief's convention. The
 framework that assembles these halves lives in
 `FRAMEWORK_GAPS_SPATIOTEMPORAL_CONSISTENCY_2026-09-11.md`, which cites this section and
 carries no bibliography of its own.
@@ -845,8 +848,9 @@ exists for a joint spatio-temporal field on a probability stack.
   by the Reynolds & Stoumbos (1999) approximation or by Monte Carlo. The paper's own
   scope statement: it "requires both the pre- and post-change values of θt to be known,
   and is the optimal change detector under this assumption… (Lorden, 1971)." *This
-  review's substitution:* for a gain, θ0 = f and θ1 = 1 − r; for a loss, relabel x → 1 − x
-  and swap r ↔ f. Three caveats, all ours: the rule is one-sided; it assumes θ0, θ1
+  review's substitution:* for a gain, θ0 = f_t and θ1 = r_t (r = recall); for a loss,
+  relabel x → 1 − x and swap r ↔ 1 − f, f ↔ 1 − r. Three caveats, all ours: the rule is
+  one-sided; it assumes θ0, θ1
   constant across t, which per-year (r_t, f_t) violate; and at n = 12 no asymptotic
   run-length formula applies, so h must be calibrated by Monte Carlo on null 12-step
   sequences drawn with the per-year rates.
@@ -854,8 +858,10 @@ exists for a joint spatio-temporal field on a probability stack.
   correction in closed form, with π_kl = P(X* = k | X = l): eq. (2) `p*₀ = π₁₁p₀ + π₁₀q₀`;
   eq. (7) `p**₀ = (p*₀ − π₁₀)/(1 − π₁₀ − π₀₁)`; Theorem 3.1(b)
   `var{EWMA**} = p*₀(1−p*₀)λ{1−(1−λ)^2t} / [n(1−π₁₀−π₀₁)²(2−λ)]`. *This review's mapping:*
-  π₁₀ = f, π₀₁ = r. **The factor 1/(1 − f − r)² is the noise-floor statement §3.5 of
-  CLAUDE.md asks for**, in one line. Not a change-point rule (an EWMA over n subjects per
+  π₁₀ = f (false positive), π₀₁ = 1 − r (miss), so the denominator is r − f. **The factor
+  1/(r − f)² is the noise-floor statement §3.5 of CLAUDE.md asks for**, in one line — at the
+  brief's rates r = 0.61, f = 0.05 it is ≈ 3.2, and the brief's emission gate f < r is the
+  condition that keeps it finite. Not a change-point rule (an EWMA over n subjects per
   epoch). Code: `github.com/lchen723/SPC-ME-R-code`.
 - **Itkin 2026** (**PRIMARY**, arXiv:2606.12476) has the same structure — a latent two-state
   chain seen through a noisy classifier — in a different domain, and gives the general
@@ -863,8 +869,8 @@ exists for a joint spatio-temporal field on a probability stack.
   `τ = min{t : St ≥ h}`; Proposition 1: "let ω > 0 solve E0[e^{ωY}] = 1… ARL0 =
   e^{ωh}(1+o(1)) and EDD = h/E1[Y](1+o(1))"; Corollary 1(ii): the cross-entropy minimiser
   *is* the log-likelihood-ratio increment. *This review's instantiation:* increments
-  log((1−r_t)/f_t) on an observed 1 and log(r_t/(1−f_t)) on an observed 0; for binary Y the
-  equation in ω is scalar in (r, f). No (r, f) symbols appear in the paper.
+  log(r_t/f_t) on an observed 1 and log((1−r_t)/(1−f_t)) on an observed 0 (r = recall); for
+  binary Y the equation in ω is scalar in (r, f). No (r, f) symbols appear in the paper.
 - **Sandia SAND2016-7395C** (**PRIMARY**, bylined "Author 1") corroborates the Bernoulli
   CUSUM form `Bt = max(0, Bt−1 + Xt − r)` and adds nothing; support only.
 - **Negatives, each a finding.** All 100 works citing Miller et al. 2013 (Semantic Scholar)
@@ -1004,13 +1010,13 @@ deliberately:
    there is still no like-for-like benchmark for 240/327 — but the weaker, verified claim
    is the one to rely on.
 2. **No forward-fed dated event prior** (§4.2). Zero prior art in remote sensing,
-   deforestation-risk modelling, and crime/disease mapping — seven search angles. **Round 2
+   deforestation-risk modelling, and crime/disease mapping — seven search angles. **Round 3
    narrows the wording, not the finding:** a time-decaying, directional modifier on a
    transition rate is a proportional-hazards model with a time-varying covariate, and
    survival analysis was *not* searched. "Framing exists, unsearched" is the honest state;
    "no prior art" overstated it.
 3. **No measured spatial-vs-temporal weight, no sensitivity sweep, no change-size erasure
-   threshold** (§4.1). **Narrowed in round 2 (§4.12.1):** the erasure threshold has a
+   threshold** (§4.1). **Narrowed in round 3 (§4.12.1):** the erasure threshold has a
    closed form for total-variation smoothing (δ = α/scale, Strong & Chan 2003); the weight
    has a fitting protocol with a held-out test against β = 0 / γ = 0 baselines (Gräler et
    al. 2016), and one documented case where the weight did not matter (Krähenbühl & Koltun
@@ -1024,7 +1030,7 @@ deliberately:
 6. **No resolution curriculum that degrades imagery and labels together** (§4.4b).
 7. **No method for validating a correction layer as distinct from validating the map it
    corrects.** Searched explicitly in remote sensing; only generic post-processing papers
-   returned. **Narrowed in round 2 (§4.12.3) — the method is older than the field that
+   returned. **Narrowed in round 3 (§4.12.3) — the method is older than the field that
    lacks it:** Stein/Efron covariance penalties score a black-box corrector from its
    degrees of freedom plus residual, and Efron 2004 covers Bernoulli outcomes at an
    asymmetric cut; Noise2Self gives the J-invariance condition; cross-fitting gives the
@@ -1034,7 +1040,7 @@ deliberately:
 9. **No measured cross-year lidar leakage rate** — nothing of the form "X% of year Y's
    label is leftover structure from lidar epoch Z" (§4.3).
 10. **No change-point method applied to a binary mask sequence with pre-measured (r, f).**
-    The statistics exist; the remote-sensing application does not. **Narrowed in round 2
+    The statistics exist; the remote-sensing application does not. **Narrowed in round 3
     (§4.12.2):** the Bernoulli CUSUM with known rates (Ross et al. 2012) and the
     misclassification correction explicit in f and r (Chen & Yang 2022) are both primary,
     in two literatures never joined; a general log-likelihood-ratio form that admits
@@ -1044,7 +1050,7 @@ deliberately:
     measured cost of a hard veto at its failure edges — offset footprints, demolished
     structures, canopy overhanging a roof (§6.2).
 12. **No study of IGNORE/no-data sentinel propagation through a multi-stage raster
-    post-processing chain** (§4.5). **Substantially narrowed in round 2 (§4.12.4):**
+    post-processing chain** (§4.5). **Substantially narrowed in round 3 (§4.12.4):**
     interval-valued morphology gives a closed-under-composition three-valued rule for the
     morphology stage; partial convolutions give the renormalisation for probability-domain
     smoothing; Kalman filtering with intermittent observations gives the exact
@@ -1056,7 +1062,7 @@ deliberately:
 
 *Inference:* items 2, 5, 6, 8, 9, 10, 11 and 12 are places where the brief proposes
 something this search did not find in the field. That is a reason to pre-register carefully
-and measure, not a reason to abandon. After round 2, items 10 and 12 can be de-risked by
+and measure, not a reason to abandon. After round 3, items 10 and 12 can be de-risked by
 *assembling* published halves rather than by reading further; item 2 has an unsearched
 statistical home (survival analysis); the rest cannot be de-risked by reading.
 
@@ -1069,6 +1075,9 @@ statistical home (survival analysis); the rest cannot be de-risked by reading.
 > twelve were produced the same way — an agent asserting an absence, often from an abstract
 > rather than a full text — and carry the same risk. Before any of them is used to justify
 > building something novel, spend the hour to read the one paper closest to the claim.
+> **Round 3 (2026-09-11) then took items 3, 7, 10 and 12 to adjacent literatures: each
+> narrowed and none closed (§4.12).** The negatives held as "not in remote sensing" and
+> failed as "not anywhere" — which is the reading every remaining item should get.
 
 *What does survive:* the lidar-certified GAIN (46,805) and FLAT (40,609) populations (§2.2)
 give us a change-stratified denominator built from an independent instrument rather than
@@ -1184,14 +1193,14 @@ number, never instead of it. Adopt it from the first run rather than retrofittin
   (Capliez — §4.5); a GFZ Potsdam pubman mirror for an MDPI DOI that 403'd both a
   UA-spoofed curl and WebFetch directly (Martinis & Twele — §4.2); USDA Forest Service
   Treesearch for a Forest Service co-authored paper (King & Locke — §4.10).
-- **Round 2 (2026-09-11) searched adjacent fields, not remote sensing again:** four
+- **Round 3 (2026-09-11) searched adjacent fields, not remote sensing again:** four
   threads — geostatistics and total-variation theory for the weight/erasure gap;
   statistical process control and biosurveillance for change detection in (r, f);
   denoising theory (SURE, Efron, Noise2Self) for corrector validation; missing-data signal
   processing for IGNORE propagation. 21 new works, 16 read in full, 3 ABSTRACT, 2 METADATA;
   findings in §4.12, grades in the bibliography. The same rule held: every pairing of a
   paper's result with our objects is marked as the review's substitution. Two more leads
-  round 2 named but did not pull: the survival-analysis framing of §4.2 (item 2), and the
+  round 3 named but did not pull: the survival-analysis framing of §4.2 (item 2), and the
   MacFaden et al. 2012 / UVM methodology that would settle whether canopy-over-roof is a
   field convention (§4.10).
 - **Not searched:** §6.4 (which training lever first) is a cost/sequencing decision no
@@ -1315,7 +1324,7 @@ Grades as defined in §2. Grouped by the brief section they bear on.
 - Reis, M.S., Dutra, L.V., Escada, M.I.S. & Sant'Anna, S.J.S. (2020). Avoiding Invalid Transitions in Land Cover Trajectory Classification With a Compound Maximum a Posteriori Approach. *IEEE Access* 8. doi:10.1109/ACCESS.2020.2997019 — **ABSTRACT**
 - Yang, J. & Huang, X. (2021). The 30 m Annual Land Cover Dataset and Its Dynamics in China from 1990 to 2019 (CLCD). *ESSD* 13(8). doi:10.5194/essd-13-3907-2021 — **METADATA ⚠ NUMBERS**
 
-### Adjacent-field theory (round 2, 2026-09-11; §4.12)
+### Adjacent-field theory (round 3, 2026-09-11; §4.12)
 Grades as in §2. None of these works is about land cover; each is cited for one result
 whose pairing with our objects is this review's substitution. Author surnames are as
 captured in the fetch; initials were not recorded and are deliberately not supplied here.

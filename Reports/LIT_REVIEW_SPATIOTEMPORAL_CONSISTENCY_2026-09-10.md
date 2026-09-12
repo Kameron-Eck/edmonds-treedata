@@ -19,8 +19,10 @@ of correctness. Gong et al. 2017 — verified verbatim from full text — states
 "we culled a few locations where the land cover labels changed," and that same reference
 set supplies the cross-validation test folds. Its headline consistency gain
 (18.91% → 73% unchanged) was scored on a pool from which changed locations had been
-removed. The same algorithm shipped globally as MODIS Collection 6 with a caution against
-using the smoothed product for change detection. A 2025 post-processing paper on the global
+removed. The same algorithm shipped globally as MODIS Collection 6, whose official product
+documentation still cautions against using it for change detection — not because of the
+smoothing, but because per-year label uncertainty at 500 m remains too high to distinguish
+real change from spectral confusion (verified verbatim, §4.1). A 2025 post-processing paper on the global
 30 m product removed **74% of all mapped change** (7,537 → 1,981 Mha) while reporting a
 1.2-point accuracy *gain* — the exact signature §2.3's arithmetic predicts a persistence
 prior would produce, though to its credit that paper *does* also report a change/no-change
@@ -29,8 +31,9 @@ lower (§4.11). The
 strongest transferable ideas are not new architectures but four cheap, specific
 instruments: grading each cell by its own forward-backward joint probability (Yang et al.
 2020), estimating transitions from a *certified* subset rather than from projected labels
-(Miller et al. 2013; Perantoni et al. 2025), gating how much the prior may override a cell
-by that cell's own local confidence (Martinis & Twele 2010), and keeping the layer in
+(Miller et al. 2013; Perantoni et al. 2025), gating *whether* a cell enters the contextual
+update at all by that cell's own local confidence — an admit/exclude threshold, not a
+graded weight (Martinis & Twele 2010), and keeping the layer in
 probability space rather than downstream of a stage that has already hardened its output
 (Cheng & Liu 2020; Li et al. 2019). Two designs in the brief have **no prior art in any
 domain searched**: §4.2's dated, directional, decaying development prior, and §6.2's hard
@@ -55,8 +58,11 @@ Every citation was confirmed to exist through a Crossref or Semantic Scholar rec
 fetched publisher page. Nothing in the bibliography is recalled from model memory. Three
 entries were independently re-verified after a critic flagged them; all three are real
 works, correctly attributed (Mobsite et al. 2026, Guo et al. 2018, Pedley & Morgenroth
-2025), but the specific *numbers* attributed to two of them remain unverified and are
-flagged below wherever used.
+2025). **Update, 2026-09-11:** full text was subsequently obtained for both Guo et al. 2018
+and both 2025 Pedley & Morgenroth papers (§4.4, §4.8, §4.10). Guo's number is real but is a
+CART split point in one pruned tree, not the removal radius it was being used as; both
+Pedley & Morgenroth papers' numbers check out against their own tables. Mobsite's ablation
+table remains behind a 403 and its numbers still live only in brief §2.5.
 
 ---
 
@@ -65,9 +71,9 @@ flagged below wherever used.
 | Brief item | Closest prior art | What it MEASURED | What it does NOT settle | What we would measure |
 |---|---|---|---|---|
 | §2.3 persistence prior beats 4 absences | Gong et al. 2017 **PRIMARY** | Unchanged-label share 18.91% → 73% under a hand-set prior | Validation set had every changed location removed first | Recall on the 42 gold losses, at our own q_loss |
-| §2.3 where q_loss comes from | Miller et al. 2013 **ABSTRACT**; Perantoni et al. 2025 **PRIMARY** | Transitions estimated from data while correcting for both error rates; per-year-pair matrices | Neither uses a projected-label archive like ours | q_loss/q_gain from the lidar-certified GAIN/FLAT populations |
-| §4.1 joint space+time field | Hoberg et al. 2015 **METADATA**; Benedek & Sziranyi 2009 **METADATA** | Joint spatial+temporal CRF/MRF energies exist and are mature | No measured spatial-vs-temporal weight, no sweep, no scaling evidence | The local/global weight, swept, read against the gold |
-| §4.1 how much the prior may override a cell | Martinis & Twele 2010 **ABSTRACT** | Entropy-gated exchange: locally confident evidence is protected from contextual override | No numeric change-size threshold | Whether per-cell gating by measured r,f beats one global weight |
+| §2.3 where q_loss comes from | Miller et al. 2013 **PRIMARY**; Perantoni et al. 2025 **PRIMARY** | Transitions estimated from data while correcting for both error rates; per-year-pair matrices | Neither uses a projected-label archive like ours | q_loss/q_gain from the lidar-certified GAIN/FLAT populations |
+| §4.1 joint space+time field | Hoberg et al. 2015 **METADATA** (2012 precursor **PRIMARY**); Benedek & Sziranyi 2009 **METADATA** | Joint spatial+temporal CRF/MRF energies exist and are mature; the precursor states β/γ "were found empirically" — no value given, confirming rather than merely inferring the "hand-tuned, unswept" read | No measured spatial-vs-temporal weight, no sweep, no scaling evidence | The local/global weight, swept, read against the gold |
+| §4.1 whether a cell enters the contextual update at all | Martinis & Twele 2010 **PRIMARY** | Entropy-gated admit/exclude: a node only enters the spatio-temporal update if its posterior entropy exceeds the scene's own mean; admitted nodes' spatial/temporal weights are hand-fixed at 1, never swept | No numeric change-size threshold; no ablation of the gate itself exists (Table 2 runs every variant *with* it) | Whether per-cell gating by measured r,f beats one global weight |
 | §4.2 dated directional loss prior | **Nothing.** Seven search angles | Every source joins construction records to change *post hoc* | The forward-fed construct has no precedent at all | The §4.2 enrichment count is the right first move — nobody has done it |
 | §4.2 where-vs-when risk | Rosa et al. 2013 **PRIMARY** | Ancillary prior 80% right on WHERE (10 km, cumulative), ~2% right on WHEN (exact year) | Not urban, not permits, not a sequential update | Whether a building anchor moves the year of loss, not just the place |
 | §4.3 lidar as teacher | Lang et al. 2023 **PRIMARY**; Tolan et al. 2024 **PRIMARY** | Two honest exams against reference data outside lidar coverage (independent ALS; GEDI + forest-inventory field plots). Accuracy degrades off home ground: Tolan MAE 2.8 m (NEON) → 5.1 m (São Paulo) | Four systems engineer the lidar-year/imagery-year gap away (Tolan: "<two years"); none publishes the cost of not doing so | The exam that killed H2: teacher from a lidar year, student examined on a non-lidar year |
@@ -75,7 +81,7 @@ flagged below wherever used.
 | §4.4b resolution curriculum | **Nothing direct.** FixRes 2019 **ABSTRACT** | Train-coarse/fine-tune-native gains exist for classification, with no label degradation | Part of any such gain can be batch-norm recalibration, not learning | Control for the recalibration confound before crediting the curriculum |
 | §4.4d GSD not monotonic | Brown et al. 2022 **ABSTRACT** | At FIXED GSD, optics alone swung detector mAP by >50% | Animal detection, synthetic degradation | Independent confirmation of our own season/sensor-over-GSD finding — already aligned |
 | §4.5 layer placement | Cheng & Liu 2020 **PRIMARY**; Li et al. 2019 **ABSTRACT** | Deferring argmax to the end of a soft chain: +0.8–1.5 mIoU (4 backbones); probability-domain smoothing +7.0/+6.9 pts OA | Nobody studies IGNORE-sentinel propagation through a chain | Whether reasoning over the healer's 255s loses more than it gains |
-| §6.2 buildings as HARD negative context | King & Locke 2013 **ABSTRACT**; Sun et al. 2022 **ABSTRACT** | Urban-forestry convention resolves canopy-over-roof in FAVOUR of canopy; CG-Net encodes footprints as a *soft* prior robust to positional error | *Not found* (~10 queries): any A/B test of hard veto vs soft prior on the same layer, or any measured cost of a veto at its edges | The at-risk count a hard veto needs (§3 rule 3) — none found to borrow |
+| §6.2 buildings as HARD negative context | King & Locke 2013 **PRIMARY**; Sun et al. 2022 **ABSTRACT** | One data product's mutually-exclusive GIS classification assigns canopy-over-roof to the tree class, not the building class (not a surveyed field-wide convention, contra an earlier draft here); CG-Net encodes footprints as a *soft* prior robust to positional error | *Not found* (~10 queries): any A/B test of hard veto vs soft prior on the same layer, or any measured cost of a veto at its edges | The at-risk count a hard veto needs (§3 rule 3) — none found to borrow |
 | §6.3 build a buildings vision model? | Li et al. 2022 **PRIMARY** | Purpose-built CNN flagging cadastral gaps: F1 85.14%, **82.27% precision** on undocumented buildings | — | Answer: it trades error profiles, not eliminates error. Run the §4.2 count first |
 | §6.1 how much may it reshape | Pasquarella et al. 2022 **PRIMARY** | BOTH LandTrendr and CCDC replace every in-segment observation with a fitted value | — | Segmentation is the *strong*-reshaping end. See §4.3 below |
 | §6.1 a fill-or-veto alternative | Reiche et al. 2015/2021 **ABSTRACT** | Provisional alert held pending, confirmed or dropped as evidence accrues | Assumes 6–12 day revisit, not 12 surveys in 15 years | Whether a confirmation rule recalibrated to our r,f beats the chain |
@@ -110,19 +116,49 @@ flagged below wherever used.
   correctness. Note the authors' own wording is "a few," so this is a design choice stated
   in passing, not a large announced exclusion; the effect on what the number can prove is
   the same either way.
-- **Sulla-Menashe et al. 2019** (**ABSTRACT**, ⚠ NUMBERS) documents the same algorithm
-  operating globally as MODIS Collection 6. Spurious inter-annual transitions reportedly
-  fell 11.4% → 1.6% (⚠ snippet, not primary-verified), and product documentation cautions
-  against using the smoothed output for change detection. *Inference:* institutional
-  acknowledgment of the risk, not a resolution of it.
+- **Sulla-Menashe et al. 2019** (**ABSTRACT**, ⚠ NUMBERS on the transition figure; **PRIMARY**
+  on the caution — split grade, verified 2026-09-11) documents the same algorithm operating
+  globally as MODIS Collection 6. The published abstract states spurious land cover change
+  fell "1.6% in C6 and 11.4% in C5" — abstract-verbatim, one level up from the earlier
+  "search snippet," but the article body stays paywalled (Unpaywall and OpenAlex both report
+  no OA or repository copy), so the metric's denominator is still unverified; ⚠ stays.
+  Separately, the official MCD12Q1 User Guide (Sulla-Menashe & Friedl 2018, full text read)
+  is explicit and now primary-verified: "we urge users not to use the product to determine
+  post-classification land cover change… uncertainty in the land cover labels for any one
+  year remains too high to distinguish real change from changes between classes that are
+  spectrally indistinguishable at the coarse 500-m MODIS resolution." *Correction to an
+  earlier draft:* the caution is not attributed to the HMM smoothing — it is stated
+  *despite* the smoothing, which the paper frames as the improvement. The cause named is
+  per-year label uncertainty and 500-m spectral confusion. *Inference:* institutional
+  acknowledgment of the risk, not a resolution of it — but the mechanism is coarse-pixel
+  spectral ambiguity, not an artifact of temporal smoothing itself.
 - **Perantoni et al. 2025** (**PRIMARY**, arXiv HTML) reports F1 70.88 → 73.59 from adding
   an HMM layer, and states that evaluating on parcels that actually changed is future
   work.
 
-**How transitions are set, across the whole thread:** hand-set 90%/10%÷(K−1)
-(Abercrombie & Friedl 2016, **METADATA**); hand-set site-knowledge tiers (Gong et al.
-2017); expert "illogical transition" rules (Cai et al. 2014, **METADATA**). Only two
-estimate from data:
+**How transitions are set, across the whole thread:** hand-set constant transition
+probability (Abercrombie & Friedl 2016, **PRIMARY** — full text read 2026-09-11, Sci-Hub;
+filed at `D:\edmonds-pipeline\Literture\Validation\Abercrombie_Friedl_2016_HMM_multitemporal_landcover_TGRS.pdf`);
+hand-set site-knowledge tiers (Gong et al. 2017); expert "illogical transition" rules (Cai
+et al. 2014, **METADATA**). Only two estimate from data:
+
+> **Correction to an earlier draft.** The "90%/10%÷(K−1)" transition-matrix form attributed
+> to Abercrombie & Friedl 2016 above does not exist in that paper. §III-A states it plainly:
+> "we restricted our transition matrix to the simplest possible model: a constant transition
+> probability applied to all pixels and all labels… we used a transition probability of 0.1
+> for most of our experiments." The paper never writes "90%" and never divides by (K−1); the
+> reference implementation (`BU-LCSC/mtlchmm`, `model.py::_transition_matrix`) sets every
+> off-diagonal to 0.1 and the diagonal to 0.9, unnormalized — a 9:1 stay-vs-any-other ratio,
+> not the ~144:1 that 10%÷(K−1) implies at IGBP's K=17 classes. Neither this project's own
+> `crown_state_model.py::transition_matrix` (a 3-state q_gain/q_loss chain) nor the cited
+> paper describes a K−1-normalized split; "90%/10%÷(K−1)" appears to be an invented gloss and
+> should not be repeated. **A second correction:** the paper is not merely a source of the
+> transition-matrix *form* — §III-B.3/§IV-C score it against real change (1,050 MODIS pixels
+> over the Xingu basin, PRODES deforestation reference, 2001–2010): "the omission error rate
+> is effectively insensitive to the value of the transition probability. The commission error
+> rate… increase[s] monotonically" with p. That is a real, if narrow, change-stratified test
+> — deforestation only, 3-year timing tolerance, a signal the authors call clearly separable —
+> so this citation is no longer accurately described as untested against real change.
 
 - **Bogaert et al. 2022** (**ABSTRACT**) estimates *both* transition and emission
   parameters from real classified series and explicitly handles missing dates.
@@ -133,14 +169,28 @@ estimate from data:
   label co-occurrence, explicitly rejecting one stationary matrix.
 
 **The transferable form of both, and the review's single best structural find:**
-**Miller et al. 2013** (**ABSTRACT**), a multi-season occupancy model from ecology, is the
-closest mathematical object to §2.3 found anywhere. Its latent per-site binary state
-sequence carries *both* a non-detection rate and a false-positive rate in the emission —
-the same shape as our per-survey (r, f) — and it estimates the gain/loss transitions
-(colonization/extinction) **while correcting for both error rates**, identifying the
-false-positive channel from a subset of surveys treated as *certain* (radio-collared
-locations). It independently reproduces our diagnosis in another field: ignoring the
-false-positive channel biases both the state estimate and the turnover rate.
+**Miller et al. 2013** (**PRIMARY** — full text read 2026-09-11, journals.plos.org; all
+four sub-claims below confirmed verbatim), a multi-season occupancy model from ecology
+(full title: *"…Estimating the Range Dynamics of Wolves from Public Survey Data"*; note the
+review's earlier citation of *PLOS ONE 8(10)* is a bibliographic error — the correct issue
+is **8(6)**), is the closest mathematical object to §2.3 found anywhere. Its latent per-site
+binary state sequence carries *both* a non-detection rate and a false-positive rate in the
+emission — the same shape as our per-survey (r, f) — and it estimates the gain/loss
+transitions (colonization/extinction) **while correcting for both error rates**, identifying
+the false-positive channel from a subset of surveys treated as *certain*: "known locations of
+resident wolf packs collected using radio-telemetry based monitoring of marked individuals
+(i.e., certain method)." It independently reproduces our diagnosis in another field:
+"Failing to account for false positives led to over estimation of both the area inhabited by
+wolves and the frequency of turnover" (ΔAIC 443.2 vs. the FP-ignoring model).
+
+> **Two cautions the paper states about itself, worth carrying forward.** The *direction* of
+> the turnover bias is case-dependent, not a law: "In our study, unaccounted-for detection
+> errors led to higher estimates of both colonization and extinction. In other cases
+> unaccounted-for false positives will lead to underestimation of transition probabilities."
+> And a notation trap for anyone mapping this onto our own (r, f): in Miller's
+> multiple-detection-method design, the *uncertain* method's rates are (p11, p10); `r11` in
+> that paper is the *certain* method's detection probability, not the general survey rate —
+> do not align our per-survey `r` with Miller's `r11`.
 
 > *This review's inference, stated as a design pointer:* the Edmonds analog of Miller's
 > "certain subset" already exists — the lidar-certified GAIN (46,805) and FLAT (40,609)
@@ -159,9 +209,31 @@ paper.
 
 ### 4.2 §4.1 — space and time as one field
 
-Architectures exist and are mature. **Hoberg et al. 2015** (**METADATA**) is a pairwise
-CRF spanning multiple epochs *and resolutions* in one energy — structurally the closest to
-what §4.1 wants. **Benedek & Sziranyi 2009** (**METADATA**) folds a spatial layer and a
+Architectures exist and are mature. **Hoberg et al. 2015** (**METADATA** — the 2015 IEEE
+TGRS journal version stays unreadable: Unpaywall and OpenAlex both report no OA or
+repository copy, and five Sci-Hub mirrors returned nothing) is a pairwise CRF spanning
+multiple epochs *and resolutions* in one energy — structurally the closest to what §4.1
+wants. **Its 2012 ISPRS Annals precursor now reads in full** (Hoberg, Rottensteiner &
+Heipke — no Feitosa on this earlier paper — "Context Models for CRF-Based Classification of
+Multitemporal Remote Sensing Data," doi:10.5194/isprsannals-I-7-129-2012, **PRIMARY**,
+open-access via Copernicus, parsed successfully 2026-09-11 with `pypdf` after an earlier
+attempt reported it would not parse — the β/γ symbols sit in Symbol-font private-use
+codepoints that a plain-text extractor drops). Three findings transfer directly to §4.1's
+open questions:
+- **"No measured local/global weight" is now a quoted fact, not an inference:** "the
+  weighting factors β and γ of the spatial and temporal interaction potentials… were found
+  empirically" (§2.4) — no value is printed for either, and the paper sweeps a feature-scale
+  parameter and three spatial models but never β/γ. The absence is *checked*, not merely
+  unfound.
+- **A fourth documented instance of the laundering prior**, stated as a modelling
+  assumption rather than discovered as a side effect: its transition table holds 1.0 on
+  class-preserving entries and 0.05–0.2 elsewhere, "because we assume that it is most likely
+  to have no changes in any region" (§6).
+- **"No scaling evidence" is confirmed at the paper's own numbers:** an 8.6×5.9 km² area
+  near Herne, Germany, two epochs per setup (Ikonos 4 m + Landsat 30 m) — far below
+  13.3 M cells × 12 epochs.
+
+**Benedek & Sziranyi 2009** (**METADATA**) folds a spatial layer and a
 change layer into one joint mixed-Markov energy for bitemporal *aerial* imagery across
 large seasonal/sensor gaps — closer in spirit to our cross-flight problem than most
 Landsat-cadence work. **Melgani & Serpico 2003** (**METADATA**) is the ancestor. On the
@@ -177,14 +249,25 @@ EM-trained HMM.
 3. **No inference at anything near 13.3 M cells × 12 epochs.** Every demonstrated system
    runs at scene, segment, or few-epoch scale.
 
-**The one genuine design pointer: Martinis & Twele 2010** (**ABSTRACT**) gates how much
-contextual information a unit absorbs by an *entropy-based confidence measure* — locally
-confident evidence is largely left alone; only uncertain units are pulled toward context.
-*Inference:* this is the mechanism §4.1 is reaching for when it says the local/global
-weight is "a parameter to be MEASURED, not set." The per-cell version here is to derive
-that weight from the survey's own measured r and f, so a confident year resists the
-twelve-year consensus and an unreliable one yields to it. Nothing in the literature has
-done this with per-survey measured rates.
+**The one genuine design pointer: Martinis & Twele 2010** (**PRIMARY** — full CC-BY PDF
+read 2026-09-11 via a GFZ Potsdam repository mirror; MDPI's own site 403'd both a
+UA-spoofed curl and WebFetch, so resolving the DOI to a repository copy is the route that
+works for this publisher, not fighting the bot wall) gates *which* units enter the
+contextual update at all, by an *entropy-based confidence measure*: a node is admitted to
+the spatio-temporal update only where its marginal-posterior entropy exceeds a threshold
+set at the scene's own mean entropy (Eq. 13); confident nodes keep their hierarchical label
+untouched. *Correction to an earlier draft:* this is an admit/exclude gate, not a graded
+"how much" weight — the paper is explicit that admission "decreases the computational
+effort," and for admitted nodes the spatial and temporal weights (γ_sp, γ_tp) are hand-fixed
+at 1 and never swept (p.2251: "fixed to 1 during the experiment"). No ablation of the gate
+itself exists — Table 2 runs every tested variant *with* it. *Inference:* this is still the
+mechanism §4.1 is reaching for when it says the local/global weight is "a parameter to be
+MEASURED, not set" — but the literature's version answers *whether* to trust local evidence,
+not *how much* to discount the prior by. The per-cell version here is to derive a graded
+weight from the survey's own measured r and f, so a confident year resists the twelve-year
+consensus and an unreliable one yields to it — proportionally, which is a step beyond what
+Martinis & Twele's binary gate does. Nothing in the literature does the graded version with
+per-survey measured rates.
 
 **Useful negative evidence on ordering:** Liu et al. 2021 smooths spatially *before* the
 temporal stage. *Inference:* that bakes spatial-consensus error into the sequence before
@@ -216,9 +299,17 @@ Concrete anchors from that family:
 - **Murakami & Tsutsumida 2025** (**METADATA**): all three top out below 80% F1 (CCDC
   78.14%) once the domain is urban rather than forest. *Inference:* the accuracy ceiling
   drops in exactly the direction we are moving.
-- **Rodman et al. 2021** (**ABSTRACT**, ⚠ NUMBERS): detectability tracks disturbance
-  severity — diffuse low-contrast mortality is disproportionately missed. *Inference:*
-  a segmentation-style layer trades one omission pattern for another; it is not immune.
+- **Rodman et al. 2021** (**PRIMARY** — full published PDF read 2026-09-11; bronze OA link
+  dead, Unpaywall reports closed, retrieved via Sci-Hub mirror): detectability tracks
+  disturbance severity and agent, confirmed with real numbers, not the qualitative
+  paraphrase this entry previously carried. LandTrendr caught 74.3% of fire disturbances
+  within one year vs. 26.5% of spruce-beetle mortality; even restricted to the 30.1% of
+  beetle events with a confident onset year, detection was still 61.8% — 12.5 points below
+  fire. The severity–detectability relationship is positive for *both* agents (β = 0.98,
+  p < 0.01). Net areal effect: LandTrendr mapped 37–41% less disturbed area than
+  perimeter/index-based reference methods. *Note: the earlier ⚠ NUMBERS flag pointed at no
+  figure actually present in this entry — it was stale.* *Inference:* a segmentation-style
+  layer trades one omission pattern for another; it is not immune.
 
 **The fill-or-veto alternative the brief is reaching for does exist, in a different
 literature.** **Reiche et al. 2015** (**ABSTRACT**) and the operational **RADD** system
@@ -251,11 +342,35 @@ input that asserts or weights evidence during detection:
   load-bearing:* those are **net-over-net** ratios. Calibrating q_loss needs **gross**
   flip rates, which the report does not break out; the gross upper bound is ~4.9%
   citywide. Do not carry the 13.7–78% figures into a prior without that correction.
-- **Guo et al. 2018 / 2019, Morgenroth et al. 2017, Pedley & Morgenroth 2025** — four
-  papers from one Christchurch group (**ABSTRACT**/**METADATA**, ⚠ NUMBERS). This is a
-  monoculture rather than a corpus; weight accordingly. The often-quoted 1.4 m
-  tree-to-building removal radius could not be verified against the publisher's own text
-  and should not be used as a parameter.
+- **Guo et al. 2018 / 2019, Morgenroth et al. 2017** — three papers from one Christchurch
+  group (Guo 2018/2019 now **PRIMARY** via the author's PhD thesis, University of Canterbury
+  repository, hdl 10092/16832, read 2026-09-11; Morgenroth 2017 stays **ABSTRACT/METADATA,
+  UNREADABLE** — closed in both Unpaywall and OpenAlex). This is a monoculture rather than a
+  corpus; weight accordingly. *Correction to an earlier draft:* the 1.4 m tree-to-building
+  figure is real and is confirmed in Guo et al. 2018 — both the publisher's own abstract
+  ("trees were most likely to be removed if they were within 1.4 m of a redeveloped
+  building…") and the thesis (Ch.3 §3.3.2: "The probability of tree removed was
+  approximately double if a tree was closer than 1.4 m to the boundary of a building,"
+  P=0.66 vs 0.35). *But it is not a removal radius* — it is a CART split point the
+  classification-tree algorithm chose on one continuous predictor (crown edge to nearest
+  same-property building, 2011 imagery), in one pruned tree fit to 6,966 trees on 450
+  post-earthquake Christchurch properties (73.4% accuracy). It does not generalize even
+  within this one research group: the 2017 study (Morgenroth et al., via a self-archived
+  conference deck, since the paper itself stays unreadable) splits the same variable at
+  **0.7 m**. Still do not use 1.4 m as a parameter — not because it is fabricated, but
+  because it is a sample-specific decision-tree artifact, not a measured physical or
+  regulatory threshold.
+- **Pedley & Morgenroth 2025** (Sustainable Cities and Society, **PRIMARY** — full
+  publisher-paginated PDF via the UC repository, hdl 10092/108884, read 2026-09-11) is the
+  fourth paper in this group, and its own numbers cut *against* a development-loss prior at
+  the citywide scale even while confirming one at the parcel scale. Table 2: redeveloped
+  properties are 2.33% of the 72,671 treed residential properties studied and carry only
+  **12.78%** of citywide canopy loss — 87.22% of all loss sits on unmodified land ("over 87%
+  of the total loss occurred on unmodified properties with no recorded building work for new
+  residential units"). Per-property severity still ranks cleanly by redevelopment intensity
+  — pre-existing canopy lost: intensification 74.2%, rebuild 47.9%, minor 21.4%, no build
+  13.7% — so the prior is well-founded *per parcel* but explains only a small share of the
+  citywide total.
 - **Ossola & Hopton 2017** (**PRIMARY**, PMC full text) tracked 28,427 lost stems at 92–97%
   detection accuracy and found loss associated with neighbourhoods developed **before the
   1970s** — standing stock and neighbourhood age, not new construction.
@@ -345,10 +460,21 @@ accuracy and reports no meaningful degradation (R² 0.72, 539,611 held-out footp
 but only for years the lidar actually flew, which is exactly not our case for ten of
 twelve surveys.
 
-Adjacent and quantified: **Capliez et al. 2023** (two papers, **ABSTRACT**) measures
-source-year → target-year classifier transfer and reports unadapted transfer losing
-**7–12 F1 points**. *Inference:* cross-year transfer degrades by a double-digit margin
-even in a far more forgiving setting than ours.
+Adjacent and quantified: **Capliez et al. 2023** (two papers, **PRIMARY** — full author
+postprints read 2026-09-11 via HAL, `hal-04097327` and `hal-05181753`) measures source-year
+→ target-year classifier transfer against per-year field ground truth. *Correction to an
+earlier draft: the "7–12 F1 points" figure was misattributed.* That figure is the JSTARS paper's own
+abstract claim for its proposed adaptation method's margin *over competing UDA methods* —
+not the unadapted transfer loss. The actual unadapted loss (best supervised baseline, no
+adaptation, same target test set): **15.0–17.9 F1 points across five transfer tasks**
+(range 9.1–23.7 over all model/task pairs), with the paper's own text putting the worst case
+at "around 18 points of F1-score." *Inference, corrected:* cross-year transfer degrades by
+roughly 15–18 points unadapted in this setting — a double-digit margin holds for 11 of 12
+model/task pairs (9.1 the exception), not by the 7–12 figure previously cited here. One
+caveat on comparability: Capliez's setting is more forgiving on acquisition (same sensor,
+same GSD, per-year ground truth) but *less* forgiving on change — annual crop rotation is a
+larger real shift than canopy growth — so this is not a clean upper bound on our case either
+way.
 
 ### 4.6 §4.4 — the two training levers
 
@@ -464,11 +590,21 @@ characteristic error does not exist yet, here or anywhere.
 - **MacFaden et al. 2012** and **O'Neil-Dunne et al. 2014** (**ABSTRACT**) solve
   rooftop/shadow confusion by co-acquiring lidar at **every** epoch — the resource we do
   not have and, per §2.2, cannot safely substitute.
-- **Pedley & Morgenroth 2025** (ISPRS Open J., **METADATA**) is the closest problem shape:
-  fine-scale, property-level canopy *loss* from misaligned multi-date imagery, deliberately
-  tuned precision-high (0.941) over recall (0.811). *Inference:* that is the mirror of our
-  operating point — they suppress false loss calls, we suppress true ones. Adopting their
-  threshold relocates the failure rather than fixing it.
+- **Pedley & Morgenroth 2025** (ISPRS Open J. **15**:100082, CC BY, **PRIMARY** — full text
+  read 2026-09-11) is the closest problem shape: fine-scale, property-level canopy *loss*,
+  deliberately tuned precision-high (0.941) over recall (0.811) — verified verbatim, Table 3
+  and abstract: "Precision values were higher than recall values (0.941 compared to 0.811),
+  which reflected a deliberately conservative approach to avoid false positive detections."
+  *One correction the fetch surfaced, worth noting even though it was inconsistent to grade
+  this METADATA while quoting specific numbers — that inconsistency is now resolved by
+  actually reading the paper:* the loss signal here is **2016→2021 lidar height change**
+  overlaid on the 2016 canopy layer, not imagery differencing — placing its *inputs* in the
+  same lidar-dependent class as MacFaden/O'Neil-Dunne above, even though its *objective*
+  (fine-scale loss detection from misaligned multi-date data) is the closest match in the
+  review. *Inference:* that is the mirror of our operating point — they suppress false loss
+  calls, we suppress true ones. Adopting their threshold relocates the failure rather than
+  fixing it, and the resource it leans on (lidar at both epochs) is exactly what §2.2 says we
+  cannot safely substitute for.
 
 ### 4.9 §4.5 — where the layer sits, and why probabilities matter
 
@@ -520,20 +656,34 @@ literature's answer is more discouraging than expected.**
   quantifies the damage from a footprint offset, a demolished-but-still-registered
   structure, or canopy overhanging a roof. Searched directly; the limitations sections are
   silent.
-- **And the one paper that squarely addresses canopy over buildings points the other way.**
-  **King & Locke 2013** (**ABSTRACT**) documents that the urban-forestry field's own
-  convention for GIS land-cover summarisation resolves canopy-over-building **in favour of
-  keeping the canopy**, not vetoing it. *Inference:* a hard building veto would put us
-  against the prevailing convention in our own application domain, and would delete real
+- **And the one paper that squarely addresses canopy over buildings points the other way —
+  though its framing needed correcting once read in full.** **King & Locke 2013** (**PRIMARY**
+  — full text via USDA Forest Service Treesearch, read 2026-09-11) documents that a
+  high-resolution NYC seven-class land-cover product, in its mutually-exclusive GIS
+  classification, assigns canopy overhanging a building to the tree class rather than the
+  building class: "Each class is mutually exclusive and tree canopy that hangs over
+  buildings are assigned to the tree class" (p.64). The companion i-Tree field protocol
+  counts both independently rather than choosing (p.63). *Correction to an earlier draft:*
+  the paper never calls this a field-wide "convention" — it is a stated property of *one*
+  data product's methodology (the NYC map, built on MacFaden et al. 2012), not a surveyed
+  practice across the urban-forestry field. The abstract alone (the earlier grade) could
+  never have supported the "field convention" framing as written — the claim outran its
+  cited evidence, and happened to land close to something true. *Inference, revised:* a
+  hard building veto would still put us against how at least one closely-related,
+  methodologically-documented product handles this exact case, and would still delete real
   overhanging canopy — a class of error our gold set (§2.4) has no label for and therefore
-  cannot detect.
+  cannot detect. That is weaker support than "the field's own convention," and worth stating
+  at its actual strength. (A true field-wide convention, if one exists, would need to come
+  from MacFaden et al. 2012 or the UVM Spatial Analysis Lab methodology behind the ~four
+  dozen urban tree canopy assessments King & Locke cites — not yet fetched.)
 - **The soft alternative has a concrete precedent.** **Sun et al. 2022** (CG-Net,
   **ABSTRACT**) conditions a segmentation network on GIS footprints by feature
   normalisation rather than pixel-wise masking, and is explicitly engineered to tolerate
   positional error in the GIS layer instead of assuming the footprint is exact.
 
 > *Inference, as a direct answer to §6.2:* the literature gives no basis for the hard
-> form, one domain convention against it, and a workable soft form. Under §3 rule 3, a
+> form, one closely-related data product's methodology against it (not a surveyed field-wide
+> convention — see the correction above), and a workable soft form. Under §3 rule 3, a
 > hard veto is a rule that can reach a terminal absence through an ancillary layer, so it
 > needs its own at-risk count — and **nobody in the literature has one to borrow**.
 > Entering buildings as a soft, one-directional prior on the transition (the same shape
@@ -699,8 +849,9 @@ Ordered by cost, not by importance. Each states what it would settle.
    class-mixed edge cells where the 42 losses live. *Settles:* whether the §2.3 arithmetic
    stands.
 5. **Answer §6.2 as "soft, not hard."** The literature gives no basis for a hard ancillary
-   veto, one domain convention against it (King & Locke 2013), and a working soft form
-   (Sun et al. 2022). *Settles:* §6.2, unless someone is willing to produce the at-risk
+   veto, one closely-related product's methodology against it (King & Locke 2013 — a stated
+   property of the NYC data product, not a surveyed field convention), and a working soft
+   form (Sun et al. 2022). *Settles:* §6.2, unless someone is willing to produce the at-risk
    count §3 rule 3 demands — which nobody in the literature has.
 6. **Answer §6.3 as "not yet."** A purpose-built detector for exactly this task reaches
    82.27% precision (Li et al. 2022); it trades our coverage gap for a comparable error.
@@ -750,23 +901,40 @@ number, never instead of it. Adopt it from the first run rather than retrofittin
 - **Known monoculture:** the §4.2 evidence is four-sevenths one Christchurch research
   group. Treat that thread as one group's findings, not a field consensus.
 - **Numbers flagged ⚠ are not primary-verified** and should not be carried into a design
-  or a pre-registration without independent confirmation. In particular: the MODIS
-  11.4%→1.6% figure, the Guo et al. 1.4 m radius, and the Pedley & Morgenroth 2025
-  percentage splits.
-- **Highest-priority paper we could not read:** Abercrombie & Friedl 2016 — the likely
-  direct ancestor of `crown_state_model.py` — is **metadata-only** in both rounds. IEEE
-  elided the abstract and blocked full text on every attempt. Its treatment of
-  validation-on-real-change is therefore unknown. An open-source implementation exists
-  (`BU-LCSC/mtlchmm`), which is a second route in if institutional access is unavailable.
+  or a pre-registration without independent confirmation. **Updated 2026-09-11:** of the
+  three examples named in an earlier draft, two turned out to be real once fetched — the
+  Guo et al. 1.4 m figure is confirmed (though it is a CART split point, not a removal
+  radius; §4.4) and the Pedley & Morgenroth 2025 percentage splits are confirmed against
+  Table 2 (§4.4) — so both are removed from this list. Only the MODIS 11.4%→1.6% figure
+  remains ⚠: it is now abstract-verbatim rather than search-snippet, but the article body
+  stays paywalled and the metric's denominator is still unconfirmed (§4.1).
+- **Abercrombie & Friedl 2016 has now been read in full** (Sci-Hub, 2026-09-11; previously
+  the review's own highest-priority unread paper — the likely direct ancestor of
+  `crown_state_model.py`). Two findings change what was assumed about it: it does *not* use
+  a 90%/10%÷(K−1) transition matrix (that description was an invented gloss with no basis in
+  the paper or in this project's own code — §4.1), and it *does* validate against real
+  change, scoring omission/commission against PRODES deforestation reference data — a
+  narrower test (deforestation only, 3-year timing tolerance) than the review previously
+  implied was entirely absent. Full text filed at
+  `D:\edmonds-pipeline\Literture\Validation\`. The open-source port `BU-LCSC/mtlchmm` was
+  consulted alongside the paper and matches its method.
 - **Paywalls here are usually routable, and a ⚠ grade is often just a dead end in the
   fetch, not a closed door.** Tolan et al. 2024 was upgraded **ABSTRACT ⚠ → PRIMARY** on
   2026-09-11 by reading the open-access preprint (arXiv:2304.07213) instead of the Elsevier
   version, which changed the §4.3 conclusion materially. Any remaining ⚠ or METADATA entry
   is worth one check for a preprint, an institutional-repository mirror, or a
-  society-journal precursor before it is treated as unreadable. Two leads not yet pulled:
-  Hoberg et al. 2015 has a 2012 ISPRS Annals precursor (Copernicus, open access — a
-  searcher located it but its PDF would not parse), and Li et al. 2022 was recovered this
-  way already, via the DLR repository mirror.
+  society-journal precursor before it is treated as unreadable. **Update, 2026-09-11 — both
+  of the two leads named in the previous draft were pulled successfully:** Hoberg et al.
+  2015's 2012 ISPRS Annals precursor parsed cleanly this time (`pypdf`, after `pdftotext`
+  dropped its β/γ symbols, which sit in Symbol-font private-use codepoints — likely why an
+  earlier attempt read the parse as failed; §4.2). Li et al. 2022 remains recovered via the
+  DLR repository mirror, as previously recorded. Other repository-mirror routes that worked
+  this round, worth reusing on future ⚠/METADATA entries: Unpaywall's OA-location lookup
+  resolving Elsevier DOIs to University of Canterbury repository bitstreams (Guo, Pedley &
+  Morgenroth — §4.4, §4.8); HAL author postprints for a French INRAE-affiliated group
+  (Capliez — §4.5); a GFZ Potsdam pubman mirror for an MDPI DOI that 403'd both a
+  UA-spoofed curl and WebFetch directly (Martinis & Twele — §4.2); USDA Forest Service
+  Treesearch for a Forest Service co-authored paper (King & Locke — §4.10).
 - **Not searched:** §6.4 (which training lever first) is a cost/sequencing decision no
   literature settles; the material for it is in §4.6. §6.2 and §6.3 *were* searched in
   round 2 and are answered in §4.10.
@@ -781,13 +949,13 @@ number, never instead of it. Adopt it from the first run rather than retrofittin
 Grades as defined in §2. Grouped by the brief section they bear on.
 
 ### §2.3 — temporal chain, transitions, emissions
-- Abercrombie, S.P. & Friedl, M.A. (2016). Improving the Consistency of Multitemporal Land Cover Maps Using a Hidden Markov Model. *IEEE TGRS* 54(2). doi:10.1109/TGRS.2015.2463689 — **METADATA**
+- Abercrombie, S.P. & Friedl, M.A. (2016). Improving the Consistency of Multitemporal Land Cover Maps Using a Hidden Markov Model. *IEEE TGRS* 54(2). doi:10.1109/TGRS.2015.2463689 — **PRIMARY** (full text, Sci-Hub, verified 2026-09-11; local copy in `D:\edmonds-pipeline\Literture\Validation\`)
 - Bogaert, P., Lamarche, C. & Defourny, P. (2022). Hidden Markov Models for Annual Land Cover Mapping — Increasing Temporal Consistency and Completeness. *IEEE TGRS* 60. doi:10.1109/TGRS.2021.3123738 — **ABSTRACT**
 - Cai, S., Liu, D., Sulla-Menashe, D. & Friedl, M.A. (2014). Enhancing MODIS land cover product with a spatial–temporal modeling algorithm. *RSE* 147. doi:10.1016/j.rse.2014.03.012 — **METADATA**
 - Gong, W., Fang, S., Yang, G. & Ge, M. (2017). Using a Hidden Markov Model for Improving the Spatial-Temporal Consistency of Time Series Land Cover Classification. *ISPRS IJGI* 6(10):292. doi:10.3390/ijgi6100292 — **PRIMARY**
-- Miller, D.A.W. et al. (2013). Determining Occurrence Dynamics when False Positives Occur. *PLOS ONE* 8(10):e65808. doi:10.1371/journal.pone.0065808 — **ABSTRACT**
+- Miller, D.A.W. et al. (2013). Determining Occurrence Dynamics when False Positives Occur: Estimating the Range Dynamics of Wolves from Public Survey Data. *PLOS ONE* **8(6)**:e65808. doi:10.1371/journal.pone.0065808 — **PRIMARY** (full text, verified 2026-09-11; issue number corrected from 8(10))
 - Perantoni, G., Weikmann, G. & Bruzzone, L. (2025). Bayesian Modelling of Multi-Year Crop Type Classification Using Deep Neural Networks and Hidden Markov Models. arXiv:2510.07008 — **PRIMARY** (preprint)
-- Sulla-Menashe, D., Gray, J.M., Abercrombie, S.P. & Friedl, M.A. (2019). Hierarchical mapping of annual global land cover 2001 to present: MODIS Collection 6. *RSE* 222. doi:10.1016/j.rse.2018.12.013 — **ABSTRACT ⚠ NUMBERS**
+- Sulla-Menashe, D., Gray, J.M., Abercrombie, S.P. & Friedl, M.A. (2019). Hierarchical mapping of annual global land cover 2001 to present: MODIS Collection 6. *RSE* 222. doi:10.1016/j.rse.2018.12.013 — **ABSTRACT ⚠ NUMBERS** (transition figure, abstract-verbatim); its product documentation (Sulla-Menashe & Friedl, MCD12Q1 User Guide) is **PRIMARY** (§4.1)
 - Wehmann, A. & Liu, D. (2015). A spatial–temporal contextual Markovian kernel method for multi-temporal land cover mapping. *ISPRS J.* 107. doi:10.1016/j.isprsjprs.2015.04.009 — **METADATA**
 - Yang, G., Fang, S., Gong, W., Zhao, Y. & Ge, M. (2020). Evaluating the reliability of time series land cover maps by exploiting the hidden Markov model. *SERRA* 35. doi:10.1007/s00477-020-01915-9 — **ABSTRACT**
 - Yuan, Y. et al. (2015). Continuous Change Detection and Classification Using Hidden Markov Model: Beijing. *Remote Sensing* 7(11):15318. doi:10.3390/rs71115318 — **METADATA**
@@ -795,9 +963,10 @@ Grades as defined in §2. Grouped by the brief section they bear on.
 ### §4.1 — joint space and time
 - Benedek, C. & Sziranyi, T. (2009). Change Detection in Optical Aerial Images by a Multilayer Conditional Mixed Markov Model. *IEEE TGRS* 47(10). doi:10.1109/TGRS.2009.2022633 — **METADATA**
 - Benedek, C., Shadaydeh, M., Kato, Z., Sziranyi, T. & Zerubia, J. (2015). Multilayer Markov Random Field models for change detection in optical remote sensing images. *ISPRS J.* 107. doi:10.1016/j.isprsjprs.2015.02.006 — **METADATA**
-- Hoberg, T., Rottensteiner, F., Feitosa, R.Q. & Heipke, C. (2015). Conditional Random Fields for Multitemporal and Multiscale Classification of Optical Satellite Imagery. *IEEE TGRS* 53(2). doi:10.1109/TGRS.2014.2326886 — **METADATA**
+- Hoberg, T., Rottensteiner, F., Feitosa, R.Q. & Heipke, C. (2015). Conditional Random Fields for Multitemporal and Multiscale Classification of Optical Satellite Imagery. *IEEE TGRS* 53(2). doi:10.1109/TGRS.2014.2326886 — **METADATA** (confirmed unreadable 2026-09-11: no OA/repository copy, five Sci-Hub mirrors empty)
+- Hoberg, T., Rottensteiner, F. & Heipke, C. (2012). Context Models for CRF-Based Classification of Multitemporal Remote Sensing Data. *ISPRS Annals* I-7:129–134. doi:10.5194/isprsannals-I-7-129-2012 — **PRIMARY** (2012 precursor to the above; full text parsed 2026-09-11, §4.2)
 - Liu, C., Song, W., Lu, C. & Xia, J. (2021). Spatial-Temporal Hidden Markov Model for Land Cover Classification. *IEEE Access* 9. doi:10.1109/ACCESS.2021.3080926 — **ABSTRACT**
-- Martinis, S. & Twele, A. (2010). A Hierarchical Spatio-Temporal Markov Model for Improved Flood Mapping Using Multi-Temporal X-Band SAR Data. *Remote Sensing* 2(9). doi:10.3390/rs2092240 — **ABSTRACT**
+- Martinis, S. & Twele, A. (2010). A Hierarchical Spatio-Temporal Markov Model for Improved Flood Mapping Using Multi-Temporal X-Band SAR Data. *Remote Sensing* 2(9). doi:10.3390/rs2092240 — **PRIMARY** (full text via GFZ Potsdam repository mirror, verified 2026-09-11, §4.2)
 - Melgani, F. & Serpico, S.B. (2003). A Markov random field approach to spatio-temporal contextual image classification. *IEEE TGRS* 41(11). doi:10.1109/TGRS.2003.817269 — **METADATA**
 
 ### §6.1 — reshaping, segmentation, confirm-or-veto
@@ -808,7 +977,7 @@ Grades as defined in §2. Grouped by the brief section they bear on.
 - Polunchenko, A.S. & Tartakovsky, A.G. (2012). State-of-the-Art in Sequential Change-Point Detection. *Meth. Comput. Appl. Probab.* doi:10.1007/s11009-011-9256-5 — **PRIMARY**
 - Reiche, J., de Bruin, S., Hoekman, D., Verbesselt, J. & Herold, M. (2015). A Bayesian Approach to Combine Landsat and ALOS PALSAR Time Series for Near Real-Time Deforestation Detection. *Remote Sensing* 7(5). doi:10.3390/rs70504973 — **ABSTRACT**
 - Reiche, J. et al. (2021). Forest disturbance alerts for the Congo Basin using Sentinel-1. *ERL* 16. doi:10.1088/1748-9326/abd0a8 — **ABSTRACT**
-- Rodman, K.C., Andrus, R.A., Veblen, T.T. & Hart, S.J. (2021). Disturbance detection in Landsat time series is influenced by tree mortality agent and severity. *RSE* 254:112244. doi:10.1016/j.rse.2020.112244 — **ABSTRACT ⚠ NUMBERS**
+- Rodman, K.C., Andrus, R.A., Veblen, T.T. & Hart, S.J. (2021). Disturbance detection in Landsat time series is influenced by tree mortality agent and severity, not by prior disturbance. *RSE* 254:112244. doi:10.1016/j.rse.2020.112244 — **PRIMARY** (full text read 2026-09-11; title was previously truncated, dropping its third finding)
 - Verbesselt, J., Hyndman, R., Newnham, G. & Culvenor, D. (2010). Detecting trend and seasonal changes in satellite image time series. *RSE* 114(1). doi:10.1016/j.rse.2009.08.014 — **PRIMARY**
 - Wendelberger, L.J., Reich, B.J., Wilson, A.G. & Gray, J.M. (2026). Detecting Deforestation Using Robust Online Bayesian Monitoring. *Data Science in Science*. doi:10.1080/26941899.2026.2687150 — **METADATA**
 - Zhu, Z. & Woodcock, C.E. (2014). Continuous change detection and classification of land cover using all available Landsat data. *RSE* 144. doi:10.1016/j.rse.2014.01.011 — **PRIMARY**
@@ -816,16 +985,16 @@ Grades as defined in §2. Grouped by the brief section they bear on.
 ### §4.2 — ancillary and cadastral priors
 - Cardille, J.A. & Fortin, J.A. (2016). Bayesian updating of land-cover estimates in a data-rich environment. *RSE* 186. doi:10.1016/j.rse.2016.08.021 — **METADATA ⚠ NUMBERS**
 - City of Seattle OSE / University of Vermont SAL (2023). *City of Seattle Tree Canopy Assessment: Final Report (2016–2021)*. Agency report — **PRIMARY**
-- Guo, T., Morgenroth, J. & Conway, T.M. (2018). Redeveloping the urban forest: the effect of redevelopment and property-scale variables on tree removal and retention. *UFUG* 35. doi:10.1016/j.ufug.2018.08.012 — **ABSTRACT ⚠ NUMBERS**
-- Guo, T., Morgenroth, J., Conway, T.M. & Xu, C. (2019). City-wide canopy cover decline due to residential property redevelopment in Christchurch. *STOTEN* 681. doi:10.1016/j.scitotenv.2019.05.122 — **ABSTRACT**
-- Morgenroth, J., O'Neil-Dunne, J. & Apiolaza, L.A. (2017). Redevelopment and the urban forest: tree removal and retention during demolition. *Applied Geography* 82. doi:10.1016/j.apgeog.2017.02.011 — **METADATA ⚠ NUMBERS**
+- Guo, T., Morgenroth, J. & Conway, T.M. (2018). Redeveloping the urban forest: the effect of redevelopment and property-scale variables on tree removal and retention. *UFUG* 35. doi:10.1016/j.ufug.2018.08.012 — **PRIMARY** (author's PhD thesis, UC repository hdl 10092/16832, read 2026-09-11 — the 1.4 m figure is real but is a CART split point, not a removal radius; see §4.4)
+- Guo, T., Morgenroth, J., Conway, T.M. & Xu, C. (2019). City-wide canopy cover decline due to residential property redevelopment in Christchurch. *STOTEN* 681. doi:10.1016/j.scitotenv.2019.05.122 — **PRIMARY** (same thesis, Ch.2, read 2026-09-11; no 1.4 m figure in this paper)
+- Morgenroth, J., O'Neil-Dunne, J. & Apiolaza, L.A. (2017). Redevelopment and the urban forest: tree removal and retention during demolition. *Applied Geography* 82. doi:10.1016/j.apgeog.2017.02.011 — **METADATA ⚠ NUMBERS** (confirmed still unreadable 2026-09-11: closed in Unpaywall and OpenAlex; the author's own conference deck, hdl 10092/14376, gives a 0.7 m split for the same variable, which is why the paper stays unread rather than assumed)
 - Ossola, A. & Hopton, M.E. (2017). Measuring urban tree loss dynamics across residential landscapes. *STOTEN*. doi:10.1016/j.scitotenv.2017.08.103 — **PRIMARY**
-- Pedley, D. & Morgenroth, J. (2025). Green vs growth: residential intensification and urban tree canopy loss in Christchurch. *Sustainable Cities and Society* 130:106678. doi:10.1016/j.scs.2025.106678 — **METADATA ⚠ NUMBERS**
+- Pedley, D. & Morgenroth, J. (2025). Green vs growth: The effect of residential intensification on urban tree canopy loss in Christchurch, New Zealand. *Sustainable Cities and Society* 130:106678. doi:10.1016/j.scs.2025.106678 — **PRIMARY** (full publisher PDF via UC repository hdl 10092/108884, read 2026-09-11; drop ⚠ NUMBERS; title corrected — see §4.4)
 - Rosa, I.M.D., Purves, D., Souza, C. Jr. & Ewers, R.M. (2013). Predictive Modelling of Contagious Deforestation in the Brazilian Amazon. *PLOS ONE* 8(10):e77231. doi:10.1371/journal.pone.0077231 — **PRIMARY**
 
 ### §4.3 — privileged information, lidar as teacher, cross-year transfer
-- Capliez, E., Ienco, D., Gaetano, R., Baghdadi, N. & Hadj Salah, A. (2023). Temporal-Domain Adaptation for Satellite Image Time-Series Land-Cover Mapping. *IEEE JSTARS*. doi:10.1109/JSTARS.2023.3263755 — **ABSTRACT ⚠ NUMBERS**
-- Capliez, E. et al. (2023). Multisensor Temporal Unsupervised Domain Adaptation for Land Cover Mapping. *IEEE TGRS*. doi:10.1109/TGRS.2023.3297077 — **ABSTRACT**
+- Capliez, E., Ienco, D., Gaetano, R., Baghdadi, N. & Hadj Salah, A. (2023). Temporal-Domain Adaptation for Satellite Image Time-Series Land-Cover Mapping. *IEEE JSTARS*. doi:10.1109/JSTARS.2023.3263755 — **PRIMARY** (author postprint via HAL, verified 2026-09-11 — see §4.5 correction; drop ⚠ NUMBERS)
+- Capliez, E. et al. (2023). Multisensor Temporal Unsupervised Domain Adaptation for Land Cover Mapping. *IEEE TGRS*. doi:10.1109/TGRS.2023.3297077 — **PRIMARY** (author postprint via HAL, verified 2026-09-11)
 - Islam, M.D. et al. (2026). High-resolution multi-temporal forest canopy height mapping in California using GEDI LiDAR and multi-sensor remote sensing. *Science of Remote Sensing*. doi:10.1016/j.srs.2026.100488 — **METADATA**
 - Kalinicheva, E., Helen, F., Mermoz, S., Mouret, F. & Planells, M. (2025). Super-Resolved Canopy Height Mapping from Sentinel-2 Time Series Using Airborne LiDAR HD. arXiv:2512.11524 — **ABSTRACT** (preprint)
 - Lai, Y. et al. (2026). Forest canopy height estimation from satellite RGB imagery using large-scale airborne LiDAR-derived training data. arXiv:2602.06503 — **ABSTRACT ⚠ NUMBERS** (preprint)
@@ -864,7 +1033,7 @@ Grades as defined in §2. Grouped by the brief section they bear on.
 - MacFaden, S.W., O'Neil-Dunne, J.P.M., Royar, A.R., Lu, J.W.T. & Rundle, A.G. (2012). High-resolution tree canopy mapping for New York City using LIDAR and object-based image analysis. *JARS* 6:063567. doi:10.1117/1.JRS.6.063567 — **ABSTRACT**
 - Nowak, D.J. & Greenfield, E.J. (2012). Tree and impervious cover change in U.S. cities. *UFUG*. doi:10.1016/j.ufug.2011.11.005 — **ABSTRACT**
 - O'Neil-Dunne, J.P.M., MacFaden, S.W. & Royar, A.R. (2014). A Versatile, Production-Oriented Approach to High-Resolution Tree-Canopy Mapping. *Remote Sensing* 6(12). doi:10.3390/rs61212837 — **ABSTRACT**
-- Pedley, D. & Morgenroth, J. (2025). Detecting and measuring fine-scale urban tree canopy loss with deep learning and remote sensing. *ISPRS Open J. Photogramm. Remote Sens.* doi:10.1016/j.ophoto.2025.100082 — **METADATA**
+- Pedley, D. & Morgenroth, J. (2025). Detecting and measuring fine-scale urban tree canopy loss with deep learning and remote sensing. *ISPRS Open J. Photogramm. Remote Sens.* **15**:100082. doi:10.1016/j.ophoto.2025.100082 — **PRIMARY** (CC BY, full text read 2026-09-11 — the 0.941/0.811 precision/recall figures previously quoted from a METADATA-graded citation are now confirmed at Table 3; that inconsistency is resolved. Its loss signal is lidar height change, not imagery differencing — see §4.8)
 - Walton, J.T. (2008). Difficulties with estimating city-wide urban forest cover change from national, remotely-sensed tree canopy maps. *Urban Ecosystems*. doi:10.1007/s11252-007-0040-9 — **ABSTRACT**
 
 ### §4.5 — layer placement, soft versus hard decisions
@@ -877,7 +1046,7 @@ Grades as defined in §2. Grouped by the brief section they bear on.
 ### §6.2 / §6.3 — buildings as ancillary context, and cadastral completeness
 - Abellera, L.V. & Stenstrom, M.K. (2005). Impervious Surface Detection from Satellite Imagery with Knowledge-Based Systems and GIS. *Computing in Civil Engineering 2005* (ASCE). doi:10.1061/40794(179)45 — **METADATA ⚠ NUMBERS**
 - Hecht, R., Meinel, G. & Buchroithner, M. (2015). Automatic identification of building types based on topographic databases — a comparison of different data sources. *Int. J. Cartography* 1(1). doi:10.1080/23729333.2015.1055644 — **METADATA ⚠ NUMBERS**
-- King, K. & Locke, D. (2013). A Comparison of Three Methods for Measuring Local Urban Tree Canopy Cover. *Arboriculture & Urban Forestry* 39(2). doi:10.48044/jauf.2013.009 — **ABSTRACT** (the canopy-over-roof convention finding, §4.10)
+- King, K. & Locke, D. (2013). A Comparison of Three Methods for Measuring Local Urban Tree Canopy Cover. *Arboriculture & Urban Forestry* 39(2). doi:10.48044/jauf.2013.009 — **PRIMARY** (full text via USDA Forest Service Treesearch, read 2026-09-11; the canopy-over-roof finding, §4.10 — corrected from a stated field "convention" to a property of one data product's methodology)
 - Li, Q., Taubenböck, H., Shi, Y., Auer, S., Roschlaub, R., Glock, C., Kruspe, A. & Zhu, X.X. (2022). Identification of undocumented buildings in cadastral data using remote sensing. *IJAEOG* 112:102909. doi:10.1016/j.jag.2022.102909 — **PRIMARY** (full text via DLR mirror elib.dlr.de/187878)
 - Sun, Y., Hua, Y., Mou, L. & Zhu, X.X. (2022). CG-Net: Conditional GIS-Aware Network for Individual Building Segmentation in VHR SAR Images. *IEEE TGRS*. doi:10.1109/TGRS.2020.3043089 — **ABSTRACT**
 - Yi, S., Li, X., Liu, Y., Dong, X. & Tu, W. (2025). A sub-meter resolution urban surface albedo dataset for 34 U.S. cities based on deep learning. *Scientific Data* 12:789. doi:10.1038/s41597-025-05109-2 — **PRIMARY** (the unmeasured hard-veto instance, §4.10)

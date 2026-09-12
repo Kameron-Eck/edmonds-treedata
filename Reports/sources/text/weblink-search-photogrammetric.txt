@@ -1,0 +1,50 @@
+Laserfiche WebLink full-text search — term: photogrammetric
+Retrieved manually via browser (Claude-in-Chrome), 2026-09-09.
+URL: https://weblink.edmondswa.gov/WebLink/Search.aspx?dbid=0&repo=Edmonds
+
+Results 1 - 10 of 10
+
+Both key contracts recur here: "King County 2015 Regional Aerials Funding Interlocal Agreement"
+and "Snohomish County 26-27 ILA - Urban Tree Canopy Mapping Project" — consistent with both
+being genuine geospatial-acquisition agreements that use the word "photogrammetric"/"orthophoto"
+terminology internally. Remaining hits are large 2013 City Council packets (964-2031 pages each)
+and a 2024-01-23 Council Packet / 2024-01-16 Council Minutes, not opened in this pass (likely
+boilerplate GIS-department budget or consultant-scope language), plus one unrelated permit
+critical-areas report. No additional distinct vendor contract surfaced.
+
+=== CONDENSED CAPTURE (mcp__claude-in-chrome__get_page_text) ===
+The two Contracts-template rows (King County 2015 ILA, Snohomish County 26-27 ILA) below are
+reproduced in full, verbatim. The council-packet/minutes and permit rows are condensed from
+their multi-line blocks to a single title/type line each — no field values were altered, only
+reformatted for brevity.
+
+Sort results by: Relevance
+Results 1 - 10 of 10
+2013-10-15 City Council - Public Agenda-1519 (Meetings and Hearings - 964 pages, Council Packet)
+2013-11-12 City Council - Public Agenda-1523 (Meetings and Hearings - 1439 pages, Council Packet)
+2013-12-03 City Council - Public Agenda-1526 (Meetings and Hearings - 2031 pages, Council Packet)
+2013-12-17 City Council - Public Agenda-1528 (Meetings and Hearings - 2021 pages, Council Packet)
+King County 2015 Regional Aerials Funding Interlocal Agreement
+Contracts - 42 pages
+Fields
+Contract Start Date:6/23/2015
+Contract Title:King County 2015 Regional Aerials Funding Interlocal Agreement
+Contract Type:Interlocal
+Contract/Project Number:06560
+Okay to Expire:NO
+Snohomish County 26-27 ILA - Urban Tree Canopy Mapping Project
+Contracts - 16 pages
+Fields
+City Department:Finance / Information Services
+Contract Expiration Date:6/30/2026
+Contract Start Date:7/20/2026
+Contract Title:Intergovernmental Services Agreement between Snohomish County and City of Edmonds for Urban Tree Canopy Mapping Project
+Contract Type:Interlocal
+Contract/Project Number:IS-20260720-SNOCOTRMAP
+Okay to Expire:NO
+Vendor:Snohomish County
+REVIEWED BLD2023-1125+CA Report+9.6.2023 (TRAKiT Document - 26 pages, 9309 OLYMPIC VIEW DR)
+REVIEWED MARKUP PLN BLD2023-1125+CA Report+9.6.2023 (TRAKiT Document - 26 pages, 9309 OLYMPIC VIEW DR)
+2024-01-16 Council Minutes (Meetings and Hearings - 26 pages, Meeting Date 1/16/2024)
+2024-01-23 Council Packet (Meetings and Hearings - 182 pages, Meeting Date 1/23/2024)
+Page 1 of 1

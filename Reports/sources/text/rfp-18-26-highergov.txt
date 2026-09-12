@@ -1,0 +1,458 @@
+2026 Tree Canopy Assessment (RFP 18-26) 
+
+-->
+
+ -->
+
+ Sign In 
+
+ Tools to Win. 
+
+ Powerful Market Intelligence
+
+ Leading Business Development Tools
+
+ Subscribers awarded $225 Billion Last 12 Months 
+
+ You've used all of your free views. 
+
+ Start Free Trial 
+ 
+ Schedule Demo 
+
+ Start Free Trial 
+ Schedule Demo 
+
+ Description
+
+ Search
+
+ HigherGov 
+
+ Federal 
+
+ State | Local 
+
+ BUSINESS DEVELOPMENT
+
+ Opportunities 
+
+ Contracts 
+
+ Pursuit Management 
+
+ Pipelines 
+
+ + 
+
+ Pursuits 
+
+ + 
+
+ Activities 
+
+ + 
+
+ Government Buyers 
+
+ Labor Pricing 
+
+ MARKET INTELLIGENCE
+
+ Awards 
+
+ Contracts 
+
+ Government 
+
+ Agencies 
+
+ People 
+
+ Documents 
+
+ TOOLS
+
+ Downloads 
+
+ Favorites 
+
+ FOIA 
+
+ Saved Searches 
+
+ Help Docs 
+
+ More
+
+ SOLUTIONS FOR 
+
+ Contractors 
+
+ Grant Recipients 
+
+ Consultants 
+
+ Investors and Banks 
+
+ Government Agencies 
+
+ FEATURES 
+
+ Market Intelligence 
+
+ CRM 
+
+ Capital Markets 
+
+ Big Data & AI 
+
+ LEARN MORE 
+
+ Pricing 
+
+ Plans 
+ Demo 
+ Sign In 
+
+ Free Trial
+
+ Pipeline
+
+ Track
+
+ Favorite
+
+ No Bid
+
+ Export
+
+ Toggle Dropdown 
+
+ CSV 
+
+ Excel 
+
+ FOIA
+
+ Share
+
+ Toggle Dropdown 
+
+ Copy URL 
+
+ Email 
+
+ Tweet 
+
+ Search Contract Opportunities 
+
+ 2026 Tree Canopy Assessment 
+
+ ID: RFP 18-26 
+ 
+ • State: Washington 
+
+ Description 
+
+ Overview 
+
+ Contacts 
+
+ Docs - 
+
+ Assistant 
+
+ Classifications 
+
+ Similar - 
+
+ Submit Questions to Government Officer Anonymously
+
+ Place your question(s) below. One of our analysts will anonymously submit the question(s) within 8 hours and provide any responses via email once received.
+
+ 10 ? document.getElementById('submitEmailButton').removeAttribute('disabled') : document.getElementById('submitEmailButton').setAttribute('disabled', 'true')"> 
+
+ Submit 
+
+ Opportunity Assistant
+
+ Reset 
+
+ Hello! Please let me know your questions about this opportunity. I will answer based on the available opportunity documents. 
+
+ Sign in to upload a capability statement or catalogue for your company
+
+ Analyze Opportunity
+
+ Summarize scope
+
+ Subcontracting requirements
+
+ Requirements checklist
+
+ How to respond
+
+ Save Question
+
+ I'd like to anonymously submit a question to the procurement officer(s)
+
+ Generate a Draft
+
+ Labor Pricing
+
+ Compliance Matrix
+
+ Proposal Outline
+
+ Proposal Draft
+
+ Loading 
+
+ 1 ? document.getElementById('submitAiMessage').removeAttribute('disabled') : document.getElementById('submitAiMessage').setAttribute('disabled', 'true'); this.style.height = '1.5em'; this.style.height = this.scrollHeight + 'px'"> 
+
+ Submit 
+
+ Opportunity assistant disabled, it can be re-enabled in the future from your profile screen.
+');"
+ onmouseenter="assistantLabelSwap('disable')"
+ onmouseleave="assistantLabelSwap()" 
+ onfocus="assistantLabelSwap('disable')"
+ onblur="assistantLabelSwap()">
+ × 
+
+ { document.getElementById('AiMessage').focus(); }, 500);
+ enableClickOutsideToCloseForOffcanvas('aiModal');
+ "
+ onmouseenter="assistantLabelSwap('open')"
+ onmouseleave="assistantLabelSwap()"
+ onfocus="assistantLabelSwap('open')"
+ onblur="assistantLabelSwap()"
+ >
+
+ Opportunity 
+ Assistant 
+
+ Document Library
+
+ Company Documents 
+ Documents available across opportunities 
+
+ Opportunity Documents 
+ Documents available only for this opportunity 
+
+ Drop or click to upload your company capability statement, source sought responses, or prior solicitations (.pdf, .docx, .xlsx) 
+
+ Close 
+
+ Save a Question
+
+ Title 
+
+ Question / Prompt 
+
+ Cancel 
+ 
+ Save Question
+
+ Customize Generation
+
+ We will write a draft based on the below linked information. Add or link more information to improve the draft.
+
+ Company Context
+
+ Add capability statements, prior responses, or other company materials to customize the response to your business.
+
+ Checking for company documents...
+
+ Add Company Document(s)
+
+ Opportunity Context
+
+ Add SOWs, attachments, or other files specific to this opportunity.
+
+ Checking for opportunity documents...
+
+ Add Opportunity Document(s)
+
+ Link a Pursuit
+
+ Optionally associate this draft with an existing pursuit.
+
+ No Results Found. 
+
+ Generate Proposal
+
+ Submit Document Request
+
+ Press Submit Request to create an anonymous document request. Please note the following:
+ 
+ Documents are usually ready within 1 business day
+
+ We will email you once documents are available
+
+ You may still need to register with the agency to submit a response
+
+ This opportunity is past due and documents may no longer be available (see only active opportunities here )
+
+ Cancel 
+ Submit Request 
+
+ Description
+
+ Summary
+
+ Map
+
+ Summary
+
+ Map
+
+ Background 
+ The City of Vancouver is seeking proposals from qualified firms or individuals for consulting services to develop and produce an Urban Tree Canopy Assessment. The mission of the Urban Forestry program is to maximize the aesthetic, environmental, and economic benefits that trees provide to city residents and visitors. This assessment is part of a strategic plan to track changes in tree canopy over a five-to-ten-year cycle, supporting watershed management and water quality improvement activities required under the National Pollutant Discharge Elimination System (NPDES) Stormwater Permit.
+
+ Work Details 
+ The Contractor will provide tree canopy data from 2024 or more recent data if available, including GIS boundary layers. The scope of work includes:
+
+1) Project Kickoff Meeting to discuss data availability;
+2) Land Cover Mapping to classify tree canopy, impervious surfaces, and other vegetation types;
+3) Urban Tree Canopy Assessment including calculating tree canopy by land use categories; identifying potential tree planting locations; setting urban tree canopy goals; and conducting an Ecosystem Services Analysis using i-Tree tools.
+
+Deliverables include GIS layers with 95% accuracy, a draft report, and a final report structured with an executive summary, methodology, findings, and recommendations.
+
+ Period of Performance 
+ The contract will commence upon award and is expected to be completed within a specified timeframe as outlined in the proposal timeline. Key dates include proposal submission by April 8, 2026.
+
+ Place of Performance 
+ The assessment will be conducted within the geographic boundaries of the City of Vancouver.
+
+ Bidder Requirements 
+ Proposers must demonstrate qualifications relevant to urban forestry assessments and have experience working with governmental agencies. Proposals must be submitted electronically via the City’s Procurement Portal. The City encourages participation from Minority, Women-owned, and Disadvantaged Business Enterprises.
+
+ Loading Map 
+ Loading Map
+
+ List 
+
+ Text 
+
+ Overview
+
+ Agency
+
+ City of Vancouver [WA] 
+
+ Opportunity Type
+
+ RFP
+
+ Opportunity ID
+
+ RFP 18-26
+
+ Response Deadline
+
+ April 8, 2026
+
+ Past Due 
+
+ Date Posted
+
+ March 11, 2026
+
+ Source
+
+ Open 
+
+ Est. Value Range Experimental
+
+ $50,000 - $200,000
+ (AI estimate)
+
+ Agency Distribution
+
+ High
+
+ On 3/11/26 City of Vancouver in Washington issued RFP 2026 Tree Canopy Assessment with ID RFP 18-26 due 4/8/26.
+
+ Contact 
+
+ Title
+
+ City Employee
+
+ Name
+
+ Joshua Francis Profile 
+
+ Email
+
+ joshua.francis@cityofvancouver.us 
+
+ Download All
+
+ Explore
+
+ Documents
+
+ Posted documents for 
+ 
+ 2026 Tree Canopy Assessment
+
+ Opportunity Assistant
+
+ Analyze Opportunity
+
+ Ask a question
+
+ Summarize scope
+
+ Subcontracting requirements
+
+ Requirements checklist
+
+ How to respond
+
+ Draft email
+
+ Draft Questions (Blank)
+
+ Draft Response
+
+ Save Question
+
+ Generate a Draft
+
+ Labor Pricing
+
+ Compliance Matrix
+
+ Proposal Outline
+
+ Proposal Draft
+
+ Classifications
+
+ NAICS
+
+ 541611 - Administrative Management and General Management Consulting Services 
+
+ PSC
+
+ 7910 - Floor Polishers And Vacuum Cleaning Equipment 
+
+ R499 - Support- Professional: Other 
+
+ Similar Active Opportunities
+
+ About 
+
+ Contact 
+
+ Terms 
+
+ Privacy 
+
+ © 2026 HigherGov 
+
+ Open Support

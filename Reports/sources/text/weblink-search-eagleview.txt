@@ -1,0 +1,12 @@
+Laserfiche WebLink full-text search — term: EagleView
+Retrieved manually via browser (Claude-in-Chrome), 2026-09-09.
+URL: https://weblink.edmondswa.gov/WebLink/Search.aspx?dbid=0&repo=Edmonds
+
+Results 1 - 16 of 16
+
+Mostly TRAKiT building-permit geotech/drainage reports (boilerplate basemap reference, not a
+City-EagleView contract). Two records stand out and were NOT opened in this pass (out of scope
+for this term, flagged for follow-up):
+  - "2026-02-03 Council Packet" (Meetings and Hearings, 81 pages, Meeting Date 2/3/2026)
+  - "2023-10-26 Hearing Examiner Packet" / "2023-11-09 Hearing Examiner Packet" (712/762 pages)
+No document titled or fielded as an EagleView contract, purchase order, or invoice appeared.

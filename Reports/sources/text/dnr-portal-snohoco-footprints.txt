@@ -1,0 +1,39 @@
+WA DNR Lidar Portal — bounding-box check for two 2026-09-09 leads (Snohoco Southwest 2003,
+Snohoco West 2006) against the Edmonds bounding box, 2026-09-09.
+
+Method: the portal (lidarportal.dnr.wa.gov) is a Leaflet app backed by two ArcGIS Server
+services discovered via its own REST catalog (https://lidarportal.dnr.wa.gov/arcgis/rest/services/lidar?f=json):
+  - lidar/wadnr_composite_locator (GeocodeServer) — resolves a project name to a location + extent
+  - lidar/wadnr_hillshade (MapServer) — serves the hillshade tiles themselves, keyed by numeric
+    layer id per project (not useful for footprint extraction without decoding the id scheme)
+No public vector "project boundary" layer was found; the GeocodeServer's findAddressCandidates
+operation is the only footprint-adjacent primary source this session located, and it returns a
+bounding EXTENT per project name, not the true polygon. Graded accordingly: bbox-level, not
+tile-verified (the report's own §5 standard for this distinction).
+
+Query 1: https://lidarportal.dnr.wa.gov/arcgis/rest/services/lidar/wadnr_composite_locator/GeocodeServer/findAddressCandidates?SingleLine=Snohoco%20Southwest%202003&f=json
+Result: extent xmin -122.40657, ymin 47.683223, xmax -121.961173, ymax 47.922755 (WGS84)
+
+Query 2: https://lidarportal.dnr.wa.gov/arcgis/rest/services/lidar/wadnr_composite_locator/GeocodeServer/findAddressCandidates?SingleLine=Snohoco%20West%202006&f=json
+Result: extent xmin -122.401623, ymin 47.7762, xmax -121.720791, ymax 48.2732 (WGS84)
+
+Edmonds bounding box (report §1): -122.42..-122.32 longitude, 47.77..47.87 latitude.
+
+Southwest 2003: longitude overlap is near-total (project xmin -122.40657 is only ~0.013 deg
+east of Edmonds' western edge -122.42, i.e. the extreme western sliver of the city, if any,
+would be the only gap); latitude 47.77-47.87 is entirely inside the project's 47.683-47.923
+range. Bbox-level: covers Edmonds.
+
+West 2006: same longitude situation; latitude range starts at ymin 47.7762 — 0.006 deg
+(~700m) NORTH of Edmonds' southern edge (47.77), so the extreme southern sliver of the city
+may sit outside this project's extent while the rest (47.7762-47.87) is inside. Bbox-level:
+covers most but very possibly not the southernmost edge of Edmonds.
+
+The portal's project list (dnr-lidar-portal.txt) shows both projects have DSM and DTM
+(hillshade + raw) layers with a Metadata link — i.e. these are genuine lidar-derived elevation
+products, not aerial photography, and the metadata link (not retrieved this session — no
+working URL pattern found without guessing) would carry the exact collection date and vertical
+accuracy. Not confirmed further.
+
+Caveat carried forward from report §5: bounding-box/extent overlap is a weaker standard than
+the tile-level verification used for the §2 table; do not present this as tile-verified.

@@ -1,0 +1,10 @@
+Laserfiche WebLink full-text search — term: Pictometry
+Retrieved manually via browser (Claude-in-Chrome), 2026-09-09.
+URL: https://weblink.edmondswa.gov/WebLink/Search.aspx?dbid=0&repo=Edmonds
+
+Results 1 - 5 of 5
+
+Same pattern as "EagleView": permit boilerplate plus "2026-02-03 Council Packet" (Meetings and
+Hearings, 81 pages). No Pictometry contract or invoice record. The recurrence of the
+2026-02-03 Council Packet across EagleView/Pictometry/lidar-adjacent searches suggests it is
+worth opening directly — flagged, not opened in this pass.

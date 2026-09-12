@@ -1,0 +1,154 @@
+Laserfiche WebLink full-text search — term: lidar
+Retrieved manually via browser (Claude-in-Chrome), 2026-09-09, after the automated
+--browser run (fetch_city_records.py --only weblink-search-lidar --browser) again returned a
+false "ok": it captured only the empty-form page (420 bytes: field labels, "Search terms",
+"Submit Reset" — no echoed term, no results section), which slipped past the UNEXECUTED_SEARCH
+guard because that guard's regex only matches "Results 0 - 0 of 0" text, and this render had no
+"Results" line at all. The automated Playwright pass is still not reliably driving this form.
+
+Manually typing "lidar" into the Search terms box and clicking Submit DID execute:
+
+Results 1 - 20 of 549
+
+Sort: Relevance. The search is a genuine full-text index — most hits are police "Speed
+Validation" reports (traffic enforcement lidar speed guns, an unrelated sense of the word),
+which is itself confirmation this is a real full-text hit, not a canned page.
+
+THE DECISIVE HIT (page 1, position 7 of 20):
+
+  Snohomish County 26-27 ILA - Urban Tree Canopy Mapping Project
+  Contracts - 16 pages
+  City Department: Finance / Information Services
+  Contract Title: Intergovernmental Services Agreement between Snohomish County and
+    City of Edmonds for Urban Tree Canopy Mapping Project
+  Contract Type: Interlocal
+  Contract/Project Number: IS-20260720-SNOCOTRMAP
+  Contract Start Date: 7/20/2026 | Contract Expiration Date: 6/30/2026 (fields appear
+    transposed/entered inconsistently in Laserfiche metadata — the document body's own Section 2
+    states the term runs "from execution" to June 2027; see full text)
+  Okay to Expire: NO
+  Vendor: Snohomish County
+
+Full document retrieved and OCR/extraction not needed (born-digital PDF, clean text layer):
+downloaded directly from https://weblink.edmondswa.gov/WebLink/0/edoc/3106507/document.pdf
+(doc id 3106507) and extracted with pypdf. See Reports/sources/text/ila-3106507.txt for the
+complete 16-page text (agreement + Exhibit A scope/budget + Exhibit B DNR cost-share agreement
+and NV5 Geospatial technical proposal).
+
+THIS OVERTURNS THE REPORT'S CORE "NO CITY-FUNDED LIDAR" CONCLUSION. Summary (full detail in the
+report body and in ila-3106507.txt):
+  - City of Edmonds signed an Intergovernmental Services Agreement with Snohomish County,
+    executed ~7/16-7/20/2026, to procure high-definition LiDAR data for the incorporated area of
+    Edmonds (8.92 square miles), riding a Snohomish County Cost Sharing Agreement with WA DNR
+    (DNR Contract No. 93-111079, $304,606 total) under DNR's existing lidar services contract
+    with NV5 Geospatial, Inc. (DNR Contract #93-102831).
+  - Edmonds' share: $3,300, capped, invoiced by the County on delivery.
+  - Funding chain: WA Dept of Commerce Salmon Recovery Through Local Planning Grant Agreement
+    No. 26-63117-011 (Snohomish County Council Motion No. 26-104) funds the County's side.
+  - NV5 Geospatial proposal ("Snohomish County Leaf-on Lidar Mapping Services, Washington",
+    dated April 15, 2026, under DNR lidar RFP No. 22-03 — the SAME master RFP number behind the
+    2022 WA_LidarGaps_C22 project already in the report's §2/§10.3) covers 823 square miles
+    across unincorporated Snohomish County and 11 participating cities (Stanwood, Marysville,
+    Arlington, Granite Falls, Mukilteo, Everett, Snohomish, Lake Stevens, Brier, Bothell,
+    Edmonds).
+  - Collection window per NV5's proposal: "leaf on conditions in mid-June to July 2026" —
+    scheduled, matching the staff email's "summer 2026 fly-overs" almost verbatim. NOTE: this is
+    the vendor's proposed window, not confirmed completion — Exhibit B was countersigned by DNR
+    on 2026-07-22 (Teigen, Thomas signature block), i.e. after the proposal's stated collection
+    window, and the cost-share's own "period of performance" runs "July 17, 2026, or the date of
+    execution, whichever is later, to January 31, 2027." Whether NV5 flew ahead of the paperwork
+    (common in practice) or collection slipped past the stated window cannot be determined from
+    these records alone. This bears directly on the "next year or 2028" hedge in the staff email.
+  - Deliverables: full QL1 lidar spec — classified point cloud (LAS 1.4), hydro-flattened bare-
+    earth DEM, DSM, breaklines, intensity imagery, FGDC metadata — at >=8 pulses/m2, <=10cm
+    vertical accuracy (RMSEz).
+  - Products delivered "90 business days from the date of successful acquisition and receipt of
+    survey" — i.e., roughly Q4 2026 if collection completes on schedule, consistent with the
+    staff email's "to be completed next year [2027] or in 2028, depending on budget outcomes"
+    given County obligations after 12/31/2026 are contingent on appropriation (Sec. 2 of the
+    ILA), and the Agreement's own title bracket is "From Execution to July 2027".
+
+No further pages of the 549-result "lidar" search were examined; the one Contracts-template hit
+on page 1 is corroborated independently by the "NV5" and "photogrammetric" searches below, which
+is strong evidence it is the only Edmonds-lidar contract in the index, not one of many.
+
+=== VERBATIM CAPTURE (mcp__claude-in-chrome__get_page_text, page 1 of results) ===
+
+Title: Search
+URL: https://weblink.edmondswa.gov/WebLink/Search.aspx?dbid=0&repo=Edmonds
+---
+Sort results by: Relevance
+Results 1 - 20 of 549
+Exhibit A - Edmonds, WA Speed Validation June 2025
+No template assigned - 14 pages
+There are no fields set.
+Exhibit A - Edmonds, WA Speed Validation November 2024
+No template assigned - 10 pages
+There are no fields set.
+Exhibit A - Edmonds, WA Speed Validation December 2024
+No template assigned - 10 pages
+There are no fields set.
+Exhibit A - Edmonds, WA Speed Validation December 2024
+No template assigned - 10 pages
+There are no fields set.
+Exhibit A - Edmonds, WA Speed Validation March 2025
+No template assigned - 10 pages
+There are no fields set.
+Exhibit A - Edmonds, WA Speed Validation May 2025
+No template assigned - 10 pages
+There are no fields set.
+Snohomish County 26-27 ILA - Urban Tree Canopy Mapping Project
+Contracts - 16 pages
+Fields
+City Department:Finance / Information Services
+Contract Expiration Date:6/30/2026
+Contract Start Date:7/20/2026
+Contract Title:Intergovernmental Services Agreement between Snohomish County and City of Edmonds for Urban Tree Canopy Mapping Project
+Contract Type:Interlocal
+Contract/Project Number:IS-20260720-SNOCOTRMAP
+Okay to Expire:NO
+Vendor:Snohomish County
+Exhibit A - Edmonds, WA Speed Validation February 2025
+No template assigned - 10 pages
+There are no fields set.
+Exhibit A - Edmonds, WA Speed Validation April 2025
+No template assigned - 10 pages
+There are no fields set.
+Exhibit A - Edmonds, WA Speed Validation Report - September 2025
+No template assigned - 13 pages
+There are no fields set.
+Exhibit A - Edmonds, WA Speed Validation Report
+No template assigned - 13 pages
+There are no fields set.
+Exhibit A - Edmonds, WA Speed Validation Report
+No template assigned - 15 pages
+There are no fields set.
+Exhibit A - Edmonds, WA Speed Validation Report - July 2025
+No template assigned - 6 pages
+There are no fields set.
+Exhibit A - Edmonds, WA Speed Validation Report
+No template assigned - 11 pages
+There are no fields set.
+Exhibit A - Edmonds, WA Speed Validation Report - August 2025
+No template assigned - 10 pages
+There are no fields set.
+Exhibit A - Edmonds, WA Speed Validation Report - October 2025
+No template assigned - 10 pages
+There are no fields set.
+Exhibit A - Edmonds, WA Speed Validation Report
+No template assigned - 12 pages
+There are no fields set.
+Exhibit A - Edmonds, WA Speed Validation Report
+No template assigned - 12 pages
+There are no fields set.
+Exhibit A - Edmonds, WA Speed Validation Report -November 2025
+No template assigned - 11 pages
+There are no fields set.
+Exhibit A - Edmonds, WA Speed Validation Report - December 2025
+No template assigned - 11 pages
+There are no fields set.
+First 123456 Last
+
+(Field labels "There are no fields set." and "Show more information..." links present per-row in
+the live UI are omitted/condensed above where repetitive; the ordering, titles, page counts, and
+the full Contracts-template field block for the decisive hit are reproduced exactly as returned.)

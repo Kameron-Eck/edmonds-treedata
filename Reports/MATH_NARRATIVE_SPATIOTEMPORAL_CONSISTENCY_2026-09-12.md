@@ -1,7 +1,7 @@
 # The mathematics of the spatiotemporal consistency layer — inputs to outputs, in order
 
 **Status:** compiled 2026-09-12 from `FRAMEWORK_GAPS_SPATIOTEMPORAL_CONSISTENCY_2026-09-11.md`
-(§1–§18) and `LIT_REVIEW_SPATIOTEMPORAL_CONSISTENCY_2026-09-10.md` (§4.12–§4.18). This is a
+(§1–§19) and `LIT_REVIEW_SPATIOTEMPORAL_CONSISTENCY_2026-09-10.md` (§4.12–§4.19), updated the same day for round 10. This is a
 *narrative*, not a new source: every formula below is carried from those two documents with
 its grade, and nothing here is validated (CLAUDE.md 3.4c). Where a section number is given
 without a file, it is the framework's.

@@ -2066,6 +2066,37 @@ so the error class stays visible.
   under dependence indexed by "economic distance", consistent even when distances are
   measured with error — the spatial HAC confirmed as a variance tool, as §15.1 assumed.
 
+#### 4.19.5 Same-day addendum — six of the seven leftovers, fetched through a browser; row 20's answer changes
+
+- **Mousavi & Reynolds 2009** (*J. Quality Technology*, **PRIMARY**, abstract and §1) is
+  the exact case: a proportion monitored from "binary observations that follow a two-state
+  Markov chain model with first-order dependence". Their finding overturns §4.19.3's
+  compromise: the Shewhart p-chart and the Bernoulli CUSUM "are not robust to
+  autocorrelation, and that adjusting the control limits of these traditional charts to
+  account for the autocorrelation is not an efficient approach". Instead they "construct a
+  Markov binary CUSUM (MBCUSUM) chart based on a log-likelihood-ratio statistic" whose
+  properties are again exact by a Markov chain. The increment of that chart is the
+  log-likelihood ratio *under the dependent model* — i.e. the chain's own evidence
+  increment, which is what framework §2.2's raw-LLR form already is once the transition is
+  in the likelihood. Row 20's dependence half is therefore answered by a published chart,
+  not by residuals or by an adjusted limit.
+- **Hui & Walter 1980** (*Biometrics*, **PRIMARY**, summary): two tests with unknown error
+  rates applied to two populations with different prevalences, under conditional
+  independence of the tests' errors, identify both tests' error rates and both prevalences
+  — the two-population route to row 16's identifiability, complementary to Platanios's
+  three-classifier route. For us: two strata with different canopy prevalence (e.g. two
+  distance bands) and two arms.
+- **Foody 2010** (*RSE*, author manuscript, **PRIMARY**, abstract): "The ground data used
+  as a reference in the validation of land cover change products are often not an ideal
+  gold standard but degraded by error" — the effects of reference error on change accuracy
+  and area estimates, the remote-sensing statement of the verification-bias problem.
+- **Alwan & Roberts 1988** (*JBES*, **ABSTRACT**): the origin of "the application of
+  standard control-chart procedures to the residuals from these fits" (ARIMA fits).
+  **Montgomery & Mastrangelo 1991** (*JQT*, **ABSTRACT**), **Lu & Reynolds 1999** (*JQT*,
+  **ABSTRACT**): the autocorrelated-process chart literature Lu & Reynolds 2001 builds on.
+- **Schwartz 2000** not obtained: absent from both Sci-Hub indexes; the agent stopped at
+  two failed routes as instructed. Not load-bearing (Almon 1965 is the origin on file).
+
 **What round 10 does not have.** Nothing on the coupling-versus-resolution question (row
 21) or the target erasure radius (row 22): measurements. The registration covariate
 (row 23) remains a design.
@@ -2361,9 +2392,10 @@ number, never instead of it. Adopt it from the first run rather than retrofittin
   published test (§4.18.8). Findings in §4.18; framework §17.
 - **Round 10 (2026-09-12) searched four fields for the second-order gaps of framework §18:**
   four Sonnet searchers, first-index fetches, one browser agent. The round-10
-  bibliography block holds 33 lines (counted): 14 reviewer-read PRIMARY, 12 reviewer-read
-  ABSTRACT, 4 filed-unread (one an image-only scan), 2 METADATA lines (seven works pending
-  with the browser agent; one book not obtained), and 1 line for two works already held. Findings in §4.19; framework §19. Rows 17, 18, 19 and 20 move to
+  bibliography block holds 39 lines (counted, after the same-day browser fetch of §4.19.5):
+  17 reviewer-read PRIMARY, 15 reviewer-read ABSTRACT, 4 filed-unread (one an image-only
+  scan), 2 METADATA lines (Schwartz 2000; the van den Hout book), and 1 line for two works
+  already held. Findings in §4.19; framework §19. Rows 17, 18, 19 and 20 move to
   published frameworks; row 16's identifiability condition is now quoted.
 - **Not searched:** §6.4 (which training lever first) is a cost/sequencing decision no
   literature settles; the material for it is in §4.6. §6.2 and §6.3 *were* searched in
@@ -2732,7 +2764,13 @@ All filed under `D:\edmonds-pipeline\Literture\Validation\`.
 - Ratner, A. et al. (2017). Snorkel: rapid training data creation with weak supervision. *VLDB* 11(3). doi:10.14778/3157794.3157797 (arXiv 1711.10160) — **ABSTRACT**, reviewer-read abstract. Filed `Ratner_2017_Snorkel_weak_supervision`.
 - Dawid, A.P. & Skene, A.M. (1979). Maximum likelihood estimation of observer error-rates using the EM algorithm. *Applied Statistics* 28(1):20–28. doi:10.2307/2346806 — **ABSTRACT**, reviewer-read title/summary (first index). Filed `DawidSkene_1979_observer_error_rates_EM`.
 - Begg, C.B. & Greenes, R.A. (1983). Assessment of diagnostic tests when disease verification is subject to selection bias. *Biometrics* 39(1):207–215. doi:10.2307/2530820 — **ABSTRACT**, reviewer-read title/summary (first index). Filed `BeggGreenes_1983_verification_bias_Biometrics`.
-- **Sent to the browser agent, pending at the time of writing:** Hui & Walter (1980) *Biometrics* 36(1) doi:10.2307/2530508; Mousavi & Reynolds (2009) *JQT* 41(4) doi:10.1080/00224065.2009.11917794; Foody (2010) *RSE* 114(10) doi:10.1016/j.rse.2010.05.003; Alwan & Roberts (1988) *JBES* 6(1) doi:10.1080/07350015.1988.10509640; Montgomery & Mastrangelo (1991) *JQT* 23(3) doi:10.1080/00224065.1991.11979321; Lu & Reynolds (1999) *JQT* 31(3) doi:10.1080/00224065.1999.11979925; Schwartz (2000) *Epidemiology* 11(3) doi:10.1097/00001648-200005000-00016 — **METADATA** until they land.
+- Mousavi, S. & Reynolds, M.R. Jr. (2009). A CUSUM chart for monitoring a proportion with autocorrelated binary observations. *J. Quality Technology* 41(4):401–414. doi:10.1080/00224065.2009.11917794 — **PRIMARY**, reviewer-read (abstract, §1; browser fetch). Filed `MousaviReynolds_2009_CUSUM_autocorrelated_binary_JQT` (+ `_raw.txt`).
+- Hui, S.L. & Walter, S.D. (1980). Estimating the error rates of diagnostic tests. *Biometrics* 36(1):167–171. doi:10.2307/2530508 — **PRIMARY**, reviewer-read (summary; browser fetch). Filed `HuiWalter_1980_error_rates_diagnostic_tests_Biometrics`.
+- Foody, G.M. (2010). Assessing the accuracy of land cover change with imperfect ground reference data. *Remote Sensing of Environment* 114:2271–2285. doi:10.1016/j.rse.2010.05.003 — **PRIMARY**, reviewer-read (abstract; author manuscript from the Nottingham repository, browser fetch). Filed `Foody_2010_change_accuracy_imperfect_reference_RSE` (+ `_raw.txt`).
+- Alwan, L.C. & Roberts, H.V. (1988). Time-series modeling for statistical process control. *J. Business & Economic Statistics* 6(1):87–95. doi:10.1080/07350015.1988.10509640 — **ABSTRACT**, reviewer-read abstract (browser fetch). Filed `AlwanRoberts_1988_time_series_SPC_JBES` (+ `_raw.txt`).
+- Montgomery, D.C. & Mastrangelo, C.M. (1991). Some statistical process control methods for autocorrelated data. *J. Quality Technology* 23(3):179–193. doi:10.1080/00224065.1991.11979321 — **ABSTRACT**, reviewer-read title/abstract (browser fetch). Filed `MontgomeryMastrangelo_1991_SPC_autocorrelated_JQT`.
+- Lu, C.-W. & Reynolds, M.R. Jr. (1999). Control charts for monitoring the mean and variance of autocorrelated processes. *J. Quality Technology* 31(3):259–274. doi:10.1080/00224065.1999.11979925 — **ABSTRACT**, reviewer-read abstract (browser fetch). Filed `LuReynolds_1999_charts_autocorrelated_JQT` (+ `_raw.txt`).
+- **Not obtained (absent from both Sci-Hub indexes):** Schwartz (2000) *Epidemiology* 11(3) doi:10.1097/00001648-200005000-00016 — **METADATA**.
 - **Not obtained:** van den Hout (2017) *Multi-State Survival Models for Interval-Censored Data* (CRC book) doi:10.1201/9781315374321 — **METADATA**.
 - **Already held, re-verified by the searcher:** Burnicki (2007) *Comput. Environ. Urban Syst.* 31:282–302 and Burnicki (2011) *Int. J. Remote Sens.* 32(22) doi:10.1080/01431161.2010.524674 — grades unchanged from earlier blocks.
 

@@ -336,9 +336,11 @@ inflation `1/(r − f)²` and the placebo shuffle remain the kill.
 **Two assumptions the published run length makes (row 20, resolved [S] in round 10,
 framework §19.3):** independent increments — but Lu & Reynolds 2001 [Q] find observation
 charts "perform as well as CUSUM charts of residuals, except in the case in which the
-level of autocorrelation is high and the shift in the process mean is large", so the
-correlogram measurement decides whether the raw chart with a design adjustment or the
-residual chart `x_t − p̂(x_t | past)` is used; and one chart — with many cells the
+level of autocorrelation is high and the shift in the process mean is large", and
+Mousavi & Reynolds 2009 [Q] close the question for binary two-state Markov observations:
+neither adjusting the limits nor charting residuals, but a **Markov binary CUSUM** whose
+increment is the log-likelihood ratio under the dependent chain, with exact run length by
+Markov chain — §2.2's raw-LLR form with the transition inside the likelihood; and one chart — with many cells the
 false-alarm constraint is *global* (Mei 2010's sum of local CUSUMs; Xie & Siegmund 2013's
 mixture with an analytic run length [Q]), not a per-cell `α`. Band-indexed increments are
 the risk-adjusted CUSUM of Steiner et al. 2000 [Q] under its published name.

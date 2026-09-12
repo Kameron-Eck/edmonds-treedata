@@ -483,7 +483,7 @@ one GPU-shaped cost, or permutohedral on CPU. Nothing here needs training.
 | 17 | **Irregular intervals with misclassification**: continuous-time generator `Q` observed at irregular dates through an emission matrix | rows 3, 11a, 15 | §18.2: the multi-state panel-data framework (Kalbfleisch & Lawless; Jackson's msm) for the temporal part; spatial coupling added per §3 | interval-censored synthetic chain: `exp(QΔt)` fit must match the yearly root of §15.2 where both apply | **[Q] — the panel-data multi-state model with `exp(QΔt)` and an emission matrix (§19.1); spatial coupling still ours** |
 | 18 | **Transition-rate attenuation under misclassification**: rates from observed states are biased toward change; magnitude on our strata unknown | 11a, 11b, 15 | §18.2: the misclassification correction inside row 17's framework; or the two-state bias formula on the certified populations | inject known emission error into a synthetic chain; corrected rates must recover the truth, raw rates must not | **[Q] — bias direction confirmed and two bias-adjusted estimators published (§19.1)** |
 | 19 | **Kernel as a distributed-lag GLM**: `D_k(τ)·R(d)` under a complementary-log-log link is a lag–distance surface in a regression, not an EM | row 9; §17.4 | §18.3: distributed lag non-linear model (cross-basis in `(τ, d)`, penalised) on certified losses vs dated developments | one-term vs two-term vs surface by held-out log-likelihood; a null (shuffled dates) surface must be flat | **[Q] — distributed-lag cross-basis in a GLM; the Bernoulli-logit equivalence (§19.2)** |
-| 20 | **CUSUM under dependence and multiplicity**: the exact run length (§17.10) assumes independent Bernoulli increments; the chain says they are dependent; one chart per cell across millions of cells | row 2; §12.3 | §18.4: chart the chain's residuals, not the states; per-cell `α` set by a false-discovery rule over the cell population | null residual sequences at the fitted dependence must alarm at the stated rate; raw-state charts must alarm above it | **[Q/S] — residual vs observation charts decided by the measured autocorrelation; global false-alarm schemes for many streams; risk-adjusted increments (§19.3)** |
+| 20 | **CUSUM under dependence and multiplicity**: the exact run length (§17.10) assumes independent Bernoulli increments; the chain says they are dependent; one chart per cell across millions of cells | row 2; §12.3 | §18.4: chart the chain's residuals, not the states; per-cell `α` set by a false-discovery rule over the cell population | null residual sequences at the fitted dependence must alarm at the stated rate; raw-state charts must alarm above it | **[Q] — the Markov binary CUSUM (LLR under the dependent model, exact run length by Markov chain; §19.6); global false-alarm schemes for many streams (§19.3)** |
 | 21 | **Coupling vs resolution**: one `β` cannot serve 8–80 cm effective pixels | row 3; §5.1 strata | fit `β` per resolution stratum; report the trend against `effective_cm` | `β` pooled vs per-stratum: the pooled fit must lose held-out likelihood on the coarse strata | **[D] — measurement** |
 | 22 | **Target erasure radius**: three laws (§16.2), no target — what must survive is unstated | row 4; the smoother decision (§9) | size distribution of the 2020 crown polygons (smallest real removal) vs residual blob sizes; choose `R_erase` between them | injected discs at the chosen radius: real-size survive, blob-size erased | **[D] — measurement, data on hand** |
 | 23 | **Registration in the chain**: the edge-band rate (§17.1) is known; the chain has no term that down-weights edge cells at a poorly registered epoch | rows 10, 14; §2.3 emission | §18.5: an emission covariate `dist_to_boundary × |s_t|` (or the Stow compensation, §16.3) | self-shift test (§14.5): with the covariate the false-change rate at edges must fall to the isotropic residual; without it must not | **[D] — design, then the §14.5 kill** |
@@ -1635,5 +1635,23 @@ condition is pending.
 | 17 | irregular intervals [D] | **panel-data multi-state model [Q]** (Kalbfleisch & Lawless; `msm` likelihood; emission with covariates); spatial coupling ours |
 | 18 | attenuation unquantified [D] | **direction confirmed, bias-adjusted estimators published [Q]**; joint HMM fit removes it |
 | 19 | kernel by EM [Q]; GLM recast [D] | **distributed-lag cross-basis in a Bernoulli/logit GLM [Q]** (Gasparrini 2010; Truccolo 2005); EM no longer needed |
-| 20 | residual chart + FDR [D] | **regime decided by the correlogram [S]** (Lu & Reynolds 2001); global false-alarm schemes for many streams [Q] (Mei; Xie–Siegmund); risk-adjusted increments named (Steiner) |
+| 20 | residual chart + FDR [D] | **the Markov binary CUSUM [Q]** (Mousavi & Reynolds 2009: a log-likelihood-ratio chart under the two-state dependent model, exact by Markov chain; adjusting limits is "not an efficient approach") — supersedes the correlogram-decided regime of §19.3; global false-alarm schemes for many streams [Q] (Mei; Xie–Siegmund); risk-adjusted increments named (Steiner) |
 | 21–23 | measurements / design | unchanged |
+
+### 19.6 Same-day addendum — the dependence half of row 20 has a published chart (review §4.19.5)
+
+Mousavi & Reynolds 2009 monitor a proportion from "binary observations that follow a
+two-state Markov chain model with first-order dependence" — our per-cell chain. Their
+result: the Bernoulli CUSUM and the p-chart "are not robust to autocorrelation", and
+"adjusting the control limits of these traditional charts to account for the
+autocorrelation is not an efficient approach" — which retires the §19.3 compromise. The
+answer is a **Markov binary CUSUM** built "based on a log-likelihood-ratio statistic"
+under the dependent model, with exact properties by a Markov chain. In our notation the
+increment is the log-likelihood ratio of `x_t` given `x_{t−1}` under the post-change
+versus pre-change chain; it is what §2.2's raw-LLR form becomes once the transition
+enters the likelihood, and it keeps §17.10's exact-run-length machinery. Row 20's
+dependence half is therefore [Q]; the multiplicity half stays as §19.3 (Mei's global
+constraint). Hui & Walter 1980 add the two-population identifiability route to row 16
+(two arms, two strata of different prevalence, conditionally independent errors); Foody
+2010 is the remote-sensing statement of the reference-error problem behind Begg &
+Greenes. Schwartz 2000 was not obtained; nothing depends on it.

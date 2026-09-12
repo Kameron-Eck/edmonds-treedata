@@ -12,8 +12,8 @@ truth for every measured number about our own stack. Owner: Kam.
 ## 1. The answer in one paragraph
 
 **The field has no validated fix for the laundering problem. It has better-documented
-instances of it.** Across 92 verified works in eleven search threads, change-stratified
-reporting is rare: the standard evidence offered for a consistency layer is how much *more*
+instances of it.** Across 92 verified works in eleven search threads (plus 21 adjacent-field
+works in four round-2 threads, §4.12), change-stratified reporting is rare: the standard evidence offered for a consistency layer is how much *more*
 the map agrees with itself after smoothing, which a strong enough prior produces regardless
 of correctness. Gong et al. 2017 — verified verbatim from full text — states it plainly:
 "we culled a few locations where the land cover labels changed," and that same reference
@@ -771,6 +771,225 @@ There is also no standard metric to adopt: searches for a settled "trajectory va
 have to define ours, and should define it against a change-stratified denominator from the
 start.
 
+### 4.12 Adjacent-field theory for four of the §5 gaps (round 2, 2026-09-11)
+
+Round 1 searched remote sensing and found the gaps in §5. Round 2 (four threads, 21 new
+works, 16 read in full) searched the fields where the same mathematics recurs under other
+names — geostatistics, total-variation image analysis, statistical process control,
+biosurveillance, denoising theory, missing-data signal processing — for gaps 3, 7, 10 and
+12. **No paper closes any gap. Several supply one half of one.** Every pairing of a
+paper's result with our objects (r, f, the 0/1/255 mask, a probability raster) is this
+review's substitution and is labelled so; none of it is measured on our data. The
+framework that assembles these halves lives in
+`FRAMEWORK_GAPS_SPATIOTEMPORAL_CONSISTENCY_2026-09-11.md`, which cites this section and
+carries no bibliography of its own.
+
+**4.12.1 §4.1 — the weight, and the size below which smoothing erases real change (gap 3).**
+
+- **Strong & Chan 2003** (**PRIMARY**, UCLA CAM mirror, 23 pp) gives the erasure threshold
+  in closed form — for one operator, total-variation regularisation. §3.1 is titled
+  verbatim "Change in image intensity δ = α/scale," with "scale = |Ω|/|∂Ω|" (area over
+  boundary length; r/2 for a disk): contrast loss is "inversely proportional to scale and
+  directly proportional to α," so "TV regularization causes smaller-scaled features (such
+  as noise) to be partially or entirely removed while larger-scaled image features are
+  relatively unaffected." Checked on a discrete image, not only in the continuum:
+  "δpredicted = α/scale = [2π(1/3)/π(1/3)²](0.01) = 0.06, so that in the circular region
+  the intensity level should be 0.94 after regularization. This is nearly exactly the
+  case." And the update is feature-local — "δi does not depend on the effects of the
+  regularization felt in any other region" — which is what would make it tractable at
+  13.3 M cells. *This review's derivation, not the paper's:* a feature is fully erased when
+  δ ≥ its contrast h, i.e. when r ≤ 2α/h. In a probability raster h = p_before − p_after
+  is usually well under 1, so **the same α erases a physically larger tree removal where
+  the model is 60 % confident than where it is 95 % confident.** α is a free parameter in
+  the paper, not estimated.
+- **Gräler, Pebesma & Heuvelink 2016** (**PRIMARY**, R Journal) shows the space↔time
+  exchange rate fitted rather than set: one anisotropy scalar κ "given as spatial unit per
+  temporal unit," with "All temporal distances… internally re-scaled to an equivalent
+  spatial distance," "numerically optimised using… fit.StVariogram and the L-BFGS-B routine
+  of optim" — 189 km/day (metric), 185 km/day (sum-metric), and "The spatio-temporal
+  anisotropy is estimated beforehand and fixed at 118 km/day." Table 2 sweeps five
+  covariance families. **The decision-grade result is negative.** Table 3 (leave-one-out):
+  RMSE 6.05–6.16 and correlation 0.84 for *every* model, the pure-spatial one included at
+  6.15/6.10 — a threefold spread in variogram fit bought no held-out skill, and dropping
+  time cost nothing. Domain first: daily PM10 at German stations on a 10 km grid with a
+  ~6-day temporal range; not a general law. *Inference:* what transfers is the protocol —
+  fit the weight, then test the fitted model against a pure-spatial (γ = 0) and a
+  pure-temporal (β = 0) baseline on held-out data. That is the sensitivity test §5 item 3
+  says nobody in remote sensing ran.
+- **Krähenbühl & Koltun 2011** (**PRIMARY**, arXiv:1210.5644) is structurally our
+  unary-plus-pairwise field and is the scaling evidence gap 4 lacked: mean-field inference
+  over "billions of edges even on low-resolution images" in 0.2 s against 36 h for MCMC.
+  Its parameters are measured — "use grid search on a holdout validation set for all three
+  kernel parameters w(1), θα and θβ" — but the pure-smoothing weight is hand-set and
+  declared inert: "The smoothness kernel parameters w(2) and θγ do not significantly affect
+  classification accuracy… We found w(2) = θγ = 1 to work well in practice." The real sweep
+  is over kernel *range* (θα peaking at 61 pixels, ~82 → 88 %), with "w(1) was held constant
+  and w(2) was set to 0." Caution in their words: "long-range connections can also
+  propagate misleading information." *Inference:* a warning to carry, not a value to
+  import — on their task the weight we most want to measure was the one that did not
+  matter.
+- Searched and not found: bilateral filtering (its range parameter σ_r bounds a minimum
+  edge *amplitude*, not a minimum feature *size*); morphological area openings (the size
+  parameter is the threshold by definition, not by measurement, and they act on hard masks).
+
+*Gap 3, restated:* the erasure threshold now has a closed form for one operator; the
+weight has a fitting protocol and a documented case where it did not matter. Neither
+exists for a joint spatio-temporal field on a probability stack.
+
+**4.12.2 §2.3 / §6.1 — a change detector written in (r, f) (gap 10).**
+
+- **Ross, Tasoulis & Adams 2012** (**PRIMARY**, arXiv:1212.6020) is the Bernoulli CUSUM
+  with known pre- and post-change rates, stated in full. §5.1: `C0 = 0; Ct = max(0, C_{t−1}
+  + x_t − k)`, `k = r1/r2`, `r1 = −log((1−θ1)/(1−θ0))`, `r2 = log(θ1(1−θ0)/(θ0(1−θ1)))`;
+  "A change is flagged when Ct > h(θ0, θ1)," with h set for a target in-control run length
+  by the Reynolds & Stoumbos (1999) approximation or by Monte Carlo. The paper's own
+  scope statement: it "requires both the pre- and post-change values of θt to be known,
+  and is the optimal change detector under this assumption… (Lorden, 1971)." *This
+  review's substitution:* for a gain, θ0 = f and θ1 = 1 − r; for a loss, relabel x → 1 − x
+  and swap r ↔ f. Three caveats, all ours: the rule is one-sided; it assumes θ0, θ1
+  constant across t, which per-year (r_t, f_t) violate; and at n = 12 no asymptotic
+  run-length formula applies, so h must be calibrated by Monte Carlo on null 12-step
+  sequences drawn with the per-year rates.
+- **Chen & Yang 2022** (**PRIMARY**, arXiv:2203.03384) supplies the misclassification
+  correction in closed form, with π_kl = P(X* = k | X = l): eq. (2) `p*₀ = π₁₁p₀ + π₁₀q₀`;
+  eq. (7) `p**₀ = (p*₀ − π₁₀)/(1 − π₁₀ − π₀₁)`; Theorem 3.1(b)
+  `var{EWMA**} = p*₀(1−p*₀)λ{1−(1−λ)^2t} / [n(1−π₁₀−π₀₁)²(2−λ)]`. *This review's mapping:*
+  π₁₀ = f, π₀₁ = r. **The factor 1/(1 − f − r)² is the noise-floor statement §3.5 of
+  CLAUDE.md asks for**, in one line. Not a change-point rule (an EWMA over n subjects per
+  epoch). Code: `github.com/lchen723/SPC-ME-R-code`.
+- **Itkin 2026** (**PRIMARY**, arXiv:2606.12476) has the same structure — a latent two-state
+  chain seen through a noisy classifier — in a different domain, and gives the general
+  form that admits per-year rates: eq. (2) `St = max(0, S_{t−1} + log p1(Xt)/p0(Xt))`,
+  `τ = min{t : St ≥ h}`; Proposition 1: "let ω > 0 solve E0[e^{ωY}] = 1… ARL0 =
+  e^{ωh}(1+o(1)) and EDD = h/E1[Y](1+o(1))"; Corollary 1(ii): the cross-entropy minimiser
+  *is* the log-likelihood-ratio increment. *This review's instantiation:* increments
+  log((1−r_t)/f_t) on an observed 1 and log(r_t/(1−f_t)) on an observed 0; for binary Y the
+  equation in ω is scalar in (r, f). No (r, f) symbols appear in the paper.
+- **Sandia SAND2016-7395C** (**PRIMARY**, bylined "Author 1") corroborates the Bernoulli
+  CUSUM form `Bt = max(0, Bt−1 + Xt − r)` and adds nothing; support only.
+- **Negatives, each a finding.** All 100 works citing Miller et al. 2013 (Semantic Scholar)
+  were pulled and searched for change-point / CUSUM / stopping-rule / Shiryaev / quickest:
+  zero. The nearest, Louvrier et al. 2018 (occupancy HMM with misidentification), is
+  estimation without a stopping rule. Ecology occupancy + change-point (10 hits): all
+  dynamic-occupancy estimation. Biosurveillance (PubMed, Crossref, two web passes): CUSUM
+  is used in syndromic surveillance and sensitivity/specificity in freedom-from-disease
+  design, and **no paper states a detection rule in (Se, Sp)**. Statistical-process-control
+  CUSUMs with inspection error exist for count distributions — Mishra & Singh 2022,
+  Chakraborty & Khurshid 2017 — both **UNREADABLE** (403 / abstract only), graded
+  ABSTRACT; *Comm. Stat. Sim. Comput.* 38(7) 2009 UNREADABLE (Unpaywall closed). Fearnhead
+  & Fryzlewicz arXiv:2210.07066: read, Gaussian change-in-mean only.
+
+*Gap 10, restated:* the statistics (a Bernoulli CUSUM with known rates) and the
+misclassification correction (explicit in f and r) both exist in primary sources — in two
+literatures that have not been joined. A detector for a 12-epoch mask sequence with
+per-year measured (r_t, f_t) still looks unpublished.
+
+**4.12.3 §4.5 — scoring a corrector without letting it grade itself (gap 7).**
+
+- **Ramani, Blu & Unser 2008** (**PRIMARY**, Monte-Carlo SURE) estimates a denoiser's true
+  mean-squared error from the noisy input alone. Definition 1, eq. (6):
+  `η = (1/N)‖y − f_λ(y)‖² − σ² + (2σ²/N)·div_y{f_λ(y)}`; Theorem 1 makes η unbiased for
+  MSE; Theorem 2, eq. (14) estimates the divergence by perturbation —
+  `div = lim_{ε→0} E_b′{b′ᵀ((f_λ(y+εb′) − f_λ(y))/ε)}` — so that "f_λ is treated as a
+  black box, meaning that we only need access to the output of the operator." *This
+  review's reading, and the sign matters:* the divergence enters *positively* and is
+  Efron's degrees of freedom. A rigid persistence prior has near-zero divergence, so the
+  penalty charges it almost nothing; it is caught by the *residual* term instead, where
+  erased real change becomes misfit to the observed mask. (Check: f = identity ⇒ div = N ⇒
+  η = σ², the identity's true error.) Blockers: Gaussian noise, known σ².
+- **Efron 2004** (**PRIMARY**, JASA) is what makes the idea legal on a binary mask at an
+  asymmetric cut. Optimism Theorem 1: `E{Err_i} = E{err_i + Ω_i}`, `Ω_i = 2cov(λ̂_i, y_i)`,
+  which "generalizes Stein's result for squared error… to the q class of error measures";
+  it explicitly covers Bernoulli y ~ Be(μ), counting error (3.3), binomial deviance (3.4),
+  and (3.28) `O_i = 2λ̂_i(y_i − μ_i)`. Remark F (3.29) gives an *asymmetric* counting error
+  at a boundary π₁ ≠ ½, to "compensate for unequal prior sampling probabilities" — our 49:1.
+  §4, (4.8): cross-validation is a randomised version of the covariance penalty. *Verdict:*
+  highest transfer in the thread, and Ω_i is per cell.
+- **Batson & Royer 2019** (**PRIMARY**, Noise2Self) gives the architectural form.
+  Proposition 1: for a J-invariant f, `E‖f(x)−x‖² = E‖f(x)−y‖² + E‖x−y‖²`; for the
+  non-invariant median, the self-supervised loss "tells us nothing about the ground truth
+  loss" — laundering in miniature. *Verdict:* the best architectural fit (make the healer
+  J-invariant in *time*: the output at epoch t may not read epoch t's mask), **but both
+  clauses of Proposition 1 currently fail for our stack, in the dangerous direction** —
+  the HMM's whole point is that epoch t's observation is the unary evidence at t. The
+  resolution is a scoring question, not an architecture question, and is taken up in the
+  framework document; the proposition's additive-independent-noise assumption does not
+  describe Bernoulli misclassification, so Efron, not Noise2Self, is the bridge.
+- **Chernozhukov et al. 2018** (**ABSTRACT**, Econometrics Journal): "To avoid overfitting,
+  our construction also makes use of the K-fold sample splitting, which we call
+  cross-fitting." *Verdict:* procedural. The check it imposes: were q_loss, q_gain, the
+  transition table or β/γ fit on cells that overlap the 42 gold losses or the §2.2
+  GAIN/FLAT populations? If so the score is in-sample.
+- **Kumar, Liang & Ma 2019** (**PRIMARY**, NeurIPS): Platt and temperature scaling are
+  "(i) less calibrated than reported, and (ii) current techniques cannot estimate how
+  miscalibrated they are"; a continuous corrector's "true calibration error is
+  unmeasurable with a finite number of bins." *Verdict:* the documented precedent for gap 7
+  outside remote sensing, plus a design rule — make the correction measurable by
+  construction (a binned corrector is; a continuous one is not).
+- **Two caveats bind the whole thread.** (a) SURE, Efron and Noise2Self each require the
+  observation to be *unbiased* for truth; our per-year error is systematic (leaf-off
+  flights, 80.7 cm effective in 2005). (b) All three estimate **average** risk, and when
+  change is rare a launderer genuinely is near-optimal on average error — an unbiased
+  average-risk estimate will bless it. The fix is that Efron's Ω_i is per cell: sum it over
+  the lidar-certified GAIN and FLAT strata (§2.2), not citywide. Efron's (3.22) needs one
+  rerun per cell, infeasible at 13.3 M unless the healer is local; the parametric bootstrap
+  (3.17) is the practical route.
+
+*Gap 7, restated:* the methodology exists and is older than the field that lacks it. What
+remains open is its extension to spatially and class-correlated error, for which nothing
+was found.
+
+**4.12.4 §4.5 — propagating IGNORE through a chain of operators (gap 12).**
+
+- **Sussner et al.** (**PRIMARY**, *J. Math. Imaging Vis.*, doi:10.1007/s10851-011-0283-1)
+  defines morphology on any complete lattice — "ε(⋀Y) = ⋀_{y∈Y} ε(y), δ(⋁Y) = ⋁_{y∈Y} δ(y)
+  ∀ Y ⊆ L" (eq. 1) — and the interval lattice L^I = {[x, y] ⊆ [0, 1]} ordered "[u,v] ≤ [x,y]
+  ⇔ u ≤ x and v ≤ y" (eq. 26), with 0 = [0,0] and 1 = [1,1]; isomorphic to intuitionistic
+  fuzzy sets via "φ([x,y]) ↦ (x, 1−y)" (eq. 28), where "the degree of membership and the
+  degree of non-membership do not have to add up to 1" — the slack is ignorance. *This
+  review's construction, not the paper's:* map 0 / 1 / 255 → [0,0] / [1,1] / [0,1].
+  Component-wise infimum and supremum then give exactly Kleene three-valued propagation:
+  inf([0,1],[0,0]) = [0,0] and sup([0,1],[1,1]) = [1,1] — IGNORE resolves *only* when
+  known neighbours force it — while inf([0,1],[1,1]) = sup([0,1],[0,0]) = [0,1] stays
+  IGNORE. Adjunction guarantees opening and closing are idempotent inside the same
+  lattice. *Verdict:* a directly adoptable, closed-under-composition rule for the
+  morphology stage, conditional on our mapping. Not remote sensing.
+- **Liu et al. 2018** (**PRIMARY**, partial convolutions, arXiv:1804.07723) gives the
+  renormalisation for probability-domain smoothing. Eq. (1):
+  `x' = Wᵀ(X ⊙ M)·sum(1)/sum(M) + b if sum(M) > 0; 0 otherwise`; eq. (2):
+  `m' = 1 if sum(M) > 0; 0 otherwise`; and, in their words, "With sufficient successive
+  applications of the partial convolution layer, any mask will eventually be all ones."
+  *Verdict:* eq. (1) is adoptable; eq. (2) is *optimistic* — one valid neighbour dissolves
+  IGNORE — the opposite of conservative, because it was built to fill holes, not keep them.
+  A conservative variant (require sum(M) = sum(1), or a fraction of it) is this review's
+  inference, not theirs, and carries a free parameter.
+- **Appel** (**PRIMARY**, arXiv:2208.08781, *Artif. Intell. Earth Syst.*) restates both
+  equations for three-dimensional satellite raster stacks — "M has zeros for missing values
+  and ones for valid observations, and we assume X is zero for missing values, too" — and
+  is the Earth-observation bridge §4.9 said was absent. Same optimistic mask rule.
+- **Sinopoli et al. 2004** (**PRIMARY**, IEEE TAC; text quoted from the Berkeley preprint,
+  self-labelled DRAFT) is the exact rule for an unobserved epoch in a sequential
+  estimator. "In reality the absence of observation corresponds to the limiting case of
+  σ → ∞"; taking that limit, (14) `x̂_{t+1|t+1} = x̂_{t+1|t} + γ_{t+1}P C'(CPC'+R)⁻¹(y − Cx̂)`
+  and (15) `P_{t+1|t+1} = P_{t+1|t} − γ_{t+1}P C'(CPC'+R)⁻¹CP`, with γ = 0 on a missing
+  epoch: "performing this limit corresponds exactly to propagating the previous state when
+  there is no observation update available at time t." The gain zeroes, the state carries
+  forward, the covariance does *not* shrink. Their second result is the one to carry: below
+  a critical observation rate the error covariance is unbounded. *Verdict:* yes for the
+  temporal layer; the two-state-chain analogue of the critical rate is derived in the
+  framework document.
+- **Przewiezlikowski et al. 2022** (**PRIMARY**, MisConv, WACV) computes the expected
+  convolution over a fitted density of the missing values. *Verdict:* **no** — it
+  marginalises, i.e. imputes; that turns IGNORE into a class, which §3.6 of CLAUDE.md
+  forbids.
+- Not pursued: Rubin's MCAR/MAR/MNAR taxonomy (governs inference validity; yields no
+  operator-level rule); Bloch, doi:10.1016/j.ijar.2012.05.003, bipolar morphology —
+  **METADATA**, likely redundant with Sussner.
+
+*Gap 12, restated:* closed for the morphology stage and for the missing-epoch update,
+conditional on two substitutions that are ours; open on the conservative mask fraction,
+which is a hand-set constant until a principle ties it to the erasure threshold.
+
 ---
 
 ## 5. What the literature does not have
@@ -784,32 +1003,62 @@ deliberately:
    recall-on-real-change figure for a *canopy* consistency layer at our resolution, so
    there is still no like-for-like benchmark for 240/327 — but the weaker, verified claim
    is the one to rely on.
-2. **No forward-fed dated event prior** (§4.2). Zero prior art, seven search angles.
+2. **No forward-fed dated event prior** (§4.2). Zero prior art in remote sensing,
+   deforestation-risk modelling, and crime/disease mapping — seven search angles. **Round 2
+   narrows the wording, not the finding:** a time-decaying, directional modifier on a
+   transition rate is a proportional-hazards model with a time-varying covariate, and
+   survival analysis was *not* searched. "Framing exists, unsearched" is the honest state;
+   "no prior art" overstated it.
 3. **No measured spatial-vs-temporal weight, no sensitivity sweep, no change-size erasure
-   threshold** (§4.1).
+   threshold** (§4.1). **Narrowed in round 2 (§4.12.1):** the erasure threshold has a
+   closed form for total-variation smoothing (δ = α/scale, Strong & Chan 2003); the weight
+   has a fitting protocol with a held-out test against β = 0 / γ = 0 baselines (Gräler et
+   al. 2016), and one documented case where the weight did not matter (Krähenbühl & Koltun
+   2011). Still absent: either result for a joint spatio-temporal field on a probability
+   stack.
 4. **No inference evidence near 13.3 M cells × 12 epochs** for any joint spatio-temporal
-   field.
+   field. **Narrowed for the spatial term only (§4.12.1):** dense-CRF mean-field inference
+   runs over "billions of edges" in 0.2 s (Krähenbühl & Koltun 2011). The per-cell temporal
+   chain is 13.3 M independent 12-step chains and was never the expensive part.
 5. **No deep-supervision ablation using a three-state ignore label** (§4.4a).
 6. **No resolution curriculum that degrades imagery and labels together** (§4.4b).
 7. **No method for validating a correction layer as distinct from validating the map it
-   corrects.** Searched explicitly; only generic post-processing papers returned.
+   corrects.** Searched explicitly in remote sensing; only generic post-processing papers
+   returned. **Narrowed in round 2 (§4.12.3) — the method is older than the field that
+   lacks it:** Stein/Efron covariance penalties score a black-box corrector from its
+   degrees of freedom plus residual, and Efron 2004 covers Bernoulli outcomes at an
+   asymmetric cut; Noise2Self gives the J-invariance condition; cross-fitting gives the
+   procedural check. Still absent: any of it under spatially and class-correlated error,
+   which is what our reference has.
 8. **No reference protocol containing a false-positive class** (§2.4).
 9. **No measured cross-year lidar leakage rate** — nothing of the form "X% of year Y's
    label is leftover structure from lidar epoch Z" (§4.3).
 10. **No change-point method applied to a binary mask sequence with pre-measured (r, f).**
-    The statistics exist; the remote-sensing application does not.
+    The statistics exist; the remote-sensing application does not. **Narrowed in round 2
+    (§4.12.2):** the Bernoulli CUSUM with known rates (Ross et al. 2012) and the
+    misclassification correction explicit in f and r (Chen & Yang 2022) are both primary,
+    in two literatures never joined; a general log-likelihood-ratio form that admits
+    per-year rates exists (Itkin 2026). Still unpublished: the join, at n = 12, with
+    per-year (r_t, f_t) and a Monte-Carlo-calibrated threshold.
 11. **No A/B test of a hard veto against a soft prior on the same ancillary layer**, and no
     measured cost of a hard veto at its failure edges — offset footprints, demolished
     structures, canopy overhanging a roof (§6.2).
 12. **No study of IGNORE/no-data sentinel propagation through a multi-stage raster
-    post-processing chain** (§4.5).
+    post-processing chain** (§4.5). **Substantially narrowed in round 2 (§4.12.4):**
+    interval-valued morphology gives a closed-under-composition three-valued rule for the
+    morphology stage; partial convolutions give the renormalisation for probability-domain
+    smoothing; Kalman filtering with intermittent observations gives the exact
+    missing-epoch update and a critical observation rate. Still open: the conservative mask
+    fraction is a free parameter, and the two-state-chain analogue of the critical rate is
+    ours to derive.
 13. **No standard temporal-consistency metric.** The field uses ad hoc per-paper
     definitions; there is nothing to adopt.
 
 *Inference:* items 2, 5, 6, 8, 9, 10, 11 and 12 are places where the brief proposes
 something this search did not find in the field. That is a reason to pre-register carefully
-and measure, not a reason to abandon — but it does mean none can be de-risked by reading
-further.
+and measure, not a reason to abandon. After round 2, items 10 and 12 can be de-risked by
+*assembling* published halves rather than by reading further; item 2 has an unsearched
+statistical home (survival analysis); the rest cannot be de-risked by reading.
 
 > **How much to trust these negatives.** They are search results, not proofs. Every item
 > above means "not found by this review," never "does not exist." That distinction is not
@@ -935,6 +1184,16 @@ number, never instead of it. Adopt it from the first run rather than retrofittin
   (Capliez — §4.5); a GFZ Potsdam pubman mirror for an MDPI DOI that 403'd both a
   UA-spoofed curl and WebFetch directly (Martinis & Twele — §4.2); USDA Forest Service
   Treesearch for a Forest Service co-authored paper (King & Locke — §4.10).
+- **Round 2 (2026-09-11) searched adjacent fields, not remote sensing again:** four
+  threads — geostatistics and total-variation theory for the weight/erasure gap;
+  statistical process control and biosurveillance for change detection in (r, f);
+  denoising theory (SURE, Efron, Noise2Self) for corrector validation; missing-data signal
+  processing for IGNORE propagation. 21 new works, 16 read in full, 3 ABSTRACT, 2 METADATA;
+  findings in §4.12, grades in the bibliography. The same rule held: every pairing of a
+  paper's result with our objects is marked as the review's substitution. Two more leads
+  round 2 named but did not pull: the survival-analysis framing of §4.2 (item 2), and the
+  MacFaden et al. 2012 / UVM methodology that would settle whether canopy-over-roof is a
+  field convention (§4.10).
 - **Not searched:** §6.4 (which training lever first) is a cost/sequencing decision no
   literature settles; the material for it is in §4.6. §6.2 and §6.3 *were* searched in
   round 2 and are answered in §4.10.
@@ -1055,6 +1314,41 @@ Grades as defined in §2. Grouped by the brief section they bear on.
 - Li, Z., Zhang, X., Liu, W., Zhao, T., Ai, W., Wang, J. & Liu, L. (2025). Post-Processing Optimization of the Global 30 m Land Cover Dynamic Monitoring Product. *Remote Sensing* 17(9):1558. doi:10.3390/rs17091558 — **PRIMARY** (full text; §4.11 — the change-stratified reporting template, and the source of the correction in §5)
 - Reis, M.S., Dutra, L.V., Escada, M.I.S. & Sant'Anna, S.J.S. (2020). Avoiding Invalid Transitions in Land Cover Trajectory Classification With a Compound Maximum a Posteriori Approach. *IEEE Access* 8. doi:10.1109/ACCESS.2020.2997019 — **ABSTRACT**
 - Yang, J. & Huang, X. (2021). The 30 m Annual Land Cover Dataset and Its Dynamics in China from 1990 to 2019 (CLCD). *ESSD* 13(8). doi:10.5194/essd-13-3907-2021 — **METADATA ⚠ NUMBERS**
+
+### Adjacent-field theory (round 2, 2026-09-11; §4.12)
+Grades as in §2. None of these works is about land cover; each is cited for one result
+whose pairing with our objects is this review's substitution. Author surnames are as
+captured in the fetch; initials were not recorded and are deliberately not supplied here.
+Every DOI / arXiv id resolves.
+
+*§4.1 — weight and erasure threshold (§4.12.1)*
+- Strong & Chan (2003). Edge-preserving and scale-dependent properties of total variation regularization. *Inverse Problems* 19(6):S165–S187. doi:10.1088/0266-5611/19/6/059 — **PRIMARY** (UCLA CAM report mirror)
+- Gräler, Pebesma & Heuvelink (2016). Spatio-Temporal Interpolation using gstat. *The R Journal* 8(1):204–218. doi:10.32614/RJ-2016-014 — **PRIMARY**
+- Krähenbühl & Koltun (2011). Efficient Inference in Fully Connected CRFs with Gaussian Edge Potentials. *NeurIPS 2011*; arXiv:1210.5644 — **PRIMARY**
+
+*§2.3 / §6.1 — change detection in (r, f) (§4.12.2)*
+- Ross, Tasoulis & Adams (2012). Sequential monitoring of a Bernoulli sequence when the pre-change parameter is unknown. *Computational Statistics* 28(2):463–479. doi:10.1007/s00180-012-0311-7; arXiv:1212.6020 — **PRIMARY**
+- Chen & Yang (2022). A New p-Control Chart with Measurement Error Correction. arXiv:2203.03384 — **PRIMARY** (code: `github.com/lchen723/SPC-ME-R-code`)
+- Itkin (2026). Quickest Detection of Hallucination Onset. arXiv:2606.12476 — **PRIMARY**
+- Sandia National Laboratories (2016). An Introduction to the Bernoulli CUSUM. SAND2016-7395C, OSTI 1374023 — **PRIMARY** (bylined "Author 1"; corroboration only)
+- Reynolds & Stoumbos (1999). *J. Quality Technology* 31:87–108 — **METADATA** (via Ross et al.'s bibliography; the run-length approximation; not fetched)
+- Mishra & Singh (2022). doi:10.9734/ajpas/2022/v17i430430 — **ABSTRACT**, UNREADABLE (AJPAS 403; truncated negative-binomial inspection-error CUSUM)
+- Chakraborty & Khurshid (2017). doi:10.12957/cadest.2017.25564 — **ABSTRACT**, UNREADABLE (abstract only served; intervened-Poisson inspection-error CUSUM)
+
+*§4.5 — scoring a corrector (§4.12.3)*
+- Ramani, Blu & Unser (2008). Monte-Carlo SURE [full title not captured]. *IEEE Trans. Image Processing* 17(9):1540–1554. doi:10.1109/tip.2008.2001404 — **PRIMARY**
+- Efron (2004). The Estimation of Prediction Error: Covariance Penalties and Cross-Validation. *JASA* 99(467):619–632. doi:10.1198/016214504000000692 — **PRIMARY**
+- Batson & Royer (2019). Noise2Self. *ICML 2019*, PMLR 97; arXiv:1901.11365 — **PRIMARY**
+- Chernozhukov et al. (2018). *Econometrics Journal* 21(1):C1–C68. doi:10.1111/ectj.12097 — **ABSTRACT** (cross-fitting; title not captured)
+- Kumar, Liang & Ma (2019). Verified Uncertainty Calibration. *NeurIPS 2019*; arXiv:1909.10155 — **PRIMARY**
+
+*§4.5 — IGNORE propagation (§4.12.4)*
+- Sussner, Nachtegael, Mélange, Deschrijver, Esmi & Kerre. Interval-Valued and Intuitionistic Fuzzy Mathematical Morphologies as Special Cases of L-Fuzzy Mathematical Morphology. *J. Math. Imaging Vis.* doi:10.1007/s10851-011-0283-1 — **PRIMARY** (year not captured; DOI resolves)
+- Liu, Reda, Shih, Wang, Tao & Catanzaro (2018). Image Inpainting for Irregular Holes Using Partial Convolutions. arXiv:1804.07723v2; doi:10.1007/978-3-030-01252-6_6 — **PRIMARY**
+- Appel (2022). Efficient Data-Driven Gap Filling of Satellite Image Time Series Using Deep Neural Networks with Partial Convolutions. arXiv:2208.08781; *Artif. Intell. Earth Syst.* doi:10.1175/AIES-D-22-0055.1 — **PRIMARY**
+- Sinopoli, Schenato, Franceschetti, Poolla, Jordan & Sastry (2004). Kalman Filtering With Intermittent Observations. *IEEE Trans. Automatic Control* 49(9):1453–1464. doi:10.1109/TAC.2004.834121 — **PRIMARY** (Crossref-verified; text quoted from the Berkeley preprint, self-labelled DRAFT)
+- Przewiezlikowski et al. (2022). MisConv. *WACV 2022* — **PRIMARY** (read; rejected — imputes)
+- Bloch (2012). [bipolar morphology; title not captured]. *Int. J. Approx. Reasoning*. doi:10.1016/j.ijar.2012.05.003 — **METADATA**
 
 ### Held locally (`D:\edmonds-pipeline\Literture\`), read directly from PDF
 - Li, B., Liu, X., Zhuang, H., Shi, Q., Zeng, L., Cai, Y., Zhang, H., Cai, Y., Wu, C. & Xu, X. (2026). ALCC: Temporally Consistent Annual Land Cover Maps over China from 1985 to 2022 Based on an Ensemble Change Detection Method. *J. Remote Sens.* 6:1029. doi:10.34133/remotesensing.1029 — **PRIMARY** (local PDF; record and OA figures independently re-verified in round 2)

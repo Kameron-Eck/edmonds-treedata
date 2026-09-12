@@ -1274,6 +1274,120 @@ Bell–Hinojosa's power adjustment for unequal intervals) and the closed-form ye
 a 1977 result; row 6's bootstrap has a published generative model *and* estimator; the
 widened leave-out has its mechanism stated by a paper built to test exactly that.
 
+#### 4.14.2 `D_k(τ)` — the field has distance bands and a window, not a curve
+
+The object was the time profile of canopy loss after a permit. What exists is
+cross-sectional or two-point; no study reports loss as a function of years-since-permit at
+three or more steps. What the field does supply is a *distance* structure and a *window*.
+
+- **Hilbert, Roman et al. 2019** (**PRIMARY**, already filed; the synthesis table read
+  this round). Two rows carry the numbers. *Steenberg et al. (2018), Toronto* — yard,
+  street and public right-of-way trees, `n = 806`, a 6–7-year follow-up, with "presence and
+  number of building permits" as a mortality predictor. *Morgenroth et al. (2017),
+  Christchurch* — `n = 1,209`, predictors "small trees closer than 0.7 m to demolished
+  building (↑), large trees closer than 20 m to driveway (↑)". The second is a published
+  distance-band result of exactly the `K_R(d)` shape, with two radii for two tree sizes.
+- **Steenberg, Robinson & Millward 2017** (J. Environ. Planning & Management 61(3);
+  doi:10.1080/09640568.2017.1326883) — **ABSTRACT**: tree inventories joined to
+  building-permit open data; "presence and number of building permits significantly
+  predicted mortality at both parcel and street-section scale." This is the paper Hilbert
+  et al. cite; closed, not in the archive.
+- **Guo, Morgenroth & Conway 2018** (Urban Forestry & Urban Greening;
+  doi:10.1016/j.ufug.2018.08.012) — **ABSTRACT**: 6,966 trees on 450 Christchurch
+  properties, 2011→2015/16; 44 % removed on redeveloped properties against 13.5 % on
+  non-redeveloped; the best classification-tree split puts trees within 1.4 m of a
+  redeveloped building at highest removal risk. **Guo et al. 2019** (Sci. Total Environ.;
+  doi:10.1016/j.scitotenv.2019.05.122) — **ABSTRACT**: city-wide canopy 10.84 % → 10.28 %
+  over 2011–2015, loss higher where redevelopment occurred and insensitive to its
+  density. **Morgenroth, O'Neil-Dunne & Apiolaza 2017** (Applied Geography;
+  doi:10.1016/j.apgeog.2017.02.011) — **METADATA**; its numbers reach us only through
+  Hilbert's table. None of the three is in the archive.
+- **Hauer, Miller & Ouimet 1994** (**PRIMARY**, re-read for the window): construction
+  1981–85, trees followed 1979→1989, i.e. a 4–8-year post-event window; survival 77.3 %
+  (damaged) vs 81.4 % (undamaged), stronger where the tree lawn is narrower.
+- **Conway, Khatib, Tetreult & Almas 2022** (**PRIMARY**, Arboriculture & Urban Forestry
+  48(2); University of Toronto repository; read in full text). The recovery side of `τ`:
+  70 % of surveyed permit holders "planted the required replacement trees two to three
+  years after receiving the permit", but "only 54% of homeowners whose permit was
+  associated with construction planted" against 76 % of non-construction permit holders.
+  Also cites a Falls Church, VA ordinance "requiring 20% property-level canopy cover 10
+  years after redevelopment" — a policy-side statement of the recovery horizon.
+- Not fetched (MDPI 403, no mirror): **Roman et al. 2022** (Forests 13(6):871 —
+  construction caused 48.5 % of campus removals; annual mortality 4.3 %) and **Ock et al.
+  2024** (Sustainability 16(5):1803 — Portland UTC 2014–2020, building footprint and
+  multifamily units as drivers) — both **ABSTRACT**. Closed and absent from the archive:
+  Steenberg, Robinson & Duinker 2018 (Environ. Plann. B, 16 years of permits vs 2003/2014
+  orthos), Pedley & Morgenroth 2025 (Sustainable Cities & Society), Locke et al. 2024
+  (Landscape & Urban Planning) — **METADATA**.
+
+**Substitution (the review's).** `K_R(d)`: the field's radii are 0.7–1.4 m for the
+building itself and ~20 m for associated works — two scales, size-dependent, which argues
+for `K_R` as a sum of two kernels or for `R` read off Verburg's enrichment curve
+(§4.13.3) rather than a single guess. `D_k(τ)`: no curve exists; the observed windows are
+4–8 years (Hauer), 4–5 years (Guo), 6–7 years (Steenberg), with recovery planting at 2–3
+years (Conway). A decay with `k` on the order of 5 years is the only value the literature
+supports, and it is a *window*, not a shape — `D_k` remains the framework's [D] and its
+`k` is fit, not set. **Negative, PRIMARY-adjacent:** no survival/Cox model of urban tree
+loss with a construction covariate and a reported hazard ratio was found in any of three
+searches; the field's own review (Hilbert) says permit data are "rarely applied to
+statistical modeling."
+
+#### 4.14.3 The registration-blurred footprint prior — still no published form, but two constructions to borrow
+
+The object was a published rule turning a measured registration offset (our
+`coregistration.csv` median and p95) into a soft footprint prior with a fittable radius.
+None exists. What the OSM/cadastre-misalignment literature does supply is (i) a
+*generative* model of the offset and (ii) a worked case of a misalignment bound becoming
+an algorithm radius.
+
+- **Girard, Charpiat & Tarabalka 2019a** (**PRIMARY**, IGARSS 2019; arXiv 1903.06529;
+  read at the model paragraph). Training data are augmented "by adding random deformations
+  in the form of 2D Gaussian random fields for each coordinate with a maximum absolute
+  displacement of 32 px", the polygons "inversely displaced by the generated
+  displacements"; a further experiment adds "random zero-mean displacements up to 16 px".
+  The amplitude is hand-set from the observed worst case, not fitted — but the *form* is
+  the one our measured registration error can parameterise: a per-coordinate Gaussian
+  random field whose amplitude is the p95 and whose correlation length is the
+  coregistration field's.
+- **Vargas-Muñoz, Chiang, Tuia et al. 2019** (**PRIMARY**, ISPRS J. Photogramm. Remote
+  Sens.; arXiv 1901.08190; read at the alignment section). The search set for alignment
+  vectors is `D_x = D_y = {−30, …, 30}` pixels, set "based on the maximum expected
+  misalignment", with an MRF regulariser tying nearby buildings to a common shift; their
+  matching threshold corresponds to "a misalignment of 2 pixels (60 cm)" for the smallest
+  shape. This is the published precedent for the framework's row 14: the misalignment
+  bound is an *input radius*, taken from the data, not a tuned constant.
+- **Girard, Charpiat & Tarabalka 2019b** (**PRIMARY** on the searcher's read; ACCV 2018
+  workshops; HAL hal-01923568) and **Zampieri et al. 2018** (**PRIMARY** on the searcher's
+  read; ECCV; HAL hal-01849389): learn a dense displacement field and *correct* the
+  footprint instead of blurring it — the alternative design. **Kaiser et al. 2017**
+  (**PRIMARY** on the searcher's read; IEEE TGRS; arXiv 1707.06879): OSM masks used as
+  noisy labels with no spatial tolerance mechanism at all — robustness from data volume.
+- Medical imaging, the other home: **Le Folgoc, Delingette, Criminisi & Ayache 2017**
+  (**PRIMARY** on the searcher's read; IEEE TMI; HAL hal-01378844) gives a posterior over
+  the registration displacement field (sparse Bayesian) — a fittable uncertainty, not yet
+  a label prior; **Parisot et al. 2013** (**PRIMARY** on the searcher's read; ICCV; HAL
+  hal-00858696) propagates registration uncertainty into segmentation potentials on a
+  graphical model — the propagation step, without a closed form for a radius.
+- **Dai & Khorram 1998** (IEEE TGRS 36(5); doi:10.1109/36.718860) — **METADATA**: the
+  canonical "false change as a function of registration error" paper; closed, not in the
+  archive, not read. If a closed form for the edge-band false-positive rate exists it is
+  here, and it is the one paper in this vein still worth obtaining.
+
+**Substitution (the review's).** Row 10's `u_i` keeps its log-odds form; the blur is now
+specified as the *expected footprint indicator under the Girard-form displacement field*
+parameterised from `coregistration.csv` per epoch — i.e. convolve the footprint with the
+offset distribution rather than with a hand-set disc — and its only parameter is measured
+(row 14). The `[D]` label stays on the construction; the offset model and the "bound as
+radius" precedent are `[Q]`.
+
+**Negatives, round 5:** no multi-point `D_k(τ)` curve anywhere (four studies, all
+two-point or cross-sectional); no Cox/hazard-ratio paper for urban tree loss with a
+construction covariate; no published registration-blurred label prior in either remote
+sensing or medical imaging; no "footprint prior as a log-odds unary" in building/roof
+segmentation; Takada 2010, Besag 1974, Dai & Khorram 1998 and six urban-forestry papers
+closed and absent from the archive; MDPI blocked every route to Roman 2022 / Ock 2024 /
+Hasegawa & Takada 2019.
+
 ---
 
 ## 5. What the literature does not have
@@ -1511,6 +1625,15 @@ number, never instead of it. Adopt it from the first run rather than retrofittin
   StructN2V 2020, STAPLE 2004, Bellettini et al. 2002, Allard 2007). Still not pulled:
   Steenberg et al. 2017 (permitting data, named by Hilbert) and Efron 2004's own
   assumption statement.
+- **Round 5 (2026-09-12, same day) targeted the items the inventory marked "closable by
+  reading":** Markov stationarity tests and annualised transition matrices; temporal
+  dependence of classification error; the correlated-binary generative model; `D_k(τ)`
+  and Steenberg 2017; misalignment / registration-uncertainty priors. Three Sonnet
+  searchers on open routes, then the closed remainder fetched by DOI. 35 works surfaced;
+  14 reviewer-read (one as page images), 8 searcher-read PRIMARY, 6 ABSTRACT, 12
+  METADATA; findings in §4.14. Efron 2004's assumption statement was closed from his own
+  2021 restatement (author's page). Still unobtained and worth a library request: Dai &
+  Khorram 1998, Takada et al. 2010, Steenberg et al. 2017, Guo et al. 2018, Besag 1974.
 - **Not searched:** §6.4 (which training lever first) is a cost/sequencing decision no
   literature settles; the material for it is in §4.6. §6.2 and §6.3 *were* searched in
   round 2 and are answered in §4.10.
@@ -1707,6 +1830,47 @@ full-text read supports the grade.
 - Steenberg et al. (2017) — **METADATA** (named by Hilbert et al. 2019 for permitting data; not located by title).
 - [authors not captured] (2022). Construction and Proactive Management Led to Tree Removals on an Urban College Campus. *Forests* 13(6):871. doi:10.3390/f13060871 — **METADATA** (MDPI 403).
 - Zucchini, MacDonald & Langrock. *Hidden Markov Models for Time Series* (CRC) — **METADATA** (book).
+
+### Adjacent-field theory (round 5, 2026-09-12; §4.14)
+Grades as in §2; surnames as fetched; "reviewer-read" / "searcher-read" as in round 4.
+All filed PDFs under `D:\edmonds-pipeline\Literture\Validation\`.
+
+*§4.14.1 — stationarity, annualising, correlated bootstrap, temporal error dependence*
+- Bell & Hinojosa (1977). Markov analysis of land use change: Continuous time and stationary processes. *Socio-Economic Planning Sciences* 11(1):13–17. doi:10.1016/0038-0121(77)90041-6 — **PRIMARY**, reviewer-read. Filed `BellHinojosa_1977_Markov_land_use_stationarity`.
+- Anderson & Goodman (1957). Statistical Inference about Markov Chains. *Ann. Math. Statist.* 28(1):89–. doi:10.1214/aoms/1177707039 — **PRIMARY**, reviewer-read as page images pp. 89–91 (scan, no text layer). Filed `AndersonGoodman_1957_StatisticalInferenceMarkovChains`.
+- Takada, Miyamoto & Hasegawa (2010). Derivation of a yearly transition probability matrix for land-use dynamics and its applications. *Landscape Ecology* 25(4):561–572. doi:10.1007/s10980-009-9433-x — **METADATA** (closed; not in archive).
+- Hasegawa & Takada (2019). Probability of Deriving a Yearly Transition Probability Matrix for Land-Use Dynamics. *Sustainability* 11(22):6355. doi:10.3390/su11226355 — **ABSTRACT** (MDPI 403; Hokkaido mirror unreachable).
+- Burnicki, Brown & Goovaerts (2007). Simulating error propagation in land-cover change analysis: the implications of temporal dependence. *Comput. Environ. Urban Syst.* 31(3):282–302. doi:10.1016/j.compenvurbsys.2006.07.005 — **PRIMARY**, reviewer-read (§5). Filed `Burnicki_2007_error_propagation_temporal_dependence`.
+- Burnicki (2011). Spatio-temporal errors in land-cover change analysis: implications for accuracy assessment. *Int. J. Remote Sensing* 32(22):7487–7512. doi:10.1080/01431161.2010.524674 — **PRIMARY** on fetch, identity only; not yet read. Filed `Burnicki_2011_spatiotemporal_errors_accuracy`.
+- Burnicki, Brown & Goovaerts (2010). *Int. J. Geogr. Inf. Sci.* 24(7). doi:10.1080/13658810903279008 — **METADATA**. Burnicki (2012). *Landscape Ecology*. doi:10.1007/s10980-012-9719-2 — **METADATA**.
+- Geyer & Thompson (1992). Constrained Monte Carlo Maximum Likelihood for Dependent Data. *J. R. Stat. Soc. B* 54(3):657–699. doi:10.1111/j.2517-6161.1992.tb01443.x — **PRIMARY**, reviewer-read (abstract and the normalising-constant passages). Filed `GeyerThompson_1992_MCML_dependent_data`.
+- Besag (1974). Spatial Interaction and the Statistical Analysis of Lattice Systems. *J. R. Stat. Soc. B* 36(2). doi:10.1111/j.2517-6161.1974.tb00999.x — **METADATA** (closed; not in archive).
+- Wolters & Dean (2017). Classification of Large-Scale Remote Sensing Images for Automatic Identification of Health Hazards. *Statistics in Biosciences* 9. doi:10.1007/s12561-016-9185-5 — **PRIMARY**, searcher-read. Filed `WoltersDean_2016_ClassificationHealthHazardsAutologistic`.
+- Wolters (2017). Better Autologistic Regression. *Frontiers Appl. Math. Stat.* 3:24. doi:10.3389/fams.2017.00024 — **PRIMARY**, searcher-read. Filed `Wolters_2017_BetterAutologisticRegression`.
+- Efron (2021) — see the round-4 block (§4.13.1).
+
+*§4.14.2 — `D_k(τ)`, development and tree loss*
+- Steenberg, Robinson & Millward (2017). The influence of building renovation and rental housing on urban trees. *J. Environ. Planning & Management* 61(3):553–567. doi:10.1080/09640568.2017.1326883 — **ABSTRACT** (closed; not in archive).
+- Steenberg, Robinson & Duinker (2018). *Environment and Planning B*. doi:10.1177/2399808317752927 — **METADATA**.
+- Guo, Morgenroth & Conway (2018). Redeveloping the urban forest: The effect of redevelopment and property-scale variables on tree removal and retention. *Urban Forestry & Urban Greening*. doi:10.1016/j.ufug.2018.08.012 — **ABSTRACT**.
+- Guo, Morgenroth, Conway & Xu (2019). City-wide canopy cover decline due to residential property redevelopment in Christchurch, New Zealand. *Sci. Total Environ.* doi:10.1016/j.scitotenv.2019.05.122 — **ABSTRACT**.
+- Morgenroth, O'Neil-Dunne & Apiolaza (2017). Redevelopment and the urban forest: A study of tree removal and retention during demolition activities. *Applied Geography*. doi:10.1016/j.apgeog.2017.02.011 — **METADATA** (numbers via Hilbert et al. 2019's table).
+- Conway, Khatib, Tetreult & Almas (2022). A Private Tree By-Law's Contribution to Maintaining a Diverse Urban Forest: Exploring Homeowners' Replanting Compliance and the Role of Construction Activities in Toronto, Canada. *Arboriculture & Urban Forestry* 48(2). doi:10.48044/jauf.2022.002 — **PRIMARY**, reviewer-read. Filed `Conway_2022_Toronto_treebylaw`.
+- Roman, Fristensky, Lundgren, Cerwinka & Lubar (2022). Construction and Proactive Management Led to Tree Removals on an Urban College Campus. *Forests* 13(6):871. doi:10.3390/f13060871 — **ABSTRACT** (MDPI 403).
+- Ock, Shandas, Ribeiro & Young (2024). Drivers of Tree Canopy Loss in a Mid-Sized Growing City: Case Study in Portland, OR (USA). *Sustainability* 16(5):1803. doi:10.3390/su16051803 — **ABSTRACT** (MDPI 403).
+- Pedley & Morgenroth (2025). *Sustainable Cities and Society*. doi:10.1016/j.scs.2025.106678 — **METADATA**. Locke, Ossola, Schmit & Grove (2024). *Landscape and Urban Planning*. doi:10.1016/j.landurbplan.2024.105187 — **METADATA**.
+- Hilbert et al. (2019), Hauer et al. (1994) — round-4 block; re-read this round.
+
+*§4.14.3 — misalignment and registration-uncertainty priors*
+- Girard, Charpiat & Tarabalka (2019a). Noisy Supervision for Correcting Misaligned Cadaster Maps Without Perfect Ground Truth Data. *IGARSS 2019*; arXiv:1903.06529. doi:10.1109/igarss.2019.8898071 — **PRIMARY**, reviewer-read (model paragraph). Filed `Girard_2019_NoisySupervisionMisalignedCadaster`.
+- Vargas-Muñoz, Chiang, Tuia et al. (2019). Correcting rural building annotations in OpenStreetMap using convolutional neural networks. *ISPRS J. Photogramm. Remote Sens.*; arXiv:1901.08190. doi:10.1016/j.isprsjprs.2018.11.010 — **PRIMARY**, reviewer-read (alignment section). Filed `VargasMunoz_2019_CorrectingRuralBuildingAnnotationsOSM`.
+- Girard, Charpiat & Tarabalka (2019b). Aligning and Updating Cadaster Maps with Aerial Images by Multi-Task, Multi-Resolution Deep Learning. *ACCV 2018 Workshops*, LNCS. doi:10.1007/978-3-030-20873-8_43 — **PRIMARY**, searcher-read. Filed `Girard_2019_AligningUpdatingCadasterMaps`.
+- Zampieri, Charpiat, Girard & Tarabalka (2018). Multimodal Image Alignment Through a Multiscale Chain of Neural Networks with Application to Remote Sensing. *ECCV 2018*. doi:10.1007/978-3-030-01270-0_40 — **PRIMARY**, searcher-read. Filed `Zampieri_2018_MultimodalImageAlignmentMultiscaleChain`.
+- Kaiser, Wegner, Lucchi, Jaggi, Hofmann & Schindler (2017). Learning Aerial Image Segmentation From Online Maps. *IEEE TGRS*; arXiv:1707.06879. doi:10.1109/tgrs.2017.2719738 — **PRIMARY**, searcher-read. Filed `Kaiser_2017_LearningAerialSegOnlineMaps`.
+- Le Folgoc, Delingette, Criminisi & Ayache (2017). Quantifying Registration Uncertainty With Sparse Bayesian Modelling. *IEEE Trans. Med. Imaging*. doi:10.1109/tmi.2016.2623608 — **PRIMARY**, searcher-read. Filed `LeFolgoc_2016_QuantifyingRegistrationUncertaintySparseBayesian`.
+- Parisot, Wells, Chemouny, Duffau & Paragios (2013). Uncertainty-Driven Efficiently-Sampled Sparse Graphical Models for Concurrent Tumor Segmentation and Atlas Registration. *ICCV 2013*. doi:10.1109/iccv.2013.85 — **PRIMARY**, searcher-read. Filed `Parisot_2013_UncertaintyDrivenTumorSegAtlasRegistration`.
+- Dai & Khorram (1998). The effects of image misregistration on the accuracy of remotely sensed change detection. *IEEE TGRS* 36(5):1566–1577. doi:10.1109/36.718860 — **METADATA** (closed; not in archive).
+- Risholm et al. (2011). *ISBI*. doi:10.1109/isbi.2011.5872467 — **METADATA** (PMC copy not served).
 
 ### Held locally (`D:\edmonds-pipeline\Literture\`), read directly from PDF
 - Li, B., Liu, X., Zhuang, H., Shi, Q., Zeng, L., Cai, Y., Zhang, H., Cai, Y., Wu, C. & Xu, X. (2026). ALCC: Temporally Consistent Annual Land Cover Maps over China from 1985 to 2022 Based on an Ensemble Change Detection Method. *J. Remote Sens.* 6:1029. doi:10.34133/remotesensing.1029 — **PRIMARY** (local PDF; record and OA figures independently re-verified in round 2)

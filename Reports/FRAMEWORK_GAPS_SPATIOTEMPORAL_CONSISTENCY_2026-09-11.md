@@ -868,3 +868,60 @@ fit needs the LOSS population and the permit dates; the kill is unchanged (row 9
 | 8 | hand-set `φ` | tie to the opening radius `1/λ` (row 4) |
 | 9 | framing unsearched | **form and fitting protocol found**: multiplicative NHMM transition is Hughes–Guttorp–Charles 1999 [Q]; `R` from Verburg's enrichment factor vs `d` [S]; `A` canonical / `k` irregular (Baddeley & Turner) [S]; only `D_k` still ours; same data build as 11b |
 | 10 | data on hand | no published blur-prior form (negative); radius from row 14 |
+
+---
+
+## 14. Round 5 — what moved from "need information" to "known" (2026-09-12)
+
+**[Q] → [S] only; sources and grades in review §4.14. Unvalidated as before.**
+
+### 14.1 The `λ^k` machinery and the stationarity test are 1977 results
+
+Bell & Hinojosa 1977 state `P = HΛH⁻¹`, `Pᵗ = HΛᵗH⁻¹` for non-integer `t` and use it to
+put two land-use transition matrices on an equal footing before a χ² test — a two-state
+developed/undeveloped chain in Washington State. §12.2's decay weights `a_k, c_k`, its
+determinant `λ^k`, and its yearly-rate closed form are the 2×2 case of their eqs. 1–2:
+**re-binned [D] → [S].** Assumption (i) (stationarity across lidar intervals) has its
+test: Anderson & Goodman 1957's likelihood-ratio / χ² test of constant transition
+probabilities, applied as Bell & Hinojosa apply it. The existence condition for the yearly
+root, `λ > 0`, is their eigenvalue remark; Hasegawa & Takada 2019 (ABSTRACT) report it
+holds with high probability for matrices with large diagonals — ours.
+
+### 14.2 Row 6 — the correlated bootstrap is fully sourced
+
+Generative model: autologistic (Hughes, Guttorp & Charles 1999 use it for a binary field
+with distance-dependent interaction; Besag 1974 is the origin, METADATA). Estimator:
+Monte Carlo maximum likelihood (Geyer & Thompson 1992, PRIMARY), which Hughes–Guttorp
+use; pseudolikelihood is the cheap alternative. Identity: Efron's Optimism Theorem holds
+for an arbitrary joint `f` (Efron 2021, PRIMARY). Mechanism the widened leave-out
+guards against: Burnicki et al. 2007 — correlated error across dates "improved the overall
+accuracy of the resulting change map" without improving the user's accuracy of change.
+**Row 6 is now: two correlograms to measure, one autologistic fit per stratum, one
+bootstrap.** Every piece has a home.
+
+### 14.3 Rows 9–10 — radii from the field, a window for `k`, a generative offset for the blur
+
+- `K_R(d)`: the field reports two scales — 0.7–1.4 m from the building itself and ~20 m
+  for associated works (Morgenroth et al. 2017 via Hilbert's table; Guo et al. 2018,
+  ABSTRACT). **[S]:** `K_R` as two kernels, or `R` read from Verburg's enrichment curve
+  (§13.3); the single-radius form of §6.1 is under-specified.
+- `D_k(τ)`: no curve exists. Windows of elevated loss are 4–8 years (Hauer 1994), 4–5
+  (Guo 2018/2019), 6–7 (Steenberg 2018 via Hilbert); replanting at 2–3 years (Conway
+  2022). **`k ≈ 5 y` is the only literature-supported prior for the fit's starting value;
+  it is a window, not a shape — `D_k` stays [D].**
+- Row 10 blur: **[S]** — the footprint prior's blur is the expectation of the footprint
+  indicator under a per-coordinate Gaussian-random-field displacement (Girard et al.
+  2019a's noise model) with amplitude set to the epoch's coregistration p95 and
+  correlation length from the coregistration field; the "bound as input radius"
+  precedent is Vargas-Muñoz et al. 2019. No published label prior does this (negative
+  stands); the offset model and the precedent are [Q].
+
+### 14.4 Ledger deltas from round 5
+
+| # | Was | Now |
+|---|---|---|
+| 6 | narrowed to measurements | **fully sourced**: identity (Efron 2021), model (autologistic), estimator (MCML), mechanism (Burnicki 2007); remaining = the two correlograms + one fit per stratum |
+| 9 | form + protocol found; `D_k` ours | radii two-scale from the field [S]; `k ≈ 5 y` starting value (window) [S]; `D_k` shape still [D] |
+| 10 | negative on prior art | blur = footprint ⊗ GRF-offset(p95) [S]; precedent for bound-as-radius [Q]; negative on a published prior stands |
+| 11a | estimator [D] | `λ^k` decay and yearly-rate closed form → [S] (Bell & Hinojosa 1977 eqs. 1–2) |
+| **15 (new)** | — | **Stationarity of `(q_g, q_l)` across lidar intervals** — test: Anderson & Goodman 1957 / Bell & Hinojosa 1977; needs a third certified date; interior-epoch bridge check is a consistency check only. Kill: the test must reject on a stratum where §6.1's development prior says rates changed (dated footprints). **[Q→S]; not runnable until a third lidar date exists** |

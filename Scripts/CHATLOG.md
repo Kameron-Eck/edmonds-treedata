@@ -46,6 +46,16 @@ transcript before rotation). Read order: `CLAUDE.md` → `WORKPLAN.md` → `STAT
 
 ════════════════ LOG  (newest first — append new entries directly below this line) ════════════════
 
+## 2026-09-12  LIT ROUND 5 — inventory (know / derived / need-by-reading / need-by-measuring / don't know) then 3 searches to move items into "know"
+goal:    Kam: "establish what we know, what we don't know, what we need more information on; then find the studies." Inventory given in chat; searches targeted the "closable by reading" bin.
+did:     3 Sonnet searchers (stats; urban forestry D_k(τ); misalignment priors) + Fable Sci-Hub pass by DOI (one bare curl per call) + Efron's Stanford page.
+         review §4.14 (4.14.1–4.14.3 + negatives), §4.13.1 caveat resolved, §7 round-5 bullet, §8 round-5 bibliography (35 works). framework §14 (14.1–14.4), §12.2 assumption (i) test paragraph, §13.1 bootstrap model [Q], ledger deltas + new row 15.
+         Moved into KNOW: Efron identity holds for arbitrary joint f (Efron 2021, author's page — closes the row-6 caveat). λ^k decay + yearly-rate closed form = Bell & Hinojosa 1977 eqs 1–2 (two-state land use, San Juan Island WA) → [D]→[S]. Stationarity test = Anderson & Goodman 1957 (page images) / Bell–Hinojosa power adjustment. Correlated bootstrap: autologistic (Hughes–Guttorp) + MCML (Geyer & Thompson 1992). Mechanism for widened leave-out: Burnicki 2007 — correlated error across dates raises overall change accuracy, not user's accuracy of change. K_R radii: 0.7–1.4 m building / ~20 m works (Morgenroth 2017 via Hilbert table; Guo 2018 abstract). D_k window 4–8 y (Hauer), 4–5 (Guo), 6–7 (Steenberg); replant 2–3 y (Conway 2022). Blur: GRF-offset model (Girard 2019a) + bound-as-radius precedent (Vargas-Muñoz 2019).
+decided: k≈5 y as the fit's starting value only (window, not shape). Row 15 (stationarity) not runnable until a third lidar date.
+killed:  Not in Sci-Hub archive (post-2017 coverage thin): Takada 2010, Besag 1974, Dai & Khorram 1998, Steenberg 2017/2018, Guo 2018/2019, Morgenroth 2017, Pedley 2025. MDPI 403 on Roman 2022 / Ock 2024 / Hasegawa–Takada 2019; Hokkaido mirror unreachable. Efron 2004 itself unobtained anywhere — 2021 restatement is the citation. Anderson–Goodman 1957 scan has no text layer (read as images). No D_k(τ) curve exists in the field; no Cox/hazard-ratio paper; no published registration-blurred label prior.
+files:   Reports/LIT_REVIEW_SPATIOTEMPORAL_CONSISTENCY_2026-09-10.md; Reports/FRAMEWORK_GAPS_SPATIOTEMPORAL_CONSISTENCY_2026-09-11.md; Scripts/CHATLOG.md; Literture/Validation/ (+18 PDF/.txt pairs this round)
+next:    Library requests: Dai & Khorram 1998, Takada 2010, Steenberg 2017, Guo 2018, Besag 1974. Read Burnicki 2011 (filed, unread). Kam: 𝒞 + LOSS rules (11b); smoother decision (row 4); rows 1–2 CPU jobs.
+
 ## 2026-09-12  LIT ROUND 4 — ledger rows 4/6/9/10 taken to Stein theory, TV-L1 geometry, point processes (Sonnet search, Fable read)
 goal:    Kam: search other mathematical domains for framework rows 6 (penalty under correlated error), 4 (erasure radius, non-linear), 9–10 (prior free params). Sonnet searches, Fable reads full text.
 did:     3 Sonnet searchers, OA routes only → 22 works, 16 PDFs filed `Literture/Validation/` (+ .txt). Fable read 10 at load-bearing passage (Hudson 1978 + Hwang 1982 as JSTOR page images; Vixie p.13 image).

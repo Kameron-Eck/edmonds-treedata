@@ -1624,12 +1624,14 @@ re-bins the yearly-rate closed form from [S] on Bell & Hinojosa's diagonalisatio
   Management; read at abstract and §1). "We found that the presence and number of
   building permits significantly predicted mortality at both scales, while planting was
   positively correlated with building permits at the street-section scale only." The
-  Hilbert table's "Steenberg et al. (2017)" row is this paper. **Correction (round
-  8):** the Environment & Planning B 2018 paper, once read, is a census-tract regression
-  of canopy cover (2003 vs 2014 imagery) on permits — its text contains neither `806` nor
-  a 6–7 y window, so it is NOT the Hilbert "2018" row. Two Steenberg papers exist; which
-  Hilbert row the 6–7 y / `n = 806` figures belong to remains unverified (the extracted
-  table was column-jumbled).
+  **Correction (round 8), read at the text:** this JEPM paper is the source of the
+  Hilbert `n = 806` / 6–7 y figures — it "re-measured 806 trees on 438" properties,
+  comparing "the 2014 and 2007/2008 data collection" (§2). Hilbert cites it by its print
+  volume (61, 2018), so it is the table's "Steenberg 2018" row. The Environment &
+  Planning B 2018 paper, also read, is a census-tract regression of canopy cover on
+  permits (2003 vs 2014 imagery) and carries neither figure. Whether Hilbert's table has
+  a separate "2017" row at all is what remains unverified (the extraction was
+  column-jumbled).
 - **Guo, Morgenroth & Conway 2018** (**PRIMARY**, Urban Forestry & Urban Greening;
   read at abstract and §3). "44% of trees were removed on redeveloped properties, 13.5%
   of trees were removed on non-redeveloped properties"; the classification tree
@@ -1648,9 +1650,9 @@ re-bins the yearly-rate closed form from [S] on Bell & Hinojosa's diagonalisatio
 ### 4.17 Round 8 (2026-09-12) — the "not load-bearing" remainder, obtained: three additions, the rest grade upgrades
 
 Round 7's leftover list was cleared the same way (second index, one download per call,
-spaced against the 429 limit). Eleven PDFs filed under `Literture\Validation\`; nine read
-by this reviewer at the cited passages, two read at the abstract only (Burnicki 2010;
-Leung–Ma–Goodchild Part 4). Conley 1999 is indexed on the second mirror but the storage
+spaced against the 429 limit). Eleven PDFs filed under `Literture\Validation\`; ten read
+by this reviewer at the cited passages, one read at the abstract only (Burnicki 2010).
+Leung–Ma–Goodchild Part 4, filed last round, was also read at the abstract. Conley 1999 is indexed on the second mirror but the storage
 host answers 403 for it under both DOI encodings — indexed, file missing, not "absent".
 The four MDPI items (Barker 2022, Roman 2022, Ock 2024, Hasegawa & Takada 2019) and
 Laurance 1998 *Ecology* were not pursued: nothing in the framework cites them. Kam's
@@ -1683,9 +1685,10 @@ already PRIMARY from open-access copies (§4.4, §4.8).
   "characterize all bounded sets" of finite perimeter in the plane "which evolve without
   distortion of the boundary"; for such a set `Ω`, `χ_Ω` evolves as
   `u(t,x) = (1 − λ_Ω t)⁺ χ_Ω` with `λ_Ω = P(Ω)/|Ω|` (their abstract; transcribed, the
-  OCR garbles the symbols). The characterisation (their eq. 5 region): a bounded set
-  evolves this way iff it is convex, its boundary is `C^{1,1}`, and the boundary
-  curvature is everywhere at most `λ_Ω`. A disc of radius `R` qualifies (curvature
+  OCR garbles the symbols). The characterisation (their eq. 5 region): a bounded
+  *connected* set evolves this way iff it is convex, its boundary is `C^{1,1}`, and the
+  boundary curvature is everywhere at most `λ_Ω`; their Theorem 5 extends this to unions
+  whose components are each convex. A disc of radius `R` qualifies (curvature
   `1/R ≤ 2/R`), so its indicator is extinguished at flow time `t = |Ω|/P(Ω) = R/2`.
   This is TV *flow* (time-parameterised descent), distinct from TV-L1 minimisation
   (`R_erase = 2/λ`, §4.13.2) and from ROF (Strong & Chan, §4.12.1). Framework §16.2
@@ -1696,8 +1699,8 @@ already PRIMARY from open-access copies (§4.4, §4.8).
 | Work | Was | Now | What was read |
 |---|---|---|---|
 | Morgenroth, O'Neil-Dunne & Apiolaza 2017 (*Applied Geography*) | ABSTRACT, via Hilbert's table | **PRIMARY** | "21.6% of all trees were removed as a consequence of building demolition"; removal most frequent for small crowns "(<7.9 m2)" and "especially if they were within 0.7 m of" the demolished building; the largest retained group was crowns over 7.9 m² "further than 20 m from a driveway"; classification-tree accuracy "80.4%". The 0.7 m / 20 m radii carried in framework §14.6 are now quoted, and the paper's authorship is corrected (it is not a Conway paper). |
-| Guo, Morgenroth, Conway & Xu 2019 (*Sci. Total Environ.*) | ABSTRACT | **PRIMARY** | citywide cover fell "from 10.84% to 10.28% between 2011 and 2015" while the redevelopment effect is significant only at meshblock scale — the mechanism by which a citywide rate hides a local one (framework §12.5 strata). |
-| Steenberg, Robinson & Duinker 2018 (*Environ. Plann. B*) | METADATA | **PRIMARY** | census-tract regression on "imagery from 2003 and 2014 and government open data describing 16 years of renovation activity"; not the Hilbert `n = 806` row (correction in §4.16.5). |
+| Guo, Morgenroth, Conway & Xu 2019 (*Sci. Total Environ.*) | ABSTRACT | **PRIMARY** | "a small absolute magnitude of city-wide tree canopy cover decline, from 10.84% to 10.28% between 2011 and 2015, but a statistically significant decrease in meshblock-scale mean tree canopy cover" — a citywide rate hiding a local one (framework §12.5 strata). |
+| Steenberg, Robinson & Duinker 2018 (*Environ. Plann. B*) | METADATA | **PRIMARY** | census-tract regression on "imagery from 2003 and 2014 and government open data describing 16 years of renovation activity"; carries neither the `n = 806` nor the 6–7 y figure — those belong to the JEPM paper (correction in §4.16.5). |
 | Warfield, Zou & Wells 2004 (STAPLE, *IEEE TMI*) | METADATA, negative | **PRIMARY**, negative confirmed | "the performance level, or quality, achieved by each segmentation is represented by sensitivity and specificity" — a rater-reliability model; nothing on positional blur of a footprint. Row 10 negative stands. |
 | Efron 1986 (*JASA*) | METADATA | **PRIMARY** | the independence assumption in its original form: "Here the yi independently equal 1 or 0". This is the statement Efron 2004 §3 dropped — the two-line lineage behind row 6. |
 | Leung & Yan 1998 (*IJGIS*) | METADATA | **PRIMARY** | the point model is "a circular normal distribution"; the radial distance "is a distribution function", namely "the Rayleigh distribution" — a second source for the r-band law behind framework §14.7. |
@@ -1981,12 +1984,14 @@ number, never instead of it. Adopt it from the first run rather than retrofittin
   filed, unread). Findings in §4.16; the lesson for the method is that "not in the
   archive" was mirror-specific and is now checked on both indexes before it is written.
 - **Round 8 (2026-09-12) cleared round 7's leftover list:** eleven PDFs obtained the same
-  way and filed; the round-8 bibliography block holds 12 lines (counted): 9 reviewer-read
-  PRIMARY, 2 reviewer-read ABSTRACT, 1 METADATA (Conley 1999, indexed but the storage
-  file is missing). Three additions (the `G(t)` mask rule quoted, the block rule
-  second-sourced, the TV-flow extinction law) and nine grade changes in §4.17. One
-  earlier attribution corrected (§4.16.5: the Environment & Planning B paper is not the
-  Hilbert `n = 806` row). Nothing load-bearing remains unread; the MDPI four and
+  way and filed; the round-8 bibliography block holds 12 lines (counted): 10 reviewer-read
+  PRIMARY, 1 reviewer-read ABSTRACT (Burnicki 2010), 1 METADATA (Conley 1999, indexed
+  but the storage file is missing); Part 4's abstract grade sits on its round-7 line.
+  Three additions (the `G(t)` mask rule quoted, the block rule second-sourced, the
+  TV-flow extinction law) and nine grade changes in §4.17. One earlier attribution
+  corrected at the text (§4.16.5: the `n = 806` / 6–7 y figures are the JEPM paper's,
+  cited by Hilbert under its 2018 print volume; the Environment & Planning B paper
+  carries neither). Nothing load-bearing remains unread; the MDPI four and
   Laurance 1998 *Ecology* were not pursued because nothing cites them.
 - **Not searched:** §6.4 (which training lever first) is a cost/sequencing decision no
   literature settles; the material for it is in §4.6. §6.2 and §6.3 *were* searched in
@@ -2267,13 +2272,13 @@ lines for these works in the round 4–7 blocks are superseded by the grades her
 - Roberts, Bahn, Ciuti, Boyce, Elith, Guillera-Arroita, Hauenstein, Lahoz-Monfort, Schröder, Thuiller, Warton, Wintle, Hartig & Dormann (2017). Cross-validation strategies for data with temporal, spatial, hierarchical, or phylogenetic structure. *Ecography*. doi:10.1111/ecog.02881 — **PRIMARY**, reviewer-read (the blocking recipe; accepted-article copy). Filed `Roberts_2017_CV_structured_data`.
 - Bellettini, Caselles & Novaga (2002). The Total Variation Flow in R^N. *J. Differential Equations*. doi:10.1006/jdeq.2001.4150 — **PRIMARY**, reviewer-read (abstract; the convex/curvature characterisation at their eq. 5). Filed `BellettiniCasellesNovaga_2002_TV_flow_RN_clean` (supersedes the unreadable round-4 copy).
 - Morgenroth, O'Neil-Dunne & Apiolaza (2017). Redevelopment and the urban forest: A study of tree removal and retention during demolition activities. *Applied Geography* 82:1–10. doi:10.1016/j.apgeog.2017.02.011 — **PRIMARY**, reviewer-read (abstract, §3). Filed `Morgenroth_2017_redevelopment_demolition_tree_removal`.
-- Guo, Morgenroth, Conway & Xu (2019). City-wide canopy cover decline due to residential property redevelopment in Christchurch, New Zealand. *Science of the Total Environment* 681:202–210. doi:10.1016/j.scitotenv.2019.05.122 — **PRIMARY**, reviewer-read (abstract, §2–3). Filed `Guo_2019_citywide_canopy_decline_redevelopment`.
+- Guo, Morgenroth, Conway & Xu (2019). City-wide canopy cover decline due to residential property redevelopment in Christchurch, New Zealand. *Science of the Total Environment* 681:202–210. doi:10.1016/j.scitotenv.2019.05.122 — **PRIMARY**, reviewer-read (abstract, §2–3). Filed `Guo_2019_citywide_canopy_decline_redevelopment` (+ `_raw.txt`, reading-order extract).
 - Steenberg, Robinson & Duinker (2018). A spatio-temporal analysis of the relationship between housing renovation, socioeconomic status, and urban forest ecosystems. *Environment and Planning B: Urban Analytics and City Science*. doi:10.1177/2399808317752927 — **PRIMARY**, reviewer-read (abstract, §1, §2 data). Filed `Steenberg_2018_housing_renovation_spatiotemporal`.
 - Warfield, Zou & Wells (2004). Simultaneous Truth and Performance Level Estimation (STAPLE): An Algorithm for the Validation of Image Segmentation. *IEEE Trans. Medical Imaging* 23(7):903–. doi:10.1109/TMI.2004.828354 — **PRIMARY**, reviewer-read (abstract, §1); negative for row 10. Filed `Warfield_2004_STAPLE` (+ `_raw.txt`, reading-order extract).
 - Efron (1986). How Biased is the Apparent Error Rate of a Prediction Rule? *JASA*. doi:10.1080/01621459.1986.10478291 — **PRIMARY**, reviewer-read (§1, the model statement). Filed `Efron_1986_apparent_error_rate`.
 - Leung & Yan (1998). A locational error model for spatial features. *Int. J. GIS* 12(4). doi:10.1080/136588198241699 — **PRIMARY**, reviewer-read (§§2–3). Filed `LeungYan_1998_locational_error_model`.
 - Stow (1999). Reducing the effects of misregistration on pixel-level change detection. *Int. J. Remote Sensing* 20(12). doi:10.1080/014311699212137 — **PRIMARY**, reviewer-read (abstract, §1). Filed `Stow_1999_reducing_misregistration_effects`.
-- Burnicki (2010). Modeling the probability of misclassification in a map of land cover change: impact of temporal dependence under increased thematic complexity [title as extracted; see file header]. *Int. J. GIS*. doi:10.1080/13658810903279008 — **ABSTRACT**, reviewer-read abstract only. Filed `Burnicki_2010_temporal_dependence_thematic_complexity`.
+- Burnicki, Brown & Goovaerts (2010). Propagating error in land-cover-change analyses: impact of temporal dependence under increased thematic complexity. *Int. J. GIS* 24(7):1043–1060. doi:10.1080/13658810903279008 — **ABSTRACT**, reviewer-read abstract only. Filed `Burnicki_2010_temporal_dependence_thematic_complexity`.
 - Conley (1999). GMM estimation with cross sectional dependence. *J. Econometrics* 92(1). doi:10.1016/S0304-4076(98)00084-0 — **METADATA**; indexed on the second mirror, storage host returns 403 under both DOI encodings (2026-09-12). Not load-bearing: §15.1's per-cell Steinian covers the need.
 
 ### Held locally (`D:\edmonds-pipeline\Literture\`), read directly from PDF

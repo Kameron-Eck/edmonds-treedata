@@ -908,9 +908,9 @@ bootstrap.** Every piece has a home.
   ABSTRACT). **[S]:** `K_R` as two kernels, or `R` read from Verburg's enrichment curve
   (§13.3); the single-radius form of §6.1 is under-specified.
 - `D_k(τ)`: no curve exists. Windows of elevated loss are 4–8 years (Hauer 1994), 4–5
-  (Guo 2018/2019), 6–7 (a Steenberg row in Hilbert's table — the paper it belongs to is
-  unverified; the Environment & Planning B 2018 paper, read in round 8, is not it);
-  replanting at 2–3 years (Conway
+  (Guo 2018/2019), 6–7 (Steenberg, Robinson & Millward, JEPM, print vol. 2018: 806 trees
+  re-measured 2007/08 → 2014; the Environment & Planning B 2018 paper is a different
+  study); replanting at 2–3 years (Conway
   2022). **`k ≈ 5 y` is the only literature-supported prior for the fit's starting value;
   it is a window, not a shape — `D_k` stays [D].**
 - Row 10 blur: **[S]** — the footprint prior's blur is the expectation of the footprint
@@ -1214,11 +1214,12 @@ TV-L1 or the flow the erased size is a property of the smoother alone. The smoot
   driveway) are now quoted from the paper (review §4.17.2), not from Hilbert's table; the
   §14.6 two-scale reading stands. The paper also splits on crown area (7.9 m²) — a size
   covariate the per-cell chain cannot carry (crown polygons exist only for 2020; CLAUDE.md
-  §1), so it is noted and not added. **Correction:** the 6–7 y window listed in §14.6 was
-  attributed to Steenberg 2018; that paper, read, is a census-tract regression on 2003 and
-  2014 imagery and contains neither the window nor `n = 806`. The window is re-attributed
-  to Hilbert's table with the source paper unverified; `k ≈ 5 y` as the fit's starting
-  value is unchanged (Hauer 4–8, Guo 4–5 remain).
+  §1), so it is noted and not added. **Correction, at the text:** the 6–7 y window in
+  §14.6 belongs to Steenberg, Robinson & Millward (JEPM; 806 trees re-measured between
+  2007/08 and 2014), which Hilbert cites under its 2018 print volume. The Environment &
+  Planning B 2018 paper, read this round, is a census-tract regression on 2003 and 2014
+  imagery and carries neither figure. The window and `k ≈ 5 y` as the fit's starting
+  value are unchanged (Hauer 4–8, Guo 4–5, Steenberg 6–7).
 - **Row 10.** Leung & Yan 1998 confirms the circular-normal point model and the Rayleigh
   radial law at the text (second source for §14.7's `Φ(d/σ)`); STAPLE's negative is
   confirmed at the text (rater sensitivity/specificity, nothing positional). §14.7
@@ -1240,7 +1241,7 @@ TV-L1 or the flow the erased size is a property of the smoother alone. The smoot
 |---|---|---|
 | 4 | TV-L1 closed form; Potts [D]; mean-field none | + TV-flow extinction `t = R/2` [Q]; three laws tabulated (§16.2); the smoother choice is the only open input |
 | 6 | per-cell `Ω` [S]; `G(t)` on an ABSTRACT source | `G(t)` rule [Q] (StructN2V quoted); block size second-sourced (Roberts 2017) [Q]; the two correlograms unchanged [D — measurement] |
-| 9 | radii via Guo 2018 and Hilbert | Morgenroth 0.7 m / 20 m PRIMARY-quoted; 6–7 y re-attributed to Hilbert's table, source paper unverified |
+| 9 | radii via Guo 2018 and Hilbert | Morgenroth 0.7 m / 20 m PRIMARY-quoted; 6–7 y / `n = 806` confirmed at the text as the JEPM Steenberg paper (2007/08 → 2014) |
 | 10 | `Φ(d/σ)` on Leung & Yan 1997 | second-sourced (Leung & Yan 1998); STAPLE negative confirmed at the text |
 | 14 | rate [D] + screen [S] | + compensation option (Stow 1999) [S], not adopted |
 

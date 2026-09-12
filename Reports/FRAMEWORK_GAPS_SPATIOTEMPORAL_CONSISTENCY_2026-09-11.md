@@ -467,13 +467,13 @@ one GPU-shaped cost, or permutohedral on CPU. Nothing here needs training.
 | 1 | Emission model: `K`-bin (§2.3 A) vs calibrated log-odds (B) | the logits patch; everything upstream of the threshold | held-out log-likelihood of `e_t(b\|z)` on certified cells across `K` | placebo rate shuffle (brief §5): likelihood must fall | **[D] open — decides the patch** |
 | 2 | ~~Two-sided CUSUM thresholds at `T = 12`~~ → one-sided chart per certified population, threshold per `(population, band, α)` | the detector (§2.2, §12.3) | Monte Carlo on null sequences, `(r_{t,b}, f_{t,b})` | null sequences must not alarm above `α`; placebo must fall | **[D] resolved in form (§12.3); threshold still to run** |
 | 3 | `(β, γ)` estimation | the spatial layer (§3) | Gräler protocol on `𝒢 ∪ ℱ` with `(0,γ̂)`, `(β̂,0)`, `(0,0)` | `(0,0)` reported; an inert weight is a result | **[D] open** |
-| 4 | Erasure radius for the smoother actually chosen | §3.3; the "never redraw" question (brief §6.1) | linear: closed form; non-linear: injected disks on real rasters (operator only) | 42 losses and `𝒢` (claim) | **[S→D] open** |
+| 4 | Erasure radius for the smoother actually chosen | §3.3; the "never redraw" question (brief §6.1) | TV-L1 / area opening: exact, `R_erase = 2/λ` (§13.2); mean-field: injected disks on real rasters only | 42 losses and `𝒢` (claim) | **closed-form for TV-L1 [Q→S]; open only if mean-field is chosen (§13.2)** |
 | 5 | Leave-one-epoch-out scoring identity under Bernoulli noise | §5.2 | derived: §12.4 (Brier form; needs stratum prevalence `π_t`) | a deliberately leaking (median-type) layer must score *below* the noise floor | **[D] derived (§12.4); check not run** |
-| 6 | Covariance penalty under spatially / class-correlated error | §5 as a whole | none found; stratify by flight month and registration bound | — | **OPEN, hardest** |
+| 6 | Covariance penalty under spatially / class-correlated error | §5 as a whole | no closed form exists (PRIMARY negative, §13.1); Efron identity + *correlated* bootstrap, leave-out widened to the correlation group `G(t)`; two residual correlograms on the strata | independent-Bernoulli bootstrap must under-estimate `Ω` on an injected correlated field; correlated one must not | **narrowed to measurements [S] (§13.1)** |
 | 7 | Power: 42 losses resolve `Δ ≳ 0.12` only | which kills can decide small effects | use `𝒢`, `ℱ` for small effects | — | **[D] derived, stated** |
 | 8 | Conservative mask fraction `φ` | §7.2 | tie to `R_min` (row 4) or report hand-set | — | **[D] open** |
-| 9 | Development prior `A, R, k` | §6.1 | the enrichment count (brief §4.2, §7 step 1); search survival analysis | no-change gold near new buildings stays no-change (brief §5) | **[D] open; framing unsearched** |
-| 10 | Building prior `u`; blur radius | §6.2 | footprint canopy fraction at the lidar epochs; `coregistration.csv` per SCHEMAS | canopy painted on `ℱ` (brief §5) | **[D] open; data on hand** |
+| 9 | Development prior `A, R, k` | §6.1 | fit: `A` canonical by pseudolikelihood, `R, k` irregular by profile likelihood, or NHMM-EM (§13.3); population = LOSS build (11b) near dated footprints | no-change gold near new buildings stays no-change (brief §5) | **fitting protocol found [S]; forms still ours (§13.3)** |
+| 10 | Building prior `u`; blur radius | §6.2 | footprint canopy fraction at the lidar epochs; radius = coregistration bound (row 14); no published blur-prior form (§13.3) | canopy painted on `ℱ` (brief §5) | **[D] open; data on hand; negative on prior art** |
 | 11a | Estimator for lidar-anchored `(r_{t,b}, f_{t,b})` at every epoch, and `(q_g, q_l)` per population | every `ℓ_t`; §2.4 | derived: §12.2 (decaying anchor; closed-form `(q_g, q_l)` from `Q_g, Q_l`) | 2005-footprint propagation must reproduce the direct 2016 rates and must FAIL under `q × 10` | **[D] derived (§12.2); kill not run** |
 | 11b | The populations the estimator needs: `𝒞` (certified canopy, PACC's `A_can`) and `LOSS` (GAIN's mirror), per band | 11a; §12.3 | two rules in `certified_flat_scoring.py`'s family — data builds, not math | — | **not built** |
 | 12 | The `r`-convention translation of every [S] above | everything | one reader re-derives §2.1–§2.2 from the papers with `r` = recall | — | **[S] unchecked** |
@@ -484,8 +484,8 @@ one GPU-shaped cost, or permutohedral on CPU. Nothing here needs training.
 increments, §2.2 substitutions and worked instance, §2.4 the `γ = 0` analogue, §3.3 the
 contrast translation, §5.1 the strata, §7.1 the lattice map, §7.2 the conservative rule)
 and every [D] (§2.1 sensitivity, §2.2 the join, §2.3 the verdict, §2.4 `k_½`, §3.1–3.4,
-§4, §5.2–5.4, §6, §7.2 `φ`, §8, §11, and all of §12 — added 2026-09-12, after this
-ledger, which is why it sits below it) is unvalidated. The independent check for each is the
+§4, §5.2–5.4, §6, §7.2 `φ`, §8, §11, and all of §12–§13 — added 2026-09-12, after this
+ledger, which is why they sit below it) is unvalidated. The independent check for each is the
 row above that names it, run by someone other than this document's author, on real data,
 with the kill shown to fire first. A design accepted on numbers it produced about itself is
 the failure 3.4c exists to prevent; this document produced none, and should be held to
@@ -737,3 +737,108 @@ a check.
   in `certified_flat_scoring.py`'s family and are data builds, not mathematics — but
   §12.2 has no `r̂` without `𝒞`, and row 1's emission audit has no lidar-anchored rates
   without §12.2. The estimator kill (§12.2) runs on files that exist plus those two rules.
+
+---
+
+## 13. Round 4 — what the adjacent literatures give rows 4, 6, 9 and 10 (2026-09-12)
+
+**[S] and [D] only; sources and grades in review §4.13. Nothing here is validated.** Round
+4 searched the mathematics behind the three hardest ledger rows. Each row below states
+what was found, the substitution that makes it ours, and what remains.
+
+### 13.1 Row 6 — covariance penalty under correlated error: two measurements, not a theorem
+
+**Found [Q, review §4.13.1].** No unbiased-risk identity exists for correlated binary
+observations: the discrete Stein identity is stated for independent variables in both of
+its sources (Hudson 1978 §3; Hwang 1982 eq. 2.1), and the correlated identity
+(Chaux et al. 2008 Prop. 1: `E[f(r)s] = E[f(r)r] − E[∂f/∂r]ᵀΓ`; Eldar 2009 Thm 1) is
+Gaussian and continuous. This is a PRIMARY negative.
+
+**Substitution [S].** Two things survive.
+
+1. *Efron's identity with a correlated bootstrap.* §5.1's `Ω_i = 2cov(λ̂_i, y_i)` is a
+   marginal covariance; its derivation (review §4.12.3) compares the fit to an independent
+   replicate of the whole data vector and does not need independence across `i`. What
+   dies is only the Stein closed form. Efron's parametric bootstrap (his 3.17) therefore
+   stands, **provided the resampled `y` is drawn from a correlated generative model** —
+   on the certified strata, a Bernoulli field with the *measured* error correlogram, not
+   independent Bernoullis. *Efron's §2 assumption statement must be re-read before this is
+   relied on (no OA copy on disk).*
+2. *Widen the blind spot to the correlation footprint.* §12.4 holds out the whole epoch
+   `t`, so same-epoch spatial correlation never leaks into `p̂_t`. Cross-epoch error
+   correlation does — it breaks `x_t ⊥ x_{−t} | z_t`. The blind-spot principle (review
+   §4.13.1, ABSTRACT-grade sources) applied to time: hold out epoch `t` *and every epoch
+   whose error correlates with it*; the identity of §12.4 then holds with `x_{−G(t)}` in
+   place of `x_{−t}`, `G(t)` the correlation group. The noise floor is unchanged.
+
+**What remains [D — measurement].** Row 6 reduces to two correlograms on the certified
+strata, per band: (a) the spatial correlogram of `x_{i,t} − f_{t,b}` on `ℱ` and of
+`x_{i,t} − r_{t,b}` on `𝒞` at each epoch, which sets the bootstrap model in item 1 and
+the block size in §12.2 (Valavi et al. 2018: blocks from the measured autocorrelation
+range); (b) the cross-epoch correlogram of the same residuals, which defines `G(t)` in
+item 2 — expected to follow flight month (`qc/imagery_pixelsize_and_date.csv`). Neither
+is a derivation. **Kill:** on a synthetic correlated field the independent-Bernoulli
+bootstrap must *under*-estimate `Ω` and the correlated one must not — and then the same
+on `ℱ` with the measured correlogram; a bootstrap that cannot be made to fail on an
+injected correlation is not a check.
+
+### 13.2 Row 4 — erasure radius: exact if the smoother is TV-L1 or an opening; unobtainable if it is mean-field
+
+**Found [Q, review §4.13.2].** For TV-L1 with fidelity weight `λ`, a disc of radius `R` is
+removed *whole* iff `λ < 2/R` and kept whole iff `λ > 2/R` (Chan & Esedoglu 2005 §3;
+Duval et al. 2009 §5.1; Vixie 2007: empty solution inside a ball of radius `n/λ`). In the
+convex case the exact TV-L1 solution is an *opening* followed by a perimeter/area test
+(Duval et al. abstract, Thm 3.6). For mean-field CRF inference there is no erasure result
+(Krähenbühl & Koltun 2011 guarantee KL descent only; nothing found elsewhere).
+
+**Substitution [S].** A removed tree is a hole — a disc of 0 in a 1-field. TV-L1 on binary
+data is symmetric under `u → 1 − u`, so the rule applies to holes: **`R_erase = 2/λ`**, and
+§3.3's "size below which smoothing erases a real removal" is closed-form, with no
+approximation, for this smoother. By Duval's equivalence the same holds for an area
+opening of the matching radius, which is the morphology stage §7.1 already admits.
+Row 8 follows: the conservative-mask fraction `φ` can be tied to the opening radius rather
+than hand-set.
+
+**[D] — the Potts one-liner, attributed to nobody.** For a Potts/CRF MAP with pairwise
+weight `β` per unit boundary and a unary margin `m` per unit area on an isolated disc, the
+disc flips when `β·2πR > m·πR²`, i.e. **`R < 2β/m`**. Kolmogorov & Boykov 2005 discuss
+the shrinking bias qualitatively and do not state this; it is an energy comparison, not a
+theorem, and says nothing about mean-field.
+
+**What remains.** A decision, not mathematics: choose TV-L1/opening (closed-form erasure;
+row 4 closes; row 8 closes) or mean-field (row 4 stays a measurement by injected discs on
+real rasters, framework §3.3). §9's order should put this choice before the `(β, γ)` fit.
+
+### 13.3 Rows 9–10 — the priors: a fitting protocol, no forms
+
+**Found [Q, review §4.13.3].** Baddeley & Turner 2005: a log-linear intensity is fitted by
+maximum pseudolikelihood via the Berman–Turner device; *canonical* parameters (those the
+log-likelihood is linear in) are fitted directly, *irregular* ones (a radius inside the
+covariate) by profile pseudolikelihood. Hilbert et al. 2019: permitting data "show
+promise" for tree mortality and are "rarely applied" — the field names our covariate and
+has not built the model. Hughes, Guttorp & Charles 1999 (ABSTRACT): covariate-dependent
+transition probabilities inside an HMM, fitted by EM. No paper fits a joint distance ×
+time hazard; no paper gives a registration-blurred footprint prior.
+
+**Substitution [S].** In `q_loss(i,t) = q_loss·exp(A·K_R(d_i)·D_k(t − t_permit))`, `A`
+is canonical — a GLM coefficient on the covariate `K_R(d)·D_k(τ)` — and `R, k` are
+irregular: fit `A` by pseudolikelihood at each `(R, k)` on a grid and take the profile
+maximum. The population is the LOSS build of §12.2 (row 11b) within reach of dated
+footprints, which makes rows 9 and 11b the *same* data build. The NHMM form is the
+cleaner home for the same thing: put the covariate in the transition matrix and fit by EM,
+so that `A, R, k` are estimated jointly with the chain rather than bolted on. Row 10 is
+unchanged: the only principled blur radius is the coregistration bound (row 14).
+
+**What remains.** The forms `K_R`, `D_k` themselves are still ours to choose (Verburg's
+enrichment factor is the nearest published precedent and was not read); the fit needs the
+LOSS population and the permit dates; the kill is unchanged (row 9).
+
+### 13.4 Ledger deltas from round 4
+
+| # | Was | Now |
+|---|---|---|
+| 4 | [S→D] open; injected discs | **closed-form if TV-L1/opening** (`R_erase = 2/λ` [Q→S]); measurement only if mean-field; a smoother choice is now a §9 decision |
+| 6 | OPEN, hardest; none found | **narrowed to two measurements** (spatial + cross-epoch residual correlograms on the strata) under Efron-with-correlated-bootstrap [S] and the widened leave-out `G(t)` [S]; PRIMARY negative on any closed form |
+| 8 | hand-set `φ` | tie to the opening radius `1/λ` (row 4) |
+| 9 | framing unsearched | **fitting protocol found** (canonical/irregular split; profile likelihood; or NHMM-EM) [S]; forms still ours; same data build as 11b |
+| 10 | data on hand | no published blur-prior form (negative); radius from row 14 |

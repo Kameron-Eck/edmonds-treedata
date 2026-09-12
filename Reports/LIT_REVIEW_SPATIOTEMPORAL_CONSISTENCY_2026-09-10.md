@@ -996,6 +996,181 @@ was found.
 conditional on two substitutions that are ours; open on the conservative mask fraction,
 which is a hand-set constant until a principle ties it to the erasure threshold.
 
+### 4.13 Adjacent-field theory for the three hardest framework gaps (round 4, 2026-09-12)
+
+Round 4 took the three ledger rows the framework
+(`FRAMEWORK_GAPS_SPATIOTEMPORAL_CONSISTENCY_2026-09-11.md` §11) marks hardest to
+mathematics outside remote sensing: the covariance penalty under correlated error (row 6),
+the erasure radius of a non-linear smoother (row 4), and the free parameters of the
+development and building priors (rows 9–10). Three Sonnet searchers ran open-access routes
+only; every grade below is from this reviewer's own read of the filed text (or, for two
+JSTOR scans, of the page image). Same rule as §4.12: a paper's result paired with our
+objects is this review's substitution, marked as such. Filed under
+`D:\edmonds-pipeline\Literture\Validation\`.
+
+#### 4.13.1 Row 6 — the covariance penalty under correlated error: the closed form dies, the identity does not
+
+The question was whether any Stein/SURE-type unbiased risk estimator exists for
+observations that are (i) binary and (ii) spatially correlated. Three primary sources
+answer it, all the same way.
+
+- **Eldar 2009** (**PRIMARY**, arXiv 0804.3010, read in full). Theorem 1 (eq. 16) is an
+  unbiased estimate of `E{hᵀ(u)θ}` for *any* exponential family with sufficient statistic
+  `u`, and the paper's introduction explicitly places the linear-Gaussian model with
+  general noise covariance `C ≻ 0` inside it (eqs. 3–4). But the theorem requires `h(u)`
+  "weakly differentiable in u" and is proved by integration by parts — it is a
+  *continuous* result. The introduction is candid about the field: prior extensions are
+  "confined to the independent case", with "the discrete exponential case … discussed in
+  [18]" (Hwang 1982). Bernoulli is named as an exponential family (footnote 6) but the
+  integration-by-parts device does not reach it.
+- **Chaux, Duval, Benazza-Benyahia & Pesquet 2008** (**PRIMARY**, arXiv 0712.2317).
+  Proposition 1 (eq. 24) is the correlated-Gaussian Stein identity with the covariance
+  explicit: `E[f(r)s] = E[f(r)r] − E[∂f/∂r]ᵀ·Γ` — the `tr(Σ·∇f)` penalty. The correlation
+  they model is across channels at one pixel, not across pixels; the algebra is
+  indifferent to which, which is the useful part.
+- **Hudson 1978** (**PRIMARY**, Ann. Statist. 6(3); JSTOR scan, pp. 474–476 read as page
+  images). Identity (2.3) `E{(t(X) − θ)g(X)} = E{g′(X)}` for a continuous exponential
+  family, and (2.10) `φ·E g(X) = E{t(X) g(X − 1)}` for the discrete one on `{0, 1, …}` —
+  the finite-difference Stein identity. His multiparameter application (§3) begins "Let
+  `X₁, …, X_p` be independent" and proceeds "by conditioning on `{X_j : j ≠ i}`".
+  Independence is load-bearing at the source.
+- **Hwang 1982** (**PRIMARY**, Ann. Statist. 10(3); JSTOR scan, pp. 858–859 read as page
+  images). The difference identity (2.1) is stated for "p independent random variables
+  having density `f_i(x_i | θ_i)`". Same conclusion.
+
+**What this settles.** There is no published unbiased-risk identity for correlated binary
+observations; the discrete Stein route is independence-only in both of its sources, and
+the correlated route (Eldar, Chaux) is Gaussian-only. **The negative is now PRIMARY, not
+search-derived.** Two things survive it, and they are the substitution:
+
+1. *Efron's covariance identity does not need independence across cells.* As quoted in
+   §4.12.3, Efron's Theorem 1 gives `E{Err_i} = E{err_i} + 2cov(λ̂_i, y_i)` per cell; the
+   derivation compares the fit to an independent *replicate* of the data vector, and the
+   per-cell covariance is a marginal quantity. What needs independence is the *closed
+   form* (Stein's lemma) that turns the covariance into a divergence — and the closed form
+   is what Eldar/Hudson/Hwang say is unavailable. Efron's own alternative, the parametric
+   bootstrap (his 3.17, already the framework's §5.1 route), survives *provided the
+   bootstrap resamples from a correlated generative model*, not from independent
+   Bernoullis. That reduces row 6 from "no theory" to "measure the error correlation on the
+   certified strata" — a spatial correlogram of `x − f` on FLAT and `x − r` on the
+   certified-canopy population, per band and epoch. *Caveat: Efron's assumption statement
+   in his §2 was not re-read this session (no OA copy on disk); this reading of it must be
+   checked against the text before it is relied on.*
+2. *Correlation across cells at one epoch does not break the leave-one-epoch-out score;
+   correlation across epochs does.* The framework's §12.4 identity holds out the whole
+   epoch `t`, so same-epoch spatial correlation never leaks. What leaks is *cross-epoch*
+   error correlation — two leaf-off flights sharing species-correlated error, a per-pair
+   coregistration error — which breaks `x_t ⊥ x_{−t} | z_t`. The blind-spot literature
+   states the fix in principle: the blind spot must cover the noise-correlation footprint
+   (Broaddus et al. 2020, StructN2V — **ABSTRACT** only, no OA copy located; the same
+   principle is restated in the abstracts of the 2023–2026 blind-spot papers the search
+   surfaced, which decorrelate by subsampling or mask the correlation geometry). Applied to
+   time, the held-out set is epoch `t` *plus every epoch whose error correlates with it* —
+   in practice the same-season group from `qc/imagery_pixelsize_and_date.csv`. Which
+   epochs form a group is the cross-epoch residual correlogram on FLAT, again a
+   measurement.
+- **Batson & Royer 2019** (**PRIMARY** per §4.12.3; now filed locally, not re-read this
+  round). Its J-invariance condition assumes noise independent across the partition `J`;
+  that is the assumption item 2 relaxes.
+- **Valavi, Elith, Lahoz-Monfort & Guillera-Arroita 2018** (**PRIMARY**, bioRxiv 357798;
+  blockCV). The block-size rule: blocks are sized from the measured "spatial
+  autocorrelation range" of the covariates (their §"Choosing block size"), fitted from a
+  sample of points — the operational recipe for choosing the bootstrap block in the
+  framework's §12.2 variance and the spatial buffer in item 1.
+- Closed-access, not fetched: **Roberts et al. 2017** (Ecography; blocked CV — the
+  argument, not an identity) and **Conley 1999** (J. Econometrics; spatial HAC — a
+  standard-error correction, useful for intervals on the score, not for the score itself).
+  Both **METADATA**.
+
+#### 4.13.2 Row 4 — the erasure radius: exact for TV-L1, absent for mean-field CRF
+
+- **Chan & Esedoglu 2005** (**PRIMARY**, UCLA CAM 04-07 mirror of SIAM J. Appl. Math.
+  65(5)). §3 solves the TV-L1 model exactly for a disc of radius `r`: the minimiser is
+  `0` for `λ < 2/r`, the disc itself for `λ > 2/r`, and any `c·1_B, c ∈ [0, 1]` at
+  `λ = 2/r`. Their own reading: "the solution is unique for all except one special value of
+  the parameter … related to radius of the disk", and the scale space "only makes a sudden
+  transition at a special value of the scale parameter". A disc is removed *whole* or kept
+  *whole* — no partial shrinkage, unlike ROF (Strong & Chan, §4.12.1).
+- **Duval, Aujol & Gousseau 2009** (**PRIMARY**, HAL hal-00380195). §5.1 restates the disc
+  result — the model "preserves characteristic functions of discs with radius R if λ > 2/R;
+  below this value, the solution is the null function" — and generalises it: in the
+  convex case exact TV-L1 solutions "are given by an opening followed by a simple test over
+  the ratio perimeter/area" (abstract); Theorem 3.6 identifies the Cheeger set of a convex
+  body with an *opening* of a specific radius. Every calibrable set "suddenly vanishes"
+  under TV-L1. This is the bridge from a variational smoother to morphology: TV-L1 *is* an
+  opening plus a perimeter/area test, so its erasure behaviour is that of an area/opening
+  operator, closed-form.
+- **Vixie 2007** (**PRIMARY**, arXiv 0710.3980; p. 13 read as page image). The
+  `n`-dimensional statement: "if one can contain Ω in a ball of radius n/λ − ε … then the
+  unique solution is the empty set", following monotonicity results of Yin et al. and of
+  Allard; in `n = 2` this is Chan–Esedoglu's `2/λ`. Allard's own paper (SIAM J. Math.
+  Anal., 2007) was not located OA — **METADATA**, reached through Vixie.
+- **Bellettini, Caselles & Novaga 2002** (J. Differential Equations 184) — PDF filed from
+  the author's page but the text layer is **UNREADABLE** (broken font encoding under both
+  `pdftotext` and `pypdf`); the TV-flow shrinkage rate is *not* restated here.
+- **Kolmogorov & Boykov 2005** (**PRIMARY** on the searcher's full-text read; not re-read
+  here; ICCV; author page). Treats the graph-cut
+  "shrinking problem" qualitatively and proposes flux terms as the remedy; **no closed-form
+  flip threshold** for an isolated region appears in it. The one-line Potts comparison —
+  an isolated disc of unary margin `m` flips when `β·perimeter > m·area`, i.e. below
+  radius `2β/m` — is an energy comparison attributed to nobody, and is the framework's [D].
+- **Krähenbühl & Koltun 2011** (**PRIMARY**, re-read for this question). The only
+  quantitative guarantee is KL-divergence descent of the mean-field iteration; **there is
+  no erasure result for mean-field CRF inference**, and the search found none elsewhere.
+  This is a confirmed negative: if the spatial layer is mean-field, its erasure radius can
+  only be measured (injected discs on real rasters, framework row 4), never derived.
+- Morphology proper — **Vincent 1993** (area opening removes components below area `λ`
+  exactly), **Gallagher & Wise 1981** (median root signals), **Maragos 1989** (pattern
+  spectrum) — all **METADATA**: no OA copy located; the results are textbook but not
+  verified here at quote level.
+
+**Substitution (the review's):** a removed tree is a *hole* — a disc of 0 in a 1-field —
+and the TV-L1 functional on binary data is symmetric under `u → 1 − u`, so the `2/λ` rule
+applies to holes as to discs. Choosing TV-L1 (or, equivalently by Duval, an area opening)
+makes framework row 4 a closed form and ties row 8: the conservative-mask fraction can be
+set from the opening radius rather than by hand.
+
+#### 4.13.3 Rows 9–10 — fitting the priors' free parameters: a protocol exists, the forms do not
+
+- **Baddeley & Turner 2005** (**PRIMARY**, J. Stat. Software 12(6)). Two lines carry the
+  answer. Models "are currently fitted by the method of maximum pseudolikelihood, using a
+  computational device developed by Berman and Turner (1992)"; and the distinction that
+  settles rows 9–10: `ppm` "estimates only the 'canonical' parameters … such that the
+  loglikelihood is linear in [them]"; "irregular" parameters "(such as the interaction
+  radius r of the Strauss process) cannot be estimated directly … Profile pseudolikelihood
+  … can be used to fit such parameters." In the development prior
+  `q_loss·exp(A·K_R(d)·D_k(t − t_permit))`, `A` multiplies the covariate and is canonical
+  (a GLM coefficient); `R` and `k` sit inside it and are irregular (profile likelihood over
+  a grid). That is the fitting protocol, and it is standard.
+- **Hilbert, Roman et al. 2019** (**PRIMARY**, Arboriculture & Urban Forestry 45(5)).
+  "construction or renovation permitting data (Steenberg et al. 2017) show promise for
+  understanding the process of tree mortality, yet these data sets have thus far been
+  rarely applied to statistical modeling of urban tree mortality." The field names our
+  covariate and says it is unused. Steenberg et al. 2017 is the lead to pull next; not
+  located by title in this round.
+- **Hauer, Miller & Ouimet 1994** (**PRIMARY** on the searcher's read; not re-read here;
+  Arboriculture & Urban Forestry 20(2)).
+  Empirical association of street-tree decline with construction damage by exposure
+  category; no fitted hazard, no time decay. Evidence that `A > 0`, not a form for it.
+- **Hughes, Guttorp & Charles 1999** (J. R. Stat. Soc. C 48(1); **ABSTRACT** — OA at OUP
+  but behind a bot challenge). Non-homogeneous HMM with covariate-dependent transition
+  probabilities fitted by EM: the structural template for making `q_loss(i, t)` a function
+  of a dated covariate inside the chain, rather than a multiplier bolted on outside it.
+- **Warfield, Zou & Wells 2004** (STAPLE; **ABSTRACT** — PMC copy behind a proof-of-work
+  challenge). Rater-reliability estimation, not a spatial blur; the nearest analogue for
+  row 10 and not the thing itself.
+- **Verburg et al. 2004** (enrichment factor; **ABSTRACT** — WUR repository page
+  JS-gated). The neighbourhood-enrichment statistic is the closest published precedent for
+  `K_R(d)`; the paper was not read.
+- A 2022 *Forests* paper on construction-led tree removals on a college campus surfaced
+  (doi:10.3390/f13060871; MDPI 403) — **METADATA**, direct evidence class for `A`.
+
+**Negatives, round 4 (each searched explicitly):** no unbiased-risk identity for
+correlated *binary* observations (PRIMARY negative, three sources); no erasure result for
+mean-field CRF (PRIMARY negative); no closed-form flip threshold in Kolmogorov–Boykov; no
+paper fitting a joint distance × time-since-permit hazard for tree removal; no published
+form for a label prior blurred by registration uncertainty (STAPLE is the wrong object).
+
 ---
 
 ## 5. What the literature does not have
@@ -1014,14 +1189,20 @@ deliberately:
    narrows the wording, not the finding:** a time-decaying, directional modifier on a
    transition rate is a proportional-hazards model with a time-varying covariate, and
    survival analysis was *not* searched. "Framing exists, unsearched" is the honest state;
-   "no prior art" overstated it.
+   "no prior art" overstated it. **Round 4 (§4.13.3):** the fitting protocol exists
+   (canonical `A` by pseudolikelihood, irregular `R, k` by profile likelihood — Baddeley &
+   Turner 2005) and the urban-forestry field itself names permitting data as the unused
+   covariate (Hilbert et al. 2019). Still absent: any fitted distance × time hazard.
 3. **No measured spatial-vs-temporal weight, no sensitivity sweep, no change-size erasure
    threshold** (§4.1). **Narrowed in round 3 (§4.12.1):** the erasure threshold has a
    closed form for total-variation smoothing (δ = α/scale, Strong & Chan 2003); the weight
    has a fitting protocol with a held-out test against β = 0 / γ = 0 baselines (Gräler et
    al. 2016), and one documented case where the weight did not matter (Krähenbühl & Koltun
    2011). Still absent: either result for a joint spatio-temporal field on a probability
-   stack.
+   stack. **Round 4 (§4.13.2):** for TV-L1 the erasure is *exact* — a disc of radius `R`
+   is removed whole iff `λ < 2/R` (Chan & Esedoglu 2005; Duval et al. 2009; Vixie 2007) —
+   and TV-L1 is an opening plus a perimeter/area test, so the same holds for area
+   openings. For mean-field CRF there is no erasure result at all (confirmed negative).
 4. **No inference evidence near 13.3 M cells × 12 epochs** for any joint spatio-temporal
    field. **Narrowed for the spatial term only (§4.12.1):** dense-CRF mean-field inference
    runs over "billions of edges" in 0.2 s (Krähenbühl & Koltun 2011). The per-cell temporal
@@ -1035,7 +1216,12 @@ deliberately:
    degrees of freedom plus residual, and Efron 2004 covers Bernoulli outcomes at an
    asymmetric cut; Noise2Self gives the J-invariance condition; cross-fitting gives the
    procedural check. Still absent: any of it under spatially and class-correlated error,
-   which is what our reference has.
+   which is what our reference has. **Round 4 (§4.13.1) made that absence PRIMARY:** the
+   discrete Stein identity is independence-only at both sources (Hudson 1978, Hwang 1982)
+   and the correlated identity is Gaussian-only (Eldar 2009, Chaux et al. 2008). What
+   survives is Efron's covariance identity with a *correlated* parametric bootstrap, and
+   a leave-out set widened to the cross-epoch correlation footprint — both turning on a
+   correlogram measured on the certified strata.
 8. **No reference protocol containing a false-positive class** (§2.4).
 9. **No measured cross-year lidar leakage rate** — nothing of the form "X% of year Y's
    label is leftover structure from lidar epoch Z" (§4.3).
@@ -1048,7 +1234,9 @@ deliberately:
     per-year (r_t, f_t) and a Monte-Carlo-calibrated threshold.
 11. **No A/B test of a hard veto against a soft prior on the same ancillary layer**, and no
     measured cost of a hard veto at its failure edges — offset footprints, demolished
-    structures, canopy overhanging a roof (§6.2).
+    structures, canopy overhanging a roof (§6.2). **Round 4 (§4.13.3):** no published
+    form for a footprint prior blurred by registration uncertainty either; the
+    coregistration bound (framework row 14) remains the only principled radius.
 12. **No study of IGNORE/no-data sentinel propagation through a multi-stage raster
     post-processing chain** (§4.5). **Substantially narrowed in round 3 (§4.12.4):**
     interval-valued morphology gives a closed-under-composition three-valued rule for the
@@ -1078,6 +1266,9 @@ statistical home (survival analysis); the rest cannot be de-risked by reading.
 > **Round 3 (2026-09-11) then took items 3, 7, 10 and 12 to adjacent literatures: each
 > narrowed and none closed (§4.12).** The negatives held as "not in remote sensing" and
 > failed as "not anywhere" — which is the reading every remaining item should get.
+> **Round 4 (2026-09-12) is the first round to turn two negatives into PRIMARY ones
+> (§4.13):** no correlated-binary risk identity, no mean-field erasure result — each read
+> off the source text rather than off a search miss. Those two may now be built against.
 
 *What does survive:* the lidar-certified GAIN (46,805) and FLAT (40,609) populations (§2.2)
 give us a change-stratified denominator built from an independent instrument rather than
@@ -1203,6 +1394,19 @@ number, never instead of it. Adopt it from the first run rather than retrofittin
   round 3 named but did not pull: the survival-analysis framing of §4.2 (item 2), and the
   MacFaden et al. 2012 / UVM methodology that would settle whether canopy-over-roof is a
   field convention (§4.10).
+- **Round 4 (2026-09-12) took the framework's three hardest ledger rows to mathematics
+  outside remote sensing:** Stein/SURE theory and blind-spot denoising for the penalty
+  under correlated error; geometric measure theory of TV-L1 and mathematical morphology for
+  the erasure radius; spatial point processes, survival analysis and urban-forestry
+  mortality for the priors' free parameters. 22 works surfaced; 10 read by this reviewer
+  at the load-bearing passage (two as JSTOR page images), 3 graded PRIMARY on the
+  searcher's full-text read only and marked so, 4 ABSTRACT, 6 METADATA, 1 UNREADABLE;
+  findings in §4.13. Sonnet searched, open-access routes only; Fable read. Not pulled: Steenberg et
+  al. 2017 (permitting data, named by Hilbert), Allard 2007, Efron 2004's own assumption
+  statement (no OA copy on disk), and three OA papers behind bot challenges (Hughes &
+  Guttorp 1999, STAPLE 2004, Verburg 2004). Sci-Hub was authorised by Kam for the
+  closed-access remainder and blocked by the session's permission classifier; nothing was
+  fetched that way.
 - **Not searched:** §6.4 (which training lever first) is a cost/sequencing decision no
   literature settles; the material for it is in §4.6. §6.2 and §6.3 *were* searched in
   round 2 and are answered in §4.10.
@@ -1358,6 +1562,46 @@ Every DOI / arXiv id resolves.
 - Sinopoli, Schenato, Franceschetti, Poolla, Jordan & Sastry (2004). Kalman Filtering With Intermittent Observations. *IEEE Trans. Automatic Control* 49(9):1453–1464. doi:10.1109/TAC.2004.834121 — **PRIMARY** (Crossref-verified; text quoted from the Berkeley preprint, self-labelled DRAFT)
 - Przewiezlikowski et al. (2022). MisConv. *WACV 2022* — **PRIMARY** (read; rejected — imputes)
 - Bloch (2012). [bipolar morphology; title not captured]. *Int. J. Approx. Reasoning*. doi:10.1016/j.ijar.2012.05.003 — **METADATA**
+
+### Adjacent-field theory (round 4, 2026-09-12; §4.13)
+Grades as in §2; surnames as fetched, initials not supplied. "Filed" = PDF + extracted
+`.txt` under `D:\edmonds-pipeline\Literture\Validation\`. "Reviewer-read" means this
+review's author read the cited passage; "searcher-read" means only the Sonnet searcher's
+full-text read supports the grade.
+
+*Row 6 — covariance penalty under correlated error (§4.13.1)*
+- Eldar (2009). Generalized SURE for Exponential Families: Applications to Regularization. *IEEE Trans. Signal Processing* 57; arXiv:0804.3010 — **PRIMARY**, reviewer-read (Thm 1, eq. 16; intro on the independent/discrete cases). Filed `Eldar_2009_GSURE`.
+- Chaux, Duval, Benazza-Benyahia & Pesquet (2008). A Nonlinear Stein-Based Estimator for Multichannel Image Denoising. *IEEE Trans. Signal Processing*; arXiv:0712.2317 — **PRIMARY**, reviewer-read (Prop. 1, eq. 24). Filed `Chaux_2008_MultichannelSURE`.
+- Hudson (1978). A Natural Identity for Exponential Families with Applications in Multiparameter Estimation. *Ann. Statist.* 6(3):473–484. doi:10.1214/aos/1176344194 — **PRIMARY**, reviewer-read as page images pp. 474–476 (JSTOR scan; no text layer). Filed `Hudson_1978_NaturalIdentity`.
+- Hwang (1982). Improving Upon Standard Estimators in Discrete Exponential Families with Applications to Poisson and Negative Binomial Cases. *Ann. Statist.* 10(3). doi:10.1214/aos/1176345876 — **PRIMARY**, reviewer-read as page images pp. 858–859 (JSTOR scan). Filed `Hwang_1982_DiscreteExpFam`.
+- Batson & Royer (2019). Noise2Self. arXiv:1901.11365 — **PRIMARY** (round 3); filed this round `BatsonRoyer_2019_Noise2Self`, not re-read.
+- Valavi, Elith, Lahoz-Monfort & Guillera-Arroita (2018). blockCV: an R package for generating spatially or environmentally separated folds for k-fold cross-validation of species distribution models. bioRxiv 357798 (published *Methods Ecol. Evol.* 2019) — **PRIMARY**, reviewer-read (block-size section). Filed `Valavi_2018_blockCV`.
+- Broaddus, Krull, Weigert, Schmidt & Myers (2020). Removing Structured Noise with Self-Supervised Blind-Spot Networks. *IEEE ISBI 2020* — **ABSTRACT** (no OA PDF resolved: EPFL Infoscience record JS-only).
+- Roberts et al. (2017). Cross-validation strategies for data with temporal, spatial, hierarchical, or phylogenetic structure. *Ecography* 40(8) — **METADATA** (closed).
+- Conley (1999). GMM estimation with cross sectional dependence. *J. Econometrics* 92(1) — **METADATA** (closed).
+
+*Row 4 — erasure radius (§4.13.2)*
+- Chan & Esedoglu (2005). Aspects of Total Variation Regularized L¹ Function Approximation. *SIAM J. Appl. Math.* 65(5):1817–1837 — **PRIMARY**, reviewer-read (§3 disc example) from UCLA CAM report 04-07. Filed `ChanEsedoglu_2005_TV_L1_function_approximation`.
+- Duval, Aujol & Gousseau (2009). The TVL1 Model: A Geometric Point of View. *Multiscale Model. Simul.* 8(1):154–189; HAL hal-00380195 — **PRIMARY**, reviewer-read (abstract, §5.1, Thm 3.6). Filed `Duval_2009_TVL1_geometric_point_of_view`.
+- Vixie (2007). Some properties of minimizers for the Chan-Esedoglu L1TV functional. arXiv:0710.3980 — **PRIMARY**, reviewer-read (p. 13 as page image; the text layer drops symbols). Filed `Vixie_2007_ChanEsedoglu_minimizers_Allard`.
+- Allard (2007). Total variation regularization for image denoising; I. Geometric Theory. *SIAM J. Math. Anal.* — **METADATA** (via Vixie's reference list; not located OA).
+- Bellettini, Caselles & Novaga (2002). The Total Variation Flow in R^N. *J. Differential Equations* 184(2):475–525 — **UNREADABLE** (author-page PDF filed `BellettiniCasellesNovaga_2002_TV_flow_RN`; text layer garbled under `pdftotext` and `pypdf`; identity rests on the source path only).
+- Kolmogorov & Boykov (2005). What Metrics Can Be Approximated by Geo-Cuts, or Global Optimization of Length/Area and Flux. *ICCV 2005* — **PRIMARY**, searcher-read (negative: no closed-form flip threshold). Filed `KolmogorovBoykov_2005_geocuts`.
+- Krähenbühl & Koltun (2011) — **PRIMARY** (round 3); re-filed `KrahenbuhlKoltun_2011_meanfield_CRF`; searcher grep for an erasure result: none.
+- Vincent (1993). Grayscale area openings and closings, their efficient implementation and applications. *Proc. Mathematical Morphology and its Applications to Signal Processing* — **METADATA**.
+- Gallagher & Wise (1981). [median-filter root signals; title not captured] — **METADATA**.
+- Maragos (1989). [pattern spectrum; title not captured] — **METADATA**.
+
+*Rows 9–10 — priors' free parameters (§4.13.3)*
+- Baddeley & Turner (2005). spatstat: An R Package for Analyzing Spatial Point Patterns. *J. Stat. Software* 12(6). doi:10.18637/jss.v012.i06 — **PRIMARY**, reviewer-read (fitting method; canonical vs irregular parameters). Filed `BaddeleyTurner_2005_spatstat_JSS`.
+- Hilbert, Roman et al. (2019). Urban Tree Mortality: A Literature Review. *Arboriculture & Urban Forestry* 45(5):167–200. doi:10.48044/jauf.2019.015 — **PRIMARY**, reviewer-read (the permitting-data sentence). Filed `Hilbert_2019_UrbanTreeMortalityReview`.
+- Hauer, Miller & Ouimet (1994). Street Tree Decline and Construction Damage. *J. Arboriculture* 20(2):94–97 — **PRIMARY**, searcher-read. Filed `Hauer_1994_StreetTreeDeclineConstructionDamage`.
+- Hughes, Guttorp & Charles (1999). A Non-Homogeneous Hidden Markov Model for Precipitation Occurrence. *J. R. Stat. Soc. C* 48(1):15–30 — **ABSTRACT** (OA at OUP, bot-challenged).
+- Warfield, Zou & Wells (2004). Simultaneous Truth and Performance Level Estimation (STAPLE). *IEEE Trans. Med. Imaging* 23(7):903–921 — **ABSTRACT** (PMC1283110, proof-of-work gated).
+- Verburg, de Nijs, Ritsema van Eck, Visser & de Jong (2004). A method to analyse neighbourhood characteristics of land use patterns. *Comput. Environ. Urban Syst.* 28(6):667–690 — **ABSTRACT** (WUR repository JS-gated).
+- Steenberg et al. (2017) — **METADATA** (named by Hilbert et al. 2019 for permitting data; not located by title).
+- [authors not captured] (2022). Construction and Proactive Management Led to Tree Removals on an Urban College Campus. *Forests* 13(6):871. doi:10.3390/f13060871 — **METADATA** (MDPI 403).
+- Zucchini, MacDonald & Langrock. *Hidden Markov Models for Time Series* (CRC) — **METADATA** (book).
 
 ### Held locally (`D:\edmonds-pipeline\Literture\`), read directly from PDF
 - Li, B., Liu, X., Zhuang, H., Shi, Q., Zeng, L., Cai, Y., Zhang, H., Cai, Y., Wu, C. & Xu, X. (2026). ALCC: Temporally Consistent Annual Land Cover Maps over China from 1985 to 2022 Based on an Ensemble Change Detection Method. *J. Remote Sens.* 6:1029. doi:10.34133/remotesensing.1029 — **PRIMARY** (local PDF; record and OA figures independently re-verified in round 2)

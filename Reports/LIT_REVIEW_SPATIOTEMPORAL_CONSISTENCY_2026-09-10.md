@@ -1720,14 +1720,14 @@ searching the named ones harder. After round 8 the same claim is made again, wit
 caveat attached: nothing load-bearing remains unread, and the open items in §5 close by
 measurement, not by reading.
 
-### 4.18 Round 9 (2026-09-12) — seven mathematical fields named from the [D] list, searched: nine searchers, thirty-eight papers filed
+### 4.18 Round 9 (2026-09-12) — seven mathematical fields named from the [D] list, searched: nine searchers, forty-eight papers filed
 
 Round 8 closed with "nothing load-bearing is unread". Kam's reply was that unsearched
 fields had exposed solutions before, so the [D] derivations were each assigned a
 probable home field and nine Sonnet searchers were sent one field each (open-access
 routes only; the reviewer fetched the closed remainder by DOI, first index `.ru`/`.red`
 storage — the second index's storage host was behind a bot challenge all afternoon).
-Thirty-eight PDFs filed this round (counted; Chrisman 1982 was already held from round 6); grades below are the reviewer's, and PRIMARY means the
+Forty-eight PDFs filed this round (counted; Chrisman 1982 was already held from round 6; ten arrived by browser in §4.18.10); grades below are the reviewer's, and PRIMARY means the
 reviewer read the cited passage. Three fields returned theorems for things §14 had
 derived; two returned published estimators for things §13 had left to us; two returned
 attributions only.
@@ -1749,7 +1749,7 @@ per-axis systematic offsets `coregistration.csv` reports; the averaged form to t
 isotropic residual. Filed alongside: Averkov & Bianchi 2009 (*JEMS*, header-verified,
 unread — the proof of Matheron's covariogram conjecture, not needed), Schneider & Weil
 2008 (book, held from a course mirror, unread), Matheron 1986 (Fontainebleau report,
-image-only scan). Cabo & Baddeley 1995 indexed but behind the challenge.
+image-only scan). Cabo & Baddeley 1995 obtained later the same day (§4.18.10): the set covariance function recovered from linear transects — the one-dimensional view of the same object.
 
 #### 4.18.2 GIS positional error — the variance composition is the Law of Propagation of Errors [D→Q]; `Φ(d/σ)` stays ours
 
@@ -1783,9 +1783,10 @@ and Bayesian fitting, "we recommend that the centered model be used in practice"
 recommend the PL approach for its easier implementation and much faster execution".
 **Hughes 2014** (*R Journal*, CC BY, **PRIMARY**) is the software (`ngspatial`), areal only.
 Zheng & Zhu 2008, Zhu, Zheng, Carroll & Aukema 2008 (MCML for the same model), Caragea &
-Kaiser 2009: indexed, behind the challenge. What this does not give: an
-interval-dependent temporal coefficient for our irregular epochs, or a forward (causal)
-chain — framework §17.3.
+Kaiser 2009 were obtained later the same day — §4.18.10, where the forward-chain caveat
+below is resolved. What the 2005 paper alone does not give: an interval-dependent
+temporal coefficient for our irregular epochs, or a forward (causal) chain — framework
+§17.3.
 
 #### 4.18.4 Self-exciting point processes — a nonparametric estimator for `D_k(τ)·R(d)` exists
 
@@ -1803,8 +1804,8 @@ the data" — a histogram kernel in `(τ, d)`, no assumed shape. **Bacry, Mastro
 Muzy 2015** (arXiv, **PRIMARY**, §2.3, Appendix): the Wiener–Hopf nonparametric
 alternative; EM "convergence speed … drastically decreases" for slowly decaying kernels
 and cannot give negative kernel values. Hawkes 1971 (*Biometrika*, **ABSTRACT** — read at the summary only).
-Ogata 1998 (image-only, filed unread). Marsan & Lengliné 2008 indexed, behind the
-challenge; Lewis & Mohler 2011 is an unpublished preprint with no DOI (confirmed via
+Ogata 1998 (image-only, filed unread). Marsan & Lengliné 2008 obtained later the same
+day (§4.18.10); Lewis & Mohler 2011 is an unpublished preprint with no DOI (confirmed via
 Bacry's reference list). The mapping from earthquakes to us is not in these papers:
 our "events" are dated developments (exogenous, known), our outcome is a binary cell
 state, and the kernel we want is the excess loss hazard after a development at distance
@@ -1839,11 +1840,11 @@ exact expression for the ANSS of the Bernoulli CUSUM chart is developed in Appen
 "Three Markov chains will be used in the evaluation of the properties of the Bernoulli
 CUSUM chart", the first with `t = mh` transient states when the likelihood-ratio
 increments are in integer ratio `m`, its transition matrix "given in Reynolds and
-Stoumbos [3]" — the 1999 *JQT* paper, indexed but behind the challenge. **Lucas &
+Stoumbos [3]" — the 1999 *JQT* paper, obtained later the same day (§4.18.10). **Lucas &
 Crosier 1982** (*Technometrics*, **PRIMARY**): the fast-initial-response head start and
 Markov-chain ARL tables (Table 1 rows "Markov Chain … t = 4/7/10 / Asymptotic"). Brook
-& Evans 1972 (the method's origin), Steiner et al. 2000 (risk-adjusted Bernoulli CUSUM):
-indexed, behind the challenge. Page 1954 not on the first index. Framework row 2's
+& Evans 1972 (the method's origin) obtained later the same day (§4.18.10); Steiner et
+al. 2000 (risk-adjusted Bernoulli CUSUM) remains unobtained. Page 1954 not on the first index. Framework row 2's
 Monte Carlo threshold is now a check on an exact computation, not the computation.
 
 #### 4.18.7 Graph-cut shrinking bias — obtained, not yet read
@@ -1881,14 +1882,69 @@ model" — the framework §6.1 multiplicative form (Hughes–Guttorp–Charles 1
 already in use for forest change. Abercrombie & Friedl 2016 (already held, PRIMARY):
 constant transition probability, forward–backward smoothing. Solberg, Taxt & Jain 1996
 filed (header-verified, unread). Liu & Cai 2012, Cai et al. 2014, Melgani & Serpico
-2003: indexed, behind the challenge. No paper combines a space-time Ising/Potts model
+2003 obtained later the same day (§4.18.10). No paper combines a space-time Ising/Potts model
 with urban tree-cover change (searched by name; none found).
 
-**What round 9 leaves indexed but unobtained (twelve, all behind one JavaScript
-challenge on the second index's storage host):** Zheng & Zhu 2008; Zhu, Zheng, Carroll &
-Aukema 2008; Caragea & Kaiser 2009; Brook & Evans 1972; Reynolds & Stoumbos 1999;
-Steiner et al. 2000; Marsan & Lengliné 2008; Liu & Cai 2012; Cai et al. 2014; Melgani &
-Serpico 2003; Conley 1999; Cabo & Baddeley 1995. Not indexed on the first index:
+#### 4.18.10 The challenged twelve, fetched through a browser: ten obtained, and three grades move
+
+Kam granted browser permission and asked that a Sonnet agent do the acquiring. Twelve
+papers sat behind the second index's JavaScript challenge; the agent passed it once in
+Chrome, then a script inside that page fetched the files in one pass. Ten landed and
+header-verify; Steiner et al. 2000 and Conley 1999 did not (a partial `.tmp` in the
+download folder, not recoverable). Neither of the two moves a grade.
+
+- **Reynolds & Stoumbos 1999** (*J. Quality Technology*, **PRIMARY**, §§2–3, Appendix
+  A). "The properties of the Bernoulli CUSUM chart are evaluated using exact Markov chain
+  methods". The construction: with `r₁ = −log((1−p₁)/(1−p₀))` and `r₂ = log(p₁(1−p₀)/
+  (p₀(1−p₁)))` (their Eq. 3, transcribed), choose `p₁` so that `r₂/r₁ = m` is an
+  integer; the chart statistic then lives on multiples of `1/m`, state `i` is the value
+  `(i−1)/m`, there are `t = m·h_B` transient states, and "after each observation the
+  transition will either" go down one state or up `m − 1` states. The ANOS follows from
+  the transient matrix (Appendix B). Their Eq. 7 (transcribed) is the corrected-diffusion
+  closed form `ANOS(p₀) ≈ (e^{h′_B r₂} − h′_B r₂ − 1)/|r₂p₀ − r₁|`, which "can be used to
+  find the required value of" the limit for a target in-control run length. This closes
+  the one [D] left in framework §17.7: the matrix is published, and there is a
+  closed-form first guess for the threshold.
+- **Zhu, Zheng, Carroll & Aukema 2008** (*JABES*, **PRIMARY**, §§1–3). The paper that
+  turns the 2005 model into ours: "we will modify the STARM so that the conditional
+  distributions depend only on the past" — their Eq. 2.1, "the conditional distribution of
+  Y t given the past depends on the most recent S time points" — a forward Markov chain
+  in time with a Markov random field in space, i.e. framework §2 plus §3 exactly. On
+  estimation: pseudo-likelihood "estimates can be statistically quite inefficient when
+  spatial and/or temporal dependence is strong. Thus, we do not consider MPL here."; they
+  fit by Monte Carlo maximum likelihood with standard errors from the observed Fisher
+  information, predict by Gibbs sampling, and select lag order `S` and neighbourhood
+  order `L` by AIC. Their application is a 15-year annual series on 469 cells.
+- **Marsan & Lengliné 2008** (*Science*, **PRIMARY**, the algorithm paragraph). The
+  model-independent estimator at its source: "The algorithm works as follows: 1. Knowing
+  an a priori bare kernel" and a background rate, compute for every pair the triggering
+  weight and the background weight, normalised to sum to one per event; "2. The updated
+  bare rates are then computed as" the weighted counts per `(distance, lag, magnitude)`
+  bin; "these two steps are iterated until" … "convergence is reached". Reinhart's summary
+  (§4.18.4) is confirmed.
+- **Zheng & Zhu 2008** (*JCGS*, **ABSTRACT**): the Bayesian MCMC alternative for the same
+  model, motivated by the same inefficiency of pseudo-likelihood "especially when the
+  spatial and temporal dependence is strong".
+- **Caragea & Kaiser 2009** (*JABES*, **ABSTRACT**): the centered parameterisation,
+  proposed because the usual one "presents difficulties in interpreting model parameters
+  across varying levels of statistical dependence".
+- **Brook & Evans 1972** (*Biometrika*, **ABSTRACT**, summary read): the origin of the
+  method — "The transition probability matrix for this chain is obtained and then the
+  properties of this matrix used to determine not only the average run lengths for the
+  scheme, but also moments and percentage points of the run-length distribution and
+  exact probabilities of run length. The method may be used with any discrete
+  distribution".
+- **Cabo & Baddeley 1995** (*Adv. Appl. Prob.*, **ABSTRACT**): the set covariance function
+  and chord-length distribution recovered from one-dimensional transects — the
+  directional covariogram of §4.18.1 seen along a line.
+- **Liu & Cai 2012** (*Annals AAG*, **ABSTRACT**), **Cai et al. 2014** (*RSE*,
+  **ABSTRACT**), **Melgani & Serpico 2003** (*IEEE TGRS*, **ABSTRACT**): Markov-random-field
+  trajectory reconstruction, the "illogical transition" repair of the MODIS product, and
+  the "mutual" (both-directions) versus "cascade" (forward) MRF for image sequences —
+  applied precedents, no new estimator.
+
+**What round 9 leaves unobtained:** Steiner et al. 2000 and Conley 1999 (browser fetch
+failed on the day; neither moves a grade). Not indexed on the first index:
 Blakemore 1984, Page 1954, Hall 1985. No DOI anywhere: Kreinin & Sidelnikova 2001,
 Lewis & Mohler 2011.
 
@@ -2170,12 +2226,13 @@ number, never instead of it. Adopt it from the first run rather than retrofittin
 - **Round 9 (2026-09-12) named seven fields from the [D] list and searched them:** nine
   Sonnet searchers (open-access routes; OpenAlex was metered out mid-session and the
   searchers fell back to Crossref), the reviewer fetching the closed remainder by DOI
-  from the first index. The round-9 bibliography block holds 34 lines (counted): 18
-  reviewer-read PRIMARY lines (one carrying two Kats papers), 5 reviewer-read ABSTRACT
-  (abstract-only reads of a held PDF are ABSTRACT, as in round 8),
+  from the first index. The round-9 bibliography block holds 44 lines (counted, after the
+  same-day browser fetch of §4.18.10): 21 reviewer-read PRIMARY lines (one carrying two
+  Kats papers), 12 reviewer-read ABSTRACT (abstract-only reads of a held PDF are
+  ABSTRACT, as in round 8),
   9 lines filed but unread by the reviewer (15 works: seven graph-cut papers on one
   line, Averkov & Bianchi, Schneider & Weil, Singer & Spilerman, Conley & Molinari,
-  Solberg, and three image-only scans), and 2 METADATA lines carrying 18 unobtained
+  Solberg, and three image-only scans), and 2 METADATA lines carrying 8 unobtained
   works. Three
   [D] results became theorems (§4.18.1, §4.18.2 composition, §4.18.5), two [D]
   procedures became published estimators (§4.18.3, §4.18.6), one kill became a
@@ -2502,7 +2559,17 @@ All filed under `D:\edmonds-pipeline\Literture\Validation\`. Grades are the revi
 - Politis, D.N. & Romano, J.P. (1994). Large sample confidence regions based on subsamples under minimal assumptions. *Ann. Statist.* 22(4). doi:10.1214/aos/1176325770 — image-only scan, unread. Filed `PolitisRomano_1994_subsampling_confidence_regions_AnnStat`.
 - Liu, D., Song, K., Townshend, J.R.G. & Gong, P. (2008). Using local transition probability models in Markov random fields for forest change detection. *Remote Sensing of Environment* 112(5):2222–2231. doi:10.1016/j.rse.2007.10.002 — **ABSTRACT**, reviewer-read abstract only (full PDF held). Filed `LiuSongTownshendGong_2008_local_transition_MRF_forest_change_RSE`.
 - Solberg, A.H.S., Taxt, T. & Jain, A.K. (1996). A Markov random field model for classification of multisource satellite imagery. *IEEE TGRS* 34(1):100–113. doi:10.1109/36.481897 — filed, header-verified, unread. Filed `SolbergTaxtJain_1996_MRF_multisource_TGRS`.
-- **Indexed, behind the second index's bot challenge (2026-09-12), not obtained:** Zheng & Zhu (2008) *JCGS* 17(1) doi:10.1198/106186008X289641; Zhu, Zheng, Carroll & Aukema (2008) *JABES* 13(1) doi:10.1198/108571108X273566; Caragea & Kaiser (2009) *JABES* 14(3) doi:10.1198/jabes.2009.07032; Brook & Evans (1972) *Biometrika* 59(3) doi:10.1093/biomet/59.3.539; Reynolds & Stoumbos (1999) *J. Quality Technology* 31(1) doi:10.1080/00224065.1999.11979900; Steiner, Cook, Farewell & Treasure (2000) *Biostatistics* 1(4) doi:10.1093/biostatistics/1.4.441; Marsan & Lengliné (2008) *Science* 319 doi:10.1126/science.1148783; Liu & Cai (2012) *Annals AAG* 102(6) doi:10.1080/00045608.2011.596357; Cai, Liu, Sulla-Menashe & Friedl (2014) *RSE* 147 doi:10.1016/j.rse.2014.03.012; Melgani & Serpico (2003) *IEEE TGRS* 41(11) doi:10.1109/tgrs.2003.817269; Cabo & Baddeley (1995) *Adv. Appl. Prob.* 27(3) doi:10.1017/S0001867800027063 — all **METADATA**.
+- Reynolds, M.R. Jr. & Stoumbos, Z.G. (1999). A CUSUM chart for monitoring a proportion when inspecting continuously. *J. Quality Technology* 31(1):87–108. doi:10.1080/00224065.1999.11979900 — **PRIMARY**, reviewer-read (§§2–3, Appendix A; browser fetch, §4.18.10). Filed `ReynoldsStoumbos_1999_Bernoulli_CUSUM_JQT` (+ `_raw.txt`).
+- Zhu, J., Zheng, Y., Carroll, A.L. & Aukema, B.H. (2008). Autologistic regression analysis of spatial-temporal binary data via Monte Carlo maximum likelihood. *J. Agric. Biol. Environ. Stat.* 13(1):84–98. doi:10.1198/108571108X273566 — **PRIMARY**, reviewer-read (§§1–3). Filed `ZhuZhengCarrollAukema_2008_spatiotemporal_autologistic_MCML_JABES`.
+- Marsan, D. & Lengliné, O. (2008). Extending earthquakes' reach through cascading. *Science* 319:1076–1079. doi:10.1126/science.1148783 — **PRIMARY**, reviewer-read (the algorithm paragraph). Filed `MarsanLengline_2008_cascading_earthquakes_Science` (+ `_raw.txt`).
+- Zheng, Y. & Zhu, J. (2008). Markov chain Monte Carlo for a spatial-temporal autologistic regression model. *J. Comput. Graph. Stat.* 17(1):123–137. doi:10.1198/106186008X289641 — **ABSTRACT**, reviewer-read abstract (full PDF held). Filed `ZhengZhu_2008_MCMC_spatiotemporal_autologistic_JCGS`.
+- Caragea, P.C. & Kaiser, M.S. (2009). Autologistic models with interpretable parameters. *J. Agric. Biol. Environ. Stat.* 14(3):281–300. doi:10.1198/jabes.2009.07032 — **ABSTRACT**, reviewer-read abstract (full PDF held). Filed `CarageaKaiser_2009_centered_autologistic_JABES`.
+- Brook, D. & Evans, D.A. (1972). An approach to the probability distribution of cusum run length. *Biometrika* 59(3):539–549. doi:10.1093/biomet/59.3.539 — **ABSTRACT**, reviewer-read summary (full PDF held). Filed `BrookEvans_1972_CUSUM_run_length_Biometrika`.
+- Cabo, A.J. & Baddeley, A.J. (1995). Line transects, covariance functions and set convergence. *Adv. Appl. Prob.* 27(3):585–605. doi:10.1017/S0001867800027063 — **ABSTRACT**, reviewer-read abstract (full PDF held). Filed `CaboBaddeley_1995_line_transects_covariance_set_convergence`.
+- Liu, D. & Cai, S. (2012). A spatial-temporal modeling approach to reconstructing land-cover change trajectories from multi-temporal satellite imagery. *Annals AAG* 102(6). doi:10.1080/00045608.2011.596357 — **ABSTRACT**, reviewer-read abstract (full PDF held). Filed `LiuCai_2012_spatiotemporal_landcover_trajectories_AAAG`.
+- Cai, S., Liu, D., Sulla-Menashe, D. & Friedl, M.A. (2014). Enhancing MODIS land cover product with a spatial–temporal modeling algorithm. *Remote Sensing of Environment* 147:243–255. doi:10.1016/j.rse.2014.03.012 — **ABSTRACT**, reviewer-read abstract (full PDF held). Filed `Cai_2014_MODIS_spatiotemporal_modeling_RSE`.
+- Melgani, F. & Serpico, S.B. (2003). A Markov random field approach to spatio-temporal contextual image classification. *IEEE TGRS* 41(11):2478–2487. doi:10.1109/tgrs.2003.817269 — **ABSTRACT**, reviewer-read abstract (full PDF held). Filed `MelganiSerpico_2003_spatiotemporal_MRF_TGRS`.
+- **Indexed on the second mirror, browser fetch failed on 2026-09-12, not obtained:** Steiner, Cook, Farewell & Treasure (2000) *Biostatistics* 1(4) doi:10.1093/biostatistics/1.4.441 — **METADATA** (Conley 1999 likewise; its line is in the round-8 block).
 - **Not on the first index; no OA copy:** Blakemore (1984) *Cartographica* doi:10.3138/1005-13mg-2627-2552; Page (1954) *Biometrika* 41 doi:10.1093/biomet/41.1-2.100; Hall (1985) *Stoch. Proc. Appl.* 20 doi:10.1016/0304-4149(85)90212-1; Lahiri (2003) *Resampling Methods for Dependent Data* ch. 12 doi:10.1007/978-1-4757-3803-2_12; Matheron (1975) *Random Sets and Integral Geometry* (book) — **METADATA**. **No DOI in any index:** Kreinin & Sidelnikova (2001) *Algo Research Quarterly* 4(1/2); Lewis & Mohler (2011) preprint.
 
 ### Held locally (`D:\edmonds-pipeline\Literture\`), read directly from PDF

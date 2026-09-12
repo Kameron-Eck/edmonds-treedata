@@ -465,8 +465,8 @@ one GPU-shaped cost, or permutohedral on CPU. Nothing here needs training.
 | # | Gap | Blocks | Cheapest closing step | Kill that must FIRE on a known-bad input | State |
 |---|---|---|---|---|---|
 | 1 | Emission model: `K`-bin (§2.3 A) vs calibrated log-odds (B) | the logits patch; everything upstream of the threshold | held-out log-likelihood of `e_t(b\|z)` on certified cells across `K` | placebo rate shuffle (brief §5): likelihood must fall | **[D] open — decides the patch** |
-| 2 | ~~Two-sided CUSUM thresholds at `T = 12`~~ → one-sided chart per certified population, threshold per `(population, band, α)` | the detector (§2.2, §12.3) | Monte Carlo on null sequences, `(r_{t,b}, f_{t,b})` | null sequences must not alarm above `α`; placebo must fall | **form [D] (§12.3); threshold by exact Markov-chain run length [Q] (§17.7); still to run** |
-| 3 | `(β, γ)` estimation | the spatial layer (§3) | Gräler protocol on `𝒢 ∪ ℱ` with `(0,γ̂)`, `(β̂,0)`, `(0,0)` | `(0,0)` reported; an inert weight is a result | **model + MPLE + bootstrap SEs published for equal intervals [Q] (§17.3); interval-dependent temporal term [D]** |
+| 2 | ~~Two-sided CUSUM thresholds at `T = 12`~~ → one-sided chart per certified population, threshold per `(population, band, α)` | the detector (§2.2, §12.3) | Monte Carlo on null sequences, `(r_{t,b}, f_{t,b})` | null sequences must not alarm above `α`; placebo must fall | **form [D] (§12.3); threshold by the published Markov chain + closed-form guess [Q] (§17.7, §17.10); still to run** |
+| 3 | `(β, γ)` estimation | the spatial layer (§3) | Gräler protocol on `𝒢 ∪ ℱ` with `(0,γ̂)`, `(β̂,0)`, `(0,0)` | `(0,0)` reported; an inert weight is a result | **forward space-time autologistic model + MCML published [Q] (§17.3, §17.10); irregular intervals via the yearly grid [D]** |
 | 4 | Erasure radius for the smoother actually chosen | §3.3; the "never redraw" question (brief §6.1) | TV-L1 / area opening: exact, `R_erase = 2/λ` (§13.2); mean-field: injected disks on real rasters only | 42 losses and `𝒢` (claim) | **closed-form for TV-L1 [Q→S]; TV-flow extinction `t = R/2` [Q] (§16.2); open only if mean-field is chosen (§13.2)** |
 | 5 | Leave-one-epoch-out scoring identity under Bernoulli noise | §5.2 | derived: §12.4 (Brier form; needs stratum prevalence `π_t`) | a deliberately leaking (median-type) layer must score *below* the noise floor | **[D] derived (§12.4); check not run** |
 | 6 | Covariance penalty under spatially / class-correlated error | §5 as a whole | no closed form exists (PRIMARY negative, §13.1); Efron identity + *correlated* bootstrap, leave-out widened to the correlation group `G(t)`; two residual correlograms on the strata | independent-Bernoulli bootstrap must under-estimate `Ω` on an injected correlated field; correlated one must not | **per-cell closed form [S] (§15.1); `G(t)` mask rule [Q] (§16.1); published goodness-of-fit kill [Q] (§17.5); the two correlograms remain [D — measurement]** |
@@ -1299,9 +1299,10 @@ prediction, parametric bootstrap for standard errors. Hughes, Haran & Caragea 20
 the practical recommendation — the *centered* parameterisation and PL — because in the
 traditional model the autocovariate absorbs large-scale structure that the regressors
 should carry; here that is exactly the competition between the development prior and
-the spatial term. **What stays [D]:** their field is undirected in time (`Y_{i,t}`
-conditions on `Y_{i,t−1}` *and* `Y_{i,t+1}`) on equally spaced `t ∈ Z`, with time-invariant
-coefficients. Our epochs are irregular and the §2 chain is forward. Two routes, both ours:
+the spatial term. **What stayed [D] until the same-day browser fetch (§17.10):** the 2005 field is undirected in
+time (`Y_{i,t}` conditions on `Y_{i,t−1}` *and* `Y_{i,t+1}`) on equally spaced `t ∈ Z`, with
+time-invariant coefficients. Zhu, Zheng, Carroll & Aukema 2008 make it forward (§17.10);
+the irregular-interval part remains ours. Two routes, both ours:
 (a) fit their model on the yearly grid of §15.2 with missing epochs marginalised by the
 Gibbs step (their prediction machinery already handles unobserved `Y_t`); (b) keep the
 forward chain and set `γ(Δt)` from the yearly root, `γ(Δt) = logit`-scale image of
@@ -1364,11 +1365,8 @@ Bernoulli CUSUM is exact from a Markov chain on the chart's `t = mh` transient s
 ratio `m`. Row 2's threshold per `(population, band, α)` is therefore solved by
 inverting that run-length formula for `h`; the Monte Carlo on null sequences becomes the
 check that the implementation matches the formula. The transition matrix itself is in
-the 1999 *JQT* paper (indexed, behind the challenge); until it is read, the construction
-is [Q] by description and the matrix is rebuilt from the chart definition [D] — a
-one-page derivation, checkable against Reynolds & Stoumbos's own §8 values (their
-p-chart example: in-control ANSS 291.348 at the adjusted limit). Lucas & Crosier's
-Table 1 is the normal-data chart and is not a check for the Bernoulli matrix.
+the 1999 *JQT* paper, obtained the same day by browser — §17.10 closes this: the matrix
+is published, so nothing here is rebuilt.
 
 ### 17.8 Ledger deltas from round 9
 
@@ -1391,3 +1389,49 @@ host (review §4.18, closing list). Three of them would move a grade: Reynolds &
 autologistic model, the fit §17.3 would use at scale), and Marsan & Lengliné 2008 (the
 MISD estimator at its source rather than via Reinhart). The other nine attribute or
 confirm. A browser can pass the challenge where `curl` cannot; that is Kam's call.
+
+### 17.10 Same-day addendum — ten of the twelve challenged papers, fetched through a browser (review §4.18.10)
+
+Three grades move; the rest confirm.
+
+- **Row 3 — the forward chain is published [D→Q].** Zhu, Zheng, Carroll & Aukema 2008
+  modify the 2005 model "so that the conditional distributions depend only on the past":
+  `p(Y_t | Y_{t−1}, …, Y_{t−S})`, a Markov random field in space at each `t`, lag order `S`
+  and neighbourhood order `L` chosen by AIC, fitted by Monte Carlo maximum likelihood with
+  Fisher-information standard errors, predicted by Gibbs sampling. Pseudo-likelihood is
+  dropped as "statistically quite inefficient when spatial and/or temporal dependence is
+  strong". That is §2 plus §3 with `S = 1` (or `S = 2` if AIC asks), on an annual grid.
+  **Still [D]:** our epochs are irregular, so the fit runs on the yearly grid of §15.2 with
+  unobserved years marginalised by the Gibbs step (route (a) of §17.3) — the only piece of
+  the layer's estimator that is not in a paper. Zheng & Zhu 2008 (Bayesian MCMC) and
+  Caragea & Kaiser 2009 (centered parameterisation) are the alternatives and the
+  interpretability fix, both [Q] by abstract.
+- **Row 2 — the CUSUM matrix is published [D→Q], and a closed-form threshold exists.**
+  Reynolds & Stoumbos 1999, Appendix A: choose `p₁` so that the two log-likelihood-ratio
+  increments are in integer ratio `m`; the statistic lives on multiples of `1/m`; state `i`
+  is `(i−1)/m`; `t = m·h_B` transient states; each observation moves the chain down one
+  state or up `m − 1`. Their Eq. 7, the corrected-diffusion approximation
+  `ANOS(p₀) ≈ (e^{h′_B r₂} − h′_B r₂ − 1)/|r₂p₀ − r₁|`, inverts for `h` given a target
+  in-control run length; the exact chain then refines it. Row 2's Monte Carlo is now a
+  check on two published computations. Brook & Evans 1972 is the method's origin, read at
+  the summary.
+- **Row 9 — the histogram-kernel EM at its source [Q].** Marsan & Lengliné 2008: per pair,
+  triggering and background weights from the current kernel, normalised per event;
+  updated kernel = weighted counts per `(distance, lag)` bin; iterate to convergence.
+  Reinhart's account (§17.4) is confirmed; the mapping to dated developments stays [D].
+- **Confirmations.** Cabo & Baddeley 1995: the set covariance along line transects — the
+  directional covariogram of §17.1 in one dimension. Liu & Cai 2012, Cai et al. 2014,
+  Melgani & Serpico 2003: applied space-time MRFs; Melgani's "mutual" versus "cascade"
+  distinction is the 2005-versus-2008 (undirected versus forward) distinction of row 3,
+  in the remote-sensing vocabulary.
+
+Ledger deltas from the addendum:
+
+| # | Was (§17.8) | Now |
+|---|---|---|
+| 2 | exact run length [Q]; matrix rebuilt [D] | **matrix published [Q]** (Reynolds & Stoumbos 1999 App. A); closed-form threshold guess (their Eq. 7) [Q]; Monte Carlo is the check |
+| 3 | equal-interval model [Q]; forward chain + irregular intervals [D] | **forward chain published [Q]** (Zhu et al. 2008, MCML + Fisher SEs, AIC for `S`, `L`); irregular intervals via the yearly grid [D] |
+| 9 | histogram kernel [Q via Reinhart] | **[Q] at the source** (Marsan & Lengliné 2008) |
+
+Unobtained after the browser pass: Steiner et al. 2000 and Conley 1999. Neither moves a
+grade. §17.9's list is superseded by this section.

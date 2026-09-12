@@ -1242,3 +1242,11 @@ did:     the two byte-for-byte freshness tests (backbone_benchmark.csv, harm_spr
 state:   no runtimes live; no loops or crons; branch work/20260906-healing-tool ready
          for Kam to push to GitHub and merge into main.
 next:    Kam: push + merge; key/token rotation; fill-audit worksheet; brief section 6.
+
+## 2026-09-12  fix: the CRLF-safe compare was committed with REAL CR/LF bytes inside the literal
+what:    8411777's patch wrote b"<CR><LF>" instead of b"\r\n" in the two freshness tests
+         (an escaping slip, repeated by two shell-heredoc repair attempts); ruff flagged
+         invalid syntax on the next full ladder. landed.py's pytest rung is a SUBSET and
+         did not collect those files - check.py is the definition of done and was skipped
+         at that commit. Fixed by a script file (no shell escaping), verified byte-exact;
+         both tests pass; full fast ladder green before this commit.

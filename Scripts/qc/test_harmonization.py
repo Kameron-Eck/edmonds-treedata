@@ -221,9 +221,7 @@ def test_tracked_harm_spread_csv_is_fresh():
     # CRLF-safe: a fresh Windows checkout (core.autocrlf=true, no eol= by design —
     # see .gitattributes) writes CRLF while the renderer emits LF; compare content,
     # not line terminators. The LF-only property is asserted separately below.
-    assert p.read_bytes().replace(b"
-", b"
-") == hs.render().encode("utf-8"), (
+    assert p.read_bytes().replace(b"\r\n", b"\n") == hs.render().encode("utf-8"), (
         "harm_spread.csv is STALE — regenerate: py -3.12 qc/instruments/harm_spread.py")
 
 

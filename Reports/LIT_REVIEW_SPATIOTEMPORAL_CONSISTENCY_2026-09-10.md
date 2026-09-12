@@ -1053,9 +1053,20 @@ search-derived.** Two things survive it, and they are the substitution:
    bootstrap resamples from a correlated generative model*, not from independent
    Bernoullis. That reduces row 6 from "no theory" to "measure the error correlation on the
    certified strata" — a spatial correlogram of `x − f` on FLAT and `x − r` on the
-   certified-canopy population, per band and epoch. *Caveat: Efron's assumption statement
-   in his §2 was not re-read this session (no OA copy on disk); this reading of it must be
-   checked against the text before it is relied on.*
+   certified-canopy population, per band and epoch. *Checked the same day against
+   Efron's own restatement* — **Efron 2021** (**PRIMARY**, *Stats* 4(4); read in full
+   text from the author's page): the Q-class Optimism Theorem 1 (his eq. 76) is stated for
+   "an unknown probability model f" that "is assumed to have produced y and its true
+   mean", with the fresh observation vector drawn "independently of y" — the joint model
+   `f` is arbitrary, and `cov_f(λ̂_i, y_i)` is taken under it. Independence across
+   components enters only in Mallows' `C_p` (his 64, "uncorrelated errors") and in the
+   Stein special case (his 90): "if f is the normal model y ~ N(μ, σ²I)". So the reading
+   above holds: the identity survives correlated error; the divergence shortcut does not.
+   The generative model for the correlated bootstrap has a published, estimable form
+   already in hand: the **autologistic** observation model of Hughes, Guttorp & Charles
+   1999 (§4.13.3) — `P(r | s) ∝ exp(Σ α_i r_i + Σ β_ij r_i r_j)` with `β_ij` "a function
+   of the distance and direction between stations", fitted by Geyer–Thompson Monte Carlo
+   maximum likelihood.
 2. *Correlation across cells at one epoch does not break the leave-one-epoch-out score;
    correlation across epochs does.* The framework's §12.4 identity holds out the whole
    epoch `t`, so same-epoch spatial correlation never leaks. What leaks is *cross-epoch*
@@ -1189,6 +1200,79 @@ correlated *binary* observations (PRIMARY negative, three sources); no erasure r
 mean-field CRF (PRIMARY negative); no closed-form flip threshold in Kolmogorov–Boykov; no
 paper fitting a joint distance × time-since-permit hazard for tree removal; no published
 form for a label prior blurred by registration uncertainty (STAPLE is the wrong object).
+
+### 4.14 Round 5 (2026-09-12, same day) — moving "need more information" into "know"
+
+Round 5 took the items the inventory marked *closable by reading*: the stationarity of
+the transition rates between lidar intervals (framework §12.2 assumption i); the temporal
+dependence of classification error across dates (the leave-out group of §4.13.1); a second
+source for the correlated-Bernoulli bootstrap; the time-decay `D_k(τ)` of the development
+prior; and the registration-blurred footprint prior. Sonnet searched on open routes;
+closed items were then fetched by DOI; every grade is from this reviewer's read.
+
+#### 4.14.1 Stationarity of `q`, annualising a multi-year matrix, and the correlated bootstrap — all published
+
+- **Bell & Hinojosa 1977** (**PRIMARY**, Socio-Economic Planning Sciences 11(1); read in
+  full text). A two-state (developed / undeveloped) Markov analysis of land use on San Juan
+  Island, Washington, 1949–65 and 1965–71. Two things we need are in it. (i) *The
+  stationarity test:* "If we had two estimates of the transition probabilities of a Markov
+  process obtained for an identical elapsed period … we could use the earlier ones as the
+  expected values for the later ones, and then use a chi-square goodness-of-fit or
+  equivalent test"; when the periods differ, "the earlier estimates must be adjusted to an
+  equivalent period of time … by raising the matrices to equivalent exponential powers."
+  Their worked case raises the 1949–65 matrix "to the 1.375 power" to reach 1949–71 and
+  compares expected to observed parcel counts by Pearson's χ². (ii) *Non-integer powers
+  via diagonalisation:* `P = HΛH⁻¹`, `Pᵗ = HΛᵗH⁻¹` (their eqs. 1–2), with the remark that
+  a regular chain has one unit eigenvalue and the rest inside the unit disc. That is the
+  framework's `λ^k` machinery and its closed-form yearly rate (§12.2), stated in 1977 for
+  exactly our two-state land-use case — the derivation becomes [Q→S], and assumption (i)
+  gets its test.
+- **Anderson & Goodman 1957** (**PRIMARY**, Ann. Math. Statist. 28(1); JSTOR scan, pp.
+  89–91 read as page images). The canonical source: maximum-likelihood estimates of
+  transition probabilities and "likelihood ratio tests and χ²-tests of the form used in
+  contingency tables … for testing the following hypotheses: (a) that the transition
+  probabilities of a first order chain are constant". Cite this for the test; Bell &
+  Hinojosa for the land-use application and the power adjustment.
+- **Takada, Miyamoto & Hasegawa 2010** (Landscape Ecology 25(4), doi:10.1007/s10980-009-9433-x)
+  — **METADATA**: the yearly-root method for an `m`-year matrix and its existence
+  condition; closed, not in the archive. **Hasegawa & Takada 2019** (Sustainability
+  11(22):6355) — **ABSTRACT**: existence of a real positive yearly root is "relatively
+  large for matrices with large diagonal elements, exceeding 90 %"; MDPI 403, Hokkaido
+  mirror unreachable. For our 2×2 case the root exists whenever `λ = 1 − Q_g − Q_l > 0`
+  (framework §12.2), which is Bell & Hinojosa's eigenvalue remark.
+- **Burnicki, Brown & Goovaerts 2007** (**PRIMARY**, Comput. Environ. Urban Syst.
+  31(3):282–302; read in full text). Simulation of error fields at two dates with
+  controlled temporal dependence. Their first conclusion is the mechanism this review has
+  been circling: "the presence of a correlation between the patterns of error in two
+  land-cover maps improved the overall accuracy of the resulting change map. However, the
+  presence of a correlation between error patterns did not necessarily improve the user's
+  accuracy of the change map in predicting the occurrence of a land-cover transition."
+  Correlated error cancels in the difference and *looks* like consistency — which is why
+  self-agreement is not evidence and why the leave-one-epoch-out score must hold out the
+  whole correlation group (§4.13.1 item 2). They also state that "errors occurring in
+  multi-temporal classified imagery have complex spatial and temporal structures that limit
+  an analytical modeling approach" — a second, independent statement of the row-6
+  negative. **Burnicki 2011** (**PRIMARY** on fetch, IJRS 32(22); filed, not yet read
+  beyond identity) extends the same to accuracy assessment.
+- **Geyer & Thompson 1992** (**PRIMARY**, J. R. Stat. Soc. B 54(3):657–699; read at the
+  cited passages). "Maximum likelihood estimates (MLEs) in autologistic models and other
+  exponential family models for dependent data can be calculated with Markov chain Monte
+  Carlo methods", via importance-sampling estimation of the normalising constant from
+  samples at one reference parameter; MLEs are "compared with maximum pseudolikelihood
+  estimates". This is the estimator Hughes–Guttorp use (§4.13.1); with it the correlated
+  bootstrap of framework §13.1 has its generative model (autologistic, Besag 1974 —
+  **METADATA**, not in the archive) and its fitting method from two primary sources.
+- **Wolters & Dean 2017** (Statistics in Biosciences 9; **PRIMARY** on the searcher's
+  read) and **Wolters 2017** (Frontiers Appl. Math. Stat. 3:24; **PRIMARY** on the
+  searcher's read): autologistic regression applied to remote-sensing imagery with
+  validation "on both simulated images and a real application", and the coding/centering
+  choices that make the autologistic model well-behaved. Not re-read here; useful as the
+  remote-sensing precedent and the modern parameterisation.
+
+**What moved.** Framework §12.2 assumption (i) now has a named test (Anderson–Goodman;
+Bell–Hinojosa's power adjustment for unequal intervals) and the closed-form yearly rate is
+a 1977 result; row 6's bootstrap has a published generative model *and* estimator; the
+widened leave-out has its mechanism stated by a paper built to test exactly that.
 
 ---
 
@@ -1594,6 +1678,7 @@ full-text read supports the grade.
 - Chaux, Duval, Benazza-Benyahia & Pesquet (2008). A Nonlinear Stein-Based Estimator for Multichannel Image Denoising. *IEEE Trans. Signal Processing*; arXiv:0712.2317 — **PRIMARY**, reviewer-read (Prop. 1, eq. 24). Filed `Chaux_2008_MultichannelSURE`.
 - Hudson (1978). A Natural Identity for Exponential Families with Applications in Multiparameter Estimation. *Ann. Statist.* 6(3):473–484. doi:10.1214/aos/1176344194 — **PRIMARY**, reviewer-read as page images pp. 474–476 (JSTOR scan; no text layer). Filed `Hudson_1978_NaturalIdentity`.
 - Hwang (1982). Improving Upon Standard Estimators in Discrete Exponential Families with Applications to Poisson and Negative Binomial Cases. *Ann. Statist.* 10(3). doi:10.1214/aos/1176345876 — **PRIMARY**, reviewer-read as page images pp. 858–859 (JSTOR scan). Filed `Hwang_1982_DiscreteExpFam`.
+- Efron (2021). Resampling Plans and the Estimation of Prediction Error. *Stats* 4(4). doi:10.3390/stats4040063 — **PRIMARY**, reviewer-read (§4, eqs. 64–77 and 90; the author's restatement of the 2004 Optimism Theorem and its assumptions). Filed `Efron_2021_ResamplingPlans_Stats` (author's page).
 - Batson & Royer (2019). Noise2Self. arXiv:1901.11365 — **PRIMARY** (round 3); filed this round `BatsonRoyer_2019_Noise2Self`, not re-read.
 - Valavi, Elith, Lahoz-Monfort & Guillera-Arroita (2018). blockCV: an R package for generating spatially or environmentally separated folds for k-fold cross-validation of species distribution models. bioRxiv 357798 (published *Methods Ecol. Evol.* 2019) — **PRIMARY**, reviewer-read (block-size section). Filed `Valavi_2018_blockCV`.
 - Broaddus, Krull, Weigert, Schmidt & Myers (2020). Removing Structured Noise with Self-Supervised Blind-Spot Networks. *IEEE ISBI 2020* — **ABSTRACT** (no OA PDF resolved: EPFL Infoscience record JS-only).

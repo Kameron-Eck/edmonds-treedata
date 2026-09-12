@@ -645,7 +645,16 @@ q_g = (1 − λ) · Q_g / (Q_g + Q_l),     q_l = (1 − λ) · Q_l / (Q_g + Q_l)
 
 **Assumptions, stated.** (i) *Stationarity* of `(q_g, q_l)` from the 2005–2016 interval
 to 2016–2024 — an assumption, and §6.1's prior asserts it fails near dated development
-footprints, so anchor cells are drawn away from them. (ii) *Homogeneity within a stratum*:
+footprints, so anchor cells are drawn away from them. *Testable [Q→S, added 2026-09-12,
+review §4.14.1]:* Anderson & Goodman 1957's likelihood-ratio / χ² test of constant
+transition probabilities, in Bell & Hinojosa 1977's land-use form — raise the 2005–2016
+matrix to the power that matches the later interval (`Pᵗ = HΛᵗH⁻¹`, non-integer `t`),
+predict the state counts on the certified strata at the next lidar-coincident date, and
+test against the observed counts. On our data this needs a third certified date; until
+one exists the test can only be run *within* 2005–2016 on the interior epochs via the
+bridge weights, which is a consistency check, not a test of the post-2016 assumption.
+The `λ^k` diagonalisation and the yearly-rate closed form above are Bell & Hinojosa's
+eqs. 1–2 applied to the 2×2 case, so they are [S], not [D]. (ii) *Homogeneity within a stratum*:
 the mixture algebra assumes every cell in `S` shares `(q_g, q_l)`; banding is the first
 covariate, land-use class (PACC's "impervious") is the next if the kill below fails.
 (iii) *Conditional independence* `x ⊥ (anchor membership) | z, b` — the model's error on a
@@ -762,8 +771,14 @@ Gaussian and continuous. This is a PRIMARY negative.
    dies is only the Stein closed form. Efron's parametric bootstrap (his 3.17) therefore
    stands, **provided the resampled `y` is drawn from a correlated generative model** —
    on the certified strata, a Bernoulli field with the *measured* error correlogram, not
-   independent Bernoullis. *Efron's §2 assumption statement must be re-read before this is
-   relied on (no OA copy on disk).*
+   independent Bernoullis. *Checked (review §4.13.1, Efron 2021 PRIMARY): the Q-class
+   theorem is stated for an arbitrary joint model `f`; only the Stein special case needs
+   `N(μ, σ²I)`.* **The bootstrap model is [Q], not ours:** the autologistic field
+   `P(x | z) ∝ exp(Σ α_i x_i + Σ β_ij x_i x_j)`, `β_ij` a function of inter-cell distance,
+   fitted by Monte Carlo maximum likelihood (Hughes, Guttorp & Charles 1999, review
+   §4.13.3). **[S]:** fit it per stratum and band to the residual field on `ℱ` and `𝒞`;
+   `α` reproduces `f_{t,b}` / `r_{t,b}`, `β(d)` is the correlogram; draw the bootstrap
+   `y` from it by Gibbs sampling.
 2. *Widen the blind spot to the correlation footprint.* §12.4 holds out the whole epoch
    `t`, so same-epoch spatial correlation never leaks into `p̂_t`. Cross-epoch error
    correlation does — it breaks `x_t ⊥ x_{−t} | z_t`. The blind-spot principle (review

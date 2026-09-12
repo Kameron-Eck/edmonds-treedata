@@ -467,9 +467,9 @@ one GPU-shaped cost, or permutohedral on CPU. Nothing here needs training.
 | 1 | Emission model: `K`-bin (§2.3 A) vs calibrated log-odds (B) | the logits patch; everything upstream of the threshold | held-out log-likelihood of `e_t(b\|z)` on certified cells across `K` | placebo rate shuffle (brief §5): likelihood must fall | **[D] open — decides the patch** |
 | 2 | ~~Two-sided CUSUM thresholds at `T = 12`~~ → one-sided chart per certified population, threshold per `(population, band, α)` | the detector (§2.2, §12.3) | Monte Carlo on null sequences, `(r_{t,b}, f_{t,b})` | null sequences must not alarm above `α`; placebo must fall | **[D] resolved in form (§12.3); threshold still to run** |
 | 3 | `(β, γ)` estimation | the spatial layer (§3) | Gräler protocol on `𝒢 ∪ ℱ` with `(0,γ̂)`, `(β̂,0)`, `(0,0)` | `(0,0)` reported; an inert weight is a result | **[D] open** |
-| 4 | Erasure radius for the smoother actually chosen | §3.3; the "never redraw" question (brief §6.1) | TV-L1 / area opening: exact, `R_erase = 2/λ` (§13.2); mean-field: injected disks on real rasters only | 42 losses and `𝒢` (claim) | **closed-form for TV-L1 [Q→S]; open only if mean-field is chosen (§13.2)** |
+| 4 | Erasure radius for the smoother actually chosen | §3.3; the "never redraw" question (brief §6.1) | TV-L1 / area opening: exact, `R_erase = 2/λ` (§13.2); mean-field: injected disks on real rasters only | 42 losses and `𝒢` (claim) | **closed-form for TV-L1 [Q→S]; TV-flow extinction `t = R/2` [Q] (§16.2); open only if mean-field is chosen (§13.2)** |
 | 5 | Leave-one-epoch-out scoring identity under Bernoulli noise | §5.2 | derived: §12.4 (Brier form; needs stratum prevalence `π_t`) | a deliberately leaking (median-type) layer must score *below* the noise floor | **[D] derived (§12.4); check not run** |
-| 6 | Covariance penalty under spatially / class-correlated error | §5 as a whole | no closed form exists (PRIMARY negative, §13.1); Efron identity + *correlated* bootstrap, leave-out widened to the correlation group `G(t)`; two residual correlograms on the strata | independent-Bernoulli bootstrap must under-estimate `Ω` on an injected correlated field; correlated one must not | **narrowed to measurements [S] (§13.1)** |
+| 6 | Covariance penalty under spatially / class-correlated error | §5 as a whole | no closed form exists (PRIMARY negative, §13.1); Efron identity + *correlated* bootstrap, leave-out widened to the correlation group `G(t)`; two residual correlograms on the strata | independent-Bernoulli bootstrap must under-estimate `Ω` on an injected correlated field; correlated one must not | **per-cell closed form [S] (§15.1); `G(t)` mask rule [Q] (§16.1); the two correlograms remain [D — measurement]** |
 | 7 | Power: 42 losses resolve `Δ ≳ 0.12` only | which kills can decide small effects | use `𝒢`, `ℱ` for small effects | — | **[D] derived, stated** |
 | 8 | Conservative mask fraction `φ` | §7.2 | tie to `R_min` (row 4) or report hand-set | — | **[D] open** |
 | 9 | Development prior `A, R, k` | §6.1 | fit: `A` canonical by pseudolikelihood, `R, k` irregular by profile likelihood, or NHMM-EM (§13.3); population = LOSS build (11b) near dated footprints | no-change gold near new buildings stays no-change (brief §5) | **fitting protocol found [S]; forms still ours (§13.3)** |
@@ -484,7 +484,7 @@ one GPU-shaped cost, or permutohedral on CPU. Nothing here needs training.
 increments, §2.2 substitutions and worked instance, §2.4 the `γ = 0` analogue, §3.3 the
 contrast translation, §5.1 the strata, §7.1 the lattice map, §7.2 the conservative rule)
 and every [D] (§2.1 sensitivity, §2.2 the join, §2.3 the verdict, §2.4 `k_½`, §3.1–3.4,
-§4, §5.2–5.4, §6, §7.2 `φ`, §8, §11, and all of §12–§14 — added 2026-09-12, after this
+§4, §5.2–5.4, §6, §7.2 `φ`, §8, §11, and all of §12–§16 — added 2026-09-12, after this
 ledger, which is why they sit below it) is unvalidated. The independent check for each is the
 row above that names it, run by someone other than this document's author, on real data,
 with the kill shown to fire first. A design accepted on numbers it produced about itself is
@@ -908,7 +908,9 @@ bootstrap.** Every piece has a home.
   ABSTRACT). **[S]:** `K_R` as two kernels, or `R` read from Verburg's enrichment curve
   (§13.3); the single-radius form of §6.1 is under-specified.
 - `D_k(τ)`: no curve exists. Windows of elevated loss are 4–8 years (Hauer 1994), 4–5
-  (Guo 2018/2019), 6–7 (Steenberg 2018 via Hilbert); replanting at 2–3 years (Conway
+  (Guo 2018/2019), 6–7 (a Steenberg row in Hilbert's table — the paper it belongs to is
+  unverified; the Environment & Planning B 2018 paper, read in round 8, is not it);
+  replanting at 2–3 years (Conway
   2022). **`k ≈ 5 y` is the only literature-supported prior for the fit's starting value;
   it is a window, not a shape — `D_k` stays [D].**
 - Row 10 blur: **[S]** — the footprint prior's blur is the expectation of the footprint
@@ -1156,3 +1158,99 @@ round number.
 | 11a | `λ^k` and yearly rate [S] | yearly root **[Q]** (Takada 2010) with the `0 < λ < 1` existence condition and a mixed-stratum guard [D] |
 | 10 | `Φ(d/σ)` [D] on Leung & Yan | unchanged; Part 2's independent-vertex bounds cited as the other regime; Shi 1998 anchors "quantile of σ, not a fixed radius" |
 | 9 | two-term family; radii 0.7–1.4 / ~20 m | radii now PRIMARY-quoted (Guo 2018: 1.4 m, 44 % vs 13.5 %, >3×); Steenberg 2017 vs 2018 are two papers |
+
+## 16. Round 8 — the remainder read: one rule sourced, one law added, one correction (2026-09-12)
+
+Review §4.17. Nothing here changes an estimator; it changes what the estimators rest on.
+
+### 16.1 Row 6 — the `G(t)` leave-out rule, quoted [ABSTRACT→Q]; the block rule second-sourced [Q]
+
+§13.1 item 2 held out epoch `t` *and every epoch whose error correlates with it* on an
+abstract-grade reading of the blind-spot literature. The rule at its source (Broaddus et
+al. 2020, review §4.17.1): hide, in addition to the active pixel, the neighbouring pixels
+"that contain information about the noise of the active pixel", and keep the loss "active
+for individual pixels" only. Translated to the chain: `G(t) = {t' : ρ_res(t, t') > noise
+floor}`, the cross-epoch residual correlation of §13.1 measurement (b); the identity of
+§12.4 holds with `x_{−G(t)}` in place of `x_{−t}`; the score stays per held-out cell.
+What `ρ_res` is remains [D — measurement]; the rule that consumes it is now [Q].
+
+The §12.2 block size (Valavi et al. 2018) is second-sourced by Roberts et al. 2017: blocks
+"at least as many units as the range of autocorrelation" as read from the correlogram.
+Two independent statements of the same rule; measurement (a) of §13.1 feeds both.
+
+Lineage, for the record: Efron 1986 states the model with "the yi independently equal 1 or
+0"; Efron 2004 §3 conditions on the observed data and drops independence; §15.1's per-cell
+Steinian with Besag's local conditional is that 2004 form on the autologistic field. Row 6
+is closed by a chain of three read papers, none of them ours.
+
+### 16.2 Row 4 — three smoothers, three erasure laws; the choice is the only open input
+
+Bellettini, Caselles & Novaga 2002 (review §4.17.1) give the total-variation *flow*
+`u_t = div(Du/|Du|)` on an indicator: for a bounded convex set with `C^{1,1}` boundary
+whose curvature never exceeds `λ_Ω = P(Ω)/|Ω|`, `χ_Ω` evolves as `(1 − λ_Ω t)⁺ χ_Ω` — a
+uniform linear fade with no boundary motion, extinct at `t = 1/λ_Ω`. A disc of radius `R`
+has `λ = 2/R` and curvature `1/R ≤ 2/R`, so its indicator is gone at **`t = R/2`**; run the
+flow for time `t` and every convex feature with `|Ω|/P(Ω) ≤ t` is erased. **[Q]** for the
+law; **[D]** for the reading "run time `t` ⇒ `R_erase = 2t`" on a probability raster,
+where the input is not an indicator.
+
+| smoother | erasure of a disc of radius `R` | contrast-dependent? | source | bin |
+|---|---|---|---|---|
+| ROF (TV-L2 minimisation), weight `α` | erased when `R ≤ 2α/h`, `h` the feature contrast | yes | Strong & Chan 2003 §3.1 | [Q]+[S], §3.3 |
+| TV-L1 minimisation, weight `λ` | removed whole iff `λ < 2/R` ⇒ `R_erase = 2/λ` | no | Chan & Esedoglu 2005 §3; Duval et al. 2009 | [Q], §13.2 |
+| TV flow, time `t` | indicator extinct at `t = R/2` ⇒ `R_erase = 2t` | no (indicator input) | Bellettini, Caselles & Novaga 2002 | [Q], this section |
+| mean-field CRF | no result (PRIMARY negative) | — | §13.2 | measurement only |
+
+The two contrast-independent laws are the argument, already made in §3.3's last
+paragraph, for a TV-L1-type smoother over ROF on a probability raster: with ROF a 60 %-
+confident removal is erased at a larger physical size than a 95 %-confident one; with
+TV-L1 or the flow the erased size is a property of the smoother alone. The smoother is a
+§9 decision (Kam's); whichever is chosen, its row above states `R_erase` before any
+`(β, γ)` fit, and the injected-disc kill of §13.2 applies to all four.
+
+### 16.3 Rows 9, 10, 14 — grades, one correction, one option
+
+- **Row 9.** Morgenroth et al. 2017's radii (0.7 m to a demolished building; 20 m to a
+  driveway) are now quoted from the paper (review §4.17.2), not from Hilbert's table; the
+  §14.6 two-scale reading stands. The paper also splits on crown area (7.9 m²) — a size
+  covariate the per-cell chain cannot carry (crown polygons exist only for 2020; CLAUDE.md
+  §1), so it is noted and not added. **Correction:** the 6–7 y window listed in §14.6 was
+  attributed to Steenberg 2018; that paper, read, is a census-tract regression on 2003 and
+  2014 imagery and contains neither the window nor `n = 806`. The window is re-attributed
+  to Hilbert's table with the source paper unverified; `k ≈ 5 y` as the fit's starting
+  value is unchanged (Hauer 4–8, Guo 4–5 remain).
+- **Row 10.** Leung & Yan 1998 confirms the circular-normal point model and the Rayleigh
+  radial law at the text (second source for §14.7's `Φ(d/σ)`); STAPLE's negative is
+  confirmed at the text (rater sensitivity/specificity, nothing positional). §14.7
+  unchanged; its inputs (σ_fp; a building reference) are still measurements.
+- **Row 14.** Stow 1999 is a third tool: gradient-weighted *compensation* of the
+  difference magnitude from sparse misregistration estimates. It corrects a continuous
+  difference image; our object is a binary mask difference, so it is recorded as an
+  option **[S]**, not adopted — reconsider only if row 14's measurement (p95 of
+  `coregistration.csv` against 2 m) admits the 0–2 m band and the §14.9 screen proves
+  insufficient.
+- **Row 6, mechanism.** Burnicki 2010 (abstract): raising temporal dependence between
+  classification errors "did not improve the accuracy of resulting maps of change" once
+  the class count rose. Ours is one class; the 2007 binary mechanism (§14.2) applies
+  unchanged.
+
+### 16.4 Ledger deltas from round 8
+
+| # | Was | Now |
+|---|---|---|
+| 4 | TV-L1 closed form; Potts [D]; mean-field none | + TV-flow extinction `t = R/2` [Q]; three laws tabulated (§16.2); the smoother choice is the only open input |
+| 6 | per-cell `Ω` [S]; `G(t)` on an ABSTRACT source | `G(t)` rule [Q] (StructN2V quoted); block size second-sourced (Roberts 2017) [Q]; the two correlograms unchanged [D — measurement] |
+| 9 | radii via Guo 2018 and Hilbert | Morgenroth 0.7 m / 20 m PRIMARY-quoted; 6–7 y re-attributed to Hilbert's table, source paper unverified |
+| 10 | `Φ(d/σ)` on Leung & Yan 1997 | second-sourced (Leung & Yan 1998); STAPLE negative confirmed at the text |
+| 14 | rate [D] + screen [S] | + compensation option (Stow 1999) [S], not adopted |
+
+### 16.5 What is not obtained, and why it does not matter
+
+Conley 1999 (indexed on the second mirror; the storage host refuses the file under both
+DOI encodings) would supply a heteroskedasticity-and-autocorrelation-consistent variance
+for the correlogram estimates; §15.1's per-cell Steinian and the correlated bootstrap for
+intervals cover that need. The four MDPI papers and Laurance 1998 *Ecology* are cited by
+nothing in this document. **Nothing load-bearing is unread.** Every row still open in §11
+closes by a measurement named in its "cheapest closing step" column, and the first three
+of those (row 12's convention check, §15.1's synthetic-autologistic kill, the `𝒞` and
+LOSS rules) need no lake write and no GPU.

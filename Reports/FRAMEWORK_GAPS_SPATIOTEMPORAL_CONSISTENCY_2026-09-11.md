@@ -979,15 +979,17 @@ penetrating 40–100 m depending on the matrix).
 **Substitution [S].** Replace §6.1's single decay with the two-term family
 
 ```
-D(τ) = w₁ · e^{−τ/k₁}  +  w₂ · (1 − e^{−τ/k₂}) · 1[τ ≤ T_max]
+D_k(τ) = e^{−τ/k₁}  +  w · (1 − e^{−τ/k₂}) · 1[τ ≤ T_max]          k = (k₁, k₂, w, T_max)
 ```
 
 — an immediate-clearing term that decays with `k₁` (the 2–3-year replanting horizon of
 Conway 2022 and the 4–8-year windows of §14.3 bound it) and a delayed-removal term that
-rises with `k₂` and is truncated at the window `T_max`. Under Baddeley & Turner's split
-(§13.3) `w₁, w₂` are canonical and `k₁, k₂, T_max` irregular. **The family is quoted;
-every coefficient is fit on the LOSS build near dated footprints; nothing here is a
-number.** Kill unchanged (row 9): no-change gold near new buildings must stay
+rises with `k₂` and is truncated at the window `T_max`. The first term's weight is fixed
+at 1 because §6.1's amplitude `A` already multiplies `D_k`: with two free weights `A·w₁`
+and `A·w₂` would be the only identifiable products and `A` alone would not be. Under
+Baddeley & Turner's split (§13.3) `A` and `A·w` are canonical and `k₁, k₂, T_max`
+irregular. **The family is quoted; every coefficient is fit on the LOSS build near dated
+footprints; nothing here is a number.** Kill unchanged (row 9): no-change gold near new buildings must stay
 no-change; and the two-term fit must beat the one-term fit on held-out permits by more
 than the noise floor or the second term is dropped.
 
@@ -1009,22 +1011,42 @@ scale `σ`, the probability the cell is truly inside the footprint is
 — the Gaussian-blurred indicator. It is exact for a straight edge, an approximation
 within a curvature radius of corners, and it is the closed-form of the Girard et al.
 2019a Gaussian-random-field offset (§14.3) for a single independent offset. §6.2's prior
-becomes `u_i = log( P(z=1 | in) π_in(d_i) + P(z=1 | out) (1 − π_in(d_i)) ) − log P(z=1 | out)`
-with `σ` the epoch's registration scale from `coregistration.csv` (median for the
-typical case, p95 for the conservative one) — **no free parameter**. The same `σ` sets
-the edge band of §14.5 and the erosion radius of §12.1, so rows 10, 12.1 and 14 now
-share one measured input.
+becomes `u_i = log( P(z=1 | in) π_in(d_i) + P(z=1 | out) (1 − π_in(d_i)) ) − log P(z=1 | out)`.
 
-**Kill.** On the 2016 lidar-coincident epoch, take building footprints against the CHM:
-the empirical fraction of cells with CHM ≥ 5 m at signed distance `d` from the footprint
-edge must follow `1 − Φ(d/σ)`-shaped decay with the *measured* `σ`, not a fitted one;
-substituting `10σ` must visibly fail. If the empirical curve needs a fitted width to
-match, the registration table is wrong or the footprints are, and that is the finding.
+**Which `σ` — stated precisely, because the obvious choice is wrong twice.** (a) The
+offset between a footprint and an epoch's imagery is the *composition* of two errors:
+the footprint layer's own positional error against the ground, and the image's
+registration error against the ground. `phase4/qc/coregistration.csv` holds only the
+second, and only relative to the 2020s anchor; the footprint half is not in any table
+yet and must be measured once, against a lidar building reference at 2005/2016 where
+both are absolute. (b) The table's columns are not `σ`: `median_dx_m / median_dy_m` are
+per-axis *systematic* offsets — correctable at comparison time, so they are removed, not
+blurred over — and `p95_mag_m` is a magnitude bound that per `docs/SCHEMAS.md` "includes
+building lean, parallax and real change inside the chip, not pure georeferencing", so it
+over-states registration. Under Leung & Yan's own circular-normal model the offset
+*magnitude* is Rayleigh(σ), whose median is `σ√(2 ln 2) ≈ 1.18σ` and whose 95th
+percentile is `σ√(2 ln 20) ≈ 2.45σ`; a quantile used as `σ` inflates the blur by that
+factor. So: `σ_reg` is the residual scatter after the median offset is removed
+(`σ ≈ p95_mag / 2.45` is an *upper* bound, given what p95 contains), `σ_fp` is the
+footprint layer's own scale measured against the lidar reference, and
+`σ² = σ_reg² + σ_fp²`. **No free parameter — but two measured ones, one of which does not
+exist yet.** The same `σ_reg` sets the edge band of §14.5 and the erosion radius of §12.1.
+
+**Kill — against a building reference, not the canopy.** The first draft of this kill
+compared footprints to `CHM ≥ 5 m`; that measures canopy *overhanging* roofs (a real
+signal with a transition width of a crown radius), not footprint position, and could
+never recover a sub-metre `σ`. The valid form: on the 2016 lidar-coincident epoch, take
+the lidar's building return class if the deliverable carries one (to be confirmed
+against the lidar facts home, `IMAGERY_FACTS.md`), else roof height from DSM − DTM;
+the empirical `P(building | d)` at signed distance `d` from the footprint edge must
+follow `Φ(d/σ)` with the *measured* `σ`, and must visibly fail at `10σ`. If it needs a
+fitted width to match, the registration table, the footprints, or the composition above
+is wrong — and that is the finding.
 
 ### 14.8 Ledger deltas from round 6
 
 | # | Was | Now |
 |---|---|---|
 | 9 | `D_k` shape [D]; `k ≈ 5 y` window | **two-term family [Q→S]** (decaying immediate + rising delayed, truncated at the window); coefficients fit; one-vs-two-term test added to the kill |
-| 10 | blur = footprint ⊗ GRF-offset [S] | **closed form `π_in(d) = Φ(d/σ)` [D] on Leung & Yan's radial law [Q]**; `σ` measured; no free parameter; kill on the 2016 CHM |
+| 10 | blur = footprint ⊗ GRF-offset [S] | **closed form `π_in(d) = Φ(d/σ)` [D] on Leung & Yan's radial law [Q]**; `σ² = σ_reg² + σ_fp²` — `σ_reg` from the coregistration residual (quantiles converted, p95 an upper bound), `σ_fp` the footprint layer's own error, **not yet measured**; kill against a lidar building reference on the 2016 epoch |
 | 14 | `(2/π)·ρ_P·|s|` [D] | Salas et al. 2003 publish the perimeter/area ratio as the empirical index of misregistration bias (METADATA, not obtained) — the same quantity; obtain it to re-bin toward [S] |

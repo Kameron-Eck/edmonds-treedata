@@ -1505,10 +1505,14 @@ are fit.
 **What this buys.** For a boundary with circular-normal positional error `σ`, the signed
 distance `d` from a cell to the nominal footprint edge gives the inside-probability
 `Φ(d/σ)` in the locally-straight case — the framework's one-line [D] (§14.7), with Leung
-& Yan's radial law as its [Q] anchor and `σ` from `coregistration.csv`. It is the same
-object as Girard's Gaussian-random-field offset (§4.14.3) written as a closed form, and
-the same `σ` that sets the edge band of §14.5. The published *prior* still does not
-exist; the pieces it is assembled from now all do.
+& Yan's radial law as its [Q] anchor. `σ` composes the image registration residual
+(from `coregistration.csv`, with its quantiles converted to a scale under the Rayleigh
+law and its p95 read as an upper bound, since per SCHEMAS it includes lean, parallax and
+real change) with the footprint layer's own positional error, which no table yet holds
+(framework §14.7). It is the same object as Girard's Gaussian-random-field offset
+(§4.14.3) written as a closed form, and the same registration scale that sets the edge
+band of §14.5. The published *prior* still does not exist; the pieces it is assembled
+from now all do, and one input remains to be measured.
 
 **Negatives, round 6:** no fitted post-disturbance hazard curve in disturbance ecology
 (PRIMARY: Hood's review says models are binary); no exact point-in-random-polygon
@@ -2022,7 +2026,7 @@ Grades and labels as in rounds 4–5. Filed under `D:\edmonds-pipeline\Literture
 - Laurance, Camargo, Luizão et al. (2011). The fate of Amazonian forest fragments: A 32-year investigation. *Biol. Conserv.* 144(1):56–67. doi:10.1016/j.biocon.2010.09.021 — **PRIMARY**, reviewer-read (edge-effects section). Filed `Laurance_2011_Amazon_fragments_32yr`.
 - D'Angelo, Andrade, Laurance, Fearnside & Laurance (2004). Inferred causes of tree mortality in fragmented and intact Amazonian forests. *J. Trop. Ecol.* 20. doi:10.1017/s0266467403001032 — **PRIMARY**, reviewer-read. Filed `DAngelo_2004_tree_mortality_causes_fragments`.
 - Mesquita, Delamônica & Laurance (1999). Effect of surrounding vegetation on edge-related tree mortality in Amazonian forest fragments. *Biol. Conserv.* 91(2–3):129–134. doi:10.1016/s0006-3207(99)00086-5 — **PRIMARY**, reviewer-read. Filed `Mesquita_1999_edge_mortality_fragments`.
-- Laurance et al. (1998). Rain forest fragmentation and the dynamics of Amazonian tree communities. *Ecology* 79 — **METADATA** (not in archive).
+- Laurance et al. (1998b, as cited by Mesquita et al. 1999 for mortality vs edge distance). [title not confirmed by the search; *Ecology* 79 assumed from the citation chain] — **METADATA** (not located; not in archive under the guessed DOI).
 
 *§4.15.2 — positional uncertainty and misregistration*
 - Leung & Yan (1997). Point-in-Polygon Analysis Under Certainty and Uncertainty. *GeoInformatica* 1. doi:10.1023/A:1009764319102 — **PRIMARY**, reviewer-read (§2.2, Case 3). Filed `LeungYan_1997_point_in_polygon_uncertainty`.

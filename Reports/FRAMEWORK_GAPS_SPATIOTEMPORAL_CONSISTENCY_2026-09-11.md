@@ -1077,3 +1077,82 @@ name.
 Ledger row 14 → premise [Q] (Salas 2003), rate formula [D] (§14.5), sliver screen [S]
 (§14.9); Leung–Ma–Goodchild Parts 2–4 still unobtained (the editorial introduction is
 filed and carries no formulas).
+
+---
+
+## 15. Round 7 — the closed papers, obtained: three results change (2026-09-12)
+
+### 15.1 Row 6 — the per-cell penalty in closed form under dependence: no bootstrap [Q→S]
+
+**[Q, review §4.16.1–4.16.2].** Efron 2004 eq. 3.19 defines the *conditional*
+covariance `cov₍ᵢ₎ = E{λ̂_i (y_i − μ_i) | y₍ᵢ₎}` and states the conditional optimism
+theorem `E₍ᵢ₎{Err_i} = E₍ᵢ₎{err_i} + 2 cov₍ᵢ₎`; eqs. 3.21–3.22, the "Steinian", give it
+in closed form for Bernoulli `y_i`:
+
+```
+cov₍ᵢ₎ = μ_i (1 − μ_i) · [ λ̂_i(y₍ᵢ₎, y_i = 1) − λ̂_i(y₍ᵢ₎, y_i = 0) ]
+```
+
+— one recomputation of the layer per cell with that cell's label flipped. Besag 1974
+eq. 4.8 gives, for an autologistic field, `P(x_i = 1 | x₍ᵢ₎) = expit(α_i + Σ_j β_ij x_j)`
+with coding-method (pseudolikelihood) estimation.
+
+**Substitution [S].** Conditioning on `y₍ᵢ₎` is what makes dependence harmless: given the
+other cells, `y_i` is Bernoulli whatever the joint law, with parameter
+`μ_i|₍ᵢ₎ = P(y_i = 1 | y₍ᵢ₎)`. Under the autologistic error model of §13.1 that is
+Besag's (4.8). Hence, per certified cell and band,
+
+```
+Ω_i = 2 · p_i (1 − p_i) · [ λ̂_i(flip_i = 1) − λ̂_i(flip_i = 0) ],
+p_i = expit( α_b + Σ_{j ~ i} β_b(d_ij) y_j )
+```
+
+with `(α_b, β_b(·))` fitted once per stratum and band by pseudolikelihood (Besag) or
+MCML (Geyer & Thompson). **The correlated bootstrap of §13.1 is no longer needed for
+`Ω`**: the penalty is exact given the fitted local conditional, costs one layer
+evaluation per certified cell (the same count as cross-validation, as Efron notes), and
+is *local*, so it runs on the strata only. The bootstrap remains useful for intervals.
+The independent-Bernoulli version of the same formula (marginal `μ_i` in place of
+`p_i`) is what §5.1 implicitly assumed; the two differ exactly where the correlogram is
+non-zero.
+
+**Kill.** On a synthetic autologistic field with a known layer, `Ω` from the
+flip-with-local-conditional estimator must match the Monte-Carlo truth within its
+standard error, and the marginal-`μ` version must be biased by an amount that grows
+with `β`; then the same comparison on `ℱ` with the fitted `(α, β)`. A version that
+cannot be made to disagree with the marginal one on an injected correlation is not
+testing the correction.
+
+### 15.2 Row 11a — the yearly root, re-binned [S→Q] with its failure modes [Q]
+
+Takada et al. 2010 state the `c`-th power root of a `c`-year transition matrix via
+eigendecomposition, "conditional as follows: 'if an n-by-n matrix has n distinct
+eigenvalues and all of them are not equal to zero'", and its two practical failures:
+multiple roots (the scalar root is multi-valued) and roots "partially consisting of
+negative numbers". For the 2×2 chain the eigenvalues are `1` and `λ = 1 − Q_g − Q_l`;
+the root is unique, real and a proper stochastic matrix iff `0 < λ < 1`, which §12.2's
+closed form assumed and can now cite. **Guard [D]:** if a stratum's `Q_g + Q_l ≥ 1` over
+the 11-year interval the yearly rate is undefined (the chain has mixed), and that
+stratum's anchor carries no information about `(r, f)` at any `k > 0` — report it as
+such rather than extrapolate.
+
+### 15.3 Row 10 — what Part 2 and Shi add, and do not
+
+Leung, Ma & Goodchild Part 2 confirm the gap in their own words (§4.16.4) and give
+bounds under *independent, normal* vertex errors — a condition a digitised footprint
+layer violates (its vertices share one georeferencing error). §14.7's `Φ(d/σ)` treats the
+whole edge as displaced together, which is the correlated limit, so it is the right
+model for a layer offset rather than for jittered vertices; Part 2 is the right model
+for the *other* case and is cited for it, not adopted. Shi 1998's point — the epsilon
+band "does not define the relationship of the band width with confidence level" — is
+the formal statement of why §12.1's erosion radius must be a quantile of `σ`, not a
+round number.
+
+### 15.4 Ledger deltas from round 7
+
+| # | Was | Now |
+|---|---|---|
+| 6 | fully sourced; correlated bootstrap | **closed-form per-cell `Ω` via Efron's Steinian with Besag's local conditional [S]; bootstrap only for intervals**; kill: must disagree with the marginal version on an injected correlation |
+| 11a | `λ^k` and yearly rate [S] | yearly root **[Q]** (Takada 2010) with the `0 < λ < 1` existence condition and a mixed-stratum guard [D] |
+| 10 | `Φ(d/σ)` [D] on Leung & Yan | unchanged; Part 2's independent-vertex bounds cited as the other regime; Shi 1998 anchors "quantile of σ, not a fixed radius" |
+| 9 | two-term family; radii 0.7–1.4 / ~20 m | radii now PRIMARY-quoted (Guo 2018: 1.4 m, 44 % vs 13.5 %, >3×); Steenberg 2017 vs 2018 are two papers |

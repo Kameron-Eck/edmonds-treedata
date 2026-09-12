@@ -1539,6 +1539,107 @@ probability in GIS theory (PRIMARY: Leung & Yan bound it and say so); Salas 2003
 1998, the Leung–Ma–Goodchild series, Laurance 1998 *Ecology* closed and absent from the
 archive; Barker 2022 behind MDPI.
 
+### 4.16 Round 7 (2026-09-12) — the library-request list, cleared through a second index
+
+Every "closed, not in the archive" verdict above came from one mirror's DOI lookup.
+Kam's own finds showed a second index existed; `sci-hub.ren` resolved all eight
+outstanding DOIs at once (PDFs served from a storage host that needs the mirror as
+`Referer` and rate-limits bursts). All eight were read by this reviewer at the cited
+passages. Three of them change a framework result; the rest confirm grades that had
+been carried at ABSTRACT or METADATA.
+
+#### 4.16.1 Efron 2004 — the assumption confirmed in the original, and a closed form the 2021 restatement did not carry
+
+**Efron 2004** (**PRIMARY**, JASA 99(467):619–632; read at §§2–3). Three things.
+(i) The model: §3 opens "We assume that some unknown probability mechanism f has
+given the observed data y" (the 2021 restatement's "produced"); Optimism Theorem 1 gives `E{Err_i} = E{err_i + Ω_i}`, `Ω_i = 2cov(λ̂_i, y_i)`,
+"the expectations and covariance being with respect to f, (3.6)" — the arbitrary joint
+law, as the 2021 restatement said (§4.14.1). (ii) *The conditional version* (his 3.19):
+with `y₍ᵢ₎` the data with `y_i` removed, "the conditional covariance"
+`cov₍ᵢ₎ = E₍ᵢ₎{λ̂_i·(y_i − μ_i)}` satisfies `E{cov₍ᵢ₎} = cov_i`, and
+`E₍ᵢ₎{Err_i} = E₍ᵢ₎{err_i} + Ω₍ᵢ₎` "is a more refined statement of the optimism theorem".
+(iii) *The Bernoulli closed form* (his 3.21–3.22), which he names "the Steinian":
+`cov₍ᵢ₎ = μ_i(1 − μ_i)·[λ̂_i(y₍ᵢ₎, 1) − λ̂_i(y₍ᵢ₎, 0)]` — the layer's output at cell `i`
+with that cell's label set to 1 minus with it set to 0, times the Bernoulli variance;
+computing it for all `i` "requires only n recomputations of m(·)", the same count as
+cross-validation. And the general negative, in his words: "There is no general equivalent
+to the Gaussian SURE formula (2.10), that is, an unbiased estimator for cov₍ᵢ₎" — except
+that in the Bernoulli case there is, and it is (3.22). **For row 6 this removes the
+bootstrap:** under a dependent `f`, conditioning on `y₍ᵢ₎` makes `y_i` Bernoulli with the
+*local conditional* probability, so the Steinian holds with `μ_i` replaced by
+`P(y_i = 1 | y₍ᵢ₎)` — which for an autologistic field is Besag's (4.8). Framework §14.10.
+
+#### 4.16.2 Besag 1974 — the local conditional and its estimator, at the source
+
+**Besag 1974** (**PRIMARY**, J. R. Stat. Soc. B 36(2); read at §4 and §6). With only
+single-site and pair cliques "we have an auto-logistic model for which we may write"
+`p_i(·) = exp(α_i + Σ_j β_ij x_j) / (1 + exp(α_i + Σ_j β_ij x_j))` (his 4.8) — the
+probability of `x_i = 1` given all other sites. Estimation "on the basis of a single
+realization" is by coding methods (§6.1; "Coding methods of parameter estimation were
+introduced by Besag (1972c), in the context of binary data"), the ancestor of
+pseudolikelihood, with likelihood-ratio goodness-of-fit tests. This is the conditional
+probability §4.16.1 needs, with a published estimator that does not require the
+normalising constant — Geyer & Thompson's MCML (§4.14.1) is the exact alternative.
+
+#### 4.16.3 Takada, Miyamoto & Hasegawa 2010 — the yearly root, its uniqueness, and its failure modes
+
+**Takada et al. 2010** (**PRIMARY**, Landscape Ecology 25(4):561–572; read at Methods
+and the first Result). The yearly matrix `B` is "the c-th power root of an original
+transition matrix, A", computed by eigendecomposition, "conditional as follows: 'if an
+n-by-n matrix has n distinct eigenvalues and all of them are not equal to zero'".
+Three practical difficulties: "the difficulty of obtaining more than one yearly matrix"
+(the scalar root `k^{1/c}` is multi-valued), the case where "we may obtain no positive
+Markovian matrix and only a matrix partially consisting of negative numbers" (they
+propose a calibration), and a category appearing mid-series. For our 2×2 chain the
+eigenvalues are `1` and `λ`, distinct and non-zero whenever `λ ≠ 0, 1`, and the root is
+real and positive iff `λ > 0` — framework §12.2's condition, now with its source. This
+re-bins the yearly-rate closed form from [S] on Bell & Hinojosa's diagonalisation to
+[Q] on Takada's stated result for the land-use case.
+
+#### 4.16.4 Leung, Ma & Goodchild 2004 (Parts 2 and 4), Shi 1998 — the GIS theory, read
+
+- **Part 2** (**PRIMARY**, J. Geogr. Syst. 6(4):355–379; read at introduction and
+  §§3–6). They confirm the gap: "it appears that indepth theoretical analysis of the
+  point-in-polygon issue when points and polygons both have random errors has not been
+  dealt with in the literature". Their construction is confidence-region algebra —
+  bounds on `P(V ∈ R)` from elliptical confidence regions of the vertices — and they
+  state its condition: the advantages "can be realized only when the error vectors of
+  the endpoints are independent and normally distributed". So Part 2 gives *bounds*
+  under independent-normal vertex error, not the blurred indicator; framework §14.7's
+  `Φ(d/σ)` is still ours, and their independence condition is the thing a real footprint
+  layer (digitised as a whole, so with correlated vertex error) violates.
+- **Part 4** (**PRIMARY** on fetch, J. Geogr. Syst. 6(4):403–428; filed, read at the
+  header only) — length and area measurement error under the same framework; relevant
+  to the sliver-area variance of §14.5, not read further this round.
+- **Shi 1998** (**PRIMARY**, IJGIS 12(2):131–143; read at §§1–3). The G-band is a
+  confidence region at a prescribed level `c` derived from the point error model —
+  "The shape of the confidence region is different from that of the epsilon band and
+  closer to reality"; the epsilon band "does not define the relationship of the band
+  width with confidence level." That is the exact reason a fixed erosion radius is the
+  wrong object and `σ` with a stated quantile is the right one (framework §14.7).
+
+#### 4.16.5 Steenberg 2017 and Guo 2018 — the two urban-forestry ABSTRACT grades, now PRIMARY
+
+- **Steenberg, Robinson & Millward 2017** (**PRIMARY**, J. Environ. Planning &
+  Management; read at abstract and §1). "We found that the presence and number of
+  building permits significantly predicted mortality at both scales, while planting was
+  positively correlated with building permits at the street-section scale only." The
+  Hilbert table's "Steenberg et al. (2017)" row is this paper; the 2018 row (6–7 y,
+  `n = 806`) is the Environment & Planning B paper — two papers, resolving §4.14.2's
+  open question.
+- **Guo, Morgenroth & Conway 2018** (**PRIMARY**, Urban Forestry & Urban Greening;
+  read at abstract and §3). "44% of trees were removed on redeveloped properties, 13.5%
+  of trees were removed on non-redeveloped properties"; the classification tree
+  "explained tree removal and retention with 73.4% accuracy", its strongest removal
+  branch trees "within 1.4 m of a redeveloped building on a property with a capital
+  value less than" NZ$1.06 M, and "trees were over three times as likely to be removed"
+  on redeveloped properties. The 1.4 m radius carried in §4.14.2 is now quoted, not
+  abstract-sourced.
+
+**What round 7 leaves unobtained:** Roberts 2017, Conley 1999, StructN2V 2020, STAPLE
+2004, Bellettini et al. 2002 (clean copy), Laurance 1998 *Ecology*, Barker 2022, Roman
+2022, Ock 2024, Hasegawa & Takada 2019 — none load-bearing after this round.
+
 ---
 
 ## 5. What the literature does not have
@@ -1797,6 +1898,13 @@ number, never instead of it. Adopt it from the first run rather than retrofittin
   PRIMARY, 2 searcher-read PRIMARY, 1 ABSTRACT, 3 METADATA lines carrying 13 works.
   Findings in §4.15. Still worth a library request from this round: Salas et
   al. 2003 (the perimeter/area index), Shi 1998, Leung, Ma & Goodchild 2004.
+- **Round 7 (2026-09-12) cleared the library-request list without a library:** a second
+  Sci-Hub index (`.ren`) resolved all eight outstanding DOIs the first mirror had
+  reported absent — Efron 2004, Besag 1974, Takada 2010, Leung–Ma–Goodchild Parts 2 and
+  4, Shi 1998, Steenberg 2017, Guo 2018 — plus Salas 2003 and the Goodchild 2004
+  editorial found by Kam. All read by this reviewer at the cited passages (Part 4
+  filed, unread). Findings in §4.16; the lesson for the method is that "not in the
+  archive" was mirror-specific and is now checked on both indexes before it is written.
 - **Not searched:** §6.4 (which training lever first) is a cost/sequencing decision no
   literature settles; the material for it is in §4.6. §6.2 and §6.3 *were* searched in
   round 2 and are answered in §4.10.
@@ -2056,6 +2164,18 @@ Grades and labels as in rounds 4–5. Filed under `D:\edmonds-pipeline\Literture
 - Salas, Boles, Frolking, Xiao & Li (2003). The perimeter/area ratio as an index of misregistration bias in land cover change estimates. *Int. J. Remote Sensing* 24(5):1165–1170. doi:10.1080/0143116021000044841 — **PRIMARY**, reviewer-read in full (archive copy located by Kam). Filed `Salas_2003_perimeter_area_misregistration_index`.
 - Goodchild (2004). A general framework for error analysis in measurement-based GIS [editorial introduction to the series]. *J. Geogr. Syst.* 6:323–324. doi:10.1007/s10109-004-0140-5 — **PRIMARY**, reviewer-read (no formulas; framing only). Filed `Goodchild_2004_JGS_editorial_intro_measurement_based_GIS`. Parts 2–4 (doi -0142-3, -0143-2, -0144-1) remain **METADATA**.
 - Shi (1998). A generic statistical approach for modelling error of geometric features in GIS. *Int. J. GIS* 12(2):131–143. doi:10.1080/136588198241923 — **METADATA**. Leung & Yan (1998). *Int. J. GIS* 12(4). doi:10.1080/136588198241699 — **METADATA**. Shi & Liu (2000). *Int. J. GIS* 14(1). doi:10.1080/136588100240958 — **METADATA**. Leung, Ma & Goodchild (2004). A general framework for error analysis in measurement-based GIS, Parts 1–4. *J. Geogr. Syst.* 6(4). doi:10.1007/s10109-004-0140-5, -0142-3, -0143-2, -0144-1 — **METADATA**. Roy (2000). *IEEE TGRS* 38(4). doi:10.1109/36.851783 — **METADATA**. Stow (1999). *Int. J. Remote Sensing* 20(12). doi:10.1080/014311699212137 — **METADATA**. Sundaresan, Varshney & Arora (2007). *PE&RS* 73(4). doi:10.14358/pers.73.4.375 — **METADATA** (OA flagged, not served).
+
+### Round 7 (2026-09-12; §4.16) — previously closed items, obtained and read
+All filed under `D:\edmonds-pipeline\Literture\Validation\`; earlier ABSTRACT/METADATA
+lines for these works in the round 4–6 blocks are superseded by the grades here.
+- Efron (2004). The Estimation of Prediction Error: Covariance Penalties and Cross-Validation. *JASA* 99(467):619–632. doi:10.1198/016214504000000692 — **PRIMARY**, reviewer-read (§§2–3, eqs. 3.6–3.23). Filed `Efron_2004_CovariancePenalties_JASA`.
+- Besag (1974). Spatial Interaction and the Statistical Analysis of Lattice Systems. *J. R. Stat. Soc. B* 36(2):192–. doi:10.1111/j.2517-6161.1974.tb00999.x — **PRIMARY**, reviewer-read (§4 eq. 4.8, §6.1). Filed `Besag_1974_spatial_interaction_lattice_systems`.
+- Takada, Miyamoto & Hasegawa (2010). Derivation of a yearly transition probability matrix for land-use dynamics and its applications. *Landscape Ecology* 25(4):561–572. doi:10.1007/s10980-009-9433-x — **PRIMARY**, reviewer-read (Methods; Result, first difficulty). Filed `Takada_2010_yearly_transition_matrix`.
+- Leung, Ma & Goodchild (2004). A general framework for error analysis in measurement-based GIS Part 2: The algebra-based probability model for point-in-polygon analysis. *J. Geogr. Syst.* 6(4):355–379. doi:10.1007/s10109-004-0142-3 — **PRIMARY**, reviewer-read (introduction, §§3–6). Filed `LeungMaGoodchild_2004_Part2_point_in_polygon_probability`.
+- Leung, Ma & Goodchild (2004). … Part 4: Error analysis in length and area measurements. *J. Geogr. Syst.* 6(4):403–428. doi:10.1007/s10109-004-0144-1 — filed, header-verified, not yet read. Filed `LeungMaGoodchild_2004_Part4_length_area_error`.
+- Shi (1998). A generic statistical approach for modelling error of geometric features in GIS. *Int. J. GIS* 12(2):131–143. doi:10.1080/136588198241923 — **PRIMARY**, reviewer-read (§§1–3). Filed `Shi_1998_Gband_generic_statistical_error_model`.
+- Steenberg, Robinson & Millward (2017). The influence of building renovation and rental housing on urban trees. *J. Environ. Planning & Management* 61(3):553–567. doi:10.1080/09640568.2017.1326883 — **PRIMARY**, reviewer-read (abstract, §1). Filed `Steenberg_2017_building_renovation_urban_trees`.
+- Guo, Morgenroth & Conway (2018). Redeveloping the urban forest: The effect of redevelopment and property-scale variables on tree removal and retention. *Urban Forestry & Urban Greening*. doi:10.1016/j.ufug.2018.08.012 — **PRIMARY**, reviewer-read (abstract, §3; accepted manuscript). Filed `Guo_2018_redevelopment_tree_removal_retention`.
 
 ### Held locally (`D:\edmonds-pipeline\Literture\`), read directly from PDF
 - Li, B., Liu, X., Zhuang, H., Shi, Q., Zeng, L., Cai, Y., Zhang, H., Cai, Y., Wu, C. & Xu, X. (2026). ALCC: Temporally Consistent Annual Land Cover Maps over China from 1985 to 2022 Based on an Ensemble Change Detection Method. *J. Remote Sens.* 6:1029. doi:10.34133/remotesensing.1029 — **PRIMARY** (local PDF; record and OA figures independently re-verified in round 2)

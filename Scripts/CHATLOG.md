@@ -46,6 +46,19 @@ transcript before rotation). Read order: `CLAUDE.md` → `WORKPLAN.md` → `STAT
 
 ════════════════ LOG  (newest first — append new entries directly below this line) ════════════════
 
+## 2026-09-12  FRAMEWORK §12 — where (r,f) come from; 4 derivations, ledger rows 2+5 closed in form (Fable 5.1)
+goal:    Kam: "establish what we know and don't know mathematically, then solve what remains." Framework §2–§5 consume (r_t,f_t) as known; only C-CAP rates exist, biased, detector sensitivity 1/f. Derive lidar-anchored rates at every epoch.
+did:     `Reports/FRAMEWORK_GAPS_SPATIOTEMPORAL_CONSISTENCY_2026-09-11.md` §12 (after §11, dated), all [D] UNVALIDATED:
+         - §12.1 band-stratified emissions (r_{t,b},f_{t,b}), PACC's 5 bands. Motivation: MASTER §3a pilot — 0–2 m band f≈0.16–0.26 vs ~0 interior (pilot's own caveat kept). FLAT eroded 6 m → no anchor in bands 0–4 m; erosion radius should be coregistration p95, not round number.
+         - §12.2 decaying-anchor estimator: a_k=π₀+π₁λ^k, c_k=π₁+π₀λ^k, 2×2 system det=λ^k, f̂,r̂ closed form; var ×1/λ^{2k} (4× at half-life); bridge weight a_k·a_{K−k}/a_K for 2009–2015; naive bias ≈k·q_g·(r−f) upward; (q_g,q_l) closed form from GAIN+LOSS fractions per population/band (λ=(1−Q_g−Q_l)^{1/K}); k in calendar years not chain steps. Kill: 2005 full footprint → propagate 11 y → must reproduce direct 2016 rates, must FAIL under q×10. 2016 epoch present in YEAR_CATALOG (checked).
+         - §12.3 CUSUM: blind gain chart on always-canopy cell drifts UP at KL(Bern(r)‖Bern(f))≈1.18 nats/epoch → misspecified. Charts only on certified-start populations (ℱ gain, 𝒞 loss); two-sided problem dissolves; uncertified cells use chain posterior argmax. Row 2 → 1 Monte Carlo per (population,band,α).
+         - §12.4 leave-one-epoch-out identity: y_t=(x_t−f)/(r−f) unbiased for z; cross term vanishes (x_t leaf | z_t); true Brier = observable − [π r(1−r)+(1−π)f(1−f)]/(r−f)². Floor 0.76/0.15 at brief rates → stratum means only. Two metrics (Brier here, Efron counting §5.1). Kill: leaking layer must score below floor.
+         - ledger: row 2 resolved-in-form, row 5 derived, row 11 split 11a (estimator, derived) / 11b (𝒞 + LOSS populations, NOT built), new 13 (banding, unmeasured) + 14 (erosion vs coregistration p95). §1 revision bullet. All worked numbers re-computed numerically this session (KL, y, floors, identities, estimator recovery, q round-trip) — self-check of arithmetic only, not validation.
+decided: estimator needs 𝒞 (PACC A_can rule: lidar canopy both clouds) + LOSS (GAIN mirror `both & (h05>=5.0) & (h16<2.0)`) — two rules in `certified_flat_scoring.py` family; SPEC only, code not touched (Kam's call, pipeline branch). Populations before ledger rows 1–2 (rows need lidar-anchored rates).
+killed:  "no certified-canopy population exists" (yesterday's claim) — wrong; PACC pilot built A_can on trend8_stack_2m.npz (MASTER §3a item 1), not in pipeline code. Per-epoch scalar (r_t,f_t) — misspecified at edge per PACC pilot; banded.
+files:   Reports/FRAMEWORK_GAPS_SPATIOTEMPORAL_CONSISTENCY_2026-09-11.md (§1 bullet, ledger, §12); Scripts/CHATLOG.md
+next:    Kam: build 𝒞 + LOSS rules (11b) on pipeline branch; run §12.2 kill (CPU, files exist); row 14 read coregistration p95; row 13 PACC band re-run on 12 tags; then rows 1–2. Row 12 reader still owed.
+
 ## 2026-09-11  LIT REVIEW VERIFIED + ROUND 3 + FRAMEWORK — 31 papers read, 12 gaps ledgered (Sonnet 5 → Fable 5.1)
 
 goal:    Kam: "get the pdfs, internalize, set the record straight" on

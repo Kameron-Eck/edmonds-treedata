@@ -52,6 +52,10 @@ checks, and per 3.4c its author does not score its own proposal.
   twelve tags at the delivered cut. **Lidar-referenced rates do not exist yet.** Everything
   below runs on the C-CAP rates until they do, and C-CAP overestimates canopy (brief §4.3
   item 2).
+- **Revised 2026-09-12 (§12):** the rates are indexed by epoch *and* distance band,
+  `(r_{t,b}, f_{t,b})`; a certified-canopy population `𝒞` (PACC's `A_can`, MASTER §3a) is
+  added; transitions are per calendar year and per population, estimated by §12.2, not
+  pre-registered. Read every `(r_t, f_t)` in §2–§8 as `(r_{t,b}, f_{t,b})`.
 
 ---
 
@@ -461,24 +465,275 @@ one GPU-shaped cost, or permutohedral on CPU. Nothing here needs training.
 | # | Gap | Blocks | Cheapest closing step | Kill that must FIRE on a known-bad input | State |
 |---|---|---|---|---|---|
 | 1 | Emission model: `K`-bin (§2.3 A) vs calibrated log-odds (B) | the logits patch; everything upstream of the threshold | held-out log-likelihood of `e_t(b\|z)` on certified cells across `K` | placebo rate shuffle (brief §5): likelihood must fall | **[D] open — decides the patch** |
-| 2 | Two-sided CUSUM thresholds at `T = 12` with per-year rates | the detector (§2.2) | Monte Carlo on null sequences, per-year `(r_t, f_t)` | null sequences must not alarm above `α`; placebo must fall | **[D] open** |
+| 2 | ~~Two-sided CUSUM thresholds at `T = 12`~~ → one-sided chart per certified population, threshold per `(population, band, α)` | the detector (§2.2, §12.3) | Monte Carlo on null sequences, `(r_{t,b}, f_{t,b})` | null sequences must not alarm above `α`; placebo must fall | **[D] resolved in form (§12.3); threshold still to run** |
 | 3 | `(β, γ)` estimation | the spatial layer (§3) | Gräler protocol on `𝒢 ∪ ℱ` with `(0,γ̂)`, `(β̂,0)`, `(0,0)` | `(0,0)` reported; an inert weight is a result | **[D] open** |
 | 4 | Erasure radius for the smoother actually chosen | §3.3; the "never redraw" question (brief §6.1) | linear: closed form; non-linear: injected disks on real rasters (operator only) | 42 losses and `𝒢` (claim) | **[S→D] open** |
-| 5 | Leave-one-epoch-out scoring identity under Bernoulli noise | §5.2 | derive the counting-error decomposition with known `(r_t, f_t)` | a non-invariant (median-type) layer must show the Noise2Self failure when checked | **[D] not derived** |
+| 5 | Leave-one-epoch-out scoring identity under Bernoulli noise | §5.2 | derived: §12.4 (Brier form; needs stratum prevalence `π_t`) | a deliberately leaking (median-type) layer must score *below* the noise floor | **[D] derived (§12.4); check not run** |
 | 6 | Covariance penalty under spatially / class-correlated error | §5 as a whole | none found; stratify by flight month and registration bound | — | **OPEN, hardest** |
 | 7 | Power: 42 losses resolve `Δ ≳ 0.12` only | which kills can decide small effects | use `𝒢`, `ℱ` for small effects | — | **[D] derived, stated** |
 | 8 | Conservative mask fraction `φ` | §7.2 | tie to `R_min` (row 4) or report hand-set | — | **[D] open** |
 | 9 | Development prior `A, R, k` | §6.1 | the enrichment count (brief §4.2, §7 step 1); search survival analysis | no-change gold near new buildings stays no-change (brief §5) | **[D] open; framing unsearched** |
 | 10 | Building prior `u`; blur radius | §6.2 | footprint canopy fraction at the lidar epochs; `coregistration.csv` per SCHEMAS | canopy painted on `ℱ` (brief §5) | **[D] open; data on hand** |
-| 11 | Lidar-referenced `(r_t, f_t)`, `q_loss`, `q_gain`, and `k_½` | every `ℓ_t`; §2.4 | score the twelve tags against the lidar binaries; estimate transitions on `𝒢 ∪ ℱ` | placebo | **not built (brief §2.3)** |
+| 11a | Estimator for lidar-anchored `(r_{t,b}, f_{t,b})` at every epoch, and `(q_g, q_l)` per population | every `ℓ_t`; §2.4 | derived: §12.2 (decaying anchor; closed-form `(q_g, q_l)` from `Q_g, Q_l`) | 2005-footprint propagation must reproduce the direct 2016 rates and must FAIL under `q × 10` | **[D] derived (§12.2); kill not run** |
+| 11b | The populations the estimator needs: `𝒞` (certified canopy, PACC's `A_can`) and `LOSS` (GAIN's mirror), per band | 11a; §12.3 | two rules in `certified_flat_scoring.py`'s family — data builds, not math | — | **not built** |
 | 12 | The `r`-convention translation of every [S] above | everything | one reader re-derives §2.1–§2.2 from the papers with `r` = recall | — | **[S] unchecked** |
+| 13 | Band-stratified emissions `(r_{t,b}, f_{t,b})` — is a scalar per epoch misspecified? | every rate above; the order of rows 1–2 | re-run the PACC band profile (MASTER §3a, "re-run before any number is cited") on the twelve tags | a scalar-rate chain scored on the 0–2 m band must show the bias; if it does not, banding is dropped | **[D] motivated by a pilot; unmeasured** |
+| 14 | Erosion radius tied to the coregistration bound; does it admit the 0–2 m band? | §12.1; `f_{t,0–2}` | read p95 from `coregistration.csv` per SCHEMAS; compare with 2 m | — | **measurement; data on hand** |
 
 **Bins and checks, the 3.4c ledger.** Every [S] in this document (§1 convention, §2.1
 increments, §2.2 substitutions and worked instance, §2.4 the `γ = 0` analogue, §3.3 the
 contrast translation, §5.1 the strata, §7.1 the lattice map, §7.2 the conservative rule)
 and every [D] (§2.1 sensitivity, §2.2 the join, §2.3 the verdict, §2.4 `k_½`, §3.1–3.4,
-§4, §5.2–5.4, §6, §7.2 `φ`, §8, §11) is unvalidated. The independent check for each is the
+§4, §5.2–5.4, §6, §7.2 `φ`, §8, §11, and all of §12 — added 2026-09-12, after this
+ledger, which is why it sits below it) is unvalidated. The independent check for each is the
 row above that names it, run by someone other than this document's author, on real data,
 with the kill shown to fire first. A design accepted on numbers it produced about itself is
 the failure 3.4c exists to prevent; this document produced none, and should be held to
 that.
+
+---
+
+## 12. Where the rates come from — the mathematics closed on 2026-09-12
+
+**Status of this section: [D] throughout, UNVALIDATED (3.4c). Written 2026-09-12 after
+§1–§11.** Everything in §2–§5 consumes `(r_t, f_t)` as known. They are not known: brief
+§2.3 holds only C-CAP-referenced rates, C-CAP overestimates canopy, and §2.1 shows the
+detector's sensitivity to `f` is `1/f`. This section derives where lidar-anchored rates can
+come from, corrects one misspecification in §1 that the derivation exposed, and closes
+ledger rows 2 and 5 along the way. Four results; each names its kill.
+
+### 12.1 The rates are not per-epoch scalars — band-stratified emissions
+
+**The finding that reorders the rest.** `LIT_HUNT_MASTER_2026-09-06.md` §3a (PACC pilot,
+single run, 2026-09-06, "re-run before any number is cited") measured `P(map = canopy)` on
+lidar-certified-unchanged cells by distance to the lidar canopy boundary: in the 0–2 m band
+it "swings 13.2 pp across epochs" while the >16 m core "reads 1.0000 in seven of eight
+epochs", and permanent non-canopy within 2 m of canopy "is called canopy 16–26 % of the
+time." Read in §1's notation: `f_t ≈ 0.16–0.26` at the edge against near zero in the
+interior. A single `f_t` per epoch is misspecified in exactly the band where `1/f` makes
+the detector most sensitive — and `ℱ` is eroded 6 m, so any rate estimated on it is the
+*interior* rate, the one closest to zero. Those numbers are cited here as motivation only;
+they carry the pilot's own caveat and are not restated as facts.
+
+**Correction to §1 [D].** Emissions are indexed by epoch *and* band:
+
+```
+b(i) ∈ {0–2, 2–4, 4–8, 8–16, >16 m}   distance from cell i to the lidar canopy boundary
+                                       (PACC's five bands, MASTER §3a item 2; lidar-anchored,
+                                       so b(i) is fixed in t)
+r_{t,b} = P(x = 1 | z = 1, b),   f_{t,b} = P(x = 1 | z = 0, b)
+ℓ_{t,b}(x) as §2.1 with (r_{t,b}, f_{t,b})
+```
+
+Everything downstream — the chain (§2), the detector (§2.2), the emission audit (§2.3),
+the gate (§4), the Efron strata (§5.1) — goes through unchanged with `ℓ_{t,b}` in place of
+`ℓ_t`; the spatial energy (§3) is unaffected because the unary already varies by cell. The
+cost is five rate estimates per epoch instead of one, and a sample-size floor per `(t, b)`
+cell that §12.2 makes explicit.
+
+**Where the edge bands are anchored.** `ℱ`'s 6 m erosion means it contains no cell in
+bands 0–2 or 2–4 and only the outer part of 4–8: the bands that matter most have no
+certified non-canopy population at all. The erosion radius is the right knob, and it has a
+principled setting: a cell can be certified relative to the boundary only if it is farther
+from the boundary than the inter-epoch registration error, so the minimum erosion is the
+coregistration bound (`phase4/qc/coregistration.csv`, p95 per `docs/SCHEMAS.md`), not a
+round number. Whether that bound admits the 0–2 m band at all is a measurement, not a
+derivation; if it does not, `f_{t,0–2}` is unanchored and the chain must treat those cells
+with the conservative rule of §7.2 rather than a guessed rate.
+
+### 12.2 The decaying-anchor estimator for `(r_{t,b}, f_{t,b})`
+
+**The problem.** A certified population is certified at the lidar dates (2005, 2016) and
+nowhere else. Between and after them its cells transition at the population's own rates,
+so at any other epoch the population is a *mixture* of its certified state and the other
+state, and the naive rate `m = mean(x)` on it is biased. This is Chen & Yang's
+misclassification correction (§2.2, [Q]) with the anchor's own decay playing the role of
+the misclassification matrix; the algebra is the same and so is the variance penalty.
+
+**Objects.** For one band `b` (suppressed below) and one certified population, let the
+two-state chain have per-calendar-year rates `q_g = q_gain`, `q_l = q_loss`, transition
+matrix `T = [[1 − q_g, q_g], [q_l, 1 − q_l]]`, stationary law `π₁ = q_g/(q_g + q_l)`,
+`π₀ = 1 − π₁`, and second eigenvalue `λ = 1 − q_g − q_l`. Then for a cell certified at
+year `t₀`, `k` calendar years later:
+
+```
+a_k = P(z_{t₀+k} = 0 | z_{t₀} = 0) = π₀ + π₁ λ^k        (persistence of certified 0)
+c_k = P(z_{t₀+k} = 1 | z_{t₀} = 1) = π₁ + π₀ λ^k        (persistence of certified 1)
+```
+
+(Check: `a₀ = 1`; `a₁ = 1 − q_g`; `a_k → π₀`.) `k` is in **calendar years between the
+lidar date and the epoch's flight date** (`qc/imagery_pixelsize_and_date.csv`), not in
+chain steps; the epochs are unevenly spaced, so the chain's own transition between
+consecutive epochs `t, t+1` is `T^{Δt}` with `Δt` their year gap. §2.4's half-life should
+be read in the same unit.
+
+**Two populations, two equations.** `ℱ` (certified 0) and `𝒞` (certified 1; PACC's
+`A_can` — lidar canopy in both 2005 and 2016 — is the existing instance, MASTER §3a item 1,
+though `certified_flat_scoring.py` does not yet write it). Their observed rates at the
+epoch `k` years from the anchor date are
+
+```
+m^ℱ_k = a_k · f + (1 − a_k) · r
+m^𝒞_k = (1 − c_k) · f + c_k · r
+```
+
+a 2×2 linear system in `(f, r)` with determinant `a_k + c_k − 1 = (π₀ + π₁)λ^k = λ^k`.
+Hence the **estimator [D]**:
+
+```
+f̂ = ( c_k · m^ℱ_k − (1 − a_k) · m^𝒞_k ) / λ^k
+r̂ = ( a_k · m^𝒞_k − (1 − c_k) · m^ℱ_k ) / λ^k
+```
+
+At `k = 0` this is the direct lidar-referenced rate; as `k` grows the anchor forgets and
+the correction blows up at `1/λ^k`.
+
+**Variance [D].** With `m^ℱ, m^𝒞` independent binomial means on `n_ℱ, n_𝒞` cells,
+
+```
+Var(f̂) ≈ [ c_k² · m^ℱ(1 − m^ℱ)/n_ℱ + (1 − a_k)² · m^𝒞(1 − m^𝒞)/n_𝒞 ] / λ^{2k}
+```
+
+and symmetrically for `r̂`. The inflation factor is `1/λ^{2k}`: **4× at the anchor's
+half-life** (`λ^k = ½`), the same `1/(denominator)²` law as §2.2. Because cells within a
+sample block are not independent, the `n` in these formulas overstates the information;
+the honest interval is a block bootstrap over the sample blocks, not the binomial one.
+
+**Bridge weight for the interior epochs [D].** Epochs 2009–2015 lie between two lidar
+dates, `K = 11` years apart. A cell certified 0 at both ends is more likely still 0 at
+year `k` than one-sided decay says, by the Markov identity
+
+```
+P(z_k = 0 | z_0 = 0, z_K = 0) = a_k · a_{K−k} / a_K   ≥ a_k
+```
+
+(and `c_k c_{K−k}/c_K` for certified 1). Use the bridge weights in the system above for
+the in-bracket epochs, the one-sided weights `a_k, c_k` from the 2016 anchor for
+2017–2024. This is the formal reason PACC's in-bracket fit (MASTER §3a item 8) is the only
+defensible pre-2016 statement: it is where the mixture weights are tightest.
+
+**Bias if the decay is ignored [D].** Treating `ℱ` as pure at year `k` gives
+`f̂_naive = m^ℱ_k = f + (1 − a_k)(r − f)`, i.e. a bias of `(1 − a_k)(r − f) ≈ k·q_g·(r − f)`
+for small `k q_g` — *upward*, and through §2.1 it enters the gain evidence at `1/f`. At
+the brief's rates `r − f = 0.56`: every `0.01` of cumulative gain probability on the anchor
+adds `0.0056` to `f̂`, which at `f = 0.05` is an 11 % error in the increment.
+
+**The rates must be the population's own, not the city's.** `ℱ` is eroded-interior
+non-canopy — roads, roofs, water — whose gain rate is far below the citywide rate, which is
+dominated by growth at canopy edges. Using a citywide `q_g` in `a_k` over-corrects by
+construction. The population's own rates come from the same instrument that certifies it,
+over the 11-year lidar interval:
+
+```
+Q_g = |GAIN ∩ S| / |2005-non-canopy ∩ S|        S = the population's own stratum (band,
+Q_l = |LOSS ∩ S| / |2005-canopy ∩ S|                erosion applied to the 2005 mask
+                                                    before intersecting)
+```
+
+with `GAIN` as defined in `qc/instruments/harm_change_laundering.py` (`both & (h05 < 2.0)
+& (h16 >= 5.0)`) and `LOSS` its mirror (`both & (h05 >= 5.0) & (h16 < 2.0)`) — the
+thresholds are GAIN's, not new ones. `GAIN` alone leaves `(q_g, q_l)` under-determined;
+the pair identifies both exactly, because `Q_g = 1 − a_K = π₁(1 − λ^K)` and
+`Q_l = 1 − c_K = π₀(1 − λ^K)`:
+
+```
+λ   = (1 − Q_g − Q_l)^{1/K}
+q_g = (1 − λ) · Q_g / (Q_g + Q_l),     q_l = (1 − λ) · Q_l / (Q_g + Q_l)
+```
+
+(for small `Q`, `q_g ≈ Q_g/K`). These are per band, per population.
+
+**Assumptions, stated.** (i) *Stationarity* of `(q_g, q_l)` from the 2005–2016 interval
+to 2016–2024 — an assumption, and §6.1's prior asserts it fails near dated development
+footprints, so anchor cells are drawn away from them. (ii) *Homogeneity within a stratum*:
+the mixture algebra assumes every cell in `S` shares `(q_g, q_l)`; banding is the first
+covariate, land-use class (PACC's "impervious") is the next if the kill below fails.
+(iii) *Conditional independence* `x ⊥ (anchor membership) | z, b` — the model's error on a
+certified cell is the same as on an uncertified cell of the same state and band. This is
+what erosion buys and what the registration bound (§12.1) is for.
+
+**Kill — non-circular, and it must fire [D].** Propagating `ℱ` from 2005 to 2016 proves
+nothing: `ℱ` is certified 0 at 2016 by definition. The valid form: take the full 2005 lidar
+footprint (uneroded, or eroded identically on both sides), split by 2005 state, propagate
+`K = 11` years with the population's own `(q_g, q_l)`, solve the system at the 2016 imagery
+epoch (present in the stack: `YEAR_CATALOG` label `2016`, checked 2026-09-12; the exact
+`k` is the flight-date gap), and compare `(f̂, r̂)` to the direct rates scored against the
+2016 CHM, which the estimator never saw. Eleven years is longer than the eight the
+post-2016 estimates need, so the test is conservative. It must *fail* under the placebo
+`(q_g, q_l) × 10`: if the corrected and naive estimates cannot be told apart at the true
+rates, the correction is below the noise floor and is reported UNDETERMINED, not adopted.
+
+### 12.3 The CUSUM needs a certified start — ledger row 2 dissolves
+
+§2.2 left two open problems: the joint false-alarm rate of two parallel one-sided charts,
+and thresholds at `T = 12`. Both were posed for a chart run *blind* on every cell. That
+chart is misspecified, and the calculation is one line **[D]**: a gain chart accumulates
+`ℓ_t(x_t)` from §2.1; on a cell that was canopy all along, `x_t ~ Bernoulli(r_t)` and
+
+```
+E[ℓ_t | z = 1] = r log(r/f) + (1 − r) log((1 − r)/(1 − f)) = KL( Bern(r) ‖ Bern(f) ) > 0
+```
+
+— at the brief's rates `0.61·log(12.2) + 0.39·log(0.411) ≈ 1.53 − 0.35 = 1.18` nats per
+epoch. The chart drifts *up* on a cell with no change and fires within a few epochs. Ross's
+optimality (§2.2, [Q]) assumes the pre-change law `θ₀` holds at the start; on an
+uncertified cell it does not, and no threshold fixes that.
+
+**Resolution [D].** The CUSUM is well-posed exactly where the initial state is certified:
+the gain chart on `ℱ` (start `z = 0`), the loss chart on `𝒞` (start `z = 1`), direction
+fixed by the certification, rates `(r_{t,b}, f_{t,b})` from §12.2. There is no two-sided
+problem — each population runs one chart — and row 2 reduces to **one Monte Carlo per
+`(population, band, α)`**: null sequences with the certified state persisting and
+`x_t ~ Bernoulli(rate_{t,b})`, threshold at the `(1 − α)` quantile of `max_t S_t`, the
+brief's placebo (§2.2 item 3) still the kill. Everywhere else — the 13.3 M uncertified
+cells — the change point is the chain's posterior (`argmax_t P(z_t ≠ z_{t−1} | x_{1..T})`
+from forward–backward), which carries its own uncertainty and needs no chart.
+
+### 12.4 The leave-one-epoch-out identity under Bernoulli noise — ledger row 5
+
+§5.2 defined the leave-one-epoch-out posterior `p̂_t = P(z_t = 1 | x_{−t})` and deferred
+the scoring identity. It is short **[D]**. Define the *debiased pseudo-label*
+
+```
+y_t = (x_t − f_t) / (r_t − f_t)
+```
+
+(band-indexed rates understood). Since `E[x_t | z_t] = f_t + z_t (r_t − f_t)`,
+`E[y_t | z_t] = z_t`: the pseudo-label is unbiased for the latent state, at the price of
+lying outside `[0, 1]` (at the brief's rates `y = 1.70` on an observed 1, `−0.089` on a 0).
+Now expand `E[(p̂_t − y_t)²] = E[(p̂_t − z_t)²] + E[(z_t − y_t)²] + 2E[(p̂_t − z_t)(z_t − y_t)]`.
+The cross term vanishes: `p̂_t` is a function of `x_{−t}` alone, and in the chain the
+emission `x_t` is a leaf with single parent `z_t`, so `x_t ⊥ x_{−t} | z_t` and
+`E[z_t − y_t | z_t, x_{−t}] = z_t − E[y_t | z_t] = 0`. Hence
+
+```
+E[(p̂_t − z_t)²]  =  E[(p̂_t − y_t)²]  −  [ π_t · r_t(1 − r_t) + (1 − π_t) · f_t(1 − f_t) ] / (r_t − f_t)²
+   true Brier        observable              noise floor, π_t = P(z_t = 1) in the stratum
+```
+
+— the Bernoulli analogue of Noise2Self's Proposition 1 (review §4.12.3), with the same
+structure: an observable self-supervised loss minus a known noise term. Three things to
+say. (a) The noise term needs a prevalence `π_t` per stratum, not citywide; on the
+certified strata it is the persistence weight `a_k` or `c_k` of §12.2, which is why this
+score and the estimator share inputs. At the brief's rates the floor is `0.76` on a canopy
+cell and `0.15` on a non-canopy cell — large, so the identity is useful on stratum means,
+never per cell. (b) This scores *squared error on the probability* (a Brier score),
+whereas §5.1's Efron penalty scores *counting error at a cut*; they are two metrics and §8
+should carry both. (c) It inherits §12.1: with a single `f_t` on an edge cell `y_t` is
+biased and the identity fails silently. Epochs with `x_t = ⊘` are not scored. **Kill:** a
+layer that copies `x_t` through (a median-type filter reading its own input) must show
+`E[(p̂_t − y_t)²]` *below* the noise floor on a certified stratum — an impossible value that
+flags the leak; if the check cannot produce that on a deliberately leaking layer, it is not
+a check.
+
+### 12.5 What this section changes upstream
+
+- §1 notation: `(r_t, f_t)` → `(r_{t,b}, f_{t,b})`; `𝒞` added; `k` in calendar years.
+- §2.2 item 2 (two-sided) and item 3 (thresholds): replaced by §12.3.
+- §2.4 half-life: in calendar years; `(q_g, q_l)` per population from §12.2, not
+  pre-registered.
+- §5.2: the identity is §12.4; §8's metric triple gains the Brier form.
+- §9 order: **before rows 1 and 2, the populations.** `𝒞` and `LOSS` are one rule each
+  in `certified_flat_scoring.py`'s family and are data builds, not mathematics — but
+  §12.2 has no `r̂` without `𝒞`, and row 1's emission audit has no lidar-anchored rates
+  without §12.2. The estimator kill (§12.2) runs on files that exist plus those two rules.

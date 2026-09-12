@@ -1652,8 +1652,10 @@ re-bins the yearly-rate closed form from [S] on Bell & Hinojosa's diagonalisatio
 Round 7's leftover list was cleared the same way (second index, one download per call,
 spaced against the 429 limit). Eleven PDFs filed under `Literture\Validation\`; ten read
 by this reviewer at the cited passages, one read at the abstract only (Burnicki 2010).
-Leung–Ma–Goodchild Part 4, filed last round, was also read at the abstract. Conley 1999 is indexed on the second mirror but the storage
-host answers 403 for it under both DOI encodings — indexed, file missing, not "absent".
+Leung–Ma–Goodchild Part 4, filed last round, was also read at the abstract. Conley 1999 is indexed on the second mirror; its storage
+host answered 403 under both DOI encodings. *Corrected in round 9:* that 403 was a
+Cloudflare bot challenge that began mid-session (it later refused a file it had served
+that morning), not a missing file.
 The four MDPI items (Barker 2022, Roman 2022, Ock 2024, Hasegawa & Takada 2019) and
 Laurance 1998 *Ecology* were not pursued: nothing in the framework cites them. Kam's
 standing instruction — retry anything a captcha blocks — was checked: the only captcha
@@ -1717,6 +1719,176 @@ that point were the fields the brief named; the fix was naming an unsearched fie
 searching the named ones harder. After round 8 the same claim is made again, with that
 caveat attached: nothing load-bearing remains unread, and the open items in §5 close by
 measurement, not by reading.
+
+### 4.18 Round 9 (2026-09-12) — seven mathematical fields named from the [D] list, searched: nine searchers, thirty-nine papers filed
+
+Round 8 closed with "nothing load-bearing is unread". Kam's reply was that unsearched
+fields had exposed solutions before, so the [D] derivations were each assigned a
+probable home field and nine Sonnet searchers were sent one field each (open-access
+routes only; the reviewer fetched the closed remainder by DOI, first index `.ru`/`.red`
+storage — the second index's storage host was behind a bot challenge all afternoon).
+Thirty-nine PDFs filed this round (counted); grades below are the reviewer's, and PRIMARY means the
+reviewer read the cited passage. Three fields returned theorems for things §14 had
+derived; two returned published estimators for things §13 had left to us; two returned
+attributions only.
+
+#### 4.18.1 Stochastic geometry — the edge-band rate is Matheron's covariogram slope [D→Q]
+
+**Galerne 2011** (*Image Analysis & Stereology*, gold OA, **PRIMARY**). For a measurable
+set `A` with covariogram `g_A(y) = |A ∩ (A + y)|`, his Eq. 1 gives the right directional
+derivative at the origin in direction `u` as minus the directional variation `V_u(A)`,
+and Eq. 2 gives the perimeter as the direction-average: `Per(A) = −(1/ω_{d−1}) ∫_{S^{d−1}}
+(g_A^u)′(0⁺) dH^{d−1}(u)`, `ω_{d−1}` the volume of the unit ball in `R^{d−1}`. In the
+plane `ω_1 = 2`, so the direction-averaged slope is `−Per(A)/π`, and the symmetric
+difference under a shift `s` is `|A Δ (A+s)| = 2(g_A(0) − g_A(s)) ≈ (2/π)·Per(A)·|s|` —
+framework §14.5's rate, now a theorem with its provenance in one sentence: "Eq. 2 has been
+widely stated in the mathematical morphology literature (Haas et al., 1967; Matheron,
+1975; Serra, 1982". The *directional* form (Eq. 1) is the one that applies to the
+per-axis systematic offsets `coregistration.csv` reports; the averaged form to the
+isotropic residual. Filed alongside: Averkov & Bianchi 2009 (*JEMS*, header-verified,
+unread — the proof of Matheron's covariogram conjecture, not needed), Schneider & Weil
+2008 (book, held from a course mirror, unread), Matheron 1986 (Fontainebleau report,
+image-only scan). Cabo & Baddeley 1995 indexed but behind the challenge.
+
+#### 4.18.2 GIS positional error — the variance composition is the Law of Propagation of Errors [D→Q]; `Φ(d/σ)` stays ours
+
+**Chrisman 1982** (AutoCarto 5, **PRIMARY**): when error sources are "passed from phase to
+phase" and can "be treated as independent", "sufficient results are obtained by adding
+the variances of the distributions", "known in surveying as the Law of Propagation of
+Errors". That is framework §14.7's `σ² = σ_reg² + σ_fp²`, with its assumption
+(independence of registration and footprint error) stated. No source states `Φ(d/σ)` for
+a displaced polygon: the searcher's medical-imaging candidates build soft labels by
+fixed-radius morphological dilation with a constant value (Kats, Goldberger & Greenspan
+2019, ISBI, **PRIMARY**, negative) or discuss partial-volume softening in general (Gros,
+Lemay & Cohen-Adad 2021, SoftSeg, **ABSTRACT**). Blakemore 1984 (*Cartographica*) not on
+the first index. `Φ(d/σ)` remains [D] — a one-line convolution, but ours.
+
+#### 4.18.3 Spatio-temporal autologistic regression — the layer's model exists, for equal intervals
+
+**Zhu, Huang & Wu 2005** (*JABES*, **PRIMARY**, §2). Their Eq. 2.1–2.3: binary
+`Y_{i,t}` on a lattice, full conditional `expit(Σ_k θ_k X_{k,i,t} + θ_{p+1} Σ_{j∼i}(2Y_{j,t}−1)
++ θ_{p+2}(2Y_{i,t−1} + 2Y_{i,t+1} − 2))` — a logistic regression on covariates, a spatial
+autoregression, and a temporal autoregression, i.e. the framework's `(β, γ)` with
+development and building priors as regressors. Two properties matter for us: the
+temporal term conditions on *both* neighbours in time (`t ∈ Z`, an undirected space-time
+field on equally spaced epochs), and "we restrict our attention to space and time
+invariant logistic regression coefficients and autoregression coefficients." Estimation:
+"we use maximum pseudo-likelihood, which is computationally efficient for parameter
+estimation, and develop a Markov chain Monte Carlo (MCMC) algorithm for predicting future
+responses"; standard errors: "We use a parametric bootstrap" from the fitted model by
+Gibbs sampling. **Hughes, Haran & Caragea 2011** (*Environmetrics*, **PRIMARY**, abstract
+and §2.2): comparing Besag's and Caragea–Kaiser's centered parameterisations under PL, ML
+and Bayesian fitting, "we recommend that the centered model be used in practice" and "we
+recommend the PL approach for its easier implementation and much faster execution".
+**Hughes 2014** (*R Journal*, CC BY, **PRIMARY**) is the software (`ngspatial`), areal only.
+Zheng & Zhu 2008, Zhu, Zheng, Carroll & Aukema 2008 (MCML for the same model), Caragea &
+Kaiser 2009: indexed, behind the challenge. What this does not give: an
+interval-dependent temporal coefficient for our irregular epochs, or a forward (causal)
+chain — framework §17.3.
+
+#### 4.18.4 Self-exciting point processes — a nonparametric estimator for `D_k(τ)·R(d)` exists
+
+**Ogata 1988** (*JASA*, **PRIMARY**, §2.3): the "unified form for the epidemic type of
+models" — conditional intensity `λ(t) = μ + Σ_{t_i<t} g(t − t_i)·e^{β(m_i−M)}`, a
+background plus a sum of triggering kernels over past events; the ETAS model.
+**Zhuang, Ogata & Vere-Jones 2002** (*JASA*, **PRIMARY**, §2): with a fitted space-time
+kernel, "the probability that the jth event belongs to the background" and the
+probability it is the offspring of event `i` are ratios of the corresponding terms of
+the intensity — stochastic declustering. **Reinhart 2018** (*Statistical Science*,
+arXiv copy, **PRIMARY**, §3.2.3): Marsan & Lengliné's model-independent declustering
+estimates the kernel by EM where "g(s, t) was simply assumed to be piecewise constant in
+space and time, with the constant for each spatial and temporal interval estimated from
+the data" — a histogram kernel in `(τ, d)`, no assumed shape. **Bacry, Mastromatteo &
+Muzy 2015** (arXiv, **PRIMARY**, §2.3, Appendix): the Wiener–Hopf nonparametric
+alternative; EM "convergence speed … drastically decreases" for slowly decaying kernels
+and cannot give negative kernel values. Hawkes 1971 (*Biometrika*, read at the summary).
+Ogata 1998 (image-only, filed unread). Marsan & Lengliné 2008 indexed, behind the
+challenge; Lewis & Mohler 2011 is an unpublished preprint with no DOI (confirmed via
+Bacry's reference list). The mapping from earthquakes to us is not in these papers:
+our "events" are dated developments (exogenous, known), our outcome is a binary cell
+state, and the kernel we want is the excess loss hazard after a development at distance
+`d` and lag `τ` — framework §17.4.
+
+#### 4.18.5 The Markov embedding problem — the `0 < λ < 1` guard is the existence theorem for two states
+
+**Kingman 1962** (*Z. Wahrsch.*, Springer PDF served open, **PRIMARY**): Proposition 2 —
+a 2 × 2 stochastic matrix is a skeleton (has a valid continuous-time generator) if and
+only if `det P > 0` and `tr P > 1` (the scan's OCR garbles the inequality signs; read on
+the page). For a two-state chain `λ = p₁₁ + p₂₂ − 1 = tr P − 1`, so the condition is
+exactly `0 < λ < 1`: framework §15.2's guard is the theorem. **Israel, Rosenthal & Wei
+2001** (*Math. Finance*, author-hosted, **PRIMARY**, §§2–3): Theorem 1, the series
+`Q = (P−I) − (P−I)²/2 + …`; Theorem 2, `p_ii > 0.5` for all `i` guarantees convergence
+and, by Cuthbert, "P can have at most one generator, i.e. if a generator exists then it
+is unique"; Theorem 3, three conditions under which no exact generator exists (`det P ≤ 0`;
+`det P > Π p_ii`; a reachable state with `p_ij = 0`); §3, the fix when the series
+generator has small negative off-diagonals (zero them and redistribute). **Charitos, de
+Waal & van der Gaag 2008** (*Statist. Med.*, **PRIMARY**, abstract and §1): the same
+problem for a short-interval matrix, solved by regularisation — replace invalid rows
+"with rows with non-negative entries using a distance criterion". **Higham & Lin 2011**
+(*LAA*, Manchester eprint, **PRIMARY**, §3): Theorem 3.2 and the two requirements for a
+stochastic `p`-th root (nonnegative, row sums one). Singer & Spilerman 1976 filed
+(Columbia repository copy, header-verified, unread). Kreinin & Sidelnikova 2001 has no
+DOI in any index and no copy was found.
+
+#### 4.18.6 CUSUM run length — exact by Markov chain, for the Bernoulli chart specifically [Q]
+
+**Reynolds & Stoumbos 2000** (*IIE Transactions*, **PRIMARY**, §§3–4 and Appendix C): "An
+exact expression for the ANSS of the Bernoulli CUSUM chart is developed in Appendix C";
+"Three Markov chains will be used in the evaluation of the properties of the Bernoulli
+CUSUM chart", the first with `t = mh` transient states when the likelihood-ratio
+increments are in integer ratio `m`, its transition matrix "given in Reynolds and
+Stoumbos [3]" — the 1999 *JQT* paper, indexed but behind the challenge. **Lucas &
+Crosier 1982** (*Technometrics*, **PRIMARY**): the fast-initial-response head start and
+Markov-chain ARL tables (Table 1 rows "Markov Chain … t = 4/7/10 / Asymptotic"). Brook
+& Evans 1972 (the method's origin), Steiner et al. 2000 (risk-adjusted Bernoulli CUSUM):
+indexed, behind the challenge. Page 1954 not on the first index. Framework row 2's
+Monte Carlo threshold is now a check on an exact computation, not the computation.
+
+#### 4.18.7 Graph-cut shrinking bias — obtained, not yet read
+
+All nine targets were open access and are filed (Boykov & Kolmogorov 2003; Kolmogorov &
+Boykov 2005; Vicente, Kolmogorov & Rother 2008; Boykov & Jolly 2001; Kolmogorov & Zabih
+2004; Krähenbühl & Koltun 2011 and 2013; Sinop & Grady 2007; Couprie et al. 2011),
+header-verified by the searcher. The reviewer read none of them this round; the Potts
+one-liner in framework §13.2 stays [D] and unattributed until the 2003/2005 constant is
+read. Vicente et al. name the "shrinking bias" in their abstract (searcher-read).
+
+#### 4.18.8 Resampling for dependent data — a published kill for the autologistic fit, and a second block-size rule
+
+**Kaiser, Lahiri & Nordman 2012** (*Ann. Statist.*, arXiv copy, **PRIMARY**, §2.2):
+generalized spatial residuals from the fitted conditional distributions, partitioned by
+*concliques* (sets of mutually non-neighbouring sites); Theorem 2.1 — "within any
+conclique Cj these variables should behave as a random sample from a uniform
+distribution on the unit interval". A goodness-of-fit test for exactly the model §15.1
+fits. **Nordman & Lahiri 2004** (*Ann. Statist.*, **PRIMARY**, §1): for spatial
+subsampling variance estimates "a subsample size m proportional to n1/3 is optimal in the
+sense of minimizing the mean square error (MSE) of variance estimation" — a rule for
+variance estimation, distinct from Roberts/Valavi's leakage rule ("at least the range of
+autocorrelation"), which answers a different question. Lahiri & Zhu 2006 (irregular
+designs, **ABSTRACT**), Kelejian & Prucha 2007 (spatial HAC, working paper,
+**ABSTRACT**), Conley & Molinari 2007 (cemmap working paper, filed, unread). Politis &
+Romano 1994 obtained (first index) but image-only. Hall 1985 not on the first index;
+Lahiri 2003 ch. 12 landing page carried no file.
+
+#### 4.18.9 Applied space-time MRFs for land cover — the multiplicative transition form, in remote sensing
+
+**Liu, Song, Townshend & Gong 2008** (*RSE*, **PRIMARY**, abstract): spatio-temporal MRF
+change detection whose "locally adjusted global transition model adapts to the local
+variation by multiplying a pixel-wise probability of change with the global transition
+model" — the framework §6.1 multiplicative form (Hughes–Guttorp–Charles 1999, §4.13.3)
+already in use for forest change. Abercrombie & Friedl 2016 (already held, PRIMARY):
+constant transition probability, forward–backward smoothing. Solberg, Taxt & Jain 1996
+filed (header-verified, unread). Liu & Cai 2012, Cai et al. 2014, Melgani & Serpico
+2003: indexed, behind the challenge. No paper combines a space-time Ising/Potts model
+with urban tree-cover change (searched by name; none found).
+
+**What round 9 leaves indexed but unobtained (twelve, all behind one JavaScript
+challenge on the second index's storage host):** Zheng & Zhu 2008; Zhu, Zheng, Carroll &
+Aukema 2008; Caragea & Kaiser 2009; Brook & Evans 1972; Reynolds & Stoumbos 1999;
+Steiner et al. 2000; Marsan & Lengliné 2008; Liu & Cai 2012; Cai et al. 2014; Melgani &
+Serpico 2003; Conley 1999; Cabo & Baddeley 1995. Not indexed on the first index:
+Blakemore 1984, Page 1954, Hall 1985. No DOI anywhere: Kreinin & Sidelnikova 2001,
+Lewis & Mohler 2011.
 
 ---
 
@@ -1986,13 +2158,25 @@ number, never instead of it. Adopt it from the first run rather than retrofittin
 - **Round 8 (2026-09-12) cleared round 7's leftover list:** eleven PDFs obtained the same
   way and filed; the round-8 bibliography block holds 12 lines (counted): 10 reviewer-read
   PRIMARY, 1 reviewer-read ABSTRACT (Burnicki 2010), 1 METADATA (Conley 1999, indexed
-  but the storage file is missing); Part 4's abstract grade sits on its round-7 line.
+  but behind a bot challenge — corrected in round 9); Part 4's abstract grade sits on its round-7 line.
   Three additions (the `G(t)` mask rule quoted, the block rule second-sourced, the
   TV-flow extinction law) and nine grade changes in §4.17. One earlier attribution
   corrected at the text (§4.16.5: the `n = 806` / 6–7 y figures are the JEPM paper's,
   cited by Hilbert under its 2018 print volume; the Environment & Planning B paper
   carries neither). Nothing load-bearing remains unread; the MDPI four and
   Laurance 1998 *Ecology* were not pursued because nothing cites them.
+- **Round 9 (2026-09-12) named seven fields from the [D] list and searched them:** nine
+  Sonnet searchers (open-access routes; OpenAlex was metered out mid-session and the
+  searchers fell back to Crossref), the reviewer fetching the closed remainder by DOI
+  from the first index. The round-9 bibliography block holds 34 lines (counted): 20
+  reviewer-read PRIMARY lines (one carrying two Kats papers), 3 reviewer-read ABSTRACT,
+  9 lines filed but unread by the reviewer (15 works: seven graph-cut papers on one
+  line, Averkov & Bianchi, Schneider & Weil, Singer & Spilerman, Conley & Molinari,
+  Solberg, and three image-only scans), and 2 METADATA lines carrying 18 unobtained
+  works. Three
+  [D] results became theorems (§4.18.1, §4.18.2 composition, §4.18.5), two [D]
+  procedures became published estimators (§4.18.3, §4.18.6), one kill became a
+  published test (§4.18.8). Findings in §4.18; framework §17.
 - **Not searched:** §6.4 (which training lever first) is a cost/sequencing decision no
   literature settles; the material for it is in §4.6. §6.2 and §6.3 *were* searched in
   round 2 and are answered in §4.10.
@@ -2279,7 +2463,44 @@ lines for these works in the round 4–7 blocks are superseded by the grades her
 - Leung & Yan (1998). A locational error model for spatial features. *Int. J. GIS* 12(4). doi:10.1080/136588198241699 — **PRIMARY**, reviewer-read (§§2–3). Filed `LeungYan_1998_locational_error_model`.
 - Stow (1999). Reducing the effects of misregistration on pixel-level change detection. *Int. J. Remote Sensing* 20(12). doi:10.1080/014311699212137 — **PRIMARY**, reviewer-read (abstract, §1). Filed `Stow_1999_reducing_misregistration_effects`.
 - Burnicki, Brown & Goovaerts (2010). Propagating error in land-cover-change analyses: impact of temporal dependence under increased thematic complexity. *Int. J. GIS* 24(7):1043–1060. doi:10.1080/13658810903279008 — **ABSTRACT**, reviewer-read abstract only. Filed `Burnicki_2010_temporal_dependence_thematic_complexity`.
-- Conley (1999). GMM estimation with cross sectional dependence. *J. Econometrics* 92(1). doi:10.1016/S0304-4076(98)00084-0 — **METADATA**; indexed on the second mirror, storage host returns 403 under both DOI encodings (2026-09-12). Not load-bearing: §15.1's per-cell Steinian covers the need.
+- Conley (1999). GMM estimation with cross sectional dependence. *J. Econometrics* 92(1). doi:10.1016/S0304-4076(98)00084-0 — **METADATA**; indexed on the second mirror, whose storage host went behind a JavaScript bot challenge on 2026-09-12 (round 9 corrects round 8's "file missing"). Not load-bearing: §15.1's per-cell Steinian covers the need.
+
+### Round 9 (2026-09-12; §4.18) — seven fields named from the [D] list
+All filed under `D:\edmonds-pipeline\Literture\Validation\`. Grades are the reviewer's; "searcher-verified" means the searcher matched the PDF header and the reviewer has not read it.
+- Galerne, B. (2011). Computation of the perimeter of measurable sets via their covariogram. Applications to random sets. *Image Analysis & Stereology* 30(1):39–51. doi:10.5566/ias.v30.p39-51 — **PRIMARY**, reviewer-read (Eqs. 1–2, provenance paragraph). Filed `Galerne_2011_covariogram_perimeter`.
+- Averkov, G. & Bianchi, G. (2009). Confirmation of Matheron's conjecture on the covariogram of a planar convex body. *J. Eur. Math. Soc.* 11:1187–1202. doi:10.4171/JEMS/183 — filed, searcher-verified, unread. Filed `Averkov_Bianchi_2009_Matheron_conjecture_confirmation`.
+- Schneider, R. & Weil, W. (2008). *Stochastic and Integral Geometry*. Springer — held (course-site mirror), unread. Filed `Schneider_Weil_2008_Stochastic_Integral_Geometry`.
+- Matheron, G. (1986). Le covariogramme géométrique des compacts convexes de R². Centre de Géostatistique tech. report N/2/86/G — image-only scan, unread. Filed `Matheron_1986_covariogramme_geometrique_compacts_convexes`.
+- Chrisman, N.R. (1982). A theory of cartographic error and its measurement in digital databases. *AutoCarto 5* — **PRIMARY**, reviewer-read (the propagation-of-errors paragraph). Filed `Chrisman_1982_epsilon_band_cartographic_error`.
+- Kats, E., Goldberger, J. & Greenspan, H. (2019). Soft labeling by distilling anatomical knowledge for improved MS lesion segmentation. *IEEE ISBI 2019*. doi:10.1109/isbi.2019.8759518 — **PRIMARY**, reviewer-read (abstract, §2); negative for `Φ(d/σ)` (fixed-radius dilation). Filed `Kats_2019_SoftLabelingAnatomicalKnowledge_ISBI`. Kats, Goldberger & Greenspan (2019). A soft STAPLE algorithm combined with anatomical knowledge. doi:10.1007/978-3-030-32248-9_57 — filed, searcher-verified, unread. Filed `Kats_2019_SoftSTAPLE`.
+- Gros, C., Lemay, A. & Cohen-Adad, J. (2021). SoftSeg: Advantages of soft versus binary training for image segmentation. arXiv 2011.09041 — **ABSTRACT**, reviewer-read abstract. Filed `Gros_2021_SoftSeg`.
+- Zhu, J., Huang, H.-C. & Wu, J. (2005). Modeling spatial-temporal binary data using Markov random fields. *J. Agric. Biol. Environ. Stat.* 10(2):212–225. doi:10.1198/108571105X46543 — **PRIMARY**, reviewer-read (§§1–2.1). Filed `ZhuHuangWu_2005_spatial_temporal_binary_MRF_JABES`.
+- Hughes, J., Haran, M. & Caragea, P.C. (2011). Autologistic models for binary data on a lattice. *Environmetrics* 22(7):857–871. doi:10.1002/env.1102 — **PRIMARY**, reviewer-read (abstract, §2.2). Filed `HughesHaranCaragea_2011_autologistic_lattice_Environmetrics`.
+- Hughes, J. (2014). ngspatial: A package for fitting the centered autologistic and sparse spatial generalized linear mixed models for areal data. *The R Journal* 6(2):81–95. doi:10.32614/RJ-2014-026 — **PRIMARY**, reviewer-read (§§1–2). Filed `Hughes_2014_ngspatial`.
+- Ogata, Y. (1988). Statistical models for earthquake occurrences and residual analysis for point processes. *JASA* 83(401):9–27. doi:10.1080/01621459.1988.10478560 — **PRIMARY**, reviewer-read (§2, the epidemic-model form). Filed `Ogata_1988_ETAS_JASA`.
+- Zhuang, J., Ogata, Y. & Vere-Jones, D. (2002). Stochastic declustering of space-time earthquake occurrences. *JASA* 97(458):369–380. doi:10.1198/016214502760046925 — **PRIMARY**, reviewer-read (§2, the background/offspring probabilities). Filed `ZhuangOgataVereJones_2002_stochastic_declustering_JASA` (+ `_raw.txt`).
+- Reinhart, A. (2018). A review of self-exciting spatio-temporal point processes and their applications. *Statistical Science* 33(3):299–318. doi:10.1214/17-STS629 (arXiv 1708.02647) — **PRIMARY**, reviewer-read (§3.2). Filed `Reinhart_2018_Review_SelfExciting_SpatioTemporal`.
+- Bacry, E., Mastromatteo, I. & Muzy, J.-F. (2015). Hawkes processes in finance. arXiv 1502.04592 — **PRIMARY**, reviewer-read (§2.3, estimation appendix). Filed `Bacry_Mastromatteo_Muzy_2015_Hawkes_Finance`.
+- Hawkes, A.G. (1971). Spectra of some self-exciting and mutually exciting point processes. *Biometrika* 58(1):83–90. doi:10.1093/biomet/58.1.83 — **PRIMARY**, reviewer-read at the summary only. Filed `Hawkes_1971_spectra_self_exciting_Biometrika`.
+- Ogata, Y. (1998). Space-time point-process models for earthquake occurrences. *Ann. Inst. Statist. Math.* 50(2):379–402. doi:10.1023/A:1003403601725 — image-only scan, unread. Filed `Ogata_1998_SpaceTime_PointProcess_Earthquakes`.
+- Kingman, J.F.C. (1962). The imbedding problem for finite Markov chains. *Z. Wahrscheinlichkeitstheorie* 1:14–24. doi:10.1007/BF00531768 — **PRIMARY**, reviewer-read (§1, Proposition 2; OCR of the scan is rough). Filed `Kingman_1962_imbedding_problem`.
+- Israel, R.B., Rosenthal, J.S. & Wei, J.Z. (2001). Finding generators for Markov chains via empirical transition matrices, with applications to credit ratings. *Mathematical Finance* 11(2). doi:10.1111/1467-9965.00114 — **PRIMARY**, reviewer-read (§§1–3, Theorems 1–3; author-hosted preprint). Filed `Israel_Rosenthal_Wei_2001_generators`.
+- Higham, N.J. & Lin, L. (2011). On pth roots of stochastic matrices. *Linear Algebra Appl.* 435(3):448–463. doi:10.1016/j.laa.2010.09.001 — **PRIMARY**, reviewer-read (§3; MIMS eprint). Filed `Higham_Lin_2011_pth_roots`.
+- Charitos, T., de Waal, P.R. & van der Gaag, L.C. (2008). Computing short-interval transition matrices of a discrete-time Markov chain from partially observed data. *Statistics in Medicine* 27(6):905–921. doi:10.1002/sim.2970 — **PRIMARY**, reviewer-read (abstract, §1). Filed `Charitos_2008_short_interval_transition_matrices_StatMed`.
+- Singer, B. & Spilerman, S. (1976). The representation of social processes by Markov models. *Amer. J. Sociology* 82(1). doi:10.1086/226269 — filed (Columbia Academic Commons copy), searcher-verified, unread. Filed `Singer_Spilerman_1976_Markov_social`.
+- Reynolds, M.R. Jr. & Stoumbos, Z.G. (2000). A general approach to modeling CUSUM charts for a proportion. *IIE Transactions* 32(6):515–535. doi:10.1080/07408170008963928 — **PRIMARY**, reviewer-read (§§3–4, Appendix C). Filed `ReynoldsStoumbos_2000_CUSUM_proportion_IIE` (+ `_raw.txt`).
+- Lucas, J.M. & Crosier, R.B. (1982). Fast initial response for CUSUM quality-control schemes: Give your CUSUM a head start. *Technometrics* 24(3):199–205. doi:10.1080/00401706.1982.10487759 — **PRIMARY**, reviewer-read (§§1–2, Table 1). Filed `LucasCrosier_1982_FIR_CUSUM_Technometrics`.
+- Boykov & Kolmogorov (2003) ICCV doi:10.1109/iccv.2003.1238310; Vicente, Kolmogorov & Rother (2008) CVPR doi:10.1109/CVPR.2008.4587440; Boykov & Jolly (2001) ICCV doi:10.1109/ICCV.2001.937505; Kolmogorov & Zabih (2004) *PAMI* 26(2) doi:10.1109/TPAMI.2004.1262177; Krähenbühl & Koltun (2013) ICML/PMLR 28(3); Sinop & Grady (2007) ICCV doi:10.1109/ICCV.2007.4408927; Couprie, Grady, Najman & Talbot (2011) *PAMI* 33(7) doi:10.1109/TPAMI.2010.200 — all filed, searcher-verified, **unread by the reviewer** (Kolmogorov & Boykov 2005 and Krähenbühl & Koltun 2011 were already on disk). Files `BoykovKolmogorov_2003_…`, `VKR2008_…`, `BoykovJolly_2001_…`, `KolmogorovZabih_2004_…`, `KrahenbuhlKoltun_2013_…`, `SinopGrady_2007_…`, `Couprie_2011_…`.
+- Kaiser, M.S., Lahiri, S.N. & Nordman, D.J. (2012). Goodness of fit tests for a class of Markov random field models. *Ann. Statist.* 40(1). doi:10.1214/11-AOS948 (arXiv 1205.6086) — **PRIMARY**, reviewer-read (§2, Theorem 2.1). Filed `Kaiser_Lahiri_Nordman_2012_GOF_MRF`.
+- Nordman, D.J. & Lahiri, S.N. (2004). On optimal spatial subsample size for variance estimation. *Ann. Statist.* 32(5). doi:10.1214/009053604000000779 (arXiv math/0503671) — **PRIMARY**, reviewer-read (§1). Filed `Nordman_Lahiri_2004_optimal_spatial_subsample_size`.
+- Lahiri, S.N. & Zhu, J. (2006). Resampling methods for spatial regression models under a class of stochastic designs. *Ann. Statist.* 34(4). doi:10.1214/009053606000000551 — **ABSTRACT**, reviewer-read abstract. Filed `Lahiri_Zhu_2006_Resampling_spatial_regression`.
+- Kelejian, H.H. & Prucha, I.R. (2007). HAC estimation in a spatial framework. *J. Econometrics* 140(1). doi:10.1016/j.jeconom.2006.09.005 — **ABSTRACT**, reviewer-read abstract (author working-paper copy). Filed `KelejianPrucha_2007_HAC_spatial_framework`.
+- Conley, T.G. & Molinari, F. (2007). Spatial correlation robust inference with errors in location or distance. *J. Econometrics* 140(1). doi:10.1016/j.jeconom.2006.09.003 — filed (cemmap working paper), searcher-verified, unread. Filed `Conley_Molinari_2007_spatial_correlation_robust_inference`.
+- Politis, D.N. & Romano, J.P. (1994). Large sample confidence regions based on subsamples under minimal assumptions. *Ann. Statist.* 22(4). doi:10.1214/aos/1176325770 — image-only scan, unread. Filed `PolitisRomano_1994_subsampling_confidence_regions_AnnStat`.
+- Liu, D., Song, K., Townshend, J.R.G. & Gong, P. (2008). Using local transition probability models in Markov random fields for forest change detection. *Remote Sensing of Environment* 112(5):2222–2231. doi:10.1016/j.rse.2007.10.002 — **PRIMARY**, reviewer-read (abstract). Filed `LiuSongTownshendGong_2008_local_transition_MRF_forest_change_RSE`.
+- Solberg, A.H.S., Taxt, T. & Jain, A.K. (1996). A Markov random field model for classification of multisource satellite imagery. *IEEE TGRS* 34(1):100–113. doi:10.1109/36.481897 — filed, header-verified, unread. Filed `SolbergTaxtJain_1996_MRF_multisource_TGRS`.
+- **Indexed, behind the second index's bot challenge (2026-09-12), not obtained:** Zheng & Zhu (2008) *JCGS* 17(1) doi:10.1198/106186008X289641; Zhu, Zheng, Carroll & Aukema (2008) *JABES* 13(1) doi:10.1198/108571108X273566; Caragea & Kaiser (2009) *JABES* 14(3) doi:10.1198/jabes.2009.07032; Brook & Evans (1972) *Biometrika* 59(3) doi:10.1093/biomet/59.3.539; Reynolds & Stoumbos (1999) *J. Quality Technology* 31(1) doi:10.1080/00224065.1999.11979900; Steiner, Cook, Farewell & Treasure (2000) *Biostatistics* 1(4) doi:10.1093/biostatistics/1.4.441; Marsan & Lengliné (2008) *Science* 319 doi:10.1126/science.1148783; Liu & Cai (2012) *Annals AAG* 102(6) doi:10.1080/00045608.2011.596357; Cai, Liu, Sulla-Menashe & Friedl (2014) *RSE* 147 doi:10.1016/j.rse.2014.03.012; Melgani & Serpico (2003) *IEEE TGRS* 41(11) doi:10.1109/tgrs.2003.817269; Cabo & Baddeley (1995) *Adv. Appl. Prob.* 27(3) doi:10.1017/S0001867800027063 — all **METADATA**.
+- **Not on the first index; no OA copy:** Blakemore (1984) *Cartographica* doi:10.3138/1005-13mg-2627-2552; Page (1954) *Biometrika* 41 doi:10.1093/biomet/41.1-2.100; Hall (1985) *Stoch. Proc. Appl.* 20 doi:10.1016/0304-4149(85)90212-1; Lahiri (2003) *Resampling Methods for Dependent Data* ch. 12 doi:10.1007/978-1-4757-3803-2_12; Matheron (1975) *Random Sets and Integral Geometry* (book) — **METADATA**. **No DOI in any index:** Kreinin & Sidelnikova (2001) *Algo Research Quarterly* 4(1/2); Lewis & Mohler (2011) preprint.
 
 ### Held locally (`D:\edmonds-pipeline\Literture\`), read directly from PDF
 - Li, B., Liu, X., Zhuang, H., Shi, Q., Zeng, L., Cai, Y., Zhang, H., Cai, Y., Wu, C. & Xu, X. (2026). ALCC: Temporally Consistent Annual Land Cover Maps over China from 1985 to 2022 Based on an Ensemble Change Detection Method. *J. Remote Sens.* 6:1029. doi:10.34133/remotesensing.1029 — **PRIMARY** (local PDF; record and OA figures independently re-verified in round 2)

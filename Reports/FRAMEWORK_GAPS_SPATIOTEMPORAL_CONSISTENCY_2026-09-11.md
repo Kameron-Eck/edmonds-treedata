@@ -466,10 +466,10 @@ one GPU-shaped cost, or permutohedral on CPU. Nothing here needs training.
 |---|---|---|---|---|---|
 | 1 | Emission model: `K`-bin (§2.3 A) vs calibrated log-odds (B) | the logits patch; everything upstream of the threshold | held-out log-likelihood of `e_t(b\|z)` on certified cells across `K` | placebo rate shuffle (brief §5): likelihood must fall | **[D] open — decides the patch** |
 | 2 | ~~Two-sided CUSUM thresholds at `T = 12`~~ → one-sided chart per certified population, threshold per `(population, band, α)` | the detector (§2.2, §12.3) | Monte Carlo on null sequences, `(r_{t,b}, f_{t,b})` | null sequences must not alarm above `α`; placebo must fall | **[D] resolved in form (§12.3); threshold still to run** |
-| 3 | `(β, γ)` estimation | the spatial layer (§3) | Gräler protocol on `𝒢 ∪ ℱ` with `(0,γ̂)`, `(β̂,0)`, `(0,0)` | `(0,0)` reported; an inert weight is a result | **[D] open** |
+| 3 | `(β, γ)` estimation | the spatial layer (§3) | Gräler protocol on `𝒢 ∪ ℱ` with `(0,γ̂)`, `(β̂,0)`, `(0,0)` | `(0,0)` reported; an inert weight is a result | **model + MPLE + bootstrap SEs published for equal intervals [Q] (§17.3); interval-dependent temporal term [D]** |
 | 4 | Erasure radius for the smoother actually chosen | §3.3; the "never redraw" question (brief §6.1) | TV-L1 / area opening: exact, `R_erase = 2/λ` (§13.2); mean-field: injected disks on real rasters only | 42 losses and `𝒢` (claim) | **closed-form for TV-L1 [Q→S]; TV-flow extinction `t = R/2` [Q] (§16.2); open only if mean-field is chosen (§13.2)** |
 | 5 | Leave-one-epoch-out scoring identity under Bernoulli noise | §5.2 | derived: §12.4 (Brier form; needs stratum prevalence `π_t`) | a deliberately leaking (median-type) layer must score *below* the noise floor | **[D] derived (§12.4); check not run** |
-| 6 | Covariance penalty under spatially / class-correlated error | §5 as a whole | no closed form exists (PRIMARY negative, §13.1); Efron identity + *correlated* bootstrap, leave-out widened to the correlation group `G(t)`; two residual correlograms on the strata | independent-Bernoulli bootstrap must under-estimate `Ω` on an injected correlated field; correlated one must not | **per-cell closed form [S] (§15.1); `G(t)` mask rule [Q] (§16.1); the two correlograms remain [D — measurement]** |
+| 6 | Covariance penalty under spatially / class-correlated error | §5 as a whole | no closed form exists (PRIMARY negative, §13.1); Efron identity + *correlated* bootstrap, leave-out widened to the correlation group `G(t)`; two residual correlograms on the strata | independent-Bernoulli bootstrap must under-estimate `Ω` on an injected correlated field; correlated one must not | **per-cell closed form [S] (§15.1); `G(t)` mask rule [Q] (§16.1); published goodness-of-fit kill [Q] (§17.5); the two correlograms remain [D — measurement]** |
 | 7 | Power: 42 losses resolve `Δ ≳ 0.12` only | which kills can decide small effects | use `𝒢`, `ℱ` for small effects | — | **[D] derived, stated** |
 | 8 | Conservative mask fraction `φ` | §7.2 | tie to `R_min` (row 4) or report hand-set | — | **[D] open** |
 | 9 | Development prior `A, R, k` | §6.1 | fit: `A` canonical by pseudolikelihood, `R, k` irregular by profile likelihood, or NHMM-EM (§13.3); population = LOSS build (11b) near dated footprints | no-change gold near new buildings stays no-change (brief §5) | **fitting protocol found [S]; forms still ours (§13.3)** |
@@ -484,7 +484,7 @@ one GPU-shaped cost, or permutohedral on CPU. Nothing here needs training.
 increments, §2.2 substitutions and worked instance, §2.4 the `γ = 0` analogue, §3.3 the
 contrast translation, §5.1 the strata, §7.1 the lattice map, §7.2 the conservative rule)
 and every [D] (§2.1 sensitivity, §2.2 the join, §2.3 the verdict, §2.4 `k_½`, §3.1–3.4,
-§4, §5.2–5.4, §6, §7.2 `φ`, §8, §11, and all of §12–§16 — added 2026-09-12, after this
+§4, §5.2–5.4, §6, §7.2 `φ`, §8, §11, and all of §12–§17 — added 2026-09-12, after this
 ledger, which is why they sit below it) is unvalidated. The independent check for each is the
 row above that names it, run by someone other than this document's author, on real data,
 with the kill shown to fire first. A design accepted on numbers it produced about itself is
@@ -1247,11 +1247,142 @@ TV-L1 or the flow the erased size is a property of the smoother alone. The smoot
 
 ### 16.5 What is not obtained, and why it does not matter
 
-Conley 1999 (indexed on the second mirror; the storage host refuses the file under both
-DOI encodings) would supply a heteroskedasticity-and-autocorrelation-consistent variance
+Conley 1999 (indexed on the second mirror, whose storage host went behind a JavaScript
+bot challenge that afternoon — round 8 had misread the 403 as a missing file) would supply a heteroskedasticity-and-autocorrelation-consistent variance
 for the correlogram estimates; §15.1's per-cell Steinian and the correlated bootstrap for
 intervals cover that need. The four MDPI papers and Laurance 1998 *Ecology* are cited by
 nothing in this document. **Nothing load-bearing is unread.** Every row still open in §11
 closes by a measurement named in its "cheapest closing step" column, and the first three
 of those (row 12's convention check, §15.1's synthetic-autologistic kill, the `𝒞` and
 LOSS rules) need no lake write and no GPU.
+
+## 17. Round 9 — seven fields named from the [D] list, searched: what became theorem, estimator, or kill (2026-09-12)
+
+Review §4.18. Rule for this section: a [D] line moves only if the theorem or estimator
+was read at the passage; searcher-verified files move nothing.
+
+### 17.1 §14.5 — the edge-band rate is the covariogram slope [D→Q]
+
+Galerne 2011, Eq. 2 (review §4.18.1): for any measurable planar set the perimeter equals
+`−(1/2)∫_{S¹}(g^u)′(0⁺)du`, so the direction-averaged slope of the covariogram at zero is
+`−Per/π` and `|Ω Δ (Ω+s)| ≈ (2/π)·Per(Ω)·|s|`. §14.5's false-change fraction
+`(2/π)·ρ_P·|s|` (with `ρ_P = Per/area`) is therefore Matheron's result, attributed by
+Galerne to Haas et al. 1967, Matheron 1975 and Serra 1982. Two consequences: (i) the
+numeric self-check in §14.5 now checks a theorem, not a derivation; (ii) Eq. 1 supplies
+the **directional** version — slope in direction `u` equals `−V_u(Ω)`, the directional
+variation (for a smooth boundary, the total projected width in that direction). The
+per-axis systematic medians in `coregistration.csv` are a directional shift, so the
+correctable component uses Eq. 1 with `u` along the measured axis and the isotropic
+residual uses Eq. 2. The kill in §14.5 (linear term over-predicts at large `s`) stands;
+the small-`s` regime is the one the theorem covers.
+
+### 17.2 §14.7 — the σ composition is the Law of Propagation of Errors [D→Q]; `Φ(d/σ)` stays [D]
+
+Chrisman 1982 (review §4.18.2): independent error sources introduced at successive
+stages compose by "adding the variances of the distributions". `σ² = σ_reg² + σ_fp²` is
+that law with its assumption stated — registration residual and footprint digitising
+error must be independent, which they are by construction (different instruments,
+different epochs). No source states the blurred indicator `Φ(d/σ)`; the medical-imaging
+literature builds soft labels by fixed-radius dilation (a step, not a Gaussian ramp) —
+recorded as a negative. `Φ(d/σ)` remains a one-line derivation of ours, and the §14.7
+inputs (σ_fp; a building reference) remain measurements.
+
+### 17.3 Row 3 — the layer's model is the spatio-temporal autologistic regression [D→Q for equal intervals]
+
+Zhu, Huang & Wu 2005 (review §4.18.3) is the framework's §2 chain plus §3 coupling in one
+published conditional: covariates (development, building, water priors as regressors),
+a spatial autoregression `θ_{p+1}` (our `β`), a temporal autoregression `θ_{p+2}` (our
+`γ`). Published with it: maximum pseudo-likelihood for the parameters, Gibbs sampling for
+prediction, parametric bootstrap for standard errors. Hughes, Haran & Caragea 2011 add
+the practical recommendation — the *centered* parameterisation and PL — because in the
+traditional model the autocovariate absorbs large-scale structure that the regressors
+should carry; here that is exactly the competition between the development prior and
+the spatial term. **What stays [D]:** their field is undirected in time (`Y_{i,t}`
+conditions on `Y_{i,t−1}` *and* `Y_{i,t+1}`) on equally spaced `t ∈ Z`, with time-invariant
+coefficients. Our epochs are irregular and the §2 chain is forward. Two routes, both ours:
+(a) fit their model on the yearly grid of §15.2 with missing epochs marginalised by the
+Gibbs step (their prediction machinery already handles unobserved `Y_t`); (b) keep the
+forward chain and set `γ(Δt)` from the yearly root, `γ(Δt) = logit`-scale image of
+`λ^{Δt}`. Route (a) uses only published pieces; route (b) uses §15.2 [Q] plus a [D] map.
+Kill unchanged (§3.4 injected disc; §11 row 3: `(0,0)` reported). Software: `ngspatial`
+(areal, centered, PL) exists; the temporal term does not, in it.
+
+### 17.4 Row 9 — `D_k(τ)·R(d)` has a nonparametric estimator: the ETAS kernel by EM [Q for the estimator; D for the mapping]
+
+Ogata 1988's epidemic form (review §4.18.4): intensity = background + Σ over past events
+of a kernel `g(t − t_i)`; the space-time version has `g(τ, d)`. Marsan & Lengliné's
+model-independent declustering (Reinhart 2018 §3.2.3) estimates `g` as **piecewise
+constant in `(τ, d)`** by EM — a histogram kernel, no shape assumed — and Zhuang 2002's
+branching probabilities attribute each event to background or to a specific parent. The
+mapping to us is not in those papers and is [D]: the "parents" are dated developments
+(known, exogenous — no branching to estimate), the "events" are certified losses on
+`𝒞`, and the kernel is the excess loss hazard at lag `τ` and distance `d`. Under that
+mapping the EM reduces to a weighted histogram: for each certified loss, distribute its
+weight over the developments within `(T_max, R_max)` in proportion to the current `g`,
+re-estimate `g` on the `(τ, d)` bins, iterate. The two-term family of §14.6 becomes the
+*parametric* alternative, tested against the histogram by the same held-out
+log-likelihood as the one-vs-two-term test. Bacry 2015's caveat applies: EM is slow for
+slowly decaying kernels and cannot produce negative bins (a protective effect after
+replanting would be invisible; §14.6's `1[τ ≤ T_max]` truncation handles it). The
+multiplicative local-transition form of §6.1 is second-sourced in remote sensing by Liu
+et al. 2008 (review §4.18.9).
+
+### 17.5 Row 6 — the §15.1 kill has a published form; two block-size rules that answer different questions
+
+Kaiser, Lahiri & Nordman 2012 (review §4.18.8): generalized spatial residuals of a fitted
+MRF, computed within concliques, are i.i.d. uniform under the model. That is a
+goodness-of-fit test for the autologistic fit §15.1 relies on, and it is the test the
+synthetic-autologistic kill should run: on a field simulated from the fitted model the
+conclique residuals must pass; on the real strata they either pass (model adequate,
+per-cell `Ω` trusted) or fail (and the correlogram measurement says how). Block size:
+Nordman & Lahiri 2004 give `m ∝ n^{1/3}` as MSE-optimal for *variance estimation* by
+subsampling; Roberts 2017 / Valavi 2018 give "at least the autocorrelation range" for
+*leakage-free validation*. §12.2 keeps the range rule (its purpose is leakage);
+§15.1's interval bootstrap uses the `n^{1/3}` rule.
+
+### 17.6 Row 11a — the guard is the theorem; and what to do when it fails [Q]
+
+Kingman 1962 Proposition 2 (review §4.18.5): a 2 × 2 stochastic matrix has a
+continuous-time generator iff `det P > 0` and `tr P > 1`. With `λ = tr P − 1` for two
+states, that is `0 < λ < 1` — §15.2's existence guard is the necessary-and-sufficient
+condition, not a heuristic. Israel, Rosenthal & Wei 2001 Theorem 2: `p_ii > 1/2` for all
+`i` guarantees the log-series converges and (Cuthbert) the generator is unique — for a
+persistence chain both diagonals exceed one half by construction, so the yearly root is
+unique when it exists. When a multi-state matrix (the `K`-bin emission chain of §2.3 A, or
+a mixed stratum) fails: Israel's §3 fix (zero small negative off-diagonals, redistribute
+along the row) or Charitos 2008's minimum-distance row regularisation, both [Q]; the
+choice is a §9 decision, recorded when it arises.
+
+### 17.7 Row 2 — the CUSUM threshold is an exact computation, not a Monte Carlo [Q]
+
+Reynolds & Stoumbos 2000 Appendix C (review §4.18.6): the in-control run length of the
+Bernoulli CUSUM is exact from a Markov chain on the chart's `t = mh` transient states
+(the Brook–Evans construction), when the log-likelihood-ratio increments are in integer
+ratio `m`. Row 2's threshold per `(population, band, α)` is therefore solved by
+inverting that run-length formula for `h`; the Monte Carlo on null sequences becomes the
+check that the implementation matches the formula. The transition matrix itself is in
+the 1999 *JQT* paper (indexed, behind the challenge); until it is read, the construction
+is [Q] by description and the matrix is rebuilt from the chart definition [D] — a
+one-page derivation, checkable against Lucas & Crosier's Table 1 values.
+
+### 17.8 Ledger deltas from round 9
+
+| # | Was | Now |
+|---|---|---|
+| 2 | Monte Carlo threshold [D] | **exact Markov-chain run length [Q]** (Reynolds & Stoumbos 2000 App. C; Brook–Evans); Monte Carlo is the check |
+| 3 | `(β, γ)` open [D] | **model, MPLE, bootstrap SEs published [Q] for equal intervals** (Zhu 2005; Hughes 2011 centered + PL); irregular-interval temporal term [D] via §15.2 |
+| 4 | TV-L1 / TV-flow [Q]; Potts one-liner [D] | unchanged — nine graph-cut papers filed, unread |
+| 6 | per-cell `Ω` [S]; `G(t)` [Q] | + **published goodness-of-fit kill [Q]** (Kaiser–Lahiri–Nordman conclique residuals); block rules separated by purpose |
+| 9 | two-term `D_k` family [S]; coefficients fit | + **nonparametric `(τ, d)` histogram kernel by EM [Q]** (ETAS/MISD); mapping to dated developments [D]; §6.1 form second-sourced (Liu 2008) |
+| 10 | `Φ(d/σ)` [D]; σ composition [D] | **composition [Q]** (Chrisman 1982, Law of Propagation of Errors); `Φ(d/σ)` still [D]; dilation-based soft labels a negative |
+| 11a | yearly root [Q]; `0<λ<1` guard [D] | **guard is Kingman's iff condition [Q]**; uniqueness for `p_ii > ½` [Q]; regularisation when invalid [Q] |
+| 14 | rate [D]; screen [S]; compensation option [S] | **rate [Q]** (Galerne Eq. 2 = Matheron); directional form (Eq. 1) for the per-axis medians |
+
+### 17.9 What round 9 did not obtain, and whether it matters
+
+Twelve indexed papers sit behind one JavaScript challenge on the second index's storage
+host (review §4.18, closing list). Three of them would move a grade: Reynolds & Stoumbos
+1999 (the CUSUM transition matrix, [D→Q]), Zhu et al. 2008 (MCML for the spatio-temporal
+autologistic model, the fit §17.3 would use at scale), and Marsan & Lengliné 2008 (the
+MISD estimator at its source rather than via Reinhart). The other nine attribute or
+confirm. A browser can pass the challenge where `curl` cannot; that is Kam's call.

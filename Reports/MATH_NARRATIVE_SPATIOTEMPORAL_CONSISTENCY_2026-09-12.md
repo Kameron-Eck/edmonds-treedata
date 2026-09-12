@@ -197,9 +197,16 @@ skill, the chain alone is the layer.
 published fit assumes it observed. Rows 1 and 3 are one estimator: EM on the yearly grid,
 E-step by Gibbs over `z` given `x`, M-step = the 2008 MCML plus the emission fit on the
 certified cells (§18.1). Identifiability comes from the certified populations only.
-(ii) Irregular spacing: run on the yearly grid with unobserved years marginalised, or
-adopt the continuous-time multi-state form with a generator `Q` and `exp(QΔt)` (rows 17–18,
-round 10). (iii) One `β` per resolution stratum (row 21).
+(ii) Irregular spacing — **published (round 10, framework §19.1)**: the panel-data
+multi-state model of Kalbfleisch & Lawless 1985 fits a generator `Q` with `P(Δt) =
+exp(QΔt)` on unequally spaced observations, and Jackson's `msm` (2011) carries the
+hidden-Markov form with a misclassification matrix `e_rs` that "may also be modelled in
+terms of covariates" — epoch and band. Fitting `Q` directly replaces Step 2's
+eleven-year-then-root route, and the joint fit removes the misclassification bias in the
+rates (Rosychuk & Thompson 2003 [Q]: naive estimators "on average overestimate" the
+transition probabilities). What stays ours is the join of that temporal chain with the
+spatial term on one latent state — the EM of §18.1. (iii) One `β` per resolution stratum
+(row 21).
 
 ---
 
@@ -228,8 +235,14 @@ q_loss(i, t) = q_l · exp( A · R(d_i) · D_k(τ_{i,t}) )
   shape-free alternative is the **histogram kernel by EM** of seismology (Ogata 1988's
   epidemic form; Marsan & Lengliné 2008's two-step iteration; Zhuang 2002's attribution
   probabilities [Q]) — with our mapping [D]: parents are dated developments (known), events
-  are certified losses, so the EM is a weighted histogram over `(τ, d)` bins. Row 19
-  recasts both as a distributed-lag regression under a complementary-log-log link (round 10).
+  are certified losses. **Round 10 (framework §19.2) makes the EM unnecessary:** with a
+  logistic (or complementary-log-log) model of loss, the self-exciting likelihood "is
+  equivalent to the likelihood of a GLM under a Bernoulli distribution and a logistic
+  link function" (Truccolo et al. 2005 [Q]), and the lag × distance surface is a
+  distributed-lag *cross-basis* `W = Q·C` with implied effects `b̂ = C ĝ` and covariance
+  `C V(ĝ) Cᵀ` (Gasparrini, Armstrong & Kenward 2010 [Q]; penalised version 2017). The
+  histogram is the step basis, the two-term family a parametric basis, the one-vs-two-term
+  test a nested comparison, and confidence bands come with the fit.
 - **Fitting protocol [S, Baddeley & Turner]:** `A` canonical by pseudolikelihood; `R`, `k`
   irregular by profile likelihood; or NHMM-EM. Kill: no-change gold near new buildings
   stays no-change; a null surface on shuffled dates must be flat.
@@ -320,9 +333,15 @@ the chart is a Markov chain on `t = m·h` transient states, moving down one stat
 Monte Carlo on null sequences is the check that the implementation matches. The variance
 inflation `1/(r − f)²` and the placebo shuffle remain the kill.
 
-**Two assumptions the published run length makes that we violate (row 20, [D]):**
-independent increments — chart the chain's *residuals* `x_t − p̂(x_t | past)`, not raw
-states; and one chart — millions of charts need a false-discovery rule over cells. Round 10.
+**Two assumptions the published run length makes (row 20, resolved [S] in round 10,
+framework §19.3):** independent increments — but Lu & Reynolds 2001 [Q] find observation
+charts "perform as well as CUSUM charts of residuals, except in the case in which the
+level of autocorrelation is high and the shift in the process mean is large", so the
+correlogram measurement decides whether the raw chart with a design adjustment or the
+residual chart `x_t − p̂(x_t | past)` is used; and one chart — with many cells the
+false-alarm constraint is *global* (Mei 2010's sum of local CUSUMs; Xie & Siegmund 2013's
+mixture with an analytic run length [Q]), not a per-cell `α`. Band-indexed increments are
+the risk-adjusted CUSUM of Steiner et al. 2000 [Q] under its published name.
 
 ---
 
@@ -365,6 +384,14 @@ E[(p̂_t − z_t)²] = E[(p̂_t − y_t)²] − [ π_t r_t(1−r_t) + (1−π_t)
 Proposition 1 [Q]); `π_t` per stratum is Step 2's persistence weight. Usable on stratum
 means, never per cell. Kill: a layer that copies its input must score *below* the floor.
 
+**Identifying the emission without labels [Q, round 10].** Three arms with conditionally
+independent errors and better-than-chance accuracy identify each arm's accuracy from
+agreement rates alone (Platanios, Blum & Mitchell 2014); under independent errors the
+arms' off-diagonal covariance is rank one with leading eigenvector proportional to their
+balanced accuracies (Parisi et al. 2014); a verified subset selected on the test result
+biases the estimate (Begg & Greenes 1983). Whether three of our arms have independent
+errors is a measurement (the fusion finding says two may not).
+
 **Model adequacy [Q].** Generalized spatial residuals within concliques are i.i.d. uniform
 under the fitted autologistic model (Kaiser, Lahiri & Nordman 2012 Thm 2.1) — the
 published form of the synthetic-autologistic kill.
@@ -397,11 +424,12 @@ tile counts).
 
 ## 10. Where the mathematics is still ours
 
-After nine rounds of reading, the derivations that no paper supplies: `Φ(d/σ)` (one
-line); the hidden-state EM joining rows 1 and 3; the irregular-interval spacing of the
-chain (pending row 17); the earthquake-to-development mapping of the kernel; the
-registration covariate in the emission; the Potts erasure constant (nine papers filed,
-unread). Everything else above is quoted or substituted. The measurements that close the
+After ten rounds of reading, the derivations that no paper supplies: `Φ(d/σ)` (one
+line); the join of the continuous-time temporal chain with the spatial field on one
+latent state (the hidden-state EM of §18.1 — both halves now published, the join ours);
+the registration covariate in the emission; the Potts erasure constant (nine papers
+filed, unread). The irregular-interval chain and the kernel's estimator moved to
+published frameworks in round 10. Everything else above is quoted or substituted. The measurements that close the
 rest are in §9; the first three need neither the lake nor a GPU.
 
 ---

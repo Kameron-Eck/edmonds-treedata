@@ -133,3 +133,16 @@ e.g. a gap-ledger row with no literature attached says so here, as its own
 `Search Phase` row).
 
 Feeds token depth: `review §N` may carry any number of sub-levels (`review §4.18.4`); `framework §N` at most one (`framework §13.1`). Grade rule: `Evidence grade` is the reviewer's read grade — PRIMARY or ABSTRACT implies Status Read; an obtained-but-unread row carries no grade.
+
+## Acquisition route order (2026-09-13)
+
+1. Open access (arXiv, publisher OA, repositories) by curl.
+2. Anna's Archive member route by DOI: `D:	oolsnnas-mcpa_fetch.py` (logs in with Kam's key
+   from `D:\edmonds-pipeline\secrets\Anna_key.txt`, reads the md5 from the SciDB page, calls the
+   member fast-download API, verifies the PDF, files `<stem>.pdf` + `.txt`, appends the manifest
+   row). 1000 downloads per day. Known failure: partner servers 404 for a few Sci-Hub-collection
+   files whose DOI suffix contains a slash.
+3. Sci-Hub first index by curl.
+4. One browser session, last, for whatever remains.
+Acquisition agents never hold delete permission in the literature folders; every file is verified by
+content before it is kept.

@@ -1,0 +1,6 @@
+# litkb (literature knowledge base) — database, CLI and tests. Kept OUT of pyproject.toml and
+# out of requirements-colab.txt / requirements-local.txt so the engine's environment never
+# pulls it (design Scripts/LITERATURE_KB_DESIGN_2026-09-13.md §9, referee M9).
+# Extraction tools (Docling, MinerU, embedding models) will get their own
+# requirements-litkb-extract.txt in P4.
+psycopg[binary]==3.3.5

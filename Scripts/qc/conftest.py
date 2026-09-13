@@ -61,6 +61,35 @@ def _real_targets():
 _TARGETS = _real_targets()
 
 
+# ── litkb: the Postgres-backed tests (design LITERATURE_KB_DESIGN_2026-09-13.md §9) ────────
+# Tests that need the local litkb server carry @pytest.mark.requires_litkb_pg and SKIP when
+# the server, the litkb_test role or psycopg is absent, so the ladder still runs on a
+# machine without Postgres. A skip must never be silent: the summary below counts them.
+_LITKB_MARK = "requires_litkb_pg"
+
+
+def pytest_configure(config):
+    config.addinivalue_line(
+        "markers",
+        f"{_LITKB_MARK}: needs the local litkb PostgreSQL server (localhost:5433, role "
+        "litkb_test); skipped when absent, and the skip count is printed")
+
+
+def pytest_terminal_summary(terminalreporter):
+    counts = {}
+    for outcome in ("passed", "failed", "error", "skipped"):
+        n = sum(1 for r in terminalreporter.stats.get(outcome, [])
+                if _LITKB_MARK in getattr(r, "keywords", {}))
+        if n:
+            counts[outcome] = n
+    if counts:
+        line = "litkb Postgres tests: " + ", ".join(f"{n} {k}" for k, n in counts.items())
+        if "skipped" in counts:
+            line += (f"  <- {counts['skipped']} SKIPPED: litkb server/role/psycopg absent, "
+                     "so those guards were NOT tested")
+        terminalreporter.write_line(line)
+
+
 def _fingerprint(p):
     """(exists, size, mtime) for a file; (exists, entry count) for a directory."""
     try:

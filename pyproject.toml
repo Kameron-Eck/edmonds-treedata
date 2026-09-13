@@ -28,9 +28,12 @@ requires-python = ">=3.11"
 
 [tool.setuptools]
 package-dir = {"" = "Scripts/pipeline"}
-packages = ["phase4seg"]
+packages = ["phase4seg", "litkb", "litkb.db"]   # litkb: literature KB (its deps: requirements-litkb.txt)
 py-modules = ["lake", "pipeline_log", "registry_from_manifests", "cost_report",
               "imagery_measure", "champion", "phase4_sentinel_snap"]  # refactor 4a: shared trio
+
+[tool.setuptools.package-data]
+"litkb.db" = ["migrations/*.sql"]
 
 # Lint gate (refactor follow-up, 2026-09-01): F-rules ONLY, deliberately.
 #   F821 undefined-name caught 7 live bugs on first run (5 clean_argv NameErrors

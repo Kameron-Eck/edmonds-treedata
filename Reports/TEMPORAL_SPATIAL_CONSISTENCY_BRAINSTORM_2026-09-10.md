@@ -215,3 +215,10 @@ its output restriction (§3.5) are kept.
 Everything in §4–§7. The only tracked artefacts are the ones cited in §2. This brief is
 authored; when a measurement lands it goes to `phase4/qc/` and gets a pointer here, and
 the brief's claim is rewritten to cite it.
+
+**Downstream documents (2026-09-11).** The literature behind §4 is
+`LIT_REVIEW_SPATIOTEMPORAL_CONSISTENCY_2026-09-10.md` (three search rounds; §4.12 is the
+adjacent-field mathematics). The design assembled from it, with every equation binned as
+quoted / substituted / derived and a twelve-row ledger of what is still open, is
+`FRAMEWORK_GAPS_SPATIOTEMPORAL_CONSISTENCY_2026-09-11.md` — DESIGN-STAGE, UNVALIDATED.
+Neither restates a number from §2; both cite it. Nothing has graduated to `experiments/`.

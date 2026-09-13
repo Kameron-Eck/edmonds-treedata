@@ -242,3 +242,23 @@ decisions:
       - experiments/heal_infill_2017_2023.yaml
       - pipeline/queue_verify.py
       - pipeline/phase4seg/select.py
+
+  - id: canopy-floor
+    question: >-
+      Does the deliverable's canopy class have a minimum tree height, below which a
+      woody-looking pixel is shrub, not canopy?
+    owner: kam
+    status: decided
+    decided: "2026-09-12"
+    decision: >-
+      Yes. Small trees of about 2 m are not canopy for this deliverable ("Thats akin to
+      shrub and doesnt provide canopy services"). The mask adopts the lidar
+      certification floor already in use for change rates (h >= 5 m) unless Kam sets a
+      different value. Consequences are worked through in the source section, not here.
+    why: >-
+      Every downstream measurement that needs a "real tree" size threshold — the
+      target-erasure radius (framework §20, ledger row 22), the growth stratum, the
+      certified populations' boundary — was undefined without this call.
+    evidence:
+      - Reports/FRAMEWORK_GAPS_SPATIOTEMPORAL_CONSISTENCY_2026-09-11.md
+      - qc/instruments/harm_change_laundering.py

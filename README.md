@@ -74,9 +74,9 @@ artifacts live on a separate data plane and are not part of this repository.
 | `Scripts/pipeline/` | The engine (`phase4seg/`), orchestration, VM ops, shared modules; `builders/` (artifact producers), `frozen/` (phase 0–3 provenance) |
 | `Scripts/qc/` | Test suite + drift gates, operational tools; `instruments/` — ~70 measurement scripts |
 | `Scripts/experiments/` | Pre-registered experiments: hypothesis, arms, decision rule, verdict |
-| `Scripts/docs/` | Data contracts ([SCHEMAS](Scripts/docs/SCHEMAS.md)), the projection census ([CRS_CENSUS](Scripts/docs/CRS_CENSUS.md)), the statistics pre-flight ([STATS_CHECKLIST](Scripts/docs/STATS_CHECKLIST.md)), archive map |
+| `Scripts/docs/` | Data contracts ([SCHEMAS](Scripts/docs/SCHEMAS.md)), the projection census ([CRS_CENSUS](Scripts/docs/CRS_CENSUS.md)), the statistics pre-flight ([STATS_CHECKLIST](Scripts/docs/STATS_CHECKLIST.md)), the literature file-name convention ([LITERATURE_CONVENTION](Scripts/docs/LITERATURE_CONVENTION.md)), archive map |
 | `phase4/qc/` | Tracked measured outputs: the passport, geometry and registration tables, honest score history |
-| `Reports/` | Written deliverables and analysis reports |
+| `Reports/` | Written deliverables and analysis reports, incl. the spatiotemporal-consistency line: [LIT_REVIEW](Reports/LIT_REVIEW_SPATIOTEMPORAL_CONSISTENCY_2026-09-10.md) (reading log + bibliography) + [its CSV index](Reports/lit_spatiotemporal_bibliography.csv), [FRAMEWORK_GAPS](Reports/FRAMEWORK_GAPS_SPATIOTEMPORAL_CONSISTENCY_2026-09-11.md) (derivations + gap ledger + decisions), [MATH_NARRATIVE](Reports/MATH_NARRATIVE_SPATIOTEMPORAL_CONSISTENCY_2026-09-12.md) (inputs to outputs), [the data-session HANDOFF](Reports/HANDOFF_SPATIOTEMPORAL_DATA_SESSION_2026-09-12.md) |
 
 ## Documentation entry points
 

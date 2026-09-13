@@ -1,0 +1,162 @@
+# LITERATURE_CONVENTION — file names and manifest for the literature store
+
+**Why this file exists.** On 2026-09-12, 149 PDFs were lost in one day to an
+unidentified delete issued from a shell against the literature folders; the `.txt`
+extracts survived and every lost PDF was re-acquired by DOI. That is the reason for
+every rule below, not a style preference. This doc describes the CONVENTION — naming,
+manifest schema, acquisition rules. It never restates which papers exist or what they
+found; that lives in `Reports/LIT_REVIEW_SPATIOTEMPORAL_CONSISTENCY_2026-09-10.md` and
+the topic's own `manifest.csv` (one fact, one home).
+
+## Location
+
+`D:\edmonds-pipeline\Literture\<Topic>\` — flat per topic, currently `Validation`,
+`ASPP`, `Labeling`, `other`. This tree is **outside git** and **not backed up**. The
+`.txt` extract is the durable copy and is written the moment a PDF lands — never defer
+the extract to a later pass.
+
+## File name: `Surname_Year_slug.ext`
+
+- **Surname** — first author only, ASCII, multi-part names joined without spaces or
+  punctuation (`ONeilDunne`, `VanDenHout`).
+- **Year** — 4 digits. An `a`/`b` suffix is used ONLY to break a same-surname,
+  same-year collision (`Smith_2019a_…`, `Smith_2019b_…`) — never as a versioning
+  convention.
+- **slug** — 2 to 5 lowercase title words, hyphen-joined, stopwords dropped, no venue
+  name, no DOI fragment.
+- **ext** — one stem, three possible extensions, all present when the paper is fully
+  processed:
+  - `.pdf` — the source
+  - `.txt` — `pdftotext -layout` extract
+  - `.raw.txt` — `pdftotext -raw` extract, for two-column papers where `-layout`
+    scrambles column order
+- Whole name: no spaces, no unicode, under 60 characters.
+
+Examples: `Galerne_2011_perimeter-covariogram`, `Zhu_2008_spatiotemporal-autologistic-mcml`,
+`ONeilDunne_2014_production-canopy-mapping`.
+
+## `manifest.csv` — the machine-readable authority
+
+One file per topic folder, one row per stem. The manifest is authoritative; the
+filename is a label for humans, not a parser target.
+
+| column | meaning |
+|---|---|
+| `stem` | the filename stem (no extension) — join key to the files on disk |
+| `title` | full paper title |
+| `authors` | all authors, as printed |
+| `year` | publication year |
+| `venue` | journal / conference |
+| `doi` | DOI if known |
+| `arxiv` | arXiv id if known |
+| `source_route` | how it was obtained — see acquisition order below |
+| `obtained_date` | date the file landed in the folder |
+| `sha256` | checksum of the `.pdf` at acquisition time |
+| `verified_against_extract` | `yes` / `no` / `loose` — see verification rule below |
+| `cited_by` | report filenames that cite this stem |
+
+## Rules (learned 2026-09-12)
+
+1. **No delete permission.** Acquisition agents never get delete permission in these
+   folders. This is the direct fix for the loss above — a re-acquisition can replace a
+   missing file, but nothing should be able to remove one in the first place.
+2. **Verify by content, never by filename.** Every file is verified against its own
+   `.txt` extract or the Crossref-returned title — a filename matching what was
+   requested is not evidence the content matches. Record the outcome in
+   `verified_against_extract`.
+3. **Acquisition route order:** open access first; then Sci-Hub, first mirror index,
+   by `curl`; then Sci-Hub, second mirror index, by `curl`; a browser session is the
+   LAST resort, and browser-capable agents run **one at a time** — never two browser
+   sessions against these folders concurrently.
+
+## Legacy stems
+
+Stems written between 2026-08 and 2026-09-12 predate this convention. The rename
+mapping from legacy stem to convention stem lives in
+`Reports/lit_stem_rename_map.csv` once the rename pass runs; that file does not exist
+yet.
+
+## `Literature_Tracker.xlsx` and its CSV twins (2026-09-12)
+
+`Literature_Tracker.xlsx` (sheets `Literature Tracker`, `Search Phase Reference`) is
+the human-edited view of the tracker; `Reports/literature_tracker.csv` and
+`Reports/literature_tracker_phases.csv` are the machine-readable twin of those two
+sheets, regenerated together from the xlsx every time either changes (newlines inside
+a cell are flattened to spaces in the CSVs; the xlsx is authoritative). Never hand-edit
+the CSVs — edit the xlsx and re-export. Column definitions for the tracker sheet:
+
+| column | meaning |
+|---|---|
+| `ID` | stable row identifier, contiguous 1..N, never reused or renumbered |
+| `Author(s)`, `Year`, `Title`, `Journal/Source` | as printed by the source |
+| `Relevance (max 3 sentences)` | why the work matters here, substance first — no leading "Author Year (grade, fetch route)" restatement |
+| `Search Phase` | one of the `Search Phase Reference` sheet's phase keys |
+| `DOI/URL` | `https://doi.org/<lowercase doi>` when a DOI exists; `https://arxiv.org/abs/<id>` for arXiv; otherwise the URL as given, or `N/A — <reason>` |
+| `Status` | controlled: `Read` / `To Read` / `Not Obtained` / `Duplicate` (see `Duplicate of`) |
+| `Evidence grade` | controlled: `PRIMARY` / `ABSTRACT` / `METADATA` / blank (not yet graded) |
+| `Feeds` | semicolon-separated, doc-qualified controlled tokens — see the alias table below |
+| `Duplicate of` | integer row ID this row duplicates, else blank. When set: `Status` is always `Duplicate`, and `Evidence grade`, `Feeds`, `File stem`, `Bib line`, `Read date` are blank — the payload lives on the original row only. `Relevance` becomes `Duplicate — see [ID n, Author Year]`, generated from row n's own `Author(s)`/`Year` |
+| `File stem` | the `manifest.csv` stem when the PDF is on disk, else blank. Each stem appears in at most one row |
+| `Bib line` | the `id` from `Reports/lit_spatiotemporal_bibliography.csv`, else blank |
+| `Read date` | ISO date the row itself states a read/verification happened, else blank |
+| `Notes` | free-text provenance: fetch route, merges, DOI corrections, grade caveats, decisions. Read-state evidence (`reviewer-read` / `obtained-unread`) is folded into `Status` on sight, never left as a `read_status:` key here — `Status` is the one home for read state |
+
+**Read-state rule.** `Evidence grade` `PRIMARY` or `ABSTRACT` ⇒ `Status` `Read`;
+`METADATA` ⇒ `Status` `To Read` (if the file is on disk) or `Not Obtained`; `Status`
+`Read` ⇒ `Evidence grade` non-blank. Cases the rule cannot settle mechanically (a
+`PRIMARY`-graded work with no on-disk evidence, an `obtained-unread` state that conflicts
+with a `Read` status) are decided row-by-row against the bibliography's `read_status` /
+`txt_on_disk` / `pdf_on_disk` columns, and the decision is logged in `Notes`.
+
+**`Feeds` token vocabulary (doc-qualified, 2026-09-13).** Every token names both the
+target document and its location inside it — a bare `§N` is no longer valid on its own:
+
+| token | means |
+|---|---|
+| `framework §N[.N]` | a heading in `Reports/FRAMEWORK_GAPS_SPATIOTEMPORAL_CONSISTENCY_2026-09-11.md` |
+| `narrative §N` | a heading in `Reports/MATH_NARRATIVE_SPATIOTEMPORAL_CONSISTENCY_2026-09-12.md` (integer only — that doc does not subdivide) |
+| `gated-plan gate N` | a `## Gate N` heading in `Reports/GATED_PLAN_SPATIOTEMPORAL_CONSISTENCY_2026-09-12.md` |
+| `review §N[.N]` | a heading in `Reports/LIT_REVIEW_SPATIOTEMPORAL_CONSISTENCY_2026-09-10.md` |
+| `gap row N` | a row (1–23) of the framework's §11 gap ledger |
+| `decision <slug>` | a key in `Scripts/decisions.yaml` |
+| `report <FILE>#§<loc>` | any other tracked report; `loc` may be alphanumeric (a heading key, or `L<line>` when the citation sits outside any heading) |
+
+A token is only valid if the section/gate/row/decision it names actually exists in the
+target document — checked mechanically (heading extraction, not restatement) by
+`qc`-equivalent verification before every regeneration of the CSV twins. A `framework §N`
+token whose `N` is not a real framework heading is a mistag, not a new framework section;
+retag it to whichever of the other docs actually has that heading, and say so in `Notes`.
+
+`Search Phase Reference` columns: `Search Phase` (the key used in the tracker sheet),
+`Topic` (the question that phase searched, one line), `Status`, `Note` (free text —
+e.g. a gap-ledger row with no literature attached says so here, as its own
+`Search Phase` row).
+
+Feeds token depth: `review §N` may carry any number of sub-levels (`review §4.18.4`); `framework §N` at most one (`framework §13.1`). Grade rule: `Evidence grade` is the reviewer's read grade — PRIMARY or ABSTRACT implies Status Read; an obtained-but-unread row carries no grade.
+
+## Acquisition route order (2026-09-13)
+
+1. Open access (arXiv, publisher OA, repositories) by curl.
+2. Anna's Archive member route by DOI: `D:	oolsnnas-mcpa_fetch.py` (logs in with Kam's key
+   from `D:\edmonds-pipeline\secrets\Anna_key.txt`, reads the md5 from the SciDB page, calls the
+   member fast-download API, verifies the PDF, files `<stem>.pdf` + `.txt`, appends the manifest
+   row). 1000 downloads per day. Known failure: partner servers 404 for a few Sci-Hub-collection
+   files whose DOI suffix contains a slash.
+3. Sci-Hub first index by curl.
+4. One browser session, last, for whatever remains.
+Acquisition agents never hold delete permission in the literature folders; every file is verified by
+content before it is kept.
+
+## DOI-first rule (Kam, 2026-09-13)
+
+A work is looked up in Anna's Archive **by DOI only**. Establish the DOI first from the
+registries, in this order, and accept a hit only when title similarity ≥ 0.85 (lowercase,
+punctuation stripped), first-author surname matches, and the year matches:
+1. Crossref (`https://api.crossref.org/works/<DOI>` to confirm; `…/works?query.bibliographic=<title>&rows=3` to find);
+2. OpenAlex (`https://api.openalex.org/works?search=<title>` — metered; use sparingly) or Semantic Scholar (`https://api.semanticscholar.org/graph/v1/paper/search?query=<title>&fields=externalIds,title,year,authors`);
+3. DataCite for reports/datasets; arXiv API for preprints (an arXiv id is an identifier in its own right; its DOI form is `10.48550/arXiv.<id>`);
+4. the PDF itself, if held — publisher PDFs print the DOI on the first page.
+Only when no traceable DOI or arXiv id exists (older proceedings, agency reports, books) may a
+title search be used, and then every candidate must be verified against its record before any
+download. The manifest's `doi`/`arxiv` columns are therefore mandatory for every paper that has one;
+a row lacking both must carry a note saying why.

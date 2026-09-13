@@ -12,8 +12,10 @@ Every §14 P1 kill has a test, and the ones the referee mutated fired. Two same-
 concurrency were refused correctly in 90/90 rounds, and so were two promoters (10/10). Nothing below
 corrupts main's pointers. But one race silently strands a write (D-1). Held chains can never be
 recovered (D-2). The git rule is not where decision §15.7 says it is (D-3). A writer can disrupt other
-workstreams' promotions (D-5). And four correct guards have no test that would notice their removal
-(D-4, D-6). D-1 through D-5 should be settled before P2 writes real data.
+workstreams' promotions (D-5). And six mutations of correct guards survive the whole test file (R1, R1b under
+D-4; R2, R4, R6, R7 under D-6). D-1 could not have been seen by the builder's sequential tests: a
+sequential write to a merged workstream is refused, so only the two-connection race exposes it. The
+fixes proposed below are proposals; none was implemented or tested here. D-1 through D-5 should be settled before P2 writes real data.
 
 ## Defects
 
@@ -87,8 +89,12 @@ before the report was written.
 - `git log -p 428e194^..4648a3d` (2,687 lines) grepped for `password|passwd|pgpass|secret|token_urlsafe|PGPASSWORD|localhost:5433:`:
   hits are doc text and code identifiers only. There is no password literal and no pgpass content. The
   43-character token-shaped matches are test function names.
-- `git log --all --name-only`: no `.env`, `pgpass` or `secrets/` path ever committed. `.gitignore` covers `.env`
-  and `.litkb-workstream`. `D:\edmonds-pipeline\secrets` is outside the repository.
+- `git log --all --name-only`: no `.env`, `pgpass` or `secrets/` path ever committed. `D:\edmonds-pipeline\secrets`
+  is outside the repository. **Ignore rules are thinner than they look:** `git check-ignore -v` matched root
+  `.env` and `.litkb-workstream` only through the catch-all `.gitignore:2:/*`. `Scripts/.env` and
+  `Scripts/pipeline/.env` printed nothing, so they are **not ignored** and a `.env` there could be staged. This
+  is direct support for the builder's own unbuilt item: the §10 ladder check that fails on a staged key, `.env`
+  or pgpass file.
 - Server `log_statement = none`; provision also sets `log_min_error_statement = panic` for its session. The
   server log files themselves were **not** inspected.
 

@@ -75,3 +75,30 @@ Stems written between 2026-08 and 2026-09-12 predate this convention. The rename
 mapping from legacy stem to convention stem lives in
 `Reports/lit_stem_rename_map.csv` once the rename pass runs; that file does not exist
 yet.
+
+## `Literature_Tracker.xlsx` and its CSV twins (2026-09-12)
+
+`Literature_Tracker.xlsx` (sheets `Literature Tracker`, `Search Phase Reference`) is
+the human-edited view of the tracker; `Reports/literature_tracker.csv` and
+`Reports/literature_tracker_phases.csv` are the machine-readable twin of those two
+sheets, regenerated together from the xlsx every time either changes (newlines inside
+a cell are flattened to spaces in the CSVs; the xlsx is authoritative). Never hand-edit
+the CSVs — edit the xlsx and re-export. Column definitions for the tracker sheet:
+
+| column | meaning |
+|---|---|
+| `ID` | stable row identifier, contiguous 1..N, never reused or renumbered |
+| `Author(s)`, `Year`, `Title`, `Journal/Source` | as printed by the source |
+| `Relevance (max 3 sentences)` | why the work matters here, substance first — no leading "Author Year (grade, fetch route)" restatement |
+| `Search Phase` | one of the `Search Phase Reference` sheet's phase keys |
+| `DOI/URL` | `https://doi.org/<lowercase doi>` when a DOI exists; `https://arxiv.org/abs/<id>` for arXiv; otherwise the URL as given, or `N/A — <reason>` |
+| `Status` | controlled: `Read` / `To Read` / `Not Obtained` / `Duplicate of [ID n]` |
+| `Evidence grade` | controlled: `PRIMARY` / `ABSTRACT` / `METADATA` / blank (not yet graded) |
+| `Feeds` | semicolon-separated controlled tokens: `framework §N[.N]`, `review §N[.N]`, `gap row N`, `decision <slug>` |
+| `File stem` | the `manifest.csv` stem when the PDF is on disk, else blank |
+| `Bib line` | the `id` from `Reports/lit_spatiotemporal_bibliography.csv`, else blank |
+| `Read date` | ISO date the row itself states a read/verification happened, else blank |
+| `Notes` | free-text provenance: fetch route, merges, DOI corrections, grade caveats |
+
+`Search Phase Reference` columns: `Search Phase` (the key used in the tracker sheet),
+`Topic` (the question that phase searched, one line), `Status`.

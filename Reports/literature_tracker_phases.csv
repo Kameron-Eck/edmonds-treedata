@@ -1,0 +1,73 @@
+Search Phase,Topic,Status
+Phase 1A: Search 1,"Instance Segmentation Architectures (U-Net, Mask R-CNN, DDT)",Complete
+Phase 1A: Search 2,Resolution Sensitivity & Multi-Scale Detection,Complete
+Phase 1A: Search 3,Multi-Temporal Urban Canopy Monitoring,Complete
+Phase 2: Search 4,Active Learning & Semi-Supervised Methods,Complete
+Phase 2: Search 5,Radiometric Normalization & Cross-Sensor Features,Complete
+Phase 2: Search 6,Visible Vegetation Indices (RGB-only),Complete
+Phase 3: Search 7,Temporal Anchor-and-Project Tracking,Complete
+Phase 3: Search 8,Long-Term (>10yr) Urban Forest Studies,Complete
+Phase 4: Search 9,"Accuracy Assessment & Area Estimation Protocol (Stratified Estimators, CIs)",Complete
+Phase 4: Search 10,Reference Data Quality & Inter-Product Disagreement,Complete
+Phase 4: Search 11,Height-Stratified Detection Bias in Canopy Mapping,Complete
+Phase 4: Search 12,Label Noise & Error Propagation in Model-Derived Labels,Complete
+Phase 4: Search 13,"Lidar/CHM Fusion, Vintage Mismatch & Partial Coverage",Complete
+Phase 4: Search 14,Photo-Interpretation Protocols & Interpreter Agreement,Complete
+Phase 5: Search 15,"Cross-Sensor / Cross-Era Robustness & Domain Generalization (foundation models, historical imagery)",Complete
+Phase 5: Search 16,Test-Time / Source-Free Adaptation (unlabelled per-year adaptation),Complete
+Phase 5: Search 17,"Calibration & Uncertainty Under Domain Shift (per-year thresholds, conformal coverage)",Complete
+Phase 5: Search 18,Object-Level Conformal Prediction & Risk Control for Segmentation,Complete
+Phase 5: Search 19,"Conformal Beyond Exchangeability (covariate shift, non-exchangeable years)",Complete
+Phase 5: Search 20,Density-Ratio / Importance-Weight Estimability in High Dimensions (feasibility of weighted conformal),Complete
+Phase 5: Search 21,Conformal Calibration-Set Size: Coverage Variability vs Sharpness at small n,Complete
+Phase 5: Search 22,Self-Supervised / Foundation-Model Pretraining: does it actually help segmentation?,Complete
+Phase 5: Search 23,"Learning From One Labelled Year (temporal domain adaptation, in-archive pretraining)",Complete
+Phase 5: Search 24,"Frequency-Domain Characterization & Fourier Domain Adaptation (amplitude=style, phase=content)",Complete
+Phase 5: Search 25,Tuning Budget as the Honest Baseline (does method choice beat tuning?),Complete
+Phase 5: Search 26,Coincident/Paired Cross-Sensor Imagery & Inter-Sensor Harmonization of Canopy Series,Complete
+Phase 5: Search 27,Batch Norm Under Domain Shift: freeze vs adapt vs domain-specific branches,Complete
+Phase 5: Search 28,Single-Domain Generalization & Histogram Matching vs Style Transfer (the Search 5 rematch),Complete
+Phase 5: Search 29,"SDG Sweep: frequency style mixing (FOSMix), normalization families, DG survey",Complete
+Phase 5: Search 30,"Phenology & Season as a Domain Axis (leaf-on/leaf-off, seasonal canopy variation)",Complete
+Phase 5: Search 31,"Sun Angle, Illumination & Shadow as a Domain Axis",Complete
+Phase 5: Search 32,DG Coverage Audit: meta-learning family + the ERM/model-selection corrective,Complete
+Phase 5: Search 33,Model Selection & Unsupervised Accuracy Estimation Under Shift (agreement-on-the-line),Complete
+Phase 5: Search 34,"Weight Averaging & Ensembling for OOD Robustness (model soups, WiSE-FT)",Complete
+Phase 5: Search 35,"Segmentation Quality Without Ground Truth (reverse classification accuracy, conformal RCA)",Complete
+Phase 5: Search 36,Ground-Truth-Free Evaluation Outside Medical Imaging: what RS actually does,Complete
+Phase 5: Search 37,"Latent Class Analysis: conditional dependence, identifiability, and why 3 sources are not enough",Complete
+Phase 5: Search 38,"Correlated Reference Errors: the recurring structural problem (direction, correction, negative controls)",Complete
+Phase 5: Search 39,Tree Crown Instance Segmentation 2025-2026 (SAM-era) + the manual-label inflation result,Complete
+Phase 5: Search 40,Urban Forestry Reporting Standards: what precision does a canopy-change number actually need?,Complete
+Phase 5: Search 41,Paired / Partial-Replacement Sampling for Change (the fix for the precision problem),Complete
+Phase 5: Search 42,Anchoring vs False Change: the response-design trade-off for paired interpretation,Complete
+Phase 5: Search 43,Annotation-Free Crown Segmentation: lidar pseudo-labels + SAM2 refinement vs zero-shot,Complete
+Phase 5: Search 44,Temporal Consistency: HMM post-processing vs temporal training objectives,Complete
+Phase 5: Search 45,Trajectory Segmentation & Disturbance Detection (LandTrendr / TimeSync) for irregular series,Complete
+Phase 5: Search 46,Sparse/Irregular Series: epoch-pair change detection and multi-epoch feature matching,Complete
+Phase 5: Search 47,Interval-Censored / Demographic Framing of Per-Crown Validity Intervals,Complete
+Phase 5: Search 48,Interval Censoring + Misclassification: sensitivity/specificity in the survival likelihood,Complete
+Phase 5: Search 49,Differential Misclassification & the Rare-Class Trap in Change Estimation,Complete
+Phase 5: Search 50,Accuracy Assessment OF CHANGE: the CEOS protocol and competing allocation objectives,Complete
+Phase 5: Search 51,"CEOS Protocol Deep-Read: response design, reference error, geolocation",Complete
+Phase 5: Search 52,CEOS Protocol Deep-Read: change-map guidance (section 2.5),Complete
+Phase 5: Search 53,Direct Change Mapping From Single-Temporal Labels (STAR/ChangeStar; label-efficient CD),Complete
+Phase 5: Search 54,Weak Temporal Supervision: using unlabelled repeat acquisitions as change supervision,Complete
+Phase 5: Search 55,Acquisition Conditions Recovered: leaf-off consortium orthos vs leaf-on NAIP,Complete
+Phase 6: Search 56,"Canopy over impervious surfaces and shadow: the model's measured dominant failure mode (recall gap 0.37-0.43), plus transferable NAIP-based canopy benchmarks",Complete
+Phase 6: Search 57,"Relief displacement and true orthorectification: height-dependent mislocation of canopy, and the risk of spurious change across acquisitions with different frame layouts",Complete
+Phase 6: Search 58,"Machine learning on historical panchromatic aerial photography: the 1936/1998 frames on disk that no catalog entry covers, and colorization as a missing-modality bridge",Complete
+Phase 6: Search 59,"Relative radiometric normalization (IR-MAD, pseudo-invariant features) as the remedy for the measured cross-sensor GRVI incomparability",Complete
+Phase 6: Search 60,"Texture bias vs shape bias in CNNs - a candidate single explanation for why the model transfers across sensors but degrades with resolution, plus the 2025 paper contradicting it",Complete
+Phase 7: STC round 1,"Eight threads across the framework's persistence prior (§2.3), joint space-time modeling (§4.1), segmentation/reshaping limits (§6.1), ancillary priors (§4.2), lidar-as-teacher (§4.3), the two training levers (§4.4), gold-set validity (§2.4), and heterogeneous-archive prior art (§1)",Complete 2026-09-12
+Phase 7: STC round 2,"Completeness critique plus three targeted gap-fill threads: layer placement and soft-vs-hard decisions (§4.5), buildings/water as hard-negative context (§6.2/§6.3), and operational product consistency",Complete 2026-09-12
+Phase 7: STC round 3,"Adjacent-field theory for four of the §5 gaps: geostatistics/total-variation for the weight-erasure gap, statistical process control for change-point detection, denoising theory (SURE/Noise2Self) for corrector validation, missing-data signal processing for IGNORE propagation",Complete 2026-09-12
+Phase 7: STC round 4,"Adjacent-field theory for the three hardest framework gaps: Stein/SURE and blind-spot denoising for the correlated-error penalty, TV-L1/mathematical morphology for the erasure radius, spatial point processes/survival analysis/urban-forestry mortality for the priors' free parameters",Complete 2026-09-12
+Phase 7: STC round 5,"Items the inventory marked closable by reading: Markov stationarity tests and annualised transition matrices, temporal dependence of classification error, the correlated-binary generative model, D_k(tau) and Steenberg 2017, misalignment/registration-uncertainty priors",Complete 2026-09-12
+Phase 7: STC round 6,"Two unmoved items taken to fields no earlier round had touched: disturbance ecology/forest biometrics for a post-disturbance hazard shape, GIS positional-uncertainty theory for a boundary-error-to-probability construction",Complete 2026-09-12
+Phase 7: STC round 7,"The library-request list, cleared through a second Sci-Hub mirror index",Complete 2026-09-12
+Phase 7: STC round 8,"Round 7's leftover list, obtained and read: three additions plus nine grade upgrades",Complete 2026-09-12
+Phase 7: STC round 9,"Seven mathematical fields named from the framework's [D] list, searched across nine threads",Complete 2026-09-12
+Phase 7: STC round 10,"The second-order gaps of framework §18, four fields searched",Complete 2026-09-12
+Phase 7: STC acquisition,"Full papers fetched for every cited work still missing from disk: open access first, then two Sci-Hub mirror indexes, then one browser batch",Complete 2026-09-12
+Phase 7: STC local library,"Papers already held locally (D:\edmonds-pipeline\Literture\), triaged and read directly from PDF",Complete 2026-09-12

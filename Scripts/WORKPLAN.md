@@ -221,6 +221,7 @@ acyclic, a decided entry says what was decided).
 ### QUEUED (agreed or natural next, blocked or waiting a slot)
 | Task | Blocker |
 |---|---|
+| **Spatiotemporal consistency layer — data session**: the first seven measurements are named in `Reports/HANDOFF_SPATIOTEMPORAL_DATA_SESSION_2026-09-12.md` §4 | opens on a `work/…` branch once `docs/lit-review-spatiotemporal-consistency` merges |
 | Flicker item 3: Landsat per-flight-window phenology covariate (arbiter role; also dates 2011s) | satellite minimal-reopen nod (Kam) |
 | Flicker item 4: 2024 degradation ladder (~5 A100-h) — GSD transfer function | Kam GPU nod |
 | Flicker item 8: calibrated HMM on the prob stack (emissions from Panel A + parcels) — atlas smoothing, gated | items done; needs a design pass + kill criteria |

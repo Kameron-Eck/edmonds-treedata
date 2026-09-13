@@ -133,3 +133,57 @@ its first failing rung, so preflight was run on its own: `[PASSED] pre-flight cl
   normalised-identifier index (`test_identifier_case_variants_collide`).
 - The §10 ladder check that fails when a key, `.env` or pgpass file is staged.
 - Independent referee re-run of the mutations (3.4c).
+
+## Fixes after referee
+
+Referee: `Reports/LITKB_P1_REFEREE_2026-09-13.md`. D-2, D-3, D-4, D-9 and D-10 are **not touched**. D-2/D-3/D-4/D-9 are
+Kam's decisions; D-10 was not in the brief.
+**Status of this evidence (3.4c):** the fixer wrote the code, the tests and the mutations below, so this is
+author-produced evidence. The referee has not re-run it.
+
+All code fixes are in the new migration `0007_referee_fixes.sql`. Applied migrations are checksum-locked, so 0007
+`CREATE OR REPLACE`s `_write_version`, `set_current_run` and `_use_evidence_verify`. **The 0003 bodies of those
+three are now history.** For that reason the harness rows M2a/M2b were re-pointed at 0007: mutating 0003 would be
+dead code.
+
+| Defect | Fix (0007) | Test (`qc/test_litkb_p1.py`) | Mutation → result |
+|---|---|---|---|
+| D-1 | `_write_version` locks the workstream row `FOR SHARE`. That lock conflicts with prepare's and commit's `FOR UPDATE`. A writer that waited behind a commit re-reads the row as `merged` and is refused (22023) | `test_write_blocked_behind_promote_commit_is_refused`: promoter tx holds `promote_commit`; writer thread seen blocked (`pg_blocking_pids`); commit → writer 22023, 0 heads left | D1 drop `FOR SHARE` → FIRED (writer got `ok`) |
+| D-5 | evidence goes only through the new SECURITY DEFINER `add_evidence(ws, use_version, …)`. It locks the workstream `FOR SHARE` and requires it open. The version must belong to that workstream (no owner column exists, so "ownership" means the named ws) and be `proposed`, and the ws must have no prepared promotion. `quote_verified` still comes from the trigger. `REVOKE INSERT ON use_evidence FROM litkb_writer`. `set_current_run` accepts only an existing `ok` run of that file | `test_writer_has_no_direct_evidence_insert`, `test_evidence_guard_{workstream_must_be_open, version_must_belong_to_named_workstream, version_must_be_proposed, refused_while_promotion_prepared}`, `test_set_current_run_refuses_foreign_or_null_run` | D5a–D5g, one per guard → all FIRED. D5g fired because the FK then refuses with a different error; the FK stays as the second lock |
+| D-5 bypasses | — | referee D1: `test_referee_bypass_d1_…` (evidence on another ws's prepared version refused, both by function and by direct INSERT; the victim's commit still commits 1). D2: `test_referee_bypass_d2_…` (promoted main version refused, 0 evidence rows). D5: `test_referee_bypass_d5_…` (failed run refused; promotable stays 1) | covered by D5a/D5d/D5f |
+| D-6 | — (guards were correct) | R2 `test_writer_cannot_insert_version_state_columns`; R4 `test_first_head_proposal_must_be_based_on_main`; R6 `test_quote_verified_checks_offsets_not_presence`; R7 `test_use_whose_gap_is_absent_is_held_at_prepare` | R2, R4, R6, R7 (the referee's mutations) → all FIRED |
+| D-7 | trigger raises 23514 when `char_end > length(text)` (refused, not stored false) | `test_quote_char_end_beyond_text_is_refused` | D7 remove check → FIRED |
+| D-8 | identity-row `FOR UPDATE` kept, now commented as load-bearing | `test_losing_concurrent_writer_gets_40001[fact|proposal]`: A's tx open, B seen blocked, A commits → B `sqlstate == 40001` | D8 drop `FOR UPDATE` → FIRED (B got `UniqueViolation`) |
+| hygiene | `.gitignore`: `.env`, `*.env`. `git ls-files -ci --exclude-standard` returns the same two pre-existing files before and after, so no tracked file is affected. `Scripts/.env` and `Scripts/pipeline/.env` now match `*.env` | — | — |
+
+**Harness** (`PYTHONUTF8=1 py -3.12 qc/instruments/litkb_p1_mutations.py`): baseline `23 passed`; **24/24 mutations fired**
+(the original 10 plus 14 new); restored baseline `23 passed`. The harness checks each restore byte-for-byte. It was
+also checked independently: `sha256sum -c` against a fingerprint of all 7 migrations, `promote.py` and `migrate.py`
+taken before the run printed OK for all 9 files. Full suite: `40 passed`; `litkb Postgres tests: 38 passed`.
+
+**Applied:** `litkb_test` (and the per-session reset). On `litkb`, the output was `applied 1 (0007_referee_fixes.sql);
+7 recorded`. Probe on `litkb` as postgres, `f|f|t|f|t|f`:
+- writer INSERT on `use_evidence`: f
+- writer INSERT on `use_evidence.quote`: f
+- writer EXECUTE `add_evidence`: t
+- reader EXECUTE `add_evidence`: f
+- `add_evidence` is SECURITY DEFINER, pinned path, owned by `litkb_owner`: t
+- `litkb_test` CONNECT on `litkb`: f
+
+**Ladder:** `PYTHONUTF8=1 py -3.12 qc/check.py --fast`: ruff PASS, compile PASS, pytest `1 failed, 1990 passed, 74
+warnings in 388.16s`. The one failure is the known pre-existing
+`qc/test_experiments.py::test_pointer_paths_resolve[crown_state_model]`. The ladder stops there, so preflight was run on its own: `[PASSED] pre-flight clean`.
+
+**Judgement calls (fixer):**
+1. `set_current_run` now also refuses `NULL`. Clearing the pointer un-promotes evidence exactly as a failed run did.
+2. The prepared-promotion guard goes beyond the referee's text. A held chain stays `proposed` after prepare, so
+   evidence on it would change the version-set hash and block the prepared commit (D1 by another route).
+3. D-7 raises instead of storing `false`, following the brief's word "refuses".
+
+**Residual, not fixed:**
+- A writer can still insert an `ok` extraction run for any file and make it current. That also un-promotes that
+  file's evidence. The referee's "limited to the ingest path" needs a role or ingest design that does not exist yet.
+- The workstream a caller names is not authenticated: any writer can name any open workstream. Tying callers to
+  workstreams is design work.
+- The writer's column INSERT on `gap_versions` / `use_versions` is unchanged. The referee noted it as noise, not a
+  bypass.

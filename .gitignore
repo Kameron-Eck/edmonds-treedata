@@ -31,6 +31,10 @@ __pycache__/
 *.parquet
 *.gpkg
 *.npz
+# secrets: the /* rule ignores .env only at the root; the Scripts/ whitelist would admit
+# Scripts/**/.env (litkb P1 referee, 2026-09-13)
+.env
+*.env
 # Drive/Office noise
 desktop.ini
 ~$*

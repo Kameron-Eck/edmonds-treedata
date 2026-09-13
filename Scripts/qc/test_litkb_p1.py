@@ -14,6 +14,21 @@ the evidence is Reports/LITKB_P1_REPORT_2026-09-13.md.
   a conflicting gap chain is not promoted, nor its dependent   test_kill_conflicting_gap_chain_holds_its_dependent_at_commit
                                                                test_kill_conflicting_gap_chain_holds_its_dependent_at_prepare
 
+Fixes after the independent referee (Reports/LITKB_P1_REFEREE_2026-09-13.md), migration 0007;
+each guard below was also shown to fire by the same harness:
+
+  D-1  a write blocked behind promote_commit is refused       test_write_blocked_behind_promote_commit_is_refused
+  D-5  evidence only through add_evidence; its four guards    test_writer_has_no_direct_evidence_insert,
+                                                              test_evidence_guard_*
+       referee bypasses D1, D2, D5                            test_referee_bypass_d1_*, _d2_*, _d5_*
+       set_current_run: ok run of this file only              test_set_current_run_refuses_foreign_or_null_run
+  D-6  R2 R4 R6 R7                                            test_writer_cannot_insert_version_state_columns,
+                                                              test_first_head_proposal_must_be_based_on_main,
+                                                              test_quote_verified_checks_offsets_not_presence,
+                                                              test_use_whose_gap_is_absent_is_held_at_prepare
+  D-7  char_end beyond the block text is refused              test_quote_char_end_beyond_text_is_refused
+  D-8  the losing concurrent writer gets 40001                test_losing_concurrent_writer_gets_40001[*]
+
 Isolation: the suite logs in ONLY as litkb_test, to litkb_test, which it resets and migrates
 once per session under an advisory lock (parallel worktrees serialise). Role privileges are
 exercised with SET ROLE: litkb_test is a member of reader/writer/promoter WITH INHERIT FALSE,
@@ -22,6 +37,8 @@ so it inherits none of their privileges — including the writer's CONNECT on li
 import os
 import subprocess
 import sys
+import threading
+import time
 import uuid
 from pathlib import Path
 
@@ -320,6 +337,11 @@ def test_kill_proposal_second_writer_on_same_base_is_refused(pg):
 
 
 def _evidence_fixture(pg):
+    w = _evidence_world(pg)
+    return w["uv"], w["block"], w["run"], w["text"]
+
+
+def _evidence_world(pg):
     ws = pg.ws()
     work_id, _ = pg.work(ws)
     file_id, _ = pg.one(
@@ -337,10 +359,11 @@ def _evidence_fixture(pg):
     block_id = pg.one(
         "INSERT INTO litkb.blocks (file_id, run_id, page_no, type, text) VALUES (%s, %s, 1, "
         "'paragraph', %s) RETURNING id", (file_id, run_id, text))[0]
-    _, uv = pg.proposal(pg.conn, "use", None, {"work_id": str(work_id)}, None,
-                        {"statement": "supplies the optimism identity", "kind": "theorem",
-                         "status": "supported", "feeds": ["gap row 6"]}, None, ws)
-    return uv, block_id, run_id, text
+    use_id, uv = pg.proposal(pg.conn, "use", None, {"work_id": str(work_id)}, None,
+                             {"statement": "supplies the optimism identity", "kind": "theorem",
+                              "status": "supported", "feeds": ["gap row 6"]}, None, ws)
+    return dict(ws=ws, work=work_id, file=file_id, run=run_id, block=block_id, text=text,
+                use=use_id, uv=uv)
 
 
 @pg_only
@@ -359,18 +382,16 @@ def test_kill_client_quote_verified_is_overwritten(pg):
 
 @pg_only
 def test_writer_cannot_name_quote_verified(pg):
-    uv, block_id, run_id, text = _evidence_fixture(pg)
+    w = _evidence_world(pg)
     writer = pg.session("litkb_writer")
     with pytest.raises(pg.errors.InsufficientPrivilege):
         writer.execute(
             "INSERT INTO litkb.use_evidence (use_version_id, block_id, run_id, quote, char_start, "
             "char_end, stance, quote_verified) VALUES (%s, %s, %s, %s, 4, 20, 'supports', true)",
-            (uv, block_id, run_id, "anything"))
-    got = writer.execute(
-        "INSERT INTO litkb.use_evidence (use_version_id, block_id, run_id, quote, char_start, "
-        "char_end, stance) VALUES (%s, %s, %s, %s, 4, 20, 'supports') RETURNING id",
-        (uv, block_id, run_id, text[4:20])).fetchone()
-    assert got is not None
+            (w["uv"], w["block"], w["run"], "anything"))
+    # control (0007): the writer's way in is add_evidence, which takes no verdict at all
+    got = _add_evidence(pg, writer, w, w["ws"], w["uv"], w["text"][4:20], 4, 20)
+    assert got[1] is True
 
 
 @pg_only
@@ -496,3 +517,340 @@ def test_kill_conflicting_gap_chain_holds_its_dependent_at_prepare(pg, scratch_r
         "SELECT state FROM litkb.use_versions WHERE use_id = %s", (s["use"],))}
     assert states == {"proposed"}
     assert counts == {"chains": 3, "prepared": 1, "held": 2}
+
+
+# ── fixes after the referee (migration 0007) ──────────────────────────────────────────────
+
+def _add_evidence(pg, conn, w, ws, uv, quote, start, end):
+    return pg.one("SELECT evidence_id, verified FROM litkb.add_evidence(%s, %s, %s, %s, 1, %s, %s, %s, "
+                  "'supports')", (ws, uv, w["block"], w["run"], quote, start, end), conn=conn)
+
+
+def _in_thread(fn):
+    box = {}
+
+    def run():
+        try:
+            box["result"] = fn()
+        except BaseException as e:  # handed to the asserting thread
+            box["error"] = e
+    th = threading.Thread(target=run, daemon=True)
+    th.start()
+    return th, box
+
+
+def _wait_blocked(pg, backend_pid, seconds=15.0):
+    """True once the backend is observed waiting on another session's lock."""
+    end = time.monotonic() + seconds
+    while time.monotonic() < end:
+        if pg.one("SELECT cardinality(pg_blocking_pids(%s)) > 0", (backend_pid,))[0]:
+            return True
+        time.sleep(0.05)
+    return False
+
+
+def _holder(pg, role):
+    """A SET ROLE'd connection whose transaction stays open until the test commits it."""
+    k = pg.session(role)
+    k.autocommit = False
+    return k
+
+
+def _backend_pid(pg, conn):
+    return pg.one("SELECT pg_backend_pid()", conn=conn)[0]
+
+
+@pg_only
+def test_write_blocked_behind_promote_commit_is_refused(pg):
+    """D-1: a writer that waits behind promote_commit must be refused once the workstream is
+    merged, not told ok with its version stranded in a closed workstream."""
+    ws = pg.ws()
+    writer = pg.session("litkb_writer")
+    gap_id, g1 = pg.proposal(writer, "gap", None, {"slug": f"gap-{uuid.uuid4().hex[:8]}"}, None,
+                             {"question": "q", "gap_state": "open"}, None, ws)
+    promoter = pg.session("litkb_promoter")
+    pid = pg.one("SELECT litkb.promote_prepare(%s, repeat('a', 40), NULL)", (ws,), conn=promoter)[0]
+    holder = _holder(pg, "litkb_promoter")
+    # read the pid BEFORE the thread takes the connection: psycopg serialises use of one
+    # connection, so asking it while the thread is blocked in the server would hang here
+    writer_pid = _backend_pid(pg, writer)
+    try:
+        holder.execute("SELECT litkb.promote_commit(%s, repeat('b', 40))", (pid,))
+        th, box = _in_thread(lambda: pg.proposal(
+            writer, "gap", gap_id, None, g1, {"question": "q, edited late", "gap_state": "open"},
+            "edited while the promotion committed", ws))
+        blocked = _wait_blocked(pg, writer_pid)
+        holder.commit()
+    except BaseException:
+        holder.rollback()
+        raise
+    th.join(30)
+    assert blocked, "the writer was never observed waiting behind promote_commit; the race was not exercised"
+    assert not th.is_alive()
+    assert pg.one("SELECT state FROM litkb.workstreams WHERE id = %s", (ws,))[0] == "merged"
+    assert isinstance(box.get("error"), pg.errors.InvalidParameterValue), (
+        f"a write blocked behind promote_commit must be refused (22023), got {box}")
+    n = pg.one("SELECT count(*) FROM litkb.ws_heads WHERE workstream_id = %s", (ws,))[0]
+    assert n == 0, "a version was stranded in the merged workstream"
+    assert pg.one("SELECT count(*) FROM litkb.gap_versions WHERE gap_id = %s", (gap_id,))[0] == 1
+
+
+@pg_only
+@pytest.mark.parametrize("mode", ["fact", "proposal"])
+def test_losing_concurrent_writer_gets_40001(pg, mode):
+    """D-8: two writers on one base under real concurrency; the loser waits on the identity
+    row and is refused with SQLSTATE 40001 (retryable), not 23505."""
+    ws = pg.ws()
+    work_id, v1 = pg.work(ws)
+    b = pg.session("litkb_writer")
+    if mode == "fact":
+        q = "SELECT entity_id, version_id FROM litkb.write_fact('work', %s, %s, %s, 'fix', %s, %s, %s)"
+
+        def call(conn, who):
+            return pg.one(q, (work_id, v1, pg.Jsonb({"type": "article", "title": f"by {who}",
+                                                     "authors": []}), ws, who, who), conn=conn)
+        entity_id = work_id
+    else:
+        use_id, u1 = pg.proposal(b, "use", None, {"work_id": str(work_id)}, None,
+                                 {"statement": "s v1", "kind": "method", "status": "proposed"}, None, ws)
+
+        def call(conn, who):
+            return pg.proposal(conn, "use", use_id, None, u1,
+                               {"statement": f"s v2 by {who}", "kind": "method", "status": "proposed"},
+                               "refined", ws, agent=who, session=who)
+        entity_id = use_id
+    a = _holder(pg, "litkb_writer")
+    b_pid = _backend_pid(pg, b)   # before the thread takes b (see the D-1 test)
+    try:
+        _, va = call(a, "agentA")
+        th, box = _in_thread(lambda: call(b, "agentB"))
+        blocked = _wait_blocked(pg, b_pid)
+        a.commit()
+    except BaseException:
+        a.rollback()
+        raise
+    th.join(30)
+    assert blocked, "writer B was never observed waiting on writer A; the race was not exercised"
+    err = box.get("error")
+    assert err is not None and getattr(err, "sqlstate", None) == "40001", (
+        f"the losing writer must get the retryable 40001, got {box}")
+    if mode == "fact":
+        assert pg.pointer("works", entity_id) == va
+    else:
+        head = pg.one("SELECT version_id FROM litkb.ws_heads WHERE workstream_id = %s AND "
+                      "entity = 'use' AND entity_id = %s", (ws, entity_id))[0]
+        assert head == va
+
+
+@pg_only
+def test_writer_has_no_direct_evidence_insert(pg):
+    """D-5: evidence enters only through add_evidence."""
+    w = _evidence_world(pg)
+    writer = pg.session("litkb_writer")
+    with pytest.raises(pg.errors.InsufficientPrivilege):
+        writer.execute(
+            "INSERT INTO litkb.use_evidence (use_version_id, block_id, run_id, quote, char_start, "
+            "char_end, stance) VALUES (%s, %s, %s, %s, 4, 20, 'supports')",
+            (w["uv"], w["block"], w["run"], w["text"][4:20]))
+
+
+@pg_only
+def test_evidence_guard_workstream_must_be_open(pg):
+    w = _evidence_world(pg)
+    pg.conn.execute("SELECT litkb.abandon_workstream(%s)", (w["ws"],))
+    writer = pg.session("litkb_writer")
+    with pytest.raises(pg.errors.InvalidParameterValue, match="is not open"):
+        _add_evidence(pg, writer, w, w["ws"], w["uv"], w["text"][4:20], 4, 20)
+
+
+@pg_only
+def test_evidence_guard_version_must_belong_to_named_workstream(pg):
+    w = _evidence_world(pg)
+    other = pg.ws()
+    writer = pg.session("litkb_writer")
+    with pytest.raises(pg.errors.InsufficientPrivilege, match="another workstream"):
+        _add_evidence(pg, writer, w, other, w["uv"], w["text"][4:20], 4, 20)
+    assert _add_evidence(pg, writer, w, w["ws"], w["uv"], w["text"][4:20], 4, 20)[1] is True
+
+
+@pg_only
+def test_evidence_guard_version_must_be_proposed(pg):
+    """A promoted version in a still-open workstream with no promotion: only the state
+    guard stands in the way."""
+    w = _evidence_world(pg)
+    _, promoted = pg.one(
+        "SELECT entity_id, version_id FROM litkb._write_version('fact', 'use', NULL, %s, NULL, %s, "
+        "NULL, %s, 'setup', 'setup')",
+        (pg.Jsonb({"work_id": str(w["work"])}),
+         pg.Jsonb({"statement": "already in main", "kind": "context", "status": "supported"}), w["ws"]))
+    writer = pg.session("litkb_writer")
+    with pytest.raises(pg.errors.ObjectNotInPrerequisiteState, match="only to a proposed version"):
+        _add_evidence(pg, writer, w, w["ws"], promoted, w["text"][4:20], 4, 20)
+
+
+def _absent_gap_use(pg, w):
+    """A use in w's workstream whose gap exists only as another workstream's proposal."""
+    writer = pg.session("litkb_writer")
+    gap_id, _ = pg.proposal(writer, "gap", None, {"slug": f"gap-{uuid.uuid4().hex[:8]}"}, None,
+                            {"question": "only proposed elsewhere", "gap_state": "open"}, None, pg.ws())
+    use_id, uv = pg.proposal(writer, "use", None, {"work_id": str(w["work"]), "gap_id": str(gap_id)},
+                             None, {"statement": "needs the absent gap", "kind": "method",
+                                    "status": "proposed"}, None, w["ws"])
+    return use_id, uv
+
+
+@pg_only
+def test_evidence_guard_refused_while_promotion_prepared(pg):
+    """A held chain stays proposed after prepare; evidence on it would change the version-set
+    hash and block the prepared commit (the D1 disruption by another route)."""
+    w = _evidence_world(pg)
+    _, held_uv = _absent_gap_use(pg, w)
+    promoter = pg.session("litkb_promoter")
+    pid = pg.one("SELECT litkb.promote_prepare(%s, repeat('a', 40), NULL)", (w["ws"],), conn=promoter)[0]
+    assert pg.one("SELECT state FROM litkb.use_versions WHERE version_id = %s", (held_uv,))[0] == "proposed"
+    writer = pg.session("litkb_writer")
+    with pytest.raises(pg.errors.ObjectNotInPrerequisiteState, match="prepared promotion"):
+        _add_evidence(pg, writer, w, w["ws"], held_uv, w["text"][4:20], 4, 20)
+    out = pg.one("SELECT litkb.promote_commit(%s, repeat('b', 40))", (pid,), conn=promoter)[0]
+    assert out["committed"] == 1
+
+
+@pg_only
+def test_referee_bypass_d1_evidence_on_another_workstreams_prepared_version_is_refused(pg):
+    w = _evidence_world(pg)
+    promoter = pg.session("litkb_promoter")
+    pid = pg.one("SELECT litkb.promote_prepare(%s, repeat('a', 40), NULL)", (w["ws"],), conn=promoter)[0]
+    assert pg.one("SELECT state FROM litkb.use_versions WHERE version_id = %s", (w["uv"],))[0] == "prepared"
+    writer = pg.session("litkb_writer")
+    for named_ws in (pg.ws(), w["ws"]):
+        with pytest.raises(pg.psycopg.DatabaseError):
+            _add_evidence(pg, writer, w, named_ws, w["uv"], w["text"][4:20], 4, 20)
+    with pytest.raises(pg.errors.InsufficientPrivilege):
+        writer.execute(
+            "INSERT INTO litkb.use_evidence (use_version_id, block_id, run_id, quote, char_start, "
+            "char_end, stance) VALUES (%s, %s, %s, %s, 4, 20, 'supports')",
+            (w["uv"], w["block"], w["run"], w["text"][4:20]))
+    out = pg.one("SELECT litkb.promote_commit(%s, repeat('b', 40))", (pid,), conn=promoter)[0]
+    assert out["committed"] == 1, f"the victim's commit must still go through: {out}"
+
+
+@pg_only
+def test_referee_bypass_d2_evidence_on_a_promoted_main_version_is_refused(pg):
+    w = _evidence_world(pg)
+    promoter = pg.session("litkb_promoter")
+    pid = pg.one("SELECT litkb.promote_prepare(%s, repeat('a', 40), NULL)", (w["ws"],), conn=promoter)[0]
+    pg.one("SELECT litkb.promote_commit(%s, repeat('b', 40))", (pid,), conn=promoter)
+    assert pg.pointer("uses", w["use"]) == w["uv"]
+    writer = pg.session("litkb_writer")
+    for named_ws in (w["ws"], pg.ws()):
+        with pytest.raises(pg.psycopg.DatabaseError):
+            _add_evidence(pg, writer, w, named_ws, w["uv"], w["text"][4:20], 4, 20)
+    n = pg.one("SELECT count(*) FROM litkb.use_evidence WHERE use_version_id = %s", (w["uv"],))[0]
+    assert n == 0, "unreviewed evidence entered main"
+
+
+def _run(pg, conn, file_id, status):
+    return pg.one(
+        "INSERT INTO litkb.extraction_runs (file_id, stage, tool, tool_version, params_hash, "
+        "pipeline_version, host, status) VALUES (%s, 'native', 'test', '0', %s, 'v0', 'local', %s) "
+        "RETURNING id", (file_id, uuid.uuid4().hex, status), conn=conn)[0]
+
+
+@pg_only
+def test_referee_bypass_d5_failed_run_cannot_become_current(pg):
+    w = _evidence_world(pg)
+    writer = pg.session("litkb_writer")
+    _add_evidence(pg, writer, w, w["ws"], w["uv"], w["text"][4:20], 4, 20)
+    promotable = ("SELECT count(*) FROM litkb.use_evidence_status WHERE use_version_id = %s "
+                  "AND promotable")
+    assert pg.one(promotable, (w["uv"],))[0] == 1
+    failed = _run(pg, writer, w["file"], "failed")
+    with pytest.raises(pg.errors.InvalidParameterValue, match="not an ok extraction run"):
+        writer.execute("SELECT litkb.set_current_run(%s, %s, %s)", (w["file"], w["run"], failed))
+    assert pg.one("SELECT current_run_id FROM litkb.files WHERE id = %s", (w["file"],))[0] == w["run"]
+    assert pg.one(promotable, (w["uv"],))[0] == 1
+
+
+@pg_only
+def test_set_current_run_refuses_foreign_or_null_run(pg):
+    w = _evidence_world(pg)
+    other = _evidence_world(pg)
+    writer = pg.session("litkb_writer")
+    for new_run in (other["run"], None):
+        with pytest.raises(pg.errors.InvalidParameterValue, match="not an ok extraction run"):
+            writer.execute("SELECT litkb.set_current_run(%s, %s, %s)", (w["file"], w["run"], new_run))
+    # control: another ok run of the same file is accepted
+    fresh = _run(pg, writer, w["file"], "ok")
+    writer.execute("SELECT litkb.set_current_run(%s, %s, %s)", (w["file"], w["run"], fresh))
+    assert pg.one("SELECT current_run_id FROM litkb.files WHERE id = %s", (w["file"],))[0] == fresh
+
+
+@pg_only
+def test_writer_cannot_insert_version_state_columns(pg):
+    """D-6 / R2: the writer's direct INSERT on proposal version tables excludes the state and
+    promotion columns. Privilege is checked before any constraint, so a NotNullViolation on a
+    granted column is the control that the refusal below is the column privilege."""
+    writer = pg.session("litkb_writer")
+    for table in ("gap_versions", "use_versions"):
+        for col in ("state", "promoted_at", "promotion_id"):
+            with pytest.raises(pg.errors.InsufficientPrivilege):
+                writer.execute(f"INSERT INTO litkb.{table} ({col}) VALUES (NULL)")
+        with pytest.raises(pg.errors.NotNullViolation):
+            writer.execute(f"INSERT INTO litkb.{table} (agent) VALUES (NULL)")
+
+
+@pg_only
+def test_first_head_proposal_must_be_based_on_main(pg):
+    """D-6 / R4: a workstream's FIRST proposal on an entity must be based on main's pointer."""
+    ws0 = pg.ws()
+    gap_id, g1 = pg.main_gap(ws0)
+    _, g2 = pg.one(
+        "SELECT entity_id, version_id FROM litkb._write_version('fact', 'gap', %s, NULL, %s, %s, "
+        "'main moved', %s, 'setup', 'setup')",
+        (gap_id, g1, pg.Jsonb({"question": "q v2 in main", "gap_state": "open"}), ws0))
+    ws1 = pg.ws()
+    writer = pg.session("litkb_writer")
+    with pytest.raises(pg.errors.SerializationFailure):
+        pg.proposal(writer, "gap", gap_id, None, g1, {"question": "stale", "gap_state": "open"},
+                    "based on a version main has left", ws1)
+    assert pg.one("SELECT count(*) FROM litkb.ws_heads WHERE workstream_id = %s", (ws1,))[0] == 0
+    pg.proposal(writer, "gap", gap_id, None, g2, {"question": "fresh", "gap_state": "open"},
+                "based on main", ws1)
+
+
+def _owner_evidence(pg, w, quote, start, end):
+    return pg.one(
+        "INSERT INTO litkb.use_evidence (use_version_id, block_id, run_id, page, quote, char_start, "
+        "char_end, stance) VALUES (%s, %s, %s, 1, %s, %s, %s, 'supports') RETURNING quote_verified",
+        (w["uv"], w["block"], w["run"], quote, start, end))[0]
+
+
+@pg_only
+def test_quote_verified_checks_offsets_not_presence(pg):
+    """D-6 / R6: the quote must sit AT [char_start, char_end), not merely somewhere in the block."""
+    w = _evidence_world(pg)
+    quote = w["text"][4:20]
+    assert _owner_evidence(pg, w, quote, 0, 16) is False, "a quote at the wrong offsets verified"
+    assert _owner_evidence(pg, w, quote, 4, 20) is True
+
+
+@pg_only
+def test_quote_char_end_beyond_text_is_refused(pg):
+    """D-7: substring() truncates, so char_end past the text let a whole-text quote verify."""
+    w = _evidence_world(pg)
+    with pytest.raises(pg.errors.CheckViolation, match="beyond"):
+        _owner_evidence(pg, w, w["text"], 0, 1_000_000)
+    assert _owner_evidence(pg, w, w["text"], 0, len(w["text"])) is True
+
+
+@pg_only
+def test_use_whose_gap_is_absent_is_held_at_prepare(pg):
+    """D-6 / R7: a use whose gap is neither in main nor in this promotion is held."""
+    w = _evidence_world(pg)
+    use_id, _ = _absent_gap_use(pg, w)
+    promoter = pg.session("litkb_promoter")
+    pid = pg.one("SELECT litkb.promote_prepare(%s, repeat('a', 40), NULL)", (w["ws"],), conn=promoter)[0]
+    counts, conflicts = pg.one("SELECT counts, conflicts FROM litkb.promotions WHERE id = %s", (pid,))
+    held = {c["chain"]: c.get("reasons", []) for c in conflicts if "reasons" in c}
+    assert any("neither promoted nor in this promotion" in r for r in held.get(f"use:{use_id}", [])), conflicts
+    assert counts == {"chains": 2, "prepared": 1, "held": 1}

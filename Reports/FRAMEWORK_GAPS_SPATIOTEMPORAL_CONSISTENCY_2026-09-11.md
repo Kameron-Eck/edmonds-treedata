@@ -485,14 +485,14 @@ one GPU-shaped cost, or permutohedral on CPU. Nothing here needs training.
 | 19 | **Kernel as a distributed-lag GLM**: `D_k(τ)·R(d)` under a complementary-log-log link is a lag–distance surface in a regression, not an EM | row 9; §17.4 | §18.3: distributed lag non-linear model (cross-basis in `(τ, d)`, penalised) on certified losses vs dated developments | one-term vs two-term vs surface by held-out log-likelihood; a null (shuffled dates) surface must be flat | **[Q] — distributed-lag cross-basis in a GLM; the Bernoulli-logit equivalence (§19.2)** |
 | 20 | **CUSUM under dependence and multiplicity**: the exact run length (§17.10) assumes independent Bernoulli increments; the chain says they are dependent; one chart per cell across millions of cells | row 2; §12.3 | §18.4: chart the chain's residuals, not the states; per-cell `α` set by a false-discovery rule over the cell population | null residual sequences at the fitted dependence must alarm at the stated rate; raw-state charts must alarm above it | **[Q] — the Markov binary CUSUM (LLR under the dependent model, exact run length by Markov chain; §19.6); global false-alarm schemes for many streams (§19.3)** |
 | 21 | **Coupling vs resolution**: one `β` cannot serve 8–80 cm effective pixels | row 3; §5.1 strata | fit `β` per resolution stratum; report the trend against `effective_cm` | `β` pooled vs per-stratum: the pooled fit must lose held-out likelihood on the coarse strata | **[D] — measurement** |
-| 22 | **Target erasure radius**: three laws (§16.2), no target — what must survive is unstated | row 4; the smoother decision (§9) | size distribution of the 2020 crown polygons (smallest real removal) vs residual blob sizes; choose `R_erase` between them | injected discs at the chosen radius: real-size survive, blob-size erased | **[D] — measurement, data on hand** |
+| 22 | **Target erasure radius**: three laws (§16.2); the target is now defined by the canopy floor (§20) | row 4; the smoother decision (§9) | crown-size distribution of 2020 polygons whose lidar height is at or above the floor (smallest real crown that counts) vs residual blob sizes on `ℱ`; choose `R_erase` between them | injected discs at the chosen radius: floor-size crowns survive, blob-size erased | **[D] — measurement, data on hand; target defined (§20)** |
 | 23 | **Registration in the chain**: the edge-band rate (§17.1) is known; the chain has no term that down-weights edge cells at a poorly registered epoch | rows 10, 14; §2.3 emission | §18.5: an emission covariate `dist_to_boundary × |s_t|` (or the Stow compensation, §16.3) | self-shift test (§14.5): with the covariate the false-change rate at edges must fall to the isotropic residual; without it must not | **[D] — design, then the §14.5 kill** |
 
 **Bins and checks, the 3.4c ledger.** Every [S] in this document (§1 convention, §2.1
 increments, §2.2 substitutions and worked instance, §2.4 the `γ = 0` analogue, §3.3 the
 contrast translation, §5.1 the strata, §7.1 the lattice map, §7.2 the conservative rule)
 and every [D] (§2.1 sensitivity, §2.2 the join, §2.3 the verdict, §2.4 `k_½`, §3.1–3.4,
-§4, §5.2–5.4, §6, §7.2 `φ`, §8, §11, and all of §12–§19 — added 2026-09-12, after this
+§4, §5.2–5.4, §6, §7.2 `φ`, §8, §11, and all of §12–§20 — added 2026-09-12, after this
 ledger, which is why they sit below it) is unvalidated. The independent check for each is the
 row above that names it, run by someone other than this document's author, on real data,
 with the kill shown to fire first. A design accepted on numbers it produced about itself is
@@ -1655,3 +1655,37 @@ constraint). Hui & Walter 1980 add the two-population identifiability route to r
 (two arms, two strata of different prevalence, conditionally independent errors); Foody
 2010 is the remote-sensing statement of the reference-error problem behind Begg &
 Greenes. Schwartz 2000 was not obtained; nothing depends on it.
+
+## 20. Decision record — the canopy floor (Kam, 2026-09-12)
+
+**Decision.** Small trees of about 2 m are not canopy for this deliverable: "Thats akin to
+shrub and doesnt provide canopy services." Canopy therefore has a floor. The lidar
+certification rules already use one — canopy at `h ≥ 5 m`, non-canopy at `h < 2 m`, the
+2–5 m band uncertified (`harm_change_laundering.py`) — and this document adopts that floor
+for the mask as well unless Kam sets a different value. The exact number is his; what
+follows holds for any floor above one grid cell.
+
+**What it settles.**
+- *The spatial coupling is legitimate.* An isolated 2 m cell called canopy is, by
+  definition, not a tree that counts, so a prior that discounts isolated cells is not
+  deleting deliverable canopy. The `(β, γ)` fit and its three baselines (§3.2) stand.
+- *Row 22 has a target.* The smallest real object is the smallest crown of a tree at or
+  above the floor — a quantile of the 2020 crown-polygon size distribution restricted to
+  polygons whose lidar height meets the floor — not one cell. The erasure radius sits
+  between that and the residual blob size, and the smoother question is a measurement
+  again (ledger row 22 updated).
+- *Growth is definitional gain.* A tree crossing the floor is a real gain event, dated;
+  the chain and the kernel treat it as such. The "growth" weak spot (assessment of
+  2026-09-12) reduces to one stratum: cells whose 2020 crown height is within reach of
+  the floor over the archive, which get their own rates and their own kill. No third state.
+- *The certified populations already match the floor.* `𝒞` (h ≥ 5 m at both dates) and
+  `ℱ` (h < 2 m at both) certify exactly the two states the deliverable distinguishes; the
+  2–5 m band is uncertified because it is not yet canopy, which is now the intended
+  reading rather than a gap.
+- *The emission mixture stays.* Recall still depends on crown size above the floor at
+  coarse pixels; the crown-size stratum in validation (from the 2020 polygons) remains.
+
+**What it does not settle.** The floor's value (5 m by inheritance from the lidar rule;
+Kam to confirm); whether the mask's threshold and post-processing already imply a
+different effective floor (a measurement: minimum connected-component size the
+`threshold_and_clean` step passes, against the crown-size distribution).

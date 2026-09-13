@@ -92,13 +92,42 @@ the CSVs — edit the xlsx and re-export. Column definitions for the tracker she
 | `Relevance (max 3 sentences)` | why the work matters here, substance first — no leading "Author Year (grade, fetch route)" restatement |
 | `Search Phase` | one of the `Search Phase Reference` sheet's phase keys |
 | `DOI/URL` | `https://doi.org/<lowercase doi>` when a DOI exists; `https://arxiv.org/abs/<id>` for arXiv; otherwise the URL as given, or `N/A — <reason>` |
-| `Status` | controlled: `Read` / `To Read` / `Not Obtained` / `Duplicate of [ID n]` |
+| `Status` | controlled: `Read` / `To Read` / `Not Obtained` / `Duplicate` (see `Duplicate of`) |
 | `Evidence grade` | controlled: `PRIMARY` / `ABSTRACT` / `METADATA` / blank (not yet graded) |
-| `Feeds` | semicolon-separated controlled tokens: `framework §N[.N]`, `review §N[.N]`, `gap row N`, `decision <slug>` |
-| `File stem` | the `manifest.csv` stem when the PDF is on disk, else blank |
+| `Feeds` | semicolon-separated, doc-qualified controlled tokens — see the alias table below |
+| `Duplicate of` | integer row ID this row duplicates, else blank. When set: `Status` is always `Duplicate`, and `Evidence grade`, `Feeds`, `File stem`, `Bib line`, `Read date` are blank — the payload lives on the original row only. `Relevance` becomes `Duplicate — see [ID n, Author Year]`, generated from row n's own `Author(s)`/`Year` |
+| `File stem` | the `manifest.csv` stem when the PDF is on disk, else blank. Each stem appears in at most one row |
 | `Bib line` | the `id` from `Reports/lit_spatiotemporal_bibliography.csv`, else blank |
 | `Read date` | ISO date the row itself states a read/verification happened, else blank |
-| `Notes` | free-text provenance: fetch route, merges, DOI corrections, grade caveats |
+| `Notes` | free-text provenance: fetch route, merges, DOI corrections, grade caveats, decisions. Read-state evidence (`reviewer-read` / `obtained-unread`) is folded into `Status` on sight, never left as a `read_status:` key here — `Status` is the one home for read state |
+
+**Read-state rule.** `Evidence grade` `PRIMARY` or `ABSTRACT` ⇒ `Status` `Read`;
+`METADATA` ⇒ `Status` `To Read` (if the file is on disk) or `Not Obtained`; `Status`
+`Read` ⇒ `Evidence grade` non-blank. Cases the rule cannot settle mechanically (a
+`PRIMARY`-graded work with no on-disk evidence, an `obtained-unread` state that conflicts
+with a `Read` status) are decided row-by-row against the bibliography's `read_status` /
+`txt_on_disk` / `pdf_on_disk` columns, and the decision is logged in `Notes`.
+
+**`Feeds` token vocabulary (doc-qualified, 2026-09-13).** Every token names both the
+target document and its location inside it — a bare `§N` is no longer valid on its own:
+
+| token | means |
+|---|---|
+| `framework §N[.N]` | a heading in `Reports/FRAMEWORK_GAPS_SPATIOTEMPORAL_CONSISTENCY_2026-09-11.md` |
+| `narrative §N` | a heading in `Reports/MATH_NARRATIVE_SPATIOTEMPORAL_CONSISTENCY_2026-09-12.md` (integer only — that doc does not subdivide) |
+| `gated-plan gate N` | a `## Gate N` heading in `Reports/GATED_PLAN_SPATIOTEMPORAL_CONSISTENCY_2026-09-12.md` |
+| `review §N[.N]` | a heading in `Reports/LIT_REVIEW_SPATIOTEMPORAL_CONSISTENCY_2026-09-10.md` |
+| `gap row N` | a row (1–23) of the framework's §11 gap ledger |
+| `decision <slug>` | a key in `Scripts/decisions.yaml` |
+| `report <FILE>#§<loc>` | any other tracked report; `loc` may be alphanumeric (a heading key, or `L<line>` when the citation sits outside any heading) |
+
+A token is only valid if the section/gate/row/decision it names actually exists in the
+target document — checked mechanically (heading extraction, not restatement) by
+`qc`-equivalent verification before every regeneration of the CSV twins. A `framework §N`
+token whose `N` is not a real framework heading is a mistag, not a new framework section;
+retag it to whichever of the other docs actually has that heading, and say so in `Notes`.
 
 `Search Phase Reference` columns: `Search Phase` (the key used in the tracker sheet),
-`Topic` (the question that phase searched, one line), `Status`.
+`Topic` (the question that phase searched, one line), `Status`, `Note` (free text —
+e.g. a gap-ledger row with no literature attached says so here, as its own
+`Search Phase` row).

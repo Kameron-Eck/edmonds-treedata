@@ -281,8 +281,10 @@ decisions:
       §15.5 (answered later the same day): Unpaywall uses Kam's email, held only in the
       untracked settings file D:\edmonds-pipeline\secrets\paper_search.env; optional source
       keys left blank until Kam asks for them. §15.14: files refused at binding wait for OCR
-      in P4; no manual admission for them. Still open: §15.2 (C++ Build Tools for pgvector
-      on Kam's machine), §15.9–15.11 before P4/P5.
+      in P4; no manual admission for them. Storage: the litkb database lives in a Postgres
+      tablespace on D:\edmonds-pipeline\ (C: had about 2 GB free); the server stays put.
+      §15.2 ordering: P1 waits until the C++ Build Tools and pgvector are installed (Kam
+      declined starting P1 without pgvector). Still open: §15.9–15.11 before P4/P5.
     why: >-
       P1 builds the version pointers, promotion functions and roles that §15.7 and §15.13
       constrain; P2's admission check needs the §15.15 year rule; §15.12 decides whether

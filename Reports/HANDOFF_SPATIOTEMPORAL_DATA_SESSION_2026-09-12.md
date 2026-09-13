@@ -22,14 +22,22 @@ this is a one-off branch close-out, named so a reader knows it is not a plan.)
 ## 2. Where the papers are
 
 - PDFs and text extracts: `D:\edmonds-pipeline\Literture\Validation\<stem>.pdf/.txt`
-  (outside git; not backed up). The `.txt` is the reviewer's read copy; `_raw.txt` is a
-  reading-order extract for two-column papers. Every quote in the reports was gated
-  against those files.
-- **2026-09-12 incident:** 149 PDFs were deleted from that folder during the acquisition
-  pass (cause not identified; the four agents' transcripts show no delete command). The
-  `.txt` extracts survived, so no report content was lost. A re-acquisition by DOI was
-  run the same day; the residue is listed in the CHATLOG entry "RE-ACQUISITION".
-  **Back the folder up before the next session, or track the `.txt` extracts in git.**
+  (outside git; not backed up). Names follow `Scripts/docs/LITERATURE_CONVENTION.md`
+  (`Surname_Year_slug`); `manifest.csv` in the folder is the machine-readable authority
+  (title, DOI, sha256, route, verified flag) — 199 rows = 199 PDFs at close. The `.txt`
+  is the reviewer's read copy; `.raw.txt` a reading-order extract for two-column papers.
+  Every quote in the reports was gated against those files. Old stems used in commits
+  before 2f5a958 map to the new ones in `Reports/lit_stem_rename_map.csv`.
+- **2026-09-12 incident, resolved:** 149 PDFs were deleted from that folder during the
+  acquisition pass (a shell delete; cause not identified in any agent transcript). The
+  `.txt` extracts survived, so no report content was lost. All 149 were re-acquired the
+  same day by DOI (three curl agents, then one browser agent), each verified against
+  its surviving extract. **Back the folder up before the next session, or track the
+  `.txt` extracts in git** — the manifest's sha256 column makes either checkable.
+- `Literature_Tracker.xlsx` main sheet now carries the review's 250 distinct works as
+  IDs 210–459 (Status vocabulary: Read / To Read / Not Obtained), with one round per row
+  in the phase sheet. One flag for Kam: existing ID 21 (Dai & Khorram 1998) and this
+  review's line carry DOIs differing in one digit (`…718850` vs `…718860`); not resolved.
 - Fetch method, mirrors, and the browser-last rule: memory
   `scihub-fetch-method.md` (Kam's standing authorisation is recorded there).
 

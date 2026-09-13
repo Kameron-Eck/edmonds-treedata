@@ -262,3 +262,27 @@ decisions:
     evidence:
       - Reports/FRAMEWORK_GAPS_SPATIOTEMPORAL_CONSISTENCY_2026-09-11.md
       - qc/instruments/harm_change_laundering.py
+
+  - id: litkb-p0-foundation
+    question: >-
+      Which of the literature knowledge base design's P0 decisions (design doc §15) block
+      the foundation, admission and migration phases (P1–P3), and how are they answered?
+    owner: kam
+    status: decided
+    decided: "2026-09-13"
+    decision: >-
+      §15.1 server: PostgreSQL 18 on port 5433. §15.7 promotion: the orchestrator runs
+      promote commit after it sees Kam's merge commit on main; the database refuses a
+      commit that is not reachable from main. §15.12 backup: a nightly pg_dump of the
+      database records (no PDFs, no derived artifacts) is in scope. §15.13 manual
+      admissions: signed off by a second agent session; the database refuses
+      admitter = approver. §15.15 year tolerance: ±1 year allowed only when the title and
+      first author both match the registry record; otherwise the year must match exactly.
+      Still open: §15.2 (C++ Build Tools for pgvector on Kam's machine), §15.5 and §15.14
+      before P2, §15.9–15.11 before P4/P5.
+    why: >-
+      P1 builds the version pointers, promotion functions and roles that §15.7 and §15.13
+      constrain; P2's admission check needs the §15.15 year rule; §15.12 decides whether
+      the one store of use histories and approvals has any copy.
+    evidence:
+      - LITERATURE_KB_DESIGN_2026-09-13.md

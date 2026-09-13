@@ -106,6 +106,24 @@ its first failing rung, so preflight was run on its own: `[PASSED] pre-flight cl
     Until it is reinstalled from a tree containing litkb, run with `PYTHONPATH=Scripts/pipeline`;
     tests import through the existing `conftest.py` path entry.
 
+14. **`ws_heads.version_id` has no foreign key.** It points into five different version tables. This is
+    a known gap in check 5; the chain walk stops at a head it cannot resolve.
+15. **A chain held at commit cannot be re-promoted in P1.** Its workstream is `merged`, and
+    `promote_prepare` requires `open`. This is a §5 gap for P8 or Kam, not a P2 blocker.
+
+## Addendum — production `litkb` re-checked after commit `428e194`
+
+- After the mutation runs and the commit,
+  `PYTHONPATH=pipeline py -3.12 -m litkb.db.migrate --db litkb` printed
+  `applied 0 (none pending); 6 recorded`, so the recorded hashes match the committed files.
+- On `litkb` itself (owner `litkb_owner`), a probe as postgres printed `f|f|f|f|t|t` for:
+  - writer UPDATE on `use_versions`
+  - writer EXECUTE on `_write_version`
+  - writer INSERT on `use_evidence.quote_verified`
+  - `litkb_test` CONNECT on `litkb`
+  - writer EXECUTE on `write_proposal` (control)
+  - promoter EXECUTE on `promote_commit` (control)
+
 ## Not built / open before P2
 
 - **Nightly `pg_dump`** (in scope per the decision, not in the P1 row). It needs a scheduled task

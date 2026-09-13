@@ -146,3 +146,17 @@ Feeds token depth: `review §N` may carry any number of sub-levels (`review §4.
 4. One browser session, last, for whatever remains.
 Acquisition agents never hold delete permission in the literature folders; every file is verified by
 content before it is kept.
+
+## DOI-first rule (Kam, 2026-09-13)
+
+A work is looked up in Anna's Archive **by DOI only**. Establish the DOI first from the
+registries, in this order, and accept a hit only when title similarity ≥ 0.85 (lowercase,
+punctuation stripped), first-author surname matches, and the year matches:
+1. Crossref (`https://api.crossref.org/works/<DOI>` to confirm; `…/works?query.bibliographic=<title>&rows=3` to find);
+2. OpenAlex (`https://api.openalex.org/works?search=<title>` — metered; use sparingly) or Semantic Scholar (`https://api.semanticscholar.org/graph/v1/paper/search?query=<title>&fields=externalIds,title,year,authors`);
+3. DataCite for reports/datasets; arXiv API for preprints (an arXiv id is an identifier in its own right; its DOI form is `10.48550/arXiv.<id>`);
+4. the PDF itself, if held — publisher PDFs print the DOI on the first page.
+Only when no traceable DOI or arXiv id exists (older proceedings, agency reports, books) may a
+title search be used, and then every candidate must be verified against its record before any
+download. The manifest's `doi`/`arxiv` columns are therefore mandatory for every paper that has one;
+a row lacking both must carry a note saying why.

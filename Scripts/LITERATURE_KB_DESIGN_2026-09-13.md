@@ -235,9 +235,9 @@ collide on the unique index; the loser's transaction rolls back and it reads the
 **Check 3 — the file is that study (binding), at admission.** A file is admitted only if its title
 is found in the PDF header metadata or in the first page's text with normalised ratio ≥ 0.85 against
 the *registry* title, and the registry first-author surname appears there too. The matched line,
-ratio and page go into `files.binding`. Search every first-page line, not the first line: the Higham
-2011 file is an author manuscript whose first line is MIMS EPrint boilerplate, while its title and
-authors follow further down (`audit_fast.csv`, 2026-09-13 **[M]**). A file with no text layer on its
+ratio and page go into `files.binding`. Search every first-page line, not the first line: the Averkov
+2009 file's extract begins with the journal running header, a copyright line and the author names,
+and its title is the fourth line (`audit_fast.csv` column `extract_head`, 2026-09-13 **[M]**). A file with no text layer on its
 first page cannot pass and is quarantined as `binding-pending` until OCR (P4 onward) or a manual
 admission binds it. Rationale: in revision 1 binding was a later audit, and the manifest shows what
 that costs — two files sat under wrong DOIs with `verified_against_extract = yes` until an audit
@@ -655,6 +655,10 @@ only what shapes the design, at the strength the report gives them.
   Windows lost their [F] (not in the report; Postgres is [M]); pgvector "PG18 supported since 0.8.1"
   → "0.8.1 added support for Postgres 18 rc1"; Nougat "unmaintained" marked as inference; `pg_trgm`
   presence re-marked [M] (local file listing) since the report left it unconfirmed.
+- **Corrected after the first revision-2 commit:** §4.6 check 3 cited Higham 2011 as a file whose
+  title is not on the first line. That misread `audit_fast.csv`: the quoted boilerplate was the
+  `best_extract_line` matched against the wrong registry title, and Higham's extract begins with its
+  title. The example is now Averkov 2009, whose title is the fourth line of its extract.
 - **No referee claim was rejected.**
 
 ---

@@ -131,3 +131,5 @@ retag it to whichever of the other docs actually has that heading, and say so in
 `Topic` (the question that phase searched, one line), `Status`, `Note` (free text —
 e.g. a gap-ledger row with no literature attached says so here, as its own
 `Search Phase` row).
+
+Feeds token depth: `review §N` may carry any number of sub-levels (`review §4.18.4`); `framework §N` at most one (`framework §13.1`). Grade rule: `Evidence grade` is the reviewer's read grade — PRIMARY or ABSTRACT implies Status Read; an obtained-but-unread row carries no grade.

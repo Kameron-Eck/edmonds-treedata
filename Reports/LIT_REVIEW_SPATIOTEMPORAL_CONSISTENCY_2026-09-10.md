@@ -2397,6 +2397,19 @@ number, never instead of it. Adopt it from the first run rather than retrofittin
   scan), 2 METADATA lines (Schwartz 2000; the van den Hout book), and 1 line for two works
   already held. Findings in §4.19; framework §19. Rows 17, 18, 19 and 20 move to
   published frameworks; row 16's identifiability condition is now quoted.
+- **Acquisition pass (2026-09-12), closing the review:** every cited work without a
+  full paper on disk (64 after filtering against the folder) was sent to four Sonnet
+  acquisition agents (open access, first Sci-Hub index, second index by curl, then one
+  browser batch last, per Kam). 47 obtained and header-verified; their bibliography
+  lines now carry "Obtained … unread by the reviewer" — grades do not change without a
+  read. Not obtained (17): Wehmann & Liu 2015, Hoberg et al. 2015, Wu et al. 2017 (closed,
+  on neither index); Wendelberger 2026, Islam 2026, Mobsite 2026 (open access behind
+  publisher bot checks the browser could not pass this session); Song 2026, Brown 2022,
+  Chen et al. 2024 (too recent for the indexes); Mishra & Singh 2022 (nowhere); Page
+  1954 and Schwartz 2000 (browser route stopped by a permission denial); the four books
+  (Zucchini, van den Hout, Lahiri ch. 12, Matheron 1975) and the Hilbert-named
+  "Steenberg 2017" row, which is not a separate paper. Laurance 1998's citation is now
+  resolved and the file held.
 - **Not searched:** §6.4 (which training lever first) is a cost/sequencing decision no
   literature settles; the material for it is in §4.6. §6.2 and §6.3 *were* searched in
   round 2 and are answered in §4.10.
@@ -2412,33 +2425,33 @@ Grades as defined in §2. Grouped by the brief section they bear on.
 
 ### §2.3 — temporal chain, transitions, emissions
 - Abercrombie, S.P. & Friedl, M.A. (2016). Improving the Consistency of Multitemporal Land Cover Maps Using a Hidden Markov Model. *IEEE TGRS* 54(2). doi:10.1109/TGRS.2015.2463689 — **PRIMARY** (full text, Sci-Hub, verified 2026-09-11; local copy in `D:\edmonds-pipeline\Literture\Validation\`)
-- Bogaert, P., Lamarche, C. & Defourny, P. (2022). Hidden Markov Models for Annual Land Cover Mapping — Increasing Temporal Consistency and Completeness. *IEEE TGRS* 60. doi:10.1109/TGRS.2021.3123738 — **ABSTRACT**
+- Bogaert, P., Lamarche, C. & Defourny, P. (2022). Hidden Markov Models for Annual Land Cover Mapping — Increasing Temporal Consistency and Completeness. *IEEE TGRS* 60. doi:10.1109/TGRS.2021.3123738 — **ABSTRACT** **Obtained 2026-09-12 (acquisition pass), header-verified, unread by the reviewer — grade unchanged until read. Filed `Bogaert_2022_HMM_AnnualLandCover_TGRS`.**
 - Cai, S., Liu, D., Sulla-Menashe, D. & Friedl, M.A. (2014). Enhancing MODIS land cover product with a spatial–temporal modeling algorithm. *RSE* 147. doi:10.1016/j.rse.2014.03.012 — **METADATA**
 - Gong, W., Fang, S., Yang, G. & Ge, M. (2017). Using a Hidden Markov Model for Improving the Spatial-Temporal Consistency of Time Series Land Cover Classification. *ISPRS IJGI* 6(10):292. doi:10.3390/ijgi6100292 — **PRIMARY**
 - Miller, D.A.W. et al. (2013). Determining Occurrence Dynamics when False Positives Occur: Estimating the Range Dynamics of Wolves from Public Survey Data. *PLOS ONE* **8(6)**:e65808. doi:10.1371/journal.pone.0065808 — **PRIMARY** (full text, verified 2026-09-11; issue number corrected from 8(10))
 - Perantoni, G., Weikmann, G. & Bruzzone, L. (2025). Bayesian Modelling of Multi-Year Crop Type Classification Using Deep Neural Networks and Hidden Markov Models. arXiv:2510.07008 — **PRIMARY** (preprint)
 - Sulla-Menashe, D., Gray, J.M., Abercrombie, S.P. & Friedl, M.A. (2019). Hierarchical mapping of annual global land cover 2001 to present: MODIS Collection 6. *RSE* 222. doi:10.1016/j.rse.2018.12.013 — **ABSTRACT ⚠ NUMBERS** (transition figure, abstract-verbatim); its product documentation (Sulla-Menashe & Friedl, MCD12Q1 User Guide) is **PRIMARY** (§4.1)
 - Wehmann, A. & Liu, D. (2015). A spatial–temporal contextual Markovian kernel method for multi-temporal land cover mapping. *ISPRS J.* 107. doi:10.1016/j.isprsjprs.2015.04.009 — **METADATA**
-- Yang, G., Fang, S., Gong, W., Zhao, Y. & Ge, M. (2020). Evaluating the reliability of time series land cover maps by exploiting the hidden Markov model. *SERRA* 35. doi:10.1007/s00477-020-01915-9 — **ABSTRACT**
-- Yuan, Y. et al. (2015). Continuous Change Detection and Classification Using Hidden Markov Model: Beijing. *Remote Sensing* 7(11):15318. doi:10.3390/rs71115318 — **METADATA**
+- Yang, G., Fang, S., Gong, W., Zhao, Y. & Ge, M. (2020). Evaluating the reliability of time series land cover maps by exploiting the hidden Markov model. *SERRA* 35. doi:10.1007/s00477-020-01915-9 — **ABSTRACT** **Obtained 2026-09-12 (acquisition pass), header-verified, unread by the reviewer — grade unchanged until read. Filed `Yang_2020_ReliabilityTimeSeriesLandCover_SERRA`.**
+- Yuan, Y. et al. (2015). Continuous Change Detection and Classification Using Hidden Markov Model: Beijing. *Remote Sensing* 7(11):15318. doi:10.3390/rs71115318 — **METADATA** **Obtained 2026-09-12 (acquisition pass), header-verified, unread by the reviewer — grade unchanged until read. Filed `Yuan_2015_CCDC_HMM_Beijing_rs`.**
 
 ### §4.1 — joint space and time
-- Benedek, C. & Sziranyi, T. (2009). Change Detection in Optical Aerial Images by a Multilayer Conditional Mixed Markov Model. *IEEE TGRS* 47(10). doi:10.1109/TGRS.2009.2022633 — **METADATA**
-- Benedek, C., Shadaydeh, M., Kato, Z., Sziranyi, T. & Zerubia, J. (2015). Multilayer Markov Random Field models for change detection in optical remote sensing images. *ISPRS J.* 107. doi:10.1016/j.isprsjprs.2015.02.006 — **METADATA**
+- Benedek, C. & Sziranyi, T. (2009). Change Detection in Optical Aerial Images by a Multilayer Conditional Mixed Markov Model. *IEEE TGRS* 47(10). doi:10.1109/TGRS.2009.2022633 — **METADATA** **Obtained 2026-09-12 (acquisition pass), header-verified, unread by the reviewer — grade unchanged until read. Filed `Benedek_2009_MultilayerConditionalMixedMarkov_TGRS`.**
+- Benedek, C., Shadaydeh, M., Kato, Z., Sziranyi, T. & Zerubia, J. (2015). Multilayer Markov Random Field models for change detection in optical remote sensing images. *ISPRS J.* 107. doi:10.1016/j.isprsjprs.2015.02.006 — **METADATA** **Obtained 2026-09-12 (acquisition pass), header-verified, unread by the reviewer — grade unchanged until read. Filed `Benedek_2015_MultilayerMRF_ChangeDetection_isprsjprs`.**
 - Hoberg, T., Rottensteiner, F., Feitosa, R.Q. & Heipke, C. (2015). Conditional Random Fields for Multitemporal and Multiscale Classification of Optical Satellite Imagery. *IEEE TGRS* 53(2). doi:10.1109/TGRS.2014.2326886 — **METADATA** (confirmed unreadable 2026-09-11: no OA/repository copy, five Sci-Hub mirrors empty)
 - Hoberg, T., Rottensteiner, F. & Heipke, C. (2012). Context Models for CRF-Based Classification of Multitemporal Remote Sensing Data. *ISPRS Annals* I-7:129–134. doi:10.5194/isprsannals-I-7-129-2012 — **PRIMARY** (2012 precursor to the above; full text parsed 2026-09-11, §4.2)
-- Liu, C., Song, W., Lu, C. & Xia, J. (2021). Spatial-Temporal Hidden Markov Model for Land Cover Classification. *IEEE Access* 9. doi:10.1109/ACCESS.2021.3080926 — **ABSTRACT**
+- Liu, C., Song, W., Lu, C. & Xia, J. (2021). Spatial-Temporal Hidden Markov Model for Land Cover Classification. *IEEE Access* 9. doi:10.1109/ACCESS.2021.3080926 — **ABSTRACT** **Obtained 2026-09-12 (acquisition pass), header-verified, unread by the reviewer — grade unchanged until read. Filed `Liu_2021_SpatioTemporalHMM_LandCover_ACCESS`.**
 - Martinis, S. & Twele, A. (2010). A Hierarchical Spatio-Temporal Markov Model for Improved Flood Mapping Using Multi-Temporal X-Band SAR Data. *Remote Sensing* 2(9). doi:10.3390/rs2092240 — **PRIMARY** (full text via GFZ Potsdam repository mirror, verified 2026-09-11, §4.2)
 - Melgani, F. & Serpico, S.B. (2003). A Markov random field approach to spatio-temporal contextual image classification. *IEEE TGRS* 41(11). doi:10.1109/TGRS.2003.817269 — **METADATA**
 
 ### §6.1 — reshaping, segmentation, confirm-or-veto
 - Cohen, W.B., Yang, Z., Healey, S.P., Kennedy, R.E. & Gorelick, N. (2018). A LandTrendr multispectral ensemble for forest disturbance detection. *RSE* 205. doi:10.1016/j.rse.2017.11.015 — **METADATA ⚠ NUMBERS**
 - Kennedy, R.E., Yang, Z. & Cohen, W.B. (2010). Detecting trends in forest disturbance and recovery using yearly Landsat time series: 1. LandTrendr. *RSE* 114. doi:10.1016/j.rse.2010.07.008 — **PRIMARY**
-- Murakami, T. & Tsutsumida, N. (2025). Comparative Global Assessment and Optimization of LandTrendr, CCDC, and BFAST for Urban Land Cover Change Detection. *Remote Sensing* 17(14):2402. doi:10.3390/rs17142402 — **METADATA**
+- Murakami, T. & Tsutsumida, N. (2025). Comparative Global Assessment and Optimization of LandTrendr, CCDC, and BFAST for Urban Land Cover Change Detection. *Remote Sensing* 17(14):2402. doi:10.3390/rs17142402 — **METADATA** **Obtained 2026-09-12 (acquisition pass), header-verified, unread by the reviewer — grade unchanged until read. Filed `Murakami_Tsutsumida_2025_LandTrendr_CCDC_BFAST_rs`.**
 - Pasquarella, V.J. et al. (2022). Demystifying LandTrendr and CCDC temporal segmentation. *IJAEOG* 110:102806. doi:10.1016/j.jag.2022.102806 — **PRIMARY**
 - Polunchenko, A.S. & Tartakovsky, A.G. (2012). State-of-the-Art in Sequential Change-Point Detection. *Meth. Comput. Appl. Probab.* doi:10.1007/s11009-011-9256-5 — **PRIMARY**
-- Reiche, J., de Bruin, S., Hoekman, D., Verbesselt, J. & Herold, M. (2015). A Bayesian Approach to Combine Landsat and ALOS PALSAR Time Series for Near Real-Time Deforestation Detection. *Remote Sensing* 7(5). doi:10.3390/rs70504973 — **ABSTRACT**
-- Reiche, J. et al. (2021). Forest disturbance alerts for the Congo Basin using Sentinel-1. *ERL* 16. doi:10.1088/1748-9326/abd0a8 — **ABSTRACT**
+- Reiche, J., de Bruin, S., Hoekman, D., Verbesselt, J. & Herold, M. (2015). A Bayesian Approach to Combine Landsat and ALOS PALSAR Time Series for Near Real-Time Deforestation Detection. *Remote Sensing* 7(5). doi:10.3390/rs70504973 — **ABSTRACT** **Obtained 2026-09-12 (acquisition pass), header-verified, unread by the reviewer — grade unchanged until read. Filed `Reiche_2015_Bayesian_Landsat_ALOS_rs`.**
+- Reiche, J. et al. (2021). Forest disturbance alerts for the Congo Basin using Sentinel-1. *ERL* 16. doi:10.1088/1748-9326/abd0a8 — **ABSTRACT** **Obtained 2026-09-12 (acquisition pass), header-verified, unread by the reviewer — grade unchanged until read. Filed `Reiche_2021_ForestDisturbanceAlerts_ERL`.**
 - Rodman, K.C., Andrus, R.A., Veblen, T.T. & Hart, S.J. (2021). Disturbance detection in Landsat time series is influenced by tree mortality agent and severity, not by prior disturbance. *RSE* 254:112244. doi:10.1016/j.rse.2020.112244 — **PRIMARY** (full text read 2026-09-11; title was previously truncated, dropping its third finding)
 - Verbesselt, J., Hyndman, R., Newnham, G. & Culvenor, D. (2010). Detecting trend and seasonal changes in satellite image time series. *RSE* 114(1). doi:10.1016/j.rse.2009.08.014 — **PRIMARY**
 - Wendelberger, L.J., Reich, B.J., Wilson, A.G. & Gray, J.M. (2026). Detecting Deforestation Using Robust Online Bayesian Monitoring. *Data Science in Science*. doi:10.1080/26941899.2026.2687150 — **METADATA**
@@ -2461,48 +2474,48 @@ Grades as defined in §2. Grouped by the brief section they bear on.
 - Kalinicheva, E., Helen, F., Mermoz, S., Mouret, F. & Planells, M. (2025). Super-Resolved Canopy Height Mapping from Sentinel-2 Time Series Using Airborne LiDAR HD. arXiv:2512.11524 — **ABSTRACT** (preprint)
 - Lai, Y. et al. (2026). Forest canopy height estimation from satellite RGB imagery using large-scale airborne LiDAR-derived training data. arXiv:2602.06503 — **ABSTRACT ⚠ NUMBERS** (preprint)
 - Lang, N., Jetz, W., Schindler, K. & Wegner, J.D. (2023). A high-resolution canopy height model of the Earth. *Nature Ecology & Evolution*. doi:10.1038/s41559-023-02206-6 — **PRIMARY**
-- Lopez-Paz, D., Bottou, L., Schölkopf, B. & Vapnik, V. (2016). Unifying distillation and privileged information. *ICLR 2016*; arXiv:1511.03643 — **ABSTRACT**
-- Pauls, J. et al. (2025). Capturing Temporal Dynamics in Large-Scale Canopy Tree Height Estimation. arXiv:2501.19328 — **ABSTRACT** (preprint)
-- Pesonen, J. et al. (2026). Learning Image-based Tree Crown Segmentation from Enhanced Lidar-based Pseudo-labels. arXiv:2602.13022 — **ABSTRACT** (preprint)
+- Lopez-Paz, D., Bottou, L., Schölkopf, B. & Vapnik, V. (2016). Unifying distillation and privileged information. *ICLR 2016*; arXiv:1511.03643 — **ABSTRACT** **Obtained 2026-09-12 (acquisition pass), header-verified, unread by the reviewer — grade unchanged until read. Filed `LopezPaz_etal_2016_Unifying_Distillation_Privileged_Information`.**
+- Pauls, J. et al. (2025). Capturing Temporal Dynamics in Large-Scale Canopy Tree Height Estimation. arXiv:2501.19328 — **ABSTRACT** (preprint) **Obtained 2026-09-12 (acquisition pass), header-verified, unread by the reviewer — grade unchanged until read. Filed `Pauls_etal_2025_Temporal_Dynamics_Canopy_Height`.**
+- Pesonen, J. et al. (2026). Learning Image-based Tree Crown Segmentation from Enhanced Lidar-based Pseudo-labels. arXiv:2602.13022 — **ABSTRACT** (preprint) **Obtained 2026-09-12 (acquisition pass), header-verified, unread by the reviewer — grade unchanged until read. Filed `Pesonen_etal_2026_Tree_Crown_Segmentation_Lidar_Pseudolabels`.**
 - Song, J., Chen, H. & Yokoya, N. (2026). Enhancing monocular height estimation via sparse LiDAR-guided correction. *ISPRS J.* 232. doi:10.1016/j.isprsjprs.2025.12.004 — **ABSTRACT**
 - Tolan, J. et al. (2024). Very high resolution canopy height maps from RGB imagery using self-supervised vision transformer and convolutional decoder trained on aerial lidar. *RSE*. doi:10.1016/j.rse.2023.113888 — **PRIMARY** via the open-access preprint arXiv:2304.07213 (publisher version paywalled); inference code at `facebookresearch/HighResCanopyHeight`
-- Vapnik, V. & Vashist, A. (2009). A new learning paradigm: Learning using privileged information. *Neural Networks* 22(5–6). doi:10.1016/j.neunet.2009.06.042 — **METADATA**
-- Zhou, Q., Tollerud, H., Barber, C., Smith, K. & Zelenak, D. (2020). Training Data Selection for Annual Land Cover Classification for LCMAP. *Remote Sensing* 12(4):699. doi:10.3390/rs12040699 — **ABSTRACT**
+- Vapnik, V. & Vashist, A. (2009). A new learning paradigm: Learning using privileged information. *Neural Networks* 22(5–6). doi:10.1016/j.neunet.2009.06.042 — **METADATA** **Obtained 2026-09-12 (acquisition pass), header-verified, unread by the reviewer — grade unchanged until read. Filed `Vapnik_Vashist_2009_Learning_Using_Privileged_Information`.**
+- Zhou, Q., Tollerud, H., Barber, C., Smith, K. & Zelenak, D. (2020). Training Data Selection for Annual Land Cover Classification for LCMAP. *Remote Sensing* 12(4):699. doi:10.3390/rs12040699 — **ABSTRACT** **Obtained 2026-09-12 (acquisition pass), header-verified, unread by the reviewer — grade unchanged until read. Filed `Zhou_2020_TrainingDataSelection_AnnualLandCover_rs`.**
 
 ### §4.4 — deep supervision and resolution
 - Brown, J. et al. (2022). Automated aerial animal detection when spatial resolution conditions are varied. *Computers and Electronics in Agriculture*. doi:10.1016/j.compag.2022.106689 — **ABSTRACT**
 - Chen, H., Yang, W., Liu, L. & Xia, G.S. (2024). Coarse-to-fine semantic segmentation of satellite images. *ISPRS J.* 217. doi:10.1016/j.isprsjprs.2024.07.028 — **METADATA**
-- Chen, K. et al. (2018). Semantic Segmentation of Aerial Imagery via Multi-Scale Shuffling CNNs with Deep Supervision. *ISPRS Annals* IV-1. doi:10.5194/isprs-annals-IV-1-29-2018 — **ABSTRACT**
-- Lee, C.Y., Xie, S., Gallagher, P., Zhang, Z. & Tu, Z. (2015). Deeply-Supervised Nets. *AISTATS*, PMLR 38 — **ABSTRACT**
+- Chen, K. et al. (2018). Semantic Segmentation of Aerial Imagery via Multi-Scale Shuffling CNNs with Deep Supervision. *ISPRS Annals* IV-1. doi:10.5194/isprs-annals-IV-1-29-2018 — **ABSTRACT** **Obtained 2026-09-12 (acquisition pass), header-verified, unread by the reviewer — grade unchanged until read. Filed `Chen_etal_2018_Multiscale_Shuffling_CNN_Deep_Supervision`.**
+- Lee, C.Y., Xie, S., Gallagher, P., Zhang, Z. & Tu, Z. (2015). Deeply-Supervised Nets. *AISTATS*, PMLR 38 — **ABSTRACT** **Obtained 2026-09-12 (acquisition pass), header-verified, unread by the reviewer — grade unchanged until read. Filed `Lee_etal_2015_Deeply_Supervised_Nets`.**
 - Ma, S., Tang, J. & Guo, F. (2021). Multi-Task Deep Supervision on Attention R2U-Net for Brain Tumor Segmentation. *Frontiers in Oncology* 11:704850. doi:10.3389/fonc.2021.704850 — **PRIMARY**
 - Mobsite, S., Hostache, R., Berti-Équille, L., Roux, E., Catry, T. & Guérin, J. (2026). Enhancing land cover semantic segmentation with convolutional block attention modules and deep supervision. *Artificial Intelligence in Geosciences* 7:100222. doi:10.1016/j.aiig.2026.100222 — **METADATA** (numbers' home is brief §2.5)
-- Touvron, H., Vedaldi, A., Douze, M. & Jégou, H. (2019). Fixing the Train-Test Resolution Discrepancy. *NeurIPS 32*; arXiv:1906.06423 — **ABSTRACT**
-- Zhao, H., Shi, J., Qi, X., Wang, X. & Jia, J. (2017). Pyramid Scene Parsing Network. *CVPR 2017*. doi:10.1109/CVPR.2017.660 — **ABSTRACT**
+- Touvron, H., Vedaldi, A., Douze, M. & Jégou, H. (2019). Fixing the Train-Test Resolution Discrepancy. *NeurIPS 32*; arXiv:1906.06423 — **ABSTRACT** **Obtained 2026-09-12 (acquisition pass), header-verified, unread by the reviewer — grade unchanged until read. Filed `Touvron_etal_2019_Fixing_TrainTest_Resolution_Discrepancy`.**
+- Zhao, H., Shi, J., Qi, X., Wang, X. & Jia, J. (2017). Pyramid Scene Parsing Network. *CVPR 2017*. doi:10.1109/CVPR.2017.660 — **ABSTRACT** **Obtained 2026-09-12 (acquisition pass), header-verified, unread by the reviewer — grade unchanged until read. Filed `Zhao_etal_2017_Pyramid_Scene_Parsing_Network`.**
 
 ### §2.4 — accuracy assessment for rare change
 - Foody, G.M. (2010). Assessing the accuracy of land cover change with imperfect ground reference data. *RSE* 114. doi:10.1016/j.rse.2010.05.003 — **ABSTRACT**
-- Olofsson, P., Foody, G.M., Stehman, S.V. & Woodcock, C.E. (2013). Making better use of accuracy data in land change studies. *RSE* 129. doi:10.1016/j.rse.2012.10.031 — **METADATA**
+- Olofsson, P., Foody, G.M., Stehman, S.V. & Woodcock, C.E. (2013). Making better use of accuracy data in land change studies. *RSE* 129. doi:10.1016/j.rse.2012.10.031 — **METADATA** **Obtained 2026-09-12 (acquisition pass), header-verified, unread by the reviewer — grade unchanged until read. Filed `Olofsson_2013_making_better_use_accuracy_data`.**
 - Olofsson, P., Foody, G.M., Herold, M., Stehman, S.V., Woodcock, C.E. & Wulder, M.A. (2014). Good practices for estimating area and assessing accuracy of land change. *RSE* 148. doi:10.1016/j.rse.2014.02.015 — **PRIMARY**
-- Radoux, J. & Bogaert, P. (2020). About the Pitfall of Erroneous Validation Data in the Estimation of Confusion Matrices. *Remote Sensing* 12(24):4128. doi:10.3390/rs12244128 — **ABSTRACT**
-- Radoux, J., Waldner, F. & Bogaert, P. (2020). How Response Designs and Class Proportions Affect the Accuracy of Validation Data. *Remote Sensing* 12(2):257. doi:10.3390/rs12020257 — **ABSTRACT**
-- Stehman, S.V. & Czaplewski, R.L. (1998). Design and Analysis for Thematic Map Accuracy Assessment. *RSE* 64. doi:10.1016/S0034-4257(98)00010-8 — **METADATA**
+- Radoux, J. & Bogaert, P. (2020). About the Pitfall of Erroneous Validation Data in the Estimation of Confusion Matrices. *Remote Sensing* 12(24):4128. doi:10.3390/rs12244128 — **ABSTRACT** **Obtained 2026-09-12 (acquisition pass), header-verified, unread by the reviewer — grade unchanged until read. Filed `Radoux_Bogaert_2020_pitfall_erroneous_validation`.**
+- Radoux, J., Waldner, F. & Bogaert, P. (2020). How Response Designs and Class Proportions Affect the Accuracy of Validation Data. *Remote Sensing* 12(2):257. doi:10.3390/rs12020257 — **ABSTRACT** **Obtained 2026-09-12 (acquisition pass), header-verified, unread by the reviewer — grade unchanged until read. Filed `Radoux_Waldner_Bogaert_2020_response_designs_class_proportions`.**
+- Stehman, S.V. & Czaplewski, R.L. (1998). Design and Analysis for Thematic Map Accuracy Assessment. *RSE* 64. doi:10.1016/S0034-4257(98)00010-8 — **METADATA** **Obtained 2026-09-12 (acquisition pass), header-verified, unread by the reviewer — grade unchanged until read. Filed `Stehman_Czaplewski_1998_design_analysis_thematic_map`.**
 - Stehman, S.V. & Foody, G.M. (2019). Key issues in rigorous accuracy assessment of land cover products. *RSE* 231:111199. doi:10.1016/j.rse.2019.05.018 — **ABSTRACT**
 - Stehman, S.V. & Wagner, J.E. (2024). Choosing a sample size allocation to strata based on trade-offs in precision when estimating accuracy and area of a rare class. *RSE* 300:113881. doi:10.1016/j.rse.2023.113881 — **PRIMARY ⚠ NUMBERS**
 
 ### §1 — heterogeneous archives, shadow and rooftop error
-- Blackman, R. & Yuan, F. (2020). Detecting Long-Term Urban Forest Cover Change and Impacts of Natural Disasters. *Remote Sensing* 12(11):1820. doi:10.3390/rs12111820 — **ABSTRACT**
+- Blackman, R. & Yuan, F. (2020). Detecting Long-Term Urban Forest Cover Change and Impacts of Natural Disasters. *Remote Sensing* 12(11):1820. doi:10.3390/rs12111820 — **ABSTRACT** **Obtained 2026-09-12 (acquisition pass), header-verified, unread by the reviewer — grade unchanged until read. Filed `Blackman_Yuan_2020_longterm_urban_forest_cover_change`.**
 - Coupland, K., Hamilton, D. & Griess, V.C. (2022). Combining aerial photos and LiDAR data to detect canopy cover change in urban forests. *PLOS ONE*. doi:10.1371/journal.pone.0273487 — **PRIMARY**
-- MacFaden, S.W., O'Neil-Dunne, J.P.M., Royar, A.R., Lu, J.W.T. & Rundle, A.G. (2012). High-resolution tree canopy mapping for New York City using LIDAR and object-based image analysis. *JARS* 6:063567. doi:10.1117/1.JRS.6.063567 — **ABSTRACT**
-- Nowak, D.J. & Greenfield, E.J. (2012). Tree and impervious cover change in U.S. cities. *UFUG*. doi:10.1016/j.ufug.2011.11.005 — **ABSTRACT**
+- MacFaden, S.W., O'Neil-Dunne, J.P.M., Royar, A.R., Lu, J.W.T. & Rundle, A.G. (2012). High-resolution tree canopy mapping for New York City using LIDAR and object-based image analysis. *JARS* 6:063567. doi:10.1117/1.JRS.6.063567 — **ABSTRACT** **Obtained 2026-09-12 (acquisition pass), header-verified, unread by the reviewer — grade unchanged until read. Filed `Locke_Ossola_Schmit_Grove_2024_subparcel_canopy_cover_change`.**
+- Nowak, D.J. & Greenfield, E.J. (2012). Tree and impervious cover change in U.S. cities. *UFUG*. doi:10.1016/j.ufug.2011.11.005 — **ABSTRACT** **Obtained 2026-09-12 (acquisition pass), header-verified, unread by the reviewer — grade unchanged until read. Filed `Nowak_Greenfield_2012_tree_impervious_cover_change`.**
 - O'Neil-Dunne, J.P.M., MacFaden, S.W. & Royar, A.R. (2014). A Versatile, Production-Oriented Approach to High-Resolution Tree-Canopy Mapping. *Remote Sensing* 6(12). doi:10.3390/rs61212837 — **ABSTRACT**
 - Pedley, D. & Morgenroth, J. (2025). Detecting and measuring fine-scale urban tree canopy loss with deep learning and remote sensing. *ISPRS Open J. Photogramm. Remote Sens.* **15**:100082. doi:10.1016/j.ophoto.2025.100082 — **PRIMARY** (CC BY, full text read 2026-09-11 — the 0.941/0.811 precision/recall figures previously quoted from a METADATA-graded citation are now confirmed at Table 3; that inconsistency is resolved. Its loss signal is lidar height change, not imagery differencing — see §4.8)
-- Walton, J.T. (2008). Difficulties with estimating city-wide urban forest cover change from national, remotely-sensed tree canopy maps. *Urban Ecosystems*. doi:10.1007/s11252-007-0040-9 — **ABSTRACT**
+- Walton, J.T. (2008). Difficulties with estimating city-wide urban forest cover change from national, remotely-sensed tree canopy maps. *Urban Ecosystems*. doi:10.1007/s11252-007-0040-9 — **ABSTRACT** **Obtained 2026-09-12 (acquisition pass), header-verified, unread by the reviewer — grade unchanged until read. Filed `Walton_2008_difficulties_estimating_citywide_canopy`.**
 
 ### §4.5 — layer placement, soft versus hard decisions
-- Câmara, G. et al. (2024). Bayesian Inference for Post-Processing of Remote-Sensing Image Classification. *Remote Sensing* 16(23):4572. doi:10.3390/rs16234572 — **ABSTRACT**
+- Câmara, G. et al. (2024). Bayesian Inference for Post-Processing of Remote-Sensing Image Classification. *Remote Sensing* 16(23):4572. doi:10.3390/rs16234572 — **ABSTRACT** **Obtained 2026-09-12 (acquisition pass), header-verified, unread by the reviewer — grade unchanged until read. Filed `Camara_2024_BayesianPostProcessing_rs`.**
 - Cheng, X. & Liu, H. (2020). A Novel Post-Processing Method Based on a Weighted Composite Filter for Enhancing Semantic Segmentation Results. *Sensors* 20(19):5500. doi:10.3390/s20195500 — **PRIMARY**
 - Li, N., Liu, C. & Pfeifer, N. (2019). Improving LiDAR classification accuracy by contextual label smoothing in post-processing. *ISPRS J.* 148. doi:10.1016/j.isprsjprs.2018.11.022 — **ABSTRACT**
-- Papadopoulos, S., Koukiou, G. & Anastassopoulos, V. (2024). Decision Fusion at Pixel Level of Multi-Band Data for Land Cover Classification — A Review. *Journal of Imaging* 10(1):15. doi:10.3390/jimaging10010015 — **ABSTRACT**
+- Papadopoulos, S., Koukiou, G. & Anastassopoulos, V. (2024). Decision Fusion at Pixel Level of Multi-Band Data for Land Cover Classification — A Review. *Journal of Imaging* 10(1):15. doi:10.3390/jimaging10010015 — **ABSTRACT** **Obtained 2026-09-12 (acquisition pass), header-verified, unread by the reviewer — grade unchanged until read. Filed `Papadopoulos_2024_DecisionFusion_jimaging`.**
 - Wu, C., Du, B., Cui, X. & Zhang, L. (2017). A post-classification change detection method based on iterative slow feature analysis and Bayesian soft fusion. *RSE*. doi:10.1016/j.rse.2017.07.009 — **ABSTRACT**
 
 ### §6.2 / §6.3 — buildings as ancillary context, and cadastral completeness
@@ -2510,12 +2523,12 @@ Grades as defined in §2. Grouped by the brief section they bear on.
 - Hecht, R., Meinel, G. & Buchroithner, M. (2015). Automatic identification of building types based on topographic databases — a comparison of different data sources. *Int. J. Cartography* 1(1). doi:10.1080/23729333.2015.1055644 — **METADATA ⚠ NUMBERS**
 - King, K. & Locke, D. (2013). A Comparison of Three Methods for Measuring Local Urban Tree Canopy Cover. *Arboriculture & Urban Forestry* 39(2). doi:10.48044/jauf.2013.009 — **PRIMARY** (full text via USDA Forest Service Treesearch, read 2026-09-11; the canopy-over-roof finding, §4.10 — corrected from a stated field "convention" to a property of one data product's methodology)
 - Li, Q., Taubenböck, H., Shi, Y., Auer, S., Roschlaub, R., Glock, C., Kruspe, A. & Zhu, X.X. (2022). Identification of undocumented buildings in cadastral data using remote sensing. *IJAEOG* 112:102909. doi:10.1016/j.jag.2022.102909 — **PRIMARY** (full text via DLR mirror elib.dlr.de/187878)
-- Sun, Y., Hua, Y., Mou, L. & Zhu, X.X. (2022). CG-Net: Conditional GIS-Aware Network for Individual Building Segmentation in VHR SAR Images. *IEEE TGRS*. doi:10.1109/TGRS.2020.3043089 — **ABSTRACT**
+- Sun, Y., Hua, Y., Mou, L. & Zhu, X.X. (2022). CG-Net: Conditional GIS-Aware Network for Individual Building Segmentation in VHR SAR Images. *IEEE TGRS*. doi:10.1109/TGRS.2020.3043089 — **ABSTRACT** **Obtained 2026-09-12 (acquisition pass), header-verified, unread by the reviewer — grade unchanged until read. Filed `Sun_etal_2022_CGNet_Conditional_GISaware_Network`.**
 - Yi, S., Li, X., Liu, Y., Dong, X. & Tu, W. (2025). A sub-meter resolution urban surface albedo dataset for 34 U.S. cities based on deep learning. *Scientific Data* 12:789. doi:10.1038/s41597-025-05109-2 — **PRIMARY** (the unmeasured hard-veto instance, §4.10)
 
 ### Operational products and their consistency claims
 - Li, Z., Zhang, X., Liu, W., Zhao, T., Ai, W., Wang, J. & Liu, L. (2025). Post-Processing Optimization of the Global 30 m Land Cover Dynamic Monitoring Product. *Remote Sensing* 17(9):1558. doi:10.3390/rs17091558 — **PRIMARY** (full text; §4.11 — the change-stratified reporting template, and the source of the correction in §5)
-- Reis, M.S., Dutra, L.V., Escada, M.I.S. & Sant'Anna, S.J.S. (2020). Avoiding Invalid Transitions in Land Cover Trajectory Classification With a Compound Maximum a Posteriori Approach. *IEEE Access* 8. doi:10.1109/ACCESS.2020.2997019 — **ABSTRACT**
+- Reis, M.S., Dutra, L.V., Escada, M.I.S. & Sant'Anna, S.J.S. (2020). Avoiding Invalid Transitions in Land Cover Trajectory Classification With a Compound Maximum a Posteriori Approach. *IEEE Access* 8. doi:10.1109/ACCESS.2020.2997019 — **ABSTRACT** **Obtained 2026-09-12 (acquisition pass), header-verified, unread by the reviewer — grade unchanged until read. Filed `Reis_2020_AvoidingInvalidTransitions_ACCESS`.**
 - Yang, J. & Huang, X. (2021). The 30 m Annual Land Cover Dataset and Its Dynamics in China from 1990 to 2019 (CLCD). *ESSD* 13(8). doi:10.5194/essd-13-3907-2021 — **METADATA ⚠ NUMBERS**
 
 ### Adjacent-field theory (round 3, 2026-09-11; §4.12)
@@ -2536,13 +2549,13 @@ Every DOI / arXiv id resolves.
 - Sandia National Laboratories (2016). An Introduction to the Bernoulli CUSUM. SAND2016-7395C, OSTI 1374023 — **PRIMARY** (bylined "Author 1"; corroboration only)
 - Reynolds & Stoumbos (1999). *J. Quality Technology* 31:87–108 — **METADATA** (via Ross et al.'s bibliography; the run-length approximation; not fetched)
 - Mishra & Singh (2022). doi:10.9734/ajpas/2022/v17i430430 — **ABSTRACT**, UNREADABLE (AJPAS 403; truncated negative-binomial inspection-error CUSUM)
-- Chakraborty & Khurshid (2017). doi:10.12957/cadest.2017.25564 — **ABSTRACT**, UNREADABLE (abstract only served; intervened-Poisson inspection-error CUSUM)
+- Chakraborty & Khurshid (2017). doi:10.12957/cadest.2017.25564 — **ABSTRACT**, UNREADABLE (abstract only served; intervened-Poisson inspection-error CUSUM) **Obtained 2026-09-12 (acquisition pass), header-verified, unread by the reviewer — grade unchanged until read. Filed `Chakraborty_Khurshid_2017_CUSUM_misclassification_Cadest`.**
 
 *§4.5 — scoring a corrector (§4.12.3)*
 - Ramani, Blu & Unser (2008). Monte-Carlo SURE [full title not captured]. *IEEE Trans. Image Processing* 17(9):1540–1554. doi:10.1109/tip.2008.2001404 — **PRIMARY**
 - Efron (2004). The Estimation of Prediction Error: Covariance Penalties and Cross-Validation. *JASA* 99(467):619–632. doi:10.1198/016214504000000692 — **PRIMARY**
 - Batson & Royer (2019). Noise2Self. *ICML 2019*, PMLR 97; arXiv:1901.11365 — **PRIMARY**
-- Chernozhukov et al. (2018). *Econometrics Journal* 21(1):C1–C68. doi:10.1111/ectj.12097 — **ABSTRACT** (cross-fitting; title not captured)
+- Chernozhukov et al. (2018). *Econometrics Journal* 21(1):C1–C68. doi:10.1111/ectj.12097 — **ABSTRACT** (cross-fitting; title not captured) **Obtained 2026-09-12 (acquisition pass), header-verified, unread by the reviewer — grade unchanged until read. Filed `Chernozhukov_2018_double_debiased_ML_ectj`.**
 - Kumar, Liang & Ma (2019). Verified Uncertainty Calibration. *NeurIPS 2019*; arXiv:1909.10155 — **PRIMARY**
 
 *§4.5 — IGNORE propagation (§4.12.4)*
@@ -2551,7 +2564,7 @@ Every DOI / arXiv id resolves.
 - Appel (2022). Efficient Data-Driven Gap Filling of Satellite Image Time Series Using Deep Neural Networks with Partial Convolutions. arXiv:2208.08781; *Artif. Intell. Earth Syst.* doi:10.1175/AIES-D-22-0055.1 — **PRIMARY**
 - Sinopoli, Schenato, Franceschetti, Poolla, Jordan & Sastry (2004). Kalman Filtering With Intermittent Observations. *IEEE Trans. Automatic Control* 49(9):1453–1464. doi:10.1109/TAC.2004.834121 — **PRIMARY** (Crossref-verified; text quoted from the Berkeley preprint, self-labelled DRAFT)
 - Przewiezlikowski et al. (2022). MisConv. *WACV 2022* — **PRIMARY** (read; rejected — imputes)
-- Bloch (2012). [bipolar morphology; title not captured]. *Int. J. Approx. Reasoning*. doi:10.1016/j.ijar.2012.05.003 — **METADATA**
+- Bloch (2012). [bipolar morphology; title not captured]. *Int. J. Approx. Reasoning*. doi:10.1016/j.ijar.2012.05.003 — **METADATA** **Obtained 2026-09-12 (acquisition pass), header-verified, unread by the reviewer — grade unchanged until read. Filed `Bloch_2012_bipolar_morphology_IJAR`.**
 
 ### Adjacent-field theory (round 4, 2026-09-12; §4.13)
 Grades as in §2; surnames as fetched, initials not supplied. "Filed" = PDF + extracted
@@ -2575,13 +2588,13 @@ full-text read supports the grade.
 - Chan & Esedoglu (2005). Aspects of Total Variation Regularized L¹ Function Approximation. *SIAM J. Appl. Math.* 65(5):1817–1837 — **PRIMARY**, reviewer-read (§3 disc example) from UCLA CAM report 04-07. Filed `ChanEsedoglu_2005_TV_L1_function_approximation`.
 - Duval, Aujol & Gousseau (2009). The TVL1 Model: A Geometric Point of View. *Multiscale Model. Simul.* 8(1):154–189; HAL hal-00380195 — **PRIMARY**, reviewer-read (abstract, §5.1, Thm 3.6). Filed `Duval_2009_TVL1_geometric_point_of_view`.
 - Vixie (2007). Some properties of minimizers for the Chan-Esedoglu L1TV functional. arXiv:0710.3980 — **PRIMARY**, reviewer-read (p. 13 as page image; the text layer drops symbols). Filed `Vixie_2007_ChanEsedoglu_minimizers_Allard`.
-- Allard (2007). Total variation regularization for image denoising; I. Geometric Theory. *SIAM J. Math. Anal.* — **METADATA** (via Vixie's reference list; not located OA).
+- Allard (2007). Total variation regularization for image denoising; I. Geometric Theory. *SIAM J. Math. Anal.* — **METADATA** (via Vixie's reference list; not located OA). **Obtained 2026-09-12 (acquisition pass), header-verified, unread by the reviewer — grade unchanged until read. Filed `Allard_2007_TV_denoising_geometric_theory_SIAM`.**
 - Bellettini, Caselles & Novaga (2002). The Total Variation Flow in R^N. *J. Differential Equations* 184(2):475–525 — **UNREADABLE** (author-page PDF filed `BellettiniCasellesNovaga_2002_TV_flow_RN`; text layer garbled under `pdftotext` and `pypdf`; identity rests on the source path only).
 - Kolmogorov & Boykov (2005). What Metrics Can Be Approximated by Geo-Cuts, or Global Optimization of Length/Area and Flux. *ICCV 2005* — **PRIMARY**, searcher-read (negative: no closed-form flip threshold). Filed `KolmogorovBoykov_2005_geocuts`.
 - Krähenbühl & Koltun (2011) — **PRIMARY** (round 3); re-filed `KrahenbuhlKoltun_2011_meanfield_CRF`; searcher grep for an erasure result: none.
-- Vincent (1993). Grayscale area openings and closings, their efficient implementation and applications. *Proc. Mathematical Morphology and its Applications to Signal Processing* — **METADATA**.
+- Vincent (1993). Grayscale area openings and closings, their efficient implementation and applications. *Proc. Mathematical Morphology and its Applications to Signal Processing* — **METADATA**. **Obtained 2026-09-12 (acquisition pass), header-verified, unread by the reviewer — grade unchanged until read. Filed `Vincent_1993_grayscale_area_openings_closings_EURASIP`.**
 - Gallagher & Wise (1981). A theoretical analysis of the properties of median filters. *IEEE Trans. Acoustics, Speech, and Signal Processing* 29(6). doi:10.1109/TASSP.1981.1163708 — **PRIMARY**, reviewer-read (Theorem I and definitions). Filed `GallagherWise_1981_median_root_signals` (Sci-Hub).
-- Maragos (1989). [pattern spectrum; title not captured] — **METADATA**.
+- Maragos (1989). [pattern spectrum; title not captured] — **METADATA**. **Obtained 2026-09-12 (acquisition pass), header-verified, unread by the reviewer — grade unchanged until read. Filed `Maragos_1989_pattern_spectrum_multiscale_PAMI`.**
 
 *Rows 9–10 — priors' free parameters (§4.13.3)*
 - Baddeley & Turner (2005). spatstat: An R Package for Analyzing Spatial Point Patterns. *J. Stat. Software* 12(6). doi:10.18637/jss.v012.i06 — **PRIMARY**, reviewer-read (fitting method; canonical vs irregular parameters). Filed `BaddeleyTurner_2005_spatstat_JSS`.
@@ -2591,7 +2604,7 @@ full-text read supports the grade.
 - Warfield, Zou & Wells (2004). Simultaneous Truth and Performance Level Estimation (STAPLE). *IEEE Trans. Med. Imaging* 23(7):903–921 — **ABSTRACT** (PMC1283110, proof-of-work gated).
 - Verburg, de Nijs, Ritsema van Eck, Visser & de Jong (2004). A method to analyse neighbourhood characteristics of land use patterns. *Comput. Environ. Urban Syst.* 28(6):667–690. doi:10.1016/j.compenvurbsys.2003.07.001 — **PRIMARY**, reviewer-read (§2.1, the enrichment-factor definition). Filed `Verburg_2004_enrichment_factor`.
 - Steenberg et al. (2017) — **METADATA** (named by Hilbert et al. 2019 for permitting data; not located by title).
-- [authors not captured] (2022). Construction and Proactive Management Led to Tree Removals on an Urban College Campus. *Forests* 13(6):871. doi:10.3390/f13060871 — **METADATA** (MDPI 403).
+- Roman, Fristensky, Lundgren, Cerwinka & Lubar (2022). Construction and Proactive Management Led to Tree Removals on an Urban College Campus. *Forests* 13(6):871. doi:10.3390/f13060871 — **METADATA** (MDPI 403). **Obtained 2026-09-12 (acquisition pass), header-verified, unread by the reviewer — grade unchanged until read. Filed `Roman_Fristensky_Lundgren_Cerwinka_Lubar_2022_tree_removals_campus`.** (authors resolved from the obtained PDF; see the round-6 line for the file)
 - Zucchini, MacDonald & Langrock. *Hidden Markov Models for Time Series* (CRC) — **METADATA** (book).
 
 ### Adjacent-field theory (round 5, 2026-09-12; §4.14)
@@ -2602,7 +2615,7 @@ All filed PDFs under `D:\edmonds-pipeline\Literture\Validation\`.
 - Bell & Hinojosa (1977). Markov analysis of land use change: Continuous time and stationary processes. *Socio-Economic Planning Sciences* 11(1):13–17. doi:10.1016/0038-0121(77)90041-6 — **PRIMARY**, reviewer-read. Filed `BellHinojosa_1977_Markov_land_use_stationarity`.
 - Anderson & Goodman (1957). Statistical Inference about Markov Chains. *Ann. Math. Statist.* 28(1):89–. doi:10.1214/aoms/1177707039 — **PRIMARY**, reviewer-read as page images pp. 89–91 (scan, no text layer). Filed `AndersonGoodman_1957_StatisticalInferenceMarkovChains`.
 - Takada, Miyamoto & Hasegawa (2010). Derivation of a yearly transition probability matrix for land-use dynamics and its applications. *Landscape Ecology* 25(4):561–572. doi:10.1007/s10980-009-9433-x — **METADATA** (closed; not in archive).
-- Hasegawa & Takada (2019). Probability of Deriving a Yearly Transition Probability Matrix for Land-Use Dynamics. *Sustainability* 11(22):6355. doi:10.3390/su11226355 — **ABSTRACT** (MDPI 403; Hokkaido mirror unreachable).
+- Hasegawa & Takada (2019). Probability of Deriving a Yearly Transition Probability Matrix for Land-Use Dynamics. *Sustainability* 11(22):6355. doi:10.3390/su11226355 — **ABSTRACT** (MDPI 403; Hokkaido mirror unreachable). **Obtained 2026-09-12 (acquisition pass), header-verified, unread by the reviewer — grade unchanged until read. Filed `Hasegawa_Takada_2019_yearly_transition_probability_matrix`.**
 - Burnicki, Brown & Goovaerts (2007). Simulating error propagation in land-cover change analysis: the implications of temporal dependence. *Comput. Environ. Urban Syst.* 31(3):282–302. doi:10.1016/j.compenvurbsys.2006.07.005 — **PRIMARY**, reviewer-read (§5). Filed `Burnicki_2007_error_propagation_temporal_dependence`.
 - Burnicki (2011). Spatio-temporal errors in land-cover change analysis: implications for accuracy assessment. *Int. J. Remote Sensing* 32(22):7487–7512. doi:10.1080/01431161.2010.524674 — filed, unread (identity verified from the text header only; no grade until read). Filed `Burnicki_2011_spatiotemporal_errors_accuracy`.
 - Burnicki, Brown & Goovaerts (2010). *Int. J. Geogr. Inf. Sci.* 24(7). doi:10.1080/13658810903279008 — **METADATA**. Burnicki (2012). *Landscape Ecology*. doi:10.1007/s10980-012-9719-2 — **METADATA**.
@@ -2620,7 +2633,7 @@ All filed PDFs under `D:\edmonds-pipeline\Literture\Validation\`.
 - Morgenroth, O'Neil-Dunne & Apiolaza (2017). Redevelopment and the urban forest: A study of tree removal and retention during demolition activities. *Applied Geography*. doi:10.1016/j.apgeog.2017.02.011 — **METADATA** (numbers via Hilbert et al. 2019's table).
 - Conway, Khatib, Tetreult & Almas (2022). A Private Tree By-Law's Contribution to Maintaining a Diverse Urban Forest: Exploring Homeowners' Replanting Compliance and the Role of Construction Activities in Toronto, Canada. *Arboriculture & Urban Forestry* 48(2). doi:10.48044/jauf.2022.002 — **PRIMARY**, reviewer-read. Filed `Conway_2022_Toronto_treebylaw`.
 - Roman, Fristensky, Lundgren, Cerwinka & Lubar (2022). Construction and Proactive Management Led to Tree Removals on an Urban College Campus. *Forests* 13(6):871. doi:10.3390/f13060871 — **ABSTRACT** (MDPI 403).
-- Ock, Shandas, Ribeiro & Young (2024). Drivers of Tree Canopy Loss in a Mid-Sized Growing City: Case Study in Portland, OR (USA). *Sustainability* 16(5):1803. doi:10.3390/su16051803 — **ABSTRACT** (MDPI 403).
+- Ock, Shandas, Ribeiro & Young (2024). Drivers of Tree Canopy Loss in a Mid-Sized Growing City: Case Study in Portland, OR (USA). *Sustainability* 16(5):1803. doi:10.3390/su16051803 — **ABSTRACT** (MDPI 403). **Obtained 2026-09-12 (acquisition pass), header-verified, unread by the reviewer — grade unchanged until read. Filed `Ock_Shandas_Ribeiro_Young_2024_drivers_tree_canopy_loss_Portland`.**
 - Pedley & Morgenroth (2025). *Sustainable Cities and Society*. doi:10.1016/j.scs.2025.106678 — **METADATA**. Locke, Ossola, Schmit & Grove (2024). *Landscape and Urban Planning*. doi:10.1016/j.landurbplan.2024.105187 — **METADATA**.
 - Hilbert et al. (2019), Hauer et al. (1994) — round-4 block; re-read this round.
 
@@ -2633,7 +2646,7 @@ All filed PDFs under `D:\edmonds-pipeline\Literture\Validation\`.
 - Le Folgoc, Delingette, Criminisi & Ayache (2017). Quantifying Registration Uncertainty With Sparse Bayesian Modelling. *IEEE Trans. Med. Imaging*. doi:10.1109/tmi.2016.2623608 — **PRIMARY**, searcher-read. Filed `LeFolgoc_2016_QuantifyingRegistrationUncertaintySparseBayesian`.
 - Parisot, Wells, Chemouny, Duffau & Paragios (2013). Uncertainty-Driven Efficiently-Sampled Sparse Graphical Models for Concurrent Tumor Segmentation and Atlas Registration. *ICCV 2013*. doi:10.1109/iccv.2013.85 — **PRIMARY**, searcher-read. Filed `Parisot_2013_UncertaintyDrivenTumorSegAtlasRegistration`.
 - Dai & Khorram (1998). The Effects of Image Misregistration on the Accuracy of Remotely Sensed Change Detection. *IEEE Trans. Geosci. Remote Sensing* 36(5):1566–1577. doi:10.1109/36.718860 — **PRIMARY**, reviewer-read (§III–IV, Fig. 8 discussion, conclusions). Filed `DaiKhorram_1998_TGRS_misregistration_change_detection` (archive copy located by Kam). *Not to be confused with* Dai & Khorram (1998), A hierarchical methodology framework for multisource data fusion in vegetation classification, *Int. J. Remote Sensing* 19(18):3697–3701, doi:10.1080/014311698213911 — filed `DaiKhorram_1998_IJRS_hierarchical_fusion_letter_NOT_the_misregistration_paper`, not cited.
-- Risholm et al. (2011). *ISBI*. doi:10.1109/isbi.2011.5872467 — **METADATA** (PMC copy not served).
+- Risholm et al. (2011). *ISBI*. doi:10.1109/isbi.2011.5872467 — **METADATA** (PMC copy not served). **Obtained 2026-09-12 (acquisition pass), header-verified, unread by the reviewer — grade unchanged until read. Filed `Risholm_etal_2011_Probabilistic_Nonrigid_Registration_Prostate`.**
 
 ### Adjacent-field theory (round 6, 2026-09-12; §4.15)
 Grades and labels as in rounds 4–5. Filed under `D:\edmonds-pipeline\Literture\Validation\`.
@@ -2641,11 +2654,11 @@ Grades and labels as in rounds 4–5. Filed under `D:\edmonds-pipeline\Literture
 *§4.15.1 — post-disturbance hazard shape*
 - Hood, Varner, van Mantgem & Cansler (2018). Fire and tree death: understanding and improving modeling of fire-induced tree mortality. *Environ. Res. Lett.* 13:113004. doi:10.1088/1748-9326/aae934 — **PRIMARY**, reviewer-read. Filed `Hood_2018_FireAndTreeDeath_ERL`.
 - Reilly, Zuspan & Yang (2023). Characterizing postfire delayed tree mortality with remote sensing: sizing up the elephant in the room. *Fire Ecology* 19:64. doi:10.1186/s42408-023-00223-1 — **PRIMARY**, reviewer-read. Filed `Reilly_2023_PostfireDelayedMortality_RemoteSensing`.
-- Barker, Gray & Fried (2022). The Effects of Crown Scorch on Post-fire Delayed Mortality Are Modified by Drought Exposure in California (USA). *Fire* 5(1):21. doi:10.3390/fire5010021 — **ABSTRACT** (MDPI 403).
+- Barker, Gray & Fried (2022). The Effects of Crown Scorch on Post-fire Delayed Mortality Are Modified by Drought Exposure in California (USA). *Fire* 5(1):21. doi:10.3390/fire5010021 — **ABSTRACT** (MDPI 403). **Obtained 2026-09-12 (acquisition pass), header-verified, unread by the reviewer — grade unchanged until read. Filed `Barker_Gray_Fried_2022_crown_scorch_postfire_mortality`.**
 - Laurance, Camargo, Luizão et al. (2011). The fate of Amazonian forest fragments: A 32-year investigation. *Biol. Conserv.* 144(1):56–67. doi:10.1016/j.biocon.2010.09.021 — **PRIMARY**, reviewer-read (edge-effects section). Filed `Laurance_2011_Amazon_fragments_32yr`.
 - D'Angelo, Andrade, Laurance, Fearnside & Laurance (2004). Inferred causes of tree mortality in fragmented and intact Amazonian forests. *J. Trop. Ecol.* 20. doi:10.1017/s0266467403001032 — **PRIMARY**, reviewer-read. Filed `DAngelo_2004_tree_mortality_causes_fragments`.
 - Mesquita, Delamônica & Laurance (1999). Effect of surrounding vegetation on edge-related tree mortality in Amazonian forest fragments. *Biol. Conserv.* 91(2–3):129–134. doi:10.1016/s0006-3207(99)00086-5 — **PRIMARY**, reviewer-read. Filed `Mesquita_1999_edge_mortality_fragments`.
-- Laurance et al. (1998b, as cited by Mesquita et al. 1999 for mortality vs edge distance). [title not confirmed by the search; *Ecology* 79 assumed from the citation chain] — **METADATA** (not located; not in archive under the guessed DOI).
+- Laurance, W.F., Ferreira, L.V., Rankin-de Merona, J.M. & Laurance, S.G. (1998). Rain forest fragmentation and the dynamics of Amazonian tree communities. *Ecology* 79(6):2032–2040. doi:10.1890/0012-9658(1998)079[2032:RFFATD]2.0.CO;2 — resolved from Mesquita et al. 1999's reference list via Crossref (the round-6 line had the title unconfirmed). **Obtained 2026-09-12 (acquisition pass), header-verified, unread by the reviewer. Filed `Laurance_1998_rainforest_fragmentation_dynamics_Ecology`.**
 
 *§4.15.2 — positional uncertainty and misregistration*
 - Leung & Yan (1997). Point-in-Polygon Analysis Under Certainty and Uncertainty. *GeoInformatica* 1. doi:10.1023/A:1009764319102 — **PRIMARY**, reviewer-read (§2.2, Case 3). Filed `LeungYan_1997_point_in_polygon_uncertainty`.

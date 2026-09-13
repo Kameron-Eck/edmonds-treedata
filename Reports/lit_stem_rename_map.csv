@@ -11,7 +11,7 @@ Barker_Gray_Fried_2022_crown_scorch_postfire_mortality,Barker_2022_effects-crown
 BatsonRoyer_2019_Noise2Self,Batson_2019_noise2self-blind-denoising-self,Noise2Self: Blind Denoising by Self-Supervision,,
 BeggGreenes_1983_verification_bias_Biometrics,Begg_1983_assessment-diagnostic-tests-when-disease,Assessment of diagnostic tests when disease verification is subject to selection bias,10.2307/2530820,
 BellHinojosa_1977_Markov_land_use_stationarity,Bell_1977_markov-analysis-land-use-change,Markov analysis of land use change: Continuous time and stationary processes,10.1016/0038-0121(77,
-BellettiniCasellesNovaga_2002_TV_flow_RN,Bellettini_2002_total-variation-flow-garbled,The Total Variation Flow in R^N,,
+BellettiniCasellesNovaga_2002_TV_flow_RN,Bellettini_2002_total-variation-flow,The Total Variation Flow in R^N,10.1006/jdeq.2001.4150,duplicate PDF merged into clean stem 2026-09-13
 BellettiniCasellesNovaga_2002_TV_flow_RN_clean,Bellettini_2002_total-variation-flow,The Total Variation Flow in R^N,10.1006/jdeq.2001.4150,
 Benedek_2009_MultilayerConditionalMixedMarkov_TGRS,Benedek_2009_change-detection-optical-aerial-images,Change Detection in Optical Aerial Images by a Multilayer Conditional Mixed Markov Model,10.1109/TGRS.2009.2022633,
 Benedek_2015_MultilayerMRF_ChangeDetection_isprsjprs,Benedek_2015_multilayer-markov-random-field-models,Multilayer Markov Random Field models for change detection in optical remote sensing images,10.1016/j.isprsjprs.2015.02.006,

@@ -284,7 +284,15 @@ decisions:
       in P4; no manual admission for them. Storage: the litkb database lives in a Postgres
       tablespace on D:\edmonds-pipeline\ (C: had about 2 GB free); the server stays put.
       §15.2 ordering: P1 waits until the C++ Build Tools and pgvector are installed (Kam
-      declined starting P1 without pgvector). Still open: §15.9–15.11 before P4/P5.
+      declined starting P1 without pgvector). After the P1 referee
+      (Reports/LITKB_P1_REFEREE_2026-09-13.md): D-2 a chain held back at promote commit is
+      rebased into a fresh open workstream on main's current version and promoted after
+      review, never left stuck; D-3 the database cannot run git, so only the orchestrator's
+      promote tool holds the promoter credential and §15.7 reads "the promote tool refuses";
+      D-4 a manual admission's approver needs only a different session (agent names are
+      client-supplied labels); D-9 §9 is reworded: the test login may open Postgres's empty
+      system databases, and the property that counts is that litkb refuses it. Still open:
+      §15.9–15.11 before P4/P5.
     why: >-
       P1 builds the version pointers, promotion functions and roles that §15.7 and §15.13
       constrain; P2's admission check needs the §15.15 year rule; §15.12 decides whether

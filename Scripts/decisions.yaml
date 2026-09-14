@@ -291,7 +291,13 @@ decisions:
       promote tool holds the promoter credential and §15.7 reads "the promote tool refuses";
       D-4 a manual admission's approver needs only a different session (agent names are
       client-supplied labels); D-9 §9 is reworded: the test login may open Postgres's empty
-      system databases, and the property that counts is that litkb refuses it. Still open:
+      system databases, and the property that counts is that litkb refuses it. After the
+      second P1 referee (Reports/LITKB_P1_REFEREE2_2026-09-13.md): E-5 a rebase copies only
+      the evidence attached to the held chain's head version, exactly as promotion carries
+      it, with every copied column checked; the two permission gaps close before P2 — each
+      workstream gets a secret token its session must present, and a separate ingest role
+      owns extraction runs and set_current_run; the secrets folder ACL stays as it is
+      (accepted risk on a one-user laptop). Still open:
       §15.9–15.11 before P4/P5.
     why: >-
       P1 builds the version pointers, promotion functions and roles that §15.7 and §15.13

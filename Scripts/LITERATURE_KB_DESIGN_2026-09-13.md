@@ -412,14 +412,14 @@ git to confirm that Kam has merged.
 
 Each stage is an idempotent step keyed by (sha256, stage, tool version, params). Stages run in the
 local worker pool (§12), write raw artifacts first, then an ingest loads them. Loading is owned by the `litkb_ingest` login (§4.7): it
-inserts the extraction runs and derived text tables and moves each file's `current_run_id` with
-`set_current_run()`; agents' writer connections can do neither.
+inserts the extraction runs and derived text tables and, for the reconciliation stage only (§12.4),
+moves the file's `current_run_id` with `set_current_run()`; agents' writer connections can do neither.
 
 | Stage | What | Candidate tool(s) | Output |
 |---|---|---|---|
 | 0 Inventory | hash, page count, text-layer probe per page, PDF metadata, scan routing | **pypdfium2** (Apache-2.0/BSD-3 **[F]**; PyMuPDF is AGPL or commercial **[F]**) | `files`, `pages` |
 | 1 Native layer | words with positions, font sizes and weights, links | same (per-character box API name **[UNCONFIRMED]**) | raw JSON |
-| 2 Scholarly structure | header metadata, section tree, paragraphs, footnotes, figure and table captions with coordinates, parsed references, in-text citations linked to references | **Two paths, Kam's choice (§15.9).** **Path A — GROBID 0.9.1**, CRF image (the deep-learning image adds 2–4 F1 on reference parsing at 2–3× the time; GPU through a container on Windows is not supported **[F]**, so the CPU-only CRF image is the one that fits). JDK 21 or higher **[F]**; its maintainers "cannot ensure currently support for Windows", Docker is the documented alternative **[F]**. On this laptop that means WSL2 or Docker, and firmware virtualization reads disabled **[M]** (§12), so Kam first enables VT-x in the BIOS. **Path B — no GROBID.** Docling's stated features cover layout, reading order, tables and formulas **[F]**, not reference parsing or citation linking. References would come from a reference-string parser not yet in the tool facts report — a candidate is named and fact-checked into that report before P4 **[UNCONFIRMED]** — and in-text citation → reference links from project code. Path B loses GROBID's header parse and its citation-context linking unless those are rebuilt | A: TEI XML with `teiCoordinates`; B: parser JSON plus Docling items |
+| 2 Scholarly structure | header metadata, section tree, paragraphs, footnotes, figure and table captions with coordinates, parsed references, in-text citations linked to references | **Two paths, Kam's choice (§15.9).** **Path A — GROBID 0.9.1**, CRF image (the deep-learning image adds 2–4 F1 on reference parsing at 2–3× the time; GPU through a container on Windows is not supported **[F]**, so the CPU-only CRF image is the one that fits). JDK 21 or higher **[F]**; its maintainers "cannot ensure currently support for Windows", Docker is the documented alternative **[F]**. On this laptop that means WSL2 or Docker, neither of which is set up **[M]**. The firmware flag reads disabled but a hypervisor is running **[M]**, so a BIOS change is probably unneeded (inferred, §12.1). **Path B — no GROBID.** Docling's stated features cover layout, reading order, tables and formulas **[F]**, not reference parsing or citation linking. References would come from a reference-string parser not yet in the tool facts report — a candidate is named and fact-checked into that report before P4 **[UNCONFIRMED]** — and in-text citation → reference links from project code. Path B loses GROBID's header parse and its citation-context linking unless those are rebuilt | A: TEI XML with `teiCoordinates`; B: parser JSON plus Docling items |
 | 3 Layout, tables, OCR | reading order across 2–3 columns, table cells, figure crops, OCR for image-only scans | **Docling** (MIT, Windows supported **[F]**); OCR engine chosen in P4 (engine list **[UNCONFIRMED]**) | DoclingDocument JSON |
 | 4 Equations | LaTeX per equation region | **Docling formula enrichment** (CodeFormula, LaTeX **[F]**) first; **MinerU 3.4** (LaTeX plus a 0–1000 box and page index per equation **[F]**) as the comparison in P4. Nougat excluded: weights CC-BY-NC **[F]**, and its last commits are 2025-02-21 and 2023-10-04 **[F]** (that it is unmaintained is our inference from those dates). Marker/Surya only if both fail (weights free only for research, personal use and startups under $5M **[F]**; served through vLLM or llama.cpp **[F]**) | JSON |
 | 5 Reconciliation | map every tool's boxes to the canonical frame (§7.1); align regions by page and box overlap; choose canonical text per region; record disagreements | project code | `blocks` (canonical flag), `tables`, `figures`, `equations` |
@@ -587,10 +587,18 @@ measured. P4 measures, P5 runs (§14).
   `NumberOfCores` 6, `NumberOfLogicalProcessors` 12); 63.8 GB RAM (`Win32_ComputerSystem`); Quadro
   T2000 4 GB (earlier session, 2026-09-13); Java 23; PostgreSQL 17 and 18, with `litkb` on 18, port
   5433.
-- **Virtualization [M], 2026-09-13:** `Win32_Processor.VirtualizationFirmwareEnabled = False`;
-  `wsl.exe -l -v` prints "Windows Subsystem for Linux has no installed distributions"; `Get-Command
-  docker` finds nothing. So GROBID (§7 stage 2, path A) needs Kam to enable VT-x in the BIOS and then
-  set up WSL2 or Docker (§15.9).
+- **Virtualization [M], 2026-09-13.** The readings conflict:
+  - `Win32_Processor.VirtualizationFirmwareEnabled = False`;
+  - but `Win32_ComputerSystem.HypervisorPresent = True`, and `systeminfo` prints "A hypervisor has been
+    detected. Features required for Hyper-V will not be displayed.";
+  - `wsl.exe -l -v` prints "Windows Subsystem for Linux has no installed distributions";
+  - `Get-Command docker` finds nothing.
+
+  A hypervisor cannot run with VT-x off in firmware, and a running hypervisor hides the firmware flag
+  from Windows. So the False reading is most likely that masking, and VT-x is most likely already on
+  (**inferred, not measured**). If so, path A of §15.9 needs no BIOS change, only a WSL2 distribution
+  or Docker Desktop. That stays **[UNCONFIRMED]** until the install is attempted. The revision-3 brief,
+  which read the flag alone, said a BIOS change was needed.
 - **What runs natively on Windows [F]:** pypdfium2 (Windows wheels), Docling ("Works on macOS, Linux
   and Windows"), MinerU's pipeline backend (Windows, Python 3.10–3.12). GROBID does not: its
   maintainers "cannot ensure currently support for Windows". Embedding models on this laptop are not
@@ -648,9 +656,14 @@ The queue is the `extraction_jobs` table (§4.3), written only through ingest-ro
 - **Artifacts.** Output goes to `_derived\<sha256>\<stage>\<tool>@<version>_<params>\` (§6). It is
   written as `.partial`, fsynced, then renamed, which is the pattern `litkb.ops.nightly_dump` already
   uses. Its sha256 is recorded on the job.
-- **Ingest is one transaction per (file, stage):** the run row, its text rows, `set_current_run`, and
-  `finish_job` commit together or not at all. A killed worker therefore leaves either a finished unit
-  or no rows, and a re-run writes the same rows once.
+- **Ingest is one transaction per (file, stage):** the run row, its text rows and `finish_job` commit
+  together or not at all. A killed worker therefore leaves either a finished unit or no rows, and a
+  re-run writes the same rows once.
+- **Only the reconciliation run moves the pointer.** A file has one current run (§4.4), evidence is
+  anchored in it, and `set_current_run` is compare-and-set on the whole file. So only the stage-5
+  transaction, whose run owns the canonical `blocks`, calls `set_current_run`. Every other stage
+  records its run and leaves `current_run_id` alone. If stage 7 or a re-run of any other stage moved
+  the pointer, it would leave the canonical blocks and un-anchor every verified quote on that file.
 - **No deletes.** litkb holds no delete permission in `Literture\` (§6). A leftover `.partial` is
   overwritten by the retry at the same path; strays are reported, never deleted.
 
@@ -661,7 +674,7 @@ The queue is the `extraction_jobs` table (§4.3), written only through ingest-ro
 - **Long documents break that bound, so they are split.** The 688-page book, and any file above a page
   threshold set in P4, becomes page-range jobs, each checkpointed as its own artifact. The (file, stage)
   run and its text rows are inserted only when every range is done, in the one transaction that
-  assembles the parts. Page numbers are offset back to the whole document before the §7.1 adapters
+  assembles the parts (and, for stage 5 only, moves the pointer, §12.4). Page numbers are offset back to the whole document before the §7.1 adapters
   run. For those files the loss bound is one page range. Whether each tool takes a page range directly,
   or needs a split PDF, and whether splitting changes coordinates, is **[UNCONFIRMED until P4]**.
 - **On restart** nothing is replayed by hand. Expired leases return, done jobs are skipped (§12.4), and
@@ -797,7 +810,7 @@ P3's kill needs the gate.
 | **P5 Local bulk pass** | Canary → projection → Kam's go → backlog. The **canary** is a batch not in the hard set, spanning born-digital, scanned and long documents. The **projection** comes from P4's measured rates, checked against the canary's. **Kam's go** is asked with the projection, its measured basis and the run window (§15.16). The **backlog** is then drained by the worker pool with ingest, overnight at low priority (§12.9) | Every active file has a current run with pages and blocks; chunks and embeddings come in P7. Coverage is at or above the P4 threshold, and disagreements are logged. The canary's rate falls within a tolerance of P4's, frozen before the canary runs; otherwise the projection is redone before Kam is asked. There are zero duplicate runs and zero text rows outside an `ok` run | **(a)** A worker killed mid-file, once during a tool run and once during ingest, resumes after restart. The file completes with exactly one `ok` run per key and the same block count as an uninterrupted control run, with no duplicate blocks. The kill fires when ingest is mutated to commit text rows outside the run's transaction. **(b)** An artifact whose bytes no longer match the job's recorded sha256 fails ingest verification. **(c)** Two workers claiming at once never lease the same job; this fires with `SKIP LOCKED` or the lease check removed. **(d)** A job whose worker died is reclaimed only after its lease expires, not while the lease is live |
 | **P6 Citations** | references resolved, citation graph, citation candidates | reference resolution rate measured and reported | a **near-miss** reference — a real reference from the corpus with one field altered (year, a title word, or a DOI digit) — does not resolve to the real work |
 | **P7 Retrieval** | embeddings, hybrid search, evaluation on the referee's paraphrased query set (§8) | vector leg and hybrid each at or above their pre-committed recall@k thresholds | with the vectors replaced by random vectors, **the vector leg alone**, on the paraphrased queries, falls below its threshold (the lexical legs would otherwise rescue a scrambled index) |
-| **P8 Access** | MCP server and CLI; the hunt protocol written into the convention; the access layer of §9.1: skill, librarian subagent, and the final CLAUDE.md rule on this branch (it reaches `main` only by Kam's merge). The hooks come last, after the gate | The librarian subagent, following the skill in a scratch worktree, runs a full mini-hunt: open workstream → admit → acquire → extract → record use with verified quote → promote prepare. Commit is exercised against a scratch git repository whose `main` it merges itself, never the real one | A use with an unverifiable quote is refused at prepare. With the hook installed, a paper-search call made in a worktree with no `.litkb-workstream` is flagged; with the hook entry removed, it is not |
+| **P8 Access** | MCP server and CLI; the hunt protocol written into the convention; the access layer of §9.1: skill, librarian subagent, and the final CLAUDE.md rule on this branch (it reaches `main` only by Kam's merge). The hooks come last, after the gate | The librarian subagent, following the skill in a scratch worktree, runs a full mini-hunt: open workstream → admit → acquire → extract → record use with verified quote → promote prepare. Commit is exercised against a scratch git repository whose `main` it merges itself, never the real one | A use with an unverifiable quote is refused at prepare (fires before the mini-hunt gate is accepted). The hook's own kill fires after that gate and before the hook is relied on: with the hook installed, a paper-search call made in a worktree with no `.litkb-workstream` is flagged; with the hook entry removed, it is not |
 | **P9 Incremental mode + retire old paths** | The sweep (§12.3) picks up newly admitted files with no manual step; the reproducibility test (§12.11); the hand-edited tracker retired | A sample re-extracted at the same pipeline version gives identical canonical blocks; a file admitted after P5 reaches a current run with no manual step; old paths are removed from the convention | A nondeterminism introduced on purpose (reading order permuted in one re-run) is caught |
 
 **Order of value:** P1–P3 already fix today's pain (mergeable, versioned, concurrent records with
@@ -825,21 +838,23 @@ removed or renumbered. Authority for every "Decided" is `decisions.yaml` `litkb-
    from main (the database cannot run git), and only the promote tool holds the promoter credential
    (§4.7).
 8. **Figure descriptions by Claude vision:** on demand only (proposed), or a bulk pass later. Open.
-9. **GROBID — reopened by a measurement.** The recorded decision is that GROBID runs locally under
-   WSL2 or Docker, with setup pending. On 2026-09-13 the laptop read
-   `VirtualizationFirmwareEnabled = False`; WSL has no distribution; Docker is not installed **[M]**
-   (§12.1). GROBID's maintainers do not support native Windows **[F]**, so running it natively is not
-   offered. **Two paths — choose one before P4:**
-   - **(a) Enable virtualization, keep GROBID.** You enable VT-x in the BIOS, which needs a reboot and
-     your hands. Then either a WSL2 distribution or Docker Desktop is installed, which needs admin.
-     P4 then boots the GROBID 0.9.1 CRF image, which needs no GPU. *Gains:* header metadata, section
+9. **GROBID — confirm the path.** The recorded decision is that GROBID runs locally under WSL2 or
+   Docker, with setup pending. On 2026-09-13 the laptop read `VirtualizationFirmwareEnabled = False`,
+   yet a hypervisor is running (`HypervisorPresent = True`); WSL has no distribution; Docker is not
+   installed **[M]** (§12.1). GROBID's maintainers do not support native Windows **[F]**, so running
+   it natively is not offered. **Two paths — choose one before P4:**
+   - **(a) Keep GROBID under WSL2 or Docker.** A WSL2 distribution or Docker Desktop is installed,
+     which needs admin. If that install reports virtualization unavailable, you enable VT-x in the
+     BIOS, which needs a reboot and your hands. The running hypervisor suggests it is already on
+     (inferred, §12.1). P4 then boots the GROBID 0.9.1 CRF image, which needs no GPU. *Gains:* header metadata, section
      tree, footnotes and captions with coordinates, parsed references and in-text citations linked to
-     them, all in one TEI output **[F]**. P6 (citations) is designed on these. *Costs:* a firmware
-     change, two installs, and GROBID's 4–8 GB of RAM **[F]** taken from the worker pool's budget.
+     them, all in one TEI output **[F]**. P6 (citations) is designed on these. *Costs:* an admin
+     install (plus a firmware change only if the install demands it), and GROBID's 4–8 GB of RAM
+     **[F]** taken from the worker pool's budget.
    - **(b) Drop GROBID.** Docling supplies layout, reading order, tables and formulas **[F]**.
      Reference-string parsing comes from another parser: none is in the tool facts report yet, so a
      candidate is researched into that report before P4 **[UNCONFIRMED]**. Citation → reference
-     linking and any header parse come from project code. *Gains:* no firmware or install changes.
+     linking and any header parse come from project code. *Gains:* no installs outside Python.
      *Costs:* the citation layer that P6 builds on is new project code, validated from scratch, and
      stage 0's metadata loses one of its three sources (§6).
    - *Proposed:* (a), because P6 is built on GROBID's reference parsing and citation linking. Your
@@ -885,7 +900,7 @@ removed or renumbered. Authority for every "Decided" is `decisions.yaml` `litkb-
 
 | Risk | Consequence | Mitigation |
 |---|---|---|
-| GROBID's maintainers do not support Windows **[F]**; WSL2 or Docker needs firmware virtualization, which reads disabled **[M]** | stage 2 on path A cannot start until the BIOS change and installs; path B loses GROBID's header parse and citation linking unless rebuilt | §15.9 before P4; path A's boot gate with its JDK kill, or path B's reference-metric gate with its shuffle kill (§14 P4) |
+| GROBID's maintainers do not support Windows **[F]**; neither WSL2 nor Docker is set up **[M]**; the firmware virtualization flag reads disabled while a hypervisor runs **[M]** (VT-x probably on, inferred) | stage 2 on path A cannot start until an install succeeds, and a BIOS change may yet be needed; path B loses GROBID's header parse and citation linking unless rebuilt | §15.9 before P4; path A's boot gate with its JDK kill, or path B's reference-metric gate with its shuffle kill (§14 P4) |
 | Layout, OCR or math models slow on this CPU | the backlog takes many nights (no figure is projected; P4 measures) | P4 throughput gate; P5 projection and Kam's go before the backlog; GPU stages only where they fit; stages 4 and 6 deferred to a second pass (§12.10) |
 | ~~pgvector's README offers only a source build on Windows~~ | — | **Resolved in P1:** Build Tools installed, `vector 0.8.6` loaded |
 | ~~Colab terms on headless and parallel use~~ | — | **Moot for this workstream** (§11, §15.10) |
@@ -897,6 +912,7 @@ removed or renumbered. Authority for every "Decided" is `decisions.yaml` `litkb-
 | Scans and cover-sheet first pages cannot pass the binding gate | papers wait in quarantine | `binding-pending` state; they wait for P4 OCR (§15.14, decided) |
 | ~~Colab writer path to Drive~~ | — | **Moot:** no Drive writes (§11) |
 | Library licences **[F]**: PyMuPDF AGPL or commercial; Marker/Surya weights free only for research, personal use and startups under $5M; Nougat weights CC-BY-NC | constraints on use | pypdfium2 instead of PyMuPDF; Docling (MIT), GROBID (Apache-2.0), MinerU (custom licence based on Apache 2.0) preferred |
+| A stage other than reconciliation moves `files.current_run_id` (a stage-7 ingest, or a P9 re-run) | verified evidence on that file is un-anchored and promotion refuses it; the P9 reproducibility test would not notice, since blocks are unchanged | only the stage-5 transaction calls `set_current_run` (§12.4); a P5 test asserts that a stage-7 ingest leaves the pointer and `use_evidence_status` unchanged |
 | Extraction workers and agents share one database server | ingest load slows agent queries; lock waits | short per-(file, stage) transactions; workers at low priority; the ingest role cannot touch knowledge tables (§4.7) |
 | Recorded agent/session identities are client-supplied | the approver-session ≠ admitter-session constraint can be defeated by a forged session label | stops mistakes, not adversaries; §15.13 |
 | Dumps sit on the same disk as the database | a disk loss erases use histories and promotions together with their dumps | nightly dump built (§6); off-disk copy tabled under R12 (§15.12) |
@@ -947,7 +963,7 @@ locally, with no Colab pass, and any literature the project uses flows through t
   `connect_admin()` (F-9) and the nightly dump.
 - **§6:** the dump is recorded as built (location, verification, retention, task mode, and the need to
   re-register the task after the merge). The header parse depends on §15.9. No PDFs go to Drive.
-- **§7 / §7.1:** stage 2 presents path A (GROBID after enabling VT-x) and path B (no GROBID), with what B
+- **§7 / §7.1:** stage 2 presents path A (GROBID under WSL2 or Docker) and path B (no GROBID), with what B
   loses.
 - **§9:** CLI entries for the worker pool added, and the missing CLI stated.
 - **§9.1 (new):** the access layer — the CLAUDE.md rule, skill, MCP tools, hooks and librarian
@@ -971,8 +987,18 @@ locally, with no Colab pass, and any literature the project uses flows through t
   - 16 (worker run window) and 17 (reach of R13) are new.
 - **§16:** Colab rows marked moot, pgvector resolved, local risks added. §17's Colab row is marked moot.
   §19's M4/M5 rows are historical and left as written.
+- **§4.6:** check 1 records the decided year rule (§15.15). Check 3 drops manual admission for files
+  refused at binding (§15.14).
+- **§12.4 (fixed before the report):** the first rev-3 text had every stage's ingest call
+  `set_current_run`. That would move a file's single pointer off the reconciliation run and un-anchor
+  its evidence. Now only stage 5 moves the pointer; §16 carries the risk and its test.
+- **Brief corrected by measurement:** the brief said VT-x must be enabled in the BIOS, reading
+  `VirtualizationFirmwareEnabled = False` alone. `HypervisorPresent = True` and `systeminfo`'s "A
+  hypervisor has been detected" show a hypervisor running. So the flag is most likely masked and VT-x
+  already on (inferred). §7, §12.1, §15.9 and §16 say so.
 - **Measured this revision:**
   - `Win32_Processor`: 6 cores, 12 logical, `VirtualizationFirmwareEnabled` False.
+    `Win32_ComputerSystem.HypervisorPresent`: True.
   - `wsl.exe -l -v`: no installed distributions. `Get-Command docker`: not found.
   - `Win32_ComputerSystem`: 63.8 GB RAM.
   - `ls -a`: no `.claude/` directory in the repository.

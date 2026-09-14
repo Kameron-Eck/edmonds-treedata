@@ -31,6 +31,8 @@ REPO = SCRIPTS.parent
 CHECK = SCRIPTS / "qc" / "secrets_check.py"
 _SKIP_WHEN = ("connection refused", "could not connect", "does not exist",
               "no password supplied", "timeout expired", "is the server running")
+# the conftest counts this marker in the "litkb Postgres tests" summary, so a server-down skip is visible
+pg_only = pytest.mark.requires_litkb_pg
 
 
 # ── staged-secrets check ────────────────────────────────────────────────────────────────────────
@@ -176,6 +178,7 @@ def _log(out):
     return (Path(out) / "nightly_dump.log").read_text(encoding="utf-8").splitlines()
 
 
+@pg_only
 def test_good_dump_is_verified_listed_and_logged(opsdb, tmp_path):
     _conn, schema = opsdb
     nd = _nd()
@@ -191,6 +194,7 @@ def test_good_dump_is_verified_listed_and_logged(opsdb, tmp_path):
     assert not list(tmp_path.glob("*.partial")) and not list(tmp_path.glob("*.rejected"))
 
 
+@pg_only
 @pytest.mark.parametrize("cut", ["one_byte", "last_200_bytes", "half"])
 def test_truncated_dump_is_rejected_by_verification(opsdb, tmp_path, cut):
     """The kill. `pg_restore --list` alone passes a tail cut (it reads only the TOC at the head); the
@@ -207,6 +211,7 @@ def test_truncated_dump_is_rejected_by_verification(opsdb, tmp_path, cut):
     assert not ok and stage in ("list", "read"), (stage, reason)
 
 
+@pg_only
 def test_list_stage_alone_would_pass_a_tail_cut(opsdb, tmp_path):
     """Why the read stage exists: the TOC-only check is fooled by a tail cut (control for the kill above)."""
     _conn, schema = opsdb
@@ -219,6 +224,7 @@ def test_list_stage_alone_would_pass_a_tail_cut(opsdb, tmp_path):
     assert r.returncode == 0, "pg_restore --list now catches tail cuts; the docstring claim is stale"
 
 
+@pg_only
 def test_run_does_not_keep_a_dump_that_fails_verification(opsdb, tmp_path, monkeypatch):
     """pg_dump 'succeeds' but leaves a truncated file: the run fails, nothing is listed or kept as .dump."""
     _conn, schema = opsdb
@@ -239,6 +245,7 @@ def test_run_does_not_keep_a_dump_that_fails_verification(opsdb, tmp_path, monke
     assert len(lines) == 1 and "status=FAIL" in lines[0] and "kept=no" in lines[0], lines
 
 
+@pg_only
 def test_damage_at_rest_is_caught_by_the_manifest_hash(opsdb, tmp_path):
     _conn, schema = opsdb
     nd = _nd()
@@ -254,6 +261,7 @@ def test_damage_at_rest_is_caught_by_the_manifest_hash(opsdb, tmp_path):
     assert "status=FAIL" in _log(tmp_path)[-1]
 
 
+@pg_only
 def test_count_comparison_sees_one_extra_row(opsdb):
     """Real counts, before and after one insert, and a dropped table: each is a difference."""
     conn, schema = opsdb
@@ -269,6 +277,7 @@ def test_count_comparison_sees_one_extra_row(opsdb):
     assert nd.compare_counts(before, nd.table_counts(conn, [schema])) == [f"{schema}.empty: missing from the restore"]
 
 
+@pg_only
 def test_run_reports_a_restore_count_mismatch_as_failure(opsdb, tmp_path, monkeypatch):
     """The restore step returns counts taken from the live schema AFTER one more row was written (a
     restore that does not match the dump's snapshot): the run exits 1, logs MISMATCH, does not record
@@ -302,6 +311,7 @@ def test_restore_is_due_weekly():
     assert nd.restore_due({"last_restore_check_utc": "2026-09-06T02:30:00Z"}, _T0)
 
 
+@pg_only
 def test_retention_deletes_only_listed_verified_dumps(opsdb, tmp_path):
     """keep=3 over 6 nightly runs. Survivors: the newest 3; a same-shaped dump the manifest does not
     list (older than all of them); a listed dump whose bytes changed (hash mismatch); a stray file."""

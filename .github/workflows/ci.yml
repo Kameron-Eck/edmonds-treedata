@@ -41,6 +41,11 @@ jobs:
           pip install -e .
           pip install ruff
 
+      # check.py rung 0 (decisions.yaml litkb-p0-foundation): no secrets file, pgpass line or
+      # 64-hex token in git's index. Stdlib + git; reads the checkout's index.
+      - name: Secrets in the index
+        run: python Scripts/qc/secrets_check.py --repo .
+
       # F-rules only (config in pyproject [tool.ruff]): undefined names, unused/redefined
       # imports. First run caught 7 live NameError bugs. No style rules by design.
       - name: Ruff (F821 / F401 / F811)

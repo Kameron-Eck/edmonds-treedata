@@ -178,6 +178,25 @@ replace("C17", MIG14, "  SELECT regexp_replace(p_label, '[", "  SELECT regexp_re
         "D7 DB: norm_label removes nothing")
 block("C18", f"{PKG}/admit/front.py", "guard: approve compares labels without invisible characters (Python)",
       "D7 Python: approve does not pre-check the admitter's session")
+# ── the P2 acceptance's surviving mutation (Reports/LITKB_P2_ACCEPTANCE_2026-09-14.md) ──
+replace("V2b", f"{PKG}/admit/binding.py", "    if sum(ref[lo:hi]) >= 2:\n", "    if sum(ref[lo:hi]) >= 3:\n",
+        "D2: the reference-list rule needs 3 reference-shaped lines instead of 2 (boundary)")
+# ── the account-wide quota counter (litkb edge-pre1990 task, Reports/LITKB_EDGE_PRE1990_2026-09-14.md) ──
+block("Q1", f"{PKG}/acquire/annas.py", "guard: annas the account counter gates every download request",
+      "quota: the archive route ignores the account counter")
+replace("Q2", f"{PKG}/acquire/annas.py", "    if len(found) != 1:\n        return None\n",
+        "    if len(found) != 1:\n        return (0, 1000)\n", "quota: an unreadable counter reads as 0 / 1000 (fail open)")
+replace("Q3", f"{PKG}/acquire/run.py", "quota_margin=budget.quota_margin)", "quota_margin=None)",
+        "quota: acquire never asks the archive route to read the counter")
+# ── defects found by the edge-pre1990 run ──
+replace("E1", f"{PKG}/admit/front.py", '(p[1:].lower() if p.isupper() else p[1:])', "p[1:]",
+        "make_key keeps a registry's all-capitals surname (PAGE_1954_ next to Page_1954_)")
+block("E2", f"{PKG}/acquire/run.py", "guard: acquire from a file already in a topic folder binds it in place",
+      "acquire --from-file lands a copy of a topic-folder file (and stops at duplicate-held against itself)")
+block("E4", f"{PKG}/acquire/run.py", "guard: a work reached by one of its DOIs is acquired by that DOI",
+      "work_record returns an arbitrary DOI of a work that carries two")
+block("E3", f"{PKG}/textnorm.py", "guard: JSON sent to the database carries no NUL",
+      "a NUL in PDF metadata reaches jsonb (UntranslatableCharacter)")
 
 
 def _sha(b):
@@ -192,6 +211,14 @@ def _pytest(tests=None):
                     any(w in ln for w in ("passed", "failed", "error", "skipped"))), "?")
     failed = [ln.split(" - ")[0].replace("FAILED ", "") for ln in lines if ln.startswith("FAILED ")]
     return r.returncode, summary.strip("= ").strip(), failed
+
+
+def _count(summary, word):
+    """The pytest summary's count for `word` as a whole word: '1 xfailed' is not a failure."""
+    import re
+
+    m = re.search(rf"(?<![\w])(\d+) {word}\b", summary)
+    return int(m.group(1)) if m else 0
 
 
 def _edit(text, old, new, mid):
@@ -240,7 +267,7 @@ def run_one(m):
         print(f"     restored {p.relative_to(SCRIPTS)} sha256 {before[p][:16]}... match: {ok}")
         if not ok:
             raise RuntimeError(f"{m['id']}: {p} was not restored byte-for-byte")
-    return rc != 0 and "failed" in summary, summary, failed
+    return rc != 0 and _count(summary, "failed") > 0, summary, failed
 
 
 def main(argv=None):
@@ -258,7 +285,7 @@ def main(argv=None):
         _mutations(m)
     rc, summary, _ = _pytest()
     print(f"baseline (unmutated, {' + '.join(TESTS)}): {summary}")
-    base_ok = rc == 0 and "failed" not in summary and "skipped" not in summary and "error" not in summary
+    base_ok = rc == 0 and not any(_count(summary, w) for w in ("failed", "skipped", "error", "errors", "xpassed"))
     rows = []
     for m in chosen:
         fired, summ, failed = run_one(m)
@@ -269,7 +296,7 @@ def main(argv=None):
             print(f"        {f}")
     rc2, summary2, _ = _pytest()
     print(f"baseline again (restored): {summary2}")
-    base2_ok = rc2 == 0 and "failed" not in summary2 and "skipped" not in summary2 and "error" not in summary2
+    base2_ok = rc2 == 0 and not any(_count(summary2, w) for w in ("failed", "skipped", "error", "errors", "xpassed"))
     n = sum(f for _m, f in rows)
     print(f"\n{n}/{len(rows)} mutations fired; baselines {'passed' if base_ok and base2_ok else 'FAILED'}")
     sys.exit(0 if n == len(rows) and base_ok and base2_ok else 1)

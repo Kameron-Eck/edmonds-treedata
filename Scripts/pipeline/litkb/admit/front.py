@@ -33,7 +33,9 @@ class AdmissionError(RuntimeError):
 def _jsonb(v):
     from psycopg.types.json import Jsonb
 
-    return Jsonb(v)
+    from litkb.textnorm import jsonb_safe
+
+    return Jsonb(jsonb_safe(v))
 
 
 def first_author_of(authors):
@@ -52,7 +54,9 @@ def make_key(first_author, year, title):
     """Surname_Year_slug (Scripts/docs/LITERATURE_CONVENTION.md): ASCII surname parts joined and capitalised,
     4-digit year, 2-5 lowercase title words with stopwords dropped, under 60 characters."""
     parts = re.findall(r"[A-Za-z]+", _ascii_fold(first_author or ""))
-    surname = "".join(p[0].upper() + p[1:] for p in parts) or "Anon"
+    # a registry that prints the surname in capitals ('PAGE', 'HAWKES') gives the convention's 'Page'; mixed-case
+    # parts ('DelaCruz', 'McRoberts') are kept as printed
+    surname = "".join(p[0].upper() + (p[1:].lower() if p.isupper() else p[1:]) for p in parts) or "Anon"
     words = re.findall(r"[a-z0-9]+", _ascii_fold(title or "").lower())
     kept = [w for w in words if w not in _STOP] or words
     if len(kept) < 2:

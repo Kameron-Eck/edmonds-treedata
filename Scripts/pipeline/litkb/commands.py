@@ -189,6 +189,7 @@ def cmd_acquire(args, conn):
                       from_file=args.from_file)
     out["archive_downloads_used"] = budget.used
     out["downloads_left"] = budget.downloads_left
+    out["account_counter"] = budget.counter
     if budget.stopped:
         out["archive_stopped"] = budget.stopped
     _print({k: v for k, v in out.items() if k != "detail"} | {"key": work["key"]})
@@ -238,7 +239,9 @@ def build_parser():
     q.add_argument("--doi")
     q.add_argument("--routes", default="open_access,annas,scihub")
     q.add_argument("--max-archive-downloads", type=int, default=5)
-    q.add_argument("--quota-margin", type=int, default=50)
+    q.add_argument("--quota-margin", type=int, default=50,
+                   help="no archive download URL is requested once the account counter (GET /account/) shows "
+                        "used >= limit - margin, or cannot be read (default 50; run.Budget)")
     q.add_argument("--retry-dead", action="store_true")
     q.add_argument("--from-file")
     return ap

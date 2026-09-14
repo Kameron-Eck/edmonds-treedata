@@ -388,6 +388,29 @@ def test_binding_refuses_a_title_that_appears_only_in_a_reference_list(case):
     assert b["best_any_ratio"] >= 0.85 and b["verdict"] != "bound", b
 
 
+@pytest.mark.parametrize("n_ref, bound", [(2, False), (1, True)])
+def test_binding_reference_list_rule_at_its_boundary(n_ref, bound):
+    """Acceptance V2b (Reports/LITKB_P2_ACCEPTANCE_2026-09-14.md): the reference-list rule refuses a title window with
+    EXACTLY 2 reference-shaped lines within REF_NEIGHBOURHOOD of it (one entry just above, one just below, no
+    References heading, so only this rule can refuse). The control carries 1 such line and binds: one "Surname, I.,
+    year" line beside a title is an author line, not a list."""
+    from litkb.admit import binding
+    above = "Jones, K., Brown, A., 2011. A study of forests. J. Ecol. 3, 1-2."
+    below = "Smith, J., Lee, K., 2010. Canopy things. Remote Sens. 1, 2-3."
+    entries = ([above] if n_ref == 2 else []) + [_REF_TITLE, below]
+    page = "\n".join(["Remote Sensing Letters 9 (2018) 100-110", "A different paper on tidal mixing fronts",
+                      "J. Simpson and K. Other", "", *[f"Body text line {i} about fronts and mixing." for i in range(6)],
+                      *entries, "Further text of the other paper."])
+    flags = binding._line_flags(binding.page_lines(page))
+    assert sum(flags[1]) == n_ref and not any(flags[0]), flags
+    b = binding.bind(None, _REF_TITLE, "Smith", page_text=page, info={})
+    assert b["best_any_ratio"] == 1.0 and b["author_found"], b
+    if bound:
+        assert b["verdict"] == "bound", b
+    else:
+        assert b["verdict"] == "binding-failed" and "inside a reference list" in b.get("refused_windows", {}), b
+
+
 @pytest.mark.parametrize("case", ["title_after_instruction", "title_on_instruction_line"])
 def test_binding_refuses_a_please_cite_cover_over_another_paper(case):
     """D2 (c): a cover sheet's citation carries the registry title and author; the paper under it is another one."""
@@ -514,6 +537,17 @@ def test_make_key_follows_the_convention():
     assert make_key("O'Neil-Dunne", 2014, "x y").startswith("ONeilDunne_2014_")
 
 
+@pytest.mark.parametrize("registry_family, expected", [
+    ("PAGE", "Page"), ("HAWKES", "Hawkes"), ("BROOK", "Brook"), ("O'NEIL-DUNNE", "ONeilDunne"),
+    ("DE LA CRUZ", "DeLaCruz"), ("DelaCruz", "DelaCruz"), ("McRoberts", "McRoberts"), ("O", "O")])
+def test_make_key_is_the_same_whatever_case_the_registry_prints_the_surname_in(registry_family, expected):
+    """Edge-pre1990 D-key: Crossref prints some older authors in capitals (Page 1954 under its OUP DOI is 'PAGE',
+    under its JSTOR DOI 'Page'). The convention's surname is capitalised, so both give Page_1954_...; an all-capitals
+    part keeps only its first capital, and mixed-case parts are left alone."""
+    from litkb.admit.front import make_key
+    assert make_key(registry_family, 1954, "CONTINUOUS INSPECTION SCHEMES") == f"{expected}_1954_continuous-inspection-schemes"
+
+
 def test_scihub_challenge_is_recorded_blocked_and_not_bypassed():
     from litkb.acquire import scihub
     stub = RouteStub({"sci-hub.ru": (403, {}, b"<html><title>Just a moment...</title></html>"),
@@ -545,11 +579,20 @@ def test_open_access_takes_the_first_location_serving_a_pdf():
     assert r["status"] == "downloaded" and r["source_url"] == "https://arxiv.org/pdf/2303.07334"
 
 
-def _annas_routes(pdf, doi, left=900, error=None):
+ACCOUNT_PAGE = (FIX / "account_counter.html").read_text(encoding="utf-8")
+
+
+def _account(used, limit=1000):
+    """The saved account page with its counter set to used / limit (tags inside the numbers, as the site renders)."""
+    return ACCOUNT_PAGE.replace("<strong>4 / 1000</strong>", f"<strong>{used} / {limit}</strong>").encode()
+
+
+def _annas_routes(pdf, doi, left=900, error=None, used=4):
     md5 = hashlib.md5(pdf).hexdigest()
     fd = {"account_fast_download_info": {"downloads_left": left}}
     fd.update({"error": error} if error else {"download_url": "https://partner.example/f.pdf"})
-    return md5, {"/scidb/": (200, {}, f'<a href="/md5/{md5}">record</a>'.encode()),
+    return md5, {"/account/": (200, {}, _account(used)),
+                 "/scidb/": (200, {}, f'<a href="/md5/{md5}">record</a>'.encode()),
                  "/db/aarecord_elasticsearch/": (200, {}, json.dumps({"file_unified_data": {
                      "identifiers_unified": {"doi": [doi]}, "extension_best": "pdf",
                      "filesize_best": len(pdf), "title_best": "t"}}).encode()),
@@ -567,6 +610,38 @@ def test_annas_known_md5_spends_no_download():
     assert not any("fast_download" in u for u in stub.calls)
     r = annas.fetch_for_litkb(RouteStub(routes), "SEKRIT", "10.1/known", _nopace(), known_md5=set())
     assert r["status"] == "downloaded" and r["pdf"] == pdf and r["downloads_left"] == 900
+
+
+@pytest.mark.parametrize("page, expected", [
+    ("account_counter.html", (4, 1000)),
+    ("span_split", (24, 1000)),              # the site writes 24 as <span>2</span>4
+    ("entities_and_newlines", (7, 1000)),
+    ("account_counter_missing.html", None),  # the counter only in a comment and a script: never read
+    ("account_counter_wording.html", None),  # "last 24 hours" / "left today": not the counter
+    ("two_counters_disagree", None),
+    ("limit_zero", None),
+    ("empty", None)])
+def test_account_counter_parser_reads_only_the_counter(page, expected):
+    """Job 2: the account-wide quota counter is parsed from saved HTML; anything ambiguous fails closed (None)."""
+    from litkb.acquire import annas
+    base = ACCOUNT_PAGE
+    html_ = {"span_split": base.replace("<strong>4 / 1000</strong>", "<strong><span>2</span>4 / 1000</strong>"),
+             "entities_and_newlines": base.replace("<strong>4 / 1000</strong>", "<strong>7&nbsp;/\n  1000</strong>"),
+             "two_counters_disagree": base + "<div>Fast downloads used (last 18 hours): <strong>9 / 1000</strong></div>",
+             "limit_zero": base.replace("<strong>4 / 1000</strong>", "<strong>0 / 0</strong>"),
+             "empty": ""}.get(page)
+    if html_ is None:
+        html_ = (FIX / page).read_text(encoding="utf-8")
+    assert annas.parse_quota(html_) == expected
+    assert annas.parse_quota(html_.encode("utf-8")) == expected
+
+
+def test_read_quota_fails_closed_on_a_bad_answer():
+    from litkb.acquire import annas
+    assert annas.read_quota(RouteStub({"/account/": (200, {}, _account(12))})) == ((12, 1000), 200)
+    assert annas.read_quota(RouteStub({"/account/": (302, {}, _account(12))}))[0] is None
+    assert annas.read_quota(RouteStub({"/account/": (200, {}, b"<html>login</html>")}))[0] is None
+    assert annas.read_quota(RouteStub({}))[0] is None                  # the stub raises: unreadable, never a crash
 
 
 def test_annas_bytes_must_be_the_record_md5():
@@ -1167,6 +1242,99 @@ def test_acquire_recognises_a_file_already_on_disk(pg, tmp_path, monkeypatch):
 
 
 @pg_only
+def test_acquire_from_file_binds_an_unheld_file_in_a_topic_folder_in_place(pg, tmp_path):
+    """Edge-pre1990 D-inplace: a work admitted by DOI whose paper already sits in Validation/, held by no work. Before
+    the fix `acquire --from-file` landed a copy, found the original in the disk index and stopped at duplicate-held,
+    so the work could never get its file. Now the file is bound where it lies: rel_path is its own path, nothing is
+    copied, moved or written; a second work offered the same file is duplicate-held; a file that does not bind stays
+    put and is not attached."""
+    _need_pdftotext()
+    from litkb.acquire import run
+    ws, w = pg.ws(), pg.session("litkb_writer")
+    work, store = _admitted(pg, w, ws), _store(tmp_path)
+    held = store.root / "Validation" / "Tester_2020_held-in-place.pdf"
+    held.write_bytes(paper_pdf(work["title"], "T. Tester"))
+    before = _file_state(held)
+    kw = dict(store=store, agent="acq", session="acq-inplace", pacer=_nopace(), printer=lambda *a: None)
+    out = run.acquire(w, ws, pg.tokens[ws], work, from_file=held, **kw)
+    assert out["outcome"] == "ok", out
+    row = pg.one("SELECT rel_path, binding->>'verdict', source_route FROM litkb.main_files WHERE work_id = %s",
+                 (work["work_id"],))
+    assert row == ("Validation/Tester_2020_held-in-place.pdf", "bound", "held-in-place"), row
+    assert _files_under(store.staging) == [] and _files_under(store.quarantine) == [] and _file_state(held) == before
+    assert [(a[0], a[1]) for a in _attempts(pg, work["work_id"])] == [("browser", "ok")]
+    other = _admitted(pg, w, ws)
+    assert run.acquire(w, ws, pg.tokens[ws], other, from_file=held, **kw)["outcome"] == "duplicate-held"
+    stray = store.root / "Validation" / "Someone_1999_other-paper.pdf"
+    stray.write_bytes(paper_pdf("Tidal mixing fronts in the Irish Sea", "J. Simpson"))
+    third, sb = _admitted(pg, w, ws), _file_state(stray)
+    assert run.acquire(w, ws, pg.tokens[ws], third, from_file=stray, **kw)["outcome"] == "binding-failed"
+    assert _file_state(stray) == sb and _files_under(store.quarantine) == []
+    assert pg.one("SELECT count(*) FROM litkb.main_files WHERE work_id = %s", (third["work_id"],))[0] == 0
+
+
+@pg_only
+def test_work_record_is_acquired_by_the_doi_it_was_reached_by(pg):
+    """Edge-pre1990 G2: Page 1954 carries two DOIs (OUP and JSTOR). work_record kept whichever identifier row came
+    back last, so `acquire --doi <the JSTOR one>` ran the archive on the OUP DOI and stored that as identifier_used."""
+    from litkb.acquire import run
+    ws, w = pg.ws(), pg.session("litkb_writer")
+    hexid, work, ids = _good_payload()
+    second = dict(ids[0], value=f"10.2307/{int(hexid, 16) % 10 ** 7}")
+    res = _admit_sql(pg, w, ws, work, ids + [second])
+    assert res["outcome"] == "admitted", res
+    for d in (ids[0]["value"], second["value"]):
+        rec = run.work_record(w, doi=d)
+        assert rec and rec["doi"] == d, (d, rec)
+        assert run.work_record(w, doi=f"https://doi.org/{d.upper()}")["doi"] == d
+    assert sorted(run.work_record(w, work_id=res["work_id"])["dois"]) == sorted([ids[0]["value"], second["value"]])
+
+
+def test_jsonb_safe_removes_every_nul_character():
+    from litkb.textnorm import jsonb_safe
+    obj = {"Creator": "Acrobat 3.0 Capture Plug-in\x00\x00", "list": ["a\x00b", {"k\x00": "\x00"}], "n": 3, "t": True,
+           "none": None}
+    assert jsonb_safe(obj) == {"Creator": "Acrobat 3.0 Capture Plug-in", "list": ["ab", {"k": ""}], "n": 3, "t": True,
+                               "none": None}
+
+
+@pg_only
+def test_a_nul_character_in_pdf_metadata_never_breaks_an_attach(pg, tmp_path, monkeypatch):
+    """Edge-pre1990 D-nul: Bell 1977's held PDF reports Creator 'Acrobat 3.0 Capture Plug-in' followed by NUL bytes.
+    Postgres jsonb refuses \\u0000, so binding that file in place raised UntranslatableCharacter and nothing was
+    recorded. Every JSON document litkb sends now has its NUL characters removed first."""
+    _need_pdftotext()
+    from litkb.acquire import run
+    from litkb.admit import binding
+    ws, w = pg.ws(), pg.session("litkb_writer")
+    work, store = _admitted(pg, w, ws), _store(tmp_path)
+    held = store.root / "Validation" / "Tester_2020_nul-metadata.pdf"
+    held.write_bytes(paper_pdf(work["title"], "T. Tester"))
+    real = binding.pdf_info
+    monkeypatch.setattr(binding, "pdf_info", lambda p: dict(real(p), Creator="Acrobat 3.0 Capture Plug-in\x00\x00"))
+    out = run.acquire(w, ws, pg.tokens[ws], work, store=store, agent="acq", session="acq-nul", pacer=_nopace(),
+                      printer=lambda *a: None, from_file=held)
+    assert out["outcome"] == "ok", out
+    assert pg.one("SELECT pdf_metadata->>'Creator' FROM litkb.main_files WHERE work_id = %s",
+                  (work["work_id"],))[0] == "Acrobat 3.0 Capture Plug-in"
+
+
+@pg_only
+@pytest.mark.xfail(strict=True, reason="edge-pre1990 gap G1 (Reports/LITKB_EDGE_PRE1990_2026-09-14.md): a second DOI "
+                                       "of an admitted work (Page 1954: OUP and JSTOR) admitted alone makes a second "
+                                       "work; check 2 looks up identifiers only, and title review runs only without "
+                                       "a strong identifier. Proposal, not fixed.")
+def test_a_second_doi_of_an_admitted_work_does_not_make_a_second_work(pg):
+    ws, w = pg.ws(), pg.session("litkb_writer")
+    hexid, work, ids = _good_payload()
+    assert _admit_sql(pg, w, ws, work, ids)["outcome"] == "admitted"
+    alias = [dict(ids[0], value=f"10.2307/{int(hexid, 16) % 10**7}")]
+    second = _admit_sql(pg, w, ws, work, alias)
+    n = pg.one("SELECT count(*) FROM litkb.main_works WHERE title = %s", (work["title"],))[0]
+    assert second["outcome"] in ("duplicate", "duplicate-review") and n == 1, (second, n)
+
+
+@pg_only
 def test_acquire_recognises_a_file_already_in_the_database(pg, tmp_path, monkeypatch):
     _need_pdftotext()
     ws, w = pg.ws(), pg.session("litkb_writer")
@@ -1424,6 +1592,50 @@ def test_archive_cap_counts_every_issued_download_url_even_when_the_partner_404s
     assert [_attempts(pg, wk["work_id"])[0][1] for wk in works] == ["partner-404"] * 5 + ["quota-stop"] * 2
     assert budget.used == 5
     assert all(c >= 1 for c in calls[:5]) and calls[5:] == [0, 0], calls
+
+
+@pg_only
+@pytest.mark.parametrize("case", ["at_margin", "past_limit", "unreadable", "below_margin"])
+def test_archive_reads_the_account_counter_before_every_download_request(pg, tmp_path, case):
+    """Job 2: the account counter, not this run's count, decides. At used >= limit - margin, or with no readable
+    counter, the route records quota-stop and never asks fast_download for a URL, and the run stops there. Below the
+    margin it downloads, and the attempt's detail records the counter before and after."""
+    _need_pdftotext()
+    from litkb.acquire import run
+    ws, w = pg.ws(), pg.session("litkb_writer")
+    store = _store(tmp_path)
+    work, nxt = _admitted(pg, w, ws), _admitted(pg, w, ws)
+    margin = 50
+    used = {"at_margin": 1000 - margin, "past_limit": 1003, "unreadable": 4, "below_margin": 1000 - margin - 1}[case]
+    data = paper_pdf(work["title"], "T. Tester")
+    _m, routes = _annas_routes(data, work["doi"].lower(), used=used)
+    stub = RouteStub(routes)
+    if case == "unreadable":
+        routes["/account/"] = (200, {}, (FIX / "account_counter_wording.html").read_bytes())
+    else:
+        # the counter moves by one once a download URL has been issued
+        routes["/account/"] = lambda url: (200, {}, _account(used + any("fast_download" in u for u in stub.calls)))
+    budget = run.Budget(max_archive_downloads=5, quota_margin=margin)
+    out = run.acquire(w, ws, pg.tokens[ws], work, store=store, routes=("annas",), agent="acq", session="acq-quota",
+                      budget=budget, annas_session=(stub, "SEKRIT"), annas_pacer=_nopace(), pacer=_nopace(),
+                      printer=lambda *a: None)
+    rows = _attempts(pg, work["work_id"])
+    fast = sum("fast_download" in u for u in stub.calls)
+    if case == "below_margin":
+        assert out["outcome"] == "ok" and fast >= 1, (out, stub.calls)
+        assert rows[0][1] == "ok" and rows[0][2]["quota"] == {"used_before": used, "used_after": used + 1,
+                                                             "limit": 1000, "margin": margin, "account_status": 200}, rows
+        assert not budget.stopped and budget.counter == [rows[0][2]["quota"]]
+        return
+    assert fast == 0, stub.calls
+    assert [(a[0], a[1]) for a in rows][0] == ("annas", "quota-stop"), rows
+    assert "no download URL requested" in rows[0][2]["detail"] and budget.stopped
+    assert rows[0][2]["quota"]["used_before"] == (None if case == "unreadable" else used)
+    n = len(stub.calls)
+    run.acquire(w, ws, pg.tokens[ws], nxt, store=store, routes=("annas",), agent="acq", session="acq-quota",
+                budget=budget, annas_session=(stub, "SEKRIT"), annas_pacer=_nopace(), pacer=_nopace(),
+                printer=lambda *a: None)
+    assert len(stub.calls) == n and _attempts(pg, nxt["work_id"])[0][1] == "quota-stop"
 
 
 _LABEL_VARIANTS = {"nbsp": "sess-admit ", "zero_width_space": "sess-admit​", "bom": "﻿sess-admit",

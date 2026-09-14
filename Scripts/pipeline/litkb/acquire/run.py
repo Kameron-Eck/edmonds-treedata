@@ -17,9 +17,10 @@ For every downloaded byte string, in this order:
      _litkb_staging/filed/<stem>.pdf inside the same transaction -> `ok`
 
 Dead routes are not retried blindly: a route whose earlier attempt for this work ended in a terminal miss
-(DEAD_STATUSES) is skipped unless retry_dead. Anna's Archive's rolling quota: every download's downloads_left is
-recorded; once it is at or below the safety margin, or this run's cap on archive downloads is reached, the
-archive route stops and records `quota-stop`.
+(DEAD_STATUSES) is skipped unless retry_dead. Anna's Archive's rolling quota (Budget): the account-wide counter on
+the account page is read before every download request and is the authority; the route records `quota-stop` and
+requests no download URL when the counter is at limit - margin or cannot be read. This run's cap on issued download
+URLs, and the API's downloads_left against the same margin, stay as second, local guards.
 """
 import datetime
 from dataclasses import dataclass, field
@@ -36,17 +37,29 @@ DEAD_STATUSES = {"open_access": {"no-oa-copy"}, "annas": {"not-in-archive", "rec
 
 @dataclass
 class Budget:
+    """The archive's spending limits for one run of acquire() calls.
+
+    quota_margin (default 50): the AUTHORITY is the account-wide counter on GET /account/ ("Fast downloads used
+    (last 18 hours): N / M", annas.read_quota). Before every download request the counter is read, and no download
+    URL is requested when N >= M - quota_margin, or when the counter cannot be read (fail closed). 50 of the
+    account's 1000 is head-room for downloads spent in the same 18-hour window by the browser or another session
+    between the read and the request, and for the counter itself lagging a spend. The same margin also stops the
+    route once the API's own downloads_left falls to it.
+    max_archive_downloads (default 5): a LOCAL second guard, counted on download URLs issued in this run."""
     max_archive_downloads: int = 5
     quota_margin: int = 50
     used: int = 0
     stopped: str = ""
     downloads_left: list = field(default_factory=list)
+    counter: list = field(default_factory=list)      # one {used_before, used_after, limit, margin} per archive attempt
 
 
 def _jsonb(v):
     from psycopg.types.json import Jsonb
 
-    return Jsonb(v)
+    from litkb.textnorm import jsonb_safe
+
+    return Jsonb(jsonb_safe(v))
 
 
 def work_record(conn, *, key=None, doi=None, work_id=None):
@@ -64,14 +77,24 @@ def work_record(conn, *, key=None, doi=None, work_id=None):
                      (work_id,)).fetchone()
     if not w:
         return None
-    ids = dict(conn.execute("SELECT scheme, value FROM litkb.main_identifiers WHERE work_id = %s AND active "
-                            "AND scheme IN ('doi', 'arxiv')", (work_id,)).fetchall())
+    rows = conn.execute("SELECT scheme, value FROM litkb.main_identifiers WHERE work_id = %s AND active "
+                        "AND scheme IN ('doi', 'arxiv') ORDER BY scheme, value", (work_id,)).fetchall()
+    ids, dois = {}, [v for s, v in rows if s == "doi"]
+    for scheme, value in rows:
+        ids.setdefault(scheme, value)
+    # BEGIN guard: a work reached by one of its DOIs is acquired by that DOI
+    # (Page 1954 carries an OUP and a JSTOR DOI; --doi <one of them> must not query the archive with the other)
+    if doi:
+        from litkb.textnorm import normalize_doi
+        want = normalize_doi(doi)
+        ids["doi"] = next((v for v in dois if normalize_doi(v) == want), ids.get("doi"))
+    # END guard: a work reached by one of its DOIs is acquired by that DOI
     held = conn.execute("SELECT count(*) FROM litkb.main_files WHERE work_id = %s AND status = 'active'",
                         (work_id,)).fetchone()[0]
     authors = w[4] or []
     first = (authors[0].get("family") or authors[0].get("name") or "") if authors and isinstance(authors[0], dict) else ""
     return {"work_id": w[0], "key": w[1], "title": w[2], "year": w[3], "first_author": first,
-            "doi": ids.get("doi"), "arxiv": ids.get("arxiv"), "held_files": held}
+            "doi": ids.get("doi"), "dois": dois, "arxiv": ids.get("arxiv"), "held_files": held}
 
 
 def prior_attempts(conn, work_id):
@@ -150,6 +173,37 @@ def land_and_attach(conn, ws, token, work, data, *, route, source_url, store, in
     return status, detail
 
 
+def _in_topic_folder(store, path):
+    """Under the literature root, outside staging and quarantine: a file acquisition did not create."""
+    p = Path(path).resolve()
+    return store._inside(p, store.root) and not store._inside(p, store.staging) and not store._inside(p, store.quarantine)
+
+
+def attach_in_place(conn, ws, token, work, path, *, store, agent, session):
+    """A file already held in a topic folder (Validation/, ...) and held by no work: hashed and bound where it lies,
+    then litkb.attach_file() with rel_path = its own path. Never copied, moved or written (front.file_evidence only
+    reads it); a file that does not bind is left where it lies. -> (status, detail)."""
+    from litkb.admit import front
+
+    rel = store.rel(path)
+    fjson = front.file_evidence(path, work["title"], work["first_author"], root=store.root,
+                                source_route="held-in-place", source_url=f"in place {rel}")
+    b = fjson["binding"]
+    detail = {"sha256": fjson["sha256"], "md5": fjson["md5"], "bytes": fjson["bytes"], "binding": b, "in_place": rel}
+    if b["verdict"] != "bound":
+        detail["note"] = "not bound; left where it lies (acquisition never moves a file it did not create)"
+        return b["verdict"], detail
+    fjson["obtained_at"] = datetime.datetime.now(datetime.timezone.utc).isoformat()
+    with conn.transaction():
+        res = conn.execute("SELECT litkb.attach_file(%s, %s, %s, %s, %s, %s)",
+                           (ws, token, work["work_id"], _jsonb(fjson), agent, session)).fetchone()[0]
+    detail["attach"] = {k: v for k, v in res.items() if k != "binding"}
+    if res["outcome"] == "attached":
+        detail["filed"] = rel
+        return "ok", detail
+    return ("duplicate-held" if res["outcome"] == "duplicate-file" else "binding-failed"), detail
+
+
 def acquire(conn, ws, token, work, *, store=None, routes=ROUTES, agent, session, budget=None, retry_dead=False,
             clients=None, pacer=None, annas_session=None, annas_pacer=None, printer=print, from_file=None):
     """-> {"outcome": ..., "attempts": [(route, status), ...]}"""
@@ -172,9 +226,17 @@ def acquire(conn, ws, token, work, *, store=None, routes=ROUTES, agent, session,
         if not data.startswith(b"%PDF-"):
             status, detail = "bad-file", {"from_file": str(from_file), "note": "not a PDF"}
         else:
-            status, detail = land_and_attach(conn, ws, token, work, data, route="browser",
-                                             source_url=f"manual file {Path(from_file).name}", store=store,
-                                             index=index, agent=agent, session=session)
+            status = None
+            # BEGIN guard: acquire from a file already in a topic folder binds it in place
+            # (landing a copy would only dedupe against the file itself on disk: the work could never get it)
+            if _in_topic_folder(store, from_file):
+                status, detail = attach_in_place(conn, ws, token, work, from_file, store=store, agent=agent,
+                                                 session=session)
+            # END guard: acquire from a file already in a topic folder binds it in place
+            if status is None:
+                status, detail = land_and_attach(conn, ws, token, work, data, route="browser",
+                                                 source_url=f"manual file {Path(from_file).name}", store=store,
+                                                 index=index, agent=agent, session=session)
         record_attempt(conn, ws, token, wid, "browser", work.get("doi") or work.get("arxiv"), status, detail)
         attempts.append(("browser", status))
         return {"outcome": status, "attempts": attempts}
@@ -212,7 +274,12 @@ def acquire(conn, ws, token, work, *, store=None, routes=ROUTES, agent, session,
                 record_attempt(conn, ws, token, wid, "annas", ident, "api-error", {"reason": "login failed"})
                 attempts.append(("annas", "api-error"))
                 continue
-            r = _annas.fetch_for_litkb(aclient, key, work["doi"], annas_pacer or Pacer(), known_md5=index["md5"].keys())
+            r = _annas.fetch_for_litkb(aclient, key, work["doi"], annas_pacer or Pacer(), known_md5=index["md5"].keys(),
+                                       quota_margin=budget.quota_margin)
+            if r.get("quota"):
+                budget.counter.append(r["quota"])
+            if r["status"] == "quota-stop":
+                budget.stopped = r["detail"]
             if r["downloads_left"] not in ("", None):
                 budget.downloads_left.append(r["downloads_left"])
                 if str(r["downloads_left"]).isdigit() and int(r["downloads_left"]) <= budget.quota_margin:
@@ -227,7 +294,7 @@ def acquire(conn, ws, token, work, *, store=None, routes=ROUTES, agent, session,
             raise ValueError(f"unknown route {route!r}")
         codes = r.get("http_codes") or []
         detail = {k: r.get(k) for k in ("detail", "tried", "via", "md5", "record_doi", "title_best",
-                                        "downloads_left", "rec_size") if r.get(k) not in (None, "", [])}
+                                        "downloads_left", "rec_size", "quota") if r.get(k) not in (None, "", [])}
         if r["status"] == "downloaded":
             status, landed = land_and_attach(conn, ws, token, work, r["pdf"], route=route,
                                              source_url=redact(r.get("source_url") or

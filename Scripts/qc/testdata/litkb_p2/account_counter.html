@@ -1,0 +1,25 @@
+<!-- Excerpt of GET https://annas-archive.gl/account/ (logged in), saved 2026-09-14 for qc/test_litkb_p2.py. Only the
+     account block is kept; the account id is replaced by XXXXXXX and the group invite link is removed. The page's
+     own comment about "<span>2</span>4" is kept verbatim: it is why the parser removes tags without inserting spaces. -->
+<div class="main-inner">
+    <h2 class="mt-4 mb-4 text-3xl font-bold">Account</h2>
+
+    <script>window.globalUpdateAaLoggedIn(1);</script>
+
+    <div>Account ID: XXXXXXX</div>
+    <div>Public profile: <a class="font-bold italic" href="/profile/XXXXXXX">#XXXXXXX</a></div>
+    <div class="mb-4">Secret key (don’t share!): <a href="/account/secret_key">show</a></div>
+
+      <div class=" ">
+        Membership: <strong>Amazing Archivist</strong> until October 17, 2026 <a  href="/donate?tier=5" class="text-sm hidden">(extend)</a>
+      </div>
+      <!-- Replace "24" in the actual counts with "<span>2</span>4" so it doesn't get broken up when replaced with "18" later. -->
+      <div class="">Fast downloads used (last 18 hours): <strong>4 / 1000</strong> <a class="text-sm" href="/account/downloaded">which downloads?</a></div>
+      <!-- <div class="mb-4">Contact Anna at <a href="/contact">Contact email</a> if you’re interested in upgrading your membership to a higher tier.</div> -->
+      <div class="mb-4">You can combine multiple memberships (fast downloads per 18 hours will be added together).</div>
+
+    <ul class="list-inside mb-4 ml-1">
+      <li class="list-disc"><a href="/account/profile">Public profile</a></li>
+      <li class="list-disc"><a href="/account/downloaded">Downloaded files</a></li>
+    </ul>
+</div>

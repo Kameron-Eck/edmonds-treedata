@@ -48,3 +48,18 @@ def normalize_doi(doi):
     # BEGIN guard: a DOI loses its trailing punctuation (Python)
     return _DOI_TAIL.sub("", d[i:])
     # END guard: a DOI loses its trailing punctuation (Python)
+
+
+def jsonb_safe(obj):
+    """`obj` with every NUL character removed from its strings and keys. Postgres jsonb refuses \\u0000, and old
+    scanned PDFs carry NULs in their metadata (Bell 1977: Creator 'Acrobat 3.0 Capture Plug-in' + NULs), so every
+    JSON document litkb sends goes through this first (Reports/LITKB_EDGE_PRE1990_2026-09-14.md, D-nul)."""
+    # BEGIN guard: JSON sent to the database carries no NUL
+    if isinstance(obj, str):
+        return obj.replace("\x00", "")
+    # END guard: JSON sent to the database carries no NUL
+    if isinstance(obj, dict):
+        return {jsonb_safe(k): jsonb_safe(v) for k, v in obj.items()}
+    if isinstance(obj, (list, tuple)):
+        return [jsonb_safe(v) for v in obj]
+    return obj

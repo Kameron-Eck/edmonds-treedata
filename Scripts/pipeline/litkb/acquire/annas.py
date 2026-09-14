@@ -79,6 +79,12 @@ DOWNLOAD_DOMAIN_INDEXES = (0, 1, 2)
 DOWNLOAD_RETRY_GAP = 5.0
 JSTOR_PREFIX = "10.2307/"
 JSTOR_STABLE_RE = re.compile(r"jstor\.org/stable/(\d+)(?!\d)", re.I)
+# The account-wide quota counter (the authority on what this account has spent; per-run counting is only a local
+# second guard). GET /account/ (logged in) prints "Fast downloads used (last 18 hours): N / M", and renders any "24"
+# in N or M as "<span>2</span>4" (the page's own HTML comment says so), so tags are removed WITHOUT inserting spaces.
+ACCOUNT_PATH = "/account/"
+QUOTA_RE = re.compile(r"Fast downloads used \(last 18 hours\):\s*(\d+)\s*/\s*(\d+)")
+_QUOTA_HIDDEN_RE = re.compile(r"(?is)<!--.*?-->|<(script|style)\b[^>]*>.*?</\1\s*>")
 
 
 class DestinationRefused(RuntimeError):
@@ -388,14 +394,47 @@ def make_title_getter(meta, doi, registry_client, registry_pacer):
     return get
 
 
+# ---------------------------------------------------------------- the account counter
+
+def parse_quota(page):
+    """The account page -> (used, limit), or None when the counter cannot be read unambiguously (fail closed).
+    Comments, scripts and styles are dropped, tags are removed without a space, entities unescaped, whitespace
+    collapsed; then QUOTA_RE must match, and every match must agree. No match (logged out, the line removed, the
+    wording changed), disagreeing matches, or a limit of 0 -> None."""
+    import html as _html
+
+    if isinstance(page, (bytes, bytearray)):
+        page = bytes(page).decode("utf-8", "replace")
+    text = _QUOTA_HIDDEN_RE.sub(" ", page or "")
+    text = " ".join(_html.unescape(re.sub(r"<[^>]*>", "", text)).split())
+    found = {(int(u), int(m)) for u, m in QUOTA_RE.findall(text)}
+    if len(found) != 1:
+        return None
+    used, limit = found.pop()
+    return (used, limit) if limit > 0 else None
+
+
+def read_quota(client):
+    """One GET of the logged-in account page. -> ((used, limit) | None, http status). Never raises."""
+    try:
+        st, _, body = client.get(client.base + ACCOUNT_PATH, accept="text/html")
+    except Exception as e:                        # a stub or a broken client: the counter is unreadable
+        return None, f"{type(e).__name__}"
+    return (parse_quota(body) if st == 200 else None), st
+
+
 # ---------------------------------------------------------------- litkb: gates 1-3 without filing
 
-def fetch_for_litkb(client, key, doi_raw, pacer, *, known_md5=()):
+def fetch_for_litkb(client, key, doi_raw, pacer, *, known_md5=(), quota_margin=None):
     """The archive route for litkb.acquire.run: gates 1, 1b, 2, the download ladder and gate 3's byte checks.
     Nothing is written. -> dict(status, pdf, md5, record_doi, title_best, downloads_left, rec_size, via,
-    tried, detail, http_codes). status: downloaded | hash-mismatch (pdf kept for quarantine) | not-in-archive
-    | unresolved | record-mismatch | api-error | bad-file | partner-404 | duplicate-held (the record's md5 is
-    already on disk: no download is spent)."""
+    tried, detail, http_codes, url_issued, quota). status: downloaded | hash-mismatch (pdf kept for quarantine)
+    | not-in-archive | unresolved | record-mismatch | api-error | bad-file | partner-404 | duplicate-held (the
+    record's md5 is already on disk: no download is spent) | quota-stop (the account counter is unreadable, or
+    used >= limit - quota_margin: no download URL was requested).
+    quota_margin: litkb.acquire.run always passes one, so the account counter is read before the download request
+    and again after it when a URL was issued (quota = {used_before, used_after, limit, margin}). None (the ported
+    aa_fetch paths and their tests) does not consult the counter."""
     out = {"status": "", "pdf": None, "md5": "", "record_doi": "", "title_best": "", "downloads_left": "",
            "rec_size": "", "via": "scidb", "tried": [], "detail": "", "http_codes": [], "url_issued": False}
 
@@ -426,9 +465,28 @@ def fetch_for_litkb(client, key, doi_raw, pacer, *, known_md5=()):
     if md5 in set(known_md5):
         return done("duplicate-held", detail=f"via={out['via']}; the archive md5 is already on disk; no download spent")
     # END guard: annas known md5 spends no download
+    if quota_margin is not None:
+        q, qst = read_quota(client)
+        out["quota"] = {"used_before": q[0] if q else None, "used_after": None, "limit": q[1] if q else None,
+                        "margin": int(quota_margin), "account_status": qst}
+    # BEGIN guard: annas the account counter gates every download request
+    if quota_margin is not None:
+        if q is None:
+            return done("quota-stop", detail=f"via={out['via']}; the account counter is unreadable (GET {ACCOUNT_PATH} "
+                                             f"status {qst}); no download URL requested")
+        if q[0] >= q[1] - int(quota_margin):
+            return done("quota-stop", detail=f"via={out['via']}; account counter {q[0]} / {q[1]} is at or past limit - "
+                                             f"margin ({q[1] - int(quota_margin)}); no download URL requested")
+    # END guard: annas the account counter gates every download request
     issued = []
     pdf, left, tried, st = download_pdf(client, key, md5, add, pacer, issued=issued)
     out.update(downloads_left=left, tried=tried, url_issued=bool(issued))
+    if "quota" in out:
+        if issued:
+            qa, _qst = read_quota(client)
+            out["quota"]["used_after"] = qa[0] if qa else None
+        else:
+            out["quota"]["used_after"] = out["quota"]["used_before"]   # no URL issued: nothing was spent
     if pdf is None:
         reached = [t for t in tried if not t.startswith("api")]
         if not reached:

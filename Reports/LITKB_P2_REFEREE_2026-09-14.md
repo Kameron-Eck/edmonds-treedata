@@ -12,7 +12,7 @@ What was run, and where:
 - The mutations and probes ran on `litkb_test` only.
 - `litkb` was opened as `litkb_reader` with `default_transaction_read_only = on`.
 - No archive traffic: `LITKB_LIVE` was never set, and 0 archive downloads were used.
-- Nothing under `Literture\` was written.
+- Nothing under `Literture\` was written. After all probes and mutations, a full-tree scan (staging and quarantine included) found 0 of 529 entries with mtime or ctime after 2026-09-14 08:49:19, which precedes this review.
 
 ## Verdict: ACCEPTED WITH FIXES (D1-D5 fixed and re-refereed before P3 loads anything)
 
@@ -73,7 +73,7 @@ The claim stands as stated. My survivors show where the named guards are tested 
 - **WRONG DOI, no claim:**
   - `10.4171/JEMS/183`: refused at `check3_binding`, ratio 0.4071, author not found.
   - `10.1016/j.laa.2010.09.001`: refused at `check3_binding`, ratio 0.5, author not found.
-  - The design quotes 0.36 / 0.25 from `audit_fast`. That was a different measure (first extract line); P2 takes the best 1-3 line window plus the PDF title.
+  - The design quotes 0.36 / 0.25 from `audit_fast`. That came from a different instrument: aa_fetch's `title_best_window` also uses 1-3 line windows, but over the filed `.txt` head with aa_fetch's normaliser, while P2 reads page 1 via `pdftotext -f 1 -l 1` plus the PDF Title metadata. The gap was not traced further; both sets of numbers are far below 0.85.
 - **WRONG DOI + manifest claim:** check 1 `fail`, check 3 `binding-failed`, for both.
 - **Corrected DOIs** `10.4171/jems/179` and `10.1016/j.laa.2010.04.007` are `admitted`:
   - `rel_path = Validation/<stem>.pdf`;

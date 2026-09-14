@@ -80,7 +80,8 @@ was quarantined; nothing under `Validation\` or any other topic folder was writt
     copy sits in `_quarantine\`. open_access `no-oa-copy`, annas `not-in-archive`, scihub `blocked`, then
     `manual-step`. No route produced bytes, so this run gave no live dedupe hit. Dedupe is shown by the tests
     only.
-- Totals: 7 admitted, 3 refused; 16 attempts:
+- Totals: 7 admitted, 3 refused; 17 attempts (corrected after the referee; the first version said 16, but the
+  breakdown below sums to 17):
   - annas: ok 4, not-in-archive 2;
   - open_access: ok 1, no-oa-copy 3, blocked 2, bad-file 1;
   - scihub: bad-file 1, blocked 1;
@@ -246,4 +247,77 @@ The first ladder run found two failures I had introduced, both now fixed:
 - The gate workstream `litkb-p2-gate` is still open; its token file sits in this worktree. It holds 2 admitted,
   unacquired works (IDs 11 and 100) with `manual-step` attempts.
 - The editable install still points at the main tree: run with `PYTHONPATH=Scripts/pipeline`.
-- Untested residual: `approve_admission` does not lock or check the ADMITTER's workstream, so a proposed manual admission left in an abandoned workstream can still be approved from another session. Not in the kill list.
+- Untested residual: `approve_admission` does not lock or check the ADMITTER's workstream, so a proposed manual admission left in an abandoned workstream can still be approved from another session. Not in the kill list. (Fixed after the referee: D3 below.)
+
+## Fixes after referee
+
+Referee: `Reports/LITKB_P2_REFEREE_2026-09-14.md` (ACCEPTED WITH FIXES, D1-D7). Migration
+`0014_referee_p2_fixes.sql` replaces `norm_identifier`, `_check_binding`, `admit`, `approve_admission` and the two
+admissions label constraints. **Status of this evidence (3.4c):** produced by the fixer, not yet re-refereed.
+
+| ID | Fix | Tests (in `qc/test_litkb_p2.py` unless named) |
+|---|---|---|
+| D1 | ONE DOI rule. SQL `norm_identifier('doi', v)` is the authority; `litkb/textnorm.py::normalize_doi` is its twin (`resolver.normalize_doi` delegates). Rule: remove invisible characters, lower-case ASCII letters only, cut before the FIRST `10.`, strip trailing `/ . , ; :`. `admit()` stores the canonical DOI as the identifier value and refuses a DOI with no `10.` (22023); the front refuses it first. Percent-encoded DOIs are NOT decoded (out of scope, stated). | `test_doi_forms_python`, `test_doi_forms_sql_equal_the_table_and_python` over the shared 37-row `qc/testdata/litkb_p2/doi_forms.csv` (every listed prefix, case, whitespace, NBSP/BOM/zero-width, trailing punctuation, Laurance 1998 SICI in 4 spellings, a bracketed SICI, cut-at-first-`10.`, no-`10.`); `test_doi_sibling_spellings_admit_one_work` (9 spellings -> 1 work, stored value canonical); `test_db_stores_the_canonical_doi_and_refuses_a_non_doi`; `test_kill_concurrent_admissions_of_one_doi_leave_one_work[trailing_slash]` (two connections, waiter blocked, `duplicate`, one work) |
+| D2 | Binding: the registry title (ratio >= 0.85) only in a 1-3 line window starting in the first `TITLE_REGION_LINES` = 45 non-empty lines, not under a References/Bibliography heading, not inside a reference list (>= 2 numbered/bracketed or "Surname, I. ... year" lines within 2 lines), not on or within 3 lines after a citation instruction ("please cite", "to cite this article", ...); OR the PDF Title metadata. The first-author surname must be a whole token (NFKD, diacritics folded, casefolded; hyphenated words are one token; multi-part names as consecutive or joined tokens) within `AUTHOR_NEAR_LINES` = 15 lines of that window (metadata route: the PDF Author field or an admissible title-region line). A glued one-letter affiliation marker ("Pengraa,", "GEYERt") is accepted only on surnames of >= 5 letters. The verdict is a pure function `verdict(ratio, author_near_title, text_layer)`. `_check_binding` also requires `title_region` and `author_near_title` in the evidence. | `test_binding_matches_the_surname_as_a_whole_token[Ward, Hall, Long, Park, Chen, Wang, Li, Rose]`; `test_binding_surname_forms` (8 cases); `test_binding_refuses_a_title_that_appears_only_in_a_reference_list[heading, bracketed, author_year]`; `test_binding_refuses_a_please_cite_cover_over_another_paper[2]`; `test_binding_keeps_a_same_paper_cover_whose_title_precedes_the_citation`; `..._outside_the_title_region`; `..._needs_the_author_near_the_title`; `..._by_pdf_title_needs_the_author_...`; boundary `test_binding_threshold_boundary_python[0.85 bound, 0.84 failed]` (exact difflib 34/40 and 42/50) and `test_db_check3_threshold_boundary[0.84, 0.8499 refused; 0.85 admitted]`; `test_db_check3_refuses_...[author_not_near_title, no_title_region_evidence]` |
+| D3 | `approve_admission` takes `FOR SHARE` on the ADMITTER's workstream row with `state = 'open'` after locking the admission, and raises 22023 when it is not open. `abandon_workstream`'s existing `FOR UPDATE` now waits on an approval in flight. | `test_approve_refuses_an_admission_whose_workstream_was_abandoned`; `test_approve_and_abandon_of_the_admitters_workstream_wait_for_each_other[approve, abandon]` (two connections; the second call is seen blocked in `pg_blocking_pids`; approve-first -> approved + abandoned; abandon-first -> 22023, still proposed, nothing in main) |
+| D4 | `download_pdf(..., issued=[])` records every fast_download answer that carried a `download_url`; `fetch_for_litkb` returns `url_issued`; `acquire` counts the run cap on `url_issued`, so `partner-404` and `bad-file` spend it. | `test_archive_cap_counts_every_issued_download_url_even_when_the_partner_404s`: 7 works, partner 404, cap 5 -> 5 `partner-404`, 2 `quota-stop`, 0 fast_download calls for the last two, `budget.used == 5` |
+| D5 | `admit()` retries a `works_key_key` collision with the convention's year suffix: second work `<Surname>_<year>a_<slug>`, third `..b..`, a fourth still `collided`. The admission's checks record `key_suffixed`; the result carries `key`. | `test_a_key_collision_between_different_works_takes_the_a_then_b_suffix` |
+| D6 | Tests for the unshown guards; the no-delete scan now also flags `shutil.move/copy*` (also bare `move`), `os.replace`, one-argument `.replace/.rename` (Path), `.unlink`, `shutil.rmtree`, `Path.write_bytes/write_text`. Seven lines carry `store-scan: allow`, each with its reason: the hash-index cache write and replace, the audit CSV, and the four exists-guarded `shutil.move` calls of the ported aa_fetch filing path. | `test_admit_refuses_a_file_already_held_by_its_sha256` (R9); `test_disk_index_covers_every_folder_of_the_store[6 folders]` (R10); `test_store_move_new_never_overwrites_and_never_leaves_staging` (R12); `test_the_no_delete_scan_fires_on_every_forbidden_form[12 probes]` plus a clean control |
+| D7 | `litkb.norm_label()` (SQL) / `textnorm.norm_label()` (Python) remove EVERY invisible character wherever it sits: the 199 code points Python 3.12 classes as whitespace or Zs/Zl/Zp/Cf, as an explicit class (the database's libc collation decides nothing). Both admissions label constraints compare `norm_label`ed labels; case is still kept (0009 E-4). The front cleans labels before every call and `approve` refuses the admitter's own session before the database does; `commands._labels` uses the same function. | `test_every_invisible_character_is_removed_python` / `_sql` (all 199 code points through both sides); `test_self_approval_is_refused_whatever_invisible_characters_decorate_the_session[nbsp, zero_width_space, bom, ideographic_space_inside, word_joiner_inside, tab_inside]` (Python AdmissionError and the raw SQL call's 23514) |
+| report | The gate's attempt total is 17, not 16 (fixed above). | — |
+
+**D2 constants, measured** (`PYTHONUTF8=1 PYTHONPATH=pipeline py -3.12 qc/instruments/litkb_binding_region.py` ->
+`Reports/litkb_binding_region_2026-09-14.csv`): 212 real PDFs (207 `Validation\` manifest rows with a file, the 5
+gate files), read only. 188 bound under the old rule. The page-1 title window started at line <= 12 on 186 of them,
+at 26 and 43 on the other two. With whole-token matching, the first rule lost 18: 10 Taylor & Francis covers (title
+ABOVE "To cite this article:", so the citation rule now refuses only the instruction line and the 3 lines after it),
+7 surname misses (6 glued affiliation markers such as "Pengraa,", "Conleya,", "GEYERt"; 1 whose surname sits 15 lines
+from the title), 1 title at line 43. Over the grid region {15, 20, 30,
+45, 50} x near {3, 5, 10, 15, 25, 60} the smallest pair losing none of the 188 is 45 / 15. **Chosen after reading the
+distribution, not fixed before it.** The new rule binds exactly the same 188.
+
+**Referee mutations, now** (`qc/instruments/litkb_p2_mutations.py`, whole `test_litkb_p2.py` + `test_litkb_annas.py`,
+`litkb_test`; re-expressed on the fixed code where the old text is gone):
+
+| ID | Mutation | Result (first failing test) |
+|---|---|---|
+| R1 | `BIND_RATIO` 0.85 -> 0.60 | FIRED, 2 failed (`test_binding_threshold_boundary_python[...0.84...]`) |
+| R2 | `_check_binding` evidence ratio 0.85 -> 0.50 (0014) | FIRED, 2 failed (`test_db_check3_threshold_boundary[0.84-refused]`) |
+| R3 | author = the surname's first 3 letters as a substring | FIRED, 10 failed (`..._whole_token[Ward-...]`) |
+| R4 | SQL no longer cuts before `10.` (0014), P1 + P2 + annas files | FIRED, 3 failed (`test_litkb_p1.py::test_identifier_case_variants_collide`, and the P2 form tests) |
+| R9 | admit's file sha256 lookup removed (0014) | FIRED, 1 failed |
+| R10 | disk index only `Validation/` | FIRED, 6 failed |
+| R11 | run cap `>=` -> `>` | FIRED, 1 failed |
+| R12 | `move_new` -> unguarded `shutil.move` | FIRED, 6 failed (the scan and the move test) |
+
+New guards C1-C18 (D1 Python tail / invisible, D1 SQL tail / invisible, raw stored DOI, D2 region / reference list /
+citation / author-near / marker length / DB evidence, D3 admitter lock, D4 counting / `url_issued`, D5 suffix, D7 DB
+constraint / `norm_label` / Python pre-check): **18/18 FIRED**. Re-pointed at 0014 because 0014 replaces their
+functions: A5-A10, A12, A13, A15, A19, A21, A22; B1/B1b re-pointed at `verdict()`.
+
+| Run | Baseline | Result | Baseline after | Restores |
+|---|---|---|---|---|
+| P2 harness, all rows | `204 passed, 5 deselected` | **66/66 FIRED** | `204 passed, 5 deselected` | 66 `match: True`; `sha256sum -c` of 44 files fingerprinted before the run: 44 OK |
+| P1 harness `--whole-file --only K4a,K4b,X7,E4a,E4b,E4c,E4d,E4e,R7` (the rows on the 0009 constraints re-pointed at 0014) | `149 passed` | **9/9 FIRED** | `149 passed` | all `match: True` |
+| P1 + P2 + annas together, unmutated | | `353 passed, 5 deselected` | | |
+
+**Applied:** `litkb_test` by the suite's reset (14 migrations); `litkb`: `litkb.migrate: litkb as litkb_owner:
+applied 1 (0014_referee_p2_fixes.sql); 14 recorded`. The migration's own pre-check refuses if any stored DOI is not
+canonical or two works share a DOI under the new rule; it passed.
+
+**Ladder:** `cd Scripts && PYTHONUTF8=1 py -3.12 qc/check.py --fast`: secrets, ruff, compile PASS; pytest `1 failed,
+2361 passed, 5 skipped` (`litkb Postgres tests: 204 passed`); the one failure is the allowed
+`qc/test_experiments.py::test_pointer_paths_resolve[crown_state_model]`.
+
+**Duplicates in `litkb` under the new DOI rule: none.** Read-only as `litkb_reader`: 7 DOI identifiers on 7 works, 0
+stored `value_norm` differing from `norm_identifier('doi', value_norm)`, 0 canonical DOIs carried by more than one
+work. No merge path is needed.
+
+**Still open (not in D1-D7, named by the referee):**
+- D3 (d): check 2's lookup still counts a PROPOSED identifier version from a workstream that is no longer open, so
+  a DOI proposed in an abandoned workstream returns `duplicate` against a work that is not in main. Abandonment
+  does not withdraw pending manual admissions either.
+- The archive cap is per CLI call, not per run of calls (D4's second note).
+- A same-paper cover sheet whose header carries the title binds by that header; a cover over a DIFFERENT paper that
+  prints the registry title as a header (not only in its citation) would bind too. Page 2 is not read.
+- A >= 5-letter surname followed by one letter ("Stones" for Stone) counts as the surname.

@@ -21,6 +21,8 @@ SCRIPTS = Path(__file__).resolve().parents[2]
 MIG = "pipeline/litkb/db/migrations"
 PKG = "pipeline/litkb"
 TESTS = ["qc/test_litkb_p2.py", "qc/test_litkb_annas.py"]
+TESTS_P1P2 = ["qc/test_litkb_p1.py", *TESTS]
+MIG14 = f"{MIG}/0014_referee_p2_fixes.sql"
 
 M = []
 
@@ -29,8 +31,8 @@ def block(id_, file, marker, what):
     M.append(dict(id=id_, kind="block", file=file, marker=marker, what=what))
 
 
-def replace(id_, file, old, new, what):
-    M.append(dict(id=id_, kind="replace", file=file, old=old, new=new, what=what))
+def replace(id_, file, old, new, what, tests=None):
+    M.append(dict(id=id_, kind="replace", file=file, old=old, new=new, what=what, **({"tests": tests} if tests else {})))
 
 
 # ── the database (migration 0013, and the live 0003/0009 texts P2 relies on) ──
@@ -43,45 +45,48 @@ replace("A3b", f"{MIG}/0013_admission.sql", "ELSIF abs(v_cy - v_ry) = 1 AND", "E
         "check 1: widen +/-1 to +/-2 years")
 block("A4", f"{MIG}/0013_admission.sql", "guard: check 1 a registry identifier is confirmed",
       "check 1: a registry admission with no registry-confirmed identifier passes")
-block("A5", f"{MIG}/0013_admission.sql", "guard: check 3 no text layer waits for OCR",
+block("A5", MIG14, "guard: check 3 no text layer waits for OCR",
       "check 3: a file with no text layer is not binding-pending")
-block("A6", f"{MIG}/0013_admission.sql", "guard: check 3 binding evidence",
+block("A6", MIG14, "guard: check 3 binding evidence",
       "check 3: the database stops checking the binding evidence")
-block("A7", f"{MIG}/0013_admission.sql", "guard: check 4 a manual admission carries a bound file",
+block("A7", MIG14, "guard: check 4 a manual admission carries a bound file",
       "check 4: a manual admission without a bound file proceeds")
-block("A8", f"{MIG}/0013_admission.sql", "guard: check 2 identifier lock",
+block("A8", MIG14, "guard: check 2 identifier lock",
       "check 2: no advisory lock on the normalised identifier")
-block("A9", f"{MIG}/0013_admission.sql", "guard: check 2 identifier lookup",
+block("A9", MIG14, "guard: check 2 identifier lookup",
       "check 2: no lookup of an already-admitted identifier")
-block("A10", f"{MIG}/0013_admission.sql", "guard: check 2 title duplicate review",
+block("A10", MIG14, "guard: check 2 title duplicate review",
       "check 2: no title-similarity review for a work without identifiers")
 replace("A11", f"{MIG}/0013_admission.sql", "AS $$ SELECT 0.70::real $$;", "AS $$ SELECT 1.01::real $$;",
         "check 2: the calibrated threshold replaced by one no title can reach")
-block("A12", f"{MIG}/0013_admission.sql", "guard: admit presents the workstream token", "admit without the token check")
-block("A13", f"{MIG}/0013_admission.sql", "guard: approve_admission presents the workstream token",
+block("A12", MIG14, "guard: admit presents the workstream token", "admit without the token check")
+block("A13", MIG14, "guard: approve_admission presents the workstream token",
       "approve_admission without the token check")
 block("A14", f"{MIG}/0013_admission.sql", "guard: attach_file presents the workstream token",
       "attach_file without the token check")
-block("A15", f"{MIG}/0013_admission.sql", "guard: the candidate belongs to the admitting workstream",
+block("A15", MIG14, "guard: the candidate belongs to the admitting workstream",
       "admit takes another workstream's candidate")
 block("A16", f"{MIG}/0013_admission.sql", "guard: attach_file sha256 dedupe", "attach_file without the sha256 lookup")
 block("A17", f"{MIG}/0013_admission.sql", "guard: attach_file binding", "attach_file without the binding check")
 block("A18", f"{MIG}/0013_admission.sql", "guard: a fact chain enters main only through admission approval",
       "promote_prepare may carry an unapproved work/identifier/file chain")
-block("A19", f"{MIG}/0013_admission.sql", "guard: approval moves main's pointer only from nothing",
+block("A19", MIG14, "guard: approval moves main's pointer only from nothing",
       "approve_admission moves no pointer")
 block("A20", f"{MIG}/0013_admission.sql", "guard: writer executes the admission functions",
       "the writer loses EXECUTE on admit / approve_admission / attach_file")
-replace("A21", f"{MIG}/0009_referee2_fixes.sql",
-        "\n      AND btrim(approver_session, E' \\t\\n\\r\\f\\x0b') <> btrim(admitter_session, E' \\t\\n\\r\\f\\x0b')));",
-        "));", "the approver session <> admitter session clause dropped (live constraint, 0009)")
-replace("A22", f"{MIG}/0003_write_functions.sql",
-        "WHEN 'doi'   THEN regexp_replace(lower(btrim(p_value)),", "WHEN 'doi'   THEN regexp_replace(btrim(p_value),",
-        "DOIs no longer lower-cased by norm_identifier (live 0003 text)")
+# A5-A10, A12, A13, A15, A19, A21, A22 target 0014 since the P2 referee's fixes: 0014 REPLACES _check_binding, admit,
+# approve_admission, norm_identifier and the 0009 label constraints, so the 0013/0009/0003 texts are dead code.
+replace("A21", MIG14,
+        "\n      AND litkb.norm_label(approver_session) <> litkb.norm_label(admitter_session)));",
+        "));", "the approver session <> admitter session clause dropped (live constraint, 0014)")
+replace("A22", MIG14,
+        "'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz')", "'', '')",
+        "DOIs no longer lower-cased by norm_identifier (live 0014 text)")
 # ── Python ──
-replace("B1", f"{PKG}/admit/binding.py", "if ratio >= BIND_RATIO and author_found:", "if True:",
+# B1/B1b target verdict() since the D2 fix: the binding verdict now reads author_near_title
+replace("B1", f"{PKG}/admit/binding.py", "if ratio >= BIND_RATIO and author_near_title:", "if True:",
         "binding: every file binds")
-replace("B1b", f"{PKG}/admit/binding.py", "if ratio >= BIND_RATIO and author_found:", "if ratio >= BIND_RATIO:",
+replace("B1b", f"{PKG}/admit/binding.py", "if ratio >= BIND_RATIO and author_near_title:", "if ratio >= BIND_RATIO:",
         "binding: the first author is not required")
 replace("B2", f"{PKG}/admit/resolver.py", "if abs(cy - wy) == 1:", "if abs(cy - wy) <= 2:",
         "resolver: +/-2 years accepted")
@@ -116,13 +121,71 @@ block("B15", f"{PKG}/acquire/annas.py", "guard: annas gate 2 the record carries 
 block("B16", f"{PKG}/acquire/annas.py", "guard: fetch_one never writes a literature topic folder",
       "annas fetch_one may file into Validation")
 
+# ── the referee's surviving mutations (Reports/LITKB_P2_REFEREE_2026-09-14.md), re-expressed on the fixed code ──
+replace("R1", f"{PKG}/admit/binding.py", "BIND_RATIO = 0.85\n", "BIND_RATIO = 0.60\n",
+        "binding: BIND_RATIO 0.85 -> 0.60")
+replace("R2", MIG14, "  IF v_ratio IS NULL OR v_ratio < 0.85 THEN\n", "  IF v_ratio IS NULL OR v_ratio < 0.50 THEN\n",
+        "_check_binding: evidence ratio 0.85 -> 0.50 (live 0014)")
+replace("R3", f"{PKG}/admit/binding.py", '    joined = "".join(fam)\n',
+        '    joined = "".join(fam)\n    return joined[:3] in "".join(tokens)\n',
+        "binding: the author check is the surname's first 3 letters as a substring")
+M.append(dict(id="R4", kind="multi", tests=TESTS_P1P2,
+              what="SQL norm_identifier no longer cuts the prefix before '10.' (live 0014; P1 + P2 files)", edits=[
+    dict(file=MIG14, old="coalesce(substring(\n", new="coalesce((\n"),
+    dict(file=MIG14, old="                          from '10\\..*$'), ''),\n", new="                          ), ''),\n")]))
+block("R9", MIG14, "guard: check 2 file sha256 lookup", "admit: no file sha256 lookup (live 0014)")
+replace("R10", f"{PKG}/acquire/store.py", 'for p in sorted(self.root.rglob("*.pdf")):',
+        'for p in sorted((self.root / "Validation").rglob("*.pdf")):', "store: disk hash index covers only Validation/")
+replace("R11", f"{PKG}/acquire/run.py", "budget.used >= budget.max_archive_downloads",
+        "budget.used > budget.max_archive_downloads", "acquire: archive run cap >= -> >")
+replace("R12", f"{PKG}/acquire/store.py",
+        "        d = self.guard_new(dst)\n        d.parent.mkdir(parents=True, exist_ok=True)\n        os.rename(s, d)\n        return d\n",
+        "        import shutil\n        return shutil.move(str(s), str(dst))\n", "store: move_new becomes an unguarded shutil.move")
+# ── the guards the referee fixes added ──
+replace("C1", f"{PKG}/textnorm.py", '    return _DOI_TAIL.sub("", d[i:])\n', '    return d[i:].rstrip("/")\n',
+        "D1 Python: trailing . , ; : no longer stripped from a DOI")
+replace("C2", f"{PKG}/textnorm.py", '    return None if s is None else _INVISIBLE.sub("", str(s))\n',
+        '    return None if s is None else str(s).strip()\n', "D1/D7 Python: invisible characters only trimmed at the ends")
+replace("C3", MIG14, "                        '[/.,;:]+$', '')\n", "                        '/+$', '')\n",
+        "D1 SQL: trailing . , ; : no longer stripped from a DOI")
+replace("C4", MIG14, "regexp_replace(p_value, '[", "regexp_replace(btrim(p_value), 'ZZZ[",
+        "D1 SQL: norm_identifier no longer removes invisible characters from a DOI")
+replace("C5", MIG14, "'value', CASE WHEN i->>'scheme' = 'doi' THEN norm_identifier('doi', i->>'value')\n"
+        "                                                               ELSE i->>'value' END,",
+        "'value', i->>'value',", "D1: admit stores the raw DOI spelling")
+block("C6", f"{PKG}/admit/binding.py", "guard: binding title region", "D2: a title window anywhere on page 1")
+block("C7", f"{PKG}/admit/binding.py", "guard: binding refuses reference-list windows", "D2: reference-list windows allowed")
+block("C8", f"{PKG}/admit/binding.py", "guard: binding refuses citation-instruction windows",
+      "D2: 'please cite' / cover citation windows allowed")
+replace("C9", f"{PKG}/admit/binding.py",
+        "        lo, hi = max(0, i - AUTHOR_NEAR_LINES), min(len(lines), i + n + AUTHOR_NEAR_LINES)\n",
+        "        lo, hi = 0, len(lines)\n", "D2: the author anywhere on the page counts as near the title")
+replace("C10", f"{PKG}/admit/binding.py", "MARKER_MIN_SURNAME = 5\n", "MARKER_MIN_SURNAME = 1\n",
+        "D2: a glued one-letter marker accepted on short surnames (Park -> parks)")
+block("C11", MIG14, "guard: check 3 region and author-near evidence",
+      "D2 DB: _check_binding stops requiring title_region / author_near_title")
+block("C12", MIG14, "guard: approve_admission locks the admitter's workstream open",
+      "D3: approve_admission ignores the admitter's workstream")
+block("C13", f"{PKG}/acquire/run.py", "guard: an issued download URL spends the run cap",
+      "D4: an issued download URL does not count against the run cap")
+replace("C14", f"{PKG}/acquire/annas.py", "        if issued is not None:\n            issued.append(di)\n", "",
+        "D4: fetch_for_litkb never reports an issued URL")
+block("C15", MIG14, "guard: a key collision takes the convention's a/b suffix", "D5: no a/b suffix on a key collision")
+replace("C16", MIG14, "      AND litkb.norm_label(approver_session) <> litkb.norm_label(admitter_session)));",
+        "      AND btrim(approver_session) <> btrim(admitter_session)));",
+        "D7 DB: the sign-off constraint compares btrim()med sessions")
+replace("C17", MIG14, "  SELECT regexp_replace(p_label, '[", "  SELECT regexp_replace(p_label, 'ZZZ[",
+        "D7 DB: norm_label removes nothing")
+block("C18", f"{PKG}/admit/front.py", "guard: approve compares labels without invisible characters (Python)",
+      "D7 Python: approve does not pre-check the admitter's session")
+
 
 def _sha(b):
     return hashlib.sha256(b).hexdigest()
 
 
-def _pytest():
-    r = subprocess.run([sys.executable, "-m", "pytest", *TESTS, "-q", "-p", "no:cacheprovider", "-m", "not litkb_live",
+def _pytest(tests=None):
+    r = subprocess.run([sys.executable, "-m", "pytest", *(tests or TESTS), "-q", "-p", "no:cacheprovider", "-m", "not litkb_live",
                         "-rf"], cwd=str(SCRIPTS), capture_output=True, text=True, errors="replace")
     lines = [ln for ln in (r.stdout or "").splitlines() if ln.strip()]
     summary = next((ln for ln in reversed(lines) if " in " in ln and
@@ -168,7 +231,7 @@ def run_one(m):
     for p, _o, n in edits:
         p.write_bytes(n)
     try:
-        rc, summary, failed = _pytest()
+        rc, summary, failed = _pytest(m.get("tests"))
     finally:
         for p, o, _n in edits:
             p.write_bytes(o)

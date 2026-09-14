@@ -289,9 +289,11 @@ def download_options(add):
     return uniq
 
 
-def download_pdf(client, key, md5, add, pacer):
+def download_pdf(client, key, md5, add, pacer, issued=None):
     """fast_download over domain_index 0..2, then the record's own options.
     Re-requesting the same md5 is quota-free, so the retries cost nothing.
+    `issued`, when a list, receives the domain_index of every fast_download answer that carried a download_url
+    (the archive spends a download when it ISSUES a URL for a new md5, whatever the partner host then answers).
     -> (pdf_bytes|None, downloads_left, tried[list of str], last_status)."""
     tried, left, last = [], "", 0
     for i, di in enumerate(DOWNLOAD_DOMAIN_INDEXES):
@@ -309,6 +311,8 @@ def download_pdf(client, key, md5, add, pacer):
         if not url:
             tried.append(f"api{di}:{st}/{redact(j.get('error'))}")
             continue
+        if issued is not None:
+            issued.append(di)
         host = urllib.parse.urlparse(url).netloc
         st, _, pdf = client.get(url, accept="application/pdf", timeout=600)
         last = st
@@ -393,7 +397,7 @@ def fetch_for_litkb(client, key, doi_raw, pacer, *, known_md5=()):
     | unresolved | record-mismatch | api-error | bad-file | partner-404 | duplicate-held (the record's md5 is
     already on disk: no download is spent)."""
     out = {"status": "", "pdf": None, "md5": "", "record_doi": "", "title_best": "", "downloads_left": "",
-           "rec_size": "", "via": "scidb", "tried": [], "detail": "", "http_codes": []}
+           "rec_size": "", "via": "scidb", "tried": [], "detail": "", "http_codes": [], "url_issued": False}
 
     def done(status, **kw):
         out.update(kw, status=status)
@@ -422,8 +426,9 @@ def fetch_for_litkb(client, key, doi_raw, pacer, *, known_md5=()):
     if md5 in set(known_md5):
         return done("duplicate-held", detail=f"via={out['via']}; the archive md5 is already on disk; no download spent")
     # END guard: annas known md5 spends no download
-    pdf, left, tried, st = download_pdf(client, key, md5, add, pacer)
-    out.update(downloads_left=left, tried=tried)
+    issued = []
+    pdf, left, tried, st = download_pdf(client, key, md5, add, pacer, issued=issued)
+    out.update(downloads_left=left, tried=tried, url_issued=bool(issued))
     if pdf is None:
         reached = [t for t in tried if not t.startswith("api")]
         if not reached:
@@ -476,7 +481,7 @@ def _quarantine(path, stem, status, md5, qdir):
     while os.path.exists(dst):
         dst = os.path.join(qdir, f"{stem}__{status}__{md5 or 'nomd5'}.{n}.pdf")
         n += 1
-    shutil.move(path, dst)
+    shutil.move(path, dst)   # store-scan: allow (exists-loop above picks a free name)
     return dst
 
 
@@ -563,7 +568,7 @@ def fetch_one(client, key, doi_raw, stem, meta, paths, pacer, registry_client=No
     if not ok_content:
         q = _quarantine(tmp, stem, "content-mismatch", got_md5, qdir)
         if os.path.exists(txt):
-            shutil.move(txt, q[:-4] + ".txt")
+            shutil.move(txt, q[:-4] + ".txt")   # store-scan: allow (next to a quarantine name the exists-loop chose)
         return result("content-mismatch", **base,
                       detail=f"no DOI in extract, title ratio {ratio:.2f} < {TITLE_RATIO}; "
                              f"title_src={title_src}; -> {q}")
@@ -571,9 +576,9 @@ def fetch_one(client, key, doi_raw, stem, meta, paths, pacer, registry_client=No
     os.makedirs(dest, exist_ok=True)
     if os.path.exists(final_pdf):
         raise DestinationRefused(f"{final_pdf} appeared during the fetch; it is never overwritten")
-    shutil.move(tmp, final_pdf)
+    shutil.move(tmp, final_pdf)   # store-scan: allow (refused above if final_pdf exists; _guard_dest keeps dest in staging)
     if os.path.exists(txt) and not os.path.exists(os.path.join(dest, stem + ".txt")):
-        shutil.move(txt, os.path.join(dest, stem + ".txt"))
+        shutil.move(txt, os.path.join(dest, stem + ".txt"))   # store-scan: allow (only when that .txt does not exist)
     fields = manifest_fields(manifest)
     row = {k: "" for k in fields}
     row.update({k: v for k, v in {

@@ -218,8 +218,11 @@ def acquire(conn, ws, token, work, *, store=None, routes=ROUTES, agent, session,
                 if str(r["downloads_left"]).isdigit() and int(r["downloads_left"]) <= budget.quota_margin:
                     budget.stopped = (f"downloads_left {r['downloads_left']} is at or below the safety margin "
                                       f"{budget.quota_margin}")
-            if r["status"] in ("downloaded", "hash-mismatch"):
+            # BEGIN guard: an issued download URL spends the run cap
+            # the archive counts a download when it issues the URL, so a partner 404 or a bad file spends one too
+            if r.get("url_issued"):
                 budget.used += 1
+            # END guard: an issued download URL spends the run cap
         else:
             raise ValueError(f"unknown route {route!r}")
         codes = r.get("http_codes") or []

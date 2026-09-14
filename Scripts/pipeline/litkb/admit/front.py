@@ -19,7 +19,8 @@ from pathlib import Path
 from litkb.acquire.store import LITERATURE_ROOT, file_facts
 from litkb.admit import binding as _binding
 from litkb.admit import registry as _registry
-from litkb.admit.resolver import _ascii_fold, normalize_doi
+from litkb.admit.resolver import _ascii_fold
+from litkb.textnorm import norm_label, normalize_doi
 
 _STOP = {"a", "an", "the", "of", "on", "in", "for", "and", "or", "to", "with", "by", "from", "at", "as", "into",
          "via", "using", "its", "is", "are", "be", "under", "over", "between", "towards", "toward"}
@@ -101,7 +102,16 @@ def file_evidence(file_path, registry_title, first_author, *, root=None, source_
     return out
 
 
+def _labels(agent, session):
+    """Agent and session labels with every invisible character removed (referee fix D7): 'sess ' is 'sess'."""
+    a, s = norm_label(agent or ""), norm_label(session or "")
+    if not a or not s:
+        raise AdmissionError("an agent and a session label are required (invisible characters do not count)")
+    return a, s
+
+
 def _call_admit(conn, ws, token, candidate, route, key, work, identifiers, file_json, checks, agent, session):
+    agent, session = _labels(agent, session)
     return conn.execute(
         "SELECT litkb.admit(%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)",
         (ws, token, candidate, route, key, _jsonb(work), _jsonb(identifiers),
@@ -124,8 +134,12 @@ def admit_registry(conn, ws, token, *, doi=None, arxiv=None, claimed=None, key=N
         claimed["first_author"] = first_author_of(claimed["authors"])
     identifiers, checks, rec = [], {"registry_calls": [], "claimed": claimed or None}, None
     if doi:
-        d = doi.strip()
-        r, tried = _registry.confirm_doi(client, normalize_doi(d), pacer)
+        # the canonical DOI is what is confirmed, compared and STORED (referee fix D1); the database normalises
+        # it again with litkb.norm_identifier, its twin
+        d = normalize_doi(doi)
+        if not d:
+            raise AdmissionError(f"{doi!r} is not a DOI (no '10.' prefix)")
+        r, tried = _registry.confirm_doi(client, d, pacer)
         checks["registry_calls"] += [{"identifier": d, "registry": n, "status": s} for n, s in tried]
         identifiers.append({"scheme": "doi", "value": d, "verified_by": r["registry"] if r else None,
                             "evidence": _registry.evidence(r, claimed) if r else {"registry_calls": tried}})
@@ -180,5 +194,13 @@ def admit_manual(conn, ws, token, *, title, authors, year, file_path, source_not
 
 
 def approve(conn, ws, token, admission_id, agent, session):
+    """The approver's labels are compared with the admitter's after invisible characters are removed, here and
+    again by the database (admissions_second_session_signs_off, migration 0014)."""
+    agent, session = _labels(agent, session)
+    row = conn.execute("SELECT admitter_session FROM litkb.admissions WHERE id = %s", (admission_id,)).fetchone()
+    # BEGIN guard: approve compares labels without invisible characters (Python)
+    if row and norm_label(row[0]) == session:
+        raise AdmissionError("the admitter's own session cannot approve its admission (invisible characters ignored)")
+    # END guard: approve compares labels without invisible characters (Python)
     return conn.execute("SELECT litkb.approve_admission(%s, %s, %s, %s, %s)",
                         (ws, token, admission_id, agent, session)).fetchone()[0]

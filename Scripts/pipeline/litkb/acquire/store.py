@@ -153,7 +153,7 @@ class Store:
         try:
             self.index_cache.parent.mkdir(parents=True, exist_ok=True)
             tmp = self.index_cache.with_name(self.index_cache.name + ".new")
-            tmp.write_text(json.dumps(fresh), encoding="utf-8")
+            tmp.write_text(json.dumps(fresh), encoding="utf-8")   # store-scan: allow (cache outside the store)
             # the cache lives outside the literature store, so replacing it touches no paper
             os.replace(tmp, self.index_cache)   # store-scan: allow (cache outside the store)
         except OSError:

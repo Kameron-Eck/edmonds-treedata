@@ -40,8 +40,9 @@ def _worktree(args):
 
 
 def _labels(args):
-    agent = (args.agent or os.environ.get("LITKB_AGENT") or "").strip()
-    session = (args.session or os.environ.get("LITKB_SESSION") or "").strip()
+    from litkb.textnorm import norm_label
+    agent = norm_label(args.agent or os.environ.get("LITKB_AGENT") or "")
+    session = norm_label(args.session or os.environ.get("LITKB_SESSION") or "")
     if not agent or not session:
         raise SystemExit("litkb: an agent and a session label are required (--agent/--session or "
                          "LITKB_AGENT/LITKB_SESSION)")

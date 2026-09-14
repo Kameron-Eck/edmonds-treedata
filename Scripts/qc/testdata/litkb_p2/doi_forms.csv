@@ -1,0 +1,38 @@
+form,canonical,note
+10.5555/abc.def,10.5555/abc.def,bare
+10.5555/abc.def/,10.5555/abc.def,trailing slash
+10.5555/abc.def//,10.5555/abc.def,two trailing slashes
+doi:10.5555/abc.def,10.5555/abc.def,doi: prefix
+doi: 10.5555/abc.def,10.5555/abc.def,doi: prefix with a space
+DOI:10.5555/abc.def,10.5555/abc.def,DOI: prefix
+DOI: 10.5555/ABC.DEF,10.5555/abc.def,DOI: prefix with a space and upper case
+doi.org/10.5555/abc.def,10.5555/abc.def,doi.org/
+www.doi.org/10.5555/abc.def,10.5555/abc.def,www.doi.org/
+http://doi.org/10.5555/abc.def,10.5555/abc.def,http://doi.org/
+https://doi.org/10.5555/abc.def,10.5555/abc.def,https://doi.org/
+http://dx.doi.org/10.5555/abc.def,10.5555/abc.def,http://dx.doi.org/
+https://dx.doi.org/10.5555/abc.def,10.5555/abc.def,https://dx.doi.org/
+https://www.doi.org/10.5555/abc.def/,10.5555/abc.def,https://www.doi.org/ and a trailing slash
+HTTPS://DX.DOI.ORG/10.5555/ABC.DEF,10.5555/abc.def,resolver URL in upper case
+urn:doi:10.5555/abc.def,10.5555/abc.def,urn:doi:
+URN:DOI:10.5555/ABC.DEF,10.5555/abc.def,URN:DOI: in upper case
+10.5555/ABC.Def,10.5555/abc.def,mixed case
+  10.5555/abc.def  ,10.5555/abc.def,surrounding spaces
+\t10.5555/abc.def\n,10.5555/abc.def,surrounding tab and newline
+\u00a010.5555/abc.def\u00a0,10.5555/abc.def,surrounding NBSP
+\ufeff10.5555/abc\u200b.def\u2060,10.5555/abc.def,BOM and zero-width characters inside
+10.5555/abc.def.,10.5555/abc.def,trailing full stop
+"10.5555/abc.def,",10.5555/abc.def,trailing comma
+10.5555/abc.def;,10.5555/abc.def,trailing semicolon
+10.5555/abc.def:,10.5555/abc.def,trailing colon
+"doi: 10.5555/abc.def/.,",10.5555/abc.def,prefix and a run of trailing punctuation
+10.1890/0012-9658(1998)079[2032:rffatd]2.0.co;2,10.1890/0012-9658(1998)079[2032:rffatd]2.0.co;2,Laurance 1998 SICI (lower case)
+10.1890/0012-9658(1998)079[2032:RFFATD]2.0.CO;2,10.1890/0012-9658(1998)079[2032:rffatd]2.0.co;2,Laurance 1998 SICI (upper case)
+https://doi.org/10.1890/0012-9658(1998)079[2032:RFFATD]2.0.CO;2,10.1890/0012-9658(1998)079[2032:rffatd]2.0.co;2,Laurance 1998 SICI behind a resolver URL
+doi:10.1890/0012-9658(1998)079[2032:rffatd]2.0.co;2/,10.1890/0012-9658(1998)079[2032:rffatd]2.0.co;2,Laurance 1998 SICI with doi: and a trailing slash
+10.1002/(SICI)1097-0258(19980130)17:2<157::AID-SIM726>3.0.CO;2-B,10.1002/(sici)1097-0258(19980130)17:2<157::aid-sim726>3.0.co;2-b,SICI with angle brackets
+10.1000/a10.2,10.1000/a10.2,cut at the FIRST 10.
+https://doi.org/10.4171/JEMS/179,10.4171/jems/179,Averkov corrected DOI in upper case
+10.48550/arXiv.2303.07334,10.48550/arxiv.2303.07334,arXiv DOI form
+nope,,no 10. at all
+doi:,,a prefix and nothing else

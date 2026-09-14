@@ -39,9 +39,9 @@ _TAG_RE = re.compile(r"<[^>]*>")
 # ---------------------------------------------------------------- text rules
 
 def normalize_doi(doi):
-    d = (doi or "").strip().lower()
-    i = d.find("10.")
-    return d[i:].rstrip("/") if i >= 0 else ""
+    """The canonical DOI: litkb.textnorm.normalize_doi, the Python twin of the database's litkb.norm_identifier."""
+    from litkb.textnorm import normalize_doi as _canonical
+    return _canonical(doi)
 
 
 def strip_tags(s):

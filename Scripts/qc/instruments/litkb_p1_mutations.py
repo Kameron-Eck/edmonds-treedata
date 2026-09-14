@@ -127,11 +127,13 @@ MUTATIONS = [
          kind="replace", file=f"{MIG}/0007_referee_fixes.sql",
          old="\n     AND r.file_id = p_file", new="",
          what="drop the file_id predicate in set_current_run"),
+    # R2 targets 0011 since the token bypass was closed: 0011 REVOKEs the writer's whole INSERT on the
+    # proposal version tables, which also revokes 0006's column grants, so the 0006 text is dead code.
     dict(id="R2", kill="(D-6) writer has no INSERT on version state columns",
          test="test_writer_cannot_insert_version_state_columns",
-         kind="replace", file=f"{MIG}/0006_grants.sql",
-         old="NOT IN ('state', ", new="NOT IN (",
-         what="grant the writer column INSERT on state"),
+         kind="block", file=f"{MIG}/0011_token_bypass_closed.sql",
+         marker="guard: writer has no direct INSERT on use_versions",
+         what="keep the writer's 0006 column INSERT on use_versions (live revoke, 0011)"),
     dict(id="R4", kill="(D-6) a first-head proposal must be based on main",
          test="test_first_head_proposal_must_be_based_on_main",
          kind="replace", file=f"{MIG}/0007_referee_fixes.sql",
@@ -419,6 +421,42 @@ MUTATIONS = [
          kind="block", file="pipeline/litkb/db/connect.py",
          marker="guard: ingest login only through the ingest tool",
          what="remove the ingest refusal in connect()"),
+    # ── the token bypass closed (migration 0011) ──
+    *[dict(id=f"W{i}", kill=f"(0011) the writer has no direct INSERT on {t}",
+           test=f"test_writer_has_no_direct_write_on_workstream_tables[{t}]",
+           kind="block", file=f"{MIG}/0011_token_bypass_closed.sql",
+           marker=f"guard: writer has no direct INSERT on {t}",
+           what=f"keep the writer's 0006 column INSERT on {t}")
+      for i, t in enumerate(["gap_versions", "use_versions", "candidates", "admissions",
+                             "acquisition_attempts", "use_embeddings"], start=1)],
+    *[dict(id=f"W{i}", kill=f"(0011) {fn} presents the workstream token",
+           test=f"test_every_workstream_write_requires_its_token[{fn}-another_workstreams_token]",
+           kind="block", file=f"{MIG}/0011_token_bypass_closed.sql",
+           marker=f"guard: {fn} presents the workstream token",
+           what=f"remove the token check in {fn}")
+      for i, fn in enumerate(["add_candidate", "record_acquisition_attempt", "add_use_embedding"], start=7)],
+    dict(id="W10", kill="(0011) an embedding goes only onto the named workstream's own use version",
+         test="test_add_use_embedding_version_must_belong_to_named_workstream",
+         kind="block", file=f"{MIG}/0011_token_bypass_closed.sql",
+         marker="guard: embedding version belongs to the workstream",
+         what="remove the ownership check in add_use_embedding"),
+    # the catalog test, on grants no per-table test names: a table reached by a FK to workstreams with no
+    # workstream_id column, a one-hop table at column level, and a table-level DELETE for another role
+    dict(id="W11", kill="(0011) catalog: no agent role writes a workstream table directly (FK to workstreams)",
+         test="test_no_agent_role_holds_a_direct_write_on_a_workstream_table",
+         kind="replace", file=f"{MIG}/0011_token_bypass_closed.sql",
+         old="-- end of 0011\n", new="GRANT INSERT ON litkb.rebases TO litkb_promoter;\n-- end of 0011\n",
+         what="grant the promoter INSERT on rebases"),
+    dict(id="W12", kill="(0011) catalog: one hop, column level",
+         test="test_no_agent_role_holds_a_direct_write_on_a_workstream_table",
+         kind="replace", file=f"{MIG}/0011_token_bypass_closed.sql",
+         old="-- end of 0011\n", new="GRANT UPDATE (model) ON litkb.use_embeddings TO litkb_reader;\n-- end of 0011\n",
+         what="grant the reader column UPDATE on use_embeddings.model"),
+    dict(id="W13", kill="(0011) catalog: table-level DELETE by another agent role",
+         test="test_no_agent_role_holds_a_direct_write_on_a_workstream_table",
+         kind="replace", file=f"{MIG}/0011_token_bypass_closed.sql",
+         old="-- end of 0011\n", new="GRANT DELETE ON litkb.admissions TO litkb_ingest;\n-- end of 0011\n",
+         what="grant the ingest login DELETE on admissions"),
 ]
 
 

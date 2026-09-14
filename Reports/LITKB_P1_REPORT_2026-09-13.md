@@ -388,3 +388,99 @@ its own: `[PASSED] pre-flight clean`.
 - The token stops mistakes, not a process that reads another worktree's `.litkb-workstream` (same Windows user). The
   same holds for the ingest and promoter passfiles, whose folder ACL Kam accepted.
 - No `litkb ws open` CLI exists yet; `litkb.workstream.open_workstream` is the library call it will wrap.
+
+## Token bypass closed
+
+Authority: `Scripts/decisions.yaml` `litkb-p0-foundation`, "After the second P1 referee" (each workstream's session
+presents its token). **Status of this evidence (3.4c):** the implementer wrote the migration, the tests and the
+mutations below. This is author-produced evidence, and no referee has re-run it.
+
+**Enumerated (catalog, before 0011, `litkb` and `litkb_test` identical).** `has_table_privilege` for
+INSERT/UPDATE/DELETE/TRUNCATE plus `has_column_privilege` for INSERT/UPDATE, roles reader, writer, promoter, ingest,
+on every table in `litkb`, `litkb_meta` and `public`. Table-level checks alone show nothing, because the writer's
+grants were column-level. Result: reader and promoter held no write right anywhere. Ingest held INSERT on the 11
+extraction tables only. The writer held column INSERT on six tables, all workstream-bearing:
+
+| Table | Why it belongs to a workstream | Writer path after 0011 |
+|---|---|---|
+| `gap_versions`, `use_versions` | `workstream_id` column | `write_proposal` (0010) |
+| `candidates` | `workstream_id` column | new `add_candidate` |
+| `acquisition_attempts` | `workstream_id` column | new `record_acquisition_attempt` |
+| `use_embeddings` | FK to `use_versions` (one hop) | new `add_use_embedding` |
+| `admissions` | `workstream_id` column | none in P1 (judgement call 2) |
+
+**Rule for "workstream-bearing"** (built from the catalog by the new test): a table with a foreign key to
+`litkb.workstreams`, or `workstreams` itself, or a table with a foreign key to such a table that has a `workstream_id`
+column. The extraction tables stay out. They reference `files` and `extraction_runs`, and `files.created_in_ws` is
+creation provenance on a main-owned identity row, not a workstream's view.
+
+**Migration `0011_token_bypass_closed.sql`:** `REVOKE INSERT … FROM litkb_writer` on the six tables, one guard block
+per table. A table-level REVOKE also removes the 0006 column grants, so 0006's column lists are now dead code. It
+adds three SECURITY DEFINER functions, each with a pinned `search_path`, EXECUTE revoked from PUBLIC and granted to
+the writer, and each calling `_require_ws_token` first:
+- `add_candidate` writes `workstream_id` from the checked argument. It does not accept `state`, `state_reason` or
+  `admitted_work_id`.
+- `record_acquisition_attempt` also writes `workstream_id` from the checked argument.
+- `add_use_embedding` also refuses (42501) a use version written in another workstream, the `add_evidence`
+  ownership rule.
+
+**Tests** (`qc/test_litkb_p1.py`):
+- `test_writer_has_no_direct_write_on_workstream_tables[6 tables]`: the writer's INSERT of an otherwise-valid row is
+  42501, and the owner's identical statement lands.
+- `test_every_workstream_write_requires_its_token` gains the three functions × {missing, another workstream's
+  token}. Each is refused with no side effect and accepted with its own token.
+- `test_add_use_embedding_version_must_belong_to_named_workstream`.
+- `test_no_agent_role_holds_a_direct_write_on_a_workstream_table`:
+  - It builds the table set and the role set (every `litkb%` role and PUBLIC, minus each table's owner and
+    superusers) from the catalog, then checks table- and column-level INSERT/UPDATE/DELETE/TRUNCATE.
+  - It asserts the set contains the six tables plus `use_evidence`, `ws_heads`, `workstream_tokens` and `rebases`,
+    and excludes `blocks`, `extraction_runs`, `pages` and `chunks`, so the rule is neither vacuous nor all-matching.
+- `test_writer_cannot_insert_version_state_columns` was rewritten. The writer's formerly granted `agent` column is
+  now refused too, and its NotNullViolation control runs as the owner.
+- `test_token_functions_have_exactly_one_signature` covers the new names.
+- Suite: `116 passed`; `litkb Postgres tests: 102 passed`.
+
+**Harness** (`--whole-file`, all against `litkb_test`):
+- New rows: W1–W6 (keep each revoke's grant), W7–W9 (remove each token check), W10 (remove the embedding ownership
+  check). W11–W13 are grants that no per-table test names, so only the catalog test can catch them: INSERT on
+  `rebases` to the promoter (FK-to-workstreams branch), column UPDATE on `use_embeddings.model` to the reader
+  (one-hop, column-level branch), and DELETE on `admissions` to ingest (table-level branch).
+- R2 re-pointed at 0011's `use_versions` revoke, because its 0006 target is dead code now.
+- Run `--only W1..W13,R2`: baseline `116 passed`, **14/14 fired**, restored baseline `116 passed`, 14
+  `restored … sha256 … match: True` lines.
+- **Found in that run:** W4 fired only through the catalog test (`1 failed`). The per-table admissions row named
+  `state`, which 0006 never granted, so the writer was refused whatever 0011 did. The row no longer names `state`.
+  W4 re-run: `2 failed, 114 passed`, and both baselines `116 passed`.
+- A separate `sha256sum` fingerprint of all 11 migrations, `connect.py`, `migrate.py`, `promote.py`, the test file,
+  the harness and `.gitignore`, taken before that re-run, printed OK for 17/17 after it.
+- The 68 earlier rows were not re-run. Only R2 targeted text that 0011 supersedes, and the whole-file baseline
+  passes.
+
+**Applied:** `litkb_test` through the session reset. On `litkb`: `applied 1 (0011_token_bypass_closed.sql); 11 recorded`,
+run before any mutation touched the file. A read-only probe on `litkb` as postgres found:
+- no INSERT/UPDATE/DELETE/TRUNCATE at table or column level for reader, writer or promoter on any table;
+- ingest INSERT on the 11 extraction tables only;
+- writer EXECUTE on `add_candidate`, `record_acquisition_attempt` and `add_use_embedding`, each SECURITY DEFINER and
+  owned by `litkb_owner`;
+- `litkb_test` CONNECT on `litkb` f, 0 workstreams, 11 migrations recorded.
+
+**Design:** §4.6 check 5, §4.7 (writer row, token paragraph), §5 step 1 and §9 (MCP write tools) no longer say the
+writer can INSERT into version tables, candidates, admissions or attempts.
+
+**Ladder:** `PYTHONUTF8=1 py -3.12 qc/check.py --fast`: ruff and compile PASS; pytest `1 failed, 2068 passed, 74 warnings
+in 418.43s` (`litkb Postgres tests: 102 passed`). The one failure is the known
+`qc/test_experiments.py::test_pointer_paths_resolve[crown_state_model]`. The ladder stops there, so preflight was run on
+its own: `[PASSED] pre-flight clean`.
+
+**Judgement calls:**
+1. Revoked INSERT only, the one right held. UPDATE/DELETE/TRUNCATE were never granted, and the catalog test fails if
+   any appears. A blanket catalog-driven REVOKE in the migration would have masked every per-table mutation.
+2. **No `admissions` function.** Design §4.6 makes admission one owner-side transaction (checks 1–4, `works`,
+   `identifiers`, `files`, the admission row), so a writer-only admission INSERT cannot complete an admission, and
+   a direct `registry` row could claim one that never ran. `write_fact` already refuses creation "reserved for P2
+   admission". P2's `admit` must take the token.
+3. The new functions do not require the workstream to be `open`. The token is the decision's whole requirement, and
+   these rows are not in any version-set hash. Refusing closed workstreams would be one more guard, with a test and
+   a mutation.
+4. The token-less `workstream_id IS NULL` path is gone for the writer. Candidates from citations (design §7 stage 6)
+   will need an ingest-side or P6 function; ingest has never held INSERT on `candidates`.

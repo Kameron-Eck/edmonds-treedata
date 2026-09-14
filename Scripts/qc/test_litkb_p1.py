@@ -68,6 +68,15 @@ each guard shown to fire on the WHOLE file by the harness (rows X5, X6, E5a, T*,
                                                               test_ingest_cannot_write_knowledge
        connect() refuses the ingest login                     test_connect_refuses_the_ingest_login
 
+The token bypass closed (migration 0011): the writer's direct INSERT on tables that belong to a
+workstream is revoked, and every writer path into a workstream is a token-checked function; each
+guard shown to fire on the WHOLE file by the harness (rows W*, R2):
+
+  direct INSERT refused, the same row accepted as owner      test_writer_has_no_direct_write_on_workstream_tables[*]
+  new functions need the token                               test_every_workstream_write_requires_its_token[*]
+  an embedding goes only onto the workstream's own version   test_add_use_embedding_version_must_belong_to_named_workstream
+  no agent role gains a direct write later (catalog-built)   test_no_agent_role_holds_a_direct_write_on_a_workstream_table
+
 Isolation: the suite logs in ONLY as litkb_test, to litkb_test, which it resets and migrates
 once per session under an advisory lock (parallel worktrees serialise). Role privileges are
 exercised with SET ROLE: litkb_test is a member of reader/writer/promoter WITH INHERIT FALSE,
@@ -971,16 +980,17 @@ def test_set_current_run_refuses_foreign_or_null_run(pg):
 
 @pg_only
 def test_writer_cannot_insert_version_state_columns(pg):
-    """D-6 / R2: the writer's direct INSERT on proposal version tables excludes the state and
-    promotion columns. Privilege is checked before any constraint, so a NotNullViolation on a
-    granted column is the control that the refusal below is the column privilege."""
+    """D-6 / R2: the writer names no state or promotion column of a proposal version table. Since
+    0011 the writer holds no INSERT on those tables at all (proposals go only through
+    write_proposal), so the formerly granted `agent` column is refused too; the owner's
+    NotNullViolation on the same statement is the control that the refusal is privilege."""
     writer = pg.session("litkb_writer")
     for table in ("gap_versions", "use_versions"):
-        for col in ("state", "promoted_at", "promotion_id"):
+        for col in ("state", "promoted_at", "promotion_id", "agent", "workstream_id"):
             with pytest.raises(pg.errors.InsufficientPrivilege):
                 writer.execute(f"INSERT INTO litkb.{table} ({col}) VALUES (NULL)")
         with pytest.raises(pg.errors.NotNullViolation):
-            writer.execute(f"INSERT INTO litkb.{table} (agent) VALUES (NULL)")
+            pg.conn.execute(f"INSERT INTO litkb.{table} (agent) VALUES (NULL)")
 
 
 @pg_only
@@ -1481,6 +1491,33 @@ def _token_op(pg, op):
 
         def unchanged():
             return pg.one("SELECT count(*) FROM litkb.ws_heads WHERE workstream_id = %s", (ws,))[0] == 0
+    elif op == "add_candidate":
+        def call(tok):
+            return writer.execute("SELECT litkb.add_candidate(%s, %s, 'manual', NULL, NULL, NULL, NULL, "
+                                  "'A lead', NULL, NULL, NULL)", (ws, tok))
+
+        def unchanged():
+            return pg.one("SELECT count(*) FROM litkb.candidates WHERE workstream_id = %s", (ws,))[0] == 0
+    elif op == "record_acquisition_attempt":
+        work_id, _ = pg.work(ws)
+
+        def call(tok):
+            return writer.execute("SELECT litkb.record_acquisition_attempt(%s, %s, %s, NULL, 'open_access', "
+                                  "NULL, 'ok', NULL, NULL)", (ws, tok, work_id))
+
+        def unchanged():
+            return pg.one("SELECT count(*) FROM litkb.acquisition_attempts WHERE workstream_id = %s", (ws,))[0] == 0
+    elif op == "add_use_embedding":
+        work_id, _ = pg.work(ws)
+        _, uv = pg.proposal(pg.conn, "use", None, {"work_id": str(work_id)}, None,
+                            {"statement": "s", "kind": "method", "status": "proposed"}, None, ws)
+
+        def call(tok):
+            return writer.execute("SELECT litkb.add_use_embedding(%s, %s, %s, 'm', 3, '[1,2,3]'::halfvec)",
+                                  (ws, tok, uv))
+
+        def unchanged():
+            return pg.one("SELECT count(*) FROM litkb.use_embeddings WHERE use_version_id = %s", (uv,))[0] == 0
     elif op == "write_fact":
         work_id, v1 = pg.work(ws)
 
@@ -1502,7 +1539,8 @@ def _token_op(pg, op):
 
 @pg_only
 @pytest.mark.parametrize("case", ["missing", "another_workstreams_token"])
-@pytest.mark.parametrize("op", ["write_proposal", "write_fact", "add_evidence", "abandon_workstream"])
+@pytest.mark.parametrize("op", ["write_proposal", "write_fact", "add_evidence", "abandon_workstream",
+                                "add_candidate", "record_acquisition_attempt", "add_use_embedding"])
 def test_every_workstream_write_requires_its_token(pg, op, case):
     """Every writer function that names a workstream refuses (42501, inside the SECURITY DEFINER
     function) a missing token or another workstream's token, writes nothing, and accepts the
@@ -1523,8 +1561,10 @@ def test_token_functions_have_exactly_one_signature(pg):
         "SELECT p.proname, array_agg(pg_get_function_identity_arguments(p.oid)) FROM pg_proc p "
         "JOIN pg_namespace n ON n.oid = p.pronamespace WHERE n.nspname = 'litkb' AND p.proname = ANY (%s) "
         "GROUP BY p.proname", (["write_fact", "write_proposal", "add_evidence", "abandon_workstream",
-                                "open_workstream"],)).fetchall())
-    assert sorted(rows) == ["abandon_workstream", "add_evidence", "open_workstream", "write_fact", "write_proposal"]
+                                "open_workstream", "add_candidate", "record_acquisition_attempt",
+                                "add_use_embedding"],)).fetchall())
+    assert sorted(rows) == ["abandon_workstream", "add_candidate", "add_evidence", "add_use_embedding",
+                            "open_workstream", "record_acquisition_attempt", "write_fact", "write_proposal"]
     for name, sigs in rows.items():
         assert len(sigs) == 1, f"{name} has {len(sigs)} signatures: {sigs}"
         if name != "open_workstream":
@@ -1630,3 +1670,121 @@ def test_connect_refuses_the_ingest_login(monkeypatch):
     from psycopg.conninfo import conninfo_to_dict
     params = conninfo_to_dict(c.conninfo(c.DB_MAIN, c.INGEST, passfile=c.ingest_passfile()))
     assert params["user"] == c.INGEST and params["passfile"] == c.ingest_passfile()
+
+
+# ── the token bypass closed (migration 0011) ──────────────────────────────────────────────
+
+def _direct_row(pg, table):
+    """(sql, params) for one otherwise-valid row of `table` belonging to a fresh workstream."""
+    ws = pg.ws()
+    work_id, _ = pg.work(ws)
+    if table == "gap_versions":
+        gap_id, g1 = pg.main_gap(ws)
+        return ("INSERT INTO litkb.gap_versions (gap_id, version_no, question, gap_state, based_on_version_id, "
+                "change_reason, workstream_id, agent, session_id) VALUES (%s, 99, 'q', 'open', %s, 'direct', %s, "
+                "'a', 's')", (gap_id, g1, ws))
+    if table in ("use_versions", "use_embeddings"):
+        use_id, uv = pg.proposal(pg.conn, "use", None, {"work_id": str(work_id)}, None,
+                                 {"statement": "s", "kind": "method", "status": "proposed"}, None, ws)
+        if table == "use_embeddings":
+            return ("INSERT INTO litkb.use_embeddings (use_version_id, model, dim, vector) "
+                    "VALUES (%s, 'm', 3, '[1,2,3]'::halfvec)", (uv,))
+        return ("INSERT INTO litkb.use_versions (use_id, version_no, statement, kind, status, based_on_version_id, "
+                "change_reason, workstream_id, agent, session_id) VALUES (%s, 99, 's', 'method', 'proposed', %s, "
+                "'direct', %s, 'a', 's')", (use_id, uv, ws))
+    if table == "candidates":
+        return ("INSERT INTO litkb.candidates (source, title, workstream_id) VALUES ('manual', 'lead', %s)", (ws,))
+    if table == "admissions":
+        # no state column: 0006 never granted it, so naming it would be refused whatever 0011 does
+        return ("INSERT INTO litkb.admissions (route, admitter_agent, admitter_session, work_id, workstream_id) "
+                "VALUES ('registry', 'a', 's', %s, %s)", (work_id, ws))
+    assert table == "acquisition_attempts", table
+    return ("INSERT INTO litkb.acquisition_attempts (work_id, route, status, workstream_id) "
+            "VALUES (%s, 'open_access', 'ok', %s)", (work_id, ws))
+
+
+@pg_only
+@pytest.mark.parametrize("table", ["gap_versions", "use_versions", "candidates", "admissions",
+                                   "acquisition_attempts", "use_embeddings"])
+def test_writer_has_no_direct_write_on_workstream_tables(pg, table):
+    """0011: every table the writer could INSERT into directly before 0011 and whose rows belong to a
+    workstream (the catalog enumeration in the migration's header). The writer's direct INSERT of an
+    otherwise-valid row is refused (42501); the owner's identical statement lands, which shows the
+    refusal is the privilege and not the row."""
+    q, params = _direct_row(pg, table)
+    writer = pg.session("litkb_writer")
+    with pytest.raises(pg.errors.InsufficientPrivilege):
+        writer.execute(q, params)
+    pg.conn.execute(q, params)
+
+
+@pg_only
+def test_add_use_embedding_version_must_belong_to_named_workstream(pg):
+    """A session holding its own workstream's token cannot attach an embedding to a use version
+    written in another workstream (the add_evidence ownership rule)."""
+    ws_a = pg.ws()
+    work_id, _ = pg.work(ws_a)
+    _, uv = pg.proposal(pg.conn, "use", None, {"work_id": str(work_id)}, None,
+                        {"statement": "s", "kind": "method", "status": "proposed"}, None, ws_a)
+    ws_b = pg.ws()
+    writer = pg.session("litkb_writer")
+    q = "SELECT litkb.add_use_embedding(%s, %s, %s, 'm', 3, '[1,2,3]'::halfvec)"
+    with pytest.raises(pg.errors.InsufficientPrivilege, match="another workstream"):
+        writer.execute(q, (ws_b, pg.tokens[ws_b], uv))
+    assert pg.one("SELECT count(*) FROM litkb.use_embeddings WHERE use_version_id = %s", (uv,))[0] == 0
+    writer.execute(q, (ws_a, pg.tokens[ws_a], uv))
+    assert pg.one("SELECT count(*) FROM litkb.use_embeddings WHERE use_version_id = %s", (uv,))[0] == 1
+
+
+_WORKSTREAM_TABLES = """
+WITH base AS (
+  SELECT 'litkb.workstreams'::regclass::oid AS rel
+  UNION SELECT k.conrelid FROM pg_constraint k
+         WHERE k.contype = 'f' AND k.confrelid = 'litkb.workstreams'::regclass),
+member AS (
+  SELECT b.rel FROM base b
+   WHERE EXISTS (SELECT 1 FROM pg_attribute a
+                  WHERE a.attrelid = b.rel AND a.attname = 'workstream_id' AND NOT a.attisdropped))
+SELECT rel FROM base
+UNION SELECT k.conrelid FROM pg_constraint k JOIN member m ON k.confrelid = m.rel WHERE k.contype = 'f'
+"""
+
+
+@pg_only
+def test_no_agent_role_holds_a_direct_write_on_a_workstream_table(pg):
+    """0011, for the future: no agent role (and not PUBLIC) holds INSERT, UPDATE, DELETE or TRUNCATE,
+    at table or column level, on a workstream-bearing table, so every write into a workstream stays a
+    token-checked function. Both lists come from the catalog, not from this file:
+
+      tables  a table with a foreign key to litkb.workstreams (and workstreams itself), or with a
+              foreign key to such a table that has a workstream_id column (one hop: use_evidence and
+              use_embeddings hang off use_versions). The extraction tables reference files and
+              extraction_runs, whose created_in_ws is creation provenance on a main-owned identity
+              row (no workstream_id), so the ingest login's INSERTs are outside the rule.
+      roles   every litkb_* role and PUBLIC, except each table's owner (litkb_test owns every table
+              in litkb_test, litkb_owner in litkb) and superusers."""
+    tables = dict(pg.conn.execute(
+        f"SELECT c.oid, c.relname FROM pg_class c WHERE c.oid IN ({_WORKSTREAM_TABLES})").fetchall())
+    names = set(tables.values())
+    # the rule is not vacuous, and it does not swallow the extraction tables
+    assert {"gap_versions", "use_versions", "candidates", "admissions", "acquisition_attempts", "use_evidence",
+            "use_embeddings", "ws_heads", "workstream_tokens", "rebases"} <= names, sorted(names)
+    assert not names & {"blocks", "extraction_runs", "pages", "chunks"}, sorted(names)
+    roles = [r[0] for r in pg.conn.execute(
+        "SELECT rolname FROM pg_roles WHERE rolname LIKE 'litkb%%' AND NOT rolsuper ORDER BY 1").fetchall()]
+    assert "litkb_writer" in roles and "litkb_ingest" in roles, roles
+    offending = pg.conn.execute(
+        """
+        SELECT r.name, c.relname, p.priv, a.attname
+          FROM pg_class c
+          CROSS JOIN unnest(%s::text[] || ARRAY['public']) AS r(name)
+          CROSS JOIN (VALUES ('INSERT'), ('UPDATE'), ('DELETE'), ('TRUNCATE')) AS p(priv)
+          LEFT JOIN pg_attribute a
+            ON a.attrelid = c.oid AND a.attnum > 0 AND NOT a.attisdropped AND p.priv IN ('INSERT', 'UPDATE')
+         WHERE c.oid = ANY (%s::oid[])
+           AND coalesce((SELECT o.oid FROM pg_roles o WHERE o.rolname = r.name), 0) <> c.relowner
+           AND CASE WHEN a.attname IS NULL THEN has_table_privilege(r.name, c.oid, p.priv)
+                    ELSE has_column_privilege(r.name, c.oid, a.attnum, p.priv) END
+         ORDER BY 1, 2, 3, 4
+        """, (roles, list(tables))).fetchall()
+    assert offending == [], f"direct writes on workstream-bearing tables (role, table, privilege, column): {offending}"

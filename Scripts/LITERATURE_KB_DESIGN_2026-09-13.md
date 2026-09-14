@@ -256,15 +256,16 @@ honest mistake, not a forged identity (§15.13).
 **Check 5 — every reference points at something real.** Enforced by the database: foreign keys,
 the unique normalised identifiers, unique sha256, enum checks on every status column, a regex check
 on `works.key`, `change_reason` and `based_on_version_id` required for version ≥ 2, `version_no`
-unique per entity. The agent roles can INSERT but not UPDATE/DELETE version tables; only the write
-and promotion functions move pointers or change `state`.
+unique per entity. No agent role holds INSERT, UPDATE or DELETE on a version table: versions are
+written only by the write, rebase and admission functions, and only the write and promotion
+functions move pointers or change `state`.
 
 ### 4.7 Roles
 
 | Role | Can | Used by |
 |---|---|---|
 | `litkb_reader` | SELECT | the MCP query tools; exports |
-| `litkb_writer` | INSERT into proposals, candidates, admissions, attempts; EXECUTE the write functions, each of which takes the named workstream's token (§5); no column privilege on `quote_verified` or any `state`; **no** INSERT on extraction tables and no EXECUTE on `set_current_run` (tested) | agents, acquisition |
+| `litkb_writer` | SELECT; EXECUTE the write functions — `write_proposal`, `write_fact`, `add_evidence`, `add_candidate`, `record_acquisition_attempt`, `add_use_embedding`, `abandon_workstream` — each of which takes the named workstream's token (§5), and `open_workstream`. **No** direct INSERT, UPDATE or DELETE on any table whose rows belong to a workstream (version tables, candidates, admissions, attempts, evidence, use embeddings; a catalog test fails if any agent role gains one); no INSERT on extraction tables and no EXECUTE on `set_current_run` (tested) | agents, acquisition |
 | `litkb_ingest` | INSERT on the extraction tables (`extraction_runs`, `file_checks`, `pages`, `blocks`, `tables`, `figures`, `equations`, `references`, `citation_mentions`, `chunks`, `embeddings`); EXECUTE `set_current_run()`; SELECT. No gaps, uses, evidence or workstreams (tested) | the ingest tool only (§7, §11) |
 | `litkb_promoter` | EXECUTE `promote_prepare()`, `promote_commit()`, `promote_abandon()`, `promote_rebase()`; reader and writer hold none of these (tested) | the promote tool only (§5, §15.7) |
 | `litkb_test` | CONNECT on `litkb_test`; the server refuses it on `litkb` (CONNECT revoked from PUBLIC there). It can also open Postgres's empty system databases, which grant CONNECT to PUBLIC; the property that counts is that `litkb` refuses it | the test suite (§9) |
@@ -290,7 +291,10 @@ folder's inherited ACL is left as it is: an accepted risk on a one-user laptop (
 A **workstream token** is not a login. `open_workstream()` returns it once; the database stores only
 its sha256, in `workstream_tokens`, which no agent role can read. It stops a session writing into
 another session's workstream by mistake; it does not stop a process that reads another worktree's
-token file.
+token file. The token is only a lock if nothing goes round it, so no agent role holds a direct write
+on a workstream-bearing table: one with a foreign key to `workstreams`, or with a foreign key to a
+table that has a `workstream_id` column (migration 0011; `qc/test_litkb_p1.py` builds that table list
+from the catalog). Admission rows have no writer path until P2's token-checked `admit`.
 
 ---
 
@@ -306,9 +310,10 @@ git to confirm that Kam has merged.
    function that names a workstream (`write_fact`, `write_proposal`, `add_evidence`,
    `abandon_workstream`) takes the token and refuses (42501, inside the SECURITY DEFINER function)
    one that does not hash to that workstream's, so a session cannot write into another session's
-   workstream by mistake. The promotion functions take no token: the promoter acts on every
-   workstream. Direct column INSERTs that carry a `workstream_id` (proposal version rows,
-   candidates, admissions, attempts) are not token-checked; they move no pointer.
+   workstream by mistake. The same holds for `add_candidate`, `record_acquisition_attempt` and
+   `add_use_embedding`. The promotion functions take no token: the promoter acts on every
+   workstream. There is no way round the token: the writer holds no direct INSERT on any table whose
+   rows belong to a workstream (§4.7).
 2. **Work.** Agents admit works and files (facts, visible to all once admitted, §4.6), and record
    gaps, uses and evidence as `proposed` versions (visible through their workstream's `ws_heads`).
 3. **Prepare, on the branch.** `litkb promote prepare --ws <slug>`:
@@ -460,7 +465,9 @@ adapter's page offset or y-flip is deliberately removed.
   - query: `search`, `get_work`, `get_file_blocks`, `get_use_history`, `list_gaps`, `citations_of`,
     `cited_by`, `missing_citations(gap)`;
   - write (writer role, workstream and its token required, §5): `open_workstream`, `add_candidate`, `admit`,
-    `request_acquisition`, `record_use_version`, `verify_quote`;
+    `request_acquisition`, `record_use_version`, `verify_quote`. Each wraps a token-checked database
+    function; the writer role has no direct INSERT on any table a workstream owns (§4.7), so a tool
+    cannot write round the token;
   - `approve`, `promote prepare` and `promote commit` are not exposed to agents, and neither is
     `ingest`: the MCP server never holds the promoter or ingest credential (§4.7).
 - **Credentials:** owner, reader, writer and test logins in the shared pgpass file; the promoter and

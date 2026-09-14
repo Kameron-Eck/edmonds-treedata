@@ -297,8 +297,12 @@ decisions:
       it, with every copied column checked; the two permission gaps close before P2 — each
       workstream gets a secret token its session must present, and a separate ingest role
       owns extraction runs and set_current_run; the secrets folder ACL stays as it is
-      (accepted risk on a one-user laptop). Still open:
-      §15.9–15.11 before P4/P5.
+      (accepted risk on a one-user laptop). After P1 acceptance (Kam, same day): all
+      literature work runs LOCALLY on this laptop, CPU first, optimised as needed; no Colab
+      pass, so §15.4 and §15.10 are moot for this workstream and §15.11 is answered (no PDFs go
+      to Drive). §15.9: GROBID runs locally, which needs WSL2 or Docker (setup pending). The
+      nightly pg_dump is to be built, and so is the ladder check that refuses staged secrets.
+      Standing intent: any literature used by the project flows through this knowledge base.
     why: >-
       P1 builds the version pointers, promotion functions and roles that §15.7 and §15.13
       constrain; P2's admission check needs the §15.15 year rule; §15.12 decides whether

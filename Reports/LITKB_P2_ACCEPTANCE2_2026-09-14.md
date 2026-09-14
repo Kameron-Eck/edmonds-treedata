@@ -15,7 +15,9 @@ reported by the author of the fixes is used as evidence.
 - **E3f survived.** E3 (the NUL-safe jsonb fix) is enforced by `textnorm.jsonb_safe` called from **two** `_jsonb`
   helpers. Removing it from `acquire/run.py` fails the set. Removing it from `admit/front.py` — the helper that carries a
   file's PDF metadata into `litkb.admit(...)`, i.e. the `admit --file` path — leaves `380 passed`. The guard is tested on
-  one of its two call sites.
+  one of its two call sites. (The path is read off the source: `front.file_evidence` puts `_binding.pdf_info(p)` into the
+  evidence dict's `pdf_metadata`, and `front.admit()` sends that dict as `_jsonb(file_json)`. The end-to-end admission
+  was not itself run under the mutant.)
 - **E3f is not an equivalent mutant.** Measured on the live server, against the real Bell 1977 shape (`Creator`
   `'Acrobat 3.0 Capture Plug-in'` followed by NULs), on `litkb_test`, read-only:
 
@@ -95,12 +97,12 @@ no USAGE on `litkb_meta`, so that one ran as `litkb_owner` via `connect_admin`).
 
 ## Secrets
 
-`git log -p 63aa5ce..e9f5a88` (2 commits, 68,294 bytes, 709 added lines) was searched in Python for the **actual
+`git log -p 63aa5ce..e9f5a88` (**1** commit — `git rev-list --count` — 68,294 bytes, 709 added lines) was searched in Python for the **actual
 values**; only names and present/absent were printed.
 
 - **Absent, all 8:** the 5 passwords in the shared `pgpass.conf`, the promoter passfile password, the ingest passfile
-  password, the `edge-pre1990` workstream token. The Anna's Archive key (29 characters, `secrets\Anna_key.txt`) is also
-  absent. `D:\tools\annas-mcp\.env` holds no values.
+  password, the `edge-pre1990` workstream token. The Anna's Archive key is also absent. `D:\tools\annas-mcp\.env` holds
+  no values.
 - **Shapes in added lines:** 0 pgpass-shaped lines, 0 64-hex values, 0 `key=` / `token=` / `password=` literals.
 - The three new `qc/testdata/litkb_p2/account_counter*.html` fixtures were read in full: the account id is `XXXXXXX`, the
   invite link is gone, and the secret key appears only as a link (`href="/account/secret_key"`), never as a value.
@@ -112,5 +114,6 @@ values**; only names and present/absent were printed.
 - Final baseline `380 passed, 5 deselected, 1 xfailed`, exit 0; 51/51 fingerprints match.
 - `git status --short` clean; HEAD e9f5a88.
 - `litkb` received no writes. `litkb_test` was used only by the suite and by one read-only `SELECT %s::jsonb`.
-- Nothing under `D:\edmonds-pipeline\Literture\` was read for writing, moved, renamed or deleted; no archive download was
-  made and `LITKB_LIVE` was never set (the 5 deselected tests are the `litkb_live` ones).
+- **`Literture\` unchanged, measured:** a full recursive scan found 529 entries and **0** whose `LastWriteTime` or
+  `CreationTime` is later than this session's first write. Nothing there was moved, renamed or deleted. No archive
+  download was made and `LITKB_LIVE` was never set (the 5 deselected tests are the `litkb_live` ones).

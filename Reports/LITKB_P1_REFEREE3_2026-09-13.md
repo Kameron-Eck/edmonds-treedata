@@ -25,15 +25,23 @@ helpers (`_PG`, `_evidence_world`, `_absent_gap_use`, `_hold_and_rebase`, `_run`
 - Every race held its invariant.
 
 **The guards are weaker than "every guard fires" claims:**
-- **12 of the 15 referee mutations survived the whole test file (116 passed each time).**
+- **12 of the 15 referee mutations survived the whole test file (116 passed each time).** Three of those (Z11,
+  Z13, Z14) are harmless because a second lock still refuses. **Nine survived and opened a real path.**
 - The catalog-driven guard, whose stated purpose is to catch *future* direct writes, misses three shapes:
   auto-updatable views, tables that carry `workstream_id` without a foreign key, and tables two hops away.
   Through one of them (Z8), a writer with no token inserted a forged version into another workstream's use chain.
 - One design gap exists on the unmutated code (F-2): `abandon_workstream` lacks the "no prepared promotion" guard,
   and it strands a chain Kam has merged.
 
-None of this needs to block P2 data entry. F-1 and F-2 should be fixed before P2's first migration adds tables or
-views.
+The guards that exist hold. Two paths on the unmutated code have no guard at all: F-2 above, and F-7, where two
+sessions opening in one directory leave an orphan workstream. None of this needs to block P2 data entry. Fix F-1
+before P2's first migration adds a table or view. Fix F-2 before the first real prepare → merge → commit cycle.
+
+Not independently mutated this round:
+- a column-level grant on a workstream-bearing table (the builder's W12 covers it; Z9 is column-level on an
+  extraction table);
+- a grant through role membership (analytic only, F-1(d));
+- the 0009 trim constraint (referee 2's X7 and the builder's E4a–E4e stand).
 
 ## Defects
 
@@ -46,7 +54,7 @@ views.
 | F-5 | Low | **No role × privilege matrix for extraction tables or for functions.** The catalog guard excludes extraction tables, and the ingest tests are hand lists. | Z9 (writer `UPDATE (text)` on `blocks`): suite passed; on the mutated DB the writer rewrote a block's text and `add_evidence` of that text stored `verified=True`. This is the block-forgery path that 0010 closed for INSERT only. Z10 (ingest EXECUTE on `add_candidate`, `add_use_embedding`): suite passed; ingest with a writer's token → `ok` | Add one catalog test that compares table, column and function privileges per role with the §4.7 table (ingest: INSERT on 11 tables and EXECUTE on `set_current_run` / `norm_identifier`, nothing more; writer: the 8 functions, no write on any table) |
 | F-6 | Low | **E-5's copy is not tested against a superseded run.** The suite's evidence world has one run, so a rebase that drops head evidence whose run is no longer current passes. | Z12 (filter `e.run_id = ff.current_run_id`): suite passed; `evidence_copied` 0. Unmutated reference P6: 1 | A rebase test in which the file's current run moved after the evidence was added (copy count 1, run_id = source) |
 | F-7 | Low | **`litkb.workstream.open_workstream` races with itself.** It checks `path.exists()`, then opens in the database with autocommit, then creates the file with `O_EXCL`. A second caller that passed `exists()` makes a database workstream whose token lands in no file, so no session can write or abandon it. A failed file write leaves the same orphan. | P5: two threads, one directory, ×10 → every round `['FileExistsError', 'ok']`, **10 orphan open workstreams**, 1 file per round | Create the file with `O_EXCL` first. Then open the workstream inside a transaction, write the token, and commit. On failure, roll back and unlink |
-| F-8 | Info | The token is secret only while clients bind it as a parameter. Another `litkb_writer` login reads a same-role session's `pg_stat_activity.query`. | P7b on `litkb`, read-only, with a dummy marker (not a token): inlined literal visible = True; bound parameter visible = False. (On `litkb_test` every session's session_user is `litkb_test`, so nothing was visible there: P7 is inconclusive by construction) | State it in §5 and in the future CLI and MCP: always pass the token as a bound parameter; never as a psql literal |
+| F-8 | Info | The token is secret only while clients bind it as a parameter. Another `litkb_writer` login reads a same-role session's `pg_stat_activity.query`. | P7b on `litkb`, read-only, with a dummy marker (not a token): inlined literal visible = True; bound parameter visible = False. (On `litkb_test` nothing was visible, so P7 is inconclusive by construction. There, after `SET ROLE` the viewer's current_user is `litkb_writer`, but the watched session's backend user is `litkb_test`, and pg_stat_activity shows query text only to a role that has that role's privileges) | State it in §5 and in the future CLI and MCP: always pass the token as a bound parameter; never as a psql literal |
 | F-9 | Info | The shared pgpass file holds `postgres` and `litkb_owner` lines, and `connect()` refuses neither. Both logins are strictly stronger than the promoter and ingest logins that got their own passfiles. This is consistent with Kam's accepted-risk decision, but the "own passfile + refusal" convention is uneven. | This session ran `psql -w -U postgres` with no password prompt (the probes). Line count from referee 2 (5 lines); the file was not read this round | Kam's call. Either move owner (and `postgres` use) to the same pattern, or record that the convention covers only the two tool logins |
 
 ## Referee mutations (whole `qc/test_litkb_p1.py`, `litkb_test` only)

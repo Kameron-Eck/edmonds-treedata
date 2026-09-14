@@ -306,7 +306,10 @@ decisions:
       Design rev 3 follow-ups (Kam, 2026-09-14): §15.9 GROBID runs locally under WSL2 Ubuntu
       (Kam installing the distro); §15.16 local workers keep 20% of RAM and CPU free for Kam's
       own work, with no fixed run window; §15.17 the rule's reach is uses that support a claim
-      in the project, not every mention of a paper.
+      in the project, not every mention of a paper. P3 load (Kam, 2026-09-14): identity comes
+      from the registry record and the verified file (DOI + file); every tracker or manifest
+      field that disagrees with the registry is kept as a flagged discrepancy for later
+      review, nothing dropped; no correction pass on the old tracker before loading.
     why: >-
       P1 builds the version pointers, promotion functions and roles that §15.7 and §15.13
       constrain; P2's admission check needs the §15.15 year rule; §15.12 decides whether

@@ -1,8 +1,11 @@
 # Literature knowledge base — design, architecture and plan
 
-**Status:** DRAFT revision 2 for Kam's approval, 2026-09-13 (revision 1 was refereed; the response
-is §19). Nothing here is built. Every design claim is UNVALIDATED until the phase that tests it has
-run on real data with its kill shown to fire (CLAUDE.md 3.4c).
+**Status:** DRAFT revision 3, 2026-09-13 (revision 1 was refereed; the response is §19; revision 3
+applies Kam's decision that all literature work runs locally, §18). **Built so far:** P1 Foundation
+(migrations 0001–0012, three referee rounds; `Reports/LITKB_P1_REPORT_2026-09-13.md`), the nightly
+`pg_dump` and the staged-secrets ladder rung (`Reports/LITKB_OPS_2026-09-13.md`). Everything else is
+unbuilt, and every design claim beyond P1 is UNVALIDATED until the phase that tests it has run on real
+data with its kill shown to fire (CLAUDE.md 3.4c).
 
 **Evidence marks.** **[F]** = stated, with a URL, in the tool facts report
 `Reports/LITKB_TOOL_FACTS_2026-09-13.md` (§17), and only as strongly as that report states it.
@@ -29,12 +32,14 @@ not a fact.
 | R8 | aa_fetch and paper-search integrated; tooling in the project | "work my anna archive tool and paper search tool into this"; "bring the tooling into the project" |
 | R9 | PDFs keep readable names; the hash lives in metadata; metadata is central | "use readable names and put the hash in the meta data. Metadata will be super important" |
 | R10 | Extraction keeps figures, tables, multi-column order, sources, footnotes, headers, captions | "This is all great information. We should be baking this into the overhaul" |
-| R11 | Bulk pass on Colab now; local runs later when the backlog is small | "we can use colab. I want this to run locally in the future" |
-| R12 | No backup for now (disk) | "We can table a back up for now" |
+| R11 | ~~Bulk pass on Colab now; local runs later~~ **Superseded the same day:** all processing runs locally on this laptop, CPU first, optimised as needed; no Colab pass (decisions.yaml `litkb-p0-foundation`, "After P1 acceptance") | earlier: "we can use colab. I want this to run locally in the future"; now: "I think we should be doing all of this work locally. I think there will be a back log that will take some time to work through on this CPU, but I think we can make it work with some optimization." |
+| R12 | No backup for now (disk) — a nightly dump of the database records was later approved and built (§6) | "We can table a back up for now" |
+| R13 | Every use of literature by the project goes through this knowledge base | "Anytime literature is called upon to aid this project, it must flow through this workstream." |
 
-**Non-goals:** storing PDF bytes in Postgres; a backup system (R12 — but see §15.12 on a small
-database dump); a public or multi-user service; replacing the research reports (briefs and findings
-stay as reviewed documents in git).
+**Non-goals:** storing PDF bytes in Postgres; a backup system for PDFs or derived artifacts (R12; the
+database records alone are dumped nightly, §6); a public or multi-user service; replacing the research
+reports (briefs and findings stay as reviewed documents in git); any cloud compute or upload of the
+corpus (R11).
 
 ---
 
@@ -60,7 +65,7 @@ stay as reviewed documents in git).
    ┌──────────┴─────────────┐  ┌──────┴─────────────────────────────┐     ┌────────────▼──────────┐
    │ extraction artifacts   │  │ paper-search (discover, OA)        │     │ exports: tracker.xlsx │
    │ _derived/<sha256>/…    │  │ resolver (Crossref/S2/arXiv)       │     │ tracker.csv, manifest │
-   │ from Colab or local    │  │ aa_fetch (Anna's Archive), Sci-Hub │     │ promotion reports     │
+   │ local worker pool §12  │  │ aa_fetch (Anna's Archive), Sci-Hub │     │ promotion reports     │
    └──────────▲─────────────┘  └──────┬─────────────────────────────┘     └───────────────────────┘
               │                        │ PDFs (+ .txt extract written at landing)
    ┌──────────┴────────────────────────▼────────────────────────────────────────────────────────┐
@@ -81,17 +86,18 @@ stay as reviewed documents in git).
    `current_version_id` pointer, and it moves only by compare-and-set inside a database function
    (§4.1). The roles agents use cannot UPDATE or DELETE version rows. Not every table is versioned —
    the list is in §4.1.
-4. **The database runs only on this machine.** Colab is stateless compute: it reads PDFs from the
-   Drive lake and writes packed extraction artifacts back; a local ingest step loads them (R11). The
-   same pipeline code runs locally later, versioned.
+4. **Everything runs on this machine.** The database, the PDFs, the extraction workers and the ingest
+   all live on the laptop; no PDF leaves it and no cloud runtime is used (R11, revision 3). Extraction
+   is a resumable, database-backed job queue worked by a local process pool, sized and scheduled so
+   the backlog drains over nights without losing more than one unit of work to a crash (§12).
 
 ---
 
 ## 3. Identifiers (R4)
 
 - **Every row ID is a UUIDv7** — time-ordered, generated by the database or by a client offline
-  (Colab). The installed PostgreSQL 18.6 catalog carries `uuidv7` (found in `share/postgres.bki`,
-  2026-09-13, earlier session); P1 confirms it with a query **[UNCONFIRMED until P1]**.
+  (an extraction worker writing artifacts before ingest). `select uuidv7()` answered on the P1 server
+  (`Reports/LITKB_P1_REPORT_2026-09-13.md`, gate table).
 - **Readable keys alongside, never instead:** `works.key` = the file stem (`Surname_Year_slug`,
   unique). **`works.key` is the one home for the stem** (§4.2): the manifest's `stem` column and the
   tracker's `File stem` column become exports of it, and files carry no stem column of their own.
@@ -158,7 +164,8 @@ ws_heads            workstream_id · <entity> · <entity>_id · version_id   (a 
 | `admissions` | id; candidate_id; route (registry, manual); admitter agent + session; state (admitted, proposed, approved, refused); approver agent + session; approved_at; checks (JSON: every §4.6 check with its inputs and verdict) |
 | `acquisition_attempts` | work or candidate; route (open access, annas, scihub, browser); identifier used; status (ok, not-in-archive, bad-file, binding-failed, partner-404, …); detail; http codes; at; workstream |
 | `promotions` | id; workstream_id; state (prepared, committed, abandoned); prepared_at; branch_head_commit; version_set_hash; report_path; merge_commit; committed_at; counts; conflicts (JSON) |
-| `extraction_runs` | file_id; stage; tool; tool_version; params hash; pipeline_version; host (colab, local); status; artifact_path; metrics (JSON: seconds, pages/s, coverage) |
+| `extraction_runs` | file_id; stage; tool; tool_version; params hash; pipeline_version; host; status (ok, failed); artifact_path; metrics (JSON: seconds, pages/s, peak RSS, coverage). **Built** (`0001_core.sql`): UNIQUE on (file, stage, tool, tool_version, params_hash, pipeline_version); the `host` check still admits `'colab'` as well as `'local'` — harmless, unused after revision 3, and applied migrations are checksum-locked, so narrowing it would be a new migration, not an edit |
+| `extraction_jobs` | **Not built (P4/P5 migration).** The queue of §12: file_id; stage; page_start, page_end (null = whole file); tool; tool_version; params_hash; pipeline_version; state (queued, leased, done, dead); attempts; lease_owner (worker id); lease_expires_at; last_error; artifact_path; artifact_sha256; run_id → extraction_runs; enqueued_at; finished_at. UNIQUE on the run key plus page range. No `workstream_id`: it hangs below `files`, a main-owned identity table, so it sits outside the workstream guard by the rule in §4.7. Written only through SECURITY DEFINER functions (`enqueue_extraction`, `claim_jobs`, `renew_lease`, `finish_job`, `fail_job`) that only `litkb_ingest` may EXECUTE, added to the role-privilege matrix test |
 
 `parent_workstream` (revision 1) is dropped: nothing in R1–R12 asks for nested workstreams, and it
 had no defined effect on either view.
@@ -216,8 +223,9 @@ collide on the unique index; the loser's transaction rolls back and it reads the
 **Check 1 — the study exists.** Before any `works` row:
 - a DOI confirmed on Crossref or DataCite with normalised title ratio ≥ 0.85, first-author surname
   match and year match — the rule in `Scripts/docs/LITERATURE_CONVENTION.md` ("DOI-first rule").
-  The convention requires the year to *match*; revision 1 wrongly said ±1 for online-first. Whether
-  to allow that tolerance is Kam's rule to change (§15.15);
+  The convention requires the year to *match*; revision 1 wrongly said ±1 for online-first. **Kam
+  decided (§15.15):** ±1 year is allowed only when the title and first author both match the registry
+  record; otherwise the year must match exactly. P2 implements it;
 - or an arXiv id confirmed on the arXiv API; or an ISBN confirmed against a registry record;
 - the registry evidence JSON is stored on the identifier version, so the check is auditable later.
 
@@ -238,8 +246,8 @@ the *registry* title, and the registry first-author surname appears there too. T
 ratio and page go into `files.binding`. Search every first-page line, not the first line: the Averkov
 2009 file's extract begins with the journal running header, a copyright line and the author names,
 and its title is the fourth line (`audit_fast.csv` column `extract_head`, 2026-09-13 **[M]**). A file with no text layer on its
-first page cannot pass and is quarantined as `binding-pending` until OCR (P4 onward) or a manual
-admission binds it. Rationale: in revision 1 binding was a later audit, and the manifest shows what
+first page cannot pass and is quarantined as `binding-pending` until OCR (P4 onward) binds it; Kam
+decided there is no manual admission for these files (§15.14). Rationale: in revision 1 binding was a later audit, and the manifest shows what
 that costs — two files sat under wrong DOIs with `verified_against_extract = yes` until an audit
 caught them.
 
@@ -266,10 +274,10 @@ functions move pointers or change `state`.
 |---|---|---|
 | `litkb_reader` | SELECT | the MCP query tools; exports |
 | `litkb_writer` | SELECT; EXECUTE the write functions — `write_proposal`, `write_fact`, `add_evidence`, `add_candidate`, `record_acquisition_attempt`, `add_use_embedding`, `abandon_workstream` — each of which takes the named workstream's token (§5), and `open_workstream`. **No** direct INSERT, UPDATE or DELETE on any table whose rows belong to a workstream (version tables, candidates, admissions, attempts, evidence, use embeddings; a catalog test fails if any agent role gains one); no INSERT on extraction tables and no EXECUTE on `set_current_run` (tested) | agents, acquisition |
-| `litkb_ingest` | INSERT on the extraction tables (`extraction_runs`, `file_checks`, `pages`, `blocks`, `tables`, `figures`, `equations`, `references`, `citation_mentions`, `chunks`, `embeddings`); EXECUTE `set_current_run()`; SELECT. No gaps, uses, evidence or workstreams (tested) | the ingest tool only (§7, §11) |
+| `litkb_ingest` | INSERT on the extraction tables (`extraction_runs`, `file_checks`, `pages`, `blocks`, `tables`, `figures`, `equations`, `references`, `citation_mentions`, `chunks`, `embeddings`); EXECUTE `set_current_run()`; SELECT. No gaps, uses, evidence or workstreams (tested). From P4/P5 also EXECUTE on the `extraction_jobs` functions (§4.3), and nothing else new | the ingest tool and the local extraction workers (§7, §12) |
 | `litkb_promoter` | EXECUTE `promote_prepare()`, `promote_commit()`, `promote_abandon()`, `promote_rebase()`; reader and writer hold none of these (tested) | the promote tool only (§5, §15.7) |
 | `litkb_test` | CONNECT on `litkb_test`; the server refuses it on `litkb` (CONNECT revoked from PUBLIC there). It can also open Postgres's empty system databases, which grant CONNECT to PUBLIC; the property that counts is that `litkb` refuses it | the test suite (§9) |
-| `litkb_owner` | DDL, migrations | migration runner only |
+| `litkb_owner` | DDL, migrations; owns the SECURITY DEFINER functions | the migration runner (`migrate.runner_connect`, through `connect.connect_admin()`, which opens only `postgres` and `litkb_owner` and which the shared `connect()` refuses, F-9) and the nightly `pg_dump` (`litkb.ops.nightly_dump`; its weekly restore check creates and drops its scratch database as the superuser, because the owner has NOCREATEDB; `Reports/LITKB_OPS_2026-09-13.md` §1) |
 
 Credentials are never in the repo. The owner, reader, writer and test logins are lines in the
 libpq pgpass file `%APPDATA%\postgresql\pgpass.conf`, written by `litkb.db.provision` (this section
@@ -378,24 +386,32 @@ git to confirm that Kam has merged.
   orphan them.
 - **Metadata captured per file** at inventory: sha256, md5, bytes, page count, PDF version, info
   dictionary, XMP, producer/creator, encryption flags, per-page text-layer size, fonts summary,
-  scan detection; plus registry metadata on the work and GROBID's header parse — all three kept so
-  disagreements (a wrong DOI, a missing year) are visible.
+  scan detection; plus registry metadata on the work and a header parse from stage 2 (GROBID under
+  §15.9 path A; under path B whatever header output the chosen route gives, or none, leaving two
+  sources) — all kept so disagreements (a wrong DOI, a missing year) are visible.
 - **Disk [M]:** D: had 139 GB free on 2026-09-13 (`df -h /d`). PDFs under `Literture\`: 219 active
   files in `ASPP`, `Labeling`, `Validation`, `other` = 756.5 MB (721.5 MiB); with the 17 in
   `_quarantine\`, 236 files = 807.7 MB (770.3 MiB) (`find -printf %s`, summed). Revision 1's
   "771 MB" was the quarantine-inclusive MiB figure presented as the active corpus. Page images are
   the only large derived item; they are rendered for scans and disputed pages only. Figure crops are
   small.
-- **Backup:** tabled (R12). `files.sha256` lets any future copy be verified. The database itself
-  holds things no file can regenerate (use histories, approvals, promotions); whether a small
-  `pg_dump` is in scope is §15.12.
+- **Backup of PDFs and derived artifacts:** tabled (R12). `files.sha256` lets any future copy be
+  verified. **All of it stays on this laptop:** no PDF goes to Drive (§15.11 answered).
+- **Database dump — built** (§15.12 decided; `Reports/LITKB_OPS_2026-09-13.md` §1 is the home for
+  the detail). `litkb.ops.nightly_dump` runs `pg_dump -Fc` of `litkb` as `litkb_owner` into
+  `D:\edmonds-pipeline\pgdump\litkb\`, writes `.partial`, verifies it (`pg_restore --list`, then a
+  full read), records its sha256 in `manifest.json`, keeps the newest 14, and weekly restores into a
+  scratch database and compares exact row counts per table. Scheduled task `litkb-nightly-dump`,
+  02:30 daily, "run only when logged on" (S4U registration was refused without elevation). **Its
+  working directory is this worktree:** after the merge the task is re-registered from the merged
+  tree (`--install-task --logon Interactive`). Records only: no PDFs, no derived artifacts.
 
 ---
 
 ## 7. Extraction pipeline (R10)
 
-Each stage is an idempotent step keyed by (sha256, stage, tool version, params). Stages write raw
-artifacts first, then an ingest loads them. Loading is owned by the `litkb_ingest` login (§4.7): it
+Each stage is an idempotent step keyed by (sha256, stage, tool version, params). Stages run in the
+local worker pool (§12), write raw artifacts first, then an ingest loads them. Loading is owned by the `litkb_ingest` login (§4.7): it
 inserts the extraction runs and derived text tables and moves each file's `current_run_id` with
 `set_current_run()`; agents' writer connections can do neither.
 
@@ -403,7 +419,7 @@ inserts the extraction runs and derived text tables and moves each file's `curre
 |---|---|---|---|
 | 0 Inventory | hash, page count, text-layer probe per page, PDF metadata, scan routing | **pypdfium2** (Apache-2.0/BSD-3 **[F]**; PyMuPDF is AGPL or commercial **[F]**) | `files`, `pages` |
 | 1 Native layer | words with positions, font sizes and weights, links | same (per-character box API name **[UNCONFIRMED]**) | raw JSON |
-| 2 Scholarly structure | header metadata, section tree, paragraphs, footnotes, figure and table captions with coordinates, parsed references, in-text citations linked to references | **GROBID 0.9.1**, CRF image first (the deep-learning image adds 2–4 F1 on reference parsing at 2–3× the time **[F]**). JDK 21 or higher **[F]**; its maintainers "cannot ensure currently support for Windows", Docker is the documented alternative **[F]** — so here it runs on Colab (Linux), or locally only under WSL2/Docker (§15.9). A Colab recipe is **[UNCONFIRMED]**: P4 tests it | TEI XML with `teiCoordinates` |
+| 2 Scholarly structure | header metadata, section tree, paragraphs, footnotes, figure and table captions with coordinates, parsed references, in-text citations linked to references | **Two paths, Kam's choice (§15.9).** **Path A — GROBID 0.9.1**, CRF image (the deep-learning image adds 2–4 F1 on reference parsing at 2–3× the time; GPU through a container on Windows is not supported **[F]**, so the CPU-only CRF image is the one that fits). JDK 21 or higher **[F]**; its maintainers "cannot ensure currently support for Windows", Docker is the documented alternative **[F]**. On this laptop that means WSL2 or Docker, and firmware virtualization reads disabled **[M]** (§12), so Kam first enables VT-x in the BIOS. **Path B — no GROBID.** Docling's stated features cover layout, reading order, tables and formulas **[F]**, not reference parsing or citation linking. References would come from a reference-string parser not yet in the tool facts report — a candidate is named and fact-checked into that report before P4 **[UNCONFIRMED]** — and in-text citation → reference links from project code. Path B loses GROBID's header parse and its citation-context linking unless those are rebuilt | A: TEI XML with `teiCoordinates`; B: parser JSON plus Docling items |
 | 3 Layout, tables, OCR | reading order across 2–3 columns, table cells, figure crops, OCR for image-only scans | **Docling** (MIT, Windows supported **[F]**); OCR engine chosen in P4 (engine list **[UNCONFIRMED]**) | DoclingDocument JSON |
 | 4 Equations | LaTeX per equation region | **Docling formula enrichment** (CodeFormula, LaTeX **[F]**) first; **MinerU 3.4** (LaTeX plus a 0–1000 box and page index per equation **[F]**) as the comparison in P4. Nougat excluded: weights CC-BY-NC **[F]**, and its last commits are 2025-02-21 and 2023-10-04 **[F]** (that it is unmaintained is our inference from those dates). Marker/Surya only if both fail (weights free only for research, personal use and startups under $5M **[F]**; served through vLLM or llama.cpp **[F]**) | JSON |
 | 5 Reconciliation | map every tool's boxes to the canonical frame (§7.1); align regions by page and box overlap; choose canonical text per region; record disagreements | project code | `blocks` (canonical flag), `tables`, `figures`, `equations` |
@@ -419,7 +435,8 @@ of the page as displayed (rotation applied), box = (x0, y0, x1, y1). Each tool g
 
 | Tool | What it emits | Adapter |
 |---|---|---|
-| GROBID | `"page,x,y,w,h"`, page 1-indexed, PDF units, origin upper-left **[F]** | x1 = x + w, y1 = y + h |
+| GROBID (path A only) | `"page,x,y,w,h"`, page 1-indexed, PDF units, origin upper-left **[F]** | x1 = x + w, y1 = y + h |
+| Path B reference parser | not known until it is chosen **[UNCONFIRMED]**; it may emit no boxes, in which case references are anchored through the Docling block they were read from | written in P4 |
 | MinerU | `bbox` normalised 0–1000, `page_idx` 0-based **[F]** | scale by page width/height ÷ 1000; page + 1 |
 | pypdfium2 | bounded text takes (left, bottom, right, top) **[F]**, implying a bottom-left origin (our inference **[UNCONFIRMED]**) | y flipped against page height; rotation applied |
 | Docling | "bounding boxes for all items, if available" **[F]**; field names and origin **[UNCONFIRMED]** | written in P4 after reading its output on a real page |
@@ -432,7 +449,9 @@ adapter's page offset or y-flip is deliberately removed.
 **Reconciliation rules (stage 5), initial, to be tuned in P4 on measured accuracy:**
 - born-digital text: the native layer's characters win; the layout model supplies order and type;
 - reading order and table structure: the layout model wins;
-- sections, footnotes, captions, references, citation links: GROBID wins;
+- sections, footnotes, captions, references, citation links: GROBID wins (path A); under path B the
+  layout model wins for sections, footnotes and captions, the chosen parser for references, and
+  project code links citations;
 - inside equation regions: the math model's LaTeX, with the native text kept beside it;
 - scans: OCR text, with confidence stored; any region where tools disagree beyond a threshold is
   marked `disputed` for stage 8;
@@ -470,7 +489,10 @@ adapter's page offset or y-flip is deliberately removed.
   `import litkb` loads none of them, so `qc/check.py`'s compile and test sweep never pulls torch or
   Docling.
 - **CLI:** `py -3.12 -m litkb <command>` — ws open/abandon, discover, admit, approve, acquire,
-  extract, ingest, audit, search, promote prepare/commit, export.
+  extract, ingest, audit, search, promote prepare/commit, export; and, for the local worker pool (§12),
+  queue status, worker start/pause. Built so far: the library calls `litkb.workstream.open_workstream`,
+  `litkb.promote`, `litkb.ingest.connect`, the `litkb.db.migrate` / `litkb.db.provision` modules and
+  `litkb.ops.nightly_dump`; no `litkb` CLI entry point exists yet (P1 report).
 - **MCP server** (`litkb.mcp`), read-only by default:
   - query: `search`, `get_work`, `get_file_blocks`, `get_use_history`, `list_gaps`, `citations_of`,
     `cited_by`, `missing_citations(gap)`;
@@ -497,13 +519,35 @@ adapter's page offset or y-flip is deliberately removed.
   that need the server carry a `requires_litkb_pg` marker and skip when the server or role is absent,
   so the ladder still runs on a machine without Postgres; the skip count is printed, never silent.
 
+### 9.1 Access layer: how literature flows through the knowledge base (R13)
+
+Kam's rule is that any literature the project calls on flows through this workstream. A rule by itself
+does not make that happen. An agent that has read the rule still reaches for a web search or the
+paper-search tool out of habit, and the database never hears of the paper. So R13 is carried by five
+pieces, each with one job. Each piece lands only once the thing it points at exists: a rule or a hook
+that names a tool not yet built blocks work and offers no path.
+
+| Piece | Job | Home | Phase |
+|---|---|---|---|
+| **CLAUDE.md rule** | Policy only, stated as a pointer: literature used by the project is found, admitted, read and cited through litkb, and the procedure is the litkb skill. It adds one roadmap row to CLAUDE.md §2.1. It restates no procedure, because CLAUDE.md is "a ROADMAP and a RULEBOOK … deliberately NOT a facts store" and each fact has one home (§3.3) | `Scripts/CLAUDE.md` | **Interim form at P3**, because P3 makes the tracker and manifest exports, and from then on hand-editing them is wrong. The interim rule says: never hand-edit them, admit through the litkb CLI. It is cheap and needed at that moment. **Final form at P8**, naming the skill and the MCP tools |
+| **Skill** | The procedure. Search the KB first (`search`, `get_use_history`), open a workstream, then discover → admit → acquire → extract → record a use with a verified quote → promote prepare. It says which tool serves each step and what is never done (cite a work that is not admitted, fetch a PDF outside a workstream). It points at the hunt protocol in `LITERATURE_CONVENTION.md` and does not copy it | a project skill folder; the exact location is settled in P8 (no `.claude/` directory exists in the repository today: `ls -a`, 2026-09-13 **[M]**) | P8 |
+| **litkb MCP tools** | The agents' only path to query and write (§9 above); they wrap the token-checked database functions | `litkb.mcp` | P8 |
+| **Hooks** | Guardrails, not enforcement: the database checks (§4.6, §4.7) remain the enforcement. A pre-tool hook on the routes that reach literature outside litkb (the paper-search tools, the Anna's Archive tools, Sci-Hub fetches) flags or refuses a call made in a worktree with no `.litkb-workstream`, and points at the skill. The exact tool matchers are read from the installed tool names in P8 **[UNCONFIRMED]** | project settings file, location settled in P8 | **After P8's gate passes.** Before the MCP tools exist, a blocking hook would leave agents no route to literature at all |
+| **Librarian subagent** | Answers "what does the literature say about X" from the KB only. It returns work key, page, box, quote, and whether a use already exists. When a caller's workstream is open, it records candidates and uses in that workstream with its token. It holds no promoter or ingest credential. Its model follows the project's subagent routing rule, which is not restated here | a project agent definition, location settled in P8 | P8 |
+
+**None of this reaches other sessions until Kam merges.** The CLAUDE.md rule, the skill, the agent
+definition and the hook settings are files in this repository. They reach `main`, and with it every
+other session, only through Kam's merge of this branch (CLAUDE.md §3.1: `main` is Kam's). Until then
+they bind only sessions working in this worktree. Hook settings change every session's tool calls once
+merged, so the P8 promotion report lists them for Kam's review.
+
 ---
 
 ## 10. Tool integration (R8)
 
 | Existing tool | Becomes | Change |
 |---|---|---|
-| paper-search (21 sources, OA download) | `litkb.acquire.discover` and the open-access route | Called as a library from its installed package; results → `candidates`; free CORE/DOAJ keys and an Unpaywall email to be set by Kam |
+| paper-search (21 sources, OA download) | `litkb.acquire.discover` and the open-access route | Called as a library from its installed package; results → `candidates`. Unpaywall uses Kam's email, held only in the untracked `D:\edmonds-pipeline\secrets\paper_search.env`; optional source keys stay blank until Kam asks (§15.5, decided) |
 | aa_fetch resolver | admission checks 1–3 | Moves into `litkb.admit`; evidence stored on identifier versions |
 | aa_fetch archive route and gates | `litkb.acquire.annas` | Writes `files` and `acquisition_attempts` instead of `manifest.csv`; the three gates, JSTOR evidence rule, retry ladder and quarantine behaviour kept; its test file moves with it (`D:\tools\annas-mcp\test_aa_fetch.py`: 80 `def test_` definitions, 2026-09-13 **[M]**, `grep -c`; the collected count may differ) |
 | aa_fetch `--audit-fast` | `litkb audit` | Writes `file_checks` |
@@ -511,70 +555,209 @@ adapter's page offset or y-flip is deliberately removed.
 | `manifest.csv`, `Literature_Tracker.xlsx`, `literature_tracker.csv` | exports | Generated by `litkb export`; never edited by hand |
 | `Scripts/docs/LITERATURE_CONVENTION.md` | the operating manual | Its tracker section says the xlsx is "human-edited" and "authoritative"; that becomes false the moment exports exist, so it is rewritten **in P3**, in the same commit that makes the tracker an export. The hunt protocol is added in P8 |
 
-Secrets stay outside the repo; a check in the ladder fails if a key file, `.env` or `pgpass` is staged.
+Secrets stay outside the repo. **The staged-secrets check is built** (`Reports/LITKB_OPS_2026-09-13.md`
+§2 is the home for its rules and kills): `Scripts/qc/secrets_check.py` reads git's index, so one pass
+covers tracked and staged files, and refuses secrets file names (`*.pgpass`, `pgpass.conf`, `.env`,
+`*.env`, `.litkb-workstream`, anything under `secrets/`), pgpass-shaped lines and named 64-hex tokens.
+It is rung 0 of `qc/check.py` and a step in `.github/workflows/ci.yml`. A pre-commit hook is **not**
+installed: `.git/hooks` is shared by every worktree of the repository, so installing it would change
+other sessions' commits.
 
 ---
 
-## 11. Colab bulk pass (R11)
+## 11. Colab (retired for this workstream)
 
-- **Why Colab:** the active corpus is 219 PDFs, 4,655 pages (`pdfinfo` over every active PDF,
-  2026-09-13 **[M]**; the largest is the 688-page Schneider 2008 book). Kam expects ~7,400 pages with
-  the backlog (his estimate). CPU runtimes cost 0 compute units (`Scripts/pipeline/colab_rates.csv`,
-  PUBLISHED tier) and run 3–4 in parallel (memory `cpu-runtimes-parallel-free`).
-- **Account:** the project account is on **Colab Pro**, not the free tier (`colab_rates.csv`,
-  screen-read 2026-09-01). The CPU runtime size a Pro account gets is **[UNCONFIRMED]**; the canary
-  measures it.
-- **Shape:** stateless shards. The PDFs would be uploaded to the Drive lake once
-  (`treedata/literature_store/`, ~0.8 GB) — but part of the corpus came from shadow libraries, so
-  putting it on Drive is Kam's decision (§15.11). How much is not known: `Validation\manifest.csv`
-  records `unknown (pre-manifest)` for 196 of 207 rows; of the 11 with a route, 6 are Anna's Archive,
-  2 a Sci-Hub mirror, 2 arXiv, 1 Copernicus **[M]**. Files are packed into shards balanced by page count. Each
-  shard runs on one CPU runtime through `pipeline/vm_ops.py` (the front door: one CLI call at a time,
-  bootstrap verification, self-stop watchdog). Each VM installs the pinned toolchain, processes its
-  shard, and writes **one packed archive per shard** (per-file artifact folders inside it, keyed by
-  sha256) plus a done marker holding each artifact's hash. Packed, because Drive throughput depends on
-  size class and stalls in bursts (memory `drive-throughput-and-claims-drift`): thousands of small
-  per-file writes are the slow case.
-- **Writing results:** through the project's existing verified writer path to the lake, with
-  server-side verification using independent credentials (memory `verify-drive-path-never-idle`:
-  a read-back through the writing mount proves nothing). The exact writer path is taken from
-  `gen_vm_bootstrap.py` as it stands at P5, not assumed here.
-- **Ingest:** local. `litkb ingest --from <lake path>` checks each done marker's hashes, unpacks,
-  loads artifacts into Postgres, records `extraction_runs` with host `colab`, and moves each file's
-  `current_run_id`, connected as `litkb_ingest` (§4.7).
-- **Canary first:** one shard of the P4 hard papers, measuring seconds per page per stage and the
-  runtime's CPU and RAM; the full-run wall-clock is projected from that measurement, not from
-  published numbers.
-- **GPU is optional and gated:** if the canary shows the layout or math stage is too slow on CPU, a
-  GPU runtime is proposed to Kam with tier, count, expected wall-clock and cost (CLAUDE.md 3.4).
-- **Reference speeds, not projections:** Docling reports 1.2–1.5 pages/s CPU-only and 3.1–7.9 on GPU,
-  on its vendor's hosts **[F]**; GROBID reports 10.6 PDFs/s on one 16-CPU, 32 GB machine **[F]**.
-- **MinerU needs at least 16 GB RAM [F].** Whether a Colab CPU runtime on this account has that is
-  **[UNCONFIRMED]** (secondary sources put the free tier at ~13 GB; the account is Pro). If P4 picks
-  MinerU and the canary shows too little RAM, it runs on the laptop (63.8 GB **[M]**) or a GPU runtime.
-- **Colab terms:** the Colab FAQ says the free tier disallows "bypassing the notebook UI" and
-  "distributed computing workers" **[F]**. What the Pro terms say about headless multi-VM work is
-  **[UNCONFIRMED]**. This is not a question about this pass: the project already drives Colab
-  headless through `vm_ops.py` and fans CPU runtimes out, so the question is project-wide (§15.10).
+Revision 2 planned a Colab CPU bulk pass here, with the corpus uploaded to the Drive lake, packed shard
+archives and a local ingest. **Kam rejected it on 2026-09-13, after P1 acceptance:** all literature
+work runs locally on this laptop, CPU first, optimised as needed (decisions.yaml `litkb-p0-foundation`;
+R11). No PDF goes to Drive and no runtime is launched for literature. §15.4 and §15.10 are moot for
+this workstream and §15.11 is answered. The revision-2 text is in git history. The processing plan is
+§12.
 
 ---
 
-## 12. Local incremental runs (R11)
+## 12. Local processing plan (R11)
 
-- The same package, `--host local`. New files from acquisition enter an `extraction_queue`; a worker
-  processes them stage by stage.
-- **Parity rule:** a file processed on Colab and locally with the same pipeline version must give the
-  same canonical blocks; P9 tests this on a sample.
-- **This laptop [M] (2026-09-13, earlier session):** Intel i7-9850H, 12 logical cores; 63.8 GB RAM;
-  Quadro T2000 4 GB; Java 23; no Docker; WSL version 2 set as default but the WSL feature not enabled;
-  PostgreSQL 17 and 18 installed.
-- **What the sources say runs on Windows:** pypdfium2 (Windows wheels **[F]**), Docling (Windows
-  supported **[F]**; 4 GB VRAM sufficiency **[UNCONFIRMED]**), MinerU's pipeline backend (Windows,
-  CPU or ≥4 GB VRAM **[F]**). The embedding models on this laptop are **[UNCONFIRMED]** (the facts
-  report does not cover it); P7 measures it.
-- **What does not:** GROBID ("We cannot ensure currently support for Windows"; JDK 21 or higher
-  **[F]**; Java 23 specifically **[UNCONFIRMED]**) — locally it needs WSL2 enabled or Docker Desktop
-  (§15.9). Until then stage 2 runs on Colab.
+Everything in this section is design. None of it is built, and no rate, pool size or duration here is
+measured. P4 measures, P5 runs (§14).
+
+### 12.1 The machine and what it already carries
+
+- **Hardware [M]:** Intel i7-9850H, 6 physical and 12 logical cores (`Win32_Processor`
+  `NumberOfCores` 6, `NumberOfLogicalProcessors` 12); 63.8 GB RAM (`Win32_ComputerSystem`); Quadro
+  T2000 4 GB (earlier session, 2026-09-13); Java 23; PostgreSQL 17 and 18, with `litkb` on 18, port
+  5433.
+- **Virtualization [M], 2026-09-13:** `Win32_Processor.VirtualizationFirmwareEnabled = False`;
+  `wsl.exe -l -v` prints "Windows Subsystem for Linux has no installed distributions"; `Get-Command
+  docker` finds nothing. So GROBID (§7 stage 2, path A) needs Kam to enable VT-x in the BIOS and then
+  set up WSL2 or Docker (§15.9).
+- **What runs natively on Windows [F]:** pypdfium2 (Windows wheels), Docling ("Works on macOS, Linux
+  and Windows"), MinerU's pipeline backend (Windows, Python 3.10–3.12). GROBID does not: its
+  maintainers "cannot ensure currently support for Windows". Embedding models on this laptop are not
+  covered by the facts report **[UNCONFIRMED]**; P7 measures them.
+- **Shared machine.** The same laptop runs Claude Code sessions, the project's local QC, raster
+  diagnostics and the ladder, and the T2000 is the project's local device for that work (CLAUDE.md
+  §5). The worker pool is a guest on it: §12.7 reserves for that work, §12.9 schedules around it.
+
+### 12.2 The backlog
+
+- **Active corpus [M]:** 219 PDFs, 4,655 pages (`pdfinfo` over every active PDF); the largest is the
+  688-page Schneider 2008 book. Kam expects about 7,400 pages with the backlog (his estimate, not
+  measured).
+- **Scans.** The revision-3 brief gives 7 image-only scans; its criterion and command are not
+  recorded. This revision's probe (`pdftotext` over the 219 active PDFs, 2026-09-13) does not
+  reproduce 7 under either criterion it tried:
+  - 1 file has no extractable text at all (Ogata 1998);
+  - 4 more hold 130–142 characters across 11–22 pages (Anderson 1957, Hudson 1978, Hwang 1982,
+    Politis 1994). That is a text layer on at most a cover sheet (inferred);
+  - the book has no text on its first page.
+
+  The count is **[UNCONFIRMED]** until stage 0's per-page text-layer probe sets it. OCR cost depends
+  on it.
+
+### 12.3 A resumable job queue in the database
+
+The queue is the `extraction_jobs` table (§4.3), written only through ingest-role functions.
+
+- **Enqueue by sweep.** A sweep running as `litkb_ingest` finds every active file that lacks a done job
+  for each stage of the current pipeline version, and enqueues the missing ones. The unique key makes a
+  repeated sweep a no-op. New acquisitions need no enqueue call from agents, so the writer role gains
+  no extraction right (§4.7). Migration (P3) is picked up by the same sweep.
+- **Dependencies.** A stage's job becomes claimable only when the jobs it reads from are done (stage 5
+  needs 0–4, stage 7 needs 5).
+- **Claim with a lease.** `claim_jobs(worker, n, lease)` takes queued jobs, or leased jobs whose lease
+  has expired, with `FOR UPDATE SKIP LOCKED`. Two workers can never lease the same job, and a dead
+  worker's jobs return to the pool when the lease runs out. While a tool runs, a heartbeat renews the
+  lease. The lease length is set from P4's longest measured job **[UNCONFIRMED until P4]**. The
+  `extraction_runs` unique key is the second lock if two workers ever do the same work.
+- **Order.** Short files first, so the number of fully usable files rises fastest; the book last. This
+  is a design choice.
+- **Failure.** `fail_job` records the error and returns the job to the queue. After a set number of
+  attempts (set in P4) the job is `dead`, and only then is an `extraction_runs` row with status
+  `failed` inserted. Runs are unique on their key, so a retry after a recorded failure needs a new
+  params hash or pipeline version. That is intended: a deterministic failure repeated unchanged fails
+  again.
+- **Visibility.** `py -3.12 -m litkb queue status` gives counts by stage and state, and pages
+  remaining.
+
+### 12.4 Idempotent per-file stages
+
+- **Skip what is done.** A claimed job whose run key already has an `ok` run is marked done without
+  running the tool. An artifact already on disk whose sha256 equals the one recorded on the job is not
+  produced again.
+- **Artifacts.** Output goes to `_derived\<sha256>\<stage>\<tool>@<version>_<params>\` (§6). It is
+  written as `.partial`, fsynced, then renamed, which is the pattern `litkb.ops.nightly_dump` already
+  uses. Its sha256 is recorded on the job.
+- **Ingest is one transaction per (file, stage):** the run row, its text rows, `set_current_run`, and
+  `finish_job` commit together or not at all. A killed worker therefore leaves either a finished unit
+  or no rows, and a re-run writes the same rows once.
+- **No deletes.** litkb holds no delete permission in `Literture\` (§6). A leftover `.partial` is
+  overwritten by the retry at the same path; strays are reported, never deleted.
+
+### 12.5 Checkpointing: a crash or reboot loses at most one file's work
+
+- **The unit of loss is one job.** For almost every file a job is one file at one stage, so a crash, a
+  Windows update reboot or a killed process loses at most the file in flight at that stage.
+- **Long documents break that bound, so they are split.** The 688-page book, and any file above a page
+  threshold set in P4, becomes page-range jobs, each checkpointed as its own artifact. The (file, stage)
+  run and its text rows are inserted only when every range is done, in the one transaction that
+  assembles the parts. Page numbers are offset back to the whole document before the §7.1 adapters
+  run. For those files the loss bound is one page range. Whether each tool takes a page range directly,
+  or needs a split PDF, and whether splitting changes coordinates, is **[UNCONFIRMED until P4]**.
+- **On restart** nothing is replayed by hand. Expired leases return, done jobs are skipped (§12.4), and
+  the worker continues.
+
+### 12.6 Page-level batching
+
+- **Batches, not one call per page,** where the tool supports it. Docling documents layout and OCR batch
+  sizes, recommending 64 over a default of 4 **[F]**. Each stage's batch size is chosen in P4 against
+  measured peak memory, not taken from the vendor.
+- **Stages 0–1** (pypdfium2) are per page and light. Page images are rendered only for scans and
+  disputed pages (§6).
+
+### 12.7 Process pool sizing (12 logical cores against 63.8 GB)
+
+- **Sizing rule, per stage:** workers = min(⌊core budget ÷ threads per worker⌋, ⌊RAM budget ÷ measured
+  peak RSS per worker⌋).
+  - The core budget is 12 logical cores minus a reserve for Postgres, Claude Code sessions and Kam's
+    own use.
+  - The RAM budget is 63.8 GB minus a reserve.
+  - Both reserves depend on when the pool runs (§15.16). No number is fixed here.
+- **Separate pools by weight.** Light stages (0, 1, 5, 6) fan out wide; heavy layout, OCR and math
+  models run narrow. Each pool is sized by its own measured peak.
+- **No oversubscription.** Each worker's own thread pools (torch, ONNX, BLAS) are capped so that
+  workers × threads stays within the core budget. Which settings each tool honours is **[UNCONFIRMED
+  until P4]**.
+- **Measure at more than one pool size.** 12 logical cores are 6 physical **[M]**, and the gain from
+  the second thread on each core is unknown, so P4 records the knee rather than assuming linear
+  scaling.
+- **The only sourced per-process memory figures [F]:** MinerU needs at least 16 GB RAM, 32 GB
+  recommended; GROBID needs 4 GB for full structuring and 6–8 GB for batch (path A, counted against
+  the budget inside WSL2 or Docker). By arithmetic on those figures alone, at most three MinerU workers
+  fit in 63.8 GB before any reserve. Docling's memory, and every other figure, is **[UNCONFIRMED]**
+  until P4 measures peak RSS.
+
+### 12.8 The T2000 4 GB GPU: where it may help (all UNCONFIRMED until measured)
+
+A stage uses the GPU only if the tool supports it, P4 measures it running within 4 GB on the hard
+papers, and it is faster than that stage's CPU pool. Only one GPU worker runs at a time. The card is the
+project's local QC device too, so GPU stages run only in the window of §15.16.
+
+| Stage | Tool support | Fit on 4 GB |
+|---|---|---|
+| 3 Layout, tables, OCR (Docling) | GPU speeds published **[F]** | VRAM need "not stated" **[F]** → **[UNCONFIRMED]** |
+| 4 Equations (MinerU pipeline backend) | "min 4 GB VRAM" **[F]** | exactly the card's size, no headroom → **[UNCONFIRMED]**; hybrid and VLM backends need 8 GB **[F]**, excluded |
+| 4 Equations (Docling formula enrichment) | not stated in the facts report | **[UNCONFIRMED]** |
+| 7 Embeddings | not in the facts report | **[UNCONFIRMED]**; P7 measures |
+| 2 GROBID (path A) | GPU through a container on Windows not supported **[F]**; GPU under WSL2 not in the facts report | none planned; the CRF image needs no GPU **[F]** |
+| Marker / Surya | vLLM on an NVIDIA GPU, README says Docker + NVIDIA Container Toolkit **[F]** | excluded (§7 stage 4) |
+
+### 12.9 Overnight and low-priority running
+
+- **Always below-normal priority,** so interactive work wins the CPU. The Windows mechanism the worker
+  uses is chosen in P4 **[UNCONFIRMED]**.
+- **Full pool overnight; reduced pool or none by day.** The window and both reserves are Kam's call
+  (§15.16).
+- **Launch by scheduled task,** like the nightly dump, with the dump's measured limit
+  (`Reports/LITKB_OPS_2026-09-13.md` §1). Registering the task to run "whether logged on or not" (S4U)
+  was refused without elevation. An unelevated task therefore runs only while Kam is logged on, and the
+  pool stops at logoff unless Kam registers the task elevated (§15.16).
+- **Pause drains.** `litkb worker pause` finishes the jobs in flight and claims no more. A reboot or
+  kill is covered by §12.5.
+- **Nightly dump.** The dump runs at 02:30 and took 1.6 s at 12 rows (ops report). No coordination is
+  needed now; revisit once the database holds the corpus's text.
+- **On battery,** whether the pool pauses is a design choice for P5; how it detects mains power is
+  **[UNCONFIRMED]**.
+
+### 12.10 Backlog projection: measured by P4, never stated here
+
+**This document projects no hours.** P4 measures on this laptop, per stage and chosen tool, on the
+hard-paper set, and at more than one pool size (§12.7):
+- pages per second;
+- peak RSS per worker;
+- GPU memory, where a stage uses the GPU.
+
+P5's canary measures the same on ordinary papers.
+
+**Projection** = Σ over stages of (pages that stage must process ÷ measured pages/s at its chosen pool
+size), converted to nights at the window Kam sets (§15.16). The page count comes from stage 0's
+inventory: 4,655 active **[M]**, about 7,400 with the backlog (Kam's estimate).
+
+**Vendor speeds are not inputs.** Docling reports 1.2–1.5 pages/s CPU-only **[F]**, and GROBID 10.6
+PDFs/s on one 16-CPU machine **[F]**, both on other hardware.
+
+**If the measured projection is too long for Kam,** the levers, in order:
+1. GPU stages that P4 showed fit (§12.8);
+2. a first pass without stages 4 (equations) and 6 (references), which run as a second pass;
+3. batch sizes (§12.6);
+4. a longer window.
+
+### 12.11 Reproducibility
+
+The Colab-versus-local parity rule of revision 2 has no subject now. It is replaced by a
+reproducibility rule: the same file, extracted again at the same pipeline version, gives the same
+canonical blocks. P9 tests it on a sample. A tool found to be nondeterministic is recorded as such, not
+averaged away.
 
 ---
 
@@ -610,12 +793,12 @@ P3's kill needs the gate.
 | **P1 Foundation** | pgvector installed on PG18; database, roles, migrations; versioning with pointers and compare-and-set write functions; views; `promote_prepare()` / `promote_commit()`; test role and skip marker | migration runner applies cleanly to an empty DB; `uuidv7()` answers; test suite green | writer role UPDATE on a version table is refused; two writers based on the same version — the second is refused, **for a fact table and for a proposal**; a client-supplied `quote_verified = true` on a non-matching quote is stored false; the `litkb_test` role connecting to `litkb` is refused by the server; `promote commit` with a merge commit that is not reachable from `main` is refused; a chain whose gap dependency conflicts is not promoted, and neither is its dependent |
 | **P2 Admission + acquisition** | admission checks 1–5 in one transaction; approve flow; annas, scihub, paper-search adapters writing the DB; attempts log | 5 real DOIs admitted and acquired end to end; the no-identifier title threshold calibrated on the tracker's `Duplicate of` pairs | **replays the real pre-fix manifest rows** (fixture: the backup `manifest.pre-auditfix.csv`, copied into the test data): Averkov 2009 with `10.4171/JEMS/183` (Crossref title "Heegard Floer invariants of Legendrian knots in contact three-manifolds", ratio 0.36) and Higham 2011 with `10.1016/j.laa.2010.09.001` (ratio 0.25), each with its real file — both refused at binding (`audit_fast.csv` **[M]**); the corrected DOIs (`10.4171/jems/179`, `10.1016/j.laa.2010.04.007`) admit the same files; `10.4171/JEMS/179` after `10.4171/jems/179` collides; two concurrent admissions of one DOI leave one work; a known `Duplicate of` pair re-entered without identifiers is sent to duplicate review; an admitter approving its own manual admission is refused |
 | **P3 Migration + exports** | §13 loaders through P2 admission; `litkb export`; convention rewritten (§10) | regenerated tracker and manifest match today's content (reviewed diff) | a planted duplicate DOI and the planted Averkov wrong DOI are rejected at load |
-| **P4 Extraction bake-off** | stages 0–5 run on ~10 hard papers (two-column article, three-column article, JSTOR scan, image-only scan, equation-heavy theory paper, table-heavy paper, the 688-page book), locally and on one Colab CPU runtime; bbox adapters (§7.1) | GROBID 0.9.1 CRF boots on a Colab CPU runtime and returns TEI with coordinates for one paper; adapters pass the §7.1 test; tools chosen against **referee-authored, pre-committed gold**: reading-order sequences, table cells, header metadata, equation LaTeX for the hard papers, plus reference lists checked against Crossref-deposited lists; thresholds committed with the gold | the GROBID boot check fails when run under a JDK older than 21; the §7.1 test fails with an adapter's y-flip removed; a deliberately interleaved column extraction fails the reading-order metric; shuffled table cells fail the table metric |
-| **P5 Colab bulk pass** | canary shard → projection → Kam's go (and GPU approval if proposed) → all shards → ingest | every active file has a current run with pages, blocks, chunks; coverage at or above the P4 threshold; disagreements logged | a shard with a corrupted artifact fails ingest verification |
+| **P4 Extraction bake-off (local)** | Stages 0–5 run **on this laptop** on ~10 hard papers: a two-column article, a three-column article, a JSTOR scan, an image-only scan, an equation-heavy theory paper, a table-heavy paper, and the 688-page book. Also: the bbox adapters (§7.1); stage 2 on the path Kam chose (§15.9); the `extraction_jobs` migration, the leased worker and the sweep (§12.3–§12.5); and a throughput and memory instrument | Tools are chosen against **referee-authored, pre-committed gold**: reading-order sequences, table cells, header metadata and equation LaTeX for the hard papers, plus reference lists checked against Crossref-deposited lists. Thresholds are committed with the gold. The adapters pass the §7.1 test. **Path A:** GROBID 0.9.1 CRF boots under WSL2 or Docker on this laptop and returns TEI with coordinates for one paper. **Path B:** the chosen reference parser meets the pre-committed reference threshold. **Throughput gate:** for every stage × chosen tool, pages/s and peak RSS per worker (plus GPU memory where used, §12.8) are measured on the hard-paper set at two or more pool sizes. They are written to `extraction_runs.metrics` and the phase report, and the §12.10 projection is filled in from them. A referee re-runs one stage and reproduces its rate (3.4c). No wall-clock is accepted from any other source | **Path A:** the GROBID boot check fails when run under a JDK older than 21. **Path B:** reference fields shuffled between entries fail the reference metric. **Both paths:** the §7.1 test fails with an adapter's y-flip removed; a deliberately interleaved column extraction fails the reading-order metric; shuffled table cells fail the table metric. **Throughput:** the instrument refuses a stage run that records no rate or no peak RSS, and it reports a lower rate for a stage pinned to one logical core than for the same stage on the pool, which shows it can see a slowdown |
+| **P5 Local bulk pass** | Canary → projection → Kam's go → backlog. The **canary** is a batch not in the hard set, spanning born-digital, scanned and long documents. The **projection** comes from P4's measured rates, checked against the canary's. **Kam's go** is asked with the projection, its measured basis and the run window (§15.16). The **backlog** is then drained by the worker pool with ingest, overnight at low priority (§12.9) | Every active file has a current run with pages and blocks; chunks and embeddings come in P7. Coverage is at or above the P4 threshold, and disagreements are logged. The canary's rate falls within a tolerance of P4's, frozen before the canary runs; otherwise the projection is redone before Kam is asked. There are zero duplicate runs and zero text rows outside an `ok` run | **(a)** A worker killed mid-file, once during a tool run and once during ingest, resumes after restart. The file completes with exactly one `ok` run per key and the same block count as an uninterrupted control run, with no duplicate blocks. The kill fires when ingest is mutated to commit text rows outside the run's transaction. **(b)** An artifact whose bytes no longer match the job's recorded sha256 fails ingest verification. **(c)** Two workers claiming at once never lease the same job; this fires with `SKIP LOCKED` or the lease check removed. **(d)** A job whose worker died is reclaimed only after its lease expires, not while the lease is live |
 | **P6 Citations** | references resolved, citation graph, citation candidates | reference resolution rate measured and reported | a **near-miss** reference — a real reference from the corpus with one field altered (year, a title word, or a DOI digit) — does not resolve to the real work |
 | **P7 Retrieval** | embeddings, hybrid search, evaluation on the referee's paraphrased query set (§8) | vector leg and hybrid each at or above their pre-committed recall@k thresholds | with the vectors replaced by random vectors, **the vector leg alone**, on the paraphrased queries, falls below its threshold (the lexical legs would otherwise rescue a scrambled index) |
-| **P8 Access** | MCP server and CLI; hunt protocol written into the convention | an agent in a scratch worktree runs a full mini-hunt: open workstream → admit → acquire → extract → record use with verified quote → promote prepare; commit is exercised against a scratch git repo whose `main` it merges itself (never the real one) | a use with an unverifiable quote is refused at prepare |
-| **P9 Local + retire old paths** | local worker, parity test, hand-edited tracker retired | parity on a sample; old paths removed from the convention | a parity break introduced on purpose is caught |
+| **P8 Access** | MCP server and CLI; the hunt protocol written into the convention; the access layer of §9.1: skill, librarian subagent, and the final CLAUDE.md rule on this branch (it reaches `main` only by Kam's merge). The hooks come last, after the gate | The librarian subagent, following the skill in a scratch worktree, runs a full mini-hunt: open workstream → admit → acquire → extract → record use with verified quote → promote prepare. Commit is exercised against a scratch git repository whose `main` it merges itself, never the real one | A use with an unverifiable quote is refused at prepare. With the hook installed, a paper-search call made in a worktree with no `.litkb-workstream` is flagged; with the hook entry removed, it is not |
+| **P9 Incremental mode + retire old paths** | The sweep (§12.3) picks up newly admitted files with no manual step; the reproducibility test (§12.11); the hand-edited tracker retired | A sample re-extracted at the same pipeline version gives identical canonical blocks; a file admitted after P5 reaches a current run with no manual step; old paths are removed from the convention | A nondeterminism introduced on purpose (reading order permuted in one re-run) is caught |
 
 **Order of value:** P1–P3 already fix today's pain (mergeable, versioned, concurrent records with
 checks). P4–P7 add the knowledge layer. P8 makes it Claude's daily tool.
@@ -624,40 +807,77 @@ checks). P4–P7 add the knowledge layer. P8 makes it Claude's daily tool.
 
 ## 15. Decisions for Kam (P0)
 
-1. **Server:** PostgreSQL 18 on port 5433 (proposed) or 17 on 5432.
-2. **pgvector on Windows:** pgvector's README gives only a build from source with Visual Studio C++
-   and `nmake /F Makefile.win` **[F]**; prebuilt third-party binaries are **[UNCONFIRMED]** — accept
-   the Build Tools install.
-3. **Embeddings stay local** (no text sent to a third-party embedding API) — proposed yes.
-4. **Colab bulk pass on CPU runtimes first** (0 CU per `colab_rates.csv`), GPU only by separate
-   approval after the canary — proposed yes.
-5. **paper-search keys:** set free CORE and DOAJ keys and an Unpaywall email (your email, your call).
-6. **Derived artifacts location:** `D:\edmonds-pipeline\Literture\_derived\` — proposed yes.
-7. **Promotion authority:** `promote prepare` runs on the branch and its report reaches you inside
-   the merge; `promote commit` runs only after you merge (§5). Who runs commit — the orchestrator,
-   after seeing your merge, or you? **Decided** (decisions.yaml `litkb-p0-foundation`): the
-   orchestrator runs commit after it sees the merge commit on main; the promote tool refuses a
-   commit that is not reachable from main (the database cannot run git), and only the promote tool
-   holds the promoter credential (§4.7).
-8. **Figure descriptions by Claude vision:** on demand only (proposed), or a bulk pass later.
-9. **GROBID locally:** enable WSL2 (admin, one reboot) or install Docker Desktop, or keep stage 2 on
-   Colab only.
-10. **Colab terms, project-wide:** the FAQ wording against headless and distributed use is stated
-    for the free tier; the account is Pro, whose terms on this are unread. The question covers the
-    existing `vm_ops.py` headless practice and CPU fan-out, not only this pass: read the Pro terms,
-    accept the current practice, or change it.
-11. **Shadow-library PDFs on Drive:** upload the corpus to the Drive lake for the Colab pass, upload
-    only the open-access subset (the rest extracted locally), or extract everything locally.
-12. **A small database dump:** R12 tabled backup, but the database will hold use histories,
-    approvals and promotions that no file regenerates. Is a periodic `pg_dump` (no PDFs, no derived
-    artifacts) in scope?
-13. **Manual-admission sign-off:** a second agent session (the database enforces admitter ≠
-    approver), or you only? **Decided:** a second session. The database refuses an approver session
-    equal to the admitter's; agent names are labels and are not compared (D-4).
-14. **Who may approve admissions refused at binding** (scans with no first-page text layer, papers
-    whose first page is a cover sheet): wait for OCR in P4, or a manual admission under item 13?
-15. **Year tolerance:** the DOI-first rule requires the registry year to match exactly; allow ±1
-    for online-first publications, or keep exact?
+Numbers are stable: `decisions.yaml` cites these items by number, so answered items are marked, never
+removed or renumbered. Authority for every "Decided" is `decisions.yaml` `litkb-p0-foundation`.
+
+1. **Server.** **Decided:** PostgreSQL 18 on port 5433.
+2. **pgvector on Windows.** **Decided:** P1 waited for the C++ Build Tools and pgvector. Built:
+   `vector 0.8.6` in both databases (P1 report).
+3. **Embeddings stay local** (no text sent to a third-party embedding API). Proposed yes. The all-local
+   decision points the same way, but this item is not recorded as answered.
+4. ~~Colab bulk pass on CPU runtimes first~~ **Moot:** no Colab pass (§11).
+5. **paper-search keys.** **Decided:** Unpaywall uses Kam's email, held only in the untracked
+   `D:\edmonds-pipeline\secrets\paper_search.env`; optional source keys stay blank until Kam asks.
+6. **Derived artifacts location:** `D:\edmonds-pipeline\Literture\_derived\`. Proposed yes. Open.
+7. **Promotion authority.** `promote prepare` runs on the branch, and its report reaches you inside the
+   merge; `promote commit` runs only after you merge (§5). **Decided:** the orchestrator runs commit
+   after it sees the merge commit on main. The promote tool refuses a commit that is not reachable
+   from main (the database cannot run git), and only the promote tool holds the promoter credential
+   (§4.7).
+8. **Figure descriptions by Claude vision:** on demand only (proposed), or a bulk pass later. Open.
+9. **GROBID — reopened by a measurement.** The recorded decision is that GROBID runs locally under
+   WSL2 or Docker, with setup pending. On 2026-09-13 the laptop read
+   `VirtualizationFirmwareEnabled = False`; WSL has no distribution; Docker is not installed **[M]**
+   (§12.1). GROBID's maintainers do not support native Windows **[F]**, so running it natively is not
+   offered. **Two paths — choose one before P4:**
+   - **(a) Enable virtualization, keep GROBID.** You enable VT-x in the BIOS, which needs a reboot and
+     your hands. Then either a WSL2 distribution or Docker Desktop is installed, which needs admin.
+     P4 then boots the GROBID 0.9.1 CRF image, which needs no GPU. *Gains:* header metadata, section
+     tree, footnotes and captions with coordinates, parsed references and in-text citations linked to
+     them, all in one TEI output **[F]**. P6 (citations) is designed on these. *Costs:* a firmware
+     change, two installs, and GROBID's 4–8 GB of RAM **[F]** taken from the worker pool's budget.
+   - **(b) Drop GROBID.** Docling supplies layout, reading order, tables and formulas **[F]**.
+     Reference-string parsing comes from another parser: none is in the tool facts report yet, so a
+     candidate is researched into that report before P4 **[UNCONFIRMED]**. Citation → reference
+     linking and any header parse come from project code. *Gains:* no firmware or install changes.
+     *Costs:* the citation layer that P6 builds on is new project code, validated from scratch, and
+     stage 0's metadata loses one of its three sources (§6).
+   - *Proposed:* (a), because P6 is built on GROBID's reference parsing and citation linking. Your
+     call.
+10. ~~Colab terms, project-wide~~ **Moot for this workstream.** The project-wide question about
+    `vm_ops.py` headless practice is not this design's to raise.
+11. ~~Shadow-library PDFs on Drive~~ **Answered:** no PDFs go to Drive; everything is extracted
+    locally.
+12. **A small database dump.** **Decided and built:** a nightly `pg_dump` of the records, with no PDFs
+    and no derived artifacts (§6; ops report §1). Residual: the dumps sit on D:, the same disk as the
+    database's tablespace (inferred from the two paths), so a disk loss takes both; off-disk copies
+    remain tabled under R12.
+13. **Manual-admission sign-off.** **Decided:** a second session. The database refuses an approver
+    session equal to the admitter's; agent names are labels and are not compared (D-4).
+14. **Admissions refused at binding** (scans with no first-page text layer, cover-sheet first pages).
+    **Decided:** they wait for OCR in P4, with no manual admission.
+15. **Year tolerance.** **Decided:** ±1 year only when the title and first author both match the
+    registry record; otherwise the year must match exactly.
+16. **New — worker run window (§12.7, §12.9).** Choose when the extraction pool runs and what it leaves
+    free:
+    - (a) overnight only, with the full pool;
+    - (b) overnight full, plus daytime at below-normal priority with a reduced pool;
+    - (c) continuously at below-normal priority.
+
+    Also choose the CPU and RAM reserve kept for your own use and for Claude Code. And choose how the
+    scheduled task is registered. Unelevated, it runs only while you are logged on: S4U registration
+    was refused without elevation **[M]**, ops report §1. Registered by you from an elevated shell, it
+    can run logged off. Needed before P5's go.
+17. **New — what "flows through this workstream" covers (R13, §9.1).** Choose the reach of the
+    CLAUDE.md rule:
+    - (a) every literature claim in a gated document cites an admitted work, with a use whose quote
+      verifies;
+    - (b) (a), plus every literature search and PDF fetch goes through litkb tools, with hooks as
+      guardrails;
+    - (c) (b), plus a paper Claude recalls from memory is admitted before anything relies on it.
+
+    Also choose whether literature already cited in gated documents (SCIENCE.md, the reports) is
+    back-filled, or the rule applies going forward. Needed for the interim rule at P3.
 
 ---
 
@@ -665,18 +885,22 @@ checks). P4–P7 add the knowledge layer. P8 makes it Claude's daily tool.
 
 | Risk | Consequence | Mitigation |
 |---|---|---|
-| GROBID's maintainers do not support Windows; JDK 21 or higher **[F]**; a Colab recipe is unproven **[UNCONFIRMED]** | stage 2 cannot run natively on Windows, and may not boot on Colab | P4 gate and kill test the Colab boot first; WSL2 or Docker locally (§15.9) |
-| Layout or math models too slow on CPU | bulk pass takes days | canary measures first; GPU proposal gated by Kam |
-| pgvector's README offers only a source build on Windows **[F]** | P1 needs a C++ toolchain | Build Tools install (§15.2) |
-| Colab terms on headless and parallel use **[UNCONFIRMED for Pro]** | the project's existing practice, not only this pass, may conflict | Kam's call (§15.10) |
-| MinerU needs at least 16 GB RAM **[F]**; Colab CPU runtime RAM on this account **[UNCONFIRMED]** | may not fit a CPU runtime | canary measures; laptop or GPU runtime |
+| GROBID's maintainers do not support Windows **[F]**; WSL2 or Docker needs firmware virtualization, which reads disabled **[M]** | stage 2 on path A cannot start until the BIOS change and installs; path B loses GROBID's header parse and citation linking unless rebuilt | §15.9 before P4; path A's boot gate with its JDK kill, or path B's reference-metric gate with its shuffle kill (§14 P4) |
+| Layout, OCR or math models slow on this CPU | the backlog takes many nights (no figure is projected; P4 measures) | P4 throughput gate; P5 projection and Kam's go before the backlog; GPU stages only where they fit; stages 4 and 6 deferred to a second pass (§12.10) |
+| ~~pgvector's README offers only a source build on Windows~~ | — | **Resolved in P1:** Build Tools installed, `vector 0.8.6` loaded |
+| ~~Colab terms on headless and parallel use~~ | — | **Moot for this workstream** (§11, §15.10) |
+| MinerU needs at least 16 GB RAM **[F]** | at most three MinerU workers in 63.8 GB before any reserve (arithmetic) | pools sized by measured peak RSS per stage (§12.7) |
+| The laptop is shared with Claude Code sessions, local QC, the ladder and GPU raster work (CLAUDE.md §5) | extraction slows interactive work, or is slowed by it; the 4 GB card cannot hold two model loads (inferred) | below-normal priority; core and RAM reserve; run window; one GPU worker, only in the window (§12.8, §12.9, §15.16) |
+| A worker killed, a crash, or a Windows update reboot mid-run | lost or duplicated extraction work | leases with expiry; one transaction per (file, stage) ingest; `.partial` + fsync + rename; page-range jobs for long documents; P5 kills (a)–(d) |
+| The scheduled task runs only while Kam is logged on (S4U refused unelevated **[M]**) | the pool stops at logoff | §15.16 |
 | Scan OCR quality on 1950s–70s JSTOR papers | wrong text in theory papers | per-block confidence; disputed regions to vision; evidence quotes must verify |
-| Scans and cover-sheet first pages cannot pass the binding gate | papers wait in quarantine | `binding-pending` state; §15.14 |
-| Colab writer path to Drive | artifacts silently lost | existing verified path + independent server-side check (memory); packed shards with hashed done markers |
+| Scans and cover-sheet first pages cannot pass the binding gate | papers wait in quarantine | `binding-pending` state; they wait for P4 OCR (§15.14, decided) |
+| ~~Colab writer path to Drive~~ | — | **Moot:** no Drive writes (§11) |
 | Library licences **[F]**: PyMuPDF AGPL or commercial; Marker/Surya weights free only for research, personal use and startups under $5M; Nougat weights CC-BY-NC | constraints on use | pypdfium2 instead of PyMuPDF; Docling (MIT), GROBID (Apache-2.0), MinerU (custom licence based on Apache 2.0) preferred |
-| Concurrency on one local server | Colab cannot write the DB | by design: Colab writes artifacts, ingest is local |
+| Extraction workers and agents share one database server | ingest load slows agent queries; lock waits | short per-(file, stage) transactions; workers at low priority; the ingest role cannot touch knowledge tables (§4.7) |
 | Recorded agent/session identities are client-supplied | the approver-session ≠ admitter-session constraint can be defeated by a forged session label | stops mistakes, not adversaries; §15.13 |
-| The database holds history no file regenerates, and has no backup | a disk loss erases use histories and promotions | §15.12 |
+| Dumps sit on the same disk as the database | a disk loss erases use histories and promotions together with their dumps | nightly dump built (§6); off-disk copy tabled under R12 (§15.12) |
+| An access rule or hook that points at tools not yet built | agents blocked with no route, or the rule ignored | interim rule at P3 points at the working CLI; hooks only after P8's gate (§9.1) |
 | Disk | derived artifacts grow | page images only for scans and disputed pages; sizes reported per phase |
 
 ---
@@ -699,11 +923,62 @@ only what shapes the design, at the strength the report gives them.
 | pgvector 0.8.6 (2026-07-29) | 0.8.1 "Added support for Postgres 18 rc1"; 0.8.2 improved the Windows install target and fixed EXPLAIN for PG18; Windows install by building with Visual Studio C++ and `nmake /F Makefile.win`; the README names no prebuilt Windows binary | third-party prebuilt binaries; exact PGROOT lines |
 | PostgreSQL 18.6 (this machine) **[M]** | `pg_trgm.control` and `fuzzystrmatch.control` present in `share\extension` (file listing, 2026-09-13; the facts report left `pg_trgm` unconfirmed); `uuidv7` present in the catalog file | both confirmed by query in P1 |
 | postgres-mcp (crystaldba) | MIT; `uvx postgres-mcp`; `--access-mode=restricted` runs read-only transactions and rejects COMMIT/ROLLBACK | version and date; status of the older reference server |
-| Colab | FAQ: VMs have a maximum lifetime; idle timeout; usage limits fluctuate; the free tier disallows remote control, bypassing the notebook UI and distributed computing workers. Account plan Colab Pro (`Scripts/pipeline/colab_rates.csv`, screen-read 2026-09-01) | Pro terms on headless use; runtime vCPU/RAM (free tier ~2 vCPU / ~13 GB from secondary sources only); disk; apt and Java installs; tool speeds on Colab |
+| Colab — **moot for this workstream (revision 3)**; kept as the record of what was checked | FAQ: VMs have a maximum lifetime; idle timeout; usage limits fluctuate; the free tier disallows remote control, bypassing the notebook UI and distributed computing workers. Account plan Colab Pro (`Scripts/pipeline/colab_rates.csv`, screen-read 2026-09-01) | Pro terms on headless use; runtime vCPU/RAM (free tier ~2 vCPU / ~13 GB from secondary sources only); disk; apt and Java installs; tool speeds on Colab |
 
 ---
 
 ## 18. Change log
+
+**Revision 3 (2026-09-13).** Applies Kam's decision after P1 acceptance: all literature work runs
+locally, with no Colab pass, and any literature the project uses flows through the knowledge base
+(decisions.yaml `litkb-p0-foundation`). The doc is also brought into line with what is built.
+
+- **§1:** R11 marked superseded, with Kam's words; R13 added; non-goals now exclude cloud compute.
+- **§2:** decision 4 and the diagram describe local workers.
+- **§3:** `uuidv7` is confirmed by the P1 gate.
+- **§11:** the Colab plan is retired to a short note.
+- **§12:** rewritten as the local processing plan: the queue, idempotent stages, the checkpoint loss
+  bound with page-range jobs for long documents, batching, the pool sizing rule, GPU candidates (all
+  UNCONFIRMED), overnight and low-priority running, a projection formula with no hours stated, and a
+  reproducibility rule replacing Colab/local parity.
+- **§4.3:** the `extraction_jobs` table is added (design, not built). The built `extraction_runs` unique
+  key and its leftover `host = 'colab'` value are recorded.
+- **§4.7:** the ingest row points at §12 and adds the queue functions. The owner row now names
+  `connect_admin()` (F-9) and the nightly dump.
+- **§6:** the dump is recorded as built (location, verification, retention, task mode, and the need to
+  re-register the task after the merge). The header parse depends on §15.9. No PDFs go to Drive.
+- **§7 / §7.1:** stage 2 presents path A (GROBID after enabling VT-x) and path B (no GROBID), with what B
+  loses.
+- **§9:** CLI entries for the worker pool added, and the missing CLI stated.
+- **§9.1 (new):** the access layer — the CLAUDE.md rule, skill, MCP tools, hooks and librarian
+  subagent, with a phase for each, and the rule that they reach `main` only by Kam's merge.
+- **§10:** the staged-secrets check is recorded as built (rung 0 of `check.py`, a CI step, no pre-commit
+  hook); the paper-search keys row is updated to §15.5.
+- **§14:**
+  - P4 runs locally, with a measured throughput gate and kill, and gates and kills for each GROBID
+    path.
+  - P5 becomes the local bulk pass. Its kills are local: a killed worker resumes without duplicate
+    blocks, an artifact hash mismatch is caught, concurrent claims never collide, and a job is
+    reclaimed only after its lease expires.
+  - P5's gate no longer asks for chunks. Chunks are stage 7, built in P7; the earlier text was
+    inconsistent.
+  - P8 adds the access layer and a hook kill.
+  - P9 replaces parity with reproducibility.
+- **§15:**
+  - Items 1, 2, 5, 12, 14 and 15 are marked decided (7 and 13 already were), 4 and 10 moot, and 11
+    answered. Numbering is kept, because `decisions.yaml` cites these items by number.
+  - 9 is reopened as a two-path choice by the virtualization measurement.
+  - 16 (worker run window) and 17 (reach of R13) are new.
+- **§16:** Colab rows marked moot, pgvector resolved, local risks added. §17's Colab row is marked moot.
+  §19's M4/M5 rows are historical and left as written.
+- **Measured this revision:**
+  - `Win32_Processor`: 6 cores, 12 logical, `VirtualizationFirmwareEnabled` False.
+  - `wsl.exe -l -v`: no installed distributions. `Get-Command docker`: not found.
+  - `Win32_ComputerSystem`: 63.8 GB RAM.
+  - `ls -a`: no `.claude/` directory in the repository.
+- **Not reproduced:** the brief's "7 image-only scans". A `pdftotext` probe over the 219 active PDFs
+  found 1 file with no text, 4 with 130–142 characters in total, and 1 (the book) with no first-page
+  text (§12.2). The count stays UNCONFIRMED until stage 0.
 
 **Revision 2 (2026-09-13)** — answers the independent referee's review of revision 1.
 

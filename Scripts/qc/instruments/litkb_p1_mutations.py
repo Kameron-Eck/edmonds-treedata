@@ -156,17 +156,20 @@ MUTATIONS = [
          marker="guard: char_end within the block text",
          what="remove the char_end <= length(text) check"),
     # ── Kam's decisions on the referee findings (migration 0008) ──
+    # K4a/K4b target 0009 since the second referee's fixes: 0009 REPLACES the 0008 constraint, so a
+    # mutation of the 0008 text is dead code and reports DID NOT FIRE (measured).
     dict(id="K4a", kill="(D-4) another agent in the SAME session cannot approve (referee R1)",
          test="test_admission_approver_must_be_another_session[other_agent_same_session]",
-         kind="replace", file=f"{MIG}/0008_kam_referee_decisions.sql",
-         old="\n      AND approver_session <> admitter_session));", new="));",
-         what="drop the approver_session <> admitter_session clause"),
+         kind="replace", file=f"{MIG}/0009_referee2_fixes.sql",
+         old="\n      AND btrim(approver_session, E' \\t\\n\\r\\f\\x0b') <> btrim(admitter_session, E' \\t\\n\\r\\f\\x0b')));",
+         new="));",
+         what="drop the approver session <> admitter session clause (live constraint, 0009)"),
     dict(id="K4b", kill="(D-4) the same agent name in ANOTHER session may approve (referee R1b)",
          test="test_admission_approver_must_be_another_session[same_agent_other_session]",
-         kind="replace", file=f"{MIG}/0008_kam_referee_decisions.sql",
-         old="AND approver_session <> admitter_session));",
-         new="AND approver_session <> admitter_session AND approver_agent <> admitter_agent));",
-         what="re-add the agent-name clause (the pre-0008 AND form)"),
+         kind="replace", file=f"{MIG}/0009_referee2_fixes.sql",
+         old="<> btrim(admitter_session, E' \\t\\n\\r\\f\\x0b')));",
+         new="<> btrim(admitter_session, E' \\t\\n\\r\\f\\x0b') AND approver_agent <> admitter_agent));",
+         what="re-add the agent-name clause (the pre-0008 AND form, live constraint 0009)"),
     dict(id="K2a", kill="(D-2) a rebase onto a stale main version is refused",
          test="test_kill_rebase_onto_stale_main_is_refused",
          kind="block", file=f"{MIG}/0008_kam_referee_decisions.sql",
@@ -224,6 +227,98 @@ MUTATIONS = [
          kind="block", file="pipeline/litkb/db/connect.py",
          marker="guard: promoter login only through the promote tool",
          what="remove the promoter refusal in connect()"),
+    # ── the second referee's mutations (Reports/LITKB_P1_REFEREE2_2026-09-13.md), exact strings ──
+    # X5/X6 (E-5, rebase evidence semantics) are NOT here: Kam is deciding them.
+    dict(id="X1", kill="(E-6) add_evidence waits for a prepare in flight (FOR SHARE)",
+         test="test_add_evidence_waits_for_a_prepare_in_flight_and_is_refused",
+         kind="replace", file=f"{MIG}/0007_referee_fixes.sql",
+         old="ws.state = 'open' FOR SHARE;", new="ws.state = 'open';",
+         what="drop FOR SHARE on the workstream row in add_evidence"),
+    dict(id="X2", kill="(E-2) two rebases of one workstream make one copy (source FOR UPDATE)",
+         test="test_concurrent_rebases_of_one_workstream_make_one_copy",
+         kind="replace", file=f"{MIG}/0008_kam_referee_decisions.sql",
+         old="w.id = p_source_ws AND w.state = 'merged' FOR UPDATE;",
+         new="w.id = p_source_ws AND w.state = 'merged';",
+         what="drop FOR UPDATE on the rebase source workstream row"),
+    dict(id="X3", kill="(E-2) a rebase during a commit that moves main is refused (identity FOR UPDATE)",
+         test="test_rebase_during_a_commit_that_moves_main_is_refused",
+         kind="replace", file=f"{MIG}/0008_kam_referee_decisions.sql",
+         old="'SELECT current_version_id FROM %s WHERE id = $1 FOR UPDATE'",
+         new="'SELECT current_version_id FROM %s WHERE id = $1'",
+         what="drop FOR UPDATE on the identity row in promote_rebase"),
+    dict(id="X4a", kill="(E-3) onto missing a held chain is refused",
+         test="test_rebase_onto_must_name_exactly_the_held_chains[missing_key]",
+         kind="replace", file=f"{MIG}/0008_kam_referee_decisions.sql",
+         old=("  IF (SELECT array_agg(j ORDER BY j) FROM jsonb_object_keys(p_onto) j) IS DISTINCT FROM v_keys THEN\n"
+              "    RAISE EXCEPTION 'litkb: onto must name exactly the held chains %', v_keys USING ERRCODE = '22023';\n"
+              "  END IF;\n"),
+         new="",
+         what="delete the onto-keys = held-chains check"),
+    dict(id="X4b", kill="(E-3) onto naming an unheld chain is refused",
+         test="test_rebase_onto_must_name_exactly_the_held_chains[extra_key]",
+         kind="replace", file=f"{MIG}/0008_kam_referee_decisions.sql",
+         old=("  IF (SELECT array_agg(j ORDER BY j) FROM jsonb_object_keys(p_onto) j) IS DISTINCT FROM v_keys THEN\n"
+              "    RAISE EXCEPTION 'litkb: onto must name exactly the held chains %', v_keys USING ERRCODE = '22023';\n"
+              "  END IF;\n"),
+         new="",
+         what="delete the onto-keys = held-chains check"),
+    # X7 targets 0009: 0009 REPLACES the 0008 constraint, so the referee's literal 0008 mutation is
+    # dead code now. This is the same edit on the live definition.
+    dict(id="X7", kill="(E-4) a NULL approver session is refused",
+         test="test_admission_approver_must_be_another_session[null_approver_session]",
+         kind="replace", file=f"{MIG}/0009_referee2_fixes.sql",
+         old="approver_session IS NOT NULL AND ", new="",
+         what="drop approver_session IS NOT NULL (live constraint, 0009)"),
+    dict(id="X8", kill="(E-7) set_current_run refuses a stale expected run",
+         test="test_set_current_run_refuses_a_stale_expected_run",
+         kind="replace", file=f"{MIG}/0007_referee_fixes.sql",
+         old="WHERE f.id = p_file AND f.current_run_id IS NOT DISTINCT FROM p_expected_run;",
+         new="WHERE f.id = p_file;",
+         what="drop the compare-and-set predicate in set_current_run"),
+    dict(id="X9", kill="(E-1) a commit over a write in flight is refused (workstream FOR UPDATE)",
+         test="test_commit_waits_for_a_write_in_flight_and_is_refused",
+         kind="replace", file=f"{MIG}/0005_promotion.sql",
+         old="w.id = p.workstream_id AND w.state = 'open' FOR UPDATE;",
+         new="w.id = p.workstream_id AND w.state = 'open';",
+         what="drop FOR UPDATE on the workstream row in promote_commit"),
+    dict(id="E4a", kill="(E-4) sessions compare trimmed",
+         test="test_admission_approver_must_be_another_session[approver_session_trailing_space]",
+         kind="replace", file=f"{MIG}/0009_referee2_fixes.sql",
+         old="btrim(approver_session, E' \\t\\n\\r\\f\\x0b') <> btrim(admitter_session, E' \\t\\n\\r\\f\\x0b')",
+         new="approver_session <> admitter_session",
+         what="compare the raw sessions"),
+    dict(id="E4b", kill="(E-4) a blank approver agent is refused",
+         test="test_admission_approver_must_be_another_session[empty_approver_agent]",
+         kind="replace", file=f"{MIG}/0009_referee2_fixes.sql",
+         old="      AND btrim(approver_agent, E' \\t\\n\\r\\f\\x0b') <> ''\n", new="",
+         what="drop the non-blank approver agent clause"),
+    dict(id="E4c", kill="(E-4) a blank approver session is refused",
+         test="test_admission_approver_must_be_another_session[empty_approver_session]",
+         kind="replace", file=f"{MIG}/0009_referee2_fixes.sql",
+         old="      AND btrim(approver_session, E' \\t\\n\\r\\f\\x0b') <> ''\n", new="",
+         what="drop the non-blank approver session clause"),
+    dict(id="E4d", kill="(E-4) a blank admitter session is refused",
+         test="test_admission_approver_must_be_another_session[blank_admitter_session]",
+         kind="block", file=f"{MIG}/0009_referee2_fixes.sql",
+         marker="guard: admitter labels non-blank after trim",
+         what="remove the admitter non-blank constraint"),
+    dict(id="E4e", kill="(E-4) blank means any whitespace, not only spaces",
+         test="test_admission_approver_must_be_another_session[blank_approver_agent]",
+         kind="replace", file=f"{MIG}/0009_referee2_fixes.sql",
+         old="      AND btrim(approver_agent, E' \\t\\n\\r\\f\\x0b') <> ''\n",
+         new="      AND btrim(approver_agent) <> ''\n",
+         what="trim spaces only (btrim's default)"),
+    dict(id="E8a", kill="(E-8) connect() refuses a user carrying a second keyword",
+         test="test_connect_refuses_promoter_login_bypasses[keyword_injection]",
+         kind="block", file="pipeline/litkb/db/connect.py",
+         marker="guard: login names are plain identifiers",
+         what="remove the plain-identifier check on user and dbname"),
+    dict(id="E8b", kill="(E-8) conninfo quotes every value",
+         test="test_conninfo_quotes_values",
+         kind="replace", file="pipeline/litkb/db/connect.py",
+         old="    return make_conninfo(**kw)\n",
+         new="    return ' '.join(f'{k}={v}' for k, v in kw.items())\n",
+         what="build the conninfo unquoted (the pre-fix form)"),
 ]
 
 
@@ -232,7 +327,9 @@ def _sha(b):
 
 
 def _pytest(nodes):
-    r = subprocess.run([sys.executable, "-m", "pytest", *[f"{TEST}::{n}" for n in nodes],
+    """Run the named nodes of the test file, or the WHOLE file when nodes is empty."""
+    targets = [f"{TEST}::{n}" for n in nodes] or [TEST]
+    r = subprocess.run([sys.executable, "-m", "pytest", *targets,
                         "-q", "-p", "no:cacheprovider"],
                        cwd=str(SCRIPTS), capture_output=True, text=True, errors="replace")
     lines = [ln for ln in (r.stdout or "").splitlines() if ln.strip()]
@@ -272,11 +369,12 @@ def _mutate_text(m):
     return path, original, mutated.encode("utf-8")
 
 
-def run_one(m):
+def run_one(m, whole_file=False):
+    nodes = [] if whole_file else [m["test"]]
     if m["kind"] == "cluster":
         _psql(m["apply"])
         try:
-            rc, summary, out = _pytest([m["test"]])
+            rc, summary, out = _pytest(nodes)
         finally:
             _psql(m["revert"])
         leak = _psql("SELECT has_database_privilege('litkb_test', 'litkb', 'CONNECT')")
@@ -287,12 +385,14 @@ def run_one(m):
         before = _sha(original)
         path.write_bytes(mutated)
         try:
-            rc, summary, out = _pytest([m["test"]])
+            rc, summary, out = _pytest(nodes)
         finally:
             path.write_bytes(original)
         if _sha(path.read_bytes()) != before:
             raise RuntimeError(f"{m['id']}: {m['file']} was not restored byte-for-byte")
-    fired = rc != 0 and "1 failed" in summary and "skipped" not in summary
+        print(f"     restored {m['file']} sha256 {before[:16]}… match: True")
+    failed_word = "failed" if whole_file else "1 failed"
+    fired = rc != 0 and failed_word in summary and "skipped" not in summary
     reason = ""
     if fired:
         err = [ln for ln in out.splitlines() if ln.startswith("E ")]
@@ -300,14 +400,27 @@ def run_one(m):
     return fired, summary, reason
 
 
-def main():
-    kills = list(dict.fromkeys(m["test"] for m in MUTATIONS))
+def main(argv=None):
+    import argparse
+    ap = argparse.ArgumentParser(description="show each litkb P1 kill fire")
+    ap.add_argument("--only", help="comma-separated mutation ids (default: all)")
+    ap.add_argument("--whole-file", action="store_true",
+                    help=f"run the whole {TEST} under each mutation instead of its one kill test")
+    a = ap.parse_args(sys.argv[1:] if argv is None else argv)
+    chosen = MUTATIONS
+    if a.only:
+        wanted = [s.strip() for s in a.only.split(",") if s.strip()]
+        unknown = sorted(set(wanted) - {m["id"] for m in MUTATIONS})
+        if unknown:
+            raise SystemExit(f"unknown mutation ids: {unknown}")
+        chosen = [m for m in MUTATIONS if m["id"] in wanted]
+    kills = [] if a.whole_file else list(dict.fromkeys(m["test"] for m in chosen))
     rc, summary, _ = _pytest(kills)
-    print(f"baseline (unmutated, {len(kills)} tests): {summary}")
+    print(f"baseline (unmutated, {'whole file' if a.whole_file else f'{len(kills)} tests'}): {summary}")
     baseline_ok = rc == 0 and "skipped" not in summary and "failed" not in summary
     rows = []
-    for m in MUTATIONS:
-        fired, summ, reason = run_one(m)
+    for m in chosen:
+        fired, summ, reason = run_one(m, a.whole_file)
         rows.append((m, fired, summ, reason))
         print(f"{m['id']:<4} {'FIRED' if fired else 'DID NOT FIRE':<13} {m['what']}")
         print(f"     test: {m['test']}  ->  {summ}")

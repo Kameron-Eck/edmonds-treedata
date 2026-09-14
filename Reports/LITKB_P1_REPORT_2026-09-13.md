@@ -244,3 +244,61 @@ A read-only probe on `litkb` printed `f|f|t|f|1|f`:
    insert can also take the next `version_no` and make a concurrent `write_proposal` fail with 23505 instead of
    40001. Proposal: revoke the INSERT; proposals go only through `write_proposal`. Re-point harness row R2 at the
    revoke.
+
+## Fixes after second referee
+
+Referee: `Reports/LITKB_P1_REFEREE2_2026-09-13.md` (E-1 to E-8, mutations X1 to X9). **E-5 is not touched**, and neither
+are X5/X6: Kam is deciding the rebase evidence semantics. The three residual permission gaps and the secrets folder
+ACL are not touched either.
+**Status of this evidence (3.4c):** the fixer wrote the code, the tests and the harness rows below, so this is
+author-produced evidence. The referee has not re-run it. The mutation strings for X1 to X4, X8 and X9 are the
+referee's, quoted verbatim.
+
+Code changes: migration `0009_referee2_fixes.sql` (E-4 only) and `pipeline/litkb/db/connect.py` (E-8). E-1, E-2, E-3,
+E-6 and E-7 are test-only: the guards were already correct.
+
+| Defect | Fix | Test (`qc/test_litkb_p1.py`) | Referee mutation, whole test file |
+|---|---|---|---|
+| E-1 | none (test gap) | `test_commit_waits_for_a_write_in_flight_and_is_refused`: the writer's write of a NEW gap is held open, then `promote_commit` runs on a second connection. The commit is seen waiting, the writer commits, and the commit gets `40001`. The workstream stays `open` with 2 heads | X9 (with the commit-qualified string `w.id = p.workstream_id AND w.state = 'open' FOR UPDATE;`, because the bare string occurs twice in 0005) → `1 failed, 81 passed`. The commit returned `committed: 1` |
+| E-2 (a) | none | `test_concurrent_rebases_of_one_workstream_make_one_copy`: the first rebase is held open, the second waits, then gets `22023 holds no chain`. `rebases` = 2 rows; the second target has 0 heads | X2 → `1 failed, 81 passed`. The second rebase returned ok |
+| E-2 (b) | none | `test_rebase_during_a_commit_that_moves_main_is_refused`: ws4's commit (main g2b → g3) is held open, then a rebase runs, waits, and gets `40001`. It makes 0 copies and leaves the 2 source heads in place | X3 → `1 failed, 81 passed`. The rebase returned ok |
+| E-3 | none | `test_rebase_onto_must_name_exactly_the_held_chains[missing_key, extra_key]`, fresh world per case. The missing key is the use chain whose main pointer is NULL | X4 → `2 failed, 80 passed` |
+| E-4 | 0009 replaces `admissions_second_session_signs_off` and 0001's admitter checks. **Choice: labels are compared trimmed, case-sensitive, on both sides.** "Trimmed" strips space, tab, LF, CR, FF and VT, because `btrim(x)` alone strips only spaces and `' \t'` survived it (measured: the first run of the new test failed on `blank_approver_agent`). Admitter and approver agent/session must be non-blank after trim, and the approver session must differ from the admitter's after trim. `IS NOT NULL` is kept | `test_admission_approver_must_be_another_session[*]`, 13 rows: the 4 existing rows plus NULL, `''`, `'   '`, trailing space (approver side and admitter side), empty agent, `' \t'` agent, blank admitter session, blank admitter agent | X7 on the live 0009 constraint → `1 failed, 81 passed`. **The referee's literal X7 on 0008 now passes the suite (`82 passed`), because 0009 drops that constraint and 0008's text is dead code.** This is the same situation as M2a/M2b vs 0003. The harness rows X7, K4a and K4b now target 0009; before the re-point, K4a and K4b on 0008 measured DID NOT FIRE |
+| E-6 | none | `test_add_evidence_waits_for_a_prepare_in_flight_and_is_refused`: prepare is held open, then `add_evidence` waits and gets `55000` with 0 rows. The prepared promotion then commits 1 | X1 → `1 failed, 81 passed`. The evidence landed |
+| E-7 | none | `test_set_current_run_refuses_a_stale_expected_run`: the file is moved to run 2, then a caller still expecting run 1 gets `40001`, and the pointer stays at run 2 | X8 → `1 failed, 81 passed` |
+| E-8 | `conninfo()` builds the string with `psycopg.conninfo.make_conninfo`, which quotes every value. `connect()` refuses (`LoginRefused`) any `user` or `dbname` that is not a plain lower-case identifier, before building anything. It then parses the string with `conninfo_to_dict` and refuses when the parsed, stripped `user` is the promoter (`PromoterLoginRefused`, a subclass). psycopg is still imported inside the functions (import-weight test passes) | `test_connect_refuses_promoter_login_bypasses[*]`, with `_open` patched to fail if reached: keyword injection `litkb_writer user=litkb_promoter passfile=…`, trailing space, leading space, trailing tab, injection through `dbname`, and an empty user (libpq would fall back to `PGUSER`). `test_conninfo_quotes_values`: the parsed user is the whole injected string, and a passfile path with a space and a quote round-trips | no referee X row; new rows E8a (drop the identifier check) → `3 failed`; E8b (unquoted conninfo, the pre-fix form) → `1 failed` |
+
+**Race tests:** each uses two separate connections and a real thread, through one helper, `_race`. The holder's
+transaction stays open until the waiter is observed in `pg_blocking_pids`, or until the waiter's thread has finished
+without ever blocking (the mutated case). Only then does the holder commit. No test relies on a sleep for
+ordering; the sleep is only a 50 ms poll interval. Each test asserts the outcome first and `blocked` last. Under X2
+and X9 the waiter still blocks, on a different lock, so the outcome is what discriminates. Under X1 and X3 it does
+not block at all.
+
+**E-8, what stays convention-only:** `connect()` now refuses every bypass the referee used through it. It cannot stop a
+caller that calls `litkb.db.connect._open(...)` or `psycopg.connect(...)` directly with the promoter passfile, or
+that imports `litkb.promote.connect`. Python has no private functions, and those paths need only the file. The
+referee's D-3 section stands: the credential is protected by where the file is kept (and by its ACL, which is Kam's
+call), not by this module.
+
+**Harness** (`qc/instruments/litkb_p1_mutations.py`): new rows X1, X2, X3, X4a, X4b, X7, X8, X9, E4a to E4e, E8a,
+E8b; K4a/K4b re-pointed at 0009. New flags: `--only ID,…` and `--whole-file`, which runs the whole test file under
+each mutation, as the referee did. Each source restore prints its sha256 match. Runs, all against `litkb_test`:
+- `--whole-file --only X1,X2,X3,X4a,X7,X8,X9`: baseline `82 passed`, **7/7 fired**, restored baseline `82 passed`.
+- `--whole-file --only E4a,…,E4e,E8a,E8b`: **7/7 fired**, both baselines `82 passed`.
+- Targeted run of every non-cluster row (M4a/M4b excluded, because they change grants on `litkb`): 48/50 fired. The
+  two that did not were K4a and K4b, still pointed at the dead 0008 text. After the re-point: `--only K4a,K4b`
+  2/2 fired.
+- Independent `sha256sum -c` against a fingerprint of 9 migrations, `connect.py`, `migrate.py`, `promote.py` and the
+  test file, taken before any mutation: 13/13 OK after all runs.
+
+**Applied:** `litkb_test` (session reset). On `litkb`: `applied 1 (0009_referee2_fixes.sql); 9 recorded`. A read-only
+probe on `litkb` found `admissions_admitter_not_blank` present, `admissions_second_session_signs_off` defined with
+`btrim(approver_session…`, and 0 admission rows.
+
+Suite: `82 passed`; `litkb Postgres tests: 72 passed`.
+
+**Ladder:** `PYTHONUTF8=1 py -3.12 qc/check.py --fast`: ruff and compile PASS; pytest `1 failed, 2032 passed, 74 warnings
+in 392.29s` (`litkb Postgres tests: 72 passed`). The one failure is the known
+`qc/test_experiments.py::test_pointer_paths_resolve[crown_state_model]`. The ladder stops there, so preflight was run on
+its own: `[PASSED] pre-flight clean`.

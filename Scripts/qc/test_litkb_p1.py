@@ -39,6 +39,19 @@ each guard shown to fire by the same harness:
        the promoter login only through litkb.promote          test_connect_refuses_the_promoter_login
   D-4  approver needs only a different session                test_admission_approver_must_be_another_session[*]
 
+Fixes after the second referee (Reports/LITKB_P1_REFEREE2_2026-09-13.md), migration 0009 and
+connect.py; each referee mutation X1-X4, X7-X9 now fails this file (harness rows of the same ids):
+
+  E-1  promote_commit's FOR UPDATE on the workstream (X9)     test_commit_waits_for_a_write_in_flight_and_is_refused
+  E-2  promote_rebase's source-row lock (X2)                  test_concurrent_rebases_of_one_workstream_make_one_copy
+       … and identity-row lock (X3)                           test_rebase_during_a_commit_that_moves_main_is_refused
+  E-3  onto names exactly the held chains (X4)                test_rebase_onto_must_name_exactly_the_held_chains[*]
+  E-4  labels non-blank after trim, compared trimmed (X7)     test_admission_approver_must_be_another_session[*]
+  E-6  add_evidence's FOR SHARE (X1)                          test_add_evidence_waits_for_a_prepare_in_flight_and_is_refused
+  E-7  set_current_run compare-and-set (X8)                   test_set_current_run_refuses_a_stale_expected_run
+  E-8  connect() refusal survives injection / whitespace      test_connect_refuses_promoter_login_bypasses[*],
+                                                              test_conninfo_quotes_values
+
 Isolation: the suite logs in ONLY as litkb_test, to litkb_test, which it resets and migrates
 once per session under an advisory lock (parallel worktrees serialise). Role privileges are
 exercised with SET ROLE: litkb_test is a member of reader/writer/promoter WITH INHERIT FALSE,
@@ -94,6 +107,41 @@ def test_connect_refuses_the_promoter_login():
     assert "passfile=" in info and "litkb_promoter" in info
     assert "passfile=" not in c.conninfo(c.DB_MAIN, "litkb_writer")
     assert callable(promote.connect)
+
+
+@pytest.mark.parametrize("dbname, user", [
+    pytest.param("litkb", "litkb_writer user=litkb_promoter passfile=promoter.pgpass", id="keyword_injection"),
+    pytest.param("litkb", "litkb_promoter ", id="trailing_space"),
+    pytest.param("litkb", " litkb_promoter", id="leading_space"),
+    pytest.param("litkb", "litkb_promoter\t", id="trailing_tab"),
+    pytest.param("litkb user=litkb_promoter", "litkb_writer", id="injection_through_dbname"),
+    pytest.param("litkb", "", id="empty_user_falls_back_to_PGUSER"),
+])
+def test_connect_refuses_promoter_login_bypasses(monkeypatch, dbname, user):
+    """Referee 2, E-8: the refusal used to be a string compare over an unquoted conninfo, so an
+    injected second `user=` keyword, or the promoter's name with a trailing space, connected as the
+    promoter. Each bypass must be refused before the driver is reached."""
+    from litkb.db import connect as c
+
+    def reached(*_a, **_k):
+        raise AssertionError(f"connect() reached the driver for dbname={dbname!r} user={user!r}")
+    monkeypatch.setattr(c, "_open", reached)
+    with pytest.raises(c.LoginRefused):
+        c.connect(dbname, user)
+
+
+def test_conninfo_quotes_values():
+    """E-8: a value is one value. The parsed connection string gives back exactly the string
+    passed, never a keyword smuggled inside it."""
+    pytest.importorskip("psycopg")
+    from psycopg.conninfo import conninfo_to_dict
+
+    from litkb.db import connect as c
+    injected = "litkb_writer user=litkb_promoter passfile=promoter.pgpass"
+    params = conninfo_to_dict(c.conninfo(c.DB_MAIN, injected))
+    assert params["user"] == injected and "passfile" not in params, params
+    params = conninfo_to_dict(c.conninfo(c.DB_MAIN, c.PROMOTER, passfile=r"D:\a b\it's.pgpass"))
+    assert params["passfile"] == r"D:\a b\it's.pgpass" and params["user"] == c.PROMOTER, params
 
 
 # ── harness ───────────────────────────────────────────────────────────────────────────────
@@ -299,26 +347,44 @@ def test_agent_roles_cannot_call_promotion_functions(pg, role, fn):
     assert not isinstance(ei.value, pg.errors.InsufficientPrivilege), ei.value
 
 
+_SIGN_OFF = "admissions_second_session_signs_off"
+_ADMITTER = "admissions_admitter_not_blank"
+
+
 @pg_only
-@pytest.mark.parametrize("approver_agent, approver_session, allowed", [
-    pytest.param("agentA", "sessA", False, id="same_agent_same_session"),
-    pytest.param("agentB", "sessA", False, id="other_agent_same_session"),
-    pytest.param("agentA", "sessB", True, id="same_agent_other_session"),
-    pytest.param("agentB", "sessB", True, id="other_agent_other_session"),
+@pytest.mark.parametrize("admitter_agent, admitter_session, approver_agent, approver_session, refused_by", [
+    pytest.param("agentA", "sessA", "agentA", "sessA", _SIGN_OFF, id="same_agent_same_session"),
+    pytest.param("agentA", "sessA", "agentB", "sessA", _SIGN_OFF, id="other_agent_same_session"),
+    pytest.param("agentA", "sessA", "agentA", "sessB", None, id="same_agent_other_session"),
+    pytest.param("agentA", "sessA", "agentB", "sessB", None, id="other_agent_other_session"),
+    # referee 2, E-4 (migration 0009): labels compare trimmed, and must be non-blank after trim
+    pytest.param("agentA", "sessA", "agentB", None, _SIGN_OFF, id="null_approver_session"),
+    pytest.param("agentA", "sessA", "agentB", "", _SIGN_OFF, id="empty_approver_session"),
+    pytest.param("agentA", "sessA", "agentB", "   ", _SIGN_OFF, id="blank_approver_session"),
+    pytest.param("agentA", "sessA", "agentB", "sessA ", _SIGN_OFF, id="approver_session_trailing_space"),
+    pytest.param("agentA", "sessA ", "agentB", "sessA", _SIGN_OFF, id="admitter_session_trailing_space"),
+    pytest.param("agentA", "sessA", "", "sessB", _SIGN_OFF, id="empty_approver_agent"),
+    pytest.param("agentA", "sessA", " \t", "sessB", _SIGN_OFF, id="blank_approver_agent"),
+    pytest.param("agentA", "   ", "agentB", "sessB", _ADMITTER, id="blank_admitter_session"),
+    pytest.param(" ", "sessA", "agentB", "sessB", _ADMITTER, id="blank_admitter_agent"),
 ])
-def test_admission_approver_must_be_another_session(pg, approver_agent, approver_session, allowed):
+def test_admission_approver_must_be_another_session(pg, admitter_agent, admitter_session, approver_agent,
+                                                    approver_session, refused_by):
     """decisions.yaml litkb-p0-foundation §15.13 as amended after the P1 referee (D-4): the
     approver needs only a different SESSION. Agent names are client-supplied labels, so the same
     name in another session is allowed and another name in the same session is refused
-    (migration 0008; the referee's R1/R1b cases are the two mixed rows)."""
+    (the referee's R1/R1b cases are the two mixed rows). After referee 2 (E-4, migration 0009):
+    every label must be non-blank after btrim, and sessions compare after btrim on both sides
+    (case-sensitive). The NULL-session row pins the IS NOT NULL clause (a CHECK that is NULL passes)."""
     q = ("INSERT INTO litkb.admissions (route, admitter_agent, admitter_session, state, "
-         "approver_agent, approver_session, approved_at) VALUES ('manual', 'agentA', 'sessA', "
+         "approver_agent, approver_session, approved_at) VALUES ('manual', %s, %s, "
          "'approved', %s, %s, now())")
-    if allowed:
-        pg.conn.execute(q, (approver_agent, approver_session))
+    args = (admitter_agent, admitter_session, approver_agent, approver_session)
+    if refused_by is None:
+        pg.conn.execute(q, args)
     else:
-        with pytest.raises(pg.errors.CheckViolation, match="admissions_second_session_signs_off"):
-            pg.conn.execute(q, (approver_agent, approver_session))
+        with pytest.raises(pg.errors.CheckViolation, match=refused_by):
+            pg.conn.execute(q, args)
 
 
 @pg_only
@@ -598,14 +664,37 @@ def _in_thread(fn):
     return th, box
 
 
-def _wait_blocked(pg, backend_pid, seconds=15.0):
-    """True once the backend is observed waiting on another session's lock."""
+def _wait_blocked(pg, backend_pid, seconds=15.0, thread=None):
+    """True once the backend is observed waiting on another session's lock. With `thread`, stop
+    early (False) when that thread has finished without ever being seen waiting: a guard whose
+    lock is removed does not block, and the test must then fail on the outcome, not time out."""
     end = time.monotonic() + seconds
     while time.monotonic() < end:
         if pg.one("SELECT cardinality(pg_blocking_pids(%s)) > 0", (backend_pid,))[0]:
             return True
+        if thread is not None and not thread.is_alive():
+            return False
         time.sleep(0.05)
     return False
+
+
+def _race(pg, holder, hold, waiter, wait):
+    """Deterministic two-connection race. `hold(holder)` runs inside the holder's open
+    transaction; `wait(waiter)` then starts in a thread on its own connection; the waiter is
+    observed blocked on the holder (or seen to finish without blocking); only then does the
+    holder commit. Returns (blocked, box) with box["result"] or box["error"] from the waiter."""
+    waiter_pid = _backend_pid(pg, waiter)   # before the thread takes the connection
+    try:
+        hold(holder)
+        th, box = _in_thread(lambda: wait(waiter))
+        blocked = _wait_blocked(pg, waiter_pid, thread=th)
+        holder.commit()
+    except BaseException:
+        holder.rollback()
+        raise
+    th.join(30)
+    assert not th.is_alive(), "the waiting connection never returned"
+    return blocked, box
 
 
 def _holder(pg, role):
@@ -1087,3 +1176,151 @@ def test_rebase_carries_evidence(pg):
                            "WHERE use_version_id = %s", (new_uv,)).fetchall()
     assert rows == [(w["text"][4:20], 4, 20, True)]
     assert pg.one("SELECT count(*) FROM litkb.use_evidence WHERE use_version_id = %s", (held_uv,))[0] == 1
+
+
+# ── fixes after the second referee (Reports/LITKB_P1_REFEREE2_2026-09-13.md) ──────────────
+
+@pg_only
+def test_commit_waits_for_a_write_in_flight_and_is_refused(pg):
+    """E-1 (referee race e2, mutation X9): a writer's write on a NEW entity is held open; then
+    promote_commit runs. Its FOR UPDATE on the workstream row waits for the writer's FOR SHARE,
+    and after the writer commits it sees a changed version set and refuses (40001), leaving the
+    workstream open. Without that lock the commit promotes and marks the workstream merged over
+    the writer's new head, stranding it."""
+    ws = pg.ws()
+    writer_a = pg.session("litkb_writer")
+    gap_id, _g1 = pg.proposal(writer_a, "gap", None, {"slug": f"gap-{uuid.uuid4().hex[:8]}"}, None,
+                              {"question": "q", "gap_state": "open"}, None, ws)
+    promoter = pg.session("litkb_promoter")
+    pid = pg.one("SELECT litkb.promote_prepare(%s, repeat('a', 40), NULL)", (ws,), conn=promoter)[0]
+    holder = _holder(pg, "litkb_writer")
+    blocked, box = _race(
+        pg, holder,
+        lambda k: pg.proposal(k, "gap", None, {"slug": f"gap-{uuid.uuid4().hex[:8]}"}, None,
+                              {"question": "written while the commit ran", "gap_state": "open"}, None, ws),
+        promoter,
+        lambda k: pg.one("SELECT litkb.promote_commit(%s, repeat('b', 40))", (pid,), conn=k))
+    err = box.get("error")
+    assert getattr(err, "sqlstate", None) == "40001", f"commit over a write in flight must be refused 40001, got {box}"
+    assert pg.one("SELECT state FROM litkb.workstreams WHERE id = %s", (ws,))[0] == "open"
+    assert pg.one("SELECT count(*) FROM litkb.ws_heads WHERE workstream_id = %s", (ws,))[0] == 2, \
+        "both chains must still head the open workstream"
+    assert pg.pointer("gaps", gap_id) is None
+    assert blocked, "the commit was never observed waiting on the writer; the race was not exercised"
+
+
+def _rebase_count(pg, source_ws):
+    return pg.one("SELECT count(*) FROM litkb.rebases WHERE source_workstream_id = %s", (source_ws,))[0]
+
+
+@pg_only
+def test_concurrent_rebases_of_one_workstream_make_one_copy(pg, scratch_repo):
+    """E-2 (referee race b1, mutation X2): a rebase of a merged workstream is held open; a second
+    rebase of the same workstream into another target waits on the source row's FOR UPDATE, then
+    finds nothing held (22023). Without that lock it waits only on the gap identity row and then
+    copies every chain a second time."""
+    from litkb import promote
+    s = _held_world(pg, scratch_repo)
+    onto = promote.held_chains(s["promoter"], s["ws1"])
+    target_a, target_b = pg.ws(), pg.ws()
+    holder = _holder(pg, "litkb_promoter")
+    second = pg.session("litkb_promoter")
+    blocked, box = _race(
+        pg, holder, lambda k: promote.rebase(k, s["ws1"], target_a, onto, "o", "sess-1"),
+        second, lambda k: promote.rebase(k, s["ws1"], target_b, onto, "o", "sess-2"))
+    assert isinstance(box.get("error"), pg.errors.InvalidParameterValue) and \
+        "holds no chain" in str(box["error"]), f"the second rebase must find nothing held, got {box}"
+    assert _rebase_count(pg, s["ws1"]) == 2, "each held chain must be copied exactly once"
+    assert pg.one("SELECT count(*) FROM litkb.ws_heads WHERE workstream_id = %s", (target_b,))[0] == 0
+    assert pg.one("SELECT count(*) FROM litkb.ws_heads WHERE workstream_id = %s", (target_a,))[0] == 2
+    assert blocked, "the second rebase was never observed waiting; the race was not exercised"
+
+
+@pg_only
+def test_rebase_during_a_commit_that_moves_main_is_refused(pg, scratch_repo):
+    """E-2 (referee race a1, mutation X3): another workstream's commit that moves main's gap
+    pointer is held open; a rebase reviewed against the old pointer waits on the identity row's
+    FOR UPDATE, re-reads main after the commit and is refused (40001). Without that lock it reads
+    the pre-commit pointer, passes the compare-and-set and copies onto a stale main."""
+    from litkb import promote
+    s = _held_world(pg, scratch_repo)
+    onto = promote.held_chains(s["promoter"], s["ws1"])
+    assert onto[f"gap:{s['gap']}"] == str(s["g2b"])
+    ws4 = pg.ws()
+    _, g3 = pg.proposal(s["writer"], "gap", s["gap"], None, s["g2b"], {"question": "q v3 by ws4", "gap_state": "open"},
+                        "ws4 moves main again", ws4, agent="agentD", session="sessD")
+    pid4 = promote.prepare(s["promoter"], ws4, s["prepared"], None)
+    holder = _holder(pg, "litkb_promoter")
+    rebaser = pg.session("litkb_promoter")
+    target = pg.ws()
+    blocked, box = _race(
+        pg, holder, lambda k: pg.one("SELECT litkb.promote_commit(%s, repeat('b', 40))", (pid4,), conn=k),
+        rebaser, lambda k: promote.rebase(k, s["ws1"], target, onto, "o", "sess-rebase"))
+    assert getattr(box.get("error"), "sqlstate", None) == "40001", \
+        f"a rebase onto the main a concurrent commit just left must be refused 40001, got {box}"
+    assert pg.pointer("gaps", s["gap"]) == g3
+    assert _rebase_count(pg, s["ws1"]) == 0, "a copy based on the stale main was made"
+    assert pg.one("SELECT count(*) FROM litkb.ws_heads WHERE workstream_id = %s", (s["ws1"],))[0] == 2
+    assert blocked, "the rebase was never observed waiting on the commit; the race was not exercised"
+
+
+@pg_only
+@pytest.mark.parametrize("case", ["missing_key", "extra_key"])
+def test_rebase_onto_must_name_exactly_the_held_chains(pg, scratch_repo, case):
+    """E-3 (mutation X4), a fresh world per case: an onto that leaves out a held chain would
+    rebase that chain unreviewed (here the use chain, whose main pointer is NULL, so the
+    per-chain compare-and-set cannot catch the omission); an onto naming a chain the workstream
+    does not hold is also refused."""
+    from litkb import promote
+    s = _held_world(pg, scratch_repo)
+    onto = promote.held_chains(s["promoter"], s["ws1"])
+    use_key = f"use:{s['use']}"
+    assert onto[use_key] is None
+    if case == "missing_key":
+        del onto[use_key]
+    else:
+        onto[f"gap:{uuid.uuid4()}"] = None
+    target = pg.ws()
+    with pytest.raises(pg.errors.InvalidParameterValue, match="exactly the held chains"):
+        promote.rebase(s["promoter"], s["ws1"], target, onto, "o", "s")
+    assert _rebase_count(pg, s["ws1"]) == 0
+    assert pg.one("SELECT count(*) FROM litkb.ws_heads WHERE workstream_id = %s", (target,))[0] == 0
+
+
+@pg_only
+def test_add_evidence_waits_for_a_prepare_in_flight_and_is_refused(pg):
+    """E-6 (referee race d, mutation X1): promote_prepare is held open; add_evidence on the
+    version being prepared waits on the workstream row (FOR SHARE vs prepare's FOR UPDATE), then
+    sees the prepared state and is refused (55000) with no row written, and the prepared
+    promotion still commits. Without the lock the evidence lands and the commit fails 40001."""
+    w = _evidence_world(pg)
+    holder = _holder(pg, "litkb_promoter")
+    writer = pg.session("litkb_writer")
+    prepared = {}
+
+    def hold(k):
+        prepared["pid"] = pg.one("SELECT litkb.promote_prepare(%s, repeat('a', 40), NULL)", (w["ws"],), conn=k)[0]
+    blocked, box = _race(
+        pg, holder, hold,
+        writer, lambda k: _add_evidence(pg, k, w, w["ws"], w["uv"], w["text"][4:20], 4, 20))
+    assert getattr(box.get("error"), "sqlstate", None) == "55000", \
+        f"evidence added during a prepare must be refused 55000, got {box}"
+    assert pg.one("SELECT count(*) FROM litkb.use_evidence WHERE use_version_id = %s", (w["uv"],))[0] == 0
+    promoter = pg.session("litkb_promoter")
+    out = pg.one("SELECT litkb.promote_commit(%s, repeat('b', 40))", (prepared["pid"],), conn=promoter)[0]
+    assert out["committed"] == 1, out
+    assert blocked, "add_evidence was never observed waiting on the prepare; the race was not exercised"
+
+
+@pg_only
+def test_set_current_run_refuses_a_stale_expected_run(pg):
+    """E-7 (mutation X8): set_current_run is a compare-and-set. A caller that still believes the
+    file is at its first run, after another caller moved it, is refused (40001)."""
+    w = _evidence_world(pg)
+    writer = pg.session("litkb_writer")
+    moved = _run(pg, writer, w["file"], "ok")
+    writer.execute("SELECT litkb.set_current_run(%s, %s, %s)", (w["file"], w["run"], moved))
+    late = _run(pg, writer, w["file"], "ok")
+    with pytest.raises(pg.errors.SerializationFailure, match="CAS refused"):
+        writer.execute("SELECT litkb.set_current_run(%s, %s, %s)", (w["file"], w["run"], late))
+    assert pg.one("SELECT current_run_id FROM litkb.files WHERE id = %s", (w["file"],))[0] == moved

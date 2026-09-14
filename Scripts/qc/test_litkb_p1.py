@@ -103,6 +103,7 @@ def test_connect_refuses_the_promoter_login():
     from litkb.db import connect as c
     with pytest.raises(c.PromoterLoginRefused):
         c.connect(c.DB_MAIN, c.PROMOTER)
+    pytest.importorskip("psycopg")   # conninfo() quotes through psycopg (referee 2, E-8)
     info = c.conninfo(c.DB_MAIN, c.PROMOTER, passfile=c.promoter_passfile())
     assert "passfile=" in info and "litkb_promoter" in info
     assert "passfile=" not in c.conninfo(c.DB_MAIN, "litkb_writer")

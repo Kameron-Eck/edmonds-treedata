@@ -57,22 +57,23 @@ def connect(dbname, user, *, autocommit=False):
     What this refusal is: it stops a MISTAKE in a caller of this function. It is convention,
     not enforcement, against code that calls _open() or psycopg directly with the promoter's
     passfile; see litkb.promote and Reports/LITKB_P1_REFEREE2_2026-09-13.md, "D-3"."""
-    from psycopg.conninfo import conninfo_to_dict
-
+    refused = PromoterLoginRefused(
+        f"{PROMOTER} connects only through litkb.promote.connect(); agents use litkb_reader or litkb_writer")
     # BEGIN guard: login names are plain identifiers
     for what, value in (("user", user), ("dbname", dbname)):
         if not isinstance(value, str) or not _NAME.fullmatch(value):
             raise LoginRefused(f"litkb connect: {what} must be a plain lower-case identifier, got {value!r}")
     # END guard: login names are plain identifiers
-    info = conninfo(dbname, user)
-    params = conninfo_to_dict(info)
     # BEGIN guard: promoter login only through the promote tool
-    if str(params.get("user", "")).strip() == PROMOTER:
-        raise PromoterLoginRefused(
-            f"{PROMOTER} connects only through litkb.promote.connect(); agents use "
-            "litkb_reader or litkb_writer")
+    if user == PROMOTER:        # before any driver import
+        raise refused
+    from psycopg.conninfo import conninfo_to_dict
+
+    # second lock: the user exactly as libpq will parse the connection string
+    if str(conninfo_to_dict(conninfo(dbname, user)).get("user", "")).strip() == PROMOTER:
+        raise refused
     # END guard: promoter login only through the promote tool
-    return _open(info, autocommit)
+    return _open(conninfo(dbname, user), autocommit)
 
 
 def _open(info, autocommit):

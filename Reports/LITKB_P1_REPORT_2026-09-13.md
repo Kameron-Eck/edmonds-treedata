@@ -187,3 +187,60 @@ warnings in 388.16s`. The one failure is the known pre-existing
   workstreams is design work.
 - The writer's column INSERT on `gap_versions` / `use_versions` is unchanged. The referee noted it as noise, not a
   bypass.
+
+## Kam's decisions implemented
+
+Authority: `Scripts/decisions.yaml` `litkb-p0-foundation`, "After the P1 referee" (D-2, D-3, D-4, D-9).
+**Status of this evidence (3.4c):** the implementer wrote the code, the tests and the mutations below. This is
+author-produced evidence, and no referee has re-run it.
+
+All database changes are in `0008_kam_referee_decisions.sql`. Every harness row targets 0008 or live Python, never
+the replaced 0001 constraint text.
+
+| Decision | Implementation | Test (`qc/test_litkb_p1.py`) | Mutation → result |
+|---|---|---|---|
+| D-2 rebase held chains | `promote_rebase(source_ws, target_ws, onto, agent, session)`, SECURITY DEFINER, EXECUTE for `litkb_promoter` only. The source must be `merged`. Its remaining `ws_heads` are exactly the chains held at prepare or at commit. `onto` must name every held chain with main's current version, checked by compare-and-set under the identity-row lock (a stale name is refused with 40001). The target must be open, have no prepared promotion, and have no head for the entity. Each chain gets one new version in the target, carrying the head's content, with `based_on` = main's current and `rebased_from_version_id` = the old head. Old versions are marked `rebased` (new state value), never deleted. Evidence rows are copied and re-verified by the trigger. Each rebase is recorded in `litkb.rebases`. Base rule relaxed: a rebased copy may have no base, since a never-promoted entity has none. Python: `promote.held_chains`, `promote.rebase` | `test_held_chain_is_rebased_and_promotes` replays 22023 → 55000 → 22023 → 22023, then rebases, prepares 2/2 and commits 2. Kill: `test_kill_rebase_onto_stale_main_is_refused`. Guards: `test_rebase_guard_*` ×4, `test_rebase_carries_evidence` | K2a–K2h all FIRED. K2e fired through the `ws_heads` primary key, which is the second lock |
+| D-3 promoter credential | Reader and writer have no EXECUTE on prepare, commit, abandon or rebase. `connect.connect()` refuses the promoter login. `promote.connect()` is the only path, using its own passfile `connect.promoter_passfile()` (default `D:\edmonds-pipeline\secrets\litkb_promoter.pgpass`). Provision now writes the promoter's line there. The wording "the database refuses" is changed to "the promote tool refuses" in decisions, design §5, §15.7 and §4.7 | `test_agent_roles_cannot_call_promotion_functions[*]` (8, each with a promoter control), `test_connect_refuses_the_promoter_login` | K3a, K3b, K3c FIRED |
+| D-4 different session suffices | `admissions_second_session_signs_off` compares sessions only | `test_admission_approver_must_be_another_session[*]`: same/same refused, other agent + same session refused (R1), same agent + other session allowed (R1b), other/other allowed | K4a (drop session clause), K4b (re-add agent clause) FIRED |
+| D-9 | Design §9 and §4.7 reworded. The existing server-refusal test is kept | `test_kill_test_role_is_refused_by_the_server_on_litkb` | M4a/M4b FIRED |
+
+**Not done, on purpose:** provisioning was not re-run and the pgpass files were not touched. Reading them was
+refused to this session. As built, P1 provisioning wrote the promoter's line into the shared
+`%APPDATA%\postgresql\pgpass.conf`; this is inferred from the code, not measured. **Until Kam re-runs
+`py -3.12 -m litkb.db.provision`, the promoter password stays in the shared file.** The re-run resets that
+password and writes it to the promoter's own file. The stale shared line can then be deleted by hand.
+`promote.connect()` against `litkb` is therefore untested. The tests reach the promoter only through
+`SET ROLE` on `litkb_test`.
+
+**Harness:** baseline 35 passed; **37/37 mutations fired**; restored baseline 35 passed. A separate
+`sha256sum -c` against a fingerprint of all 8 migrations, `promote.py`, `migrate.py` and `connect.py`, taken before
+the run, printed OK for all 11 files. Suite: `59 passed`; `litkb Postgres tests: 56 passed`.
+
+**Applied:** `litkb_test` (session reset). On `litkb`: `applied 1 (0008_kam_referee_decisions.sql); 8 recorded`.
+A read-only probe on `litkb` printed `f|f|t|f|1|f`:
+- writer EXECUTE `promote_rebase`: f
+- reader EXECUTE `promote_rebase`: f
+- promoter EXECUTE `promote_rebase`: t
+- reader EXECUTE `promote_commit`: f
+- new admissions constraint present: 1
+- `litkb_test` CONNECT on `litkb`: f
+
+**Ladder:** `check.py --fast`: ruff and compile PASS; pytest `1 failed, 2009 passed`. The one failure is the known
+`test_pointer_paths_resolve[crown_state_model]`. The ladder stops there, so preflight was run on its own:
+`[PASSED] pre-flight clean`.
+
+**Residual gaps (assessed; none fixed, all need design):**
+1. *Writer inserts an `ok` run and makes it current.* This un-promotes that file's evidence. Proposal: a
+   `litkb_ingest` role owning INSERT on the extraction tables and EXECUTE on `set_current_run`, used only by the
+   local ingest CLI. The writer loses both. Design §4.7 currently gives extraction tables to the writer, so this is
+   a design change.
+2. *A named workstream isn't checked against the caller.* Proposal: `open_workstream` returns a random token;
+   the database stores only its hash; the token goes into the git-ignored `.litkb-workstream` file; every write
+   function takes the token and compares the hash. Like session labels, this stops mistakes, not an agent that
+   reads another worktree's file.
+3. *Writer column INSERT on `gap_versions` / `use_versions`.* Design §4.6 check 5 and §4.7 grant agents INSERT on
+   proposals, so revoking it contradicts the design. The concrete noise path: a directly inserted `proposed` use
+   version in the writer's own workstream is accepted by `add_evidence`, though no chain reaches it. A direct
+   insert can also take the next `version_no` and make a concurrent `write_proposal` fail with 23505 instead of
+   40001. Proposal: revoke the INSERT; proposals go only through `write_proposal`. Re-point harness row R2 at the
+   revoke.

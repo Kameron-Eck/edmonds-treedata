@@ -272,11 +272,11 @@ decisions:
     decided: "2026-09-13"
     decision: >-
       §15.1 server: PostgreSQL 18 on port 5433. §15.7 promotion: the orchestrator runs
-      promote commit after it sees Kam's merge commit on main; the database refuses a
+      promote commit after it sees Kam's merge commit on main; the promote tool refuses a
       commit that is not reachable from main. §15.12 backup: a nightly pg_dump of the
       database records (no PDFs, no derived artifacts) is in scope. §15.13 manual
-      admissions: signed off by a second agent session; the database refuses
-      admitter = approver. §15.15 year tolerance: ±1 year allowed only when the title and
+      admissions: signed off by a second agent session; the database refuses an
+      approver session equal to the admitter's. §15.15 year tolerance: ±1 year allowed only when the title and
       first author both match the registry record; otherwise the year must match exactly.
       §15.5 (answered later the same day): Unpaywall uses Kam's email, held only in the
       untracked settings file D:\edmonds-pipeline\secrets\paper_search.env; optional source

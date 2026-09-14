@@ -246,10 +246,12 @@ caught them.
 **Check 4 — manual admissions are proposals.** A work with no confirmable identifier (older
 proceedings, reports) is admitted with `verified_by = manual` and its `admissions.state = proposed`:
 evidence rows name the source and a held file whose text contains the title. It becomes visible as
-a fact only when approved by an agent *and* session different from the admitter's (a check
-constraint on `admissions`); until then it appears only in its workstream's view and is flagged in
-exports. Limits: agent and session names are recorded by the client, so the constraint stops an
-honest mistake, not a forged identity. Whether sign-off must come from Kam is §15.13.
+a fact only when approved in a session different from the admitter's (a check constraint on
+`admissions` compares session identifiers only: agent names are client-supplied labels, so the same
+agent name in another session may approve, and another name in the same session may not —
+decisions.yaml `litkb-p0-foundation`, D-4); until then it appears only in its workstream's view and
+is flagged in exports. Limits: session names are recorded by the client, so the constraint stops an
+honest mistake, not a forged identity (§15.13).
 
 **Check 5 — every reference points at something real.** Enforced by the database: foreign keys,
 the unique normalised identifiers, unique sha256, enum checks on every status column, a regex check
@@ -263,11 +265,18 @@ and promotion functions move pointers or change `state`.
 |---|---|---|
 | `litkb_reader` | SELECT | the MCP query tools; exports |
 | `litkb_writer` | INSERT into proposals, candidates, admissions, attempts, extraction tables; EXECUTE the write functions; no column privilege on `quote_verified` or any `state` | agents, acquisition, ingest |
-| `litkb_promoter` | EXECUTE `promote_prepare()` and `promote_commit()` | §5; who holds it is §15.7 |
-| `litkb_test` | CONNECT on database `litkb_test` only (CONNECT on `litkb` revoked from PUBLIC) | the test suite (§9) |
+| `litkb_promoter` | EXECUTE `promote_prepare()`, `promote_commit()`, `promote_abandon()`, `promote_rebase()`; reader and writer hold none of these (tested) | the promote tool only (§5, §15.7) |
+| `litkb_test` | CONNECT on `litkb_test`; the server refuses it on `litkb` (CONNECT revoked from PUBLIC there). It can also open Postgres's empty system databases, which grant CONNECT to PUBLIC; the property that counts is that `litkb` refuses it | the test suite (§9) |
 | `litkb_owner` | DDL, migrations | migration runner only |
 
-Credentials live in `D:\edmonds-pipeline\secrets\` (a `pgpass` file), never in the repo.
+Credentials are never in the repo. The owner, reader, writer and test logins are lines in the
+libpq pgpass file `%APPDATA%\postgresql\pgpass.conf`, written by `litkb.db.provision` (this section
+used to say `D:\edmonds-pipeline\secrets\`; P1 never put them there). The promoter's line lives in
+a passfile of its own, `D:\edmonds-pipeline\secrets\litkb_promoter.pgpass`
+(`litkb.db.connect.promoter_passfile()`), which only `litkb.promote.connect()` names; the shared
+`litkb.db.connect.connect()` refuses the promoter login, so an agent's reader or writer connection
+never carries it (decisions.yaml `litkb-p0-foundation`, D-3). The server cannot tell the promote
+tool from any other process that reads that file: the credential is protected by where it is kept.
 
 ---
 
@@ -295,14 +304,24 @@ git to confirm that Kam has merged.
      `Reports/litkb_promotions/<date>_<slug>.md` — committed **on the work branch**, so it goes to
      Kam inside the merge he reviews.
 4. **Commit, only after Kam merges.** `litkb promote commit --ws <slug> --merge-commit <sha>`:
-   - refuses unless `git merge-base --is-ancestor <sha> main` succeeds against a freshly fetched
-     `main`, and the prepared commit is an ancestor of `<sha>`;
-   - refuses if the version set no longer hashes to what was prepared (something changed after the
-     report Kam saw);
+   - **the promote tool** refuses unless `git merge-base --is-ancestor <sha> main` succeeds against a
+     freshly fetched `main`, and the prepared commit is an ancestor of `<sha>`. The database cannot
+     run git, so this check lives in the tool, and the tool holds the only promoter credential (§4.7);
+   - the database refuses if the version set no longer hashes to what was prepared (something changed
+     after the report Kam saw);
    - in one transaction, for each chain **all or nothing**: compare-and-set main's pointers from
      each chain's base to its head. If any pointer in a chain has moved, that chain stays `prepared`
      with a conflict note, and every chain that depends on it stays too;
    - marks the workstream `merged` with the merge commit.
+   - **Rebase what the commit held back** (decisions.yaml `litkb-p0-foundation`, D-2). A held chain is
+     never left stuck: `promote_rebase()` (promoter or owner only) copies each chain the merged
+     workstream still holds into a fresh open workstream, one new version per chain carrying the
+     head's content, based on main's current version as the promoter names it. A name main has since
+     left is refused (compare-and-set), so the rebase is reviewed against the main it lands on. The
+     new version records `rebased_from_version_id`; the old versions are kept and marked `rebased`;
+     evidence rows are copied and re-verified; `rebases` records source and target workstreams, the
+     promotion that held the chain, and the versions. The fresh workstream then goes through
+     prepare, Kam's merge and commit like any other.
 5. **Abandon.** `litkb ws abandon` marks the workstream; its versions stay, invisible to main.
 
 ---
@@ -420,9 +439,12 @@ adapter's page offset or y-flip is deliberately removed.
 - **Ad-hoc SQL for Claude:** the crystaldba `postgres-mcp` server in `--access-mode=restricted`
   (read-only transactions, rejects COMMIT/ROLLBACK **[F]**) connected as `litkb_reader`, beside the
   domain tools above — two locks, since a parser guard alone is defence in depth.
-- **Tests:** a throwaway database `litkb_test`, connected through the `litkb_test` role, which can
-  CONNECT to `litkb_test` and nothing else — so a test that is pointed at `litkb` fails in the
-  server, not only in a client-side conftest guard (the lake-guard lesson in `qc/conftest.py`). Tests
+- **Tests:** a throwaway database `litkb_test`, connected through the `litkb_test` role. The server
+  refuses that role on `litkb` — so a test that is pointed at `litkb` fails in the server, not only
+  in a client-side conftest guard (the lake-guard lesson in `qc/conftest.py`). The test login can
+  also open Postgres's empty system databases (`postgres`, `template1`, `postgis_36_sample` grant
+  CONNECT to PUBLIC); the property that counts is that `litkb` refuses it, and a test asserts exactly
+  that (decisions.yaml `litkb-p0-foundation`, D-9). Tests
   that need the server carry a `requires_litkb_pg` marker and skip when the server or role is absent,
   so the ladder still runs on a machine without Postgres; the skip count is printed, never silent.
 
@@ -564,7 +586,10 @@ checks). P4–P7 add the knowledge layer. P8 makes it Claude's daily tool.
 6. **Derived artifacts location:** `D:\edmonds-pipeline\Literture\_derived\` — proposed yes.
 7. **Promotion authority:** `promote prepare` runs on the branch and its report reaches you inside
    the merge; `promote commit` runs only after you merge (§5). Who runs commit — the orchestrator,
-   after seeing your merge, or you?
+   after seeing your merge, or you? **Decided** (decisions.yaml `litkb-p0-foundation`): the
+   orchestrator runs commit after it sees the merge commit on main; the promote tool refuses a
+   commit that is not reachable from main (the database cannot run git), and only the promote tool
+   holds the promoter credential (§4.7).
 8. **Figure descriptions by Claude vision:** on demand only (proposed), or a bulk pass later.
 9. **GROBID locally:** enable WSL2 (admin, one reboot) or install Docker Desktop, or keep stage 2 on
    Colab only.
@@ -578,7 +603,8 @@ checks). P4–P7 add the knowledge layer. P8 makes it Claude's daily tool.
     approvals and promotions that no file regenerates. Is a periodic `pg_dump` (no PDFs, no derived
     artifacts) in scope?
 13. **Manual-admission sign-off:** a second agent session (the database enforces admitter ≠
-    approver), or you only?
+    approver), or you only? **Decided:** a second session. The database refuses an approver session
+    equal to the admitter's; agent names are labels and are not compared (D-4).
 14. **Who may approve admissions refused at binding** (scans with no first-page text layer, papers
     whose first page is a cover sheet): wait for OCR in P4, or a manual admission under item 13?
 15. **Year tolerance:** the DOI-first rule requires the registry year to match exactly; allow ±1
@@ -600,7 +626,7 @@ checks). P4–P7 add the knowledge layer. P8 makes it Claude's daily tool.
 | Colab writer path to Drive | artifacts silently lost | existing verified path + independent server-side check (memory); packed shards with hashed done markers |
 | Library licences **[F]**: PyMuPDF AGPL or commercial; Marker/Surya weights free only for research, personal use and startups under $5M; Nougat weights CC-BY-NC | constraints on use | pypdfium2 instead of PyMuPDF; Docling (MIT), GROBID (Apache-2.0), MinerU (custom licence based on Apache 2.0) preferred |
 | Concurrency on one local server | Colab cannot write the DB | by design: Colab writes artifacts, ingest is local |
-| Recorded agent/session identities are client-supplied | the admitter ≠ approver constraint can be defeated by a forged name | stops mistakes, not adversaries; §15.13 |
+| Recorded agent/session identities are client-supplied | the approver-session ≠ admitter-session constraint can be defeated by a forged session label | stops mistakes, not adversaries; §15.13 |
 | The database holds history no file regenerates, and has no backup | a disk loss erases use histories and promotions | §15.12 |
 | Disk | derived artifacts grow | page images only for scans and disputed pages; sizes reported per phase |
 

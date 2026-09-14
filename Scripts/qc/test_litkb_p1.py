@@ -29,6 +29,16 @@ each guard below was also shown to fire by the same harness:
   D-7  char_end beyond the block text is refused              test_quote_char_end_beyond_text_is_refused
   D-8  the losing concurrent writer gets 40001                test_losing_concurrent_writer_gets_40001[*]
 
+Kam's decisions on the referee findings (decisions.yaml litkb-p0-foundation), migration 0008;
+each guard shown to fire by the same harness:
+
+  D-2  held chains are rebased, then promote                  test_held_chain_is_rebased_and_promotes
+       kill: a rebase onto a stale main version is refused    test_kill_rebase_onto_stale_main_is_refused
+       rebase guards; evidence carried                        test_rebase_guard_*, test_rebase_carries_evidence
+  D-3  reader/writer cannot call any promotion function       test_agent_roles_cannot_call_promotion_functions[*]
+       the promoter login only through litkb.promote          test_connect_refuses_the_promoter_login
+  D-4  approver needs only a different session                test_admission_approver_must_be_another_session[*]
+
 Isolation: the suite logs in ONLY as litkb_test, to litkb_test, which it resets and migrates
 once per session under an advisory lock (parallel worktrees serialise). Role privileges are
 exercised with SET ROLE: litkb_test is a member of reader/writer/promoter WITH INHERIT FALSE,
@@ -70,6 +80,20 @@ def test_migration_files_are_named_and_numbered():
     from litkb.db import migrate
     found = migrate.discover()
     assert [v for v, *_ in found] == list(range(1, len(found) + 1))
+
+
+def test_connect_refuses_the_promoter_login():
+    """D-3: the promoter login has one connection path, litkb.promote.connect(). The shared
+    connect() that agents' reader and writer connections use refuses it before any driver is
+    loaded, and the promote tool's path names the promoter's own passfile."""
+    from litkb import promote
+    from litkb.db import connect as c
+    with pytest.raises(c.PromoterLoginRefused):
+        c.connect(c.DB_MAIN, c.PROMOTER)
+    info = c.conninfo(c.DB_MAIN, c.PROMOTER, passfile=c.promoter_passfile())
+    assert "passfile=" in info and "litkb_promoter" in info
+    assert "passfile=" not in c.conninfo(c.DB_MAIN, "litkb_writer")
+    assert callable(promote.connect)
 
 
 # ── harness ───────────────────────────────────────────────────────────────────────────────
@@ -251,15 +275,50 @@ def test_roles_reach_only_their_functions(pg):
         writer.execute("UPDATE litkb.works SET current_version_id = NULL WHERE false")
 
 
+_PROMOTION_CALLS = {
+    "promote_prepare": "SELECT litkb.promote_prepare(%s::uuid, repeat('a', 40), NULL)",
+    "promote_commit": "SELECT litkb.promote_commit(%s::uuid, repeat('a', 40))",
+    "promote_abandon": "SELECT litkb.promote_abandon(%s::uuid)",
+    "promote_rebase": "SELECT litkb.promote_rebase(%s::uuid, gen_random_uuid(), '{}'::jsonb, 'a', 's')",
+}
+
+
 @pg_only
-def test_admitter_cannot_approve_own_manual_admission(pg):
-    """decisions.yaml litkb-p0-foundation §15.13: the database refuses admitter = approver."""
+@pytest.mark.parametrize("fn", sorted(_PROMOTION_CALLS))
+@pytest.mark.parametrize("role", ["litkb_reader", "litkb_writer"])
+def test_agent_roles_cannot_call_promotion_functions(pg, role, fn):
+    """D-3: the promoter credential stays in the promote tool, and the agent roles hold no
+    EXECUTE on any promotion function. Control: the promoter reaches the function (it is
+    refused on the arguments, not on privilege)."""
+    agent = pg.session(role)
+    with pytest.raises(pg.errors.InsufficientPrivilege):
+        agent.execute(_PROMOTION_CALLS[fn], (uuid.uuid4(),))
+    promoter = pg.session("litkb_promoter")
+    with pytest.raises(pg.psycopg.DatabaseError) as ei:
+        promoter.execute(_PROMOTION_CALLS[fn], (uuid.uuid4(),))
+    assert not isinstance(ei.value, pg.errors.InsufficientPrivilege), ei.value
+
+
+@pg_only
+@pytest.mark.parametrize("approver_agent, approver_session, allowed", [
+    pytest.param("agentA", "sessA", False, id="same_agent_same_session"),
+    pytest.param("agentB", "sessA", False, id="other_agent_same_session"),
+    pytest.param("agentA", "sessB", True, id="same_agent_other_session"),
+    pytest.param("agentB", "sessB", True, id="other_agent_other_session"),
+])
+def test_admission_approver_must_be_another_session(pg, approver_agent, approver_session, allowed):
+    """decisions.yaml litkb-p0-foundation §15.13 as amended after the P1 referee (D-4): the
+    approver needs only a different SESSION. Agent names are client-supplied labels, so the same
+    name in another session is allowed and another name in the same session is refused
+    (migration 0008; the referee's R1/R1b cases are the two mixed rows)."""
     q = ("INSERT INTO litkb.admissions (route, admitter_agent, admitter_session, state, "
          "approver_agent, approver_session, approved_at) VALUES ('manual', 'agentA', 'sessA', "
          "'approved', %s, %s, now())")
-    with pytest.raises(pg.errors.CheckViolation):
-        pg.conn.execute(q, ("agentA", "sessA"))
-    pg.conn.execute(q, ("agentB", "sessB"))
+    if allowed:
+        pg.conn.execute(q, (approver_agent, approver_session))
+    else:
+        with pytest.raises(pg.errors.CheckViolation, match="admissions_second_session_signs_off"):
+            pg.conn.execute(q, (approver_agent, approver_session))
 
 
 @pg_only
@@ -854,3 +913,177 @@ def test_use_whose_gap_is_absent_is_held_at_prepare(pg):
     held = {c["chain"]: c.get("reasons", []) for c in conflicts if "reasons" in c}
     assert any("neither promoted nor in this promotion" in r for r in held.get(f"use:{use_id}", [])), conflicts
     assert counts == {"chains": 2, "prepared": 1, "held": 1}
+
+
+# ── Kam's decisions on the referee findings (migration 0008) ──────────────────────────────
+
+def _held_world(pg, scratch_repo):
+    """The referee's H1: ws1 prepares G v2 + a use depending on G + an independent use; ws2
+    promotes its own G v2 first; ws1's commit then holds the gap chain and its dependent."""
+    from litkb import promote
+    repo, prepared = scratch_repo
+    merge = _merge(repo)
+    s = _dependency_setup(pg)
+    promoter = pg.session("litkb_promoter")
+    pid1 = promote.prepare(promoter, s["ws1"], prepared, None)
+    g2b = _move_main_gap(pg, s, repo, prepared, merge)
+    out = promote.commit(promoter, pid1, merge, repo=repo, fetch_remote=None)
+    assert out["committed"] == 1 and out["held"] == 2, out
+    s.update(repo=repo, prepared=prepared, merge=merge, promoter=promoter, pid1=pid1, g2b=g2b)
+    return s
+
+
+def _versions(pg, table, fk, entity_id):
+    return pg.conn.execute(
+        f"SELECT version_id, state, workstream_id, based_on_version_id, rebased_from_version_id "
+        f"FROM litkb.{table} WHERE {fk} = %s ORDER BY version_no", (entity_id,)).fetchall()
+
+
+@pg_only
+def test_held_chain_is_rebased_and_promotes(pg, scratch_repo):
+    """D-2: replay the referee's stuck case, then rebase the held chains into a fresh workstream
+    and promote them on the next prepare and commit."""
+    from litkb import promote
+    s = _held_world(pg, scratch_repo)
+    promoter, writer, ws1 = s["promoter"], s["writer"], s["ws1"]
+    # the stuck case, exactly as the referee measured it
+    with pytest.raises(pg.errors.InvalidParameterValue):                   # 22023
+        promote.prepare(promoter, ws1, s["prepared"], None)
+    with pytest.raises(pg.errors.ObjectNotInPrerequisiteState):            # 55000
+        promoter.execute("SELECT litkb.promote_abandon(%s)", (s["pid1"],))
+    with pytest.raises(pg.errors.InvalidParameterValue):                   # 22023
+        pg.proposal(writer, "gap", s["gap"], None, s["g2"], {"question": "retry", "gap_state": "open"},
+                    "retry the held chain", ws1)
+    with pytest.raises(pg.errors.InvalidParameterValue):                   # 22023
+        writer.execute("SELECT litkb.abandon_workstream(%s)", (ws1,))
+
+    before_gap = _versions(pg, "gap_versions", "gap_id", s["gap"])
+    before_use = _versions(pg, "use_versions", "use_id", s["use"])
+    onto = promote.held_chains(promoter, ws1)
+    assert onto == {f"gap:{s['gap']}": str(s["g2b"]), f"use:{s['use']}": None}, onto
+    ws3 = pg.ws()
+    out = promote.rebase(promoter, ws1, ws3, onto, "orchestrator", "sess-rebase")
+    assert out["rebased"] == 2, out
+
+    # nothing lost: every old version is still there, marked rebased; one new version per chain
+    after_gap = _versions(pg, "gap_versions", "gap_id", s["gap"])
+    assert [r[0] for r in after_gap[:-1]] == [r[0] for r in before_gap]
+    assert {r[1] for r in after_gap if r[0] == s["g2"]} == {"rebased"}, "the held gap version was not marked rebased"
+    new_gap = after_gap[-1]
+    assert new_gap[1:] == ("proposed", ws3, s["g2b"], s["g2"]), new_gap
+    after_use = _versions(pg, "use_versions", "use_id", s["use"])
+    assert len(after_use) == len(before_use) + 1
+    assert {r[1] for r in after_use[:-1]} == {"rebased"}
+    assert after_use[-1][1:] == ("proposed", ws3, None, before_use[-1][0]), after_use[-1]
+    assert pg.one("SELECT count(*) FROM litkb.ws_heads WHERE workstream_id = %s", (ws1,))[0] == 0, \
+        "a rebased chain still heads the merged workstream"
+    prov = pg.conn.execute("SELECT entity, source_workstream_id, held_in_promotion_id, old_head_version_id, "
+                           "new_version_id FROM litkb.rebases WHERE target_workstream_id = %s ORDER BY entity",
+                           (ws3,)).fetchall()
+    assert prov == [("gap", ws1, s["pid1"], s["g2"], new_gap[0]),
+                    ("use", ws1, s["pid1"], before_use[-1][0], after_use[-1][0])]
+    # a second rebase of the same chains finds nothing held
+    with pytest.raises(pg.errors.InvalidParameterValue, match="holds no chain"):
+        promote.rebase(promoter, ws1, pg.ws(), onto, "orchestrator", "sess-rebase")
+
+    # the next prepare and commit promote them
+    pid3 = promote.prepare(promoter, ws3, s["prepared"], None)
+    counts = pg.one("SELECT counts FROM litkb.promotions WHERE id = %s", (pid3,))[0]
+    assert counts == {"chains": 2, "prepared": 2, "held": 0}, counts
+    out = promote.commit(promoter, pid3, s["merge"], repo=s["repo"], fetch_remote=None)
+    assert out["committed"] == 2 and out["held"] == 0, out
+    assert pg.pointer("gaps", s["gap"]) == new_gap[0]
+    assert pg.pointer("uses", s["use"]) == after_use[-1][0]
+
+
+@pg_only
+def test_kill_rebase_onto_stale_main_is_refused(pg, scratch_repo):
+    """D-2 kill: the rebase was reviewed against main at g2b; main moved to g3 before it ran."""
+    from litkb import promote
+    s = _held_world(pg, scratch_repo)
+    promoter = s["promoter"]
+    onto = promote.held_chains(promoter, s["ws1"])
+    pg.one("SELECT entity_id, version_id FROM litkb._write_version('fact', 'gap', %s, NULL, %s, %s, "
+           "'main moved again', %s, 'setup', 'setup')",
+           (s["gap"], s["g2b"], pg.Jsonb({"question": "q v3 in main", "gap_state": "open"}), pg.ws()))
+    n_before = pg.one("SELECT count(*) FROM litkb.gap_versions WHERE gap_id = %s", (s["gap"],))[0]
+    ws3 = pg.ws()
+    with pytest.raises(pg.errors.SerializationFailure, match="CAS refused"):
+        promote.rebase(promoter, s["ws1"], ws3, onto, "orchestrator", "sess-rebase")
+    assert pg.one("SELECT count(*) FROM litkb.gap_versions WHERE gap_id = %s", (s["gap"],))[0] == n_before
+    assert pg.one("SELECT count(*) FROM litkb.ws_heads WHERE workstream_id = %s", (s["ws1"],))[0] == 2
+    assert pg.one("SELECT count(*) FROM litkb.rebases WHERE source_workstream_id = %s", (s["ws1"],))[0] == 0
+    # control: re-read main, review again, and the rebase goes through
+    out = promote.rebase(promoter, s["ws1"], ws3, promote.held_chains(promoter, s["ws1"]),
+                         "orchestrator", "sess-rebase")
+    assert out["rebased"] == 2
+
+
+@pg_only
+def test_rebase_guard_source_must_be_merged(pg):
+    """An open workstream's chains are live; rebasing them would fork them."""
+    from litkb import promote
+    ws = pg.ws()
+    writer = pg.session("litkb_writer")
+    pg.proposal(writer, "gap", None, {"slug": f"gap-{uuid.uuid4().hex[:8]}"}, None,
+                {"question": "q", "gap_state": "open"}, None, ws)
+    promoter = pg.session("litkb_promoter")
+    with pytest.raises(pg.errors.InvalidParameterValue, match="is not merged"):
+        promote.rebase(promoter, ws, pg.ws(), promote.held_chains(promoter, ws), "o", "s")
+
+
+@pg_only
+def test_rebase_guard_target_must_be_open(pg, scratch_repo):
+    from litkb import promote
+    s = _held_world(pg, scratch_repo)
+    closed = pg.ws()
+    pg.conn.execute("SELECT litkb.abandon_workstream(%s)", (closed,))
+    with pytest.raises(pg.errors.InvalidParameterValue, match="target workstream"):
+        promote.rebase(s["promoter"], s["ws1"], closed, promote.held_chains(s["promoter"], s["ws1"]), "o", "s")
+
+
+@pg_only
+def test_rebase_guard_target_has_no_prepared_promotion(pg, scratch_repo):
+    """A rebase into a workstream with a prepared promotion would change its version set."""
+    from litkb import promote
+    s = _held_world(pg, scratch_repo)
+    target = pg.ws()
+    pg.proposal(s["writer"], "gap", None, {"slug": f"gap-{uuid.uuid4().hex[:8]}"}, None,
+                {"question": "q", "gap_state": "open"}, None, target)
+    promote.prepare(s["promoter"], target, s["prepared"], None)
+    with pytest.raises(pg.errors.ObjectNotInPrerequisiteState, match="prepared promotion"):
+        promote.rebase(s["promoter"], s["ws1"], target, promote.held_chains(s["promoter"], s["ws1"]), "o", "s")
+
+
+@pg_only
+def test_rebase_guard_target_has_no_head_for_the_entity(pg, scratch_repo):
+    from litkb import promote
+    s = _held_world(pg, scratch_repo)
+    target = pg.ws()
+    pg.proposal(s["writer"], "gap", s["gap"], None, s["g2b"], {"question": "own edit", "gap_state": "open"},
+                "the target's own edit", target)
+    with pytest.raises(pg.errors.InvalidParameterValue, match="already has a chain"):
+        promote.rebase(s["promoter"], s["ws1"], target, promote.held_chains(s["promoter"], s["ws1"]), "o", "s")
+
+
+@pg_only
+def test_rebase_carries_evidence(pg):
+    """Nothing is lost: evidence on a held use chain is copied onto the rebased version and
+    re-verified by the trigger; the original rows stay on the original version."""
+    from litkb import promote
+    w = _evidence_world(pg)
+    writer = pg.session("litkb_writer")
+    _, held_uv = _absent_gap_use(pg, w)
+    _add_evidence(pg, writer, w, w["ws"], held_uv, w["text"][4:20], 4, 20)
+    promoter = pg.session("litkb_promoter")
+    pid = promote.prepare(promoter, w["ws"], "a" * 40, None)
+    out = pg.one("SELECT litkb.promote_commit(%s, repeat('b', 40))", (pid,), conn=promoter)[0]
+    assert out["held"] == 1, out
+    target = pg.ws()
+    res = promote.rebase(promoter, w["ws"], target, promote.held_chains(promoter, w["ws"]), "o", "s")
+    new_uv = res["chains"][0]["new_version"]
+    assert res["chains"][0]["evidence_copied"] == 1
+    rows = pg.conn.execute("SELECT quote, char_start, char_end, quote_verified FROM litkb.use_evidence "
+                           "WHERE use_version_id = %s", (new_uv,)).fetchall()
+    assert rows == [(w["text"][4:20], 4, 20, True)]
+    assert pg.one("SELECT count(*) FROM litkb.use_evidence WHERE use_version_id = %s", (held_uv,))[0] == 1

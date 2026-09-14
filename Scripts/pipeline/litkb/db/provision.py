@@ -19,10 +19,18 @@ What it does (idempotent; safe to re-run):
 
 Nothing in postgresql.conf or pg_hba.conf is touched.
 
-pgpass lines: localhost:5433:litkb:<role>:<pw> for the four litkb roles, and
-localhost:5433:*:litkb_test:<pw> for the test role. The wildcard is deliberate: a test that
-points the test role at litkb must reach the server and be refused BY THE SERVER, not fail
-client-side for want of a password.
+pgpass lines: localhost:5433:litkb:<role>:<pw> for owner, reader and writer, and
+localhost:5433:*:litkb_test:<pw> for the test role, in the shared pgpass file. The wildcard is
+deliberate: a test that points the test role at litkb must reach the server and be refused BY
+THE SERVER, not fail client-side for want of a password. (Consequence, design §9: the test
+login can also open Postgres's empty system databases, which grant CONNECT to PUBLIC; the
+property that counts is that litkb refuses it.)
+
+The promoter's line goes to its OWN passfile, connect.promoter_passfile() (decisions.yaml
+litkb-p0-foundation D-3), read only by litkb.promote.connect. A promoter whose line is only in
+the shared file (P1 provisioning wrote it there) gets a fresh password and a line in its own
+file on the next run; the old shared-file line then holds a dead password and can be deleted
+by hand.
 """
 import os
 import secrets
@@ -48,6 +56,13 @@ def pgpass_path():
     if os.name == "nt":
         return Path(os.environ["APPDATA"]) / "postgresql" / "pgpass.conf"
     return Path.home() / ".pgpass"
+
+
+def pgpass_path_for(role):
+    """The passfile that holds this role's line (D-3: the promoter has its own)."""
+    if role == _c.PROMOTER:
+        return Path(_c.promoter_passfile())
+    return pgpass_path()
 
 
 def _pgpass_db(role):
@@ -78,13 +93,13 @@ def _append_pgpass(path, role, password):
 def provision():
     from psycopg import sql
 
-    pp = pgpass_path()
     su = _c.connect("postgres", "postgres", autocommit=True)
     try:
         # a failed statement carrying a password must never reach the server log
         su.execute("SET log_min_error_statement = panic")
         su.execute("SET log_statement = 'none'")
         for role in ROLES:
+            pp = pgpass_path_for(role)
             exists = su.execute("SELECT 1 FROM pg_roles WHERE rolname = %s",
                                 (role,)).fetchone() is not None
             has_line = _pgpass_has(pp, role)

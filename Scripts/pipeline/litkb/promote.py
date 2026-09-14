@@ -1,21 +1,40 @@
-"""Promotion, git side (design §5; decisions.yaml litkb-p0-foundation §15.7).
+"""Promotion, git side (design §5; decisions.yaml litkb-p0-foundation §15.7 and "After the P1
+referee", D-2 and D-3).
 
+    conn = connect()                                                     the promoter login
     pid = prepare(conn, workstream_id, branch_head_sha, report_path)     on the work branch
     commit(conn, pid, merge_sha, repo=..., fetch_remote="github")        only after Kam merges
+    held = held_chains(conn, merged_ws)                                  what a commit held back
+    rebase(conn, merged_ws, fresh_ws, onto, agent, session)              carry them forward
 
-The database cannot run git, so the reachability rule lives here and runs BEFORE
-litkb.promote_commit() is called: the merge commit must be an ancestor of (freshly
-fetched) main, and the commit recorded at prepare must be an ancestor of the merge commit.
-The database function then refuses on its own grounds: a version set that changed since
-prepare, a chain whose base moved (compare-and-set), and every dependent of a held chain.
+The database cannot run git, so THIS TOOL refuses a merge that is not on main: the
+reachability rule runs BEFORE litkb.promote_commit() is called — the merge commit must be an
+ancestor of (freshly fetched) main, and the commit recorded at prepare must be an ancestor of
+the merge commit. The database function then refuses on its own grounds: a version set that
+changed since prepare, a chain whose base moved (compare-and-set), and every dependent of a
+held chain.
 
-Only litkb_promoter may EXECUTE promote_prepare / promote_commit (migration 0006).
+Credential (D-3): only litkb_promoter may EXECUTE promote_prepare / promote_commit /
+promote_abandon / promote_rebase (migrations 0006, 0008; reader and writer are refused, tested).
+Its password lives in its own passfile (litkb.db.connect.promoter_passfile(), outside the
+repository), which only connect() below names. litkb.db.connect.connect() refuses the promoter
+login, so an agent's reader or writer connection never carries it. What the database cannot
+tell apart is a process that reads that passfile itself: the credential is protected by where
+it is kept, not by the server.
 """
 import subprocess
 
 
 class PromotionRefused(RuntimeError):
     """promote commit refused before anything in the database moved."""
+
+
+def connect(dbname=None, *, autocommit=True):
+    """The one connection path for the promoter login."""
+    from litkb.db import connect as c
+
+    return c._open(c.conninfo(dbname or c.DB_MAIN, c.PROMOTER, passfile=c.promoter_passfile()),
+                   autocommit)
 
 
 def _git(repo, *args):
@@ -77,3 +96,32 @@ def commit(conn, promotion_id, merge_commit, *, repo, fetch_remote):
     merge = verify_merge(repo, merge_commit, row[0], main_ref=main_ref)
     return conn.execute("SELECT litkb.promote_commit(%s, %s)",
                         (promotion_id, merge)).fetchone()[0]
+
+
+_IDENT = {"work": "works", "identifier": "identifiers", "file": "files", "gap": "gaps", "use": "uses"}
+
+
+def held_chains(conn, workstream_id):
+    """{"<entity>:<id>": main's current version id} for every chain a workstream still heads.
+    For a merged workstream that is exactly what its commit held back. The mapping is the
+    `onto` a rebase is reviewed against; if main moves before rebase() runs, the rebase is
+    refused (40001) and must be reviewed again."""
+    out = {}
+    for entity, entity_id in conn.execute(
+            "SELECT entity, entity_id FROM litkb.ws_heads WHERE workstream_id = %s "
+            "ORDER BY entity, entity_id", (workstream_id,)).fetchall():
+        cur = conn.execute(f"SELECT current_version_id FROM litkb.{_IDENT[entity]} WHERE id = %s",
+                           (entity_id,)).fetchone()[0]
+        out[f"{entity}:{entity_id}"] = None if cur is None else str(cur)
+    return out
+
+
+def rebase(conn, source_workstream, target_workstream, onto, agent, session):
+    """D-2: copy a merged workstream's held chains into an open one, onto the main versions
+    named in `onto` (see held_chains). The new versions then go through prepare, Kam's
+    merge and commit like any other."""
+    from psycopg.types.json import Jsonb
+
+    return conn.execute("SELECT litkb.promote_rebase(%s, %s, %s, %s, %s)",
+                        (source_workstream, target_workstream, Jsonb(onto), agent,
+                         session)).fetchone()[0]

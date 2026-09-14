@@ -303,6 +303,10 @@ decisions:
       to Drive). §15.9: GROBID runs locally, which needs WSL2 or Docker (setup pending). The
       nightly pg_dump is to be built, and so is the ladder check that refuses staged secrets.
       Standing intent: any literature used by the project flows through this knowledge base.
+      Design rev 3 follow-ups (Kam, 2026-09-14): §15.9 GROBID runs locally under WSL2 Ubuntu
+      (Kam installing the distro); §15.16 local workers keep 20% of RAM and CPU free for Kam's
+      own work, with no fixed run window; §15.17 the rule's reach is uses that support a claim
+      in the project, not every mention of a paper.
     why: >-
       P1 builds the version pointers, promotion functions and roles that §15.7 and §15.13
       constrain; P2's admission check needs the §15.15 year rule; §15.12 decides whether

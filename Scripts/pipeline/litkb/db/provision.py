@@ -101,7 +101,7 @@ def _append_pgpass(path, role, password):
 def provision():
     from psycopg import sql
 
-    su = _c.connect("postgres", "postgres", autocommit=True)
+    su = _c.connect_admin("postgres", _c.SUPERUSER, autocommit=True)
     try:
         # a failed statement carrying a password must never reach the server log
         su.execute("SET log_min_error_statement = panic")
@@ -151,7 +151,7 @@ def provision():
                 su.execute(sql.SQL("GRANT CONNECT ON DATABASE {} TO {}").format(
                     sql.Identifier(db), sql.Identifier(role)))
         for db in DATABASES:
-            dbc = _c.connect(db, "postgres", autocommit=True)
+            dbc = _c.connect_admin(db, _c.SUPERUSER, autocommit=True)
             try:
                 for ext in EXTENSIONS:
                     dbc.execute(sql.SQL("CREATE EXTENSION IF NOT EXISTS {}").format(

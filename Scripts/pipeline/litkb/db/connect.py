@@ -47,6 +47,15 @@ def ingest_passfile():
 # the logins connect() refuses, each with the one function allowed to open it
 TOOL_LOGINS = {PROMOTER: "litkb.promote.connect()", INGEST: "litkb.ingest.connect()"}
 
+# third referee F-9: the superuser and the schema owner are strictly stronger than every tool login.
+# connect(), the agents' path, refuses both; migrations and provisioning open them through
+# connect_admin(), which accepts nothing else. Their passwords stay in the shared pgpass file
+# (Kam's accepted risk); like the tool-login refusals, this stops a MISTAKE in a caller of connect(),
+# not a process that reads that file itself.
+SUPERUSER = "postgres"
+OWNER = "litkb_owner"
+ADMIN_LOGINS = {SUPERUSER: "litkb.db.provision", OWNER: "litkb.db.migrate"}
+
 
 class LoginRefused(RuntimeError):
     """connect() refused the requested login before any connection was attempted."""
@@ -58,6 +67,10 @@ class PromoterLoginRefused(LoginRefused):
 
 class IngestLoginRefused(LoginRefused):
     """connect() was asked for the ingest login outside the ingest tool."""
+
+
+class AdminLoginRefused(LoginRefused):
+    """connect() was asked for the superuser or the owner login, outside migrations and provisioning."""
 
 
 def conninfo(dbname, user, passfile=None):
@@ -72,13 +85,17 @@ def conninfo(dbname, user, passfile=None):
 
 
 def connect(dbname, user, *, autocommit=False):
-    """Reader, writer, owner, test and superuser logins. Refuses the promoter (D-3) and the
-    ingest login (second-referee decision): each has its own passfile and its own tool.
+    """Reader, writer and test logins. Refuses the promoter (D-3) and the ingest login
+    (second-referee decision), each of which has its own passfile and its own tool, and the
+    superuser and owner logins (third referee F-9), which only connect_admin() opens.
 
     What this refusal is: it stops a MISTAKE in a caller of this function. It is convention,
     not enforcement, against code that calls _open() or psycopg directly with one of those
     passfiles; see litkb.promote and Reports/LITKB_P1_REFEREE2_2026-09-13.md, "D-3"."""
     def refused(login):
+        if login in ADMIN_LOGINS:
+            return AdminLoginRefused(f"{login} connects only through connect_admin() ({ADMIN_LOGINS[login]}); "
+                                     "agents use litkb_reader or litkb_writer")
         cls = PromoterLoginRefused if login == PROMOTER else IngestLoginRefused
         return cls(f"{login} connects only through {TOOL_LOGINS[login]}; agents use litkb_reader or litkb_writer")
 
@@ -95,12 +112,28 @@ def connect(dbname, user, *, autocommit=False):
     if user == INGEST:          # before any driver import
         raise refused(INGEST)
     # END guard: ingest login only through the ingest tool
+    # BEGIN guard: admin logins only through connect_admin
+    if user in ADMIN_LOGINS:    # before any driver import
+        raise refused(user)
+    # END guard: admin logins only through connect_admin
     from psycopg.conninfo import conninfo_to_dict
 
     # second lock: the user exactly as libpq will parse the connection string
     parsed = str(conninfo_to_dict(conninfo(dbname, user)).get("user", "")).strip()
-    if parsed in TOOL_LOGINS:
+    if parsed in TOOL_LOGINS or parsed in ADMIN_LOGINS:
         raise refused(parsed)
+    return _open(conninfo(dbname, user), autocommit)
+
+
+def connect_admin(dbname, user, *, autocommit=True):
+    """The one connection path for the superuser (provisioning) and the owner (migrations).
+    Accepts only those two logins, so it can never become a second door for an agent role."""
+    # BEGIN guard: connect_admin opens only the admin logins
+    if user not in ADMIN_LOGINS:
+        raise LoginRefused(f"connect_admin opens only {sorted(ADMIN_LOGINS)}, got {user!r}")
+    # END guard: connect_admin opens only the admin logins
+    if not isinstance(dbname, str) or not _NAME.fullmatch(dbname):
+        raise LoginRefused(f"litkb connect_admin: dbname must be a plain lower-case identifier, got {dbname!r}")
     return _open(conninfo(dbname, user), autocommit)
 
 

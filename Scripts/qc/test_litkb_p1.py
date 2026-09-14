@@ -77,6 +77,27 @@ guard shown to fire on the WHOLE file by the harness (rows W*, R2):
   an embedding goes only onto the workstream's own version   test_add_use_embedding_version_must_belong_to_named_workstream
   no agent role gains a direct write later (catalog-built)   test_no_agent_role_holds_a_direct_write_on_a_workstream_table
 
+Fixes after the third referee (Reports/LITKB_P1_REFEREE3_2026-09-13.md), migration 0012, workstream.py and
+connect.py; each referee mutation Z1, Z2, Z5-Z10, Z12 now fails this file (harness rows of the same ids):
+
+  F-1  catalog guard: every relkind, workstream_id without FK,  test_no_agent_role_holds_a_direct_write_on_a_workstream_table,
+       any FK depth, roles reached by INHERIT or SET, ACLs    test_catalog_guard_fires_on_new_workstream_bearing_relations
+  F-2  no abandon while a promotion is prepared (and waits)   test_abandon_refused_while_promotion_prepared,
+                                                              test_abandon_waits_for_a_prepare_in_flight_and_is_refused
+  F-3  add_use_embedding: open workstream, proposed version   test_add_use_embedding_refuses_a_closed_workstreams_token,
+       waits for a commit in flight                           test_add_use_embedding_refuses_a_promoted_or_prepared_version,
+                                                              test_add_use_embedding_waits_for_a_commit_in_flight_and_is_refused
+  F-4  empty and upper-cased tokens; token not from the slug  test_every_workstream_write_requires_its_token[*],
+                                                              test_workstream_token_is_not_derived_from_the_slug_or_id
+  F-5  per-role privilege matrix; token hashes via any view   test_role_privilege_matrix,
+                                                              test_no_agent_role_reads_token_hashes_through_any_relation
+  F-6  rebase copies head evidence of a superseded run        test_rebase_copies_head_evidence_whose_run_was_superseded
+  F-7  open_workstream is atomic with its token file          test_open_workstream_race_in_one_directory_leaves_no_orphan,
+                                                              test_open_workstream_failure_leaves_no_workstream_and_no_file
+  F-8  the token is bound, never in pg_stat_activity.query    test_token_is_bound_never_visible_in_pg_stat_activity
+  F-9  connect() refuses postgres and litkb_owner             test_connect_refuses_the_admin_logins,
+                                                              test_admin_logins_open_only_through_connect_admin
+
 Isolation: the suite logs in ONLY as litkb_test, to litkb_test, which it resets and migrates
 once per session under an advisory lock (parallel worktrees serialise). Role privileges are
 exercised with SET ROLE: litkb_test is a member of reader/writer/promoter WITH INHERIT FALSE,
@@ -148,6 +169,10 @@ def test_connect_refuses_the_promoter_login(monkeypatch):
     # the ingest login (0010) has the same single path
     pytest.param("litkb", "litkb_writer user=litkb_ingest passfile=ingest.pgpass", id="ingest_keyword_injection"),
     pytest.param("litkb", "litkb_ingest ", id="ingest_trailing_space"),
+    # third referee F-9: the superuser and owner logins go only through connect_admin()
+    pytest.param("litkb", "postgres ", id="superuser_trailing_space"),
+    pytest.param("litkb", "litkb_writer user=litkb_owner", id="owner_keyword_injection"),
+    pytest.param("litkb", "Postgres", id="superuser_upper_case"),
 ])
 def test_connect_refuses_promoter_login_bypasses(monkeypatch, dbname, user):
     """Referee 2, E-8: the refusal used to be a string compare over an unquoted conninfo, so an
@@ -1451,7 +1476,8 @@ def test_open_workstream_returns_a_token_stored_only_as_its_hash(pg):
 def _refused_by_token(pg, call, token):
     with pytest.raises(pg.errors.InsufficientPrivilege, match="workstream token refused") as ei:
         call(token)
-    assert token is None or token not in str(ei.value), "the refusal message echoes the token"
+    # "" is a substring of every message, so only a non-empty token can be looked for
+    assert not token or token not in str(ei.value), "the refusal message echoes the token"
 
 
 @pg_only
@@ -1538,15 +1564,18 @@ def _token_op(pg, op):
 
 
 @pg_only
-@pytest.mark.parametrize("case", ["missing", "another_workstreams_token"])
+@pytest.mark.parametrize("case", ["missing", "empty", "upper_cased_own", "another_workstreams_token"])
 @pytest.mark.parametrize("op", ["write_proposal", "write_fact", "add_evidence", "abandon_workstream",
                                 "add_candidate", "record_acquisition_attempt", "add_use_embedding"])
 def test_every_workstream_write_requires_its_token(pg, op, case):
     """Every writer function that names a workstream refuses (42501, inside the SECURITY DEFINER
-    function) a missing token or another workstream's token, writes nothing, and accepts the
-    workstream's own token."""
+    function) a missing token, an empty one (third referee F-4 / Z2), its own token upper-cased, or
+    another workstream's token, writes nothing, and accepts the workstream's own token."""
     ws, call, unchanged = _token_op(pg, op)
-    token = None if case == "missing" else pg.tokens[pg.ws()]
+    token = {"missing": None, "empty": "", "upper_cased_own": pg.tokens[ws].upper(),
+             "another_workstreams_token": None}[case]
+    if case == "another_workstreams_token":
+        token = pg.tokens[pg.ws()]
     _refused_by_token(pg, call, token)
     assert unchanged(), f"{op} wrote something with a refused token"
     call(pg.tokens[ws])
@@ -1736,55 +1765,583 @@ def test_add_use_embedding_version_must_belong_to_named_workstream(pg):
     assert pg.one("SELECT count(*) FROM litkb.use_embeddings WHERE use_version_id = %s", (uv,))[0] == 1
 
 
-_WORKSTREAM_TABLES = """
-WITH base AS (
+# ── the catalog guard, rewritten after the third referee (F-1) ─────────────────────────────
+# The agent LOGINS whose reach the guard follows. Every role any of them can use (INHERIT) or SET ROLE
+# to is checked, whatever its name, together with PUBLIC and every role named in an ACL of a guarded
+# relation.
+AGENT_LOGINS = ("litkb_reader", "litkb_writer", "litkb_promoter", "litkb_ingest", "litkb_test")
+
+# The guarded relations, every relkind (table, partitioned table, view, materialized view, foreign table):
+#   seed     litkb.workstreams; every relation with a workstream_id column (with or without a foreign
+#            key); every relation with a foreign key to workstreams; every view and materialized view
+#            in litkb (a writable view runs with its owner's rights, so any agent write on one is a
+#            bypass whatever its columns).
+#   closure  every relation with a foreign key to a guarded relation, through any number of hops.
+#   stop     the closure does not continue THROUGH a main-owned identity table (one with a created_in_ws
+#            column: works, identifiers, files, gaps, uses). Its link to a workstream is creation
+#            provenance, and its current_version_id points at a promoted version; following it would
+#            pull in every extraction table (blocks -> files), whose INSERT belongs to the ingest login.
+#            Identity tables are themselves guarded.
+_GUARDED_RELATIONS = """
+WITH RECURSIVE provenance AS (
+  SELECT a.attrelid AS rel FROM pg_attribute a JOIN pg_class c ON c.oid = a.attrelid
+   WHERE c.relnamespace = 'litkb'::regnamespace AND a.attname = 'created_in_ws' AND a.attnum > 0
+     AND NOT a.attisdropped),
+seed AS (
   SELECT 'litkb.workstreams'::regclass::oid AS rel
+  UNION SELECT c.oid FROM pg_class c JOIN pg_attribute a ON a.attrelid = c.oid
+         WHERE c.relnamespace = 'litkb'::regnamespace AND c.relkind IN ('r', 'p', 'v', 'm', 'f')
+           AND a.attname = 'workstream_id' AND a.attnum > 0 AND NOT a.attisdropped
   UNION SELECT k.conrelid FROM pg_constraint k
-         WHERE k.contype = 'f' AND k.confrelid = 'litkb.workstreams'::regclass),
-member AS (
-  SELECT b.rel FROM base b
-   WHERE EXISTS (SELECT 1 FROM pg_attribute a
-                  WHERE a.attrelid = b.rel AND a.attname = 'workstream_id' AND NOT a.attisdropped))
-SELECT rel FROM base
-UNION SELECT k.conrelid FROM pg_constraint k JOIN member m ON k.confrelid = m.rel WHERE k.contype = 'f'
+         WHERE k.contype = 'f' AND k.confrelid = 'litkb.workstreams'::regclass
+  UNION SELECT c.oid FROM pg_class c
+         WHERE c.relnamespace = 'litkb'::regnamespace AND c.relkind IN ('v', 'm')),
+closure (rel) AS (
+  SELECT rel FROM seed
+  UNION
+  SELECT k.conrelid FROM pg_constraint k JOIN closure cl ON k.confrelid = cl.rel
+   WHERE k.contype = 'f' AND cl.rel NOT IN (SELECT rel FROM provenance))
+SELECT DISTINCT rel FROM closure
 """
+
+_TABLE_WRITE_PRIVS = ("INSERT", "UPDATE", "DELETE", "TRUNCATE", "TRIGGER", "MAINTAIN")
+_COLUMN_WRITE_PRIVS = ("INSERT", "UPDATE")
+
+
+def _guarded_relations(conn):
+    return dict(conn.execute(
+        f"SELECT c.oid, c.relname FROM pg_class c WHERE c.oid IN ({_GUARDED_RELATIONS})").fetchall())
+
+
+def _direct_write_offenders(conn, agents=AGENT_LOGINS, *, acl_grantees=True):
+    """[(role, relation, privilege, column or None, how the role was found)] for every direct write
+    on a guarded relation. Owners and superusers are exempt as grantees; an agent login that can
+    reach (INHERIT or SET) a relation's owner or a superuser is itself an offender."""
+    rels = _guarded_relations(conn)
+    found = conn.execute(
+        """
+        WITH agent AS (SELECT r.oid, r.rolname FROM pg_roles r WHERE r.rolname = ANY (%(agents)s)),
+        reach AS (
+          SELECT a.oid, a.rolname, 'agent login ' || a.rolname AS via FROM agent a
+          UNION
+          SELECT g.oid, g.rolname, 'reachable from ' || a.rolname FROM agent a JOIN pg_roles g ON g.oid <> a.oid
+           WHERE pg_has_role(a.oid, g.oid, 'MEMBER') OR pg_has_role(a.oid, g.oid, 'SET')
+              OR pg_has_role(a.oid, g.oid, 'USAGE')
+          UNION
+          SELECT 0::oid, 'public', 'PUBLIC'
+          UNION
+          SELECT e.grantee, coalesce(g.rolname, 'public'), 'ACL grantee'
+            FROM pg_class c
+            CROSS JOIN LATERAL aclexplode(c.relacl) e
+            LEFT JOIN pg_roles g ON g.oid = e.grantee
+           WHERE %(acl)s AND c.oid = ANY (%(rels)s::oid[])
+          UNION
+          SELECT e.grantee, coalesce(g.rolname, 'public'), 'ACL grantee'
+            FROM pg_attribute a
+            CROSS JOIN LATERAL aclexplode(a.attacl) e
+            LEFT JOIN pg_roles g ON g.oid = e.grantee
+           WHERE %(acl)s AND a.attrelid = ANY (%(rels)s::oid[])),
+        grantee AS (
+          SELECT r.oid, r.rolname, string_agg(DISTINCT r.via, '; ') AS via FROM reach r
+            LEFT JOIN pg_roles s ON s.oid = r.oid
+           WHERE NOT coalesce(s.rolsuper, false)
+           GROUP BY r.oid, r.rolname)
+        SELECT g.rolname, c.relname, p.priv, NULL::name, g.via
+          FROM grantee g CROSS JOIN pg_class c CROSS JOIN unnest(%(tprivs)s::text[]) AS p(priv)
+         WHERE c.oid = ANY (%(rels)s::oid[]) AND g.oid <> c.relowner
+           AND has_table_privilege(g.rolname, c.oid, p.priv)
+        UNION ALL
+        SELECT g.rolname, c.relname, p.priv, a.attname, g.via
+          FROM grantee g CROSS JOIN pg_class c CROSS JOIN unnest(%(cprivs)s::text[]) AS p(priv)
+          JOIN pg_attribute a ON a.attrelid = c.oid AND a.attnum > 0 AND NOT a.attisdropped
+         WHERE c.oid = ANY (%(rels)s::oid[]) AND g.oid <> c.relowner
+           AND NOT has_table_privilege(g.rolname, c.oid, p.priv)
+           AND has_column_privilege(g.rolname, c.oid, a.attnum, p.priv)
+        UNION ALL
+        SELECT a.rolname, c.relname, 'reaches the owner or a superuser', NULL::name, 'agent login ' || a.rolname
+          FROM agent a CROSS JOIN pg_class c
+         WHERE c.oid = ANY (%(rels)s::oid[]) AND a.oid <> c.relowner
+           AND (pg_has_role(a.oid, c.relowner, 'MEMBER') OR pg_has_role(a.oid, c.relowner, 'SET')
+                OR EXISTS (SELECT 1 FROM pg_roles s WHERE s.rolsuper AND pg_has_role(a.oid, s.oid, 'MEMBER')))
+         ORDER BY 1, 2, 3, 4
+        """, dict(agents=list(agents), rels=list(rels), acl=acl_grantees,
+                  tprivs=list(_TABLE_WRITE_PRIVS), cprivs=list(_COLUMN_WRITE_PRIVS))).fetchall()
+    return found
 
 
 @pg_only
 def test_no_agent_role_holds_a_direct_write_on_a_workstream_table(pg):
-    """0011, for the future: no agent role (and not PUBLIC) holds INSERT, UPDATE, DELETE or TRUNCATE,
-    at table or column level, on a workstream-bearing table, so every write into a workstream stays a
-    token-checked function. Both lists come from the catalog, not from this file:
-
-      tables  a table with a foreign key to litkb.workstreams (and workstreams itself), or with a
-              foreign key to such a table that has a workstream_id column (one hop: use_evidence and
-              use_embeddings hang off use_versions). The extraction tables reference files and
-              extraction_runs, whose created_in_ws is creation provenance on a main-owned identity
-              row (no workstream_id), so the ingest login's INSERTs are outside the rule.
-      roles   every litkb_* role and PUBLIC, except each table's owner (litkb_test owns every table
-              in litkb_test, litkb_owner in litkb) and superusers."""
-    tables = dict(pg.conn.execute(
-        f"SELECT c.oid, c.relname FROM pg_class c WHERE c.oid IN ({_WORKSTREAM_TABLES})").fetchall())
-    names = set(tables.values())
+    """0011, rewritten after the third referee (F-1): no agent role, no role an agent login can use or
+    SET ROLE to, no ACL grantee and not PUBLIC holds INSERT, UPDATE, DELETE, TRUNCATE, TRIGGER or
+    MAINTAIN (table level) or INSERT/UPDATE (column level) on a guarded relation, so every write into a
+    workstream stays a token-checked function. The relations and roles both come from the catalog
+    (_GUARDED_RELATIONS, _direct_write_offenders); the referee's Z6 (workstream_id without a foreign
+    key), Z7 (two hops) and Z8 (updatable view) each make this fail."""
+    names = set(_guarded_relations(pg.conn).values())
     # the rule is not vacuous, and it does not swallow the extraction tables
     assert {"gap_versions", "use_versions", "candidates", "admissions", "acquisition_attempts", "use_evidence",
-            "use_embeddings", "ws_heads", "workstream_tokens", "rebases"} <= names, sorted(names)
-    assert not names & {"blocks", "extraction_runs", "pages", "chunks"}, sorted(names)
-    roles = [r[0] for r in pg.conn.execute(
-        "SELECT rolname FROM pg_roles WHERE rolname LIKE 'litkb%%' AND NOT rolsuper ORDER BY 1").fetchall()]
-    assert "litkb_writer" in roles and "litkb_ingest" in roles, roles
+            "use_embeddings", "ws_heads", "workstream_tokens", "rebases", "promotions", "works", "files",
+            "ws_uses", "main_uses", "use_evidence_status"} <= names, sorted(names)
+    assert not names & set(_EXTRACTION_TABLES), sorted(names & set(_EXTRACTION_TABLES))
+    offending = _direct_write_offenders(pg.conn)
+    assert offending == [], f"direct writes on guarded relations (role, relation, privilege, column, via): {offending}"
+
+
+_EXTRACTION_TABLES = ("extraction_runs", "file_checks", "pages", "blocks", "tables", "figures", "equations",
+                      "references", "citation_mentions", "chunks", "embeddings")
+
+
+@pg_only
+def test_catalog_guard_fires_on_new_workstream_bearing_relations(pg):
+    """F-1: the guard is shown to fail on shapes the old one missed, created in litkb_test inside one
+    transaction that is rolled back (nothing survives the test): a workstream_id column with no foreign
+    key, a table two and three foreign-key hops from workstreams (below use_evidence), a view over
+    use_versions without a workstream_id column, a materialized view, a partitioned table granted to
+    PUBLIC, and a TRUNCATE held by the ingest login that the guard finds ONLY through litkb_test's
+    WITH INHERIT FALSE, SET TRUE membership (the referee's F-1(d) shape). Negative control: a table
+    below blocks granted INSERT to ingest is not guarded."""
+    k = pg.session()
+    k.autocommit = False
+    try:
+        for ddl in (
+            "CREATE TABLE litkb.zz_ws_notes (id uuid PRIMARY KEY DEFAULT uuidv7(), workstream_id uuid, note text)",
+            "CREATE TABLE litkb.zz_hop2 (id uuid PRIMARY KEY, evidence_id uuid REFERENCES litkb.use_evidence (id), note text)",
+            "CREATE TABLE litkb.zz_hop3 (id uuid PRIMARY KEY, hop2_id uuid REFERENCES litkb.zz_hop2 (id), note text)",
+            "CREATE VIEW litkb.zz_inbox AS SELECT version_id, use_id, statement FROM litkb.use_versions",
+            "CREATE MATERIALIZED VIEW litkb.zz_mat AS SELECT 1 AS x",
+            "CREATE TABLE litkb.zz_part (workstream_id uuid, k integer) PARTITION BY LIST (k)",
+            "CREATE TABLE litkb.zz_block_notes (id uuid PRIMARY KEY, block_id uuid REFERENCES litkb.blocks (id))",
+            "GRANT INSERT ON litkb.zz_ws_notes TO litkb_writer",
+            "GRANT UPDATE (note) ON litkb.zz_hop3 TO litkb_reader",
+            "GRANT INSERT ON litkb.zz_inbox TO litkb_writer",
+            "GRANT DELETE ON litkb.zz_mat TO litkb_promoter",
+            "GRANT INSERT ON litkb.zz_part TO PUBLIC",
+            "GRANT TRUNCATE ON litkb.zz_hop2 TO litkb_ingest",
+            "GRANT INSERT ON litkb.zz_block_notes TO litkb_ingest"):
+            k.execute(ddl)
+        names = set(_guarded_relations(k).values())
+        assert {"zz_ws_notes", "zz_hop2", "zz_hop3", "zz_inbox", "zz_mat", "zz_part"} <= names, sorted(names)
+        assert "zz_block_notes" not in names
+        got = {(r[0], r[1], r[2], r[3]) for r in _direct_write_offenders(k)}
+        expected = {("litkb_writer", "zz_ws_notes", "INSERT", None), ("litkb_reader", "zz_hop3", "UPDATE", "note"),
+                    ("litkb_writer", "zz_inbox", "INSERT", None), ("litkb_promoter", "zz_mat", "DELETE", None),
+                    ("public", "zz_part", "INSERT", None), ("litkb_ingest", "zz_hop2", "TRUNCATE", None)}
+        assert expected <= got, f"missed: {sorted(expected - got, key=repr)}"
+        assert not any(r[1] == "zz_block_notes" for r in got)
+        # membership only: name no agent but litkb_test and read no ACL; ingest is reached through SET
+        via_set = [r for r in _direct_write_offenders(k, ("litkb_test",), acl_grantees=False)
+                   if (r[0], r[1], r[2]) == ("litkb_ingest", "zz_hop2", "TRUNCATE")]
+        assert via_set and "reachable from litkb_test" in via_set[0][4], via_set
+        assert pg.one("SELECT pg_has_role('litkb_test', 'litkb_ingest', 'USAGE')", conn=k)[0] is False, \
+            "the membership must be SET-only for this case to test the SET branch"
+    finally:
+        k.rollback()
+    assert pg.one("SELECT to_regclass('litkb.zz_ws_notes')")[0] is None
+
+
+_EXPECTED_EXECUTE = {
+    "litkb_reader": {"norm_identifier"},
+    "litkb_writer": {"norm_identifier", "open_workstream", "abandon_workstream", "write_fact", "write_proposal",
+                     "add_evidence", "add_candidate", "record_acquisition_attempt", "add_use_embedding"},
+    "litkb_promoter": {"norm_identifier", "promote_prepare", "promote_commit", "promote_abandon", "promote_rebase"},
+    "litkb_ingest": {"norm_identifier", "set_current_run"},
+    "public": set(),
+}
+_EXPECTED_WRITES = {role: set() for role in _EXPECTED_EXECUTE}
+_EXPECTED_WRITES["litkb_ingest"] = {(t, "INSERT") for t in _EXTRACTION_TABLES}
+
+
+@pg_only
+def test_role_privilege_matrix(pg):
+    """Third referee F-5: design §4.7 as a matrix, read from the catalog per role (effective privileges,
+    so INHERIT memberships count). For every relation of every kind in litkb, litkb_meta and public:
+    table-level INSERT/UPDATE/DELETE/TRUNCATE/TRIGGER/REFERENCES/MAINTAIN, and column-level
+    INSERT/UPDATE/REFERENCES where the table-level right is not held; EXECUTE on every function in litkb
+    and litkb_meta; CREATE on the schemas; CREATE and TEMP on the database. Each agent role holds
+    exactly its §4.7 row: ingest INSERT on the 11 extraction tables and EXECUTE on set_current_run and
+    norm_identifier; the writer the 8 token functions, open_workstream and norm_identifier, and no write
+    on any table; the promoter the four promote functions; the reader norm_identifier; PUBLIC nothing.
+    The referee's Z9 (writer UPDATE (text) on blocks) and Z10 (ingest EXECUTE on add_candidate) each
+    make this fail. The test login owns every object in litkb_test, inherits no agent role and cannot
+    connect to litkb (the server-side refusal is test_kill_test_role_is_refused_by_the_server_on_litkb)."""
+    for role in _EXPECTED_EXECUTE:
+        writes = {(r[0], r[1]) for r in pg.conn.execute(
+            """
+            SELECT c.relname, p.priv FROM pg_class c
+              CROSS JOIN unnest(ARRAY['INSERT', 'UPDATE', 'DELETE', 'TRUNCATE', 'TRIGGER', 'REFERENCES', 'MAINTAIN']) p(priv)
+             WHERE c.relnamespace IN ('litkb'::regnamespace, 'litkb_meta'::regnamespace, 'public'::regnamespace)
+               AND c.relkind IN ('r', 'p', 'v', 'm', 'f', 'S') AND has_table_privilege(%(r)s, c.oid, p.priv)
+            UNION
+            SELECT c.relname || '.' || a.attname, p.priv FROM pg_class c
+              JOIN pg_attribute a ON a.attrelid = c.oid AND a.attnum > 0 AND NOT a.attisdropped
+              CROSS JOIN unnest(ARRAY['INSERT', 'UPDATE', 'REFERENCES']) p(priv)
+             WHERE c.relnamespace IN ('litkb'::regnamespace, 'litkb_meta'::regnamespace, 'public'::regnamespace)
+               AND c.relkind IN ('r', 'p', 'v', 'm', 'f') AND NOT has_table_privilege(%(r)s, c.oid, p.priv)
+               AND has_column_privilege(%(r)s, c.oid, a.attnum, p.priv)
+            """, dict(r=role)).fetchall()}
+        assert writes == _EXPECTED_WRITES[role], (
+            f"{role}: unexpected {sorted(writes - _EXPECTED_WRITES[role])}, missing {sorted(_EXPECTED_WRITES[role] - writes)}")
+        execute = {r[0] for r in pg.conn.execute(
+            "SELECT p.proname FROM pg_proc p WHERE p.pronamespace IN ('litkb'::regnamespace, 'litkb_meta'::regnamespace) "
+            "AND has_function_privilege(%s, p.oid, 'EXECUTE')", (role,)).fetchall()}
+        assert execute == _EXPECTED_EXECUTE[role], (
+            f"{role}: unexpected EXECUTE {sorted(execute - _EXPECTED_EXECUTE[role])}, "
+            f"missing {sorted(_EXPECTED_EXECUTE[role] - execute)}")
+        other = pg.one(
+            "SELECT has_schema_privilege(%(r)s, 'litkb', 'CREATE') OR has_schema_privilege(%(r)s, 'litkb_meta', 'CREATE') "
+            "OR has_schema_privilege(%(r)s, 'public', 'CREATE') OR has_database_privilege(%(r)s, current_database(), 'CREATE') "
+            "OR has_database_privilege(%(r)s, current_database(), 'TEMP')", dict(r=role))[0]
+        assert other is False, f"{role} holds CREATE on a schema or CREATE/TEMP on the database"
+    assert pg.one("SELECT count(*) FROM pg_proc p WHERE p.pronamespace = 'public'::regnamespace AND p.prosecdef")[0] == 0
+    # the test login: owner of every object here, inheriting no agent role
+    assert pg.one(
+        "SELECT count(*) FROM pg_class c WHERE c.relnamespace IN ('litkb'::regnamespace, 'litkb_meta'::regnamespace) "
+        "AND c.relowner <> 'litkb_test'::regrole")[0] == 0
+    assert pg.one("SELECT count(*) FROM pg_proc p WHERE p.pronamespace = 'litkb'::regnamespace "
+                  "AND p.proowner <> 'litkb_test'::regrole")[0] == 0
+    for role in ("litkb_reader", "litkb_writer", "litkb_promoter", "litkb_ingest"):
+        assert pg.one("SELECT pg_has_role('litkb_test', %s, 'USAGE')", (role,))[0] is False, role
+    assert pg.one("SELECT has_database_privilege('litkb_test', 'litkb', 'CONNECT')")[0] is False
+
+
+@pg_only
+def test_no_agent_role_reads_token_hashes_through_any_relation(pg):
+    """Third referee Z5: a view over workstream_tokens granted SELECT to an agent role gives the hashes
+    back (with a guessable token, Z1, that is the token). No agent role and not PUBLIC may SELECT, at
+    table or column level, workstream_tokens, any view that depends on it at any depth (pg_rewrite ->
+    pg_depend), or any relation with a token_hash column."""
     offending = pg.conn.execute(
         """
-        SELECT r.name, c.relname, p.priv, a.attname
-          FROM pg_class c
+        WITH RECURSIVE dep (rel) AS (
+          SELECT 'litkb.workstream_tokens'::regclass::oid
+          UNION
+          SELECT rw.ev_class FROM pg_rewrite rw
+            JOIN pg_depend d ON d.classid = 'pg_rewrite'::regclass AND d.objid = rw.oid
+                            AND d.refclassid = 'pg_class'::regclass
+            JOIN dep ON d.refobjid = dep.rel
+           WHERE rw.ev_class <> dep.rel),
+        exposed AS (SELECT rel FROM dep
+                    UNION SELECT a.attrelid FROM pg_attribute a WHERE a.attname = 'token_hash' AND NOT a.attisdropped)
+        SELECT r.name, c.relname FROM pg_class c JOIN exposed e ON e.rel = c.oid
           CROSS JOIN unnest(%s::text[] || ARRAY['public']) AS r(name)
-          CROSS JOIN (VALUES ('INSERT'), ('UPDATE'), ('DELETE'), ('TRUNCATE')) AS p(priv)
-          LEFT JOIN pg_attribute a
-            ON a.attrelid = c.oid AND a.attnum > 0 AND NOT a.attisdropped AND p.priv IN ('INSERT', 'UPDATE')
-         WHERE c.oid = ANY (%s::oid[])
-           AND coalesce((SELECT o.oid FROM pg_roles o WHERE o.rolname = r.name), 0) <> c.relowner
-           AND CASE WHEN a.attname IS NULL THEN has_table_privilege(r.name, c.oid, p.priv)
-                    ELSE has_column_privilege(r.name, c.oid, a.attnum, p.priv) END
-         ORDER BY 1, 2, 3, 4
-        """, (roles, list(tables))).fetchall()
-    assert offending == [], f"direct writes on workstream-bearing tables (role, table, privilege, column): {offending}"
+         WHERE c.relowner <> coalesce((SELECT o.oid FROM pg_roles o WHERE o.rolname = r.name), 0)
+           AND (has_table_privilege(r.name, c.oid, 'SELECT')
+                OR EXISTS (SELECT 1 FROM pg_attribute a WHERE a.attrelid = c.oid AND a.attnum > 0 AND NOT a.attisdropped
+                             AND has_column_privilege(r.name, c.oid, a.attnum, 'SELECT')))
+         ORDER BY 1, 2
+        """, (["litkb_reader", "litkb_writer", "litkb_promoter", "litkb_ingest"],)).fetchall()
+    assert offending == [], f"token hashes readable (role, relation): {offending}"
+
+
+# ── fixes after the third referee (Reports/LITKB_P1_REFEREE3_2026-09-13.md), migration 0012 ─────
+
+@pg_only
+def test_workstream_token_is_not_derived_from_the_slug_or_id(pg):
+    """F-4 / Z1: the token is random, not a hash of anything every role can read. The same slug opened
+    again after abandoning it (the slug index is partial) gets another id and another token, and no
+    token equals the sha256 or md5 of its slug or id."""
+    import hashlib
+    writer = pg.session("litkb_writer")
+    slug = f"t-{uuid.uuid4().hex[:12]}"
+    q = "SELECT workstream_id, token FROM litkb.open_workstream(%s, 'work/test', NULL, 'p1 test', NULL)"
+    ws1, tok1 = pg.one(q, (slug,), conn=writer)
+    writer.execute("SELECT litkb.abandon_workstream(%s, %s)", (ws1, tok1))
+    ws2, tok2 = pg.one(q, (slug,), conn=writer)
+    assert ws2 != ws1 and tok2 != tok1, "re-opening the same slug gave the same token"
+    for ws, tok in ((ws1, tok1), (ws2, tok2)):
+        for material in (slug, str(ws), ws.hex):
+            for h in (hashlib.sha256, hashlib.md5):
+                assert tok != h(material.encode("utf-8")).hexdigest(), f"the token is {h.__name__} of {material!r}"
+
+
+@pg_only
+def test_rebase_copies_head_evidence_whose_run_was_superseded(pg):
+    """F-6 / Z12: E-5's copy takes the head's evidence rows as they are, including a row anchored in a
+    run that is no longer the file's current one (ingest moved the file to a new run after the evidence
+    was added). One row is copied, with the source's run_id."""
+    w = _evidence_world(pg)
+    writer = pg.session("litkb_writer")
+    _, held_uv = _absent_gap_use(pg, w)
+    _add_evidence(pg, writer, w, w["ws"], held_uv, w["text"][4:20], 4, 20)
+    ingest = pg.session("litkb_ingest")
+    r2 = _run(pg, ingest, w["file"], "ok")
+    ingest.execute("SELECT litkb.set_current_run(%s, %s, %s)", (w["file"], w["run"], r2))
+    assert pg.one("SELECT current_run_id FROM litkb.files WHERE id = %s", (w["file"],))[0] == r2
+    source = _evidence_rows(pg, held_uv)
+    chain = _hold_and_rebase(pg, w)
+    assert chain["evidence_copied"] == 1, chain
+    copied = _evidence_rows(pg, chain["new_version"])
+    assert copied == source and copied[0][1] == w["run"], copied
+
+
+def _prepared_ws(pg):
+    ws = pg.ws()
+    writer = pg.session("litkb_writer")
+    pg.proposal(writer, "gap", None, {"slug": f"gap-{uuid.uuid4().hex[:8]}"}, None,
+                {"question": "q", "gap_state": "open"}, None, ws)
+    return ws, writer
+
+
+@pg_only
+def test_abandon_refused_while_promotion_prepared(pg):
+    """F-2: a workstream whose promotion is prepared cannot be abandoned (55000); it stays open and the
+    promotion still commits. Control: once the promotion is abandoned, the workstream can be."""
+    ws, writer = _prepared_ws(pg)
+    promoter = pg.session("litkb_promoter")
+    pid = pg.one("SELECT litkb.promote_prepare(%s, repeat('a', 40), NULL)", (ws,), conn=promoter)[0]
+    with pytest.raises(pg.errors.ObjectNotInPrerequisiteState, match="prepared promotion"):
+        writer.execute("SELECT litkb.abandon_workstream(%s, %s)", (ws, pg.tokens[ws]))
+    assert pg.one("SELECT state FROM litkb.workstreams WHERE id = %s", (ws,))[0] == "open"
+    promoter.execute("SELECT litkb.promote_abandon(%s)", (pid,))
+    writer.execute("SELECT litkb.abandon_workstream(%s, %s)", (ws, pg.tokens[ws]))
+    assert pg.one("SELECT state FROM litkb.workstreams WHERE id = %s", (ws,))[0] == "abandoned"
+    # a prepared promotion in another workstream commits after its own abandon was refused
+    ws2, writer2 = _prepared_ws(pg)
+    pid2 = pg.one("SELECT litkb.promote_prepare(%s, repeat('a', 40), NULL)", (ws2,), conn=promoter)[0]
+    with pytest.raises(pg.errors.ObjectNotInPrerequisiteState):
+        writer2.execute("SELECT litkb.abandon_workstream(%s, %s)", (ws2, pg.tokens[ws2]))
+    assert pg.one("SELECT litkb.promote_commit(%s, repeat('b', 40))", (pid2,), conn=promoter)[0]["committed"] == 1
+
+
+@pg_only
+def test_abandon_waits_for_a_prepare_in_flight_and_is_refused(pg):
+    """F-2 (the referee's R5): promote_prepare is held open; abandon_workstream waits on the workstream
+    row (FOR UPDATE), then sees the prepared promotion and is refused (55000). The workstream stays open
+    and the promotion commits. Without the lock the prepared check runs before the prepare commits and
+    the abandon lands."""
+    ws, _writer = _prepared_ws(pg)
+    holder = _holder(pg, "litkb_promoter")
+    abandoner = pg.session("litkb_writer")
+    prepared = {}
+
+    def hold(k):
+        prepared["pid"] = pg.one("SELECT litkb.promote_prepare(%s, repeat('a', 40), NULL)", (ws,), conn=k)[0]
+    blocked, box = _race(pg, holder, hold, abandoner,
+                         lambda k: k.execute("SELECT litkb.abandon_workstream(%s, %s)", (ws, pg.tokens[ws])))
+    assert getattr(box.get("error"), "sqlstate", None) == "55000", f"abandon during a prepare must be refused 55000, got {box}"
+    assert pg.one("SELECT state FROM litkb.workstreams WHERE id = %s", (ws,))[0] == "open"
+    promoter = pg.session("litkb_promoter")
+    assert pg.one("SELECT litkb.promote_commit(%s, repeat('b', 40))", (prepared["pid"],), conn=promoter)[0]["committed"] == 1
+    assert blocked, "the abandon was never observed waiting on the prepare; the race was not exercised"
+
+
+_EMBED = "SELECT litkb.add_use_embedding(%s, %s, %s, 'm', 3, '[1,2,3]'::halfvec)"
+
+
+def _embeddings(pg, uv):
+    return pg.one("SELECT count(*) FROM litkb.use_embeddings WHERE use_version_id = %s", (uv,))[0]
+
+
+@pg_only
+def test_add_use_embedding_refuses_a_closed_workstreams_token(pg):
+    """F-3: a merged workstream's token is refused (22023) even on a version that is still proposed (a
+    chain held at commit), so only the open-workstream guard stands in the way; so is an abandoned one's."""
+    w = _evidence_world(pg)
+    _, held_uv = _absent_gap_use(pg, w)
+    promoter = pg.session("litkb_promoter")
+    pid = pg.one("SELECT litkb.promote_prepare(%s, repeat('a', 40), NULL)", (w["ws"],), conn=promoter)[0]
+    assert pg.one("SELECT litkb.promote_commit(%s, repeat('b', 40))", (pid,), conn=promoter)[0]["held"] == 1
+    assert pg.one("SELECT state FROM litkb.workstreams WHERE id = %s", (w["ws"],))[0] == "merged"
+    assert pg.one("SELECT state FROM litkb.use_versions WHERE version_id = %s", (held_uv,))[0] == "proposed"
+    writer = pg.session("litkb_writer")
+    with pytest.raises(pg.errors.InvalidParameterValue, match="is not open"):
+        writer.execute(_EMBED, (w["ws"], pg.tokens[w["ws"]], held_uv))
+    assert _embeddings(pg, held_uv) == 0
+    ws2 = pg.ws()
+    work_id, _ = pg.work(ws2)
+    _, uv2 = pg.proposal(writer, "use", None, {"work_id": str(work_id)}, None,
+                         {"statement": "s", "kind": "method", "status": "proposed"}, None, ws2)
+    writer.execute("SELECT litkb.abandon_workstream(%s, %s)", (ws2, pg.tokens[ws2]))
+    with pytest.raises(pg.errors.InvalidParameterValue, match="is not open"):
+        writer.execute(_EMBED, (ws2, pg.tokens[ws2], uv2))
+    assert _embeddings(pg, uv2) == 0
+
+
+@pg_only
+def test_add_use_embedding_refuses_a_promoted_or_prepared_version(pg):
+    """F-3: in an open workstream, a promoted version and a prepared version of its own are refused
+    (55000); main's promoted slot is never taken by an unreviewed vector."""
+    w = _evidence_world(pg)
+    _, promoted = pg.one(
+        "SELECT entity_id, version_id FROM litkb._write_version('fact', 'use', NULL, %s, NULL, %s, "
+        "NULL, %s, 'setup', 'setup')",
+        (pg.Jsonb({"work_id": str(w["work"])}),
+         pg.Jsonb({"statement": "already in main", "kind": "context", "status": "supported"}), w["ws"]))
+    writer = pg.session("litkb_writer")
+    with pytest.raises(pg.errors.ObjectNotInPrerequisiteState, match="only to a proposed version"):
+        writer.execute(_EMBED, (w["ws"], pg.tokens[w["ws"]], promoted))
+    assert _embeddings(pg, promoted) == 0
+    promoter = pg.session("litkb_promoter")
+    pg.one("SELECT litkb.promote_prepare(%s, repeat('a', 40), NULL)", (w["ws"],), conn=promoter)
+    assert pg.one("SELECT state FROM litkb.use_versions WHERE version_id = %s", (w["uv"],))[0] == "prepared"
+    with pytest.raises(pg.errors.ObjectNotInPrerequisiteState, match="only to a proposed version"):
+        writer.execute(_EMBED, (w["ws"], pg.tokens[w["ws"]], w["uv"]))
+    assert _embeddings(pg, w["uv"]) == 0
+
+
+@pg_only
+def test_add_use_embedding_waits_for_a_commit_in_flight_and_is_refused(pg):
+    """F-3 (the referee's R4): promote_commit is held open; add_use_embedding on a version the commit
+    holds back (still proposed) waits on the workstream row (FOR SHARE against commit's FOR UPDATE),
+    then finds the workstream merged and is refused (22023) with no row. Without the lock it reads the
+    workstream as open and the embedding lands in a merged workstream."""
+    w = _evidence_world(pg)
+    _, held_uv = _absent_gap_use(pg, w)
+    promoter = pg.session("litkb_promoter")
+    pid = pg.one("SELECT litkb.promote_prepare(%s, repeat('a', 40), NULL)", (w["ws"],), conn=promoter)[0]
+    holder = _holder(pg, "litkb_promoter")
+    writer = pg.session("litkb_writer")
+    blocked, box = _race(
+        pg, holder, lambda k: pg.one("SELECT litkb.promote_commit(%s, repeat('b', 40))", (pid,), conn=k),
+        writer, lambda k: k.execute(_EMBED, (w["ws"], pg.tokens[w["ws"]], held_uv)))
+    assert getattr(box.get("error"), "sqlstate", None) == "22023", f"an embedding during a commit must be refused, got {box}"
+    assert _embeddings(pg, held_uv) == 0
+    assert pg.one("SELECT state FROM litkb.workstreams WHERE id = %s", (w["ws"],))[0] == "merged"
+    assert blocked, "the embedding was never observed waiting on the commit; the race was not exercised"
+
+
+@pg_only
+def test_open_workstream_race_in_one_directory_leaves_no_orphan(pg, tmp_path):
+    """F-7 (the referee's P5): two threads open a workstream in the same directory at once, ten rounds.
+    Exactly one succeeds, the other gets WorkstreamFileExists, and exactly one workstream of the two is
+    open: the one whose id is in the file. The old order (exists check, database, then the file) left
+    an orphan open workstream every round."""
+    from litkb import workstream
+    for rnd in range(10):
+        d = tmp_path / f"round{rnd}"
+        d.mkdir()
+        conns = [pg.session("litkb_writer"), pg.session("litkb_writer")]
+        slugs = [f"t-{uuid.uuid4().hex[:12]}" for _ in conns]
+        barrier = threading.Barrier(2)
+
+        def opener(i):
+            def run():
+                barrier.wait(10)
+                return workstream.open_workstream(conns[i], slugs[i], "work/test", "race", directory=d)
+            return run
+        started = [_in_thread(opener(i)) for i in range(2)]
+        for th, _box in started:
+            th.join(30)
+            assert not th.is_alive()
+        outcomes = sorted(type(box["error"]).__name__ if "error" in box else "ok" for _th, box in started)
+        assert outcomes == ["WorkstreamFileExists", "ok"], (rnd, outcomes, [b.get("error") for _t, b in started])
+        file_ws, _token = workstream.load(d)
+        opened = [str(r[0]) for r in pg.conn.execute(
+            "SELECT id FROM litkb.workstreams WHERE slug = ANY (%s) AND state = 'open'", (slugs,)).fetchall()]
+        assert opened == [file_ws], f"round {rnd}: open workstreams {opened}, file names {file_ws}"
+        for k in conns:
+            k.close()
+
+
+@pg_only
+def test_open_workstream_failure_leaves_no_workstream_and_no_file(pg, tmp_path, monkeypatch):
+    """F-7: a failure after the database call and before the commit (the token write fails) rolls the
+    workstream back and removes the claimed file; the directory can then be used again."""
+    import json
+    import types
+
+    from litkb import workstream
+    writer = pg.session("litkb_writer")
+    slug = f"t-{uuid.uuid4().hex[:12]}"
+
+    def boom(*_a, **_k):
+        raise OSError("token write failed (injected)")
+    monkeypatch.setattr(workstream, "json", types.SimpleNamespace(dump=boom, loads=json.loads))
+    with pytest.raises(OSError, match="injected"):
+        workstream.open_workstream(writer, slug, "work/test", "p1 test", directory=tmp_path)
+    assert not (tmp_path / workstream.TOKEN_FILE).exists(), "the claimed token file was left behind"
+    assert pg.one("SELECT count(*) FROM litkb.workstreams WHERE slug = %s", (slug,))[0] == 0, \
+        "an open workstream was left whose token is in no file"
+    monkeypatch.setattr(workstream, "json", json)
+    ws_id = workstream.open_workstream(writer, slug, "work/test", "p1 test", directory=tmp_path)
+    assert workstream.load(tmp_path)[0] == str(ws_id)
+
+
+@pg_only
+def test_token_is_bound_never_visible_in_pg_stat_activity(pg):
+    """F-8: while a writer call carrying the token waits in the server, pg_stat_activity.query for that
+    backend shows the call with the token as a bound parameter ($n), never its text. Control (the probe
+    can see literals): a query with an inlined marker IS visible to the same viewer, so a client that
+    formatted the token into the SQL would fail this test."""
+    viewer_q = "SELECT query FROM pg_stat_activity WHERE pid = %s"
+    # control: an inlined literal is visible
+    probe = pg.session("litkb_writer")
+    probe_pid = _backend_pid(pg, probe)
+    marker = f"litkb-visibility-marker-{uuid.uuid4().hex}"
+    th, box = _in_thread(lambda: probe.execute(f"SELECT '{marker}', pg_sleep(3)"))
+    seen = False
+    end = time.monotonic() + 10
+    while time.monotonic() < end and not seen:
+        seen = marker in (pg.one(viewer_q, (probe_pid,))[0] or "")
+        if not th.is_alive():
+            break
+        time.sleep(0.05)
+    th.join(30)
+    assert seen, "the viewer could not see an inlined literal; the probe below would be vacuous"
+    # the real call: write_proposal waits on the workstream row an owner session holds FOR UPDATE
+    ws = pg.ws()
+    token = pg.tokens[ws]
+    holder = pg.session()
+    holder.autocommit = False
+    writer = pg.session("litkb_writer")
+    writer_pid = _backend_pid(pg, writer)
+    try:
+        holder.execute("SELECT 1 FROM litkb.workstreams WHERE id = %s FOR UPDATE", (ws,))
+        th, box = _in_thread(lambda: pg.proposal(writer, "gap", None, {"slug": f"gap-{uuid.uuid4().hex[:8]}"}, None,
+                                                 {"question": "q", "gap_state": "open"}, None, ws))
+        blocked = _wait_blocked(pg, writer_pid, thread=th)
+        query = pg.one(viewer_q, (writer_pid,))[0] or ""
+        everywhere = pg.one("SELECT count(*) FROM pg_stat_activity WHERE strpos(query, %s) > 0", (token,))[0]
+        holder.commit()
+    except BaseException:
+        holder.rollback()
+        raise
+    th.join(30)
+    assert blocked, "the writer call was never observed waiting; its query text was not sampled in flight"
+    assert "write_proposal" in query, f"sampled the wrong query: {query!r}"
+    assert token not in query and everywhere == 0, "the token text is visible in pg_stat_activity"
+    assert "error" not in box, box
+
+
+@pytest.mark.parametrize("user", ["postgres", "litkb_owner"])
+def test_connect_refuses_the_admin_logins(monkeypatch, user):
+    """F-9: the agents' connect() refuses the superuser and the owner before any driver is loaded."""
+    from litkb.db import connect as c
+    with monkeypatch.context() as m:
+        m.setitem(sys.modules, "psycopg", None)
+        m.setitem(sys.modules, "psycopg.conninfo", None)
+        with pytest.raises(c.AdminLoginRefused):
+            c.connect(c.DB_MAIN, user)
+
+
+class _Reached(Exception):
+    pass
+
+
+def test_admin_logins_open_only_through_connect_admin(monkeypatch):
+    """F-9: connect_admin() opens only postgres and litkb_owner; the migration runner (for litkb) and
+    provisioning reach the driver through it and never through connect()."""
+    pytest.importorskip("psycopg")
+    from psycopg.conninfo import conninfo_to_dict
+
+    from litkb.db import connect as c
+    from litkb.db import migrate, provision
+    opened = []
+
+    def fake_open(info, autocommit):
+        opened.append(conninfo_to_dict(info)["user"])
+        raise _Reached()
+    monkeypatch.setattr(c, "_open", fake_open)
+    for other in ("litkb_writer", "litkb_reader", "litkb_promoter", "litkb_ingest", "litkb_test", "postgres ", ""):
+        with pytest.raises(c.LoginRefused):
+            c.connect_admin(c.DB_MAIN, other)
+    assert opened == []
+
+    def no_connect(*_a, **_k):
+        raise AssertionError("connect() was used for an admin login")
+    monkeypatch.setattr(c, "connect", no_connect)
+    with pytest.raises(_Reached):
+        migrate.main(["--db", "litkb"])
+    with pytest.raises(_Reached):
+        provision.provision()
+    assert opened == ["litkb_owner", "postgres"], opened

@@ -292,9 +292,19 @@ A **workstream token** is not a login. `open_workstream()` returns it once; the 
 its sha256, in `workstream_tokens`, which no agent role can read. It stops a session writing into
 another session's workstream by mistake; it does not stop a process that reads another worktree's
 token file. The token is only a lock if nothing goes round it, so no agent role holds a direct write
-on a workstream-bearing table: one with a foreign key to `workstreams`, or with a foreign key to a
-table that has a `workstream_id` column (migration 0011; `qc/test_litkb_p1.py` builds that table list
-from the catalog). Admission rows have no writer path until P2's token-checked `admit`.
+on a guarded relation (migration 0011; the rule was widened after the third P1 referee, F-1).
+`qc/test_litkb_p1.py` (`_GUARDED_RELATIONS`, `_direct_write_offenders`) builds both the relation
+list and the role list from the catalog; that code is the rule's one home. In outline, it covers
+every relation of every kind that is `workstreams`, has a `workstream_id` column or a foreign key to
+`workstreams`, or is a view, plus everything below those through foreign keys at any depth. It does
+not descend through the main-owned identity tables. The roles are every role an agent login can use
+or `SET ROLE` to, plus PUBLIC and every ACL grantee. Token hashes are not readable through any
+relation, and each role's table, column and function privileges match the table above
+(`test_role_privilege_matrix`). `abandon_workstream` refuses while a promotion is prepared, and
+`add_use_embedding` takes only a proposed version in an open workstream (migration 0012).
+Clients send the token only as a bound query parameter, never inlined in the SQL text, because
+another login of the same role can read `pg_stat_activity.query`. Admission rows have no writer
+path until P2's token-checked `admit`.
 
 ---
 

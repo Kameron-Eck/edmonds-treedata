@@ -489,4 +489,75 @@ its own: `[PASSED] pre-flight clean`.
 **Residual, not fixed:** `add_use_embedding` checks that the version belongs to the workstream, but not the version's
 state. A session with its own token can therefore attach an embedding to one of its versions that is already
 prepared or promoted. Embeddings are not in the version-set hash, so no promotion is disturbed. This has not been
-tested.
+tested. (Closed by F-3 below.)
+
+## Fixes after third referee
+
+Authority: `Reports/LITKB_P1_REFEREE3_2026-09-13.md` (F-1 to F-9, mutations Z1–Z15) and `Scripts/decisions.yaml`
+`litkb-p0-foundation`. **Status of this evidence (3.4c):** the implementer wrote the fixes, the tests and the harness
+rows. This is author-produced evidence, and no referee has re-run it.
+
+| ID | Fix | Tests (`qc/test_litkb_p1.py`) | Referee mutation |
+|---|---|---|---|
+| F-1 | Catalog guard rewritten (`_GUARDED_RELATIONS`, `_direct_write_offenders`). The relation set covers relkinds `r p v m f`: `workstreams`, every relation with a `workstream_id` column (with or without a foreign key) or a foreign key to `workstreams`, and every view and materialized view, plus the foreign-key closure at any depth. The closure does not descend through tables with a `created_in_ws` column (judgement call 1). The role set is every role an agent login (reader, writer, promoter, ingest, test) can reach by `pg_has_role` MEMBER/SET/USAGE, plus PUBLIC and every ACL grantee, whatever its name; owners and superusers are exempt. An agent that can reach an owner or a superuser is itself an offender. Checked: table-level INSERT/UPDATE/DELETE/TRUNCATE/TRIGGER/MAINTAIN, column-level INSERT/UPDATE | `test_no_agent_role_holds_a_direct_write_on_a_workstream_table`; `test_catalog_guard_fires_on_new_workstream_bearing_relations` creates, grants and rolls back inside `litkb_test`: a no-FK `workstream_id` table, tables 2 and 3 hops below `use_evidence`, a view without `workstream_id`, a matview, a partitioned table granted to PUBLIC, and a TRUNCATE held by ingest that is found only through litkb_test's `INHERIT FALSE, SET TRUE` membership. Negative control: a child of `blocks` is not guarded | Z6, Z7, Z8 FIRED |
+| F-2 | 0012 `abandon_workstream`: token, then `FOR UPDATE` on the workstream row, then 55000 while a promotion is prepared | `test_abandon_refused_while_promotion_prepared`; `test_abandon_waits_for_a_prepare_in_flight_and_is_refused` (R5 ordering: blocked, 55000, ws open, commit ok) | new rows F2a, F2b FIRED |
+| F-3 | 0012 `add_use_embedding`: token, `FOR SHARE` on an open workstream (22023), version owned (42501) and `proposed` (55000) | `test_add_use_embedding_refuses_a_closed_workstreams_token` (merged ws with its held version still proposed; abandoned ws); `…_refuses_a_promoted_or_prepared_version`; `…_waits_for_a_commit_in_flight_and_is_refused` (R4: blocked, 22023, 0 rows) | new rows F3a–F3c FIRED |
+| F-4 | tests only | `test_every_workstream_write_requires_its_token` gains `empty` and `upper_cased_own` (×7 functions); `test_workstream_token_is_not_derived_from_the_slug_or_id` (same slug re-opened: another token; not sha256/md5 of slug or id). `_refused_by_token` no longer searches the message for `''` | Z1, Z2 FIRED |
+| F-5 | Tests only. The current grants allow neither Z9 nor Z10 (measured: the matrix passes on `litkb_test`, and the probe below on `litkb`), so nothing was revoked | `test_role_privilege_matrix`: per role, effective table and column write rights on every relation in litkb/litkb_meta/public, EXECUTE on every litkb/litkb_meta function, schema CREATE and database CREATE/TEMP, each equal to §4.7; the test login owns everything and inherits no agent role. `test_no_agent_role_reads_token_hashes_through_any_relation` (views depending on `workstream_tokens` at any depth, or any `token_hash` column) | Z9, Z10, Z5 FIRED |
+| F-6 | tests only | `test_rebase_copies_head_evidence_whose_run_was_superseded` (ingest moves the file's run after the evidence was added; copied 1, run_id = source) | Z12 FIRED |
+| F-7 | `litkb.workstream.open_workstream`: claim the file with `O_EXCL` first, then open the workstream inside a transaction, write and fsync the token, commit; any failure rolls back and unlinks. Refuses a connection already inside a transaction | `test_open_workstream_race_in_one_directory_leaves_no_orphan` (10 rounds × 2 threads: one ok, one `WorkstreamFileExists`, exactly one open ws, the file's); `test_open_workstream_failure_leaves_no_workstream_and_no_file` (injected write failure) | new rows F7a, F7b FIRED |
+| F-8 | Rule written in `workstream.py` and design §4.7: the token is sent only as a bound parameter. No shipped litkb client sends a token today; the tests' calls bind it | `test_token_is_bound_never_visible_in_pg_stat_activity`: a `write_proposal` waiting behind an owner `FOR UPDATE` shows `write_proposal` and no token in its `pg_stat_activity.query`, and no row in the view contains the token. Control: an inlined marker literal IS visible to the same viewer | none (the in-test control is the known-bad input) |
+| F-9 | `connect()` refuses `postgres` and `litkb_owner` (`AdminLoginRefused`, before the driver; a second lock on the parsed user). New `connect_admin()` opens only those two. `migrate.runner_connect` (owner for `litkb`) and `provision` use it | `test_connect_refuses_the_admin_logins[postgres, litkb_owner]`; `test_admin_logins_open_only_through_connect_admin` (refuses every agent login, `'postgres '` and `''`; migrate and provision reach the driver as owner and postgres, never through `connect()`); three new bypass params | new rows F9a, F9b FIRED |
+
+**Harness** (`qc/instruments/litkb_p1_mutations.py --whole-file`, `litkb_test` only):
+- New rows: Z1, Z2, Z5–Z10 and Z12 as the referee quoted them. Where the referee's table elides with "…", the row
+  writes out the full statement: Z5's and Z7's GRANT names the created relation, Z10 names both full signatures, and
+  Z12 joins `blocks bb` and `files ff`. Also new: F2a, F2b, F3a–F3c, F7a, F7b, F9a, F9b.
+- T5, W9 and W10 were re-pointed to 0012, because 0012 replaces their 0010/0011 bodies, which are now dead code.
+- Run of 37 rows (the new rows, T5, W1–W13 because the catalog test changed, and E8a, E8b, K3c, I6, M7 because
+  connect.py and migrate.py changed): baseline `149 passed`, **37/37 fired**, restored baseline `149 passed`, and 37
+  `restored … match: True` lines. Before the run, a `sha256sum` fingerprint was taken of 23 files: the 12 migrations,
+  connect/migrate/provision/promote/ingest/workstream, both `__init__.py`, the test file, the harness and
+  `.gitignore`. After the run it gave **23/23 OK**.
+- Whole-file failure counts: Z1 1, Z2 7, Z5 1, Z6 2, Z7 2, Z8 2, Z9 1, Z10 1, Z12 1.
+- The other harness rows were not re-run. None of them targets text that 0012 or the changed Python supersedes.
+
+**Suite:** `149 passed; litkb Postgres tests: 129 passed` (was 116/102).
+
+**Applied:**
+- On `litkb`, as `litkb_owner` through `connect_admin`: `applied 1 (0012_referee3_fixes.sql); 12 recorded`. This ran
+  before any mutation touched a file. Re-running both runners after the restore check gave `applied 0; 12 recorded`
+  on `litkb` and on `litkb_test`, and the runner's immutability check compared the recorded checksums with the
+  restored files.
+- A read-only probe on `litkb` (`default_transaction_read_only`) found:
+  - 0 offenders from `_direct_write_offenders` over 31 guarded relations, for reader, writer, promoter and ingest;
+  - every role's EXECUTE set equal to `_EXPECTED_EXECUTE`;
+  - `abandon_workstream` and `add_use_embedding`: `prosecdef` t, owner `litkb_owner`,
+    `search_path=litkb, public, pg_temp`, ACL `litkb_writer=X`;
+  - 0 workstreams, and `litkb_test` CONNECT f.
+
+**Judgement calls:**
+1. **Where the closure stops.** A literal transitive FK closure from `workstreams` covers every extraction table
+   (`uses.current_version_id → use_versions`, then `blocks → files`, and so on), which would make ingest's §4.7
+   INSERTs offenders. The closure therefore checks identity tables (`created_in_ws`: works, identifiers, files, gaps,
+   uses) but does not descend through them. A future table below an identity table is outside the rule unless it has
+   a `workstream_id` column or is a view.
+2. **Every view is guarded**, whatever its columns. Today the 11 views hold no agent write.
+3. **Foreign tables** are in the relkind set but were not exercised: creating one needs a foreign-data wrapper,
+   which is superuser-only.
+4. **Not exercised at cluster level:** an agent login that can reach an owner or a superuser. It needs a role grant
+   made as postgres, which would touch `litkb`'s roles. The SET-only membership branch is exercised in-database.
+5. **The test login's matrix row** asserts ownership and no inherited agent role. In `litkb_test` it owns every object,
+   so its privileges are ownership's. The property that counts is the server's CONNECT refusal on `litkb`, which is
+   already tested.
+6. **F-9 is convention, not enforcement**, like the tool-login refusals. A process that reads the shared pgpass file
+   still reaches both logins (Kam's accepted risk).
+
+**Ladder:** `PYTHONUTF8=1 py -3.12 qc/check.py --fast`: ruff PASS, compile PASS; pytest `1 failed, 2101 passed, 74 warnings
+in 423.20s` (`litkb Postgres tests: 129 passed`). The one failure is the known
+`qc/test_experiments.py::test_pointer_paths_resolve[crown_state_model]`. The ladder stops there, so preflight was run on
+its own: `[PASSED] pre-flight clean`.
+
+**Open:** F-9 remains convention, as Kam's accepted risk. The cluster-level "agent can SET ROLE to the owner" branch
+and foreign tables are not exercised. No shipped client sends a token yet, so F-8 binds future CLI and MCP code by
+the written rule and this test pattern. No referee has re-run this section.

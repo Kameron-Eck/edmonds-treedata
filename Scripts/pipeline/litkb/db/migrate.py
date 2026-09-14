@@ -97,6 +97,15 @@ def apply(conn, directory=MIGRATIONS_DIR):
         conn.execute("SELECT pg_advisory_unlock(%s)", (LOCK_KEY,))
 
 
+def runner_connect(db):
+    """The runner's login for db: the owner through connect_admin() (connect() refuses it, third
+    referee F-9); litkb_test, which owns the test database, through connect()."""
+    role = RUNNER_ROLE[db]
+    if role in _c.ADMIN_LOGINS:
+        return _c.connect_admin(db, role, autocommit=True)
+    return _c.connect(db, role, autocommit=True)
+
+
 def reset(conn):
     """Drop the litkb schemas. Refused anywhere but litkb_test (the server also refuses the
     litkb_test role on litkb; this is the second lock, not the only one)."""
@@ -114,7 +123,7 @@ def main(argv=None):
     ap.add_argument("--reset", action="store_true",
                     help=f"drop the litkb schemas first ({_c.DB_TEST} only)")
     a = ap.parse_args(sys.argv[1:] if argv is None else argv)
-    conn = _c.connect(a.db, RUNNER_ROLE[a.db], autocommit=True)
+    conn = runner_connect(a.db)
     try:
         if a.reset:
             reset(conn)

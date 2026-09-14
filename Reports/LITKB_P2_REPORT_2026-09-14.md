@@ -34,7 +34,7 @@ human-marked pairs — not on referee-authored gold committed beforehand (§14's
 
 Workstream `litkb-p2-gate` (`01a0a06d-6826-7100-b15b-d0210fbea7b2`), opened with `py -3.12 -m litkb ws open`;
 token in the worktree's git-ignored `.litkb-workstream`, never printed. Session labels `claude-p2` /
-`p2-gate-20260914`. Every paper is cited by the project (a tracker row), had no `File stem`, and its DOI was
+`p2-gate-20260914`. Every paper is a tracker row (IDs 99, 189 and 169 carry `Feeds` into reports; 59 and 61 have none), had no `File stem`, and its DOI was
 in no `manifest.csv`; a filename search of `Literture\` found none of them. Admission used
 `py -3.12 -m litkb admit --tracker-id N` (the tracker row is the claimed record; its DOI is the identifier);
 acquisition `py -3.12 -m litkb acquire --doi D --max-archive-downloads 2`.
@@ -171,7 +171,7 @@ file and compares its sha256.
 | `--only B1b`, after the new test | `134 passed` | fired | `134 passed` | |
 | **Final full run on the committed tree** (after the ladder below) | `134 passed, 5 deselected` | **40/40 fired** | `134 passed, 5 deselected` | 40 `match: True`; separately `sha256sum -c` of 34 files fingerprinted before the run: 34 OK |
 
-P1 harness row R7, re-pointed at 0013 (`qc/instruments/litkb_p1_mutations.py --whole-file --only R7`): baseline `149 passed`, **FIRED**, restored baseline `149 passed`.
+P1 harness row R7, re-pointed at 0013 (`qc/instruments/litkb_p1_mutations.py --whole-file --only R7`): baseline `149 passed`, **FIRED**, restored baseline `149 passed`. The other P1 harness rows were not re-run: none of them targets text that 0013 supersedes (only R7 did), and the whole P1 file passes at baseline (149).
 
 ## Ladder
 
@@ -246,3 +246,4 @@ The first ladder run found two failures I had introduced, both now fixed:
 - The gate workstream `litkb-p2-gate` is still open; its token file sits in this worktree. It holds 2 admitted,
   unacquired works (IDs 11 and 100) with `manual-step` attempts.
 - The editable install still points at the main tree: run with `PYTHONPATH=Scripts/pipeline`.
+- Untested residual: `approve_admission` does not lock or check the ADMITTER's workstream, so a proposed manual admission left in an abandoned workstream can still be approved from another session. Not in the kill list.

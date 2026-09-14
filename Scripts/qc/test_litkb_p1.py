@@ -95,7 +95,7 @@ def test_import_litkb_pulls_no_heavy_dependency():
     """Design §9 / referee M9: `import litkb` loads no driver or extraction library, so the
     ladder's compile and test sweep never pulls them."""
     code = ("import sys, litkb, litkb.db, litkb.db.connect, litkb.db.migrate, "
-            "litkb.db.provision, litkb.promote\n"
+            "litkb.db.provision, litkb.promote, litkb.ingest, litkb.workstream\n"
             "heavy = {'psycopg', 'torch', 'docling', 'mineru', 'numpy', 'pandas', 'pypdfium2'}\n"
             "pulled = sorted(heavy & {m.split('.')[0] for m in sys.modules})\n"
             "print(pulled)\n"

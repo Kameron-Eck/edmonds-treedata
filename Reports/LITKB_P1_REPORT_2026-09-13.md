@@ -460,8 +460,9 @@ the writer, and each calling `_require_ws_token` first:
 run before any mutation touched the file. A read-only probe on `litkb` as postgres found:
 - no INSERT/UPDATE/DELETE/TRUNCATE at table or column level for reader, writer or promoter on any table;
 - ingest INSERT on the 11 extraction tables only;
-- writer EXECUTE on `add_candidate`, `record_acquisition_attempt` and `add_use_embedding`, each SECURITY DEFINER and
-  owned by `litkb_owner`;
+- writer EXECUTE on `add_candidate`, `record_acquisition_attempt` and `add_use_embedding` (ACL). A second read-only
+  query on `pg_proc` showed each one with `prosecdef` t, `proowner` `litkb_owner` and
+  `proconfig` `search_path=litkb, public, pg_temp`;
 - `litkb_test` CONNECT on `litkb` f, 0 workstreams, 11 migrations recorded.
 
 **Design:** §4.6 check 5, §4.7 (writer row, token paragraph), §5 step 1 and §9 (MCP write tools) no longer say the
@@ -484,3 +485,8 @@ its own: `[PASSED] pre-flight clean`.
    a mutation.
 4. The token-less `workstream_id IS NULL` path is gone for the writer. Candidates from citations (design §7 stage 6)
    will need an ingest-side or P6 function; ingest has never held INSERT on `candidates`.
+
+**Residual, not fixed:** `add_use_embedding` checks that the version belongs to the workstream, but not the version's
+state. A session with its own token can therefore attach an embedding to one of its versions that is already
+prepared or promoted. Embeddings are not in the version-set hash, so no promotion is disturbed. This has not been
+tested.

@@ -68,11 +68,57 @@ _TARGETS = _real_targets()
 _LITKB_MARK = "requires_litkb_pg"
 
 
+_LITKB_LIVE = "litkb_live"
+
+
 def pytest_configure(config):
     config.addinivalue_line(
         "markers",
         f"{_LITKB_MARK}: needs the local litkb PostgreSQL server (localhost:5433, role "
         "litkb_test); skipped when absent, and the skip count is printed")
+    config.addinivalue_line(
+        "markers",
+        f"{_LITKB_LIVE}: reaches the network (registries, archives); skipped unless LITKB_LIVE=1, "
+        "so the ladder never depends on a remote service (litkb P2)")
+
+
+_LITKB_SUITE_LOCK = 0x6C6B7473  # "lkts"
+_LITKB_SKIP_WHEN = ("connection refused", "could not connect", "does not exist",
+                    "no password supplied", "timeout expired", "is the server running")
+
+
+@pytest.fixture(scope="session")
+def litkb_pg_base():
+    """(psycopg, conn, applied) — ONE reset and migration of litkb_test per pytest session, shared by the P1 and
+    P2 suites (qc/test_litkb_p1.py, qc/test_litkb_p2.py). It lived in the P1 module; two modules each holding the
+    suite's advisory lock on their own connection in one process would wait on each other forever. The suite
+    logs in ONLY as litkb_test, to litkb_test, under the advisory lock (parallel worktrees serialise)."""
+    psycopg = pytest.importorskip("psycopg", reason="requires_litkb_pg: psycopg is not installed")
+    from litkb.db import connect as c
+    from litkb.db import migrate
+    try:
+        conn = c.connect(c.DB_TEST, "litkb_test", autocommit=True)
+    except psycopg.OperationalError as e:
+        msg = str(e).strip()
+        if any(s in msg.lower() for s in _LITKB_SKIP_WHEN):
+            pytest.skip(f"requires_litkb_pg: litkb_test unavailable ({msg.splitlines()[-1][:160]})")
+        raise
+    conn.execute("SELECT pg_advisory_lock(%s)", (_LITKB_SUITE_LOCK,))
+    migrate.reset(conn)
+    ran = migrate.apply(conn)
+    yield psycopg, conn, ran
+    conn.close()
+
+
+def pytest_collection_modifyitems(config, items):
+    import os
+
+    if os.environ.get("LITKB_LIVE") == "1":
+        return
+    skip = pytest.mark.skip(reason=f"{_LITKB_LIVE}: network test; run with LITKB_LIVE=1")
+    for item in items:
+        if _LITKB_LIVE in item.keywords:
+            item.add_marker(skip)
 
 
 def pytest_terminal_summary(terminalreporter):

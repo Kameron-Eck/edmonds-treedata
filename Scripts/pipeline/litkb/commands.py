@@ -1,0 +1,257 @@
+"""The litkb command line (design §9). Run from a worktree, with PYTHONPATH=Scripts/pipeline until the
+editable install is re-run from a tree that contains litkb:
+
+    py -3.12 -m litkb ws open <slug> [--purpose P] [--branch B] [--brief PATH]
+    py -3.12 -m litkb ws status
+    py -3.12 -m litkb discover "<query>" [--source crossref] [--max 5]
+    py -3.12 -m litkb admit --doi D [--title T --authors A --year Y | --tracker-id N] [--key K] [--file PDF]
+    py -3.12 -m litkb admit --manual --title T --authors A --year Y --file PDF --source-note "..."
+    py -3.12 -m litkb approve <admission-id>
+    py -3.12 -m litkb acquire (--key K | --doi D) [--routes open_access,annas,scihub]
+                              [--max-archive-downloads N] [--quota-margin M] [--retry-dead] [--from-file PDF]
+
+Every write names the workstream in <worktree>/.litkb-workstream and presents its token, bound as a query
+parameter. The token is never printed: `ws open` prints the workstream id only.
+
+Session labels: --agent / --session, or LITKB_AGENT / LITKB_SESSION. A manual admission is approved only from
+another session (the database refuses the admitter's own).
+
+Database: --db (default LITKB_DB, else litkb), login litkb_writer through litkb.db.connect.connect().
+"""
+import argparse
+import csv
+import json
+import os
+import subprocess
+import sys
+from pathlib import Path
+
+SCRIPTS = Path(__file__).resolve().parents[2]
+TRACKER_CSV = SCRIPTS.parent / "Reports" / "literature_tracker.csv"
+
+
+def _git(*args, cwd=None):
+    r = subprocess.run(["git", *args], capture_output=True, text=True, cwd=cwd)
+    return r.stdout.strip() if r.returncode == 0 else ""
+
+
+def _worktree(args):
+    return Path(args.dir or _git("rev-parse", "--show-toplevel") or os.getcwd()).resolve()
+
+
+def _labels(args):
+    agent = (args.agent or os.environ.get("LITKB_AGENT") or "").strip()
+    session = (args.session or os.environ.get("LITKB_SESSION") or "").strip()
+    if not agent or not session:
+        raise SystemExit("litkb: an agent and a session label are required (--agent/--session or "
+                         "LITKB_AGENT/LITKB_SESSION)")
+    return agent, session
+
+
+def _default_connect(db):
+    from litkb.db import connect as c
+
+    return c.connect(db, "litkb_writer", autocommit=True)
+
+
+def _ws(args):
+    from litkb import workstream
+
+    try:
+        return workstream.load(_worktree(args))
+    except FileNotFoundError:
+        raise SystemExit(f"litkb: no {workstream.TOKEN_FILE} in {_worktree(args)}; run `litkb ws open <slug>` first") from None
+
+
+def _print(obj):
+    print(json.dumps(obj, indent=1, default=str, ensure_ascii=False))
+
+
+def _tracker_row(tracker_id, path=TRACKER_CSV):
+    with open(path, encoding="utf-8", newline="") as fh:
+        for r in csv.DictReader(fh):
+            if r["ID"].strip() == str(tracker_id):
+                return r
+    raise SystemExit(f"litkb: tracker row {tracker_id} not found in {path}")
+
+
+def _summary(res):
+    keep = {k: res.get(k) for k in ("outcome", "admission_id", "work_id", "file_id", "refused_at", "constraint",
+                                    "matches") if res.get(k) is not None}
+    checks = res.get("checks") or {}
+    for c in ("check1_study_exists", "check3_binding", "check2_duplicate"):
+        if c in checks:
+            keep[c] = checks[c]
+    return keep
+
+
+def cmd_ws(args, conn):
+    from litkb import workstream
+
+    if args.ws_cmd == "open":
+        branch = args.branch or _git("rev-parse", "--abbrev-ref", "HEAD", cwd=_worktree(args)) or "unknown"
+        ws_id = workstream.open_workstream(conn, args.slug, branch, args.purpose, directory=_worktree(args),
+                                           brief_path=args.brief)
+        print(f"litkb: workstream {ws_id} open ({args.slug}, branch {branch}); token written to "
+              f"{_worktree(args) / workstream.TOKEN_FILE} (never printed)")
+        return 0
+    ws_id, _token = _ws(args)
+    row = conn.execute("SELECT slug, git_branch, state, opened_at FROM litkb.workstreams WHERE id = %s",
+                       (ws_id,)).fetchone()
+    if not row:
+        raise SystemExit(f"litkb: workstream {ws_id} is not in database {args.db}")
+    counts = {t: conn.execute(f"SELECT state, count(*) FROM litkb.{t} WHERE workstream_id = %s GROUP BY 1 ORDER BY 1",
+                              (ws_id,)).fetchall() for t in ("candidates", "admissions")}
+    attempts = conn.execute("SELECT route, status, count(*) FROM litkb.acquisition_attempts WHERE workstream_id = %s "
+                            "GROUP BY 1, 2 ORDER BY 1, 2", (ws_id,)).fetchall()
+    _print({"workstream_id": ws_id, "slug": row[0], "branch": row[1], "state": row[2], "opened_at": row[3],
+            "candidates": dict(counts["candidates"]), "admissions": dict(counts["admissions"]),
+            "attempts": [list(a) for a in attempts]})
+    return 0
+
+
+def cmd_discover(args, conn):
+    from litkb.admit.front import add_candidate
+
+    ws_id, token = _ws(args)
+    if args.source != "crossref":
+        raise SystemExit("litkb discover: only --source crossref is wired in P2")
+    from paper_search_mcp.academic_platforms.crossref import CrossRefSearcher
+
+    papers = CrossRefSearcher().search(args.query, max_results=args.max)
+    out = []
+    for p in papers:
+        d = p.to_dict()
+        year = p.published_date.year if getattr(p, "published_date", None) else None
+        cid = add_candidate(conn, ws_id, token, source="paper-search", source_detail="crossref", query=args.query,
+                            raw=json.loads(json.dumps(d, default=str)), title=p.title, authors=list(p.authors or []),
+                            year=year, ids={"doi": p.doi} if p.doi else {})
+        out.append({"candidate_id": cid, "title": p.title, "year": year, "doi": p.doi})
+    _print(out)
+    return 0
+
+
+def cmd_admit(args, conn):
+    from litkb.admit import front
+
+    ws_id, token = _ws(args)
+    agent, session = _labels(args)
+    if args.manual:
+        if not (args.title and args.authors and args.year and args.file and args.source_note):
+            raise SystemExit("litkb admit --manual needs --title, --authors, --year, --file and --source-note")
+        res = front.admit_manual(conn, ws_id, token, title=args.title, authors=args.authors, year=int(args.year),
+                                file_path=args.file, source_note=args.source_note, work_type=args.type or "report",
+                                key=args.key, agent=agent, session=session)
+        _print(_summary(res))
+        return 0 if res["outcome"] == "proposed" else 1
+    claimed, doi, detail = {}, args.doi, None
+    if args.tracker_id:
+        r = _tracker_row(args.tracker_id)
+        claimed = {"title": r["Title"], "authors": r["Author(s)"], "year": r["Year"]}
+        detail = f"tracker ID {args.tracker_id}"
+        if not doi and "doi.org/" in r["DOI/URL"]:
+            doi = r["DOI/URL"].split("doi.org/", 1)[1].strip()
+    for k in ("title", "authors", "year"):
+        if getattr(args, k):
+            claimed[k] = getattr(args, k)
+    if not (doi or args.arxiv):
+        raise SystemExit("litkb admit needs --doi or --arxiv (or --tracker-id with a DOI), or --manual")
+    res = front.admit_registry(conn, ws_id, token, doi=doi, arxiv=args.arxiv, claimed=claimed or None, key=args.key,
+                              file_path=args.file, agent=agent, session=session, source_detail=detail,
+                              extra_identifiers=([{"scheme": "tracker", "value": str(args.tracker_id),
+                                                   "verified_by": None, "evidence": {"source": "Reports/literature_tracker.csv"}}]
+                                                 if args.tracker_id else ()))
+    _print(_summary(res))
+    return 0 if res["outcome"] == "admitted" else 1
+
+
+def cmd_approve(args, conn):
+    from litkb.admit import front
+
+    ws_id, token = _ws(args)
+    agent, session = _labels(args)
+    _print(front.approve(conn, ws_id, token, args.admission_id, agent, session))
+    return 0
+
+
+def cmd_acquire(args, conn):
+    from litkb.acquire import run
+
+    ws_id, token = _ws(args)
+    agent, session = _labels(args)
+    work = run.work_record(conn, key=args.key, doi=args.doi)
+    if not work:
+        raise SystemExit("litkb acquire: no admitted work with that key or DOI; admit it first")
+    budget = run.Budget(max_archive_downloads=args.max_archive_downloads, quota_margin=args.quota_margin)
+    out = run.acquire(conn, ws_id, token, work, routes=tuple(r.strip() for r in args.routes.split(",") if r.strip()),
+                      agent=agent, session=session, budget=budget, retry_dead=args.retry_dead,
+                      from_file=args.from_file)
+    out["archive_downloads_used"] = budget.used
+    out["downloads_left"] = budget.downloads_left
+    if budget.stopped:
+        out["archive_stopped"] = budget.stopped
+    _print({k: v for k, v in out.items() if k != "detail"} | {"key": work["key"]})
+    return 0 if out["outcome"] in ("ok", "already-held") else 1
+
+
+def build_parser():
+    ap = argparse.ArgumentParser(prog="litkb", description="the literature knowledge base")
+    ap.add_argument("--db", default=os.environ.get("LITKB_DB", "litkb"))
+    ap.add_argument("--dir", help="worktree root holding .litkb-workstream (default: git top level)")
+    ap.add_argument("--agent")
+    ap.add_argument("--session")
+    sub = ap.add_subparsers(dest="cmd", required=True)
+
+    ws = sub.add_parser("ws")
+    wsub = ws.add_subparsers(dest="ws_cmd", required=True)
+    o = wsub.add_parser("open")
+    o.add_argument("slug")
+    o.add_argument("--purpose", default="literature workstream")
+    o.add_argument("--branch")
+    o.add_argument("--brief")
+    wsub.add_parser("status")
+
+    d = sub.add_parser("discover")
+    d.add_argument("query")
+    d.add_argument("--source", default="crossref")
+    d.add_argument("--max", type=int, default=5)
+
+    a = sub.add_parser("admit")
+    a.add_argument("--doi")
+    a.add_argument("--arxiv")
+    a.add_argument("--tracker-id", type=int)
+    a.add_argument("--title")
+    a.add_argument("--authors")
+    a.add_argument("--year")
+    a.add_argument("--key")
+    a.add_argument("--type")
+    a.add_argument("--file")
+    a.add_argument("--manual", action="store_true")
+    a.add_argument("--source-note")
+
+    p = sub.add_parser("approve")
+    p.add_argument("admission_id")
+
+    q = sub.add_parser("acquire")
+    q.add_argument("--key")
+    q.add_argument("--doi")
+    q.add_argument("--routes", default="open_access,annas,scihub")
+    q.add_argument("--max-archive-downloads", type=int, default=5)
+    q.add_argument("--quota-margin", type=int, default=50)
+    q.add_argument("--retry-dead", action="store_true")
+    q.add_argument("--from-file")
+    return ap
+
+
+def main(argv=None, connect=None):
+    args = build_parser().parse_args(sys.argv[1:] if argv is None else argv)
+    conn = (connect or _default_connect)(args.db)
+    try:
+        return {"ws": cmd_ws, "discover": cmd_discover, "admit": cmd_admit, "approve": cmd_approve,
+                "acquire": cmd_acquire}[args.cmd](args, conn)
+    finally:
+        conn.close()
+
+
+if __name__ == "__main__":
+    sys.exit(main())

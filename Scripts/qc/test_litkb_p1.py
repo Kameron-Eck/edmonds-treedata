@@ -270,23 +270,11 @@ class _PG:
 
 
 @pytest.fixture(scope="session")
-def _pg_session():
-    psycopg = pytest.importorskip("psycopg", reason="requires_litkb_pg: psycopg is not installed")
-    from litkb.db import connect as c
-    from litkb.db import migrate
-    try:
-        conn = c.connect(c.DB_TEST, "litkb_test", autocommit=True)
-    except psycopg.OperationalError as e:
-        msg = str(e).strip()
-        if any(s in msg.lower() for s in _SKIP_WHEN):
-            pytest.skip(f"requires_litkb_pg: litkb_test unavailable ({msg.splitlines()[-1][:160]})")
-        raise
-    conn.execute("SELECT pg_advisory_lock(%s)", (SUITE_LOCK,))
-    migrate.reset(conn)
-    ran = migrate.apply(conn)
-    h = _PG(psycopg, conn, ran)
-    yield h
-    conn.close()
+def _pg_session(litkb_pg_base):
+    """The reset, migration and suite lock live in qc/conftest.py (litkb_pg_base), shared with the P2 suite:
+    two session fixtures each holding the advisory lock on their own connection would deadlock in one run."""
+    psycopg, conn, ran = litkb_pg_base
+    yield _PG(psycopg, conn, ran)
 
 
 @pytest.fixture
@@ -1941,7 +1929,9 @@ def test_catalog_guard_fires_on_new_workstream_bearing_relations(pg):
 
 _EXPECTED_EXECUTE = {
     "litkb_reader": {"norm_identifier"},
+    # admit, approve_admission, attach_file: P2 admission (migration 0013, qc/test_litkb_p2.py)
     "litkb_writer": {"norm_identifier", "open_workstream", "abandon_workstream", "write_fact", "write_proposal",
+                     "admit", "approve_admission", "attach_file",
                      "add_evidence", "add_candidate", "record_acquisition_attempt", "add_use_embedding"},
     "litkb_promoter": {"norm_identifier", "promote_prepare", "promote_commit", "promote_abandon", "promote_rebase"},
     "litkb_ingest": {"norm_identifier", "set_current_run"},

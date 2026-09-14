@@ -145,9 +145,10 @@ MUTATIONS = [
          old="substring(b.text FROM NEW.char_start + 1 FOR NEW.char_end - NEW.char_start) = NEW.quote",
          new="position(NEW.quote IN b.text) > 0",
          what="verify by 'quote anywhere in the block'"),
+    # R7 targets 0013 since P2: 0013 REPLACES _ws_chains (adding the fact-chain hold), so the 0005 text is dead code.
     dict(id="R7", kill="(D-6) a use whose gap is absent is held at prepare",
          test="test_use_whose_gap_is_absent_is_held_at_prepare",
-         kind="replace", file=f"{MIG}/0005_promotion.sql",
+         kind="replace", file=f"{MIG}/0013_admission.sql",
          old=("        ELSIF NOT EXISTS (SELECT 1 FROM gaps g WHERE g.id = v_gap AND g.current_version_id IS NOT NULL) THEN\n"
               "          v_probs := v_probs || 'dependency: the gap is neither promoted nor in this promotion'::text;\n"),
          new="",

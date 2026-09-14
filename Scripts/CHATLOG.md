@@ -1354,3 +1354,23 @@ what:    8411777's patch wrote b"<CR><LF>" instead of b"\r\n" in the two freshne
          did not collect those files - check.py is the definition of done and was skipped
          at that commit. Fixed by a script file (no shell escaping), verified byte-exact;
          both tests pass; full fast ladder green before this commit.
+
+## 2026-09-13  litkb P1 foundation: built, refereed three times, ACCEPTED
+goal:    Kam: design + implement literature knowledge base (Postgres 18 + pgvector); P1 = foundation.
+did:     lit-review docs branch merged to main (c67e30b, Kam pushed). Design rev 2 answers Opus referee.
+         C++ Build Tools (C: disk pre-check was the real failure) -> pgvector 0.8.6 built + installed on PG18.
+         Tablespace litkb_d on D:. Migrations 0001-0012: versioned pointers + compare-and-set writes,
+         promote prepare/commit/rebase, roles owner/reader/writer/promoter/ingest/test, workstream tokens
+         (hash only stored), catalog grant guard. 3 referee passes (D-, E-, F- defects) all fixed;
+         independent acceptance re-ran referee mutations + 5 new: all caught (bd0fa6e).
+decided: PG18:5433 (uuidv7); DB on D: (C: full); orchestrator runs promote commit after merge on main
+         (tool refuses, DB cannot run git); nightly pg_dump; 2nd-session sign-off; year +-1 only with
+         title+author; binding-refused scans wait for OCR; held chains rebased; head-only rebase evidence;
+         token + ingest role before P2; secrets ACL accepted risk; P1 waited for pgvector.
+killed:  winget upgrade of partial Build Tools (exit 1, "already installed"); unelevated --passive (5007);
+         Python-only merge check claimed as DB guard (reworded); sequential tests as race evidence.
+files:   Scripts/LITERATURE_KB_DESIGN_2026-09-13.md, Scripts/pipeline/litkb/, Scripts/qc/test_litkb_p1.py,
+         Scripts/qc/instruments/litkb_p1_mutations.py, Reports/LITKB_P1_*.md, Reports/LITKB_TOOL_FACTS_2026-09-13.md,
+         Scripts/decisions.yaml (litkb-p0-foundation). Secrets outside repo: pgpass.conf, secrets/litkb_*.pgpass.
+next:    P2 admission + acquisition (litkb ws open CLI; aa_fetch/paper-search adapters; Averkov/Higham replay kill);
+         nightly pg_dump task not built; staged-secrets ladder check not built; §15.9-15.11 before P4/P5.

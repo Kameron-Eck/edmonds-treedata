@@ -132,6 +132,9 @@ desktop.ini
 /.github/workflows/*
 !/.github/workflows/*.yml
 
+# litkb: a session's workstream token file (litkb.workstream), at any depth; never tracked
+.litkb-workstream
+
 # never track per-session Claude Code settings (the Scripts/ whitelist would otherwise catch them)
 Scripts/.claude/
 *.egg-info/

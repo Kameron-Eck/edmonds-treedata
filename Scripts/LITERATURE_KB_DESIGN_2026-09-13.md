@@ -264,7 +264,8 @@ and promotion functions move pointers or change `state`.
 | Role | Can | Used by |
 |---|---|---|
 | `litkb_reader` | SELECT | the MCP query tools; exports |
-| `litkb_writer` | INSERT into proposals, candidates, admissions, attempts, extraction tables; EXECUTE the write functions; no column privilege on `quote_verified` or any `state` | agents, acquisition, ingest |
+| `litkb_writer` | INSERT into proposals, candidates, admissions, attempts; EXECUTE the write functions, each of which takes the named workstream's token (§5); no column privilege on `quote_verified` or any `state`; **no** INSERT on extraction tables and no EXECUTE on `set_current_run` (tested) | agents, acquisition |
+| `litkb_ingest` | INSERT on the extraction tables (`extraction_runs`, `file_checks`, `pages`, `blocks`, `tables`, `figures`, `equations`, `references`, `citation_mentions`, `chunks`, `embeddings`); EXECUTE `set_current_run()`; SELECT. No gaps, uses, evidence or workstreams (tested) | the ingest tool only (§7, §11) |
 | `litkb_promoter` | EXECUTE `promote_prepare()`, `promote_commit()`, `promote_abandon()`, `promote_rebase()`; reader and writer hold none of these (tested) | the promote tool only (§5, §15.7) |
 | `litkb_test` | CONNECT on `litkb_test`; the server refuses it on `litkb` (CONNECT revoked from PUBLIC there). It can also open Postgres's empty system databases, which grant CONNECT to PUBLIC; the property that counts is that `litkb` refuses it | the test suite (§9) |
 | `litkb_owner` | DDL, migrations | migration runner only |
@@ -278,6 +279,19 @@ a passfile of its own, `D:\edmonds-pipeline\secrets\litkb_promoter.pgpass`
 never carries it (decisions.yaml `litkb-p0-foundation`, D-3). The server cannot tell the promote
 tool from any other process that reads that file: the credential is protected by where it is kept.
 
+The ingest login follows the same pattern (decisions.yaml `litkb-p0-foundation`, after the second P1
+referee): its line lives in its own passfile, `D:\edmonds-pipeline\secrets\litkb_ingest.pgpass`
+(`litkb.db.connect.ingest_passfile()`), which only `litkb.ingest.connect()` names, and the shared
+`connect()` refuses that login too. The writer lost INSERT on the extraction tables and EXECUTE on
+`set_current_run()` because with them it could install an `ok` run and make it current (which
+un-promotes that file's evidence), or insert a block whose text matches any quote. The secrets
+folder's inherited ACL is left as it is: an accepted risk on a one-user laptop (same decision).
+
+A **workstream token** is not a login. `open_workstream()` returns it once; the database stores only
+its sha256, in `workstream_tokens`, which no agent role can read. It stops a session writing into
+another session's workstream by mistake; it does not stop a process that reads another worktree's
+token file.
+
 ---
 
 ## 5. Workstreams and promotion (R3)
@@ -286,8 +300,15 @@ tool from any other process that reads that file: the credential is protected by
 git to confirm that Kam has merged.
 
 1. **Open.** `litkb ws open --slug <slug> --branch <git branch> --purpose "…" [--brief <path>]`
-   writes the workstream and a git-ignored `.litkb-workstream` file in the worktree root. Every
-   write from that worktree carries its ID.
+   writes the workstream and a git-ignored `.litkb-workstream` file in the worktree root
+   (`litkb.workstream.open_workstream`). `open_workstream()` returns a secret **token** once; the
+   file holds the ID and the token, and the database keeps only the token's sha256. Every writer
+   function that names a workstream (`write_fact`, `write_proposal`, `add_evidence`,
+   `abandon_workstream`) takes the token and refuses (42501, inside the SECURITY DEFINER function)
+   one that does not hash to that workstream's, so a session cannot write into another session's
+   workstream by mistake. The promotion functions take no token: the promoter acts on every
+   workstream. Direct column INSERTs that carry a `workstream_id` (proposal version rows,
+   candidates, admissions, attempts) are not token-checked; they move no pointer.
 2. **Work.** Agents admit works and files (facts, visible to all once admitted, §4.6), and record
    gaps, uses and evidence as `proposed` versions (visible through their workstream's `ws_heads`).
 3. **Prepare, on the branch.** `litkb promote prepare --ws <slug>`:
@@ -319,7 +340,10 @@ git to confirm that Kam has merged.
      head's content, based on main's current version as the promoter names it. A name main has since
      left is refused (compare-and-set), so the rebase is reviewed against the main it lands on. The
      new version records `rebased_from_version_id`; the old versions are kept and marked `rebased`;
-     evidence rows are copied and re-verified; `rebases` records source and target workstreams, the
+     **only the head version's evidence rows are copied**, exactly what promotion would carry (main's
+     current version carries only its own rows; a row on an earlier chain version never reaches
+     main), every copied column equal to its source and `quote_verified` recomputed by the trigger
+     (decisions.yaml `litkb-p0-foundation`, E-5); `rebases` records source and target workstreams, the
      promotion that held the chain, and the versions. The fresh workstream then goes through
      prepare, Kam's merge and commit like any other.
 5. **Abandon.** `litkb ws abandon` marks the workstream; its versions stay, invisible to main.
@@ -356,7 +380,9 @@ git to confirm that Kam has merged.
 ## 7. Extraction pipeline (R10)
 
 Each stage is an idempotent step keyed by (sha256, stage, tool version, params). Stages write raw
-artifacts first, then an ingest loads them.
+artifacts first, then an ingest loads them. Loading is owned by the `litkb_ingest` login (§4.7): it
+inserts the extraction runs and derived text tables and moves each file's `current_run_id` with
+`set_current_run()`; agents' writer connections can do neither.
 
 | Stage | What | Candidate tool(s) | Output |
 |---|---|---|---|
@@ -433,9 +459,15 @@ adapter's page offset or y-flip is deliberately removed.
 - **MCP server** (`litkb.mcp`), read-only by default:
   - query: `search`, `get_work`, `get_file_blocks`, `get_use_history`, `list_gaps`, `citations_of`,
     `cited_by`, `missing_citations(gap)`;
-  - write (writer role, workstream required): `open_workstream`, `add_candidate`, `admit`,
+  - write (writer role, workstream and its token required, §5): `open_workstream`, `add_candidate`, `admit`,
     `request_acquisition`, `record_use_version`, `verify_quote`;
-  - `approve`, `promote prepare` and `promote commit` are not exposed to agents.
+  - `approve`, `promote prepare` and `promote commit` are not exposed to agents, and neither is
+    `ingest`: the MCP server never holds the promoter or ingest credential (§4.7).
+- **Credentials:** owner, reader, writer and test logins in the shared pgpass file; the promoter and
+  ingest logins each in their own passfile under `D:\edmonds-pipeline\secrets\`, opened only by
+  `litkb.promote.connect()` and `litkb.ingest.connect()`; the shared `litkb.db.connect.connect()`
+  refuses both (§4.7). A session's workstream token lives in its worktree's git-ignored
+  `.litkb-workstream` file (§5).
 - **Ad-hoc SQL for Claude:** the crystaldba `postgres-mcp` server in `--access-mode=restricted`
   (read-only transactions, rejects COMMIT/ROLLBACK **[F]**) connected as `litkb_reader`, beside the
   domain tools above — two locks, since a parser guard alone is defence in depth.
@@ -492,7 +524,7 @@ Secrets stay outside the repo; a check in the ladder fails if a key file, `.env`
   `gen_vm_bootstrap.py` as it stands at P5, not assumed here.
 - **Ingest:** local. `litkb ingest --from <lake path>` checks each done marker's hashes, unpacks,
   loads artifacts into Postgres, records `extraction_runs` with host `colab`, and moves each file's
-  `current_run_id`.
+  `current_run_id`, connected as `litkb_ingest` (§4.7).
 - **Canary first:** one shard of the P4 hard papers, measuring seconds per page per stage and the
   runtime's CPU and RAM; the full-run wall-clock is projected from that measurement, not from
   published numbers.

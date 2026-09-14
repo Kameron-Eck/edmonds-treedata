@@ -20,6 +20,12 @@ DB_TEST = "litkb_test"
 PROMOTER = "litkb_promoter"
 PROMOTER_PASSFILE_DEFAULT = r"D:\edmonds-pipeline\secrets\litkb_promoter.pgpass"
 
+# decisions.yaml litkb-p0-foundation, after the second P1 referee: extraction runs and
+# set_current_run belong to a separate ingest login, used ONLY by the ingest tool
+# (litkb.ingest.connect), with a passfile of its own. The writer holds neither right.
+INGEST = "litkb_ingest"
+INGEST_PASSFILE_DEFAULT = r"D:\edmonds-pipeline\secrets\litkb_ingest.pgpass"
+
 # role and database names connect() accepts: plain lower-case identifiers, so no whitespace,
 # quote or '=' can reach libpq as a second keyword (referee 2, E-8)
 _NAME = re.compile(r"[a-z_][a-z0-9_]*")
@@ -32,12 +38,26 @@ def promoter_passfile():
     return os.environ.get("LITKB_PROMOTER_PASSFILE", PROMOTER_PASSFILE_DEFAULT)
 
 
+def ingest_passfile():
+    """Where the ingest login's pgpass line lives: LITKB_INGEST_PASSFILE, else the secrets folder
+    outside the repository. Written by litkb.db.provision, read only by litkb.ingest.connect."""
+    return os.environ.get("LITKB_INGEST_PASSFILE", INGEST_PASSFILE_DEFAULT)
+
+
+# the logins connect() refuses, each with the one function allowed to open it
+TOOL_LOGINS = {PROMOTER: "litkb.promote.connect()", INGEST: "litkb.ingest.connect()"}
+
+
 class LoginRefused(RuntimeError):
     """connect() refused the requested login before any connection was attempted."""
 
 
 class PromoterLoginRefused(LoginRefused):
     """connect() was asked for the promoter login outside the promote tool."""
+
+
+class IngestLoginRefused(LoginRefused):
+    """connect() was asked for the ingest login outside the ingest tool."""
 
 
 def conninfo(dbname, user, passfile=None):
@@ -52,13 +72,16 @@ def conninfo(dbname, user, passfile=None):
 
 
 def connect(dbname, user, *, autocommit=False):
-    """Reader, writer, owner, test and superuser logins. Refuses the promoter (D-3).
+    """Reader, writer, owner, test and superuser logins. Refuses the promoter (D-3) and the
+    ingest login (second-referee decision): each has its own passfile and its own tool.
 
     What this refusal is: it stops a MISTAKE in a caller of this function. It is convention,
-    not enforcement, against code that calls _open() or psycopg directly with the promoter's
-    passfile; see litkb.promote and Reports/LITKB_P1_REFEREE2_2026-09-13.md, "D-3"."""
-    refused = PromoterLoginRefused(
-        f"{PROMOTER} connects only through litkb.promote.connect(); agents use litkb_reader or litkb_writer")
+    not enforcement, against code that calls _open() or psycopg directly with one of those
+    passfiles; see litkb.promote and Reports/LITKB_P1_REFEREE2_2026-09-13.md, "D-3"."""
+    def refused(login):
+        cls = PromoterLoginRefused if login == PROMOTER else IngestLoginRefused
+        return cls(f"{login} connects only through {TOOL_LOGINS[login]}; agents use litkb_reader or litkb_writer")
+
     # BEGIN guard: login names are plain identifiers
     for what, value in (("user", user), ("dbname", dbname)):
         if not isinstance(value, str) or not _NAME.fullmatch(value):
@@ -66,13 +89,18 @@ def connect(dbname, user, *, autocommit=False):
     # END guard: login names are plain identifiers
     # BEGIN guard: promoter login only through the promote tool
     if user == PROMOTER:        # before any driver import
-        raise refused
+        raise refused(PROMOTER)
+    # END guard: promoter login only through the promote tool
+    # BEGIN guard: ingest login only through the ingest tool
+    if user == INGEST:          # before any driver import
+        raise refused(INGEST)
+    # END guard: ingest login only through the ingest tool
     from psycopg.conninfo import conninfo_to_dict
 
     # second lock: the user exactly as libpq will parse the connection string
-    if str(conninfo_to_dict(conninfo(dbname, user)).get("user", "")).strip() == PROMOTER:
-        raise refused
-    # END guard: promoter login only through the promote tool
+    parsed = str(conninfo_to_dict(conninfo(dbname, user)).get("user", "")).strip()
+    if parsed in TOOL_LOGINS:
+        raise refused(parsed)
     return _open(conninfo(dbname, user), autocommit)
 
 

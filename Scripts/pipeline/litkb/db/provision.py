@@ -3,7 +3,7 @@
     py -3.12 -m litkb.db.provision
 
 What it does (idempotent; safe to re-run):
-  1. roles litkb_owner, litkb_reader, litkb_writer, litkb_promoter, litkb_test — LOGIN, no
+  1. roles litkb_owner, litkb_reader, litkb_writer, litkb_promoter, litkb_ingest, litkb_test — LOGIN, no
      superuser/createdb/createrole/replication/bypassrls. A role that has no pgpass line gets
      a fresh random password and the line is appended to the pgpass file. Passwords are never
      printed.
@@ -31,6 +31,11 @@ litkb-p0-foundation D-3), read only by litkb.promote.connect. A promoter whose l
 the shared file (P1 provisioning wrote it there) gets a fresh password and a line in its own
 file on the next run; the old shared-file line then holds a dead password and can be deleted
 by hand.
+
+The ingest login (litkb_ingest, decisions.yaml litkb-p0-foundation after the second P1 referee)
+likewise gets its line in its OWN passfile, connect.ingest_passfile() (default
+D:\\edmonds-pipeline\\secrets\\litkb_ingest.pgpass), read only by litkb.ingest.connect. It must
+exist before migration 0010 applies, because 0010 grants to it.
 """
 import os
 import secrets
@@ -38,13 +43,13 @@ from pathlib import Path
 
 from . import connect as _c
 
-ROLES = ("litkb_owner", "litkb_reader", "litkb_writer", "litkb_promoter", "litkb_test")
+ROLES = ("litkb_owner", "litkb_reader", "litkb_writer", "litkb_promoter", "litkb_ingest", "litkb_test")
 TEST_ROLE = "litkb_test"
-TEST_ROLE_SETS = ("litkb_reader", "litkb_writer", "litkb_promoter")
+TEST_ROLE_SETS = ("litkb_reader", "litkb_writer", "litkb_promoter", "litkb_ingest")
 TABLESPACE = "litkb_d"
 DATABASES = {_c.DB_MAIN: "litkb_owner", _c.DB_TEST: TEST_ROLE}
 CONNECT = {
-    _c.DB_MAIN: ("litkb_owner", "litkb_reader", "litkb_writer", "litkb_promoter"),
+    _c.DB_MAIN: ("litkb_owner", "litkb_reader", "litkb_writer", "litkb_promoter", "litkb_ingest"),
     _c.DB_TEST: (TEST_ROLE,),
 }
 EXTENSIONS = ("vector", "pg_trgm", "fuzzystrmatch")
@@ -59,9 +64,12 @@ def pgpass_path():
 
 
 def pgpass_path_for(role):
-    """The passfile that holds this role's line (D-3: the promoter has its own)."""
+    """The passfile that holds this role's line (D-3: the promoter has its own; after the
+    second referee, so does the ingest login)."""
     if role == _c.PROMOTER:
         return Path(_c.promoter_passfile())
+    if role == _c.INGEST:
+        return Path(_c.ingest_passfile())
     return pgpass_path()
 
 

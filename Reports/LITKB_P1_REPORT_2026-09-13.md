@@ -306,3 +306,85 @@ in 392.29s` (`litkb Postgres tests: 72 passed`), and the same `1 failed, 2032 pa
 driver-free follow-up (plus E8a/E8b/K3c re-run whole-file: 3/3 fired, restored baseline `82 passed`). The one failure is the known
 `qc/test_experiments.py::test_pointer_paths_resolve[crown_state_model]`. The ladder stops there, so preflight was run on
 its own: `[PASSED] pre-flight clean`.
+
+## Second-referee decisions implemented
+
+Authority: `Scripts/decisions.yaml` `litkb-p0-foundation`, "After the second P1 referee" (E-5; residual gaps 1 and 2;
+secrets folder ACL accepted as is and not touched). **Status of this evidence (3.4c):** the implementer wrote the code,
+the tests and the mutations below. This is author-produced evidence, and no referee has re-run it.
+
+All database changes are in `0010_referee2_decisions.sql`. 0010 **replaces** `promote_rebase` (0008), `add_evidence`
+(0007) and `write_fact`, `write_proposal`, `open_workstream`, `abandon_workstream` (0003). Those earlier bodies are now
+history, so the harness rows that targeted them (D5b–D5e, X1 on 0007; K2a–K2h, X2, X3, X4a, X4b on 0008) were
+re-pointed at 0010, which carries the same strings and guard markers. That the old text is now dead code is inferred
+from the replacement, the same way as M2a/M2b and K4a/K4b; it was not measured this round. `_write_version` and
+`set_current_run` are not replaced (set_current_run's grants change), so D1, D8, M2a, M2b, R4, D5f, D5g and X8 stay on 0007.
+
+| Decision | Implementation | Tests (`qc/test_litkb_p1.py`) | Mutations, whole test file |
+|---|---|---|---|
+| E-5 rebase evidence matches promotion | the copy reads `e.use_version_id = c.head`. The earlier `= ANY (c.version_ids)` flattened every chain version's rows onto the new head. Promotion never does that: main's current version is the head, and `use_evidence_status` is keyed by version. The block, run, page, quote, offsets and stance are copied from the source. `quote_verified` is not copied; the trigger recomputes it | `test_rebase_copies_only_the_head_versions_evidence`: v1 carries a `refutes` row on page 7, and the head v2 carries none. The copy has 0 rows, `evidence_copied` = 0, and v1's row stays. `test_rebase_carries_evidence` (rewritten): the head carries a supports row on p1, a refutes row on p7 and an unverified context row on p2. The copy is equal to the source on all 8 columns, including `quote_verified`, both True and False | **X5** (back to `= ANY (c.version_ids)`) → `1 failed, 101 passed`; **X6** (page → 1, stance → `'supports'`) → `1 failed`; new **E5a** (`char_start + 1`) → `1 failed` |
+| Workstream token | `open_workstream()` now returns `(workstream_id, token)`. The token is 64 hex characters from two server-side `gen_random_uuid()`, 122 random bits each. Only `encode(sha256(token))` is stored, in the new `workstream_tokens` table. REVOKE ALL is run on it for PUBLIC, reader, writer, promoter and ingest. `_require_ws_token()` refuses with 42501 "workstream token refused for workstream <id>", and the message never names the token. A NULL token counts as refused (`coalesce(v_ok, false)`; the E-4 lesson). It is called first in `write_fact`, `write_proposal`, `add_evidence` and `abandon_workstream`. The old token-less signatures are **dropped**, because a CREATE with an added parameter would leave the old overload callable with its old grant. `_write_version` (owner only) and the promotion functions take no token. Python: `litkb.workstream.open_workstream` writes `{workstream_id, token}` to `<worktree>/.litkb-workstream` with O_EXCL, never overwrites it and never prints the token; `load()` reads it back. `.gitignore`: `.litkb-workstream`, unanchored | `test_referee_cross_session_evidence_insert_is_refused`: session B names A's workstream with B's token, with no token, and with a made-up token. All three are refused, the message does not contain the token, and 0 rows are written. A with its own token is accepted. `test_every_workstream_write_requires_its_token[4 ops × {missing, another_workstreams_token}]`: each is refused with no side effect, and the workstream's own token is accepted. `test_open_workstream_returns_a_token_stored_only_as_its_hash`: the stored value is `hashlib.sha256(token)`. No row in any `litkb`/`litkb_meta` table contains the token text. Reader, writer, promoter and ingest are all refused SELECT on `workstream_tokens`. `test_token_functions_have_exactly_one_signature`. `test_workstream_token_file_is_git_ignored` (`git check-ignore --no-index` at the root, under `Scripts/` and under `Scripts/pipeline/litkb/`). `test_workstream_module_writes_the_token_file_once` (capsys: token not in stdout/stderr; a second open is refused and no row is created) | **T1** (`IF NOT v_ok`, NULL let through) → `5 failed`; **T2** write_proposal check removed → `2 failed`; **T3** write_fact → `2 failed`; **T4** add_evidence (the referee's cross-session insert) → `3 failed`; **T5** abandon_workstream → `2 failed`; **T6** store the token itself → `53 failed`; **T7** writer SELECT on `workstream_tokens` → `1 failed`; **T8** keep the old write_proposal signature → `1 failed`; **T9** remove the `.gitignore` line → `1 failed` |
+| Ingest role | New LOGIN role `litkb_ingest`, created by `litkb.db.provision` (added to `ROLES`, CONNECT on `litkb`, and the test role's `SET TRUE, INHERIT FALSE` memberships). 0010 refuses to apply without it. It gets USAGE, SELECT on all tables that existed before `workstream_tokens`, INSERT on the extraction tables (`extraction_runs`, `file_checks`, `pages`, `blocks`, `tables`, `figures`, `equations`, `references`, `citation_mentions`, `chunks`, `embeddings`) and EXECUTE on `set_current_run`. The writer loses all of those. **Beyond the brief's two rights:** the writer also loses INSERT on the derived text tables, because a block the writer inserted, with text equal to its quote, in the file's current run, would verify any quote. Credential: its own passfile, `D:\edmonds-pipeline\secrets\litkb_ingest.pgpass` (`connect.ingest_passfile()`, env `LITKB_INGEST_PASSFILE`), opened only by the new `litkb.ingest.connect()`. `connect.connect()` refuses the ingest login by name, before any driver import (`IngestLoginRefused`). The post-parse check now refuses both tool logins (`TOOL_LOGINS`) | `test_writer_cannot_install_a_run_or_make_it_current`, the referee's case: the writer's `ok` run INSERT is 42501. So is the writer's `set_current_run` onto a run that ingest inserted, and the pointer is unchanged. A writer block INSERT is 42501. `test_ingest_installs_a_run_and_makes_it_current`. `test_ingest_cannot_write_knowledge`: write_proposal (gap, use), add_evidence, open_workstream, abandon_workstream, and direct INSERT on gap_versions, use_versions and use_evidence are all 42501. `test_connect_refuses_the_ingest_login`, run with `psycopg` blocked in `sys.modules`. `test_connect_refuses_promoter_login_bypasses` gains two ingest rows. Three existing tests moved their runs and `set_current_run` from the writer to an ingest session | **I1** (keep the writer's INSERT on extraction tables) → `1 failed`; **I2** (keep the writer's EXECUTE on set_current_run) → `1 failed`; **I3** (drop the ingest INSERT grant) → `5 failed`; **I4** (drop the ingest EXECUTE) → `4 failed`; **I5** (grant ingest EXECUTE on write_proposal) → `1 failed`; **I6** (drop the ingest refusal in connect()) → `1 failed` |
+
+**Found while building:** splitting the refusal in `connect()` into a promoter block and an ingest block put the
+post-parse check outside the promoter block. The existing K3c mutation (remove the promoter block) would then have been
+caught by that second check, and so would have survived. `test_connect_refuses_the_promoter_login` now runs its refusal
+with the driver blocked in `sys.modules`, which pins "refused before any driver import". K3c fired on the whole file (below).
+
+**Harness** (`qc/instruments/litkb_p1_mutations.py`): new rows X5, X6, E5a, T1–T9, I1–I6, and the 17 re-pointed rows
+above. T9 targets `../.gitignore`, whose working copy is CRLF. One run,
+`--whole-file --only <every row except the cluster rows M4a/M4b>`, all against `litkb_test`: baseline `102 passed`,
+**68/68 fired**, restored baseline `102 passed`, and 68 `restored … sha256 … match: True` lines. Before the run, a separate
+`sha256sum` fingerprint was taken of all 10 migrations, `connect.py`, `migrate.py`, `promote.py`, the test file and
+`.gitignore`. After the run, `sha256sum -c` printed OK for 15/15. M4a/M4b were not run: they change grants on `litkb`.
+
+**Applied:** `litkb_test` through the session reset. `litkb` was provisioned first (`role litkb_ingest: created, pgpass
+line appended`; the other five roles `exists, pgpass line present`, so no password was reset), then migrated:
+`applied 1 (0010_referee2_decisions.sql); 10 recorded`. After the mutation run: `applied 0 (none pending); 10 recorded`.
+A read-only probe on `litkb` as postgres printed `f|t|f|t|f|f|t|5|f|f`:
+- writer EXECUTE `set_current_run`: f
+- ingest EXECUTE `set_current_run`: t
+- writer INSERT `extraction_runs`: f
+- ingest INSERT `extraction_runs`: t
+- writer INSERT `blocks`: f
+- writer SELECT `workstream_tokens`: f
+- writer EXECUTE the new `add_evidence`: t
+- 5 functions across the five token-touched names, so no overload remains
+- ingest EXECUTE `write_proposal`: f
+- `litkb_test` CONNECT on `litkb`: f
+
+`litkb.ingest.connect()` against `litkb`, read-only: `current_user = litkb_ingest`, EXECUTE `set_current_run` t,
+INSERT `use_versions` f. Passfiles, read by field count and the first four fields only:
+- `litkb_ingest.pgpass`: 1 line, `localhost:5433:litkb:litkb_ingest`
+- the shared `pgpass.conf`: 5 lines, none for ingest or promoter
+
+**Token and logs:** the server settings are `log_statement = none`, `log_min_error_statement = error` and
+`log_parameter_max_length_on_error = 0`. psycopg binds parameters server-side, so a refused call's statement text can
+reach the server log with `$n` placeholders but without the token. That is inferred from the settings; the server log
+was not read. No code written in this round logs or prints the token (tested for `litkb.workstream`).
+
+Suite: `102 passed`; `litkb Postgres tests: 88 passed`.
+
+**Ladder:** `PYTHONUTF8=1 py -3.12 qc/check.py --fast`: ruff and compile PASS; pytest `1 failed, 2054 passed, 74 warnings
+in 405.29s` (`litkb Postgres tests: 88 passed`). The one failure is the known
+`qc/test_experiments.py::test_pointer_paths_resolve[crown_state_model]`. The ladder stops there, so preflight was run on
+its own: `[PASSED] pre-flight clean`.
+
+**Judgement calls:**
+1. The token table is separate from `workstreams` and is readable by no agent role. A column would have been readable
+   under `GRANT SELECT ON ALL TABLES`.
+2. `abandon_workstream` takes the token too, because a writer abandoning another session's workstream is the same class
+   of cross-session write.
+3. The ingest role takes all extraction tables, not only `extraction_runs` (the block-forgery reason above). The writer
+   keeps `use_embeddings`, which is knowledge-side and not extraction.
+4. Existing workstreams need no backfill: `litkb` had 0 workstream rows, and a workstream without a token row is
+   refused by every token-checked function.
+
+**Residual, not fixed (outside this decision):**
+- Direct column INSERTs that carry a `workstream_id` are not token-checked: `gap_versions`/`use_versions` (gap 3, ranked
+  last by the referee), `candidates`, `admissions` and `acquisition_attempts`. They move no pointer. A direct version
+  insert can still take the next `version_no` in another workstream's entity and turn that session's next write into
+  23505. Closing this means revoking the proposal INSERTs, which is design §4.6 check 5 and Kam's call.
+- The token stops mistakes, not a process that reads another worktree's `.litkb-workstream` (same Windows user). The
+  same holds for the ingest and promoter passfiles, whose folder ACL Kam accepted.
+- No `litkb ws open` CLI exists yet; `litkb.workstream.open_workstream` is the library call it will wrap.

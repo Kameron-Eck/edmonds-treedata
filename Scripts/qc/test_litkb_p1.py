@@ -52,6 +52,22 @@ connect.py; each referee mutation X1-X4, X7-X9 now fails this file (harness rows
   E-8  connect() refusal survives injection / whitespace      test_connect_refuses_promoter_login_bypasses[*],
                                                               test_conninfo_quotes_values
 
+Kam's decisions after the second referee (decisions.yaml litkb-p0-foundation), migration 0010;
+each guard shown to fire on the WHOLE file by the harness (rows X5, X6, E5a, T*, I*):
+
+  E-5  rebase copies the head's evidence only, column-equal   test_rebase_carries_evidence,
+                                                              test_rebase_copies_only_the_head_versions_evidence
+  tok  open_workstream returns a token, stores only its hash  test_open_workstream_returns_a_token_stored_only_as_its_hash
+       the referee's cross-session add_evidence is refused    test_referee_cross_session_evidence_insert_is_refused
+       every writer function naming a workstream needs it    test_every_workstream_write_requires_its_token[*]
+       no token-less overload survives                        test_token_functions_have_exactly_one_signature
+       the token file is git-ignored and written once         test_workstream_token_file_is_git_ignored,
+                                                              test_workstream_module_writes_the_token_file_once
+  ing  the writer cannot install a run or make it current     test_writer_cannot_install_a_run_or_make_it_current
+       the ingest login can; it cannot write knowledge        test_ingest_installs_a_run_and_makes_it_current,
+                                                              test_ingest_cannot_write_knowledge
+       connect() refuses the ingest login                     test_connect_refuses_the_ingest_login
+
 Isolation: the suite logs in ONLY as litkb_test, to litkb_test, which it resets and migrates
 once per session under an advisory lock (parallel worktrees serialise). Role privileges are
 exercised with SET ROLE: litkb_test is a member of reader/writer/promoter WITH INHERIT FALSE,
@@ -95,14 +111,17 @@ def test_migration_files_are_named_and_numbered():
     assert [v for v, *_ in found] == list(range(1, len(found) + 1))
 
 
-def test_connect_refuses_the_promoter_login():
+def test_connect_refuses_the_promoter_login(monkeypatch):
     """D-3: the promoter login has one connection path, litkb.promote.connect(). The shared
     connect() that agents' reader and writer connections use refuses it before any driver is
     loaded, and the promote tool's path names the promoter's own passfile."""
     from litkb import promote
     from litkb.db import connect as c
-    with pytest.raises(c.PromoterLoginRefused):
-        c.connect(c.DB_MAIN, c.PROMOTER)
+    with monkeypatch.context() as m:     # no driver importable: the refusal must come first
+        m.setitem(sys.modules, "psycopg", None)
+        m.setitem(sys.modules, "psycopg.conninfo", None)
+        with pytest.raises(c.PromoterLoginRefused):
+            c.connect(c.DB_MAIN, c.PROMOTER)
     pytest.importorskip("psycopg")   # conninfo() quotes through psycopg (referee 2, E-8)
     info = c.conninfo(c.DB_MAIN, c.PROMOTER, passfile=c.promoter_passfile())
     assert "passfile=" in info and "litkb_promoter" in info
@@ -117,6 +136,9 @@ def test_connect_refuses_the_promoter_login():
     pytest.param("litkb", "litkb_promoter\t", id="trailing_tab"),
     pytest.param("litkb user=litkb_promoter", "litkb_writer", id="injection_through_dbname"),
     pytest.param("litkb", "", id="empty_user_falls_back_to_PGUSER"),
+    # the ingest login (0010) has the same single path
+    pytest.param("litkb", "litkb_writer user=litkb_ingest passfile=ingest.pgpass", id="ingest_keyword_injection"),
+    pytest.param("litkb", "litkb_ingest ", id="ingest_trailing_space"),
 ])
 def test_connect_refuses_promoter_login_bypasses(monkeypatch, dbname, user):
     """Referee 2, E-8: the refusal used to be a string compare over an unquoted conninfo, so an
@@ -147,6 +169,9 @@ def test_conninfo_quotes_values():
 
 # ── harness ───────────────────────────────────────────────────────────────────────────────
 
+_OWN = object()   # "use the workstream's own token"
+
+
 class _PG:
     def __init__(self, psycopg, conn, ran):
         from psycopg.types.json import Jsonb
@@ -156,6 +181,7 @@ class _PG:
         self.conn = conn          # litkb_test session = the test DB's owner
         self.ran = ran
         self.opened = []
+        self.tokens = {}          # workstream id -> the token open_workstream returned (0010)
 
     def session(self, role=None):
         """A new litkb_test connection to litkb_test, optionally SET ROLE'd."""
@@ -172,9 +198,12 @@ class _PG:
         return (conn or self.conn).execute(query, params).fetchone()
 
     # setup helpers, run as owner
-    def ws(self):
-        return self.one("SELECT litkb.open_workstream(%s, 'work/test', NULL, 'p1 test', NULL)",
-                        (f"t-{uuid.uuid4().hex[:12]}",))[0]
+    def ws(self, conn=None):
+        ws_id, token = self.one(
+            "SELECT workstream_id, token FROM litkb.open_workstream(%s, 'work/test', NULL, 'p1 test', NULL)",
+            (f"t-{uuid.uuid4().hex[:12]}",), conn=conn)
+        self.tokens[ws_id] = token
+        return ws_id
 
     def work(self, ws):
         key = f"Test_2020_{uuid.uuid4().hex[:8]}-paper"
@@ -192,11 +221,15 @@ class _PG:
              self.Jsonb({"question": "q v1", "gap_state": "open"}), ws))
 
     def proposal(self, conn, entity, entity_id, identity, based_on, fields, reason, ws,
-                 agent="agentA", session="sessA"):
+                 agent="agentA", session="sessA", token=_OWN):
         return self.one(
-            "SELECT entity_id, version_id FROM litkb.write_proposal(%s, %s, %s, %s, %s, %s, %s, %s, %s)",
+            "SELECT entity_id, version_id FROM litkb.write_proposal(%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)",
             (entity, entity_id, self.Jsonb(identity) if identity else None, based_on,
-             self.Jsonb(fields), reason, ws, agent, session), conn=conn)
+             self.Jsonb(fields), reason, ws, self.token(ws, token), agent, session), conn=conn)
+
+    def token(self, ws, token=_OWN):
+        """The workstream's own token unless the test passes another (or None)."""
+        return self.tokens.get(ws) if token is _OWN else token
 
     def pointer(self, table, entity_id):
         return self.one(f"SELECT current_version_id FROM litkb.{table} WHERE id = %s", (entity_id,))[0]
@@ -427,14 +460,14 @@ def test_kill_fact_second_writer_on_same_base_is_refused(pg):
     ws = pg.ws()
     work_id, v1 = pg.work(ws)
     a, b = pg.session("litkb_writer"), pg.session("litkb_writer")
-    q = ("SELECT entity_id, version_id FROM litkb.write_fact('work', %s, %s, %s, %s, %s, %s, %s)")
+    q = ("SELECT entity_id, version_id FROM litkb.write_fact('work', %s, %s, %s, %s, %s, %s, %s, %s)")
     _, va = pg.one(q, (work_id, v1, pg.Jsonb({"type": "article", "title": "Title fixed by A",
                                               "authors": []}),
-                       "title typo", ws, "agentA", "sessA"), conn=a)
+                       "title typo", ws, pg.tokens[ws], "agentA", "sessA"), conn=a)
     with pytest.raises(pg.errors.SerializationFailure):
         pg.one(q, (work_id, v1, pg.Jsonb({"type": "article", "title": "Title fixed by B",
                                           "authors": []}),
-                   "title typo", ws, "agentB", "sessB"), conn=b)
+                   "title typo", ws, pg.tokens[ws], "agentB", "sessB"), conn=b)
     assert pg.pointer("works", work_id) == va, "main must still point at A's version"
     n = pg.one("SELECT count(*) FROM litkb.work_versions WHERE work_id = %s", (work_id,))[0]
     assert n == 2, "B's refused version must not persist"
@@ -647,9 +680,10 @@ def test_kill_conflicting_gap_chain_holds_its_dependent_at_prepare(pg, scratch_r
 
 # ── fixes after the referee (migration 0007) ──────────────────────────────────────────────
 
-def _add_evidence(pg, conn, w, ws, uv, quote, start, end):
-    return pg.one("SELECT evidence_id, verified FROM litkb.add_evidence(%s, %s, %s, %s, 1, %s, %s, %s, "
-                  "'supports')", (ws, uv, w["block"], w["run"], quote, start, end), conn=conn)
+def _add_evidence(pg, conn, w, ws, uv, quote, start, end, *, page=1, stance="supports", token=_OWN):
+    return pg.one("SELECT evidence_id, verified FROM litkb.add_evidence(%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)",
+                  (ws, pg.token(ws, token), uv, w["block"], w["run"], page, quote, start, end, stance),
+                  conn=conn)
 
 
 def _in_thread(fn):
@@ -753,11 +787,11 @@ def test_losing_concurrent_writer_gets_40001(pg, mode):
     work_id, v1 = pg.work(ws)
     b = pg.session("litkb_writer")
     if mode == "fact":
-        q = "SELECT entity_id, version_id FROM litkb.write_fact('work', %s, %s, %s, 'fix', %s, %s, %s)"
+        q = "SELECT entity_id, version_id FROM litkb.write_fact('work', %s, %s, %s, 'fix', %s, %s, %s, %s)"
 
         def call(conn, who):
             return pg.one(q, (work_id, v1, pg.Jsonb({"type": "article", "title": f"by {who}",
-                                                     "authors": []}), ws, who, who), conn=conn)
+                                                     "authors": []}), ws, pg.tokens[ws], who, who), conn=conn)
         entity_id = work_id
     else:
         use_id, u1 = pg.proposal(b, "use", None, {"work_id": str(work_id)}, None,
@@ -806,7 +840,7 @@ def test_writer_has_no_direct_evidence_insert(pg):
 @pg_only
 def test_evidence_guard_workstream_must_be_open(pg):
     w = _evidence_world(pg)
-    pg.conn.execute("SELECT litkb.abandon_workstream(%s)", (w["ws"],))
+    pg.conn.execute("SELECT litkb.abandon_workstream(%s, %s)", (w["ws"], pg.tokens[w["ws"]]))
     writer = pg.session("litkb_writer")
     with pytest.raises(pg.errors.InvalidParameterValue, match="is not open"):
         _add_evidence(pg, writer, w, w["ws"], w["uv"], w["text"][4:20], 4, 20)
@@ -913,9 +947,10 @@ def test_referee_bypass_d5_failed_run_cannot_become_current(pg):
     promotable = ("SELECT count(*) FROM litkb.use_evidence_status WHERE use_version_id = %s "
                   "AND promotable")
     assert pg.one(promotable, (w["uv"],))[0] == 1
-    failed = _run(pg, writer, w["file"], "failed")
+    ingest = pg.session("litkb_ingest")   # 0010: runs and the current-run pointer are ingest's
+    failed = _run(pg, ingest, w["file"], "failed")
     with pytest.raises(pg.errors.InvalidParameterValue, match="not an ok extraction run"):
-        writer.execute("SELECT litkb.set_current_run(%s, %s, %s)", (w["file"], w["run"], failed))
+        ingest.execute("SELECT litkb.set_current_run(%s, %s, %s)", (w["file"], w["run"], failed))
     assert pg.one("SELECT current_run_id FROM litkb.files WHERE id = %s", (w["file"],))[0] == w["run"]
     assert pg.one(promotable, (w["uv"],))[0] == 1
 
@@ -924,13 +959,13 @@ def test_referee_bypass_d5_failed_run_cannot_become_current(pg):
 def test_set_current_run_refuses_foreign_or_null_run(pg):
     w = _evidence_world(pg)
     other = _evidence_world(pg)
-    writer = pg.session("litkb_writer")
+    ingest = pg.session("litkb_ingest")
     for new_run in (other["run"], None):
         with pytest.raises(pg.errors.InvalidParameterValue, match="not an ok extraction run"):
-            writer.execute("SELECT litkb.set_current_run(%s, %s, %s)", (w["file"], w["run"], new_run))
+            ingest.execute("SELECT litkb.set_current_run(%s, %s, %s)", (w["file"], w["run"], new_run))
     # control: another ok run of the same file is accepted
-    fresh = _run(pg, writer, w["file"], "ok")
-    writer.execute("SELECT litkb.set_current_run(%s, %s, %s)", (w["file"], w["run"], fresh))
+    fresh = _run(pg, ingest, w["file"], "ok")
+    ingest.execute("SELECT litkb.set_current_run(%s, %s, %s)", (w["file"], w["run"], fresh))
     assert pg.one("SELECT current_run_id FROM litkb.files WHERE id = %s", (w["file"],))[0] == fresh
 
 
@@ -1045,7 +1080,7 @@ def test_held_chain_is_rebased_and_promotes(pg, scratch_repo):
         pg.proposal(writer, "gap", s["gap"], None, s["g2"], {"question": "retry", "gap_state": "open"},
                     "retry the held chain", ws1)
     with pytest.raises(pg.errors.InvalidParameterValue):                   # 22023
-        writer.execute("SELECT litkb.abandon_workstream(%s)", (ws1,))
+        writer.execute("SELECT litkb.abandon_workstream(%s, %s)", (ws1, pg.tokens[ws1]))
 
     before_gap = _versions(pg, "gap_versions", "gap_id", s["gap"])
     before_use = _versions(pg, "use_versions", "use_id", s["use"])
@@ -1127,7 +1162,7 @@ def test_rebase_guard_target_must_be_open(pg, scratch_repo):
     from litkb import promote
     s = _held_world(pg, scratch_repo)
     closed = pg.ws()
-    pg.conn.execute("SELECT litkb.abandon_workstream(%s)", (closed,))
+    pg.conn.execute("SELECT litkb.abandon_workstream(%s, %s)", (closed, pg.tokens[closed]))
     with pytest.raises(pg.errors.InvalidParameterValue, match="target workstream"):
         promote.rebase(s["promoter"], s["ws1"], closed, promote.held_chains(s["promoter"], s["ws1"]), "o", "s")
 
@@ -1156,27 +1191,69 @@ def test_rebase_guard_target_has_no_head_for_the_entity(pg, scratch_repo):
         promote.rebase(s["promoter"], s["ws1"], target, promote.held_chains(s["promoter"], s["ws1"]), "o", "s")
 
 
-@pg_only
-def test_rebase_carries_evidence(pg):
-    """Nothing is lost: evidence on a held use chain is copied onto the rebased version and
-    re-verified by the trigger; the original rows stay on the original version."""
+_EVIDENCE_COLS = "block_id, run_id, page, quote, char_start, char_end, stance, quote_verified"
+
+
+def _evidence_rows(pg, version_id):
+    return sorted(pg.conn.execute(f"SELECT {_EVIDENCE_COLS} FROM litkb.use_evidence WHERE use_version_id = %s",
+                                  (version_id,)).fetchall(), key=repr)
+
+
+def _hold_and_rebase(pg, w):
+    """Prepare and commit w's workstream (its use on an absent gap is held), then rebase what is
+    held into a fresh workstream. Returns the rebase result's single chain entry."""
     from litkb import promote
-    w = _evidence_world(pg)
-    writer = pg.session("litkb_writer")
-    _, held_uv = _absent_gap_use(pg, w)
-    _add_evidence(pg, writer, w, w["ws"], held_uv, w["text"][4:20], 4, 20)
     promoter = pg.session("litkb_promoter")
     pid = promote.prepare(promoter, w["ws"], "a" * 40, None)
     out = pg.one("SELECT litkb.promote_commit(%s, repeat('b', 40))", (pid,), conn=promoter)[0]
     assert out["held"] == 1, out
-    target = pg.ws()
-    res = promote.rebase(promoter, w["ws"], target, promote.held_chains(promoter, w["ws"]), "o", "s")
-    new_uv = res["chains"][0]["new_version"]
-    assert res["chains"][0]["evidence_copied"] == 1
-    rows = pg.conn.execute("SELECT quote, char_start, char_end, quote_verified FROM litkb.use_evidence "
-                           "WHERE use_version_id = %s", (new_uv,)).fetchall()
-    assert rows == [(w["text"][4:20], 4, 20, True)]
-    assert pg.one("SELECT count(*) FROM litkb.use_evidence WHERE use_version_id = %s", (held_uv,))[0] == 1
+    res = promote.rebase(promoter, w["ws"], pg.ws(), promote.held_chains(promoter, w["ws"]), "o", "s")
+    assert res["rebased"] == 1, res
+    return res["chains"][0]
+
+
+@pg_only
+def test_rebase_carries_evidence(pg):
+    """E-5: the head's evidence is copied onto the rebased version with every column equal to its
+    source (block, run, page, quote, offsets, stance) and quote_verified recomputed by the trigger
+    to the same value. The rows include a refutes row on page 7 and an unverified context row, so a
+    copy that forces page 1 / 'supports' (referee X6) or shifts an offset cannot pass."""
+    w = _evidence_world(pg)
+    writer = pg.session("litkb_writer")
+    _, held_uv = _absent_gap_use(pg, w)
+    _add_evidence(pg, writer, w, w["ws"], held_uv, w["text"][4:20], 4, 20)
+    _add_evidence(pg, writer, w, w["ws"], held_uv, w["text"][0:3], 0, 3, page=7, stance="refutes")
+    _add_evidence(pg, writer, w, w["ws"], held_uv, "not at these offsets", 10, 30, page=2, stance="context")
+    source = _evidence_rows(pg, held_uv)
+    assert {r[6] for r in source} == {"supports", "refutes", "context"} and {r[7] for r in source} == {True, False}
+    chain = _hold_and_rebase(pg, w)
+    assert chain["old_head"] == str(held_uv)
+    assert chain["evidence_copied"] == 3
+    assert _evidence_rows(pg, chain["new_version"]) == source, "a copied evidence column differs from its source"
+    assert _evidence_rows(pg, held_uv) == source, "the original rows must stay on the original version"
+
+
+@pg_only
+def test_rebase_copies_only_the_head_versions_evidence(pg):
+    """E-5 (Kam): a rebase carries exactly what promotion would. Evidence attached to v1 and not
+    to the head v2 never reaches main on the promote path (main's current version carries only its
+    own rows), so the rebased copy of a chain whose head has no evidence has none (referee X5: the
+    old copy took every chain version's rows and brought a dropped refutes row back)."""
+    w = _evidence_world(pg)
+    writer = pg.session("litkb_writer")
+    use_id, v1 = _absent_gap_use(pg, w)
+    _add_evidence(pg, writer, w, w["ws"], v1, w["text"][0:3], 0, 3, page=7, stance="refutes")
+    _, v2 = pg.proposal(writer, "use", use_id, None, v1,
+                        {"statement": "restated without the refuting quote", "kind": "method", "status": "proposed"},
+                        "dropped the refuting quote", w["ws"])
+    assert len(_evidence_rows(pg, v1)) == 1 and _evidence_rows(pg, v2) == []
+    chain = _hold_and_rebase(pg, w)
+    assert chain["old_head"] == str(v2)
+    assert chain["evidence_copied"] == 0, chain
+    assert _evidence_rows(pg, chain["new_version"]) == [], "evidence from a non-head chain version was copied"
+    assert pg.one("SELECT evidence_copied FROM litkb.rebases WHERE new_version_id = %s",
+                  (chain["new_version"],))[0] == 0
+    assert len(_evidence_rows(pg, v1)) == 1, "the v1 row must stay where it was"
 
 
 # ── fixes after the second referee (Reports/LITKB_P1_REFEREE2_2026-09-13.md) ──────────────
@@ -1318,10 +1395,238 @@ def test_set_current_run_refuses_a_stale_expected_run(pg):
     """E-7 (mutation X8): set_current_run is a compare-and-set. A caller that still believes the
     file is at its first run, after another caller moved it, is refused (40001)."""
     w = _evidence_world(pg)
-    writer = pg.session("litkb_writer")
-    moved = _run(pg, writer, w["file"], "ok")
-    writer.execute("SELECT litkb.set_current_run(%s, %s, %s)", (w["file"], w["run"], moved))
-    late = _run(pg, writer, w["file"], "ok")
+    ingest = pg.session("litkb_ingest")
+    moved = _run(pg, ingest, w["file"], "ok")
+    ingest.execute("SELECT litkb.set_current_run(%s, %s, %s)", (w["file"], w["run"], moved))
+    late = _run(pg, ingest, w["file"], "ok")
     with pytest.raises(pg.errors.SerializationFailure, match="CAS refused"):
-        writer.execute("SELECT litkb.set_current_run(%s, %s, %s)", (w["file"], w["run"], late))
+        ingest.execute("SELECT litkb.set_current_run(%s, %s, %s)", (w["file"], w["run"], late))
     assert pg.one("SELECT current_run_id FROM litkb.files WHERE id = %s", (w["file"],))[0] == moved
+
+
+# ── Kam's decisions after the second referee (migration 0010) ─────────────────────────────
+
+def _tables_containing(pg, needle):
+    """(schema, table, rows) for every litkb table whose row text contains needle."""
+    hits = []
+    for schema, table in pg.conn.execute(
+            "SELECT schemaname, tablename FROM pg_tables WHERE schemaname IN ('litkb', 'litkb_meta') "
+            "ORDER BY 1, 2").fetchall():
+        n = pg.one(f'SELECT count(*) FROM "{schema}"."{table}" t WHERE strpos(t::text, %s) > 0', (needle,))[0]
+        if n:
+            hits.append((schema, table, n))
+    return hits
+
+
+@pg_only
+def test_open_workstream_returns_a_token_stored_only_as_its_hash(pg):
+    """The token comes back once, from open_workstream. The database keeps its sha256 in
+    workstream_tokens, which no agent role can read, and the token text is in no table."""
+    import hashlib
+    import re
+    writer = pg.session("litkb_writer")
+    ws = pg.ws(conn=writer)
+    token = pg.tokens[ws]
+    assert re.fullmatch(r"[0-9a-f]{64}", token), "the token must be 64 hex characters"
+    other = pg.ws(conn=writer)
+    assert pg.tokens[other] != token
+    stored = pg.one("SELECT token_hash FROM litkb.workstream_tokens WHERE workstream_id = %s", (ws,))[0]
+    assert stored == hashlib.sha256(token.encode("utf-8")).hexdigest(), "the stored value is not the token's sha256"
+    assert _tables_containing(pg, token) == [], "the token text was written to a table"
+    for role in ("litkb_reader", "litkb_writer", "litkb_promoter", "litkb_ingest"):
+        with pytest.raises(pg.errors.InsufficientPrivilege):
+            pg.session(role).execute("SELECT token_hash FROM litkb.workstream_tokens LIMIT 1")
+
+
+def _refused_by_token(pg, call, token):
+    with pytest.raises(pg.errors.InsufficientPrivilege, match="workstream token refused") as ei:
+        call(token)
+    assert token is None or token not in str(ei.value), "the refusal message echoes the token"
+
+
+@pg_only
+def test_referee_cross_session_evidence_insert_is_refused(pg):
+    """Referee 2, residual gap 1: a second writer connection named another workstream's id and
+    add_evidence was accepted. Session B holds only its own workstream's token; naming A's
+    workstream with B's token, with no token or with a made-up one is refused, and A's own token
+    is accepted."""
+    w = _evidence_world(pg)
+    session_a, session_b = pg.session("litkb_writer"), pg.session("litkb_writer")
+    ws_b = pg.ws(conn=session_b)
+    for token in (pg.tokens[ws_b], None, uuid.uuid4().hex + uuid.uuid4().hex):
+        _refused_by_token(pg, lambda tok: _add_evidence(pg, session_b, w, w["ws"], w["uv"], w["text"][4:20], 4, 20,
+                                                       token=tok), token)
+    assert pg.one("SELECT count(*) FROM litkb.use_evidence WHERE use_version_id = %s", (w["uv"],))[0] == 0
+    assert _add_evidence(pg, session_a, w, w["ws"], w["uv"], w["text"][4:20], 4, 20)[1] is True
+
+
+def _token_op(pg, op):
+    """(call(token), unchanged()) for one writer function that names a workstream."""
+    writer = pg.session("litkb_writer")
+    if op == "add_evidence":
+        w = _evidence_world(pg)
+        ws = w["ws"]
+
+        def call(tok):
+            return _add_evidence(pg, writer, w, ws, w["uv"], w["text"][4:20], 4, 20, token=tok)
+
+        def unchanged():
+            return pg.one("SELECT count(*) FROM litkb.use_evidence WHERE use_version_id = %s", (w["uv"],))[0] == 0
+        return ws, call, unchanged
+    ws = pg.ws()
+    if op == "write_proposal":
+        def call(tok):
+            return pg.proposal(writer, "gap", None, {"slug": f"gap-{uuid.uuid4().hex[:8]}"}, None,
+                               {"question": "q", "gap_state": "open"}, None, ws, token=tok)
+
+        def unchanged():
+            return pg.one("SELECT count(*) FROM litkb.ws_heads WHERE workstream_id = %s", (ws,))[0] == 0
+    elif op == "write_fact":
+        work_id, v1 = pg.work(ws)
+
+        def call(tok):
+            return pg.one("SELECT entity_id, version_id FROM litkb.write_fact('work', %s, %s, %s, 'fix', %s, %s, 'a', 's')",
+                          (work_id, v1, pg.Jsonb({"type": "article", "title": "fixed", "authors": []}), ws, tok),
+                          conn=writer)
+
+        def unchanged():
+            return pg.pointer("works", work_id) == v1
+    else:
+        def call(tok):
+            return writer.execute("SELECT litkb.abandon_workstream(%s, %s)", (ws, tok))
+
+        def unchanged():
+            return pg.one("SELECT state FROM litkb.workstreams WHERE id = %s", (ws,))[0] == "open"
+    return ws, call, unchanged
+
+
+@pg_only
+@pytest.mark.parametrize("case", ["missing", "another_workstreams_token"])
+@pytest.mark.parametrize("op", ["write_proposal", "write_fact", "add_evidence", "abandon_workstream"])
+def test_every_workstream_write_requires_its_token(pg, op, case):
+    """Every writer function that names a workstream refuses (42501, inside the SECURITY DEFINER
+    function) a missing token or another workstream's token, writes nothing, and accepts the
+    workstream's own token."""
+    ws, call, unchanged = _token_op(pg, op)
+    token = None if case == "missing" else pg.tokens[pg.ws()]
+    _refused_by_token(pg, call, token)
+    assert unchanged(), f"{op} wrote something with a refused token"
+    call(pg.tokens[ws])
+    assert not unchanged(), f"{op} did nothing with the workstream's own token"
+
+
+@pg_only
+def test_token_functions_have_exactly_one_signature(pg):
+    """0010 drops the token-less signatures: CREATE with an added parameter makes an OVERLOAD, and
+    the old function (with its old grant) would still take writes without a token."""
+    rows = dict(pg.conn.execute(
+        "SELECT p.proname, array_agg(pg_get_function_identity_arguments(p.oid)) FROM pg_proc p "
+        "JOIN pg_namespace n ON n.oid = p.pronamespace WHERE n.nspname = 'litkb' AND p.proname = ANY (%s) "
+        "GROUP BY p.proname", (["write_fact", "write_proposal", "add_evidence", "abandon_workstream",
+                                "open_workstream"],)).fetchall())
+    assert sorted(rows) == ["abandon_workstream", "add_evidence", "open_workstream", "write_fact", "write_proposal"]
+    for name, sigs in rows.items():
+        assert len(sigs) == 1, f"{name} has {len(sigs)} signatures: {sigs}"
+        if name != "open_workstream":
+            assert "p_ws_token text" in sigs[0], (name, sigs)
+
+
+def test_workstream_token_file_is_git_ignored():
+    """The session's token file never enters a commit, at the worktree root or under Scripts/
+    (whose whitelist would otherwise un-ignore it)."""
+    repo = SCRIPTS.parent
+    if subprocess.run(["git", "-C", str(repo), "rev-parse"], capture_output=True).returncode != 0:
+        pytest.skip("not a git checkout")
+    for rel in (".litkb-workstream", "Scripts/.litkb-workstream", "Scripts/pipeline/litkb/.litkb-workstream"):
+        r = subprocess.run(["git", "-C", str(repo), "check-ignore", "-q", "--no-index", rel], capture_output=True)
+        assert r.returncode == 0, f"{rel} is not git-ignored"
+
+
+@pg_only
+def test_workstream_module_writes_the_token_file_once(pg, tmp_path, capsys):
+    """litkb.workstream opens a workstream, writes {id, token} to .litkb-workstream, never prints
+    the token, refuses to overwrite the file, and the token it wrote is the one the database takes."""
+    from litkb import workstream
+    writer = pg.session("litkb_writer")
+    slug = f"t-{uuid.uuid4().hex[:12]}"
+    ws_id = workstream.open_workstream(writer, slug, "work/test", "p1 test", directory=tmp_path)
+    got_id, token = workstream.load(tmp_path)
+    assert got_id == str(ws_id)
+    out = capsys.readouterr()
+    assert token not in out.out and token not in out.err
+    with pytest.raises(workstream.WorkstreamFileExists):
+        workstream.open_workstream(writer, slug + "-2", "work/test", "p1 test", directory=tmp_path)
+    assert pg.one("SELECT count(*) FROM litkb.workstreams WHERE slug = %s", (slug + "-2",))[0] == 0
+    assert workstream.load(tmp_path) == (got_id, token), "the token file was overwritten"
+    pg.proposal(writer, "gap", None, {"slug": f"gap-{uuid.uuid4().hex[:8]}"}, None,
+                {"question": "q", "gap_state": "open"}, None, ws_id, token=token)
+
+
+@pg_only
+def test_writer_cannot_install_a_run_or_make_it_current(pg):
+    """Referee 2, residual gap 2: the writer inserted an ok run and made it current, which
+    un-promotes that file's evidence. Both steps are now refused to the writer, and so is a block
+    insert (a writer-made block whose text matched a quote would verify it)."""
+    w = _evidence_world(pg)
+    writer = pg.session("litkb_writer")
+    with pytest.raises(pg.errors.InsufficientPrivilege):
+        _run(pg, writer, w["file"], "ok")
+    ingested = _run(pg, pg.session("litkb_ingest"), w["file"], "ok")
+    with pytest.raises(pg.errors.InsufficientPrivilege):
+        writer.execute("SELECT litkb.set_current_run(%s, %s, %s)", (w["file"], w["run"], ingested))
+    assert pg.one("SELECT current_run_id FROM litkb.files WHERE id = %s", (w["file"],))[0] == w["run"]
+    with pytest.raises(pg.errors.InsufficientPrivilege):
+        writer.execute("INSERT INTO litkb.blocks (file_id, run_id, page_no, type, text) VALUES (%s, %s, 1, "
+                       "'paragraph', 'any quote at all')", (w["file"], w["run"]))
+
+
+@pg_only
+def test_ingest_installs_a_run_and_makes_it_current(pg):
+    w = _evidence_world(pg)
+    ingest = pg.session("litkb_ingest")
+    run2 = _run(pg, ingest, w["file"], "ok")
+    ingest.execute("INSERT INTO litkb.blocks (file_id, run_id, page_no, type, text) VALUES (%s, %s, 1, "
+                   "'paragraph', 'extracted again')", (w["file"], run2))
+    ingest.execute("SELECT litkb.set_current_run(%s, %s, %s)", (w["file"], w["run"], run2))
+    assert pg.one("SELECT current_run_id FROM litkb.files WHERE id = %s", (w["file"],))[0] == run2
+
+
+@pg_only
+def test_ingest_cannot_write_knowledge(pg):
+    """The ingest login writes extraction data only: no gaps, uses, evidence or workstreams."""
+    w = _evidence_world(pg)
+    ingest = pg.session("litkb_ingest")
+    attempts = [
+        lambda: pg.proposal(ingest, "gap", None, {"slug": f"gap-{uuid.uuid4().hex[:8]}"}, None,
+                            {"question": "q", "gap_state": "open"}, None, w["ws"]),
+        lambda: pg.proposal(ingest, "use", w["use"], None, w["uv"],
+                            {"statement": "s", "kind": "method", "status": "proposed"}, "r", w["ws"]),
+        lambda: _add_evidence(pg, ingest, w, w["ws"], w["uv"], w["text"][4:20], 4, 20),
+        lambda: pg.ws(conn=ingest),
+        lambda: ingest.execute("SELECT litkb.abandon_workstream(%s, %s)", (w["ws"], pg.tokens[w["ws"]])),
+        lambda: ingest.execute("INSERT INTO litkb.gap_versions (agent) VALUES ('x')"),
+        lambda: ingest.execute("INSERT INTO litkb.use_versions (agent) VALUES ('x')"),
+        lambda: ingest.execute("INSERT INTO litkb.use_evidence (quote) VALUES ('x')"),
+    ]
+    for i, attempt in enumerate(attempts):
+        with pytest.raises(pg.errors.InsufficientPrivilege):
+            attempt()
+    assert pg.one("SELECT count(*) FROM litkb.use_evidence WHERE use_version_id = %s", (w["uv"],))[0] == 0
+
+
+def test_connect_refuses_the_ingest_login(monkeypatch):
+    """The ingest login has one connection path, litkb.ingest.connect(), with its own passfile;
+    the shared connect() refuses it before any driver is loaded."""
+    from litkb import ingest
+    from litkb.db import connect as c
+    with monkeypatch.context() as m:
+        m.setitem(sys.modules, "psycopg", None)
+        m.setitem(sys.modules, "psycopg.conninfo", None)
+        with pytest.raises(c.IngestLoginRefused):
+            c.connect(c.DB_MAIN, c.INGEST)
+    assert c.ingest_passfile() != c.promoter_passfile()
+    assert callable(ingest.connect)
+    pytest.importorskip("psycopg")
+    from psycopg.conninfo import conninfo_to_dict
+    params = conninfo_to_dict(c.conninfo(c.DB_MAIN, c.INGEST, passfile=c.ingest_passfile()))
+    assert params["user"] == c.INGEST and params["passfile"] == c.ingest_passfile()

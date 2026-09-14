@@ -8,7 +8,9 @@ Definition of done for any edit in this repo:
     py -3.12 qc/check.py --status   also regenerate STATUS.md (reads the lake; slower)
 
 Rungs, fast to slow, stop at first failure:
-    1. ruff        F821/F401/F811 (config: pyproject [tool.ruff]) — undefined names are
+    0. secrets     qc/secrets_check.py over git's index (tracked + staged): secrets file names,
+                   pgpass lines, 64-hex tokens (decisions.yaml litkb-p0-foundation)
+    1. ruff       F821/F401/F811 (config: pyproject [tool.ruff]) — undefined names are
                    runtime NameErrors py_compile cannot see; first run caught 7
     2. compile     py_compile over pipeline/ + qc/ (frozen/ included — it must stay parseable)
     3. pytest      the full qc suite
@@ -54,6 +56,8 @@ def main():
     t0 = time.time()
     print(f"check.py — ladder from {SCRIPTS}")
 
+    rung("secrets", [py, str(SCRIPTS / "qc" / "secrets_check.py"), "--repo", str(SCRIPTS.parent)],
+         cwd=SCRIPTS.parent)
     rung("ruff", [py, "-m", "ruff", "check", "Scripts/pipeline", "Scripts/qc"],
          cwd=SCRIPTS.parent)
     rung("compile", [py, "-c",

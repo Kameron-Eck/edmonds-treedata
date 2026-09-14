@@ -28,7 +28,7 @@ requires-python = ">=3.11"
 
 [tool.setuptools]
 package-dir = {"" = "Scripts/pipeline"}
-packages = ["phase4seg", "litkb", "litkb.db"]   # litkb: literature KB (its deps: requirements-litkb.txt)
+packages = ["phase4seg", "litkb", "litkb.db", "litkb.ops"]   # litkb: literature KB (its deps: requirements-litkb.txt)
 py-modules = ["lake", "pipeline_log", "registry_from_manifests", "cost_report",
               "imagery_measure", "champion", "phase4_sentinel_snap"]  # refactor 4a: shared trio
 

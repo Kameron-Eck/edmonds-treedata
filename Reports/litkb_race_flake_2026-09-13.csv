@@ -1,0 +1,23 @@
+utc,state,test,expect,reps,passed,failed,skipped,reliable,mutation,first_failure
+2026-09-14T05:01:27Z,baseline,D1,pass,30,30,0,0,1,,
+2026-09-14T05:01:27Z,baseline,D8f,pass,30,30,0,0,1,,
+2026-09-14T05:01:27Z,baseline,D8p,pass,30,30,0,0,1,,
+2026-09-14T05:01:27Z,baseline,X9,pass,30,30,0,0,1,,
+2026-09-14T05:01:27Z,baseline,X2,pass,30,30,0,0,1,,
+2026-09-14T05:01:27Z,baseline,X3,pass,30,30,0,0,1,,
+2026-09-14T05:01:27Z,baseline,X1,pass,30,30,0,0,1,,
+2026-09-14T05:01:27Z,baseline,F2b,pass,30,30,0,0,1,,
+2026-09-14T05:01:27Z,baseline,F3b,pass,30,30,0,0,1,,
+2026-09-14T05:01:27Z,baseline,F7b,pass,30,30,0,0,1,,
+2026-09-14T05:01:27Z,baseline,F8,pass,30,30,0,0,1,,
+2026-09-14T05:01:27Z,D1,D1,fail,30,0,30,0,1,drop FOR SHARE on the workstream row in _write_version,"AssertionError: a write blocked behind promote_commit must be refused (22023), got {'result': (UUID('01a09e4e-6dd6-7a1a-87a4-5fadfbc822f7'), UUID('01a09e4e-6e8d"
+2026-09-14T05:01:27Z,D8,D8f,fail,30,0,30,0,1,drop the identity-row FOR UPDATE in _write_version,"AssertionError: the losing writer must get the retryable 40001, got {'error': UniqueViolation('duplicate key value violates unique constraint ""work_versions_wor"
+2026-09-14T05:01:27Z,D8,D8p,fail,30,0,30,0,1,drop the identity-row FOR UPDATE in _write_version,"AssertionError: the losing writer must get the retryable 40001, got {'error': UniqueViolation('duplicate key value violates unique constraint ""use_versions_use_"
+2026-09-14T05:01:27Z,X9,X9,fail,30,0,30,0,1,drop FOR UPDATE on the workstream row in promote_commit,"AssertionError: commit over a write in flight must be refused 40001, got {'result': ({'held': 0, 'committed': 1, 'promotion': '01a09e4e-d738-7c19-976f-bf99ffebd"
+2026-09-14T05:01:27Z,X2,X2,fail,30,0,30,0,1,drop FOR UPDATE on the rebase source workstream row,"AssertionError: the second rebase must find nothing held, got {'result': {'chains': [{'onto': '01a09e4f-06b5-70ec-9fdb-b1c62af9dd62', 'chain': 'gap:01a09e4f-063"
+2026-09-14T05:01:27Z,X3,X3,fail,30,0,30,0,1,drop FOR UPDATE on the identity row in promote_rebase,"AssertionError: a rebase onto the main a concurrent commit just left must be refused 40001, got {'result': {'chains': [{'onto': '01a09e4f-8bcc-7066-88bf-306fc9f"
+2026-09-14T05:01:27Z,X1,X1,fail,30,0,30,0,1,drop FOR SHARE on the workstream row in add_evidence,"AssertionError: evidence added during a prepare must be refused 55000, got {'result': (UUID('01a09e50-0fe7-7d42-85e7-5cb6a0dddfa8'), True)}"
+2026-09-14T05:01:27Z,F2b,F2b,fail,30,0,30,0,1,remove the FOR UPDATE on the workstream row in abandon_workstream,"AssertionError: abandon during a prepare must be refused 55000, got {'result': <psycopg.Cursor [TUPLES_OK] [IDLE] (host=localhost port=5433 database=litkb_test)"
+2026-09-14T05:01:27Z,N1,F2b,fail,30,0,30,0,1,abandon_workstream: move the FOR UPDATE row lock after the prepared-promotion check,"AssertionError: abandon during a prepare must be refused 55000, got {'result': <psycopg.Cursor [TUPLES_OK] [IDLE] (host=localhost port=5433 database=litkb_test)"
+2026-09-14T05:01:27Z,F3b,F3b,fail,30,0,30,0,1,drop FOR SHARE on the workstream row in add_use_embedding,"AssertionError: an embedding during a commit must be refused, got {'result': <psycopg.Cursor [TUPLES_OK] [IDLE] (host=localhost port=5433 database=litkb_test) a"
+2026-09-14T05:01:27Z,F7b,F7b,fail,30,0,30,0,1,claim the token file without O_EXCL,"AssertionError: (0, ['ok', 'ok'], [None, None])"

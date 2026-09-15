@@ -367,4 +367,68 @@ PASS, pytest **1 failed, 2,489 passed, 5 skipped, 1 xfailed** — the single fai
    Reynolds p7) were first drafted from the probe's numbers and corrected against the image
    before this report was finished; the correction changed three descriptions and **no
    classes**.
-7. **No referee.** See the status note at the top.
+7. **No referee.** See the status note at the top. *(Superseded: refereed 2026-09-15,
+   `Reports/LITKB_INVENTORY_REFEREE_2026-09-15.md`, verdict STAGE 0 READY. Items 8–10 below
+   are the referee's three blind spots, written in before the verdict is acted on.)*
+
+8. **Invisible text is invisible to the probe.** The probe reads a character COUNT, not ink.
+   A text layer drawn white-on-white, or placed off the page, counts as `chars` exactly like
+   visible text, so the page classes `text`, routes `native`, and never reaches OCR — leaving
+   a downstream reader with a layer no human can see on the render. Limitation 1 above is a
+   *wrong* layer; this is an *unrenderable* one, and stage 0 cannot tell them apart.
+   **Measured, not assumed:** the referee scanned all 5,038 pages with pdfminer for characters
+   ≥90 % white-filled or ≥90 % outside the cropbox, got 55 flags across 7 files, and rendered
+   one page from each distinct pattern. Every flag resolved to a Separation/ICC colour space
+   where `1.0` is *full ink* rather than DeviceGray white, or to a mediabox whose `y0 = 51`.
+   **Zero real instances in this corpus** (referee §4, kill K1 — which DID NOT FIRE, and is
+   recorded as a limitation for exactly that reason).
+
+9. **Front matter deeper than the detector.** `is_cover_sheet` read page 1 only, so a cover
+   page followed by a *second* cover page left `title_page` pointing at the second cover
+   rather than at the article (referee §4, kill K2). **Fixed here, cheaply:** the leading-page
+   test is now applied to each leading page in turn, and `title_page` steps over every one
+   that is itself a cover page (`is_cover_sheet`) or a short branded notice
+   (`is_cover_stamp`). It reuses the existing `COVER_*` constants only, so `params_hash` does
+   not move and no already-probed file is silently re-priced; a forced cold re-run over the
+   whole corpus reproduces the tracked CSV in **241 of 241 rows, every column except
+   `seconds`**. What remains a limitation is the narrower shape: a second front page that is
+   boilerplate but carries *neither* a host marker *nor* the cover's bibliographic fields — an
+   unbranded terms-of-use continuation — is still not recognised, and `title_page` then points
+   at it. That case is pinned as a **strict xfail**
+   (`test_an_unbranded_second_front_page_is_not_skipped`), so it turns into a failure the day
+   it starts working rather than drifting untested. No corpus file has a second front page of
+   either shape. The route was never affected in any of this.
+
+10. **`mixed` nominates figure pages that do not need OCR.** Limitation 2 above says `partial`
+    is conservative; the referee put a number on it by rendering four `mixed` figure pages
+    across three files (Cardille p12, MacFaden p1, Pauls p14/16/17) and finding **4 of 4** to
+    be born-digital pages whose words are already in the text layer — OCR would return the
+    figure's own baked-in tick labels. The single inspected `mixed` page that genuinely needs
+    OCR is Schneider p1, the book cover, which carries no text at all. The class is correct
+    *as defined* ("this page's text layer does not account for its imagery"); the error is
+    over-inclusion, it costs one wasted OCR page, and the opposite error — dropping a scanned
+    insert out of the queue — is the expensive one. Over-inclusive and safe, stated as such.
+
+11. **The threshold band is now pinned, and the pins are shown to fire.** The referee measured
+    that the twelve-file gate caught **1 of the 6** ±20 % moves of the three page thresholds:
+    at `IMAGE_COVER = 0.30`, Ogata p24 — a real, half-filled scanned references page with no
+    text layer — turns from `image-only` to `empty`, and `empty` pages are deliberately never
+    queued, so the page would leave the OCR backlog with no error and no count anyone would
+    notice. Its `image_frac` is **0.2764**, a 10.6 % margin above the threshold, and it is the
+    corpus's entire margin: the next zero-character page sits at 0.5069.
+    `BOUNDARY_PINS` in `qc/test_litkb_inventory.py` now pins, for each threshold and each
+    side, the corpus page nearest it, with the measured `chars`/`image_frac` that puts it
+    there — Guo p6 (117) and Reynolds p14 (25) for `CHARS_TRACE`, Gros p19 (390) and Parisi
+    p22 (402) for `CHARS_BODY`, remotesensing-14-05911 p25 (0.2242), Pesonen p10 (0.2673) and
+    Ogata p24 (0.2764) for `IMAGE_COVER`. All five new pages were rendered and looked at
+    before their rows were written, the §9.6 standard. A companion row
+    (`test_the_boundary_pins_really_are_the_nearest_pages`) fails if the corpus ever grows a
+    page nearer a threshold than a pinned one, because a pin that is no longer nearest is no
+    longer a guard.
+    **One of the six cannot be pinned on this corpus and is not claimed to be:**
+    `CHARS_TRACE` 100 → 80 changes the class of **zero** pages, because no image-covered page
+    carries between 25 and 117 characters. It is caught by the synthetic unit row
+    `(99, 0.90) -> image-only`, which is a written-out constant, not a corpus observation.
+    Mutation rows `B1`–`B6` in `qc/instruments/litkb_inventory_mutations.py` replay all six
+    moves against the real source; the harness now prints the *names* of the failing tests,
+    because a row is only a guard if the failure it causes says what moved.

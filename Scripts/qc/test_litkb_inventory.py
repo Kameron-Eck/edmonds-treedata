@@ -218,6 +218,120 @@ def test_classification_agrees_with_hand_inspection(stem, corpus_records):
         assert rec["page_detail"][number - 1]["scan"] == expected, f"{stem} p{number}"
 
 
+# ── the boundary pins ──────────────────────────────────────────────────────────────────
+
+#: The twelve-file gate above says "a human looked at these pages". It does NOT say "a
+#: human looked at the pages a small threshold move would flip", and the referee measured
+#: the difference: of the six ±20 % moves of the three page thresholds, the twelve-file
+#: gate caught ONE (Reports/LITKB_INVENTORY_REFEREE_2026-09-15.md §3). A threshold whose
+#: neighbourhood is unpinned can move 20 % and take a real scanned page silently out of the
+#: OCR backlog — Ogata p24 at ``image_frac`` 0.2764 does exactly that at IMAGE_COVER 0.30.
+#:
+#: So: for each threshold and each side, the corpus page NEAREST the threshold on that
+#: side, with the measured value that puts it there. Every page below was rendered and
+#: looked at before its row was written, the same standard as GATE.
+#:
+#: stem -> (page, class, chars, image_frac, which threshold this page pins, margin note)
+BOUNDARY_PINS = {
+    # ── CHARS_TRACE = 100, the image-covered side ──
+    # nearest ABOVE: a rotated full-page figure whose caption is 117 characters — 17 over
+    # the threshold, the whole corpus margin. Also pinned in GATE as Guo_2019 p6 `partial`.
+    "Guo_2019": (6, "partial", 117, 0.6145, "CHARS_TRACE +",
+                 "117 vs 100; at CHARS_TRACE 120 it reads image-only"),
+    # nearest BELOW: a scanned table insert carrying a 25-character stub. There is NO page
+    # between 25 and 117, which is why CHARS_TRACE -20% (100 -> 80) flips nothing in this
+    # corpus and can only be caught by the synthetic unit row (99, 0.90) -> image-only.
+    "Reynolds_2000": (14, "image-only", 25, 1.0, "CHARS_TRACE -",
+                      "25 vs 100; nothing lies in 80..100, so -20% is unguardable here"),
+    # ── CHARS_BODY = 400 ──
+    # nearest BELOW: born-digital Figure 7, a panel grid over a 366-character caption.
+    "Gros_2021": (19, "partial", 390, 0.3468, "CHARS_BODY -",
+                  "390 vs 400; at CHARS_BODY 320 it reads text and leaves the OCR queue"),
+    # nearest ABOVE: born-digital Fig. S3, a heatmap with a 402-character caption. `text`
+    # is the correct hand call by the definition -- the layer carries every word on the
+    # page -- and it sits 2 characters above the threshold.
+    "Parisi_2014": (22, "text", 402, 0.2699, "CHARS_BODY +",
+                    "402 vs 400; at CHARS_BODY 480 it reads partial and enters the queue"),
+    # ── IMAGE_COVER = 0.25 ──
+    # nearest BELOW: an MDPI confusion-matrix figure page, caption native, raster under a
+    # quarter of the cropbox.
+    "remotesensing-14-05911": (25, "text", 160, 0.2242, "IMAGE_COVER -",
+                               "0.2242 vs 0.25; at IMAGE_COVER 0.20 it reads partial"),
+    # nearest ABOVE: a 7x5 model-output grid with a two-line caption.
+    "Pesonen_2026": (10, "partial", 287, 0.2673, "IMAGE_COVER +",
+                     "0.2673 vs 0.25; at IMAGE_COVER 0.30 it reads text"),
+    # the one that matters: a REAL scanned references page, half empty, no text layer at
+    # all, and the corpus floor for a zero-character page. `empty` pages are deliberately
+    # never queued for OCR, so at IMAGE_COVER 0.30 this page leaves the backlog with no
+    # error and no count anyone would notice. The next zero-character page is at 0.5069.
+    "Ogata_1998": (24, "image-only", 0, 0.2764, "IMAGE_COVER +",
+                   "0.2764 vs 0.25, a 10.6% margin and the whole of it"),
+}
+
+
+@needs_corpus
+@pytest.mark.parametrize("stem", sorted(BOUNDARY_PINS))
+def test_the_pages_nearest_each_threshold_keep_their_class(stem, corpus_records):
+    """Each ±20 % threshold move must break at least one row here.
+
+    Pinning the measured ``chars``/``image_frac`` as well as the class is what makes the
+    failure readable: the numbers say how far the page sits from the constant, so a reader
+    of the failure knows whether the classifier moved or the corpus did.
+    """
+    page, klass, chars, frac, which, note = BOUNDARY_PINS[stem]
+    matches = [r for r in corpus_records if r["name"].startswith(stem)]
+    assert len(matches) == 1, f"{stem} must name exactly one file, found {len(matches)}"
+    p = matches[0]["page_detail"][page - 1]
+    assert p["chars"] == chars, f"{stem} p{page}: chars ({which}; {note})"
+    assert p["image_frac"] == pytest.approx(frac, abs=1e-4), \
+        f"{stem} p{page}: image_frac ({which}; {note})"
+    assert p["scan"] == klass, f"{stem} p{page} pins {which}: {note}"
+
+
+@needs_corpus
+def test_the_boundary_pins_really_are_the_nearest_pages(corpus_records):
+    """The pins are only a guard while they are still the NEAREST pages.
+
+    A corpus that grows a page closer to a threshold than the pinned one re-opens the gap
+    the pins were added to close, silently — the pinned page keeps its class and nothing
+    fails. This row is what notices. It is a property of the corpus, not of the classifier.
+    """
+    pages = [(r["name"], p) for r in corpus_records
+             for p in (r.get("page_detail") or [])]
+    covered = [(n, p) for n, p in pages if p["image_frac"] >= inv.IMAGE_COVER]
+
+    def nearest(cands, key, pin_stem):
+        best = min(cands, key=key)
+        assert best[0].startswith(pin_stem), (
+            f"{best[0]} p{best[1]['page']} is now nearer the threshold than {pin_stem}; "
+            "re-render it and re-pin BOUNDARY_PINS")
+
+    # CHARS_TRACE, the image-covered side
+    nearest([c for c in covered if c[1]["chars"] >= 100],
+            lambda c: c[1]["chars"], "Guo_2019")
+    nearest([c for c in covered if c[1]["chars"] < 100],
+            lambda c: -c[1]["chars"], "Reynolds_2000")
+    # CHARS_BODY, among image-covered pages (the only ones the constant can reclass)
+    nearest([c for c in covered if c[1]["chars"] < 400],
+            lambda c: -c[1]["chars"], "Gros_2021")
+    nearest([c for c in covered if c[1]["chars"] >= 400],
+            lambda c: c[1]["chars"], "Parisi_2014")
+    # IMAGE_COVER, both sides. Below the threshold the candidates are the pages a LOWER
+    # threshold could actually reclass — a page with 400+ characters stays `text` whatever
+    # the coverage is, so the nearest such page (Yang 2020 p9, 0.2498) is not a guard.
+    nearest([c for c in pages if c[1]["image_frac"] < 0.25 and c[1]["chars"] < 400],
+            lambda c: -c[1]["image_frac"], "remotesensing-14-05911")
+    # Above it, likewise: Shi 1998 p5 sits at 0.2501 but carries 2,028 characters, so it is
+    # `text` at any coverage threshold. Only a page under CHARS_BODY can be reclassed.
+    nearest([c for c in covered if c[1]["chars"] < 400],
+            lambda c: c[1]["image_frac"], "Pesonen_2026")
+    # and the zero-character floor, which is the page that leaves the OCR queue at 0.30
+    zero = [c for c in pages if c[1]["chars"] == 0 and c[1]["image_frac"] >= 0.25]
+    floor = min(zero, key=lambda c: c[1]["image_frac"])
+    assert floor[0].startswith("Ogata_1998") and floor[1]["page"] == 24
+    assert floor[1]["image_frac"] == pytest.approx(0.2764, abs=1e-4)
+
+
 @needs_corpus
 def test_the_cover_sheet_and_the_cover_stamp_are_not_the_same_thing(corpus_records):
     """The distinction the whole cover rule turns on, on the real files.
@@ -321,6 +435,46 @@ def test_a_jstor_cover_sheet_routes_cover_sheet(tmp_path):
     assert rec["route"] == "cover-sheet"
     assert rec["cover_sheet"] is True
     assert rec["title_page"] == 2
+
+
+def test_a_second_cover_page_does_not_become_the_title_page(tmp_path):
+    """Referee kill K2: front matter two pages deep.
+
+    ``is_cover_sheet`` reads page 1, so before this the answer was ``title_page = 2`` —
+    the second cover page, not the article. The route was never wrong; what was wrong was
+    the one field a reader consults for "where does the document start".
+    """
+    f = text_pdf(tmp_path / "twocover.pdf", [JSTOR_COVER, JSTOR_COVER, BODY, BODY])
+    rec = inv.probe_file(f)
+    assert rec["route"] == "cover-sheet"
+    assert rec["cover_sheet"] is True
+    assert rec["title_page"] == 3
+
+
+def test_a_cover_page_followed_by_a_boilerplate_stamp_page_also_advances(tmp_path):
+    """The other shape of a two-page front matter: cover, then a short branded notice."""
+    f = text_pdf(tmp_path / "coverstamp.pdf", [JSTOR_COVER, IMS_STAMP, BODY])
+    rec = inv.probe_file(f)
+    assert rec["route"] == "cover-sheet"
+    assert rec["title_page"] == 3
+
+
+#: Long enough to clear COVER_MAX_CHARS, and carrying none of the host or field markers:
+#: the front-matter shape the leading-page detector cannot see. Limitation 2 in the module
+#: docstring, stated in the words of this test.
+UNBRANDED_TERMS = ("Terms and conditions of use. " * 20) + ("All rights reserved. " * 6)
+
+
+@pytest.mark.xfail(reason="module docstring limitation 2: an unbranded boilerplate second "
+                          "page carries neither a host marker nor the cover's fields, so "
+                          "the leading-page detector cannot recognise it. No corpus file "
+                          "has one (referee 2026-09-15 §4, K2).",
+                   strict=True)
+def test_an_unbranded_second_front_page_is_not_skipped(tmp_path):
+    f = text_pdf(tmp_path / "unbranded.pdf", [JSTOR_COVER, UNBRANDED_TERMS, BODY])
+    rec = inv.probe_file(f)
+    assert len([c for c in UNBRANDED_TERMS if not c.isspace()]) > inv.COVER_MAX_CHARS
+    assert rec["title_page"] == 3
 
 
 def test_an_ims_stamp_alone_is_not_a_cover_sheet(tmp_path):

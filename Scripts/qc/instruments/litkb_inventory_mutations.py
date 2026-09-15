@@ -36,6 +36,30 @@ MUTATIONS = {
            "IMAGE_COVER = 0.25       #", "IMAGE_COVER = 0.95       #"),
     "T5": ("IMAGE_COVER lowered: any page with a small figure reads as image-covered",
            "IMAGE_COVER = 0.25       #", "IMAGE_COVER = 0.01       #"),
+    # ── the ±20 % band, one row per threshold per side ──────────────────────────────────
+    # T1..T5 move the thresholds far (0.01, 0.95, 10, 300) — outside the band the corpus
+    # actually lives in. The referee replayed classify_page over all 5,038 pages at each
+    # constant ±20 % and measured that the twelve-file gate caught ONE of the six moves
+    # (Reports/LITKB_INVENTORY_REFEREE_2026-09-15.md §3). These six rows are that band, and
+    # BOUNDARY_PINS in the test file is what they fire on.
+    "B1": ("CHARS_TRACE -20% (100 -> 80): no CORPUS page changes class, so only the "
+           "synthetic unit row (99, 0.90) -> image-only can catch it",
+           "CHARS_TRACE = 100        #", "CHARS_TRACE = 80        #"),
+    "B2": ("CHARS_TRACE +20% (100 -> 120): Guo p6, a 117-character figure caption, "
+           "drops from partial to image-only",
+           "CHARS_TRACE = 100        #", "CHARS_TRACE = 120        #"),
+    "B3": ("CHARS_BODY -20% (400 -> 320): Gros p19 (390 chars) reads as a finished text "
+           "page and leaves the OCR queue",
+           "CHARS_BODY = 400         #", "CHARS_BODY = 320         #"),
+    "B4": ("CHARS_BODY +20% (400 -> 480): Parisi p22 (402 chars) reads partial and "
+           "enters the OCR queue",
+           "CHARS_BODY = 400         #", "CHARS_BODY = 480         #"),
+    "B5": ("IMAGE_COVER -20% (0.25 -> 0.20): remotesensing-14-05911 p25 (0.2242) reads "
+           "partial",
+           "IMAGE_COVER = 0.25       #", "IMAGE_COVER = 0.20       #"),
+    "B6": ("IMAGE_COVER +20% (0.25 -> 0.30): Ogata p24 (0.2764, a real scanned references "
+           "page) becomes `empty` and silently leaves the OCR backlog",
+           "IMAGE_COVER = 0.25       #", "IMAGE_COVER = 0.30       #"),
     "T6": ("SCAN_FILE_FRAC raised: a whole scan is priced as a mixed native document",
            "SCAN_FILE_FRAC = 0.5     #", "SCAN_FILE_FRAC = 0.99     #"),
     "T7": ("COVER_MIN_FIELDS raised: a real JSTOR cover page is never recognised",
@@ -76,7 +100,7 @@ def sha(path):
 
 
 def pytest():
-    r = subprocess.run([sys.executable, "-m", "pytest", TESTS, "-q", "--no-header"],
+    r = subprocess.run([sys.executable, "-m", "pytest", TESTS, "-q", "--no-header", "-rf"],
                        cwd=SCRIPTS, capture_output=True, text=True, errors="replace")
     return r.returncode, (r.stdout or "") + (r.stderr or "")
 
@@ -95,6 +119,12 @@ def run_one(mid, what, old, new):
     fired = rc != 0
     tail = out.strip().splitlines()[-1] if out.strip() else ""
     print(f"  {mid:<6} {'FIRED' if fired else 'DID NOT FIRE':<13} {tail}")
+    # WHICH test failed, not just how many: a row is only a guard if the failure it causes
+    # names the thing that moved, and that is unreadable from the count line alone.
+    failed = sorted({ln.split(" ")[1].split("::")[-1]
+                     for ln in out.splitlines() if ln.startswith("FAILED ")})
+    for name in failed:
+        print(f"         failed: {name}")
     print(f"         restored inventory.py sha256 {before[:16]}... match: {ok}")
     if not ok:
         raise SystemExit(f"{mid}: inventory.py was not restored byte-for-byte")

@@ -46,9 +46,11 @@ are above 400 (whole scans re-covered by an OCR text layer, e.g. Lahiri 2003, Be
 a complete layer, so nothing to re-OCR) and only 14 fall in 100..400.
 
 ``IMAGE_COVER = 0.25`` — image area ÷ cropbox area. Every page in the corpus with no text
-at all has image coverage ≥ 0.276; the floor is Ogata 1998, whose scan is cut into 18
-image strips per page and still reaches 0.51. A page below this has no full-page raster,
-so OCR has nothing to read and the native layer is all there is.
+at all has image coverage ≥ 0.2764, and that floor is a SINGLE page: Ogata 1998 p24, a
+half-filled references page whose scan is cut into 18 image strips. The next zero-character
+page sits at 0.5069. The margin above the threshold is therefore 10.6 %, not a comfortable
+gap (Reports/LITKB_INVENTORY_REFEREE_2026-09-15.md §3, §7). A page below this has no
+full-page raster, so OCR has nothing to read and the native layer is all there is.
 
 ``COVER_MAX_CHARS = 200`` — a page-1 text layer that is boilerplate and nothing else.
 Taken from an already-committed measurement, not invented here:
@@ -100,6 +102,43 @@ contradict each other.
 **Encrypted is not unreadable.** An owner-password-only PDF opens with no password and
 extracts normally; ``encrypted`` records the security handler, and only a document that
 refuses to open is routed ``unreadable``, with pdfium's own last-error name as the reason.
+
+--------------------------------------------------------------------------------------
+What stage 0 does NOT see (referee 2026-09-15, §9 of the phase report)
+--------------------------------------------------------------------------------------
+
+Each of these was probed by an independent referee, each was MEASURED to have no live
+instance in the present corpus, and each is therefore a limitation to state rather than a
+defect to fix. None is guarded by a test that fires, because there is nothing here to fire
+on; if a future corpus adds one, the symptom is written out below so it is recognisable.
+
+1. **Invisible text is invisible to the probe.** :func:`classify_page` reads a character
+   COUNT. A text layer drawn white-on-white, or placed off the page, counts as ``chars``
+   just like ink, so such a page classes ``text`` and routes ``native`` — no OCR, and a
+   downstream reader gets a layer no human can see on the render. §9.1's Kingman case is a
+   *wrong* layer; this is an *unrenderable* one, and the probe cannot tell them apart.
+   **Measured:** the referee scanned all 5,038 pages with pdfminer for characters ≥90 %
+   white-filled or ≥90 % outside the cropbox. 55 flags, 7 files, and every one inspected
+   resolved to a Separation/ICC colour space where ``1.0`` is full ink, or to a mediabox
+   with ``y0 = 51``. **Zero real instances.** (Referee §4, kill K1 — DID NOT FIRE.)
+
+2. **A front matter deeper than the detector is not fully skipped.** :func:`is_cover_sheet`
+   and :func:`is_cover_stamp` are applied to each LEADING page in turn, so a publisher cover
+   page followed by a second page that is itself a cover page or a boilerplate stamp is
+   skipped and ``title_page`` advances past both. A second front page that is boilerplate
+   but carries NEITHER a host marker NOR the cover's bibliographic fields — an unbranded
+   terms-of-use continuation, say — is not recognised, and ``title_page`` then points at it
+   rather than at the article. The ROUTE is unaffected either way.
+   **Measured:** no corpus file has a second front page at all. (Referee §4, kill K2.)
+
+3. **``mixed`` is over-inclusive, in the safe direction.** A born-digital figure page —
+   a raster over a quarter of the page with only a caption in the text layer — is
+   ``partial`` by definition, which nominates it for OCR even though its words are already
+   in the layer and OCR would return only the figure's baked-in tick labels. The referee
+   inspected four such pages across three ``mixed`` files (Cardille p12, MacFaden p1,
+   Pauls p14/16/17) and found 4 of 4 to be native figure pages, not scanned inserts. The
+   cost is a wasted OCR page; the alternative error — dropping a scanned insert from the
+   queue — is the expensive one, so the class stays as defined. (Referee §2.)
 """
 
 from __future__ import annotations
@@ -373,6 +412,13 @@ def probe_file(path):
         rec["title_meta"] = jsonb_safe(info.get("Title") or "") or None
 
         detail, first_text = [], ""
+        # How many LEADING pages are publisher front matter rather than the document.
+        # Advanced one page at a time and only while every page so far has been front
+        # matter, so a cover page followed by a second cover page or a boilerplate stamp
+        # leaves title_page pointing at the article rather than at the second cover. Uses
+        # only the existing COVER_* constants on purpose: no new threshold means no new
+        # params_hash, so this cannot silently re-price a corpus already probed.
+        lead_boiler = 0
         for i in range(len(doc)):
             page = doc[i]
             try:
@@ -385,6 +431,9 @@ def probe_file(path):
                 return rec
             if i == 0:
                 first_text = text
+            if i == lead_boiler and (is_cover_sheet(text)
+                                     or is_cover_stamp(text, one["chars"])):
+                lead_boiler = i + 1
             detail.append(one)
     finally:
         doc.close()
@@ -396,7 +445,7 @@ def probe_file(path):
         page_detail=detail,
         cover_sheet=cover,
         cover_stamp=stamp,
-        title_page=_title_page(detail, cover or stamp),
+        title_page=_title_page(detail, lead_boiler),
         ocr_pages=[p["page"] for p in detail if needs_ocr(p["scan"])],
         route=route_file(detail, cover),
         rotated_pages=[p["page"] for p in detail if p["rotation"]],
@@ -407,15 +456,19 @@ def probe_file(path):
     return rec
 
 
-def _title_page(detail, skip_first):
+def _title_page(detail, lead_boiler=0):
     """The page whose TEXT LAYER should carry the title, or None when no page does.
+
+    *lead_boiler* is the count of leading publisher front-matter pages to step over — 0 for
+    a document that starts on page 1, 1 for a single cover page or stamp, and more when the
+    front matter is deeper (see the module docstring's limitation 2 for what that detector
+    does and does not recognise).
 
     None is the answer for a scan: the title is in the raster and only OCR will produce it.
     That is the honest reading of Anderson/Hudson/Hwang/Politis, whose every page after the
     boilerplate stamp holds zero characters (Reports/LITKB_INVENTORY_2026-09-15.md §4).
     """
-    start = 1 if skip_first else 0
-    for p in detail[start:]:
+    for p in detail[lead_boiler:]:
         if p["chars"] >= CHARS_TRACE:
             return p["page"]
     return None

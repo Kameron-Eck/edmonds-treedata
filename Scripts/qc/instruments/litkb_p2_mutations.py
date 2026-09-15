@@ -424,6 +424,9 @@ site("P6g", "litkb/migrate_legacy/run.py::discrepancy::jsonb_safe", "{a0}", test
      what="a discrepancy's claimed/registry TEXT values are sent with their NULs (the load dies on one)")
 site("P6h", "litkb/migrate_legacy/run.py::_load_tracker_row::jsonb_safe", "{a0}", tests=TESTS_P3,
      what="the candidate's title is sent as text with its NULs")
+p3(block, "P7h", f"{PKG}/migrate_legacy/run.py",
+   "guard: a legacy row naming a file the store does not hold is recorded",
+   "a manifest row whose file is missing or quarantined is unbound with nothing saying why")
 p3(block, "P7g", f"{PKG}/migrate_legacy/run.py",
    "guard: a file another work already holds is recorded as a sha256 collision",
    "one sha256 filed under two works: the second is left unbound with nothing saying why")

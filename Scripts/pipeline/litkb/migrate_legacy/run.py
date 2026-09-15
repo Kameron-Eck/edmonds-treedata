@@ -16,6 +16,7 @@ from litkb.admit import front, registry as _registry, resolver as _resolver
 from litkb.migrate_legacy import sources
 from litkb.migrate_legacy.plan import COMPARED_FIELDS, compare_row, doi_discrepancy, plan_row
 from litkb.netutil import Client, Pacer
+from litkb.migrate_legacy.export_shape import year_int
 from litkb.textnorm import jsonb_safe
 
 #: the tracker's Evidence grade, as the `confidence` of the use it produced. The grades are the
@@ -175,7 +176,7 @@ def _key_for(ctx, rec, claimed):
     from litkb.admit.front import make_key
 
     first = rec["first_author"] if rec else front.first_author_of(claimed.get("authors"))
-    year = (rec or {}).get("year") or claimed.get("year") or 0
+    year = (rec or {}).get("year") or year_int(claimed.get("year")) or 0
     title = (rec or {}).get("title") or claimed.get("title") or ""
     try:
         base = make_key(first, year, title)
@@ -251,7 +252,7 @@ def _load_tracker_row(ctx, row, manifest, c):
         # reads both back; without them those cells could not be regenerated at all.
         raw=json.loads(json.dumps({**row, **({"_manifest": mrow} if mrow else {})})),
         title=jsonb_safe(claimed["title"]), authors=[claimed["authors"]] if claimed["authors"] else None,
-        year=claimed["year"] or None, ids={k: v for k, v in (("doi", doi), ("arxiv", arxiv)) if v})
+        year=year_int(claimed["year"]), ids={k: v for k, v in (("doi", doi), ("arxiv", arxiv)) if v})
     entry = {"tracker_id": tid, "case": plan["case"], "shape": plan["shape"], "candidate_id": str(cand),
              "stem": stem or None, "doi": plan["doi"], "resolved_doi": plan["resolved"]}
 
@@ -291,7 +292,7 @@ def _load_tracker_row(ctx, row, manifest, c):
     elif plan["shape"] == "manual":
         res = front.admit_manual(
             ctx.conn, ctx.ws, ctx.token, title=claimed["title"], authors=claimed["authors"],
-            year=claimed["year"] or None, file_path=str(pdf), source_note=f"{detail} (no registry record)",
+            year=year_int(claimed["year"]), file_path=str(pdf), source_note=f"{detail} (no registry record)",
             identifiers=[{"scheme": i["scheme"], "value": i["value"]} for i in ids_extra],
             key=_key_for(ctx, None, claimed), root=ctx.root, agent=ctx.agent, session=ctx.session,
             candidate_id=cand)
@@ -326,9 +327,38 @@ def _load_tracker_row(ctx, row, manifest, c):
     # END guard: a row that reached a work records its use, DEDUPED rows included
     # BEGIN guard: a file another work already holds is recorded as a sha256 collision
     pending += _collision_pending(ctx, res, stem, tid)
+    pending += _missing_file_pending(ctx, mrow, pdf, stem, tid)
     # END guard: a file another work already holds is recorded as a sha256 collision
     entry["discrepancies"] = _flush(ctx, c, pending, work, cand)
     ctx.log.append(entry)
+
+
+def _missing_file_pending(ctx, mrow, pdf, stem, source_row):
+    """A legacy row that names a file the topic folder does not hold.
+
+    Two kinds, and the row cannot tell them apart, so it records what it can SEE — that the named file is not
+    in the store — and names the sha256 the row claims, which is the handle the review needs:
+
+      * the file was never there (Matheron 1986: its `filed_stem` exists nowhere under the pipeline root,
+        Reports/LITKB_EDGE_PRE1990_2026-09-14.md);
+      * the file was QUARANTINED because it is not the paper its row names. Stage 0's inventory found two such
+        sha256s, each claimed by two manifest rows — the archive served one md5 for two DOIs — and its
+        referee's first-page reads showed the bytes are a THIRD paper in both cases, so neither claimant may
+        bind. Which paper each file actually is lives in Reports/LITKB_INVENTORY_2026-09-15.md, not here.
+
+    Either way the work is admitted on its registry record and stays UNBOUND, which is the honest state: no
+    verified file. Binding would refuse these anyway; this is the record that says why nothing was offered.
+    """
+    if not mrow or pdf is not None:
+        return []
+    # BEGIN guard: a legacy row naming a file the store does not hold is recorded
+    return [("manifest", stem or str(source_row), "file_missing",
+             {"claimed": (mrow.get("sha256") or "").strip() or None, "registry": None, "ratio": None,
+              "detail": {"stem": stem, "source_route": mrow.get("source_route"),
+                         "meaning": "the manifest names this file but the topic folder does not hold it: it "
+                                    "was never there, or it was quarantined as not being this paper. The work "
+                                    "is admitted unbound; see Reports/LITKB_INVENTORY_2026-09-15.md"}})]
+    # END guard: a legacy row naming a file the store does not hold is recorded
 
 
 def _collision_pending(ctx, res, stem, source_row):
@@ -436,7 +466,7 @@ def _load_manifest_row(ctx, row, c):
     cand = front.add_candidate(ctx.conn, ctx.ws, ctx.token, source="manual", source_detail=detail,
                                raw=json.loads(json.dumps(row)), title=claimed["title"],
                                authors=[claimed["authors"]] if claimed["authors"] else None,
-                               year=claimed["year"] or None,
+                               year=year_int(claimed["year"]),
                                ids={k: v for k, v in (("doi", row.get("doi")), ("arxiv", row.get("arxiv"))) if v})
     entry = {"stem": stem, "case": plan["case"], "shape": plan["shape"], "candidate_id": str(cand)}
     pending = _field_discrepancies(plan, row.get("doi"), "manifest", stem)
@@ -461,7 +491,7 @@ def _load_manifest_row(ctx, row, c):
             entry["outcome"] = "held-needs-file"
     elif plan["shape"] == "manual":
         res = front.admit_manual(ctx.conn, ctx.ws, ctx.token, title=claimed["title"], authors=claimed["authors"],
-                                 year=claimed["year"] or None, file_path=str(pdf),
+                                 year=year_int(claimed["year"]), file_path=str(pdf),
                                  source_note=f"{detail} (no registry record)",
                                  identifiers=[{"scheme": "legacy_stem", "value": stem}],
                                  key=_key_for(ctx, None, claimed), root=ctx.root, agent=ctx.agent,
@@ -483,6 +513,7 @@ def _load_manifest_row(ctx, row, c):
             if res.get("file_id"):
                 c["bound"] += 1
     pending += _collision_pending(ctx, res, stem, stem)
+    pending += _missing_file_pending(ctx, row, pdf, stem, stem)
     entry["discrepancies"] = _flush(ctx, c, pending, work, cand)
     ctx.log.append(entry)
 

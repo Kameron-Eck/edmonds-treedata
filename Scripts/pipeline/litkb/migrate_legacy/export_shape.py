@@ -41,3 +41,15 @@ def norm_cell(s):
     s = str(s if s is not None else "").lower().replace("&", " and ")
     s = re.sub(r"[^a-z0-9]+", " ", s)
     return " ".join(s.split())
+
+
+def year_int(v):
+    """The 4-digit year at the front of a legacy cell, or None.
+
+    Tracker rows 327 and 329 carry `2019a` and `2019b` — the filename convention's same-year suffix written
+    into the YEAR column. There is no correction pass (decisions.yaml, P3 load), so the cell is carried as it
+    is and read leniently here; the suffix survives as a `year` discrepancy against the registry's plain year.
+    Without this the load stops on the row: `int('2019a')` raises, and one malformed cell would end the pass.
+    """
+    m = re.match(r"\s*([0-9]{4})", str(v if v is not None else ""))
+    return int(m.group(1)) if m else None

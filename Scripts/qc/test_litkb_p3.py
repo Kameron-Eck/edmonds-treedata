@@ -780,3 +780,39 @@ def test_litkb_migrate_normalises_its_agent_and_session_labels(pg, tmp_path, mon
     from litkb.textnorm import norm_label
     assert norm_label("p3-labels ") == "p3-labels"
     assert norm_label("claude​-p3") == "claude-p3"
+
+
+@pg_only
+def test_a_legacy_row_naming_a_file_the_store_does_not_hold_is_recorded(pg, tmp_path):
+    """Two kinds of row name a file that is not in the topic folder: one whose file was never there (Matheron
+    1986) and one whose file was QUARANTINED because the bytes are a different paper — Stage 0's inventory
+    found two sha256s each claimed by two manifest rows, and its referee read the first pages: both files are
+    a third paper, so neither claimant may bind. Either way the work is admitted UNBOUND, and the row says so
+    rather than being silently fileless (harness row P7h)."""
+    from litkb.migrate_legacy import run as mrun
+
+    hexid = uuid.uuid4().hex[:8]
+    doi, title, author = f"10.5555/p3miss-{hexid}", f"Missing {hexid} file for a real registry work", "Claimant"
+    ws = pg.ws()
+    ctx = loader(pg, ws, Registry({doi: synthetic_record(doi, title, author, 2024)}), root=tmp_path / "Literture")
+    stem = f"{author}_2024_quarantined-not-this-paper"
+    r = row(130, title=title, authors=f"{author}, C.", year=2024, doi=doi, stem=stem)
+    c = mrun.load_tracker(ctx, rows=[r], manifest={stem: {"stem": stem, "sha256": "bb14fdbc" + "0" * 56,
+                                                          "source_route": "annas"}})
+    # the work IS admitted — its registry record is not in doubt — and it holds no file
+    assert c["admitted"] == 1 and c["bound"] == 0, ctx.log
+    d = discrepancies(pg, ws)
+    assert ("manifest", stem, "file_missing") in d, sorted(d)
+    assert d[("manifest", stem, "file_missing")][3] == "bb14fdbc" + "0" * 56
+    assert pg.one("SELECT count(*) FROM litkb.file_versions WHERE workstream_id = %s", (ws,))[0] == 0
+
+
+def test_a_year_cell_with_the_conventions_suffix_does_not_stop_the_load():
+    """Tracker rows 327 and 329 carry `2019a` and `2019b` — the filename convention's same-year suffix written
+    into the YEAR column. There is no correction pass, so the cell is carried as it is and read leniently;
+    `int('2019a')` raises, and on the live run of 2026-09-15 one such cell ended the pass at row 336."""
+    from litkb.migrate_legacy.export_shape import year_int
+
+    assert year_int("2019a") == 2019 and year_int("2019b") == 2019
+    assert year_int("2019") == 2019 and year_int(2020) == 2020
+    assert year_int("") is None and year_int(None) is None and year_int("n.d.") is None

@@ -58,6 +58,11 @@ def parse_crossref(msg, doi):
             # to ask "is this record a journal-article?" and cannot ask it of the folded value.
             # Never used for admission; only for that discriminator.
             "raw_type": msg.get("type") or "",
+            # Crossref's optional review discriminator, kept beside `raw_type` for the same reason.
+            # Measured: the three real JSTOR reviews carry NO subtype and type `journal-article`, so
+            # this never fires on them — it is here so a registry that DOES say "book-review" is
+            # believed rather than having to be inferred from an author list.
+            "raw_subtype": msg.get("subtype") or "",
             "url": CROSSREF_WORK.format(doi=doi)}
 
 

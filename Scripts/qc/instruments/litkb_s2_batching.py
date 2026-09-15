@@ -114,7 +114,7 @@ def run_arm(arm, refs, limit=None):
         s2 = S2.S2Client(client=net, cache=R.DiskCache(), pacer=Pacer(interval=1.0))
         S2.batch_prefill(refs, s2)
     todo = refs[:limit] if limit else refs
-    rows, t0 = [], time.time()
+    rows, transient, t0 = [], [], time.time()
     for r in todo:
         ref = {k: v for k, v in r.items() if k in RESOLVER_FIELDS}
         t1 = time.time()
@@ -125,6 +125,14 @@ def run_arm(arm, refs, limit=None):
                      "doi": res.doi or "", "source": res.source or "",
                      "ratio": res.ratio if res.ratio is not None else "",
                      "reason": res.reason[:220], "seconds": round(time.time() - t1, 3)})
+        if res.transient:
+            # LOGGED, NEVER PERSISTED. `Resolution.transient` carries what THIS run's breakers did.
+            # Writing it into the row is what made the committed artefact differ between two runs
+            # over the same cache in 42 of 293 rows with no state and no DOI changed.
+            transient.append(f"{r['citing_work_key']}:{r['ref_key']} {res.transient}")
+    if transient:
+        print(f"[run-dependent, not persisted] {len(transient)} rows skipped a stage: "
+              + "; ".join(sorted({t.split(' ', 1)[1] for t in transient})), flush=True)
     wall = time.time() - t0
     states = collections.Counter(x["state"] for x in rows)
     summary = {

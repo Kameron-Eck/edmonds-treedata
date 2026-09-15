@@ -33,6 +33,12 @@ WHAT EACH ROW IS FOR:
     are still refused, by the weaker `crossref_author_mismatch`, so the row fires only because the
     tests pin the reason by name. That is deliberate — a kill for a class that is invisible in the
     outcome has to be asserted on the name.
+  * **P7-C4/C5/C6 are the round-2 rows** (`Reports/LITKB_REFERENCES_REFEREE2_2026-09-15.md`). C4
+    removes the name-independent half of the review detector, so a reviewer who shares the book
+    author's surname is invisible again — the hole the referee planted and walked through. C5 and C6
+    are the two halves of the arXiv refusal at the acquisition door: gate 0 returning no DOI for the
+    `10.48550` form, and `fetch_one` refusing it whatever it is handed. They are separate rows on
+    purpose — one test through `run_jobs` would let either half mask the other.
   * **P7-S1/S2** are the per-call-site rows for `normalize_doi` inside `s2.py`: at each site the
     canonicalisation simply does not happen, so `DOI:10.1/A` and `DOI:10.1/a` become two identifiers
     and a candidate's DOI no longer matches the corpus index.
@@ -50,10 +56,11 @@ TESTS_CONFIRM = ["qc/test_litkb_s2.py", "qc/test_litkb_annas.py"]
 S2 = "pipeline/litkb/admit/s2.py"
 RESOLVER = "pipeline/litkb/admit/resolver.py"
 REFS = "pipeline/litkb/extract/references.py"
+ANNAS = "pipeline/litkb/acquire/annas.py"
 PASSTHROUGH = "({a0})"
 
 IDS = ["P7-G1", "P7-G2", "P7-G3", "P7-G4", "P7-G5", "P7-G6", "P7-G7", "P7-S1", "P7-S2",
-       "P7-S3", "P7-C1", "P7-C2", "P7-C3"]
+       "P7-S3", "P7-C1", "P7-C2", "P7-C3", "P7-C4", "P7-C5", "P7-C6"]
 
 
 def register(block, replace, site):
@@ -100,6 +107,23 @@ def register(block, replace, site):
             "weaker crossref_author_mismatch — so this row fires only because the tests pin the "
             "reason BY NAME. A test written against the outcome rather than the reason would go "
             "quiet here: the P7-G4 lesson again", tests=TESTS_CONFIRM)
+    # ---- the round-2 rows (`Reports/LITKB_REFERENCES_REFEREE2_2026-09-15.md`) ----
+    replace("P7-C4", RESOLVER,
+            "    if ours and len(fams) == len(ours) + 1",
+            "    if False and len(fams) == len(ours) + 1",
+            "the NAME-INDEPENDENT half of the review detector is removed, leaving only the shape that "
+            "requires the reviewer to be called something other than the book's author. A review "
+            "whose reviewer shares that surname walks past it, and on a reference that parsed "
+            "neither a journal nor a publisher nothing else can speak", tests=TESTS_S2)
+    replace("P7-C5", RESOLVER,
+            '            if cd.lower().startswith(ARXIV_DOI_PREFIX.lower()):',
+            '            if False:',
+            "gate 0 returns the 10.48550 DOI again, and its only caller hands what it returns "
+            "straight to the fetcher: the archive is asked for a preprint arXiv serves itself",
+            tests=TESTS_CONFIRM)
+    block("P7-C6", ANNAS, "guard: gate 0 an arxiv DOI is record-only and is never fetched",
+          "the fetcher's own refusal is removed, so the property holds only as far as gate 0's "
+          "caller does — the belt behind the brace, mutated on its own", tests=TESTS_CONFIRM)
 
 
 def _p2():

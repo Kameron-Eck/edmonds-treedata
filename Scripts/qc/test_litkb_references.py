@@ -419,13 +419,23 @@ def test_one_good_answer_resets_the_streak():
     assert not b.is_open("crossref")
 
 
-def test_a_tripped_stage_is_named_in_the_unresolved_reason():
+def test_a_tripped_stage_is_named_but_only_where_the_run_is_logged_not_where_it_is_persisted():
+    """Which stages a run skipped is a fact about the WIRE that day, not about the reference. Round 2
+    of the referee measured it leaking into the committed artefact: two runs over the same cache
+    differed in 42 of 293 rows, every difference a `skipped=arxiv` tail, with no state and no DOI
+    changed — indistinguishable, in a diff, from a real change
+    (`Reports/LITKB_REFERENCES_REFEREE2_2026-09-15.md` §1). So it is still NAMED, in `transient`, and
+    `asdict` — the persisted form — does not carry it."""
     ref = R.parse_references(TEI)[1]
     b = R.StageBreaker(trip_after=1)
     b.record("semanticscholar", "semanticscholar status 429")
     b.record("arxiv", "arxiv status 429")
     res = R.resolve_reference(ref, StubClient(search=[]), None, b)
-    assert res.state == "unresolved" and "skipped=semanticscholar,arxiv" in res.reason
+    assert res.state == "unresolved"
+    assert "skipped=semanticscholar,arxiv" in res.transient
+    assert "skipped=" not in res.reason, res.reason
+    assert "transient" not in res.asdict()
+    assert not any("skipped=" in str(v) for v in res.asdict().values()), res.asdict()
 
 
 def test_a_doi_with_no_parsed_title_still_needs_its_author_and_year():

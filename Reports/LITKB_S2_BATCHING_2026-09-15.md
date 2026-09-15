@@ -66,7 +66,7 @@ exponential 429 back-off (`await asyncio.sleep(5 * (2 ** attempt))`, three retri
 fetcher, so **the 500-id cap and the prefix spellings are harvested, not quoted from the vendor** —
 which is why the client verifies the response length rather than trusting the shape (§5).
 
-**OURS** — jitter, the `Retry-After` honour, the versioned cache key, the length-mismatch kill, the
+**OURS** — jitter, the `Retry-After` honour (as a floor, then jittered — see §3's measurement), the versioned cache key, the length-mismatch kill, the
 request accounting, and the conversion into the shared candidate shape so that
 `admit.resolver.judge_candidate` decides exactly as before.
 
@@ -137,7 +137,11 @@ this work is quoting the design intent, not the measurement. What the design act
 stage was unusable. Measured here: **18 % rate-limited when paced**, 82 % answered. The pool is
 **intermittent, not closed**, and that is the correction this phase makes to P6 §2. **`Retry-After`
 was never sent** (`retry_after_seen: 0` over 23 rate-limit answers) — the honour is implemented and
-unit-tested, but on this endpoint it has never fired in the wild.
+unit-tested, but on this endpoint it has never fired in the wild. To be exact about what "honoured"
+means (round 2 §6): the header is taken as a **floor and then jittered** — `delay = ra` is followed
+by `delay *= (1.0 + JITTER * jitter())`, and `RETRY_AFTER_CAP` is checked before the jitter — so a
+`Retry-After: 60` waits 60 to 75 s. Never less than the server asked, deliberately not exactly it,
+because every client that received that header received the same number.
 
 **The lift over the 55.5 % floor.** 33 of the 658 P6 references move to `resolved`:
 **365 → 398, 55.5 % → 60.5 %.** Of the 293 that reached this measurement, 11.3 % moved. **Four of the
@@ -308,11 +312,51 @@ registry, so it passes through UNCONFIRMED under a reason that says so
 (`s2_arxiv_doi_unconfirmed`). It is marked `archive_ok=False` and never fetched, and the class being
 closed here — a journal's review of a cited book — cannot occur on a preprint.
 
+**Corrected 2026-09-15, round 2 (`Reports/LITKB_REFERENCES_REFEREE2_2026-09-15.md` §5).** "Never
+fetched" was true of stage 6 and **false of gate 0** when this section was written. `resolve_doi`
+carried no `archive_ok` at all: an S2 candidate with only an arXiv id yields a `10.48550/…` DOI,
+`normalize_doi` accepts it as truthy, and gate 0's only caller (`acquire/annas.py`) handed it
+straight to `fetch_one`. The referee's preference was the filter, and the filter is what landed: gate
+0 now returns **no DOI** for that form — the identifier appears in the evidence as
+`arxiv_record_only=…; archive_ok=False` — and `fetch_one` refuses the form by construction before any
+request is made. Two mutation rows, **P7-C5** and **P7-C6**, kill the two halves separately, because
+one test through `run_jobs` would let either half mask the other.
+
+**THE SAME-SURNAME REVIEWER HOLE, named here the way the arXiv hole is named — and now closed.** The
+detector described above fired only when the head of Crossref's author list was **not** the
+reference's first author. A reviewer who shares that surname — or a record that repeats the first
+author at the head — was invisible to it, and for the **61 of 658 references (9.3 %) that parse
+neither a journal nor a publisher** the `type_mismatch` test cannot speak either, so such a record
+was CONFIRMED and the review resolved as the book (round 2 §4, planted and measured). The decision no
+longer reads surnames: it fires when the record's author list is **exactly one longer** than the
+reference's own and contains it as a suffix, whatever the extra name is. For the type-blind class a
+second, broader net — `review_suspected`, its own name so the reason histogram still says which test
+spoke — withholds confirmation on any review signal in the record: a marker anywhere in the title
+rather than only at its head, a review container, or the reference's first author sitting behind an
+EXTRA person. A genuine article by the same authors is still confirmed, and so is a paper by two
+authors who share a surname — that is the other half of the kill, and both halves are asserted as
+tests.
+
+Two things the rule still structurally cannot catch, stated rather than argued away: a same-title
+sibling at the same venue within ±1 year (round 2 §2 — it did not occur in these 20), and a review
+Crossref files with a single author, no review marker in title or container, against a reference that
+did parse a journal or a publisher.
+
 ### 8.1 Measured, same 293 references, same input rows
 
 `qc/instruments/litkb_s2_batching.py --arm confirmed`, then `--report`. **0 wire requests to
-Semantic Scholar and 0 to Crossref**: every answer came from the P6 and §4 disk caches, so this arm
-re-scores exactly the material §3 and §4 are written from.
+Semantic Scholar and 0 to Crossref**: every answer from **those two registries** — the ones this
+rule is about — came from the P6 and §4 disk caches, so this arm re-scores exactly the material §3
+and §4 are written from.
+
+**This is NOT a zero-wire run** (round 2 §1). The arXiv stage is not cached the same way: the
+referee's re-run put **46 requests on `export.arxiv.org`, 5 of them 429s**, and a 429 is deliberately
+not cached. Whether that stage stays open is a property of the wire on the day, so a row's `best=`
+candidate can differ between two runs with no state and no DOI changed. The run-dependent
+`skipped=…` tail that used to ride on the reason string — 42 of 293 rows differed by it alone — has
+since been moved out of the persisted reason into `Resolution.transient`, which the instrument logs
+and `asdict` does not write. The headline is reproducible; a byte-for-byte CSV diff of the reasons
+still is not, and a reader should not read one as a regression.
 
 | | before (P6 resolver) | after (§3, the paced S2 leg) | **confirmed (this rule)** |
 |---|--:|--:|--:|
@@ -333,7 +377,7 @@ Refusal reasons in the confirmed arm, for the 13 rows that moved:
 |---|--:|---|
 | `review_record` | 3 | Alwan b13 `10.2307/1269348`; Burnicki b23 `10.2307/214811`; Hall b10 `10.2307/2531038` |
 | `type_mismatch` | 1 | Chrisman b6 `10.2307/2529186` (Fleiss's book against a Biometrics `journal-article`) |
-| `edition_mismatch` | 4 | Foody b58 `10.1016/b978-0-08-044894-7.01340-3` (2010 vs 2004); Efron b0 `10.1007/978-1-4612-0919-5_38` (1992 vs 1973); Foody b76 `10.1142/9789814329804_0014` (2011 vs 2002); Goodchild b1 `10.4324/9780203303245_chapter_one` (2010 vs 2004) |
+| `edition_mismatch` | 4 | Foody b58 `10.1016/b978-0-08-044894-7.01340-3` (2010 vs 2004); Efron b0 `10.1007/978-1-4612-0919-5_38` (1992 vs 1973); Foody b76 `10.1142/9789814329804_0014` (2011 vs 2002); Goodchild b1 `10.4324/9780203303245_chapter_one` (2010 vs 2002) |
 | `crossref_title_ratio` | 3 | Burnicki b43 (0.56); Foody b14 (0.72); Foody b38 (0.70) |
 | `crossref_no_author` | 2 | Abercrombie b16 `10.1109/tsmc.1978.4309889`; Burnicki b12 `10.1201/b12612-12` |
 

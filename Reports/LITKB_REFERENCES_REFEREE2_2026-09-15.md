@@ -283,3 +283,60 @@ one new site that can embed response bytes in an error (`s2.py:253`); every othe
    carry the dropped refusals on the `edition_mismatch` return (§4, §5).
 
 None of these changes a measured number. **P6 merges once 1–3 are written down.**
+
+---
+
+## 11. Closed (builder, 2026-09-15, after this review)
+
+All five taken, 1 and 2 as CODE rather than as prose, which is what §10.1 said the referee preferred.
+
+1. **The `10.48550` passthrough.** `resolve_doi` now returns **no DOI** for that form whichever stage
+   proposed it — the identifier travels in the evidence as `arxiv_record_only=…; archive_ok=False` —
+   and `annas.fetch_one` refuses the form before any request is made. Two mutation rows because one
+   test through `run_jobs` would let either half mask the other: **P7-C5** (gate 0) and **P7-C6**
+   (the fetcher), both FIRED, each on its own test.
+2. **The same-surname reviewer hole.** `review_signature` no longer asks whether the reviewer's
+   surname differs from the reference's first author. The load-bearing signal is now the
+   author-count SHAPE — the record's list exactly one longer than the reference's own, containing it
+   as a suffix — plus Crossref's own `type`/`subtype` (`registry.parse_crossref` now carries
+   `raw_subtype`). For the 9.3 % type-blind class — neither journal nor publisher parsed — a second,
+   broader net refuses under its own name, `review_suspected`, so the reason histogram still says
+   which test spoke. **The two kills:** the planted same-surname review is refused
+   `review_record (… exactly one extra name …)`; a same-surname GENUINE article by the same authors
+   is still `confirmed`. **P7-C4** removes the name-independent half and FIRES. The Fleiss parse
+   artefact (`['d', 'fleiss']`) is held off by a two-letter floor on the extra name: it is still NOT
+   called a review, which is what §4 required — it refuses as `type_mismatch`, the name that asserts
+   only what was measured. The same floor gives the referee's two-letter "Li" reviewer the review
+   name it should have had (§10.5, first half).
+3. **Both prose slips fixed** in `LITKB_S2_BATCHING_2026-09-15.md`: Goodchild b1 reads "2010 vs
+   2002"; the `Retry-After` honour is stated as a floor, then jittered, with the 60→60–75 s worked
+   example.
+4. **The non-zero-wire fact is written into §8.1**, with the 46 arXiv requests and 5 429s. The
+   run-dependent `skipped=` tail is now **removed from the persisted reason** rather than merely
+   disclaimed: it moved to `Resolution.transient`, which `asdict()` excludes and the instrument
+   prints. A reason-column diff of the artefact is row-stable again; `best=` can still move when the
+   arXiv stage's breaker differs between runs, which is a property of the wire and is said so.
+5. The dropped `edition_mismatch` sibling refusals are **not** carried — still unreachable, still
+   commented two lines above, and a change there could not be tested against anything real.
+
+Two shapes the round-2 fix could have broken and does not, each asserted as its own control test:
+a genuine article whose authors share the reviewer's surname is still `confirmed`; and a paper by
+**two authors of the same surname** — Crossref `['wang', 'wang']`, the reference's first author at
+position 1, which is exactly the shape the broad net looks for — is still `confirmed`, because that
+net counts PEOPLE (there must be an extra one for there to be a reviewer) rather than comparing
+names. That control matters most at gate 0, whose reference dict is `{title, first_author, year}` and
+therefore always type-blind; the code now says so where the net is defined.
+
+**The table after, re-run from cache:** 293 references, **20 resolved / 23 ambiguous / 250
+unresolved** — unchanged. The **13 moved rows were read individually**, not inferred from the
+summary histogram (which truncates at 12 names and would hide a small bucket): they are the same 13
+references under the same reason names as §8.1 — 3 `review_record` (Alwan b13, Burnicki b23,
+Hall b10), 1 `type_mismatch` (Chrisman b6), 4 `edition_mismatch` (Efron b0, Foody b58, Foody b76,
+Goodchild b1 — whose reason string reads **2010 vs reference 2002**, the year §1 caught the prose
+getting wrong), 3 `crossref_title_ratio` (Foody b14 0.72, Foody b38 0.70, Burnicki b43 0.56) and
+2 `crossref_no_author` (Abercrombie b16, Burnicki b12). Counted over all 293 persisted rows:
+`review_suspected` appears **0 times** — the new net adds no refusal on this corpus; it closes a hole
+this corpus did not happen to contain — and `skipped=` appears **0 times**, which is fix 4 measured
+rather than asserted. 0 Semantic Scholar and 0 Crossref wire requests, 211 S2 cache hits, and **1**
+arXiv request rather than 46: the referee's own run warmed that cache, which is precisely the
+run-dependence §1 named.

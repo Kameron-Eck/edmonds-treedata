@@ -654,6 +654,101 @@ def test_a_one_letter_crossref_family_is_not_read_as_a_reviewer():
     assert not reason.startswith("review_record"), reason
 
 
+def _confirm_rec(msg, ref, doi="10.2307/9999999"):
+    return RES.confirm_s2_candidate({"doi": doi}, ref, CrossrefReplay({doi: msg}), None)
+
+
+#: The round-2 plant, verbatim in shape: a JSTOR-style review of a book whose REVIEWER happens to
+#: carry the book's first author's surname. Every rule the resolver has agrees with it — S2's record
+#: for a review DOI carries the book's title, the book's authorship and the book's year — and the
+#: reviewed reference parses NEITHER a journal NOR a publisher, so `type_mismatch` is blind to it.
+#: Before the round-2 fix this came back `confirmed` and the review resolved as the book.
+_SAME_SURNAME_REVIEW = {
+    "type": "journal-article", "title": ["Remote Sensing and Image Interpretation"],
+    "subtitle": [], "container-title": ["Technometrics"],
+    "issued": {"date-parts": [[1988, 5]]}, "publisher": "JSTOR",
+    "author": [{"family": "Lillesand", "given": "Roger", "sequence": "first"},
+               {"family": "Lillesand", "given": "Thomas M.", "sequence": "additional"},
+               {"family": "Kiefer", "given": "Ralph W.", "sequence": "additional"}]}
+
+_SAME_SURNAME_REF = {
+    "title": "Remote sensing and image interpretation", "first_author": "Lillesand",
+    "year": "1987", "journal": "", "publisher": "",
+    "authors": [{"family": "Lillesand"}, {"family": "Kiefer"}],
+    "raw": "T. M. Lillesand and R. W. Kiefer, Remote sensing and image interpretation, 1987."}
+
+
+def test_a_same_surname_reviewer_no_longer_walks_past_the_review_detector():
+    """THE ROUND-2 KILL (`Reports/LITKB_REFERENCES_REFEREE2_2026-09-15.md` §4). The old detector
+    fired only when the head of Crossref's author list was NOT the reference's first author, so a
+    reviewer who shares that surname was invisible to it; with no journal and no publisher parsed —
+    61 of the 658 P6 references, 9.3 % — the type test could not speak either, and the record was
+    CONFIRMED. The decision no longer looks at whether the names match: the record's list is exactly
+    one longer than the reference's own and contains it as a suffix, which is what "the reviewer,
+    then the work" looks like whatever the reviewer is called."""
+    verdict, reason, _ = _confirm_rec(_SAME_SURNAME_REVIEW, _SAME_SURNAME_REF)
+    assert verdict == "refused", reason
+    assert reason.startswith("review_record ("), reason
+    assert "exactly one extra name" in reason, reason
+
+
+def test_a_same_surname_genuine_article_is_still_confirmed():
+    """The other half of the kill, and why the fix is a SIGNATURE and not a surname ban: the same
+    authorship, the same missing journal and publisher, an ordinary record — and it resolves. A rule
+    that refused this would have closed the hole by closing the door."""
+    genuine = dict(_SAME_SURNAME_REVIEW,
+                   author=[{"family": "Lillesand", "given": "Thomas M.", "sequence": "first"},
+                           {"family": "Kiefer", "given": "Ralph W.", "sequence": "additional"}])
+    genuine["container-title"] = ["Photogrammetric Engineering and Remote Sensing"]
+    verdict, reason, _ = _confirm_rec(genuine, _SAME_SURNAME_REF)
+    assert verdict == "confirmed", reason
+
+
+def test_the_type_blind_class_refuses_a_review_marked_record_under_its_own_name():
+    """The second net, named separately so the reason histogram still says which test spoke: for a
+    reference with neither a journal nor a publisher, ANY review signal in the record withholds
+    confirmation — here a review marker inside the title rather than at its head, which the strong
+    detector deliberately does not read, on a single-author record that no author-count signature
+    would catch either."""
+    rec = dict(_SAME_SURNAME_REVIEW,
+               title=["Remote Sensing and Image Interpretation: a review of the third edition"],
+               author=[{"family": "Lillesand", "given": "Thomas M.", "sequence": "first"}])
+    verdict, reason, _ = _confirm_rec(rec, _SAME_SURNAME_REF)
+    assert verdict == "refused", reason
+    assert reason.startswith("review_suspected ("), reason
+
+
+def test_two_authors_of_the_same_surname_are_not_read_as_a_reviewer():
+    """The control on the SECOND net, and the reason its author clause counts people rather than
+    comparing names. A genuine paper by two authors who share a surname gives Crossref the list
+    ['wang', 'wang'] with the reference's first author sitting at position 1 — the exact shape the
+    broad net looks for. There is no EXTRA person, so there is no reviewer, and it resolves. This
+    matters at gate 0 in particular: `resolve_doi`'s reference dict carries no journal and no
+    publisher, so every candidate at the acquisition door is judged by this net."""
+    rec = {"type": "journal-article", "title": ["A dual-polarimetric canopy index"], "subtitle": [],
+           "container-title": ["Remote Sensing of Environment"],
+           "issued": {"date-parts": [[2015, 4]]},
+           "author": [{"family": "Wang", "given": "Lei", "sequence": "first"},
+                      {"family": "Wang", "given": "Hui", "sequence": "additional"}]}
+    ref = {"title": "A dual-polarimetric canopy index", "first_author": "Wang", "year": "2015",
+           "journal": "", "publisher": "", "authors": [{"family": "Wang"}, {"family": "Wang"}],
+           "raw": "L. Wang and H. Wang, A dual-polarimetric canopy index, 2015."}
+    verdict, reason, _ = _confirm_rec(rec, ref)
+    assert verdict == "confirmed", reason
+
+
+def test_crossrefs_own_review_type_is_believed_without_an_author_list():
+    """`raw_subtype`, the completeness half: a registry that SAYS the record is a review is taken at
+    its word, even where the author list gives nothing away."""
+    rec = dict(_SAME_SURNAME_REVIEW, subtype="book-review",
+               author=[{"family": "Lillesand", "given": "Thomas M.", "sequence": "first"},
+                       {"family": "Kiefer", "given": "Ralph W.", "sequence": "additional"}])
+    verdict, reason, _ = _confirm_rec(rec, dict(_SAME_SURNAME_REF, journal="Technometrics"))
+    assert verdict == "refused", reason
+    assert reason.startswith("review_record ("), reason
+    assert "subtype" in reason, reason
+
+
 def _resolve_with_stages(ref, stages, client):
     import unittest.mock
     with unittest.mock.patch.object(R, "registry_stages", lambda s2=None, ref=None: stages):

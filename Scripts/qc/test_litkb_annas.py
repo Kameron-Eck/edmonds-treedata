@@ -807,14 +807,39 @@ class TestResolveDoi(unittest.TestCase):
         _, (doi, src, ev) = self.resolve({CR: (200, {}, crossref_json()),
                                           S2: (200, {}, s2_json()), AX: (200, {}, feed)})
         self.assertIsNone(doi)
-        self.assertEqual(ev, "best=arxiv:1.00:10.48550/arXiv.2401.01234")
+        self.assertEqual(ev, "arxiv_record_only=10.48550/arXiv.2401.01234; archive_ok=False; "
+                             "best=arxiv:1.00:10.48550/arXiv.2401.01234")
 
-    def test_semanticscholar_arxiv_only_uses_the_arxiv_doi(self):
-        _, (doi, src, _) = self.resolve({
+    def test_an_s2_candidate_carrying_only_an_arxiv_id_returns_no_doi_at_gate_0(self):
+        """THE GATE-0 arXiv KILL. A Semantic Scholar candidate with no DOI but an ArXiv id yields the
+        `10.48550/` form, which `normalize_doi` accepts as truthy — so gate 0 used to RETURN it, and
+        gate 0's only caller hands what it returns straight to `fetch_one`
+        (`Reports/LITKB_REFERENCES_REFEREE2_2026-09-15.md` §5: the report claimed the DOI was marked
+        `archive_ok=False` and never fetched, and at this door that was false). The DOI is now
+        record-only: it appears in the evidence, marked, and no DOI is returned. Asserted on
+        `resolve_doi` DIRECTLY, not through `run_jobs`, so the `fetch_one` belt cannot mask it."""
+        _, (doi, src, ev) = self.resolve({
             CR: (200, {}, crossref_json()),
             S2: (200, {}, s2_json({"title": TITLE, "year": 2004, "externalIds": {"ArXiv": "2401.01234"},
                                    "authors": [{"name": "B. Efron"}]}))})
-        self.assertEqual((doi, src), ("10.48550/arXiv.2401.01234", "semanticscholar"))
+        self.assertIsNone(doi)
+        self.assertIsNone(src)
+        self.assertIn("arxiv_record_only=10.48550/arXiv.2401.01234; archive_ok=False", ev)
+
+    def test_fetch_one_refuses_an_arxiv_doi_by_construction_and_makes_no_request(self):
+        """The belt behind that brace: even handed the `10.48550/` form directly — out of a manifest
+        column, say — the fetcher makes NO request. Counted at the client."""
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        paths = {k: os.path.join(tmp.name, k) for k in ("dest", "quarantine", "staging")}
+        paths["manifest"] = os.path.join(tmp.name, "manifest.csv")
+        archive = StubClient({})
+        r = A.fetch_one(archive, "SEKRIT", "10.48550/arXiv.1706.03762", "Vaswani_2017_attention",
+                        {"title": TITLE}, paths, self.pacer)
+        self.assertEqual(archive.calls, [])
+        self.assertEqual(r["status"], "unresolved")
+        self.assertIn("arxiv_record_only", r["detail"])
+        self.assertIn("archive_ok=False", r["detail"])
 
     def test_an_s2_proposal_crossref_calls_a_review_is_refused_at_the_acquisition_door(self):
         """THE KILL at gate 0. Semantic Scholar's record for a JSTOR review DOI carries the reviewed

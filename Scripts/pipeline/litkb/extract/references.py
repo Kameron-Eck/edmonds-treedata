@@ -462,9 +462,21 @@ class Resolution:
     candidates: list = dataclasses.field(default_factory=list)
     registry_title: str | None = None
     archive_ok: bool = True
+    #: RUN-DEPENDENT, AND THEREFORE NOT PERSISTED. Which stages this particular run skipped because
+    #: their breaker was open — a property of the wire that day, not of the reference. It used to be
+    #: appended to `reason`, which made the committed JSON differ between two runs over the same
+    #: cache in 42 of 293 rows with no state and no DOI changed (round 2 of the referee,
+    #: `Reports/LITKB_REFERENCES_REFEREE2_2026-09-15.md` §1). A reader diffing the artefact could not
+    #: tell that from a real change, so it is dropped by `asdict` and read from here by whatever
+    #: logs the run.
+    transient: str = ""
+
+    #: Fields that describe THE RUN rather than the resolution. Excluded from the persisted form.
+    TRANSIENT_FIELDS = ("transient",)
 
     def asdict(self):
-        return dataclasses.asdict(self)
+        return {k: v for k, v in dataclasses.asdict(self).items()
+                if k not in self.TRANSIENT_FIELDS}
 
 
 def _judge_all(cands, title, surname, year):
@@ -677,9 +689,11 @@ def resolve_by_search(ref, client, pacer, breaker=None, s2=None):
                                  f"{refused_tail if source == 'semanticscholar' else ''}",
                           registry_title=(c.get("titles") or [""])[0],
                           archive_ok=not d.startswith(ARXIV_DOI_PREFIX))
-    tail = f"; skipped={','.join(skipped)} (rate-limited)" if skipped else ""
+    # The skipped-stage list is a fact about THIS RUN's breakers, not about the reference, so it
+    # travels in `transient` and never in the persisted `reason`.
     return Resolution("unresolved",
-                      reason=f"best={best_overall[1]}:{best_overall[0]:.2f}:{best_overall[2]}{tail}")
+                      reason=f"best={best_overall[1]}:{best_overall[0]:.2f}:{best_overall[2]}",
+                      transient=(f"skipped={','.join(skipped)} (rate-limited)" if skipped else ""))
 
 
 def resolve_reference(ref, client, pacer=None, breaker=None, s2=None):

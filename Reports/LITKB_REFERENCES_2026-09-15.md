@@ -155,6 +155,9 @@ That is what a typo-tolerant title rule *is*; the 0.85 threshold was calibrated 
 (`Reports/litkb_title_threshold_2026-09-14.csv`) and is not touched here. Calling this a kill, or
 quietly raising the threshold to make it one, would be the design scoring itself (CLAUDE.md 3.4c).
 The §14 wording — "real author + year, wrong title" — is covered by `title-wrong`, which fires 20/20.
+(Every `title-wrong` mutant substitutes one fixed real title, Laurance 1998's. None of the twenty
+references is Laurance-authored, so no mutant is accidentally correct; a referee reusing the harness
+on a set that includes Laurance should change that constant.)
 
 **Two mutants resolved to a DIFFERENT work** (the kill held — neither is the original) and are
 flagged `resolved_elsewhere`: a `year−3` mutant landed on the 1998 paper that shares a title stem
@@ -163,8 +166,9 @@ same lesson: a near-miss reference does not merely fail, it can succeed at the w
 
 ## 6. Guards and the harness
 
-`qc/instruments/litkb_p6_mutations.py`, run 2026-09-15: **14 of 14 mutations fired**, both baselines
-green, every file restored and the restore checked by sha256.
+`qc/instruments/litkb_p6_mutations.py`, re-run on the committed tree (`d909cfa`): **14 of 14
+mutations fired**, both baselines green (38 tests), every file restored and the restore checked by
+sha256.
 
 | row | guard weakened | effect |
 |---|---|---|
@@ -180,9 +184,11 @@ The six new `normalize_doi` call sites are registered into the **shared** per-ca
 `qc/test_litkb_harness_sites.py` inside `qc/check.py` covers the whole package: 41 call sites, 40
 with a row, 1 declared equivalent, no problems.
 
-`cd Scripts && PYTHONUTF8=1 py -3.12 qc/check.py --fast` under `LITKB_TEST_DB=litkb_test_w8`:
-2,487 passed, 1 failed — `test_experiments.py::test_pointer_paths_resolve[crown_state_model]`, the
-pre-existing failure this task allows, untouched by this branch.
+`cd Scripts && PYTHONUTF8=1 py -3.12 qc/check.py --fast` under `LITKB_TEST_DB=litkb_test_w8`,
+re-run on `d909cfa` after the commit: **2,488 passed, 19 skipped, 1 xfailed, 1 failed** —
+`test_experiments.py::test_pointer_paths_resolve[crown_state_model]`, the pre-existing failure this
+task allows, untouched by this branch. (Both this and the harness above were first run on a tree one
+edit older; they are restated here from the re-run on the committed bytes, per the quote gate.)
 
 ## 7. What a referee should attack
 

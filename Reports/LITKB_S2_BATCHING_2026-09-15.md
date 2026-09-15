@@ -1,8 +1,5 @@
 # litkb — the Semantic Scholar leg: batched, paced, backed off, cached, counted
 
-*(The title said "fewer requests" in draft. The measurement says otherwise — §3 — so it does not say
-that any more.)*
-
 **Branch** `work/20260915-references` · **Date** 2026-09-15 · **Author** Claude (builder).
 Follows `Reports/LITKB_REFERENCES_2026-09-15.md` (P6), whose 55.5 % resolution rate is a
 **Crossref-only floor** because the Semantic Scholar and arXiv stages were rate-limited out of that
@@ -165,11 +162,18 @@ separated part I from part II correctly; and truncates `10.14358/pers.69.3.289` 
 ***Three are genuinely the wrong work, and they are one class:* a JSTOR-type DOI for a REVIEW of the
 book the reference cites.**
 
-| reference | accepted DOI | what that DOI is |
+| reference | accepted DOI | what Crossref says that DOI is (measured, from the cached `/works/{doi}` bodies — 0 network) |
 |---|---|---|
-| Alwan 1988 `b13` — Wadsworth, *Modern Methods for Quality Control and Improvement* | `10.2307/1269348` | a Technometrics **review** by Sylwester, 1987 |
-| Burnicki 2011 `b23` — Getis, *Models of Spatial Processes* | `10.2307/214811` | a **review** by Semple, 1979 |
-| Hall 1985 `b10` — Serra, *Image Analysis and Mathematical Morphology* | `10.2307/2531038` | a Biometrics **review** by Diggle, 1983 |
+| Alwan 1988 `b13` — Wadsworth, *Modern Methods for Quality Control and Improvement* | `10.2307/1269348` | `journal-article` in **Technometrics**, 1987, authors **`['Sylwester', 'Wadsworth', 'Stephens']`** |
+| Burnicki 2011 `b23` — Getis, *Models of Spatial Processes* | `10.2307/214811` | `journal-article` in **Geographical Review**, 1979, authors **`['Semple', 'Getis', 'Boots']`** |
+| Hall 1985 `b10` — Serra, *Image Analysis and Mathematical Morphology* | `10.2307/2531038` | `journal-article` in **Biometrics**, 1983, authors **`['Diggle', 'Serra']`** |
+
+**"Book review" is an inference; the author list is the measurement.** Each of these is a journal
+article in a journal other than the book's publisher, carrying the book's exact title, and its author
+list is *the reviewer followed by the book's authors* — which is how Crossref encodes a review of a
+book. That is the strongest evidence available without reading the articles, and it is stated as the
+inference it is. What does not depend on the inference: **the accepted DOI's first author is not the
+reference's first author**, under an identical title. That alone makes it a different work.
 
 **The mechanism, because it is the finding.** A review carries the reviewed book's exact title. S2's
 record for such a DOI carries the title AND the BOOK's authorship — its record for
@@ -180,9 +184,10 @@ the review's.** Crossref, asked the same DOI, names the reviewer — which is ex
 must go to a different registry. This is P6 §5's `resolved_elsewhere` class arriving through a new
 door: a fuzzier registry has more of them, and a book-heavy reference list is where they live.
 
-*One more is doubtful* — Foody 2010 `b58`, *Latent class models*: the reference is Magidson &
-Vermunt 2004 in a handbook, the DOI is Vermunt & Magidson 2010 in an Elsevier encyclopedia. Same
-authors, different volume and year; a sibling, probably not the cited one.
+*One more is doubtful* — Foody 2010 `b58`, *Latent class models*: the reference is Magidson 2004;
+Crossref says the DOI is a `book-chapter` in the **International Encyclopedia of Education**, 2010,
+author `['Vermunt']` (measured, same cached bodies). Same pair of authors in the literature, different
+volume and year; a sibling, probably not the cited one.
 
 **Measured rate of the wrong-work class: 3 certain and 1 doubtful in 33, ~9–12 %.** It is recorded,
 not patched: the obvious rule (refuse a DOI whose Crossref record disagrees with S2 about the first

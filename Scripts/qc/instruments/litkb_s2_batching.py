@@ -220,8 +220,11 @@ def verify():
         rec, tried = R.confirm_doi(client, r["doi"], pacer)
         if rec is None:
             rows.append({"citing_work_key": k[0], "ref_key": k[1], "doi": r["doi"],
-                         "verdict": "no", "why": f"not registered ({tried})", "crossref_title": "",
-                         "ratio": "", "crossref_first_author": "", "crossref_year": ""})
+                         "reference_title": (ref.get("title") or "")[:120], "crossref_title": "",
+                         "ratio": "", "crossref_first_author": "",
+                         "reference_first_author": ref.get("first_author") or "",
+                         "crossref_year": "", "reference_year": ref.get("year"),
+                         "verdict": "no", "why": f"not registered ({tried})"})
             continue
         ratio = max(title_match_ratio(ref.get("title") or "", t) for t in rec["titles"])
         fam = family_matches(rec["first_author"], ref.get("first_author") or "")
@@ -234,8 +237,14 @@ def verify():
             "verdict": "yes" if (ratio >= 0.85 and fam) else "no",
             "why": "" if (ratio >= 0.85 and fam) else
                    (f"ratio {ratio:.2f}" if ratio < 0.85 else "first author differs")})
+    # Fixed column list, not `list(rows[0])`: both branches above write the same keys, and taking
+    # them from the first row would raise on every later row the moment the first one is a
+    # not-registered DOI.
+    cols = ["citing_work_key", "ref_key", "doi", "reference_title", "crossref_title", "ratio",
+            "crossref_first_author", "reference_first_author", "crossref_year", "reference_year",
+            "verdict", "why"]
     with open(VERIFY_CSV, "w", encoding="utf-8", newline="") as fh:
-        w = csv.DictWriter(fh, fieldnames=list(rows[0]) if rows else ["doi"])
+        w = csv.DictWriter(fh, fieldnames=cols)
         w.writeheader()
         for row in rows:
             w.writerow(row)

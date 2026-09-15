@@ -456,7 +456,8 @@ SINK_ALLOW = {
         "calls interpolate only `db` — a name this function BUILDS itself as f'{DB_TEST}_w{i}' — plus the "
         "module constants TEST_ROLE and TABLESPACE. No password is generated or read in this function: the "
         "worker databases reuse the role provision() already created, so the one secret this module handles "
-        "is not in scope here at all."),
+        "is not in scope here at all. `db` is worker_db(i)'s return, f'{_c.TEST_DB_PREFIX}_w{i}' — built from "
+        "a module constant and the loop counter, never from anything read."),
     "litkb/ops/nightly_dump.py::verify_existing::print": (1,
         "Dump filename, verification stage and reason, all filesystem facts from verify_dump(). No credential "
         "is in scope: the dump runs under the passfile."),

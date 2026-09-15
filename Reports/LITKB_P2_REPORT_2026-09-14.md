@@ -550,7 +550,7 @@ report closes.
 |---|---|
 | `--sites`, merged tree | 55 call sites, 52 covered by a row, 3 equivalent — **unchanged** by the merge |
 | sink scan | **12 sinks, 2 redacted, 10 allowed** (was 11/2/9) |
-| the twelfth sink | `litkb/db/provision.py::provision_workers::print`, the parallel branch's worker-database creator. The scan **refused it** until it was given a `SINK_ALLOW` reason with its call count pinned at 3 — an unplanned live firing of the guard this report introduced, on code written by someone who had never seen it |
+| the twelfth sink | `litkb/db/provision.py::provision_workers::print`, the parallel branch's worker-database creator. The scan **refused it** until it was given a `SINK_ALLOW` reason with its call count pinned at 3 — an unplanned live firing of the guard this report introduced, on code written by someone who had never seen it. The reason reads: all three calls interpolate only `db`, which is `worker_db(i)`'s return `f"{_c.TEST_DB_PREFIX}_w{i}"`, plus two module constants; no password is generated or read in that function |
 | serial sample, 8 rows | seed **20260915**, `random.Random(20260915).sample([m["id"] for m in M], 8)` → `S6,E3,S13,A13,S17,B3,RD8,R3` (RD8 drawn, not forced), against `litkb_test_w6`: **8/8 fired, baselines passed, rc 0** |
 | the same 8 rows in the parallel pass | **all 8 FIRED** — serial and parallel agree row for row |
 | **full pass, `--workers 9`** | **124/124 mutations fired; baselines passed; rc 0; 39.2 min.** 14 rows × 7 workers + 13 × 2; per-worker 36.8–39.2 min; every worker rc 0 |
@@ -558,11 +558,19 @@ report closes.
 | `qc/check.py --fast` | **1 failed, 2435 passed, 5 skipped, 1 xfailed** under `LITKB_TEST_DB=litkb_test_w6` (635 s) and again with it unset (542 s). The one failure is the pre-existing, allowed `test_experiments.py::test_pointer_paths_resolve[crown_state_model]`, in both. Referee 2's E-1 — the test that hard-coded `litkb_test_w2` as its example of a foreign database and so failed under that one name — was fixed at `802eae6` before the merge |
 
 `default_workers()` is 9 on this machine (12 threads, Kam's 20 % headroom rule), so `--workers 9` needed no
-`--allow-oversubscribe`. 39.2 min against the two harness reports' 25.1 and 26.5 for 106 rows: 18 more rows,
-and the copies ran from a separate `--worker-root` while other agents held `litkb_test`, `litkb_test_w3` and
-`litkb_test_w5`. The suite's advisory lock is per database, so a worker on a contended name waits rather than
-races — the wall-clock is an upper bound under contention, not a regression. Serially, 124 rows at the ~4.5 min
-a row costs would be about nine hours.
+`--allow-oversubscribe`. 39.2 min against the two harness reports' 25.1 and 26.5 for 106 rows is **not a
+regression, and the cause is measured, not guessed.** From `w1.log`: the four baseline runs cost
+186 + 99 + 198 + 81 s = **9.4 min**, leaving 29.8 min for 14 rows, **2.13 min a row** — against the earlier
+passes' ~12 rows in ~23 min of rows, ~1.9 min a row. The baselines are where the time went, and for the reason
+this report gives above: RD1–RD18 run P1+P2+annas (403 tests, ~3 min) as well as P2+annas (254 tests, ~1.5 min),
+and `main()` runs every distinct set both before and after. The earlier passes baselined one set. So the merge
+bought correctness for the new rows and paid about 6 min a worker for it.
+
+Other agents held `litkb_test`, `litkb_test_w3` and `litkb_test_w5` during the pass, and the copies ran from a
+separate `--worker-root` to avoid clobbering theirs. The suite's advisory lock is per database, so a worker on a
+contended name waits rather than races. **Contention was not sampled** — the per-row figure above leaves little
+room for it, but that is an inference from the timings, not a measurement of the machine. Serially, 124 rows at
+the ~4.5 min a row this worktree costs would be about nine hours.
 
 **Not verified here:** the 8-row serial/parallel agreement is on verdicts, and equivalence for the other 116
 rows rests on the mode being the same code path. `--plant-equivalent` was exercised on 2 real rows plus ZZ0,

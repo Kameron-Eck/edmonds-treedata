@@ -62,6 +62,10 @@ desktop.ini
 # not lake junk — the one subfolder the qc/ whitelist admits.
 !/phase4/qc/ledger_recovery/
 !/phase4/qc/*.json
+# *.jsonl added 2026-09-15: litkb stage-2 throughput records (§14). One measured run per
+# line — the dict P5's ingest persists into extraction_runs.metrics. Measured text,
+# append-only, the same class as the CSVs above.
+!/phase4/qc/*.jsonl
 # *.md added 2026-08-29: the arm PR/ROC comparison tables are findings TEXT, which
 # is exactly what this block exists to keep. Their .png companions stay ignored —
 # the .md carries every number, the figure is redundant weight.

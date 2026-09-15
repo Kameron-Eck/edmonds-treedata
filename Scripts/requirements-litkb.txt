@@ -4,8 +4,11 @@
 # Extraction tools (Docling, MinerU, embedding models) will get their own
 # requirements-litkb-extract.txt in P4.
 psycopg[binary]==3.3.5
-# Stage 0 (Inventory) reads every PDF's page boxes, rotation, text layer and image
-# coverage. It is the ONE §7.1 frame reader, and its page count is the denominator of
-# every later stage's pages/s. Same pin as the GROBID branch, which needs it for the
-# cropbox origin the TEI never carries.
+# Stage 0 (Inventory) reads every PDF's page boxes, rotation, text layer and image coverage,
+# and its page count is the denominator of every later stage's pages/s.
+# Stage 2 (GROBID) needs the same boxes for a different reason: GROBID's coordinates are
+# cropbox-relative and the TEI never carries the cropbox ORIGIN, so the mediabox shift of
+# §7.1 cannot be computed without reading the PDF. Stage 3 (Docling) measures from the
+# cropbox too. One pin, three readers — the frame-reader ownership question is recorded in
+# Reports/LITKB_P4_MERGE_2026-09-15.md, not resolved by this merge.
 pypdfium2==5.13.0

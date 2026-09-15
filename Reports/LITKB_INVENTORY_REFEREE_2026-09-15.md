@@ -79,7 +79,9 @@ tracked `phase4/qc/litkb_inventory.csv` in **every cell of all 241 rows except `
 
 ## 2. Hand inspection, twelve files I chose
 
-Pages rendered with pypdfium2 and looked at. I deliberately picked files the author did **not**
+Pages rendered with pypdfium2 to PNG and **every one of the seventeen opened and looked at**
+before its row was written — the §9.6 trap the author fell into, and the one a referee is most
+likely to repeat. I deliberately picked files the author did **not**
 inspect where one was available (Politis and Hwang rather than Anderson; Begg and Satten rather
 than Almon; Cardille, MacFaden and Pauls for `mixed`), plus the four the brief named.
 
@@ -94,7 +96,7 @@ than Almon; Cardille, MacFaden and Pauls for `mixed`), plus the four the brief n
 | Hwang 1982 | 1 | same pattern — title in the raster, stamp in the margin | partial | scan | yes |
 | Begg 1983 | 1 | standalone JSTOR cover: IBS masthead, `Author(s):`/`Source:`/`Published by:`/`Stable URL:`, terms paragraph, nothing else | text | cover-sheet | yes |
 | " | 2 | the article's first page — a scan with a complete OCR layer | text | | yes |
-| Satten 1996 | 1 | standalone JSTOR cover, same four fields | text | cover-sheet | yes |
+| Satten 1996 | 1 | standalone Wiley / Royal Statistical Society cover page carrying the JSTOR fields and terms text; nothing else on it | text | cover-sheet | yes |
 | " | 2 | article opening, full-page raster **with** a complete text layer | text | | yes |
 | Kingman 1962 | 1 | scanned first page, text layer complete | text | native | yes |
 | Verburg 2004 | 10 | landscape Table 2, text runs sideways (rotation 1), layer fine, no raster | text | native | yes |
@@ -142,6 +144,12 @@ are far outside the band where the corpus actually lives.
 `CHARS_BODY` is unguarded by the gate in both directions, and `CHARS_TRACE` −20 % cannot be
 caught by any test because it changes nothing on this corpus.
 
+**The boundary was also probed end to end, on built PDFs**, not only by replaying the pure
+function: pages carrying exactly 99 / 100 / 399 / 400 non-whitespace characters come back from
+`probe_file` at exactly those counts, so pdfium's `chars` means what the thresholds assume at the
+boundary; and a page whose only content is a raster covering 0.24 of the cropbox classes `empty`
+while the same page at 0.26 classes `image-only`. The threshold acts where it says it does.
+
 **Recommendation (not a blocker):** pin `Ogata p24` as `image-only` in `GATE`, and add the
 measured margin (0.2764 vs 0.25) to §2 so the next reader knows how thin it is.
 
@@ -172,17 +180,20 @@ Baseline `50 passed` before and after; `inventory.py` sha256 restored, `match: T
 
 **K1 measured against the real corpus, because a non-firing kill is only acceptable with no live
 instance.** I scanned all 5,038 pages with pdfplumber for pages whose characters are ≥90 % white
-fill or ≥90 % outside the cropbox. 55 page-level flags appeared, across 7 files — and **every one
-is a false positive of my detector, confirmed by rendering**:
+fill or ≥90 % outside the cropbox. 55 page-level flags appeared, across 7 files, in two distinct patterns. **I rendered one flagged
+page from each pattern and from each of the three files that carry the larger pattern — 4 of the
+55 flags looked at, not all 55 — and each is a false positive of my detector:**
 
 * the white-fill flags (Caragea 2009, Weakly_Supervised…, Stehman/Xing) report
   `non_stroking_color == (1.0,)`, a one-component ink value in a Separation/ICC space where 1.0
-  is *full ink*, not DeviceGray white. Caragea p7 renders as ordinary black body text.
+  is *full ink*, not DeviceGray white. Caragea p7, `Weakly_Supervised…` p14 and Stehman p16 all
+  render as ordinary black body text (the last two are reference pages, fully legible).
 * the off-page flags (Anderson/Hudson/Hwang p1) are an artifact of my own arithmetic on pages
-  whose mediabox has `y0 = 51`, not 0. Rendering Hudson p1 shows the IMS stamp plainly printed in
-  the bottom margin.
+  whose mediabox has `y0 = 51`, not 0 — Politis p1 has the identical geometry and its stamp is
+  plainly visible. Rendering Hudson p1 shows the IMS stamp printed in the bottom margin as ink.
 
-**So: zero real invisible-text pages in the corpus.** K1 stands as a limitation to state, not a
+**So: zero invisible-text pages found in the corpus**, on a detector whose every alarm resolved
+to a pdfminer colour-space or coordinate convention rather than to a page. K1 stands as a limitation to state, not a
 defect to fix. Likewise no corpus file has a second front page, so K2 is a limitation too.
 
 `resume_key` carries `(sha256, path, params_hash)` but **not** the tool version, while §12.4's run
@@ -210,7 +221,9 @@ should carry because it changes what admission has to do:
 * A **genuine** Song 2026 exists and is fine: `Validation\Song_2026_monocular-height-sparse-lidar-correction.pdf`,
   sha256 `33a975645d26b4a0…`, page 1 "Enhancing Monocular Height Estimation via Sparse
   LiDAR-Guided Correction", Song / Chen / Yokoya. Two different files share that filename at two
-  paths, which is exactly the case `resume_key`'s path element exists for, and it handles it.
+  paths — distinct by sha256, so the resume separates them on the hash alone. (`resume_key`'s path
+  element is for the opposite case: *identical* bytes at two paths, which is what the `retry2`
+  groups are, and without the path every copy after the first would go unrecorded.)
 
 ## 6. Idempotence, the ladder, secrets
 

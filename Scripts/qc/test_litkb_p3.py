@@ -613,3 +613,67 @@ def test_a_resumed_load_backfills_a_missing_use_and_only_once(pg, tmp_path):
     third = mrun.load_tracker(loader(pg, ws, reg, root=root), rows=[r], manifest={stem: {"stem": stem}})
     assert third.get("uses_backfilled", 0) == 0, "the backfill wrote a second copy of the same use"
     assert pg.one("SELECT count(*) FROM litkb.use_versions WHERE workstream_id = %s", (ws,))[0] == 1
+
+
+@pg_only
+def test_one_file_two_works_binds_to_one_and_flags_the_other(pg, tmp_path):
+    """Stage 0's inventory (Reports/LITKB_INVENTORY_2026-09-15.md): two sha256s are each filed under two
+    different works, because the archive served one md5 for two DOIs. One file may never bind to two works —
+    the database refuses the second on `files.sha256` — and which work keeps it is decided by BINDING, not by
+    tracker order: the file's first page carries one registry title, so the other work fails check 3 whichever
+    is tried first. The second work is left unbound with a `sha256_collision` discrepancy naming the work that
+    holds the file, so nothing is silently unbound."""
+    from litkb.migrate_legacy import run as mrun
+
+    _need_file(VALIDATION)
+    hexid = uuid.uuid4().hex[:8]
+    right_doi, right_title, author = f"10.5555/p3col1-{hexid}", f"Collision {hexid} the paper in the file", "Rightful"
+    wrong_doi, wrong_title = f"10.5555/p3col2-{hexid}", f"Another {hexid} paper entirely, not in that file"
+    root, stem = plant(tmp_path, right_title, author)          # ONE file, carrying the RIGHT title
+    ws = pg.ws()
+    reg = Registry({right_doi: synthetic_record(right_doi, right_title, author, 2024),
+                    wrong_doi: synthetic_record(wrong_doi, wrong_title, "Wrongful", 2026)})
+    # the WRONG work is tried FIRST, naming the same stem — order must not decide the outcome
+    rows = [row(100, title=wrong_title, authors="Wrongful, W.", year=2026, doi=wrong_doi, stem=stem),
+            row(101, title=right_title, authors=f"{author}, R.", year=2024, doi=right_doi, stem=stem)]
+    manifest = {stem: {"stem": stem}}
+    c = mrun.load_tracker(loader(pg, ws, reg, root=root), rows=rows, manifest=manifest)
+    held = pg.conn.execute(
+        "SELECT w.key FROM litkb.files f JOIN litkb.file_versions v ON v.version_id = f.current_version_id "
+        "JOIN litkb.works w ON w.id = v.work_id WHERE v.workstream_id = %s", (ws,)).fetchall()
+    # exactly one work holds the file, and it is the one whose registry title the first page carries
+    assert len(held) == 1 and held[0][0].startswith("Rightful_2024"), held
+    assert c["bound"] == 1, c
+    # the wrong work bound nothing: its admission failed check 3 against a first page that is not its paper
+    wrong_state = pg.one("SELECT state, state_reason FROM litkb.candidates WHERE workstream_id = %s "
+                         "AND source_detail = 'tracker ID 100'", (ws,))
+    assert wrong_state[0] == "rejected" and "binding" in (wrong_state[1] or "")
+
+
+@pg_only
+def test_a_file_already_held_by_another_work_is_recorded_as_a_collision(pg, tmp_path):
+    """The second half of the same finding: when the collision surfaces as `file_duplicate` — the same bytes
+    offered for a work that WOULD have bound — the row is left unbound with a record naming the holder."""
+    from litkb.migrate_legacy import run as mrun
+
+    _need_file(VALIDATION)
+    hexid = uuid.uuid4().hex[:8]
+    doi_a, doi_b = f"10.5555/p3dup1-{hexid}", f"10.5555/p3dup2-{hexid}"
+    title = f"Shared {hexid} bytes under two DOIs"
+    root, stem_a = plant(tmp_path, title, "Sharer")
+    # the SAME bytes filed under a second stem, exactly as the archive's one-md5-two-DOIs hazard produced
+    stem_b = f"Sharer_2024_{uuid.uuid4().hex[:8]}"
+    (root / "Validation" / f"{stem_b}.pdf").write_bytes((root / "Validation" / f"{stem_a}.pdf").read_bytes())
+    ws = pg.ws()
+    reg = Registry({doi_a: synthetic_record(doi_a, title, "Sharer", 2024),
+                    doi_b: synthetic_record(doi_b, title + " (reissue)", "Sharer", 2025)})
+    rows = [row(110, title=title, authors="Sharer, S.", year=2024, doi=doi_a, stem=stem_a),
+            row(111, title=title + " (reissue)", authors="Sharer, S.", year=2025, doi=doi_b, stem=stem_b)]
+    c = mrun.load_tracker(loader(pg, ws, reg, root=root), rows=rows,
+                          manifest={stem_a: {"stem": stem_a}, stem_b: {"stem": stem_b}})
+    assert c["bound"] == 1, f"one file bound to two works: {c}"
+    d = discrepancies(pg, ws)
+    # BEGIN guard: the second work is unbound WITH a record naming the work that holds the file
+    assert ("manifest", stem_b, "sha256_collision") in d, sorted(k for k in d if k[2] == "sha256_collision")
+    assert (d[("manifest", stem_b, "sha256_collision")][4] or "").startswith("Sharer_2024")
+    # END guard: the second work is unbound WITH a record naming the work that holds the file

@@ -100,6 +100,13 @@ class Loader:
              self.agent, self.session)).fetchone()[0]
         # END guard: every disagreeing legacy field is recorded
 
+    def refused_file(self, candidate_id):
+        """The file id a refused admission collided with, if it was refused on the file's sha256."""
+        r = self.conn.execute(
+            "SELECT checks ->> 'file_duplicate' FROM litkb.admissions WHERE candidate_id = %s "
+            "AND state = 'refused' ORDER BY id DESC LIMIT 1", (candidate_id,)).fetchone()
+        return r[0] if r and r[0] else None
+
     def use_for(self, work_id):
         """This workstream's use on that work, if it wrote one. A READ before the write, so a resumed load
         never writes a second copy of the same use."""
@@ -213,6 +220,13 @@ def _load_tracker_row(ctx, row, manifest, c):
         if seen[2] is not None and not (row.get("Duplicate of") or "").strip() and not ctx.use_for(seen[2]):
             if ctx.record_use(seen[2], row) is not None:
                 c["uses_backfilled"] = c.get("uses_backfilled", 0) + 1
+        stem_seen = (row.get("File stem") or "").strip()
+        held_file = ctx.refused_file(seen[0])
+        if stem_seen and held_file:
+            for src, key, field, d in _collision_pending(
+                    ctx, {"refused_at": "file_duplicate", "file_id": held_file}, stem_seen, tid):
+                ctx.discrepancy(src, key, field, d, candidate=seen[0])
+                c["collisions_backfilled"] = c.get("collisions_backfilled", 0) + 1
         # END guard: a resumed load finishes a row it had already admitted but not finished
         ctx.log.append({"tracker_id": tid, "outcome": "already-loaded", "candidate_id": str(seen[0]),
                         "candidate_state": seen[1]})
@@ -306,8 +320,35 @@ def _load_tracker_row(ctx, row, manifest, c):
             c["uses"] += 1
             entry["use"] = True
     # END guard: a row that reached a work records its use, DEDUPED rows included
+    # BEGIN guard: a file another work already holds is recorded as a sha256 collision
+    pending += _collision_pending(ctx, res, stem, tid)
+    # END guard: a file another work already holds is recorded as a sha256 collision
     entry["discrepancies"] = _flush(ctx, c, pending, work, cand)
     ctx.log.append(entry)
+
+
+def _collision_pending(ctx, res, stem, source_row):
+    """A legacy row whose file is ALREADY HELD by another work — one sha256, two manifest rows.
+
+    Stage 0's inventory (Reports/LITKB_INVENTORY_2026-09-15.md) found two: Chen 2024 / Song 2026 and
+    Stehman 2022 / Xing 2024, both from the archive serving one md5 for two DOIs. The database already refuses
+    the second admission on `files.sha256` being unique, so ONE file can never bind to two works — and which
+    work keeps it is decided by BINDING, not by tracker order: the file's first page carries one registry
+    title, so the other work's admission fails check 3 whichever is tried first.
+
+    What was missing is the record. Without it the second work is simply unbound and nothing says why.
+    """
+    if not res or res.get("refused_at") != "file_duplicate":
+        return []
+    held_by = ctx.conn.execute(
+        "SELECT w.key FROM litkb.files f JOIN litkb.file_versions v ON v.version_id = f.current_version_id "
+        "JOIN litkb.works w ON w.id = v.work_id WHERE f.id = %s", (res.get("file_id"),)).fetchone()
+    sha = ctx.conn.execute("SELECT sha256 FROM litkb.files WHERE id = %s", (res.get("file_id"),)).fetchone()
+    return [("manifest", stem or str(source_row), "sha256_collision",
+             {"claimed": stem or str(source_row), "registry": (held_by or [None])[0], "ratio": None,
+              "detail": {"sha256": (sha or [None])[0], "file_id": str(res.get("file_id")),
+                         "meaning": "this legacy row names a file another work already holds; the file stays "
+                                    "with the work whose registry title it binds to, and this work is unbound"}})]
 
 
 def _field_discrepancies(plan, spelled_doi, source, key, fields=None):
@@ -437,6 +478,7 @@ def _load_manifest_row(ctx, row, c):
             c["admitted" if res["outcome"] == "admitted" else "proposed"] += 1
             if res.get("file_id"):
                 c["bound"] += 1
+    pending += _collision_pending(ctx, res, stem, stem)
     entry["discrepancies"] = _flush(ctx, c, pending, work, cand)
     ctx.log.append(entry)
 

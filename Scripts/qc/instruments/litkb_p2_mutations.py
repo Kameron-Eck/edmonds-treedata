@@ -420,6 +420,9 @@ p3(block, "P7b", f"{PKG}/migrate_legacy/run.py",
    "a load interrupted between the admission and the use leaves the use missing forever")
 p3(block, "P7c", f"{PKG}/export.py", "guard: a refused file is still exported as a manifest row",
    "a file the database refused is dropped from the manifest export")
+p3(block, "P7g", f"{PKG}/migrate_legacy/run.py",
+   "guard: a file another work already holds is recorded as a sha256 collision",
+   "one sha256 filed under two works: the second is left unbound with nothing saying why")
 replace("P7e", f"{PKG}/export.py",
         '            u = _use_for_row(uses.get(work_id), r) if not (r.get("Duplicate of") or "").strip() else None\n',
         '            u = (uses.get(work_id) or [None])[-1] if not (r.get("Duplicate of") or "").strip() else None\n',

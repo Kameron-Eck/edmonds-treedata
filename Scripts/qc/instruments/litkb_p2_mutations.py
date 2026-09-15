@@ -479,6 +479,88 @@ p3(block, "P8e", f"{PKG}/migrate_legacy/run.py", "guard: a held candidate record
 p3(block, "P8f", MIG16, "guard: a pending binding records the evidence it waited on",
    "a binding-pending check records a verdict and a sentence, and none of the numbers P4's OCR queue needs")
 
+# -- stage 5: the unified frame reader, reconciliation and the P5 ingest -----------------------
+# (Reports/LITKB_STAGE5_INGEST_2026-09-15.md; tests qc/test_litkb_reconcile.py, plus the P1 set for
+# the rows that move a role's privileges.)
+MIG17 = f"{MIG}/0017_extraction.sql"
+TESTS_S5 = ["qc/test_litkb_reconcile.py"]
+TESTS_S5P1 = ["qc/test_litkb_p1.py", "qc/test_litkb_reconcile.py"]
+
+
+def s5(fn, *a, **kw):
+    """Like p3(): run the row against the stage-5 set, whatever the row helper's default is."""
+    fn(*a, **kw)
+    M[-1]["tests"] = TESTS_S5
+
+
+# THE FRAME. One reader now; these rows are what stops it from silently becoming three again.
+replace("R51", f"{PKG}/extract/inventory.py",
+        "    try:\n        return tuple(round(float(v), 4) for v in fallback())\n    except Exception:  # noqa: BLE001\n        return None\n",
+        "    return None\n",
+        "the inherited-/MediaBox fallback removed: the 16 corpus pages whose /MediaBox comes from "
+        "the page tree lose their box (Platanios_2014, Vincent_1993)", tests=TESTS_S5)
+replace("R52", f"{PKG}/extract/grobid.py",
+        "    return inventory.page_frames(pdf_path, error=GrobidError)",
+        "    return inventory.page_frames(pdf_path, error=ValueError)",
+        "the GROBID adapter stops raising its own error on a page with no mediabox", tests=TESTS_S5)
+replace("R53", f"{PKG}/extract/reconcile.py", "IOU_MATCH = 0.5", "IOU_MATCH = 0.02",
+        "the match threshold collapsed: a partial overlap (a column one tool merged and the other "
+        "split) is recorded as one region and its disagreement is lost", tests=TESTS_S5)
+replace("R54", f"{PKG}/extract/reconcile.py", "IOU_MATCH = 0.5", "IOU_MATCH = 0.999",
+        "the match threshold raised past agreement: every region becomes single-tool", tests=TESTS_S5)
+replace("R55", f"{PKG}/extract/reconcile.py", "COVERAGE_FLOOR = 0.80", "COVERAGE_FLOOR = 0.0",
+        "the coverage floor removed: a page whose body went unassigned passes the gate", tests=TESTS_S5)
+replace("R56", f"{PKG}/extract/reconcile.py",
+        "        if b.box_index == 0 or cur is None:",
+        "        if True or cur is None:",
+        "per-line boxes are no longer unioned: a paragraph's FIRST LINE is matched against the "
+        "other tool's whole paragraph (8 matched regions on Alwan_1988, against 84)", tests=TESTS_S5)
+replace("R57", f"{PKG}/extract/reconcile.py",
+        "        if hit is None or hit < last:", "        if False:",
+        "the reading-order check accepts any order: an interleaved two-column extraction passes",
+        tests=TESTS_S5)
+
+# THE SCHEMA (migration 0017) and the ingest.
+s5(block, "R58", MIG17, "guard: tables.cells JSON is retired in favour of table_cells",
+   "a table's cells may be written as a JSON blob beside the rows: two homes for one fact")
+s5(block, "R59", MIG17, "guard: an ok run's rows are never cleared",
+   "the resume path can empty a LIVE run: the evidence rows citing it lose their text")
+s5(block, "R510", MIG17, "guard: a reconciliation run with no blocks cannot be declared ok",
+   "a reconciliation that produced nothing is recorded as an ok run and can become current")
+s5(block, "R511", MIG17, "guard: a cell belongs to a table block",
+   "a table cell may hang below a paragraph")
+s5(block, "R512", MIG17, "guard: a block's run belongs to the block's file",
+   "a block may name another file's run — on the direct-INSERT path 0010 left open")
+s5(block, "R513", MIG17, "guard: a canonical block carries a reading order",
+   "a canonical block with no reading order: the set cannot be read back in order")
+replace("R514", f"{PKG}/extract/ingest.py",
+        '        _clear_run(conn, run_id)',
+        '        pass  # _clear_run(conn, run_id)',
+        "a killed worker's leftover blocks are appended to instead of cleared: the file ends with "
+        "two sets of blocks and no unique key can see them", tests=TESTS_S5)
+replace("R515", f"{PKG}/extract/ingest.py",
+        "        if _after_blocks is not None:\n            _after_blocks(conn, run_id)\n",
+        "        conn.commit()\n        if _after_blocks is not None:\n            _after_blocks(conn, run_id)\n",
+        "THE P5 KILL: text rows are committed outside the run's transaction, so another session "
+        "sees a half-written file", tests=TESTS_S5)
+replace("R516", f"{PKG}/extract/ingest.py",
+        "    if existing and status == \"ok\":",
+        "    if False:",
+        "the idempotence check removed: a second ingest of the same file at the same pipeline "
+        "version writes a second set of rows", tests=TESTS_S5)
+replace("R517", MIG17,
+        "GRANT EXECUTE ON FUNCTION litkb.add_disagreement(uuid, uuid, integer, text, text, double precision, double precision[], text, text, text, text, text, text, uuid) TO litkb_ingest;",
+        "GRANT EXECUTE ON FUNCTION litkb.add_disagreement(uuid, uuid, integer, text, text, double precision, double precision[], text, text, text, text, text, text, uuid) TO litkb_ingest, litkb_writer;",
+        "the writer gains the disagreement writer: it can put text of its choosing below a run",
+        tests=TESTS_S5P1)
+# 0007's copy of the ok-run rule became DEAD TEXT the moment 0017 CREATE OR REPLACEd the
+# function (the same reason MIG16 makes 0014's _check_binding dead, above): the live copy is the
+# one below, and a mutation of 0007's would not fire.
+block("R518", MIG17, "guard: current run is an ok run of this file",
+      "set_current_run accepts a FAILED run, another file's run or NULL: a failed extraction "
+      "becomes the file's answer and un-promotes its evidence")
+M[-1]["tests"] = TESTS_S5P1
+
 DEFERRED_HELPERS = {}
 
 site("T18", "litkb/admit/binding.py::bind::verdict", '"bound"', tests=TESTS_P1P2,

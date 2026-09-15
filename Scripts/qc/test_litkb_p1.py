@@ -1941,7 +1941,14 @@ _EXPECTED_EXECUTE = {
                      "hold_candidate",
                      "add_evidence", "add_candidate", "record_acquisition_attempt", "add_use_embedding"},
     "litkb_promoter": {"norm_identifier", "promote_prepare", "promote_commit", "promote_abandon", "promote_rebase"},
-    "litkb_ingest": {"norm_identifier", "set_current_run"},
+    # open/finish_extraction_run, clear_extraction_rows, add_table_cell, add_disagreement: the P5
+    # ingest schema (migration 0017, qc/test_litkb_reconcile.py). 0017's three new tables
+    # (table_cells, extraction_disagreements, file_current_run) grant INSERT to NOBODY, so these
+    # functions are their only writers and the checks in them cannot be walked around;
+    # clear_extraction_rows is the resume path and refuses a run whose status is ok.
+    "litkb_ingest": {"norm_identifier", "set_current_run",
+                     "open_extraction_run", "finish_extraction_run", "clear_extraction_rows",
+                     "add_table_cell", "add_disagreement"},
     "public": set(),
 }
 _EXPECTED_WRITES = {role: set() for role in _EXPECTED_EXECUTE}

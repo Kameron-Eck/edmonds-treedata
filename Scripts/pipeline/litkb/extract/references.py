@@ -565,14 +565,31 @@ def resolve_by_doi(ref, client, pacer):
                       registry_title=rec["title"])
 
 
-def resolve_by_search(ref, client, pacer, breaker=None):
+def registry_stages(s2=None, ref=None):
+    """The stage list, with the Semantic Scholar leg swapped for the batched client when one is given.
+
+    The STAGE NAME is unchanged (`semanticscholar`), so the breaker, the `skipped=` reason tail and
+    every per-stage number stay comparable with the run this is measured against. What changes is the
+    request: `/paper/search?query=…&limit=3` becomes `/paper/search/match`, one narrow-field request
+    per distinct title, cached on disk and backed off instead of retried per reference
+    (`litkb.admit.s2`). The ACCEPTANCE RULES DO NOT CHANGE — the same `judge_candidate` judges the
+    same candidate shape.
+    """
+    if s2 is None:
+        return REGISTRY_STAGES
+    from litkb.admit.s2 import search_semanticscholar_s2
+    return tuple((name, search_semanticscholar_s2(s2, ref) if name == "semanticscholar" else fn)
+                 for name, fn in REGISTRY_STAGES)
+
+
+def resolve_by_search(ref, client, pacer, breaker=None, s2=None):
     """Title + first author + year, stage by stage, through `judge_candidate`."""
     title, surname, year = ref.get("title") or "", ref.get("first_author") or "", ref.get("year")
     if not title or not surname:
         return Resolution("unresolved", reason="no_title_or_author (nothing to search on)")
     best_overall = (0.0, "none", "-")
     skipped = []
-    for source, search in REGISTRY_STAGES:
+    for source, search in registry_stages(s2, ref):
         if breaker is not None and breaker.is_open(source):
             skipped.append(source)
             continue
@@ -614,13 +631,16 @@ def resolve_by_search(ref, client, pacer, breaker=None):
                       reason=f"best={best_overall[1]}:{best_overall[0]:.2f}:{best_overall[2]}{tail}")
 
 
-def resolve_reference(ref, client, pacer=None, breaker=None):
-    """DOI-first (§10 of the convention). -> :class:`Resolution`."""
+def resolve_reference(ref, client, pacer=None, breaker=None, s2=None):
+    """DOI-first (§10 of the convention). -> :class:`Resolution`.
+
+    `s2` only changes HOW the Semantic Scholar stage asks (see :func:`registry_stages`); it cannot
+    reach a reference that carries a DOI, because the DOI still decides above it."""
     # BEGIN guard: p6 a reference with a DOI is decided by that DOI
     if ref.get("doi_norm") or normalize_doi(ref.get("doi")):
         return resolve_by_doi(ref, client, pacer)
     # END guard: p6 a reference with a DOI is decided by that DOI
-    return resolve_by_search(ref, client, pacer, breaker)
+    return resolve_by_search(ref, client, pacer, breaker, s2)
 
 
 # ── the corpus index and the graph ──────────────────────────────────────────────────────
@@ -666,10 +686,17 @@ def candidate_row(citing_key, ref, res):
 
 # ── the run ─────────────────────────────────────────────────────────────────────────────
 
-def process_tei(tei, citing_key, client, pacer=None, index=None, resolve=True, breaker=None):
-    """One paper: parsed references + mentions + resolutions + edges + candidates."""
+def process_tei(tei, citing_key, client, pacer=None, index=None, resolve=True, breaker=None, s2=None):
+    """One paper: parsed references + mentions + resolutions + edges + candidates.
+
+    When `s2` is an `litkb.admit.s2.S2Client`, the identifier-bearing references are looked up in ONE
+    batch call before any per-item request (`batch_first`), and the S2 stage of the search leg uses
+    the match endpoint. Nothing about the decision changes."""
     index = index or {}
     refs = parse_references(tei)
+    if s2 is not None and resolve:
+        from litkb.admit.s2 import batch_prefill
+        batch_prefill(refs, s2)       # batch FIRST, into s2.prefill; per-item only for stragglers
     mentions = citation_mentions(tei)
     by_key = {r["ref_key"]: r for r in refs}
     counts = {}

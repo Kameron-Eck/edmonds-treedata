@@ -352,6 +352,21 @@ def _register_p6():
 _register_p6()
 
 
+# ── P7 (the Semantic Scholar leg) ───────────────────────────────────────────────────────────────────
+# Same arrangement, same reason: litkb/admit/s2.py adds two calls of normalize_doi, and the per-call-site rule
+# covers the PACKAGE. Rows authored in litkb_s2_mutations.py.
+def _register_s2():
+    import importlib.util
+    spec = importlib.util.spec_from_file_location(
+        "litkb_s2_mutations", Path(__file__).resolve().parent / "litkb_s2_mutations.py")
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    mod.register(block, replace, site)
+
+
+_register_s2()
+
+
 def call_sites(root=None):
     """Every call of a HELPERS name under Scripts/pipeline/litkb -> {site_id: {"file", "lines", "calls"}}.
 

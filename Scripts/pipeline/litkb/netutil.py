@@ -100,7 +100,13 @@ class Client:
         if headers:
             h.update(headers)
         if data is not None:
-            h["Content-Type"] = "application/x-www-form-urlencoded"
+            # BEGIN guard: a caller-supplied Content-Type survives a body
+            h.setdefault("Content-Type", "application/x-www-form-urlencoded")
+            # END guard: a caller-supplied Content-Type survives a body
+            # `setdefault`, not `=`: the annas routes post urlencoded forms and still get that
+            # default, but the Semantic Scholar batch endpoint posts JSON and must keep its own
+            # header. Assigning here clobbered the header the caller had just passed in `headers`,
+            # and the server answered 415 with no hint that the client had overwritten it.
         req = urllib.request.Request(url, data=data, headers=h)
         op = self._follow if follow else self._nofollow
         try:

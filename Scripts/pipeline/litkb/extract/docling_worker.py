@@ -52,7 +52,7 @@ def _accelerator(num_threads, device):
 
 
 def build_converter(ocr=False, ocr_engine=None, tables=True, formula=False,
-                    num_threads=4, device="cpu"):
+                    num_threads=4, device="cpu", ocr_backend=None):
     """One DocumentConverter, configured once and reused for every job in the batch."""
     from docling.datamodel.base_models import InputFormat
     from docling.datamodel.pipeline_options import PdfPipelineOptions
@@ -64,9 +64,20 @@ def build_converter(ocr=False, ocr_engine=None, tables=True, formula=False,
     opts.do_formula_enrichment = bool(formula)
     opts.accelerator_options = _accelerator(num_threads, device)
     if ocr and ocr_engine:
+        # docling 2.127.0: the factory's method is create_options(kind=...), and it returns
+        # the options INSTANCE, not the class (there is no get_options).
+        #
+        # BACKEND, not just engine. RapidOcrOptions defaults to backend="onnxruntime", and
+        # onnxruntime is NOT installed here, so an explicit `--ocr-engine rapidocr` fails
+        # with "ImportError: onnxruntime is not installed" while docling's own `auto` runs
+        # happily — auto falls through to rapidocr with the TORCH backend (measured
+        # 2026-09-15, log line "Auto OCR model selected rapidocr with torch."). Pinning the
+        # engine without pinning the backend therefore does NOT reproduce the auto run.
         from docling.models.factories import get_ocr_factory
-        kind_cls = get_ocr_factory().get_options(kind=ocr_engine)
-        opts.ocr_options = kind_cls()
+        o = get_ocr_factory().create_options(kind=ocr_engine)
+        if ocr_backend and hasattr(o, "backend"):
+            o.backend = ocr_backend
+        opts.ocr_options = o
     conv = DocumentConverter(
         format_options={InputFormat.PDF: PdfFormatOption(pipeline_options=opts)})
     return conv, opts
@@ -122,20 +133,37 @@ def run_job(conv, job, opts, sample_rss=True):
 
     src = job["pdf"]
     page_range = tuple(job["pages"]) if job.get("pages") else (1, sys.maxsize)
-    total_pages = _page_count(src)
     lo, hi = page_range
-    pages_asked = max(0, min(hi, total_pages) - lo + 1)
 
     proc = psutil.Process()
     cpu0 = proc.cpu_times()
     sampler = _RssSampler() if sample_rss else None
     if sampler is not None:
         sampler.start()
-    status, err, doc = "ok", None, None
+    status, err, doc, conf, conv_status = "ok", None, None, None, None
+    total_pages, pages_asked = 0, 0
     t0 = time.time()
     try:
+        # The page count comes from the PDF, never from the converted document, and it is
+        # INSIDE the try: pypdfium2 is the first thing to refuse a corrupt or zero-byte
+        # file, and a file that dies here must still leave a failed metrics ROW rather than
+        # killing the batch. Measured 2026-09-15: a 2 KB random body behind a %PDF-1.4
+        # header, a zero-byte file and a plain-text file all fail at this call.
+        total_pages = _page_count(src)
+        pages_asked = max(0, min(hi, total_pages) - lo + 1)
         res = conv.convert(src, page_range=page_range)
         doc = res.document.export_to_dict()
+        # Docling reports a confidence GRADE per page and per document on the RESULT, not on
+        # any item, and a conversion status that can be PARTIAL_SUCCESS or FAILURE without
+        # raising. Both are recorded: a caller that only watched for an exception would
+        # score a failed conversion as an ok run.
+        conv_status = str(getattr(res, "status", "") or "")
+        c = getattr(res, "confidence", None)
+        if c is not None:
+            try:
+                conf = c.model_dump(mode="json")
+            except Exception:  # noqa: BLE001
+                conf = str(c)
     except Exception as e:  # noqa: BLE001 - the failure IS the measurement
         status, err = "failed", f"{type(e).__name__}: {e}"
     seconds = time.time() - t0
@@ -156,6 +184,8 @@ def run_job(conv, job, opts, sample_rss=True):
         "stage": "3-layout",
         "status": status,
         "error": err,
+        "convert_status": conv_status,
+        "confidence": conf,
         "file": os.path.basename(src),
         "pdf": src,
         "pages_in_file": total_pages,
@@ -171,6 +201,7 @@ def run_job(conv, job, opts, sample_rss=True):
         "rss_samples": sampler.samples if sampler is not None else 0,
         "ocr": bool(opts.do_ocr),
         "ocr_engine": getattr(opts.ocr_options, "kind", None) if opts.do_ocr else None,
+        "ocr_backend": getattr(opts.ocr_options, "backend", None) if opts.do_ocr else None,
         "tables": bool(opts.do_table_structure),
         "formula": bool(opts.do_formula_enrichment),
         "num_threads": opts.accelerator_options.num_threads,
@@ -199,6 +230,8 @@ def main(argv=None):
     ap.add_argument("--warmup-pages", type=int, default=1)
     ap.add_argument("--ocr", action="store_true")
     ap.add_argument("--ocr-engine", default=None)
+    ap.add_argument("--ocr-backend", default=None,
+                    help="rapidocr: onnxruntime (absent here) or torch (what auto picks)")
     ap.add_argument("--no-tables", action="store_true")
     ap.add_argument("--formula", action="store_true")
     ap.add_argument("--threads", type=int, default=4)
@@ -211,7 +244,8 @@ def main(argv=None):
 
     t_load = time.time()
     conv, opts = build_converter(ocr=a.ocr, ocr_engine=a.ocr_engine, tables=not a.no_tables,
-                                 formula=a.formula, num_threads=a.threads, device=a.device)
+                                 formula=a.formula, num_threads=a.threads, device=a.device,
+                                 ocr_backend=a.ocr_backend)
     build_s = time.time() - t_load
 
     cold = None

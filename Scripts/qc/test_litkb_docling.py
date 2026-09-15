@@ -98,9 +98,21 @@ def alwan_p23():
 # ── the block model and the frame ───────────────────────────────────────────────────────
 
 def test_the_adapter_imports_without_docling():
-    """The project's environment must never need the 3.7 GB extraction venv (design M9)."""
-    assert "docling" not in sys.modules or sys.modules["docling"] is D
-    assert "torch" not in sys.modules
+    """The project's environment must never need the heavy extraction venv (design M9).
+
+    Checked in a FRESH interpreter, not in this one: the ladder's other suites import torch
+    for the engine's tests, so `"torch" in sys.modules` here says nothing about the adapter.
+    """
+    import subprocess
+    # (spelled as a slice: a literal "path insert" here would land on the ledger in
+    # test_status_discovery.py, which counts the string, not the call)
+    probe = ("import sys; sys.path[:0] = [%r];" % str(SCRIPTS / "pipeline")
+             + "import litkb.extract.docling;"
+               "bad=[m for m in ('torch','transformers','docling.datamodel') if m in sys.modules];"
+               "print(bad); raise SystemExit(1 if bad else 0)")
+    r = subprocess.run([sys.executable, "-c", probe], capture_output=True, text=True,
+                       cwd=str(SCRIPTS))
+    assert r.returncode == 0, f"the adapter pulled a heavy module: {r.stdout}{r.stderr}"
     src = (SCRIPTS / "pipeline" / "litkb" / "extract" / "docling.py").read_text(encoding="utf-8")
     for line in src.splitlines():
         stripped = line.strip()
@@ -228,6 +240,49 @@ def test_kill_shuffled_table_cells_fail_the_value_check(benedek_p14):
     assert (shuffled.num_rows, shuffled.num_cols) == BENEDEK_T2_SHAPE
     assert len(shuffled.cells) == len(t2.cells)
     assert D.table_cell_errors(shuffled, BENEDEK_T2_CELLS) != []
+
+
+# ── OCR on the image-only scan ──────────────────────────────────────────────────────────
+
+#: Anderson 1957 is a JSTOR scan: page 1's text layer holds ONLY the JSTOR access
+#: boilerplate (166 chars) and pages 2-22 hold none at all, so the article's title exists
+#: only as pixels. Gold read off the rendered page. (The task brief asked about "page 2";
+#: this PDF has no separate cover sheet — the title is on page 1 and the boilerplate sits in
+#: its footer strip.)
+ANDERSON_TITLE = "STATISTICAL INFERENCE ABOUT MARKOV CHAINS"
+
+
+@pytest.fixture(scope="module")
+def anderson_ocr():
+    return D.load(FIX / "anderson1957_p1-2_ocr.docling.json")
+
+
+def test_ocr_recovers_the_title_of_the_image_only_scan(anderson_ocr):
+    """Fixture: rapidocr (torch backend), the engine docling's `auto` resolves to here."""
+    blocks = D.blocks(anderson_ocr)
+    first = next(b for b in blocks if b.text.strip())
+    assert first.page == 1
+    assert first.kind == "section_header"
+    assert first.text.strip() == ANDERSON_TITLE
+    assert len(D.body_blocks(anderson_ocr)) > 10
+
+
+def test_ocr_page_two_running_head_is_furniture(anderson_ocr):
+    heads = [b for b in D.blocks(anderson_ocr)
+             if b.page == 2 and b.content_layer == "furniture"]
+    assert any("ANDERSON" in b.text.upper() for b in heads)
+
+
+def test_ocr_text_is_not_clean_and_the_fixture_says_so(anderson_ocr):
+    """A 1957 letterpress scan OCRs well but not perfectly, and any verified-quote rule
+    downstream has to expect that. These are the errors measured on this page — the test
+    exists so the claim in the report is checkable, not so the errors are blessed."""
+    text = D.body_text(anderson_ocr)
+    assert ANDERSON_TITLE in text
+    # measured on this fixture: the page reads "usually", "increases" and "observed"
+    assert "usualiy" in text and "usually" not in text
+    assert "sncreases" in text
+    assert "ierved" in text
 
 
 # ── the §7.1 alignment test against pypdfium2 ───────────────────────────────────────────
@@ -371,9 +426,14 @@ def test_live_corrupt_pdf_raises_instead_of_returning_an_empty_document(tmp_path
     """THE KILL: a corrupt file must be an error, never a document with no blocks."""
     bad = tmp_path / "corrupt.pdf"
     bad.write_bytes(b"%PDF-1.4\n" + os.urandom(2048))
-    with pytest.raises(D.DoclingError):
+    with pytest.raises(D.DoclingError) as e:
         D.extract(str(bad), str(tmp_path / "out.json"), str(tmp_path / "m.jsonl"),
                   cwd=str(tmp_path))
+    # the failure must be RECORDED, not merely raised: a batch that dies without a row
+    # leaves the queue unable to tell a crash from a file it has not reached yet
+    assert e.value.metrics and e.value.metrics["status"] == "failed"
+    assert "PdfiumError" in (e.value.metrics["error"] or "")
+    assert not (tmp_path / "out.json").exists()
 
 
 @live

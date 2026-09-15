@@ -32,10 +32,12 @@ every one of them read off a real conversion of a real paper, none assumed):
   ``footnote``, ``page_header``, ``page_footer``, ``formula``, ``picture``, ``table``.
 
 CONFIDENCE: the exported DoclingDocument carries no per-item confidence. Docling reports a
-per-page and per-document confidence GRADE (layout / OCR / parse scores) on the conversion
-result object, which the worker records into the metrics; :attr:`Block.confidence` is
-therefore None here rather than a made-up number, and the document-level grade travels with
-the run, not with the block.
+per-page and per-document confidence GRADE (layout / OCR / parse scores) on the CONVERSION
+RESULT, which the worker records into ``metrics["confidence"]`` alongside the conversion
+status; :attr:`Block.confidence` is therefore None here rather than a made-up number, and the
+document-level grade travels with the run, not with the block. The exact shape of that grade
+object is whatever ``ConversionResult.confidence`` dumps — read it from a metrics row, do not
+assume it.
 
 ZERO-BLOCK REFUSAL (the defect the GROBID referee found, built in here from the start): a
 conversion that "succeeds" and yields no body text is a failure, not an empty-but-fine run.
@@ -678,8 +680,8 @@ def worker_available(python=None):
 
 
 def run(jobs, metrics_path, python=None, warmup=None, warmup_pages=1, ocr=False,
-        ocr_engine=None, tables_on=True, formula=False, threads=4, device="cpu",
-        timeout=7200, cwd=None):
+        ocr_engine=None, ocr_backend=None, tables_on=True, formula=False, threads=4,
+        device="cpu", timeout=7200, cwd=None):
     """Run the worker over a job list in the extraction venv. -> [metrics dict].
 
     ``jobs`` is ``[{"pdf":…, "out":…, "pages":[lo,hi]}, …]``; the worker writes one
@@ -709,6 +711,8 @@ def run(jobs, metrics_path, python=None, warmup=None, warmup_pages=1, ocr=False,
         cmd.append("--ocr")
         if ocr_engine:
             cmd += ["--ocr-engine", ocr_engine]
+        if ocr_backend:
+            cmd += ["--ocr-backend", ocr_backend]
     if not tables_on:
         cmd.append("--no-tables")
     if formula:
@@ -766,6 +770,13 @@ def extract(pdf, out_json, metrics_path, require_text_blocks=True, **kw):
     m = rows[0]
     if m.get("status") != "ok":
         raise DoclingError(f"{pdf}: {m.get('error')}", metrics=m)
+    # Docling does not always raise: a file it cannot parse can come back as a RESULT whose
+    # status is FAILURE, with a document that has no pages. A caller that watched only for an
+    # exception would record that as an ok run, which is the same defect as trusting a 200.
+    cs = (m.get("convert_status") or "").upper()
+    if "FAILURE" in cs or "SKIPPED" in cs:
+        m["status"], m["error"] = "failed", f"docling conversion status {cs}"
+        raise DoclingError(f"{pdf}: docling conversion status {cs}", metrics=m)
     if not m.get("peak_rss_bytes"):
         raise DoclingError(
             "the RSS sampler produced no peak — a run with no peak-RSS measurement is not a "

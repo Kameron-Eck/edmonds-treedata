@@ -42,7 +42,7 @@ before the gate table existed. The thresholds were then read off that distributi
 
 | constant | value | what the census showed |
 |---|--:|---|
-| `CHARS_TRACE` | 100 | The character axis is bimodal only at zero: **89 pages carry no text at all, exactly one carries 25, and the next image-covered page carries 111.** 100 sits in that gap. |
+| `CHARS_TRACE` | 100 | The character axis is bimodal only at zero: **89 pages carry no text at all, exactly one carries 25 (Reynolds 2000 p14), and the next IMAGE-COVERED page carries 117 (Guo 2019 p6).** 100 sits in that gap. *(Corrected 2026-09-15: this cell read 111, which is Pesonen 2026 p20 at `image_frac` 0.1527 — a page with images, not an image-covered one, so `CHARS_TRACE` cannot reclass it. Both ends are pinned in `BOUNDARY_PINS`; see §9.11.)* |
 | `CHARS_BODY` | 400 | Among image-covered pages, **594 are above 400** (whole scans re-covered by a complete OCR layer — Lahiri 2003, Besag 1974, Singer 1976) and only **14 fall in 100..400**. |
 | `IMAGE_COVER` | 0.25 | Every page in the corpus with no text at all has image coverage **≥ 0.276**; the floor is Ogata 1998, whose scan is cut into 18 image strips per page. |
 | `COVER_MAX_CHARS` | 200 | Not invented here: `Reports/LITKB_EDGE_PRE1990_2026-09-14.md` P-2, "page 1 has under 200 characters". |
@@ -396,7 +396,10 @@ PASS, pytest **1 failed, 2,489 passed, 5 skipped, 1 xfailed** — the single fai
    unbranded terms-of-use continuation — is still not recognised, and `title_page` then points
    at it. That case is pinned as a **strict xfail**
    (`test_an_unbranded_second_front_page_is_not_skipped`), so it turns into a failure the day
-   it starts working rather than drifting untested. No corpus file has a second front page of
+   it starts working rather than drifting untested. Run with `--runxfail` it fails on
+   `assert rec["title_page"] == 3` with an actual **2** — that is, pointing at the
+   boilerplate page, which is the symptom exactly as stated and not some other failure
+   wearing the same name. No corpus file has a second front page of
    either shape. The route was never affected in any of this.
 
 10. **`mixed` nominates figure pages that do not need OCR.** Limitation 2 above says `partial`

@@ -298,7 +298,11 @@ def test_the_boundary_pins_really_are_the_nearest_pages(corpus_records):
     """
     pages = [(r["name"], p) for r in corpus_records
              for p in (r.get("page_detail") or [])]
-    covered = [(n, p) for n, p in pages if p["image_frac"] >= inv.IMAGE_COVER]
+    # 0.25 written out, not read back from the module, for the same reason the unit table
+    # writes its thresholds out: nearest-ness is a property of the CORPUS, and reading the
+    # constant here would make a threshold mutation fire this row with a "re-render and
+    # re-pin" message, which describes the wrong thing.
+    covered = [(n, p) for n, p in pages if p["image_frac"] >= 0.25]
 
     def nearest(cands, key, pin_stem):
         best = min(cands, key=key)

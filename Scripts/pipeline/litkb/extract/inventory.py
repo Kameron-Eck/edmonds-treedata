@@ -37,9 +37,14 @@ chosen from that census BEFORE the hand-inspection gate was written
 (Reports/LITKB_INVENTORY_2026-09-15.md §2).
 
 ``CHARS_TRACE = 100`` — non-whitespace characters. The character axis is sharply bimodal
-only at zero: 89 pages carry no text at all, exactly one page carries 25, and the next
-image-covered page carries 111. 100 sits in that gap. Below it a page's text layer is a
-stamp or a stray line, not content.
+only at zero: 89 pages carry no text at all, exactly one page carries 25 (Reynolds 2000
+p14), and the next IMAGE-COVERED page carries 117 (Guo 2019 p6). 100 sits in that gap.
+Below it a page's text layer is a stamp or a stray line, not content.
+
+The 111 this paragraph used to name is Pesonen 2026 p20, whose ``image_frac`` is 0.1527 —
+a page carrying images, not an image-covered one, so ``CHARS_TRACE`` cannot reclass it and
+it never belonged in this gap. Both ends of the gap are now pinned in ``BOUNDARY_PINS``
+(``qc/test_litkb_inventory.py``), which is the one home; this sentence points at it.
 
 ``CHARS_BODY = 400`` — above it a page carries body text. Among image-covered pages, 594
 are above 400 (whole scans re-covered by an OCR text layer, e.g. Lahiri 2003, Besag 1974 —

@@ -19,6 +19,15 @@
 *.json  text
 *.txt   text
 
+# ── Shell scripts: LF in the working copy too ─────────────────────────────
+# Added 2026-09-14 with the repo's first tracked *.sh (the GROBID WSL manager).
+# The note above says eol= is deliberately unset — that is about the global `*`
+# rule and it still stands. This rule is narrower, and it is required: the
+# script is executed by bash INSIDE WSL but read from the WINDOWS working copy
+# at /mnt/d/..., so a CRLF checkout makes the shebang `#!/usr/bin/env bash\r`
+# and the interpreter is not found. text=auto alone would do exactly that.
+*.sh    text eol=lf
+
 # ── Binaries: never diff, never newline-convert ───────────────────────────
 # Extended 2026-08-18. Most of these are already ignored ("data that must never
 # sneak in"), but `git add -f` bypasses .gitignore, and newline conversion on a

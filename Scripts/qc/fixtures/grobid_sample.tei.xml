@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Trimmed from real GROBID 0.9.1 (CRF) output for
+     Literture/Validation/Benedek_2015_multilayer-markov-random-field-models.pdf,
+     run 2026-09-14 with teiCoordinates=ref,biblStruct,persName,figure,formula,head,s,p,note,title
+     and segmentSentences=1.
+
+     VERBATIM from that run: the four <surface> elements, and the coords on <title>, <persName>,
+     both <head>s, the <ref>, and the <figure> (whose three boxes are two caption lines plus the
+     graphic — the multi-box ";" case the adapter must split).
+
+     COMPOSED for this fixture, in the same format, because the real body was too large to keep:
+     the two <s> coords, the reference-list <biblStruct> coords, and all sentence text. They are
+     shape-faithful, not quotes. -->
+<TEI xml:space="preserve" xmlns="http://www.tei-c.org/ns/1.0"
+     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+     xmlns:xlink="http://www.w3.org/1999/xlink">
+	<teiHeader xml:lang="en">
+		<fileDesc>
+			<titleStmt>
+				<title level="a" type="main" coords="1,42.63,178.96,449.03,12.71;1,42.52,196.19,143.98,12.71">Multilayer Markov Random Field models for change detection in optical remote sensing images</title>
+			</titleStmt>
+			<sourceDesc>
+				<biblStruct status="extracted">
+					<analytic>
+						<author>
+							<persName coords="1,42.63,220.88,73.13,9.98"><forename type="first">Csaba</forename><surname>Benedek</surname></persName>
+						</author>
+					</analytic>
+				</biblStruct>
+			</sourceDesc>
+		</fileDesc>
+	</teiHeader>
+	<facsimile>
+		<surface n="1" ulx="0.0" uly="0.0" lrx="595.276" lry="793.701"/>
+		<surface n="2" ulx="0.0" uly="0.0" lrx="595.276" lry="793.701"/>
+		<surface n="3" ulx="0.0" uly="0.0" lrx="595.276" lry="793.701"/>
+		<surface n="4" ulx="0.0" uly="0.0" lrx="595.276" lry="793.701"/>
+		<surface n="5" ulx="0.0" uly="0.0" lrx="595.276" lry="793.701"/>
+		<surface n="6" ulx="0.0" uly="0.0" lrx="595.276" lry="793.701"/>
+		<surface n="7" ulx="0.0" uly="0.0" lrx="595.276" lry="793.701"/>
+		<surface n="8" ulx="0.0" uly="0.0" lrx="595.276" lry="793.701"/>
+		<surface n="9" ulx="0.0" uly="0.0" lrx="595.276" lry="793.701"/>
+	</facsimile>
+	<text xml:lang="en">
+		<body>
+			<div xmlns="http://www.tei-c.org/ns/1.0">
+				<head n="1." coords="1,42.63,505.74,60.13,7.53">Introduction</head>
+				<p><s coords="2,99.89,100.10,200.00,7.53">A first sentence on page two.</s><s coords="2,99.89,109.80,220.00,7.53">A second sentence citing <ref type="bibr" coords="2,99.89,109.80,88.14,7.53" target="#b40">[41]</ref> here.</s></p>
+			</div>
+			<div xmlns="http://www.tei-c.org/ns/1.0">
+				<head n="1.1.2." coords="2,32.77,465.43,154.65,7.53">Multilayer models</head>
+			</div>
+			<figure xmlns="http://www.tei-c.org/ns/1.0" xml:id="fig_0" coords="4,32.71,382.07,520.06,6.66;4,32.71,390.63,377.92,6.66;4,78.07,67.92,425.20,303.70"><head>Fig. 1</head><figDesc>A caption that wraps over two lines, plus the graphic itself.</figDesc></figure>
+		</body>
+		<back>
+			<div type="references">
+				<listBibl>
+					<biblStruct xml:id="b40" coords="9,32.71,200.00,250.00,7.53">
+						<analytic>
+							<title level="a" type="main">Change detection in optical aerial images</title>
+							<author><persName><forename type="first">C</forename><surname>Benedek</surname></persName></author>
+						</analytic>
+						<monogr>
+							<title level="j">IEEE TGRS</title>
+							<imprint><date type="published" when="2009"/></imprint>
+						</monogr>
+					</biblStruct>
+				</listBibl>
+			</div>
+		</back>
+	</text>
+</TEI>

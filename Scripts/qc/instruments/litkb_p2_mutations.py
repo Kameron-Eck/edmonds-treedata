@@ -406,8 +406,6 @@ site("P6a", "litkb/migrate_legacy/plan.py::doi_discrepancy::normalize_doi", "{a0
      what="the DOI discrepancy compares raw spellings: a case variant reads as a changed DOI")
 site("P6b", "litkb/migrate_legacy/plan.py::plan_row::normalize_doi", "{a0}", tests=TESTS_P3,
      what="the loader confirms the DOI as the tracker spelled it, uncanonicalised")
-site("P6c", "litkb/migrate_legacy/run.py::_load_tracker_row::normalize_doi", "{a0}", tests=TESTS_P3,
-     what="the tracker/manifest DOI comparison is made on raw spellings")
 site("P6d", "litkb/migrate_legacy/run.py::discrepancy::_jsonb", _JSONB, tests=TESTS_P3,
      what="a discrepancy's detail JSON goes to jsonb unguarded (a NUL from PDF metadata survives)")
 site("P6e", "litkb/migrate_legacy/run.py::record_use::_jsonb", _JSONB, tests=TESTS_P3,
@@ -904,9 +902,14 @@ def make_worker_copy(i, root):
     return dst
 
 
-def run_workers(chosen, n, root, extra_args=()):
+def run_workers(chosen, n, root, extra_args=(), worker_dbs=None):
     """Partition `chosen` round-robin over n workers, run each as a subprocess in its own copy against its own
-    database, and return [(mutation, fired, summary)] in the original order plus whether every baseline passed."""
+    database, and return [(mutation, fired, summary)] in the original order plus whether every baseline passed.
+
+    `worker_dbs` names WHICH worker databases to use, as indices (`[1, 2, 6, 8, 9]`). Default: 1..n. It exists
+    because parallel worktrees share one Postgres server: another agent's session holds some of the nine, and a
+    run that reset a database in use would destroy its work. The copies are still numbered 1..n; only the
+    database each one is pointed at changes."""
     import concurrent.futures as cf
     import json
     import os
@@ -914,9 +917,12 @@ def run_workers(chosen, n, root, extra_args=()):
 
     from litkb.db.provision import worker_db
 
+    if worker_dbs:
+        n = min(n, len(worker_dbs))
     parts = partition(chosen, n)
     check_partition(parts, chosen)                 # D-5: a row lost in the split is named, not a KeyError
     n = len(parts)
+    dbs = list(worker_dbs)[:n] if worker_dbs else list(range(1, n + 1))
     root = Path(root)
     root.mkdir(parents=True, exist_ok=True)
     src_manifest = root / "source.manifest.json"   # D-2: hashed ONCE, before any copy is made
@@ -927,7 +933,7 @@ def run_workers(chosen, n, root, extra_args=()):
         t0 = time.monotonic()
         copy = make_worker_copy(i, root)
         script = copy / "Scripts" / "qc" / "instruments" / Path(__file__).name
-        env = dict(os.environ, LITKB_TEST_DB=worker_db(i), PYTHONUTF8="1",
+        env = dict(os.environ, LITKB_TEST_DB=worker_db(dbs[i - 1]), PYTHONUTF8="1",
                    PYTHONPATH=str(copy / "Scripts" / "pipeline"))
         log = root / f"w{i}.log"
         with log.open("w", encoding="utf-8") as fh:
@@ -942,7 +948,7 @@ def run_workers(chosen, n, root, extra_args=()):
     with cf.ThreadPoolExecutor(max_workers=n) as ex:
         for i, rows, fired, base_ok, stale, rc, dt, log in ex.map(lambda a: one(*a), enumerate(parts, 1)):
             missing = [m["id"] for m in rows if m["id"] not in fired]
-            print(f"worker {i}: {len(rows)} rows, {sum(fired.values())} fired, baselines "
+            print(f"worker {i} ({worker_db(dbs[i - 1])}): {len(rows)} rows, {sum(fired.values())} fired, baselines "
                   f"{'passed' if base_ok else 'FAILED'}, rc {rc}, {dt / 60:.1f} min, log {log}"
                   + (f", NO RESULT for {missing}" if missing else "")
                   + (f", {stale[0]}" if stale else ""))
@@ -967,6 +973,9 @@ def main(argv=None):
                     help=f"run the rows in parallel over N private copies + databases (0 = serial; "
                          f"'auto' rule gives {default_workers()} here)")
     ap.add_argument("--worker-root", default=str(WORKER_ROOT_DEFAULT), help="where the worker copies live")
+    ap.add_argument("--worker-dbs", help="comma-separated worker-database indices to use (default 1..N). "
+                                         "Parallel worktrees share one server: name only the databases no "
+                                         "other session is holding, or a reset destroys its work")
     ap.add_argument("--plant-equivalent", action="store_true",
                     help="KILL CHECK for the harness itself: add a comment-only row that cannot change behaviour; "
                          "the run must report it DID NOT FIRE and exit 1, serial or parallel")
@@ -1022,7 +1031,8 @@ def main(argv=None):
 
         t0 = time.monotonic()
         rows, base_ok = run_workers(chosen, a.workers, a.worker_root,
-                                    extra_args=["--plant-equivalent"] if a.plant_equivalent else [])
+                                    extra_args=["--plant-equivalent"] if a.plant_equivalent else [],
+                                    worker_dbs=[int(x) for x in a.worker_dbs.split(",")] if a.worker_dbs else None)
         for m, fired in rows:
             print(f"{m['id']:<4} {verdict_label(fired):<13} {m['what']}")
         n = sum(1 for _m, f in rows if f)

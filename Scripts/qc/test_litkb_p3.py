@@ -479,3 +479,41 @@ def test_a_same_surname_year_slug_collision_takes_the_conventions_a_b_suffix(pg,
                     "Collider_2019b_ridge-regression-canopy-part"], keys
     assert c["admitted"] == 3 and c["refused"] == 1, ctx.log
     assert ctx.log[3]["outcome"] == "collided", ctx.log[3]
+
+
+@pg_only
+def test_kill_the_diff_gate_reports_an_unexplained_cell_when_the_discrepancy_is_missing(pg, tmp_path):
+    """§14 P3's gate, as `qc/instruments/litkb_p3_diff.py` runs it: a changed cell is explained, format-only,
+    structural or UNEXPLAINED, and the gate fails while UNEXPLAINED is above zero.
+
+    This is the kill the design names — "with the discrepancy writer removed the gate test fails". It runs the
+    instrument's classifier twice over one real changed cell: with the discrepancy record present (explained,
+    gate passes) and with it absent (UNEXPLAINED, gate fails). Harness row P1a removes the writer for real."""
+    import sys
+
+    sys.path.insert(0, str(SCRIPTS / "qc" / "instruments"))
+    import litkb_p3_diff as diff
+
+    today = [{"ID": "80", "Title": "An unrelated title concerning stochastic matrices", "Year": "2007"}]
+    exported = [{"ID": "80", "Title": "Total variation regularization for denoising", "Year": "2007"}]
+    explained = {("tracker", "80", "title"): ("An unrelated title concerning stochastic matrices",
+                                              "Total variation regularization for denoising", 0.31)}
+    with_record = diff.compare("tracker", today, exported, "ID", ["Title", "Year"], explained, set())
+    assert [r["bucket"] for r in with_record] == ["explained"], with_record
+    # BEGIN guard: a changed cell with no discrepancy record is UNEXPLAINED and the gate fails
+    without = diff.compare("tracker", today, exported, "ID", ["Title", "Year"], {}, set())
+    assert [r["bucket"] for r in without] == ["UNEXPLAINED"], without
+    # END guard: a changed cell with no discrepancy record is UNEXPLAINED and the gate fails
+    # a cell that only normalises differently is never a gate failure
+    fmt = diff.compare("tracker", [{"ID": "81", "Author(s)": "Nowak, D. J. & Greenfield, E. J."}],
+                       [{"ID": "81", "Author(s)": "Nowak, D.J. & Greenfield, E.J."}], "ID", ["Author(s)"], {}, set())
+    assert [r["bucket"] for r in fmt] == ["format"], fmt
+    # a HELD row's cell must never change: the export prints it back verbatim, so a difference is a bug
+    held = diff.compare("tracker", today, exported, "ID", ["Title"], {}, {"80"})
+    assert held[0]["bucket"] == "UNEXPLAINED" and "HELD" in held[0]["explanation"]
+    # a whole column the design changes on purpose is structural, stated once
+    # the manifest joins on sha256, so a stem that became the work key is a CHANGED CELL, and a structural one
+    st = diff.compare("manifest", [{"sha256": "a" * 64, "stem": "Allard_2007_total-variation"}],
+                      [{"sha256": "a" * 64, "stem": "Allard_2007_total-variation-regularization-image"}],
+                      "sha256", ["stem"], {}, set())
+    assert [r["bucket"] for r in st] == ["structural"], st

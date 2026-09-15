@@ -35,11 +35,12 @@ import os
 import sys
 import zipfile
 
-HERE = os.path.dirname(os.path.abspath(__file__))
-SCRIPTS = os.path.dirname(os.path.dirname(HERE))
-sys.path.insert(0, os.path.join(SCRIPTS, "Scripts", "pipeline")
-                if os.path.isdir(os.path.join(SCRIPTS, "Scripts")) else
-                os.path.join(os.path.dirname(HERE), "..", "pipeline"))
+# litkb is NOT part of the editable install (it lives under the uninstalled pipeline root),
+# so this is the same one-line stanza litkb_docling_bench.py and litkb_equation_density.py
+# use, and it is registered in the closed ledger,
+# qc/test_status_discovery.py::_PATH_INSERT_LEDGER.
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(  # noqa: E402
+    os.path.dirname(os.path.abspath(__file__)))), "pipeline"))
 
 DERIVED = r"D:\edmonds-pipeline\litkb_derived\formula"
 CORPUS_CROPS = 7164          # the census in Reports/LITKB_COLAB_L4_FORMULA_2026-09-15.md

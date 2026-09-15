@@ -594,6 +594,7 @@ _PATH_INSERT_LEDGER = {
     "qc/instruments/roof_presence_matrix.py": 1,  # roof_presence_probe sibling
     "qc/instruments/litkb_docling_bench.py": 1,  # litkb.extract (pipeline root, not installed here)
     "qc/instruments/litkb_equation_density.py": 1,  # same: litkb.extract.docling, for the density census
+    "qc/instruments/litkb_formula_balance.py": 1,  # same: litkb.extract.colab_formula_worker
     "qc/runtime_dashboard.py": 2,            # phase4_train_queue + watch_queue keeps
     "qc/runtime_health.py": 1,               # qc sibling keep
     "qc/instruments/separability_index_control.py": 2,  # qc root + sibling

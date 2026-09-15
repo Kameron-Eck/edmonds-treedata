@@ -395,8 +395,13 @@ replace("P2b", f"{PKG}/migrate_legacy/plan.py",
         '    return all(fields[f]["agrees"] for f in ("title", "authors", "year"))',
         '    return all(fields[f]["agrees"] for f in ("title", "authors"))',
         "the year is no longer part of whether the claim agrees", tests=TESTS_P3)
-replace("P3b", f"{PKG}/migrate_legacy/run.py", "    seen = ctx.already_loaded(detail)\n", "    seen = None\n",
-        "idempotence: the loader stops recognising a row it has already loaded", tests=TESTS_P3)
+replace("P3b", f"{PKG}/migrate_legacy/run.py",
+        "    seen = ctx.already_loaded(detail)\n    if seen:\n", "    seen = None\n    if seen:\n",
+        "idempotence: the TRACKER loader stops recognising a row it has already loaded", tests=TESTS_P3)
+replace("P3c", f"{PKG}/migrate_legacy/run.py",
+        "    seen = ctx.already_loaded(detail)\n    if seen or _stem_held(ctx, stem):\n",
+        "    seen = None\n    if seen or _stem_held(ctx, stem):\n",
+        "idempotence: the MANIFEST loader stops recognising a stem it has already loaded", tests=TESTS_P3)
 p3(block, "P4a", f"{PKG}/migrate_legacy/run.py",
    "guard: a manifest sha256 that is not the file on disk is a discrepancy, never a silent pass",
    "a manifest sha256 that does not match the held file passes unflagged")

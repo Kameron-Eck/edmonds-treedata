@@ -816,3 +816,31 @@ def test_a_year_cell_with_the_conventions_suffix_does_not_stop_the_load():
     assert year_int("2019a") == 2019 and year_int("2019b") == 2019
     assert year_int("2019") == 2019 and year_int(2020) == 2020
     assert year_int("") is None and year_int(None) is None and year_int("n.d.") is None
+
+
+@pg_only
+def test_the_manifest_load_is_idempotent_for_a_row_it_could_not_admit(pg, tmp_path):
+    """The manifest loader recognises a stem two ways: the work already holds it (`_stem_held`), or this
+    workstream already has its candidate. For a row the database REFUSED there is no work, so only the
+    candidate check can stop a second pass writing a second candidate and a second refused admission —
+    harness row P3c removes it."""
+    from litkb.migrate_legacy import run as mrun
+
+    _need_file(VALIDATION)
+    hexid = uuid.uuid4().hex[:8]
+    doi, title = f"10.5555/p3mid-{hexid}", f"Manifest {hexid} row the database refuses"
+    root, stem = plant(tmp_path, "A first page that is some other paper entirely", "Nobody")
+    ws = pg.ws()
+    reg = Registry({doi: synthetic_record(doi, title, "Refusee", 2020)})
+    mrow = {"stem": stem, "title": title, "authors": "Refusee, R.", "year": "2020", "venue": "J. Synth.",
+            "doi": doi, "arxiv": "", "sha256": "", "source_route": "unknown (pre-manifest)",
+            "obtained_date": "2026-09-12", "verified_against_extract": "yes", "cited_by": ""}
+    first = mrun.load_manifest(loader(pg, ws, reg, root=root), rows=[mrow])
+    assert first["refused"] == 1 and first["admitted"] == 0, first
+    before = counts(pg)
+    second = mrun.load_manifest(loader(pg, ws, reg, root=root), rows=[mrow])
+    # BEGIN guard: a refused manifest row is recognised on the second pass
+    assert second["skipped_already_loaded"] == 1, second
+    assert second["refused"] == 0, "the refused row was offered to the database a second time"
+    # END guard: a refused manifest row is recognised on the second pass
+    assert counts(pg) == before, f"a second manifest pass changed the database: {before} -> {counts(pg)}"

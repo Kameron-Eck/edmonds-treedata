@@ -20,16 +20,20 @@ cropbox != mediabox, so this is not a corner case. :func:`page_frames` reads the
 from the PDF and :func:`to_mediabox` shifts blocks into the canonical mediabox frame; every
 :class:`Block` states which frame it is in via ``Block.frame``.
 
-Rotation IS applied by GROBID (a ``/Rotate 90`` page gets a landscape ``<surface>``), but the
-composition of rotation with the cropbox shift is **UNCONFIRMED**, so :func:`to_mediabox`
-refuses to convert a rotated page and leaves those blocks in the cropbox frame.
+Rotation IS applied by GROBID (a ``/Rotate 90`` page gets a landscape ``<surface>``), and
+:func:`to_mediabox` **refuses** to convert a rotated page, leaving those blocks in the cropbox
+frame. That refusal is no longer a precaution: measured 2026-09-15 on the one page in the corpus
+where it can cost anything, the translation `to_mediabox` applies is simply the WRONG MAP there —
+for 180° the correct map is a REFLECTION. See :func:`to_mediabox`.
 
 ZERO-BLOCK REFUSAL: a 200 is not success. A PDF with a text layer on only some pages — a
 JSTOR scan whose cover page carries the access boilerplate — returns HTTP 200 with a valid
 header and an EMPTY ``<text><body>`` (measured on ``Anderson_1957``: 3,659 B, 4 blocks, all
 of them the boilerplate title in the header, ``<body>`` text ``''``). A caller checking only
 the status code records that as a successful extraction. :func:`process_pdf` therefore refuses
-any TEI with no coordinate-bearing block inside ``<text><body>``, raising :class:`NoTextBlocks`.
+any TEI with fewer than :data:`MIN_BODY_BLOCKS` coordinate-bearing blocks inside
+``<text><body>``, raising :class:`NoTextBlocks`. The threshold is 4, not 1: one injected junk
+box was enough to walk through the original rule — see :data:`MIN_BODY_BLOCKS`.
 
 Two properties of the real output the adapter must honour, both measured rather than assumed:
 
@@ -222,20 +226,45 @@ def body_text(tei):
     return " ".join("".join(el.itertext()).split())
 
 
-def check_text_blocks(tei, name=""):
+#: The minimum number of ``<text><body>`` boxes that counts as an extracted document.
+#:
+#: The rule was ``>= 1`` and was untested at 1 (referee 2, D3): injecting ONE junk ``<p>`` box —
+#: a page number's worth — into the Anderson scan's empty body took it from refused to admitted
+#: with nothing downstream flagging it. The referee could not get GROBID to EMIT such a body from
+#: four synthetic PDFs, so this is a gap in the gate, not a demonstrated hole; a real scan with one
+#: stray extracted line would walk through it.
+#:
+#: Why 4, from the mechanism rather than a round number. Requests go out with
+#: ``segmentSentences=1`` (the default here), so ONE genuine paragraph of three sentences already
+#: yields four boxes — the ``<p>`` plus three ``<s>``. Page furniture on a scan's text-layer page
+#: is at most three: page number, running head, footer. Four is therefore the lowest value that
+#: separates the two by mechanism, and the highest the evidence supports: the trimmed
+#: ``grobid_sample`` fixture carries 8 body blocks, so anything above 8 would start refusing a
+#: paper that really was extracted. (Live Benedek has 3,300; the bound that matters here is the
+#: fixture's 8, not the live number.)
+#:
+#: PROVISIONAL. The honest form of "is 4 right" is a per-PDF body-block census over the corpus —
+#: the stage-2 empirical question the referee named. What is settled is that 0 was wrong and that
+#: 1 was undefended. A caller that lowers this to 1 re-opens D3.
+MIN_BODY_BLOCKS = 4
+
+
+def check_text_blocks(tei, name="", minimum=MIN_BODY_BLOCKS):
     """Raise :class:`NoTextBlocks` when a 200 carried no extracted document body.
 
     The rule is BLOCK-BASED, not byte-based: a body with text but no coordinates would mean
     the request forgot ``teiCoordinates`` (which is a caller bug, and is reported as one),
-    while a body with neither is a document that was not extracted. Both are refusals.
+    while a body with neither is a document that was not extracted. Both are refusals. The
+    threshold is :data:`MIN_BODY_BLOCKS`, not 1 — see its note.
     """
     n_blocks = len(body_blocks(tei))
-    if n_blocks:
+    if n_blocks >= minimum:
         return n_blocks
     what = name or "document"
     raise NoTextBlocks(
-        f"GROBID returned 200 for {what} but its <text><body> yields no coordinate-bearing "
-        f"blocks (body text {len(body_text(tei))} chars, header title "
+        f"GROBID returned 200 for {what} but its <text><body> yields {n_blocks} "
+        f"coordinate-bearing block(s), below the {minimum} that distinguishes an extracted "
+        f"document from page furniture (body text {len(body_text(tei))} chars, header title "
         f"{header_title(tei)[:60]!r}) — refusing to record an empty extraction",
         200, tei if isinstance(tei, bytes) else b"")
 
@@ -326,11 +355,31 @@ def page_frames(pdf_path):
 def to_mediabox(blocks_in, frames):
     """Shift blocks from GROBID's cropbox-relative frame into the canonical mediabox frame.
 
-    A page with ``rotation != 0`` is NOT converted: GROBID already reports it in the
-    displayed (rotated) frame, and how the cropbox shift composes with that rotation is
-    UNCONFIRMED (7 rotated pages in the 216-PDF corpus). Those blocks come back unchanged,
-    still carrying ``frame="cropbox"``, so a caller can see which ones were skipped. A page
-    with no frame record is likewise left alone.
+    A page with ``rotation != 0`` is NOT converted. GROBID reports it in the displayed
+    (rotated) frame — confirmed, not assumed — and the translation below is the wrong map for
+    such a page, so those blocks come back unchanged, still carrying ``frame="cropbox"``, and a
+    caller can see exactly which ones were skipped. A page with no frame record is likewise
+    left alone.
+
+    MEASURED 2026-09-15 (referee 2 §4). Rotation only costs anything where the page ALSO has
+    cropbox != mediabox, and across 224 PDFs / 4,712 pages that intersection is **exactly one
+    page**: ``Hall_1985_resampling-coverage-pattern.pdf`` p12, rotation 180, mediabox
+    ``(0,0,463,685)``, cropbox ``(2,0,463,684)``. (The 90° page used earlier, ``Guo_2019`` p6,
+    has cropbox == mediabox, so dx = dy = 0 and the refusal is a no-op there.) On Hall p12,
+    reading GROBID's 551 body blocks in the rot-180 displayed frame matches pypdfium2 to
+    **2.04 pt**, against 10.99 pt read unrotated.
+
+    And the correct map for 180° is a REFLECTION, not this translation::
+
+        x_m = crop.x1 - X                       # not X + dx
+        y_m = media.y1 - crop.y0 - Y            # not Y + dy
+
+    On Hall p12 the two agree nowhere: a block at displayed x = 49.8 belongs at x_m = 413.2 and
+    the translation would put it at 51.8 — a **361.4 pt** error, roughly the page width; in y a
+    block at displayed y = 63.2 belongs at 621.8 and would land at 64.2, a **557.6 pt** error.
+    For 90°/270° the axes swap as well. Implementing the per-rotation maps is FUTURE WORK
+    (one page of the present corpus); until then refusing is the only correct behaviour
+    available, and ``test_to_mediabox_refuses_a_rotated_page*`` pins it.
     """
     out = []
     for b in blocks_in:

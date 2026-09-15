@@ -44,7 +44,12 @@ GROBID_DIR="${GROBID_DIR:-/opt/grobid-${GROBID_VERSION}}"
 GROBID_PORT="${GROBID_PORT:-8070}"
 GROBID_HEAP_GB="${GROBID_HEAP_GB:-8}"
 GROBID_CONCURRENCY="${GROBID_CONCURRENCY:-4}"
-GROBID_HEADROOM_MAX_CONCURRENCY="${GROBID_HEADROOM_MAX_CONCURRENCY:-4}"
+# The headroom ceiling is a CONSTANT, not a knob. It used to be `${GROBID_HEADROOM_MAX_CONCURRENCY:-4}`,
+# which made the guard self-disabling: `GROBID_CONCURRENCY=9 GROBID_HEADROOM_MAX_CONCURRENCY=9` sailed
+# through with nothing printed (referee 2 §2, D4). There is exactly ONE documented override,
+# GROBID_BREAK_HEADROOM=1, which says in the refusal what it breaks. Setting the old name is now a
+# refusal rather than a silent no-op, so a caller who believes it still works is told otherwise.
+HEADROOM_MAX_CONCURRENCY=4
 GROBID_BREAK_HEADROOM="${GROBID_BREAK_HEADROOM:-0}"
 GROBID_PDFALTO_MB="${GROBID_PDFALTO_MB:-1536}"
 GROBID_PDFALTO_TIMEOUT="${GROBID_PDFALTO_TIMEOUT:-300}"
@@ -93,10 +98,32 @@ require_jdk21() {
   return 0
 }
 
+# A concurrency must be a plain non-negative integer BEFORE it is compared or written. `[ abc -gt 4 ]`
+# returns 2 (false) with `integer expected` on stderr, so the guard passed and `configure` then sed-ed
+# `concurrency: abc` into grobid.yaml verbatim (referee 2 §2, D4). Validation happens here, ahead of
+# both the comparison and the write, so no malformed value ever reaches the config.
+require_integer() {  # $1 = name for the message, $2 = value
+  case "${2-}" in
+    ''|*[!0-9]*)
+      log "REFUSING: $1='${2-}' is not a non-negative integer."
+      return 1 ;;
+  esac
+  return 0
+}
+
+# $1 = the concurrency about to be ARMED; defaults to the env value this invocation would write.
 require_concurrency_headroom() {
-  if [ "$GROBID_CONCURRENCY" -gt "$GROBID_HEADROOM_MAX_CONCURRENCY" ] && \
+  if [ -n "${GROBID_HEADROOM_MAX_CONCURRENCY:-}" ]; then
+    log "REFUSING: GROBID_HEADROOM_MAX_CONCURRENCY is no longer honoured — it was a second,"
+    log "  undocumented way through the 20% CPU-headroom guard. Unset it; the only override is"
+    log "  GROBID_BREAK_HEADROOM=1."
+    return 1
+  fi
+  local c="${1:-$GROBID_CONCURRENCY}"
+  require_integer GROBID_CONCURRENCY "$c" || return 1
+  if [ "$c" -gt "$HEADROOM_MAX_CONCURRENCY" ] && \
      [ "$GROBID_BREAK_HEADROOM" != "1" ]; then
-    log "REFUSING concurrency=${GROBID_CONCURRENCY}: above ${GROBID_HEADROOM_MAX_CONCURRENCY} this"
+    log "REFUSING concurrency=${c}: above ${HEADROOM_MAX_CONCURRENCY} this"
     log "  BREAKS the 20% CPU-headroom rule (decisions.yaml litkb-p0-foundation §15.16)."
     log "  Measured 2026-09-14: pool 9 peaks at 100% whole-system CPU and leaves Kam nothing,"
     log "  while pool 4 peaks at 76.5% and gives 96% of pool 9's rate on the hard-paper set."
@@ -153,10 +180,13 @@ EOF
 }
 
 configure() {
-  # The headroom check lives HERE, not only in do_start: `configure` (and `enable`, which
-  # writes the unit for autostart) is what puts a concurrency into grobid.yaml, so checking
-  # it only on start would let a 9 be written and used by a service someone else brings up.
-  require_concurrency_headroom || exit 1
+  # The headroom check lives HERE, not only in do_start: `configure` is what puts a concurrency
+  # into grobid.yaml, so checking it only on start would let a 9 be written and used by a service
+  # someone else brings up. `configure` checks $GROBID_CONCURRENCY — the value it is about to
+  # WRITE. `enable` arms a different value (whatever is already in grobid.yaml), and is guarded
+  # separately in write_unit; this comment used to claim `enable` came through here, which was
+  # false — `enable` never calls configure and writes no concurrency at all (referee 2, D1).
+  require_concurrency_headroom "$GROBID_CONCURRENCY" || exit 1
   # Idempotent: each key is rewritten to the budgeted value every time.
   [ -f "${CONFIG}.orig" ] || cp "$CONFIG" "${CONFIG}.orig"
   sed -i \
@@ -172,7 +202,30 @@ configure() {
   log "config: concurrency=${GROBID_CONCURRENCY} pdfaltoMB=${GROBID_PDFALTO_MB} pdfaltoTimeout=${GROBID_PDFALTO_TIMEOUT}s heap=${GROBID_HEAP_GB}g"
 }
 
+# The concurrency the UNIT will arm is the one already in grobid.yaml, not $GROBID_CONCURRENCY:
+# ExecStart hands the launcher ${CONFIG} and nothing else. `enable` therefore arms whatever a
+# previous `GROBID_BREAK_HEADROOM=1 configure` left there, on every distro boot, down a path that
+# never reaches do_start and never re-checks — the knowing override becoming permanent and silent
+# (referee 2, D1). So EVERY path that writes the unit re-checks the armed value here.
+# Its refusals go to STDERR: the value is consumed through a command substitution, so anything it
+# writes to stdout would be swallowed into the caller's variable instead of shown.
+armed_concurrency() {
+  [ -f "$CONFIG" ] || { log "REFUSING: no config at $CONFIG; run: $0 configure" >&2; return 1; }
+  local c
+  c="$(sed -n 's/^ *concurrency: *\([^ ]*\).*/\1/p' "$CONFIG" | head -1)"
+  [ -n "$c" ] || { log "REFUSING: no 'concurrency:' key in $CONFIG; run: $0 configure" >&2; return 1; }
+  printf '%s' "$c"
+}
+
 write_unit() {
+  # The concurrency is checked BEFORE the JDK, deliberately: it is the cheaper check, and it lets
+  # the headroom gate be exercised in a test that stops short of `systemctl enable` by pointing
+  # GROBID_JVM_DIR at nothing.
+  # do_start's `[ -f "$UNIT" ] || write_unit` runs before its configure(), so a stale yaml 9 is
+  # refused there too even when the env says 4. Refusing is the safe direction: the message says
+  # to run `configure`, which rewrites the yaml to the budgeted value.
+  local armed; armed="$(armed_concurrency)" || exit 1
+  require_concurrency_headroom "$armed" || exit 1
   require_jdk21 || exit 1
   local jh; jh="$(find_jdk21)"
   cat >"$UNIT" <<EOF
@@ -223,7 +276,7 @@ health() {
 
 do_start() {
   require_jdk21 || exit 1
-  require_concurrency_headroom || exit 1
+  require_concurrency_headroom "$GROBID_CONCURRENCY" || exit 1
   [ -x "$LAUNCHER" ] || { log "not installed; run: $0 install"; exit 1; }
   [ -f "$UNIT" ] || write_unit
   if [ "$(health || true)" = "true" ]; then log "already alive on ${GROBID_PORT}"; return 0; fi

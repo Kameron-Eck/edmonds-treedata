@@ -198,6 +198,62 @@ def test_a_real_paper_passes_the_zero_block_check(tei):
     assert grobid.check_text_blocks(tei, "Benedek_2015.pdf") == len(grobid.body_blocks(tei))
 
 
+#: the referee's boundary attack: the same scan with ONE junk <p> box — a page number's worth —
+#: injected into its empty <body>. Under the old ">= 1" rule this was ADMITTED with nothing
+#: flagging it (referee 2 §1, D3).
+JUNK_BOX = '<p coords="1,300.0,740.0,12.0,10.0">42</p>'
+
+
+def _scan_with_injected_blocks(n):
+    """The Anderson fixture's ``<body/>`` replaced by a body holding ``n`` junk boxes."""
+    src = SCAN_FIXTURE.read_text(encoding="utf-8")
+    assert "<body/>" in src, "the scan fixture no longer has an empty self-closed <body>"
+    return src.replace("<body/>", "<body>" + JUNK_BOX * n + "</body>").encode("utf-8")
+
+
+def test_the_injected_fixture_really_does_add_body_blocks():
+    """The attack is only an attack if the injection lands where the gate looks."""
+    assert grobid.body_blocks(scan_tei_bytes := _scan_with_injected_blocks(1))
+    assert len(grobid.body_blocks(scan_tei_bytes)) == 1
+    assert len(grobid.body_blocks(_scan_with_injected_blocks(3))) == 3
+
+
+def test_one_injected_junk_block_is_still_refused():
+    """The boundary the old rule left open: 1 body block is page furniture, not a document."""
+    with pytest.raises(grobid.NoTextBlocks) as ei:
+        grobid.check_text_blocks(_scan_with_injected_blocks(1), "Anderson_1957.pdf")
+    assert "below the 4" in str(ei.value)
+
+
+def test_the_refusal_holds_up_to_one_block_below_the_threshold():
+    """Page furniture is at most three boxes (number, running head, footer); a real paragraph
+    under segmentSentences=1 is at least four (<p> + 3 <s>). Both sides of that line are pinned."""
+    assert grobid.MIN_BODY_BLOCKS == 4
+    for n in (1, 2, 3):
+        with pytest.raises(grobid.NoTextBlocks):
+            grobid.check_text_blocks(_scan_with_injected_blocks(n))
+    assert grobid.check_text_blocks(_scan_with_injected_blocks(4)) == 4
+
+
+def test_mutation_lowering_the_threshold_to_one_admits_the_junk_body():
+    """The gate must FIRE on a known-bad input, and stop firing when it is mutated away.
+
+    ``minimum=1`` is the old rule, passed in rather than patched: the same TEI that the shipped
+    threshold refuses is admitted by it, so the threshold — not something else — is what refuses.
+    """
+    junk = _scan_with_injected_blocks(1)
+    assert grobid.check_text_blocks(junk, minimum=1) == 1      # the mutant admits it
+    with pytest.raises(grobid.NoTextBlocks):
+        grobid.check_text_blocks(junk)                         # the shipped gate does not
+
+
+def test_the_threshold_does_not_refuse_a_real_paper(tei):
+    """The upper bound on the threshold: the smallest real-paper fixture has 8 body blocks, so a
+    threshold above that would start refusing papers that really were extracted."""
+    assert len(grobid.body_blocks(tei)) >= grobid.MIN_BODY_BLOCKS
+    assert grobid.MIN_BODY_BLOCKS <= 8
+
+
 def test_mutation_removing_the_body_check_admits_the_scan(scan_tei):
     """Without the gate, the scan is indistinguishable from a good run by status alone.
 
@@ -279,6 +335,53 @@ def test_to_mediabox_refuses_a_rotated_page(crop_tei):
     b = _pick(shifted, 3, "Berthouex, Hunter, and Pallesen (1978)")
     assert b.frame == "cropbox"
     assert _pick(shifted, 2, "Shewhart (1931)").frame == "mediabox"
+
+
+# Hall_1985_resampling-coverage-pattern.pdf p12 — the ONE page in 4,712 (224 PDFs, referee's
+# corpus 2026-09-15) that is BOTH rotated and cropped, i.e. the only page where refusing to
+# convert costs anything at all. rotation 180, mediabox (0,0,463,685), cropbox (2,0,463,684).
+HALL_P12 = {"mediabox": (0.0, 0.0, 463.0, 685.0), "cropbox": (2.0, 0.0, 463.0, 684.0),
+            "rotation": 180, "dx": 2.0, "dy": 1.0}
+
+
+def test_to_mediabox_refuses_a_rotated_page_with_a_cropbox():
+    """The referee's finding, encoded: on the one page where it matters, the translation is not
+    merely unconfirmed — it is the WRONG MAP, and refusing is the only correct behaviour.
+
+    For rotation 180 the map from GROBID's displayed frame to the mediabox top-left frame is a
+    REFLECTION (x_m = crop.x1 - X, y_m = media.y1 - crop.y0 - Y). ``to_mediabox`` applies a
+    translation (X + dx, Y + dy). Measured on Hall p12, the two differ by roughly a page width
+    in x and more in y, so a silent conversion would put text on the wrong side of the page.
+    """
+    b = grobid.Block(page=12, x0=49.8, y0=63.2, x1=61.8, y1=73.2, kind="s", text="synthetic")
+    out = grobid.to_mediabox([b], {12: HALL_P12})[0]
+
+    # refused: unchanged, and still SAYING it is unchanged
+    assert out.frame == "cropbox"
+    assert (out.x0, out.y0, out.x1, out.y1) == (b.x0, b.y0, b.x1, b.y1)
+
+    # and the refusal is necessary: the reflection and the translation disagree hugely
+    media, crop = HALL_P12["mediabox"], HALL_P12["cropbox"]
+    reflected_x = crop[2] - b.x0
+    reflected_y = media[3] - crop[1] - b.y0
+    translated_x = b.x0 + HALL_P12["dx"]
+    translated_y = b.y0 + HALL_P12["dy"]
+    assert reflected_x == pytest.approx(413.2, abs=0.1)
+    assert translated_x == pytest.approx(51.8, abs=0.1)
+    assert abs(reflected_x - translated_x) > 300      # ~361 pt, roughly the page width
+    assert abs(reflected_y - translated_y) > 500      # ~558 pt
+
+
+def test_mutation_dropping_the_rotation_guard_translates_the_rotated_page():
+    """Without the ``f["rotation"]`` guard the same block is silently translated and stamped
+    ``frame="mediabox"`` — landing ~361 pt from where it belongs. That is the defect the guard
+    prevents, shown by removing it."""
+    b = grobid.Block(page=12, x0=49.8, y0=63.2, x1=61.8, y1=73.2, kind="s")
+    mutant_frames = {12: dict(HALL_P12, rotation=0)}   # the guard's condition, mutated away
+    out = grobid.to_mediabox([b], mutant_frames)[0]
+    assert out.frame == "mediabox"
+    assert out.x0 == pytest.approx(51.8, abs=0.1)
+    assert abs(out.x0 - (HALL_P12["cropbox"][2] - b.x0)) > 300
 
 
 def test_a_page_with_no_frame_record_is_left_alone(crop_tei):
@@ -498,3 +601,112 @@ def test_launcher_refuses_concurrency_above_the_headroom_default():
     ok = _sh("check-concurrency", {"GROBID_CONCURRENCY": "9", "GROBID_BREAK_HEADROOM": "1"})
     assert ok.returncode == 0
     assert _sh("check-concurrency").returncode == 0      # the default (4) passes
+
+
+# ── the two remaining bypasses, and the unit-writing path (referee 2: D4, D1) ────────────
+#
+# These run against a THROWAWAY GROBID_DIR inside the distro, never the installed one: CONFIG is
+# derived from GROBID_DIR, so a fake tree lets `configure`/`enable` be driven without touching the
+# real grobid.yaml. `enable` is only ever exercised in its REFUSING case — UNIT is a fixed path, so
+# a passing `enable` would arm autostart on the real service. The positive control is
+# `check-concurrency`, which writes nothing.
+
+FAKE_DIR = "/tmp/litkb-fake-grobid"
+FAKE_CFG = f"{FAKE_DIR}/grobid-home/config/grobid.yaml"
+#: EVERY `enable` call below also points the JDK search at nothing. UNIT is a fixed path, so a
+#: mutation that removes the headroom check must not be able to fall through to `systemctl enable`
+#: — it did once, during this fix's own mutation run, arming autostart on a unit whose ExecStart
+#: pointed into the throwaway tree. With no resolvable JDK, write_unit cannot reach systemd whatever
+#: else is mutated away, and the tests assert WHICH gate stopped the call.
+NO_JDK = {"GROBID_JVM_DIR": "/tmp/litkb-no-such-jvm-dir"}
+
+
+def _wsl(script):
+    import subprocess
+    return subprocess.run(
+        ["wsl.exe", "-d", grobid.WSL_DISTRO, "-u", "root", "--", "bash", "-c", script],
+        capture_output=True, text=True, timeout=120,
+        env=dict(os.environ, MSYS_NO_PATHCONV="1"))
+
+
+def _fake_tree(concurrency):
+    """A minimal grobid.yaml holding the given concurrency, in a throwaway tree."""
+    r = _wsl(f"mkdir -p {FAKE_DIR}/grobid-home/config && "
+             f"printf 'grobid:\\n  concurrency: {concurrency}\\n  memoryLimitMb: 1536\\n"
+             f"  pdf:\\n    pdfalto:\\n      timeoutSec: 300\\n' > {FAKE_CFG} && cat {FAKE_CFG}")
+    assert r.returncode == 0, r.stderr
+    return r.stdout
+
+
+def _fake_cfg_text():
+    return _wsl(f"cat {FAKE_CFG}").stdout
+
+
+@pytest.mark.litkb_live
+@pytestmark_live
+def test_launcher_refuses_the_headroom_max_bypass():
+    """GROBID_HEADROOM_MAX_CONCURRENCY was a second, undocumented way through the guard: setting
+    it to 9 let concurrency 9 pass with nothing printed. It is no longer honoured, and setting it
+    is a refusal rather than a silent no-op, so a caller is told it stopped working."""
+    r = _sh("check-concurrency", {"GROBID_CONCURRENCY": "9",
+                                  "GROBID_HEADROOM_MAX_CONCURRENCY": "9"})
+    assert r.returncode != 0, "the removed bypass still lets concurrency 9 through"
+    assert "no longer honoured" in r.stdout
+    # it is refused even when it would not have changed the outcome, so it can never be trusted
+    assert _sh("check-concurrency", {"GROBID_HEADROOM_MAX_CONCURRENCY": "4"}).returncode != 0
+
+
+@pytest.mark.litkb_live
+@pytestmark_live
+def test_launcher_refuses_a_non_numeric_concurrency_before_writing_anything():
+    """`[ abc -gt 4 ]` returns false with 'integer expected' on stderr, so the guard PASSED and
+    `configure` sed-ed `concurrency: abc` into grobid.yaml verbatim. The value is now validated
+    ahead of both the comparison and the write."""
+    assert "concurrency: 4" in _fake_tree(4)
+    r = _sh("check-concurrency", {"GROBID_CONCURRENCY": "abc"})
+    assert r.returncode != 0 and "not a non-negative integer" in r.stdout
+
+    # NO_JDK for the same reason as the enable tests: mutate require_integer away and `configure`
+    # sed-s `abc` into the fake yaml, write_unit then reads it back, `[ abc -gt 4 ]` is false, and
+    # the REAL /etc/systemd/system/grobid.service gets rewritten with the throwaway ExecStart.
+    # With no resolvable JDK that path stops before the unit is touched.
+    c = _sh("configure", dict(NO_JDK, GROBID_CONCURRENCY="abc", GROBID_DIR=FAKE_DIR))
+    assert c.returncode != 0 and "not a non-negative integer" in c.stdout
+    after = _fake_cfg_text()
+    assert "concurrency: abc" not in after, "a malformed concurrency reached grobid.yaml"
+    assert "concurrency: 4" in after
+
+
+@pytest.mark.litkb_live
+@pytestmark_live
+def test_enable_checks_the_concurrency_it_would_arm():
+    """D1. ExecStart hands the launcher grobid.yaml and nothing else, so `enable` arms whatever a
+    previous `GROBID_BREAK_HEADROOM=1 configure` left there — on every distro boot, down a path
+    that never reaches do_start and never re-checks. With the yaml pre-set to 9, `enable` must
+    refuse before it writes the unit or touches systemd."""
+    assert "concurrency: 9" in _fake_tree(9)
+    r = _sh("enable", dict(NO_JDK, GROBID_DIR=FAKE_DIR))
+    assert r.returncode != 0, "enable armed an over-budget concurrency"
+    assert "20% CPU-headroom" in r.stdout
+    assert "autostart on" not in r.stdout          # it stopped before systemctl enable
+    # it stopped at the HEADROOM gate specifically: the JDK gate sits behind it and never spoke
+    assert "no JDK 21 found" not in r.stdout
+
+    # knowingly overridden, the same call is allowed — the guard is a check, not a wall
+    ok = _sh("enable", dict(NO_JDK, GROBID_DIR=FAKE_DIR, GROBID_BREAK_HEADROOM="1"))
+    assert "20% CPU-headroom" not in ok.stdout     # past the headroom gate, stopped by the JDK one
+    assert "no JDK 21 found" in ok.stdout          # and so it never reaches systemctl either
+
+
+@pytest.mark.litkb_live
+@pytestmark_live
+def test_enable_passes_a_within_budget_yaml_up_to_the_point_of_no_return():
+    """The gate must not refuse everything: with the yaml at the budgeted 4, `enable` gets past
+    the headroom check. It is stopped here by an unresolvable JDK rather than being allowed to
+    arm autostart on the real unit path."""
+    assert "concurrency: 4" in _fake_tree(4)
+    r = _sh("enable", dict(NO_JDK, GROBID_DIR=FAKE_DIR))
+    assert "20% CPU-headroom" not in r.stdout
+    assert "no JDK 21 found" in r.stdout
+    # and nothing of the throwaway tree ever reached the real unit
+    assert FAKE_DIR not in _wsl("cat /etc/systemd/system/grobid.service 2>/dev/null").stdout

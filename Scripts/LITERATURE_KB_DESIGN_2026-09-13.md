@@ -449,9 +449,22 @@ cropbox's size, and its coords are relative to the cropbox's upper-left corner. 
 `<ref>` element's box agrees with pypdfium2 to **0.39–0.91 pt** after the shift and is off by
 **10.5–10.9 pt** without it. `litkb.extract.grobid.page_frames()` reads the two boxes from the PDF
 and `to_mediabox()` applies the shift; every `Block` states its `frame`. Rotation *is* applied by
-GROBID (`/Rotate 90` yields a landscape `<surface>`), but how rotation composes with the cropbox
-shift is **[UNCONFIRMED]** — `to_mediabox()` refuses those 7 corpus pages rather than convert them
-silently.
+GROBID (`/Rotate 90` yields a landscape `<surface>`) — `to_mediabox()` refuses those 7 corpus pages
+rather than convert them silently.
+
+**Rotation: the refusal is necessary, not cautious [M] (2026-09-15).** Rotation only costs anything
+on a page that ALSO has cropbox ≠ mediabox, and that intersection is **exactly one page in 4,712**
+(referee's corpus: 224 PDFs under `Literture\` excluding `_quarantine`, 7 rotated pages and 271
+cropped — quote those counts only with that corpus definition; they differ from the 216/223 set
+above). The page is `Hall_1985_resampling-coverage-pattern.pdf` p12, rotation 180. Measured there:
+GROBID's 551 body blocks match pypdfium2 to **2.04 pt** read in the rot-180 *displayed* frame, vs
+10.99 pt read unrotated — so GROBID does report the displayed frame. **And the correct map for 180°
+is a reflection, not the translation `to_mediabox` applies**: `x_m = crop.x1 − X`,
+`y_m = media.y1 − crop.y0 − Y`. The two agree nowhere on that page — a block at displayed `x = 49.8`
+belongs at `x_m = 413.2` and the translation would place it at `51.8`, a **361.4 pt** error (roughly
+the page width); in y, **557.6 pt**. For 90°/270° the axes swap as well. Implementing the
+per-rotation maps is **future work**; refusing is the only correct behaviour available, and it is
+pinned by `test_to_mediabox_refuses_a_rotated_page_with_a_cropbox`.
 
 **`teiCoordinates` is a REPEATED form field [M].** One field per element name. Comma-joining the
 list is accepted with HTTP 200 and yields almost no coordinates (8 boxes, all on `graphic`, vs
@@ -461,9 +474,14 @@ list is accepted with HTTP 200 and yields almost no coordinates (8 boxes, all on
 scan whose cover page carries the access boilerplate — returns 200 with a parsed header and an
 EMPTY `<text><body>` (`Anderson_1957`: 3,659 B, 4 blocks, all of them header boilerplate). A file
 with *no* text layer anywhere is refused by GROBID itself with a 500 `[NO_BLOCKS]`; the partial case
-is the dangerous one. Any TEI with no coordinate-bearing block inside `<text><body>` is REFUSED
-(`NoTextBlocks`), is never recorded as a successful extraction, and its `extraction_runs` row is
-`failed`.
+is the dangerous one. A TEI with **fewer than `MIN_BODY_BLOCKS` = 4** coordinate-bearing blocks
+inside `<text><body>` is REFUSED (`NoTextBlocks`), is never recorded as a successful extraction, and
+its `extraction_runs` row is `failed`. **The threshold is 4, not 1 [M] (2026-09-15):** injecting one
+junk `<p>` box into the Anderson scan's empty body flipped it from refused to admitted with nothing
+flagging it (referee 2, D3). With `segmentSentences=1` one real three-sentence paragraph already
+yields four boxes (`<p>` + 3 `<s>`), while a scan page's furniture — page number, running head,
+footer — is at most three; 4 is the lowest value that separates them by mechanism and is below the 8
+body blocks of the smallest real-paper fixture. **Provisional** pending a per-PDF body-block census.
 
 **Test (P4, before reconciliation is written):** on one born-digital page, take a word whose box
 pypdfium2 reports, and require every adapter's box for the region containing that word to contain

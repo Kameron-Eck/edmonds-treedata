@@ -141,8 +141,10 @@ def ingest_file(conn, file_id, canonical, disagreements, stats, pages=(), *,
                          [c["x0"], c["y0"], c["x1"], c["y1"]],
                          c.get("column_header", False), c.get("row_header", False)))
             elif b.kind == "figure":
-                conn.execute("INSERT INTO litkb.figures (block_id, description) VALUES (%s, %s)",
-                             (bid, b.payload.get("caption") or None))
+                # NO description. §4.4's `figures.description` is stage 8's vision field, paired
+                # with `description_model`; the caption is already the block's own text, and
+                # writing it here would read later as a model's description of the picture.
+                conn.execute("INSERT INTO litkb.figures (block_id) VALUES (%s)", (bid,))
             elif b.kind == "equation":
                 conn.execute("INSERT INTO litkb.equations (block_id, latex) VALUES (%s, %s)",
                              (bid, b.latex))

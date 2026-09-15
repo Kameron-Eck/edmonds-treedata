@@ -377,6 +377,13 @@ def _blocks(n=5, with_table=False):
                                {"row": 0, "col": 1, "row_span": 1, "col_span": 1, "text": "b",
                                 "x0": 50.0, "y0": 500.0, "x1": 100.0, "y1": 600.0,
                                 "column_header": False, "row_header": False}]}))
+        out.append(R.Canonical(
+            page=1, x0=0, y0=620, x1=100, y1=700, kind="figure", reading_order=n + 1,
+            text="Fig. 1. A caption, which is the BLOCK's text.", source="both",
+            payload={"caption": "Fig. 1. A caption, which is the BLOCK's text."}))
+        out.append(R.Canonical(
+            page=1, x0=0, y0=710, x1=100, y1=740, kind="equation", reading_order=n + 2,
+            text="x = y + 1", latex=None, source="docling"))
     return out
 
 
@@ -401,13 +408,77 @@ def _ingest(pg, file_id, blocks=None, dis=None, **kw):
 def test_ingest_writes_blocks_and_moves_the_pointer_last(pg):
     file_id = _file_row(pg)
     res, _ = _ingest(pg, file_id, _blocks(with_table=True))
-    assert res["inserted"] and res["blocks"] == 6 and res["disagreements"] == 2
-    assert pg.one("SELECT count(*) FROM litkb.blocks WHERE run_id = %s", (res["run_id"],))[0] == 6
+    assert res["inserted"] and res["blocks"] == 8 and res["disagreements"] == 2
+    assert pg.one("SELECT count(*) FROM litkb.blocks WHERE run_id = %s", (res["run_id"],))[0] == 8
     assert pg.one("SELECT count(*) FROM litkb.table_cells")[0] >= 2
+    # the figure's caption is the BLOCK's text; figures.description is stage 8's vision field
+    fig = pg.one("SELECT b.text, f.description, f.description_model FROM litkb.figures f "
+                 "JOIN litkb.blocks b ON b.id = f.block_id WHERE b.run_id = %s", (res["run_id"],))
+    assert fig[0].startswith("Fig. 1.") and fig[1] is None and fig[2] is None
+    # the equation is a region; its latex stays NULL until stage 4 fills it
+    assert pg.one("SELECT e.latex FROM litkb.equations e JOIN litkb.blocks b ON b.id = e.block_id "
+                  "WHERE b.run_id = %s", (res["run_id"],)) == (None,)
     assert pg.one("SELECT current_run_id FROM litkb.files WHERE id = %s", (file_id,))[0] == res["run_id"]
     # the pointer's history row, written inside set_current_run (0017)
     assert pg.one("SELECT run_id, version_no FROM litkb.file_current_run WHERE file_id = %s",
                   (file_id,)) == (res["run_id"], 1)
+
+
+TEI_DIR = pathlib.Path(r"D:\edmonds-pipeline\_tmp\litkb_tei")
+DOC_DIR = pathlib.Path(r"D:\edmonds-pipeline\_tmp\litkb_docling")
+_REAL = [("Alwan", ALWAN, TEI_DIR / "Alwan.tei.xml", DOC_DIR / "Alwan_1988__cpu-t4.docling.json"),
+         ("Anderson", CORPUS / "Validation" / "Anderson_1957_statistical-inference-about-markov.pdf",
+          None, DOC_DIR / "Anderson_1957__ocr-t4.docling.json")]
+
+
+@pg_only
+@pytest.mark.parametrize("tag,pdf,tei_path,doc_path", _REAL, ids=[r[0] for r in _REAL])
+def test_a_real_files_reconciliation_lands_whole(pg, tag, pdf, tei_path, doc_path):
+    """END TO END on a REAL file, because every other ingest test here uses hand-built blocks and
+    real output has shapes they do not: a table Docling gives no `prov` (page 0, which the
+    `page_no >= 1` CHECK refuses), reference blocks renumbered after the body, and — on Anderson,
+    which has no TEI at all — image-only pages whose coverage share is NULL rather than a number.
+    Skipped where the artifacts are not on this machine; nothing here re-runs either tool."""
+    if not pdf.exists() or not doc_path.exists() or (tei_path is not None and not tei_path.exists()):
+        pytest.skip(f"{tag}: the stage-5 artifacts are not on this machine")
+    from litkb.extract import docling as D
+    from litkb.extract import inventory as I
+
+    record = I.probe_file(str(pdf))
+    doc = D.load(str(doc_path))
+    tei = tei_path.read_bytes() if tei_path is not None else None
+    canonical, dis, stats = R.reconcile(str(pdf), tei, doc, record,
+                                        ocr_pages=record.get("ocr_pages") or ())
+    classes = {i + 1: d.get("scan", "unknown") for i, d in enumerate(record["page_detail"])}
+    cov = R.coverage(str(pdf), canonical, classes)
+    pages = [{"page_no": p, "page_class": r["page_class"], "native_chars": r["chars"],
+              "covered_chars": r["covered"], "coverage_share": r["share"]}
+             for p, r in sorted(cov.items())]
+
+    file_id = _file_row(pg)
+    from litkb.extract import ingest as ing
+
+    conn = pg.session("litkb_ingest")
+    res = ing.ingest_file(conn, file_id, canonical, dis, stats, pages=pages,
+                          artifact_path=str(doc_path))
+    assert res["inserted"]
+    assert res["blocks"] == stats["blocks"] == len(canonical)
+    assert pg.one("SELECT count(*) FROM litkb.blocks WHERE run_id = %s",
+                  (res["run_id"],))[0] == len(canonical)
+    assert pg.one("SELECT count(*) FROM litkb.extraction_disagreements WHERE run_id = %s",
+                  (res["run_id"],))[0] == len(dis)
+    assert pg.one("SELECT count(*) FROM litkb.pages WHERE run_id = %s",
+                  (res["run_id"],))[0] == len(pages)
+    assert pg.one("SELECT current_run_id FROM litkb.files WHERE id = %s",
+                  (file_id,))[0] == res["run_id"]
+    # a page with no native layer keeps a NULL share, never 0 or 1
+    na = [p for p in pages if p["coverage_share"] is None]
+    if na:
+        assert pg.one("SELECT count(*) FROM litkb.pages WHERE run_id = %s AND coverage_share IS NULL",
+                      (res["run_id"],))[0] == len(na)
+    # and a second ingest of the same file writes nothing
+    again = ing.ingest_file(conn, file_id, canonical, dis, stats, pages=pages)
+    assert again["inserted"] is False and again["run_id"] == res["run_id"]
 
 
 @pg_only

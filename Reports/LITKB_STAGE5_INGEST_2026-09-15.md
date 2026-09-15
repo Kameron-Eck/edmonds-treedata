@@ -141,15 +141,23 @@ there would claim a measurement that was not made.
 (service started, then stopped), Docling 2.127.0 CPU venv. Wall-clock is the **reconciliation
 only**, on this laptop, single process.
 
-| file | pages | route | TEI | blocks | matched | disagreements | s |
-|---|---|---|---|---|---|---|---|
-| Benedek_2015 | 16 | native | yes | 570 | 171 | 373 | 1.5 |
-| Alwan_1988 | 10 | native | yes | 211 | 84 | 119 | 0.7 |
-| Anderson_1957 | 22 | scan | **no** | 314 | 0 | 0 | 0.1 |
-| Bellettini_2002 | 51 | native | yes | 1,323 | 359 | 1,064 | 1.9 |
-| Schneider_2008 (the 688-page book) | 688 | mixed | yes | 14,367 | 5,081 | 9,523 | 50.5 |
-| Ogata_1998 | 24 | scan | **no** | 388 | 0 | 0 | 0.1 |
-| Almon_1965 (cover sheet) | 20 | cover-sheet | yes | 437 | 31 | 390 | 0.7 |
+Wall-clock is given three ways: GROBID's own (concurrency 1, warm service under WSL2), Docling's
+(CPU venv), and stage 5's reconciliation. Docling seconds are quoted only for the two files
+converted in this session; the other five reuse artifacts the P4 branches produced, whose rates
+are in `phase4/qc/litkb_extraction_metrics.jsonl` and the Docling throughput CSV.
+
+| file | pages | route | TEI | blocks | matched | disagreements | GROBID s | Docling s | stage 5 s |
+|---|---|---|---|---|---|---|---|---|---|
+| Benedek_2015 | 16 | native | yes | 570 | 171 | 373 | 43.7 | (P4 artifact) | 1.8 |
+| Alwan_1988 | 10 | native | yes | 211 | 84 | 119 | 3.1 | (P4 artifact) | 0.7 |
+| Anderson_1957 | 22 | scan | **no** | 314 | 0 | 0 | refused | (P4 OCR artifact) | 0.1 |
+| Bellettini_2002 | 51 | native | yes | 1,323 | 359 | 1,064 | 6.2 | (P4 artifact) | 1.9 |
+| Schneider_2008 (the 688-page book) | 688 | mixed | yes | 14,367 | 5,081 | 9,523 | 84.2 | (P4 artifact) | 49.8 |
+| Ogata_1998 | 24 | scan | **no** | 388 | 0 | 0 | refused | **584.7** (OCR) | 0.1 |
+| Almon_1965 (cover sheet) | 20 | cover-sheet | yes | 437 | 31 | 390 | 3.2 | **182.2** | 0.7 |
+
+Stage 5 is not the cost of this pipeline: on the book it is 49.8 s against GROBID's 84.2 s, and
+on a scan it is a tenth of a second against Docling's ten minutes of OCR.
 
 `tei = no` is not a failure of this stage: GROBID refuses `Ogata_1998` outright (HTTP 500
 `NO_BLOCKS`, no text layer anywhere) and `Anderson_1957` with `NoTextBlocks` (200 with an empty
@@ -216,6 +224,11 @@ mode CLAUDE.md §3.4c exists for.
    model's sequence on each canonical block and sorting by it, with a column-aware anchor for
    GROBID-only regions: **0 of 23** after. Rows `R519` (order back to geometry) and `R520`
    (anchor without the column check) both fire.
+1b. **The caption fix landed in one module and not the other.** `reconcile.py` was changed to put
+   a figure's caption in the block's `text`, but `ingest.py` kept writing it into
+   `figures.description` — stage 8's vision field — so the report described one thing and the
+   database held another. Found by re-reading the writer against the report rather than against
+   the change. Row `R522` fires, and the end-to-end test now asserts `description IS NULL`.
 2. **Native text came back with every space removed.** `native_text_in` joined the characters
    whose boxes fell inside a block, and pypdfium2 reports no usable box for a space — so a
    paragraph read `"Contentslistsavailable"`. Coverage was unaffected (its denominator is the
@@ -248,24 +261,39 @@ mutation rows, which stops them drifting unnoticed; it does not make them right.
 
 ## 8. Proofs
 
-* `qc/test_litkb_reconcile.py` — **37 passed** (`LITKB_TEST_DB=litkb_test_w6`), of which 15 are
-  Postgres tests.
+* `qc/test_litkb_reconcile.py` — **39 passed** (`LITKB_TEST_DB=litkb_test_w6`), of which 17 are
+  Postgres tests, two of them real files ingested end to end.
 * `qc/test_litkb_p1.py` — the role-privilege matrix updated with the five new ingest-only
   functions and re-run.
 * `py -3.12 qc/instruments/litkb_p2_mutations.py --sites` — **PASS** (16 sinks, 2 redacted, 14
   allowed; no new sink: neither `reconcile.py` nor `ingest.py` writes to stdout).
-* Parallel harness, `--workers 4 --worker-dbs 1,2,6,9`, the **21** new rows `R51`–`R521`:
-  **21/21 fired**, baselines passed.
-* Whole harness, same invocation, all 176 rows: **176/176 fired**, baselines passed, 44/44 per
-  worker, wall-clock **48.1 min** over 4 workers.
+* Parallel harness, `--workers 4 --worker-dbs 1,2,6,9`, the **22** new rows `R51`–`R522`:
+  **22/22 fired**, baselines passed.
+* Whole harness, same invocation, at the time it was run (176 rows, before `R522` was added):
+  **176/176 fired**, baselines passed, 44/44 per worker, wall-clock **48.1 min** over 4 workers.
 * `py -3.12 qc/check.py --fast` under `LITKB_TEST_DB=litkb_test_w6`: **2,669 passed, 23 skipped,
   2 xfailed, 1 failed** — the single failure is `test_pointer_paths_resolve[crown_state_model]`,
   the known pre-existing one. litkb Postgres tests 259 passed.
 
-## 9. What was applied where
+## 9. What was persisted, and where
+
+**Nothing was written to `litkb`.** The §5 run reconciles real files and writes a CSV; it never
+opens a database.
+
+**Real reconciliations WERE ingested, into `litkb_test_w6`.**
+`test_a_real_files_reconciliation_lands_whole` reconciles `Alwan_1988` (with TEI) and
+`Anderson_1957` (no TEI, image-only pages) and lands each through `ingest_file` as
+`litkb_ingest`, asserting that the block count equals `stats["blocks"]`, the disagreement count
+equals what reconciliation produced, every page row is there with NULL `coverage_share` on the
+pages that have no native layer, the pointer moved, and a second ingest writes nothing. That test
+exists because every other ingest test here uses hand-built blocks, and real output has shapes
+they do not.
 
 **Migration 0017 was applied to `litkb_test` and to the four worker databases through the test
-suite's own reset-and-migrate.** It was **NOT applied to `litkb`**: the brief holds `litkb`
+suite's own reset-and-migrate.** (It was also applied by hand to `litkb_test` once, before the
+`clear_extraction_rows` function was added; that database therefore carries a stale checksum until
+the suite next resets it, which it does on every run. The four worker databases were only ever
+migrated by the suite.) It was **NOT applied to `litkb`**: the brief holds `litkb`
 read-only except for applying this migration once accepted-additive, and it has not been
 refereed. It is additive by construction (three new tables, added columns with defaults, one
 `CREATE OR REPLACE`, one trigger on `tables` and two on `blocks`/`pages`), but the
@@ -282,8 +310,8 @@ was filling it, so it is a referee's call, not the author's. Applying it is one 
 2. **The coverage metric's blind spot** (§6) is measured but not designed around. Whether the
    metric should count a character once per block (so a lost region shows) is a design question
    this session raises and does not answer.
-3. **0017 is not applied to `litkb`** (§9), so nothing in the real lake has been ingested. The
-   run in §5 reconciled real files but wrote to no database outside `litkb_test`.
+3. **0017 is not applied to `litkb`** (§9), so nothing in the real lake has been ingested. Real
+   files have been reconciled and ingested only into `litkb_test_w6`, by the end-to-end test.
 4. **GROBID contributes far fewer regions than Docling, and only some of them match.** Measured:
    `Almon_1965` **48 GROBID regions against 398 Docling**, of which 31 matched; `Benedek_2015`
    **233 against 430**, of which 171 matched. A referee should decide whether GROBID is simply

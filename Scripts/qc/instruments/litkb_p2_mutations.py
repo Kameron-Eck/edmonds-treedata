@@ -534,6 +534,13 @@ replace("R520", f"{PKG}/extract/reconcile.py",
         "        if False:\n            continue",
         "the anchor stops requiring horizontal overlap: a GROBID-only block in the left column "
         "takes the right column's order", tests=TESTS_S5)
+replace("R522", f"{PKG}/extract/ingest.py",
+        'conn.execute("INSERT INTO litkb.figures (block_id) VALUES (%s)", (bid,))',
+        'conn.execute("INSERT INTO litkb.figures (block_id, description) VALUES (%s, %s)",\n'
+        '                             (bid, b.payload.get("caption") or None))',
+        "a figure's CAPTION is written into figures.description, which is stage 8's vision field: "
+        "later readers cannot tell a caption from a model's description of the picture",
+        tests=TESTS_S5)
 replace("R521", f"{PKG}/extract/reconcile.py",
         '    inside = [i for _c, x, y, i in layer["pts"] if _in_box(x, y, box, tol)]\n'
         '    if not inside:\n        return ""\n'

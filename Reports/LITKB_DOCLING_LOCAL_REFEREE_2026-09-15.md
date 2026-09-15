@@ -7,7 +7,7 @@
 **Method:** the frame set by `Reports/LITKB_GROBID_LOCAL_REFEREE2_2026-09-15.md` — reproduce
 every load-bearing number from the artefacts, with the referee's OWN gold, and try to break it.
 
-## Verdict — **STAGE 3 READY**, with four recorded defects, none of them in the adapter
+## Verdict — **STAGE 3 READY**, with five recorded defects, none of them in the adapter
 
 Every gate reproduced against gold the referee read off the rendered pages, not off the
 builder's fixtures or its test constants. Every timing reproduced inside 20% on a quieter
@@ -16,9 +16,10 @@ formula errors the builder marked UNCONFIRMED are **confirmed wrong**, and the t
 correct are **confirmed correct** — by an independent reading of the rendered pages plus a
 re-run that reproduced all five LaTeX strings byte-for-byte.
 
-The defects are in the **pin**, the **report's OCR characterisation**, one **stale report
-paragraph**, and the **branch's test-database isolation**. The last one is the only one that
-should block a merge, and it is a one-line fix.
+The defects are in the **pin**, the **report's OCR characterisation**, and two **stale or
+false statements of fact inside the report**. A sixth item, N1, is a note about the referee
+BRIEF rather than about the branch. **Nothing here blocks a merge**, and nothing is in the
+adapter.
 
 ---
 
@@ -107,11 +108,15 @@ the page image before reading any OCR output, then diffed:
 
 | | |
 |---|--:|
-| words compared | 94 (the last gold word fell mid-token) |
-| words wrong or missing | **23** |
-| **word error rate** | **24.5%** |
-| of which, inside ONE contiguous dropout | 22 |
+| gold words compared | 94 (the 100th fell mid-token) |
+| gold words wrong or missing | **13** |
+| **word error rate** | **13.8%** |
+| of which, inside ONE contiguous dropout | **12** |
 | outside that dropout | 1 (`χ²` → `x²`) |
+
+*(A first pass of this diff reported 24.5%. It counted ten words of slice overhang — the OCR
+window ran past the 94th gold word — as errors. 13.8% is the corrected figure; the dropout
+below is unaffected by it.)*
 
 The dropout is the finding. Where the page reads
 
@@ -122,15 +127,20 @@ the OCR'd block reads
 
 > `…of a first order chain aorae nt Gtnt e sn nt  ea  tt ( Gtt are specified numbers…`
 
-**Twelve words of the abstract are replaced by nine tokens of gibberish that is still
+**Twelve words of the abstract are replaced by ten tokens of gibberish that is still
 word-shaped.** That is a different failure from the report's `usualiy` / `sncreases` /
 `x²`-for-`χ²` list. Those are per-character slips a fuzzy quote matcher survives; this is
 **silent content loss inside a block that otherwise reads cleanly**, with no marker, no
 confidence drop at block level (there is no block-level confidence), and a `mean_grade` of
 `excellent` on the page. The report's §4.3 sentence — "OCR quality on a 1957 letterpress scan
-is good but not clean" — is true of 94% of the words and false of the passage that matters.
-**Fix:** say in §4.3 that a contiguous ~12-word clause was destroyed, and state the measured
-word error rate rather than three example typos. The downstream consequence the report draws
+is good but not clean" — is true of 86% of the words and false of the passage that matters.
+
+**Scored on the referee's OWN run, not on the builder's fixture** (CLAUDE.md §3.4c), and
+**deterministic**: the 22-page OCR batch re-run in the rebuilt venv produced the identical
+`aorae nt Gtnt e sn nt  ea  tt ( Gtt`, so this is a reproducible property of rapidocr+torch on
+this page rather than a one-off sampling artefact. **Fix:** say in §4.3 that a contiguous
+12-word clause was destroyed, and state the measured word error rate rather than three example
+typos. The downstream consequence the report draws
 (an exact-match quote gate would reject true quotes) is correct but too weak: a quote gate over
 this text can also find a *plausible-looking* string that the page never said.
 
@@ -158,9 +168,10 @@ page. The report's rule ("treat them as a candidate, not a fact") is the right o
 
 **Ambient load, recorded before each batch** (the referee's threshold, fixed before running:
 < 30% system CPU and no foreign pytest campaign): **13.9%** over a 5 s sample, 13 python
-processes of which 10 idle MCP servers. The builder's own cpu-t4 batch ran at 34% → 61%. **No
-contended run is reported here**; the mutation sweep in §5 shared the machine with the formula
-run and carries no timing.
+processes of which 10 idle MCP servers. The builder's own cpu-t4 batch ran at 34% → 61%.
+**The config-A and OCR batches are clean** — each ran in the foreground with nothing else of the
+referee's in flight. **The formula run is CONTENDED and is marked as such below**: the mutation
+sweep of §5, the zero-block probe and the tail of `qc/check.py` all shared the machine with it.
 
 **Config A, `num_threads=4`, CPU, tables on, OCR off — rebuilt venv**
 
@@ -181,7 +192,8 @@ run and carries no timing.
 DETERMINED: reproduced.** OCR is 7.0× slower than the same file without it (referee), 7.9×
 (builder); both say the same thing.
 
-**Formula, pp. 3–4:** 2 pages in **417.97 s = 0.0048 p/s**, peak 2,249 MB. Builder: 161.5 + 235.4
+**Formula, pp. 3–4 — CONTENDED (see the load paragraph above):** 2 pages in
+**417.97 s = 0.0048 p/s**, peak 2,249 MB. Builder: 161.5 + 235.4
 = 396.9 s for the same two pages. **+5.3% — reproduced**, and the "120–190× slower" claim holds:
 0.769 / 0.0048 = **160×**.
 
@@ -322,23 +334,32 @@ which is the real cost, not the availability.
   100 pages, not all 688." Commit `afc052c` added the full 688-page row to §3 and rewrote §3's
   prose accordingly, but left the blocker list untouched. One line to delete. (The referee did
   not re-run the 688-page book; §3's row and its 4.12 GB peak are accepted on the CSV and on the
-  100-page row reproducing to 0.5%.)
-* **Defect D5 — this branch cannot be tested against its own database, and that is a merge
-  blocker.** `pipeline/litkb/db/connect.py` has `DB_TEST = "litkb_test"` **hard-coded, with no
-  environment override**, on this branch. The server holds `litkb_test_w1 … litkb_test_w9`
-  alongside the shared `litkb_test`, so the per-worktree isolation the brief assumes exists on
-  the SERVER but not in THIS BRANCH'S CODE. Running `qc/check.py` here would have called
-  `migrate.reset()` on the **shared** `litkb_test` while another agent's 9-worker campaign was
-  live. The referee therefore ran the ladder with `LITKB_PGPORT=1`, so every PG fixture skipped
-  on "connection refused" and **no database was opened, read or written**. Before this branch
-  merges, `connect.py` needs the same `LITKB_PGDATABASE`-style override its sibling branches
-  evidently have.
+  100-page row's peak RSS reproducing to under 1%.)
+* **N1 — the brief's `litkb_test_w5` has no mechanism here, and this is a note about the
+  BRIEF, not a defect in the branch.** Checked, not inferred: `pipeline/litkb/db/connect.py`
+  sets `DB_TEST = "litkb_test"` with **no environment override**; `grep` finds **no reference
+  to `litkb_test_w*` anywhere in this worktree**; and `git show main:Scripts/pipeline/litkb/db/connect.py`
+  fails because **`main` does not carry the litkb tree at all**. The server does hold
+  `litkb_test_w1 … litkb_test_w9`, but they are created by something outside this worktree —
+  most plausibly the 9-worker mutation harness the brief names — not by a per-worktree
+  mechanism this branch could use. This branch's `qc/conftest.py` states the opposite design in
+  its own docstring: the suite logs in "ONLY as litkb_test, to litkb_test, under the advisory
+  lock (parallel worktrees serialise)". Sharing one database is deliberate here.
+
+  The residual risk is real but narrower than a merge blocker: the advisory lock serialises
+  concurrent suites, yet `migrate.reset()` still destroys whatever is in `litkb_test` when it
+  acquires the lock, so a session holding state there loses it. Because the brief restricted
+  this review to `litkb_test_w5` and no code path reaches that name, the referee ran the ladder
+  with `LITKB_PGPORT=1`: every PG fixture skipped on "connection refused" and **no database was
+  opened, read or written by this review**. The cost is recorded above — 216 litkb Postgres
+  tests went unexercised, and a merge reviewer must run them.
 * **`qc/check.py --fast`, run with `LITKB_PGPORT=1`: one failure, and it is the expected one.**
   `1 failed, 2217 passed, 224 skipped in 988.9 s`; the single failure is
   `qc/test_experiments.py::test_pointer_paths_resolve[crown_state_model]`, pre-existing and
-  unrelated to stage 3. **216 litkb Postgres tests skipped** as a direct consequence of D5 —
+  unrelated to stage 3 — the one failure the brief named. **216 litkb Postgres tests skipped**
+  as a direct consequence of N1 —
   those guards were **not** exercised by this referee, and a merge reviewer must run them
-  against a private database once the override exists.
+  against a database they are willing to have reset.
 * **`git log -p 4256e4e..afc052c` (3 commits): no secrets.** The only hits for
   `password|secret|key|token` are the prose and docstrings describing the
   `D:\edmonds-pipeline\secrets\` **directory shadowing the stdlib `secrets` module** — a real
@@ -350,8 +371,10 @@ which is the real cost, not the availability.
 
 ## 8. What the referee did NOT check
 
-1. **The 688-page book run** (995.9 s, 4.12 GB peak). Accepted on the CSV row plus the 100-page
-   row reproducing to within 0.5%. The pool-sizing conclusion — size on the longest document,
+1. **The 688-page book run** (995.9 s, 4.12 GB peak). Accepted on the CSV row plus the
+   100-page row of the same file, whose **peak RSS reproduced to under 1%** (2,621 vs
+   2,641 MB); its wall clock is 7% faster here (126.0 vs 135.7 s), consistent with the lower
+   ambient load rather than with a different pipeline. The pool-sizing conclusion — size on the longest document,
    not the median — follows from 2.6 GB at 100 pages vs 4.12 GB at 688 and is not disputed, but
    it rests on **one** long document.
 2. **Parallel workers.** The report says the memory is per worker and does not measure a pool.
@@ -370,12 +393,12 @@ which is the real cost, not the availability.
 
 | | defect | severity | fix |
 |---|---|---|---|
-| **D5** | `DB_TEST` hard-coded; this branch's ladder would reset the SHARED `litkb_test` | **blocks merge** | add the env override, one line |
-| **D2** | §4.3 understates OCR damage: a ~12-word clause is replaced by word-shaped gibberish; measured WER 24.5% over 94 words | **high** — it is the basis of a downstream quote rule | state the dropout and the rate |
+| **D2** | §4.3 understates OCR damage: a contiguous 12-word clause is replaced by word-shaped gibberish; measured WER **13.8%** over 94 gold words, and deterministic | **high** — it is the basis of a downstream quote rule | state the dropout and the rate |
 | **D1** | the pin constrains 3 packages and comments the rest; `docling-core` drifted 2.96.0 → 2.96.1 in one day | medium | freeze, or add a lock file |
 | **D3** | the one surviving OCR-off body block is `®`, not the JSTOR boilerplate | low, but it is a stated fact that is false | correct it; note a character floor would catch this file |
 | **D3b** | §7.4 still says the book was measured on 100 pages | low | delete the line |
 | **D4** | §3.2 does not name the wheel that would work | cosmetic | name `torch==2.14.0+cu130` / sm_75 |
+| **N1** | not a branch defect: the brief's `litkb_test_w5` has no code path; the suite is designed to share `litkb_test` under an advisory lock | note | decide whether per-worktree databases are wanted; 216 PG tests remain unexercised here |
 
 None of these is in `litkb/extract/docling.py` or `docling_worker.py`. The adapter, its frame
 handling, its refusals and its tests all survived everything the referee threw at them.

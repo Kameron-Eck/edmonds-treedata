@@ -111,6 +111,11 @@ class Canonical:
     frame: str = "mediabox"
     text_source: str = "tool"        # native | ocr | tool
     payload: dict = dataclasses.field(default_factory=dict)   # table cells, figure caption, ...
+    #: The LAYOUT MODEL's own sequence number for this region (Docling's `order_index`), or the
+    #: anchored one derived for a region only GROBID saw. This is what reading order is built
+    #: from; see :func:`_assign_order` for why it is carried rather than re-derived.
+    tool_order: int = -1
+    anchored: bool = False           # True when tool_order was inferred, not read off the tool
 
     @property
     def bbox(self):
@@ -185,7 +190,13 @@ def match_by_iou(left, right, threshold=IOU_MATCH, touch=IOU_TOUCH):
 # ── the native text layer (the denominator of coverage, and the preferred text) ─────────────
 
 def native_chars(pdf_path, page_no, frames=None):
-    """[(char, x, y)] for every non-space character on the page, in the MEDIABOX top-left frame.
+    """The page's native text layer: ``{"text": the page's own string, "pts": [(char, x, y, i)]}``.
+
+    ``pts`` holds one entry per NON-SPACE character that has a usable box, positioned in the
+    MEDIABOX top-left frame, with ``i`` its index into ``text``. Both are needed, for different
+    things: ``pts`` is coverage's denominator (a space is not a character a block can be
+    responsible for), and ``text`` is what :func:`native_text_in` slices, because a space has no
+    box to test and a join of the ink alone comes back with none of them.
 
     The conversion is the one :func:`litkb.extract.docling.charbox_union` documents: pypdfium2
     reports (left, bottom, right, top) in the mediabox's BOTTOM-LEFT user space, so y flips
@@ -210,24 +221,48 @@ def native_chars(pdf_path, page_no, frames=None):
             try:
                 cb = tp.get_charbox(i, loose=False)
             except Exception:  # noqa: BLE001 - a glyph with no box is not a frame error
+                cb = None
+            if cb is not None and (cb[2] - cb[0] <= 0 or cb[3] - cb[1] <= 0):
+                cb = None         # the degenerate first-of-run box, see charbox_union
+            if cb is None:
+                # KEPT, with no position yet. pypdfium2 reports a zero-area box for the first
+                # character of a text run, placed at the END of the previous run; dropping such
+                # a character outright made native_text_in's slice start one or two characters
+                # late ("ntents lists available" for "Contents lists available"). It inherits
+                # the next positioned character's point below, which is where it actually sits.
+                out.append([ch, None, None, i])
                 continue
-            if cb[2] - cb[0] <= 0 or cb[3] - cb[1] <= 0:
-                continue          # the degenerate first-of-run box, see charbox_union
             cx = ((cb[0] + cb[2]) / 2.0) - media[0]
             cy = media[3] - ((cb[1] + cb[3]) / 2.0)
-            out.append((ch, cx, cy))
+            out.append([ch, cx, cy, i])
     finally:
         doc.close()
-    return out
+    nx = ny = None
+    for rec in reversed(out):
+        if rec[1] is None:
+            rec[1], rec[2] = nx, ny
+        else:
+            nx, ny = rec[1], rec[2]
+    return {"text": text, "pts": [tuple(r) for r in out if r[1] is not None]}
 
 
 def _in_box(x, y, b, tol=1.0):
     return (b[0] - tol) <= x <= (b[2] + tol) and (b[1] - tol) <= y <= (b[3] + tol)
 
 
-def native_text_in(chars, box, tol=1.0):
-    """The native layer's characters inside `box`, in the PDF's own order."""
-    return "".join(c for c, x, y in chars if _in_box(x, y, box, tol))
+def native_text_in(layer, box, tol=1.0):
+    """The native layer's text inside `box` — a SLICE of the page's own string.
+
+    Not a join of the characters that fall inside. pypdfium2 reports no usable box for a space,
+    so `native_chars` carries only the ink, and joining those gives
+    ``"Theoptimismidentityholds"`` — text that no quote can be verified against and that no
+    later stage can chunk. Taking the span between the first and last inside-character keeps the
+    PDF's own spacing, which is the thing §7.1 means by "the native layer's characters win".
+    """
+    inside = [i for _c, x, y, i in layer["pts"] if _in_box(x, y, box, tol)]
+    if not inside:
+        return ""
+    return layer["text"][min(inside):max(inside) + 1]
 
 
 # ── coverage (§7.1 "coverage metric per file", split by stage 0's page class) ────────────────
@@ -248,12 +283,13 @@ def coverage(pdf_path, canonical, page_classes, frames=None):
         by_page.setdefault(c.page, []).append(c.bbox)
     out = {}
     for page in sorted(frames):
-        chars = native_chars(pdf_path, page, frames)
+        layer = native_chars(pdf_path, page, frames)
+        pts = layer["pts"]
         boxes = by_page.get(page, [])
-        covered = sum(1 for _, x, y in chars if any(_in_box(x, y, b) for b in boxes))
+        covered = sum(1 for _c, x, y, _i in pts if any(_in_box(x, y, b) for b in boxes))
         out[page] = {
-            "chars": len(chars), "covered": covered,
-            "share": (covered / len(chars)) if chars else None,
+            "chars": len(pts), "covered": covered,
+            "share": (covered / len(pts)) if pts else None,
             "page_class": page_classes.get(page, "unknown"),
         }
     return out
@@ -398,10 +434,13 @@ def reconcile(pdf_path, tei=None, doc=None, record=None, ocr_pages=(), frames=No
             try:
                 chars_by_page[page] = native_chars(pdf_path, page, frames)
             except Exception:  # noqa: BLE001 - a page pdfium cannot read has no native layer
-                chars_by_page[page] = []
+                chars_by_page[page] = {"text": "", "pts": []}
         return chars_by_page[page]
 
     pairs, g_only, d_only, touching = match_by_iou(g_blocks, d_blocks)
+    by_page_d = {}
+    for b in d_blocks:
+        by_page_d.setdefault(b.page, []).append(b)
     canonical, dis = [], []
 
     def text_for(page, box, tool_text):
@@ -414,14 +453,14 @@ def reconcile(pdf_path, tei=None, doc=None, record=None, ocr_pages=(), frames=No
         return tool_text, "tool"
 
     def add(page, box, kind, subkind, source, text, tool_text, conf, element_id, extractor,
-            payload=None, latex=None):
+            payload=None, latex=None, tool_order=-1, anchored=False):
         chosen, how = text_for(page, box, text)
         canonical.append(Canonical(
             page=page, x0=box[0], y0=box[1], x1=box[2], y1=box[3], kind=kind, reading_order=-1,
             text=chosen, latex=latex, extractor=dict(extractor, text=("native-layer" if how == "native"
                                                                       else extractor.get("text", source))),
             confidence=conf, source=source, subkind=subkind, element_id=element_id,
-            text_source=how, payload=payload or {}))
+            text_source=how, payload=payload or {}, tool_order=tool_order, anchored=anchored))
         return canonical[-1]
 
     seen_d = set()
@@ -448,7 +487,7 @@ def reconcile(pdf_path, tei=None, doc=None, record=None, ocr_pages=(), frames=No
             db.kind if dk == "furniture" else "", "both", db.text, db.text,
             0.95 if agree and ratio >= TEXT_AGREE else 0.7, db.element_id,
             {"bbox": "docling", "kind": "docling", "order": "docling",
-             "kind_alt": "grobid", "text": "docling"})
+             "kind_alt": "grobid", "text": "docling"}, tool_order=db.order_index)
 
     for gb, db, v in touching:
         dis.append(Disagreement(page=db.page, kind="partial_overlap", iou=v,
@@ -462,10 +501,12 @@ def reconcile(pdf_path, tei=None, doc=None, record=None, ocr_pages=(), frames=No
             add(db.page, (db.x0, db.y0, db.x1, db.y1), DOCLING_KIND.get(db.kind, "paragraph"),
                 db.kind if DOCLING_KIND.get(db.kind) == "furniture" else "", "docling",
                 db.text, db.text, 0.5, db.element_id,
-                {"bbox": "docling", "kind": "docling", "order": "docling", "text": "docling"})
+                {"bbox": "docling", "kind": "docling", "order": "docling", "text": "docling"},
+                tool_order=db.order_index)
         add(gb.page, (gb.x0, gb.y0, gb.x1, gb.y1), GROBID_KIND.get(gb.kind, "paragraph"), "",
             "grobid", gb.text, gb.text, 0.5, gb.element_id,
-            {"bbox": "grobid", "kind": "grobid", "order": "grobid", "text": "grobid"})
+            {"bbox": "grobid", "kind": "grobid", "order": "anchored-to-docling", "text": "grobid"},
+            tool_order=_anchor(gb, by_page_d), anchored=True)
 
     # A single-tool file (a scan has no TEI at all: GROBID refuses it) has nothing to disagree
     # WITH. Recording "the other tool has no box here" for every block of such a file would fill
@@ -483,7 +524,8 @@ def reconcile(pdf_path, tei=None, doc=None, record=None, ocr_pages=(), frames=No
         add(db.page, (db.x0, db.y0, db.x1, db.y1), DOCLING_KIND.get(db.kind, "paragraph"),
             db.kind if DOCLING_KIND.get(db.kind) == "furniture" else "", "docling",
             db.text, db.text, 0.6, db.element_id,
-            {"bbox": "docling", "kind": "docling", "order": "docling", "text": "docling"})
+            {"bbox": "docling", "kind": "docling", "order": "docling", "text": "docling"},
+            tool_order=db.order_index)
 
     for gb in g_only:
         if both_ran:
@@ -493,7 +535,8 @@ def reconcile(pdf_path, tei=None, doc=None, record=None, ocr_pages=(), frames=No
                                     detail="GROBID regions this, Docling has no box here"))
         add(gb.page, (gb.x0, gb.y0, gb.x1, gb.y1), GROBID_KIND.get(gb.kind, "paragraph"), "",
             "grobid", gb.text, gb.text, 0.6, gb.element_id,
-            {"bbox": "grobid", "kind": "grobid", "order": "grobid", "text": "grobid"})
+            {"bbox": "grobid", "kind": "grobid", "order": "anchored-to-docling", "text": "grobid"},
+            tool_order=_anchor(gb, by_page_d), anchored=True)
 
     # tables: Docling's cell grid wins outright (§7.1). The block's box is the table's region and
     # the grid travels with it; nothing renders a table to text here.
@@ -505,6 +548,7 @@ def reconcile(pdf_path, tei=None, doc=None, record=None, ocr_pages=(), frames=No
             page=t.page, x0=t.x0, y0=t.y0, x1=t.x1, y1=t.y1, kind="table", reading_order=-1,
             text="", extractor={"bbox": "docling", "cells": "docling", "order": "docling"},
             confidence=0.8, source="docling", element_id=t.element_id, text_source="tool",
+            tool_order=t.order_index,
             payload={"n_rows": t.num_rows, "n_cols": t.num_cols, "caption": t.caption,
                      "cells": [dataclasses.asdict(c) for c in t.cells]}))
 
@@ -525,11 +569,14 @@ def reconcile(pdf_path, tei=None, doc=None, record=None, ocr_pages=(), frames=No
         cap = (best.text if best is not None and best_v >= IOU_TOUCH and best.text else f.caption)
         canonical.append(Canonical(
             page=f.page, x0=f.x0, y0=f.y0, x1=f.x1, y1=f.y1, kind="figure", reading_order=-1,
-            text="", extractor={"bbox": "docling", "order": "docling",
+            # The caption is the figure block's TEXT. `figures.description` is §4.4's stage-8
+            # vision field, paired with description_model, and writing a caption there would
+            # read later as a model's description of the picture.
+            text=cap, extractor={"bbox": "docling", "order": "docling",
                                 "caption": "grobid" if cap and best is not None and best_v >= IOU_TOUCH
                                 else "docling"},
             confidence=0.8, source="both" if best is not None else "docling",
-            element_id=f.element_id, text_source="tool",
+            element_id=f.element_id, text_source="tool", tool_order=f.order_index,
             payload={"caption": cap, "caption_iou": round(best_v, 3)}))
 
     # EQUATIONS are not a separate pass: Docling's `formula` items are already in
@@ -551,7 +598,7 @@ def reconcile(pdf_path, tei=None, doc=None, record=None, ocr_pages=(), frames=No
                 extractor={"bbox": "grobid", "kind": "grobid", "order": "grobid", "text": "grobid"},
                 confidence=0.8, source="grobid", element_id=b.element_id, text_source="tool"))
 
-    canonical = _assign_order(canonical, d_blocks) + _renumber(refs, start=len(canonical))
+    canonical = _assign_order(canonical) + _renumber(refs, start=len(canonical))
     stats = {
         "pipeline_version": PIPELINE_VERSION,
         "grobid_regions": len(g_blocks), "docling_regions": len(d_blocks),
@@ -564,23 +611,45 @@ def reconcile(pdf_path, tei=None, doc=None, record=None, ocr_pages=(), frames=No
     return canonical, dis, stats
 
 
-def _assign_order(blocks_in, d_blocks):
-    """Docling's reading order for the body (§7.1: the layout model wins order).
+def _anchor(block, by_page_d):
+    """The Docling order a region only GROBID saw should take.
 
-    Docling's ``order_index`` is the document's own sequence. A block Docling never saw gets the
-    order of the nearest Docling block above it on the same page, so a GROBID-only paragraph
-    lands where it reads rather than at the end.
+    The nearest Docling block ABOVE it **in its own column** — horizontal overlap is required,
+    which is the whole point. Without it, a left-column block on a two-column page anchors to the
+    right column's top block (small ``y0``, high ``order_index``) and is dragged to the wrong
+    half of the page.
     """
-    by_page = {}
-    for b in d_blocks:
-        by_page.setdefault(b.page, []).append(b)
-    out = []
-    for c in blocks_in:
-        anchors = [b for b in by_page.get(c.page, []) if b.y0 <= c.y0 + 1]
-        idx = max((b.order_index for b in anchors), default=-1)
-        out.append((c.page, idx, c.y0, c.x0, c))
-    out.sort(key=lambda t: (t[0], t[1], t[2], t[3]))
-    return [dataclasses.replace(c, reading_order=i) for i, (_, _, _, _, c) in enumerate(out)]
+    best, best_y = -1, None
+    for b in by_page_d.get(block.page, []):
+        if b.y0 > block.y0 + 1:
+            continue
+        if min(b.x1, block.x1) - max(b.x0, block.x0) <= 0:
+            continue          # a different column: not above this block in reading terms
+        if best_y is None or b.y0 > best_y or (b.y0 == best_y and b.order_index > best):
+            best, best_y = b.order_index, b.y0
+    return best
+
+
+def _assign_order(blocks_in):
+    """Reading order = the LAYOUT MODEL's sequence (§7.1: the layout model wins order).
+
+    Each canonical block already carries the order Docling gave its region (``tool_order``); a
+    region only GROBID saw carries the anchored one from :func:`_anchor`. This function only
+    SORTS by it and renumbers 0..n-1. It does not re-derive anything.
+
+    **Why it is written this way, measured 2026-09-15.** The first version derived the order here
+    instead, taking ``max(order_index)`` over every Docling block on the page with
+    ``y0 <= c.y0``. On a two-column page that anchor set contains the RIGHT column's top blocks
+    for every left-column block below them, so the sort collapsed to geometry across the gutter —
+    precisely the interleaved order §14's kill exists to catch. On ``Benedek_2015`` pp2-3 it put
+    **21 of 23** body snippets out of Docling's order. The producer had the defect the checker
+    tests for, and no test caught it because the order test ran on hand-built blocks.
+    `test_assign_order_keeps_doclings_order_across_two_columns` is the one that would have.
+    """
+    keyed = [((c.tool_order if c.tool_order >= 0 else 1 << 30), c.anchored, c.page, c.y0, c.x0, i, c)
+             for i, c in enumerate(blocks_in)]
+    keyed.sort(key=lambda t: t[:6])
+    return [dataclasses.replace(t[-1], reading_order=i) for i, t in enumerate(keyed)]
 
 
 def _renumber(blocks_in, start):

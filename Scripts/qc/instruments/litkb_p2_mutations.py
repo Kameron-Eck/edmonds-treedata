@@ -517,8 +517,30 @@ replace("R56", f"{PKG}/extract/reconcile.py",
         "other tool's whole paragraph (8 matched regions on Alwan_1988, against 84)", tests=TESTS_S5)
 replace("R57", f"{PKG}/extract/reconcile.py",
         "        if hit is None or hit < last:", "        if False:",
-        "the reading-order check accepts any order: an interleaved two-column extraction passes",
+        "the reading-order CHECKER accepts any order: an interleaved two-column extraction passes",
         tests=TESTS_S5)
+# R57 mutates the checker. R519/R520 mutate the WRITER, which is where the defect actually was:
+# the first `_assign_order` re-derived order from geometry and put 21 of 23 body snippets on
+# Benedek_2015 pp2-3 out of Docling's order, and no test saw it because the order test ran on
+# hand-built blocks. These two rows are §14's "a deliberately interleaved column extraction fails
+# the reading-order metric" applied to the producer.
+replace("R519", f"{PKG}/extract/reconcile.py",
+        "    keyed.sort(key=lambda t: t[:6])",
+        "    keyed.sort(key=lambda t: (t[2], t[3], t[4]))",
+        "reading order goes back to geometry (page, y, x): a two-column page is read across the "
+        "gutter", tests=TESTS_S5)
+replace("R520", f"{PKG}/extract/reconcile.py",
+        "        if min(b.x1, block.x1) - max(b.x0, block.x0) <= 0:\n            continue",
+        "        if False:\n            continue",
+        "the anchor stops requiring horizontal overlap: a GROBID-only block in the left column "
+        "takes the right column's order", tests=TESTS_S5)
+replace("R521", f"{PKG}/extract/reconcile.py",
+        '    inside = [i for _c, x, y, i in layer["pts"] if _in_box(x, y, box, tol)]\n'
+        '    if not inside:\n        return ""\n'
+        '    return layer["text"][min(inside):max(inside) + 1]',
+        '    return "".join(_c for _c, x, y, _i in layer["pts"] if _in_box(x, y, box, tol))',
+        "the native text is joined from the ink again: every space is gone, so no quote can be "
+        "verified against a block and no chunker can use one", tests=TESTS_S5)
 
 # THE SCHEMA (migration 0017) and the ingest.
 s5(block, "R58", MIG17, "guard: tables.cells JSON is retired in favour of table_cells",

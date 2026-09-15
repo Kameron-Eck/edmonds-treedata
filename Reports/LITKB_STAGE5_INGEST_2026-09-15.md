@@ -70,16 +70,20 @@ DoclingDocument dict — never the tools, so nothing here imports GROBID or Docl
   0002 admits. GROBID's `<s>`, `<ref>` and `<persName>` are **not** regions: with
   `segmentSentences=1` a paragraph also emits its sentences, and counting those would match one
   region three or four times.
-* **Order** — Docling's `order_index` for the body (§7.1: the layout model wins order); a
-  GROBID-only region takes the order of the nearest Docling block above it on its page;
-  references are appended in **GROBID's** order after the body.
+* **Order** — each canonical block CARRIES the layout model's own sequence number
+  (`tool_order`); `_assign_order` only sorts by it and renumbers. A region only GROBID saw takes
+  the order of the nearest Docling block above it **in its own column** (horizontal overlap is
+  required). References are appended in **GROBID's** order after the body. See §6a: the first
+  version of this re-derived the order from geometry and was wrong.
 * **Text** — the native layer wins (`text_source="native"`), the tool's text is used where stage
   0's routing says the page has no native layer (`"ocr"`), and per-field provenance travels in
   `blocks.provenance` (`{"bbox": "docling", "text": "native-layer", "kind_alt": "grobid", …}`).
   A single `extractor` column would have to name one tool and lie about the other fields.
 * **Tables** are Docling cell grids (rows in `table_cells`, never a rendered string);
   **figures** are regions whose caption is GROBID's where GROBID has a `<figure>` over the same
-  region, else Docling's, with the choice recorded; **equations** are regions with `latex` left
+  region, else Docling's, with the choice recorded — the caption is the figure block's **text**,
+  because `figures.description` is §4.4's stage-8 vision field and a caption written there would
+  read later as a model's description of the picture; **equations** are regions with `latex` left
   **NULL** until stage 4 fills it — putting the region's plain text in a field named `latex`
   would look like LaTeX and be false.
 * **Disagreements are kept, never resolved**: `kind_conflict`, `text_conflict`,
@@ -179,7 +183,7 @@ set, and restores the file byte-for-byte.
 | The brief's kill | Fires? | How |
 |---|---|---|
 | coverage below threshold on a planted page with a catch-all block removed | **FIRES** | `litkb_stage5_run.py --only Alwan_1988 --drop-catch-all 4`: p4's 14 body regions removed (furniture kept), coverage **1.0000 → 0.0222** against a 0.80 floor, gate names page 4. Also `R55` (floor → 0.0) |
-| an interleaved reading order fails | **FIRES** | `test_an_interleaved_reading_order_fails`; `R57` |
+| an interleaved reading order fails | **FIRES**, on the checker AND on the writer | `test_an_interleaved_reading_order_fails` + `R57` (the checker); `test_assign_order_keeps_doclings_order_across_two_columns`, `test_a_region_only_grobid_saw_anchors_inside_its_own_column` + `R519`/`R520` (the writer — see §6a) |
 | a duplicate ingest inserts nothing | **FIRES** | `test_kill_a_duplicate_ingest_inserts_nothing`; `R516` |
 | a mid-file kill leaves no duplicates on resume | **FIRES** | `test_kill_a_worker_killed_mid_file_leaves_no_duplicate_blocks` and `…a_partial_run_left_by_a_kill_is_cleared_not_appended_to`; `R514`, and `R515` for §14's own wording (commit outside the run's transaction) |
 | writer role cannot insert blocks | **FIRES** | `test_kill_the_writer_role_cannot_insert_a_block_or_a_disagreement`; `R517` |
@@ -195,6 +199,30 @@ declared ok), `R511` (a cell below a paragraph), `R512` (a block naming another 
 mutation.** `R54` passed because every matching test used identical boxes (IoU 1.0), which still
 match at a threshold of 0.999; `R513` passed because nothing inserted a canonical block with a
 NULL order. Both tests were added and both rows then fired.
+
+## 6a. Two defects the gates did not see, found in review, fixed
+
+Both were in the PRODUCER, and both were invisible because the tests exercised the CHECKER on
+hand-built blocks. They are written up because a gate that passes a broken writer is the failure
+mode CLAUDE.md §3.4c exists for.
+
+1. **Reading order was re-derived from geometry, and interleaved two-column pages.** The first
+   `_assign_order` took `max(order_index)` over every Docling block on the page with
+   `y0 <= this block's y0`. On a two-column page that set contains the RIGHT column's top blocks
+   for every left-column block below them, so the sort collapsed to geometry across the gutter.
+   Measured on `Benedek_2015` pp2-3 against Docling's own body order: **21 of 23 body snippets
+   out of order**. `test_an_interleaved_reading_order_fails` passed throughout, because it ran
+   `order_violations` on blocks whose order was written by hand. Fixed by carrying the layout
+   model's sequence on each canonical block and sorting by it, with a column-aware anchor for
+   GROBID-only regions: **0 of 23** after. Rows `R519` (order back to geometry) and `R520`
+   (anchor without the column check) both fire.
+2. **Native text came back with every space removed.** `native_text_in` joined the characters
+   whose boxes fell inside a block, and pypdfium2 reports no usable box for a space — so a
+   paragraph read `"Contentslistsavailable"`. Coverage was unaffected (its denominator is the
+   ink), which is exactly why nothing caught it; the text was unusable for quote verification or
+   chunking. Fixed by returning the page's own string plus per-character indices and SLICING it
+   between the first and last inside-character, which also restored the two characters that the
+   degenerate first-of-run box had been dropping from the front of every run. Row `R521` fires.
 
 **What the coverage gate does NOT catch, measured.** The first form of the planted-page kill was
 "drop the largest block on the page". On `Alwan_1988` p4 the largest block is a 491×659 pt
@@ -220,14 +248,16 @@ mutation rows, which stops them drifting unnoticed; it does not make them right.
 
 ## 8. Proofs
 
-* `qc/test_litkb_reconcile.py` — **35 passed** (`LITKB_TEST_DB=litkb_test_w6`), of which 15 are
+* `qc/test_litkb_reconcile.py` — **37 passed** (`LITKB_TEST_DB=litkb_test_w6`), of which 15 are
   Postgres tests.
 * `qc/test_litkb_p1.py` — the role-privilege matrix updated with the five new ingest-only
   functions and re-run.
 * `py -3.12 qc/instruments/litkb_p2_mutations.py --sites` — **PASS** (16 sinks, 2 redacted, 14
   allowed; no new sink: neither `reconcile.py` nor `ingest.py` writes to stdout).
-* Parallel harness, `--workers 4 --worker-dbs 1,2,6,9`, the 18 new rows: **18/18 fired**,
-  baselines passed.
+* Parallel harness, `--workers 4 --worker-dbs 1,2,6,9`, the **21** new rows `R51`–`R521`:
+  **21/21 fired**, baselines passed.
+* Whole 176-row harness and `py -3.12 qc/check.py --fast` under `LITKB_TEST_DB=litkb_test_w6`:
+  see the closing line of this report.
 
 ## 9. What was applied where
 

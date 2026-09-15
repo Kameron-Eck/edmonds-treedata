@@ -261,6 +261,39 @@ def test_an_interleaved_reading_order_fails():
     assert [i for i, _ in bad] == [2]
 
 
+def _two_column():
+    """A two-column page as the tools see it: the layout model's order runs down the LEFT column
+    and then down the right, while geometry (y then x) interleaves them."""
+    spec = [("L1", 0, 50, 0), ("L2", 0, 300, 1), ("R1", 300, 50, 2), ("R2", 300, 300, 3)]
+    return [R.Canonical(page=1, x0=x, y0=y, x1=x + 250, y1=y + 200, kind="paragraph",
+                        reading_order=-1, text=t, tool_order=o) for t, x, y, o in spec]
+
+
+def test_assign_order_keeps_doclings_order_across_two_columns():
+    """THE WRITER'S interleave test, not the checker's. `_assign_order` must SORT by the layout
+    model's sequence, never re-derive it from geometry — a version that anchored every block to
+    `max(order_index)` over the blocks above it put 21 of 23 body snippets on Benedek_2015 pp2-3
+    out of Docling's order, because the right column's top block is 'above' the whole left one."""
+    out = R._assign_order(_two_column())
+    assert [c.text for c in sorted(out, key=lambda c: c.reading_order)] == ["L1", "L2", "R1", "R2"]
+    assert R.order_violations(out, ["L1", "L2", "R1", "R2"]) == []
+
+
+def test_a_region_only_grobid_saw_anchors_inside_its_own_column():
+    """The anchor requires horizontal overlap. Without it a left-column block takes the right
+    column's order and lands in the wrong half of the page."""
+    from litkb.extract import docling as D
+
+    d = [D.Block(page=1, x0=x, y0=y, x1=x + 250, y1=y + 200, kind="text", text=t,
+                 frame="mediabox", order_index=o)
+         for t, x, y, o in [("L1", 0, 50, 0), ("R1", 300, 50, 2)]]
+    by_page = {1: d}
+    left_lower = _b(1, 0, 300, 250, 500)
+    assert R._anchor(left_lower, by_page) == 0, "anchored to the right column"
+    right_lower = _b(1, 300, 300, 550, 500)
+    assert R._anchor(right_lower, by_page) == 2
+
+
 def test_text_the_order_lost_is_a_violation_too():
     c = _canon(["left one", "left two"])
     assert R.order_violations(c, ["left one", "a line nobody kept"]) == [(1, "a line nobody kept")]
@@ -275,10 +308,15 @@ class _Rec:
         self.pts = pts
 
 
-def test_coverage_counts_only_characters_inside_a_block():
-    chars = [("a", 5, 5), ("b", 5, 15), ("c", 500, 500)]
-    box = (0, 0, 10, 20)
-    assert R.native_text_in(chars, box) == "ab"
+def test_native_text_is_a_slice_of_the_page_and_keeps_its_spaces():
+    """A space has no usable box, so it is not in `pts`. Joining the ink alone gives
+    'onetwo' — text no quote can be verified against and no chunker can use. The slice between
+    the first and last inside-character keeps the page's own spacing."""
+    layer = {"text": "one two far", "pts": [("o", 5, 5, 0), ("n", 6, 5, 1), ("e", 7, 5, 2),
+                                            ("t", 5, 15, 4), ("w", 6, 15, 5), ("o", 7, 15, 6),
+                                            ("f", 500, 500, 8)]}
+    assert R.native_text_in(layer, (0, 0, 10, 20)) == "one two"
+    assert R.native_text_in(layer, (900, 900, 910, 920)) == ""
 
 
 def test_a_page_with_no_native_layer_reports_none_not_zero():

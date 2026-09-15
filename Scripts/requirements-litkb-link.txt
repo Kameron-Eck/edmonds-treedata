@@ -1,0 +1,16 @@
+# litkb candidate-scoring evaluation (Splink) — dedicated venv D:\edmonds-pipeline\venv-splink
+# Evaluated 2026-09-15, Reports/LITKB_SPLINK_2026-09-15.md. NOT a pipeline dependency:
+# nothing in Scripts/pipeline imports splink. Kept so the evaluation is reproducible.
+#
+#   py -3.12 -m venv D:\edmonds-pipeline\venv-splink
+#   D:\edmonds-pipeline\venv-splink\Scripts\python.exe -m pip install -r requirements-litkb-link.txt
+#
+# Splink 4 is MIT, runs on the DuckDB backend in-process (no server), and needs no network.
+splink==4.0.17
+duckdb==1.5.5
+pandas==3.0.5
+numpy==2.5.3
+sqlglot==30.18.0
+altair==6.3.0
+igraph==1.0.0
+jsonschema==4.26.0

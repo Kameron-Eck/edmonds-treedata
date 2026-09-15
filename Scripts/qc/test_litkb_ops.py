@@ -11,7 +11,8 @@ Kills, each shown to fire here (CLAUDE.md 3.4c):
   a planted pgpass file / .env / pgpass line is refused   test_planted_secrets_are_refused[*]
   the repository itself is clean                          test_repository_index_has_no_secrets
 
-The dump tests log in ONLY as litkb_test, to litkb_test (the P1 suite's isolation rule), and dump
+The dump tests log in ONLY as the litkb_test role, to connect.DB_TEST -- litkb_test, or the harness
+worker's own litkb_test_w<i> under LITKB_TEST_DB (referee D-4) -- (the P1 suite's isolation rule), and dump
 only a throwaway schema of their own with pg_dump -n, so a concurrent reset of the litkb schemas by
 another worktree's P1 session cannot break them. The restore itself needs the superuser (CREATE
 DATABASE); it is exercised by the real run recorded in the report, and here through its comparison.
@@ -167,10 +168,24 @@ def _nd():
 _T0 = dt.datetime(2026, 9, 13, 2, 30, 0, tzinfo=dt.timezone.utc)
 
 
+def _db():
+    """The test database BY NAME FROM connect, never the literal 'litkb_test' (referee D-4, 2026-09-14).
+    Under LITKB_TEST_DB=litkb_test_w1 the opsdb fixture creates its schema in litkb_test_w1 while a
+    hard-coded db= aimed pg_dump at litkb_test: "no matching schemas were found", nine failures. The
+    LOGIN stays litkb_test -- one role, many throwaway databases -- and so does the litkb_test* rule."""
+    from litkb.db import connect as c
+    return c.DB_TEST
+
+
+def _stamp(s):
+    """A dump's file name for this database, as nightly_dump builds it."""
+    return f"{_db()}_{s}.dump"
+
+
 def _dump(out, schema, now=_T0, **kw):
     nd = _nd()
     kw.setdefault("restore", False)
-    return nd.run(db="litkb_test", user="litkb_test", out_dir=out, schemas=[schema], dump_schemas=[schema],
+    return nd.run(db=_db(), user="litkb_test", out_dir=out, schemas=[schema], dump_schemas=[schema],
                   now=now, **kw)
 
 
@@ -184,7 +199,7 @@ def test_good_dump_is_verified_listed_and_logged(opsdb, tmp_path):
     nd = _nd()
     assert _dump(tmp_path, schema) == 0, _log(tmp_path)
     files = sorted(p.name for p in tmp_path.glob("*.dump"))
-    assert files == ["litkb_test_20260913T023000Z.dump"]
+    assert files == [_stamp("20260913T023000Z")]
     m = nd.load_manifest(tmp_path)
     assert [e["name"] for e in m["dumps"]] == files
     assert m["dumps"][0]["sha256"] == nd.sha256_file(tmp_path / files[0])
@@ -317,21 +332,21 @@ def test_retention_deletes_only_listed_verified_dumps(opsdb, tmp_path):
     list (older than all of them); a listed dump whose bytes changed (hash mismatch); a stray file."""
     _conn, schema = opsdb
     nd = _nd()
-    stranger = tmp_path / "litkb_test_20000101T000000Z.dump"
+    stranger = tmp_path / _stamp("20000101T000000Z")
     stray = tmp_path / "notes.txt"
     for day in range(6):
         if day == 1:
-            shutil.copy(next(tmp_path.glob("litkb_test_20260913*.dump")), stranger)
+            shutil.copy(next(tmp_path.glob(f"{_db()}_20260913*.dump")), stranger)
             stray.write_text("keep me", encoding="utf-8")
-            first = tmp_path / "litkb_test_20260913T023000Z.dump"
+            first = tmp_path / _stamp("20260913T023000Z")
             first.write_bytes(first.read_bytes() + b"\0")    # listed, but no longer the verified bytes
         assert _dump(tmp_path, schema, now=_T0 + dt.timedelta(days=day), keep=3) == 0, _log(tmp_path)
     names = sorted(p.name for p in tmp_path.glob("*.dump"))
-    assert names == ["litkb_test_20000101T000000Z.dump", "litkb_test_20260913T023000Z.dump",
-                     "litkb_test_20260916T023000Z.dump", "litkb_test_20260917T023000Z.dump",
-                     "litkb_test_20260918T023000Z.dump"], names
+    assert names == [_stamp("20000101T000000Z"), _stamp("20260913T023000Z"),
+                     _stamp("20260916T023000Z"), _stamp("20260917T023000Z"),
+                     _stamp("20260918T023000Z")], names
     assert stray.exists()
     listed = [e["name"] for e in nd.load_manifest(tmp_path)["dumps"]]
-    assert listed == ["litkb_test_20260913T023000Z.dump", "litkb_test_20260916T023000Z.dump",
-                      "litkb_test_20260917T023000Z.dump", "litkb_test_20260918T023000Z.dump"], listed
+    assert listed == [_stamp("20260913T023000Z"), _stamp("20260916T023000Z"),
+                      _stamp("20260917T023000Z"), _stamp("20260918T023000Z")], listed
     assert "sha256 differs" in _log(tmp_path)[-1]

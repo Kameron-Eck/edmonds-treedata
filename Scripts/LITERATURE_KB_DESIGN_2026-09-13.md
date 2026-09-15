@@ -493,7 +493,17 @@ the shift and is **11.02 pt** out without it, and the shift that fixes it is `dx
 a mutation that ignores `coord_origin` and treats everything as TOPLEFT fails 3 tests (M2,
 `Reports/LITKB_DOCLING_LOCAL_REFEREE_2026-09-15.md` §5, "Kills — five source mutations").
 
-**Three modules now read the frame, and that is one home too many [M] (2026-09-15, unresolved).**
+**CLOSED 2026-09-15**, before stage 5 was written, as this section required
+(`Reports/LITKB_STAGE5_INGEST_2026-09-15.md` §1). The three copies are one body —
+`litkb.extract.inventory.page_frames(pdf_path, error=…)` — and the GROBID and Docling functions
+call it, differing only in the exception class they raise on a page with no mediabox. The referee
+numbers are unchanged (Alwan p2 `dx` 10.3449, `dy` 9.052; Hall p12 still refused by both adapters)
+and the three now return equal dicts. The inherited-`/MediaBox` case is **real corpus data, not a
+fixture**: sweeping the raw pdfium getter over the 224 PDFs under `Literture\` finds **16 such
+pages in two files** — all 10 of `Platanios_2014` and 6 of `Vincent_1993` — every one of which
+Docling's copy would have died on. The record of the defect follows, as written.
+
+**Three modules now read the frame, and that is one home too many [M] (2026-09-15, now RESOLVED).**
 `litkb.extract.inventory.page_frames`, `litkb.extract.grobid.page_frames` and
 `litkb.extract.docling.page_frames` all return `{page: {mediabox, cropbox, rotation, dx, dy}}` with
 the same `dx`/`dy` arithmetic. They are **not** interchangeable: inventory's and GROBID's resolve a
@@ -955,7 +965,7 @@ The row's gate text above is unchanged; this is what of it is now MET.
 | Kill: the throughput instrument refuses a run with no rate or no peak RSS | **FIRES for Docling; NOT SHOWN for GROBID** | `Reports/LITKB_DOCLING_LOCAL_2026-09-15.md` §5. `qc/instruments/litkb_grobid_throughput.py` records `peak_rss_bytes` but carries no refusal path, and no referee exercised one |
 | Kill: a one-core pin reports a lower rate than the pool | **FIRES** (GROBID 1.55×, Docling 1.52×) | §12.10 |
 | **Throughput gate** (pages/s and peak RSS per worker, every stage × chosen tool, **two or more pool sizes**, written to `extraction_runs.metrics`, §12.10 filled in) | **NOT MET** | §12.10: GROBID is concurrency-1 only and its per-worker RSS is derived, not measured; Docling has run on 5 gate papers and the book, **not the corpus**; metrics are parked as JSONL, not in `extraction_runs.metrics` |
-| **Stage 5 reconciliation** | **NOT BUILT.** No gate has been written for it either; the only constraint recorded is that it must not assume a dense grid | `Reports/LITKB_DOCLING_LOCAL_2026-09-15.md` |
+| **Stage 5 reconciliation** | **BUILT 2026-09-15**, with the P5 ingest schema (migration 0017) and `litkb.extract.{reconcile,ingest}`. Run on the 5 gate papers + `Ogata_1998` (scan/OCR) + `Almon_1965` (cover sheet); 18 mutation rows `R51`–`R518` all fire. **Its four thresholds are author-chosen and UNVALIDATED against gold**, and 0017 is NOT applied to `litkb` | `Reports/LITKB_STAGE5_INGEST_2026-09-15.md` |
 | Stages 1 (native layer) and 4 via MinerU; path-B reference parser; the `extraction_jobs` migration, leased worker and sweep (§12.3–§12.5) | **NOT BUILT** | — |
 | "Referee-authored, pre-committed gold … thresholds committed before the tool first runs on them" | **NOT VERIFIED.** Nothing in the three reports records gold authored by a referee and committed ahead of the measurement; the referees re-ran the builders' measurements instead | — |
 

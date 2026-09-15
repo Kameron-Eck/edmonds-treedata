@@ -605,30 +605,17 @@ def page_frames(pdf_path):
     The DoclingDocument carries the cropbox's SIZE only, never its origin, so the offset
     cannot be recovered from the JSON alone. ``dx = crop.x0 - media.x0`` and
     ``dy = media.y1 - crop.y1`` are what :func:`to_mediabox` adds.
+
+    ONE HOME (2026-09-15): the body is :func:`litkb.extract.inventory.page_frames`, whose
+    docstring owns the rule. This copy used to be the WEAKEST of the three — it had neither
+    the inherited-``/MediaBox`` fallback nor a missing-mediabox raise, so on a page that
+    inherits its box from the page tree it returned ``None`` and died with a ``TypeError``
+    inside the subtraction above. Collapsing the three before stage 5 is design §7.1's open
+    item; a page with no mediabox now raises :class:`DoclingError`.
     """
-    import ctypes
+    from litkb.extract import inventory
 
-    import pypdfium2 as pdfium
-    import pypdfium2.raw as praw
-
-    def _box(fn, page):
-        vals = [ctypes.c_float() for _ in range(4)]
-        ok = fn(page.raw, *[ctypes.byref(v) for v in vals])
-        return tuple(v.value for v in vals) if ok else None
-
-    frames = {}
-    doc = pdfium.PdfDocument(pdf_path)
-    try:
-        for i in range(len(doc)):
-            page = doc[i]
-            media = _box(praw.FPDFPage_GetMediaBox, page)
-            crop = _box(praw.FPDFPage_GetCropBox, page) or media
-            rot = int(praw.FPDFPage_GetRotation(page.raw))
-            frames[i + 1] = {"mediabox": media, "cropbox": crop, "rotation": rot,
-                             "dx": crop[0] - media[0], "dy": media[3] - crop[3]}
-    finally:
-        doc.close()
-    return frames
+    return inventory.page_frames(pdf_path, error=DoclingError)
 
 
 def to_mediabox(items, frames):

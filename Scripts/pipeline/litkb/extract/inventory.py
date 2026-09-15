@@ -220,17 +220,22 @@ class InventoryError(RuntimeError):
 
 # ── §7.1 page frames ───────────────────────────────────────────────────────────────────
 
-def page_frames(pdf_path):
+def page_frames(pdf_path, error=None):
     """``{page: {mediabox, cropbox, rotation, dx, dy}}`` — the §7.1 frame of every page.
 
     ``rotation`` is pdfium's quarter turns (0..3), not degrees. ``dx``/``dy`` express the
     cropbox's upper-left corner in the mediabox's upper-left frame; they are what a
     cropbox-relative tool's coordinates must be shifted by to reach the canonical frame.
 
-    This is the ONE frame reader. ``litkb.extract.grobid.page_frames`` on the GROBID branch
-    is the same function with the same dict shape and the same inherited-box fallback; when
-    the branches merge, grobid should import this one rather than keep a second copy — two
-    readers of one fact is the bug CLAUDE.md §3.3 names.
+    This is the ONE frame reader, and since 2026-09-15 it is the only BODY: the GROBID and
+    Docling adapters' ``page_frames`` now call this one and differ only in the exception
+    class raised on a page with no mediabox, which is what ``error`` names (default
+    :class:`InventoryError`). Before that there were three copies with the same arithmetic
+    and different guards — Docling's had neither the inherited-``/MediaBox`` fallback nor
+    the missing-mediabox raise, so on such a page it returned ``None`` boxes and died with a
+    ``TypeError`` inside the shift. §7.1 carried that as the item to close before stage 5,
+    stage 5 being the first place where two readers of one fact produce wrong boxes rather
+    than merely duplicate code (CLAUDE.md §3.3).
 
     A rotated page is reported, never converted: for rotation 2 the map from a displayed
     frame to the mediabox frame is a reflection, not this translation, and applying the
@@ -245,7 +250,8 @@ def page_frames(pdf_path):
     doc = pdfium.PdfDocument(pdf_path)
     try:
         for i in range(len(doc)):
-            frames[i + 1] = _frame(doc[i], praw, os.path.basename(str(pdf_path)), i + 1)
+            frames[i + 1] = _frame(doc[i], praw, os.path.basename(str(pdf_path)), i + 1,
+                                   error=error)
     finally:
         doc.close()
     return frames
@@ -264,12 +270,14 @@ def _raw_box(fn, page, fallback):
         return None
 
 
-def _frame(page, praw, name, number):
+def _frame(page, praw, name, number, error=None):
+    # BEGIN guard: inherited MediaBox fallback
     media = _raw_box(praw.FPDFPage_GetMediaBox, page, page.get_mediabox)
     crop = _raw_box(praw.FPDFPage_GetCropBox, page, page.get_cropbox) or media
+    # END guard: inherited MediaBox fallback
     if media is None:
-        raise InventoryError(f"{name} page {number} has no mediabox; "
-                             "the §7.1 frame cannot be established")
+        raise (error or InventoryError)(f"{name} page {number} has no mediabox; "
+                                        "the §7.1 frame cannot be established")
     return {
         "mediabox": list(media), "cropbox": list(crop),
         "rotation": int(praw.FPDFPage_GetRotation(page.raw)),

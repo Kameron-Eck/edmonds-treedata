@@ -22,6 +22,11 @@ WHAT EACH ROW IS FOR:
     no wait and no retry, which is the behaviour the phase exists to remove.
   * **P7-G5** makes a failed batch indistinguishable from a batch full of misses, turning one
     transport error into a run-wide "not found" that costs no further request.
+  * **P7-G6** sends a DOI-bearing reference to the batch endpoint. The DOI decides above this leg, so
+    the answer is never read: the slot, and on a DOI-heavy corpus the whole request, is spent on
+    nothing. It is also the per-call-site row for `normalize_doi` inside `batch_prefill`.
+  * **P7-G7** removes the pacer, so requests go to a pool measured as exhausted back to back and the
+    client manufactures the 429s its own ladder then waits out.
   * **P7-S1/S2** are the per-call-site rows for `normalize_doi` inside `s2.py`: at each site the
     canonicalisation simply does not happen, so `DOI:10.1/A` and `DOI:10.1/a` become two identifiers
     and a candidate's DOI no longer matches the corpus index.
@@ -36,7 +41,7 @@ TESTS_S2 = ["qc/test_litkb_s2.py"]
 S2 = "pipeline/litkb/admit/s2.py"
 PASSTHROUGH = "({a0})"
 
-IDS = ["P7-G1", "P7-G2", "P7-G3", "P7-G4", "P7-G5", "P7-S1", "P7-S2"]
+IDS = ["P7-G1", "P7-G2", "P7-G3", "P7-G4", "P7-G5", "P7-G6", "P7-G7", "P7-S1", "P7-S2"]
 
 
 def register(block, replace, site):
@@ -55,6 +60,13 @@ def register(block, replace, site):
     replace("P7-G5", S2, "    if not err:\n        s2.prefill.update(", "    if True:\n        s2.prefill.update(",
             "a FAILED batch fills the prefill with misses, so every reference in it is answered "
             "'not found' without ever being asked", tests=TESTS_S2)
+    block("P7-G6", S2, "guard: s2 only a reference that can reach this leg takes a batch slot",
+          "a DOI-bearing reference takes a batch slot, spending a shared-pool request on an answer "
+          "nothing reads (the DOI decides above this leg)", tests=TESTS_S2,
+          sites=["litkb/admit/s2.py::batch_prefill::normalize_doi"])
+    block("P7-G7", S2, "guard: s2 a wire request is paced",
+          "requests go to the exhausted shared pool back to back, so the client causes the 429s it "
+          "then waits out", tests=TESTS_S2)
     site("P7-S1", f"litkb/admit/s2.py::paper_id_for::normalize_doi", PASSTHROUGH,
          "paper_id_for: the DOI is not normalised, so one work takes two batch identifiers",
          tests=TESTS_S2)

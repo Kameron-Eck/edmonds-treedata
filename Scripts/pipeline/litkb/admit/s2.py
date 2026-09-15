@@ -163,7 +163,7 @@ class S2Client:
     """
 
     def __init__(self, client=None, cache=None, fields=FIELDS, backoffs=BACKOFFS,
-                 sleep=time.sleep, jitter=None, stats=None):
+                 sleep=time.sleep, jitter=None, stats=None, pacer=None):
         if client is None:
             from litkb.netutil import Client
             client = Client()
@@ -174,6 +174,15 @@ class S2Client:
         self.sleep = sleep
         self.jitter = random.random if jitter is None else jitter
         self.stats = stats if stats is not None else Stats()
+        #: The minimum interval between WIRE requests. A cache hit never waits — the cache is checked
+        #: before the pacer, not after — so a fully cached re-run still costs no wall clock. Pacing a
+        #: pool one has measured as exhausted is not politeness: back-to-back bursts are the one
+        #: behaviour most likely to CAUSE the 429s the ladder then waits out, and a rate measured by
+        #: unpaced code measures the code. The 1 s default matches the other registry legs
+        #: (`resolver.REGISTRY_MIN_INTERVAL`); the harvested MCP paces its unauthenticated client at
+        #: one request per 4 s (`AsyncLimiter(1, 4)`), which is that project's choice for an
+        #: interactive tool and slower than this pipeline's own registry cadence.
+        self.pacer = pacer
         #: identifier -> record (or None, meaning "asked, unknown"), filled by :func:`batch_prefill`.
         self.prefill = {}
 
@@ -209,6 +218,10 @@ class S2Client:
             return hit[0], _parse(hit[1]), ""
         last_status, last_err = 0, ""
         for attempt in range(len(self.backoffs) + 1):
+            # BEGIN guard: s2 a wire request is paced
+            if self.pacer is not None:
+                self.pacer.wait()
+            # END guard: s2 a wire request is paced
             self.stats.requests += 1
             if method == "POST":
                 st, hd, raw = self.client.get(
@@ -338,8 +351,15 @@ def batch_prefill(refs, s2):
     built, tested and kill-tested here so the next corpus does not pay per item for it. On an error
     the prefill stays empty and every reference falls back to the per-item leg — a failed batch must
     never look like a batch full of misses.
+
+    ONLY REFERENCES THAT CAN REACH THIS LEG ARE SENT. A reference carrying a DOI is decided at
+    `resolve_by_doi` and never consults the prefill, so batching it spends a slot — and, on a corpus
+    of DOI-bearing references, a whole request — on an answer nothing will read.
     """
-    ids = [pid for pid in (paper_id_for(r) for r in refs) if pid]
+    # BEGIN guard: s2 only a reference that can reach this leg takes a batch slot
+    reachable = [r for r in refs if not (r.get("doi_norm") or normalize_doi(r.get("doi")))]
+    # END guard: s2 only a reference that can reach this leg takes a batch slot
+    ids = [pid for pid in (paper_id_for(r) for r in reachable) if pid]
     got, err = s2.batch(ids)
     if not err:
         s2.prefill.update({k: v for k, v in got.items()})

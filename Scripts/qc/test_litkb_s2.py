@@ -162,6 +162,39 @@ def test_jitter_spreads_the_wait_without_shortening_it():
     assert sleeps == [b * (1 + S.JITTER) for b in S.BACKOFFS]
 
 
+def test_every_wire_request_is_paced_and_a_cache_hit_is_not():
+    """The pool is shared and measured as exhausted; unpaced bursts manufacture the 429s the ladder
+    then waits out. A cache hit must still cost nothing, or caching buys no wall clock."""
+    waits = []
+
+    class P:
+        def wait(self):
+            waits.append(1)
+
+    cache = MemCache()
+    c = StubClient([(200, {}, {"data": [paper("10.1/a", "A", "Alpha", 2001)]}),
+                    (200, {}, {"data": [paper("10.1/b", "B", "Beta", 2002)]})])
+    s = S.S2Client(client=c, cache=cache, sleep=lambda _x: None, jitter=lambda: 0.0, pacer=P())
+    s.match("A")
+    s.match("B")
+    assert len(waits) == 2
+    s.match("A")                                  # served from the cache
+    assert len(waits) == 2 and s.stats.cache_hits == 1
+
+
+def test_each_retry_in_the_ladder_is_paced_too():
+    waits = []
+
+    class P:
+        def wait(self):
+            waits.append(1)
+
+    c = StubClient([(429, {}, b"{}")] * 40)
+    s = S.S2Client(client=c, cache=None, sleep=lambda _x: None, jitter=lambda: 0.0, pacer=P())
+    s.match("A")
+    assert len(waits) == 5 == len(c.calls)
+
+
 def test_nothing_is_cached_about_a_429():
     cache = MemCache()
     _c, s = client_with([(429, {}, b"{}")] * 9, cache=cache)
@@ -338,6 +371,13 @@ def test_a_failed_batch_leaves_the_prefill_empty_so_every_reference_falls_back(o
     assert err and s.prefill == {}
     assert R.resolve_reference(ref, client=None, s2=s).state == "resolved"
     assert s.stats.match_calls == 1
+
+
+def test_a_doi_bearing_reference_takes_no_batch_slot():
+    """It is decided by its DOI above this leg, so the answer would never be read."""
+    c, s = client_with([])
+    got, err = S.batch_prefill([dict(REF, doi="10.3390/rs1030122"), dict(REF, arxiv="")], s)
+    assert got == {} and err == "" and s.stats.batch_calls == 0 and c.calls == []
 
 
 def test_references_without_an_identifier_cost_no_batch_slot():

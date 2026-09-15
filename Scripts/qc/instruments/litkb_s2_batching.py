@@ -97,7 +97,7 @@ def run_arm(arm, refs, limit=None):
     if arm == "after":
         # Its OWN client (not the CachedClient): this module does its own versioned caching, and
         # routing it through the URL cache as well would double-count a hit.
-        s2 = S2.S2Client(client=net, cache=R.DiskCache())
+        s2 = S2.S2Client(client=net, cache=R.DiskCache(), pacer=Pacer(interval=1.0))
         S2.batch_prefill(refs, s2)
     todo = refs[:limit] if limit else refs
     rows, t0 = [], time.time()
@@ -185,11 +185,76 @@ def report():
     print(f"wrote {ARMS_CSV.name}, {ROWS_CSV.name}")
 
 
+VERIFY_CSV = REPORTS / "litkb_s2_verify_2026-09-15.csv"
+
+
+def verify():
+    """Ask CROSSREF what each newly resolved DOI is, and compare it with the parsed reference.
+
+    The point of the arm table is that 20 references resolved; the point of this rung is that they
+    resolved to the RIGHT works. It must not use Semantic Scholar — a registry confirming its own
+    answer is not a check (CLAUDE.md 3.4c, "the proposer never scores its own proposal"), so the DOI
+    goes to Crossref and the comparison uses the same shared rules the resolver uses.
+
+    A `no` in `verdict` is a row to READ, not a defect count: Crossref carries no author for some
+    records, parses a given name as the family for others, and truncates subtitles — all of which
+    fail this check without the resolution being wrong. The report names each one.
+    """
+    from litkb.admit.resolver import family_matches, title_match_ratio
+    state = json.loads((STATE / "after.json").read_text(encoding="utf-8"))
+    before = {(r["citing_work_key"], r["ref_key"]): r
+              for r in json.loads((STATE / "before.json").read_text(encoding="utf-8"))["rows"]}
+    src = {}
+    with open(OUT / "references.jsonl", encoding="utf-8") as fh:
+        for line in fh:
+            d = json.loads(line)
+            src[(d["citing_work_key"], d["ref_key"])] = d
+    pacer = R.deferred_pacer(Pacer(interval=1.0))
+    client = R.CachedClient(cache=R.DiskCache(), pacer=pacer)
+    rows = []
+    for r in state["rows"]:
+        k = (r["citing_work_key"], r["ref_key"])
+        if r["state"] != "resolved" or before.get(k, {}).get("state") == "resolved":
+            continue
+        ref = src[k]
+        rec, tried = R.confirm_doi(client, r["doi"], pacer)
+        if rec is None:
+            rows.append({"citing_work_key": k[0], "ref_key": k[1], "doi": r["doi"],
+                         "verdict": "no", "why": f"not registered ({tried})", "crossref_title": "",
+                         "ratio": "", "crossref_first_author": "", "crossref_year": ""})
+            continue
+        ratio = max(title_match_ratio(ref.get("title") or "", t) for t in rec["titles"])
+        fam = family_matches(rec["first_author"], ref.get("first_author") or "")
+        rows.append({
+            "citing_work_key": k[0], "ref_key": k[1], "doi": r["doi"],
+            "reference_title": (ref.get("title") or "")[:120], "crossref_title": rec["title"][:120],
+            "ratio": round(ratio, 4), "crossref_first_author": rec["first_author"],
+            "reference_first_author": ref.get("first_author") or "",
+            "crossref_year": rec["year"], "reference_year": ref.get("year"),
+            "verdict": "yes" if (ratio >= 0.85 and fam) else "no",
+            "why": "" if (ratio >= 0.85 and fam) else
+                   (f"ratio {ratio:.2f}" if ratio < 0.85 else "first author differs")})
+    with open(VERIFY_CSV, "w", encoding="utf-8", newline="") as fh:
+        w = csv.DictWriter(fh, fieldnames=list(rows[0]) if rows else ["doi"])
+        w.writeheader()
+        for row in rows:
+            w.writerow(row)
+    yes = sum(1 for r in rows if r["verdict"] == "yes")
+    print(f"{yes} of {len(rows)} newly resolved DOIs verify at Crossref; wrote {VERIFY_CSV.name}")
+    for r in rows:
+        if r["verdict"] == "no":
+            print(f"  {r['citing_work_key']} {r['ref_key']} {r['doi']}: {r['why']}")
+            print(f"     ref : {r.get('reference_title', '')}")
+            print(f"     cref: {r['crossref_title']}")
+
+
 def main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--arm", choices=("before", "after"))
     ap.add_argument("--limit", type=int, help="first N references only (a probe, not the measurement)")
     ap.add_argument("--report", action="store_true")
+    ap.add_argument("--verify", action="store_true",
+                    help="ask Crossref what each newly resolved DOI is (independent of S2)")
     a = ap.parse_args(argv)
     if a.arm:
         refs = refs_under_test()
@@ -198,8 +263,10 @@ def main(argv=None):
         write_arm(a.arm, rows, summary)
     if a.report:
         report()
-    if not a.arm and not a.report:
-        ap.error("--arm or --report")
+    if a.verify:
+        verify()
+    if not a.arm and not a.report and not a.verify:
+        ap.error("--arm, --report or --verify")
 
 
 if __name__ == "__main__":

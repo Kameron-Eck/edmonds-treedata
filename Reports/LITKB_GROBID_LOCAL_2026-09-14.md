@@ -30,8 +30,13 @@ Every number below was measured on this machine on 2026-09-14. Nothing is quoted
 Windows is case-insensitive: `ls -d scripts` at the root resolves to `Scripts`. A lowercase sibling
 would be the same directory. The manager therefore lives beside the adapter it serves.
 
-**Build.** `./gradlew clean install --no-daemon -x test`, then `:grobid-service:installDist`. Two
-things had to be worked around, both recorded in `grobid.sh` so the next install is clean:
+**Build.** `./gradlew clean install --no-daemon -x test`, then `:grobid-service:installDist`.
+`grobid.sh install` was verified **end to end from nothing**: `/opt/grobid-0.9.1`, the cached zip,
+the symlink and the systemd unit were all deleted, and one `grobid.sh install` re-fetched, rebuilt,
+reconfigured and re-registered the service (rc=0), after which the service started and processed the
+book normally.
+
+Two things had to be worked around, both recorded in `grobid.sh` so the next install is clean:
 
 1. GROBID 0.9.1 ships Gradle 9.6.1, and `installDist` fails with
    `Entry lib/langdetect-1.1-20120112.jar is a duplicate but no duplicate handling strategy has been set`.
@@ -57,10 +62,12 @@ and it needs no GPU.
 
 Budget: usable RAM = 31 × 0.8 = **24.8 GiB**. Heap 8 + (9 × 1.5) = **21.5 GiB ≤ 24.8 GiB**.
 
-**Measured peak:** `systemctl show grobid -p MemoryPeak` after the 688-page book = **7,831,412,736 B
-(7.29 GiB)**. That is the whole unit cgroup at concurrency 1, so it is a floor for a loaded pool, not
-a pool figure. Only the first two `timeoutSec` keys under `grobid.pdf.pdfalto` are rewritten; the
-consolidation timeouts stay at 60 (verified after the edit).
+**Measured peak:** `systemctl show grobid -p MemoryPeak` after the 688-page book =
+**7,831,412,736 B (7.29 GiB)** on the first run and **7,538,556,928 B (7.02 GiB)** on the warm re-run.
+That is the whole unit cgroup at concurrency 1, so it is a floor for a loaded pool, not a pool figure.
+
+Only the **one** `timeoutSec` under `grobid.pdf.pdfalto` is rewritten (the awk carries a `!done`
+guard); the two consolidation timeouts further down stay at 60, verified in the file after the edit.
 
 ## 3. The gate
 
@@ -78,30 +85,41 @@ project's **claimed** record, not a live Crossref fetch; no network call was mad
 
 ## 4. Five shapes: timings and TEI census
 
-Warm service, one request at a time, from inside the distro. The cold CRF model load was absorbed by
-a separate warm-up run (**45.4 s** for an 11-page paper); no timing below carries it.
+One request at a time, from inside the distro. GROBID loads its CRF models lazily on the first
+request after a boot, so every row below except the warm-up was preceded by a warm-up call
+(**45.4 s** for an 11-page paper on a cold service, **30.6 s** on a second occasion).
+
+The book row was **re-run warm after this was first written**, because the original book timing had
+followed a fresh `start` with no warm-up and so carried the model load. Both numbers are given; the
+warm one is the real throughput. The two runs produced byte-identical TEI (4,333,754 B), so this is
+the same extraction timed twice, not a different result.
 
 | Shape | File | Pages | Wall | pages/s | HTTP | biblStruct | blocks | refs | figs | heads | sents | bad boxes | title ratio |
 |---|---|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|
 | two-column | `Benedek_2015_multilayer-markov-random-field-models` | 16 | 6.94 s | 2.31 | 200 | 65 | 3,760 | 221 | 37 | 42 | 1,636 | 0 | **1.00 PASS** |
 | two-column (was the 3-col candidate) | `Alwan_1988_time-series-modeling-statistical-process` | 10 | 3.43 s | 2.91 | 200 | 15 | 1,966 | 40 | 9 | 29 | 975 | 0 | **1.00 PASS** |
-| JSTOR scan, no text layer | `Anderson_1957_statistical-inference-about-markov` | 22 | 1.06 s | 20.67 | 200 | 1 | 4 | 0 | 0 | 0 | 0 | 0 | 0.25 FAIL |
+| JSTOR scan, image body | `Anderson_1957_statistical-inference-about-markov` | 22 | 1.06 s | 20.67 | 200 | 1 | 4 | 0 | 0 | 0 | 0 | 0 | 0.25 FAIL |
 | equation-heavy | `Bellettini_2002_total-variation-flow` | 51 | 6.03 s | 8.46 | 200 | 39 | 6,199 | 123 | 97 | 15 | 2,909 | 0 | **0.98 PASS** |
-| 688-page book | `Schneider_2008_stochastic-integral-geometry` | 688 | **120.61 s** | 5.70 | 200 | 1,276 | 65,266 | 1,410 | 1,319 | 495 | 31,148 | 0 | 0.38 FAIL |
+| 688-page book | `Schneider_2008_stochastic-integral-geometry` | 688 | **63.05 s** warm (120.61 s cold) | **10.91** (5.70 cold) | 200 | 1,276 | 65,266 | 1,410 | 1,319 | 495 | 31,148 | 0 | 0.38 FAIL |
 | (warm-up, IEEE preprint) | `Abercrombie_2016_improving-consistency` | 11 | 45.4 s cold | — | 200 | 41 | 2,355 | 73 | 55 | 16 | 1,076 | 0 | 0.21 FAIL |
 
-The book ran **in full in 2 minutes**, well inside the 20-minute budget, so no 50-page subset was
-needed. Across all six files, **0 of 79,550 boxes** fell outside their page.
+The book ran **in full in about a minute**, far inside the 20-minute budget, so no 50-page subset was
+needed — and it is the *fastest* of the set per page, because a long book amortises the fixed
+per-document cost that dominates a 10-page article. Across all six files, **0 of 79,550 boxes** fell
+outside their page.
 
 **Windows-side timing** (same service, over WSL's localhost relay): the 3.3 MB two-column paper
 took **5.17 s** warm — no measurable penalty versus the in-distro 6.94 s.
 
 ### 4.1 The three title failures are real findings, not noise
 
-* **`Anderson_1957` (0.25)** — an image-only JSTOR scan: `pdftotext` yields **0 characters/page**.
-  GROBID returned **HTTP 200** with a 3.7 KB TEI whose "title" is the JSTOR boilerplate. It did not
-  return 204. **A caller that checks only the status code will record this file as successfully
-  extracted with 4 blocks.** Scans need the design's OCR path before stage 2 means anything.
+* **`Anderson_1957` (0.25)** — a JSTOR scan whose **body pages are images** (`pdftotext` yields 0
+  characters/page across the body) but whose **JSTOR cover page carries a real text layer**. That is
+  where the parsed "title" comes from: GROBID found the only extractable text in the file, which is
+  the access boilerplate, and reported it as the header. It returned **HTTP 200** with a 3.7 KB TEI
+  and 4 blocks, not 204. **A caller that checks only the status code records this file as
+  successfully extracted.** Scans need the design's OCR path before stage 2 means anything, and the
+  cover page is what makes the failure quiet rather than obvious.
 * **`Schneider_2008` (0.38)** — the book's header parse returns the Springer *series* name
   "Probability and Its Applications" instead of "Stochastic and Integral Geometry". The body parse is
   fine (1,276 references, 65k blocks); it is the header model that is mislead by a series title page.
@@ -225,7 +243,7 @@ Two fixes, both in this branch:
 
 1. **The §14 throughput gate is NOT met.** Every timing above is concurrency 1. The gate wants
    pages/s and peak RSS per worker at **two or more pool sizes**, written to
-   `extraction_runs.metrics`, with a referee reproducing one rate. Not started. The 7.29 GiB peak is
+   `extraction_runs.metrics`, with a referee reproducing one rate. Not started. The 7.0-7.3 GiB peak is
    a single-worker cgroup figure, not a per-worker RSS.
 2. **Three-column layout untested** — measured absent from all 216 PDFs (§4.2).
 3. **Scanned pages are not usable from GROBID alone.** An image-only scan returns 200 with an empty

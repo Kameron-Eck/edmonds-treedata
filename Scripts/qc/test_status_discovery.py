@@ -558,6 +558,11 @@ _PATH_INSERT_LEDGER = {
     "pipeline/phase4seg_preflight.py": 1,    # gate pins the adjacent tree
     "pipeline/phase4seg_smoke.py": 1,        # gate pins the adjacent tree
     "qc/conftest.py": 1,                     # THE canonical stanza
+    # litkb is NOT part of the editable install: it lives under pipeline/ and is run with
+    # PYTHONPATH=Scripts/pipeline until that install is re-run from a tree that contains it. An
+    # instrument that imports litkb outside pytest therefore pins the adjacent tree, the same way the
+    # phase4seg gates above do. One site, at module level. It goes when the install covers litkb.
+    "qc/instruments/litkb_p3_diff.py": 1,    # imports litkb.export / litkb.migrate_legacy (the P3 gate)
     "qc/year_scoreboard.py": 1,              # instruments/ sibling (harvest_arm_metrics)
     "qc/coverage_map.py": 0,                 # tracked-homes only, no sibling import
     "qc/science_digest.py": 1,               # claims.py + coverage_map (qc root)

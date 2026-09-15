@@ -489,10 +489,15 @@ def test_kill_the_diff_gate_reports_an_unexplained_cell_when_the_discrepancy_is_
     This is the kill the design names — "with the discrepancy writer removed the gate test fails". It runs the
     instrument's classifier twice over one real changed cell: with the discrepancy record present (explained,
     gate passes) and with it absent (UNEXPLAINED, gate fails). Harness row P1a removes the writer for real."""
-    import sys
+    # loaded by path, not by putting qc/instruments on sys.path: the path-insert ledger
+    # (qc/test_status_discovery.py::test_path_insert_ledger) is a closed list and a test does not need a
+    # line on it to import one instrument.
+    import importlib.util
 
-    sys.path.insert(0, str(SCRIPTS / "qc" / "instruments"))
-    import litkb_p3_diff as diff
+    spec = importlib.util.spec_from_file_location(
+        "litkb_p3_diff", SCRIPTS / "qc" / "instruments" / "litkb_p3_diff.py")
+    diff = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(diff)
 
     today = [{"ID": "80", "Title": "An unrelated title concerning stochastic matrices", "Year": "2007"}]
     exported = [{"ID": "80", "Title": "Total variation regularization for denoising", "Year": "2007"}]

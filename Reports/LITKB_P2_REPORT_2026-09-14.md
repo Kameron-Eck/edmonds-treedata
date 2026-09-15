@@ -321,3 +321,107 @@ work. No merge path is needed.
 - A same-paper cover sheet whose header carries the title binds by that header; a cover over a DIFFERENT paper that
   prints the registry title as a header (not only in its citation) would bind too. Page 2 is not read.
 - A >= 5-letter surname followed by one letter ("Stones" for Stone) counts as the surname.
+
+---
+
+## Per-call-site rule (added 2026-09-14, after the second acceptance round)
+
+**The class of failure.** Twice a guard written in ONE helper and called from SEVERAL places was mutation-tested at
+one place only, and the harness passed a mutant that removed it everywhere else:
+
+- **V2b** (`Reports/LITKB_P2_ACCEPTANCE_2026-09-14.md`) — the binding reference-window rule, tested away from its
+  boundary;
+- **E3f** (`Reports/LITKB_P2_ACCEPTANCE2_2026-09-14.md`) — `textnorm.jsonb_safe`, the NUL guard. It is called from
+  two `_jsonb` helpers. Removing it from `acquire/run.py` failed the set; removing it from `admit/front.py` — the
+  `admit --file` path — left `380 passed`.
+
+Mutating a helper's BODY only proves that one *reached* call site is asserted somewhere. That is the hole.
+
+**E3f is closed.** `qc/test_litkb_p2.py::test_a_nul_in_pdf_metadata_never_breaks_a_registry_admission` admits a file
+through `front.admit_registry(..., file_path=...)` whose PDF metadata carries NULs, and reads back the stored
+`pdf_metadata`, `publisher` and `checks`. The fixture copies Bell 1977's *shape*, not its bytes: `make_pdf` now
+writes a real document information dictionary (`/Creator (Acrobat 3.0 Capture Plug-in\000\000)`), and the test
+asserts `binding.pdf_info(pdf)["Creator"]` really contains `\x00` before it admits anything — `pdfinfo` propagates
+NULs verbatim, so no monkeypatch is needed. Nothing under `D:\edmonds-pipeline\Literture\` was read or touched.
+Row **E3f** (strip `jsonb_safe` from `front.py`'s `_jsonb`) now **FIRES** on the whole P1+P2+annas set.
+
+**The rule.** `qc/instruments/litkb_p2_mutations.py --sites` (and `qc/test_litkb_harness_sites.py`, which runs it
+inside `qc/check.py --fast`) scans every `.py` under `Scripts/pipeline/litkb/` with `ast` and requires a mutation
+row at every call of every targeted guard helper:
+
+- a **call site** is *(file, innermost enclosing function, helper)*; several textual calls of one helper in one
+  function are one site and are mutated together;
+- imports are **alias-resolved** — `from litkb.textnorm import normalize_doi as _canonical` counts — because a
+  renamed import is exactly how E3f hid (`annas.py` reaches `normalize_doi` through `resolver`'s re-export);
+- a row covers a site only if the bytes it changes **overlap one of that site's call lines**. A row that only moves
+  the helper's body cannot claim the site; `test_a_row_cannot_claim_a_call_site_it_does_not_touch` mutation-tests
+  that check by making row E3 claim `front._jsonb` and requiring the self-check to fail;
+- the mutation shape is "the guard is not applied here": `normalize_doi(x) -> x`, `_labels(a, s) -> (a, s)`,
+  `window_refusal(...) -> ""`, `_jsonb(v) -> Jsonb(v)`. Arguments are spliced parenthesised, so the mutation cannot
+  change any other guard by precedence;
+- a site with no such row must be listed in `EQUIVALENT` with the reason a mutation there cannot change behaviour.
+  There is no third bucket. A declared site that no longer exists also fails, which catches a rename or a deletion.
+
+**34 call sites; 33 carry a row; 1 equivalent.**
+
+| helper | sites | rows |
+|---|---|---|
+| `jsonb_safe` | 3 (`textnorm.jsonb_safe` recursion, `front._jsonb`, `run._jsonb`) | E3rec, **E3f**, E3r |
+| `_jsonb` (the two wrapper copies) | 5 (`front.add_candidate`, `front._call_admit`, `run.record_attempt`, `run.land_and_attach`, `run.attach_in_place`) | S1, S2, S3, S4, S5 |
+| `norm_label` | 4 (`textnorm.normalize_doi`, `front._labels`, `front.approve`, `commands._labels`) | S10, S6, C18, S25 |
+| `_labels` (the two wrapper copies) | 5 (`front._call_admit`, `front.approve`, `commands.cmd_admit/cmd_approve/cmd_acquire`) | S7, S8, S26, S27, S28 |
+| `normalize_doi` | 12 (`front.admit_registry`, `resolver.normalize_doi`, `resolver.resolve_doi`, `run.work_record`, `annas.fetch_for_litkb/fetch_one/audit_one/run_audit/tier1/repair_truncated_dois/run_jobs`) | S9, S11, S12, E4, S18, S19, S20, S21, S22, S23, S24 |
+| `window_refusal` | 1 (`binding.bind`) | S13 |
+| `tokens_contain` | 3 (`binding.bind`, `binding.bind.near`, `binding.author_on_page`) | S14, S15, *equivalent* |
+| `parse_quota` | 1 (`annas.read_quota`) | S16 |
+| `read_quota` | 1 (`annas.fetch_for_litkb`) | S17 |
+
+**The one equivalent call site.** `binding.author_on_page` is defined and called by **nothing** — one grep hit over
+`Scripts/pipeline` and `Scripts/qc`, its own `def`. Its docstring says it is "kept for callers outside check 3";
+there are none, so no mutation inside it reaches any behaviour. It is dead code, and the right way to close the row
+is to delete the function, not to write a test for it. Left in place here because deleting engine code was not part
+of this change.
+
+**Five call sites had no test at all.** They are the point of the rule: `commands._labels` and the three
+`cmd_admit` / `cmd_approve` / `cmd_acquire` calls of it — the CLI is where a session label enters the system, and
+nothing exercised it — and `run_audit`'s `except` branch, the one place an audit row is logged without `audit_one`
+having normalised its DOI first. New tests:
+`test_the_cli_normalises_its_labels_before_any_write[admit|approve|acquire]` and
+`test_audit_error_is_logged_under_the_canonical_doi`.
+
+Six more sites were reached by the suite but not *asserted* at: S3, S4, S7, S20, S22, S23 all survived the first
+pass. Each was closed by feeding an existing test a non-canonical input (a padded `https://doi.org/…` manifest
+spelling for the audit rows; a decorated admitter session for S7) or by a small new test on the NUL channels
+(S3 `record_attempt`, S4 the download path). No mutation was strengthened to make it fire.
+
+**Residual, stated plainly.** The unit is the *site*, not the individual call: six rows (S12, S13, S14, S17, S23,
+S24) mutate 2-4 calls of one helper inside one function together, so those rows prove at least one of those calls
+is asserted, not each of them. Tightening the unit to the single call is possible with the same machinery and was
+not done here.
+
+**A pre-existing flake, fixed.** `test_acquire_from_file_binds_an_unheld_file_in_a_topic_folder_in_place` failed
+about one run in three — measured 1 of 4 on an unmodified tree, before any change in this commit. It offered one
+held file to a second work whose title was a *fresh random* synthetic title, so the file's binding, not the sha256
+dedupe under test, decided the outcome; the synthetic titles differ only in a 12-hex tail, putting their difflib
+ratio either side of `BIND_RATIO`. `_admitted(..., title=...)` now gives the second work the same registry title,
+claim and record, and the dedupe is what is tested: 8 of 8 runs pass. A flaky baseline would have made the
+harness's own before/after gate meaningless.
+
+**Three rows that only looked covered.** S12 (`resolver.resolve_doi`), S18 (`annas.fetch_for_litkb`) and S24
+(`annas.run_jobs`) "fired" in the first pass — on the flaky test above, not on anything they had broken. Once the
+flake was fixed they survived, and each needed a real assertion:
+`test_a_candidate_doi_is_canonicalised_and_one_without_a_doi_resolves_to_nothing`,
+`test_resolve_only_logs_the_job_doi_canonicalised`, and a third leg of
+`test_annas_known_md5_spends_no_download` that offers the route a padded `https://doi.org/10.1/KNOWN/`. A flaky
+test in the set is not neutral: it hands a mutation campaign three false passes.
+
+| Run | Baseline | Result | Baseline after | Restores |
+|---|---|---|---|---|
+| P2 harness, **all 105 rows** (the 77 above + E3f, E3r, E3rec and S1-S28) | `241 passed, 5 deselected, 1 xfailed` | **105/105 FIRED** | `241 passed, 5 deselected, 1 xfailed` | every mutated file `match: True` by sha256 |
+| `--sites` self-check | — | 34 call sites, 33 with a row, 1 equivalent, 0 problems | — | static; no file written |
+
+Every site row runs the WHOLE `qc/test_litkb_p1.py qc/test_litkb_p2.py qc/test_litkb_annas.py` with
+`-m "not litkb_live"`, on `litkb_test` only. `litkb` received no writes and no network call was made.
+
+**Ladder:** `cd Scripts && PYTHONUTF8=1 py -3.12 qc/check.py --fast` → `1 failed, 2402 passed, 5 skipped,
+1 xfailed`; the one failure is the allowed `qc/test_experiments.py::test_pointer_paths_resolve[crown_state_model]`.

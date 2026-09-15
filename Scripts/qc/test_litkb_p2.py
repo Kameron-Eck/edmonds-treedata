@@ -95,14 +95,18 @@ def _esc(s):
     return s.replace("\\", "\\\\").replace("(", "\\(").replace(")", "\\)")
 
 
-def make_pdf(lines):
-    """A one-page text PDF (Helvetica, one line per entry) that pdftotext reads back."""
+def make_pdf(lines, info=None):
+    """A one-page text PDF (Helvetica, one line per entry) that pdftotext reads back. `info` writes a document
+    information dictionary (/Creator, /Producer, ...) that pdfinfo reads back VERBATIM — NUL bytes included,
+    which is how a scanned paper's metadata reaches litkb (the NUL tests below)."""
     content = "BT /F1 9 Tf 40 760 Td 12 TL " + " ".join(f"({_esc(ln)}) '" for ln in lines) + " ET"
     objs = ["<< /Type /Catalog /Pages 2 0 R >>", "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
             "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 1400 792] /Contents 4 0 R "
             "/Resources << /Font << /F1 5 0 R >> >> >>",
             f"<< /Length {len(content)} >>\nstream\n{content}\nendstream",
             "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>"]
+    if info:
+        objs.append("<< " + " ".join(f"/{k} ({_esc(v)})" for k, v in info.items()) + " >>")
     out, offsets = b"%PDF-1.4\n", []
     for i, o in enumerate(objs, 1):
         offsets.append(len(out))
@@ -110,14 +114,16 @@ def make_pdf(lines):
     xref = len(out)
     out += f"xref\n0 {len(objs) + 1}\n0000000000 65535 f \n".encode() + b"".join(
         f"{o:010d} 00000 n \n".encode() for o in offsets)
-    out += f"trailer\n<< /Size {len(objs) + 1} /Root 1 0 R >>\nstartxref\n{xref}\n%%EOF\n".encode()
+    trailer = f"<< /Size {len(objs) + 1} /Root 1 0 R" + (f" /Info {len(objs)} 0 R" if info else "") + " >>"
+    out += f"trailer\n{trailer}\nstartxref\n{xref}\n%%EOF\n".encode()
     return out
 
 
-def paper_pdf(title, author, salt=None):
+def paper_pdf(title, author, salt=None, info=None):
     salt = salt or uuid.uuid4().hex
     filler = [f"Body text line {i} of a synthetic paper about canopy mapping and validation, id {salt}." for i in range(8)]
-    return make_pdf(["Journal of Synthetic Studies 1 (2020) 1-10", title, f"{author} and A. Coauthor", ""] + filler)
+    return make_pdf(["Journal of Synthetic Studies 1 (2020) 1-10", title, f"{author} and A. Coauthor", ""] + filler,
+                    info=info)
 
 
 def _need_pdftotext():
@@ -610,6 +616,12 @@ def test_annas_known_md5_spends_no_download():
     assert not any("fast_download" in u for u in stub.calls)
     r = annas.fetch_for_litkb(RouteStub(routes), "SEKRIT", "10.1/known", _nopace(), known_md5=set())
     assert r["status"] == "downloaded" and r["pdf"] == pdf and r["downloads_left"] == 900
+    # the route canonicalises the DOI itself before it asks the archive anything, so a URL spelling reaches the
+    # archive — and gate 2's record comparison — as 10.1/known (per-call-site rule, row S18)
+    stub2 = RouteStub(routes)
+    r = annas.fetch_for_litkb(stub2, "SEKRIT", " https://doi.org/10.1/KNOWN/ ", _nopace(), known_md5=set())
+    assert r["status"] == "downloaded", r
+    assert any("10.1/known" in u for u in stub2.calls), stub2.calls
 
 
 @pytest.mark.parametrize("page, expected", [
@@ -1153,9 +1165,21 @@ def test_attempt_statuses_cover_the_routes(pg):
 
 # ── acquisition end to end (stub routes, a temporary literature root) ────────────────────
 
-def _admitted(pg, w, ws):
+def _admitted(pg, w, ws, title=None):
+    """An admitted work. `title` gives it ANOTHER work's title, for the tests that offer one held file to two
+    works: without it the second work's title is a fresh random one and the file's BINDING — not the sha256
+    dedupe under test — decides the outcome. That made
+    test_acquire_from_file_binds_an_unheld_file_in_a_topic_folder_in_place flake about one run in three: the
+    synthetic titles differ only in a 12-hex tail, so their difflib ratio falls either side of BIND_RATIO by
+    chance. Measured 2026-09-14 on an unmodified tree (1 of 4 runs), before any change in this commit."""
     from litkb.acquire import run
     hexid, work, ids = _good_payload()
+    if title:                       # the registry record, the claim and the work all say the same title
+        work = dict(work, title=title)
+        ev = dict(ids[0]["evidence"], registry_title=title)
+        if "claimed" in ev:
+            ev["claimed"] = dict(ev["claimed"], title=title)
+        ids = [dict(ids[0], evidence=ev), *ids[1:]]
     res = _admit_sql(pg, w, ws, work, ids, key=f"Tester_2020_synthetic-{hexid}")
     assert res["outcome"] == "admitted", res
     return run.work_record(w, work_id=res["work_id"])
@@ -1263,7 +1287,7 @@ def test_acquire_from_file_binds_an_unheld_file_in_a_topic_folder_in_place(pg, t
     assert row == ("Validation/Tester_2020_held-in-place.pdf", "bound", "held-in-place"), row
     assert _files_under(store.staging) == [] and _files_under(store.quarantine) == [] and _file_state(held) == before
     assert [(a[0], a[1]) for a in _attempts(pg, work["work_id"])] == [("browser", "ok")]
-    other = _admitted(pg, w, ws)
+    other = _admitted(pg, w, ws, title=work["title"])   # the same paper, a second work: the sha256 dedupe decides
     assert run.acquire(w, ws, pg.tokens[ws], other, from_file=held, **kw)["outcome"] == "duplicate-held"
     stray = store.root / "Validation" / "Someone_1999_other-paper.pdf"
     stray.write_bytes(paper_pdf("Tidal mixing fronts in the Irish Sea", "J. Simpson"))
@@ -1317,6 +1341,128 @@ def test_a_nul_character_in_pdf_metadata_never_breaks_an_attach(pg, tmp_path, mo
     assert out["outcome"] == "ok", out
     assert pg.one("SELECT pdf_metadata->>'Creator' FROM litkb.main_files WHERE work_id = %s",
                   (work["work_id"],))[0] == "Acrobat 3.0 Capture Plug-in"
+
+
+@pytest.mark.parametrize("cmd", ["admit", "approve", "acquire"])
+def test_the_cli_normalises_its_labels_before_any_write(tmp_path, monkeypatch, cmd):
+    """Every litkb write carries an agent and a session label, and the sign-off rule compares them with their
+    invisible characters removed (referee fix D7). The CLI is where a label enters, so `litkb admit/approve/
+    acquire --session 'sess<ZWSP>'` must reach front/run already normalised — the third and fourth call sites of
+    norm_label, which nothing exercised before the per-call-site rule
+    (qc/instruments/litkb_p2_mutations.py, S25-S28)."""
+    from litkb import commands
+    from litkb.acquire import run
+    from litkb.admit import front
+    (tmp_path / ".litkb-workstream").write_text(json.dumps({"workstream_id": str(uuid.uuid4()), "token": "t" * 40}),
+                                                encoding="utf-8")
+    seen = {}
+
+    def grab(*a, **kw):
+        seen["labels"] = (kw.get("agent", a[-2] if len(a) > 1 else None), kw.get("session", a[-1]))
+        return {"outcome": "admitted"}
+
+    monkeypatch.setattr(front, "admit_registry", grab)
+    monkeypatch.setattr(front, "approve", grab)
+    monkeypatch.setattr(run, "acquire", grab)
+    monkeypatch.setattr(run, "work_record", lambda conn, **kw: {"work_id": uuid.uuid4(), "key": "K_2020_x"})
+    argv = {"admit": ["admit", "--doi", "10.5555/x"], "approve": ["approve", str(uuid.uuid4())],
+            "acquire": ["acquire", "--key", "K_2020_x"]}[cmd]
+    commands.main(["--dir", str(tmp_path), "--agent", "agent​", "--session", "sess​", *argv],
+                  connect=lambda db: _NoConn())
+    assert seen["labels"] == ("agent", "sess"), seen
+
+
+class _NoConn:
+    """A connection the CLI opens and closes and never queries (every command below is stubbed)."""
+
+    def close(self):
+        pass
+
+
+def _nul_registry_case(tmp_path, nul="\x00\x00"):
+    """A registry admission whose every JSON channel carries a NUL: the file's PDF metadata (p_file), the
+    registry record's publisher (p_work) and a claimed field nothing compares (p_checks). Bell 1977's real shape
+    is copied, not its bytes: Creator 'Acrobat 3.0 Capture Plug-in' followed by NULs."""
+    hexid = uuid.uuid4().hex[:12]
+    doi, title, rec = _synthetic(hexid, 2020, "Tester")
+    rec = dict(rec, publisher=f"Synthetic Society Press{nul}")
+    root = tmp_path / "Lit"
+    (root / "Validation").mkdir(parents=True, exist_ok=True)
+    pdf = root / "Validation" / f"Tester_2020_nul-front-{hexid}.pdf"
+    pdf.write_bytes(paper_pdf(title, "T. Tester", info={"Creator": f"Acrobat 3.0 Capture Plug-in{nul}",
+                                                        "Producer": f"Capture 3.0{nul}"}))
+    claimed = {"title": title, "authors": "Tester, T.", "year": 2020, "scan_note": f"microfilm{nul}"}
+    return doi, title, rec, root, pdf, claimed
+
+
+@pg_only
+def test_a_nul_in_pdf_metadata_never_breaks_a_registry_admission(pg, tmp_path):
+    """E3f (Reports/LITKB_P2_ACCEPTANCE2_2026-09-14.md): the NUL-safe guard is textnorm.jsonb_safe, and it is
+    called from TWO _jsonb helpers — litkb.acquire.run's and litkb.admit.front's. The acquisition side is covered
+    by test_a_nul_character_in_pdf_metadata_never_breaks_an_attach; this covers the `admit --file` side, where
+    front.file_evidence carries binding.pdf_info into litkb.admit()'s p_file. Without the guard psycopg raises
+    UntranslatableCharacter and nothing is admitted."""
+    _need_pdftotext()
+    from litkb.admit import binding, front
+    doi, title, rec, root, pdf, claimed = _nul_registry_case(tmp_path)
+    assert "\x00" in binding.pdf_info(pdf).get("Creator", ""), "the fixture must really carry NULs in its metadata"
+    ws, w = pg.ws(), pg.session("litkb_writer")
+    res = front.admit_registry(w, ws, pg.tokens[ws], doi=doi, claimed=claimed, file_path=pdf, root=root,
+                               agent="nul", session="nul-front", client=RegistryStub({doi: rec}), pacer=_nopace())
+    assert res["outcome"] == "admitted", res
+    meta, pub = pg.one("SELECT f.pdf_metadata, w.publisher FROM litkb.main_files f JOIN litkb.main_works w "
+                       "ON w.work_id = f.work_id WHERE f.work_id = %s", (res["work_id"],))
+    assert meta["Creator"] == "Acrobat 3.0 Capture Plug-in" and meta["Producer"] == "Capture 3.0", meta
+    assert pub == "Synthetic Society Press", pub
+    assert pg.one("SELECT checks->'claimed'->>'scan_note' FROM litkb.admissions WHERE id = %s",
+                  (res["admission_id"],))[0] == "microfilm"
+
+
+@pg_only
+def test_an_attempt_detail_carrying_a_nul_is_still_recorded(pg):
+    """A route's detail is whatever the far end said — an upstream error body can carry a NUL. record_attempt is
+    the third _jsonb call site (per-call-site rule, row S3); without the guard the attempt is lost, and with it
+    the reason the acquisition failed."""
+    from litkb.acquire import run
+    ws, w = pg.ws(), pg.session("litkb_writer")
+    _h, work, ids = _good_payload()
+    wid = _admit_sql(pg, w, ws, work, ids)["work_id"]
+    run.record_attempt(w, ws, pg.tokens[ws], wid, "open_access", ids[0]["value"], "no-oa-copy",
+                       {"body": "unpaywall returned\x00\x00", "tried": ["oa.example\x00"]})
+    row = pg.one("SELECT detail->>'body', detail->'tried'->>0 FROM litkb.acquisition_attempts WHERE work_id = %s",
+                 (wid,))
+    assert row == ("unpaywall returned", "oa.example"), row
+
+
+@pg_only
+def test_a_downloaded_file_with_nul_metadata_is_filed(pg, tmp_path, monkeypatch):
+    """The download path's own copy of the guard (row S4): land_and_attach builds the file JSON from the
+    downloaded PDF's own metadata, so a scanned paper fetched from a route carries the NULs too."""
+    _need_pdftotext()
+    ws, w = pg.ws(), pg.session("litkb_writer")
+    work, store = _admitted(pg, w, ws), _store(tmp_path)
+    _oa(monkeypatch)
+    out = _acquire(pg, w, ws, work, store,
+                   paper_pdf(work["title"], "T. Tester", info={"Creator": "Acrobat 3.0 Capture Plug-in\x00\x00"}))
+    assert out["outcome"] == "ok", out
+    assert pg.one("SELECT pdf_metadata->>'Creator' FROM litkb.main_files WHERE work_id = %s",
+                  (work["work_id"],))[0] == "Acrobat 3.0 Capture Plug-in"
+
+
+@pg_only
+def test_add_candidate_sends_no_nul_to_the_database(pg):
+    """The same guard on front.add_candidate's three JSON arguments (raw, authors, ids), the one _jsonb call site
+    an admission reaches before litkb.admit()."""
+    from litkb.admit import front
+    ws, w = pg.ws(), pg.session("litkb_writer")
+    cid = front.add_candidate(w, ws, pg.tokens[ws], source="manual", title="A scanned report",
+                              raw={"Creator": "Acrobat 3.0 Capture Plug-in\x00"},
+                              authors=[{"family": "Tester\x00", "given": "T."}], year=1977,
+                              ids={"note": "from microfilm\x00"})
+    row = pg.one("SELECT raw_record->>'Creator', authors->0->>'family', ids->>'note' FROM litkb.candidates "
+                 "WHERE id = %s",
+                 (cid,))
+    assert row == ("Acrobat 3.0 Capture Plug-in", "Tester", "from microfilm"), row
 
 
 @pg_only
@@ -1661,6 +1807,14 @@ def test_self_approval_is_refused_whatever_invisible_characters_decorate_the_ses
         pg.one("SELECT litkb.approve_admission(%s, %s, %s, %s, %s)",
                (ws_b, pg.tokens[ws_b], res["admission_id"], "another-agent", label), conn=w)
     assert pg.one("SELECT state FROM litkb.admissions WHERE id = %s", (res["admission_id"],))[0] == "proposed"
+    # and from the other side: a decorated ADMITTER label is normalised before the write, so the plain spelling
+    # of it is still the admitter's own session (per-call-site rule, row S7 — admit's own call of _labels)
+    other = _manual(pg, w, ws_a, f"A decorated report {uuid.uuid4().hex[:8]}", "Reporter, R.", 1986, tmp_path,
+                    session=label)
+    assert pg.one("SELECT admitter_session FROM litkb.admissions WHERE id = %s",
+                  (other["admission_id"],))[0] == "sess-admit"
+    with pytest.raises(front.AdmissionError, match="own session"):
+        front.approve(w, ws_b, pg.tokens[ws_b], other["admission_id"], "another-agent", "sess-admit")
 
 
 # ── the command line ──────────────────────────────────────────────────────────────────────

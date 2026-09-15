@@ -8,10 +8,32 @@ Everything runs against litkb_test (the suite resets and migrates it from the fi
 touches the litkb database, and no mutation touches cluster grants.
 
     PYTHONUTF8=1 PYTHONPATH=pipeline py -3.12 qc/instruments/litkb_p2_mutations.py [--only ID,...]
+    PYTHONUTF8=1 PYTHONPATH=pipeline py -3.12 qc/instruments/litkb_p2_mutations.py --sites
 
 Exit 0 only if every chosen mutation fired and both baselines passed.
+
+THE PER-CALL-SITE RULE (2026-09-14).  Twice a guard written in ONE helper and called from SEVERAL places was
+tested at one place only, and the harness passed a mutant that removed it everywhere else: the binding
+reference-window rule (V2b, Reports/LITKB_P2_ACCEPTANCE_2026-09-14.md) and textnorm.jsonb_safe (E3f,
+Reports/LITKB_P2_ACCEPTANCE2_2026-09-14.md — tested on acquire/run.py's `_jsonb`, not on admit/front.py's).
+Mutating the helper's BODY only proves that ONE reached call site is asserted somewhere.
+
+So `--sites` (and test_litkb_harness_sites.py, which runs it inside qc/check.py) enumerates, statically, every
+call of every targeted helper in Scripts/pipeline/litkb/ and requires a mutation row AT EACH ONE:
+
+  * a call SITE is (file, innermost enclosing function, helper); several textual calls of the same helper in one
+    function are one site and are mutated together;
+  * imports are alias-resolved (`from litkb.textnorm import normalize_doi as _canonical` counts), because a
+    renamed import is exactly how E3f hid;
+  * a row covers a site only if the bytes it changes overlap one of that site's CALL lines — a row that only
+    moves the helper's body cannot claim the site;
+  * a site with no such row must be listed in EQUIVALENT with the reason a mutation there cannot change
+    behaviour. There is no third bucket: anything else fails the self-check.
+  * a declared site that no longer exists also fails (it catches a rename or a deletion).
 """
 import argparse
+import ast
+import difflib
 import hashlib
 import subprocess
 import sys
@@ -26,13 +48,28 @@ MIG14 = f"{MIG}/0014_referee_p2_fixes.sql"
 
 M = []
 
+# the guard helpers the per-call-site rule covers: the ones a mutation row targets, plus the wrapper each one is
+# reached through (front._jsonb / run._jsonb around jsonb_safe, front._labels / commands._labels around
+# norm_label, resolver.normalize_doi around textnorm.normalize_doi — a wrapper is a COPY of the guard).
+HELPERS = ("jsonb_safe", "normalize_doi", "window_refusal", "tokens_contain", "parse_quota", "read_quota",
+           "norm_label", "_jsonb", "_labels")
 
-def block(id_, file, marker, what):
-    M.append(dict(id=id_, kind="block", file=file, marker=marker, what=what))
+
+def block(id_, file, marker, what, sites=None):
+    M.append(dict(id=id_, kind="block", file=file, marker=marker, what=what, **({"sites": sites} if sites else {})))
 
 
-def replace(id_, file, old, new, what, tests=None):
-    M.append(dict(id=id_, kind="replace", file=file, old=old, new=new, what=what, **({"tests": tests} if tests else {})))
+def replace(id_, file, old, new, what, tests=None, sites=None):
+    M.append(dict(id=id_, kind="replace", file=file, old=old, new=new, what=what,
+                  **({"tests": tests} if tests else {}), **({"sites": sites} if sites else {})))
+
+
+def site(id_, site_id, repl, what, tests=None):
+    """Mutate the CALL, not the helper: every call of `helper` inside `site_id`'s function becomes `repl`, with
+    {a0}/{a1}/{args} filled from that call's own argument source. The guard is simply not applied there."""
+    file = site_id.split("::")[0].split("/", 1)[1]
+    M.append(dict(id=id_, kind="site", file=f"{PKG}/{file}", site=site_id, repl=repl, what=what,
+                  sites=[site_id], **({"tests": tests} if tests else {})))
 
 
 # ── the database (migration 0013, and the live 0003/0009 texts P2 relies on) ──
@@ -177,7 +214,8 @@ replace("C16", MIG14, "      AND litkb.norm_label(approver_session) <> litkb.nor
 replace("C17", MIG14, "  SELECT regexp_replace(p_label, '[", "  SELECT regexp_replace(p_label, 'ZZZ[",
         "D7 DB: norm_label removes nothing")
 block("C18", f"{PKG}/admit/front.py", "guard: approve compares labels without invisible characters (Python)",
-      "D7 Python: approve does not pre-check the admitter's session")
+      "D7 Python: approve does not pre-check the admitter's session",
+      sites=["litkb/admit/front.py::approve::norm_label"])
 # ── the P2 acceptance's surviving mutation (Reports/LITKB_P2_ACCEPTANCE_2026-09-14.md) ──
 replace("V2b", f"{PKG}/admit/binding.py", "    if sum(ref[lo:hi]) >= 2:\n", "    if sum(ref[lo:hi]) >= 3:\n",
         "D2: the reference-list rule needs 3 reference-shaped lines instead of 2 (boundary)")
@@ -194,9 +232,199 @@ replace("E1", f"{PKG}/admit/front.py", '(p[1:].lower() if p.isupper() else p[1:]
 block("E2", f"{PKG}/acquire/run.py", "guard: acquire from a file already in a topic folder binds it in place",
       "acquire --from-file lands a copy of a topic-folder file (and stops at duplicate-held against itself)")
 block("E4", f"{PKG}/acquire/run.py", "guard: a work reached by one of its DOIs is acquired by that DOI",
-      "work_record returns an arbitrary DOI of a work that carries two")
+      "work_record returns an arbitrary DOI of a work that carries two",
+      sites=["litkb/acquire/run.py::work_record::normalize_doi"])
 block("E3", f"{PKG}/textnorm.py", "guard: JSON sent to the database carries no NUL",
       "a NUL in PDF metadata reaches jsonb (UntranslatableCharacter)")
+
+# ── the per-call-site rows (see the module docstring) ─────────────────────────────────────
+# E3f is the acceptance's surviving mutation: the SECOND copy of the NUL guard, on the admission path.
+_JSONB = "__import__('psycopg.types.json', fromlist=['Jsonb']).Jsonb({a0})"
+site("E3f", "litkb/admit/front.py::_jsonb::jsonb_safe", "{a0}", tests=TESTS_P1P2,
+     what="front._jsonb no longer removes NULs (the `admit --file` copy of the E3 guard)")
+site("E3r", "litkb/acquire/run.py::_jsonb::jsonb_safe", "{a0}", tests=TESTS_P1P2,
+     what="run._jsonb no longer removes NULs (the acquisition copy of the E3 guard)")
+site("E3rec", "litkb/textnorm.py::jsonb_safe::jsonb_safe", "{a0}", tests=TESTS_P1P2,
+     what="jsonb_safe stops recursing: NULs survive inside dicts and lists")
+site("S1", "litkb/admit/front.py::add_candidate::_jsonb", _JSONB, tests=TESTS_P1P2,
+     what="add_candidate sends raw/authors/ids to jsonb unguarded")
+site("S2", "litkb/admit/front.py::_call_admit::_jsonb", _JSONB, tests=TESTS_P1P2,
+     what="admit sends work/identifiers/file/checks to jsonb unguarded")
+site("S3", "litkb/acquire/run.py::record_attempt::_jsonb", _JSONB, tests=TESTS_P1P2,
+     what="record_acquisition_attempt's detail goes to jsonb unguarded")
+site("S4", "litkb/acquire/run.py::land_and_attach::_jsonb", _JSONB, tests=TESTS_P1P2,
+     what="attach_file's file JSON (a download) goes to jsonb unguarded")
+site("S5", "litkb/acquire/run.py::attach_in_place::_jsonb", _JSONB, tests=TESTS_P1P2,
+     what="attach_file's file JSON (a file bound in place) goes to jsonb unguarded")
+site("S6", "litkb/admit/front.py::_labels::norm_label", "{a0}", tests=TESTS_P1P2,
+     what="the admitter's agent/session keep their invisible characters")
+site("S7", "litkb/admit/front.py::_call_admit::_labels", "({a0}, {a1})", tests=TESTS_P1P2,
+     what="admit sends the raw agent/session labels, unnormalised")
+site("S8", "litkb/admit/front.py::approve::_labels", "({a0}, {a1})", tests=TESTS_P1P2,
+     what="approve sends the raw approver labels, unnormalised")
+site("S9", "litkb/admit/front.py::admit_registry::normalize_doi", "{a0}", tests=TESTS_P1P2,
+     what="admit_registry stores and confirms the DOI as typed")
+site("S10", "litkb/textnorm.py::normalize_doi::norm_label", "{a0}", tests=TESTS_P1P2,
+     what="normalize_doi stops removing invisible characters first")
+site("S11", "litkb/admit/resolver.py::normalize_doi::normalize_doi", "{a0}", tests=TESTS_P1P2,
+     what="resolver.normalize_doi — the wrapper every annas call goes through — normalises nothing")
+site("S12", "litkb/admit/resolver.py::resolve_doi::normalize_doi", "{a0}", tests=TESTS_P1P2,
+     what="the resolver judges candidates on raw DOI spellings")
+site("S13", "litkb/admit/binding.py::bind::window_refusal", '""', tests=TESTS_P1P2,
+     what="bind accepts every title window (region, reference-list and cover rules not applied)")
+site("S14", "litkb/admit/binding.py::bind::tokens_contain", "bool({a1})", tests=TESTS_P1P2,
+     what="bind's metadata/page author checks pass on any non-empty surname")
+site("S15", "litkb/admit/binding.py::bind.near::tokens_contain", "bool({a1})", tests=TESTS_P1P2,
+     what="the author-near-the-title check passes on any non-empty surname")
+site("S16", "litkb/acquire/annas.py::read_quota::parse_quota", "(0, 1000)", tests=TESTS_P1P2,
+     what="read_quota invents a counter instead of parsing the page")
+site("S17", "litkb/acquire/annas.py::fetch_for_litkb::read_quota", "((0, 1000), 200)", tests=TESTS_P1P2,
+     what="the archive route invents a counter instead of reading the account page")
+site("S18", "litkb/acquire/annas.py::fetch_for_litkb::normalize_doi", "{a0}", tests=TESTS_P1P2,
+     what="the archive route resolves the DOI as given")
+site("S19", "litkb/acquire/annas.py::fetch_one::normalize_doi", "{a0}", tests=TESTS_P1P2,
+     what="aa_fetch's filing route resolves the DOI as given")
+site("S20", "litkb/acquire/annas.py::audit_one::normalize_doi", "{a0}", tests=TESTS_P1P2,
+     what="the audit compares a held file against the DOI as spelled in the manifest")
+site("S21", "litkb/acquire/annas.py::run_audit::normalize_doi", "{a0}", tests=TESTS_P1P2,
+     what="an audit row that raises is logged under the DOI as spelled")
+site("S22", "litkb/acquire/annas.py::tier1::normalize_doi", "{a0}", tests=TESTS_P1P2,
+     what="audit-fast tier 1 registers the DOI as spelled")
+site("S23", "litkb/acquire/annas.py::repair_truncated_dois::normalize_doi", "{a0}", tests=TESTS_P1P2,
+     what="the truncated-DOI repair matches raw spellings")
+site("S24", "litkb/acquire/annas.py::run_jobs::normalize_doi", "{a0}", tests=TESTS_P1P2,
+     what="a fetch job is run and logged under the DOI as spelled")
+site("S25", "litkb/commands.py::_labels::norm_label", "{a0}", tests=TESTS_P1P2,
+     what="the CLI passes --agent/--session with their invisible characters")
+site("S26", "litkb/commands.py::cmd_admit::_labels", "(args.agent, args.session)", tests=TESTS_P1P2,
+     what="litkb admit takes the raw labels, bypassing _labels")
+site("S27", "litkb/commands.py::cmd_approve::_labels", "(args.agent, args.session)", tests=TESTS_P1P2,
+     what="litkb approve takes the raw labels, bypassing _labels")
+site("S28", "litkb/commands.py::cmd_acquire::_labels", "(args.agent, args.session)", tests=TESTS_P1P2,
+     what="litkb acquire takes the raw labels, bypassing _labels")
+
+# Call sites a mutation cannot change the behaviour of. The reason must be about the CODE, never about the tests.
+EQUIVALENT = {
+    "litkb/admit/binding.py::author_on_page::tokens_contain":
+        "binding.author_on_page is defined and called by NOTHING — not by litkb, not by qc (grep over "
+        "Scripts/pipeline and Scripts/qc: one hit, its own def). Its docstring says it is 'kept for callers "
+        "outside check 3'; there are none, so no mutation inside it can reach any behaviour. It is dead code, "
+        "and the entry should be removed from this table by deleting the function, not by testing it.",
+}
+
+
+def call_sites(root=None):
+    """Every call of a HELPERS name under Scripts/pipeline/litkb -> {site_id: {"file", "lines", "calls"}}.
+
+    site_id is "litkb/<path>::<enclosing function>::<helper>"; `lines` are the call lines in that function and
+    `calls` the ast.Call nodes. `from X import helper as alias` is resolved, so a renamed import still counts."""
+    root = Path(root or (SCRIPTS / PKG))
+    out = {}
+    for p in sorted(root.rglob("*.py")):
+        out |= sites_of_text(p.read_text(encoding="utf-8"), p.relative_to(root.parent).as_posix())
+    return out
+
+
+def sites_of_text(text, rel):
+    """call_sites() for ONE module's source (the mutator uses it on text it already holds)."""
+    tree = ast.parse(text)
+    alias = {a.asname or a.name: a.name for n in ast.walk(tree) if isinstance(n, ast.ImportFrom)
+             for a in n.names if a.name in HELPERS}
+    out, stack = {}, []
+
+    class V(ast.NodeVisitor):
+        def visit_FunctionDef(self, n):
+            stack.append(n.name)
+            self.generic_visit(n)
+            stack.pop()
+        visit_AsyncFunctionDef = visit_FunctionDef
+
+        def visit_Call(self, n):
+            f = n.func
+            nm = f.id if isinstance(f, ast.Name) else (f.attr if isinstance(f, ast.Attribute) else None)
+            nm = alias.get(nm, nm)
+            if nm in HELPERS:
+                sid = f"{rel}::{'.'.join(stack) or '<module>'}::{nm}"
+                e = out.setdefault(sid, {"file": rel, "lines": set(), "calls": []})
+                e["lines"].add(n.lineno)
+                e["calls"].append(n)
+            self.generic_visit(n)
+    V().visit(tree)
+    return out
+
+
+def _site_mutate(text, sid, repl, mid):
+    """Replace every call at `sid` with `repl`, filled from that call's own argument source. Offsets are spliced
+    on the UTF-8 BYTES (ast column offsets are byte offsets) and from the end, so nothing else in the file moves:
+    no reformatting, no unparse."""
+    got = sites_of_text(text, sid.split("::")[0]).get(sid)
+    if not got:
+        raise RuntimeError(f"{mid}: call site {sid} does not exist")
+    raw = text.encode("utf-8")
+    starts, pos = [], 0
+    for ln in raw.splitlines(keepends=True):
+        starts.append(pos)
+        pos += len(ln)
+    spans = []
+    for call in got["calls"]:
+        # parenthesised, or the splice changes precedence: `norm_label(d or "").translate(...)` must become
+        # `(d or "").translate(...)`, not `d or "".translate(...)` — which would mutate a second guard by accident
+        args = [f"({ast.get_source_segment(text, a)})" for a in call.args]
+        sub = repl.format(args=", ".join(args), **{f"a{i}": a for i, a in enumerate(args)})
+        spans.append((starts[call.lineno - 1] + call.col_offset,
+                      starts[call.end_lineno - 1] + call.end_col_offset, sub.encode("utf-8")))
+    for a, b, sub in sorted(spans, reverse=True):
+        raw = raw[:a] + sub + raw[b:]
+    return raw.decode("utf-8")
+
+
+def changed_lines(original, mutated):
+    """The ORIGINAL line numbers a mutation changes (1-based)."""
+    a, b = original.splitlines(), mutated.splitlines()
+    out = set()
+    for tag, i1, i2, _j1, _j2 in difflib.SequenceMatcher(None, a, b, autojunk=False).get_opcodes():
+        if tag != "equal":
+            out |= set(range(i1 + 1, max(i2, i1 + 1) + 1))
+    return out
+
+
+def self_check(verbose=True):
+    """The per-call-site rule. -> (ok, rows) with one row per call site."""
+    sites = call_sites()
+    covered = {}
+    for m in M:
+        for sid in m.get("sites", []):
+            covered.setdefault(sid, []).append(m["id"])
+    problems, rows = [], []
+    for sid in sorted(set(covered) | set(EQUIVALENT)):
+        if sid not in sites:
+            problems.append(f"{sid}: declared but no longer a call site (renamed or removed?)")
+    for sid, info in sorted(sites.items()):
+        ids, why = [], EQUIVALENT.get(sid)
+        for mid in covered.get(sid, []):
+            m = next(x for x in M if x["id"] == mid)
+            hits = set()
+            for path, orig, mut in _mutations(m):
+                if path.relative_to(SCRIPTS / PKG).as_posix() == info["file"].split("/", 1)[1]:
+                    hits |= changed_lines(orig.decode("utf-8"), mut.decode("utf-8"))
+            if hits & info["lines"]:
+                ids.append(mid)
+            else:
+                problems.append(f"{sid}: row {mid} claims it but changes no call line {sorted(info['lines'])}")
+        if not ids and not why:
+            problems.append(f"{sid}: NO mutation row at this call site, and no equivalence reason")
+        if ids and why:
+            problems.append(f"{sid}: both covered by {ids} and declared equivalent — pick one")
+        rows.append((sid, sorted(info["lines"]), ids, why))
+    if verbose:
+        print(f"{'call site':<58} {'lines':<16} rows / equivalent")
+        for sid, lines, ids, why in rows:
+            print(f"{sid:<58} {str(lines):<16} {', '.join(ids) or 'EQUIVALENT: ' + (why or '')}")
+        print(f"\n{len(rows)} call sites, {sum(1 for r in rows if r[2])} covered by a row, "
+              f"{sum(1 for r in rows if r[3])} equivalent")
+        for p in problems:
+            print("  PROBLEM " + p)
+    return not problems, rows
 
 
 def _sha(b):
@@ -236,7 +464,9 @@ def _mutations(m):
         path = SCRIPTS / e["file"]
         original = out[path][0] if path in out else path.read_bytes()
         text = (out[path][1] if path in out else original).decode("utf-8")
-        if m["kind"] in ("replace", "multi"):
+        if m["kind"] == "site":
+            mutated = _site_mutate(text, e["site"], e["repl"], m["id"])
+        elif m["kind"] in ("replace", "multi"):
             mutated = _edit(text, e["old"], e["new"], m["id"])
         else:
             begin, end = f"BEGIN {e['marker']}", f"END {e['marker']}"
@@ -273,7 +503,11 @@ def run_one(m):
 def main(argv=None):
     ap = argparse.ArgumentParser(description="show each litkb P2 guard fire")
     ap.add_argument("--only", help="comma-separated mutation ids (default: all)")
+    ap.add_argument("--sites", action="store_true",
+                    help="run only the per-call-site self-check (static; no database, no tests)")
     a = ap.parse_args(sys.argv[1:] if argv is None else argv)
+    if a.sites:
+        sys.exit(0 if self_check()[0] else 1)
     chosen = M
     if a.only:
         wanted = [s.strip() for s in a.only.split(",") if s.strip()]
@@ -283,6 +517,9 @@ def main(argv=None):
         chosen = [m for m in M if m["id"] in wanted]
     for m in chosen:                       # every target must exist before anything runs
         _mutations(m)
+    ok, _rows = self_check()
+    if not ok:
+        raise SystemExit("the per-call-site self-check failed (see PROBLEM lines above)")
     rc, summary, _ = _pytest()
     print(f"baseline (unmutated, {' + '.join(TESTS)}): {summary}")
     base_ok = rc == 0 and not any(_count(summary, w) for w in ("failed", "skipped", "error", "errors", "xpassed"))

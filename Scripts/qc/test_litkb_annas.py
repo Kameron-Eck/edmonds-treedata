@@ -586,8 +586,11 @@ class TestAudit(Base):
         self._txt(stem, f"Some front matter\nDOI: {DOI}\n" + "body " * 60)
         stub = StubClient({"/scidb/": (200, {}, scidb_html(md5)),
                            "/db/aarecord_elasticsearch/": (200, {}, record_json(size=len(pdf)))})
-        r = A.audit_one(stub, {"stem": stem, "doi": DOI}, self.paths, self.pacer)
+        # the manifest spells it as a padded URL; the audit compares the CANONICAL DOI against the record and
+        # the extract, and reports that (per-call-site rule, row S20)
+        r = A.audit_one(stub, {"stem": stem, "doi": f" https://doi.org/{DOI}/ "}, self.paths, self.pacer)
         self.assertEqual(r["status"], "audit-ok")
+        self.assertEqual(r["doi"], DOI)
 
     def _jstor_stub(self, md5, size):
         return StubClient({"/scidb/": (200, {}, scidb_html(md5)),
@@ -622,6 +625,29 @@ class TestAudit(Base):
         r = A.audit_one(StubClient({}), {"stem": "Nope_1999_x", "doi": DOI},
                         self.paths, self.pacer)
         self.assertEqual(r["status"], "audit-missing-file")
+
+    def test_audit_error_is_logged_under_the_canonical_doi(self):
+        """run_audit's except branch is the ONE place an audit row is logged without audit_one having normalised
+        its DOI first, so it must normalise the manifest spelling itself. (Per-call-site rule, row S21 of
+        qc/instruments/litkb_p2_mutations.py: nothing reached this line before.)"""
+        with open(self.paths["manifest"], "w", newline="", encoding="utf-8") as fh:
+            w = csv.DictWriter(fh, fieldnames=A.MANIFEST_FIELDS)
+            w.writeheader()
+            w.writerow({"stem": "Boom_1999_x", "doi": " https://doi.org/10.4171/JEMS/179/ "})
+        real = A.audit_one
+
+        def boom(*a, **k):
+            raise RuntimeError("stub blew up")
+        A.audit_one = boom
+        self.addCleanup(lambda: setattr(A, "audit_one", real))
+        buf = io.StringIO()
+        with contextlib.redirect_stdout(buf):
+            A.run_audit(StubClient({}), self.paths, self.pacer)
+        out = buf.getvalue()
+        self.assertIn("| 10.4171/jems/179 |", out)
+        self.assertNotIn("JEMS", out)
+        self.assertNotIn("doi.org", out)
+        self.assertIn("audit-error=1", out)
 
 
 # ------------------------------------------------------------------ gate 0: DOI resolver
@@ -680,6 +706,27 @@ class TestResolveDoi(unittest.TestCase):
         self.assertEqual(A.resolution_log_line("resolved-doi", self.STEM, TITLE, doi, ev),
                          f"resolved-doi | {self.STEM} | {TITLE[:60]} | {DOI} | "
                          f"via=crossref; ratio=1.00; year=2004")
+
+    def test_resolve_only_logs_the_job_doi_canonicalised(self):
+        """run_jobs' own calls of normalize_doi (per-call-site rule, row S24): a job that already carries a DOI
+        is logged — and later fetched — under the canonical spelling, not the one typed on the command line."""
+        buf = io.StringIO()
+        with contextlib.redirect_stdout(buf):
+            A.run_jobs([(f" https://doi.org/{DOI}/ ", self.STEM, {"title": TITLE})], None, "", None, None,
+                       resolve_only=True)
+        self.assertIn(f"resolved-doi | {self.STEM} | {TITLE[:60]} | {DOI} | via=given", buf.getvalue())
+
+    def test_a_candidate_doi_is_canonicalised_and_one_without_a_doi_resolves_to_nothing(self):
+        """resolve_doi's own two calls of normalize_doi (per-call-site rule, row S12 of
+        qc/instruments/litkb_p2_mutations.py). The registry search hands back Crossref's DOI field verbatim, so
+        the resolver is what canonicalises it; and a candidate that matches the title but carries no '10.'
+        resolves to nothing rather than to its junk identifier."""
+        _stub, (doi, src, _ev) = self.resolve({CR: (200, {}, crossref_json(
+            cr_item(doi=f" https://doi.org/{DOI}. ")))})
+        self.assertEqual((doi, src), (DOI, "crossref"))
+        _stub, (doi2, src2, ev2) = self.resolve({CR: (200, {}, crossref_json(cr_item(doi="not-a-doi")))})
+        self.assertEqual((doi2, src2), (None, None))
+        self.assertIn("not-a-doi", ev2)
 
     def test_ii_crossref_near_miss_falls_to_semanticscholar(self):
         near = "The Estimation of Prediction Error in Nonlinear Mixed Models"
@@ -1061,24 +1108,30 @@ class TestAuditFast(Base):
 
     def test_raw_txt_used_when_txt_has_no_text_layer(self):
         self.put("R_2004_a", "\f\f", raw=TITLE + "\n" + "words " * 60)
-        self.manifest({"stem": "R_2004_a", "doi": DOI})
+        # the manifest spelling is a URL with padding: tier 1 reports the CANONICAL DOI, whatever was typed
+        # (per-call-site rule, row S22 of qc/instruments/litkb_p2_mutations.py)
+        self.manifest({"stem": "R_2004_a", "doi": f" https://doi.org/{DOI}/ "})
         res, _ = self.run_fast(StubClient({"api.crossref.org/works/": cr_work(TITLE)}))
         self.assertEqual(res["R_2004_a"]["verdict"], "ok")
+        self.assertEqual(res["R_2004_a"]["doi"], DOI)
 
     def test_truncated_doi_is_repaired_in_memory_and_manifest_untouched(self):
         good = "10.1016/0038-0121(77)90015-5"
         title = "Markov analysis of land use change: Continuous time and stationary processes"
         self.put("Bell_1977_a", "Socio-Econ. Plan. Sci.\n" + title + f"\n{good}\n" + "words " * 60)
-        self.manifest({"stem": "Bell_1977_a", "doi": "10.1016/0038-0121(77", "title": title,
+        # both spellings are URLs: the truncated prefix in the manifest and Crossref's candidate. The repair
+        # compares them CANONICALISED, never as typed (per-call-site rule, row S23)
+        self.manifest({"stem": "Bell_1977_a", "doi": "https://doi.org/10.1016/0038-0121(77", "title": title,
                        "authors": "Bell & Hinojosa", "year": "1977"})
         before = open(self.paths["manifest"], "rb").read()
         reg = StubClient({"api.crossref.org/works?": (200, {}, crossref_json(
-                              cr_item(doi=good, title=title, subtitle="", family="Bell", year=1977))),
+                              cr_item(doi=f"https://doi.org/{good}", title=title, subtitle="", family="Bell",
+                                      year=1977))),
                           "api.crossref.org/works/": cr_work(title)})
         res, _ = self.run_fast(reg)
         self.assertEqual(res["Bell_1977_a"]["doi"], good)
         self.assertEqual(res["Bell_1977_a"]["verdict"], "ok")
-        self.assertIn(f"DOI-REPAIR Bell_1977_a | 10.1016/0038-0121(77 -> {good}", self.log)
+        self.assertIn(f"DOI-REPAIR Bell_1977_a | https://doi.org/10.1016/0038-0121(77 -> {good}", self.log)
         self.assertEqual(open(self.paths["manifest"], "rb").read(), before)
 
     def test_truncated_doi_with_no_extending_candidate_is_not_repaired(self):

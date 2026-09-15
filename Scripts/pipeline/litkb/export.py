@@ -57,14 +57,42 @@ def _identifiers(conn, ws):
 
 
 def _uses(conn, ws):
-    """{work_id: use version} in the workstream's view — the tracker's Relevance / grade / Feeds."""
+    """{work_id: [use version, ...]} — the tracker's Relevance / grade / Feeds, ALL of them.
+
+    A list, not one per work: two tracker rows can reach the same work (the second is deduped against the
+    first, and P3 records its use too), and keeping only one would print one row's Relevance on the other.
+    `_use_for_row` picks the row's own.
+
+    Scoped to versions this workstream wrote, plus anything promoted to main: `ws_uses` is a whole view, and
+    another workstream's proposal becomes visible in it as soon as `uses.current_version_id` is set.
+    """
     out = {}
     for work_id, statement, feeds, confidence, rationale in conn.execute(
             "SELECT u.work_id, u.statement, u.feeds, u.confidence, u.rationale FROM litkb.ws_uses u "
-            "WHERE u.view_workstream_id = %s AND u.status <> 'withdrawn' ORDER BY u.created_at", (ws,)).fetchall():
-        out[work_id] = {"statement": statement, "feeds": list(feeds or []), "confidence": confidence,
-                        "rationale": rationale}
+            "WHERE u.view_workstream_id = %s AND u.status <> 'withdrawn' "
+            "AND (u.workstream_id = %s OR u.state = 'promoted') ORDER BY u.created_at", (ws, ws)).fetchall():
+        out.setdefault(work_id, []).append(
+            {"statement": statement, "feeds": list(feeds or []), "confidence": confidence, "rationale": rationale})
     return out
+
+
+def _use_for_row(candidates_, raw):
+    """The use this tracker row wrote, out of the uses on its work.
+
+    Matched on the row's own Relevance text: the statement IS that cell (a blank one became a placeholder).
+    With one use on the work there is nothing to disambiguate, so it is taken as the row's.
+    """
+    from litkb.migrate_legacy.export_shape import norm_cell
+
+    if not candidates_:
+        return None
+    if len(candidates_) == 1:
+        return candidates_[0]
+    want = norm_cell(raw.get("Relevance (max 3 sentences)"))
+    for u in candidates_:
+        if norm_cell(u["statement"]) == want:
+            return u
+    return None
 
 
 def _files(conn, ws):
@@ -107,7 +135,7 @@ def tracker_rows(conn, ws):
             # a `Duplicate of` row shares the original's WORK, so uses.get(work_id) would paint the
             # original's Relevance and Feeds onto it. The tracker keeps the payload on the original row only
             # (LITERATURE_CONVENTION.md), so the duplicate keeps its own words.
-            u = uses.get(work_id) if not (r.get("Duplicate of") or "").strip() else None
+            u = _use_for_row(uses.get(work_id), r) if not (r.get("Duplicate of") or "").strip() else None
             if u:
                 # a use written for a row with no Relevance carries a placeholder statement (a use version's
                 # `statement` may not be empty); the tracker cell it came from was blank and stays blank

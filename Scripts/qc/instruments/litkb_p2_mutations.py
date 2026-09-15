@@ -420,9 +420,13 @@ p3(block, "P7b", f"{PKG}/migrate_legacy/run.py",
    "a load interrupted between the admission and the use leaves the use missing forever")
 p3(block, "P7c", f"{PKG}/export.py", "guard: a refused file is still exported as a manifest row",
    "a file the database refused is dropped from the manifest export")
+replace("P7e", f"{PKG}/export.py",
+        '            u = _use_for_row(uses.get(work_id), r) if not (r.get("Duplicate of") or "").strip() else None\n',
+        '            u = (uses.get(work_id) or [None])[-1] if not (r.get("Duplicate of") or "").strip() else None\n',
+        "two tracker rows on one work: each prints whichever use was written last", tests=TESTS_P3)
 replace("P7d", f"{PKG}/export.py",
-        '            u = uses.get(work_id) if not (r.get("Duplicate of") or "").strip() else None\n',
-        "            u = uses.get(work_id)\n",
+        '            u = _use_for_row(uses.get(work_id), r) if not (r.get("Duplicate of") or "").strip() else None\n',
+        "            u = _use_for_row(uses.get(work_id), r)\n",
         "a `Duplicate of` row is painted with the original row's Relevance and Feeds", tests=TESTS_P3)
 
 DEFERRED_HELPERS = {}

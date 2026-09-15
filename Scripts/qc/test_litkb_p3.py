@@ -552,6 +552,12 @@ def test_a_deduped_row_still_records_its_use_and_a_duplicate_of_row_does_not(pg,
         "SELECT statement FROM litkb.use_versions WHERE workstream_id = %s", (ws,)).fetchall()}
     assert statements == {"The original row's relevance.", "A second row's own relevance."}, statements
     out = {r["ID"]: r for r in ex.tracker_rows(pg.conn, ws)}
+    # BEGIN guard: two rows on one work each print their OWN use, never each other's
+    assert out["90"]["Relevance (max 3 sentences)"] == "The original row's relevance."
+    assert out["90"]["Feeds"] == "gap row 6" and out["90"]["Evidence grade"] == "PRIMARY"
+    assert out["91"]["Relevance (max 3 sentences)"] == "A second row's own relevance."
+    assert out["91"]["Feeds"] == "review §4.18" and out["91"]["Evidence grade"] == "ABSTRACT"
+    # END guard: two rows on one work each print their OWN use, never each other's
     assert out["92"]["Relevance (max 3 sentences)"] == "Duplicate — see [ID 90, Deduper 2021]"
     assert out["92"]["Evidence grade"] == "" and out["92"]["Feeds"] == ""
 

@@ -33,6 +33,13 @@ REPO = SCRIPTS.parent
 sys.path.insert(0, str(SCRIPTS / "pipeline"))     # ledger: qc/test_status_discovery.py::test_path_insert_ledger
 
 OUT = REPO / "phase4" / "qc" / "litkb_p3_diff.csv"
+#: "today" is the COMMITTED BASELINE, copied out of Reports/ and Validation/ before the exporter first ran
+#: (design §14: gold is written and committed before the tool being measured runs on it). Reading Reports/
+#: directly would let an export overwrite the very file the gate compares against, and the gate would then be
+#: comparing the export with itself.
+BASELINE = SCRIPTS / "qc" / "testdata" / "litkb_p3"
+BASELINE_TRACKER = BASELINE / "literature_tracker.baseline.csv"
+BASELINE_MANIFEST = BASELINE / "manifest.baseline.csv"
 #: columns the design changes wholesale, with the reason stated once (never per row)
 STRUCTURAL = {("manifest", "stem"): "M7: works.key is authoritative and the file stem is derived from it",
               ("manifest", "verified_against_extract"):
@@ -40,6 +47,15 @@ STRUCTURAL = {("manifest", "stem"): "M7: works.key is authoritative and the file
               ("manifest", "source_route"): "now the route the file version records; 'unknown (pre-manifest)' "
                                             "rows are files bound in place by P3"}
 DIFF_COLUMNS = ["source", "row", "field", "bucket", "today", "exported", "ratio", "explanation"]
+
+
+def _same_doi(a, b):
+    """`https://dx.doi.org/10.X`, `doi:10.X` and a bare `10.X` are one DOI — `textnorm.normalize_doi` is the
+    authority, the same one admission stores by."""
+    from litkb.textnorm import normalize_doi
+
+    na, nb = normalize_doi(a) or "", normalize_doi(b) or ""
+    return bool(na) and na == nb
 
 
 def _index(rows, key):
@@ -68,6 +84,8 @@ def compare(source, today, exported, key, columns, explained, held_rows):
             hit = explained.get((source, row_key, _FIELD_ALIAS.get(field, field)))
             if (source, field) in STRUCTURAL:
                 bucket, why = "structural", STRUCTURAL[(source, field)]
+            elif field in ("DOI/URL", "doi") and _same_doi(a, b):
+                bucket, why = "format", "the same DOI, spelled differently"
             elif norm_cell(a) == norm_cell(b):
                 bucket, why = "format", "the two cells normalise equal"
             elif hit:
@@ -92,6 +110,7 @@ _FIELD_ALIAS = {"Title": "title", "Author(s)": "authors", "Year": "year", "Journ
 
 
 def run(conn, ws, root=None):
+    """`root` is accepted for symmetry with the loaders; the baseline files are read from the repository."""
     from litkb import export as ex
     from litkb.migrate_legacy import sources
 
@@ -105,14 +124,14 @@ def run(conn, ws, root=None):
                           "WHERE workstream_id = %s AND admitted_work_id IS NULL", (ws,)).fetchall():
         if r[0]:
             held.add(r[0])
-    rows = compare("tracker", sources.tracker_rows(), ex.tracker_rows(conn, ws), "ID",
+    rows = compare("tracker", sources.tracker_rows(BASELINE_TRACKER), ex.tracker_rows(conn, ws), "ID",
                    sources.TRACKER_COLUMNS[1:], explained, held)
     # the manifest joins on the LEGACY stem, which the export carries in `litkb_legacy_stem`. Not on `stem`:
     # the export's stem IS the work key (M7), so stem is a cell that changed. Not on sha256 either: a row
     # whose recorded hash went stale is exactly the row a hash join would lose, and the one the review most
     # needs to see.
     exported = [dict(r, stem_join=r.get("litkb_legacy_stem") or r.get("stem")) for r in ex.manifest_rows(conn, ws)]
-    today_m = [dict(r, stem_join=r["stem"]) for r in sources.manifest_rows(root=root)]
+    today_m = [dict(r, stem_join=r["stem"]) for r in sources.manifest_rows(BASELINE_MANIFEST)]
     rows += compare("manifest", today_m, exported, "stem_join", sources.MANIFEST_COLUMNS, explained, held)
     return rows
 

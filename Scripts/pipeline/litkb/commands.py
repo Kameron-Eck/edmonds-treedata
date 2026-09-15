@@ -224,7 +224,10 @@ def cmd_export(args, conn):
             ws_id, _token = _ws(args)
         except SystemExit:
             raise SystemExit("litkb export: pass --workstream <id> or run in a worktree with a workstream") from None
-    out = Path(args.out) if args.out else (SCRIPTS.parent / "Reports")
+    # NEVER the default Reports/ directory: `Reports/literature_tracker.csv` is what the P3 gate reads as
+    # "today", and an export written over it would leave the gate comparing the export with itself. Swapping
+    # the live files for the exports is Kam's call at promotion.
+    out = Path(args.out) if args.out else (SCRIPTS.parent / "Reports" / "litkb_export")
     written = []
     if args.what in ("tracker", "all"):
         rows = ex.tracker_rows(conn, ws_id)
@@ -315,7 +318,8 @@ def build_parser():
     e = sub.add_parser("export", help="regenerate the tracker / manifest twins from the database")
     e.add_argument("what", choices=["tracker", "manifest", "all"])
     e.add_argument("--workstream", help="export this workstream's view (default: the worktree's)")
-    e.add_argument("--out", help="output directory (default: Reports/)")
+    e.add_argument("--out", help="output directory (default: Reports/litkb_export/ — never over the "
+                                           "files the P3 gate reads as 'today')")
     e.add_argument("--diff", action="store_true", help="also write the discrepancy table")
     return ap
 

@@ -1,0 +1,96 @@
+{
+"name": "p4 enriched",
+"pages": {
+"4": {
+"size": {
+"width": 428.0,
+"height": 646.0
+},
+"page_no": 4
+}
+},
+"texts": [
+{
+"self_ref": "#/texts/0",
+"label": "formula",
+"text": "\\min \\left \\{ P ( E ) \\colon \\bigcup _ { j = 1 } ^ { k } \\, C _ { i _ { j } } \\subseteq E \\subseteq \\mathbb { R } ^ { 2 } \\rangle \\ \\bigcup _ { j = k + 1 } ^ { m } \\, C _ { i _ { j } } \\right \\} ,",
+"content_layer": "body",
+"prov": [
+{
+"page_no": 4,
+"bbox": {
+"l": 126.99321999999998,
+"t": 470.70242466,
+"r": 300.80820716,
+"b": 441.2790496240559,
+"coord_origin": "BOTTOMLEFT"
+},
+"charspan": [
+0,
+59
+]
+}
+]
+},
+{
+"self_ref": "#/texts/1",
+"label": "formula",
+"text": "P ( E _ { i _ { 1 } , \\dots , i _ { k } } ) \\geqslant \\sum _ { j = 1 } ^ { k } P ( C _ { i _ { j } } ) .",
+"content_layer": "body",
+"prov": [
+{
+"page_no": 4,
+"bbox": {
+"l": 165.37363397999997,
+"t": 409.41668598,
+"r": 375.2794425799999,
+"b": 379.99404962405595,
+"coord_origin": "BOTTOMLEFT"
+},
+"charspan": [
+0,
+52
+]
+}
+]
+},
+{
+"self_ref": "#/texts/2",
+"label": "formula",
+"text": "\\min _ { u \\in L ^ { 2 } ( \\mathbb { R } ^ { 2 } ) \\cap \\text {BV} ( \\mathbb { R } ^ { 2 } ) } \\left \\{ \\int _ { \\mathbb { R } ^ { 2 } } \\left | D u \\right | + \\frac { 1 } { 2 \\lambda } \\, \\int _ { \\mathbb { R } ^ { 2 } } ( u - f ) ^ { 2 } \\, d x \\right \\} ,",
+"content_layer": "body",
+"prov": [
+{
+"page_no": 4,
+"bbox": {
+"l": 115.5401,
+"t": 275.69885580000005,
+"r": 375.27897973999995,
+"b": 252.6052310240559,
+"coord_origin": "BOTTOMLEFT"
+},
+"charspan": [
+0,
+76
+]
+}
+]
+}
+],
+"tables": [],
+"pictures": [],
+"groups": [],
+"body": {
+"children": [
+{
+"$ref": "#/texts/0"
+},
+{
+"$ref": "#/texts/1"
+},
+{
+"$ref": "#/texts/2"
+}
+]
+}
+}

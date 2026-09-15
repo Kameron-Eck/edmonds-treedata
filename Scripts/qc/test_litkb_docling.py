@@ -20,6 +20,11 @@ The fixtures in qc/testdata/litkb_docling/ are REAL worker output — docling 2.
 docling-core 2.96.0, CPU, 4 threads, table structure on, OCR off — not hand-made JSON. The
 tests that need docling itself carry @pytest.mark.litkb_live and skip when the extraction
 venv is absent, so the ladder runs on a machine that has never installed it.
+
+The six `*_base` / `*_enriched` fixtures added for the equation-density gate (decision A) are
+the same real worker output, PROJECTED: each keeps the page census and the formula regions of
+its cpu-t4 (or formula-p3 / formula-p4) document and drops everything else, because the gate
+tests read only formula pages and a full copy of the book's document is 1.1 MB.
 """
 import dataclasses
 import json
@@ -283,6 +288,195 @@ def test_ocr_text_is_not_clean_and_the_fixture_says_so(anderson_ocr):
     assert "usualiy" in text and "usually" not in text
     assert "sncreases" in text
     assert "ierved" in text
+
+
+# ── the equation-density gate (Kam's decision A) ────────────────────────────────────────
+#
+# Formula enrichment is 160x layout, so `--formulas auto` enriches only pages above
+# D.EQUATION_DENSITY_CUT. The gold here is INDEPENDENT of the density function: it is
+# docling's own layout `formula` labels, produced by the cheap pass, which knows nothing
+# about the text layer this gate reads (CLAUDE.md §3.4c — the proposer does not score
+# itself). The four base-pass documents live in qc/testdata; the census that chose the cut
+# is Reports/litkb_equation_density_2026-09-15.csv.
+
+BELLETTINI_PDF = VALIDATION / "Bellettini_2002_total-variation-flow.pdf"
+
+#: Bellettini pp. 3-4 are the two pages whose five LaTeX strings the referee scored by hand
+#: (LITKB_DOCLING_LOCAL_REFEREE_2026-09-15.md §2.4). Whatever cut is chosen, THESE must be
+#: selected or the gate loses the only equations anybody has read off the page.
+BELLETTINI_GOLD_FORMULA_PAGES = [3, 4]
+
+#: Benedek 2015's prose. Its equations live on pp. 6-10 (docling's own labels); these are
+#: the pages with none, and they must stay below the cut.
+BENEDEK_PROSE_PAGES = [1, 2, 3, 11, 12, 13, 14, 15, 16]
+
+#: Measured recall/precision of the cut against the layout labels over the four text-layer
+#: gate papers, 177 pages. The floor, not the measured value: the point of the numbers is
+#: that a broken gate cannot clear them.
+DENSITY_MIN_RECALL = 0.80
+DENSITY_MIN_PRECISION = 0.95
+
+
+@pytest.mark.skipif(not BELLETTINI_PDF.exists(), reason="the Validation corpus is not mounted")
+def test_equation_pages_are_above_the_cut_and_prose_is_below():
+    dens = dict((p, d) for p, d, _ in D.page_densities(str(BELLETTINI_PDF)))
+    for p in BELLETTINI_GOLD_FORMULA_PAGES:
+        assert dens[p] > D.EQUATION_DENSITY_CUT, f"Bellettini p{p} = {dens[p]:.4f}"
+    bene = dict((p, d) for p, d, _ in D.page_densities(str(BENEDEK_PDF)))
+    for p in BENEDEK_PROSE_PAGES:
+        assert bene[p] <= D.EQUATION_DENSITY_CUT, f"Benedek p{p} = {bene[p]:.4f}"
+
+
+def test_a_page_with_no_text_layer_scores_zero_and_is_never_selected():
+    """Every page of Anderson 1957 is an image. The gate must return 0.0, not divide by
+    zero and not guess — an equation on a scan is invisible here until OCR has run, which
+    is a stated hole, not a silent one."""
+    assert D.equation_density("") == 0.0
+    assert D.equation_density("   \n\n  ", 0) == 0.0
+
+
+def test_broken_math_font_still_scores_as_maths():
+    """Bellettini's Type-1 math font has no ToUnicode map: `=` extracts as `¼`, `(x)` as
+    `ðxÞ`. A pure math-CHARACTER ratio scores that as prose. The display-fragment and
+    equation-number line terms are what catch it, and this is the test that says so."""
+    display = "min PðEÞ:\n[\nk\nj¼1\nCij\n();\nthen\nPðEÞ5 X\nk\nj¼1\nPðCijÞ: ð6Þ\n"
+    prose = ("PCC methods segment first the input images into various land-cover classes, "
+             "like urban areas, forests, plough lands, etc. In this case, changes are "
+             "obtained indirectly as regions with different class labels.\n")
+    assert D.equation_density(display) > D.EQUATION_DENSITY_CUT
+    assert D.equation_density(prose) <= D.EQUATION_DENSITY_CUT
+
+
+def test_a_reference_year_at_a_line_end_is_not_an_equation_number():
+    """`(2003)` closing a reference-list line is a year. Four digits do not match."""
+    refs = ("Bruzzone, L., Fernandez-Prieto, D. Automatic analysis of the difference "
+            "image for unsupervised change detection. IEEE TGRS 38, 1171-1182 (2003)\n")
+    assert D.equation_density(refs) <= D.EQUATION_DENSITY_CUT
+
+
+def _density_scores(cut):
+    """(recall, precision) of `density > cut` against docling's layout formula labels."""
+    tp = fp = fn = 0
+    for name, pdf in DENSITY_GOLD:
+        doc = D.load(FIX / f"{name}.docling.json")
+        marked = {p for _, p, _ in D.equations(doc)}
+        last = max(int(k) for k in doc["pages"])
+        for page, d, _ in D.page_densities(str(VALIDATION / pdf)):
+            if page > last:
+                break
+            sel, has = d > cut, page in marked
+            tp += sel and has
+            fp += sel and not has
+            fn += (not sel) and has
+    return tp / max(1, tp + fn), tp / max(1, tp + fp)
+
+
+#: (fixture stem, PDF name) — the four gate papers that have a text layer. Anderson 1957 is
+#: excluded on purpose: it is an image-only scan, so its density is 0 everywhere and it
+#: would only dilute the score with pages neither side can see.
+DENSITY_GOLD = [
+    ("benedek2015_base", "Benedek_2015_multilayer-markov-random-field-models.pdf"),
+    ("alwan1988_base", "Alwan_1988_time-series-modeling-statistical-process.pdf"),
+    ("bellettini2002_base", "Bellettini_2002_total-variation-flow.pdf"),
+    ("schneider2008_p1-100_base", "Schneider_2008_stochastic-integral-geometry.pdf"),
+]
+
+
+@pytest.mark.skipif(not BELLETTINI_PDF.exists(), reason="the Validation corpus is not mounted")
+def test_the_cut_meets_its_stated_recall_and_precision():
+    recall, precision = _density_scores(D.EQUATION_DENSITY_CUT)
+    assert recall >= DENSITY_MIN_RECALL, f"recall {recall:.3f}"
+    assert precision >= DENSITY_MIN_PRECISION, f"precision {precision:.3f}"
+
+
+@pytest.mark.skipif(not BELLETTINI_PDF.exists(), reason="the Validation corpus is not mounted")
+def test_kill_the_cut_at_zero_selects_prose():
+    """THE KILL, low side: a cut of 0 enriches everything, so precision collapses. A gate
+    that has never been shown to fire is not a gate (CLAUDE.md §3.4c)."""
+    recall, precision = _density_scores(0.0)
+    assert recall >= DENSITY_MIN_RECALL          # it still finds everything...
+    assert precision < DENSITY_MIN_PRECISION     # ...by selecting pages with no formula
+
+
+@pytest.mark.skipif(not BELLETTINI_PDF.exists(), reason="the Validation corpus is not mounted")
+def test_kill_the_cut_at_one_selects_nothing():
+    """THE KILL, high side: a cut of 1.0 enriches nothing and recall collapses."""
+    recall, _precision = _density_scores(1.0)
+    assert recall < DENSITY_MIN_RECALL
+
+
+def test_page_runs_collapses_dense_pages_into_ranges():
+    assert D.page_runs([1, 2, 3, 7, 9, 10]) == [[1, 3], [7, 7], [9, 10]]
+    assert D.page_runs([]) == []
+    assert D.page_runs([5, 5, 4]) == [[4, 5]]
+
+
+def test_extract_rejects_an_unknown_formulas_mode(tmp_path):
+    with pytest.raises(ValueError, match="auto|all|off"):
+        D.extract("x.pdf", str(tmp_path / "x.json"), str(tmp_path / "m.jsonl"),
+                  formulas="sometimes")
+
+
+# ── enrichment fails CLOSED ─────────────────────────────────────────────────────────────
+
+def _formula_doc(text, page=1):
+    return {"pages": {str(page): {"size": {"width": 600.0, "height": 800.0},
+                                  "page_no": page}},
+            "tables": [], "pictures": [], "groups": [],
+            "texts": [{"self_ref": "#/texts/0", "label": "formula", "text": text,
+                       "content_layer": "body",
+                       "prov": [{"page_no": page,
+                                 "bbox": {"l": 100.0, "t": 700.0, "r": 500.0, "b": 650.0,
+                                          "coord_origin": "BOTTOMLEFT"}}]}],
+            "body": {"children": [{"$ref": "#/texts/0"}]}}
+
+
+def test_merge_formula_latex_patches_by_box_not_by_index():
+    base = _formula_doc("PðEÞ5 X")
+    enriched = _formula_doc("P(E) \\geq \\sum_{j=1}^{k} P(C_{i_j})")
+    patched, missing = D.merge_formula_latex(base, [enriched], pages={1})
+    assert patched == 1 and missing == []
+    assert base["texts"][0]["text"].startswith("P(E)")
+
+
+def test_merge_reproduces_the_five_refereed_equations_from_a_real_two_pass_run():
+    """THE REAL-DATA CHECK for `--formulas auto`, on the exact pages the referee scored.
+
+    The base pass over the whole 51-page paper locates five formula regions on pp. 3-4 and
+    gives them EMPTY text; two enrichment passes over page 3 and page 4 carry the LaTeX.
+    Two things the design assumed and this test measures instead:
+
+    * a page-RANGE conversion numbers its pages ABSOLUTELY (`prov.page_no == 3`, not 1), so
+      the merge key is valid across passes — if it were relative, every auto run would raise;
+    * the two passes' boxes agree to within the 1 pt the key rounds to.
+
+    Both hold: 5 patched, 0 missing. The fixtures are the real worker output of
+    Bellettini_2002 cpu-t4 and formula-p3 / formula-p4, cut down to the formula regions.
+    """
+    base = D.load(FIX / "bellettini2002_p3-4_base.docling.json")
+    assert [t for _, _, t in D.equations(base)] == [""] * 5   # located, not read
+    enriched = [D.load(FIX / "bellettini2002_p3_enriched.docling.json"),
+                D.load(FIX / "bellettini2002_p4_enriched.docling.json")]
+    assert {p for _, p, _ in D.equations(enriched[0])} == {3}
+    patched, missing = D.merge_formula_latex(base, enriched, pages={3, 4})
+    assert (patched, missing) == (5, [])
+    latex = [t for _, _, t in D.equations(base)]
+    assert latex[0].startswith("u ( t , x ) = ( 1 - \\lambda _ { C } t )")
+    assert "\\geqslant \\sum" in latex[3]
+    assert all(l.strip() for l in latex)
+
+
+def test_merge_reports_a_formula_region_that_came_back_without_latex():
+    """THE FAIL-CLOSED KILL. CodeFormula out of memory does not raise: docling leaves the
+    native text on the item and reports SUCCESS. Recording that would write the PDF's
+    mojibake into a latex column, so the merge must report it as missing."""
+    base = _formula_doc("PðEÞ5 X")
+    assert D.merge_formula_latex(base, [_formula_doc("")], pages={1})[1] == [(1, "#/texts/0")]
+    # unchanged text is the same failure wearing the enrichment pass's clothes
+    assert D.merge_formula_latex(base, [_formula_doc("PðEÞ5 X")], pages={1})[1] == [
+        (1, "#/texts/0")]
+    # and an enrichment pass that returned no formula item at all
+    assert D.merge_formula_latex(base, [], pages={1})[1] == [(1, "#/texts/0")]
 
 
 # ── the §7.1 alignment test against pypdfium2 ───────────────────────────────────────────

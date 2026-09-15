@@ -49,6 +49,7 @@ from __future__ import annotations
 import dataclasses
 import json
 import os
+import re
 import subprocess
 import sys
 import time
@@ -395,6 +396,205 @@ def equations(doc):
     LaTeX. The caller is told which by the run's ``metrics["formula"]``.
     """
     return [(b.order_index, b.page, b.text) for b in iter_blocks(doc, kinds=("formula",))]
+
+
+# ── the equation-density gate (Kam's decision A, 2026-09-15) ────────────────────────────
+#
+# Formula enrichment is 160x slower than layout (referee §3), so it runs on EQUATION-DENSE
+# PAGES ONLY. The density is read from pypdfium2's text layer — the same layer stage 0's
+# inventory will later carry per page, at which point this computation moves there and this
+# function becomes the reference implementation of the number.
+
+#: Characters that are unambiguously mathematical wherever they appear.
+MATH_CHARS = frozenset(
+    "=+<>±×·÷≤≥≠≈≡∑∫∮∂∇√∞→←↔∈∉∋⊂⊆⊃⊇∪∩∅∀∃∄¬∧∨⊕⊗⊙∏∐∼∝∥⟨⟩⌈⌉⌊⌋†‡°′″∠⊥≪≫⇒⇔≜≝∓∖")
+
+#: Sub/superscript markers: the Unicode forms, and the TeX-ish ASCII carets that survive
+#: extraction from a math font.
+SUPSUB_CHARS = frozenset("⁰¹²³⁴⁵⁶⁷⁸⁹⁺⁻⁼⁽⁾ⁿⁱ₀₁₂₃₄₅₆₇₈₉₊₋₌₍₎ₐₑₒₓ^_")
+
+#: A digit welded to a letter ("x2", "2n") — subscript structure flattened by the extractor.
+#: Counted as TWO math characters, which is what it is.
+_DIGIT_ADJ = re.compile(r"[A-Za-z]\d|\d[A-Za-z]")
+
+#: An equation NUMBER at the end of a line: "(3)", "(12a)". Capped at three digits on
+#: purpose — "(2003)" ending a reference-list line is a year, not an equation. ``ð6Þ`` is the
+#: same pattern seen through a broken math font; see :func:`equation_density`.
+_EQ_NUMBER = re.compile(r"[(ð]\s?\d{1,3}[a-z]?\s?[)Þ]\s*$")
+
+#: A line this short, in a page's text layer, is a DISPLAY-MATH FRAGMENT: the extractor
+#: breaks a centred equation into one line per run (numerator, bar, denominator, limits).
+#: Measured 2026-09-15 on Bellettini p4, where one display equation comes out as the lines
+#: ``[``, ``k``, ``j¼1``, ``Cij``, ``();``.
+DISPLAY_FRAGMENT_CHARS = 12
+
+#: **0.05, and how it was chosen.** The corpus histogram (4,655 pages, 219 PDFs — the census
+#: is ``qc/instruments/litkb_equation_density.py`` -> ``Reports/litkb_equation_density_2026-09-15.csv``)
+#: has NO antimode: academic maths is a continuum, not two populations, so the cut cannot be
+#: read off a valley. It was chosen instead against an INDEPENDENT target — docling's own
+#: layout pass, which labels ``formula`` regions in the cheap pass and knows nothing about
+#: the text layer this function reads (CLAUDE.md §3.4c: the proposer does not score itself).
+#: Scored per page over the four text-layer gate papers (177 pages, 655 formula regions),
+#: 0.05 is the LARGEST cut holding recall >= 0.80 and precision >= 0.95 against those labels:
+#: **recall 0.804, precision 0.974, 33.75% of the corpus selected**. The whole
+#: recall/precision/cost curve is in the report, because this is a policy choice about hours
+#: and a reader may want a different point on it; the rule was fixed after seeing the curve,
+#: which is stated rather than hidden.
+EQUATION_DENSITY_CUT = 0.05
+
+
+def _is_math_char(c):
+    if c in MATH_CHARS or c in SUPSUB_CHARS:
+        return True
+    o = ord(c)
+    if 0x370 <= o <= 0x3FF or 0x1F00 <= o <= 0x1FFF:      # Greek and Coptic, Greek Extended
+        return True
+    if 0x2100 <= o <= 0x214F or 0x1D400 <= o <= 0x1D7FF:  # letterlike, math alphanumerics
+        return True
+    import unicodedata
+    return unicodedata.category(c) == "Sm"
+
+
+def equation_density(page_text, page_chars=None):
+    """Fraction of a page's text layer that is attributable to mathematics. -> 0.0 … 1.0
+
+    THE FORMULA, stated once so the threshold can be argued with. Every non-space character
+    of the page is attributed AT MOST ONCE, so the result is a genuine fraction:
+
+    * a line that ends in an equation number (``_EQ_NUMBER``) contributes ALL its characters;
+    * a non-empty line no longer than :data:`DISPLAY_FRAGMENT_CHARS` contributes all of its
+      characters — it is a broken-up display equation, not prose;
+    * on every remaining line, each math-class character contributes itself
+      (:func:`_is_math_char`), plus two per digit-adjacent-to-letter pair.
+
+    ``density = attributed / page_chars``, where ``page_chars`` defaults to the count of
+    non-whitespace characters on the page.
+
+    **WHY THE LINE TERMS ARE NOT OPTIONAL.** A pure math-character ratio does not work on
+    this corpus. Bellettini 2002 — the equation paper — uses a Type-1 math font with no
+    usable ToUnicode map: ``=`` extracts as ``¼``, ``(x)`` as ``ðxÞ``, ``Σ`` as ``X``, ``χ``
+    as ``w`` (measured 2026-09-15 on pp. 3–4). Its math-CHARACTER ratio is 0.005–0.014,
+    the same band as Benedek's PROSE. What survives a broken encoding is the LAYOUT of
+    display maths, and that is what the two line terms read.
+
+    A page with no text layer at all (an image-only scan: every page of Anderson 1957)
+    returns **0.0** and is therefore never selected. That is deliberate and it is a stated
+    hole: an equation on a scan is invisible to this gate until OCR has run. Stage 0's
+    text-layer census is what flags such a file (referee §5.1), not this function.
+    """
+    text = (page_text or "").replace("\r\n", "\n").replace("\r", "\n")
+    lines = [ln.strip() for ln in text.split("\n")]
+    total = page_chars if page_chars is not None else sum(
+        1 for c in text if not c.isspace())
+    if not total:
+        return 0.0
+    attributed = 0
+    for ln in lines:
+        if not ln:
+            continue
+        n = sum(1 for c in ln if not c.isspace())
+        if _EQ_NUMBER.search(ln) or len(ln) <= DISPLAY_FRAGMENT_CHARS:
+            attributed += n
+            continue
+        attributed += sum(1 for c in ln if not c.isspace() and _is_math_char(c))
+        attributed += 2 * len(_DIGIT_ADJ.findall(ln))
+    return min(1.0, attributed / total)
+
+
+def page_densities(pdf_path):
+    """[(page_no, density, page_chars)] for every page of a PDF, 1-indexed."""
+    import pypdfium2 as pdfium
+
+    out = []
+    doc = pdfium.PdfDocument(pdf_path)
+    try:
+        for i in range(len(doc)):
+            t = doc[i].get_textpage().get_text_range() or ""
+            n = sum(1 for c in t if not c.isspace())
+            out.append((i + 1, equation_density(t, n), n))
+    finally:
+        doc.close()
+    return out
+
+
+def dense_pages(pdf_path, cut=None, pages=None):
+    """Page numbers whose equation density is STRICTLY ABOVE the cut.
+
+    ``pages`` optionally restricts the census to a ``[lo, hi]`` range, so a job that converts
+    part of a book does not enrich pages it never extracted.
+    """
+    cut = EQUATION_DENSITY_CUT if cut is None else cut
+    lo, hi = (pages or [1, 10 ** 9])
+    return [p for p, d, _ in page_densities(pdf_path) if d > cut and lo <= p <= hi]
+
+
+def page_runs(pages):
+    """[1,2,3,7,9,10] -> [[1,3],[7,7],[9,10]] — contiguous ranges, for a worker page range."""
+    runs = []
+    for p in sorted(set(pages)):
+        if runs and p == runs[-1][1] + 1:
+            runs[-1][1] = p
+        else:
+            runs.append([p, p])
+    return runs
+
+
+class FormulaEnrichmentFailed(DoclingError):
+    """An enriched page came back with a formula region carrying no LaTeX.
+
+    THE FAIL-CLOSED RULE. CodeFormulaV2 is 611 MB and autoregressive; on a 4 GB card it can
+    run out of memory. Docling's enrichment does NOT re-raise per element — a formula item
+    the model could not decode keeps the text the native layer gave it, and the conversion
+    still reports status SUCCESS. A caller that trusted that status would write the PDF's
+    mojibake into a ``latex`` column. So the adapter compares the enriched text against the
+    base pass's text for the same region and refuses a page where nothing moved.
+    """
+
+
+def merge_formula_latex(base_doc, enriched_docs, pages=None):
+    """Copy LaTeX from enrichment-pass documents onto the base document's formula items.
+
+    ``auto`` converts twice — once cheaply over the whole file, once with enrichment over the
+    dense page runs only — because ``do_formula_enrichment`` is a CONVERTER-wide option in
+    docling 2.127.0 (``PdfPipelineOptions.do_formula_enrichment``). Read in the INSTALLED
+    package — ``docling/models/stages/code_formula/code_formula_model.py``, the
+    ``is_processable`` method — it filters on the item's LABEL and on the option, and never
+    on the page. There is no per-page switch to set. (That path is inside the extraction
+    venv, not this repo, which is why it is not written as a resolvable citation.)
+
+    Matching is by ``(page, bbox rounded to 1 pt)``, not by index: the enrichment pass
+    converts a page RANGE, so its item indices and its ``order_index`` are its own.
+
+    -> ``(patched, missing)``, where ``missing`` is [(page, element_id)] for every formula
+    region on an enriched page whose LaTeX did not arrive. :func:`extract` turns a non-empty
+    ``missing`` into :class:`FormulaEnrichmentFailed`.
+    """
+    def key(page, box):
+        return (page, round(box[0], 1), round(box[1], 1), round(box[2], 1), round(box[3], 1))
+
+    latex = {}
+    for ed in enriched_docs:
+        for b in iter_blocks(ed, kinds=("formula",)):
+            latex[key(b.page, (b.x0, b.y0, b.x1, b.y1))] = b.text
+    want = set(pages) if pages is not None else None
+    patched, missing = 0, []
+    for item in base_doc.get("texts") or []:
+        if (item.get("label") or "") != "formula":
+            continue
+        for i, prov in enumerate(item.get("prov") or []):
+            page = int(prov["page_no"])
+            if want is not None and page not in want:
+                continue
+            h = page_size(base_doc, page)
+            box = to_canonical(prov["bbox"], h[1] if h else None)
+            new = latex.get(key(page, box))
+            if new and new.strip() and new != item.get("text"):
+                if i == 0:
+                    item["text"] = new
+                patched += 1
+            else:
+                missing.append((page, item.get("self_ref")))
+    return patched, missing
 
 
 # ── the cropbox -> mediabox frame shift (shared rule with the GROBID adapter) ────────────
@@ -755,16 +955,39 @@ def load(path):
         return json.load(fh)
 
 
-def extract(pdf, out_json, metrics_path, require_text_blocks=True, **kw):
+def extract(pdf, out_json, metrics_path, require_text_blocks=True, formulas=None,
+            density_cut=None, **kw):
     """Run one file and return ``(doc, metrics)`` — the §14 record for that run.
 
     The refusals are the same two the GROBID adapter learned the hard way: a run with no
     peak-RSS measurement is not a measured run, and a conversion with no body block is a
     FAILED run, not an ok one with zero blocks. Both raise, and the metrics dict travels on
     the exception so the failure is still recorded.
+
+    ``formulas`` is Kam's decision A (2026-09-15):
+
+    * ``"off"`` (default) — no enrichment, one pass. Formula regions are located, not read.
+    * ``"all"`` — enrichment over every page, one pass. 160x slower than layout; this is the
+      setting the report measured and the one nobody should run on a corpus.
+    * ``"auto"`` — TWO passes: the cheap one over the whole file, then enrichment over the
+      contiguous runs of pages whose :func:`equation_density` exceeds ``density_cut``
+      (default :data:`EQUATION_DENSITY_CUT`), merged back by :func:`merge_formula_latex`. A
+      file with no dense page runs exactly one pass and records ``formula_pages = []``.
+
+    The legacy ``formula=True/False`` keyword still works and maps to ``all`` / ``off``, so
+    the instrument and the tests written before decision A do not move.
     """
-    rows = run([{"pdf": pdf, "out": out_json, "pages": kw.pop("pages", None)}],
-               metrics_path, **kw)
+    pages = kw.pop("pages", None)
+    legacy = kw.pop("formula", None)
+    if formulas is None:
+        formulas = "all" if legacy else "off"
+    if formulas not in ("auto", "all", "off"):
+        raise ValueError(f"formulas must be auto|all|off, not {formulas!r}")
+    if formulas == "auto":
+        return _extract_auto(pdf, out_json, metrics_path, pages, density_cut,
+                             require_text_blocks, kw)
+    rows = run([{"pdf": pdf, "out": out_json, "pages": pages}],
+               metrics_path, formula=(formulas == "all"), **kw)
     if not rows:
         raise DoclingError(f"the worker recorded no metrics row for {pdf}")
     m = rows[0]
@@ -792,6 +1015,51 @@ def extract(pdf, out_json, metrics_path, require_text_blocks=True, **kw):
     m["body_blocks"] = len(body_blocks(doc))
     m["tables_found"] = len(tables(doc))
     m["figures_found"] = len(figures(doc))
+    m.setdefault("formula_mode", formulas)
+    return doc, m
+
+
+def _extract_auto(pdf, out_json, metrics_path, pages, density_cut, require_text_blocks, kw):
+    """The two-pass ``formulas="auto"`` path — see :func:`extract`."""
+    cut = EQUATION_DENSITY_CUT if density_cut is None else density_cut
+    doc, m = extract(pdf, out_json, metrics_path, require_text_blocks=require_text_blocks,
+                     formulas="off", pages=pages, **kw)
+    dense = dense_pages(pdf, cut, pages)
+    m["formula_mode"] = "auto"
+    m["formula_density_cut"] = cut
+    m["formula_pages"] = dense
+    m["formula_pages_n"] = len(dense)
+    m["formula_seconds"] = 0.0
+    if not dense:
+        m["formula_patched"] = 0
+        return doc, m
+    enriched = []
+    t0 = time.time()
+    for lo, hi in page_runs(dense):
+        part = f"{out_json}.formula_{lo}-{hi}.json"
+        rows = run([{"pdf": pdf, "out": part, "pages": [lo, hi]}], metrics_path,
+                   formula=True, **kw)
+        if not rows or rows[0].get("status") != "ok":
+            m["status"], m["error"] = "failed", "the enrichment pass failed"
+            raise FormulaEnrichmentFailed(
+                f"{pdf}: the enrichment pass over pages {lo}-{hi} failed: "
+                f"{(rows[0].get('error') if rows else 'no metrics row')}", metrics=m)
+        enriched.append(load(part))
+    m["formula_seconds"] = round(time.time() - t0, 3)
+    patched, missing = merge_formula_latex(doc, enriched, pages=set(dense))
+    m["formula_patched"] = patched
+    m["formula_missing"] = len(missing)
+    if missing:
+        # FAIL CLOSED. An out-of-memory CodeFormula leaves the native text in place and the
+        # conversion still says SUCCESS; recording that as an enriched run would put the
+        # PDF's mojibake into a latex column (see FormulaEnrichmentFailed).
+        m["status"], m["error"] = "failed", f"{len(missing)} formula regions without LaTeX"
+        raise FormulaEnrichmentFailed(
+            f"{pdf}: {len(missing)} of {patched + len(missing)} formula regions on enriched "
+            f"pages came back with no LaTeX — refusing to record a half-enriched run "
+            f"(first: page {missing[0][0]}, {missing[0][1]})", metrics=m)
+    with open(out_json, "w", encoding="utf-8", newline="\n") as fh:
+        json.dump(doc, fh, ensure_ascii=False)
     return doc, m
 
 

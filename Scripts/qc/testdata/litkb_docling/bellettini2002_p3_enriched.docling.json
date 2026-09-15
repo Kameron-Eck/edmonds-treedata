@@ -1,0 +1,71 @@
+{
+"name": "p3 enriched",
+"pages": {
+"3": {
+"size": {
+"width": 428.0,
+"height": 646.0
+},
+"page_no": 3
+}
+},
+"texts": [
+{
+"self_ref": "#/texts/0",
+"label": "formula",
+"text": "u ( t , x ) = ( 1 - \\lambda _ { C } t ) ^ { + } \\chi _ { C } ( x ) , \\quad \\lambda _ { C } \\colon = \\frac { P ( C ) } { | C | }",
+"content_layer": "body",
+"prov": [
+{
+"page_no": 3,
+"bbox": {
+"l": 127.44575716000001,
+"t": 155.6632062,
+"r": 299.36748878,
+"b": 133.3245555989928,
+"coord_origin": "BOTTOMLEFT"
+},
+"charspan": [
+0,
+62
+]
+}
+]
+},
+{
+"self_ref": "#/texts/1",
+"label": "formula",
+"text": "\\text {ess sup } \\kappa _ { \\partial C } ( p ) \\leqslant \\lambda _ { C } ,",
+"content_layer": "body",
+"prov": [
+{
+"page_no": 3,
+"bbox": {
+"l": 170.75914434,
+"t": 80.88065900000004,
+"r": 375.27888306,
+"b": 63.97088025104597,
+"coord_origin": "BOTTOMLEFT"
+},
+"charspan": [
+0,
+40
+]
+}
+]
+}
+],
+"tables": [],
+"pictures": [],
+"groups": [],
+"body": {
+"children": [
+{
+"$ref": "#/texts/0"
+},
+{
+"$ref": "#/texts/1"
+}
+]
+}
+}

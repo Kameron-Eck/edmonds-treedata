@@ -192,11 +192,22 @@ for Anderson p1, `parse_score 1.0, layout_score 0.785, ocr_score 0.983, mean_gra
 
 **Docling does not use the T2000 in this installation.** `pip install docling` on Windows
 brings **torch 2.14.0+cpu**, whose `torch.cuda.is_available()` is `False`, so
-`AcceleratorDevice.CUDA` has nothing to bind to. Making a GPU run possible means replacing
-torch with a CUDA wheel in this venv, which changes every number in §3 and re-pins the
-requirements file. Docling itself supports CUDA; **this installation does not have it** —
-that is a property of the wheel, not of the tool. The driver is present (581.42, CUDA 13.0) with 3.1 GB of the 4 GB free.
-**Not attempted in this session; the CPU measurement is the one that stands.**
+`AcceleratorDevice.CUDA` has nothing to bind to. Docling itself supports CUDA; **this
+installation does not have it** — that is a property of the wheel, not of the tool. The driver
+is present (581.42, CUDA 13.0) with 3.1 GB of the 4 GB free.
+
+**Defect D4, closed: the wheel that works, named.** `docling` pins no torch; `docling-ibm-models`
+wants `torch<3.0.0,>=2.2.2`; and **`torchvision 0.29.0` requires `torch==2.14.0` exactly**, so
+the CUDA build must be 2.14.0 and not a newer one. Of PyTorch's channels only **cu130** carries
+a cp312 win_amd64 pair at that version (`cu126` has torch but not the matching torchvision;
+cu128 and cu129 have neither). The card is a **Quadro T2000, sm_75 (Turing)**, which CUDA 13.x
+still supports. So the replacement is `torch==2.14.0+cu130` with `torchvision==0.29.0+cu130`.
+**The real cost is not availability: swapping it re-pins the requirements file and invalidates
+every number in §3.**
+
+**That is why the trial got its own venv rather than an upgrade in place.** The CPU venv is
+untouched; `D:\edmonds-pipeline\venv-docling-cuda` is a separate environment differing from it
+by exactly two lines. The measurement is in "Decision A implemented" below.
 
 ---
 
@@ -256,11 +267,43 @@ strip. The title is recovered, from the page it is actually on.*
 The paragraph that runs from page 1 onto page 2 comes back as one item with three prov boxes,
 in order, and page 2's running head is labelled `page_header` rather than body.
 
-OCR quality on a 1957 letterpress scan is good but not clean, and the errors are the kind that
-matter to a quote check: `usualiy` for *usually*, `sncreases` for *increases*, `x²-tests` where
-the page reads `χ²-tests`, and page 2's folio `90` read as `06`. **Any verified-quote rule
-applied to OCR'd text must expect this** — an exact-match quote gate would reject true quotes
-from scanned sources.
+**OCR quality, corrected on the referee's measurement (defect D2, closed).** This section used
+to read "good but not clean" and list three per-character typos — `usualiy` for *usually*,
+`sncreases` for *increases*, `x²-tests` where the page reads `χ²-tests`, page 2's folio `90`
+read as `06`. Those are real, and they are the mild half of the story. The independent referee
+transcribed the first 100 words of the Summary off the page image before reading any OCR
+output and diffed it (`LITKB_DOCLING_LOCAL_REFEREE_2026-09-15.md` §2.3):
+
+| | |
+|---|--:|
+| gold words compared | 94 (the 100th fell mid-token) |
+| gold words wrong or missing | **13** |
+| **word error rate** | **13.8%** |
+| of which, inside ONE contiguous dropout | **12** |
+| outside that dropout | 1 (`χ²` → `x²`) |
+
+**The dropout is the finding, not the typos.** Where the page reads
+
+> *…of a first order chain **are constant, (b) that in case the transition probabilities are
+> constant, they are** specified numbers…*
+
+the OCR'd block reads
+
+> `…of a first order chain aorae nt Gtnt e sn nt  ea  tt ( Gtt are specified numbers…`
+
+**Twelve consecutive words of the abstract are replaced by ten tokens of gibberish that is
+still word-shaped**, inside a block that otherwise reads cleanly, with no marker and no
+block-level confidence to drop (there is none), on a page whose `mean_grade` is `excellent`.
+It is **deterministic**: the referee's re-run in a separately rebuilt venv produced the
+identical `aorae nt Gtnt e sn nt  ea  tt ( Gtt`, so it is a property of rapidocr+torch on this
+page, not a sampling artefact.
+
+**The downstream rule this changes.** Per-character slips are survivable — a fuzzy quote
+matcher absorbs `usualiy`. Silent content loss is not, and it breaks the gate in the more
+dangerous direction: an exact-match quote gate over this text will reject true quotes, **and a
+fuzzy one can match a plausible-looking string the page never said.** A verified-quote rule
+over OCR'd sources therefore cannot be a text rule alone; it needs the page image or a second
+extractor to agree.
 
 ### 4.4 Formula LaTeX — see §6 (measured separately; two of five equations are wrong)
 
@@ -304,12 +347,22 @@ referee found their absence in the other adapter:
   furniture-only one).
 
   **And this gate does NOT catch `Anderson_1957` with OCR off** — that run returns **one**
-  body block (the JSTOR boilerplate), and one is ≥ 1, so it passes exactly the way GROBID's
-  200 did. This is the referee's "partially extractable scan" class, and the zero-block rule
-  is necessary but not sufficient for it. What catches this file is stage 0's per-page
-  text-layer probe (design §7 stage 0: 22 pages, 1 with any text, 166 characters) plus a
-  blocks-per-page floor, neither of which is built. **Open, and it belongs to stage 0, not
-  here.**
+  body block, and one is ≥ 1, so it passes exactly the way GROBID's 200 did.
+
+  **Defect D3, closed: that one block is not the JSTOR boilerplate.** This report said it
+  was. The referee read it: it is a single character, `®`, from the JSTOR logo
+  (`page 1, kind=text, layer=body, text='®'`). The correction matters in one direction and
+  the referee names it — a trivial **body-character floor** (say ≥ 200 characters of body
+  text) *would* catch this file, which the old "one is ≥ 1, so it passes" framing implied
+  nothing cheap could. A character floor is worth having and is nearly free.
+
+  It is still not sufficient, which is why the conclusion does not move: a scan whose text
+  layer holds a real paragraph of front matter clears any character floor. What closes the
+  class is stage 0's per-page text-layer census (design §7 stage 0), and the referee
+  prototyped it in five lines and **showed it firing on this file** — 22 pages, **1** with any
+  text, **166** characters, **7.5** characters per page, so both a text-page-fraction floor
+  (0.045 < 0.5) and a characters-per-page floor (7.5 < 100) trip. Stage 0 must record all four
+  and refuse, or force OCR. **Open, and it belongs to stage 0, not here.**
 * **a corrupt or zero-byte file is refused with a recorded row.** pypdfium2 is the first
   thing to reject it (`PdfiumError: Failed to load document (PDFium: Data format error)`), and
   the page count is taken inside the timed try so the failure leaves a `status="failed"`
@@ -367,32 +420,270 @@ paper includes `P ð C Þ` where the page reads `P(C)` — the PDF's ligature-en
 
 ## 7. What blocks a referee
 
-1. **The venv is not reproducible from the pin alone until it is rebuilt from it.**
-   `requirements-litkb-extract.txt` pins docling 2.127.0 and names the transitive versions
-   that were installed today, but the file was written from a `pip install docling`, not tested
-   by re-creating the environment from the file. A referee should rebuild from the pin and
-   check the versions match before trusting the timings.
+1. ~~**The venv is not reproducible from the pin alone.**~~ **Defect D1, CLOSED 2026-09-15.**
+   The referee rebuilt from the old file the same day and `docling-core` came back **2.96.1**
+   against the measured **2.96.0** — a comment is not a constraint. `requirements-litkb-extract.txt`
+   is now a full `pip freeze` of the venv the numbers were measured in (106 pins), and the
+   CUDA trial venv has its own, `requirements-litkb-extract-cuda.txt`. The one pin that is not
+   self-describing is torch: `pip freeze` prints `torch==2.14.0` while `torch.__version__` is
+   `2.14.0+cpu`, because the local label is on the dunder and not in the freeze. On win_amd64
+   the PyPI wheel for 2.14.0 *is* the CPU build, so the file reproduces the CPU venv; the CUDA
+   file pins `+cu130` explicitly, since the local label is the only thing distinguishing it,
+   and PyPI does not serve it.
 2. **Model weights are not vendored.** The first run downloads 1.1 GB from Hugging Face
    (unauthenticated; the warning about symlinks on Windows is benign). A referee without
    network access cannot reproduce anything here.
 3. **The OCR engine is rapidocr on its torch backend** (§3.1, measured from docling's own log
    line). The §3.1 batch itself ran under `auto`, so its metrics row records `ocr_engine:
    auto`; the identity comes from the separate pinned run, not from that row.
-4. **The book was measured on its first 100 pages**, not all 688.
-5. **GPU was not attempted** (§3.2): it requires replacing torch in the venv.
-6. **The cpu-t4 and cpu-t8 batches ran back to back on a laptop that was also running Kam's
+4. ~~**The book was measured on its first 100 pages**, not all 688.~~ **Defect D3b, CLOSED:**
+   stale since commit `afc052c`, which added the full 688-page row to §3. The book is measured
+   in full.
+5. ~~**GPU was not attempted**~~ **CLOSED 2026-09-15** — see "Decision A implemented" below.
+   The trial was run on the T2000 and the numbers are there. The default backend did **not**
+   change: `VENV_PYTHON` still resolves to the CPU venv and `--device cpu` is still the
+   default.
+6. **N1 — `litkb_test_w*` has no code path on this branch, and that is a note about the
+   referee brief, not a defect here.** Checked rather than inferred: `pipeline/litkb/db/connect.py`
+   sets `DB_TEST = "litkb_test"` with no environment override; nothing in this worktree
+   mentions `litkb_test_w*`; and `main` does not carry the litkb tree at all. The server does
+   hold `litkb_test_w1 … litkb_test_w9`, created by the 9-worker mutation harness that runs
+   **outside** this worktree. Sharing one `litkb_test` under `qc/conftest.py`'s advisory lock
+   is this branch's deliberate design, so parallel suites serialise. The residual risk is
+   narrow and real: `migrate.reset()` still destroys whatever is in `litkb_test` when it takes
+   the lock, so a session holding state there loses it. Whether per-worktree databases are
+   wanted is Kam's call, not this branch's. **Consequence for this session:** like the
+   referee, every ladder run here used `LITKB_PGPORT=1`, so 216 litkb Postgres tests were
+   skipped and are **unexercised**. A merge reviewer must run them against a database they are
+   willing to have reset.
+7. **The cpu-t4 and cpu-t8 batches ran back to back on a laptop that was also running Kam's
    browsers and two Claude Code sessions.** The load columns record what that was; nothing was
    closed to make the numbers look better. A second session's 9-worker test campaign began at
    **08:14 UTC**, after those batches and the OCR batch finished (07:45–08:00), and overlapped
    the abandoned 10-page formula run; the single-page formula rows (08:59, 09:03) ran after it
    at a 46% ambient load. Row-level `started_at` is in the CSV so a referee can check this
    rather than take it.
-7. **Nothing here has touched Postgres.** `extraction_runs.metrics` is where these rows belong
+8. **Nothing here has touched Postgres.** `extraction_runs.metrics` is where these rows belong
    (design §4.3); P4's job table is not built, so the metrics live in the CSV and in
    `_tmp\litkb_docling\metrics_*.jsonl`. The same gap the GROBID referee recorded.
-8. **`ocr_score` / `table_score` can be `NaN`** in the recorded confidence object (Anderson
+9. **`ocr_score` / `table_score` can be `NaN`** in the recorded confidence object (Anderson
    has no table). `json.dumps` writes a bare `NaN`, which Python reads back but strict JSON
    parsers reject — the ingest that lands these rows in `extraction_runs.metrics` must
    normalise it.
-9. **The equation readings in §6.1 are the builder's own** and, per CLAUDE.md §3.4c, do not
+10. **The equation readings in §6.1 are the builder's own** and, per CLAUDE.md §3.4c, do not
    count until a referee checks them against the rendered pages.
+
+---
+
+## 8. Decision A implemented (2026-09-15)
+
+Kam's decision A on the referee's §6: **formula enrichment only on equation-dense pages, and
+a measured trial of the CUDA build on the T2000 before any adoption.** Both are below. The
+default backend did **not** change — `VENV_PYTHON` still resolves to the CPU venv,
+`--device cpu` is still the default, and the CUDA venv is a measurement environment that
+nothing in the code points at.
+
+### 8.1 The equation-density gate
+
+**Why a gate at all.** Enrichment is 160x layout, and it is priced per formula REGION, not per
+page (CodeFormulaV2 is autoregressive and runs once per region). Running it over the whole
+corpus is not a thing anyone will do; running it over the pages that have equations might be.
+
+**The formula**, implemented as `litkb.extract.docling.equation_density(page_text,
+page_chars)` and documented in full in that function's docstring. Every non-space character of
+a page is attributed AT MOST ONCE, so the result is a genuine fraction:
+
+* a line ending in an equation number — `(3)`, `(12a)`, capped at **three digits** so that
+  `(2003)` closing a reference line is a year and not an equation — contributes all its
+  characters;
+* a non-empty line of **12 characters or fewer** contributes all its characters: it is a
+  display equation the extractor has broken into one line per run;
+* on every other line, each math-class character contributes itself (Unicode `Sm`, Greek,
+  letterlike and math-alphanumeric blocks, sub/superscript markers, and an explicit operator
+  set), plus two per digit-welded-to-letter pair.
+
+**Why the two line terms are not decoration — the finding that changed the design.** A pure
+math-character ratio does not work on this corpus. Bellettini 2002, the equation paper, uses a
+Type-1 math font with no usable ToUnicode map: `=` extracts as the vulgar-fraction glyph,
+`(x)` as `ðxÞ`, sigma as `X`, chi as `w`. Its math-CHARACTER ratio is **0.005–0.014, the same
+band as Benedek's prose**. What survives a broken encoding is the LAYOUT of display maths, and
+the line terms are what read it. A gate built only on the usual operator glyphs would have
+scored the equation paper as prose.
+
+**The census.** `qc/instruments/litkb_equation_density.py` over `ASPP`, `Labeling`,
+`Validation` and `other` (`_litkb_staging` and `_quarantine` excluded — staging duplicates
+files already counted, quarantine holds failed ingests): **219 PDFs, 4,655 pages, 0 unreadable,
+86 pages with no text layer** (85 of them inside the 5 image-only scans). Per-page rows:
+`Reports/litkb_equation_density_2026-09-15.csv`.
+
+| density bin | pages | % | · | density bin | pages | % |
+|---|--:|--:|---|---|--:|--:|
+| [0.00, 0.01) | 1,552 | 33.34 | | [0.10, 0.12) | 149 | 3.20 |
+| [0.01, 0.02) | 685 | 14.72 | | [0.12, 0.15) | 187 | 4.02 |
+| [0.02, 0.03) | 378 | 8.12 | | [0.15, 0.20) | 209 | 4.49 |
+| [0.03, 0.04) | 246 | 5.28 | | [0.20, 0.30) | 202 | 4.34 |
+| [0.04, 0.05) | 222 | 4.77 | | [0.30, 0.50) | 78 | 1.68 |
+| [0.05, 0.06) | 204 | 4.38 | | [0.50, 0.75) | 14 | 0.30 |
+| [0.06, 0.08) | 285 | 6.12 | | [0.75, 1.01) | 4 | 0.09 |
+| [0.08, 0.10) | 240 | 5.16 | | | | |
+
+**There is no antimode, and that is a result rather than a failure to find one.** The
+distribution decays monotonically. Academic mathematics is a continuum — a methods page with
+two inline symbols shades into a page of display equations — so the cut cannot be read off a
+valley and has to be argued for on other grounds.
+
+**The other grounds: an INDEPENDENT target.** Docling's own layout pass labels `formula`
+regions in the cheap pass, from page geometry, knowing nothing about the text layer this
+function reads. That is a target the density function did not produce about itself
+(CLAUDE.md §3.4c). Scored per page over the four gate papers that have a text layer —
+**177 pages, 655 formula regions**; Anderson 1957 is excluded because it is an image-only scan
+whose density is 0 everywhere and which neither side can see:
+
+| cut | recall | precision | corpus pages selected |
+|--:|--:|--:|--:|
+| 0.01 | 0.978 | 0.918 | 3,103 (66.7%) |
+| 0.02 | 0.949 | 0.978 | 2,415 (51.9%) |
+| 0.03 | 0.913 | 0.977 | 2,038 (43.8%) |
+| 0.04 | 0.877 | 0.976 | 1,794 (38.5%) |
+| **0.05** | **0.804** | **0.974** | **1,571 (33.8%)** |
+| 0.06 | 0.732 | 0.990 | 1,368 (29.4%) |
+| 0.08 | 0.623 | 1.000 | 1,083 (23.3%) |
+| 0.10 | 0.522 | 1.000 | 842 (18.1%) |
+| 0.12 | 0.435 | 1.000 | 694 (14.9%) |
+| 0.20 | 0.181 | 1.000 | 298 (6.4%) |
+
+**`EQUATION_DENSITY_CUT = 0.05`** — the largest cut holding recall at or above 0.80 and
+precision at or above 0.95. **The rule was fixed after seeing this curve, not before**, which
+is why the whole curve is printed: the choice is a policy decision about hours, and a reader
+who wants a different point on it can have one by editing a constant. F1 against the layout
+labels actually peaks at 0.02, but 0.02 selects 52% of the corpus and is barely a gate.
+
+**What the cut buys, measured rather than assumed.** It selects 33.75% of pages but captures
+**588 of 655 formula regions = 89.8%** — better than its 80.4% *page* recall, because the
+pages it keeps are the region-dense ones. Both gold formula pages the referee scored by hand
+clear it (Bellettini p3 = 0.0501, p4 = 0.0869); Benedek 2015's prose pages max out at 0.016.
+
+**The stated holes.** A page with no text layer scores 0.0 and is never selected, so an
+equation on a scan is invisible here until OCR has run — that is stage 0's text-layer census
+to catch (§5), not this function's job. And the 10.2% of regions below the cut are lost
+silently unless a caller raises the cut.
+
+**Tests and kills** (`qc/test_litkb_docling.py`, **37 passed / 3 skipped**, up from 25): gold
+pages above and prose below; a no-text page returns 0.0 without dividing by zero; the
+broken-math-font page scores as maths; a reference year at a line end does not; and the cut
+meets its stated recall and precision. Mutating the constant fires: **`EQUATION_DENSITY_CUT =
+0.0` gives 2 failed** (precision collapses — prose is selected), **`= 1.0` gives 3 failed**
+(recall collapses — nothing is). A gate that has never been shown to fire is not a gate.
+
+### 8.2 `--formulas auto|all|off`, and why it has to be two passes
+
+`do_formula_enrichment` is a CONVERTER-wide option. Read at
+the `is_processable` method of `docling/models/stages/code_formula/code_formula_model.py`
+in the installed package, it filters on the
+item's LABEL and on the option and **never on the page** — there is no per-page switch to set.
+So `auto` is adapter-side: one cheap pass over the whole file, then one enrichment pass per
+contiguous run of dense pages, merged by `merge_formula_latex` on `(page, bbox rounded to
+1 pt)` rather than by index, since the enrichment pass numbers its own items.
+
+**Two assumptions that pass measurement rather than review.** Run against the real base and
+enrichment documents for Bellettini pp. 3–4: a page-RANGE conversion numbers its pages
+**absolutely** (`prov.page_no == 3`, not 1), and the two passes' boxes agree within the 1 pt
+the key rounds to. Result: **5 patched, 0 missing**, recovering exactly the five LaTeX strings
+the referee scored. Had page numbering been relative, every `auto` run would have raised —
+which is what the fail-closed rule is for, and it is now a fixture test.
+
+**Enrichment fails CLOSED.** Docling does not re-raise per element: a formula region the model
+could not decode keeps the text the native layer gave it, and the conversion still reports
+SUCCESS. (On this paper the base pass leaves formula text **empty**, so the mojibake would come
+from a caller's own fallback rather than from docling — but the failure shape is the same.)
+`merge_formula_latex` reports every region on an enriched page whose LaTeX did not arrive, and
+`extract` turns a non-empty list into `FormulaEnrichmentFailed` with `status="failed"` rather
+than recording a half-enriched run. Tested on three shapes of that failure: empty LaTeX,
+unchanged text, and an enrichment pass that returned no formula item at all.
+
+### 8.3 The CUDA trial on the T2000
+
+**The environment.** `D:\edmonds-pipeline\venv-docling-cuda`, pinned in
+`requirements-litkb-extract-cuda.txt`. It is the CPU freeze with **exactly two lines changed** —
+`torch 2.14.0 -> 2.14.0+cu130`, `torchvision 0.29.0 -> 0.29.0+cu130`, diffed to confirm; every
+other package matches to the patch version. That is what makes the comparison below
+attributable to the wheel and to nothing else. `torch.cuda.is_available()` is **True** and the
+device name is **`Quadro T2000`**. The CPU venv was not touched. Model weights are shared
+through the Hugging Face cache, so building this venv downloaded no weights.
+
+**Ambient load, recorded before each batch** (probed with `psutil` from the extraction venv;
+the CSV's `load_python_procs` column is empty because the project environment has no psutil):
+
+| batch | system CPU over 5 s | python processes | GPU memory in use |
+|---|--:|--:|--:|
+| gpu-t4 (layout + tables) | 21.4% | 17 | 901 MiB |
+| gpu-ocr | 23.9% | 19 | 901 MiB |
+| gpu-formula | 26.5% | 20 | 901 MiB |
+
+Other agents' harnesses were on the machine throughout; nothing was closed to improve a number.
+
+**CPU vs GPU — same five papers, same page ranges, `num_threads=4`:**
+
+| run | pages | CPU s | CPU p/s | GPU s | GPU p/s | speed-up | CPU peak RSS | GPU peak RSS | GPU VRAM over baseline |
+|---|--:|--:|--:|--:|--:|--:|--:|--:|--:|
+| Benedek 2015 | 16 | 33.29 | 0.481 | **6.19** | **2.585** | **5.4x** | 1,872 MB | 2,153 MB | +1,482 MiB |
+| Alwan 1988 | 10 | 16.64 | 0.601 | **4.88** | **2.048** | **3.4x** | 2,007 MB | 2,201 MB | +1,482 MiB |
+| Anderson 1957 | 22 | 29.68 | 0.741 | **6.50** | **3.386** | **4.6x** | 2,056 MB | 2,056 MB | +1,482 MiB |
+| Bellettini 2002 | 51 | 64.62 | 0.789 | **8.75** | **5.830** | **7.4x** | 2,036 MB | 2,358 MB | +1,482 MiB |
+| Schneider 2008 (pp. 1–100) | 100 | 135.69 | 0.737 | **20.26** | **4.936** | **6.7x** | 2,641 MB | 2,882 MB | +1,482 MiB |
+| **layout aggregate** | **199** | **279.9** | **0.711** | **46.58** | **4.272** | **6.0x** | 2,641 MB | 2,882 MB | **+1,482 MiB** |
+| OCR, Anderson 1957 | 22 | 234.08 | 0.094 | **35.35** | **0.622** | **6.6x** | 2,456 MB | 2,506 MB | **+1,662 MiB** |
+| Formula, Bellettini pp. 3–4 (5 regions) | 2 | 396.91 | 0.005 | **42.52** | **0.047** | **9.3x** | 1,958 MB | 3,236 MB | **+3,017 MiB** |
+
+Speed-ups run 3.4–9.3x, far outside the referee's ±20% reproduction band, so they are not
+noise. **The body-block counts are identical to the CPU run on all five papers** (377 / 157 /
+1 / 819 / 1,011), and the OCR run returns the same 179 — the GPU produces the same document,
+faster, which is the corroboration that matters more than the rate does.
+
+**CodeFormula did NOT run out of memory, and the margin is the finding.** Peak device memory
+during the formula batch was **3,918 of 4,096 MiB**, leaving **178 MiB** on a card that is also
+driving the display. It fit on this input: 2 pages, 5 regions, short decodes. A longer decode,
+a denser page, or Kam opening something that wants VRAM would push it over. **UNDETERMINED
+whether formula enrichment on this card is safe at corpus scale** — it is measured on two
+pages. Layout + tables at +1,482 MiB and OCR at +1,662 MiB have real headroom and are not at
+risk. The fail-closed path in §8.2 is what stands between an OOM and a silently empty LaTeX
+column, and it is the reason that path exists.
+
+**The LaTeX is byte-identical between CPU and GPU.** All five strings from the GPU run match
+the CPU strings character for character — including both of the errors the referee confirmed
+(the lost subscript under `ess sup`, and the set difference read as `\rangle`). The GPU changes
+the rate and nothing else. It does not fix the two wrong equations and it would be a mistake
+to hope it might.
+
+Per-process VRAM could not be attributed: under WDDM,
+`nvidia-smi --query-compute-apps=used_memory` returns `[N/A]` for every process on this
+machine (checked — 10 processes, all `[N/A]`). The numbers above are device-wide peak minus a
+baseline sampled immediately before the batch, at 1 Hz, and the baseline is printed beside
+every peak so a reader can judge how much of it might be somebody else's.
+
+### 8.4 Corpus projection — from measured rates, stated as projections
+
+Not a measurement. Each line is a measured rate multiplied by a counted page or region total,
+and it assumes the rest of the corpus behaves like the five gate papers.
+
+| stage | work | CPU | GPU |
+|---|---|--:|--:|
+| layout + tables | 4,655 pages @ 0.711 / 4.272 p/s | **1.8 h** | **0.3 h** |
+| OCR | 85 image-only pages @ 0.094 / 0.622 p/s | **0.25 h** | **0.04 h** |
+| formula, cut 0.05 | ~8,103 regions @ 79.4 / 8.5 s per region | **179 h** | **19 h** |
+| formula, every page | 4,655 pages, all regions | ~530 h (22 days) | ~57 h |
+
+**Formula is projected per REGION, not per page, and that correction matters.** CodeFormula
+runs once per formula region; Bellettini pp. 3–4 carry 2.5 regions per page while the gate
+papers' dense pages average **5.16**, so a per-page projection off those two pages would have
+**under**estimated the corpus by roughly 2x. The region count is itself a projection: 1,571
+corpus pages above the cut times 5.16 regions per dense page is about 8,103. It rests on the
+four gate papers and on nothing else.
+
+**What the two halves say together.** Layout and OCR are already cheap on CPU and trivially
+cheap on GPU — the T2000 is nice to have, not needed, for those. Formula is the entire cost,
+and the gate and the GPU attack it from different directions: the gate takes 530 h to 179 h at
+a measured cost of 10.2% of regions, and the GPU takes 179 h to **19 h** at no cost in output
+at all. Together they turn "not possible" into an overnight job. But 19 h of a 4 GB card
+running 178 MiB from its ceiling is a plan that depends on the fail-closed path working, and
+nothing about the default has been changed on the strength of these numbers.

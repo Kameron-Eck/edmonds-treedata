@@ -24,7 +24,9 @@ import argparse
 import csv
 import json
 import os
+import subprocess
 import sys
+import threading
 import time
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(  # noqa: E402
@@ -56,7 +58,61 @@ FIELDS = ["tag", "file", "pages", "seconds", "pages_per_s", "peak_rss_mb", "cpu_
           "tables", "body_blocks", "tables_found", "figures_found", "status", "tool",
           "warmup_seconds", "converter_build_seconds", "load_cpu_pct_before",
           "load_cpu_pct_after", "load_mem_used_gb_before", "load_mem_used_gb_after",
-          "page_range", "started_at"]
+          "page_range", "started_at", "python", "vram_baseline_mb", "vram_peak_mb",
+          "vram_peak_over_baseline_mb", "vram_samples", "load_python_procs"]
+
+
+class _VramSampler(threading.Thread):
+    """Peak GPU memory over a batch, from ``nvidia-smi`` at 1 Hz.
+
+    DEVICE-WIDE, NOT PER PROCESS, and that is why the baseline is recorded beside the peak.
+    Under WDDM — this is a laptop whose display runs on the same card —
+    ``--query-compute-apps=used_memory`` reports ``[N/A]``, so the only honest number is
+    total used minus what was already resident when the batch started. A compositor spike
+    inside the window would be attributed to docling; the baseline lets a reader see how
+    large that risk is.
+    """
+
+    def __init__(self, interval=1.0):
+        super().__init__(daemon=True)
+        self.interval = interval
+        self._stopping = threading.Event()
+        self.baseline = self.peak = self.samples = 0
+
+    @staticmethod
+    def used_mb():
+        r = subprocess.run(
+            ["nvidia-smi", "--query-gpu=memory.used", "--format=csv,noheader,nounits"],
+            capture_output=True, text=True, timeout=30)
+        return int((r.stdout or "0").strip().splitlines()[0])
+
+    def run(self):
+        try:
+            self.baseline = self.peak = self.used_mb()
+        except Exception:  # noqa: BLE001 - a sampler must never kill the run
+            return
+        while not self._stopping.is_set():
+            try:
+                self.peak = max(self.peak, self.used_mb())
+            except Exception:  # noqa: BLE001
+                pass
+            self.samples += 1
+            self._stopping.wait(self.interval)
+
+    def stop(self):
+        self._stopping.set()
+        self.join(timeout=15)
+        return self.baseline, self.peak, self.samples
+
+
+def python_procs():
+    """How many python processes are on the machine — other agents run a harness."""
+    try:
+        import psutil
+        return sum(1 for p in psutil.process_iter(["name"])
+                   if (p.info["name"] or "").lower().startswith("python"))
+    except Exception:  # noqa: BLE001
+        return None
 
 
 def machine_load():
@@ -84,6 +140,14 @@ def main(argv=None):
     ap.add_argument("--ocr", action="store_true")
     ap.add_argument("--ocr-engine", default=None)
     ap.add_argument("--formula", action="store_true")
+    ap.add_argument("--python", default=None,
+                    help="extraction venv python (default: the CPU one). The CUDA trial "
+                         r"uses D:\edmonds-pipeline\venv-docling-cuda\Scripts\python.exe")
+    ap.add_argument("--vram", action="store_true",
+                    help="sample nvidia-smi at 1 Hz over the batch (GPU runs)")
+    ap.add_argument("--dense-only", action="store_true",
+                    help="restrict the page range to the equation-dense runs of the FIRST "
+                         "selected paper (decision A: what --formulas auto would enrich)")
     ap.add_argument("--only", default=None, help="substring: run just this paper")
     ap.add_argument("--pages", nargs=2, type=int, default=None, help="page range override")
     ap.add_argument("--csv", default=CSV_PATH)
@@ -100,6 +164,14 @@ def main(argv=None):
         if a.only and a.only.lower() not in name.lower():
             continue
         pages = a.pages if a.pages else rng
+        if a.dense_only:
+            dense = D.dense_pages(os.path.join(LIT, fn), pages=pages)
+            if not dense:
+                raise SystemExit(f"{name}: no page is above the equation-density cut "
+                                 f"{D.EQUATION_DENSITY_CUT} — nothing to enrich")
+            runs = D.page_runs(dense)
+            pages = [runs[0][0], runs[0][1]]
+            print(f"{name}: dense pages {dense} -> first run {pages}")
         jobs.append({"pdf": os.path.join(LIT, fn),
                      "out": os.path.join(OUT_DIR, f"{name}__{a.tag}.docling.json"),
                      "pages": pages})
@@ -116,14 +188,23 @@ def main(argv=None):
         names = [next(n for n in [p[0] for p in PAPERS] if n in (r.get("out") or ""))
                  for r in rows]
         cpu0 = cpu1 = mem0 = mem1 = None
+        nproc = vram_base = vram_peak = None
+        vram_n = 0
         wall = sum(r["seconds"] for r in rows)
     else:
         cpu0, mem0 = machine_load()
+        nproc = python_procs()
+        vram = _VramSampler() if a.vram else None
+        if vram is not None:
+            vram.start()
+            time.sleep(1.5)          # let the baseline land before the converter loads
         t0 = time.time()
         rows = D.run(jobs, metrics_path, warmup=jobs[0]["pdf"], warmup_pages=1,
                      ocr=a.ocr, ocr_engine=a.ocr_engine, formula=a.formula,
-                     threads=a.threads, device=a.device, timeout=a.timeout)
+                     threads=a.threads, device=a.device, timeout=a.timeout,
+                     python=a.python)
         wall = time.time() - t0
+        vram_base, vram_peak, vram_n = vram.stop() if vram is not None else (None, None, 0)
         cpu1, mem1 = machine_load()
 
     out = []
@@ -149,6 +230,11 @@ def main(argv=None):
             "load_mem_used_gb_before": mem0, "load_mem_used_gb_after": mem1,
             "page_range": "-".join(str(x) for x in m["page_range"]),
             "started_at": m["started_at"],
+            "python": a.python or D.VENV_PYTHON,
+            "vram_baseline_mb": vram_base, "vram_peak_mb": vram_peak,
+            "vram_peak_over_baseline_mb": (
+                None if vram_peak is None else vram_peak - vram_base),
+            "vram_samples": vram_n, "load_python_procs": nproc,
         }
         out.append(row)
         print(json.dumps({k: row[k] for k in

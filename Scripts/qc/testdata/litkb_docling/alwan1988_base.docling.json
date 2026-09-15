@@ -1,0 +1,109 @@
+{
+"name": "Alwan_1988 (slim: formula regions only)",
+"pages": {
+"1": {
+"size": {
+"width": 612.0,
+"height": 792.0
+},
+"page_no": 1
+},
+"2": {
+"size": {
+"width": 593.0961,
+"height": 772.1709
+},
+"page_no": 2
+},
+"3": {
+"size": {
+"width": 593.0961,
+"height": 772.1709
+},
+"page_no": 3
+},
+"4": {
+"size": {
+"width": 593.0961,
+"height": 772.1709
+},
+"page_no": 4
+},
+"5": {
+"size": {
+"width": 593.0961,
+"height": 772.1709
+},
+"page_no": 5
+},
+"6": {
+"size": {
+"width": 597.4160999999999,
+"height": 774.3308999999999
+},
+"page_no": 6
+},
+"7": {
+"size": {
+"width": 593.0961,
+"height": 772.1709
+},
+"page_no": 7
+},
+"8": {
+"size": {
+"width": 595.4961,
+"height": 774.0919
+},
+"page_no": 8
+},
+"9": {
+"size": {
+"width": 593.0961,
+"height": 772.1709
+},
+"page_no": 9
+},
+"10": {
+"size": {
+"width": 593.0961,
+"height": 772.1709
+},
+"page_no": 10
+}
+},
+"texts": [
+{
+"self_ref": "#/texts/0",
+"label": "formula",
+"text": "",
+"content_layer": "body",
+"prov": [
+{
+"page_no": 7,
+"bbox": {
+"l": 368.13300000000004,
+"t": 682.2393,
+"r": 497.26859999999976,
+"b": 673.2043805270864,
+"coord_origin": "BOTTOMLEFT"
+},
+"charspan": [
+0,
+28
+]
+}
+]
+}
+],
+"tables": [],
+"pictures": [],
+"groups": [],
+"body": {
+"children": [
+{
+"$ref": "#/texts/0"
+}
+]
+}
+}

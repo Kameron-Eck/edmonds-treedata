@@ -576,12 +576,12 @@
     {
       "id": "g058",
       "kind": "structural",
-      "query": "Which sentence points to the table listing parameter counts for the three deep variants, and what argument about feature depth surrounds it?",
+      "query": "Show me the diagram caption for the rearrangement step that trades a stack of small activation grids for fewer, larger ones, with its worked two-by-two illustration.",
       "source_stem": "Chen_2018_semantic-segmentation-aerial-imagery",
-      "anchor_text": "Deeper features with lower resolution              network, the number of trainable parameters of the RSCNN-101,\nare assumed to provide semantic information which are robust            MSCNN-101 and DSCNN-101 are shown in Table 1.\nto variations in translation, rotation and scale. In contrast, fea-\ntures with higher resolution are assumed to contain more spatial\ninformation for better localization.\n\nFocusing on computational efficiency, we keep the first four\nRRLs instead of only three RRLs. The feature maps with strides\n\nThis contribution has been peer-reviewed. The double-blind peer-review was conducted on the basis of the full paper.\n\n              https://doi.org/10.5194/isprs-annals-IV-1-29-2018 | © Authors 2018. CC BY 4.0 License.",
-      "char_start": 30232,
-      "char_end": 30977,
-      "note": "Names Table 1 as holding the trainable-parameter counts for the three 101-layer variants."
+      "anchor_text": "B1 B2             A1 B1 A2 B2                                                                  Shuffling       Prediction\nA3 A4  B3 B4             C1 D1 C2 D2\n\nC1 C2  D1 D2  Shuffling  A3 B3 A4 B4\nC3 C4  D3 D4  Operator   C3 D3 C4 D4\n\nFigure 2. Basic concept of the shuffling operator: it converts          (a) Original SCNN\nc × u2 feature maps of size H × W into c feature maps of size\n\n(H × u) × (W × u). Here: H = 2, W = 2, u = 2, c = 1.",
+      "char_start": 24530,
+      "char_end": 24970,
+      "note": "The Figure 2 caption for the shuffling operator, together with the lettered cell labels of the diagram it describes."
     },
     {
       "id": "g059",

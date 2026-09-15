@@ -30,6 +30,10 @@ call of every targeted helper in Scripts/pipeline/litkb/ and requires a mutation
   * a site with no such row must be listed in EQUIVALENT with the reason a mutation there cannot change
     behaviour. There is no third bucket: anything else fails the self-check.
   * a declared site that no longer exists also fails (it catches a rename or a deletion).
+
+One helper family is DEFERRED rather than covered — see DEFERRED_HELPERS, printed by every `--sites` run. That is
+a scope statement with a measurement behind it, not a per-site escape hatch: within a covered helper there are
+only the two buckets above.
 """
 import argparse
 import ast
@@ -52,7 +56,7 @@ M = []
 # reached through (front._jsonb / run._jsonb around jsonb_safe, front._labels / commands._labels around
 # norm_label, resolver.normalize_doi around textnorm.normalize_doi — a wrapper is a COPY of the guard).
 HELPERS = ("jsonb_safe", "normalize_doi", "window_refusal", "tokens_contain", "parse_quota", "read_quota",
-           "norm_label", "_jsonb", "_labels")
+           "norm_label", "_jsonb", "_labels", "verdict")
 
 
 def block(id_, file, marker, what, sites=None):
@@ -142,7 +146,8 @@ block("B8", f"{PKG}/acquire/run.py", "guard: a file that does not bind is quaran
 block("B9", f"{PKG}/acquire/run.py", "guard: dead routes are not retried blindly", "acquire: dead routes retried")
 block("B10", f"{PKG}/acquire/run.py", "guard: the archive route stops at the quota margin or the run cap",
       "acquire: no quota stop")
-M.append(dict(id="B11", kind="multi", what="acquire: the key is no longer redacted on the attempt path", edits=[
+M.append(dict(id="B11", kind="multi", what="acquire: the key is no longer redacted on the attempt path",
+              edits=[
     dict(file=f"{PKG}/acquire/run.py", old="return redact(obj) if isinstance(obj, str) else obj",
          new="return obj"),
     dict(file=f"{PKG}/acquire/run.py", old="            add_secret(key)             # an injected session's key is redacted like open_session()'s\n",
@@ -303,6 +308,22 @@ site("S27", "litkb/commands.py::cmd_approve::_labels", "(args.agent, args.sessio
 site("S28", "litkb/commands.py::cmd_acquire::_labels", "(args.agent, args.session)", tests=TESTS_P1P2,
      what="litkb acquire takes the raw labels, bypassing _labels")
 
+# The secret-redaction guard (netutil.redact / add_secret, and run._redacted around it) is the SAME shape and
+# is NOT under the rule yet — a declared, measured exclusion, not an oversight. It has 22 call sites; B11 covers
+# two. A pass-through row was written for each of the other 20 and run on 2026-09-14: 19 of them survived the
+# whole P1+P2+annas set, i.e. no test asserts that a secret is stripped at those sites. Closing them is a test
+# job, not a harness job, and it is larger than the change that introduced this rule. Until it is done, the
+# self-check PRINTS this list every run so it cannot rot quietly.
+DEFERRED_HELPERS = {
+    "redact / add_secret / _redacted":
+        "22 call sites (annas 11, run 4, open_access, scihub, resolver, netutil, plus the recursion); B11 mutates "
+        "run._redacted's redact() and run.acquire's add_secret(). Measured 2026-09-14: pass-through rows at the "
+        "other 20 sites fired at 1 of 20 (annas._csv_row). The guard is real; the assertions are missing.",
+}
+
+site("T18", "litkb/admit/binding.py::bind::verdict", '"bound"', tests=TESTS_P1P2,
+     what="bind returns 'bound' without consulting verdict() at all")
+
 # Call sites a mutation cannot change the behaviour of. The reason must be about the CODE, never about the tests.
 EQUIVALENT = {
     "litkb/admit/binding.py::author_on_page::tokens_contain":
@@ -422,6 +443,8 @@ def self_check(verbose=True):
             print(f"{sid:<58} {str(lines):<16} {', '.join(ids) or 'EQUIVALENT: ' + (why or '')}")
         print(f"\n{len(rows)} call sites, {sum(1 for r in rows if r[2])} covered by a row, "
               f"{sum(1 for r in rows if r[3])} equivalent")
+        for helper, why in DEFERRED_HELPERS.items():
+            print(f"  DEFERRED (not under the rule) {helper}: {why}")
         for p in problems:
             print("  PROBLEM " + p)
     return not problems, rows
@@ -520,9 +543,23 @@ def main(argv=None):
     ok, _rows = self_check()
     if not ok:
         raise SystemExit("the per-call-site self-check failed (see PROBLEM lines above)")
-    rc, summary, _ = _pytest()
-    print(f"baseline (unmutated, {' + '.join(TESTS)}): {summary}")
-    base_ok = rc == 0 and not any(_count(summary, w) for w in ("failed", "skipped", "error", "errors", "xpassed"))
+    # EVERY test set a chosen row runs is baselined, not just the default one: a row running P1+P2+annas against
+    # an already-failing P1 would "fire" on a failure it did not cause. The flake of 2026-09-14 handed three rows
+    # exactly that false pass.
+    sets = sorted({tuple(m.get("tests") or TESTS) for m in chosen})
+
+    def baselines(when):
+        ok = True
+        for ts in sets:
+            rc, summary, failed = _pytest(list(ts))
+            print(f"baseline {when} ({' + '.join(ts)}): {summary}")
+            for f in failed[:4]:
+                print(f"        {f}")
+            ok = ok and rc == 0 and not any(_count(summary, w)
+                                            for w in ("failed", "skipped", "error", "errors", "xpassed"))
+        return ok
+
+    base_ok = baselines("(unmutated)")
     rows = []
     for m in chosen:
         fired, summ, failed = run_one(m)
@@ -531,9 +568,7 @@ def main(argv=None):
         print(f"     -> {summ}")
         for f in failed[:4]:
             print(f"        {f}")
-    rc2, summary2, _ = _pytest()
-    print(f"baseline again (restored): {summary2}")
-    base2_ok = rc2 == 0 and not any(_count(summary2, w) for w in ("failed", "skipped", "error", "errors", "xpassed"))
+    base2_ok = baselines("again (restored)")
     n = sum(f for _m, f in rows)
     print(f"\n{n}/{len(rows)} mutations fired; baselines {'passed' if base_ok and base2_ok else 'FAILED'}")
     sys.exit(0 if n == len(rows) and base_ok and base2_ok else 1)

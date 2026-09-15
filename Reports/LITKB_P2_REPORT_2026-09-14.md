@@ -362,7 +362,7 @@ row at every call of every targeted guard helper:
 - a site with no such row must be listed in `EQUIVALENT` with the reason a mutation there cannot change behaviour.
   There is no third bucket. A declared site that no longer exists also fails, which catches a rename or a deletion.
 
-**34 call sites; 33 carry a row; 1 equivalent.**
+**35 call sites; 34 carry a row; 1 equivalent.**
 
 | helper | sites | rows |
 |---|---|---|
@@ -370,11 +370,12 @@ row at every call of every targeted guard helper:
 | `_jsonb` (the two wrapper copies) | 5 (`front.add_candidate`, `front._call_admit`, `run.record_attempt`, `run.land_and_attach`, `run.attach_in_place`) | S1, S2, S3, S4, S5 |
 | `norm_label` | 4 (`textnorm.normalize_doi`, `front._labels`, `front.approve`, `commands._labels`) | S10, S6, C18, S25 |
 | `_labels` (the two wrapper copies) | 5 (`front._call_admit`, `front.approve`, `commands.cmd_admit/cmd_approve/cmd_acquire`) | S7, S8, S26, S27, S28 |
-| `normalize_doi` | 12 (`front.admit_registry`, `resolver.normalize_doi`, `resolver.resolve_doi`, `run.work_record`, `annas.fetch_for_litkb/fetch_one/audit_one/run_audit/tier1/repair_truncated_dois/run_jobs`) | S9, S11, S12, E4, S18, S19, S20, S21, S22, S23, S24 |
+| `normalize_doi` | 11 (`front.admit_registry`, `resolver.normalize_doi`, `resolver.resolve_doi`, `run.work_record`, `annas.fetch_for_litkb/fetch_one/audit_one/run_audit/tier1/repair_truncated_dois/run_jobs`) | S9, S11, S12, E4, S18, S19, S20, S21, S22, S23, S24 |
 | `window_refusal` | 1 (`binding.bind`) | S13 |
 | `tokens_contain` | 3 (`binding.bind`, `binding.bind.near`, `binding.author_on_page`) | S14, S15, *equivalent* |
 | `parse_quota` | 1 (`annas.read_quota`) | S16 |
 | `read_quota` | 1 (`annas.fetch_for_litkb`) | S17 |
+| `verdict` | 1 (`binding.bind`) | T18 |
 
 **The one equivalent call site.** `binding.author_on_page` is defined and called by **nothing** — one grep hit over
 `Scripts/pipeline` and `Scripts/qc`, its own `def`. Its docstring says it is "kept for callers outside check 3";
@@ -417,7 +418,7 @@ test in the set is not neutral: it hands a mutation campaign three false passes.
 
 | Run | Baseline | Result | Baseline after | Restores |
 |---|---|---|---|---|
-| P2 harness, **all 105 rows** (the 77 above + E3f, E3r, E3rec and S1-S28) | `241 passed, 5 deselected, 1 xfailed` | **105/105 FIRED** | `241 passed, 5 deselected, 1 xfailed` | every mutated file `match: True` by sha256 |
+| P2 harness, **all 106 rows** (the 74 above + E3f, E3r, E3rec, S1-S28 and T18) | P1+P2+annas `390 passed`; P2+annas `241 passed` | **106/106 FIRED** | both the same | every mutated file `match: True` by sha256 |
 | `--sites` self-check | — | 34 call sites, 33 with a row, 1 equivalent, 0 problems | — | static; no file written |
 
 Every site row runs the WHOLE `qc/test_litkb_p1.py qc/test_litkb_p2.py qc/test_litkb_annas.py` with
@@ -425,3 +426,17 @@ Every site row runs the WHOLE `qc/test_litkb_p1.py qc/test_litkb_p2.py qc/test_l
 
 **Ladder:** `cd Scripts && PYTHONUTF8=1 py -3.12 qc/check.py --fast` → `1 failed, 2402 passed, 5 skipped,
 1 xfailed`; the one failure is the allowed `qc/test_experiments.py::test_pointer_paths_resolve[crown_state_model]`.
+
+**One helper family is DEFERRED, with the measurement behind it.** The secret-redaction guard
+(`netutil.redact` / `add_secret`, and `run._redacted` around them) is the same shape — written once, called from
+every path that prints or stores a string — and has **22 call sites**. B11 mutates two of them. A pass-through row
+was written for each of the other 20 and run on 2026-09-14: **19 survived** the whole P1+P2+annas set. Only
+`annas._csv_row` is asserted at. So the guard is real and almost entirely untested at its call sites; closing that
+is a test job larger than the change that introduced this rule, and it is not done here. It is declared in
+`DEFERRED_HELPERS`, which `--sites` prints on every run, so it cannot rot quietly. This is a scope statement with
+a number attached, not a per-site escape hatch: *within* a covered helper there are still only two buckets.
+
+**The harness's own baseline was hollow for the new rows, and is not any more.** Every site row runs
+P1+P2+annas, but `main()` baselined P2+annas only — so a failing P1 test would have made all 32 of them "fire" on
+a failure they did not cause, which is exactly what the flake did on a smaller scale. `main()` now baselines
+**every distinct test set any chosen row runs**, before and after, and prints the failing names.

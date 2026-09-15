@@ -1,0 +1,199 @@
+{
+  "_what": "Referee-authored GOLD for litkb stage 5 (reconciliation). Hand-annotated from the RENDERED page image only (pypdfium2 render scale 2.0, read as PNG). No Docling JSON, no TEI, no reconcile() output was consulted while authoring this file. Committed BEFORE any stage-5 tool was run against it (CLAUDE.md 3.4c, design 14).",
+  "_authored_by": "referee session, 2026-09-15",
+  "_frame": "Reading order is the order a HUMAN reads the page: single column top-to-bottom; two-column left column fully, then right column. Furniture (running head, page number, banner, footer, side stamp) is recorded but excluded from the body order.",
+  "_snippet_rule": "Each body snippet is the first ~6-10 words of the block AS PRINTED, with no hyphenation repair. A scorer matches it whitespace-normalised and case-insensitively into a canonical block's text.",
+  "_kinds": "paragraph | heading | caption | footnote | reference | table | figure | equation | furniture",
+
+  "pages": [
+    {
+      "file": "Benedek_2015_multilayer-markov-random-field-models.pdf",
+      "page": 2,
+      "layout": "two-column",
+      "furniture": [
+        "ARTICLE IN PRESS",
+        "2",
+        "C. Benedek et al./ISPRS Journal of Photogrammetry and Remote Sensing xxx (2015) xxx-xxx",
+        "Please cite this article in press as: Benedek, C., et al. Multilayer Markov Random Field models"
+      ],
+      "body_order": [
+        {"n": 1,  "kind": "paragraph", "col": "L", "snippet": "(e.g. detecting new forest regions), or object based"},
+        {"n": 2,  "kind": "heading",   "col": "L", "snippet": "1.1.1. PCC vs. direct approaches"},
+        {"n": 3,  "kind": "paragraph", "col": "L", "snippet": "PCC methods (Liu and Prinet, 2006"},
+        {"n": 4,  "kind": "paragraph", "col": "L", "snippet": "Since direct methods do not use explicit land cover class models"},
+        {"n": 5,  "kind": "heading",   "col": "L", "snippet": "1.1.2. Supervised and unsupervised models"},
+        {"n": 6,  "kind": "paragraph", "col": "L", "snippet": "Another important point of view is distinguishing supervised"},
+        {"n": 7,  "kind": "heading",   "col": "L", "snippet": "1.1.3. Targeted scenarios"},
+        {"n": 8,  "kind": "paragraph", "col": "L", "snippet": "Differences between approaches can also be taken regarding the"},
+        {"n": 9,  "kind": "paragraph", "col": "R", "snippet": "only with either agricultural"},
+        {"n": 10, "kind": "heading",   "col": "R", "snippet": "1.2. Markovian change detection models"},
+        {"n": 11, "kind": "paragraph", "col": "R", "snippet": "As the above discussion already foreshows, visual change detec"},
+        {"n": 12, "kind": "paragraph", "col": "R", "snippet": "At the region level of change detection, Markov Random Fields"},
+        {"n": 13, "kind": "paragraph", "col": "R", "snippet": "Since conventional MRFs show some limitations regarding con"},
+        {"n": 14, "kind": "heading",   "col": "R", "snippet": "1.3. Multilayer segmentation models"},
+        {"n": 15, "kind": "paragraph", "col": "R", "snippet": "We continue with the discussion of feature selection. For many"}
+      ],
+      "captions": [],
+      "note": "Body block 8 continues into block 9 across the column break; the two are recorded as separate regions because a box is a box on a column, and their relative order is 8 then 9 either way."
+    },
+
+    {
+      "file": "Benedek_2015_multilayer-markov-random-field-models.pdf",
+      "page": 3,
+      "layout": "two-column",
+      "furniture": [
+        "ARTICLE IN PRESS",
+        "3",
+        "C. Benedek et al./ISPRS Journal of Photogrammetry and Remote Sensing xxx (2015) xxx-xxx",
+        "Please cite this article in press as: Benedek, C., et al. Multilayer Markov Random Field models"
+      ],
+      "body_order": [
+        {"n": 1,  "kind": "paragraph", "col": "L", "snippet": "images (Kato and Pong, 2006), where the different mixture compo"},
+        {"n": 2,  "kind": "paragraph", "col": "L", "snippet": "The multilayer segmentation models can overcome the before"},
+        {"n": 3,  "kind": "paragraph", "col": "L", "snippet": "A multilayer MRF framework has been introduced in Kato et al."},
+        {"n": 4,  "kind": "heading",   "col": "L", "snippet": "1.4. Outline of the paper"},
+        {"n": 5,  "kind": "paragraph", "col": "L", "snippet": "Different multilayer MRF techniques have recently been pro"},
+        {"n": 6,  "kind": "paragraph", "col": "L", "snippet": "The goal of this paper is to present a comparative study about"},
+        {"n": 7,  "kind": "heading",   "col": "L", "snippet": "2. Overview on the three compared models"},
+        {"n": 8,  "kind": "paragraph", "col": "L", "snippet": "In the paper, we compare three state-of-the-art multilayer MRF"},
+        {"n": 9,  "kind": "paragraph", "col": "L", "snippet": "The Multicue MRF model"},
+        {"n": 10, "kind": "paragraph", "col": "R", "snippet": "The second discussed method is the Conditional Multilayer Mixed"},
+        {"n": 11, "kind": "paragraph", "col": "R", "snippet": "Regarding the targeted application fields and the expected"},
+        {"n": 12, "kind": "paragraph", "col": "R", "snippet": "models have a similar structure, the"},
+        {"n": 13, "kind": "paragraph", "col": "R", "snippet": "As another important difference between the models, FMRF has"},
+        {"n": 14, "kind": "paragraph", "col": "R", "snippet": "Although the selected techniques have been mainly tested on"},
+        {"n": 15, "kind": "paragraph", "col": "R", "snippet": "There are also differences in the applied MRF optimization tech"}
+      ],
+      "captions": []
+    },
+
+    {
+      "file": "Benedek_2015_multilayer-markov-random-field-models.pdf",
+      "page": 4,
+      "layout": "full-width figures",
+      "furniture": [
+        "ARTICLE IN PRESS",
+        "4",
+        "C. Benedek et al./ISPRS Journal of Photogrammetry and Remote Sensing xxx (2015) xxx-xxx",
+        "Please cite this article in press as: Benedek, C., et al. Multilayer Markov Random Field models"
+      ],
+      "body_order": [
+        {"n": 1, "kind": "figure",  "col": "full", "snippet": "[figure: Multicue Markov Random Field model diagram, panels (a)-(d)]"},
+        {"n": 2, "kind": "caption", "col": "full", "snippet": "Fig. 1. Structure of the L3MRF model and overview of the Multicue change detection process."},
+        {"n": 3, "kind": "figure",  "col": "full", "snippet": "[figure: Multi-layer Conditional Mixed Markov model diagram, panels (a)-(d)]"},
+        {"n": 4, "kind": "caption", "col": "full", "snippet": "Fig. 2. Structure of the CXM model and overview of the segmentation process."}
+      ],
+      "captions": [
+        {"caption_starts": "Fig. 1. Structure of the L3MRF model", "belongs_to": "figure", "target": "the upper full-width diagram (Multicue MRF), which lies ABOVE this caption", "target_order": 1},
+        {"caption_starts": "Fig. 2. Structure of the CXM model", "belongs_to": "figure", "target": "the lower full-width diagram (CXM), which lies ABOVE this caption", "target_order": 3}
+      ],
+      "note": "This page carries the only captioned figures in the gold set. There are TWO figures and TWO captions; a correct reconciliation must not give both captions to one figure, and must not leave a figure caption in figures.description (that column is stage 8's vision field)."
+    },
+
+    {
+      "file": "Alwan_1988_time-series-modeling-statistical-process.pdf",
+      "page": 3,
+      "layout": "two-column",
+      "furniture": [
+        "88",
+        "Journal of Business & Economic Statistics, January 1988",
+        "Downloaded by [Moskow State Univ Bibliote] at 15:47 06 September 2013"
+      ],
+      "body_order": [
+        {"n": 1,  "kind": "paragraph", "col": "L", "snippet": "chart can be used in traditional ways to detect any spe"},
+        {"n": 2,  "kind": "paragraph", "col": "L", "snippet": "This strategy applies not only to industrial processes"},
+        {"n": 3,  "kind": "paragraph", "col": "L", "snippet": "In the light of the widespread use of ARIMA models"},
+        {"n": 4,  "kind": "paragraph", "col": "L", "snippet": "The use of time-series models requires more statis"},
+        {"n": 5,  "kind": "paragraph", "col": "L", "snippet": "In addition, we believe that greater knowledge of"},
+        {"n": 6,  "kind": "paragraph", "col": "L", "snippet": "The plan of the article is as follows: In Section 2, we"},
+        {"n": 7,  "kind": "paragraph", "col": "R", "snippet": "systematic variation through time, and what can be done"},
+        {"n": 8,  "kind": "heading",   "col": "R", "snippet": "SHEWHART'S DEFINITION OF A STATE"},
+        {"n": 9,  "kind": "paragraph", "col": "R", "snippet": "Since the classic pioneering work of Shewhart (1931)"},
+        {"n": 10, "kind": "paragraph", "col": "R", "snippet": "As implemented by Shewhart and his colleagues and"},
+        {"n": 11, "kind": "paragraph", "col": "R", "snippet": "For example, a process yielding a quantitative quality"},
+        {"n": 12, "kind": "paragraph", "col": "R", "snippet": "If the verdict of checking is that the process is in a"},
+        {"n": 13, "kind": "paragraph", "col": "R", "snippet": "Checking for a state of statistical control is usually"}
+      ],
+      "captions": [],
+      "note": "The left-margin stamp 'Downloaded by [Moskow State Univ Bibliote] ...' is rotated 90 degrees and is FURNITURE, not a body paragraph; it must not enter the body reading order."
+    },
+
+    {
+      "file": "Almon_1965_distributed-lag-between-capital.pdf",
+      "page": 1,
+      "layout": "single-column JSTOR cover sheet",
+      "furniture": [
+        "This content downloaded from 141.216.78.40 on Wed, 02 Sep 2015 17:23:12 UTC",
+        "All use subject to JSTOR Terms and Conditions"
+      ],
+      "body_order": [
+        {"n": 1, "kind": "figure",    "col": "full", "snippet": "[figure: ECONOMETRICA masthead logo, JOURNAL OF THE ECONOMETRIC SOCIETY]"},
+        {"n": 2, "kind": "paragraph", "col": "full", "snippet": "The Distributed Lag Between Capital Appropriations and Expenditures"},
+        {"n": 3, "kind": "paragraph", "col": "full", "snippet": "Your use of the JSTOR archive indicates your acceptance of the Terms"},
+        {"n": 4, "kind": "paragraph", "col": "full", "snippet": "JSTOR is a not-for-profit service that helps scholars"},
+        {"n": 5, "kind": "paragraph", "col": "full", "snippet": "is collaborating with JSTOR to digitize, preserve and extend access"},
+        {"n": 6, "kind": "figure",    "col": "full", "snippet": "[figure: JSTOR logo mark]"}
+      ],
+      "captions": [],
+      "note": "Block 2 is the bibliographic metadata block (title / Author(s) / Source / Published by / Stable URL / Accessed). A reconciliation may split it into up to six lines; the gold requires only that the title line comes before block 3 and that nothing from blocks 3-5 precedes it. NO region of this page is an article paragraph: the paper itself starts on page 2. This page is the cover-sheet case."
+    },
+
+    {
+      "file": "Schneider_2008_stochastic-integral-geometry.pdf",
+      "page": 463,
+      "layout": "single-column, table at head of page",
+      "furniture": [
+        "10.1 Mosaics as Particle Processes",
+        "463"
+      ],
+      "body_order": [
+        {"n": 1, "kind": "table",     "col": "full", "snippet": "[table: symbol / meaning list, 7 body rows x 2 columns, no header row, NO caption]"},
+        {"n": 2, "kind": "paragraph", "col": "full", "snippet": "that are not listed can again be obtained from"},
+        {"n": 3, "kind": "paragraph", "col": "full", "snippet": "Further, we consider the weighted mean values"},
+        {"n": 4, "kind": "equation",  "col": "full", "snippet": "[display equation: w_1i := integral ... i = 2,3 ; w_2i := integral ... i = 0,1]"},
+        {"n": 5, "kind": "paragraph", "col": "full", "snippet": "as is easy to see from the limit relations"},
+        {"n": 6, "kind": "equation",  "col": "full", "snippet": "[display equation: gamma^(1) w_1i = lim_{r->infty} ...]"},
+        {"n": 7, "kind": "paragraph", "col": "full", "snippet": "The subsequent theorem collects the most important relations between the"},
+        {"n": 8, "kind": "paragraph", "col": "full", "snippet": "The parameters of a stationary random mosaic"},
+        {"n": 9, "kind": "equation",  "col": "full", "snippet": "[display equations (a), (b), (c) of Theorem 10.1.7]"}
+      ],
+      "captions": [],
+      "table_rows_gold": [
+        ["gamma^(3), gamma^(2), gamma^(1), gamma^(0)", "intensities of cells, facets, edges, vertices,"],
+        ["v, s, m, l_31", "mean volume, mean surface area, mean integral of mean curvature, mean edge length sum of the typical cell,"],
+        ["a_2, p_2", "mean area, mean perimeter of the typical facet,"],
+        ["l_1, l_01", "mean length of the typical edge, of the typical edge star,"],
+        ["a_02, a_12", "mean area of the typical (0,2)-star, of the typical (1,2)-star,"],
+        ["n_32, n_02, n_12", "mean facet number of the typical cell, of the typical (0,2)-star, of the typical (1,2)-star"],
+        ["n_31, n_21, n_01", "mean edge number of the typical cell, of the typical facet, of the typical edge star,"],
+        ["n_30, n_03", "mean vertex number of the typical cell, mean cell number of the typical (0,3)-star."]
+      ],
+      "note": "8 rows as printed (the list has 8 symbol groups); a tool that merges the two-line groups may report 7 or 8. The gold assertion is: this region is a TABLE with 2 columns and between 7 and 9 rows, and it has NO caption. 'Theorem 10.1.7.' (block 8) is a run-in bold label inside a paragraph, not a heading."
+    }
+  ],
+
+  "verbatim_paragraphs": [
+    {
+      "id": "V1",
+      "file": "Alwan_1988_time-series-modeling-statistical-process.pdf",
+      "page": 3,
+      "where": "left column, second paragraph",
+      "text": "This strategy applies not only to industrial processes that manufacture items sequentially but also to quality control and statistical studies generally in all areas of businesses and other organizations."
+    },
+    {
+      "id": "V2",
+      "file": "Almon_1965_distributed-lag-between-capital.pdf",
+      "page": 1,
+      "where": "the second JSTOR notice paragraph",
+      "text": "JSTOR is a not-for-profit service that helps scholars, researchers, and students discover, use, and build upon a wide range of content in a trusted digital archive. We use information technology and tools to increase productivity and facilitate new forms of scholarship. For more information about JSTOR, please contact support@jstor.org."
+    },
+    {
+      "id": "V3",
+      "file": "Benedek_2015_multilayer-markov-random-field-models.pdf",
+      "page": 3,
+      "where": "left column, third paragraph",
+      "text": "A multilayer MRF framework has been introduced in Kato et al. (2002), where a single energy function encapsulates all the constraints of the model, and the result is obtained by a global optimization process in one step. Here, in contrast to decision (Reed et al., 2006) or label (Jodoin et al., 2007) fusion, the observed features are in interaction with the final label map during the whole segmentation process."
+    }
+  ],
+  "_verbatim_rule": "The gold text is the paragraph as PRINTED, de-hyphenated across line breaks and with line breaks replaced by single spaces. A scorer compares it to the block's text after collapsing whitespace runs to one space and removing soft hyphens; the point of the test is that INTER-WORD SPACES SURVIVE, so any comparison that itself strips spaces is void."
+}

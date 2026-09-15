@@ -396,3 +396,276 @@ is what the canary settles.
   worktree was touched. No file added here prints a secret.
 * Reproduction scripts for §3 and §4 live in this session's scratchpad; per CLAUDE.md §3.4b
   they are the evidence behind those sections and are named at each claim.
+
+---
+
+## 9. Canary 2 prepared — the two fixes the first canary asked for
+
+**Nothing in this section has been launched.** Canary 1 left two defects behind, one named in
+its own §6 and one implied by its §3, and both are fixed on this branch with tests that fire.
+
+### 9.1 Fix 1 — the VM watchdog can see a litkb worker
+
+The self-stop watchdog arms its idle timer only after it has SEEN a work process, and it
+scanned `/proc` for three phase4 script names written inline in its own source. The litkb
+worker is started as `python -u -m litkb.extract.colab_formula_worker`, matched none of them,
+so `seen` never became True: the runtime's only backstop was the 2-hour "bootstrapped but no
+queue" timer, and a hung decode would have burned all of it.
+
+Two changes, both in `pipeline/gen_vm_bootstrap.py`:
+
+* **`WORK_MARKERS`** — one home for "what counts as real work on a VM", with the litkb entry
+  added. The watchdog is built from `repr(WORK_MARKERS)`, so the constant and the emitted
+  literal cannot drift; `qc/test_litkb_formula_colab.py` also checks the marker against the
+  text `litkb_formula_vm_start.py` actually runs, because a registry entry is a substring test
+  against a cmdline and a changed launch line would silently blind the watchdog again.
+* **A liveness beat, so ALIVE and WORKING stop being the same question.** Process presence
+  only ever detected a worker that *exited*. `colab_formula_worker.beat()` writes
+  `/content/litkb_worker_beat` before the model load and after every batch; the watchdog reads
+  its mtime and, when a litkb process is present with a beat older than the idle window,
+  treats it as hung.
+
+**The semantics are the phase4 ones, deliberately.** A stale beat does not start a new clock:
+the idle clock starts **at the last beat**, so a hung worker is stopped after the same 10 idle
+minutes a vanished queue gets, measured from when the work actually stopped rather than from
+when the watchdog noticed. Then the same `_drain()` on the real rclone upload backlog, then
+`runtime.unassign()`. A phase4 queue leaves no beat, `beat_age` is `None` for it, and its path
+through the decision is byte-for-byte what it was — asserted in
+`test_phase4_semantics_are_unchanged`.
+
+**`None` means alive.** No beat file — a worker build without the beat, or one whose first
+beat has not landed — is *no evidence*, and the watchdog falls back to process presence. It
+must never stop a running process because a file is missing.
+
+**Why the beat comes before the model load.** Canary 1 ran **two execs on one runtime**. A
+worker that only beat after its first batch would inherit the previous exec's beat file, read
+minutes-stale, and the watchdog would stop a healthy VM during the 20 s model load. That
+ordering is its own mutation row (W3).
+
+The watchdog's decision is now a pure function, `_tick(now, pid, beat_age, seen, idle_since,
+t0, boot_ok)`, sitting above the `while True:` loop, so the tests `exec` the watchdog's OWN
+source lines — the ones the bootstrap emits — rather than a copy of its logic.
+
+**Still open, and not fixed here:** the operator-visibility half. `vm_heartbeat.sample()`
+derives `queue_proc`, the queue stem, `run_tags` and the status-CSV lookup from
+`phase4_train_queue`, so `vm_ops status` will still show `queue_step None` for a litkb
+runtime, exactly as it did in canary 1. Wiring litkb into those fields changes what each of
+them means; that deserves its own change, not a rider on this one.
+
+### 9.2 Fix 2 — N decode processes on one runtime
+
+Canary 1 used **2.02 GB of a 23.66 GB card**, with GPU utilisation peaking at 35%. `--procs`
+now runs N decode processes on the one runtime, each owning a slice of the shard.
+
+**The batch plan does not depend on N — that is the whole safety argument.** Crops are ordered
+by an estimated-cost proxy once, globally, chunked into batches, and only then are whole
+**batches** assigned to processes. So every N decodes the same batches with the same members,
+and `--procs` cannot move a token even if batching does (which is still UNCONFIRMED). Slicing
+chooses *who* decodes a batch, never *what is in it*.
+
+**Balance.** Cost proxy = **crop width in pixels × ink density** (the fraction of pixels darker
+than L=200), a pure function of the PNG bytes. It stands in for decoded LaTeX length, which
+canary 1 showed is what decode time tracks (r=0.974, batch wall-clock spanning 17×). It is
+**not calibrated** — nothing here measures proxy against decoded length — and its only job is
+to put the expensive batches first; if it ranked randomly the results would still be
+identical, only slower. Batches then go to slices by longest-processing-time: heaviest first
+into the least-loaded slice, ties to the lowest index. Deterministic, so two processes compute
+the same assignment independently and no plan has to be shipped between them.
+
+**A slice that dies fails only its own crops.** `merge_slices` is driven by the PLAN, not by
+what came back. A crop with no row becomes `status="failed"` naming its slice and the child's
+exit; a row a child called `ok` while carrying no LaTeX is rewritten to `failed`. **A child's
+exit code is never trusted on its own** — the parent re-verifies each slice archive's DONE
+marker against its members before reading a row, and enforces kill 3 again at the merge,
+because an emptied or truncated child archive is exactly how an empty decode could arrive as
+a success.
+
+**How many processes — the formula.**
+
+    per_proc = max(measured peak_reserved, measured device-wide footprint)
+             = max(2.840 GB, 23.66 - 20.56 = 3.10 GB) = 3.10 GB
+    N = min( floor(0.80 x VRAM_total / per_proc),   # memory
+             cpu_count - 1,                          # leave the OS a core
+             n_batches,                              # never more slices than work
+             --max-procs )                           # the operator's ceiling
+
+Both memory figures are **read off canary 1's `worker.json`**, not assumed. The device-wide
+one is larger because it carries the CUDA context and the cuBLAS workspaces the allocator peak
+does not, and that is the quantity which has to fit N times on one card. The 0.80 is a
+headroom fraction, not a measurement: it leaves a fifth of the card for fragmentation and for
+the allocator peak being a saturation figure rather than a requirement.
+
+**One caveat, stated because it is load-bearing:** `device_free_bytes` is a *single sample*
+taken after the decode loop, so 3.10 GB is neither an upper nor a lower bound on the true
+per-process footprint — it is the only device-wide figure measured so far. The worker now
+samples `mem_get_info` every batch and reports `device_min_free_bytes`, so canary 2 returns a
+real one and this constant can be replaced by a measurement.
+
+**Chosen N: 6**, bound by the memory term — `floor(0.80 x 23.66 / 3.10) = 6`. The CPU term is
+**UNMEASURED**: nothing in this repo records the vCPU count of Colab's L4 image (canary 1's
+heartbeat carries GPU and CPU *percent*, not core count), so N is computed **on the VM**, where
+`os.cpu_count()` is read. At 8 vCPU the CPU term is 7 and memory still binds at 6; at 4 vCPU
+it binds at **3**. The returned `proc_plan` names which term bound it, so the result says what
+actually happened rather than what was expected. Per-process threads are `max(1, cpu_count //
+N)` — N processes each asking for 4 threads on an 8-vCPU runtime is oversubscription, and the
+decode is GPU-bound anyway.
+
+### 9.3 The local dry run — N=1 vs N=2, on the CPU venv
+
+The same 20 crops (`--limit 20`, applied in MANIFEST order before the cost ordering, so both
+arms decode the same set), the same shard, the CPU venv `D:\edmonds-pipeline\venv-docling`
+(docling 2.127.0 / docling-core 2.96.0 / torch 2.14.0 — the pinned pair), `--device cpu`.
+
+| | N=1 | N=2 |
+|---|--:|--:|
+| rows | 20 | 20 |
+| ok / failed | 20 / 0 | 20 / 0 |
+| slice errors | — | none |
+| decode seconds | 1642.16 | 1662.53 |
+| regions/s | 0.0122 | 0.0120 |
+| sha256 of the canonical rows | `c963abde6e7a5a162a46c7c392cc363d49dc73294ba561cc9a0432dc346fb155` | **the same** |
+
+**The results match.** "Canonical rows" is `results.jsonl` with exactly the two
+`TIMING_FIELDS` — `batch_seconds` and `seconds_per_crop_in_batch` — dropped, and nothing else:
+`crop_id`, `file`, `page`, `self_ref`, `status`, `latex`, `error`, `confidence`,
+`confidence_basis`, `batch_index` and `batch_size` are all compared and all identical. The two
+dropped fields are how long each batch waited for a shared CPU; they differ by construction
+and are measurements of the run rather than results of it. **The raw files are NOT identical**
+and the report does not claim they are — `"raw_files_identical": false` is printed by the
+comparison itself.
+
+**On speed this dry run says nothing, and is not meant to.** N=2 was 20 s SLOWER (1.2%). One
+process with 4 threads already saturates this 4-core laptop, so a second only adds contention
+— the whole premise of `--procs` is a GPU sitting at 35% utilisation with 2 GB of 24 GB used,
+which a CPU box cannot reproduce. The dry run's job is the correctness claim: **the process
+split does not change what is decoded.** Scaling is UNCONFIRMED until canary 2.
+
+**One real bug was found by running it, and is fixed with a regression test.** The first N=2
+attempt failed the whole shard. `subprocess.Popen(stdout=<file object>)` leaves `p.stdout` as
+`None`, so the parent's `p.stdout.close()` raised — and because the parent raised before
+waiting on the rest, slice 0's work was discarded and slice 1 was left **orphaned, still
+decoding after the run had exited** (it had to be killed by hand). The child-spawn seam is now
+`spawn_child()` / `wait_child()`, and `test_a_child_that_floods_its_output_neither_deadlocks_
+nor_loses_its_exit_code` covers both of its hazards: the handle the parent must close itself,
+and the 200 KB of child output that would deadlock a `PIPE`-based parent waiting on a
+different slice. The N=2 numbers above are from the rerun on the fixed code.
+
+### 9.4 The canary 2 run — prepared, NOT launched
+
+Queue: `Scripts/pipeline/queue_litkb_formula_l4_canary2.yaml` — **one L4 runtime**, the same
+`shard_canary200` (200 crops) plus `shard_ref5` (the five referee equations), `procs: auto`.
+Both shards are already on the lake and were md5-verified server-side during canary 1, so
+nothing is uploaded for this run.
+
+**The out_dir is new, and it has to be.** The worker skips a shard whose result archive is
+already present (kill 4), so writing into canary 1's `…/formula/results` would skip both
+shards and return nothing at all. Canary 2 writes to `…/formula/results_procs`, which also
+keeps canary 1's archives intact as the comparison baseline. While fixing that: `out_dir` was
+declared in every queue file and **read by nothing** — the destination was a string in the
+launch payload — so the worker now reads `out_dir` and `procs` from the queue file, and the
+payload passes neither.
+
+```bash
+# 1. create + bootstrap the runtime (write canary, editable install, repo clone)
+py -3.12 pipeline/vm_ops.py launch --session litkbf2 --gpu L4 \
+    --branch work/20260915-colab-l4-formula
+
+# 2. start the worker, nohup-detached so it survives the exec handle
+py -3.12 pipeline/vm_ops.py exec --session litkbf2 \
+    --file pipeline/litkb_formula_vm_start.py --timeout 900
+
+# 3. watch, then stop the moment it drains
+py -3.12 pipeline/vm_ops.py status --session litkbf2
+py -3.12 pipeline/vm_ops.py stop   --session litkbf2
+```
+
+**Expected wall-clock — UNCONFIRMED, and the scaling term is the weak part.** Canary 1's
+decode was **1157.9 s at 0.1727 regions/s**. Dividing by N=6 gives **≈193 s** of decode for
+the 200-crop shard, plus ~6 s for ref5, plus one model load per process (20.1 s measured, in
+parallel), plus the 2.5 min launch-to-READY and 49 s install measured in canary 1 — call it
+**≈10 minutes of launch span**, which is what Colab bills. The division assumes the N
+processes scale linearly, and **nothing has measured that**: utilisation peaked at 35% on one
+process, so there is headroom, but six processes sharing one L4's SMs and PCIe will not be six
+times one. Treat 193 s as a floor on the decode, and the launch span as the number that
+matters. `--timeout 900` is the recipe's default and is enough; canary 1's `--timeout 2400`
+was an unnecessary deviation.
+
+**A free measurement rides along.** The batch plan now orders crops by cost, so canary 2's 200
+crops are batched *differently* from canary 1's. Comparing the two runs' LaTeX row by row
+answers design UNCONFIRMED #3 — whether batch composition moves the decoded tokens — at no
+extra GPU cost. Identical LaTeX across the two batchings settles it in the direction the five
+referee crops already suggest; a difference is a finding.
+
+### 9.5 The balance read — Kam has to do this, and it is two lines
+
+Canary 1's compute-unit delta is **UNMEASURED** because this session's permission layer
+refuses to navigate a browser to Colab (`Browser Navigate Exfil`), and there is no other path
+on this machine that reads the balance. `colab_rates.csv` still has **zero GPU data rows**.
+That will not change on canary 2 unless Kam takes the readings himself:
+
+> **1.** Immediately **before** step 1 above, open <https://colab.research.google.com/signup>
+> and copy the line reading **"You currently have N compute units"** — verbatim, including the
+> number.
+> **2.** Immediately **after** `vm_ops stop` returns, reload the same page and copy the same
+> line again, verbatim.
+
+Those two lines plus the launch span are the whole measurement: the first MEASURED GPU rate
+row that `colab_rates.csv` has been waiting for. Without them, canary 2 measures throughput
+and nothing about cost.
+
+### 9.6 Kills, and that they fire
+
+`qc/instruments/litkb_formula_mutations.py` weakens one guard at a time in the real source,
+runs the test that should catch it, and restores the file byte-for-byte with a sha256 check.
+No database, no GPU, no lake — seconds on the laptop, which is the point: these guards protect
+a billing runtime and a corpus-scale decode, and the evidence that they fire must not cost a
+GPU hour to refresh.
+
+```
+baseline before: PASS
+W1  FIRED  the watchdog stops treating a stale liveness beat as a hang
+W2  FIRED  the litkb worker is dropped from the work registry
+W3  FIRED  the worker no longer beats before it loads the model
+M1  FIRED  a crop no slice returned a row for is reported ok instead of failed
+M2  FIRED  the merge stops coercing a child's ok-with-no-LaTeX row to failed
+baseline after:  PASS
+```
+
+W1 is *also* fired inside the ordinary suite
+(`test_the_stale_beat_gate_fires_when_it_is_removed`), which execs the watchdog head with that
+one condition weakened and asserts the hung worker then survives — because a real hang is not
+reproducible off a VM, and "the watchdog stops a hung worker" would otherwise rest on a test
+that would pass just as well if the branch did nothing.
+`test_every_mutation_row_still_has_a_target` fails the ordinary suite if a refactor moves a
+guarded line out from under a row, so a stale campaign cannot quietly become no evidence.
+
+### 9.7 Ladder and hygiene for this change
+
+* `LITKB_PGPORT=1 py -3.12 qc/check.py --fast`, run after the final edit. Stated in those
+  words: **the litkb Postgres guards were NOT exercised** (216 skipped, no server on this
+  machine). Verdict line quoted rather than summarised:
+
+  ```
+  litkb Postgres tests: 216 skipped  <- 216 SKIPPED: litkb server/role/psycopg absent,
+                                        so those guards were NOT tested
+  FAILED qc\test_experiments.py::test_pointer_paths_resolve[crown_state_model]
+  1 failed, 2282 passed, 224 skipped, 74 warnings in 545.83s (0:09:05)
+  check: FAILED at rung 'pytest' — fix, then rerun.
+  ```
+
+  **The ladder's verdict is FAILED, not PASSED.** The single failure is `crown_state_model`,
+  the same expected one this branch's base commit and §8 already carry; nothing in this change
+  touches experiments. Because the ladder stops at the first failing rung, **preflight did not
+  run**, and `--fast` skips the smoke by definition. `ruff check --select F` over the five
+  touched/added Python files separately: **All checks passed!**
+* `qc/test_litkb_formula_colab.py` alone: **25 passed**. The vm/litkb/ci subset: 423 passed.
+* **No Colab runtime was created**, no `colab` CLI call was made, no compute unit was spent.
+  Canary 2 is prepared and NOT launched.
+* No `litkb*` database was touched; `LITKB_PGPORT=1` was set for every run. No other worktree
+  was touched, `main` did not move, and no secret was printed.
+* One process was killed by hand: the orphaned slice-1 child left running by the crashed first
+  N=2 attempt (§9.3). It was a local CPU decode into the scratch dry-run directory, nothing on
+  the lake, and it was identified by its own cmdline before being stopped.
+* Dry-run evidence, outside the repo like every other litkb artefact:
+  `D:\edmonds-pipeline\litkb_derived\formula\dryrun_procs\{n1,n2}\` — both result archives,
+  their `.sha256` sidecars, and the per-slice logs under `n2\…​.slices\`.

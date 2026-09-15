@@ -526,6 +526,35 @@ def default_batch_size():
     return int(CodeFormulaVlmModel.elements_batch_size)
 
 
+def spawn_child(cmd, log_path):
+    """Start one slice, its output going to a FILE. -> (Popen, the handle we must close).
+
+    EACH CHILD GETS A FILE, NOT A PIPE. With ``stdout=PIPE`` the parent would have to read
+    every child concurrently; waiting on slice 0 while slice 3 fills its 64 KB pipe buffer
+    deadlocks both, and the model load alone prints a weight-loading progress bar per
+    process. And the handle is OURS to close: ``Popen(stdout=<file object>)`` leaves
+    ``p.stdout`` as None, so there is nothing on the Popen to close afterwards — closing it
+    there raised on the first real parallel run (2026-09-15) and took the whole shard with it.
+    """
+    fh = open(log_path, "wb")
+    return subprocess.Popen(cmd, stdout=fh, stderr=subprocess.STDOUT), fh
+
+
+def wait_child(proc, handle, log_path, tail_bytes=400):
+    """Wait for one slice and close its log. -> (returncode, the tail of its output)."""
+    proc.wait()
+    try:
+        handle.close()
+    except OSError:
+        pass
+    try:
+        with open(log_path, encoding="utf-8", errors="replace") as fh:
+            tail = fh.read()[-tail_bytes:]
+    except OSError:
+        tail = "(no log)"
+    return proc.returncode, tail
+
+
 def process_shard_parallel(shard_zip, out_zip, procs="auto", device="cuda", threads=4,
                            batch_size=None, artifacts_path=None, limit=None,
                            peak_bytes=None, max_procs=None, python=None, work_dir=None):
@@ -549,7 +578,7 @@ def process_shard_parallel(shard_zip, out_zip, procs="auto", device="cuda", thre
     work = work_dir or (os.path.splitext(out_zip)[0] + ".slices")
     os.makedirs(work, exist_ok=True)
     py = python or sys.executable
-    procs_running, slice_out, slice_log = [], {}, {}
+    procs_running, slice_out, slice_log, log_handles = [], {}, {}, []
     t0 = time.time()
     for i in range(n):
         slice_out[i] = os.path.join(work, "slice_%d.zip" % i)
@@ -566,20 +595,15 @@ def process_shard_parallel(shard_zip, out_zip, procs="auto", device="cuda", thre
         # EACH CHILD GETS A FILE, NOT A PIPE. With stdout=PIPE the parent would have to read
         # every child concurrently; waiting on slice 0 while slice 3 fills its 64 KB pipe
         # buffer deadlocks both, and the model load alone prints a progress bar per process.
-        procs_running.append(subprocess.Popen(
-            cmd, stdout=open(slice_log[i], "wb"), stderr=subprocess.STDOUT))
+        p, fh = spawn_child(cmd, slice_log[i])
+        procs_running.append(p)
+        log_handles.append(fh)
     slice_rows, slice_errors, slice_records = {}, {}, {}
     for i, p in enumerate(procs_running):
-        p.wait()
-        p.stdout.close()
+        rc, tail = wait_child(p, log_handles[i], slice_log[i])
         beat()
-        if p.returncode != 0:
-            try:
-                with open(slice_log[i], encoding="utf-8", errors="replace") as fh:
-                    tail = fh.read()[-400:]
-            except OSError:
-                tail = "(no log)"
-            slice_errors[i] = "child exit %d: %s" % (p.returncode, tail)
+        if rc != 0:
+            slice_errors[i] = "child exit %d: %s" % (rc, tail)
         try:
             with zipfile.ZipFile(slice_out[i]) as z:
                 names = set(z.namelist())

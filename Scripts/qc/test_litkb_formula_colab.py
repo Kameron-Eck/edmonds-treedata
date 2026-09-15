@@ -365,6 +365,27 @@ def test_the_merge_emits_one_row_per_crop_in_global_batch_order(worker):
            [bi for bi, b in enumerate(plan) for _ in b]
 
 
+def test_a_child_that_floods_its_output_neither_deadlocks_nor_loses_its_exit_code(worker,
+                                                                                  tmp_path):
+    """The seam that broke on the first real parallel run, in both of its ways.
+
+    (1) `Popen(stdout=<file object>)` leaves `p.stdout` as None, so closing it on the Popen
+    raises and takes the whole shard down — the parent reported the shard `failed` and the
+    other slice was orphaned mid-decode. (2) With a PIPE instead of a file, a child printing
+    more than the 64 KB pipe buffer blocks forever while the parent waits on a different
+    child; the model load alone prints a per-process progress bar. 200 KB of child output and
+    a non-zero exit cover both.
+    """
+    log = tmp_path / "slice.log"
+    p, fh = worker.spawn_child(
+        [sys.executable, "-c", "print('x' * 200_000); raise SystemExit(3)"], str(log))
+    rc, tail = worker.wait_child(p, fh, str(log))
+    assert rc == 3, "the child's exit code did not survive"
+    assert tail.strip().endswith("x"), tail[:80]
+    assert log.stat().st_size > 200_000
+    assert fh.closed, "the log handle was left open — the parent leaks one per slice"
+
+
 def test_the_queue_file_owns_its_destination_and_its_process_count(worker, tmp_path):
     """`out_dir` was declared in every queue file and read by nothing, so two queues wrote
     into one directory and the idempotent skip turned the second run into a no-op."""

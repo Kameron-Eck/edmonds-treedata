@@ -742,3 +742,31 @@ Both figures come out of the instrument.
    Neither can fix a batch-composition effect in any case, since neither changes the shapes.
 4. **The new planner on a real runtime.** §11.5 is a simulation on measured timings. No run
    has used it.
+
+### 11.9 The ladder, quoted rather than summarised
+
+`LITKB_PGPORT=1 PYTHONUTF8=1 py -3.12 qc/check.py --fast`:
+
+```
+litkb Postgres tests: 216 skipped  <- 216 SKIPPED: litkb server/role/psycopg absent,
+                                      so those guards were NOT tested
+FAILED qc	est_experiments.py::test_pointer_paths_resolve[crown_state_model]
+1 failed, 2298 passed, 224 skipped, 74 warnings in 2190.38s (0:36:30)
+check: FAILED at rung 'pytest' — fix, then rerun.
+```
+
+**The verdict is FAILED, not PASSED**, and the single failure is `crown_state_model` — the
+same expected one this branch and its base carry; nothing in this session touches experiments.
+Because the ladder stops at the first failing rung, **preflight did not run**, and `--fast`
+skips the smoke by definition. **The litkb Postgres guards were NOT exercised** (216 skipped,
+no server on this machine).
+
+An earlier run of the same command came back with **two** failures, and the second one was
+mine: `test_status_discovery.py::test_path_insert_ledger` caught the new instrument reaching
+for `pipeline/` with a path expression of its own devising. litkb genuinely sits outside the
+editable install, so the insert stays and the improvisation went — the instrument now uses the
+same stanza the two other litkb instruments use and is registered beside them. Recorded here
+because the ladder finding it is the argument for running the ladder.
+
+Mutation campaign, re-run after every change above: **12 of 12 FIRED**, `baseline before:
+PASS`, `baseline after: PASS`.

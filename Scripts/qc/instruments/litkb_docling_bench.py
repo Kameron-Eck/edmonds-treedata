@@ -146,8 +146,10 @@ def main(argv=None):
     ap.add_argument("--vram", action="store_true",
                     help="sample nvidia-smi at 1 Hz over the batch (GPU runs)")
     ap.add_argument("--dense-only", action="store_true",
-                    help="restrict the page range to the equation-dense runs of the FIRST "
-                         "selected paper (decision A: what --formulas auto would enrich)")
+                    help="restrict the page range to the FIRST equation-dense run of each "
+                         "selected paper (decision A). UNEXERCISED: the §8.3 formula batch "
+                         "was run with an explicit --pages 3 4, so no recorded number came "
+                         "through this flag.")
     ap.add_argument("--only", default=None, help="substring: run just this paper")
     ap.add_argument("--pages", nargs=2, type=int, default=None, help="page range override")
     ap.add_argument("--csv", default=CSV_PATH)

@@ -7,8 +7,10 @@
 papers, same method, so the two stages' numbers can be put side by side.
 
 Every number below was measured on this laptop on 2026-09-15 by
-`qc/instruments/litkb_docling_bench.py`, and every row it produced is in
-`Reports/litkb_docling_throughput_2026-09-15.csv`. Nothing here is copied from the vendor's
+`qc/instruments/litkb_docling_bench.py` and, for the equation-density census of §8.1,
+`qc/instruments/litkb_equation_density.py`; every row they produced is in
+`Reports/litkb_docling_throughput_2026-09-15.csv` and
+`Reports/litkb_equation_density_2026-09-15.csv`. Nothing here is copied from the vendor's
 documentation; where this report states something it did not measure, it says UNCONFIRMED in
 those words.
 
@@ -25,7 +27,7 @@ those words.
 | OCR engines present | **rapidocr 3.9.2, torch backend only** (onnxruntime is NOT installed, which rules out rapidocr's default backend; §3.1). docling registers `auto, easyocr, kserve_v2_ocr, nemotron-ocr, ocrmac, rapidocr, tesseract, tesserocr`; of those, only rapidocr is installed, and `Get-Command tesseract` finds no binary on PATH |
 | venv | `D:\edmonds-pipeline\venv-docling` — **1.4 GB**, created with the project's own `py -3.12` (3.12.10) |
 | models | downloaded to `%USERPROFILE%\.cache\huggingface\hub` on first use: `docling-layout-heron` 164 MB, `docling-models` (TableFormer) 342 MB, `CodeFormulaV2` 611 MB |
-| pin file | `Scripts/requirements-litkb-extract.txt` (new) |
+| pin files | `Scripts/requirements-litkb-extract.txt` (full `pip freeze`, defect D1) and `Scripts/requirements-litkb-extract-cuda.txt` (the CUDA trial venv, §8.3) |
 
 **The project's environment has none of this** (design referee M9). `litkb.extract.docling`
 imports the standard library and, for the frame shift only, pypdfium2; docling runs as a
@@ -391,7 +393,7 @@ reported as a rate because another session's 9-worker test campaign started 7 mi
 ambient load, and they are one observation each. **Formula enrichment cannot be switched on
 for the corpus at these rates** — 4,655 pages at 0.005 pages/s is ~11 days — so stage 4 needs
 either a GPU or a formula-region-only pass (enrich the regions the layout model already
-found, not every page), neither of which is measured here.
+found, not every page). **Both are now measured — see §8.**
 
 ### 6.1 The LaTeX, recorded for a referee
 
@@ -575,7 +577,7 @@ meets its stated recall and precision. Mutating the constant fires: **`EQUATION_
 0.0` gives 2 failed** (precision collapses — prose is selected), **`= 1.0` gives 3 failed**
 (recall collapses — nothing is). A gate that has never been shown to fire is not a gate.
 
-### 8.2 `--formulas auto|all|off`, and why it has to be two passes
+### 8.2 `formulas="auto"|"all"|"off"`, and why it has to be two passes
 
 `do_formula_enrichment` is a CONVERTER-wide option. Read at
 the `is_processable` method of `docling/models/stages/code_formula/code_formula_model.py`
@@ -585,21 +587,33 @@ So `auto` is adapter-side: one cheap pass over the whole file, then one enrichme
 contiguous run of dense pages, merged by `merge_formula_latex` on `(page, bbox rounded to
 1 pt)` rather than by index, since the enrichment pass numbers its own items.
 
-**Two assumptions that pass measurement rather than review.** Run against the real base and
+**The whole path was run end to end, not just its helper.** `extract(..., formulas="auto",
+pages=[3,4])` against the CUDA venv: `formula_mode="auto"`, `formula_density_cut=0.05`,
+`formula_pages=[3, 4]`, **`formula_patched=5`, `formula_missing=0`**, `formula_seconds=72.1`,
+`status="ok"`, two metrics rows written (base + enrichment), and the rewritten output JSON
+holds all five LaTeX strings. (The 72.1 s is the two-pass total for a cold converter build per
+pass, against the 42.5 s of the single enrichment batch in §8.3 — `auto` pays for a second
+process, which is the price of there being no per-page switch.)
+
+**Two assumptions underneath it that pass measurement rather than review.** Run against the real base and
 enrichment documents for Bellettini pp. 3–4: a page-RANGE conversion numbers its pages
 **absolutely** (`prov.page_no == 3`, not 1), and the two passes' boxes agree within the 1 pt
 the key rounds to. Result: **5 patched, 0 missing**, recovering exactly the five LaTeX strings
 the referee scored. Had page numbering been relative, every `auto` run would have raised —
 which is what the fail-closed rule is for, and it is now a fixture test.
 
-**Enrichment fails CLOSED.** Docling does not re-raise per element: a formula region the model
-could not decode keeps the text the native layer gave it, and the conversion still reports
-SUCCESS. (On this paper the base pass leaves formula text **empty**, so the mojibake would come
+**Enrichment fails CLOSED — and this kill is UNVALIDATED on real data.** Docling does not
+re-raise per element: a formula region the model could not decode keeps the text the native
+layer gave it, and the conversion still reports SUCCESS. (On this paper the base pass leaves formula text **empty**, so the mojibake would come
 from a caller's own fallback rather than from docling — but the failure shape is the same.)
 `merge_formula_latex` reports every region on an enriched page whose LaTeX did not arrive, and
 `extract` turns a non-empty list into `FormulaEnrichmentFailed` with `status="failed"` rather
-than recording a half-enriched run. Tested on three shapes of that failure: empty LaTeX,
-unchanged text, and an enrichment pass that returned no formula item at all.
+than recording a half-enriched run. It is tested on three shapes of that failure — empty LaTeX,
+unchanged text, and an enrichment pass that returned no formula item at all — but **all three
+are SYNTHETIC documents, so the kill is UNVALIDATED** in the sense CLAUDE.md §3.4c means:
+CodeFormula never actually ran out of memory here (it fit, §8.3), so the gate has not been
+shown to fire on the real failure it exists for. Synthetic validation tests the code, not the
+claim.
 
 ### 8.3 The CUDA trial on the T2000
 

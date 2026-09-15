@@ -420,6 +420,10 @@ p3(block, "P7b", f"{PKG}/migrate_legacy/run.py",
    "a load interrupted between the admission and the use leaves the use missing forever")
 p3(block, "P7c", f"{PKG}/export.py", "guard: a refused file is still exported as a manifest row",
    "a file the database refused is dropped from the manifest export")
+site("P6g", "litkb/migrate_legacy/run.py::discrepancy::jsonb_safe", "{a0}", tests=TESTS_P3,
+     what="a discrepancy's claimed/registry TEXT values are sent with their NULs (the load dies on one)")
+site("P6h", "litkb/migrate_legacy/run.py::_load_tracker_row::jsonb_safe", "{a0}", tests=TESTS_P3,
+     what="the candidate's title is sent as text with its NULs")
 p3(block, "P7g", f"{PKG}/migrate_legacy/run.py",
    "guard: a file another work already holds is recorded as a sha256 collision",
    "one sha256 filed under two works: the second is left unbound with nothing saying why")

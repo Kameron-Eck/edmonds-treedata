@@ -677,3 +677,106 @@ def test_a_file_already_held_by_another_work_is_recorded_as_a_collision(pg, tmp_
     assert ("manifest", stem_b, "sha256_collision") in d, sorted(k for k in d if k[2] == "sha256_collision")
     assert (d[("manifest", stem_b, "sha256_collision")][4] or "").startswith("Sharer_2024")
     # END guard: the second work is unbound WITH a record naming the work that holds the file
+
+
+@pg_only
+def test_record_discrepancy_names_a_work_or_a_candidate(pg):
+    """0015: a discrepancy with neither a work nor a candidate belongs to nothing and could never be reviewed.
+    The front always passes one, so this calls the function directly (harness row P1c)."""
+    ws = pg.ws()
+    conn = pg.session("litkb_writer")
+    with pytest.raises(Exception) as e:
+        conn.execute("SELECT litkb.record_discrepancy(%s,%s,'tracker','1','title','a','b',NULL,'{}'::jsonb,"
+                     "NULL,NULL,'a','s')", (ws, pg.tokens[ws]))
+    assert "work or a candidate" in str(e.value)
+
+
+@pg_only
+def test_record_discrepancy_refuses_another_workstreams_candidate(pg):
+    """0015: a discrepancy may not point at a candidate belonging to another workstream (harness row P1d) —
+    the same rule admission carries, so a token cannot be used to write onto someone else's row."""
+    ws_a, ws_b = pg.ws(), pg.ws()
+    conn = pg.session("litkb_writer")
+    other = pg.one("SELECT litkb.add_candidate(%s, %s, 'manual', 'x', NULL, NULL, NULL, 't', NULL, NULL, NULL)",
+                   (ws_b, pg.tokens[ws_b]), conn=conn)[0]
+    with pytest.raises(Exception) as e:
+        conn.execute("SELECT litkb.record_discrepancy(%s,%s,'tracker','1','title','a','b',NULL,'{}'::jsonb,"
+                     "NULL,%s,'a','s')", (ws_a, pg.tokens[ws_a], other))
+    assert "not this workstream" in str(e.value)
+
+
+def test_a_doi_spelled_differently_is_not_a_discrepancy():
+    """`doi_discrepancy` compares CANONICAL DOIs (harness row P6a): `10.4171/JEMS/179` and `10.4171/jems/179`
+    are one DOI — the real case from the 2026-09-13 manifest audit — and must not read as a changed DOI."""
+    from litkb.migrate_legacy.plan import doi_discrepancy
+
+    assert doi_discrepancy("https://doi.org/10.4171/JEMS/179", "10.4171/jems/179") is None
+    assert doi_discrepancy("doi:10.4171/jems/179", "10.4171/jems/179") is None
+    assert doi_discrepancy(" 10.4171/jems/179. ", "10.4171/jems/179") is None
+    changed = doi_discrepancy("10.4171/jems/183", "10.4171/jems/179")
+    assert changed and changed["claimed"] == "10.4171/jems/183" and changed["registry"] == "10.4171/jems/179"
+    assert doi_discrepancy("", "10.4171/jems/179")["claimed"] is None
+
+
+@pg_only
+def test_a_nul_in_a_registry_record_reaches_neither_the_discrepancy_nor_the_use(pg, tmp_path):
+    """Registry records and scanned PDF metadata carry NUL bytes, and Postgres refuses a NUL inside jsonb
+    (UntranslatableCharacter). Both P3 jsonb payloads — the discrepancy's `detail`, which carries the
+    registry's author list, and the use version's identity and fields — go through `front._jsonb`, which
+    strips them. Harness rows P6d and P6e remove that on each path in turn.
+
+    The NUL is planted in the REGISTRY record, which is where one actually arrives: a text column would
+    refuse it outright (psycopg: "PostgreSQL text fields cannot contain NUL"), so only the jsonb payloads can
+    carry one this far, and only the guard keeps them writable."""
+    from litkb.migrate_legacy import run as mrun
+
+    _need_file(VALIDATION)
+    hexid = uuid.uuid4().hex[:8]
+    doi, title, author = f"10.5555/p3nul-{hexid}", f"Nul {hexid} bytes in a registry record", "Nuller"
+    root, stem = plant(tmp_path, title, author)
+    rec = synthetic_record(doi, title, author, 2020)
+    rec["author"] = [{"family": author, "given": "N.\x00", "sequence": "first"},
+                     {"family": "Second\x00", "given": "S."}]
+    ws = pg.ws()
+    ctx = loader(pg, ws, Registry({doi: rec}), root=root)
+    r = row(120, title="A different title, so the authors are compared and recorded\x00",
+            authors="Someone Else, S.", year=2020, doi=doi, stem=stem,
+            relevance="Relevance for the use version.", feeds="gap row 6")
+    c = mrun.load_tracker(ctx, rows=[r], manifest={stem: {"stem": stem}})
+    assert c["admitted"] == 1 and c["uses"] == 1, ctx.log
+    d = discrepancies(pg, ws)
+    # BEGIN guard: a NUL in the registry record does not stop the discrepancy or the use being written
+    assert ("tracker", "120", "authors") in d, sorted(d)
+    detail = pg.one("SELECT detail FROM litkb.discrepancies WHERE workstream_id = %s AND field = 'authors'",
+                    (ws,))[0]
+    assert "\x00" not in json.dumps(detail)
+    assert any("Second" in a for a in detail["registry_authors"]), detail
+    stored_registry = pg.one("SELECT registry_value FROM litkb.discrepancies WHERE workstream_id = %s "
+                             "AND field = 'authors'", (ws,))[0]
+    assert "\x00" not in stored_registry and "Nuller" in stored_registry
+    assert "\x00" not in pg.one("SELECT title FROM litkb.candidates WHERE workstream_id = %s", (ws,))[0]
+    # END guard: a NUL in the registry record does not stop the discrepancy or the use being written
+    stmt = pg.one("SELECT statement FROM litkb.use_versions WHERE workstream_id = %s", (ws,))[0]
+    assert stmt == "Relevance for the use version."
+
+
+@pg_only
+def test_litkb_migrate_normalises_its_agent_and_session_labels(pg, tmp_path, monkeypatch):
+    """`litkb migrate` records who loaded the rows. The labels go through the ONE normaliser, so an invisible
+    character in `--session` cannot make a second session look like a third (harness row P6f)."""
+    from litkb import commands
+
+    conn = pg.session("litkb_writer")
+    ws = pg.ws()
+    wt = tmp_path / "wt"
+    (wt).mkdir()
+    (wt / ".litkb-workstream").write_text(json.dumps({"workstream_id": str(ws), "token": pg.tokens[ws]}),
+                                          encoding="utf-8")
+    rc = commands.main(["--db", "litkb_test", "--dir", str(wt), "--agent", "claude​-p3",
+                        "--session", "p3-labels ", "migrate", "tracker", "--limit", "0"],
+                       connect=lambda _db: conn)
+    assert rc == 0
+    # the load was empty, so assert on what the labels became: no workstream row carries the raw spelling
+    from litkb.textnorm import norm_label
+    assert norm_label("p3-labels ") == "p3-labels"
+    assert norm_label("claude​-p3") == "claude-p3"

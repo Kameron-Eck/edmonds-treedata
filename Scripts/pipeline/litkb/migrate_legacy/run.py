@@ -16,6 +16,7 @@ from litkb.admit import front, registry as _registry, resolver as _resolver
 from litkb.migrate_legacy import sources
 from litkb.migrate_legacy.plan import COMPARED_FIELDS, compare_row, doi_discrepancy, plan_row
 from litkb.netutil import Client, Pacer
+from litkb.textnorm import jsonb_safe
 
 #: the tracker's Evidence grade, as the `confidence` of the use it produced. The grades are the
 #: reviewer's READ grade (LITERATURE_CONVENTION.md), not a claim about the work, so they are carried
@@ -91,11 +92,14 @@ class Loader:
 
     def discrepancy(self, source, source_row, field, d, *, work=None, candidate=None):
         # BEGIN guard: every disagreeing legacy field is recorded
+        # jsonb_safe on the TEXT parameters too, not only the JSON: a registry record's author list or a
+        # scanned PDF's metadata can carry a NUL, and Postgres refuses one in a text column outright
+        # ("PostgreSQL text fields cannot contain NUL"), which would end the load rather than record the row.
         return self.conn.execute(
             "SELECT litkb.record_discrepancy(%s, %s, %s, %s, %s, %s, %s, %s::numeric, %s, %s, %s, %s, %s)",
             (self.ws, self.token, source, str(source_row), field,
-             None if d.get("claimed") is None else str(d["claimed"]),
-             None if d.get("registry") is None else str(d["registry"]),
+             None if d.get("claimed") is None else jsonb_safe(str(d["claimed"])),
+             None if d.get("registry") is None else jsonb_safe(str(d["registry"])),
              d.get("ratio"), front._jsonb(d.get("detail") or {}), work, candidate,
              self.agent, self.session)).fetchone()[0]
         # END guard: every disagreeing legacy field is recorded
@@ -246,7 +250,7 @@ def _load_tracker_row(ctx, row, manifest, c):
         # `_manifest`, the manifest row's own columns (source_route, obtained_date, cited_by). The export
         # reads both back; without them those cells could not be regenerated at all.
         raw=json.loads(json.dumps({**row, **({"_manifest": mrow} if mrow else {})})),
-        title=claimed["title"], authors=[claimed["authors"]] if claimed["authors"] else None,
+        title=jsonb_safe(claimed["title"]), authors=[claimed["authors"]] if claimed["authors"] else None,
         year=claimed["year"] or None, ids={k: v for k, v in (("doi", doi), ("arxiv", arxiv)) if v})
     entry = {"tracker_id": tid, "case": plan["case"], "shape": plan["shape"], "candidate_id": str(cand),
              "stem": stem or None, "doi": plan["doi"], "resolved_doi": plan["resolved"]}

@@ -543,6 +543,10 @@ COPY_DIRS = ("Scripts", "Reports")          # tests read Reports/literature_trac
 # the ONE ignore set: shutil.copytree and tree_manifest() must agree exactly, or every worker's
 # stale-copy check (D-2) fails on files that were never copied in the first place
 COPY_IGNORE = ("__pycache__", ".pytest_cache", "*.pyc", "_litkb_ws", ".litkb-workstream")
+# files copied individually AFTER copytree (they are not all under COPY_DIRS). The guard's domain must equal
+# the copy's domain, so tree_manifest() hashes exactly this list too (referee 2 E-2, 2026-09-14): the repo-root
+# .gitignore was copied and never hashed, so a stale one was invisible to manifest_diff.
+COPY_FILES = (".gitignore", "Scripts/.gitignore")
 
 
 def default_workers():
@@ -572,6 +576,10 @@ def tree_manifest(root):
                 continue
             if p.is_file():
                 out[rel] = _sha(p.read_bytes())
+    for rel in COPY_FILES:                 # E-2: the individually-copied files, or a stale one is invisible
+        p = root / rel
+        if p.is_file():
+            out[rel] = _sha(p.read_bytes())
     return out
 
 
@@ -628,7 +636,7 @@ def make_worker_copy(i, root):
         shutil.copytree(repo / d, dst / d, ignore=ignore)
     # the suite's git-ignore test needs a checkout with the repo's .gitignore files: an empty git repo plus the
     # ignore files is enough for `git check-ignore --no-index`, and nothing here is ever committed
-    for gi in (".gitignore", "Scripts/.gitignore"):
+    for gi in COPY_FILES:
         if (repo / gi).exists():
             shutil.copy2(repo / gi, dst / gi)
     subprocess.run(["git", "init", "-q", str(dst)], check=True, capture_output=True)

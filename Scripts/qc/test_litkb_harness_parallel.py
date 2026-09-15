@@ -69,7 +69,11 @@ def test_reset_refuses_a_database_that_is_not_the_configured_test_db(monkeypatch
             self.ran.append(q)
             return type("R", (), {"fetchone": lambda _s: (self.name,)})()
 
-    for name in ("litkb", "litkb_test_w2", "postgres"):
+    # E-1 (referee 2): the "foreign" worker name must be chosen RELATIVE to the active LITKB_TEST_DB. It was
+    # hard-coded to litkb_test_w2, so under LITKB_TEST_DB=litkb_test_w2 that name IS the configured test db,
+    # reset() rightly permitted it, and the test failed on the one worker name someone would naturally use.
+    foreign = next(n for n in (f"litkb_test_w{i}" for i in range(1, 100)) if n != c.DB_TEST)
+    for name in ("litkb", foreign, "postgres"):
         conn = Conn(name)
         with pytest.raises(migrate.MigrationError):
             migrate.reset(conn)
@@ -165,6 +169,25 @@ def test_a_stale_worker_copy_aborts_without_reporting_a_verdict(tmp_path):
     assert "STALE COPY:" in r.stdout and "qc/test_litkb_p2.py CHANGED" in r.stdout
     fired, base_ok, stale = H.parse_worker_log(r.stdout)
     assert fired == {} and not base_ok and stale          # no verdict for B6 — not a survivor
+
+
+def test_a_stale_root_gitignore_is_caught_by_the_manifest(tmp_path):
+    """Referee 2 E-2: make_worker_copy copies the repo-root .gitignore after copytree, but tree_manifest
+    walked only COPY_DIRS, so a stale root .gitignore gave manifest_diff == [] — caught only by a baseline,
+    and only for the 37 rows that run the P1 set. The manifest's domain now equals the copy's."""
+    dst = H.make_worker_copy(1, tmp_path)
+    manifest = tmp_path / "source.manifest.json"
+    manifest.write_text(json.dumps(H.tree_manifest(SCRIPTS.parent)), encoding="utf-8")
+    assert ".gitignore" in json.loads(manifest.read_text(encoding="utf-8"))
+    assert H.manifest_diff(json.loads(manifest.read_text(encoding="utf-8")), H.tree_manifest(dst)) == []
+    gi = dst / ".gitignore"                                   # the referee's Break E, exactly
+    gi.write_text("\n".join(ln for ln in gi.read_text(encoding="utf-8").splitlines()
+                            if ".litkb-workstream" not in ln) + "\n", encoding="utf-8")
+    r = _run_worker(["--worker", "--manifest", str(manifest), "--only", "B6"], cwd=dst / "Scripts")
+    assert r.returncode == 2, r.stdout[-2000:]
+    assert "STALE COPY:" in r.stdout and ".gitignore CHANGED" in r.stdout
+    fired, base_ok, stale = H.parse_worker_log(r.stdout)
+    assert fired == {} and not base_ok and stale
 
 
 # ── the headroom rule (D-7) ──

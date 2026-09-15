@@ -1,0 +1,12 @@
+tag,file,pages,seconds,pages_per_s,peak_rss_mb,cpu_seconds,cpu_cores_busy,num_threads,device,ocr,ocr_engine,formula,tables,body_blocks,tables_found,figures_found,status,tool,warmup_seconds,converter_build_seconds,load_cpu_pct_before,load_cpu_pct_after,load_mem_used_gb_before,load_mem_used_gb_after,page_range,started_at
+cpu-t4,Benedek_2015,16,33.285,0.4807,1872.2,82.22,2.47,4,cpu,False,,False,True,377,4,10,ok,docling-2.127.0,7.837,7.592,34.0,61.0,25.56,24.86,1-16,2026-09-15T07:45:37
+cpu-t4,Alwan_1988,10,16.639,0.601,2007.2,61.75,3.71,4,cpu,False,,False,True,157,0,5,ok,docling-2.127.0,7.837,7.592,34.0,61.0,25.56,24.86,1-10,2026-09-15T07:46:11
+cpu-t4,Anderson_1957,22,29.684,0.7411,2056.0,108.28,3.65,4,cpu,False,,False,True,1,1,1,ok,docling-2.127.0,7.837,7.592,34.0,61.0,25.56,24.86,1-22,2026-09-15T07:46:27
+cpu-t4,Bellettini_2002,51,64.618,0.7893,2036.0,166.64,2.58,4,cpu,False,,False,True,819,0,5,ok,docling-2.127.0,7.837,7.592,34.0,61.0,25.56,24.86,1-51,2026-09-15T07:46:57
+cpu-t4,Schneider_2008,100,135.685,0.737,2640.5,480.09,3.54,4,cpu,False,,False,True,1011,3,3,ok,docling-2.127.0,7.837,7.592,34.0,61.0,25.56,24.86,1-100,2026-09-15T07:48:02
+cpu-t8,Benedek_2015,16,31.841,0.5025,1877.5,184.75,5.8,8,cpu,False,,False,True,377,4,10,ok,docling-2.127.0,7.309,8.622,54.0,16.0,24.88,29.6,1-16,2026-09-15T07:50:38
+cpu-t8,Alwan_1988,10,14.211,0.7037,1971.5,92.41,6.5,8,cpu,False,,False,True,157,0,5,ok,docling-2.127.0,7.309,8.622,54.0,16.0,24.88,29.6,1-10,2026-09-15T07:51:10
+cpu-t8,Anderson_1957,22,31.003,0.7096,2057.9,195.55,6.31,8,cpu,False,,False,True,1,1,1,ok,docling-2.127.0,7.309,8.622,54.0,16.0,24.88,29.6,1-22,2026-09-15T07:51:24
+cpu-t8,Bellettini_2002,51,59.665,0.8548,2050.3,388.67,6.51,8,cpu,False,,False,True,819,0,5,ok,docling-2.127.0,7.309,8.622,54.0,16.0,24.88,29.6,1-51,2026-09-15T07:51:55
+cpu-t8,Schneider_2008,100,124.459,0.8035,2648.2,851.22,6.84,8,cpu,False,,False,True,1011,3,3,ok,docling-2.127.0,7.309,8.622,54.0,16.0,24.88,29.6,1-100,2026-09-15T07:52:55
+ocr-t4,Anderson_1957,22,234.082,0.094,2455.5,704.91,3.01,4,cpu,True,auto,False,True,179,1,1,ok,docling-2.127.0,36.737,7.37,20.0,35.0,25.66,33.01,1-22,2026-09-15T07:56:13

@@ -75,10 +75,17 @@ def main(argv=None):
     ap.add_argument("--limit-chunks", type=int, default=0, help="debug only; 0 = all")
     ap.add_argument("--csv", default=None)
     ap.add_argument("--harness", default=None)
+    ap.add_argument("--per-query", default=None, help="per-query ranks, so a referee can redo every metric")
     ap.add_argument("--cache-dir", default=r"D:\edmonds-pipeline\_tmp\litkb_p7")
     args = ap.parse_args(argv)
 
     from litkb.index import embed as E  # heavy; imported only when the bake-off runs
+    import torch
+
+    # The 20% headroom rule: leave a fifth of the logical cores to the rest of the machine.
+    threads = max(1, int(0.8 * (os.cpu_count() or 1)))
+    torch.set_num_threads(threads)
+    print("torch threads %d of %d logical cores (20%% headroom)" % (threads, os.cpu_count()))
 
     chunks = load_chunks(args.chunks)
     if args.limit_chunks:
@@ -207,6 +214,30 @@ def main(argv=None):
             if new:
                 w.writeheader()
             w.writerows(rows)
+    if args.per_query:
+        new = not os.path.exists(args.per_query)
+        with open(args.per_query, "a", newline="", encoding="utf-8") as fh:
+            w = csv.DictWriter(fh, fieldnames=[
+                "model", "device", "query_id", "kind", "source_stem", "n_gold_chunks",
+                "rank_vector", "rank_lexical", "rank_hybrid", "rank_kill"])
+            if new:
+                w.writeheader()
+            for q in gold["queries"]:
+                qid = q["id"]
+                gset = set(gmap[qid])
+
+                def first(seq):
+                    for i, d in enumerate(seq):
+                        if d in gset:
+                            return i + 1
+                    return ""
+                w.writerow({
+                    "model": args.model, "device": args.device, "query_id": qid,
+                    "kind": q["kind"], "source_stem": q["source_stem"],
+                    "n_gold_chunks": len(gset),
+                    "rank_vector": first(vector[qid]), "rank_lexical": first(lexical[qid]),
+                    "rank_hybrid": first(hybrid[qid]), "rank_kill": first(killed[qid]),
+                })
     if args.harness:
         new = not os.path.exists(args.harness)
         with open(args.harness, "a", newline="", encoding="utf-8") as fh:

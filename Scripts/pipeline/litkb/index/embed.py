@@ -3,18 +3,23 @@
 Every heavy import lives inside a function (design §9). Importing this module loads
 nothing but numpy-free stdlib, so ``qc/check.py`` never pulls torch.
 
-Two model-card facts shape the code and are NOT recalled from memory — they are read off
-the card at run time by :func:`describe` and printed into the report:
+Two model-card facts shape the code. They are AUTHORED here from the model cards (fetched
+2026-09-15; the URLs are cited in the phase report) — :func:`describe` prints them back
+alongside what the loaded model reports about itself, which is a consistency check, not an
+independent reading of the card:
 
 * **nomic-embed-text-v1.5 requires task prefixes.** Its card specifies ``search_query:``
   for queries and ``search_document:`` for passages. Embedding both sides with the same
   prefix (or none) is the single easiest way to quietly halve its recall, so the prefix is
   part of the backend, not the caller's problem. It also needs ``trust_remote_code=True``.
-* **bge-m3 dense vectors are normalised**, so cosine == dot product. It takes no prefix;
-  adding one would be wrong.
+* **bge-m3 takes NO instruction.** Its card: "the BGE-M3 model no longer requires adding
+  instructions to the queries" (fetched 2026-09-15). Adding one would be wrong. The card
+  does not state whether its dense output is already normalised, so this module normalises
+  explicitly rather than assuming.
 
-Both are scored with cosine similarity on L2-normalised vectors, which makes the random
--vector kill an exactly comparable substitution (same dims, same metric, same code path).
+Both are scored with cosine similarity on L2-normalised vectors — ``normalize_embeddings``
+is passed for both, so the metric is identical across models and the random-vector kill is
+an exactly comparable substitution (same dims, same metric, same code path).
 """
 from __future__ import annotations
 

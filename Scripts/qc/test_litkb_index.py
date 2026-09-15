@@ -236,3 +236,50 @@ def test_bm25_ranks_the_document_containing_the_query_terms_first():
 def test_bm25_returns_nothing_when_no_query_term_occurs():
     bm = X.BM25([X.tokenize("alpha beta gamma")])
     assert bm.top_k("zeta eta theta", ["d0"], k=3) == []
+
+
+# ------------------------------------------------------- the gold verifier's own rules
+
+def _gold_fixture(tmp_path, **override):
+    """A one-query gold file whose anchor really is a slice of a real corpus stem."""
+    import json
+    stem = K.stems()[0]
+    text = K.read_text(stem)[0]
+    start = 5000
+    anchor = text[start:start + 400]
+    q = {"id": "g001", "kind": "paraphrase", "query": "zzqq unrelated wording entirely",
+         "source_stem": stem, "anchor_text": anchor,
+         "char_start": start, "char_end": start + 400, "note": "fixture"}
+    q.update(override)
+    p = tmp_path / "gold.json"
+    p.write_text(json.dumps({"queries": [q]}), encoding="utf-8")
+    return p
+
+
+def test_gold_verifier_accepts_a_well_formed_anchor_and_rejects_a_shifted_one(tmp_path):
+    """The verifier is a gate, so show it FIRES on a known-bad input (CLAUDE.md §3.4c)."""
+    if not os.path.isdir(K.CORPUS_DIR):
+        pytest.skip("literature corpus not present")
+    sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "instruments"))
+    import litkb_p7_verify_gold as V
+
+    good = _gold_fixture(tmp_path)
+    rules = {r for r, _, _ in V.verify(str(good))[4]}
+    assert "ANCHOR" not in rules and "NGRAM" not in rules and "STEM" not in rules
+
+    # offsets moved by one character: the slice no longer equals the anchor
+    bad = _gold_fixture(tmp_path, char_start=5001, char_end=5401)
+    assert "ANCHOR" in {r for r, _, _ in V.verify(str(bad))[4]}
+
+
+def test_gold_verifier_rejects_a_verbatim_query(tmp_path):
+    """A query copied out of the passage is what the paraphrase rule exists to stop."""
+    if not os.path.isdir(K.CORPUS_DIR):
+        pytest.skip("literature corpus not present")
+    sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "instruments"))
+    import litkb_p7_verify_gold as V
+
+    stem = K.stems()[0]
+    anchor = K.read_text(stem)[0][5000:5400]
+    bad = _gold_fixture(tmp_path, query=anchor[:120])
+    assert "NGRAM" in {r for r, _, _ in V.verify(str(bad))[4]}

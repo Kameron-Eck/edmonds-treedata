@@ -284,8 +284,22 @@ def _write(z, name, data):
 
 
 def read_manifest(shard_zip):
+    """The manifest inside a shard, with the ARCHIVE's own hashes filled in from the path.
+
+    WHY THE FILL-IN IS NOT OPTIONAL. ``shard_sha256`` is the hash of the closed archive, so it
+    cannot live inside that archive — :func:`write_shard` computes it after the zip closes and
+    puts it in the ``.manifest.json`` sidecar and in its return value only. A reader that took
+    the embedded manifest at face value would hand :func:`formula_ingest.ingest` a manifest
+    whose ``shard_sha256`` is ``None``, ``None in seen_shards`` is False, and the re-upload
+    skip would silently never fire while ``shard_manifest_sha256: null`` landed in the metrics
+    row. So the one reader that has the path computes them here, once.
+    """
     with zipfile.ZipFile(shard_zip) as z:
-        return json.loads(z.read("manifest.json").decode("utf-8"))
+        man = json.loads(z.read("manifest.json").decode("utf-8"))
+    man["shard_sha256"] = sha256_file(shard_zip)
+    man["shard_md5"] = md5_file(shard_zip)
+    man["shard_bytes"] = os.path.getsize(shard_zip)
+    return man
 
 
 def census(crops):

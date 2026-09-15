@@ -354,19 +354,36 @@ def _load_queue(path):
 def _write_step_log(log_dir, payload):
     """CLAUDE.md §3.11 — every step logs to ``{BASE}/phase4/logs/`` before it exits.
 
-    ``write_step_log(script, step, logs_dir, **fields)`` is the shared writer; the fallback
-    below exists because this process may run on a VM where the editable install did not
-    take, and a step that finished its work must not lose its log to an ImportError.
+    ``write_step_log(script, step, logs_dir, **fields)`` is the shared writer, and its
+    ``**fields`` render one per line as ``name  value``. The per-shard records are therefore
+    passed as SCALARS (a count and a one-line summary) rather than as a nested list, which
+    that renderer flattens into an unreadable single line; the full records go beside it as
+    JSON. Both paths were exercised locally on 2026-09-15 — the primary in the project env,
+    the fallback in the extraction venv, which has no ``pipeline_log``.
+
+    The fallback exists because this process may run on a VM where the editable install did
+    not take, and a step that finished its work must not lose its log to an ImportError.
     """
     d = log_dir
+    records = payload.get("records") or []
+    scalars = {k: v for k, v in payload.items() if k != "records"}
+    scalars["shard_ids"] = " ".join(str(r.get("shard_id") or r.get("shard") or "?")
+                                    for r in records)
+    scalars["shard_status"] = " ".join(str(r.get("status")) for r in records)
     try:
         from pathlib import Path
 
         from lake import BASE
         from pipeline_log import write_step_log
-        return write_step_log(script="litkb_formula_colab_worker", step="formula",
-                              logs_dir=Path(d) if d else Path(BASE) / "phase4" / "logs",
-                              errors=int(payload.get("failed") or 0), **payload)
+        logs = Path(d) if d else Path(BASE) / "phase4" / "logs"
+        write_step_log(script="litkb_formula_colab_worker", step="formula", logs_dir=logs,
+                       errors=int(payload.get("failed") or 0), **scalars)
+        p = logs / ("litkb_formula_colab_%s.json"
+                    % time.strftime("%Y%m%dT%H%M%SZ", time.gmtime()))
+        with open(p, "w", encoding="utf-8", newline="\n") as fh:
+            json.dump(payload, fh, sort_keys=True, ensure_ascii=False, indent=1)
+        print("step log + records: " + str(p), flush=True)
+        return str(p)
     except Exception:                     # noqa: BLE001 — never lose the log to an import
         d = d or "/content/drive/MyDrive/treedata/phase4/logs"
         try:

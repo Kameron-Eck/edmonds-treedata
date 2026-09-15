@@ -50,7 +50,20 @@ LOG = MOUNT + "/phase4/logs/litkb_formula_nohup_%s.log" % time.strftime(
     "%Y%m%dT%H%M%SZ", time.gmtime())
 
 
+def _torch():
+    r = subprocess.run(["python", "-c",
+                        "import torch;print(torch.__version__, torch.cuda.is_available())"],
+                       capture_output=True, text=True)
+    return (r.stdout or r.stderr).strip()
+
+
 def main():
+    # PRINT TORCH BEFORE AND AFTER THE INSTALL. docling declares a torch RANGE, not a pin, so
+    # pip is free to replace the Colab image's CUDA torch with a PyPI wheel while satisfying
+    # this file — the exact swap the requirements file says it avoids by not pinning torch.
+    # If the two lines below differ, that is what happened, and it is visible in the exec
+    # channel instead of being discovered by a CPU-speed run. UNMEASURED on a VM.
+    print("LITKB_TORCH_BEFORE " + _torch())
     r = subprocess.run(["python", "-m", "pip", "install", "-q", "-r", REQS],
                        capture_output=True, text=True)
     if r.returncode:
@@ -61,6 +74,7 @@ def main():
          "print(json.dumps({p: version(p) for p in "
          "('docling','docling-core','docling-ibm-models','torch','transformers')}))"],
         capture_output=True, text=True)
+    print("LITKB_TORCH_AFTER " + _torch())
     print("LITKB_VERSIONS " + (probe.stdout or probe.stderr).strip())
     v = json.loads(probe.stdout)
     if v.get("docling") != "2.127.0" or v.get("docling-core") != "2.96.0":

@@ -297,6 +297,36 @@ def test_kill_a_reuploaded_shard_is_skipped_by_sha256(tmp_path, shard, monkeypat
     assert sum(1 for _ in open(latex, encoding="utf-8")) == n      # nothing written twice
 
 
+def test_a_manifest_read_from_the_archive_carries_the_archive_hash(tmp_path, shard,
+                                                                   monkeypatch):
+    """The skip must fire for a caller who only has the shard file — §6's own recipe.
+
+    ``shard_sha256`` is the hash of the CLOSED archive and cannot live inside it, so
+    ``read_manifest`` fills it from the path. Without that, ``None in seen_shards`` is False,
+    the re-upload skip never fires, and ``shard_manifest_sha256: null`` reaches the record.
+    """
+    z, _ = shard
+    man = fs.read_manifest(z)                    # the only thing an orchestrator has
+    assert man["shard_sha256"] == fs.sha256_file(z)
+    out = str(tmp_path / "r.zip")
+    _run(z, out, ["a", "b", "c"], monkeypatch)
+    metrics, latex = str(tmp_path / "m.jsonl"), str(tmp_path / "l.jsonl")
+    row = ingest(out, man, metrics, latex)
+    assert row["shard_manifest_sha256"] == man["shard_sha256"]
+    again = ingest(out, fs.read_manifest(z), metrics, latex,
+                   seen_shards=ingested_shard_hashes(metrics))
+    assert again["status"] == "skipped"
+
+
+def test_kill_a_manifest_with_no_archive_hash_is_refused(tmp_path, shard, monkeypatch):
+    z, man = shard
+    out = str(tmp_path / "r.zip")
+    _run(z, out, ["a", "b", "c"], monkeypatch)
+    bare = {k: v for k, v in man.items() if k != "shard_sha256"}
+    with pytest.raises(ResultRefused, match="no shard_sha256"):
+        ingest(out, bare, str(tmp_path / "m.jsonl"), str(tmp_path / "l.jsonl"))
+
+
 def test_kill_a_stale_local_copy_is_refused(tmp_path, shard, monkeypatch):
     """Server-side md5 is what is trusted — a local FUSE read proves nothing about Drive."""
     z, man = shard

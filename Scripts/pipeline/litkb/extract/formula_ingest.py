@@ -175,7 +175,16 @@ def ingest(result_zip, shard_manifest, metrics_path, latex_path, remote=None,
     ``seen_shards`` makes the re-upload skip explicit (kill 4): a shard whose sha256 has
     already been ingested is a no-op, because the crops are content-addressed and decoding
     them again could only produce the same answer at GPU cost.
+
+    ``shard_manifest`` must carry ``shard_sha256`` — :func:`formula_shards.read_manifest`
+    fills it from the archive path, since the hash of a closed archive cannot live inside it.
+    A manifest without one is refused rather than silently skipping the skip.
     """
+    if not shard_manifest.get("shard_sha256"):
+        raise ResultRefused(
+            f"shard {shard_manifest.get('shard_id')!r} has no shard_sha256 — read it with "
+            f"formula_shards.read_manifest(<shard path>), which computes the archive hash "
+            f"the embedded manifest cannot carry; without it the re-upload skip is inert")
     if shard_manifest.get("shard_sha256") in set(seen_shards):
         return {"status": "skipped", "reason": "shard sha256 already ingested",
                 "shard_id": shard_manifest["shard_id"],

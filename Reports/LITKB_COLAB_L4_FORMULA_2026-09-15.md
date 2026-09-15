@@ -165,18 +165,21 @@ from; the referee's T2000 GPU rate is 0.0496 regions/s and the L4's is unknown (
 
 ## 5. Kills
 
-`qc/test_litkb_formula_shards.py` — **17 passed**. Each kill was watched to fail before it was
-accepted, and each is listed with what it fired against.
+`qc/test_litkb_formula_shards.py` — **19 passed**. Each kill below was fed a known-bad input
+and observed to refuse it. **That is not a mutation test**: the gate CODE was not mutated the
+way `qc/claims.py` was, so what is established is that each refusal fires on the input it
+names, not that no edit to the gate could escape the suite.
 
 | # | kill | fires on | real data? |
 |---|---|---|---|
 | 1 | **a corrupted crop archive fails ingest verification** | one byte flipped in the middle of a REAL result archive; sha256 sidecar mismatch. A truncated archive with the sidecar removed is refused by `zipfile` itself (second test) | yes — real bytes from the real packer |
 | 2 | **a result with no done marker is refused** | the archive repacked without `DONE`; and separately, `DONE` left stale while a member is edited | yes |
-| 3 | **a crop whose LaTeX is empty is recorded `failed`** | the worker's own path: `status="failed"`, `latex=None`, an error string. A forged `ok`-with-empty-LaTeX row is refused at ingest too | **worker half is UNVALIDATED on real data here** — see below |
+| 3 | **a crop whose LaTeX is empty is recorded `failed`** | the worker's own path: `status="failed"`, `latex=None`, an error string. A forged `ok`-with-empty-LaTeX row is refused at ingest too | **partly** — the worker's batch-level refusal fired on a real defect; docling's empty-string OOM path is stubbed. See below |
 | 4 | **a shard re-uploaded is skipped by sha256** | `ingest` with `seen_shards` returns `skipped` and writes nothing; `plan_shards` plans zero shards for crops already done | yes |
 | + | a short result (2 crops against a 3-crop shard), with a *consistent* marker | refused on the crop-set check | yes |
 | + | a packed crop whose bytes moved under its own id | `write_shard` refuses to pack it | yes |
 | + | a stale local copy against a server-side md5 that disagrees, and a missing server-side md5 | both refused | the md5 call is stubbed; the RULE is real |
+| + | a manifest with no `shard_sha256` reaching `ingest` | refused, naming `read_manifest` | yes — see below |
 
 **Kill 3, said in the required words.** Making CodeFormula return an empty string on purpose
 needs the model and a starved GPU, so the worker-side half of this kill is exercised with a
@@ -188,12 +191,34 @@ per-crop form of that one, and the mechanism it guards against —
 `CodeFormulaVlmModel.__call__` setting `outputs = [""] * len(images)` inside its own `except` —
 is read in the installed package, not assumed.
 
+**Kill 4 had a hole, found in review and closed.** `ingest` skips a re-upload on
+`shard_sha256` — but that is the hash of the *closed archive*, so it cannot be inside the
+archive; `write_shard` put it only in the sidecar and its return value. A caller who had just
+the shard file and read its manifest got `None`, `None in seen_shards` is False, the skip
+never fired, and `shard_manifest_sha256: null` would have landed in the metrics row silently.
+`read_manifest` now computes it from the path it was handed, `ingest` refuses a manifest
+without one rather than skipping the skip, and
+`test_a_manifest_read_from_the_archive_carries_the_archive_hash` ingests twice through exactly
+the §6 recipe and asserts the second returns `skipped`.
+
+Note the worker's own skip is by result **filename**, not by hash: a shard re-sent under the
+same name is not re-decoded, and a *different* shard sent under an already-used name is caught
+at ingest by the crop-set check (kill +1), not on the VM.
+
 **The crop-path check is not a kill but it is the one correctness proof that matters** (§2):
 `--verify-crop` compares the recorder's crop against an unpatched `prepare_element` and reports
-`identical: true`. It was also watched to FAIL: an earlier build fed the model a `TextItem`
-instead of a `FormulaItem`, docling swallowed the resulting pydantic error inside its own batch
-handler, and the worker recorded **20 of 20 crops as `failed` with zero LaTeX** — the
-fail-closed path firing unprompted, on a real defect, before anyone went looking for it.
+`identical: true`.
+
+**And the worker's fail-closed path fired unprompted on a real defect.** An earlier build
+built the synthetic element as a `TextItem`, which docling-core refuses to label `formula`.
+The `ValidationError` was raised in `_formula_element` — *before* `CodeFormulaVlmModel.__call__`
+was ever reached, so docling's own empty-string handler never saw it. What caught it was the
+worker's **own per-batch `except`** in `process_shard`, which recorded **20 of 20 crops as
+`failed` with `latex=None`**; the giveaway in the record is `regions_per_s: 20025` and a null
+VRAM peak. So half of kill 3 — the worker's batch-level refusal — is now **validated on real
+bytes**. The other half, docling's `outputs = [""] * len(images)` path (the OOM signature),
+remains **stubbed here and UNVALIDATED on real data in this report**; it is the half that was
+fired on a real CUDA out-of-memory in the referee's §4.
 
 ---
 
@@ -305,6 +330,15 @@ is what the canary settles.
    deliberately does **not** pin torch, and the resolved version lands in every `worker.json`.
 4. **Whether CodeFormula's weights download cleanly on the VM.** ~611 MB from HuggingFace at
    first use. Not tried.
+4b. **Whether the docling install finishes inside the 900 s exec.** `litkb_formula_vm_start.py`
+   runs `pip install -r Scripts/requirements-litkb-colab.txt` synchronously inside the exec,
+   and `vm_ops exec` defaults to a 900 s timeout. The install has **never been timed on a
+   VM**; if it overruns, the exec dies before the nohup line and nothing starts.
+4c. **Whether that install replaces Colab's torch.** docling declares a torch *range*, not a
+   pin, so pip may satisfy this file by installing a PyPI torch over the image's CUDA one —
+   the exact swap the requirements file claims to avoid by not pinning torch. The payload now
+   prints `LITKB_TORCH_BEFORE` and `LITKB_TORCH_AFTER` so a swap is visible in the exec
+   channel rather than discovered later as a CPU-speed run. **Unmeasured.**
 5. **Peak VRAM on a 24 GB card.** The referee established that the T2000 peak measures
    saturation, not requirement, and that the true working set is somewhere in (1.6, 3.9] GiB —
    **UNDETERMINED**. The worker records the allocator peak and the device-wide figures and
@@ -332,9 +366,12 @@ is what the canary settles.
   litkb Postgres tests: 216 skipped  <- 216 SKIPPED: litkb server/role/psycopg absent,
                                         so those guards were NOT tested
   FAILED qc\test_experiments.py::test_pointer_paths_resolve[crown_state_model]
-  1 failed, 2253 passed, 224 skipped, 74 warnings in 803.16s (0:13:23)
+  1 failed, 2255 passed, 224 skipped, 74 warnings in 544.03s (0:09:04)
   check: FAILED at rung 'pytest' — fix, then rerun.
   ```
+
+  (Re-run after the final edit, so the quote is of the state that was committed, not of an
+  earlier one.)
 
   **The ladder's own verdict line is FAILED, not PASSED**, and that is reported here rather
   than the harness's exit code 0. The single failure is `crown_state_model`, the expected one:
@@ -343,7 +380,7 @@ is what the canary settles.
   not run**, and `--fast` skips the smoke by definition; the ruff F-rule and compile rungs did
   pass, since pytest is downstream of both. `ruff check --select F` over the seven added files
   separately: **All checks passed!**.
-* `qc/test_litkb_formula_shards.py` alone: **17 passed**.
+* `qc/test_litkb_formula_shards.py` alone: **19 passed**.
 * No Colab runtime was created; no `colab` CLI call was made; no compute unit was spent.
 * No `litkb*` database was touched. `D:\edmonds-pipeline\Literture` was read only. No other
   worktree was touched. No file added here prints a secret.

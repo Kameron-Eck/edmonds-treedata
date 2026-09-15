@@ -74,8 +74,9 @@ display equation?* — **before** the density or the filename was unblinded.
 
 * **Precision against hand truth = 0.867** (13/15). Precision is directly estimable from the
   above-cut stratum and needs no reweighting.
-* **Recall**, stratum 0.867; **reweighted by stratum size** (1,571 above / 3,084 below) =
-  **0.768**. A 15-per-stratum draw makes this interval very wide — it is consistent with the
+* **Recall**, stratum 0.867; **reweighted by stratum size** (1,571 above / 2,998 text-bearing
+  below — the 86 no-text pages were excluded from the sampling frame) = **0.773**. A
+  15-per-stratum draw makes this interval very wide — it is consistent with the
   published 0.804 and cannot distinguish the two.
 
 **The two false positives are a real class, and the brief predicted it.** `Solberg_1996` p9
@@ -169,10 +170,16 @@ than the rate. The layout shortfall is explained by ambient load (57% vs 21%).
 **The "178 MiB of headroom" reading is wrong, and this is the referee's substantive correction
 to §8.3.** The builder measured a 901 MiB baseline and a 3,918 MiB peak, and read the 178 MiB
 gap as the margin before an OOM. This referee measured a **226 MiB baseline — 675 MiB more free
-VRAM — and the peak was 3,917 MiB**, i.e. the job's own usage *grew by 675 MiB to fill the card*.
-Device-wide peak minus baseline was **+1,383 MiB** for layout (builder: +1,482) but **+3,691 MiB**
-for formula (builder: +3,017). The delta is not a constant, so it is not a requirement.
-**CodeFormulaV2's PyTorch caching allocator expands into whatever is free.** The consequence:
+VRAM — and the peak was 3,917 MiB**. Device-wide peak minus baseline was **+1,383 MiB** for
+layout (builder: +1,482) but **+3,691 MiB** for formula (builder: +3,017). The delta is not a
+constant, so it is not a requirement.
+
+*Measured:* the two peaks, 1 MiB apart, from baselines 675 MiB apart. *Inferred:* why. **Two
+mechanisms fit and this referee did not separate them** — either CodeFormulaV2's PyTorch caching
+allocator expanded into whatever was free, or the card saturates near 3.9 GiB and WDDM demoted
+the other tenants' allocations to shared system memory when the CUDA job asked. **The conclusion
+is the same under both**: the peak measures device saturation, not the job's requirement. The
+consequence:
 the ~178 MiB gap is not slack that a second process could be denied, and it is not evidence that
 the job needs 3.9 GB. Section 4 below establishes what it actually needs.
 
@@ -253,8 +260,11 @@ regions, which is the §1.2 false-positive class showing up again. Corpus region
 
 **A cost the projection omits: `auto` pays a cold converter build per contiguous run.** The
 dense pages form **453 contiguous runs across 168 files** (counted from the census with
-`page_runs`), and each run is a separate worker process: a converter build (measured 7.7–9.4 s)
-plus a CodeFormula load. At ~18 s per run that is **~2.3 h** the table does not carry.
+`page_runs`), and each run is a separate worker process: a converter build (**measured**
+7.7–9.4 s) plus a CodeFormula load (**not measured directly**; inferred from the 15.3 s warm-up,
+and cross-checked against the builder's own auto row — 72.1 s total − ~40 s enrichment − ~6 s
+base pass ≈ 26 s for two spawns ≈ 13 s each). At an **estimated 13–18 s per run** that is
+**1.6–2.3 h** the table does not carry; the 2.3 h figure used below is the upper end.
 
 | | builder | referee |
 |---|--:|--:|
@@ -271,11 +281,23 @@ impossible job into an overnight one.** Layout (0.3 h) and OCR (0.04 h) stay neg
 ## 6. Ladder and hygiene
 
 * `py -3.12 qc/check.py --fast` was run from this worktree **with `LITKB_PGPORT=1`, stated here
-  in those words**, which skips the 216 litkb Postgres tests. Those tests are **unexercised** by
-  this referee, as they were by the builder and the previous referee; a merge reviewer must run
-  them against a database they are willing to have reset. No `litkb*` database was touched.
-* Only `crown_state_model` failures/warnings are expected from the ladder on this branch and
-  nothing else appeared. `qc/test_litkb_docling.py` alone: **37 passed, 3 skipped**.
+  in those words**. Observed output, quoted rather than summarised:
+
+  ```
+  litkb Postgres tests: 216 skipped  <- 216 SKIPPED: litkb server/role/psycopg absent,
+                                        so those guards were NOT tested
+  FAILED qc\test_experiments.py::test_pointer_paths_resolve[crown_state_model]
+  1 failed, 2230 passed, 224 skipped, 74 warnings in 870.33s (0:14:30)
+  check: FAILED at rung 'pytest' — fix, then rerun.
+  ```
+
+  **The ladder's own verdict line is FAILED, not PASSED**, and this referee reports that rather
+  than the harness's exit code 0. The single failure is `crown_state_model`, which the brief
+  named as the expected one; **2,230 tests passed and nothing else failed.** The 216 litkb
+  Postgres tests are **unexercised** by this referee, as they were by the builder and the
+  previous referee; a merge reviewer must run them against a database they are willing to have
+  reset. No `litkb*` database was touched. `qc/test_litkb_docling.py` alone: **37 passed,
+  3 skipped**.
 * `git log -p 414d51a..7e2fa40` scanned for `password|secret|token|api_key|hf_…|postgres://|sk-…`:
   **no secrets**. The only hits are the English word "token(s)" in the OCR discussion and the
   `tokenizers==0.23.2` pin in both requirements files.

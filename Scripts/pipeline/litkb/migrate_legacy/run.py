@@ -14,7 +14,7 @@ import json
 
 from litkb.admit import front, registry as _registry, resolver as _resolver
 from litkb.migrate_legacy import sources
-from litkb.migrate_legacy.plan import COMPARED_FIELDS, doi_discrepancy, plan_row
+from litkb.migrate_legacy.plan import COMPARED_FIELDS, compare_row, doi_discrepancy, plan_row
 from litkb.netutil import Client, Pacer
 
 #: the tracker's Evidence grade, as the `confidence` of the use it produced. The grades are the
@@ -210,7 +210,12 @@ def _load_tracker_row(ctx, row, manifest, c):
     _bump(c["by_case"], plan["case"])
     cand = front.add_candidate(
         ctx.conn, ctx.ws, ctx.token, source="manual", source_detail=detail,
-        raw=json.loads(json.dumps(row)), title=claimed["title"], authors=[claimed["authors"]] if claimed["authors"] else None,
+        # the candidate's raw_record is the legacy row VERBATIM — the one home for the tracker fields the
+        # data model has no column for (Search Phase, Status, Read date, Bib line, Duplicate of) and, under
+        # `_manifest`, the manifest row's own columns (source_route, obtained_date, cited_by). The export
+        # reads both back; without them those cells could not be regenerated at all.
+        raw=json.loads(json.dumps({**row, **({"_manifest": mrow} if mrow else {})})),
+        title=claimed["title"], authors=[claimed["authors"]] if claimed["authors"] else None,
         year=claimed["year"] or None, ids={k: v for k, v in (("doi", doi), ("arxiv", arxiv)) if v})
     entry = {"tracker_id": tid, "case": plan["case"], "shape": plan["shape"], "candidate_id": str(cand),
              "stem": stem or None, "doi": plan["doi"], "resolved_doi": plan["resolved"]}
@@ -222,11 +227,14 @@ def _load_tracker_row(ctx, row, manifest, c):
         pending.append(("tracker", tid, "duplicate_of",
                         {"claimed": row["Duplicate of"], "registry": None, "ratio": None,
                          "detail": {"tracker_status": row.get("Status")}}))
-    if mrow and mrow.get("doi") and plan["doi"] and \
-            (_resolver.normalize_doi(mrow["doi"]) or "") != (_resolver.normalize_doi(plan["doi"]) or ""):
-        pending.append(("manifest", stem, "doi",
-                        {"claimed": mrow["doi"], "registry": plan["doi"], "ratio": None,
-                         "detail": {"tracker_id": tid}}))
+    if mrow and plan["record"] is not None:
+        # the manifest row states its OWN title, authors, year, venue and DOI, and they can differ from both
+        # the tracker's claim and the registry. Compared and recorded separately, or the manifest export's
+        # diff would carry differences nothing explains.
+        mclaim = {"title": mrow.get("title") or "", "authors": mrow.get("authors") or "",
+                  "year": mrow.get("year") or "", "venue": mrow.get("venue") or ""}
+        pending += _field_discrepancies(plan, mrow.get("doi"), "manifest", stem,
+                                        fields=compare_row(plan["record"], mclaim))
 
     # ── the admission ────────────────────────────────────────────────────────────────────
     ids_extra = [{"scheme": "tracker", "value": str(tid), "verified_by": None,
@@ -238,8 +246,12 @@ def _load_tracker_row(ctx, row, manifest, c):
     res = None
     if plan["shape"] == "held":
         # BEGIN guard: a row with no verified file and a claim the registry contradicts is HELD, never admitted
-        c["held_no_file"] += 1
-        entry["outcome"] = "held-needs-file"
+        if plan["case"] == "E":
+            c["held_no_identity"] += 1                       # nothing resolved AND no file to bind
+            entry["outcome"] = "held-no-identity"
+        else:
+            c["held_no_file"] += 1                           # the DOI confirms; the claim does not, and no file
+            entry["outcome"] = "held-needs-file"
         # END guard: a row with no verified file and a claim the registry contradicts is HELD, never admitted
     elif plan["shape"] == "manual":
         res = front.admit_manual(
@@ -248,9 +260,6 @@ def _load_tracker_row(ctx, row, manifest, c):
             identifiers=[{"scheme": i["scheme"], "value": i["value"]} for i in ids_extra],
             key=_key_for(ctx, None, claimed), root=ctx.root, agent=ctx.agent, session=ctx.session,
             candidate_id=cand)
-    elif plan["case"] == "E":
-        c["held_no_identity"] += 1
-        entry["outcome"] = "held-no-identity"
     else:
         res = front.admit_registry(
             ctx.conn, ctx.ws, ctx.token, doi=plan["doi"], arxiv=None,
@@ -262,6 +271,9 @@ def _load_tracker_row(ctx, row, manifest, c):
     if res is not None:
         entry["outcome"] = res["outcome"]
         _record_outcome(c, res)
+        if res["outcome"] == "duplicate":
+            # the discrepancies belong to the work this row duplicates, not to a candidate with no work
+            work = res.get("work_id")
         if res.get("work_id") and res["outcome"] in ("admitted", "proposed"):
             work = res["work_id"]
             c["admitted" if res["outcome"] == "admitted" else "proposed"] += 1
@@ -274,15 +286,22 @@ def _load_tracker_row(ctx, row, manifest, c):
     ctx.log.append(entry)
 
 
-def _field_discrepancies(plan, spelled_doi, source, key):
-    """(source, key, field, d) for every compared field the legacy row and the registry disagree on."""
+def _field_discrepancies(plan, spelled_doi, source, key, fields=None):
+    """(source, key, field, d) for every compared field the legacy row and the registry DISAGREE on.
+
+    The predicate is `differs` (plain normalised inequality), never `agrees` (check-1 acceptability).
+    decisions.yaml: "every tracker or manifest field that disagrees with the registry is kept as a flagged
+    discrepancy" — a title accepted at ratio 0.92 still prints differently in the export from what the
+    tracker says today, and the diff gate has nothing to explain that difference with unless it is recorded.
+    """
     out = []
+    fields = plan["fields"] if fields is None else fields
     for name in COMPARED_FIELDS:
         if name == "doi":
             d = doi_discrepancy(spelled_doi, plan["doi"]) if plan["doi"] else None
         else:
-            f = (plan["fields"] or {}).get(name)
-            d = None if (f is None or f["agrees"]) else f
+            f = (fields or {}).get(name)
+            d = None if (f is None or not f.get("differs")) else f
         if d:
             out.append((source, key, name, d))
     return out
@@ -365,8 +384,12 @@ def _load_manifest_row(ctx, row, c):
                   "evidence": {"source": str(sources.manifest_path(ctx.root)), "stem": stem}}]
     res = None
     if plan["shape"] == "held":
-        c["held_no_file"] += 1
-        entry["outcome"] = "held-needs-file"
+        if plan["case"] == "E":
+            c["held_no_identity"] += 1
+            entry["outcome"] = "held-no-identity"
+        else:
+            c["held_no_file"] += 1
+            entry["outcome"] = "held-needs-file"
     elif plan["shape"] == "manual":
         res = front.admit_manual(ctx.conn, ctx.ws, ctx.token, title=claimed["title"], authors=claimed["authors"],
                                  year=claimed["year"] or None, file_path=str(pdf),
@@ -374,9 +397,6 @@ def _load_manifest_row(ctx, row, c):
                                  identifiers=[{"scheme": "legacy_stem", "value": stem}],
                                  key=_key_for(ctx, None, claimed), root=ctx.root, agent=ctx.agent,
                                  session=ctx.session, candidate_id=cand)
-    elif plan["case"] == "E":
-        c["held_no_identity"] += 1
-        entry["outcome"] = "held-no-identity"
     else:
         res = front.admit_registry(ctx.conn, ctx.ws, ctx.token, doi=plan["doi"], arxiv=None,
                                    claimed=claimed if plan["shape"] == "claimed" else None,

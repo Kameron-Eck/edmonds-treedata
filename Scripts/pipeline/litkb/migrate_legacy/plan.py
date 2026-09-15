@@ -27,6 +27,7 @@ database's verdict on the admission it is given, recorded as a refused admission
 """
 from litkb.admit import registry as _registry
 from litkb.admit.resolver import RESOLVE_TITLE_RATIO, family_matches, title_match_ratio
+from litkb.migrate_legacy.export_shape import authors_line, norm_cell
 from litkb.textnorm import normalize_doi
 
 CASES = ("A", "B", "C", "D", "E")
@@ -42,9 +43,19 @@ def _norm_venue(s):
 def compare_row(rec, claimed):
     """The legacy row's claim against the registry record, field by field.
 
-    -> {field: {"claimed", "registry", "ratio", "agrees"}}. The title/author/year verdict is
-    `registry.compare_claimed`, which is `resolver.judge_candidate` — the SAME comparator admission
-    uses, so this never invents a second rule (CLAUDE.md 3.3, one fact one home).
+    -> {field: {"claimed", "registry", "ratio", "agrees", "differs"}}.
+
+    TWO predicates, and conflating them was a real bug caught before the live load:
+
+      * **`agrees`** is check-1 acceptability — `registry.compare_claimed`, which is
+        `resolver.judge_candidate`, the SAME comparator admission uses, so this file never invents a
+        second copy of the rule (CLAUDE.md 3.3). It decides the ADMISSION SHAPE.
+      * **`differs`** is plain normalised inequality. It decides what is RECORDED. Kam's words are
+        "every tracker or manifest field that disagrees with the registry is kept as a flagged
+        discrepancy" — every field that disagrees, not every field check 1 rejects. A title accepted at
+        ratio 0.92, a year accepted at ±1, an abbreviated venue: each prints differently in the export
+        from what the tracker says today, so each needs a record explaining the difference, even though
+        admission was right to accept it.
     """
     cmp_ = _registry.compare_claimed(rec, claimed)
     ratio, author_ok = cmp_["title_ratio"], bool(cmp_["author_match"])
@@ -58,26 +69,36 @@ def compare_row(rec, claimed):
                    and (claimed_year_i == reg_year
                         or (abs(claimed_year_i - reg_year) == 1 and ratio >= RESOLVE_TITLE_RATIO and author_ok)))
     venue_ratio = title_match_ratio(claimed.get("venue") or "", rec.get("venue") or "")
+    reg_authors = authors_line(rec.get("authors"))
     out = {
         "title": {"claimed": claimed.get("title"), "registry": rec.get("title"), "ratio": ratio,
-                  "agrees": ratio >= RESOLVE_TITLE_RATIO},
-        # the registry's WHOLE author list goes in the detail: the commonest real disagreement here is a
-        # registry record that split a name the other way round ("Hao Qin" as family Hao), and the review
-        # cannot see that from the first author alone. Recording it changes no rule — `author_ok` is still
-        # the resolver's `family_matches`, the same comparator admission uses.
-        "authors": {"claimed": claimed.get("authors"), "registry": rec.get("first_author"), "ratio": None,
+                  "agrees": ratio >= RESOLVE_TITLE_RATIO,
+                  "differs": norm_cell(claimed.get("title")) != norm_cell(rec.get("title"))},
+        # the registry value recorded is the line the EXPORT will print, so the diff gate can match a
+        # discrepancy to the cell it explains. The registry's WHOLE author list goes in the detail: the
+        # commonest real disagreement here is a record that split a name the other way round ("Hao Qin" as
+        # family Hao), which the first author alone does not show. That changes no rule — `agrees` is still
+        # the resolver's `family_matches`, the comparator admission uses.
+        "authors": {"claimed": claimed.get("authors"), "registry": reg_authors, "ratio": None,
                     "agrees": author_ok,
-                    "detail": {"registry_authors": [
-                        " ".join(x for x in ((a or {}).get("given"), (a or {}).get("family")) if x)
-                        for a in (rec.get("authors") or []) if isinstance(a, dict)][:12]}},
-        "year": {"claimed": claimed_year, "registry": reg_year, "ratio": None, "agrees": year_agrees},
+                    "differs": norm_cell(claimed.get("authors")) != norm_cell(reg_authors),
+                    "detail": {"registry_first_author": rec.get("first_author"),
+                               "registry_authors": [
+                                   " ".join(x for x in ((a or {}).get("given"), (a or {}).get("family")) if x)
+                                   for a in (rec.get("authors") or []) if isinstance(a, dict)][:12]}},
+        "year": {"claimed": claimed_year, "registry": reg_year, "ratio": None, "agrees": year_agrees,
+                 "differs": norm_cell(claimed_year) != norm_cell(reg_year)},
         "journal": {"claimed": claimed.get("venue"), "registry": rec.get("venue"), "ratio": round(venue_ratio, 4),
-                    # a blank claim is no claim, so nothing disagrees; an abbreviation is a real disagreement
-                    # and is reported as one
+                    # a blank claim is no claim, so nothing disagrees with it
                     "agrees": (not (claimed.get("venue") or "").strip()
                                or _norm_venue(claimed.get("venue")) == _norm_venue(rec.get("venue"))
-                               or venue_ratio >= RESOLVE_TITLE_RATIO)},
+                               or venue_ratio >= RESOLVE_TITLE_RATIO),
+                    "differs": (bool((claimed.get("venue") or "").strip())
+                                and norm_cell(claimed.get("venue")) != norm_cell(rec.get("venue")))},
     }
+    for f in out.values():
+        f.setdefault("detail", {})
+        f["detail"]["agrees_check1"] = f["agrees"]
     out["_judgement"] = cmp_
     return out
 

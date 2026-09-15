@@ -40,23 +40,10 @@ SELECT cd.id, cd.source_detail, cd.state, cd.raw_record, cd.admitted_work_id, w.
 
 
 def _authors_line(authors):
-    """A work version's author list as the tracker prints it: 'Family, G. & Family, H.' / '… et al.'."""
-    if not authors:
-        return ""
-    names = []
-    for a in authors if isinstance(authors, list) else []:
-        if isinstance(a, dict):
-            fam, giv = (a.get("family") or a.get("name") or ""), (a.get("given") or "")
-            initials = " ".join(f"{p[0]}." for p in giv.replace(".", " ").split() if p)
-            names.append(f"{fam}, {initials}".strip().rstrip(",") if initials else fam)
-        else:
-            names.append(str(a))
-    names = [n for n in names if n]
-    if not names:
-        return ""
-    if len(names) > 2:
-        return f"{names[0]} et al."
-    return " & ".join(names)
+    """One home: `migrate_legacy.export_shape.authors_line`, which the loader's comparison also reads."""
+    from litkb.migrate_legacy.export_shape import authors_line
+
+    return authors_line(authors)
 
 
 def _identifiers(conn, ws):
@@ -142,20 +129,23 @@ def manifest_rows(conn, ws):
             continue
         seen.add(work_id)
         r, f, wid = _raw(raw), files[work_id], ids.get(work_id, {})
+        # the manifest columns with no home in the data model travel on the candidate's raw_record, under
+        # `_manifest` when the row entered through its TRACKER row (204 of the 207 did)
+        mr = r.get("_manifest") or (r if "stem" in r else {})
         rows.append({
             "stem": key or "",
-            "title": title or r.get("title") or r.get("Title") or "",
-            "authors": _authors_line(authors) or r.get("authors") or r.get("Author(s)") or "",
-            "year": str(year) if year else (r.get("year") or r.get("Year") or ""),
-            "venue": venue or r.get("venue") or r.get("Journal/Source") or "",
+            "title": title or mr.get("title") or r.get("Title") or "",
+            "authors": _authors_line(authors) or mr.get("authors") or r.get("Author(s)") or "",
+            "year": str(year) if year else (mr.get("year") or r.get("Year") or ""),
+            "venue": venue or mr.get("venue") or r.get("Journal/Source") or "",
             "doi": (wid.get("doi") or [""])[0],
             "arxiv": (wid.get("arxiv") or [""])[0],
-            "source_route": f["source_route"] or r.get("source_route") or "in place (P3 migration)",
-            "obtained_date": (str(f["obtained_at"])[:10] if f["obtained_at"] else r.get("obtained_date") or ""),
+            "source_route": f["source_route"] or mr.get("source_route") or "in place (P3 migration)",
+            "obtained_date": (str(f["obtained_at"])[:10] if f["obtained_at"] else mr.get("obtained_date") or ""),
             "sha256": f["sha256"] or "",
             # the binding check IS the verification the old column recorded by hand (convention rule 2)
             "verified_against_extract": "yes" if (f["binding"] or {}).get("verdict") == "bound" else "no",
-            "cited_by": r.get("cited_by") or "",
+            "cited_by": mr.get("cited_by") or "",
             "litkb_key": key or "",
             "litkb_state": state or "",
         })

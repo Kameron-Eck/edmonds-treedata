@@ -446,6 +446,17 @@ resolves to a different work by the same author in the same year is the one Aver
 that branch cannot see — it is unexercised on the P6 corpus (0 of 77 DOI-bearing references lack a
 parsed title) and is named here so it is a known limit rather than a surprise.
 
+**Stage 6: S2 PROPOSES, CROSSREF CONFIRMS** (added 2026-09-15 after the S2-batching report,
+`Reports/LITKB_S2_BATCHING_2026-09-15.md` §4 and §8). A Semantic Scholar candidate never resolves on
+S2 data alone: its DOI is looked up at Crossref, cached and paced, and the CROSSREF record must pass
+the same 0.85 ratio filter and the same first-author + year discriminator against the reference, so
+that S2's merging of a book with its review is ignored rather than believed. The record must also be
+TYPE-COMPATIBLE — a `journal-article` carrying the reference's exact title but prefixed by another
+author is a REVIEW of the cited book (`review_record`), a `journal-article` offered for a reference
+that presents as a book is `type_mismatch`, and the same title with shared authorship at a year more
+than one out is a sibling edition (`edition_mismatch`, **ambiguous, not resolved**) — and every other
+refusal keeps its own name, never a silent drop.
+
 ### 7.1 One coordinate frame, one adapter per tool
 
 Boxes from different tools cannot be overlapped until they share a frame, and the tools disagree on

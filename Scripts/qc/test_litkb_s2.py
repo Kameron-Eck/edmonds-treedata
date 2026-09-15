@@ -272,6 +272,33 @@ def crossref_silent():
     return lambda _client, _title, _pacer: ([], "")
 
 
+class ConfirmingCrossref:
+    """A Crossref ``/works/{doi}`` door that CONFIRMS whatever DOI it is asked, answering with the
+    reference under test's own title, first author and year.
+
+    It exists because "S2 proposes, Crossref confirms" means the S2 leg can no longer resolve
+    anything with ``client=None``: every acceptance now costs a Crossref lookup. The tests below are
+    about the leg's PLUMBING — batching, the prefill, ambiguity, the unchanged rules — so the
+    confirmation is made to succeed here, and the confirmation itself is killed separately at the
+    bottom of this file, on the real cached bodies of the three review cases.
+    """
+
+    def __init__(self, ref=None, rtype="journal-article"):
+        self.ref = REF if ref is None else ref
+        self.rtype = rtype
+        self.asked = []
+
+    def get(self, url, accept="application/json", timeout=60, **kw):
+        import urllib.parse
+        doi = urllib.parse.unquote(url.split("/works/", 1)[1])
+        self.asked.append(doi)
+        return 200, {}, json.dumps({"message": {
+            "DOI": doi, "type": self.rtype, "title": [self.ref["title"]],
+            "container-title": ["Remote Sensing"],
+            "issued": {"date-parts": [[int(self.ref["year"])]]},
+            "author": [{"family": self.ref["first_author"], "sequence": "first"}]}}).encode()
+
+
 @pytest.fixture
 def only_s2(monkeypatch):
     monkeypatch.setattr(R, "REGISTRY_STAGES", (("crossref", crossref_silent()),
@@ -281,7 +308,7 @@ def only_s2(monkeypatch):
 
 def test_the_s2_leg_resolves_a_real_reference_through_the_unchanged_rules(only_s2):
     _c, s = client_with([(200, {}, {"data": [HIT]})])
-    res = R.resolve_reference(dict(REF), client=None, s2=s)
+    res = R.resolve_reference(dict(REF), client=ConfirmingCrossref(), s2=s)
     assert res.state == "resolved" and res.doi == "10.3390/rs1030122"
     assert res.source == "semanticscholar" and s.stats.match_calls == 1
 
@@ -292,24 +319,24 @@ def test_a_wrong_title_from_the_s2_leg_is_still_refused(only_s2):
     _c, s = client_with([(200, {}, {"data": [paper("10.1/x", "Rain forest fragmentation and the "
                                                    "structure of Amazonian liana communities",
                                                    "Laurance", 2009)]})])
-    res = R.resolve_reference(dict(REF), client=None, s2=s)
+    res = R.resolve_reference(dict(REF), client=ConfirmingCrossref(), s2=s)
     assert res.state == "unresolved" and "best=semanticscholar" in res.reason
 
 
 def test_a_wrong_first_author_from_the_s2_leg_is_still_refused(only_s2):
     _c, s = client_with([(200, {}, {"data": [paper("10.1/x", REF["title"], "Efron", 2009)]})])
-    assert R.resolve_reference(dict(REF), client=None, s2=s).state == "unresolved"
+    assert R.resolve_reference(dict(REF), client=ConfirmingCrossref(), s2=s).state == "unresolved"
 
 
 def test_a_year_three_out_from_the_s2_leg_is_still_refused(only_s2):
     _c, s = client_with([(200, {}, {"data": [paper("10.1/x", REF["title"], "V. Alberga", 2012)]})])
-    assert R.resolve_reference(dict(REF), client=None, s2=s).state == "unresolved"
+    assert R.resolve_reference(dict(REF), client=ConfirmingCrossref(), s2=s).state == "unresolved"
 
 
 def test_two_accepted_works_from_the_s2_leg_are_still_ambiguous(only_s2):
     _c, s = client_with([(200, {}, {"data": [paper("10.1/x", REF["title"], "V. Alberga", 2009),
                                              paper("10.1/y", REF["title"], "Alberga", 2009)]})])
-    res = R.resolve_reference(dict(REF), client=None, s2=s)
+    res = R.resolve_reference(dict(REF), client=ConfirmingCrossref(), s2=s)
     assert res.state == "ambiguous" and len(res.candidates) == 2
 
 
@@ -348,7 +375,7 @@ def test_the_prefill_answers_an_identified_reference_without_a_second_request(on
            "title": REF["title"], "year": 2009, "authors": [{"name": "V. Alberga"}]}
     c, s = client_with([(200, {}, [rec])])
     S.batch_prefill([ref], s)
-    res = R.resolve_reference(ref, client=None, s2=s)
+    res = R.resolve_reference(ref, client=ConfirmingCrossref(), s2=s)
     assert res.state == "resolved" and res.doi == "10.3390/rs1030122"
     assert s.stats.match_calls == 0 and s.stats.prefill_hits == 1
     assert len(c.calls) == 1                       # the batch, and nothing else
@@ -358,7 +385,7 @@ def test_a_prefill_miss_is_an_answer_and_still_costs_no_second_request(only_s2):
     ref = dict(REF, arxiv="1901.00001")
     c, s = client_with([(200, {}, [None])])
     S.batch_prefill([ref], s)
-    res = R.resolve_reference(ref, client=None, s2=s)
+    res = R.resolve_reference(ref, client=ConfirmingCrossref(), s2=s)
     assert res.state == "unresolved" and s.stats.match_calls == 0 and len(c.calls) == 1
 
 
@@ -369,7 +396,7 @@ def test_a_failed_batch_leaves_the_prefill_empty_so_every_reference_falls_back(o
     c, s = client_with([(500, {}, b"boom"), (200, {}, {"data": [HIT]})])
     _got, err = S.batch_prefill([ref], s)
     assert err and s.prefill == {}
-    assert R.resolve_reference(ref, client=None, s2=s).state == "resolved"
+    assert R.resolve_reference(ref, client=ConfirmingCrossref(), s2=s).state == "resolved"
     assert s.stats.match_calls == 1
 
 
@@ -437,3 +464,229 @@ def test_a_caller_supplied_content_type_survives_a_request_body():
 def test_a_body_with_no_caller_header_still_gets_the_urlencoded_default():
     """The annas routes post urlencoded forms and must keep that default."""
     assert _header_built_by(b"a=1", None)["content-type"] == "application/x-www-form-urlencoded"
+
+
+# -- "S2 proposes, Crossref confirms" ----------------------------------------------------
+#
+# THE DEFECT CLASS. A review of a book carries the reviewed book's exact title, and Semantic
+# Scholar's record for such a DOI carries the title AND the BOOK's authorship - so the ratio filter,
+# the first-author discriminator and the +/-1 year rule all agree while the DOI points at a
+# different work. Measured: 3 of 33 new S2 resolutions on the P6 corpus, plus a sibling edition
+# (`Reports/LITKB_S2_BATCHING_2026-09-15.md` 4). The rules did not fail; the registry merged a book
+# with its review. So the fix is a SECOND REGISTRY, not a new threshold.
+#
+# THE BODIES BELOW ARE REAL, trimmed to the fields `parse_crossref` reads, taken verbatim from the
+# `/works/{doi}` responses in the P6 disk cache (0 network) - the same cached bodies the report is
+# written from. Replaying them is what makes these kills evidence about the archive, not about a stub.
+
+CROSSREF_CACHED = {
+    # Alwan 1988 b13 - the reference is Wadsworth's BOOK; this DOI is Sylwester's review of it.
+    "10.2307/1269348": {
+        "type": "journal-article", "title": ["Modern Methods for Quality Control and Improvement"],
+        "subtitle": [], "container-title": ["Technometrics"],
+        "issued": {"date-parts": [[1987, 8]]}, "publisher": "JSTOR",
+        "author": [{"family": "Sylwester", "given": "David", "sequence": "first"},
+                   {"family": "Wadsworth", "given": "Harrison M.", "sequence": "additional"},
+                   {"family": "Stephens", "given": "Kenneth S.", "sequence": "additional"},
+                   {"family": "Godfrey", "given": "A. Blanton", "sequence": "additional"}]},
+    # Burnicki 2011 b23 - Getis's book; this DOI is Semple's review.
+    "10.2307/214811": {
+        "type": "journal-article",
+        "title": ["Models of Spatial Processes: An Approach to the Study of Point, Line and Area "
+                  "Patterns"],
+        "subtitle": [], "container-title": ["Geographical Review"],
+        "issued": {"date-parts": [[1979, 10]]}, "publisher": "JSTOR",
+        "author": [{"family": "Semple", "given": "R. Keith", "sequence": "first"},
+                   {"family": "Getis", "given": "Arthur", "sequence": "additional"},
+                   {"family": "Boots", "given": "Barry", "sequence": "additional"}]},
+    # Hall 1985 b10 - Serra's book; this DOI is Diggle's review.
+    "10.2307/2531038": {
+        "type": "journal-article", "title": ["Image Analysis and Mathematical Morphology."],
+        "subtitle": [], "container-title": ["Biometrics"],
+        "issued": {"date-parts": [[1983, 6]]}, "publisher": "JSTOR",
+        "author": [{"family": "Diggle", "given": "P. J.", "sequence": "first"},
+                   {"family": "Serra", "given": "J.", "sequence": "additional"}]},
+    # Foody 2010 b58 - the sibling edition: Magidson & Vermunt 2004, offered as Vermunt 2010.
+    "10.1016/b978-0-08-044894-7.01340-3": {
+        "type": "book-chapter", "title": ["Latent Class Models"], "subtitle": [],
+        "container-title": ["International Encyclopedia of Education"],
+        "issued": {"date-parts": [[2010]]}, "publisher": "Elsevier",
+        "author": [{"family": "Vermunt", "given": "J.K.", "sequence": "first"}]},
+    # The control: a genuine S2 proposal that Crossref confirms. Its `issued` carries no year, which
+    # is why `_year_from` falls through to `created` - kept as the registry serves it, because a
+    # fixture that quietly fixed that would not be the record the resolver actually sees.
+    "10.1109/cvpr.2005.177": {
+        "type": "proceedings-article",
+        "title": ["Histograms of Oriented Gradients for Human Detection"], "subtitle": [],
+        "container-title": ["2005 IEEE Computer Society Conference on Computer Vision and Pattern "
+                            "Recognition (CVPR05)"],
+        "issued": {"date-parts": [[None]]}, "created": {"date-parts": [[2005, 7, 27]]},
+        "publisher": "IEEE",
+        "author": [{"family": "Dalal", "given": "N.", "sequence": "first"},
+                   {"family": "Triggs", "given": "B.", "sequence": "additional"}]},
+}
+
+#: The parsed references, verbatim from `{DERIVED}/p6/references.jsonl` (the fields the rule reads).
+REFS_CACHED = {
+    "Alwan_1988:b13": {
+        "title": "Modern Methods for Quality Control and Improvement", "first_author": "Wadsworth",
+        "year": "1986", "journal": "", "publisher": "John Wiley",
+        "authors": [{"family": "Wadsworth"}, {"family": "Stephens"}, {"family": "Kenneth"},
+                    {"family": "Godfrey"}, {"family": "Blanton"}],
+        "raw": "Wadsworth, Harrison M.. Stephens. Kenneth S., and Godfrey, Blan- ton A . (1986), "
+               "Modern Methods for Quality Control and Improve- ment, New York: John Wiley."},
+    "Burnicki_2011:b23": {
+        "title": "Models of Spatial Processes: An Approach to the Study of Point, Line and Area "
+                 "Patterns",
+        "first_author": "Getis", "year": "1978", "journal": "",
+        "publisher": "Cambridge University Press",
+        "authors": [{"family": "Getis"}, {"family": "Boots"}],
+        "raw": "GETIS, A. and BOOTS, B., 1978, Models of Spatial Processes."},
+    "Hall_1985:b10": {
+        "title": "Image Analysis and Mathematical Morphology", "first_author": "Serra",
+        "year": "1982", "journal": "", "publisher": "Academic Press",
+        "authors": [{"family": "Serra"}],
+        "raw": "J. Serra, Image Analysis and Mathematical Morphology (Academic Press, 1982)."},
+    "Foody_2010:b58": {
+        "title": "Latent class models", "first_author": "Magidson", "year": "2004",
+        "journal": "The SAGE Handbook of Quantitative Methodology for the Social Sciences",
+        "publisher": "Sage",
+        "authors": [{"family": "Magidson"}, {"family": "Vermunt"}],
+        "raw": "Magidson, J., & Vermunt, J. K. (2004). Latent class models."},
+    "Benedek_2015:b19": {
+        "title": "Histograms of oriented gradients for human detection", "first_author": "Dalal",
+        "year": "2005", "journal": "CVPR", "publisher": "",
+        "authors": [{"family": "Dalal"}, {"family": "Triggs"}],
+        "raw": "N. Dalal and B. Triggs, Histograms of oriented gradients, CVPR 2005."},
+}
+
+
+class CrossrefReplay:
+    """Serves the cached `/works/{doi}` bodies and nothing else. A DOI not in the table is a 404, so
+    a test can never accidentally reach past the replay."""
+
+    def __init__(self, table=None):
+        self.table = dict(CROSSREF_CACHED if table is None else table)
+        self.asked = []
+
+    def get(self, url, accept="application/json", timeout=60, **kw):
+        import urllib.parse
+        doi = urllib.parse.unquote(url.split("/works/", 1)[1])
+        self.asked.append(doi)
+        msg = self.table.get(doi)
+        if msg is None:
+            return 404, {}, b"{}"
+        return 200, {}, json.dumps({"message": dict(msg, DOI=doi)}).encode()
+
+
+def _confirm(ref_key, doi, table=None):
+    client = CrossrefReplay(table)
+    verdict, reason, _rec = RES.confirm_s2_candidate({"doi": doi}, REFS_CACHED[ref_key], client, None)
+    return verdict, reason, client
+
+
+@pytest.mark.parametrize("ref_key,doi", [("Alwan_1988:b13", "10.2307/1269348"),
+                                         ("Burnicki_2011:b23", "10.2307/214811"),
+                                         ("Hall_1985:b10", "10.2307/2531038")])
+def test_a_review_of_the_cited_book_is_refused_as_review_record(ref_key, doi):
+    """THE KILL, on the three real cases. All three of the resolver's own rules pass on S2's record
+    for these DOIs; Crossref, asked the same DOI, names the REVIEWER first and the reference's own
+    first author after him. The reason is pinned BY NAME: refusing them as a plain author mismatch
+    would make the class invisible again, and would let the mutation that deletes the review
+    detector go quiet (the P7-G4 lesson - a test written against the thing it tests says nothing)."""
+    verdict, reason, client = _confirm(ref_key, doi)
+    assert verdict == "refused"
+    assert reason.startswith("review_record ("), reason
+    assert client.asked == [doi]          # Crossref was actually consulted, not guessed at
+
+
+def test_the_sibling_edition_is_ambiguous_not_resolved():
+    """Foody 2010 b58: Magidson & Vermunt 2004, offered as Vermunt 2010 under the same title. Same
+    work, another edition - ambiguous, never resolved to the wrong year's DOI."""
+    verdict, reason, _ = _confirm("Foody_2010:b58", "10.1016/b978-0-08-044894-7.01340-3")
+    assert verdict == "ambiguous"
+    assert reason.startswith("edition_mismatch ("), reason
+
+
+def test_a_genuine_s2_proposal_that_crossref_confirms_still_resolves():
+    """The other half of the kill: the rule must not simply refuse everything S2 proposes."""
+    verdict, reason, _ = _confirm("Benedek_2015:b19", "10.1109/cvpr.2005.177")
+    assert verdict == "confirmed", reason
+
+
+def test_a_book_reference_never_takes_a_journal_article_record():
+    """Type compatibility, independent of the author signature: the same Serra book against a
+    journal-article whose author list gives nothing away still refuses - as `type_mismatch`."""
+    table = dict(CROSSREF_CACHED)
+    table["10.2307/2531038"] = dict(table["10.2307/2531038"],
+                                    author=[{"family": "Serra", "given": "J.", "sequence": "first"}])
+    verdict, reason, _ = _confirm("Hall_1985:b10", "10.2307/2531038", table)
+    assert verdict == "refused"
+    assert reason.startswith("type_mismatch ("), reason
+
+
+def test_a_doi_crossref_does_not_know_is_refused_by_name():
+    verdict, reason, _ = _confirm("Hall_1985:b10", "10.9999/not.registered")
+    assert verdict == "refused"
+    assert reason.startswith("crossref_not_registered ("), reason
+
+
+def test_a_one_letter_crossref_family_is_not_read_as_a_reviewer():
+    """Crossref's first author for 10.2307/2529186 comes back as the family name `D.` - one
+    letter. WHAT THAT IS is not measurable from the record: a truncated surname and a given name in
+    the family slot look identical here. It has the exact shape of a prepended reviewer, so the
+    detector must NOT claim it; a reviewer's surname is not one letter. The row is still refused -
+    it is a Wiley book against a journal-article record - but under a name that asserts only what
+    was measured."""
+    table = dict(CROSSREF_CACHED)
+    table["10.2307/2529186"] = {
+        "type": "journal-article", "title": ["Statistical Methods for Rates and Proportions."],
+        "subtitle": [], "container-title": ["Biometrics"],
+        "issued": {"date-parts": [[1973, 9]]}, "publisher": "JSTOR",
+        "author": [{"family": "D.", "given": "F. N.", "sequence": "first"},
+                   {"family": "Fleiss", "given": "J. L.", "sequence": "additional"}]}
+    ref = dict(REFS_CACHED["Hall_1985:b10"],
+               title="Statistical methods for rates and proportions", first_author="Fleiss",
+               year="1973", authors=[{"family": "Fleiss"}])
+    verdict, reason, _rec = RES.confirm_s2_candidate(
+        {"doi": "10.2307/2529186"}, ref, CrossrefReplay(table), None)
+    assert verdict == "refused"
+    assert not reason.startswith("review_record"), reason
+
+
+def _resolve_with_stages(ref, stages, client):
+    import unittest.mock
+    with unittest.mock.patch.object(R, "registry_stages", lambda s2=None, ref=None: stages):
+        return R.resolve_by_search(ref, client, None)
+
+
+def test_the_stage_6_resolver_refuses_the_review_and_keeps_the_reason():
+    """End to end through `resolve_by_search`: S2 proposes the review DOI, `judge_candidate` accepts
+    it on all three rules (asserted here, so the test fails if the premise ever stops holding), and
+    the reference still comes back unresolved with the named reason. This is the path the 293
+    references actually take."""
+    ref = dict(REFS_CACHED["Alwan_1988:b13"])
+    s2_cand = {"doi": "10.2307/1269348",
+               "titles": ["Modern Methods for Quality Control and Improvement"],
+               "family": "H. Wadsworth", "year": 1986}
+    assert RES.judge_candidate(s2_cand, ref["title"], ref["first_author"], ref["year"])[0] is True
+    stages = (("crossref", lambda *a: ([], "")),
+              ("semanticscholar", lambda *a: ([s2_cand], "")),
+              ("arxiv", lambda *a: ([], "")))
+    res = _resolve_with_stages(ref, stages, CrossrefReplay())
+    assert res.state == "unresolved"
+    assert res.reason.startswith("review_record ("), res.reason
+
+
+def test_a_confirmed_s2_candidate_still_resolves_through_stage_6():
+    """And the control, end to end: the confirmation must not close the S2 leg it guards."""
+    ref = dict(REFS_CACHED["Benedek_2015:b19"])
+    s2_cand = {"doi": "10.1109/cvpr.2005.177",
+               "titles": ["Histograms of Oriented Gradients for Human Detection"],
+               "family": "Navneet Dalal", "year": 2005}
+    stages = (("crossref", lambda *a: ([], "")),
+              ("semanticscholar", lambda *a: ([s2_cand], "")),
+              ("arxiv", lambda *a: ([], "")))
+    res = _resolve_with_stages(ref, stages, CrossrefReplay())
+    assert res.state == "resolved", res.reason
+    assert res.doi == "10.1109/cvpr.2005.177"

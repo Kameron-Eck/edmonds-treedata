@@ -192,7 +192,7 @@ volume and year; a sibling, probably not the cited one.
 **Measured rate of the wrong-work class: 3 certain and 1 doubtful in 33, ~9–12 %.** It is recorded,
 not patched: the obvious rule (refuse a DOI whose Crossref record disagrees with S2 about the first
 author) would be a rule change proposed and scored by the same session, which CLAUDE.md 3.4c forbids.
-It is the first item a referee should take, and §6 carries it forward.
+It was the first item a referee should take, §6 carried it forward, and §8 is the rule that closed it.
 
 ## 5. The kills (CLAUDE.md 3.4c — each shown firing on a known-bad input)
 
@@ -246,7 +246,7 @@ Plus the 19 `ambiguous`, untouched: they are decided at Crossref before this leg
    more is a sibling — a 9–12 % wrong-work rate in the material this phase adds. It is named, not
    fixed. The candidate rule (refuse when Crossref and S2 disagree about the first author) must be
    built and scored by someone other than this session, and measured on a corpus with enough books
-   to count the class properly. **Until that is done, the 33 should be read as 29 defensible plus 4
+   to count the class properly. **CLOSED 2026-09-15 by a later session — see §8.** **Until that was done, the 33 were to be read as 29 defensible plus 4
    to check by hand.**
 2. **The request count went up**: 127 wire requests (≈234 cold) for 33 resolutions, 468 s against
    261 s. Argue that the old arm's 4 requests were the honest budget. The counter-argument is in the
@@ -272,3 +272,145 @@ allows, untouched by this branch.
 
 The mutation campaign (§5) and the two measurement arms (§3) were run on the same tree; the arms'
 inputs are the P6 JSONL, which this branch does not write.
+
+
+---
+
+## 8. The rule that closes the class: S2 proposes, Crossref confirms (2026-09-15, later session)
+
+§4 named the wrong-work class and deliberately did not patch it, because a design may not be
+accepted on numbers it produced about itself (CLAUDE.md 3.4c). This section is the rule, built and
+measured against the same 293 references.
+
+**THE RULE.** A Semantic Scholar candidate never resolves on S2 data alone. Its DOI is looked up at
+Crossref (cached, paced 1/s) and the CROSSREF record must pass the existing 0.85 ratio filter and
+the existing first-author + year discriminator against the reference — so an S2 authorship merge
+cannot carry a resolution. The record must additionally be TYPE-COMPATIBLE, and every refusal keeps
+its own name:
+
+| reason | when | state |
+|---|---|---|
+| `review_record` | a `journal-article` whose title begins with a review marker, or whose container is a review section, or — the signature that fires on all three measured cases — whose author list begins with someone who is NOT the reference's first author while the reference's first author appears LATER in it (the reviewer, then the work) | unresolved |
+| `type_mismatch` | the reference presents as a book (a publisher and no journal, or an edition cue) and Crossref says `journal-article` | unresolved |
+| `edition_mismatch` | same title, shared authorship, Crossref year more than ±1 from the reference's | **ambiguous** |
+| `crossref_not_registered` / `crossref_title_ratio` / `crossref_no_author` / `crossref_author_mismatch` / `crossref_year_mismatch` / `crossref_year_unknown` | the shared rules, applied to the Crossref record | unresolved |
+
+Two doors, not one: `extract.references.resolve_by_search` (stage 6) and `admit.resolver.resolve_doi`
+(gate 0, the acquisition path, where the returned DOI is handed straight to the fetcher and an
+unconfirmed one would download the review). One function, `resolver.confirm_s2_candidate`.
+
+**ONE STATED WIDENING and ONE STATED HOLE.** The brief's sibling-edition test is "same title + first
+author"; what is implemented also accepts "the Crossref record's first author appears anywhere in the
+reference's parsed author list", because the measured case (Foody b58) is Magidson & Vermunt 2004
+offered as Vermunt 2010 — first author differs, and a narrower test would have filed it under author
+mismatch. The hole: for a candidate whose DOI is the `10.48550/arXiv.` form, Crossref is not the
+registry, so it passes through UNCONFIRMED under a reason that says so
+(`s2_arxiv_doi_unconfirmed`). It is marked `archive_ok=False` and never fetched, and the class being
+closed here — a journal's review of a cited book — cannot occur on a preprint.
+
+### 8.1 Measured, same 293 references, same input rows
+
+`qc/instruments/litkb_s2_batching.py --arm confirmed`, then `--report`. **0 wire requests to
+Semantic Scholar and 0 to Crossref**: every answer came from the P6 and §4 disk caches, so this arm
+re-scores exactly the material §3 and §4 are written from.
+
+| | before (P6 resolver) | after (§3, the paced S2 leg) | **confirmed (this rule)** |
+|---|--:|--:|--:|
+| references | 293 | 293 | 293 |
+| **resolved** | 0 | 33 | **20** |
+| ambiguous | 19 | 19 | **23** |
+| unresolved | 274 | 241 | **250** |
+| requests to S2 / Crossref | 4 / 0 | 127 / 0 | **0 / 0** (fully cached) |
+
+**One reason was RENAMED, so the histograms join.** P6's
+`accepted at semanticscholar but the candidate carries no DOI` (27 rows) now reads
+`s2_candidate_has_no_doi (nothing to confirm)` — the same 27 references, refused at the same point,
+before any Crossref lookup is spent on a candidate that has no DOI to look up.
+
+Refusal reasons in the confirmed arm, for the 13 rows that moved:
+
+| reason | n | rows |
+|---|--:|---|
+| `review_record` | 3 | Alwan b13 `10.2307/1269348`; Burnicki b23 `10.2307/214811`; Hall b10 `10.2307/2531038` |
+| `type_mismatch` | 1 | Chrisman b6 `10.2307/2529186` (Fleiss's book against a Biometrics `journal-article`) |
+| `edition_mismatch` | 4 | Foody b58 `10.1016/b978-0-08-044894-7.01340-3` (2010 vs 2004); Efron b0 `10.1007/978-1-4612-0919-5_38` (1992 vs 1973); Foody b76 `10.1142/9789814329804_0014` (2011 vs 2002); Goodchild b1 `10.4324/9780203303245_chapter_one` (2010 vs 2004) |
+| `crossref_title_ratio` | 3 | Burnicki b43 (0.56); Foody b14 (0.72); Foody b38 (0.70) |
+| `crossref_no_author` | 2 | Abercrombie b16 `10.1109/tsmc.1978.4309889`; Burnicki b12 `10.1201/b12612-12` |
+
+**The four cases §4 named are all refused, each under its own name** — the three reviews as
+`review_record`, the sibling edition as `edition_mismatch` (ambiguous, not resolved).
+
+### 8.2 What the rule costs, named row by row
+
+**Five of the 13 are genuine resolutions lost, and they are five of the SIX the §4 verify rung had
+already marked as the check's own limits** (the sixth, Chrisman b6, is refused on a measurement
+rather than on Crossref's thinness — see below):
+
+  * `10.1109/tsmc.1978.4309889` (Abercrombie b16) and `10.1201/b12612-12` (Burnicki b12) — Crossref
+    carries **no author at all** for these records, so the discriminator cannot run. Correct
+    resolutions, refused. `crossref_no_author`.
+  * `10.1093/oxfordjournals.aje.a120609` / `a120610` (Foody b14, b38) — Crossref serves the Buck and
+    Gart 1966 pair under one TRUNCATED title (ratios 0.72 / 0.70) where S2 separated part I from
+    part II correctly. Correct resolutions, refused. `crossref_title_ratio`.
+  * `10.14358/pers.69.3.289` (Burnicki b43) — Crossref truncates at the subtitle (0.56). Correct
+    resolution, refused. `crossref_title_ratio`.
+
+That is the honest price: **the rule is only as good as Crossref's record**, and where Crossref's
+record is thin it refuses work S2 had right. 5 genuine resolutions traded for 3 certainly-wrong ones
+and 4 newly-flagged siblings.
+
+**Chrisman b6 is refused, and what is measured about it is the TYPE, not a review.** §4 filed
+`10.2307/2529186` under "the check's own limits" because Crossref's first author for it comes back
+as the family name `D.` — one letter. What that one letter is cannot be read off the record: a
+truncated surname and a given name in the family slot are indistinguishable there, and this report
+does not guess. Measured: the reference is a Wiley BOOK (publisher, no journal) and the Crossref
+record is a `journal-article` in *Biometrics*, so the type test refuses it as `type_mismatch`. The
+review detector deliberately does not claim it — a one-letter family has the exact shape of a
+prepended reviewer and is not evidence of one, so the detector requires a prefix of at least three
+characters. Whether this row is a genuine resolution lost therefore stays OPEN; it is not counted
+among the five.
+
+**Three of the 23 rows the §4 verify rung passed are now `edition_mismatch`** (Efron b0, Foody b76,
+Goodchild b1). They are not a regression in the check: **the verify rung tested ratio and first
+author only — it never tested the year**, so a reprint of Akaike 1973 in a 1992 Springer volume
+passed it. Under the resolver's own year rule they were never acceptable.
+
+### 8.3 The kills (CLAUDE.md 3.4c)
+
+`qc/instruments/litkb_s2_mutations.py --only P7-S3,P7-C1,P7-C2,P7-C3`: **4 of 4 fired**, baselines
+green before and after, every file restored and the restore checked by sha256.
+
+| row | weakened | effect |
+|---|---|---|
+| **P7-C1** | the confirmation guard in stage 6 | the review DOI resolves again as the book (1 test fails) |
+| **P7-C2** | the same guard at gate 0 | the acquisition path resolves the review and would fetch it (2 fail) |
+| **P7-C3** | the review DETECTOR alone | the three cases are still refused — as `crossref_author_mismatch` — so the row fires ONLY because the tests pin the reason by name (4 fail). A kill for a class that is invisible in the outcome has to be asserted on the name; this is the P7-G4 lesson again |
+| P7-S3 | `normalize_doi` at the new call site | one work costs two Crossref lookups and two cache entries (1 fail) |
+
+The unit kills replay the **real cached Crossref bodies** of the four cases (trimmed to the fields
+`parse_crossref` reads, 0 network), not stubs invented for the test — which is what makes them
+evidence about the archive rather than about the test. The control is in the same file: a genuine S2
+proposal that Crossref confirms (`10.1109/cvpr.2005.177`, Dalal & Triggs) still resolves, end to end
+through `resolve_by_search`.
+
+### 8.4 The rate, restated
+
+§3's headline was 365 → 398, 55.5 % → 60.5 %, with §4 warning that 4 of the 33 were wrong or
+doubtful and the defensible figure was 29 (59.9 %). Measured under the rule: **20 resolutions, 365 →
+385, 58.5 %** — and this one is defensible by construction rather than by hand-checking, because
+every one of the 20 has been confirmed at a registry other than the one that proposed it. The 5
+genuine losses of §8.2 are the gap between the two numbers and are named row by row above; recovering
+them means a better Crossref record, not a weaker rule.
+
+### 8.5 The ladder, at this commit
+
+`cd Scripts && PYTHONUTF8=1 py -3.12 qc/check.py --fast` under `LITKB_TEST_DB=litkb_test_w8`:
+secrets PASS, ruff PASS, compile PASS, then **1 failed, 2,546 passed, 19 skipped, 1 xfailed in
+1,319 s**, litkb Postgres tests 215 passed. The single failure is
+`test_experiments.py::test_pointer_paths_resolve[crown_state_model]`, the pre-existing one this task
+allows, untouched by this work. The per-call-site self-check is green: 45 call sites, 44 covered by a
+row, 1 equivalent — the new `confirm_s2_candidate::normalize_doi` site is row P7-S3.
+
+The full P7 mutation campaign was re-run after the test file changed, not just the four new rows:
+**13 of 13 fired**, baselines green before and after, every file restored and the restore checked by
+sha256.

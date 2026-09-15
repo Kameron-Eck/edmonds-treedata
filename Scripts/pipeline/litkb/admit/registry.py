@@ -52,6 +52,12 @@ def parse_crossref(msg, doi):
             "venue": next((c for c in (msg.get("container-title") or []) if c), None),
             "volume": msg.get("volume"), "issue": msg.get("issue"), "pages": msg.get("page"),
             "publisher": msg.get("publisher"), "type": _CROSSREF_TYPES.get(msg.get("type") or "", "article"),
+            # The registry's OWN spelling, kept beside the mapped one. `type` folds journal-article,
+            # proceedings-article and the rest onto "article" — right for a work_versions row, wrong
+            # for the type-compatibility check in `resolver.confirm_s2_candidate`, which must be able
+            # to ask "is this record a journal-article?" and cannot ask it of the folded value.
+            # Never used for admission; only for that discriminator.
+            "raw_type": msg.get("type") or "",
             "url": CROSSREF_WORK.format(doi=doi)}
 
 

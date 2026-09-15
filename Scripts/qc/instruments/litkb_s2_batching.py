@@ -17,7 +17,15 @@ WHAT THE ARMS ARE. `before` is the resolver exactly as P6 ran it: per-reference
 `StageBreaker` that trips the stage after two consecutive ones. `after` swaps that stage for
 `litkb.admit.s2`: one batch call for the identifier-bearing references, then one
 `/paper/search/match` per distinct title, narrow fields, jittered ladder with `Retry-After`
-honoured, answers cached on disk. The ACCEPTANCE RULES ARE IDENTICAL in both arms — DOI-first, the
+honoured, answers cached on disk. `confirmed` is `after` re-run against the CURRENT tree, in which
+"S2 proposes, Crossref confirms" is live: every Semantic Scholar candidate's DOI is looked up at
+Crossref and refused unless the Crossref record passes the shared rules and is type-compatible
+(`resolver.confirm_s2_candidate`). The `after` arm's saved rows are the paced measurement of
+`Reports/LITKB_S2_BATCHING_2026-09-15.md` §3 and are NOT re-runnable on this tree — there is
+deliberately no flag that turns the confirmation off, because a flag would make the kill "flip a
+default" instead of "delete the guard".
+
+The ACCEPTANCE RULES ARE IDENTICAL in the `before`/`after` pair — DOI-first, the
 0.85 ratio filter, the first-author family and the decisions.yaml §15.15 year rule — so a difference
 in outcome is a difference in what the registry was asked, never in what was accepted.
 
@@ -47,8 +55,14 @@ STATE = pathlib.Path(R.DERIVED_ROOT) / "s2_arms"
 
 #: The reference fields the resolver reads. Carried over verbatim from the P6 rows so neither arm
 #: re-parses anything: a difference in parsing would be a difference in the INPUT.
+#: `authors`, `journal`, `publisher` and `raw` are carried for the Crossref-confirmation rule
+#: (`resolver.confirm_s2_candidate`): the review signature reads the reference's author list and the
+#: type-compatibility test reads publisher-and-no-journal. Dropping them would make the confirmed
+#: arm refuse on the weaker `crossref_author_mismatch` and never show the named reasons.
 REF_FIELDS = ("title", "first_author", "year", "doi", "doi_norm", "arxiv", "ref_key",
-              "citing_work_key")
+              "citing_work_key", "authors", "journal", "publisher", "raw")
+RESOLVER_FIELDS = ("title", "first_author", "year", "doi", "doi_norm", "arxiv", "authors",
+                   "journal", "publisher", "raw")
 
 
 class CountingClient:
@@ -94,7 +108,7 @@ def run_arm(arm, refs, limit=None):
     cached = R.CachedClient(client=net, cache=R.DiskCache(), pacer=pacer)
     breaker = R.StageBreaker()
     s2 = None
-    if arm == "after":
+    if arm in ("after", "confirmed"):
         # Its OWN client (not the CachedClient): this module does its own versioned caching, and
         # routing it through the URL cache as well would double-count a hit.
         s2 = S2.S2Client(client=net, cache=R.DiskCache(), pacer=Pacer(interval=1.0))
@@ -102,10 +116,9 @@ def run_arm(arm, refs, limit=None):
     todo = refs[:limit] if limit else refs
     rows, t0 = [], time.time()
     for r in todo:
-        ref = {k: v for k, v in r.items() if k in ("title", "first_author", "year", "doi",
-                                                   "doi_norm", "arxiv")}
+        ref = {k: v for k, v in r.items() if k in RESOLVER_FIELDS}
         t1 = time.time()
-        res = R.resolve_reference(ref, cached, pacer, breaker, s2=s2) if arm == "after" \
+        res = R.resolve_reference(ref, cached, pacer, breaker, s2=s2) if s2 is not None \
             else R.resolve_reference(ref, cached, pacer, breaker)
         rows.append({"arm": arm, "citing_work_key": r["citing_work_key"], "ref_key": r["ref_key"],
                      "title": (r.get("title") or "")[:120], "state": res.state,
@@ -144,7 +157,7 @@ def write_arm(arm, rows, summary):
 def report():
     """Join the two saved arms into the two tracked CSVs."""
     arms = {}
-    for arm in ("before", "after"):
+    for arm in ("before", "after", "confirmed"):
         p = STATE / f"{arm}.json"
         if p.exists():
             arms[arm] = json.loads(p.read_text(encoding="utf-8"))
@@ -172,16 +185,19 @@ def report():
                     w.writeheader()
                 w.writerow(row)
                 seen.add((row["citing_work_key"], row["ref_key"]))
-    # The change table: same key, both arms.
-    if len(arms) == 2:
-        b = {(r["citing_work_key"], r["ref_key"]): r for r in arms["before"]["rows"]}
-        a = {(r["citing_work_key"], r["ref_key"]): r for r in arms["after"]["rows"]}
+    # The change tables: same key, each consecutive pair of arms that were both run.
+    for lo, hi in (("before", "after"), ("after", "confirmed")):
+        if lo not in arms or hi not in arms:
+            continue
+        b = {(r["citing_work_key"], r["ref_key"]): r for r in arms[lo]["rows"]}
+        a = {(r["citing_work_key"], r["ref_key"]): r for r in arms[hi]["rows"]}
         both = sorted(set(b) & set(a))
         moved = [k for k in both if (b[k]["state"], b[k]["doi"]) != (a[k]["state"], a[k]["doi"])]
-        print(f"{len(both)} references in both arms; {len(moved)} changed state or DOI")
-        for k in moved[:40]:
-            print(f"  {k[0]} {k[1]}: {b[k]['state']} -> {a[k]['state']} {a[k]['doi']} "
-                  f"({a[k]['source']}, ratio {a[k]['ratio']})")
+        print(f"\n{lo} -> {hi}: {len(both)} references in both arms; "
+              f"{len(moved)} changed state or DOI")
+        for k in moved:
+            print(f"  {k[0]} {k[1]}: {b[k]['state']}({b[k]['doi'] or '-'}) -> "
+                  f"{a[k]['state']}({a[k]['doi'] or '-'})  {a[k]['reason'][:110]}")
     print(f"wrote {ARMS_CSV.name}, {ROWS_CSV.name}")
 
 
@@ -259,7 +275,7 @@ def verify():
 
 def main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    ap.add_argument("--arm", choices=("before", "after"))
+    ap.add_argument("--arm", choices=("before", "after", "confirmed"))
     ap.add_argument("--limit", type=int, help="first N references only (a probe, not the measurement)")
     ap.add_argument("--report", action="store_true")
     ap.add_argument("--verify", action="store_true",

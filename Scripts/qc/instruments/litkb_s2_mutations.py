@@ -27,6 +27,12 @@ WHAT EACH ROW IS FOR:
     nothing. It is also the per-call-site row for `normalize_doi` inside `batch_prefill`.
   * **P7-G7** removes the pacer, so requests go to a pool measured as exhausted back to back and the
     client manufactures the 429s its own ladder then waits out.
+  * **P7-C1/C2/C3 are the "S2 proposes, Crossref confirms" rows**, the ones that close the
+    book-review class. C1 and C2 delete the guard at each of the two doors — stage 6 and gate 0 —
+    and the three real review cases resolve again. C3 removes only the review DETECTOR: the cases
+    are still refused, by the weaker `crossref_author_mismatch`, so the row fires only because the
+    tests pin the reason by name. That is deliberate — a kill for a class that is invisible in the
+    outcome has to be asserted on the name.
   * **P7-S1/S2** are the per-call-site rows for `normalize_doi` inside `s2.py`: at each site the
     canonicalisation simply does not happen, so `DOI:10.1/A` and `DOI:10.1/a` become two identifiers
     and a candidate's DOI no longer matches the corpus index.
@@ -38,10 +44,16 @@ import sys
 
 HERE = pathlib.Path(__file__).resolve().parent
 TESTS_S2 = ["qc/test_litkb_s2.py"]
+#: The confirmation rows reach two doors: stage 6 (`test_litkb_s2.py`) and gate 0, the acquisition
+#: path (`test_litkb_annas.py`), so both suites run for them.
+TESTS_CONFIRM = ["qc/test_litkb_s2.py", "qc/test_litkb_annas.py"]
 S2 = "pipeline/litkb/admit/s2.py"
+RESOLVER = "pipeline/litkb/admit/resolver.py"
+REFS = "pipeline/litkb/extract/references.py"
 PASSTHROUGH = "({a0})"
 
-IDS = ["P7-G1", "P7-G2", "P7-G3", "P7-G4", "P7-G5", "P7-G6", "P7-G7", "P7-S1", "P7-S2"]
+IDS = ["P7-G1", "P7-G2", "P7-G3", "P7-G4", "P7-G5", "P7-G6", "P7-G7", "P7-S1", "P7-S2",
+       "P7-S3", "P7-C1", "P7-C2", "P7-C3"]
 
 
 def register(block, replace, site):
@@ -72,6 +84,22 @@ def register(block, replace, site):
          tests=TESTS_S2)
     site("P7-S2", f"litkb/admit/s2.py::to_candidate::normalize_doi", PASSTHROUGH,
          "to_candidate: a candidate's DOI is returned as the registry spelled it", tests=TESTS_S2)
+    site("P7-S3", "litkb/admit/resolver.py::confirm_s2_candidate::normalize_doi", PASSTHROUGH,
+         "confirm_s2_candidate: the DOI is confirmed under the registry's own spelling, so one work "
+         "costs two Crossref lookups and two cache entries", tests=TESTS_CONFIRM)
+    block("P7-C1", REFS, "guard: s2 proposes, crossref confirms",
+          "stage 6 resolves on Semantic Scholar's own record again, so a JSTOR REVIEW of the cited "
+          "book resolves as the book — the three measured cases come back", tests=TESTS_CONFIRM)
+    block("P7-C2", RESOLVER, "guard: s2 proposes, crossref confirms",
+          "gate 0, the acquisition door, resolves on Semantic Scholar's own record again and hands "
+          "the fetcher the review's DOI", tests=TESTS_CONFIRM)
+    replace("P7-C3", RESOLVER,
+            '    if (rec.get("raw_type") or "") != "journal-article":',
+            '    if True:',
+            "the review detector alone is removed. The three cases are still REFUSED — by the "
+            "weaker crossref_author_mismatch — so this row fires only because the tests pin the "
+            "reason BY NAME. A test written against the outcome rather than the reason would go "
+            "quiet here: the P7-G4 lesson again", tests=TESTS_CONFIRM)
 
 
 def _p2():

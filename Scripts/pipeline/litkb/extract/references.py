@@ -36,6 +36,20 @@ THE RESOLUTION RULE, and why it is not `resolver.resolve_doi`.
   * **Otherwise title + first author + year**, through the same `judge_candidate` the admission
     path uses: ratio >= 0.85 AND first-author family AND year equal or +/-1 (the +/-1 arm is only
     reachable after the other two pass, decisions.yaml litkb-p0-foundation §15.15).
+  * **S2 PROPOSES, CROSSREF CONFIRMS.** A Semantic Scholar candidate never resolves on S2 data
+    alone. Its DOI is looked up at Crossref (`resolver.confirm_s2_candidate`, cached and paced) and
+    the CROSSREF record must pass the same 0.85 ratio filter and the same first-author + year
+    discriminator against the reference; S2's authorship merges are thereby ignored. On top of that,
+    the record must be TYPE-COMPATIBLE: a `journal-article` carrying the reference's exact title
+    whose author list begins with someone else and then names the reference's first author is a
+    REVIEW of the cited book (``review_record``); a `journal-article` for a reference that presents
+    as a book is ``type_mismatch``; the same title and shared authorship at a year more than one out
+    is a sibling edition, ``edition_mismatch``, which is **ambiguous, not resolved**. Every other
+    refusal keeps its own name — ``crossref_not_registered``, ``crossref_title_ratio``,
+    ``crossref_no_author``, ``crossref_author_mismatch``, ``crossref_year_mismatch``. Nothing is
+    dropped silently. WHY: measured on this corpus, 3 of 33 new S2 resolutions were a review of the
+    cited book and one was a sibling edition — the three rules all agreed because the registry had
+    merged a book with its review (`Reports/LITKB_S2_BATCHING_2026-09-15.md` §4).
   * **`ambiguous` is a state this module has and `resolve_doi` does not.** `resolve_doi` returns
     the FIRST accepted candidate, so it can never report that two different works both passed. Here
     every candidate of a stage is judged, and two or more DISTINCT normalised DOIs among the
@@ -77,8 +91,9 @@ import xml.etree.ElementTree as ET
 
 from litkb.admit.registry import confirm_doi
 from litkb.admit.resolver import (ARXIV_DOI_PREFIX, REGISTRY_STAGES, RESOLVE_TITLE_RATIO,
-                                  _ascii_fold, _norm_text, _year_int, family_matches,
-                                  judge_candidate, normalize_doi, strip_tags, title_match_ratio)
+                                  _ascii_fold, _norm_text, _year_int, confirm_s2_candidate,
+                                  family_matches, judge_candidate, normalize_doi, strip_tags,
+                                  title_match_ratio)
 from litkb.extract.grobid import NS, TEI_NS, parse_coords
 
 STAGE = "6-references"
@@ -604,6 +619,41 @@ def resolve_by_search(ref, client, pacer, breaker=None, s2=None):
             best_overall = (best, source, next((c.get("doi") or "-" for c in cands), "-"))
         if not accepted:
             continue
+        # BEGIN guard: s2 proposes, crossref confirms
+        if source == "semanticscholar":
+            # A Semantic Scholar acceptance is a PROPOSAL, never a resolution. Its DOI goes to
+            # Crossref and the CROSSREF record must pass the same shared rules against the
+            # reference — which is what separates a book from its review, because S2's record for a
+            # review DOI carries the BOOK's title and the BOOK's authorship and therefore satisfies
+            # all three of our rules while pointing at a different work
+            # (`Reports/LITKB_S2_BATCHING_2026-09-15.md` §4, three measured cases).
+            kept, refusals, edition = [], [], None
+            for c, ratio, note in accepted:
+                verdict, why, _rec = confirm_s2_candidate(c, ref, client, pacer)
+                if verdict == "confirmed":
+                    kept.append((c, ratio, note))
+                elif verdict == "ambiguous":
+                    if edition is None:
+                        edition = (c, ratio, why)
+                else:
+                    refusals.append(why)
+            # Never a silent drop: a refusal is recorded even when another candidate of the
+            # same stage confirms. The match endpoint returns one candidate, so this tail is
+            # unreachable through `s2.py` today; the legacy `search_semanticscholar` returns three.
+            refused_tail = ("; s2_refused=" + "; ".join(refusals)) if refusals else ""
+            if not kept:
+                # Terminal, and named. Every refusal is carried, never silently dropped.
+                if edition is not None:
+                    c, ratio, why = edition
+                    return Resolution("ambiguous", source=source, ratio=round(ratio, 4), reason=why,
+                                      candidates=[{"doi": normalize_doi(c.get("doi") or ""),
+                                                   "ratio": round(ratio, 4),
+                                                   "title": (c.get("titles") or [""])[0],
+                                                   "year": c.get("year")}])
+                return Resolution("unresolved", source=source, ratio=round(best, 4),
+                                  reason="; ".join(refusals)[:400] or "s2_unconfirmed (no candidate)")
+            accepted = kept
+        # END guard: s2 proposes, crossref confirms
         dois = []
         for c, ratio, _note in accepted:
             d = (c.get("doi") or "").strip()
@@ -623,7 +673,8 @@ def resolve_by_search(ref, client, pacer, breaker=None, s2=None):
                               reason=f"accepted at {source} but the candidate carries no DOI")
         d, ratio, c = dois[0]
         return Resolution("resolved", doi=d, source=source, ratio=round(ratio, 4),
-                          reason=f"via={source}; ratio={ratio:.2f}; year={c.get('year')}",
+                          reason=f"via={source}; ratio={ratio:.2f}; year={c.get('year')}"
+                                 f"{refused_tail if source == 'semanticscholar' else ''}",
                           registry_title=(c.get("titles") or [""])[0],
                           archive_ok=not d.startswith(ARXIV_DOI_PREFIX))
     tail = f"; skipped={','.join(skipped)} (rate-limited)" if skipped else ""

@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- TRIMMED fixture. Verbatim fragments of a real GROBID 0.9.1 CRF run over
+     Literture/Validation/Alwan_1988_time-series-modeling-statistical-process.pdf,
+     2026-09-14. Kept: the <surface> elements for pages 1-3 and two <ref> elements whose
+     text occurs exactly once on its page, so their boxes can be checked against pypdfium2.
+     Page 1 is uncropped (cropbox == mediabox); pages 2-3 have cropbox
+     (10.345, 10.777, 603.441, 782.948) against mediabox (0, 0, 612, 792), i.e. the
+     GROBID->mediabox shift is dx=10.345, dy=9.052. -->
+<TEI xmlns="http://www.tei-c.org/ns/1.0">
+  <teiHeader><fileDesc><titleStmt><title level="a" type="main" coords="1,172.80,157.52,385.02,14.72;2,49.90,74.65,391.68,24.75">Time-Series Modeling for Statistical Process Control</title></titleStmt></fileDesc></teiHeader>
+  <facsimile>
+        <surface n="1" ulx="0.0" uly="0.0" lrx="612.0" lry="792.0"/>
+    <surface n="2" ulx="0.0" uly="0.0" lrx="593.0961" lry="772.1709"/>
+    <surface n="3" ulx="0.0" uly="0.0" lrx="593.0961" lry="772.1709"/>
+  </facsimile>
+  <text xml:lang="en"><body><div>
+    <p>    <ref type="bibr" coords="2,182.86,494.44,67.90,8.89" target="#b11">Shewhart (1931)</ref>
+    <ref type="bibr" coords="3,68.38,340.14,168.37,8.89" target="#b1">Berthouex, Hunter, and Pallesen (1978)</ref>
+    <ref type="bibr" coords="3,473.73,130.36,67.51,8.89" target="#b11">Shewhart (1931)</ref></p>
+  </div></body></text>
+</TEI>

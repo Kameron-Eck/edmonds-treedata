@@ -4,12 +4,34 @@ The service itself runs under WSL2 Ubuntu and is managed by ``grobid.sh`` beside
 see ``LITKB_GROBID_LOCAL_2026-09-14.md`` for the install layout and the measured numbers.
 
 CANONICAL FRAME (design §7.1): PDF points, page numbers 1-indexed, origin at the TOP-LEFT of
-the page as displayed, box = (x0, y0, x1, y1).
+the page as displayed, box = (x0, y0, x1, y1), measured on the **mediabox**.
 
 WHAT GROBID EMITS: ``coords="page,x,y,w,h"`` — page 1-indexed, PDF units, origin upper-left
 (measured against the ``<facsimile>`` surfaces, 2026-09-14). So the adapter is
-``x1 = x + w, y1 = y + h`` with NO page offset and NO y-flip. Two properties of the real
-output the adapter must honour, both measured rather than assumed:
+``x1 = x + w, y1 = y + h`` with NO page offset and NO y-flip.
+
+WHICH BOX THE ORIGIN SITS ON — the cropbox, NOT the mediabox. ``<surface>`` carries the
+CROPBOX's size and every coord is measured from the cropbox's upper-left corner. Measured
+2026-09-14 on ``Alwan_1988`` p2/p3 (mediabox ``(0,0,612,792)``, cropbox
+``(10.345,10.777,603.441,782.948)``, ``<surface>`` 593.096 x 772.171 = the cropbox): a whole
+``<ref>`` element's box agrees with pypdfium2 to **0.39-0.91 pt** once the cropbox origin is
+added back, and is off by **10.5-10.9 pt** if it is not. 223 pages of the 216-PDF corpus have
+cropbox != mediabox, so this is not a corner case. :func:`page_frames` reads the two boxes
+from the PDF and :func:`to_mediabox` shifts blocks into the canonical mediabox frame; every
+:class:`Block` states which frame it is in via ``Block.frame``.
+
+Rotation IS applied by GROBID (a ``/Rotate 90`` page gets a landscape ``<surface>``), but the
+composition of rotation with the cropbox shift is **UNCONFIRMED**, so :func:`to_mediabox`
+refuses to convert a rotated page and leaves those blocks in the cropbox frame.
+
+ZERO-BLOCK REFUSAL: a 200 is not success. A PDF with a text layer on only some pages — a
+JSTOR scan whose cover page carries the access boilerplate — returns HTTP 200 with a valid
+header and an EMPTY ``<text><body>`` (measured on ``Anderson_1957``: 3,659 B, 4 blocks, all
+of them the boilerplate title in the header, ``<body>`` text ``''``). A caller checking only
+the status code records that as a successful extraction. :func:`process_pdf` therefore refuses
+any TEI with no coordinate-bearing block inside ``<text><body>``, raising :class:`NoTextBlocks`.
+
+Two properties of the real output the adapter must honour, both measured rather than assumed:
 
   * a single ``coords`` value may hold SEVERAL boxes separated by ``;`` — one per line for a
     span that wraps, and for a figure, one per caption line plus one for the graphic. Each is
@@ -61,10 +83,23 @@ class GrobidError(RuntimeError):
     silently unextracted file into the lake as a zero-block run.
     """
 
-    def __init__(self, message, status=None, body=b""):
+    def __init__(self, message, status=None, body=b"", metrics=None):
         super().__init__(message)
         self.status = status
         self.body = body
+        #: the §14 metrics dict for a failed run, when the error came from :func:`extract`
+        self.metrics = metrics
+
+
+class NoTextBlocks(GrobidError):
+    """HTTP 200, valid TEI, and NOTHING extracted from the document body.
+
+    The partial-text-layer case (§8.3 of the builder's report, narrowed by the referee): a
+    file with no text layer AT ALL is refused by the service itself with a 500
+    ``[NO_BLOCKS]``, but a scan whose cover page carries a text layer comes back 200 with a
+    header parsed from the boilerplate and an empty ``<text><body>``. This is the error that
+    keeps such a run out of the lake as anything but a failure.
+    """
 
 
 @dataclasses.dataclass(frozen=True)
@@ -83,6 +118,7 @@ class Block:
     element_id: str | None = None     # xml:id where the element has one
     box_index: int = 0                # position within a multi-box ";" coords value
     box_count: int = 1
+    frame: str = "cropbox"            # "cropbox" as GROBID emits it; "mediabox" after to_mediabox()
 
     @property
     def width(self):
@@ -134,9 +170,18 @@ def page_sizes(tei):
     return sizes
 
 
-def iter_blocks(tei, kinds=None):
-    """Yield a :class:`Block` for every box on every coordinate-bearing element."""
+def iter_blocks(tei, kinds=None, subtree=None):
+    """Yield a :class:`Block` for every box on every coordinate-bearing element.
+
+    ``subtree`` is an ElementPath evaluated from the TEI root; only elements below the first
+    match are walked (``".//t:text/t:body"`` for :func:`body_blocks`). Nothing matching means
+    nothing is yielded — which is the whole point of the zero-block gate.
+    """
     root = _root(tei)
+    if subtree is not None:
+        root = root.find(subtree, NS)
+        if root is None:
+            return
     wanted = set(kinds) if kinds else None
     for el in root.iter():
         coords = el.get("coords")
@@ -155,6 +200,44 @@ def iter_blocks(tei, kinds=None):
 
 def blocks(tei, kinds=None):
     return list(iter_blocks(tei, kinds))
+
+
+BODY_PATH = ".//t:text/t:body"
+
+
+def body_blocks(tei, kinds=None):
+    """Coordinate-bearing blocks from ``<text><body>`` only — the document, not the header.
+
+    The header alone is not extraction: a JSTOR cover page's access boilerplate parses into a
+    header title and nothing else (measured on ``Anderson_1957``, 2026-09-14).
+    """
+    return list(iter_blocks(tei, kinds, subtree=BODY_PATH))
+
+
+def body_text(tei):
+    """Whitespace-normalised text of ``<text><body>`` ('' when there is no body at all)."""
+    el = _root(tei).find(BODY_PATH, NS)
+    if el is None:
+        return ""
+    return " ".join("".join(el.itertext()).split())
+
+
+def check_text_blocks(tei, name=""):
+    """Raise :class:`NoTextBlocks` when a 200 carried no extracted document body.
+
+    The rule is BLOCK-BASED, not byte-based: a body with text but no coordinates would mean
+    the request forgot ``teiCoordinates`` (which is a caller bug, and is reported as one),
+    while a body with neither is a document that was not extracted. Both are refusals.
+    """
+    n_blocks = len(body_blocks(tei))
+    if n_blocks:
+        return n_blocks
+    what = name or "document"
+    raise NoTextBlocks(
+        f"GROBID returned 200 for {what} but its <text><body> yields no coordinate-bearing "
+        f"blocks (body text {len(body_text(tei))} chars, header title "
+        f"{header_title(tei)[:60]!r}) — refusing to record an empty extraction",
+        200, tei if isinstance(tei, bytes) else b"")
 
 
 def header_title(tei):
@@ -191,6 +274,64 @@ def implausible_blocks(tei, tol=1.0):
         elif b.x0 < -tol or b.y0 < -tol or b.x1 > w + tol or b.y1 > h + tol:
             bad.append((b, f"box outside page {w}x{h}"))
     return bad
+
+
+# ── the cropbox -> mediabox frame shift ─────────────────────────────────────────────────
+
+def page_frames(pdf_path):
+    """{page: dict} — each page's mediabox, cropbox, rotation and the GROBID->mediabox shift.
+
+    Read from the PDF with pypdfium2 (the TEI carries only the cropbox's SIZE, never its
+    origin, so the offset cannot be recovered from the TEI alone). ``dx``/``dy`` are what
+    :func:`to_mediabox` adds: dx = crop.x0 - media.x0, dy = media.y1 - crop.y1, i.e. the
+    cropbox's upper-left corner expressed in the mediabox's upper-left frame.
+    """
+    import ctypes
+
+    import pypdfium2 as pdfium
+    import pypdfium2.raw as praw
+
+    def _box(fn, page):
+        vals = [ctypes.c_float() for _ in range(4)]
+        ok = fn(page.raw, *[ctypes.byref(v) for v in vals])
+        return tuple(v.value for v in vals) if ok else None
+
+    frames = {}
+    doc = pdfium.PdfDocument(pdf_path)
+    try:
+        for i in range(len(doc)):
+            page = doc[i]
+            media = _box(praw.FPDFPage_GetMediaBox, page)
+            crop = _box(praw.FPDFPage_GetCropBox, page) or media
+            rot = int(praw.FPDFPage_GetRotation(page.raw))
+            frames[i + 1] = {
+                "mediabox": media, "cropbox": crop, "rotation": rot,
+                "dx": crop[0] - media[0], "dy": media[3] - crop[3],
+            }
+    finally:
+        doc.close()
+    return frames
+
+
+def to_mediabox(blocks_in, frames):
+    """Shift blocks from GROBID's cropbox-relative frame into the canonical mediabox frame.
+
+    A page with ``rotation != 0`` is NOT converted: GROBID already reports it in the
+    displayed (rotated) frame, and how the cropbox shift composes with that rotation is
+    UNCONFIRMED (7 rotated pages in the 216-PDF corpus). Those blocks come back unchanged,
+    still carrying ``frame="cropbox"``, so a caller can see which ones were skipped. A page
+    with no frame record is likewise left alone.
+    """
+    out = []
+    for b in blocks_in:
+        f = frames.get(b.page)
+        if f is None or f["rotation"]:
+            out.append(b)
+            continue
+        dx, dy = f["dx"], f["dy"]
+        out.append(dataclasses.replace(
+            b, x0=b.x0 + dx, y0=b.y0 + dy, x1=b.x1 + dx, y1=b.y1 + dy, frame="mediabox"))
+    return out
 
 
 def title_matches_registry(tei, registry_title):
@@ -303,7 +444,7 @@ def stop():
 
 def process_pdf(path, url=DEFAULT_URL, coord_elements=COORD_ELEMENTS,
                 segment_sentences=True, consolidate_header=False,
-                consolidate_citations=False, timeout=3600):
+                consolidate_citations=False, timeout=3600, require_text_blocks=True):
     """POST one PDF to processFulltextDocument -> TEI bytes.
 
     ``teiCoordinates`` is a REPEATED form field, one element name per field. Passing the
@@ -312,6 +453,10 @@ def process_pdf(path, url=DEFAULT_URL, coord_elements=COORD_ELEMENTS,
 
     Consolidation is off by default: it reaches Crossref over the network, and the design
     keeps stage 2 offline unless a caller opts in.
+
+    ``require_text_blocks`` (default ON) applies :func:`check_text_blocks`, so a 200 that
+    extracted nothing raises :class:`NoTextBlocks` instead of returning. Turning it off is
+    only for callers that want to INSPECT such a TEI; no ingest path may.
     """
     fields = [("consolidateHeader", "1" if consolidate_header else "0"),
               ("consolidateCitations", "1" if consolidate_citations else "0")]
@@ -339,7 +484,10 @@ def process_pdf(path, url=DEFAULT_URL, coord_elements=COORD_ELEMENTS,
             if r.status != 200:
                 raise GrobidError(f"GROBID returned {r.status} for {os.path.basename(path)}",
                                   r.status, r.read())
-            return r.read()
+            tei = r.read()
+        if require_text_blocks:
+            check_text_blocks(tei, os.path.basename(path))
+        return tei
     except urllib.error.HTTPError as e:
         raise GrobidError(f"GROBID returned {e.code} for {os.path.basename(path)}",
                           e.code, e.read()) from e
@@ -353,3 +501,134 @@ def process_pdf(path, url=DEFAULT_URL, coord_elements=COORD_ELEMENTS,
         # "except GrobidError" misses it entirely.
         raise GrobidError(f"GROBID dropped the connection for "
                           f"{os.path.basename(path)}: {e!r}") from e
+
+
+# ── the §14 throughput record ───────────────────────────────────────────────────────────
+
+CGROUP_MEMORY = "/sys/fs/cgroup/system.slice/grobid.service/memory.current"
+
+
+class _RssSampler:
+    """Peak memory of the GROBID unit, sampled from its cgroup while a request is in flight.
+
+    ONE long-lived ``wsl.exe`` child prints ``memory.current`` on a loop; a per-sample
+    ``wsl.exe`` costs ~200 ms and would sample the sampler. ``memory.current`` is read rather
+    than ``memory.peak``/``VmHWM`` because those are LIFETIME high-water marks and would
+    report the largest request the service ever served, not this one.
+
+    THIS IS NOT A PER-WORKER FIGURE. GROBID serves its whole pool from one JVM, so the
+    cgroup covers every worker plus pdfalto; per-worker memory can only be DERIVED from the
+    slope across pool sizes (measured 2026-09-14: ~689 MiB per added worker).
+    """
+
+    def __init__(self, interval=0.5):
+        self.interval = interval
+        self._proc = None
+        self.samples = []
+
+    def __enter__(self):
+        env = dict(os.environ, MSYS_NO_PATHCONV="1")
+        self._proc = subprocess.Popen(
+            ["wsl.exe", "-d", WSL_DISTRO, "-u", "root", "--", "bash", "-c",
+             f"while :; do cat {CGROUP_MEMORY} 2>/dev/null || echo 0; sleep {self.interval}; done"],
+            stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL,
+            env=env, text=True)
+        return self
+
+    def __exit__(self, *exc):
+        if self._proc is None:
+            return False
+        self._proc.terminate()
+        try:
+            out, _ = self._proc.communicate(timeout=15)
+        except subprocess.TimeoutExpired:
+            self._proc.kill()
+            out, _ = self._proc.communicate()
+        self.samples = [int(ln) for ln in (out or "").split() if ln.strip().isdigit()]
+        self._proc = None
+        return False
+
+    @property
+    def peak(self):
+        return max(self.samples) if self.samples else 0
+
+
+def pdf_page_count(path):
+    """Page count from the PDF itself — the denominator of pages/s must not come from the TEI,
+    which only lists the pages GROBID managed to lay out."""
+    import pypdfium2 as pdfium
+    doc = pdfium.PdfDocument(path)
+    try:
+        return len(doc)
+    finally:
+        doc.close()
+
+
+def extract(path, url=DEFAULT_URL, concurrency=None, sample_rss=True, **kw):
+    """Run one file and return ``(tei, metrics)`` — the §14 throughput record for that run.
+
+    ``metrics`` is the dict the design's ``extraction_runs.metrics`` column (§4.3, JSON:
+    seconds, pages/s, peak RSS, coverage) is specified to hold. **The row itself is not
+    written here:** ``extraction_runs`` requires a ``files`` row and the ``litkb_ingest``
+    login, both of which belong to the P3/P5 ingest path; this function produces the dict
+    that P5's ingest persists into ``extraction_runs.metrics`` verbatim, and
+    :func:`append_metrics` parks it as JSONL until then.
+
+    A failed run still returns a metrics dict (through the raised error's ``metrics``
+    attribute) with ``status="failed"`` — a :class:`NoTextBlocks` refusal is recorded as a
+    FAILED run, never as an ok one with zero blocks.
+    """
+    pages = pdf_page_count(path)
+    sampler = _RssSampler() if sample_rss else None
+    started = time.time()
+    ctx = sampler if sampler is not None else _null_ctx()
+    status, err, tei = "ok", None, None
+    with ctx:
+        t0 = time.time()
+        try:
+            tei = process_pdf(path, url=url, **kw)
+        except GrobidError as e:
+            status, err = "failed", f"{type(e).__name__}: {e}"
+        seconds = time.time() - t0
+    peak = sampler.peak if sampler is not None else None
+    if sampler is not None and not sampler.samples:
+        raise GrobidError(
+            "the RSS sampler produced no samples — a run with no peak-RSS measurement is not "
+            "a measured run (§14 refuses it); is the grobid unit up under WSL?")
+    metrics = {
+        "tool": EXTRACTOR,
+        "stage": "2-structure",
+        "status": status,
+        "error": err,
+        "file": os.path.basename(path),
+        "pages": pages,
+        "seconds": round(seconds, 3),
+        "pages_per_s": round(pages / seconds, 3) if seconds > 0 else None,
+        "peak_rss_bytes": peak,
+        "peak_rss_scope": "grobid.service cgroup (whole JVM pool + pdfalto), NOT per worker",
+        "concurrency": concurrency,
+        "frame": "cropbox",
+        "started_at": time.strftime("%Y-%m-%dT%H:%M:%S", time.gmtime(started)),
+        "host": "local-wsl2",
+    }
+    if status == "failed":
+        raise GrobidError(f"{path}: {err}", metrics=metrics)
+    metrics["body_blocks"] = len(body_blocks(tei))
+    return tei, metrics
+
+
+def append_metrics(metrics, path):
+    """Park one metrics dict as JSONL until P5's ingest writes it to ``extraction_runs``."""
+    import json
+    os.makedirs(os.path.dirname(os.path.abspath(path)), exist_ok=True)
+    with open(path, "a", encoding="utf-8", newline="\n") as fh:
+        fh.write(json.dumps(metrics, sort_keys=True) + "\n")
+    return path
+
+
+class _null_ctx:
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *exc):
+        return False

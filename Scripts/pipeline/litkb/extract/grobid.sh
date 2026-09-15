@@ -12,24 +12,46 @@
 # ~20-30 s cold. `enable`/`disable` toggle autostart if you want it.
 #
 # Resource budget (litkb decision litkb-p0-foundation §15.16: local workers keep 20% of RAM
-# and CPU free for Kam). Measured on this host: 12 logical threads, 31 GiB visible to WSL.
-#   usable CPU  = 12 * 0.8 = 9.6      -> concurrency 9
-#   usable RAM  = 31 * 0.8 = 24.8 GiB
-#   JVM heap 8 GiB (design §12.7 cites GROBID 6-8 GiB for batch)
-#   + concurrency 9 * pdfalto cap 1.5 GiB = 13.5 GiB
-#   = 21.5 GiB <= 24.8 GiB budget.
-# The stock pdfalto cap is 6096 MB; 9 x that would be 54 GiB, far over budget, so it is
-# lowered here. Override any of these by exporting the variables before calling.
+# and CPU free for Kam). Host: 12 logical threads, 31 GiB visible to WSL.
+#
+# MEASURED 2026-09-14 (referee, 15 requests / 2,361 pages per pool size, cgroup + /proc
+# sampling at 2 Hz). These are measurements, not the arithmetic they replaced:
+#
+#   pool | wall    | pages/s | peak service RSS | max one pdfalto | peak whole-system CPU
+#      1 | 305.6 s |    7.73 |        8,243 MiB |        20.3 MiB |  58.6 %
+#      4 | 116.9 s |   20.2  |       11,655 MiB |        20.5 MiB |  76.5 %
+#      9 | 111.9 s |   21.1  |       13,758 MiB |        20.5 MiB | 100.0 %
+#
+#   * The JVM is NOT its heap. With -Xmx8g the service reached 8,243 MiB at pool 1 and
+#     13,758 MiB at pool 9 — about 5.7 GiB of non-heap on top of the heap, rising ~689 MiB
+#     per added worker. There is ONE JVM for the whole pool, so there is no per-worker
+#     process and no per-worker RSS to measure; 689 MiB/worker is a derived slope.
+#   * pdfalto never exceeded 20.5 MiB. The old budget's 1.5 GiB per worker was wrong by ~75x.
+#     The cap below is left at 1536 MB as a ceiling, but it is NOT a budget term.
+#   * RAM at pool 9 (13.84 GiB) does fit 24.8 GiB. CPU does NOT: pool 9 reached 100% non-idle
+#     and left Kam nothing, which is exactly what the 20% rule forbids. Pool 4 peaks at 76.5%
+#     and delivers 96% of pool 9's rate on this workload.
+#
+#   => GROBID_CONCURRENCY defaults to 4. Above 4 the script REFUSES unless
+#      GROBID_BREAK_HEADROOM=1 is set, which says in the refusal that it breaks §15.16.
+#
+# Base note: WSL sees 31 of the host's 63.76 GiB but all 12 logical CPUs, so the two terms of
+# §15.16 are not computed on the same base (RAM conservative, CPU not).
 set -euo pipefail
 
 GROBID_VERSION="${GROBID_VERSION:-0.9.1}"
 GROBID_DIR="${GROBID_DIR:-/opt/grobid-${GROBID_VERSION}}"
 GROBID_PORT="${GROBID_PORT:-8070}"
 GROBID_HEAP_GB="${GROBID_HEAP_GB:-8}"
-GROBID_CONCURRENCY="${GROBID_CONCURRENCY:-9}"
+GROBID_CONCURRENCY="${GROBID_CONCURRENCY:-4}"
+GROBID_HEADROOM_MAX_CONCURRENCY="${GROBID_HEADROOM_MAX_CONCURRENCY:-4}"
+GROBID_BREAK_HEADROOM="${GROBID_BREAK_HEADROOM:-0}"
 GROBID_PDFALTO_MB="${GROBID_PDFALTO_MB:-1536}"
 GROBID_PDFALTO_TIMEOUT="${GROBID_PDFALTO_TIMEOUT:-300}"
 GROBID_JDK="${GROBID_JDK:-}"
+# Where JDKs are looked for. Overridable so the "no JDK 21 anywhere" refusal can be tested
+# without uninstalling one.
+GROBID_JVM_DIR="${GROBID_JVM_DIR:-/usr/lib/jvm}"
 UNIT=/etc/systemd/system/grobid.service
 LAUNCHER="${GROBID_DIR}/grobid-service/build/install/grobid-service/bin/grobid-service"
 CONFIG="${GROBID_DIR}/grobid-home/config/grobid.yaml"
@@ -38,7 +60,50 @@ log() { printf '[grobid.sh] %s\n' "$*"; }
 
 find_jdk21() {
   if [ -n "$GROBID_JDK" ]; then printf '%s' "$GROBID_JDK"; return; fi
-  ls -d /usr/lib/jvm/java-21-openjdk* 2>/dev/null | head -1
+  ls -d "${GROBID_JVM_DIR}"/java-21-openjdk* 2>/dev/null | head -1
+}
+
+# GROBID 0.9.1 is compiled to class file version 65 and needs a JDK 21+. The refusal that
+# existed before this was really an INVALID-DIRECTORY refusal: with JAVA_HOME unset the
+# launcher silently fell back to `java` on PATH, which on a host with a 17 on PATH dies with
+# an UnsupportedClassVersionError halfway through boot and on a host with a 21 quietly starts
+# something we never chose (referee, 2026-09-14 §5). So the version is checked HERE, against
+# the JDK this script will actually export, and an unresolvable or too-old JDK is a refusal —
+# never a fall-back to PATH.
+require_jdk21() {
+  local jh; jh="$(find_jdk21 || true)"
+  if [ -z "$jh" ]; then
+    log "REFUSING: no JDK 21 found (looked at \$GROBID_JDK and ${GROBID_JVM_DIR}/java-21-openjdk*)."
+    log "  GROBID 0.9.1 needs 21+; falling back to \`java\` on PATH is NOT allowed here."
+    return 1
+  fi
+  if [ ! -x "$jh/bin/java" ]; then
+    log "REFUSING: JAVA_HOME candidate '$jh' has no executable bin/java."
+    return 1
+  fi
+  local ver major
+  ver="$("$jh/bin/java" -version 2>&1 | head -1 | sed -n 's/.*version "\([0-9][0-9.]*\).*/\1/p')"
+  major="${ver%%.*}"
+  if [ -z "$major" ] || [ "$major" -lt 21 ] 2>/dev/null; then
+    log "REFUSING: '$jh' is java ${ver:-unknown}; GROBID 0.9.1 requires 21 or newer."
+    return 1
+  fi
+  log "JDK ok: $jh (java $ver)"
+  printf '%s' "$jh" >/dev/null
+  return 0
+}
+
+require_concurrency_headroom() {
+  if [ "$GROBID_CONCURRENCY" -gt "$GROBID_HEADROOM_MAX_CONCURRENCY" ] && \
+     [ "$GROBID_BREAK_HEADROOM" != "1" ]; then
+    log "REFUSING concurrency=${GROBID_CONCURRENCY}: above ${GROBID_HEADROOM_MAX_CONCURRENCY} this"
+    log "  BREAKS the 20% CPU-headroom rule (decisions.yaml litkb-p0-foundation §15.16)."
+    log "  Measured 2026-09-14: pool 9 peaks at 100% whole-system CPU and leaves Kam nothing,"
+    log "  while pool 4 peaks at 76.5% and gives 96% of pool 9's rate on the hard-paper set."
+    log "  Set GROBID_BREAK_HEADROOM=1 to override, knowingly."
+    return 1
+  fi
+  return 0
 }
 
 do_install() {
@@ -104,6 +169,7 @@ configure() {
 }
 
 write_unit() {
+  require_jdk21 || exit 1
   local jh; jh="$(find_jdk21)"
   cat >"$UNIT" <<EOF
 [Unit]
@@ -152,6 +218,8 @@ health() {
 }
 
 do_start() {
+  require_jdk21 || exit 1
+  require_concurrency_headroom || exit 1
   [ -x "$LAUNCHER" ] || { log "not installed; run: $0 install"; exit 1; }
   [ -f "$UNIT" ] || write_unit
   if [ "$(health || true)" = "true" ]; then log "already alive on ${GROBID_PORT}"; return 0; fi
@@ -178,6 +246,8 @@ do_status() {
 
 case "${1:-status}" in
   install) do_install ;;
+  check-jdk) require_jdk21 ;;
+  check-concurrency) require_concurrency_headroom ;;
   configure) configure; write_unit ;;
   enable) write_unit; systemctl enable grobid; log "autostart on" ;;
   disable) systemctl disable grobid 2>/dev/null; log "autostart off" ;;
@@ -186,5 +256,5 @@ case "${1:-status}" in
   restart) do_stop; do_start ;;
   status) do_status ;;
   health) health; echo ;;
-  *) echo "usage: $0 install|enable|disable|configure|start|stop|restart|status|health"; exit 2 ;;
+  *) echo "usage: $0 install|check-jdk|check-concurrency|enable|disable|configure|start|stop|restart|status|health"; exit 2 ;;
 esac

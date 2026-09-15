@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<TEI xml:space="preserve" xmlns="http://www.tei-c.org/ns/1.0" 
+xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
+xsi:schemaLocation="http://www.tei-c.org/ns/1.0 https://raw.githubusercontent.com/kermitt2/grobid/master/grobid-home/schemas/xsd/Grobid.xsd"
+ xmlns:xlink="http://www.w3.org/1999/xlink">
+	<teiHeader xml:lang="en">
+		<fileDesc>
+			<titleStmt>
+				<title level="a" type="main" coords="1,67.99,706.47,326.41,6.48;1,275.75,715.47,118.66,6.48">Institute of Mathematical Statistics is collaborating with JSTOR to digitize, preserve, and extend access to The Annals of Mathematical Statistics</title>
+			</titleStmt>
+			<publicationStmt>
+				<publisher/>
+				<availability status="unknown"><licence/></availability>
+			</publicationStmt>
+			<sourceDesc>
+				<biblStruct status="extracted">
+					<analytic>
+						<title level="a" type="main" coords="1,67.99,706.47,326.41,6.48;1,275.75,715.47,118.66,6.48">Institute of Mathematical Statistics is collaborating with JSTOR to digitize, preserve, and extend access to The Annals of Mathematical Statistics</title>
+					</analytic>
+					<monogr>
+						<imprint>
+							<date/>
+						</imprint>
+					</monogr>
+					<idno type="MD5">59B2334910D048F923A6391FA03BBADF</idno>
+				</biblStruct>
+			</sourceDesc>
+		</fileDesc>
+		<encodingDesc>
+			<appInfo>
+				<application version="0.9.1" ident="GROBID" when="2026-09-15T06:49+0000">
+					<desc>GROBID - A machine learning software for extracting information from scholarly documents</desc>
+					<label type="revision"></label>
+					<label type="parameters">startPage=-1, endPage=-1, consolidateCitations=0, consolidateHeader=0, consolidateFunders=0, includeRawAffiliations=false, includeRawCitations=false, includeRawCopyrights=false, generateTeiIds=false, generateTeiCoordinates=[ref, biblStruct, persName, figure, formula, head, s, p, note, title], flavor=null, debugLabelingCollector=disabled</label>
+					<ref target="https://github.com/kermitt2/grobid"/>
+				</application>
+			</appInfo>
+		</encodingDesc>
+		<profileDesc>
+			<abstract/>
+		</profileDesc>
+	</teiHeader>
+	<facsimile>
+		<surface n="1" ulx="0.0" uly="0.0" lrx="433.9" lry="734.5"/>
+		<surface n="2" ulx="0.0" uly="0.0" lrx="433.9" lry="683.5"/>
+		<surface n="3" ulx="0.0" uly="0.0" lrx="483.8" lry="690.2"/>
+		<surface n="4" ulx="0.0" uly="0.0" lrx="433.9" lry="683.5"/>
+		<surface n="5" ulx="0.0" uly="0.0" lrx="433.9" lry="647.0"/>
+		<surface n="6" ulx="0.0" uly="0.0" lrx="483.8" lry="690.2"/>
+		<surface n="7" ulx="0.0" uly="0.0" lrx="491.5" lry="696.5"/>
+		<surface n="8" ulx="0.0" uly="0.0" lrx="483.8" lry="690.2"/>
+		<surface n="9" ulx="0.0" uly="0.0" lrx="495.4" lry="697.2"/>
+		<surface n="10" ulx="0.0" uly="0.0" lrx="483.8" lry="690.2"/>
+		<surface n="11" ulx="0.0" uly="0.0" lrx="491.5" lry="696.4"/>
+		<surface n="12" ulx="0.0" uly="0.0" lrx="433.9" lry="647.0"/>
+		<surface n="13" ulx="0.0" uly="0.0" lrx="433.9" lry="683.5"/>
+		<surface n="14" ulx="0.0" uly="0.0" lrx="483.8" lry="690.2"/>
+		<surface n="15" ulx="0.0" uly="0.0" lrx="433.9" lry="683.5"/>
+		<surface n="16" ulx="0.0" uly="0.0" lrx="483.8" lry="690.2"/>
+		<surface n="17" ulx="0.0" uly="0.0" lrx="499.2" lry="701.9"/>
+		<surface n="18" ulx="0.0" uly="0.0" lrx="433.9" lry="683.5"/>
+		<surface n="19" ulx="0.0" uly="0.0" lrx="491.5" lry="696.8"/>
+		<surface n="20" ulx="0.0" uly="0.0" lrx="433.9" lry="683.5"/>
+		<surface n="21" ulx="0.0" uly="0.0" lrx="495.4" lry="697.3"/>
+		<surface n="22" ulx="0.0" uly="0.0" lrx="495.4" lry="697.8"/>
+	</facsimile>
+	<text xml:lang="en">
+		<body/>
+		<back>
+			<div type="references">
+
+				<listBibl/>
+			</div>
+		</back>
+	</text>
+</TEI>

@@ -16,8 +16,28 @@ import pytest
 
 from litkb.extract import grobid
 
-FIXTURE = pathlib.Path(__file__).with_name("fixtures") / "grobid_sample.tei.xml"
+FIXTURES = pathlib.Path(__file__).with_name("fixtures")
+FIXTURE = FIXTURES / "grobid_sample.tei.xml"
+#: a JSTOR scan whose ONLY text layer is the cover-page access boilerplate: HTTP 200,
+#: valid header, empty <text><body>. Saved verbatim from a live 0.9.1 run, 2026-09-14.
+SCAN_FIXTURE = FIXTURES / "anderson_scan.tei.xml"
+#: trimmed from a live run over a PDF whose pages 2-3 have cropbox != mediabox.
+CROP_FIXTURE = FIXTURES / "alwan_cropped.tei.xml"
 LIVE = os.environ.get("LITKB_LIVE") == "1"
+
+VALIDATION = pathlib.Path(r"D:\edmonds-pipeline\Literture\Validation")
+ALWAN_PDF = VALIDATION / "Alwan_1988_time-series-modeling-statistical-process.pdf"
+ANDERSON_PDF = VALIDATION / "Anderson_1957_statistical-inference-about-markov.pdf"
+
+#: Alwan_1988, measured with pypdfium2 2026-09-14 (mediabox (0,0,612,792); cropbox on pages
+#: 2-3 (10.345, 10.777, 603.441, 782.948) -> dx 10.345, dy 9.052).
+ALWAN_DX, ALWAN_DY = 10.345, 9.052
+#: (page, element text, the element's box in the canonical MEDIABOX frame) — the union of
+#: pypdfium2's per-character boxes for that string, y-flipped against the mediabox top.
+ALWAN_TRUTH = [
+    (2, "Shewhart (1931)", (193.80, 503.39, 262.01, 512.34)),
+    (3, "Berthouex, Hunter, and Pallesen (1978)", (78.89, 349.08, 246.71, 358.04)),
+]
 
 
 @pytest.fixture(scope="module")
@@ -150,6 +170,132 @@ def test_implausible_blocks_flags_a_page_with_no_surface():
     assert any("no <surface>" in reason for _, reason in flagged)
 
 
+# ── the zero-block refusal (referee defect 1) ───────────────────────────────────────────
+
+@pytest.fixture(scope="module")
+def scan_tei():
+    return SCAN_FIXTURE.read_bytes()
+
+
+def test_the_scan_is_the_dangerous_case_200_with_a_header_and_no_body(scan_tei):
+    """The fixture is only interesting if it really is a 200 that parsed SOMETHING."""
+    assert grobid.header_title(scan_tei)                 # boilerplate, but a header
+    assert grobid.bibl_structs(scan_tei)                 # and a biblStruct
+    assert grobid.blocks(scan_tei)                       # and blocks — in the HEADER
+    assert grobid.body_text(scan_tei) == ""
+    assert grobid.body_blocks(scan_tei) == []
+
+
+def test_zero_body_blocks_is_refused_by_name(scan_tei):
+    with pytest.raises(grobid.NoTextBlocks) as ei:
+        grobid.check_text_blocks(scan_tei, "Anderson_1957.pdf")
+    assert ei.value.status == 200
+    assert "Anderson_1957.pdf" in str(ei.value)
+    assert isinstance(ei.value, grobid.GrobidError)      # callers catching the base still see it
+
+
+def test_a_real_paper_passes_the_zero_block_check(tei):
+    assert grobid.check_text_blocks(tei, "Benedek_2015.pdf") == len(grobid.body_blocks(tei))
+
+
+def test_mutation_removing_the_body_check_admits_the_scan(scan_tei):
+    """Without the gate, the scan is indistinguishable from a good run by status alone.
+
+    This is the mutation in test form: a caller that checks only ``status == 200`` (or only
+    ``blocks(tei)``, which counts the HEADER's boilerplate title) accepts the scan, and the
+    real check refuses it. If ``check_text_blocks`` stopped refusing, the assertion below
+    would fail.
+    """
+    status_only_ok = True                                # what a 200-checking caller concludes
+    blocks_anywhere_ok = bool(grobid.blocks(scan_tei))   # what a naive block count concludes
+    assert status_only_ok and blocks_anywhere_ok
+    with pytest.raises(grobid.NoTextBlocks):
+        grobid.check_text_blocks(scan_tei)
+
+
+# ── the cropbox -> mediabox frame shift (referee defect 4) ──────────────────────────────
+
+@pytest.fixture(scope="module")
+def crop_tei():
+    return CROP_FIXTURE.read_bytes()
+
+
+def _alwan_frames():
+    """The measured frames for the fixture, without needing the PDF."""
+    return {1: {"mediabox": (0.0, 0.0, 612.0, 792.0), "cropbox": (0.0, 0.0, 612.0, 792.0),
+                "rotation": 0, "dx": 0.0, "dy": 0.0},
+            2: {"mediabox": (0.0, 0.0, 612.0, 792.0),
+                "cropbox": (10.345, 10.777, 603.441, 782.948),
+                "rotation": 0, "dx": ALWAN_DX, "dy": ALWAN_DY},
+            3: {"mediabox": (0.0, 0.0, 612.0, 792.0),
+                "cropbox": (10.345, 10.777, 603.441, 782.948),
+                "rotation": 0, "dx": ALWAN_DX, "dy": ALWAN_DY}}
+
+
+def _max_offset(block, truth):
+    return max(abs(block.x0 - truth[0]), abs(block.y0 - truth[1]),
+               abs(block.x1 - truth[2]), abs(block.y1 - truth[3]))
+
+
+def _pick(blocks_in, page, text):
+    hits = [b for b in blocks_in if b.page == page and b.text == text]
+    assert len(hits) == 1, f"{text!r} is not unique on page {page}"
+    return hits[0]
+
+
+def test_grobid_boxes_are_in_the_cropbox_frame_not_the_mediabox(crop_tei):
+    """WITH THE FIX REMOVED: raw GROBID boxes miss pypdfium2's mediabox truth by >5 pt.
+
+    This is the mutation half of the test. The referee measured the shift at 10.9 pt; if the
+    frames were the same, this assertion would fail and the conversion would be pointless.
+    """
+    raw = grobid.body_blocks(crop_tei)
+    for page, text, truth in ALWAN_TRUTH:
+        b = _pick(raw, page, text)
+        assert b.frame == "cropbox"
+        assert _max_offset(b, truth) > 5.0, f"page {page}: no cropbox shift to correct"
+
+
+def test_to_mediabox_aligns_boxes_with_pypdfium2(crop_tei):
+    """WITH THE FIX: every box lands within 2 pt of pypdfium2's own mediabox geometry."""
+    shifted = grobid.to_mediabox(grobid.body_blocks(crop_tei), _alwan_frames())
+    for page, text, truth in ALWAN_TRUTH:
+        b = _pick(shifted, page, text)
+        assert b.frame == "mediabox"
+        assert _max_offset(b, truth) <= 2.0, f"page {page}: {_max_offset(b, truth):.2f} pt off"
+
+
+def test_an_uncropped_page_is_unchanged_by_the_shift(crop_tei):
+    frames = _alwan_frames()
+    assert frames[1]["dx"] == 0 and frames[1]["dy"] == 0
+
+
+def test_to_mediabox_refuses_a_rotated_page(crop_tei):
+    """Rotation composed with the cropbox shift is UNCONFIRMED, so a rotated page is left
+    in the cropbox frame rather than converted wrongly and silently."""
+    frames = _alwan_frames()
+    frames[3] = dict(frames[3], rotation=90)
+    shifted = grobid.to_mediabox(grobid.body_blocks(crop_tei), frames)
+    b = _pick(shifted, 3, "Berthouex, Hunter, and Pallesen (1978)")
+    assert b.frame == "cropbox"
+    assert _pick(shifted, 2, "Shewhart (1931)").frame == "mediabox"
+
+
+def test_a_page_with_no_frame_record_is_left_alone(crop_tei):
+    shifted = grobid.to_mediabox(grobid.body_blocks(crop_tei), {})
+    assert all(b.frame == "cropbox" for b in shifted)
+
+
+@pytest.mark.skipif(not ALWAN_PDF.exists(), reason="the Alwan PDF is not on this machine")
+def test_page_frames_reads_the_measured_cropbox_from_the_pdf():
+    pytest.importorskip("pypdfium2")
+    frames = grobid.page_frames(str(ALWAN_PDF))
+    assert frames[1]["cropbox"] == pytest.approx(frames[1]["mediabox"], abs=0.01)
+    assert frames[2]["cropbox"] == pytest.approx((10.345, 10.777, 603.441, 782.948), abs=0.01)
+    assert frames[2]["dx"] == pytest.approx(ALWAN_DX, abs=0.01)
+    assert frames[2]["dy"] == pytest.approx(ALWAN_DY, abs=0.01)
+
+
 # ── header and references ────────────────────────────────────────────────────────────────
 
 def test_header_title(tei):
@@ -233,3 +379,122 @@ def test_live_corrupted_pdf_errors_rather_than_returning_empty_tei(live_service,
     with pytest.raises(grobid.GrobidError) as ei:
         grobid.process_pdf(str(bad), timeout=120)
     assert ei.value.status != 200
+
+
+@pytest.mark.litkb_live
+@pytestmark_live
+@pytest.mark.skipif(not ANDERSON_PDF.exists(), reason="the Anderson scan is not on this machine")
+def test_live_partial_text_layer_scan_is_refused(live_service):
+    """The whole point of defect 1, on the real file: 200, header parsed, nothing extracted."""
+    with pytest.raises(grobid.NoTextBlocks):
+        grobid.process_pdf(str(ANDERSON_PDF), timeout=600)
+    # and with the guard explicitly off it comes back as the dangerous 200 it is
+    tei = grobid.process_pdf(str(ANDERSON_PDF), timeout=600, require_text_blocks=False)
+    assert grobid.header_title(tei) and grobid.body_blocks(tei) == []
+
+
+@pytest.mark.litkb_live
+@pytestmark_live
+def test_live_extract_records_the_throughput_metrics(live_service):
+    pdf = os.environ.get("LITKB_LIVE_PDF")
+    if not pdf or not os.path.exists(pdf):
+        pytest.skip("set LITKB_LIVE_PDF to a real PDF on this machine")
+    _tei, m = grobid.extract(pdf, concurrency=4)
+    assert m["status"] == "ok"
+    assert m["pages"] > 0 and m["seconds"] > 0 and m["pages_per_s"] > 0
+    assert m["peak_rss_bytes"] > 0          # §14 refuses a run with no peak-RSS measurement
+    assert m["tool"] == grobid.EXTRACTOR and m["concurrency"] == 4
+
+
+@pytest.mark.litkb_live
+@pytestmark_live
+@pytest.mark.skipif(not ANDERSON_PDF.exists(), reason="the Anderson scan is not on this machine")
+def test_live_extract_records_a_refused_run_as_failed(live_service):
+    """The link between defect 1 and defect 3: a zero-block refusal is a FAILED run, with
+    metrics, never an ok run with nothing in it."""
+    with pytest.raises(grobid.GrobidError) as ei:
+        grobid.extract(str(ANDERSON_PDF))
+    m = ei.value.metrics
+    assert m and m["status"] == "failed" and "NoTextBlocks" in m["error"]
+    assert m["pages"] == 22 and m["peak_rss_bytes"] > 0
+
+
+def test_extract_refuses_a_run_with_no_rss_samples(monkeypatch, tmp_path):
+    """§14: 'the instrument refuses a stage run that records no rate or no peak RSS'.
+
+    Runs without the service: the sampler is replaced by one that yields nothing, which is
+    exactly what a caller would see if the cgroup path moved or the unit were down.
+    """
+    class _DeadSampler:
+        samples = []
+        peak = 0
+
+        def __init__(self, *a, **k):
+            pass
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *e):
+            return False
+
+    monkeypatch.setattr(grobid, "_RssSampler", _DeadSampler)
+    monkeypatch.setattr(grobid, "pdf_page_count", lambda p: 3)
+    monkeypatch.setattr(grobid, "process_pdf", lambda *a, **k: b"<TEI/>")
+    with pytest.raises(grobid.GrobidError) as ei:
+        grobid.extract(str(tmp_path / "x.pdf"))
+    assert "no samples" in str(ei.value)
+
+
+def test_append_metrics_writes_one_json_line(tmp_path):
+    import json
+    p = grobid.append_metrics({"status": "ok", "pages": 1}, str(tmp_path / "m" / "m.jsonl"))
+    line = pathlib.Path(p).read_text(encoding="utf-8").strip()
+    assert json.loads(line)["pages"] == 1
+
+
+# ── the launcher's own refusals (defects 2 and 5), exercised inside WSL ──────────────────
+
+def _sh(action, env=None):
+    import subprocess
+    sh = str(pathlib.Path(grobid.MANAGER_SH)).replace("\\", "/")
+    sh = f"/mnt/{sh[0].lower()}{sh[2:]}"
+    cmd = ["wsl.exe", "-d", grobid.WSL_DISTRO, "-u", "root", "--"]
+    if env:
+        cmd += ["env"] + [f"{k}={v}" for k, v in env.items()]
+    cmd += ["bash", sh, action]
+    return subprocess.run(cmd, capture_output=True, text=True, timeout=120,
+                          env=dict(os.environ, MSYS_NO_PATHCONV="1"))
+
+
+@pytest.mark.litkb_live
+@pytestmark_live
+def test_launcher_refuses_a_jdk_below_21():
+    r = _sh("check-jdk", {"GROBID_JDK": "/usr/lib/jvm/java-17-openjdk-amd64"})
+    assert r.returncode != 0 and "requires 21" in r.stdout
+
+
+@pytest.mark.litkb_live
+@pytestmark_live
+def test_launcher_refuses_when_no_jdk21_is_found_rather_than_using_path_java():
+    """JAVA_HOME unset used to fall through to `java` on PATH (referee §5). It must refuse."""
+    r = _sh("check-jdk", {"GROBID_JVM_DIR": "/tmp/litkb-no-such-jvm-dir"})
+    assert r.returncode != 0 and "no JDK 21 found" in r.stdout
+    assert "PATH is NOT allowed" in r.stdout
+
+
+@pytest.mark.litkb_live
+@pytestmark_live
+def test_launcher_accepts_jdk21():
+    r = _sh("check-jdk", {"GROBID_JDK": "/usr/lib/jvm/java-21-openjdk-amd64"})
+    assert r.returncode == 0 and "JDK ok" in r.stdout
+
+
+@pytest.mark.litkb_live
+@pytestmark_live
+def test_launcher_refuses_concurrency_above_the_headroom_default():
+    r = _sh("check-concurrency", {"GROBID_CONCURRENCY": "9"})
+    assert r.returncode != 0 and "20% CPU-headroom" in r.stdout
+    ok = _sh("check-concurrency", {"GROBID_CONCURRENCY": "9", "GROBID_BREAK_HEADROOM": "1"})
+    assert ok.returncode == 0
+    assert _sh("check-concurrency").returncode == 0      # the default (4) passes

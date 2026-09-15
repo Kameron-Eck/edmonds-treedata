@@ -4,3 +4,7 @@
 # Extraction tools (Docling, MinerU, embedding models) will get their own
 # requirements-litkb-extract.txt in P4.
 psycopg[binary]==3.3.5
+# Stage 2 needs the PDF's own page boxes: GROBID's coordinates are cropbox-relative and the
+# TEI never carries the cropbox ORIGIN, so the mediabox shift of §7.1 cannot be computed
+# without reading the PDF. Also the page count that is the denominator of pages/s.
+pypdfium2==5.13.0

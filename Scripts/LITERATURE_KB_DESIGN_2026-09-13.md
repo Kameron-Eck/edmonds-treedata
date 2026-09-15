@@ -435,11 +435,35 @@ of the page as displayed (rotation applied), box = (x0, y0, x1, y1). Each tool g
 
 | Tool | What it emits | Adapter |
 |---|---|---|
-| GROBID (path A only) | `"page,x,y,w,h"`, page 1-indexed, PDF units, origin upper-left **[F]** | x1 = x + w, y1 = y + h |
+| GROBID (path A only) | `"page,x,y,w,h"`, page 1-indexed, PDF units, origin upper-left **of the CROPBOX** **[M]** | x1 = x + w, y1 = y + h, then shift into the mediabox frame: x += crop.x0 − media.x0, y += media.y1 − crop.y1 |
 | Path B reference parser | not known until it is chosen **[UNCONFIRMED]**; it may emit no boxes, in which case references are anchored through the Docling block they were read from | written in P4 |
 | MinerU | `bbox` normalised 0–1000, `page_idx` 0-based **[F]** | scale by page width/height ÷ 1000; page + 1 |
 | pypdfium2 | bounded text takes (left, bottom, right, top) **[F]**, implying a bottom-left origin (our inference **[UNCONFIRMED]**) | y flipped against page height; rotation applied |
 | Docling | "bounding boxes for all items, if available" **[F]**; field names and origin **[UNCONFIRMED]** | written in P4 after reading its output on a real page |
+
+**The canonical frame is the MEDIABOX** (added 2026-09-15, measured). "Origin at the top-left of the
+page" is ambiguous whenever a PDF's cropbox differs from its mediabox, and **223 pages of the
+216-PDF corpus** do. GROBID measures from the CROPBOX: its `<facsimile><surface>` carries the
+cropbox's size, and its coords are relative to the cropbox's upper-left corner. Measured on
+`Alwan_1988` p2/p3 (mediabox `(0,0,612,792)`, cropbox `(10.345,10.777,603.441,782.948)`): a whole
+`<ref>` element's box agrees with pypdfium2 to **0.39–0.91 pt** after the shift and is off by
+**10.5–10.9 pt** without it. `litkb.extract.grobid.page_frames()` reads the two boxes from the PDF
+and `to_mediabox()` applies the shift; every `Block` states its `frame`. Rotation *is* applied by
+GROBID (`/Rotate 90` yields a landscape `<surface>`), but how rotation composes with the cropbox
+shift is **[UNCONFIRMED]** — `to_mediabox()` refuses those 7 corpus pages rather than convert them
+silently.
+
+**`teiCoordinates` is a REPEATED form field [M].** One field per element name. Comma-joining the
+list is accepted with HTTP 200 and yields almost no coordinates (8 boxes, all on `graphic`, vs
+3,760 for the same paper sent correctly) — a silent degradation, not an error.
+
+**Zero-block rule [M]: HTTP 200 is not success.** A PDF with a text layer on *some* pages — a JSTOR
+scan whose cover page carries the access boilerplate — returns 200 with a parsed header and an
+EMPTY `<text><body>` (`Anderson_1957`: 3,659 B, 4 blocks, all of them header boilerplate). A file
+with *no* text layer anywhere is refused by GROBID itself with a 500 `[NO_BLOCKS]`; the partial case
+is the dangerous one. Any TEI with no coordinate-bearing block inside `<text><body>` is REFUSED
+(`NoTextBlocks`), is never recorded as a successful extraction, and its `extraction_runs` row is
+`failed`.
 
 **Test (P4, before reconciliation is written):** on one born-digital page, take a word whose box
 pypdfium2 reports, and require every adapter's box for the region containing that word to contain
@@ -704,6 +728,23 @@ The queue is the `extraction_jobs` table (§4.3), written only through ingest-ro
 - **Measure at more than one pool size.** 12 logical cores are 6 physical **[M]**, and the gain from
   the second thread on each core is unknown, so P4 records the knee rather than assuming linear
   scaling.
+- **GROBID (stage 2), MEASURED 2026-09-14/15, replaces the sourced estimate below for this tool.**
+  Pool size **4** is the setting, and the reason is the CPU half of §15.16, not RAM:
+
+  | pool | pages/s (2,361 pages) | peak service RSS | peak whole-system CPU |
+  |--:|--:|--:|--:|
+  | 1 | 7.73 | 8,243 MiB | 58.6 % |
+  | **4** | **20.2** | 11,655 MiB | **76.5 %** |
+  | 9 | 21.1 | 13,758 MiB | 100.0 % |
+
+  Pool 9 leaves Kam nothing and buys 4 % of the rate; `grobid.sh` now defaults to 4 and REFUSES
+  anything higher unless `GROBID_BREAK_HEADROOM=1` says so out loud. **There is no per-worker
+  process** — one JVM serves the whole pool — so "peak RSS per worker" can only be derived:
+  **≈ 689 MiB per added worker** over the 1→9 span, on top of a base that is itself ~5.7 GiB of
+  non-heap above `-Xmx8g`. `pdfalto` is the only per-request process and peaks at **20.5 MiB**
+  (the earlier 1.5 GiB-per-worker budget term was wrong by ~75×; the 1,536 MB config value is a
+  ceiling, not a budget). The 688-page book re-measured warm on an idle machine, 3 runs:
+  **12.20 pages/s median, 7.6 % spread** (59.6 / 55.2 / 56.4 s).
 - **The only sourced per-process memory figures [F]:** MinerU needs at least 16 GB RAM, 32 GB
   recommended; GROBID needs 4 GB for full structuring and 6–8 GB for batch (path A, counted against
   the budget inside WSL2 or Docker). By arithmetic on those figures alone, at most three MinerU workers
@@ -1036,6 +1077,22 @@ locally, with no Colab pass, and any literature the project uses flows through t
   `best_extract_line` matched against the wrong registry title, and Higham's extract begins with its
   title. The example is now Averkov 2009, whose title is the fourth line of its extract.
 - **No referee claim was rejected.**
+
+### 2026-09-15 — P4 GROBID referee defects closed (`Reports/LITKB_GROBID_LOCAL_REFEREE_2026-09-14.md`)
+
+- **§7.1** gains three measured facts the design did not state: the canonical origin sits on the
+  **mediabox** while GROBID measures from the **cropbox** (10.5–10.9 pt on 223 corpus pages, with
+  the adapter and the 0.39–0.91 pt residual after correction); `teiCoordinates` is a **repeated**
+  form field that degrades silently when comma-joined; and the **zero-block rule** — a 200 whose
+  `<text><body>` carries no block is refused, never recorded as an extraction.
+- **§12.7** gains the measured GROBID pool table. **Pool 4, not 9**: pool 9 reaches 100 % system CPU,
+  breaking the CPU half of §15.16, for 4 % more throughput. Per-worker RSS is derived (~689 MiB per
+  added worker of one shared JVM), and the old 1.5 GiB-per-worker pdfalto term is replaced by the
+  measured 20.5 MiB. The 688-page book is re-measured at **12.20 pages/s median (7.6 % spread)**,
+  superseding both the builder's unreplicated 10.91 and the referee's contended 8.04.
+- `extraction_runs.metrics` is produced by `litkb.extract.grobid.extract()` as the dict P5's ingest
+  persists (§4.3's JSON contract), parked meanwhile as JSONL — the table needs a `files` row and the
+  `litkb_ingest` login, both P3/P5.
 
 ---
 

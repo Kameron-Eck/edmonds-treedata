@@ -1400,3 +1400,40 @@ files:   Scripts/LITERATURE_KB_DESIGN_2026-09-13.md (§7.1, §12.2, §12.10, §1
 next:    the throughput gate (GROBID at >1 pool size with measured per-worker RSS; Docling on the
          corpus; metrics into extraction_runs.metrics), stage 5 reconciliation, and collapsing
          page_frames to one home. GitHub push refused by the permission classifier -- Kam's call.
+
+## 2026-09-15  litkb-stage5-reconciliation
+goal:    build P4 stage 5 (reconciliation) and the P5 ingest schema, after first collapsing the
+         three page_frames copies the merge left open.
+did:     one frame reader: inventory.page_frames(pdf_path, error=...) is the only body, grobid's
+         and docling's call it and differ only in the exception class. Referee numbers reproduce
+         (Alwan p2 dx 10.3449 / dy 9.052; Hall p12 still refused) and the three now return equal
+         dicts. extract/reconcile.py: IoU matching in the mediabox frame, one kind vocabulary,
+         Docling's order and cell grids, GROBID's references and figure captions, native-layer
+         text with per-field provenance, disagreements KEPT. 0017_extraction.sql (additive):
+         table_cells, extraction_disagreements, file_current_run, provenance/text_source/source on
+         blocks, coverage columns on pages, five ingest-only SECURITY DEFINER writers, triggers so
+         the invariants hold on the direct-INSERT path too. extract/ingest.py: one transaction per
+         file, idempotent by (sha256, pipeline version), a not-ok run's rows cleared in the
+         resuming transaction. Ran on the 5 gate papers + Ogata_1998 (scan/OCR) + Almon_1965
+         (cover sheet): 570/211/314/1323/14367/388/437 blocks, coverage 0.9987-1.0000 on text
+         pages, N/A on image-only. 21 harness rows R51-R521, all fire.
+decided: the inherited-/MediaBox case is REAL corpus data (16 pages in two files, Platanios_2014
+         and Vincent_1993) -- Docling's old copy would have TypeError'd on every one. 0017 NOT
+         applied to litkb: the tables.cells retirement trigger changes an existing column's
+         meaning, so it is a referee's call.
+killed:  my own two writer defects, both found in review and both passing every gate because the
+         tests ran the CHECKER on hand-built blocks. (1) reading order was re-derived from
+         geometry and interleaved two-column pages -- 21 of 23 snippets out of order on
+         Benedek_2015 pp2-3; the order now travels on the block. (2) native text was joined from
+         the ink, so every space was gone ("Contentslistsavailable"); coverage could not see it
+         because its denominator is the ink. Also killed: "drop the largest block" as a coverage
+         kill -- on Alwan p4 it moves coverage 1.0000 -> 0.9723, because canonical blocks overlap
+         and the metric asks only whether SOME block is responsible. That limit is in the report.
+files:   Scripts/pipeline/litkb/extract/{reconcile,ingest}.py, .../db/migrations/0017_extraction.sql,
+         Scripts/pipeline/litkb/extract/{inventory,grobid,docling}.py, Scripts/qc/test_litkb_reconcile.py,
+         Scripts/qc/instruments/litkb_stage5_run.py, Scripts/qc/instruments/litkb_p2_mutations.py,
+         Scripts/qc/test_litkb_p1.py, Scripts/qc/test_status_discovery.py,
+         Scripts/LITERATURE_KB_DESIGN_2026-09-13.md, Reports/LITKB_STAGE5_INGEST_2026-09-15.md,
+         Reports/litkb_stage5_2026-09-15.csv.
+next:    a referee: no pre-committed gold exists, so all four thresholds are author-chosen and
+         UNVALIDATED. Then 0017 on litkb, the throughput gate, stages 6-7.

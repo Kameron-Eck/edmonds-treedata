@@ -503,7 +503,8 @@ def stop():
 
 def process_pdf(path, url=DEFAULT_URL, coord_elements=COORD_ELEMENTS,
                 segment_sentences=True, consolidate_header=False,
-                consolidate_citations=False, timeout=3600, require_text_blocks=True):
+                consolidate_citations=False, timeout=3600, require_text_blocks=True,
+                include_raw_citations=False):
     """POST one PDF to processFulltextDocument -> TEI bytes.
 
     ``teiCoordinates`` is a REPEATED form field, one element name per field. Passing the
@@ -521,6 +522,12 @@ def process_pdf(path, url=DEFAULT_URL, coord_elements=COORD_ELEMENTS,
               ("consolidateCitations", "1" if consolidate_citations else "0")]
     if segment_sentences:
         fields.append(("segmentSentences", "1"))
+    # includeRawCitations=1 is what makes GROBID emit <note type="raw_reference"> inside each
+    # <biblStruct> — the reference string AS PRINTED, which stage 6 stores as references.raw
+    # (design §4.4). It is OFF by default so P4's measured runs keep their exact params hash;
+    # stage 6 opts in, and gets a new params hash for doing so.
+    if include_raw_citations:
+        fields.append(("includeRawCitations", "1"))
     fields += [("teiCoordinates", e) for e in coord_elements]
 
     boundary = uuid.uuid4().hex

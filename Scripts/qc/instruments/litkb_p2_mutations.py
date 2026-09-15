@@ -59,8 +59,9 @@ HELPERS = ("jsonb_safe", "normalize_doi", "window_refusal", "tokens_contain", "p
            "norm_label", "_jsonb", "_labels", "verdict")
 
 
-def block(id_, file, marker, what, sites=None):
-    M.append(dict(id=id_, kind="block", file=file, marker=marker, what=what, **({"sites": sites} if sites else {})))
+def block(id_, file, marker, what, sites=None, tests=None):
+    M.append(dict(id=id_, kind="block", file=file, marker=marker, what=what,
+                  **({"tests": tests} if tests else {}), **({"sites": sites} if sites else {})))
 
 
 def replace(id_, file, old, new, what, tests=None, sites=None):
@@ -332,6 +333,23 @@ EQUIVALENT = {
         "outside check 3'; there are none, so no mutation inside it can reach any behaviour. It is dead code, "
         "and the entry should be removed from this table by deleting the function, not by testing it.",
 }
+
+
+# ── P6 (stage 6, references) ────────────────────────────────────────────────────────────────────────
+# Stage 6 adds six calls of normalize_doi under Scripts/pipeline/litkb/, and the per-call-site rule covers the
+# PACKAGE, not a phase. Its rows are authored in litkb_p6_mutations.py and appended to this table at import, so
+# there is ONE self-check (and one qc/test_litkb_harness_sites.py) over the whole package rather than two that
+# each see half of it. The engine below then runs P2 and P6 rows identically.
+def _register_p6():
+    import importlib.util
+    spec = importlib.util.spec_from_file_location(
+        "litkb_p6_mutations", Path(__file__).resolve().parent / "litkb_p6_mutations.py")
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    mod.register(block, replace, site)
+
+
+_register_p6()
 
 
 def call_sites(root=None):

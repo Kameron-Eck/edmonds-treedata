@@ -554,6 +554,18 @@ SINK_ALLOW = {
     "litkb/commands.py::cmd_ws::print": (1,
         "The workstream id, slug, branch and the PATH the token was written to — the line itself says '(never "
         "printed)' of the token, and `token` is not in scope as a formatted value in this branch."),
+    # Stage 3 (Docling), added at the P4 merge 2026-09-15. The docling branch forked before this
+    # sink checker existed, so these two sites reach it for the first time here.
+    "litkb/extract/docling.py::<module>::print": (1,
+        "The hand loop's summary: json.dumps of the metrics dict extract() returns — page counts, seconds, "
+        "pages_per_s, peak RSS, the source path the caller typed on the command line. This module holds no "
+        "credential at all: it never connects to the database or the network, and the heavy tool runs as a "
+        "subprocess in its own virtual environment."),
+    "litkb/extract/docling_worker.py::main::print": (1,
+        "One line per finished job: a fixed seven-key projection of the metrics dict — file, status, pages, "
+        "seconds, pages_per_s, peak_rss_bytes, cpu_cores_busy. The keys are literals in this call, so no "
+        "value outside that set can reach the sink. The worker runs in the Docling venv with no database "
+        "credential and no archive key in scope."),
     "litkb/db/migrate.py::main::print": (2,
         "Database name, runner role name, migration filenames and counts. This module reads no secret: it "
         "connects through the passfile, which libpq opens and Python never reads."),

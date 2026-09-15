@@ -1,7 +1,11 @@
 # litkb P6 — Citations: references, resolution, the citation graph
 
 **Branch** `work/20260915-references` · **Date** 2026-09-15 · **Design** `Scripts/LITERATURE_KB_DESIGN_2026-09-13.md`
-§7 stage 6, §4.3–§4.4, §14 P6 · **Author** Claude (builder). **Not refereed.**
+§7 stage 6, §4.3–§4.4, §14 P6 · **Author** Claude (builder).
+**Refereed** — `Reports/LITKB_REFERENCES_REFEREE_2026-09-15.md`, verdict *READY WITH FIXES*.
+**Corrected 2026-09-15 against that referee**; every number below is the corrected one, and §8
+lists what changed and what the correction itself measured. Two of the referee's own claims did not
+reproduce and are named there rather than copied in.
 
 | | |
 |---|---|
@@ -39,7 +43,10 @@ the cover boilerplate. That gate firing on real inputs is the correct outcome, n
 |---|--:|--:|
 | papers with TEI | 18 of 20 | |
 | **references parsed** | **658** | |
-| in-text citation mentions | 1,386 | |
+| **in-text citation mentions** (`<ref type="bibr">` elements) | **1,182** | |
+| … of which carry no `target` and link to no reference | 201 | 17.0 % |
+| … **verifiable** mentions (element AND target) | **981** | |
+| mention ROWS written (one per bounding box, geometry) | 1,386 | |
 | **resolved** | **365** | **55.5 %** |
 | **ambiguous** | **19** | 2.9 % |
 | **unresolved** | **274** | 41.6 % |
@@ -56,7 +63,8 @@ Goodchild 2004 0/4.
 | cause | n | what it is |
 |---|--:|---|
 | `no_title_or_author` | 50 | GROBID parsed no title or no first author — nothing to search on. Concentrated in the pre-1990 papers, whose footnote-style reference lists it does not segment into fields |
-| `doi_title_mismatch` | 12 | the reference's DOI is registered but its registry title did not clear 0.85 against the parsed title (see §5) |
+| `doi_title_contained` | 9 | the DOI is registered and the two titles are in a CONTAINMENT relation — GROBID truncated the title at a comma, or ran the journal name onto the end of it. A parse artefact, still refused (see §5) |
+| `doi_title_mismatch` | 3 | registered, not contained, and below 0.85. **Two are genuinely wrong DOIs printed in the published paper** — Steenberg `b5` and `b22`; the third (Guo `b39`) is a parse artefact the length filter refuses (see §5) |
 | `doi_not_registered` | 1 | DOI resolves at neither Crossref nor DataCite |
 | `best=<stage>:<ratio>` | 211 | searched and refused, with the best candidate and its ratio recorded |
 
@@ -73,7 +81,7 @@ floor, not an estimate of the ceiling.
 ## 3. The citation graph
 
 13 edges among the 18 papers (`edges.jsonl`), e.g. Benedek 2015 → Benedek 2009, Hoberg 2015,
-Kolmogorov 2004, Liu 2008, Melgani 2003, Solberg 1996; Guo 2018 → Morgenroth 2017 (cited 12 times
+Kolmogorov 2004, Liu 2008, Melgani 2003, Solberg 1996; Guo 2018 → Morgenroth 2017 (cited **8** times
 in text) and Steenberg 2018; Burnicki 2011 → Burnicki 2007. The join is the **normalised DOI**
 against the manifest and the two bibliography CSVs (192 DOI-keyed works).
 
@@ -87,16 +95,24 @@ full table `Reports/litkb_p6_top_uncited_2026-09-15.csv`). Each is cited by 2 of
 
 | mentions | DOI | work |
 |--:|---|---|
-| 7 | 10.1559/152304006777681706 | Can error explain map differences over time? |
-| 6 | 10.1016/j.rse.2007.11.013 | Some challenges in global land cover mapping |
-| 6 | 10.1080/01431160500057848 | Improving land cover change estimates by accounting for classification error |
 | 5 | 10.1007/s10021-006-0116-z | Characterization of Households and Its Implications for the Vegetation… |
+| 5 | 10.1016/j.rse.2007.11.013 | Some challenges in global land cover mapping |
 | 5 | 10.1016/j.ufug.2012.09.002 | Predictors of the distribution of street and backyard vegetation |
-| 5 | 10.1016/j.ufug.2013.11.004 | Individual households and their trees |
-| 5 | 10.48044/jauf.2008.048 | A ground-based method of assessing urban forest structure |
-| 4 | 10.1007/s00267-014-0310-2 | An Ecology of Prestige in New York City |
-| 4 | 10.1073/pnas.0401545101 | Developing a science of land change |
+| 5 | 10.1080/01431160500057848 | Improving land cover change estimates by accounting for classification error |
+| 5 | 10.1559/152304006777681706 | Can error explain map differences over time? |
+| 4 | 10.1016/j.ufug.2013.11.004 | Individual households and their trees |
 | 3 | 10.1016/j.jenvman.2015.08.008 | Neighbourhood-scale urban forest ecosystem classification |
+| 3 | 10.1073/pnas.0401545101 | Developing a science of land change |
+| 3 | 10.48044/jauf.2008.048 | A ground-based method of assessing urban forest structure |
+| 2 | 10.1007/s00267-014-0310-2 | An Ecology of Prestige in New York City |
+
+**Read the ORDER of this table with care.** Counted on elements rather than boxes the spread
+collapses: five entries tie at 5 and three at 3, and within a tie the instrument orders by DOI
+string. The rank-10 / rank-11 boundary is itself a tie at 2 mentions broken that way
+(`10.1007/s00267-014-0310-2` over `10.1016/j.rse.2006.10.012`), so the tenth row is not a measured
+margin over the eleventh. **Membership is unchanged from the box-counted table — the same ten
+works, re-ordered.** (The referee predicted a membership change, with `10.1109/36.843009` entering;
+recomputed under the instrument's own sort key it does not. §8.)
 
 **Caveat that limits this list:** only references that RESOLVED to a DOI can be ranked. The 274
 unresolved have no stable key, so a work cited only through unparsed pre-1990 references cannot
@@ -134,7 +150,7 @@ make a kill fire.
 | `year−3` | **20 / 20** | |
 | `year+3` | **19 / 20** | see below |
 | fabricated reference | fired | sanity |
-| DOI resolving to a different title → `unresolved` | 12 live cases in the corpus | §2 table |
+| DOI resolving to a different title → `unresolved` | 12 live cases in the corpus | §2 table; 9 `doi_title_contained`, 3 `doi_title_mismatch` |
 
 **The mechanism behind the DOI kill, because it is the whole design.** A DOI one digit off usually
 still points at a *real* work. If a failed DOI check fell back to a title search, the registry would
@@ -148,6 +164,17 @@ within ±1 of 2017 and is accepted (decisions.yaml §15.15). The mutation is def
 *printed* year, so on a paper whose print and online-first years differ it can land inside the rule.
 A stricter test would mutate relative to the registry's year; that is a change to the harness, and it
 is not made here by the code it would grade.
+
+**THE RATIO IS A FILTER; THE FIRST AUTHOR AND THE YEAR ARE THE DISCRIMINATOR.** This is the design
+statement the referee asked for, and it is now in the design itself (§7, stage 6). Measured
+tolerance, on the referee's independent sample of 20 resolved title-only references with words
+replaced one at a time by a nonsense token: the **median reference survives 3 words changed (≈22 %
+of the title) and none survives 5** (1 word: 3 references stop resolving, 2: 4, 3: 10, 4: 3, ≥5: 0).
+So 0.85 is not what keeps a near-miss out — it screens obvious non-matches cheaply, and the
+first-author family plus the year (equal, or ±1 only when title AND author already match,
+decisions.yaml §15.15) are what decide. Raising 0.85 would not close the mode that matters: both
+`resolved_elsewhere` mutants below cleared it on a genuinely similar sibling title. It would,
+however, cost the nine truncated parses of §2.
 
 **A measured tolerance, reported and NOT counted as a kill.** Swapping ONE word of a title leaves
 17 of 20 references resolving to the original, at difflib ratios **0.80–0.94** against the 0.85 rule.
@@ -166,9 +193,8 @@ same lesson: a near-miss reference does not merely fail, it can succeed at the w
 
 ## 6. Guards and the harness
 
-`qc/instruments/litkb_p6_mutations.py`, re-run on the committed tree (`d909cfa`): **14 of 14
-mutations fired**, both baselines green (38 tests), every file restored and the restore checked by
-sha256.
+`qc/instruments/litkb_p6_mutations.py`, re-run after the referee corrections: **17 of 17 mutations
+fired**, both baselines green (47 tests), every file restored and the restore checked by sha256.
 
 | row | guard weakened | effect |
 |---|---|---|
@@ -177,6 +203,9 @@ sha256.
 | P6-G3 | two accepted works collapse to the first | 1 fail |
 | P6-G4 | a 429 / dead connection is cached | 4 fail |
 | P6-G5 | a citation candidate is written `admitted` | 1 fail |
+| P6-G6 | a DOI on a title-less reference is accepted on the DOI alone | 4 fail |
+| P6-G7 | `doi_title_contained` collapses back into `doi_title_mismatch` | 1 fail |
+| P6-M1 | a mention is counted per bounding BOX again | 2 fail |
 | P6-R1/R2/R3 | the shared ratio / surname / year rules | 1, 2, 2 fail |
 | P6-S1…S6 | `normalize_doi` not applied, per call site | 1 each |
 
@@ -194,11 +223,12 @@ edit older; they are restated here from the re-run on the committed bytes, per t
 
 1. **The 55.5 % is Crossref-only.** Reproduce it with a Semantic Scholar key and say what the rate
    becomes; the breaker is per-run state, so a keyed run starts closed.
-2. **The 12 `doi_title_mismatch` are, on inspection, not wrong DOIs** — they are truncated or
-   extended GROBID titles ("…Milwaukee, WI, USA. U" against "…Milwaukee, WI, USA"). The conservative
-   refusal is right (no wrong edge is created), but the *cause* is a parse artefact, not a bad DOI,
-   and the label says otherwise. Whether a containment rule belongs in the title check is a
-   threshold decision for someone other than this build.
+2. ~~**The 12 `doi_title_mismatch` are, on inspection, not wrong DOIs.**~~ **ANSWERED AND WRONG AS
+   WRITTEN (§8).** Ten of the twelve are parse artefacts; **two — Steenberg `b5` and `b22` — print
+   genuinely wrong DOIs**, and telling a future reader the cause is always a parse artefact would
+   have taught them to trust a DOI the published paper got wrong. Containment is now a distinct
+   terminal reason (`doi_title_contained`, 9 rows) and the threshold is untouched at 0.85; nothing
+   is resolved on containment.
 3. **The Crossref agreement is by COUNT.** Entry-by-entry DOI matching against the deposited lists is
    the stronger gate and was not run.
 4. **`no_title_or_author` (50) is a GROBID segmentation limit on pre-1990 footnote references**, not
@@ -209,3 +239,109 @@ edit older; they are restated here from the re-run on the committed bytes, per t
    `D:\edmonds-pipeline\Literture\` read-only, so the cache and JSONL live under
    `D:\edmonds-pipeline\litkb_derived\` (`$LITKB_DERIVED`). When §15.6 is decided, change
    `references.DERIVED_ROOT`'s default and nothing else.
+
+---
+
+## 8. Corrections after the referee (2026-09-15)
+
+Three of the referee's findings are fixed in code and the artifacts regenerated. `qc/check.py
+--fast` is re-run at the foot of this section.
+
+### 8.1 F1 — a mention is an ELEMENT, not a bounding box
+
+`citation_mentions()` writes one row per `coords` box, which is right as geometry: a marker that
+wraps across a line occupies two boxes and both are needed to highlight it. `process_tei` was
+counting those rows, so a wrapped marker counted twice. Counting `<ref type="bibr">` elements
+instead (`box_index == 0`):
+
+| | was | is |
+|---|--:|--:|
+| in-text mentions | 1,386 | **1,182** (204 wrapped markers) |
+| … with no `target` | not reported | **201** |
+| … verifiable | not reported | **981** |
+| reference rows with an inflated `mention_count` | — | **139 of 658** |
+
+Worst cases: Laurance `b18` 15 → 11, Guo `b36` (Morgenroth 2017) 12 → **8**, Benedek `b54` 12 → 10.
+The mention ROWS are unchanged — only the aggregate is. `mention_elements`,
+`mentions_without_target` and the box-row count are now three named columns
+(`R.mention_totals`), in `summary.json` and in the per-paper CSV, so one can never be quoted for
+another. Guard: **P6-M1**.
+
+**What did NOT change: the top-10 membership.** The same ten works, re-ordered — and the order is
+now mostly ties (five at 5 mentions, three at 3), broken by DOI string. The referee predicted a
+membership change (`10.1007/s00267-014-0310-2` out, `10.1109/36.843009` in); recomputed under the
+instrument's own sort key it does not happen, and the rank-10/11 boundary is a 2-mention tie. That
+is stated in §3 rather than carried forward.
+
+### 8.2 The `resolve_by_doi` no-parsed-title branch
+
+The branch that runs when GROBID parses no title reached its decision through `judge_candidate`,
+handed the registry's own title as the reference's — a self-comparison scoring 1.00, which unlocked
+the ±1 year arm that decisions.yaml §15.15 grants only when the title AND the first author match.
+It now checks the first-author family and an **exact** year directly, refusing with
+**`doi_unverifiable`** (was `doi_unconfirmable`), and an acceptance says `basis=author+year (no
+parsed title)` rather than a ratio of 0.00. Guard: **P6-G6**, four tests.
+
+**How many of the 50 `no_title_or_author` rows moved: none — and the honest reason is that they
+cannot.** `no_title_or_author` is raised by the SEARCH path, which is only reached when the
+reference carries no DOI. Measured on the run: **0 of those 50 rows carry a DOI**, and **0 of the
+658's 77 DOI-bearing references lack a parsed title**. So this branch is *unexercised on the P6
+corpus*; the tests are the only place it runs. Its live shape was measured on Steenberg `b5`, whose
+printed DOI is registered to a different Boone 2010 — in the corpus the title ratio of 0.245 refuses
+it, and with the title stripped (the test fixture) first author and year both agree and it
+**resolves**. That is the hole, pinned by a test and named in design §7 stage 6, not closed.
+
+### 8.3 F2 — the twelve were not twelve parse artefacts
+
+Ten are (truncated at a comma, or the journal name run onto the end); **two print genuinely wrong
+DOIs** — Steenberg `b5` (registered to Boone 2010, *Environmental justice…*) and `b22` (registered
+to Heynen 2006, against a Heynen & Lindsey 2003 reference). §7.2 said the cause was always a parse
+artefact; it is corrected in place.
+
+Containment is now its own terminal reason, **never an acceptance**: `RESOLVE_TITLE_RATIO` stays
+0.85 and every one of these rows stays `unresolved`. The rule, `references.title_containment`: one
+normalised title contains the other, the shorter is ≥ 5 words, and the shorter is ≥ 60 % of the
+longer's length. Measured on the twelve: **9 `doi_title_contained`, 3 `doi_title_mismatch`.**
+
+**The 60 % filter, not containment, is what splits 9 from 10** — worth recording, because the
+referee's "exactly 10 and exactly 2" was measured on containment alone. Containment does separate
+10 from 2 exactly. The length filter then refuses one true parse artefact, Guo `b39` (*Tree and
+impervious cover change in U.S. cities* + the journal name) at **0.575**. Guo `b1` is the mirror
+image at 0.644 by characters but 0.571 by words — this population straddles 60 % and the unit
+decides, partly because the shared `_norm_text` splits "U.S." into two tokens. The referee wrote
+"length", so characters it is, and the threshold was not tuned to recover b39: refusing it is the
+safe direction (it stays unresolved either way, and P5 loses a label, not an edge), and tuning a
+threshold to hit a predicted count is exactly what §5 refused to do with 0.85. Guard: **P6-G7**.
+One more measured detail: containment needs the curly-apostrophe fold, because `_norm_text` strips
+`string.punctuation`, which does not contain U+2019 — without it Guo `b5` reads as a wrong DOI.
+
+### 8.4 F3 — the bare `resolved_rate`
+
+`Reports/litkb_p6_per_paper_2026-09-15.csv` now carries a `stages_tripped` column beside
+`resolved_rate`, so the Crossref-only condition travels with the number.
+
+### 8.5 The regenerated artifacts, diffed against the pre-correction run
+
+`--resolve` re-run over the cached TEI (24 network calls, 609 cache hits). Keyed on
+(stem, `ref_key`), all 658 rows present on both sides:
+
+- **0 changes in `(resolution, resolved_doi)`** — totals identical: 365 resolved / 19 ambiguous /
+  274 unresolved, 55.5 %, 13 edges, 645 candidates. No resolution moved.
+- **139 `mention_count` changes**, all downward — §8.1.
+- **15 reason strings changed**: the 9 relabelled `doi_title_contained`, plus 6 Benedek rows that
+  differ only in whether the `skipped=` tail names arXiv. That last is run-to-run timing, not code:
+  the arXiv breaker tripped one reference later this time. It is a reminder that the `skipped=` tail
+  records when a stage tripped, not a property of the reference.
+- **The per-paper CSV's ROW ORDER changed and the paper set did not.** Same 18 papers.
+  `paper_set()` ranks the manifest's stems by how often the project's own tracked prose names them,
+  and the referee report — committed between the two runs — names Guo, Steenberg and Benedek more
+  than the earlier corpus did. A derived set that reads the reports is a set that moves when the
+  reports do; worth knowing before reading a CSV diff as evidence of drift.
+- (No element in the corpus spans more than two boxes: `box_index` is 0 on 1,182 rows and 1 on 204,
+  so "204 wrapped markers" is exact and not a lower bound.)
+
+`cd Scripts && PYTHONUTF8=1 py -3.12 qc/check.py --fast` under `LITKB_TEST_DB=litkb_test_w8`, on the
+corrected tree: **2,497 passed, 19 skipped, 1 xfailed, 1 failed in 539 s** (2,488 + the 9 new P6
+tests) —
+`test_experiments.py::test_pointer_paths_resolve[crown_state_model]`, the same pre-existing failure,
+untouched by this branch.

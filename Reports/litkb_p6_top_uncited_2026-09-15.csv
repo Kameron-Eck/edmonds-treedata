@@ -1,51 +1,51 @@
 doi,title,year,citing_papers_in_set,in_text_mentions
-10.1559/152304006777681706,Can error explain map differences over time?,2006,2,7
-10.1016/j.rse.2007.11.013,Some challenges in global land cover mapping: An assessment of agreement and accuracy in existing 1-km datasets,2008,2,6
-10.1080/01431160500057848,Improving land cover change estimates by accounting for classification errors,2005,2,6
 10.1007/s10021-006-0116-z,Characterization of Households and Its Implications for the Vegetation of Urban Ecosystems,2006,2,5
+10.1016/j.rse.2007.11.013,Some challenges in global land cover mapping: An assessment of agreement and accuracy in existing 1-km datasets,2008,2,5
 10.1016/j.ufug.2012.09.002,Predictors of the distribution of street and backyard vegetation in Montreal,2013,2,5
-10.1016/j.ufug.2013.11.004,Individual households and their trees: Fine-scale characteristics shaping urban forests,2014,2,5
-10.48044/jauf.2008.048,A groundbased method of assessing urban forest structure and ecosystem services,2008,2,5
-10.1007/s00267-014-0310-2,"An Ecology of Prestige in New York City: Examining the Relationships Among Population Density, Socio-economic Status, Gr",2014,2,4
-10.1073/pnas.0401545101,Developing a science of land change: Challenges and methodological issues,2004,2,4
+10.1080/01431160500057848,Improving land cover change estimates by accounting for classification errors,2005,2,5
+10.1559/152304006777681706,Can error explain map differences over time?,2006,2,5
+10.1016/j.ufug.2013.11.004,Individual households and their trees: Fine-scale characteristics shaping urban forests,2014,2,4
 10.1016/j.jenvman.2015.08.008,Neighbourhood-scale urban forest ecosystem classification,2009,2,3
+10.1073/pnas.0401545101,Developing a science of land change: Challenges and methodological issues,2004,2,3
+10.48044/jauf.2008.048,A groundbased method of assessing urban forest structure and ecosystem services,2008,2,3
+10.1007/s00267-014-0310-2,"An Ecology of Prestige in New York City: Examining the Relationships Among Population Density, Socio-economic Status, Gr",2014,2,2
 10.1016/j.rse.2006.10.012,Interpreting the change detection error matrix,2007,2,2
 10.1080/0143116031000150004,Accuracy analysis of remote sensing change detection by rule-based rationality evaluation with post-classification compa,2004,2,2
 10.1109/36.843009,Automatic analysis of the difference image for unsupervised change detection,2000,2,2
-10.1214/aos/1176343282,Defining the Curvature of a Statistical Problem (With Applications to Second Order Efficiency),1975,1,17
-10.1016/0006-3207(91)90139-z,Edge effects in tropical forest fragments: application of a model for the design of nature reserves,1991,1,15
-10.1109/icpr.2014.169,A multilayer markovian model for change detection in aerial image pairs with large time differences,2014,1,12
-10.1109/lgrs.2014.2300873,Segmentation of remote sensing images using similarity-measure-based fusion-MRF model,2014,1,11
-10.1016/0021-9681(81)90059-x,Methodology for the assessment of new dichotomous diagnostic tests,1981,1,9
+10.1214/aos/1176343282,Defining the Curvature of a Statistical Problem (With Applications to Second Order Efficiency),1975,1,16
+10.1016/0006-3207(91)90139-z,Edge effects in tropical forest fragments: application of a model for the design of nature reserves,1991,1,11
+10.1109/icpr.2014.169,A multilayer markovian model for change detection in aerial image pairs with large time differences,2014,1,10
 10.1016/j.rse.2009.08.016,MODIS collection 5 global land cover: Algorithm refinements and characterization of new datasets,2010,1,9
-10.1214/aop/1176993726,On the central limit theorem for stationary mixing random,1982,1,9
-10.2307/2533555,Latent variable modelling of diagnostic accuracy,1997,1,9
-10.1017/s0376892997000088,A review of methods for the assessment of prediction errors in conservation presence/absence models,1997,1,8
-10.1109/tgrs.2006.888861,A context-sensitive technique for unsupervised change detection based on Hopfield-type neural networks,2007,1,7
+10.1016/0021-9681(81)90059-x,Methodology for the assessment of new dichotomous diagnostic tests,1981,1,8
+10.1214/aop/1176993726,On the central limit theorem for stationary mixing random,1982,1,8
+10.1017/s0376892997000088,A review of methods for the assessment of prediction errors in conservation presence/absence models,1997,1,7
+10.1109/lgrs.2014.2300873,Segmentation of remote sensing images using similarity-measure-based fusion-MRF model,2014,1,7
 10.1111/j.2517-6161.1972.tb00889.x,Nearest-neighbour systems and the auto-logistic model for binary data,1972,1,7
+10.2307/2533555,Latent variable modelling of diagnostic accuracy,1997,1,7
 10.1016/j.patrec.2006.08.010,A composed supervised/ unsupervised approach to improve change detection from remote sensing,2007,1,6
 10.1016/s0167-5877(00)00117-3,Estimation of sensitivity and specificity of diagnostic tests and disease prevalence when the true disease state is unkn,2000,1,6
 10.1090/ulect/022,Oscillating patterns in image processing and in some nonlinear evolution equations,2001,1,6
 10.1093/oso/9780195115383.001.0001,Geostatistics for Natural Resources Evaluation,1997,1,6
-10.1093/oxfordjournals.aje.a112510,Estimating prevalence from the results of a screening test,1978,1,6
-10.1109/tip.2002.999678,An adaptive semiparametric and contextbased approach to unsupervised change detection in multitemporal remotesensing ima,2002,1,6
-10.2307/2531499,Using latent class models to characterize and assess relative error in discrete measurements,1989,1,6
 10.2737/pnw-gtr-490,Connecting people with ecosystems in the 21st century: an assessment of our nation's urban forests,2000,1,6
-10.1007/11612032_84,Probabilistic modeling for structural change inference,2006,1,5
 10.1007/bf01781073,Pairings between measures and bounded functions and compensated compactness,1983,1,5
-10.1016/j.rse.2003.12.007,Sources of error in accuracy assessment of thematic land-cover maps in the Brazilian Amazon,2004,1,5
-10.1016/j.rse.2005.04.002,Comparing estimators of gross change derived from complete coverage mapping versus statistical sampling of remotely sens,2005,1,5
-10.1016/j.ufug.2010.11.004,Who Is Likely to Plant a Tree? The Use of Public Socio-Demographic Data to Characterize Client Participants in a Private,2011,1,5
-10.1017/s0266467400003448,Effects of isolation on the water status of forest patches in the Brazilian Amazon,1989,1,5
-10.1109/tgrs.2004.835294,On the possibility of automatic multisensor image registration,2004,1,5
-10.1109/tgrs.2007.907109,A multiple conditional random fields ensemble model for urban area detection in remote sensing optical images,2007,1,5
-10.1561/9781601985897,Markov random fields in image segmentation,2012,1,5
-10.2307/2533043,Random effects models in latent class analysis for evaluating accuracy of diagnostic tests,1996,1,5
+10.1109/tgrs.2006.888861,A context-sensitive technique for unsupervised change detection based on Hopfield-type neural networks,2007,1,5
+10.1109/tip.2002.999678,An adaptive semiparametric and contextbased approach to unsupervised change detection in multitemporal remotesensing ima,2002,1,5
 10.1006/acha.1995.1008,Nonlinear solution of linear inverse problems by wavelet-vaguelette decomposition,1995,1,4
 10.1007/3-540-63460-6_126,An iterative spectral-spatial bayesian labeling approach for unsupervised robust change detection on remotely sensed mul,1997,1,4
 10.1007/bf01393250,On the equation of surfaces of prescribed mean curvature. Existence and uniqueness without boundary conditions,1978,1,4
 10.1016/0167-2789(92)90242-f,Nonlinear total variation based noise removal algorithms,1992,1,4
-10.1017/s0376892998000198,Impacts of intensive urbanization on trees in Hong Kong,1998,1,4
-10.1080/00420980500185462,"Extent, Location, and Profiles of Continuing Gentrification in Canadian Metropolitan Areas, 1981-2001",2005,1,4
+10.1016/j.rse.2003.12.007,Sources of error in accuracy assessment of thematic land-cover maps in the Brazilian Amazon,2004,1,4
+10.1017/s0266467400003448,Effects of isolation on the water status of forest patches in the Brazilian Amazon,1989,1,4
 10.1080/01431160802672864,Effect of errors in ground truth on classification accuracy,2009,1,4
 10.1080/01431160902755346,The impact of imperfect ground reference data on the accuracy of land cover change estimation,2009,1,4
+10.1093/oxfordjournals.aje.a112510,Estimating prevalence from the results of a screening test,1978,1,4
+10.1109/tgrs.2004.835294,On the possibility of automatic multisensor image registration,2004,1,4
+10.1561/9781601985897,Markov random fields in image segmentation,2012,1,4
+10.2307/2530967,The effect of conditional dependence on the evaluation of diagnostic tests,1985,1,4
+10.2307/2531499,Using latent class models to characterize and assess relative error in discrete measurements,1989,1,4
+10.2307/2533043,Random effects models in latent class analysis for evaluating accuracy of diagnostic tests,1996,1,4
+10.2307/2938168,Spatial patterns in household demand,1991,1,4
+10.4171/ifb/47,Characterization of facet breaking for nonsmooth mean curvature flow in the convex case,2001,1,4
+10.1007/11612032_84,Probabilistic modeling for structural change inference,2006,1,3
+10.1007/pl00011302,Connected components of sets of finite perimeter and applications to image processing,2001,1,3
+10.1007/s002080100270,Existence and uniqueness of solutions for a parabolic quasilinear problem for linear growth functionals with L 1 data,2002,1,3

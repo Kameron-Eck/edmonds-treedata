@@ -25,6 +25,14 @@ WHAT EACH ROW IS FOR, in the §14 P6 terms:
   * **P6-G3** collapses an ambiguity to its first candidate.
   * **P6-G4** caches a 429, turning one transient rate-limit into a permanent phantom miss.
   * **P6-G5** admits a citation candidate, which no extraction stage may do.
+  * **P6-G6** opens the branch the P6 referee named (§4): a reference whose DOI is registered but
+    whose title GROBID did not parse. With no title the first-author family and an EXACT year are
+    the only discriminators left (decisions.yaml §15.15 reserves the +/-1 arm for pairs where title
+    AND author match), and this row removes them, accepting the DOI on nothing.
+  * **P6-G7** collapses `doi_title_contained` back into `doi_title_mismatch`, so a truncated parse
+    and a genuinely wrong DOI become indistinguishable to P5's triage again.
+  * **P6-M1** counts a mention per bounding BOX instead of per `<ref>` element — the F1 defect:
+    a line-wrapped marker then counts twice, inflating `mention_count` and the most-cited table.
   * **P6-R1/R2/R3** weaken the three shared text rules in `admit/resolver.py` — the ratio, the
     surname, the year — each of which stage 6 depends on and each of which the phase requires to
     fail a test when mutated.
@@ -44,7 +52,8 @@ RESOLVER = "pipeline/litkb/admit/resolver.py"
 #: `normalize_doi(x)` -> `(x)`: the canonicalisation simply does not happen at that call.
 PASSTHROUGH = "({a0})"
 
-IDS = ["P6-G1", "P6-G2", "P6-G3", "P6-G4", "P6-G5", "P6-R1", "P6-R2", "P6-R3",
+IDS = ["P6-G1", "P6-G2", "P6-G3", "P6-G4", "P6-G5", "P6-G6", "P6-G7", "P6-M1",
+       "P6-R1", "P6-R2", "P6-R3",
        "P6-S1", "P6-S2", "P6-S3", "P6-S4", "P6-S5", "P6-S6"]
 
 
@@ -61,6 +70,15 @@ def register(block, replace, site):
           "a 429 or a dead connection is cached as if it were an answer", tests=TESTS_P6)
     replace("P6-G5", REFS, '"state": "new", "reason": res.reason', '"state": "admitted", "reason": res.reason',
             "a citation candidate is written admitted", tests=TESTS_P6)
+    block("P6-G6", REFS, "guard: p6 a DOI with no parsed title is verified on author and year",
+          "a DOI on a title-less reference is accepted on the DOI alone (the referee's §4 hole, "
+          "opened wide)", tests=TESTS_P6)
+    replace("P6-G7", REFS, 'kind = "doi_title_contained" if cont else "doi_title_mismatch"',
+            'kind = "doi_title_mismatch"',
+            "a truncated parse and a wrong DOI carry the same terminal reason again", tests=TESTS_P6)
+    replace("P6-M1", REFS, '+ (1 if m["box_index"] == 0 else 0)', "+ 1",
+            "a mention is counted per bounding box again, so a line-wrapped marker counts twice",
+            tests=TESTS_P6)
     replace("P6-R1", RESOLVER, "RESOLVE_TITLE_RATIO = 0.85", "RESOLVE_TITLE_RATIO = 0.60",
             "the title rule is lowered from 0.85 to 0.60", tests=TESTS_P6)
     replace("P6-R2", RESOLVER, "if not family_matches(cand.get(\"family\"), surname):",

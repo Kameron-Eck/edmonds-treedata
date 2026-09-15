@@ -22,8 +22,13 @@ THE RESOLUTION RULE, and why it is not `resolver.resolve_doi`.
   * **DOI-FIRST, and the DOI DECIDES.** A reference that carries a DOI is resolved by that DOI
     alone: the registry record is fetched (`registry.confirm_doi`, Crossref then DataCite) and its
     title is compared with the reference's by the project's one title rule. Match -> ``resolved``.
-    Different work -> ``unresolved`` with ``doi_title_mismatch``; not found -> ``unresolved`` with
-    ``doi_not_registered``. **There is no title fallback for a reference that has a DOI.** That is
+    Different work -> ``unresolved`` with ``doi_title_mismatch``, or ``doi_title_contained`` when
+    one title contains the other (a GROBID truncation, or the journal name run onto the end) —
+    a LABEL for P5's triage, never an acceptance, and the 0.85 threshold is untouched by it. Not
+    found -> ``unresolved`` with ``doi_not_registered``. A reference with a DOI and NO parsed title
+    is decided by :func:`_doi_without_title_ok` — first-author family plus an EXACT year — and
+    refused with ``doi_unverifiable``. **There is no title fallback for a reference that has a
+    DOI.** That is
     the §14 P6 kill in mechanism form: a DOI with one digit altered usually still points at a REAL
     work, and a fallback would quietly re-find the intended paper by title and call the bad DOI
     resolved. A wrong DOI in a reference list is the Averkov 2009 class of defect (§14 P2) — a
@@ -72,7 +77,8 @@ import xml.etree.ElementTree as ET
 
 from litkb.admit.registry import confirm_doi
 from litkb.admit.resolver import (ARXIV_DOI_PREFIX, REGISTRY_STAGES, RESOLVE_TITLE_RATIO,
-                                  judge_candidate, normalize_doi, title_match_ratio)
+                                  _ascii_fold, _norm_text, _year_int, family_matches,
+                                  judge_candidate, normalize_doi, strip_tags, title_match_ratio)
 from litkb.extract.grobid import NS, TEI_NS, parse_coords
 
 STAGE = "6-references"
@@ -243,6 +249,20 @@ def citation_mentions(tei):
                         "sentence_page": page_of_sentence,
                         "resolved_target": bool(target)})
     return out
+
+
+def mention_totals(mentions):
+    """The three numbers a mention count can mean, so a report can never quote the wrong one.
+
+    ``box_rows`` is len(mentions) — one row per bounding box, the geometry. ``elements`` is the
+    number of ``<ref type="bibr">`` elements, which is what "cited n times" means.
+    ``without_target`` are elements GROBID could not link to any ``biblStruct``; ``verifiable`` is
+    the rest, the only mentions that can be checked against a reference.
+    """
+    els = [m for m in mentions if m["box_index"] == 0]
+    untargeted = sum(1 for m in els if not m["target"])
+    return {"mention_box_rows": len(mentions), "mention_elements": len(els),
+            "mentions_without_target": untargeted, "mentions_verifiable": len(els) - untargeted}
 
 
 # ── the disk cache ──────────────────────────────────────────────────────────────────────
@@ -444,6 +464,73 @@ def _judge_all(cands, title, surname, year):
     return accepted, best
 
 
+#: Curly quotes and the Unicode dashes, folded before containment is tested. `_norm_text` strips
+#: `string.punctuation`, which does NOT contain U+2019 — so "Residents’" and "Residents" differ
+#: under the shared rule and a containment test without this fold misses a real parse artefact
+#: (measured: Guo 2018 `b5`, 2026-09-15).
+_QUOTES = str.maketrans({**{c: "'" for c in "‘’‛ʼ"},
+                         **{c: '"' for c in "“”"},
+                         **{c: "-" for c in "‐‑‒–—―"}})
+
+#: A contained title is only a LABEL if the shorter side is a real title in its own right. Both
+#: bounds exist to stop a generic stub ("Introduction", "Discussion") being read as a truncation of
+#: whatever registry title happens to contain it. The length ratio is measured in CHARACTERS of the
+#: normalised strings, per the referee's wording ("60 % of the longer's length").
+CONTAINED_MIN_WORDS = 5
+CONTAINED_MIN_FRACTION = 0.60
+
+
+def _norm_title(s):
+    return _norm_text(_ascii_fold(strip_tags(str(s or "").translate(_QUOTES))))
+
+
+def title_containment(parsed, registry):
+    """-> (words, fraction) when one normalised title CONTAINS the other and the shorter is a title
+    in its own right; else None.
+
+    This is a DISCRIMINATOR, never an acceptance rule. GROBID truncates a title at a comma and runs
+    the journal name onto the end of one, and both produce a containment against the registry title;
+    a wrong DOI (the Averkov class) does not. Accepting on containment alone would let a three-word
+    stub match any registry title that contains it, so the caller uses this only to choose the
+    terminal reason — the row stays ``unresolved`` either way and the 0.85 rule is untouched.
+    """
+    a, b = _norm_title(parsed), _norm_title(registry)
+    if not a or not b:
+        return None
+    sh, lo = (a, b) if len(a) <= len(b) else (b, a)
+    if sh not in lo:
+        return None
+    frac = len(sh) / len(lo)
+    if len(sh.split()) < CONTAINED_MIN_WORDS or frac < CONTAINED_MIN_FRACTION:
+        return None
+    return len(sh.split()), frac
+
+
+def _doi_without_title_ok(rec, ref):
+    """No parsed title to compare: what is left must carry the decision on its own. -> (ok, note).
+
+    decisions.yaml litkb-p0-foundation §15.15 allows the +/-1 year arm ONLY when the title and the
+    first author both match the registry record. With no parsed title the title arm cannot match, so
+    the year must be EXACT here — this branch deliberately does not go through `judge_candidate`,
+    which would have to be handed the registry's own title as the reference's (a self-comparison
+    scoring 1.00) and would then unlock a tolerance §15.15 does not grant.
+
+    This is the one place where a wrong DOI can still be accepted: a DOI that resolves to a
+    different work by the same first author in the same year passes (measured: Steenberg 2017 `b5`,
+    whose printed DOI is Boone 2010 and whose reference is a different Boone 2010). The title ratio
+    is what refuses that row in the corpus; strip the title and only author+year remain.
+    """
+    # BEGIN guard: p6 a DOI with no parsed title is verified on author and year
+    family = ref.get("first_author") or ""
+    if not family or not family_matches(rec["first_author"], family):
+        return False, f"first author {rec['first_author']!r} != {family!r}"
+    ry, fy = _year_int(rec["year"]), _year_int(ref.get("year"))
+    if ry is None or fy is None or ry != fy:
+        return False, f"year {ry} != {fy} (exact match required with no title, decisions.yaml 15.15)"
+    # END guard: p6 a DOI with no parsed title is verified on author and year
+    return True, "basis=author+year (no parsed title)"
+
+
 def resolve_by_doi(ref, client, pacer):
     """The DOI path. The DOI decides: there is NO title fallback from here (module docstring)."""
     doi = ref.get("doi_norm") or normalize_doi(ref.get("doi"))
@@ -453,24 +540,28 @@ def resolve_by_doi(ref, client, pacer):
                           + ", ".join(f"{n}:{s}" for n, s in tried) + ")")
     ratio = max([title_match_ratio(ref.get("title") or "", t) for t in (rec["titles"] or [])] or [0.0])
     # BEGIN guard: p6 a reference DOI must resolve to the reference's own work
+    note = f"ratio={ratio:.2f}"
     if ref.get("title"):
         if ratio < RESOLVE_TITLE_RATIO:
-            return Resolution("unresolved", reason=f"doi_title_mismatch (ratio {ratio:.2f} < "
-                              f"{RESOLVE_TITLE_RATIO}; registry title {rec['title'][:70]!r})",
+            cont = title_containment(ref["title"], rec["title"])
+            # BEGIN guard: p6 a contained title is labelled, never resolved
+            kind = "doi_title_contained" if cont else "doi_title_mismatch"
+            # END guard: p6 a contained title is labelled, never resolved
+            detail = (f"; contained {cont[0]} words, {cont[1]:.2f} of the longer" if cont else "")
+            return Resolution("unresolved", reason=f"{kind} (ratio {ratio:.2f} < "
+                              f"{RESOLVE_TITLE_RATIO}; registry title {rec['title'][:70]!r}{detail})",
                               ratio=ratio, registry_title=rec["title"], doi=None,
                               candidates=[{"doi": doi, "title": rec["title"], "year": rec["year"]}])
     else:
         # No parsed title to compare: the surname and the year must both agree, or the DOI is
-        # unconfirmable. A DOI accepted on nothing is the Averkov defect with extra steps.
-        ok, _r, note = judge_candidate(
-            {"titles": rec["titles"], "family": rec["first_author"], "year": rec["year"]},
-            rec["title"], ref.get("first_author") or "", ref.get("year"))
+        # unverifiable. A DOI accepted on nothing is the Averkov defect with extra steps.
+        ok, note = _doi_without_title_ok(rec, ref)
         if not ok:
-            return Resolution("unresolved", reason=f"doi_unconfirmable (no parsed title; {note})",
+            return Resolution("unresolved", reason=f"doi_unverifiable (no parsed title; {note})",
                               registry_title=rec["title"])
     # END guard: p6 a reference DOI must resolve to the reference's own work
     return Resolution("resolved", doi=normalize_doi(doi), source="doi", ratio=round(ratio, 4),
-                      reason=f"via=doi; registry={rec['registry']}; ratio={ratio:.2f}",
+                      reason=f"via=doi; registry={rec['registry']}; {note}",
                       registry_title=rec["title"])
 
 
@@ -583,7 +674,12 @@ def process_tei(tei, citing_key, client, pacer=None, index=None, resolve=True, b
     by_key = {r["ref_key"]: r for r in refs}
     counts = {}
     for m in mentions:
-        counts[m["target"]] = counts.get(m["target"], 0) + 1
+        # A MENTION IS ONE <ref> ELEMENT. `citation_mentions` emits one row per bounding box, and a
+        # marker that wraps across a line carries two — correct as geometry, wrong as a count.
+        # Measured 2026-09-15: 1,386 box rows over 1,182 elements, inflating 139 of 658 reference
+        # rows and re-ordering the most-cited table. The box rows are unchanged; only this
+        # aggregate counts the first box of each element.
+        counts[m["target"]] = counts.get(m["target"], 0) + (1 if m["box_index"] == 0 else 0)
     rows, edges, cands = [], [], []
     for r in refs:
         res = (resolve_reference(r, client, pacer, breaker) if resolve

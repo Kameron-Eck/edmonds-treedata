@@ -139,9 +139,22 @@ def test_a_mention_carries_its_page_box_sentence_and_target():
 
 
 def test_mention_counts_reach_the_reference_rows():
+    """A MENTION IS AN ELEMENT, NOT A BOX. b0 is cited twice in TEI and the second marker wraps
+    across a line, so it carries two boxes and three mention ROWS. Counting rows said "cited 3
+    times" — the F1 defect of the P6 referee, which inflated 139 of 658 live rows and re-ordered
+    the most-cited table. The rows stay per-box (geometry); the count is per element."""
     out = R.process_tei(TEI, "citing", StubClient(), resolve=False)
     counts = {r["ref_key"]: r["mention_count"] for r in out["references"]}
-    assert counts == {"b0": 3, "b1": 1}
+    assert counts == {"b0": 2, "b1": 1}
+    assert len(out["citation_mentions"]) == 4, "the per-box rows must not be collapsed"
+
+
+def test_the_three_mention_totals_are_reported_separately():
+    """Box rows, elements and untargeted elements are three different numbers, and a report that
+    quotes one for another is wrong by construction (F1)."""
+    tot = R.mention_totals(R.citation_mentions(TEI))
+    assert tot == {"mention_box_rows": 4, "mention_elements": 3,
+                   "mentions_without_target": 0, "mentions_verifiable": 3}
 
 
 # ── resolution ─────────────────────────────────────────────────────────────────────────
@@ -276,7 +289,7 @@ def test_an_in_corpus_doi_becomes_an_edge_and_anything_else_a_candidate():
     out = R.process_tei(TEI, "citing", StubClient(work={BENEDEK["doi"]: BENEDEK},
                                                  search=[]), index=idx)
     assert out["edges"] == [{"citing_work_key": "citing", "cited_work_key": "Benedek_2009_change-detection",
-                             "cited_doi": BENEDEK["doi"], "ref_key": "b0", "mention_count": 3,
+                             "cited_doi": BENEDEK["doi"], "ref_key": "b0", "mention_count": 2,
                              "in_corpus": True}]
     assert [c["citing_reference"][:5] for c in out["candidates"]]          # b1 became a lead
     assert len(out["candidates"]) == 1
@@ -421,3 +434,92 @@ def test_a_doi_with_no_parsed_title_still_needs_its_author_and_year():
     assert ok.state == "resolved"
     bad = dict(ref, first_author="Nobodyatall")
     assert R.resolve_reference(bad, StubClient(work={BENEDEK["doi"]: BENEDEK})).state == "unresolved"
+
+
+# ── the no-parsed-title branch of the DOI path (P6 referee §4) ──────────────────────────
+
+#: Steenberg 2017 `b5`, the live row that exposed this branch: the DOI printed in the paper is
+#: registered to a DIFFERENT Boone 2010, and the parsed title (ratio 0.245) is the only thing that
+#: refuses it. With the title stripped, first author and year are all that is left — and they agree.
+BOONE_REGISTERED = {"doi": "10.1080/19463138.2010.513772", "family": "Boone", "year": 2010,
+                    "title": "Environmental justice, sustainability and vulnerability"}
+
+
+def _boone_ref(**kw):
+    ref = dict(R.parse_references(TEI)[0], first_author="Boone", year="2010", title="",
+               doi=BOONE_REGISTERED["doi"], doi_norm=R.normalize_doi(BOONE_REGISTERED["doi"]))
+    ref.update(kw)
+    return ref
+
+
+def _boone_client():
+    return StubClient(work={R.normalize_doi(BOONE_REGISTERED["doi"]): BOONE_REGISTERED})
+
+
+def test_steenberg_b5_with_no_parsed_title_is_accepted_on_author_and_year():
+    """NOT a happy path — the documented hole, pinned so it cannot move silently. The registered
+    work is a different Boone 2010, and with no parsed title the branch has nothing that separates
+    them, so it resolves. The design says so in those words (§7 stage 6); the title ratio is what
+    refuses this row in the live corpus."""
+    res = R.resolve_reference(_boone_ref(), _boone_client())
+    assert res.state == "resolved" and res.source == "doi"
+    assert "basis=author+year (no parsed title)" in res.reason
+
+
+def test_a_planted_wrong_doi_with_no_parsed_title_is_doi_unverifiable():
+    """The same shape with the author and year the reference actually prints: a DOI that resolves
+    to somebody else's work is refused, not accepted on the DOI alone."""
+    res = R.resolve_reference(_boone_ref(first_author="Heynen", year="2003"), _boone_client())
+    assert res.state == "unresolved" and res.doi is None
+    assert "doi_unverifiable" in res.reason
+
+
+def test_with_no_parsed_title_the_year_must_be_exact_not_plus_or_minus_one():
+    """decisions.yaml litkb-p0-foundation §15.15: the +/-1 arm is allowed only when the title AND
+    the first author both match. With no parsed title the title arm cannot match, so a year one out
+    is not a near-miss to forgive — it is the last discriminator there is."""
+    res = R.resolve_reference(_boone_ref(year="2011"), _boone_client())
+    assert res.state == "unresolved" and "doi_unverifiable" in res.reason
+
+
+def test_with_no_parsed_title_and_no_author_the_doi_is_unverifiable():
+    res = R.resolve_reference(_boone_ref(first_author="", authors=[]), _boone_client())
+    assert res.state == "unresolved" and "doi_unverifiable" in res.reason
+
+
+# ── the contained-title label (P6 referee §4) ───────────────────────────────────────────
+
+def test_a_truncated_parsed_title_is_labelled_contained_and_still_unresolved():
+    """GROBID truncates a title at a comma; the registry title then CONTAINS the parsed one. That is
+    a parse artefact, not a wrong DOI — but the row stays unresolved, because accepting on
+    containment would let a stub match anything that contains it. Only the label changes."""
+    longer = dict(BENEDEK, title=BENEDEK["title"] + " over the Budapest site")
+    res = R.resolve_reference(R.parse_references(TEI)[0], StubClient(work={BENEDEK["doi"]: longer}))
+    assert res.state == "unresolved" and res.doi is None
+    assert "doi_title_contained" in res.reason
+
+
+def test_a_genuinely_wrong_doi_is_still_doi_title_mismatch_not_contained():
+    wrong = dict(BENEDEK, title="Heegaard Floer invariants of Legendrian knots", family="Ozsvath")
+    res = R.resolve_reference(R.parse_references(TEI)[0], StubClient(work={BENEDEK["doi"]: wrong}))
+    assert "doi_title_mismatch" in res.reason and "contained" not in res.reason
+
+
+def test_a_short_generic_parsed_title_is_not_called_contained():
+    """"Introduction" sits inside a hundred registry titles. The word floor and the length fraction
+    are what stop containment becoming an acceptance rule by the back door."""
+    assert R.title_containment("Introduction", BENEDEK["title"]) is None
+    assert R.title_containment("Change detection in", BENEDEK["title"]) is None
+    res = R.resolve_reference(dict(R.parse_references(TEI)[0], title="Introduction"),
+                              StubClient(work={BENEDEK["doi"]: BENEDEK}))
+    assert "doi_title_mismatch" in res.reason
+
+
+def test_containment_sees_through_a_curly_apostrophe():
+    """The shared `_norm_text` strips `string.punctuation`, which does NOT contain U+2019, so
+    "Residents\u2019" and "Residents'" differ under it. Measured on Guo 2018 `b5`: without the
+    quote fold a real parse artefact reads as a wrong DOI."""
+    reg = "Tending their urban forest: Residents\u2019 motivations for tree planting and removal"
+    parsed = ("Tending their urban forest: Residents' motivations for tree planting and removal. "
+              "Urban Forestry and Urban Greening")
+    assert R.title_containment(parsed, reg) is not None

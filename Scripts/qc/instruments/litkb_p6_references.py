@@ -144,7 +144,7 @@ def run(stems, teis, resolve=True):
         s = R.resolution_summary(res["references"])
         s.update(stem=stem, status="ok", mentions=len(res["citation_mentions"]),
                  edges=len(res["edges"]), candidates=len(res["candidates"]),
-                 seconds=round(time.time() - t0, 1))
+                 seconds=round(time.time() - t0, 1), **R.mention_totals(res["citation_mentions"]))
         per_paper.append(s)
         print(f"  {stem}: {s['references']} refs  {s['resolved']}R/{s['ambiguous']}A/"
               f"{s['unresolved']}U  {s['edges']} edges  {s['seconds']}s", flush=True)
@@ -155,23 +155,30 @@ def run(stems, teis, resolve=True):
     summary = R.resolution_summary(allrefs)
     summary.update(papers=len([p for p in per_paper if p.get("status") == "ok"]),
                    mentions=len(allment), edges=len(alledges), candidates=len(allcands),
+                   **R.mention_totals(allment),
                    network_calls=client.network_calls, cache_hits=client.cache.hits,
                    corpus_index_size=len(index), stages_tripped=breaker.report())
     (OUT / "summary.json").write_text(json.dumps({"summary": summary, "per_paper": per_paper},
                                                  indent=2, sort_keys=True), encoding="utf-8")
-    _write_report_csvs(allrefs, alledges, allcands, per_paper)
+    _write_report_csvs(allrefs, alledges, allcands, per_paper, breaker.report())
     return summary, per_paper
 
 
-def _write_report_csvs(refs, edges, cands, per_paper):
+def _write_report_csvs(refs, edges, cands, per_paper, tripped=None):
     REPORTS.mkdir(exist_ok=True)
     with open(REPORTS / "litkb_p6_per_paper_2026-09-15.csv", "w", encoding="utf-8", newline="") as fh:
+        # `mentions` is BOX ROWS (geometry); `mention_elements` is the <ref> count, which is what
+        # "cited n times" means — F1 of the P6 referee. `resolved_rate` is a CROSSREF-ONLY rate
+        # whenever a stage tripped, so `stages_tripped` travels beside it (F3) and the column can
+        # never be read as an all-registry rate.
         cols = ["stem", "status", "references", "resolved", "ambiguous", "unresolved",
-                "resolved_rate", "mentions", "edges", "candidates", "seconds"]
+                "resolved_rate", "stages_tripped", "mentions", "mention_elements",
+                "mentions_without_target", "edges", "candidates", "seconds"]
         w = csv.DictWriter(fh, cols, extrasaction="ignore")
         w.writeheader()
         for p in per_paper:
-            w.writerow(p)
+            w.writerow(dict(p, stages_tripped=",".join(sorted(tripped or {})) or "none")
+                       if p.get("status") == "ok" else p)
     # most-cited works NOT in the corpus, by distinct citing papers then mentions
     agg = {}
     for c in cands:

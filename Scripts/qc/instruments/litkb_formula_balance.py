@@ -88,6 +88,26 @@ def spearman(xs, ys):
     return num / (dx * dy) if dx and dy else 0.0
 
 
+def _tokenizer():
+    """The CodeFormulaV2 tokenizer out of the HF cache, or None. Never raises.
+
+    The worker reaches it through the loaded engine; this instrument has no engine, so it
+    finds the cached checkpoint directly. Without it the cap counts are simply not reported —
+    never guessed from character length, which varies 1.4-2.7 chars per token on this
+    checkpoint and cannot separate a capped row from a long one.
+    """
+    try:
+        import glob as _glob
+
+        from transformers import AutoTokenizer
+        hits = [p for p in _glob.glob(os.path.expanduser(
+            "~/.cache/huggingface/hub/**/tokenizer.json"), recursive=True)
+            if "odeFormula" in p]
+        return AutoTokenizer.from_pretrained(os.path.dirname(hits[0])) if hits else None
+    except Exception:                     # noqa: BLE001 — an optional measurement
+        return None
+
+
 def linfit(X, Y):
     n = len(X)
     mx, my = sum(X) / n, sum(Y) / n
@@ -157,6 +177,28 @@ def main(argv=None):
 
     # ── 4. runaways (before 3, because 3 reports a runaway-free variant) ────────────────
     print("\n4. RUNAWAYS — repetition loops truncated at max_new_tokens")
+    # TWO counts, and they are NOT the same count. `n_tokens >= DEGENERATE_MIN_TOKENS` is the
+    # ground truth for "this generation was CUT OFF" and needs the checkpoint's tokenizer; the
+    # repeated-tail detector is what the worker can always run, and it is a strict subset.
+    # Reporting only one of them is how a report ends up saying 9 where the instrument says 8.
+    tok = _tokenizer()
+    capped = {}
+    if tok is None:
+        print("   (tokenizer NOT reachable: the cap counts are UNMEASURED here, tail only)")
+    else:
+        for tag, src in (("canary1", r1), ("canary2", r2)):
+            capped[tag] = {i for i in ids
+                           if len(tok(src[i].get("latex") or "")["input_ids"])
+                           >= W.DEGENERATE_MIN_TOKENS}
+            print("   %s: %d/%d generations hit the %d-token cap — the ground truth"
+                  % (tag, len(capped[tag]), len(ids), W.DEGENERATE_MIN_TOKENS))
+            out.append({"section": "runaway", "name": tag + "_at_token_cap",
+                        "value": len(capped[tag]), "unit": "rows", "n": len(ids)})
+        cb = capped["canary1"] & capped["canary2"]
+        cbi = {i for i in cb if (r1[i].get("latex") or "") == (r2[i].get("latex") or "")}
+        print("   at the cap in BOTH runs: %d, byte-identical in both: %d" % (len(cb), len(cbi)))
+        out.append({"section": "runaway", "name": "at_cap_in_both_byte_identical",
+                    "value": len(cbi), "unit": "rows", "n": len(ids)})
     caught = {}
     for tag, L in (("canary1", L1), ("canary2", L2)):
         src = r1 if tag == "canary1" else r2

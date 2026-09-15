@@ -8,6 +8,9 @@ batch_cost,intercept_s,0.812436,fit,40
 batch_cost,seconds_per_char,0.024179,fit,40
 batch_cost,r2,0.876588,fit,40
 batch_cost,r2_if_sum_not_max,0.7909,fit,40
+runaway,canary1_at_token_cap,13,rows,200
+runaway,canary2_at_token_cap,10,rows,200
+runaway,at_cap_in_both_byte_identical,9,rows,200
 runaway,canary1_detected,12,rows,200
 runaway,canary2_detected,9,rows,200
 runaway,identical_in_both,8,rows,200

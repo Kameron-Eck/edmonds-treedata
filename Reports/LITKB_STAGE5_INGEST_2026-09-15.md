@@ -281,8 +281,11 @@ was filling it, so it is a referee's call, not the author's. Applying it is one 
    this session raises and does not answer.
 3. **0017 is not applied to `litkb`** (§9), so nothing in the real lake has been ingested. The
    run in §5 reconciled real files but wrote to no database outside `litkb_test`.
-4. **Almon_1965 matches only 31 of its regions** against a full GROBID parse. That is a cover-sheet
-   file and the low rate is plausible, but it is not explained here; a referee should look at
-   whether the disagreement rows describe a real structural difference or an adapter fault.
+4. **GROBID contributes far fewer regions than Docling, and only some of them match.** Measured:
+   `Almon_1965` **48 GROBID regions against 398 Docling**, of which 31 matched; `Benedek_2015`
+   **233 against 430**, of which 171 matched. A referee should decide whether GROBID is simply
+   regioning at a coarser grain — in which case `partial_overlap` is under-reporting and the
+   matching should be many-to-one rather than one-to-one — or whether regions are being lost.
+   Either way it is the single largest open question about this stage's accuracy.
 5. Stage 5 does not yet write `references` rows, `citation_mentions` or chunks — those are
    stages 6 and 7, and the reference blocks it produces carry GROBID's raw text only.

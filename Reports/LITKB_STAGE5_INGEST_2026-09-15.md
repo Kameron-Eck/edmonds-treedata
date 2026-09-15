@@ -256,8 +256,11 @@ mutation rows, which stops them drifting unnoticed; it does not make them right.
   allowed; no new sink: neither `reconcile.py` nor `ingest.py` writes to stdout).
 * Parallel harness, `--workers 4 --worker-dbs 1,2,6,9`, the **21** new rows `R51`–`R521`:
   **21/21 fired**, baselines passed.
-* Whole 176-row harness and `py -3.12 qc/check.py --fast` under `LITKB_TEST_DB=litkb_test_w6`:
-  see the closing line of this report.
+* Whole harness, same invocation, all 176 rows: **176/176 fired**, baselines passed, 44/44 per
+  worker, wall-clock **48.1 min** over 4 workers.
+* `py -3.12 qc/check.py --fast` under `LITKB_TEST_DB=litkb_test_w6`: **2,669 passed, 23 skipped,
+  2 xfailed, 1 failed** — the single failure is `test_pointer_paths_resolve[crown_state_model]`,
+  the known pre-existing one. litkb Postgres tests 259 passed.
 
 ## 9. What was applied where
 

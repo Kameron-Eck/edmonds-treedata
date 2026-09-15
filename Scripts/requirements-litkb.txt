@@ -4,3 +4,8 @@
 # Extraction tools (Docling, MinerU, embedding models) will get their own
 # requirements-litkb-extract.txt in P4.
 psycopg[binary]==3.3.5
+# Stage 0 (Inventory) reads every PDF's page boxes, rotation, text layer and image
+# coverage. It is the ONE §7.1 frame reader, and its page count is the denominator of
+# every later stage's pages/s. Same pin as the GROBID branch, which needs it for the
+# cropbox origin the TEI never carries.
+pypdfium2==5.13.0

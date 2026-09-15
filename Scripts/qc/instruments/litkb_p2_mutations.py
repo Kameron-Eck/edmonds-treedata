@@ -540,6 +540,9 @@ def run_one(m):
 
 WORKER_ROOT_DEFAULT = Path(r"D:\edmonds-pipeline\_litkb_harness_workers")
 COPY_DIRS = ("Scripts", "Reports")          # tests read Reports/literature_tracker.csv
+# the ONE ignore set: shutil.copytree and tree_manifest() must agree exactly, or every worker's
+# stale-copy check (D-2) fails on files that were never copied in the first place
+COPY_IGNORE = ("__pycache__", ".pytest_cache", "*.pyc", "_litkb_ws", ".litkb-workstream")
 
 
 def default_workers():
@@ -549,6 +552,70 @@ def default_workers():
     return max(1, int((os.cpu_count() or 4) * 0.8))
 
 
+def tree_manifest(root):
+    """{posix relative path: sha256} over COPY_DIRS under `root`, using COPY_IGNORE.
+
+    D-2 (referee 2026-09-14): a STALE worker copy produced a FALSE SURVIVOR — the copy baselined 82 tests
+    where a correct one baselines 241, and nothing compared the copy to the source. A worker now hashes its
+    own tree and refuses to report any verdict unless it matches the parent's source manifest."""
+    import fnmatch
+
+    root = Path(root)
+    out = {}
+    for d in COPY_DIRS:
+        base = root / d
+        if not base.exists():
+            continue
+        for p in sorted(base.rglob("*")):
+            rel = p.relative_to(root).as_posix()
+            if any(fnmatch.fnmatch(part, pat) for part in Path(rel).parts for pat in COPY_IGNORE):
+                continue
+            if p.is_file():
+                out[rel] = _sha(p.read_bytes())
+    return out
+
+
+def manifest_diff(source, copy):
+    """[(path, what)] for every file that differs — missing, extra or changed. Empty means identical."""
+    bad = [(p, "MISSING from the copy") for p in sorted(set(source) - set(copy))]
+    bad += [(p, "EXTRA in the copy") for p in sorted(set(copy) - set(source))]
+    bad += [(p, "CHANGED") for p in sorted(set(source) & set(copy)) if source[p] != copy[p]]
+    return bad
+
+
+def partition(chosen, n):
+    """Round-robin `chosen` over at most n workers, dropping empty parts. An EMPTY part is never launched:
+    a worker whose --only is empty used to fall through to all 106 rows (referee Break C)."""
+    n = max(1, min(n, len(chosen)))
+    return [p for p in (chosen[i::n] for i in range(n)) if p]
+
+
+def check_partition(parts, chosen):
+    """Every chosen row reaches exactly one worker. Raises naming the rows that do not."""
+    flat = [m["id"] for part in parts for m in part]
+    want = [m["id"] for m in chosen]
+    dropped = sorted(set(want) - set(flat))
+    dup = sorted({i for i in flat if flat.count(i) > 1})
+    if any(not part for part in parts):
+        raise RuntimeError("partition produced an empty worker partition")
+    if dropped or dup:
+        raise RuntimeError(f"partition does not cover the chosen rows: dropped={dropped} duplicated={dup}")
+
+
+def parse_worker_log(text):
+    """A worker's log -> ({id: fired}, baselines_ok, stale_lines). The parent trusts nothing else."""
+    import re
+
+    fired = {}
+    for ln in text.splitlines():
+        mm = re.match(r"^(\S+)\s+(FIRED|DID NOT FIRE)\s", ln)
+        if mm:
+            fired[mm.group(1)] = mm.group(2) == "FIRED"
+    base_ok = bool(re.search(r"mutations fired; baselines passed", text))
+    stale = [ln for ln in text.splitlines() if ln.startswith("STALE COPY:")]
+    return fired, base_ok, stale
+
+
 def make_worker_copy(i, root):
     import shutil
 
@@ -556,7 +623,7 @@ def make_worker_copy(i, root):
     if dst.exists():
         shutil.rmtree(dst)
     repo = SCRIPTS.parent
-    ignore = shutil.ignore_patterns("__pycache__", ".pytest_cache", "*.pyc", "_litkb_ws", ".litkb-workstream")
+    ignore = shutil.ignore_patterns(*COPY_IGNORE)
     for d in COPY_DIRS:
         shutil.copytree(repo / d, dst / d, ignore=ignore)
     # the suite's git-ignore test needs a checkout with the repo's .gitignore files: an empty git repo plus the
@@ -572,16 +639,19 @@ def run_workers(chosen, n, root, extra_args=()):
     """Partition `chosen` round-robin over n workers, run each as a subprocess in its own copy against its own
     database, and return [(mutation, fired, summary)] in the original order plus whether every baseline passed."""
     import concurrent.futures as cf
+    import json
     import os
-    import re
     import time
 
     from litkb.db.provision import worker_db
 
-    n = min(n, len(chosen))
-    parts = [chosen[i::n] for i in range(n)]
+    parts = partition(chosen, n)
+    check_partition(parts, chosen)                 # D-5: a row lost in the split is named, not a KeyError
+    n = len(parts)
     root = Path(root)
     root.mkdir(parents=True, exist_ok=True)
+    src_manifest = root / "source.manifest.json"   # D-2: hashed ONCE, before any copy is made
+    src_manifest.write_text(json.dumps(tree_manifest(SCRIPTS.parent), indent=0), encoding="utf-8")
     print(f"parallel: {len(chosen)} rows over {n} workers, copies under {root}")
 
     def one(i, rows):
@@ -593,28 +663,29 @@ def run_workers(chosen, n, root, extra_args=()):
         log = root / f"w{i}.log"
         with log.open("w", encoding="utf-8") as fh:
             r = subprocess.run([sys.executable, "-u", str(script), "--worker", *extra_args,
+                                "--manifest", str(src_manifest),
                                 "--only", ",".join(m["id"] for m in rows)],
                                cwd=str(copy / "Scripts"), env=env, stdout=fh, stderr=subprocess.STDOUT, text=True)
-        text = log.read_text(encoding="utf-8", errors="replace")
-        fired = {}
-        for ln in text.splitlines():
-            mm = re.match(r"^(\S+)\s+(FIRED|DID NOT FIRE)\s", ln)
-            if mm:
-                fired[mm.group(1)] = mm.group(2) == "FIRED"
-        base_ok = bool(re.search(r"mutations fired; baselines passed", text))
-        return i, rows, fired, base_ok, r.returncode, time.monotonic() - t0, log
+        fired, base_ok, stale = parse_worker_log(log.read_text(encoding="utf-8", errors="replace"))
+        return i, rows, fired, base_ok, stale, r.returncode, time.monotonic() - t0, log
 
     results, all_base = {}, True
     with cf.ThreadPoolExecutor(max_workers=n) as ex:
-        for i, rows, fired, base_ok, rc, dt, log in ex.map(lambda a: one(*a), enumerate(parts, 1)):
+        for i, rows, fired, base_ok, stale, rc, dt, log in ex.map(lambda a: one(*a), enumerate(parts, 1)):
             missing = [m["id"] for m in rows if m["id"] not in fired]
             print(f"worker {i}: {len(rows)} rows, {sum(fired.values())} fired, baselines "
                   f"{'passed' if base_ok else 'FAILED'}, rc {rc}, {dt / 60:.1f} min, log {log}"
-                  + (f", NO RESULT for {missing}" if missing else ""))
-            all_base = all_base and base_ok and rc in (0, 1) and not missing
+                  + (f", NO RESULT for {missing}" if missing else "")
+                  + (f", {stale[0]}" if stale else ""))
+            all_base = all_base and base_ok and rc in (0, 1) and not missing and not stale
             for m in rows:
-                results[m["id"]] = fired.get(m["id"], False)
-    return [(m, results[m["id"]]) for m in chosen], all_base
+                results[m["id"]] = fired.get(m["id"])      # D-6: None = no verdict, never a survivor
+    return [(m, results.get(m["id"])) for m in chosen], all_base
+
+
+def verdict_label(fired):
+    """D-6: 'no verdict' and 'survivor' are different findings and must never print the same word."""
+    return "FIRED" if fired else ("NO RESULT" if fired is None else "DID NOT FIRE")
 
 
 def main(argv=None):
@@ -629,10 +700,32 @@ def main(argv=None):
     ap.add_argument("--plant-equivalent", action="store_true",
                     help="KILL CHECK for the harness itself: add a comment-only row that cannot change behaviour; "
                          "the run must report it DID NOT FIRE and exit 1, serial or parallel")
+    ap.add_argument("--allow-oversubscribe", action="store_true",
+                    help=f"permit --workers above the headroom rule's {default_workers()} on this machine")
     ap.add_argument("--worker", action="store_true", help=argparse.SUPPRESS)   # set by run_workers
+    ap.add_argument("--manifest", help=argparse.SUPPRESS)                      # set by run_workers (D-2)
     a = ap.parse_args(sys.argv[1:] if argv is None else argv)
     if a.sites:
         sys.exit(0 if self_check()[0] else 1)
+    # D-5: a worker must NEVER fall through to all 106 rows. An --only that is present and empty is an
+    # error, not "everything"; and a worker without --only is an error too.
+    if a.only is not None and not [s for s in a.only.split(",") if s.strip()]:
+        raise SystemExit("--only was given with no mutation ids: refusing to run (an empty partition is a bug)")
+    if a.worker and a.only is None:
+        raise SystemExit("--worker requires --only: a worker runs exactly the ids the parent gave it")
+    if a.workers > default_workers() and not a.allow_oversubscribe:
+        raise SystemExit(f"--workers {a.workers} exceeds the headroom rule's {default_workers()} on this "
+                         f"machine; pass --allow-oversubscribe to override deliberately")
+    if a.manifest:                     # D-2: the stale-copy kill, before baselines and before any row runs
+        import json
+
+        bad = manifest_diff(json.loads(Path(a.manifest).read_text(encoding="utf-8")),
+                            tree_manifest(SCRIPTS.parent))
+        if bad:
+            print(f"STALE COPY: {len(bad)} file(s) differ from the source tree, e.g. "
+                  + "; ".join(f"{p} {w}" for p, w in bad[:5]))
+            print("this worker reports NO verdict: a stale copy produces false survivors (referee D-2)")
+            sys.exit(2)
     if a.plant_equivalent:
         replace("ZZ0", f"{PKG}/textnorm.py", "The ONE Python normalisation of DOIs",
                 "The ONE Python normalisation of DOIs (planted equivalent: docstring only)",
@@ -640,7 +733,7 @@ def main(argv=None):
         if a.only and not a.worker and "ZZ0" not in a.only.split(","):
             a.only += ",ZZ0"           # a worker runs exactly the ids the parent gave it
     chosen = M
-    if a.only:
+    if a.only is not None:
         wanted = [s.strip() for s in a.only.split(",") if s.strip()]
         unknown = sorted(set(wanted) - {m["id"] for m in M})
         if unknown:
@@ -658,8 +751,8 @@ def main(argv=None):
         rows, base_ok = run_workers(chosen, a.workers, a.worker_root,
                                     extra_args=["--plant-equivalent"] if a.plant_equivalent else [])
         for m, fired in rows:
-            print(f"{m['id']:<4} {'FIRED' if fired else 'DID NOT FIRE':<13} {m['what']}")
-        n = sum(f for _m, f in rows)
+            print(f"{m['id']:<4} {verdict_label(fired):<13} {m['what']}")
+        n = sum(1 for _m, f in rows if f)
         print(f"\n{n}/{len(rows)} mutations fired; baselines {'passed' if base_ok else 'FAILED'}; "
               f"wall-clock {(time.monotonic() - t0) / 60:.1f} min over {a.workers} workers")
         sys.exit(0 if n == len(rows) and base_ok else 1)

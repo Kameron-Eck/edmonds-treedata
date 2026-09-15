@@ -1,0 +1,18 @@
+parallel worker log, HAND-WRITTEN 2026-09-14 as the fixed expected input for
+qc/test_litkb_harness_parallel.py::test_parse_worker_log_against_the_committed_fixture.
+Three rows: two fired, one survived. The indented restore-proof and "-> " lines, the
+baseline lines and the summary line must all be read as NOT verdicts.
+baseline (unmutated) (qc/test_litkb_p2.py + qc/test_litkb_annas.py): 241 passed in 61.02s
+A1   FIRED         check 1: stop requiring the work's title and year to be the registry record's
+     -> 3 failed, 238 passed in 63.11s
+        qc/test_litkb_p2.py::test_registry_admission_requires_the_registry_record
+     restored pipeline/litkb/db/migrations/0013_admission.sql sha256 9f2b1c4d5e6a7b80... match: True
+B6   DID NOT FIRE  acquire: no sha256 lookup in the database
+     -> 241 passed in 60.44s
+     restored pipeline/litkb/acquire/run.py sha256 11aa22bb33cc44dd... match: True
+S18  FIRED         the archive route resolves the DOI as given
+     -> 1 failed, 240 passed in 62.90s
+     restored pipeline/litkb/acquire/annas.py sha256 5566778899aabbcc... match: True
+baseline again (restored) (qc/test_litkb_p2.py + qc/test_litkb_annas.py): 241 passed in 60.88s
+
+2/3 mutations fired; baselines passed

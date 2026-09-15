@@ -81,3 +81,51 @@ run above is after the fix, and a missing verdict is still reported separately f
   8 passed.
 - `qc/check.py --fast` was NOT run on this branch (the litkb branch's ladder will run on merge; the only
   expected failure there is the pre-existing `crown_state_model` pointer).
+
+---
+
+## 7. Fixes after referee (2026-09-14)
+
+Against `Reports/LITKB_HARNESS_PARALLEL_REFEREE_2026-09-14.md` (ADOPT WITH FIXES). Every guard added below was
+mutated, shown to FAIL its test, and restored with a sha256 comparison — the same standard the harness holds its
+subjects to (CLAUDE.md 3.4c). Mutation script: scratchpad, one break per guard, file restored in a `finally`.
+
+| # | Fix | Where | Mutation proof (guard broken -> its test) |
+|---|---|---|---|
+| **D-1** | the `sys.path.insert` is gone: the harness module loads by path with `importlib` (the fixture `test_litkb_harness_sites.py` already uses), and the `_connect_with` subprocess payload relies on the `PYTHONPATH` it already sets | `qc/test_litkb_harness_parallel.py` | `test_path_insert_ledger` passes; the file now contains zero occurrences of the literal |
+| **D-2** | `tree_manifest()` / `manifest_diff()`; the parent hashes the source tree ONCE into `source.manifest.json` before any copy, passes `--manifest`; each worker re-hashes its own copy before baselines and before any row. A mismatch prints `STALE COPY:` and exits 2 with **no verdict**. `COPY_IGNORE` is now one constant shared by `copytree` and the manifest | `litkb_p2_mutations.py` | broken -> `test_a_stale_worker_copy_aborts_without_reporting_a_verdict` FAILS |
+| **D-3** | `parse_worker_log()` extracted from `run_workers`; the test asserts it against a committed hand-written fixture `qc/fixtures/litkb_worker_log.txt` (which deliberately contains restore-proof, `-> 1 failed` and summary lines that must NOT read as verdicts). The old test re-implemented the regex inline | both | regex narrowed to `FIRED` only -> the fixture test FAILS |
+| **D-4** | `qc/test_litkb_ops.py` took the database from `connect.DB_TEST` instead of the literal `"litkb_test"` (`_db()`/`_stamp()`); the LOGIN stays the `litkb_test` role and the `litkb_test*` restriction is untouched. `nightly_dump` itself had no hard-coded name | `qc/test_litkb_ops.py` | `LITKB_TEST_DB=litkb_test_w1 pytest qc/test_litkb_ops.py`: **31 passed** (was 9 failed / 22 passed) |
+| **Kill (C) / D-5** | `partition()` drops empty parts; `check_partition()` names any dropped or duplicated row and refuses an empty partition; both run before the pool. `--only` given empty is a `SystemExit`, and `--worker` without `--only` is too — a worker can no longer fall through to all 106 rows. `results.get()` replaces the `KeyError` | `litkb_p2_mutations.py` | each of the three broken in turn -> `test_a_dropped_row_is_reported_by_name` / `test_an_empty_partition_is_an_error_not_a_silent_run_of_everything` FAIL |
+| **D-6** | verdicts are tri-state (`True` / `False` / `None`); `verdict_label()` prints `NO RESULT` in the row list, so a missing verdict is never printed as a survivor — which matters more now that D-2's abort produces exactly that state | `litkb_p2_mutations.py` | broken -> `test_a_row_without_a_verdict_is_never_printed_as_a_survivor` FAILS |
+| **D-7** | `--workers` above `default_workers()` is refused unless `--allow-oversubscribe`; the headroom test now asserts hand-written numbers (12->9, 8->6, 4->3, 2->1, 1->1, no cpu_count->3) with `os.cpu_count` monkeypatched, instead of the formula against itself | both | broken -> `test_workers_above_the_headroom_rule_is_refused_unless_overridden` FAILS |
+
+The stale-copy kill, live on a planted stale copy (a worker tree whose `qc/test_litkb_p2.py` was replaced by a
+stub — the referee's Break B, which previously produced a FALSE SURVIVOR with passing baselines):
+
+```
+rc 2
+STALE COPY: 1 file(s) differ from the source tree, e.g. Scripts/qc/test_litkb_p2.py CHANGED
+this worker reports NO verdict: a stale copy produces false survivors (referee D-2)
+```
+
+### The pass after the fixes
+
+```
+--workers 9 (106 rows)                      106/106 FIRED, all 9 workers' baselines passed, rc 0, 25.1 min
+                                            12 rows x7 workers + 11 x2; per-worker 23.3-25.1 min
+--workers 2 --only B6 --plant-equivalent    B6 FIRED | ZZ0 DID NOT FIRE | 1/2 fired; baselines passed, rc 1
+```
+
+25.1 min against the referee's 23.3 min for the same 106 rows: the stale-copy manifest hashes ~470 files per
+worker at startup, and this pass shared the machine with nothing else either. The referee's ~3.8x-over-serial
+figure stands; the extra ~2 min is the cost of the D-2 check.
+
+`qc/check.py --fast` on this branch (as `LITKB_TEST_DB=litkb_test_w1`): **1 failed, 2416 passed, 5 skipped,
+1 xfailed** — the single failure is the allowed pre-existing `test_experiments.py::test_pointer_paths_resolve
+[crown_state_model]`. The branch-introduced `test_path_insert_ledger` failure (D-1) and the nine
+`test_litkb_ops.py` failures (D-4) are both gone.
+
+**Not measured:** `test_litkb_ops.py` without the override (`litkb_test` was in use by another agent all
+session), so its behaviour on the plain `litkb_test` name is reasoned from `connect.DB_TEST` defaulting to
+exactly that string, not observed — the same caveat as the referee's §8.

@@ -5,9 +5,11 @@ Design: `Scripts/LITERATURE_KB_DESIGN_2026-09-13.md` §4.6, §9.1, §10, §13, �
 Decisions: `Scripts/decisions.yaml` `litkb-p0-foundation`, "P3 load (Kam, 2026-09-14)".
 
 **Status of this evidence (CLAUDE.md 3.4c):** every number below was produced by the author of
-the code. No independent referee has re-run the loaders, the gate or the mutations. The gate is
-an instrument whose output is a tracked CSV, so a referee can re-run it without re-running the
-load; the load itself is idempotent, so a referee can re-run that too and must see nothing new.
+the code, and has since been re-run by an independent referee —
+`Reports/LITKB_P3_REFEREE_2026-09-15.md`, **P3 ACCEPTED WITH FIXES**. Every total reproduced; the
+load is clean, checked cell by cell rather than sampled; the **gate was defective** and four labels
+were wrong. See **"Fixes after referee"** at the end for what changed — the gate and the labels, not
+a number in the database.
 
 
 ## What was built
@@ -42,11 +44,12 @@ already held were deduped against, never re-admitted.
 | — duplicate (deduped against an existing work) | 43 |
 | — duplicate-review (title similarity, no identifier) | 2 |
 | — rejected (a recorded refusal, never a silent skip) | 39 |
-| — **held**: recorded, flagged, not admitted | **68** |
+| — **held**: recorded, flagged, not admitted, and (after the referee) carrying the reason | **68** |
 | admissions refused at binding — **binding-pending, waiting for OCR** | **10** |
 | admissions refused at binding — binding-failed | 29 |
-| admissions refused at check 1 or check 4 | 45 |
+| admissions refused at **check 2 as duplicates** (43 `duplicate` + 2 `duplicate-review`) | 45 |
 | `tracker` identifiers written | 346 |
+| `doi` identifiers written | 336 |
 | `legacy_stem` identifiers written | 169 |
 | use versions (state `proposed`, kind `context`) | 370 |
 | **discrepancies** | **909** |
@@ -252,8 +255,9 @@ M7's rule that `works.key` is authoritative and a file's stem is derived from it
 **CLAUDE.md itself was NOT edited.** Design §9.1 puts the interim rule at P3 and the final one at P8,
 and CLAUDE.md §3.1 says `main` is Kam's. The proposed interim rule, for Kam to merge into §2.1 / §3:
 
-> **Literature.** Any paper the project relies on is admitted, acquired and cited through the
-> literature knowledge base, not fetched ad hoc. `Reports/literature_tracker.csv`,
+> **Literature.** A paper is admitted, acquired and cited through the literature knowledge base
+> whenever it supports a claim in the project (`decisions.yaml` §15.17); ad-hoc reading is not
+> governed by this rule. `Reports/literature_tracker.csv`,
 > `Literature_Tracker.xlsx` and every `manifest.csv` are **generated exports** — never hand-edit them;
 > run `py -3.12 -m litkb export tracker` / `export manifest`. Procedure and the hunt protocol:
 > `Scripts/docs/LITERATURE_CONVENTION.md`.
@@ -319,6 +323,10 @@ record would have ENDED the load rather than recorded the row.
 compile pass; 2474 tests pass with **one** failure, `test_experiments.py::test_pointer_paths_resolve[crown_state_model]`, which is the
 known pre-existing one and is not litkb's. All 241 litkb Postgres tests pass.
 
+Re-run on the post-referee tree (see "Fixes after referee"): **1 failed, 2480 passed, 5 skipped, 1 xfailed**
+in 8m23s — the same one pre-existing failure, and **244** litkb Postgres tests. The whole mutation table,
+parallel on `--worker-dbs 1,2,6,9`: **154/154 fired, baselines passed**, 45.3 min over 4 workers.
+
 Two ladder findings were P3's own and are fixed: the gate instrument's `sys.path.insert` was outside the 3B
 ledger (it has a line now, with its reason — litkb is not in the editable install), and the P1 role-privilege
 matrix needed `record_discrepancy` on the writer's row, which is the matrix doing its job.
@@ -327,7 +335,13 @@ matrix needed `record_discrepancy` on the writer's row, which is the matrix doin
 
 - **No archive download.** P3 is a load, not a hunt: a row with no file on disk stays unbound.
 - **No correction pass on the tracker** (decisions.yaml). Tracker rows 327 and 329 still read `2019a` and
-  `2019b` in the YEAR column; the loader reads them leniently and records the difference.
+  `2019b` in the YEAR column. The loader reads them leniently and records the difference — but at the time
+  of the load only ONE of the two year parsers did (referee F4): `compare_row` carried a stricter `int()`,
+  so `year_agrees` was unconditionally False for those two rows and they could never reach case A. Fixed
+  below. Measured on `litkb`: 329 is `admitted` and 327 `rejected` at `binding-failed` — neither outcome was
+  decided by the year, and both rows carry their `year` discrepancy (`2019a`/`2019b` against `2019`), so
+  nothing loaded is wrong. What the second parser cost was the ROUTE: both went in on the file's binding
+  (case B) where case A was open to them.
 - **CLAUDE.md was not edited.** The proposed rule is above, for Kam's merge.
 - **`p3-migration` is left OPEN and unpromoted**, and the live `Reports/literature_tracker.csv`,
   `Literature_Tracker.xlsx` and `Validation\manifest.csv` were NOT overwritten. The exports are written to
@@ -339,3 +353,103 @@ matrix needed `record_discrepancy` on the writer's row, which is the matrix doin
   inputs; on today's store they have nothing to flag, and that is reported rather than inferred.
 - **The IMS/JSTOR scans** are `binding-pending`, waiting for OCR — 10 of them. The inventory re-measured them
   (title an image on page 1, no characters on page 2) and that is what §15.14 prescribes.
+
+---
+
+## Fixes after referee
+
+`Reports/LITKB_P3_REFEREE_2026-09-15.md` accepted the load — every total reproduces, the 713 explained
+cells were checked one by one, not sampled — and found the **gate** defective and four labels wrong.
+Everything below is that repair. **No number in the database changed, and none was re-derived: the gate's
+buckets after the fix are bucket-for-bucket what they were, and `phase4/qc/litkb_p3_diff.csv` regenerates
+byte-identical.** What changed is what the gate would let through next time.
+
+**F1 — the gate compares values now.** `explained` needed only a `discrepancies` record NAMING the cell; it
+never compared the record's `registry_value` with what the export printed. The referee's Plant A — one cell
+corrupted to `ZZZZ TOTALLY FABRICATED TITLE 12345` — came back `explained`, quoting a record about two other
+strings, and the gate passed. 713 of 1086 cells were open that way. The test is DOI-aware through
+`_same_doi` → `textnorm.normalize_doi`, the authority admission stores by, never a second copy of the rule:
+the referee measured that normalised equality **alone** fails the gate on 19 real cells, where the export
+prints `https://doi.org/10.x` for a record holding the bare `10.x`.
+
+**F1b — the HELD branch is reachable.** The docstring says a changed cell on a held row is a BUG, and the
+branch for it sat *after* the `hit` lookup. 91 of the 109 held rows carry discrepancy records, so for those
+rows it could not fire (Plant C). It now sits above `explained`, `filled` and `format`. Held rows are also
+keyed on the **manifest stem** as well as the tracker `ID`: `raw_record ->> 'ID'` alone left the 21
+manifest-only held rows outside the guard entirely.
+
+Re-run read-only against `litkb` (`litkb_reader`), workstream `p3-migration`:
+**1086 changed cells — explained 713, format 243, structural 120, filled 10, UNEXPLAINED 0, GATE PASS**, and
+`git diff` on the tracked CSV is empty. Both plants are now caught, each with its own test:
+`test_kill_a_fabricated_cell_is_not_explained_by_a_record_about_another_value` (Plant A, and it asserts the
+cell carries no ratio), `test_kill_a_changed_cell_on_a_held_row_is_a_bug_even_when_a_record_names_it`
+(Plant C, over both a fabricated value AND the registry value, plus a format-only difference), and
+`test_the_value_test_reads_a_doi_url_and_the_records_bare_doi_as_one_doi` — which exists because the
+referee's own first draft of this fix broke the gate on those 19 cells and was caught only by measuring it.
+
+**F3 — the refusal label.** "admissions refused at check 1 or check 4 — 45" was wrong about the reason, not
+the count: all 45 passed check 1 and were refused at **check 2**, as 43 `duplicate` and 2 `duplicate-review`.
+The table above says so now.
+
+**F4 — one year parser.** `plan.compare_row` carried a second, stricter `int(str(...))` in a `try/except`
+where the loader everywhere else calls `export_shape.year_int`. `2019a` therefore read as 2019 in the loader
+and as `None` in the comparison, making `year_agrees` unconditionally False for tracker 327 and 329 —
+silently, and with §15.15's ±1 rule unreachable for them. `compare_row` calls `year_int` now. (The third
+parser, `resolver._year_int`, is NOT this rule: it reads a registry candidate's year, not a legacy cell, and
+is left alone.)
+
+**F6 / F9 — migration `0016_held_reason.sql`.** Two review-queue gaps, one migration:
+
+* `litkb.hold_candidate(workstream, token, candidate, reason)` — a held candidate's `state_reason` was NULL
+  on all 68, so why a row was held had to be inferred from the absence of an admission. `candidates` carries
+  `workstream_id` and is a guarded relation (0011: state and state_reason "are set by admission (P2), not by
+  the lead"), and a held row is the one candidate state admission never reaches — so it needs its own
+  token-checked SECURITY DEFINER writer, shaped like `record_discrepancy` and deliberately narrower: it may
+  write only an unadmitted `new` candidate of the workstream whose token it holds. The loader passes
+  `run.HELD_REASONS`, which names the case the case table decided (case C or case E) in that table's words.
+* `_check_binding` is re-created so a `binding-pending` verdict carries the evidence it waited on — `ratio`,
+  `page`, `page1_chars`, `text_layer`, `best_any_ratio`. Before, every one of the 10 read
+  `{'verdict': 'binding-pending', 'reasons': [...]}` while `binding-failed` carried its ratio, so P4's OCR
+  queue could not tell a JSTOR cover sheet (≈140 characters on page 1) from a file with no page-1 text at
+  all. **The verdict logic is copied through unchanged**; only the evidence beside it is added.
+
+**The migration decision: 0016 is applied to `litkb_test` and the worker databases, NOT to `litkb`.** The
+brief holds `litkb` READ-ONLY and that is not a rule to reason around: this session opened it as
+`litkb_reader` throughout, and a schema change is a write whether or not it is additive. `litkb` takes 0016
+at its next accepted write, and `py -3.12 -m litkb.db.migrate --db litkb` is the whole of it — 0016 is
+additive (one new function, one `CREATE OR REPLACE`) and the runner is idempotent. **Note what it will and
+will not do there:** the new `_check_binding` applies to every admission *from then on*, but the 68 held rows
+and the 10 pending bindings already in `litkb` keep their NULL reason and their bare verdict until those rows
+are loaded again. Backfilling them is not free — the reason is a function of the registry record, so it means
+re-planning the row — and it belongs to P4, with the OCR pass that will revisit those files anyway.
+
+**F7 — the convention.** The `manifest.csv` section still read "The manifest is authoritative"; the P3
+rewrite had replaced the *xlsx* authority line and left this one, so the file named two authorities. The
+section now says what the manifest is: a generated export of the database, and the join key from a row to the
+bytes on disk.
+
+**F8 — the proposed CLAUDE.md rule, narrowed to Kam's scope.** The draft's "not fetched ad hoc" made every
+*fetch* subject to the rule, which is an acquisition policy; §15.17's reach is "uses that support a claim in
+the project". The text above now reads: a paper is admitted, acquired and cited through the knowledge base
+**whenever it supports a claim in the project**, and ad-hoc reading is not governed. The acquisition rules
+stay where they are, in the convention. CLAUDE.md is still not edited — `main` is Kam's.
+
+**Harness.** Six new rows, each measured FIRED on `--worker-dbs 1,2,6,9`: **P8a** the gate's value test,
+**P8b** its DOI clause (the referee's failed first draft, as a permanent row), **P8c** the HELD branch
+shadowed again, **P8d** two year parsers again, **P8e** a held candidate with no reason, **P8f** a pending
+binding with no evidence. P8f is worth a line on its own: written the obvious way — the evidence built
+directly into the returned `jsonb_build_object` — removing the guard left a trailing comma, and the harness
+reported **DID NOT FIRE** because 105 tests ERRORED on a syntax error instead of failing on the behaviour.
+The function now merges the evidence onto the verdict, so a mutation there changes the evidence and nothing
+else. A guard whose mutation fires for the wrong reason is not a tested guard (CLAUDE.md 3.4c).
+Rows **A5, A6, C11 and R2** move from 0014 to 0016: 0016 `CREATE OR REPLACE`s `_check_binding`, so 0014's
+copy is dead text and a mutation in it would be overwritten before the tests ran.
+
+**Not fixed, and named rather than left to be found.** F5 — 15 `doi` discrepancies record
+`claimed_value = NULL` where the tracker cell actually said `https://arxiv.org/abs/…` or
+`N/A — J. Arboriculture 20(2), no DOI`; `doi_discrepancy` is handed the parsed DOI, not the raw cell, so what
+the row *said* survives only in `raw_record`. And the referee's P4 decision for Kam: **303/60 is a preprint
+and its journal version**, two distinct DOIs and therefore two works under the rules as written, with no
+`version-of` relation in the database to express the tracker's human "same paper" judgement — which survives
+only as a `duplicate_of` discrepancy. Judgement call 3's "the database already has one" holds for identical
+DOIs only.

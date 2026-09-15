@@ -270,7 +270,6 @@ def test_hold_candidate_refuses_another_workstreams_candidate_and_an_admitted_on
     import psycopg
 
     from litkb.admit import front
-    from litkb.migrate_legacy import run as mrun
 
     ws_a, ws_b = pg.ws(), pg.ws()
     ctx = loader(pg, ws_a, Registry({}))

@@ -1,0 +1,31 @@
+{
+  "authored_by": "referee subagent",
+  "date": "2026-09-15",
+  "scope": "Frozen before any embedding model was installed or run. Scored over all 60 gold queries of litkb_p7_gold_2026-09-15.json against the 9,496-chunk index. A hit is any chunk overlapping [char_start, char_end) of the query's anchor (litkb.index.chunk.chunks_covering); metrics are litkb.index.fuse.score_run.",
+  "vector_leg": {
+    "recall@5": 0.6,
+    "recall@20": 0.8,
+    "mrr": 0.5
+  },
+  "hybrid": {
+    "recall@5": 0.63,
+    "recall@20": 0.83,
+    "mrr": 0.53
+  },
+  "kill": {
+    "metric": "recall@20",
+    "leg": "vector_alone",
+    "queries": "paraphrase+conceptual+structural (all 60)",
+    "must_fall_below": 0.22,
+    "rationale": "Chance is ~20/9496 = 0.2% per query, so a random-vector index should score 0.00-0.02 here. 0.22 sits about ten times above chance - far enough that a model is not killed for sampling noise on 60 queries (one query is 1.7 points; the binomial 95% upper bound on a true 0.02 over 60 queries is about 0.08) - and about a quarter of the 0.80 a credible dense retriever should reach. A model below 0.22 is not retrieving; it is guessing. THIS GATE IS NOT YET KNOWN TO WORK: per CLAUDE.md 3.4c the builder must show it FIRES on a known-bad input (a random-vector or shuffled-embedding index over the same 9,496 chunks) before any pass verdict counts."
+  },
+  "rationale": {
+    "authority": "Every number below is the referee's PRE-COMMITTED JUDGEMENT calibrated from published dense-retrieval results on scientific passage retrieval. It is NOT a measurement on this corpus, and no model was installed, run, or consulted before these were written.",
+    "vector_leg.recall@5": "0.60 - BEIR scientific sets (SciFact, NFCorpus, SCIDOCS) put good general-purpose dense encoders at nDCG@10 around 0.6-0.7; these queries are paraphrases of, or direct questions about, one known passage, which is easier than BEIR-style claim verification, but the index is single-domain and topically dense (many papers on Markov chains, CUSUM, misregistration), so near-duplicate distractors cost precision at small k.",
+    "vector_leg.recall@20": "0.80 - the operating point that matters for the KB: a retriever that cannot put the right passage in a 20-chunk context window four times in five is not usable for citation-grounded answers, and 0.80 is comfortably within reach of published models on passage-level scientific retrieval.",
+    "vector_leg.mrr": "0.50 - reciprocal rank near 0.5 means the gold passage is typically first or second. Set below recall@5 deliberately: the three query kinds differ in difficulty, and structural queries (table and equation captions, whose text is mangled by PDF extraction) should be expected to rank worse than paraphrases.",
+    "hybrid.*": "Set only 0.03 above the vector leg on each metric. Gold rule (c) forbids any shared run of four consecutive tokens between query and anchor, which deliberately starves the BM25 leg; on this set the lexical leg contributes little beyond rare shared technical terms, so hybrid should approximately equal vector. Demanding a large hybrid gain would fail the fusion for a property of the gold set rather than of the model. If hybrid scores BELOW vector by more than a couple of points, the fusion weighting is the suspect, not the encoder.",
+    "anchor_length": "Anchors were held to 412-780 characters (one to two chunks at the chunker's 300-500 token band) so that a query maps to few gold chunks. Long anchors would straddle three or more chunks and inflate recall under the any-overlapping-chunk hit rule.",
+    "scoring_caveat": "recall@k here is the fuse.py definition - 1.0 if ANY gold chunk appears in the top k - not the fraction of gold chunks retrieved. Report it under that name."
+  }
+}

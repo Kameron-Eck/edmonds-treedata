@@ -112,6 +112,22 @@ class Loader:
             "AND state = 'refused' ORDER BY id DESC LIMIT 1", (candidate_id,)).fetchone()
         return r[0] if r and r[0] else None
 
+    def work_authors(self, work_id):
+        r = self.conn.execute("SELECT v.authors FROM litkb.ws_works v WHERE v.work_id = %s "
+                              "AND v.view_workstream_id = %s", (work_id, self.ws)).fetchone()
+        return r[0] if r else None
+
+    def is_proposed(self, work_id):
+        """A work admitted by the MANUAL route: its author list was parsed, not read from a registry."""
+        return bool(self.conn.execute(
+            "SELECT 1 FROM litkb.admissions WHERE work_id = %s AND route = 'manual' LIMIT 1", (work_id,)).fetchone())
+
+    def work_for_stem(self, stem):
+        r = self.conn.execute(
+            "SELECT v.work_id FROM litkb.identifiers i JOIN litkb.identifier_versions v ON v.identifier_id = i.id "
+            "WHERE i.scheme = 'legacy_stem' AND i.value_norm = %s LIMIT 1", (stem,)).fetchone()
+        return r[0] if r else None
+
     def use_for(self, work_id):
         """This workstream's use on that work, if it wrote one. A READ before the write, so a resumed load
         never writes a second copy of the same use."""
@@ -227,11 +243,19 @@ def _load_tracker_row(ctx, row, manifest, c):
                 c["uses_backfilled"] = c.get("uses_backfilled", 0) + 1
         stem_seen = (row.get("File stem") or "").strip()
         held_file = ctx.refused_file(seen[0])
+        late = []
         if stem_seen and held_file:
-            for src, key, field, d in _collision_pending(
-                    ctx, {"refused_at": "file_duplicate", "file_id": held_file}, stem_seen, tid):
-                ctx.discrepancy(src, key, field, d, candidate=seen[0])
-                c["collisions_backfilled"] = c.get("collisions_backfilled", 0) + 1
+            late += _collision_pending(ctx, {"refused_at": "file_duplicate", "file_id": held_file}, stem_seen, tid)
+        if stem_seen:
+            late += _missing_file_pending(ctx, manifest.get(stem_seen), sources.pdf_for(stem_seen, root=ctx.root),
+                                          stem_seen, tid)
+        late += _dropped_arxiv_pending(sources.identifiers_of(row)[1] or (manifest.get(stem_seen) or {}).get("arxiv"),
+                                       "tracker", tid)
+        if seen[2] is not None and ctx.is_proposed(seen[2]):
+            late += _manual_authors_pending(row.get("Author(s)"), ctx.work_authors(seen[2]), "tracker", tid)
+        for src, key, field, d in late:
+            ctx.discrepancy(src, key, field, d, work=seen[2], candidate=None if seen[2] else seen[0])
+            c["file_records_backfilled"] = c.get("file_records_backfilled", 0) + 1
         # END guard: a resumed load finishes a row it had already admitted but not finished
         ctx.log.append({"tracker_id": tid, "outcome": "already-loaded", "candidate_id": str(seen[0]),
                         "candidate_state": seen[1]})
@@ -328,9 +352,51 @@ def _load_tracker_row(ctx, row, manifest, c):
     # BEGIN guard: a file another work already holds is recorded as a sha256 collision
     pending += _collision_pending(ctx, res, stem, tid)
     pending += _missing_file_pending(ctx, mrow, pdf, stem, tid)
+    pending += _dropped_arxiv_pending(arxiv or (mrow or {}).get("arxiv"), "tracker", tid)
+    if res is not None and res.get("outcome") == "proposed":
+        pending += _manual_authors_pending(claimed["authors"], ctx.work_authors(res["work_id"]), "tracker", tid)
     # END guard: a file another work already holds is recorded as a sha256 collision
     entry["discrepancies"] = _flush(ctx, c, pending, work, cand)
     ctx.log.append(entry)
+
+
+def _dropped_arxiv_pending(arxiv, source, key):
+    """An arXiv id the legacy row carries that P3 does not admit.
+
+    P2 judgement 5: an unverified extra strong identifier refuses the WHOLE registry admission, and the arXiv
+    API answers 429 often enough that P3 would lose confirmed works to it. So the loader admits on the DOI and
+    passes `arxiv=None` — which drops a cell the legacy row filled. The id is kept verbatim on the candidate's
+    raw record, and this says where it went. Confirming them is a P4-or-later pass.
+    """
+    if not (arxiv or "").strip():
+        return []
+    # BEGIN guard: an arXiv id the load does not admit is recorded, never just dropped
+    return [(source, str(key), "arxiv",
+             {"claimed": arxiv.strip(), "registry": None, "ratio": None,
+              "detail": {"meaning": "the legacy row carries this arXiv id; P3 admitted the work on its DOI "
+                                    "alone, because an unverified strong identifier refuses the whole "
+                                    "admission (P2 judgement 5). The id is unconfirmed, not lost."}})]
+    # END guard: an arXiv id the load does not admit is recorded, never just dropped
+
+
+def _manual_authors_pending(claimed_authors, work_authors, source, key):
+    """A manual admission's author list is a LOSSY read of the legacy cell.
+
+    `admit_manual` splits the claimed string on `&`, `;` and ` and ` only, so `A, B, C & D` becomes two names,
+    and `A et al.` becomes one. That is P2's parser and P3 does not replace it — but the export then prints
+    fewer authors than the legacy row, and every difference the export prints needs a record.
+    """
+    from litkb.migrate_legacy.export_shape import authors_line, norm_cell
+
+    printed = authors_line(work_authors)
+    if not claimed_authors or norm_cell(claimed_authors) == norm_cell(printed):
+        return []
+    # BEGIN guard: a manual admission's lossy author parse is recorded
+    return [(source, str(key), "authors",
+             {"claimed": claimed_authors, "registry": printed, "ratio": None,
+              "detail": {"meaning": "no registry record confirmed this work, so its author list was parsed "
+                                    "from the legacy cell; the parser splits on '&', ';' and ' and ' only"}})]
+    # END guard: a manual admission's lossy author parse is recorded
 
 
 def _missing_file_pending(ctx, mrow, pdf, stem, source_row):
@@ -453,8 +519,19 @@ def load_manifest(ctx, rows=None, *, limit=None):
 def _load_manifest_row(ctx, row, c):
     stem = row["stem"]
     detail = f"manifest stem {stem}"
-    if ctx.already_loaded(detail) or _stem_held(ctx, stem):
+    seen = ctx.already_loaded(detail)
+    if seen or _stem_held(ctx, stem):
         c["skipped_already_loaded"] += 1
+        # BEGIN guard: a resumed manifest load records what an earlier pass could not
+        work = seen[2] if seen else ctx.work_for_stem(stem)
+        late = _dropped_arxiv_pending(row.get("arxiv"), "manifest", stem)
+        late += _missing_file_pending(ctx, row, sources.pdf_for(stem, root=ctx.root), stem, stem)
+        if work is not None and ctx.is_proposed(work):
+            late += _manual_authors_pending(row.get("authors"), ctx.work_authors(work), "manifest", stem)
+        for src, key, field, d in late:
+            ctx.discrepancy(src, key, field, d, work=work, candidate=None if work else (seen[0] if seen else None))
+            c["file_records_backfilled"] = c.get("file_records_backfilled", 0) + 1
+        # END guard: a resumed manifest load records what an earlier pass could not
         ctx.log.append({"stem": stem, "outcome": "already-loaded"})
         return
     pdf = sources.pdf_for(stem, root=ctx.root)
@@ -514,6 +591,9 @@ def _load_manifest_row(ctx, row, c):
                 c["bound"] += 1
     pending += _collision_pending(ctx, res, stem, stem)
     pending += _missing_file_pending(ctx, row, pdf, stem, stem)
+    pending += _dropped_arxiv_pending(row.get("arxiv"), "manifest", stem)
+    if res is not None and res.get("outcome") == "proposed":
+        pending += _manual_authors_pending(claimed["authors"], ctx.work_authors(res["work_id"]), "manifest", stem)
     entry["discrepancies"] = _flush(ctx, c, pending, work, cand)
     ctx.log.append(entry)
 

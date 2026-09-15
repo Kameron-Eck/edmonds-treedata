@@ -13,6 +13,8 @@ record, so a row whose claim the registry contradicted prints the registry's wor
              trailing full stop, `D.J.` against `D. J.`. Same content, different type
   held       the row was never admitted (no verified file, or no resolvable identity), so the export printed
              the legacy row back verbatim — these cells cannot differ, and a difference here is a BUG
+  filled     the legacy cell was EMPTY and the export prints the registry's value. Nothing disagreed and
+             nothing was lost: the database supplies something the legacy row never said
   structural a whole-column change the design makes on purpose and states once, not per row: the manifest's
              `stem` is now `works.key` (referee note M7), and `verified_against_extract` is now the binding
              verdict rather than a hand-entered word
@@ -45,7 +47,11 @@ STRUCTURAL = {("manifest", "stem"): "M7: works.key is authoritative and the file
               ("manifest", "verified_against_extract"):
                   "now the admission binding verdict, not a hand-entered yes/no/loose",
               ("manifest", "source_route"): "now the route the file version records; 'unknown (pre-manifest)' "
-                                            "rows are files bound in place by P3"}
+                                            "rows are files bound in place by P3",
+              ("manifest", "obtained_date"): "now when the database actually obtained the file (the file "
+                                             "version's obtained_at), not the date the manifest row was "
+                                             "written; only an acquired file has one, a file bound in place "
+                                             "keeps the legacy date"}
 DIFF_COLUMNS = ["source", "row", "field", "bucket", "today", "exported", "ratio", "explanation"]
 
 
@@ -82,7 +88,9 @@ def compare(source, today, exported, key, columns, explained, held_rows):
             # `stem` cell on today's side — never the export's, which is the work key
             row_key = rid
             hit = explained.get((source, row_key, _FIELD_ALIAS.get(field, field)))
-            if (source, field) in STRUCTURAL:
+            if not a and b:
+                bucket, why = "filled", "the legacy cell was empty; the registry record supplies a value"
+            elif (source, field) in STRUCTURAL:
                 bucket, why = "structural", STRUCTURAL[(source, field)]
             elif field in ("DOI/URL", "doi") and _same_doi(a, b):
                 bucket, why = "format", "the same DOI, spelled differently"

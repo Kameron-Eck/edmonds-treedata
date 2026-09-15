@@ -326,16 +326,24 @@ def pair_frame(preds):
                          "match_probability": a["match_probability"]})
 
 
-def rank_eval(pairs, gold_rows, right_dois, key="gold_doi"):
-    """For each gold row: where does the gold DOI rank among that reference's candidates?"""
+def rank_eval(pairs, gold_rows, right_dois, key="gold_doi", doi_of=None):
+    """For each gold row: where does the gold DOI rank among that reference's candidates?
+
+    `doi_of` maps a right-hand unique_id to its DOI. Matching the gold by DOI rather than by
+    the `cr::` prefix matters: 31 DOIs are carried by BOTH a cached Crossref record and a
+    corpus work row, the two are near-identical so they tie on match weight, and the tie
+    breaks on unique_id -- where "work::" sorts above "cr::". Keyed on the prefix, a gold hit
+    sitting on the corpus row would be scored as a rank-2 miss for no reason but sort order.
+    """
     by_ref = {}
     for r in pairs.itertuples(index=False):
         by_ref.setdefault(r.ref_id, []).append((r.match_weight, r.cand_id, r.match_probability))
+    doi_of = doi_of or {}
     out = []
     for g in gold_rows:
         doi = g[key]
         cands = sorted(by_ref.get(g["ref_id"], []), reverse=True)
-        gold_cands = {f"cr::{doi}"}
+        gold_cands = {f"cr::{doi}"} | {u for u, d in doi_of.items() if d == doi}
         rank, weight, prob = None, None, None
         for i, (w, cid, p) in enumerate(cands, 1):
             if cid in gold_cands:
@@ -385,6 +393,7 @@ def main(argv=None):
     left = left_rows(gold)
     right, n_corpus = right_rows()
     right_dois = {r["doi"] for r in right if r["doi"]}
+    doi_of = {r["unique_id"]: r["doi"] for r in right if r["doi"]}
     print(f"left {len(left)} rows; right {len(right)} rows "
           f"({len(right) - n_corpus} cached Crossref records + {n_corpus} corpus works)")
 
@@ -400,7 +409,7 @@ def main(argv=None):
     pairs = pair_frame(preds)
     result["task_a"] = {"pairs_scored": int(len(pairs))}
 
-    ranks = rank_eval(pairs, gold["positives"], right_dois)
+    ranks = rank_eval(pairs, gold["positives"], right_dois, doi_of=doi_of)
     present = [r for r in ranks if r["gold_on_right"]]
     result["task_a"].update({
         "positives": len(ranks),
@@ -429,7 +438,10 @@ def main(argv=None):
     for rid, ref in refs_by_id.items():
         st = ref["resolution"]
         w, cid, p = top.get(rid, (None, None, None))
-        cand_doi = cid[4:] if cid and cid.startswith("cr::") else ""
+        # by DOI, not by prefix: the top candidate is a corpus `work::` row for 7 references,
+        # and keying on "cr::" would score those as disagreements with the resolver purely
+        # because of which side of the pool the identical record was read from.
+        cand_doi = doi_of.get(cid, "") if cid else ""
         agree = bool(cand_doi and norm_doi(ref.get("resolved_doi")) == cand_doi)
         b = by_state.setdefault(st, {"n": 0, "splink_has_candidate": 0, "splink_p_ge_0.5": 0,
                                      "splink_p_ge_0.9": 0, "agrees_with_resolver": 0})
@@ -445,7 +457,8 @@ def main(argv=None):
         rows_csv.append({"ref_id": rid, "resolver_state": st,
                          "resolver_doi": norm_doi(ref.get("resolved_doi")),
                          "resolver_reason": (ref.get("resolution_detail") or {}).get("reason", ""),
-                         "splink_top_candidate": cid or "", "splink_match_weight": w,
+                         "splink_top_candidate": cid or "", "splink_top_doi": cand_doi,
+                         "splink_match_weight": w,
                          "splink_match_probability": p, "agrees_with_resolver": agree})
     result["vs_resolver"] = by_state
     cpath = REPORTS / "litkb_splink_vs_resolver_2026-09-15.csv"
@@ -455,7 +468,7 @@ def main(argv=None):
         wtr.writerows(rows_csv)
     print(f"wrote {cpath}")
 
-    lost = rank_eval(pairs, gold["lost_genuine"], right_dois)
+    lost = rank_eval(pairs, gold["lost_genuine"], right_dois, doi_of=doi_of)
     mnl = mnl_eval(pairs, gold["must_not_link"])
     reviews = [m for m in mnl if m["kind"] == "book_review"]
     editions = [m for m in mnl if m["kind"] == "edition"]
@@ -522,7 +535,8 @@ def main(argv=None):
     rec = {}
     for blocking in (True, False):
         _, pr, _ = run_link(lsub, rsub, blocking=blocking)
-        rk = rank_eval(pair_frame(pr), gsub, {r["doi"] for r in rsub if r["doi"]})
+        rk = rank_eval(pair_frame(pr), gsub, {r["doi"] for r in rsub if r["doi"]},
+                      doi_of={r["unique_id"]: r["doi"] for r in rsub if r["doi"]})
         rec[str(blocking)] = sum(1 for r in rk if r["rank"] is not None)
     kills["drop_blocking"] = {"sample_left": len(lsub), "sample_right": len(rsub),
                               "retrieved_blocked": rec["True"], "retrieved_cartesian": rec["False"],

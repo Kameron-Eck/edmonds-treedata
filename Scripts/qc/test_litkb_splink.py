@@ -119,6 +119,37 @@ def test_mutation_kills_and_near_positives_are_disjoint(gold):
     assert len(kills) == 70 and len(near) == 20 and not (kills & near)
 
 
+# ----------------------------------------------------------------- scoring
+def _pairs(rows):
+    pd = pytest.importorskip("pandas")
+    return pd.DataFrame(rows, columns=["ref_id", "cand_id", "match_weight", "match_probability"])
+
+
+def test_rank_eval_matches_the_gold_by_doi_not_by_id_prefix():
+    """The bug this guards actually happened and moved the headline from 360 to 362.
+
+    31 gold DOIs sit on BOTH a cached Crossref row and a corpus work row. The two records are
+    near-identical, so they tie on match weight, and the tie breaks on unique_id -- where
+    'work::' sorts above 'cr::'. Keyed on the 'cr::' prefix, a gold hit carried by the corpus
+    row is scored as a rank-2 miss for no reason but sort order.
+    """
+    doi = "10.1234/abc"
+    pairs = _pairs([("ref1", "work::W", 9.0, 0.99), ("ref1", "cr::" + doi, 9.0, 0.99)])
+    gold = [{"ref_id": "ref1", "gold_doi": doi}]
+
+    blind = m.rank_eval(pairs, gold, {doi})
+    assert blind[0]["rank"] == 2, "the tie must really break the wrong way without doi_of"
+
+    fixed = m.rank_eval(pairs, gold, {doi}, doi_of={"work::W": doi, "cr::" + doi: doi})
+    assert fixed[0]["rank"] == 1
+
+
+def test_rank_eval_reports_a_gold_doi_that_is_not_on_the_right_at_all():
+    """Unevaluable is not the same as failed, and must not be counted as one."""
+    out = m.rank_eval(_pairs([]), [{"ref_id": "r", "gold_doi": "10.1/x"}], set())
+    assert out[0]["rank"] is None and out[0]["gold_on_right"] is False
+
+
 # ----------------------------------------------------------------- comparison config
 def _have_splink():
     import importlib.util

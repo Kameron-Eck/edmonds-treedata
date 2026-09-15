@@ -66,6 +66,12 @@ this script did exactly that**, and reported 303/60 at match weight **−996.6**
 probability, and therefore every threshold, is not. That failure is recorded in the code comment
 that fixes it and in `task_b.in_place_em_degenerate`, not quietly replaced.
 
+Splink prints a warning on this rule — it expected 60 % recall and observed less. That is
+expected and not ignored: exact normalised title recovers only a fraction of true links (GROBID
+truncates titles, Crossref stores subtitles separately), which is precisely why it is used to
+*estimate* λ rather than to find links. A referee will see the warning in the run output; this is
+what it is.
+
 ### Trained match weights (log₂ Bayes factor per level)
 
 | comparison | level | match weight |
@@ -106,13 +112,24 @@ than as failures; the scored population is **363**.
 
 | | n | of 363 |
 |---|--:|--:|
-| gold DOI ranked **first** | **360** | **99.2 %** |
+| gold DOI ranked **first** | **362** | **99.7 %** |
 | gold DOI in the top 3 | 363 | 100 % |
-| gold DOI retrieved but not ranked first | 3 | 0.8 % |
+| gold DOI retrieved but not ranked first | 1 | 0.3 % |
 | present on the right but **not retrieved at all** | **0** | 0 % |
 | gold DOI absent from the right side (unevaluable) | 2 | — |
 
 Match weight of the gold pair: median **+25.2**, mean +23.6, min +0.27, max +31.2.
+
+The two unevaluable rows are genuinely unevaluable and not an artefact: no cached body anywhere
+carries `10.2307/177409` or `10.1016/j.landurbplan.2004.03.009` (both Guo 2018).
+
+**A scoring bug was found and fixed here, and it moved this number.** The gold hit was originally
+matched by the `cr::` unique-id prefix. 31 DOIs are carried by *both* a cached Crossref record and
+a corpus work row; the two records are near-identical, so they tie on match weight, and the tie
+broke on unique_id — where `work::` sorts above `cr::`. Two gold hits sitting on the corpus row
+were therefore scored as rank-2 misses for no reason but sort order. Matching by DOI instead:
+360 → **362**. The same prefix assumption was deflating the resolver-agreement count below by the
+same two rows.
 
 ### Against the current resolver, on the same 658 rows
 
@@ -122,14 +139,32 @@ nothing.
 
 | resolver state | n | Splink has a candidate | p ≥ 0.5 | p ≥ 0.9 | agrees with the resolver's DOI |
 |---|--:|--:|--:|--:|--:|
-| `resolved` | 365 | 365 | 365 | 364 | **360** |
+| `resolved` | 365 | 365 | 365 | 364 | **362** |
 | `unresolved` | 274 | 269 | **88** | **75** | 0 |
 | `ambiguous` | 19 | 19 | 19 | 19 | 0 |
 
-**Splink agrees with the resolver on 360 of 365 and adds 88 proposals on rows the resolver left
-unresolved** (75 at p ≥ 0.9). Those 88 are *proposals*, not resolutions — §4 shows why they
-cannot be trusted on their own — but 88 new candidate rows for a human or for a confirmation
-pass, out of 274 failures, is the measured value of the layer.
+**Splink agrees with the resolver on 362 of 365** — it is not proposing a different answer on the
+rows that already work — **and puts a candidate at p ≥ 0.5 on 88 of the 274 it left unresolved**
+(75 at p ≥ 0.9).
+
+### How many of the 88 are actually new?
+
+This matters, and the headline "88" overstates it. `resolver_reason` records the DOI the resolver
+itself examined (`best=crossref:0.xx:DOI`), so the two can be compared row by row:
+
+| | n |
+|---|--:|
+| Splink's top candidate is the **same DOI the resolver already examined and refused by name** | **33** |
+| the resolver's reason names no candidate DOI at all (`no_title_or_author` and friends) | 17 |
+| Splink's top candidate is a **different DOI** from the one the resolver looked at | **38** |
+
+So the layer contributes two different things, and they should not be added together. For 33 rows
+it adds a *calibrated weight* to a candidate the resolver had already found and rejected — useful
+for triage, but nothing new to look at. For 55 rows (38 + 17) it surfaces a candidate the resolver
+either never reached or never named. Only that second group is genuinely new material, and
+`candidates.jsonl` already holds 645 candidate rows from the P6 run, so even some of the 55 may
+already be written. **The honest figure for the layer's reach is "55 rows get a candidate the
+resolver's own reason does not name", not 88.**
 
 ---
 
@@ -230,26 +265,42 @@ m-probabilities were nonsensical — year *exact* m = 0.0 while year ±3 m = 1.0
 corpus**; it can only be applied to it.
 
 With the Task A model applied: **9 pairs above p = 0.5; 341 clusters at 0.95, of which 6 are
-multi-member, largest 3.**
+multi-member, largest 3.** All 9 are examined below, and all 9 are wrong.
 
-| weight | p | pair | what it is |
-|--:|--:|---|---|
-| **+14.25** | 0.9999 | `Leung_2004` / `Leung_2004a_general-framework-error-analysis` | a true duplicate the corpus still holds |
-| **+6.67** | 0.990 | `Valavi_2018_block-cv-r-package` / `Valavi_2018_blockcv-r-package-generating` | **303/60** — preprint and journal version |
-| +6.51 | 0.989 | `Radoux_2020_about-pitfall…` / `Radoux_2020_how-response-designs…` | different papers, same author and year |
-| +6.34 | 0.988 | `Goodchild_2004` / `Leung_2004a` | same paper, different first-author records |
-| +6.34 | 0.988 | `Goodchild_2004` / `Leung_2004` | same, the other copy |
-| +6.34 | 0.988 | `Khoee_2024_domain-generalization…` / `Rafi_2024_domain-generalization…` | **different papers** |
-| +5.58 | 0.980 | `Platanios_2014` / `Platanios_2016_estimating-accuracy-unlabeled-data` | different papers, same series |
-| +5.19 | 0.973 | `Li_2025_adapting-cross-sensor…` / `Li_2025_post-processing-optimization…` | **different papers** |
-| +1.52 | 0.741 | `Lu_1999_control-charts…` / `Lu_2001_cusum-charts…` | different papers |
+Each pair's status is **measured**, not read off the key names: the two DOIs are pulled from the
+tracked exports and compared under the P3 rule as written (same DOI → one work; different DOIs →
+two works).
+
+| weight | p | pair | DOIs | what it is |
+|--:|--:|---|---|---|
+| **+14.25** | 0.9999 | `Leung_2004` / `Leung_2004a` | `…s10109-004-0142-3` / `…-0144-1` | **NOT a duplicate** — "A general framework for error analysis in measurement-based GIS" **Part 2** and **Part 4** |
+| **+6.67** | 0.990 | `Valavi_2018_block-cv-r-package` / `…_blockcv-r-package-generating` | `10.1111/2041-210x.13107` / `10.1101/357798` | **303/60** — preprint and journal version |
+| +6.51 | 0.989 | `Radoux_2020_about-pitfall…` / `Radoux_2020_how-response-designs…` | `…rs12244128` / `…rs12020257` | different papers |
+| +6.34 | 0.988 | `Goodchild_2004` / `Leung_2004a` | `…-0140-5` / `…-0144-1` | Part 1 and Part 4 of the same series — **different papers** |
+| +6.34 | 0.988 | `Goodchild_2004` / `Leung_2004` | `…-0140-5` / `…-0142-3` | Part 1 and Part 2 — **different papers** |
+| +6.34 | 0.988 | `Khoee_2024_domain-generalization…` / `Rafi_2024_domain-generalization…` | `…-10922-z` / `…-10817-z` | different papers |
+| +5.58 | 0.980 | `Platanios_2014` / `Platanios_2016` | UAI 2014 / ICML 2016 | different papers, same series |
+| +5.19 | 0.973 | `Li_2025_adapting-cross-sensor…` / `Li_2025_post-processing-optimization…` | `…rs17050927` / `…rs17091558` | different papers |
+| +1.52 | 0.741 | `Lu_1999_control-charts…` / `Lu_2001_cusum-charts…` | `…1999.11979925` / `…2001.11980082` | different papers |
+
+**Every one of the 9 pairs above p = 0.5 is a false positive. Splink found zero true duplicates
+in the 348, at any threshold.** Which is the correct outcome, because there are none to find —
+the corpus was deduplicated at admission.
+
+The top pair is the instructive one. `Leung_2004` / `Leung_2004a` scores +14.25, more than twice
+any other pair, and it is **not** a duplicate: the `a` suffix is the tracker's
+*same-year-different-paper* convention (the same convention whose `2019a` cell broke the P3 load),
+and the two rows are Parts 2 and 4 of one multi-part series with distinct DOIs. A multi-part
+series is the worst case for a similarity model: the titles differ only in a part number, which is
+a handful of characters of a long string, so Jaro-Winkler puts them at its top level while the
+author, year and journal all agree exactly. Nothing in the feature set can see a part number.
 
 ### Is 303/60 given a distinguishable weight? **No.**
 
-It scores +6.67. The band from +6.67 down to +5.19 contains, indistinguishably: the preprint/
-journal pair, two genuine same-paper pairs, and **three pairs that are simply different papers
-by the same authors on the same topic in the same year**. Only the Leung pair at +14.25 stands
-clear. A threshold that catches 303/60 also catches Khoee/Rafi and the two Li 2025 papers.
+It scores +6.67, inside a band from +6.67 down to +5.19 that holds six other pairs, **all of them
+simply different papers by the same authors on the same topic in the same year**. Any threshold
+that catches 303/60 also catches Khoee/Rafi, both Li 2025 papers and two parts of the Leung series
+— and still ranks a non-duplicate above it.
 
 That is the expected answer and not a defect in Splink. The tracker's "same paper" judgement for
 303/60 is about *content identity across versions*, and the P3 referee's ruling is that under the
@@ -273,17 +324,19 @@ Do not adopt it as a gate. Do not adopt it for duplicates.**
 
 The numbers behind each clause:
 
-1. **Ranking works.** 360 of 363 gold DOIs first, 363 of 363 in the top 3, zero present-but-not-
-   retrieved (§3). It agrees with the resolver on 360 of 365 — so it is not proposing a different
+1. **Ranking works.** 362 of 363 gold DOIs first, 363 of 363 in the top 3, zero present-but-not-
+   retrieved (§3). It agrees with the resolver on 362 of 365 — so it is not proposing a different
    answer on the rows that already work.
-2. **It adds reach where the rule has none.** 88 proposals at p ≥ 0.5 (75 at p ≥ 0.9) on the 274
-   unresolved (§3), and complete separation of the 5 lost-genuine from the 3 reviews (§5) — the
-   one class the referee established no threshold change can reach.
+2. **It adds some reach where the rule has none.** 55 of the 274 unresolved get a candidate the
+   resolver's own reason does not name (§3 — not the 88 headline), and the 5 lost-genuine separate
+   completely from the 3 reviews (§5), which is the one class the referee established no threshold
+   change can reach.
 3. **It is not a gate, and the margin is not close.** 65 of 70 known-bad mutations and 3 of 4
    sibling editions score as confident matches (§4). Anything that promoted a Splink score to a
    resolution would re-open every class P6 closed.
-4. **Duplicates: no.** Not trainable on the corpus (λ = 0.0, §7), and 303/60 is not separable
-   from three pairs of genuinely different papers (§7).
+4. **Duplicates: no, and not marginally.** Not trainable on the corpus (λ = 0.0, §7), and **all 9
+   pairs it scores above 0.5 are false positives** — the highest-scoring pair of all, at +14.25,
+   is Parts 2 and 4 of one series (§7). 303/60 sits mid-band among six pairs of different papers.
 
 ### Integration point, specified, not implemented
 
@@ -297,8 +350,10 @@ search has returned its candidate list and **before** `confirm_s2_candidate` is 
   its refusal names are unchanged; the reason string gains `splink_rank=` and `splink_mw=` so the
   histogram can show what the ranking did.
 * When every candidate is refused, write the top-ranked one to the **`candidates`** table with
-  its weight, state unchanged. That is the 88 rows of §3 and the mechanism by which the 5
-  lost-genuine become visible to a human instead of vanishing into `unresolved`.
+  its weight, state unchanged — **deduped against what is already there**, since 33 of the 88 are
+  the DOI the resolver itself already examined and `candidates.jsonl` holds 645 rows from the P6
+  run. That is the mechanism by which the 5 lost-genuine become visible to a human instead of
+  vanishing into `unresolved`.
 * **The resolution state is never set from a Splink score.** No threshold on `match_probability`
   may promote anything to `resolved` or `ambiguous`.
 
@@ -314,12 +369,23 @@ evidence, and that asymmetry can be written into `confirm_s2_candidate` directly
 
 ## 9. Gates
 
-* `py -3.12 qc/check.py --fast` with `LITKB_PGPORT=1` — **said so as instructed**: the port is set
-  to 1 so that no litkb test can reach the live server, and DB-dependent litkb tests fail to
-  connect and skip. Result in the commit message.
-* `qc/test_litkb_splink.py` — 23 tests, all passing under `venv-splink` (the splink-dependent
-  comparison-config tests skip under the main interpreter, which is where `check.py` runs them;
-  splink is deliberately not a pipeline dependency).
+* `py -3.12 qc/check.py --fast` with **`LITKB_PGPORT=1`** — **said so, as instructed**: the port is
+  set to 1 so that no test in this run can reach the live litkb server. Result:
+  `secrets PASS 9.9s · ruff PASS 0.3s · compile PASS 0.9s · pytest FAIL 1593.3s` —
+  **1 failed, 2,362 passed, 238 skipped**, `EXIT=1`. The single failure is
+  `qc/test_experiments.py::test_pointer_paths_resolve[crown_state_model]`, which is the one the
+  brief allows and is not touched by this work; nothing else is red.
+  **What `LITKB_PGPORT=1` actually did, measured rather than assumed:** the run reports
+  `litkb Postgres tests: 216 skipped <- 216 SKIPPED: litkb server/role/psycopg absent, so those
+  guards were NOT tested`. They **skipped**; they did not error. Stated because it cuts both
+  ways — it is the isolation the brief asked for, and it also means 216 litkb guards carry no
+  evidence from this run.
+  (The suite took 26 minutes rather than the usual ~80 s because three other sessions were
+  running pytest on this machine concurrently; it was CPU-starved, not stuck.)
+* `qc/test_litkb_splink.py` — **25 tests, all passing** under `venv-splink`. Under the main
+  interpreter (which is where `check.py` runs them) 22 pass and the 3 splink-dependent
+  comparison-config tests skip, because splink is deliberately not a pipeline dependency and must
+  not become one by way of the test suite.
 * `py -3.12 qc/instruments/litkb_splink_gold.py --check` — **GOLD MATCH**, CRLF-safe.
 
 ## 10. What this evaluation does not establish

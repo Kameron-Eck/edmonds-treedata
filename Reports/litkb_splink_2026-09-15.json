@@ -13,9 +13,9 @@
   {
    "comparison": "title",
    "level": "Exact match on title",
-   "m": 0.6399461562494583,
+   "m": 0.6399461562494585,
    "u": 0.0004947576740073266,
-   "bayes_factor": 1293.4537246611392,
+   "bayes_factor": 1293.4537246611396,
    "match_weight": 10.337012724926629
   },
   {
@@ -29,33 +29,33 @@
   {
    "comparison": "title",
    "level": "Jaro-Winkler distance of title >= 0.92",
-   "m": 0.06492471500404223,
+   "m": 0.06492471500404225,
    "u": 7.105562339466925e-05,
-   "bayes_factor": 913.7167742998513,
+   "bayes_factor": 913.7167742998514,
    "match_weight": 9.83560323073107
   },
   {
    "comparison": "title",
    "level": "Jaro-Winkler distance of title >= 0.85",
-   "m": 0.041761309679491224,
+   "m": 0.04176130967949124,
    "u": 0.0004552823276769548,
-   "bayes_factor": 91.72618206503927,
-   "match_weight": 6.519261686330455
+   "bayes_factor": 91.7261820650393,
+   "match_weight": 6.519261686330456
   },
   {
    "comparison": "title",
    "level": "All other comparisons",
-   "m": 0.2146629243699094,
+   "m": 0.21466292436990908,
    "u": 0.9989473240978568,
-   "bayes_factor": 0.21488913298183182,
-   "match_weight": -2.218335567866801
+   "bayes_factor": 0.2148891329818315,
+   "match_weight": -2.218335567866803
   },
   {
    "comparison": "first_author",
    "level": "Exact match on first_author",
-   "m": 0.7252869277532397,
+   "m": 0.7252869277532398,
    "u": 0.001628970461006056,
-   "bayes_factor": 445.24252901756165,
+   "bayes_factor": 445.2425290175617,
    "match_weight": 8.798447593488499
   },
   {
@@ -69,7 +69,7 @@
   {
    "comparison": "first_author",
    "level": "Jaro-Winkler distance of first_author >= 0.9",
-   "m": 0.013382808763929138,
+   "m": 0.01338280876392914,
    "u": 0.00038066988011370656,
    "bayes_factor": 35.15594341199697,
    "match_weight": 5.135696704702224
@@ -77,10 +77,10 @@
   {
    "comparison": "first_author",
    "level": "All other comparisons",
-   "m": 0.2613302634828311,
+   "m": 0.26133026348283106,
    "u": 0.9979903596588803,
-   "bayes_factor": 0.26185650087056506,
-   "match_weight": -1.9331516731923053
+   "bayes_factor": 0.261856500870565,
+   "match_weight": -1.9331516731923055
   },
   {
    "comparison": "year",
@@ -93,58 +93,58 @@
   {
    "comparison": "year",
    "level": "Absolute difference of 'year' <= 1",
-   "m": 0.04526640015709079,
+   "m": 0.04526640015709076,
    "u": 0.03568610632787623,
-   "bayes_factor": 1.2684600483222488,
-   "match_weight": 0.34307808069862167
+   "bayes_factor": 1.2684600483222481,
+   "match_weight": 0.34307808069862095
   },
   {
    "comparison": "year",
    "level": "Absolute difference of 'year' <= 3",
-   "m": 0.09624637939604987,
+   "m": 0.09624637939604988,
    "u": 0.07176202319625839,
-   "bayes_factor": 1.3411882094353782,
-   "match_weight": 0.4235117053753532
+   "bayes_factor": 1.3411882094353784,
+   "match_weight": 0.42351170537535343
   },
   {
    "comparison": "year",
    "level": "All other comparisons",
-   "m": 0.33462293776659413,
+   "m": 0.3346229377665941,
    "u": 0.8741396505301495,
-   "bayes_factor": 0.3828026077568401,
-   "match_weight": -1.3853274369938144
+   "bayes_factor": 0.38280260775684005,
+   "match_weight": -1.3853274369938147
   },
   {
    "comparison": "journal",
    "level": "Exact match on journal",
-   "m": 0.41217425972133415,
+   "m": 0.4121742597213343,
    "u": 0.002877710300875147,
-   "bayes_factor": 143.22993513140878,
+   "bayes_factor": 143.22993513140884,
    "match_weight": 7.162189237909274
   },
   {
    "comparison": "journal",
    "level": "Jaro-Winkler distance of journal >= 0.95",
-   "m": 0.0389196420333972,
+   "m": 0.03891964203339721,
    "u": 0.00044161451959267553,
-   "bayes_factor": 88.1303496753115,
+   "bayes_factor": 88.13034967531154,
    "match_weight": 6.461567024202929
   },
   {
    "comparison": "journal",
    "level": "Jaro-Winkler distance of journal >= 0.85",
-   "m": 0.17973517114028162,
+   "m": 0.1797351711402816,
    "u": 0.008473658992772531,
-   "bayes_factor": 21.211046053845664,
-   "match_weight": 4.406743866132181
+   "bayes_factor": 21.21104605384566,
+   "match_weight": 4.40674386613218
   },
   {
    "comparison": "journal",
    "level": "All other comparisons",
-   "m": 0.369170927104987,
+   "m": 0.3691709271049869,
    "u": 0.9882070161867597,
-   "bayes_factor": 0.3735765088265858,
-   "match_weight": -1.420524356287642
+   "bayes_factor": 0.37357650882658566,
+   "match_weight": -1.4205243562876424
   },
   {
    "comparison": "volume",
@@ -165,34 +165,34 @@
   {
    "comparison": "pages",
    "level": "Exact match on pages",
-   "m": 0.19448724665040162,
+   "m": 0.19448724665040146,
    "u": 0.0011062478957241113,
-   "bayes_factor": 175.80801500471742,
-   "match_weight": 7.45785703354372
+   "bayes_factor": 175.80801500471728,
+   "match_weight": 7.4578570335437195
   },
   {
    "comparison": "pages",
    "level": "All other comparisons",
-   "m": 0.8055127533495984,
+   "m": 0.8055127533495985,
    "u": 0.9988937521042759,
-   "bayes_factor": 0.8064048370036354,
-   "match_weight": -0.31042380240341594
+   "bayes_factor": 0.8064048370036355,
+   "match_weight": -0.31042380240341577
   }
  ],
  "task_a": {
   "pairs_scored": 26278,
   "positives": 365,
   "gold_doi_absent_from_right": 2,
-  "rank1": 360,
+  "rank1": 362,
   "rank_top3": 363,
   "not_retrieved_though_present": 0,
   "scored_population": 363,
   "weight_of_gold": {
    "n": 363,
-   "min": 0.27419938897538393,
-   "median": 25.2361179278438,
+   "min": 0.2741993889753805,
+   "median": 25.236117927843804,
    "max": 31.23949081306448,
-   "mean": 23.55052475123158
+   "mean": 23.560808489748975
   }
  },
  "vs_resolver": {
@@ -201,7 +201,7 @@
    "splink_has_candidate": 365,
    "splink_p_ge_0.5": 365,
    "splink_p_ge_0.9": 364,
-   "agrees_with_resolver": 360
+   "agrees_with_resolver": 362
   },
   "unresolved": {
    "n": 274,
@@ -223,14 +223,14 @@
    "n": 3,
    "above_threshold": 0,
    "weights": [
-    -2.916419793176397,
-    -2.916419793176397,
-    -2.916419793176397
+    -2.9164197931763978,
+    -2.9164197931763978,
+    -2.9164197931763978
    ],
    "probabilities": [
-    0.11696313425657963,
-    0.11696313425657963,
-    0.11696313425657963
+    0.11696313425657956,
+    0.11696313425657956,
+    0.11696313425657956
    ]
   },
   "edition": {
@@ -238,7 +238,7 @@
    "above_threshold": 3,
    "weights": [
     -4.644825310868833,
-    6.468205055660816,
+    6.468205055660817,
     6.053167556381973,
     15.021208587572703
    ]
@@ -248,8 +248,8 @@
    "above_threshold": 65,
    "weight_stats": {
     "n": 65,
-    "min": 2.670976374408605,
-    "median": 14.554859503326085,
+    "min": 2.670976374408602,
+    "median": 14.554859503326083,
     "max": 27.110207796119514,
     "mean": 15.557920078614941
    }
@@ -262,11 +262,11 @@
     "gold_doi": "10.1109/tsmc.1978.4309889",
     "rank": 1,
     "n_candidates": 9,
-    "match_weight": 15.25977262859159,
+    "match_weight": 15.259772628591591,
     "match_probability": 0.9999745117720662,
     "gold_on_right": true,
     "top_cand": "cr::10.1109/tsmc.1978.4309889",
-    "top_weight": 15.25977262859159
+    "top_weight": 15.259772628591591
    },
    {
     "ref_id": "Burnicki_2011_spatio-temporal-errors-land-cover::b12",
@@ -306,11 +306,11 @@
     "gold_doi": "10.14358/pers.69.3.289",
     "rank": 1,
     "n_candidates": 44,
-    "match_weight": 24.02067784262087,
+    "match_weight": 24.020677842620874,
     "match_probability": 0.9999999412435663,
     "gold_on_right": true,
     "top_cand": "cr::10.14358/pers.69.3.289",
-    "top_weight": 24.02067784262087
+    "top_weight": 24.020677842620874
    }
   ],
   "book_review": [
@@ -318,37 +318,37 @@
     "ref_id": "Alwan_1988_time-series-modeling-statistical-process::b13",
     "kind": "book_review",
     "bad_doi": "10.2307/1269348",
-    "match_weight": -2.916419793176397,
-    "match_probability": 0.11696313425657963
+    "match_weight": -2.9164197931763978,
+    "match_probability": 0.11696313425657956
    },
    {
     "ref_id": "Burnicki_2011_spatio-temporal-errors-land-cover::b23",
     "kind": "book_review",
     "bad_doi": "10.2307/214811",
-    "match_weight": -2.916419793176397,
-    "match_probability": 0.11696313425657963
+    "match_weight": -2.9164197931763978,
+    "match_probability": 0.11696313425657956
    },
    {
     "ref_id": "Hall_1985_resampling-coverage-pattern::b10",
     "kind": "book_review",
     "bad_doi": "10.2307/2531038",
-    "match_weight": -2.916419793176397,
-    "match_probability": 0.11696313425657963
+    "match_weight": -2.9164197931763978,
+    "match_probability": 0.11696313425657956
    }
   ],
   "lost_weight_stats": {
    "n": 5,
    "min": 3.0027019200344776,
-   "median": 24.02067784262087,
+   "median": 24.020677842620874,
    "max": 24.836777273747153,
    "mean": 18.39134138774825
   },
   "review_weight_stats": {
    "n": 3,
-   "min": -2.916419793176397,
-   "median": -2.916419793176397,
-   "max": -2.916419793176397,
-   "mean": -2.916419793176397
+   "min": -2.9164197931763978,
+   "median": -2.9164197931763978,
+   "max": -2.9164197931763978,
+   "mean": -2.9164197931763973
   },
   "separable": true
  },
@@ -356,42 +356,42 @@
   "ablation": {
    "reviews_above_threshold_full_model": 0,
    "full_model_weights": [
-    -2.916419793176397,
-    -2.916419793176397,
-    -2.916419793176397
+    -2.9164197931763978,
+    -2.9164197931763978,
+    -2.9164197931763978
    ],
    "no_author": {
     "reviews_above_threshold": 0,
     "weights": [
-     -1.0318130868554414,
-     -1.0318130868554414,
-     -1.0318130868554414
+     -1.031813086855419,
+     -1.031813086855419,
+     -1.031813086855419
     ],
     "probabilities": [
-     0.3284512179915298,
-     0.3284512179915298,
-     0.3284512179915298
+     0.3284512179915332,
+     0.3284512179915332,
+     0.3284512179915332
     ]
    },
    "no_journal": {
     "reviews_above_threshold": 0,
     "weights": [
-     -2.556654877756859,
-     -2.556654877756859,
-     -2.556654877756859
+     -2.556654877756862,
+     -2.556654877756862,
+     -2.556654877756862
     ],
     "probabilities": [
-     0.14527663428955712,
-     0.14527663428955712,
-     0.14527663428955712
+     0.14527663428955687,
+     0.14527663428955687,
+     0.14527663428955687
     ]
    },
    "no_author_no_journal": {
     "reviews_above_threshold": 3,
     "weights": [
-     0.22743269112674755,
-     0.22743269112674755,
-     0.22743269112674755
+     0.227432691126747,
+     0.227432691126747,
+     0.227432691126747
     ],
     "probabilities": [
      0.5393296650064977,
@@ -480,17 +480,17 @@
     {
      "comparison": "first_author",
      "level": "Jaro-Winkler distance of first_author >= 0.9",
-     "m": 4.293621566003319e-18,
+     "m": 4.293621566003284e-18,
      "u": 0.0011593626817715062,
-     "bayes_factor": 3.7034326130306914e-15,
-     "match_weight": -47.94005833687972
+     "bayes_factor": 3.7034326130306614e-15,
+     "match_weight": -47.94005833687974
     },
     {
      "comparison": "first_author",
      "level": "All other comparisons",
-     "m": 1.0187282362185657e-06,
+     "m": 1.0187282362185659e-06,
      "u": 0.9967040975189638,
-     "bayes_factor": 1.0220969681517565e-06,
+     "bayes_factor": 1.0220969681517567e-06,
      "match_weight": -19.900036495518908
     },
     {
@@ -536,18 +536,18 @@
     {
      "comparison": "journal",
      "level": "Jaro-Winkler distance of journal >= 0.95",
-     "m": 1.0734053915008295e-18,
+     "m": 1.0734053915008209e-18,
      "u": 0.00014906091622776508,
-     "bayes_factor": 7.201118969781898e-15,
-     "match_weight": -46.98070032137707
+     "bayes_factor": 7.20111896978184e-15,
+     "match_weight": -46.980700321377086
     },
     {
      "comparison": "journal",
      "level": "Jaro-Winkler distance of journal >= 0.85",
-     "m": 6.118410731554731e-17,
+     "m": 6.118410731554682e-17,
      "u": 0.0258869124515552,
-     "bayes_factor": 2.363515055341085e-15,
-     "match_weight": -48.58798736876968
+     "bayes_factor": 2.363515055341066e-15,
+     "match_weight": -48.587987368769696
     },
     {
      "comparison": "journal",
@@ -657,7 +657,7 @@
    {
     "a": "work::Radoux_2020_about-pitfall-erroneous-validation",
     "b": "work::Radoux_2020_how-response-designs-class",
-    "match_weight": 6.511043963247317,
+    "match_weight": 6.511043963247316,
     "match_probability": 0.9891546231039715
    },
    {
@@ -687,14 +687,14 @@
    {
     "a": "work::Li_2025_adapting-cross-sensor-high",
     "b": "work::Li_2025_post-processing-optimization-global",
-    "match_weight": 5.189115868359955,
+    "match_weight": 5.189115868359953,
     "match_probability": 0.9733205803029024
    },
    {
     "a": "work::Lu_1999_control-charts-monitoring-mean",
     "b": "work::Lu_2001_cusum-charts-monitoring-autocorrelated",
-    "match_weight": 1.5191355529887647,
-    "match_probability": 0.7413475980203384
+    "match_weight": 1.519135552988763,
+    "match_probability": 0.7413475980203382
    }
   ]
  }

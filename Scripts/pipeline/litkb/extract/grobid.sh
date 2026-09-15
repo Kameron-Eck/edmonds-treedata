@@ -8,6 +8,9 @@
 # Run as root inside the distro:
 #   MSYS_NO_PATHCONV=1 wsl.exe -d Ubuntu -u root -- bash <this> install|start|stop|status|health
 #
+# The service is NOT set to autostart (see write_unit); `start` is idempotent and costs
+# ~20-30 s cold. `enable`/`disable` toggle autostart if you want it.
+#
 # Resource budget (litkb decision litkb-p0-foundation §15.16: local workers keep 20% of RAM
 # and CPU free for Kam). Measured on this host: 12 logical threads, 31 GiB visible to WSL.
 #   usable CPU  = 12 * 0.8 = 9.6      -> concurrency 9
@@ -127,13 +130,21 @@ StandardError=append:/var/log/grobid.log
 WantedBy=multi-user.target
 EOF
   systemctl daemon-reload
-  # Enabled so a distro boot brings the service back. This matters under WSL: when the
-  # last wsl.exe session exits, WSL starts shutting the distro down and systemd stops
-  # every unit (observed 2026-09-14 as status=143/SIGTERM while distro uptime kept
-  # climbing, i.e. the shutdown was aborted by the next command but the units stayed
-  # stopped). Callers should therefore run a whole batch inside ONE wsl.exe invocation,
-  # beginning with `grobid.sh start` — which is idempotent and returns at once if alive.
-  systemctl enable grobid >/dev/null 2>&1 || true
+  # NOT enabled by default, deliberately. Under WSL the distro boots whenever anything
+  # touches it, and an enabled unit would then start an 8 GiB-heap JVM unbidden and leave
+  # it idle — the resource cost the 20%-headroom rule (decisions.yaml 15.16) exists to
+  # avoid. `start` is idempotent and brings the service up cold in about 20-30 s, which is
+  # cheap enough that autostart buys nothing.
+  #
+  # The lifecycle fact that makes this worth spelling out: when the last wsl.exe client
+  # exits, WSL begins shutting the distro down and systemd stops every unit (observed
+  # 2026-09-14 as status=143/SIGTERM while the distro's own uptime kept climbing — the
+  # shutdown was aborted by the next command, but the units stayed stopped). So a caller
+  # must either run a whole batch inside ONE wsl.exe invocation beginning with
+  # `grobid.sh start`, or hold the distro open (the Python adapter's start() does that).
+  #
+  # `grobid.sh enable` turns autostart on for anyone who does want it.
+  :
 }
 
 health() {
@@ -168,10 +179,12 @@ do_status() {
 case "${1:-status}" in
   install) do_install ;;
   configure) configure; write_unit ;;
+  enable) write_unit; systemctl enable grobid; log "autostart on" ;;
+  disable) systemctl disable grobid 2>/dev/null; log "autostart off" ;;
   start) do_start ;;
   stop) do_stop ;;
   restart) do_stop; do_start ;;
   status) do_status ;;
   health) health; echo ;;
-  *) echo "usage: $0 install|configure|start|stop|restart|status|health"; exit 2 ;;
+  *) echo "usage: $0 install|enable|disable|configure|start|stop|restart|status|health"; exit 2 ;;
 esac

@@ -19,7 +19,7 @@ Every number below was measured on this machine on 2026-09-14. Nothing is quoted
 | GROBID source | `/opt/grobid-0.9.1` (symlink `/opt/grobid`), from the GitHub tag zip `0.9.1` |
 | Launcher | `/opt/grobid-0.9.1/grobid-service/build/install/grobid-service/bin/grobid-service` |
 | Config | `/opt/grobid-0.9.1/grobid-home/config/grobid.yaml` (stock copy kept as `grobid.yaml.orig`) |
-| Service unit | `/etc/systemd/system/grobid.service`, **enabled** |
+| Service unit | `/etc/systemd/system/grobid.service`, **installed but NOT autostarted** (§7) |
 | Log | `/var/log/grobid.log` |
 | Ports | 8070 application, 8071 admin |
 | Manager script | `Scripts/pipeline/litkb/extract/grobid.sh` — `install / configure / start / stop / restart / status / health`, all idempotent |
@@ -223,11 +223,16 @@ stayed stopped. From the Windows side the symptom is nasty: the service accepts 
 mid-flight (`RemoteDisconnected` after ~25 s), then refuses every request after. It looks like a
 flaky JVM; it is not.
 
-Two fixes, both in this branch:
+The unit **is deliberately not autostarted.** Enabling it was tried first and does work — the journal
+shows a `-- Boot --` line followed by `Started grobid.service`. But under WSL the distro boots
+whenever anything touches it, so an enabled unit starts an 8 GiB-heap JVM unbidden and leaves it
+idle; that was observed at the end of this session, with GROBID `active` and a JVM running after a
+plain status check. Since `start` is idempotent and brings the service up cold in **28 s**, autostart
+buys nothing and costs the headroom the 20% rule protects. `grobid.sh enable` / `disable` toggle it.
 
-* the unit is **`systemctl enable`d**, so a genuine distro boot brings it back (seen working: the
-  journal shows a `-- Boot --` line followed by `Started grobid.service`);
-* the adapter's `start()` **holds the distro open** with one long-lived `sleep infinity` client for
+The fix that actually matters is in the adapter:
+
+* `start()` **holds the distro open** with one long-lived `sleep infinity` client for
   the life of the Python process, released at interpreter exit. With the hold, Windows-side runs are
   clean. Callers working purely inside the distro should keep a batch in **one** `wsl.exe`
   invocation beginning with `grobid.sh start`.

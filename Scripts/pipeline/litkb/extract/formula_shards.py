@@ -100,8 +100,21 @@ def dense_jobs(pdfs, cut=None):
 
 
 def cut_crops(jobs, crop_dir, out_json, python=None, threads=4, device="cpu",
-              timeout=36000, cwd=None):
-    """Spawn the crop worker over ``jobs``. -> [job record] (see the worker's ``run_job``)."""
+              timeout=36000, cwd=None, chunk=12, retry_singly=True):
+    """Spawn the crop worker over ``jobs``, in CHUNKS. -> [job record].
+
+    WHY CHUNKS, AND WHY THIS IS NOT A TUNING KNOB. A single worker process over the whole
+    corpus died at **exit code 3221226356 = 0xC0000374, STATUS_HEAP_CORRUPTION**, after 168
+    files and 6,804 crops (measured 2026-09-15, CUDA venv). That is a native crash inside the
+    converter's C extensions, not a Python exception, so no ``except`` in the worker can see
+    it and the whole batch's record was lost with the process. Chunking bounds the loss to
+    one chunk; ``retry_singly`` then re-runs a crashed chunk one file at a time, so a single
+    bad file is isolated and recorded as ``failed`` instead of taking its neighbours down.
+
+    RESUMABLE. ``out_json`` accumulates records across chunks and across invocations, so a
+    re-run picks up where the last one stopped; the crops themselves are content-addressed
+    and re-cutting one is a no-op.
+    """
     py = python or _dg.VENV_PYTHON
     if not os.path.exists(py):
         raise _dg.DoclingError(
@@ -110,24 +123,67 @@ def cut_crops(jobs, crop_dir, out_json, python=None, threads=4, device="cpu",
     work = cwd or os.path.dirname(os.path.abspath(out_json)) or os.getcwd()
     os.makedirs(work, exist_ok=True)
     os.makedirs(crop_dir, exist_ok=True)
-    jobs_file = os.path.join(work, f"_crop_jobs_{int(time.time() * 1000)}.json")
+
+    done = []
+    if os.path.exists(out_json):
+        with open(out_json, encoding="utf-8") as fh:
+            done = json.load(fh)
+    seen = {r.get("pdf") for r in done if r.get("status") == "ok"}
+    todo = [j for j in jobs if j["pdf"] not in seen]
+
+    for i in range(0, len(todo), max(1, int(chunk))):
+        part = todo[i:i + max(1, int(chunk))]
+        rows, rc, err = _run_worker(py, part, crop_dir, work, threads, device, timeout)
+        if rows is None and retry_singly and len(part) > 1:
+            rows = []
+            for job in part:
+                one, rc1, err1 = _run_worker(py, [job], crop_dir, work, threads, device,
+                                             timeout)
+                rows += one if one is not None else [{
+                    "status": "failed", "file": os.path.basename(job["pdf"]),
+                    "pdf": job["pdf"], "crops": [], "n_crops": 0,
+                    "error": f"the crop worker exited {rc1} without writing a record "
+                             f"(a native crash, not a Python exception): "
+                             f"{(err1 or '')[-300:]}"}]
+        if rows is None:
+            rows = [{"status": "failed", "file": os.path.basename(j["pdf"]),
+                     "pdf": j["pdf"], "crops": [], "n_crops": 0,
+                     "error": f"the crop worker exited {rc} without writing a record: "
+                              f"{(err or '')[-300:]}"} for j in part]
+        done += rows
+        with open(out_json + ".partial", "w", encoding="utf-8", newline="\n") as fh:
+            json.dump(done, fh, ensure_ascii=False)
+        os.replace(out_json + ".partial", out_json)
+    return done
+
+
+def _run_worker(py, jobs, crop_dir, work, threads, device, timeout):
+    """One worker process over ``jobs``. -> ([record] | None, returncode, stderr)."""
+    stamp = int(time.time() * 1000)
+    jobs_file = os.path.join(work, f"_crop_jobs_{stamp}.json")
+    out_file = os.path.join(work, f"_crop_out_{stamp}.json")
     with open(jobs_file, "w", encoding="utf-8", newline="\n") as fh:
         json.dump(jobs, fh)
     # -P for the same reason docling.run passes it: this package holds a docling.py that
     # shadows the installed package on sys.path[0].
     cmd = [py, "-P", CROP_WORKER, "--jobs", jobs_file, "--crop-dir",
-           os.path.abspath(crop_dir), "--out", os.path.abspath(out_json),
+           os.path.abspath(crop_dir), "--out", out_file,
            "--threads", str(threads), "--device", device]
-    proc = subprocess.run(cmd, cwd=work, capture_output=True, text=True, timeout=timeout)
     try:
-        os.remove(jobs_file)
-    except OSError:
-        pass
-    if not os.path.exists(out_json):
-        raise _dg.DoclingError(f"the crop worker exited {proc.returncode} and wrote no "
-                               f"record", stderr=(proc.stderr or "")[-4000:])
-    with open(out_json, encoding="utf-8") as fh:
-        return json.load(fh)
+        proc = subprocess.run(cmd, cwd=work, capture_output=True, text=True, timeout=timeout)
+        rc, err = proc.returncode, proc.stderr
+    except subprocess.TimeoutExpired as e:
+        rc, err = -1, f"timed out after {timeout}s: {e}"
+    rows = None
+    if os.path.exists(out_file):
+        with open(out_file, encoding="utf-8") as fh:
+            rows = json.load(fh)
+    for p in (jobs_file, out_file):
+        try:
+            os.remove(p)
+        except OSError:
+            pass
+    return rows, rc, err
 
 
 def crop_records(job_rows):

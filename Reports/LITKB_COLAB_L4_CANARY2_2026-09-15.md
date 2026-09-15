@@ -438,3 +438,307 @@ Three qualifications, all load-bearing:
   Because the ladder stops at the first failing rung, **preflight did not run**, and `--fast`
   skips the smoke by definition.
 * Cost: **UNMEASURED**, §2.
+
+---
+
+## 11. Determinism — what the 14 differing crops actually were
+
+*Added 2026-09-15, same branch, after §5 was written. §5 reported the symptom and said its
+cause was unattributed. It is attributed now, and the attribution turned up a defect §5 did
+not see: **most of the damage is not drift between runs, it is a repetition loop that both
+runs produced.***
+
+Everything numeric below re-derives from
+**`py -3.12 qc/instruments/litkb_formula_balance.py`** (measured table:
+`phase4/qc/litkb_formula_balance.csv`) and from the two local decode arms in §11.2. Nothing
+here needed a Colab runtime; none was launched.
+
+### 11.1 It was never sampling — it is arithmetic, and the source says so
+
+Read in the installed package, not inferred:
+
+* `docling/models/stages/code_formula/code_formula_vlm_model.py` builds every
+  `VlmEngineInput` with **`temperature=0.0`** and `max_new_tokens=2048`.
+* `docling/models/inference_engines/vlm/transformers_engine.py` sets
+  **`do_sample=first_input.temperature > 0`** — so `do_sample=False`. The decode is
+  **greedy**. There is no seed to fix and no sampling to turn off; that hypothesis is closed
+  by reading, and the "greedy + fixed seed" arm the brief asked for cannot be the fix because
+  the setting is already greedy.
+* The same file processes a batch with **`padding=True`** and sets
+  **`tokenizer.padding_side = "left"`**.
+
+That last line is the mechanism, and the general form of it is this: **a greedy argmax over
+float logits is a discontinuous function of arithmetic that is only reproducible when the
+arithmetic is bit-for-bit reproducible.** `elements_batch_size` is 5, so a crop is decoded
+inside a tensor whose shape is set by its four companions; change the companions and the
+padded length changes, the matmuls run at a different shape, hit different cuBLAS kernels and
+a different accumulation order, and a logit gap of order 1e-6 flips. A greedy decode has no
+way back from a flipped argmax — every later token conditions on it.
+
+**Padding is one source of that perturbation and the device is another** (§11.2 measures
+both), and each is sufficient on its own. That is also why the effect concentrates in long
+regions: the longer the generation, the more chances to flip, and **4 of the 18 rows over
+1,000 characters differ against 2 of the 102 under 200.**
+
+### 11.2 Reproduced locally: fix the inputs and it is perfectly deterministic
+
+Both arms ran on the **Quadro T2000** in `D:\edmonds-pipeline\venv-docling-cuda`
+(torch 2.14.0+cu130), decoding the same 14 crops from the same shard archive, 3 repetitions
+each. Harness: `scratchpad/det/repro.py`, which is a scratch file and is not committed.
+
+| arm | batch | companions | result |
+|---|---|---|---|
+| **B** | 1 | none | **14/14 byte-identical across 3 reps** |
+| **A** (COMPLETE) | 5 | the crop's own canary-2 batch | **14/14 byte-identical across 3 reps** |
+
+**What arm A establishes.** Every crop arm A re-decoded at `batch_size` 5, inside
+**its own canary-2 batch**, came back **byte-identical across three repetitions**. Same
+device, same weights, same companions, same answer, every time. So whatever separated canary
+1 from canary 2 is **not** run-to-run kernel nondeterminism — that hypothesis is now closed by
+measurement, not by argument.
+
+What the third column shows is the other half, and it is sharper than expected: arm A's
+strings match **canary 2 on 7 of 14 crops, canary 1 on 2, and NEITHER on 5.** A "neither"
+is not a contradiction — it is the mechanism showing itself twice. Arm A holds the companions
+fixed but changes the **device** (Turing T2000 against the L4's Ada): different kernels,
+different accumulation order, same class of perturbation as a different padding. Both knobs
+feed the same chaotic greedy decode, and each is enough on its own.
+
+So the honest statement, and it is stronger than §5's: **the decoded LaTeX for a long region
+is a function of (crop, companions, device), and is perfectly reproducible once all three are
+fixed.** It is not a function of the crop bytes alone, which is what kill 4's "decoding them
+again could only produce the same answer" assumed.
+
+| crop | canary 1 | canary 2 | arm A (bs=5, c2 companions, T2000) | stable ×3 | matches |
+|---|--:|--:|--:|---|---|
+| `1592fffd` | 180 | 203 | **203** | yes | canary 2 |
+| `2755c850` | 799 | 826 | **826** | yes | canary 2 |
+| `4a00dc4a` | 336 | 333 | **331** | yes | neither |
+| `5f27d553` | 2776 | 285 | **285** | yes | canary 2 |
+| `65715113` | 48 | 73 | **48** | yes | canary 1 |
+| `9e4503da` | 5157 | 710 | **724** | yes | neither |
+| `a3232de1` | 207 | 203 | **203** | yes | canary 2 |
+| `ae982dac` | 5486 | 1043 | **6355** | yes | neither |
+| `b66266db` | 3768 | 1017 | **3387** | yes | neither |
+| `b9310438` | 563 | 5051 | **5055** | yes | neither |
+| `e69c566d` | 441 | 437 | **441** | yes | canary 1 |
+| `e845bfcf` | 306 | 374 | **374** | yes | canary 2 |
+| `edeb2728` | 202 | 194 | **194** | yes | canary 2 |
+| `f6dac8a5` | 290 | 317 | **317** | yes | canary 2 |
+
+**Arm C (shuffled companions) was not run.** Arms A and B already separate composition and
+device from run-to-run, which is what design UNCONFIRMED #3 asked; C would only measure how
+*much* a different composition moves, at the same GPU cost as A.
+
+**A caveat that limits the transfer, stated rather than buried.** The T2000 is Turing: no
+TF32 path and no native bf16. The L4 is Ada. **The resolved `torch_dtype` on either card is
+UNMEASURED** — the harness's probe reached for `engine.vlm_model` and that attribute does not
+exist on this engine, so it returned nothing and no dtype is claimed here for either device.
+The five "neither" rows in the table are consistent with a dtype difference and with a kernel
+difference alike; this measurement does not separate them, and does not need to, because both
+are the same class of numerical perturbation. So the TF32 hypothesis the brief listed is
+**UNTESTABLE on this hardware** — it is not tested here and is not claimed either way, and a
+T2000 result transfers to the L4 by inference, not by measurement. What does transfer without
+inference is §11.1, which is read from source and is device-independent.
+
+### 11.3 The finding §5 missed: nine rows are garbage in BOTH runs
+
+Tokenizing every one of the 400 decoded strings with the checkpoint's own tokenizer
+(`docling-project/CodeFormulaV2`) turns §5's table into something different:
+
+**In all six of the crops that moved by thousands of characters, one side sits at exactly
+2035–2036 tokens** — `max_new_tokens` is 2048. That side was not "a longer decode"; it was
+**cut off**. Looking at what it was emitting when the cap arrived:
+
+```
+Xie_2013 p13  c1, 5157 chars:  ' \underset { n } {'  repeated 268 times at the tail
+pone.0343729  c1, 5486 chars:  ' \intertext { \mathcal { F } }'  repeated 155 times
+Ratner_2017   c2, 5051 chars:  ' \text {'  repeated 451 times
+Nordman_2004  c1, 2776 chars:  '2 - 1 , '  repeated 319 times
+```
+
+These are **degenerate repetition loops**. The shorter side of each pair is the normal
+decode; the longer side is the model falling into a loop and being truncated by the cap. So
+§5's "where it stops is not stable" is the wrong reading — **what is unstable is whether the
+model falls into the loop at all**, and a padding perturbation is enough to decide it.
+
+Then the part that matters most, because no stability check can reach it. Scanning all 200
+rows of both runs for the same signature:
+
+| | canary 1 | canary 2 |
+|---|--:|--:|
+| generations that hit the token cap (tokenizer — ground truth) | **13 / 200** | **10 / 200** |
+| of those, caught by the tokenizer-free repeated-tail test | 12 | 9 |
+| **at the cap in BOTH runs, byte-identical** | **9** | |
+
+(The two rows differ by exactly one crop per run, whose loop has a period longer than the
+detector's 60-character window. The worker runs **both** tests — the token count whenever the
+engine's tokenizer is reachable, the tail test always — so it catches 13 and 9 respectively;
+the tail-only figures are what a worker with no reachable tokenizer would see, and they are
+reported so that fallback is a measured degradation rather than an assumed one.)
+
+**Those nine are inside §5's "186 identical".** Two independent runs agreed perfectly, on
+garbage, and every one of them was written to the LaTeX corpus with `status="ok"`. A
+re-decode guard — the one the brief asked for, and the obvious response to §5 — **would have
+passed all nine**. Stability is not correctness, and on this checkpoint the difference is
+**4.5–6.5% of every shard**.
+
+### 11.4 The two guards, and what each is for
+
+`colab_formula_worker.py` now carries two, deliberately independent:
+
+**Guard 1 — stability** (`stability_sample`, and the re-decode in `process_shard`). Decode,
+then re-decode a **deterministic 5% sample** plus **every row ≥ 1,000 characters**, and record
+`stable` only when the two agree. Three details are load-bearing:
+
+* the sample is seeded from the **shard's own sha256**, never from `random`, so every slice of
+  a shard computes the same sample — the same N-independence invariant `plan_batches` rests on;
+* the re-decode runs at **`batch_size` 1**, a genuinely different batch context. Re-decoding
+  inside the same batch would agree for free under §11.1 and the guard would be inert;
+* disagreement is `status="unstable"` with **both** strings kept (`latex`,
+  `latex_redecode`). Picking one would invent a decision the measurement does not support —
+  §11.3 is exactly the case where the **longer** candidate is the wrong one.
+
+**Guard 2 — degeneracy** (`degeneracy_of`). Pure functions of the output, so they cost no GPU
+and run on every row: the generation hit `max_new_tokens` (token count, when the engine's
+tokenizer is reachable), or the string ends in a unit repeated ≥ 4 times. This is the guard
+that sees §11.3's nine, and it fires on rows that are perfectly stable.
+
+Neither state is `ok`. `formula_ingest.ingest` now writes **three** destinations, not two: `ok`
+rows to the LaTeX corpus, and `unstable` / `degenerate` rows to
+`{latex}_verify_queue.jsonl` — the on-demand verification list, carrying both candidates, the
+reason and the same `bbox_canonical` join key, so a verified row patches back like any other.
+
+**The kills, and they FIRE** (`qc/instruments/litkb_formula_mutations.py`, **12 rows, 12
+FIRED**, `baseline before: PASS` / `baseline after: PASS`):
+
+* **G1** removes the guard's disagreement branch → a planted flip is recorded `ok`. With the
+  guard it is `unstable` with both strings. That is the brief's kill, exactly.
+* **G2** re-decodes only the 5% sample → the long rows escape.
+* **G3** blinds the repeated-tail detector → a stable repetition loop reads `ok`.
+* **G4** stops the ingest routing → a non-`ok` row reaches the LaTeX corpus.
+* **G5**/**G6** are the balance changes below.
+
+### 11.5 Slice balance: the proxy was blind to height, and LPT trusted it too much
+
+Two separate defects, and §4.2 only named the first.
+
+**The proxy.** `width × ink density` cancels to **`ink / height`** — it divides the height
+straight out, and height is what separates a multi-line array (the long emitters) from an
+inline fragment. Measured against canary 1's decoded lengths over the same 200 crops:
+
+| proxy | Spearman |
+|---|--:|
+| old: `w × ink density` (= `ink/h`) | +0.389 |
+| **ink pixel count** | **+0.873** |
+| crop area `w × h` | +0.777 |
+| height | +0.749 |
+
+`crop_cost` now returns **predicted seconds**, via a chain each link of which is fitted on
+measured canary data: ink → predicted characters (log-log on the 200) → seconds. (The text
+layer was the other candidate the brief suggested; it is not usable — `native_text` is empty
+for **all 205** rows of this shard.)
+
+**The cost model.** A batched greedy decode steps all five sequences together and stops when
+the longest finishes, so a batch costs its **longest** member, not the sum. Fitted on canary
+2's 40 measured batches:
+
+```
+seconds = 0.812 + 0.02418 x max(member chars)      R2 = 0.877
+the same fit on SUM(chars) instead of MAX:         R2 = 0.791
+```
+
+`batch_costs` now takes that max. Summing was charging five medium crops more than one
+runaway.
+
+**The assignment, and this is where the win actually is.** Ranking better made LPT *worse*,
+which is the result that pointed at the real problem: **LPT believes the proxy's numbers, and
+the proxy's residual is heavy-tailed**, because the crops that emit most are the ones that
+fall into a repetition loop and no pixel proxy can see that coming. Fed one badly
+under-costed batch, LPT loads a slice it believes is light and that slice runs long after the
+others are idle. Dealing the cost-ordered batches **round-robin** believes only their *order*,
+and cannot concentrate the mistakes. Simulated on the fitted model of canary 2's measured
+batch seconds — **a simulation on measured data, not a run**:
+
+| planner | slowest slice | fastest | **ratio** | total |
+|---|--:|--:|--:|--:|
+| old proxy + LPT — *what canary 2 ran* | 360.2 s | 97.0 s | **3.71×** | 1336.0 s |
+| new proxy + LPT | 399.3 s | 65.4 s | 6.11× | 1207.0 s |
+| **new proxy + DEAL — what ships** | **247.3 s** | 152.1 s | **1.63×** | 1207.0 s |
+| old proxy + DEAL | 330.9 s | 94.1 s | 3.52× | 1336.0 s |
+| a perfect oracle over the true lengths | 122.9 s | 75.6 s | 1.63× | 543.6 s |
+
+**Ratio 3.71× → 1.63×, and the slowest slice 360.2 s → 247.3 s.** Dealing reaches the
+oracle's spread *exactly*; what still separates the two rows is the ordering, not the
+assignment, and the ordering cannot improve further without knowing what the model will emit.
+The measured run's own 2.85× is the same quantity observed rather than modelled; the model
+over-predicts the old planner by 14%, which is the honest size of the simulation's error.
+
+Two honesties about that table. The `total` column is the sum of batch costs, i.e. the
+*ordering* quality: the new proxy improves it 1336 → 1207 s independently of the assignment.
+And with the runaways removed from the length mix (the world the degeneracy guard creates),
+the old planner's ratio is already 1.76× and the new one's is 2.76× — **once the runaways are
+gone, dealing's advantage on spread goes with them**, and what remains is the ordering gain
+(795 → 663 s of total work). The runaways are most of what the assignment change is fixing.
+
+### 11.6 The two small defects
+
+**`model_load_seconds` read 0.0 for every slice.** §4.2 diagnosed it correctly and the fix is
+the one keyword it named: the child path builds the model itself and passed it as `_model=`
+without `load_seconds=`, so `process_shard` timed a load that had already happened. It now
+times `build_model` around the call and hands the number on. Held by
+`test_the_child_slice_path_passes_the_load_it_measured`, which reads the call site rather than
+needing a GPU.
+
+**`vm_ops exec` discarded the head of a long output.** §10 recorded the symptom — two beat
+probes came back starting mid-line with the one line they existed for already gone. The cause
+is a single expression: `print(out[-2000:])`. Truncating the *display* is fine; the defect is
+that the rest was **thrown away**. `exec_file` now writes the full transcript to
+`{BASE}/phase4/logs/vm_exec_{session}_{stamp}.log` (falling back to a local temp directory if
+the lake is not writable) and prints the tail with a pointer to it. Nothing read back through
+`exec` can be lost to the window again, and the §10 workaround — print the important line
+last — is no longer needed.
+
+### 11.7 What the corpus costs now
+
+At canary 2's measured 0.4555 regions/s the 7,164 crops are **4.37 h**. What the stability
+guard adds, as set arithmetic rather than a sum a reader cannot reproduce:
+
+```
+10 sampled + 17 long, 0 in both          ->  27 triggered
+minus 9 already ruled degenerate         ->  18 re-decoded = 9.0% of the shard
+```
+
+**The overhead is time-weighted, not count-weighted**, and that is the number worth carrying:
+those 9.0% of the rows are **26.9% of the decode**, because length is what both the trigger
+and the cost depend on.
+
+Two baselines, because they are not the same number:
+
+| | no guard | with the guard |
+|---|--:|--:|
+| **(a) against canary 2's MEASURED 0.4555 regions/s** — old planner, runaways present | 4.37 h | **5.54 h** (×1.269) |
+| (b) *if* §11.5's simulated ordering gain holds (total 1336 → 1207 s, −9.7%) | 3.95 h | 5.01 h |
+
+**(a) is the one to quote.** (b) is a projection on top of a simulation — no run has used the
+new planner — and the two have not been measured together.
+
+That ×1.269 is the price of knowing which rows are reproducible. **Skipping the
+already-degenerate rows is what makes it affordable:** re-decoding every long row regardless —
+the literal reading of "every crop above a token-length threshold" — costs **×1.886, i.e.
+8.24 h**, because the runaways are both the longest and the most expensive crops in the shard.
+Both figures come out of the instrument.
+
+### 11.8 What is still open
+
+1. **Whether lowering `max_new_tokens` or adding a repetition stopping criterion is right.**
+   It would end §11.3's waste at source — a 2048-token loop costs ~28 s of L4 time and returns
+   nothing — but it changes every output against both canaries, so it is **a decision for
+   Kam**, not a fix made here.
+2. **Which candidate is correct when a row is `unstable`.** Nothing here scores them; that is
+   what the verification queue is for. Canary 1 §7.4 still stands: the long regions have no
+   reference of any kind.
+3. **TF32 and `torch.use_deterministic_algorithms`** — untestable on Turing and untested here.
+   Neither can fix a batch-composition effect in any case, since neither changes the shapes.
+4. **The new planner on a real runtime.** §11.5 is a simulation on measured timings. No run
+   has used it.

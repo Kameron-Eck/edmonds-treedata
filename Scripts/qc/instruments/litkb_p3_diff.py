@@ -7,8 +7,10 @@ content is not word-for-word what the database holds, and is not meant to be: id
 record, so a row whose claim the registry contradicted prints the registry's words. The gate is therefore not
 "no differences" but **no UNEXPLAINED differences**. Every changed cell falls in exactly one bucket:
 
-  explained  a `discrepancies` record names this source, this row and this field — the review can see both
-             values and the comparator's ratio
+  explained  a `discrepancies` record names this source, this row and this field AND its `registry_value` is
+             what the export printed (DOI-aware: the export's `https://doi.org/10.x` is the record's bare
+             `10.x`). Naming the cell is not enough — a record that explains some other value explains
+             nothing, and before 2026-09-15 that hole passed a fabricated cell
   format     the two cells normalise equal (`export_shape.norm_cell`): case, punctuation, `&`/`and`, a
              trailing full stop, `D.J.` against `D. J.`. Same content, different type
   held       the row was never admitted (no verified file, or no resolvable identity), so the export printed
@@ -88,22 +90,41 @@ def compare(source, today, exported, key, columns, explained, held_rows):
             # `stem` cell on today's side — never the export's, which is the work key
             row_key = rid
             hit = explained.get((source, row_key, _FIELD_ALIAS.get(field, field)))
-            if not a and b:
-                bucket, why = "filled", "the legacy cell was empty; the registry record supplies a value"
-            elif (source, field) in STRUCTURAL:
+            # BEGIN guard: the explaining record must EQUAL the exported value
+            # `hit` names the cell; it EXPLAINS the cell only when the value the export printed is the
+            # registry value that record holds. Referee 2026-09-15 Plant A: without this test any string at
+            # all — a fabrication — passed in 713 of 1086 cells, "explained" by a record about two other
+            # strings. DOI-aware because the export prints `https://doi.org/10.x` where the record stores the
+            # bare `10.x`; that is `_same_doi`, i.e. `textnorm.normalize_doi`, the authority admission stores
+            # by — never a second normaliser (CLAUDE.md 3.3). Measured: the naive form alone fails the gate
+            # on 19 real cells.
+            explains = bool(hit) and (norm_cell(hit[1] or "") == norm_cell(b)
+                                      or (_FIELD_ALIAS.get(field, field) == "doi" and _same_doi(hit[1] or "", b)))
+            # END guard: the explaining record must EQUAL the exported value
+            if (source, field) in STRUCTURAL:
                 bucket, why = "structural", STRUCTURAL[(source, field)]
+            # BEGIN guard: a changed cell on a HELD row is a bug, whatever record names it
+            # The held test sits ABOVE `explained`, `filled` and `format`: 91 of the 109 held rows carry
+            # discrepancy records, so behind `hit` the branch was unreachable for them and the docstring's
+            # "a difference here is a BUG" was never enforced (referee Plant C).
+            elif rid in held_rows:
+                bucket, why = "UNEXPLAINED", "the row was HELD: the export must print it back verbatim"
+            # END guard: a changed cell on a HELD row is a bug, whatever record names it
+            elif not a and b:
+                bucket, why = "filled", "the legacy cell was empty; the registry record supplies a value"
             elif field in ("DOI/URL", "doi") and _same_doi(a, b):
                 bucket, why = "format", "the same DOI, spelled differently"
             elif norm_cell(a) == norm_cell(b):
                 bucket, why = "format", "the two cells normalise equal"
-            elif hit:
+            elif explains:
                 bucket, why = "explained", f"discrepancies: claimed={hit[0]!r} registry={hit[1]!r}"
-            elif rid in held_rows:
-                bucket, why = "UNEXPLAINED", "the row was HELD: the export must print it back verbatim"
+            elif hit:
+                bucket, why = "UNEXPLAINED", (f"a discrepancy names this cell but explains a different value: "
+                                              f"registry={hit[1]!r}, exported={b!r}")
             else:
                 bucket, why = "UNEXPLAINED", "no discrepancy record names this cell"
             out.append({"source": source, "row": rid, "field": field, "bucket": bucket,
-                        "today": a[:300], "exported": b[:300], "ratio": (hit[2] if hit else ""),
+                        "today": a[:300], "exported": b[:300], "ratio": (hit[2] if explains else ""),
                         "explanation": why})
     for rid in e_idx.keys() - t_idx.keys():
         out.append({"source": source, "row": rid, "field": "(whole row)", "bucket": "UNEXPLAINED",
@@ -128,10 +149,12 @@ def run(conn, ws, root=None):
         explained[(r[0], r[1], r[2])] = (r[3], r[4], r[5])
     # HELD is "no work at all", not "state <> admitted": a `duplicate` candidate HAS a work — the one it
     # duplicates — and the export rightly prints that work's registry record for it
-    for r in conn.execute("SELECT raw_record ->> 'ID', state FROM litkb.candidates "
+    # keyed on BOTH the tracker ID and the manifest stem, because the two sides of the diff are keyed
+    # differently. `raw_record ->> 'ID'` alone left the 21 manifest-only held rows outside the guard
+    # entirely (referee 2026-09-15 §3).
+    for r in conn.execute("SELECT raw_record ->> 'ID', raw_record ->> 'stem' FROM litkb.candidates "
                           "WHERE workstream_id = %s AND admitted_work_id IS NULL", (ws,)).fetchall():
-        if r[0]:
-            held.add(r[0])
+        held.update(x for x in r if x)
     rows = compare("tracker", sources.tracker_rows(BASELINE_TRACKER), ex.tracker_rows(conn, ws), "ID",
                    sources.TRACKER_COLUMNS[1:], explained, held)
     # the manifest joins on the LEGACY stem, which the export carries in `litkb_legacy_stem`. Not on `stem`:

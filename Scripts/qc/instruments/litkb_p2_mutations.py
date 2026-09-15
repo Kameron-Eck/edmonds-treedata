@@ -66,6 +66,12 @@ TESTS_P1P2 = ["qc/test_litkb_p1.py", *TESTS]
 TESTS_P3 = [*TESTS, "qc/test_litkb_p3.py"]
 MIG15 = f"{MIG}/0015_discrepancies.sql"
 MIG14 = f"{MIG}/0014_referee_p2_fixes.sql"
+#: 0016 CREATE OR REPLACEs litkb._check_binding (the OCR-queue evidence it records for P4, referee P3 F9),
+#: so 0014's copy of that function is DEAD TEXT from here on: a mutation in it is overwritten when 0016 runs.
+#: Every _check_binding row therefore targets 0016 - the live definition is the only one worth mutating, and
+#: a row left pointing at 0014 would report DID NOT FIRE for a reason that is about the migration order, not
+#: about the guard.
+MIG16 = f"{MIG}/0016_held_reason.sql"
 
 M = []
 
@@ -107,9 +113,9 @@ replace("A3b", f"{MIG}/0013_admission.sql", "ELSIF abs(v_cy - v_ry) = 1 AND", "E
         "check 1: widen +/-1 to +/-2 years")
 block("A4", f"{MIG}/0013_admission.sql", "guard: check 1 a registry identifier is confirmed",
       "check 1: a registry admission with no registry-confirmed identifier passes")
-block("A5", MIG14, "guard: check 3 no text layer waits for OCR",
+block("A5", MIG16, "guard: check 3 no text layer waits for OCR",
       "check 3: a file with no text layer is not binding-pending")
-block("A6", MIG14, "guard: check 3 binding evidence",
+block("A6", MIG16, "guard: check 3 binding evidence",
       "check 3: the database stops checking the binding evidence")
 block("A7", MIG14, "guard: check 4 a manual admission carries a bound file",
       "check 4: a manual admission without a bound file proceeds")
@@ -187,8 +193,8 @@ block("B16", f"{PKG}/acquire/annas.py", "guard: fetch_one never writes a literat
 # ── the referee's surviving mutations (Reports/LITKB_P2_REFEREE_2026-09-14.md), re-expressed on the fixed code ──
 replace("R1", f"{PKG}/admit/binding.py", "BIND_RATIO = 0.85\n", "BIND_RATIO = 0.60\n",
         "binding: BIND_RATIO 0.85 -> 0.60")
-replace("R2", MIG14, "  IF v_ratio IS NULL OR v_ratio < 0.85 THEN\n", "  IF v_ratio IS NULL OR v_ratio < 0.50 THEN\n",
-        "_check_binding: evidence ratio 0.85 -> 0.50 (live 0014)")
+replace("R2", MIG16, "  IF v_ratio IS NULL OR v_ratio < 0.85 THEN\n", "  IF v_ratio IS NULL OR v_ratio < 0.50 THEN\n",
+        "_check_binding: evidence ratio 0.85 -> 0.50 (live 0016)")
 replace("R3", f"{PKG}/admit/binding.py", '    joined = "".join(fam)\n',
         '    joined = "".join(fam)\n    return joined[:3] in "".join(tokens)\n',
         "binding: the author check is the surname's first 3 letters as a substring")
@@ -225,7 +231,7 @@ replace("C9", f"{PKG}/admit/binding.py",
         "        lo, hi = 0, len(lines)\n", "D2: the author anywhere on the page counts as near the title")
 replace("C10", f"{PKG}/admit/binding.py", "MARKER_MIN_SURNAME = 5\n", "MARKER_MIN_SURNAME = 1\n",
         "D2: a glued one-letter marker accepted on short surnames (Park -> parks)")
-block("C11", MIG14, "guard: check 3 region and author-near evidence",
+block("C11", MIG16, "guard: check 3 region and author-near evidence",
       "D2 DB: _check_binding stops requiring title_region / author_near_title")
 block("C12", MIG14, "guard: approve_admission locks the admitter's workstream open",
       "D3: approve_admission ignores the admitter's workstream")
@@ -445,6 +451,27 @@ replace("P7d", f"{PKG}/export.py",
         '            u = _use_for_row(uses.get(work_id), r) if not (r.get("Duplicate of") or "").strip() else None\n',
         "            u = _use_for_row(uses.get(work_id), r)\n",
         "a `Duplicate of` row is painted with the original row's Relevance and Feeds", tests=TESTS_P3)
+
+# -- P3 after the referee (Reports/LITKB_P3_REFEREE_2026-09-15.md): the gate's value test, the held branch,
+# the one year parser, a held row's reason, a pending binding's evidence. The gate instrument is mutated the
+# same way as any other source: `--sites` does not reach qc/, but the mutator takes any path under Scripts/
+# and the worker copies carry the whole tree.
+P3DIFF = "qc/instruments/litkb_p3_diff.py"
+p3(block, "P8a", P3DIFF, "guard: the explaining record must EQUAL the exported value",
+   "the gate's `explained` bucket needs only a record NAMING the cell, so a fabricated value passes")
+p3(replace, "P8b", P3DIFF,
+   '                                      or (_FIELD_ALIAS.get(field, field) == "doi" and _same_doi(hit[1] or "", b)))',
+   '                                      )',
+   "the gate's value test is normalised equality alone: 19 real DOI cells fail the gate")
+p3(block, "P8c", P3DIFF, "guard: a changed cell on a HELD row is a bug, whatever record names it",
+   "the HELD branch is shadowed again: 91 of 109 held rows carry a record, so a corrupt held cell reads as explained")
+p3(replace, "P8d", f"{PKG}/migrate_legacy/plan.py", "    claimed_year_i = year_int(claimed_year)\n",
+   "    claimed_year_i = int(claimed_year) if str(claimed_year or '').isdigit() else None\n",
+   "two year parsers again: `2019a` reads as 2019 in the loader and as None in the comparison")
+p3(block, "P8e", f"{PKG}/migrate_legacy/run.py", "guard: a held candidate records WHY it is held",
+   "a held candidate is recorded with no reason: why it is held must be inferred from the missing admission")
+p3(block, "P8f", MIG16, "guard: a pending binding records the evidence it waited on",
+   "a binding-pending check records a verdict and a sentence, and none of the numbers P4's OCR queue needs")
 
 DEFERRED_HELPERS = {}
 

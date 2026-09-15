@@ -253,6 +253,82 @@ def test_a_disagreeing_claim_with_no_file_is_held_not_admitted(pg):
     d = discrepancies(pg, ws)
     assert ("tracker", "7", "title") in d
     assert d[("tracker", "7", "title")][7] is not None, "a held row's discrepancy names its candidate"
+    # BEGIN guard: a held row says WHY it is held
+    # Referee P3 F6: the reason used to be NULL on every held candidate, so it had to be inferred from the
+    # absence of an admission. Migration 0016's hold_candidate is the one writer that may say so.
+    state, reason = pg.one("SELECT state, state_reason FROM litkb.candidates WHERE workstream_id = %s", (ws,))
+    assert state == "new" and reason, f"a held candidate must record its reason, got {state!r} {reason!r}"
+    assert reason == mrun.HELD_REASONS["held-needs-file"] and "case C" in reason, reason
+    # END guard: a held row says WHY it is held
+
+
+@pg_only
+def test_hold_candidate_refuses_another_workstreams_candidate_and_an_admitted_one(pg, tmp_path):
+    """0016's writer is as narrow as record_discrepancy: the workstream's own token, and only a candidate that
+    is still `new` with no admitted work. It can neither reach another workstream's rows nor overwrite the
+    state_reason admission wrote."""
+    import psycopg
+
+    from litkb.admit import front
+    from litkb.migrate_legacy import run as mrun
+
+    ws_a, ws_b = pg.ws(), pg.ws()
+    ctx = loader(pg, ws_a, Registry({}))
+    cand = front.add_candidate(ctx.conn, ws_a, pg.tokens[ws_a], source="manual", source_detail="held-guard",
+                               raw={"ID": "1"}, title="A held row")
+    assert ctx.hold(cand, "case C: the reason") is True
+    ctx.conn.commit()
+    assert pg.one("SELECT state_reason FROM litkb.candidates WHERE id = %s", (cand,))[0] == "case C: the reason"
+    other = loader(pg, ws_b, Registry({}))
+    with pytest.raises(psycopg.errors.InsufficientPrivilege):
+        other.hold(cand, "another workstream reaching in")
+    other.conn.rollback()
+    with pytest.raises(psycopg.Error):
+        ctx.hold(cand, "   ")
+    ctx.conn.rollback()
+    assert pg.one("SELECT state_reason FROM litkb.candidates WHERE id = %s", (cand,))[0] == "case C: the reason"
+
+
+@pg_only
+def test_a_pending_binding_records_the_evidence_it_waited_on(pg):
+    """Referee P3 F9. `binding-failed` carried its ratio; `binding-pending` carried a verdict and a sentence
+    and nothing else, so P4's OCR queue could not tell a cover-sheet scan (140 characters on page 1) from a
+    file with no page-1 text at all. 0016 adds the numbers check 3 already held. The VERDICT is unchanged."""
+    ws, w = pg.ws(), pg.session("litkb_writer")
+    _h, work, ids = _p2mod._good_payload()
+    f = _p2mod._file(work["title"], ratio=0.0, text_layer=False)
+    f["binding"].update({"page1_chars": 148, "best_any_ratio": 0.31})
+    res = _p2mod._admit_sql(pg, w, ws, work, ids, file_json=f)
+    c3 = res["checks"]["check3_binding"]
+    assert (res["outcome"], res["refused_at"]) == ("refused", "check3_binding"), res
+    assert c3["verdict"] == "binding-pending" and c3["reasons"], c3
+    # BEGIN guard: a pending binding names the page and the characters found
+    assert c3["page"] == 1 and c3["page1_chars"] == 148, c3
+    assert c3["text_layer"] is False and float(c3["best_any_ratio"]) == 0.31, c3
+    # END guard: a pending binding names the page and the characters found
+
+
+def test_one_year_parser_reads_the_conventions_suffix_on_both_sides():
+    """Referee P3 F4. `export_shape.year_int` reads `2019a` as 2019 — the loader admits and keys on that — but
+    `compare_row` carried a second, stricter parse in a try/except, yielding None and so `year_agrees` False
+    unconditionally. Tracker rows 327 and 329 could therefore never reach case A, and §15.15's ±1 rule could
+    never apply to them, silently. One rule, one home."""
+    from litkb.migrate_legacy.export_shape import year_int
+    from litkb.migrate_legacy.plan import compare_row
+
+    rec = {"title": "Total variation regularization", "titles": ["Total variation regularization"],
+           "year": 2019, "first_author": "Allard",
+           "authors": [{"given": "W.", "family": "Allard"}], "venue": "SIAM J. Math. Anal."}
+    claimed = {"title": "Total variation regularization", "authors": "Allard, W.", "year": "2019a",
+               "venue": "SIAM J. Math. Anal."}
+    # BEGIN guard: the comparison reads a legacy year cell with the ONE parser
+    fields = compare_row(rec, claimed)
+    assert fields["year"]["agrees"] is True, fields["year"]
+    assert year_int("2019a") == 2019
+    # END guard: the comparison reads a legacy year cell with the ONE parser
+    # the suffix still SURVIVES as a discrepancy: the cell does not say what the registry says
+    assert fields["year"]["differs"] is True, fields["year"]
+    assert compare_row(rec, dict(claimed, year="1999"))["year"]["agrees"] is False
 
 
 @pg_only
@@ -524,6 +600,79 @@ def test_kill_the_diff_gate_reports_an_unexplained_cell_when_the_discrepancy_is_
                       [{"sha256": "a" * 64, "stem": "Allard_2007_total-variation-regularization-image"}],
                       "sha256", ["stem"], {}, set())
     assert [r["bucket"] for r in st] == ["structural"], st
+
+
+def _diff_module():
+    """The gate instrument, loaded by path (see the note in the kill above about the path-insert ledger)."""
+    import importlib.util
+
+    spec = importlib.util.spec_from_file_location(
+        "litkb_p3_diff", SCRIPTS / "qc" / "instruments" / "litkb_p3_diff.py")
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod
+
+
+def test_kill_a_fabricated_cell_is_not_explained_by_a_record_about_another_value():
+    """Referee 2026-09-15, Plant A. The `explained` bucket used to need only a record NAMING the cell, so a
+    cell corrupted to a string with no relation to either value passed — "explained" by a record about two
+    other strings, in 713 of 1086 cells. `explained` now also requires the record's registry_value to BE what
+    the export printed."""
+    diff = _diff_module()
+    today = [{"ID": "8", "Title": "An unrelated title concerning stochastic matrices"}]
+    explained = {("tracker", "8", "title"): ("An unrelated title concerning stochastic matrices",
+                                             "Total variation regularization for denoising", 0.31)}
+    ok = diff.compare("tracker", today, [{"ID": "8", "Title": "Total variation regularization for denoising"}],
+                      "ID", ["Title"], explained, set())
+    assert [r["bucket"] for r in ok] == ["explained"], ok
+    # BEGIN guard: a fabricated cell is not explained by a record about another value
+    plant = diff.compare("tracker", today, [{"ID": "8", "Title": "ZZZZ TOTALLY FABRICATED TITLE 12345"}],
+                         "ID", ["Title"], explained, set())
+    assert [r["bucket"] for r in plant] == ["UNEXPLAINED"], plant
+    assert "explains a different value" in plant[0]["explanation"], plant
+    assert plant[0]["ratio"] == "", "a cell the record does not explain carries no ratio"
+    # END guard: a fabricated cell is not explained by a record about another value
+
+
+def test_the_value_test_reads_a_doi_url_and_the_records_bare_doi_as_one_doi():
+    """The naive value test — normalised equality alone — was MEASURED against `litkb` and failed the gate on
+    19 real cells: the export prints `https://doi.org/10.x` where the discrepancy record stores the bare
+    `10.x`. The DOI-aware clause is `_same_doi`, i.e. `textnorm.normalize_doi`, the same authority admission
+    stores by; it is not a second normaliser."""
+    diff = _diff_module()
+    explained = {("tracker", "5", "doi"): ("10.1109/TPAMI.2025.OLD", "10.1109/tpami.2025.3649001", None)}
+    rows = diff.compare("tracker", [{"ID": "5", "DOI/URL": "10.1109/TPAMI.2025.OLD"}],
+                        [{"ID": "5", "DOI/URL": "https://doi.org/10.1109/tpami.2025.3649001"}],
+                        "ID", ["DOI/URL"], explained, set())
+    assert [r["bucket"] for r in rows] == ["explained"], rows
+    # and a DOI the record does not name is still caught
+    bad = diff.compare("tracker", [{"ID": "5", "DOI/URL": "10.1109/TPAMI.2025.OLD"}],
+                       [{"ID": "5", "DOI/URL": "https://doi.org/10.9999/fabricated.1"}],
+                       "ID", ["DOI/URL"], explained, set())
+    assert [r["bucket"] for r in bad] == ["UNEXPLAINED"], bad
+
+
+def test_kill_a_changed_cell_on_a_held_row_is_a_bug_even_when_a_record_names_it():
+    """Referee 2026-09-15, Plant C. The HELD branch sat AFTER the `hit` test, and 91 of the 109 held rows
+    carry discrepancy records — so for those rows the branch the docstring calls a BUG could not be reached,
+    and corrupting a held row's Title returned `explained`. The held test now sits above `explained`,
+    `filled` and `format`, so it is reachable for EVERY held row."""
+    diff = _diff_module()
+    today = [{"ID": "7", "Title": "A completely different title about Markov random fields"}]
+    explained = {("tracker", "7", "title"): ("A completely different title about Markov random fields",
+                                             "Canopy mapping from aerial imagery", 0.22)}
+    # BEGIN guard: the held branch is reachable for a held row that carries a discrepancy record
+    for exported, why in ((explained[("tracker", "7", "title")][1], "the registry value"),
+                          ("ZZZZ TOTALLY FABRICATED TITLE 12345", "a fabrication")):
+        rows = diff.compare("tracker", today, [{"ID": "7", "Title": exported}], "ID", ["Title"],
+                            explained, {"7"})
+        assert [r["bucket"] for r in rows] == ["UNEXPLAINED"], (why, rows)
+        assert "HELD" in rows[0]["explanation"], (why, rows)
+    # END guard: the held branch is reachable for a held row that carries a discrepancy record
+    # a format-only difference on a held row is still a bug: a held row is printed back VERBATIM
+    fmt = diff.compare("tracker", [{"ID": "7", "Author(s)": "Nowak, D. J."}],
+                       [{"ID": "7", "Author(s)": "Nowak, D.J."}], "ID", ["Author(s)"], {}, {"7"})
+    assert [r["bucket"] for r in fmt] == ["UNEXPLAINED"], fmt
 
 
 @pg_only

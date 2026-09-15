@@ -35,10 +35,11 @@ the extract to a later pass.
 Examples: `Galerne_2011_perimeter-covariogram`, `Zhu_2008_spatiotemporal-autologistic-mcml`,
 `ONeilDunne_2014_production-canopy-mapping`.
 
-## `manifest.csv` — the machine-readable authority
+## `manifest.csv` — the machine-readable join to the files on disk
 
-One file per topic folder, one row per stem. The manifest is authoritative; the
-filename is a label for humans, not a parser target.
+One file per topic folder, one row per stem. It is a **generated export of the
+database** (see "The database is authoritative" below) and the join key from a row to
+the bytes in the topic folder; the filename is a label for humans, not a parser target.
 
 | column | meaning |
 |---|---|

@@ -105,6 +105,15 @@ class Loader:
              self.agent, self.session)).fetchone()[0]
         # END guard: every disagreeing legacy field is recorded
 
+    def hold(self, candidate_id, reason):
+        # BEGIN guard: a held candidate records WHY it is held
+        # Referee P3 F6: every held candidate carried `state_reason IS NULL`, so why a row was held had to be
+        # inferred from the absence of an admission. The loader knows it exactly — it is the case the case
+        # table decided — and migration 0016 gives it the one writer that may say so.
+        return self.conn.execute("SELECT litkb.hold_candidate(%s, %s, %s, %s)",
+                                 (self.ws, self.token, candidate_id, reason)).fetchone()[0]
+        # END guard: a held candidate records WHY it is held
+
     def refused_file(self, candidate_id):
         """The file id a refused admission collided with, if it was refused on the file's sha256."""
         r = self.conn.execute(
@@ -295,6 +304,7 @@ def _load_tracker_row(ctx, row, manifest, c):
         else:
             c["held_no_file"] += 1                           # the DOI confirms; the claim does not, and no file
             entry["outcome"] = "held-needs-file"
+        ctx.hold(cand, HELD_REASONS[entry["outcome"]])
         # END guard: a row with no verified file and a claim the registry contradicts is HELD, never admitted
     elif plan["shape"] == "manual":
         res = front.admit_manual(
@@ -466,6 +476,16 @@ def _flush(ctx, c, pending, work, candidate):
     return names
 
 
+#: why a row is HELD, in the case table's own terms. ONE home, read by both loaders (referee P3 F6): a held
+#: candidate's `state_reason` is the only place the reason is written down, and it must say which case held it.
+HELD_REASONS = {
+    "held-no-identity": "case E: nothing resolved — no DOI the registry confirms, and title + first author + "
+                        "year resolve to no record — and no file is held, so there is nothing to propose on",
+    "held-needs-file": "case C: the registry confirms the DOI but contradicts the row's claim, and no file is "
+                       "held to bind — admitting it would bypass check 1 (0013 _check_registry)",
+}
+
+
 def _record_outcome(c, res):
     o = res["outcome"]
     if o == "duplicate":
@@ -549,6 +569,7 @@ def _load_manifest_row(ctx, row, c):
         else:
             c["held_no_file"] += 1
             entry["outcome"] = "held-needs-file"
+        ctx.hold(cand, HELD_REASONS[entry["outcome"]])
     elif plan["shape"] == "manual":
         res = front.admit_manual(ctx.conn, ctx.ws, ctx.token, title=claimed["title"], authors=claimed["authors"],
                                  year=year_int(claimed["year"]), file_path=str(pdf),

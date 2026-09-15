@@ -1935,6 +1935,10 @@ _EXPECTED_EXECUTE = {
                      # record_discrepancy: P3 migration (migration 0015, qc/test_litkb_p3.py) — the ONE writer
                      # of litkb.discrepancies, which carries workstream_id and is therefore guarded
                      "record_discrepancy",
+                     # hold_candidate: WHY a candidate is held (migration 0016, referee P3 F6). candidates
+                     # carries workstream_id and is guarded, and admission never reaches a held row, so the
+                     # reason needs its own token-checked writer
+                     "hold_candidate",
                      "add_evidence", "add_candidate", "record_acquisition_attempt", "add_use_embedding"},
     "litkb_promoter": {"norm_identifier", "promote_prepare", "promote_commit", "promote_abandon", "promote_rebase"},
     "litkb_ingest": {"norm_identifier", "set_current_run"},

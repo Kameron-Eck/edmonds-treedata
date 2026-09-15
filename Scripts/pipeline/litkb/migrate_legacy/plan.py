@@ -27,7 +27,7 @@ database's verdict on the admission it is given, recorded as a refused admission
 """
 from litkb.admit import registry as _registry
 from litkb.admit.resolver import RESOLVE_TITLE_RATIO, family_matches, title_match_ratio
-from litkb.migrate_legacy.export_shape import authors_line, norm_cell
+from litkb.migrate_legacy.export_shape import authors_line, norm_cell, year_int
 from litkb.textnorm import normalize_doi
 
 CASES = ("A", "B", "C", "D", "E")
@@ -60,10 +60,15 @@ def compare_row(rec, claimed):
     cmp_ = _registry.compare_claimed(rec, claimed)
     ratio, author_ok = cmp_["title_ratio"], bool(cmp_["author_match"])
     reg_year, claimed_year = rec.get("year"), claimed.get("year")
-    try:
-        claimed_year_i = int(str(claimed_year).strip()) if str(claimed_year or "").strip() else None
-    except ValueError:
-        claimed_year_i = None
+    # BEGIN guard: one year parser, not two
+    # `export_shape.year_int` is the ONE reader of a legacy year cell — the loader already admits and keys on
+    # what it returns. This function used to carry a second, stricter `int(str(...))` in a try/except, so
+    # `2019a` (the filename convention's same-year suffix, written into the YEAR column on tracker rows 327
+    # and 329) parsed as None here and as 2019 everywhere else. `year_agrees` was then unconditionally False
+    # for those rows: they could never reach case A, and §15.15's ±1 rule could never apply to them — and
+    # nothing said so. One rule, one home (CLAUDE.md 3.3); referee P3 F4, 2026-09-15.
+    claimed_year_i = year_int(claimed_year)
+    # END guard: one year parser, not two
     # decisions.yaml §15.15, as P2 implements it: ±1 only when the title AND first author both match
     year_agrees = (claimed_year_i is not None and reg_year is not None
                    and (claimed_year_i == reg_year

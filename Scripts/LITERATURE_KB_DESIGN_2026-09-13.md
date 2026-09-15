@@ -743,8 +743,14 @@ The queue is the `extraction_jobs` table (§4.3), written only through ingest-ro
   **≈ 689 MiB per added worker** over the 1→9 span, on top of a base that is itself ~5.7 GiB of
   non-heap above `-Xmx8g`. `pdfalto` is the only per-request process and peaks at **20.5 MiB**
   (the earlier 1.5 GiB-per-worker budget term was wrong by ~75×; the 1,536 MB config value is a
-  ceiling, not a budget). The 688-page book re-measured warm on an idle machine, 3 runs:
-  **12.20 pages/s median, 7.6 % spread** (59.6 / 55.2 / 56.4 s).
+  ceiling, not a budget). The 688-page book, re-measured warm on an idle machine by
+  `qc/instruments/litkb_grobid_throughput.py` (`--runs 3 --warm-up <a 16-page paper>`):
+  **12.11 pages/s median, 7.0 % spread** (61.1 / 56.8 / 56.8 s), replicating an
+  earlier-that-session 12.20 / 7.6 %. This is ONE request served by one worker of a pool-4
+  service — it is not the 20.2 pages/s pool figure above, which is a 15-request mixed set —
+  and it supersedes the builder's unreplicated 10.91 and the referee's contended 8.04.
+  Rows land in `phase4/qc/litkb_extraction_metrics.jsonl`; the spread rule is the
+  instrument's own (>20 % ⇒ UNDETERMINED, not "slower").
 - **The only sourced per-process memory figures [F]:** MinerU needs at least 16 GB RAM, 32 GB
   recommended; GROBID needs 4 GB for full structuring and 6–8 GB for batch (path A, counted against
   the budget inside WSL2 or Docker). By arithmetic on those figures alone, at most three MinerU workers
@@ -1089,7 +1095,10 @@ locally, with no Colab pass, and any literature the project uses flows through t
   breaking the CPU half of §15.16, for 4 % more throughput. Per-worker RSS is derived (~689 MiB per
   added worker of one shared JVM), and the old 1.5 GiB-per-worker pdfalto term is replaced by the
   measured 20.5 MiB. The 688-page book is re-measured at **12.20 pages/s median (7.6 % spread)**,
-  superseding both the builder's unreplicated 10.91 and the referee's contended 8.04.
+  superseding both the builder's unreplicated 10.91 and the referee's contended 8.04 — and
+  measured by a committed instrument, `qc/instruments/litkb_grobid_throughput.py`, not by a
+  scratch script. A cold service is not comparable to a warm one even in its OUTPUT, not just
+  its rate: cold Benedek returns 274,185 B / 3,762 boxes, warm 274,093 B / 3,760.
 - `extraction_runs.metrics` is produced by `litkb.extract.grobid.extract()` as the dict P5's ingest
   persists (§4.3's JSON contract), parked meanwhile as JSONL — the table needs a `files` row and the
   `litkb_ingest` login, both P3/P5.

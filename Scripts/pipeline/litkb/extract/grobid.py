@@ -291,18 +291,28 @@ def page_frames(pdf_path):
     import pypdfium2 as pdfium
     import pypdfium2.raw as praw
 
-    def _box(fn, page):
+    def _box(fn, page, fallback):
+        # A page that inherits its /MediaBox from the page tree has no box of its own and the
+        # raw getter returns 0; pypdfium2's high-level accessor resolves the inherited default,
+        # so it is the fallback rather than a None that would crash the arithmetic below.
         vals = [ctypes.c_float() for _ in range(4)]
-        ok = fn(page.raw, *[ctypes.byref(v) for v in vals])
-        return tuple(v.value for v in vals) if ok else None
+        if fn(page.raw, *[ctypes.byref(v) for v in vals]):
+            return tuple(v.value for v in vals)
+        try:
+            return tuple(fallback())
+        except Exception:
+            return None
 
     frames = {}
     doc = pdfium.PdfDocument(pdf_path)
     try:
         for i in range(len(doc)):
             page = doc[i]
-            media = _box(praw.FPDFPage_GetMediaBox, page)
-            crop = _box(praw.FPDFPage_GetCropBox, page) or media
+            media = _box(praw.FPDFPage_GetMediaBox, page, page.get_mediabox)
+            crop = _box(praw.FPDFPage_GetCropBox, page, page.get_cropbox) or media
+            if media is None:
+                raise GrobidError(f"{os.path.basename(pdf_path)} page {i + 1} has no mediabox; "
+                                  "the §7.1 frame cannot be established")
             rot = int(praw.FPDFPage_GetRotation(page.raw))
             frames[i + 1] = {
                 "mediabox": media, "cropbox": crop, "rotation": rot,

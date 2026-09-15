@@ -153,6 +153,10 @@ EOF
 }
 
 configure() {
+  # The headroom check lives HERE, not only in do_start: `configure` (and `enable`, which
+  # writes the unit for autostart) is what puts a concurrency into grobid.yaml, so checking
+  # it only on start would let a 9 be written and used by a service someone else brings up.
+  require_concurrency_headroom || exit 1
   # Idempotent: each key is rewritten to the budgeted value every time.
   [ -f "${CONFIG}.orig" ] || cp "$CONFIG" "${CONFIG}.orig"
   sed -i \

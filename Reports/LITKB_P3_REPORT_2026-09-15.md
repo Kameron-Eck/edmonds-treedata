@@ -295,8 +295,14 @@ test set under each mutation. P3 adds rows P1a–P1e, P2a–P2b, P3b–P3c, P4a,
 | **with the discrepancy writer removed the GATE fails** | `test_kill_the_diff_gate_reports_an_unexplained_cell_when_the_discrepancy_is_missing` | the classifier returns UNEXPLAINED |
 | **loading twice admits nothing new** | `test_kill_loading_twice_admits_nothing_new` | P3b / P3c each fire |
 
-**What the harness caught that review had not.** The run on the final tree fired 145 of 149 and named four
-rows. One was a design defect: `free_key` was a Python copy of a rule the DATABASE already owns (migration
+**The final run: 148 of 148 mutations fired, both baselines passed, 42.0 min over 4 workers**
+(`--workers 4 --worker-dbs 1,2,8,9` — parallel worktrees share one Postgres server and another agent's
+session held `litkb_test_w3/w5/w7`, so the harness now takes `--worker-dbs` and the copies stay numbered
+1..N while only the database each is pointed at changes). `--sites` passes: 62 call sites, 59 covered by a
+row, 3 equivalent.
+
+**What the harness caught that review had not.** An earlier run on the same tree fired 145 of 149 and named
+four rows. One was a design defect: `free_key` was a Python copy of a rule the DATABASE already owns (migration
 0014, referee fix D5, retries a colliding key with the convention's `a`/`b` year suffix). The mutation that
 removed the Python copy reported DID NOT FIRE — nothing depended on it. The copy is gone, and with it row P5a;
 the collision test now exercises 0014's rule through the loader. Its assertion had also been reading keys a
@@ -309,8 +315,8 @@ record would have ENDED the load rather than recorded the row.
 
 ## Ladder
 
-`py -3.12 qc/check.py --fast` under `LITKB_TEST_DB=litkb_test_w6`: secrets, ruff and compile pass; the suite
-runs with **one** failure, `test_experiments.py::test_pointer_paths_resolve[crown_state_model]`, which is the
+`py -3.12 qc/check.py --fast` under `LITKB_TEST_DB=litkb_test_w6`, on the final tree: secrets, ruff and
+compile pass; 2474 tests pass with **one** failure, `test_experiments.py::test_pointer_paths_resolve[crown_state_model]`, which is the
 known pre-existing one and is not litkb's. All 241 litkb Postgres tests pass.
 
 Two ladder findings were P3's own and are fixed: the gate instrument's `sys.path.insert` was outside the 3B

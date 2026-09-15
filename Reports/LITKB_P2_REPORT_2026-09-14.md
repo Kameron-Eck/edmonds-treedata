@@ -427,7 +427,9 @@ Every site row runs the WHOLE `qc/test_litkb_p1.py qc/test_litkb_p2.py qc/test_l
 **Ladder:** `cd Scripts && PYTHONUTF8=1 py -3.12 qc/check.py --fast` → `1 failed, 2402 passed, 5 skipped,
 1 xfailed`; the one failure is the allowed `qc/test_experiments.py::test_pointer_paths_resolve[crown_state_model]`.
 
-**One helper family is DEFERRED, with the measurement behind it.** The secret-redaction guard
+**One helper family is DEFERRED, with the measurement behind it.** *(Superseded later the same day — see
+"Redaction closed" at the end of this report. `DEFERRED_HELPERS` is now empty and the family is in `HELPERS`.)*
+The secret-redaction guard
 (`netutil.redact` / `add_secret`, and `run._redacted` around them) is the same shape — written once, called from
 every path that prints or stores a string — and has **22 call sites**. B11 mutates two of them. A pass-through row
 was written for each of the other 20 and run on 2026-09-14: **19 survived** the whole P1+P2+annas set. Only
@@ -440,3 +442,78 @@ a number attached, not a per-site escape hatch: *within* a covered helper there 
 P1+P2+annas, but `main()` baselined P2+annas only — so a failing P1 test would have made all 32 of them "fire" on
 a failure they did not cause, which is exactly what the flake did on a smaller scale. `main()` now baselines
 **every distinct test set any chosen row runs**, before and after, and prints the failing names.
+
+## Redaction closed (2026-09-14, before P3)
+
+`DEFERRED_HELPERS` is empty. `redact`, `add_secret` and `run._redacted` are in `HELPERS`, so the `--sites`
+self-check — which `qc/check.py` runs through `qc/test_litkb_harness_sites.py` — now demands a mutation row or a
+written equivalence reason at every one of their call sites, exactly like `jsonb_safe` and `normalize_doi`.
+
+**20 call sites, not 22.** The deferral's "22" counted textual calls. Under the rule's own definition of a site —
+*(file, innermost enclosing function, helper)* — `run_audit_fast`'s five prints are one site, `fetch_open_access`'s
+three are one, and `_redacted`'s two recursive calls are one. 18 carry a row; 2 are equivalent. The whole table is
+now **55 call sites, 52 with a row, 3 equivalent**.
+
+| # | call site | the sink the plant reaches | test | row | fired |
+|---|---|---|---|---|---|
+| 1 | `annas.result` | `acquisition_attempts.detail` / the audit log line built from it | `test_result_redacts_a_key_inside_a_download_url` | RD1 | yes |
+| 2 | `annas.log_line` | stdout (audit + job runs) | `test_log_line_redacts_a_field_result_does_not` | RD2 | yes |
+| 3 | `annas.download_pdf` | the `tried` list, which becomes the stored detail | `test_download_pdf_redacts_an_api_error_that_echoes_the_key` | RD3 | yes |
+| 4 | `annas.fetch_for_litkb.done` | the route's returned `detail` → the attempt row | `test_fetch_for_litkb_redacts_a_redirect_location` | RD4 | yes |
+| 5 | `annas._csv_row` | the audit-fast CSV | `test_csv_and_log_are_redacted` | RD5 | yes |
+| 6 | `annas.run_audit_fast` | stdout: DOI-REPAIR / T1 / T2 / T3 / SUMMARY | `test_csv_and_log_are_redacted` (key in the stem) | RD6 | yes |
+| 7 | `open_access.fetch_open_access` | the returned `detail` → the attempt row | `test_open_access_detail_redacts_the_lookup_note` | RD7 | yes |
+| 8 | `scihub.fetch_scihub` | the returned `detail` → the attempt row | `test_scihub_detail_redacts_a_mirror_that_carries_credentials` | RD8 | yes |
+| 9 | `resolver.resolution_log_line` | stdout (resolve-only runs) | `test_resolution_log_line_redacts_its_evidence` | RD9 | yes |
+| 10 | `netutil.Client._raw_get` | the response body handed back on a transport error | `test_a_transport_error_never_returns_the_url_it_failed_on` | RD10 | yes |
+| 11 | `annas.open_session` (`add_secret`) | every later sink in the process | `test_open_session_registers_the_key_it_read` | RD11 | yes |
+| 12 | `annas.main` (`add_secret`) | as above, for `--audit` | `test_the_audit_cli_registers_the_key_it_read` | RD12 | yes |
+| 13 | `annas.main_audit_fast.get_archive` (`add_secret`) | as above, for `--audit-fast` | `test_audit_fast_registers_the_key_before_tiers_2_and_3` | RD13 | yes |
+| 14 | `run.record_attempt` (`_redacted`) | `acquisition_attempts.detail` (jsonb, in the database) | `test_a_secret_in_a_nested_attempt_detail_never_reaches_the_database` | RD14 | yes |
+| 15 | `run._redacted` (recursion) | the same, one dict/list deeper | the same test (the plant sits inside a list inside a dict) | RD15 | yes |
+| 16 | `run._redacted` (`redact`) | the same | the same test | RD16 | yes |
+| 17 | `run.acquire` (`redact`) | `file_versions.source_url`, stored on the file row | `test_a_key_in_a_source_url_is_redacted_before_the_file_row_is_written` | RD17 | yes |
+| 18 | `run.acquire` (`add_secret`) | every later sink of an injected session | `test_archive_stops_at_the_quota_margin_and_redacts_the_key` | RD18 | yes |
+| E | `annas.run_audit` | — | equivalent: the value is `detail=` to `result()`, whose next statement redacts `r['detail']`; this call cannot change a byte | — | — |
+| E | `annas.run_jobs` | — | equivalent, identical shape | — | — |
+
+**No leak was found in the code.** Every one of the 20 sites already called the guard; what was missing was the
+assertion. The two `redact` calls that are genuinely unreachable (`run_audit`, `run_jobs`) are declared in
+`EQUIVALENT` with a reason about the code, not about the tests — a second application of `redact` to a string
+`result()` redacts on its very next statement. They are the honest bucket, not a row that cannot fire.
+
+**Item 4, the key inside a URL.** The archive's download request is
+`…/dyn/api/fast_download.json?md5=…&key=<urlquoted key>&domain_index=n`. Three rows cover its forms: RD1 (that
+URL inside an attempt detail), RD3 (the API error text that echoes the refused key back), and RD17 (the route's
+`source_url` as it is written onto the file version). Every new plant carries a `+`, so `add_secret`'s URL-quoted
+alias (`%2B`) is exercised and the assertions check both spellings. (RD18 is the exception: it is answered by the
+pre-existing `test_archive_stops_at_the_quota_margin_and_redacts_the_key`, whose key must NOT be pre-registered —
+registering it in the test is exactly what stripping `run.acquire`'s `add_secret` would hide.)
+
+**The plant has to be invisible before it is registered.** `netutil._SECRETS` is one module-level list that
+`annas.py` imports by name. A key left registered by an earlier test would redact a later test's plant and make a
+stripped call site look guarded, so every redaction test takes a `uuid4`-unique key, asserts `redact(key) == key`
+first (the negative control), and restores `_SECRETS` **in place** afterwards — `qc/test_litkb_annas.py`'s
+`isolate_secrets`, `qc/test_litkb_p2.py`'s `_plant_secret`. The pre-existing `test_csv_and_log_are_redacted` used a
+fixed literal and leaked it into every later test in the process; it now uses the helper.
+
+**The structural guard is syntactic, and says so.** `sink_check()` (printed by `--sites`, asserted by
+`test_every_stdout_sink_passes_through_a_redactor`) walks every `print` / `sys.std{out,err}.write` under
+`Scripts/pipeline/litkb` with `ast` and requires the argument to be a redactor's return, or to interpolate nothing,
+or to be named in `SINK_ALLOW` with a reason about the code **and the number of sink calls that reason was read
+against**. The count is what stops the allowlist becoming a per-function amnesty: without it, adding
+`print(f"{r['detail']}")` inside `run_audit` or `cmd_ws` — functions that already carry an entry — would pass in
+silence. A count, unlike a line number, moves only when a sink is added or removed, which is when the reason has
+to be re-argued anyway. Today: **11 sinks, 2 through a redactor, 9 allowed, 0 problems.** Its kills are
+mutation-tested — `test_an_extra_sink_inside_an_allowed_function_is_not_covered_by_its_reason` moves a pin by one
+and requires the scan to fail, `test_the_sink_scan_fires_on_an_unredacted_print` shows a new
+`print(f"tried {x}")` flagged and the same line inside `redact()` accepted, and
+`test_a_redactor_name_defined_elsewhere_does_not_pass_the_sink_scan` shows the scan refusing
+`litkb/ops/nightly_dump.py`'s same-named `log_line`, which appends to a file and redacts nothing.
+
+What it **cannot** do is follow data: a string redacted in one function and printed in another is
+indistinguishable, statically, from one that was never redacted. Two sinks are therefore left to the call-site rule
+instead: `acquisition_attempts.detail`, whose every write goes through `run.record_attempt` (rows RD14-RD16, and
+the database grants let nothing else write the table), and exception text, whose sink is whichever handler catches
+it — `run.acquire`, `annas.run_audit`, `annas.run_jobs` — each of which redacts at the point of catching (RD1, RD4,
+RD16). A flow-sensitive version would be taint analysis, not a syntactic scan, and is not built.

@@ -1548,6 +1548,64 @@ def test_archive_stops_at_the_quota_margin_and_redacts_the_key(pg, tmp_path):
     assert "<KEY>" in json.dumps(rows[0][2])
 
 
+def _plant_secret():
+    """A fake key nothing else registered, and the undo for netutil._SECRETS (a shared module-level list: a key
+    left registered by an earlier test would redact a later plant and make a stripped call site look guarded)."""
+    from litkb import netutil
+    snapshot = list(netutil._SECRETS)
+    key = "FAKEKEY" + uuid.uuid4().hex + "+z"
+    assert netutil.redact(key) == key, "the plant is already registered — the assertion below proves nothing"
+    netutil.add_secret(key)
+
+    def restore():
+        netutil._SECRETS.clear()
+        netutil._SECRETS.extend(snapshot)
+    return key, restore
+
+
+@pg_only
+def test_a_secret_in_a_nested_attempt_detail_never_reaches_the_database(pg):
+    """run.record_attempt -> run._redacted (and its own recursion). acquisition_attempts.detail is jsonb built
+    from whatever a route reports; a key can sit inside a dict, inside a list, or inside a URL's query."""
+    from litkb.acquire import run
+    ws, w = pg.ws(), pg.session("litkb_writer")
+    work = _admitted(pg, w, ws)
+    key, restore = _plant_secret()
+    try:
+        detail = {"reason": f"invalid key {key}",
+                  "tried": [f"api0:401/invalid key {key}",
+                            {"url": f"https://annas-archive.gl/dyn/api/fast_download.json?md5=x"
+                                    f"&key={urllib.parse.quote(key)}&domain_index=0"}],
+                  "downloads_left": 9}
+        run.record_attempt(w, ws, pg.tokens[ws], work["work_id"], "annas", work["doi"], "api-error", detail)
+        blob = json.dumps(_attempts(pg, work["work_id"]))
+        assert key not in blob and urllib.parse.quote(key) not in blob, blob
+        assert blob.count("<KEY>") == 3, blob
+    finally:
+        restore()
+
+
+@pg_only
+def test_a_key_in_a_source_url_is_redacted_before_the_file_row_is_written(pg, tmp_path, monkeypatch):
+    """run.acquire's redact() around source_url. The open-access route returns the URL it fetched verbatim, and
+    that URL is stored on the file version; acquire is the only place it passes through redact()."""
+    _need_pdftotext()
+    ws, w = pg.ws(), pg.session("litkb_writer")
+    work, store = _admitted(pg, w, ws), _store(tmp_path)
+    key, restore = _plant_secret()
+    try:
+        _oa(monkeypatch, url=f"https://oa.example/paper.pdf?key={urllib.parse.quote(key)}")
+        out = _acquire(pg, w, ws, work, store, paper_pdf(work["title"], "T. Tester"))
+        assert out["outcome"] == "ok", out
+        stored = pg.conn.execute(
+            "SELECT fv.source_url FROM litkb.file_versions fv WHERE fv.work_id = %s", (work["work_id"],)).fetchall()
+        blob = json.dumps(stored) + json.dumps(_attempts(pg, work["work_id"]))
+        assert key not in blob and urllib.parse.quote(key) not in blob, blob
+        assert "<KEY>" in json.dumps(stored), stored
+    finally:
+        restore()
+
+
 # ── referee fixes (Reports/LITKB_P2_REFEREE_2026-09-14.md) ────────────────────────────────
 
 @pg_only

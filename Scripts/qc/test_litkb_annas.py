@@ -6,7 +6,9 @@ design §10: "its test file moves with it"). Stubbed HTTP throughout.
 Port changes, and only these: the module under test is litkb.acquire.annas; the three live tests are resolve-only
 (the ported fetch_one refuses to write into a literature folder, and running the suite never spends a download)
 and run only with LITKB_LIVE=1 (or AA_LIVE=1); one test is added for that destination guard. The original file
-defines 80 tests; this one defines 81. Nothing here writes under D:\\edmonds-pipeline\\Literture.
+defines 80 tests; this one defines 95 — the port's 81, plus TestRedactionSites, one test per netutil.redact /
+add_secret call site outside litkb.acquire.run (2026-09-14, closing DEFERRED_HELPERS).
+Nothing here writes under D:\\edmonds-pipeline\\Literture.
 """
 import contextlib
 import csv
@@ -17,10 +19,29 @@ import os
 import tempfile
 import unittest
 import urllib.parse
+import uuid
 
 import pytest
 
 import litkb.acquire.annas as A
+import litkb.netutil as N
+
+
+def isolate_secrets(tc):
+    """A fake key nothing else has registered, and a cleanup that puts netutil._SECRETS back.
+
+    _SECRETS is a module-level list that annas.py imports BY NAME, so it is one shared object: a key registered by
+    an earlier test would redact this one's plant, and a stripped call site would then look guarded. The list is
+    restored in place (cleared and refilled), never rebound, so the name annas.py holds keeps pointing at it.
+    The key carries a '+' so redact()'s URL-quoted alias (%2B) is exercised, and no '/' so it is filename-safe."""
+    snapshot = list(N._SECRETS)
+
+    def restore():
+        N._SECRETS.clear()
+        N._SECRETS.extend(snapshot)
+    tc.addCleanup(restore)
+    return "FAKEKEY" + uuid.uuid4().hex + "+z"
+
 
 DOI = "10.1198/016214504000000692"
 MD5 = "6dbfc27b03a0a0a255aa667a27640621"
@@ -1143,12 +1164,211 @@ class TestAuditFast(Base):
         self.assertEqual(rows[0]["doi"], "10.1890/0012-9658(1998")
 
     def test_csv_and_log_are_redacted(self):
-        A.add_secret("f4stk3y")
-        self.put("K_2004_a", TITLE + "\n" + "words " * 60)
-        self.manifest({"stem": "K_2004_a", "doi": DOI, "title": "f4stk3y"})
+        """The two audit-fast sinks: the CSV rows (_csv_row) and the T1/T2/T3 + SUMMARY lines on stdout
+        (run_audit_fast). The key is planted in the manifest title, which reaches the CSV, AND in the stem, which
+        reaches the printed tier lines — nothing else redacts either, so each call site is asserted on its own."""
+        k = isolate_secrets(self)
+        self.assertEqual(A.redact(k), k)              # negative control: not registered until the next line
+        A.add_secret(k)
+        stem = "K_2004_" + k
+        self.put(stem, TITLE + "\n" + "words " * 60)
+        self.manifest({"stem": stem, "doi": DOI, "title": k})
         self.run_fast(StubClient({"api.crossref.org/works/": (404, {}, b"")}))
-        self.assertNotIn("f4stk3y", open(self.out, encoding="utf-8").read() + self.log)
-        self.assertTrue(os.path.exists(os.path.join(self.paths["dest"], "K_2004_a.pdf")))
+        self.assertNotIn(k, open(self.out, encoding="utf-8").read())
+        self.assertNotIn(k, self.log)
+        self.assertIn("<KEY>", self.log)
+        self.assertTrue(os.path.exists(os.path.join(self.paths["dest"], stem + ".pdf")))
+
+
+# ------------------------------------------------------------------ the redaction call sites
+
+class LoginStub(StubClient):
+    """A StubClient that also answers login(), so open_session()/main() can be driven without the network."""
+
+    def __init__(self, routes=None, ok=True):
+        super().__init__(routes or {})
+        self.ok, self.keys = ok, []
+
+    def login(self, key):
+        self.keys.append(key)
+        return self.ok, 200
+
+
+class TestRedactionSites(Base):
+    """One test per netutil.redact / add_secret call site outside litkb.acquire.run (those are in
+    qc/test_litkb_p2.py, where the database is). Each plants a fake key where THAT site is the only thing
+    standing between it and a sink, and asserts the sink is clean; the harness rows in
+    qc/instruments/litkb_p2_mutations.py strip each call and must fail this set."""
+
+    def setUp(self):
+        super().setUp()
+        self.key = isolate_secrets(self)
+        self.pacer.sleep = lambda s: None
+
+    def register(self):
+        self.assertEqual(N.redact(self.key), self.key)   # the plant is not redacted by something else
+        A.add_secret(self.key)
+
+    def assertClean(self, *blobs):
+        for b in blobs:
+            s = str(b)
+            self.assertNotIn(self.key, s)
+            self.assertNotIn(urllib.parse.quote(self.key, safe=""), s)
+
+    # -- annas.result / annas.log_line -------------------------------------------------
+
+    def test_result_redacts_a_key_inside_a_download_url(self):
+        """annas.result. The fast_download URL carries the key URL-quoted; the attempt detail built from it
+        must not — the stored and logged form of that URL is redacted."""
+        self.register()
+        url = (f"{A.BASE}/dyn/api/fast_download.json?md5={MD5}"
+               f"&key={urllib.parse.quote(self.key)}&domain_index=0")
+        r = A.result("api-error", "S_2020_a", DOI, detail=f"no download_url from {url}")
+        self.assertClean(r["detail"])
+        self.assertIn("<KEY>", r["detail"])
+
+    def test_log_line_redacts_a_field_result_does_not(self):
+        """annas.log_line. result() redacts `detail` only, so the key is planted in the stem — the printed line
+        is the only place it is removed."""
+        self.register()
+        r = A.result("ok", f"S_2020_{self.key}", DOI, md5="a" * 32, sha256="b" * 64)
+        self.assertIn(self.key, r["stem"])
+        self.assertClean(A.log_line(r))
+
+    # -- annas.download_pdf / annas.fetch_for_litkb ------------------------------------
+
+    def test_download_pdf_redacts_an_api_error_that_echoes_the_key(self):
+        """annas.download_pdf. The archive's own error text is the realistic leak: it quotes the key it refused."""
+        self.register()
+        body = json.dumps({"error": f"invalid key {self.key}"}).encode()
+        client = StubClient({"fast_download": (200, {}, body)})
+        pdf, left, tried, last = A.download_pdf(client, self.key, MD5, {}, self.pacer)
+        self.assertIsNone(pdf)
+        self.assertTrue(any("invalid key" in t for t in tried), tried)
+        self.assertClean(" | ".join(tried))
+
+    def test_fetch_for_litkb_redacts_a_redirect_location(self):
+        """annas.fetch_for_litkb's done(). resolve() builds its detail from the Location header without
+        redacting; done() is the only guard before that detail becomes an acquisition_attempts row."""
+        self.register()
+        loc = f"/search?index=journals&q=x&key={urllib.parse.quote(self.key)}"
+        r = A.fetch_for_litkb(StubClient({"/scidb/": (302, {"Location": loc}, b""),
+                                          "/search": (200, {}, b"<html>no results</html>")}),
+                              self.key, DOI, self.pacer, known_md5=set())
+        self.assertEqual(r["status"], "not-in-archive")
+        self.assertIn("<KEY>", r["detail"])
+        self.assertClean(r["detail"])
+
+    # -- the other routes and the resolver ---------------------------------------------
+
+    def test_open_access_detail_redacts_the_lookup_note(self):
+        """open_access.fetch_open_access. The Unpaywall note is built from a URL that carries Kam's email as a
+        query parameter; that parameter is a registered secret."""
+        from litkb.acquire import open_access
+        self.register()
+        r = open_access.fetch_open_access("10.1/x", None, None, client=StubClient({}),
+                                          locations=lambda doi: ([], f"unpaywall: no record for email={self.key}"))
+        self.assertEqual(r["status"], "no-oa-copy")
+        self.assertClean(r["detail"])
+
+    def test_scihub_detail_redacts_a_mirror_that_carries_credentials(self):
+        """scihub.fetch_scihub. `tried` is built from the mirror's netloc, which carries userinfo when a mirror
+        is reached through credentials; the detail is the only place it is removed."""
+        from litkb.acquire import scihub
+        self.register()
+        r = scihub.fetch_scihub("10.1/x", None, client=StubClient({"sci-hub.ru": (404, {}, b"nope")}),
+                                mirrors=(f"https://kam:{self.key}@sci-hub.ru",))
+        self.assertEqual(r["status"], "bad-file")
+        self.assertClean(r["detail"])
+
+    def test_resolution_log_line_redacts_its_evidence(self):
+        """resolver.resolution_log_line — printed by annas.run_jobs for every resolve-only row."""
+        from litkb.admit import resolver
+        self.register()
+        line = resolver.resolution_log_line("no-doi", "S_2020_a", TITLE, "",
+                                            f"crossref error: key={self.key}")
+        self.assertClean(line)
+
+    def test_a_transport_error_never_returns_the_url_it_failed_on(self):
+        """netutil.Client._raw_get. urllib puts the failing URL — key and all — in the exception text, and that
+        text is what get() hands back as the body."""
+        self.register()
+        url = f"{A.BASE}/dyn/api/fast_download.json?key={urllib.parse.quote(self.key)}"
+
+        def boom(req, timeout=None):
+            raise OSError(f"[Errno 11001] getaddrinfo failed for {url}")
+        c = N.Client()
+        c._follow = c._nofollow = type("Op", (), {"open": staticmethod(boom)})()
+        st, _hd, body = c.get(url)
+        self.assertEqual(st, 0)
+        self.assertIn(b"<KEY>", body)
+        self.assertClean(body.decode())
+
+    # -- add_secret: the registration the other 19 sites depend on ---------------------
+
+    def _assert_key_reaches_a_sink_unless_registered(self):
+        """The shared proof for an add_secret site: a later log line built from the key is clean only because
+        the key was registered. With the add_secret call stripped, this line carries it."""
+        self.assertClean(A.log_line(A.result("api-error", "S_2020_a", DOI,
+                                             detail=f"invalid key {self.key}")))
+
+    def test_open_session_registers_the_key_it_read(self):
+        kf = os.path.join(self.tmp.name, "key.txt")
+        open(kf, "w", encoding="utf-8").write(self.key + "\n")
+        self.assertEqual(N.redact(self.key), self.key)
+        c, key = A.open_session(key_file=kf, client=LoginStub())
+        self.assertIsNotNone(c)
+        self.assertEqual(key, self.key)
+        self._assert_key_reaches_a_sink_unless_registered()
+
+    def test_the_audit_cli_registers_the_key_it_read(self):
+        """annas.main --audit reads the key file itself; the manifest is empty, so nothing is requested."""
+        kf = os.path.join(self.tmp.name, "key.txt")
+        open(kf, "w", encoding="utf-8").write(self.key + "\n")
+        self._patch(KEY_FILE=kf, DEST=self.paths["dest"], QUARANTINE=self.paths["quarantine"])
+        self.assertEqual(N.redact(self.key), self.key)
+        with contextlib.redirect_stdout(io.StringIO()) as buf:
+            rc = A.main(["--audit"], client=LoginStub(), registry_client=StubClient({}), pacer=self.pacer)
+        self.assertEqual(rc, 0)
+        self.assertIn("AUDIT SUMMARY", buf.getvalue())
+        self._assert_key_reaches_a_sink_unless_registered()
+
+    def test_audit_fast_registers_the_key_before_tiers_2_and_3(self):
+        """annas.main_audit_fast.get_archive — the archive login that audit-fast makes lazily, once."""
+        kf = os.path.join(self.tmp.name, "key.txt")
+        open(kf, "w", encoding="utf-8").write(self.key + "\n")
+        out = os.path.join(self.tmp.name, "fast.csv")
+        real_pacer = A.Pacer
+
+        def fast_pacer(*a, **kw):
+            return real_pacer(interval=0, sleep=lambda s: None, backoff=0)
+        self._patch(KEY_FILE=kf, DEST=self.paths["dest"], QUARANTINE=self.paths["quarantine"],
+                    Pacer=fast_pacer)
+        pdf = make_pdf(b"z")
+        open(os.path.join(self.paths["dest"], "K_2004_a.pdf"), "wb").write(pdf)
+        open(os.path.join(self.paths["dest"], "K_2004_a.txt"), "w", encoding="utf-8").write(
+            "Tidal mixing fronts in the Irish Sea\nJ. H. Simpson\n")
+        with open(self.paths["manifest"], "w", newline="", encoding="utf-8") as fh:
+            w = csv.DictWriter(fh, fieldnames=A.MANIFEST_FIELDS)
+            w.writeheader()
+            w.writerow({k: "" for k in A.MANIFEST_FIELDS}
+                       | {"stem": "K_2004_a", "doi": DOI, "title": TITLE, "authors": "Efron, B.", "year": "2004"})
+        archive = LoginStub({"/db/aarecord_elasticsearch/": (404, {}, b""), "/scidb/": (404, {}, b""),
+                             "/search": (404, {}, b""), "/md5/": (404, {}, b"")})
+        self.assertEqual(N.redact(self.key), self.key)
+        with contextlib.redirect_stdout(io.StringIO()):
+            rc = A.main_audit_fast(["--out", out], client=archive,
+                                   registry_client=StubClient({"api.crossref.org/works/": (404, {}, b"")}),
+                                   registry_pacer=fast_pacer())
+        self.assertEqual(rc, 0)
+        self.assertEqual(archive.keys, [self.key], "the archive was never logged in to")
+        self._assert_key_reaches_a_sink_unless_registered()
+
+    def _patch(self, **attrs):
+        for name, value in attrs.items():
+            old = getattr(A, name)
+            setattr(A, name, value)
+            self.addCleanup(setattr, A, name, old)
 
 
 # ------------------------------------------------------------------ live smoke (read-only)

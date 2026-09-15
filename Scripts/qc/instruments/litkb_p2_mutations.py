@@ -31,9 +31,16 @@ call of every targeted helper in Scripts/pipeline/litkb/ and requires a mutation
     behaviour. There is no third bucket: anything else fails the self-check.
   * a declared site that no longer exists also fails (it catches a rename or a deletion).
 
-One helper family is DEFERRED rather than covered — see DEFERRED_HELPERS, printed by every `--sites` run. That is
-a scope statement with a measurement behind it, not a per-site escape hatch: within a covered helper there are
-only the two buckets above.
+One helper family — netutil.redact / add_secret / run._redacted — was DEFERRED rather than covered until
+2026-09-14, when a row and a test were written at each of its 20 sites. DEFERRED_HELPERS is now empty, and
+`--sites` still prints it every run so a new deferral cannot be added quietly.
+
+`--sites` also runs the STRUCTURAL guard, sink_check(): the per-call-site rule protects the redact() calls that
+exist, and that one protects against the next one that is never written. Every print / sys.std{out,err}.write
+under Scripts/pipeline/litkb must take a redactor's return, interpolate nothing, or be named in SINK_ALLOW with a
+reason AND the number of sink calls that reason was read against. It is syntactic: it cannot follow a string
+redacted in one function and printed in another. See the comment above SINK_ALLOW for what is deliberately left
+to the call-site rule instead.
 """
 import argparse
 import ast
@@ -56,7 +63,11 @@ M = []
 # reached through (front._jsonb / run._jsonb around jsonb_safe, front._labels / commands._labels around
 # norm_label, resolver.normalize_doi around textnorm.normalize_doi — a wrapper is a COPY of the guard).
 HELPERS = ("jsonb_safe", "normalize_doi", "window_refusal", "tokens_contain", "parse_quota", "read_quota",
-           "norm_label", "_jsonb", "_labels", "verdict")
+           "norm_label", "_jsonb", "_labels", "verdict",
+           # the secret-redaction family, brought under the rule on 2026-09-14 (it was DEFERRED_HELPERS until
+           # then): netutil.redact and its wrapper run._redacted, plus netutil.add_secret, which is what ARMS
+           # redact for a run — a site that fails to register the key disarms every later site in that process.
+           "redact", "add_secret", "_redacted")
 
 
 def block(id_, file, marker, what, sites=None):
@@ -308,18 +319,49 @@ site("S27", "litkb/commands.py::cmd_approve::_labels", "(args.agent, args.sessio
 site("S28", "litkb/commands.py::cmd_acquire::_labels", "(args.agent, args.session)", tests=TESTS_P1P2,
      what="litkb acquire takes the raw labels, bypassing _labels")
 
-# The secret-redaction guard (netutil.redact / add_secret, and run._redacted around it) is the SAME shape and
-# is NOT under the rule yet — a declared, measured exclusion, not an oversight. It has 22 call sites; B11 covers
-# two. A pass-through row was written for each of the other 20 and run on 2026-09-14: 19 of them survived the
-# whole P1+P2+annas set, i.e. no test asserts that a secret is stripped at those sites. Closing them is a test
-# job, not a harness job, and it is larger than the change that introduced this rule. Until it is done, the
-# self-check PRINTS this list every run so it cannot rot quietly.
-DEFERRED_HELPERS = {
-    "redact / add_secret / _redacted":
-        "22 call sites (annas 11, run 4, open_access, scihub, resolver, netutil, plus the recursion); B11 mutates "
-        "run._redacted's redact() and run.acquire's add_secret(). Measured 2026-09-14: pass-through rows at the "
-        "other 20 sites fired at 1 of 20 (annas._csv_row). The guard is real; the assertions are missing.",
-}
+# ── the secret-redaction sites (closed 2026-09-14; DEFERRED_HELPERS is now empty) ─────────
+# The family was excluded until now: 1 of its 20 sites fired. Each row below strips the guard at ONE site and is
+# answered by a test that plants a unique fake key where that site is the only thing between it and a sink. The
+# add_secret rows are the odd ones: stripping them leaves redact() armed but with nothing registered, so the key
+# reaches the sink through the OTHER sites — which is exactly what their tests assert.
+site("RD1", "litkb/acquire/annas.py::result::redact", "{a0}", tests=TESTS_P1P2,
+     what="annas.result: the attempt detail (incl. a fast_download URL's key=) is stored as given")
+site("RD2", "litkb/acquire/annas.py::log_line::redact", "{a0}", tests=TESTS_P1P2,
+     what="annas.log_line: the printed line's stem/doi/md5 fields are not redacted")
+site("RD3", "litkb/acquire/annas.py::download_pdf::redact", "{a0}", tests=TESTS_P1P2,
+     what="annas.download_pdf: the archive's API error, which echoes the refused key, enters `tried`")
+site("RD4", "litkb/acquire/annas.py::fetch_for_litkb.done::redact", "{a0}", tests=TESTS_P1P2,
+     what="annas.fetch_for_litkb: resolve()'s detail (a redirect Location) is returned unredacted")
+site("RD5", "litkb/acquire/annas.py::_csv_row::redact", "{a0}", tests=TESTS_P1P2,
+     what="annas._csv_row: the audit-fast CSV keeps whatever the manifest and the archive said")
+site("RD6", "litkb/acquire/annas.py::run_audit_fast::redact", "{a0}", tests=TESTS_P1P2,
+     what="annas.run_audit_fast: the DOI-REPAIR / T1 / T2 / T3 / SUMMARY lines print unredacted")
+site("RD7", "litkb/acquire/open_access.py::fetch_open_access::redact", "{a0}", tests=TESTS_P1P2,
+     what="open_access: the Unpaywall note (built from a URL carrying the account email) is returned as given")
+site("RD8", "litkb/acquire/scihub.py::fetch_scihub::redact", "{a0}", tests=TESTS_P1P2,
+     what="scihub: the mirrors tried — netloc and all, userinfo included — are returned as given")
+site("RD9", "litkb/admit/resolver.py::resolution_log_line::redact", "{a0}", tests=TESTS_P1P2,
+     what="resolver.resolution_log_line: the registry evidence prints unredacted")
+site("RD10", "litkb/netutil.py::_raw_get::redact", "{a0}", tests=TESTS_P1P2,
+     what="netutil: a transport error returns the failing URL, key and all, as the response body")
+site("RD11", "litkb/acquire/annas.py::open_session::add_secret", "None", tests=TESTS_P1P2,
+     what="annas.open_session: the key read from the key file is never registered for redaction")
+site("RD12", "litkb/acquire/annas.py::main::add_secret", "None", tests=TESTS_P1P2,
+     what="annas --audit: the CLI's own key read is never registered")
+site("RD13", "litkb/acquire/annas.py::main_audit_fast.get_archive::add_secret", "None", tests=TESTS_P1P2,
+     what="annas --audit-fast: the lazy archive login's key is never registered")
+site("RD14", "litkb/acquire/run.py::record_attempt::_redacted", "{a0}", tests=TESTS_P1P2,
+     what="run.record_attempt: acquisition_attempts.detail is sent to jsonb unredacted")
+site("RD15", "litkb/acquire/run.py::_redacted::_redacted", "{a0}", tests=TESTS_P1P2,
+     what="run._redacted stops recursing: a key inside a dict or a list in the detail survives")
+site("RD16", "litkb/acquire/run.py::_redacted::redact", "{a0}", tests=TESTS_P1P2,
+     what="run._redacted: the strings it reaches are passed through unredacted")
+site("RD17", "litkb/acquire/run.py::acquire::redact", "{a0}", tests=TESTS_P1P2,
+     what="run.acquire: the route's source_url is stored on the file version as fetched")
+site("RD18", "litkb/acquire/run.py::acquire::add_secret", "None", tests=TESTS_P1P2,
+     what="run.acquire: an injected annas session's key is never registered")
+
+DEFERRED_HELPERS = {}
 
 site("T18", "litkb/admit/binding.py::bind::verdict", '"bound"', tests=TESTS_P1P2,
      what="bind returns 'bound' without consulting verdict() at all")
@@ -331,6 +373,15 @@ EQUIVALENT = {
         "Scripts/pipeline and Scripts/qc: one hit, its own def). Its docstring says it is 'kept for callers "
         "outside check 3'; there are none, so no mutation inside it can reach any behaviour. It is dead code, "
         "and the entry should be removed from this table by deleting the function, not by testing it.",
+    "litkb/acquire/annas.py::run_audit::redact":
+        "The value is built ONLY as `detail=f\"{type(e).__name__}: {redact(e)}\"` and handed straight to "
+        "result(), whose next statement is `r['detail'] = redact(r['detail'])` — the same function over the same "
+        "string. Removing this call cannot change a byte of the returned result, of log_line(result), or of any "
+        "row built from it. (The result() call is itself covered, by RD1.)",
+    "litkb/acquire/annas.py::run_jobs::redact":
+        "Identical shape to run_audit's: `detail=f\"{type(e).__name__}: {redact(e)}\"` passed to result(), which "
+        "redacts r['detail'] immediately. The outer redact is an unreachable second application, not a guard "
+        "with its own reach.",
 }
 
 
@@ -344,6 +395,160 @@ def call_sites(root=None):
     for p in sorted(root.rglob("*.py")):
         out |= sites_of_text(p.read_text(encoding="utf-8"), p.relative_to(root.parent).as_posix())
     return out
+
+
+# ── the structural guard: every stdout/stderr sink in litkb passes through a redactor ─────
+# The per-call-site rule protects the redact() calls that EXIST. This protects against the next one that is never
+# written: a new print() of a route's own words, with no redact around it, fails the ordinary suite.
+#
+# What it can enforce is syntactic: the argument of a print / sys.stdout.write / sys.stderr.write is either a call
+# to a redacting function, or carries nothing dynamic at all, or is named here with a reason. What it CANNOT do is
+# follow data: a string redacted in one function and printed in another is indistinguishable, statically, from one
+# that was never redacted. Two other sinks are therefore left to the call-site rule instead of this one:
+#   * acquisition_attempts.detail — every write goes through run.record_attempt, whose _redacted call is row RD14
+#     (and the DB grants let nothing else write the table);
+#   * exception text — the sink is whichever handler catches it, and the handlers (run.acquire, annas.run_audit,
+#     annas.run_jobs) put it through redact()/result() at the point of catching, which is RD1 / RD4 / RD16.
+REDACTORS = ("redact", "_redacted", "log_line", "resolution_log_line", "_csv_row")
+SINKS = ("print", "sys.stdout.write", "sys.stderr.write", "stdout.write", "stderr.write")
+
+# Each entry is (how many sink calls that function may have, why they are safe). The COUNT is what keeps the
+# allowlist from becoming a per-function amnesty: an entry excuses the calls that were read, not the function
+# for ever, so adding a print() inside an already-allowed function fails the self-check and the reason has to be
+# re-argued. A count (unlike a line number) only moves when a sink is added or removed — exactly when review is
+# due — so it does not rot on every edit above it.
+SINK_ALLOW = {
+    "litkb/acquire/annas.py::run_audit::print": (3,
+        "AUDIT pacing / AUDIT SUMMARY: the row count, the pacing interval and the per-status counts. Every "
+        "interpolated value is an int or a status word from the fixed `status` vocabulary — no route text. (The "
+        "third call is print(log_line(res)), which is redacted; it shares the site with the other two.)"),
+    "litkb/acquire/annas.py::main_audit_fast.get_archive::sys.stderr.write": (1,
+        "'login failed (status %s)' — the HTTP status of the login, an int. The key itself is never in scope "
+        "as a formatted value here."),
+    "litkb/acquire/annas.py::main::sys.stderr.write": (2,
+        "annas.main's two refusals: the job-mode refusal (a constant) and 'login failed (status %s)', the login's "
+        "HTTP status as an int. The key is in scope in this function and is never formatted into either."),
+    "litkb/commands.py::_print::print": (1,
+        "The CLI's only writer, and it prints json.dumps(obj) of what the litkb front returns. Its callers are "
+        "listed below; the redaction of those payloads happens where they are BUILT (run.acquire -> RD16/RD17, "
+        "front.admit -> the admission functions), because by the time _print sees a dict the strings are "
+        "already stored in the database in that same form."),
+    "litkb/commands.py::cmd_ws::print": (1,
+        "The workstream id, slug, branch and the PATH the token was written to — the line itself says '(never "
+        "printed)' of the token, and `token` is not in scope as a formatted value in this branch."),
+    "litkb/db/migrate.py::main::print": (2,
+        "Database name, runner role name, migration filenames and counts. This module reads no secret: it "
+        "connects through the passfile, which libpq opens and Python never reads."),
+    "litkb/db/provision.py::provision::print": (6,
+        "This is the one place litkb holds a secret other than the archive key — a freshly generated role "
+        "password — and it prints only WHICH role and whether the password was reset or created. `password` is "
+        "appended to pgpass and `del`eted on the next line; it is never a formatted value."),
+    "litkb/ops/nightly_dump.py::verify_existing::print": (1,
+        "Dump filename, verification stage and reason, all filesystem facts from verify_dump(). No credential "
+        "is in scope: the dump runs under the passfile."),
+    "litkb/ops/nightly_dump.py::install_task::print": (1,
+        "The first line of PowerShell's own output from Register-ScheduledTask. The command it ran embeds a task "
+        "name and a script path, no credential."),
+}
+
+
+def sink_sites(root=None):
+    """Every stdout/stderr write under Scripts/pipeline/litkb -> {site_id: {"file", "line", "ok", "how"}}.
+
+    site_id is "litkb/<path>::<enclosing function>::<sink>". ok is True when the argument is a call to a
+    REDACTOR, or when it interpolates nothing (a constant, or an f-string with no {} fields)."""
+    root = Path(root or (SCRIPTS / PKG))
+    out = {}
+    for p in sorted(root.rglob("*.py")):
+        out |= sink_sites_of_text(p.read_text(encoding="utf-8"), p.relative_to(root.parent).as_posix())
+    return out
+
+
+def _dotted(node):
+    if isinstance(node, ast.Name):
+        return node.id
+    if isinstance(node, ast.Attribute):
+        base = _dotted(node.value)
+        return f"{base}.{node.attr}" if base else node.attr
+    return ""
+
+
+def _redacted_expr(node, rel=""):
+    """True if this argument cannot carry an unredacted secret: a redactor's return, a literal, an f-string with
+    no interpolation, or a concatenation/join of such parts.
+
+    `rel` guards a name collision that would otherwise pass a real sink: litkb/ops/nightly_dump.py has its OWN
+    log_line(), which appends to a file and redacts nothing. Only redact/_redacted are recognised everywhere; the
+    wrappers are recognised only in the modules that define them (acquire/ and admit/)."""
+    if isinstance(node, ast.Call):
+        name = _dotted(node.func).split(".")[-1]
+        if name in ("redact", "_redacted"):
+            return True
+        if name in REDACTORS and (rel.startswith("litkb/acquire/") or rel.startswith("litkb/admit/")):
+            return True
+        if name == "join" and node.args:                       # "".join(<parts>) -> judge the parts
+            return _redacted_expr(node.args[0], rel)
+        return False
+    if isinstance(node, ast.Constant):
+        return True
+    if isinstance(node, ast.JoinedStr):
+        return not any(isinstance(v, ast.FormattedValue) for v in node.values)
+    if isinstance(node, ast.BinOp) and isinstance(node.op, ast.Add):
+        return _redacted_expr(node.left, rel) and _redacted_expr(node.right, rel)
+    return False
+
+
+def sink_sites_of_text(text, rel):
+    """sink_sites() for ONE module's source."""
+    tree = ast.parse(text)
+    out, stack = {}, []
+
+    class V(ast.NodeVisitor):
+        def visit_FunctionDef(self, n):
+            stack.append(n.name)
+            self.generic_visit(n)
+            stack.pop()
+        visit_AsyncFunctionDef = visit_FunctionDef
+
+        def visit_Call(self, n):
+            name = _dotted(n.func)
+            if name in SINKS:
+                sid = f"{rel}::{'.'.join(stack) or '<module>'}::{name}"
+                ok = bool(n.args) and _redacted_expr(n.args[0], rel)
+                e = out.setdefault(sid, {"file": rel, "lines": set(), "calls": 0, "ok": True})
+                e["lines"].add(n.lineno)
+                e["calls"] += 1
+                e["ok"] = e["ok"] and ok
+            self.generic_visit(n)
+    V().visit(tree)
+    return out
+
+
+def sink_check(verbose=True):
+    """The structural guard. -> (ok, rows) with one row per stdout/stderr sink."""
+    sites, problems, rows = sink_sites(), [], []
+    for sid in sorted(SINK_ALLOW):
+        if sid not in sites:
+            problems.append(f"{sid}: allowed but no longer a sink (renamed or removed?)")
+    for sid, info in sorted(sites.items()):
+        pinned, why = SINK_ALLOW.get(sid, (None, None))
+        if not info["ok"] and not why:
+            problems.append(f"{sid}: writes to a sink without passing through {'/'.join(REDACTORS)}, "
+                            f"and is not named in SINK_ALLOW")
+        if info["ok"] and why:
+            problems.append(f"{sid}: already redacted AND allowed — drop the SINK_ALLOW entry")
+        if why and pinned != info["calls"]:
+            problems.append(f"{sid}: SINK_ALLOW pins {pinned} sink call(s), the function now has "
+                            f"{info['calls']} — the new one is not covered by that reason")
+        rows.append((sid, sorted(info["lines"]), info["ok"], why))
+    if verbose:
+        print(f"\n{'stdout/stderr sink':<62} {'lines':<16} through a redactor?")
+        for sid, lines, ok, why in rows:
+            print(f"{sid:<62} {str(lines):<16} {'yes' if ok else 'ALLOWED: ' + (why or 'NO')}")
+        print(f"\n{len(rows)} sinks, {sum(1 for r in rows if r[2])} redacted, {sum(1 for r in rows if r[3])} allowed")
+        for p in problems:
+            print("  PROBLEM " + p)
+    return not problems, rows
 
 
 def sites_of_text(text, rel):
@@ -527,10 +732,13 @@ def main(argv=None):
     ap = argparse.ArgumentParser(description="show each litkb P2 guard fire")
     ap.add_argument("--only", help="comma-separated mutation ids (default: all)")
     ap.add_argument("--sites", action="store_true",
-                    help="run only the per-call-site self-check (static; no database, no tests)")
+                    help="run only the self-checks: the per-call-site table and the stdout/stderr sink scan "
+                         "(both static; no database, no tests)")
     a = ap.parse_args(sys.argv[1:] if argv is None else argv)
     if a.sites:
-        sys.exit(0 if self_check()[0] else 1)
+        sites_ok = self_check()[0]
+        sinks_ok = sink_check()[0]
+        sys.exit(0 if sites_ok and sinks_ok else 1)
     chosen = M
     if a.only:
         wanted = [s.strip() for s in a.only.split(",") if s.strip()]
@@ -541,8 +749,9 @@ def main(argv=None):
     for m in chosen:                       # every target must exist before anything runs
         _mutations(m)
     ok, _rows = self_check()
-    if not ok:
-        raise SystemExit("the per-call-site self-check failed (see PROBLEM lines above)")
+    sinks_ok, _sink_rows = sink_check()
+    if not ok or not sinks_ok:
+        raise SystemExit("the harness self-check failed (see PROBLEM lines above)")
     # EVERY test set a chosen row runs is baselined, not just the default one: a row running P1+P2+annas against
     # an already-failing P1 would "fire" on a failure it did not cause. The flake of 2026-09-14 handed three rows
     # exactly that false pass.

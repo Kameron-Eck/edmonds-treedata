@@ -33,7 +33,8 @@ call of every targeted helper in Scripts/pipeline/litkb/ and requires a mutation
 
 One helper family — netutil.redact / add_secret / run._redacted — was DEFERRED rather than covered until
 2026-09-14, when a row and a test were written at each of its 20 sites. DEFERRED_HELPERS is now empty, and
-`--sites` still prints it every run so a new deferral cannot be added quietly.
+qc/test_litkb_harness_sites.py::test_the_redaction_family_is_under_the_rule asserts that it stays empty and that
+the family stays in HELPERS, so a new deferral cannot be added quietly.
 
 `--sites` also runs the STRUCTURAL guard, sink_check(): the per-call-site rule protects the redact() calls that
 exist, and that one protects against the next one that is never written. Every print / sys.std{out,err}.write

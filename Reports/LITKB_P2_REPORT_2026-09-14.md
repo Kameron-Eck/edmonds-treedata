@@ -477,6 +477,16 @@ now **55 call sites, 52 with a row, 3 equivalent**.
 | E | `annas.run_audit` | — | equivalent: the value is `detail=` to `result()`, whose next statement redacts `r['detail']`; this call cannot change a byte | — | — |
 | E | `annas.run_jobs` | — | equivalent, identical shape | — | — |
 
+**What was actually run.** The whole table — **124/124 rows FIRED**, baselines passed before and after every
+invocation, every restore `match: True` by sha256 — came from **nine `--only` invocations**, each with its own
+baseline pair, not one serial pass. Two serial attempts failed first, and both failures are about the harness's
+environment, not its rows: the first was killed at about row B13 and left `annas.py` mutated (restored from git);
+the second then aborted at `C14: mutation target occurs 0 times`, because `git checkout --` writes CRLF under this
+repo's `autocrlf` while the harness matches byte literals containing `\n` — every `replace` row's target misses.
+Restoring a file the harness was mutating means restoring its **line endings** too. The committed
+`qc/test_litkb_annas.py` differs from the copy the 48-row chunk ran by one docstring line (a false CLAUDE.md
+citation, removed); nothing executable changed.
+
 **No leak was found in the code.** Every one of the 20 sites already called the guard; what was missing was the
 assertion. The two `redact` calls that are genuinely unreachable (`run_audit`, `run_jobs`) are declared in
 `EQUIVALENT` with a reason about the code, not about the tests — a second application of `redact` to a string

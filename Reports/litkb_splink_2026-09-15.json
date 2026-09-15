@@ -1,0 +1,701 @@
+{
+ "gold_sha256": "d6dbbac3e0e8fc473e431568cfb77ebdfaff0c687647e69e3ef2274d974846a0",
+ "left_rows": 748,
+ "right_rows": 2032,
+ "right_crossref": 1684,
+ "right_corpus_works": 348,
+ "threshold": 0.5,
+ "em_notes": [
+  "lambda (two random records match) = 0.0008245961233455444"
+ ],
+ "lambda": 0.0008245961233455444,
+ "match_weights": [
+  {
+   "comparison": "title",
+   "level": "Exact match on title",
+   "m": 0.6399461562494583,
+   "u": 0.0004947576740073266,
+   "bayes_factor": 1293.4537246611392,
+   "match_weight": 10.337012724926629
+  },
+  {
+   "comparison": "title",
+   "level": "Jaro-Winkler distance of title >= 0.97",
+   "m": 0.038704894697098965,
+   "u": 3.158027706429744e-05,
+   "bayes_factor": 1225.6033922152046,
+   "match_weight": 10.259276480122843
+  },
+  {
+   "comparison": "title",
+   "level": "Jaro-Winkler distance of title >= 0.92",
+   "m": 0.06492471500404223,
+   "u": 7.105562339466925e-05,
+   "bayes_factor": 913.7167742998513,
+   "match_weight": 9.83560323073107
+  },
+  {
+   "comparison": "title",
+   "level": "Jaro-Winkler distance of title >= 0.85",
+   "m": 0.041761309679491224,
+   "u": 0.0004552823276769548,
+   "bayes_factor": 91.72618206503927,
+   "match_weight": 6.519261686330455
+  },
+  {
+   "comparison": "title",
+   "level": "All other comparisons",
+   "m": 0.2146629243699094,
+   "u": 0.9989473240978568,
+   "bayes_factor": 0.21488913298183182,
+   "match_weight": -2.218335567866801
+  },
+  {
+   "comparison": "first_author",
+   "level": "Exact match on first_author",
+   "m": 0.7252869277532397,
+   "u": 0.001628970461006056,
+   "bayes_factor": 445.24252901756165,
+   "match_weight": 8.798447593488499
+  },
+  {
+   "comparison": "first_author",
+   "level": "Jaro-Winkler distance of first_author >= 0.99",
+   "m": null,
+   "u": null,
+   "bayes_factor": null,
+   "match_weight": null
+  },
+  {
+   "comparison": "first_author",
+   "level": "Jaro-Winkler distance of first_author >= 0.9",
+   "m": 0.013382808763929138,
+   "u": 0.00038066988011370656,
+   "bayes_factor": 35.15594341199697,
+   "match_weight": 5.135696704702224
+  },
+  {
+   "comparison": "first_author",
+   "level": "All other comparisons",
+   "m": 0.2613302634828311,
+   "u": 0.9979903596588803,
+   "bayes_factor": 0.26185650087056506,
+   "match_weight": -1.9331516731923053
+  },
+  {
+   "comparison": "year",
+   "level": "Exact match on year",
+   "m": 0.5238642826802653,
+   "u": 0.018412219945715808,
+   "bayes_factor": 28.451989180270417,
+   "match_weight": 4.830457614912749
+  },
+  {
+   "comparison": "year",
+   "level": "Absolute difference of 'year' <= 1",
+   "m": 0.04526640015709079,
+   "u": 0.03568610632787623,
+   "bayes_factor": 1.2684600483222488,
+   "match_weight": 0.34307808069862167
+  },
+  {
+   "comparison": "year",
+   "level": "Absolute difference of 'year' <= 3",
+   "m": 0.09624637939604987,
+   "u": 0.07176202319625839,
+   "bayes_factor": 1.3411882094353782,
+   "match_weight": 0.4235117053753532
+  },
+  {
+   "comparison": "year",
+   "level": "All other comparisons",
+   "m": 0.33462293776659413,
+   "u": 0.8741396505301495,
+   "bayes_factor": 0.3828026077568401,
+   "match_weight": -1.3853274369938144
+  },
+  {
+   "comparison": "journal",
+   "level": "Exact match on journal",
+   "m": 0.41217425972133415,
+   "u": 0.002877710300875147,
+   "bayes_factor": 143.22993513140878,
+   "match_weight": 7.162189237909274
+  },
+  {
+   "comparison": "journal",
+   "level": "Jaro-Winkler distance of journal >= 0.95",
+   "m": 0.0389196420333972,
+   "u": 0.00044161451959267553,
+   "bayes_factor": 88.1303496753115,
+   "match_weight": 6.461567024202929
+  },
+  {
+   "comparison": "journal",
+   "level": "Jaro-Winkler distance of journal >= 0.85",
+   "m": 0.17973517114028162,
+   "u": 0.008473658992772531,
+   "bayes_factor": 21.211046053845664,
+   "match_weight": 4.406743866132181
+  },
+  {
+   "comparison": "journal",
+   "level": "All other comparisons",
+   "m": 0.369170927104987,
+   "u": 0.9882070161867597,
+   "bayes_factor": 0.3735765088265858,
+   "match_weight": -1.420524356287642
+  },
+  {
+   "comparison": "volume",
+   "level": "Exact match on volume",
+   "m": 0.907737840317534,
+   "u": 0.010716340069793304,
+   "bayes_factor": 84.70595692238444,
+   "match_weight": 6.404391525131847
+  },
+  {
+   "comparison": "volume",
+   "level": "All other comparisons",
+   "m": 0.09226215968246596,
+   "u": 0.9892836599302067,
+   "bayes_factor": 0.09326158251615617,
+   "match_weight": -3.422573279410233
+  },
+  {
+   "comparison": "pages",
+   "level": "Exact match on pages",
+   "m": 0.19448724665040162,
+   "u": 0.0011062478957241113,
+   "bayes_factor": 175.80801500471742,
+   "match_weight": 7.45785703354372
+  },
+  {
+   "comparison": "pages",
+   "level": "All other comparisons",
+   "m": 0.8055127533495984,
+   "u": 0.9988937521042759,
+   "bayes_factor": 0.8064048370036354,
+   "match_weight": -0.31042380240341594
+  }
+ ],
+ "task_a": {
+  "pairs_scored": 26278,
+  "positives": 365,
+  "gold_doi_absent_from_right": 2,
+  "rank1": 360,
+  "rank_top3": 363,
+  "not_retrieved_though_present": 0,
+  "scored_population": 363,
+  "weight_of_gold": {
+   "n": 363,
+   "min": 0.27419938897538393,
+   "median": 25.2361179278438,
+   "max": 31.23949081306448,
+   "mean": 23.55052475123158
+  }
+ },
+ "vs_resolver": {
+  "resolved": {
+   "n": 365,
+   "splink_has_candidate": 365,
+   "splink_p_ge_0.5": 365,
+   "splink_p_ge_0.9": 364,
+   "agrees_with_resolver": 360
+  },
+  "unresolved": {
+   "n": 274,
+   "splink_has_candidate": 269,
+   "splink_p_ge_0.5": 88,
+   "splink_p_ge_0.9": 75,
+   "agrees_with_resolver": 0
+  },
+  "ambiguous": {
+   "n": 19,
+   "splink_has_candidate": 19,
+   "splink_p_ge_0.5": 19,
+   "splink_p_ge_0.9": 19,
+   "agrees_with_resolver": 0
+  }
+ },
+ "must_not_link": {
+  "book_review": {
+   "n": 3,
+   "above_threshold": 0,
+   "weights": [
+    -2.916419793176397,
+    -2.916419793176397,
+    -2.916419793176397
+   ],
+   "probabilities": [
+    0.11696313425657963,
+    0.11696313425657963,
+    0.11696313425657963
+   ]
+  },
+  "edition": {
+   "n": 4,
+   "above_threshold": 3,
+   "weights": [
+    -4.644825310868833,
+    6.468205055660816,
+    6.053167556381973,
+    15.021208587572703
+   ]
+  },
+  "mutations": {
+   "n": 70,
+   "above_threshold": 65,
+   "weight_stats": {
+    "n": 65,
+    "min": 2.670976374408605,
+    "median": 14.554859503326085,
+    "max": 27.110207796119514,
+    "mean": 15.557920078614941
+   }
+  }
+ },
+ "task_c": {
+  "lost_genuine": [
+   {
+    "ref_id": "Abercrombie_2016_improving-consistency::b16",
+    "gold_doi": "10.1109/tsmc.1978.4309889",
+    "rank": 1,
+    "n_candidates": 9,
+    "match_weight": 15.25977262859159,
+    "match_probability": 0.9999745117720662,
+    "gold_on_right": true,
+    "top_cand": "cr::10.1109/tsmc.1978.4309889",
+    "top_weight": 15.25977262859159
+   },
+   {
+    "ref_id": "Burnicki_2011_spatio-temporal-errors-land-cover::b12",
+    "gold_doi": "10.1201/b12612-12",
+    "rank": 1,
+    "n_candidates": 15,
+    "match_weight": 3.0027019200344776,
+    "match_probability": 0.8890737249064596,
+    "gold_on_right": true,
+    "top_cand": "cr::10.1201/b12612-12",
+    "top_weight": 3.0027019200344776
+   },
+   {
+    "ref_id": "Foody_2010_assessing-accuracy-land-cover-change::b14",
+    "gold_doi": "10.1093/oxfordjournals.aje.a120609",
+    "rank": 1,
+    "n_candidates": 4,
+    "match_weight": 24.836777273747153,
+    "match_probability": 0.9999999666277852,
+    "gold_on_right": true,
+    "top_cand": "cr::10.1093/oxfordjournals.aje.a120609",
+    "top_weight": 24.836777273747153
+   },
+   {
+    "ref_id": "Foody_2010_assessing-accuracy-land-cover-change::b38",
+    "gold_doi": "10.1093/oxfordjournals.aje.a120610",
+    "rank": 1,
+    "n_candidates": 4,
+    "match_weight": 24.836777273747153,
+    "match_probability": 0.9999999666277852,
+    "gold_on_right": true,
+    "top_cand": "cr::10.1093/oxfordjournals.aje.a120610",
+    "top_weight": 24.836777273747153
+   },
+   {
+    "ref_id": "Burnicki_2011_spatio-temporal-errors-land-cover::b43",
+    "gold_doi": "10.14358/pers.69.3.289",
+    "rank": 1,
+    "n_candidates": 44,
+    "match_weight": 24.02067784262087,
+    "match_probability": 0.9999999412435663,
+    "gold_on_right": true,
+    "top_cand": "cr::10.14358/pers.69.3.289",
+    "top_weight": 24.02067784262087
+   }
+  ],
+  "book_review": [
+   {
+    "ref_id": "Alwan_1988_time-series-modeling-statistical-process::b13",
+    "kind": "book_review",
+    "bad_doi": "10.2307/1269348",
+    "match_weight": -2.916419793176397,
+    "match_probability": 0.11696313425657963
+   },
+   {
+    "ref_id": "Burnicki_2011_spatio-temporal-errors-land-cover::b23",
+    "kind": "book_review",
+    "bad_doi": "10.2307/214811",
+    "match_weight": -2.916419793176397,
+    "match_probability": 0.11696313425657963
+   },
+   {
+    "ref_id": "Hall_1985_resampling-coverage-pattern::b10",
+    "kind": "book_review",
+    "bad_doi": "10.2307/2531038",
+    "match_weight": -2.916419793176397,
+    "match_probability": 0.11696313425657963
+   }
+  ],
+  "lost_weight_stats": {
+   "n": 5,
+   "min": 3.0027019200344776,
+   "median": 24.02067784262087,
+   "max": 24.836777273747153,
+   "mean": 18.39134138774825
+  },
+  "review_weight_stats": {
+   "n": 3,
+   "min": -2.916419793176397,
+   "median": -2.916419793176397,
+   "max": -2.916419793176397,
+   "mean": -2.916419793176397
+  },
+  "separable": true
+ },
+ "kills": {
+  "ablation": {
+   "reviews_above_threshold_full_model": 0,
+   "full_model_weights": [
+    -2.916419793176397,
+    -2.916419793176397,
+    -2.916419793176397
+   ],
+   "no_author": {
+    "reviews_above_threshold": 0,
+    "weights": [
+     -1.0318130868554414,
+     -1.0318130868554414,
+     -1.0318130868554414
+    ],
+    "probabilities": [
+     0.3284512179915298,
+     0.3284512179915298,
+     0.3284512179915298
+    ]
+   },
+   "no_journal": {
+    "reviews_above_threshold": 0,
+    "weights": [
+     -2.556654877756859,
+     -2.556654877756859,
+     -2.556654877756859
+    ],
+    "probabilities": [
+     0.14527663428955712,
+     0.14527663428955712,
+     0.14527663428955712
+    ]
+   },
+   "no_author_no_journal": {
+    "reviews_above_threshold": 3,
+    "weights": [
+     0.22743269112674755,
+     0.22743269112674755,
+     0.22743269112674755
+    ],
+    "probabilities": [
+     0.5393296650064977,
+     0.5393296650064977,
+     0.5393296650064977
+    ]
+   },
+   "FIRED_on_author_alone": false,
+   "FIRED_on_journal_alone": false,
+   "FIRED_on_both": true
+  },
+  "drop_blocking": {
+   "sample_left": 60,
+   "sample_right": 659,
+   "retrieved_blocked": 60,
+   "retrieved_cartesian": 60,
+   "FIRED": true
+  }
+ },
+ "task_b": {
+  "works": 348,
+  "model": "transferred from Task A (see comment)",
+  "lambda": 0.0008245961233455444,
+  "in_place_em_degenerate": {
+   "lambda": 0.0,
+   "em_notes": [
+    "lambda (two random records match) = 0.0"
+   ],
+   "match_weights": [
+    {
+     "comparison": "title",
+     "level": "Exact match on title",
+     "m": null,
+     "u": null,
+     "bayes_factor": null,
+     "match_weight": null
+    },
+    {
+     "comparison": "title",
+     "level": "Jaro-Winkler distance of title >= 0.97",
+     "m": null,
+     "u": null,
+     "bayes_factor": null,
+     "match_weight": null
+    },
+    {
+     "comparison": "title",
+     "level": "Jaro-Winkler distance of title >= 0.92",
+     "m": 1.0,
+     "u": 1.656232402530723e-05,
+     "bayes_factor": 60378.0,
+     "match_weight": 15.88173534842699
+    },
+    {
+     "comparison": "title",
+     "level": "Jaro-Winkler distance of title >= 0.85",
+     "m": 0.49999999999896294,
+     "u": 0.0005631190168604458,
+     "bayes_factor": 887.9117647040408,
+     "match_weight": 9.794272507173657
+    },
+    {
+     "comparison": "title",
+     "level": "All other comparisons",
+     "m": 1.037125672134326e-12,
+     "u": 0.9994203186591143,
+     "bayes_factor": 1.0377272232425688e-12,
+     "match_weight": -39.809709871631526
+    },
+    {
+     "comparison": "first_author",
+     "level": "Exact match on first_author",
+     "m": 0.9999989812717638,
+     "u": 0.002136539799264633,
+     "bayes_factor": 468.0460348157097,
+     "match_weight": 8.870506623288811
+    },
+    {
+     "comparison": "first_author",
+     "level": "Jaro-Winkler distance of first_author >= 0.99",
+     "m": null,
+     "u": null,
+     "bayes_factor": null,
+     "match_weight": null
+    },
+    {
+     "comparison": "first_author",
+     "level": "Jaro-Winkler distance of first_author >= 0.9",
+     "m": 4.293621566003319e-18,
+     "u": 0.0011593626817715062,
+     "bayes_factor": 3.7034326130306914e-15,
+     "match_weight": -47.94005833687972
+    },
+    {
+     "comparison": "first_author",
+     "level": "All other comparisons",
+     "m": 1.0187282362185657e-06,
+     "u": 0.9967040975189638,
+     "bayes_factor": 1.0220969681517565e-06,
+     "match_weight": -19.900036495518908
+    },
+    {
+     "comparison": "year",
+     "level": "Exact match on year",
+     "m": 5.631342468098483e-17,
+     "u": 0.039848951604889195,
+     "bayes_factor": 1.4131720512836669e-15,
+     "match_weight": -49.329984301288206
+    },
+    {
+     "comparison": "year",
+     "level": "Absolute difference of 'year' <= 1",
+     "m": 3.83357618015952e-24,
+     "u": 0.07595481798005896,
+     "bayes_factor": 5.0471797340966315e-23,
+     "match_weight": -74.06886871933692
+    },
+    {
+     "comparison": "year",
+     "level": "Absolute difference of 'year' <= 3",
+     "m": 1.0,
+     "u": 0.13706979363344265,
+     "bayes_factor": 7.295553407443209,
+     "match_weight": 2.8670174185669794
+    },
+    {
+     "comparison": "year",
+     "level": "All other comparisons",
+     "m": 1.2267443776510468e-23,
+     "u": 0.7471264367816092,
+     "bayes_factor": 1.6419501670098627e-23,
+     "match_weight": -75.68893584025021
+    },
+    {
+     "comparison": "journal",
+     "level": "Exact match on journal",
+     "m": 0.4999997858744502,
+     "u": 0.018400741992116335,
+     "bayes_factor": 27.17280564493929,
+     "match_weight": 4.764091629202027
+    },
+    {
+     "comparison": "journal",
+     "level": "Jaro-Winkler distance of journal >= 0.95",
+     "m": 1.0734053915008295e-18,
+     "u": 0.00014906091622776508,
+     "bayes_factor": 7.201118969781898e-15,
+     "match_weight": -46.98070032137707
+    },
+    {
+     "comparison": "journal",
+     "level": "Jaro-Winkler distance of journal >= 0.85",
+     "m": 6.118410731554731e-17,
+     "u": 0.0258869124515552,
+     "bayes_factor": 2.363515055341085e-15,
+     "match_weight": -48.58798736876968
+    },
+    {
+     "comparison": "journal",
+     "level": "All other comparisons",
+     "m": 0.5000002141255498,
+     "u": 0.9555632846401007,
+     "bayes_factor": 0.5232518056759242,
+     "match_weight": -0.9344227098393325
+    },
+    {
+     "comparison": "volume",
+     "level": "Exact match on volume",
+     "m": null,
+     "u": null,
+     "bayes_factor": null,
+     "match_weight": null
+    },
+    {
+     "comparison": "volume",
+     "level": "All other comparisons",
+     "m": null,
+     "u": null,
+     "bayes_factor": null,
+     "match_weight": null
+    },
+    {
+     "comparison": "pages",
+     "level": "Exact match on pages",
+     "m": null,
+     "u": null,
+     "bayes_factor": null,
+     "match_weight": null
+    },
+    {
+     "comparison": "pages",
+     "level": "All other comparisons",
+     "m": null,
+     "u": null,
+     "bayes_factor": null,
+     "match_weight": null
+    }
+   ]
+  },
+  "pairs_above_0.5": 9,
+  "clusters_at_0.95": 341,
+  "multi_member_clusters": 6,
+  "largest_cluster": 3,
+  "gold_pairs": [
+   {
+    "left_id": "50",
+    "right_id": "3",
+    "verdict": "duplicate",
+    "left_key": "",
+    "right_key": "Weinstein_2020_deepforest-python-package-rgb",
+    "both_admitted": false,
+    "match_weight": null,
+    "match_probability": null,
+    "above_0.5": false
+   },
+   {
+    "left_id": "199",
+    "right_id": "94",
+    "verdict": "duplicate",
+    "left_key": "Wagner_2024_sub-meter-tree-height",
+    "right_key": "Wagner_2024_sub-meter-tree-height",
+    "both_admitted": true,
+    "match_weight": null,
+    "match_probability": null,
+    "above_0.5": false
+   },
+   {
+    "left_id": "264",
+    "right_id": "13",
+    "verdict": "duplicate",
+    "left_key": "Pedley_2025_detecting-measuring-fine-scale",
+    "right_key": "Pedley_2025_detecting-measuring-fine-scale",
+    "both_admitted": true,
+    "match_weight": null,
+    "match_probability": null,
+    "above_0.5": false
+   },
+   {
+    "left_id": "303",
+    "right_id": "60",
+    "verdict": "related_not_duplicate",
+    "left_key": "Valavi_2018_blockcv-r-package-generating",
+    "right_key": "Valavi_2018_block-cv-r-package",
+    "both_admitted": true,
+    "match_weight": 6.665927623247657,
+    "match_probability": 0.990247863964666,
+    "above_0.5": true
+   }
+  ],
+  "pairs_above_0.5_detail": [
+   {
+    "a": "work::Leung_2004_general-framework-error-analysis",
+    "b": "work::Leung_2004a_general-framework-error-analysis",
+    "match_weight": 14.248641217444574,
+    "match_probability": 0.9999486300331071
+   },
+   {
+    "a": "work::Valavi_2018_block-cv-r-package",
+    "b": "work::Valavi_2018_blockcv-r-package-generating",
+    "match_weight": 6.665927623247657,
+    "match_probability": 0.990247863964666
+   },
+   {
+    "a": "work::Radoux_2020_about-pitfall-erroneous-validation",
+    "b": "work::Radoux_2020_how-response-designs-class",
+    "match_weight": 6.511043963247317,
+    "match_probability": 0.9891546231039715
+   },
+   {
+    "a": "work::Goodchild_2004_general-framework-error-analysis",
+    "b": "work::Leung_2004a_general-framework-error-analysis",
+    "match_weight": 6.335922296638474,
+    "match_probability": 0.9877720383890171
+   },
+   {
+    "a": "work::Goodchild_2004_general-framework-error-analysis",
+    "b": "work::Leung_2004_general-framework-error-analysis",
+    "match_weight": 6.335922296638474,
+    "match_probability": 0.9877720383890171
+   },
+   {
+    "a": "work::Khoee_2024_domain-generalization-through-meta",
+    "b": "work::Rafi_2024_domain-generalization-semantic-segmentation",
+    "match_weight": 6.335922296638474,
+    "match_probability": 0.9877720383890171
+   },
+   {
+    "a": "work::Platanios_2014_estimating-accuracy-unlabeled-data",
+    "b": "work::Platanios_2016_estimating-accuracy-unlabeled-data",
+    "match_weight": 5.575323258110876,
+    "match_probability": 0.9794578352237443
+   },
+   {
+    "a": "work::Li_2025_adapting-cross-sensor-high",
+    "b": "work::Li_2025_post-processing-optimization-global",
+    "match_weight": 5.189115868359955,
+    "match_probability": 0.9733205803029024
+   },
+   {
+    "a": "work::Lu_1999_control-charts-monitoring-mean",
+    "b": "work::Lu_2001_cusum-charts-monitoring-autocorrelated",
+    "match_weight": 1.5191355529887647,
+    "match_probability": 0.7413475980203384
+   }
+  ]
+ }
+}

@@ -1374,3 +1374,29 @@ files:   Scripts/LITERATURE_KB_DESIGN_2026-09-13.md, Scripts/pipeline/litkb/, Sc
          Scripts/decisions.yaml (litkb-p0-foundation). Secrets outside repo: pgpass.conf, secrets/litkb_*.pgpass.
 next:    P2 admission + acquisition (litkb ws open CLI; aa_fetch/paper-search adapters; Averkov/Higham replay kill);
          nightly pg_dump task not built; staged-secrets ladder check not built; §15.9-15.11 before P4/P5.
+
+## 2026-09-15  litkb-p4-adapters-merged
+goal:    merge the three refereed P4 adapter branches into the litkb branch, proving each step; I
+         wrote none of them.
+did:     --no-ff x3 in order: inventory cc36b82 -> d621cfe, GROBID 8f985e5 -> cae333a, Docling
+         5b26768 -> 14e3091. Three textual conflicts (extract/__init__.py twice, requirements-litkb
+         once), all "keep both". After each merge: --sites, check.py --fast under
+         LITKB_TEST_DB=litkb_test_w6 (only crown_state_model fails, as expected), and the branch's
+         own tests -- inventory 60 passed; GROBID 54 passed live with the service up in WSL then
+         stopped; Docling 40 passed live on the CPU venv. Harness --workers 4 --worker-dbs 1,2,6,9:
+         155/155 fired, 43.0 min. Inventory --force census reproduces the tracked CSV byte-identical
+         except `seconds`. Migration 0016 applied to litkb; P3 gate re-run read-only unchanged at
+         713/243/120/10/0 PASS.
+decided: the three page_frames copies are NOT collapsed at the merge -- each is what its referee
+         measured against, and refactoring all three with no referee retires refereed numbers
+         (3.4c). Recorded as an open item due before stage 5.
+killed:  "the throughput instrument refuses a run with no rate or peak RSS -- fires both tools": the
+         GROBID instrument has no refusal path at all. Row corrected to Docling-only. Also: the
+         brief's premise that three forked copies of the design doc needed reconciling -- only
+         GROBID ever edited it.
+files:   Scripts/LITERATURE_KB_DESIGN_2026-09-13.md (§7.1, §12.2, §12.10, §14 P4 status),
+         Reports/LITKB_P4_MERGE_2026-09-15.md, Reports/LITKB_P3_REPORT_2026-09-15.md,
+         Scripts/qc/instruments/litkb_p2_mutations.py (two Docling SINK_ALLOW rows).
+next:    the throughput gate (GROBID at >1 pool size with measured per-worker RSS; Docling on the
+         corpus; metrics into extraction_runs.metrics), stage 5 reconciliation, and collapsing
+         page_frames to one home. GitHub push refused by the permission classifier -- Kam's call.

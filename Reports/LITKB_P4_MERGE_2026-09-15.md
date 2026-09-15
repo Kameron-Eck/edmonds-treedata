@@ -114,3 +114,26 @@ The mutation harness's worker **copy** directories are shared across worktrees a
 databases it is pointed at, so a `--worker-dbs 1,2,6,9` run still overwrites copies `w3` and `w4`.
 No other session's run was in flight here, but the copy index and the database index are independent
 and it is worth knowing before two sessions run the harness at once.
+
+## Corrections to this report's own first draft (same day)
+
+Two, both found by re-checking pointers against the files rather than against notes:
+
+* The design-doc section pointers this merge added were **composed from line numbers, not read off
+  headings**, and named sections that do not exist ("§the frame", "§kills", "§throughput"). They now
+  quote the real heading text of `LITKB_DOCLING_LOCAL_2026-09-15.md`,
+  `…DOCLING_LOCAL_REFEREE_…`, `…DOCLING_A_REFEREE_…` and `LITKB_INVENTORY_2026-09-15.md`.
+* The §14 row "the throughput instrument refuses a run with no rate or no peak RSS — FIRES (both
+  tools)" **overstated GROBID**. Docling's refusal is measured;
+  `qc/instruments/litkb_grobid_throughput.py` records `peak_rss_bytes` but has **no refusal path**,
+  and no referee exercised one. The row now reads "FIRES for Docling; NOT SHOWN for GROBID", and it
+  is one more clause the throughput gate owes.
+
+## Not done, and named
+
+`qc/landed.py --dry-run` reports its mechanical rungs clean and the CHATLOG entry is appended
+(CLAUDE.md §3.12). **The GitHub push was refused by the permission classifier**
+("Out-of-Place Publication"), not by git or by credentials; the branch is pushed to `drive-mirror`
+(`e9f5a88..c472b32`). Pushing `work/20260913-literature-kb` to `github` is Kam's to allow.
+Incidentally, `litkb_test` itself was found two migrations behind (0015, 0016) and brought to 16
+before any test ran; the four worker databases were already at 16.

@@ -487,11 +487,11 @@ body blocks of the smallest real-paper fixture. **Provisional** pending a per-PD
 on `Alwan_1988` the same block agrees with the pypdfium2 character-box union to **3.45 pt** after
 the shift and is **11.02 pt** out without it, and the shift that fixes it is `dx = crop.x0 − media.x0`
 = 10.345 — the cropbox origin, not a tolerance
-(`Reports/LITKB_DOCLING_LOCAL_REFEREE_2026-09-15.md` §"the frame"). Docling also mixes origins
+(`Reports/LITKB_DOCLING_LOCAL_REFEREE_2026-09-15.md` §4, "The canonical frame — referee's own pypdfium2 census"). Docling also mixes origins
 *within one file*: items carry `coord_origin = "BOTTOMLEFT"` while table cells in the same JSON carry
 `"TOPLEFT"` (`Reports/LITKB_DOCLING_LOCAL_2026-09-15.md` §2). The adapter reads the field per box;
-a mutation that ignores `coord_origin` and treats everything as TOPLEFT fails 3 tests (M2, same
-report §"kills").
+a mutation that ignores `coord_origin` and treats everything as TOPLEFT fails 3 tests (M2,
+`Reports/LITKB_DOCLING_LOCAL_REFEREE_2026-09-15.md` §5, "Kills — five source mutations").
 
 **Three modules now read the frame, and that is one home too many [M] (2026-09-15, unresolved).**
 `litkb.extract.inventory.page_frames`, `litkb.extract.grobid.page_frames` and
@@ -696,7 +696,7 @@ files (296 in 20 including `_quarantine`), exactly 1 page both rotated and cropp
 files, 0 unreadable, 114 pages needing OCR (111 active). Routing: native 213, mixed 14,
 cover-sheet 8, scan 6 (active: 198 / 14 / 7 / 5). The census reproduces byte-identical except its
 `seconds` column on a `--force` re-run — verified again at the P4 merge.
-(`Reports/LITKB_INVENTORY_2026-09-15.md` §2, §5; referee `…_REFEREE_2026-09-15.md`.)
+(`Reports/LITKB_INVENTORY_2026-09-15.md` §3 "The corpus, measured" and §5 "The scan question"; referee `…_REFEREE_2026-09-15.md`.)
 
 **The "219 PDFs / 4,655 pages" above is a THIRD corpus definition and is superseded**: it came from
 `pdfinfo` over 219 active PDFs. **And the scan count is 5 active (+1 in `_quarantine`), not 7** —
@@ -866,19 +866,19 @@ stated, so that the gap to the gate is visible rather than implied.
 
 | Stage / tool | measured | basis, and why it is not yet the gate |
 |---|---|---|
-| 2 GROBID, 688-page book | **10.91 p/s** warm / 5.70 cold (builder, 3 rows 11.26/12.11/12.11); referee 1 median **8.04 p/s**; referee 2 determined **9.41 p/s** on a quiet host, 22.3 % below the builder's 12.11 | Every timing is **concurrency 1**. A projection built on 12.11 p/s is optimistic by ~25 %; carry the **range with the load stated**, not a point. `GROBID_LOCAL_REFEREE2` §D6 |
-| 3 Docling, layout, 5 gate papers | **0.711 p/s** aggregate over 199 pages, peak RSS 2,641 MB; the 688-page book alone **0.691 p/s**, peak **4,120 MB** | 5 papers + one book, **not the corpus**. `DOCLING_LOCAL` §"throughput" |
+| 2 GROBID, 688-page book | **10.91 p/s** warm / 5.70 cold (builder, 3 rows 11.26/12.11/12.11); referee 1 median **8.04 p/s**; referee 2 determined **9.41 p/s** on a quiet host, 22.3 % below the builder's 12.11 | Every timing is **concurrency 1**. A projection built on 12.11 p/s is optimistic by ~25 %; carry the **range with the load stated**, not a point. `GROBID_LOCAL_REFEREE2` defect D6 |
+| 3 Docling, layout, 5 gate papers | **0.711 p/s** aggregate over 199 pages, peak RSS 2,641 MB; the 688-page book alone **0.691 p/s**, peak **4,120 MB** | 5 papers + one book, **not the corpus**. `DOCLING_LOCAL` §3, "Timing, memory and CPU — CPU only" |
 | 3 Docling, OCR (Anderson 1957) | **0.094 p/s**, 22 pages | one file |
 | 4 Docling, formula enrichment | **0.0042–0.0062 p/s** (Bellettini pp. 3–4) | two pages; the corpus figure is an equation-density census plus an explicit projection, labelled "Not a measurement" |
 | 3–4 on the T2000 GPU | layout **6.0×** (4.272 p/s), OCR **6.6×** (0.622 p/s), at +1,482–1,662 MiB | measured, same 5-paper set |
-| 4 formula over the corpus | **≈17 h GPU / ≈150 h CPU** | a **projection**, not a measurement: decode time plus per-run cold start, from the density census. `DOCLING_A_REFEREE` §"the corrected projection" |
+| 4 formula over the corpus | **≈17 h GPU / ≈150 h CPU** | a **projection**, not a measurement: decode time plus per-run cold start, from the density census. `DOCLING_A_REFEREE` §5, "Projection — «per region» is right; the region count is 18% too high" |
 
 **Why the gate is not met**, clause by clause: metrics are parked as JSONL
 (`phase4/qc/litkb_extraction_metrics.jsonl`) rather than written to `extraction_runs.metrics`;
 GROBID's per-worker RSS is **derived** from one shared JVM's slope (~689 MiB/worker), not measured;
 GROBID has no two-pool-size measurement; Docling has not run on the corpus. The two throughput
 **kills** do fire — a one-core pin reports a lower rate than the pool (GROBID 12.65 s vs 8.14 s,
-1.55×; Docling 0.396 vs 0.601 p/s, 1.52×), and the instrument refuses a run recording no RSS.
+1.55×; Docling 0.396 vs 0.601 p/s, 1.52×), and the Docling instrument refuses a run recording no RSS (the GROBID instrument records the RSS but has no refusal path: a gap, named here).
 
 **Vendor speeds are not inputs.** Docling reports 1.2–1.5 pages/s CPU-only **[F]**, and GROBID 10.6
 PDFs/s on one 16-CPU machine **[F]**, both on other hardware.
@@ -952,7 +952,7 @@ The row's gate text above is unchanged; this is what of it is now MET.
 | The adapters pass the §7.1 test | **MET for stages 0, 2, 3**; MinerU and any path-B parser unwritten | the three referee reports |
 | Stage 0 inventory, with the frame and text-layer census | **MET, with three named limitations**; its threshold band is pinned and the pins fire | `Reports/LITKB_INVENTORY_REFEREE_2026-09-15.md` |
 | Docling fail-closed formula enrichment | **MET, and no longer synthetic** — the OOM kill fired on a real CUDA OOM | `Reports/LITKB_DOCLING_A_REFEREE_2026-09-15.md` |
-| Kill: the throughput instrument refuses a run with no rate or no peak RSS | **FIRES** (both tools) | the GROBID and Docling referee reports |
+| Kill: the throughput instrument refuses a run with no rate or no peak RSS | **FIRES for Docling; NOT SHOWN for GROBID** | `Reports/LITKB_DOCLING_LOCAL_2026-09-15.md` §5. `qc/instruments/litkb_grobid_throughput.py` records `peak_rss_bytes` but carries no refusal path, and no referee exercised one |
 | Kill: a one-core pin reports a lower rate than the pool | **FIRES** (GROBID 1.55×, Docling 1.52×) | §12.10 |
 | **Throughput gate** (pages/s and peak RSS per worker, every stage × chosen tool, **two or more pool sizes**, written to `extraction_runs.metrics`, §12.10 filled in) | **NOT MET** | §12.10: GROBID is concurrency-1 only and its per-worker RSS is derived, not measured; Docling has run on 5 gate papers and the book, **not the corpus**; metrics are parked as JSONL, not in `extraction_runs.metrics` |
 | **Stage 5 reconciliation** | **NOT BUILT.** No gate has been written for it either; the only constraint recorded is that it must not assume a dense grid | `Reports/LITKB_DOCLING_LOCAL_2026-09-15.md` |
@@ -963,7 +963,7 @@ The row's gate text above is unchanged; this is what of it is now MET.
 referee pass — `cc36b82`, `8f985e5`, `5b26768`. In particular `GROBID_LOCAL_REFEREE2` returned
 **STAGE 2 NOT READY** on defect D1 (`enable` did not check the concurrency headroom) and `8f985e5`
 closes it; the fix is real and readable — `enable` now goes through `write_unit()`, which calls
-`require_concurrency_headroom` before it writes the unit (`grobid.sh` §"write_unit") — but **it has
+`require_concurrency_headroom` before it writes the unit (`grobid.sh`, `write_unit()`) — but **it has
 not been re-refereed**. The referee reports named above are the authority for everything up to the
 defects they list; the author commits that close those defects are not covered by any referee.
 (2) The GROBID book rate is a **range under stated load** (8.04–12.11 p/s), not a point; the

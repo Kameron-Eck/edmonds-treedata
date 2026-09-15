@@ -527,3 +527,44 @@ instead: `acquisition_attempts.detail`, whose every write goes through `run.reco
 the database grants let nothing else write the table), and exception text, whose sink is whichever handler catches
 it — `run.acquire`, `annas.run_audit`, `annas.run_jobs` — each of which redacts at the point of catching (RD1, RD4,
 RD16). A flow-sensitive version would be taint analysis, not a syntactic scan, and is not built.
+
+## Parallel harness adopted (2026-09-15)
+
+`work/20260914-harness-parallel` is merged in (`baa13d8`, `--no-ff`). The harness now runs its rows over N
+private tree copies and N private databases instead of one at a time in this worktree; nothing about a row
+changed — same edit, same whole test set, same baselines before and after, same sha256 restore proof — only
+who runs it and where. A worker is this same script re-invoked with `--only <its rows>` inside its own copy,
+so the multi-set baseline this report describes above (every distinct test set any chosen row runs) happens
+*inside* each worker, which is what makes the 37 P1+P2+annas rows safe to run in parallel at all.
+
+One conflicted file, `qc/instruments/litkb_p2_mutations.py`, both conflicts inside `main()`, both resolved by
+keeping both sides. The one that mattered: the parallel branch's `--sites` ran only the per-call-site
+self-check, because the sink scan did not exist when that branch forked. `--sites` and the pre-run gate now
+run **both** static checks again, so a sink that writes unredacted still refuses to let any row run.
+
+**The numbers, re-measured on the merged tree — the 106/106 of the two harness reports describes 106 rows and
+does not survive the merge.** The table is now **124 rows**: the 106 plus RD1–RD18, the redaction sites this
+report closes.
+
+| | |
+|---|---|
+| `--sites`, merged tree | 55 call sites, 52 covered by a row, 3 equivalent — **unchanged** by the merge |
+| sink scan | **12 sinks, 2 redacted, 10 allowed** (was 11/2/9) |
+| the twelfth sink | `litkb/db/provision.py::provision_workers::print`, the parallel branch's worker-database creator. The scan **refused it** until it was given a `SINK_ALLOW` reason with its call count pinned at 3 — an unplanned live firing of the guard this report introduced, on code written by someone who had never seen it |
+| serial sample, 8 rows | seed **20260915**, `random.Random(20260915).sample([m["id"] for m in M], 8)` → `S6,E3,S13,A13,S17,B3,RD8,R3` (RD8 drawn, not forced), against `litkb_test_w6`: **8/8 fired, baselines passed, rc 0** |
+| the same 8 rows in the parallel pass | **all 8 FIRED** — serial and parallel agree row for row |
+| **full pass, `--workers 9`** | **124/124 mutations fired; baselines passed; rc 0; 39.2 min.** 14 rows × 7 workers + 13 × 2; per-worker 36.8–39.2 min; every worker rc 0 |
+| `--plant-equivalent`, `--workers 2 --only B6,RD1` | `B6 FIRED`, `RD1 FIRED`, `ZZ0 DID NOT FIRE (PLANTED EQUIVALENT)`, **rc 1**, 4.5 min — the harness's own kill check, run on the merged tree before the long pass so that a real worker log, not the committed fixture, proved the parent can still read a verdict back |
+| `qc/check.py --fast` | **1 failed, 2435 passed, 5 skipped, 1 xfailed** under `LITKB_TEST_DB=litkb_test_w6` (635 s) and again with it unset (542 s). The one failure is the pre-existing, allowed `test_experiments.py::test_pointer_paths_resolve[crown_state_model]`, in both. Referee 2's E-1 — the test that hard-coded `litkb_test_w2` as its example of a foreign database and so failed under that one name — was fixed at `802eae6` before the merge |
+
+`default_workers()` is 9 on this machine (12 threads, Kam's 20 % headroom rule), so `--workers 9` needed no
+`--allow-oversubscribe`. 39.2 min against the two harness reports' 25.1 and 26.5 for 106 rows: 18 more rows,
+and the copies ran from a separate `--worker-root` while other agents held `litkb_test`, `litkb_test_w3` and
+`litkb_test_w5`. The suite's advisory lock is per database, so a worker on a contended name waits rather than
+races — the wall-clock is an upper bound under contention, not a regression. Serially, 124 rows at the ~4.5 min
+a row costs would be about nine hours.
+
+**Not verified here:** the 8-row serial/parallel agreement is on verdicts, and equivalence for the other 116
+rows rests on the mode being the same code path. `--plant-equivalent` was exercised on 2 real rows plus ZZ0,
+not on all 124. Neither referee's break was re-injected on the merged tree; the merge changed `main()`'s
+argument handling and the two self-checks, not the partition, stale-copy or tri-state guards they exercise.

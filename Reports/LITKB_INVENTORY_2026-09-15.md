@@ -138,17 +138,19 @@ own numbers. A referee can re-inspect by rendering the same pages.
 
 | file | page | what the render shows | class | route |
 |---|--:|---|---|---|
-| Ogata_1998_space-time-point-process-models | 1, 12 | grey scan of body text, no selectable text | image-only | **scan** |
+| Ogata_1998_space-time-point-process-models | 1 | scan of the article's **title page** — title, byline, abstract, start of §1 — no selectable text | image-only | **scan** |
+| " | 12 | scan of a body page, no selectable text | image-only | |
 | Anderson_1957_statistical-inference-about-markov | 1 | scanned article opening; only the IMS strip is native | partial | **scan** |
 | " | 2 | scanned body page, nothing native | image-only | |
 | Kingman_1962_imbedding-problem-finite-markov-chains | 1 | scanned page **with a complete text layer** (OCR-damaged byline) | text | **native** |
-| Bell_1977_markov-analysis-land-use-change | 1, 3 | Acrobat Capture: full-page images under a full text layer | text | **native** |
+| Bell_1977_markov-analysis-land-use-change | 1 | article first page (title, byline, abstract, two columns), Acrobat Capture: a full-page image with a complete text layer over it | text | **native** |
+| " | 3 | body page with a table and equations, same full layer | text | |
 | Schneider_2008_stochastic-integral-geometry (688 pp) | 1 | Springer cover, raster only | image-only | **mixed** |
-| " | 4 | born-digital front matter, 58 characters | text | |
+| " | 4 | born-digital **half-title page**: two author names, the title, the Springer imprint — and that is all the text there is | text | |
 | Hall_1985_resampling-coverage-pattern | 12 | body text, rotation 2, cropbox ≠ mediabox, layer fine | text | **native** |
 | Guo_2019_city-wide-canopy-cover-decline | 6 | full-page rotated figure (three maps), 117-char caption | partial | **mixed** |
 | Alwan_1988_time-series-modeling-statistical-process | 2 | born-digital two-column | text | **native** |
-| Reynolds_2000_general-approach-modeling-cusum | 7 | scanned table inserted in a native paper | partial | **mixed** |
+| Reynolds_2000_general-approach-modeling-cusum | 7 | scanned full-page **Table 1** with a sideways running head; the native characters are the head and the page number | partial | **mixed** |
 | " | 14 | scanned table; only the running head is native (25 chars) | image-only | |
 | Almon_1965_distributed-lag-between-capital | 1 | **standalone JSTOR cover page**; article starts p2 | text | **cover-sheet** |
 | Schwartz_2000_… (`_quarantine`) | 1 | image-only scan — and of a different paper than its name | image-only | **scan** |
@@ -186,6 +188,12 @@ The revision-3 brief gave 7 image-only scans with no recorded criterion. The des
 | Hwang_1982_improving-upon-standard-estimators | 11 | 10 | 1 | scan |
 | Schwartz_2000_… (`_quarantine` only) | 3 | 3 | 0 | scan |
 | Schneider_2008 (the 688-page book) | 688 | **1** | 0 | mixed |
+
+**Where the "7" came from, most likely.** 5 active scans + the `_quarantine` copy + the book
+counted for its one rastered cover = **7**. That is the only arithmetic in this table that
+reaches 7, and it requires counting a quarantined file as a document and a 688-page
+born-digital book as a scan. Offered as a reconciliation, not as a claim about what the
+revision-3 brief actually did — its criterion is not recorded.
 
 **The answer.** In the active corpus there are **5 scanned documents**, not 7: Ogata 1998 with
 no text layer anywhere, and four IMS/JSTOR scans whose only native characters are a 130–142
@@ -348,4 +356,15 @@ PASS, pytest **1 failed, 2,489 passed, 5 skipped, 1 xfailed** — the single fai
 4. **Image area can exceed the page.** `image_frac` above 1.0 (MacFaden p1 at 1.12, Pauls p17
    at 1.23) is a raster bleeding past the cropbox or overlapping rasters; the threshold is a
    floor so this never changes a class, but the column is not a probability.
-5. **No referee.** See the status note at the top.
+5. **One bad page condemns the whole file.** If `_page_measure` raises on any page, the
+   record routes `unreadable` with `unreadable_reason="page"` and the pages already read are
+   kept but the file is not classified — a single damaged page would take the 688-page book
+   out of the pipeline. No corpus file does this (0 unreadable), so the behaviour is untested
+   against a real instance; P5 should treat `unreadable_reason="page"` as "look at this file",
+   not as "this file is lost".
+6. **The gate's page descriptions come from renders, and only from renders.** Every cell in §4
+   was written after reading the PNG. Four of them (Ogata p1, Bell p1, Schneider p4,
+   Reynolds p7) were first drafted from the probe's numbers and corrected against the image
+   before this report was finished; the correction changed three descriptions and **no
+   classes**.
+7. **No referee.** See the status note at the top.

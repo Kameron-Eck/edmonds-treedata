@@ -453,3 +453,16 @@ and its journal version**, two distinct DOIs and therefore two works under the r
 `version-of` relation in the database to express the tracker's human "same paper" judgement — which survives
 only as a `duplicate_of` discrepancy. Judgement call 3's "the database already has one" holds for identical
 DOIs only.
+
+## P4 adapters merged
+
+2026-09-15: the three refereed P4 adapter branches (stage 0 inventory, stage 2 GROBID, stage 3
+Docling) were merged onto this branch, and **migration 0016 was applied to `litkb`** — the write this
+report deliberately left pending. The P3 gate was re-run read-only afterwards and is unchanged:
+**1,086 changed cells — explained 713, format 243, structural 120, filled 10, UNEXPLAINED 0, GATE
+PASS**, with `phase4/qc/litkb_p3_diff.csv` regenerating byte-identical. The full parallel mutation
+harness on `--worker-dbs 1,2,6,9` fired **155/155** rows with baselines passing. Details, the merge
+commits, the conflicts and the gates that remain: **`Reports/LITKB_P4_MERGE_2026-09-15.md`**.
+
+One correction to this report's own text: `qc/instruments/litkb_p3_diff.py --workstream` takes the
+workstream **UUID** (`01a0a494-bb54-7c1b-be26-db0c229a9534`), not the slug `p3-migration`.

@@ -439,7 +439,7 @@ of the page as displayed (rotation applied), box = (x0, y0, x1, y1). Each tool g
 | Path B reference parser | not known until it is chosen **[UNCONFIRMED]**; it may emit no boxes, in which case references are anchored through the Docling block they were read from | written in P4 |
 | MinerU | `bbox` normalised 0–1000, `page_idx` 0-based **[F]** | scale by page width/height ÷ 1000; page + 1 |
 | pypdfium2 | bounded text takes (left, bottom, right, top) **[F]**, implying a bottom-left origin (our inference **[UNCONFIRMED]**) | y flipped against page height; rotation applied |
-| Docling | "bounding boxes for all items, if available" **[F]**; field names and origin **[UNCONFIRMED]** | written in P4 after reading its output on a real page |
+| Docling | `bbox` with an explicit `coord_origin` per box: `"BOTTOMLEFT"` on items, `"TOPLEFT"` on table cells **in the same JSON file** **[M]**; the page box it reports is the CROPBOX, as GROBID's is **[M]** | branch on `coord_origin` (never on the container), flip BOTTOMLEFT against the page height, then the same mediabox shift as GROBID — `litkb.extract.docling.to_mediabox()` |
 
 **The canonical frame is the MEDIABOX** (added 2026-09-15, measured). "Origin at the top-left of the
 page" is ambiguous whenever a PDF's cropbox differs from its mediabox, and **223 pages of the
@@ -482,6 +482,30 @@ flagging it (referee 2, D3). With `segmentSentences=1` one real three-sentence p
 yields four boxes (`<p>` + 3 `<s>`), while a scan page's furniture — page number, running head,
 footer — is at most three; 4 is the lowest value that separates them by mechanism and is below the 8
 body blocks of the smallest real-paper fixture. **Provisional** pending a per-PDF body-block census.
+
+**Docling measures from the cropbox too [M] (2026-09-15).** Independently of the GROBID finding:
+on `Alwan_1988` the same block agrees with the pypdfium2 character-box union to **3.45 pt** after
+the shift and is **11.02 pt** out without it, and the shift that fixes it is `dx = crop.x0 − media.x0`
+= 10.345 — the cropbox origin, not a tolerance
+(`Reports/LITKB_DOCLING_LOCAL_REFEREE_2026-09-15.md` §"the frame"). Docling also mixes origins
+*within one file*: items carry `coord_origin = "BOTTOMLEFT"` while table cells in the same JSON carry
+`"TOPLEFT"` (`Reports/LITKB_DOCLING_LOCAL_2026-09-15.md` §2). The adapter reads the field per box;
+a mutation that ignores `coord_origin` and treats everything as TOPLEFT fails 3 tests (M2, same
+report §"kills").
+
+**Three modules now read the frame, and that is one home too many [M] (2026-09-15, unresolved).**
+`litkb.extract.inventory.page_frames`, `litkb.extract.grobid.page_frames` and
+`litkb.extract.docling.page_frames` all return `{page: {mediabox, cropbox, rotation, dx, dy}}` with
+the same `dx`/`dy` arithmetic. They are **not** interchangeable: inventory's and GROBID's resolve a
+page that INHERITS its `/MediaBox` from the page tree (the raw pdfium getter returns 0 there, and
+they fall back to pypdfium2's high-level accessor), and GROBID's raises rather than return a `None`
+mediabox; Docling's copy has neither guard and would raise a `TypeError` on such a page.
+Inventory's docstring already claims the role ("This is the ONE frame reader … grobid should import
+this one rather than keep a second copy"). **Not collapsed at the P4 merge**: each copy is the one
+the branch's referee measured against, and refactoring all three with no referee would retire
+refereed numbers on an unrefereed change (3.4c). It is carried as an open item in
+`Reports/LITKB_P4_MERGE_2026-09-15.md`, to be closed before stage 5 reconciliation is written —
+stage 5 is where a disagreement between the copies would actually produce wrong boxes.
 
 **Test (P4, before reconciliation is written):** on one born-digital page, take a word whose box
 pypdfium2 reports, and require every adapter's box for the region containing that word to contain
@@ -665,6 +689,21 @@ measured. P4 measures, P5 runs (§14).
   The count is **[UNCONFIRMED]** until stage 0's per-page text-layer probe sets it. OCR cost depends
   on it.
 
+**Stage 0 has now set both, and the home is `phase4/qc/litkb_inventory.csv`, not this section
+[M] (2026-09-15).** Over `D:\edmonds-pipeline\Literture`: **241 files / 5,038 pages** including
+`_quarantine`, **224 files / 4,712 pages** excluding it; 7 rotated pages, 271 cropped pages in 19
+files (296 in 20 including `_quarantine`), exactly 1 page both rotated and cropped, 3 encrypted
+files, 0 unreadable, 114 pages needing OCR (111 active). Routing: native 213, mixed 14,
+cover-sheet 8, scan 6 (active: 198 / 14 / 7 / 5). The census reproduces byte-identical except its
+`seconds` column on a `--force` re-run — verified again at the P4 merge.
+(`Reports/LITKB_INVENTORY_2026-09-15.md` §2, §5; referee `…_REFEREE_2026-09-15.md`.)
+
+**The "219 PDFs / 4,655 pages" above is a THIRD corpus definition and is superseded**: it came from
+`pdfinfo` over 219 active PDFs. **And the scan count is 5 active (+1 in `_quarantine`), not 7** —
+reaching 7 requires counting the quarantined copy as a document and the 688-page book as a scan.
+Quote a page count only with its corpus definition; §7.1's 216/223 and 224/4,712 sets are likewise
+different populations.
+
 ### 12.3 A resumable job queue in the database
 
 The queue is the `extraction_jobs` table (§4.3), written only through ingest-role functions.
@@ -821,6 +860,26 @@ P5's canary measures the same on ordinary papers.
 size), converted to nights at the window Kam sets (§15.16). The page count comes from stage 0's
 inventory: 4,655 active **[M]**, about 7,400 with the backlog (Kam's estimate).
 
+**What P4 has measured so far — PROVISIONAL, and the throughput gate is NOT MET [M] (2026-09-15).**
+This section stays unfilled as a projection; what follows is the measured basis, with its load
+stated, so that the gap to the gate is visible rather than implied.
+
+| Stage / tool | measured | basis, and why it is not yet the gate |
+|---|---|---|
+| 2 GROBID, 688-page book | **10.91 p/s** warm / 5.70 cold (builder, 3 rows 11.26/12.11/12.11); referee 1 median **8.04 p/s**; referee 2 determined **9.41 p/s** on a quiet host, 22.3 % below the builder's 12.11 | Every timing is **concurrency 1**. A projection built on 12.11 p/s is optimistic by ~25 %; carry the **range with the load stated**, not a point. `GROBID_LOCAL_REFEREE2` §D6 |
+| 3 Docling, layout, 5 gate papers | **0.711 p/s** aggregate over 199 pages, peak RSS 2,641 MB; the 688-page book alone **0.691 p/s**, peak **4,120 MB** | 5 papers + one book, **not the corpus**. `DOCLING_LOCAL` §"throughput" |
+| 3 Docling, OCR (Anderson 1957) | **0.094 p/s**, 22 pages | one file |
+| 4 Docling, formula enrichment | **0.0042–0.0062 p/s** (Bellettini pp. 3–4) | two pages; the corpus figure is an equation-density census plus an explicit projection, labelled "Not a measurement" |
+| 3–4 on the T2000 GPU | layout **6.0×** (4.272 p/s), OCR **6.6×** (0.622 p/s), at +1,482–1,662 MiB | measured, same 5-paper set |
+| 4 formula over the corpus | **≈17 h GPU / ≈150 h CPU** | a **projection**, not a measurement: decode time plus per-run cold start, from the density census. `DOCLING_A_REFEREE` §"the corrected projection" |
+
+**Why the gate is not met**, clause by clause: metrics are parked as JSONL
+(`phase4/qc/litkb_extraction_metrics.jsonl`) rather than written to `extraction_runs.metrics`;
+GROBID's per-worker RSS is **derived** from one shared JVM's slope (~689 MiB/worker), not measured;
+GROBID has no two-pool-size measurement; Docling has not run on the corpus. The two throughput
+**kills** do fire — a one-core pin reports a lower rate than the pool (GROBID 12.65 s vs 8.14 s,
+1.55×; Docling 0.396 vs 0.601 p/s, 1.52×), and the instrument refuses a run recording no RSS.
+
 **Vendor speeds are not inputs.** Docling reports 1.2–1.5 pages/s CPU-only **[F]**, and GROBID 10.6
 PDFs/s on one 16-CPU machine **[F]**, both on other hardware.
 
@@ -877,6 +936,38 @@ P3's kill needs the gate.
 | **P7 Retrieval** | embeddings, hybrid search, evaluation on the referee's paraphrased query set (§8) | vector leg and hybrid each at or above their pre-committed recall@k thresholds | with the vectors replaced by random vectors, **the vector leg alone**, on the paraphrased queries, falls below its threshold (the lexical legs would otherwise rescue a scrambled index) |
 | **P8 Access** | MCP server and CLI; the hunt protocol written into the convention; the access layer of §9.1: skill, librarian subagent, and the final CLAUDE.md rule on this branch (it reaches `main` only by Kam's merge). The hooks come last, after the gate | The librarian subagent, following the skill in a scratch worktree, runs a full mini-hunt: open workstream → admit → acquire → extract → record use with verified quote → promote prepare. Commit is exercised against a scratch git repository whose `main` it merges itself, never the real one | A use with an unverifiable quote is refused at prepare (fires before the mini-hunt gate is accepted). The hook's own kill fires after that gate and before the hook is relied on: with the hook installed, a paper-search call made in a worktree with no `.litkb-workstream` is flagged; with the hook entry removed, it is not |
 | **P9 Incremental mode + retire old paths** | The sweep (§12.3) picks up newly admitted files with no manual step; the reproducibility test (§12.11); the hand-edited tracker retired | A sample re-extracted at the same pipeline version gives identical canonical blocks; a file admitted after P5 reaches a current run with no manual step; old paths are removed from the convention | A nondeterminism introduced on purpose (reading order permuted in one re-run) is caught |
+
+### P4 status at the adapter merge (2026-09-15)
+
+Three refereed branches landed on `work/20260913-literature-kb` —
+stage 0 inventory (`work/20260915-inventory-stage0`), stage 2 GROBID
+(`work/20260914-grobid-local`), stage 3 Docling (`work/20260915-docling-local`).
+The row's gate text above is unchanged; this is what of it is now MET.
+
+| P4 gate clause | Status | Evidence |
+|---|---|---|
+| Path A: GROBID 0.9.1 CRF boots under WSL2 and returns TEI with coordinates | **MET** | `Reports/LITKB_GROBID_LOCAL_REFEREE_2026-09-14.md`; re-run at the merge, 54/54 tests pass with the service live |
+| Kill: the boot check fails under a JDK older than 21 | **FIRES** | same referee (`class file version 65.0`, rc 1) |
+| Kill: the §7.1 test fails with an adapter's arithmetic removed | **FIRES** for GROBID and for Docling | `…GROBID_LOCAL_REFEREE_2026-09-14.md`; `…DOCLING_LOCAL_REFEREE_2026-09-15.md` (M2: ignoring `coord_origin` fails 3 tests) |
+| The adapters pass the §7.1 test | **MET for stages 0, 2, 3**; MinerU and any path-B parser unwritten | the three referee reports |
+| Stage 0 inventory, with the frame and text-layer census | **MET, with three named limitations**; its threshold band is pinned and the pins fire | `Reports/LITKB_INVENTORY_REFEREE_2026-09-15.md` |
+| Docling fail-closed formula enrichment | **MET, and no longer synthetic** — the OOM kill fired on a real CUDA OOM | `Reports/LITKB_DOCLING_A_REFEREE_2026-09-15.md` |
+| Kill: the throughput instrument refuses a run with no rate or no peak RSS | **FIRES** (both tools) | the GROBID and Docling referee reports |
+| Kill: a one-core pin reports a lower rate than the pool | **FIRES** (GROBID 1.55×, Docling 1.52×) | §12.10 |
+| **Throughput gate** (pages/s and peak RSS per worker, every stage × chosen tool, **two or more pool sizes**, written to `extraction_runs.metrics`, §12.10 filled in) | **NOT MET** | §12.10: GROBID is concurrency-1 only and its per-worker RSS is derived, not measured; Docling has run on 5 gate papers and the book, **not the corpus**; metrics are parked as JSONL, not in `extraction_runs.metrics` |
+| **Stage 5 reconciliation** | **NOT BUILT.** No gate has been written for it either; the only constraint recorded is that it must not assume a dense grid | `Reports/LITKB_DOCLING_LOCAL_2026-09-15.md` |
+| Stages 1 (native layer) and 4 via MinerU; path-B reference parser; the `extraction_jobs` migration, leased worker and sweep (§12.3–§12.5) | **NOT BUILT** | — |
+| "Referee-authored, pre-committed gold … thresholds committed before the tool first runs on them" | **NOT VERIFIED.** Nothing in the three reports records gold authored by a referee and committed ahead of the measurement; the referees re-ran the builders' measurements instead | — |
+
+**Two honesty notes (3.4c).** (1) Each branch's head is an **author** commit made *after* its last
+referee pass — `cc36b82`, `8f985e5`, `5b26768`. In particular `GROBID_LOCAL_REFEREE2` returned
+**STAGE 2 NOT READY** on defect D1 (`enable` did not check the concurrency headroom) and `8f985e5`
+closes it; the fix is real and readable — `enable` now goes through `write_unit()`, which calls
+`require_concurrency_headroom` before it writes the unit (`grobid.sh` §"write_unit") — but **it has
+not been re-refereed**. The referee reports named above are the authority for everything up to the
+defects they list; the author commits that close those defects are not covered by any referee.
+(2) The GROBID book rate is a **range under stated load** (8.04–12.11 p/s), not a point; the
+builder's 12.11 did not reproduce.
 
 **Order of value:** P1–P3 already fix today's pain (mergeable, versioned, concurrent records with
 checks). P4–P7 add the knowledge layer. P8 makes it Claude's daily tool.

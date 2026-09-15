@@ -32,7 +32,7 @@ against its own source metrics row.
 | 16:18:17 | result visible server-side; local pull md5 `ecbba905869026129a2c96716a00d675` == server md5 |
 | 16:18:44 | **second exec** — `shard_ref5.zip`, the five referee equations (see §5; a deviation, stated) |
 | 16:20:32 | ref5 result present (5.664 s of decode) |
-| 16:21:00 | `vm_ops stop --session litkbf1` |
+| 16:21:00 | `vm_ops stop --session litkbf1` — printed `drain check litkbf1: NO_HEARTBEAT (dirty None GB)`, i.e. **the stop's own upload-drain gate did not pass; it could not read a backlog and stopped anyway.** Harmless here only because both result archives had already been md5-verified server-side *before* the stop was issued — that verification, not the drain gate, is what says nothing was lost |
 | 16:21:12 | `litkbf1: stopped` |
 | 16:22 | `vm_ops sessions`: **`0 active runtime(s) on the account`** |
 
@@ -290,9 +290,11 @@ matters and which did work. Anyone following §6 verbatim will hit the 403.
    would cost roughly 3.3 h at the §4 CPU rate.
 5. **Kill 3's worker-side firing on real GPU data.** §4 — it did not fire because nothing
    failed.
-6. **Kam's confirmation that crops may leave the machine.** The design flagged this as
-   UNCONFIRMED #8 and the canary has now sent 205 crops (2.23 MB) to Drive under the
-   orchestrator's approval of the crops-only design. Naming it here so it is not lost.
+6. **Whose words approved the crops leaving the machine.** The design flagged this as
+   UNCONFIRMED #8; the canary sent 205 crops (2,228,308 B) to Drive under an approval of
+   the crops-only design relayed through the orchestrator's launch brief. That approval is
+   **not read in Kam's own words anywhere in this repo**, which is the only sense in which
+   it is still open.
 7. **The heap-corruption crash** of the local crop-cutting stage (design §3) — not
    diagnosed, and untouched by this run, which cut only five new crops.
 
@@ -316,5 +318,21 @@ matters and which did work. Anyone following §6 verbatim will hit the 403.
   failure the design report recorded on this branch's base commit; nothing in this session
   touches experiments. Because the ladder stops at the first failing rung, preflight did not
   run, and `--fast` skips the smoke by definition.
-* Reproduction: the ref5 shard, its crops, the payload and the three-way reference join live
-  in this session's scratchpad; the commands are quoted inline above at each claim.
+* **§3.11, the worker's own log, read from Drive rather than pasted.**
+  `phase4/logs/litkb_formula_nohup_20260915T155511Z.log` carries the run's only lines that
+  `worker.json` does not: an unauthenticated-HF-Hub rate-limit warning, a 471-shard weight
+  load, and **two transformers model-config warnings** — `pad_token_id must be None or an
+  integer within the vocabulary (between 0 and 31999), got 128002` and a tied-weights notice
+  that the checkpoint's `embed_tokens.weight` and `lm_head.weight` differ so they are **not**
+  tied. Both are recorded, neither is diagnosed here; they are properties of the published
+  CodeFormula checkpoint under docling 2.127.0, not of this VM, and the run they preceded
+  reproduced the CPU and T2000 LaTeX exactly. It ends with the step log written to the lake.
+* **Reproduction, kept out of a scratchpad on purpose.** The design report said its own
+  evidence "lives in this session's scratchpad", and this session could not find it. So the
+  ref5 evidence sits beside the results instead:
+  `D:\edmonds-pipeline\litkb_derived\formula\ref5\{ref5_vm_start.py, shard_ref5.zip,
+  references.json, cpu_reference.jsonl}` — the second exec's payload verbatim, the shard it
+  decoded, the CPU and T2000 reference LaTeX, and the extracted reference rows. The ingested
+  rows are in `litkb_derived\formula\{metrics_formula_colab.jsonl,
+  latex_formula_colab.jsonl}`. All are lake/derived paths, outside the repo, as every other
+  litkb stage parks its rows.

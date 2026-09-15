@@ -224,6 +224,16 @@ fired on a real CUDA out-of-memory in the referee's §4.
 
 ## 6. The canary — prepared, NOT launched
 
+> **CORRECTED BY THE RUN, 2026-09-15.** This section was written before the launch and two
+> of its statements are wrong; `Reports/LITKB_COLAB_L4_CANARY_2026-09-15.md` is the home for
+> both. (1) The `rclone copy … treedata-sa:` upload in the recipe below **cannot work on
+> this account** — the service account has no Drive storage quota (403
+> `storageQuotaExceeded`); it can list, read and md5sum only, so the upload goes through the
+> Drive Desktop mount and is *verified* server-side through the SA. (2) The T2000 rate quoted
+> below as "0.0496 regions/s" is the source metrics row's `pages_per_s` (2 pages / 40.331 s);
+> regions/s for that run is 5 / 40.331 = 0.124, and every wall-clock scaled from it here
+> inherits the mislabel. The measured L4 rate is **0.1727 regions/s**.
+
 **Shard, built and sitting locally — not uploaded, not launched:**
 
     D:\edmonds-pipeline\litkb_derived\formula\shards\shard_canary200.zip

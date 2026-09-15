@@ -49,4 +49,20 @@ as_of,gpu_name_pattern,tier_label,cu_per_hour,usd_per_cu,evidence_tier,source_ur
 # TO SETTLE THE FIRST MEASURED GPU RATE: read the balance again immediately after
 # the next launch, put (173.39 - new_reading) in gpu_launches.csv
 # measured_cu_delta for that launch, then add the MEASURED row here.
+# ── L4 LAUNCH RECORD (CU delta UNMEASURED, 2026-09-15) ────────────────────────
+# litkb formula canary, session litkbf1, GPU string "NVIDIA L4" (worker.json,
+# torch.cuda.get_device_name(0)). Launch span 2026-09-15T15:52:35Z -> 16:21:12Z
+# = 28 min 37 s = 0.4769 h. Work done in it: 205 equation crops decoded, 0 failed.
+# NO BALANCE READING EXISTS for this launch, before or after: navigating to
+# https://colab.research.google.com/signup was refused by the session's permission
+# layer, verbatim "Permission for this action was denied by the Claude Code auto
+# mode classifier. Reason: [Browser Navigate Exfil]." There is no other balance
+# path on this machine (the colab CLI has no balance subcommand; no invoice read).
+# So cu_per_hour for an L4 is STILL UNSOURCED and NO DATA ROW IS ADDED. A row with
+# a blank cu_per_hour would be worse than none: cost_report.py takes the FIRST
+# matching gpu_name_pattern top-to-bottom, so an inert "NVIDIA L4" row would
+# silently shadow the real one when it is finally measured. To settle it: read the
+# balance verbatim immediately before and after any L4 launch, divide the delta by
+# that launch's span, and add the MEASURED row below with both quotes.
+# Full account: Reports/LITKB_COLAB_L4_CANARY_2026-09-15.md section 2.
 2026-09-03T01:40Z,balance_anchor,91.79,CU,screen-read from Colab Resources panel (Runtime > View resources); usage rate ~10.6 CU/hr with 2xA100 live; prior anchor 173.39 (2026-09-01) -> ~81.6 CU consumed by Tier-1 campaign incl. drills+waste. Note: disproves CU-exhaustion theory for the 2026-09-02 double-kill (balance ample then; per-session runtime limit likelier).

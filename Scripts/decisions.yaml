@@ -315,6 +315,17 @@ decisions:
       harness (branch work/20260914-harness-parallel) to be refereed and merged. Standing
       expectation: when a quality mechanism becomes the schedule bottleneck, speed it up in
       its own sub-project without weakening it; never cut rows or skip passes.
+      Decided in Kam's absence under his 10-minute rule (options + recommendation pushed,
+      no reply, recommendation adopted), 2026-09-15: (a) Docling formula enrichment runs only
+      on pages above the equation-density cut (0.05), not on every page; (b) formulas run in
+      P5 on a GPU, restricted to the equation-dense theory papers the math narrative cites,
+      fail-closed on out-of-memory (empty LaTeX is never recorded as success), MinerU
+      comparison deferred; (c) only equation-region image crops go to Colab, never the PDFs
+      (keeps "no PDFs on Drive"); (d) the first L4 canary launched (1 runtime, 200 crops,
+      stopped after 28.6 min; cost UNMEASURED because the balance page could not be read).
+      Kam's own calls the same day: an L4 Colab GPU is granted (~200 CU) for the GPU-bound
+      passes; no Semantic Scholar API key — batch the public endpoints instead; the merge
+      of the P4 adapter branches applied migration 0016 to litkb.
     why: >-
       P1 builds the version pointers, promotion functions and roles that §15.7 and §15.13
       constrain; P2's admission check needs the §15.15 year rule; §15.12 decides whether

@@ -278,6 +278,12 @@ site("E3r", "litkb/acquire/run.py::_jsonb::jsonb_safe", "{a0}", tests=TESTS_P1P2
      what="run._jsonb no longer removes NULs (the acquisition copy of the E3 guard)")
 site("E3rec", "litkb/textnorm.py::jsonb_safe::jsonb_safe", "{a0}", tests=TESTS_P1P2,
      what="jsonb_safe stops recursing: NULs survive inside dicts and lists")
+# The third reached copy of the E3 guard: stage 0 reads the PDF /Info dictionary straight off the file, and the
+# NUL that started E3 (Bell 1977's 'Acrobat 3.0 Capture Plug-in' producer string) lives in exactly that
+# dictionary. Stage 0's own set carries the case, so it is the set this row runs.
+site("E3inv", "litkb/extract/inventory.py::probe_file::jsonb_safe", "{a0}",
+     tests=["qc/test_litkb_inventory.py"],
+     what="stage 0 passes a PDF's /Info dictionary on with its NULs (the inventory copy of the E3 guard)")
 site("S1", "litkb/admit/front.py::add_candidate::_jsonb", _JSONB, tests=TESTS_P1P2,
      what="add_candidate sends raw/authors/ids to jsonb unguarded")
 site("S2", "litkb/admit/front.py::_call_admit::_jsonb", _JSONB, tests=TESTS_P1P2,
@@ -565,6 +571,14 @@ SINK_ALLOW = {
     "litkb/ops/nightly_dump.py::verify_existing::print": (1,
         "Dump filename, verification stage and reason, all filesystem facts from verify_dump(). No credential "
         "is in scope: the dump runs under the passfile."),
+    "litkb/extract/inventory.py::run::print": (2,
+        "Stage 0's progress lines: an index, a route word from the fixed ROUTES vocabulary, and the PDF's own "
+        "basename. This module reads no credential at all — it opens files under Literture read-only and never "
+        "connects to the database or the network."),
+    "litkb/extract/inventory.py::main::print": (4,
+        "Stage 0's summary: json.dumps of the derived counts (ints, route words, file basenames), the wall "
+        "clock, and the two output paths inside the repo. Same reason as above — no secret is in scope in this "
+        "module."),
     "litkb/ops/nightly_dump.py::install_task::print": (1,
         "The first line of PowerShell's own output from Register-ScheduledTask. The command it ran embeds a task "
         "name and a script path, no credential."),

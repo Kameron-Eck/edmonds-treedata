@@ -171,5 +171,57 @@ def provision():
         su.close()
 
 
+def worker_db(i):
+    return f"{_c.TEST_DB_PREFIX}_w{i}"
+
+
+def provision_workers(n, drop=False):
+    """Create (or drop) the parallel mutation-harness copies of the test database, litkb_test_w1..wN:
+    owned by litkb_test, same tablespace and extensions, CONNECT for litkb_test only. Each harness
+    worker points its pytest at one of them through LITKB_TEST_DB, so N rows run at once without
+    sharing the suite's advisory lock (locks are per database)."""
+    from psycopg import sql
+
+    su = _c.connect_admin("postgres", _c.SUPERUSER, autocommit=True)
+    try:
+        for i in range(1, n + 1):
+            db = worker_db(i)
+            exists = su.execute("SELECT 1 FROM pg_database WHERE datname = %s", (db,)).fetchone()
+            if drop:
+                if exists:
+                    su.execute(sql.SQL("DROP DATABASE {} WITH (FORCE)").format(sql.Identifier(db)))
+                    print(f"  database {db}: dropped")
+                continue
+            if exists:
+                print(f"  database {db}: exists")
+            else:
+                su.execute(sql.SQL(
+                    "CREATE DATABASE {} OWNER {} TABLESPACE {} TEMPLATE template0 ENCODING 'UTF8'").format(
+                    sql.Identifier(db), sql.Identifier(TEST_ROLE), sql.Identifier(TABLESPACE)))
+                print(f"  database {db}: created (owner {TEST_ROLE}, tablespace {TABLESPACE})")
+            su.execute(sql.SQL("REVOKE ALL ON DATABASE {} FROM PUBLIC").format(sql.Identifier(db)))
+            su.execute(sql.SQL("GRANT CONNECT ON DATABASE {} TO {}").format(
+                sql.Identifier(db), sql.Identifier(TEST_ROLE)))
+            dbc = _c.connect_admin(db, _c.SUPERUSER, autocommit=True)
+            try:
+                for ext in EXTENSIONS:
+                    dbc.execute(sql.SQL("CREATE EXTENSION IF NOT EXISTS {}").format(sql.Identifier(ext)))
+            finally:
+                dbc.close()
+    finally:
+        su.close()
+
+
 if __name__ == "__main__":
-    provision()
+    import argparse
+
+    ap = argparse.ArgumentParser(description="provision the litkb roles and databases")
+    ap.add_argument("--workers", type=int, default=0, help="also create N harness test databases litkb_test_w1..wN")
+    ap.add_argument("--drop-workers", type=int, default=0, help="drop harness test databases litkb_test_w1..wN")
+    a = ap.parse_args()
+    if a.drop_workers:
+        provision_workers(a.drop_workers, drop=True)
+    elif a.workers:
+        provision_workers(a.workers)
+    else:
+        provision()

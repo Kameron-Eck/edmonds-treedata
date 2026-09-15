@@ -9,6 +9,11 @@ touches the litkb database, and no mutation touches cluster grants.
 
     PYTHONUTF8=1 PYTHONPATH=pipeline py -3.12 qc/instruments/litkb_p2_mutations.py [--only ID,...]
     PYTHONUTF8=1 PYTHONPATH=pipeline py -3.12 qc/instruments/litkb_p2_mutations.py --sites
+    PYTHONUTF8=1 PYTHONPATH=pipeline py -3.12 qc/instruments/litkb_p2_mutations.py --workers 9
+        (parallel: first `py -3.12 -m litkb.db.provision --workers 9`; see run_workers below and
+        Reports/LITKB_HARNESS_PARALLEL_2026-09-14.md — 106 rows in 21 min instead of hours)
+    PYTHONUTF8=1 PYTHONPATH=pipeline py -3.12 qc/instruments/litkb_p2_mutations.py --workers 2 --only B6 --plant-equivalent
+        (the harness's own kill check: the planted no-op row must be reported DID NOT FIRE, exit 1)
 
 Exit 0 only if every chosen mutation fired and both baselines passed.
 
@@ -473,6 +478,8 @@ def _count(summary, word):
 
 
 def _edit(text, old, new, mid):
+    if "\r\n" in text and "\r\n" not in old:      # a CRLF checkout (core.autocrlf=true on a fresh worktree)
+        old, new = old.replace("\n", "\r\n"), new.replace("\n", "\r\n")
     n = text.count(old)
     if n != 1:
         raise RuntimeError(f"{mid}: mutation target occurs {n} times")
@@ -523,14 +530,115 @@ def run_one(m):
     return rc != 0 and _count(summary, "failed") > 0, summary, failed
 
 
+# ── parallel workers (2026-09-14, Kam: "organizing the work schedule to compliment the quality of the build") ──
+# Serial, one row is ~4.5 min: the whole test set against Postgres, every time. N workers each get a PRIVATE COPY
+# of the tree (a mutation edits the copy, never this tree) and a PRIVATE test database litkb_test_w<i>
+# (provisioned by `py -3.12 -m litkb.db.provision --workers N`; the suite's advisory lock is per database, so
+# workers never wait on each other). Each worker is this same script, run inside its copy with --only <its rows>,
+# so nothing about a row changes: same edit, same whole test set, same baselines before and after, same sha256
+# restore proof. The parent only partitions, launches, and reads the rows back.
+
+WORKER_ROOT_DEFAULT = Path(r"D:\edmonds-pipeline\_litkb_harness_workers")
+COPY_DIRS = ("Scripts", "Reports")          # tests read Reports/literature_tracker.csv
+
+
+def default_workers():
+    """Kam's 20 % headroom rule: leave a fifth of the threads free; each worker is one pytest process."""
+    import os
+
+    return max(1, int((os.cpu_count() or 4) * 0.8))
+
+
+def make_worker_copy(i, root):
+    import shutil
+
+    dst = Path(root) / f"w{i}"
+    if dst.exists():
+        shutil.rmtree(dst)
+    repo = SCRIPTS.parent
+    ignore = shutil.ignore_patterns("__pycache__", ".pytest_cache", "*.pyc", "_litkb_ws", ".litkb-workstream")
+    for d in COPY_DIRS:
+        shutil.copytree(repo / d, dst / d, ignore=ignore)
+    # the suite's git-ignore test needs a checkout with the repo's .gitignore files: an empty git repo plus the
+    # ignore files is enough for `git check-ignore --no-index`, and nothing here is ever committed
+    for gi in (".gitignore", "Scripts/.gitignore"):
+        if (repo / gi).exists():
+            shutil.copy2(repo / gi, dst / gi)
+    subprocess.run(["git", "init", "-q", str(dst)], check=True, capture_output=True)
+    return dst
+
+
+def run_workers(chosen, n, root, extra_args=()):
+    """Partition `chosen` round-robin over n workers, run each as a subprocess in its own copy against its own
+    database, and return [(mutation, fired, summary)] in the original order plus whether every baseline passed."""
+    import concurrent.futures as cf
+    import os
+    import re
+    import time
+
+    from litkb.db.provision import worker_db
+
+    n = min(n, len(chosen))
+    parts = [chosen[i::n] for i in range(n)]
+    root = Path(root)
+    root.mkdir(parents=True, exist_ok=True)
+    print(f"parallel: {len(chosen)} rows over {n} workers, copies under {root}")
+
+    def one(i, rows):
+        t0 = time.monotonic()
+        copy = make_worker_copy(i, root)
+        script = copy / "Scripts" / "qc" / "instruments" / Path(__file__).name
+        env = dict(os.environ, LITKB_TEST_DB=worker_db(i), PYTHONUTF8="1",
+                   PYTHONPATH=str(copy / "Scripts" / "pipeline"))
+        log = root / f"w{i}.log"
+        with log.open("w", encoding="utf-8") as fh:
+            r = subprocess.run([sys.executable, "-u", str(script), "--worker", *extra_args,
+                                "--only", ",".join(m["id"] for m in rows)],
+                               cwd=str(copy / "Scripts"), env=env, stdout=fh, stderr=subprocess.STDOUT, text=True)
+        text = log.read_text(encoding="utf-8", errors="replace")
+        fired = {}
+        for ln in text.splitlines():
+            mm = re.match(r"^(\S+)\s+(FIRED|DID NOT FIRE)\s", ln)
+            if mm:
+                fired[mm.group(1)] = mm.group(2) == "FIRED"
+        base_ok = bool(re.search(r"mutations fired; baselines passed", text))
+        return i, rows, fired, base_ok, r.returncode, time.monotonic() - t0, log
+
+    results, all_base = {}, True
+    with cf.ThreadPoolExecutor(max_workers=n) as ex:
+        for i, rows, fired, base_ok, rc, dt, log in ex.map(lambda a: one(*a), enumerate(parts, 1)):
+            missing = [m["id"] for m in rows if m["id"] not in fired]
+            print(f"worker {i}: {len(rows)} rows, {sum(fired.values())} fired, baselines "
+                  f"{'passed' if base_ok else 'FAILED'}, rc {rc}, {dt / 60:.1f} min, log {log}"
+                  + (f", NO RESULT for {missing}" if missing else ""))
+            all_base = all_base and base_ok and rc in (0, 1) and not missing
+            for m in rows:
+                results[m["id"]] = fired.get(m["id"], False)
+    return [(m, results[m["id"]]) for m in chosen], all_base
+
+
 def main(argv=None):
     ap = argparse.ArgumentParser(description="show each litkb P2 guard fire")
     ap.add_argument("--only", help="comma-separated mutation ids (default: all)")
     ap.add_argument("--sites", action="store_true",
                     help="run only the per-call-site self-check (static; no database, no tests)")
+    ap.add_argument("--workers", type=int, default=0,
+                    help=f"run the rows in parallel over N private copies + databases (0 = serial; "
+                         f"'auto' rule gives {default_workers()} here)")
+    ap.add_argument("--worker-root", default=str(WORKER_ROOT_DEFAULT), help="where the worker copies live")
+    ap.add_argument("--plant-equivalent", action="store_true",
+                    help="KILL CHECK for the harness itself: add a comment-only row that cannot change behaviour; "
+                         "the run must report it DID NOT FIRE and exit 1, serial or parallel")
+    ap.add_argument("--worker", action="store_true", help=argparse.SUPPRESS)   # set by run_workers
     a = ap.parse_args(sys.argv[1:] if argv is None else argv)
     if a.sites:
         sys.exit(0 if self_check()[0] else 1)
+    if a.plant_equivalent:
+        replace("ZZ0", f"{PKG}/textnorm.py", "The ONE Python normalisation of DOIs",
+                "The ONE Python normalisation of DOIs (planted equivalent: docstring only)",
+                "PLANTED EQUIVALENT: a comment-only edit; the harness must report it DID NOT FIRE", tests=TESTS)
+        if a.only and not a.worker and "ZZ0" not in a.only.split(","):
+            a.only += ",ZZ0"           # a worker runs exactly the ids the parent gave it
     chosen = M
     if a.only:
         wanted = [s.strip() for s in a.only.split(",") if s.strip()]
@@ -543,6 +651,18 @@ def main(argv=None):
     ok, _rows = self_check()
     if not ok:
         raise SystemExit("the per-call-site self-check failed (see PROBLEM lines above)")
+    if a.workers:
+        import time
+
+        t0 = time.monotonic()
+        rows, base_ok = run_workers(chosen, a.workers, a.worker_root,
+                                    extra_args=["--plant-equivalent"] if a.plant_equivalent else [])
+        for m, fired in rows:
+            print(f"{m['id']:<4} {'FIRED' if fired else 'DID NOT FIRE':<13} {m['what']}")
+        n = sum(f for _m, f in rows)
+        print(f"\n{n}/{len(rows)} mutations fired; baselines {'passed' if base_ok else 'FAILED'}; "
+              f"wall-clock {(time.monotonic() - t0) / 60:.1f} min over {a.workers} workers")
+        sys.exit(0 if n == len(rows) and base_ok else 1)
     # EVERY test set a chosen row runs is baselined, not just the default one: a row running P1+P2+annas against
     # an already-failing P1 would "fire" on a failure it did not cause. The flake of 2026-09-14 handed three rows
     # exactly that false pass.

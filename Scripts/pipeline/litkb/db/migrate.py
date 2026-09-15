@@ -110,8 +110,10 @@ def reset(conn):
     """Drop the litkb schemas. Refused anywhere but litkb_test (the server also refuses the
     litkb_test role on litkb; this is the second lock, not the only one)."""
     db = conn.execute("SELECT current_database()").fetchone()[0]
-    if db != _c.DB_TEST:
+    # BEGIN guard: reset only the test database
+    if db != _c.DB_TEST or not _c.is_test_db(db):
         raise MigrationError(f"reset refused: only {_c.DB_TEST} may be reset, this is {db}")
+    # END guard: reset only the test database
     conn.autocommit = True
     conn.execute("DROP SCHEMA IF EXISTS litkb CASCADE")
     conn.execute("DROP SCHEMA IF EXISTS litkb_meta CASCADE")

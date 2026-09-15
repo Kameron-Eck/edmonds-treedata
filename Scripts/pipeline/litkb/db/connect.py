@@ -12,7 +12,19 @@ HOST = os.environ.get("LITKB_PGHOST", "localhost")
 PORT = int(os.environ.get("LITKB_PGPORT", "5433"))
 
 DB_MAIN = "litkb"
-DB_TEST = "litkb_test"
+# The test database. LITKB_TEST_DB lets a parallel mutation-harness worker point the suite at its own
+# copy (litkb_test_w1, litkb_test_w2, ...; provisioned by litkb.db.provision --workers N). The name must
+# keep the litkb_test prefix: migrate.reset() and every "test only" refusal key on that prefix, so no
+# override can aim the suite at litkb or at anything but a throwaway.
+TEST_DB_PREFIX = "litkb_test"
+DB_TEST = os.environ.get("LITKB_TEST_DB", TEST_DB_PREFIX)
+if not DB_TEST.startswith(TEST_DB_PREFIX) or not re.fullmatch(r"[a-z_][a-z0-9_]*", DB_TEST):
+    raise RuntimeError(f"LITKB_TEST_DB must be a plain identifier starting with {TEST_DB_PREFIX!r}, got {DB_TEST!r}")
+
+
+def is_test_db(name):
+    """True for the test database and its harness-worker copies, never for litkb."""
+    return isinstance(name, str) and name.startswith(TEST_DB_PREFIX) and name != DB_MAIN
 
 # decisions.yaml litkb-p0-foundation, D-3: the promoter login is used ONLY by the promote tool
 # (litkb.promote.connect), which reads its password from a passfile of its own. Agents'

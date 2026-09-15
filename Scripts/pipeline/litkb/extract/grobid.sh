@@ -115,6 +115,11 @@ WorkingDirectory=${GROBID_DIR}
 ExecStart=${LAUNCHER} server ${CONFIG}
 Restart=on-failure
 RestartSec=5
+# Dropwizard exits 143 (128+SIGTERM) on a clean shutdown, so without this a normal
+# stop leaves the unit in state "failed" and status reports a healthy service as
+# broken. 143 is a success here; a real crash still shows up.
+# (No backticks in this heredoc: it is unquoted, so they would be executed.)
+SuccessExitStatus=143
 StandardOutput=append:/var/log/grobid.log
 StandardError=append:/var/log/grobid.log
 

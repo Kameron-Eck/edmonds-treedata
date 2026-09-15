@@ -168,9 +168,23 @@ def verify_result(result_zip, shard_manifest=None, expect_sha256=None, remote=No
 
 # ── ingest ──────────────────────────────────────────────────────────────────────────────
 
+def verify_queue_path(latex_path):
+    """Where rows that are not ``ok`` go. Beside the LaTeX corpus, never inside it."""
+    base, ext = os.path.splitext(latex_path)
+    return base + "_verify_queue" + (ext or ".jsonl")
+
+
 def ingest(result_zip, shard_manifest, metrics_path, latex_path, remote=None,
-           rclone="rclone", seen_shards=()):
+           rclone="rclone", seen_shards=(), verify_path=None):
     """Verify, then park. -> the metrics row that was appended.
+
+    THREE DESTINATIONS, NOT TWO (2026-09-15). A row is written to ``latex_path`` only when
+    its status is exactly ``ok``. ``unstable`` (the decode did not reproduce) and
+    ``degenerate`` (a repetition loop that ran to the token cap) are real decodes that are
+    not trustworthy answers, so they go to the VERIFICATION QUEUE — ``verify_path``, default
+    :func:`verify_queue_path` — carrying BOTH candidate strings and the reason, for the
+    design's on-demand Claude-vision check. Putting them in the corpus was the old behaviour
+    and it is what let 13 capped repetition loops into canary 1's 200 rows as ``ok``.
 
     ``seen_shards`` makes the re-upload skip explicit (kill 4): a shard whose sha256 has
     already been ingested is a no-op, because the crops are content-addressed and decoding
@@ -193,7 +207,36 @@ def ingest(result_zip, shard_manifest, metrics_path, latex_path, remote=None,
 
     by_id = {c["crop_id"]: c for c in shard_manifest["crops"]}
     os.makedirs(os.path.dirname(os.path.abspath(latex_path)) or ".", exist_ok=True)
-    n = 0
+    vpath = verify_path or verify_queue_path(latex_path)
+    n = nq = 0
+    # THE VERIFICATION QUEUE, written first. `unstable` (the decode did not reproduce) and
+    # `degenerate` (a repetition loop that ran to the token cap) are real decodes that are
+    # not trustworthy answers, so they never reach the LaTeX corpus — they go here, carrying
+    # BOTH candidate strings, for the design's on-demand Claude-vision check.
+    with open(vpath, "a", encoding="utf-8", newline="\n") as vh:
+        for r in rows:
+            if r.get("status") not in ("unstable", "degenerate"):
+                continue
+            c = by_id.get(r["crop_id"], {})
+            vh.write(json.dumps({
+                "crop_id": r["crop_id"],
+                "file": c.get("file", r.get("file")),
+                "file_sha256": c.get("file_sha256"),
+                "page": c.get("page", r.get("page")),
+                "self_ref": c.get("self_ref"),
+                "bbox_canonical": c.get("bbox_canonical"),
+                "reason": r.get("status"),
+                "detail": r.get("degenerate_reason") or r.get("error"),
+                # BOTH strings, never one. Canary 2 showed the LONGER candidate is often the
+                # worse one — a repetition loop — so no rule here picks right without looking.
+                "latex": r.get("latex"),
+                "latex_redecode": r.get("latex_redecode"),
+                "stability": r.get("stability"),
+                "n_tokens": r.get("n_tokens"),
+                "shard_id": shard_manifest["shard_id"],
+                "batch_size": r.get("batch_size"),
+            }, sort_keys=True, ensure_ascii=False) + "\n")
+            nq += 1
     with open(latex_path, "a", encoding="utf-8", newline="\n") as fh:
         for r in rows:
             if r.get("status") != "ok":
@@ -224,6 +267,10 @@ def ingest(result_zip, shard_manifest, metrics_path, latex_path, remote=None,
         "shard_manifest_sha256": shard_manifest.get("shard_sha256"),
         "result_sha256": sha256_file(result_zip),
         "latex_rows_written": n,
+        "verify_queue_rows_written": nq,
+        "verify_queue_path": vpath,
+        "unstable": sum(1 for r in rows if r.get("status") == "unstable"),
+        "degenerate": sum(1 for r in rows if r.get("status") == "degenerate"),
         "verified": "done marker + sha256" + (" + server-side md5" if remote else ""),
     })
     _dg.append_metrics(row, metrics_path)

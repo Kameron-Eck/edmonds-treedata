@@ -296,9 +296,15 @@ def _fake(n, seed=7):
     return crops, images
 
 
-def test_crop_cost_is_width_times_ink_density(worker):
-    assert worker.crop_cost(_Img(200, 100, 5_000)) == pytest.approx(200 * 0.25)
-    assert worker.crop_cost(_Img(0, 0, 0)) == 0.0
+def test_crop_cost_is_predicted_seconds_from_ink(worker):
+    """Superseded 2026-09-15. The proxy used to be `width x ink density` and returned an
+    arbitrary unit; it now returns PREDICTED SECONDS from the ink pixel count, because that
+    is the unit assign_batches has to balance in. The ranking contract is the test below,
+    `test_the_cost_proxy_ranks_by_ink_not_by_ink_over_height`."""
+    ink = 5_000
+    assert worker.crop_cost(_Img(200, 100, ink)) == pytest.approx(
+        worker.predicted_seconds(ink))
+    assert worker.crop_cost(_Img(0, 0, 0)) == pytest.approx(worker.BATCH_SECONDS_INTERCEPT)
 
 
 def test_the_batch_plan_does_not_depend_on_n(worker):
@@ -318,13 +324,37 @@ def test_the_batch_plan_does_not_depend_on_n(worker):
 
 def test_assignment_is_deterministic_and_balances(worker):
     costs = [10.0, 9.0, 8.0, 7.0, 6.0, 5.0]
-    who = worker.assign_batches(costs, 3)
-    assert who == worker.assign_batches(costs, 3)
-    load = [sum(c for c, w in zip(costs, who) if w == k) for k in range(3)]
+    for mode in ("lpt", "deal"):
+        who = worker.assign_batches(costs, 3, mode=mode)
+        assert who == worker.assign_batches(costs, 3, mode=mode), mode
+        assert sorted(set(who)) == [0, 1, 2], "a slice got no work at all"
+        # every batch is assigned exactly once, to exactly one slice
+        assert len(who) == len(costs)
+        # each slice gets the same NUMBER of batches under either mode on this input
+        assert [who.count(k) for k in range(3)] == [2, 2, 2], (mode, who)
+    # LPT equalises the declared LOAD; dealing deliberately does not, because it does not
+    # believe the numbers (see assign_batches' docstring).
+    lpt = worker.assign_batches(costs, 3, mode="lpt")
+    load = [sum(c for c, w in zip(costs, lpt) if w == k) for k in range(3)]
     assert max(load) - min(load) <= 1.0, load
-    assert sorted(set(who)) == [0, 1, 2], "a slice got no work at all"
-    # every batch is assigned exactly once, to exactly one slice
-    assert len(who) == len(costs)
+
+
+def test_the_default_assignment_DEALS_rather_than_trusting_the_costs(worker):
+    """The proxy earns its ORDER believed, not its NUMBERS. LPT trusts the numbers, so one
+    badly under-estimated batch loads a slice it thinks is light and that slice runs long
+    after the others have finished; dealing cost-ordered batches round-robin cannot
+    concentrate the mistakes. Measured on canary 2's timings: 3.71x under LPT against 1.63x
+    dealt, the latter exactly the spread a perfect oracle reaches
+    (qc/instruments/litkb_formula_balance.py)."""
+    assert worker.ASSIGN_MODE == "deal"
+    # one batch wildly under-costed — a repetition loop no pixel proxy could have seen
+    costs = [9.0, 8.0, 7.0, 0.1, 6.0, 5.0, 4.0, 3.0]
+    assert worker.assign_batches(costs, 3) == [0, 1, 2, 0, 1, 2, 0, 1]
+    lpt = worker.assign_batches(costs, 3, mode="lpt")
+    assert lpt != worker.assign_batches(costs, 3), "deal and lpt agree — one of them is inert"
+    # the cheat batch is 4th-heaviest by rank but nearly free; under LPT it rides with the
+    # heaviest, under deal it lands on the slice that took the heaviest and nothing since.
+    assert worker.assign_batches(costs, 3)[3] == 0
 
 
 def test_plan_procs_states_which_term_bound_it(worker):
@@ -371,7 +401,7 @@ def test_a_dead_slice_fails_only_its_own_crops(worker):
     crops, images = _fake(20)
     plan = worker.plan_batches(crops, images, 5)
     who = worker.assign_batches(worker.batch_costs(plan, images), 2)
-    rows, ok, failed = worker.merge_slices(
+    rows, ok, failed, _u, _d = worker.merge_slices(
         plan, who, _rows_for(plan, who, {0}) | {1: []},
         {1: "child exit 1: CUDA error"})
     assert len(rows) == 20, "the merge lost crops — it is driven by the returns, not the plan"
@@ -392,7 +422,7 @@ def test_a_child_row_claiming_ok_with_no_latex_is_failed(worker):
     slices = _rows_for(plan, who, {0})
     slices[0][0]["latex"] = ""
     slices[0][1]["latex"] = "   "
-    rows, ok, failed = worker.merge_slices(plan, who, slices)
+    rows, ok, failed, _u, _d = worker.merge_slices(plan, who, slices)
     assert (ok, failed) == (8, 2)
     bad = [r for r in rows if r["status"] == "failed"]
     assert all(r["latex"] is None and "coerced to failed" in r["error"] for r in bad)
@@ -402,7 +432,8 @@ def test_the_merge_emits_one_row_per_crop_in_global_batch_order(worker):
     crops, images = _fake(17)
     plan = worker.plan_batches(crops, images, 5)
     who = worker.assign_batches(worker.batch_costs(plan, images), 3)
-    rows, _ok, _failed = worker.merge_slices(plan, who, _rows_for(plan, who, {0, 1, 2}))
+    rows, _ok, _failed, _u, _d = worker.merge_slices(plan, who,
+                                                     _rows_for(plan, who, {0, 1, 2}))
     assert [r["crop_id"] for r in rows] == [c["crop_id"] for b in plan for c in b]
     assert [r["batch_index"] for r in rows] == \
            [bi for bi, b in enumerate(plan) for _ in b]
@@ -463,13 +494,19 @@ def test_every_mutation_row_still_has_a_target():
     to find that out, so the ordinary suite checks it."""
     harness = _load(SCRIPTS / "qc" / "instruments" / "litkb_formula_mutations.py",
                     "litkb_formula_mutations_under_test")
-    assert len(harness.MUTATIONS) >= 5
+    assert len(harness.MUTATIONS) >= 11
+    # The campaign now spans TWO test files — the ingest's routing kill (G4) lives with the
+    # other ingest refusals, not here — so the search is over exactly the files the harness
+    # hands pytest. Reading that list OFF the harness rather than retyping it is the point:
+    # a campaign that runs one file while this test checks another is a silent no-op.
+    suites = "\n".join((SCRIPTS / f).read_text(encoding="utf-8")
+                       for f in (harness.TEST, harness.TEST_SHARDS))
     for m in harness.MUTATIONS:
         text = (SCRIPTS / m["file"]).read_text(encoding="utf-8")
         assert text.count(m["old"]) == 1, \
             f"{m['id']}: its target is missing or no longer unique in {m['file']}"
-        assert m["test"] in Path(__file__).read_text(encoding="utf-8"), \
-            f"{m['id']} names a test that does not exist here"
+        assert m["test"] in suites, \
+            f"{m['id']} names a test that exists in neither suite the campaign runs"
 
 
 def test_the_timing_fields_are_named_once(worker):
@@ -477,6 +514,212 @@ def test_the_timing_fields_are_named_once(worker):
     assert worker.TIMING_FIELDS == ("batch_seconds", "seconds_per_crop_in_batch")
     crops, images = _fake(5)
     plan = worker.plan_batches(crops, images, 5)
-    rows, _ok, _f = worker.merge_slices(plan, [0], _rows_for(plan, [0], {0}))
+    rows, _ok, _f, _u, _d = worker.merge_slices(plan, [0], _rows_for(plan, [0], {0}))
     for f in worker.TIMING_FIELDS:
         assert f in rows[0]
+
+
+# ── the two decode guards (2026-09-15, canary 2's Determinism section) ───────────────────
+# The canary re-decoded 200 crops it had already decoded and 14 came back different, six of
+# them by thousands of characters because one side had run to max_new_tokens inside a
+# repetition loop. These tests hold the two guards that answer that, and each is
+# mutation-tested in qc/instruments/litkb_formula_mutations.py (G1..G5).
+
+import hashlib as _hashlib    # noqa: E402
+import io as _io              # noqa: E402
+import json as _json          # noqa: E402
+import zipfile as _zipfile    # noqa: E402
+
+
+def _shard_zip(tmp_path, n=20, shard_id="s1"):
+    """A real shard archive: PNG crops whose bytes hash to their crop_id.
+
+    Sizes are distinct per crop, which is what lets a stub decoder identify which image it
+    was handed without the worker having to tell it.
+    """
+    from PIL import Image
+    crops, blobs = [], []
+    z = tmp_path / "shard.zip"
+    with _zipfile.ZipFile(z, "w") as zf:
+        for i in range(n):
+            buf = _io.BytesIO()
+            Image.new("RGB", (40 + i, 20 + i), (255 - i, 255, 255)).save(buf, "PNG")
+            b = buf.getvalue()
+            cid = _hashlib.sha256(b).hexdigest()
+            blobs.append((cid, b))
+            crops.append({"crop_id": cid, "file": "f%d.pdf" % (i % 3), "page": i,
+                          "self_ref": "#/texts/%d" % i, "_size": (40 + i, 20 + i)})
+        for cid, b in blobs:
+            zf.writestr("crops/%s.png" % cid, b)
+        zf.writestr("manifest.json", _json.dumps(
+            {"shard_id": shard_id,
+             "crops": [{k: v for k, v in c.items() if k != "_size"} for c in crops]}))
+    return z, crops
+
+
+def _run(worker, monkeypatch, shard, out, decoder, verify=True):
+    monkeypatch.setattr(worker, "decode_batch", decoder)
+    monkeypatch.setattr(worker, "_tokenizer_of", lambda m: None)
+    rec = worker.process_shard(str(shard), str(out), device="cpu", _model=(object(), 5),
+                               load_seconds=1.0, verify=verify)
+    with _zipfile.ZipFile(out) as zf:
+        rows = [_json.loads(ln) for ln in
+                zf.read("results.jsonl").decode().splitlines() if ln]
+    return rec, rows
+
+
+def test_a_planted_flip_is_recorded_unstable_with_BOTH_strings(worker, monkeypatch,
+                                                               tmp_path):
+    """THE KILL. One crop decodes differently on the re-decode. With the guard it is
+    `unstable` and both candidates survive; the mutation campaign (G1) shows that with the
+    guard removed the very same flip is recorded `ok` and one string is silently dropped."""
+    shard, crops = _shard_zip(tmp_path)
+    # the victim must be a crop the guard actually re-checks, or the test is measuring the
+    # sample rather than the guard: take it FROM the sample the worker itself will compute.
+    sampled = worker.stability_sample([{k: v for k, v in c.items() if k != "_size"}
+                                       for c in crops], "s1")
+    victim = [c for c in crops if c["crop_id"] in sampled][0]
+    vsize = victim["_size"]
+
+    def decoder(_model, images):
+        # a single-image call is the RE-decode (the guard decodes alone, on purpose); flip
+        # the victim's answer only there, which is exactly what a real flip looks like.
+        return ["FLIPPED" if (len(images) == 1 and im.size == vsize) else "x ^ 2"
+                for im in images]
+
+    rec, rows = _run(worker, monkeypatch, shard, tmp_path / "out.zip", decoder)
+    hit = [r for r in rows if r["crop_id"] == victim["crop_id"]][0]
+    assert hit["stability"] == "unstable", "the re-decode disagreed and nothing said so"
+    assert hit["status"] == "unstable", "an unstable row must NOT be ok"
+    assert hit["latex"] == "x ^ 2" and hit["latex_redecode"] == "FLIPPED", \
+        "both strings must survive — picking one invents a decision"
+    assert rec["unstable"] >= 1 and rec["status"] == "partial"
+    assert victim["crop_id"] not in {r["crop_id"] for r in rows if r["status"] == "ok"}
+
+
+def test_without_the_guard_the_same_flip_is_recorded_ok(worker, monkeypatch, tmp_path):
+    """The other half of the kill: --no-verify reproduces the pre-fix behaviour, and a row
+    that was never checked is an ordinary `ok` with no trace that it was ever in doubt."""
+    shard, crops = _shard_zip(tmp_path)
+    rec, rows = _run(worker, monkeypatch, shard, tmp_path / "o.zip",
+                     lambda _m, ims: ["x ^ 2"] * len(ims), verify=False)
+    assert rec["ok"] == len(crops) and rec["unstable"] == 0
+    assert all(r["stability"] == "unchecked" for r in rows)
+    assert rec["n_rechecked"] == 0
+
+
+def test_every_long_row_is_rechecked_not_just_the_sample(worker, monkeypatch, tmp_path):
+    """Length is the whole signal: 22% of rows over 1,000 characters differed against 2% of
+    those under 200. A 5% random sample alone would have missed most of them."""
+    shard, crops = _shard_zip(tmp_path, n=40)
+    # NOT a repeated string: "y " * n ends in a repeated tail and the degeneracy guard would
+    # claim it first, which would make this test measure the wrong guard.
+    long_tex = " ".join("x_{%d} + y^{%d}" % (i, i * 7 % 13)
+                        for i in range(worker.REDECODE_LONG_CHARS))
+    assert len(long_tex) >= worker.REDECODE_LONG_CHARS
+    assert not worker.degeneracy_of(long_tex)[0]
+    rec, rows = _run(worker, monkeypatch, shard, tmp_path / "o.zip",
+                     lambda _m, ims: [long_tex] * len(ims))
+    assert rec["n_rechecked"] == len(crops), "a long row escaped the re-decode"
+    assert all(r["stability"] == "stable" for r in rows)
+
+
+def test_the_stability_sample_is_deterministic_and_N_independent(worker):
+    """The same invariant plan_batches rests on: seeded from the SHARD, never from `random`,
+    so every slice of a shard agrees about which crops were checked."""
+    crops = [{"crop_id": "%064x" % i} for i in range(200)]
+    a = worker.stability_sample(crops, "shard-A")
+    assert a == worker.stability_sample(list(reversed(crops)), "shard-A")
+    assert a != worker.stability_sample(crops, "shard-B"), "the salt does nothing"
+    assert len(a) == 10 == int(round(200 * worker.REDECODE_FRACTION))
+    assert worker.stability_sample(crops, "s", fraction=0.0) == set()
+
+
+def test_a_repetition_loop_is_degenerate_even_when_it_is_perfectly_stable(worker,
+                                                                          monkeypatch,
+                                                                          tmp_path):
+    """THE SECOND KILL, and the one a stability check cannot reach. Nine of canary 1's capped
+    rows were capped IDENTICALLY in canary 2 — two runs agreeing on the same garbage. The
+    string here is the real shape one of those rows ended in."""
+    loop = "\\underset { n } {" * 300
+    assert worker.repeated_tail(loop), "the tail detector missed a 300x repeat"
+    deg, why = worker.degeneracy_of(loop)
+    assert deg and "repetition loop" in why
+    # the token-cap arm, independent of the text
+    deg2, why2 = worker.degeneracy_of("an ordinary looking formula", n_tokens=2036)
+    assert deg2 and "max_new_tokens" in why2
+    # an ordinary formula is neither
+    assert worker.degeneracy_of("a _ { 2 2 } = k ^ { 1 / 2 } \\sigma _ { 2 }") == (False, None)
+    assert worker.repeated_tail("x + y + z") is None
+
+    shard, crops = _shard_zip(tmp_path, n=10)
+    rec, rows = _run(worker, monkeypatch, shard, tmp_path / "o.zip",
+                     lambda _m, ims: [loop] * len(ims))
+    assert rec["degenerate"] == len(crops) and rec["ok"] == 0
+    assert all(r["status"] == "degenerate" and r["degenerate_reason"] for r in rows)
+    # STABLE AND WRONG: the re-decode agreed, and that is exactly the point
+    assert all(r["stability"] in ("stable", "unchecked") for r in rows)
+
+
+def test_the_merge_passes_unstable_and_degenerate_through_untouched(worker):
+    """The merge catches a slice that lied or vanished; it does not re-litigate a verdict a
+    child reached with the model in hand. Coercing these would erase the queue's contents."""
+    crops, images = _fake(10)
+    plan = worker.plan_batches(crops, images, 5)
+    who = worker.assign_batches(worker.batch_costs(plan, images), 1)
+    slices = _rows_for(plan, who, {0})
+    slices[0][0].update(status="unstable", latex="A", latex_redecode="B",
+                        stability="unstable")
+    slices[0][1].update(status="degenerate", latex="L" * 50,
+                        degenerate_reason="repetition loop")
+    rows, ok, failed, unstable, degenerate = worker.merge_slices(plan, who, slices)
+    assert (ok, failed, unstable, degenerate) == (8, 0, 1, 1)
+    u = [r for r in rows if r["status"] == "unstable"][0]
+    assert u["latex"] == "A" and u["latex_redecode"] == "B", \
+        "the merge dropped a candidate string"
+    assert [r for r in rows if r["status"] == "degenerate"][0]["degenerate_reason"]
+
+
+def test_the_child_slice_path_passes_the_load_it_measured(worker):
+    """model_load_seconds read 0.0 for all six of canary 2's slices: the child built the
+    model itself and handed it over as `_model=` without the matching `load_seconds=`, so
+    process_shard timed a load that had already happened. One keyword."""
+    src = WORKER.read_text(encoding="utf-8")
+    head = src.split("if a.slice_of:", 1)[1].split("return 0", 1)[0]
+    assert "t_load = time.time()" in head and "load_seconds=load_s" in head, \
+        "the child path builds the model without timing it — model_load_seconds will be 0.0"
+    assert head.index("t_load = time.time()") < head.index("build_model")
+
+
+# ── the cost proxy (canary 2 §4.2: the proxy, not --procs, is what failed) ───────────────
+
+def test_the_cost_proxy_ranks_by_ink_not_by_ink_over_height(worker):
+    """The old proxy was `width x ink density`, which cancels to `ink / height` — blind to
+    height, and height is what separates a multi-line array (the long emitters) from an
+    inline fragment. Measured against canary 1's decoded lengths over the same 200 crops,
+    ink pixel count ranks at Spearman +0.873 and the old form at +0.389."""
+    tall = _Img(100, 400, 20_000)     # same ink, four times the height
+    wide = _Img(400, 100, 20_000)
+    assert worker.crop_cost(tall) == pytest.approx(worker.crop_cost(wide)), \
+        "the proxy still depends on the aspect ratio rather than on the ink"
+    assert worker.crop_cost(_Img(200, 100, 20_000)) > worker.crop_cost(_Img(200, 100, 500))
+    assert worker.crop_cost(_Img(0, 0, 0)) == pytest.approx(worker.BATCH_SECONDS_INTERCEPT)
+    # and it saturates: a generation cannot emit past the token cap
+    assert worker.predicted_chars(10 ** 9) == worker.MAX_EMITTED_CHARS
+
+
+def test_a_batch_costs_its_LONGEST_member_not_the_sum(worker):
+    """A batched greedy decode steps every sequence together and stops when the longest one
+    finishes, so four short crops riding with a long one cost nothing extra. Summing was the
+    other half of the balance defect — it made five medium crops look dearer than one
+    runaway, and LPT then separated them the wrong way round."""
+    crops, images = _fake(10)
+    plan = worker.plan_batches(crops, images, 5)
+    costs = worker.batch_costs(plan, images)
+    for b, c in zip(plan, costs):
+        peak = max(worker.predicted_chars(worker.crop_ink(images[x["crop_id"]])[0])
+                   for x in b)
+        assert c == pytest.approx(worker.BATCH_SECONDS_INTERCEPT
+                                  + worker.BATCH_SECONDS_PER_CHAR * peak)
+        assert c < sum(worker.crop_cost(images[x["crop_id"]]) for x in b), \
+            "the batch is being charged the sum of its members again"

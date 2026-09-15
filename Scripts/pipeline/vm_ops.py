@@ -162,10 +162,54 @@ def _lost_handle_sigs(session):
             f"Session '{session}' not found")
 
 
+EXEC_TAIL_BYTES = 2000
+
+
+def _exec_log_dirs():
+    """Where a transcript may go, best first: the lake's log home, then a local temp."""
+    import tempfile
+    out = []
+    try:
+        from lake import BASE
+        out.append(Path(BASE) / "phase4" / "logs")
+    except Exception:                     # noqa: BLE001 — no lake on this machine is fine
+        pass
+    out.append(Path(tempfile.gettempdir()) / "vm_ops_exec")
+    return out
+
+
+def exec_transcript(session, out, dirs=None):
+    """Write the FULL exec output to a file -> its path, or None if nowhere is writable.
+
+    ``print(out[-2000:])`` kept the tail and threw the rest away, so a probe whose one useful
+    line printed FIRST lost it whenever the payload was chatty — canary 2 §10: two beat probes
+    came back starting mid-line, the beat timestamp already gone under six children's
+    cmdlines, and the probe had to be rewritten to print the beat twice. Truncating the
+    DISPLAY is fine; discarding the OUTPUT is the defect. The whole transcript now lands
+    beside the other step logs (CLAUDE.md §3.11) and the tail is printed with a pointer to it.
+    """
+    stamp = time.strftime("%Y%m%dT%H%M%SZ", time.gmtime())
+    name = f"vm_exec_{session}_{stamp}.log"
+    for d in (dirs if dirs is not None else _exec_log_dirs()):
+        try:
+            Path(d).mkdir(parents=True, exist_ok=True)
+            p = Path(d) / name
+            p.write_text(out, encoding="utf-8", errors="replace", newline="\n")
+            return p
+        except OSError:
+            continue
+    return None
+
+
 def exec_file(session, file, timeout):
     code, out = _cli(["exec", "-s", session, "-f", str(file),
                       "--timeout", str(timeout)], timeout=timeout)
-    print(out[-2000:])
+    if len(out) > EXEC_TAIL_BYTES:
+        p = exec_transcript(session, out)
+        print(f"  [exec output {len(out)} bytes — the LAST {EXEC_TAIL_BYTES} follow; "
+              f"the head is NOT lost, full transcript: {p or 'NOWHERE WRITABLE'}]",
+              flush=True)
+    print(out[-EXEC_TAIL_BYTES:])
     if any(sig in out for sig in _lost_handle_sigs(session)):
         print(f"\n  ! {session}: the CLI HANDLE is gone (kernel 404), and `Cleaning up` "
               f"has now pruned it - this is NOT evidence the VM is dead. The queue is "

@@ -24,6 +24,23 @@ WHY THESE FIVE. They are the failure modes the L4 canary either hit or walked pa
       them from the shard.
   M2  the merge's empty-LaTeX coercion — kill 3, at the one place a child process can smuggle
       an empty decode in as a success.
+
+And the five the DETERMINISM finding added (2026-09-15). Canary 2 re-decoded canary 1's own
+200 crops and 14 came back different; scanning all 200 then showed 13 of canary 1's rows and
+10 of canary 2's were repetition loops truncated at max_new_tokens, NINE of them identical in
+both runs — stable, and garbage.
+
+  G1  the stability guard's disagreement branch — remove it and a planted flip records `ok`.
+  G2  the guard's long-row trigger — length is the whole signal (22% of rows over 1,000 chars
+      differed against 2% under 200), so a 5% sample alone misses most of them.
+  G3  the degeneracy detector's repeated-tail arm — the one guard a stability check cannot
+      replace, because those nine identical loops pass any re-decode.
+  G4  the ingest's routing — before it, every one of those loops entered the LaTeX corpus.
+  G5  the batch cost's max — charging a batch the SUM of its members was half the slice
+      imbalance; a batched greedy decode costs its LONGEST member.
+  G6  the round-robin default — LPT believes the proxy's NUMBERS, and the proxy's residual is
+      heavy-tailed because no pixel proxy can see a repetition loop coming. Simulated on
+      canary 2's measured timings, LPT leaves 3.71x and dealing leaves 1.63x.
 """
 import argparse
 import hashlib
@@ -34,7 +51,9 @@ from pathlib import Path
 SCRIPTS = Path(__file__).resolve().parents[2]
 GEN = "pipeline/gen_vm_bootstrap.py"
 WORKER = "pipeline/litkb/extract/colab_formula_worker.py"
+INGEST = "pipeline/litkb/extract/formula_ingest.py"
 TEST = "qc/test_litkb_formula_colab.py"
+TEST_SHARDS = "qc/test_litkb_formula_shards.py"
 
 MUTATIONS = [
     dict(id="W1", file=GEN,
@@ -73,6 +92,44 @@ MUTATIONS = [
          test="test_a_child_row_claiming_ok_with_no_latex_is_failed",
          old='            elif got[1].get("status") == "ok" and not (got[1].get("latex") or "").strip():',
          new="            elif False:"),
+    dict(id="G1", file=WORKER,
+         what="the stability guard stops recording a disagreeing re-decode",
+         kill="a planted flip is recorded unstable, with BOTH strings kept",
+         test="test_a_planted_flip_is_recorded_unstable_with_BOTH_strings",
+         old='                    row["stability"] = "unstable"',
+         new='                    row["stability"] = "stable"'),
+    dict(id="G2", file=WORKER,
+         what="only the 5% sample is re-decoded; long rows lose their trigger",
+         kill="every long row is re-checked, not just the sample",
+         test="test_every_long_row_is_rechecked_not_just_the_sample",
+         old='            if row["status"] == "ok" and verify and (c["crop_id"] in sample\n'
+             '                                                     or len(tex) >= REDECODE_LONG_CHARS):',
+         new='            if row["status"] == "ok" and verify and c["crop_id"] in sample:'),
+    dict(id="G3", file=WORKER,
+         what="the degeneracy detector stops seeing a repetition loop",
+         kill="a repetition loop is degenerate even when it is perfectly stable",
+         test="test_a_repetition_loop_is_degenerate_even_when_it_is_perfectly_stable",
+         old="    rep = repeated_tail(text)\n    if rep:",
+         new="    rep = repeated_tail(text)\n    if False:"),
+    dict(id="G4", file=INGEST,
+         what="the ingest stops routing unstable and degenerate rows off the corpus",
+         kill="a row that is not ok never reaches the LaTeX corpus",
+         test="test_unstable_and_degenerate_rows_are_routed_off_the_corpus",
+         old='            if r.get("status") not in ("unstable", "degenerate"):',
+         new='            if True:'),
+    dict(id="G5", file=WORKER,
+         what="a batch is charged the SUM of its members again instead of its longest",
+         kill="a batch costs its LONGEST member, not the sum",
+         test="test_a_batch_costs_its_LONGEST_member_not_the_sum",
+         old='        peak = max((predicted_chars(crop_ink(images[c["crop_id"]])[0]) for c in b),\n'
+             '                   default=0.0)',
+         new='        peak = sum(predicted_chars(crop_ink(images[c["crop_id"]])[0]) for c in b)'),
+    dict(id="G6", file=WORKER,
+         what="slices go back to longest-processing-time, trusting the proxy's numbers",
+         kill="the default assignment DEALS rather than trusting the costs",
+         test="test_the_default_assignment_DEALS_rather_than_trusting_the_costs",
+         old='ASSIGN_MODE = "deal"',
+         new='ASSIGN_MODE = "lpt"'),
 ]
 
 
@@ -81,7 +138,8 @@ def _sha(p):
 
 
 def _pytest(selector=None):
-    cmd = [sys.executable, "-m", "pytest", TEST, "-q", "-p", "no:cacheprovider"]
+    cmd = [sys.executable, "-m", "pytest", TEST, TEST_SHARDS, "-q",
+           "-p", "no:cacheprovider"]
     if selector:
         cmd += ["-k", selector]
     r = subprocess.run(cmd, cwd=SCRIPTS, capture_output=True, text=True)

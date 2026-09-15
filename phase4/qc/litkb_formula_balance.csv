@@ -1,0 +1,34 @@
+section,name,value,unit,n
+proxy,old: w x ink density (= ink/h),0.3887,spearman_vs_canary1_chars,200
+proxy,NEW: ink pixel count,0.8727,spearman_vs_canary1_chars,200
+proxy,crop area w x h,0.7769,spearman_vs_canary1_chars,200
+proxy,height,0.7492,spearman_vs_canary1_chars,200
+proxy,width,0.3031,spearman_vs_canary1_chars,200
+batch_cost,intercept_s,0.812436,fit,40
+batch_cost,seconds_per_char,0.024179,fit,40
+batch_cost,r2,0.876588,fit,40
+batch_cost,r2_if_sum_not_max,0.7909,fit,40
+runaway,canary1_detected,12,rows,200
+runaway,canary2_detected,9,rows,200
+runaway,identical_in_both,8,rows,200
+stability,rows_differing_c1_vs_c2,14,rows,200
+balance,OLD proxy + LPT  [what canary 2 ran],360.2,slowest_slice_seconds,200
+balance,OLD proxy + LPT  [what canary 2 ran] [ratio],3.713,slowest_over_fastest,200
+balance,NEW proxy + LPT,399.3,slowest_slice_seconds,200
+balance,NEW proxy + LPT [ratio],6.106,slowest_over_fastest,200
+balance,NEW proxy + DEAL  [what ships],247.3,slowest_slice_seconds,200
+balance,NEW proxy + DEAL  [what ships] [ratio],1.626,slowest_over_fastest,200
+balance,OLD proxy + DEAL,330.9,slowest_slice_seconds,200
+balance,OLD proxy + DEAL [ratio],3.517,slowest_over_fastest,200
+balance,ORACLE: the actual emitted lengths,122.9,slowest_slice_seconds,200
+balance,ORACLE: the actual emitted lengths [ratio],1.626,slowest_over_fastest,200
+balance,"OLD proxy + LPT, runaways tamed",170.5,slowest_slice_seconds,200
+balance,"OLD proxy + LPT, runaways tamed [ratio]",1.758,slowest_over_fastest,200
+balance,"NEW proxy + DEAL, runaways tamed",179.8,slowest_slice_seconds,200
+balance,"NEW proxy + DEAL, runaways tamed [ratio]",2.761,slowest_over_fastest,200
+balance,"ORACLE, runaways tamed",113.7,slowest_slice_seconds,200
+balance,"ORACLE, runaways tamed [ratio]",1.844,slowest_over_fastest,200
+projection,guard_rows_pct,8.0,percent,200
+projection,guard_time_pct,27.84,percent,200
+projection,corpus_hours_no_guard,4.369,hours,7164
+projection,corpus_hours_with_guard,5.585,hours,7164

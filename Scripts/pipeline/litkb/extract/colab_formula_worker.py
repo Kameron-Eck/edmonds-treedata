@@ -49,6 +49,41 @@ processes on the one runtime, each owning a slice of the shard. Two rules make t
   not by what came back: a crop with no row, or a row a child marked ``ok`` while carrying no
   LaTeX, is written out as ``status="failed"`` with the slice named. A child's exit code is
   never trusted on its own.
+
+A DECODE IS NOT A FUNCTION OF THE CROP BYTES (2026-09-15, canary 2 §5 and the Determinism
+section that followed it). Canary 2 re-decoded canary 1's exact 200 crops and 14 came back
+different. The engine is NOT sampling — ``code_formula_vlm_model.py`` passes
+``temperature=0.0`` and ``transformers_engine.py`` sets ``do_sample = temperature > 0``, so
+the decode is greedy, read in the installed package. What moves is the NUMERICS: the engine
+pads a batch (``padding=True``, ``padding_side="left"``) so a crop's companions change the
+tensor shapes it is decoded inside, a near-tied argmax flips, and a greedy decode has no way
+back. Two consequences, and the second is worse than the first:
+
+* **Long regions are where it shows.** 4 of the 18 crops over 1,000 characters differed
+  against 2 of the 102 under 200.
+* **The real damage is a REPETITION LOOP.** Six of the fourteen moved by thousands of
+  characters, and in every one of those six ONE side sat at exactly 2035-2036 tokens —
+  ``max_new_tokens=2048``. The model had entered a degenerate loop (``\\underset { n } {``
+  268 times; ``\\text {`` 451 times) and was cut off by the cap. Scanning all 200:
+  **13 of canary 1's rows and 10 of canary 2's are capped repetition loops**, and **9 of
+  them are capped in BOTH runs** — identical, therefore invisible to any stability check,
+  and every one of them was written to the corpus as ``status="ok"`` with clean LaTeX.
+
+So this worker carries TWO independent guards, and they answer different questions:
+
+* the stability guard in :func:`process_shard`, sampled by :func:`stability_sample` — decode,
+  then RE-decode a deterministic 5% sample and every row over
+  ``REDECODE_LONG_CHARS``, in a different batch context (``batch_size 1``), and record
+  ``stable`` only when the two agree. Disagreement is ``status="unstable"`` with BOTH strings
+  kept, never a silent pick of one.
+* :func:`degeneracy_of` — is this string a repetition loop that ran to the token cap? A pure
+  function of the text (plus the token count when the engine's tokenizer is reachable), so it
+  fires on a row that is perfectly stable and perfectly wrong.
+
+Neither is ``ok``. Both route to the on-demand verification list
+(:mod:`litkb.extract.formula_ingest` writes ``*_verify_queue.jsonl``) instead of to the LaTeX
+corpus. Lowering ``max_new_tokens`` or adding a repetition stopping criterion would change
+every output against both canaries and is NOT done here — it is a decision for Kam.
 """
 from __future__ import annotations
 
@@ -177,28 +212,165 @@ def decode_batch(model, images):
 
 INK_LEVEL = 200          # a pixel darker than this is ink; lighter is page
 
+# Fitted on canary 2's 40 MEASURED batches (Reports/LITKB_COLAB_L4_CANARY2_2026-09-15.md,
+# "Determinism"): a batched greedy decode runs until its LONGEST member finishes, so a
+# batch's wall time is driven by max(member emitted chars), not by their sum —
+#     seconds = 0.812 + 0.02418 × max(chars)      R² = 0.877 over 40 batches
+# Those two numbers are what turn a proxy in arbitrary units into a proxy in SECONDS, which
+# is the unit `assign_batches` has to balance in. Balancing ink-pixel counts directly makes
+# the imbalance WORSE (7.71× against the current proxy's 3.71× in simulation), because ink is
+# heavy-tailed and LPT then hands one huge-ink batch a whole slice believing it is 5× the
+# work. Measured, not assumed; re-derive with qc/instruments/litkb_formula_balance.py.
+BATCH_SECONDS_INTERCEPT = 0.812
+BATCH_SECONDS_PER_CHAR = 0.02418
 
-def crop_cost(image):
-    """Estimated decode cost of one crop: **width in pixels × ink density**.
+# chars ≈ INK_CHARS_SCALE × ink**INK_CHARS_EXP, a log-log fit of canary-1 decoded length on
+# ink pixel count over the same 200 crops. Ink pixel count ranks decoded length at Spearman
+# +0.873, against the OLD proxy's +0.389 — the old one is `w × ink/(w·h)` = `ink/h`, which
+# divides the height straight out, and height is exactly what separates a one-line inline
+# equation from a multi-line array. That division is the defect.
+INK_CHARS_SCALE = 0.09284
+INK_CHARS_EXP = 1.0631
 
-    The canary settled that decode time is not constant per region — it tracks the DECODED
-    LaTeX length at r=0.974 (canary report §3). The decoded length is not knowable before the
-    decode, so this is a proxy for it: a formula's LaTeX grows with how much ink is laid out
-    across the line, which is width × the fraction of the crop that is ink. Both terms are
-    read off the crop itself, so the proxy is a pure function of the PNG bytes — which is what
-    makes the batch plan below identical in every process and on every machine.
+# A generation cannot emit more than max_new_tokens, so the cost model has to saturate too or
+# it charges a runaway 10× what the cap allows. 2048 tokens came back as at most ~5,500
+# characters across both canaries.
+MAX_EMITTED_CHARS = 5500
 
-    It is a PROXY and is not claimed to be calibrated: nothing here measures proxy against
-    decoded length. Its only job is to put the expensive batches first so the slices balance;
-    if it ranked randomly the results would still be identical, only slower.
-    """
+
+def crop_ink(image):
+    """-> (ink pixel count, width, height). The raw measurement both proxies are built on."""
     g = image.convert("L")
     w, h = g.size
     if not w or not h:
-        return 0.0
-    hist = g.histogram()
-    ink = sum(hist[:INK_LEVEL])
-    return w * (ink / float(w * h))
+        return 0, w, h
+    return sum(g.histogram()[:INK_LEVEL]), w, h
+
+
+def crop_cost(image):
+    """Estimated decode cost of one crop, **in seconds of emitted generation**.
+
+    The canary settled that decode time is not constant per region — it tracks the DECODED
+    LaTeX length at r=0.974 (canary report §3), and canary 2 settled that a BATCH's time is
+    its longest member's. So the chain is: ink pixels → predicted emitted characters →
+    predicted seconds, each link fitted on measured canary data (the constants above).
+
+    Ink pixel count, not the old ``width × ink density``: the old form cancels to ``ink/h``
+    and so is blind to height, which is what distinguishes a multi-line array — the long
+    emitters — from an inline fragment. Measured Spearman against canary-1 decoded length,
+    +0.873 vs +0.389.
+
+    Still a PROXY, and one thing it provably cannot do: **no pixel proxy predicts a
+    repetition loop.** 13 of canary 1's 200 crops ran to the token cap, and their images do
+    not look different. That is what :func:`degeneracy_of` is for; the proxy only has to rank
+    the ordinary work well enough for the slices to balance.
+    """
+    ink, w, h = crop_ink(image)
+    return predicted_seconds(ink)
+
+
+def predicted_chars(ink):
+    """Ink pixels -> predicted emitted characters, saturating at the token cap."""
+    if ink <= 0 or INK_CHARS_SCALE <= 0:
+        return float(ink)          # unfitted: rank by ink, which is the ordering that matters
+    return min(float(MAX_EMITTED_CHARS), INK_CHARS_SCALE * (float(ink) ** INK_CHARS_EXP))
+
+
+def predicted_seconds(ink):
+    """Ink pixels -> predicted decode seconds for that crop alone."""
+    return BATCH_SECONDS_INTERCEPT + BATCH_SECONDS_PER_CHAR * predicted_chars(ink)
+
+
+# ── the two guards ──────────────────────────────────────────────────────────────────────
+
+REDECODE_FRACTION = 0.05      # the random sample, every shard
+REDECODE_LONG_CHARS = 1000    # AND every row at least this long: 22% of them differed
+DEGENERATE_MIN_TOKENS = 2030  # max_new_tokens is 2048; the capped rows came back 2035-2036
+DEGENERATE_TAIL_REPEATS = 4   # a tail unit repeated this many times is a loop, not a formula
+DEGENERATE_TAIL_UNIT = 60     # the longest repeating unit looked for
+
+
+def stability_sample(crops, salt, fraction=REDECODE_FRACTION):
+    """-> the set of crop_ids to re-decode unconditionally. DETERMINISTIC AND N-INDEPENDENT.
+
+    Seeded from the SHARD hash, not from ``random``: every slice of a shard computes the same
+    sample from the same full crop list, so the guard cannot make N=1 and N>1 disagree about
+    which crops were checked — the same invariant ``plan_batches`` is built on. Ranking by
+    ``sha256(salt + crop_id)`` and taking the first ``fraction`` is a stable pseudo-random
+    choice with no PRNG state to carry between processes.
+    """
+    ids = sorted({c["crop_id"] for c in crops})
+    if not ids or fraction <= 0:
+        return set()
+    k = max(1, int(round(len(ids) * float(fraction))))
+    ranked = sorted(ids, key=lambda i: _sha256((str(salt) + i).encode("utf-8")))
+    return set(ranked[:k])
+
+
+def repeated_tail(text, min_repeats=DEGENERATE_TAIL_REPEATS, max_unit=DEGENERATE_TAIL_UNIT):
+    """-> (repeats, unit length, the unit) if the string ends in a loop, else None.
+
+    A pure function of the text, so it costs nothing and runs on every row. It is the half of
+    the degeneracy test that needs no tokenizer: it caught 12 of canary 1's 13 capped rows and
+    9 of canary 2's 10.
+    """
+    s = text or ""
+    for u in range(1, max_unit + 1):
+        if len(s) < u * min_repeats:
+            break
+        unit, n, i = s[-u:], 0, len(s)
+        while i >= u and s[i - u:i] == unit:
+            n += 1
+            i -= u
+        if n >= min_repeats:
+            return n, u, unit
+    return None
+
+
+def degeneracy_of(text, n_tokens=None):
+    """-> (is_degenerate, why). A row that is STABLE and still not a formula.
+
+    Two independent signals, either one enough:
+
+    * the generation ran to ``max_new_tokens`` — nothing was finished, it was CUT OFF, so the
+      LaTeX is a truncated fragment whatever else is true of it;
+    * the string ends in a repeated unit, which is what a greedy decode does when it falls
+      into a loop.
+
+    ``n_tokens`` is passed when the engine's tokenizer could be reached and is None otherwise;
+    the tail test alone still fires on the great majority. Nine of canary 1's capped rows were
+    capped IDENTICALLY in canary 2, so no amount of re-decoding would have found them — this
+    is the only guard that can.
+    """
+    if n_tokens is not None and int(n_tokens) >= DEGENERATE_MIN_TOKENS:
+        return True, ("generation hit max_new_tokens (%d tokens): the LaTeX is truncated, "
+                      "not finished" % int(n_tokens))
+    rep = repeated_tail(text)
+    if rep:
+        return True, ("the decode ended in a repetition loop: %r repeated %d times at the "
+                      "tail" % (rep[2], rep[0]))
+    return False, None
+
+
+def _tokenizer_of(model):
+    """The engine's tokenizer if it can be reached, else None. NEVER raises.
+
+    ``transformers_engine._get_tokenizer()`` is the documented accessor; other engines (MLX,
+    API) may not have one, and a guard that cannot count tokens still has ``repeated_tail``.
+    """
+    try:
+        eng = getattr(model, "engine", None)
+        get = getattr(eng, "_get_tokenizer", None)
+        return get() if get else None
+    except Exception:                     # noqa: BLE001 — a probe never kills the run
+        return None
+
+
+def _count_tokens(tok, text):
+    try:
+        return len(tok(text)["input_ids"]) if (tok and text) else None
+    except Exception:                     # noqa: BLE001
+        return None
 
 
 def plan_batches(crops, images, batch_size):
@@ -215,18 +387,62 @@ def plan_batches(crops, images, batch_size):
 
 
 def batch_costs(plan, images):
-    return [sum(crop_cost(images[c["crop_id"]]) for c in b) for b in plan]
+    """-> predicted seconds per batch. **MAX over members, not sum.**
+
+    A batched greedy decode steps every sequence together and stops when the LONGEST one
+    finishes; the four short crops riding with a long one cost nothing extra. Summing was the
+    second half of the balance defect — it made a batch of five medium crops look more
+    expensive than a batch holding one runaway, so LPT put them on different slices the wrong
+    way round. The intercept is per BATCH, so it is added once, not five times.
+    """
+    out = []
+    for b in plan:
+        peak = max((predicted_chars(crop_ink(images[c["crop_id"]])[0]) for c in b),
+                   default=0.0)
+        out.append(BATCH_SECONDS_INTERCEPT + BATCH_SECONDS_PER_CHAR * peak)
+    return out
 
 
-def assign_batches(costs, n):
-    """-> [slice index per batch]. Longest-processing-time, deterministic.
+ASSIGN_MODE = "deal"
 
-    Heaviest batch first into the least-loaded slice; ties to the lowest slice index. LPT is
-    the standard greedy bound for this (makespan ≤ 4/3 of optimal) and, more to the point
-    here, it is deterministic — two processes computing it independently agree, so no plan
-    needs to be shipped between them.
+
+def assign_batches(costs, n, mode=None):
+    """-> [slice index per batch]. Deterministic either way, so no plan is ever shipped.
+
+    TWO MODES, and the default changed on 2026-09-15 for a measured reason.
+
+    ``"lpt"`` — longest-processing-time: heaviest batch first into the least-loaded slice,
+    ties to the lowest index. The textbook greedy makespan bound (≤ 4/3 of optimal), and the
+    right answer **when the costs are trustworthy**.
+
+    ``"deal"`` — deal the batches round-robin in the order they arrive. ``plan_batches``
+    already sorts them most-expensive-first, so slice k gets batches k, k+n, k+2n … : one
+    batch from each difficulty band, by construction.
+
+    Why deal is the default. LPT believes the cost NUMBERS; dealing believes only their
+    ORDER. The proxy earns the second and not the first — it ranks decoded length at
+    Spearman +0.873, but its residual is heavy-tailed, because the crops that emit most are
+    the ones that fall into a repetition loop and **no pixel proxy can predict a repetition
+    loop** (:func:`degeneracy_of`). Fed one badly under-estimated batch, LPT loads a slice it
+    believes is light and that slice then runs long after the others have finished; dealing
+    cannot concentrate the mistakes, because consecutive batches always land on different
+    slices.
+
+    Measured, on canary 2's own timings (qc/instruments/litkb_formula_balance.py, simulation
+    on the fitted model of the measured batch seconds — not a run):
+
+        old proxy + LPT, i.e. what canary 2 ran   slowest 360.2 s   3.71x   (actual: 2.85x)
+        new proxy + LPT                           slowest 399.3 s   6.11x
+        new proxy + DEAL                          slowest 247.3 s   1.63x
+        a perfect oracle over the true lengths     slowest 122.9 s   1.63x
+
+    Dealing reaches the oracle's spread exactly; what still separates them is the ordering,
+    not the assignment.
     """
     n = max(1, int(n))
+    m = mode or ASSIGN_MODE
+    if m == "deal":
+        return [i % n for i in range(len(costs))]
     load = [0.0] * n
     out = [0] * len(costs)
     for bi in sorted(range(len(costs)), key=lambda i: (-costs[i], i)):
@@ -359,7 +575,7 @@ def read_shard(shard_zip, limit=None):
 
 def process_shard(shard_zip, out_zip, device="cuda", threads=4, batch_size=None,
                   artifacts_path=None, limit=None, _model=None, load_seconds=None,
-                  slice_index=None, slice_of=None):
+                  slice_index=None, slice_of=None, verify=True):
     """Decode ``shard_zip`` (or one slice of it); write ``out_zip``. -> the worker record.
 
     With ``slice_of`` set this process decodes only the batches LPT assigned to
@@ -387,8 +603,16 @@ def process_shard(shard_zip, out_zip, device="cuda", threads=4, batch_size=None,
         who = assign_batches(batch_costs(plan, images), int(slice_of))
         mine = [i for i in range(len(plan)) if who[i] == int(slice_index)]
 
+    # THE STABILITY SAMPLE is computed over the WHOLE shard, before any slicing, so every
+    # slice agrees about which crops are checked (the plan_batches invariant, applied to the
+    # guard). `verify` off restores the pre-2026-09-15 behaviour and is only for the A/B.
+    sample = stability_sample(crops, manifest.get("shard_id", ""),
+                              REDECODE_FRACTION if verify else 0.0)
+    tok = _tokenizer_of(model) if verify else None
+
     rows, t0 = [], time.time()
-    ok = failed = 0
+    ok = failed = unstable = degenerate = 0
+    recheck_seconds = 0.0
     beat()
     for i in mine:
         chunk = plan[i]
@@ -405,8 +629,7 @@ def process_shard(shard_zip, out_zip, device="cuda", threads=4, batch_size=None,
             # string is a FAILURE, not a formula with no content. Never an empty LaTeX
             # recorded as success.
             good = bool(tex and tex.strip())
-            ok, failed = ok + good, failed + (not good)
-            rows.append({
+            row = {
                 "crop_id": c["crop_id"], "file": c["file"], "page": c["page"],
                 "self_ref": c.get("self_ref"),
                 "status": "ok" if good else "failed",
@@ -420,7 +643,56 @@ def process_shard(shard_zip, out_zip, device="cuda", threads=4, batch_size=None,
                 "batch_index": i, "batch_size": len(chunk),
                 "batch_seconds": round(dt, 3),
                 "seconds_per_crop_in_batch": round(dt / len(chunk), 4),
-            })
+                "stability": "unchecked", "latex_redecode": None,
+                "n_tokens": None, "degenerate_reason": None,
+            }
+
+            # ── guard 2: degeneracy. Runs on EVERY ok row, costs no GPU, and is the only
+            # thing that sees a repetition loop that both runs produced identically.
+            if good:
+                row["n_tokens"] = _count_tokens(tok, tex)
+                deg, why = degeneracy_of(tex, row["n_tokens"])
+                if deg:
+                    row["status"] = "degenerate"
+                    row["degenerate_reason"] = why
+
+            # ── guard 1: stability. The 5% sample AND every long row, re-decoded ALONE —
+            # a different batch context, or the re-decode would agree for free under the
+            # padding hypothesis and the check would be inert.
+            # `row["status"] == "ok"`, not merely `good`: a row already ruled DEGENERATE is
+            # out of the corpus whatever a re-decode would say, and those rows are the
+            # 2048-token runaways — the most expensive crops in the shard. Re-decoding them
+            # buys nothing and costs more than the whole rest of the guard.
+            if row["status"] == "ok" and verify and (c["crop_id"] in sample
+                                                     or len(tex) >= REDECODE_LONG_CHARS):
+                tr = time.time()
+                try:
+                    again = decode_batch(model, [images[c["crop_id"]]])[0]
+                except Exception as e:    # noqa: BLE001 — a failed re-decode is not a verdict
+                    again = None
+                    row["error"] = f"re-decode raised {type(e).__name__}: {e}"
+                recheck_seconds += time.time() - tr
+                if again is None:
+                    row["stability"] = "recheck_failed"
+                elif again == tex:
+                    row["stability"] = "stable"
+                else:
+                    # BOTH strings are kept. Picking one would be inventing a decision the
+                    # measurement does not support: canary 2 showed the longer string is
+                    # often the WORSE one (a repetition loop), so "take the longer" is wrong
+                    # and "take the first" is arbitrary.
+                    row["stability"] = "unstable"
+                    row["latex_redecode"] = again
+                    if row["status"] == "ok":
+                        row["status"] = "unstable"
+                beat()
+
+            st = row["status"]
+            ok += st == "ok"
+            failed += st == "failed"
+            unstable += st == "unstable"
+            degenerate += st == "degenerate"
+            rows.append(row)
         _sample_free()
         beat()          # per batch: the watchdog's only evidence this worker is not hung
     seconds = time.time() - t0
@@ -437,6 +709,13 @@ def process_shard(shard_zip, out_zip, device="cuda", threads=4, batch_size=None,
         "shard_crops": len(crops),
         "slice_index": slice_index, "slice_of": slice_of,
         "ok": ok, "failed": failed,
+        "unstable": unstable, "degenerate": degenerate,
+        "verify": bool(verify),
+        "redecode_fraction": REDECODE_FRACTION if verify else 0.0,
+        "redecode_long_chars": REDECODE_LONG_CHARS,
+        "redecode_seconds": round(recheck_seconds, 3),
+        "n_rechecked": sum(1 for r in rows if r["stability"] != "unchecked"),
+        "tokenizer_reached": bool(tok),
         "seconds": round(seconds, 3),
         "regions_per_s": round(len(rows) / seconds, 4) if seconds > 0 else None,
         "model_load_seconds": round(load_s, 3),
@@ -447,7 +726,11 @@ def process_shard(shard_zip, out_zip, device="cuda", threads=4, batch_size=None,
         "python": sys.version.split()[0],
         "versions": _versions(),
         "started_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(t0)),
-        "status": "ok" if failed == 0 else "partial",
+        # A shard with unstable or degenerate rows is NOT "ok". They are not failures
+        # either — the decode ran — so they are their own state and the ingest keeps them
+        # out of the LaTeX corpus and puts them on the verification queue.
+        "status": ("ok" if failed == 0 and unstable == 0 and degenerate == 0
+                   else "partial"),
     }
     record.update(_vram())
     _write_result_archive(out_zip, rows, record)
@@ -467,11 +750,15 @@ def _stub_row(c, bi, bsz, error):
                             "output.text from the VLM engine and requests no scores",
         "batch_index": bi, "batch_size": bsz,
         "batch_seconds": None, "seconds_per_crop_in_batch": None,
+        "stability": "unchecked", "latex_redecode": None,
+        "n_tokens": None, "degenerate_reason": None,
     }
 
 
 def merge_slices(plan, who, slice_rows, slice_errors=None):
-    """-> (rows in global batch order, ok, failed). DRIVEN BY THE PLAN, NOT BY THE RETURNS.
+    """-> (rows in global batch order, ok, failed, unstable, degenerate).
+
+    DRIVEN BY THE PLAN, NOT BY THE RETURNS.
 
     Two kills live here, and both are the reason a child's exit code is never enough:
 
@@ -487,7 +774,7 @@ def merge_slices(plan, who, slice_rows, slice_errors=None):
     for si, rows in sorted(slice_rows.items()):
         for r in rows:
             by_id[r.get("crop_id")] = (si, r)
-    out, ok, failed = [], 0, 0
+    out, ok, failed, unstable, degenerate = [], 0, 0, 0, 0
     for bi, chunk in enumerate(plan):
         sl = who[bi] if bi < len(who) else None
         for c in chunk:
@@ -503,10 +790,20 @@ def merge_slices(plan, who, slice_rows, slice_errors=None):
                               "at the merge (docling returns empty strings on an engine "
                               "error, so an empty decode is never a success)" % got[0])
             else:
+                # `unstable` and `degenerate` pass through UNCHANGED. The merge's job is to
+                # catch a slice that lied or vanished, not to re-litigate a verdict a child
+                # reached with the model in hand — coercing them here would erase the very
+                # rows the verification queue exists to collect.
                 r = dict(got[1], batch_index=bi, batch_size=len(chunk))
-            ok, failed = ok + (r["status"] == "ok"), failed + (r["status"] != "ok")
+                r.setdefault("stability", "unchecked")
+                r.setdefault("latex_redecode", None)
+            st = r["status"]
+            ok += st == "ok"
+            failed += st == "failed"
+            unstable += st == "unstable"
+            degenerate += st == "degenerate"
             out.append(r)
-    return out, ok, failed
+    return out, ok, failed, unstable, degenerate
 
 
 def _gpu_total_bytes():
@@ -557,7 +854,8 @@ def wait_child(proc, handle, log_path, tail_bytes=400):
 
 def process_shard_parallel(shard_zip, out_zip, procs="auto", device="cuda", threads=4,
                            batch_size=None, artifacts_path=None, limit=None,
-                           peak_bytes=None, max_procs=None, python=None, work_dir=None):
+                           peak_bytes=None, max_procs=None, python=None, work_dir=None,
+                           verify=True):
     """Decode one shard with N child processes on this runtime. -> the parent's record."""
     bs = int(batch_size or default_batch_size())
     manifest, crops, images = read_shard(shard_zip, limit)
@@ -588,6 +886,8 @@ def process_shard_parallel(shard_zip, out_zip, procs="auto", device="cuda", thre
                "--slice-index", str(i), "--slice-of", str(n),
                "--device", device, "--threads", str(per_threads),
                "--batch-size", str(bs), "--no-log"]
+        if not verify:
+            cmd.append("--no-verify")
         if limit:
             cmd += ["--limit", str(limit)]
         if artifacts_path:
@@ -619,7 +919,8 @@ def process_shard_parallel(shard_zip, out_zip, procs="auto", device="cuda", thre
             slice_errors[i] = "%s; %s" % (slice_errors.get(i, ""), f"{type(e).__name__}: {e}")
     seconds = time.time() - t0
 
-    rows, ok, failed = merge_slices(plan, who, slice_rows, slice_errors)
+    rows, ok, failed, unstable, degenerate = merge_slices(plan, who, slice_rows,
+                                                          slice_errors)
     record = {
         "schema_version": SCHEMA_VERSION,
         "stage": "3-formula-colab",
@@ -627,6 +928,7 @@ def process_shard_parallel(shard_zip, out_zip, procs="auto", device="cuda", thre
         "shard_sha256": sha256_file(shard_zip),
         "n_crops": len(rows), "shard_crops": len(crops),
         "ok": ok, "failed": failed,
+        "unstable": unstable, "degenerate": degenerate,
         "seconds": round(seconds, 3),
         "regions_per_s": round(len(rows) / seconds, 4) if seconds > 0 else None,
         "batch_size": bs, "device": device, "threads": per_threads,
@@ -637,7 +939,8 @@ def process_shard_parallel(shard_zip, out_zip, procs="auto", device="cuda", thre
         "host": platform.node(), "python": sys.version.split()[0],
         "versions": _versions(),
         "started_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(t0)),
-        "status": "ok" if failed == 0 else "partial",
+        "status": ("ok" if failed == 0 and unstable == 0 and degenerate == 0
+                   else "partial"),
     }
     _write_result_archive(out_zip, rows, record)
     return record
@@ -713,6 +1016,10 @@ def main(argv=None):
     ap.add_argument("--slice-of", type=int, default=None)
     ap.add_argument("--out-file", default=None, help="exact output path (child slices)")
     ap.add_argument("--no-log", action="store_true", help="skip the step log (child slices)")
+    ap.add_argument("--no-verify", action="store_true",
+                    help="skip the stability re-decode (the 5%% sample and the long rows). "
+                         "For the A/B that measures the guard's own cost ONLY: with it off, "
+                         "an unstable decode is recorded as ok and nothing says so.")
     # CLAUDE.md §3.10: the ONE shared pair filter. A hand-rolled copy drops --flag=value.json
     # whole and falls back to the default with no error.
     if argv is None:
@@ -737,14 +1044,22 @@ def main(argv=None):
     # ── the child-slice path ────────────────────────────────────────────────────────────
     # One shard, one slice of its batch plan, one archive for the parent to merge.
     if a.slice_of:
+        # TIME THE LOAD AND HAND THE NUMBER ON. The child builds the model itself and passes
+        # it as `_model=`, so `process_shard` would otherwise time a load that has already
+        # happened and record 0.0 — which is exactly what every slice of canary 2 reported
+        # (report §4.2). The missing keyword is `load_seconds=`.
+        t_load = time.time()
         model = build_model(a.device, a.threads, a.artifacts_path)
+        load_s = time.time() - t_load
         rec = process_shard(shards[0], a.out_file, device=a.device, threads=a.threads,
                             batch_size=a.batch_size, artifacts_path=a.artifacts_path,
-                            limit=a.limit, _model=model,
-                            slice_index=a.slice_index, slice_of=a.slice_of)
+                            limit=a.limit, _model=model, load_seconds=load_s,
+                            slice_index=a.slice_index, slice_of=a.slice_of,
+                            verify=not a.no_verify)
         print(json.dumps({k: rec.get(k) for k in
                           ("shard_id", "status", "slice_index", "slice_of", "n_crops",
-                           "ok", "failed", "regions_per_s", "peak_alloc_bytes",
+                           "ok", "failed", "unstable", "degenerate", "regions_per_s",
+                           "model_load_seconds", "peak_alloc_bytes",
                            "device_min_free_bytes")}), flush=True)
         return 0
 
@@ -766,7 +1081,8 @@ def main(argv=None):
                 rec = process_shard_parallel(
                     s, out, procs=a.procs, device=a.device, threads=a.threads,
                     batch_size=a.batch_size, artifacts_path=a.artifacts_path,
-                    limit=a.limit, peak_bytes=a.peak_bytes, max_procs=a.max_procs)
+                    limit=a.limit, peak_bytes=a.peak_bytes, max_procs=a.max_procs,
+                    verify=not a.no_verify)
             except Exception as e:        # noqa: BLE001 — one bad shard never kills a queue
                 rec = {"shard": sid, "status": "failed", "error": f"{type(e).__name__}: {e}"}
             records.append(rec)
@@ -779,6 +1095,8 @@ def main(argv=None):
                 "crops": sum(int(r.get("n_crops") or 0) for r in records),
                 "ok": sum(int(r.get("ok") or 0) for r in records),
                 "failed": sum(int(r.get("failed") or 0) for r in records),
+                "unstable": sum(int(r.get("unstable") or 0) for r in records),
+                "degenerate": sum(int(r.get("degenerate") or 0) for r in records),
                 "seconds": round(time.time() - t0, 1),
                 "records": records,
             })
@@ -799,13 +1117,15 @@ def main(argv=None):
         try:
             rec = process_shard(s, out, device=a.device, threads=a.threads,
                                 batch_size=a.batch_size, artifacts_path=a.artifacts_path,
-                                limit=a.limit, _model=model, load_seconds=load_s)
+                                limit=a.limit, _model=model, load_seconds=load_s,
+                                verify=not a.no_verify)
         except Exception as e:            # noqa: BLE001 — one bad shard never kills a queue
             rec = {"shard": sid, "status": "failed", "error": f"{type(e).__name__}: {e}"}
         records.append(rec)
         print(json.dumps({k: rec.get(k) for k in
-                          ("shard_id", "status", "n_crops", "ok", "failed",
-                           "regions_per_s", "peak_alloc_bytes")}), flush=True)
+                          ("shard_id", "status", "n_crops", "ok", "failed", "unstable",
+                           "degenerate", "regions_per_s", "model_load_seconds",
+                           "redecode_seconds", "peak_alloc_bytes")}), flush=True)
 
     if not a.no_log:
         _write_step_log(a.log_dir, {
@@ -813,6 +1133,8 @@ def main(argv=None):
             "crops": sum(int(r.get("n_crops") or 0) for r in records),
             "ok": sum(int(r.get("ok") or 0) for r in records),
             "failed": sum(int(r.get("failed") or 0) for r in records),
+            "unstable": sum(int(r.get("unstable") or 0) for r in records),
+            "degenerate": sum(int(r.get("degenerate") or 0) for r in records),
             "seconds": round(time.time() - t0, 1),
             "records": records,
         })

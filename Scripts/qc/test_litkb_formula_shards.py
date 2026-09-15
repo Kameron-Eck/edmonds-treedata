@@ -97,8 +97,12 @@ def _run(shard_zip, out_zip, outputs, monkeypatch):
     monkeypatch.setattr(cw, "decode_batch",
                         lambda model, images: [outputs.pop(0) for _ in images])
     monkeypatch.setattr(cw, "_vram", lambda: {})
+    # verify=False: this stub pops outputs off a fixed LIST, so the stability guard's
+    # re-decode would consume the NEXT crop's string and every row would read `unstable` —
+    # an artefact of the stub, not of the archive these tests are about. The guard has its
+    # own tests, against a content-addressed stub, in qc/test_litkb_formula_colab.py.
     return process_shard(shard_zip, out_zip, device="cpu", batch_size=2,
-                         _model=(_StubModel([]), 5))
+                         _model=(_StubModel([]), 5), verify=False)
 
 
 # ── the shard ───────────────────────────────────────────────────────────────────────────
@@ -339,3 +343,49 @@ def test_kill_a_stale_local_copy_is_refused(tmp_path, shard, monkeypatch):
     monkeypatch.setattr(fi, "server_md5", lambda remote, rclone="rclone": None)
     with pytest.raises(ResultRefused, match="no server-side md5"):
         verify_result(out, man, remote="treedata-sa:phase4/x.zip")
+
+
+def test_unstable_and_degenerate_rows_are_routed_off_the_corpus(tmp_path, shard,
+                                                                monkeypatch):
+    """Kill, 2026-09-15. Before the guard, 13 of canary 1's 200 rows were repetition loops
+    truncated at max_new_tokens and every one went into the LaTeX corpus as ``ok``. A row
+    that is not ``ok`` now goes to the verification queue instead — and it carries BOTH
+    candidate strings, because canary 2 showed the longer one is often the worse one."""
+    from litkb.extract.formula_ingest import verify_queue_path
+    z, man = shard
+    out = str(tmp_path / "r.zip")
+    _run(z, out, ["x^2", "y", "z"], monkeypatch)
+    # rewrite two of the three rows to the two non-ok states, then re-seal the archive
+    with zipfile.ZipFile(out) as zf:
+        rows = [json.loads(ln) for ln in zf.read("results.jsonl").decode().splitlines()
+                if ln]
+        rec = json.loads(zf.read("worker.json").decode())
+    rows[0].update(status="unstable", latex="A", latex_redecode="B", stability="unstable")
+    rows[1].update(status="degenerate", latex="\\text {" * 400,
+                   degenerate_reason="repetition loop", n_tokens=2036)
+    rec.update(status="partial", ok=1, unstable=1, degenerate=1)
+    _reseal(out, rows, rec)
+
+    metrics, latex = str(tmp_path / "m.jsonl"), str(tmp_path / "latex.jsonl")
+    row = ingest(out, man, metrics, latex)
+    assert row["latex_rows_written"] == 1, "a non-ok row reached the LaTeX corpus"
+    assert row["verify_queue_rows_written"] == 2
+    assert (row["unstable"], row["degenerate"]) == (1, 1)
+    kept = [json.loads(ln) for ln in open(latex, encoding="utf-8")]
+    assert {r["latex"] for r in kept} == {"z"}
+
+    q = [json.loads(ln) for ln in open(verify_queue_path(latex), encoding="utf-8")]
+    assert len(q) == 2 and verify_queue_path(latex) == row["verify_queue_path"]
+    u = [r for r in q if r["reason"] == "unstable"][0]
+    assert u["latex"] == "A" and u["latex_redecode"] == "B", \
+        "the queue dropped a candidate — the whole point is that both survive"
+    d = [r for r in q if r["reason"] == "degenerate"][0]
+    assert d["detail"] and d["n_tokens"] == 2036
+    # the join key still travels, so a verified row can be patched back like any other
+    assert all(r["bbox_canonical"] and r["self_ref"] for r in q)
+
+
+def _reseal(out, rows, rec):
+    """Rewrite a result archive's members and its done marker. Real bytes, not a mock."""
+    from litkb.extract.colab_formula_worker import _write_result_archive
+    _write_result_archive(out, rows, rec)

@@ -208,7 +208,12 @@ def cmd_migrate(args, conn):
                else mrun.load_manifest(ctx, limit=args.limit))
     if args.log:
         Path(args.log).write_text(json.dumps(ctx.log, indent=1, default=str), encoding="utf-8")
-    _print(summary | {"registry_requests": getattr(ctx.client, "requests", None),
+    # the labels are printed because they are what the load RECORDS as its admitter, and the approval rule
+    # compares them (a manual admission may not be approved from the admitting session). They are the
+    # normalised ones, never the raw flags: an invisible character in --session must not make one session
+    # look like two. Labels are client-supplied identifiers, not secrets.
+    _print(summary | {"agent": ctx.agent, "session": ctx.session,
+                      "registry_requests": getattr(ctx.client, "requests", None),
                       "registry_cache_hits": getattr(ctx.client, "hits", None),
                       "log": args.log or "(not written; pass --log)"})
     return 0

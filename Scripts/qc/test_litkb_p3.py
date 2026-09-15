@@ -461,22 +461,24 @@ def test_a_same_surname_year_slug_collision_takes_the_conventions_a_b_suffix(pg,
 
     _need_file(VALIDATION)
     base = "Ridge regression for canopy"           # the same first four slug words for every row
+    # the SURNAME is unique to this run: the test database is shared between runs, and keys a previous run
+    # left would satisfy the assertion below without this run having written them
+    author = "Collider" + uuid.uuid4().hex[:6].translate(str.maketrans("0123456789", "abcdefghij"))
     ws = pg.ws()
-    keys, records, rows, manifest = [], {}, [], {}
+    records, rows, manifest = {}, [], {}
     for i in range(4):
         doi = f"10.5555/p3col-{uuid.uuid4().hex[:8]}"
         title = f"{base} part {i} {uuid.uuid4().hex[:6]}"
-        records[doi] = synthetic_record(doi, title, "Collider", 2019)
-        root, stem = plant(tmp_path, title, "Collider")
+        records[doi] = synthetic_record(doi, title, author, 2019)
+        root, stem = plant(tmp_path, title, author)
         manifest[stem] = {"stem": stem}
-        rows.append(row(70 + i, title=title, authors="Collider, C.", year=2019, doi=doi, stem=stem))
+        rows.append(row(70 + i, title=title, authors=f"{author}, C.", year=2019, doi=doi, stem=stem))
     ctx = loader(pg, ws, Registry(records), root=root)
     c = mrun.load_tracker(ctx, rows=rows, manifest=manifest)
     keys = [r[0] for r in pg.conn.execute(
-        "SELECT key FROM litkb.works WHERE key LIKE 'Collider_2019%%' ORDER BY key").fetchall()]
-    assert keys == ["Collider_2019_ridge-regression-canopy-part",
-                    "Collider_2019a_ridge-regression-canopy-part",
-                    "Collider_2019b_ridge-regression-canopy-part"], keys
+        "SELECT key FROM litkb.works WHERE key LIKE %s ORDER BY key", (f"{author}_2019%",)).fetchall()]
+    slug = "ridge-regression-canopy-part"
+    assert keys == [f"{author}_2019_{slug}", f"{author}_2019a_{slug}", f"{author}_2019b_{slug}"], keys
     assert c["admitted"] == 3 and c["refused"] == 1, ctx.log
     assert ctx.log[3]["outcome"] == "collided", ctx.log[3]
 
@@ -746,7 +748,10 @@ def test_a_nul_in_a_registry_record_reaches_neither_the_discrepancy_nor_the_use(
     ctx = loader(pg, ws, Registry({doi: rec}), root=root)
     r = row(120, title="A different title, so the authors are compared and recorded\x00",
             authors="Someone Else, S.", year=2020, doi=doi, stem=stem,
-            relevance="Relevance for the use version.", feeds="gap row 6")
+            # Relevance and Notes reach jsonb ONLY - no text column takes them - so a NUL here is
+            # carried exactly as far as record_use's own guard, and no further
+            relevance="Relevance\x00 for the use version.", feeds="gap row 6",
+            notes="a note\x00 here")
     c = mrun.load_tracker(ctx, rows=[r], manifest={stem: {"stem": stem}})
     assert c["admitted"] == 1 and c["uses"] == 1, ctx.log
     d = discrepancies(pg, ws)
@@ -761,31 +766,39 @@ def test_a_nul_in_a_registry_record_reaches_neither_the_discrepancy_nor_the_use(
     assert "\x00" not in stored_registry and "Nuller" in stored_registry
     assert "\x00" not in pg.one("SELECT title FROM litkb.candidates WHERE workstream_id = %s", (ws,))[0]
     # END guard: a NUL in the registry record does not stop the discrepancy or the use being written
-    stmt = pg.one("SELECT statement FROM litkb.use_versions WHERE workstream_id = %s", (ws,))[0]
-    assert stmt == "Relevance for the use version."
+    stmt, rat = pg.one("SELECT statement, rationale FROM litkb.use_versions WHERE workstream_id = %s",
+                       (ws,))
+    # BEGIN guard: a NUL in Relevance or Notes reaches the use version stripped, not as a crash
+    assert stmt == "Relevance for the use version." and "\x00" not in stmt
+    assert "\x00" not in (rat or "") and "a note here" in (rat or "")
+    # END guard: a NUL in Relevance or Notes reaches the use version stripped, not as a crash
 
 
 @pg_only
-def test_litkb_migrate_normalises_its_agent_and_session_labels(pg, tmp_path, monkeypatch):
-    """`litkb migrate` records who loaded the rows. The labels go through the ONE normaliser, so an invisible
-    character in `--session` cannot make a second session look like a third (harness row P6f)."""
+def test_litkb_migrate_normalises_its_agent_and_session_labels(pg, tmp_path, capsys):
+    """`litkb migrate` records WHO loaded the rows, and those labels are what the approval rule compares
+    (a manual admission may not be approved from the admitting session). They go through the ONE normaliser,
+    so a zero-width space in `--session` cannot make one session look like two.
+
+    Asserted on what the command PRINTS, which is the normalised pair it also hands the loader — not on
+    `norm_label` in isolation, which would still pass with the command's own call removed (harness P6f)."""
     from litkb import commands
 
     conn = pg.session("litkb_writer")
     ws = pg.ws()
     wt = tmp_path / "wt"
-    (wt).mkdir()
+    wt.mkdir()
     (wt / ".litkb-workstream").write_text(json.dumps({"workstream_id": str(ws), "token": pg.tokens[ws]}),
                                           encoding="utf-8")
     rc = commands.main(["--db", "litkb_test", "--dir", str(wt), "--agent", "claude​-p3",
                         "--session", "p3-labels ", "migrate", "tracker", "--limit", "0"],
                        connect=lambda _db: conn)
     assert rc == 0
-    # the load was empty, so assert on what the labels became: no workstream row carries the raw spelling
-    from litkb.textnorm import norm_label
-    assert norm_label("p3-labels ") == "p3-labels"
-    assert norm_label("claude​-p3") == "claude-p3"
-
+    printed = json.loads(capsys.readouterr().out)
+    # BEGIN guard: litkb migrate records normalised labels
+    assert printed["agent"] == "claude-p3", repr(printed["agent"])
+    assert printed["session"] == "p3-labels", repr(printed["session"])
+    # END guard: litkb migrate records normalised labels
 
 @pg_only
 def test_a_legacy_row_naming_a_file_the_store_does_not_hold_is_recorded(pg, tmp_path):
@@ -849,3 +862,33 @@ def test_the_manifest_load_is_idempotent_for_a_row_it_could_not_admit(pg, tmp_pa
     assert second["refused"] == 0, "the refused row was offered to the database a second time"
     # END guard: a refused manifest row is recognised on the second pass
     assert counts(pg) == before, f"a second manifest pass changed the database: {before} -> {counts(pg)}"
+
+
+
+@pg_only
+def test_a_duplicate_of_row_stays_blank_when_the_original_has_one_use(pg, tmp_path):
+    """The narrow case the `Duplicate of` guard exists for. With two uses on a work, `_use_for_row` matches
+    each row to its own and the guard looks redundant; with exactly ONE use it returns that use for any row,
+    so only the guard keeps the original's Relevance, grade and Feeds off the duplicate (harness row P7d)."""
+    from litkb import export as ex
+    from litkb.migrate_legacy import run as mrun
+
+    _need_file(VALIDATION)
+    hexid = uuid.uuid4().hex[:8]
+    doi, title, author = f"10.5555/p3one-{hexid}", f"Single {hexid} use on the original row", "Onlyone"
+    root, stem = plant(tmp_path, title, author)
+    ws = pg.ws()
+    reg = Registry({doi: synthetic_record(doi, title, author, 2022)})
+    rows = [row(140, title=title, authors=f"{author}, O.", year=2022, doi=doi, stem=stem,
+                relevance="The only relevance on this work.", feeds="gap row 6", grade="PRIMARY"),
+            row(141, title=title, authors=f"{author}, O.", year=2022, doi=doi, dup="140", status="Duplicate",
+                relevance="Duplicate — see [ID 140, Onlyone 2022]")]
+    c = mrun.load_tracker(loader(pg, ws, reg, root=root), rows=rows, manifest={stem: {"stem": stem}})
+    assert c["uses"] == 1, c
+    out = {r["ID"]: r for r in ex.tracker_rows(pg.conn, ws)}
+    assert out["140"]["Relevance (max 3 sentences)"] == "The only relevance on this work."
+    assert out["140"]["Evidence grade"] == "PRIMARY" and out["140"]["Feeds"] == "gap row 6"
+    # BEGIN guard: the duplicate row keeps its own words even when the work has exactly one use
+    assert out["141"]["Relevance (max 3 sentences)"] == "Duplicate — see [ID 140, Onlyone 2022]"
+    assert out["141"]["Evidence grade"] == "" and out["141"]["Feeds"] == ""
+    # END guard: the duplicate row keeps its own words even when the work has exactly one use

@@ -405,8 +405,10 @@ replace("P3c", f"{PKG}/migrate_legacy/run.py",
 p3(block, "P4a", f"{PKG}/migrate_legacy/run.py",
    "guard: a manifest sha256 that is not the file on disk is a discrepancy, never a silent pass",
    "a manifest sha256 that does not match the held file passes unflagged")
-replace("P5a", f"{PKG}/migrate_legacy/run.py", '    for letter in "ab":\n', '    for letter in "":\n',
-        "free_key stops suffixing: a same-surname/year/slug collision loses the second work", tests=TESTS_P3)
+# (no P5a: the a/b key suffix is the DATABASE's rule, migration 0014 D5, mutated by C15. P3 briefly carried a
+# Python copy of it in migrate_legacy.free_key; this harness is what found the copy, by reporting a mutation
+# that removed it as DID NOT FIRE — nothing depended on it. The copy is gone; the P3 collision test now
+# exercises 0014's rule through the loader, and TESTS_P3 runs under C15.)
 site("P6a", "litkb/migrate_legacy/plan.py::doi_discrepancy::normalize_doi", "{a0}", tests=TESTS_P3,
      what="the DOI discrepancy compares raw spellings: a case variant reads as a changed DOI")
 site("P6b", "litkb/migrate_legacy/plan.py::plan_row::normalize_doi", "{a0}", tests=TESTS_P3,

@@ -162,43 +162,26 @@ class Loader:
              None, self.ws, self.token, self.agent, self.session)).fetchone()
 
 
-def free_key(conn, base):
-    """`Surname_Year_slug`, with the convention's a/b/c suffix when that key is already a work's.
-
-    LITERATURE_CONVENTION.md: "An `a`/`b` suffix is used ONLY to break a same-surname, same-year collision
-    (`Smith_2019a_…`) — never as a versioning convention." A bulk load of 460 rows meets that collision: the
-    key's slug is the first four non-stopword title words, so two papers by one author in one year on one
-    subject land on the same key, and `works.key` is unique. Without this the second is refused as a
-    collision and lost. This is a READ before the write, not a bypass of a check.
-    """
-    import re as _re
-
-    if not conn.execute("SELECT 1 FROM litkb.works WHERE key = %s", (base,)).fetchone():
-        return base
-    m = _re.match(r"^([A-Za-z]+)_([0-9]{4})_(.*)$", base)
-    if not m:
-        return base
-    # `a` and `b` are all the key's CHECK constraint allows (migration 0001, `works.key`), so a FOURTH work
-    # on the same surname/year/slug is refused as a collision and reported — never renamed into an
-    # unconventional key.
-    for letter in "ab":
-        cand = f"{m.group(1)}_{m.group(2)}{letter}_{m.group(3)}"[:59]
-        if not conn.execute("SELECT 1 FROM litkb.works WHERE key = %s", (cand,)).fetchone():
-            return cand
-    return base
-
-
 def _key_for(ctx, rec, claimed):
+    """The work key this row should take, or None to let `admit_registry` build it.
+
+    It does NOT resolve a collision. `works.key` is `Surname_Year_slug` with the slug taken from the first
+    four non-stopword title words, so a bulk load of 460 rows meets two papers by one author in one year on
+    one subject — and the DATABASE already answers that: migration 0014 (referee fix D5) retries the key
+    with the convention's `a` and `b` year suffixes before refusing. An earlier version of this function
+    duplicated that rule in Python; the mutation harness caught it, because removing the Python copy changed
+    nothing (CLAUDE.md 3.3, one fact one home). The key is built here only so it comes from the same title
+    and first author the comparison used.
+    """
     from litkb.admit.front import make_key
 
     first = rec["first_author"] if rec else front.first_author_of(claimed.get("authors"))
     year = (rec or {}).get("year") or year_int(claimed.get("year")) or 0
     title = (rec or {}).get("title") or claimed.get("title") or ""
     try:
-        base = make_key(first, year, title)
+        return make_key(first, year, title)
     except (TypeError, ValueError):
         return None
-    return free_key(ctx.conn, base)
 
 
 def _counter():

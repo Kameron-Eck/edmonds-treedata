@@ -72,8 +72,8 @@ the manifest. There is nothing for P3 to leave UNBOUND with a sha256 discrepancy
 correct file; verified by hash.)
 
 **Page 1954** — one work `Page_1954_continuous-inspection-schemes`, **two active `doi` identifiers**
-(`10.2307/2333009`, `10.1093/biomet/41.1-2.100`). Correct: two DOIs, one work. This is also why
-`identifiers(doi)` is 366 against 348 works.
+(`10.2307/2333009`, `10.1093/biomet/41.1-2.100`). Correct: two DOIs, one work. (The work itself
+belongs to `edge-pre1990`, not to P3's workstream.)
 
 **`Duplicate of` pairs.** 264→13 and 199→94: one work each, the second candidate `duplicate` with
 `admitted_work_id` pointing at the first — as designed. Two more are worth Kam's eye: 50→3 is HELD
@@ -118,15 +118,34 @@ and there is a branch for it. It sits *after* the `hit` test. 91 of the 109 held
 discrepancy records, so for those rows the BUG branch cannot be reached: corrupting a held row's
 `Title` returns `explained`. Per 3.4c, a gate branch that cannot fire is not a gate.
 
-**F1 (fix before P3 is closed).** One line, in `compare()`:
+**F1 — the fix, measured, not proposed.** My first draft of this fix was
+`elif hit and norm_cell(hit[1] or "") == norm_cell(b):`. I applied it to a scratch copy of the
+instrument and ran it against `litkb` read-only: **19 UNEXPLAINED, GATE FAIL** — the 19 DOI cells,
+whose record holds the bare DOI while the export prints the `https://doi.org/…` form. The
+`_same_doi` branch above does not rescue them: it compares *today* with *exported*, never *record*
+with *exported*. Holding the builder to 3.4c and not myself would have shipped a fix that breaks the
+gate. The form that is actually correct, also measured:
 
 ```python
-elif hit and norm_cell(hit[1] or "") == norm_cell(b):
+elif hit and (norm_cell(hit[1] or "") == norm_cell(b)
+              or (field in ("DOI/URL", "doi") and _same_doi(hit[1] or "", b))):
 ```
 
-…with the DOI case already handled above it, and the `held` test moved ahead of `hit`. Then re-run
-the instrument and re-commit `phase4/qc/litkb_p3_diff.csv`. The measurement in this section says the
-count will not change — which is the point: the fix costs nothing and closes the hole.
+Measured on `litkb`: **explained 713, format 243, structural 120, filled 10, UNEXPLAINED 0 — GATE
+PASS**, bucket for bucket identical to today's output. Under it, **Plant A now fails the gate**
+("no discrepancy record names this cell") and **Plant C fails with the right message** ("the row was
+HELD: the export must print it back verbatim") — the value test knocks a corrupt held cell out of
+`hit` before the `held` branch is reached, so **no reorder is needed**. And the reorder would have
+changed nothing anyway: measured, **0 of today's 1086 changed cells sit on a held row**, i.e. the
+export does print held rows back verbatim, as designed.
+
+One narrowing worth stating: `held_rows` is built from `raw_record ->> 'ID'`, which only
+tracker-sourced candidates carry. **88 of the 109 unadmitted candidates have an ID; the 21
+manifest-only held rows are outside the held guard entirely.** Keying manifest held rows on their
+stem would close that.
+
+So: re-run the instrument with the DOI-aware form and re-commit `phase4/qc/litkb_p3_diff.csv`
+unchanged. The numbers do not move; the hole does.
 
 ## 4. Kills
 
@@ -139,7 +158,7 @@ Three kills of my own, written by me against `litkb_test_w1`, all **pass**:
 | my kill | result |
 |---|---|
 | a tracker row whose `Duplicate of` names a non-existent ID (`999999`) | the load finishes, the row is admitted on its own DOI, the dangling value is recorded verbatim as a `duplicate_of` discrepancy, and **no** `duplicate` candidate is invented |
-| a manifest row whose sha256 is a file already bound to another work (byte-identical twin, two DOIs) | the bytes bind to **one** work only; the second does not steal the binding |
+| a manifest row whose sha256 is a file already bound to another work (byte-identical twin, two DOIs) | the bytes bind to **one** work only (row 910, `bound`, ratio 1.0); the second does not steal the binding. **But read the reason:** row 911 was refused at `check3_binding`, ratio 0.5278 — the *content* check caught it before the sha256-collision guard was reached. My kill therefore proves the outer defence, not the collision guard; the guard itself is exercised by the builder's `test_a_file_already_held_by_another_work_is_recorded_as_a_collision`, which passes |
 | a manual proposal approved by the **same** session | refused — and refused by the **database**, not only by Python: `CheckViolation` on `admissions_second_session_signs_off`, admission still `proposed`. (The Python guard in `admit.front.approve` fires first; calling `litkb.approve_admission` directly proves the constraint is the real gate.) |
 
 Idempotence was **not** re-run against `litkb`, which is read-only for me; the suite's `P3b`/`P3c`
@@ -213,8 +232,9 @@ literal. 16 commits, 19 files, +4783/−15.
 
 ## 8. What Kam should see before accepting
 
-1. **F1 — the gate's `explained` bucket must compare values** (one line), and the `held` branch must
-   be tested before it. The measurement above says the numbers will not move; the hole is what moves.
+1. **F1 — the gate's `explained` bucket must compare values**, in the DOI-aware form measured in §3
+   (the naive form fails the gate on 19 cells). Also key manifest held rows on their stem: 21 are
+   outside the held guard today.
 2. **F3** — relabel the 45 refusals as check 2 (duplicate), not check 1 or 4.
 3. **F4** — one year parser, not two.
 4. **F7 / F8** — the manifest authority line, and the rule's scope.

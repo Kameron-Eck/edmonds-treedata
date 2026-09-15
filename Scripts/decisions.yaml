@@ -310,6 +310,11 @@ decisions:
       from the registry record and the verified file (DOI + file); every tracker or manifest
       field that disagrees with the registry is kept as a flagged discrepancy for later
       review, nothing dropped; no correction pass on the old tracker before loading.
+      After P2 acceptance (Kam, 2026-09-14): the secret-redaction guard (22 call sites, 19 of
+      20 probes survived) is closed BEFORE P3 starts; P3 waits for the parallel mutation
+      harness (branch work/20260914-harness-parallel) to be refereed and merged. Standing
+      expectation: when a quality mechanism becomes the schedule bottleneck, speed it up in
+      its own sub-project without weakening it; never cut rows or skip passes.
     why: >-
       P1 builds the version pointers, promotion functions and roles that §15.7 and §15.13
       constrain; P2's admission check needs the §15.15 year rule; §15.12 decides whether

@@ -342,3 +342,46 @@ def test_stop_proceeds_when_the_beacon_is_stale_or_absent():
     import vm_ops
     assert vm_ops.wait_for_drain("s", _state=lambda s: (None, None))[0] == "NO_HEARTBEAT"
     assert vm_ops.wait_for_drain("s", stale_s=600, _state=lambda s: (2.0, 3600))[0] == "STALE"
+
+
+def test_a_long_exec_output_keeps_its_head_in_a_transcript(tmp_path):
+    """Canary 2 §10: two beat probes came back starting mid-line, the beat timestamp — the
+    one line the probe existed for — already gone under six children's cmdlines, and the
+    probe had to be rewritten to print it twice. The cause was `print(out[-2000:])`.
+
+    Truncating the DISPLAY is fine. Discarding the OUTPUT is the defect, and this holds the
+    fix: the whole transcript is written and the head survives.
+    """
+    head = "BEAT 2026-09-15T19:02:39Z\n"
+    out = head + ("x" * (vm_ops.EXEC_TAIL_BYTES * 3)) + "\nTAIL MARKER\n"
+    p = vm_ops.exec_transcript("litkbf2", out, dirs=[tmp_path])
+    assert p is not None and p.exists()
+    got = p.read_text(encoding="utf-8")
+    assert got == out, "the transcript is not the whole output"
+    assert got.startswith(head), "the head — the reason the probe was run — was lost"
+    assert "litkbf2" in p.name and p.name.endswith(".log")
+    # the displayed tail is still a tail, so the terminal is not flooded
+    assert len(out[-vm_ops.EXEC_TAIL_BYTES:]) == vm_ops.EXEC_TAIL_BYTES
+    assert "TAIL MARKER" in out[-vm_ops.EXEC_TAIL_BYTES:]
+
+
+def test_the_transcript_falls_back_rather_than_losing_the_output(tmp_path, monkeypatch):
+    """A transcript that cannot be written must not take the exec down, and must not silently
+    be the only copy: `exec_transcript` tries each candidate directory in turn and returns
+    None only when every one of them refuses."""
+    bad = tmp_path / "nope"
+    bad.write_text("i am a file, not a directory", encoding="utf-8")
+    good = tmp_path / "good"
+    p = vm_ops.exec_transcript("s", "hello", dirs=[bad / "under-a-file", good])
+    assert p is not None and p.parent == good and p.read_text(encoding="utf-8") == "hello"
+    assert vm_ops.exec_transcript("s", "hello", dirs=[bad / "under-a-file"]) is None
+
+
+def test_the_lake_is_the_first_home_for_an_exec_transcript():
+    """CLAUDE.md §3.11 — the evidence a run leaves behind lives in phase4/logs, not in a
+    terminal. The local temp directory is the fallback, not the destination."""
+    dirs = vm_ops._exec_log_dirs()
+    assert dirs, "there is nowhere at all to write a transcript"
+    assert str(dirs[-1]).lower().endswith("vm_ops_exec"), "the fallback is not last"
+    if len(dirs) > 1:
+        assert dirs[0].parts[-2:] == ("phase4", "logs"), dirs[0]

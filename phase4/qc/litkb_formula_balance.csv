@@ -28,7 +28,8 @@ balance,"NEW proxy + DEAL, runaways tamed",179.8,slowest_slice_seconds,200
 balance,"NEW proxy + DEAL, runaways tamed [ratio]",2.761,slowest_over_fastest,200
 balance,"ORACLE, runaways tamed",113.7,slowest_slice_seconds,200
 balance,"ORACLE, runaways tamed [ratio]",1.844,slowest_over_fastest,200
-projection,guard_rows_pct,8.0,percent,200
-projection,guard_time_pct,27.84,percent,200
+projection,guard_rows_pct,9.0,percent,200
+projection,guard_time_pct,26.92,percent,200
 projection,corpus_hours_no_guard,4.369,hours,7164
-projection,corpus_hours_with_guard,5.585,hours,7164
+projection,corpus_hours_with_guard,5.545,hours,7164
+projection,corpus_hours_with_guard_and_new_planner,5.009,hours,7164

@@ -383,6 +383,11 @@ def test_unstable_and_degenerate_rows_are_routed_off_the_corpus(tmp_path, shard,
     assert d["detail"] and d["n_tokens"] == 2036
     # the join key still travels, so a verified row can be patched back like any other
     assert all(r["bbox_canonical"] and r["self_ref"] for r in q)
+    # AND every queued row carries something to verify. A row whose re-decode raised keeps
+    # its first decode; one with neither string is a verification task with no subject, and
+    # would sit in the queue forever looking like work.
+    assert all((r.get("latex") or "").strip() or (r.get("latex_redecode") or "").strip()
+               for r in q), "a queued row carries no candidate LaTeX at all"
 
 
 def _reseal(out, rows, rec):

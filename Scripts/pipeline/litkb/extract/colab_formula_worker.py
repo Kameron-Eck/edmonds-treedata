@@ -293,11 +293,13 @@ DEGENERATE_TAIL_UNIT = 60     # the longest repeating unit looked for
 def stability_sample(crops, salt, fraction=REDECODE_FRACTION):
     """-> the set of crop_ids to re-decode unconditionally. DETERMINISTIC AND N-INDEPENDENT.
 
-    Seeded from the SHARD hash, not from ``random``: every slice of a shard computes the same
-    sample from the same full crop list, so the guard cannot make N=1 and N>1 disagree about
-    which crops were checked — the same invariant ``plan_batches`` is built on. Ranking by
-    ``sha256(salt + crop_id)`` and taking the first ``fraction`` is a stable pseudo-random
-    choice with no PRNG state to carry between processes.
+    ``salt`` is the SHARD'S OWN SHA256 (``process_shard`` passes ``sha256_file(shard_zip)``),
+    never ``random``: every slice of a shard computes the same sample from the same full crop
+    list, so the guard cannot make N=1 and N>1 disagree about which crops were checked — the
+    same invariant ``plan_batches`` is built on. Ranking by ``sha256(salt + crop_id)`` and
+    taking the first ``fraction`` is a stable pseudo-random choice with no PRNG state to carry
+    between processes, and keying it on the shard's CONTENT means a shard re-cut with
+    different crops under the same id gets a different sample rather than the same one.
     """
     ids = sorted({c["crop_id"] for c in crops})
     if not ids or fraction <= 0:
@@ -606,7 +608,8 @@ def process_shard(shard_zip, out_zip, device="cuda", threads=4, batch_size=None,
     # THE STABILITY SAMPLE is computed over the WHOLE shard, before any slicing, so every
     # slice agrees about which crops are checked (the plan_batches invariant, applied to the
     # guard). `verify` off restores the pre-2026-09-15 behaviour and is only for the A/B.
-    sample = stability_sample(crops, manifest.get("shard_id", ""),
+    shard_hash = sha256_file(shard_zip)
+    sample = stability_sample(crops, shard_hash,
                               REDECODE_FRACTION if verify else 0.0)
     tok = _tokenizer_of(model) if verify else None
 
@@ -701,7 +704,7 @@ def process_shard(shard_zip, out_zip, device="cuda", threads=4, batch_size=None,
         "schema_version": SCHEMA_VERSION,
         "stage": "3-formula-colab",
         "shard_id": manifest["shard_id"],
-        "shard_sha256": sha256_file(shard_zip),
+        "shard_sha256": shard_hash,
         # n_crops is what THIS process decoded. Unsliced that is the whole shard; sliced it
         # is this slice, and `shard_crops` carries the whole so a slice record is never read
         # as a short shard.

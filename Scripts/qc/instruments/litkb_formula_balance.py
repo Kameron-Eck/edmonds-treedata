@@ -242,19 +242,28 @@ def main(argv=None):
     print("\n5. CORPUS PROJECTION — %d crops" % CORPUS_CROPS)
     total = sum(A + B * max(L2.get(c, 0) for c in b)
                 for b in [ids[i:i + BATCH_SIZE] for i in range(0, len(ids), BATCH_SIZE)])
-    sample = W.stability_sample([{"crop_id": i} for i in ids], "canary200")
+    import hashlib
+    h = hashlib.sha256()
+    with open(shard, "rb") as fh:
+        for b in iter(lambda: fh.read(1 << 20), b""):
+            h.update(b)
+    sample = W.stability_sample([{"crop_id": i} for i in ids], h.hexdigest())
     # a row already ruled degenerate is never re-decoded: it is out of the corpus anyway, and
     # those are the runaways, i.e. the dearest crops in the shard.
-    re_ids = sorted((set(sample) | {i for i in ids if L2[i] >= W.REDECODE_LONG_CHARS})
-                    - caught["canary2"])
-    print("   (%d rows are skipped as already-degenerate — they are the runaways)"
-          % len((set(sample) | {i for i in ids if L2[i] >= W.REDECODE_LONG_CHARS})
-                & caught["canary2"]))
+    long_rows = {i for i in ids if L2[i] >= W.REDECODE_LONG_CHARS}
+    trig = set(sample) | long_rows
+    skipped = trig & caught["canary2"]
+    re_ids = sorted(trig - skipped)
     # a re-decode is ALONE, so it costs a whole batch of one at that row's own length
     re_cost = sum(A + B * L2[i] for i in re_ids)
-    print("   rows re-decoded by the guard: %d of %d (%.1f%%) — %d sampled, %d long"
-          % (len(re_ids), len(ids), 100.0 * len(re_ids) / len(ids), len(sample),
-             len([i for i in ids if L2[i] >= W.REDECODE_LONG_CHARS])))
+    # SET ARITHMETIC, spelled out: the sample and the long rows OVERLAP, so the counts do
+    # not simply add, and a reader who tries to add them gets a different number.
+    print("   %d sampled + %d long, %d in both  ->  %d triggered"
+          % (len(sample), len(long_rows), len(set(sample) & long_rows), len(trig)))
+    print("   minus %d already ruled degenerate (the runaways: out of the corpus whatever a"
+          % len(skipped))
+    print("   re-decode says)  ->  %d re-decoded, %.1f%% of the shard"
+          % (len(re_ids), 100.0 * len(re_ids) / len(ids)))
     print("   THE OVERHEAD IS TIME-WEIGHTED, NOT COUNT-WEIGHTED: the long rows are the")
     print("   expensive ones, so %.1f%% of the rows cost %.1f%% of the decode."
           % (100.0 * len(re_ids) / len(ids), 100.0 * re_cost / total))
@@ -265,11 +274,17 @@ def main(argv=None):
                 "value": round(100.0 * re_cost / total, 2), "unit": "percent", "n": len(ids)})
     rate = 0.4555          # measured aggregate, canary 2 §4.1
     base_h = CORPUS_CROPS / rate / 3600.0
-    print("   at canary 2's measured 0.4555 regions/s the corpus is %.2f h;" % base_h)
-    print("   with the guard, x%.3f = %.2f h" % (1 + re_cost / total,
-                                                 base_h * (1 + re_cost / total)))
+    g = 1 + re_cost / total
+    print("   TWO BASELINES, because they are not the same number:")
+    print("   (a) against canary 2's MEASURED 0.4555 regions/s — the old planner, runaways")
+    print("       present: %.2f h, and with the guard x%.3f = %.2f h" % (base_h, g, base_h * g))
+    print("   (b) IF the new planner's simulated ordering gain holds (total 1336 -> 1207 s,")
+    print("       -9.7%%): %.2f h, with the guard %.2f h. (b) is a projection on a simulation"
+          % (base_h * 1207 / 1336.0, base_h * 1207 / 1336.0 * g))
+    print("       and no run has used the new planner; (a) is the one to quote.")
     for k, v in (("corpus_hours_no_guard", base_h),
-                 ("corpus_hours_with_guard", base_h * (1 + re_cost / total))):
+                 ("corpus_hours_with_guard", base_h * g),
+                 ("corpus_hours_with_guard_and_new_planner", base_h * 1207 / 1336.0 * g)):
         out.append({"section": "projection", "name": k, "value": round(v, 3),
                     "unit": "hours", "n": CORPUS_CROPS})
 

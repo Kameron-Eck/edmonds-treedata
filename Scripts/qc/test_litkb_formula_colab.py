@@ -576,8 +576,10 @@ def test_a_planted_flip_is_recorded_unstable_with_BOTH_strings(worker, monkeypat
     shard, crops = _shard_zip(tmp_path)
     # the victim must be a crop the guard actually re-checks, or the test is measuring the
     # sample rather than the guard: take it FROM the sample the worker itself will compute.
+    # the salt is the shard's OWN sha256 — the same thing process_shard passes, computed the
+    # same way, so the test cannot drift from the worker's choice of sample.
     sampled = worker.stability_sample([{k: v for k, v in c.items() if k != "_size"}
-                                       for c in crops], "s1")
+                                       for c in crops], worker.sha256_file(str(shard)))
     victim = [c for c in crops if c["crop_id"] in sampled][0]
     vsize = victim["_size"]
 

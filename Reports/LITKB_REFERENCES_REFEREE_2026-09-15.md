@@ -13,7 +13,7 @@ defects, and neither changes a resolution.
 
 | # | fix | severity |
 |---|---|---|
-| F1 | **"1,386 in-text citation mentions" is a bounding-box row count, not a mention count.** The true `<ref type="bibr">` element count is **1,182**, of which **201 carry no target**. 139 of 658 reference rows carry an inflated `mention_count`; "Morgenroth 2017 cited 12 times" is **8**. | must fix — it is a headline number and it feeds the top-uncited ranking |
+| F1 | **"1,386 in-text citation mentions" is a bounding-box row count, not a mention count.** The true `<ref type="bibr">` element count is **1,182**, of which **201 carry no target**. 139 of 658 reference rows carry an inflated `mention_count`; "Morgenroth 2017 cited 12 times" is **8**, and the §3 top-10 re-orders and loses a member when recounted. | must fix — it is a headline number and it changes the top-uncited ranking |
 | F2 | **"the 12 `doi_title_mismatch` are truncated GROBID titles rather than bad DOIs" is true for 10 of 12, false for 2.** Steenberg `b5` and `b22` print genuinely wrong DOIs. | must fix — the report tells a future reader the cause is always a parse artefact |
 | F3 | `Reports/litkb_p6_per_paper_2026-09-15.csv` carries a bare `resolved_rate` column with no Crossref-only label. | minor |
 
@@ -46,8 +46,11 @@ identical on all six**. The parse is reproducible.
 | **total** | **235** | **487** | **127** | **2** | **106** | **9** | **226** |
 
 Every cell matches `Reports/litkb_p6_per_paper_2026-09-15.csv`. Row by row against the builder's JSONL
-on `(resolution, resolved_doi)`: **0 mismatches in 235 references.** Causes reproduce too — Page 1954
-is 25/25 `no_title_or_author`, Chrisman 13/15 `best=<stage>:<ratio>`. My run tripped
+on `(resolution, resolved_doi)`: **0 mismatches in 235 references.** That diff covers the state and the
+DOI, **not** the reason string; the causes below are read from the builder's JSONL, not re-derived.
+Counted there, the six papers' unresolved rows break down as §2 of the builder's report predicts —
+Page 1954 **19 of 25** `no_title_or_author` (the rest `best=<stage>:<ratio>`), Guo 2018 nine
+`doi_title_mismatch` and two `no_title_or_author`, Chrisman and Burnicki two each. My run tripped
 `semanticscholar` and `arxiv` on 429 exactly as the builder's `summary.json` records, and spent 292 s
 for 10 network calls against 210 cache hits.
 
@@ -58,8 +61,13 @@ duplicate ids, zero dangling `target`s. But `<ref type="bibr">` in `<body>` = **
 and 204 mentions are line-wrapped across two boxes. A further **201 elements carry an empty `target`**
 and cannot be linked to any reference at all, so the verifiable mention count is **981**. This
 propagates: `counts[m["target"]]` is incremented per box, so **139 of 658 reference rows** overstate
-`mention_count` (worst: Laurance `b18` 15→11, Guo `b36` 12→8, Benedek `b54` 12→10), and the
-top-uncited ranking in §3 is ordered on the inflated figure. → **F1**.
+`mention_count` (worst: Laurance `b18` 15→11, Guo `b36` 12→8, Benedek `b54` 12→10). Every entry in the
+§3 top-10 is cited by exactly two papers, so mention count is that table's *only* ordering key.
+Recomputed on element counts the table **re-orders and changes membership**:
+`10.1016/j.rse.2007.11.013` takes first place, `10.48044/jauf.2008.048` falls from 5th to 8th,
+`10.1007/s00267-014-0310-2` drops out and `10.1109/36.843009` enters. → **F1**. The concrete fix is one
+line — `counts` should increment only on `box_index == 0`; the per-box mention rows are correct as
+geometry and only the aggregate is wrong. (Recommendation; I changed nothing.)
 
 ## 2. Crossref, entry by entry
 
@@ -94,7 +102,7 @@ pre-tripped, against references the builder resolved.
 
 | alteration | n | resolves to the original | resolves elsewhere | fires |
 |---|--:|--:|--:|--:|
-| co-author (not first) swapped for "Nakamura" | 3 | 3 | 0 | 0 |
+| co-author (not first) swapped for "Nakamura" | 3 (2 effective) | 3 | 0 | 0 |
 | journal replaced | 2 | 2 | 0 | 0 |
 | volume + pages replaced | 2 | 2 | 0 | 0 |
 | **first** author swapped | 1 | 0 | 0 | **1** |
@@ -104,6 +112,8 @@ The seven that survive are **the rule working as written, not a hole**: `judge_c
 first-author family and year, and the search leg queries on title only. Journal, volume, page and
 non-first authors are not inputs to any decision, so altering them cannot change one. That is worth
 stating plainly in the design, because a reader of §5 could take "near-miss" to mean any altered field.
+(One caveat on my own arm: Bellettini `b30` parsed a single author, so its "co-author swap" was a no-op
+and that arm is really n = 2, not 3.)
 The two DOI mutants both went to `doi_not_registered` (Crossref 404 + DataCite 404) — the DOI-first rule
 never reached a title search.
 
@@ -124,12 +134,20 @@ resolving to its original DOI. 55 mutations, Crossref-only.
 Median **3 words**, ≈ 22 % of the title's words. Seventeen of twenty survive a one-word change — the
 builder's 17/20 at 0.80–0.94, reproduced independently on a different sample.
 
-**Judgement: a tolerance to record, not a defect to escalate.** The decisive number is the other column:
-across all 55 mutations **not one resolved to a different work** — every failure was `unresolved`, and
-every survival was the correct DOI. A ratio rule that degrades to refusal rather than to a wrong edge is
-behaving the way the 0.85 P2 threshold was calibrated to behave, and the first-author-family and
-year-equal-or-±1 gates are carrying the discrimination the ratio alone cannot. Raising 0.85 would buy
-nothing here and would cost the 10 truncation cases of §4. No escalation.
+**Judgement: a tolerance to record, not a defect to escalate — but state the limit of my evidence.**
+Across all 55 of my mutations **not one resolved to a different work**: every failure was `unresolved`
+and every survival was the correct DOI. That is a real result about one failure mode and not about the
+other. My substitution token is a nonsense word, which no real title can contain, so my run can only
+test *nonsense* corruption. The builder's own §5 records the mode I could not reach: two mutants that
+**resolved elsewhere** — a `year−3` mutant landing on the 1998 sibling of a 2002 paper, and a
+title-word mutant landing on a different ecology paper. Those are plausible-sibling collisions, and what
+bounds them is the first-author-family and year-equal-or-±1 gates, not the ratio.
+
+So the conclusion holds, with the reason stated correctly: the 0.85 rule alone tolerates roughly a fifth
+of a title, the ratio is not what makes the decision safe, and the two gates behind it are. Raising 0.85
+would not close the sibling mode (both builder cases cleared 0.85 on a genuinely similar title) and
+would cost the 10 truncation cases of §4. No escalation — but the design should say that the ratio is a
+filter and the author+year rules are the discriminator, rather than quoting 0.85 as the guarantee.
 
 ## 4. The twelve `doi_title_mismatch`
 
@@ -143,13 +161,24 @@ swallowed the journal. In all ten the printed DOI is correct.
 
 **Two are not.** They are the Averkov class the guard exists for, and the guard caught them:
 
-| row | printed DOI | what the DOI actually is | what the reference is | ratio |
+Registry fields below are read from the cached `confirm_doi` record, not inferred from the title.
+
+| row | printed DOI | registry record for it | what the reference actually is | ratio |
 |---|---|---|---|--:|
-| Steenberg `b5` | `10.1080/19463138.2010.513772` | Boone, *Environmental justice, sustainability and vulnerability* | Boone 2010, *Landscape, Vegetation Characteristics… Why the 60s Matter*, Urban Ecosystems 13 | 0.245 |
-| Steenberg `b22` | `10.1177/1078087406290729` | Heynen, *The Political Ecology of Uneven Urban Green Space* | Heynen & Lindsey 2003, *Correlates of Urban Forest Canopy Cover*, PWM&P 8 | 0.323 |
+| Steenberg `b5` | `10.1080/19463138.2010.513772` | Boone, **2010**, *Environmental justice, sustainability and vulnerability* | Boone 2010, *Landscape, Vegetation Characteristics… Why the 60s Matter*, Urban Ecosystems 13 | 0.245 |
+| Steenberg `b22` | `10.1177/1078087406290729` | Heynen, **2006**, *The Political Ecology of Uneven Urban Green Space* | Heynen & Lindsey 2003, *Correlates of Urban Forest Canopy Cover*, PWM&P 8 | 0.323 |
 
 Both are wrong DOIs printed in the published paper (b22's raw string even carries the tell: `doi: 10.1177/ 1078087406290729`). Calling all twelve a parse artefact would tell the next reader to trust a
 DOI the source got wrong. → **F2**.
+
+**And `b5` exposes a reachable weak spot worth one line in the design.** Its registry record is *Boone,
+2010* and the parsed reference is *Boone, 2010* — same surname, same year. The title ratio of 0.245 is
+the only thing that refused it. `resolve_by_doi`'s other branch, taken when GROBID parses **no** title,
+judges on surname and year alone: had this reference lost its title in parsing, that branch would have
+**accepted** the wrong DOI. (`b22` would still have failed there, on 2006 vs 2003.) The branch is a
+deliberate, documented compromise and I am not proposing to remove it — but it should be named in the
+design as the one place where the Averkov class can get through, and the `no_title_or_author`
+population (50 rows) is exactly where it lives.
 
 **Is the refusal losing real citations?** Measured, not estimated: of the twelve, **one** has a DOI in the
 corpus index — Guo 2018 → Nowak & Greenfield 2012 (`10.1016/j.ufug.2011.11.005`, parsed title carried
@@ -234,13 +263,18 @@ secret, token, bearer, private-key headers, AWS/GitHub/Slack token shapes and lo
 **nothing but commit SHAs and repo paths.** No credential, no host, no path outside the repo and the
 declared derived root.
 
+**Push.** `git push github work/20260915-references` was **refused by the session's permission
+classifier** (Out-of-Place Publication), not by the remote. This commit is local to the worktree at
+`D:\edmonds-pipeline\treedata-references` and needs a human push.
+
 ## 8. What I did not test
 
 The 55.5 % with a Semantic Scholar key (no key available here) — the floor stands unchallenged and
 untightened. The 50 `no_title_or_author` pre-1990 references: how many are recoverable is still
 unmeasured. The near-miss year arm re-defined against registry years (builder's §7.5) — I did not run it;
 the builder's explanation of the one non-firing `year+3` mutant reads correctly against the code, but it
-is unverified by me.
+is unverified by me. Nor did I reproduce the builder's two `resolved_elsewhere` cases (see §3) — my
+nonsense-token ladder cannot reach that failure mode, and I take those two on the builder's record.
 
 ---
 

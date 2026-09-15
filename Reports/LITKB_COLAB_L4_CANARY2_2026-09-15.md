@@ -33,11 +33,11 @@ canary-1 LaTeX as a reference.
 | 19:01:00 | exec returned — **50 s** for pip install + version gate + nohup detach, against 49 s in canary 1. `LITKB_TORCH_BEFORE` == `LITKB_TORCH_AFTER` == `2.11.0+cu128 True`; docling 2.127.0 / docling-core 2.96.0 / ibm-models 4.0.2 / transformers 5.17.0 — identical to canary 1 |
 | 19:02:07 | **writer side probed on the VM, 1 min 7 s after the exec returned** — parent worker alive (pid 4526), beat file written, GPU idle (the shard read and the cost-proxy pass over 200 PNGs precede any decode) |
 | 19:03:48 | second probe: **six children spawned**, `--slice-of 6`, `--threads 1` each, 898 MiB apiece on the card during model load |
-| 19:04:28 | third probe: **beat advanced to 19:02:39** |
+| 19:04:28 | fourth probe: **beat advanced to 19:02:39** (the second and third probes lost their beat line to `vm_ops exec`'s head truncation — §10) |
 | ~19:11 | `result_shard_canary200.zip` + `.sha256` visible server-side |
 | 19:12:52 | the **last beat** (read at 19:15:31, after the worker had exited) |
 | 19:13:48 | worker's step log written; `result_shard_ref5.zip` + `.sha256` on the lake at 19:14:07 |
-| 19:15:0x | **both archives md5-verified server-side and pulled**, local md5 == server md5 for both (`e1aac8023374acf946e1f06dd6d37d84`, `bd6d06b2c6c133a2ca19e6976110fa06`) — done **before** the stop was issued |
+| 19:15:31 – 19:15:48 | **both archives md5-verified server-side and pulled**, local md5 == server md5 for both (`e1aac8023374acf946e1f06dd6d37d84`, `bd6d06b2c6c133a2ca19e6976110fa06`) — done **before** the stop was issued |
 | 19:15:48 | `vm_ops stop --session litkbf2` — printed **`drain check litkbf2: DRAINED (dirty 0.0 GB)`**. Canary 1's stop printed `NO_HEARTBEAT (dirty None GB)`; the gate that could not read a backlog then, read one now |
 | 19:15:52 | `litkbf2: stopped`, and `vm_ops sessions`: **`0 active runtime(s) on the account`** |
 
@@ -103,7 +103,7 @@ this run that any term other than `vram` can bind.
 | **regions/s** | 0.1727 | **0.4555** |
 | launch span | 28 m 37 s | **17 m 38 s** |
 
-**Measured scaling factor: 0.4555 / 0.1727 = 2.637×** on N = 6 — **44% of linear**. The design
+**Measured scaling factor: 0.4555 / 0.1727 = 2.638×** on N = 6 — **44% of linear**. The design
 said "treat 193 s as a floor on the decode"; the floor held, and the real number is 439 s, 2.3×
 above it. Nothing here is a surprise in direction, only in size, and §4.2 says where most of it
 went.
@@ -112,7 +112,7 @@ The two `seconds` figures are not measured at quite the same seam and the compar
 generous to canary 2 in one respect and harsh in another: canary 1's 1157.9 s **excludes** its
 20.1 s model load, while canary 2's 439.1 s is the parent's wall clock and **includes** the child
 spawn, all six model loads, the merge and the archive write. Correcting for that would move the
-factor up, not down, so 2.637× is reported as the conservative figure.
+factor up, not down, so 2.638× is reported as the conservative figure.
 
 ### 4.2 Per-process — and the imbalance is most of the missing speed
 
@@ -127,9 +127,31 @@ factor up, not down, so 2.637× is reported as the conservative figure.
 
 **The slowest slice took 2.85× the fastest**, and the shard cannot finish before its slowest
 slice does. Perfect balance at the *same* per-process rates would have finished the decode in the
-mean, ~223 s, not 315 s — so roughly **90 s of the 439 s is imbalance alone**, and a further
-~124 s is spawn, six model loads and the merge, which a longer shard amortises and this one does
-not.
+mean, ~223 s, not 315 s — so roughly **92 s of the 439 s is imbalance alone**.
+
+**The other 122 s is startup, and it is measured, not inferred.** The parent's `started_at` is
+19:02:37 and **all six children's are 19:04:39** — a flat 122 s before a single crop is decoded,
+after which 315.03 s of slowest slice and ~2 s of merge and archive write close the 439.115 s
+almost exactly. The ref5 shard shows the same cost with the decode taken out from under it: one
+child, five crops, a parent-to-child gap of **59 s** (19:10:51 → 19:11:50), **5.772 s of decode**,
+and a parent wall of **120.189 s**. Five crops cannot be planning, so a large fixed cost sits on
+both sides of a child — roughly a minute before it starts decoding, and, on ref5, a further ~55 s
+after it stops that the canary200 run does not show. **What that cost is made of is UNMEASURED**
+(§9.9): interpreter start, torch and docling imports, weight load, CUDA context teardown and
+archive writes to the FUSE mount are all candidates, and nothing here separates them.
+
+What IS measured is the total and that it is **paid per shard, not per crop**: 122 s on a 200-crop
+shard is **28% of the wall**, and it is the strongest argument in this report for shards longer
+than 200.
+
+**`model_load_seconds` is a measurement defect, and it reads `0.0` for every slice.** The child
+path calls `build_model` itself and then hands the already-built model to `process_shard` as
+`_model=` **without** the matching `load_seconds=` the sequential path passes, so `process_shard`
+times a load that has already happened and records zero. Canary 1, which took the sequential
+path, measured 20.096 s. **The 122 s and 59 s figures above therefore come from the `started_at`
+deltas, not from that field**, and the split between interpreter/import and weight load is
+UNMEASURED — the slice logs carry the weight-loading progress bar but no timestamps. The fix is
+one keyword argument; it is not made here because this session changed no source file.
 
 **The cost proxy is what failed here, and §9.2 said in advance that it is uncalibrated.** Crop
 width × ink density is a property of the PNG; §5 is about to show that decode time is driven by
@@ -261,6 +283,9 @@ the VM at `/content/litkb_worker_beat`, which is local to the runtime and gone a
 | 19:04:28 | **19:02:39** | 109 s |
 | 19:15:31 (after the worker exited) | **19:12:52** | 159 s |
 
+(Probes at 19:03:48 and ~19:04:05 confirmed the six children and the card but are omitted from
+this table: their beat line was cut by `vm_ops exec`'s head truncation — see §10.)
+
 Three distinct, monotonically advancing timestamps. The first is the parent's beat **before the
 model load**, which is the W3 ordering §9.1 argued for; the last is within a minute of the
 worker's step log at 19:13:48, so the beat tracked the work to its end. The watchdog was never
@@ -320,12 +345,12 @@ the step-log JSON.
 ## 8. What the corpus now costs
 
 At the measured aggregate **0.4555 regions/s**, the corpus census's **7,164 crops** are
-**15,728 s = 4.37 h of L4 decode**, against 11.5 h at canary 1's sequential rate. Per-runtime
-overhead on top: 1 m 42 s launch-to-READY and 50 s of install measured here, plus the ~124 s of
-spawn / six model loads / merge that §4.2 separates out, amortised over however many shards a
-runtime takes.
+**15,728 s = 4.37 h**, against 11.5 h at canary 1's sequential rate. That rate is the parent's
+wall clock, so it **already carries** the 122 s of per-shard startup §4.2 measures — but only at
+this shard's length, 200 crops, which is also the length the 36-shard plan uses. On top of it sits
+1 m 42 s launch-to-READY and 50 s of install, **once per runtime**.
 
-Two qualifications, both load-bearing:
+Three qualifications, all load-bearing:
 
 * **This is a floor that assumes the shard mix.** The 200 crops were drawn seeded round-robin
   across 136 files, so the length mix is the corpus's. But §4.2 shows the run is bound by the
@@ -337,6 +362,11 @@ Two qualifications, both load-bearing:
   ~0.577 regions/s and the corpus to **~3.45 h**, at zero extra VRAM and no extra process.
   Raising N is not an alternative: §4.3 shows the measured per-process footprint leaves the memory
   term at 6 anyway.
+* **Longer shards are the other free win, and they are independent of the first.** The 122 s of
+  startup is 28% of this shard's wall and is paid once per shard whatever the shard's length. At
+  400 crops per shard it would be ~16%, at 800 ~9%. Doubling the shard halves the number of times
+  the corpus pays it — 36 shards × 122 s is **73 minutes of pure startup** in the current plan.
+  This is arithmetic on a measured constant, not a measured speedup; no long shard has been run.
 
 ---
 
@@ -356,14 +386,27 @@ Two qualifications, both load-bearing:
 7. **The heap-corruption crash** of the local crop-cutting stage — untouched by this run.
 8. **How `--procs` behaves on a shard with a pathological length distribution**, e.g. one drawn
    from `Schneider_2008`. §8.
+9. **What the 122 s of per-shard startup is made of.** §4.2 measures the total from the
+   `started_at` deltas, and that is all it measures: interpreter start, imports, weight load,
+   parent planning, CUDA teardown and FUSE archive writes are not separated. `model_load_seconds`
+   would have carried the weight-load half and instead reads `0.0` on the slice path — a
+   one-keyword defect (§4.2) — and the slice logs carry a progress bar but no timestamps. Nor is
+   it clear why ref5's parent wall exceeds its child's start-plus-decode by ~55 s while
+   canary200's exceeds its slowest slice by only ~2 s; that asymmetry is unexplained.
 
 ---
 
 ## 10. Hygiene
 
 * **One runtime**, created and stopped inside one session; `vm_ops sessions` confirms
-  `0 active runtime(s)`. Five execs, **strictly sequential, never concurrent, none killed
-  mid-exec** — one worker start and four read-only probes.
+  `0 active runtime(s)`. **Six execs, strictly sequential, never concurrent, none killed
+  mid-exec** — one worker start and five read-only probes.
+* **An operator defect worth naming: `vm_ops exec` truncates the HEAD of a long exec's output.**
+  Two probes returned starting mid-line, with the beat timestamp — the one line the probe exists
+  for — already gone; the six children's cmdlines had filled the window. The probe was amended to
+  print the beat **last as well as first**, and every beat figure in §6 comes from a call where it
+  survived. Anything read back through `exec` that matters should be printed last until that is
+  fixed.
 * The probe payload
   (`scratchpad/beat_probe.py`) reads a file mtime, `ps` and `nvidia-smi`. It writes nothing,
   starts nothing and kills nothing. It exists because the beat file lives on the runtime and is
@@ -377,6 +420,21 @@ Two qualifications, both load-bearing:
 * **§3.11, the worker's log read from Drive, not pasted from a terminal** —
   `phase4/logs/litkb_formula_nohup_20260915T190014Z.log`, pulled to
   `results_procs/` alongside the step log `litkb_formula_colab_20260915T191348Z.json`.
-* **No source file was changed by this session**, so the ladder's verdict is the one §9.7 of the
-  design report already quotes for `29768fd`. Nothing here re-runs it or claims a fresher one.
+* **No source file was changed by this session** — this report is the only thing it adds. The
+  ladder was run anyway, `LITKB_PGPORT=1 py -3.12 qc/check.py --fast`, and its verdict is quoted
+  rather than summarised. Stated in those words: **the litkb Postgres guards were NOT exercised**
+  (216 skipped, no server on this machine).
+
+  ```
+  litkb Postgres tests: 216 skipped  <- 216 SKIPPED: litkb server/role/psycopg absent,
+                                        so those guards were NOT tested
+  FAILED qc\test_experiments.py::test_pointer_paths_resolve[crown_state_model]
+  1 failed, 2282 passed, 225 skipped, 74 warnings in 507.39s (0:08:27)
+  check: FAILED at rung 'pytest' — fix, then rerun.
+  ```
+
+  **The verdict is FAILED, not PASSED.** The single failure is `crown_state_model`, the same
+  expected one this branch and its base carry; nothing in this session touches experiments.
+  Because the ladder stops at the first failing rung, **preflight did not run**, and `--fast`
+  skips the smoke by definition.
 * Cost: **UNMEASURED**, §2.

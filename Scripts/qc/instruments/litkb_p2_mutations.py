@@ -63,6 +63,8 @@ MIG = "pipeline/litkb/db/migrations"
 PKG = "pipeline/litkb"
 TESTS = ["qc/test_litkb_p2.py", "qc/test_litkb_annas.py"]
 TESTS_P1P2 = ["qc/test_litkb_p1.py", *TESTS]
+TESTS_P3 = [*TESTS, "qc/test_litkb_p3.py"]
+MIG15 = f"{MIG}/0015_discrepancies.sql"
 MIG14 = f"{MIG}/0014_referee_p2_fixes.sql"
 
 M = []
@@ -368,6 +370,50 @@ site("RD17", "litkb/acquire/run.py::acquire::redact", "{a0}", tests=TESTS_P1P2,
      what="run.acquire: the route's source_url is stored on the file version as fetched")
 site("RD18", "litkb/acquire/run.py::acquire::add_secret", "None", tests=TESTS_P1P2,
      what="run.acquire: an injected annas session's key is never registered")
+
+# -- P3: migration + exports (design 13, 14 P3 row; Reports/LITKB_P3_REPORT_2026-09-15.md) --
+# The P3 kills: a planted duplicate DOI and the planted Averkov wrong DOI are rejected at load; a planted
+# disagreeing title produces a discrepancy record; loading twice admits nothing new.
+def p3(fn, *a, **kw):
+    fn(*a, **kw)
+    M[-1]["tests"] = TESTS_P3
+
+
+p3(block, "P1a", f"{PKG}/migrate_legacy/run.py", "guard: every disagreeing legacy field is recorded",
+   "the discrepancy WRITER is removed: a disagreeing field is compared and then dropped")
+p3(block, "P1b", MIG15, "guard: record_discrepancy presents the workstream token",
+   "record_discrepancy without the token check")
+p3(block, "P1c", MIG15, "guard: a discrepancy names the work or the candidate it belongs to",
+   "a discrepancy may name neither a work nor a candidate")
+p3(block, "P1d", MIG15, "guard: a discrepancy's candidate belongs to its workstream",
+   "a discrepancy may point at another workstream's candidate")
+p3(block, "P1e", MIG15, "guard: writer executes record_discrepancy and holds no direct write on discrepancies",
+   "the writer loses EXECUTE on record_discrepancy (and the reader its SELECT)")
+replace("P2a", f"{PKG}/migrate_legacy/plan.py", '        shape = "held"\n', '        shape = "claimed"\n',
+        "case C admits on a claim the registry contradicts, with no file: check 1 bypassed", tests=TESTS_P3)
+replace("P2b", f"{PKG}/migrate_legacy/plan.py",
+        '    return all(fields[f]["agrees"] for f in ("title", "authors", "year"))',
+        '    return all(fields[f]["agrees"] for f in ("title", "authors"))',
+        "the year is no longer part of whether the claim agrees", tests=TESTS_P3)
+replace("P3b", f"{PKG}/migrate_legacy/run.py", "    seen = ctx.already_loaded(detail)\n", "    seen = None\n",
+        "idempotence: the loader stops recognising a row it has already loaded", tests=TESTS_P3)
+p3(block, "P4a", f"{PKG}/migrate_legacy/run.py",
+   "guard: a manifest sha256 that is not the file on disk is a discrepancy, never a silent pass",
+   "a manifest sha256 that does not match the held file passes unflagged")
+replace("P5a", f"{PKG}/migrate_legacy/run.py", '    for letter in "ab":\n', '    for letter in "":\n',
+        "free_key stops suffixing: a same-surname/year/slug collision loses the second work", tests=TESTS_P3)
+site("P6a", "litkb/migrate_legacy/plan.py::doi_discrepancy::normalize_doi", "{a0}", tests=TESTS_P3,
+     what="the DOI discrepancy compares raw spellings: a case variant reads as a changed DOI")
+site("P6b", "litkb/migrate_legacy/plan.py::plan_row::normalize_doi", "{a0}", tests=TESTS_P3,
+     what="the loader confirms the DOI as the tracker spelled it, uncanonicalised")
+site("P6c", "litkb/migrate_legacy/run.py::_load_tracker_row::normalize_doi", "{a0}", tests=TESTS_P3,
+     what="the tracker/manifest DOI comparison is made on raw spellings")
+site("P6d", "litkb/migrate_legacy/run.py::discrepancy::_jsonb", _JSONB, tests=TESTS_P3,
+     what="a discrepancy's detail JSON goes to jsonb unguarded (a NUL from PDF metadata survives)")
+site("P6e", "litkb/migrate_legacy/run.py::record_use::_jsonb", _JSONB, tests=TESTS_P3,
+     what="the use version's identity and fields go to jsonb unguarded")
+site("P6f", "litkb/commands.py::cmd_migrate::_labels", "(args.agent, args.session)", tests=TESTS_P3,
+     what="litkb migrate records the raw agent/session labels, unnormalised")
 
 DEFERRED_HELPERS = {}
 

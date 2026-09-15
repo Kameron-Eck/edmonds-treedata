@@ -196,6 +196,66 @@ def cmd_acquire(args, conn):
     return 0 if out["outcome"] in ("ok", "already-held") else 1
 
 
+def cmd_migrate(args, conn):
+    """P3: the legacy tracker and manifest loaded THROUGH admission (design §13)."""
+    from litkb.migrate_legacy import run as mrun
+
+    ws_id, token = _ws(args)
+    agent, session = _labels(args)
+    ctx = mrun.Loader(conn, ws_id, token, agent=agent, session=session, root=args.root)
+    only = [s.strip() for s in (args.only or "").split(",") if s.strip()] or None
+    summary = (mrun.load_tracker(ctx, limit=args.limit, only_ids=only) if args.what == "tracker"
+               else mrun.load_manifest(ctx, limit=args.limit))
+    if args.log:
+        Path(args.log).write_text(json.dumps(ctx.log, indent=1, default=str), encoding="utf-8")
+    _print(summary | {"registry_requests": getattr(ctx.client, "requests", None),
+                      "registry_cache_hits": getattr(ctx.client, "hits", None),
+                      "log": args.log or "(not written; pass --log)"})
+    return 0
+
+
+def cmd_export(args, conn):
+    """Regenerate the tracker / manifest twins FROM the database (design §10)."""
+    from litkb import export as ex
+
+    ws_id = args.workstream
+    if not ws_id:
+        try:
+            ws_id, _token = _ws(args)
+        except SystemExit:
+            raise SystemExit("litkb export: pass --workstream <id> or run in a worktree with a workstream") from None
+    out = Path(args.out) if args.out else (SCRIPTS.parent / "Reports")
+    written = []
+    if args.what in ("tracker", "all"):
+        rows = ex.tracker_rows(conn, ws_id)
+        written.append(ex.write_csv(out / "literature_tracker.csv", ex.TRACKER_EXPORT_COLUMNS, rows))
+        phases = _phase_rows()
+        x = ex.write_xlsx(out / "Literature_Tracker.xlsx",
+                          {"Literature Tracker": (ex.TRACKER_EXPORT_COLUMNS, rows),
+                           "Search Phase Reference": (list(phases[0].keys()) if phases else [], phases)})
+        if x:
+            written.append(x)
+    if args.what in ("manifest", "all"):
+        rows = ex.manifest_rows(conn, ws_id)
+        written.append(ex.write_csv(out / "manifest.csv", ex.MANIFEST_EXPORT_COLUMNS, rows))
+    if args.diff:
+        d = ex.discrepancy_rows(conn, ws_id)
+        written.append(ex.write_csv(out / "litkb_discrepancies.csv",
+                                    ["source", "source_row", "field", "claimed_value", "registry_value",
+                                     "ratio", "work_key"], d))
+    _print({"workstream": ws_id, "written": [str(p) for p in written]})
+    return 0
+
+
+def _phase_rows():
+    from litkb.migrate_legacy import sources
+
+    try:
+        return sources.phase_rows()
+    except FileNotFoundError:
+        return []
+
+
 def build_parser():
     ap = argparse.ArgumentParser(prog="litkb", description="the literature knowledge base")
     ap.add_argument("--db", default=os.environ.get("LITKB_DB", "litkb"))
@@ -244,6 +304,19 @@ def build_parser():
                         "used >= limit - margin, or cannot be read (default 50; run.Budget)")
     q.add_argument("--retry-dead", action="store_true")
     q.add_argument("--from-file")
+
+    m = sub.add_parser("migrate", help="P3: load the legacy tracker / manifest through admission")
+    m.add_argument("what", choices=["tracker", "manifest"])
+    m.add_argument("--limit", type=int)
+    m.add_argument("--only", help="comma-separated tracker IDs")
+    m.add_argument("--root", help="literature root (default LITKB_LITERATURE_ROOT)")
+    m.add_argument("--log", help="write the per-row JSON log here")
+
+    e = sub.add_parser("export", help="regenerate the tracker / manifest twins from the database")
+    e.add_argument("what", choices=["tracker", "manifest", "all"])
+    e.add_argument("--workstream", help="export this workstream's view (default: the worktree's)")
+    e.add_argument("--out", help="output directory (default: Reports/)")
+    e.add_argument("--diff", action="store_true", help="also write the discrepancy table")
     return ap
 
 
@@ -252,7 +325,7 @@ def main(argv=None, connect=None):
     conn = (connect or _default_connect)(args.db)
     try:
         return {"ws": cmd_ws, "discover": cmd_discover, "admit": cmd_admit, "approve": cmd_approve,
-                "acquire": cmd_acquire}[args.cmd](args, conn)
+                "acquire": cmd_acquire, "migrate": cmd_migrate, "export": cmd_export}[args.cmd](args, conn)
     finally:
         conn.close()
 

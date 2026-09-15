@@ -1932,6 +1932,9 @@ _EXPECTED_EXECUTE = {
     # admit, approve_admission, attach_file: P2 admission (migration 0013, qc/test_litkb_p2.py)
     "litkb_writer": {"norm_identifier", "open_workstream", "abandon_workstream", "write_fact", "write_proposal",
                      "admit", "approve_admission", "attach_file",
+                     # record_discrepancy: P3 migration (migration 0015, qc/test_litkb_p3.py) — the ONE writer
+                     # of litkb.discrepancies, which carries workstream_id and is therefore guarded
+                     "record_discrepancy",
                      "add_evidence", "add_candidate", "record_acquisition_attempt", "add_use_embedding"},
     "litkb_promoter": {"norm_identifier", "promote_prepare", "promote_commit", "promote_abandon", "promote_rebase"},
     "litkb_ingest": {"norm_identifier", "set_current_run"},
@@ -1949,7 +1952,7 @@ def test_role_privilege_matrix(pg):
     INSERT/UPDATE/REFERENCES where the table-level right is not held; EXECUTE on every function in litkb
     and litkb_meta; CREATE on the schemas; CREATE and TEMP on the database. Each agent role holds
     exactly its §4.7 row: ingest INSERT on the 11 extraction tables and EXECUTE on set_current_run and
-    norm_identifier; the writer the 8 token functions, open_workstream and norm_identifier, and no write
+    norm_identifier; the writer the 9 token functions, open_workstream and norm_identifier, and no write
     on any table; the promoter the four promote functions; the reader norm_identifier; PUBLIC nothing.
     The referee's Z9 (writer UPDATE (text) on blocks) and Z10 (ingest EXECUTE on add_candidate) each
     make this fail. The test login owns every object in litkb_test, inherits no agent role and cannot

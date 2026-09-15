@@ -14,6 +14,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(  # noqa: E402
 from litkb.index import chunk as C  # noqa: E402
 from litkb.index import corpus as K  # noqa: E402
 from litkb.index import fuse as F  # noqa: E402
+from litkb.index import lexical as X  # noqa: E402
 
 
 def _para(word, n):
@@ -27,10 +28,26 @@ def _doc(n_paras=12, words=60):
 # --------------------------------------------------------------------------- chunking
 
 def test_import_litkb_index_pulls_no_heavy_library():
-    """§9: ``import litkb`` must not load torch. The index package is the risky one."""
-    import litkb.index  # noqa: F401
-    assert "torch" not in sys.modules
-    assert "sentence_transformers" not in sys.modules
+    """§9: importing ``litkb.index`` must not load torch.
+
+    In a SUBPROCESS, deliberately: by the time this test runs in the full suite another
+    test has already imported torch into this interpreter, so an in-process check on
+    ``sys.modules`` passes or fails on test ORDER, not on the import graph. It failed that
+    way once, which is how the subprocess got here.
+    """
+    import subprocess
+    pipeline = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "pipeline")
+    code = (
+        "import sys; sys.path.insert(0, %r);"
+        "import litkb.index, litkb.index.corpus, litkb.index.chunk,"
+        " litkb.index.fuse, litkb.index.lexical, litkb.index.embed;"
+        "heavy=[m for m in ('torch','sentence_transformers','transformers','FlagEmbedding')"
+        " if m in sys.modules];"
+        "print(','.join(heavy))" % pipeline
+    )
+    out = subprocess.run([sys.executable, "-c", code], capture_output=True, text=True)
+    assert out.returncode == 0, out.stderr
+    assert out.stdout.strip() == "", "litkb.index pulled %s" % out.stdout.strip()
 
 
 def test_paragraph_offsets_are_exact_slices_of_the_source():
@@ -189,3 +206,33 @@ def test_score_run_averages_over_all_gold_queries_including_misses():
     assert out["recall@5"] == 0.5
     assert out["mrr"] == 0.5
     assert out["n_queries"] == 2
+
+
+# ---------------------------------------------------------------------- lexical leg
+
+def test_ngram_overlap_is_what_makes_a_query_a_paraphrase():
+    passage = "we culled a few locations where the land cover labels changed between years"
+    verbatim = "we culled a few locations where the land cover labels changed"
+    paraphrase = "sites whose class differed across dates were dropped from the pool"
+    assert X.ngram_overlap(verbatim, passage, n=4)
+    assert not X.ngram_overlap(paraphrase, passage, n=4)
+
+
+def test_ngram_overlap_ignores_case_and_punctuation():
+    assert X.ngram_overlap("The land-cover labels changed!", "the land cover labels changed", n=4)
+
+
+def test_bm25_ranks_the_document_containing_the_query_terms_first():
+    docs = [
+        X.tokenize("markov random field change detection in aerial images"),
+        X.tokenize("bootstrap confidence intervals for spatial subsampling"),
+        X.tokenize("total variation denoising of piecewise constant signals"),
+    ]
+    bm = X.BM25(docs)
+    assert bm.top_k("markov random field change detection", ["d0", "d1", "d2"], k=3)[0] == "d0"
+    assert bm.top_k("bootstrap spatial subsampling", ["d0", "d1", "d2"], k=3)[0] == "d1"
+
+
+def test_bm25_returns_nothing_when_no_query_term_occurs():
+    bm = X.BM25([X.tokenize("alpha beta gamma")])
+    assert bm.top_k("zeta eta theta", ["d0"], k=3) == []

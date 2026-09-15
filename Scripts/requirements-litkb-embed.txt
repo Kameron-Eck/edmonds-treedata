@@ -1,0 +1,16 @@
+# P7 embedding bake-off — the DEDICATED venv only (D:\edmonds-pipeline\venv-embed).
+# These never enter requirements-local.txt / -colab.txt: the engine's environment must not
+# grow a second torch (design §9, "Dependencies stay out of the engine's environment").
+#
+# Install:
+#   py -3.12 -m venv D:\edmonds-pipeline\venv-embed
+#   D:\edmonds-pipeline\venv-embed\Scripts\python.exe -m pip install -r Scripts/requirements-litkb-embed.txt
+#
+# CPU wheels by default. The T2000 (4 GB, CUDA) is tried by installing the cu121 torch
+# wheel instead; which one is in the venv is printed by the bake-off's device row.
+torch==2.4.1
+transformers==4.44.2
+sentence-transformers==3.0.1
+einops==0.8.0            # nomic-embed-text-v1.5's remote code imports it
+numpy==1.26.4
+psutil==6.0.0

@@ -601,6 +601,10 @@ _PATH_INSERT_LEDGER = {
     "qc/instruments/litkb_equation_density.py": 1,  # same: litkb.extract.docling, for the density census
     "qc/instruments/litkb_stage5_run.py": 1,  # same: litkb.extract.{reconcile,docling,inventory}, stage 5
     "qc/test_litkb_reconcile.py": 1,          # same: litkb.extract.reconcile, imported at module level
+    "qc/instruments/litkb_chunk_corpus.py": 1,   # same: litkb.index.{corpus,chunk}, the P7 chunk build
+    "qc/instruments/litkb_p7_verify_gold.py": 1,  # same: litkb.index.{corpus,lexical}, the gold verifier
+    "qc/instruments/litkb_embed_bakeoff.py": 1,  # same: litkb.index.*, and it runs in its own venv
+    "qc/test_litkb_index.py": 2,              # same: litkb.index at module level, + the subprocess probe
     "qc/runtime_dashboard.py": 2,            # phase4_train_queue + watch_queue keeps
     "qc/runtime_health.py": 1,               # qc sibling keep
     "qc/instruments/separability_index_control.py": 2,  # qc root + sibling

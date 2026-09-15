@@ -4,7 +4,7 @@
 # environment, `D:\edmonds-pipeline\venv-docling`, created with the project's own
 # py -3.12 and used only as a subprocess by litkb.extract.docling (design
 # LITERATURE_KB_DESIGN_2026-09-13.md §7, referee M9). Torch, transformers and the docling
-# models are 3.7 GB; putting them on the project's sys.path would make the ladder, the
+# models are 2.5 GB; putting them on the project's sys.path would make the ladder, the
 # preflight and every QC script depend on them. `qc/check.py` must pass with none of this
 # installed, and that is asserted by qc/test_litkb_docling.py::
 # test_the_adapter_imports_without_docling.
@@ -18,8 +18,11 @@
 # Transitive versions that matter to the measurement (installed as dependencies, listed here
 # for the record, not pinned separately): torch 2.14.0+cpu, torchvision 0.29.0,
 # transformers 5.17.0, numpy 2.5.3, docling-core 2.96.0, docling-parse 7.19.1,
-# docling-ibm-models 4.0.2, rapidocr 3.9.2 (the ONLY OCR engine present on this machine —
-# easyocr, tesseract/tesserocr and ocrmac are registered by docling but not installed).
+# docling-ibm-models 4.0.2, rapidocr 3.9.2 — the only OCR engine present, and usable only on its TORCH backend:
+# onnxruntime (rapidocr's default backend) is NOT installed, so `--ocr-engine rapidocr`
+# without `--ocr-backend torch` fails. docling's own `auto` resolves to rapidocr+torch
+# (measured 2026-09-15). easyocr, tesseract/tesserocr and ocrmac are registered by docling
+# but not installed, and no tesseract binary is on PATH.
 #
 # Models are downloaded on first use to %USERPROFILE%\.cache\huggingface\hub and are NOT
 # vendored: docling-layout-heron, docling-models (TableFormer), and — only with formula

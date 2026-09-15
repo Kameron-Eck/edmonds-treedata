@@ -5,7 +5,7 @@ figure regions, OCR for scans, and — with enrichment on — LaTeX for formula 
 Docling itself never runs in this process: :func:`run` launches
 :mod:`litkb.extract.docling_worker` in the extraction venv and this module maps the JSON it
 writes. So the project's environment needs nothing but the standard library (and pypdfium2
-for the mediabox shift), which is what keeps ``qc/check.py`` free of a 3.7 GB dependency
+for the mediabox shift), which is what keeps ``qc/check.py`` free of a 2.5 GB dependency (venv 1.4 GB + models 1.1 GB, measured 2026-09-15)
 (design referee M9).
 
 MEASURED FACTS ABOUT DOCLING'S OUTPUT (docling 2.127.0, docling-core 2.96.0, 2026-09-15;

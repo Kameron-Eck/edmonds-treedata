@@ -22,7 +22,7 @@ those words.
 | docling-core / -parse / -ibm-models | 2.96.0 / 7.19.1 / 4.0.2 |
 | torch | **2.14.0+cpu** — the default Windows wheel. `torch.cuda.is_available()` → **False** |
 | transformers / numpy | 5.17.0 / 2.5.3 |
-| OCR engines present | **rapidocr 3.9.2, torch backend only** (onnxruntime is NOT installed, which rules out rapidocr's default backend; §3.1). docling registers `auto, easyocr, kserve_v2_ocr, nemotron-ocr, ocrmac, rapidocr, tesseract, tesserocr`; of those, only rapidocr is installed, and no Tesseract binary is on this machine |
+| OCR engines present | **rapidocr 3.9.2, torch backend only** (onnxruntime is NOT installed, which rules out rapidocr's default backend; §3.1). docling registers `auto, easyocr, kserve_v2_ocr, nemotron-ocr, ocrmac, rapidocr, tesseract, tesserocr`; of those, only rapidocr is installed, and `Get-Command tesseract` finds no binary on PATH |
 | venv | `D:\edmonds-pipeline\venv-docling` — **1.4 GB**, created with the project's own `py -3.12` (3.12.10) |
 | models | downloaded to `%USERPROFILE%\.cache\huggingface\hub` on first use: `docling-layout-heron` 164 MB, `docling-models` (TableFormer) 342 MB, `CodeFormulaV2` 611 MB |
 | pin file | `Scripts/requirements-litkb-extract.txt` (new) |
@@ -95,7 +95,8 @@ with Task Manager, Firefox, Edge, Chrome and two Claude Code sessions running, 4
 
 **At 08:14 UTC another session started `qc/instruments/litkb_p2_mutations.py --workers 9`** —
 nine parallel pytest workers on the same 12 logical cores. The batches in §3 and §3.1 ran
-**07:45–08:00 UTC** and are clean of it (`started_at` is in the CSV, per row). The formula
+**07:45–08:00 UTC** and are clean of it; the full-book row ran at 09:32 UTC with a single
+other pytest worker on the machine (27% ambient before, 45% after) (`started_at` is in the CSV, per row). The formula
 runs in §6 are **not**; they are marked there.
 
 Method: one worker process per configuration, converter built once
@@ -115,6 +116,7 @@ exist).
 | Bellettini 2002 (equations) | 51 | 64.62 | **0.789** | 2,036 | 2.58 | 819 | 0 |
 | Schneider 2008 (book, pp. 1–100) | 100 | 135.69 | **0.737** | 2,641 | 3.54 | 1,011 | 3 |
 | **aggregate** | **199** | **279.9** | **0.711** | **2,641** | | | |
+| Schneider 2008, **all 688 pages** (separate batch, 09:32 UTC) | 688 | 995.90 | **0.691** | **4,120** | 2.86 | 7,026 | 13 |
 
 **Configuration B — `num_threads=8`, everything else identical**
 
@@ -149,10 +151,15 @@ both would not be measuring anything.
   worker at 8 threads, so parallelism, not threads, is where the next measurement belongs
   (**not measured here**).
 
-**The book.** 688 pages; pages 1–100 took 136 s (t4). The full book was NOT run — the brief's
-30-minute ceiling made the first 100 pages the measurement. Projecting the 688 pages at the
-measured 0.737 pages/s gives **~15.6 min**, which is arithmetic, not a measurement: the book's
-later pages are denser than its front matter.
+**The book, measured in full.** Pages 1–100 took 136 s (t4); the whole 688 pages took
+**995.9 s = 16.6 min, 0.691 pages/s**, 7,026 body blocks. The projection from the first 100
+pages (~15.6 min) was 6% optimistic, so the back half is slightly denser — but only slightly.
+
+**Peak RSS is a function of document length, and that is the pool-sizing number.** The same
+book at 100 pages peaked at **2.6 GB**; at 688 pages it peaked at **4.12 GB** — the
+DoclingDocument is held in memory and grows with the document. Four parallel workers on files
+of this size would be ~16 GB, which is inside 63.8 GB but is nowhere near the 2 GB the article
+-sized files suggest. A worker pool must be sized on the longest document, not the median.
 
 ### 3.1 OCR — the same JSTOR scan, engine `rapidocr`
 
@@ -187,7 +194,8 @@ for Anderson p1, `parse_score 1.0, layout_score 0.785, ocr_score 0.983, mean_gra
 brings **torch 2.14.0+cpu**, whose `torch.cuda.is_available()` is `False`, so
 `AcceleratorDevice.CUDA` has nothing to bind to. Making a GPU run possible means replacing
 torch with a CUDA wheel in this venv, which changes every number in §3 and re-pins the
-requirements file. The driver is present (581.42, CUDA 13.0) with 3.1 GB of the 4 GB free.
+requirements file. Docling itself supports CUDA; **this installation does not have it** —
+that is a property of the wheel, not of the tool. The driver is present (581.42, CUDA 13.0) with 3.1 GB of the 4 GB free.
 **Not attempted in this session; the CPU measurement is the one that stands.**
 
 ---
@@ -260,8 +268,9 @@ from scanned sources.
 
 ## 5. Kills — all fired
 
-Method: mutate the adapter's source, run `qc/test_litkb_docling.py`, restore with
-`git checkout --`; exactly the GROBID referee's §4 method. 22 tests, 3 live tests skipped.
+Method: mutate the adapter's source, run `qc/test_litkb_docling.py`, restore it, re-run;
+exactly the GROBID referee's §4 method. The suite is **25 fixture tests + 3 live tests**, and
+the table below is the sweep re-run against the final source (8c5f980).
 
 | Mutation / kill input | Result |
 |---|---|
@@ -269,10 +278,14 @@ Method: mutate the adapter's source, run `qc/test_litkb_docling.py`, restore wit
 | **`coord_origin` ignored** (treat every box as TOPLEFT) | **3 failed** — same set |
 | **cropbox shift dropped** in `to_mediabox` | **1 failed** — `test_to_mediabox_shifts_by_the_cropbox_origin` |
 | **span fill removed** from `Table.at` | **1 failed** — `test_table_column_spans_are_preserved` |
-| **reading order = document order reversed** | **6 failed** — incl. `test_reading_order_does_not_interleave_the_columns` |
+| **reading order = document order reversed** | **7 failed** — incl. `test_reading_order_does_not_interleave_the_columns` and the OCR title |
 | **groups appended after the flow** instead of walked in place | **1 failed** — `test_iter_items_walks_groups_in_place_and_never_loops` |
 | **multi-prov boxes collapsed to the first** | **1 failed** — `test_a_paragraph_that_crosses_a_column_keeps_both_boxes` |
-| unmutated | **22 passed, 3 skipped** |
+| unmutated | **25 passed, 3 skipped** |
+
+The three live tests (the corrupt PDF, the zero-byte file, and a fresh conversion reproducing
+the committed fixture) were run as committed: `LITKB_LIVE=1 … -m litkb_live` → **3 passed** in
+43.6 s.
 
 And the three kill INPUTS the brief names, each asserted as its own test:
 

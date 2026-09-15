@@ -6,7 +6,7 @@ docling, none of which belong in the project's environment (design referee M9), 
 writes its result as a DoclingDocument JSON plus a metrics JSON. Nothing in the project
 imports this file; ``qc/check.py`` only compiles it, and a compile needs no docling.
 
-WHY A SUBPROCESS AND NOT AN IMPORT: the heavy venv is 3.7 GB of torch and models. Putting
+WHY A SUBPROCESS AND NOT AN IMPORT: the heavy venv is 1.4 GB of torch and friends, plus 1.1 GB of downloaded models (measured 2026-09-15). Putting
 it on the project's `sys.path` would make the ladder, the preflight and every QC script
 depend on it. The subprocess boundary is also where the measurement lives: peak RSS is a
 property of the process that ran the model, and this process runs nothing else.

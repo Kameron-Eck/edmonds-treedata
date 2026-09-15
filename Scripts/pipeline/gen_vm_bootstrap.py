@@ -23,6 +23,35 @@ SECRETS = Path(r"D:\edmonds-pipeline\secrets")
 SCRATCH = Path(os.environ.get("LOCALAPPDATA", "")) / "Temp" / "sector_campaign_vm"
 MOUNT = "/content/drive/MyDrive/treedata"        # the exact path every script expects
 
+# THE WORK REGISTRY — one home for "what counts as real work on a VM".
+#
+# The self-stop watchdog arms its idle timer only after it has SEEN a work process. Until
+# 2026-09-15 this list was three phase4 script names written inline in the watchdog's own
+# source, so the litkb formula worker — the first non-phase4 writer to get a runtime — was
+# invisible: `seen` never became True, the 10-idle-minute branch was never armed, and the
+# only backstop a hung decode had was the 2-hour "bootstrapped but no queue" timer
+# (measured on the canary, Reports/LITKB_COLAB_L4_CANARY_2026-09-15.md §6). A new worker
+# is added HERE, and qc/test_vm_heartbeat.py checks that every entry reaches the emitted
+# watchdog, so the constant and the emitted literal cannot drift apart.
+#
+# Matching is a substring test against /proc/<pid>/cmdline, so an entry must be the text
+# that actually appears there: the litkb worker is started as `python -u -m
+# litkb.extract.colab_formula_worker` (pipeline/litkb_formula_vm_start.py), hence the
+# dotted module path rather than a file name.
+WORK_MARKERS = (
+    "phase4_train_queue.py",
+    "phase4_semantic_finetune.py",
+    "phase4_qc_indep.py",                  # CPU scoring VMs are real work (2026-09-06)
+    "litkb.extract.colab_formula_worker",  # litkb formula decode (2026-09-15)
+)
+# A marker starting with this prefix carries a per-batch liveness beat, so the watchdog can
+# tell a WORKING process from a HUNG one instead of only from an absent one.
+BEAT_MARKER_PREFIX = "litkb"
+# Written by litkb.extract.colab_formula_worker.beat(): local disk, one line, touched before
+# the model load and after every batch. Deliberately NOT on the lake — it is a statement
+# about this VM's process, and a Drive round-trip would make its mtime a network artefact.
+WORKER_BEAT = "/content/litkb_worker_beat"
+
 
 def main():
     ap = argparse.ArgumentParser()
@@ -135,13 +164,15 @@ _WD = [
     "        runtime.unassign()",
     "    except Exception as e:",
     "        print('unassign failed:', e)",
-    "seen, idle_since, t0 = False, None, time.time()",
-    "while True:",
+    "MARKERS = " + repr(WORK_MARKERS),
+    "BEAT_PREFIX = " + repr(BEAT_MARKER_PREFIX),
+    "BEAT = " + repr(WORKER_BEAT),
+    "def _work_pid():",
     "    # Scan /proc directly — NOT `pgrep -f`, whose own `/bin/sh -c pgrep -f <pat>`",
     "    # wrapper carries the pattern in its cmdline and so always self-matches,",
     "    # pinning `seen` True forever and making the watchdog never fire",
     "    # (measured 2026-08-27). This scan also skips our own pid.",
-    "    q = ''",
+    "    # -> (pid, the marker it matched) or ('', None).",
     "    for _p in os.listdir('/proc'):",
     "        if not _p.isdigit() or _p == str(os.getpid()):",
     "            continue",
@@ -149,31 +180,65 @@ _WD = [
     "            _c = open('/proc/' + _p + '/cmdline', 'rb').read().decode('utf-8', 'replace')",
     "        except OSError:",
     "            continue",
-    "        if ('phase4_train_queue.py' in _c or 'phase4_semantic_finetune.py' in _c",
-    "                or 'phase4_qc_indep.py' in _c):   # CPU scoring VMs are real work (2026-09-06)",
-    "            q = _p",
-    "            break",
-    "    if q:",
-    "        seen, idle_since = True, None",
-    "    elif seen:",
-    "        idle_since = idle_since or time.time()",
-    "        if time.time() - idle_since > 600:",
-    "            _drain()   # wait on the real upload backlog, not a fixed sleep",
-    "            _stop()",
-    "            break",
-    "    elif not os.path.exists('/content/BOOTSTRAP_OK') and time.time() - t0 > 1200:",
+    "        for _m in MARKERS:",
+    "            if _m in _c:",
+    "                return _p, _m",
+    "    return '', None",
+    "def _beat_age(path):",
+    "    # Seconds since the worker last finished a batch, or None if it leaves no beat.",
+    "    # None means 'no evidence either way', and the caller must treat it as ALIVE:",
+    "    # a worker build without the beat must never be stopped while its process runs.",
+    "    try:",
+    "        return time.time() - os.path.getmtime(path)",
+    "    except OSError:",
+    "        return None",
+    "def _tick(now, pid, beat_age, seen, idle_since, t0, boot_ok, idle=600):",
+    "    # The whole decision, as a pure function of the state it is handed, so it can be",
+    "    # tested off-VM (qc/test_vm_heartbeat.py execs these lines).",
+    "    # -> (action, seen, idle_since); action is 'run' or 'stop:<why>'.",
+    "    if pid:",
+    "        seen = True",
+    "    busy = bool(pid)",
+    "    if busy and beat_age is not None and beat_age > idle:",
+    "        # ALIVE BUT HUNG. Its idle clock starts at the LAST BEAT, not at this scan —",
+    "        # the same '10 idle minutes' a vanished queue gets, measured from when the",
+    "        # work actually stopped rather than from when we noticed.",
+    "        busy = False",
+    "        idle_since = idle_since or (now - beat_age)",
+    "    if busy:",
+    "        return 'run', seen, None",
+    "    if seen:",
+    "        idle_since = idle_since or now",
+    "        if now - idle_since > idle:",
+    "            return 'stop:idle', seen, idle_since",
+    "        return 'run', seen, idle_since",
+    "    if not boot_ok and now - t0 > 1200:",
     "        # D14: the watchdog is now armed BEFORE the fallible bootstrap steps, so",
     "        # it must distinguish 'bootstrap died' from 'bootstrap fine, queue not up",
     "        # yet'. Seven exits (rclone, fuse3, mount rc, mount never appeared, four",
     "        # git calls, write canary) used to leave a live VM with NO watchdog and NO",
     "        # beacon - invisible to runtime_health, and believed by the operator not to",
     "        # exist. A missing marker after 20 min means the bootstrap never finished.",
-    "        print('selfstop: BOOTSTRAP_OK never appeared - bootstrap failed', flush=True)",
-    "        _note('stopped: bootstrap never completed')",
-    "        _stop()",
-    "        break",
-    "    elif time.time() - t0 > 7200:   # bootstrapped, but a queue never launched",
-    "        _note('stopped: bootstrapped but no queue in 2 h')",
+    "        return 'stop:bootstrap', seen, idle_since",
+    "    if now - t0 > 7200:   # bootstrapped, but a queue never launched",
+    "        return 'stop:noqueue', seen, idle_since",
+    "    return 'run', seen, idle_since",
+    "seen, idle_since, t0 = False, None, time.time()",
+    "while True:",
+    "    _pid, _mk = _work_pid()",
+    "    _age = _beat_age(BEAT) if (_mk or '').startswith(BEAT_PREFIX) else None",
+    "    _act, seen, idle_since = _tick(time.time(), _pid, _age, seen, idle_since, t0,",
+    "                                   os.path.exists('/content/BOOTSTRAP_OK'))",
+    "    if _act != 'run':",
+    "        if _act == 'stop:idle':",
+    "            if _age is not None:",
+    "                _note('litkb worker beat stale %d s - treating as hung' % int(_age))",
+    "            _drain()   # wait on the real upload backlog, not a fixed sleep",
+    "        elif _act == 'stop:bootstrap':",
+    "            print('selfstop: BOOTSTRAP_OK never appeared - bootstrap failed', flush=True)",
+    "            _note('stopped: bootstrap never completed')",
+    "        else:",
+    "            _note('stopped: bootstrapped but no queue in 2 h')",
     "        _stop()",
     "        break",
     "    time.sleep(60)",

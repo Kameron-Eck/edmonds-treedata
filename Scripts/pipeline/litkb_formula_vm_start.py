@@ -18,10 +18,23 @@ bootstrap every queue gets, including the server-side-md5 write canary that prov
 reach Drive before any writer runs. CLAUDE.md 3.4 still applies to step 1: the FIRST launch
 of this queue asks Kam.
 
-ONE QUEUE PER RUNTIME. This payload reads ``pipeline/queue_litkb_formula_l4.yaml`` and runs
-its shards in one process on one VM. Splitting across runtimes is done by splitting the
-queue file, never by two processes over one file — the results are content-addressed, so a
-double run wastes GPU rather than corrupting anything, but it still wastes GPU.
+ONE QUEUE PER RUNTIME. This payload reads ONE queue file and runs it on one VM. Splitting
+across RUNTIMES is done by splitting the queue file, never by two processes over one file —
+the results are content-addressed, so a double run wastes GPU rather than corrupting
+anything, but it still wastes GPU.
+
+N PROCESSES IS NOT TWO QUEUES. Since 2026-09-15 the queue file may carry ``procs: auto``, and
+the worker then decodes one shard with N child processes on the ONE runtime — the canary
+measured 2.02 GB of VRAM used on a 24 GB card and GPU utilisation peaking at 35%, so the card
+was idle most of the run. Every process still belongs to the one queue, the batch plan is
+computed once and shared by construction, and a slice that dies fails only its own crops. The
+one-queue-per-runtime rule is about who owns the runtime, and it is unchanged.
+
+WHICH QUEUE THIS PAYLOAD RUNS is the constant ``QUEUE`` below, and it is currently canary 2
+(``queue_litkb_formula_l4_canary2.yaml``). Canary 1 has run; its results are on the lake and
+its queue file is kept as the record of what ran. The out_dir and the process count now come
+from the queue file itself rather than from this payload, so switching queues is a one-line
+change here and nothing else.
 
 DEPENDENCIES. The Colab image carries torch; it does NOT carry docling. The bootstrap's
 editable install adds phase4seg and the shared modules and deliberately nothing else
@@ -44,7 +57,7 @@ import time
 REPO = "/content/repo"
 SCRIPTS = REPO + "/Scripts"
 MOUNT = "/content/drive/MyDrive/treedata"
-QUEUE = SCRIPTS + "/pipeline/queue_litkb_formula_l4.yaml"
+QUEUE = SCRIPTS + "/pipeline/queue_litkb_formula_l4_canary2.yaml"
 REQS = SCRIPTS + "/requirements-litkb-colab.txt"
 LOG = MOUNT + "/phase4/logs/litkb_formula_nohup_%s.log" % time.strftime(
     "%Y%m%dT%H%M%SZ", time.gmtime())
@@ -83,10 +96,13 @@ def main():
             "reference LaTeX was produced by 2.127.0 / 2.96.0. A different docling is a "
             "different CodeFormula; refusing to run." % (v.get("docling"),
                                                          v.get("docling-core")))
+    # --out-dir and --procs are NOT passed: they are properties of the queue, and the worker
+    # reads them from the queue file (load_queue). Passing them here is how canary 1 ended up
+    # with a destination the queue file declared and nothing read.
     cmd = (
         "cd %s/pipeline && nohup python -u -m litkb.extract.colab_formula_worker "
-        "--queue %s --out-dir %s --device cuda > %s 2>&1 &"
-        % (SCRIPTS, QUEUE, MOUNT + "/phase4/litkb/formula/results", LOG))
+        "--queue %s --device cuda > %s 2>&1 &"
+        % (SCRIPTS, QUEUE, LOG))
     subprocess.run(cmd, shell=True, check=True)
     time.sleep(10)
     print("LITKB_FORMULA_STARTED " + LOG)

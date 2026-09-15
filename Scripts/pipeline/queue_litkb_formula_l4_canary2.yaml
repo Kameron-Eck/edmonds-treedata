@@ -1,0 +1,42 @@
+# litkb formula — L4 CANARY 2. ONE QUEUE PER RUNTIME (COLAB_AUTONOMY_SETUP.md).
+#
+# PREPARED, NOT LAUNCHED. Canary 1 (Reports/LITKB_COLAB_L4_CANARY_2026-09-15.md) measured a
+# SEQUENTIAL decode: 0.1727 regions/s, peak VRAM 2.02 GB of 23.66, GPU utilisation peaking at
+# 35%. Canary 2 changes exactly one thing — N decode processes on the one runtime, sized by
+# colab_formula_worker.plan_procs from that measured peak — and re-decodes the SAME two shards
+# so the comparison has a baseline on the same card.
+#
+# WHY BOTH SHARDS.
+#   shard_canary200 — the rate, and the N-process scaling against canary 1's 1157.9 s.
+#   shard_ref5      — the five referee equations, byte-identical on CPU, T2000 and the L4 in
+#                     canary 1. They are the only crops in the corpus with a reference, so
+#                     they are what says the process split did not move a token.
+# Both are already on the lake and were md5-verified server-side during canary 1; nothing new
+# is uploaded for this run.
+#
+# THE OUT DIR IS NEW, AND THAT IS DELIBERATE. The worker skips a shard whose result archive is
+# already present (kill 4, idempotence). Canary 1's results sit in .../formula/results, so
+# writing there would skip both shards and return nothing. Writing beside them also keeps
+# canary 1's archives intact as the comparison baseline.
+#
+# A FREE MEASUREMENT COMES WITH THIS RUN. The batch plan now orders crops by estimated cost,
+# so canary 2's 200 crops are batched differently from canary 1's. Comparing the two runs'
+# LaTeX row by row therefore answers design UNCONFIRMED #3 — whether batch composition moves
+# the decoded tokens — at no extra GPU cost. Identical LaTeX across the two batchings settles
+# it in the direction the five referee crops already suggest; a difference is a finding.
+tier: L4
+one_queue_per_runtime: true
+procs: auto
+out_dir: /content/drive/MyDrive/treedata/phase4/litkb/formula/results_procs
+shards:
+  - shard: /content/drive/MyDrive/treedata/phase4/litkb/formula/shards/shard_canary200.zip
+    why: >-
+      the canary-1 shard again, decoded by N processes. Gives (a) the N-process regions/s
+      against a measured sequential 0.1727 on the same GPU, (b) device_min_free_bytes, the
+      first real per-process VRAM footprint — plan_procs currently uses a single free-memory
+      sample from canary 1 — and (c) the batch-composition comparison above.
+  - shard: /content/drive/MyDrive/treedata/phase4/litkb/formula/shards/shard_ref5.zip
+    why: >-
+      the five referee equations (Bellettini 2002 pp. 3-4), the only crops with a CPU and a
+      T2000 reference. Five crops is one batch, so it runs in one slice and costs ~6 s; it is
+      here to show the process split changed nothing, not to measure a rate.

@@ -28,7 +28,12 @@ Alwan_1988 **p3** (two-column, rotated margin stamp), Almon_1965 **p1** (JSTOR c
 Schneider_2008 **p463** (an uncaptioned two-column symbol table at the head of the page).
 
 Method: `pypdfium2` render at scale 2.0 → PNG → read the image and transcribe. The Docling JSON,
-the TEI and `reconcile()` were not opened until after the commit. 54 ordered body snippets, a kind
+the TEI and `reconcile()` were not opened until after the commit — **with one exception I have to
+disclose, because the gold's own `_what` line overstates it:** choosing WHICH Schneider page to
+annotate used the Docling artifact's list of table pages (9, 10, 11, 463, 670…), from which I picked
+463. That was page SELECTION; every annotation on it was made from the render alone, as on the other
+five pages. The `_what` line in the committed JSON should have said so and does not. 54 ordered body
+snippets, a kind
 per block, furniture listed separately, two caption→figure links, and three paragraphs verbatim
 **with their spaces**. The scoring is done by my own comparator
 (`scratchpad/score_gold.py`), NOT by `reconcile.order_violations` — a checker that shares a bug
@@ -123,6 +128,14 @@ artifact:** Docling labels all three of p4's furniture items `text`, not `page_h
 passes it through. The effect is that furniture enters the body reading order — visible in the
 ingest above as `page_header 4, page_footer 2` across pp2–4, i.e. none on p4.
 
+**(d) The native layer's hyphens come back as U+FFFE, and that is now in `blocks.text`.** V1's
+block reads `"detect any spe￾cial causes"`: `pypdfium2` emits the noncharacter U+FFFE at every
+line-break hyphen, `native_text_in` slices it through, and it was written into
+`litkb_test_w9.blocks.text` by the ingest in §3. I had to strip it in my own comparator to match the
+gold at all. Non-blocking for stage 5, but stage 6/7 quote verification and chunking against
+`blocks.text` will fail on every hyphenated line until it is normalised — fix it in the same place
+as the NUL strip.
+
 One apparent miss is NOT stage 5's: Alwan gold region 8 is the heading "SHEWHART'S **DEFINITION**
 OF A STATE"; the PDF's own text layer reads "DEFINIT**B**ON", so the block exists and is correctly
 typed `heading` — the source document's native layer is wrong.
@@ -181,8 +194,9 @@ overlapped by 2 other canonical blocks.
 | **B** coverage multiplicity — mean blocks responsible per character | 2.6756 | 2.5318 | 5.4 % relative drop; a 5 % per-page drop gate **FIRES**, and it needs no gold |
 | **C** gold-region recall — per REGION, does some block *begin* at it | 10/13 | 9/13 | **FIRES** and names the lost region |
 
-This is a sharper demonstration than the builder's (whose "drop the largest block" moved p4 from
-1.0000 to 0.9723): here the shipped metric does not move by one character, because the removed
+This is a sharper demonstration than the builder's "drop the largest block on p4", quoted there as
+1.0000 → 0.9723 (I did not reproduce that figure; my plant is the stronger case and the verdict does
+not rest on theirs): here the shipped metric does not move by one character, because the removed
 paragraph's ink is entirely inside two surviving overlapping blocks. **Recommendation:** keep A as
 the page-body gate, add **B** as the cheap per-page regression gate (no gold, monotone in blocks),
 and use **C** wherever gold exists. Note that C's baseline is already 10/13, not 13/13 — the three
@@ -281,7 +295,8 @@ postgres://|pgpass`: **no matches**. No credential material in the range.
 ## 10. What must change before stage 5 carries the archive
 
 0. **Strip NUL bytes before ingest** (§4(0)). Without it `Benedek_2015` — and any file whose
-   Docling text carries a 0x00 — cannot be ingested at all.
+   Docling text carries a 0x00 — cannot be ingested at all. Normalise U+FFFE (§4(d)) in the same
+   place, before stage 6 reads `blocks.text`.
 1. **Pin the thresholds or stop calling them pinned.** Add mutation rows at ±20 % for all four, or
    state in `reconcile.py` that they are unpinned within a fifth. `IOU_TOUCH` and `TEXT_AGREE` have
    no row at all.

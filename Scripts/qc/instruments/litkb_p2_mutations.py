@@ -412,6 +412,18 @@ site("P6e", "litkb/migrate_legacy/run.py::record_use::_jsonb", _JSONB, tests=TES
      what="the use version's identity and fields go to jsonb unguarded")
 site("P6f", "litkb/commands.py::cmd_migrate::_labels", "(args.agent, args.session)", tests=TESTS_P3,
      what="litkb migrate records the raw agent/session labels, unnormalised")
+p3(block, "P7a", f"{PKG}/migrate_legacy/run.py",
+   "guard: a row that reached a work records its use, DEDUPED rows included",
+   "a row deduped against an existing work loses its Relevance, grade and Feeds")
+p3(block, "P7b", f"{PKG}/migrate_legacy/run.py",
+   "guard: a resumed load finishes a row it had already admitted but not finished",
+   "a load interrupted between the admission and the use leaves the use missing forever")
+p3(block, "P7c", f"{PKG}/export.py", "guard: a refused file is still exported as a manifest row",
+   "a file the database refused is dropped from the manifest export")
+replace("P7d", f"{PKG}/export.py",
+        '            u = uses.get(work_id) if not (r.get("Duplicate of") or "").strip() else None\n',
+        "            u = uses.get(work_id)\n",
+        "a `Duplicate of` row is painted with the original row's Relevance and Feeds", tests=TESTS_P3)
 
 DEFERRED_HELPERS = {}
 

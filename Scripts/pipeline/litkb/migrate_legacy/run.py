@@ -100,6 +100,13 @@ class Loader:
              self.agent, self.session)).fetchone()[0]
         # END guard: every disagreeing legacy field is recorded
 
+    def use_for(self, work_id):
+        """This workstream's use on that work, if it wrote one. A READ before the write, so a resumed load
+        never writes a second copy of the same use."""
+        return self.conn.execute(
+            "SELECT u.id FROM litkb.uses u JOIN litkb.use_versions v ON v.use_id = u.id "
+            "WHERE u.work_id = %s AND v.workstream_id = %s LIMIT 1", (work_id, self.ws)).fetchone()
+
     def record_use(self, work_id, row):
         """The tracker's Relevance / Evidence grade / Feeds / Notes as a use version (design §4.5).
 
@@ -122,7 +129,8 @@ class Loader:
                                                      f"tracker Notes: {notes}" if notes else "") if x) or None}
         return self.conn.execute(
             "SELECT * FROM litkb.write_proposal(%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)",
-            ("use", None, front._jsonb({"work_id": work_id, "gap_id": None}), None, front._jsonb(fields),
+            # str(): the admission path hands back a work id from JSON, the resume path reads a uuid object
+            ("use", None, front._jsonb({"work_id": str(work_id), "gap_id": None}), None, front._jsonb(fields),
              None, self.ws, self.token, self.agent, self.session)).fetchone()
 
 
@@ -197,6 +205,15 @@ def _load_tracker_row(ctx, row, manifest, c):
     seen = ctx.already_loaded(detail)
     if seen:
         c["skipped_already_loaded"] += 1
+        # BEGIN guard: a resumed load finishes a row it had already admitted but not finished
+        # The row's candidate exists, so nothing is admitted again. What CAN be missing is its use: a load
+        # interrupted between the admission and the use version, or (the live run of 2026-09-15) rows loaded
+        # before deduped rows were given uses at all. Writing it here is idempotent — `use_for` finds the one
+        # already written — so a correct first run still leaves the second run nothing to do.
+        if seen[2] is not None and not (row.get("Duplicate of") or "").strip() and not ctx.use_for(seen[2]):
+            if ctx.record_use(seen[2], row) is not None:
+                c["uses_backfilled"] = c.get("uses_backfilled", 0) + 1
+        # END guard: a resumed load finishes a row it had already admitted but not finished
         ctx.log.append({"tracker_id": tid, "outcome": "already-loaded", "candidate_id": str(seen[0]),
                         "candidate_state": seen[1]})
         return
@@ -279,9 +296,16 @@ def _load_tracker_row(ctx, row, manifest, c):
             c["admitted" if res["outcome"] == "admitted" else "proposed"] += 1
             if res.get("file_id"):
                 c["bound"] += 1
-            if ctx.record_use(work, row) is not None:
-                c["uses"] += 1
-                entry["use"] = True
+    # BEGIN guard: a row that reached a work records its use, DEDUPED rows included
+    # A row whose DOI was already admitted (one of the 30 works P2 and the pre-1990 run left, or an earlier
+    # tracker row) comes back `duplicate` and is NOT re-admitted — but it still carries the tracker's
+    # Relevance, grade and Feeds, and that is exactly what a use version is for. A `Duplicate of` row is the
+    # one exception: the tracker keeps the payload on the original row only.
+    if work is not None and not (row.get("Duplicate of") or "").strip():
+        if ctx.record_use(work, row) is not None:
+            c["uses"] += 1
+            entry["use"] = True
+    # END guard: a row that reached a work records its use, DEDUPED rows included
     entry["discrepancies"] = _flush(ctx, c, pending, work, cand)
     ctx.log.append(entry)
 

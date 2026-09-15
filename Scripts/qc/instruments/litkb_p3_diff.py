@@ -64,7 +64,7 @@ def compare(source, today, exported, key, columns, explained, held_rows):
                 continue
             # a manifest discrepancy is keyed on the LEGACY stem the row came from, which is the row's own
             # `stem` cell on today's side — never the export's, which is the work key
-            row_key = t.get("stem") or rid if source == "manifest" else rid
+            row_key = rid
             hit = explained.get((source, row_key, _FIELD_ALIAS.get(field, field)))
             if (source, field) in STRUCTURAL:
                 bucket, why = "structural", STRUCTURAL[(source, field)]
@@ -107,10 +107,13 @@ def run(conn, ws, root=None):
             held.add(r[0])
     rows = compare("tracker", sources.tracker_rows(), ex.tracker_rows(conn, ws), "ID",
                    sources.TRACKER_COLUMNS[1:], explained, held)
-    # the manifest is joined on sha256, not on `stem`: the export's stem IS the work key (M7), so stem is a
-    # CELL that changed, not a key that matches. sha256 is the same bytes on both sides.
-    rows += compare("manifest", sources.manifest_rows(root=root), ex.manifest_rows(conn, ws), "sha256",
-                    [c for c in sources.MANIFEST_COLUMNS if c != "sha256"], explained, held)
+    # the manifest joins on the LEGACY stem, which the export carries in `litkb_legacy_stem`. Not on `stem`:
+    # the export's stem IS the work key (M7), so stem is a cell that changed. Not on sha256 either: a row
+    # whose recorded hash went stale is exactly the row a hash join would lose, and the one the review most
+    # needs to see.
+    exported = [dict(r, stem_join=r.get("litkb_legacy_stem") or r.get("stem")) for r in ex.manifest_rows(conn, ws)]
+    today_m = [dict(r, stem_join=r["stem"]) for r in sources.manifest_rows(root=root)]
+    rows += compare("manifest", today_m, exported, "stem_join", sources.MANIFEST_COLUMNS, explained, held)
     return rows
 
 

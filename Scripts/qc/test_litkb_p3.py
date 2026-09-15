@@ -517,3 +517,93 @@ def test_kill_the_diff_gate_reports_an_unexplained_cell_when_the_discrepancy_is_
                       [{"sha256": "a" * 64, "stem": "Allard_2007_total-variation-regularization-image"}],
                       "sha256", ["stem"], {}, set())
     assert [r["bucket"] for r in st] == ["structural"], st
+
+
+@pg_only
+def test_a_deduped_row_still_records_its_use_and_a_duplicate_of_row_does_not(pg, tmp_path):
+    """A tracker row whose DOI is already admitted is NOT re-admitted — but it still carries the tracker's
+    Relevance, grade and Feeds, and that is what a use version is for. The exception is a `Duplicate of` row:
+    the tracker keeps the payload on the original row only (LITERATURE_CONVENTION.md), so it gets no use, and
+    the export must not paint the original's Relevance onto it."""
+    from litkb import export as ex
+    from litkb.migrate_legacy import run as mrun
+
+    _need_file(VALIDATION)
+    hexid = uuid.uuid4().hex[:8]
+    doi, title, author = f"10.5555/p3dd-{hexid}", f"Dedupe {hexid} of an already admitted work", "Deduper"
+    root, stem = plant(tmp_path, title, author)
+    ws = pg.ws()
+    reg = Registry({doi: synthetic_record(doi, title, author, 2021)})
+    ctx = loader(pg, ws, reg, root=root)
+    rows = [row(90, title=title, authors=f"{author}, D.", year=2021, doi=doi, stem=stem,
+                relevance="The original row's relevance.", feeds="gap row 6", grade="PRIMARY"),
+            # the same DOI again, NOT flagged as a tracker duplicate: a dedupe against an existing work
+            row(91, title=title, authors=f"{author}, D.", year=2021, doi=doi,
+                relevance="A second row's own relevance.", feeds="review §4.18", grade="ABSTRACT"),
+            # a tracker `Duplicate of` row: no payload of its own
+            row(92, title=title, authors=f"{author}, D.", year=2021, doi=doi, dup="90", status="Duplicate",
+                relevance="Duplicate — see [ID 90, Deduper 2021]")]
+    c = mrun.load_tracker(ctx, rows=rows, manifest={stem: {"stem": stem}})
+    assert c["admitted"] == 1 and c["duplicate"] == 2, ctx.log
+    # BEGIN guard: a deduped row's use is recorded
+    assert c["uses"] == 2, f"the deduped row's Relevance/Feeds were dropped: {ctx.log}"
+    # END guard: a deduped row's use is recorded
+    statements = {r[0] for r in pg.conn.execute(
+        "SELECT statement FROM litkb.use_versions WHERE workstream_id = %s", (ws,)).fetchall()}
+    assert statements == {"The original row's relevance.", "A second row's own relevance."}, statements
+    out = {r["ID"]: r for r in ex.tracker_rows(pg.conn, ws)}
+    assert out["92"]["Relevance (max 3 sentences)"] == "Duplicate — see [ID 90, Deduper 2021]"
+    assert out["92"]["Evidence grade"] == "" and out["92"]["Feeds"] == ""
+
+
+@pg_only
+def test_a_file_the_database_refused_is_still_a_manifest_row(pg, tmp_path):
+    """Dropping a refused file would DELETE a row from the manifest. Its legacy row is printed back verbatim,
+    with `litkb_state` saying what happened, and `litkb_legacy_stem` carrying the join the diff needs."""
+    from litkb import export as ex
+    from litkb.migrate_legacy import run as mrun
+
+    _need_file(VALIDATION)
+    hexid = uuid.uuid4().hex[:8]
+    doi, title = f"10.5555/p3rf-{hexid}", f"Refused {hexid} file of a real registry work"
+    root, stem = plant(tmp_path, "A totally different paper about something else", "Nobody")
+    ws = pg.ws()
+    ctx = loader(pg, ws, Registry({doi: synthetic_record(doi, title, "Refusee", 2020)}), root=root)
+    mrow = {"stem": stem, "title": title, "authors": "Refusee, R.", "year": "2020", "venue": "J. Synth.",
+            "doi": doi, "arxiv": "", "sha256": "", "source_route": "unknown (pre-manifest)",
+            "obtained_date": "2026-09-12", "verified_against_extract": "yes", "cited_by": "a_report.md"}
+    c = mrun.load_manifest(ctx, rows=[mrow])
+    assert c["admitted"] == 0 and c["refused"] == 1, ctx.log
+    m = ex.manifest_rows(pg.conn, ws)
+    # BEGIN guard: a refused file is still exported as a manifest row
+    assert len(m) == 1, f"the refused file was dropped from the manifest: {m}"
+    # END guard: a refused file is still exported as a manifest row
+    assert m[0]["litkb_legacy_stem"] == stem and m[0]["stem"] == stem
+    assert m[0]["litkb_key"] == "" and m[0]["litkb_state"] == "rejected"
+    assert m[0]["cited_by"] == "a_report.md" and m[0]["source_route"] == "unknown (pre-manifest)"
+
+
+@pg_only
+def test_a_resumed_load_backfills_a_missing_use_and_only_once(pg, tmp_path):
+    """A load interrupted between the admission and the use version leaves the row admitted with no use. The
+    resume writes it; a third pass writes nothing, so the idempotency kill still holds."""
+    from litkb.migrate_legacy import run as mrun
+
+    _need_file(VALIDATION)
+    hexid = uuid.uuid4().hex[:8]
+    doi, title, author = f"10.5555/p3bf-{hexid}", f"Backfill {hexid} of an interrupted load", "Resumer"
+    root, stem = plant(tmp_path, title, author)
+    ws = pg.ws()
+    reg = Registry({doi: synthetic_record(doi, title, author, 2020)})
+    r = row(95, title=title, authors=f"{author}, R.", year=2020, doi=doi, stem=stem,
+            relevance="Recorded on the resume.", feeds="gap row 6")
+    ctx = loader(pg, ws, reg, root=root)
+    ctx.record_use = lambda *a, **k: None                       # the interruption: admitted, no use written
+    mrun.load_tracker(ctx, rows=[r], manifest={stem: {"stem": stem}})
+    assert pg.one("SELECT count(*) FROM litkb.use_versions WHERE workstream_id = %s", (ws,))[0] == 0
+    second = mrun.load_tracker(loader(pg, ws, reg, root=root), rows=[r], manifest={stem: {"stem": stem}})
+    assert second["skipped_already_loaded"] == 1 and second.get("uses_backfilled") == 1
+    assert pg.one("SELECT count(*) FROM litkb.use_versions WHERE workstream_id = %s", (ws,))[0] == 1
+    third = mrun.load_tracker(loader(pg, ws, reg, root=root), rows=[r], manifest={stem: {"stem": stem}})
+    assert third.get("uses_backfilled", 0) == 0, "the backfill wrote a second copy of the same use"
+    assert pg.one("SELECT count(*) FROM litkb.use_versions WHERE workstream_id = %s", (ws,))[0] == 1

@@ -25,7 +25,7 @@ from pathlib import Path
 from litkb.migrate_legacy import sources
 
 TRACKER_EXPORT_COLUMNS = [*sources.TRACKER_COLUMNS, "litkb_key", "litkb_state"]
-MANIFEST_EXPORT_COLUMNS = [*sources.MANIFEST_COLUMNS, "litkb_key", "litkb_state"]
+MANIFEST_EXPORT_COLUMNS = [*sources.MANIFEST_COLUMNS, "litkb_key", "litkb_legacy_stem", "litkb_state"]
 
 _ROWS_SQL = """
 SELECT cd.id, cd.source_detail, cd.state, cd.raw_record, cd.admitted_work_id, w.key,
@@ -104,9 +104,15 @@ def tracker_rows(conn, ws):
                 out["DOI/URL"] = f"https://arxiv.org/abs/{wid['arxiv'][0]}"
             if wid.get("legacy_stem"):
                 out["File stem"] = wid["legacy_stem"][0]
-            u = uses.get(work_id)
+            # a `Duplicate of` row shares the original's WORK, so uses.get(work_id) would paint the
+            # original's Relevance and Feeds onto it. The tracker keeps the payload on the original row only
+            # (LITERATURE_CONVENTION.md), so the duplicate keeps its own words.
+            u = uses.get(work_id) if not (r.get("Duplicate of") or "").strip() else None
             if u:
-                out["Relevance (max 3 sentences)"] = u["statement"] or out["Relevance (max 3 sentences)"]
+                # a use written for a row with no Relevance carries a placeholder statement (a use version's
+                # `statement` may not be empty); the tracker cell it came from was blank and stays blank
+                stmt = "" if str(u["statement"] or "").startswith("tracker row ") and                     u["statement"].endswith(": no relevance recorded") else u["statement"]
+                out["Relevance (max 3 sentences)"] = stmt or out["Relevance (max 3 sentences)"]
                 out["Feeds"] = "; ".join(u["feeds"]) or out["Feeds"]
                 out["Evidence grade"] = u["confidence"] or out["Evidence grade"]
         rows.append(out)
@@ -115,38 +121,57 @@ def tracker_rows(conn, ws):
 
 
 def manifest_rows(conn, ws):
-    """The manifest, as the database now holds it: one row per held file, keyed by the work's key.
+    """The manifest, as the database now holds it: one row per held file.
 
-    Referee note M7: `works.key` is authoritative and `files.stem` is DERIVED from it. The export therefore
-    prints the key in `stem`; the legacy stem, where it differs, stays readable as a `legacy_stem` identifier
-    and as a discrepancy row.
+    Referee note M7: `works.key` is authoritative and `files.stem` is DERIVED from it. The export prints the
+    key in `stem`; the LEGACY stem is printed too, in `litkb_legacy_stem`, because it is the only stable join
+    between this file and the old manifest — the recorded sha256 is not (a row whose hash went stale is
+    exactly the row a hash join would lose, and it is the row the review most needs to see).
+
+    **A file the database refused is still printed.** A file that failed binding, or that waits for OCR
+    (§15.14), has no work. Dropping it would delete a row from the manifest, so its legacy row is printed
+    back verbatim with `litkb_state` saying what happened to it.
     """
     ids, files = _identifiers(conn, ws), _files(conn, ws)
     seen, rows = set(), []
     for _cid, detail, state, raw, work_id, key, title, authors, year, venue in conn.execute(
             _ROWS_SQL, {"ws": ws, "prefix": "%"}).fetchall():
-        if work_id is None or work_id not in files or work_id in seen:
-            continue
-        seen.add(work_id)
-        r, f, wid = _raw(raw), files[work_id], ids.get(work_id, {})
+        r = _raw(raw)
         # the manifest columns with no home in the data model travel on the candidate's raw_record, under
         # `_manifest` when the row entered through its TRACKER row (204 of the 207 did)
         mr = r.get("_manifest") or (r if "stem" in r else {})
+        if not mr:
+            continue                                   # a tracker row with no file: not a manifest row
+        legacy = mr.get("stem") or ""
+        if legacy in seen:
+            continue
+        seen.add(legacy)
+        wid = ids.get(work_id, {}) if work_id else {}
+        f = files.get(work_id) if work_id else None
+        if f is None:
+            # BEGIN guard: a refused file is still exported as a manifest row
+            # held: no work, or a work whose file the database refused. The legacy row, unchanged.
+            rows.append({**{c: mr.get(c, "") for c in sources.MANIFEST_COLUMNS},
+                         "stem": key or legacy, "litkb_key": key or "", "litkb_legacy_stem": legacy,
+                         "litkb_state": state or ""})
+            continue
+            # END guard: a refused file is still exported as a manifest row
         rows.append({
-            "stem": key or "",
-            "title": title or mr.get("title") or r.get("Title") or "",
-            "authors": _authors_line(authors) or mr.get("authors") or r.get("Author(s)") or "",
-            "year": str(year) if year else (mr.get("year") or r.get("Year") or ""),
-            "venue": venue or mr.get("venue") or r.get("Journal/Source") or "",
+            "stem": key or legacy,
+            "title": title or mr.get("title") or "",
+            "authors": _authors_line(authors) or mr.get("authors") or "",
+            "year": str(year) if year else (mr.get("year") or ""),
+            "venue": venue or mr.get("venue") or "",
             "doi": (wid.get("doi") or [""])[0],
             "arxiv": (wid.get("arxiv") or [""])[0],
             "source_route": f["source_route"] or mr.get("source_route") or "in place (P3 migration)",
             "obtained_date": (str(f["obtained_at"])[:10] if f["obtained_at"] else mr.get("obtained_date") or ""),
-            "sha256": f["sha256"] or "",
+            "sha256": f["sha256"] or mr.get("sha256") or "",
             # the binding check IS the verification the old column recorded by hand (convention rule 2)
             "verified_against_extract": "yes" if (f["binding"] or {}).get("verdict") == "bound" else "no",
             "cited_by": mr.get("cited_by") or "",
             "litkb_key": key or "",
+            "litkb_legacy_stem": legacy,
             "litkb_state": state or "",
         })
     rows.sort(key=lambda x: x["stem"])

@@ -1,0 +1,153 @@
+{
+"name": "Bellettini 2002 pp.3-4, BASE pass (formulas located, not read)",
+"pages": {
+"3": {
+"size": {
+"width": 428.0,
+"height": 646.0
+},
+"page_no": 3
+},
+"4": {
+"size": {
+"width": 428.0,
+"height": 646.0
+},
+"page_no": 4
+}
+},
+"texts": [
+{
+"self_ref": "#/texts/0",
+"label": "formula",
+"text": "",
+"content_layer": "body",
+"prov": [
+{
+"page_no": 3,
+"bbox": {
+"l": 127.44575716000001,
+"t": 155.6632062,
+"r": 299.36748878,
+"b": 133.3245555989928,
+"coord_origin": "BOTTOMLEFT"
+},
+"charspan": [
+0,
+62
+]
+}
+]
+},
+{
+"self_ref": "#/texts/1",
+"label": "formula",
+"text": "",
+"content_layer": "body",
+"prov": [
+{
+"page_no": 3,
+"bbox": {
+"l": 170.75914434,
+"t": 80.88065900000004,
+"r": 375.27888306,
+"b": 63.97088025104597,
+"coord_origin": "BOTTOMLEFT"
+},
+"charspan": [
+0,
+40
+]
+}
+]
+},
+{
+"self_ref": "#/texts/2",
+"label": "formula",
+"text": "",
+"content_layer": "body",
+"prov": [
+{
+"page_no": 4,
+"bbox": {
+"l": 126.99321999999998,
+"t": 470.70242466,
+"r": 300.80820716,
+"b": 441.2790496240559,
+"coord_origin": "BOTTOMLEFT"
+},
+"charspan": [
+0,
+59
+]
+}
+]
+},
+{
+"self_ref": "#/texts/3",
+"label": "formula",
+"text": "",
+"content_layer": "body",
+"prov": [
+{
+"page_no": 4,
+"bbox": {
+"l": 165.37363397999997,
+"t": 409.41668598,
+"r": 375.2794425799999,
+"b": 379.99404962405595,
+"coord_origin": "BOTTOMLEFT"
+},
+"charspan": [
+0,
+52
+]
+}
+]
+},
+{
+"self_ref": "#/texts/4",
+"label": "formula",
+"text": "",
+"content_layer": "body",
+"prov": [
+{
+"page_no": 4,
+"bbox": {
+"l": 115.5401,
+"t": 275.69885580000005,
+"r": 375.27897973999995,
+"b": 252.6052310240559,
+"coord_origin": "BOTTOMLEFT"
+},
+"charspan": [
+0,
+76
+]
+}
+]
+}
+],
+"tables": [],
+"pictures": [],
+"groups": [],
+"body": {
+"children": [
+{
+"$ref": "#/texts/0"
+},
+{
+"$ref": "#/texts/1"
+},
+{
+"$ref": "#/texts/2"
+},
+{
+"$ref": "#/texts/3"
+},
+{
+"$ref": "#/texts/4"
+}
+]
+}
+}

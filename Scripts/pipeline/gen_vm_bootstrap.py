@@ -88,6 +88,14 @@ BR = {a.branch!r}
 SESSION = {a.session!r}
 AUTH = "https://x-access-token:{tok}@github.com/Kameron-Eck/edmonds-treedata.git"
 MOUNT = {MOUNT!r}
+# The watchdog's work registry, substituted here like MOUNT. It HAS to be: `_WD`
+# below runs on the VM, not in the generator, so a bare `repr(WORK_MARKERS)` there
+# is a NameError at bootstrap line 15 — before SELFSTOP_ARMED, before the mount —
+# which is the D14 failure exactly: a live billing VM with no watchdog. Tuple and
+# str reprs carry no braces, so they are safe inside this f-string.
+WORK_MARKERS = {WORK_MARKERS!r}
+BEAT_MARKER_PREFIX = {BEAT_MARKER_PREFIX!r}
+WORKER_BEAT = {WORKER_BEAT!r}
 
 # ── D14: arm the self-stop watchdog FIRST ─────────────────────────────────
 # It used to arm on the LAST line of the bootstrap, so any of the seven

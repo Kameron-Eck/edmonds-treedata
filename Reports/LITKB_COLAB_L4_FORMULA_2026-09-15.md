@@ -506,9 +506,9 @@ real one and this constant can be replaced by a measurement.
 heartbeat carries GPU and CPU *percent*, not core count), so N is computed **on the VM**, where
 `os.cpu_count()` is read. At 8 vCPU the CPU term is 7 and memory still binds at 6; at 4 vCPU
 it binds at **3**. The returned `proc_plan` names which term bound it, so the result says what
-actually happened rather than what was expected. Per-process threads are `max(1, cpu_count //
-N)` — N processes each asking for 4 threads on an 8-vCPU runtime is oversubscription, and the
-decode is GPU-bound anyway.
+actually happened rather than what was expected. Per-process threads are `max(1,
+min(--threads, (cpu_count - 1) // N))` — N processes each asking for 4 threads on an 8-vCPU
+runtime is oversubscription, and the decode is GPU-bound anyway.
 
 ### 9.3 The local dry run — N=1 vs N=2, on the CPU venv
 
@@ -626,6 +626,7 @@ baseline before: PASS
 W1  FIRED  the watchdog stops treating a stale liveness beat as a hang
 W2  FIRED  the litkb worker is dropped from the work registry
 W3  FIRED  the worker no longer beats before it loads the model
+W4  FIRED  the work registry stops being substituted into the emitted bootstrap
 M1  FIRED  a crop no slice returned a row for is reported ok instead of failed
 M2  FIRED  the merge stops coercing a child's ok-with-no-LaTeX row to failed
 baseline after:  PASS
@@ -639,6 +640,24 @@ that would pass just as well if the branch did nothing.
 `test_every_mutation_row_still_has_a_target` fails the ordinary suite if a refactor moves a
 guarded line out from under a row, so a stale campaign cannot quietly become no evidence.
 
+**W4 exists because review found the fix itself would have killed the launch, and every gate
+in this repo was blind to it.** `_WD` is a list of source lines built **on the VM**, inside the
+bootstrap's f-string body — so a name it reads, `repr(WORK_MARKERS)`, has to be substituted
+into the *emitted* script's namespace by the body header, exactly as `MOUNT` is. The constants
+were added at the generator's module level and the three header lines were not. On the VM that
+is a `NameError` at bootstrap line 15: **before `SELFSTOP_ARMED`, before the mount, before
+anything** — a live, billing runtime with no watchdog and no beacon, which is the D14 failure
+mode the watchdog was moved to the top of the bootstrap to prevent.
+
+Nothing caught it because **parsing the emitted script is not running it**: `ast.parse` accepts
+a `NameError` without complaint, and the static flattener every existing gate uses rewrites
+`repr(WORK_MARKERS)` to a string literal *before* anyone looks at it — so the very tool that
+makes the emitted script readable off-VM is what hid the missing binding.
+`test_the_emitted_bootstrap_can_actually_BUILD_the_watchdog` now **executes** the emitted
+script's prefix — imports, constants, the `_WD` literal, stopping before the first line that
+touches the filesystem — and asserts every name the header must bind is bound. W4 is the
+mutation that deletes one header line and shows it fires.
+
 ### 9.7 Ladder and hygiene for this change
 
 * `LITKB_PGPORT=1 py -3.12 qc/check.py --fast`, run after the final edit. Stated in those
@@ -649,16 +668,19 @@ guarded line out from under a row, so a stale campaign cannot quietly become no 
   litkb Postgres tests: 216 skipped  <- 216 SKIPPED: litkb server/role/psycopg absent,
                                         so those guards were NOT tested
   FAILED qc\test_experiments.py::test_pointer_paths_resolve[crown_state_model]
-  1 failed, 2282 passed, 224 skipped, 74 warnings in 545.83s (0:09:05)
+  1 failed, 2283 passed, 224 skipped, 74 warnings in 634.44s (0:10:34)
   check: FAILED at rung 'pytest' — fix, then rerun.
   ```
+
+  (Re-run after the FINAL edit — the §9.6 header fix and its test — so the quote is of the
+  state that was committed, not of an earlier one.)
 
   **The ladder's verdict is FAILED, not PASSED.** The single failure is `crown_state_model`,
   the same expected one this branch's base commit and §8 already carry; nothing in this change
   touches experiments. Because the ladder stops at the first failing rung, **preflight did not
   run**, and `--fast` skips the smoke by definition. `ruff check --select F` over the five
   touched/added Python files separately: **All checks passed!**
-* `qc/test_litkb_formula_colab.py` alone: **25 passed**. The vm/litkb/ci subset: 423 passed.
+* `qc/test_litkb_formula_colab.py` alone: **26 passed**. The vm/litkb/ci subset: 423 passed.
 * **No Colab runtime was created**, no `colab` CLI call was made, no compute unit was spent.
   Canary 2 is prepared and NOT launched.
 * No `litkb*` database was touched; `LITKB_PGPORT=1` was set for every run. No other worktree

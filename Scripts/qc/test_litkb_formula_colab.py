@@ -49,6 +49,49 @@ def worker():
 
 # ── the watchdog, as source ─────────────────────────────────────────────────────────────
 
+def _emitted_bootstrap():
+    """The bootstrap text with a placeholder for each substitution — no secret needed."""
+    body = None
+    for node in ast.walk(ast.parse(GEN.read_text(encoding="utf-8"))):
+        if isinstance(node, ast.Assign) and any(
+                getattr(t, "id", None) == "body" for t in node.targets):
+            body = node.value
+    assert body is not None and isinstance(body, ast.JoinedStr)
+    return "".join(v.value if isinstance(v, ast.Constant) else "'_SUBST_'"
+                   for v in body.values)
+
+
+def test_the_emitted_bootstrap_can_actually_BUILD_the_watchdog():
+    """PARSING THE EMITTED SCRIPT IS NOT RUNNING IT, and that gap hid a launch-killing bug.
+
+    `_WD` is a list built on the VM. A name used inside it — `repr(WORK_MARKERS)` — must be
+    substituted into the emitted script's namespace by the body header, exactly as `MOUNT` is.
+    Add the constant to this module and forget the header line and the bootstrap dies with a
+    NameError at its line 15: before SELFSTOP_ARMED, before the mount, before anything. That
+    is the D14 failure mode — a live billing VM with no watchdog and no beacon — and every
+    other gate here is blind to it, because `ast.parse` accepts a NameError happily and the
+    static flattener rewrites the offending call to a string literal before anyone looks.
+
+    So this one EXECUTES the emitted script's prefix: imports, constants, and the `_WD` list
+    literal, stopping before the first line that touches the filesystem.
+    """
+    emitted = _emitted_bootstrap()
+    cut = emitted.index('open("/content/vm_selfstop.py"')
+    prefix = emitted[:cut]
+    assert "_WD = [" in prefix and "subprocess" in prefix
+    ns = {}
+    exec(compile(prefix, "<emitted bootstrap>", "exec"), ns)   # noqa: S102 — the code under test
+    assert isinstance(ns.get("_WD"), list) and ns["_WD"], "_WD did not build on the VM side"
+    assert all(isinstance(x, str) for x in ns["_WD"])
+    # Every name `_WD` reads must be bound in that namespace. The flattener replaces each
+    # substitution with a placeholder, so the VALUES here are '_SUBST_' — what is being
+    # checked is that the header binds the names at all, which is the half that was missing.
+    for name in ("MOUNT", "WORK_MARKERS", "BEAT_MARKER_PREFIX", "WORKER_BEAT"):
+        assert name in ns, f"the body header never substitutes {name} into the emitted script"
+    # the real values are checked against the generator's own constants elsewhere
+    # (test_the_litkb_worker_is_in_the_work_registry, test_the_registry_reaches_the_emitted_watchdog)
+
+
 def _watchdog_lines():
     """The self-stop watchdog's own source lines, read out of the generator's `_WD` literal.
 

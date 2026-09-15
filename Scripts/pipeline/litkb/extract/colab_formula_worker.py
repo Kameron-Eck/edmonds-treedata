@@ -54,10 +54,13 @@ A DECODE IS NOT A FUNCTION OF THE CROP BYTES (2026-09-15, canary 2 §5 and the D
 section that followed it). Canary 2 re-decoded canary 1's exact 200 crops and 14 came back
 different. The engine is NOT sampling — ``code_formula_vlm_model.py`` passes
 ``temperature=0.0`` and ``transformers_engine.py`` sets ``do_sample = temperature > 0``, so
-the decode is greedy, read in the installed package. What moves is the NUMERICS: the engine
-pads a batch (``padding=True``, ``padding_side="left"``) so a crop's companions change the
-tensor shapes it is decoded inside, a near-tied argmax flips, and a greedy decode has no way
-back. Two consequences, and the second is worse than the first:
+the decode is greedy, read in the installed package. What moves is the NUMERICS: a greedy
+argmax over float logits is only reproducible when the arithmetic is. The engine pads a batch
+(``padding=True``, ``padding_side="left"``), so a crop's companions set the tensor shapes it
+is decoded inside; a near-tied argmax flips, and a greedy decode has no way back. **Padding
+is one source of that perturbation and the DEVICE is another** — measured: the same crop with
+the same companions decodes differently on a T2000 than on the L4, and identically every time
+on either. Two consequences, and the second is worse than the first:
 
 * **Long regions are where it shows.** 4 of the 18 crops over 1,000 characters differed
   against 2 of the 102 under 200.

@@ -187,8 +187,12 @@ def ingest(result_zip, shard_manifest, metrics_path, latex_path, remote=None,
     and it is what let 13 capped repetition loops into canary 1's 200 rows as ``ok``.
 
     ``seen_shards`` makes the re-upload skip explicit (kill 4): a shard whose sha256 has
-    already been ingested is a no-op, because the crops are content-addressed and decoding
-    them again could only produce the same answer at GPU cost.
+    already been ingested is a no-op. **The rationale changed on 2026-09-15 even though the
+    rule did not.** It used to read "decoding them again could only produce the same answer
+    at GPU cost", and that premise is false — canary 2 re-decoded canary 1's exact crops and
+    14 of 200 came back different (report §11). The skip is still right, for the reason it
+    always should have given: ingesting the same shard twice would write DUPLICATE rows for
+    crops that are already in the corpus. It is idempotency, not identity.
 
     ``shard_manifest`` must carry ``shard_sha256`` — :func:`formula_shards.read_manifest`
     fills it from the archive path, since the hash of a closed archive cannot live inside it.

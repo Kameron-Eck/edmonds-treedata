@@ -530,6 +530,27 @@ again could only produce the same answer" assumed.
 device from run-to-run, which is what design UNCONFIRMED #3 asked; C would only measure how
 *much* a different composition moves, at the same GPU cost as A.
 
+**The CPU arm was not run either, and that is a cost decision, not an oversight.** The brief
+asked whether the CPU output is stable. On the T2000 a short crop takes 4-9 s and a runaway
+takes 280 s; CPU decode of this checkpoint runs an order of magnitude slower again, so the
+six runaway crops alone are hours. What the CPU arm would have added is a third device, and
+§11.1's mechanism is device-independent *by reading* while arms A and B already answer the
+run-to-run question on real hardware. **So "is the CPU output stable" is UNMEASURED here** —
+not answered by inference and not quietly dropped.
+
+**The setting that makes three runs byte-identical is `batch_size` 1 — and the worker does
+NOT switch to it.** Two reasons, and the second is the important one:
+
+* **Its speed cost on an L4 is UNMEASURED.** The T2000's per-crop seconds are a 4 GB
+  memory-bound card's and do not transfer; measuring the cost would take the very GPU hour
+  this session did not spend.
+* **bs=1 is stable but not CORRECT.** It removes the padding term, not the repetition loops:
+  `b66266db` ran away to 3,774 characters at `batch_size` 1, stably, three times out of
+  three. A worker pinned to bs=1 would produce reproducible garbage on exactly the rows
+  §11.3 is about, at roughly five times the wall clock. That is why bs=1 appears here only
+  as the guard's **re-decode context** (§11.4) — where a different batch shape is precisely
+  what makes the comparison informative — and never as the decode setting.
+
 **A caveat that limits the transfer, stated rather than buried.** The T2000 is Turing: no
 TF32 path and no native bf16. The L4 is Ada. **The resolved `torch_dtype` on either card is
 UNMEASURED** — the harness's probe reached for `engine.vlm_model` and that attribute does not

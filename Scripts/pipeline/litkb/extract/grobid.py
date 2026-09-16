@@ -218,6 +218,50 @@ def body_blocks(tei, kinds=None):
     return list(iter_blocks(tei, kinds, subtree=BODY_PATH))
 
 
+#: Where the header's three assignable kinds live in a TEI, and what each is called in the
+#: canonical vocabulary. ``title`` and ``persName`` are in :data:`COORD_ELEMENTS`, so both come
+#: back as real boxes; ``affiliation`` is NOT, and comes back as strings only.
+HEADER_PATH = ".//t:teiHeader"
+
+
+def header_regions(tei):
+    """-> ``{"title": [Block], "author": [Block], "affiliation": [str]}`` from ``<teiHeader>``.
+
+    The three kinds stage 5 can put on a block that no BODY matcher can name: a paper's own
+    title, its author line and its affiliation footer (final referee §2 — 8 of the 18 block types
+    were never assigned, and these are the three the header can fix). Boxes are in GROBID's own
+    CROPBOX frame, like everything else this module returns; the caller converts.
+
+    Only the ``<titleStmt>``'s ``level="a"`` title is taken. A ``<monogr>`` title is the JOURNAL's
+    name, which is furniture on the page, not the paper's title, and taking it would re-kind the
+    running head.
+    """
+    root = _root(tei)
+    head = root.find(HEADER_PATH, NS)
+    out = {"title": [], "author": [], "affiliation": []}
+    if head is None:
+        return out
+    for el in head.iterfind(".//t:titleStmt/t:title", NS):
+        if el.get("level") not in (None, "a"):
+            continue
+        text = " ".join("".join(el.itertext()).split())
+        for i, (page, x0, y0, x1, y1) in enumerate(parse_coords(el.get("coords") or "")):
+            out["title"].append(Block(page=page, x0=x0, y0=y0, x1=x1, y1=y1, kind="title",
+                                      text=text, box_index=i))
+    for author in head.iterfind(".//t:sourceDesc//t:author", NS):
+        for el in author.iterfind("t:persName", NS):
+            text = " ".join("".join(el.itertext()).split())
+            for i, (page, x0, y0, x1, y1) in enumerate(parse_coords(el.get("coords") or "")):
+                out["author"].append(Block(page=page, x0=x0, y0=y0, x1=x1, y1=y1, kind="author",
+                                           text=text, box_index=i))
+        for aff in author.iterfind("t:affiliation", NS):
+            for org in aff.iterfind(".//t:orgName", NS):
+                s = " ".join("".join(org.itertext()).split())
+                if s and s.lower() != "unknown":
+                    out["affiliation"].append(s)
+    return out
+
+
 def body_text(tei):
     """Whitespace-normalised text of ``<text><body>`` ('' when there is no body at all)."""
     el = _root(tei).find(BODY_PATH, NS)

@@ -50,18 +50,48 @@ IOU_TOUCH = 0.1
 #: difflib ratio at or above which two tools' text for one region counts as the same text.
 TEXT_AGREE = 0.90
 
+#: Share of the SMALLER box that must lie inside the larger for the two to be candidates for ONE
+#: canonical region even though their IoU is below :data:`IOU_MATCH` (the final referee's
+#: "contained" class, Reports/LITKB_P5_FINAL_REFEREE_2026-09-16.md §4: 6,309 blocks in 224 of 229
+#: runs whose text is a proper substring of another block's on the same page). Containment alone
+#: is NOT enough — :func:`_merge_regions` also requires the text to agree, because a table cell's
+#: box lies inside its table's box and the two are genuinely different regions.
+CONTAIN_MATCH = 0.80
+
+#: How many contained-and-agreeing children a block must have before it is read as one tool's
+#: OVER-MERGE of a region the other tool segmented (the Pengra p7 case: one GROBID ``<p>`` of
+#: 3,392 characters holding the page's two table captions and its body text, each of which is
+#: also its own block). Two is the lowest count that cannot be a one-to-one disagreement.
+OVERMERGE_CHILDREN = 2
+
+#: Share of the container's normalised characters its children must account for before the
+#: container is dropped as an over-merge. Below it the container carries text nothing else does
+#: and dropping it would LOSE words, which no de-duplication may do.
+OVERMERGE_COVER = 0.60
+
 #: Share of a page's native-layer characters that must land inside some canonical block for the
 #: page to pass the coverage gate (§7.1 "coverage metric per file", §14 P5). Provisional.
 COVERAGE_FLOOR = 0.80
 
 #: The canonical kinds. Everything either maps into this vocabulary or the block is refused.
+#: ``title``, ``author`` and ``affiliation`` are the three the final referee found NEVER assigned
+#: (§2: "Only 10 of the 18 block types are ever used"). They are not body regions and no body
+#: matcher can produce them — they come from GROBID's ``<teiHeader>``, through
+#: :func:`_kind_from_header`, as a re-kinding of the block the body pass already made.
 KINDS = ("paragraph", "heading", "caption", "footnote", "reference",
-         "table", "figure", "equation", "furniture")
+         "table", "figure", "equation", "furniture",
+         "title", "author", "affiliation")
 
 #: canonical kind -> the `blocks.type` value migration 0002 admits.
 DB_TYPE = {"paragraph": "paragraph", "heading": "heading", "caption": "caption",
            "footnote": "footnote", "reference": "reference", "table": "table",
-           "figure": "figure", "equation": "equation", "furniture": "other"}
+           "figure": "figure", "equation": "equation", "furniture": "other",
+           "title": "title", "author": "author", "affiliation": "affiliation"}
+
+#: Kinds the reconciliation takes from GROBID even when the surviving block is Docling's. §7.1
+#: gives GROBID the REFERENCES, and the header kinds exist nowhere else; everything not in here
+#: keeps the survivor's own kind, which is Docling's by the same §7.1 rule.
+GROBID_KIND_WINS = ("reference", "title", "author", "affiliation")
 
 #: Docling's label -> canonical kind. `title` is a heading: the DB keeps a separate `title` type
 #: for the paper's own title, which is the HEADER's business (stage 2), not a body region's.
@@ -97,7 +127,12 @@ GROBID_BODY_REGIONS = tuple(k for k in GROBID_REGIONS if k != "figure")
 #: one block per figure, the per-column split and its tie-break all change the ROWS a file
 #: produces. `ingest.py`'s identity is (file sha256, pipeline version), so a file already
 #: recorded at stage5-1 would otherwise be skipped as already-ingested and keep the old blocks.
-PIPELINE_VERSION = "stage5-2"
+#:
+#: Bumped to "stage5-3" on 2026-09-16 with the final referee's canonical-block fixes: ONE block
+#: per region (:func:`_merge_regions`), a page fragment's own text rather than its element's
+#: (:func:`reconcile`'s ``text_for``), and the three header kinds. Every one of those changes the
+#: rows a file produces, so the identity has to move with them.
+PIPELINE_VERSION = "stage5-3"
 
 
 class ReconcileError(RuntimeError):
@@ -341,6 +376,19 @@ def _norm(s):
     return re.sub(r"\s+", " ", (s or "")).strip().lower()
 
 
+def _letters(s):
+    """Lower-cased alphanumerics only — the ONE comparison that survives a TEI's own spacing.
+
+    ``"".join(el.itertext())`` over ``<persName><forename>Bruce</forename><forename
+    type="middle">W</forename><surname>Pengra</surname></persName>`` is ``BruceWPengra``: the
+    element boundaries carry no whitespace, so GROBID's reading of a name has no spaces and the
+    page's has both spaces and an initial's full stop. Measured on Pengra_2020 and Ploton_2020,
+    2026-09-16 — under a whitespace-collapsing comparison the author line matched NOTHING and the
+    ``author`` kind was never assigned on any document.
+    """
+    return re.sub(r"[^0-9a-z]+", "", (s or "").lower())
+
+
 def text_ratio(a, b):
     """difflib's ratio of two tools' text for one region, whitespace-collapsed and cased down."""
     return difflib.SequenceMatcher(None, _norm(a), _norm(b)).ratio()
@@ -393,6 +441,21 @@ def union_boxes(blocks_in):
     width, gutter and rotated margin stamp included — which ``_anchor`` then placed ahead of the
     entire left column, 10 of that page's 66 gold-ordered pairs out of order. Lines on one page
     are therefore split into COLUMNS first, by :func:`_column_groups`.
+
+    **The output's ``box_index``/``box_count`` are the FRAGMENT's index and the element's fragment
+    COUNT**, not the line's (a line index is meaningless once the lines are unioned). They are the
+    only record that a region is a piece of a larger element, and the caller needs it for two
+    things the final referee measured, both of which come from one mistake — a fragment inherits
+    ``col[0]``'s ``text``, which is the WHOLE element's:
+
+      * a paragraph crossing a PAGE break was stored under one page number with both pages' words
+        in it (§2, G7: 872 characters under ``page_no = 12``, the first ~700 printed on page 11),
+        so a quote's citation page could be wrong by one;
+      * an element crossing many COLUMNS stored its whole text once per column (Pengra p8: one
+        ``<p>`` split across 14 table columns, all 14 carrying the same 600 characters), which is
+        the largest single contributor to §4's 3,120 duplicate-text rows.
+
+    :func:`reconcile` reads ``box_count > 1`` and takes the fragment's own native-layer slice.
     """
     groups, cur = [], None
     for b in blocks_in:
@@ -405,12 +468,14 @@ def union_boxes(blocks_in):
         by_page = {}
         for b in g:
             by_page.setdefault(b.page, []).append(b)
+        frags = []
         for page, bs in by_page.items():
             for col in _column_groups(bs):
-                out.append(dataclasses.replace(
+                frags.append(dataclasses.replace(
                     col[0], page=page, x0=min(b.x0 for b in col), y0=min(b.y0 for b in col),
-                    x1=max(b.x1 for b in col), y1=max(b.y1 for b in col),
-                    box_index=0, box_count=1))
+                    x1=max(b.x1 for b in col), y1=max(b.y1 for b in col)))
+        out.extend(dataclasses.replace(f, box_index=i, box_count=len(frags))
+                   for i, f in enumerate(frags))
     return out
 
 
@@ -496,6 +561,12 @@ def reconcile(pdf_path, tei=None, doc=None, record=None, ocr_pages=(), frames=No
 
     g_all = G.to_mediabox(_grobid_regions(tei), frames) if tei is not None else []
     d_all = D.to_mediabox(_docling_regions(doc), frames) if doc is not None else []
+    # Which blocks are FRAGMENTS of one element, and what page the neighbouring fragment is on.
+    # Computed on the unfiltered lists and keyed by object identity, which is what `reconcile`
+    # carries everywhere else (`seen_d` is keyed the same way): the list comprehensions below
+    # filter the same objects, they do not copy them.
+    frag = _fragment_info(g_all)
+    frag.update(_fragment_info(d_all))
     # A page the adapters refuse (rotated AND cropped) is left in the cropbox frame. Matching it
     # against the other tool would overlap boxes measured from two different origins, which is
     # exactly the silent error §7.1 refuses; it is dropped and counted instead.
@@ -524,18 +595,40 @@ def reconcile(pdf_path, tei=None, doc=None, record=None, ocr_pages=(), frames=No
         by_page_d.setdefault(b.page, []).append(b)
     canonical, dis = [], []
 
-    def text_for(page, box, tool_text):
-        """§7.1: the native layer's characters win, OCR only where the routing says so."""
+    def text_for(page, box, tool_text, fragment=False):
+        """§7.1: the native layer's characters win, OCR only where the routing says so.
+
+        ``fragment`` is the fix the final referee's G7 asks for. A block that is ONE FRAGMENT of
+        a multi-page or multi-column element carries its element's whole ``text`` (see
+        :func:`union_boxes`), so the 50 % rule below — written for a whole region, where a native
+        slice much shorter than the tool's reading means the box is wrong — reads a fragment's
+        honest short slice as a bad box and falls back to text from other pages. For a fragment
+        the native slice IS the answer: it is exactly the characters printed inside this
+        fragment's box, on this fragment's page, which is what a citation has to be able to name.
+        The fallback still applies when the page has no native layer at all.
+        """
         if page in set(ocr_pages):
             return tool_text, "ocr"
         native = native_text_in(chars(page), box)
+        if fragment and _norm(native):
+            return native, "native"
         if len(_norm(native)) >= 0.5 * len(_norm(tool_text or "")) and _norm(native):
             return native, "native"
         return tool_text, "tool"
 
     def add(page, box, kind, subkind, source, text, tool_text, conf, element_id, extractor,
-            payload=None, latex=None, tool_order=-1, anchored=False):
-        chosen, how = text_for(page, box, text)
+            payload=None, latex=None, tool_order=-1, anchored=False, of=None):
+        info = frag.get(id(of)) if of is not None else None
+        chosen, how = text_for(page, box, text, fragment=bool(info))
+        if info:
+            # `continues_from` / `continues_to` name the PAGE the neighbouring fragment of this
+            # element is printed on, so a reader holding a quote that runs off the bottom of the
+            # page can find the rest of it without re-deriving the split.
+            extractor = dict(extractor, fragment={"index": info["index"], "count": info["count"]})
+            if info["prev_page"] is not None:
+                extractor["continues_from"] = {"page": info["prev_page"]}
+            if info["next_page"] is not None:
+                extractor["continues_to"] = {"page": info["next_page"]}
         canonical.append(Canonical(
             page=page, x0=box[0], y0=box[1], x1=box[2], y1=box[3], kind=kind, reading_order=-1,
             text=chosen, latex=latex, extractor=dict(extractor, text=("native-layer" if how == "native"
@@ -568,7 +661,7 @@ def reconcile(pdf_path, tei=None, doc=None, record=None, ocr_pages=(), frames=No
             db.kind if dk == "furniture" else "", "both", db.text, db.text,
             0.95 if agree and text_agrees(gb.text, db.text) else 0.7, db.element_id,
             {"bbox": "docling", "kind": "docling", "order": "docling",
-             "kind_alt": "grobid", "text": "docling"}, tool_order=db.order_index)
+             "kind_alt": "grobid", "text": "docling"}, tool_order=db.order_index, of=db)
 
     for gb, db, v in touching:
         dis.append(Disagreement(page=db.page, kind="partial_overlap", iou=v,
@@ -583,11 +676,11 @@ def reconcile(pdf_path, tei=None, doc=None, record=None, ocr_pages=(), frames=No
                 db.kind if DOCLING_KIND.get(db.kind) == "furniture" else "", "docling",
                 db.text, db.text, 0.5, db.element_id,
                 {"bbox": "docling", "kind": "docling", "order": "docling", "text": "docling"},
-                tool_order=db.order_index)
+                tool_order=db.order_index, of=db)
         add(gb.page, (gb.x0, gb.y0, gb.x1, gb.y1), GROBID_KIND.get(gb.kind, "paragraph"), "",
             "grobid", gb.text, gb.text, 0.5, gb.element_id,
             {"bbox": "grobid", "kind": "grobid", "order": "anchored-to-docling", "text": "grobid"},
-            tool_order=_anchor(gb, by_page_d), anchored=True)
+            tool_order=_anchor(gb, by_page_d), anchored=True, of=gb)
 
     # A single-tool file (a scan has no TEI at all: GROBID refuses it) has nothing to disagree
     # WITH. Recording "the other tool has no box here" for every block of such a file would fill
@@ -606,7 +699,7 @@ def reconcile(pdf_path, tei=None, doc=None, record=None, ocr_pages=(), frames=No
             db.kind if DOCLING_KIND.get(db.kind) == "furniture" else "", "docling",
             db.text, db.text, 0.6, db.element_id,
             {"bbox": "docling", "kind": "docling", "order": "docling", "text": "docling"},
-            tool_order=db.order_index)
+            tool_order=db.order_index, of=db)
 
     for gb in g_only:
         if both_ran:
@@ -617,7 +710,7 @@ def reconcile(pdf_path, tei=None, doc=None, record=None, ocr_pages=(), frames=No
         add(gb.page, (gb.x0, gb.y0, gb.x1, gb.y1), GROBID_KIND.get(gb.kind, "paragraph"), "",
             "grobid", gb.text, gb.text, 0.6, gb.element_id,
             {"bbox": "grobid", "kind": "grobid", "order": "anchored-to-docling", "text": "grobid"},
-            tool_order=_anchor(gb, by_page_d), anchored=True)
+            tool_order=_anchor(gb, by_page_d), anchored=True, of=gb)
 
     # tables: Docling's cell grid wins outright (§7.1). The block's box is the table's region and
     # the grid travels with it; nothing renders a table to text here.
@@ -681,6 +774,9 @@ def reconcile(pdf_path, tei=None, doc=None, record=None, ocr_pages=(), frames=No
                 confidence=0.8, source="grobid", element_id=b.element_id, text_source="tool"))
 
     canonical = _dedupe_figures(canonical)
+    canonical, refs, merged = _merge_regions(canonical, refs, dis)
+    canonical, captioned = _caption_once(canonical)
+    canonical, headered = _kind_from_header(canonical, tei, frames)
     canonical = _assign_order(canonical) + _renumber(refs, start=len(canonical))
     canonical, dis = _sanitize(canonical, dis)
     stats = {
@@ -689,10 +785,44 @@ def reconcile(pdf_path, tei=None, doc=None, record=None, ocr_pages=(), frames=No
         "matched": len(pairs), "touching": len(touching),
         "grobid_only": len(g_only), "docling_only": len(d_only),
         "skipped_rotated": len(skipped),
+        "merged_regions": merged["merged"], "dropped_overmerges": merged["overmerge"],
+        "references_merged_into_body": merged["reference_kind"],
+        "captions_unduplicated": captioned, "header_kinds": headered,
         "blocks": len(canonical), "disagreements": len(dis),
         "by_kind": _count(canonical),
     }
     return canonical, dis, stats
+
+
+def _fragment_info(blocks_in):
+    """``{id(block): {"index", "count", "prev_page", "next_page"}}`` for multi-fragment elements.
+
+    :func:`union_boxes` leaves an element's fragments CONTIGUOUS in its output, numbered
+    ``box_index`` 0..n-1 with ``box_count`` n, so a run is read back by scanning for the zeros.
+    ``prev_page`` / ``next_page`` are set only when the neighbouring fragment is on a DIFFERENT
+    page — a column break inside one page is a fragment too, but it is not a continuation a
+    citation has to care about.
+    """
+    info = {}
+
+    def flush(run):
+        if len(run) < 2:
+            return
+        pages = [b.page for b in run]
+        for i, b in enumerate(run):
+            prev_p = pages[i - 1] if i > 0 and pages[i - 1] != b.page else None
+            next_p = pages[i + 1] if i + 1 < len(pages) and pages[i + 1] != b.page else None
+            info[id(b)] = {"index": i, "count": len(run),
+                           "prev_page": prev_p, "next_page": next_p}
+
+    run = []
+    for b in blocks_in:
+        if b.box_index == 0 and run:
+            flush(run)
+            run = []
+        run.append(b)
+    flush(run)
+    return info
 
 
 def _dedupe_figures(blocks_in):
@@ -726,6 +856,407 @@ def _dedupe_figures(blocks_in):
             if ia in drop:
                 break
     return [c for i, c in enumerate(blocks_in) if i not in drop]
+
+
+def containment(a, b):
+    """Share of the SMALLER of two boxes that lies inside the other. 1.0 when one encloses it.
+
+    IoU cannot see this relationship at all: a 100-point caption inside a 3,300-point paragraph
+    has an IoU of 0.03 and a containment of 1.0, and it is the second number that says the two
+    tools are describing one region of the page differently.
+    """
+    ix0, iy0 = max(a[0], b[0]), max(a[1], b[1])
+    ix1, iy1 = min(a[2], b[2]), min(a[3], b[3])
+    if ix1 <= ix0 or iy1 <= iy0:
+        return 0.0
+    inter = (ix1 - ix0) * (iy1 - iy0)
+    area_a = max(0.0, a[2] - a[0]) * max(0.0, a[3] - a[1])
+    area_b = max(0.0, b[2] - b[0]) * max(0.0, b[3] - b[1])
+    small = min(area_a, area_b)
+    return inter / small if small > 0 else 0.0
+
+
+def band_containment(small, big):
+    """Share of ``small``'s HEIGHT that lies in ``big``'s vertical band, 0 if they never meet in x.
+
+    Area containment is the wrong measure for one tool's over-merge of another's segmentation,
+    and Conway_2022 p4 is why, measured 2026-09-16: GROBID's ``<p>`` unions its own lines into
+    ``[78.0, 321.0, 413.6, 755.2]`` — 336 points wide because its widest line is — while the
+    Docling paragraphs whose words it holds run to x = 569. Only 30 % of each child's AREA is
+    inside, so an area test reads them as unrelated; they are stacked one under another in the
+    same band of the same page, which is what "this block holds those blocks" means on a page.
+    """
+    if min(small[2], big[2]) - max(small[0], big[0]) <= 0:
+        return 0.0
+    h = small[3] - small[1]
+    if h <= 0:
+        return 0.0
+    return max(0.0, min(small[3], big[3]) - max(small[1], big[1])) / h
+
+
+def _covered_share(whole, parts):
+    """Share of ``whole``'s characters covered by the parts that occur in it, spans unioned.
+
+    Summing the parts' lengths would double-count two children that overlap, and a container is
+    only dropped when its children really do account for it.
+    """
+    spans = []
+    for p in parts:
+        i = whole.find(p)
+        if i >= 0:
+            spans.append((i, i + len(p)))
+    spans.sort()
+    total, end = 0, -1
+    for s, e in spans:
+        if s > end:
+            total += e - s
+            end = e
+        elif e > end:
+            total += e - end
+            end = e
+    return total / len(whole) if whole else 0.0
+
+
+def _text_same(a, b):
+    """Do two readings of one region carry the SAME words? The merge's text test.
+
+    Not :func:`text_agrees` alone. difflib's ratio between a 130-character caption and the
+    3,300-character paragraph that swallowed it is near zero however completely one contains the
+    other, and containment is the relationship the final referee's 6,309 blocks are in. So the
+    shorter reading being a substring of the longer counts, and the ratio is kept for the case
+    the substring test cannot see: two readings of one region that differ in a glyph.
+    """
+    na, nb = _norm(a), _norm(b)
+    if not na or not nb:
+        return not na and not nb
+    lo, hi = (na, nb) if len(na) <= len(nb) else (nb, na)
+    return lo in hi or text_agrees(na, nb)
+
+
+#: Structural kinds carry a payload nothing else can rebuild — a table's cell grid, a figure's
+#: caption pairing — so they survive a merge against a prose reading of the same rectangle
+#: whatever the text says. Everything else ranks by the fields below it in :func:`_survivor_key`.
+_STRUCTURE_RANK = {"table": 4, "figure": 3, "equation": 2}
+
+
+def _survivor_key(c, i):
+    """Which of two readings of ONE region becomes the canonical block (higher wins).
+
+    In §7.1's order: structure first (a grid cannot be rebuilt from prose), then the native text
+    layer over a tool's own string, then a region both tools saw, then Docling's box — §7.1 gives
+    Docling the bbox and the order — then the longer reading, then the earlier block, so the
+    choice is deterministic for a fixed artifact pair.
+    """
+    return (_STRUCTURE_RANK.get(c.kind, 0),
+            1 if c.text_source == "native" else 0,
+            1 if c.source == "both" else 0,
+            1 if c.extractor.get("bbox") == "docling" else 0,
+            len(_norm(c.text)),
+            -i)
+
+
+def _merge_regions(canonical, refs, dis):
+    """ONE canonical block per region — the final referee's §4, and blocker 2 of its §11.
+
+    -> ``(canonical, leftover_refs, stats)``. Disagreement rows are APPENDED to ``dis``: nothing
+    is thrown away, which is what makes this a merge rather than a deletion. §7 says a disputed
+    region is stage 8's problem; it never said the dispute has to be stored as two blocks that a
+    search then returns twice and a quote's character offsets can land in either of.
+
+    The referee measured three shapes of one defect, and this function answers each:
+
+      * **exact** — 63 groups at an identical ``(page, bbox)``, mostly two Docling items over one
+        chart. IoU 1.0, so the pairwise pass below takes them.
+      * **near** — 1,635 groups of equal normalised text on one page. Most were the fragment bug
+        :func:`union_boxes` now records and ``text_for`` now fixes; what survives that is a real
+        pair of readings and the pairwise pass takes it.
+      * **contained** — 6,309 blocks that are a proper substring of another on the same page.
+        Two different relationships wear that shape, and they need opposite answers: one tool
+        SEGMENTING a region the other MERGED (Pengra p7's 3,392-character GROBID ``<p>`` holding
+        the page's captions and body) is an over-merge and the container goes, because §7.1 gives
+        Docling the segmentation; a single small reading inside a single large one is one region
+        seen twice and the richer reading stays.
+
+    ``refs`` — GROBID's parsed bibliography — takes part in the merge and is the reason the
+    ``reference`` kind starts appearing on blocks a reader can actually find. Before this, a
+    printed reference entry was stored TWICE (§2: Conway p11 held 29 ``paragraph`` blocks at
+    reading order 200-228 and 28 ``reference`` blocks at 418-445), and the copy a search returned
+    first was the one typed ``paragraph``, because a region only GROBID saw sorts at ``1 << 30``.
+    A ``biblStruct`` that lands on a body block now RE-KINDS it: the surviving block keeps the
+    native text, the real box and the real reading order, and carries GROBID's kind.
+    """
+    marked = [(c, False) for c in canonical] + [(c, True) for c in (refs or [])]
+    blocks = [c for c, _r in marked]
+    is_ref = [r for _c, r in marked]
+    by_page = {}
+    for i, c in enumerate(blocks):
+        by_page.setdefault(c.page, []).append(i)
+
+    drop = _overmerge_drop(blocks, by_page, dis)
+    keep = [i for i in range(len(blocks)) if i not in drop]
+    blocks, merged, upgraded = _pairwise_merge(blocks, keep, by_page, dis)
+    survivors = [i for i in keep if i not in merged]
+    return ([blocks[i] for i in survivors if not is_ref[i]],
+            [blocks[i] for i in survivors if is_ref[i]],
+            {"merged": len(merged), "overmerge": len(drop), "reference_kind": upgraded})
+
+
+def _overmerge_drop(blocks, by_page, dis):
+    """Indices of blocks that are one tool's MERGE of a region the other tool segmented.
+
+    A block is an over-merge when at least :data:`OVERMERGE_CHILDREN` other blocks on its page
+    are boxed inside it (at :data:`CONTAIN_MATCH`) with their text a substring of its own, and
+    those children together account for at least :data:`OVERMERGE_COVER` of its characters. Both
+    conditions are needed: the count alone would drop a section that happens to enclose two
+    captions, and the coverage alone would drop a paragraph one of whose sentences is repeated.
+    """
+    drop = set()
+    for page, idxs in by_page.items():
+        for i in idxs:
+            big = blocks[i]
+            nb = _norm(big.text)
+            if len(nb) < 200:
+                continue
+            kids = []
+            for j in idxs:
+                if j == i:
+                    continue
+                ns = _norm(blocks[j].text)
+                if len(ns) < 20 or len(ns) >= len(nb):
+                    continue
+                if ns not in nb:
+                    continue
+                if max(containment(blocks[j].bbox, big.bbox),
+                       band_containment(blocks[j].bbox, big.bbox)) < CONTAIN_MATCH:
+                    continue
+                kids.append(ns)
+            if len(kids) < OVERMERGE_CHILDREN:
+                continue
+            share = _covered_share(nb, kids)
+            if share < OVERMERGE_COVER:
+                continue
+            drop.add(i)
+            dis.append(Disagreement(
+                page=big.page, kind="superset_region", bbox=big.bbox,
+                grobid_kind=big.kind if big.source == "grobid" else None,
+                docling_kind=big.kind if big.source != "grobid" else None,
+                grobid_text=big.text if big.source == "grobid" else "",
+                docling_text=big.text if big.source != "grobid" else "",
+                detail=f"{big.source} merges a region the other tool segments: {len(kids)} blocks "
+                       f"on this page are boxed inside it and cover {share:.2f} of its text; the "
+                       "segmented blocks are canonical and this reading is kept here"))
+    return drop
+
+
+def _pairwise_merge(blocks, keep, by_page, dis):
+    """-> (blocks, merged_away, kind_upgrades). One survivor per group of readings of one region.
+
+    Groups are connected components of "these two are one region": IoU at :data:`IOU_MATCH`, or
+    one box :data:`CONTAIN_MATCH` inside the other with :func:`_text_same`. The survivor is
+    :func:`_survivor_key`'s maximum, and **a reading is only dropped when the survivor's text
+    still carries its words** — a merge that loses characters is a worse defect than the
+    duplicate it repairs, so a group whose survivor does not cover a member keeps that member and
+    records the pair instead.
+    """
+    kept = set(keep)
+    parent = {i: i for i in kept}
+
+    def find(i):
+        while parent[i] != i:
+            parent[i] = parent[parent[i]]
+            i = parent[i]
+        return i
+
+    for page, idxs in by_page.items():
+        here = [i for i in idxs if i in kept]
+        for a in range(len(here)):
+            i = here[a]
+            for b in range(a + 1, len(here)):
+                j = here[b]
+                ci, cj = blocks[i], blocks[j]
+                v = iou(ci.bbox, cj.bbox)
+                same = v >= IOU_MATCH
+                if not same and containment(ci.bbox, cj.bbox) >= CONTAIN_MATCH:
+                    same = _norm(ci.text) and _norm(cj.text) and _text_same(ci.text, cj.text)
+                if not same:
+                    continue
+                ri, rj = find(i), find(j)
+                if ri != rj:
+                    parent[ri] = rj
+
+    groups = {}
+    for i in kept:
+        groups.setdefault(find(i), []).append(i)
+
+    out = list(blocks)
+    merged, upgrades = set(), 0
+    for members in groups.values():
+        if len(members) < 2:
+            continue
+        members.sort()
+        win = max(members, key=lambda i: _survivor_key(blocks[i], i))
+        survivor, kind = blocks[win], blocks[win].kind
+        alt = []
+        for i in members:
+            if i == win:
+                continue
+            other = blocks[i]
+            # THE NO-TEXT-LOSS GUARD, and the one place it does NOT apply. Two boxes that agree
+            # at IOU_MATCH are the SAME RECTANGLE, and §7's rule for that case is already settled
+            # and already shipped: the matched-pair branch above keeps Docling's reading and
+            # records GROBID's. A reference is the case that proves it — GROBID's re-serialised
+            # `biblStruct` string ("Factors influencing long-term street tree survival in
+            # Milwaukee AKoese…") is a DIFFERENT RENDERING of the printed entry, never a
+            # substring of it, so a text test would refuse the very merge the referee's §2 asks
+            # for. Below IOU_MATCH the boxes are only nested, and there the guard stands: a
+            # container may carry words its child does not.
+            if iou(survivor.bbox, other.bbox) < IOU_MATCH and (
+                    not _text_same(survivor.text, other.text)
+                    or len(_norm(other.text)) > len(_norm(survivor.text))):
+                dis.append(Disagreement(
+                    page=other.page, kind="partial_overlap", bbox=other.bbox,
+                    iou=round(iou(survivor.bbox, other.bbox), 3),
+                    grobid_text=other.text if other.source == "grobid" else "",
+                    docling_text=other.text if other.source != "grobid" else "",
+                    detail="one region, two readings, and the survivor does not carry this one's "
+                           "words: both are kept rather than losing text to a de-duplication"))
+                continue
+            merged.add(i)
+            alt.append(other)
+            if other.kind in GROBID_KIND_WINS and other.extractor.get("kind") == "grobid":
+                kind = other.kind
+                upgrades += 1
+        if not alt:
+            continue
+        ex = dict(survivor.extractor)
+        ex["merged"] = [{"kind": o.kind, "source": o.source, "bbox": [round(v, 2) for v in o.bbox],
+                         "text_source": o.text_source} for o in alt]
+        if kind != survivor.kind:
+            ex["kind"] = "grobid"
+            ex["kind_alt"] = survivor.extractor.get("kind", survivor.source)
+        out[win] = dataclasses.replace(survivor, kind=kind, extractor=ex,
+                                       source="both" if survivor.source != "both"
+                                              and any(o.source != survivor.source for o in alt)
+                                       else survivor.source)
+        for o in alt:
+            dis.append(Disagreement(
+                page=o.page, kind="duplicate_region", bbox=o.bbox,
+                iou=round(iou(survivor.bbox, o.bbox), 3),
+                grobid_kind=o.kind if o.source == "grobid" else survivor.kind,
+                docling_kind=o.kind if o.source != "grobid" else survivor.kind,
+                grobid_text=o.text if o.source == "grobid" else survivor.text,
+                docling_text=o.text if o.source != "grobid" else survivor.text,
+                detail="one region described twice; ONE canonical block is emitted and this "
+                       "reading is kept here (design §7: a disputed region is not resolved, it "
+                       "is recorded)"))
+    return out, merged, upgrades
+
+
+def _caption_once(blocks_in):
+    """A caption's words live in ONE block. -> (blocks, n).
+
+    ``reconcile`` puts the caption in the figure block's ``text`` (that is what a figure block
+    says), and Docling also emits the caption as its own ``caption`` item, so the same sentence
+    is stored twice with no geometric relationship between the two boxes at all — 219 of the
+    final referee's duplicate groups (§4), and invisible to :func:`_merge_regions`, which is a
+    geometry pass. The figure keeps the caption in its ``payload``, where the pairing lives; the
+    ``caption`` block keeps the text, which is where a search should find it.
+    """
+    n = 0
+    caps = {}
+    for c in blocks_in:
+        if c.kind == "caption" and _norm(c.text):
+            caps.setdefault(c.page, []).append(_norm(c.text))
+    out = []
+    for c in blocks_in:
+        t = _norm(c.text)
+        if c.kind == "figure" and t and any(t in o or o in t for o in caps.get(c.page, [])):
+            payload = dict(c.payload or {})
+            payload.setdefault("caption", c.text)
+            payload["caption_stored_on"] = "caption block"
+            out.append(dataclasses.replace(c, text="", payload=payload))
+            n += 1
+            continue
+        out.append(c)
+    return out, n
+
+
+def _kind_from_header(blocks_in, tei, frames):
+    """The three kinds nothing else can assign: ``title``, ``author``, ``affiliation``. -> (blocks, n).
+
+    The final referee's §2: "Only 10 of the 18 block types are ever used… On the Ploton title page
+    the paper's title is a ``heading``, its author list and its affiliation footer are both
+    ``paragraph``." No BODY matcher can do better — none of the three is a body region, and
+    Docling's vocabulary has no word for any of them. GROBID's ``<teiHeader>`` does, and two of
+    the three are coordinate-bearing (``title`` and ``persName`` are in
+    :data:`litkb.extract.grobid.COORD_ELEMENTS`), so those two are assigned by GEOMETRY and
+    checked against the text. ``<affiliation>`` carries no coordinates at all, so it is assigned
+    by TEXT ONLY — the block must hold two of the header's own institution strings — and that is
+    a weaker rule, stated here rather than hidden: a document whose affiliations GROBID did not
+    parse simply keeps ``paragraph``, which is what it has today.
+    """
+    if tei is None:
+        return blocks_in, 0
+    from litkb.extract import grobid as G
+
+    try:
+        head = G.header_regions(tei)
+    except Exception:  # noqa: BLE001 - a TEI with no parseable header is not an error here
+        return blocks_in, 0
+    # The header's boxes come back in GROBID's cropbox frame, like every other box this adapter
+    # returns; a page the adapter refuses keeps frame="cropbox" and is dropped, exactly as the
+    # body pass drops it, rather than compared across two origins.
+    titles = [b for b in G.to_mediabox(head["title"], frames) if b.frame == "mediabox"]
+    authors = [b for b in G.to_mediabox(head["author"], frames) if b.frame == "mediabox"]
+    out, n = list(blocks_in), 0
+
+    def claim(i, kind, how):
+        nonlocal n
+        c = out[i]
+        if c.kind in ("table", "figure", "equation", "furniture") or c.kind == kind:
+            return False
+        out[i] = dataclasses.replace(
+            c, kind=kind, extractor=dict(c.extractor, kind="grobid", kind_alt=c.kind,
+                                         kind_basis=f"teiHeader/{how}"))
+        n += 1
+        return True
+
+    claimed = set()
+    for t in titles:
+        best, best_v = None, 0.0
+        for i, c in enumerate(out):
+            if i in claimed or c.page != t.page:
+                continue
+            v = max(iou(c.bbox, (t.x0, t.y0, t.x1, t.y1)),
+                    containment((t.x0, t.y0, t.x1, t.y1), c.bbox))
+            if v > best_v and _text_same(c.text, t.text):
+                best, best_v = i, v
+        if best is not None and best_v >= CONTAIN_MATCH and claim(best, "title", "titleStmt/title"):
+            claimed.add(best)
+
+    for p in authors:
+        for i, c in enumerate(out):
+            if i in claimed or c.page != p.page or len(_norm(c.text)) > 800:
+                continue
+            if containment((p.x0, p.y0, p.x1, p.y1), c.bbox) < CONTAIN_MATCH:
+                continue
+            if len(_letters(p.text)) < 4 or _letters(p.text) not in _letters(c.text):
+                continue
+            if claim(i, "author", "sourceDesc/persName"):
+                claimed.add(i)
+            break
+
+    orgs = [_norm(o) for o in head.get("affiliation", []) if len(_norm(o)) >= 5]
+    if orgs:
+        for i, c in enumerate(out):
+            if i in claimed or c.page != 1 or not (0 < len(_norm(c.text)) <= 2000):
+                continue
+            t = _norm(c.text)
+            if len({o for o in orgs if o in t}) < 2:
+                continue
+            if claim(i, "affiliation", "sourceDesc/affiliation"):
+                claimed.add(i)
+    return out, n
 
 
 def _clean(s):

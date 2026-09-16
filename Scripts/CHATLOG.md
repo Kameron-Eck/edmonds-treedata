@@ -1624,3 +1624,19 @@ next:    Kam: bound report_path (or accept it) with the §9 amendment; the decis
          litkb_test_w2 stays at 19 migrations. The P3 report's "access-layer had not patched the
          validator" was true at b787fa0 and false after 65dca14; left as history, corrected in the
          merge report.
+
+## 2026-09-16  litkb: bulk pass, operational test, fix sets; pick-up point written (usage fail-safe)
+goal:    Kam: "keep working until you reach the goal of a working lit review system"; usage at 12% -> fail-safe.
+did:     P5 bulk extraction (225 files, 102k blocks, L4 LaTeX attached); operational test through the skill
+         (gold ranks 1/2/2; 3 fresh framework questions answered with DB-verified quotes; 12 chains prepared);
+         referee: OPERATIONAL for citing extracted passages; fix set (litkb_work 4-state, my_uses, gates, dy
+         clamp, OCR per-process cap, 4 more works bound+extracted); final referee: OPERATIONAL WITH CAVEATS
+         (duplicate blocks from two extractors on one region, cross-page page_no, furniture in search,
+         LaTeX 11/20 correct); caveat fix (canonical blocks, per-page split, furniture filter, latex_status,
+         scan OCR at binding) in flight at time of writing. Pick-up point: WORKPLAN.md litkb table.
+decided: lexical search is the operational leg (P7 vectors FAILED pre-committed floors on .txt text);
+         Opus builds/referees, Sonnet searches; one full harness after merges; no new evaluations.
+killed:  ref-matcher (0/100 as shipped; scoring cannot express the year rule); Splink for duplicates.
+files:   Reports/LITKB_P5_BULK_2026-09-16.md, Reports/LITKB_P5_FINAL_REFEREE_2026-09-16.md,
+         Reports/LITKB_OPERATIONAL_*_2026-09-16.md (access branch), Scripts/docs/LITKB_AGENT_BASE_BRIEF.md.
+next:    verify the caveat fix cheaply (psql), declare, stop the loop; Kam: balance read, promotions, book, MCP registration, merge to main.

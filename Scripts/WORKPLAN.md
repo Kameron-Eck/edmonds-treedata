@@ -204,6 +204,19 @@ pointer to its verdict/artifact, never a restated number (one fact, one home).
 ### RUNNING (external)
 (none — the literature hunt completed 2026-09-06; angle-10 relaunch is QUEUED)
 
+### LITERATURE KNOWLEDGE BASE (litkb) — pick-up point for a new session (2026-09-16)
+| What | Where |
+|---|---|
+| **State in one screen** | Claude memory `literature-knowledge-base-design` (auto-loaded); repo mirror: `Scripts/LITERATURE_KB_DESIGN_2026-09-13.md` §14 status rows |
+| **How agents work here** | `Scripts/docs/LITKB_AGENT_BASE_BRIEF.md` — read before launching any litkb agent |
+| **Latest results** | `Reports/LITKB_P5_BULK_2026-09-16.md` (bulk extraction + fix sets), `Reports/LITKB_P5_FINAL_REFEREE_2026-09-16.md` (verdict: OPERATIONAL WITH CAVEATS; caveat fix in flight at the time of writing) |
+| **Branch / worktree** | `work/20260913-literature-kb` in `D:\edmonds-pipeline\treedata-litkb`; NOT merged to `main` (Kam merges). Side branches all pushed to `github`: `work/20260915-{embeddings,splink,refmatcher,linkage-review,held-queue,access-layer,colab-l4-formula}` — access-layer, colab and references are already merged into litkb; embeddings/splink/refmatcher are reports only |
+| **Database** | PostgreSQL 18 `litkb` on localhost:5433 (21+ migrations; `py -3.12 -m litkb.db.migrate --db litkb` from `Scripts` with `PYTHONPATH=pipeline`); nightly dump task `litkb-nightly-dump` (points at the litkb worktree; re-register after merge); credentials in `%APPDATA%\postgresql\pgpass.conf` + `D:\edmonds-pipeline\secrets\` (never print) |
+| **Use it** | `.claude/skills/literature/SKILL.md`; MCP server `py -3.12 -m litkb.mcp.server` (registration line in `Reports/LITKB_P8_ACCESS_2026-09-15.md` §5, Kam runs it, user scope) |
+| **Kam's open decisions** | promote or abandon open workstreams (`p3-migration`, `edge-pre1990`, `linkage-review`, `held-queue`, `op-test-1`, `fix-op-1`); 22 check-1 refusals + 15 low-confidence held rows; 12 manual proposals (second session); the 688-page book; swap live tracker/manifest for exports; CLAUDE.md rule text (P3 report §5); merge to `main` |
+| **Deferred improvements** | Crossref search as second proposer (P6 report); vector re-test on stage-5 blocks (P7 FAILED its floors on .txt text); Splink referee reading the worked examples; OmniDocBench/SCORE-Bench calibration; mutmut; targeted harness reruns |
+| **Standing hazards** | subagent `git push` gets classified — the orchestrator pushes; agents stall on background jobs — brief foreground polling; one tolerated red test `crown_state_model`; ten worktrees — consolidate after merge |
+
 ### AWAITING KAM — the decision stack (nothing moves without these)
 
 **The decisions live in [`decisions.yaml`](decisions.yaml)** — one entry each, with

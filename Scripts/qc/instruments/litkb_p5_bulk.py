@@ -754,7 +754,7 @@ def cmd_gate(a):
     for r in below:
         print(f"  {r['name'][:60]:<60} min share {r['coverage_min_share']} "
               f"route={r['route']} failures={r['coverage_failures']}")
-    print(f"\nbound documents in the plan: {plan['bound']}; ingested ok: {len(ok)}; "
+    print(f"\nplanned documents: {plan['planned']}; ingested ok: {len(ok)}; "
           f"no artifact: {sum(1 for r in rows if r['status'] == 'no-artifact')}")
     conn.close()
     _log("gate", **counts)

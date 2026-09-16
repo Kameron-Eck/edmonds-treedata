@@ -270,3 +270,161 @@ committed census. What changed is `D:\edmonds-pipeline\Literture`, which now hol
 against the **224** the census pins. Whoever grew the corpus owns re-running stage 0 and re-pinning the
 five numbers; this merge deliberately does not, because re-pinning them silently would retire refereed
 numbers on an unrefereed change (CLAUDE.md 3.4c).
+
+---
+
+# P8 merged
+
+2026-09-16. `work/20260915-access-layer` at `fd59bc3` merged `--no-ff` into
+`work/20260913-literature-kb` at `7ca8eb0`. Merge commit **`c932bea`**; the decisions it deferred are
+**`6afc566`**. Neither side was written by the session that merged them.
+
+## Conflicts — three, all union, none a disagreement
+
+| file | HEAD | P8 | resolution |
+|---|---|---|---|
+| `litkb/commands.py::main` | added `use`, `inventory` to the dispatch | added `promote` | all three |
+| `test_litkb_p1.py::_EXPECTED_EXECUTE` (writer, promoter) | writer gains `_feeds_token_ok` (0020) | reader+writer gain `check_ws_token`/`norm_search_text`/`any_term_query`, promoter gains `promotion_chains` (0018) | the union — both migrations are applied, so both sets of grants exist |
+| `test_litkb_p1.py::_EXPECTED_EXECUTE["litkb_ingest"]` | four stage-6 writers (0020) | `norm_search_text` (0018's expression index runs as the INSERTing role) | the union |
+
+Auto-merged and read by hand rather than trusted: `.gitignore` (P8's root `.claude/` whitelist at the
+head, HEAD's `*.sha256` / `Reports/gold/` / harness-lock rules at the foot — disjoint), `netutil.py`
+(P8's shape redactor at the top, HEAD's `Content-Type` `setdefault` in `_raw_get` — disjoint),
+`litkb_p2_mutations.py` (P8's X-rows appended to HEAD's F5*/U* rows; the sink tuple carries both new
+pairs, `redact_shapes` and `_require_token`).
+
+## The feeds-validator collision, and what 0021 decides
+
+`_reserved.txt` had recorded this for whoever landed 0018, and it was right. **0018 and 0020 each
+`CREATE OR REPLACE litkb._feeds_token_ok` with a different seven-form body**, written independently,
+and a `CREATE OR REPLACE` is decided by the order migrations were **applied**, not by their numbers.
+Measured on `litkb_test` the moment 0018 landed on top of 0020 — not reasoned, run:
+
+```
+framework §13.1.1   -> false    0018's depth rule: at most one sub-level
+report notmd#§5     -> TRUE     0018's `[^ ]+`: the file part need not name a document
+```
+
+A database built from scratch runs 0018 then 0020 and answers the other way round on both.
+`test_litkb_p8.py` asserts the first is refused; `test_litkb_first_use.py` asserts the second is
+refused. Neither suite was wrong — the schema was two schemas, with one migration set and one set of
+checksums.
+
+Both earlier files were by then applied and checksum-locked, so neither could be the one that
+changes. **`0021_feeds_validator_final.sql`** takes the second of the two options `_reserved.txt`
+offered: state the definition once, in the highest-numbered file, so it is applied last on every
+database whatever order the earlier two arrived in. Each disagreeing clause is settled against
+`docs/LITERATURE_CONVENTION.md`, the one home for what a token MEANS:
+
+* **`framework §N` keeps 0018's at-most-one-sub-level.** The convention says it in as many words —
+  "`framework §N` at most one (`framework §13.1`)" — and its table spells the token `framework §N[.N]`.
+  A strict rule can also be relaxed later without invalidating a stored token; the loose one cannot.
+* **`report <FILE>#§<loc>` keeps 0020's `.md` requirement.** `report notmd#§5` resolves to no
+  document, which is the defect the 2026-09-13 vocabulary closed when it stopped accepting a bare
+  `§N`. A token that names nothing is that same hole wearing a prefix.
+
+The other five clauses are byte-identical in both and are carried over unchanged. 0021 grants nothing
+new — `CREATE OR REPLACE` keeps a function's ACL — so the role census is untouched by it.
+
+**Two mutation rows repointed**, because a row on a replaced function body tests nothing. This is the
+third time the class has bitten (`MIG16`, `MIG20`, now `MIG21`), and the first time with two branches
+open at once, which is what made it produce two schemas rather than one dead row:
+
+* **U1** (coverage) narrows 0021 back to 0005's three forms — caught by the seven-form acceptance
+  tests in both suites;
+* **X12** (depth) deletes 0021's definition, which falls back to **0020's looser body** on a
+  from-scratch build and so takes `framework §13.1.1` — caught by `test_litkb_p8.py`. Deleting the
+  block leaves a *valid* migration whose function does the wrong thing, which is what 0018's own
+  X11/X13/X14 note demands of a migration row.
+
+One guard, two rows, deliberately: they break different halves of it, and different suites catch them.
+
+## Migrations applied
+
+| database | before | after | by |
+|---|---|---|---|
+| `litkb` | 18 (…0017, 0020) | **21** | `py -3.12 -m litkb.db.migrate --db litkb` as `litkb_owner` |
+| `litkb_test` | 18 | 21 | same, `LITKB_TEST_DB=litkb_test` |
+| `litkb_test_w1` / `w6` / `w9` | 18 each | 21 each | same, one per worker |
+| `litkb_test_w2` | 19 | **19, untouched** | P8's own worker; left where its referee left it |
+
+`_reserved.txt`'s 0018/0019 lines are deleted with this merge (a number on disk must not also be
+reserved), and its collision note is replaced by what closed it.
+
+## Proofs on the merged tree
+
+| Proof | Result |
+|---|---|
+| `--sites` self-check | **PASS** (exit 0): **89 call sites, 86 covered by a row, 3 equivalent; 18 sinks, 2 redacted, 16 allowed**. The merge dropped none of P8's sinks — no new allowlist entry was needed |
+| P8's tests, merged tree | `qc/test_litkb_p8.py` + `qc/test_litkb_first_use.py`: **96 passed, 3 skipped** (the 3 are `litkb_live`) |
+| P8's tests **including** the live MCP mini-hunt | `LITKB_LIVE=1 … qc/test_litkb_p8.py` on `litkb_test`: **60 passed, 0 skipped** |
+| The feeds vocabulary, both databases | `litkb_test` and `litkb` (as `litkb_writer`, the one role holding EXECUTE): the SAME **12 accepted forms and 14 refused forms**, no disagreement. The 14 are the union of P8's seven rejected shapes and first-use's nine |
+| P3 gate, read-only on `litkb` | **1,086 changed cells → explained 713, format 243, structural 120, filled 10, UNEXPLAINED 0, GATE: PASS**, and `phase4/qc/litkb_p3_diff.csv` regenerates with an **empty `git diff`** |
+| The 293-reference table | `litkb_s2_batching.py --arm confirmed`: **293 references → 20 resolved / 23 ambiguous / 250 unresolved**, unchanged. `requests_total 0`, 211 cache hits — cached here, not cache-only by construction |
+| `check.py --fast` under `litkb_test_w6` | secrets PASS, ruff PASS, compile PASS, pytest **1 failed, 2,964 passed, 25 skipped, 2 xfailed in 10.9 min**; litkb Postgres tests **360 passed, 3 skipped**. The one failure is `test_experiments.py::test_pointer_paths_resolve[crown_state_model]` — **only that**. The two inventory census pins that failed at the P6 merge now pass |
+| Full parallel harness, `--workers 3 --worker-dbs 1,6,9` | HARNESS_ROW_PLACEHOLDER |
+
+## `litkb`, read-only after the merge
+
+`litkb_reader`, `SELECT count(*)` per relation:
+
+| relation | count |
+|---|---|
+| `works` | **447** (433 on main) |
+| `files` | **239** (225 on main); `file_versions` active **239**, every one carrying a binding |
+| `uses` | **385** (`use_versions` 385; **0 on main** — none has been promoted) |
+| `discrepancies` | **914** |
+| `"references"` | **643** |
+| `citation_mentions` | 969 |
+| `citation_edges` | 13 |
+| `blocks` | **0** — as expected; the bulk text pass has not run |
+
+## Design §9, amended
+
+Per `LITKB_P8_REFEREE_2026-09-15.md` §5, and written into
+`Scripts/LITERATURE_KB_DESIGN_2026-09-13.md` §9 rather than left in a referee's paragraph:
+`promote prepare` **is** exposed to agents as `litkb_propose_promotion`, with the credential clause
+kept exactly (the tool shells out; the promoter passfile is opened by a process that exits), and with
+the reason `commit` and `approve` stay absent written down — `commit` records that *Kam merged*, and
+`approve` is a *second session's* act, so an agent holding either would be attesting to its own work.
+
+**One condition of that amendment no longer holds, and it is recorded rather than inherited.** The
+referee's condition (i) was that `report_path` is "a recorded string, not a write primitive", because
+prepare wrote no file. His own F-5 fix then made prepare write the report, so an agent-supplied
+`report_path` now reaches `promote.write_report`, which does `Path(path).parent.mkdir(parents=True,
+exist_ok=True)` and `write_text` — used verbatim when absolute, resolved against the worktree when
+relative, with no `..` check. **READ FROM SOURCE, not exercised:** `mcp/server.py::_propose_promotion`
+sends `report_path` to `--report`; `commands.py::cmd_promote` prepare branch; `promote.py::write_report`.
+Scoping that path is a NEW guard on an already-refereed branch, so it was not invented at this merge.
+It is Kam's, with condition (iii)'s `decisions.yaml` line, which nothing here stages.
+
+## One test that had encoded transient state
+
+`test_litkb_p1.py::test_an_undeclared_gap_in_the_migration_numbering_is_still_refused` manufactured
+nothing: it copied the tree's migrations into a tmp directory and leaned on 0018/0019 being **absent
+from disk** while `work/20260915-access-layer` held them. The moment that branch merged the numbering
+went contiguous, nothing was refused, and the `pytest.raises` had nothing to catch. It now digs its
+own hole — in the MIDDLE, because a missing *last* migration is a shorter list, not a gap, and
+`discover()` cannot tell that from a branch that has not written its next one yet.
+
+## Also landed
+
+`Scripts/docs/LITKB_AGENT_BASE_BRIEF.md` — the standing half of every litkb agent launch, previously
+pasted from a scratchpad into each prompt, now tracked so a change to it is a diff somebody reviews.
+Two edits against the copy it was made from: the census-pin known failures are dropped (they pass, as
+the ladder above shows), and the commit-signature line names "the session URL in your launch context"
+instead of hard-coding one session's URL, which would have been wrong for every agent after this one.
+The migration-number hazard gains the harder case this merge paid for: `_reserved.txt` cannot catch
+two branches replacing the SAME function.
+
+## Not closed by this merge
+
+* **`report_path` is unbounded** (above). Kam's, with the §9 amendment.
+* **`decisions.yaml` carries no line for the §9 amendment.** Kam's by rule; nothing here staged it.
+* **`litkb_test_w2` stays at 19 migrations.** It is P8's worker; the suite resets and re-migrates
+  whichever database it is pointed at, so this costs nothing, but the number is stated rather than
+  quietly fixed.
+* **The P3 report's "`work/20260915-access-layer` had **not** patched the validator" is now false.**
+  It was true when written (checked with `git grep` against `b787fa0`); `65dca14` added the
+  seven-form body afterwards. The sentence is left standing in that report as history and corrected
+  here, which is what the collision above cost.

@@ -57,8 +57,9 @@ Measured, not argued: a DOI the endpoint itself had just returned could not be f
 tool's own query shape, and became findable the moment `^^xsd:string` was added.
 
 The repository carries three different endpoint URLs — `sparql-stg.opencitations.net`
-(the runtime default), `opencitations.net/meta/sparql` (`script/evaluation.py:11`), and
-`sparql.opencitations.net` (the same line, commented out). That is endpoint drift, and it is
+(the runtime default in `ReferenceProcessor.__init__` and `OpenCitationsMatcherThreadSafe`),
+`opencitations.net/meta/sparql` (the default of `evaluation.OpenCitationsDOIMatcher`), and
+`sparql.opencitations.net` (commented out beside it). That is endpoint drift, and it is
 why the "as shipped" arm is reported on its own line in §5 rather than folded into a verdict
 about the scoring.
 
@@ -309,8 +310,8 @@ no mechanism for noticing afterwards.
 
 ## 8. Thin records, reviews, and whether our gate is still needed
 
-**The five lost-genuine resolutions** â€” correct DOIs our confirmation rule refuses because
-Crossref's record is thin (`LITKB_S2_BATCHING_2026-09-15.md` Â§8.2). All five are present in OC
+**The five lost-genuine resolutions** — correct DOIs our confirmation rule refuses because
+Crossref's record is thin (`LITKB_S2_BATCHING_2026-09-15.md` §8.2). All five are present in OC
 Meta, so both arms could in principle recover them.
 
 | lost-genuine | our refusal | ref-matcher (parsed) | Crossref SBM |
@@ -318,18 +319,18 @@ Meta, so both arms could in principle recover them.
 | `10.1109/tsmc.1978.4309889` Abercrombie b16 | `crossref_no_author` | miss (best 10) | **right** |
 | `10.1201/b12612-12` Burnicki b12 | `crossref_no_author` | miss | **right** |
 | `10.1093/oxfordjournals.aje.a120609` Foody b14 | `crossref_title_ratio` | **right** (25) | **right** |
-| `10.1093/oxfordjournals.aje.a120610` Foody b38 | `crossref_title_ratio` | **wrong** â€” returns `â€¦a120609`, conflating parts I and II | **right** |
+| `10.1093/oxfordjournals.aje.a120610` Foody b38 | `crossref_title_ratio` | **wrong** — returns `…a120609`, conflating parts I and II | **right** |
 | `10.14358/pers.69.3.289` Burnicki b43 | `crossref_title_ratio` | **right** (25) | **right** |
 
 **Crossref SBM recovers all five. ref-matcher recovers two, misses two, and gets one wrong** in
-precisely the way our own report predicted â€” it cannot separate the Buck-and-Gart 1966 part I
+precisely the way our own report predicted — it cannot separate the Buck-and-Gart 1966 part I
 from part II either. So on the specific failure the brief asked about, the search-based
 approach genuinely does better, and the structured matcher does not.
 
 ### 8.1 The planted book-review test
 
-**ref-matcher refuses all three reviews â€” but not by detecting a review.** Measured scores:
-Hall b10 **21**, and the four editions 21â€“22, every one of them below the 23.4 adjusted
+**ref-matcher refuses all three reviews — but not by detecting a review.** Measured scores:
+Hall b10 **21**, and the four editions 21–22, every one of them below the 23.4 adjusted
 threshold. The mechanism is arithmetic, not discrimination: a book reference carries **no volume
 and no pages**, so 3 + 8 = 11 of the 48 points are unreachable, and OC Meta's record for
 `10.2307/2531038` carries **no author** (another 7 unreachable) under the *book's own title*
@@ -342,37 +343,37 @@ about the *record*. (Predicted-vs-measured: from the published weights I predict
 b10 against a measured 21. The 8-point gap is not reconciled here; both numbers sit far below
 threshold, so the direction of the finding does not turn on it.)
 
-**Crossref SBM fails the test outright â€” and worse than the exact-DOI score shows.** Scored on
+**Crossref SBM fails the test outright — and worse than the exact-DOI score shows.** Scored on
 DOI equality it "returns the bad DOI" only 2 of 7 times. But the gold names *one specific* bad
 DOI because that is what S2 proposed, and on the book reviews Crossref SBM returned **a review
-every time** â€” just a different one twice:
+every time** — just a different one twice:
 
 | reference (a BOOK) | Crossref SBM returned | our gate's verdict |
 |---|---|---|
-| Wadsworth, *Modern Methods for Quality Control* | `10.1002/qre.4680020420` â€” a *QREI* review | **`type_mismatch`** |
-| Getis, *Models of Spatial Processes* | `10.2307/214811` â€” the gold's named review | **`review_record`** |
-| Serra, *Image Analysis and Mathematical Morphology* | `10.1002/cyto.990040213` â€” a *Cytometry* review | **`type_mismatch`** |
+| Wadsworth, *Modern Methods for Quality Control* | `10.1002/qre.4680020420` — a *QREI* review | **`type_mismatch`** |
+| Getis, *Models of Spatial Processes* | `10.2307/214811` — the gold's named review | **`review_record`** |
+| Serra, *Image Analysis and Mathematical Morphology* | `10.1002/cyto.990040213` — a *Cytometry* review | **`type_mismatch`** |
 
 **3 of 3.** Two of those would have been scored "avoided the trap" by DOI equality alone. This
-is why Â§5's must-not-link column understates, and why this report runs the returned records
+is why §5's must-not-link column understates, and why this report runs the returned records
 through our own rule instead of stopping at the DOI string.
 
 ### 8.2 Our gate, run over the other proposer's output
 
-`confirm_s2_candidate`'s rungs â€” review signature, review hint, book-vs-journal type, title
-ratio, edition, first author, year â€” applied to the Crossref record the arm actually returned
+`confirm_s2_candidate`'s rungs — review signature, review hint, book-vs-journal type, title
+ratio, edition, first author, year — applied to the Crossref record the arm actually returned
 for each of the 7 must-not-link references:
 
 | verdict | n | which |
 |---|--:|---|
 | `type_mismatch` | 2 | the two book reviews Crossref files as journal articles |
 | `review_record` | 1 | Getis, caught by the author-count signature (`['semple','getis','boots']`) |
-| `crossref_title_ratio` | 2 | Efron `â€¦_37` at 0.84, Foody b76 at 0.53 |
-| `crossref_year_unknown` | 1 | Goodchild `â€¦_chapter_one`, the gold's named bad DOI |
+| `crossref_title_ratio` | 2 | Efron `…_37` at 0.84, Foody b76 at 0.53 |
+| `crossref_year_unknown` | 1 | Goodchild `…_chapter_one`, the gold's named bad DOI |
 | `passes_our_gate` | 1 | `10.4135/9781412986311.n10`, ratio 1.00, year 2004 |
 
 **Six of the seven wrong answers are refused by a gate the proposer knows nothing about.** The
-seventh is the SAGE Handbook chapter Magidson 2004 actually cites â€” the gold's bad DOI for that
+seventh is the SAGE Handbook chapter Magidson 2004 actually cites — the gold's bad DOI for that
 row is the *2010* Elsevier record, which Crossref SBM did not return; our gate passing it looks
 correct rather than lenient.
 
@@ -387,10 +388,10 @@ written against S2's candidates and it fires unchanged on Crossref's.
 
 Crossref's relevance score does **not** separate right from wrong on our corpus. Across the 365
 positives the correct answers run min 56.0 / median 120.1 / max 180.6, and the ten wrong ones run
-63.1 to **197.4** â€” the highest-scoring answer in the wrong set outscores the median correct one.
+63.1 to **197.4** — the highest-scoring answer in the wrong set outscores the median correct one.
 No cut helps: at 60 it drops 2 correct and 0 wrong; at 80 it drops 15 correct and only 2 wrong.
 (On the 15 hand-checked footnotes alone, a cut at 40 would have dropped 3 of the 5 errors and
-none of the 10 correct â€” but that is post hoc on n=15 and is contradicted by the full 365, so it
+none of the 10 correct — but that is post hoc on n=15 and is contradicted by the full 365, so it
 is **not** a recommendation.) A threshold on Crossref's score cannot substitute for the gate.
 
 ---
@@ -402,7 +403,7 @@ is **not** a recommendation.) A threshold on Crossref's score cannot substitute 
 
 **Which case Kam's rule puts us in.** "Adopt where someone else measured better" presumes
 someone else measured. Run as distributed against the live registry, ref-matcher measures
-**0 of 100** â€” a dead default endpoint, and plain literals its own registry's Virtuoso will not
+**0 of 100** — a dead default endpoint, and plain literals its own registry's Virtuoso will not
 join. Everything good in its column required a patch I wrote. That is not a tool that measured
 better; it is a tool that does not run, and adopting it would mean adopting my patch to somebody
 else's unreleased script as a dependency. Three further reasons, kept separate from the scoring
@@ -415,30 +416,30 @@ two files. Where it does work it is also **worse than what we have on our own ha
 
 **What did measure better, and is worth taking.** Crossref search-based matching on raw strings:
 **355 of 365 positives, all 5 lost-genuine recovered, and a DOI for all 50 footnote references
-our parser cannot touch** â€” the one capability gap we actually have. But it never abstains, and
+our parser cannot touch** — the one capability gap we actually have. But it never abstains, and
 unscreened it is a **net loss** on the footnotes: roughly 33 right against 17 wrong, three-fifths
 of the errors being reviews of the cited work. It is a good proposer and a bad decider.
 
 **Integration point, named, not implemented.** In `pipeline/litkb/admit/resolver.py` the S2 leg
-calls `confirm_s2_candidate(cand, ref, client, pacer)` from inside `resolve_by_search` â€” S2
+calls `confirm_s2_candidate(cand, ref, client, pacer)` from inside `resolve_by_search` — S2
 proposes, Crossref confirms. Add the bibliographic-search leg as a **second proposer into that
 same call**: build a candidate from the top `works?query.bibliographic=<raw>` hit and hand it to
 the **unchanged** `confirm_s2_candidate`, so every refusal keeps its existing reason name and the
-histograms continue to join. Gate it to references where there is nothing else to try â€” no title
-or no first author, i.e. the 50 â€” so it cannot dilute the 608 the current path already handles.
+histograms continue to join. Gate it to references where there is nothing else to try — no title
+or no first author, i.e. the 50 — so it cannot dilute the 608 the current path already handles.
 `confirm_s2_candidate` therefore sits **exactly where it sits today** and does not move in either
 option; what changes is only who is allowed to propose to it.
 
 **Two things to settle before it ships, both measured here, neither solved here.** First, the
-confirmation rule needs the reference's own parsed fields to judge a candidate â€” title ratio,
-first author, year â€” and on these 50 GROBID produced none of them; the rungs that fire on
-Crossref SBM's output in Â§8.2 did so using fields from references that *were* parsed. Screening
+confirmation rule needs the reference's own parsed fields to judge a candidate — title ratio,
+first author, year — and on these 50 GROBID produced none of them; the rungs that fire on
+Crossref SBM's output in §8.2 did so using fields from references that *were* parsed. Screening
 the 50 therefore needs either the raw string parsed by something (the untested GROBID
-`processCitation` path, Â§3 â€” the arm that did not run) or a rule that works from the raw string.
-Second, Crossref's relevance score is not usable as the confidence input (Â§8.3).
+`processCitation` path, §3 — the arm that did not run) or a rule that works from the raw string.
+Second, Crossref's relevance score is not usable as the confidence input (§8.3).
 
 **A/B before adoption**, on the frozen gold, per 3.4c: the 50 with the search leg enabled against
-the 50 without, scored by hand as in Â§7, with the kill being that the planted book review must
+the 50 without, scored by hand as in §7, with the kill being that the planted book review must
 still be refused. Until that runs, this report's recommendation is an argument for a design, not
 an adopted design.
 
@@ -453,10 +454,27 @@ py -3.12 qc/instruments/litkb_refmatcher_score.py \
     --s2-rows ../Reports/litkb_s2_rows_2026-09-15.csv
 ```
 
-Tests: `qc/test_litkb_refmatcher.py`, 30 passing â€” the typed-literal patch (including a
+Tests: `qc/test_litkb_refmatcher.py`, 30 passing — the typed-literal patch (including a
 **ratchet** that re-scans upstream for a fourth plain-literal predicate), the below-threshold
 non-match, the SPARQL binding shape, the CRLF-safe gold pin, the ungraded column, and the
 never-cache-a-failure rule.
+
+**The gate: `py -3.12 qc/check.py --fast` with `LITKB_PGPORT=1`.** Stated because it changes
+what ran — 216 litkb Postgres tests skip under that port, so those guards were *not* exercised.
+
+* `secrets` PASS · `ruff` PASS · `compile` PASS.
+* `pytest qc`: **2,368 passed, 235 skipped, 1 failed** — the single failure is
+  `test_experiments.py::test_pointer_paths_resolve[crown_state_model]`, the expected
+  pre-existing one. Two failures this work introduced were found and fixed before the run
+  was recorded: a line-number citation in the instrument (banned in this repo because line
+  numbers rot — now cited by symbol), and the literal string `sys.path.insert` sitting inside
+  a comment that explained why the instrument deliberately *appends* instead, which the
+  ledger ratchet matches as though it were a call site.
+* **One test could not be run to completion and was deselected, rather than counted as a
+  pass:** `test_registry_attribution.py::test_registry_covers_every_finished_manifest`. It
+  shells out to `registry_from_manifests --dry-run` across `phase4/runs` on the Drive mount
+  and had not returned after 15 minutes — the documented Drive-stall behaviour, unrelated to
+  anything here (no registry or phase4 code is touched). The suite takes 33 minutes without it.
 
 Tool clone: `opencitations/ref-matcher` @ `dfb0e7c06f2cc1495c1045ee69d22dc1fddbc96b`, ISC licence.
 The `^^xsd:string` patch is applied at runtime by `type_literals()`; the upstream checkout is

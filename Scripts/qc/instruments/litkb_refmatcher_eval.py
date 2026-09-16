@@ -175,8 +175,9 @@ def load_tool(tool_dir: Path):
     # root has to be importable. APPEND, never insert: this is a third-party script root
     # (no package, no PyPI release -- see the module docstring), and appending gives it the
     # LOWEST precedence so it can never shadow `lake`, `champion` or anything the editable
-    # install provides. That is also why it is not a `sys.path.insert` ledger entry: the
-    # ledger exists to stop path hacks reaching OUR modules, which the install already covers.
+    # install provides. That is also why it needs no entry on the prepend ledger in
+    # `test_status_discovery`: that ledger exists to stop path hacks reaching OUR modules,
+    # which the editable install already covers, and an append cannot shadow them anyway.
     root = str(Path(tool_dir).resolve())
     if root not in sys.path:
         sys.path.append(root)
@@ -321,10 +322,11 @@ async def run_refmatcher(mod, rows, *, endpoint, patched, cache, stats, threshol
             body = await asyncio.get_event_loop().run_in_executor(
                 None, lambda: urllib.request.urlopen(req, timeout=120).read())
             # RETURN THE RAW SPARQL BINDINGS, NOT FLATTENED VALUES. The tool's scorer
-            # reads `result['doi']['value']` (ReferenceMatchingTool.py:1208 and around),
-            # so flattening `{'doi': {'value': x}}` to `{'doi': x}` makes every field read
-            # fail and every candidate score 0 -- which reads exactly like "the tool matched
-            # nothing" and is the shape of a false headline.
+            # (`OpenCitationsMatcherThreadSafe.calculate_matching_score`) reads
+            # `result['doi']['value']`, so flattening `{'doi': {'value': x}}` to
+            # `{'doi': x}` makes every field read fail and every candidate score 0 --
+            # which reads exactly like "the tool matched nothing", and is the shape of a
+            # false headline.
             out = json.loads(body)["results"]["bindings"]
             stats.requests += 1
             stats.by_status["200"] = stats.by_status.get("200", 0) + 1
@@ -369,10 +371,10 @@ async def run_refmatcher(mod, rows, *, endpoint, patched, cache, stats, threshol
             results.append({"ref_id": rid, "error": f"{type(exc).__name__}: {exc}"})
             continue
         # THE TOOL RETURNS A TRUTHY DICT FOR A NON-MATCH. When nothing clears the
-        # (possibly adjusted) threshold it returns {'below_threshold': True, 'score': …}
-        # rather than None -- ReferenceMatchingTool.py:1794. Treating `bool(match)` as a
-        # match counts every reference as resolved and inverts the whole result, so the
-        # flag is read explicitly here and the near-miss score is kept for the report.
+        # (possibly adjusted) threshold, `ReferenceProcessor.process_reference` returns
+        # {'below_threshold': True, 'score': …} rather than None. Treating `bool(match)`
+        # as a match counts every reference as resolved and inverts the whole result, so
+        # the flag is read explicitly here and the near-miss score kept for the report.
         below = bool(match) and bool(match.get("below_threshold"))
         matched = bool(match) and not below
         rec = {

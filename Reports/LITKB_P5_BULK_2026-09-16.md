@@ -21,10 +21,9 @@ run measured that were not expected.
 | `c91f7cb` | the P5 driver |
 | `4d25b9c` | the `host` CHECK, and a kill that actually lands mid-transaction |
 | `72cdfe0` | the report, the per-file table, the gate fix |
-| `<final>` | the guard tests, harness rows P51-P54, and §6.2 / §6.3 / §10 / §11 |
+| `7c7ab70` | the guard tests, harness rows P51-P54, and §6.2 / §6.3 / §10 / §11 |
 
-**Pushed** to remote `github`, branch `work/20260913-literature-kb`: `b2c7324..72cdfe0`,
-and the final commit after it.
+**Pushed** to remote `github`, branch `work/20260913-literature-kb`: `b2c7324..7c7ab70`.
 
 **The merge left `litkb_p2_mutations.py --sites` FAILING**, and that is recorded rather than
 fixed silently: the Colab branch's own harness (`litkb_formula_mutations.py`) does not carry

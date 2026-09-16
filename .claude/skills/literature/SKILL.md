@@ -26,9 +26,28 @@ The convention this skill points at, and does not copy: `Scripts/docs/LITERATURE
 - `litkb_search(query, scope="all")` — hits in extracted text and in recorded uses. Each block hit
   carries `work_key`, `page`, `section_path` and a **`block_id`**; the `block_id` is what step 4
   quotes from, so keep it.
-- `litkb_work(doi=…)` or `litkb_work(key=…)` — one work in full: identifiers, held files, every use
-  recorded against it, and any discrepancy between what a legacy record claimed and what the
-  registry says.
+- `litkb_work(doi=…)` or `litkb_work(key=…)` — one work in full: **which of four states it is in**,
+  identifiers, held files (and their stems), every use recorded against it, and any discrepancy
+  between what a legacy record claimed and what the registry says.
+- `litkb_my_uses()` — the uses **this** workstream has recorded: statement, work, gap, feeds, and
+  whether the database verified each quote. `litkb_work` cannot show them and neither can
+  `litkb_search` — a use stays `proposed` until Kam merges — so this is the only way to read back
+  your own work before offering it. Check it before step 5: a use whose `quote_status` is
+  `UNVERIFIED` will be **refused** at promotion, and it is cheaper to fix now.
+
+**"litkb_search found nothing" means three different things, and `litkb_work` is what tells them
+apart.** Its `state` is one of:
+
+| state | what it means | what to do |
+|---|---|---|
+| `absent` | no such work is admitted in main's view | step 2 — admit it |
+| `held` | admitted, **no file bound** — the PDF may well be on disk already | step 3 — `litkb_acquire(key=…, from_file=…)` binds a PDF you have; don't re-fetch |
+| `bound-unextracted` | a PDF is bound but never extracted, so search cannot see one word of it | **do not fetch it again.** Extraction is the P5 bulk path, not an MCP tool — say so and move on |
+| `extracted` | N blocks are searchable | quote from a `block_id` `litkb_search` returns |
+
+Two of those four used to be indistinguishable from "not held" — a session either re-fetched a
+paper it already had, or called a paper missing while its PDF sat in `Literture\` (measured:
+`Reports/LITKB_OPERATIONAL_REFEREE_2026-09-16.md` §4).
 
 **The vector leg is off until P7.** Search is lexical, in three legs fused by reciprocal rank: all
 terms, any term, and trigram. A paraphrase that shares no words with the text will still not be
@@ -36,9 +55,21 @@ found. What it no longer needs is your guess at the extractor's damage — the t
 both normalised (replacement characters dropped, `overesti- mate` rejoined), and a block that
 answers most of your question is returned even if one word is missing from it.
 
-**The base holds almost no blocks yet.** P4/P5's bulk extraction has not run into `litkb`, so
-`litkb_search`'s block leg can currently return nothing at all. "Nothing found" today usually means
-"not extracted yet", not "not held": check `litkb_work(doi=…)` before concluding the work is absent.
+**The base is extracted and searchable.** P5's bulk pass landed ~102k blocks over 225 documents
+(2026-09-16), and the operational test found six real passages at ranks 1–4. Do not reach for a web
+search because you assume the base is empty. Re-derive the count rather than trusting this line:
+
+```
+psql -U litkb_reader -d litkb -At -c "select count(*) from litkb.blocks"
+```
+
+**Copy the quote out of the `litkb_search` result's `text` field — never out of a PDF, a rendered
+view, or another extraction of the same page.** The database locates your quote by a literal
+`find()` in the block's own stored text, so a quote that is right about the *paper* and wrong about
+the *block* is refused (`quote-not-in-block`). That is the gate working, not a bug: the offsets it
+re-checks have to be offsets into the stored text. It refused the project's own frozen gold
+passages for exactly this reason — the gold was grepped from a different extractor, whose text layer
+renders the same characters differently.
 
 If the base already holds what you need — quote it and stop. Steps 1–5 are for what it does not.
 
@@ -106,7 +137,9 @@ paper that could not be got is a recorded gap rather than a thing everyone re-tr
 
 `litkb_record_use(statement, kind, quote, block_id, gap, gap_question=…, feeds=…)`.
 
-- `statement` — what this work *supplies* to the question, in your words.
+- `statement` — what this work *supplies* to the question, in your words. It may not be blank and is
+  capped at 2000 characters; **it is not gated for truth**, so keep it to what the quote beside it
+  actually carries. A statement that reaches past its quote promotes clean and is wrong in main.
 - `kind` — one of `method`, `theorem`, `parameter`, `empirical evidence`, `negative result`,
   `context`, `contradiction`.
 - `gap` — the question it answers (a slug); pass `gap_question` to open a new one.
@@ -124,9 +157,15 @@ paper that could not be got is a recorded gap rather than a thing everyone re-tr
   | `decision <slug>` | a key in `Scripts/decisions.yaml` |
   | `report <FILE>#§<loc>` | any other tracked report; `loc` alphanumeric (a heading key, or `L<line>`) |
 
-  All seven are enforced by the database at `promote prepare` (migration 0018). Until that migration
-  lands in `litkb`, only the first, fifth and sixth of them are — a use carrying any of the other
-  four stays `proposed` with `feeds: invalid tokens`, which is what the P8 referee hit (§3.6).
+  All seven are enforced by the database — **at `litkb_record_use`, immediately**, and again at
+  `promote prepare` (migrations 0018/0021). A token outside the vocabulary is refused `bad-feeds`
+  and names itself; nothing is written, not even the gap. It used to be stored unvalidated and first
+  checked a whole session later at prepare.
+
+  What the check does **not** do is open the document: it validates the token's SHAPE, never that
+  the section, gate, row or decision it names exists or is the right one. `gap row 6` on a result
+  that belongs to row 5 passes silently, and the operational referee found exactly that
+  (`LITKB_OPERATIONAL_REFEREE_2026-09-16.md` §1.4). Read the row before you cite it.
 
 The server finds the quote's offsets in the block and the **database** recomputes whether the text
 at those offsets really is your quote. If it is not, the use is stored but **`promote prepare` will
@@ -144,10 +183,15 @@ database does not.
 
 ## 5. Offer it to main
 
+Read back what you are about to offer first: `litkb_my_uses()`. Anything whose `quote_status` is not
+`verified` will be **held**, and fixing it now costs one call.
+
 `litkb_propose_promotion()` groups your proposed versions into chains, re-runs the checks, and
 writes the promotion report to **`_derived/promotions/<promotion_id>.md` in the worktree** (or to
 `report_path=` if you name one). **Commit it with the branch** — that is how it reaches Kam inside
-the merge he reviews; prepare writes the file, it does not stage or commit it.
+the merge he reviews; prepare writes the file, it does not stage or commit it. Plain
+`git add _derived/promotions/<id>.md` works: that path is whitelisted in `.gitignore`. Until
+2026-09-16 it was not, and this instruction staged nothing and said nothing.
 
 The result names every chain it prepared and every chain it **held**, with the database's reason.
 A held chain is not an error; it is work that may not enter main yet. Fix the reason and prepare

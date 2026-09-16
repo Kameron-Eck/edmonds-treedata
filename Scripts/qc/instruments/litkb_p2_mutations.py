@@ -859,6 +859,41 @@ block("X16", f"{PKG}/commands.py", "guard: prepare WRITES the promotion report",
       "both said it wrote one onto the work branch (F-5)")
 M[-1]["tests"] = TESTS_P8
 
+# ── the operational fix set (2026-09-16) ──────────────────────────────────────────────────
+# From LITKB_OPERATIONAL_REFEREE_2026-09-16.md. R-1 was not a weakened guard — `litkb_work` named
+# two columns the schema does not have and had NEVER been called on a work the database holds — so
+# what X20 mutates is the four-state LADDER the fix replaced it with. The rung is the thing a
+# session acts on, and collapsing it reproduces the symptom exactly: a tool that looks alive and
+# tells a session nothing it can act on. X21-X23 are the two gates the referee found missing at
+# `record_use` (R-5, R-6).
+replace("X20", f"{PKG}/mcp/server.py",
+        '    if not files:\n        state = "held"\n'
+        '    elif not any(f[4] for f in files):\n        state = "bound-unextracted"\n'
+        '    else:\n        state = "extracted"\n',
+        '    state = "extracted"\n',
+        "litkb_work answers `extracted` for every work it holds: `held` (no file bound) and "
+        "`bound-unextracted` (a PDF bound and never read) become indistinguishable from a "
+        "searchable work — the state the operational test needed psql twice to reach (R-2)",
+        tests=TESTS_P8)
+block("X21", f"{PKG}/mcp/server.py", "guard: the statement is a statement",
+      "a use records a BLANK claim beside a perfectly verified quote, and an essay-length one: the "
+      "database's own CHECK is `statement <> ''`, which a single space satisfies, so both promote "
+      "clean (R-5/R-6)")
+M[-1]["tests"] = TESTS_P8
+site("X22", "litkb/mcp/server.py::_record_use::norm_label", "{a0}", tests=TESTS_P8,
+     what="the statement's emptiness test stops seeing invisible characters: a statement of "
+          "zero-width joiners is truthy and is recorded as a claim — the hole row X3 closes for a "
+          "LABEL, at the call site the statement gate added")
+site("X24", "litkb/mcp/server.py::_my_uses::_require_token", "None", tests=TESTS_P8,
+     what="litkb_my_uses stops presenting the workstream token: a forged .litkb-workstream naming a "
+          "real workstream id reads back every statement, quote and work key that workstream has "
+          "recorded — the tenth tool walking straight into F-1's hole on the day it was added")
+block("X23", f"{PKG}/mcp/server.py", "guard: every feeds token is in the convention's vocabulary",
+      "feeds tokens are stored unvalidated again and first checked a whole session later at "
+      "`promote prepare`: a use carrying `§16.2` or `nonsense token` records clean and its author "
+      "finds out at promotion, if at all")
+M[-1]["tests"] = TESTS_P8
+
 # Call sites a mutation cannot change the behaviour of. The reason must be about the CODE, never about the tests.
 EQUIVALENT = {
     "litkb/admit/binding.py::author_on_page::tokens_contain":

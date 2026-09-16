@@ -1698,6 +1698,29 @@ def test_workstream_token_file_is_git_ignored():
         assert r.returncode == 0, f"{rel} is not git-ignored"
 
 
+def test_the_promotion_report_the_skill_says_to_commit_is_committable():
+    """The other direction, and the one that was silently false: `promote prepare` writes
+    `_derived/promotions/<id>.md` and SKILL.md step 5 says to commit it with the branch — but the
+    root `/*` rule matched it, so `git add` on that path staged nothing and said nothing
+    (LITKB_OPERATIONAL_TEST_2026-09-16.md friction 3). An instruction a tool silently ignores is
+    worse than no instruction.
+
+    Both directions are asserted, because un-ignoring `_derived/` wholesale would pass the first
+    alone and sweep a scratch root into the repository: only `promotions/*.md` is committable."""
+    repo = SCRIPTS.parent
+    if subprocess.run(["git", "-C", str(repo), "rev-parse"], capture_output=True).returncode != 0:
+        pytest.skip("not a git checkout")
+
+    def ignored(rel):
+        return subprocess.run(["git", "-C", str(repo), "check-ignore", "-q", "--no-index", rel],
+                              capture_output=True).returncode == 0
+
+    assert not ignored("_derived/promotions/01a0aa62-7229-790c-ae84-08f3e0b41d71.md"), (
+        "the promotion report is git-ignored; SKILL.md step 5 stages nothing")
+    for rel in ("_derived/promotions/notes.txt", "_derived/scratch.md", "_derived/other/x.md"):
+        assert ignored(rel), f"{rel} would be swept in: only _derived/promotions/*.md is tracked"
+
+
 @pg_only
 def test_workstream_module_writes_the_token_file_once(pg, tmp_path, capsys):
     """litkb.workstream opens a workstream, writes {id, token} to .litkb-workstream, never prints

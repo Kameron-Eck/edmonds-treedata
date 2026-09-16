@@ -116,11 +116,14 @@ def tool_names():
 # ── the protocol ──────────────────────────────────────────────────────────────────────────
 
 EXPECTED_TOOLS = {"litkb_search", "litkb_work", "litkb_candidates", "litkb_ws_open",
-                  "litkb_ws_status", "litkb_admit", "litkb_acquire", "litkb_record_use",
-                  "litkb_propose_promotion"}
+                  "litkb_ws_status", "litkb_my_uses", "litkb_admit", "litkb_acquire",
+                  "litkb_record_use", "litkb_propose_promotion"}
 
 
-def test_the_server_offers_exactly_the_nine_tools():
+def test_the_server_offers_exactly_the_ten_tools():
+    """Ten since 2026-09-16: `litkb_my_uses` closed friction item 2 of the operational test — a
+    session could not read back one thing it had written. Asserted as a SET, so adding a tool is a
+    deliberate edit here and never a silent widening of the surface."""
     assert set(tool_names()) == EXPECTED_TOOLS
 
 
@@ -156,6 +159,7 @@ def test_the_server_module_imports_neither_mcp_nor_psycopg():
 WRITE_TOOLS = [
     ("litkb_ws_status", {}),
     ("litkb_candidates", {}),
+    ("litkb_my_uses", {}),
     ("litkb_admit", {"doi": HUNT_DOI}),
     ("litkb_acquire", {"doi": HUNT_DOI}),
     ("litkb_record_use", {"statement": "s", "kind": "context", "quote": "q",
@@ -349,12 +353,15 @@ def test_a_forged_token_reads_nothing_and_a_real_one_reads_its_own_workstream(hu
     assert cands["ok"], cands
     assert cands["workstream_id"] == opened["workstream_id"], cands
 
+    mine = one("litkb_my_uses", {})
+    assert mine["ok"] and mine["workstream_id"] == opened["workstream_id"], mine
+
     (wt / ".litkb-workstream").write_text(
         json.dumps({"workstream_id": opened["workstream_id"], "token": "0" * 64}), encoding="utf-8")
-    for tool in ("litkb_ws_status", "litkb_candidates"):
+    for tool in ("litkb_ws_status", "litkb_candidates", "litkb_my_uses"):
         res = one(tool, {})
         assert res["refused"] == "bad-token", (tool, res)
-        for leaked in ("slug", "state", "candidates", "promotions", "admissions"):
+        for leaked in ("slug", "state", "candidates", "promotions", "admissions", "uses"):
             assert leaked not in res, f"{tool} told a wrong token about {leaked}: {res}"
     (wt / ".litkb-workstream").write_text(real, encoding="utf-8")
 
@@ -567,6 +574,294 @@ def test_a_quote_from_another_work_is_refused(hunt_env):
         "quote": "canopy closed in August", "block_id": b["block_id"],
         "gap": f"p8-mismatch2-{uuid.uuid4().hex[:6]}", "gap_question": "whose words are these?"})
     assert named_nothing["ok"] and named_nothing["work_key"] == key_b, named_nothing
+
+
+# ── litkb_work: the four states (operational referee R-1, R-2, R-3) ───────────────────────
+
+@pg_only
+def test_litkb_work_answers_each_of_the_four_states_on_a_work_the_database_holds(hunt_env):
+    """THE test that would have caught R-1, and the one the suite had never made.
+
+    `litkb_work` named two columns the schema does not have — `container` for `venue` at line 421
+    and `v.path` for `v.rel_path` at 426/428 — so it crashed on every work the database HELD and
+    answered only on the miss path, which is why it read as alive. The whole P8 suite called it
+    once, as `one("litkb_work", {})` asserting `no-selector`, and the one test whose name promised
+    otherwise built a record in Python and handed it to `_out()` without opening a connection
+    (LITKB_OPERATIONAL_REFEREE_2026-09-16.md §5). No test had ever put a real work through it.
+
+    The four states are asserted together because they are a LADDER and each rung is only
+    meaningful against the next: "absent" and "held" and "bound-unextracted" are three different
+    answers to "litkb_search found nothing", they need three different next moves, and the
+    operational test had to reach for `psql` twice to tell them apart — which a session without
+    database access cannot do at all."""
+    conn = hunt_env["conn"]
+    opened = one("litkb_ws_open", {"slug": f"p8-states-{uuid.uuid4().hex[:6]}",
+                                   "purpose": "the four states of litkb_work"})
+    ws_id = opened["workstream_id"]
+
+    absent = one("litkb_work", {"key": f"Nobody_1999_no-such-work-{uuid.uuid4().hex[:8]}"})
+    assert absent["ok"] and absent["found"] is False, absent
+    assert absent["state"] == "absent", absent
+
+    held = _seed_work_state(conn, ws_id, "held")
+    res = one("litkb_work", {"key": held["key"]})
+    assert res["ok"] and res["found"] is True, res
+    assert res["state"] == "held", res
+    assert res["files"] == [] and res["file_stems"] == [] and res["blocks"] == 0, res
+    assert res["work"]["venue"] is not None, "the venue column is the one `container` was hiding"
+
+    bound = _seed_work_state(conn, ws_id, "bound-unextracted")
+    res = one("litkb_work", {"key": bound["key"]})
+    assert res["state"] == "bound-unextracted", res
+    assert len(res["files"]) == 1 and res["files"][0]["current_run_id"] is None, res
+    assert res["file_stems"] == ["seeded"], res
+    assert res["blocks"] == 0, res
+
+    extracted = _seed_work_state(conn, ws_id, "extracted",
+                                 text="The pilot plot was measured in June.")
+    res = one("litkb_work", {"key": extracted["key"]})
+    assert res["state"] == "extracted", res
+    assert res["files"][0]["current_run_id"] == extracted["run_id"], res
+    assert res["blocks"] == 1, res
+    assert res["files"][0]["path"] == "Validation/seeded.pdf", res
+    assert res["use_count"] == 0, res
+    assert res["what_next"] and "litkb_search" in res["what_next"], res
+
+
+@pg_only
+def test_litkb_work_finds_the_same_work_by_doi_and_reports_its_uses(hunt_env):
+    """The DOI selector, and the `uses`/`use_count` legs — both reached the two broken statements
+    too, so neither had ever run against a work. A use recorded through the tool is `proposed`, so
+    it is NOT in main's view and `use_count` is 0 here: that is the honest answer and the reason
+    `litkb_my_uses` exists."""
+    conn = hunt_env["conn"]
+    opened = one("litkb_ws_open", {"slug": f"p8-workdoi-{uuid.uuid4().hex[:6]}",
+                                   "purpose": "litkb_work by doi"})
+    seeded = _seed_work_state(conn, opened["workstream_id"], "extracted",
+                             text="The pilot plot was measured in June.")
+    doi = f"10.5555/p8-{uuid.uuid4().hex[:10]}"
+    conn.execute("SELECT * FROM litkb._write_version('fact', 'identifier', NULL, %s, NULL, %s, "
+                 "NULL, %s, 'p8-seed', 'p8-seed')",
+                 (_jsonb({"scheme": "doi"}),
+                  _jsonb({"work_id": seeded["work_id"], "value": doi, "verified_by": "manual",
+                          "status": "active"}),
+                  opened["workstream_id"]))
+    res = one("litkb_work", {"doi": f"https://doi.org/{doi.upper()}"})
+    assert res["ok"] and res["found"] is True, res
+    assert res["key"] == seeded["key"], res
+    assert [i["value"] for i in res["identifiers"]] == [doi], res
+    assert res["state"] == "extracted" and res["use_count"] == 0, res
+
+
+def _jsonb(obj):
+    from psycopg.types.json import Jsonb
+    return Jsonb(obj)
+
+
+def _seed_work_state(conn, ws_id, state, text=None):
+    """A work seeded to exactly one rung of the `litkb_work` ladder.
+
+    `held` stops after the work, `bound-unextracted` binds a file and never sets a current run,
+    `extracted` adds the run and one block. Written as FACTS through `_write_version`, the same way
+    `_seed_work_file_block` does and for the same reason (admission is one work per identifier
+    across the whole knowledge base, and the recorded registry responses are three)."""
+    key = f"Seeded_2026_p8-{uuid.uuid4().hex[:8]}"
+    work_id, _v = conn.execute(
+        "SELECT entity_id, version_id FROM litkb._write_version('fact', 'work', NULL, %s, NULL, %s, "
+        "NULL, %s, 'p8-seed', 'p8-seed')",
+        (_jsonb({"key": key}),
+         _jsonb({"type": "article", "title": "A seeded work", "authors": [],
+                 "venue": "Journal of Seeded Works"}), ws_id)).fetchone()
+    out = {"key": key, "work_id": str(work_id), "file_id": None, "run_id": None, "block_id": None}
+    if state == "held":
+        return out
+    file_id, _fv = conn.execute(
+        "SELECT entity_id, version_id FROM litkb._write_version('fact', 'file', NULL, %s, NULL, %s, "
+        "NULL, %s, 'p8-seed', 'p8-seed')",
+        (_jsonb({"sha256": uuid.uuid4().hex + uuid.uuid4().hex}),
+         _jsonb({"work_id": str(work_id), "status": "active", "rel_path": "Validation/seeded.pdf",
+                 "bytes": 1024, "pages": 1}), ws_id)).fetchone()
+    out["file_id"] = str(file_id)
+    if state == "bound-unextracted":
+        return out
+    run_id = conn.execute(
+        "INSERT INTO litkb.extraction_runs (file_id, stage, tool, tool_version, params_hash, "
+        "pipeline_version, host, status) VALUES (%s, 'native', 'p8-seed', '0', %s, 'v0', 'local', "
+        "'ok') RETURNING id", (file_id, uuid.uuid4().hex)).fetchone()[0]
+    conn.execute("SELECT litkb.set_current_run(%s, NULL, %s)", (file_id, run_id))
+    block_id = conn.execute(
+        "INSERT INTO litkb.blocks (file_id, run_id, page_no, type, text) "
+        "VALUES (%s, %s, 1, 'paragraph', %s) RETURNING id",
+        (file_id, run_id, text or "A seeded block.")).fetchone()[0]
+    out["run_id"], out["block_id"] = str(run_id), str(block_id)
+    return out
+
+
+# ── litkb_my_uses, and the two record_use gates (R-5, R-6) ────────────────────────────────
+
+@pg_only
+def test_a_session_can_read_back_the_uses_it_recorded(hunt_env):
+    """Friction item 2 of the operational test: recording a use and reading it back were different
+    systems. `litkb_ws_status` returned `{"gap": 6, "use": 6}` — counts, no statements, no quotes,
+    no work keys — and `litkb_work` reads `litkb.main_uses`, which holds NONE of them until Kam
+    merges and `promote commit` runs. The only place a session's own work was legible was the
+    promotion report file, written at the very end.
+
+    The quote status is the point: an UNVERIFIED quote is stored and refused at prepare, and before
+    this tool nothing showed a session which of its uses were in that state."""
+    conn = hunt_env["conn"]
+    opened = one("litkb_ws_open", {"slug": f"p8-myuses-{uuid.uuid4().hex[:6]}",
+                                   "purpose": "reading back my own uses"})
+    seeded = _seed_work_state(conn, opened["workstream_id"], "extracted",
+                              text="The pilot plot was measured in June.")
+    empty = one("litkb_my_uses", {})
+    assert empty["ok"] and empty["uses"] == [], empty
+
+    gap = f"p8-myuses-{uuid.uuid4().hex[:6]}"
+    used = one("litkb_record_use", {
+        "statement": "supplies the measurement date of the pilot plot", "kind": "empirical evidence",
+        "quote": "measured in June", "block_id": seeded["block_id"], "gap": gap,
+        "gap_question": "when was the pilot plot measured?", "feeds": "gap row 4; narrative §3"})
+    assert used["ok"] and used["quote_verified"] is True, used
+
+    mine = one("litkb_my_uses", {})
+    assert mine["ok"] and len(mine["uses"]) == 1, mine
+    u = mine["uses"][0]
+    assert u["use_version_id"] == used["use_version_id"], u
+    assert u["work_key"] == seeded["key"] and u["gap"] == gap, u
+    assert u["statement"] == "supplies the measurement date of the pilot plot", u
+    assert u["feeds"] == ["gap row 4", "narrative §3"], u
+    assert u["state"] == "proposed" and u["verified_rows"] == 1, u
+    assert u["quote_status"].startswith("verified"), u
+    assert mine["promotable"] == 1 and mine["gaps"] == 1, mine
+    # and the tool that reads MAIN still cannot see it — which is the honest answer, not a bug
+    assert one("litkb_work", {"key": seeded["key"]})["use_count"] == 0
+
+
+@pg_only
+def test_my_uses_names_an_unverified_quote_as_unverified(hunt_env):
+    """The state a session most needs to see and could not: a use whose quote the database could
+    NOT find at the offsets stored. `promote prepare` refuses its chain, and before this tool the
+    first sign of it was the promotion report at the end of the session.
+
+    `char_start`/`char_end` are how the P8 kill reaches this state deliberately (server docstring);
+    that route is what makes the unverified case testable at all."""
+    conn = hunt_env["conn"]
+    opened = one("litkb_ws_open", {"slug": f"p8-unver-{uuid.uuid4().hex[:6]}",
+                                   "purpose": "an unverified quote, read back"})
+    seeded = _seed_work_state(conn, opened["workstream_id"], "extracted",
+                              text="The pilot plot was measured in June.")
+    bad = one("litkb_record_use", {
+        "statement": "claims a quote the database cannot verify", "kind": "context",
+        "quote": "measured in June", "block_id": seeded["block_id"],
+        "gap": f"p8-unver-{uuid.uuid4().hex[:6]}", "gap_question": "does an unverified quote show?",
+        "char_start": 0, "char_end": 5})
+    assert bad["quote_verified"] is False, bad
+    mine = one("litkb_my_uses", {})
+    u = next(x for x in mine["uses"] if x["use_version_id"] == bad["use_version_id"])
+    assert u["evidence_rows"] == 1 and u["verified_rows"] == 0, u
+    assert u["quote_status"].startswith("UNVERIFIED"), u
+    assert mine["promotable"] == 0, mine
+
+
+@pg_only
+@pytest.mark.parametrize("statement", ["", "   ", "​​﻿"],
+                         ids=["empty", "spaces", "invisibles"])
+def test_a_use_with_a_blank_statement_is_refused_and_nothing_is_written(statement, hunt_env):
+    """R-5/R-6. The statement was completely ungated: the database's own CHECK is
+    `statement <> ''`, which a single space satisfies, so a use could carry a blank claim beside a
+    perfectly verified quote and promote clean. A statement of zero-width joiners is blank in
+    exactly the way a LABEL of them is (row X3), so the same normaliser decides both.
+
+    Asserted on the side effect as well as the code: refusing and then writing would satisfy
+    `refused == "bad-statement"` and prove nothing."""
+    conn = hunt_env["conn"]
+    opened = one("litkb_ws_open", {"slug": f"p8-blank-{uuid.uuid4().hex[:6]}",
+                                   "purpose": "the statement gate"})
+    seeded = _seed_work_state(conn, opened["workstream_id"], "extracted",
+                              text="The pilot plot was measured in June.")
+    gap = f"p8-blank-{uuid.uuid4().hex[:6]}"
+    res = one("litkb_record_use", {
+        "statement": statement, "kind": "context", "quote": "measured in June",
+        "block_id": seeded["block_id"], "gap": gap, "gap_question": "is a blank claim refused?"})
+    assert res["refused"] == "bad-statement", res
+    assert one("litkb_my_uses", {})["uses"] == [], "a refused use was written anyway"
+    assert conn.execute("SELECT count(*) FROM litkb.gaps WHERE slug = %s",
+                        (gap,)).fetchone()[0] == 0, "the refused call opened its gap"
+
+
+@pg_only
+def test_a_statement_longer_than_the_cap_is_refused_and_one_at_the_cap_is_not(hunt_env):
+    """The cap is a MEASUREMENT, not a preference: the longest of the 391 statements in live
+    `litkb` on 2026-09-16 is 798 characters, so 2000 invalidates nothing that exists. Both sides
+    are asserted, because a gate that refuses everything would pass the first half alone."""
+    from litkb.mcp import server
+
+    conn = hunt_env["conn"]
+    opened = one("litkb_ws_open", {"slug": f"p8-cap-{uuid.uuid4().hex[:6]}",
+                                   "purpose": "the statement cap"})
+    seeded = _seed_work_state(conn, opened["workstream_id"], "extracted",
+                              text="The pilot plot was measured in June.")
+    over = one("litkb_record_use", {
+        "statement": "x" * (server.STATEMENT_MAX + 1), "kind": "context",
+        "quote": "measured in June", "block_id": seeded["block_id"],
+        "gap": f"p8-cap-{uuid.uuid4().hex[:6]}", "gap_question": "is an essay refused?"})
+    assert over["refused"] == "bad-statement" and over["cap"] == server.STATEMENT_MAX, over
+    at = one("litkb_record_use", {
+        "statement": "y" * server.STATEMENT_MAX, "kind": "context", "quote": "measured in June",
+        "block_id": seeded["block_id"], "gap": f"p8-cap2-{uuid.uuid4().hex[:6]}",
+        "gap_question": "is a statement at the cap accepted?"})
+    assert at["ok"] and at["quote_verified"] is True, at
+    assert server.STATEMENT_MAX > 798, "the cap must sit above the longest statement measured"
+
+
+@pg_only
+@pytest.mark.parametrize("bad", ["§16.2", "framework §13.1.1", "gap row", "nonsense token",
+                                 "decision Bad-Slug"],
+                         ids=["bare_section", "too_deep", "no_number", "nonsense", "capitals"])
+def test_a_feeds_token_outside_the_vocabulary_is_refused_at_record_use(bad, hunt_env):
+    """R-5's structural half. `feeds` was stored unvalidated and first checked at `promote prepare`,
+    which is a whole session later — so a use that followed no vocabulary at all recorded clean and
+    the author found out at the end, if at all. The check calls the DATABASE's validator
+    (`litkb._feeds_token_ok`, migration 0021), not a second regex here: two copies of this rule
+    already cost a migration to reconcile.
+
+    The good token in the same call is what makes this a refusal of the BAD one rather than of the
+    call: a validator that refused everything would pass this test without it."""
+    conn = hunt_env["conn"]
+    opened = one("litkb_ws_open", {"slug": f"p8-feeds-{uuid.uuid4().hex[:6]}",
+                                   "purpose": "the feeds gate at record_use"})
+    seeded = _seed_work_state(conn, opened["workstream_id"], "extracted",
+                              text="The pilot plot was measured in June.")
+    gap = f"p8-feeds-{uuid.uuid4().hex[:6]}"
+    res = one("litkb_record_use", {
+        "statement": "supplies a claim with one bad feeds token", "kind": "context",
+        "quote": "measured in June", "block_id": seeded["block_id"], "gap": gap,
+        "gap_question": "is an unknown feeds token refused?", "feeds": f"gap row 4; {bad}"})
+    assert res["refused"] == "bad-feeds", res
+    assert res["bad_feeds"] == [bad], res
+    assert one("litkb_my_uses", {})["uses"] == [], "a use with a bad feeds token was written"
+    assert conn.execute("SELECT count(*) FROM litkb.gaps WHERE slug = %s",
+                        (gap,)).fetchone()[0] == 0, "the refused call opened its gap"
+
+
+@pg_only
+def test_all_seven_feeds_forms_pass_the_gate_at_record_use(hunt_env):
+    """The other half: widening is not the same as turning the check off. Every one of the
+    convention's seven doc-qualified forms goes through `litkb_record_use` in one call and the use
+    is written."""
+    conn = hunt_env["conn"]
+    opened = one("litkb_ws_open", {"slug": f"p8-feeds7-{uuid.uuid4().hex[:6]}",
+                                   "purpose": "the seven forms through record_use"})
+    seeded = _seed_work_state(conn, opened["workstream_id"], "extracted",
+                              text="The pilot plot was measured in June.")
+    res = one("litkb_record_use", {
+        "statement": "supplies a claim carrying every feeds form the convention names",
+        "kind": "context", "quote": "measured in June", "block_id": seeded["block_id"],
+        "gap": f"p8-feeds7-{uuid.uuid4().hex[:6]}", "gap_question": "do all seven forms pass?",
+        "feeds": "; ".join(FEEDS_VOCABULARY)})
+    assert res["ok"] and res["quote_verified"] is True, res
+    assert one("litkb_my_uses", {})["uses"][0]["feeds"] == FEEDS_VOCABULARY
 
 
 def _seed_work_file_block(conn, ws_id, text):
@@ -928,8 +1223,12 @@ def test_the_skill_and_the_agent_name_the_tools_that_exist():
     names = set(tool_names())
     for doc, text in (("SKILL.md", skill), ("librarian.md", agent)):
         # `(?!\.py)` keeps a FILE name out of the tool scan: the librarian now cites the credential
-        # guard `litkb_guard.py`, which is a hook on disk, not a tool on this server.
-        named = set(re.findall(r"\blitkb_[a-z_]+\b(?!\.py)", text)) - {"litkb_test"}
+        # guard `litkb_guard.py`, which is a hook on disk, not a tool on this server. The subtracted
+        # set is DATABASE ROLES, which share the prefix and are not tools — the skill's re-derive
+        # line for the block count names `litkb_reader` (2026-09-16), and a session that cannot run
+        # a command it is told to run is the failure this test exists to prevent, in reverse.
+        named = (set(re.findall(r"\blitkb_[a-z_]+\b(?!\.py)", text))
+                 - {"litkb_test", "litkb_reader", "litkb_writer", "litkb_promoter", "litkb_ingest"})
         assert named <= names, f"{doc} names tools the server does not offer: {sorted(named - names)}"
         assert named, f"{doc} names no litkb tool at all"
     assert "mcp__litkb" in agent, "the librarian must restrict tools to the litkb MCP server"

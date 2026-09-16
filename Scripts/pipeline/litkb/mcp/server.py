@@ -2,12 +2,17 @@
 
     py -3.12 -m litkb.mcp.server            # stdio, one MCP session per process
 
-Nine tools. Everything an agent may do to literature goes through them; everything an agent may
+Ten tools. Everything an agent may do to literature goes through them; everything an agent may
 NOT do is absent, not merely discouraged:
 
-    read    litkb_search  litkb_work  litkb_candidates  litkb_ws_status
+    read    litkb_search  litkb_work  litkb_candidates  litkb_ws_status  litkb_my_uses
     write   litkb_ws_open  litkb_admit  litkb_acquire  litkb_record_use
     offer   litkb_propose_promotion        (prepare ONLY; commit is not a tool)
+
+`litkb_my_uses` is the tenth, added 2026-09-16: the operational test found that recording a use and
+reading it back were different systems — `litkb_ws_status` answered `{"gap": 6, "use": 6}` and
+`litkb_work` reads main's view, which holds none of a session's own proposals, so a session could
+not see its own work at all before the promotion report.
 
 Four rules this module keeps, each because something else cannot:
 
@@ -19,8 +24,8 @@ Four rules this module keeps, each because something else cannot:
    tool called from a directory with no token file is REFUSED with `no-workstream`, and names the
    tool that opens one. `_session()` also registers the token with `netutil.add_secret()`, so if it
    ever reached a string this server returns, `_out()` would replace it with `<KEY>`. The READ tools
-   that answer about a workstream — `litkb_candidates`, `litkb_ws_status` — present that token to
-   the database too (`_require_token`, migration 0018): the token file is the only place a token can
+   that answer about a workstream — `litkb_candidates`, `litkb_ws_status`, `litkb_my_uses` — present
+   that token to the database too (`_require_token`, migration 0018): the token file is the only place a token can
    come from, and a file naming a real workstream with a WRONG token gets `bad-token` and nothing
    else (P8 referee F-1; before that fix a forged token read a workstream's whole status).
 
@@ -395,6 +400,28 @@ def _search(query, limit, scope):
                **hits)
 
 
+#: what `litkb_work` answers, and why it is a LADDER rather than a boolean. `SKILL.md` step 0 asks
+#: "is this work absent, or just not extracted yet?", and before the operational referee this tool
+#: could not answer it at all: it named two columns the schema does not have (`container` for
+#: `venue`, `v.path` for `v.rel_path`), so every work the database HELD crashed it and only the miss
+#: path answered — which is why it read as alive (LITKB_OPERATIONAL_REFEREE_2026-09-16.md §5, R-1).
+#: The four states are the three live cases §4 of that referee found plus the miss, and each one has
+#: a DIFFERENT next move, which is the whole reason a session must be able to tell them apart.
+_WORK_STATES = {
+    "absent": "no work with that identifier is admitted in main's view. litkb_admit admits it "
+              "(title, authors and year with the DOI — a bare DOI is refused); a work admitted in "
+              "another OPEN workstream is invisible here until Kam merges its promotion.",
+    "held": "the work is admitted and NO file is bound to it, so there is nothing for search to "
+            "reach and nothing for an extraction run to target. If the PDF is already on disk, "
+            "litkb_acquire(key=…, from_file=…) binds it; otherwise litkb_acquire fetches it.",
+    "bound-unextracted": "a file is bound but it has no current extraction run, so litkb_search "
+                         "cannot see one word of it. The work is HELD, not absent — do not fetch "
+                         "it again. Extraction is the P5 bulk path, not an MCP tool.",
+    "extracted": "the current extraction run's blocks are searchable: litkb_search will find them, "
+                 "and a block_id from that search is what litkb_record_use quotes.",
+}
+
+
 def _work(doi=None, key=None):
     # the DOI is normalised by litkb.norm_identifier IN the statement — the database's own twin of
     # litkb.textnorm.normalize_doi (migration 0014, D1), driven against it over doi_forms.csv. A
@@ -413,19 +440,29 @@ def _work(doi=None, key=None):
         else:
             return _refuse("no-selector", "litkb_work takes a doi or a key")
         if not row:
-            return _ok(found=False, doi=doi, key=key,
+            return _ok(found=False, state="absent", doi=doi, key=key,
+                       what_next=_WORK_STATES["absent"],
                        hint="the work is not admitted in main's view. litkb_admit admits it; a work "
                             "admitted in another open workstream is not visible here until Kam merges "
                             "its promotion.")
         key, work_id = row
-        w = conn.execute("SELECT type, title, authors, year, container, publisher, work_id::text "
+        # `venue`, not `container`, and main_files' own columns rather than a join to litkb.files:
+        # `litkb.main_files` already IS files JOIN file_versions (it carries sha256 and
+        # current_run_id), so the join the broken statement made was the view's own, spelled again
+        # and spelled wrong. One name for one column, read from the view that defines it.
+        w = conn.execute("SELECT type, title, authors, year, venue, publisher, work_id::text "
                          "FROM litkb.main_works WHERE key = %s", (key,)).fetchone()
         ids = conn.execute("SELECT scheme, value_norm, verified_by, active FROM litkb.main_identifiers "
                            "WHERE work_id = %s ORDER BY scheme, value_norm", (work_id,)).fetchall()
         files = conn.execute(
-            "SELECT f.sha256, v.path, v.bytes, v.pages, f.current_run_id::text "
-            "FROM litkb.main_files v JOIN litkb.files f ON f.current_version_id = v.version_id "
-            "WHERE v.work_id = %s ORDER BY v.path", (work_id,)).fetchall()
+            "SELECT sha256, rel_path, bytes, pages, current_run_id::text, status "
+            "FROM litkb.main_files WHERE work_id = %s ORDER BY rel_path", (work_id,)).fetchall()
+        # Blocks of the CURRENT run only — the same join litkb_search makes, so this count is the
+        # number of blocks a search can actually return for this work, not the number ever stored.
+        blocks = conn.execute(
+            "SELECT count(*) FROM litkb.blocks b "
+            "JOIN litkb.main_files mf ON mf.file_id = b.file_id AND mf.current_run_id = b.run_id "
+            "WHERE mf.work_id = %s", (work_id,)).fetchone()[0]
         uses = conn.execute(
             "SELECT u.version_id::text, g.slug, u.statement, u.kind, u.status, u.feeds "
             "FROM litkb.main_uses u LEFT JOIN litkb.gaps g ON g.id = u.gap_id "
@@ -433,14 +470,82 @@ def _work(doi=None, key=None):
         disc = conn.execute(
             "SELECT source, source_row, field, claimed_value, registry_value, ratio "
             "FROM litkb.discrepancies WHERE work_id = %s ORDER BY source, field", (work_id,)).fetchall()
-    return _ok(found=True, key=key, work_id=work_id,
-               work=dict(zip(("type", "title", "authors", "year", "container", "publisher", "work_id"), w)),
+    # BEGIN guard: the four states of a work
+    # A file with no current_run_id is bound and unread; a file with one may still hold zero blocks
+    # (a run that produced nothing), and that is reported as extracted with blocks: 0 rather than
+    # silently demoted — "the extractor ran and found nothing" and "the extractor never ran" are
+    # different problems and only the second one is fixed by running it.
+    if not files:
+        state = "held"
+    elif not any(f[4] for f in files):
+        state = "bound-unextracted"
+    else:
+        state = "extracted"
+    # END guard: the four states of a work
+    return _ok(found=True, state=state, what_next=_WORK_STATES[state], key=key, work_id=work_id,
+               blocks=blocks, use_count=len(uses),
+               file_stems=[Path(f[1]).stem for f in files],
+               work=dict(zip(("type", "title", "authors", "year", "venue", "publisher", "work_id"), w)),
                identifiers=[dict(zip(("scheme", "value", "verified_by", "active"), r)) for r in ids],
-               files=[dict(zip(("sha256", "path", "bytes", "pages", "current_run_id"), r)) for r in files],
+               files=[dict(zip(("sha256", "path", "bytes", "pages", "current_run_id", "status"), r))
+                      | {"stem": Path(r[1]).stem} for r in files],
                uses=[dict(zip(("use_version_id", "gap", "statement", "kind", "status", "feeds"), r))
                      for r in uses],
                discrepancies=[dict(zip(("source", "source_row", "field", "claimed", "registry", "ratio"), r))
                               for r in disc])
+
+
+def _my_uses(limit=50):
+    """What THIS workstream has recorded — the read-back the operational test could not make.
+
+    Friction item 2 of `LITKB_OPERATIONAL_TEST_2026-09-16.md`: `litkb_ws_status` returns
+    `{"gap": 6, "use": 6}` and nothing else, and `litkb_work` reads `litkb.main_uses`, which holds
+    NONE of a session's own uses — they stay `proposed` until Kam merges and `promote commit` runs.
+    So the only place a session's own work was legible was the promotion report file it wrote, and
+    a session could not check its own quote before offering it.
+
+    Reads `litkb.ws_heads` — the workstream's CURRENT version of each entity, which is exactly what
+    `promote prepare` will chain — rather than every version ever written, so what comes back is
+    what would be offered. The token is required for the same reason the other read tools require
+    it (P8 referee F-1): a workstream id is not a secret."""
+    ws_id, token = _session()
+    with _conn("reader") as conn:
+        _require_token(conn, ws_id, token)
+        rows = conn.execute(
+            "SELECT uv.version_id::text, u.id::text, w.key, g.slug, uv.statement, uv.kind, "
+            "       uv.status, uv.state, uv.feeds, uv.created_at, "
+            "       (SELECT count(*) FROM litkb.use_evidence e "
+            "         WHERE e.use_version_id = uv.version_id) AS n_evidence, "
+            "       (SELECT count(*) FROM litkb.use_evidence e "
+            "         WHERE e.use_version_id = uv.version_id AND e.quote_verified) AS n_verified "
+            "  FROM litkb.ws_heads h "
+            "  JOIN litkb.use_versions uv ON uv.version_id = h.version_id "
+            "  JOIN litkb.uses u ON u.id = h.entity_id "
+            "  JOIN litkb.works w ON w.id = u.work_id "
+            "  LEFT JOIN litkb.gaps g ON g.id = u.gap_id "
+            " WHERE h.workstream_id = %s AND h.entity = 'use' "
+            " ORDER BY uv.created_at DESC LIMIT %s", (ws_id, limit)).fetchall()
+        gaps = conn.execute("SELECT count(*) FROM litkb.ws_heads WHERE workstream_id = %s "
+                            "AND entity = 'gap'", (ws_id,)).fetchone()[0]
+    uses = [dict(zip(("use_version_id", "use_id", "work_key", "gap", "statement", "kind", "status",
+                      "state", "feeds", "created_at", "evidence_rows", "verified_rows"), r))
+            | {"quote_status": _QUOTE_STATUS[bool(r[10]), bool(r[11])]} for r in rows]
+    return _ok(workstream_id=str(ws_id), gaps=gaps, uses=uses,
+               promotable=sum(1 for u in uses if u["verified_rows"]),
+               note="these are this workstream's CURRENT proposed versions — what promote prepare "
+                    "would chain. They are invisible to litkb_search's use leg and to litkb_work "
+                    "until Kam merges the branch and promote commit runs.")
+
+
+#: (has any evidence, has a VERIFIED row) -> what promote prepare will do with the chain. The
+#: middle case is the one the skill warns about and the one a session could not see: a stored quote
+#: the database could not find at its offsets.
+_QUOTE_STATUS = {
+    (False, False): "NO EVIDENCE — held at promote prepare (no-verified-evidence, migration 0019)",
+    (True, False): "UNVERIFIED — the database could not find the quote at the offsets stored; the "
+                   "chain is refused at promote prepare until it is corrected",
+    (True, True): "verified — the database found the quote in the block at the offsets stored",
+}
 
 
 def _candidates(limit, state=None):
@@ -490,6 +595,33 @@ def _ws_status():
 
 
 # ── write tools ───────────────────────────────────────────────────────────────────────────
+
+#: The cap on a use's `statement`, CHOSEN FROM A MEASUREMENT rather than picked: over the 391 rows
+#: of `litkb.use_versions` in live `litkb` on 2026-09-16 the longest statement is 798 characters
+#: (p95 653, mean 375). 2000 is comfortably above the longest thing anyone has written, so no
+#: existing use becomes retroactively invalid, and far below the length at which a "statement" is
+#: really a paragraph of argument that the quote beside it cannot support. Re-derive:
+#:   SELECT count(*), max(length(statement)) FROM litkb.use_versions;
+STATEMENT_MAX = 2000
+
+
+def _bad_feeds(conn, feeds):
+    """The feeds tokens the database's validator refuses — [] if all pass, None if it has none.
+
+    One round trip over the whole array rather than one per token, and `unnest` so the validator
+    sees each token exactly as it will be stored."""
+    import psycopg
+
+    tokens = [t for t in (feeds or [])]
+    if not tokens:
+        return []
+    try:
+        return [r[0] for r in conn.execute(
+            "SELECT t FROM unnest(%s::text[]) AS t WHERE NOT litkb._feeds_token_ok(t)",
+            (tokens,)).fetchall()]
+    except psycopg.errors.UndefinedFunction:
+        return None
+
 
 def _ws_open(slug, purpose, branch=None, brief=None):
     from litkb import workstream
@@ -568,12 +700,56 @@ def _record_use(statement, kind, quote, block_id, gap, work_key=None, doi=None, 
     the P8 kill needs one to reach `promote prepare` and be refused there."""
     from psycopg.types.json import Jsonb
 
+    from litkb.textnorm import norm_label
+
     ws_id, token = _session()
     a, s = _labels(agent, session)
     if kind not in ("method", "theorem", "parameter", "empirical evidence", "negative result",
                     "context", "contradiction"):
         return _refuse("bad-kind", f"kind must be one of the seven use kinds, got {kind!r}")
+    # BEGIN guard: the statement is a statement
+    # R-5/R-6 of the operational referee: the statement is what a reader of the promotion report
+    # sees, and it was completely ungated here. The database's own CHECK is `statement <> ''`, which
+    # a single space satisfies — so a use could carry a blank claim and a verified quote and promote
+    # clean. `norm_label` (the ONE invisible-character normaliser, migration 0014 D7's twin) is what
+    # decides "blank": a statement of zero-width joiners is blank in exactly the way a label of them
+    # is. The text STORED is what the caller wrote; only the emptiness test is normalised.
+    if not norm_label(statement or "").strip():
+        return _refuse("bad-statement",
+                       "statement is empty. A use records what the work SUPPLIES to the question, "
+                       "in your words — it is the sentence a reader of the promotion report sees "
+                       "beside the quote. (A statement of invisible characters is empty too.)")
+    if len(statement) > STATEMENT_MAX:
+        return _refuse("bad-statement",
+                       f"statement is {len(statement)} characters; the cap is {STATEMENT_MAX}. A "
+                       "use states what this work supplies to one question. If it needs more than "
+                       "that, it is more than one use — record them separately, each with its own "
+                       "quote.", length=len(statement), cap=STATEMENT_MAX)
+    # END guard: the statement is a statement
     with _conn("writer") as conn:
+        # BEGIN guard: every feeds token is in the convention's vocabulary
+        # Shape-checked by the DATABASE's own validator, not by a regex here: `litkb._feeds_token_ok`
+        # (migration 0021) is the one definition of the convention's seven forms, and a second copy
+        # in Python is the twin-drift that 0018-vs-0020 already cost a migration to undo. Checked
+        # BEFORE the gap proposal, which is the first write this function makes, so a refused call
+        # leaves nothing behind. What this does NOT check is whether the section, gate or row a
+        # token names EXISTS — 0018's own comment says so, and the operational referee's R-5 is an
+        # instance: `gap row 6` passed while pointing at the wrong row.
+        bad = _bad_feeds(conn, feeds)
+        if bad is None:
+            return _refuse("no-feeds-check",
+                           "this database has no litkb._feeds_token_ok: migration 0020/0021 has "
+                           "not been applied, so a feeds token cannot be validated and none is "
+                           "stored unvalidated.")
+        if bad:
+            return _refuse("bad-feeds",
+                           f"these feeds tokens are not in the convention's vocabulary: {bad}. The "
+                           "seven doc-qualified forms are in Scripts/docs/LITERATURE_CONVENTION.md "
+                           "— each names a document AND a place in it (framework §N[.N], "
+                           "narrative §N, gated-plan gate N, review §N[.N…], gap row N, "
+                           "decision <slug>, report <FILE>.md#§<loc>). A bare §N is not one.",
+                           bad_feeds=bad)
+        # END guard: every feeds token is in the convention's vocabulary
         blk = conn.execute(
             "SELECT b.text, b.page_no, b.run_id::text, f.current_run_id::text, mw.key, mf.work_id::text "
             "FROM litkb.blocks b JOIN litkb.files f ON f.id = b.file_id "
@@ -710,7 +886,7 @@ def _guarded(fn):
 
 
 def build_server():
-    """The MCPServer with the nine tools bound. `mcp` is imported HERE, never at module top."""
+    """The MCPServer with the ten tools bound. `mcp` is imported HERE, never at module top."""
     from mcp.server.mcpserver import MCPServer
 
     srv = MCPServer(name=SERVER_NAME, version=VERSION, instructions=(
@@ -729,8 +905,12 @@ def build_server():
         return _guarded(_search)(query=query, limit=min(max(int(limit), 1), 50), scope=scope)
 
     @srv.tool(name="litkb_work", description=(
-        "One work by DOI or key: its registry-confirmed fields, identifiers, held files, recorded "
-        "uses, and any discrepancies between what a legacy record claimed and what the registry says."))
+        "One work by DOI or key, and WHICH OF FOUR STATES it is in: absent (no such work), held "
+        "(admitted, no file bound), bound-unextracted (a PDF is bound but never extracted, so "
+        "search cannot see it), or extracted (N blocks searchable). Also its registry-confirmed "
+        "fields, identifiers, file stems, recorded uses and any registry discrepancies. Ask this "
+        "before concluding a work is absent: 'litkb_search found nothing' means three "
+        "different things and only this tool tells them apart."))
     def litkb_work(doi: str = "", key: str = "") -> str:
         return _guarded(_work)(doi=doi or None, key=key or None)
 
@@ -751,6 +931,13 @@ def build_server():
         "versions and any prepared promotion."))
     def litkb_ws_status() -> str:
         return _guarded(_ws_status)()
+
+    @srv.tool(name="litkb_my_uses", description=(
+        "The uses THIS workstream has recorded, in full: work key, gap, statement, kind, feeds, and "
+        "whether the database verified each quote. litkb_work cannot show them — they stay proposed "
+        "until Kam merges — so this is the only way to read back your own work before offering it."))
+    def litkb_my_uses(limit: int = 50) -> str:
+        return _guarded(_my_uses)(limit=min(max(int(limit), 1), 200))
 
     @srv.tool(name="litkb_admit", description=(
         "Admit a work by DOI or arXiv id, optionally binding a PDF already on disk. Identity is the "

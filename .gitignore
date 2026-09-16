@@ -176,3 +176,20 @@ phase4/qc/crown_state*_posterior.npz
 
 # litkb: the mutation harness's one-campaign-per-tree lock (qc/instruments/litkb_p2_mutations.py::take_lock)
 Scripts/.litkb-harness.lock
+
+# ── _derived/promotions: the promotion report the skill tells a session to commit ─────────
+# Added 2026-09-16. `promote prepare` writes `_derived/promotions/<promotion_id>.md` into the
+# worktree, and SKILL.md step 5 says "commit it with the branch — that is how it reaches Kam inside
+# the merge he reviews". The root `/*` rule matched it, so `git add` on that path staged NOTHING and
+# told the session nothing: `git check-ignore -v --no-index` answered `.gitignore:2:/*`. The
+# instruction had been silently doing nothing since it was written
+# (LITKB_OPERATIONAL_TEST_2026-09-16.md friction 3; the operational referee confirmed it, §6).
+# The alternative was to put `git add -f` in the skill, which would leave a TRACKED file git refuses
+# to show you changing — the same defect Reports/gold was whitelisted to end (block above, 2026-09-15).
+# Only `promotions/*.md` is admitted. `_derived/` is otherwise a scratch root: nothing else in it is
+# work product, and a whitelist that admitted the rest would be the sweep this file exists to prevent.
+!/_derived/
+/_derived/*
+!/_derived/promotions/
+/_derived/promotions/*
+!/_derived/promotions/*.md

@@ -1,0 +1,952 @@
+{
+  "_what": "Referee-authored GOLD for the litkb P5 bulk pass and the operational fix set. Eight extracted files chosen by a seeded draw, one page each, hand-annotated from the RENDERED page image only (pypdfium2 render scale 2.0, read as PNG); plus twenty equation blocks chosen by a second seeded draw, each read from a rendered crop of its own bbox. Committed BEFORE any block text, any stored LaTeX, any table row and any reconcile output was read (CLAUDE.md 3.4c).",
+  "_authored_by": "final-acceptance referee session, 2026-09-16, Claude Opus 5",
+  "_not_consulted": "What WAS read to build this file: litkb.main_files metadata only (rel_path, pages, sha256, current_run_id IS NOT NULL) to define the population; litkb.blocks/litkb.equations METADATA only for the equation draw (block id, rel_path, page_no, bbox, under the predicate latex IS NOT NULL — the predicate, never the value); the blocks_type_check CHECK constraint, to spell kinds in the pipeline's own vocabulary; and the source of inventory.page_frames / docling.to_canonical / docling.to_mediabox, to map a canonical bbox onto a rendered page. What was NOT read: blocks.text, blocks.type, blocks.reading_order, equations.latex, litkb.tables, litkb.table_cells, extraction_runs.metrics, any reconcile() output, any litkb_search result, and every number in Reports/LITKB_P5_BULK_2026-09-16.md that could have steered a reading.",
+  "_frame": "Reading order is the order a HUMAN reads the page: single column top-to-bottom; two-column left column fully, then right column; a full-width element is read in the band where it sits (a full-width table above the columns is read before both columns, one below them after both). Furniture (running head, page number, banner, footer, side stamp, publisher badge) is recorded but excluded from the body order.",
+  "_kinds": "The 18 values of litkb.blocks.blocks_type_check: title | author | affiliation | abstract | heading | paragraph | list_item | footnote | caption | table | figure | equation | reference | page_header | page_footer | page_number | sidebar | other. A gold item may name an ACCEPTABLE SET (kind_any) where two of those words describe the same object equally well (e.g. an abstract paragraph is 'abstract' or 'paragraph'; a Nature title-page affiliation footer is 'affiliation' or 'footnote'); scoring counts a live kind inside the set as correct and says which was used.",
+  "_snippet_rule": "Each body snippet is the first ~5-10 words of the block AS PRINTED, with no hyphenation repair. A scorer matches it whitespace-normalised and case-insensitively into a canonical block's text.",
+  "_scoring": {
+    "reading_order": "For each ordered PAIR of gold body items matched to live canonical blocks, the pair is a VIOLATION when the live reading_order inverts the gold order. Report two counts separately: (a) within-column / within-band inversions — a real violation; (b) cross-column or cross-band inversions — the layout is genuinely ambiguous for a machine (a column-major reader and a band-major reader disagree), so these are reported and NOT charged as defects unless the live order is inconsistent with BOTH readings.",
+    "kind": "A gold item scores CORRECT when the matched live block's type equals the gold kind, or is in kind_any where given. Score kind accuracy per page as correct / matched.",
+    "text_equality": "TWO grades, both reported. STRICT: the gold verbatim_paragraph equals the live block text byte for byte after UTF-8 encoding. OPERATING: equal after (1) CRLF and LF collapsed to a single space, (2) runs of whitespace collapsed to one space, (3) a hyphen at a line break joined (\"can-\\nopy\" -> \"canopy\"), (4) Unicode punctuation folded to ASCII (U+2018/U+2019 -> ', U+201C/U+201D -> \\\", U+2013/U+2014 -> -, U+00A0 -> space), (5) leading/trailing space stripped. The referee expects STRICT to fail on most pages and says so in advance: the P8 referee proved (LITKB_OPERATIONAL_REFEREE_2026-09-16.md 2.1) that stored blocks keep line breaks and that extractors de-hyphenate and substitute glyphs. STRICT failing is therefore NOT a defect on its own; OPERATING failing IS one, and the diff is reported either way. A gold paragraph that the live extraction SPLIT across more than one block is reported as 'split-N', and the operating grade is then run against the concatenation of the covering blocks in reading order.",
+    "table_rows": "DATA rows only: every row printed inside the table's ruled frame that is not a column-header row. Rows printed OUTSIDE the frame, and floating annotation cells, are named separately and not counted. Header rows are given as a separate count. A live table whose row count equals the gold data-row count, or that count plus the header count, is graded MATCH with the convention named; anything else is a MISS.",
+    "equation_latex": "Three grades. IDENTICAL: the stored LaTeX renders the same expression with the same tokens as the referee's reading. EQUIVALENT: the same mathematics, differing only in spelling that a LaTeX renderer treats alike (\\frac vs \\dfrac, \\mathbb{R} vs \\mathbb R, ( ) vs \\left( \\right), a missing or extra equation NUMBER, \\text{} vs \\mathrm{}, whitespace, or an alignment environment choice). WRONG: a different symbol, a dropped or added term, a wrong index or limit, a truncated expression, or content from outside the box. UNSTABLE: the crop itself does not determine the answer (a glyph the render cannot resolve), which is graded separately and never counted as WRONG.",
+    "presence": "For each gold page, every body item must be covered by at least one canonical block of the CURRENT run; an uncovered item is a MISS and is listed."
+  },
+  "_selection": {
+    "files": {
+      "seed": "litkb-p5-final-referee-2026-09-16",
+      "procedure": "population = litkb.main_files WHERE status='active' AND current_run_id IS NOT NULL, sorted by rel_path; random.Random(seed).sample(rows, 8); then for each file page = rng.randint(1, pages) drawn from the SAME stream in pick order.",
+      "population": 229,
+      "population_sha256": "35030213bae8673c705195e67a4f7ac8ac17730256c74f3c2d8395852ae43ce0",
+      "population_sha256_of": "sha256 of the newline-joined sorted rel_path list"
+    },
+    "equations": {
+      "seed": "litkb-p5-final-referee-equations-2026-09-16",
+      "procedure": "population = litkb.equations e JOIN litkb.blocks b JOIN litkb.main_files f ON f.current_run_id=b.run_id WHERE e.latex IS NOT NULL AND f.status='active', sorted by block id; random.Random(seed).sample(rows, 20).",
+      "population": 3472,
+      "population_sha256": "0e5f79db77135a89eda7d6431f51049f2962efa4256444a619d7fb57ad6df623",
+      "population_sha256_of": "sha256 of the newline-joined sorted block_id list",
+      "render": "page rendered at scale 3.0; the canonical bbox is TOP-LEFT in the MEDIABOX frame, so the drawn rectangle is (x-dx, y-dy)*3.0 with (dx,dy) from inventory.page_frames; 14 pt of context kept around it so a frame error would show as a displaced rectangle rather than a silent mis-read."
+    }
+  },
+  "pages": [
+    {
+      "id": "G1",
+      "file": "_litkb_staging/incoming/t65_Fleming_2025_aerial-imagery-urban-tree-retention.download",
+      "sha256": "63d1752d9cffd2eead9aad223d56cdbe88fe6caca558a489b86aabd2af14f738",
+      "page": 10,
+      "layout": "two-column",
+      "furniture": [
+        "10",
+        "Fleming et al: Comprehensive Framework for Urban Forest Social-Ecological Systems",
+        "©2025 International Society of Arboriculture"
+      ],
+      "body_order": [
+        {
+          "n": 1,
+          "kind": "paragraph",
+          "col": "L",
+          "snippet": "2008). However, while their estimate included setup,"
+        },
+        {
+          "n": 2,
+          "kind": "paragraph",
+          "col": "L",
+          "snippet": "In addition to being a potentially more efficient"
+        },
+        {
+          "n": 3,
+          "kind": "paragraph",
+          "col": "L",
+          "snippet": "In addition to serving as a stand-alone method for"
+        },
+        {
+          "n": 4,
+          "kind": "paragraph",
+          "col": "R",
+          "snippet": "when trees were removed while providing additional"
+        },
+        {
+          "n": 5,
+          "kind": "paragraph",
+          "col": "R",
+          "snippet": "Another benefit of this approach is that it is acces-"
+        },
+        {
+          "n": 6,
+          "kind": "heading",
+          "col": "R",
+          "snippet": "Challenges"
+        },
+        {
+          "n": 7,
+          "kind": "paragraph",
+          "col": "R",
+          "snippet": "While there are strengths associated with this meth-"
+        }
+      ],
+      "tables": [],
+      "equations": [],
+      "verbatim_paragraph": {
+        "of_item": 7,
+        "text": "While there are strengths associated with this methodology, there are also many limitations. As identified through descriptive coding, issues associated with image obstruction and quality resulted in the inability to assess tree presence/absence for hundreds of trees. Existing studies that have used aerial imagery to assess tree retention have used images with resolutions ranging from 15 cm to 1 m to confidently classify survival status of trees between 5 and 20 years old (Ko et al. 2015a, 2015b). The difference in success classifying trees at different image resolutions could be due to differences in canopy cover and other vegetation presences between Toronto, Ontario, and Sacramento, California, USA, the focus of Ko et al.'s (2015a, 2015b) studies. While those studies were supplemented with 2 field visits, which also could have helped increase confidence in classification between visit years, we found that even with image resolution of 8 cm, it can be difficult to assess retention, particularly for trees under 5 years old in yards that include other vegetation and building shadows."
+      }
+    },
+    {
+      "id": "G2",
+      "file": "Validation/Reiche_2015_bayesian-approach-combine-landsat-alos.pdf",
+      "sha256": "145739a064d31b9a1fcb13605ebc7852556fcbfc3df7080430a6c5eba1898162",
+      "page": 13,
+      "layout": "single-column",
+      "furniture": [
+        "Remote Sens. 2015, 7",
+        "4985"
+      ],
+      "body_order": [
+        {
+          "n": 1,
+          "kind": "figure",
+          "col": "-",
+          "snippet": "[six-panel plot: OA/OE/CE and MTL_F/MTL against MD (%)]"
+        },
+        {
+          "n": 2,
+          "kind": "caption",
+          "col": "-",
+          "snippet": "Figure 5. Spatial accuracy and temporal accuracy for NDVI"
+        },
+        {
+          "n": 3,
+          "kind": "paragraph",
+          "col": "-",
+          "snippet": "Figure 6 illustrates the map results for the HVHH"
+        },
+        {
+          "n": 4,
+          "kind": "paragraph",
+          "col": "-",
+          "snippet": "To better illustrate how the single-sensor time series are used"
+        }
+      ],
+      "tables": [],
+      "equations": [],
+      "verbatim_paragraph": {
+        "of_item": 4,
+        "text": "To better illustrate how the single-sensor time series are used complimentarily to improve monitoring of deforestation in NRT when using the proposed approach, Figure 7 shows a sequence of quarterly deforestation maps over a subset of the study area for the year 2008 separately for NDVIorg-only (A), HVHHmt-only (B) and fused NDVIorg-HVHHmt (C). For each time step, the MTL and the conditional probability of deforestation for unconfirmed changes are given. Comparing the quarterly map results for NDVIorg-only (Figure 7A-D) and HVHHmt-only revealed that changes are flagged much earlier due to the dense observation density of NDVIorg, but often are confirmed later.",
+        "transcription_note": "Subscripts are printed as subscripts (NDVI with a subscript 'org', HVHH with a subscript 'mt') and are transcribed here inline with no markup. '7A-D' is printed with an en dash."
+      }
+    },
+    {
+      "id": "G3",
+      "file": "Validation/Shi_1998_generic-statistical-approach-modelling.pdf",
+      "sha256": "a448ea36816542961500e21e25850b8416a87641385d9694b17747872ab39a63",
+      "page": 15,
+      "layout": "single-column, references only (last page)",
+      "furniture": [
+        "A generic statistical approach for modelling error in GIS",
+        "143",
+        "Downloaded by [Michigan State University] at 20:48 06 March 2015"
+      ],
+      "body_order": [
+        {
+          "n": 1,
+          "kind": "reference",
+          "col": "-",
+          "snippet": "CHRISMAN, N. R., 1982, A theory of cartographic error"
+        },
+        {
+          "n": 2,
+          "kind": "reference",
+          "col": "-",
+          "snippet": "DUTTON, G., 1992, Handling positional uncertainty"
+        },
+        {
+          "n": 3,
+          "kind": "reference",
+          "col": "-",
+          "snippet": "MIKHAIL, E. M., and ACKERMANN, F., 1976"
+        },
+        {
+          "n": 4,
+          "kind": "reference",
+          "col": "-",
+          "snippet": "PERKAL, J., 1966, On the length of empirical curves"
+        },
+        {
+          "n": 5,
+          "kind": "reference",
+          "col": "-",
+          "snippet": "SERFLING, R. J., 1980, Approximation Theorems"
+        },
+        {
+          "n": 6,
+          "kind": "reference",
+          "col": "-",
+          "snippet": "SHI, W. Z., 1994, Modelling positional and thematic uncertainty"
+        },
+        {
+          "n": 7,
+          "kind": "reference",
+          "col": "-",
+          "snippet": "SHI, W. Z., and LIU, W. B., 1998, Positional error of geometric features"
+        }
+      ],
+      "tables": [],
+      "equations": [],
+      "verbatim_paragraph": {
+        "of_item": 4,
+        "text": "PERKAL, J., 1966, On the length of empirical curves. Discussion Paper 10 (Ann Arbor, MI: Michigan Inter-University Community of Mathematical Geographers).",
+        "transcription_note": "Author surnames are printed in SMALL CAPS (a capital P followed by small-capital ERKAL). Transcribed here as full capitals; if the text layer carries lowercase for the small-cap glyphs the operating grade will show it and that is an extractor/text-layer fact, not a gold error."
+      }
+    },
+    {
+      "id": "G4",
+      "file": "_litkb_staging/filed/Pengra_2020_quality-control-assessment-interpreter.pdf",
+      "sha256": "28836b0474e3d25a398b8515884ed23265303d619ad8465adf707cdcbb0cc5d6",
+      "page": 7,
+      "layout": "mixed: full-width Table 3 band, then two columns, then a full-width Table 5 band",
+      "furniture": [
+        "ARTICLE IN PRESS",
+        "B.W. Pengra, et al.",
+        "Remote Sensing of Environment xxx (xxxx) xxxx",
+        "7"
+      ],
+      "body_order": [
+        {
+          "n": 1,
+          "kind": "caption",
+          "col": "W",
+          "snippet": "Table 3"
+        },
+        {
+          "n": 2,
+          "kind": "caption",
+          "col": "W",
+          "snippet": "Overall and per-class agreement between interpreters for the random subsample"
+        },
+        {
+          "n": 3,
+          "kind": "table",
+          "col": "W",
+          "snippet": "[Table 3: confusion matrix, Initial vs Duplicate interpretations]"
+        },
+        {
+          "n": 4,
+          "kind": "caption",
+          "col": "L",
+          "snippet": "Table 4"
+        },
+        {
+          "n": 5,
+          "kind": "caption",
+          "col": "L",
+          "snippet": "Interpreter agreement (%) by LCMAP class and region"
+        },
+        {
+          "n": 6,
+          "kind": "table",
+          "col": "L",
+          "snippet": "[Table 4: agreement by class and region]"
+        },
+        {
+          "n": 7,
+          "kind": "paragraph",
+          "col": "L",
+          "snippet": "Interpreter confusion most often occurred between classes that are"
+        },
+        {
+          "n": 8,
+          "kind": "heading",
+          "col": "R",
+          "snippet": "4.2. Agreement over temporal sets of interpretation"
+        },
+        {
+          "n": 9,
+          "kind": "paragraph",
+          "col": "R",
+          "snippet": "The QA/QC process provided feedback to interpreters"
+        },
+        {
+          "n": 10,
+          "kind": "heading",
+          "col": "R",
+          "snippet": "4.3. Temporal variation in agreement through the data time series"
+        },
+        {
+          "n": 11,
+          "kind": "paragraph",
+          "col": "R",
+          "snippet": "To evaluate whether generally increasing availability of data"
+        },
+        {
+          "n": 12,
+          "kind": "caption",
+          "col": "W",
+          "snippet": "Table 5"
+        },
+        {
+          "n": 13,
+          "kind": "caption",
+          "col": "W",
+          "snippet": "Disagreement (%) distribution by class expressed as the percent of cases"
+        },
+        {
+          "n": 14,
+          "kind": "table",
+          "col": "W",
+          "snippet": "[Table 5: disagreement distribution by class]"
+        }
+      ],
+      "tables": [
+        {
+          "label": "Table 3",
+          "data_rows": 9,
+          "data_rows_are": "Water, Developed, Disturbed, Barren, Tree cover, Grass/shrub, Cropland, Wetland, Total",
+          "header_rows": 2,
+          "header_rows_are": "the spanning 'Duplicate interpretations' band, and the column-name row (Water ... Wetland, Total, Agreement %)",
+          "stub_column": "a rotated 'Initial interpretations' label down the left edge",
+          "outside_the_frame": "one further row printed below the ruled frame, 'Agreement %  94 80 45 56 90 89 91 78  88.1%', plus two floating cells '85815 Agree' and 'Overall agreement'"
+        },
+        {
+          "label": "Table 4",
+          "data_rows": 9,
+          "data_rows_are": "Water, Developed, Disturbed, Barren, Tree cover, Grass/shrub, Cropland, Wetland, Overall",
+          "header_rows": 2,
+          "header_rows_are": "the 'Agreement (%)' super-label, and the column-name row (East, East Central, West Central, West, CONUS)",
+          "outside_the_frame": "none"
+        },
+        {
+          "label": "Table 5",
+          "data_rows": 9,
+          "data_rows_are": "Water, Developed, Disturbed, Barren, Tree cover, Grass/shrub, Cropland, Wetland, Total",
+          "header_rows": 1,
+          "header_rows_are": "Class, Water, Developed, Disturbed, Barren, Tree cover, Grass/shrub, Cropland, Wetland",
+          "outside_the_frame": "none"
+        }
+      ],
+      "equations": [],
+      "verbatim_paragraph": {
+        "of_item": 7,
+        "text": "Interpreter confusion most often occurred between classes that are known to frequently be difficult to distinguish or ambiguous (Table 5). For example, 79% of the disagreement involving Cropland was with Grass/Shrub, and 32% of the disagreement involving Grass/Shrub was with Cropland (Table 5). For Wetland, the most common disagreement was with Tree Cover (56%), and for Developed the two most common classes of disagreement were Grass/Shrub (36%) and Tree Cover (34%). Barren class disagreement was almost exclusively with Grass/Shrub and found in the arid and semi-arid areas of the West reporting region."
+      }
+    },
+    {
+      "id": "G5",
+      "file": "Validation/Burnicki_2010_propagating-error-land-cover-change.pdf",
+      "sha256": "02a4a6249136d89d81ed940b3bde3d4fc9f9f5446496352b78c71b6a713bfa54",
+      "page": 9,
+      "layout": "single-column",
+      "furniture": [
+        "International Journal of Geographical Information Science",
+        "1049",
+        "Downloaded by [Umeå University Library] at 03:26 03 October 2014"
+      ],
+      "body_order": [
+        {
+          "n": 1,
+          "kind": "figure",
+          "col": "-",
+          "snippet": "[classified map of Washtenaw County with quarter-township grid and a Legend]"
+        },
+        {
+          "n": 2,
+          "kind": "caption",
+          "col": "-",
+          "snippet": "Figure 2. Time-1 land-cover classified map for Washtenaw County"
+        },
+        {
+          "n": 3,
+          "kind": "paragraph",
+          "col": "-",
+          "snippet": "error-probability surfaces were not based on the Washtenaw County imagery"
+        },
+        {
+          "n": 4,
+          "kind": "paragraph",
+          "col": "-",
+          "snippet": "The two primary parameters determined using the Washtenaw County data"
+        },
+        {
+          "n": 5,
+          "kind": "heading",
+          "col": "-",
+          "snippet": "3.3.1. Initial map"
+        },
+        {
+          "n": 6,
+          "kind": "paragraph",
+          "col": "-",
+          "snippet": "Six semivariogram and cross-semivariogram models were fitted"
+        }
+      ],
+      "tables": [],
+      "equations": [],
+      "verbatim_paragraph": {
+        "of_item": 3,
+        "text": "error-probability surfaces were not based on the Washtenaw County imagery given the lack of comprehensive error information. Instead, parameters were set to reasonable values, as described below, based on the parameter values assigned to the change-probability surfaces and the values used to parameterize the error-probability surfaces in the two LC class simulation model.",
+        "transcription_note": "This block begins mid-sentence: the sentence starts on the previous page. Item 6 ends mid-sentence at the foot of the page and is therefore NOT the chosen paragraph."
+      }
+    },
+    {
+      "id": "G6",
+      "file": "_litkb_staging/filed/Ploton_2020_spatial-validation-reveals-poor.pdf",
+      "sha256": "897445ab6aefc7eeb996afcf96de25c4200cea04037aaccec4879a04b3018b72",
+      "page": 1,
+      "layout": "single-column title page",
+      "furniture": [
+        "[nature COMMUNICATIONS masthead banner]",
+        "ARTICLE",
+        "https://doi.org/10.1038/s41467-020-18321-y",
+        "OPEN",
+        "[Check for updates badge]",
+        "NATURE COMMUNICATIONS | (2020)11:4540 | https://doi.org/10.1038/s41467-020-18321-y | www.nature.com/naturecommunications",
+        "1"
+      ],
+      "body_order": [
+        {
+          "n": 1,
+          "kind": "title",
+          "kind_any": [
+            "title",
+            "heading"
+          ],
+          "col": "-",
+          "snippet": "Spatial validation reveals poor predictive performance of large-scale ecological mapping models"
+        },
+        {
+          "n": 2,
+          "kind": "author",
+          "kind_any": [
+            "author",
+            "paragraph"
+          ],
+          "col": "-",
+          "snippet": "Pierre Ploton 1, Frédéric Mortier 2,3, Maxime Réjou-Méchain1"
+        },
+        {
+          "n": 3,
+          "kind": "abstract",
+          "kind_any": [
+            "abstract",
+            "paragraph"
+          ],
+          "col": "-",
+          "snippet": "Mapping aboveground forest biomass is central for assessing the global carbon balance"
+        },
+        {
+          "n": 4,
+          "kind": "affiliation",
+          "kind_any": [
+            "affiliation",
+            "footnote"
+          ],
+          "col": "-",
+          "snippet": "1 AMAP, Univ Montpellier, IRD, CNRS, INRAE, CIRAD, Montpellier, France."
+        }
+      ],
+      "tables": [],
+      "equations": [],
+      "verbatim_paragraph": {
+        "of_item": 3,
+        "text": "Mapping aboveground forest biomass is central for assessing the global carbon balance. However, current large-scale maps show strong disparities, despite good validation statistics of their underlying models. Here, we attribute this contradiction to a flaw in the validation methods, which ignore spatial autocorrelation (SAC) in data, leading to overoptimistic assessment of model predictive power. To illustrate this issue, we reproduce the approach of large-scale mapping studies using a massive forest inventory dataset of 11.8 million trees in central Africa to train and validate a random forest model based on multispectral and environmental variables. A standard nonspatial validation method suggests that the model predicts more than half of the forest biomass variation, while spatial validation methods accounting for SAC reveal quasi-null predictive power. This study underscores how a common practice in big data mapping studies shows an apparent high predictive power, even when predictors have poor relationships with the ecological variable of interest, thus possibly leading to erroneous maps and interpretations."
+      }
+    },
+    {
+      "id": "G7",
+      "file": "Validation/Steenberg_2017_influence-building-renovation-rental.pdf",
+      "sha256": "c61e7be7983231a4c5ce75378deb4f4b8424a8e39249ee4618e55de5a0591db6",
+      "page": 12,
+      "layout": "single-column",
+      "furniture": [
+        "Journal of Environmental Planning and Management",
+        "11"
+      ],
+      "body_order": [
+        {
+          "n": 1,
+          "kind": "paragraph",
+          "col": "-",
+          "snippet": "activities associated with building renovation or a result of shifting"
+        },
+        {
+          "n": 2,
+          "kind": "paragraph",
+          "col": "-",
+          "snippet": "Additionally, while future studies might address our research questions"
+        },
+        {
+          "n": 3,
+          "kind": "paragraph",
+          "col": "-",
+          "snippet": "Finally, this study has some relevance for open government data"
+        },
+        {
+          "n": 4,
+          "kind": "paragraph",
+          "col": "-",
+          "snippet": "The intersection of government open data and urban forestry"
+        }
+      ],
+      "tables": [],
+      "equations": [],
+      "verbatim_paragraph": {
+        "of_item": 1,
+        "text": "activities associated with building renovation or a result of shifting landscape management preferences of residents and the subsequent deliberate removal of trees.",
+        "transcription_note": "This block begins mid-sentence: the sentence starts on the previous page."
+      }
+    },
+    {
+      "id": "G8",
+      "file": "Validation/Conway_2022_private-tree-law-s-contribution.pdf",
+      "sha256": "493ec1222a4e05dd0e06e9aca4ab587c1028b042eb0264165a1a76a54ceeca45",
+      "page": 11,
+      "layout": "two-column, references only",
+      "furniture": [
+        "Arboriculture & Urban Forestry 48(1): January 2022",
+        "19",
+        "©2022 International Society of Arboriculture"
+      ],
+      "body_order": [
+        {
+          "n": 1,
+          "kind": "reference",
+          "col": "L",
+          "snippet": "City of Toronto. 2018. 2018 tree canopy study."
+        },
+        {
+          "n": 2,
+          "kind": "reference",
+          "col": "L",
+          "snippet": "Conway TM, Bang E. 2014. Willing partners?"
+        },
+        {
+          "n": 3,
+          "kind": "reference",
+          "col": "L",
+          "snippet": "Conway TM, Lue A. 2018. Resident knowledge and support"
+        },
+        {
+          "n": 4,
+          "kind": "reference",
+          "col": "L",
+          "snippet": "Conway TM, Urbani L. 2007. Variations in municipal urban forestry policies"
+        },
+        {
+          "n": 5,
+          "kind": "reference",
+          "col": "L",
+          "snippet": "Coughlin RE, Mendes DC, Strong AL. 1988. Local programs"
+        },
+        {
+          "n": 6,
+          "kind": "reference",
+          "col": "L",
+          "snippet": "Croeser T, Ordóñez C, Threlfall C, Kendal D"
+        },
+        {
+          "n": 7,
+          "kind": "reference",
+          "col": "L",
+          "snippet": "Dillman DA, Smyth JD, Christian LM. 2014. Internet, phone,"
+        },
+        {
+          "n": 8,
+          "kind": "reference",
+          "col": "L",
+          "snippet": "Farrar JL. 2017. Trees in Canada."
+        },
+        {
+          "n": 9,
+          "kind": "reference",
+          "col": "L",
+          "snippet": "Guo T, Morgenroth J, Conway T. 2018. Redeveloping the urban forest"
+        },
+        {
+          "n": 10,
+          "kind": "reference",
+          "col": "L",
+          "snippet": "Hilbert DR, Koeser AK, Roman LA, Hamilton K"
+        },
+        {
+          "n": 11,
+          "kind": "reference",
+          "col": "L",
+          "snippet": "Hill E, Dorfman JH, Kramer E. 2010. Evaluating the impact"
+        },
+        {
+          "n": 12,
+          "kind": "reference",
+          "col": "L",
+          "snippet": "Jim CY. 1998. Impacts of intensive urbanization on trees"
+        },
+        {
+          "n": 13,
+          "kind": "reference",
+          "col": "L",
+          "snippet": "Kenney WA, Puric-Mladenovic D. 2014. Neighbourwoods"
+        },
+        {
+          "n": 14,
+          "kind": "reference",
+          "col": "L",
+          "snippet": "Kielbaso JJ, Beauchamp B, Larison K, Randall C. 1988. Trends"
+        },
+        {
+          "n": 15,
+          "kind": "reference",
+          "col": "L",
+          "snippet": "Kirkpatrick JB, Davison A, Daniels GS. 2013. Sinners, scape-"
+        },
+        {
+          "n": 16,
+          "kind": "reference",
+          "col": "R",
+          "snippet": "Koeser A, Hauer R, Norris K, Krouse R. 2013. Factors influenc-"
+        },
+        {
+          "n": 17,
+          "kind": "reference",
+          "col": "R",
+          "snippet": "Konijnendijk van den Bosch CC. 2016. From government to governance"
+        },
+        {
+          "n": 18,
+          "kind": "reference",
+          "col": "R",
+          "snippet": "Landry S, Northrop R, Andreu M, Rhodes CC. 2013. City of Tampa"
+        },
+        {
+          "n": 19,
+          "kind": "reference",
+          "col": "R",
+          "snippet": "Landry S, Pu R. 2010. The impact of land development regula-"
+        },
+        {
+          "n": 20,
+          "kind": "reference",
+          "col": "R",
+          "snippet": "Lavy BL, Hagelman RR III. 2017. Spatial and temporal patterns"
+        },
+        {
+          "n": 21,
+          "kind": "reference",
+          "col": "R",
+          "snippet": "LEAF. 2020. Toronto Homeowners."
+        },
+        {
+          "n": 22,
+          "kind": "reference",
+          "col": "R",
+          "snippet": "Lee SJ, Longcore T, Rich C, Wilson JP. 2017. Increased home size"
+        },
+        {
+          "n": 23,
+          "kind": "reference",
+          "col": "R",
+          "snippet": "Morgenroth J, O'Neil-Dunne J, Apiolaza LA. 2017. Redevelopment"
+        },
+        {
+          "n": 24,
+          "kind": "reference",
+          "col": "R",
+          "snippet": "Nowak DJ, Greenfield EJ. 2020. The increase of impervious cover"
+        },
+        {
+          "n": 25,
+          "kind": "reference",
+          "col": "R",
+          "snippet": "Ordóñez-Barona C, Bush J, Hurley J, Amati M"
+        },
+        {
+          "n": 26,
+          "kind": "reference",
+          "col": "R",
+          "snippet": "Pauleit S, Jones N, Garcia-Martin G, Garcia-Valdecantos JL"
+        },
+        {
+          "n": 27,
+          "kind": "reference",
+          "col": "R",
+          "snippet": "Pike K, O'Herrin K, Klimas C, Vogt J. 2021. Tree preservation"
+        },
+        {
+          "n": 28,
+          "kind": "reference",
+          "col": "R",
+          "snippet": "Rider D. 2016 October 19. Toronto council calls for crackdown"
+        }
+      ],
+      "tables": [],
+      "equations": [],
+      "reference_count": 28,
+      "verbatim_paragraph": {
+        "of_item": 12,
+        "text": "Jim CY. 1998. Impacts of intensive urbanization on trees in Hong Kong. Environmental Conservation. 25(2):146-159. https://www.jstor.org/stable/i40189759"
+      }
+    }
+  ],
+  "equation_ids": {
+    "E01": {
+      "block_id": "01a0aa23-b651-70d5-aa19-a3666655d2fa",
+      "file": "Allard_2007_total-variation-regularization-nonlinear",
+      "page": 19,
+      "bbox": [
+        112.5,
+        499.0,
+        401.7,
+        677.3
+      ],
+      "reading": "\\begin{aligned}\\frac{d}{dt}W_t(x)\\big|_{t=0} &= X(x)\\wedge\\frac{d}{dt}\\xi_t(x)\\big|_{t=0}\\\\ &= X(x)\\wedge\\sum_{i=2}^{n}\\partial X(x)(u_i)\\wedge\\left(u^i\\lrcorner\\xi_0(x)\\right)\\\\ &= X(x)\\wedge\\sum_{i=2}^{n}\\sum_{j=1}^{n}\\langle u_i,\\omega_j\\rangle u_j\\wedge\\left(u^i\\lrcorner\\xi_0(x)\\right)\\\\ &= X(x)\\wedge\\sum_{i=1}^{n}\\langle u_i,\\omega_i\\rangle u_i\\wedge\\left(u^i\\lrcorner\\xi_0(x)\\right)\\\\ &\\quad + X(x)\\wedge\\sum_{i=2}^{n}\\langle u_i,\\omega_1\\rangle u_1\\wedge\\left(u^i\\lrcorner\\xi_0(x)\\right)\\\\ &= \\left(\\left(\\operatorname{trace} l_1(x)X(x) - l_2(x)(X(x))\\right)\\bullet\\mathbf{n}_D(x)\\right)u_1\\wedge *u_1,\\end{aligned}",
+      "shape": "six-line aligned derivation, no equation number"
+    },
+    "E02": {
+      "file": "Efron_2021_resampling-plans-estimation-prediction",
+      "page": 14,
+      "bbox": [
+        345.4,
+        318.1,
+        559.3,
+        327.9
+      ],
+      "reading": "\\hat{u} = My",
+      "shape": "one display line, bold italic symbols, equation number (65) printed at the right margin",
+      "block_id": "01a0aa24-f9f0-7ec0-970b-854b713035aa"
+    },
+    "E03": {
+      "file": "Nordman_2004_optimal-spatial-subsample-size",
+      "page": 17,
+      "bbox": [
+        125.8,
+        336.9,
+        389.8,
+        374.4
+      ],
+      "reading": "\\frac{-1}{s\\lambda_n}\\left(\\sum_{\\mathbf{k}\\in\\mathbb{Z}}|\\mathbf{k}|\\operatorname{Cov}(\\nabla' Z(\\mathbf{0}),\\nabla' Z(\\mathbf{k}))\\right)",
+      "shape": "one display line, tag (4.3) at the LEFT margin",
+      "block_id": "01a0aa26-7fae-7190-b5e9-8f6fe0a3112b"
+    },
+    "E04": {
+      "file": "Bellettini_2002_total-variation-flow",
+      "page": 25,
+      "bbox": [
+        122.7,
+        413.4,
+        375.3,
+        439.2
+      ],
+      "reading": "\\frac{1}{2}\\int_0^T\\int_{\\mathbb{R}^N} t\\,|p(u_n)_t|^2\\varphi^2 \\leqslant C + T^2\\int_{\\mathbb{R}^N}|\\nabla\\varphi|^2.",
+      "shape": "one display line, equation number (59) at the right margin",
+      "block_id": "01a0aa23-eb5f-74f8-927a-c434cbc6e70c"
+    },
+    "E05": {
+      "file": "Galerne_2011_computation-perimeter-measured",
+      "page": 6,
+      "bbox": [
+        45.5,
+        452.3,
+        288.5,
+        482.5
+      ],
+      "reading": "V(f,U)\\le\\sum_{i=1}^{d}V_{e_i}(f,U)\\le d\\sup_{u\\in S^{d-1}}V_u(f,U)\\le dV(f,U).",
+      "shape": "one display line, no number",
+      "block_id": "01a0aa25-1115-7284-b733-f3200fbd2f06"
+    },
+    "E06": {
+      "file": "Allard_2007_total-variation-regularization-nonlinear",
+      "page": 27,
+      "bbox": [
+        72.0,
+        176.6,
+        376.8,
+        217.2
+      ],
+      "reading": "\\int_\\Omega \\kappa(x,f(x))\\,d\\mathcal{L}^n x = \\int_0^\\infty\\left(\\int_{\\{f\\ge z\\}} u(x,z)\\,d\\mathcal{L}^n x\\right) d\\mathcal{L}^1 z.",
+      "shape": "one display line, tag (6.1) at the LEFT margin",
+      "block_id": "01a0aa23-b6cb-7839-b443-5481b158a0d2"
+    },
+    "E07": {
+      "file": "Liu_2008_local-transition-probability-model",
+      "page": 6,
+      "bbox": [
+        311.5,
+        333.9,
+        562.7,
+        369.2
+      ],
+      "reading": "P(c_1(u)\\,|\\,d_1(u), c_1(N_S(u)), c_2(N_T(u))) = \\frac{1}{Z}\\exp\\{-[U_D(c_1(u),d_1(u)) + U_S(c_1(u),c_1(N_S(u))) + U_T(c_1(u),c_1(N_T(u)))]\\}",
+      "shape": "two display lines, equation number (10) below right",
+      "block_id": "01a0aa26-18d4-7607-b7d5-b7c62b366be3"
+    },
+    "E08": {
+      "file": "Jackson_2011_multi-state-models-panel-data",
+      "page": 17,
+      "bbox": [
+        195.6,
+        328.1,
+        407.4,
+        380.1
+      ],
+      "reading": "E = \\begin{pmatrix} 1-e_{12} & e_{12} & 0 & 0\\\\ e_{21} & 1-e_{21}-e_{23} & e_{23} & 0\\\\ 0 & e_{32} & 1-e_{32} & 0\\\\ 0 & 0 & 0 & 0 \\end{pmatrix}",
+      "shape": "4x4 matrix, no number",
+      "block_id": "01a0aa25-aa52-7bcf-b048-52922f8c3c34"
+    },
+    "E09": {
+      "file": "Bellettini_2002_total-variation-flow",
+      "page": 35,
+      "bbox": [
+        139.2,
+        186.3,
+        375.3,
+        211.2
+      ],
+      "reading": "-\\operatorname{div}\\left(\\frac{\\nabla u}{\\sqrt{1+|\\nabla u|^2}}\\right) = \\lambda_C \\qquad \\text{in } C",
+      "shape": "one display line, equation number (77) at the right margin",
+      "block_id": "01a0aa23-ebf1-7730-b8c5-45eb69930d1e"
+    },
+    "E10": {
+      "file": "Bellettini_2002_total-variation-flow",
+      "page": 33,
+      "bbox": [
+        88.0,
+        158.4,
+        339.8,
+        170.5
+      ],
+      "reading": "\\mathcal{G}_\\lambda(D) := P(D) - \\lambda|D|, \\qquad D\\subseteq\\mathbb{R}^2, \\quad D \\text{ of finite perimeter.}",
+      "shape": "one display line, no number; ':=' is printed as the single glyph U+2254",
+      "block_id": "01a0aa23-ebd6-72d6-afa6-aebf5a4bb75e"
+    },
+    "E11": {
+      "file": "Mei_2010_efficient-scalable-schemes-monitoring",
+      "page": 13,
+      "bbox": [
+        206.1,
+        310.9,
+        344.5,
+        348.9
+      ],
+      "reading": "\\int_0^a e^{-(a-y)} P_\\infty\\left(\\sum_{k=1}^{K-1} W_n^{(k)} \\in dy\\right),",
+      "shape": "one display line, no number",
+      "block_id": "01a0aade-56b4-7acd-a09b-29feddefaf6e"
+    },
+    "E12": {
+      "file": "Chaux_2008_nonlinear-stein-based-estimator",
+      "page": 13,
+      "bbox": [
+        244.3,
+        221.4,
+        540.0,
+        253.8
+      ],
+      "reading": "\\tilde{\\lambda}_{i_0}(\\beta,\\mathbf{a}) = -\\frac{\\sum_{i=1}^{i_0-1}\\alpha_1(\\mathbf{k}_i)}{2\\sum_{i=1}^{i_0-1}\\alpha_2(\\mathbf{k}_i)}.",
+      "shape": "one display line, equation number (36) at the right margin",
+      "block_id": "01a0aa24-9d48-706a-94e3-fbd12d12d63b"
+    },
+    "E13": {
+      "file": "Bellettini_2002_total-variation-flow",
+      "page": 42,
+      "bbox": [
+        120.6,
+        407.7,
+        312.7,
+        437.2
+      ],
+      "reading": "\\int_{\\mathbb{R}^2}(\\xi, Du) = \\int_{\\mathbb{R}^2} u^2\\,dx = \\sum_{i=1}^{m}\\frac{P(C_i)^2}{|C_i|} = \\int_{\\mathbb{R}^2}|Du|.",
+      "shape": "one display line, no number",
+      "block_id": "01a0aa23-ec56-7ddf-9343-228ae65b3edd"
+    },
+    "E14": {
+      "file": "Charitos_2008_computing-short-interval-transition",
+      "page": 4,
+      "bbox": [
+        227.3,
+        440.2,
+        337.1,
+        466.2
+      ],
+      "reading": "A_t^* := \\arg\\min_{A\\in\\mathscr{A}} \\|A^k - A_\\tau\\|",
+      "shape": "one display line, no number",
+      "block_id": "01a0aa24-947b-7546-b7f5-c97d427f70c0"
+    },
+    "E15": {
+      "file": "Foody_2010_assessing-accuracy-land-cover",
+      "page": 5,
+      "bbox": [
+        310.5,
+        154.2,
+        561.6,
+        184.8
+      ],
+      "reading": "\\rho_0 = \\frac{S_2^* - S_2^1 S_2^2}{\\sqrt{S_2^1(1-S_2^1)S_2^2(1-S_2^2)}}",
+      "shape": "one display fraction, equation number (9) at the right margin",
+      "block_id": "01a0aa25-0aad-7d26-972f-5b95fea04ef8"
+    },
+    "E16": {
+      "file": "Allard_2007_total-variation-regularization-nonlinear",
+      "page": 5,
+      "bbox": [
+        243.1,
+        134.6,
+        269.9,
+        150.6
+      ],
+      "reading": "\\mathcal{B}_\\lambda(\\Omega)",
+      "shape": "a single inline symbol group, not a display equation",
+      "block_id": "01a0aa23-b4f1-7d65-82de-60ee6e0f7e72"
+    },
+    "E17": {
+      "file": "Conley_1999_gmm-estimation-cross-sectional",
+      "page": 18,
+      "bbox": [
+        91.6,
+        322.2,
+        311.1,
+        349.5
+      ],
+      "reading": "K_{MN}(j,k) = \\begin{cases} K(j/L_M,\\, k/L_N) & \\text{for } |j| < L_M,\\ |k| < L_N,\\\\ 0 & \\text{otherwise,}\\end{cases}",
+      "shape": "a two-branch cases block, no number. THIS IS THE CROPPED-PAGE TEST: dx=40.0, dy=37.0 on this page, and the drawn rectangle landed on the equation.",
+      "block_id": "01a0aa24-af74-76a5-875b-84ffed02ce80"
+    },
+    "E18": {
+      "file": "Nordman_2004_optimal-spatial-subsample-size",
+      "page": 26,
+      "bbox": [
+        239.2,
+        537.8,
+        370.9,
+        556.7
+      ],
+      "reading": "c_2 = 0.5 \\quad\\text{and}\\quad c_1 \\in \\{0.5, 1\\}",
+      "shape": "one display line, no number",
+      "block_id": "01a0aa26-8047-760a-8f26-d469f26de10e"
+    },
+    "E19": {
+      "file": "Allard_2007_total-variation-regularization-nonlinear",
+      "page": 19,
+      "bbox": [
+        111.6,
+        352.8,
+        401.4,
+        390.0
+      ],
+      "reading": "\\xi_t(x) = \\bigwedge_{n-1}\\partial h_t(x)(*\\mathbf{n}_D(x)) \\quad\\text{and}\\quad W_t(x) = \\langle \\dot{h}_t(x)\\wedge\\xi_t(x), \\mathbf{E}^n\\rangle.",
+      "shape": "one display line carrying two equations joined by 'and', no number",
+      "block_id": "01a0aa23-b64d-7209-8c88-1dc7fa49b73a"
+    },
+    "E20": {
+      "file": "Leung_2004b_part-4-error-analysis-length",
+      "page": 11,
+      "bbox": [
+        71.5,
+        69.5,
+        385.5,
+        253.3
+      ],
+      "reading": "\\sum_{i=1}^{n}\\mathbf{e}_{n,i}\\,\\mathbf{e}_{n,i+1}^{\\mathrm{T}} = \\sum_{i=1}^{n}\\begin{pmatrix} 0 & & \\cdots & & 0\\\\ & \\ddots & & \\ddots & \\\\ & & 0&0&0 & \\\\ \\vdots & & 0&1&0 & & \\vdots\\\\ & & 0&0&0 & \\\\ & \\ddots & & \\ddots & \\\\ 0 & & \\cdots & & 0\\end{pmatrix} = \\begin{pmatrix} 0&1&0&\\cdots&0\\\\ &0&1&\\ddots&\\vdots\\\\ \\vdots& &\\ddots&\\ddots&0\\\\ 0& & &\\ddots&1\\\\ 1&0&\\cdots& &0\\end{pmatrix} \\equiv \\mathbf{G}_0",
+      "shape": "two stacked matrix displays with row/column index annotations (1 ... i-1, i, i+1 ... n down the right of the first matrix and 1 ... i, i+1, i+2 ... n under it), equation number (30) at the right margin. The index annotations are NOT part of the mathematics and a stored LaTeX that omits them is EQUIVALENT.",
+      "block_id": "01a0aa26-12e0-7ddf-bbd2-113cd3a36006"
+    }
+  },
+  "_equation_note": "The eight seeded pages carry NO display equation, so the equation dimension of this gold is carried entirely by the twenty seeded equation blocks above. That is recorded rather than repaired: re-drawing the page sample until an equation appeared would be gerrymandering the gold."
+}

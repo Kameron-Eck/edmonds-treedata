@@ -1050,8 +1050,10 @@ table rather than run 299 rows and report a missing one at the end. Re-pointed, 
 target now resolves before anything runs.
 
 **The one survivor is R532, and it is EQUIVALENT — measured, not argued.** R532 deletes the
-`canonical = _dedupe_figures(canonical)` call. It fired before this change. It no longer does,
-because `_merge_regions` — which this change adds two lines below it — takes any two blocks on a
+`canonical = _dedupe_figures(canonical)` call. It fired before this change —
+`Reports/LITKB_STAGE5_INGEST_2026-09-15.md` §2 records it, "Re-run: `R532` FIRED, 1 failed / 59
+passed", after the planted-duplicate test was written for exactly this row. It no longer does,
+because `_merge_regions` — which this change adds on the NEXT line — takes any two blocks on a
 page at `IOU_MATCH` or better, and two figure blocks over one figure are exactly that. The
 evidence is the real file, not a fixture: Benedek_2015 p4 with both of its picture items planted
 twice in the Docling document (the same plant

@@ -36,12 +36,14 @@ The 29 binding-failed rows are 15 works: 14 tracker rows each have a manifest tw
 
 | | |
 |---|---|
-| download URLs issued by this run | **12** |
+| download URLs issued by this run | **11** — 9 `annas ok`, 2 `annas bad-file` |
 | account counter, first read this run | 3 of 1000 |
 | account counter, after the last row | **15 of 1000** |
 | quota margin in force | 50 (the tool's default; never reached) |
 
-The two numbers agree: the account counter moved 3 → 15 while the run issued 12 URLs. The archive counts a download when it *issues* the URL, so the two `bad-file` attempts on tracker 280 are inside that 12 even though no PDF arrived — and the account's own counter did not move on the second of them (15 → 15). Six archive attempts cost nothing at all: the record's md5 was already on disk (`duplicate-held`), which is the gate that stops this queue re-downloading what the corpus already holds.
+The archive spends a download when it *issues* the URL, so the two `bad-file` attempts on tracker 280 — the partner served bytes that were not a PDF — are inside the 11 even though no paper arrived. The account counter moved 3 → 15 over the same window, one more than this run issued, and its per-attempt deltas are not one-for-one either: tracker 12's single URL moved it 3 → 5, tracker 17's next read started at 6 with no attempt of this run in between, and 280's second URL moved it 15 → 15. Read the 11 as what this queue asked for and the counter as the account's own arithmetic, shared with anything else using the key in the same 18-hour window (Kam's brief said ~5 before the run began; the first read the tool took said 3).
+
+Six archive attempts cost nothing at all: the record's md5 was already on disk (`duplicate-held`), the gate that stops this queue re-downloading what the corpus already holds.
 
 ## Admitted and bound (32)
 
@@ -98,6 +100,8 @@ The two numbers agree: the account counter moved 3 → 15 while the run issued 1
 | 165 | held | admitted+pending | unpaywall no-oa-copy; annas not-in-archive; CSV oa_url is the Apollo handle page (HTML, no %PDF-) |
 | 280 | held | admitted+pending | admitted on the corrected DOI; OA no-oa-copy; annas issued a download URL twice and the partner bytes were not a PDF both times (bad-file); account counter 14->15 then 15->15 |
 | 7 | held | admitted+pending | OA bad-file (Elsevier landing page); annas not-in-archive; corrected DOI admitted, tracker DOI ...103839 was another paper |
+
+**Eight of these are the same finding, and it is about the gate, not about missing papers.** For six of them (258, 311, 381, 382, 399, 423) the archive's own record for the DOI is byte-identical — same md5 — to a file already in the corpus, and for two more (306, 431) the arXiv PDF is. The public sources hold no copy but the one already on disk, and P3's check 3 refused that copy at ratios 0.8296, 1.0, 1.0, 1.0, 0.6207, 0.6126, 0.7746 and 0.7865 respectively — the three at 1.0 failing not on the title but on *the registry first author is not on the first page*, which is the cover-sheet case. Fetching a different file cannot settle these; only reading the gate's verdict against the file can.
 
 ## A correct file that check 3 refused (2)
 

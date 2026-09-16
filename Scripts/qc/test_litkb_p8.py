@@ -260,6 +260,346 @@ def test_a_planted_secret_is_redacted_in_a_tool_result(tmp_path, monkeypatch):
     assert server._out({"echo": token}) == '{\n "echo": "<KEY>"\n}'
 
 
+def test_the_shape_rules_are_the_secrets_rung_s_own(tmp_path):
+    """One definition of "this is a pgpass line" (CLAUDE.md §3.3). netutil loads qc/secrets_check.py
+    by path and reuses its two compiled patterns; if the rung's rules are edited, the MCP boundary
+    moves with them. Asserted on the pattern TEXT, so a copy that merely looks alike fails."""
+    import importlib.util
+
+    from litkb import netutil
+
+    spec = importlib.util.spec_from_file_location("_rung", SCRIPTS / "qc" / "secrets_check.py")
+    rung = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(rung)
+    patterns = [rx.pattern for rx, _anchored in netutil.shape_rules()]
+    assert rung.PGPASS_RE.pattern in patterns, patterns
+    assert rung.TOKEN_RE.pattern in patterns, patterns
+    assert "v" in rung.PGPASS_RE.groupindex and "v" in rung.TOKEN_RE.groupindex, (
+        "the rung's patterns must name the VALUE group `v`: that is what the boundary masks")
+
+
+def test_a_planted_credential_shape_is_masked_in_a_tool_result():
+    """KILL for P8 referee F-4, in the shape he broke it in: a pgpass line inside a BLOCK's text,
+    with prose before and after it, carried out through a tool result.
+
+    `redact()` could never have caught this — it replaces REGISTERED strings, and no process here
+    ever held that password. The value is built at runtime rather than written into this file
+    because a pgpass-shaped literal in a tracked test is exactly what qc/secrets_check.py refuses,
+    and the pgpass rule cannot carry the allow pragma.
+
+    Row X7 strips the redact_shapes() call in _out()."""
+    from litkb.mcp import server
+
+    pw = "Zq7" + "v" * 20
+    key = uuid.uuid4().hex + uuid.uuid4().hex
+    hit = {"block_id": str(uuid.uuid4()), "work_key": "Rosychuk_2003_bias-correction-two-state",
+           "text": ("Notes on the staging database follow.\n"
+                    f"localhost:5433:litkb:litkb_writer:{pw}\n"
+                    "The pilot plot was measured in June.")}
+    body = server._out({"ok": True, "blocks": [hit],
+                        "note": f"fetched https://example.org/api/download?md5=abc&key={key}",
+                        "driver": f'{{"password": "{pw}", "host": "localhost"}}',
+                        "pem": "-----BEGIN RSA PRIVATE KEY-----\nMIIabc\n-----END RSA PRIVATE KEY-----"})
+    assert pw not in body, "a pgpass password reached the model through a tool result"
+    assert key not in body, "a URL's key= reached the model through a tool result"
+    assert "MIIabc" not in body, "a PEM body reached the model through a tool result"
+    assert "localhost:5433:litkb:litkb_writer:<KEY>" in body, body
+    assert "The pilot plot was measured in June." in body, "the block's own words must survive"
+
+
+def test_a_work_shaped_result_is_returned_byte_for_byte():
+    """The positive control the mask needs, and the reason `key` and a bare 64-hex are NOT rules: a
+    file's sha256 IS 64 hex, and in this database `key` is the work key. A shape redactor that ate
+    those would make litkb_work useless while looking secure."""
+    from litkb.mcp import server
+
+    rec = {"ok": True, "key": "Rosychuk_2003_bias-correction-two-state",
+           "work": {"title": "Bias correction of two-state latent Markov process parameter "
+                             "estimates under misclassification", "authors": "Rosychuk and Islam",
+                    "year": 2003},
+           "identifiers": [{"scheme": "doi", "value": "10.1002/sim.1473", "active": True}],
+           "files": [{"sha256": "3f" * 32, "path": "Validation/Rosychuk_2003.pdf", "pages": 17}],
+           "uses": [{"statement": "supplies the naive-estimator bias", "feeds": ["gap row 18"]}]}
+    assert json.loads(server._out(rec)) == rec, "a work record must pass the boundary unchanged"
+
+
+# ── the read tools' token check (F-1) ─────────────────────────────────────────────────────
+
+@pg_only
+def test_a_forged_token_reads_nothing_and_a_real_one_reads_its_own_workstream(hunt_env):
+    """KILL for F-1. The referee wrote a `.litkb-workstream` naming the REAL workstream id with 64
+    zeros as its token and got `litkb_ws_status` -> ok: true, the whole status. Workstream ids are
+    not secret — a tracked report prints one — so the attack needed no secret at all.
+
+    Both directions are asserted in one test, because "refuses everything" would satisfy the kill
+    just as well as the fix: the real token must still answer, and litkb_candidates must return its
+    own workstream's rows (that leg named a column the schema does not have — `identifiers` for
+    `ids` — so it had NEVER returned a row; the P8 gate only ever tested it with no workstream)."""
+    wt = hunt_env["wt"]
+    opened = one("litkb_ws_open", {"slug": f"p8-token-{uuid.uuid4().hex[:6]}",
+                                   "purpose": "the read-tool token check"})
+    assert opened["ok"], opened
+    real = (wt / ".litkb-workstream").read_text(encoding="utf-8")
+
+    status = one("litkb_ws_status", {})
+    assert status["ok"] and status["state"] == "open", status
+    cands = one("litkb_candidates", {})
+    assert cands["ok"], cands
+    assert cands["workstream_id"] == opened["workstream_id"], cands
+
+    (wt / ".litkb-workstream").write_text(
+        json.dumps({"workstream_id": opened["workstream_id"], "token": "0" * 64}), encoding="utf-8")
+    for tool in ("litkb_ws_status", "litkb_candidates"):
+        res = one(tool, {})
+        assert res["refused"] == "bad-token", (tool, res)
+        for leaked in ("slug", "state", "candidates", "promotions", "admissions"):
+            assert leaked not in res, f"{tool} told a wrong token about {leaked}: {res}"
+    (wt / ".litkb-workstream").write_text(real, encoding="utf-8")
+
+
+@pg_only
+def test_the_offer_tool_refuses_a_forged_token_before_it_runs_anything(hunt_env):
+    """The hole the referee did not test, and the worst of the three: `promote prepare` takes NO
+    token — `litkb.promote_prepare(ws, branch_head, report_path)` is authorised by the PROMOTER
+    credential — so `litkb_propose_promotion` presented nothing at all. A `.litkb-workstream` naming
+    a published workstream id with any string as its token would have prepared THAT workstream's
+    proposals, written its chain report into this worktree, and (one prepared promotion per
+    workstream) blocked its owner's own prepare.
+
+    Asserted on the side effects as well as the code, because "refused" is cheap: no `_derived/`
+    directory appears, and the workstream has no promotion row."""
+    conn, wt = hunt_env["conn"], hunt_env["wt"]
+    opened = one("litkb_ws_open", {"slug": f"p8-offer-{uuid.uuid4().hex[:6]}",
+                                   "purpose": "the offer tool's token check"})
+    ws_id = opened["workstream_id"]
+    (wt / ".litkb-workstream").write_text(
+        json.dumps({"workstream_id": ws_id, "token": "0" * 64}), encoding="utf-8")
+    res = one("litkb_propose_promotion", {})
+    assert res["refused"] == "bad-token", res
+    assert not (wt / "_derived").exists(), "prepare ran: it wrote a report for a forged token"
+    assert conn.execute("SELECT count(*) FROM litkb.promotions WHERE workstream_id = %s",
+                        (ws_id,)).fetchone()[0] == 0, "a promotion was prepared for a forged token"
+
+
+@pg_only
+def test_a_write_with_a_forged_token_reaches_the_model_as_bad_token(hunt_env):
+    """The database already refused this write; what it did not do was SAY so to the model. The
+    refusal arrived as `refused: "error"` with a raw psycopg message and a `CONTEXT: PL/pgSQL
+    function _require_ws_token(uuid,text) line 1` (referee §3.2). Same refusal, one code."""
+    conn, wt = hunt_env["conn"], hunt_env["wt"]
+    opened = one("litkb_ws_open", {"slug": f"p8-wtoken-{uuid.uuid4().hex[:6]}",
+                                   "purpose": "the write-path token refusal"})
+    seeded = _seed_work_file_block(conn, opened["workstream_id"],
+                                   "The pilot plot was measured in June.")
+    (wt / ".litkb-workstream").write_text(
+        json.dumps({"workstream_id": opened["workstream_id"], "token": "0" * 64}), encoding="utf-8")
+    res = one("litkb_record_use", {
+        "statement": "a claim made with a forged token", "kind": "context",
+        "quote": "measured in June", "block_id": seeded["block_id"],
+        "gap": f"p8-forged-{uuid.uuid4().hex[:6]}", "gap_question": "is a forged token named?"})
+    assert res["refused"] == "bad-token", res
+    assert "CONTEXT" not in json.dumps(res) and "PL/pgSQL" not in json.dumps(res), res
+
+
+# ── prepare: evidence, feeds, and the report (F-3, F-5, §4.1) ─────────────────────────────
+
+FEEDS_VOCABULARY = ["framework §16.2", "narrative §3", "gated-plan gate 4", "review §4.18.4",
+                    "gap row 18", "decision litkb-p0-foundation",
+                    "report LITKB_P8_REFEREE_2026-09-15.md#§2"]
+
+
+@pg_only
+@pytest.mark.parametrize("token", FEEDS_VOCABULARY)
+def test_every_feeds_token_the_convention_names_is_accepted(token, litkb_pg_base):
+    """F-3. docs/LITERATURE_CONVENTION.md names seven doc-qualified forms; 0005 enforced three, so a
+    session that followed the convention wrote a use that would not promote and found out at
+    prepare. Each form is asserted on its own, and so are the shapes that must still be refused."""
+    _psycopg, conn, _ran = litkb_pg_base
+    assert conn.execute("SELECT litkb._feeds_token_ok(%s)", (token,)).fetchone()[0], token
+
+
+@pg_only
+@pytest.mark.parametrize("token", ["§16.2", "framework §13.1.1", "gap row", "decision Bad-Slug",
+                                   "report bad", "nonsense token", ""])
+def test_a_feeds_token_outside_the_vocabulary_is_still_refused(token, litkb_pg_base):
+    """The other half of F-3: widening the vocabulary must not turn the validator off. A bare `§N`,
+    a framework heading two levels deep (the convention allows one), a slug with capitals and a
+    `report` token with no `#§loc` are all still invalid."""
+    _psycopg, conn, _ran = litkb_pg_base
+    assert not conn.execute("SELECT litkb._feeds_token_ok(%s)", (token,)).fetchone()[0], token
+
+
+@pg_only
+def test_a_use_with_no_verified_evidence_is_held_at_prepare_and_the_report_says_why(hunt_env):
+    """KILL for the convention error the referee confirmed by running (§3.6, §4.1): a use with ZERO
+    use_evidence rows reached `prepared`, because the check counted rows that were NOT promotable
+    and zero rows is zero bad rows. Migration 0019 counts the promotable ones instead.
+
+    The verified control in the same prepare is what makes this a kill rather than a tautology — a
+    prepare that held everything would satisfy "the zero-evidence use was held" and prove nothing.
+    The promotion report (F-5) is asserted here too: prepare used to record a path and write no
+    file, while the skill said it wrote one onto the work branch."""
+    from psycopg.types.json import Jsonb
+
+    conn, wt = hunt_env["conn"], hunt_env["wt"]
+    opened = one("litkb_ws_open", {"slug": f"p8-evid-{uuid.uuid4().hex[:6]}",
+                                   "purpose": "the no-evidence hold"})
+    ws_id = opened["workstream_id"]
+    token = json.loads((wt / ".litkb-workstream").read_text(encoding="utf-8"))["token"]
+    text = "The pilot plot was measured in June."
+    seeded = _seed_work_file_block(conn, ws_id, text)
+
+    good = one("litkb_record_use", {
+        "statement": "supplies the control: a quote the database can verify", "kind": "context",
+        "quote": "measured in June", "block_id": seeded["block_id"],
+        "gap": f"p8-evid-good-{uuid.uuid4().hex[:6]}", "gap_question": "does a verified use prepare?",
+        "feeds": "; ".join(FEEDS_VOCABULARY)})
+    assert good["ok"] and good["quote_verified"] is True, good
+
+    gap = conn.execute(
+        "SELECT * FROM litkb.write_proposal('gap', NULL, %s, NULL, %s, %s, %s, %s, %s, %s)",
+        (Jsonb({"slug": f"p8-evid-zero-{uuid.uuid4().hex[:6]}"}),
+         Jsonb({"question": "does a use with no quote reach prepared?", "gap_state": "open"}),
+         None, ws_id, token, "p8", "p8-evidence")).fetchone()
+    zero = conn.execute(
+        "SELECT * FROM litkb.write_proposal('use', NULL, %s, NULL, %s, %s, %s, %s, %s, %s)",
+        (Jsonb({"work_id": seeded["work_id"], "gap_id": str(gap[0])}),
+         Jsonb({"statement": "a claim with no quote at all", "kind": "context",
+                "status": "proposed", "feeds": [], "rationale": None}),
+         None, ws_id, token, "p8", "p8-evidence")).fetchone()
+
+    offered = one("litkb_propose_promotion", {})
+    assert offered["ok"] and offered["outcome"] == "prepared", offered
+    states = dict(conn.execute(
+        "SELECT version_id::text, state FROM litkb.use_versions WHERE version_id = ANY(%s)",
+        ([str(zero[1]), good["use_version_id"]],)).fetchall())
+    assert states[str(zero[1])] == "proposed", (
+        f"a use with no evidence at all reached {states[str(zero[1])]}")
+    assert states[good["use_version_id"]] == "prepared", (
+        "the verified control was held too — this prepare held everything, so the kill above says "
+        "nothing about the evidence")
+
+    held = {h["chain"]: h["why"] for h in offered["held"]}
+    assert any("no-verified-evidence" in " ".join(w) for w in held.values()), offered["held"]
+    report = Path(offered["report_written"])
+    assert report.exists(), offered
+    assert report.parent.name == "promotions" and report.parent.parent.name == "_derived", report
+    body = report.read_text(encoding="utf-8")
+    assert "no-verified-evidence" in body and "## Held" in body and "## Prepared" in body, body
+    assert offered["promotion_id"] in body, body
+
+
+@pg_only
+def test_search_finds_a_block_the_extractor_mangled(hunt_env):
+    """The referee's Q3, in miniature (§2.4): the block holds `misclassi<FFFD>cation` and
+    `overesti- mate`, because that is what the PDF's text layer renders, and it says `NEs` where the
+    question says `naive estimators`. Under the old statement — one all-terms match, re-sorted by
+    trigram — it was reachable only by a caller who already knew how the extractor had mangled the
+    word. The full corpus run is in the P8 report; this is the guard's home."""
+    conn = hunt_env["conn"]
+    opened = one("litkb_ws_open", {"slug": f"p8-search-{uuid.uuid4().hex[:6]}",
+                                   "purpose": "the mangled-text search"})
+    # A paragraph, not a sentence: the trigram leg compares the WHOLE block with the whole query,
+    # so on a one-sentence block a query of similar length is similar enough to be returned by
+    # trigram alone — and the test would pass with the any-term leg switched off, proving nothing.
+    # At paragraph length trigram similarity falls below the threshold and only the any-term leg
+    # can reach this block. (The harness found that: row X14 reported DID NOT FIRE on the short one.)
+    mangled = ("In the simulation study reported in Section 5 the two-state latent process was "
+               "generated with a range of transition intensities, sample sizes and observation "
+               "schedules, and the parameter estimates were compared with their true values under "
+               "each design. The NEs overestimate the transition probabilities and this overesti- "
+               "mate increases as the misclassi�cation probabilities increase. Tables 3 and 4 "
+               "give the empirical bias, the standard error and the coverage of the nominal ninety "
+               "five per cent intervals for every combination considered, together with the number "
+               "of replications in which the maximisation failed to converge.")
+    seeded = _seed_work_file_block(conn, opened["workstream_id"], mangled)
+    res = one("litkb_search", {"query": "naive estimators overestimate the transition probabilities "
+                                        "misclassification", "limit": 5, "scope": "blocks"})
+    assert res["ok"], res
+    assert seeded["block_id"] in [b["block_id"] for b in res["blocks"]], res
+    assert res["legs"] == ["lexical (all terms)", "lexical (any term)", "trigram"], res
+
+
+@pg_only
+def test_search_reads_the_text_through_the_normaliser(hunt_env):
+    """The normaliser's own kill, separate from the any-term leg's, because the two fix different
+    halves of §2.4 and a test that passes on either proves neither. A word the PDF broke across a
+    line — `overesti- mate` — tokenises as two words, so a query for the whole word matches no
+    lexeme in it and is too short to reach the trigram threshold. Normalised on both sides, it is
+    one word again."""
+    conn = hunt_env["conn"]
+    opened = one("litkb_ws_open", {"slug": f"p8-norm-{uuid.uuid4().hex[:6]}",
+                                   "purpose": "the search normaliser"})
+    seeded = _seed_work_file_block(
+        conn, opened["workstream_id"],
+        "The naive estimator's overesti- mate grows with the misclassi�cation rate.")
+    res = one("litkb_search", {"query": "overestimate", "limit": 5, "scope": "blocks"})
+    assert seeded["block_id"] in [b["block_id"] for b in res.get("blocks", [])], res
+
+
+@pg_only
+def test_a_quote_from_another_work_is_refused(hunt_env):
+    """The property the referee called the strongest single one in the file, and the one with no
+    row until now (§3.3, §6.1): a use's work is DERIVED from the block, so a quote from B cannot
+    evidence a claim about A. Naming the other work is refused `work-mismatch`; naming NOTHING
+    records the use against the block's own work, which is the half that makes the refusal honest
+    rather than a formality."""
+    conn = hunt_env["conn"]
+    opened = one("litkb_ws_open", {"slug": f"p8-mismatch-{uuid.uuid4().hex[:6]}",
+                                   "purpose": "evidence from another work"})
+    ws_id = opened["workstream_id"]
+    a = _seed_work_file_block(conn, ws_id, "Work A says the pilot plot was measured in June.")
+    b = _seed_work_file_block(conn, ws_id, "Work B says the canopy closed in August.")
+    key_a = conn.execute("SELECT key FROM litkb.works WHERE id = %s", (a["work_id"],)).fetchone()[0]
+    key_b = conn.execute("SELECT key FROM litkb.works WHERE id = %s", (b["work_id"],)).fetchone()[0]
+
+    res = one("litkb_record_use", {
+        "statement": "claims A on B's words", "kind": "context", "quote": "canopy closed in August",
+        "block_id": b["block_id"], "work_key": key_a,
+        "gap": f"p8-mismatch-{uuid.uuid4().hex[:6]}", "gap_question": "whose words are these?"})
+    assert res["refused"] == "work-mismatch", res
+    assert key_b in res["message"] and key_a in res["message"], res
+
+    named_nothing = one("litkb_record_use", {
+        "statement": "records against the block's own work", "kind": "context",
+        "quote": "canopy closed in August", "block_id": b["block_id"],
+        "gap": f"p8-mismatch2-{uuid.uuid4().hex[:6]}", "gap_question": "whose words are these?"})
+    assert named_nothing["ok"] and named_nothing["work_key"] == key_b, named_nothing
+
+
+def _seed_work_file_block(conn, ws_id, text):
+    """A work, an active file and one block of its current run, written as FACTS.
+
+    Not through litkb_admit: admission is one work per identifier across the whole knowledge base
+    (check 2, rightly), the recorded registry responses are three, and the live tests already spend
+    them. A fact-written work needs no registry and cannot collide, and what these tests are about
+    is the access layer downstream of admission. `_write_version` is the same function the P1 suite
+    seeds with."""
+    from psycopg.types.json import Jsonb
+
+    work_id, _v = conn.execute(
+        "SELECT entity_id, version_id FROM litkb._write_version('fact', 'work', NULL, %s, NULL, %s, "
+        "NULL, %s, 'p8-seed', 'p8-seed')",
+        (Jsonb({"key": f"Seeded_2026_p8-{uuid.uuid4().hex[:8]}"}),
+         Jsonb({"type": "article", "title": "A seeded work", "authors": []}), ws_id)).fetchone()
+    file_id, _fv = conn.execute(
+        "SELECT entity_id, version_id FROM litkb._write_version('fact', 'file', NULL, %s, NULL, %s, "
+        "NULL, %s, 'p8-seed', 'p8-seed')",
+        (Jsonb({"sha256": uuid.uuid4().hex + uuid.uuid4().hex}),
+         Jsonb({"work_id": str(work_id), "status": "active", "rel_path": "Validation/seeded.pdf",
+                "bytes": 1024, "pages": 1}), ws_id)).fetchone()
+    run_id = conn.execute(
+        "INSERT INTO litkb.extraction_runs (file_id, stage, tool, tool_version, params_hash, "
+        "pipeline_version, host, status) VALUES (%s, 'native', 'p8-seed', '0', %s, 'v0', 'local', "
+        "'ok') RETURNING id", (file_id, uuid.uuid4().hex)).fetchone()[0]
+    conn.execute("SELECT litkb.set_current_run(%s, NULL, %s)", (file_id, run_id))
+    block_id = conn.execute(
+        "INSERT INTO litkb.blocks (file_id, run_id, page_no, type, text) "
+        "VALUES (%s, %s, 1, 'paragraph', %s) RETURNING id", (file_id, run_id, text)).fetchone()[0]
+    return {"work_id": str(work_id), "file_id": str(file_id), "run_id": str(run_id),
+            "block_id": str(block_id)}
+
+
 # ── the mini-hunt (gate §14 P8) ───────────────────────────────────────────────────────────
 
 @pytest.fixture
@@ -512,6 +852,45 @@ def test_the_staged_hook_warns_outside_a_workstream(payload, tmp_path):
     assert "permissionDecision" not in out["hookSpecificOutput"], "the staged hook must not block"
 
 
+@pytest.mark.parametrize("payload", [
+    {"tool_name": "Read", "tool_input": {"file_path": r"D:\edmonds-pipeline\secrets\Anna_key.txt"}},
+    {"tool_name": "Read", "tool_input": {"file_path": r"C:\Users\x\AppData\Roaming\postgresql\pgpass.conf"}},
+    {"tool_name": "Read", "tool_input": {"file_path": ".litkb-workstream"}},
+    {"tool_name": "Grep", "tool_input": {"pattern": "password", "path": r"D:\x\litkb.pgpass"}},
+    {"tool_name": "Glob", "tool_input": {"pattern": "**/*.env"}},
+    {"tool_name": "Bash", "tool_input": {"command": "type %APPDATA%\\postgresql\\pgpass.conf"}},
+], ids=["secrets_dir", "pgpass", "workstream_token", "grep_pgpass", "glob_env", "shell_pgpass"])
+def test_the_hook_warns_on_a_credential_file_even_inside_a_workstream(payload, tmp_path):
+    """P8 referee §3.7: the librarian holds Read, Grep and Glob, and nothing told it not to open a
+    passfile. This rule fires INSIDE a workstream too — a workstream is a reason to reach literature
+    through litkb, never a reason to read a credential, and `.litkb-workstream` is itself the secret
+    that is always present there. The negative control is the test below it: an ordinary repository
+    file in the same directory produces nothing."""
+    _plant_token(tmp_path)
+    r = _hook(payload | {"hook_event_name": "PreToolUse", "cwd": str(tmp_path)}, tmp_path)
+    assert r.returncode == 0, r.stderr
+    ctx = json.loads(r.stdout)["hookSpecificOutput"]["additionalContext"]
+    assert "credential file" in ctx, ctx
+    assert "permissionDecision" not in json.loads(r.stdout)["hookSpecificOutput"], "warns, not blocks"
+
+
+def test_the_hook_says_nothing_about_an_ordinary_file(tmp_path):
+    _plant_token(tmp_path)
+    r = _hook({"hook_event_name": "PreToolUse", "cwd": str(tmp_path), "tool_name": "Read",
+               "tool_input": {"file_path": str(SCRIPTS / "docs" / "SCHEMAS.md")}}, tmp_path)
+    assert r.returncode == 0 and r.stdout.strip() in ("", "{}"), r.stdout
+
+
+def test_the_librarian_is_told_not_to_open_credential_files():
+    """The brief is the control the hook is not: frontmatter hooks are ignored for plugin subagents,
+    skipped by disableAllHooks, and not loaded in an untrusted folder (code.claude.com/docs/en/
+    sub-agents). So the four shapes are named in the librarian's own words as well."""
+    agent = (SCRIPTS.parent / ".claude" / "agents" / "librarian.md").read_text(encoding="utf-8")
+    for shape in ("**/pgpass*", "**/secrets/**", "**/.litkb-workstream", "**/*.env"):
+        assert shape in agent, f"the librarian brief does not name {shape}"
+    assert "litkb_guard.py" in agent, "the librarian does not carry the credential guard"
+
+
 def test_the_staged_hook_is_silent_inside_a_workstream(tmp_path):
     _plant_token(tmp_path)
     r = _hook({"hook_event_name": "PreToolUse", "cwd": str(tmp_path),
@@ -546,7 +925,9 @@ def test_the_skill_and_the_agent_name_the_tools_that_exist():
     agent = (SCRIPTS.parent / ".claude" / "agents" / "librarian.md").read_text(encoding="utf-8")
     names = set(tool_names())
     for doc, text in (("SKILL.md", skill), ("librarian.md", agent)):
-        named = set(re.findall(r"\blitkb_[a-z_]+", text)) - {"litkb_test"}
+        # `(?!\.py)` keeps a FILE name out of the tool scan: the librarian now cites the credential
+        # guard `litkb_guard.py`, which is a hook on disk, not a tool on this server.
+        named = set(re.findall(r"\blitkb_[a-z_]+\b(?!\.py)", text)) - {"litkb_test"}
         assert named <= names, f"{doc} names tools the server does not offer: {sorted(named - names)}"
         assert named, f"{doc} names no litkb tool at all"
     assert "mcp__litkb" in agent, "the librarian must restrict tools to the litkb MCP server"

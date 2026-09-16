@@ -37,6 +37,98 @@ def redact(s):
     return s
 
 
+# ── credential SHAPES, for the MCP output boundary (P8 referee F-4) ───────────────────────
+#
+# redact() above replaces REGISTERED strings: the archive key, the workstream token — whatever
+# add_secret() was given. That is a token redactor, and the P8 referee showed what it is not: a
+# block holding `localhost:5433:litkb:litkb_writer:<a password>` was planted in the corpus and came
+# back through litkb_search verbatim, because nobody had registered that password and nobody could
+# have. A credential this process never held still must not travel out through a tool result.
+#
+# So the rules below match by SHAPE. Two of them are not written here at all — they are read from
+# qc/secrets_check.py, the ladder rung that already refuses these shapes in git's index, so that the
+# definition of "this is a pgpass line" lives in exactly one file (CLAUDE.md §3.3). That module is
+# stdlib-only and imports nothing from litkb, so loading it by path is cheap and cannot cycle; it is
+# loaded by PATH rather than by `import qc.secrets_check` because qc/ is not import surface and that
+# ledger is closed (qc/test_status_discovery.py::test_path_insert_ledger).
+#
+# What is deliberately NOT masked, because masking it would break real answers:
+#   * a bare 64-hex value. A sha256 is 64 hex, and every file record litkb_work returns carries one.
+#     The token rule fires only when the value is ASSIGNED to a token-like NAME (`token=`, `secret:`,
+#     `password=`), which is secrets_check's own rule and the reason a file's sha256 still shows.
+#   * a field called `key`. In this database `key` is the WORK key (`Rosychuk_2003_…`) and `work_key`
+#     is on every search hit. `key=` is masked only inside a URL query, where the archive's
+#     fast-download key is the thing that actually leaks.
+# Known limit: the pgpass rule is line-anchored, as it is in the rung, so a pgpass line pasted into
+# the MIDDLE of a line of prose is matched by none of these. The assignment rule catches the common
+# spelling of that (`PGPASSWORD=…`, `password=…`); the shape rules are a boundary, not a proof.
+_SHAPE_SOURCE = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(
+    os.path.abspath(__file__)))), "qc", "secrets_check.py")
+
+#: names whose VALUE is a credential wherever it appears. `key` is absent on purpose (see above).
+_SECRET_NAMES = (r"password|passwd|pwd|token|secret|api[_-]?key|apikey|authorization|bearer"
+                 r"|access[_-]?token|private[_-]?key|pgpassword")
+#: inside a URL query string the name `key` is unambiguous — that is the archive's download key.
+_URL_NAMES = _SECRET_NAMES + r"|key"
+
+_URL_PARAM_RE = re.compile(rf"(?i)[?&](?:{_URL_NAMES})=(?P<v>[^&\s\"'<>]+)")
+_JSON_FIELD_RE = re.compile(rf"(?i)\"(?:{_SECRET_NAMES})\"\s*:\s*\"(?P<v>[^\"]+)\"")
+_ASSIGN_RE = re.compile(rf"(?i)(?<![\w.-])(?:{_SECRET_NAMES})\s*[:=]\s*[\"']?(?P<v>[^\s\"'&;,}}]{{8,}})")
+_PEM_RE = re.compile(r"-----BEGIN [A-Z0-9 ]+-----(?P<v>.*?)-----END [A-Z0-9 ]+-----", re.S)
+
+_shape_rules_cache = []
+
+
+def shape_rules():
+    """[(compiled regex with a group `v`, line_anchored)] — the credential shapes this boundary masks.
+
+    The first two come from qc/secrets_check.py so that the rung and the boundary cannot disagree
+    about what a pgpass line or an assigned 64-hex token looks like."""
+    if _shape_rules_cache:
+        return _shape_rules_cache
+    import importlib.util
+
+    spec = importlib.util.spec_from_file_location("_litkb_secret_shapes", _SHAPE_SOURCE)
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    _shape_rules_cache.extend([(mod.PGPASS_RE, True), (mod.TOKEN_RE, False),
+                               (_URL_PARAM_RE, False), (_JSON_FIELD_RE, False),
+                               (_ASSIGN_RE, False), (_PEM_RE, False)])
+    return _shape_rules_cache
+
+
+def _mask(rx, s):
+    """Replace only group `v` of every match — the VALUE — and keep the shape around it, so a reader
+    can see that something was masked and what kind of thing it was."""
+    def repl(m):
+        whole, off = m.group(0), m.start()
+        if m.group("v") is None:
+            return whole
+        return whole[:m.start("v") - off] + "<KEY>" + whole[m.end("v") - off:]
+    return rx.sub(repl, s)
+
+
+def redact_shapes(obj):
+    """Mask credential SHAPES in every string this object carries, structure unchanged.
+
+    Applied to the OBJECT, not to the JSON text, and that is the whole point: a block's text is one
+    JSON string by the time json.dumps has run, and a line-anchored rule can never match inside it
+    (the newlines are `\\n` escapes). Non-strings — ints, UUIDs, datetimes — are returned as they are,
+    so json.dumps still sees what it saw before."""
+    if isinstance(obj, str):
+        for rx, line_anchored in shape_rules():
+            if line_anchored:
+                obj = "\n".join(_mask(rx, line) for line in obj.split("\n"))
+            else:
+                obj = _mask(rx, obj)
+        return obj
+    if isinstance(obj, dict):
+        return {k: redact_shapes(v) for k, v in obj.items()}
+    if isinstance(obj, (list, tuple)):
+        return [redact_shapes(v) for v in obj]
+    return obj
+
+
 class _NoRedirect(urllib.request.HTTPRedirectHandler):
     def redirect_request(self, req, fp, code, msg, headers, newurl):
         return None

@@ -40,12 +40,15 @@ ALLOW_PATHS = {}   # "repo/relative/path": "reason it is not a secret"
 # host, database and user exclude commas: without that, CSV rows of UTC timestamps
 # (`x,,2026-09-09T12:06:08Z,...`) read as host:port:db:user:password — 82 false findings in
 # phase4/qc/runtime_sessions.csv on the first run, 2026-09-13
-PGPASS_RE = re.compile(r"^[ \t]*[^\s:#,]+:(?:\d{1,5}|\*):[^\s:,]+:[^\s:,]+:\S{16,}[ \t]*\r?$", re.M)
+# the password is group `v` so ONE definition of the shape can serve two jobs: this rung, which only
+# reports (line, rule) and never the value, and litkb.netutil.redact_shapes, which masks group `v` at
+# the MCP output boundary (P8 referee F-4). Adding the group changes nothing this file matches.
+PGPASS_RE = re.compile(r"^[ \t]*[^\s:#,]+:(?:\d{1,5}|\*):[^\s:,]+:[^\s:,]+:(?P<v>\S{16,})[ \t]*\r?$", re.M)
 # starts AT the keyword, not at a `[\w.-]*` name prefix: that prefix backtracked over every word in
 # every file and made the rung take 23 s on 1139 files (2026-09-13)
 TOKEN_RE = re.compile(
     r"(?i)(?:token|secret|api[_-]?key|apikey|passw(?:or)?d|pwd|bearer|auth)[A-Za-z0-9_.-]*"
-    r"[\"']?\s*[:=]\s*[\"']?(?<![0-9a-f])[0-9a-f]{64}(?![0-9a-f])")
+    r"[\"']?\s*[:=]\s*[\"']?(?<![0-9a-f])(?P<v>[0-9a-f]{64})(?![0-9a-f])")
 ALLOW_RE = re.compile(r"secrets-check:\s*allow\s+\S.{3,}")
 MAX_BYTES = 50 * 1024 * 1024
 

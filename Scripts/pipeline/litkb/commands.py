@@ -250,9 +250,31 @@ def cmd_promote(args, conn):
             chains = pconn.execute(
                 "SELECT entity, count(*) FROM litkb.ws_heads WHERE workstream_id = %s GROUP BY 1 ORDER BY 1",
                 (ws_id,)).fetchall()
+            # BEGIN guard: prepare WRITES the promotion report
+            # P8 referee F-5: prepare recorded a report path and wrote no file, while the skill and
+            # the P8 report both said it wrote one onto the work branch. `promotions.report_path`
+            # can only record what the caller named AT prepare — the promotion id does not exist
+            # until prepare returns — so with no --report the file is named by the promotion id
+            # under `_derived/promotions/` and the payload says where it went. Making the database
+            # record that default would need a migration; it is flagged in the P8 report rather
+            # than invented here.
+            detail = promote.chain_rows(pconn, ws_id)
+            report_at = Path(args.report) if args.report else Path("_derived") / "promotions" / f"{pid}.md"
+            if not report_at.is_absolute():
+                report_at = _worktree(args) / report_at
+            written = promote.write_report(report_at, promote.render_report(
+                ws_id, pid, head, detail, prepared_at=row[1] if row else None))
+            # END guard: prepare WRITES the promotion report
             _print({"workstream_id": str(ws_id), "outcome": "prepared", "promotion_id": str(pid),
                     "branch_head": head, "state": row[0] if row else None,
                     "prepared_at": row[1] if row else None, "report_path": row[2] if row else None,
+                    "report_written": written,
+                    "prepared": [f"{c['entity']}:{c['entity_id']}" for c in detail
+                                 if "prepared" in (c["states"] or [])],
+                    "held": [{"chain": f"{c['entity']}:{c['entity_id']}",
+                              "why": c["problems"] or (["conflict: the base moved under this chain"]
+                                                       if c["conflict"] else [])}
+                             for c in detail if "prepared" not in (c["states"] or [])],
                     "heads": dict(chains),
                     "next": "Kam reviews the report inside the merge; `promote commit` runs only after "
                             "the merge commit is reachable from main"})

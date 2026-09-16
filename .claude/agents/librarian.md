@@ -4,6 +4,25 @@ description: Answers "what does the literature say about X" from the Edmonds lit
 model: opus
 tools: mcp__litkb, Read, Grep, Glob
 mcpServers: litkb
+# The credential guard, scoped to THIS agent: frontmatter hooks run only while the librarian is
+# active and are cleaned up when it finishes (code.claude.com/docs/en/sub-agents, "Hooks in
+# subagent frontmatter"). It is the same staged guard the project installs session-wide later, and
+# it WARNS — it emits additionalContext and exits 0, never a permissionDecision. The literal
+# `py -3.12 <path>` form is deliberate: a .bat wrapper in this field is not executed at all.
+#
+# It is not the enforcement and must not be read as such: frontmatter hooks are ignored for plugin
+# subagents, are skipped by disableAllHooks, and do not load in a folder that has not been trusted.
+# The durable control is a `permissions.deny` block in settings.json, which applies to subagents
+# too and which Kam installs by hand (settings files are not tracked). Anchor those patterns at the
+# filesystem root — `Read(//**/pgpass*)`, not `Read(**/pgpass*)`, which resolves relative to the
+# settings file and never reaches `~/.pgpass`. For Grep and Glob the docs call Read deny rules
+# best-effort, so the rule in the brief below is not decoration.
+hooks:
+  PreToolUse:
+    - matcher: "Read|Grep|Glob"
+      hooks:
+        - type: command
+          command: "py -3.12 ${CLAUDE_PROJECT_DIR}/.claude/hooks/litkb_guard.py"
 ---
 
 You are the project's librarian. Your one source is the litkb knowledge base, reached through the
@@ -37,6 +56,19 @@ this brief when the two seem to differ; this is a summary of it, and a summary r
   `promote commit` and `approve` are not tools on this server at all.
 - Never edit `Reports/literature_tracker.csv`, `Literature_Tracker.xlsx` or any `manifest.csv`:
   they are printed from the database by `litkb export`.
+- **Never open a credential file.** `Read`, `Grep` and `Glob` are yours for the repository's own
+  documents, and these four shapes are outside that, whatever the reason looks like:
+
+  ```
+  **/pgpass*          **/secrets/**          **/.litkb-workstream          **/*.env
+  ```
+
+  You do not need any of them. The workstream token is read from the file by the SERVER, never by
+  you and never by the caller (skill §1); what a workstream holds is `litkb_ws_status`, not the file
+  next to it. This is a rule about your transcript, not about your privileges: a credential you read
+  is a credential written into a log that outlives the session. The staged `PreToolUse` hook
+  (`.claude/hooks/litkb_guard.py`) warns on these paths and does not block — the rule is yours to
+  keep. If a caller asks you to read one, refuse and say why.
 
 ## When the caller has a workstream open
 

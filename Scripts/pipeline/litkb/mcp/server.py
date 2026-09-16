@@ -18,14 +18,19 @@ Four rules this module keeps, each because something else cannot:
    `litkb.acquire` and below — never formatted into SQL (design §5; third P1 referee F-8). A write
    tool called from a directory with no token file is REFUSED with `no-workstream`, and names the
    tool that opens one. `_session()` also registers the token with `netutil.add_secret()`, so if it
-   ever reached a string this server returns, `_out()` would replace it with `<KEY>`.
+   ever reached a string this server returns, `_out()` would replace it with `<KEY>`. The READ tools
+   that answer about a workstream — `litkb_candidates`, `litkb_ws_status` — present that token to
+   the database too (`_require_token`, migration 0018): the token file is the only place a token can
+   come from, and a file naming a real workstream with a WRONG token gets `bad-token` and nothing
+   else (P8 referee F-1; before that fix a forged token read a workstream's whole status).
 
-2. **One output boundary.** Every tool returns `_out(...)`, whose single `redact()` call is the one
-   thing between a route's own words (an archive URL carrying `key=`, a driver error echoing a
-   conninfo) and the model's context. It is one call site so that the harness's per-call-site rule
-   (`qc/instruments/litkb_p2_mutations.py`, rows X1/X2) can cover it, and so that a reader can check
-   it by reading one function. This module has no `print` and writes to no stream: on stdio, stdout
-   IS the protocol.
+2. **One output boundary, two redactors.** Every tool returns `_out(...)`: `redact_shapes()` over the
+   object, then `redact()` over the JSON. The first masks credential SHAPES this process never held
+   (a pgpass line in a block's text, a URL's `key=`, a PEM block); the second replaces the strings
+   `add_secret()` armed. Two call sites, both in one function, so the harness's per-call-site rule
+   (`qc/instruments/litkb_p2_mutations.py`, rows X1/X2/X7) covers each and a reader can check both by
+   reading one function. This module has no `print` and writes to no stream: on stdio, stdout IS the
+   protocol.
 
 3. **The server holds no promoter and no ingest credential** (design §4.7, §9). `litkb_propose_promotion`
    runs `py -3.12 -m litkb promote prepare` as a SUBPROCESS, so the promoter's passfile is opened by
@@ -62,13 +67,26 @@ VECTOR_ENABLED = os.environ.get("LITKB_VECTOR_SEARCH") == "1"
 # ── the output boundary ───────────────────────────────────────────────────────────────────
 
 def _out(obj):
-    """THE one way a tool returns. JSON, then redact.
+    """THE one way a tool returns. Shapes, then JSON, then registered secrets.
 
-    Mutation row X1 strips the redact() here; `test_planted_secret_is_redacted_in_a_tool_result`
-    is what answers it. Nothing else in this package writes to a stream."""
-    from litkb.netutil import redact
+    TWO redactors, in that order, because they catch different things and only one of them can be
+    armed in advance:
 
-    return redact(json.dumps(obj, indent=1, default=str, ensure_ascii=False))
+      `redact_shapes(obj)` runs on the OBJECT, before json.dumps. It masks credential SHAPES —
+      a pgpass line, a URL's `key=`, a `password:` field, a PEM block — including ones this process
+      never held and could not have registered. It must run before the dump: by then a block's text
+      is a single JSON string with `\\n` escapes, and the line-anchored pgpass rule can never match
+      inside it. That is exactly how the P8 referee got `localhost:5433:litkb:litkb_writer:<pw>`
+      back out of a search result verbatim (F-4).
+
+      `redact(...)` runs on the JSON TEXT and replaces the strings `netutil.add_secret` was given —
+      the workstream token armed by `_session()`, an archive key armed by the acquisition route.
+
+    Mutation rows X1 (redact) and X7 (redact_shapes) strip one each; the two planted-secret tests
+    answer them. Nothing else in this package writes to a stream."""
+    from litkb.netutil import redact, redact_shapes
+
+    return redact(json.dumps(redact_shapes(obj), indent=1, default=str, ensure_ascii=False))
 
 
 def _refuse(code, message, **extra):
@@ -147,6 +165,41 @@ def _session():
     return ws_id, token
 
 
+def _require_token(conn, ws_id, token):
+    """The READ tools' token check (P8 referee F-1). Refuses before a single workstream row is read.
+
+    The referee wrote a `.litkb-workstream` naming the REAL workstream id with 64 zeros as its
+    token, and `litkb_ws_status` answered `ok: true` with the whole status. Workstream ids are not
+    secret — a tracked report prints one, and `litkb_ws_open` returns one by design — so that attack
+    needed no secret at all. The writes were safe only because the DATABASE presents the token on
+    every write function; the reads presented nothing and queried `WHERE workstream_id = %s`.
+
+    `litkb.check_ws_token` (migration 0018) is a SECURITY DEFINER boolean: no agent role may read
+    litkb.workstream_tokens, and `_require_ws_token` RAISEs, which is the wrong shape for a tool that
+    must refuse having written nothing. A database without 0018 fails CLOSED here — the refusal says
+    which migration is missing rather than answering with the workstream's internals."""
+    import psycopg
+
+    try:
+        ok = conn.execute("SELECT litkb.check_ws_token(%s, %s)", (ws_id, token)).fetchone()[0]
+    except psycopg.errors.UndefinedFunction:
+        raise Refusal("no-token-check",
+                      "this database has no litkb.check_ws_token: migration 0018 has not been "
+                      "applied, so the workstream token cannot be verified and no workstream "
+                      "internals are returned.") from None
+    if not ok:
+        raise Refusal("bad-token", BAD_TOKEN_MESSAGE)
+
+
+#: one sentence for a refused token, wherever it is refused — here for the read tools, and in
+#: `_guarded` for the write tools, where it arrives as the database's InsufficientPrivilege. It
+#: names NOTHING about the workstream: not its slug, not its state, not whether it exists.
+BAD_TOKEN_MESSAGE = (
+    "the token in this worktree's .litkb-workstream is not this workstream's token. Nothing about "
+    "the workstream is returned to a caller that cannot present it. If the file was copied from "
+    "another worktree, delete it and open a workstream here with litkb_ws_open.")
+
+
 def _labels(agent=None, session=None):
     from litkb.textnorm import norm_label
 
@@ -197,30 +250,89 @@ def _registry_client():
 
 # ── read tools ────────────────────────────────────────────────────────────────────────────
 
-_SEARCH_BLOCKS = """
-SELECT b.id::text, w.key, b.page_no, b.type, b.section_path, b.text, f.id::text,
-       ts_rank(to_tsvector('english', coalesce(b.text, '')), plainto_tsquery('english', %(q)s)) AS lex,
-       similarity(coalesce(b.text, ''), %(q)s) AS trg
+# Both legs read the text and the query through litkb.norm_search_text (migration 0018): U+FFFD and
+# soft hyphens dropped, line-break hyphenation joined, whitespace collapsed. The P8 referee's Q3 is
+# what this is for — the block holds `misclassi<FFFD>cation` and `this overesti- mate increases`
+# because that is what the PDF's text layer renders, so the gold passage was reachable only by a
+# caller who already knew how the extractor had mangled the word (§2.4). The normaliser is ONE SQL
+# function applied to both sides in the same statement: a Python query normaliser beside a SQL text
+# normaliser is the twin-drift migration 0014 D1 was written against. The blocks still STORE what
+# the PDF said; this repairs retrieval, and the real repair belongs upstream in P4/P5.
+# THREE legs, each its own statement, each with its own LIMIT. That is the change of shape: before,
+# one statement selected the all-terms matches and re-sorted them by trigram similarity, so what the
+# result called two legs was one candidate set ordered twice (P8 referee §3.5) and a block only
+# trigram could find, below the lexical cut, was never retrieved at all.
+_BLOCK_FROM = """
   FROM litkb.blocks b
   JOIN litkb.files f ON f.id = b.file_id AND f.current_run_id = b.run_id
   JOIN litkb.main_files mf ON mf.version_id = f.current_version_id
   JOIN litkb.main_works w ON w.work_id = mf.work_id
- WHERE to_tsvector('english', coalesce(b.text, '')) @@ plainto_tsquery('english', %(q)s)
-    OR coalesce(b.text, '') %% %(q)s
- ORDER BY lex DESC, trg DESC
+"""
+_BLOCK_COLS = "SELECT b.id::text, w.key, b.page_no, b.type, b.section_path, b.text, f.id::text"
+
+#: leg 1 — every term present. Precision: the hits this leg returns are the ones that answer the
+#: whole question, and RRF keeps them above the looser legs.
+_SEARCH_BLOCKS_ALL = f"""
+{_BLOCK_COLS}{_BLOCK_FROM}
+ WHERE to_tsvector('english', litkb.norm_search_text(b.text))
+       @@ plainto_tsquery('english', litkb.norm_search_text(%(q)s))
+ ORDER BY ts_rank(to_tsvector('english', litkb.norm_search_text(b.text)),
+                  plainto_tsquery('english', litkb.norm_search_text(%(q)s))) DESC, b.id
  LIMIT %(n)s
 """
 
-_SEARCH_USES = """
-SELECT u.version_id::text, w.key, g.slug, u.statement, u.kind, u.status, u.feeds, u.state,
-       ts_rank(to_tsvector('english', u.statement), plainto_tsquery('english', %(q)s)) AS lex,
-       similarity(u.statement, %(q)s) AS trg
+#: leg 2 — ANY term, ranked by how much of the question the block answers. This is what recovers the
+#: referee's Q3 (§2.4): its gold passage says "NEs" where the question says "naive estimators", and
+#: the PDF's text layer ate the ligature in "misclassification", so under all-terms matching it was
+#: unreachable by anything but a caller who already knew how the extractor had mangled it.
+_SEARCH_BLOCKS_ANY = f"""
+{_BLOCK_COLS}{_BLOCK_FROM}
+ WHERE to_tsvector('english', litkb.norm_search_text(b.text)) @@ litkb.any_term_query(%(q)s)
+ ORDER BY ts_rank(to_tsvector('english', litkb.norm_search_text(b.text)),
+                  litkb.any_term_query(%(q)s)) DESC, b.id
+ LIMIT %(n)s
+"""
+
+#: leg 3 — trigram, now a leg of its OWN: its own WHERE, its own ORDER BY, its own LIMIT. It finds
+#: what neither lexical leg can — a misspelling, a mangled word, a query that shares no whole token
+#: with the text.
+_SEARCH_BLOCKS_TRGM = f"""
+{_BLOCK_COLS}{_BLOCK_FROM}
+ WHERE litkb.norm_search_text(b.text) %% litkb.norm_search_text(%(q)s)
+ ORDER BY similarity(litkb.norm_search_text(b.text), litkb.norm_search_text(%(q)s)) DESC, b.id
+ LIMIT %(n)s
+"""
+
+_USE_COLS = ("SELECT u.version_id::text, w.key, g.slug, u.statement, u.kind, u.status, u.feeds, "
+             "u.state")
+_USE_FROM = """
   FROM litkb.main_uses u
   JOIN litkb.main_works w ON w.work_id = u.work_id
   LEFT JOIN litkb.gaps g ON g.id = u.gap_id
- WHERE to_tsvector('english', u.statement) @@ plainto_tsquery('english', %(q)s)
-    OR u.statement %% %(q)s
- ORDER BY lex DESC, trg DESC
+"""
+
+_SEARCH_USES_ALL = f"""
+{_USE_COLS}{_USE_FROM}
+ WHERE to_tsvector('english', litkb.norm_search_text(u.statement))
+       @@ plainto_tsquery('english', litkb.norm_search_text(%(q)s))
+ ORDER BY ts_rank(to_tsvector('english', litkb.norm_search_text(u.statement)),
+                  plainto_tsquery('english', litkb.norm_search_text(%(q)s))) DESC, u.version_id
+ LIMIT %(n)s
+"""
+
+_SEARCH_USES_ANY = f"""
+{_USE_COLS}{_USE_FROM}
+ WHERE to_tsvector('english', litkb.norm_search_text(u.statement)) @@ litkb.any_term_query(%(q)s)
+ ORDER BY ts_rank(to_tsvector('english', litkb.norm_search_text(u.statement)),
+                  litkb.any_term_query(%(q)s)) DESC, u.version_id
+ LIMIT %(n)s
+"""
+
+_SEARCH_USES_TRGM = f"""
+{_USE_COLS}{_USE_FROM}
+ WHERE litkb.norm_search_text(u.statement) %% litkb.norm_search_text(%(q)s)
+ ORDER BY similarity(litkb.norm_search_text(u.statement),
+                     litkb.norm_search_text(%(q)s)) DESC, u.version_id
  LIMIT %(n)s
 """
 
@@ -239,27 +351,42 @@ def _rrf(*legs, k=60):
             for key in sorted(score, key=lambda i: (-score[i], str(i)))]
 
 
+def _leg(conn, sql, query, limit, shape):
+    """One retrieval leg: run its own statement, return [(id, payload)] in its own rank order."""
+    return [(r[0], shape(r)) for r in conn.execute(sql, {"q": query, "n": limit}).fetchall()]
+
+
 def _search(query, limit, scope):
+    def block(r):
+        return {"block_id": r[0], "work_key": r[1], "page": r[2], "block_type": r[3],
+                "section_path": r[4], "text": r[5], "file_id": r[6]}
+
+    def use(r):
+        return {"use_version_id": r[0], "work_key": r[1], "gap": r[2], "statement": r[3],
+                "kind": r[4], "status": r[5], "feeds": r[6], "state": r[7]}
+
     with _conn("reader") as conn:
         hits = {"blocks": [], "uses": []}
         if scope in ("all", "blocks"):
-            rows = conn.execute(_SEARCH_BLOCKS, {"q": query, "n": limit}).fetchall()
-            lex = [(r[0], {"block_id": r[0], "work_key": r[1], "page": r[2], "block_type": r[3],
-                           "section_path": r[4], "text": r[5], "file_id": r[6]}) for r in rows]
-            trg = [(r[0], {}) for r in sorted(rows, key=lambda r: -(r[8] or 0))]
-            hits["blocks"] = _rrf(lex, trg)[:limit]
+            hits["blocks"] = _rrf(
+                _leg(conn, _SEARCH_BLOCKS_ALL, query, limit, block),
+                _leg(conn, _SEARCH_BLOCKS_ANY, query, limit, block),
+                _leg(conn, _SEARCH_BLOCKS_TRGM, query, limit, block))[:limit]
         if scope in ("all", "uses"):
-            rows = conn.execute(_SEARCH_USES, {"q": query, "n": limit}).fetchall()
-            lex = [(r[0], {"use_version_id": r[0], "work_key": r[1], "gap": r[2], "statement": r[3],
-                           "kind": r[4], "status": r[5], "feeds": r[6], "state": r[7]}) for r in rows]
-            trg = [(r[0], {}) for r in sorted(rows, key=lambda r: -(r[9] or 0))]
-            hits["uses"] = _rrf(lex, trg)[:limit]
+            hits["uses"] = _rrf(
+                _leg(conn, _SEARCH_USES_ALL, query, limit, use),
+                _leg(conn, _SEARCH_USES_ANY, query, limit, use),
+                _leg(conn, _SEARCH_USES_TRGM, query, limit, use))[:limit]
         # The vector leg is WIRED, not live. Setting LITKB_VECTOR_SEARCH=1 must not make the result
         # CLAIM a leg that did not run: the flag is checked against the embeddings table, and what
         # comes back says which of the three states this search was in.
         n_vec = (conn.execute("SELECT count(*) FROM litkb.embeddings").fetchone()[0]
                  if VECTOR_ENABLED else None)
-    return _ok(query=query, scope=scope, legs=["lexical", "trigram"],
+    return _ok(query=query, scope=scope,
+               legs=["lexical (all terms)", "lexical (any term)", "trigram"],
+               normalisation="the text and the query are both read through litkb.norm_search_text: "
+                             "U+FFFD and soft hyphens dropped, line-break hyphenation joined. The "
+                             "blocks still store what the PDF's text layer rendered.",
                vector_leg=("OFF (LITKB_VECTOR_SEARCH is not set): these hits are lexical, so a "
                            "paraphrase sharing no words with the text will NOT be found"
                            if not VECTOR_ENABLED else
@@ -317,10 +444,17 @@ def _work(doi=None, key=None):
 
 
 def _candidates(limit, state=None):
-    ws_id, _token = _session()
+    ws_id, token = _session()
     with _conn("reader") as conn:
+        _require_token(conn, ws_id, token)
+        # `ids`, not `identifiers`: that is the column 0001_core.sql defines, and this statement
+        # named the wrong one from the day it was written. It never showed, because the P8 gate's
+        # only candidates test is the one that refuses WITHOUT a workstream — with a real
+        # workstream the tool raised UndefinedColumn and `_guarded` turned it into a generic
+        # `error`, which reads like an empty answer. The referee wrote that _candidates leaks "by
+        # construction", from reading; running it is what found this.
         rows = conn.execute(
-            "SELECT id::text, state, source, source_detail, title, year, identifiers, admitted_work_id::text "
+            "SELECT id::text, state, source, source_detail, title, year, ids, admitted_work_id::text "
             "FROM litkb.candidates WHERE workstream_id = %s "
             "AND (%s::text IS NULL OR state = %s) ORDER BY created_at DESC LIMIT %s",
             (ws_id, state, state, limit)).fetchall()
@@ -330,8 +464,9 @@ def _candidates(limit, state=None):
 
 
 def _ws_status():
-    ws_id, _token = _session()
+    ws_id, token = _session()
     with _conn("reader") as conn:
+        _require_token(conn, ws_id, token)
         row = conn.execute("SELECT slug, git_branch, state, opened_at, purpose FROM litkb.workstreams "
                            "WHERE id = %s", (ws_id,)).fetchone()
         if not row:
@@ -461,6 +596,12 @@ def _record_use(statement, kind, quote, block_id, gap, work_key=None, doi=None, 
                                "the database can find at the offsets recorded — paraphrase in the "
                                "statement, never in the quote.", block_id=block_id, work_key=blk_key)
             char_start, char_end = i, i + len(quote)
+        # BEGIN guard: evidence comes from the work the use is about
+        # The strongest single property here and, until now, the one with no mutation row (P8
+        # referee §6.1): the use's work is DERIVED from the block and never taken from the caller,
+        # so there is no path by which a quote from B evidences a claim about A. What these two
+        # checks add is the refusal — a caller who names a work is told the block belongs to
+        # another one, instead of silently recording the use against the block's work.
         if work_key and work_key != blk_key:
             return _refuse("work-mismatch",
                            f"the block belongs to {blk_key}, not {work_key}: evidence must come from "
@@ -473,6 +614,7 @@ def _record_use(statement, kind, quote, block_id, gap, work_key=None, doi=None, 
                 (work_key, doi)).fetchone()
             if sel and sel[0] != work_id:
                 return _refuse("work-mismatch", "the block's work is not the work named")
+        # END guard: evidence comes from the work the use is about
         gap_id = conn.execute("SELECT id::text FROM litkb.gaps WHERE slug = %s", (gap,)).fetchone()
         if not gap_id:
             if not gap_question:
@@ -508,12 +650,26 @@ def _record_use(statement, kind, quote, block_id, gap, work_key=None, doi=None, 
 def _propose_promotion(report_path=None, repo=None):
     """`promote prepare`, run as a SUBPROCESS of the CLI.
 
+    The CLI writes the promotion report as part of preparing (`promote.write_report`, F-5): with no
+    `report_path` it lands at `_derived/promotions/<promotion_id>.md` in the worktree, and the path
+    comes back as `report_written`. The chains it prepared and the chains it HELD, with the
+    database's own reason for each, are in the result as `prepared` and `held`.
+
     Not an import: `promote_prepare` may be executed only by `litkb_promoter` (design §4.7), and
     this server must never hold that credential — §9 puts prepare outside the MCP surface for
     exactly that reason. Running the CLI keeps the passfile in a process that exits, and keeps this
     server's own logins to reader and writer. `promote commit` has no tool at all: it runs after
     Kam's merge, from a session that can see the merge commit."""
-    ws_id, _token = _session()
+    ws_id, token = _session()
+    # The offer tool needs the SAME check the read tools now make, and needs it more: `promote
+    # prepare` takes no token — `litkb.promote_prepare(ws, branch_head, report_path)` is authorised
+    # by the PROMOTER credential, not by the workstream's — so without this a crafted
+    # `.litkb-workstream` naming a published workstream id would prepare ANOTHER workstream's
+    # proposals, write its chain report into this worktree, and (promotions_one_prepared_per_ws)
+    # block its owner's own prepare. The referee tested the two read tools and the write path; this
+    # one was neither. Refused BEFORE the subprocess runs, so nothing is written at all.
+    with _conn("reader") as conn:
+        _require_token(conn, ws_id, token)
     wt = Path(repo) if repo else _worktree()
     cmd = [sys.executable, "-m", "litkb", "--db", _db(), "--dir", str(wt), "promote", "prepare"]
     if report_path:
@@ -541,6 +697,13 @@ def _guarded(fn):
         except Refusal as e:
             return _refuse(e.code, e.message, **e.extra)
         except Exception as e:                       # noqa: BLE001 — the boundary is the point
+            # The one refusal the design most wants stated well used to arrive as an opaque
+            # `error` carrying a raw psycopg message and a `CONTEXT: PL/pgSQL function
+            # _require_ws_token(uuid,text) line 1` (P8 referee §3.2). It is matched on the
+            # database's own sentence, not on SQLSTATE alone: 42501 is also what a missing GRANT
+            # raises, and calling that a bad token would send a reader hunting the wrong thing.
+            if "workstream token refused" in str(e):
+                return _refuse("bad-token", BAD_TOKEN_MESSAGE, tool=fn.__name__)
             return _refuse("error", f"{type(e).__name__}: {e}", tool=fn.__name__)
     call.__name__ = fn.__name__
     return call
@@ -558,9 +721,10 @@ def build_server():
         "second session."))
 
     @srv.tool(name="litkb_search", description=(
-        "Hybrid lexical search over extracted blocks and recorded uses. Returns work key, page, "
-        "section path and block_id (the block_id is what litkb_record_use quotes from). The vector "
-        "leg is off until P7, so a paraphrase sharing no words with the text will not be found."))
+        "Hybrid lexical search over extracted blocks and recorded uses: three legs — all terms, any "
+        "term, trigram — fused by reciprocal rank. Returns work key, page, section path and "
+        "block_id (the block_id is what litkb_record_use quotes from). The vector leg is off until "
+        "P7, so a paraphrase sharing no words with the text will not be found."))
     def litkb_search(query: str, limit: int = 10, scope: str = "all") -> str:
         return _guarded(_search)(query=query, limit=min(max(int(limit), 1), 50), scope=scope)
 
@@ -626,8 +790,10 @@ def build_server():
 
     @srv.tool(name="litkb_propose_promotion", description=(
         "Offer this workstream's proposed versions to main: group them into chains, re-run the "
-        "checks, and write the promotion report onto the work branch for Kam to review inside the "
-        "merge. PREPARE ONLY — committing the promotion happens after Kam merges, and is not a tool."))
+        "checks, and write the promotion report (`_derived/promotions/<id>.md` by default) into the "
+        "worktree for Kam to review inside the merge — commit it with the branch. The result lists "
+        "the chains prepared and the chains HELD with the reason for each. PREPARE ONLY — "
+        "committing the promotion happens after Kam merges, and is not a tool."))
     def litkb_propose_promotion(report_path: str = "", repo: str = "") -> str:
         return _guarded(_propose_promotion)(report_path=report_path or None, repo=repo or None)
 

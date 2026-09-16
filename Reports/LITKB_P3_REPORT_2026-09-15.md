@@ -672,7 +672,7 @@ over three workers (85 + 84 + 84 rows). `--sites`: **78 call sites, 75 covered b
 
 *The worker copy's domain was smaller than the tests' read domain.* The first full run of the table
 reported `253/253 fired; baselines FAILED` after 133.6 minutes, and the failing baseline was worker 1's
-`qc/test_litkb_inventory.py`: **1 failed, 39 passed, 24 errors**. The cause was this session's own census
+`qc/test_litkb_inventory.py`: **1 failed, 39 passed, 1 xfailed, 24 errors**. The cause was this session's own census
 freeze. `make_worker_copy()` copies `Scripts/` and `Reports/`; the census tests read
 `phase4/qc/litkb_inventory_census.sha256` and `phase4/qc/litkb_inventory.csv` through
 `inventory.repo_root()`, which resolves relative to the package — so inside a worker copy it resolved

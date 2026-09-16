@@ -362,7 +362,48 @@ reserved), and its collision note is replaced by what closed it.
 | P3 gate, read-only on `litkb` | **1,086 changed cells → explained 713, format 243, structural 120, filled 10, UNEXPLAINED 0, GATE: PASS**, and `phase4/qc/litkb_p3_diff.csv` regenerates with an **empty `git diff`** |
 | The 293-reference table | `litkb_s2_batching.py --arm confirmed`: **293 references → 20 resolved / 23 ambiguous / 250 unresolved**, unchanged. `requests_total 0`, 211 cache hits — cached here, not cache-only by construction |
 | `check.py --fast` under `litkb_test_w6` | secrets PASS, ruff PASS, compile PASS, pytest **1 failed, 2,964 passed, 25 skipped, 2 xfailed in 10.9 min**; litkb Postgres tests **360 passed, 3 skipped**. The one failure is `test_experiments.py::test_pointer_paths_resolve[crown_state_model]` — **only that**. The two inventory census pins that failed at the P6 merge now pass |
-| Full parallel harness, `--workers 3 --worker-dbs 1,6,9` | HARNESS_ROW_PLACEHOLDER |
+| Full parallel harness, `--workers 3 --worker-dbs 1,6,9` | **271/272 mutations fired, wall-clock 71.9 min**. Per worker: 91 rows (`litkb_test_w1`) / 91 (`w6`) / 90 (`w9`). But **`baselines FAILED`, rc 1 from all three**, and one row did not fire — both below. Closed in `549c5ee`; the 20 rows they touched re-ran **20/20 fired, baselines passed, 3.5 min** |
+
+### What the harness found, and why 271/272 is not the headline
+
+The two findings below were produced by the harness, not by reading it, and neither is a defect in
+either merged branch. They are what a merge does to a mutation suite.
+
+**1. The baseline was red, so nineteen verdicts in that run are VOID — not wrong, void.** P8 put the
+skill, the librarian and the staged hook at the **repository root** under `.claude/` (design §9.1:
+Claude Code walks up from the session's cwd, so a root-level directory is what reaches a session
+opened in `Scripts/`), and `qc/test_litkb_p8.py` reads all three by path off `SCRIPTS.parent`. None
+is under the harness's `COPY_DIRS`, so inside every worker copy all three were missing and the P8
+baseline ran at **14 failed / 43 passed** — while the same file passes **60/60** in the real tree.
+
+That is worse than a wrong count. `run_one` calls a mutation FIRED when its run has **any** failure,
+comparing nothing against the baseline, so with a baseline already red **all nineteen X rows report
+FIRED whatever the mutation does**. The separate baseline check is the only thing standing between
+that and a clean-looking table, and it did its job: `baselines FAILED`, rc 1, from all three workers.
+
+The three files join `COPY_FILES`, the list whose own comment already says this in as many words —
+*"a test's whole read domain must be inside the copy"*. This is the third entry added to it by a
+failing baseline rather than by review. `.claude/settings.json` deliberately does **not** join it: it
+is git-ignored, it is the one file P8's design says must not carry the hook registration, and the
+test that checks it skips when it is absent — copying an untracked per-session file would make a
+worker's verdict depend on whichever session last edited it. After the fix the P8 baseline reads
+**57 passed, 3 deselected** in every worker copy, and all nineteen X rows fire against it.
+
+**2. A18 DID NOT FIRE, and it is the replaced-function class a fourth time — created by this merge.**
+0019 `CREATE OR REPLACE`s `litkb._ws_chains` for its evidence clause and carries 0013's guard *a fact
+chain enters main only through admission approval* along with it. So 0013's copy of that guard is
+dead text: deleting it changes no database, and A18 was deleting it there. Repointed to 0019 — where
+X15 already pointed — it fires, caught by
+`test_litkb_p2.py::test_an_unapproved_manual_admission_is_held_at_promote_prepare`.
+
+That is the same lesson as `MIG16`, `MIG20` and `MIG21`, and the fourth time it has cost something:
+**whenever a migration replaces a function, every mutation row on the old body silently stops testing
+anything.** The harness now carries a constant for each of the four, so the next one is a lookup.
+
+Worth stating plainly: **X12 fires on exactly the token this merge was about** —
+`test_a_feeds_token_outside_the_vocabulary_is_still_refused[framework §13.1.1]`. Delete 0021's
+definition and a from-scratch database falls back to 0020's looser depth rule and takes it. That is
+the apply-order split, reproduced as a gate.
 
 ## `litkb`, read-only after the merge
 
@@ -421,6 +462,13 @@ two branches replacing the SAME function.
 
 * **`report_path` is unbounded** (above). Kam's, with the §9 amendment.
 * **`decisions.yaml` carries no line for the §9 amendment.** Kam's by rule; nothing here staged it.
+* **The harness's `run_one` compares nothing against its baseline.** It reports FIRED on any failure
+  at all, so a red baseline turns every row answered by that test file into a false positive — which
+  is exactly what happened above, and only the separate baseline check stood between it and a clean
+  table. The P8 referee flagged the neighbouring blind spot in the same function ("this harness
+  counts failures, not errors") and named it as not his branch's to change mid-pass. It is still
+  nobody's. Whoever owns the harness next: a row's verdict should be the DIFFERENCE from its own
+  baseline, not the absolute count.
 * **`litkb_test_w2` stays at 19 migrations.** It is P8's worker; the suite resets and re-migrates
   whichever database it is pointed at, so this costs nothing, but the number is stated rather than
   quietly fixed.

@@ -11,7 +11,19 @@ referee subagent and committed before any model was installed** (§2). CLAUDE.md
 
 ## 1. What was decided, in one paragraph
 
-*(filled in §7 after the numbers)*
+**Both models fail every pre-committed floor, and the failure is reported rather than fixed.**
+Against a 60-query gold set written by a referee and committed before either model was installed,
+the vector leg alone reached recall@20 = **0.617** (bge-m3) and **0.567** (nomic-v1.5) against a
+floor of **0.80**; MRR was 0.235 and 0.190 against 0.50. Hybrid RRF reached 0.733 against 0.83. The
+kill fired on both models — replacing chunk and query vectors with random unit vectors of the same
+dimension drops recall@20 to **0.000**, below the 0.22 fixed in advance — so the scores genuinely
+come from the vectors. bge-m3 wins every retrieval metric and costs 3.1× the CPU time (0.33 vs 1.04
+chunks/s) and a 33 % larger index; if one model must be chosen it is bge-m3, run hybrid, and not
+promoted to the KB default yet. The reason for the "not yet" is in §5.4: for bge-m3, 11 of the 23
+misses were also missed by BM25 — no method available here found them — and 0 are explained by the
+truncation cap, so about half the failure is not yet attributable to the encoder. Nothing upstream
+was touched after the numbers arrived: not the chunker, not the overlap rule, not the anchor
+mapping, not the thresholds.
 
 ---
 
@@ -165,33 +177,285 @@ is **7.0 % for both**. Both runs therefore use `--max-seq-length 1024 --batch-si
 **CPU is the measured device.** The 20 % headroom rule is enforced in code:
 `torch.set_num_threads(int(0.8 * os.cpu_count()))` = 9 of 12 logical cores.
 
-**The T2000 does not fit, measured, not assumed.** `nvidia-smi` on this machine: Quadro T2000,
-4,096 MiB total, **3,834 MiB already held by the display and other processes, 102 MiB free**
-(an earlier reading the same day: 2,742 MiB used, ~1,354 MiB free). bge-m3 fp16 weights alone are
-≈1.14 GB before any activation at 1,024 tokens. Neither reading leaves room, so no GPU throughput
-number is reported. No CUDA wheel was installed: swapping the torch build between the two models'
-runs would unpin the requirements file from what actually ran.
+**The T2000 was tried, after the CPU runs, and both models fit — measured, not assumed.** Free
+memory on this card swings with what the display is doing: three `nvidia-smi` readings the same
+day gave 1,354 MiB, **102 MiB**, and 3,527 MiB free of 4,096. The CUDA attempt was therefore made
+only once the CPU numbers were already recorded, and into a **second venv**
+(`D:\edmonds-pipeline\venv-embed-cu`, torch 2.4.1+cu121) so that `venv-embed` — the environment
+that produced every CPU number — was never mutated. Same code, same pins otherwise, fp32 in both.
+
+| on the T2000 | peak GPU memory (card total, display included) | verdict |
+|---|---|---|
+| nomic-v1.5, batch 8, 1024 tokens | 1,729 of 4,096 MiB | fits with room |
+| bge-m3, batch 8, 1024 tokens | **3,816 of 4,096 MiB — 120 MiB spare** | fits, but only because the desktop happened to be holding 409 MiB at launch; at the 3,834 MiB reading above it would not have started |
 
 ---
 
 ## 5. Results
 
-*(filled after the runs)*
+Machine-readable: `Reports/litkb_p7_results_2026-09-15.csv` (every leg × every query kind),
+`Reports/litkb_p7_perquery_2026-09-15.csv` (each gold id's rank in each leg),
+`Reports/litkb_p7_harness_2026-09-15.csv` (the kill row), `Reports/litkb_p7_miss_anatomy_2026-09-15.csv`
+(why each miss missed). Everything below is copied from those files, not retyped from memory.
+
+### 5.1 Cost
+
+| model | device | chunks/s | wall for 9,496 chunks | index (float32) | peak RSS | peak GPU |
+|---|---|---|---|---|---|---|
+| bge-m3 | CPU, 9 threads | **0.33** | 28,704 s (7 h 58 m) | 38.9 MB | 3.4 GB | — |
+| bge-m3 | T2000 | **0.93** | 10,215 s (2 h 50 m) | 38.9 MB | — | 3,816 MiB |
+| nomic-v1.5 | CPU, 9 threads | **1.04** | 9,149 s (2 h 32 m) | 29.2 MB | 1.8 GB | — |
+| nomic-v1.5 | T2000 | **6.45** | 1,473 s (25 m) | 29.2 MB | — | 1,729 MiB |
+
+nomic is **3.1× faster than bge-m3 on the same CPU** and its index is 25 % smaller (768 vs 1024
+dims). The T2000 is worth **6.2× over CPU for nomic but only 2.8× for bge-m3** — the bigger model
+spends its time in a 4 GB card it nearly fills, and 0.93 chunks/s on the GPU is still slower than
+nomic managed on the CPU. Index size scales linearly: at 9,496 chunks it is trivial either way, but
+per 100k chunks that is 410 MB (bge-m3) vs 307 MB (nomic) before any pgvector index overhead.
+
+**Device does not change the numbers.** Both models returned recall, MRR and kill results on the
+T2000 identical to their CPU runs to three decimals (bge-m3 0.383 / 0.617 / 0.235 both ways; nomic
+0.333 / 0.567 / 0.190 both ways). That is a free cross-check that the GPU path is the same
+computation, not a second measurement of the model.
+
+### 5.2 Recall — the vector leg alone, which is what §8 puts on trial
+
+Floors are the referee's, fixed before either model was installed (§2.2). **recall@k here means
+"at least one gold chunk in the top k"**, the referee's stated definition, not the fraction of
+gold chunks recovered.
+
+| leg | model | recall@5 | recall@20 | MRR |
+|---|---|---|---|---|
+| **floor** | *(referee)* | **0.60** | **0.80** | **0.50** |
+| vector alone | bge-m3 | 0.383 **FAIL** | 0.617 **FAIL** | 0.235 **FAIL** |
+| vector alone | nomic-v1.5 | 0.333 **FAIL** | 0.567 **FAIL** | 0.190 **FAIL** |
+| lexical alone (BM25) | — | 0.317 | 0.567 | 0.277 |
+| **floor** | *(referee)* | **0.63** | **0.83** | **0.53** |
+| hybrid RRF | bge-m3 | 0.383 **FAIL** | 0.733 **FAIL** | 0.225 **FAIL** |
+| hybrid RRF | nomic-v1.5 | 0.367 **FAIL** | 0.633 **FAIL** | 0.209 **FAIL** |
+
+**Every gate fails.** Per §14 P7 and CLAUDE.md §3.4c the response is to report the failure, not to
+move the floors: nothing upstream — the chunker, the 15 % overlap, the any-overlapping-chunk hit
+rule, the thresholds — was touched after the numbers arrived.
+
+Three things in that table are worth naming, because they are not what a bake-off usually finds:
+
+1. **Neither dense model beats a bag of words on rank quality.** BM25 MRR is 0.277; bge-m3 0.235,
+   nomic 0.190. It does so *despite* gold rule (c), which forbids any shared run of four
+   consecutive tokens between query and anchor precisely to starve the lexical leg. Rare technical
+   terms survive paraphrasing — "autologistic", "CUSUM", "misregistration" — and BM25 weights
+   exactly those. The dense models win on recall@5 (0.383 / 0.333 vs 0.317) and bge-m3 on
+   recall@20, but the passage is rarely their first hit.
+2. **RRF is doing real work.** Hybrid recall@20 with bge-m3 is 0.733, above either leg alone
+   (0.617 vector, 0.567 lexical) — the two legs miss different queries, which is the premise of §8's
+   hybrid design and is here measured rather than assumed. It is still short of the 0.83 floor.
+3. **The conceptual queries are where the vector leg was supposed to win and does not.** bge-m3
+   scores 0.400 recall@20 on them, BM25 scores 0.600.
+
+Per query kind, vector leg:
+
+| kind (n) | bge-m3 r@5 / r@20 / MRR | nomic r@5 / r@20 / MRR | BM25 r@5 / r@20 / MRR |
+|---|---|---|---|
+| paraphrase (30) | 0.467 / 0.733 / 0.301 | 0.400 / 0.633 / 0.226 | 0.500 / 0.600 / 0.405 |
+| conceptual (15) | 0.200 / 0.400 / 0.079 | 0.267 / 0.400 / 0.139 | 0.067 / 0.600 / 0.095 |
+| structural (15) | 0.400 / 0.600 / 0.258 | 0.267 / 0.600 / 0.169 | 0.200 / 0.467 / 0.203 |
+
+### 5.3 The random-vector kill
+
+The mutation: **both** the 9,496 chunk vectors and the 60 query vectors are replaced by random
+unit vectors of the same dimension, generated in `embed.random_vectors`, normalised the same way
+and pushed through the same `embed.search`. Pre-committed threshold: the vector leg alone must
+fall **below recall@20 = 0.22**.
+
+| model | real recall@20 | random recall@20 | threshold | expected | observed |
+|---|---|---|---|---|---|
+| bge-m3 | 0.617 | **0.000** | < 0.22 | FIRE | **FIRE** |
+| nomic-v1.5 | 0.567 | **0.000** | < 0.22 | FIRE | **FIRE** |
+
+Harness rows `P7K1` in `Reports/litkb_p7_harness_2026-09-15.csv`. The instrument returns a
+non-zero exit code if the kill does not fire, so a scrambled index cannot be reported as a pass.
+
+The honest reading: 0.000 is **chance**, not a wide margin of merit. With 20 draws from 9,496
+chunks, the expected recall@20 of a random index is ~0.2 % per query; the referee set 0.22 an order
+of magnitude above that so sampling noise could not kill a real model. What the row proves is
+narrow and necessary: the 0.617 is coming from the vectors, not from chunk ordering, not from the
+id list, not from an accidental lexical path inside the dense leg.
+
+### 5.4 Where the misses come from
+
+`qc/instruments/litkb_p7_miss_anatomy.py` attributes every vector miss at 20, joining the ranks to
+measured properties of each query's gold chunks. Categories are applied in order, so each miss is
+counted once.
+
+| | bge-m3 | nomic-v1.5 |
+|---|---|---|
+| vector misses at 20, of 60 | 23 | 26 |
+| anchor began past the 1,024-token cap (encoder never read it) | **0** | **0** |
+| referee-flagged extraction damage | 3 (`g011 g023 g031`) | 3 (same three) |
+| BM25 also missed it at 20 — no leg found it | 11 | 14 |
+| unexplained: BM25 found it, the encoder did not | **9** | **9** |
+
+Two conclusions follow, and they point in opposite directions:
+
+- **The truncation cap explains nothing.** Choosing 1,024 over 512 before scoring (§4) was worth
+  doing, and having done it, no miss can be blamed on it. Had the cap stayed at 512, roughly 7 in
+  10 gold chunks would have been read only in part and this table would have been unreadable.
+- **Roughly half the misses are not the encoder's.** For bge-m3, 11 of 23 are queries no leg
+  found — neither a 568M-parameter multilingual encoder nor Okapi BM25 put any gold chunk in its
+  top 20 (`g025 g027 g033 g037 g042 g043 g046 g047 g050 g052 g058`; the same list plus `g006 g012
+  g026 g029 g049` for nomic). When a bag of words and a dense retriever fail on the same query, the
+  suspect is the query, the anchor, or the extract — not the embedding model. That is a referee's
+  call to make, and §8 says so.
+- The residue — **9 queries for both models** (`g001 g002 g008 g024 g032 g036 g039 g045 g057` for
+  bge-m3; `g001 g002 g019 g024 g032 g039 g040 g045 g060` for nomic, six of them shared) — is
+  genuine encoder failure: BM25 ranked the passage inside 20 and the dense leg did not. `g001` and
+  `g002` are the sharpest cases: BM25 ranks them 3rd and 1st, and neither model has them in its
+  top 50.
+
+**The proxy that failed, reported as a failure.** The instrument also measures subwords per
+whitespace word in each gold chunk, on the theory that text which lost its inter-word spaces or
+interleaved two columns shatters into subwords. It does not separate the referee's flagged anchors
+from the rest: the single highest ratio on the set (2.07, `g054`, against a gold median of 1.60 for
+bge-m3) belongs to a query that **ranks 2nd**. The column stays in the CSV, labelled a proxy that
+did not work, rather than being deleted.
 
 ---
 
 ## 6. Limitations
 
-*(filled after the runs)*
+Ordered by how much each could move the verdict.
+
+1. **The gold set is a paraphrase set over the CORPUS, not over the review's quote-gated quotes.**
+   The referee disclosed this against itself (§2.1): only about 5 of the 30 paraphrase anchors
+   correspond to passages the literature reviews quote verbatim, because most review blockquotes
+   are the review's own commentary and many quoted papers have no `.txt` extract at all. §8's
+   design says "paraphrases of verbatim review quotes"; this is the nearest thing the corpus
+   supports. A referee who rebuilt the gold from stage-5 blocks over the seven gate papers would be
+   testing something different, and possibly easier.
+2. **The lexical leg is Okapi BM25 in-repo, not Postgres `tsvector` + `pg_trgm`.** The run is
+   DB-free by instruction, so the hybrid number is a stand-in: real `tsvector` stems, weights
+   fields, and handles phrases differently, and `pg_trgm` adds fuzzy matching BM25 has no analogue
+   for. The lexical and hybrid rows would move. Which of the two ENCODERS wins would not — the
+   vector leg is scored alone, and the lexical leg is byte-identical across both models (its row is
+   literally the same numbers in both runs, which is the check that it is model-independent).
+3. **Eight gold anchors sit in extraction-damaged text and were kept deliberately** (§2.1). Three
+   of them are among the misses. They are not an excuse: this is the corpus the KB must retrieve
+   from. But a referee re-running after stage-3 OCR should expect a different number.
+4. **Chunking is a heuristic over flat PDF text dumps.** Structure is inferred from paragraph
+   shape, not from a document model — §3 records the first draft calling half of a maths paper
+   "structural". 437 chunks exceed the 500-token ceiling because a single paragraph does, and
+   **28 of the 60 anchors straddle a chunk boundary**, which the hit rule handles by counting any
+   overlapping chunk. Real stage-5 blocks would replace all of this.
+5. **Seven papers are excluded as image-only scans and 29 `*.raw.txt` twins as duplicates** (§3).
+   The excluded seven are not searchable by any method today; they return with OCR.
+6. **60 queries is a small sample.** One query is 1.7 recall points. The gap between bge-m3 and
+   nomic on recall@20 (0.617 vs 0.567) is three queries; it is consistent across recall@5, recall@20
+   and MRR and across the per-kind breakdown, but it is not a wide margin and should not be quoted
+   as one.
+7. **CPU throughput is machine-specific** — 9 of 12 logical cores on this workstation, fp32,
+   batch 8. The ratio between the two models is the transferable fact; the absolute chunks/s is not.
+8. **The T2000 result is fragile, not a capability claim.** bge-m3 finished with 120 MiB spare on a
+   card whose free memory was measured at 102 MiB earlier the same day. It fits when the desktop is
+   quiet. That is not a basis for scheduling work on it.
 
 ---
 
 ## 7. Recommendation
 
-*(filled after the runs)*
+**Do not promote either model to the KB's retrieval default on this evidence. If one must be
+picked today, pick bge-m3, and run it hybrid.**
+
+**Why bge-m3 and not nomic.** It wins every retrieval metric measured — recall@5 0.383 vs 0.333,
+recall@20 0.617 vs 0.567, MRR 0.235 vs 0.190 — and the margin holds on all three query kinds at
+recall@20 and on the hybrid leg (0.733 vs 0.633). It costs 3.1× the CPU time and a 33 % larger
+index, and that is the trade: 8 CPU-hours per full re-index of 9,496 chunks against 2.5, or 2 h 50 m
+against 25 m on the T2000. For a corpus this size, re-indexed rarely, the retrieval margin is worth
+more than the throughput. If the corpus grows an order of magnitude and re-indexing becomes routine,
+that arithmetic flips and nomic deserves a fresh look — at which point nomic's Matryoshka property
+(its card supports truncating 768 → 256 dims) is a lever bge-m3 does not offer.
+
+**Licences are not a discriminator.** bge-m3 is MIT; nomic-embed-text-v1.5 is Apache-2.0. Both
+permit commercial use and redistribution. nomic requires `trust_remote_code=True` — its
+`nomic-bert-2048` implementation is downloaded and executed from the Hub, and it silently fetched a
+newer copy of `modeling_hf_nomic_bert.py` during this run. That is a supply-chain surface bge-m3
+does not have, and if nomic is ever adopted the revision must be pinned.
+
+**Dimensions are not a constraint here.** pgvector's `vector` type indexes up to 2,000 dimensions
+and `halfvec` up to 4,000; bge-m3 at 1024 and nomic at 768 both fit the plain `vector` type with
+room to spare, so §8's index choice is unconstrained by either model.
+
+**But the honest headline is that the vector leg failed its floor by a wide margin — 0.617 against
+0.80 — and hybrid failed too.** The design's own §14 P7 kill language is about the vector leg
+carrying paraphrased queries alone, and it does not. Two facts stop that being a verdict on the
+encoders:
+
+- 11 of bge-m3's 23 misses were also missed by BM25 at 20. No retrieval method available here found
+  them. Until someone reads those eleven anchors against their chunks, the failure cannot be
+  attributed.
+- Every leg is being scored against a chunker that is a heuristic over flat text dumps, with 28 of
+  60 anchors straddling a boundary and 437 chunks over the token ceiling.
+
+So the actionable recommendation is a measurement, not a model: **resolve the eleven no-leg queries
+before re-running.** If they turn out to be unretrievable anchors, the remaining 49 queries put
+bge-m3's vector recall@20 at 37/49 = 0.76 — still short of 0.80, but a different conversation from
+0.617. That arithmetic is offered as an upper bound a referee can check, not as a score: dropping
+the hardest queries after seeing the results is exactly the move the frozen-gold rule exists to
+prevent, and this report does not adopt it.
 
 ---
 
 ## 8. What blocks a referee
 
-*(filled after the runs)*
+What an independent agent would need in order to re-run and disagree, in the order it would bite.
+
+**Nothing blocks a re-run of the scoring.** Corpus, chunks, gold, thresholds and every per-query
+rank are committed with hashes (§2, §3). `qc/instruments/litkb_p7_verify_gold.py` re-checks the
+gold against the corpus mechanically. The bake-off takes the chunk file, the gold file and the
+thresholds file as arguments and writes the CSVs this report quotes. A referee with the venv can
+reproduce every number here; a referee without a GPU can reproduce every number except the two
+T2000 throughput rows.
+
+**Four things block a verdict:**
+
+1. **The eleven no-leg queries need a human-or-referee reading.** `g025 g027 g033 g037 g042 g043
+   g046 g047 g050 g052 g058`: neither encoder nor BM25 ranked any gold chunk in the top 20. The
+   question — is the anchor retrievable at all from the extract as chunked? — cannot be answered by
+   the builder without re-opening the gold, which the frozen-gold rule forbids. It is a referee's
+   call, and it decides whether 0.617 is an encoder result or a corpus result.
+2. **The gold is paraphrase-over-corpus, not paraphrase-over-review-quotes** (§2.1, the referee's
+   own disclosure). Design §8 describes the latter. Whether the substitution is acceptable is a
+   design call, not a measurement, and it was made by the referee under the constraint that the
+   review's quoted papers largely have no extracts.
+3. **The lexical leg is BM25, not `tsvector` + `pg_trgm`** (§6.2). The hybrid verdict is provisional
+   until it runs against the real leg in `litkb_test_w9`. The vector comparison is not affected.
+4. **Stage 5 blocks do not exist yet except for seven gate papers.** P7 chunked flat `.txt`
+   extracts because that is what exists. Re-running over real structural blocks would change the
+   chunk set, the straddle count and every recall number — it is the single change most likely to
+   move the result, and it is upstream of this phase.
+
+**What does NOT block a referee, and is settled:**
+
+- The kill fires, on both models, through the same code path (§5.3), so the pass/fail machinery is
+  known to work rather than merely never having fired.
+- `max_seq_length` was set by a tokenizer census committed before any recall was scored (§4), and
+  the miss anatomy confirms zero misses are attributable to it (§5.4).
+- The lexical leg is identical across both model runs, which is the check that it is
+  model-independent.
+- Both devices give identical scores, so nothing here is a GPU numerics artefact.
+
+**Provenance.** Every number in this report comes from
+`Reports/litkb_p7_{results,perquery,harness,miss_anatomy}_2026-09-15.csv`, written by
+`qc/instruments/litkb_embed_bakeoff.py` and `qc/instruments/litkb_p7_miss_anatomy.py`. The CPU runs
+used `D:\edmonds-pipeline\venv-embed` (torch 2.4.1 CPU); the T2000 runs used a second venv,
+`D:\edmonds-pipeline\venv-embed-cu` (torch 2.4.1+cu121), created after the CPU runs so the CPU
+environment was never mutated. Both are pinned in `Scripts/requirements-litkb-embed.txt`. No
+`litkb` database was touched; `Literture\` was read only.
+
+**`py -3.12 qc/check.py --fast` with `LITKB_PGPORT=1`** (so the 260 Postgres guards skip rather
+than run against a live server): secrets PASS, ruff PASS, compile PASS, pytest **4 failed, 2,445
+passed, 283 skipped**. One is the known `test_pointer_paths_resolve[crown_state_model]`. The other
+three are in `qc/test_litkb_inventory.py` and are **inherited, not P7's**: they assert the live PDF
+corpus still matches a committed census, and the corpus has grown to 268 PDFs against the 224
+pinned (`assert 268 == 224`). That test and `litkb/extract/inventory.py` were last touched by
+commits `cc36b82` and `d0d0e7c`, both of which predate this branch's P7 work; P7 reads `.txt`
+extracts only and never wrote to `Literture\`. The 26 P7 tests in `qc/test_litkb_index.py` pass.

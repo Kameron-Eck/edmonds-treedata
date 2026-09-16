@@ -10,6 +10,9 @@ import pytest
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(  # noqa: E402
     os.path.abspath(__file__))), "pipeline"))
+# instruments/ is not a package; the two gate tests below import the gold verifier from it.
+# Done once here so the file keeps ONE insert per uninstalled root (test_path_insert_ledger).
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "instruments"))  # noqa: E402
 
 from litkb.index import chunk as C  # noqa: E402
 from litkb.index import corpus as K  # noqa: E402
@@ -260,7 +263,6 @@ def test_gold_verifier_accepts_a_well_formed_anchor_and_rejects_a_shifted_one(tm
     """The verifier is a gate, so show it FIRES on a known-bad input (CLAUDE.md §3.4c)."""
     if not os.path.isdir(K.CORPUS_DIR):
         pytest.skip("literature corpus not present")
-    sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "instruments"))
     import litkb_p7_verify_gold as V
 
     good = _gold_fixture(tmp_path)
@@ -276,7 +278,6 @@ def test_gold_verifier_rejects_a_verbatim_query(tmp_path):
     """A query copied out of the passage is what the paraphrase rule exists to stop."""
     if not os.path.isdir(K.CORPUS_DIR):
         pytest.skip("literature corpus not present")
-    sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "instruments"))
     import litkb_p7_verify_gold as V
 
     stem = K.stems()[0]

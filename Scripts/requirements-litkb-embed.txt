@@ -6,8 +6,13 @@
 #   py -3.12 -m venv D:\edmonds-pipeline\venv-embed
 #   D:\edmonds-pipeline\venv-embed\Scripts\python.exe -m pip install -r Scripts/requirements-litkb-embed.txt
 #
-# CPU wheels by default. The T2000 (4 GB, CUDA) is tried by installing the cu121 torch
-# wheel instead; which one is in the venv is printed by the bake-off's device row.
+# CPU wheels by default. The T2000 (4 GB, CUDA) was measured from a SECOND venv, created
+# after the CPU runs so the CPU environment was never mutated mid-measurement:
+#   py -3.12 -m venv D:\edmonds-pipeline\venv-embed-cu
+#   ...\python.exe -m pip install torch==2.4.1 --index-url https://download.pytorch.org/whl/cu121
+#   ...\python.exe -m pip install -r Scripts/requirements-litkb-embed.txt   # torch already satisfied
+# Both models fit that card at batch 8 / 1024 tokens (nomic 1729 MiB, bge-m3 3816 MiB of 4096)
+# and return scores identical to CPU; see Reports/LITKB_EMBEDDINGS_2026-09-15.md §4.
 torch==2.4.1
 transformers==4.44.2
 sentence-transformers==3.0.1

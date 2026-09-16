@@ -1027,12 +1027,57 @@ Kam has not merged. The next step is `litkb_p5_bulk.py plan --workstream fix-op-
 
 ## T. Guards, and the rows that break them
 
-Thirteen new mutation rows, **13 of 13 fired** on `litkb_test_w1` / `_w6` / `_w9` in 3.1 minutes:
-R537 the fragment text rule, R538 the merge, R539 the over-merge, R540 the reference re-kinding,
-R541 the caption, R542 the header kinds, R543 and R544 migration 0022's two guards, R545 the
-ingest's status column, P56 the status sweep, P57 the contamination test, P58 its prose rule, and
-X27 the search filter. `--sites` still reads **91 call sites, 88 covered by a row, 3 equivalent;
-21 sinks, 2 redacted, 19 allowed**.
+**Sixteen new rows**, one per call site this change adds: R537 the fragment text rule, R538 the
+merge, R539 the over-merge, R540 the reference re-kinding, R541 the caption, R542 the header
+kinds, R543 and R544 migration 0022's two guards, R545 the ingest's status column, P56 the status
+sweep, P57 the contamination test, P58 its prose rule, X27 the search filter, and T19/T20/T21 the
+OCR trigger, the page cap and the `has_text_layer` fact. **All sixteen fired.**
+
+**The ONE full parallel run** (`--workers 3 --worker-dbs 1,6,9`, the whole table):
+
+```
+parallel: 300 rows over 3 workers
+worker 1 (litkb_test_w1): 100 rows, 100 fired, baselines passed, rc 0, 77.1 min
+worker 2 (litkb_test_w6): 100 rows,  99 fired, baselines passed, rc 1, 79.6 min
+worker 3 (litkb_test_w9): 100 rows, 100 fired, baselines passed, rc 0, 83.2 min
+299/300 mutations fired; baselines passed; wall-clock 83.2 min over 3 workers
+```
+
+`--sites` still reads **91 call sites, 88 covered by a row, 3 equivalent; 21 sinks, 2 redacted,
+19 allowed**. The run did not start on the first attempt: `F5e` pointed at `acquire/run.py`'s
+`bind_any` line, which §S replaced with `bind_any_with_ocr`, and the pre-flight refused the whole
+table rather than run 299 rows and report a missing one at the end. Re-pointed, and every row's
+target now resolves before anything runs.
+
+**The one survivor is R532, and it is EQUIVALENT — measured, not argued.** R532 deletes the
+`canonical = _dedupe_figures(canonical)` call. It fired before this change. It no longer does,
+because `_merge_regions` — which this change adds two lines below it — takes any two blocks on a
+page at `IOU_MATCH` or better, and two figure blocks over one figure are exactly that. The
+evidence is the real file, not a fixture: Benedek_2015 p4 with both of its picture items planted
+twice in the Docling document (the same plant
+`test_a_figure_docling_reports_twice_still_enters_once` uses), reconciled with the call and with
+it monkeypatched to the identity —
+
+| | figure blocks on p4 | with a caption |
+|---|--:|--:|
+| `_dedupe_figures` called | 2 | 2 |
+| call removed | 2 | 2 |
+
+— byte-identical, including which reading survives and the caption it carries. The two rules
+differ only where the readings TIE (`_dedupe_figures` ranks a caption in the payload first,
+`_survivor_key` does not rank it at all), and on this corpus's artifacts they never tie: the
+figure pass produces both readings and `_caption_once` attaches the caption afterwards. So the
+call is now dead weight rather than a hole, and no assertion can be written that distinguishes
+the two — which is why no test was added to make the row fire again. **The code was not changed
+to remove it**: `_dedupe_figures` is what the 229-document corpus above was ingested with, and
+deleting it after the numbers were produced would make the shipped reconciler a different one
+from the reconciler the census describes. §V carries it as the next re-ingest's work.
+
+**The ladder** (`qc/check.py --fast`, `LITKB_TEST_DB=litkb_test_w6`, after the harness released
+the database): secrets PASS, ruff PASS, compile PASS, pytest **1 failed, 3,094 passed, 25
+skipped, 2 xfailed in 10:50** — the one failure is `test_pointer_paths_resolve[crown_state_model]`,
+the pre-existing canopy-side pointer the delta names as the only permitted failure. Inside it,
+**litkb Postgres tests: 378 passed, 3 skipped**.
 
 ## U. Did NOT test
 
@@ -1065,6 +1110,10 @@ X27 the search filter. `--sites` still reads **91 call sites, 88 covered by a ro
   keys, and `.claude/skills/literature/SKILL.md` step 0 now says that furniture and bibliographies
   are out of `litkb_search` by default and how to ask for them. Neither doc is otherwise re-read
   against the schema: what is written is what this change added, nothing older was verified.
+* **`_dedupe_figures` is now dead weight** (§T): the merge subsumes it, measured on the real
+  planted file. Delete the function, its call and mutation row R532 at the next re-ingest — not
+  before, because removing it now would separate the shipped reconciler from the one this
+  report's census describes. Until then the harness exits 1 on one equivalent row.
 * **Two superseded run sets** stand beside the current one (see §R). They cost disk and they make
   any un-scoped `blocks` count wrong; every query in this report scopes by
   `files.current_run_id`. An `ok` run cannot be deleted by design, so retiring them is a

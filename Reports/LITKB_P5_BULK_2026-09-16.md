@@ -511,7 +511,7 @@ now stated in `SKILL.md`, beside R-5's example.
 
 | work | outcome | why |
 |---|---|---|
-| `Jaffe_2014_estimating-accuracies-multiple-classifiers` | **bound** | title ratio 1.0, author near title — from `Jaffe_2015_…pdf`; the year disagreement is in the file name, not the record |
+| `Jaffe_2014_estimating-accuracies-multiple-classifiers` | **bound** | title ratio 1.0, author near title — from `Jaffe_2015_…pdf`. The referee's year disagreement is in the FILE NAME, not the record: the work's year is 2014 and its identifier is `10.48550/arxiv.1407.7644`, and arXiv `1407` is July 2014. `litkb_work` now shows it in one line — `file_stems: ["Jaffe_2015_estimating-accuracies-multiple"]` beside `key: Jaffe_2014_…` — with `discrepancies` empty, correctly |
 | `Marsan_2008_extending-earthquakes-reach-through` | **bound** | ratio 1.0 |
 | `Mei_2010_efficient-scalable-schemes-monitoring` | **bound** | ratio 1.0 |
 | `Vixie_2007_some-properties-minimizers-chan` | **bound** | ratio 1.0 |

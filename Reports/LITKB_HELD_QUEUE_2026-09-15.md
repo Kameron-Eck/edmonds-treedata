@@ -167,6 +167,10 @@ Each was offered to the tool *first*, so the refusal is litkb's own measurement 
 6. **`make_key` can pad a key with filler.** The Crossref title for `10.14778/3157794.3157797` is the single word *Snorkel*, so the key is `Ratner_2017_snorkel-work` — `work` is the padding `make_key` adds when fewer than two slug words survive.
 7. **No CLI writes a discrepancy.** `litkb.record_discrepancy` is the token-checked writer the P3 loader uses, and `litkb/commands.py` exposes no subcommand for it, so the five dead-DOI discrepancies were recorded by calling that function directly with the workstream token read from `.litkb-workstream`.
 
+## What this run left in `_litkb_staging/incoming/`
+
+17 `.download` files, all written by this queue between 20:55 and 21:22 on 2026-09-15 (the 13 others there are an earlier session's, 20:16–20:24). 16 are the PDFs listed above, each now recorded as its work's active file. The seventeenth, `AllenMatthew_2026_manual-labelling.download`, is **not a paper**: it is the Cambridge Apollo handle page for tracker 165, written before the fetch was changed to verify `%PDF-` in the scratchpad first. It is referenced by nothing in the database. Nothing was deleted, so it is named here rather than removed.
+
 ## Reproducing any row
 
 ```

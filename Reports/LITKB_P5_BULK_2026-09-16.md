@@ -20,9 +20,11 @@ run measured that were not expected.
 | `210718a` | post-merge: `SINK_ALLOW` for the three formula-worker `print` sites |
 | `c91f7cb` | the P5 driver |
 | `4d25b9c` | the `host` CHECK, and a kill that actually lands mid-transaction |
-| `<this>` | the report, the per-file table, the gate fix |
+| `72cdfe0` | the report, the per-file table, the gate fix |
+| `<final>` | the guard tests, harness rows P51-P54, and §6.2 / §6.3 / §10 / §11 |
 
-Pushed: see §9.
+**Pushed** to remote `github`, branch `work/20260913-literature-kb`: `b2c7324..72cdfe0`,
+and the final commit after it.
 
 **The merge left `litkb_p2_mutations.py --sites` FAILING**, and that is recorded rather than
 fixed silently: the Colab branch's own harness (`litkb_formula_mutations.py`) does not carry
@@ -32,8 +34,16 @@ the code. Neither module opens a socket or a database connection, so no credenti
 in either. After: **21 sinks, 2 redacted, 19 allowed.**
 
 `py -3.12 qc/check.py --fast` under `LITKB_TEST_DB=litkb_test_w6`, at the merge:
-**1 failed, 3,031 passed, 26 skipped, 2 xfailed, 463.8 s**. The one failure is the known
+**1 failed, 3,031 passed, 26 skipped, 2 xfailed, 463.8 s** — the one failure is the known
 pre-existing `test_pointer_paths_resolve[crown_state_model]`.
+
+**On the final tree it ran again, and caught something.** First pass: **2 failed**, the second
+being `test_status_discovery.py::test_path_insert_ledger`, on
+`unlisted=['qc/test_litkb_p5_bulk.py (1)']`. The new test file inserts no path — it *mentions*
+the call by name in a docstring, and the ledger greps for the spelling, so a sentence about the
+rule put the file on a list of files that break it. Reworded, not ledgered: adding it would
+have recorded a path insert that does not exist. Second pass: **1 failed
+(`crown_state_model`), 3,043 passed, 25 skipped, 2 xfailed, 630.5 s**; litkb Postgres tests 360 passed.
 
 ---
 
@@ -188,7 +198,7 @@ a tolerance wide enough to swallow the shift (60 pt) Leung starts matching the *
 | §14 P5 kill | fired? | evidence |
 |---|---|---|
 | **(a)** a worker killed mid-file resumes; one `ok` run per key, same block count, no duplicates | **YES** | §5.1 |
-| (b) an artifact whose bytes no longer match its recorded sha256 fails verification | **PARTIAL** | the sidecar check (`_artifact_ok`) is on every stage and a mismatched artifact is re-made rather than used — but **no corrupted artifact was planted in this run**, so it is NOT SHOWN to fire |
+| **(b)** an artifact whose bytes no longer match its recorded sha256 fails verification | **YES** | §10 row **P53**: `_artifact_ok` reduced to `return True` fails 2 tests, one of which flips a byte in a real written artifact. Planted in the TEST, not in the corpus run |
 | (c) two workers claiming at once never lease the same job | **NOT EXERCISED** | there is no lease: §12.3's `extraction_jobs` is NOT BUILT |
 | (d) a dead worker's job is reclaimed only after its lease expires | **NOT EXERCISED** | same |
 
@@ -269,15 +279,63 @@ Causes, measured:
 | `Ock_2024_drivers-tree-canopy-loss-mid` | 1 | 0.732 | same |
 
 **Two causes, not eight problems.** Five pages in four documents are the rotated-page refusal
-the adapters were designed to make and their coverage is 0 *because* no block was placed there —
-that is the design surfacing at corpus scale for the first time, and the planned set holds
-**5 rotated pages in 4 documents** out of 3,945. Sixteen pages in two documents are cropped
-files where the cropbox shift does not land on the characters; `Higham_2011`'s negative
-`dy = −111.6` is the extreme case, and the planned set holds **285 cropped pages in 16
-documents**, of which only these 16 fail — so the shift is right on 269 of 285 and wrong on
-16. **That is a real defect and it is not closed here.**
+the adapters were designed to make, and their coverage is 0 *because* no block was placed there
+— the design surfacing at corpus scale for the first time; the planned set holds **5 rotated
+pages in 4 documents** out of 3,945. Sixteen pages in two documents are cropped files where the
+shift does not land on the characters; the planned set holds **285 cropped pages in 16
+documents**, so the character share is at or above 0.80 on 269 of the 285 and below it on 16.
+A page above a catastrophe floor is not evidence the shift is RIGHT there — that is this
+report's own argument about the floor, and it applies to this sentence too. §6.2 locates the
+cause.
 
 **217 of 225 documents (96.4 %) have no page below the floor.**
+
+### 6.2 The cropped-page defect, located
+
+All sixteen cropped-page failures are ONE cause, and it is in the ONE frame reader.
+
+`page_frames` computes `dy = media.y1 - crop.y1`. When a `/CropBox` extends PAST the
+`/MediaBox` that is NEGATIVE — Higham's is **-111.6** on all 16 pages — but a renderer
+INTERSECTS the two boxes, so the page pypdfium2 measures characters on, and the page Docling
+lays out, is the intersection: the effective shift is 0, and the raw -111.6 moves every block
+off its own text. Measured, by re-running the reconciliation with `dy` clamped to
+`max(dy, 0)` and nothing else changed:
+
+| document | raw `dy` | min share | pages below floor | clamped: min share | clamped: below floor |
+|---|---|--:|--:|--:|--:|
+| `Higham_2011_pth-roots-stochastic-matrices` | -111.6 (16 pp) | 0.3049 | **15** | **0.9898** | **0** |
+| `Efron_1986_how-biased-apparent-error-rate` | -0.48 … -3.36 (4 pp) | 0.7457 | **1** | **0.9851** | **0** |
+
+**Both documents go to zero failures.** That is the whole cropped-page half of §6, and it is a
+two-line fix in `inventory.page_frames` — which is under the census `params_hash` and under the
+inventory mutation harness, so it is **deliberately NOT made tonight**: changing it re-prices
+every stage-0 record and needs its own referee. Blocker #2 now names a line instead of a
+symptom.
+
+Note what this does NOT touch: all 38 of Higham's L4 formula rows attached cleanly (§3.3). The
+block shift and the crop shift agree with each other; they disagree only with pdfium's
+character boxes, which is what a wrong SHARED offset looks like.
+
+### 6.3 The duplicate-sha256 groups, and the two wrong-content collisions
+
+Stage 0 reported 6 duplicate-sha256 groups (15 files) and two sha256 values filed under two
+DIFFERENT works each — `bb14fdbc…` under both Chen 2024 and Song 2026, `3a65f982…` under both
+Stehman 2022 and Xing 2024. Checked in the database after the ingest, because a collision bound
+to the wrong work would attribute one paper's text to another under search:
+
+| sha256 | filed under | active file row? | blocks, and under which work |
+|---|---|---|---|
+| `bb14fdbc…` | Chen 2024 **and** Song 2026 | **no** | none — neither work has blocks |
+| `3a65f982…` | Stehman 2022 **and** Xing 2024 | **no** | none |
+| `781b75f8…` | Bellettini 2002 x3 | yes, once | 1,561, `Bellettini_2002_total-variation-flow-rn` |
+| `d36c5093…` | Page 1954 x2 (one quarantined) | yes, once | 391, `Page_1954_continuous-inspection-schemes` |
+| `753a94fc…` | Brown 2022 x2 | no | none |
+| `b0843bfb…` | Mobsite 2026 x2 | no | none |
+
+**No misattribution occurred**, and it could not have: neither colliding sha256 has an active
+file row, so the ingest never saw them. The two groups that ARE in the corpus each bound to one
+work and were extracted once. The collisions remain an open ADMISSION question (stage 0
+reported them and did not resolve them), not a P5 finding.
 
 ### 6.1 The other read-only checks
 
@@ -330,6 +388,10 @@ so they cannot be merged anyway).
 - **`clear_extraction_rows`'s resume path** was not exercised by the live kill (§5.1).
 - **The 46 probed-here files' routing is not refereed** — it is the same prober, on files the
   frozen census does not pin.
+- **Throughput metrics are still parked as JSONL** (`litkb_derived/p5/metrics_{grobid,docling}.jsonl`)
+  and are NOT written to `extraction_runs.metrics`. That is the P4 throughput gate's unmet
+  clause (§12.10); P5 did not close it. `extraction_runs.metrics` holds the reconciliation's
+  `stats` dict only.
 
 ## 9. Blockers for the next step
 
@@ -344,6 +406,41 @@ so they cannot be merged anyway).
    the crops did not. Re-crop `Reynolds_2000` and `Montgomery_1991`.
 5. **No referee has seen any of this.** Every number above was produced by the author of the
    code (CLAUDE.md §3.4c).
+
+---
+
+## 10. The guards this driver adds, and how they are pinned
+
+`qc/test_litkb_p5_bulk.py`, **9 passed**, and four rows in the real harness —
+`py -3.12 qc/instruments/litkb_p2_mutations.py --only P51,P52,P53,P54`: **4/4 fired,
+baselines passed before and after, `litkb_p5_bulk.py` restored by sha256
+`d5dd8b416b8a324f…`, `match: True` after every row.**
+
+These four rows are an exception to the harness's own file rule, made deliberately. Its
+per-call-site self-check enumerates `Scripts/pipeline/litkb` only, so a guard written in an
+INSTRUMENT is outside its reach and would otherwise carry no row at all.
+
+| row | what it removes | result | test that fails |
+|---|---|---|---|
+| **P51** | `load_latex`'s `ok`-only filter | **FIRED** (1 failed) — the planted `unstable` and `degenerate` rows have boxes that match perfectly; only the status filter keeps the L4 pass's 323 held rows out of `equations.latex` | `test_a_held_row_never_reaches_the_latex_corpus` |
+| **P52** | the cropbox shift in `attach_latex` | **FIRED** (1 failed) | `test_the_formula_box_is_shifted_into_the_blocks_frame` |
+| **P53** | `_artifact_ok` reduced to existence | **FIRED** (2 failed) — §14 P5's kill **(b)**, and what moves that row from PARTIAL to FIRES | `test_an_artifact_whose_bytes_moved_is_refused`, `…with_no_sidecar…` |
+| **P54** | the one-to-one claim in `attach_latex` | **FIRED** (1 failed) | `test_one_latex_row_never_claims_two_blocks` |
+
+A fifth mutation — a comment reworded, a deliberate no-op — was replayed on a copy and
+**DID NOT FIRE** (9 passed), which is what a plant is for.
+
+## 11. The full harness
+
+`py -3.12 qc/instruments/litkb_p2_mutations.py --workers 3 --worker-dbs 1,6,9`:
+**272 rows, 272 fired, every baseline passing, wall-clock 69.2 min over 3 workers**
+(w1/`litkb_test_w1` 91/91 in 68.5 min, w2/`litkb_test_w6` 91/91 in 69.2 min,
+w3/`litkb_test_w9` 90/90 in 67.3 min; `rc 0` each). **No row failed to fire.**
+
+It ran on exactly `72cdfe0`'s code — verified, not assumed: the worker copies of
+`litkb_p5_bulk.py`, `test_status_discovery.py` and `litkb_p2_mutations.py` hash identically to
+`git show 72cdfe0:<path>`. `qc/test_litkb_p5_bulk.py` and the four P51-P54 rows were written
+after those copies were made, which is why they were run separately above.
 
 ---
 

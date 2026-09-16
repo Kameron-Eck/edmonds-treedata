@@ -724,6 +724,38 @@ replace("R536", f"{PKG}/extract/reconcile.py",
         "neighbour that merely contains the text counts as the region, which is exactly the "
         "blindness the character share already has", tests=TESTS_S5)
 
+# ── P5: the bulk driver's own three guards (2026-09-16) ───────────────────────────────────
+# These four rows are the exception to the file rule above and are here deliberately. The
+# per-call-site self-check enumerates Scripts/pipeline/litkb only, so a guard written in an
+# INSTRUMENT is outside its reach and would otherwise carry no row at all — and P5's driver
+# holds three guards nothing else covers: the `ok`-only filter that keeps the L4 pass's 323
+# held rows (132 unstable, 191 degenerate) out of `equations.latex`; the cropbox shift that
+# makes the LaTeX join land at all (measured: Conley_1999 attaches 138/138 with it, 0/138
+# without); and the sidecar check that is §14 P5's kill (b).
+TESTS_P5 = ["qc/test_litkb_p5_bulk.py"]
+P5B = "qc/instruments/litkb_p5_bulk.py"
+
+replace("P51", P5B,
+        '        if r.get("status") not in (None, "ok"):\n            continue',
+        "        if False:\n            continue",
+        "load_latex admits every row: a decode that did not reproduce, and a repetition loop, "
+        "land in equations.latex where a reader takes them for the equation", tests=TESTS_P5)
+replace("P52", P5B,
+        '            sx, sy = (dx, dy) if c.frame == "mediabox" else (0.0, 0.0)',
+        "            sx, sy = 0.0, 0.0",
+        "the formula box is compared to the block's box without the cropbox shift: on a cropped "
+        "page nothing joins, and at a loose tolerance the wrong region does", tests=TESTS_P5)
+replace("P53", P5B,
+        "    return bool(want) and _sha256_file(path) == want",
+        "    return True",
+        "_artifact_ok stops hashing: a half-written TEI or DoclingDocument is reused as a "
+        "finished one — §14 P5 kill (b)", tests=TESTS_P5)
+replace("P54", P5B,
+        "            if i in taken:\n                continue",
+        "            if False:\n                continue",
+        "attach_latex stops claiming a block once: two L4 rows over one region overwrite each "
+        "other instead of leaving the second unmatched", tests=TESTS_P5)
+
 DEFERRED_HELPERS = {}
 
 site("T18", "litkb/admit/binding.py::bind::verdict", '"bound"', tests=TESTS_P1P2,

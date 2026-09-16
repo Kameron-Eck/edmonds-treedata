@@ -296,10 +296,18 @@ def _git_env():
 
 
 def _paper_pdf(title, author):
-    sys.path.insert(0, str(SCRIPTS / "qc"))
-    from test_litkb_p2 import paper_pdf
+    """P2's one-page test PDF builder, reused rather than copied — the binding check reads the
+    first page, and two builders would drift into two different ideas of what a page looks like.
 
-    return paper_pdf(title, author)
+    Loaded by file path through importlib, NOT by putting qc/ on sys.path: that ledger is closed
+    (`qc/test_status_discovery.py::test_path_insert_ledger`) and the editable install is the rule.
+    A sibling test module is not import surface, so this is the way to reach one."""
+    import importlib.util
+
+    spec = importlib.util.spec_from_file_location("_litkb_p2_pdf", SCRIPTS / "qc" / "test_litkb_p2.py")
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod.paper_pdf(title, author)
 
 
 @pg_only

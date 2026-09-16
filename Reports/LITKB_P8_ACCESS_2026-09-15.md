@@ -7,9 +7,12 @@ Design: `Scripts/LITERATURE_KB_DESIGN_2026-09-13.md` §5, §8, §9, §9.1, §10,
 Decisions: `Scripts/decisions.yaml` `litkb-p0-foundation`, §15.13 (D-4), §15.17.
 Convention: `Scripts/docs/LITERATURE_CONVENTION.md` (the hunt protocol, rewritten at P3).
 
-**Status of this evidence (CLAUDE.md 3.4c): every number and every verdict below was produced by
-the author of the code. No independent referee has run any of it.** What a referee has to do to
-break it is listed at the end, and the mini-hunt's one substitution is stated rather than buried.
+**Status of this evidence (CLAUDE.md 3.4c).** Every number below was produced by the author of the
+code, and has since been **re-run by an independent agent** against its own throwaway database
+(`litkb_test_w3`) — §2.1. Every total reproduced; it found **no discrepancy** with this report, and
+added one caveat of its own (§6 item 10). It is not a full referee: it re-ran the author's tests, it
+did not write gold, and the two things this report already calls unproven — the unexercised
+librarian and the uninstalled hook — it could only confirm as unproven.
 
 ---
 
@@ -76,6 +79,57 @@ the access surface and is not hidden in the code.
 
 Run as: `LITKB_LIVE=1 LITKB_TEST_DB=litkb_test_w2 PYTHONUTF8=1 PYTHONPATH=pipeline py -3.12 -m pytest qc/test_litkb_p8.py -q`
 → **28 passed** (25 of them need no Postgres and no network).
+
+### 2.1 Reproduced by an independent agent — output verbatim
+
+An agent that did not write any of this re-ran the three commands against `litkb_test_w3`:
+
+```
+............................                                             [100%]
+litkb Postgres tests: 3 passed
+28 passed in 24.96s
+
+69 call sites, 66 covered by a row, 3 equivalent
+16 sinks, 2 redacted, 14 allowed        (no PROBLEM line)
+
+6/6 mutations fired; baselines passed
+baseline again (restored) (qc/test_litkb_p8.py): 25 passed, 3 deselected in 10.08s
+```
+
+It also read the code for four properties and answered each against file and line:
+
+- the token is **never** a tool parameter and appears in no tool result; there is **exactly one**
+  `redact()` (server.py:71) and **exactly one** `add_secret()` (server.py:146);
+- `_propose_promotion` subprocesses the CLI; the server's own `_role()` resolves only
+  `litkb_reader` / `litkb_writer`, and the ingest login appears nowhere in the file;
+- every git call in the commit test is `git -C <pytest tmp_path>`; with `--no-fetch`,
+  `promote.fetch_main()` — the only network call in `promote.py` — is never reached, and the module
+  contains no `push`;
+- the hook returns 0 on every path, emits only `additionalContext`, and is registered nowhere: that
+  `.claude/` holds `agents/`, `hooks/`, `skills/` and **no settings file at all**.
+
+Its verdict: no discrepancy with §2 or §3. Its one addition is §6 item 10.
+
+### 2.2 `check.py --fast` on the whole tree
+
+`LITKB_TEST_DB=litkb_test_w2 … py -3.12 qc/check.py --fast`, 33m46s (the machine was running
+several other worktrees' suites at the time):
+
+```
+[PASS] secrets · [PASS] ruff · [PASS] compile
+3 failed, 2698 passed, 25 skipped, 2 xfailed in 2026.18s
+litkb Postgres tests: 261 passed, 3 skipped
+```
+
+The three failures, each named rather than aggregated:
+
+| Failure | Mine? | What it is |
+|---|---|---|
+| `test_experiments.py::test_pointer_paths_resolve[crown_state_model]` | no | the one pre-existing failure this branch is allowed to carry |
+| `test_status_discovery.py::test_path_insert_ledger` | **YES — FIXED** | this suite reached P2's PDF builder with `sys.path.insert`, which that ledger closes. It now loads the sibling module by file path through `importlib`, and the ledger test passes |
+| `test_litkb_inventory.py::test_the_frame_reader_reproduces_the_committed_corpus_census` | no | `assert 234 == 224` — the census counts PDFs on disk under `Literture\`, and ten more have landed since it was committed. Nothing in this branch touches inventory (`git diff --name-only af57ebb..HEAD`), and the number is about the corpus, not the code. It belongs to whoever re-pins that census |
+
+After the fix: `qc/test_litkb_p8.py` + the ledger test → **29 passed**.
 
 ### The mini-hunt — PASSES
 
@@ -247,8 +301,10 @@ and anything restated there rots.
 
 ## 6. What blocks a referee — and what blocks acceptance
 
-1. **No independent referee has run any of this.** Everything above is the author's own measurement
-   (3.4c). A referee can reproduce it in one command:
+1. **The reproduction in §2.1 is not a full referee pass.** An independent agent re-ran the author's
+   commands and read the code; nobody has written gold for this phase, nobody has argued that the
+   tests test the right things, and the proposer still chose every assertion. A referee can
+   reproduce the numbers in one command:
    `LITKB_LIVE=1 LITKB_TEST_DB=litkb_test_w2 PYTHONUTF8=1 PYTHONPATH=pipeline py -3.12 -m pytest qc/test_litkb_p8.py -q`,
    and the mutation table with
    `LITKB_TEST_DB=litkb_test_w2 … litkb_p2_mutations.py --only X1,X2,X3,X4,X5,X6`.
@@ -277,5 +333,11 @@ and anything restated there rots.
    litkb_promoter`. `is_test_db()` keys on the `litkb_test` prefix and is never true for `litkb`, so
    it cannot be aimed at the real database — but it is a new path to the promoter's rights, and a
    referee should read it with that in mind.
-9. **The workstream `p8-*` rows live only in `litkb_test_w2`.** Nothing in this phase wrote to
+9. **The workstream `p8-*` rows live only in `litkb_test_w2` and `litkb_test_w3`.** Nothing in this phase wrote to
    `litkb`, and no promotion was committed against the real repository.
+10. **`--sites` reporting "no problems" rests partly on authored prose** (the reproducing agent's
+    own caveat, and it is right). 14 of the 16 sinks are cleared by a `SINK_ALLOW` entry — a human's
+    argument that the values interpolated there carry no secret — with a call COUNT so the argument
+    has to be re-made when a sink is added. Two are cleared mechanically, by passing through a
+    redactor. The census is an assertion under review, not a measurement. The server adds nothing to
+    it: it has no sink at all.

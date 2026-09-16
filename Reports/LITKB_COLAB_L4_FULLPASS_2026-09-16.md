@@ -18,8 +18,9 @@ Two things the run settles that a simulation could not, and they point opposite 
 **stability guard's price came in as predicted** — ×1.219 on decode against the ×1.269 canary
 2 projected — and it held **323 rows (4.5% of the corpus) out of the LaTeX corpus** that both
 canaries would have written as `ok`. The **slice planner did not**: §11.5 simulated a max/min
-slice ratio of 1.63× and the corpus measured **3.21×** decode-only, *worse* than the 2.85×
-canary 2 ran with the planner this one replaced. §6 is that finding.
+slice ratio of 1.63× and the corpus measured **3.21×** decode-only, twice that, over a spread
+of 1.53–6.61× across the 36 shards. §6 is that finding, including the three things that vary
+together and which it therefore cannot separate.
 
 ---
 
@@ -35,8 +36,8 @@ canary 2 ran with the planner this one replaced. §6 is that finding.
 | 05:44:20 | `vm_ops exec --file pipeline/litkb_formula_vm_start.py --timeout 900` issued |
 | 05:44:52 | the payload's own log stamp — the worker's nohup log opens |
 | 05:45:39 | exec returned — **79 s** for pip install + version gate + nohup detach. `LITKB_TORCH_BEFORE` == `LITKB_TORCH_AFTER` == `2.11.0+cu128 True`; docling 2.127.0 / docling-core 2.96.0 / ibm-models 4.0.2 / transformers 5.17.0 — identical to both canaries, so the version gate did not fire and the local reference LaTeX still describes the same CodeFormula |
-| **05:47:53** | **writer side probed on the VM, 2 min 14 s after the exec returned** — parent worker alive (pid 2737), beat file written at 05:45:32Z, 5,422 MiB already on the card (the children loading their models) |
 | 05:45:55 | shard `full00`'s parent starts |
+| **05:47:53** | **writer side probed on the VM, 2 min 14 s after the exec returned** — parent worker alive (pid 2737), beat file written at 05:45:32Z, 5,422 MiB already on the card (the children loading their models) |
 | 05:54:48 | **first result archive + sidecar visible server-side** |
 | 06:47 | mid-run audit: `full00`'s `worker.json` pulled and read without touching the VM — `procs 6, bound_by ["vram"]`, 190 ok / 10 degenerate / 0 unstable / 0 failed, slice spread 125–210 s |
 | 10:35:34 | shard `full35`'s parent starts |
@@ -283,7 +284,13 @@ The guard is part of the story but only a small part: removing every re-decode s
 mean from 3.61 to **3.21**, and in **19 of 36 shards the slowest slice was also the one that
 did the most re-decoding** — the long rows both trigger the guard and take longest to decode,
 so the guard lands on the slice that is already behind. Subtract it entirely and the planner
-still delivers 3.21×, twice its simulated figure and worse than the 2.85× it replaced.
+still delivers 3.21× on average, **twice its simulated figure**.
+
+**The comparison to canary 2's 2.85× is a mean against a single sample, and is stated that
+way.** That figure is one shard; this is 36, and **9 of the 36 came in below it** (as low as
+1.53×) while the worst reached 6.61×. The defensible claim is the first one — the simulation
+predicted 1.63× and the corpus measured 3.21× — not a ranking of the two planners, which this
+run does not have the design to support.
 
 **What this run cannot separate, said plainly.** Three things differ between canary 2's 2.85×
 and this run's 3.21×, and the run varies all of them at once:

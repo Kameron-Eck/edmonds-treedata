@@ -1065,15 +1065,25 @@ it monkeypatched to the identity —
 | `_dedupe_figures` called | 2 | 2 |
 | call removed | 2 | 2 |
 
-— byte-identical, including which reading survives and the caption it carries. The two rules
-differ only where the readings TIE (`_dedupe_figures` ranks a caption in the payload first,
-`_survivor_key` does not rank it at all), and on this corpus's artifacts they never tie: the
-figure pass produces both readings and `_caption_once` attaches the caption afterwards. So the
-call is now dead weight rather than a hole, and no assertion can be written that distinguishes
-the two — which is why no test was added to make the row fire again. **The code was not changed
-to remove it**: `_dedupe_figures` is what the 229-document corpus above was ingested with, and
-deleting it after the numbers were produced would make the shipped reconciler a different one
-from the reconciler the census describes. §V carries it as the next re-ingest's work.
+— byte-identical, including which reading survives and the caption it carries. **No assertion on
+these artifacts distinguishes the two**, which is why no test was added to make the row fire
+again.
+
+**But the dedupe is not dead code.** The two rules differ where the readings TIE:
+`_dedupe_figures` ranks a caption in the payload FIRST, `_survivor_key` does not rank it at all,
+so on a tie the merge keeps the caption-less reading and `litkb.figures.caption_block_id` is
+lost. Three constructed shapes show it — two readings both `source="both"` and both on Docling's
+box, differing only in which holds the caption, tied on text length, on index, or with the
+caption-less one holding the native layer: the dedupe keeps the caption in all three, the merge
+alone loses it in all three. **Those shapes are SYNTHETIC** (CLAUDE.md §3.4c): they demonstrate
+the rule's reach, they do not show the case occurs. It does not occur on Benedek, the one file
+measured; whether it occurs on the other 228 is INFERRED not to, from the mechanism — the figure
+pass produces both readings and `_caption_once` attaches the caption afterwards — and was not
+measured.
+
+**The code was not changed**: `_dedupe_figures` is what the 229-document corpus above was
+ingested with, and deleting it after the numbers were produced would make the shipped reconciler
+a different one from the reconciler the census describes. §V says what to do instead.
 
 **The ladder** (`qc/check.py --fast`, `LITKB_TEST_DB=litkb_test_w6`, after the harness released
 the database): secrets PASS, ruff PASS, compile PASS, pytest **1 failed, 3,094 passed, 25
@@ -1092,6 +1102,11 @@ the pre-existing canopy-side pointer the delta names as the only permitted failu
   (CLAUDE.md §3.4c). The `latex_status` detector is scored against an independent frozen gold;
   the duplicate counts and the corpus census are not scored against anything but themselves.
 * **Reproducibility.** No file was extracted twice at `stage5-3` with the same `params_hash`.
+* **Three litkb Postgres tests were SKIPPED** inside the ladder's 378 (`check.py` prints the
+  count, not the names), so those guards were not exercised on this run.
+* **R532's tie shapes are synthetic only** (§T). The case where `_dedupe_figures` still changes
+  the outcome was constructed, not found: no corpus file was searched for two figure readings
+  that tie on `_survivor_key`.
 * **The vector leg**, `record_use` live, `promote prepare` / `commit`, and per-region recall
   beyond the six stage-5 gold pages.
 
@@ -1112,10 +1127,12 @@ the pre-existing canopy-side pointer the delta names as the only permitted failu
   keys, and `.claude/skills/literature/SKILL.md` step 0 now says that furniture and bibliographies
   are out of `litkb_search` by default and how to ask for them. Neither doc is otherwise re-read
   against the schema: what is written is what this change added, nothing older was verified.
-* **`_dedupe_figures` is now dead weight** (§T): the merge subsumes it, measured on the real
-  planted file. Delete the function, its call and mutation row R532 at the next re-ingest — not
-  before, because removing it now would separate the shipped reconciler from the one this
-  report's census describes. Until then the harness exits 1 on one equivalent row.
+* **`_dedupe_figures` survives R532 as an equivalent** (§T), and the fix is NOT to delete it: on a
+  tie the merge's `_survivor_key` keeps the caption-less figure reading and the figure loses its
+  caption link. Fold the caption-in-payload test into `_survivor_key` — above `text_source`, where
+  `_dedupe_figures` already ranks it — and only THEN retire the function, its call and row R532.
+  At the next re-ingest, not before: removing it now would separate the shipped reconciler from
+  the one this report's census describes. Until then the harness exits 1 on this one row.
 * **Two superseded run sets** stand beside the current one (see §R). They cost disk and they make
   any un-scoped `blocks` count wrong; every query in this report scopes by
   `files.current_run_id`. An `ok` run cannot be deleted by design, so retiring them is a

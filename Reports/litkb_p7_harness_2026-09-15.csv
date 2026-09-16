@@ -1,0 +1,2 @@
+row_id,model,device,mutation,leg,metric,threshold,real,mutated,expected,observed
+P7K1,bge-m3,cpu,"chunk AND query vectors replaced by random unit vectors, same dims, same code path",vector_alone,recall@20,0.22,0.6167,0.0,FIRE,FIRE

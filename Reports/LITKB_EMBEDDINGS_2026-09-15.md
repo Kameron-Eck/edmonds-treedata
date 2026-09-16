@@ -138,7 +138,39 @@ straddle count is reported with the run — it is a fact about the chunker, not 
 
 ## 4. The models
 
-*(filled after the runs)*
+Both are local, open-weight, and pinned in `Scripts/requirements-litkb-embed.txt` (a dedicated
+venv, `D:\edmonds-pipeline\venv-embed`; none of torch/transformers/sentence-transformers enters
+`requirements-local.txt` or `-colab.txt`). The card facts below were **authored** into
+`litkb.index.embed.MODELS` from the two model cards (fetched 2026-09-15);
+`embed.describe()` prints them back beside the loaded model's reported dimension as a
+consistency check — it is not an independent reading of the card.
+
+| | bge-m3 | nomic-v1.5 |
+|---|---|---|
+| HF id | `BAAI/bge-m3` | `nomic-ai/nomic-embed-text-v1.5` |
+| dims | 1024 | 768 |
+| licence | MIT | Apache-2.0 |
+| instruction prefix | none | `search_query: ` / `search_document: ` (required by the card) |
+| `trust_remote_code` | no | **yes** |
+| normalisation | explicit, `normalize_embeddings=True` (cosine = dot) | same |
+| fits pgvector `vector` (2,000-d limit) | yes | yes |
+
+**`max_seq_length` was chosen before any recall was scored**, by a tokenizer-only census
+(`qc/instruments/litkb_p7_token_census.py`, committed `db6b461`) — choosing it after seeing recall
+would be fitting to the gold. At the conventional 512, **73 % of bge-m3's gold chunks and 58 % of
+nomic's would be truncated**, i.e. most gold passages would sit past the point the encoder ever
+reads and the miss would be charged to the model instead of to the cap. At **1024** gold truncation
+is **7.0 % for both**. Both runs therefore use `--max-seq-length 1024 --batch-size 8`.
+
+**CPU is the measured device.** The 20 % headroom rule is enforced in code:
+`torch.set_num_threads(int(0.8 * os.cpu_count()))` = 9 of 12 logical cores.
+
+**The T2000 does not fit, measured, not assumed.** `nvidia-smi` on this machine: Quadro T2000,
+4,096 MiB total, **3,834 MiB already held by the display and other processes, 102 MiB free**
+(an earlier reading the same day: 2,742 MiB used, ~1,354 MiB free). bge-m3 fp16 weights alone are
+≈1.14 GB before any activation at 1,024 tokens. Neither reading leaves room, so no GPU throughput
+number is reported. No CUDA wheel was installed: swapping the torch build between the two models'
+runs would unpin the requirements file from what actually ran.
 
 ---
 

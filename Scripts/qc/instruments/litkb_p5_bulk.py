@@ -1,0 +1,790 @@
+"""P5 — the local bulk pass: the whole corpus through stages 0/2/3/5 and into ``litkb``.
+
+    PYTHONUTF8=1 PYTHONPATH=pipeline py -3.12 qc/instruments/litkb_p5_bulk.py plan
+    ...                                                                      grobid
+    ...                                                                      docling
+    ...                                                                      ingest
+    ...                                                                      gate
+
+Five stages, each **resumable and idempotent by (file sha256, pipeline version)**, each
+keyed by sha256 and never by path — a corpus with six duplicate-sha256 groups has fewer
+DOCUMENTS than files, and keying on the path would extract the same bytes twice and then
+ingest two runs against one ``files`` row.
+
+WHAT THIS IS NOT. Design §12.3-§12.5's ``extraction_jobs`` table, its leased worker and the
+sweep are **NOT BUILT**, and this instrument does not build them. The checkpoint here is a
+local artifact-plus-sidecar on disk: a stage is resumable because a finished artifact is on
+disk with a sha256 beside it, and re-running skips it. That covers §14 P5's kill (a) — a
+worker killed mid-file resumes with no duplicate blocks, which the database's own
+``clear_extraction_rows`` enforces inside the resuming transaction — and it does NOT cover
+kills (c) and (d), which are about two workers leasing one job. Those stay NOT EXERCISED.
+
+THE PIPELINE VERSION. ``reconcile.PIPELINE_VERSION`` names what RECONCILIATION produces and
+is unchanged. This pass produces something else: reconciliation PLUS the L4 formula LaTeX
+attached to its equation blocks, so a run made here holds rows a plain stage5-2 ingest does
+not. It therefore carries its own identity, :data:`P5_PIPELINE_VERSION`, passed to
+``ingest_file``. Sharing stage5-2's key would let a file ingested without LaTeX be skipped as
+already-done and keep blocks with a NULL ``latex`` for ever — the same trap the stage-5
+report's fix 9 describes, one version later.
+"""
+import argparse
+import concurrent.futures
+import csv
+import json
+import os
+import subprocess
+import sys
+import time
+
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(  # noqa: E402
+    os.path.dirname(os.path.abspath(__file__)))), "pipeline"))
+
+from litkb.extract import docling as D  # noqa: E402
+from litkb.extract import grobid as G  # noqa: E402
+from litkb.extract import inventory as I  # noqa: E402
+from litkb.extract import reconcile as R  # noqa: E402
+
+#: Derived artifacts live OUTSIDE the repository (they are ~1 GB of tool output).
+DERIVED = os.environ.get("LITKB_P5_DERIVED", r"D:\edmonds-pipeline\litkb_derived\p5")
+TEI_DIR = os.path.join(DERIVED, "tei")
+DOC_DIR = os.path.join(DERIVED, "docling")
+CENSUS_JSONL = os.path.join(DERIVED, "inventory_census.jsonl")
+#: Stage-0 records for the active files the FROZEN census does not name. Kept in their own
+#: file so a census number can never be read off a set the census did not measure.
+EXTRA_JSONL = os.path.join(DERIVED, "inventory_extra.jsonl")
+PLAN_JSON = os.path.join(DERIVED, "plan.json")
+ROWS_CSV = os.path.join(DERIVED, "p5_files.csv")
+GROBID_METRICS = os.path.join(DERIVED, "metrics_grobid.jsonl")
+DOCLING_METRICS = os.path.join(DERIVED, "metrics_docling.jsonl")
+STAGE_LOG = os.path.join(DERIVED, "stage_log.jsonl")
+
+#: The full-corpus L4 pass. `ok` rows only — `unstable` and `degenerate` live in the verify
+#: queue beside it and are NEVER attached as text (LITKB_COLAB_L4_FULLPASS_2026-09-16 §4).
+LATEX_JSONL = os.environ.get(
+    "LITKB_P5_LATEX", r"D:\edmonds-pipeline\litkb_derived\formula\latex_formula_colab_full.jsonl")
+VERIFY_JSONL = os.environ.get(
+    "LITKB_P5_VERIFY",
+    r"D:\edmonds-pipeline\litkb_derived\formula\latex_formula_colab_full_verify_queue.jsonl")
+
+#: Docling on the T2000. `formulas=off` here on purpose: the formula LaTeX comes from the L4
+#: pass, and running CodeFormula on this card measured 178 MiB of headroom (DOCLING_LOCAL §8.3).
+CUDA_PY = os.environ.get("LITKB_P5_DOCLING_PY",
+                         r"D:\edmonds-pipeline\venv-docling-cuda\Scripts\python.exe")
+
+P5_PIPELINE_VERSION = "stage5-2+l4latex"
+
+#: Routes GROBID is offered. A scan has no text layer, so GROBID refuses it outright; posting
+#: one costs a minute of pdfalto and returns HTTP 500 (stage 5 report §5).
+GROBID_ROUTES = ("native", "mixed", "cover-sheet")
+
+#: The bbox join tolerance, in points. `merge_formula_latex` rounds boxes to 1 pt for the same
+#: join, so this is that rule at the same grain rather than a second one.
+BBOX_TOL = float(os.environ.get("LITKB_P5_BBOX_TOL", "2.0"))
+
+ROW_FIELDS = [
+    "sha256", "name", "relpath", "route", "pages", "ocr_pages", "file_id", "work_id",
+    "tei", "docling", "blocks", "matched", "disagreements", "figures", "tables",
+    "equations", "latex_attached", "latex_rows_for_file", "latex_unmatched",
+    "coverage_by_page_type", "coverage_min_share", "coverage_failures",
+    "grobid_seconds", "docling_seconds", "reconcile_seconds", "ingest_seconds",
+    "run_id", "inserted", "status", "note",
+]
+
+
+# ── small helpers ──────────────────────────────────────────────────────────────────────────
+
+def _sha256_file(path, chunk=1 << 20):
+    import hashlib
+    h = hashlib.sha256()
+    with open(path, "rb") as fh:
+        for b in iter(lambda: fh.read(chunk), b""):
+            h.update(b)
+    return h.hexdigest()
+
+
+def _write_atomic(path, data, mode="w"):
+    """`.partial` -> fsync -> rename, then a `.sha256` sidecar. CLAUDE.md §3.9.
+
+    The sidecar is what makes "resumable" checkable rather than assumed: an artifact whose
+    bytes do not hash to its sidecar is a killed writer's leftovers and is redone.
+    """
+    os.makedirs(os.path.dirname(os.path.abspath(path)), exist_ok=True)
+    tmp = path + ".partial"
+    kw = {} if "b" in mode else {"encoding": "utf-8", "newline": "\n"}
+    with open(tmp, mode, **kw) as fh:
+        fh.write(data)
+        fh.flush()
+        os.fsync(fh.fileno())
+    os.replace(tmp, path)
+    digest = _sha256_file(path)
+    with open(path + ".sha256", "w", encoding="utf-8", newline="\n") as fh:
+        fh.write(digest + "\n")
+    return digest
+
+
+def _artifact_ok(path):
+    """True when the artifact is on disk AND its bytes still hash to its sidecar."""
+    side = path + ".sha256"
+    if not (os.path.exists(path) and os.path.exists(side)):
+        return False
+    with open(side, encoding="utf-8") as fh:
+        want = fh.read().strip()
+    return bool(want) and _sha256_file(path) == want
+
+
+def _log(stage, **kw):
+    os.makedirs(DERIVED, exist_ok=True)
+    kw["stage"] = stage
+    kw["at"] = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
+    with open(STAGE_LOG, "a", encoding="utf-8", newline="\n") as fh:
+        fh.write(json.dumps(kw, sort_keys=True) + "\n")
+
+
+def load_plan():
+    with open(PLAN_JSON, encoding="utf-8") as fh:
+        return json.load(fh)
+
+
+def census_records():
+    """The stage-0 record for every planned document, keyed by sha256 (first path wins)."""
+    recs = {}
+    for path in (CENSUS_JSONL, EXTRA_JSONL):
+        if not os.path.exists(path):
+            continue
+        with open(path, encoding="utf-8") as fh:
+            for line in fh:
+                r = json.loads(line)
+                recs.setdefault(r["sha256"], r)
+    return recs
+
+
+# ── stage: plan ────────────────────────────────────────────────────────────────────────────
+
+def cmd_plan(a):
+    """The population to extract, and its stage-0 routing. Writes plan.json.
+
+    THE POPULATION IS ``litkb.main_files``, NOT THE CENSUS. §14 P5's gate reads "every ACTIVE
+    FILE has a current run with pages and blocks", and an active file is a row in the
+    database, not a PDF on disk. The two sets are close and not equal, measured here:
+
+    * the frozen stage-0 census names 241 files (232 distinct sha256). Its routing is the
+      pinned measurement and is used verbatim wherever it names a file;
+    * a corpus PDF the census names but litkb has never admitted is **skipped and listed** —
+      it has no ``files`` row, so there is nothing to attach a run to;
+    * an active file the census does NOT name (admitted after the census was frozen, or under
+      a path the census walk did not reach) is probed here with the same stage-0 prober. Its
+      routing is measured the same way; it is simply not part of the pinned census numbers,
+      and ``in_census`` records which is which so no reader mixes them.
+    """
+    import collections
+
+    t0 = time.monotonic()
+    records, seconds = I.run_census(CENSUS_JSONL, force=a.force, progress=not a.quiet)
+    census = I.load_census()
+    assert {s for s, _ in census} == {r["sha256"] for r in records}, \
+        "the probed set is not the frozen census"
+    print(f"census: {len(records)} files, {sum(r['pages'] for r in records)} pages, "
+          f"{seconds:.1f}s")
+
+    import psycopg
+    conn = psycopg.connect(f"host=localhost port=5433 dbname={a.db} user=litkb_reader",
+                           autocommit=True)
+    active = {r[0]: {"file_id": str(r[1]), "work_id": str(r[2]), "rel_path": r[3],
+                     "status": r[4], "pages_db": r[5]}
+              for r in conn.execute(
+                  "SELECT sha256, file_id, work_id, rel_path, status, pages "
+                  "FROM litkb.main_files WHERE status = 'active'").fetchall()}
+    conn.close()
+
+    by_sha = collections.OrderedDict()
+    for r in sorted(records, key=lambda x: x["path"]):
+        by_sha.setdefault(r["sha256"], []).append(r)
+
+    rows, skipped, extra = [], [], []
+    for sha, group in by_sha.items():
+        rec = group[0]
+        b = active.get(sha)
+        row = {
+            "sha256": sha, "name": rec["name"], "path": rec["path"],
+            "copies": [g["name"] for g in group], "route": rec["route"],
+            "pages": rec["pages"], "ocr_pages": rec.get("ocr_pages") or [],
+            "in_census": True,
+            "file_id": b["file_id"] if b else None,
+            "work_id": b["work_id"] if b else None,
+            "rel_path": b["rel_path"] if b else None,
+        }
+        (rows if b else skipped).append(row)
+
+    # Active files the frozen census does not name: probed with the same stage-0 prober.
+    root = str(I.DEFAULT_ROOT)
+    for sha, b in sorted(active.items(), key=lambda kv: kv[1]["rel_path"]):
+        if sha in by_sha:
+            continue
+        p = os.path.join(root, b["rel_path"].replace("/", os.sep))
+        if not os.path.exists(p):
+            skipped.append({"sha256": sha, "name": os.path.basename(b["rel_path"]),
+                            "path": p, "route": None, "pages": b["pages_db"],
+                            "ocr_pages": [], "in_census": False, "file_id": b["file_id"],
+                            "work_id": b["work_id"], "rel_path": b["rel_path"],
+                            "note": "active in litkb, no file at its rel_path"})
+            continue
+        rec = I.probe_file(p)
+        if rec["sha256"] != sha:
+            skipped.append({"sha256": sha, "name": rec["name"], "path": p,
+                            "route": rec["route"], "pages": rec["pages"], "ocr_pages": [],
+                            "in_census": False, "file_id": b["file_id"],
+                            "work_id": b["work_id"], "rel_path": b["rel_path"],
+                            "note": f"bytes on disk hash {rec['sha256'][:12]}, "
+                                    f"litkb holds {sha[:12]}"})
+            continue
+        extra.append(rec)
+        rows.append({"sha256": sha, "name": rec["name"], "path": p, "copies": [rec["name"]],
+                     "route": rec["route"], "pages": rec["pages"],
+                     "ocr_pages": rec.get("ocr_pages") or [], "in_census": False,
+                     "file_id": b["file_id"], "work_id": b["work_id"],
+                     "rel_path": b["rel_path"]})
+    if extra:
+        _write_atomic(EXTRA_JSONL, "".join(json.dumps(r, ensure_ascii=False) + "\n"
+                                           for r in extra))
+
+    dupes = {s: [g["name"] for g in gs] for s, gs in by_sha.items() if len(gs) > 1}
+    plan = {
+        "census_files": len(records), "census_pages": sum(r["pages"] for r in records),
+        "census_documents": len(by_sha),
+        "active_files_in_litkb": len(active),
+        "planned": len(rows),
+        "planned_from_census": sum(1 for r in rows if r["in_census"]),
+        "planned_probed_here": len(extra),
+        "planned_pages": sum(r["pages"] for r in rows),
+        "skipped": len(skipped),
+        "duplicate_groups": dupes,
+        "routes": dict(collections.Counter(r["route"] for r in rows)),
+        "pipeline_version": P5_PIPELINE_VERSION, "reconcile_version": R.PIPELINE_VERSION,
+        "files": rows, "skipped_files": skipped,
+        "planned_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+    }
+    _write_atomic(PLAN_JSON, json.dumps(plan, indent=1, sort_keys=True, ensure_ascii=False))
+    print(f"census documents {len(by_sha)} (from {len(records)} files; "
+          f"{len(dupes)} duplicate sha256 groups)")
+    print(f"active files in litkb: {len(active)}")
+    print(f"PLANNED {len(rows)} documents, {plan['planned_pages']} pages "
+          f"({plan['planned_from_census']} named by the census, "
+          f"{len(extra)} probed here)")
+    print(f"SKIPPED {len(skipped)} (a corpus PDF litkb has never admitted has no files row)")
+    for s in skipped:
+        print(f"  skip {s['name'][:62]:<62} ({s['route']}, {s['pages']} pp)"
+              f"{'  ' + s['note'] if s.get('note') else ''}")
+    print("routes (planned):", plan["routes"])
+    print(f"grobid pages: {sum(r['pages'] for r in rows if r['route'] in GROBID_ROUTES)}")
+    _log("plan", seconds=round(time.monotonic() - t0, 1), **{
+        k: plan[k] for k in ("census_files", "census_pages", "census_documents",
+                             "active_files_in_litkb", "planned", "planned_from_census",
+                             "planned_probed_here", "planned_pages", "skipped")})
+    return 0
+
+
+# ── stage: grobid ──────────────────────────────────────────────────────────────────────────
+
+def _tei_path(sha):
+    return os.path.join(TEI_DIR, sha + ".tei.xml")
+
+
+def _grobid_one(row):
+    """-> (sha, status, metrics|None, error|None). Never raises: one refusal is not a batch."""
+    sha, path = row["sha256"], row["path"]
+    out = _tei_path(sha)
+    if _artifact_ok(out):
+        return sha, "cached", None, None
+    try:
+        tei, metrics = G.extract(path, concurrency=4, sample_rss=False)
+    except G.GrobidError as e:
+        m = getattr(e, "metrics", None)
+        return sha, "no-tei", m, f"{type(e).__name__}: {e}"[:400]
+    _write_atomic(out, tei, mode="wb")
+    return sha, "ok", metrics, None
+
+
+def cmd_grobid(a):
+    """Stage 2 over every bound native/mixed/cover-sheet document. Scans skip GROBID."""
+    plan = load_plan()
+    todo = [r for r in plan["files"] if r["route"] in GROBID_ROUTES]
+    if a.limit:
+        todo = todo[:a.limit]
+    os.makedirs(TEI_DIR, exist_ok=True)
+
+    if not G.start(wait=300, hold=True):
+        raise SystemExit("GROBID did not come up under WSL; nothing was run")
+    print(f"grobid {G.version()} alive; {len(todo)} documents, "
+          f"{sum(r['pages'] for r in todo)} pages, {a.workers} client threads")
+
+    counts = {"ok": 0, "cached": 0, "no-tei": 0}
+    errors = []
+    # ONE cgroup sampler for the WHOLE stage. Per-file peak RSS is not a thing under a pool:
+    # GROBID serves every worker from one JVM, so a per-request sampler under 4 concurrent
+    # clients would report the pool's memory and label it one file's (grobid._RssSampler).
+    t0 = time.monotonic()
+    with G._RssSampler() as sampler:
+        with concurrent.futures.ThreadPoolExecutor(max_workers=a.workers) as pool:
+            for n, (sha, status, metrics, err) in enumerate(
+                    pool.map(_grobid_one, todo), 1):
+                counts[status] = counts.get(status, 0) + 1
+                if metrics:
+                    metrics["client_threads"] = a.workers
+                    G.append_metrics(metrics, GROBID_METRICS)
+                if err:
+                    errors.append((sha, err))
+                if not a.quiet:
+                    print(f"{n}/{len(todo)} {status:<7} {sha[:12]} "
+                          f"{(metrics or {}).get('seconds', '')}")
+    seconds = time.monotonic() - t0
+    peak = sampler.peak
+    pages = sum(r["pages"] for r in todo)
+    print(f"\ngrobid stage: {counts}, {pages} pages in {seconds:.1f}s "
+          f"= {pages / seconds:.2f} pages/s (pool 4, {a.workers} client threads)")
+    print(f"peak service RSS (whole JVM pool + pdfalto): {peak / 1e6:.0f} MB")
+    for sha, err in errors:
+        print(f"  no-tei {sha[:12]}: {err.splitlines()[0][:160]}")
+    _log("grobid", counts=counts, pages=pages, seconds=round(seconds, 1),
+         pages_per_s=round(pages / seconds, 3), peak_rss_bytes=peak,
+         client_threads=a.workers, errors=[e for _, e in errors])
+    if a.stop:
+        G.stop()
+        G.release_distro()
+        print("grobid stopped, WSL client released")
+    return 0
+
+
+# ── stage: docling ─────────────────────────────────────────────────────────────────────────
+
+def _doc_path(sha):
+    return os.path.join(DOC_DIR, sha + ".docling.json")
+
+
+def _doc_done(sha):
+    p = _doc_path(sha)
+    if not _artifact_ok(p):
+        return False
+    try:
+        D.load(p)
+    except Exception:  # noqa: BLE001 — an unparseable artifact is a killed writer's leftovers
+        return False
+    return True
+
+
+class _GpuSampler:
+    """`nvidia-smi` on a loop -> peak used VRAM over a batch, in MiB."""
+
+    def __init__(self, interval=5):
+        self.interval, self._proc, self.samples = interval, None, []
+
+    def __enter__(self):
+        try:
+            self._proc = subprocess.Popen(
+                ["nvidia-smi", "--query-gpu=memory.used,memory.total",
+                 "--format=csv,noheader,nounits", "-l", str(self.interval)],
+                stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True)
+        except OSError:
+            self._proc = None
+        return self
+
+    def __exit__(self, *exc):
+        if self._proc is None:
+            return False
+        self._proc.terminate()
+        try:
+            out, _ = self._proc.communicate(timeout=15)
+        except subprocess.TimeoutExpired:
+            self._proc.kill()
+            out, _ = self._proc.communicate()
+        for ln in (out or "").splitlines():
+            parts = [p.strip() for p in ln.split(",")]
+            if len(parts) == 2 and parts[0].isdigit():
+                self.samples.append((int(parts[0]), int(parts[1])))
+        self._proc = None
+        return False
+
+    @property
+    def peak(self):
+        return max((u for u, _ in self.samples), default=None)
+
+    @property
+    def total(self):
+        return self.samples[0][1] if self.samples else None
+
+
+def _docling_batch(rows, ocr, chunk, threads, device, timeout, quiet):
+    """One converter build per chunk; the worker writes one JSON per job. -> (n, seconds)."""
+    pending = [r for r in rows if not _doc_done(r["sha256"])]
+    if not pending:
+        return 0, 0.0, 0
+    t0 = time.monotonic()
+    done = 0
+    for i in range(0, len(pending), chunk):
+        part = pending[i:i + chunk]
+        jobs = [{"pdf": r["path"], "out": _doc_path(r["sha256"])} for r in part]
+        rows_out = D.run(jobs, DOCLING_METRICS, python=CUDA_PY, ocr=ocr, formula=False,
+                         threads=threads, device=device, timeout=timeout, cwd=DERIVED)
+        for r in part:
+            # The worker writes the JSON itself, so the sidecar is added here: an artifact
+            # with no sidecar is indistinguishable from one a kill left half-written.
+            p = _doc_path(r["sha256"])
+            if os.path.exists(p) and not os.path.exists(p + ".sha256"):
+                with open(p + ".sha256", "w", encoding="utf-8", newline="\n") as fh:
+                    fh.write(_sha256_file(p) + "\n")
+        ok = sum(1 for r in part if _doc_done(r["sha256"]))
+        done += ok
+        if not quiet:
+            print(f"  chunk {i // chunk + 1}: {ok}/{len(part)} converted, "
+                  f"{sum(x.get('pages') or 0 for x in rows_out)} pages, "
+                  f"{sum(x.get('seconds') or 0 for x in rows_out):.1f}s")
+    return done, time.monotonic() - t0, len(pending)
+
+
+def cmd_docling(a):
+    """Stage 3 on the T2000. Two batches, never concurrent: `do_ocr` is converter-wide."""
+    plan = load_plan()
+    rows = plan["files"]
+    if a.limit:
+        rows = rows[:a.limit]
+    os.makedirs(DOC_DIR, exist_ok=True)
+
+    # Batch A, OCR off: every document whose pages already carry their own words.
+    # Batch B, OCR on: the scans, and the `mixed` documents whose partial pages stage 0 put in
+    # the OCR queue — except any book-sized one, which is priced per PAGE and would pay OCR on
+    # hundreds of born-digital pages to reach a handful of rastered ones.
+    a_rows, b_rows = [], []
+    for r in rows:
+        wants_ocr = r["route"] == "scan" or (r["route"] == "mixed" and r["ocr_pages"])
+        if wants_ocr and r["pages"] > a.ocr_max_pages:
+            r = dict(r, _ocr_skipped=True)
+            a_rows.append(r)
+        elif wants_ocr:
+            b_rows.append(r)
+        else:
+            a_rows.append(r)
+    big = [r for r in a_rows if r.get("_ocr_skipped")]
+    print(f"batch A (ocr off): {len(a_rows)} documents, {sum(r['pages'] for r in a_rows)} pages")
+    print(f"batch B (ocr on):  {len(b_rows)} documents, {sum(r['pages'] for r in b_rows)} pages")
+    for r in big:
+        print(f"  NOT OCR'd (over --ocr-max-pages {a.ocr_max_pages}): {r['name']} "
+              f"({r['pages']} pp, {len(r['ocr_pages'])} OCR pages)")
+
+    out = {}
+    for tag, batch, ocr in (("A", a_rows, False), ("B", b_rows, True)):
+        if not batch:
+            continue
+        print(f"\nbatch {tag}: ocr={ocr}, device={a.device}, formulas=off")
+        with _GpuSampler() as gpu:
+            n, seconds, pending = _docling_batch(batch, ocr, a.chunk, a.threads, a.device,
+                                                 a.timeout, a.quiet)
+        pages = sum(r["pages"] for r in batch)
+        rate = (n and seconds) and round(pages / seconds, 3) or None
+        out[tag] = {"documents": len(batch), "converted_now": n, "pending_at_start": pending,
+                    "pages": pages, "seconds": round(seconds, 1), "pages_per_s_all_pages": rate,
+                    "peak_vram_mib": gpu.peak, "vram_total_mib": gpu.total, "ocr": ocr}
+        print(f"batch {tag}: converted {n} of {pending} pending in {seconds:.1f}s; "
+              f"peak VRAM {gpu.peak} / {gpu.total} MiB")
+    missing = [r["name"] for r in rows if not _doc_done(r["sha256"])]
+    print(f"\ndocling: {len(rows) - len(missing)}/{len(rows)} documents have an artifact")
+    for m in missing[:20]:
+        print(f"  MISSING {m}")
+    _log("docling", batches=out, missing=len(missing),
+         not_ocred=[r["name"] for r in big])
+    return 0
+
+
+# ── the L4 formula LaTeX ───────────────────────────────────────────────────────────────────
+
+def load_latex(path=None, verify=None):
+    """-> ({sha256: [row, …]} for `ok` rows, {sha256: n} for the verify queue).
+
+    `ok` rows ONLY. `unstable` (the decode did not reproduce) and `degenerate` (a repetition
+    loop) are counted and never attached: writing either into `equations.latex` would put a
+    string the run itself refused to stand behind into a field a reader takes as the equation.
+    """
+    import collections
+
+    ok = collections.defaultdict(list)
+    for line in open(path or LATEX_JSONL, encoding="utf-8"):
+        r = json.loads(line)
+        if r.get("status") not in (None, "ok"):
+            continue
+        if not (r.get("latex") or "").strip() or not r.get("bbox_canonical"):
+            continue
+        ok[r["file_sha256"]].append(r)
+    held = collections.Counter()
+    vp = verify or VERIFY_JSONL
+    if os.path.exists(vp):
+        for line in open(vp, encoding="utf-8"):
+            r = json.loads(line)
+            held[r.get("file_sha256")] += 1
+    return ok, held
+
+
+def attach_latex(canonical, rows, frames, tol=BBOX_TOL):
+    """Put each `ok` LaTeX string on the equation block it was cropped from. -> (out, n, unmatched).
+
+    THE FRAME. ``bbox_canonical`` is Docling's own box through ``docling.to_canonical`` — the
+    TOPLEFT sense, in the CROPBOX frame, because that is the frame Docling measures in. A
+    canonical block has already been through ``to_mediabox``, so the formula box is shifted by
+    the same (dx, dy) from the ONE frame reader before it is compared. A page the adapters
+    refused keeps ``frame="cropbox"`` and is compared unshifted — the block never moved either.
+    """
+    import dataclasses
+
+    eq = [(i, c) for i, c in enumerate(canonical) if c.kind == "equation"]
+    by_page = {}
+    for i, c in eq:
+        by_page.setdefault(c.page, []).append((i, c))
+    out = list(canonical)
+    taken, unmatched = set(), []
+    for r in rows:
+        page = int(r["page"])
+        cands = by_page.get(page) or []
+        f = frames.get(page) or {}
+        dx, dy = float(f.get("dx") or 0.0), float(f.get("dy") or 0.0)
+        x0, y0, x1, y1 = (float(v) for v in r["bbox_canonical"])
+        best, best_i = None, None
+        for i, c in cands:
+            if i in taken:
+                continue
+            sx, sy = (dx, dy) if c.frame == "mediabox" else (0.0, 0.0)
+            d = max(abs(c.x0 - (x0 + sx)), abs(c.y0 - (y0 + sy)),
+                    abs(c.x1 - (x1 + sx)), abs(c.y1 - (y1 + sy)))
+            if best is None or d < best:
+                best, best_i = d, i
+        if best is not None and best <= tol:
+            taken.add(best_i)
+            out[best_i] = dataclasses.replace(
+                out[best_i], latex=r["latex"],
+                extractor=dict(out[best_i].extractor, latex="codeformula-l4"))
+        else:
+            unmatched.append({"page": page, "crop_id": r.get("crop_id"),
+                              "nearest_pt": None if best is None else round(best, 2)})
+    return out, len(taken), unmatched
+
+
+# ── stage: ingest ──────────────────────────────────────────────────────────────────────────
+
+def reconcile_one(row, records, latex_by_sha):
+    """Reconcile one document and attach its LaTeX. -> (canonical, dis, stats, cov, extra)."""
+    sha, pdf = row["sha256"], row["path"]
+    rec = records[sha]
+    tei = None
+    tp = _tei_path(sha)
+    if _artifact_ok(tp):
+        with open(tp, "rb") as fh:
+            tei = fh.read()
+    doc = D.load(_doc_path(sha)) if _doc_done(sha) else None
+    if tei is None and doc is None:
+        raise ReconcileSkipped(f"{row['name']}: neither a TEI nor a DoclingDocument")
+    t0 = time.monotonic()
+    frames = I.page_frames(pdf)
+    canonical, dis, stats = R.reconcile(pdf, tei, doc, rec, ocr_pages=rec.get("ocr_pages") or (),
+                                        frames=frames)
+    rows = latex_by_sha.get(sha) or []
+    canonical, attached, unmatched = attach_latex(canonical, rows, frames)
+    classes = {i + 1: d.get("scan", "unknown")
+               for i, d in enumerate(rec.get("page_detail") or [])}
+    cov = R.coverage(pdf, canonical, classes, frames=frames)
+    extra = {"tei": tei is not None, "docling": doc is not None,
+             "latex_attached": attached, "latex_rows_for_file": len(rows),
+             "latex_unmatched": len(unmatched),
+             "reconcile_seconds": round(time.monotonic() - t0, 2)}
+    return canonical, dis, stats, cov, extra
+
+
+class ReconcileSkipped(RuntimeError):
+    pass
+
+
+def ingest_one(conn, row, canonical, dis, stats, cov):
+    from litkb.extract import ingest as ing
+
+    pages = [{"page_no": p, "page_class": r["page_class"], "native_chars": r["chars"],
+              "covered_chars": r["covered"], "coverage_share": r["share"]}
+             for p, r in sorted(cov.items())]
+    return ing.ingest_file(conn, row["file_id"], canonical, dis, stats, pages=pages,
+                           artifact_path=_doc_path(row["sha256"]), host="local-t2000",
+                           pipeline_version=P5_PIPELINE_VERSION)
+
+
+def cmd_ingest(a):
+    """Stage 5 + the write. One transaction per document, through the litkb_ingest login."""
+    from litkb import ingest as ingest_login
+
+    plan = load_plan()
+    rows = plan["files"]
+    if a.only:
+        want = set(a.only.split(","))
+        rows = [r for r in rows if r["sha256"] in want or r["name"] in want]
+    if a.limit:
+        rows = rows[:a.limit]
+    records = census_records()
+    latex_by_sha, held = load_latex()
+    print(f"L4 latex: ok rows for {len(latex_by_sha)} documents; "
+          f"{sum(held.values())} rows held on the verify queue")
+
+    conn = ingest_login.connect(a.db)
+    out, t0 = [], time.monotonic()
+    for n, row in enumerate(rows, 1):
+        r = {k: "" for k in ROW_FIELDS}
+        r.update({k: row.get(k) for k in ("sha256", "name", "route", "pages", "file_id",
+                                          "work_id")})
+        r["relpath"] = row.get("rel_path") or ""
+        r["ocr_pages"] = len(row.get("ocr_pages") or [])
+        try:
+            canonical, dis, stats, cov, extra = reconcile_one(row, records, latex_by_sha)
+        except ReconcileSkipped as e:
+            r["status"], r["note"] = "no-artifact", str(e)[:200]
+            out.append(r)
+            print(f"{n}/{len(rows)} SKIP {row['name']}: {e}")
+            continue
+        ti = time.monotonic()
+        res = ingest_one(conn, row, canonical, dis, stats, cov)
+        r.update(extra)
+        r.update({
+            "blocks": stats["blocks"], "matched": stats["matched"],
+            "disagreements": res["disagreements"],
+            "figures": stats["by_kind"].get("figure", 0),
+            "tables": stats["by_kind"].get("table", 0),
+            "equations": stats["by_kind"].get("equation", 0),
+            "coverage_by_page_type": json.dumps(
+                {k: (None if v["share"] is None else round(v["share"], 4))
+                 for k, v in sorted(R.coverage_by_page_type(cov).items())}),
+            "coverage_min_share": min(
+                [v["share"] for v in cov.values() if v["share"] is not None], default=None),
+            "coverage_failures": len(R.coverage_failures(cov)),
+            "run_id": str(res["run_id"]), "inserted": res["inserted"],
+            "ingest_seconds": round(time.monotonic() - ti, 2),
+            "status": "ok",
+        })
+        out.append(r)
+        print(f"{n}/{len(rows)} {row['name'][:52]:<52} blocks={r['blocks']:<6} "
+              f"eq={r['equations']:<5} latex={r['latex_attached']:<5} "
+              f"cov_min={r['coverage_min_share']} {r['reconcile_seconds']}+"
+              f"{r['ingest_seconds']}s {'NEW' if res['inserted'] else 'cached'}")
+    conn.close()
+    _write_rows(out, a.csv or ROWS_CSV, append=bool(a.only or a.limit))
+    print(f"\ningest: {len(out)} documents in {time.monotonic() - t0:.1f}s -> "
+          f"{a.csv or ROWS_CSV}")
+    _log("ingest", documents=len(out), seconds=round(time.monotonic() - t0, 1),
+         blocks=sum(int(r["blocks"] or 0) for r in out))
+    return 0
+
+
+def _write_rows(rows, path, append=False):
+    os.makedirs(os.path.dirname(os.path.abspath(path)), exist_ok=True)
+    have = []
+    if append and os.path.exists(path):
+        with open(path, encoding="utf-8", newline="") as fh:
+            have = [r for r in csv.DictReader(fh)
+                    if r["sha256"] not in {x["sha256"] for x in rows}]
+    with open(path, "w", encoding="utf-8", newline="") as fh:
+        w = csv.DictWriter(fh, ROW_FIELDS)
+        w.writeheader()
+        w.writerows(have + [{k: r.get(k, "") for k in ROW_FIELDS} for r in rows])
+
+
+# ── stage: gate ────────────────────────────────────────────────────────────────────────────
+
+def cmd_gate(a):
+    """§14 P5's gate, read from the database and from the per-file rows."""
+    import psycopg
+
+    plan = load_plan()
+    with open(a.csv or ROWS_CSV, encoding="utf-8", newline="") as fh:
+        rows = list(csv.DictReader(fh))
+    conn = psycopg.connect(f"host=localhost port=5433 dbname={a.db} user=litkb_reader",
+                           autocommit=True)
+    q = conn.execute
+    counts = {
+        "files": q("SELECT count(*) FROM litkb.files").fetchone()[0],
+        "files_with_current_run": q(
+            "SELECT count(*) FROM litkb.files WHERE current_run_id IS NOT NULL").fetchone()[0],
+        "runs_ok": q("SELECT count(*) FROM litkb.extraction_runs WHERE stage = '5-reconcile' "
+                     "AND status = 'ok'").fetchone()[0],
+        "runs_not_ok": q("SELECT count(*) FROM litkb.extraction_runs WHERE stage = '5-reconcile' "
+                         "AND status <> 'ok'").fetchone()[0],
+        "pages": q("SELECT count(*) FROM litkb.pages").fetchone()[0],
+        "blocks": q("SELECT count(*) FROM litkb.blocks").fetchone()[0],
+        "tables": q("SELECT count(*) FROM litkb.tables").fetchone()[0],
+        "table_cells": q("SELECT count(*) FROM litkb.table_cells").fetchone()[0],
+        "figures": q("SELECT count(*) FROM litkb.figures").fetchone()[0],
+        "equations": q("SELECT count(*) FROM litkb.equations").fetchone()[0],
+        "equations_with_latex": q(
+            "SELECT count(*) FROM litkb.equations WHERE latex IS NOT NULL").fetchone()[0],
+        "disagreements": q("SELECT count(*) FROM litkb.extraction_disagreements").fetchone()[0],
+        "blocks_outside_ok_run": q(
+            "SELECT count(*) FROM litkb.blocks b JOIN litkb.extraction_runs r ON r.id = b.run_id "
+            "WHERE r.status <> 'ok'").fetchone()[0],
+        "duplicate_runs_per_key": q(
+            "SELECT count(*) FROM (SELECT file_id, stage, tool, tool_version, params_hash, "
+            "pipeline_version, count(*) c FROM litkb.extraction_runs GROUP BY 1,2,3,4,5,6 "
+            "HAVING count(*) > 1) t").fetchone()[0],
+    }
+    for k, v in counts.items():
+        print(f"{k:<28} {v}")
+
+    ok = [r for r in rows if r["status"] == "ok"]
+    below = [r for r in ok if r["coverage_min_share"] not in ("", "None")
+             and float(r["coverage_min_share"]) < R.COVERAGE_FLOOR]
+    print(f"\ncoverage floor {R.COVERAGE_FLOOR}: {len(below)} of {len(ok)} documents have a page "
+          f"below it")
+    for r in below:
+        print(f"  {r['name'][:60]:<60} min share {r['coverage_min_share']} "
+              f"route={r['route']} failures={r['coverage_failures']}")
+    print(f"\nbound documents in the plan: {plan['bound']}; ingested ok: {len(ok)}; "
+          f"no artifact: {sum(1 for r in rows if r['status'] == 'no-artifact')}")
+    conn.close()
+    _log("gate", **counts)
+    return 0
+
+
+# ── CLI ────────────────────────────────────────────────────────────────────────────────────
+
+def main(argv=None):
+    from phase4seg.names import clean_argv
+
+    ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
+    ap.add_argument("--db", default="litkb")
+    ap.add_argument("--quiet", action="store_true")
+    sub = ap.add_subparsers(dest="cmd", required=True)
+
+    p = sub.add_parser("plan")
+    p.add_argument("--force", action="store_true", help="re-probe every census file")
+    p.set_defaults(fn=cmd_plan)
+
+    p = sub.add_parser("grobid")
+    p.add_argument("--workers", type=int, default=4, help="client threads against pool 4")
+    p.add_argument("--limit", type=int)
+    p.add_argument("--stop", action="store_true", default=True)
+    p.add_argument("--no-stop", dest="stop", action="store_false")
+    p.set_defaults(fn=cmd_grobid)
+
+    p = sub.add_parser("docling")
+    p.add_argument("--device", default="cuda")
+    p.add_argument("--threads", type=int, default=4)
+    p.add_argument("--chunk", type=int, default=30, help="documents per converter build")
+    p.add_argument("--timeout", type=int, default=14400)
+    p.add_argument("--ocr-max-pages", type=int, default=200,
+                   help="a document larger than this is never put in the OCR batch")
+    p.add_argument("--limit", type=int)
+    p.set_defaults(fn=cmd_docling)
+
+    p = sub.add_parser("ingest")
+    p.add_argument("--only", help="comma-separated sha256 or file names")
+    p.add_argument("--limit", type=int)
+    p.add_argument("--csv")
+    p.set_defaults(fn=cmd_ingest)
+
+    p = sub.add_parser("gate")
+    p.add_argument("--csv")
+    p.set_defaults(fn=cmd_gate)
+
+    a = ap.parse_args(clean_argv() if argv is None else argv)
+    return a.fn(a)
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

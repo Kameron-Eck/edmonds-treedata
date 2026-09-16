@@ -600,6 +600,7 @@ _PATH_INSERT_LEDGER = {
     "qc/instruments/litkb_docling_bench.py": 1,  # litkb.extract (pipeline root, not installed here)
     "qc/instruments/litkb_equation_density.py": 1,  # same: litkb.extract.docling, for the density census
     "qc/instruments/litkb_formula_balance.py": 1,  # same: litkb.extract.colab_formula_worker
+    "qc/instruments/litkb_p5_bulk.py": 1,     # same: litkb.extract.*, the P5 bulk pass
     "qc/instruments/litkb_stage5_run.py": 1,  # same: litkb.extract.{reconcile,docling,inventory}, stage 5
     "qc/test_litkb_reconcile.py": 1,          # same: litkb.extract.reconcile, imported at module level
     "qc/test_litkb_references_ingest.py": 1,  # same: litkb.extract.references_ingest, at module level

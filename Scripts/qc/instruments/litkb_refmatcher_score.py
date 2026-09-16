@@ -141,6 +141,39 @@ def score_positives(gold, arm_body, cut=None) -> dict:
             "score_dist_correct": _q(scores_right), "score_dist_wrong": _q(scores_wrong)}
 
 
+def score_positives_split_by_input_doi(gold, arm_body, refs) -> dict:
+    """Positives split by whether the REFERENCE STRING already carried a DOI.
+
+    77 of the 658 references have a DOI that GROBID pulled straight out of the citation, and
+    the tool's first two query types (`year_and_doi`, `doi_title`) look it up directly. Those
+    rows are not a matching result -- the answer was in the input. Folding them into one
+    "correct" count credits a matcher for reading, so they are reported apart.
+    """
+    out = {}
+    for label, want_doi in (("input_carried_a_doi", True), ("had_to_find_it", False)):
+        c = Counter()
+        for p in gold["positives"]:
+            ref = refs.get(p["ref_id"])
+            if ref is None:
+                continue
+            has = bool((ref.get("doi") or "").strip())
+            if has is not want_doi:
+                continue
+            r = arm_body.get(p["ref_id"])
+            if r is None:
+                c["absent_from_run"] += 1
+                continue
+            got = normalize_doi(r.get("doi") or "") if r.get("matched") else ""
+            if not got:
+                c["miss"] += 1
+            elif got == normalize_doi(p["gold_doi"]):
+                c["correct"] += 1
+            else:
+                c["wrong"] += 1
+        out[label] = dict(c)
+    return out
+
+
 def score_hard_set(gold, arm_body, refs) -> dict:
     """The 293 P6 left unresolved/ambiguous, with an explicit UNGRADED column."""
     hard = [rid for rid, r in refs.items() if r["resolution"] in ("unresolved", "ambiguous")]
@@ -490,6 +523,8 @@ def main(argv=None):
             entry["near_positive"] = score_near_positive(gold, body)
         else:
             entry["positives"] = score_positives(gold, body)
+            entry["positives_by_input_doi"] = score_positives_split_by_input_doi(
+                gold, body, refs)
             if args.crossref_cut and meta.get("registry") == "crossref":
                 entry["positives_at_cut"] = score_positives(gold, body, cut=args.crossref_cut)
             entry["hard_set"] = score_hard_set(gold, body, refs)

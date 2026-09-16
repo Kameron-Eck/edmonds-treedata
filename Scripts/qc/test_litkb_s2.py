@@ -202,6 +202,23 @@ def test_nothing_is_cached_about_a_429():
     assert cache.store == {}
 
 
+def test_a_transport_failure_does_not_put_a_registered_secret_in_the_error(monkeypatch):
+    """The status-0 branch is the ONE place in s2.py that embeds response bytes in a string.
+
+    Found at the P6 merge, not on either branch: `s2.py::request::redact` is a call site of the
+    redaction family, whose per-call-site rule (RD1-RD18) landed on the OTHER side of this merge,
+    so neither branch's own `--sites` run could see the site. Harness row P7-RD19.
+    """
+    from litkb import netutil
+    monkeypatch.setattr(netutil, "_SECRETS", [])
+    netutil.add_secret("hunter2-archive-key")
+    _c, s = client_with([(0, {}, b'{"detail": "connect failed for key=hunter2-archive-key"}')])
+    st, parsed, err = s.request("GET", S.MATCH_URL + "?query=A")
+    assert (st, parsed) == (0, None)
+    assert "hunter2-archive-key" not in err
+    assert "<KEY>" in err
+
+
 # ── the cache ───────────────────────────────────────────────────────────────────────────
 
 def test_a_settled_answer_is_served_from_the_cache_without_a_request():

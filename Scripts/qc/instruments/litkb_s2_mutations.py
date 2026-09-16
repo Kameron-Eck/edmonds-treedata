@@ -94,6 +94,13 @@ def register(block, replace, site):
     site("P7-S3", "litkb/admit/resolver.py::confirm_s2_candidate::normalize_doi", PASSTHROUGH,
          "confirm_s2_candidate: the DOI is confirmed under the registry's own spelling, so one work "
          "costs two Crossref lookups and two cache entries", tests=TESTS_CONFIRM)
+    # Written at the P6 MERGE, not on either branch: s2.py's status-0 branch is a call site of the
+    # redaction family, and that family came under the per-call-site rule (RD1-RD18) on the OTHER
+    # side of this merge. Each branch's own `--sites` run was blind to it; the merged one is not.
+    site("P7-RD19", "litkb/admit/s2.py::request::redact", PASSTHROUGH,
+         "s2.request: the status-0 error embeds up to 120 raw response bytes, so a registered key "
+         "echoed by the transport reaches the error string, the breaker's report and the log",
+         tests=TESTS_S2)
     block("P7-C1", REFS, "guard: s2 proposes, crossref confirms",
           "stage 6 resolves on Semantic Scholar's own record again, so a JSTOR REVIEW of the cited "
           "book resolves as the book — the three measured cases come back", tests=TESTS_CONFIRM)

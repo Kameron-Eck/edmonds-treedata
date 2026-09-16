@@ -1,0 +1,31 @@
+# litkb formula enrichment on Colab — the docling stack, pinned to venv-docling-cuda.
+#
+# THE FULL FREEZE OF THAT VENV IS requirements-litkb-extract-cuda.txt, and it is the source
+# of truth for every pin below. This file is the Colab SUBSET, and it exists because that
+# freeze cannot be installed on a VM: it pins torch==2.14.0+cu130 / torchvision==0.29.0+cu130,
+# local version labels PyPI does not serve, against a card that is not a T2000.
+#
+# READ OFF THE LOCAL CUDA VENV, not chosen: `venv-docling-cuda\Scripts\python.exe -m pip
+# freeze` on 2026-09-15. The reason for the pin is not tidiness — the Colab worker's LaTeX is
+# compared byte for byte against LaTeX this laptop produced, and a different docling is a
+# different CodeFormula. pipeline/litkb_formula_vm_start.py REFUSES to start the worker if
+# the resolved docling / docling-core differ from these two.
+#
+# TORCH IS DELIBERATELY ABSENT. The Colab image ships its own CUDA torch; locally the CUDA
+# venv is torch==2.14.0+cu130. Which build the L4 image carries has NOT been read on this
+# account — UNCONFIRMED — and reinstalling torch on a VM costs minutes and occasionally the
+# runtime. The resolved torch lands in every result archive's worker.json, so the first
+# canary settles it as a measurement rather than an assumption.
+#
+# Same-commit rule (CLAUDE.md 3.4 / requirements-colab.txt): any in-script bootstrap that
+# installs docling must install THIS file, never a retyped list.
+docling==2.127.0
+docling-core==2.96.0
+docling-ibm-models==4.0.2
+transformers==5.17.0
+tokenizers==0.23.2
+accelerate==1.15.0
+safetensors==0.8.0
+pillow==12.3.0
+pypdfium2==5.13.0
+psutil==7.2.2

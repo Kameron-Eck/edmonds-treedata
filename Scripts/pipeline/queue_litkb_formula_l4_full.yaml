@@ -1,0 +1,80 @@
+# litkb formula — L4 FULL CORPUS PASS. ONE QUEUE PER RUNTIME (COLAB_AUTONOMY_SETUP.md).
+#
+# THE WHOLE CORPUS, ONCE. 7,164 equation-region crops — the measured census in
+# Reports/LITKB_COLAB_L4_FORMULA_2026-09-15.md §3, over 136 files of
+# D:\edmonds-pipeline\Literture\{ASPP,Labeling,Validation,other} — packed by
+# litkb/extract/formula_shards.plan_shards into 36 shards of 200 (the last carries 164).
+# Chunked by CROP and not by file on purpose: one paper carries 2,653 crops (37% of the
+# corpus) and a file-chunked plan would put a third of the GPU bill in one job.
+#
+# WHAT TRAVELS. A shard is a packed archive of 120-dpi PNG crops of the equation regions
+# plus its manifest — NO PDFs, no page images, no page text (decisions.yaml
+# litkb-p0-foundation answers "do the PDFs go to Drive?" with none). 67.3 MB for the whole
+# corpus, about one aerial tile.
+#
+# THE OUT DIR IS NEW, AND IT HAS TO BE. The worker skips a shard whose result archive is
+# already present (kill 4, idempotence), so writing into either canary's directory would
+# skip nothing here but would mix two different decode configurations in one place. Canary
+# 1's `results/` (sequential, no guards) and canary 2's `results_procs/` (N=6, no guards)
+# stay intact as the comparison baselines; this run writes beside them.
+#
+# WHAT IS DIFFERENT FROM CANARY 2, and none of it has run on a real runtime before:
+#   * THE TWO GUARDS ARE ON. Every row is checked for degeneracy (a repetition loop that ran
+#     to max_new_tokens — 4.5-6.5% of every shard in both canaries, and BOTH canaries wrote
+#     all nine of the ones they agreed on into the corpus as `ok`), and a deterministic 5%
+#     sample plus every row >= 1,000 characters is re-decoded at batch_size 1 and recorded
+#     `unstable` when the two disagree. Neither state reaches the LaTeX corpus; both go to
+#     the verification queue carrying BOTH candidate strings.
+#     Measured price: x1.269 on the wall clock (canary 2 §11.7).
+#   * THE PLANNER IS THE NEW ONE. crop_cost is ink pixels -> predicted characters ->
+#     predicted seconds (Spearman +0.873 against decoded length, against the old proxy's
+#     +0.389), a batch costs its LONGEST member, and cost-ordered batches are DEALT
+#     round-robin rather than assigned longest-processing-time. Simulated on canary 2's
+#     measured batch seconds this takes the slice ratio 3.71x -> 1.63x. A SIMULATION, not a
+#     run: this queue is the first time it decodes anything.
+#
+# EXPECTED, AND IT IS A PROJECTION. 7,164 crops at canary 2's MEASURED 0.4555 regions/s is
+# 4.37 h; with the stability guard's measured x1.269, 5.54 h of worker time, plus ~2 min of
+# bootstrap and ~1 min of install. The planner change should take time off that and has
+# never been measured. The operator caps the launch span at 7 h.
+tier: L4
+one_queue_per_runtime: true
+procs: auto
+out_dir: /content/drive/MyDrive/treedata/phase4/litkb/formula/results_full
+shards:
+  - shard: /content/drive/MyDrive/treedata/phase4/litkb/formula/shards/shard_full00.zip
+  - shard: /content/drive/MyDrive/treedata/phase4/litkb/formula/shards/shard_full01.zip
+  - shard: /content/drive/MyDrive/treedata/phase4/litkb/formula/shards/shard_full02.zip
+  - shard: /content/drive/MyDrive/treedata/phase4/litkb/formula/shards/shard_full03.zip
+  - shard: /content/drive/MyDrive/treedata/phase4/litkb/formula/shards/shard_full04.zip
+  - shard: /content/drive/MyDrive/treedata/phase4/litkb/formula/shards/shard_full05.zip
+  - shard: /content/drive/MyDrive/treedata/phase4/litkb/formula/shards/shard_full06.zip
+  - shard: /content/drive/MyDrive/treedata/phase4/litkb/formula/shards/shard_full07.zip
+  - shard: /content/drive/MyDrive/treedata/phase4/litkb/formula/shards/shard_full08.zip
+  - shard: /content/drive/MyDrive/treedata/phase4/litkb/formula/shards/shard_full09.zip
+  - shard: /content/drive/MyDrive/treedata/phase4/litkb/formula/shards/shard_full10.zip
+  - shard: /content/drive/MyDrive/treedata/phase4/litkb/formula/shards/shard_full11.zip
+  - shard: /content/drive/MyDrive/treedata/phase4/litkb/formula/shards/shard_full12.zip
+  - shard: /content/drive/MyDrive/treedata/phase4/litkb/formula/shards/shard_full13.zip
+  - shard: /content/drive/MyDrive/treedata/phase4/litkb/formula/shards/shard_full14.zip
+  - shard: /content/drive/MyDrive/treedata/phase4/litkb/formula/shards/shard_full15.zip
+  - shard: /content/drive/MyDrive/treedata/phase4/litkb/formula/shards/shard_full16.zip
+  - shard: /content/drive/MyDrive/treedata/phase4/litkb/formula/shards/shard_full17.zip
+  - shard: /content/drive/MyDrive/treedata/phase4/litkb/formula/shards/shard_full18.zip
+  - shard: /content/drive/MyDrive/treedata/phase4/litkb/formula/shards/shard_full19.zip
+  - shard: /content/drive/MyDrive/treedata/phase4/litkb/formula/shards/shard_full20.zip
+  - shard: /content/drive/MyDrive/treedata/phase4/litkb/formula/shards/shard_full21.zip
+  - shard: /content/drive/MyDrive/treedata/phase4/litkb/formula/shards/shard_full22.zip
+  - shard: /content/drive/MyDrive/treedata/phase4/litkb/formula/shards/shard_full23.zip
+  - shard: /content/drive/MyDrive/treedata/phase4/litkb/formula/shards/shard_full24.zip
+  - shard: /content/drive/MyDrive/treedata/phase4/litkb/formula/shards/shard_full25.zip
+  - shard: /content/drive/MyDrive/treedata/phase4/litkb/formula/shards/shard_full26.zip
+  - shard: /content/drive/MyDrive/treedata/phase4/litkb/formula/shards/shard_full27.zip
+  - shard: /content/drive/MyDrive/treedata/phase4/litkb/formula/shards/shard_full28.zip
+  - shard: /content/drive/MyDrive/treedata/phase4/litkb/formula/shards/shard_full29.zip
+  - shard: /content/drive/MyDrive/treedata/phase4/litkb/formula/shards/shard_full30.zip
+  - shard: /content/drive/MyDrive/treedata/phase4/litkb/formula/shards/shard_full31.zip
+  - shard: /content/drive/MyDrive/treedata/phase4/litkb/formula/shards/shard_full32.zip
+  - shard: /content/drive/MyDrive/treedata/phase4/litkb/formula/shards/shard_full33.zip
+  - shard: /content/drive/MyDrive/treedata/phase4/litkb/formula/shards/shard_full34.zip
+  - shard: /content/drive/MyDrive/treedata/phase4/litkb/formula/shards/shard_full35.zip

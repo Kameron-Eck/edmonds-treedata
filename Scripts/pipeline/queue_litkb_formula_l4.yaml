@@ -1,0 +1,29 @@
+# litkb formula enrichment — L4 queue. ONE QUEUE PER RUNTIME (COLAB_AUTONOMY_SETUP.md).
+#
+# THIS IS NOT A phase4_train_queue FILE and `vm_ops launch --queue` CANNOT run it.
+# launch_queue() hardwires `nohup python -u phase4_train_queue.py --queue <name>`, and that
+# orchestrator only understands {id, year, tag, extra, steps} jobs against the phase4seg
+# engine (phase4_train_queue.py: `y, tag = job["year"], job["tag"]`). litkb has no year and
+# no arm. So this file is read by litkb/extract/colab_formula_worker.py --queue, started
+# through `vm_ops exec --file pipeline/litkb_formula_vm_start.py`. The recipe is in that
+# file's docstring and in Reports/LITKB_COLAB_L4_FORMULA_2026-09-15.md.
+#
+# `shards` are paths ON THE VM, i.e. under the rclone mount. A shard is a packed archive of
+# 120-dpi PNG crops of equation regions plus its manifest — NO PDFs, no page images, no text
+# (decisions.yaml litkb-p0-foundation answers "PDFs to Drive" with none).
+#
+# THE CANARY IS THE FIRST AND ONLY ENTRY BELOW. Per CLAUDE.md 3.4 the first launch of this
+# queue asks Kam; no rate for an L4 is sourced anywhere (pipeline/colab_rates.csv ships
+# schema-only for GPUs), so the canary's job is to MEASURE the compute-unit delta as much as
+# it is to measure regions/s. Production shards are appended only after that launch has been
+# scored.
+tier: L4
+one_queue_per_runtime: true
+out_dir: /content/drive/MyDrive/treedata/phase4/litkb/formula/results
+shards:
+  - shard: /content/drive/MyDrive/treedata/phase4/litkb/formula/shards/shard_canary200.zip
+    why: >-
+      canary — ~200 crops, one shard, one runtime. Establishes (a) the L4 regions/s, for
+      which this repo has no measurement and only a T2000 rate to scale from, (b) the peak
+      VRAM on a 24 GB card, (c) the measured compute-unit delta for colab_rates.csv, and
+      (d) that a returned archive passes local ingest verification end to end.

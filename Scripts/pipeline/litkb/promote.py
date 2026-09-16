@@ -30,9 +30,21 @@ class PromotionRefused(RuntimeError):
 
 
 def connect(dbname=None, *, autocommit=True):
-    """The one connection path for the promoter login."""
+    """The one connection path for the promoter login.
+
+    Against a THROWAWAY database (`litkb_test`, and the harness workers `litkb_test_wN`) there is no
+    promoter line in any passfile — provisioning writes the promoter's password for `litkb` only. So
+    the test path is the one qc/test_litkb_p1.py already uses: log in as `litkb_test`, which is a
+    member of litkb_promoter WITH INHERIT FALSE, and SET ROLE. That is a weaker credential reaching
+    the same rights, which is what a throwaway database is for; `is_test_db()` keys on the
+    `litkb_test` prefix and is never true for `litkb`, so this branch cannot be aimed at the real
+    database by an environment variable."""
     from litkb.db import connect as c
 
+    if c.is_test_db(dbname):
+        conn = c.connect(dbname, "litkb_test", autocommit=autocommit)
+        conn.execute("SET ROLE litkb_promoter")
+        return conn
     return c._open(c.conninfo(dbname or c.DB_MAIN, c.PROMOTER, passfile=c.promoter_passfile()),
                    autocommit)
 
@@ -83,6 +95,71 @@ def verify_merge(repo, merge_commit, prepared_commit, *, main_ref):
 def prepare(conn, workstream_id, branch_head, report_path=None):
     return conn.execute("SELECT litkb.promote_prepare(%s, %s, %s)",
                         (workstream_id, branch_head, report_path)).fetchone()[0]
+
+
+# ── the promotion report (P8 referee F-5) ─────────────────────────────────────────────────
+#
+# The skill said prepare "writes the promotion report onto the work branch, so it reaches Kam inside
+# the merge he reviews", and the P8 report said the same. Measured, it did neither: prepare recorded
+# `promotions.report_path` as a string and wrote no file (referee §5(i)). One of the two sentences
+# had to change; this is the half that makes the sentence true, because the report is the only place
+# a reviewer sees WHY a chain was held without running the database function himself.
+#
+# It is written here, not in the MCP server, so that one definition serves both callers: the CLI
+# writes it, and litkb_propose_promotion — which runs that CLI as a subprocess precisely so the
+# promoter credential stays in a process that exits — gets it written by the same code.
+
+def chain_rows(conn, workstream_id):
+    """Every chain this workstream heads, as _ws_chains sees it AFTER prepare: the prepared ones now
+    say `prepared`, the held ones still say `proposed` and carry the problems that held them.
+
+    Reached through litkb.promotion_chains (migration 0018), the promoter's SECURITY DEFINER view of
+    _ws_chains: no agent role may execute either, which is why the report is built here rather than
+    by a tool holding a reader connection."""
+    rows = conn.execute(
+        "SELECT entity, entity_id::text, states, problems, deps, conflict, "
+        "       cardinality(version_ids), cardinality(evidence_ids) "
+        "FROM litkb.promotion_chains(%s) ORDER BY entity, entity_id", (workstream_id,)).fetchall()
+    return [dict(zip(("entity", "entity_id", "states", "problems", "deps", "conflict",
+                      "versions", "evidence"), r)) for r in rows]
+
+
+def render_report(workstream_id, promotion_id, branch_head, chains, prepared_at=None):
+    """The report Kam reads inside the merge. Markdown, and deliberately plain: what was offered,
+    what is prepared, what is held and the database's own sentence for why."""
+    held = [c for c in chains if "prepared" not in (c["states"] or [])]
+    ready = [c for c in chains if "prepared" in (c["states"] or [])]
+    out = [f"# litkb promotion {promotion_id}", "",
+           f"* workstream `{workstream_id}`",
+           f"* branch head `{branch_head}`",
+           f"* prepared at {prepared_at}" if prepared_at else "* prepared",
+           f"* {len(ready)} chain(s) prepared, {len(held)} held", "",
+           "`promote commit` runs only after this branch is merged and the merge commit is "
+           "reachable from main. A held chain is not an error: it is a chain that may not enter "
+           "main yet, and the reason below is the database's own.", ""]
+    for title, rows in (("## Prepared", ready), ("## Held", held)):
+        out += [title, ""]
+        if not rows:
+            out += ["(none)", ""]
+            continue
+        out += ["| entity | id | versions | evidence | state | why |", "|---|---|---|---|---|---|"]
+        for c in rows:
+            why = "; ".join(c["problems"] or []) or ("conflict: the base moved under this chain"
+                                                     if c["conflict"] else "—")
+            out.append(f"| {c['entity']} | `{c['entity_id']}` | {c['versions']} | {c['evidence']} | "
+                       f"{', '.join(c['states'] or [])} | {why.replace('|', '/')} |")
+        out.append("")
+    return "\n".join(out) + "\n"
+
+
+def write_report(path, text):
+    """Write the report, creating its directory. Returns the path written."""
+    from pathlib import Path
+
+    p = Path(path)
+    p.parent.mkdir(parents=True, exist_ok=True)
+    p.write_text(text, encoding="utf-8")
+    return str(p)
 
 
 def commit(conn, promotion_id, merge_commit, *, repo, fetch_remote):

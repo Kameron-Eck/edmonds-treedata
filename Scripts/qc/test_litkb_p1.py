@@ -569,6 +569,22 @@ def _evidence_world(pg):
                 use=use_id, uv=uv)
 
 
+def _make_promotable(pg, w, uv=None, block=None, run=None):
+    """Attach ONE verified quote to a use of w's world, so that a prepare in a test about something
+    else is not held by migration 0019.
+
+    0019 holds a use with no promotable evidence row (P8 referee §3.6: a use with no quote at all
+    reached `prepared`, which is the convention error). The world itself must stay evidence-free —
+    several tests assert `count(*) = 0` on its use to show that a refused write wrote nothing — so
+    the row is attached HERE, in the tests that go on to prepare, and the span (21:40) is
+    deliberately not the 4:20 / 0:3 the evidence tests use so it cannot collide with a row a test
+    adds itself."""
+    return pg.one(
+        "SELECT evidence_id, verified FROM litkb.add_evidence(%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)",
+        (w["ws"], pg.tokens[w["ws"]], uv or w["uv"], block or w["block"], run or w["run"], 1,
+         w["text"][21:40], 21, 40, "supports"))
+
+
 @pg_only
 def test_kill_client_quote_verified_is_overwritten(pg):
     uv, block_id, run_id, text = _evidence_fixture(pg)
@@ -664,6 +680,29 @@ def _dependency_setup(pg):
     use2_id, u2 = pg.proposal(writer, "use", None, {"work_id": str(work_id)}, None,
                               {"statement": "independent", "kind": "context", "status": "proposed"},
                               None, ws1)
+    # Both uses carry a verified quote, for the reason given in _evidence_world: 0019 holds a use
+    # with no promotable evidence, and what these tests are about is the DEPENDENCY between a use and
+    # its gap. A file and a block are needed to have a quote to verify against, so the setup builds
+    # the smallest one that is a real file version of the work.
+    file_id, _fv = pg.one(
+        "SELECT entity_id, version_id FROM litkb._write_version('fact', 'file', NULL, %s, NULL, "
+        "%s, NULL, %s, 'setup', 'setup')",
+        (pg.Jsonb({"sha256": uuid.uuid4().hex + uuid.uuid4().hex}),
+         pg.Jsonb({"work_id": str(work_id), "rel_path": "Validation/Dependency_2020_x.pdf",
+                   "status": "active"}), ws0))
+    run_id = pg.one(
+        "INSERT INTO litkb.extraction_runs (file_id, stage, tool, tool_version, params_hash, "
+        "pipeline_version, host, status) VALUES (%s, 'native', 'test', '0', 'p', 'v0', 'local', "
+        "'ok') RETURNING id", (file_id,))[0]
+    pg.conn.execute("SELECT litkb.set_current_run(%s, NULL, %s)", (file_id, run_id))
+    text = "The dependency between a use and its gap is what this world is about."
+    block_id = pg.one(
+        "INSERT INTO litkb.blocks (file_id, run_id, page_no, type, text) VALUES (%s, %s, 1, "
+        "'paragraph', %s) RETURNING id", (file_id, run_id, text))[0]
+    for uv in (pg.one("SELECT version_id FROM litkb.use_versions WHERE use_id = %s", (use_id,))[0],
+               u2):
+        pg.one("SELECT evidence_id, verified FROM litkb.add_evidence(%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)",
+               (ws1, pg.tokens[ws1], uv, block_id, run_id, 1, text[4:30], 4, 30, "supports"))
     return dict(work=work_id, gap=gap_id, g1=g1, g2=g2, ws1=ws1, use=use_id, use2=use2_id, u2=u2,
                 writer=writer)
 
@@ -931,6 +970,9 @@ def test_evidence_guard_refused_while_promotion_prepared(pg):
     """A held chain stays proposed after prepare; evidence on it would change the version-set
     hash and block the prepared commit (the D1 disruption by another route)."""
     w = _evidence_world(pg)
+    # 0019 holds a use with no verified quote; this test's subject is elsewhere, so the
+    # world's use is given one and reaches `prepared` as it did before.
+    _make_promotable(pg, w)
     _, held_uv = _absent_gap_use(pg, w)
     promoter = pg.session("litkb_promoter")
     pid = pg.one("SELECT litkb.promote_prepare(%s, repeat('a', 40), NULL)", (w["ws"],), conn=promoter)[0]
@@ -945,6 +987,9 @@ def test_evidence_guard_refused_while_promotion_prepared(pg):
 @pg_only
 def test_referee_bypass_d1_evidence_on_another_workstreams_prepared_version_is_refused(pg):
     w = _evidence_world(pg)
+    # 0019 holds a use with no verified quote; this test's subject is elsewhere, so the
+    # world's use is given one and reaches `prepared` as it did before.
+    _make_promotable(pg, w)
     promoter = pg.session("litkb_promoter")
     pid = pg.one("SELECT litkb.promote_prepare(%s, repeat('a', 40), NULL)", (w["ws"],), conn=promoter)[0]
     assert pg.one("SELECT state FROM litkb.use_versions WHERE version_id = %s", (w["uv"],))[0] == "prepared"
@@ -964,6 +1009,9 @@ def test_referee_bypass_d1_evidence_on_another_workstreams_prepared_version_is_r
 @pg_only
 def test_referee_bypass_d2_evidence_on_a_promoted_main_version_is_refused(pg):
     w = _evidence_world(pg)
+    # 0019 holds a use with no verified quote; this test's subject is elsewhere, so the
+    # world's use is given one and reaches `prepared` as it did before.
+    _make_promotable(pg, w)
     promoter = pg.session("litkb_promoter")
     pid = pg.one("SELECT litkb.promote_prepare(%s, repeat('a', 40), NULL)", (w["ws"],), conn=promoter)[0]
     pg.one("SELECT litkb.promote_commit(%s, repeat('b', 40))", (pid,), conn=promoter)
@@ -973,7 +1021,9 @@ def test_referee_bypass_d2_evidence_on_a_promoted_main_version_is_refused(pg):
         with pytest.raises(pg.psycopg.DatabaseError):
             _add_evidence(pg, writer, w, named_ws, w["uv"], w["text"][4:20], 4, 20)
     n = pg.one("SELECT count(*) FROM litkb.use_evidence WHERE use_version_id = %s", (w["uv"],))[0]
-    assert n == 0, "unreviewed evidence entered main"
+    # 1, not 0: the setup's own verified quote (0019 needs one for this use to promote at all).
+    # What the refusals above must not do is ADD to it.
+    assert n == 1, "unreviewed evidence entered main"
 
 
 def _run(pg, conn, file_id, status):
@@ -1076,6 +1126,9 @@ def test_quote_char_end_beyond_text_is_refused(pg):
 def test_use_whose_gap_is_absent_is_held_at_prepare(pg):
     """D-6 / R7: a use whose gap is neither in main nor in this promotion is held."""
     w = _evidence_world(pg)
+    # 0019 holds a use with no verified quote; this test's subject is elsewhere, so the
+    # world's use is given one and reaches `prepared` as it did before.
+    _make_promotable(pg, w)
     use_id, _ = _absent_gap_use(pg, w)
     promoter = pg.session("litkb_promoter")
     pid = pg.one("SELECT litkb.promote_prepare(%s, repeat('a', 40), NULL)", (w["ws"],), conn=promoter)[0]
@@ -1244,11 +1297,15 @@ def _evidence_rows(pg, version_id):
                                   (version_id,)).fetchall(), key=repr)
 
 
-def _hold_and_rebase(pg, w):
+def _hold_and_rebase(pg, w, promotable=True):
     """Prepare and commit w's workstream (its use on an absent gap is held), then rebase what is
     held into a fresh workstream. Returns the rebase result's single chain entry."""
     from litkb import promote
     promoter = pg.session("litkb_promoter")
+    # 0019: without a quote the world's own use would be held too, and `held == 1` — the assertion
+    # that says the ABSENT-GAP use is the one held — would fail for a reason this test is not about.
+    if promotable:
+        _make_promotable(pg, w)
     pid = promote.prepare(promoter, w["ws"], "a" * 40, None)
     out = pg.one("SELECT litkb.promote_commit(%s, repeat('b', 40))", (pid,), conn=promoter)[0]
     assert out["held"] == 1, out
@@ -1417,6 +1474,9 @@ def test_add_evidence_waits_for_a_prepare_in_flight_and_is_refused(pg):
     sees the prepared state and is refused (55000) with no row written, and the prepared
     promotion still commits. Without the lock the evidence lands and the commit fails 40001."""
     w = _evidence_world(pg)
+    # 0019 holds a use with no verified quote; this test's subject is elsewhere, so the
+    # world's use is given one and reaches `prepared` as it did before.
+    _make_promotable(pg, w)
     holder = _holder(pg, "litkb_promoter")
     writer = pg.session("litkb_writer")
     prepared = {}
@@ -1428,7 +1488,8 @@ def test_add_evidence_waits_for_a_prepare_in_flight_and_is_refused(pg):
         writer, lambda k: _add_evidence(pg, k, w, w["ws"], w["uv"], w["text"][4:20], 4, 20))
     assert getattr(box.get("error"), "sqlstate", None) == "55000", \
         f"evidence added during a prepare must be refused 55000, got {box}"
-    assert pg.one("SELECT count(*) FROM litkb.use_evidence WHERE use_version_id = %s", (w["uv"],))[0] == 0
+    # 1, not 0: the setup's own verified quote (0019). The refused write must add nothing to it.
+    assert pg.one("SELECT count(*) FROM litkb.use_evidence WHERE use_version_id = %s", (w["uv"],))[0] == 1
     promoter = pg.session("litkb_promoter")
     out = pg.one("SELECT litkb.promote_commit(%s, repeat('b', 40))", (prepared["pid"],), conn=promoter)[0]
     assert out["committed"] == 1, out
@@ -1950,7 +2011,12 @@ def test_catalog_guard_fires_on_new_workstream_bearing_relations(pg):
 
 
 _EXPECTED_EXECUTE = {
-    "litkb_reader": {"norm_identifier"},
+    # check_ws_token, norm_search_text, any_term_query: P8's access layer (migration 0018,
+    # qc/test_litkb_p8.py). check_ws_token is SECURITY DEFINER and returns a BOOLEAN and nothing
+    # else — it is how a READ tool presents the workstream token without any role reading
+    # litkb.workstream_tokens (referee F-1). The other two are the search normaliser and the
+    # any-term query builder: pure functions of their argument, no table in either.
+    "litkb_reader": {"norm_identifier", "check_ws_token", "norm_search_text", "any_term_query"},
     # admit, approve_admission, attach_file: P2 admission (migration 0013, qc/test_litkb_p2.py)
     "litkb_writer": {"norm_identifier", "open_workstream", "abandon_workstream", "write_fact", "write_proposal",
                      "admit", "approve_admission", "attach_file",
@@ -1963,11 +2029,19 @@ _EXPECTED_EXECUTE = {
                      "hold_candidate",
                      "add_evidence", "add_candidate", "record_acquisition_attempt", "add_use_embedding",
                      # _feeds_token_ok: `litkb use add` checks a feeds token against the DATABASE's
-                     # regex before it writes (migration 0020), so the shape rule has one home and a
-                     # mistyped token is a refusal at the command instead of a chain held at prepare.
-                     # It reads nothing: text in, boolean out, IMMUTABLE.
-                     "_feeds_token_ok"},
-    "litkb_promoter": {"norm_identifier", "promote_prepare", "promote_commit", "promote_abandon", "promote_rebase"},
+                     # regex before it writes (migration 0020, definition settled in 0021), so the
+                     # shape rule has one home and a mistyped token is a refusal at the command
+                     # instead of a chain held at prepare. It reads nothing: text in, boolean out,
+                     # IMMUTABLE.
+                     "_feeds_token_ok",
+                     # the writer reaches the same three 0018 functions as the reader: the MCP
+                     # server's write tools run on the writer connection and litkb_search's
+                     # normaliser must behave identically whichever login asks
+                     "check_ws_token", "norm_search_text", "any_term_query"},
+    # promotion_chains: the promoter's SECURITY DEFINER read of _ws_chains, so `promote prepare` can
+    # write the promotion report (migration 0018, referee F-5). No agent role holds it.
+    "litkb_promoter": {"norm_identifier", "promote_prepare", "promote_commit", "promote_abandon",
+                       "promote_rebase", "promotion_chains"},
     # open/finish_extraction_run, clear_extraction_rows, add_table_cell, add_disagreement: the P5
     # ingest schema (migration 0017, qc/test_litkb_reconcile.py). 0017's three new tables
     # (table_cells, extraction_disagreements, file_current_run) grant INSERT to NOBODY, so these
@@ -1980,7 +2054,10 @@ _EXPECTED_EXECUTE = {
     "litkb_ingest": {"norm_identifier", "set_current_run",
                      "open_extraction_run", "finish_extraction_run", "clear_extraction_rows",
                      "add_table_cell", "add_disagreement",
-                     "add_reference", "add_citation_mention", "add_citation_edge", "add_citation_candidate"},
+                     "add_reference", "add_citation_mention", "add_citation_edge", "add_citation_candidate",
+                     # norm_search_text: 0018's expression index on blocks calls it, and an index
+                     # expression is evaluated as the role doing the INSERT. Ingest writes blocks.
+                     "norm_search_text"},
     "public": set(),
 }
 _EXPECTED_WRITES = {role: set() for role in _EXPECTED_EXECUTE}
@@ -2104,7 +2181,13 @@ def test_rebase_copies_head_evidence_whose_run_was_superseded(pg):
     ingest.execute("SELECT litkb.set_current_run(%s, %s, %s)", (w["file"], w["run"], r2))
     assert pg.one("SELECT current_run_id FROM litkb.files WHERE id = %s", (w["file"],))[0] == r2
     source = _evidence_rows(pg, held_uv)
-    chain = _hold_and_rebase(pg, w)
+    # 0019, with this test's own twist: evidence anchored in a SUPERSEDED run is not promotable, so
+    # the world's use is given its quote in r2 — the run that is current now — and only the
+    # absent-gap chain is held. That is the hold this test is about.
+    b2 = pg.one("INSERT INTO litkb.blocks (file_id, run_id, page_no, type, text) VALUES (%s, %s, 1, "
+                "'paragraph', %s) RETURNING id", (w["file"], r2, w["text"]))[0]
+    _make_promotable(pg, w, block=b2, run=r2)
+    chain = _hold_and_rebase(pg, w, promotable=False)
     assert chain["evidence_copied"] == 1, chain
     copied = _evidence_rows(pg, chain["new_version"])
     assert copied == source and copied[0][1] == w["run"], copied
@@ -2173,6 +2256,9 @@ def test_add_use_embedding_refuses_a_closed_workstreams_token(pg):
     """F-3: a merged workstream's token is refused (22023) even on a version that is still proposed (a
     chain held at commit), so only the open-workstream guard stands in the way; so is an abandoned one's."""
     w = _evidence_world(pg)
+    # 0019 holds a use with no verified quote; this test's subject is elsewhere, so the
+    # world's use is given one and reaches `prepared` as it did before.
+    _make_promotable(pg, w)
     _, held_uv = _absent_gap_use(pg, w)
     promoter = pg.session("litkb_promoter")
     pid = pg.one("SELECT litkb.promote_prepare(%s, repeat('a', 40), NULL)", (w["ws"],), conn=promoter)[0]
@@ -2198,6 +2284,9 @@ def test_add_use_embedding_refuses_a_promoted_or_prepared_version(pg):
     """F-3: in an open workstream, a promoted version and a prepared version of its own are refused
     (55000); main's promoted slot is never taken by an unreviewed vector."""
     w = _evidence_world(pg)
+    # 0019 holds a use with no verified quote; this test's subject is elsewhere, so the
+    # world's use is given one and reaches `prepared` as it did before.
+    _make_promotable(pg, w)
     _, promoted = pg.one(
         "SELECT entity_id, version_id FROM litkb._write_version('fact', 'use', NULL, %s, NULL, %s, "
         "NULL, %s, 'setup', 'setup')",

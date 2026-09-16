@@ -93,7 +93,12 @@ HELPERS = ("jsonb_safe", "normalize_doi", "window_refusal", "tokens_contain", "p
            # the secret-redaction family, brought under the rule on 2026-09-14 (it was DEFERRED_HELPERS until
            # then): netutil.redact and its wrapper run._redacted, plus netutil.add_secret, which is what ARMS
            # redact for a run — a site that fails to register the key disarms every later site in that process.
-           "redact", "add_secret", "_redacted")
+           "redact", "add_secret", "_redacted",
+           # P8's access-layer guards, brought under the rule after the referee counted what the X
+           # rows did NOT cover (Reports/LITKB_P8_REFEREE_2026-09-15.md §6.1): the SHAPE redactor,
+           # which masks a credential no add_secret could have registered, and the token check the
+           # READ tools present — the guard whose absence let a forged token read a workstream.
+           "redact_shapes", "_require_token")
 
 
 def block(id_, file, marker, what, sites=None, tests=None):
@@ -712,6 +717,97 @@ DEFERRED_HELPERS = {}
 
 site("T18", "litkb/admit/binding.py::bind::verdict", '"bound"', tests=TESTS_P1P2,
      what="bind returns 'bound' without consulting verdict() at all")
+
+# ── P8: the MCP server, the agents' one path into the knowledge base (design §9, §9.1) ────
+# The server lives under Scripts/pipeline/litkb/, so the per-call-site rule reaches it the moment
+# the file exists — which is why it was built with ONE redact() and ONE add_secret(), each in one
+# function: every tool result goes through _out(), every write tool through _session(). Answered by
+# qc/test_litkb_p8.py, whose non-database tests need no Postgres, so these rows fire anywhere.
+TESTS_P8 = ["qc/test_litkb_p8.py"]
+site("X1", "litkb/mcp/server.py::_out::redact", "{a0}", tests=TESTS_P8,
+     what="the MCP output boundary stops redacting: whatever a route said reaches the model verbatim")
+site("X2", "litkb/mcp/server.py::_session::add_secret", "None", tests=TESTS_P8,
+     what="_session stops ARMING redaction with the workstream token, so redact() is left with "
+          "nothing registered and the token survives every later _out()")
+site("X3", "litkb/mcp/server.py::_labels::norm_label", "{a0}", tests=TESTS_P8,
+     what="MCP labels keep invisible characters: a label of zero-width characters is no longer "
+          "blank, so a write records an agent and session no comparison will match")
+site("X4", "litkb/mcp/server.py::_admit::_labels", '("a", "s")', tests=TESTS_P8,
+     what="litkb_admit stops demanding agent and session labels and invents a pair")
+site("X5", "litkb/mcp/server.py::_acquire::_labels", '("a", "s")', tests=TESTS_P8,
+     what="litkb_acquire stops demanding agent and session labels and invents a pair")
+site("X6", "litkb/mcp/server.py::_record_use::_labels", '("a", "s")', tests=TESTS_P8,
+     what="litkb_record_use stops demanding agent and session labels and invents a pair")
+
+# The referee's §6.1: "a guard with no row is a guard not yet shown to be load-bearing, and two of
+# P8's four best properties are in that position". These are those rows, plus one for each fix the
+# referee's five findings asked for. Every one of them is answered by a test in qc/test_litkb_p8.py
+# that does NOT carry the litkb_live mark, because the harness deselects live tests.
+site("X7", "litkb/mcp/server.py::_out::redact_shapes", "{a0}", tests=TESTS_P8,
+     what="the output boundary stops masking credential SHAPES: a pgpass line planted in a block "
+          "comes back verbatim, exactly as the referee got it out of a search result (F-4)")
+site("X17", "litkb/netutil.py::redact_shapes::redact_shapes", "{a0}", tests=TESTS_P8,
+     what="redact_shapes stops recursing: a credential inside the dicts and lists a tool result is "
+          "built from survives, and every hit litkb_search returns is inside one (the twin of RD15)")
+site("X8", "litkb/mcp/server.py::_candidates::_require_token", "None", tests=TESTS_P8,
+     what="litkb_candidates stops presenting the workstream token: a forged token reads the "
+          "workstream's candidates and admissions (F-1)")
+site("X9", "litkb/mcp/server.py::_ws_status::_require_token", "None", tests=TESTS_P8,
+     what="litkb_ws_status stops presenting the workstream token: a forged token reads the "
+          "workstream's whole status, which is what the referee did (F-1)")
+block("X10", f"{PKG}/mcp/server.py", "guard: evidence comes from the work the use is about",
+      "a caller may name work A while quoting a block of work B, and is not told")
+M[-1]["tests"] = TESTS_P8
+site("X18", "litkb/mcp/server.py::_propose_promotion::_require_token", "None", tests=TESTS_P8,
+     what="litkb_propose_promotion stops presenting the workstream token: a forged token prepares "
+          "ANOTHER workstream's proposals under the promoter credential, writes its chain report "
+          "into this worktree, and blocks its owner's own prepare")
+replace("X19", f"{PKG}/netutil.py", "_SECRET_KEY_RE.fullmatch(str(k))", "None", tests=TESTS_P8,
+        what="the output boundary stops reading a result's FIELD NAMES: a value under a key called "
+             "`password` or `token` is carried out whenever its own shape is unremarkable (F-4's "
+             "second half — the regexes see leaf TEXT, not the key above it)")
+# X11/X13/X14 neuter the LOGIC rather than deleting the CREATE. Deleting it left the COMMENT and the
+# GRANT behind, migration 0018 failed to apply, and every Postgres test ERRORED — which this harness
+# does not read as a failure, so all three reported DID NOT FIRE on the first run. A row that breaks
+# the FILE proves the file is load-bearing; only a row that breaks the RULE proves the rule is
+# (CLAUDE.md 3.4c). Each of these leaves a valid migration whose function does the wrong thing.
+replace("X11", f"{MIG}/0018_access_layer.sql",
+        "  SELECT coalesce((SELECT t.token_hash = encode(sha256(convert_to(p_token, 'UTF8')), 'hex')\n"
+        "                     FROM workstream_tokens t WHERE t.workstream_id = p_ws), false)\n",
+        "  SELECT true\n",
+        "check_ws_token accepts ANY token: the read tools verify and are told yes, which is the "
+        "referee's forged-token read with the check in place", tests=TESTS_P8)
+block("X12", f"{MIG}/0018_access_layer.sql",
+      "guard: feeds tokens are the convention's seven doc-qualified forms",
+      "the feeds validator falls back to 0005's three forms: four of the convention's seven are "
+      "refused at prepare (F-3)")
+M[-1]["tests"] = TESTS_P8
+M.append(dict(id="X13", kind="multi", tests=TESTS_P8,
+              what="norm_search_text becomes a whitespace collapser: it stops dropping the "
+                   "extractor's replacement characters and stops joining line-break hyphenation, so "
+                   "`overesti- mate` is two words again on both sides of the comparison",
+              edits=[
+    dict(file=f"{MIG}/0018_access_layer.sql",
+         old="             translate(coalesce(p_text, ''), chr(65533) || chr(173), ''),",
+         new="             coalesce(p_text, ''),"),
+    dict(file=f"{MIG}/0018_access_layer.sql",
+         old="             '-[ \\t\\r\\n]+', '', 'g'),",
+         new="             'ZZZZ-[ \\t\\r\\n]+', '', 'g'),")]))
+replace("X14", f"{MIG}/0018_access_layer.sql",
+        "    t := plainto_tsquery('simple', w);\n",
+        "    t := NULL::tsquery;\n",
+        "any_term_query returns nothing, so the any-term leg matches no block and search is "
+        "all-terms again: one word the extractor mangled drops the passage, the Q3 miss",
+        tests=TESTS_P8)
+block("X15", f"{MIG}/0019_prepare_requires_evidence.sql",
+      "guard: a use is prepared only on at least one verified evidence row",
+      "a use with NO evidence at all reaches prepared again — the convention error the referee "
+      "confirmed by running (§3.6)")
+M[-1]["tests"] = TESTS_P8
+block("X16", f"{PKG}/commands.py", "guard: prepare WRITES the promotion report",
+      "prepare records a report path and writes no file, as it did when the skill and the P8 report "
+      "both said it wrote one onto the work branch (F-5)")
+M[-1]["tests"] = TESTS_P8
 
 # Call sites a mutation cannot change the behaviour of. The reason must be about the CODE, never about the tests.
 EQUIVALENT = {

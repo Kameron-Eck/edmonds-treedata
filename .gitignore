@@ -13,6 +13,20 @@
 # Admin/ - the rule above matched nothing and the tracker was never version-controlled.
 !/Literature_Tracker.xlsx
 
+# ── the P8 access layer (LITERATURE_KB_DESIGN_2026-09-13.md §9.1) ──
+# The literature skill, the librarian subagent and the STAGED hook script are repository files:
+# they bind only sessions in this worktree until Kam merges them, which is the point. Claude Code
+# discovers a project skill by walking from the session's cwd up to the git root, so a root-level
+# .claude/ is what reaches a session opened in Scripts/.
+# Deliberately NOT whitelisted: settings.json / settings.local.json. Permission rules and hook
+# REGISTRATION stay out of the repository — the same reason Scripts/.claude/ is ignored below — so
+# a /permissions or /hooks edit can never be swept into a commit.
+!/.claude/
+/.claude/*
+!/.claude/skills/
+!/.claude/agents/
+!/.claude/hooks/
+
 # ── inside Scripts: code+docs yes, artifacts no ──
 Scripts/logs/
 Scripts/.versions/

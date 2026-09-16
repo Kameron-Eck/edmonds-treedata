@@ -444,3 +444,229 @@ after those copies were made, which is why they were run separately above.
 ---
 
 *Builder: Claude Opus 5, session https://claude.ai/code/session_015MUcyGTfX2koRdYAjW5kED.*
+
+---
+
+# Operational fix set — 2026-09-16 (appended)
+
+Branch `work/20260913-literature-kb`, worktree `D:\edmonds-pipeline\treedata-litkb`, workstream
+**`fix-op-1`** (`01a0aa8c-3741-7a32-bce3-0f546b7af066`). Written against
+`Reports/LITKB_OPERATIONAL_REFEREE_2026-09-16.md` (R-1…R-10) and the friction log of
+`LITKB_OPERATIONAL_TEST_2026-09-16.md`, both in the `treedata-access` worktree. Every number
+below is a command that ran here; none is taken from either of those documents.
+
+## A. `litkb_work`, and the question `SKILL.md` step 0 asks
+
+R-1 is two wrong column names, not one: `container` for `main_works.venue` at `server.py:421`,
+and `v.path` for `main_files.rel_path` at 426/428, the first hiding the second. Both fixed, and
+the `files` leg now reads `litkb.main_files` directly — that view already *is*
+`files JOIN file_versions`, so the join the broken statement made was the view's own, spelled
+again and spelled wrong.
+
+The tool now answers a **four-state ladder**, because "litkb_search found nothing" means three
+different things and each has a different next move. Measured live, read-only, against `litkb`:
+
+| selector | state | evidence |
+|---|---|---|
+| `key=Platanios_2014_…` | **absent** | not in main's view; the hint names the open workstream that holds it |
+| `key=Anderson_1957_…` | **held** | admitted, `venue` The Annals of Mathematical Statistics, `files: []` |
+| `key=Mei_2010_…` | **held** → after binding (§D) **bound-unextracted** (1 file, `current_run_id` null) → after ingest **extracted**, 360 blocks |
+| `key=Efron_1986_…` | **extracted** | 451 blocks, `Validation/Efron_1986_…pdf`, 11 pages |
+| `doi=10.1093/biomet/asq010` | **extracted** | resolves to Mei_2010 — the DOI leg had never run against a held work either |
+
+All four states were observed on live data in this session. The referee needed `psql` twice to
+reach the Mei diagnosis; it is now one tool call, and `what_next` says what to do at each rung.
+
+## B. `litkb_my_uses` — the read-back that did not exist
+
+Friction 2: recording a use and reading it back were different systems. `litkb_ws_status`
+answered `{"gap": 6, "use": 6}`; `litkb_work` reads `litkb.main_uses`, which holds **none** of a
+session's own proposals until Kam merges. The tenth tool lists this workstream's `ws_heads` —
+statement, work key, gap, kind, feeds, `state` — and a `quote_status` of `verified` /
+`UNVERIFIED` / `NO EVIDENCE`. The middle one is the state a session most needs and could not
+see: a stored quote the database could not find at its offsets, whose chain `promote prepare`
+refuses.
+
+## C. The two gates at `record_use` (R-5, R-6)
+
+* **statement** — was completely ungated. The database's own CHECK is `statement <> ''`, which a
+  single space satisfies, so a blank claim beside a perfectly verified quote promoted clean. Now
+  refused `bad-statement`, with the emptiness test run through `textnorm.norm_label` so a
+  statement of zero-width joiners is blank in exactly the way a *label* of them is. The cap is
+  **2000**, chosen from a measurement: over the 391 rows of `litkb.use_versions` the longest
+  statement is **798** characters (p95 653, mean 375), so nothing that exists becomes invalid.
+* **feeds** — were stored unvalidated and first checked a whole session later at
+  `promote prepare`. Now refused `bad-feeds` at record time, by the DATABASE's own
+  `litkb._feeds_token_ok` (migration 0021) rather than a second regex in Python: two copies of
+  that rule already cost a migration to reconcile. The refusal names the offending tokens, and
+  nothing is written — not even the gap.
+
+Neither gate can see whether the section or row a token NAMES is the right one. That limit is
+now stated in `SKILL.md`, beside R-5's example.
+
+## D. Binding the unbound — 11 works, 4 bound
+
+`litkb_acquire(key=…, from_file=…)` through the MCP tool, one call per work, against the PDF in
+`Literture\Validation\`. Every one read `held` before (`litkb_work`); every PDF was on disk.
+
+| work | outcome | why |
+|---|---|---|
+| `Jaffe_2014_estimating-accuracies-multiple-classifiers` | **bound** | title ratio 1.0, author near title — from `Jaffe_2015_…pdf`; the year disagreement is in the file name, not the record |
+| `Marsan_2008_extending-earthquakes-reach-through` | **bound** | ratio 1.0 |
+| `Mei_2010_efficient-scalable-schemes-monitoring` | **bound** | ratio 1.0 |
+| `Vixie_2007_some-properties-minimizers-chan` | **bound** | ratio 1.0 |
+| `Anderson_1957_statistical-inference-about-markov` | binding-pending | image-only scan: page 1 carries 160 characters (the JSTOR stamp), title ratio 0.298 |
+| `Hudson_1978_natural-identity-exponential-families` | binding-pending | scan, 147 chars, ratio 0.286 |
+| `Hwang_1982_improving-upon-standard-estimators` | binding-pending | scan, 147 chars, ratio 0.374 |
+| `Kingman_1962_imbedding-problem-finite-markov` | binding-failed | title ratio **1.0**, but "first author not a whole token near the title" |
+| `Maragos_1989_pattern-spectrum-multiscale-shape` | binding-failed | same: ratio 1.0, author not near the title |
+| `Ogata_1998_space-time-point-process` | binding-failed | page 1 has **0** characters; the title matched only the PDF `/Title` metadata |
+| `Stehman_1998_design-analysis-thematic-map` | binding-failed | author found and near the title; title ratio **0.8296** against a floor of 0.85 — the page says "…Accuracy Assessment: Fundamental Principles", the registry record stops at "…Accuracy Assessment" |
+
+**Nothing was weakened to make a file bind.** Three of the four failures are the checks working:
+Stehman is a real registry-record discrepancy (a missing subtitle), Kingman and Maragos are the
+author-proximity rule refusing a page whose title it can read perfectly. The three
+`binding-pending` are the scans, which the binding check cannot read without OCR — the state the
+OCR queue exists for, and Kam's call (§G).
+
+*Friction found doing this:* `litkb_acquire`'s MCP wrapper strips `detail` from its result, so
+the tool says `binding-failed` and not **why**. Every reason above came from
+`litkb.acquisition_attempts.detail` by `psql`. Not fixed here; recorded.
+
+**Extraction and ingest of the four**, through the P5 path — GROBID 0.9.1 under WSL pool 4
+(4 ok, 225 cached, 29.0 s), then Docling on CUDA (4 converted, peak 1,811 MiB), then reconcile +
+ingest at `stage5-2+l4latex` with LaTeX from the parked L4 JSONL:
+
+| work | pages | blocks | equations / with LaTeX | min coverage |
+|---|--:|--:|---|--:|
+| Jaffe_2015 | 27 | **617** | 100 / 62 | 1.0 |
+| Marsan_2008 | 5 | **486** | 5 / 5 | 0.9885 |
+| Mei_2010 | 15 | **360** | 66 / 43 | 1.0 |
+| Vixie_2007 | 14 | **476** | 112 / 65 | 1.0 |
+
+**+1,939 blocks**, and all four come back from `litkb_search` at **rank 1** for their own
+question — including the one the operational test recorded as unanswerable. Its §2.1 first row
+searched for the multiplicity half of gap row 20 and got "`Xie_2013` (which *cites* Mei),
+`Reynolds_2000`, `Steiner_2000` — no Mei". Mei now takes ranks **1, 2, 4, 6, 10** of that query.
+
+## E. The cropbox clamp, and its block deltas
+
+`page_frames` reported `dy = media.y1 - crop.y1`; a `/CropBox` extending past the `/MediaBox`
+makes that negative, and no renderer shows that region — a viewer intersects the two boxes
+(PDF 32000-1 §14.11.2) — so the effective shift is 0 and the raw negative moved every block off
+its own text. Clamped to `max(dy, 0)`.
+
+**The population is five files, not two.** §6.2 named the two whose character share fell below
+the 0.80 catastrophe floor; a census over the frozen corpus
+(`qc/instruments/litkb_cropbox_census.py` → `phase4/qc/litkb_cropbox_census.csv`) finds **5
+files, 45 pages of 5,038** with a negative raw `dy`, and **no page anywhere with a negative
+`dx`** — which is why `dx` is not clamped. The three extra files are §6's own argument about the
+floor, applied to itself: above a floor is not evidence the shift is right there.
+
+Re-ingested at a bumped `pipeline_version` (`stage5-2+l4latex+dyclamp`) from the SAME GROBID and
+Docling artifacts. No re-extraction was needed: the shift is consumed at reconciliation, not by
+either extractor.
+
+| file | raw `dy` | blocks before → after | min coverage before → after | pages below floor |
+|---|--:|---|---|--:|
+| `Higham_2011_pth-roots-stochastic-matrices` | −111.6 (16 pp) | 412 → **412** | 0.30494 → **0.98984** | 15 → **0** |
+| `Efron_1986_how-biased-apparent-error-rate` | −0.48 … −3.36 (4 pp) | 451 → **451** | 0.74575 → **0.98506** | 1 → **0** |
+| `Mesquita_1999_effect-surrounding-vegetation-edge` | −2.0 (6 pp) | 149 → **149** | 1.0 → 1.0 | 0 → 0 |
+| `Jackson_2002_hidden-markov-models-onset-progression` | −1.0 (16 pp) | 284 → **284** | 1.0 → 1.0 | 0 → 0 |
+| `Kalbfleisch_1985_analysis-panel-data-markov` | −0.2395 (3 pp) | 462 → **462** | 0.98735 → 0.98735 | 0 → 0 |
+
+**The block delta is zero on every file**, and that is the finding rather than a null result: the
+shift moves a block's BOX, not the set of blocks, and the GROBID↔Docling fusion agreed with
+itself at the wrong offset exactly as it does at the right one — which is what §6.2 already
+observed of Higham's 38 L4 formula rows. What moved is where those boxes sit against the page's
+own characters. §6.2 predicted 0.9898 and 0.9851 for the two documents; they came back at
+**0.98984** and **0.98506**.
+
+The gate after: **229 documents, 229 ingested ok, 0 runs not ok, 0 blocks outside an ok run, 0
+duplicate runs per key**, and the coverage floor catches **6 of 229** documents rather than 8 —
+the two cropped-page ones are gone and the rest are the four rotated-page refusals plus two
+ordinary low-coverage pages. `blocks` 105,705 total, **103,947 in current runs** (102,008
+before, +1,939 new); the 1,758 in the five superseded dy runs are exactly their old counts.
+
+## F. OCR headroom — the knob named for the job does not work
+
+The task asked for a cap on Docling's OCR **page batch** so the T2000 stays ≤ 80 % (3,277 of
+4,096 MiB). Measured over this driver's own batch B (15 documents, 312 pages, `ocr=on`, CUDA),
+`nvidia-smi` at 1 Hz, idle 387 MiB (display only):
+
+| setting | peak VRAM | share | wall | pages/s |
+|---|--:|--:|--:|--:|
+| `page_batch_size` 4 — docling's default, what §7 measured | **3,873 MiB** | 94.6 % | 445.1 s | 0.701 |
+| `page_batch_size` 2 | 3,842 MiB | 93.8 % | 431.9 s | 0.722 |
+| `page_batch_size` 1 | 3,893 MiB | 95.0 % | 440.6 s | 0.708 |
+| `torch.cuda.empty_cache()` between documents | 3,475 MiB | 84.8 % | 436.4 s | 0.715 |
+| **4 documents per converter PROCESS** | **2,619 MiB** | **63.9 %** | 483.7 s | 0.645 |
+
+§7's 3,881 MiB reproduces at 3,873. **`page_batch_size` does not move the peak** — flat inside
+noise across a 4× range. What dominates is not the per-page activations it governs: it is the
+resident models plus torch's cached pool, which the allocator never returns, so in a batch
+process the reserved pool becomes a high-water mark over every document that process has
+converted. Measured directly: **3,344 MiB reserved, 468 MiB after an `empty_cache`**. That is
+why freeing the pool between documents buys 398 MiB and ending the PROCESS buys 1,254 — a
+process exit returns the models too.
+
+So the applied cap is **documents per converter process** (`docling.OCR_CHUNK = 4`, the driver's
+`--ocr-chunk`), costing **9.7 % of the rate** in converter rebuilds, plus `free_cache` on the
+OCR pass, which is free. `page_batch` stays available and is recorded on every metrics row — a
+peak with no setting beside it cannot be compared with another run's — and is **not applied by
+default**, on the measurement above rather than on the tool's documentation.
+
+**And the input the fix was asked for does not breach at all.** On `Anderson_1957`, a real
+22-page image-only scan, the OCR pass peaks at **1,806 MiB / 44.1 %** with no knob applied, and
+2,294 MiB at `page_batch_size` 1. The breach is a property of a LONG BATCH in one process, not of
+OCR on scans. Batch A (`ocr=off`) is unchanged and uncapped: it peaked at 2,317 MiB / 56.6 %,
+inside the rule already, so a cap there would cost rate for nothing.
+
+## G. What was NOT admitted, and what still cannot be reached
+
+Per the brief, **no work was admitted**. The census files with no `files` row are now **49**
+(four came out of it in §D). They need Kam's call, because the cost is OCR:
+
+* **the five scans** — `Anderson_1957`, `Hudson_1978`, `Hwang_1982`, `Ogata_1998`,
+  `Politis_1994` (plus `Schwartz_2000`, already in `_quarantine\`). Four of those five are
+  ALREADY admitted works, and their binding is the `binding-pending` / `binding-failed` of §D:
+  the blocker is not admission, it is that the binding check cannot read a scan's first page.
+  Stage 0's backlog for them is 111 pages; at batch B's 0.645 pages/s under the new cap that is
+  about three minutes of GPU, so cost is not the constraint. The constraint is that binding one
+  needs an OCR pass the acquisition path does not run.
+* **the 688-page book** `Schneider_2008_stochastic-integral-geometry`, which `--ocr-max-pages
+  200` deliberately keeps out of the OCR batch and whose work carries no key.
+* 38 `native` and 5 `mixed` census files whose works are not admitted at all.
+
+The two standing recall holes, re-measured after this session:
+
+| hole | referee | now |
+|---|--:|--:|
+| main works with **no bound file** | 208 | **204** |
+| main files with **zero current-run blocks** | 0 | **0** |
+| bound files **stranded in open workstreams** | 14 | **14** — `p3-migration` 12, `edge-pre1990` 1, `linkage-review` 1 |
+
+The second hole now has a tool: `litkb_p5_bulk.py plan --workstream <slug>` unions a named
+workstream's own active files into the population. Exercised on `fix-op-1`, it reported **0** —
+because `litkb.attach_file` writes a file version as a FACT when the work is already promoted,
+so the four bindings landed in main's view directly and were planned without it. That is an
+answer, not a passing test: the flag's target population is the 14 files in the three OTHER open
+workstreams, which this session did not extract and does not own.
+
+## H. Guards, and the harness
+
+Every guard added carries a mutation row shown to FIRE, and `--sites` passes (**91 call sites,
+88 covered by a row, 3 equivalent; 21 sinks, 2 redacted, 19 allowed**).
+
+| row | what it breaks | fired |
+|---|---|---|
+| **X20** | `litkb_work`'s four-state ladder collapses to `extracted` | yes |
+| **X21** | the statement gate goes: a blank claim and an essay both record | yes |
+| **X22** | the statement's emptiness test stops seeing invisible characters | yes |
+| **X23** | feeds tokens stored unvalidated again, first checked at prepare | yes |
+| **X24** | `litkb_my_uses` stops presenting the workstream token | yes |
+| **X25** | the cropbox shift is negative again (Higham 0.98984 → 0.30494) | yes |
+| **X26** | the OCR pass stops applying the knobs the measurement kept | yes |
+| **P55** | the OCR batch back in one long process (63.9 % → 94.6 %) | yes |
+
+*Appended by Claude Opus 5, session https://claude.ai/code/session_015MUcyGTfX2koRdYAjW5kED.*

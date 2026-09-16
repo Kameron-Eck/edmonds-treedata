@@ -1036,6 +1036,26 @@ SINK_ALLOW = {
         "printed)' of the token, and `token` is not in scope as a formatted value in this branch."),
     # Stage 3 (Docling), added at the P4 merge 2026-09-15. The docling branch forked before this
     # sink checker existed, so these two sites reach it for the first time here.
+    "litkb/extract/colab_formula_worker.py::main::print": (6,
+        "The Colab formula worker's per-shard progress, read at the merge of work/20260915-colab-l4-formula "
+        "(2026-09-16). Four of the six are json.dumps of a FIXED key projection of the shard record — shard_id, "
+        "status, slice_index/slice_of, n_crops, ok/failed/unstable/degenerate, regions_per_s, the load and "
+        "re-decode seconds, peak_alloc_bytes, device_min_free_bytes, proc_plan: the keys are literals in the "
+        "call, so no value outside that set can reach the sink. The other two are {'shard': sid, 'skipped': …} "
+        "with sid a basename this function builds from the shard path, and {'model_load_seconds': float}. This "
+        "module opens no socket and no database connection — it reads a shard archive, runs a local VLM and "
+        "writes a result archive — so no credential is in scope in it at all. Its 'token' is the model's, "
+        "never a secret."),
+    "litkb/extract/colab_formula_worker.py::_write_step_log::print": (3,
+        "The step log's own three lines: the PATH the records were written to (built from BASE / phase4 / logs, "
+        "or the --log-dir the caller typed), and on the fallback branch the same path plus "
+        "'STEP LOG FAILED: {type}: {e}' — the exception from os.makedirs or json.dump, which is a filesystem "
+        "error about a path this function built. Same module as above: no credential is in scope."),
+    "litkb/extract/formula_crop_worker.py::main::print": (2,
+        "Two calls, read at the same merge. The --verify-crop line is json.dumps of Docling self_refs, booleans "
+        "and two floats (images_scale, expansion_factor); the per-job line is a fixed four-key projection "
+        "(file, status, n_crops, seconds) whose keys are literals. This worker runs inside the Docling venv, "
+        "converts a PDF and writes crops to disk; it holds no database credential and no archive key."),
     "litkb/extract/docling.py::<module>::print": (1,
         "The hand loop's summary: json.dumps of the metrics dict extract() returns — page counts, seconds, "
         "pages_per_s, peak RSS, the source path the caller typed on the command line. This module holds no "

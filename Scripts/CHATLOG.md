@@ -1547,3 +1547,80 @@ next:    Kam's two open calls (§8.2's prepare rule; the _feeds_token_ok collisi
          the U+FFFD wildcard in tokens_contain if the quarantined Köpcke file is wanted; §8.7's
          open-access misses (a DOI->arXiv fallback recovers S2AND and Enamorado by the review's own
          list); the census re-pin debt on Massari_2023 p13.
+
+## 2026-09-16  litkb-p8-merge
+goal:    merge refereed P8 access layer (MCP server, skill, librarian, staged hook) into
+         work/20260913-literature-kb, apply its migrations, settle the feeds-validator collision,
+         prove merged tree. Wrote neither side.
+did:     work/20260915-access-layer fd59bc3 merged --no-ff as c932bea. Three textual conflicts, all
+         union, none a disagreement: commands.py::main dispatch (HEAD's `use`+`inventory`, P8's
+         `promote`); test_litkb_p1.py::_EXPECTED_EXECUTE twice (HEAD's `_feeds_token_ok` from 0020,
+         P8's check_ws_token/norm_search_text/any_term_query/promotion_chains from 0018; and ingest's
+         four stage-6 writers beside P8's norm_search_text). .gitignore, netutil.py and the mutation
+         harness auto-merged on disjoint regions.
+         Migrations: 0018 + 0019 applied to litkb, litkb_test, litkb_test_w1/w6/w9. litkb_test_w2
+         left at 19 (P8's own worker). Then 0021_feeds_validator_final.sql, applied everywhere.
+         litkb = 21 migrations.
+         THE COLLISION, measured not reasoned. 0018 and 0020 each CREATE OR REPLACE
+         litkb._feeds_token_ok with a different seven-form body. CREATE OR REPLACE is decided by
+         APPLY order, not by number, so one migration set gave two schemas. On litkb_test the moment
+         0018 landed on top of 0020: `framework §13.1.1` -> false (0018's depth rule), `report
+         notmd#§5` -> TRUE (0018's `[^ ]+`). A from-scratch build answers the other way on both.
+         test_litkb_p8.py asserts the first refused; test_litkb_first_use.py asserts the second
+         refused. Neither suite wrong.
+         0021 states the definition ONCE and, being highest-numbered, applies last everywhere.
+         framework §N keeps 0018's at-most-one-sub-level (LITERATURE_CONVENTION.md says so in as
+         many words); `report <FILE>#§<loc>` keeps 0020's .md requirement (a token naming no
+         document is the hole the 2026-09-13 vocabulary closed). Proof: md5(prosrc) is
+         982600bf2bd477aab6565c4b3ad0879a on litkb (0020 first) AND on litkb_test (0001..0021 from
+         scratch) -- IDENTICAL.
+         Proofs: --sites PASS (89 sites, 86 covered, 3 equivalent; 18 sinks, 2 redacted, 16 allowed
+         -- merge dropped none of P8's sinks). P8 + first-use suites 96 passed / 3 skipped; with
+         LITKB_LIVE=1 the MCP mini-hunt included, 60 passed / 0 skipped. Feeds vocabulary: same 12
+         accepted, 14 refused, on litkb_test and litkb. P3 gate read-only on litkb 1,086 cells ->
+         713/243/120/10/UNEXPLAINED 0, PASS, empty git diff on the CSV. 293 table 20/23/250,
+         requests_total 0. check.py --fast under w6: only crown_state_model (the two inventory
+         census pins now pass).
+         Full parallel harness --workers 3 --worker-dbs 1,6,9: 271/272 fired, 71.9 min -- and
+         baselines FAILED, which is the real finding.
+decided: 0021 rather than editing 0018 (both already applied and checksum-locked, so neither could
+         be the one that changes -- the second of the two options _reserved.txt offered).
+         Design §9 AMENDED per P8 referee §5: promote prepare exposed as litkb_propose_promotion,
+         credential clause kept exactly, reason commit/approve stay absent written down. Referee
+         condition (i) recorded as NO LONGER TRUE: his own F-5 fix made prepare write the report, so
+         an agent-supplied report_path is a file write with no `..` check. READ FROM SOURCE, not
+         exercised. Scoping it is a new guard on a refereed branch -> Kam's, with the decisions.yaml
+         line.
+         docs/LITKB_AGENT_BASE_BRIEF.md tracked, so a change to the standing agent rules is a diff.
+killed:  test_an_undeclared_gap_in_the_migration_numbering_is_still_refused as written -- it
+         borrowed its gap from 0018/0019 being absent from disk and asserted nothing once they
+         merged. Rewritten to dig its own hole, in the MIDDLE (a missing LAST migration is a shorter
+         list, not a gap).
+         The first harness run's nineteen X verdicts. P8 put skill/librarian/hook at the REPOSITORY
+         root under .claude/ and test_litkb_p8.py reads all three off SCRIPTS.parent; none is under
+         COPY_DIRS, so every worker copy was missing them and the P8 baseline ran 14 failed / 43
+         passed there against 60/60 in the real tree. run_one calls a row FIRED on ANY failure,
+         comparing nothing, so all 19 X rows reported FIRED whatever the mutation did. Only the
+         separate baseline check caught it (rc 1, all three workers). Three files added to
+         COPY_FILES (not settings.json: git-ignored, per-session, and the test skips when absent).
+         Re-run after the fix: baseline 57 passed / 3 deselected per copy, 20/20 fired in 3.5 min.
+         A18 DID NOT FIRE -- replaced-function class a FOURTH time, created by this merge: 0019
+         CREATE OR REPLACEs _ws_chains and carries 0013's "a fact chain enters main only through
+         admission approval" guard with it, so 0013's copy is dead text. Repointed to 0019 (MIG19,
+         beside MIG16/MIG20/MIG21), fires on
+         test_an_unapproved_manual_admission_is_held_at_promote_prepare.
+files:   Scripts/pipeline/litkb/db/migrations/{0018_access_layer.sql, 0019_prepare_requires_evidence.sql,
+         0021_feeds_validator_final.sql, _reserved.txt}, Scripts/pipeline/litkb/{commands.py,
+         promote.py, netutil.py, mcp/}, Scripts/qc/{test_litkb_p1.py, test_litkb_p8.py,
+         instruments/litkb_p2_mutations.py}, .claude/{skills/literature/SKILL.md, agents/librarian.md,
+         hooks/litkb_guard.py}, Scripts/LITERATURE_KB_DESIGN_2026-09-13.md (§9),
+         Scripts/docs/{LITERATURE_CONVENTION.md, LITKB_AGENT_BASE_BRIEF.md},
+         Reports/LITKB_P4_MERGE_2026-09-15.md ("P8 merged"), Scripts/CHATLOG.md.
+         Commits c932bea, 6afc566, 0a27c60, 549c5ee, 95c3249, 13f5c45; pushed to github.
+next:    Kam: bound report_path (or accept it) with the §9 amendment; the decisions.yaml line §9's
+         condition (iii) asks for. Harness owner: run_one should compare a row against its OWN
+         baseline rather than count failures absolutely -- the P8 referee flagged the neighbouring
+         blind spot ("counts failures, not errors") and called it not his to change; still nobody's.
+         litkb_test_w2 stays at 19 migrations. The P3 report's "access-layer had not patched the
+         validator" was true at b787fa0 and false after 65dca14; left as history, corrected in the
+         merge report.

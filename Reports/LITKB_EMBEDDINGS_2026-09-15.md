@@ -17,11 +17,12 @@ the vector leg alone reached recall@20 = **0.617** (bge-m3) and **0.567** (nomic
 floor of **0.80**; MRR was 0.235 and 0.190 against 0.50. Hybrid RRF reached 0.733 against 0.83. The
 kill fired on both models — replacing chunk and query vectors with random unit vectors of the same
 dimension drops recall@20 to **0.000**, below the 0.22 fixed in advance — so the scores genuinely
-come from the vectors. bge-m3 wins every retrieval metric and costs 3.1× the CPU time (0.33 vs 1.04
-chunks/s) and a 33 % larger index; if one model must be chosen it is bge-m3, run hybrid, and not
-promoted to the KB default yet. The reason for the "not yet" is in §5.4: for bge-m3, 11 of the 23
-misses were also missed by BM25 — no method available here found them — and 0 are explained by the
-truncation cap, so about half the failure is not yet attributable to the encoder. Nothing upstream
+come from the vectors. bge-m3 wins every **overall** retrieval metric (it ties nomic on two of the
+three query kinds at recall@20, §5.2) and costs 3.1× the CPU time (0.33 vs 1.04 chunks/s) and a
+33 % larger index; if one model must be chosen it is bge-m3, run hybrid, and not promoted to the KB
+default yet. The reason for the "not yet" is in §5.4: for bge-m3, 11 of the 23 misses were also
+missed by BM25, **9 of them by every leg of both models**, and 0 are explained by the truncation
+cap — so a large share of the failure is not yet attributable to the encoder. Nothing upstream
 was touched after the numbers arrived: not the chunker, not the overlap rule, not the anchor
 mapping, not the thresholds.
 
@@ -76,6 +77,11 @@ Recorded here because it bounds what the numbers mean, and the builder did not d
 - **Eight kept anchors are column-interleaved or space-damaged** (ids in the thresholds file). Kept
   deliberately: it is the corpus the KB must retrieve from. §5 breaks recall out per query id so a
   reader can separate extraction damage from encoder failure.
+
+One clerical mismatch in that list, recorded rather than corrected (the gold and thresholds are
+frozen): the referee's note reads "g053 Lucas", but `g053` is `Hasegawa_2019` and Lucas is `g048`.
+The instrument reads the **ids**, so it flags `g053`/Hasegawa. Neither query is a miss at 20 for
+either model, so no count in §5.4 moves either way.
 
 ### 2.2 The pre-committed thresholds, stated before any model ran
 
@@ -300,12 +306,16 @@ Two conclusions follow, and they point in opposite directions:
 - **The truncation cap explains nothing.** Choosing 1,024 over 512 before scoring (§4) was worth
   doing, and having done it, no miss can be blamed on it. Had the cap stayed at 512, roughly 7 in
   10 gold chunks would have been read only in part and this table would have been unreadable.
-- **Roughly half the misses are not the encoder's.** For bge-m3, 11 of 23 are queries no leg
-  found — neither a 568M-parameter multilingual encoder nor Okapi BM25 put any gold chunk in its
-  top 20 (`g025 g027 g033 g037 g042 g043 g046 g047 g050 g052 g058`; the same list plus `g006 g012
-  g026 g029 g049` for nomic). When a bag of words and a dense retriever fail on the same query, the
-  suspect is the query, the anchor, or the extract — not the embedding model. That is a referee's
-  call to make, and §8 says so.
+- **A large share of the misses are not the encoder's.** For bge-m3, 11 of 23 are queries neither
+  it nor Okapi BM25 put any gold chunk in the top 20 for (`g025 g027 g033 g037 g042 g043 g046 g047
+  g050 g052 g058`); for nomic it is 14 (`g006 g012 g025 g026 g029 g033 g037 g042 g043 g046 g047
+  g049 g050 g052`). **The two lists are not nested.** Their intersection — **9 queries, `g025 g033
+  g037 g042 g043 g046 g047 g050 g052`** — is the set no leg of either model found, and that is the
+  set worth calling unretrieved-by-any-method. The two bge-m3-only entries are instructive in the
+  other direction: nomic ranks `g027` **4th** and `g058` **16th**, so those two are bge-m3 encoder
+  misses that a smaller model retrieved, not corpus damage. When a bag of words and two independent
+  dense retrievers all fail on the same query, the suspect is the query, the anchor, or the
+  extract — not the embedding model. That is a referee's call to make, and §8 says so.
 - The residue — **9 queries for both models** (`g001 g002 g008 g024 g032 g036 g039 g045 g057` for
   bge-m3; `g001 g002 g019 g024 g032 g039 g040 g045 g060` for nomic, six of them shared) — is
   genuine encoder failure: BM25 ranked the passage inside 20 and the dense leg did not. `g001` and
@@ -365,14 +375,18 @@ Ordered by how much each could move the verdict.
 **Do not promote either model to the KB's retrieval default on this evidence. If one must be
 picked today, pick bge-m3, and run it hybrid.**
 
-**Why bge-m3 and not nomic.** It wins every retrieval metric measured — recall@5 0.383 vs 0.333,
-recall@20 0.617 vs 0.567, MRR 0.235 vs 0.190 — and the margin holds on all three query kinds at
-recall@20 and on the hybrid leg (0.733 vs 0.633). It costs 3.1× the CPU time and a 33 % larger
-index, and that is the trade: 8 CPU-hours per full re-index of 9,496 chunks against 2.5, or 2 h 50 m
-against 25 m on the T2000. For a corpus this size, re-indexed rarely, the retrieval margin is worth
-more than the throughput. If the corpus grows an order of magnitude and re-indexing becomes routine,
-that arithmetic flips and nomic deserves a fresh look — at which point nomic's Matryoshka property
-(its card supports truncating 768 → 256 dims) is a lever bge-m3 does not offer.
+**Why bge-m3 and not nomic.** It wins every *overall* metric measured — recall@5 0.383 vs 0.333,
+recall@20 0.617 vs 0.567, MRR 0.235 vs 0.190 — and the hybrid leg with it (0.733 vs 0.633). The
+margin is **not** uniform across query kinds, and the report will not pretend otherwise: at
+recall@20 bge-m3 wins only the paraphrase kind (0.733 vs 0.633) and **ties** nomic on conceptual
+(0.400) and structural (0.600); on conceptual queries nomic is actually ahead at recall@5 (0.267 vs
+0.200) and MRR (0.139 vs 0.079). With 15 queries per kind that is one or two queries either way, so
+the aggregate is the number to steer by — and in aggregate bge-m3 leads on all three metrics.
+It costs 3.1× the CPU time and a 33 % larger index, and that is the trade: 8 CPU-hours per full
+re-index of 9,496 chunks against 2.5, or 2 h 50 m against 25 m on the T2000. For a corpus this size,
+re-indexed rarely, the retrieval margin is worth more than the throughput. If the corpus grows an
+order of magnitude and re-indexing becomes routine, that arithmetic flips and nomic deserves a fresh
+look.
 
 **Licences are not a discriminator.** bge-m3 is MIT; nomic-embed-text-v1.5 is Apache-2.0. Both
 permit commercial use and redistribution. nomic requires `trust_remote_code=True` — its
@@ -389,16 +403,17 @@ room to spare, so §8's index choice is unconstrained by either model.
 carrying paraphrased queries alone, and it does not. Two facts stop that being a verdict on the
 encoders:
 
-- 11 of bge-m3's 23 misses were also missed by BM25 at 20. No retrieval method available here found
-  them. Until someone reads those eleven anchors against their chunks, the failure cannot be
-  attributed.
+- 11 of bge-m3's 23 misses were also missed by BM25 at 20, and 9 of those were missed by every leg
+  of both models (§5.4). Until someone reads those nine anchors against their chunks, that part of
+  the failure cannot be attributed to an encoder at all.
 - Every leg is being scored against a chunker that is a heuristic over flat text dumps, with 28 of
   60 anchors straddling a boundary and 437 chunks over the token ceiling.
 
-So the actionable recommendation is a measurement, not a model: **resolve the eleven no-leg queries
-before re-running.** If they turn out to be unretrievable anchors, the remaining 49 queries put
-bge-m3's vector recall@20 at 37/49 = 0.76 — still short of 0.80, but a different conversation from
-0.617. That arithmetic is offered as an upper bound a referee can check, not as a score: dropping
+So the actionable recommendation is a measurement, not a model: **resolve the nine queries that no
+leg of either model retrieved before re-running.** If they turn out to be unretrievable anchors,
+the remaining 51 queries put bge-m3's vector recall@20 at 37/51 = 0.73 — still short of 0.80, but a
+different conversation from 0.617. That arithmetic is offered as an upper bound a referee can check,
+not as a score: dropping
 the hardest queries after seeing the results is exactly the move the frozen-gold rule exists to
 prevent, and this report does not adopt it.
 
@@ -417,8 +432,9 @@ T2000 throughput rows.
 
 **Four things block a verdict:**
 
-1. **The eleven no-leg queries need a human-or-referee reading.** `g025 g027 g033 g037 g042 g043
-   g046 g047 g050 g052 g058`: neither encoder nor BM25 ranked any gold chunk in the top 20. The
+1. **Nine queries need a human-or-referee reading.** `g025 g033 g037 g042 g043 g046 g047 g050
+   g052`: no leg of either model — both dense encoders and BM25 — put any gold chunk in the top 20.
+   The
    question — is the anchor retrievable at all from the extract as chunked? — cannot be answered by
    the builder without re-opening the gold, which the frozen-gold rule forbids. It is a referee's
    call, and it decides whether 0.617 is an encoder result or a corpus result.

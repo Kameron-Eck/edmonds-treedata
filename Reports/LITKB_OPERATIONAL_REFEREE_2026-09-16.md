@@ -260,22 +260,33 @@ works with a bound file but zero blocks ...... 14   (all state 'proposed', all i
 PDFs in Literture\Validation ................. 207
 distinct Validation rel_paths bound in DB .... 187
 Validation PDFs bound nowhere (any root) ..... 17
-  ... of which the work exists with 0 files .. 10   Anderson_1957, Hudson_1978, Hwang_1982,
-                                                    Kingman_1962, Maragos_1989, Marsan_2008,
-                                                    Mei_2010, Ogata_1998, Stehman_1998, Vixie_2007
-  ... of which no work carries the key ....... 5    Girard_2019b, Jaffe_2015, Kats_2019b,
-                                                    Politis_1994, Schneider_2008
+  ... work is PROMOTED IN MAIN with 0 files .. 11   Anderson_1957, Hudson_1978, Hwang_1982,
+                                                    Jaffe_2014*, Kingman_1962, Maragos_1989,
+                                                    Marsan_2008, Mei_2010, Ogata_1998,
+                                                    Stehman_1998, Vixie_2007
+  ... of which no work carries the key ....... 4    Girard_2019b, Kats_2019b, Politis_1994,
+                                                    Schneider_2008
   ... benign (a second copy is bound under
       _litkb_staging/, the work IS extracted) .. 2  Ratner_2017, VargasMunoz_2019
 ```
 
+`* Jaffe`: the PDF on disk is `Jaffe_2015_estimating-accuracies-multiple.pdf`; the work is keyed
+`Jaffe_2014_estimating-accuracies-multiple-classifiers`. A year disagreement between file name and
+work key, on top of the missing binding.
+
+All eleven were checked against `litkb.main_works`, not just `litkb.works`: every one returns
+`in_main = 1` with its latest `work_version.state = 'promoted'` and `0` file versions — so
+"admitted, with no file" is the right description and none of them belongs in the stranded-workstream
+bucket below. They were admitted by the `edge-pre1990` campaign (5) and `held-queue` (6).
+
 Two distinct, standing recall holes, neither named in the report and neither visible through the
 tool surface:
 
-1. **Ten admitted works whose PDF sits in the literature root unbound.** Every one is
-   unreachable by search forever, and each looks identical to "not held" from inside a session.
-   Mei_2010 is one instance; Jaffe_2015 (framework §19.4's third source) and Marsan_2008
-   (narrative §5's EM) are two more the framework leans on.
+1. **Eleven works, promoted in main, whose PDF sits in the literature root unbound.** Every one is
+   unreachable by search forever; through `litkb_search` they are indistinguishable from "not
+   held", and through `litkb_work` they crash rather than answering. Mei_2010 is one instance;
+   Jaffe_2014 (framework §19.4's third source, line 1619) and Marsan_2008 (narrative §5's EM,
+   line 236) are two more the framework leans on.
 2. **Fourteen acquired, bound PDFs stranded in open workstreams**, twelve of them in
    `p3-migration` (open since 2026-09-15 03:20). They are outside main, therefore outside the
    bulk pass, therefore invisible. Platanios ×2 — framework §19.4's [Q] for the identifiability
@@ -389,23 +400,33 @@ blocks yet"* against 102,008.
 |---|---|---|---|
 | R-1 | `litkb_work` has **two** wrong column names (`container`, `v.path`); "One column name" in the report's verdict is false | §5; `\d litkb.main_works`, `\d litkb.main_files`, per-statement run as reader | yes |
 | R-2 | Mei_2010 diagnosed "held, unextracted"; it is **admitted with no bound file** while the PDF sits in `Literture\Validation` | §4 | yes |
-| R-3 | 10 admitted works have an unbound PDF on disk; 14 bound PDFs are stranded in open workstreams — neither hole named anywhere | §4 | yes |
+| R-3 | 11 works promoted in main have an unbound PDF on disk; 14 bound PDFs are stranded in open workstreams — neither hole named anywhere | §4; all eleven re-checked against `main_works`, `state='promoted'`, 0 file versions | yes |
 | R-4 | F2's extractor-damage diagnosis names the wrong word (`The`→`e`; it is `Here`→`e`) | §1.3, PDF p3 rendered | yes |
 | R-5 | F3's `gap row 6` feeds token points at the *correlated-error* row; the quote is the independence case, and §5.1's own [Q] is Efron **2004** | §1.4, framework lines 293, 472 | yes |
 | R-6 | Recorded `statement`s carry inferences the quotes do not (F2 "nested models", F3 "why row 6 needs Omega per stratum") — the gate cannot see this | §1.4, §1.6 | yes |
 | R-7 | §2's framing as "fresh questions … searched cold" — all three passages were already quoted or cited in the framework/narrative | §1.5 | yes |
-| R-8 | Q3's duplicate blocks are **two grobid blocks of the same page in the same run** (reading_order 243/244) plus a third page — not "once per extraction of the same page" | `select … where b.id in (…)` | yes |
+| R-8 | Q3's duplicate blocks are **two byte-identical grobid blocks of one page in one run** (reading_order 243/244, same `md5(text)`) plus a third page — not "once per extraction of the same page"; and Efron's cross-extractor pair is *not* byte-identical | `select md5(text), length(text), reading_order …` | yes |
 | R-9 | Two rank counts overstate precision (F1 "1,2,3,5,6" vs 1,2,3,4,5,6,8; F3 "1–8" vs all ten) | §2 | yes |
 | R-10 | Gold's `extract_lines` are stale (Q3 by 15 lines); passages are genuinely present | §2.1 | yes (non-blocking) |
 | — | quote gate byte-literal; work guard both branches; nothing written by a refusal | §3 | **not a defect — verified working** |
 | — | promotion 12/0 and version-set hash | §6 | **not a defect — verified working** |
 
 R-8's mechanism is worth a line, because friction item 8 treats duplicates as a docling-vs-grobid
-artefact: for Efron that is right (`…e845` docling, `…e846` grobid, same run, reading_order 66/67,
-both `canonical`), but Rosychuk's pair is `…2f48`/`…2f4a`, **both grobid**, same run, same page,
-same 1,818 characters, both `canonical`. So the duplicate canonical block problem is not only
-cross-extractor fusion; one extractor's output is being stored twice within a single run. Fixing
-only the fusion side would leave half of it.
+artefact, and `md5(text)` says it is two different problems:
+
+```
+Rosychuk  …2f48  grobid  ro=243  len=1818  md5=be403b60…  bbox={75.99,99.81,97.54,108.10}
+          …2f4a  grobid  ro=244  len=1818  md5=be403b60…  bbox={111.97,98.97,197.11,108.43}   IDENTICAL
+Efron     …e845  docling ro=66   len=660   md5=2e1c04c7…
+          …e846  grobid  ro=67   len=1051  md5=ff6d4ee5…                                       DIFFERENT
+```
+
+Efron is the cross-extractor case the report describes, and the two blocks are *not* the same
+bytes — the same opening sentence carried by two blocks of different extent, both `canonical`.
+Rosychuk's pair is **byte-identical, both grobid, one run, one page**, attached to two different
+bounding boxes. So the duplicate-canonical problem is not only cross-extractor fusion; one
+extractor's own output is being stored twice within a single run. Fixing the fusion side alone
+would leave half of it.
 
 ---
 

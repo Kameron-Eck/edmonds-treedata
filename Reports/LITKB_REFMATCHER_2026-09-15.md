@@ -199,6 +199,12 @@ class.** Four of Crossref's ten are chapter-versus-book or sibling-edition — `
 for `…/022`, `10.1007/978-1-4612-4620-6_2` for `…-6`, `_37` for Efron's `_38` — which is exactly
 the `edition_mismatch` rung `confirm_s2_candidate` already carries.
 
+**The "wrong" bucket is scored on DOI equality, so it is slightly harsh in both directions.**
+One of ref-matcher's three, `10.2307/2335441` against the gold's `10.1093/biomet/68.3.589`, is
+the JSTOR and Oxford DOI for the *same Biometrika article* — a publisher alias, not a wrong
+work. Counted wrong here because the gold names one DOI and the scorer compares DOIs; not
+re-scored, because an alias table is a different piece of work and it moves one row.
+
 **Registry coverage is not the confound it could have been.** All 5 lost-genuine DOIs and 6 of
 the 7 must-not-link bad DOIs are present in OC Meta (probe: `results_presence.jsonl`, 12
 queries). The one absent — `10.2307/1269348`, the Alwan book review — is scored
@@ -331,17 +337,31 @@ approach genuinely does better, and the structured matcher does not.
 
 **ref-matcher refuses all three reviews — but not by detecting a review.** Measured scores:
 Hall b10 **21**, and the four editions 21–22, every one of them below the 23.4 adjusted
-threshold. The mechanism is arithmetic, not discrimination: a book reference carries **no volume
-and no pages**, so 3 + 8 = 11 of the 48 points are unreachable, and OC Meta's record for
-`10.2307/2531038` carries **no author** (another 7 unreachable) under the *book's own title*
-("Image Analysis And Mathematical Morphology."). Title similarity alone cannot clear the bar.
+threshold. The mechanism is arithmetic, not discrimination. Reconciled candidate by candidate
+against the live endpoint, the 21 is **title 14 + author 7**:
 
-That is a refusal for the wrong reason, and it is fragile in a specific, checkable way: **had
-the same review been cited with a volume and a page number, it would have scored 21 + 3 + 8 = 32
-and been accepted.** The refusal depends on the *reference* being metadata-poor, not on anything
-about the *record*. (Predicted-vs-measured: from the published weights I predicted 13 for Hall
-b10 against a measured 21. The 8-point gap is not reconciled here; both numbers sit far below
-threshold, so the direction of the finding does not turn on it.)
+* OC Meta files the review `10.2307/2531038` under the **book's own title** ("Image Analysis
+  And Mathematical Morphology.") and lists **Serra — the book's author — as its author**. The
+  `author_title` query that retrieves it requires `foaf:familyName "Serra"`, so the record
+  clears the author filter and takes the full 7 points. The title normalises to an exact
+  match: **14**.
+* The two terms that could have separated them are worth nothing here. The reference says 1982
+  and the record says 1983, and an **adjacent year scores 0** by the tool's own table. The book
+  reference carries **no volume and no pages**, so the remaining 3 + 8 = 11 points are
+  unreachable *for either candidate*.
+
+So the review is refused by 2.4 points, on the arithmetic of a sparse *reference*, having
+passed every test the tool actually applies to the *record*. It is fragile in a specific,
+checkable way: **had the same review been cited with a volume and a page number it would have
+scored 21 + 3 + 8 = 32, comfortably above 26, and been accepted.**
+
+(Predicted-vs-measured, reconciled: I first predicted 13 from the published weights and
+measured 21. Both differences are informative. I scored the title at fuzzy-ratio 99 → 13 where
+the tool's own normalisation strips the trailing period and reaches 100 → 14; and I looked for
+the author in the record as a *separate* lookup returns it — that shape yields no author for
+this DOI — where the `author_title` path has already required and found one. The lesson is the
+one this report keeps meeting: a score is a property of the query that retrieved the candidate,
+not of the DOI.)
 
 **Crossref SBM fails the test outright — and worse than the exact-DOI score shows.** Scored on
 DOI equality it "returns the bad DOI" only 2 of 7 times. But the gold names *one specific* bad

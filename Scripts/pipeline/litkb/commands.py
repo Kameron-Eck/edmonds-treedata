@@ -6,7 +6,13 @@ editable install is re-run from a tree that contains litkb:
     py -3.12 -m litkb discover "<query>" [--source crossref] [--max 5]
     py -3.12 -m litkb admit --doi D [--title T --authors A --year Y | --tracker-id N] [--key K] [--file PDF]
     py -3.12 -m litkb admit --manual --title T --authors A --year Y --file PDF --source-note "..."
+    py -3.12 -m litkb admit --web --title T --authors A --year Y --url U --retrieved DATE
+                            --snapshot PAGE.txt --source-note "..."
     py -3.12 -m litkb approve <admission-id>
+    py -3.12 -m litkb use add (--key K | --doi D) --statement S --kind K [--feeds "tok;tok"]
+                              [--quote Q --page N --stance supports] [--rationale R]
+    py -3.12 -m litkb use list
+    py -3.12 -m litkb inventory --new [--root R] [--census C] [--json]
     py -3.12 -m litkb acquire (--key K | --doi D) [--routes open_access,annas,scihub]
                               [--max-archive-downloads N] [--quota-margin M] [--retry-dead] [--from-file PDF]
 
@@ -77,8 +83,11 @@ def _tracker_row(tracker_id, path=TRACKER_CSV):
 
 
 def _summary(res):
+    # title_discrepancy: a claim that named the work but not its subtitle is admitted AND recorded as
+    # a disagreement (migration 0020). If the command did not print it, the one person who could act
+    # on the review row would be the one person who never hears about it.
     keep = {k: res.get(k) for k in ("outcome", "admission_id", "work_id", "file_id", "refused_at", "constraint",
-                                    "matches") if res.get(k) is not None}
+                                    "matches", "title_discrepancy") if res.get(k) is not None}
     checks = res.get("checks") or {}
     for c in ("check1_study_exists", "check3_binding", "check2_duplicate"):
         if c in checks:
@@ -137,6 +146,20 @@ def cmd_admit(args, conn):
 
     ws_id, token = _ws(args)
     agent, session = _labels(args)
+    if args.web:
+        # §8.4: the convention promises that a source with no DOI is recordable as a manual proposal
+        # with its URL and retrieval date; check 3 refused every one of them for lacking a PDF text
+        # layer. The evidence is now the admitter's saved TEXT of the page, bound by the same binder.
+        if not (args.title and args.authors and args.year and args.url and args.retrieved
+                and args.snapshot and args.source_note):
+            raise SystemExit("litkb admit --web needs --title, --authors, --year, --url, --retrieved, "
+                             "--snapshot <page text as .txt> and --source-note")
+        res = front.admit_web(conn, ws_id, token, title=args.title, authors=args.authors, year=int(args.year),
+                              url=args.url, retrieved=args.retrieved, snapshot_path=args.snapshot,
+                              source_note=args.source_note, work_type=args.type or "report", key=args.key,
+                              agent=agent, session=session)
+        _print(_summary(res))
+        return 0 if res["outcome"] == "proposed" else 1
     if args.manual:
         if not (args.title and args.authors and args.year and args.file and args.source_note):
             raise SystemExit("litkb admit --manual needs --title, --authors, --year, --file and --source-note")
@@ -264,6 +287,104 @@ def _phase_rows():
         return []
 
 
+def cmd_inventory(args, conn):
+    """Stage 0 reporting: what the corpus holds that the FROZEN census does not pin.
+
+    The census tests used to walk the literature root, so the corpus growing failed them — 224 files
+    pinned against 246 on disk, two refereed tests red for a reason that had nothing to do with the
+    code they test (Reports/LITKB_P4_MERGE_2026-09-15.md, "The ladder"). They now measure the frozen
+    list in `phase4/qc/litkb_inventory_census.sha256`, and this is where the rest of the corpus is
+    reported instead of silently breaking a pin.
+
+    DB-FREE: `conn` is opened by main() before dispatch and is deliberately unused here.
+    """
+    from litkb.extract import inventory as inv
+
+    if not args.new:
+        raise SystemExit("litkb inventory: pass --new (the only mode today)")
+    root = args.root or os.environ.get("LITKB_LITERATURE_ROOT", str(inv.DEFAULT_ROOT))
+    if args.json:
+        _print({"root": root, "census": str(inv.census_path(args.census)),
+                "rows": inv.new_files(root, args.census)})
+        return 0
+    return inv.report_new(root, args.census)
+
+
+def cmd_use(args, conn):
+    """Step 4 of the hunt protocol: record what a work supplies, and anchor its quote.
+
+    The convention names five steps; `litkb --help` had commands for three of them, so the first
+    session that followed it wrote its 15 uses through psycopg by copying the P3 loader
+    (`Reports/LITKB_LINKAGE_REVIEW_2026-09-15.md` §8.1). Everything below goes through the same
+    token-checked functions that loader used — `write_proposal` and `add_evidence` — and adds the two
+    things a hand-written call could not do for itself: the feeds tokens are checked against the
+    database's own validator before anything is written, and a quote is located in an extracted block
+    so `quote_verified` is the database's answer rather than a claim in free text. The mechanism, and
+    why a missing block is a refusal rather than a fallback, is in litkb/use.py.
+
+    The workstream is not optional: _ws() refuses outside a worktree that holds one, because a use is
+    a proposal and a proposal has to belong to something that can be prepared.
+    """
+    from litkb import use as _use
+
+    ws_id, token = _ws(args)
+    if args.use_cmd == "list":
+        rows = conn.execute(
+            "SELECT w.key, v.statement, v.kind, v.status, v.feeds, v.state, "
+            "       (SELECT count(*) FROM litkb.use_evidence e WHERE e.use_version_id = v.version_id), "
+            "       (SELECT count(*) FROM litkb.use_evidence e WHERE e.use_version_id = v.version_id "
+            "          AND e.quote_verified) "
+            "  FROM litkb.use_versions v JOIN litkb.uses u ON u.id = v.use_id "
+            "  JOIN litkb.works w ON w.id = u.work_id WHERE v.workstream_id = %s ORDER BY v.created_at",
+            (ws_id,)).fetchall()
+        _print([{"work": r[0], "statement": r[1], "kind": r[2], "status": r[3], "feeds": r[4], "state": r[5],
+                 "evidence": r[6], "verified": r[7]} for r in rows])
+        return 0
+    agent, session = _labels(args)      # a read needs no labels; a write is signed
+    work = _use.work_by(conn, key=args.key, doi=args.doi)
+    if not work:
+        raise SystemExit("litkb use add: no admitted work with that key or DOI; admit it first "
+                         "(never cite a work that is not admitted)")
+    feeds = [t.strip().rstrip(".") for t in (args.feeds or "").split(";") if t.strip()]
+    # BEGIN guard: feeds tokens are checked before the use is written
+    bad = _use.feeds_refused(conn, feeds)
+    if bad:
+        raise SystemExit(f"litkb use add: {len(bad)} feeds token(s) the database will not accept: {bad}\n"
+                         "the seven forms are in Scripts/docs/LITERATURE_CONVENTION.md "
+                         "('Feeds token vocabulary'); prepare would hold the chain on these")
+    # END guard: feeds tokens are checked before the use is written
+    anchor = None
+    if args.quote:
+        # BEGIN guard: a quote is anchored in an extracted block or the use is refused
+        hits = _use.locate_quote(conn, work["work_id"], args.quote, page=args.page)
+        if not hits:
+            raise SystemExit(
+                f"litkb use add: that quote is in no extracted block of {work['key']}"
+                + (f" on page {args.page}" if args.page else "")
+                + ".\nA use's quote is verified against the file's current extraction run, so it is that run's\n"
+                  "characters that must match. Either the text has not been extracted yet (run the extraction\n"
+                  "pipeline for this file), the page is wrong, or the quote was retyped rather than copied.\n"
+                  "It is NOT written into `rationale` as free text: the database cannot check that, which is\n"
+                  "the gap this command exists to close (LITKB_LINKAGE_REVIEW_2026-09-15.md §8.3).")
+        anchor = hits[0]
+        # END guard: a quote is anchored in an extracted block or the use is refused
+    use_id, version_id = _use.write_use(
+        conn, ws_id, token, work_id=work["work_id"], statement=args.statement, kind=args.kind,
+        status=args.status, feeds=feeds, confidence=args.confidence, rationale=args.rationale,
+        agent=agent, session=session)
+    out = {"use_id": use_id, "version_id": version_id, "work": work["key"], "kind": args.kind, "feeds": feeds}
+    if anchor:
+        ev = _use.attach_quote(conn, ws_id, token, version_id, anchor, args.quote, stance=args.stance)
+        out |= {"evidence_id": ev["evidence_id"], "quote_verified": ev["quote_verified"],
+                "anchored": {k: anchor[k] for k in ("page", "char_start", "char_end")},
+                "other_anchors": len(hits) - 1}
+    else:
+        out["evidence"] = ("none: this use carries no quote the database can verify "
+                           "(pass --quote to anchor one)")
+    _print(out)
+    return 0
+
+
 def build_parser():
     ap = argparse.ArgumentParser(prog="litkb", description="the literature knowledge base")
     ap.add_argument("--db", default=os.environ.get("LITKB_DB", "litkb"))
@@ -326,6 +447,42 @@ def build_parser():
     e.add_argument("--out", help="output directory (default: Reports/litkb_export/ — never over the "
                                            "files the P3 gate reads as 'today')")
     e.add_argument("--diff", action="store_true", help="also write the discrepancy table")
+
+    # ── added 2026-09-15, closing the friction the first real use of the KB exposed ──────────
+    # New subparsers and dispatch entries go at the END of each: `work/20260915-access-layer` is
+    # adding a `promote` subparser to this same function, and two additions that both land at the
+    # bottom merge mechanically, while two that interleave do not.
+    a.add_argument("--web", action="store_true",
+                   help="a source with no DOI (documentation, a blog post): admitted as a manual "
+                        "proposal from its URL, its retrieval date and a saved text snapshot")
+    a.add_argument("--url", help="--web: the page's URL")
+    a.add_argument("--retrieved", help="--web: the date the snapshot was taken (a page changes under a citation)")
+    a.add_argument("--snapshot", help="--web: the page's text, saved as .txt; binding runs against it")
+
+    u = sub.add_parser("use", help="step 4 of the hunt protocol: record what a work supplies")
+    usub = u.add_subparsers(dest="use_cmd", required=True)
+    ua = usub.add_parser("add")
+    ua.add_argument("--key", help="the work's key")
+    ua.add_argument("--doi", help="the work's DOI (either this or --key)")
+    ua.add_argument("--statement", required=True, help="what the work supplies, in one sentence")
+    ua.add_argument("--kind", required=True,
+                    help="the database's vocabulary (method, theorem, parameter, empirical evidence, "
+                         "negative result, context, contradiction); it refuses anything else")
+    ua.add_argument("--status", default="proposed")
+    ua.add_argument("--feeds", help="semicolon-separated tokens, checked against litkb._feeds_token_ok "
+                                    "BEFORE the write; the seven forms are in LITERATURE_CONVENTION.md")
+    ua.add_argument("--quote", help="the exact words, as the extraction has them; verified server-side")
+    ua.add_argument("--page", type=int, help="the page the quote is on (narrows the search; optional)")
+    ua.add_argument("--stance", default="supports", help="supports | refutes | context")
+    ua.add_argument("--confidence")
+    ua.add_argument("--rationale", help="why this use reads the work this way — NOT a place for the quote")
+    usub.add_parser("list")
+
+    i = sub.add_parser("inventory", help="stage 0: report PDFs the frozen census does not pin")
+    i.add_argument("--new", action="store_true")
+    i.add_argument("--root", help="literature root (default LITKB_LITERATURE_ROOT)")
+    i.add_argument("--census", help="default: <repo>/phase4/qc/litkb_inventory_census.sha256")
+    i.add_argument("--json", action="store_true")
     return ap
 
 
@@ -334,7 +491,8 @@ def main(argv=None, connect=None):
     conn = (connect or _default_connect)(args.db)
     try:
         return {"ws": cmd_ws, "discover": cmd_discover, "admit": cmd_admit, "approve": cmd_approve,
-                "acquire": cmd_acquire, "migrate": cmd_migrate, "export": cmd_export}[args.cmd](args, conn)
+                "acquire": cmd_acquire, "migrate": cmd_migrate, "export": cmd_export,
+                "use": cmd_use, "inventory": cmd_inventory}[args.cmd](args, conn)
     finally:
         conn.close()
 

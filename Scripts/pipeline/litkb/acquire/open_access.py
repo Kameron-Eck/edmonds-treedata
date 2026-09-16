@@ -7,6 +7,11 @@ The email is never stored, printed or logged by litkb.
 
 -> dict(status, pdf, source_url, tried, detail, http_codes). status: downloaded | no-oa-copy (no location at
 all) | bad-file (locations exist, none served a PDF) | blocked (a bot challenge answered) | api-error.
+
+A route that refuses what it was served hands the BYTES back in `rejected` (with `rejected_url`, redacted), and
+litkb.acquire.run quarantines them with a reason beside them. Nothing a location served is thrown away: that is
+what makes deleting a bad download unnecessary (Reports/LITKB_LINKAGE_REVIEW_2026-09-15.md §8.9). The bytes handed
+back are only ever those fetched from a URL this route believed was the FILE.
 """
 import os
 import urllib.parse
@@ -58,6 +63,7 @@ def fetch_open_access(doi, arxiv_id, pacer, *, client=None, locations=None):
         return {"status": "no-oa-copy", "pdf": None, "source_url": "", "tried": [], "http_codes": [],
                 "detail": redact("; ".join(n for n in notes if n) or "no identifier to look up")}
     blocked = False
+    rejected, rejected_url = None, ""
     for url in urls:
         if pacer is not None:
             pacer.wait()
@@ -67,9 +73,13 @@ def fetch_open_access(doi, arxiv_id, pacer, *, client=None, locations=None):
         if (body or b"").startswith(b"%PDF-"):
             return {"status": "downloaded", "pdf": body, "source_url": url, "tried": tried + [f"{host}:{st}=ok"],
                     "http_codes": codes, "detail": redact("; ".join(n for n in notes if n))}
+        if body and rejected is None:
+            # the first location that served SOMETHING: Unpaywall lists best_oa_location first, so these are the
+            # bytes most likely to be what the fetch was for. They are handed back, never dropped.
+            rejected, rejected_url = body, url
         if Client.is_challenge(st, url, body):
             blocked = True
         tried.append(f"{host}:{st}")
     return {"status": "blocked" if blocked else "bad-file", "pdf": None, "source_url": "", "tried": tried,
-            "http_codes": codes,
+            "http_codes": codes, "rejected": rejected, "rejected_url": redact(rejected_url),
             "detail": redact("; ".join([n for n in notes if n] + [f"no %PDF- from {', '.join(tried)}"]))}

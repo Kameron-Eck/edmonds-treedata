@@ -247,6 +247,126 @@ def test_the_no_delete_scan_fires_on_every_forbidden_form(tmp_path, form):
     assert _delete_offenders([ok]) == []
 
 
+# ── the store's own writers: the scan above is a gate only while its file list is complete ──
+
+_SCANNED_DIRS = ("acquire", "admit")          # the globs test_acquisition_and_admission_code_hold_no_delete_path reads
+_STORE_READ_ONLY = {
+    "migrate_legacy/sources.py":
+        "imports LITERATURE_ROOT to BUILD READ paths under the topic folders (<topic>/manifest.csv, "
+        "<topic>/<stem>.pdf) for the legacy loader. It opens nothing for writing and _delete_offenders reports no "
+        "call in it at all, so no delete path can hide there.",
+}
+
+
+def _store_strings_and_imports(path):
+    """True when a module reaches the literature store IN CODE: it imports one of the store's path names, or names
+    a store directory in a string that is not a docstring.
+
+    Docstrings and --help text are excluded deliberately: litkb/commands.py names LITKB_LITERATURE_ROOT in an
+    argparse help string and litkb/extract/inventory.py names _quarantine in its module docstring, and neither can
+    write a byte. What cannot be excluded is the reverse — nothing can write into _litkb_staging without either
+    constructing a Store or naming the directory — which is what makes this a completeness test."""
+    tree = ast.parse(Path(path).read_text(encoding="utf-8"))
+    for n in ast.walk(tree):
+        if isinstance(n, ast.ImportFrom) and (n.module or "").startswith("litkb.acquire.store"):
+            if {a.name for a in n.names} & {"Store", "LITERATURE_ROOT", "STAGING", "QUARANTINE"}:
+                return True
+    docs = set()
+    for n in ast.walk(tree):
+        if isinstance(n, (ast.Module, ast.ClassDef, ast.FunctionDef, ast.AsyncFunctionDef)):
+            first = (n.body or [None])[0]
+            if isinstance(first, ast.Expr) and isinstance(first.value, ast.Constant) and isinstance(
+                    first.value.value, str):
+                docs.add(id(first.value))
+    return any(isinstance(n, ast.Constant) and isinstance(n.value, str) and id(n) not in docs
+               and ("_litkb_staging" in n.value or "_quarantine" in n.value) for n in ast.walk(tree))
+
+
+def test_the_no_delete_scan_reads_every_module_that_can_write_in_the_store():
+    """The scan above reads litkb/acquire/*.py and litkb/admit/*.py, and that list is a gate only while it is
+    COMPLETE: a module that landed, filed or quarantined a download from anywhere else in the package would sit
+    outside it and could hold the next rm. Measured here, from the sources: the only modules reaching the store's
+    own paths in code are acquire/{store,run,annas}.py and admit/front.py — all scanned — plus
+    migrate_legacy/sources.py, which builds read paths and writes nothing. The _litkb_staging/incoming handlers in
+    particular (store.land / store.quarantine_new, run.land_and_attach / run.acquire) are all in acquire/."""
+    pkg = PIPELINE / "litkb"
+    scanned = {p.resolve() for d in _SCANNED_DIRS for p in (pkg / d).glob("*.py")}
+    outside = [p for p in sorted(pkg.rglob("*.py"))
+               if p.resolve() not in scanned and _store_strings_and_imports(p)]
+    rel = sorted(p.relative_to(pkg).as_posix() for p in outside)
+    unexplained = [r for r in rel if r not in _STORE_READ_ONLY]
+    assert unexplained == [], ("these modules reach the literature store, and the no-delete scan does not read "
+                               f"them: {unexplained}")
+    assert rel == sorted(_STORE_READ_ONLY), ("_STORE_READ_ONLY names a module that no longer reaches the store: "
+                                             f"{sorted(set(_STORE_READ_ONLY) - set(rel))}")
+
+
+def test_the_store_writer_census_fires_on_a_module_that_reaches_the_store(tmp_path):
+    """The census is a gate only if it fires (CLAUDE.md 3.4c): an import of Store, and a bare string naming the
+    staging directory, are both reported; the same words inside a docstring are not."""
+    def probe(src):
+        p = tmp_path / f"probe{abs(hash(src))}.py"
+        p.write_text(src, encoding="utf-8")
+        return _store_strings_and_imports(p)
+    assert probe("from litkb.acquire.store import Store\ndef f():\n    return Store()\n")
+    assert probe("from litkb.acquire.store import LITERATURE_ROOT as R\nR\n")
+    assert probe('import os\ndef f(root):\n    return os.path.join(root, "_litkb_staging", "incoming")\n')
+    assert not probe('"""Counted 224 files excluding _quarantine (a docstring)."""\nimport os\n')
+    assert not probe("from litkb.acquire.store import file_facts\nfile_facts\n")
+
+
+def _harness():
+    """The mutation harness as a module. It lives in qc/instruments/ and imports nothing from litkb."""
+    import importlib.util
+    spec = importlib.util.spec_from_file_location("litkb_p2_mutations",
+                                                  SCRIPTS / "qc" / "instruments" / "litkb_p2_mutations.py")
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod
+
+
+def test_the_mutation_harness_holds_one_campaign_per_tree(tmp_path):
+    """Measured 2026-09-15: a second campaign started while the first had a mutant applied died with "F5f:
+    mutation target occurs 0 times" — a sound row, reported as broken, and the whole table aborted. The silent
+    version is worse: make_worker_copy() copies the tree AS IT IS, so a mutant applied at that moment is inherited
+    by every worker copy and every verdict from it is wrong while saying nothing.
+
+    (This test lives here rather than in qc/test_litkb_harness_sites.py because qc/test_litkb_p2.py is the file
+    this task owns; the harness's other self-checks are over there.)"""
+    h = _harness()
+    lock = tmp_path / "campaign.lock"
+    held = h.take_lock(lock)
+    assert held == lock and lock.exists()
+    assert f"pid {os.getpid()}" in lock.read_text(encoding="utf-8")
+    with pytest.raises(SystemExit) as e:
+        h.take_lock(lock)
+    assert "another mutation campaign holds" in str(e.value) and f"pid {os.getpid()}" in str(e.value)
+    h.release_lock(lock)
+    assert not lock.exists()
+    h.release_lock(lock)                     # releasing a lock that is already gone is not an error
+    h.release_lock(h.take_lock(lock))        # and it can be taken again afterwards
+    assert not lock.exists()
+    assert ".litkb-harness.lock" in h.COPY_IGNORE, "a worker copy would carry (and hash) the parent's lock"
+
+
+def test_a_second_harness_run_refuses_and_mutates_nothing(tmp_path):
+    """The gate where it counts: main() takes the lock BEFORE it pre-flights any row, so a second run leaves every
+    source byte-for-byte untouched instead of half-mutating one."""
+    lock = tmp_path / "campaign.lock"
+    lock.write_text("pid 999999 started 2026-09-15T00:00:00\n", encoding="utf-8")
+    run_py = PIPELINE / "litkb" / "acquire" / "run.py"
+    before = hashlib.sha256(run_py.read_bytes()).hexdigest()
+    r = subprocess.run([sys.executable, str(SCRIPTS / "qc" / "instruments" / "litkb_p2_mutations.py"),
+                        "--only", "F5a"], cwd=str(SCRIPTS), capture_output=True, text=True,
+                       env=dict(os.environ, PYTHONUTF8="1", PYTHONPATH=str(PIPELINE),
+                                LITKB_HARNESS_LOCK=str(lock)))
+    assert r.returncode != 0, r.stdout[-2000:]
+    assert "another mutation campaign holds" in (r.stderr + r.stdout), (r.stderr or r.stdout)[-2000:]
+    assert "pid 999999" in (r.stderr + r.stdout), "the refusal does not say who holds it"
+    assert hashlib.sha256(run_py.read_bytes()).hexdigest() == before, "a refused campaign still touched a source"
+    assert lock.read_text(encoding="utf-8").startswith("pid 999999"), "the refused run took the holder's lock"
+
+
 def test_store_writes_only_new_files_into_staging_or_quarantine(tmp_path):
     from litkb.acquire.store import Store, StoreRefused
     root = tmp_path / "Lit"
@@ -268,6 +388,31 @@ def test_store_writes_only_new_files_into_staging_or_quarantine(tmp_path):
     assert q.exists() and not p.exists() and held.read_bytes() == b"%PDF-1.4 held"
     idx = s.disk_index()
     assert hashlib.sha256(b"%PDF-1.4 held").hexdigest() in idx["sha256"]
+
+
+HTML_SERVED_AS_PDF = (b"<!DOCTYPE html>\n<html><head><title>404 Not Found</title></head>\n"
+                      b"<body><h1>Not Found</h1><p>The requested repository item does not exist.</p>"
+                      b"</body></html>\n")
+
+
+@pytest.mark.parametrize("case, shape, needle", [
+    ("whole", "pdf", ""),
+    ("html", "not-a-pdf", "look like HTML"),
+    ("empty", "not-a-pdf", "0 bytes"),
+    ("truncated", "truncated-pdf", "no %%EOF")])
+def test_pdf_shape_tells_a_whole_pdf_from_html_and_from_a_truncated_one(case, shape, needle):
+    """The one place that decides whether downloaded bytes are a PDF (litkb.acquire.store.pdf_shape). An HTML
+    error page served under a .pdf name is the shape of the 2026-09-15 incident
+    (Reports/LITKB_LINKAGE_REVIEW_2026-09-15.md §8.9); a header with no %%EOF near the end is a transfer that
+    stopped before the trailer, which is a different fault with a different cause and gets its own name."""
+    from litkb.acquire.store import pdf_shape
+    whole = paper_pdf("A paper about canopy", "T. Tester")
+    data = {"whole": whole, "html": HTML_SERVED_AS_PDF, "empty": b"", "truncated": whole[:len(whole) // 2]}[case]
+    got, why = pdf_shape(data)
+    assert got == shape, (got, why)
+    assert needle in why, why
+    assert not data or data[:40].decode("latin-1") not in why, \
+        "the reason quotes the bytes: a served error page can echo a request URL, key and all"
 
 
 def test_store_move_new_never_overwrites_and_never_leaves_staging(tmp_path):
@@ -1250,6 +1395,83 @@ def test_acquire_quarantines_a_download_that_does_not_bind(pg, tmp_path, monkeyp
 
 
 @pg_only
+@pytest.mark.parametrize("case, label, shape, needle", [
+    ("html_served_as_pdf", "bad-file", "not-a-pdf", "look like HTML"),
+    ("truncated_pdf", "truncated-pdf", "truncated-pdf", "no %%EOF")])
+def test_acquire_keeps_a_bad_download_in_quarantine_and_never_deletes_it(pg, tmp_path, monkeypatch, case, label,
+                                                                        shape, needle):
+    """Friction 5 (Reports/LITKB_LINKAGE_REVIEW_2026-09-15.md §8.9): a link that answers with an HTML error page,
+    and a transfer that stops before the trailer. Neither is a paper and neither is thrown away — the bytes are
+    written into _quarantine/ under a name that says what they are, with a .reason.json beside them, and the run
+    moves on. Nothing reaches a topic folder, filed/ or incoming/; the bytes are still readable afterwards, so the
+    re-fetch never needs the file deleted to free the name."""
+    _need_pdftotext()
+    ws, w = pg.ws(), pg.session("litkb_writer")
+    work, store = _admitted(pg, w, ws), _store(tmp_path)
+    whole = paper_pdf(work["title"], "T. Tester")
+    planted = HTML_SERVED_AS_PDF if case == "html_served_as_pdf" else whole[:len(whole) // 2]
+    _oa(monkeypatch)
+    out = _acquire(pg, w, ws, work, store, planted)
+    assert out["outcome"] == "not-acquired", out
+    rows = _attempts(pg, work["work_id"])
+    assert [(a[0], a[1]) for a in rows] == [("open_access", "bad-file"), ("browser", "manual-step")]
+    kept = sorted(Path(store.quarantine).glob("*.pdf"))
+    assert len(kept) == 1, _files_under(store.quarantine)
+    assert f"__{label}__" in kept[0].name, kept[0].name
+    assert kept[0].read_bytes() == planted, "the bad download's bytes were not kept as they were served"
+    why = json.loads(kept[0].with_suffix(".reason.json").read_text(encoding="utf-8"))
+    assert (why["status"], why["label"], why["shape"]) == ("bad-file", label, shape), why
+    assert (why["sha256"], why["bytes"]) == (hashlib.sha256(planted).hexdigest(), len(planted)), why
+    assert (why["work_key"], why["route"]) == (work["key"], "open_access"), why
+    assert why["source_url"] == "https://oa.example/paper.pdf" and needle in why["reason"], why
+    assert why["at"].endswith("+00:00") and why["at"].startswith("20"), why
+    assert rows[0][2]["quarantined"] == store.rel(kept[0]), rows[0][2]
+    assert rows[0][2]["quarantine_reason"] == store.rel(kept[0].with_suffix(".reason.json")), rows[0][2]
+    assert _files_under(store.filed) == [] and _files_under(store.incoming) == []
+    assert _files_under(store.root / "Validation") == [], "a bad download reached a topic folder"
+    assert pg.one("SELECT count(*) FROM litkb.main_files WHERE work_id = %s", (work["work_id"],))[0] == 0
+
+
+@pg_only
+@pytest.mark.parametrize("where", ["staging", "outside"])
+def test_acquire_from_file_quarantines_a_bad_file_of_its_own_and_refuses_anyone_elses(pg, tmp_path, where):
+    """§8.9 itself. The reviewer's curl answered with an HTML error page, it landed as
+    _litkb_staging/incoming/IFLA_2017_library-reference-model.pdf, and it was removed with `rm -f` to free the name
+    for the re-fetch — a delete inside the tree that exists because 149 PDFs were lost on 2026-09-12. Acquisition
+    now takes the name off it by MOVING it into _quarantine with a reason beside it: it is acquisition's own tree,
+    the bytes stay, and no delete is needed. A file anywhere else is the user's own and is neither moved nor
+    copied — the refusal is recorded and the file is left exactly as it was."""
+    from litkb.acquire import run
+    ws, w = pg.ws(), pg.session("litkb_writer")
+    work, store = _admitted(pg, w, ws), _store(tmp_path)
+    src = ((store.incoming if where == "staging" else tmp_path / "Downloads")
+           / "IFLA_2017_library-reference-model.pdf")
+    src.parent.mkdir(parents=True, exist_ok=True)
+    src.write_bytes(HTML_SERVED_AS_PDF)
+    before = _file_state(src)
+    out = run.acquire(w, ws, pg.tokens[ws], work, store=store, from_file=src, agent="acq", session="acq-ff",
+                      pacer=_nopace(), printer=lambda *a: None)
+    assert out["outcome"] == "bad-file", out
+    rows = _attempts(pg, work["work_id"])
+    assert [(a[0], a[1]) for a in rows] == [("browser", "bad-file")]
+    detail = rows[0][2]
+    if where == "staging":
+        kept = sorted(Path(store.quarantine).glob("*.pdf"))
+        assert len(kept) == 1 and "__not-a-pdf__" in kept[0].name, _files_under(store.quarantine)
+        assert kept[0].read_bytes() == HTML_SERVED_AS_PDF and not src.exists()
+        why = json.loads(kept[0].with_suffix(".reason.json").read_text(encoding="utf-8"))
+        assert why["moved_from"] == "_litkb_staging/incoming/IFLA_2017_library-reference-model.pdf", why
+        assert (why["status"], why["shape"], why["work_key"]) == ("bad-file", "not-a-pdf", work["key"]), why
+        assert detail["quarantined"] == store.rel(kept[0]) and detail["shape"] == "not-a-pdf", detail
+    else:
+        assert _file_state(src) == before, "a file acquisition did not create was moved, copied or rewritten"
+        assert _files_under(store.quarantine) == [] and _files_under(store.staging) == []
+        assert "left exactly where it lies" in detail["note"], detail
+    assert _files_under(store.filed) == []
+    assert pg.one("SELECT count(*) FROM litkb.main_files WHERE work_id = %s", (work["work_id"],))[0] == 0
+
+
+@pg_only
 def test_acquire_recognises_a_file_already_on_disk(pg, tmp_path, monkeypatch):
     _need_pdftotext()
     ws, w = pg.ws(), pg.session("litkb_writer")
@@ -1295,6 +1517,183 @@ def test_acquire_from_file_binds_an_unheld_file_in_a_topic_folder_in_place(pg, t
     assert run.acquire(w, ws, pg.tokens[ws], third, from_file=stray, **kw)["outcome"] == "binding-failed"
     assert _file_state(stray) == sb and _files_under(store.quarantine) == []
     assert pg.one("SELECT count(*) FROM litkb.main_files WHERE work_id = %s", (third["work_id"],))[0] == 0
+
+
+def _subtitled_payload(hexid=None, year=2020, author="Tester"):
+    """A registry record that publishes a title AND a subtitle. Since migration 0020 the WORK is stored under the
+    joined form and `registry_titles` lists every form the registry published, which is what check 1 compares the
+    work's title against."""
+    hexid = hexid or uuid.uuid4().hex[:12]
+    doi, bare, _rec = _synthetic(hexid, year, author)
+    sub = f"toward building entity matching management systems {hexid}"
+    joined = f"{bare}: {sub}"
+    ev = {"registry": "crossref", "registry_title": bare, "registry_titles": [joined, bare],
+          "registry_first_author": author, "registry_year": year,
+          "claimed": {"title": joined, "first_author": author, "year": year, "title_ratio": 1.0,
+                      "author_match": True}}
+    work = {"type": "article", "title": joined, "subtitle": sub, "authors": [{"family": author, "given": "T."}],
+            "year": year}
+    return hexid, bare, joined, work, [{"scheme": "doi", "value": doi, "verified_by": "crossref", "evidence": ev}]
+
+
+@pg_only
+def test_acquire_from_file_takes_a_pdf_that_already_lies_in_incoming(pg, tmp_path):
+    """Found live 2026-09-15: `acquire --from-file _litkb_staging/incoming/X.pdf` deduplicated the file against
+    ITSELF. acquire() hashes every *.pdf under the literature root before the from-file branch, staging included,
+    so the handed-in file's own hash was in the index, land_and_attach answered `duplicate-held` and binding never
+    ran — the work could never get its file, and the workaround in the field was to rename it to `.download`.
+    incoming/ is a landing area and holds nobody's file yet, so it is dropped from the index the from-file branch
+    uses. The guard that protects the CORPUS is untouched: bytes already held in the database are still refused."""
+    _need_pdftotext()
+    from litkb.acquire import run
+    ws, w = pg.ws(), pg.session("litkb_writer")
+    work, store = _admitted(pg, w, ws), _store(tmp_path)
+    handed = store.incoming / "Handed_2020_by-curl.pdf"
+    handed.parent.mkdir(parents=True, exist_ok=True)
+    data = paper_pdf(work["title"], "T. Tester")
+    handed.write_bytes(data)
+    kw = dict(store=store, agent="acq", session="acq-incoming", pacer=_nopace(), printer=lambda *a: None)
+    out = run.acquire(w, ws, pg.tokens[ws], work, from_file=handed, **kw)
+    assert out["outcome"] == "ok", out
+    row = pg.one("SELECT rel_path, binding->>'verdict' FROM litkb.main_files WHERE work_id = %s",
+                 (work["work_id"],))
+    assert row == (f"_litkb_staging/filed/{work['key']}.pdf", "bound"), row
+    assert (store.root / row[0]).read_bytes() == data
+    assert _files_under(store.quarantine) == []
+    # and a GENUINE duplicate is still refused: the same bytes, already held for another work
+    other = _admitted(pg, w, ws, title=work["title"])
+    second = store.incoming / "Handed_2020_by-curl-again.pdf"
+    second.write_bytes(data)
+    again = run.acquire(w, ws, pg.tokens[ws], other, from_file=second, **kw)
+    assert again["outcome"] == "duplicate-held", again
+    held = _attempts(pg, other["work_id"])[0][2]
+    assert held["held_for_work"] == str(work["work_id"]), held
+    assert second.read_bytes() == data, "the refused file was moved or rewritten"
+
+
+@pg_only
+def test_acquire_binds_a_first_page_that_prints_only_the_bare_title_of_a_subtitled_work(pg, tmp_path):
+    """Since migration 0020 a work is stored under the registry title joined with its subtitle ("Magellan: toward
+    building entity matching management systems"), while a PDF's first page prints whichever form the publisher
+    chose — usually the bare one. Binding the acquire path against the stored title ALONE would start refusing
+    papers it bound the day before, on a change that was about keys and not about files. The admission path
+    already tries every form (binding.bind_any); the acquire path now does the same, and records which form
+    matched while keeping registry_title = the work's own title, which is what the database compares."""
+    _need_pdftotext()
+    from litkb.acquire import run
+    ws, w = pg.ws(), pg.session("litkb_writer")
+    hexid, bare, joined, payload, ids = _subtitled_payload()
+    res = _admit_sql(pg, w, ws, payload, ids, key=f"Tester_2020_subtitled-{hexid[:8]}")
+    assert res["outcome"] == "admitted", res
+    work, store = run.work_record(w, work_id=res["work_id"]), _store(tmp_path)
+    assert work["title"] == joined and work["title_forms"] == [joined, bare], work["title_forms"]
+    handed = tmp_path / "Downloads" / "paper.pdf"
+    handed.parent.mkdir(parents=True, exist_ok=True)
+    handed.write_bytes(paper_pdf(bare, "T. Tester"))      # the first page prints the BARE title only
+    out = run.acquire(w, ws, pg.tokens[ws], work, store=store, from_file=handed, agent="acq", session="acq-sub",
+                      pacer=_nopace(), printer=lambda *a: None)
+    assert out["outcome"] == "ok", out
+    row = pg.one("SELECT binding->>'registry_title', binding->>'matched_title_form', binding->>'verdict' "
+                 "FROM litkb.main_files WHERE work_id = %s", (work["work_id"],))
+    assert row == (joined, bare, "bound"), row
+    assert _files_under(store.quarantine) == []
+
+
+@pytest.mark.parametrize("title, subtitle, forms", [
+    ("Magellan: toward building entity matching management systems", "toward building entity matching management "
+     "systems", ["Magellan: toward building entity matching management systems", "Magellan"]),
+    ("Magellan", "", ["Magellan"]),
+    ("Magellan", None, ["Magellan"]),
+    ("A study - of fronts", "of fronts", ["A study - of fronts", "A study"]),
+    ("Already the whole title", "a subtitle it does not end with", ["Already the whole title"]),
+])
+def test_the_title_forms_of_a_work_keep_its_stored_title_first(title, subtitle, forms):
+    """forms[0] must stay the WORK's stored title: bind_any records it as registry_title and migration 0016's
+    _check_binding refuses a binding measured against any other title than the work's."""
+    from litkb.acquire.run import _title_forms
+    assert _title_forms(title, subtitle) == forms
+
+
+@pg_only
+def test_acquire_binds_a_held_in_place_file_by_any_title_form(pg, tmp_path):
+    """The SECOND call site of the same rule (the harness's per-call-site rule, and the reason it exists): a file
+    already held in a topic folder is bound by front.file_evidence, not by land_and_attach. A work stored under
+    "title: subtitle" whose held PDF prints only the bare title must bind there too."""
+    _need_pdftotext()
+    from litkb.acquire import run
+    ws, w = pg.ws(), pg.session("litkb_writer")
+    hexid, bare, joined, payload, ids = _subtitled_payload()
+    res = _admit_sql(pg, w, ws, payload, ids, key=f"Tester_2020_subtitled-place-{hexid[:6]}")
+    assert res["outcome"] == "admitted", res
+    work, store = run.work_record(w, work_id=res["work_id"]), _store(tmp_path)
+    held = store.root / "Validation" / "Tester_2020_held-bare-title.pdf"
+    held.write_bytes(paper_pdf(bare, "T. Tester"))        # the page prints the BARE title only
+    before = _file_state(held)
+    out = run.acquire(w, ws, pg.tokens[ws], work, store=store, from_file=held, agent="acq", session="acq-place",
+                      pacer=_nopace(), printer=lambda *a: None)
+    assert out["outcome"] == "ok", out
+    row = pg.one("SELECT rel_path, binding->>'registry_title', binding->>'matched_title_form' "
+                 "FROM litkb.main_files WHERE work_id = %s", (work["work_id"],))
+    assert row == ("Validation/Tester_2020_held-bare-title.pdf", joined, bare), row
+    assert _file_state(held) == before and _files_under(store.staging) == []
+
+
+@pg_only
+def test_a_quarantined_file_can_bind_once_the_record_is_corrected(pg, tmp_path, monkeypatch):
+    """Found live 2026-09-15 by the archive job: quarantine locked a file out for ever. A file that fails binding
+    moves to _quarantine/, and the disk index hashes every *.pdf under the literature root — quarantine included —
+    so the same bytes then read as "already on disk" and could never be offered again. Correcting the record
+    changed nothing: `duplicate-held`, permanently (Konda_2016, Kopcke_2010 and Enamorado_2019 were locked this
+    way in the live store). _quarantine/ holds exactly the files that are NOT held, so it is not part of the
+    dedupe's corpus, and re-binding one is `acquire --from-file <the quarantined path>`. Nothing is deleted: the
+    quarantined copy and its reason stay where they are."""
+    _need_pdftotext()
+    from litkb.acquire import run
+    ws, w = pg.ws(), pg.session("litkb_writer")
+    store = _store(tmp_path)
+    # `right` gets a title of its own rather than a second synthetic one: two synthetic titles differ only in a
+    # 12-hex tail, so whether the file binds to the WRONG work is decided by a difflib ratio that falls either
+    # side of BIND_RATIO by chance (the flake _admitted's docstring records, met here on the first run).
+    right = _admitted(pg, w, ws, title="Tidal mixing fronts in the Irish Sea")
+    wrong = _admitted(pg, w, ws)
+    data = paper_pdf(right["title"], "T. Tester")        # the paper of the SECOND work, offered to the first
+    _oa(monkeypatch)
+    out = _acquire(pg, w, ws, wrong, store, data)
+    assert out["outcome"] == "not-acquired", out         # binding-failed: it is not that work's paper
+    q = sorted(Path(store.quarantine).glob("*.pdf"))
+    assert len(q) == 1 and "__binding-failed__" in q[0].name, _files_under(store.quarantine)
+    before = _file_state(q[0])
+    # the corrected record: the work whose paper this actually is, re-binding the quarantined bytes by hand
+    fixed = run.acquire(w, ws, pg.tokens[ws], right, store=store, from_file=q[0], agent="acq", session="acq-requar",
+                        pacer=_nopace(), printer=lambda *a: None)
+    assert fixed["outcome"] == "ok", fixed
+    row = pg.one("SELECT rel_path, binding->>'verdict' FROM litkb.main_files WHERE work_id = %s",
+                 (right["work_id"],))
+    assert row == (f"_litkb_staging/filed/{right['key']}.pdf", "bound"), row
+    assert (store.root / row[0]).read_bytes() == data
+    assert _file_state(q[0]) == before, "the quarantined copy was moved, rewritten or deleted"
+    # and a GENUINE duplicate is still refused: the same bytes, now ACTIVE on that work
+    third = _admitted(pg, w, ws, title=right["title"])
+    again = run.acquire(w, ws, pg.tokens[ws], third, store=store, from_file=q[0], agent="acq", session="acq-requar",
+                        pacer=_nopace(), printer=lambda *a: None)
+    assert again["outcome"] == "duplicate-held", again
+    assert _attempts(pg, third["work_id"])[0][2]["held_for_work"] == str(right["work_id"])
+
+
+def test_the_dedupe_index_drops_staging_and_quarantine_only(tmp_path):
+    """index_of_held is the whole of that rule, so it is worth pinning on its own: incoming/ and _quarantine/ go,
+    every topic folder and filed/ stay, and the ARGUMENT is not modified (the archive's quota short-circuit reads
+    the full index afterwards and must still see the quarantined md5)."""
+    from litkb.acquire.run import index_of_held
+    full = {"sha256": {"a": ["Validation/held.pdf", "_quarantine/held__binding-failed__a.pdf"],
+                       "b": ["_litkb_staging/incoming/x.pdf"],
+                       "c": ["_quarantine/only-here.pdf"],
+                       "d": ["_litkb_staging/filed/f.pdf"]},
+            "md5": {"m": ["_quarantine/only-here.pdf"]}}
+    kept = index_of_held(None, full)
+    assert kept["sha256"] == {"a": ["Validation/held.pdf"], "d": ["_litkb_staging/filed/f.pdf"]}, kept["sha256"]
+    assert kept["md5"] == {}
+    assert full["sha256"]["c"] == ["_quarantine/only-here.pdf"] and full["md5"]["m"], "the argument was modified"
 
 
 @pg_only

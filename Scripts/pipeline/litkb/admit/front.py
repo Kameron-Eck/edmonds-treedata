@@ -78,8 +78,15 @@ def add_candidate(conn, ws, token, *, source="manual", source_detail=None, query
          _jsonb(ids) if ids is not None else None)).fetchone()[0]
 
 
-def file_evidence(file_path, registry_title, first_author, *, root=None, source_route=None, source_url=None):
-    """The p_file JSON for a file admitted in place. Read-only."""
+def file_evidence(file_path, registry_title, first_author, *, root=None, source_route=None, source_url=None,
+                  title_forms=()):
+    """The p_file JSON for a file admitted in place. Read-only.
+
+    `title_forms`: the other forms the registry published for this title (registry.title_forms()).
+    The work is stored under the joined "title: subtitle" form since migration 0020, but the PDF's
+    first page prints whichever form its publisher chose, so the binder tries all of them and records
+    which one matched (binding.bind_any).
+    """
     root = Path(root or LITERATURE_ROOT).resolve()
     p = Path(file_path).resolve()
     try:
@@ -88,7 +95,7 @@ def file_evidence(file_path, registry_title, first_author, *, root=None, source_
         raise AdmissionError(f"{p} is not under the literature root {root}") from None
     facts = file_facts(p)
     info = _binding.pdf_info(p)
-    b = _binding.bind(p, registry_title, first_author, info=info)
+    b = _binding.bind_any(p, [registry_title, *title_forms], first_author, info=info)
     txt = p.with_suffix(".txt")
     out = {"sha256": facts["sha256"], "md5": facts["md5"], "bytes": facts["bytes"], "rel_path": rel,
            "has_text_layer": b["text_layer"], "binding": b,
@@ -136,7 +143,25 @@ def admit_registry(conn, ws, token, *, doi=None, arxiv=None, claimed=None, key=N
     claimed = dict(claimed or {})
     if claimed.get("authors") and not claimed.get("first_author"):
         claimed["first_author"] = first_author_of(claimed["authors"])
-    identifiers, checks, rec = [], {"registry_calls": [], "claimed": claimed or None}, None
+    # The default is the strict one, and the guard below is what relaxes it — that order matters for a
+    # reason beyond taste: a mutation that deletes the guard must leave code that RUNS and behaves
+    # worse, not code that raises NameError. A guard whose removal errors is reported DID NOT FIRE by
+    # the harness, because the tests error instead of failing (Reports/LITKB_P3_REPORT_2026-09-15.md,
+    # row P8f).
+    registry_only = False
+    # BEGIN guard: an admission with no claim and no file says it is registry-only
+    # §8.5 of the linkage review: three DOIs were refused at check 1 with "no claimed record to
+    # compare with the registry and no bound file", and the remedy was not in the message. The rule
+    # is a rule about a CLAIM — a claimed first author that contradicts the registry's is exactly
+    # what caught Papadakis-for-Mandilaras in that same session, and it still fires. What was
+    # missing is the case where the admitter claims nothing and takes the registry record as the
+    # identity. That is now sayable, and the saying is RECORDED on the identifier's evidence
+    # (migration 0020, check 1) so an admission made on the registry record alone can be told apart
+    # from one that was compared with something, forever after.
+    registry_only = not file_path and not any(claimed.get(k) for k in ("title", "authors", "year", "first_author"))
+    # END guard: an admission with no claim and no file says it is registry-only
+    identifiers, checks, rec = [], {"registry_calls": [], "claimed": claimed or None,
+                                    "registry_only": registry_only}, None
     if doi:
         # the canonical DOI is what is confirmed, compared and STORED (referee fix D1); the database normalises
         # it again with litkb.norm_identifier, its twin
@@ -154,19 +179,25 @@ def admit_registry(conn, ws, token, *, doi=None, arxiv=None, claimed=None, key=N
         identifiers.append({"scheme": "arxiv", "value": arxiv.strip(), "verified_by": "arxiv" if r else None,
                             "evidence": _registry.evidence(r, claimed) if r else {"registry_calls": [("arxiv", st)]}})
         rec = rec or r
+    if registry_only:
+        for i in identifiers:
+            if i.get("verified_by"):
+                i["evidence"] = dict(i.get("evidence") or {}) | {"registry_only": True}
     identifiers.extend(extra_identifiers)
     if rec:
         work = _registry.work_fields(rec)
         first = rec["first_author"]
+        forms = _registry.title_forms(rec)
     else:
         work = {"type": "article", "title": claimed.get("title") or "(no registry record)",
                 "year": int(claimed["year"]) if str(claimed.get("year") or "").isdigit() else None}
         first = claimed.get("first_author") or ""
+        forms = []
     year = work.get("year") or claimed.get("year") or 0
     key = key or make_key(first, year, work["title"])
     file_json = None
     if file_path:
-        file_json = file_evidence(file_path, work["title"], first, root=root)
+        file_json = file_evidence(file_path, work["title"], first, root=root, title_forms=forms)
     if candidate_id is None:
         candidate_id = add_candidate(
             conn, ws, token, source=source, source_detail=source_detail, title=claimed.get("title") or work["title"],
@@ -175,8 +206,35 @@ def admit_registry(conn, ws, token, *, doi=None, arxiv=None, claimed=None, key=N
             year=claimed.get("year") or work.get("year"),
             ids={k: v for k, v in (("doi", doi), ("arxiv", arxiv)) if v})
     checks["measured_at"] = datetime.datetime.now(datetime.timezone.utc).isoformat()
-    return _call_admit(conn, ws, token, candidate_id, "registry", key, work, identifiers, file_json, checks,
-                       agent, session)
+    res = _call_admit(conn, ws, token, candidate_id, "registry", key, work, identifiers, file_json, checks,
+                      agent, session)
+    # BEGIN guard: a claim that lacks the subtitle is a discrepancy, not a refusal
+    d = _registry.subtitle_discrepancy(rec, claimed) if rec else None
+    if d:
+        row = str(doi or arxiv or key)
+        try:
+            d["id"] = record_discrepancy(conn, ws, token, source="admission", source_row=row, agent=agent,
+                                         session=session, work_id=res.get("work_id"), candidate_id=candidate_id, **d)
+        except Exception as e:                  # a discrepancy is review material; it never fails an admission
+            d["not_recorded"] = f"{type(e).__name__}: {e}"
+        res = dict(res) | {"title_discrepancy": d}
+    # END guard: a claim that lacks the subtitle is a discrepancy, not a refusal
+    return res
+
+
+def record_discrepancy(conn, ws, token, *, source, source_row, field, claimed, registry, agent, session,
+                       ratio=None, detail=None, work_id=None, candidate_id=None):
+    """litkb.record_discrepancy (migration 0015): a disagreement kept, never a correction.
+
+    `source` is 'tracker', 'manifest' or — since migration 0020 — 'admission', for a disagreement
+    between what an ADMISSION claimed and the registry record it was admitted as.
+    """
+    # %s::numeric on the ratio: a Python float binds as double precision and there is no implicit
+    # double -> numeric resolution, so the unqualified call finds no function at all.
+    return conn.execute(
+        "SELECT litkb.record_discrepancy(%s, %s, %s, %s, %s, %s, %s, %s::numeric, %s, %s, %s, %s, %s)",
+        (ws, token, source, source_row, field, claimed, registry, ratio,
+         _jsonb(detail or {}), work_id, candidate_id, agent, session)).fetchone()[0]
 
 
 def admit_manual(conn, ws, token, *, title, authors, year, file_path, source_note, work_type="report", key=None,
@@ -195,6 +253,88 @@ def admit_manual(conn, ws, token, *, title, authors, year, file_path, source_not
                                      authors=fam_list, year=year)
     return _call_admit(conn, ws, token, candidate_id, "manual", key or make_key(first, year or 0, title), work, ids,
                        file_json, {"manual_source": source_note}, agent, session)
+
+
+WEB_SNAPSHOT_DIR = "web"        # under <root>/_litkb_staging/
+
+
+def web_snapshot_evidence(snapshot_path, title, first_author, *, url, retrieved, root=None, store=None,
+                          title_forms=(), stem=None):
+    """The p_file JSON for a source whose evidence is a saved TEXT snapshot, not a PDF.
+
+    `Scripts/docs/LITERATURE_CONVENTION.md`: "Where a source has no DOI (blog posts, docs), record it
+    as a manual proposal with the URL and retrieval date." Measured against the machinery
+    (`Reports/LITKB_LINKAGE_REVIEW_2026-09-15.md` §8.4), that was not possible: `admit --manual`
+    requires `--file`, and check 3 binds the claimed title against the first page of a PDF TEXT
+    LAYER, so the Crossref relationships page — saved as HTML — came back
+    `refused at check4_manual: "no text layer on the first page and no PDF title match"`. Six sources
+    that review depends on therefore have no KB record, which is the thing the KB exists to prevent.
+    The reviewer explicitly did NOT work around it by generating a PDF from the page text, and that
+    was right: fabricating a document to satisfy the binder defeats the check rather than passing it.
+
+    So the snapshot is the file. It is the admitter's own saved text of the page, it lands under
+    `_litkb_staging/web/` through the store's one guarded write path, and check 3 runs against it
+    exactly as it runs against a PDF's first page — same binder, same 0.85, same author-near-title
+    rule. Nothing in the database is relaxed: `_check_binding` only ever read `binding.text_layer`
+    and the ratio, and a text snapshot has both honestly.
+
+    The URL is `source_url`, the retrieval date is `obtained_at`, and `copy_kind` is `'web snapshot'`
+    (migration 0020) so a snapshot can never be mistaken for a publisher PDF. The admission remains a
+    MANUAL proposal: a second session must approve it (check 4, unchanged).
+    """
+    from litkb.acquire.store import Store
+
+    store = store or Store(root=root)
+    src = Path(snapshot_path).resolve()
+    if not src.exists():
+        raise AdmissionError(f"no snapshot at {src}")
+    if src.suffix.lower() != ".txt":
+        raise AdmissionError(f"a web snapshot is the saved TEXT of the page, not {src.suffix or 'a directory'}: "
+                             "save the page's text as .txt and pass that")
+    data = src.read_bytes()
+    text = data.decode("utf-8", "replace")
+    webdir = store.staging / WEB_SNAPSHOT_DIR
+    if store._inside(src, webdir):
+        landed = src
+    else:
+        landed = store.write_new(store.free_name(webdir, stem or src.stem, ".txt"), data)
+    facts = file_facts(landed)
+    b = _binding.bind_any(landed, [title, *title_forms], first_author, page_text=text, info={})
+    rel = store.rel(landed)
+    return {"sha256": facts["sha256"], "md5": facts["md5"], "bytes": facts["bytes"], "rel_path": rel,
+            "has_text_layer": b["text_layer"], "binding": b, "copy_kind": "web snapshot",
+            "source_route": "web", "source_url": url, "obtained_at": retrieved,
+            "txt_extract_path": rel, "pages": None}
+
+
+def admit_web(conn, ws, token, *, title, authors, year, url, retrieved, snapshot_path, source_note,
+              work_type="report", key=None, identifiers=(), root=None, store=None, agent, session,
+              candidate_id=None):
+    """A documentation page, blog post or standard with no DOI: a manual PROPOSAL bound to its saved
+    text snapshot. Second-session approval still applies — this is `admit --manual` with a different
+    kind of evidence, not a different kind of admission."""
+    if not url or not str(url).lower().startswith(("http://", "https://")):
+        raise AdmissionError("a web source needs its URL (http:// or https://)")
+    if not retrieved:
+        raise AdmissionError("a web source needs the date it was retrieved (the page can change under the citation)")
+    first = first_author_of(authors)
+    fam_list = authors if isinstance(authors, list) else [
+        {"family": first_author_of(a.strip()), "given": ""} for a in re.split(r"&|;| and ", authors or "") if a.strip()]
+    work = {"type": work_type, "title": title, "authors": fam_list, "year": int(year) if year else None,
+            "publisher": None}
+    ids = [{"scheme": i["scheme"], "value": i["value"], "verified_by": "manual",
+            "evidence": {"source": source_note}} for i in identifiers]
+    ids.append({"scheme": "url", "value": str(url), "verified_by": "manual",
+                "evidence": {"source": source_note, "retrieved": str(retrieved)}})
+    k = key or make_key(first, year or 0, title)
+    file_json = web_snapshot_evidence(snapshot_path, title, first, url=url, retrieved=retrieved, root=root,
+                                      store=store, stem=k)
+    if candidate_id is None:
+        candidate_id = add_candidate(conn, ws, token, source="manual", source_detail=source_note, title=title,
+                                     authors=fam_list, year=year, ids={"url": str(url)})
+    return _call_admit(conn, ws, token, candidate_id, "manual", k, work, ids, file_json,
+                       {"manual_source": source_note, "web": {"url": str(url), "retrieved": str(retrieved)}},
+                       agent, session)
 
 
 def approve(conn, ws, token, admission_id, agent, session):

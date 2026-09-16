@@ -9,6 +9,11 @@ not automated here; litkb.acquire.run records it as a manual step.
 
 -> dict(status, pdf, source_url, tried, detail, http_codes). status: downloaded | not-in-archive (every
 landing page answered without a PDF link) | blocked | bad-file | api-error.
+
+Bytes that are not a PDF are handed back in `rejected` (with `rejected_url`, redacted) instead of being dropped,
+and litkb.acquire.run quarantines them with a reason beside them
+(Reports/LITKB_LINKAGE_REVIEW_2026-09-15.md §8.9). Only the answer to a GET of the PDF LINK is handed back: a
+landing page is a page this route read, never a file it was offered.
 """
 import re
 import urllib.parse
@@ -36,6 +41,7 @@ def pdf_link(html, base):
 def fetch_scihub(doi, pacer, *, client=None, mirrors=MIRRORS):
     client = client or Client()
     tried, codes = [], []
+    rejected, rejected_url = None, ""
     blocked = misses = bad = 0
     for base in mirrors:
         url = f"{base}/{urllib.parse.quote(doi, safe='/:()')}"
@@ -65,6 +71,8 @@ def fetch_scihub(doi, pacer, *, client=None, mirrors=MIRRORS):
         if (pdf or b"").startswith(b"%PDF-"):
             return {"status": "downloaded", "pdf": pdf, "source_url": link, "http_codes": codes,
                     "tried": tried + [f"{host}->{phost}:{st2}=ok"], "detail": ""}
+        if pdf and rejected is None:          # what the PDF LINK served instead: kept, never dropped
+            rejected, rejected_url = pdf, link
         if Client.is_challenge(st2, link, pdf) or st2 == 403:
             blocked += 1
             tried.append(f"{host}->{phost}:{st2}=blocked")
@@ -75,4 +83,4 @@ def fetch_scihub(doi, pacer, *, client=None, mirrors=MIRRORS):
               "not-in-archive" if misses and not bad and not blocked else
               "bad-file" if bad else "blocked" if blocked else "not-in-archive")
     return {"status": status, "pdf": None, "source_url": "", "http_codes": codes, "tried": tried,
-            "detail": redact(", ".join(tried))}
+            "rejected": rejected, "rejected_url": redact(rejected_url), "detail": redact(", ".join(tried))}

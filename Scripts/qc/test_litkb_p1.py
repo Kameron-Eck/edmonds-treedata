@@ -136,9 +136,29 @@ def test_import_litkb_pulls_no_heavy_dependency():
 
 
 def test_migration_files_are_named_and_numbered():
+    """1..N with no gaps — except a number another open branch has RESERVED in `_reserved.txt`.
+
+    The rule catches a migration that went missing. It cannot tell that from a number a concurrent
+    branch is about to take, and with several branches open at once the second case is the ordinary
+    one: 0020 was written here while 0018 and 0019 were being written on
+    `work/20260915-access-layer`. A reserved number is a DECLARED gap; every other gap still fails,
+    which the next test is for.
+    """
     from litkb.db import migrate
     found = migrate.discover()
-    assert [v for v, *_ in found] == list(range(1, len(found) + 1))
+    held = migrate.reserved()
+    assert [v for v, *_ in found] == [n for n in range(1, len(found) + len(held) + 1) if n not in held]
+    assert not (held.keys() & {v for v, *_ in found}), "a number on disk must not also be reserved"
+    assert all(why for why in held.values()), "a reserved number says which branch holds it and why"
+
+
+def test_an_undeclared_gap_in_the_migration_numbering_is_still_refused(tmp_path):
+    from litkb.db import migrate
+    for _v, name, _s, sql_text in migrate.discover():
+        (tmp_path / name).write_text(sql_text, encoding="utf-8")
+    with pytest.raises(migrate.MigrationError, match="without gaps"):
+        migrate.discover(tmp_path, reserved_path=tmp_path / "_reserved.txt")     # undeclared: refused
+    assert migrate.discover(tmp_path, reserved_path=migrate.RESERVED_FILE)       # declared: allowed
 
 
 def test_connect_refuses_the_promoter_login(monkeypatch):
@@ -335,6 +355,8 @@ def test_gate_runner_refuses_an_edited_applied_migration(pg, tmp_path):
     from litkb.db import migrate
     for _v, name, _s, sql_text in migrate.discover():
         (tmp_path / name).write_text(sql_text, encoding="utf-8")
+    # the declared gaps travel with the copy, or the copy is a set of files with a hole in it
+    (tmp_path / migrate.RESERVED_FILE.name).write_bytes(migrate.RESERVED_FILE.read_bytes())
     first = sorted(tmp_path.glob("*.sql"))[0]
     first.write_text(first.read_text(encoding="utf-8") + "\n-- edited after apply\n",
                      encoding="utf-8")
@@ -1939,16 +1961,26 @@ _EXPECTED_EXECUTE = {
                      # carries workstream_id and is guarded, and admission never reaches a held row, so the
                      # reason needs its own token-checked writer
                      "hold_candidate",
-                     "add_evidence", "add_candidate", "record_acquisition_attempt", "add_use_embedding"},
+                     "add_evidence", "add_candidate", "record_acquisition_attempt", "add_use_embedding",
+                     # _feeds_token_ok: `litkb use add` checks a feeds token against the DATABASE's
+                     # regex before it writes (migration 0020), so the shape rule has one home and a
+                     # mistyped token is a refusal at the command instead of a chain held at prepare.
+                     # It reads nothing: text in, boolean out, IMMUTABLE.
+                     "_feeds_token_ok"},
     "litkb_promoter": {"norm_identifier", "promote_prepare", "promote_commit", "promote_abandon", "promote_rebase"},
     # open/finish_extraction_run, clear_extraction_rows, add_table_cell, add_disagreement: the P5
     # ingest schema (migration 0017, qc/test_litkb_reconcile.py). 0017's three new tables
     # (table_cells, extraction_disagreements, file_current_run) grant INSERT to NOBODY, so these
     # functions are their only writers and the checks in them cannot be walked around;
     # clear_extraction_rows is the resume path and refuses a run whose status is ok.
+    # add_reference, add_citation_mention, add_citation_edge, add_citation_candidate: stage 6's
+    # references, their mentions and the citation graph (migration 0020,
+    # qc/test_litkb_references_ingest.py). Same shape as 0017: "references", citation_mentions and
+    # citation_edges grant INSERT to nobody, so these functions are their only writers.
     "litkb_ingest": {"norm_identifier", "set_current_run",
                      "open_extraction_run", "finish_extraction_run", "clear_extraction_rows",
-                     "add_table_cell", "add_disagreement"},
+                     "add_table_cell", "add_disagreement",
+                     "add_reference", "add_citation_mention", "add_citation_edge", "add_citation_candidate"},
     "public": set(),
 }
 _EXPECTED_WRITES = {role: set() for role in _EXPECTED_EXECUTE}

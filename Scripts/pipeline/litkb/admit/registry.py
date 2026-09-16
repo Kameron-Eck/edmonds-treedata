@@ -12,7 +12,7 @@ import re
 import urllib.parse
 
 from litkb.admit.resolver import (ARXIV_ID_LIST, ATOM_NS, CROSSREF_WORK, _json, arxiv_get, family_matches,
-                                  judge_candidate, registry_get, strip_tags)
+                                  judge_candidate, registry_get, strip_tags, title_match_ratio)
 
 DATACITE_WORK = "https://api.datacite.org/dois/{doi}"
 
@@ -159,10 +159,65 @@ def evidence(rec, claimed=None):
     return ev
 
 
+def work_title(rec):
+    """The work's title: the registry's title joined with its subtitle, where it published one.
+
+    `10.14778/2994509.2994535` entered this KB as the work `Konda_2016_magellan-work`, title
+    "Magellan", because the stored title was `rec["title"]` — the BARE title — while the subtitle
+    "toward building entity matching management systems" sat unused in a field of its own. The key is
+    minted from the title, so a bare title mints a truncated key, and `make_key` then pads the
+    one-word slug out with "work" to reach its two-word minimum. That is the whole of the defect
+    (`Reports/LITKB_LINKAGE_REVIEW_2026-09-15.md` §7 P4), and this is the one place it is fixed.
+
+    `parse_crossref` already builds this exact form into `rec["titles"]` — the list `judge_candidate`
+    and `confirm_s2_candidate` have always taken their max ratio over. So nothing about MATCHING
+    changes here; what changes is which of the forms the work is STORED under.
+    """
+    sub = (rec.get("subtitle") or "").strip()
+    title = (rec.get("title") or "").strip()
+    if not (title and sub) or title.lower().endswith(sub.lower()):
+        return title
+    return f"{title}: {sub}"
+
+
+def title_forms(rec):
+    """Every title form the registry published, the work's own first — what a binder may match, and
+    what check 1 accepts as "the work is the registry record" (migration 0020)."""
+    out = []
+    for t in [work_title(rec), *(rec.get("titles") or []), rec.get("title") or ""]:
+        t = (t or "").strip()
+        if t and t not in out:
+            out.append(t)
+    return out
+
+
+def subtitle_discrepancy(rec, claimed):
+    """A claim that names the title but not the subtitle -> the discrepancy's fields, else None.
+
+    It is not a refusal, and it was never going to be one: `judge_candidate` takes its max over
+    `rec["titles"]`, so a bare-title claim scores 1.0 against the bare form and check 1 passes. What
+    it IS, is a disagreement between what the source claimed and what was admitted — and this KB
+    keeps those instead of correcting or discarding them (decisions.yaml `litkb-p0-foundation`,
+    "P3 load"). Recorded under `discrepancies.source = 'admission'` (migration 0020).
+    """
+    claim = (claimed or {}).get("title") or ""
+    full = work_title(rec)
+    if not claim or not (rec.get("subtitle") or "").strip():
+        return None
+    if title_match_ratio(full, claim) >= 0.999:
+        return None                                # the claim carried the subtitle
+    if title_match_ratio(rec.get("title") or "", claim) < 0.999:
+        return None                                # some other disagreement, not the missing subtitle
+    return {"field": "title", "claimed": claim, "registry": full,
+            "ratio": round(title_match_ratio(full, claim), 4),
+            "detail": {"reason": "the claimed title is the registry title without its subtitle",
+                       "registry_title": rec.get("title"), "registry_subtitle": rec.get("subtitle")}}
+
+
 def work_fields(rec):
     """The work version admitted: the registry's record (design §4.2 work_versions columns)."""
     return {k: v for k, v in {
-        "type": rec.get("type") or "article", "title": rec["title"], "subtitle": rec.get("subtitle"),
+        "type": rec.get("type") or "article", "title": work_title(rec), "subtitle": rec.get("subtitle"),
         "authors": rec.get("authors") or [], "year": rec.get("year"), "venue": rec.get("venue"),
         "volume": rec.get("volume"), "issue": rec.get("issue"), "pages": rec.get("pages"),
         "publisher": rec.get("publisher")}.items() if v is not None}

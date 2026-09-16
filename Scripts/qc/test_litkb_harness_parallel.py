@@ -211,6 +211,15 @@ def test_worker_copy_is_a_standalone_checkout(tmp_path):
     assert (dst / "Scripts" / "pipeline" / "litkb" / "db" / "migrations").is_dir()
     assert (dst / "Scripts" / "qc" / "conftest.py").is_file()
     assert (dst / "Reports" / "literature_tracker.csv").is_file()
+    # 2026-09-15: the copy's domain must equal the TESTS' read domain, and it did not. The corpus census was
+    # frozen to phase4/qc/litkb_inventory_census.sha256, which inventory.repo_root() resolves relative to the
+    # package — so inside a worker copy it resolved under the copy, where phase4/ did not exist. Every
+    # corpus-backed inventory test errored and the E3inv row ran against a broken baseline for a whole
+    # 133-minute table. A tracked input that a test reads from OUTSIDE COPY_DIRS belongs on COPY_FILES.
+    assert (dst / "phase4" / "qc" / "litkb_inventory_census.sha256").is_file()
+    for rel in H.COPY_FILES:                   # Scripts/.gitignore is listed but absent in this checkout,
+        if (SCRIPTS.parent / rel).is_file():   # and make_worker_copy copies only what exists
+            assert (dst / rel).is_file(), rel
     assert (dst / ".git").is_dir()
     assert not list(dst.rglob("__pycache__"))
     assert not list(dst.rglob(".litkb-workstream"))

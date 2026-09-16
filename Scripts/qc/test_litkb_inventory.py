@@ -13,13 +13,26 @@ The kills each fire on a known-bad input built here, never on the corpus:
 * a JSTOR cover-sheet fixture routes ``cover-sheet``;
 * a truncated PDF routes ``unreadable``, never ``native``;
 * moving any threshold breaks the twelve-file gate (that is what
-  ``qc/instruments/litkb_inventory_mutations.py`` shows, row by row).
+  ``qc/instruments/litkb_inventory_mutations.py`` shows, row by row);
+* making the census reader fall back to walking the corpus breaks the pinned census numbers
+  (harness row X1) — because the corpus has grown since they were measured, which is the
+  whole reason the file list is frozen.
+
+The corpus-backed rows read that frozen list, ``phase4/qc/litkb_inventory_census.sha256``,
+and not whatever is on disk today; the :func:`corpus_records` fixture says why, and
+``litkb inventory --new`` is where the difference between the two is reported.
 
 Nothing here writes inside ``Literture\\``, and every corpus-backed test skips when the
 corpus is not mounted.
 """
+import csv
 import hashlib
+import io
 import json
+import os
+import pathlib
+import subprocess
+import sys
 import zlib
 
 import pytest
@@ -27,6 +40,12 @@ import pytest
 from litkb.extract import inventory as inv
 
 CORPUS = inv.DEFAULT_ROOT
+#: litkb is NOT in the editable install, so a subprocess this module launches gets it the way every other
+#: litkb test does — explicitly. Without it the no-database probe below imports nothing and the test passes
+#: or fails on the ladder's environment rather than on the claim: `PYTHONPATH=pipeline pytest` was green
+#: while `qc/check.py`, which sets no PYTHONPATH, failed with ModuleNotFoundError (2026-09-16).
+PIPELINE = pathlib.Path(inv.__file__).resolve().parents[2]
+SUBPROC_ENV = dict(os.environ, PYTHONPATH=str(PIPELINE))
 needs_corpus = pytest.mark.skipif(not CORPUS.exists(),
                                   reason=f"literature corpus not mounted at {CORPUS}")
 
@@ -149,10 +168,26 @@ def native(tmp_path):
 
 @pytest.fixture(scope="module")
 def corpus_records(tmp_path_factory):
+    """Stage 0 over the FROZEN census list, never over whatever sits on disk today.
+
+    Every pinned number below was measured over the 241 files named, by sha256, in
+    ``phase4/qc/litkb_inventory_census.sha256``. Re-walking the corpus instead re-takes the
+    measurement on a different set of files: the corpus grew to 246 active PDFs and this
+    test then read ``assert 246 == 224``, a failure caused entirely by acquisition and not
+    at all by the code under test (Reports/LITKB_P4_MERGE_2026-09-15.md, "The ladder").
+
+    So: files on disk that the census does not name cannot reach any assertion here. They
+    are a real question, answered separately by ``litkb inventory --new``.
+
+    What DOES fail here, by name and loudly, is a census file that has been deleted or whose
+    bytes have changed (:func:`litkb.extract.inventory.census_pdfs`). That is a
+    deletion/corruption detector and it is deliberate, not an inconvenience — a census
+    quietly probing 239 of its 241 files would keep reporting numbers labelled 241.
+    """
     if not CORPUS.exists():
         pytest.skip("no corpus")
     out = tmp_path_factory.mktemp("inv") / "records.jsonl"
-    records, _ = inv.run(CORPUS, out, force=True)
+    records, _ = inv.run_census(out, root=CORPUS, force=True)
     return records
 
 
@@ -162,6 +197,8 @@ def test_the_frame_reader_reproduces_the_committed_corpus_census(corpus_records)
 
     Reports/LITKB_GROBID_LOCAL_REFEREE2_2026-09-15.md §4, corpus defined as every PDF
     under Literture EXCLUDING _quarantine — quote it with that definition or not at all.
+    The 241 files that definition named on 2026-09-15 are the frozen census the fixture
+    reads; ``_quarantine`` is filtered here, at the assertion, exactly as it always was.
     """
     active = [r for r in corpus_records if "_quarantine" not in r["path"]]
     s = inv.summarise(active)
@@ -172,6 +209,153 @@ def test_the_frame_reader_reproduces_the_committed_corpus_census(corpus_records)
     assert s["cropped_files"] == 19
     assert [(n, p) for n, p in s["rotated_and_cropped"]] == [
         ("Hall_1985_resampling-coverage-pattern.pdf", 12)]
+
+
+# ── the frozen census itself ───────────────────────────────────────────────────────────
+
+def _census(tmp_path, pairs, name="census.sha256"):
+    """A census file naming *pairs* of ``(sha256, relpath)`` — the real on-disk format."""
+    p = tmp_path / name
+    p.write_text("# a test census\n" + "".join(f"{s}  {r}\n" for s, r in pairs),
+                 encoding="utf-8")
+    return p
+
+
+def test_the_frozen_census_and_the_tracked_csv_cannot_drift():
+    """Two tracked files name one set of files; this is what stops them disagreeing (§3.3).
+
+    ``litkb_inventory_census.sha256`` is DERIVED from ``litkb_inventory.csv``
+    (:func:`inv.write_census`), and a plain ``litkb inventory`` run rewrites that CSV from
+    whatever is on disk at the time. Without this row the census would keep pinning
+    yesterday's files while the CSV described today's, and the pinned numbers would be
+    quoted against a table that no longer lists the same corpus. A re-pin is allowed; a
+    SILENT one is what the frozen list exists to stop, so this makes it loud.
+    """
+    qc = inv.repo_root() / "phase4" / "qc"
+    with (qc / "litkb_inventory.csv").open(encoding="utf-8", newline="") as fh:
+        csv_rows = {(r["sha256"], r["relpath"]) for r in csv.DictReader(fh)}
+    census = inv.load_census()
+    assert len(census) == len(set(census)) == len(csv_rows)
+    assert set(census) == csv_rows
+    assert [rel for _, rel in census] == sorted(rel for _, rel in census)
+
+
+def test_a_census_file_that_is_gone_or_changed_fails_by_name(tmp_path):
+    """The deletion/corruption detector, fired on both of its inputs.
+
+    A census whose files have been deleted or rewritten under it is not a smaller census —
+    it is a census of something else. :func:`inv.census_pdfs` refuses rather than probing
+    what is left, and names every file that moved, because a count alone does not say which
+    measurement it invalidated.
+    """
+    root = tmp_path / "corpus"
+    (root / "sub").mkdir(parents=True)
+    keep = text_pdf(root / "keep.pdf", [BODY])
+    gone = text_pdf(root / "sub" / "gone.pdf", [BODY, BODY])
+    moved = text_pdf(root / "moved.pdf", [JSTOR_COVER, BODY])
+    census = _census(tmp_path, [(hashlib.sha256(p.read_bytes()).hexdigest(),
+                                 str(p.relative_to(root))) for p in (keep, gone, moved)])
+    assert sorted(p.name for p in inv.census_pdfs(root, census)) == [
+        "gone.pdf", "keep.pdf", "moved.pdf"]
+
+    # a file on disk the census does NOT name must not disturb it
+    text_pdf(root / "extra.pdf", [BODY])
+    assert len(inv.census_pdfs(root, census)) == 3
+
+    gone.unlink()
+    moved.write_bytes(moved.read_bytes() + b"% one byte that moved\n")
+    with pytest.raises(inv.CensusError) as exc:
+        inv.census_pdfs(root, census)
+    msg = str(exc.value)
+    assert "MISSING" in msg and str(pathlib.Path("sub/gone.pdf")) in msg
+    assert "CHANGED" in msg and "moved.pdf" in msg
+    assert "keep.pdf" not in msg and "extra.pdf" not in msg   # only what moved is named
+
+
+def test_new_files_tells_an_addition_from_a_rename_from_a_changed_file(tmp_path):
+    """The four answers ``litkb inventory --new`` can give, each built here.
+
+    The distinction that earns its keep is ``new`` vs ``renamed``: a paper re-filed under a
+    tidier stem is one file that MOVED, and counting it as an acquisition would inflate the
+    corpus by exactly the number of times someone tidied it. So the match is on bytes.
+    """
+    root = tmp_path / "corpus"
+    root.mkdir()
+    same = text_pdf(root / "unchanged.pdf", [BODY])
+    edited = text_pdf(root / "edited.pdf", [BODY, BODY])
+    text_pdf(root / "added.pdf", [JSTOR_COVER, BODY])
+    moved_bytes = text_pdf(tmp_path / "seed.pdf", [IMS_STAMP]).read_bytes()
+    (root / "new_name.pdf").write_bytes(moved_bytes)          # the same bytes, refiled
+    (root / "copy.pdf").write_bytes(same.read_bytes())        # a copy of one still in place
+
+    def sha(b):
+        return hashlib.sha256(b).hexdigest()
+
+    census = _census(tmp_path, [
+        (sha(same.read_bytes()), "unchanged.pdf"),
+        (sha(edited.read_bytes()), "edited.pdf"),
+        (sha(moved_bytes), "old_name.pdf"),
+        ("0" * 64, "deleted.pdf"),
+    ])
+    edited.write_bytes(edited.read_bytes() + b"% one byte that moved\n")
+
+    rows = {r["relpath"]: r for r in inv.new_files(root, census)}
+    assert set(rows["added.pdf"]) == set(inv.NEW_FILE_COLUMNS)
+    assert "unchanged.pdf" not in rows                        # still itself: not a difference
+    assert rows["added.pdf"]["status"] == "new"
+    assert rows["added.pdf"]["census_relpath"] is None
+    assert rows["new_name.pdf"]["status"] == "renamed"
+    assert rows["new_name.pdf"]["census_relpath"] == "old_name.pdf"
+    assert rows["old_name.pdf"]["status"] == "missing"        # the other half of the move
+    assert rows["copy.pdf"]["status"] == "new"                # nothing moved, so not a rename
+    assert rows["edited.pdf"]["status"] == "changed"
+    assert rows["edited.pdf"]["sha256"] != rows["edited.pdf"]["census_sha256"]
+    assert rows["deleted.pdf"]["status"] == "missing"
+    assert rows["deleted.pdf"]["sha256"] is None
+
+
+#: Runs :func:`inv.new_files` and reports back WHICH database modules the import graph
+#: pulled in. Run as a subprocess, and checked by what was imported rather than by patching
+#: ``litkb.db.connect``: patching it imports it, so the one environment the claim is about —
+#: no psycopg installed — is the environment a patched test could not run in.
+_NO_DB_PROBE = """
+import json, sys
+from litkb.extract import inventory as inv
+rows = inv.new_files(sys.argv[1], sys.argv[2])
+print(json.dumps({
+    "rows": [(r["status"], r["relpath"]) for r in rows],
+    "dbish": sorted(m for m in sys.modules if m.startswith(("litkb.db", "psycopg"))),
+}))
+"""
+
+
+def test_new_files_needs_no_database_and_writes_nothing(tmp_path):
+    """``--new`` is a reporting path: no database, no lake, and nothing written anywhere.
+
+    A report that needs a live Postgres to say "two new PDFs" is not a reporting path, and
+    a report that touches the corpus to produce itself is a write into ``Literture\\``
+    (§6 gives litkb no such permission). Both are checked, not asserted.
+    """
+    root = tmp_path / "corpus"
+    root.mkdir()
+    f = text_pdf(root / "a.pdf", [BODY])
+    census = _census(tmp_path, [(hashlib.sha256(f.read_bytes()).hexdigest(), "a.pdf")])
+    text_pdf(root / "b.pdf", [BODY, BODY])
+    stamp = lambda: {p: p.stat().st_mtime_ns for p in [*root.rglob("*"), census]}  # noqa: E731
+    before = stamp()
+
+    r = subprocess.run([sys.executable, "-c", _NO_DB_PROBE, str(root), str(census)],
+                       env=SUBPROC_ENV, capture_output=True, text=True, errors="replace")
+    assert r.returncode == 0, r.stderr[-2000:]
+    got = json.loads(r.stdout.splitlines()[-1])
+    assert got["rows"] == [["new", "b.pdf"]]
+    assert got["dbish"] == []                    # nothing in the import graph reaches a driver
+    assert stamp() == before
+
+    out = io.StringIO()
+    assert inv.report_new(root, census, out=out) == 0
+    assert "new 1" in out.getvalue() and "b.pdf" in out.getvalue()
+    assert stamp() == before
 
 
 # ── the twelve-file gate ───────────────────────────────────────────────────────────────
@@ -290,11 +474,19 @@ def test_the_pages_nearest_each_threshold_keep_their_class(stem, corpus_records)
 
 @needs_corpus
 def test_the_boundary_pins_really_are_the_nearest_pages(corpus_records):
-    """The pins are only a guard while they are still the NEAREST pages.
+    """The pins are only a guard while they are still the NEAREST pages IN THE CENSUS.
 
-    A corpus that grows a page closer to a threshold than the pinned one re-opens the gap
-    the pins were added to close, silently — the pinned page keeps its class and nothing
-    fails. This row is what notices. It is a property of the corpus, not of the classifier.
+    A page closer to a threshold than the pinned one re-opens the gap the pins were added to
+    close, silently — the pinned page keeps its class and nothing fails. This row is what
+    notices. It is a property of the file set, not of the classifier.
+
+    Since 2026-09-15 that file set is the FROZEN census, not the live corpus, and the
+    difference is the point: the fixture's docstring says why. This row can no longer notice
+    a page that arrives with the next acquisition — ``litkb inventory --new`` reports the
+    arrival, and re-pinning is owed at the next re-freeze, when stage 0 is re-run and the
+    census re-derived. MEASURED at the freeze: ``Massari_2023_opencitations-meta.pdf`` p13,
+    already on disk and outside the census, sits nearer ``CHARS_TRACE -`` than
+    Reynolds_2000 p14 does, so that re-pin is owed now and not hypothetically.
     """
     pages = [(r["name"], p) for r in corpus_records
              for p in (r.get("page_detail") or [])]

@@ -115,14 +115,32 @@ design §9.1). The procedure, in order:
 
 1. **Open a workstream** — `py -3.12 -m litkb ws open <slug> --purpose "…"`. It writes
    `.litkb-workstream` in the worktree; the token is never printed and never committed.
-2. **Admit** — `litkb admit --doi <D> [--file <PDF>]`, or `--manual` for a work no registry
-   can confirm (a proposal, signed off from a second session). Identity is the registry
-   record plus the verified file: the DOI-first rule below is what admission enforces.
+2. **Admit** — `litkb admit --doi <D> [--file <PDF>]`. `--doi` on its own is enough: with no
+   claimed title the identity is simply the registry record, and the admission records that
+   it was made that way. Give `--title/--authors/--year` when you have a claim you want
+   CHECKED against the registry — that is what catches a wrong DOI. `--manual` is for a work
+   no registry can confirm, and `--web --url <U> --retrieved <DATE> --snapshot <PAGE.txt>`
+   for a source with no DOI at all (documentation, a blog post): the saved text of the page
+   is the evidence, and binding runs against it. Both are proposals, signed off from a second
+   session. The DOI-first rule below is what admission enforces.
 3. **Acquire** — `litkb acquire --key <K>`, open access first, then the archive, then
    Sci-Hub, a browser last. Never fetch a PDF outside a workstream.
-4. **Record the use** — what the work supplies, its `kind`, its `feeds` tokens, and an
+4. **Record the use** — `litkb use add --key <K> --statement "…" --kind <K> --feeds "…"
+   [--quote "…" --page N]`: what the work supplies, its `kind`, its `feeds` tokens, and an
    evidence pointer with a quote the database itself verifies against the extracted block.
-   A use with no verifiable quote is refused at prepare.
+   The quote must be the extraction's own characters — the command locates it in a block of
+   the file's current extraction run and refuses if it is in none, rather than writing it
+   into `rationale` where nothing can check it.
+
+   > **Open, and Kam's to settle.** This step used to end "A use with no verifiable quote is
+   > refused at prepare." That sentence is **false as written**, measured twice:
+   > `_ws_chains` counts `use_evidence` rows that are not promotable and holds the chain when
+   > that count is above zero, so a use with NO evidence row contributes nothing and prepares
+   > clean (`Reports/LITKB_LINKAGE_REVIEW_2026-09-15.md` §8.2, confirmed by running in
+   > `Reports/LITKB_P8_REFEREE_2026-09-15.md` §3.6). The two coherent fixes — hold such a use,
+   > or say instead that a use whose quote the database *cannot verify* is refused — are set
+   > out in that referee's §4.2. Until Kam picks one, `litkb use add` writes a quoteless use
+   > and says in its output that it carries no evidence.
 5. **Promote prepare** — the workstream's chain is offered to main; Kam's merge commits it.
 
 Never cite a work that is not admitted, and never edit an export to make it say something
@@ -184,6 +202,13 @@ target document and its location inside it — a bare `§N` is no longer valid o
 | `gap row N` | a row (1–23) of the framework's §11 gap ledger |
 | `decision <slug>` | a key in `Scripts/decisions.yaml` |
 | `report <FILE>#§<loc>` | any other tracked report; `loc` may be alphanumeric (a heading key, or `L<line>` when the citation sits outside any heading) |
+
+**All seven forms are enforced** by `litkb._feeds_token_ok` (migration `0020_first_use_friction.sql`
+— that regex is the one home for the SHAPE of a token, and this table is the one home for its
+meaning). Until 2026-09-15 the validator took only three of them, so a use that fed a report could
+carry no valid token at all and 15 uses were written with an empty `feeds` array
+(`Reports/LITKB_LINKAGE_REVIEW_2026-09-15.md` §8.6). `litkb use add` checks a token against the
+database before writing, so a mistyped one is refused at the command rather than held at prepare.
 
 A token is only valid if the section/gate/row/decision it names actually exists in the
 target document — checked mechanically (heading extraction, not restatement) by

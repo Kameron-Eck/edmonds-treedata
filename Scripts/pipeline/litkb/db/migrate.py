@@ -30,13 +30,42 @@ MIGRATIONS_DIR = Path(__file__).resolve().parent / "migrations"
 RUNNER_ROLE = {_c.DB_MAIN: "litkb_owner", _c.DB_TEST: "litkb_test"}
 LOCK_KEY = 0x6C69746B  # "litk"
 _NAME = re.compile(r"^(\d{4})_([a-z0-9_]+)\.sql$")
+RESERVED_FILE = MIGRATIONS_DIR / "_reserved.txt"
 
 
 class MigrationError(RuntimeError):
     pass
 
 
-def discover(directory=MIGRATIONS_DIR):
+def reserved(path=None):
+    """Migration numbers a CONCURRENT branch has claimed but not yet landed here -> {version: why}.
+
+    The gap-free rule below exists to catch a migration that went missing. It cannot tell that from
+    a number another branch is about to take, and with several branches open at once the second case
+    is the ordinary one: 0020 was written here while 0018 and 0019 were being written on
+    `work/20260915-access-layer`, and a branch that cannot even run its own migrations until an
+    unrelated branch merges is a branch that will renumber under pressure and collide.
+
+    So a gap is allowed only when it is DECLARED, one line per number, in `_reserved.txt`. A number
+    that is missing and not declared is still a lost migration and still refused; a declared number
+    that has landed is simply no longer missing, so the line is deleted with the merge that lands it.
+    """
+    p = Path(path or RESERVED_FILE)
+    if not p.exists():
+        return {}
+    out = {}
+    for line in p.read_text(encoding="utf-8").splitlines():
+        line = line.split("#", 1)[0].strip()
+        if not line:
+            continue
+        number, _, why = line.partition(" ")
+        if not number.isdigit() or len(number) != 4:
+            raise MigrationError(f"{p.name}: a reserved line starts with NNNN, got {line!r}")
+        out[int(number)] = why.strip()
+    return out
+
+
+def discover(directory=MIGRATIONS_DIR, reserved_path=None):
     """[(version, filename, sha256, sql_text)], validated for naming and contiguity."""
     found = []
     for p in sorted(Path(directory).glob("*.sql")):
@@ -46,10 +75,16 @@ def discover(directory=MIGRATIONS_DIR):
         body = p.read_bytes().replace(b"\r\n", b"\n")
         found.append((int(m.group(1)), p.name, hashlib.sha256(body).hexdigest(),
                       body.decode("utf-8")))
-    for i, (version, name, _sha, _sql) in enumerate(found, 1):
-        if version != i:
+    held = reserved(reserved_path if reserved_path is not None else Path(directory) / "_reserved.txt")
+    expected = 1
+    for version, name, _sha, _sql in found:
+        while expected in held and expected < version:
+            expected += 1
+        if version != expected:
             raise MigrationError(
-                f"migrations must be numbered 1..N without gaps: expected {i:04d}, found {name}")
+                f"migrations must be numbered 1..N without gaps: expected {expected:04d}, found {name}"
+                + (f" ({len(held)} reserved: {sorted(held)})" if held else ""))
+        expected += 1
     if not found:
         raise MigrationError(f"no migrations found in {directory}")
     return found

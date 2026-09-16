@@ -183,10 +183,14 @@ def _key_for(ctx, rec, claimed):
     and first author the comparison used.
     """
     from litkb.admit.front import make_key
+    from litkb.admit.registry import work_title
 
     first = rec["first_author"] if rec else front.first_author_of(claimed.get("authors"))
     year = (rec or {}).get("year") or year_int(claimed.get("year")) or 0
-    title = (rec or {}).get("title") or claimed.get("title") or ""
+    # the WORK's title — the registry title joined with its subtitle (registry.work_title, 2026-09-15).
+    # The key is derived from the work's title; deriving it from the BARE one here would mint a
+    # different key from the same record, which is the Konda_2016_magellan-work defect one layer down.
+    title = (work_title(rec) if rec else "") or claimed.get("title") or ""
     try:
         return make_key(first, year, title)
     except (TypeError, ValueError):

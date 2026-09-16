@@ -66,6 +66,12 @@ desktop.ini
 # line — the dict P5's ingest persists into extraction_runs.metrics. Measured text,
 # append-only, the same class as the CSVs above.
 !/phase4/qc/*.jsonl
+# *.sha256 added 2026-09-15: litkb_inventory_census.sha256, the frozen file list every
+# pinned stage-0 corpus number was measured over. It is tracked for the reason the block
+# header gives — a measurement that cannot name its inputs is not diffable over time. The
+# extension is the `sha256sum` convention (64 hex, two spaces, relpath) and not .txt,
+# because the format is what makes the file checkable by something other than this repo.
+!/phase4/qc/*.sha256
 # *.md added 2026-08-29: the arm PR/ROC comparison tables are findings TEXT, which
 # is exactly what this block exists to keep. Their .png companions stay ignored —
 # the .md carries every number, the figure is redundant weight.
@@ -153,3 +159,6 @@ Scripts/.claude/
 # per-crown products of the crown state model: 18 MB each, regenerated in ~100 s (docs/SCHEMAS.md)
 phase4/qc/crown_state*_intervals.csv
 phase4/qc/crown_state*_posterior.npz
+
+# litkb: the mutation harness's one-campaign-per-tree lock (qc/instruments/litkb_p2_mutations.py::take_lock)
+Scripts/.litkb-harness.lock

@@ -33,7 +33,7 @@ import tempfile
 import unicodedata
 from pathlib import Path
 
-from litkb.admit.resolver import _norm_text, strip_tags, title_match_ratio
+from litkb.admit.resolver import _norm_text, _UNDECODABLE_RE, strip_tags, title_match_ratio
 
 BIND_RATIO = 0.85
 MIN_TEXT_CHARS = 200     # below this (normalised characters) the first page has no usable text layer
@@ -94,7 +94,11 @@ def page_lines(text):
 def fold_tokens(s):
     """Whole-word tokens: NFKD, diacritics dropped, casefolded; words split on anything but letters, digits and
     intra-word joiners; each word keeps only its letters ("Wang1,2" -> "wang", "O'Neil-Dunne" -> "oneildunne")."""
-    s = unicodedata.normalize("NFKD", strip_tags(s or ""))
+    # the extractor's own damage is REMOVED before the split, not treated as a word boundary:
+    # "K<FFFD>pcke" is one token that lost a letter, not the two tokens "k" and "pcke"
+    # (resolver.UNDECODABLE — the same three characters the title comparator drops).
+    s = _UNDECODABLE_RE.sub("", strip_tags(s or ""))
+    s = unicodedata.normalize("NFKD", s)
     s = "".join(c for c in s if not unicodedata.combining(c)).casefold()
     out = []
     for word in re.split(r"[^\w" + re.escape(_JOINERS) + r"]+", s):
@@ -192,6 +196,38 @@ def verdict(ratio, author_near_title, text_layer):
         return "binding-pending"
     return "binding-failed"
     # END guard: binding verdict
+
+
+def bind_any(pdf_path, titles, first_author, *, page_text=None, info=None):
+    """bind() against every title form the registry published; the best result wins.
+
+    A registry that publishes a subtitle publishes two forms of the title, and since migration 0020
+    the WORK is stored under the joined one ("Magellan: toward building entity matching management
+    systems"). The first page of a PDF prints whichever form its publisher chose — often the bare
+    one. Binding against the work's title alone would therefore start refusing papers it used to
+    bind, on a change that was about keys, not about files.
+
+    So every form is tried and the best is kept, which is the same rule `judge_candidate` has always
+    used on the registry side (max ratio over `rec["titles"]`). The result records `registry_title`
+    as the WORK's title — `_check_binding` (migration 0013) refuses a binding measured against
+    another title than the work's, and that guard is right — plus `matched_title_form`, which names
+    the form that actually matched, so the two can never be confused for one another.
+
+    `titles` in the order registry.title_forms() returns them: the work's own title first.
+    """
+    forms = [t for t in (titles or []) if (t or "").strip()]
+    if not forms:
+        raise ValueError("bind_any needs at least one title form")
+    text = first_page_text(pdf_path) if page_text is None else page_text
+    info = pdf_info(pdf_path) if info is None else info
+    results = [(t, bind(pdf_path, t, first_author, page_text=text, info=info)) for t in forms]
+    form, best = max(results, key=lambda tb: (tb[1]["verdict"] == "bound", tb[1]["ratio"],
+                                              tb[1]["author_near_title"]))
+    best["registry_title"] = forms[0]
+    best["matched_title_form"] = form
+    if len(forms) > 1:
+        best["title_forms_tried"] = {t: b["ratio"] for t, b in results}
+    return best
 
 
 def bind(pdf_path, registry_title, first_author, *, page_text=None, info=None):

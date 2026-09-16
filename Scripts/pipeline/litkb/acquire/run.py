@@ -8,6 +8,7 @@ last and is not automated: when nothing else lands a file, a `browser` attempt w
 how to hand the file in (`py -3.12 -m litkb acquire --key K --from-file PATH`).
 
 For every downloaded byte string, in this order:
+  0. shape: %PDF- header, %%EOF near the end   -> neither: straight to _quarantine with a .reason.json (`bad-file`)
   1. sha256 against the database's files      -> `duplicate-held`, nothing written
   2. sha256 against every PDF on disk         -> `duplicate-held`, nothing written
   3. land in _litkb_staging/incoming + .txt extract at once
@@ -16,6 +17,12 @@ For every downloaded byte string, in this order:
   5. litkb.attach_file() (the database re-checks binding and sha256), then the file moves to
      _litkb_staging/filed/<stem>.pdf inside the same transaction -> `ok`
 
+NOTHING DOWNLOADED IS DISCARDED (Reports/LITKB_LINKAGE_REVIEW_2026-09-15.md §8.9). Bytes a route refused - an
+HTML error page served as a .pdf, a bot challenge, a partner error, a file whose md5 is not the record's - come
+back in the route's `rejected` (or `pdf`, for hash-mismatch) and are written into _quarantine/ with a
+<name>.reason.json beside them. Acquisition holds no delete path at all, so a bad download is kept and named
+instead of being removed to free the name; qc/test_litkb_p2.py scans these modules for one.
+
 Dead routes are not retried blindly: a route whose earlier attempt for this work ended in a terminal miss
 (DEAD_STATUSES) is skipped unless retry_dead. Anna's Archive's rolling quota (Budget): the account-wide counter on
 the account page is read before every download request and is the authority; the route records `quota-stop` and
@@ -23,10 +30,11 @@ requests no download URL when the counter is at limit - margin or cannot be read
 URLs, and the API's downloads_left against the same margin, stay as second, local guards.
 """
 import datetime
+import hashlib
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from litkb.acquire.store import Store, file_facts
+from litkb.acquire.store import QUARANTINE, STAGING, Store, file_facts, pdf_shape
 from litkb.admit import binding as _binding
 from litkb.netutil import Pacer, add_secret, redact
 
@@ -73,7 +81,7 @@ def work_record(conn, *, key=None, doi=None, work_id=None):
         work_id = row[0] if row else None
     if work_id is None:
         return None
-    w = conn.execute("SELECT work_id, key, title, year, authors FROM litkb.main_works WHERE work_id = %s",
+    w = conn.execute("SELECT work_id, key, title, year, authors, subtitle FROM litkb.main_works WHERE work_id = %s",
                      (work_id,)).fetchone()
     if not w:
         return None
@@ -94,7 +102,34 @@ def work_record(conn, *, key=None, doi=None, work_id=None):
     authors = w[4] or []
     first = (authors[0].get("family") or authors[0].get("name") or "") if authors and isinstance(authors[0], dict) else ""
     return {"work_id": w[0], "key": w[1], "title": w[2], "year": w[3], "first_author": first,
+            "subtitle": w[5], "title_forms": _title_forms(w[2], w[5]),
             "doi": ids.get("doi"), "dois": dois, "arxiv": ids.get("arxiv"), "held_files": held}
+
+
+def _title_forms(title, subtitle):
+    """The forms of a work's title a first page might print, the work's OWN title first.
+
+    Since migration 0020 a work is stored under the registry title joined with its subtitle ("Magellan: toward
+    building entity matching management systems"), while the publisher prints whichever form it chose - often the
+    bare one. Both are the same paper, so the binder tries both (admit/binding.py::bind_any, the rule
+    judge_candidate has always used on the registry side) and records which one matched. forms[0] stays the work's
+    stored title, because that is what the database's _check_binding compares a binding's registry_title against.
+
+    This INVERTS admit/registry.py::work_title, which JOINS a registry record's title and subtitle into the form a
+    work is stored under: acquisition holds no registry record, only the stored work, so it splits that form back
+    into the two a page might print. Same rule, opposite direction, one home each."""
+    title, sub = (title or "").strip(), (subtitle or "").strip()
+    forms = [title] if title else []
+    if title and sub and title.lower().endswith(sub.lower()):
+        bare = title[:-len(sub)].strip().rstrip(":-–—").strip()   # registry.work_title joins with ": "
+        if bare and bare not in forms:
+            forms.append(bare)
+    return forms
+
+
+def _forms(work):
+    """The title forms to bind a file for `work` against (work_record fills them; a bare dict still works)."""
+    return work.get("title_forms") or [work["title"]]
 
 
 def prior_attempts(conn, work_id):
@@ -119,8 +154,44 @@ def _redacted(obj):
     # END guard: attempt details are redacted
 
 
+def _reason(work, *, status, label, shape, reason, route, source_url, sha, nbytes, **extra):
+    """What a quarantined file's .reason.json says. One composer, so every path writes the same fields.
+
+    `status` is the attempt status the database holds (its vocabulary, 0013_admission.sql); `label` is the word in
+    the file's own name; `shape` is what the bytes are (store.pdf_shape). `source_url` arrives REDACTED from the
+    caller: this module adds no redaction site of its own (the routes redact what they return, and acquire()
+    redacts the URL it hands on), and a reason file is written to disk, where an unredacted key would outlive the
+    run."""
+    return {"status": status, "label": label, "shape": shape, "reason": reason, "route": route,
+            "source_url": source_url or "", "sha256": sha, "bytes": nbytes, "work_key": work["key"],
+            "at": datetime.datetime.now(datetime.timezone.utc).isoformat(), **extra}
+
+
+def quarantine_bytes(store, work, data, *, label, status, shape, reason, route, source_url, **extra):
+    """Bytes acquisition received and cannot use, KEPT: written into _quarantine/ with the reason beside them.
+
+    The rule (Reports/LITKB_LINKAGE_REVIEW_2026-09-15.md §8.9): acquisition never discards a download. A file that
+    is not a PDF, one that stopped mid-transfer, one whose bytes are not the record's - each is written down with
+    what was wrong with it, so that nobody has to delete one to carry on. -> the detail fields to record."""
+    sha = hashlib.sha256(data).hexdigest()
+    why = _reason(work, status=status, label=label, shape=shape, reason=reason, route=route, source_url=source_url,
+                  sha=sha, nbytes=len(data), **extra)
+    qpdf, _qtxt, qwhy = store.quarantine_new(data, work["key"], label, sha, why)
+    return {"sha256": sha, "bytes": len(data), "note": reason, "quarantined": store.rel(qpdf),
+            "quarantine_reason": store.rel(qwhy)}
+
+
 def land_and_attach(conn, ws, token, work, data, *, route, source_url, store, index, agent, session):
-    """Steps 1-5 of the module docstring. -> (status, detail)."""
+    """Steps 0-5 of the module docstring. -> (status, detail)."""
+    # BEGIN guard: a download that is not a whole PDF is quarantined, never discarded
+    # Before the dedupe, deliberately: a re-download truncated the same way twice would otherwise read as
+    # `duplicate-held` against a byte-identical copy filed earlier, and duplicate-held STOPS the route loop - so a
+    # broken transfer would end the fetch instead of moving on to the next route.
+    shape, why = pdf_shape(data)
+    if shape != "pdf":
+        return "bad-file", quarantine_bytes(store, work, data, label=shape, status="bad-file", shape=shape,
+                                            reason=why, route=route, source_url=source_url)
+    # END guard: a download that is not a whole PDF is quarantined, never discarded
     facts = {"sha256": __import__("hashlib").sha256(data).hexdigest(),
              "md5": __import__("hashlib").md5(data).hexdigest(), "bytes": len(data)}
     sha = facts["sha256"]
@@ -139,7 +210,8 @@ def land_and_attach(conn, ws, token, work, data, *, route, source_url, store, in
     # END guard: acquisition sha256 dedupe against the disk
     pdf, txt = store.land(data, work["key"], sha)
     info = _binding.pdf_info(pdf)
-    b = _binding.bind(pdf, work["title"], work["first_author"], info=info)
+    # every title form, not only the work's stored one (_title_forms): the page prints the publisher's choice
+    b = _binding.bind_any(pdf, _forms(work), work["first_author"], info=info)
     detail = {"sha256": sha, "md5": facts["md5"], "bytes": facts["bytes"], "binding": b, "source_url": source_url}
     # BEGIN guard: a file that does not bind is quarantined
     if b["verdict"] != "bound":
@@ -179,6 +251,60 @@ def _in_topic_folder(store, path):
     return store._inside(p, store.root) and not store._inside(p, store.staging) and not store._inside(p, store.quarantine)
 
 
+def index_of_held(store, index):
+    """The disk hash index with incoming/ and _quarantine/ dropped. -> a new index, the argument untouched.
+
+    The disk dedupe answers ONE question: does the corpus already hold this paper? Two folders under the
+    literature root are not holdings, and counting them cost two works their file:
+
+      * _litkb_staging/incoming/ is a LANDING area - a file there belongs to nobody yet. `acquire --from-file
+        _litkb_staging/incoming/X.pdf` used to hash the bytes, find their own hash in the index, answer
+        `duplicate-held` and never run binding, so the work could never get its file; the workaround in the field
+        was to rename the file to `.download`, which is how workarounds become folklore (live, 2026-09-15).
+      * _quarantine/ holds exactly the files that are NOT held: a paper quarantined for a wrong or missing
+        registry record was "already on disk" for ever afterwards, so correcting the record could never let the
+        same bytes bind (Konda_2016, Kopcke_2010 and Enamorado_2019 were locked this way in the live store).
+        Re-binding one is now just `acquire --from-file <the quarantined path>`: it lands a fresh copy, binds it
+        and files it, and the quarantined copy and its .reason.json stay exactly where they are as the record of
+        what happened - acquisition still deletes nothing.
+
+    The guards that protect the corpus are untouched: the same sha256 held in the DATABASE, or filed anywhere
+    else under the literature root, is still `duplicate-held`. So is the archive's own quota short-circuit, which
+    asks the FULL index a different question - do we have these bytes at all - and so still refuses to spend a
+    download for bytes that are sitting in quarantine."""
+    skip = (f"{STAGING}/incoming/", f"{QUARANTINE}/")
+    out = {}
+    for algo, by_hash in index.items():
+        kept = {h: [r for r in rels if not r.startswith(skip)] for h, rels in by_hash.items()}
+        out[algo] = {h: rels for h, rels in kept.items() if rels}
+    return out
+
+
+def from_file_not_a_pdf(store, work, from_file, data, shape, why):
+    """`--from-file` was pointed at something that is not a whole PDF. -> the detail fields to record.
+
+    A file acquisition did NOT create is never moved and never copied: the refusal is recorded and the file stays
+    exactly where it lies (store.move_new refuses it in any case). A file already under _litkb_staging IS
+    acquisition's own tree - it is where a hand fetch lands, and the file of §8.9 was one - so it moves into
+    _quarantine with a reason beside it, under the work's key, with its own name recorded in the reason. That is
+    the whole answer to the incident: the name is freed for the re-fetch without deleting anything."""
+    sha = hashlib.sha256(data).hexdigest()
+    detail = {"from_file": str(from_file), "shape": shape, "sha256": sha, "bytes": len(data), "note": why}
+    if not store._inside(Path(from_file), store.staging):
+        detail["note"] = (f"{why}; left exactly where it lies: acquisition never moves or copies a file it did "
+                          f"not create")
+        return detail
+    was = store.rel(from_file)                      # the name it came in under, before the move takes it away
+    txt = Path(from_file).with_suffix(".txt")
+    qpdf, _qtxt = store.to_quarantine(from_file, txt if txt.exists() else None, work["key"], shape, sha)
+    qwhy = store.write_reason(qpdf, _reason(work, status="bad-file", label=shape, shape=shape, reason=why,
+                                            route="browser", source_url=f"manual file {Path(from_file).name}",
+                                            sha=sha, nbytes=len(data), moved_from=was))
+    detail["moved_from"] = was
+    detail["quarantined"], detail["quarantine_reason"] = store.rel(qpdf), store.rel(qwhy)
+    return detail
+
+
 def attach_in_place(conn, ws, token, work, path, *, store, agent, session):
     """A file already held in a topic folder (Validation/, ...) and held by no work: hashed and bound where it lies,
     then litkb.attach_file() with rel_path = its own path. Never copied, moved or written (front.file_evidence only
@@ -187,7 +313,8 @@ def attach_in_place(conn, ws, token, work, path, *, store, agent, session):
 
     rel = store.rel(path)
     fjson = front.file_evidence(path, work["title"], work["first_author"], root=store.root,
-                                source_route="held-in-place", source_url=f"in place {rel}")
+                                source_route="held-in-place", source_url=f"in place {rel}",
+                                title_forms=_forms(work)[1:])
     b = fjson["binding"]
     detail = {"sha256": fjson["sha256"], "md5": fjson["md5"], "bytes": fjson["bytes"], "binding": b, "in_place": rel}
     if b["verdict"] != "bound":
@@ -219,14 +346,21 @@ def acquire(conn, ws, token, work, *, store=None, routes=ROUTES, agent, session,
     if work["held_files"] and from_file is None:
         return {"outcome": "already-held", "attempts": attempts}
     index = store.disk_index()
+    dedupe = index                  # (the whole index, if the line below is ever removed: see index_of_held)
+    # BEGIN guard: the dedupe asks what the corpus HOLDS, and staging and quarantine hold nothing
+    dedupe = index_of_held(store, index)
+    # END guard: the dedupe asks what the corpus HOLDS, and staging and quarantine hold nothing
     wid = work["work_id"]
 
     if from_file is not None:
         data = Path(from_file).read_bytes()
-        if not data.startswith(b"%PDF-"):
-            status, detail = "bad-file", {"from_file": str(from_file), "note": "not a PDF"}
-        else:
-            status = None
+        shape, why = pdf_shape(data)
+        status = None
+        # BEGIN guard: a hand-fetched file that is not a whole PDF is quarantined or refused, never deleted
+        if shape != "pdf":
+            status, detail = "bad-file", from_file_not_a_pdf(store, work, from_file, data, shape, why)
+        # END guard: a hand-fetched file that is not a whole PDF is quarantined or refused, never deleted
+        if status is None:
             # BEGIN guard: acquire from a file already in a topic folder binds it in place
             # (landing a copy would only dedupe against the file itself on disk: the work could never get it)
             if _in_topic_folder(store, from_file):
@@ -236,7 +370,7 @@ def acquire(conn, ws, token, work, *, store=None, routes=ROUTES, agent, session,
             if status is None:
                 status, detail = land_and_attach(conn, ws, token, work, data, route="browser",
                                                  source_url=f"manual file {Path(from_file).name}", store=store,
-                                                 index=index, agent=agent, session=session)
+                                                 index=dedupe, agent=agent, session=session)
         record_attempt(conn, ws, token, wid, "browser", work.get("doi") or work.get("arxiv"), status, detail)
         attempts.append(("browser", status))
         return {"outcome": status, "attempts": attempts}
@@ -295,17 +429,24 @@ def acquire(conn, ws, token, work, *, store=None, routes=ROUTES, agent, session,
         codes = r.get("http_codes") or []
         detail = {k: r.get(k) for k in ("detail", "tried", "via", "md5", "record_doi", "title_best",
                                         "downloads_left", "rec_size", "quota") if r.get(k) not in (None, "", [])}
+        src = redact(r.get("source_url") or r.get("rejected_url") or
+                     (f"annas md5:{r['md5']}" if route == "annas" else ""))
         if r["status"] == "downloaded":
-            status, landed = land_and_attach(conn, ws, token, work, r["pdf"], route=route,
-                                             source_url=redact(r.get("source_url") or
-                                                               (f"annas md5:{r['md5']}" if route == "annas" else "")),
-                                             store=store, index=index, agent=agent, session=session)
+            status, landed = land_and_attach(conn, ws, token, work, r["pdf"], route=route, source_url=src,
+                                             store=store, index=dedupe, agent=agent, session=session)
             detail.update(landed)
-        elif r["status"] == "hash-mismatch" and r.get("pdf"):
-            sha = __import__("hashlib").sha256(r["pdf"]).hexdigest()
-            pdf, txt = store.land(r["pdf"], work["key"], sha)
-            qpdf, _ = store.to_quarantine(pdf, txt, work["key"], "hash-mismatch", sha)
-            status, detail["quarantined"] = "hash-mismatch", store.rel(qpdf)
+        # BEGIN guard: bytes a route refused are quarantined, never discarded
+        # `pdf` on a non-downloaded status is a real PDF that is not the record's (hash-mismatch); `rejected` is
+        # what a download URL served instead of a file. Either way the bytes stay, under the route's own status
+        # as their name - the status vocabulary is the database's (0013_admission.sql) and does not change here.
+        elif r.get("pdf") or r.get("rejected"):
+            refused = r.get("pdf") or r["rejected"]
+            shape, why = pdf_shape(refused)
+            status = r["status"]
+            detail.update(quarantine_bytes(store, work, refused, label=status, status=status, shape=shape,
+                                           reason=why or r.get("detail") or f"the {route} route refused it",
+                                           route=route, source_url=src))
+        # END guard: bytes a route refused are quarantined, never discarded
         else:
             status = r["status"]
         record_attempt(conn, ws, token, wid, route, ident, status, detail, codes)

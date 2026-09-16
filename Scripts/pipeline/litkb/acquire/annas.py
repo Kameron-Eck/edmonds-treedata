@@ -295,13 +295,20 @@ def download_options(add):
     return uniq
 
 
-def download_pdf(client, key, md5, add, pacer, issued=None):
+def download_pdf(client, key, md5, add, pacer, issued=None, rejected=None):
     """fast_download over domain_index 0..2, then the record's own options.
     Re-requesting the same md5 is quota-free, so the retries cost nothing.
     `issued`, when a list, receives the domain_index of every fast_download answer that carried a download_url
     (the archive spends a download when it ISSUES a URL for a new md5, whatever the partner host then answers).
+    `rejected`, when a list, receives (url, bytes) for the FIRST non-empty answer a download URL served that was
+    not a PDF - a partner error page, a login wall. Those bytes are handed back so the caller can quarantine them
+    instead of dropping them (Reports/LITKB_LINKAGE_REVIEW_2026-09-15.md §8.9).
     -> (pdf_bytes|None, downloads_left, tried[list of str], last_status)."""
     tried, left, last = [], "", 0
+
+    def keep(url, body):
+        if body and rejected is not None and not rejected:
+            rejected.append((url, body))
     for i, di in enumerate(DOWNLOAD_DOMAIN_INDEXES):
         if i:
             pacer.sleep(DOWNLOAD_RETRY_GAP)
@@ -324,6 +331,7 @@ def download_pdf(client, key, md5, add, pacer, issued=None):
         last = st
         if (pdf or b"").startswith(b"%PDF-"):
             return pdf, left, tried + [f"{host}:{st}=ok"], st
+        keep(url, pdf)
         tried.append(f"{host}:{st}")
     for name, u in download_options(add):
         u = urllib.parse.urljoin(client.base + "/", u)
@@ -333,6 +341,7 @@ def download_pdf(client, key, md5, add, pacer, issued=None):
         last = st
         if (pdf or b"").startswith(b"%PDF-"):
             return pdf, left, tried + [f"{name}@{host}:{st}=ok"], st
+        keep(u, pdf)
         tried.append(f"{name}@{host}:{st}")
     return None, left, tried, last
 
@@ -427,8 +436,11 @@ def read_quota(client):
 
 def fetch_for_litkb(client, key, doi_raw, pacer, *, known_md5=(), quota_margin=None):
     """The archive route for litkb.acquire.run: gates 1, 1b, 2, the download ladder and gate 3's byte checks.
-    Nothing is written. -> dict(status, pdf, md5, record_doi, title_best, downloads_left, rec_size, via,
-    tried, detail, http_codes, url_issued, quota). status: downloaded | hash-mismatch (pdf kept for quarantine)
+    Nothing is written. -> dict(status, pdf, rejected, rejected_url, md5, record_doi, title_best, downloads_left,
+    rec_size, via, tried, detail, http_codes, url_issued, quota). `rejected` holds the bytes a download URL served
+    when they were not a PDF (with `rejected_url`, redacted): litkb.acquire.run quarantines them rather than
+    dropping them (Reports/LITKB_LINKAGE_REVIEW_2026-09-15.md §8.9).
+    status: downloaded | hash-mismatch (pdf kept for quarantine)
     | not-in-archive | unresolved | record-mismatch | api-error | bad-file | partner-404 | duplicate-held (the
     record's md5 is already on disk: no download is spent) | quota-stop (the account counter is unreadable, or
     used >= limit - quota_margin: no download URL was requested).
@@ -436,11 +448,13 @@ def fetch_for_litkb(client, key, doi_raw, pacer, *, known_md5=(), quota_margin=N
     and again after it when a URL was issued (quota = {used_before, used_after, limit, margin}). None (the ported
     aa_fetch paths and their tests) does not consult the counter."""
     out = {"status": "", "pdf": None, "md5": "", "record_doi": "", "title_best": "", "downloads_left": "",
-           "rec_size": "", "via": "scidb", "tried": [], "detail": "", "http_codes": [], "url_issued": False}
+           "rec_size": "", "via": "scidb", "tried": [], "detail": "", "http_codes": [], "url_issued": False,
+           "rejected": None, "rejected_url": ""}
 
     def done(status, **kw):
         out.update(kw, status=status)
         out["detail"] = redact(out["detail"])
+        out["rejected_url"] = redact(out["rejected_url"])      # a partner URL, handed back beside its bytes
         return out
 
     doi = normalize_doi(doi_raw)
@@ -478,8 +492,8 @@ def fetch_for_litkb(client, key, doi_raw, pacer, *, known_md5=(), quota_margin=N
             return done("quota-stop", detail=f"via={out['via']}; account counter {q[0]} / {q[1]} is at or past limit - "
                                              f"margin ({q[1] - int(quota_margin)}); no download URL requested")
     # END guard: annas the account counter gates every download request
-    issued = []
-    pdf, left, tried, st = download_pdf(client, key, md5, add, pacer, issued=issued)
+    issued, refused = [], []
+    pdf, left, tried, st = download_pdf(client, key, md5, add, pacer, issued=issued, rejected=refused)
     out.update(downloads_left=left, tried=tried, url_issued=bool(issued))
     if "quota" in out:
         if issued:
@@ -492,7 +506,9 @@ def fetch_for_litkb(client, key, doi_raw, pacer, *, known_md5=(), quota_margin=N
         if not reached:
             return done("api-error", detail=f"via={out['via']}; no download_url: {', '.join(tried) or 'none tried'}")
         status = "partner-404" if all(t.endswith(":404") for t in reached) else "bad-file"
-        return done(status, detail=f"via={out['via']}; no %PDF- from any host: {', '.join(tried)}")
+        return done(status, rejected=refused[0][1] if refused else None,
+                    rejected_url=refused[0][0] if refused else "",
+                    detail=f"via={out['via']}; no %PDF- from any host: {', '.join(tried)}")
     got_md5 = hashlib.md5(pdf).hexdigest()
     size_best = int(fud.get("filesize_best") or 0)
     # BEGIN guard: annas gate 3 bytes are the record's md5 and size

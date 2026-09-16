@@ -36,6 +36,14 @@ MEASURED 2026-09-15 over every PDF under ``D:\\edmonds-pipeline\\Literture`` (24
 chosen from that census BEFORE the hand-inspection gate was written
 (Reports/LITKB_INVENTORY_2026-09-15.md §2).
 
+Those 241 files are NAMED, by sha256, in ``phase4/qc/litkb_inventory_census.sha256``, and
+:func:`run_census` is what re-reads them. The list exists because "every PDF under
+Literture" is not a fixed set: the corpus grew to 246 active PDFs and the pinned numbers
+then failed on ``assert 246 == 224`` with nothing wrong in the code they test. A pinned
+number has to name the files it was measured over, or it is a measurement of the folder's
+mood. What is in the corpus and not in the census is reported by :func:`new_files`
+(``--new``), which is a different question and answered separately.
+
 ``CHARS_TRACE = 100`` — non-whitespace characters. The character axis is sharply bimodal
 only at zero: 89 pages carry no text at all, exactly one page carries 25 (Reynolds 2000
 p14), and the next IMAGE-COVERED page carries 117 (Guo 2019 p6). 100 sits in that gap.
@@ -502,6 +510,182 @@ def find_pdfs(root):
     return sorted(p for p in pathlib.Path(root).rglob("*") if p.suffix.lower() == ".pdf")
 
 
+# ── the frozen census (§3.4b: the pinned numbers name the files they were measured over) ─
+
+CENSUS_FILE = "litkb_inventory_census.sha256"
+
+
+class CensusError(RuntimeError):
+    """A census file is gone, or its bytes moved. Loud on purpose — see :func:`census_pdfs`."""
+
+
+def census_path(census=None):
+    return pathlib.Path(census) if census else repo_root() / "phase4" / "qc" / CENSUS_FILE
+
+
+def load_census(census=None):
+    """-> ``[(sha256, relpath)]``, the frozen file list, in file order.
+
+    Parsed by COLUMN — 64 hex, two spaces, the rest — and never by splitting on whitespace:
+    corpus relpaths carry spaces (``ASPP\\A deep learning framework for semantic
+    segmentation of.pdf``), and a ``split()`` reader would truncate every one of them.
+    """
+    rows = []
+    for n, line in enumerate(census_path(census).read_text(encoding="utf-8").splitlines(), 1):
+        line = line.rstrip("\r")
+        if not line.strip() or line.startswith("#"):
+            continue
+        if len(line) < 67 or line[64:66] != "  ":
+            raise CensusError(f"{CENSUS_FILE} line {n} is not '<sha256>  <relpath>'")
+        rows.append((line[:64], line[66:]))
+    return rows
+
+
+def write_census(csv_path=None, census=None):
+    """DERIVE the frozen list from the tracked summary CSV. -> the rows written.
+
+    From the CSV, never from a fresh walk of the corpus, and that is the whole point: a
+    re-scan would re-pin the census on whatever happens to be on disk today, which is the
+    exact defect this file exists to stop. On 2026-09-15 the corpus had grown to 246 active
+    PDFs against a census pinned at 224, so a rebuild-by-scanning would have turned a
+    failing measurement into a passing one with no new measurement behind it
+    (Reports/LITKB_P4_MERGE_2026-09-15.md, "The ladder").
+
+    The CSV is of course itself written from a walk of the corpus — one step upstream, by a
+    plain ``litkb-inventory`` run. That is the point: re-freezing is a DECISION with three
+    parts, and each has an owner. Run stage 0 (rewrites the CSV and the JSONL from today's
+    corpus), run ``--freeze-census`` (re-derives this list from that CSV), then re-pin the
+    five numbers in ``test_the_frame_reader_reproduces_the_committed_corpus_census`` and
+    re-render whatever ``BOUNDARY_PINS`` now names. Skipping the third part is how a census
+    stops meaning anything while every test stays green.
+    """
+    qc = repo_root() / "phase4" / "qc"
+    csv_path = pathlib.Path(csv_path) if csv_path else qc / "litkb_inventory.csv"
+    with csv_path.open(encoding="utf-8", newline="") as fh:
+        rows = sorted(((r["sha256"], r["relpath"]) for r in csv.DictReader(fh)),
+                      key=lambda x: x[1])
+    _write_atomic(census_path(census),
+                  # ONE header line, then `sha256sum` rows: the file is meant to be diffable
+                  # and to survive being read by anything that splits on newlines.
+                  f"# litkb stage-0 corpus census: the file list every pinned number in"
+                  f" qc/test_litkb_inventory.py was measured over; derived from"
+                  f" phase4/qc/{csv_path.name}, never from a walk of the corpus.\n"
+                  + "".join(f"{sha}  {rel}\n" for sha, rel in rows))
+    return rows
+
+
+def census_pdfs(root, census=None):
+    """The census files resolved under *root*, each verified byte-for-byte. -> [Path].
+
+    Raises :class:`CensusError` naming EVERY file that is gone or whose sha256 has moved.
+    That is a deletion/corruption detector and it is deliberate, not an inconvenience: a
+    census that quietly probed 239 of its 241 files would keep reporting numbers while the
+    corpus rotted under it, and the numbers would still be labelled 241.
+
+    Files on disk that the census does not name are ignored here — they are what
+    :func:`new_files` reports.
+    """
+    root = pathlib.Path(root)
+    paths, missing, changed = [], [], []
+    for sha, rel in load_census(census):
+        p = root.joinpath(*rel.replace("\\", "/").split("/"))
+        if not p.exists():
+            missing.append(rel)
+            continue
+        got, _, _ = digests(p)
+        if got != sha:
+            changed.append(f"{rel} (census {sha[:12]}, disk {got[:12]})")
+        paths.append(p)
+    if missing or changed:
+        raise CensusError(
+            f"the frozen census no longer matches {root}: {len(missing)} missing, "
+            f"{len(changed)} changed\n"
+            + "".join(f"  MISSING {m}\n" for m in missing)
+            + "".join(f"  CHANGED {c}\n" for c in changed))
+    return paths
+
+
+#: The keys of every :func:`new_files` row.
+NEW_FILE_COLUMNS = ("status", "relpath", "sha256", "bytes", "census_relpath", "census_sha256")
+
+
+def new_files(root, census=None):
+    """Every difference between the PDFs under *root* and the frozen census. -> [dict].
+
+    DB-FREE and read-only: nothing here opens a database connection, and nothing is written
+    anywhere. One row per difference, ``status`` one of:
+
+    ``new``      a PDF at a relpath the census does not list, whose bytes are not those of
+                 some census file that has left its place — a genuine addition.
+    ``renamed``  the bytes of a census file that is itself no longer at its census relpath:
+                 one file that MOVED. Matched on BYTES, never on name, so a paper re-filed
+                 under a tidier stem is not counted as an acquisition. It appears twice, as
+                 the ``renamed`` arrival and the ``missing`` departure, which is what says
+                 the two are the same file.
+    ``changed``  a census relpath whose bytes no longer match. The census pins measurements
+                 taken over THOSE bytes, so this invalidates them.
+    ``missing``  a census relpath with no file on disk. Counted here because a report
+                 reading "0 new" could otherwise sit on top of twenty deletions.
+
+    A second COPY of a census file that is still in place reads ``new``, not ``renamed``:
+    nothing moved, and calling it a rename would leave the original unaccounted for.
+
+    Rows sort by ``(status, relpath)``. Columns: :data:`NEW_FILE_COLUMNS`.
+    """
+    root = pathlib.Path(root)
+    pins = load_census(census)
+    by_rel = {rel: sha for sha, rel in pins}
+    on_disk = {str(p.relative_to(root)): p for p in find_pdfs(root)}
+    # The census entries that have LEFT their place: only these can be the source of a
+    # rename. Computed before anything is hashed so the answer cannot depend on the order
+    # the tree happened to be walked in.
+    departed = {}
+    for sha, rel in pins:
+        if rel not in on_disk:
+            departed.setdefault(sha, []).append(rel)
+
+    def row(status, rel, sha, nbytes, c_rel, c_sha):
+        return dict(zip(NEW_FILE_COLUMNS, (status, rel, sha, nbytes, c_rel, c_sha)))
+
+    rows = []
+    for rel, p in sorted(on_disk.items()):
+        sha, _, nbytes = digests(p)
+        if rel in by_rel:
+            if sha != by_rel[rel]:
+                rows.append(row("changed", rel, sha, nbytes, rel, by_rel[rel]))
+            continue
+        came_from = departed.get(sha) or []
+        rows.append(row("renamed" if came_from else "new", rel, sha, nbytes,
+                        came_from[0] if came_from else None, sha if came_from else None))
+    for rel in sorted(set(by_rel) - set(on_disk)):
+        rows.append(row("missing", rel, None, None, rel, by_rel[rel]))
+    return sorted(rows, key=lambda r: (r["status"], r["relpath"]))
+
+
+def report_new(root, census=None, out=None):
+    """Print the :func:`new_files` report — counts first, then the rows. -> exit code 0.
+
+    Writes with ``print(..., file=out)`` and not through a bound ``stream.write``: the
+    structural sink guard (``qc/instruments/litkb_p2_mutations.py``, :data:`SINKS`) matches
+    the CALL NAME, so an aliased stream method is invisible to it. A reporting path that
+    hides from the sink table is the wrong kind of clever — these four calls carry their own
+    ``SINK_ALLOW`` entry instead.
+    """
+    from collections import Counter
+
+    rows = new_files(root, census)
+    n = Counter(r["status"] for r in rows)
+    print(f"root   {root}", file=out)
+    print(f"census {census_path(census)} ({len(load_census(census))} files pinned)", file=out)
+    print("  ".join(f"{k} {n.get(k, 0)}" for k in ("new", "renamed", "changed", "missing")),
+          file=out)
+    for r in rows:
+        moved = f"  <- {r['census_relpath']}" if r["status"] == "renamed" else ""
+        print(f"  {r['status']:<8} {(r['sha256'] or '-')[:12]:<12} {r['relpath']}{moved}",
+              file=out)
+    return 0
+
+
 def resume_key(sha256, path, ph):
     """The identity a re-run skips on. ONE definition, used by both sides of the resume.
 
@@ -534,8 +718,13 @@ def load_done(jsonl):
     return done, keep
 
 
-def run(root, out_jsonl, csv_path=None, force=False, progress=False):
-    """Probe every PDF under *root*, resumably. -> (records, seconds)."""
+def run(root, out_jsonl, csv_path=None, force=False, progress=False, files=None):
+    """Probe every PDF under *root*, resumably. -> (records, seconds).
+
+    *files* replaces the walk with an explicit list. :func:`run_census` passes the frozen
+    census through it so that a pinned measurement is re-taken over the files it was taken
+    over, and not over whatever the corpus has grown since.
+    """
     out_jsonl = pathlib.Path(out_jsonl)
     out_jsonl.parent.mkdir(parents=True, exist_ok=True)
     ph = params_hash()
@@ -543,7 +732,7 @@ def run(root, out_jsonl, csv_path=None, force=False, progress=False):
     by_key = {resume_key(r.get("sha256"), r.get("path"), r.get("params_hash")): r
               for r in existing}
 
-    pdfs = find_pdfs(root)
+    pdfs = find_pdfs(root) if files is None else [pathlib.Path(f) for f in files]
     t0 = time.monotonic()
     records = []
     for k, path in enumerate(pdfs, 1):
@@ -565,6 +754,18 @@ def run(root, out_jsonl, csv_path=None, force=False, progress=False):
     if csv_path:
         write_summary_csv(records, csv_path)
     return records, seconds
+
+
+def run_census(out_jsonl, root=None, census=None, force=False, progress=False):
+    """:func:`run` over EXACTLY the frozen census. -> (records, seconds).
+
+    This is the reader behind every pinned corpus number. It probes the census list and
+    nothing else, so a file added to the corpus cannot move a number that was measured
+    before it existed; ``litkb inventory --new`` is where such a file is reported instead.
+    """
+    root = pathlib.Path(root or DEFAULT_ROOT)
+    return run(root, out_jsonl, force=force, progress=progress,
+               files=census_pdfs(root, census))
 
 
 def _write_atomic(path, text):
@@ -673,11 +874,26 @@ def main(argv=None):
                     help="default: <repo>/phase4/qc/litkb_inventory.csv")
     ap.add_argument("--force", action="store_true", help="re-probe every file")
     ap.add_argument("--quiet", action="store_true")
+    ap.add_argument("--census", default=None,
+                    help=f"default: <repo>/phase4/qc/{CENSUS_FILE}")
+    ap.add_argument("--new", action="store_true",
+                    help="report the PDFs under --root that the frozen census does not pin, "
+                         "then exit. Probes nothing, opens no database, writes nothing")
+    ap.add_argument("--freeze-census", action="store_true",
+                    help="re-derive the frozen census FROM the summary CSV (never from a "
+                         "walk of the corpus) and exit")
     args = ap.parse_args(argv)
 
     qc = repo_root() / "phase4" / "qc"
     jsonl = pathlib.Path(args.jsonl) if args.jsonl else qc / "litkb_inventory.jsonl"
     csv_out = pathlib.Path(args.csv) if args.csv else qc / "litkb_inventory.csv"
+
+    if args.new:
+        return report_new(args.root, args.census)
+    if args.freeze_census:
+        rows = write_census(csv_out, args.census)
+        print(f"{len(rows)} files -> {census_path(args.census)}")
+        return 0
 
     records, seconds = run(args.root, jsonl, csv_path=None, force=args.force,
                            progress=not args.quiet)

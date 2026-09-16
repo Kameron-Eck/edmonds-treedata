@@ -466,3 +466,283 @@ commits, the conflicts and the gates that remain: **`Reports/LITKB_P4_MERGE_2026
 
 One correction to this report's own text: `qc/instruments/litkb_p3_diff.py --workstream` takes the
 workstream **UUID** (`01a0a494-bb54-7c1b-be26-db0c229a9534`), not the slug `p3-migration`.
+
+## First-use friction closed
+
+2026-09-15. `Reports/LITKB_LINKAGE_REVIEW_2026-09-15.md` §8 is a defect list measured on the first
+session that tried to follow `Scripts/docs/LITERATURE_CONVENTION.md` end to end;
+`Reports/LITKB_P8_REFEREE_2026-09-15.md` §4 classified each item. This section is what closed, what
+was shown to fire, and what was deliberately left to Kam.
+
+**One migration, `0020_first_use_friction.sql`**, applied to the worker test databases and to
+**`litkb`**. Additive: nothing dropped, three CHECKs widened, two functions replaced whole
+(`_check_registry`, `clear_extraction_rows`), one replaced in place (`_feeds_token_ok`).
+
+### The items
+
+**1. Step 4 has a CLI (§8.1).** `litkb use add --key K --statement S --kind K [--feeds "…"]
+[--quote Q --page N]`, plus `use list`. It writes through the same token-checked `write_proposal` and
+`add_evidence` the reviewer had to reach by copying the P3 loader, and it refuses outside a worktree
+holding a workstream. Mechanism: `Scripts/pipeline/litkb/use.py`.
+
+**2. The feeds vocabulary is the documented one (§8.6).** `_feeds_token_ok` accepted three of the
+convention's seven forms, so a use that fed a REPORT could carry no valid token and all 15 uses of
+that session were written with an empty `feeds` array — "the KB records that these works were used
+and does not record what they were used *for*". 0020 widens it to all seven.
+`work/20260915-access-layer` had **not** patched the validator — checked with `git grep
+_feeds_token_ok` on that branch, whose only hits are reports and the unchanged 0005/0013 text — so it
+was fixed here. `use add` asks the DATABASE whether a token is valid before writing, so a mistyped one
+is a refusal at the command instead of a chain held at prepare.
+
+**3. A quote is anchored, or the use is refused (§8.3).** `use add --quote` locates the quote in a
+block of the file's CURRENT extraction run and `add_evidence` lets the 0007 trigger compute
+`quote_verified`. If no block carries it the command REFUSES and says why — it does not fall back to
+`rationale`, because a quote in free text is exactly the unverifiable record §8.3 is about. A use
+with no quote is still writable, and says in its output that it carries none.
+
+**4. `admit --doi` alone works (§8.5).** Check 1's rule is about a CLAIM, and the claim check is
+untouched: a claimed first author that contradicts the registry is still refused, which is the catch
+that found the reviewer's own Papadakis-for-Mandilaras error. What was missing is the case where the
+admitter claims nothing and takes the registry record as the identity. That is now declared, once, on
+the identifier's own evidence (`registry_only`), so a registry-only admission is auditable as such
+afterwards — and an admission that claims nothing and does not declare it is refused exactly as
+before.
+
+**5. Title + subtitle at admission (P4).** `registry.work_title()` joins the registry's title with its
+subtitle, and the work is stored — and keyed — under that form. `parse_crossref` already built the
+joined form into `titles`, so nothing about MATCHING changes; check 1's "the work is the registry
+record" guard now accepts any form the registry published, and `binding.bind_any()` tries every form
+against the first page so a PDF printing only the bare title still binds (recording which form
+matched, while `binding.registry_title` stays the work's title, which is what check 3 compares
+against). A claim that names the work but not its subtitle is admitted and kept as a **discrepancy**,
+under the new `discrepancies.source = 'admission'`.
+
+**The Konda 2016 live row was NOT edited.** `10.14778/2994509.2994535` is in `litkb` as
+`Konda_2016_magellan-work`, title "Magellan". The fix path is a new version through the workstream
+that admitted it — `litkb.write_fact('work', <work_id>, <its current version_id>, <fields carrying
+the joined title>, '<change reason>', ws, token, agent, session)` — the only path that keeps the
+version history and the only one a second session can review. `works.key` is set when the work row is
+created and no later version can change it, so the truncated KEY stays and the stored TITLE changes;
+that asymmetry is the argument for doing it as a reviewed version rather than an `UPDATE`. Every work
+admitted from here takes the joined form, and `migrate_legacy._key_for` now derives its key from it
+as well — so a re-run of the P3 load would mint different keys for subtitled works. Keys already in
+`litkb` are untouched.
+
+**6. Documentation can be admitted (§8.4).** `admit --web --url U --retrieved DATE --snapshot
+PAGE.txt` admits a source with no DOI from the admitter's saved TEXT of the page. The snapshot lands
+under `_litkb_staging/web/` through the store's one guarded write; binding runs against it with the
+same binder, the same 0.85 and the same author-near-title rule; and the URL, retrieval date and
+snapshot go to `source_url`, `obtained_at` and `txt_extract_path` — columns that already existed.
+Only the KIND had no home, so `file_versions.copy_kind` gains `'web snapshot'`. Nothing in the
+database was relaxed to take it, and it stays a manual PROPOSAL that a second session must approve.
+
+**7. Failed downloads are quarantined (§8.9)** and **the corpus census is frozen** — the two sections
+below.
+
+**8. Stage 6 has somewhere to land.** `Reports/LITKB_P4_MERGE_2026-09-15.md` recorded that stage 6
+parks its rows as JSONL with no loader and nowhere to put two of the three. 0020 gives `"references"`
+its stage-6 columns and an `ambiguous` resolution state, relaxes `citation_mentions` from
+block-anchored to locatable-by-page, adds `citation_edges`, and adds four `litkb_ingest`-only writers
+plus a trigger that holds the resolution rule on the direct-INSERT path as well.
+`litkb.extract.references_ingest` is the loader.
+
+**Measured on `litkb`** (second run adds nothing): **643 references, 969 citation mentions, 13
+citation edges, 630 citation candidates, 17 stage-6 extraction runs**; resolutions **363 resolved /
+19 ambiguous / 261 unresolved**, `resolved_work_id` set on 17. On `litkb_test_w9`, where every stem's
+work and file exist as fixtures, the same run loads the whole parked corpus: **658 / 981 / 13 / 645**
+over 18 papers.
+
+**Why `litkb` is lower than the parked corpus, and it is not a loader bug.** The P6 JSONL's
+`citing_work_key` is a FILE STEM, not a `works.key`: only 10 of the 18 stems exist as a key, while 17
+of them reach a held file by the stem of `main_files.rel_path` (e.g. stem
+`Benedek_2015_multilayer-markov-random-field-models` is held under key
+`Benedek_2015_multilayer-markov-random-field`, the slug truncated to four words). The loader resolves
+by file-stem first and falls back to `works.key`, and records which route matched — all 17 resolved by
+stem. The eighteenth, `Chrisman_1982_theory-cartographic-error-measurement` (15 references), is
+REFUSED and named: its `works.key` exists but holds no active file, and a reference must name the
+file it was parsed from.
+
+**The mention count adds up exactly, and it is worth writing out because the parked file's headline
+number is 1,386.** Those are bounding-box rows; a MENTION is one `<ref>` ELEMENT, of which there are
+**1,182** (`box_index == 0`, the rule `references.mention_totals` already uses). Of those, **201**
+are elements GROBID linked to no `biblStruct` — counted and skipped rather than guessed at — and
+**24** belong to Chrisman, the refused paper. 1,182 − 201 − (24 − 12 of Chrisman's that were already
+counted as untargeted) = **969** on `litkb`, and 1,182 − 201 = **981** on `litkb_test_w9`, where
+Chrisman's file exists as a fixture. Nothing is unaccounted for.
+
+**9. Report defects, named not fixed.** `Reports/LITKB_LINKAGE_REVIEW_2026-09-15.md` §8.4 says six
+sources "are cited in §2, §5 and §6 with URL and retrieval date". Measured on that file: it contains
+**four** URLs in total — two Crossref documentation pages and two Splink pages — and **no OpenAlex
+URL at all**; §2's OpenAlex passage cites arXiv:2205.01833 instead. The sentence overstates what the
+report carries. Left alone: that report belongs to `work/20260915-linkage-review`.
+
+### A failed download is quarantined, never deleted (§8.9)
+
+The reviewer's own account: a `curl` for the IFLA PDF followed a repository link that returned an
+HTML error page, 295,657 bytes of it were written as
+`_litkb_staging\incoming\IFLA_2017_library-reference-model.pdf`, and he removed it with `rm -f`
+before re-fetching. Twenty seconds old and his own — and still a delete inside the tree that exists
+because 149 PDFs were lost on 2026-09-12. His words: *a rule with an "it was only my own file"
+exception is not a rule.* The machinery now makes the delete unnecessary: the routes hand their
+rejected bytes back instead of discarding them, `acquire()` lands them under `_quarantine/` through
+the store's guarded write path, and a reason sidecar records the status, the redacted source URL, the
+sha256, the byte count and the work key. HTML-served-as-PDF and a truncated PDF (header present,
+`%%EOF` absent) are detected separately. The DB status stays `bad-file` for both — migration 0013
+enumerates the `acquisition_attempts` status vocabulary and this branch did not widen it — and the
+SHAPE (`not-a-pdf` / `truncated-pdf`) is carried in the filename label and the reason file, which is
+the same shape `annas._quarantine`'s `content-mismatch` label already had.
+
+**Run against the real store, read-only apart from copies.** 32 files sit in
+`_litkb_staging/incoming` today; the detector agrees with `pdfinfo` on **32 of 32**, and **10 are not
+a usable PDF — all HTML, none truncated**. All ten were quarantined byte-for-byte with their reason
+files and every original's sha256 is unchanged. One reason file, verbatim: `{"status":"bad-file",
+"label":"bad-file","shape":"not-a-pdf","reason":"the 486110 bytes served do not begin with %PDF-;
+they look like HTML","route":"open_access","source_url":"…","sha256":"2bc02d5b…","bytes":486110,
+"work_key":"AllenMatthew_2026_manual-labelling","at":"2026-09-16T04:01:23…+00:00"}`.
+
+Two defects found live by other sessions while this was being built, and fixed here:
+
+* **`acquire --from-file` deduplicated a file against ITSELF.** `acquire()` computes
+  `store.disk_index()` before the from-file branch and that index hashes every `*.pdf` under the
+  root, staging included — so a handed-in path already sitting in `_litkb_staging/incoming` matched
+  its own hash, returned `duplicate-held`, and binding never ran. A live agent had worked around it
+  by renaming the file to `.download`, which is exactly how a workaround becomes folklore.
+* **Quarantine locked a file out permanently.** The same disk index hashes `_quarantine/`, so once a
+  file was quarantined its bytes read as "already held" and the SAME correct file could never bind
+  after its record was corrected. `Konda_2016`, `Kopcke_2010` and `Enamorado_2019` were locked that
+  way in the live store.
+
+**A third guard, added because the scan is only a gate while its file list is complete.** The
+no-delete source scan reads `litkb/acquire/*.py` and `litkb/admit/*.py`; a module that reached the
+store from anywhere else would simply not be read. `test_litkb_p2.py` now carries a CENSUS: any
+module under `Scripts/pipeline/litkb/` that imports `Store`, `LITERATURE_ROOT`, `STAGING` or
+`QUARANTINE`, or names a store directory in a string that is not a docstring, must be inside the
+scan's globs or listed in `_STORE_READ_ONLY` with a reason (today: `migrate_legacy/sources.py`,
+which builds READ paths only). It is a new way for unrelated work to fail `test_litkb_p2.py`, and
+that is the point.
+
+**A harness defect, found by running into it.** `litkb_p2_mutations.py` has no cross-process lock:
+`main()` pre-flights every row's target against the file AS IT IS ON DISK, so a second campaign
+started while a mutant is applied dies with "mutation target occurs 0 times" on a row that is
+perfectly sound — and the `--workers` path is worse, because it `copytree`s the tree as it is and a
+mutant applied at that instant is inherited silently into every worker copy, making every verdict
+from that copy suspect. An exclusive lock file taken at the top of `main()`, before the pre-flight,
+closes it: pid and start time written in, the refusal quoting the holder's line, workers exempt
+because they run inside their own copies. It refused a live second campaign in this session with
+that message, which is the gate shown firing rather than only tested. No mutation row removes it, on
+purpose — the test that proves it runs `main()` in a subprocess, so a mutant that dropped the lock
+would turn that test into a real nested campaign mutating the tree from inside a test.
+
+### The corpus census is frozen (a P4 merge finding, not a §8 item)
+
+`Reports/LITKB_P4_MERGE_2026-09-15.md` recorded two `qc/test_litkb_inventory.py` failures that the
+merge did not cause and deliberately did not re-pin: the census tests walked the literature root, and
+the corpus had grown from the 224 files their five numbers were measured over to 246. They now read
+`phase4/qc/litkb_inventory_census.sha256` — 241 rows, `<sha256>  <relpath>`, DERIVED from the tracked
+`litkb_inventory.csv` rather than from a fresh walk, because re-walking is the bug — and measure
+exactly those files. A census file that is MISSING or whose bytes changed fails loudly and by name:
+that is a deletion detector, and it is deliberate. Corpus growth no longer touches a pinned number.
+
+`litkb inventory --new` reports what the census does not pin. Against the live corpus: **28 outside
+the census — 25 in `_litkb_staging/filed`, 1 in `incoming`, 2 in `_quarantine`; 0 renamed, 0 changed,
+0 missing.** All 22 PDFs the P4 merge measured appear (the merge's "22 in `filed`" was 21 in `filed`
+plus 1 in `incoming`), and four more landed mid-session — the live corpus moving under the
+measurement, which is the defect restated. **Before anyone quotes a new active total:** 13 of the 28
+are ~1.6 KB — Higham ×5, Lisca ×4, Averkov ×4, the numbered `.2`–`.5` duplicates — almost certainly
+failed downloads saved as `.pdf` rather than papers, which is the same class §8.9 is about. Real new
+documents: 15.
+
+**Re-pin debt, in the open.** `test_the_boundary_pins_really_are_the_nearest_pages` now asserts
+nearest-ness WITHIN the census. `Massari_2023_opencitations-meta.pdf` p13 is already on disk and
+already nearer the `CHARS_TRACE` threshold than the pinned Reynolds_2000 p14, so the pins are owed a
+re-render at the next re-freeze. It is in the test's docstring, but a green test hides it.
+
+### The ladder, on this tree
+
+`py -3.12 qc/check.py --fast` under `LITKB_TEST_DB=litkb_test_w6`: secrets, ruff and compile pass;
+**1 failed, 2904 passed, 22 skipped, 2 xfailed** in 10m38s, and the one failure is
+`test_experiments.py::test_pointer_paths_resolve[crown_state_model]` — the known pre-existing one, not
+litkb's. **339 litkb Postgres tests pass**, against 244 at the post-referee run above.
+
+The whole mutation table, parallel on `--worker-dbs 1,6,9`: **253/253 fired, baselines passed**, 72.8 min
+over three workers (85 + 84 + 84 rows). `--sites`: **78 call sites, 75 covered by a row, 3 equivalent;
+18 sinks, 2 redacted, 16 allowed**, no PROBLEM.
+
+**Two defects were found by running the gates, and both were in the gates.**
+
+*The worker copy's domain was smaller than the tests' read domain.* The first full run of the table
+reported `253/253 fired; baselines FAILED` after 133.6 minutes, and the failing baseline was worker 1's
+`qc/test_litkb_inventory.py`: **1 failed, 39 passed, 24 errors**. The cause was this session's own census
+freeze. `make_worker_copy()` copies `Scripts/` and `Reports/`; the census tests read
+`phase4/qc/litkb_inventory_census.sha256` and `phase4/qc/litkb_inventory.csv` through
+`inventory.repo_root()`, which resolves relative to the package — so inside a worker copy it resolved
+under the COPY, where `phase4/` does not exist, and every corpus-backed test errored on a missing file.
+The E3inv row still printed FIRED, because its own test failed for its own reason: **a broken baseline
+does not show up in a row's verdict**, which is the whole reason a baseline is run at all. Both files are
+now on `COPY_FILES`, which `tree_manifest()` hashes, so the stale-copy guard's domain still equals the
+copy's, and `make_worker_copy()` creates the parent directory. That baseline now reads **64 passed,
+1 xfailed**. `test_worker_copy_is_a_standalone_checkout` asserts the census file reaches the copy, so the
+next tracked input that moves out of `COPY_DIRS` is caught by a 70-second test instead of a 133-minute
+table. It is the same class as the harness lock above — the instrument describing a tree that is not the
+tree under test — and it is the second one this session.
+
+*A new test was green only because of how it was being run.*
+`test_new_files_needs_no_database_and_writes_nothing` launches the `--new` reporting path as a subprocess
+and checks that its import graph reaches no database driver. The subprocess inherited no `PYTHONPATH`, so
+the test passed under `PYTHONPATH=pipeline py -3.12 -m pytest` — how every litkb suite in this session was
+run, and how the worker copies run — and failed under `qc/check.py`, which sets none, with
+`ModuleNotFoundError: No module named 'litkb'`. litkb is not in the editable install; every other litkb
+test that spawns a subprocess passes `PYTHONPATH` explicitly and this one now does too. It is the argument
+for running the ladder whole, in its own environment, rather than module by module in the shell the work
+was done in.
+
+Both fixes touched test files after the table had run, so **E3inv was re-run alone against the final
+`qc/test_litkb_inventory.py`** — FIRED, baselines passed, `litkb_test_w6` — and no row's verdict here
+rests on a file that changed after its verdict was taken.
+
+### What was NOT decided here
+
+* **§8.2** — "A use with no verifiable quote is refused at prepare" is false as written, confirmed on
+  both legs (the review's reading of `_ws_chains`, and the P8 referee running it). The two coherent
+  fixes are in that referee's §4.2 and the choice is Kam's. `LITERATURE_CONVENTION.md` now says so in
+  place of the false sentence, and `use add` writes a quoteless use and reports that it carries none.
+* **§8.7** (the open-access route's 16 misses) and **§8.8** (Anna's Archive unused) were out of scope.
+
+### Coordination, for whoever merges next
+
+* **`0018` and `0019` are RESERVED** for `work/20260915-access-layer` in
+  `Scripts/pipeline/litkb/db/migrations/_reserved.txt`, because that branch is writing them and 0020
+  had to be numbered past them. `litkb.db.migrate.discover()` now allows a DECLARED gap and refuses
+  every other one — `test_an_undeclared_gap_in_the_migration_numbering_is_still_refused` is the proof.
+  **Delete those two lines in the merge that lands the files**:
+  `test_migration_files_are_named_and_numbered` asserts that a number on disk is not also reserved,
+  so it fails until they go. That relaxation of a P1-refereed runner rule is the one change here made
+  for a reason outside the friction list, and it is written down rather than assumed: the gap-free
+  rule catches a migration that went MISSING, it cannot tell that from a number another open branch
+  is about to take, and a branch that cannot run its own migrations until an unrelated branch merges
+  is a branch that renumbers under pressure and collides.
+* **`Reports/gold/p8_gold_2026-09-15.json`'s P2 prediction is now STALE**: "the skill's step-4 feeds
+  token `report <FILE>#§<loc>` is NOT accepted by `litkb._feeds_token_ok`". It was true when it was
+  frozen and it is false on purpose from 0020 on.
+* **A1–A4, A3b and R59 in `qc/instruments/litkb_p2_mutations.py` were repointed to 0020**, which
+  `CREATE OR REPLACE`s `_check_registry` and `clear_extraction_rows`: their 0013 and 0017 bodies are
+  dead text, and a row left on them would report DID NOT FIRE for a reason about migration order
+  rather than about the guard. Same trap as the 0014→0016 `_check_binding` move; the comment above
+  `MIG20` now names it as a class instead of a second special case.
+* **`_feeds_token_ok` is now defined TWICE, and the schema it produces depends on apply order.** When
+  the feeds fix was scoped here, `work/20260915-access-layer` had not patched the validator
+  (`git grep _feeds_token_ok` on that branch returned only reports and the unchanged 0005/0013 text).
+  It has since: its `0018_access_layer.sql` `CREATE OR REPLACE`s the function to the same seven
+  forms, for the same reason. **The two definitions are not equivalent** — 0018 allows `framework
+  §N[.N]` at most one sub-level, matching the convention's depth note, while 0020 allows any depth —
+  and, worse, **which one a database ends up with depends on the ORDER the migrations were applied,
+  not on their numbers**: `litkb` already has 0020, so 0018 will run after it and 0018's body wins
+  there, while a database built from scratch runs 0018 then 0020 and gets 0020's. That is a schema
+  that differs between two servers with the same migration set, which is the thing the runner exists
+  to prevent. **Two ways to settle it, and the choice is Kam's, not this branch's:** (a) drop the
+  `_feeds_token_ok` section from `0018_access_layer.sql` while that branch is still unmerged and
+  unapplied — an edit that is legal only until 0018 is applied somewhere, whereas 0020 is applied and
+  checksum-locked and cannot be edited at all; or (b) a new migration after both that states the
+  definition once, which is the only option left once 0018 has been applied anywhere. Whichever it
+  is, the depth question (`framework §N` at any depth, or at most one sub-level) is a convention
+  question and the convention's own table says one sub-level.

@@ -38,6 +38,21 @@ WHAT EACH ROW IS FOR, in the §14 P6 terms:
     fail a test when mutated.
   * **P6-S1..S6** are the per-call-site rows for `normalize_doi`: at each site the guard is simply
     not applied (the call becomes its own argument).
+
+And the INGEST rows, P6-I1..I4 (`litkb/extract/references_ingest.py`, migration 0020). Stage 6 is
+still DB-free; the loader that carries its output into the database is the stage's, so its rows live
+here and run `qc/test_litkb_references_ingest.py` against `litkb_test`:
+
+  * **P6-I1** stops the loader REFUSING a stem litkb does not hold and has it substitute some other
+    paper's file instead. `"references".file_id` is NOT NULL, and filling a NOT NULL with a file
+    that is not the paper's is how a whole reference list ends up filed under the wrong work.
+    MEASURED: 1 of the 18 citing stems (Chrisman_1982) is exactly that case on the live `litkb`.
+  * **P6-I2** is P6-M1's defect one layer down: every bounding BOX becomes a citation_mention row
+    again, so a line-wrapped marker is stored twice and the stored counts stop matching the
+    `mention_count` stage 6 computed.
+  * **P6-I3** is the §14 P5 kill re-expressed on stage 6: the references are committed BEFORE the
+    rest of the paper, so a kill leaves a run with half a citation graph under it.
+  * **P6-I4** removes the idempotence check, so a second load writes a second set of rows.
 """
 import argparse
 import importlib.util
@@ -46,7 +61,10 @@ import sys
 
 HERE = pathlib.Path(__file__).resolve().parent
 TESTS_P6 = ["qc/test_litkb_references.py"]
+#: The ingest rows need a database; their set is the one that has one.
+TESTS_P6I = ["qc/test_litkb_references_ingest.py"]
 REFS = "pipeline/litkb/extract/references.py"
+REFING = "pipeline/litkb/extract/references_ingest.py"
 RESOLVER = "pipeline/litkb/admit/resolver.py"
 
 #: `normalize_doi(x)` -> `(x)`: the canonicalisation simply does not happen at that call.
@@ -54,7 +72,8 @@ PASSTHROUGH = "({a0})"
 
 IDS = ["P6-G1", "P6-G2", "P6-G3", "P6-G4", "P6-G5", "P6-G6", "P6-G7", "P6-M1",
        "P6-R1", "P6-R2", "P6-R3",
-       "P6-S1", "P6-S2", "P6-S3", "P6-S4", "P6-S5", "P6-S6"]
+       "P6-S1", "P6-S2", "P6-S3", "P6-S4", "P6-S5", "P6-S6",
+       "P6-I1", "P6-I2", "P6-I3", "P6-I4"]
 
 
 def register(block, replace, site):
@@ -92,6 +111,26 @@ def register(block, replace, site):
             ("P6-S6", "crossref_reference_list")], 1):
         site(mid, f"litkb/extract/references.py::{fn}::normalize_doi", PASSTHROUGH,
              f"{fn}: the DOI is not normalised at this call site", tests=TESTS_P6)
+    # ── the stage-6 ingest (migration 0020). Appended last: see the docstring. ────────────
+    replace("P6-I1", REFING,
+            '    if hit is None or hit.get("file_id") is None:\n'
+            "        return None, _unheld(stem, hit)\n",
+            '    if hit is None or hit.get("file_id") is None:\n'
+            '        hit = next(h for h in index.values() if h.get("file_id"))\n',
+            "a stem litkb does not hold is given ANOTHER paper's file instead of being refused, so "
+            "a whole reference list is filed under the wrong work", tests=TESTS_P6I)
+    replace("P6-I2", REFING, '        if m.get("box_index") == 0 or not out:', "        if True:",
+            "a citation_mention is written per bounding BOX again, so a line-wrapped marker is "
+            "stored twice and the stored counts stop matching stage 6's own", tests=TESTS_P6I)
+    replace("P6-I3", REFING,
+            "        if _after_references is not None:\n            _after_references(conn, run_id)\n",
+            "        conn.commit()\n        if _after_references is not None:\n"
+            "            _after_references(conn, run_id)\n",
+            "THE P5 KILL on stage 6: the references are committed outside the paper's transaction, "
+            "so a kill leaves a run with half a citation graph under it", tests=TESTS_P6I)
+    replace("P6-I4", REFING, '    if existing and status == "ok":', "    if False:",
+            "the idempotence check removed: a second load of the same paper at the same pipeline "
+            "version writes a second set of rows", tests=TESTS_P6I)
 
 
 def _p2():

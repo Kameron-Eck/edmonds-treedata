@@ -52,8 +52,11 @@ to the call-site rule instead.
 """
 import argparse
 import ast
+import atexit
+import datetime
 import difflib
 import hashlib
+import os
 import subprocess
 import sys
 from pathlib import Path
@@ -72,6 +75,13 @@ MIG14 = f"{MIG}/0014_referee_p2_fixes.sql"
 #: a row left pointing at 0014 would report DID NOT FIRE for a reason that is about the migration order, not
 #: about the guard.
 MIG16 = f"{MIG}/0016_held_reason.sql"
+#: The same thing happened again on 2026-09-15, for the same reason, and it is worth naming as a CLASS
+#: rather than as a second special case: 0020 CREATE OR REPLACEs litkb._check_registry (check 1's
+#: registry-only branch and its title-forms rule) and litkb.clear_extraction_rows (the stage-6 rows it
+#: has to clear as well), so 0013's and 0017's copies of those two functions are now DEAD TEXT.
+#: A1-A4 and R59 therefore point HERE. Whenever a migration replaces a function, every mutation row on
+#: the old body stops testing anything and reports DID NOT FIRE for a reason about migration order.
+MIG20 = f"{MIG}/0020_first_use_friction.sql"
 
 M = []
 
@@ -105,14 +115,14 @@ def site(id_, site_id, repl, what, tests=None):
 
 
 # ── the database (migration 0013, and the live 0003/0009 texts P2 relies on) ──
-block("A1", f"{MIG}/0013_admission.sql", "guard: check 1 the work is the registry record",
+block("A1", MIG20, "guard: check 1 the work is the registry record",
       "check 1: stop requiring the work's title and year to be the registry record's")
-block("A2", f"{MIG}/0013_admission.sql", "guard: check 1 claimed record matches the registry",
+block("A2", MIG20, "guard: check 1 claimed record matches the registry",
       "check 1: stop comparing the claimed title ratio and first author")
-block("A3", f"{MIG}/0013_admission.sql", "guard: check 1 year rule", "check 1: drop the year rule")
-replace("A3b", f"{MIG}/0013_admission.sql", "ELSIF abs(v_cy - v_ry) = 1 AND", "ELSIF abs(v_cy - v_ry) <= 2 AND",
+block("A3", MIG20, "guard: check 1 year rule", "check 1: drop the year rule")
+replace("A3b", MIG20, "ELSIF abs(v_cy - v_ry) = 1 AND", "ELSIF abs(v_cy - v_ry) <= 2 AND",
         "check 1: widen +/-1 to +/-2 years")
-block("A4", f"{MIG}/0013_admission.sql", "guard: check 1 a registry identifier is confirmed",
+block("A4", MIG20, "guard: check 1 a registry identifier is confirmed",
       "check 1: a registry admission with no registry-confirmed identifier passes")
 block("A5", MIG16, "guard: check 3 no text layer waits for OCR",
       "check 3: a file with no text layer is not binding-pending")
@@ -269,6 +279,47 @@ block("E4", f"{PKG}/acquire/run.py", "guard: a work reached by one of its DOIs i
       sites=["litkb/acquire/run.py::work_record::normalize_doi"])
 block("E3", f"{PKG}/textnorm.py", "guard: JSON sent to the database carries no NUL",
       "a NUL in PDF metadata reaches jsonb (UntranslatableCharacter)")
+
+# ── friction 5: a failed download is QUARANTINED, never deleted ───────────────────────────
+# Reports/LITKB_LINKAGE_REVIEW_2026-09-15.md §8.9: a curl answered with an HTML error page, the 295,657 bytes
+# landed as _litkb_staging/incoming/IFLA_2017_library-reference-model.pdf, and they were removed with `rm -f` to
+# free the name — a delete inside the tree that exists because 149 PDFs were lost on 2026-09-12. F5a and F5b are
+# the two ways acquisition could go back to dropping such bytes; F5c is the delete itself, planted where the
+# tidy-up would naturally be written, and it is answered by the no-delete SOURCE SCAN rather than by behaviour.
+block("F5a", f"{PKG}/acquire/run.py", "guard: bytes a route refused are quarantined, never discarded",
+      "acquire: bytes a route refused (an HTML error page served as a .pdf) are dropped instead of quarantined")
+block("F5b", f"{PKG}/acquire/run.py", "guard: a download that is not a whole PDF is quarantined, never discarded",
+      "land_and_attach: a truncated download is sent to binding instead of quarantine, and nothing records why")
+replace("F5c", f"{PKG}/acquire/run.py",
+        '    qpdf, _qtxt = store.to_quarantine(from_file, txt if txt.exists() else None, work["key"], shape, sha)\n',
+        '    qpdf, _qtxt = store.to_quarantine(from_file, txt if txt.exists() else None, work["key"], shape, sha)\n'
+        '    Path(from_file).unlink(missing_ok=True)      # "tidy up the file we just moved"\n',
+        "acquire --from-file: a delete is added to the acquire path after the move (a no-op at runtime: the "
+        "no-delete source scan is what must catch it)")
+# F5d-F5f: the two defects the same live run found next. F5d is the from-file self-dedupe (a handed-in file in
+# incoming/ was `duplicate-held` against its own hash, and the field workaround was to rename it to `.download`).
+# F5e/F5f are the two CALL SITES of one rule — a work is stored under "title: subtitle" since migration 0020, and
+# the page prints whichever form the publisher chose — which is exactly the shape the per-call-site rule exists
+# for: land_and_attach binds a download, front.file_evidence binds a file held in place.
+block("F5d", f"{PKG}/acquire/run.py",
+      "guard: the dedupe asks what the corpus HOLDS, and staging and quarantine hold nothing",
+      "acquire: incoming/ and _quarantine/ count as holdings again - a hand-fetched file in incoming is deduped "
+      "against ITSELF, and a quarantined file is locked out for ever")
+replace("F5g", f"{PKG}/acquire/run.py",
+        '    skip = (f"{STAGING}/incoming/", f"{QUARANTINE}/")\n',
+        '    skip = (f"{STAGING}/incoming/",)\n',
+        "acquire: _quarantine/ is a holding again - a file quarantined under a wrong record can never bind after "
+        "the record is corrected (the live Konda_2016 / Kopcke_2010 / Enamorado_2019 lockout)")
+replace("F5e", f"{PKG}/acquire/run.py",
+        '    b = _binding.bind_any(pdf, _forms(work), work["first_author"], info=info)\n',
+        '    b = _binding.bind(pdf, work["title"], work["first_author"], info=info)\n',
+        "acquire: a download is bound against the work's stored title alone, so a paper whose page prints the "
+        "bare title of a subtitled work is quarantined as binding-failed")
+replace("F5f", f"{PKG}/acquire/run.py",
+        '                                title_forms=_forms(work)[1:])\n',
+        '                                )\n',
+        "acquire: a file bound IN PLACE is bound against the work's stored title alone (the second call site of "
+        "the same rule)")
 
 # ── the per-call-site rows (see the module docstring) ─────────────────────────────────────
 # E3f is the acceptance's surviving mutation: the SECOND copy of the NUL guard, on the admission path.
@@ -553,7 +604,7 @@ replace("R521", f"{PKG}/extract/reconcile.py",
 # THE SCHEMA (migration 0017) and the ingest.
 s5(block, "R58", MIG17, "guard: tables.cells JSON is retired in favour of table_cells",
    "a table's cells may be written as a JSON blob beside the rows: two homes for one fact")
-s5(block, "R59", MIG17, "guard: an ok run's rows are never cleared",
+s5(block, "R59", MIG20, "guard: an ok run's rows are never cleared",     # 0020 replaces the function
    "the resume path can empty a LIVE run: the evidence rows citing it lose their text")
 s5(block, "R510", MIG17, "guard: a reconciliation run with no blocks cannot be declared ok",
    "a reconciliation that produced nothing is recorded as an ok run and can become current")
@@ -713,6 +764,103 @@ def _register_s2():
 _register_s2()
 
 
+# ── the first real use of the KB (Reports/LITKB_LINKAGE_REVIEW_2026-09-15.md §8, migration 0020) ────
+# These kills are asserted in qc/test_litkb_first_use.py, which is NOT in TESTS, so every row names its
+# own set — `tests` REPLACES the default, it does not extend it, and a row that forgot this would run
+# the P2 suite against a mutation the P2 suite knows nothing about and report DID NOT FIRE.
+TESTS_FU = [*TESTS, "qc/test_litkb_first_use.py"]
+
+
+def fu(fn, *a, **kw):
+    fn(*a, **kw)
+    M[-1]["tests"] = TESTS_FU
+
+
+# §8.6 — the feeds vocabulary. The mutation is the validator as it stood until 0020: three of the seven
+# forms the convention documents, which is why 15 uses were written with an empty feeds array.
+fu(replace, "U1", MIG20,
+   "    'framework §[0-9]+(\\.[0-9]+)*' ||\n"
+   "    '|narrative §[0-9]+' ||\n"
+   "    '|gated-plan gate [0-9]+' ||\n"
+   "    '|review §[0-9]+(\\.[0-9]+)*' ||\n"
+   "    '|gap row [0-9]+' ||",
+   "    'framework §[0-9]+(\\.[0-9]+)*' ||\n"
+   "    '|gap row [0-9]+' ||",
+   "the feeds validator goes back to three of the seven documented forms: a use that feeds a report, "
+   "a narrative section or a gate carries no valid token at all")
+fu(block, "U2", f"{PKG}/commands.py", "guard: feeds tokens are checked before the use is written",
+   "`use add` writes first and lets prepare find the bad token later — which is how the 15 uses of the "
+   "linkage review ended up with no feeds at all")
+
+# §8.3 — a quote is anchored in an extracted block, or the use is refused. The mutation is the exact
+# fallback the review had to use: the quote survives in free text the database cannot check.
+fu(block, "U3", f"{PKG}/commands.py", "guard: a quote is anchored in an extracted block or the use is refused",
+   "a quote that is in no block is accepted and the use is written anyway: unverifiable evidence, "
+   "recorded as though it were evidence")
+fu(replace, "U4", f"{PKG}/use.py",
+   '    sql += " AND b.page_no = %s"', '    sql += " AND %s IS NOT NULL"',
+   "locate_quote stops honouring --page: a quote that occurs on two pages is anchored to whichever "
+   "block the ordering happens to return first")
+fu(replace, "U5", f"{PKG}/use.py",
+   "           \"  JOIN litkb.files f ON f.id = b.file_id AND f.current_run_id = b.run_id \"",
+   "           \"  JOIN litkb.files f ON f.id = b.file_id \"",
+   "a quote may be anchored in a SUPERSEDED run's blocks, which is text that is no longer the file's "
+   "answer — the same thing use_evidence_status.promotable refuses at prepare")
+
+# §8.5 — a DOI with no claim. The database guard and the client declaration are two rows, because the
+# declaration is what makes the case auditable and the guard is what makes it a declaration.
+fu(block, "U6", MIG20, "guard: check 1 a registry-only admission says so",
+   "check 1: an admission with no claim, no bound file and no registry_only marker passes anyway — the "
+   "rule 0013 wrote is gone rather than made sayable")
+fu(block, "U7", f"{PKG}/admit/front.py", "guard: an admission with no claim and no file says it is registry-only",
+   "the client stops declaring a registry-only admission, so `admit --doi` alone is refused again")
+
+# P4 — the title and its subtitle.
+fu(replace, "U8", f"{PKG}/admit/registry.py",
+   '    return f"{title}: {sub}"', "    return title",
+   "the work title goes back to the registry's BARE title: Konda 2016 is 'Magellan' again and its key "
+   "is minted from one word")
+fu(replace, "U9", f"{PKG}/admit/binding.py",
+   "    results = [(t, bind(pdf_path, t, first_author, page_text=text, info=info)) for t in forms]",
+   "    results = [(forms[0], bind(pdf_path, forms[0], first_author, page_text=text, info=info))]",
+   "the binder tries only the work's own title form: a first page printing the bare title of a "
+   "subtitled work stops binding")
+fu(block, "U10", f"{PKG}/admit/front.py", "guard: a claim that lacks the subtitle is a discrepancy, not a refusal",
+   "a claim that named the work but not its subtitle is admitted and the disagreement is dropped "
+   "instead of being kept for review")
+# A1 (repointed to 0020 above) already blocks that whole guard. This row is its NEW half: the work's
+# title may be any form the REGISTRY published, which is what lets a stored "title: subtitle" through.
+# Mutated back to the bare title alone, every subtitled work reads as a different study.
+fu(replace, "U11", MIG20,
+   "    IF jsonb_typeof(e->'registry_titles') = 'array' THEN",
+   "    IF false THEN",
+   "check 1: only the registry's BARE title is accepted as the work's, so a work stored under the "
+   "title-plus-subtitle form the registry itself published is refused")
+
+# §8.4 — a source with no PDF stays a manual PROPOSAL.
+fu(replace, "U12", f"{PKG}/admit/front.py",
+   '    return _call_admit(conn, ws, token, candidate_id, "manual", k, work, ids, file_json,',
+   '    return _call_admit(conn, ws, token, candidate_id, "registry", k, work, ids, file_json,',
+   "a web source is admitted as a registry FACT: no second session ever signs off on a page one "
+   "session saved and one session bound")
+
+# stage 6 — the resolution a reference claims must be shown, on the direct path too.
+fu(block, "U13", MIG20, "guard: a reference's resolution is shown",
+   "a reference may say `resolved` with no DOI, or name a resolved work while calling itself "
+   "unresolved — including on the DIRECT INSERT path the ingest login holds, and an edge is drawn "
+   "from exactly that row")
+
+# the per-call-site rows for the three sites these changes add
+fu(site, "U14", "litkb/admit/front.py::record_discrepancy::_jsonb", _JSONB,
+   what="the discrepancy's detail goes to the database without jsonb_safe: a NUL in a legacy title "
+        "aborts the write")
+fu(site, "U15", "litkb/use.py::write_use::_jsonb", _JSONB,
+   what="a use's statement, rationale and feeds go to write_proposal without jsonb_safe")
+fu(site, "U16", "litkb/commands.py::cmd_use::_labels", "(args.agent, args.session)",
+   what="`use add` writes with unnormalised agent/session labels: an invisible character makes one "
+        "session look like two")
+
+
 def call_sites(root=None):
     """Every call of a HELPERS name under Scripts/pipeline/litkb -> {site_id: {"file", "lines", "calls"}}.
 
@@ -797,13 +945,28 @@ SINK_ALLOW = {
         "Stage 0's progress lines: an index, a route word from the fixed ROUTES vocabulary, and the PDF's own "
         "basename. This module reads no credential at all — it opens files under Literture read-only and never "
         "connects to the database or the network."),
-    "litkb/extract/inventory.py::main::print": (4,
+    "litkb/extract/inventory.py::main::print": (5,
         "Stage 0's summary: json.dumps of the derived counts (ints, route words, file basenames), the wall "
         "clock, and the two output paths inside the repo. Same reason as above — no secret is in scope in this "
-        "module."),
+        "module. The fifth call, re-read 2026-09-15 when --freeze-census was added, interpolates len(rows) — an "
+        "int — and census_path(args.census), a path built from repo_root() or from the path the caller typed."),
+    "litkb/extract/inventory.py::report_new::print": (4,
+        "The --new report, added 2026-09-15. Four calls, interpolating: the literature root and the census path "
+        "(both either module constants or what the caller typed on the command line), integer counts from "
+        "collections.Counter, the fixed status vocabulary new/renamed/changed/missing, sha256 digests of file "
+        "bytes, and corpus relpaths. Every one of those is a fact about a FILE. This function is the reason the "
+        "module's reporting path prints instead of calling a bound stream .write: an aliased sink is invisible "
+        "to this checker, so the call site is written to be visible to it and argued here."),
     "litkb/ops/nightly_dump.py::install_task::print": (1,
         "The first line of PowerShell's own output from Register-ScheduledTask. The command it ran embeds a task "
         "name and a script path, no credential."),
+    # stage 6's ingest (migration 0020), appended 2026-09-15.
+    "litkb/extract/references_ingest.py::main::print": (1,
+        "json.dumps of the report load() builds, and that report is closed: the artifact directory the caller "
+        "named, file stems and the refusal sentences built from them, the route words 'file-stem'/'works.key', "
+        "and integer counts. Nothing on it comes from the network or from a credential — this module opens no "
+        "socket, and its one connection goes through litkb.ingest.connect(), whose password libpq reads from the "
+        "passfile and Python never sees."),
 }
 
 
@@ -1010,6 +1173,53 @@ def self_check(verbose=True):
     return not problems, rows
 
 
+ONE_CAMPAIGN_LOCK = Path(os.environ.get("LITKB_HARNESS_LOCK", str(SCRIPTS / ".litkb-harness.lock")))
+
+
+def take_lock(path=None):
+    """ONE campaign per working tree. -> the lock path (release_lock() takes it back), or SystemExit naming the holder.
+
+    A campaign edits the REAL sources in place, so two of them in one tree corrupt each other, and BOTH failure
+    modes were seen live on 2026-09-15:
+      * main() pre-flights every row's target against the file AS IT IS ON DISK, so a row whose target is
+        currently mutated by the other campaign reads as "mutation target occurs 0 times" and aborts the WHOLE
+        table - for a row that is perfectly sound;
+      * worse, make_worker_copy() copytree's the tree as it is, so a mutant applied at that instant is inherited
+        by every worker copy, and every verdict that comes back from it is wrong while saying nothing.
+    The second one is silent, which is why this is a lock and not a convention.
+
+    Workers do NOT take it: they run inside their own copies as children of the process that holds it (and the
+    lock's own name is in COPY_IGNORE, so it is neither copied nor hashed into a worker's manifest).
+
+    The lock is a file created O_EXCL carrying the holder's pid and start time, released by atexit. A process
+    killed outright leaves it behind; the refusal prints what is in it, so a stale one can be read and removed by
+    hand rather than guessed at."""
+    p = Path(path or ONE_CAMPAIGN_LOCK)
+    try:
+        fd = os.open(p, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
+    except FileExistsError:
+        try:
+            who = p.read_text(encoding="utf-8").strip()
+        except OSError:
+            who = ""
+        raise SystemExit(f"another mutation campaign holds {p} ({who or 'nothing recorded in it'}): the harness "
+                         f"edits the real sources in place, so two campaigns in one tree corrupt each other - a "
+                         f"row whose target is mutated right now reads as 'occurs 0 times', and a worker copy "
+                         f"made right now inherits the mutant silently. Wait for it, or delete that file if the "
+                         f"process is gone.") from None
+    with os.fdopen(fd, "w", encoding="utf-8") as fh:
+        fh.write(f"pid {os.getpid()} started {datetime.datetime.now().isoformat(timespec='seconds')}\n")
+    return p
+
+
+def release_lock(path=None):
+    """Give the lock back. Releasing one that is already gone is not an error (atexit may run twice over)."""
+    try:
+        os.unlink(Path(path or ONE_CAMPAIGN_LOCK))
+    except OSError:
+        pass
+
+
 def _sha(b):
     return hashlib.sha256(b).hexdigest()
 
@@ -1097,11 +1307,20 @@ WORKER_ROOT_DEFAULT = Path(r"D:\edmonds-pipeline\_litkb_harness_workers")
 COPY_DIRS = ("Scripts", "Reports")          # tests read Reports/literature_tracker.csv
 # the ONE ignore set: shutil.copytree and tree_manifest() must agree exactly, or every worker's
 # stale-copy check (D-2) fails on files that were never copied in the first place
-COPY_IGNORE = ("__pycache__", ".pytest_cache", "*.pyc", "_litkb_ws", ".litkb-workstream")
+COPY_IGNORE = ("__pycache__", ".pytest_cache", "*.pyc", "_litkb_ws", ".litkb-workstream",
+               ".litkb-harness.lock")
 # files copied individually AFTER copytree (they are not all under COPY_DIRS). The guard's domain must equal
 # the copy's domain, so tree_manifest() hashes exactly this list too (referee 2 E-2, 2026-09-14): the repo-root
 # .gitignore was copied and never hashed, so a stale one was invisible to manifest_diff.
-COPY_FILES = (".gitignore", "Scripts/.gitignore")
+#
+# The two phase4/qc rows are here for the same class of reason and were added on 2026-09-15 by a FAILING
+# BASELINE, not by reading: the corpus census was frozen to `phase4/qc/litkb_inventory_census.sha256`, which
+# `inventory.repo_root()` resolves relative to the package — so inside a worker copy it resolves under the COPY,
+# where phase4/ did not exist. Every corpus-backed inventory test errored and the E3inv row ran against a broken
+# baseline. A test's whole read domain must be inside the copy; when a tracked input moves OUT of COPY_DIRS,
+# it belongs on this list.
+COPY_FILES = (".gitignore", "Scripts/.gitignore",
+              "phase4/qc/litkb_inventory_census.sha256", "phase4/qc/litkb_inventory.csv")
 
 
 def default_workers():
@@ -1193,6 +1412,7 @@ def make_worker_copy(i, root):
     # ignore files is enough for `git check-ignore --no-index`, and nothing here is ever committed
     for gi in COPY_FILES:
         if (repo / gi).exists():
+            (dst / gi).parent.mkdir(parents=True, exist_ok=True)   # phase4/qc/ is not under COPY_DIRS
             shutil.copy2(repo / gi, dst / gi)
     subprocess.run(["git", "init", "-q", str(dst)], check=True, capture_output=True)
     return dst
@@ -1303,6 +1523,9 @@ def main(argv=None):
                   + "; ".join(f"{p} {w}" for p, w in bad[:5]))
             print("this worker reports NO verdict: a stale copy produces false survivors (referee D-2)")
             sys.exit(2)
+    if not a.worker:
+        # one campaign per tree, taken BEFORE the pre-flight below reads any target (see take_lock)
+        atexit.register(release_lock, take_lock())
     if a.plant_equivalent:
         replace("ZZ0", f"{PKG}/textnorm.py", "The ONE Python normalisation of DOIs",
                 "The ONE Python normalisation of DOIs (planted equivalent: docstring only)",

@@ -88,6 +88,17 @@ MUTATIONS = {
            "    return (sha256, str(path), ph)", "    return (sha256, ph)"),
     "S2": ("the resume key drops the params hash: a moved threshold is never re-probed",
            "    return (sha256, str(path), ph)", "    return (sha256, str(path))"),
+    # ── the frozen census ───────────────────────────────────────────────────────────────
+    # The pinned corpus numbers were measured over a NAMED list of 241 files
+    # (phase4/qc/litkb_inventory_census.sha256). This row removes the list and lets the
+    # census walk the corpus again, which is what it used to do and how it came to read
+    # `assert 246 == 224` from acquisition alone (Reports/LITKB_P4_MERGE_2026-09-15.md).
+    # Needs the corpus mounted, and needs it to have GROWN since the freeze — if the corpus
+    # is ever byte-identical to the census this row cannot fire, and that is honest: there
+    # would be nothing for the freeze to protect against.
+    "X1": ("the census reader falls back to walking the corpus: the pinned census is "
+           "re-measured over today's files and stops being a measurement of anything",
+           "files=census_pdfs(root, census))", "files=None)"),
 }
 
 #: A deliberate no-op, for the harness's own kill: it must be reported DID NOT FIRE.

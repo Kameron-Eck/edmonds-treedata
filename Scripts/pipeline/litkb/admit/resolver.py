@@ -49,8 +49,23 @@ def strip_tags(s):
     return _TAG_RE.sub(" ", str(s or ""))
 
 
+#: What a PDF text extractor emits where it could not decode a glyph, and where it broke a word.
+#: U+FFFD is the replacement character — a ligature or an accented letter the text layer could not
+#: render, and Köpcke 2010's first page reads "K<FFFD>pcke"; U+00AD is a soft hyphen; U+FFFE is the
+#: noncharacter pypdfium2 emits at a line-break hyphen (measured on Alwan 1988 p3; see
+#: extract/reconcile.HYPHEN_NONCHAR, which removes it from stage 5's stored TEXT for the same
+#: reason). None of the three carries information, and all three are DROPPED rather than turned into
+#: a separator: dropping rejoins a word the extractor split, while a separator would split a word
+#: that was never split. `work/20260915-access-layer` applies the same rule to the indexed text and
+#: the search query alike (migration 0018, `litkb.norm_search_text`); this is the comparison side of
+#: it. Written with escapes, never as literals — two of the three are invisible, and this repository
+#: has already committed one guard whose literal nobody could see.
+UNDECODABLE = "�­￾"
+_UNDECODABLE_RE = re.compile("[" + UNDECODABLE + "]")
+
+
 def _norm_text(s):
-    s = (s or "").lower()
+    s = _UNDECODABLE_RE.sub("", s or "").lower()
     s = "".join(" " if c in string.punctuation or c.isspace() else c for c in s)
     return " ".join(s.split())
 

@@ -1476,3 +1476,70 @@ files:   Scripts/qc/test_litkb_s2.py, Scripts/qc/instruments/litkb_s2_mutations.
          Reports/LITKB_P4_MERGE_2026-09-15.md ("P6 merged"), Scripts/CHATLOG.md.
 next:    a referee for the merged tree if one is wanted; the reference loader (with the resolution
          CHECK and the edges table decided together); stage 7.
+
+## 2026-09-15  litkb-first-use-friction
+goal:    close the friction the FIRST real use of the knowledge base exposed. The linkage review
+         (LITKB_LINKAGE_REVIEW_2026-09-15.md §8) is a defect list measured on one session that tried
+         to follow LITERATURE_CONVENTION.md end to end; LITKB_P8_REFEREE §4 classified it. Kam:
+         finish the pipeline, no new evaluations.
+did:     ONE migration, 0020_first_use_friction.sql, applied to the worker test DBs and to litkb.
+         Additive: three CHECKs widened (discrepancies.source +admission, file_versions.copy_kind
+         +web snapshot, references.resolution +ambiguous), _check_registry and clear_extraction_rows
+         replaced whole, _feeds_token_ok replaced in place, citation_edges created, four
+         litkb_ingest-only writers and one trigger. Then: `litkb use add` + `use list` (step 4 of
+         the hunt protocol had no CLI at all); `admit --web` for a source with no DOI, bound against
+         the admitter's saved .txt of the page; `admit --doi` alone, declared registry_only on the
+         identifier's evidence; the work title joined with its subtitle at admission, with
+         bind_any() trying every published form so a first page printing the bare title still binds;
+         a claim missing the subtitle kept as a discrepancy; bad downloads quarantined with a reason
+         sidecar instead of discarded; the corpus census frozen to a committed sha256 list; and a
+         loader for stage 6's parked JSONL.
+decided: the feeds vocabulary is brought UP to the convention's seven forms rather than the
+         convention cut down to the three that were enforced -- the referee called that "the right
+         one" and the cheap one was editing the skill. §8.2 ("a use with no verifiable quote is
+         refused at prepare") is FALSE as written and was NOT settled here: two coherent fixes,
+         Kam's call, and the convention now says so in place of the false sentence.
+measured: live litkb ingest 643 references / 969 citation mentions / 13 citation edges / 630
+         citation candidates over 17 stage-6 runs; second run adds 0. The parked file's 1,386 rows
+         are bounding boxes -- 1,182 are elements, 201 of those have no biblStruct target and 24
+         belong to the one refused paper, which is 969 exactly. litkb_test_w9, where every stem has
+         a fixture file, loads 658 / 981 / 13 / 645. `citing_work_key` in the P6 JSONL is a FILE
+         STEM, not a works.key: only 10 of 18 match a key, 17 of 18 match a held file by rel_path
+         stem, so the loader resolves by stem first and refuses Chrisman_1982 by name (a key with no
+         active file). `litkb inventory --new`: 28 outside the census, 0 renamed/changed/missing --
+         but 13 of the 28 are ~1.6 KB failed downloads saved as .pdf, so 15 real new documents.
+         U+FFFD/U+00AD/U+FFFE are now dropped before every title and token comparison, which rejoins
+         hyphen-split words -- and does NOT recover Köpcke, whose "ö" the extractor lost entirely;
+         that residual is pinned in a test rather than believed fixed.
+gates:   check.py --fast under LITKB_TEST_DB=litkb_test_w6: 1 failed / 2904 passed / 22 skipped /
+         2 xfailed; the one failure is the pre-existing crown_state_model pointer, not litkb's. 339
+         litkb Postgres tests, 244 before. Mutation table parallel on --worker-dbs 1,6,9: 253/253
+         fired, baselines passed, 72.8 min over 3 workers. --sites: 78 call sites, 75 covered by a
+         row, 3 equivalent; 18 sinks, 2 redacted, 16 allowed; no PROBLEM.
+gotcha:  0020 and work/20260915-access-layer's 0018 BOTH CREATE OR REPLACE _feeds_token_ok, written
+         independently, with different framework-depth regexes. A CREATE OR REPLACE is decided by
+         APPLY order, not by migration number, so litkb (which has 0020) would end up with 0018's
+         body while a fresh database ends up with 0020's -- one migration set, two schemas. 0020 is
+         applied and checksum-locked; 0018 is not yet. Kam decides which one goes.
+gotcha2: the FIRST full table said "253/253 fired; baselines FAILED" after 133.6 min, and the broken
+         baseline was the gate's own: freezing the census moved a tracked input (phase4/qc/*) out of
+         make_worker_copy()'s domain, inventory.repo_root() resolved it under the COPY, and every
+         corpus-backed test errored -- while the row that runs that set still printed FIRED, because
+         a broken baseline never shows up in a row's verdict. Second instrument defect this session,
+         same class as the missing cross-process lock. Fixed on COPY_FILES + a test. And
+         test_new_files_needs_no_database_and_writes_nothing was green only under
+         PYTHONPATH=pipeline pytest: its subprocess inherited no path, so check.py (which sets none)
+         hit ModuleNotFoundError. litkb is not in the editable install; the subprocess now gets the
+         path explicitly, like every other litkb test that spawns one.
+files:   Scripts/pipeline/litkb/{use.py, commands.py, admit/*, acquire/*, db/migrate.py,
+         db/migrations/0020_first_use_friction.sql, db/migrations/_reserved.txt,
+         extract/{inventory.py,references_ingest.py}, migrate_legacy/run.py},
+         Scripts/qc/{test_litkb_first_use.py, test_litkb_references_ingest.py, test_litkb_p1.py,
+         test_litkb_p2.py, test_litkb_inventory.py, test_litkb_harness_parallel.py,
+         test_status_discovery.py, instruments/*},
+         Scripts/docs/LITERATURE_CONVENTION.md, phase4/qc/litkb_inventory_census.sha256,
+         Reports/LITKB_P3_REPORT_2026-09-15.md ("First-use friction closed"), Scripts/CHATLOG.md.
+next:    Kam's two open calls (§8.2's prepare rule; the _feeds_token_ok collision at the 0018 merge);
+         the U+FFFD wildcard in tokens_contain if the quarantined Köpcke file is wanted; §8.7's
+         open-access misses (a DOI->arXiv fallback recovers S2AND and Enamorado by the review's own
+         list); the census re-pin debt on Massari_2023 p13.

@@ -1437,3 +1437,42 @@ files:   Scripts/pipeline/litkb/extract/{reconcile,ingest}.py, .../db/migrations
          Reports/litkb_stage5_2026-09-15.csv.
 next:    a referee: no pre-committed gold exists, so all four thresholds are author-chosen and
          UNVALIDATED. Then 0017 on litkb, the throughput gate, stages 6-7.
+
+## 2026-09-15  litkb-p6-merge
+goal:    merge the refereed references branch (P6: stage 6 + the Semantic Scholar leg) into
+         work/20260913-literature-kb and prove the merged tree. I wrote neither side.
+did:     work/20260915-references e176707 merged --no-ff as 7b8afd7. ZERO textual conflicts: the
+         three the brief predicted did not fire, because the litkb side never touched
+         admit/resolver.py in 8f985e5..8cbed38 and P6 touched neither requirements-litkb*.txt nor
+         .gitignore. The harness table auto-merged -- P6 added a tests= kwarg and two registrars,
+         the litkb side had rewritten the RD rows -- and the design's stage-6 text has one home
+         (P6's two blocks under the §7 stage table; the litkb side's additions are in §7.1/§12/§14).
+         Proofs on the merged tree: --sites PASS (75 sites, 72 covered, 3 equivalent; 16 sinks);
+         P6's tests 191 passed / 3 skipped, the 3 being litkb_live, so cache-only; the 293-reference
+         table 20 resolved / 23 ambiguous / 250 unresolved with requests_total 0; the P3 gate
+         read-only on litkb 713/243/120/10/UNEXPLAINED 0, PASS, and litkb_p3_diff.csv regenerates
+         with an empty git diff; the full parallel harness --workers 3 --worker-dbs 1,6,9,
+         226/226 fired in 115.5 min.
+killed:  one defect the merge surfaced and neither branch could see -- s2.py::request::redact is a
+         call site of the redaction family, which came under the per-call-site rule on the OTHER
+         side of the merge. --sites failed with one PROBLEM line on 7b8afd7. Row P7-RD19 plus a
+         test (register a key, have the transport echo it in a status-0 body, assert <KEY>): FIRED
+         in the full harness. Fixed in 98f9d1b. Same class as 11db0fa, from the other direction.
+decided: NO migration. "references" and citation_mentions come from 0002, candidates from 0001, so
+         the tables-do-not-exist trigger never fired and litkb stayed read-only. The live ingest was
+         not run either, and could not be: extract/ingest.py has no reference loader at all. Two
+         gaps named for whoever writes one -- references.resolution's CHECK has no 'ambiguous'
+         (19 of 658 rows are), and edges.jsonl has no table. That is also what references.py:8's
+         "the citation-graph columns are applied at merge" was pointing at; this merge applied none.
+measured: check.py --fast under LITKB_TEST_DB=litkb_test_w6 fails THREE, not the one allowed:
+         crown_state_model plus test_litkb_inventory's two census pins. git diff 8cbed38..HEAD over
+         that test, extract/inventory.py and phase4/qc/litkb_inventory.csv is EMPTY -- the corpus
+         moved, not the tree. All 22 extra PDFs are in Literture\_litkb_staging\filed, litkb's own
+         acquisition store, which sits inside the census root and is excluded by nothing; the five
+         newest are timestamped 18:12-18:13 today and are splink/entity-resolution papers, i.e.
+         another session's work landing in a shared store. So it is a corpus-DEFINITION question
+         for §12, not a re-pin job, and re-pinning refereed numbers unrefereed is 3.4c.
+files:   Scripts/qc/test_litkb_s2.py, Scripts/qc/instruments/litkb_s2_mutations.py,
+         Reports/LITKB_P4_MERGE_2026-09-15.md ("P6 merged"), Scripts/CHATLOG.md.
+next:    a referee for the merged tree if one is wanted; the reference loader (with the resolution
+         CHECK and the edges table decided together); stage 7.

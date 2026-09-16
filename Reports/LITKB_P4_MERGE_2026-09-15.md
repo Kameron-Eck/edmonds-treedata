@@ -202,8 +202,24 @@ is implicated and all 75 of its rows still fired. Re-run here on the clean merge
 same way: **`assert 246 == 224`** — `D:\edmonds-pipeline\Literture` now holds 246 active PDFs
 against a census pinned at 224 (the second failure in its final baseline,
 `test_the_boundary_pins_really_are_the_nearest_pages`, is the same class). **The merge diff contains
-no inventory file at all**, so this is the data plane moving under a pinned number, and it belongs to
-whoever grew the corpus — named here, not fixed here.
+no inventory file at all**, so this is the data plane moving under a pinned number.
+
+**Where the 22 came from, measured.** All of the growth is in
+`Literture\_litkb_staging\filed` (26 PDFs), which is litkb's own acquisition store and sits
+**inside** the census root, excluded by nothing — the census excludes only `_quarantine`. The five
+newest are timestamped **18:12–18:13 today**, an hour after this merge commit, and are entity-
+resolution and bibliographic-matching papers (`Linacre_2022_splink-free-software-probabilistic`,
+`Massari_2023_opencitations-meta`, `Guenci_2025_pipeline-matching-bibliographic-references`,
+`Papadakis_2020_…`, `Mandilaras_2021_…`), i.e. **another session's `work/20260915-splink`
+acquisitions landing in a store this worktree shares**. Nothing in this session wrote them: the
+harness deselects live tests and this merge ran no acquisition.
+
+So the honest statement is not "someone must re-pin the numbers" but: **stage 0's census root
+contains a store that other workstreams actively grow, and its corpus definition does not exclude
+it**, so any number pinned to a file count under `Literture` expires the next time a paper is
+acquired. That is a corpus-definition question for the design's §12 — which already carries three
+different corpus definitions — not a re-pin job for this merge, and re-pinning refereed numbers on
+an unrefereed change is what 3.4c forbids.
 
 ## Migration: none written, and one gap named instead
 
@@ -227,6 +243,13 @@ Two things a future loader will hit, measured here and left alone:
    the loader maps `ambiguous` onto `candidate`; that is a design call, not a merge call, and
    widening a CHECK on `litkb` is neither additive nor testable against a loader that does not exist.
 2. **`edges.jsonl` has no table.** The citation graph is 13 rows on this corpus with nowhere to go.
+
+**And the sentence this merge was addressed by.** `extract/references.py:8` and
+`LITKB_REFERENCES_2026-09-15.md:21` both say *"the citation-graph columns are applied at merge"* —
+this merge is the one they name. Neither report says which columns, and the branch ships no `.sql`;
+gap 2 above is what that sentence is pointing at. **This merge applied none**, because the only
+honest column change is the one a loader's shape decides, and there is no loader. The claim is left
+standing in P6's own report as history, and answered here.
 
 ## The ladder
 

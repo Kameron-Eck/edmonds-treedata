@@ -743,3 +743,289 @@ and the four test modules all hash identically to `git show HEAD:<path>` (LF-nor
 
 
 *Appended by Claude Opus 5, session https://claude.ai/code/session_015MUcyGTfX2koRdYAjW5kED.*
+
+---
+
+# Canonical blocks and scan OCR — 2026-09-16, after the final referee
+
+`Reports/LITKB_P5_FINAL_REFEREE_2026-09-16.md` accepted the base as **operational with caveats**
+and ranked five of them. This section closes the four that affect citing and searching, and binds
+four of the five scans. Everything below was re-derived on this branch; the "before" column comes
+from the same script as the "after" one, which is the whole reason that script exists.
+
+## M. The instrument first
+
+`qc/instruments/litkb_p5_canonical.py` — `census` (the three duplicate classes and the per-kind
+counts, from the database), `gold` (the frozen P5 gold, scored on presence, kind, reading order
+and the two text-equality grades), `latex` (the `latex_status` corpus counts) and `local` (the
+same duplicate counts over a reconciliation of the stored artifacts, with no database at all —
+the iteration loop). The referee scored its §4 with ad-hoc SQL; a hand-run "after" against a
+hand-run "before" measures the two readers as much as the two corpora.
+
+It reproduces the referee's own numbers on the corpus **as they left it**, before any change:
+
+| §4 class | referee | this instrument |
+|---|---|---|
+| duplicate `(run, page, bbox)` among canonical blocks | 63 groups, 73 extra rows | **63 / 73** |
+| duplicate `(run, page, normalised text >= 40)` | 1,635 groups, 3,120 extra rows, 205 files | **1,639 / 3,124 / 206** |
+| normalised text >= 80 a PROPER substring of another on its page | 6,309 blocks, 224 runs | **6,318 / 224** |
+
+The near/contained deltas are whitespace normalisation — mine is one SQL expression applied to
+both sides, the referee's an ad-hoc pass — and they are stated rather than reconciled.
+
+## N. One canonical block per region
+
+Four changes in `reconcile.py`, and the mechanism of each is in the source beside it.
+
+**A fragment carries its own words, not its element's.** `union_boxes` already split an element
+per page and per column; every fragment then inherited `col[0].text`, which is the WHOLE
+element's, and `text_for`'s 50 % floor — written for a whole region, where a short native slice
+means the box is in the wrong frame — compared a fragment's honest slice against every page and
+column of its element, failed, and stored the tool's text. That is the referee's G7 in one
+sentence: 872 characters under `page_no = 12`, the first ~700 printed on page 11. It is also the
+largest single source of duplicate text: on Pengra p8 one GROBID `<p>` crossing 14 table columns
+stored the same 600 characters 14 times. `union_boxes` now numbers an element's fragments and
+`choose_text` takes a fragment's native slice unconditionally; `continues_from` /
+`continues_to` go into the block's provenance so a quote that runs off a page can find its rest.
+
+**`_merge_regions` emits ONE block per region.** Two readings are one region when their boxes
+agree at `IOU_MATCH`, or when one is `CONTAIN_MATCH` inside the other and the text agrees. The
+loser's reading becomes a `duplicate_region` disagreement row: §7 says a disputed region is kept
+and marked, and it never said the mark has to be a second block that search returns twice and a
+quote's character offsets can land in either of. One tool's OVER-MERGE of the other's
+segmentation — Pengra p7's 3,392-character `<p>` holding the page's captions and body — drops the
+container, because §7.1 gives Docling the segmentation.
+
+**A bibliography entry is re-kinded, not stored twice.** Conway p11 held 29 `paragraph` blocks in
+page order and 28 `reference` blocks at 418-445, and the copy a search found first was typed
+`paragraph`. A `biblStruct` that lands on a body block now re-kinds it: native text, real box,
+real reading order, GROBID's kind, and GROBID's `element_id` in the provenance so stage 6 can
+still join. A caption's words live in the caption block, not in the figure block as well.
+
+**`title`, `author`, `affiliation`.** Three of the eight kinds the referee found never assigned.
+No body matcher can name them; `<teiHeader>` can. `title` and `persName` are coordinate-bearing,
+so those two are assigned by geometry and checked against the text; `<affiliation>` carries no
+coordinates and is assigned by text alone — a weaker rule, and the docstring says so.
+
+**Three corrections found by measurement, not by reading**, each of which shipped wrong first:
+
+1. *Components are not regions.* The first merge grouped a page into connected components. "One
+   region" is transitive for IoU and is NOT transitive for containment, so a page where a large
+   block nests several small ones chained into one group, the survivor was compared with 92
+   blocks it had no edge to, the no-text-loss guard refused all of them — correctly — and the
+   page merged NOTHING. `Angelopoulos_2022` p7 kept 21 exact-duplicate rectangles and migration
+   0022's trigger aborted the corpus ingest on it. The rule is now pairwise and greedy.
+2. *The merged block's box is the union.* Keeping the smaller box leaves every character in the
+   difference belonging to no canonical block: the per-page minimum coverage fell on **52 of 229
+   documents** and the gate caught 9 files where it had caught 6.
+3. *An over-merge is dropped only when its characters are held by blocks that stay.* A
+   container's text can be covered by its children while its box still holds characters nothing
+   else is responsible for — the native reading of a box is the span between its first and last
+   character, so a tall box can carry a short reading. `Guo_2018` fell from 0.9913 to 0.4098.
+   `OVERMERGE_COVER` is 0.95, not 0.60, and the test is now the coverage metric's own question
+   asked over the page's real characters.
+
+## O. Migration 0022
+
+Additive. It widens `extraction_disagreements.kind` for the two shapes the merge produces, adds
+`equations.latex_status` with its five values and the CHECK that a refused decode is never stored
+as the equation, and refuses a repeated canonical `(run, page, bbox)` — with a **BEFORE INSERT
+trigger, not a unique index**. `litkb` already held those 63 groups inside `ok` runs that nobody
+may delete (`clear_extraction_rows` refuses an `ok` run; the ingest login holds no DELETE), so an
+index would have succeeded on a fresh `litkb_test` and failed on live `litkb`: one migration set,
+two schemas, which is the defect 0021 exists to undo.
+
+## P. `latex_status`, and what it does NOT say
+
+The referee's §3 found 9 of 20 sampled LaTeX strings wrong with nothing in the database saying
+which. `latex_status` is assigned where the two halves meet — the equation blocks and the L4
+pass's own verdicts — in the same INSERT as the string.
+
+The **contaminated** class is geometry, not a decode score. docling crops a formula at
+`bbox.expand_by_scale(0.18, 0.18)`, read off `CodeFormulaVlmModel` by `formula_crop_worker`, so
+the padding is PROPORTIONAL: the referee's one-line E02 (9.8 pt tall) gets 1.8 pt of margin and
+sees nothing; its six-line E01 (178.3 pt) gets 32.1 pt and sees roughly three printed lines. The
+test is whether a prose run of at least 8 letters that the decode wrapped in `\text{}` appears in
+the padding RING and not in the equation's own box.
+
+Scored against the referee's FROZEN twenty (`Reports/gold/p5_gold_2026-09-16.json`, sha256
+`6eeab1eb…`, committed at `3230b48` before any measurement): **18 of 20 agree**, and no clean
+crop is called contaminated.
+
+| id | referee | detector | box height | ring chars |
+|---|---|---|--:|--:|
+| E01 | contaminated | **contaminated** | 178.3 | 96 |
+| E06 | contaminated | **contaminated** | 40.6 | 63 |
+| E19 | contaminated | **contaminated** | 37.2 | 54 |
+| E11 | contaminated | stable | 38.0 | **3** |
+| E20 | mathematically wrong | contaminated | 183.8 | 86 |
+| the other 15 | 11 correct, 4 wrong | stable | — | 0-23 |
+
+E11's ring holds three letters: its contamination (`\intertext{ i n t s e q u a l s }`) cannot
+have come from the margin, so it is model over-generation and the crop geometry cannot see it.
+E20's ring DOES carry the words its decode emitted, and the referee also graded its mathematics
+wrong; both readings are true of it. The rule was written before this measurement and run once —
+it was not fitted to the twenty, and the 8-letter floor comes from the mechanism (a formula's own
+vocabulary is short words) rather than from a sweep.
+
+**`stable` says nothing about whether the mathematics is right.** E03's dropped lambda_n, E05's
+`S^{d}` for `S^{d-1}`, E07's `\bar Z` for `Z`, E12's `\mathbf a` for alpha and E20's lost
+subscript are wrong on clean crops, and every one of them comes out `stable`. Scoring a decode
+against the page is not attempted here and the column's definition says so in those words.
+
+Corpus counts, current runs (`litkb_p5_canonical.py latex`):
+
+| `latex_status` | equations | with LaTeX |
+|---|--:|--:|
+| stable | 3,170 | 3,170 |
+| contaminated | 287 | 287 |
+| unstable | 58 | 0 |
+| degenerate | 109 | 0 |
+| unverified | 3,525 | 0 |
+| **total** | **7,149** | **3,457** |
+
+## Q. Furniture and references out of search
+
+`litkb_search` excludes `page_header`, `page_footer`, `page_number`, `other` and `reference` by
+default; `kinds="all"` or a comma-separated list brings them back, and an unknown type name is
+REFUSED rather than silently dropped. The result states which types were left out. `title`,
+`author` and `affiliation` stay IN, which is a judgment and is recorded as one.
+
+Measured live on the corpus, `limit=10, scope="blocks"`:
+
+| query | default | `kinds="all"` |
+|---|---|---|
+| `constrained Monte Carlo maximum likelihood` | 0 furniture; ranks 1-3 are Geyer's own heading and two body paragraphs | **8 of 10 are `page_header`** — the same 42 characters from pages 3, 5, 7, 9, 11, 13, 15, 17 |
+| `non-homogeneous hidden Markov model transition probabilities covariates` | 0 furniture; rank 1 is Hughes 1999's title, rank 2 its p4 body paragraph | **5 of 10 are `page_header`** |
+
+The P8 gold's three passages through the same search: **ranks 1, 1, 2** (the referee measured
+1, 2, 2 before this change; Q1 and Q3 are located by the fragment the gold's `search_query` is
+drawn from, because two of the three `verbatim_passage` strings carry the referee's preserved
+mojibake and occur verbatim in no block, before or after).
+
+## R. The corpus, re-ingested
+
+`P5_PIPELINE_VERSION` is now the reconciler's own string, READ rather than copied. What kept the
+two labels apart — a LaTeX-free ingest must not collide with this one — moved into
+`ingest.params_hash`, where the merge's new thresholds also sit. One corpus, one label; the
+referee's §4 note about reading two labels for one corpus is closed.
+
+| | before (stage5-2 + dyclamp) | after (stage5-3) |
+|---|--:|--:|
+| files with a current run | 229 | **229** |
+| `pipeline_version` labels over current runs | 2 (224 + 5) | **1** |
+| blocks in current runs | 103,947 | **82,166** |
+| pages in current runs | 4,006 | 4,006 |
+| runs not `ok` / blocks outside an `ok` run / duplicate run keys | 0 / 0 / 0 | **0 / 0 / 0** |
+| **exact `(run, page, bbox)` duplicates** | 63 groups, 73 rows | **0 / 0** |
+| **duplicate normalised text >= 40** | 1,639 groups, 3,124 rows, 206 runs | **275 / 375 / 62** |
+| **contained (>= 80 chars, proper substring)** | 6,318 blocks, 224 runs | **2,984 / 200** |
+| documents with a page below the coverage floor | 6 of 229 | **6 of 229** |
+
+Per kind, current runs:
+
+| kind | before | after | kind | before | after |
+|---|--:|--:|---|--:|--:|
+| paragraph | 66,489 | 46,096 | footnote | 910 | 732 |
+| reference | 9,300 | 9,285 | **title** | **0** | **246** |
+| equation | 8,055 | 7,149 | **author** | **0** | **303** |
+| page_header | 6,664 | 6,627 | **affiliation** | **0** | **271** |
+| heading | 5,281 | 4,305 | page_footer | 2,509 | 2,437 |
+| caption | 2,036 | 2,015 | figure | 1,842 | 1,839 |
+| table | 861 | 861 | | | |
+
+**The residue, explained.** 375 duplicate-text rows in 62 of 229 runs are overwhelmingly Conway's
+appendix survey form — the same blank answer line printed several times on one page, which is
+genuinely several regions with one string. 2,984 contained blocks in 200 runs are what the
+no-text-loss rule keeps: a GROBID `<p>` whose native slice holds its neighbours' words but whose
+box holds characters nothing else does. Dropping them is the thing that cost Guo_2018 six tenths
+of a page, so they stay and are recorded as `partial_overlap` disagreements.
+
+**Two superseded sets of runs stand beside the current one**, at the same `pipeline_version` and
+a different `params_hash`: the component-merge ingest (213 documents, aborted by 0022's trigger)
+and the first pairwise one (229, which cost coverage). An `ok` run's rows cannot be deleted by
+anyone — that is the design, and it is what protects evidence that cites them — so a repaired
+ingest is a different run, and `params_hash` is the field that says which reconciliation a run is.
+
+**The gold** (`litkb_p5_canonical.py gold`, against the database):
+
+| | before | after |
+|---|--:|--:|
+| gold body items matched | 60 of 74 | 59 of 74 |
+| `kind` correct, of matched | **23** | **53** |
+| within-band reading-order violations | 1 | **1** |
+| cross-band inversions (not charged) | 0 | 0 |
+| text equality, STRICT | 0 of 8 | 0 of 8 |
+| text equality, **OPERATING** | 6 of 8 | **7 of 8** |
+
+G7 — the citation-page case — flips to OPERATING: the block on page 12 now holds the paragraph
+printed on page 12. G3 stays False and is the referee's own finding: the PDF's text layer drops
+the final full stop. The one item lost from presence is Ploton's affiliation line, and the reason
+is §7.1 working: the block's text is now the native layer's `1AMAP, Univ Montpellier…` where it
+used to be Docling's `1 AMAP, …`, and the gold's snippet was transcribed from the rendered page.
+
+**The mid-file kill, re-run once** (`litkb_p5_bulk.py kill-test`, subject `Bacry_2015`, 59 pp):
+killed INSIDE the open transaction, **1 run at the key, `ok`, 903 blocks = the control's 903, 0
+duplicate page-order groups, 0 blocks visible to an independent reader mid-transaction**. PASS.
+Its two counts are now scoped to the run's own pipeline version: counting every block of the FILE
+read 1,564 committed stage5-2 blocks as "visible mid-transaction" and reported FAILED while every
+property it tests held. It ran before the last two merge corrections, which are upstream of
+`ingest_file` and cannot reach the transaction; with every document now holding an `ok` run at
+this key there is no subject left to kill, and saying so is more useful than a kill that would
+resume into "already ingested, wrote nothing".
+
+**P3's gate, re-run on `litkb`** (workstream `p3-migration`): 1,086 changed cells — explained
+**713**, format **243**, structural **120**, filled **10**, UNEXPLAINED **0**. **GATE: PASS** —
+the pinned 713/243/120/10/0, unchanged by the re-ingest.
+
+## S. The scans: four of five bind
+
+`bind_any_with_ocr` runs Docling's OCR over pages 1-2 and re-binds when — and only when — the
+first page has NO text layer for `pdftotext` to read. The trigger is that fact, not the
+`binding-pending` verdict: `Ogata_1998`'s first page carries one form feed, and the empty page
+scores a spurious title ratio of 1.000 that sends it down the `binding-failed` branch instead, so
+a rule written on the verdict would have offered OCR to one of two files with the same problem.
+A page that HAS text and does not bind is left alone. `OCR_BIND_MAX_PAGES = 400` keeps the
+688-page book out of it by construction; nothing here touched `Schneider_2008`.
+
+| scan | before | after | evidence |
+|---|---|---|---|
+| `Anderson_1957` | `binding-pending` | **bound** | title ratio 1.000, author near the title, OCR p1-2, 37 s |
+| `Hudson_1978` | `binding-pending` | **bound** | 1.000, author near, OCR p1-2, 38 s |
+| `Hwang_1982` | `binding-pending` | **bound** | 1.000, author near, OCR p1-2, 39 s |
+| `Ogata_1998` | `binding-failed` | **bound** | 1.000, author near, OCR p1-2, 55 s |
+| `Kingman_1962` | `binding-failed` | **binding-failed** | its page 1 HAS a text layer — 2,219 normalised characters, title ratio 1.000 — and the publisher's own OCR reads the author line `J. F. Co KINGMkN`, so the surname is not a whole token near the title. Not a missing-text problem, and OCR of the same scan reads the same glyphs. |
+
+`files.has_text_layer` stays FALSE on all four: `text_layer` is the PDF's own fact, it is what
+stage 0 routes on, and a scan that OCR bound is still a scan.
+
+**The four bindings are PROPOSALS in the open workstream `fix-op-1`**, not in main's view. That is
+also why they are not extracted here: main holds 229 active files and the corpus census above is
+main's view, so extracting a file main does not hold would put blocks in the corpus for a work
+Kam has not merged. The next step is `litkb_p5_bulk.py plan --workstream fix-op-1` followed by
+`docling --ocr` and `ingest` — the flag exists for exactly this case (operational referee R-3).
+
+## T. Guards, and the rows that break them
+
+Thirteen new mutation rows, **13 of 13 fired** on `litkb_test_w1` / `_w6` / `_w9` in 3.1 minutes:
+R537 the fragment text rule, R538 the merge, R539 the over-merge, R540 the reference re-kinding,
+R541 the caption, R542 the header kinds, R543 and R544 migration 0022's two guards, R545 the
+ingest's status column, P56 the status sweep, P57 the contamination test, P58 its prose rule, and
+X27 the search filter. `--sites` still reads **91 call sites, 88 covered by a row, 3 equivalent;
+21 sinks, 2 redacted, 19 allowed**.
+
+## U. Did NOT test
+
+* **Extraction of the four newly bound scans** — see §S: they are proposals in an open
+  workstream, and the corpus census is main's view.
+* **The 688-page book**, deliberately, and `Politis_1994`, which carries no work key.
+* **The mid-file kill on the FINAL merge code** — §R gives the reason and the reason it does not
+  reach the property the kill tests.
+* **A second reader.** Every number above was produced by the author of the change
+  (CLAUDE.md §3.4c). The `latex_status` detector is scored against an independent frozen gold;
+  the duplicate counts and the corpus census are not scored against anything but themselves.
+* **Reproducibility.** No file was extracted twice at `stage5-3` with the same `params_hash`.
+* **The vector leg**, `record_use` live, `promote prepare` / `commit`, and per-region recall
+  beyond the six stage-5 gold pages.
+
+*Appended by Claude Opus 5, session https://claude.ai/code/session_015MUcyGTfX2koRdYAjW5kED.*

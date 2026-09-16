@@ -95,7 +95,9 @@ def file_evidence(file_path, registry_title, first_author, *, root=None, source_
         raise AdmissionError(f"{p} is not under the literature root {root}") from None
     facts = file_facts(p)
     info = _binding.pdf_info(p)
-    b = _binding.bind_any(p, [registry_title, *title_forms], first_author, info=info)
+    # OCR only where the first page has no text layer to read: bind_any_with_ocr re-binds a
+    # `binding-pending` and leaves every other verdict exactly as bind_any returned it.
+    b = _binding.bind_any_with_ocr(p, [registry_title, *title_forms], first_author, info=info)
     txt = p.with_suffix(".txt")
     out = {"sha256": facts["sha256"], "md5": facts["md5"], "bytes": facts["bytes"], "rel_path": rel,
            "has_text_layer": b["text_layer"], "binding": b,

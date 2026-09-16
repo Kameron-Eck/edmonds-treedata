@@ -230,6 +230,85 @@ def bind_any(pdf_path, titles, first_author, *, page_text=None, info=None):
     return best
 
 
+#: How many pages OCR reads when a first page has no text layer. The title, the authors and the
+#: affiliation of a scanned paper are on page 1; page 2 is there for the cover-sheet case, where
+#: page 1 is the repository's own banner and the paper's own first page is behind it.
+OCR_BIND_PAGES = 2
+
+#: The largest document OCR is offered for a BINDING. A book is not a cover sheet: the corpus's
+#: 688-page `Schneider_2008` would spend an hour of GPU to answer a question its first page
+#: already answers, and the decision to extract a book at all is not this function's to make.
+OCR_BIND_MAX_PAGES = 400
+
+
+def ocr_first_pages(pdf_path, pages=OCR_BIND_PAGES, python=None, timeout=1800, info=None):
+    """The first ``pages`` pages as DOCLING'S OCR reads them, or ``''``. Reads only.
+
+    The scan's own defect, stated plainly: :func:`first_page_text` runs ``pdftotext``, a scan has
+    no text layer for it to read, and the binding rule needs the TITLE off page 1. So the four
+    scans in the corpus (`Anderson_1957`, `Hudson_1978`, `Hwang_1982`, `Ogata_1998`) have sat at
+    `binding-pending` since P2 — admitted, with no file bound, invisible to search — and
+    `bound-unextracted` had no live instance to exercise because nothing ever became bound.
+
+    Returns ``''`` rather than raising on every failure a caller cannot act on: no Docling
+    environment on this machine, a document past :data:`OCR_BIND_MAX_PAGES`, a conversion that
+    refuses. The caller then keeps whatever verdict it already had, which is the state before
+    this function existed.
+    """
+    n = (info or pdf_info(pdf_path)).get("Pages") or ""
+    if n.isdigit() and int(n) > OCR_BIND_MAX_PAGES:
+        return ""
+    from litkb.extract import docling as D
+
+    if not D.worker_available(python):
+        return ""
+    with tempfile.TemporaryDirectory(prefix="litkb_ocrbind_") as d:
+        out, met = Path(d) / "ocr.json", Path(d) / "metrics.jsonl"
+        try:
+            doc, _m = D.extract(str(pdf_path), str(out), str(met), require_text_blocks=False,
+                                pages=list(range(1, int(pages) + 1)), ocr=True,
+                                python=python, timeout=timeout)
+        except Exception:  # noqa: BLE001 - an OCR that refuses leaves the binding where it was
+            return ""
+        return "\n".join(b.text for b in D.blocks(doc) if (b.text or "").strip())
+
+
+def bind_any_with_ocr(pdf_path, titles, first_author, *, info=None, ocr=True, python=None):
+    """:func:`bind_any`, and — only when it comes back ``binding-pending`` — again on OCR text.
+
+    The trigger is **no page-1 text layer**, not the ``binding-pending`` verdict, and the corpus
+    is why. ``binding-pending`` is `not text_layer AND ratio < BIND_RATIO`; `Ogata_1998`'s first
+    page carries one form-feed and nothing else, and the empty page scores a spurious ratio of
+    1.000 that sends it down the `binding-failed` branch instead. Both files have the same
+    problem — there is nothing on page 1 for ``pdftotext`` to read — and a rule written on the
+    verdict would have offered OCR to one of them. A page that HAS text and does not bind is left
+    alone: re-reading it with OCR asks a second oracle the question the first one answered.
+
+    The evidence records where the text came from (``page_text_source``), because a binding read
+    off an OCR of a scan and one read off a publisher's text layer are not the same evidence and
+    a later reader must be able to tell them apart.
+    """
+    info = pdf_info(pdf_path) if info is None else info
+    b = bind_any(pdf_path, titles, first_author, info=info)
+    if not ocr or b["verdict"] == "bound" or b["text_layer"]:
+        b.setdefault("page_text_source", "pdftotext")
+        return b
+    text = ocr_first_pages(pdf_path, python=python, info=info)
+    if not _norm_text(text):
+        b.setdefault("page_text_source", "pdftotext")
+        b["ocr_attempted"] = True
+        return b
+    after = bind_any(pdf_path, titles, first_author, page_text=text, info=info)
+    # `text_layer` stays the PDF's own fact, not the OCR's. It is what stage 0 routes on and what
+    # `files.has_text_layer` records, and a scan that OCR bound is still a scan: saying otherwise
+    # would send the extraction down the native path and get one page of nothing.
+    after["text_layer"] = b["text_layer"]
+    after["page_text_source"] = f"docling-ocr p1-{OCR_BIND_PAGES}"
+    after["ocr_attempted"] = True
+    after["verdict_before_ocr"] = b["verdict"]
+    return after
+
+
 def bind(pdf_path, registry_title, first_author, *, page_text=None, info=None):
     """-> binding evidence dict (the files.binding JSON)."""
     text = first_page_text(pdf_path) if page_text is None else page_text

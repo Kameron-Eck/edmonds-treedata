@@ -601,6 +601,10 @@ _PATH_INSERT_LEDGER = {
     "qc/instruments/litkb_equation_density.py": 1,  # same: litkb.extract.docling, for the density census
     "qc/instruments/litkb_formula_balance.py": 1,  # same: litkb.extract.colab_formula_worker
     "qc/instruments/litkb_p5_bulk.py": 1,     # same: litkb.extract.*, the P5 bulk pass
+    # the canonical-block census and gold scorer: one insert for `litkb` (the pipeline root), and
+    # two that put `qc/instruments` on the path so `local` and `gold --local` can drive
+    # litkb_p5_bulk's own reconciliation with no database — a sibling instrument, not a package
+    "qc/instruments/litkb_p5_canonical.py": 3,
     "qc/instruments/litkb_stage5_run.py": 1,  # same: litkb.extract.{reconcile,docling,inventory}, stage 5
     "qc/test_litkb_reconcile.py": 1,          # same: litkb.extract.reconcile, imported at module level
     "qc/test_litkb_references_ingest.py": 1,  # same: litkb.extract.references_ingest, at module level

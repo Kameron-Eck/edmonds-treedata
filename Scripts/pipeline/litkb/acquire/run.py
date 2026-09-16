@@ -211,7 +211,8 @@ def land_and_attach(conn, ws, token, work, data, *, route, source_url, store, in
     pdf, txt = store.land(data, work["key"], sha)
     info = _binding.pdf_info(pdf)
     # every title form, not only the work's stored one (_title_forms): the page prints the publisher's choice
-    b = _binding.bind_any(pdf, _forms(work), work["first_author"], info=info)
+    # ... and, where the landed page has no text layer at all, again on Docling's OCR of it
+    b = _binding.bind_any_with_ocr(pdf, _forms(work), work["first_author"], info=info)
     detail = {"sha256": sha, "md5": facts["md5"], "bytes": facts["bytes"], "binding": b, "source_url": source_url}
     # BEGIN guard: a file that does not bind is quarantined
     if b["verdict"] != "bound":

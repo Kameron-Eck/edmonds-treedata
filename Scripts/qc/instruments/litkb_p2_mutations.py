@@ -848,6 +848,26 @@ replace("P58", P5B,
 
 DEFERRED_HELPERS = {}
 
+# -- check 3 and the scan: OCR is offered ONLY where there is no text layer, and never to a book
+# (Reports/LITKB_P5_BULK_2026-09-16.md section S; tests in qc/test_litkb_p2.py).
+replace("T19", f"{PKG}/admit/binding.py",
+        '    if not ocr or b[\"verdict\"] == \"bound\" or b[\"text_layer\"]:',
+        '    if not ocr or b[\"verdict\"] == \"bound\" or False:',
+        "OCR is offered to a first page that HAS a text layer: a paper the rule refused on its own "
+        "printed page gets a second oracle, and can bind on a reading nobody could reproduce from "
+        "the file", tests=TESTS_P1P2)
+replace("T20", f"{PKG}/admit/binding.py",
+        "OCR_BIND_MAX_PAGES = 400",
+        "OCR_BIND_MAX_PAGES = 10000",
+        "the page cap is gone: a binding question puts the corpus's 688-page book through OCR, "
+        "which is an hour of GPU to read a title its first page already prints",
+        tests=TESTS_P1P2)
+replace("T21", f"{PKG}/admit/binding.py",
+        '    after[\"text_layer\"] = b[\"text_layer\"]\n',
+        "",
+        "a scan that OCR bound records has_text_layer TRUE: stage 0 routes it down the native "
+        "path and the extraction reads a page of nothing", tests=TESTS_P1P2)
+
 site("T18", "litkb/admit/binding.py::bind::verdict", '"bound"', tests=TESTS_P1P2,
      what="bind returns 'bound' without consulting verdict() at all")
 

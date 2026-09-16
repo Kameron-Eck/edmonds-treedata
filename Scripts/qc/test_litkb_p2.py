@@ -2312,3 +2312,69 @@ def test_live_unpaywall_lists_an_open_access_copy():
     from litkb.acquire import open_access
     urls, note = open_access.unpaywall_locations("10.1371/journal.pone.0326562")
     assert urls, note
+
+
+# ── check 3, the scan: OCR only where there is no text layer to read ────────────────────────
+
+def _bind_env(monkeypatch, page_text, ocr_text, pages="22"):
+    """binding with pdftotext, pdfinfo and Docling's OCR all stubbed, so the RULE is what is tested."""
+    from litkb.admit import binding
+
+    calls = []
+    monkeypatch.setattr(binding, "first_page_text", lambda _p: page_text)
+    monkeypatch.setattr(binding, "pdf_info", lambda _p: {"Pages": pages})
+
+    def _ocr(pdf_path, **kw):
+        calls.append(kw)
+        return ocr_text
+    monkeypatch.setattr(binding, "ocr_first_pages", _ocr)
+    return binding, calls
+
+
+def test_a_scan_with_no_text_layer_binds_on_its_ocr(monkeypatch):
+    """The four scans have sat at `binding-pending` since P2: `pdftotext` reads nothing off a
+    scan, so the title the rule needs is not there. Measured on the corpus after this fix,
+    Anderson_1957, Hudson_1978, Hwang_1982 and Ogata_1998 all bind; Kingman_1962 does not, and
+    that one is not this path's case — its page 1 HAS 2,219 characters of text."""
+    title = "Statistical Inference about Markov Chains"
+    ocr = _page(title, "T. W. ANDERSON AND LEO A. GOODMAN")
+    binding, calls = _bind_env(monkeypatch, "\f", ocr)
+    b = binding.bind_any_with_ocr("scan.pdf", [title], "Anderson")
+    assert b["verdict"] == "bound" and len(calls) == 1, b
+    assert b["page_text_source"].startswith("docling-ocr"), b
+    # and the PDF's own fact is not rewritten by having read it another way: `text_layer` is what
+    # stage 0 routes on, and a scan that OCR bound is still a scan
+    assert b["text_layer"] is False, b
+
+
+def test_a_page_that_has_text_is_never_re_read_by_ocr(monkeypatch):
+    """THE CONTROL, and the half that keeps this from being a second oracle: a first page with a
+    real text layer that does not bind is a `binding-failed`, and asking OCR the same question
+    would let a paper bind on a reading nobody could reproduce from the file."""
+    title = "The imbedding problem for finite Markov chains"
+    printed = _page(title, "By J. F. Co KINGMkN")          # the publisher's own OCR, as stored
+    truth = _page(title, "By J. F. C. KINGMAN")
+    binding, calls = _bind_env(monkeypatch, printed, truth)
+    b = binding.bind_any_with_ocr("kingman.pdf", [title], "Kingman")
+    assert b["verdict"] == "binding-failed" and calls == [], b
+    assert b["page_text_source"] == "pdftotext", b
+
+
+def test_ocr_is_not_offered_for_a_book(monkeypatch):
+    """`OCR_BIND_MAX_PAGES`: the corpus's 688-page book would spend an hour of GPU to answer a
+    question its first page already answers, and whether to extract a book at all is not this
+    function's decision to make."""
+    from litkb.admit import binding
+
+    monkeypatch.setattr(binding, "pdf_info", lambda _p: {"Pages": "688"})
+    assert binding.ocr_first_pages("book.pdf") == ""
+    assert binding.OCR_BIND_MAX_PAGES < 688
+    # THE CONTROL: the same call on a paper-sized document is not refused HERE. It gets as far as
+    # asking whether a Docling environment exists on this machine, which is a different answer
+    # from "too big" — without this the test would also pass with the cap set to zero.
+    from litkb.extract import docling as D
+
+    seen = []
+    monkeypatch.setattr(binding, "pdf_info", lambda _p: {"Pages": "22"})
+    monkeypatch.setattr(D, "worker_available", lambda python=None: bool(seen.append(python)))
+    assert binding.ocr_first_pages("paper.pdf") == "" and seen == [None]

@@ -321,7 +321,7 @@ out of the `litkb_search` result's `text` field" rule, and `.gitignore:195` whit
 
 ---
 
-## 9. Kills — my own edits, seven rows, seven fired
+## 9. Kills — my own edits, eight rows, eight fired
 
 Each row: the targeted tests pass, one edit of mine is applied, the tests fail, the file is
 restored and the restoration proved by sha256. Worker DBs `litkb_test_w1` / `w9`.
@@ -335,9 +335,16 @@ restored and the restoration proved by sha256. Worker DBs `litkb_test_w1` / `w9`
 | **R5** | `litkb_my_uses` stops requiring the workstream token | 11 passed | **1 failed** | ✅ |
 | **R6** | the cropbox clamp: `max(dy, 0)` removed from the ONE frame reader | 8 passed | **6 failed** | ✅ |
 | **R7** | the OCR per-process cap raised above the batch size that measured 94.6 % of VRAM | 1 passed | **1 failed** | ✅ |
+| **R8** | `load_latex` stops filtering to `ok` rows, so a decode the L4 pass itself refused to stand behind (`unstable`, `degenerate`) reaches `equations.latex` | 10 passed | **1 failed** | ✅ |
 
 `server.py` restored to `5458c09d81a288e7…`, `inventory.py` to `783581a247f9a0eb…`,
-`docling.py` to `159e0bd37225e7af…`; `git status --short` clean after every row.
+`docling.py` to `159e0bd37225e7af…`, `litkb_p5_bulk.py` to `60431199858cfdd8…`;
+`git status --short` clean after every row.
+
+R8 is the one row that matters most to §3: it is the only gate standing between the L4 pass's own
+`unstable`/`degenerate` verdicts and the LaTeX corpus, and the 323 rows it holds back are the ones
+the pass already knew it could not reproduce. It fires — but it filters on the decoder's
+*self-report*, not on whether the string matches the page, which is exactly the gap §3 measures.
 
 R7 is config-only, as the delta says: the test that pins it is
 `test_litkb_p5_bulk.py::test_the_ocr_batch_runs_in_short_converter_processes`, whose assertion

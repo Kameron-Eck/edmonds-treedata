@@ -644,6 +644,10 @@ site("X18", "litkb/mcp/server.py::_propose_promotion::_require_token", "None", t
      what="litkb_propose_promotion stops presenting the workstream token: a forged token prepares "
           "ANOTHER workstream's proposals under the promoter credential, writes its chain report "
           "into this worktree, and blocks its owner's own prepare")
+replace("X19", f"{PKG}/netutil.py", "_SECRET_KEY_RE.fullmatch(str(k))", "None", tests=TESTS_P8,
+        what="the output boundary stops reading a result's FIELD NAMES: a value under a key called "
+             "`password` or `token` is carried out whenever its own shape is unremarkable (F-4's "
+             "second half — the regexes see leaf TEXT, not the key above it)")
 # X11/X13/X14 neuter the LOGIC rather than deleting the CREATE. Deleting it left the COMMENT and the
 # GRANT behind, migration 0018 failed to apply, and every Postgres test ERRORED — which this harness
 # does not read as a failure, so all three reported DID NOT FIRE on the first run. A row that breaks

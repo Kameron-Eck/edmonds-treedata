@@ -75,6 +75,9 @@ _URL_PARAM_RE = re.compile(rf"(?i)[?&](?:{_URL_NAMES})=(?P<v>[^&\s\"'<>]+)")
 _JSON_FIELD_RE = re.compile(rf"(?i)\"(?:{_SECRET_NAMES})\"\s*:\s*\"(?P<v>[^\"]+)\"")
 _ASSIGN_RE = re.compile(rf"(?i)(?<![\w.-])(?:{_SECRET_NAMES})\s*[:=]\s*[\"']?(?P<v>[^\s\"'&;,}}]{{8,}})")
 _PEM_RE = re.compile(r"-----BEGIN [A-Z0-9 ]+-----(?P<v>.*?)-----END [A-Z0-9 ]+-----", re.S)
+#: a dict KEY that names a credential; the value under it is masked whole. `key` is absent
+#: here for the same reason as above — in this database `key` is the work key.
+_SECRET_KEY_RE = re.compile(rf"(?i)(?:{_SECRET_NAMES})")
 
 _shape_rules_cache = []
 
@@ -123,7 +126,12 @@ def redact_shapes(obj):
                 obj = _mask(rx, obj)
         return obj
     if isinstance(obj, dict):
-        return {k: redact_shapes(v) for k, v in obj.items()}
+        # a FIELD NAME is a rule too, not only text that looks like JSON: a value under a key called
+        # `password` or `token` is a credential whatever its shape. No tool here builds such a key —
+        # the result vocabulary is this server's own — but the boundary must not depend on that.
+        return {k: ("<KEY>" if isinstance(v, str) and _SECRET_KEY_RE.fullmatch(str(k))
+                    else redact_shapes(v))
+                for k, v in obj.items()}
     if isinstance(obj, (list, tuple)):
         return [redact_shapes(v) for v in obj]
     return obj

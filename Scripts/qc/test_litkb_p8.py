@@ -299,12 +299,14 @@ def test_a_planted_credential_shape_is_masked_in_a_tool_result():
     body = server._out({"ok": True, "blocks": [hit],
                         "note": f"fetched https://example.org/api/download?md5=abc&key={key}",
                         "driver": f'{{"password": "{pw}", "host": "localhost"}}',
-                        "pem": "-----BEGIN RSA PRIVATE KEY-----\nMIIabc\n-----END RSA PRIVATE KEY-----"})
+                        "pem": "-----BEGIN RSA PRIVATE KEY-----\nMIIabc\n-----END RSA PRIVATE KEY-----",
+                        "password": pw})
     assert pw not in body, "a pgpass password reached the model through a tool result"
     assert key not in body, "a URL's key= reached the model through a tool result"
     assert "MIIabc" not in body, "a PEM body reached the model through a tool result"
     assert "localhost:5433:litkb:litkb_writer:<KEY>" in body, body
     assert "The pilot plot was measured in June." in body, "the block's own words must survive"
+    assert '"password": "<KEY>"' in body, "a value under a credential-named KEY reached the model"
 
 
 def test_a_work_shaped_result_is_returned_byte_for_byte():

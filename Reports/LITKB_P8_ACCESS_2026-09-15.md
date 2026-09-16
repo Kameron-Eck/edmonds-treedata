@@ -366,6 +366,13 @@ refuses these shapes in git's index — so there is one definition of what a pgp
 not a copy). Added at the boundary only: URL query `key=` / `token=` / `password=`, an exact list of
 JSON field names, and PEM blocks.
 
+"JSON field" means two things, and both are rules. One is field-shaped TEXT inside a leaf string
+(`{"password": "…"}` pasted into a block, or a `password=…` assignment in prose) — matched by the
+regexes. The other is a result dict KEY: a value under a key literally named `password` or `token`
+is masked whole, whatever its shape. No tool here builds such a key — the result vocabulary is this
+server's own, and no litkb column is named that — so the practical exposure was nil; the boundary
+should not depend on that staying true. `key` is excluded from the key rule for the reason below.
+
 **The decision the referee asked for, and its control.** A bare 64-hex value is **not** masked: a
 sha256 is 64 hex and every file record carries one. The rung's own rule is that 64 hex is a secret
 only when ASSIGNED to a token-like NAME (`token=`, `secret:`, `password=`), and that is the rule
@@ -376,14 +383,15 @@ download key is what actually leaks.
 * **KILL** `test_a_planted_credential_shape_is_masked_in_a_tool_result`: a pgpass line with prose
   before and after it, inside a block hit inside a list, comes back
   `localhost:5433:litkb:litkb_writer:<KEY>` with the block's own sentences intact — and the same
-  result's URL key, JSON `password` field and PEM body are masked too. Re-run live through a real
+  result's URL key, embedded JSON `password` field, PEM body and a value under a top-level
+  `password` KEY are masked too. Re-run live through a real
   MCP session against a seeded corpus: the planted block was returned by `litkb_search` with the
   password masked.
 * **CONTROL** `test_a_work_shaped_result_is_returned_byte_for_byte`: a `litkb_work` record — work
   key, `work_key`, authors, a 64-hex `sha256`, a DOI — passes the boundary unchanged. A sha256 in a
   file record still shows.
-* Harness rows **X7** (the `redact_shapes` call in `_out`) and **X17** (its recursion, the twin of
-  RD15 — every search hit is inside a list of dicts).
+* Harness rows **X7** (the `redact_shapes` call in `_out`), **X17** (its recursion, the twin of
+  RD15 — every search hit is inside a list of dicts) and **X19** (the field-name rule).
 
 ### 7.2 F-1 — read tools present the workstream token
 
@@ -559,8 +567,8 @@ skill, where a caller will meet it.
 ### 7.8 Mutation rows, and the two failures that are not ours
 
 The referee's 6.1: "a guard with no row is a guard not yet shown to be load-bearing, and two of P8's
-four best properties are in that position." Twelve rows were added — **X7–X18** — covering the shape
-redactor and its recursion, the read-tool token check at both call sites, the offer tool's, the
+four best properties are in that position." Thirteen rows were added — **X7–X19** — covering the shape
+redactor, its recursion and its field-name rule, the read-tool token check at both call sites, the offer tool's, the
 `work-mismatch` guard (his 3.3, the property with no row), the four database guards of 0018, 0019's
 evidence clause, and the report write. Every one is answered by a test in `qc/test_litkb_p8.py` that
 does **not** carry the `litkb_live` mark, because the harness deselects live tests — a row answered
@@ -570,8 +578,8 @@ only by a live test reports DID NOT FIRE.
 `_require_token` added to `HELPERS` so the per-call-site rule reaches them. The self-check caught the
 `redact_shapes` recursion site with no row, which is exactly what it is for.
 
-All twelve FIRE: `X7–X13, X15–X18` in one batch (`11/12 mutations fired; baselines passed`) and
-`X14` after the fix below (`1/1 mutations fired`).
+All thirteen FIRE: `X7–X13, X15–X18` in one batch (`11/12 mutations fired; baselines passed`), then
+`X14` after the fix below and `X19` when the field-name rule was added (`1/1 mutations fired` each).
 
 **Three of the rows had to be rewritten, and why is worth keeping.** X11/X13/X14 first deleted the
 `CREATE FUNCTION` block outright. That left the `COMMENT` and the `GRANT` behind, migration 0018

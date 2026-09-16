@@ -165,6 +165,12 @@ draws allow. The failures are not exotic:
   or below the box, sometimes garbled (`\text{ingrating this equation over}`,
   `\intertext{ i n t s e q u a l s }`, `be the sequence of detectors dual to`).
 
+**Whether the contamination comes from the crop or from the model is NOT determined here**, and the
+fix differs: if the L4 crop was cut with padding around the bbox the neighbouring line was in the
+image, and the crop rule is what moves; if the crop was tight the decoder invented it, and the
+rule that moves is a length or content check on the output. I rendered the crops at the stored
+bbox, not at whatever the formula pass cut, so my images cannot settle it.
+
 All 3,472 carry `provenance.latex = codeformula-l4`, so this is the Colab L4 pass, and it is the
 one part of the corpus no gate has ever scored for content. **`LITKB_COLAB_L4_FULLPASS` and P5 §3.3
 both measure whether a row ATTACHED, never whether it is RIGHT.** A `\bar Z` for a `Z` promotes
@@ -227,11 +233,16 @@ superseded run with the current one, block for block:
 | `Kalbfleisch_1985_analysis-panel-data-markov` | 462 → 462 | 8 |
 | `Mesquita_1999_effect-surrounding-vegetation-edge` | 149 → 149 | 0 |
 
-At `reading_order` 5 on Higham page 1, before the clamp: `y0 = 69.5`, text
-`"Contents lists available at S"`. After: `y0 = 181.1` (= 69.5 + 111.6), text
-`"On pth roots of stochastic matrices"` — the paper's title. Block text is assembled from the
-characters under the box (`text_source = native-layer`), so a box off by 111.6 pt stores the wrong
-words, not merely the wrong rectangle. On the blocks whose text is unchanged the shift is exactly
+515 distinct texts differing over 412 blocks means roughly 250-260 of Higham's blocks carry
+different words after the clamp than before it. At `reading_order` 5 on Higham page 1, before the
+clamp: `y0 = 69.5`, text `"Contents lists available at S"`. After: `y0 = 181.1` (= 69.5 + 111.6),
+text `"On pth roots of stochastic matrices"` — the paper's title.
+
+The mechanism is in the source, not inferred: `reconcile.text_for` (`reconcile.py:527-534`) takes
+the block's text from `native_text_in(chars(page), box)` — **the native layer's characters inside
+the box** — whenever they cover at least half the tool's own text, and lines 541/544 stamp
+`native-layer` and `text_source` from that choice. A box off by 111.6 pt therefore stores the wrong words, not merely the
+wrong rectangle. On the blocks whose text is unchanged the shift is exactly
 what it should be: joining one-to-one on `(page, type, text)` where the key is unique in both runs,
 97 pairs, `y` moved by −111.6 at the minimum and `max |Δx| = 0.51`.
 
@@ -275,7 +286,9 @@ Both are gap-ledger rows whose passage is not already quoted in the framework's 
 caught). `litkb_search(limit=10, scope="all")`, vector leg off.
 
 **QA — gap rows 3/16: when a space-time autologistic likelihood carries an intractable normalising
-constant, what estimator is used?** Rank 1 `Hughes_1999` p6, quoted with the block's own bytes:
+constant, what estimator is used?** Rank 1 `Hughes_1999` p6, quoted with the block's own mojibake
+(the PDF's text layer renders the conditioning bar and the parentheses of `P(R_t|S_t)` as
+U+0085 / `j` / U+0086):
 *"…it is likely that the autologistic model for P…RtjSt† will be required to capture local spatial
 dependences successfully. Then both the E-step and the M-step become computationally intractable as
 the number of stations, n, increases…"*. **The top passage states the problem, not the answer.**
@@ -314,6 +327,7 @@ mechanism is furniture plus duplication crowding a ten-row result list.
 | 10 | throughput metrics still JSONL | no | `extraction_runs.metrics` holds only the reconcile `stats` |
 | 11 | doc drift: `SKILL.md` §0 says "~102k blocks over 225 documents" (live: 103,947 over 229); `Reports/litkb_p5_files_2026-09-16.csv` predates the 4 new works and the 5 re-ingests | no | §1 |
 | 12 | the suite's own banner says "3 SKIPPED: litkb server/role/psycopg absent"; the three skips are `litkb_live` network tests (`LITKB_LIVE=1`) | no | `pytest -rs` |
+| 13 | one extracted file is bound at `_litkb_staging/incoming/t65_Fleming_2025_….download` — an *incoming* staging path with a `.download` extension, active and extracted (it is gold page G1) | no, but a file whose canonical location is the inbox will be hard to re-find | population dump |
 
 Two P8-referee fixes I checked and found **done**: `SKILL.md` line 66 carries the "copy the quote
 out of the `litkb_search` result's `text` field" rule, and `.gitignore:195` whitelists
@@ -330,7 +344,7 @@ restored and the restoration proved by sha256. Worker DBs `litkb_test_w1` / `w9`
 |---|---|---|---|---|
 | **R1** | `litkb_work`'s ladder can no longer say `bound-unextracted` — a bound file with no current run reports `extracted` | 2 passed | **1 failed** | ✅ |
 | **R2** | the statement emptiness gate: a blank claim records beside a verified quote | 4 passed | **3 failed** | ✅ |
-| **R3** | the statement cap (`STATEMENT_MAX` → 10⁹) | 1 passed | **1 failed** | ✅ |
+| **R3** | the statement cap: the `len(statement) > STATEMENT_MAX` check deleted | 1 passed | **1 failed** (2.7 s) | ✅ |
 | **R4** | feeds stored unvalidated again — `litkb._feeds_token_ok` never called at record time | 20 passed | **5 failed** | ✅ |
 | **R5** | `litkb_my_uses` stops requiring the workstream token | 11 passed | **1 failed** | ✅ |
 | **R6** | the cropbox clamp: `max(dy, 0)` removed from the ONE frame reader | 8 passed | **6 failed** | ✅ |
@@ -342,9 +356,16 @@ restored and the restoration proved by sha256. Worker DBs `litkb_test_w1` / `w9`
 `git status --short` clean after every row.
 
 R8 is the one row that matters most to §3: it is the only gate standing between the L4 pass's own
-`unstable`/`degenerate` verdicts and the LaTeX corpus, and the 323 rows it holds back are the ones
-the pass already knew it could not reproduce. It fires — but it filters on the decoder's
+`unstable`/`degenerate` verdicts and the LaTeX corpus (the count it holds back — 323 — is the
+builder's number, §3.3, not re-derived here). It fires — but it filters on the decoder's
 *self-report*, not on whether the string matches the page, which is exactly the gap §3 measures.
+
+**R3's first edit fired for the wrong reason, and is recorded rather than quietly replaced.** I
+first raised `STATEMENT_MAX` to 10⁹. The test reads `server.STATEMENT_MAX` dynamically
+(`test_litkb_p8.py:806`), so its over-cap leg then built a **gigabyte-long** statement: it failed
+after 718 s, and the failure could have been the string, not the missing guard. Deleting the check
+itself fails the same test in 2.7 s. That is the row in the table; the first attempt proves only
+that a mutation can fire for a reason that is not the one being tested.
 
 R7 is config-only, as the delta says: the test that pins it is
 `test_litkb_p5_bulk.py::test_the_ocr_batch_runs_in_short_converter_processes`, whose assertion
@@ -369,6 +390,11 @@ R7 is config-only, as the delta says: the test that pins it is
 * **`plan --workstream` with actual rows**; **the L4 re-crop** of `Reynolds_2000` /
   `Montgomery_1991`; **`OCR_CHUNK` and `free_cache` together** — all three remain as the fix set
   left them.
+* **The full mutation harness.** I re-applied eight rows in my own words; the builder's
+  284-row `litkb_p2_mutations.py --workers 3 --worker-dbs 1,6,9` run and its `--sites` /
+  sink self-checks were **not** repeated, so §L's "284 rows, 284 fired" and "91 call sites, 88
+  covered" are taken on the builder's word.
+* **Where the L4 contamination comes from** (§3) — crop padding or model over-generation.
 * **A second reader on this report.** Everything above is one referee's reading, with the gold
   frozen first and its sha256 published.
 

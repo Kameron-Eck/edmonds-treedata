@@ -90,7 +90,27 @@ P5_PIPELINE_VERSION = reconcile_version()
 
 #: What makes this pass a different EXTRACTION of a file from a bare stage-5 reconcile: the L4
 #: formula LaTeX, and the word this pass puts on every equation for how far it can be trusted.
-P5_PARAMS = {"latex_source": "codeformula-l4", "latex_status": "0022"}
+#:
+#: ``merge_rule`` is the third, and it is here because of something that happened on 2026-09-16
+#: rather than because it was designed in. The first stage5-3 ingest ran with a canonical merge
+#: that grouped a page's readings into CONNECTED COMPONENTS; containment is not transitive, so on
+#: a page where a large block nests several small ones the whole page chained into one group and
+#: merged nothing. 213 documents were written that way before migration 0022's trigger stopped
+#: the run on Angelopoulos_2022 p7, where 21 exact-duplicate rectangles survived. The rule is now
+#: pairwise and greedy. An ``ok`` run's rows cannot be deleted by anyone — that is the design, and
+#: it is what protects evidence that cites them — so the repaired ingest has to be a DIFFERENT
+#: run, and ``params_hash`` is the field that says which reconciliation a run is: exactly the
+#: distinction its docstring names ("a run made at IOU_MATCH 0.5 and one made at 0.6 are
+#: different extractions of the same file"). The 213 are superseded, not lost; the corpus label
+#: stays `stage5-3` for both.
+#: ``merge_rule`` moved once more, in the same campaign and for the same reason: the first
+#: pairwise corpus kept the SMALLER of two boxes, and coverage — which asks which of a page's
+#: characters lie inside some canonical block — fell on 52 of 229 documents, Guo_2018 from 0.9913
+#: to 0.4098. The merged block's box is now the UNION of the two, and an over-merge is dropped
+#: only when the characters inside it are held by blocks that are staying. Third value, third set
+#: of runs; the two earlier ones are superseded and their rows stand.
+P5_PARAMS = {"latex_source": "codeformula-l4", "latex_status": "0022",
+             "merge_rule": "pairwise-union-charcover"}
 
 #: Routes GROBID is offered. A scan has no text layer, so GROBID refuses it outright; posting
 #: one costs a minute of pdfalto and returns HTTP 500 (stage 5 report §5).
@@ -1050,8 +1070,18 @@ def cmd_kill_test(a):
     # committed) together with the two reads below, taken while it was held there.
     backends = ro.execute("SELECT count(*) FROM pg_stat_activity WHERE datname = %s",
                           (a.db,)).fetchone()[0]
-    uncommitted = ro.execute("SELECT count(*) FROM litkb.blocks WHERE file_id = %s",
-                             (row["file_id"],)).fetchone()[0]
+    # SCOPED TO THIS PIPELINE VERSION'S RUNS, and that is not a detail. The question the kill
+    # asks is "can a reader see any of the killed worker's blocks" — so the population is the
+    # runs at the key the worker is writing. Counting every block of the FILE answers a
+    # different question, and answers it wrongly the moment the file also carries a SUPERSEDED
+    # run at an earlier pipeline version: on 2026-09-16 that read 1,564 committed stage5-2
+    # blocks as "visible mid-transaction" and reported the kill FAILED while every property it
+    # tests actually held. The same scoping applies to `total` below, for the same reason.
+    inflight_blocks = (
+        "SELECT count(*) FROM litkb.blocks b JOIN litkb.extraction_runs r ON r.id = b.run_id "
+        "WHERE b.file_id = %s AND r.stage = '5-reconcile' AND r.pipeline_version = %s")
+    uncommitted = ro.execute(inflight_blocks,
+                             (row["file_id"], P5_PIPELINE_VERSION)).fetchone()[0]
     runs_mid = ro.execute(
         "SELECT count(*) FROM litkb.extraction_runs WHERE file_id = %s AND stage = '5-reconcile' "
         "AND pipeline_version = %s", (row["file_id"], P5_PIPELINE_VERSION)).fetchone()[0]
@@ -1082,8 +1112,7 @@ def cmd_kill_test(a):
         "SELECT r.id, r.status, (SELECT count(*) FROM litkb.blocks b WHERE b.run_id = r.id) "
         "FROM litkb.extraction_runs r WHERE r.file_id = %s AND r.stage = '5-reconcile' "
         "AND r.pipeline_version = %s", (row["file_id"], P5_PIPELINE_VERSION)).fetchall()
-    total = ro.execute("SELECT count(*) FROM litkb.blocks WHERE file_id = %s",
-                       (row["file_id"],)).fetchone()[0]
+    total = ro.execute(inflight_blocks, (row["file_id"], P5_PIPELINE_VERSION)).fetchone()[0]
     dup = ro.execute(
         "SELECT count(*) FROM (SELECT run_id, page_no, reading_order FROM litkb.blocks "
         "WHERE file_id = %s AND canonical GROUP BY 1,2,3 HAVING count(*) > 1) t",
@@ -1094,7 +1123,7 @@ def cmd_kill_test(a):
         "ok_runs": len(ok_runs),
         "blocks_on_the_ok_run": ok_runs[0][2] if ok_runs else None,
         "control_blocks": control,
-        "blocks_for_the_file_in_total": total,
+        "blocks_at_this_pipeline_version": total,
         "duplicate_page_order_groups": dup,
         "blocks_visible_to_a_reader_mid_transaction": uncommitted,
         "runs_visible_to_a_reader_mid_transaction": runs_mid,

@@ -631,8 +631,8 @@ replace("R537", f"{PKG}/extract/reconcile.py",
         "G7 - 872 characters under page 12, the first ~700 printed on page 11), and a paragraph "
         "crossing columns is stored once per column", tests=TESTS_S5)
 replace("R538", f"{PKG}/extract/reconcile.py",
-        "                if not same:\n                    continue",
-        "                if True:\n                    continue",
+        "        if i in merged or j in merged:\n            continue",
+        "        if True:\n            continue",
         "the canonical merge stops seeing that two readings are one region: an identical "
         "(page, bbox) pair is emitted as TWO blocks again, which search returns twice and a "
         "quote's character offsets can land in either of", tests=TESTS_S5)

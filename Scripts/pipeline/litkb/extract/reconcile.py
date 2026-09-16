@@ -73,7 +73,14 @@ OVERMERGE_CHILDREN = 2
 #: Share of the container's normalised characters its children must account for before the
 #: container is dropped as an over-merge. Below it the container carries text nothing else does
 #: and dropping it would LOSE words, which no de-duplication may do.
-OVERMERGE_COVER = 0.60
+#:
+#: 0.95, not 0.60, and the difference was measured rather than argued. At 0.60 the corpus's
+#: minimum per-page coverage FELL on 52 of 229 documents and the §14 floor caught 9 where it had
+#: caught 6 — Guo_2018 from 0.9913 to 0.4098 — because a container whose children account for
+#: three fifths of it is holding two fifths of a page that nothing else is responsible for.
+#: "No merge may lose words" is the rule the pairwise pass already keeps; this is the same rule
+#: at the container, and 0.95 is where it starts being kept.
+OVERMERGE_COVER = 0.95
 
 #: Share of a page's native-layer characters that must land inside some canonical block for the
 #: page to pass the coverage gate (§7.1 "coverage metric per file", §14 P5). Provisional.
@@ -799,7 +806,7 @@ def reconcile(pdf_path, tei=None, doc=None, record=None, ocr_pages=(), frames=No
                 confidence=0.8, source="grobid", element_id=b.element_id, text_source="tool"))
 
     canonical = _dedupe_figures(canonical)
-    canonical, refs, merged = _merge_regions(canonical, refs, dis)
+    canonical, refs, merged = _merge_regions(canonical, refs, dis, chars)
     canonical, captioned = _caption_once(canonical)
     canonical, headered = _kind_from_header(canonical, tei, frames)
     canonical = _assign_order(canonical) + _renumber(refs, start=len(canonical))
@@ -942,6 +949,22 @@ def _covered_share(whole, parts):
     return total / len(whole) if whole else 0.0
 
 
+def _interval_cover(span, parts):
+    """Share of ``span`` covered by the union of ``parts`` — one axis, intervals unioned."""
+    lo, hi = span
+    if hi <= lo:
+        return 1.0
+    clipped = sorted((max(lo, a), min(hi, b)) for a, b in parts if min(hi, b) > max(lo, a))
+    total, end = 0.0, lo
+    for a, b in clipped:
+        if a > end:
+            end = a
+        if b > end:
+            total += b - end
+            end = b
+    return total / (hi - lo)
+
+
 def _text_same(a, b):
     """Do two readings of one region carry the SAME words? The merge's text test.
 
@@ -980,7 +1003,7 @@ def _survivor_key(c, i):
             -i)
 
 
-def _merge_regions(canonical, refs, dis):
+def _merge_regions(canonical, refs, dis, chars=None):
     """ONE canonical block per region — the final referee's §4, and blocker 2 of its §11.
 
     -> ``(canonical, leftover_refs, stats)``. Disagreement rows are APPENDED to ``dis``: nothing
@@ -1017,16 +1040,41 @@ def _merge_regions(canonical, refs, dis):
     for i, c in enumerate(blocks):
         by_page.setdefault(c.page, []).append(i)
 
-    drop = _overmerge_drop(blocks, by_page, dis)
+    drop = _overmerge_drop(blocks, by_page, dis, chars)
     keep = [i for i in range(len(blocks)) if i not in drop]
     blocks, merged, upgraded = _pairwise_merge(blocks, keep, by_page, dis)
     survivors = [i for i in keep if i not in merged]
-    return ([blocks[i] for i in survivors if not is_ref[i]],
-            [blocks[i] for i in survivors if is_ref[i]],
-            {"merged": len(merged), "overmerge": len(drop), "reference_kind": upgraded})
+    # THE LAST SWEEP, and it is the one migration 0022's trigger is the twin of: after the
+    # unions above, two survivors that never had an edge to each other CAN end at one rectangle.
+    # A run may not hold the same canonical rectangle twice — the database refuses it, and a
+    # refusal in the middle of a corpus ingest is an aborted transaction — so the invariant is
+    # established HERE and merely enforced there.
+    seen, final, extra = {}, [], 0
+    for i in survivors:
+        key = (blocks[i].page, blocks[i].bbox)
+        if key in seen:
+            o, w = blocks[i], blocks[seen[key]]
+            if _survivor_key(o, i) > _survivor_key(w, seen[key]):
+                seen[key], o, w = i, w, o
+            extra += 1
+            dis.append(Disagreement(
+                page=o.page, kind="duplicate_region", bbox=o.bbox, iou=1.0,
+                grobid_kind=o.kind if o.source == "grobid" else w.kind,
+                docling_kind=o.kind if o.source != "grobid" else w.kind,
+                grobid_text=o.text if o.source == "grobid" else w.text,
+                docling_text=o.text if o.source != "grobid" else w.text,
+                detail="two readings end at one rectangle after the merge; ONE canonical block "
+                       "is emitted and this reading is kept here"))
+            continue
+        seen[key] = i
+    final = [i for i in survivors if seen.get((blocks[i].page, blocks[i].bbox)) == i]
+    return ([blocks[i] for i in final if not is_ref[i]],
+            [blocks[i] for i in final if is_ref[i]],
+            {"merged": len(merged) + extra, "overmerge": len(drop),
+             "reference_kind": upgraded})
 
 
-def _overmerge_drop(blocks, by_page, dis):
+def _overmerge_drop(blocks, by_page, dis, chars=None):
     """Indices of blocks that are one tool's MERGE of a region the other tool segmented.
 
     A block is an over-merge when at least :data:`OVERMERGE_CHILDREN` other blocks on its page
@@ -1042,7 +1090,7 @@ def _overmerge_drop(blocks, by_page, dis):
             nb = _norm(big.text)
             if len(nb) < 200:
                 continue
-            kids = []
+            kids, boxes = [], []
             for j in idxs:
                 if j == i:
                     continue
@@ -1055,10 +1103,31 @@ def _overmerge_drop(blocks, by_page, dis):
                        band_containment(blocks[j].bbox, big.bbox)) < CONTAIN_MATCH:
                     continue
                 kids.append(ns)
+                boxes.append(blocks[j].bbox)
             if len(kids) < OVERMERGE_CHILDREN:
                 continue
             share = _covered_share(nb, kids)
             if share < OVERMERGE_COVER:
+                continue
+            # AND THE CHARACTERS, not only the words. The container's TEXT can be covered by its
+            # children while its BOX still holds characters none of them — nor anything else on
+            # the page — is responsible for: the native-layer reading of a box is the SPAN
+            # between the first and last character inside it, so a tall box can carry a short
+            # reading. Dropping such a container is exactly what the coverage metric measures as
+            # a loss, and it measured it: on Guo_2018, 2026-09-16, the page fell from 0.9913 to
+            # 0.4098 under the text test alone. So the question asked here is the coverage
+            # metric's own — of the characters inside this box, what share lie inside some OTHER
+            # block that is staying? — with the per-axis box test as the fallback for a caller
+            # that has no page (the unit tests, and any reconciliation of hand-built blocks).
+            others = [blocks[j].bbox for j in idxs if j != i and j not in drop]
+            if chars is not None:
+                pts = [(x, y) for _c, x, y, _k in chars(page)["pts"] if _in_box(x, y, big.bbox)]
+                held = sum(1 for x, y in pts if any(_in_box(x, y, b) for b in others))
+                if pts and held / len(pts) < OVERMERGE_COVER:
+                    continue
+            elif min(_interval_cover((big.y0, big.y1), [(b[1], b[3]) for b in boxes]),
+                     _interval_cover((big.x0, big.x1), [(b[0], b[2]) for b in boxes])) \
+                    < OVERMERGE_COVER:
                 continue
             drop.add(i)
             dis.append(Disagreement(
@@ -1075,24 +1144,30 @@ def _overmerge_drop(blocks, by_page, dis):
 
 
 def _pairwise_merge(blocks, keep, by_page, dis):
-    """-> (blocks, merged_away, kind_upgrades). One survivor per group of readings of one region.
+    """-> (blocks, merged_away, kind_upgrades). ONE survivor per PAIR of readings of one region.
 
-    Groups are connected components of "these two are one region": IoU at :data:`IOU_MATCH`, or
-    one box :data:`CONTAIN_MATCH` inside the other with :func:`_text_same`. The survivor is
-    :func:`_survivor_key`'s maximum, and **a reading is only dropped when the survivor's text
-    still carries its words** — a merge that loses characters is a worse defect than the
-    duplicate it repairs, so a group whose survivor does not cover a member keeps that member and
-    records the pair instead.
+    Pairs, greedily, strongest first — an exact rectangle before a nesting — and a block that has
+    been absorbed can absorb nothing further. **Not connected components**, and that is the
+    correction, measured on ``Angelopoulos_2022`` p7 on 2026-09-16: "one region" is transitive
+    for IoU and is NOT transitive for containment, so on a page where a large block nests several
+    small ones and each of those nests another, a component walk chains the WHOLE PAGE into one
+    group. The survivor is then compared with 92 blocks it has no edge to, the no-text-loss guard
+    below refuses every one of them — correctly, they are different regions — and the page merges
+    NOTHING, including the two Docling items that share a rectangle to the last decimal. 21 exact
+    duplicates survived that page and migration 0022's trigger stopped the ingest on them, which
+    is what a guard in the database is for.
+
+    The survivor of a pair is :func:`_survivor_key`'s maximum, and **a reading is only dropped
+    when the survivor's text still carries its words**: a merge that loses characters is a worse
+    defect than the duplicate it repairs.
     """
     kept = set(keep)
-    parent = {i: i for i in kept}
+    out = list(blocks)
 
-    def find(i):
-        while parent[i] != i:
-            parent[i] = parent[parent[i]]
-            i = parent[i]
-        return i
-
+    #: (rank, strength, i, j) for every pair that might be one region. ``rank`` 1 is an IoU
+    #: agreement — the same rectangle — and 0 a containment, so a block that is BOTH inside a
+    #: big one and identical to a twin is absorbed by the twin.
+    cands = []
     for page, idxs in by_page.items():
         here = [i for i in idxs if i in kept]
         for a in range(len(here)):
@@ -1101,85 +1176,82 @@ def _pairwise_merge(blocks, keep, by_page, dis):
                 j = here[b]
                 ci, cj = blocks[i], blocks[j]
                 v = iou(ci.bbox, cj.bbox)
-                same = v >= IOU_MATCH
-                if not same and containment(ci.bbox, cj.bbox) >= CONTAIN_MATCH:
-                    same = _norm(ci.text) and _norm(cj.text) and _text_same(ci.text, cj.text)
-                if not same:
+                if v >= IOU_MATCH:
+                    cands.append((1, v, i, j))
                     continue
-                ri, rj = find(i), find(j)
-                if ri != rj:
-                    parent[ri] = rj
+                cn = containment(ci.bbox, cj.bbox)
+                if cn >= CONTAIN_MATCH and _norm(ci.text) and _norm(cj.text) \
+                        and _text_same(ci.text, cj.text):
+                    cands.append((0, cn, i, j))
+    cands.sort(key=lambda t: (-t[0], -t[1], t[2], t[3]))
 
-    groups = {}
-    for i in kept:
-        groups.setdefault(find(i), []).append(i)
-
-    out = list(blocks)
     merged, upgrades = set(), 0
-    for members in groups.values():
-        if len(members) < 2:
+    for _rank, _v, i, j in cands:
+        if i in merged or j in merged:
             continue
-        members.sort()
-        win = max(members, key=lambda i: _survivor_key(blocks[i], i))
-        survivor, kind = blocks[win], blocks[win].kind
-        alt = []
-        for i in members:
-            if i == win:
-                continue
-            other = blocks[i]
-            # THE NO-TEXT-LOSS GUARD, and the one place it does NOT apply. Two boxes that agree
-            # at IOU_MATCH are the SAME RECTANGLE, and §7's rule for that case is already settled
-            # and already shipped: the matched-pair branch above keeps Docling's reading and
-            # records GROBID's. A reference is the case that proves it — GROBID's re-serialised
-            # `biblStruct` string ("Factors influencing long-term street tree survival in
-            # Milwaukee AKoese…") is a DIFFERENT RENDERING of the printed entry, never a
-            # substring of it, so a text test would refuse the very merge the referee's §2 asks
-            # for. Below IOU_MATCH the boxes are only nested, and there the guard stands: a
-            # container may carry words its child does not.
-            if iou(survivor.bbox, other.bbox) < IOU_MATCH and (
-                    not _text_same(survivor.text, other.text)
-                    or len(_norm(other.text)) > len(_norm(survivor.text))):
-                dis.append(Disagreement(
-                    page=other.page, kind="partial_overlap", bbox=other.bbox,
-                    iou=round(iou(survivor.bbox, other.bbox), 3),
-                    grobid_text=other.text if other.source == "grobid" else "",
-                    docling_text=other.text if other.source != "grobid" else "",
-                    detail="one region, two readings, and the survivor does not carry this one's "
-                           "words: both are kept rather than losing text to a de-duplication"))
-                continue
-            merged.add(i)
-            alt.append(other)
-            if other.kind in GROBID_KIND_WINS and other.extractor.get("kind") == "grobid":
-                kind = other.kind
-                upgrades += 1
-        if not alt:
+        win, lose = (i, j) if _survivor_key(blocks[i], i) >= _survivor_key(blocks[j], j) else (j, i)
+        survivor, other = out[win], blocks[lose]
+        # THE NO-TEXT-LOSS GUARD, and the one place it does NOT apply. Two boxes that agree at
+        # IOU_MATCH are the SAME RECTANGLE, and §7's rule for that case is already settled and
+        # already shipped: the matched-pair branch above keeps Docling's reading and records
+        # GROBID's. A reference is the case that proves it — GROBID's re-serialised `biblStruct`
+        # string ("Factors influencing long-term street tree survival in Milwaukee AKoese…") is a
+        # DIFFERENT RENDERING of the printed entry, never a substring of it, so a text test would
+        # refuse the very merge the referee's §2 asks for. Below IOU_MATCH the boxes are only
+        # nested, and there the guard stands: a container may carry words its child does not.
+        if _rank == 0 and (not _text_same(survivor.text, other.text)
+                           or len(_norm(other.text)) > len(_norm(survivor.text))):
+            dis.append(Disagreement(
+                page=other.page, kind="partial_overlap", bbox=other.bbox,
+                iou=round(iou(survivor.bbox, other.bbox), 3),
+                grobid_text=other.text if other.source == "grobid" else "",
+                docling_text=other.text if other.source != "grobid" else "",
+                detail="one region, two readings, and the survivor does not carry this one's "
+                       "words: both are kept rather than losing text to a de-duplication"))
             continue
+        merged.add(lose)
+        kind = survivor.kind
+        if other.kind in GROBID_KIND_WINS and other.extractor.get("kind") == "grobid":
+            kind = other.kind
+            upgrades += 1
         ex = dict(survivor.extractor)
         # ``element_id`` is not decoration. Stage 6 stores a parsed reference with the BLOCK it
         # came from (``litkb.references.block_id``), and after the merge the block a `biblStruct`
         # became is Docling's, carrying Docling's `#/texts/N`. Without GROBID's own id recorded
         # here there is no way back from a TEI element to the block that now holds it, and a
         # stage-6 re-run against this pipeline version would have nothing to join on.
-        ex["merged"] = [{"kind": o.kind, "source": o.source, "bbox": [round(v, 2) for v in o.bbox],
-                         "text_source": o.text_source, "element_id": o.element_id} for o in alt]
+        ex["merged"] = list(ex.get("merged") or []) + [
+            {"kind": other.kind, "source": other.source,
+             "bbox": [round(v, 2) for v in other.bbox],
+             "text_source": other.text_source, "element_id": other.element_id}]
         if kind != survivor.kind:
             ex["kind"] = "grobid"
             ex["kind_alt"] = survivor.extractor.get("kind", survivor.source)
-        out[win] = dataclasses.replace(survivor, kind=kind, extractor=ex,
-                                       source="both" if survivor.source != "both"
-                                              and any(o.source != survivor.source for o in alt)
-                                       else survivor.source)
-        for o in alt:
-            dis.append(Disagreement(
-                page=o.page, kind="duplicate_region", bbox=o.bbox,
-                iou=round(iou(survivor.bbox, o.bbox), 3),
-                grobid_kind=o.kind if o.source == "grobid" else survivor.kind,
-                docling_kind=o.kind if o.source != "grobid" else survivor.kind,
-                grobid_text=o.text if o.source == "grobid" else survivor.text,
-                docling_text=o.text if o.source != "grobid" else survivor.text,
-                detail="one region described twice; ONE canonical block is emitted and this "
-                       "reading is kept here (design §7: a disputed region is not resolved, it "
-                       "is recorded)"))
+        # THE BOX IS THE UNION, and that is a coverage rule, not a cosmetic one. Coverage asks
+        # which of a page's characters lie inside SOME canonical block; a merge that keeps the
+        # smaller of two boxes leaves every character in the difference unaccounted for. Measured
+        # 2026-09-16 on the first stage5-3 corpus: the per-page minimum fell on 52 of 229
+        # documents and the §14 floor caught 9 files where it had caught 6. Taking the union
+        # keeps exactly the characters both readings claimed, and for an IoU match — where the
+        # two boxes are the same rectangle — it changes nothing. The survivor's own box is
+        # recorded in the provenance beside the other's.
+        box = (min(survivor.x0, other.x0), min(survivor.y0, other.y0),
+               max(survivor.x1, other.x1), max(survivor.y1, other.y1))
+        if box != survivor.bbox:
+            ex["bbox_own"] = [round(v, 2) for v in survivor.bbox]
+            ex["bbox"] = "union"
+        out[win] = dataclasses.replace(
+            survivor, kind=kind, extractor=ex, x0=box[0], y0=box[1], x1=box[2], y1=box[3],
+            source="both" if survivor.source != other.source else survivor.source)
+        dis.append(Disagreement(
+            page=other.page, kind="duplicate_region", bbox=other.bbox,
+            iou=round(iou(survivor.bbox, other.bbox), 3),
+            grobid_kind=other.kind if other.source == "grobid" else survivor.kind,
+            docling_kind=other.kind if other.source != "grobid" else survivor.kind,
+            grobid_text=other.text if other.source == "grobid" else survivor.text,
+            docling_text=other.text if other.source != "grobid" else survivor.text,
+            detail="one region described twice; ONE canonical block is emitted and this reading "
+                   "is kept here (design §7: a disputed region is not resolved, it is recorded)"))
     return out, merged, upgrades
 
 

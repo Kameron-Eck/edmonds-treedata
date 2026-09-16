@@ -1103,9 +1103,11 @@ def test_one_tools_over_merge_of_the_others_segmentation_is_dropped():
     kids = ["Table 3 Overall and per-class agreement between interpreters for the subsample.",
             "Interpreter confusion most often occurred between classes that are hard to tell.",
             "The QA/QC process provided feedback to interpreters over the course of the work."]
-    container = _c(1, (30.0, 50.0, 300.0, 600.0), text=" ".join(kids), source="grobid", ts="native",
+    # the children TILE the container, on both axes: a container whose box reaches into a band
+    # none of its children touches is not covered by them, however completely its text is
+    container = _c(1, (30.0, 50.0, 560.0, 350.0), text=" ".join(kids), source="grobid", ts="native",
                    ex={"bbox": "grobid", "kind": "grobid"})
-    blocks = [container] + [_c(1, (30.0, 60.0 + 100 * i, 560.0, 140.0 + 100 * i), text=t)
+    blocks = [container] + [_c(1, (30.0, 50.0 + 100 * i, 560.0, 150.0 + 100 * i), text=t)
                             for i, t in enumerate(kids)]
     dis = []
     out, _refs, stats = R._merge_regions(blocks, [], dis)
@@ -1113,7 +1115,7 @@ def test_one_tools_over_merge_of_the_others_segmentation_is_dropped():
     assert [d.kind for d in dis] == ["superset_region"]
     # and the control: with only ONE child inside it, the container is a disagreement, not an
     # over-merge, and nothing is dropped for it
-    one = [container, _c(1, (30.0, 60.0, 560.0, 140.0), text=kids[0])]
+    one = [container, _c(1, (30.0, 50.0, 560.0, 150.0), text=kids[0])]
     out2, _r2, s2 = R._merge_regions(one, [], [])
     assert s2["overmerge"] == 0 and len(out2) == 2
 

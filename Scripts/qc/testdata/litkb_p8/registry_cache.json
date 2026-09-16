@@ -1,0 +1,153 @@
+{
+ "10.1016/j.laa.2010.04.007": {
+  "DOI": "10.1016/j.laa.2010.04.007",
+  "title": [
+   "On pth roots of stochastic matrices"
+  ],
+  "subtitle": [],
+  "author": [
+   {
+    "family": "Higham",
+    "given": "Nicholas J.",
+    "name": null,
+    "sequence": "first"
+   },
+   {
+    "family": "Lin",
+    "given": "Lijing",
+    "name": null,
+    "sequence": "additional"
+   }
+  ],
+  "issued": {
+   "date-parts": [
+    [
+     2011,
+     8
+    ]
+   ]
+  },
+  "published-print": {
+   "date-parts": [
+    [
+     2011,
+     8
+    ]
+   ]
+  },
+  "published-online": null,
+  "container-title": [
+   "Linear Algebra and its Applications"
+  ],
+  "type": "journal-article",
+  "volume": "435",
+  "page": "448-463",
+  "publisher": "Elsevier BV"
+ },
+ "10.4171/jems/179": {
+  "DOI": "10.4171/jems/179",
+  "title": [
+   "Confirmation of Matheron's conjecture on the covariogram of a planar convex body"
+  ],
+  "subtitle": [],
+  "author": [
+   {
+    "family": "Averkov",
+    "given": "Gennadiy",
+    "name": null,
+    "sequence": "first"
+   },
+   {
+    "family": "Bianchi",
+    "given": "Gabriele",
+    "name": null,
+    "sequence": "additional"
+   }
+  ],
+  "issued": {
+   "date-parts": [
+    [
+     2009,
+     12,
+     23
+    ]
+   ]
+  },
+  "published-print": {
+   "date-parts": [
+    [
+     2009,
+     12,
+     23
+    ]
+   ]
+  },
+  "published-online": null,
+  "container-title": [
+   "Journal of the European Mathematical Society"
+  ],
+  "type": "journal-article",
+  "volume": "11",
+  "page": "1187-1202",
+  "publisher": "European Mathematical Society - EMS - Publishing House GmbH"
+ },
+ "10.4171/JEMS/183": {
+  "DOI": "10.4171/jems/183",
+  "title": [
+   "Heegard Floer invariants of Legendrian knots in contact three-manifolds"
+  ],
+  "subtitle": [],
+  "author": [
+   {
+    "family": "Lisca",
+    "given": "Paolo",
+    "name": null,
+    "sequence": "first"
+   },
+   {
+    "family": "Ozsváth",
+    "given": "Peter S.",
+    "name": null,
+    "sequence": "additional"
+   },
+   {
+    "family": "Stipsicz",
+    "given": "András I.",
+    "name": null,
+    "sequence": "additional"
+   },
+   {
+    "family": "Szabó",
+    "given": "Zoltán",
+    "name": null,
+    "sequence": "additional"
+   }
+  ],
+  "issued": {
+   "date-parts": [
+    [
+     2009,
+     12,
+     23
+    ]
+   ]
+  },
+  "published-print": {
+   "date-parts": [
+    [
+     2009,
+     12,
+     23
+    ]
+   ]
+  },
+  "published-online": null,
+  "container-title": [
+   "Journal of the European Mathematical Society"
+  ],
+  "type": "journal-article",
+  "volume": "11",
+  "page": "1307-1363",
+  "publisher": "European Mathematical Society - EMS - Publishing House GmbH"
+ }
+}

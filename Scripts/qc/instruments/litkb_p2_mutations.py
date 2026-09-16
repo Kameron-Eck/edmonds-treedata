@@ -595,6 +595,27 @@ DEFERRED_HELPERS = {}
 site("T18", "litkb/admit/binding.py::bind::verdict", '"bound"', tests=TESTS_P1P2,
      what="bind returns 'bound' without consulting verdict() at all")
 
+# ── P8: the MCP server, the agents' one path into the knowledge base (design §9, §9.1) ────
+# The server lives under Scripts/pipeline/litkb/, so the per-call-site rule reaches it the moment
+# the file exists — which is why it was built with ONE redact() and ONE add_secret(), each in one
+# function: every tool result goes through _out(), every write tool through _session(). Answered by
+# qc/test_litkb_p8.py, whose non-database tests need no Postgres, so these rows fire anywhere.
+TESTS_P8 = ["qc/test_litkb_p8.py"]
+site("X1", "litkb/mcp/server.py::_out::redact", "{a0}", tests=TESTS_P8,
+     what="the MCP output boundary stops redacting: whatever a route said reaches the model verbatim")
+site("X2", "litkb/mcp/server.py::_session::add_secret", "None", tests=TESTS_P8,
+     what="_session stops ARMING redaction with the workstream token, so redact() is left with "
+          "nothing registered and the token survives every later _out()")
+site("X3", "litkb/mcp/server.py::_labels::norm_label", "{a0}", tests=TESTS_P8,
+     what="MCP labels keep invisible characters: a label of zero-width characters is no longer "
+          "blank, so a write records an agent and session no comparison will match")
+site("X4", "litkb/mcp/server.py::_admit::_labels", '("a", "s")', tests=TESTS_P8,
+     what="litkb_admit stops demanding agent and session labels and invents a pair")
+site("X5", "litkb/mcp/server.py::_acquire::_labels", '("a", "s")', tests=TESTS_P8,
+     what="litkb_acquire stops demanding agent and session labels and invents a pair")
+site("X6", "litkb/mcp/server.py::_record_use::_labels", '("a", "s")', tests=TESTS_P8,
+     what="litkb_record_use stops demanding agent and session labels and invents a pair")
+
 # Call sites a mutation cannot change the behaviour of. The reason must be about the CODE, never about the tests.
 EQUIVALENT = {
     "litkb/admit/binding.py::author_on_page::tokens_contain":

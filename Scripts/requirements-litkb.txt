@@ -12,3 +12,6 @@ psycopg[binary]==3.3.5
 # cropbox too. One pin, three readers — the frame-reader ownership question is recorded in
 # Reports/LITKB_P4_MERGE_2026-09-15.md, not resolved by this merge.
 pypdfium2==5.13.0
+# P8 access layer: the MCP server (litkb.mcp.server) — the agents' only path into the knowledge
+# base. 2.x renamed FastMCP to MCPServer, so the major version is load-bearing, not cosmetic.
+mcp==2.1.1

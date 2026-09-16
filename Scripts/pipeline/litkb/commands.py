@@ -219,6 +219,56 @@ def cmd_migrate(args, conn):
     return 0
 
 
+def cmd_promote(args, conn):
+    """Promotion, the git side (design §5). `prepare` offers this workstream's proposed versions to
+    main; `commit` records that Kam merged them.
+
+    The connection `main()` opened is the WRITER's and is deliberately unused here: promote_prepare
+    and promote_commit may be executed only by litkb_promoter (design §4.7, D-3), whose password
+    lives in a passfile of its own. This command opens that login itself, through
+    litkb.promote.connect(), which is the one path to it — and it is a CLI command, not an MCP tool,
+    so the credential is never held by a long-lived server (§9)."""
+    from litkb import promote
+
+    ws_id, _token = _ws(args)
+    pconn = promote.connect(args.db)
+    try:
+        if args.promote_cmd == "prepare":
+            head = _git("rev-parse", "HEAD", cwd=_worktree(args)) or None
+            if not head:
+                raise SystemExit(f"litkb promote prepare: {_worktree(args)} is not a git worktree; the "
+                                 "branch head commit is what the promotion is recorded against")
+            try:
+                pid = promote.prepare(pconn, ws_id, head, args.report)
+            except Exception as e:                       # the database's own refusals are RESULTS here
+                _print({"workstream_id": str(ws_id), "outcome": "refused",
+                        "refused_by": "database", "error": f"{type(e).__name__}: {e}"})
+                return 1
+            row = pconn.execute(
+                "SELECT state, prepared_at, report_path FROM litkb.promotions WHERE id = %s",
+                (pid,)).fetchone()
+            chains = pconn.execute(
+                "SELECT entity, count(*) FROM litkb.ws_heads WHERE workstream_id = %s GROUP BY 1 ORDER BY 1",
+                (ws_id,)).fetchall()
+            _print({"workstream_id": str(ws_id), "outcome": "prepared", "promotion_id": str(pid),
+                    "branch_head": head, "state": row[0] if row else None,
+                    "prepared_at": row[1] if row else None, "report_path": row[2] if row else None,
+                    "heads": dict(chains),
+                    "next": "Kam reviews the report inside the merge; `promote commit` runs only after "
+                            "the merge commit is reachable from main"})
+            return 0
+        # commit: the reachability rule runs in the TOOL before the database is asked (design §5).
+        # --no-fetch is for an offline scratch repository whose local main is the truth; against the
+        # real repository main is always freshly fetched.
+        res = promote.commit(pconn, args.promotion_id, args.merge_commit,
+                             repo=args.repo or _worktree(args),
+                             fetch_remote=None if args.no_fetch else args.remote)
+        _print({"promotion_id": args.promotion_id, "outcome": "committed", "result": res})
+        return 0
+    finally:
+        pconn.close()
+
+
 def cmd_export(args, conn):
     """Regenerate the tracker / manifest twins FROM the database (design §10)."""
     from litkb import export as ex
@@ -320,6 +370,18 @@ def build_parser():
     m.add_argument("--root", help="literature root (default LITKB_LITERATURE_ROOT)")
     m.add_argument("--log", help="write the per-row JSON log here")
 
+    pr = sub.add_parser("promote", help="offer this workstream to main (prepare), or record Kam's merge (commit)")
+    prsub = pr.add_subparsers(dest="promote_cmd", required=True)
+    pp = prsub.add_parser("prepare")
+    pp.add_argument("--report", help="path the promotion report is written to (on the WORK branch)")
+    pc = prsub.add_parser("commit")
+    pc.add_argument("--promotion-id", dest="promotion_id", required=True)
+    pc.add_argument("--merge-commit", dest="merge_commit", required=True)
+    pc.add_argument("--repo", help="the git repository to check reachability in (default: the worktree)")
+    pc.add_argument("--remote", default="github", help="the remote main is fetched from before the check")
+    pc.add_argument("--no-fetch", action="store_true",
+                    help="trust the repository's LOCAL main — only for an offline scratch repository")
+
     e = sub.add_parser("export", help="regenerate the tracker / manifest twins from the database")
     e.add_argument("what", choices=["tracker", "manifest", "all"])
     e.add_argument("--workstream", help="export this workstream's view (default: the worktree's)")
@@ -329,12 +391,29 @@ def build_parser():
     return ap
 
 
+class _NoConn:
+    """The connection `promote` is handed: it has none. Anything that tried to query through it
+    would fail loudly here rather than quietly opening a second credential."""
+
+    def execute(self, *a, **kw):
+        raise RuntimeError("litkb promote acts as the promoter, through litkb.promote.connect()")
+
+    def close(self):
+        pass
+
+
 def main(argv=None, connect=None):
     args = build_parser().parse_args(sys.argv[1:] if argv is None else argv)
-    conn = (connect or _default_connect)(args.db)
+    # `promote` is the one command that does NOT act as the writer: promote_prepare and
+    # promote_commit may be executed only by litkb_promoter (design §4.7), and cmd_promote opens
+    # that login itself. Opening a writer connection here as well would be a second credential the
+    # command never uses — and against a throwaway database, where only the test login has a
+    # password, it is a connection that cannot even be made.
+    conn = _NoConn() if args.cmd == "promote" and connect is None else (connect or _default_connect)(args.db)
     try:
         return {"ws": cmd_ws, "discover": cmd_discover, "admit": cmd_admit, "approve": cmd_approve,
-                "acquire": cmd_acquire, "migrate": cmd_migrate, "export": cmd_export}[args.cmd](args, conn)
+                "acquire": cmd_acquire, "migrate": cmd_migrate, "export": cmd_export,
+                "promote": cmd_promote}[args.cmd](args, conn)
     finally:
         conn.close()
 

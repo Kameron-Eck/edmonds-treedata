@@ -30,9 +30,21 @@ class PromotionRefused(RuntimeError):
 
 
 def connect(dbname=None, *, autocommit=True):
-    """The one connection path for the promoter login."""
+    """The one connection path for the promoter login.
+
+    Against a THROWAWAY database (`litkb_test`, and the harness workers `litkb_test_wN`) there is no
+    promoter line in any passfile — provisioning writes the promoter's password for `litkb` only. So
+    the test path is the one qc/test_litkb_p1.py already uses: log in as `litkb_test`, which is a
+    member of litkb_promoter WITH INHERIT FALSE, and SET ROLE. That is a weaker credential reaching
+    the same rights, which is what a throwaway database is for; `is_test_db()` keys on the
+    `litkb_test` prefix and is never true for `litkb`, so this branch cannot be aimed at the real
+    database by an environment variable."""
     from litkb.db import connect as c
 
+    if c.is_test_db(dbname):
+        conn = c.connect(dbname, "litkb_test", autocommit=autocommit)
+        conn.execute("SET ROLE litkb_promoter")
+        return conn
     return c._open(c.conninfo(dbname or c.DB_MAIN, c.PROMOTER, passfile=c.promoter_passfile()),
                    autocommit)
 

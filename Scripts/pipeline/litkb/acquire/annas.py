@@ -551,6 +551,16 @@ def fetch_one(client, key, doi_raw, stem, meta, paths, pacer, registry_client=No
     doi = normalize_doi(doi_raw)
     if not doi:
         return result("unresolved", stem, doi_raw, detail="no '10.' prefix in DOI; no request made")
+    # BEGIN guard: gate 0 an arxiv DOI is record-only and is never fetched
+    # `10.48550/…` is a DataCite-registered identifier for a preprint that arXiv itself serves; the
+    # archive is not its distributor and must never be asked for it. `resolve_doi` already returns no
+    # DOI for that form, so this is the belt behind the braces: the refusal holds for ANY caller,
+    # including one that reads a 10.48550 DOI out of a manifest column. No request is made.
+    if (doi_raw or "").strip().lower().startswith(ARXIV_DOI_PREFIX.lower()):
+        return result("unresolved", stem, (doi_raw or "").strip(),
+                      detail=f"arxiv_record_only; archive_ok=False; {ARXIV_DOI_PREFIX}* is a "
+                             f"record-only key served by arXiv, not the archive; no request made")
+    # END guard: gate 0 an arxiv DOI is record-only and is never fetched
 
     md5, status, detail, loc = resolve(client, doi, pacer)
     via, add, fud, rec_doi = "scidb", {}, None, ""

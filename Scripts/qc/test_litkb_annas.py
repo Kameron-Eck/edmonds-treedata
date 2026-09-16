@@ -690,6 +690,13 @@ def cr_item(doi=DOI, title="The Estimation of Prediction Error",
             "issued": {"date-parts": [[year, 9]]}}
 
 
+def crossref_work(item):
+    """The `/works/{doi}` body — one work as `message`, not a search's `message.items` list. It is
+    what `registry.crossref_record` reads, and therefore what the "S2 proposes, Crossref confirms"
+    check reads."""
+    return json.dumps({"message": item}).encode()
+
+
 def s2_json(*items):
     return json.dumps({"data": list(items)}).encode()
 
@@ -753,13 +760,24 @@ class TestResolveDoi(unittest.TestCase):
         near = "The Estimation of Prediction Error in Nonlinear Mixed Models"
         self.assertLess(A.title_match_ratio(TITLE, near), A.RESOLVE_TITLE_RATIO)
         stub, (doi, src, ev) = self.resolve({
+            # S2 PROPOSES, CROSSREF CONFIRMS: the S2 acceptance is now re-checked at
+            # `/works/{doi}`, so that route is here and is listed FIRST — StubClient matches by
+            # substring in insertion order and the search route would otherwise swallow it.
+            CR + "/works/": (200, {}, crossref_work(cr_item())),
             CR: (200, {}, crossref_json(cr_item(doi="10.9/near", title=near, subtitle=""))),
             S2: (200, {}, s2_json({"title": TITLE, "year": 2004,
-                                   "externalIds": {"DOI": DOI.upper()},
+                                   # A resolver-URL spelling, not the bare DOI: this row is also the
+                                   # per-call-site evidence for P7-S3 below, and `DOI` is all
+                                   # digits, so an upper-cased one would be the same string.
+                                   "externalIds": {"DOI": f"https://doi.org/{DOI}"},
                                    "authors": [{"name": "Bradley Efron"}]}))})
         self.assertEqual((doi, src), (DOI, "semanticscholar"))
         self.assertTrue(ev.startswith("via=semanticscholar; ratio=1.00; year=2004"))
         self.assertEqual(len(self.slept), 0)
+        # confirm_s2_candidate's own call of normalize_doi (per-call-site rule, row P7-S3): S2
+        # spelled this DOI as a resolver URL. The confirmation must ask Crossref — and key its
+        # cache — under the canonical spelling, or one work costs two lookups and two cache entries.
+        self.assertIn(f"https://api.crossref.org/works/{DOI}", [u for u, _ in stub.calls])
 
     def test_iii_all_miss_is_no_doi_and_gate_1_is_never_called(self):
         near = "The Estimation of Prediction Error in Nonlinear Mixed Models"
@@ -810,14 +828,62 @@ class TestResolveDoi(unittest.TestCase):
         _, (doi, src, ev) = self.resolve({CR: (200, {}, crossref_json()),
                                           S2: (200, {}, s2_json()), AX: (200, {}, feed)})
         self.assertIsNone(doi)
-        self.assertEqual(ev, "best=arxiv:1.00:10.48550/arXiv.2401.01234")
+        self.assertEqual(ev, "arxiv_record_only=10.48550/arXiv.2401.01234; archive_ok=False; "
+                             "best=arxiv:1.00:10.48550/arXiv.2401.01234")
 
-    def test_semanticscholar_arxiv_only_uses_the_arxiv_doi(self):
-        _, (doi, src, _) = self.resolve({
+    def test_an_s2_candidate_carrying_only_an_arxiv_id_returns_no_doi_at_gate_0(self):
+        """THE GATE-0 arXiv KILL. A Semantic Scholar candidate with no DOI but an ArXiv id yields the
+        `10.48550/` form, which `normalize_doi` accepts as truthy — so gate 0 used to RETURN it, and
+        gate 0's only caller hands what it returns straight to `fetch_one`
+        (`Reports/LITKB_REFERENCES_REFEREE2_2026-09-15.md` §5: the report claimed the DOI was marked
+        `archive_ok=False` and never fetched, and at this door that was false). The DOI is now
+        record-only: it appears in the evidence, marked, and no DOI is returned. Asserted on
+        `resolve_doi` DIRECTLY, not through `run_jobs`, so the `fetch_one` belt cannot mask it."""
+        _, (doi, src, ev) = self.resolve({
             CR: (200, {}, crossref_json()),
             S2: (200, {}, s2_json({"title": TITLE, "year": 2004, "externalIds": {"ArXiv": "2401.01234"},
                                    "authors": [{"name": "B. Efron"}]}))})
-        self.assertEqual((doi, src), ("10.48550/arXiv.2401.01234", "semanticscholar"))
+        self.assertIsNone(doi)
+        self.assertIsNone(src)
+        self.assertIn("arxiv_record_only=10.48550/arXiv.2401.01234; archive_ok=False", ev)
+
+    def test_fetch_one_refuses_an_arxiv_doi_by_construction_and_makes_no_request(self):
+        """The belt behind that brace: even handed the `10.48550/` form directly — out of a manifest
+        column, say — the fetcher makes NO request. Counted at the client."""
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        paths = {k: os.path.join(tmp.name, k) for k in ("dest", "quarantine", "staging")}
+        paths["manifest"] = os.path.join(tmp.name, "manifest.csv")
+        archive = StubClient({})
+        r = A.fetch_one(archive, "SEKRIT", "10.48550/arXiv.1706.03762", "Vaswani_2017_attention",
+                        {"title": TITLE}, paths, self.pacer)
+        self.assertEqual(archive.calls, [])
+        self.assertEqual(r["status"], "unresolved")
+        self.assertIn("arxiv_record_only", r["detail"])
+        self.assertIn("archive_ok=False", r["detail"])
+
+    def test_an_s2_proposal_crossref_calls_a_review_is_refused_at_the_acquisition_door(self):
+        """THE KILL at gate 0. Semantic Scholar's record for a JSTOR review DOI carries the reviewed
+        BOOK's title and the BOOK's authorship, so all three of the resolver's rules accept it —
+        measured on three real references (`Reports/LITKB_S2_BATCHING_2026-09-15.md` §4). Gate 0
+        hands the DOI it returns straight to the fetcher, so an unconfirmed acceptance downloads the
+        review instead of the book. Crossref, asked the same DOI, names the reviewer first and the
+        reference's own first author after him, and the candidate is refused BY NAME."""
+        review = {"DOI": "10.2307/1269348", "type": "journal-article", "title": [TITLE],
+                  "subtitle": [], "container-title": ["Technometrics"],
+                  "issued": {"date-parts": [[2004, 8]]},
+                  "author": [{"family": "Sylwester", "given": "David", "sequence": "first"},
+                             {"family": "Efron", "given": "Bradley", "sequence": "additional"}]}
+        _, (doi, src, ev) = self.resolve({
+            CR + "/works/": (200, {}, crossref_work(review)),
+            CR: (200, {}, crossref_json()),
+            S2: (200, {}, s2_json({"title": TITLE, "year": 2004,
+                                   "externalIds": {"DOI": "10.2307/1269348"},
+                                   "authors": [{"name": "Bradley Efron"}]})),
+            AX: (200, {}, EMPTY_FEED)})
+        self.assertIsNone(doi)
+        self.assertIsNone(src)
+        self.assertIn("s2_refused=review_record (10.2307/1269348;", ev)
 
     def test_429_backs_off_ten_seconds_once_then_retries(self):
         n = []

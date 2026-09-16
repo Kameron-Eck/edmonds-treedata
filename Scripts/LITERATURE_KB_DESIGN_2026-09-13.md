@@ -427,6 +427,36 @@ moves the file's `current_run_id` with `set_current_run()`; agents' writer conne
 | 7 Chunks + embeddings | structure-aware chunks; embed | **bge-m3** lead candidate (MIT, 1024-d, 8192 tokens, dense + sparse **[F]**) vs nomic-embed-text-v1.5 (Apache-2.0, 768-d, 8192 tokens **[F]**) in P7; SPECTER2 optional for whole-paper similarity (512 tokens, title + abstract **[F]**) | `chunks`, `embeddings` |
 | 8 Vision on demand | figure descriptions; adjudicating disputed pages | Claude | `figures.description`, notes |
 
+**Stage 6: the title ratio is a FILTER; the first author and the year are the DISCRIMINATOR**
+(added 2026-09-15 after the P6 referee, `Reports/LITKB_REFERENCES_REFEREE_2026-09-15.md` §3–§4).
+`RESOLVE_TITLE_RATIO = 0.85` is often quoted as if it were the guarantee that a reference resolves
+to its own work. It is not, and the tolerance is measured: over 20 resolved references, replacing
+words of the title with a nonsense token one at a time, the **median reference survives 3 words
+changed (~22 % of the title) and none survives 5** — 17 of 20 survive a one-word change at ratios
+0.80–0.94. What actually stops a near-miss is the pair of rules behind the ratio: the first-author
+family must match, and the year must be equal or ±1 (the ±1 arm only when title and author both
+match, §15.15). Raising 0.85 would not close the failure mode that matters — the builder's two
+`resolved_elsewhere` mutants both cleared 0.85 on a genuinely similar sibling title — and would
+cost the truncated-parse cases stage 6 now labels `doi_title_contained`. So: the ratio screens out
+obvious non-matches cheaply; author and year decide. The one place this leaves open is a reference
+whose title GROBID did not parse at all, where the ratio cannot be computed: that branch requires
+the first-author family and an **exact** year (no ±1, since §15.15 conditions it on a title match),
+and refuses otherwise with `doi_unverifiable`. A DOI printed wrong in a published paper that
+resolves to a different work by the same author in the same year is the one Averkov-class defect
+that branch cannot see — it is unexercised on the P6 corpus (0 of 77 DOI-bearing references lack a
+parsed title) and is named here so it is a known limit rather than a surprise.
+
+**Stage 6: S2 PROPOSES, CROSSREF CONFIRMS** (added 2026-09-15 after the S2-batching report,
+`Reports/LITKB_S2_BATCHING_2026-09-15.md` §4 and §8). A Semantic Scholar candidate never resolves on
+S2 data alone: its DOI is looked up at Crossref, cached and paced, and the CROSSREF record must pass
+the same 0.85 ratio filter and the same first-author + year discriminator against the reference, so
+that S2's merging of a book with its review is ignored rather than believed. The record must also be
+TYPE-COMPATIBLE — a `journal-article` carrying the reference's exact title but prefixed by another
+author is a REVIEW of the cited book (`review_record`), a `journal-article` offered for a reference
+that presents as a book is `type_mismatch`, and the same title with shared authorship at a year more
+than one out is a sibling edition (`edition_mismatch`, **ambiguous, not resolved**) — and every other
+refusal keeps its own name, never a silent drop.
+
 ### 7.1 One coordinate frame, one adapter per tool
 
 Boxes from different tools cannot be overlapped until they share a frame, and the tools disagree on

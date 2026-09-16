@@ -199,19 +199,26 @@ and belongs to whoever installs it.
 ## 4. Registration line, for Kam (user scope) — NOT run here
 
 ```
-claude mcp add -s user -e LITKB_AGENT=claude -e LITKB_SESSION=default -e PYTHONPATH=D:\edmonds-pipeline\treedata\Scripts\pipeline --transport stdio litkb -- py -3.12 -m litkb.mcp.server
+claude mcp add -s user -e LITKB_AGENT=claude -e LITKB_SESSION=default -e PYTHONPATH=<a checkout that contains litkb>\Scripts\pipeline --transport stdio litkb -- py -3.12 -m litkb.mcp.server
 ```
 
 Notes a registrar needs:
 
-- `PYTHONPATH` is required **today**: `litkb` is not importable from the installed package —
-  `py -3.12 -c "import litkb"` fails, because the editable install was made from a tree whose
-  `Scripts/pipeline` has no `litkb`. `pyproject.toml` now lists `litkb.mcp`, so after
-  `py -3.12 -m pip install -e .` from a tree that has it, the `-e PYTHONPATH=…` can be dropped.
+- `PYTHONPATH` is required **today**, and it must name a checkout that HAS `litkb`. It is not
+  `D:\edmonds-pipeline\treedata\Scripts\pipeline` right now: that worktree is on
+  `work/20260906-healing-tool`, where `Scripts/pipeline/litkb` does not exist. `py -3.12 -c "import
+  litkb"` fails for the same reason — the editable install was made from a tree without it.
+  `pyproject.toml` now lists `litkb.mcp`, so after `py -3.12 -m pip install -e .` from a tree that
+  has `litkb`, the `-e PYTHONPATH=…` can be dropped and the path question goes away.
 - Put at least one option (here `--transport stdio`) between the last `-e` and the server name, or
   the name is parsed as another `KEY=value`.
-- `LITKB_AGENT` / `LITKB_SESSION` must be set or every write tool refuses `no-labels`. A session
-  label that is genuinely per-session is better than `default`; the CLI takes `--session`.
+- `LITKB_AGENT` / `LITKB_SESSION` must be set or every write tool refuses `no-labels`. **A user-scope
+  `LITKB_SESSION=default` makes every session the same session** — and the manual-admission sign-off
+  compares session labels (§15.13 D-4), so with `default` a session could approve its own admission.
+  Either set it per project, or keep manual admissions on the CLI (`--session`), where it is real.
+- The server finds `.litkb-workstream` by `LITKB_WORKTREE`, else `git rev-parse --show-toplevel`
+  from its cwd, else the cwd — the same order the CLI uses, so both halves agree on the worktree
+  whatever directory Claude Code launched the server in.
 - Resulting tool ids: `mcp__litkb__litkb_search`, `mcp__litkb__litkb_admit`, … The librarian's
   `tools:` list uses the server-wide form `mcp__litkb`.
 - **Not registered by this branch**, per the brief.
@@ -262,7 +269,10 @@ and anything restated there rots.
 7. **`.gitignore` now un-ignores `/.claude/skills/`, `/agents/`, `/hooks/`** — three new tracked
    subtrees at the repository root, which reach every session on Kam's merge. `settings.json` and
    `settings.local.json` are still ignored, so no permission or hook registration can be swept into
-   a commit.
+   a commit. **Side effect to expect at the merge:** the main worktree already holds an untracked
+   `.claude/skills/paper-search/SKILL.md`. Once this `.gitignore` lands it stops being ignored and
+   will show up as untracked-and-committable in every `git status`. It should be either committed
+   deliberately or ignored by name — not swept in with something else.
 8. **`promote.connect()` gained a test-database branch** that logs in as `litkb_test` and `SET ROLE
    litkb_promoter`. `is_test_db()` keys on the `litkb_test` prefix and is never true for `litkb`, so
    it cannot be aimed at the real database — but it is a new path to the promoter's rights, and a

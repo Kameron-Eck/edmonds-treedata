@@ -100,7 +100,19 @@ def _conn(kind):
 
 
 def _worktree():
-    return Path(os.environ.get("LITKB_WORKTREE") or os.getcwd()).resolve()
+    """Where `.litkb-workstream` lives, resolved the SAME way the CLI resolves it.
+
+    A registered stdio server's cwd is wherever Claude Code launched it — `Scripts\\` at best, the
+    user's home at worst — so `os.getcwd()` alone would have `litkb_ws_open` write the token file
+    somewhere `py -3.12 -m litkb` never looks, and the two halves of the access layer would each
+    believe the other had no workstream. So the order is the CLI's (`commands._worktree`): an
+    explicit LITKB_WORKTREE, else git's top level from the cwd, else the cwd itself."""
+    named = os.environ.get("LITKB_WORKTREE")
+    if named:
+        return Path(named).resolve()
+    r = subprocess.run(["git", "rev-parse", "--show-toplevel"], capture_output=True, text=True)
+    top = r.stdout.strip() if r.returncode == 0 else ""
+    return Path(top or os.getcwd()).resolve()
 
 
 class Refusal(Exception):
@@ -242,11 +254,17 @@ def _search(query, limit, scope):
                            "kind": r[4], "status": r[5], "feeds": r[6], "state": r[7]}) for r in rows]
             trg = [(r[0], {}) for r in sorted(rows, key=lambda r: -(r[9] or 0))]
             hits["uses"] = _rrf(lex, trg)[:limit]
-    return _ok(query=query, scope=scope, legs=(["lexical", "trigram", "vector"] if VECTOR_ENABLED
-                                               else ["lexical", "trigram"]),
-               vector_leg="enabled" if VECTOR_ENABLED else
-                          "OFF until P7 lands embeddings: these hits are lexical, so a paraphrase "
-                          "that shares no words with the text will NOT be found",
+        # The vector leg is WIRED, not live. Setting LITKB_VECTOR_SEARCH=1 must not make the result
+        # CLAIM a leg that did not run: the flag is checked against the embeddings table, and what
+        # comes back says which of the three states this search was in.
+        n_vec = (conn.execute("SELECT count(*) FROM litkb.embeddings").fetchone()[0]
+                 if VECTOR_ENABLED else None)
+    return _ok(query=query, scope=scope, legs=["lexical", "trigram"],
+               vector_leg=("OFF (LITKB_VECTOR_SEARCH is not set): these hits are lexical, so a "
+                           "paraphrase sharing no words with the text will NOT be found"
+                           if not VECTOR_ENABLED else
+                           f"REQUESTED but NOT RUN: the embeddings table holds {n_vec} rows and the "
+                           "vector leg lands with P7. These hits are lexical."),
                **hits)
 
 

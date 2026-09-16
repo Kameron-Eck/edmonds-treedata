@@ -248,12 +248,16 @@ def test_a_planted_secret_is_redacted_in_a_tool_result(tmp_path, monkeypatch):
     monkeypatch.setenv("LITKB_WORKTREE", str(tmp_path))
     monkeypatch.setenv("LITKB_AGENT", "p8")
     monkeypatch.setenv("LITKB_SESSION", "p8-1")
-    res = one("litkb_admit", {"title": "no identifier"})           # reaches _session(), then refuses
-    assert res["refused"] == "no-identifier"
-    assert token not in json.dumps(res)
-    leaked = server._out({"an_error_echoing_the_token": f"could not authenticate with {token}"})
-    assert token not in leaked, "the armed token survived the output boundary"
-    assert "<KEY>" in leaked
+    # `litkb_record_use` reaches _session() (which arms redaction with the token) and then refuses on
+    # `kind`, echoing the value it was given — before any connection is opened. Planting the token
+    # AS that value is therefore a real tool result, over the real protocol, carrying the secret.
+    res = one("litkb_record_use", {"statement": "s", "kind": token, "quote": "q",
+                                   "block_id": str(uuid.uuid4()), "gap": "g"})
+    assert res["refused"] == "bad-kind", res
+    body = json.dumps(res)
+    assert token not in body, "the armed token reached the model through a tool result"
+    assert "<KEY>" in body, body
+    assert server._out({"echo": token}) == '{\n "echo": "<KEY>"\n}'
 
 
 # ── the mini-hunt (gate §14 P8) ───────────────────────────────────────────────────────────

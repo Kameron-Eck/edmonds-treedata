@@ -138,8 +138,9 @@ paper that could not be got is a recorded gap rather than a thing everyone re-tr
 `litkb_record_use(statement, kind, quote, block_id, gap, gap_question=…, feeds=…)`.
 
 - `statement` — what this work *supplies* to the question, in your words. It may not be blank and is
-  capped at 2000 characters; **it is not gated for truth**, so keep it to what the quote beside it
-  actually carries. A statement that reaches past its quote promotes clean and is wrong in main.
+  length-capped (the refusal names the limit). **It is not gated for truth**, so keep it to what the
+  quote beside it actually carries: a statement that reaches past its quote promotes clean and is
+  wrong in main.
 - `kind` — one of `method`, `theorem`, `parameter`, `empirical evidence`, `negative result`,
   `context`, `contradiction`.
 - `gap` — the question it answers (a slug); pass `gap_question` to open a new one.

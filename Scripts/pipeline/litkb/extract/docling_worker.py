@@ -56,10 +56,12 @@ def build_converter(ocr=False, ocr_engine=None, tables=True, formula=False,
     """One DocumentConverter, configured once and reused for every job in the batch.
 
     ``page_batch`` caps how many pages the pipeline holds in flight at once
-    (``docling.datamodel.settings.settings.perf.page_batch_size``, default 4). It is the VRAM
-    knob: the models are loaded once, but their activations are per page in the batch, so the
-    peak scales with it. See :data:`litkb.extract.docling.OCR_PAGE_BATCH` for the measurement
-    that fixes the value this pipeline passes when OCR is on.
+    (``docling.datamodel.settings.settings.perf.page_batch_size``, default 4). It is the knob
+    docling names for VRAM, and MEASURED IT IS NOT ONE: over a real OCR batch the peak is flat
+    across 4 / 2 / 1 (3,873 / 3,842 / 3,893 MiB), because what dominates is the resident models
+    plus torch's cached pool rather than the per-page activations this governs. The VRAM block
+    in :mod:`litkb.extract.docling` carries the five rows and the two knobs that DO move it.
+    This pipeline therefore leaves it at docling's default and records it anyway.
 
     It is a process-wide SETTING rather than a pipeline option in docling 2.127.0, which is why
     it is set here — beside the converter it governs — and recorded in every metrics row: a

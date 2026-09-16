@@ -1,4 +1,4 @@
-# litkb P5 — the local bulk pass: the corpus into `litkb` — 2026-09-16
+﻿# litkb P5 — the local bulk pass: the corpus into `litkb` — 2026-09-16
 
 Branch `work/20260913-literature-kb`, worktree `D:\edmonds-pipeline\treedata-litkb`.
 Driver: `Scripts/qc/instruments/litkb_p5_bulk.py` (`plan | grobid | docling | ingest |
@@ -631,9 +631,13 @@ Per the brief, **no work was admitted**. The census files with no `files` row ar
   `Politis_1994` (plus `Schwartz_2000`, already in `_quarantine\`). Four of those five are
   ALREADY admitted works, and their binding is the `binding-pending` / `binding-failed` of §D:
   the blocker is not admission, it is that the binding check cannot read a scan's first page.
-  Stage 0's backlog for them is 111 pages; at batch B's 0.645 pages/s under the new cap that is
-  about three minutes of GPU, so cost is not the constraint. The constraint is that binding one
-  needs an OCR pass the acquisition path does not run.
+  Their OCR backlog is **89 pages** (92 counting the quarantined `Schwartz_2000`), counted from
+  `phase4/qc/litkb_inventory.csv` — `ocr_page_count` over the five: 22 + 12 + 11 + 24 + 20. §2
+  above says "111 pages across 5 scanned documents" and that number does **not** reproduce: the
+  corpus-wide `ocr_page_count` is 114, of which 23 are the `mixed` pages batch B already ran.
+  At batch B's 0.645 pages/s under the new cap, 89 pages is about two and a half minutes of GPU,
+  so cost is not the constraint. The constraint is that binding one needs an OCR pass the
+  acquisition path does not run.
 * **the 688-page book** `Schneider_2008_stochastic-integral-geometry`, which `--ocr-max-pages
   200` deliberately keeps out of the OCR batch and whose work carries no key.
 * 38 `native` and 5 `mixed` census files whose works are not admitted at all.
@@ -668,5 +672,52 @@ Every guard added carries a mutation row shown to FIRE, and `--sites` passes (**
 | **X25** | the cropbox shift is negative again (Higham 0.98984 → 0.30494) | yes |
 | **X26** | the OCR pass stops applying the knobs the measurement kept | yes |
 | **P55** | the OCR batch back in one long process (63.9 % → 94.6 %) | yes |
+
+## I. Live probes the worker databases cannot make
+
+Every test above runs against a worker database where `litkb_test` **owns** the schema, so every
+grant is implicit and a missing one would be invisible in the whole suite — which is R-1's shape
+exactly, and `litkb_my_uses` reads BASE tables (`litkb.uses`, `litkb.works`, `litkb.gaps`) that
+no `litkb_reader` had ever touched. Three read-only / refuse-only probes against live `litkb` in
+`fix-op-1`, chosen so nothing can be written even if a guard were missing:
+
+| probe | role | result |
+|---|---|---|
+| `litkb_my_uses()` | `litkb_reader` | `ok: true`, `uses: 0`, `gaps: 0` — the statement executes; no missing GRANT |
+| `record_use(feeds=["gap row 4", "§16.2"])` | `litkb_writer` | `bad-feeds`, `bad_feeds: ["§16.2"]` — `litkb._feeds_token_ok` is callable by the writer on live `litkb` |
+| `record_use(statement="   ")` | `litkb_writer` | `bad-statement` |
+
+`litkb_my_uses` afterwards: `uses: 0, gaps: 0`. Nothing was written.
+
+## J. Corrections to this report's own earlier sections
+
+* §2 says Stage 0's OCR backlog is "111 pages across 5 scanned documents". **It does not
+  reproduce.** `ocr_page_count` over the five in `phase4/qc/litkb_inventory.csv` is
+  22 + 12 + 11 + 24 + 20 = **89** (92 with the quarantined `Schwartz_2000`); the corpus-wide
+  total is 114, of which 23 are the `mixed` pages batch B already ran.
+* §6 names two cropped-page documents. The census finds **five** with a negative raw `dy` (§E).
+  Both statements are true at different granularity — §6's is about the 0.80 floor, the census's
+  is about the arithmetic — and only the second is the population a clamp has to be right for.
+* §9 blocker #4 names `Reynolds_2000` and `Montgomery_1991` for the L4 crop re-run. **That
+  blocker is untouched here** and is not the `dy` one: the brief for this session named those two
+  files for the clamp, and the clamp's files are Higham, Efron, Mesquita, Jackson and Kalbfleisch.
+  Blocker #4 still stands exactly as written.
+
+## K. Did NOT test
+
+* **`plan --workstream` with actual rows.** It reported 0 on `fix-op-1` (§G); its target
+  population is the 14 files in three OTHER open workstreams, which this session does not own.
+  The union SQL therefore ran and returned nothing — it has never been shown to return a row.
+* **OCR into the database.** Every OCR number here is a measurement into a scratch directory. No
+  scan was extracted into `litkb`, because none is bound (§D, §G).
+* **`OCR_CHUNK` and `free_cache` together.** Each was measured alone against the same baseline;
+  the applied default now sets both. Their combination is UNMEASURED, and the expectation that it
+  lands at or below the 2,619 MiB the chunk cap alone reached is an inference, not a number.
+* **`promote prepare` in `fix-op-1`.** The workstream holds no proposals — every write this
+  session made was a file binding, which is a fact — so there was nothing to offer and the
+  chain path was not exercised here.
+* **The L4 re-crop** (§9 blocker #4), `Reynolds_2000` and `Montgomery_1991`.
+* **A referee.** Every number above was produced by the author of the code (CLAUDE.md §3.4c).
+
 
 *Appended by Claude Opus 5, session https://claude.ai/code/session_015MUcyGTfX2koRdYAjW5kED.*

@@ -666,7 +666,12 @@ litkb's. **339 litkb Postgres tests pass**, against 244 at the post-referee run 
 
 The whole mutation table, parallel on `--worker-dbs 1,6,9`: **253/253 fired, baselines passed**, 72.8 min
 over three workers (85 + 84 + 84 rows). `--sites`: **78 call sites, 75 covered by a row, 3 equivalent;
-18 sinks, 2 redacted, 16 allowed**, no PROBLEM.
+18 sinks, 2 redacted, 16 allowed**, no PROBLEM. The P6 ingest rows are inside that table — stage 6's
+instrument hands its rows to P2's at import time, so one self-check sees the whole package — but stage 0
+keeps its own: `qc/instruments/litkb_inventory_mutations.py`, **23/23 fired**, baseline after 64 passed,
+1 xfailed. `X1` is the census kill: make the frame reader walk the corpus again instead of reading the
+frozen list and three pinned rows fail, including
+`test_the_frame_reader_reproduces_the_committed_corpus_census`.
 
 **Two defects were found by running the gates, and both were in the gates.**
 

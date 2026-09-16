@@ -1501,8 +1501,10 @@ decided: the feeds vocabulary is brought UP to the convention's seven forms rath
          Kam's call, and the convention now says so in place of the false sentence.
 measured: live litkb ingest 643 references / 969 citation mentions / 13 citation edges / 630
          citation candidates over 17 stage-6 runs; second run adds 0. The parked file's 1,386 rows
-         are bounding boxes -- 1,182 are elements, 201 of those have no biblStruct target and 24
-         belong to the one refused paper, which is 969 exactly. litkb_test_w9, where every stem has
+         are bounding boxes -- 1,182 are elements (box_index == 0) and 201 of those have no
+         biblStruct target. Chrisman, the one refused paper, holds 24 elements of which 12 are
+         targeted; the other 12 are already inside the 201, so the subtraction is 1,182 - 201 - 12
+         = 969, not 1,182 - 201 - 24. litkb_test_w9, where every stem has
          a fixture file, loads 658 / 981 / 13 / 645. `citing_work_key` in the P6 JSONL is a FILE
          STEM, not a works.key: only 10 of 18 match a key, 17 of 18 match a held file by rel_path
          stem, so the loader resolves by stem first and refuses Chrisman_1982 by name (a key with no
@@ -1514,8 +1516,10 @@ measured: live litkb ingest 643 references / 969 citation mentions / 13 citation
 gates:   check.py --fast under LITKB_TEST_DB=litkb_test_w6: 1 failed / 2904 passed / 22 skipped /
          2 xfailed; the one failure is the pre-existing crown_state_model pointer, not litkb's. 339
          litkb Postgres tests, 244 before. Mutation table parallel on --worker-dbs 1,6,9: 253/253
-         fired, baselines passed, 72.8 min over 3 workers. --sites: 78 call sites, 75 covered by a
-         row, 3 equivalent; 18 sinks, 2 redacted, 16 allowed; no PROBLEM.
+         fired, baselines passed, 72.8 min over 3 workers (the P6 ingest rows are inside that table;
+         stage 6 registers its rows into P2's at import). Stage 0 keeps its own instrument: 23/23
+         fired, X1 being the census kill. --sites: 78 call sites, 75 covered by a row, 3 equivalent;
+         18 sinks, 2 redacted, 16 allowed; no PROBLEM.
 gotcha:  0020 and work/20260915-access-layer's 0018 BOTH CREATE OR REPLACE _feeds_token_ok, written
          independently, with different framework-depth regexes. A CREATE OR REPLACE is decided by
          APPLY order, not by migration number, so litkb (which has 0020) would end up with 0018's

@@ -1,0 +1,101 @@
+{
+  "_what": "Referee-authored GOLD for litkb P8 (the access layer: MCP server, skill, librarian, staged hook). Three real research questions taken from Reports/FRAMEWORK_GAPS_SPATIOTEMPORAL_CONSISTENCY_2026-09-11.md, each with the work and the VERBATIM passage that answers it, read out of the .txt extract under D:\\edmonds-pipeline\\Literture\\Validation. Authored and committed BEFORE any MCP tool, any seeding of litkb_test_w2, and any test run in this referee session (CLAUDE.md 3.4c).",
+  "_authored_by": "independent referee session, 2026-09-15, Claude Opus 5",
+  "_not_consulted": "No litkb_search result, no block table, no server output, and none of the builder's test assertions were consulted while choosing these questions or quotes. The quotes were located by grep over the .txt extracts only. litkb (the real database) was read once, read-only, and holds 0 blocks and 0 extraction_runs, so no search result could have informed this file.",
+  "_quote_rule": "A quote is verbatim from the .txt extract, INCLUDING the extract's own mojibake (the PDF text layer renders some ligatures and Greek as replacement characters; e.g. Bellettini's chi_C appears as 'wC' and Omega as 'O', Rosychuk's 'fi' as an FFFD). Line wrapping in the extract is collapsed to single spaces. A scorer matches whitespace-normalised and case-insensitively. Preserving the mojibake is deliberate: a quote 'cleaned up' by the referee would not be verifiable against the block the pipeline actually stores.",
+  "_scoring": {
+    "search_hit": "PASS if a litkb_search(query) for the question's search_query returns, in its top 5 results, a block whose text contains the verbatim passage (whitespace-normalised).",
+    "quote_accept": "PASS if litkb_record_use with the verbatim passage and that block_id returns quote_verified true.",
+    "paraphrase_refuse": "PASS if litkb_record_use with the paraphrase field below (same block_id) is REFUSED, and the refusal names the quote, not something else.",
+    "prepare_hold": "PASS if a use whose evidence row is stored with quote_verified false is HELD by promote prepare while a verified control in the same prepare reaches 'prepared'."
+  },
+
+  "questions": [
+    {
+      "id": "Q1",
+      "gap_row": 4,
+      "framework_section": "§16.2",
+      "question": "Under the total-variation flow, which sets keep their shape and only fade — i.e. when is the erasure of a blob a uniform height decrease with no boundary motion?",
+      "search_query": "does not deform its boundary but only decreases its height",
+      "work": {
+        "key_hint": "Bellettini_2002",
+        "title": "The total variation flow in R^N",
+        "authors_first": "Bellettini",
+        "year": 2002,
+        "extract": "D:\\edmonds-pipeline\\Literture\\Validation\\Bellettini_2002_total-variation-flow.txt",
+        "extract_lines": "187-189"
+      },
+      "verbatim_passage": "we characterize all bounded connected subsets O of R2 for which the solution of (1) and (2) with u0 � wO does not deform its boundary but only decreases its height.",
+      "second_passage": {
+        "extract_lines": "195-198",
+        "text": "(where P �C� stands for the perimeter of C and jCj for the Lebesgue measure of C) if and only C is convex, @C is of class C1;1 and"
+      },
+      "paraphrase_that_must_be_refused": "Bellettini shows that convex sets with bounded curvature shrink in amplitude only, keeping their outline fixed until extinction.",
+      "answer_the_framework_draws": "chi_Omega evolves as (1 - lambda_Omega t)+ chi_Omega with lambda_Omega = P(Omega)/|Omega|; a disc of radius R has lambda = 2/R, so its indicator is extinct at t = R/2 and R_erase = 2t. The paper supplies the law [Q]; the reading of it on a PROBABILITY raster (not an indicator) is the framework's own [D]."
+    },
+    {
+      "id": "Q2",
+      "gap_row": 17,
+      "framework_section": "§19.1",
+      "question": "What likelihood does a multi-state Markov model use when the state is observed only at discrete, unequally spaced times and nothing is known in between?",
+      "search_query": "product of probabilities of transition between observed states",
+      "work": {
+        "key_hint": "Jackson_2011",
+        "title": "Multi-State Models for Panel Data: The msm Package for R",
+        "authors_first": "Jackson",
+        "year": 2011,
+        "extract": "D:\\edmonds-pipeline\\Literture\\Validation\\Jackson_2011_multi-state-models-panel-data.txt",
+        "extract_lines": "130-131"
+      },
+      "verbatim_passage": "The full likelihood is then the product of probabilities of transition between observed states, over all individuals i and observation times j:",
+      "second_passage": {
+        "extract_lines": "1057-1058",
+        "text": "The misclassification probabilities may also be modelled in terms of covariates, using multino- mial logistic regression."
+      },
+      "paraphrase_that_must_be_refused": "The overall likelihood multiplies, across every subject and every pair of visits, the transition probability between the two observed states.",
+      "answer_the_framework_draws": "Each factor is the (S(t_ij), S(t_i,j+1)) entry of P(t) = exp(Q dt) at dt = t_i,j+1 - t_ij, maximised over log(q_rs). This replaces §15.2's 'estimate the eleven-year matrix and take its root' with one likelihood on the irregular epochs; the misclassification-as-covariates sentence is what lets emission depend on epoch and band."
+    },
+    {
+      "id": "Q3",
+      "gap_row": 18,
+      "framework_section": "§19.1, second bullet",
+      "question": "If we estimate canopy transition rates from OBSERVED (misclassified) states instead of true ones, is the estimate biased, and in which direction?",
+      "search_query": "naive estimators overestimate the transition probabilities misclassification",
+      "work": {
+        "key_hint": "Rosychuk_2003",
+        "title": "Bias correction of two-state latent Markov process parameter estimates under misclassification",
+        "authors_first": "Rosychuk",
+        "year": 2003,
+        "extract": "D:\\edmonds-pipeline\\Literture\\Validation\\Rosychuk_2003_bias-correction-two-state-latent.txt",
+        "extract_lines": "839-840"
+      },
+      "verbatim_passage": "The NEs overestimate the transition probabilities and this overesti- mate increases as the misclassi�cation probabilities increase.",
+      "second_passage": {
+        "extract_lines": "395",
+        "text": "if = � = 0:2 and the asymptotics apply, the naive estimators on average overestimate"
+      },
+      "paraphrase_that_must_be_refused": "Ignoring misclassification inflates the estimated transition probabilities, and the inflation grows with the misclassification rate.",
+      "answer_the_framework_draws": "Direction confirmed: naive estimates over-state change, so persistence is UNDER-estimated — which is what §18.2 asserted and row 18 needed. Bias is small only when both misclassification probabilities are under 0.05; our emission error is not. The naive-versus-joint difference on the certified strata is row 18's kill in published form."
+    }
+  ],
+
+  "prescribed_tool_sequence": {
+    "_source": ".claude/skills/literature/SKILL.md, steps 0-5, call shapes copied as written",
+    "_note": "This is what the skill TELLS a reader to do, not what the referee thinks is right. Two of these shapes are tested literally: step 2's litkb_admit(doi=...) with no title/authors/year, and step 4's feeds token 'report <FILE>#§<loc>'.",
+    "steps": [
+      {"n": 0, "call": "litkb_search(query, scope=\"all\")", "then": "litkb_work(doi=…) or litkb_work(key=…)", "rule": "first, every time, before a web search, before paper-search, before opening a PDF; keep the block_id"},
+      {"n": 1, "call": "litkb_ws_open(slug, purpose)", "aux": "litkb_ws_status()", "rule": "the token is never a tool parameter; the server reads it from .litkb-workstream"},
+      {"n": 2, "call": "litkb_admit(doi=\"10.…\")", "optional": "file=\"…\"", "manual_route": "py -3.12 -m litkb admit --manual --title … --authors … --year … --file … --source-note \"…\", then a DIFFERENT session approves; no MCP tool for either step"},
+      {"n": 3, "call": "litkb_acquire(key=…)", "optional": "from_file=…", "rule": "open access, then archive, then Sci-Hub; never fetch outside a workstream; a blocked route is cited METADATA grade, never as if read"},
+      {"n": 4, "call": "litkb_record_use(statement, kind, quote, block_id, gap, gap_question=…, feeds=…)", "rule": "quote verbatim from the named block; kind in {method, theorem, parameter, empirical evidence, negative result, context, contradiction}; feeds tokens 'framework §N', 'gap row N', 'decision <slug>', 'report <FILE>#§<loc>'"},
+      {"n": 5, "call": "litkb_propose_promotion()", "rule": "promote commit is NOT a tool and is not the agent's; main is Kam's"}
+    ]
+  },
+
+  "predictions_recorded_before_running": [
+    "P1: litkb_search will return the Q1/Q2/Q3 passages only if w2 is seeded from the FULL .txt of each work; against the real litkb (0 blocks) all three questions return nothing, and the correct behaviour is to say so rather than answer from the model's memory.",
+    "P2: the skill's step-4 feeds token 'report <FILE>#§<loc>' is NOT accepted by litkb._feeds_token_ok (0005 line 17, unchanged by 0013), which admits only 'framework §N', 'gap row N', 'decision <slug>'. A use written exactly as the skill prescribes will therefore be HELD at prepare with 'feeds: invalid tokens'. Predicted BEFORE running.",
+    "P3: a use with ZERO use_evidence rows will PREPARE CLEAN, because _ws_chains counts only rows that are NOT promotable. The convention's 'a use with no verifiable quote is refused at prepare' is therefore false as written. Predicted from reading 0005 lines 78-85 and 0013 lines 575-582, to be confirmed by running.",
+    "P4: the skill's step-2 shape litkb_admit(doi=\"10.…\") with no title/authors/year will be refused at check1_study_exists, per migration 0013 line 147."
+  ]
+}

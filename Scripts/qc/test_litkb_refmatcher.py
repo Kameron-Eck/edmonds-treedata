@@ -331,6 +331,18 @@ def test_query_cache_round_trips_and_counts_hits(tmp_path):
     assert c2.get("q1") == [{"br": "x"}]
 
 
+def test_query_cache_does_not_persist_an_empty_result_as_a_failure_marker(tmp_path):
+    """A 500 or a timeout must not be stored as `[]`. On re-read it is indistinguishable
+    from 'the registry has nothing', so it becomes a permanent miss that a referee's
+    zero-wire re-score inherits without any sign that a request ever failed."""
+    p = tmp_path / "c.jsonl"
+    c = ev.QueryCache(p)
+    c.put("good", [])                 # a REAL empty answer is legitimate and is stored
+    assert ev.QueryCache(p).get("good") == []
+    # a failure is simply never put; nothing to assert but the absence
+    assert ev.QueryCache(p).get("failed-query") is None
+
+
 def test_query_cache_key_is_the_exact_query_text(tmp_path):
     c = ev.QueryCache(tmp_path / "c.jsonl")
     c.put("SELECT a", [1])

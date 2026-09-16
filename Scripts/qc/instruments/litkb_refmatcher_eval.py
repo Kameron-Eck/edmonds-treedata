@@ -335,15 +335,24 @@ async def run_refmatcher(mod, rows, *, endpoint, patched, cache, stats, threshol
             if exc.code == 429:
                 stats.rate_limited += 1
             stats.errors += 1
+            failed = True
             out = []
         except Exception:
             stats.requests += 1
             stats.errors += 1
             stats.by_status["exc"] = stats.by_status.get("exc", 0) + 1
+            failed = True
             out = []
+        else:
+            failed = False
         finally:
             stats.seconds += time.time() - t0
-        cache.put(q, out)
+        # NEVER CACHE A FAILURE AS AN EMPTY RESULT. A 500 or a timeout stored as `[]` is
+        # indistinguishable on re-read from "the registry has nothing", so it becomes a
+        # PERMANENT miss that a referee's zero-wire re-score silently inherits. Only real
+        # answers are persisted; a failed query is simply re-asked next run.
+        if not failed:
+            cache.put(q, out)
         return out
 
     mod.OpenCitationsMatcherThreadSafe.query_opencitations = query_opencitations
@@ -431,6 +440,8 @@ def run_crossref_sbm(rows, *, cache, stats, pace, progress_path, rows_returned=5
                 stats.by_status["200"] = stats.by_status.get("200", 0) + 1
                 cache.put(url, items)
             except urllib.error.HTTPError as exc:
+                # Not cached -- see the note in run_refmatcher: a failure stored as an empty
+                # result is a permanent miss for every later zero-wire re-score.
                 stats.requests += 1
                 code = str(exc.code)
                 stats.by_status[code] = stats.by_status.get(code, 0) + 1

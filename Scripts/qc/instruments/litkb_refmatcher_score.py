@@ -173,6 +173,72 @@ def score_hard_set(gold, arm_body, refs) -> dict:
     return {"hard_n": len(hard), "counts": dict(c), "detail": detail}
 
 
+def our_gate_verdict(returned_doi: str, ref: dict, crossref_items: dict):
+    """Run OUR confirmation rule over the record an arm returned. -> (verdict, detail).
+
+    Exact-DOI must-not-link scoring UNDERSTATES the failure, and measurably so: on the three
+    book reviews the Crossref arm returned a review every time, but only ONE of them was the
+    specific DOI the gold names -- S2 had proposed that one; the other two are DIFFERENT
+    reviews of the same book (a QREI review and a Cytometry review). Scored on DOI equality
+    those two read as `other_doi`, i.e. as having avoided the trap. They did not. This asks
+    the question the gold cannot: is the record the arm returned a review of the cited work,
+    or the wrong type for it?
+    """
+    try:
+        from litkb.admit.resolver import (RESOLVE_TITLE_RATIO, _shares_authorship, _year_int,
+                                          family_matches, reference_is_book, review_hint,
+                                          review_signature, title_match_ratio)
+    except ImportError:
+        return "gate_unavailable", "litkb not importable"
+    msg = crossref_items.get(normalize_doi(returned_doi))
+    if msg is None:
+        return "no_record", "the returned DOI's Crossref body was not captured"
+    rec = {
+        "raw_type": msg.get("type") or "",
+        "raw_subtype": msg.get("subtype") or "",
+        "title": (msg.get("title") or [""])[0],
+        "titles": list(msg.get("title") or []),
+        "venue": next((c for c in (msg.get("container-title") or []) if c), None),
+        "first_author": ((msg.get("author") or [{}])[0].get("family")
+                         or (msg.get("author") or [{}])[0].get("name") or ""),
+        "authors": [{"family": a.get("family") or a.get("name") or "",
+                     "given": a.get("given") or ""} for a in (msg.get("author") or [])],
+        # Crossref's issued.date-parts is [[yyyy, mm, dd]]; the year is the first element.
+        "year": (((msg.get("issued") or {}).get("date-parts") or [[None]])[0] or [None])[0],
+    }
+    why = review_signature(rec, ref)
+    if why:
+        return "review_record", why
+    why = review_hint(rec, ref)
+    if why:
+        return "review_suspected", why
+    if reference_is_book(ref) and rec["raw_type"] == "journal-article":
+        return "type_mismatch", (f"reference is a book (publisher {ref.get('publisher')!r}); "
+                                 f"crossref says journal-article in {rec['venue']!r}")
+    # The remaining rungs of confirm_s2_candidate, in its order: title ratio, then the
+    # edition test (same title + shared authorship + year apart = a sibling, not this one),
+    # then first author, then year. Run here so the comparison is against the WHOLE rule and
+    # not only its review half -- otherwise the four edition cases read as "passes our gate"
+    # when it is simply that the rung which refuses them was not run.
+    ratio = max([title_match_ratio(ref.get("title") or "", t)
+                 for t in (rec.get("titles") or [])] or [0.0])
+    if ratio < RESOLVE_TITLE_RATIO:
+        return "crossref_title_ratio", f"ratio {ratio:.2f} < {RESOLVE_TITLE_RATIO}"
+    cy, wy = _year_int(rec.get("year")), _year_int(ref.get("year"))
+    if cy is not None and wy is not None and abs(cy - wy) > 1 and _shares_authorship(rec, ref):
+        return "edition_mismatch", f"crossref {cy} vs reference {wy}, shared authorship"
+    if not (rec.get("first_author") or ""):
+        return "crossref_no_author", "crossref carries no author for this record"
+    if not family_matches(rec["first_author"], ref.get("first_author") or ""):
+        return "crossref_author_mismatch", (f"crossref {rec['first_author']!r} != "
+                                            f"reference {ref.get('first_author')!r}")
+    if cy is None or wy is None:
+        return "crossref_year_unknown", f"crossref {cy}, reference {wy}"
+    if abs(cy - wy) > 1:
+        return "crossref_year_mismatch", f"crossref {cy} != reference {wy}"
+    return "passes_our_gate", f"ratio {ratio:.2f}; year {cy}"
+
+
 def score_must_not_link(gold, arm_body, presence=None) -> dict:
     """`presence` maps DOI -> bool (is it in the registry the arm searches).
 
@@ -202,6 +268,29 @@ def score_must_not_link(gold, arm_body, presence=None) -> dict:
         else:
             bucket["other_doi"] += 1
     return {"real": dict(real), "mutants": dict(mut), "returned_bad": hits}
+
+
+def score_must_not_link_through_our_gate(gold, arm_body, refs, crossref_items) -> dict:
+    """The same 7 real cases, judged by OUR rule on the record the arm actually returned."""
+    c = Counter()
+    rows = []
+    for e in gold["must_not_link"]:
+        if "#mut" in e["ref_id"]:
+            continue
+        r = arm_body.get(e["ref_id"])
+        got = normalize_doi((r or {}).get("doi") or "") if (r and r.get("matched")) else ""
+        if not got:
+            c["no_answer"] += 1
+            rows.append({"ref_id": e["ref_id"], "kind": e["kind"], "doi": "",
+                         "verdict": "no_answer", "detail": ""})
+            continue
+        verdict, detail = our_gate_verdict(got, refs.get(e["ref_id"], {}), crossref_items)
+        c[verdict] += 1
+        c["is_the_named_bad_doi"] += int(got == normalize_doi(e["bad_doi"]))
+        rows.append({"ref_id": e["ref_id"], "kind": e["kind"], "doi": got,
+                     "verdict": verdict, "detail": detail[:160],
+                     "is_named_bad_doi": got == normalize_doi(e["bad_doi"])})
+    return {"counts": dict(c), "rows": rows}
 
 
 def score_near_positive(gold, arm_body) -> dict:
@@ -260,6 +349,61 @@ def score_unparsed(refs, arm_body, gold) -> dict:
     return {"n": len(ids), "counts": dict(c), "rows": rows}
 
 
+def render_markdown(report: dict) -> str:
+    """The report's tables, generated. CLAUDE.md 3.4b: a number in the report is written
+    by the instrument that measured it, never retyped from a console summary."""
+    L = []
+    g = report.get("p6_resolver", {})
+    L.append("| arm | registry | positives correct / wrong / miss (365) |"
+             " hard-293 right / wrong / ungraded / none | must-not-link real (7) |")
+    L.append("|---|---|---|---|---|")
+    ours = report.get("our_resolver_on_293", {})
+    oc = report.get("our_confirmed_graded", {})
+    if ours:
+        b = ours.get("confirmed", {})
+        L.append(f"| **ours (P6 + confirm)** | crossref | "
+                 f"{g.get('resolved', 0)} / – / {g.get('unresolved', 0) + g.get('ambiguous', 0)}"
+                 f" *(P6 state)* | {oc.get('graded_right', 0)} / {oc.get('graded_wrong', 0)}"
+                 f" / {oc.get('ungraded', 0)} / {b.get('unresolved', 0)}"
+                 f" (+{b.get('ambiguous', 0)} amb) | 0 returned |")
+    for arm, e in report.get("arms", {}).items():
+        if e.get("status") == "NOT RUN" or "positives" not in e:
+            continue
+        p = e["positives"]["counts"]
+        h = e["hard_set"]["counts"]
+        m = e["must_not_link"]["real"]
+        reg = e.get("meta", {}).get("registry", "?")
+        L.append(f"| {arm} | {reg} | {p.get('correct', 0)} / {p.get('wrong', 0)}"
+                 f" / {p.get('miss', 0)} | {h.get('graded_right', 0)} / {h.get('graded_wrong', 0)}"
+                 f" / {h.get('ungraded', 0)} / {h.get('no_match', 0)} |"
+                 f" {m.get('returned_bad', 0)} returned,"
+                 f" {m.get('refused', 0)} refused,"
+                 f" {m.get('bad_absent_from_registry', 0)} absent-from-registry |")
+    L.append("")
+    L.append("| arm | the 50 unparsed footnotes: returned a DOI / gold agrees / disagrees / ungraded |")
+    L.append("|---|---|")
+    for arm, e in report.get("arms", {}).items():
+        if "unparsed_50" not in e:
+            continue
+        u = e["unparsed_50"]["counts"]
+        L.append(f"| {arm} | {u.get('returned_a_doi', 0)} / {u.get('gold_agrees', 0)}"
+                 f" / {u.get('gold_disagrees', 0)} / {u.get('ungraded', 0)}"
+                 f"  (no match {u.get('no_match', 0)} of {e['unparsed_50']['n']}) |")
+    L.append("")
+    L.append("| kill arm | mutants returning the ORIGINAL doi (70 must-not-link) |"
+             " near-positive returning the original (20) |")
+    L.append("|---|---|---|")
+    for arm, e in report.get("arms", {}).items():
+        if not arm.startswith("mutants") or e.get("status") == "NOT RUN":
+            continue
+        mm = e["must_not_link"]["mutants"]
+        np_ = e["near_positive"]
+        L.append(f"| {arm} | {mm.get('returned_bad', 0)} of 70"
+                 f" (other DOI {mm.get('other_doi', 0)}, none {mm.get('refused', 0)}) |"
+                 f" {np_.get('returned_original', 0)} of 20 |")
+    return "\n".join(L)
+
+
 def main(argv=None):
     ap = argparse.ArgumentParser()
     ap.add_argument("--gold", required=True)
@@ -315,6 +459,23 @@ def main(argv=None):
     p6 = Counter(r["resolution"] for r in refs.values())
     report["p6_resolver"] = dict(p6)
 
+    # Crossref bodies captured by the SBM run, indexed by DOI, so our own gate can be run
+    # over the records an arm returned rather than only over the DOI strings.
+    crossref_items: dict[str, dict] = {}
+    cpath = OUT / "cache_crossref_search.jsonl"
+    if cpath.exists():
+        for line in cpath.read_text(encoding="utf-8").splitlines():
+            if not line.strip():
+                continue
+            try:
+                for it in json.loads(line).get("v") or []:
+                    d = normalize_doi(it.get("DOI") or "")
+                    if d and d not in crossref_items:
+                        crossref_items[d] = it
+            except (json.JSONDecodeError, AttributeError):
+                continue
+    report["crossref_bodies_captured"] = len(crossref_items)
+
     for arm in args.arms:
         meta, body = load_arm(OUT / f"results_{arm}.jsonl")
         if not body:
@@ -333,6 +494,9 @@ def main(argv=None):
                 entry["positives_at_cut"] = score_positives(gold, body, cut=args.crossref_cut)
             entry["hard_set"] = score_hard_set(gold, body, refs)
             entry["must_not_link"] = score_must_not_link(gold, body, pres)
+            if crossref_items:
+                entry["must_not_link_our_gate"] = score_must_not_link_through_our_gate(
+                    gold, body, refs, crossref_items)
             entry["lost_genuine"] = score_lost_genuine(gold, body)
             entry["unparsed_50"] = score_unparsed(refs, body, gold)
         report["arms"][arm] = entry
@@ -357,7 +521,11 @@ def main(argv=None):
         else:
             print(f"  {arm:18} mnl_mutants={e['must_not_link']['mutants']}")
             print(f"  {'':18} near_positive={e['near_positive']}")
-    print(f"wrote {args.json_out}")
+    md = render_markdown(report)
+    md_path = Path(args.json_out).with_suffix(".md")
+    md_path.write_text(md, encoding="utf-8")
+    print("\n" + md)
+    print(f"\nwrote {args.json_out} and {md_path}")
     return 0
 
 

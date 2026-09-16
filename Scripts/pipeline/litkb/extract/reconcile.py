@@ -16,9 +16,15 @@ What it does, in the order the design gives:
 3. **Choose**, per field, with the rule §7.1 states: the native text layer wins the TEXT (OCR only
    where stage 0's routing says the page has no native layer), Docling wins ORDER and TABLE
    STRUCTURE, GROBID wins REFERENCES. Every choice is recorded per field in ``extractor``.
-4. **Keep disagreements.** Where the two tools conflict — a different kind for the same region, or
-   text that does not agree — the conflict is written down as a row and BOTH readings are kept.
-   Nothing is silently resolved; §7 says a disputed region is stage 8's problem, not stage 5's.
+4. **Keep disagreements — as ROWS, not as two blocks.** Where the two tools conflict — a different
+   kind for the same region, text that does not agree, one tool merging what the other segmented —
+   the conflict is written down as a ``Disagreement`` row carrying both readings, and ONE canonical
+   block is emitted. Nothing is silently resolved; §7 says a disputed region is stage 8's problem,
+   not stage 5's. Until 2026-09-16 "both readings are kept" meant two BLOCKS, and the final
+   referee measured what that costs: 3,120 duplicate-text rows in 205 of 229 files, 6,309 blocks
+   that are a substring of another on their own page, a search returning one region twice in a
+   ten-row list, and a quote whose character offsets can land in either copy.
+   :func:`_merge_regions` is where the one block is chosen and the other reading is written down.
 
 THRESHOLDS ARE PROVISIONAL. §14 requires gold authored by a referee and committed before the
 measurement; no such gold exists for reading order or coverage (the P4 merge report records that
@@ -159,6 +165,13 @@ class Canonical:
     reading_order: int
     text: str = ""
     latex: str | None = None
+    #: What is KNOWN about ``latex`` — one of ``stable`` / ``contaminated`` / ``unstable`` /
+    #: ``degenerate`` / ``unverified``, or None where no formula pass has run at all (migration
+    #: 0022 carries the definitions). Stage 5 never sets it: LaTeX arrives from the formula stage
+    #: and so does the word for it. None and ``unverified`` are different facts — "no formula
+    #: pass has looked at this corpus" against "the pass ran and produced nothing for this
+    #: equation" — which is why the column is nullable and the reconciler leaves it alone.
+    latex_status: str | None = None
     extractor: dict = dataclasses.field(default_factory=dict)
     confidence: float = 0.5
     source: str = "docling"          # docling | grobid | both
@@ -304,6 +317,33 @@ def native_chars(pdf_path, page_no, frames=None):
 
 def _in_box(x, y, b, tol=1.0):
     return (b[0] - tol) <= x <= (b[2] + tol) and (b[1] - tol) <= y <= (b[3] + tol)
+
+
+def choose_text(native, tool_text, fragment=False):
+    """-> (text, ``"native"`` | ``"tool"``). §7.1's rule, in ONE place so a test can sit on it.
+
+    The native layer's characters win where there are enough of them. "Enough" is half the tool's
+    own reading: a native slice much SHORTER than what the tool read for the same region means
+    the box is in the wrong frame or the page has no usable layer, and falling back to the tool
+    is the honest answer there.
+
+    ``fragment`` turns that floor off, and it is the final referee's G7 fix. A block that is one
+    FRAGMENT of a multi-page or multi-column element carries its ELEMENT's whole ``text`` (see
+    :func:`union_boxes`), so the floor is being applied against the wrong denominator: the
+    fragment's honest short slice is compared with every page and every column of the element it
+    belongs to, fails, and the block is stored with words that are printed somewhere else. That
+    is exactly the G7 finding — 872 characters under ``page_no = 12`` of which the first ~700 are
+    printed on page 11 — and, on a page whose columns one tool merged, it is the same string
+    stored once per column (Pengra p8: 14 times). For a fragment the native slice IS the answer:
+    the characters printed inside this box, on this page, which is what a citation has to name.
+    The fallback still applies when the page has no native layer at all.
+    """
+    n = _norm(native)
+    if fragment and n:
+        return native, "native"
+    if n and len(n) >= 0.5 * len(_norm(tool_text or "")):
+        return native, "native"
+    return tool_text, "tool"
 
 
 def native_text_in(layer, box, tol=1.0):
@@ -596,25 +636,10 @@ def reconcile(pdf_path, tei=None, doc=None, record=None, ocr_pages=(), frames=No
     canonical, dis = [], []
 
     def text_for(page, box, tool_text, fragment=False):
-        """§7.1: the native layer's characters win, OCR only where the routing says so.
-
-        ``fragment`` is the fix the final referee's G7 asks for. A block that is ONE FRAGMENT of
-        a multi-page or multi-column element carries its element's whole ``text`` (see
-        :func:`union_boxes`), so the 50 % rule below — written for a whole region, where a native
-        slice much shorter than the tool's reading means the box is wrong — reads a fragment's
-        honest short slice as a bad box and falls back to text from other pages. For a fragment
-        the native slice IS the answer: it is exactly the characters printed inside this
-        fragment's box, on this fragment's page, which is what a citation has to be able to name.
-        The fallback still applies when the page has no native layer at all.
-        """
+        """§7.1: the native layer's characters win, OCR only where the routing says so."""
         if page in set(ocr_pages):
             return tool_text, "ocr"
-        native = native_text_in(chars(page), box)
-        if fragment and _norm(native):
-            return native, "native"
-        if len(_norm(native)) >= 0.5 * len(_norm(tool_text or "")) and _norm(native):
-            return native, "native"
-        return tool_text, "tool"
+        return choose_text(native_text_in(chars(page), box), tool_text, fragment)
 
     def add(page, box, kind, subkind, source, text, tool_text, conf, element_id, extractor,
             payload=None, latex=None, tool_order=-1, anchored=False, of=None):
@@ -1044,7 +1069,8 @@ def _overmerge_drop(blocks, by_page, dis):
                 docling_text=big.text if big.source != "grobid" else "",
                 detail=f"{big.source} merges a region the other tool segments: {len(kids)} blocks "
                        f"on this page are boxed inside it and cover {share:.2f} of its text; the "
-                       "segmented blocks are canonical and this reading is kept here"))
+                       f"segmented blocks are canonical and this reading is kept here "
+                       f"(element {big.element_id or 'unnamed'})"))
     return drop
 
 
@@ -1129,8 +1155,13 @@ def _pairwise_merge(blocks, keep, by_page, dis):
         if not alt:
             continue
         ex = dict(survivor.extractor)
+        # ``element_id`` is not decoration. Stage 6 stores a parsed reference with the BLOCK it
+        # came from (``litkb.references.block_id``), and after the merge the block a `biblStruct`
+        # became is Docling's, carrying Docling's `#/texts/N`. Without GROBID's own id recorded
+        # here there is no way back from a TEI element to the block that now holds it, and a
+        # stage-6 re-run against this pipeline version would have nothing to join on.
         ex["merged"] = [{"kind": o.kind, "source": o.source, "bbox": [round(v, 2) for v in o.bbox],
-                         "text_source": o.text_source} for o in alt]
+                         "text_source": o.text_source, "element_id": o.element_id} for o in alt]
         if kind != survivor.kind:
             ex["kind"] = "grobid"
             ex["kind_alt"] = survivor.extractor.get("kind", survivor.source)

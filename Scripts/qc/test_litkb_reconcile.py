@@ -1045,3 +1045,294 @@ def test_two_canonical_blocks_cannot_share_a_reading_order(pg):
                          text="collides")
     with pytest.raises(pg.errors.UniqueViolation):
         _ingest(pg, file_id, dup)
+
+
+# ── ONE canonical block per region (final referee §4, blocker 2 of its §11) ──────────────
+
+def _c(page, box, kind="paragraph", text="", source="docling", ts="native", ex=None, order=0):
+    return R.Canonical(page=page, x0=box[0], y0=box[1], x1=box[2], y1=box[3], kind=kind,
+                       reading_order=order, text=text, source=source, text_source=ts,
+                       extractor=ex or {"bbox": source, "kind": source}, tool_order=order)
+
+
+def test_a_planted_duplicate_pair_yields_one_block():
+    """THE KILL for the merge. Two readings of ONE rectangle go in; one canonical block comes
+    out, and the other reading is a `duplicate_region` row rather than a second block."""
+    box = (10.0, 10.0, 200.0, 60.0)
+    a = _c(1, box, text="the same paragraph, twice", source="docling")
+    b = _c(1, box, text="the same paragraph, twice", source="grobid", ts="tool",
+           ex={"bbox": "grobid", "kind": "grobid"})
+    dis = []
+    out, refs, stats = R._merge_regions([a, b], [], dis)
+    assert len(out) == 1 and refs == [] and stats["merged"] == 1
+    assert out[0].source == "both" and out[0].text_source == "native", \
+        "the survivor must be the native-layer reading (§7.1 gives the text to the native layer)"
+    assert [d.kind for d in dis] == ["duplicate_region"]
+    assert dis[0].grobid_text == "the same paragraph, twice"
+
+
+def test_a_contained_reading_merges_only_when_the_text_agrees():
+    """Containment alone is not one region: a table CELL's box lies inside its table's box and
+    the two are different regions. The text test is what tells them apart."""
+    big = _c(1, (0.0, 0.0, 400.0, 400.0), text="a b c d e f g h i j k l m n o p q r s t u v")
+    same = _c(1, (10.0, 10.0, 100.0, 40.0), text="a b c d e", source="grobid", ts="tool",
+              ex={"bbox": "grobid", "kind": "grobid"})
+    other = _c(1, (10.0, 10.0, 100.0, 40.0), text="nothing of the sort here at all",
+               source="grobid", ts="tool", ex={"bbox": "grobid", "kind": "grobid"})
+    out, _refs, _s = R._merge_regions([big, same], [], [])
+    assert len(out) == 1
+    out2, _refs2, _s2 = R._merge_regions([big, other], [], [])
+    assert len(out2) == 2, "two regions with different words are two regions"
+
+
+def test_a_merge_never_loses_words():
+    """The guard that makes the merge safe. Below IOU_MATCH the two boxes are only NESTED, and a
+    survivor that does not carry a member's words keeps BOTH rather than dropping text."""
+    big = _c(1, (0.0, 0.0, 400.0, 400.0), text="x " * 60 + "a sentence nothing else holds")
+    small = _c(1, (10.0, 10.0, 100.0, 40.0), text="x " * 60, source="grobid", ts="tool",
+               ex={"bbox": "grobid", "kind": "grobid"})
+    out, _refs, _s = R._merge_regions([small, big], [], [])
+    assert len(out) == 1 and "nothing else holds" in out[0].text
+    assert R.containment(small.bbox, big.bbox) >= R.CONTAIN_MATCH
+
+
+def test_one_tools_over_merge_of_the_others_segmentation_is_dropped():
+    """Pengra_2020 p7 in miniature: one GROBID <p> holding the page's captions and body text,
+    each of which is also its own block. The SEGMENTED blocks are canonical (§7.1 gives Docling
+    the segmentation) and the merged reading becomes a `superset_region` row."""
+    kids = ["Table 3 Overall and per-class agreement between interpreters for the subsample.",
+            "Interpreter confusion most often occurred between classes that are hard to tell.",
+            "The QA/QC process provided feedback to interpreters over the course of the work."]
+    container = _c(1, (30.0, 50.0, 300.0, 600.0), text=" ".join(kids), source="grobid", ts="native",
+                   ex={"bbox": "grobid", "kind": "grobid"})
+    blocks = [container] + [_c(1, (30.0, 60.0 + 100 * i, 560.0, 140.0 + 100 * i), text=t)
+                            for i, t in enumerate(kids)]
+    dis = []
+    out, _refs, stats = R._merge_regions(blocks, [], dis)
+    assert stats["overmerge"] == 1 and len(out) == 3
+    assert [d.kind for d in dis] == ["superset_region"]
+    # and the control: with only ONE child inside it, the container is a disagreement, not an
+    # over-merge, and nothing is dropped for it
+    one = [container, _c(1, (30.0, 60.0, 560.0, 140.0), text=kids[0])]
+    out2, _r2, s2 = R._merge_regions(one, [], [])
+    assert s2["overmerge"] == 0 and len(out2) == 2
+
+
+def test_a_bibliography_entry_re_kinds_the_block_a_reader_finds():
+    """Conway p11 (§2): the printed entry was stored TWICE — as a `paragraph` in page order and
+    as a `reference` sorted after the last page — and the copy a search returned first was the
+    one typed `paragraph`. One block now, with the native text, the real reading order and
+    GROBID's kind; GROBID's own element id travels in the provenance so stage 6 can still join."""
+    box = (40.0, 100.0, 300.0, 130.0)
+    printed = _c(1, box, text="Conway TM, Bang E. 2014. Willing partners? Residential support.",
+                 order=7)
+    parsed = R.Canonical(page=1, x0=box[0], y0=box[1], x1=box[2], y1=box[3], kind="reference",
+                         reading_order=-1, text="Conway TM Bang E Willing partners 2014",
+                         source="grobid", text_source="tool", element_id="b12",
+                         extractor={"bbox": "grobid", "kind": "grobid", "text": "grobid"})
+    dis = []
+    out, refs, stats = R._merge_regions([printed], [parsed], dis)
+    assert refs == [] and len(out) == 1 and stats["reference_kind"] == 1
+    assert out[0].kind == "reference" and out[0].reading_order == 7
+    assert out[0].text.startswith("Conway TM, Bang E. 2014. Willing")
+    assert [m["element_id"] for m in out[0].extractor["merged"]] == ["b12"]
+
+
+def test_a_caption_is_stored_once():
+    cap = "Fig. 4. Land use and land cover attribute labels, left, and the interpreter panel."
+    fig = _c(1, (30.0, 40.0, 300.0, 300.0), kind="figure", text=cap, ts="tool")
+    capblock = _c(1, (30.0, 310.0, 300.0, 330.0), kind="caption", text=cap)
+    out, n = R._caption_once([fig, capblock])
+    assert n == 1
+    assert out[0].text == "" and out[0].payload["caption"] == cap
+    assert out[1].text == cap, "the caption block keeps the words a search has to find"
+
+
+# ── a fragment's own page and its own text (final referee §2, G7) ────────────────────────
+
+def _lines(spans, text):
+    """One ELEMENT's per-line boxes, numbered the way `grobid.iter_blocks` numbers a multi-box
+    `coords` value: box_index 0..n-1 over the whole value, which is what union_boxes groups on."""
+    from litkb.extract import grobid as G
+
+    return [G.Block(page=pg, x0=40.0, y0=y0, x1=300.0, y1=y1, kind="p", text=text,
+                    frame="mediabox", box_index=i, box_count=len(spans))
+            for i, (pg, y0, y1) in enumerate(spans)]
+
+
+def test_union_boxes_numbers_an_elements_fragments():
+    """A <p> whose lines fall on two pages is two regions, and each says so."""
+    lines = _lines([(11, 700, 712), (11, 714, 726), (12, 60, 72)], "whole element")
+    out = R.union_boxes(lines)
+    assert [(b.page, b.box_index, b.box_count) for b in out] == [(11, 0, 2), (12, 1, 2)]
+    info = R._fragment_info(out)
+    assert info[id(out[0])]["next_page"] == 12
+    assert info[id(out[1])]["prev_page"] == 11
+    assert info[id(out[0])]["prev_page"] is None
+
+
+def test_a_single_region_element_is_not_a_fragment():
+    out = R.union_boxes(_lines([(3, 60, 72), (3, 74, 86)], "one region"))
+    assert [(b.page, b.box_index, b.box_count) for b in out] == [(3, 0, 1)]
+    assert R._fragment_info(out) == {}
+
+
+# ── the three header kinds (final referee §2: 8 of 18 block types were never assigned) ────
+
+_TEI_HEADER = """<TEI xmlns="http://www.tei-c.org/ns/1.0"><teiHeader><fileDesc>
+ <titleStmt><title level="a" type="main" coords="1,40.0,100.0,300.0,20.0"
+   >Spatial validation of large-scale mapping models</title></titleStmt>
+ <sourceDesc><biblStruct><analytic>
+  <author><persName coords="1,40.0,140.0,80.0,10.0"><forename>Pierre</forename
+    ><surname>Ploton</surname></persName>
+   <affiliation key="aff0"><orgName type="institution">AMAP Montpellier</orgName>
+     <orgName type="institution">CIRAD Forets et Societes</orgName></affiliation></author>
+ </analytic></biblStruct></sourceDesc></fileDesc></teiHeader><text><body/></text></TEI>"""
+
+_FRAMES_1 = {1: {"mediabox": [0, 0, 600, 800], "cropbox": [0, 0, 600, 800],
+                 "rotation": 0, "dx": 0.0, "dy": 0.0}}
+
+
+def test_the_header_supplies_title_author_and_affiliation():
+    """None of the three is a body region and Docling's vocabulary has no word for any of them,
+    so before this the paper's own title was a `heading` and its author line a `paragraph`."""
+    blocks = [
+        _c(1, (40.0, 100.0, 340.0, 120.0), kind="heading",
+           text="Spatial validation of large-scale mapping models"),
+        _c(1, (40.0, 138.0, 400.0, 152.0),
+           text="Pierre Ploton 1, Frederic Mortier 2,3, Maxime Rejou-Mechain 1"),
+        _c(1, (40.0, 700.0, 500.0, 740.0),
+           text="1 AMAP Montpellier, France. 2 CIRAD Forets et Societes, F-34398 Montpellier."),
+    ]
+    out, n = R._kind_from_header(blocks, _TEI_HEADER.encode(), _FRAMES_1)
+    assert n == 3
+    assert [b.kind for b in out] == ["title", "author", "affiliation"]
+    assert out[0].extractor["kind_basis"] == "teiHeader/titleStmt/title"
+    assert out[1].extractor["kind_alt"] == "paragraph"
+
+
+def test_the_header_never_re_kinds_a_block_whose_words_are_not_its_own():
+    """The geometry has to agree with the TEXT. A body paragraph that happens to sit under the
+    title's box is not the title."""
+    blocks = [_c(1, (40.0, 100.0, 340.0, 120.0), kind="paragraph",
+                 text="Mapping aboveground forest biomass is central to the carbon balance.")]
+    out, n = R._kind_from_header(blocks, _TEI_HEADER.encode(), _FRAMES_1)
+    assert n == 0 and out[0].kind == "paragraph"
+
+
+@pg_only
+def test_kill_a_run_cannot_hold_the_same_canonical_rectangle_twice(pg):
+    """Migration 0022's guard: "one canonical block per region" as a property of the DATABASE.
+
+    The reconciler's own merge is the first line (test_a_planted_duplicate_pair_yields_one_block);
+    this is the line under it, for every other writer. A UNIQUE INDEX could not be used — `litkb`
+    already holds 63 such groups inside `ok` runs that nobody may delete — so the rule is a
+    BEFORE INSERT trigger and applies to new rows only."""
+    file_id = _file_row(pg)
+    res, conn = _ingest(pg, file_id)
+    with pytest.raises(pg.errors.CheckViolation, match="already has a canonical block"):
+        conn.execute("INSERT INTO litkb.blocks (file_id, run_id, page_no, bbox, reading_order, "
+                     "type, text, canonical) VALUES (%s, %s, 1, %s, 99, 'paragraph', 'twice', true)",
+                     (file_id, res["run_id"], [0.0, 0.0, 100.0, 9.0]))
+    # the controls: another PAGE is a different region, and a non-canonical block is a tool's raw
+    # reading, which may repeat as often as the tool repeats it
+    conn.execute("INSERT INTO litkb.blocks (file_id, run_id, page_no, bbox, reading_order, type, "
+                 "text, canonical) VALUES (%s, %s, 2, %s, 98, 'paragraph', 'other page', true)",
+                 (file_id, res["run_id"], [0.0, 0.0, 100.0, 9.0]))
+    conn.execute("INSERT INTO litkb.blocks (file_id, run_id, page_no, bbox, type, text) "
+                 "VALUES (%s, %s, 1, %s, 'paragraph', 'raw')",
+                 (file_id, res["run_id"], [0.0, 0.0, 100.0, 9.0]))
+
+
+@pg_only
+def test_a_latex_string_carries_the_word_for_how_far_it_is_trusted(pg):
+    """0022's `latex_status`. Before it, a decode the L4 pass REFUSED and an equation the pass
+    never saw were the same NULL `latex` and could not be told apart."""
+    file_id = _file_row(pg)
+    blocks = _blocks(1) + [
+        R.Canonical(page=1, x0=0, y0=200, x1=100, y1=230, kind="equation", reading_order=1,
+                    text="x", latex="x^2", latex_status="stable"),
+        R.Canonical(page=1, x0=0, y0=240, x1=100, y1=270, kind="equation", reading_order=2,
+                    text="y", latex=r"\text{ingrating this equation over}\int y",
+                    latex_status="contaminated"),
+        R.Canonical(page=1, x0=0, y0=280, x1=100, y1=310, kind="equation", reading_order=3,
+                    text="z", latex=None, latex_status="unstable"),
+        R.Canonical(page=1, x0=0, y0=320, x1=100, y1=350, kind="equation", reading_order=4,
+                    text="w", latex=None, latex_status="unverified")]
+    res, conn = _ingest(pg, file_id, blocks)
+    rows = dict(conn.execute(
+        "SELECT e.latex_status, count(*) FROM litkb.equations e "
+        "JOIN litkb.blocks b ON b.id = e.block_id WHERE b.run_id = %s GROUP BY 1",
+        (res["run_id"],)).fetchall())
+    assert rows == {"stable": 1, "contaminated": 1, "unstable": 1, "unverified": 1}
+
+
+@pg_only
+def test_kill_a_decode_the_pass_refused_can_never_be_stored_as_the_equation(pg):
+    """Referee kill R8, in the schema rather than only in the loader. `unstable` means the
+    decode did not reproduce; storing that string in `equations.latex` would put a reading the
+    run itself refused to stand behind into the field a reader takes as the equation."""
+    file_id = _file_row(pg)
+    res, conn = _ingest(pg, file_id)
+    bid = conn.execute("SELECT id FROM litkb.blocks WHERE run_id = %s AND type = 'paragraph' "
+                       "LIMIT 1", (res["run_id"],)).fetchone()[0]
+    with pytest.raises(pg.errors.CheckViolation,
+                       match="equations_refused_decode_is_not_stored"):
+        conn.execute("INSERT INTO litkb.equations (block_id, latex, latex_status) "
+                     "VALUES (%s, %s, 'degenerate')", (bid, r"\, \, \, \,"))
+
+
+# ── a fragment's own text: the rule, and the corpus page that made it ────────────────────
+
+def test_a_fragment_keeps_its_own_words_and_a_whole_region_keeps_the_floor():
+    """`choose_text`, §7.1's rule in one place.
+
+    The 50 % floor exists for a WHOLE region: a native slice much shorter than the tool's own
+    reading means the box is in the wrong frame, and the tool is the honest answer there. Applied
+    to a FRAGMENT it compares the fragment's page with every page of its element, fails, and
+    stores words printed somewhere else — the G7 defect."""
+    # the real proportion, from the G7 finding: 172 of the block's 872 characters are the ones
+    # printed on the page it is stored under, so the fragment's own slice is ~20 % of its
+    # element's — well under the floor written for a whole region
+    whole = ("page eleven carries the first six lines of this paragraph and they run on and on "
+             "across the bottom of the page and over the break. page twelve finishes it.")
+    mine = "page twelve finishes it."
+    assert R.choose_text(mine, whole, fragment=True) == (mine, "native")
+    assert R.choose_text(mine, whole, fragment=False) == (whole, "tool"), \
+        "without the fragment rule the block stores the other page's words too"
+    # the floor still stands where it was written to: a whole region whose slice is a few
+    # characters is a box in the wrong frame, not a short paragraph
+    assert R.choose_text("Co", whole, fragment=False) == (whole, "tool")
+    # and a page with NO native layer falls back whatever the fragment flag says
+    assert R.choose_text("", whole, fragment=True) == (whole, "tool")
+
+
+P5_DERIVED = pathlib.Path(r"D:\edmonds-pipeline\litkb_derived\p5")
+#: The final referee's gold page G7 — Reports/gold/p5_gold_2026-09-16.json, frozen at 3230b48.
+#: Its verbatim paragraph is the one that crosses a page break: the stored block carried 872
+#: characters under `page_no = 12` and the first ~700 of them are printed on page 11.
+G7_SHA = "c61e7be7983231a4c5ce75378deb4f4b8424a8e39249ee4618e55de5a0591db6"
+G7_PDF = CORPUS / "Validation" / "Steenberg_2017_influence-building-renovation-rental.pdf"
+G7_TEI = P5_DERIVED / "tei" / f"{G7_SHA}.tei.xml"
+G7_DOC = P5_DERIVED / "docling" / f"{G7_SHA}.docling.json"
+G7_TEXT = ("activities associated with building renovation or a result of shifting landscape "
+           "management preferences of residents and the subsequent deliberate removal of trees.")
+
+
+@pytest.mark.skipif(not (G7_PDF.exists() and G7_TEI.exists() and G7_DOC.exists()),
+                    reason="the P5 stage-5 artifacts are not on this machine")
+def test_the_gold_cross_page_paragraph_is_stored_on_the_page_it_is_printed_on():
+    """THE KILL for the fragment rule, on the referee's own gold page.
+
+    `use_evidence` cites a block id plus character offsets, and a reader prints the block's
+    `page_no` beside the quote. Before this the page could be wrong by one for any paragraph
+    that crosses a page break. The assertion is the gold's own OPERATING grade: the block that
+    holds the gold paragraph on page 12 must hold THAT paragraph, not it plus page 11's."""
+    (canonical, _dis, _stats), _rec = _reconcile_real(G7_PDF, G7_TEI, G7_DOC)
+    want = R._norm(G7_TEXT)
+    hits = [c for c in canonical if want in R._norm(c.text)]
+    assert hits, "the gold paragraph is not in the reconciliation at all"
+    assert [c.page for c in hits] == [12], f"stored on {[c.page for c in hits]}, printed on 12"
+    got = R._norm(hits[0].text)
+    assert got == want, f"the block carries {len(got)} characters for the gold's {len(want)}"
+    assert hits[0].extractor.get("continues_from") == {"page": 11}, hits[0].extractor

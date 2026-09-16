@@ -547,6 +547,49 @@ def test_search_reads_the_text_through_the_normaliser(hunt_env):
 
 
 @pg_only
+def test_a_running_head_is_not_a_passage_and_is_out_of_search_by_default(hunt_env):
+    """The final referee's §7, in miniature. A running head is the SAME 42 characters on every
+    page of a paper, so a topical query matches it once per page: the referee's cold question
+    returned `CONSTRAINED MONTE CARLO MAXIMUM LIKELIHOOD` five times in a ten-row list and the
+    answering body passage was not in the top ten at all. The same shape is planted here — one
+    body paragraph against six copies of a running head and a bibliography entry that names the
+    same words — and the test asserts both halves: the furniture is gone by default, and
+    `kinds="all"` still returns it, because a filter that cannot be turned off is a loss of
+    recall rather than a ranking fix."""
+    conn = hunt_env["conn"]
+    opened = one("litkb_ws_open", {"slug": f"p8-furniture-{uuid.uuid4().hex[:6]}",
+                                   "purpose": "furniture out of search"})
+    head = "CONSTRAINED MONTE CARLO MAXIMUM LIKELIHOOD"
+    body = ("We derive the constrained Monte Carlo maximum likelihood estimate for a dependent "
+            "lattice model whose normalising constant cannot be evaluated, and give conditions "
+            "under which the estimate converges as the simulation sample size grows.")
+    seeded = _seed_work_file_block(
+        conn, opened["workstream_id"], body,
+        extra=[(p, "page_header", head) for p in range(2, 8)]
+        + [(9, "reference", "Geyer CJ, Thompson EA. 1992. Constrained Monte Carlo maximum "
+                            "likelihood for dependent data. J R Stat Soc B 54:657-699.")])
+    q = {"query": "constrained Monte Carlo maximum likelihood", "limit": 10, "scope": "blocks"}
+
+    default = one("litkb_search", q)
+    assert default["ok"], default
+    kinds = [b["block_type"] for b in default["blocks"]]
+    assert "page_header" not in kinds and "reference" not in kinds, default
+    assert seeded["block_id"] in [b["block_id"] for b in default["blocks"]], default
+    assert "NOT searched by default" in default["kinds"], default
+
+    every = one("litkb_search", dict(q, kinds="all"))
+    assert "page_header" in [b["block_type"] for b in every["blocks"]], (
+        "the planted running heads are unreachable even on request — the filter is not a filter, "
+        "it is a deletion")
+
+    named = one("litkb_search", dict(q, kinds="reference"))
+    assert [b["block_type"] for b in named["blocks"]] == ["reference"], named
+
+    bad = one("litkb_search", dict(q, kinds="page-header"))
+    assert bad.get("refused") == "bad-kinds", bad
+
+
+@pg_only
 def test_a_quote_from_another_work_is_refused(hunt_env):
     """The property the referee called the strongest single one in the file, and the one with no
     row until now (§3.3, §6.1): a use's work is DERIVED from the block, so a quote from B cannot
@@ -864,7 +907,7 @@ def test_all_seven_feeds_forms_pass_the_gate_at_record_use(hunt_env):
     assert one("litkb_my_uses", {})["uses"][0]["feeds"] == FEEDS_VOCABULARY
 
 
-def _seed_work_file_block(conn, ws_id, text):
+def _seed_work_file_block(conn, ws_id, text, block_type="paragraph", extra=()):
     """A work, an active file and one block of its current run, written as FACTS.
 
     Not through litkb_admit: admission is one work per identifier across the whole knowledge base
@@ -892,9 +935,19 @@ def _seed_work_file_block(conn, ws_id, text):
     conn.execute("SELECT litkb.set_current_run(%s, NULL, %s)", (file_id, run_id))
     block_id = conn.execute(
         "INSERT INTO litkb.blocks (file_id, run_id, page_no, type, text) "
-        "VALUES (%s, %s, 1, 'paragraph', %s) RETURNING id", (file_id, run_id, text)).fetchone()[0]
+        "VALUES (%s, %s, 1, %s, %s) RETURNING id",
+        (file_id, run_id, block_type, text)).fetchone()[0]
+    # `extra` seeds further blocks of the same run as (page, type, text) — what a search's
+    # block-type filter needs in order to be tested against a real competing row rather than
+    # against its own SQL.
+    others = []
+    for page, kind, body in extra:
+        others.append(str(conn.execute(
+            "INSERT INTO litkb.blocks (file_id, run_id, page_no, type, text) "
+            "VALUES (%s, %s, %s, %s, %s) RETURNING id",
+            (file_id, run_id, page, kind, body)).fetchone()[0]))
     return {"work_id": str(work_id), "file_id": str(file_id), "run_id": str(run_id),
-            "block_id": str(block_id)}
+            "block_id": str(block_id), "extra_ids": others}
 
 
 # ── the mini-hunt (gate §14 P8) ───────────────────────────────────────────────────────────

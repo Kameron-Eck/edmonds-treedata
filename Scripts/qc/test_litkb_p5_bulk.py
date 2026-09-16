@@ -83,12 +83,13 @@ def test_a_held_row_never_reaches_the_latex_corpus(p5, tmp_path):
     ok, held = p5.load_latex(path=str(path), verify=str(verify))
     assert [r["crop_id"] for r in ok["a" * 64]] == ["g"], \
         "a non-ok row reached the LaTeX corpus"
-    assert held["a" * 64] == 2
+    assert [r["crop_id"] for r in held["a" * 64]] == ["u", "d"]
 
     frames = {1: {"dx": 0.0, "dy": 0.0, "rotation": 0}}
     blocks = [_eq_block(p5, 1, b) for b in ([10, 10, 100, 40], [10, 60, 100, 90],
                                             [10, 110, 100, 140])]
-    out, n, unmatched = p5.attach_latex(blocks, ok["a" * 64], frames)
+    out, n, unmatched, _st = p5.attach_latex(blocks, ok["a" * 64], frames,
+                                             held=held["a" * 64])
     assert n == 1 and unmatched == []
     assert [b.latex for b in out] == ["x^2", None, None], \
         "the held rows' boxes match perfectly — only the status filter keeps them out"
@@ -122,11 +123,11 @@ def test_the_formula_box_is_shifted_into_the_blocks_frame(p5):
     row = {"file_sha256": "c" * 64, "page": 3, "bbox_canonical": crop_box,
            "latex": "\\int f", "status": "ok", "crop_id": "c1"}
 
-    out, n, unmatched = p5.attach_latex([block], [row], frames)
+    out, n, unmatched, _st = p5.attach_latex([block], [row], frames)
     assert (n, out[0].latex) == (1, "\\int f")
     assert out[0].extractor["latex"] == "codeformula-l4"
 
-    out0, n0, un0 = p5.attach_latex([block], [row], zeroed)
+    out0, n0, un0, _st0 = p5.attach_latex([block], [row], zeroed)
     assert n0 == 0 and out0[0].latex is None, \
         "the unshifted comparison matched — the cropbox shift is not doing anything"
     assert un0[0]["nearest_pt"] == pytest.approx(max(dx, dy))
@@ -140,7 +141,7 @@ def test_a_page_the_adapters_refused_is_compared_unshifted(p5):
     block = _eq_block(p5, 12, box, frame="cropbox")
     row = {"file_sha256": "d" * 64, "page": 12, "bbox_canonical": box,
            "latex": "\\alpha", "status": "ok", "crop_id": "r1"}
-    out, n, _ = p5.attach_latex([block], [row], frames)
+    out, n, _un, _st = p5.attach_latex([block], [row], frames)
     assert (n, out[0].latex) == (1, "\\alpha")
 
 
@@ -153,7 +154,7 @@ def test_one_latex_row_never_claims_two_blocks(p5):
              "latex": "first", "status": "ok", "crop_id": "1"},
             {"file_sha256": "e" * 64, "page": 1, "bbox_canonical": [10, 10, 100, 40],
              "latex": "second", "status": "ok", "crop_id": "2"}]
-    out, n, unmatched = p5.attach_latex([block], rows, frames)
+    out, n, unmatched, _st = p5.attach_latex([block], rows, frames)
     assert (n, out[0].latex, len(unmatched)) == (1, "first", 1)
 
 
@@ -229,6 +230,77 @@ def test_the_canonical_block_is_replaced_not_mutated(p5):
     block = _eq_block(p5, 1, [10.0, 10.0, 100.0, 40.0])
     rows = [{"file_sha256": "f" * 64, "page": 1, "bbox_canonical": [10, 10, 100, 40],
              "latex": "q", "status": "ok", "crop_id": "1"}]
-    out, _, _ = p5.attach_latex([block], rows, frames)
+    out, _n, _un, _st = p5.attach_latex([block], rows, frames)
     assert dataclasses.is_dataclass(block) and block.latex is None
     assert out[0] is not block and out[0].latex == "q"
+
+
+# ── guard 5: what is KNOWN about a stored LaTeX string (migration 0022) ─────────────────────
+
+def _layer(*runs):
+    """A native text layer: each run is (text, x0, y) laid out one character per 6 points."""
+    pts, text = [], ""
+    for s, x0, y in runs:
+        for i, ch in enumerate(s):
+            if not ch.isspace():
+                pts.append((ch, x0 + 6.0 * i, y, len(text) + i))
+        text += s + " "
+    return {"text": text, "pts": pts}
+
+
+def test_the_crop_is_docling_s_own_expansion_of_the_block(p5):
+    """0.18 of the box's OWN width and height on each side — docling's
+    `BoundingBox.expand_by_scale(expansion_factor, expansion_factor)`, read off
+    `CodeFormulaVlmModel` by formula_crop_worker. The padding is therefore PROPORTIONAL, which
+    is the whole mechanism: the referee's one-line E02 (9.8 pt tall) gets 1.8 pt of margin and
+    sees nothing; its six-line E01 (178.3 pt) gets 32.1 pt and sees three printed lines."""
+    small = p5.crop_box((100.0, 100.0, 300.0, 109.8))
+    assert round(small[1] - 100.0, 2) == -1.76 and round(small[3] - 109.8, 2) == 1.76
+    tall = p5.crop_box((112.5, 499.0, 401.7, 677.3))
+    assert round(499.0 - tall[1], 1) == 32.1
+
+
+def test_prose_from_the_crops_margin_is_contamination_and_prose_from_the_box_is_not(p5):
+    """The referee's E01/E06/E11/E19 class, and the control that keeps it from flagging every
+    display equation. Both halves are required: a ring with text in it proves nothing (a display
+    equation nearly always has a line above it), and a word that is also INSIDE the box is the
+    equation's own."""
+    box = (100.0, 200.0, 300.0, 260.0)     # 60 pt tall -> 10.8 pt of margin
+    layer = _layer(("let X be the sequence of detectors", 100.0, 192.0),
+                   ("F equals sum where i", 110.0, 230.0))
+    bad, detail = p5.latex_contamination(
+        layer, box, r"F=\sum_i x_i \text{be the sequence of detectors}")
+    assert bad and detail["ring_chars"] > 0
+    ok, _d = p5.latex_contamination(layer, box, r"F=\sum_i x_i \text{where}")
+    assert not ok, "a word that is inside the equation's own box is not contamination"
+    clean, d2 = p5.latex_contamination(
+        _layer(("F equals sum where i", 110.0, 230.0)), box, r"F=\sum_i x_i \text{where}")
+    assert not clean and d2["ring_chars"] == 0
+
+
+def test_a_bare_alphabetic_run_in_the_latex_is_not_prose(p5):
+    """`\alpha` and a variable name are not words. Counting them would call every equation with
+    a Greek letter contaminated."""
+    assert p5.latex_prose(r"\alpha_{sequence} + \beta") == []
+    assert p5.latex_prose(r"\text{be the sequence}") == ["be", "the", "sequence"]
+
+
+def test_every_equation_block_leaves_attach_latex_with_a_status(p5):
+    """MUTATION: drop the final `unverified` sweep. A LaTeX row with no word for how far it can
+    be trusted is the state 0022 exists to end — the referee measured 3,472 of them."""
+    frames = {1: {"dx": 0.0, "dy": 0.0, "rotation": 0}}
+    blocks = [_eq_block(p5, 1, [10.0, 10.0, 100.0, 40.0]),
+              _eq_block(p5, 1, [10.0, 60.0, 100.0, 90.0]),
+              _eq_block(p5, 1, [10.0, 110.0, 100.0, 140.0])]
+    ok = [{"file_sha256": "a" * 64, "page": 1, "bbox_canonical": [10, 10, 100, 40],
+           "latex": "x^2", "status": "ok", "crop_id": "g"}]
+    held = [{"file_sha256": "a" * 64, "page": 1, "bbox_canonical": [10, 60, 100, 90],
+             "latex": "y^2", "reason": "degenerate", "crop_id": "d"}]
+    out, n, _un, counts = p5.attach_latex(blocks, ok, frames, held=held)
+    assert n == 1
+    assert [b.latex_status for b in out] == ["stable", "degenerate", "unverified"]
+    assert [b.latex for b in out] == ["x^2", None, None], \
+        "a decode the pass refused must never be stored as the equation"
+    assert counts == {"stable": 1, "contaminated": 0, "unstable": 0, "degenerate": 1,
+                      "unverified": 1}
+    assert all(b.latex_status is not None for b in out)

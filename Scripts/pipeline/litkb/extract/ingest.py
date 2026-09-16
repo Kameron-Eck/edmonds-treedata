@@ -48,6 +48,12 @@ def params_hash(params=None):
     payload.setdefault("iou_touch", reconcile.IOU_TOUCH)
     payload.setdefault("text_agree", reconcile.TEXT_AGREE)
     payload.setdefault("coverage_floor", reconcile.COVERAGE_FLOOR)
+    # The canonical-block merge's own thresholds, on the same rule: a run that merged two boxes
+    # at 80 % containment and one that required 90 % are different extractions of one file, and
+    # they must not collide on the run key. Added 2026-09-16 with _merge_regions.
+    payload.setdefault("contain_match", reconcile.CONTAIN_MATCH)
+    payload.setdefault("overmerge_children", reconcile.OVERMERGE_CHILDREN)
+    payload.setdefault("overmerge_cover", reconcile.OVERMERGE_COVER)
     return hashlib.sha256(json.dumps(payload, sort_keys=True).encode()).hexdigest()[:16]
 
 
@@ -146,8 +152,14 @@ def ingest_file(conn, file_id, canonical, disagreements, stats, pages=(), *,
                 # writing it here would read later as a model's description of the picture.
                 conn.execute("INSERT INTO litkb.figures (block_id) VALUES (%s)", (bid,))
             elif b.kind == "equation":
-                conn.execute("INSERT INTO litkb.equations (block_id, latex) VALUES (%s, %s)",
-                             (bid, b.latex))
+                # `latex_status` travels WITH the string, in the same INSERT. A second pass that
+                # filled it afterwards could be interrupted between the two, and a LaTeX row with
+                # no word for how far it can be trusted is the state migration 0022 exists to
+                # end — the referee's §3 measured 3,472 of them, about half wrong, with nothing
+                # in the database saying which.
+                conn.execute(
+                    "INSERT INTO litkb.equations (block_id, latex, latex_status) "
+                    "VALUES (%s, %s, %s)", (bid, b.latex, b.latex_status))
 
         if _after_blocks is not None:
             _after_blocks(conn, run_id)

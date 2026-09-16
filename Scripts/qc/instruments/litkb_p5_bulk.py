@@ -32,6 +32,7 @@ import concurrent.futures
 import csv
 import json
 import os
+import re
 import subprocess
 import sys
 import time
@@ -43,6 +44,11 @@ from litkb.extract import docling as D  # noqa: E402
 from litkb.extract import grobid as G  # noqa: E402
 from litkb.extract import inventory as I  # noqa: E402
 from litkb.extract import reconcile as R  # noqa: E402
+
+
+def reconcile_version():
+    """The reconciler's own version string, READ rather than copied (CLAUDE.md §3.3)."""
+    return R.PIPELINE_VERSION
 
 #: Derived artifacts live OUTSIDE the repository (they are ~1 GB of tool output).
 DERIVED = os.environ.get("LITKB_P5_DERIVED", r"D:\edmonds-pipeline\litkb_derived\p5")
@@ -71,7 +77,20 @@ VERIFY_JSONL = os.environ.get(
 CUDA_PY = os.environ.get("LITKB_P5_DOCLING_PY",
                          r"D:\edmonds-pipeline\venv-docling-cuda\Scripts\python.exe")
 
-P5_PIPELINE_VERSION = "stage5-2+l4latex"
+#: One label for the whole corpus, and it is the RECONCILER's own
+#: (``reconcile.PIPELINE_VERSION``). It used to be a different string ("stage5-2+l4latex"),
+#: because a run made here holds LaTeX rows a plain reconcile ingest does not and sharing the key
+#: would let a file ingested without LaTeX be skipped as already-done. The collision is still
+#: real and is still refused — but by the PARAMS, not by the version: :data:`P5_PARAMS` goes into
+#: ``ingest.params_hash``, which is part of the run key. That buys back the thing the two labels
+#: cost, which the final referee named (§4, "the pipeline_version label is mixed (224 vs 5) while
+#: the effect is not… a P9 reproducibility pass will have to read two labels for one corpus"):
+#: one corpus, one label, and a run key that still tells the two extractions apart.
+P5_PIPELINE_VERSION = reconcile_version()
+
+#: What makes this pass a different EXTRACTION of a file from a bare stage-5 reconcile: the L4
+#: formula LaTeX, and the word this pass puts on every equation for how far it can be trusted.
+P5_PARAMS = {"latex_source": "codeformula-l4", "latex_status": "0022"}
 
 #: Routes GROBID is offered. A scan has no text layer, so GROBID refuses it outright; posting
 #: one costs a minute of pdfalto and returns HTTP 500 (stage 5 report §5).
@@ -85,6 +104,8 @@ ROW_FIELDS = [
     "sha256", "name", "relpath", "route", "pages", "ocr_pages", "file_id", "work_id",
     "tei", "docling", "blocks", "matched", "disagreements", "figures", "tables",
     "equations", "latex_attached", "latex_rows_for_file", "latex_unmatched",
+    "latex_stable", "latex_contaminated", "latex_unstable", "latex_degenerate",
+    "latex_unverified",
     "coverage_by_page_type", "coverage_min_share", "coverage_failures",
     "grobid_seconds", "docling_seconds", "reconcile_seconds", "ingest_seconds",
     "run_id", "inserted", "status", "note",
@@ -543,11 +564,16 @@ def cmd_docling(a):
 # ── the L4 formula LaTeX ───────────────────────────────────────────────────────────────────
 
 def load_latex(path=None, verify=None):
-    """-> ({sha256: [row, …]} for `ok` rows, {sha256: n} for the verify queue).
+    """-> ({sha256: [row, …]} for `ok` rows, {sha256: [row, …]} for the verify queue).
 
-    `ok` rows ONLY. `unstable` (the decode did not reproduce) and `degenerate` (a repetition
-    loop) are counted and never attached: writing either into `equations.latex` would put a
-    string the run itself refused to stand behind into a field a reader takes as the equation.
+    `ok` rows ONLY ever reach `equations.latex`. `unstable` (the decode did not reproduce) and
+    `degenerate` (a repetition loop) are read too — they carry `bbox_canonical`, so they join to
+    an equation block exactly as an `ok` row does — but their STRING is never attached: writing
+    either into `equations.latex` would put a decode the run itself refused to stand behind into
+    a field a reader takes as the equation (referee kill R8). What they contribute is the WORD:
+    an equation whose only decode was refused is `unstable`/`degenerate`, and one the pass never
+    produced a row for at all is `unverified`. Before migration 0022 those two were the same
+    NULL and could not be told apart.
     """
     import collections
 
@@ -559,17 +585,99 @@ def load_latex(path=None, verify=None):
         if not (r.get("latex") or "").strip() or not r.get("bbox_canonical"):
             continue
         ok[r["file_sha256"]].append(r)
-    held = collections.Counter()
+    held = collections.defaultdict(list)
     vp = verify or VERIFY_JSONL
     if os.path.exists(vp):
         for line in open(vp, encoding="utf-8"):
             r = json.loads(line)
-            held[r.get("file_sha256")] += 1
+            if r.get("bbox_canonical"):
+                held[r.get("file_sha256")].append(r)
     return ok, held
 
 
-def attach_latex(canonical, rows, frames, tol=BBOX_TOL):
-    """Put each `ok` LaTeX string on the equation block it was cropped from. -> (out, n, unmatched).
+# ── is the decoded string contaminated by text the crop should not have held? ───────────────
+
+#: docling's own crop expansion, read off ``CodeFormulaVlmModel.expansion_factor`` by
+#: ``formula_crop_worker._patch_recorder`` and re-stated here because this module has no docling
+#: to read it from. The crop is ``bbox.expand_by_scale(0.18, 0.18)`` — each side grown by 0.18 ×
+#: the box's own width/height — so the padding is PROPORTIONAL: a one-line display equation 9.8
+#: points tall gets 1.8 points of margin and sees nothing, and E01's six-line derivation, 178.3
+#: points tall, gets 32.1 points and sees roughly three printed lines above and below. That is
+#: the whole mechanism behind the referee's contaminated class, and it is why the class exists at
+#: all rather than being a model defect.
+CROP_EXPANSION = float(os.environ.get("LITKB_P5_CROP_EXPANSION", "0.18"))
+
+#: A prose run this long, found in the padding ring and NOT in the equation's own box, is text
+#: the decoder read off the crop's margin. Shorter runs are the ordinary vocabulary of a formula
+#: ("where", "with", "and"), which appear inside real display equations.
+CONTAM_MIN_LETTERS = 8
+
+_LATEX_PROSE = re.compile(r"\\(?:text|textrm|textit|textbf|mbox|intertext|mathrm)\s*\{([^{}]*)\}")
+
+
+def crop_box(bbox, expansion=CROP_EXPANSION):
+    """The rectangle CodeFormula was actually shown, from the block's own box."""
+    x0, y0, x1, y1 = bbox
+    w, h = x1 - x0, y1 - y0
+    return (x0 - w * expansion, y0 - h * expansion, x1 + w * expansion, y1 + h * expansion)
+
+
+def _letters(s):
+    return re.sub(r"[^0-9a-z]+", "", (s or "").lower())
+
+
+def latex_prose(latex):
+    """The WORDS a decode emitted — what ``\\text{}`` and friends wrap, nothing else.
+
+    Only the prose macros. A bare alphabetic run in LaTeX is as likely to be ``\\alpha`` or a
+    variable name as a word, and counting those would call every equation contaminated.
+    """
+    out = []
+    for m in _LATEX_PROSE.finditer(latex or ""):
+        out.extend(w for w in re.split(r"[^0-9A-Za-z]+", m.group(1)) if w)
+    return out
+
+
+def latex_contamination(layer, bbox, latex, expansion=CROP_EXPANSION):
+    """-> (contaminated, detail). Did the decode read words that are NOT in the equation's box?
+
+    Measured, not argued: the padding ring is ``crop_box(bbox) minus bbox``, the characters in it
+    come from the page's own native text layer, and the test is whether a run of at least
+    :data:`CONTAM_MIN_LETTERS` letters that the decode wrapped in a prose macro appears in the
+    RING and not in the equation's own box. Both halves matter — a ring with text in it is
+    ordinary and proves nothing (a display equation nearly always has a line above it), and a
+    ``\\text{where}`` that also appears inside the box is the equation's own word.
+
+    **This says the CROP was contaminated. It does not say the mathematics is wrong**, and the
+    referee's twenty draws show the difference: E03's dropped ``λ_n`` and E05's ``S^d`` for
+    ``S^{d-1}`` are mathematically wrong on a clean crop, and no crop geometry can see that.
+    Scoring a decode against the page is not attempted here.
+    """
+    from litkb.extract import reconcile as R
+
+    crop = crop_box(bbox, expansion)
+    ring, own = [], []
+    for ch, x, y, _i in layer["pts"]:
+        if not R._in_box(x, y, crop):
+            continue
+        (own if R._in_box(x, y, bbox) else ring).append(ch)
+    ring_s, own_s = _letters("".join(ring)), _letters("".join(own))
+    if not ring_s:
+        return False, {"ring_chars": 0}
+    words = [w for w in latex_prose(latex) if len(w) >= 3]
+    hits = []
+    for i in range(len(words)):
+        run = ""
+        for j in range(i, min(i + 6, len(words))):
+            run += _letters(words[j])
+            if len(run) >= CONTAM_MIN_LETTERS and run in ring_s and run not in own_s:
+                hits.append(run)
+                break
+    return bool(hits), {"ring_chars": len(ring_s), "hits": hits[:3]}
+
+
+def _match_crops(canonical, rows, frames, taken, tol=BBOX_TOL):
+    """-> ([(block index, row)], unmatched). The bbox join, shared by the ok and the held rows.
 
     THE FRAME. ``bbox_canonical`` is Docling's own box through ``docling.to_canonical`` — the
     TOPLEFT sense, in the CROPBOX frame, because that is the frame Docling measures in. A
@@ -577,14 +685,11 @@ def attach_latex(canonical, rows, frames, tol=BBOX_TOL):
     the same (dx, dy) from the ONE frame reader before it is compared. A page the adapters
     refused keeps ``frame="cropbox"`` and is compared unshifted — the block never moved either.
     """
-    import dataclasses
-
-    eq = [(i, c) for i, c in enumerate(canonical) if c.kind == "equation"]
     by_page = {}
-    for i, c in eq:
-        by_page.setdefault(c.page, []).append((i, c))
-    out = list(canonical)
-    taken, unmatched = set(), []
+    for i, c in enumerate(canonical):
+        if c.kind == "equation":
+            by_page.setdefault(c.page, []).append((i, c))
+    pairs, unmatched = [], []
     for r in rows:
         page = int(r["page"])
         cands = by_page.get(page) or []
@@ -602,18 +707,79 @@ def attach_latex(canonical, rows, frames, tol=BBOX_TOL):
                 best, best_i = d, i
         if best is not None and best <= tol:
             taken.add(best_i)
-            out[best_i] = dataclasses.replace(
-                out[best_i], latex=r["latex"],
-                extractor=dict(out[best_i].extractor, latex="codeformula-l4"))
+            pairs.append((best_i, r))
         else:
             unmatched.append({"page": page, "crop_id": r.get("crop_id"),
                               "nearest_pt": None if best is None else round(best, 2)})
-    return out, len(taken), unmatched
+    return pairs, unmatched
+
+
+def attach_latex(canonical, rows, frames, tol=BBOX_TOL, held=(), pdf_path=None):
+    """Put each `ok` LaTeX string, and a STATUS on every equation block. -> (out, n, unmatched, counts).
+
+    Migration 0022's five words, assigned here because this is where the two halves meet — the
+    equation blocks and the L4 pass's own verdicts:
+
+      * an `ok` row whose crop's padding ring holds words the decode emitted -> ``contaminated``,
+        LaTeX stored (:func:`latex_contamination`);
+      * any other `ok` row -> ``stable``, LaTeX stored;
+      * a row the pass itself refused -> ``unstable`` / ``degenerate``, LaTeX **not** stored;
+      * an equation block with no row at all -> ``unverified``.
+
+    ``stable`` is a statement about the pass and the crop, NEVER about the mathematics. The
+    referee's E03, E05, E07, E12 and E20 are mathematically wrong on clean crops and every one of
+    them comes out ``stable`` — that is a limit of what can be measured without scoring a decode
+    against the page, and it is written into the column's definition rather than left to be
+    discovered.
+    """
+    import dataclasses
+
+    out = list(canonical)
+    taken = set()
+    ok_pairs, unmatched = _match_crops(out, rows, frames, taken, tol)
+    held_pairs, _held_unmatched = _match_crops(out, list(held), frames, taken, tol)
+
+    layers = {}
+
+    def layer(page):
+        if pdf_path is None:
+            return None
+        if page not in layers:
+            from litkb.extract import reconcile as R
+            try:
+                layers[page] = R.native_chars(pdf_path, page, frames)
+            except Exception:  # noqa: BLE001 - a page pdfium cannot read has no ring to test
+                layers[page] = {"text": "", "pts": []}
+        return layers[page]
+
+    counts = {"stable": 0, "contaminated": 0, "unstable": 0, "degenerate": 0, "unverified": 0}
+    for i, r in ok_pairs:
+        c = out[i]
+        lay = layer(c.page)
+        bad, detail = (latex_contamination(lay, c.bbox, r["latex"]) if lay else (False, {}))
+        status = "contaminated" if bad else "stable"
+        counts[status] += 1
+        out[i] = dataclasses.replace(
+            c, latex=r["latex"], latex_status=status,
+            extractor=dict(c.extractor, latex="codeformula-l4",
+                           **({"latex_contamination": detail} if bad else {})))
+    for i, r in held_pairs:
+        status = "degenerate" if r.get("reason") == "degenerate" else "unstable"
+        counts[status] += 1
+        out[i] = dataclasses.replace(
+            out[i], latex=None, latex_status=status,
+            extractor=dict(out[i].extractor, latex="codeformula-l4-refused",
+                           latex_refused=r.get("reason") or "unstable"))
+    for i, c in enumerate(out):
+        if c.kind == "equation" and c.latex_status is None:
+            counts["unverified"] += 1
+            out[i] = dataclasses.replace(c, latex_status="unverified")
+    return out, len(ok_pairs), unmatched, counts
 
 
 # ── stage: ingest ──────────────────────────────────────────────────────────────────────────
 
-def reconcile_one(row, records, latex_by_sha):
+def reconcile_one(row, records, latex_by_sha, held_by_sha=None):
     """Reconcile one document and attach its LaTeX. -> (canonical, dis, stats, cov, extra)."""
     sha, pdf = row["sha256"], row["path"]
     rec = records[sha]
@@ -630,13 +796,18 @@ def reconcile_one(row, records, latex_by_sha):
     canonical, dis, stats = R.reconcile(pdf, tei, doc, rec, ocr_pages=rec.get("ocr_pages") or (),
                                         frames=frames)
     rows = latex_by_sha.get(sha) or []
-    canonical, attached, unmatched = attach_latex(canonical, rows, frames)
+    held = (held_by_sha or {}).get(sha) or []
+    canonical, attached, unmatched, statuses = attach_latex(
+        canonical, rows, frames, held=held, pdf_path=pdf)
     classes = {i + 1: d.get("scan", "unknown")
                for i, d in enumerate(rec.get("page_detail") or [])}
     cov = R.coverage(pdf, canonical, classes, frames=frames)
     extra = {"tei": tei is not None, "docling": doc is not None,
              "latex_attached": attached, "latex_rows_for_file": len(rows),
              "latex_unmatched": len(unmatched),
+             "latex_stable": statuses["stable"], "latex_contaminated": statuses["contaminated"],
+             "latex_unstable": statuses["unstable"], "latex_degenerate": statuses["degenerate"],
+             "latex_unverified": statuses["unverified"],
              "reconcile_seconds": round(time.monotonic() - t0, 2)}
     return canonical, dis, stats, cov, extra
 
@@ -666,12 +837,12 @@ def ingest_one(conn, row, canonical, dis, stats, cov, hold=0.0, pipeline_version
             time.sleep(hold)
         return ing.ingest_file(conn, row["file_id"], canonical, dis, stats, pages=pages,
                                artifact_path=_doc_path(row["sha256"]), host="local",
-                               pipeline_version=version, _after_blocks=_hold)
+                               pipeline_version=version, params=P5_PARAMS, _after_blocks=_hold)
     # `host` is a two-value CHECK in 0001 ('colab' | 'local'), not free text: the machine's own
     # name lives in the metrics, not in a column the schema constrains.
     return ing.ingest_file(conn, row["file_id"], canonical, dis, stats, pages=pages,
                            artifact_path=_doc_path(row["sha256"]), host="local",
-                           pipeline_version=version)
+                           pipeline_version=version, params=P5_PARAMS)
 
 
 def cmd_ingest(a):
@@ -688,7 +859,7 @@ def cmd_ingest(a):
     records = census_records()
     latex_by_sha, held = load_latex()
     print(f"L4 latex: ok rows for {len(latex_by_sha)} documents; "
-          f"{sum(held.values())} rows held on the verify queue")
+          f"{sum(len(v) for v in held.values())} rows held on the verify queue")
 
     conn = ingest_login.connect(a.db)
     out, t0 = [], time.monotonic()
@@ -699,7 +870,7 @@ def cmd_ingest(a):
         r["relpath"] = row.get("rel_path") or ""
         r["ocr_pages"] = len(row.get("ocr_pages") or [])
         try:
-            canonical, dis, stats, cov, extra = reconcile_one(row, records, latex_by_sha)
+            canonical, dis, stats, cov, extra = reconcile_one(row, records, latex_by_sha, held)
         except ReconcileSkipped as e:
             r["status"], r["note"] = "no-artifact", str(e)[:200]
             out.append(r)

@@ -617,6 +617,69 @@ replace("R521", f"{PKG}/extract/reconcile.py",
         "the native text is joined from the ink again: every space is gone, so no quote can be "
         "verified against a block and no chunker can use one", tests=TESTS_S5)
 
+# -- the final referee's canonical-block fix set (2026-09-16,
+# Reports/LITKB_P5_FINAL_REFEREE_2026-09-16.md). Six rules in the reconciler, two in the schema
+# and one in the ingest, one row each: the merge's two halves are separate rows because they
+# answer different shapes of the duplication and one row would let the other rot.
+MIG22 = f"{MIG}/0022_canonical_blocks.sql"
+
+replace("R537", f"{PKG}/extract/reconcile.py",
+        "    if fragment and n:\n        return native, \"native\"",
+        "    if False:\n        return native, \"native\"",
+        "a page fragment goes back to carrying its whole ELEMENT's text: a paragraph crossing a "
+        "page break is stored under one page number with both pages' words in it (the referee's "
+        "G7 - 872 characters under page 12, the first ~700 printed on page 11), and a paragraph "
+        "crossing columns is stored once per column", tests=TESTS_S5)
+replace("R538", f"{PKG}/extract/reconcile.py",
+        "                if not same:\n                    continue",
+        "                if True:\n                    continue",
+        "the canonical merge stops seeing that two readings are one region: an identical "
+        "(page, bbox) pair is emitted as TWO blocks again, which search returns twice and a "
+        "quote's character offsets can land in either of", tests=TESTS_S5)
+replace("R539", f"{PKG}/extract/reconcile.py",
+        "            if len(kids) < OVERMERGE_CHILDREN:\n                continue",
+        "            if True:\n                continue",
+        "one tool's over-merge of the other's segmentation is kept beside it: Pengra p7's "
+        "3,392-character GROBID <p> stands next to each of the blocks whose words it holds",
+        tests=TESTS_S5)
+replace("R540", f"{PKG}/extract/reconcile.py",
+        'GROBID_KIND_WINS = ("reference", "title", "author", "affiliation")',
+        "GROBID_KIND_WINS = ()",
+        "a merged bibliography entry keeps the body block's kind: the printed reference reads as "
+        "a `paragraph` again, so a search cannot tell a finding from a citation and the "
+        "`reference` type goes back to naming only GROBID's re-serialised twin", tests=TESTS_S5)
+replace("R541", f"{PKG}/extract/reconcile.py",
+        '        if c.kind == "figure" and t and any(t in o or o in t for o in caps.get(c.page, [])):',
+        "        if False:",
+        "a caption is stored twice again - once as the caption block and once as the figure "
+        "block's text (219 of the referee's duplicate groups)", tests=TESTS_S5)
+replace("R542", f"{PKG}/extract/reconcile.py",
+        "    if tei is None:\n        return blocks_in, 0",
+        "    if True:\n        return blocks_in, 0",
+        "the header stops naming the three kinds nothing else can: a paper's own title is a "
+        "`heading` again and its author line a `paragraph`", tests=TESTS_S5)
+replace("R543", MIG22,
+        "  IF FOUND THEN\n    RAISE EXCEPTION 'litkb: run % already has a canonical block",
+        "  IF FALSE THEN\n    RAISE EXCEPTION 'litkb: run % already has a canonical block",
+        "the database stops refusing a repeated canonical rectangle: 'one block per region' is "
+        "left to one function in one writer, which is what it was before 0022", tests=TESTS_S5)
+replace("R544", MIG22,
+        "  CHECK (latex IS NULL OR latex_status IS NULL\n"
+        "         OR latex_status IN ('stable', 'contaminated'));",
+        "  CHECK (true);",
+        "a decode the L4 pass REFUSED may be stored as the equation: `unstable` means the decode "
+        "did not reproduce and `degenerate` means a repetition loop, and either would sit in "
+        "`equations.latex` where a reader takes it for the equation (referee kill R8, in the "
+        "schema this time)", tests=TESTS_S5)
+replace("R545", f"{PKG}/extract/ingest.py",
+        '                    "INSERT INTO litkb.equations (block_id, latex, latex_status) "\n'
+        '                    "VALUES (%s, %s, %s)", (bid, b.latex, b.latex_status))',
+        '                    "INSERT INTO litkb.equations (block_id, latex) "\n'
+        '                    "VALUES (%s, %s)", (bid, b.latex))',
+        "the ingest drops `latex_status`: a LaTeX row is stored with no word for how far it can "
+        "be trusted, and a refused decode and an equation the pass never saw are the same NULL "
+        "again", tests=TESTS_S5)
+
 # THE SCHEMA (migration 0017) and the ingest.
 s5(block, "R58", MIG17, "guard: tables.cells JSON is retired in favour of table_cells",
    "a table's cells may be written as a JSON blob beside the rows: two homes for one fact")
@@ -764,6 +827,25 @@ replace("P55", P5B,
         "own batch B, 3,873 MiB / 94.6 % of a card that also drives the display, against "
         "2,619 MiB / 63.9 % at 4 documents per process", tests=TESTS_P5)
 
+replace("P56", P5B,
+        '        if c.kind == "equation" and c.latex_status is None:',
+        "        if False:",
+        "an equation the L4 pass never produced a row for is left with NO latex_status: the "
+        "referee's §3 state, where 3,472 stored strings carried nothing saying which of them the "
+        "pass had even looked at", tests=TESTS_P5)
+replace("P57", P5B,
+        '    return bool(hits), {"ring_chars": len(ring_s), "hits": hits[:3]}',
+        '    return False, {"ring_chars": len(ring_s), "hits": []}',
+        "the contaminated class disappears: a decode that read the sentence above the equation "
+        "off the crop's margin is recorded as `stable`, which is the one word it must never "
+        "carry (referee E01/E06/E11/E19)", tests=TESTS_P5)
+replace("P58", P5B,
+        '_LATEX_PROSE = re.compile(r"',
+        '_LATEX_PROSE = re.compile(r"([A-Za-z]{3,})")  # ',
+        "the contamination test reads every alphabetic run in the LaTeX as prose, so a variable "
+        "name or a Greek letter counts as a word and an ordinary display equation is called "
+        "contaminated", tests=TESTS_P5)
+
 DEFERRED_HELPERS = {}
 
 site("T18", "litkb/admit/binding.py::bind::verdict", '"bound"', tests=TESTS_P1P2,
@@ -817,6 +899,15 @@ replace("X19", f"{PKG}/netutil.py", "_SECRET_KEY_RE.fullmatch(str(k))", "None", 
         what="the output boundary stops reading a result's FIELD NAMES: a value under a key called "
              "`password` or `token` is carried out whenever its own shape is unremarkable (F-4's "
              "second half — the regexes see leaf TEXT, not the key above it)")
+replace("X27", f"{PKG}/mcp/server.py",
+        "    if not spec:\n        return list(DEFAULT_KINDS), (",
+        "    if not spec:\n        return list(ALL_KINDS), (",
+        "litkb_search goes back to searching furniture and bibliography entries by default: one "
+        "running head is the same 42 characters on every page, so a topical query returns it "
+        "once per page and crowds the answering passage out of a ten-row list (the referee's "
+        "§7 - 8 of 20 top-ten hits were furniture and one cold question was not answered at all)",
+        tests=TESTS_P8)
+
 # X11/X13/X14 neuter the LOGIC rather than deleting the CREATE. Deleting it left the COMMENT and the
 # GRANT behind, migration 0018 failed to apply, and every Postgres test ERRORED — which this harness
 # does not read as a failure, so all three reported DID NOT FIRE on the first run. A row that breaks

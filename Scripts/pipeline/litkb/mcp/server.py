@@ -272,14 +272,61 @@ _BLOCK_FROM = """
   JOIN litkb.files f ON f.id = b.file_id AND f.current_run_id = b.run_id
   JOIN litkb.main_files mf ON mf.version_id = f.current_version_id
   JOIN litkb.main_works w ON w.work_id = mf.work_id
+ WHERE b.type = ANY(%(kinds)s)
 """
 _BLOCK_COLS = "SELECT b.id::text, w.key, b.page_no, b.type, b.section_path, b.text, f.id::text"
+
+#: What a search is FOR: the passage that answers a question. The final referee's §7 measured what
+#: happens without this clause — two cold questions, 8 of 20 top-ten hits were `page_header` or
+#: title blocks, ONE running head ("CONSTRAINED MONTE CARLO MAXIMUM LIKELIHOOD", 42 characters)
+#: returned five times in one ten-row list from five different pages of Geyer_1992, and the second
+#: question surfaced no answering body passage at all. Furniture is not a passage: a running head
+#: is the same string on every page of a paper, so it matches a topical query once per page and
+#: crowds out the one block that says something.
+#:
+#: `reference` is excluded on the same rule and for a different reason: a bibliography entry names
+#: a paper, it does not state a finding, and after the canonical-block merge the ~9,300 printed
+#: reference entries carry the `reference` type instead of hiding as `paragraph` — so excluding
+#: them by default is only possible NOW, and was the other half of what crowded the referee's
+#: ten-row lists.
+#:
+#: `title`, `author` and `affiliation` STAY IN, which is a judgment and is written down as one: a
+#: title is the most compressed statement a paper makes about itself and a session searching for a
+#: paper by its subject should find it. They exist as types at all only since the header pass.
+DEFAULT_KINDS = ("title", "author", "affiliation", "abstract", "heading", "paragraph",
+                 "list_item", "footnote", "caption", "table", "figure", "equation", "sidebar")
+
+#: Everything migration 0002's CHECK admits — what `kinds="all"` means.
+ALL_KINDS = DEFAULT_KINDS + ("reference", "page_header", "page_footer", "page_number", "other")
+
+
+def _kinds(spec):
+    """-> (the block types to search, a sentence saying what was left out).
+
+    `spec` is empty for the default, "all" for everything, or a comma-separated list of block
+    types. An unknown name is REFUSED rather than dropped: a caller who mistypes `page-header`
+    should be told, not handed a silently different result set.
+    """
+    spec = (spec or "").strip().lower()
+    if not spec:
+        return list(DEFAULT_KINDS), (
+            "block types page_header, page_footer, page_number, other and reference are NOT "
+            "searched by default (running heads and bibliography entries crowd out passages). "
+            "Pass kinds=\"all\", or a comma-separated list of types, to include them.")
+    if spec == "all":
+        return list(ALL_KINDS), "every block type is searched, furniture and references included."
+    want = [k.strip() for k in spec.split(",") if k.strip()]
+    bad = [k for k in want if k not in ALL_KINDS]
+    if bad:
+        raise Refusal("bad-kinds", f"not a block type: {', '.join(bad)}. The types are: "
+                                   f"{', '.join(sorted(ALL_KINDS))}.", kinds=spec)
+    return want, f"only these block types were searched: {', '.join(want)}."
 
 #: leg 1 — every term present. Precision: the hits this leg returns are the ones that answer the
 #: whole question, and RRF keeps them above the looser legs.
 _SEARCH_BLOCKS_ALL = f"""
 {_BLOCK_COLS}{_BLOCK_FROM}
- WHERE to_tsvector('english', litkb.norm_search_text(b.text))
+   AND to_tsvector('english', litkb.norm_search_text(b.text))
        @@ plainto_tsquery('english', litkb.norm_search_text(%(q)s))
  ORDER BY ts_rank(to_tsvector('english', litkb.norm_search_text(b.text)),
                   plainto_tsquery('english', litkb.norm_search_text(%(q)s))) DESC, b.id
@@ -292,7 +339,7 @@ _SEARCH_BLOCKS_ALL = f"""
 #: unreachable by anything but a caller who already knew how the extractor had mangled it.
 _SEARCH_BLOCKS_ANY = f"""
 {_BLOCK_COLS}{_BLOCK_FROM}
- WHERE to_tsvector('english', litkb.norm_search_text(b.text)) @@ litkb.any_term_query(%(q)s)
+   AND to_tsvector('english', litkb.norm_search_text(b.text)) @@ litkb.any_term_query(%(q)s)
  ORDER BY ts_rank(to_tsvector('english', litkb.norm_search_text(b.text)),
                   litkb.any_term_query(%(q)s)) DESC, b.id
  LIMIT %(n)s
@@ -303,7 +350,7 @@ _SEARCH_BLOCKS_ANY = f"""
 #: with the text.
 _SEARCH_BLOCKS_TRGM = f"""
 {_BLOCK_COLS}{_BLOCK_FROM}
- WHERE litkb.norm_search_text(b.text) %% litkb.norm_search_text(%(q)s)
+   AND litkb.norm_search_text(b.text) %% litkb.norm_search_text(%(q)s)
  ORDER BY similarity(litkb.norm_search_text(b.text), litkb.norm_search_text(%(q)s)) DESC, b.id
  LIMIT %(n)s
 """
@@ -356,12 +403,15 @@ def _rrf(*legs, k=60):
             for key in sorted(score, key=lambda i: (-score[i], str(i)))]
 
 
-def _leg(conn, sql, query, limit, shape):
+def _leg(conn, sql, query, limit, shape, kinds=None):
     """One retrieval leg: run its own statement, return [(id, payload)] in its own rank order."""
-    return [(r[0], shape(r)) for r in conn.execute(sql, {"q": query, "n": limit}).fetchall()]
+    args = {"q": query, "n": limit}
+    if kinds is not None:
+        args["kinds"] = kinds
+    return [(r[0], shape(r)) for r in conn.execute(sql, args).fetchall()]
 
 
-def _search(query, limit, scope):
+def _search(query, limit, scope, kinds=""):
     def block(r):
         return {"block_id": r[0], "work_key": r[1], "page": r[2], "block_type": r[3],
                 "section_path": r[4], "text": r[5], "file_id": r[6]}
@@ -370,13 +420,14 @@ def _search(query, limit, scope):
         return {"use_version_id": r[0], "work_key": r[1], "gap": r[2], "statement": r[3],
                 "kind": r[4], "status": r[5], "feeds": r[6], "state": r[7]}
 
+    want, kinds_note = _kinds(kinds)
     with _conn("reader") as conn:
         hits = {"blocks": [], "uses": []}
         if scope in ("all", "blocks"):
             hits["blocks"] = _rrf(
-                _leg(conn, _SEARCH_BLOCKS_ALL, query, limit, block),
-                _leg(conn, _SEARCH_BLOCKS_ANY, query, limit, block),
-                _leg(conn, _SEARCH_BLOCKS_TRGM, query, limit, block))[:limit]
+                _leg(conn, _SEARCH_BLOCKS_ALL, query, limit, block, want),
+                _leg(conn, _SEARCH_BLOCKS_ANY, query, limit, block, want),
+                _leg(conn, _SEARCH_BLOCKS_TRGM, query, limit, block, want))[:limit]
         if scope in ("all", "uses"):
             hits["uses"] = _rrf(
                 _leg(conn, _SEARCH_USES_ALL, query, limit, use),
@@ -387,7 +438,7 @@ def _search(query, limit, scope):
         # comes back says which of the three states this search was in.
         n_vec = (conn.execute("SELECT count(*) FROM litkb.embeddings").fetchone()[0]
                  if VECTOR_ENABLED else None)
-    return _ok(query=query, scope=scope,
+    return _ok(query=query, scope=scope, kinds=kinds_note,
                legs=["lexical (all terms)", "lexical (any term)", "trigram"],
                normalisation="the text and the query are both read through litkb.norm_search_text: "
                              "U+FFFD and soft hyphens dropped, line-break hyphenation joined. The "
@@ -899,10 +950,15 @@ def build_server():
     @srv.tool(name="litkb_search", description=(
         "Hybrid lexical search over extracted blocks and recorded uses: three legs — all terms, any "
         "term, trigram — fused by reciprocal rank. Returns work key, page, section path and "
-        "block_id (the block_id is what litkb_record_use quotes from). The vector leg is off until "
-        "P7, so a paraphrase sharing no words with the text will not be found."))
-    def litkb_search(query: str, limit: int = 10, scope: str = "all") -> str:
-        return _guarded(_search)(query=query, limit=min(max(int(limit), 1), 50), scope=scope)
+        "block_id (the block_id is what litkb_record_use quotes from). Running heads, page "
+        "numbers, footers and bibliography entries are NOT searched by default — they are the same "
+        "string on every page and crowd out the passage that answers the question; pass "
+        "kinds=\"all\" or a comma-separated list of block types (e.g. kinds=\"reference\") to "
+        "include them. The vector leg is off until P7, so a paraphrase sharing no words with the "
+        "text will not be found."))
+    def litkb_search(query: str, limit: int = 10, scope: str = "all", kinds: str = "") -> str:
+        return _guarded(_search)(query=query, limit=min(max(int(limit), 1), 50), scope=scope,
+                                 kinds=kinds)
 
     @srv.tool(name="litkb_work", description=(
         "One work by DOI or key, and WHICH OF FOUR STATES it is in: absent (no such work), held "

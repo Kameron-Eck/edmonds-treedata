@@ -43,9 +43,13 @@ is "in its top 5".
 | Q2 | §19.1 / row 17 | **2** | `Jackson_2011_multi-state-models-panel` p3, `01a0aa25-a961-7f42-b039-742c4f5931ff` |
 | Q3 | §19.1 / row 18 | **2** (also 3 and 6 — same sentence, three blocks) | `Rosychuk_2003_bias-correction-two-state` p16, `01a0aa27-2f48-7361-bbff-ee8496805098` |
 
-The P8 referee measured **1 / 1 / miss** on seeded test data (P8 report §7.7, 1,938 seeded
-blocks). On the real corpus of 102,008 blocks it is **1 / 2 / 2**: Q3's miss does not recur,
-and all three clear gold's top-5 bar. Q1 and Q2 each returned their work's own neighbouring
+**The baseline, stated carefully**, because it is easy to cite the wrong column. P8 report §7.7
+scores the same three gold queries on a re-seed of the `.txt` extracts into `litkb_test_w2` —
+**1,938 blocks, the P8 author's own pass** (the referee's was 1,457, and the referee's ranks are
+not in anything read here). Its table has two columns: **before** the P8 fixes, 1 / 2 / MISS;
+**after** them, **1 / 1 / 3**. The code tested here is `fd59bc3`, which is the *after* column. So
+the comparison that means anything is **seeded post-fix 1 / 1 / 3 → live 1 / 2 / 2**: Q2 loses a
+rank, Q3 gains one, and all three clear gold's top-5 bar on a corpus 53× larger. Q1 and Q2 each returned their work's own neighbouring
 pages in the next slots; Q3 returned the Rosychuk passage three times, once per extraction of
 the same page.
 
@@ -93,8 +97,9 @@ gold's `paraphrase_that_must_be_refused`.
 All three **paraphrases were refused**, with the same `quote-not-in-block` code and message as
 above, naming the quote. Gold's `paraphrase_refuse` criterion: PASS ×3.
 
-Refusals wrote nothing: nine `litkb_record_use` calls, six refused, and `litkb_ws_status`
-afterwards reported `use: 6`, not 9.
+Refusals wrote nothing: **twelve** `litkb_record_use` calls across §1 and §2 (three gold quotes,
+three live quotes, three paraphrases, three fresh), **six refused**, and `litkb_ws_status`
+afterwards reported `use: 6`, not 12.
 
 `feeds` used: `framework §16.2; gap row 4` (Q1), `framework §19.1; gap row 17; narrative §4`
 (Q2), `framework §19.1; gap row 18; narrative §3` (Q3). All accepted — the 0018 seven-form
@@ -197,8 +202,10 @@ report_path     null
 ```
 
 **Nothing was held.** Every use carried a quote the database verified, and every `feeds` token
-validated — including the four forms that migration 0018 added, which the P8 referee predicted
-(his P2) would be refused before it landed. `report_path: null` with a real `report_written` is
+validated. Three forms were exercised: `framework §N.N`, `gap row N` — the two that 0005 already
+admitted — and **`narrative §N`, one of the four migration 0018 added**. `gated-plan gate N`,
+`review §N…` and `report <FILE>#§<loc>` were **not** exercised here; the P8 gate's own live test
+covers all seven at once, and this session does not re-measure it. `report_path: null` with a real `report_written` is
 the P8 report's own §7.5 caveat showing on live data: the row records only what the caller named
 at prepare, and the default is reported in the payload.
 
@@ -225,8 +232,12 @@ does not hold answers cleanly, a work it holds crashes.
 
 This is the same defect class as `_candidates`'s `identifiers`-vs-`ids`, which `server.py:450–455`
 describes in a comment written *this branch*: a column name the schema does not have, invisible
-because the only test that reaches the database calls the tool with no selector
-(`test_a_tool_result_is_json_over_a_real_session` asserts `no-selector`). It blocks the skill's
+for the same reason. Measured, not inferred — `grep -n litkb_work Scripts/qc/test_litkb_p8.py`
+returns four lines, and **the suite calls the tool exactly once**, at line 136, as
+`one("litkb_work", {})`, asserting `no-selector`. The only test whose name says otherwise,
+`test_a_work_shaped_result_is_returned_byte_for_byte` (line 312), builds a work record **by hand
+in Python** and hands it to `server._out()`; it never opens a connection. So no test has ever
+called `litkb_work` on a work the database holds. It blocks the skill's
 step 0 ("check `litkb_work(doi=…)` before concluding the work is absent") and this test's
 read-back step. The refusal also reaches the model as `refused: "error"` with a raw psycopg
 message — the shape the referee's F-1 fix replaced on the token path, still present here.
@@ -328,3 +339,7 @@ extractor mismatch at all.
   against a held paper.
 * Search **cost** — not measured. P8 §6 item 5 stands, though 0018's two GIN indexes are now
   live in `litkb` and no query here felt slow.
+* Four of the seven `feeds` forms (`gated-plan`, `review`, `report`, and the bare-`framework §N`
+  depth case) — not written by any use here; see §3.
+* `qc/check.py` — not run. This commit changes no code and adds no test; the ladder would
+  measure the branch it inherited, not this work.

@@ -525,8 +525,8 @@ replace("R57", f"{PKG}/extract/reconcile.py",
 # hand-built blocks. These two rows are §14's "a deliberately interleaved column extraction fails
 # the reading-order metric" applied to the producer.
 replace("R519", f"{PKG}/extract/reconcile.py",
-        "    keyed.sort(key=lambda t: t[:6])",
-        "    keyed.sort(key=lambda t: (t[2], t[3], t[4]))",
+        "    keyed.sort(key=lambda t: t[:7])",
+        "    keyed.sort(key=lambda t: (t[2], t[4], t[5]))",
         "reading order goes back to geometry (page, y, x): a two-column page is read across the "
         "gutter", tests=TESTS_S5)
 replace("R520", f"{PKG}/extract/reconcile.py",
@@ -589,6 +589,72 @@ block("R518", MIG17, "guard: current run is an ok run of this file",
       "set_current_run accepts a FAILED run, another file's run or NULL: a failed extraction "
       "becomes the file's answer and un-promotes its evidence")
 M[-1]["tests"] = TESTS_S5P1
+
+# -- stage 5, after the referee (Reports/LITKB_STAGE5_REFEREE_2026-09-15.md §10) --------------
+#
+# THE THRESHOLDS AT +/-20 %. The referee moved all four by a fifth in both directions and the
+# suite passed eight times out of eight: R53/R54/R55 pin only the extremes (0.02, 0.999, 0.0),
+# and IOU_TOUCH and TEXT_AGREE had no row at all. These eight rows are the fifth, and each one
+# fails a gold-derived boundary case in qc/test_litkb_reconcile.py rather than a round number.
+replace("R523", f"{PKG}/extract/reconcile.py", "IOU_MATCH = 0.5", "IOU_MATCH = 0.4",
+        "IOU_MATCH down a fifth: Benedek p9's pair at 0.4559 — two tools regioning one area "
+        "DIFFERENTLY — is recorded as one region and its disagreement is lost", tests=TESTS_S5)
+replace("R524", f"{PKG}/extract/reconcile.py", "IOU_MATCH = 0.5", "IOU_MATCH = 0.6",
+        "IOU_MATCH up a fifth: Benedek p7's pair at 0.5334 — real agreement — becomes two "
+        "single-tool blocks", tests=TESTS_S5)
+replace("R525", f"{PKG}/extract/reconcile.py", "IOU_TOUCH = 0.1", "IOU_TOUCH = 0.08",
+        "IOU_TOUCH down a fifth: boxes that do not overlap enough to be about one region are "
+        "recorded as a partial-overlap disagreement", tests=TESTS_S5)
+replace("R526", f"{PKG}/extract/reconcile.py", "IOU_TOUCH = 0.1", "IOU_TOUCH = 0.12",
+        "IOU_TOUCH up a fifth: the corpus's real touching pairs (Benedek p5 0.1029, Alwan p8 "
+        "0.1003, Almon p5 0.1020) vanish from the disagreement table entirely", tests=TESTS_S5)
+replace("R527", f"{PKG}/extract/reconcile.py", "TEXT_AGREE = 0.90", "TEXT_AGREE = 0.72",
+        "TEXT_AGREE down a fifth: two tools reading a region differently (Almon p4, 0.8932) is "
+        "recorded as agreement and the conflict is never written down", tests=TESTS_S5)
+replace("R528", f"{PKG}/extract/reconcile.py", "TEXT_AGREE = 0.90", "TEXT_AGREE = 0.99",
+        "TEXT_AGREE up a fifth: real agreement (Benedek p9, 0.9015) is recorded as a "
+        "text_conflict and every matched region's confidence drops to 0.7", tests=TESTS_S5)
+replace("R529", f"{PKG}/extract/reconcile.py", "COVERAGE_FLOOR = 0.80", "COVERAGE_FLOOR = 0.64",
+        "COVERAGE_FLOOR down a fifth: a page at 0.70 — a third of its body unassigned — passes "
+        "the gate", tests=TESTS_S5)
+replace("R530", f"{PKG}/extract/reconcile.py", "COVERAGE_FLOOR = 0.80", "COVERAGE_FLOOR = 0.96",
+        "COVERAGE_FLOOR up a fifth: an ordinary page at 0.90 is refused", tests=TESTS_S5)
+
+# THE FOUR FIXES. Each row removes one and must fail the test that measures it on the real file.
+replace("R531", f"{PKG}/extract/reconcile.py",
+        '    return jsonb_safe(s).replace(HYPHEN_NONCHAR, "") if isinstance(s, str) else jsonb_safe(s)',
+        "    return s",
+        "THE BLOCKER: the reconcile boundary stops cleaning. Docling's NULs reach Postgres and "
+        "Benedek_2015's whole transaction aborts — the file lands nothing — and U+FFFE reaches "
+        "blocks.text at every hyphenated line", tests=TESTS_S5)
+site("R531s", "litkb/extract/reconcile.py::_clean::jsonb_safe", "{a0}", tests=TESTS_S5,
+     what="the NUL strip is dropped at the reconcile call site while the helper stays: the "
+          "per-call-site rule's own case, on the site the blocker was found at")
+replace("R532", f"{PKG}/extract/reconcile.py",
+        "    canonical = _dedupe_figures(canonical)\n", "",
+        "the figure dedupe removed: two figure blocks over one figure both reach ingest and "
+        "litkb.figures holds two rows for it", tests=TESTS_S5)
+replace("R533", f"{PKG}/extract/reconcile.py",
+        'GROBID_BODY_REGIONS = tuple(k for k in GROBID_REGIONS if k != "figure")',
+        "GROBID_BODY_REGIONS = GROBID_REGIONS",
+        "GROBID's <figure> goes back into the BODY matcher: every figure is entered twice, 24 "
+        "figure blocks for Benedek_2015's 8 figures", tests=TESTS_S5)
+replace("R534", f"{PKG}/extract/reconcile.py",
+        "            for col in _column_groups(bs):",
+        "            for col in [bs]:",
+        "an element's line boxes are unioned across the column gutter again: the cross-column "
+        "paragraph becomes a page-wide box ordered ahead of its own column", tests=TESTS_S5)
+replace("R535", f"{PKG}/extract/reconcile.py",
+        "              _column_bucket(c.x0), c.y0, c.x0, i, c)",
+        "              0, c.y0, c.x0, i, c)",
+        "the reading-order tie-break goes back to y0 alone: two fragments of one element read "
+        "right column before left", tests=TESTS_S5)
+replace("R536", f"{PKG}/extract/reconcile.py",
+        "        if want and any(t.startswith(want) or want in t[:len(want) + lead] for t in texts):",
+        "        if want and any(want in t for t in texts):",
+        "per-region recall stops asking whether a block BEGINS at the region: an overlapping "
+        "neighbour that merely contains the text counts as the region, which is exactly the "
+        "blindness the character share already has", tests=TESTS_S5)
 
 DEFERRED_HELPERS = {}
 

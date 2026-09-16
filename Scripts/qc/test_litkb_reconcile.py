@@ -13,6 +13,7 @@ Three groups:
 * **ingest** — against ``litkb_test``: idempotence, the mid-file kill, the role rules and the
   new checked writers of migration 0017.
 """
+import json
 import pathlib
 import sys
 import uuid
@@ -346,6 +347,241 @@ def test_coverage_falls_below_the_floor_when_the_catch_all_block_is_removed():
     assert R.coverage_failures(cov_bad) == [(1, pytest.approx(0.11, abs=0.01))]
 
 
+# ── the four thresholds, pinned at ±20 % by a GOLD-DERIVED boundary case ─────────────────
+#
+# The referee of 2026-09-15 moved every one of the four by a fifth in both directions and the
+# whole suite passed eight times out of eight: "pinned by tests" was true only at the extremes
+# R53/R54/R55 use. Each case below sits between the constant and its ±20 % move, at an IoU or a
+# ratio MEASURED on the corpus (referee §5, "the corpus pages nearest each cut"), so a move of a
+# fifth in either direction fails a named test here.
+
+def _iou_pair(v):
+    """Two boxes whose IoU is exactly `v`: (0,0,100,100) against (0,0,100,100v)."""
+    return [_b(1, 0, 0, 100, 100)], [_d(1, 0, 0, 100, 100 * v)]
+
+
+def test_iou_match_is_pinned_below_at_the_corpus_pair_just_inside_it():
+    """Benedek_2015 p7's nearest candidate pair sits at IoU 0.5334 — just inside IOU_MATCH. It
+    must be ONE region; at IOU_MATCH 0.6 (+20 %) it becomes two single-tool blocks."""
+    pairs, l_only, r_only, touching = R.match_by_iou(*_iou_pair(0.5334))
+    assert len(pairs) == 1 and touching == [] and l_only == [] and r_only == []
+
+
+def test_iou_match_is_pinned_above_at_the_corpus_pair_just_outside_it():
+    """Benedek_2015 p9's, at 0.4559 — just outside. It is a partial overlap, and a disagreement
+    in its own right; at IOU_MATCH 0.4 (−20 %) the two tools' different regioning is silently
+    merged and the disagreement is lost."""
+    pairs, _, _, touching = R.match_by_iou(*_iou_pair(0.4559))
+    assert pairs == [] and len(touching) == 1
+
+
+def test_iou_touch_is_pinned_below_at_the_corpus_pair_just_inside_it():
+    """Benedek_2015 p5 at 0.1029, Alwan p8 at 0.1003, Almon p5 at 0.1020 — the corpus's nearest
+    pairs to IOU_TOUCH. They must be RECORDED as touching; at 0.12 (+20 %) they vanish from the
+    disagreement table altogether, which is the failure mode nobody can see from the counts."""
+    pairs, _, _, touching = R.match_by_iou(*_iou_pair(0.1029))
+    assert pairs == [] and len(touching) == 1
+
+
+def test_iou_touch_is_pinned_above_by_a_pair_that_must_not_touch():
+    """Just below the cut: two boxes at IoU 0.09 are not the same region and do not overlap
+    enough to be a disagreement about one. At IOU_TOUCH 0.08 (−20 %) they become one."""
+    pairs, l_only, r_only, touching = R.match_by_iou(*_iou_pair(0.09))
+    assert pairs == [] and touching == [] and len(l_only) == 1 and len(r_only) == 1
+
+
+#: Gold-derived TEXT_AGREE cases. The referee measured the corpus pages nearest the 0.90 cut —
+#: Benedek p9 at 0.9015 (just agreeing), Almon p4 at 0.8932 (just not). These two strings
+#: reproduce that shape without a PDF: one pair above the cut, one below.
+_AGREE = ("the multilayer segmentation models can overcome the before mentioned limitations",
+          "the multilayer segmentation models can overcome the before-mentioned limitation")
+_DISAGREE = ("as implemented by shewhart and his colleagues and successors in industry",
+             "as implemented by shewhart and his colleagues, and successors in a running record")
+
+
+def test_text_agree_is_pinned_below_by_two_readings_that_do_agree():
+    """Above the cut, as Benedek p9's 0.9015 is. At TEXT_AGREE 0.99 (+20 %) a real agreement is
+    recorded as a text_conflict and every matched region's confidence drops to 0.7."""
+    assert R.TEXT_AGREE <= R.text_ratio(*_AGREE) < 0.99
+    assert R.text_agrees(*_AGREE)
+
+
+def test_text_agree_is_pinned_above_by_two_readings_that_do_not():
+    """Below the cut, as Almon p4's 0.8932 is. At TEXT_AGREE 0.72 (−20 %) two tools reading the
+    region differently is recorded as agreement and the conflict is never written down."""
+    assert 0.72 <= R.text_ratio(*_DISAGREE) < R.TEXT_AGREE
+    assert not R.text_agrees(*_DISAGREE)
+
+
+def test_the_coverage_floor_is_pinned_in_both_directions():
+    """The referee's finding stands — no page of the gate set is within 0.19 of this floor, so it
+    is a CATASTROPHE DETECTOR, not an operating-point gate (§5: minimum shares 0.9989, 0.9918,
+    1.0000; failing pages 0/0/0 at floors 0.64, 0.80 and 0.96 alike). It is pinned anyway: a page
+    at 0.70 must fail (it passes at 0.64) and one at 0.90 must pass (it fails at 0.96)."""
+    bad = {1: {"chars": 100, "covered": 70, "share": 0.70, "page_class": "text"}}
+    ok = {2: {"chars": 100, "covered": 90, "share": 0.90, "page_class": "text"}}
+    assert R.coverage_failures(bad) == [(1, 0.70)]
+    assert R.coverage_failures(ok) == []
+
+
+# ── NUL bytes and U+FFFE: one boundary, one helper ──────────────────────────────────────
+
+def test_a_nul_byte_never_leaves_the_reconcile_boundary():
+    """THE BLOCKER (referee §4(0)). Docling's own string for a region with no usable native
+    layer carries \\x00 — 6 canonical blocks and 10 disagreement rows on Benedek_2015 — and
+    Postgres text refuses it, so the file's whole transaction aborted and it landed NOTHING.
+    Every text field is cleaned in ONE place, `_sanitize`, through the shared `jsonb_safe`."""
+    c = R.Canonical(page=1, x0=0, y0=0, x1=1, y1=1, kind="table", reading_order=0,
+                    text="a\x00b", latex="x\x00y",
+                    payload={"caption": "cap\x00tion",
+                             "cells": [{"text": "cell\x00text"}]})
+    d = R.Disagreement(page=1, kind="text_conflict", detail="d\x00", grobid_text="g\x00",
+                       docling_text="do\x00")
+    blocks, dis = R._sanitize([c], [d])
+    assert blocks[0].text == "ab" and blocks[0].latex == "xy"
+    assert blocks[0].payload["caption"] == "caption"
+    assert blocks[0].payload["cells"][0]["text"] == "celltext"
+    assert (dis[0].detail, dis[0].grobid_text, dis[0].docling_text) == ("d", "g", "do")
+
+
+def test_the_hyphen_noncharacter_is_removed_not_kept():
+    """U+FFFE (referee §4(d)): pypdfium2 emits it at every line-break hyphen — 24 of them on
+    Alwan p3 alone — and it reached blocks.text, where stage 6's quote verification and stage 7's
+    chunking would fail on every hyphenated line. It is REMOVED, because the native slice already
+    carries the two halves adjacent: 'spe\\ufffecial' -> 'special', the word as printed. A hyphen
+    would give 'spe-cial', which matches no gold quote and no printed word."""
+    c = R.Canonical(page=1, x0=0, y0=0, x1=1, y1=1, kind="paragraph", reading_order=0,
+                    text="detect any spe￾cial causes")
+    assert R._sanitize([c], [])[0][0].text == "detect any special causes"
+
+
+# ── figures: ONE canonical block per real figure ────────────────────────────────────────
+
+def _fig(page, box, conf=0.8, caption=""):
+    return R.Canonical(page=page, x0=box[0], y0=box[1], x1=box[2], y1=box[3], kind="figure",
+                       reading_order=-1, confidence=conf,
+                       payload={"caption": caption} if caption else {})
+
+
+def test_two_figure_blocks_over_one_figure_become_one():
+    """Referee §4(b): a figure entered twice — once as a GROBID <figure> body region, once
+    through the figure pass — put 4 litkb.figures rows in the database for the 2 figures on
+    Benedek p4. Two figure blocks on a page that agree at IOU_MATCH are ONE figure, and the
+    survivor is the richer block (the one carrying the caption)."""
+    keep = _fig(4, (76, 66, 505, 371), conf=0.8, caption="Fig. 1. Structure of the L3MRF model")
+    drop = _fig(4, (78, 68, 503, 369), conf=0.5)
+    out = R._dedupe_figures([drop, keep])
+    assert len(out) == 1 and out[0].payload.get("caption").startswith("Fig. 1.")
+
+
+def test_two_different_figures_on_one_page_are_not_deduped():
+    """The control. Benedek p4 really does hold two figures; the dedupe must keep both."""
+    a = _fig(4, (76, 66, 505, 371), caption="Fig. 1.")
+    b = _fig(4, (48, 443, 533, 722), caption="Fig. 2.")
+    assert len(R._dedupe_figures([a, b])) == 2
+
+
+def test_grobid_figure_regions_are_not_body_regions():
+    """The root cause, fixed the way Docling's pictures and tables already were: the body matcher
+    does not read <figure>, because the figure pass claims that region. GROBID's figure regions
+    are still read — `_grobid_figures` supplies them to the caption match."""
+    assert "figure" in R.GROBID_REGIONS
+    assert "figure" not in R.GROBID_BODY_REGIONS
+    assert set(R.GROBID_BODY_REGIONS) == {"p", "head", "note", "formula"}
+
+
+# ── a GROBID element that crosses the column gutter ─────────────────────────────────────
+
+def test_an_element_that_crosses_the_gutter_is_split_into_per_column_boxes():
+    """Referee §4(a). On Alwan p3 a <p> whose last two lines fall in the right column unioned
+    into [14, 245, 561, 728] — the whole page width — which `_anchor` then placed ahead of the
+    entire left column. A column break is split exactly as a page break is."""
+    xs = [(55, 291)] * 13 + [(313, 545)] * 2
+    lines = [_b(3, x0, 570 + 12 * i if i < 13 else 60 + 12 * (i - 13), x1,
+                580 + 12 * i if i < 13 else 70 + 12 * (i - 13))
+             for i, (x0, x1) in enumerate(xs)]
+    lines = [type(lines[0])(**{**vars(b), "box_index": i, "box_count": len(lines)})
+             for i, b in enumerate(lines)]
+    out = R.union_boxes(lines)
+    assert len(out) == 2, "the gutter-crossing element was unioned into one page-wide box"
+    assert out[0].x1 <= 291 and out[1].x0 >= 313
+    assert out[0].x0 >= 55, "the left column's box must not reach across the gutter"
+
+
+def test_a_column_is_not_split_by_a_short_line_or_a_stray_fragment():
+    """The control, and why the rule is a CONNECTED COMPONENT of the lines' x-ranges rather than
+    'no overlap with the line before'. Measured on Alwan p3: the pairwise rule splits a paragraph
+    at a short last line followed by an indented one, and at a 4-point superscript fragment,
+    neither of which is a column. Here a short line, then a fragment far to the right that a
+    later full-width line bridges, stay ONE region."""
+    spec = [(55, 291), (56, 65), (240, 289), (55, 291)]
+    lines = [_b(3, x0, 100 + 12 * i, x1, 110 + 12 * i) for i, (x0, x1) in enumerate(spec)]
+    lines = [type(lines[0])(**{**vars(b), "box_index": i, "box_count": len(lines)})
+             for i, b in enumerate(lines)]
+    assert len(R.union_boxes(lines)) == 1
+
+
+def test_two_fragments_of_one_element_read_left_column_first():
+    """The other half of the fix. Split, the two fragments carry the SAME tool_order (they match
+    or anchor to one Docling region), and the tie was then broken by y0 — which puts the RIGHT
+    column's fragment, at the top of the page, ahead of the left column's. That was the one
+    remaining out-of-order pair on Alwan p3 and on Benedek p2."""
+    left = R.Canonical(page=3, x0=67, y0=580, x1=305, y1=728, kind="paragraph", reading_order=-1,
+                       text="the plan of the article", tool_order=43)
+    right = R.Canonical(page=3, x0=324, y0=69, x1=558, y1=90, kind="paragraph", reading_order=-1,
+                        text="systematic variation through time", tool_order=43)
+    out = sorted(R._assign_order([right, left]), key=lambda c: c.reading_order)
+    assert [c.x0 for c in out] == [67, 324]
+
+
+# ── coverage metric C: per-region recall ────────────────────────────────────────────────
+
+GOLD_PATH = pathlib.Path(__file__).resolve().parents[2] / "Reports" / "gold" / "stage5_gold_2026-09-15.json"
+
+
+def _gold_page(file_stem, page):
+    gold = json.loads(GOLD_PATH.read_text(encoding="utf-8"))
+    return next(p for p in gold["pages"] if p["file"].startswith(file_stem) and p["page"] == page)
+
+
+def _gold_text_regions(page):
+    """The gold's TEXT-bearing regions, as (n, snippet). The bracketed placeholders — a figure,
+    a table, a display equation — carry no printed words and no block can begin at them."""
+    return [(b["n"], b["snippet"]) for b in page["body_order"] if not b["snippet"].startswith("[")]
+
+
+def test_the_character_share_misses_a_lost_region_and_per_region_recall_does_not():
+    """THE PLANTED LOST REGION (referee §6), as a test rather than a one-off measurement.
+
+    A page's blocks OVERLAP, and the shipped metric asks only whether SOME block is responsible
+    for each character. Remove a whole region whose ink also lies inside two surviving blocks and
+    the covered share does not move by ONE character — the §14 gate sees nothing. Per-region
+    recall falls by exactly one and NAMES the region. That is why the gate is now recall."""
+    regions = [("kept", "the use of time-series models requires"),
+               ("planted", "in the light of the widespread use of arima models")]
+    wide = R.Canonical(page=3, x0=60, y0=180, x1=310, y1=540, kind="paragraph", reading_order=0,
+                       text="cepts in process control, the thrust of these applications "
+                            "in the light of the widespread use of arima models in other fields "
+                            "the use of time-series models requires more statistical skill")
+    own = R.Canonical(page=3, x0=65, y0=187, x1=302, y1=370, kind="paragraph", reading_order=1,
+                      text="In the light of the widespread use of ARIMA models in other fields")
+    kept = R.Canonical(page=3, x0=66, y0=373, x1=303, y1=532, kind="paragraph", reading_order=2,
+                       text="The use of time-series models requires more statistical skill")
+
+    # the character share: every character of `own` also lies inside `wide`, so dropping it
+    # changes nothing at all
+    pts = [("x", 100.0, y, i) for i, y in enumerate(range(190, 365, 5))]
+    before = sum(1 for _c, x, y, _i in pts
+                 if any(R._in_box(x, y, b.bbox) for b in (wide, own, kept)))
+    after = sum(1 for _c, x, y, _i in pts if any(R._in_box(x, y, b.bbox) for b in (wide, kept)))
+    assert before == after == len(pts), "the plant must be invisible to the character share"
+
+    hits, total, missing = R.region_recall([wide, own, kept], regions)
+    assert (hits, total, missing) == (2, 2, [])
+    hits, total, missing = R.region_recall([wide, kept], regions)
+    assert (hits, total, missing) == (1, 2, ["planted"]), "the lost region was not named"
+
+
 # ── ingest, against litkb_test ──────────────────────────────────────────────────────────
 
 def _file_row(pg):
@@ -426,9 +662,120 @@ def test_ingest_writes_blocks_and_moves_the_pointer_last(pg):
 
 TEI_DIR = pathlib.Path(r"D:\edmonds-pipeline\_tmp\litkb_tei")
 DOC_DIR = pathlib.Path(r"D:\edmonds-pipeline\_tmp\litkb_docling")
+BENEDEK = CORPUS / "Validation" / "Benedek_2015_multilayer-markov-random-field-models.pdf"
 _REAL = [("Alwan", ALWAN, TEI_DIR / "Alwan.tei.xml", DOC_DIR / "Alwan_1988__cpu-t4.docling.json"),
          ("Anderson", CORPUS / "Validation" / "Anderson_1957_statistical-inference-about-markov.pdf",
-          None, DOC_DIR / "Anderson_1957__ocr-t4.docling.json")]
+          None, DOC_DIR / "Anderson_1957__ocr-t4.docling.json"),
+         # THE NUL FILE (referee §4(0)): Docling's text for 6 of its regions carries \x00, and
+         # before the reconcile-boundary strip this file could not be ingested AT ALL — the
+         # transaction aborted on the first such block and it landed nothing. It is in this
+         # parametrisation, not a test of its own, because the assertion that matters is the
+         # ordinary one: the reconciliation lands whole.
+         ("Benedek", BENEDEK, TEI_DIR / "Benedek.tei.xml",
+          DOC_DIR / "Benedek_2015__cpu-t4.docling.json")]
+
+
+def _reconcile_real(pdf, tei_path, doc_path):
+    from litkb.extract import docling as D
+    from litkb.extract import inventory as I
+
+    record = I.probe_file(str(pdf))
+    doc = D.load(str(doc_path))
+    tei = tei_path.read_bytes() if tei_path is not None else None
+    return R.reconcile(str(pdf), tei, doc, record, ocr_pages=record.get("ocr_pages") or ()), record
+
+
+_real_gold = pytest.mark.skipif(
+    not (BENEDEK.exists() and (DOC_DIR / "Benedek_2015__cpu-t4.docling.json").exists()
+         and (TEI_DIR / "Benedek.tei.xml").exists()),
+    reason="the stage-5 artifacts are not on this machine")
+
+
+@_real_gold
+def test_the_gold_page_holds_exactly_two_figures():
+    """Scored on the REAL file against the frozen gold: Benedek p4 carries two full-width
+    figures and two captions, and the referee measured SIX blocks for them — 4 litkb.figures rows
+    for 2 figures. Exactly two figure blocks now, so the ingest is idempotent per figure."""
+    (canonical, _dis, _stats), _ = _reconcile_real(
+        BENEDEK, TEI_DIR / "Benedek.tei.xml", DOC_DIR / "Benedek_2015__cpu-t4.docling.json")
+    page = _gold_page("Benedek_2015", 4)
+    assert len([c for c in canonical if c.page == 4 and c.kind == "figure"]) == 2
+    assert len(page["captions"]) == 2
+
+
+@_real_gold
+def test_a_figure_docling_reports_twice_still_enters_once():
+    """THE DEDUPE'S OWN CALL SITE, on a real file with a PLANTED duplicate.
+
+    `test_two_figure_blocks_over_one_figure_become_one` proves the helper; it cannot prove that
+    `reconcile()` still CALLS it, and the harness caught exactly that (`R532` removed the call
+    and nothing failed). The GROBID-figure exclusion masks it on the untouched artifact, so the
+    duplicate is planted here: every picture item of Benedek p4 is copied inside the Docling
+    document, which is what a tool emitting one region twice looks like. Without the call the
+    page carries 4 figure blocks and `litkb.figures` would hold 4 rows for 2 figures.
+    """
+    import copy
+
+    from litkb.extract import docling as D
+    from litkb.extract import inventory as I
+
+    doc = copy.deepcopy(D.load(str(DOC_DIR / "Benedek_2015__cpu-t4.docling.json")))
+    planted = 0
+    for item in list(doc.get("pictures") or []):
+        if not any(int(p.get("page_no", 0)) == 4 for p in (item.get("prov") or [])):
+            continue
+        twin = copy.deepcopy(item)
+        idx = len(doc["pictures"])
+        twin["self_ref"] = f"#/pictures/{idx}"
+        doc["pictures"].append(twin)
+        # reachable from the body tree, which is how `iter_items` walks the document — a twin
+        # only appended to the `pictures` list is never yielded and plants nothing
+        doc["body"]["children"].append({"$ref": twin["self_ref"]})
+        planted += 1
+    assert planted == 2, "the plant needs p4's two pictures"
+    assert len(D.figures(doc)) == 12, "the plant did not reach the reading order"
+
+    record = I.probe_file(str(BENEDEK))
+    canonical, _dis, _stats = R.reconcile(
+        str(BENEDEK), (TEI_DIR / "Benedek.tei.xml").read_bytes(), doc, record,
+        ocr_pages=record.get("ocr_pages") or ())
+    assert len([c for c in canonical if c.page == 4 and c.kind == "figure"]) == 2
+
+
+@_real_gold
+def test_no_canonical_text_of_the_nul_file_carries_a_nul_or_the_hyphen_noncharacter():
+    (canonical, dis, _stats), _ = _reconcile_real(
+        BENEDEK, TEI_DIR / "Benedek.tei.xml", DOC_DIR / "Benedek_2015__cpu-t4.docling.json")
+    bad = [c.page for c in canonical if "\x00" in (c.text or "") or "￾" in (c.text or "")]
+    assert bad == []
+    assert [d.page for d in dis
+            if "\x00" in (d.grobid_text + d.docling_text + d.detail)] == []
+
+
+@pytest.mark.skipif(not (ALWAN.exists() and (TEI_DIR / "Alwan.tei.xml").exists()
+                         and (DOC_DIR / "Alwan_1988__cpu-t4.docling.json").exists()),
+                    reason="the stage-5 artifacts are not on this machine")
+def test_alwan_p3_has_no_out_of_order_pair_against_the_referees_gold():
+    """THE CROSS-COLUMN FIX, scored against the gold the referee authored from the rendered page
+    BEFORE any tool ran on it. It was 10 of 66 ordered pairs out of order, all of them the one
+    page-wide GROBID block; it is 0 of 66 now. The comparator is here, not
+    `order_violations` — a checker that shares a bug with the producer passes both."""
+    (canonical, _dis, _stats), _ = _reconcile_real(
+        ALWAN, TEI_DIR / "Alwan.tei.xml", DOC_DIR / "Alwan_1988__cpu-t4.docling.json")
+    page = _gold_page("Alwan_1988", 3)
+    on3 = [c for c in canonical if c.page == 3]
+    pos = []
+    for n, snip in _gold_text_regions(page):
+        want = R._norm(snip)
+        pos.append((n, next((c.reading_order for c in on3 if want in R._norm(c.text)), None)))
+    found = [(n, p) for n, p in pos if p is not None]
+    # gold region 8 is the one known miss and it is NOT stage 5's: the PDF's own text layer
+    # reads "DEFINITBON" for the printed "DEFINITION" (referee §4, last paragraph).
+    assert [n for n, p in pos if p is None] == [8]
+    bad = [(found[i][0], found[j][0]) for i in range(len(found))
+           for j in range(i + 1, len(found)) if found[j][1] < found[i][1]]
+    assert bad == [], f"out of order against the gold: {bad}"
+    assert len(found) * (len(found) - 1) // 2 == 66
 
 
 @pg_only

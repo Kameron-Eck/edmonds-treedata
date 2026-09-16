@@ -321,3 +321,200 @@ was filling it, so it is a referee's call, not the author's. Applying it is one 
    Either way it is the single largest open question about this stage's accuracy.
 5. Stage 5 does not yet write `references` rows, `citation_mentions` or chunks — those are
    stages 6 and 7, and the reference blocks it produces carry GROBID's raw text only.
+
+---
+
+# Fixes after referee — 2026-09-15
+
+*The response to §10 of `Reports/LITKB_STAGE5_REFEREE_2026-09-15.md` — "what must change before
+stage 5 carries the archive". It lives HERE, in the builder's report, and the referee's document
+was not edited: a referee's record is not a place for the builder to write. The gold
+(`Reports/gold/stage5_gold_2026-09-15.json`, blob `948f6667…`) was likewise not touched — it is
+read-only in everything below, and §7 makes git show it if it ever is.*
+
+## 1. NUL bytes — the blocker
+
+`reconcile()` now ends with `_sanitize(canonical, dis)`: every text field of every canonical
+block (`text`, `latex`, and `payload`, which carries table CELL text and a figure's caption) and
+both sides of every disagreement go through one helper, `_clean`, which is
+`litkb.textnorm.jsonb_safe` — the same NUL strip the rest of litkb uses — plus the U+FFFE
+removal of §4 below. ONE place, at the boundary; nothing downstream re-cleans.
+
+**Proof.** `Benedek_2015` now ingests end to end: **583 blocks, 387 disagreements**, run
+`01a0a769-e3ee-…` in `litkb_test`, where before the transaction aborted on the first NUL and the
+file landed nothing. It is in `test_a_real_files_reconciliation_lands_whole`'s parametrisation
+(the Alwan/Anderson pair became a trio) so the end-to-end path covers it from now on, and
+`test_no_canonical_text_of_the_nul_file_carries_a_nul_or_the_hyphen_noncharacter` scores the
+artifacts directly. **Kill:** harness row `R531` guts `_clean`; `R531s` drops the `jsonb_safe`
+call at that one site while leaving the helper intact — the per-call-site rule's own case, and
+`--sites` now lists `litkb/extract/reconcile.py::_clean::jsonb_safe` as covered by it.
+
+## 2. Duplicate figures
+
+Root cause, as §4(b) named it: GROBID's `<figure>` entered the body matcher AND the dedicated
+figure pass claimed the same region. `GROBID_BODY_REGIONS` now excludes `figure` exactly as
+`_docling_regions` already excluded Docling's pictures and tables; `_grobid_figures()` still
+reads those regions for the CAPTION match, so nothing is lost. Behind it, `_dedupe_figures()`
+collapses any two figure blocks on one page whose boxes agree at `IOU_MATCH`, keeping the richer
+(caption-bearing) one — so the ingest is idempotent per figure whatever produces the second copy.
+
+**Proof, on the gold page.** Benedek p4: **2 figure blocks**, and in the database **2
+`litkb.figures` rows**, `description` NULL on both (was 4 rows for 2 figures). Whole file: 10
+figure blocks, down from 24, and MEASURED equal to `len(D.figures(doc))` = 10 — Docling's own
+pictures, one block each, not duplicates.
+`test_the_gold_page_holds_exactly_two_figures` scores the real file.
+**Mutations fire:** `R533` (`<figure>` back in the body matcher) on
+`test_grobid_figure_regions_are_not_body_regions`; `R532` (the dedupe CALL removed from
+`reconcile`) on `test_a_figure_docling_reports_twice_still_enters_once`.
+
+That second test exists because the harness caught this report being wrong about itself. `R532`
+was written first against a unit test of `_dedupe_figures`, and it **DID NOT FIRE**: a test that
+calls the helper cannot notice that `reconcile()` stopped calling it, and on the untouched
+artifact the GROBID exclusion of §2 above already removes the duplicate, so no real-file count
+moves either. The fix is a real file with a PLANTED duplicate — p4's two Docling pictures copied
+inside the document and made reachable from its body tree, which is what a tool emitting one
+region twice looks like. Without the call the page carries 4 figure blocks. Re-run: `R532`
+FIRED, 1 failed / 59 passed.
+
+## 3. The column-crossing paragraph
+
+Two halves, because the first alone left one inversion behind.
+
+*Split.* `union_boxes` partitions an element's lines on a page into COLUMNS before unioning —
+connected components of the lines' horizontal intervals, so a column is split only where NO line
+bridges the gutter. The pairwise "no overlap with the previous line" rule was tried first and
+measurably splits a paragraph at every short last line and at a 4-point superscript fragment;
+the component rule makes exactly one split on Alwan p3, the right one.
+
+*Tie-break.* Split, the two fragments carry the SAME `tool_order`, and `_assign_order` broke the
+tie on `y0` — which puts the right column's fragment, at the top of the page, ahead of the left
+column's. `_column_bucket(x0)` (100 pt, wider than a gutter and narrower than a body
+column — ASSUMED from those magnitudes, not measured across the corpus) now orders left before
+right, then top before bottom.
+
+**Proof, against the gold, by a comparator that is not `order_violations`:** Alwan p3
+**0 of 66** ordered pairs out of order, from 10 of 66; the one unfound region is gold 8, the
+`DEFINITBON` text-layer error the referee already excluded. Across all six gold pages: **0 of
+293**, and both gold regions 6 and 7 now have blocks of their own.
+`test_alwan_p3_has_no_out_of_order_pair_against_the_referees_gold`.
+**Mutations fire:** `R534` (unions across the gutter again), `R535` (tie-break back to `y0`);
+`R519`'s anchor text was re-pinned to the new sort key.
+
+## 4. U+FFFE at the hyphens
+
+Removed, not replaced by a hyphen, and the choice is from the bytes: the native slice reads
+`detect any spe<U+FFFE>cial causes`, so removal gives `special` — the word as printed — while a
+hyphen would give `spe-cial`, which matches no printed word and no gold quote. Same helper as
+§1. All three gold verbatim paragraphs still match EXACTLY after whitespace collapse (V1 Alwan
+p3, V2 Almon p1, V3 Benedek p3: one exact-match block each), and no canonical block of the four
+gold files carries either character.
+
+## 5. The thresholds, pinned at ±20 %
+
+Eight harness rows added — `R523`/`R524` (IOU_MATCH 0.4 / 0.6), `R525`/`R526` (IOU_TOUCH
+0.08 / 0.12), `R527`/`R528` (TEXT_AGREE 0.72 / 0.99), `R529`/`R530` (COVERAGE_FLOOR 0.64 / 0.96)
+— and a boundary case for each constant, sitting at an IoU or a ratio the referee MEASURED on
+the corpus rather than at a round number. The TEXT_AGREE decision was extracted into
+`text_agrees()` so a test can sit on the threshold instead of around it.
+
+Replayed, all eight moves, each restored and sha256-checked:
+
+| move | test it fails |
+|---|---|
+| `IOU_MATCH` 0.5 → 0.4 | `test_iou_match_is_pinned_above_at_the_corpus_pair_just_outside_it` (Benedek p9, 0.4559) |
+| `IOU_MATCH` 0.5 → 0.6 | `test_iou_match_is_pinned_below_at_the_corpus_pair_just_inside_it` (Benedek p7, 0.5334) |
+| `IOU_TOUCH` 0.1 → 0.08 | `test_iou_touch_is_pinned_above_by_a_pair_that_must_not_touch` |
+| `IOU_TOUCH` 0.1 → 0.12 | `test_iou_touch_is_pinned_below_at_the_corpus_pair_just_inside_it` (Benedek p5, 0.1029) |
+| `TEXT_AGREE` 0.90 → 0.72 | `test_text_agree_is_pinned_above_by_two_readings_that_do_not` (Almon p4's shape, 0.8932) |
+| `TEXT_AGREE` 0.90 → 0.99 | `test_text_agree_is_pinned_below_by_two_readings_that_do_agree` (Benedek p9's shape, 0.9015) |
+| `COVERAGE_FLOOR` 0.80 → 0.64 | `test_the_coverage_floor_is_pinned_in_both_directions` |
+| `COVERAGE_FLOOR` 0.80 → 0.96 | `test_the_coverage_floor_is_pinned_in_both_directions` |
+
+**Eight moves, eight failures** — against eight clean passes at the review. The referee's other
+finding about the floor stands and is now written into the test: no page of the gate set is
+within 0.19 of it, so it is a catastrophe detector, not an operating-point gate.
+
+## 6. Coverage: per-region recall beside the character share
+
+`reconcile.region_recall(canonical, regions)` returns `(hits, total, missing)`: a region is a hit
+when some block's text BEGINS at it. It is the §14 page gate now; the character share stays
+beside it. `litkb_stage5_run.py` reports both, and its `--drop-catch-all` kill requires either to
+fire and names which did.
+
+**The referee's plant, as a test:**
+`test_the_character_share_misses_a_lost_region_and_per_region_recall_does_not` builds the overlap
+that defeats the share — every character of the removed region also inside a surviving block —
+asserts the share does not move by one character, and asserts recall falls by exactly one and
+NAMES the lost region. On the real Alwan p3 the baseline is **11/13**, not the referee's 10/13:
+§3 recovered one of the three it was missing. **Mutation fires:** `R536` makes recall accept a
+block that merely contains the text, which is the blindness the share already has.
+
+## 7. The gold tracks normally
+
+`!/Reports/gold/` added to `.gitignore`. The gold had been force-added past `/Reports/*`: TRACKED
+but still matching an ignore pattern, so `git status` hid every change to it and `git add` on it
+was a silent no-op — the wrong file to hide. Verified: `git check-ignore` no longer matches it,
+and `git ls-files -io --exclude-standard` is byte-identical before and after, so no other file
+changed tracking status.
+
+## 8. Migration 0017 on `litkb`
+
+Applied: "litkb as litkb_owner: applied 1 (0017_extraction.sql); **17 recorded**". Read-only
+after: `litkb.tables` **0**, `figures` **0**, `blocks` **0**, `table_cells` 0,
+`extraction_disagreements` 0, `file_current_run` 0, `cells IS NOT NULL` 0 — the referee's §8
+census holds, and there is no row the retirement trigger can strand. The P3 gate re-run on
+`litkb` (workstream `01a0a494-…`): 1,086 changed cells, **explained 713, format 243, structural
+120, filled 10, UNEXPLAINED 0 — GATE: PASS**, unchanged. No file was ingested into `litkb`.
+
+## 9. The seven files, re-reconciled and re-ingested into `litkb_test`
+
+`qc/instruments/litkb_stage5_run.py --db litkb_test`, from the existing artifacts; no tool re-run.
+`Reports/litkb_stage5_after_referee_2026-09-15.csv`.
+
+| file | pages | blocks | figures | disagreements | per-region recall (gold pages) | char share |
+|---|---|---|---|---|---|---|
+| Benedek_2015 | 16 | **583** | 10 | 387 | p2 15/15, p3 13/15, p4 2/2 | text 0.9999 |
+| Alwan_1988 | 10 | 212 | 5 | 120 | p3 **11/13** | text 0.9995 |
+| Anderson_1957 | 22 | 314 | 1 | 0 | no gold | image-only N/A, partial 1.0000 |
+| Bellettini_2002 | 51 | 1,561 | 5 | 1,290 | no gold | text 0.9987 |
+| Schneider_2008 | 688 | 15,206 | 3 | 10,313 | p463 4/5 | image-only N/A, text 1.0000 |
+| Ogata_1998 | 24 | 388 | 7 | 0 | no gold | image-only N/A |
+| Almon_1965 | 20 | 444 | 7 | 400 | p1 3/4 | text 1.0000 |
+
+All seven landed; 0 coverage-floor failures. Benedek is the row that did not exist before.
+The single-tool scans (Anderson, Ogata) have no TEI, so they have nothing to disagree WITH —
+that 0 is the design's rule, not a measurement.
+
+**What is NOT fixed.** A split fragment carries the WHOLE element's GROBID text, inherited from
+the page-break precedent that already did this. Where a fragment also matches a Docling region
+the native slice wins and the text is right — both Alwan p3 fragments did — but a GROBID-only
+fragment whose native slice falls under the 50 % rule would land the full paragraph in a
+two-line box. §4(c) furniture recognition, §7's many-to-one matching for the
+granularity bucket, and the referee's note that `partial_overlap` under-reports: all three are
+`WORKPLAN` items, not stage-5 blockers, and the disagreement counts above should be read with
+§7 in mind.
+
+`PIPELINE_VERSION` was bumped `stage5-1` → **`stage5-2`**, and the table above is the run AT
+stage5-2 (identical numbers to the stage5-1 run it replaces, which is the point: the bump is
+about identity, not output). The ingest's key is (file sha256, pipeline version) and all four
+fixes change the rows a file produces, so a file already recorded at stage5-1 would have been
+skipped as already-ingested and kept the old blocks. Nothing else in the tree pins the string
+(`grep -rn "stage5-1"`: the constant and this report).
+
+## 10. The harness
+
+`qc/instruments/litkb_p2_mutations.py --workers 4 --worker-dbs 1,2,6,9`: **192 rows, 192 fired**,
+every baseline passing before and after and every file restored by sha256. 15 of those rows are
+new (`R523`–`R536`, `R531s`); `R519`'s anchor text was re-pinned to the new sort key. `--sites`
+passes: 64 call sites, 61 covered by a row, 3 equivalent, and the new
+`litkb/extract/reconcile.py::_clean::jsonb_safe` site is covered by `R531s`. The first pass was
+191/192 — see §2 for the row that did not fire and what it was hiding.
+
+`py -3.12 qc/check.py --fast` under `LITKB_TEST_DB=litkb_test_w6`: **1 failed, 2,693 passed, 22
+skipped, 2 xfailed**, 25 min 58 s; litkb Postgres tests **262 passed** (261 at the review, plus
+the Benedek end-to-end row). The single failure is the known pre-existing
+`qc/test_experiments.py::test_pointer_paths_resolve[crown_state_model]`, which is what `check.py`
+exits at, as it did for the builder and for the referee. `secrets`, `ruff` and `compile` passed
+ahead of it.
+
+*Builder: Claude Opus 5, session https://claude.ai/code/session_015MUcyGTfX2koRdYAjW5kED.*

@@ -30,6 +30,15 @@ import dataclasses
 import difflib
 import re
 
+from litkb.textnorm import jsonb_safe
+
+#: U+FFFE, the noncharacter pypdfium2 emits at a line-break hyphen in some native layers
+#: (measured on Alwan_1988 p3: 24 of them on that page alone, "detect any spe￾cial causes").
+#: It is REMOVED, not turned into "-": the native slice already carries the two halves of the word
+#: adjacent, so removing it gives "special" — the word as printed — while a hyphen would give
+#: "spe-cial", which no quote in the gold or in any later stage can be verified against.
+HYPHEN_NONCHAR = "￾"
+
 #: IoU at or above which two tools' boxes are the SAME region. Provisional (see the module
 #: docstring): 0.5 is the value at which one box cannot be matched to two disjoint others.
 IOU_MATCH = 0.5
@@ -76,7 +85,19 @@ GROBID_KIND = {"p": "paragraph", "head": "heading", "note": "footnote",
 #: paragraph, not regions, and `s` is a sentence — none of the three is a canonical block.
 GROBID_REGIONS = ("p", "head", "note", "figure", "formula")
 
-PIPELINE_VERSION = "stage5-1"
+#: The TEI elements the BODY matcher reads. ``figure`` is deliberately absent, for the same
+#: reason Docling's pictures and tables are absent from :func:`_docling_regions`: the figure pass
+#: below claims that region, and leaving GROBID's ``<figure>`` in here as well entered every
+#: figure TWICE — measured 2026-09-15, 24 figure blocks for the 8 figures of ``Benedek_2015``,
+#: and 4 ``litkb.figures`` rows for the 2 figures on its p4. GROBID's figure regions are still
+#: read: :func:`_grobid_figures` supplies them to the caption match.
+GROBID_BODY_REGIONS = tuple(k for k in GROBID_REGIONS if k != "figure")
+
+#: Bumped from "stage5-1" on 2026-09-15, with the referee's four fixes: the NUL/U+FFFE strip,
+#: one block per figure, the per-column split and its tie-break all change the ROWS a file
+#: produces. `ingest.py`'s identity is (file sha256, pipeline version), so a file already
+#: recorded at stage5-1 would otherwise be skipped as already-ingested and keep the old blocks.
+PIPELINE_VERSION = "stage5-2"
 
 
 class ReconcileError(RuntimeError):
@@ -320,6 +341,17 @@ def _norm(s):
     return re.sub(r"\s+", " ", (s or "")).strip().lower()
 
 
+def text_ratio(a, b):
+    """difflib's ratio of two tools' text for one region, whitespace-collapsed and cased down."""
+    return difflib.SequenceMatcher(None, _norm(a), _norm(b)).ratio()
+
+
+def text_agrees(a, b):
+    """Do the two tools' readings of one region count as the SAME text? The :data:`TEXT_AGREE`
+    decision, in one place so a test can sit on the threshold rather than around it."""
+    return text_ratio(a, b) >= TEXT_AGREE
+
+
 def order_violations(canonical, snippets):
     """[(i, snippet)] for every snippet that does not appear in increasing reading order.
 
@@ -355,7 +387,12 @@ def union_boxes(blocks_in):
     page reads them as the regions they are.
 
     An element that genuinely spans two pages stays TWO regions, one per page: a box is a box on
-    a page, and a union across a page break is not a rectangle on either.
+    a page, and a union across a page break is not a rectangle on either. **And the same is true
+    of a COLUMN break** (referee 2026-09-15 §4(a)): on ``Alwan_1988`` p3 a GROBID ``<p>`` whose
+    last two lines fall in the right column unioned into ``[14, 245, 561, 728]`` — the whole page
+    width, gutter and rotated margin stamp included — which ``_anchor`` then placed ahead of the
+    entire left column, 10 of that page's 66 gold-ordered pairs out of order. Lines on one page
+    are therefore split into COLUMNS first, by :func:`_column_groups`.
     """
     groups, cur = [], None
     for b in blocks_in:
@@ -369,17 +406,61 @@ def union_boxes(blocks_in):
         for b in g:
             by_page.setdefault(b.page, []).append(b)
         for page, bs in by_page.items():
-            out.append(dataclasses.replace(
-                bs[0], page=page, x0=min(b.x0 for b in bs), y0=min(b.y0 for b in bs),
-                x1=max(b.x1 for b in bs), y1=max(b.y1 for b in bs),
-                box_index=0, box_count=1))
+            for col in _column_groups(bs):
+                out.append(dataclasses.replace(
+                    col[0], page=page, x0=min(b.x0 for b in col), y0=min(b.y0 for b in col),
+                    x1=max(b.x1 for b in col), y1=max(b.y1 for b in col),
+                    box_index=0, box_count=1))
     return out
+
+
+def _column_groups(lines):
+    """`lines` (one element, one page) partitioned into COLUMNS, in first-line order.
+
+    A column is a connected component of the lines' HORIZONTAL intervals: two lines are in the
+    same column when their x-ranges overlap, directly or through another line. The component
+    rule, not "no overlap with the line before", is what makes it safe — measured on the same
+    Alwan p3 element set, the pairwise rule splits a paragraph at every short last line followed
+    by an indented one, and at a stray 4-point superscript fragment, while the component rule
+    splits only where NO line bridges the gutter. On that page it makes exactly the one split the
+    defect is about.
+    """
+    parent = list(range(len(lines)))
+
+    def find(i):
+        while parent[i] != i:
+            parent[i] = parent[parent[i]]
+            i = parent[i]
+        return i
+
+    for i, a in enumerate(lines):
+        for j in range(i + 1, len(lines)):
+            b = lines[j]
+            if min(a.x1, b.x1) - max(a.x0, b.x0) > 0:
+                ra, rb = find(i), find(j)
+                if ra != rb:
+                    parent[ra] = rb
+    order, by_root = [], {}
+    for i, b in enumerate(lines):
+        r = find(i)
+        if r not in by_root:
+            by_root[r] = []
+            order.append(r)
+        by_root[r].append(b)
+    return [by_root[r] for r in order]
 
 
 def _grobid_regions(tei):
     from litkb.extract import grobid as G
 
-    return union_boxes(G.body_blocks(tei, kinds=GROBID_REGIONS))
+    return union_boxes(G.body_blocks(tei, kinds=GROBID_BODY_REGIONS))
+
+
+def _grobid_figures(tei):
+    """GROBID's ``<figure>`` regions — for the caption match only, never as body blocks."""
+    from litkb.extract import grobid as G
+
+    return union_boxes(G.body_blocks(tei, kinds=("figure",)))
 
 
 def _docling_regions(doc):
@@ -476,8 +557,8 @@ def reconcile(pdf_path, tei=None, doc=None, record=None, ocr_pages=(), frames=No
                                     bbox=(db.x0, db.y0, db.x1, db.y1),
                                     detail=f"GROBID reads {gk}, Docling reads {dk}; Docling's kept, "
                                            "both readings recorded"))
-        ratio = difflib.SequenceMatcher(None, _norm(gb.text), _norm(db.text)).ratio()
-        if ratio < TEXT_AGREE:
+        ratio = text_ratio(gb.text, db.text)
+        if not text_agrees(gb.text, db.text):
             dis.append(Disagreement(page=db.page, kind="text_conflict", iou=v,
                                     grobid_kind=gk, docling_kind=dk,
                                     grobid_text=gb.text, docling_text=db.text,
@@ -485,7 +566,7 @@ def reconcile(pdf_path, tei=None, doc=None, record=None, ocr_pages=(), frames=No
                                     detail=f"text agreement {ratio:.2f} < {TEXT_AGREE}"))
         add(db.page, (db.x0, db.y0, db.x1, db.y1), dk,
             db.kind if dk == "furniture" else "", "both", db.text, db.text,
-            0.95 if agree and ratio >= TEXT_AGREE else 0.7, db.element_id,
+            0.95 if agree and text_agrees(gb.text, db.text) else 0.7, db.element_id,
             {"bbox": "docling", "kind": "docling", "order": "docling",
              "kind_alt": "grobid", "text": "docling"}, tool_order=db.order_index)
 
@@ -555,7 +636,8 @@ def reconcile(pdf_path, tei=None, doc=None, record=None, ocr_pages=(), frames=No
     # figures: the region is Docling's, the caption is GROBID's where GROBID has one for that
     # region (§7.1 gives captions to GROBID on path A).
     figures = D.to_mediabox(D.figures(doc), frames) if doc is not None else []
-    g_figs = [b for b in g_blocks if b.kind == "figure"]
+    g_figs = [b for b in (G.to_mediabox(_grobid_figures(tei), frames) if tei is not None else [])
+              if b.frame == "mediabox"]
     for f in figures:
         if f.frame != "mediabox":
             continue
@@ -598,7 +680,9 @@ def reconcile(pdf_path, tei=None, doc=None, record=None, ocr_pages=(), frames=No
                 extractor={"bbox": "grobid", "kind": "grobid", "order": "grobid", "text": "grobid"},
                 confidence=0.8, source="grobid", element_id=b.element_id, text_source="tool"))
 
+    canonical = _dedupe_figures(canonical)
     canonical = _assign_order(canonical) + _renumber(refs, start=len(canonical))
+    canonical, dis = _sanitize(canonical, dis)
     stats = {
         "pipeline_version": PIPELINE_VERSION,
         "grobid_regions": len(g_blocks), "docling_regions": len(d_blocks),
@@ -609,6 +693,94 @@ def reconcile(pdf_path, tei=None, doc=None, record=None, ocr_pages=(), frames=No
         "by_kind": _count(canonical),
     }
     return canonical, dis, stats
+
+
+def _dedupe_figures(blocks_in):
+    """ONE canonical block per real figure (referee 2026-09-15 §4(b)).
+
+    A figure reaches ``canonical`` twice: once as a GROBID ``<figure>`` region through the body
+    matcher, and once through the dedicated figure pass that pairs Docling's picture with
+    GROBID's caption. ``ingest.py`` writes one ``litkb.figures`` row per figure block, so the
+    database held **4 rows for the 2 figures on Benedek_2015 p4** — and 24 figure blocks for the
+    file's 8 figures. Two figure blocks on one page whose boxes agree at :data:`IOU_MATCH` are
+    ONE figure; the survivor is the richer block (a caption in its payload, then the higher
+    confidence, then the earlier one), which is always the figure pass's.
+
+    Only ``figure`` blocks are touched: two paragraphs at the same box are a genuine
+    disagreement between the tools and stage 5 does not resolve those.
+    """
+    figs = [(i, c) for i, c in enumerate(blocks_in) if c.kind == "figure"]
+    drop = set()
+    for a in range(len(figs)):
+        ia, ca = figs[a]
+        if ia in drop:
+            continue
+        for b in range(a + 1, len(figs)):
+            ib, cb = figs[b]
+            if ib in drop or ca.page != cb.page:
+                continue
+            if iou(ca.bbox, cb.bbox) < IOU_MATCH:
+                continue
+            rank = lambda c: (bool((c.payload or {}).get("caption")), c.confidence)  # noqa: E731
+            drop.add(ib if rank(ca) >= rank(cb) else ia)
+            if ia in drop:
+                break
+    return [c for i, c in enumerate(blocks_in) if i not in drop]
+
+
+def _clean(s):
+    """One string, safe for the database and for a quote check: no NUL, no U+FFFE.
+
+    THE ONE PLACE (referee 2026-09-15 §4(0) and §4(d)). Docling's own string for a region with
+    no usable native layer carries ``\\x00`` — 6 canonical blocks and 10 disagreement rows on
+    ``Benedek_2015`` — and Postgres text refuses it, so the whole file's transaction aborted and
+    the file landed NOTHING. The NUL strip is :func:`litkb.textnorm.jsonb_safe`, the same helper
+    every other litkb string goes through; U+FFFE is removed beside it because it comes from the
+    same boundary and would otherwise reach ``blocks.text``.
+    """
+    return jsonb_safe(s).replace(HYPHEN_NONCHAR, "") if isinstance(s, str) else jsonb_safe(s)
+
+
+def _sanitize(canonical, dis):
+    """Every text field of the reconciliation put through :func:`_clean`, once, at the boundary.
+
+    Blocks (text, latex, payload — which carries table CELL text and a figure's caption) and
+    both sides of every disagreement. Nothing downstream re-cleans: this is the boundary the
+    design's "one fact, one home" rule names for it.
+    """
+    canonical = [dataclasses.replace(c, text=_clean(c.text), latex=_clean(c.latex),
+                                     payload=_clean(c.payload)) for c in canonical]
+    dis = [dataclasses.replace(d, detail=_clean(d.detail), grobid_text=_clean(d.grobid_text),
+                               docling_text=_clean(d.docling_text)) for d in dis]
+    return canonical, dis
+
+
+def region_recall(canonical, regions, lead=16):
+    """-> (hits, total, missing): per-REGION recall, the referee's coverage metric C.
+
+    ``regions`` is an iterable of ``(label, snippet)``; a region is a HIT when some canonical
+    block's text BEGINS at it — its normalised text starts with the normalised snippet, or
+    carries it within the first ``lead`` characters (a block that opens with a page number or a
+    run-in label still begins at the region). A block that merely CONTAINS the snippet somewhere
+    in its middle is not a hit: that is the case the character share already passes.
+
+    **Why this exists beside the character share.** The shipped metric asks whether some block is
+    responsible for each character, and canonical blocks OVERLAP: on Alwan_1988 p3 the referee
+    removed the whole of gold region 3 — 885 characters — and the covered share did not move by
+    one character (1.0000 before, 1.0000 after), because every character of it also lies inside
+    two surviving blocks. Per-region recall fell 10/13 -> 9/13 and NAMED the lost region. The
+    §14 page gate is this number; the share stays as the catastrophe detector it measurably is.
+    """
+    regions = list(regions)
+    texts = [_norm(c.text) for c in canonical]
+    hits, missing = 0, []
+    for label, snip in regions:
+        want = _norm(snip)
+        if want and any(t.startswith(want) or want in t[:len(want) + lead] for t in texts):
+            hits += 1
+        else:
+            missing.append(label)
+    return hits, len(regions), missing
 
 
 def _anchor(block, by_page_d):
@@ -646,10 +818,30 @@ def _assign_order(blocks_in):
     tests for, and no test caught it because the order test ran on hand-built blocks.
     `test_assign_order_keeps_doclings_order_across_two_columns` is the one that would have.
     """
-    keyed = [((c.tool_order if c.tool_order >= 0 else 1 << 30), c.anchored, c.page, c.y0, c.x0, i, c)
+    keyed = [((c.tool_order if c.tool_order >= 0 else 1 << 30), c.anchored, c.page,
+              _column_bucket(c.x0), c.y0, c.x0, i, c)
              for i, c in enumerate(blocks_in)]
-    keyed.sort(key=lambda t: t[:6])
+    keyed.sort(key=lambda t: t[:7])
     return [dataclasses.replace(t[-1], reading_order=i) for i, t in enumerate(keyed)]
+
+
+#: A column gutter is tens of points wide and a two-column body column is ~240 pt, so a 100 pt
+#: bucket on a block's LEFT edge separates the columns and never splits one.
+COLUMN_BUCKET_PT = 100.0
+
+
+def _column_bucket(x0):
+    """Which COLUMN a block's left edge is in, coarsely — the tie-break inside :func:`_assign_order`.
+
+    Measured 2026-09-15, the second half of the cross-column defect. Once a GROBID element that
+    crosses the gutter is split into per-column boxes, the two fragments carry the SAME
+    ``tool_order`` (they match, or anchor to, one Docling region), and the tie was then broken by
+    ``y0`` — which puts the RIGHT column's fragment, sitting at the top of the page, ahead of the
+    left column's, which is the very inversion the split was made to remove. On Alwan_1988 p3 and
+    Benedek_2015 p2 that was the one remaining out-of-order pair on each page. Left before right,
+    then top before bottom, is the reading order of a column layout.
+    """
+    return int(x0 // COLUMN_BUCKET_PT)
 
 
 def _renumber(blocks_in, start):

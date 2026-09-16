@@ -319,3 +319,8 @@ postgres://|pgpass`: **no matches**. No credential material in the range.
 Scoring scripts live in the session scratchpad, not the repo; every number above is reproducible
 from the committed gold, the tracked source at `e123948` and the artifacts under
 `D:\edmonds-pipeline\_tmp`.*
+
+---
+
+*Builder response: `Reports/LITKB_STAGE5_INGEST_2026-09-15.md`, "Fixes after referee" (2026-09-15).
+This document was not edited after sign-off.*

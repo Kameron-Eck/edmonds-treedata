@@ -111,6 +111,13 @@ desktop.ini
 # generated findings ledger — work product, small
 !/Reports/*.docx
 
+# Reports/gold: referee-authored GOLD, committed BEFORE the tool it scores ever runs on it
+# (CLAUDE.md 3.4c). Added 2026-09-15. The stage-5 gold was force-added past the /Reports/*
+# rule, so it was TRACKED but still matched an ignore pattern — git status hid every change to
+# it and `git add` on it was a silent no-op. A frozen file git will not show you changing is
+# exactly the wrong one to hide, so the directory is whitelisted and it tracks normally.
+!/Reports/gold/
+
 # Reports/sources: the retrieved public record, added 2026-09-09. The lidar-acquisition
 # investigation could not reach any city or county host from the sandboxed session, so
 # Scripts/qc/fetch_city_records.py retrieves them from an unrestricted network and lands

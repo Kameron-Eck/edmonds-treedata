@@ -327,7 +327,7 @@ replace("F5g", f"{PKG}/acquire/run.py",
         "acquire: _quarantine/ is a holding again - a file quarantined under a wrong record can never bind after "
         "the record is corrected (the live Konda_2016 / Kopcke_2010 / Enamorado_2019 lockout)")
 replace("F5e", f"{PKG}/acquire/run.py",
-        '    b = _binding.bind_any(pdf, _forms(work), work["first_author"], info=info)\n',
+        '    b = _binding.bind_any_with_ocr(pdf, _forms(work), work["first_author"], info=info)\n',
         '    b = _binding.bind(pdf, work["title"], work["first_author"], info=info)\n',
         "acquire: a download is bound against the work's stored title alone, so a paper whose page prints the "
         "bare title of a subtitled work is quarantined as binding-failed")

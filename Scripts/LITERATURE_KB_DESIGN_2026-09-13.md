@@ -178,11 +178,30 @@ had no defined effect on either view.
 | `blocks` | id; file_id; run_id; page_no; bbox (canonical frame, §7.1); reading_order; **type** (title, author, affiliation, abstract, heading, paragraph, list_item, footnote, caption, table, figure, equation, reference, page_header, page_footer, page_number, sidebar, other); section_path (text[]); text; latex; parent_block_id (caption → its figure or table); extractor; confidence; canonical (bool, set by reconciliation) |
 | `tables` | block_id; n_rows; n_cols; cells (JSON: row, col, rowspan, colspan, text, is_header); caption_block_id |
 | `figures` | block_id; crop_path; caption_block_id; description; description_model |
-| `equations` | block_id; latex; display or inline; label (e.g. "3.19") |
+| `equations` | block_id; latex; display or inline; label (e.g. "3.19"); **latex_status** (`0022`: stable, contaminated, unstable, degenerate, unverified — see below) |
 | `references` | id; file_id; run_id; block_id; raw text; parsed (JSON: authors, title, year, venue, volume, pages, DOI); resolved_work_id; resolution (resolved, candidate, unresolved); confidence |
 | `citation_mentions` | block_id; reference_id; char span — links an in-text citation to its reference |
 | `chunks` | id; file_id; work_id; run_id; block_ids; kind (abstract, prose, table, caption, equation, reference); section_path; page_start, page_end; text (with section heading prepended as context); tokens |
 | `embeddings` | chunk_id; model; dim; vector (`halfvec`); created — separate table so models can be swapped or compared |
+
+**Added by `0022_canonical_blocks.sql` (pipeline version `stage5-3`, 2026-09-16), from the stage-5
+referee's caveats** — details and corpus counts in `Reports/LITKB_P5_BULK_2026-09-16.md` §N-§R:
+
+* `equations.latex_status` is NOT NULL with a CHECK over five values. `stable` and `contaminated`
+  store a string; `unstable`, `degenerate` and `unverified` store none, enforced by
+  `equations_refused_decode_is_not_stored`. **`stable` says nothing about whether the mathematics
+  is right** — it says the decode was reproducible and its crop carries no prose from outside the
+  equation's own box. Nothing indexes `latex` for search.
+* One region gets exactly ONE block. `blocks_region_is_canonical_once` (a BEFORE INSERT trigger)
+  makes two blocks at the same (run, page, bbox) impossible rather than unlikely; the losing
+  tool's reading is kept in `extraction_disagreements`, whose `kind` CHECK gains
+  **`duplicate_region`** (two tools described one region) and **`superset_region`** (one tool's
+  block that its own children tile, dropped).
+* `blocks.provenance` gains four keys: `merged` (a list of the absorbed readings — kind, source,
+  bbox, text_source and the TEI/docling `element_id`, which is the join stage 6 needs),
+  `fragment` (`index`, `count` — a block printed across a page or column break), and
+  `continues_from` / `continues_to`. A paragraph that crosses a page break is stored as one
+  fragment per page, so a quotation cites the page it is printed on.
 
 Extraction rows are keyed by (file sha256, stage, tool version, params hash). Rerunning with the same
 key is a no-op; a new pipeline version writes new runs and the old ones stay queryable.

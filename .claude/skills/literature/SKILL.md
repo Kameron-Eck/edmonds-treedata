@@ -26,6 +26,13 @@ The convention this skill points at, and does not copy: `Scripts/docs/LITERATURE
 - `litkb_search(query, scope="all")` — hits in extracted text and in recorded uses. Each block hit
   carries `work_key`, `page`, `section_path` and a **`block_id`**; the `block_id` is what step 4
   quotes from, so keep it.
+  **Page furniture and bibliographies are OUT by default.** `page_header`, `page_footer`,
+  `page_number`, `other` and `reference` are excluded, because a running head is the same 42
+  characters on every odd page and used to take eight of the top ten. Pass `kinds="all"` to bring
+  them back, or a comma-separated list (`kinds="reference"`) to ask for one; an unknown type name
+  is REFUSED, never silently dropped, and the result states which types were left out. Titles,
+  authors and affiliations stay IN. The `page` on a hit is the page the text is PRINTED on: a
+  paragraph crossing a page break is stored as one block per page.
 - `litkb_work(doi=…)` or `litkb_work(key=…)` — one work in full: **which of four states it is in**,
   identifiers, held files (and their stems), every use recorded against it, and any discrepancy
   between what a legacy record claimed and what the registry says.

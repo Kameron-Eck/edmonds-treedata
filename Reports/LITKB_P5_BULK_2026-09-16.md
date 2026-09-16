@@ -934,6 +934,26 @@ Per kind, current runs:
 | caption | 2,036 | 2,015 | figure | 1,842 | 1,839 |
 | table | 861 | 861 | | | |
 
+Row-level evidence for every number in this section, one line per file:
+`Reports/litkb_p5_files_stage5-3_2026-09-16.csv` (229 rows, a copy of
+`litkb_derived/p5/p5_files_stage5-3.csv` taken at the end of the run; the stage5-2 side is
+`litkb_derived/p5/p5_files.csv`, which is outside the repo).
+
+**Where the 906 equations went.** 842 equation blocks are recorded inside a survivor's
+`provenance -> merged`, 805 of them absorbed by another equation: docling's `touching` branch
+described one printed formula twice and the corpus held both. The other 64 are over-merge drops
+and figure dedupe and are not individually attributed — UNCONFIRMED in mechanism, measured only
+as the difference. Corpus-wide the merge absorbed **20,876** blocks (`merged` entries over
+current runs): 10,245 paragraph, 8,973 reference, 842 equation, 661 heading, 79 footnote, 58
+furniture, 15 caption, 3 figure.
+
+**LaTeX attached: 3,472 -> 3,457.** The L4 pass decoded the same 3,492 rows for these files in
+both ingests; 20 found no equation block to hang on before, 35 do now, because the block their
+crop was cut from merged into its neighbour. Fourteen files carry the difference (CSV column
+`latex_unmatched`), the largest being `Reynolds_2000` at 7, `Hall_1985` and `Montgomery_1991` at
+6. Nothing was decoded twice and nothing was thrown away: the strings are still in the L4
+artifacts, and a future ingest can re-match them against the canonical boxes.
+
 **The residue, explained.** 375 duplicate-text rows in 62 of 229 runs are overwhelmingly Conway's
 appendix survey form — the same blank answer line printed several times on one page, which is
 genuinely several regions with one string. 2,984 contained blocks in 200 runs are what the
@@ -1027,5 +1047,27 @@ X27 the search filter. `--sites` still reads **91 call sites, 88 covered by a ro
 * **Reproducibility.** No file was extracted twice at `stage5-3` with the same `params_hash`.
 * **The vector leg**, `record_use` live, `promote prepare` / `commit`, and per-region recall
   beyond the six stage-5 gold pages.
+
+## V. Blockers for the next step
+
+* **The citation graph is not anchored to a page.** `litkb.references` holds 643 rows and
+  `litkb.citation_mentions` 969, all under `pipeline_version = 'litkb-p6-1'` across 17 runs that
+  hold **0 blocks**, and `block_id` is NULL on every one of them. Nothing dangles and the
+  re-ingest broke nothing — P6 reads the TEI artifacts, not the block table — but a citation
+  still cannot be located on a printed page. The corpus now has 9,285 canonical `reference`
+  blocks and records `merged[].element_id`, which is the join P6 would need.
+* **The four newly bound scans are proposals** in the open workstream `fix-op-1` (verified:
+  `file_versions -> workstreams.slug`), so they are not in main's 229 and were not extracted.
+  `litkb_p5_bulk.py plan --workstream fix-op-1`, then `docling --ocr`, then `ingest`.
+* **Doc drift, closed here** (the operational referee's item 11): `LITERATURE_KB_DESIGN_2026-09-13.md`
+  §4.4 now carries `equations.latex_status`, the `duplicate_region` / `superset_region`
+  disagreement kinds and the `merged` / `fragment` / `continues_from` / `continues_to` provenance
+  keys, and `.claude/skills/literature/SKILL.md` step 0 now says that furniture and bibliographies
+  are out of `litkb_search` by default and how to ask for them. Neither doc is otherwise re-read
+  against the schema: what is written is what this change added, nothing older was verified.
+* **Two superseded run sets** stand beside the current one (see §R). They cost disk and they make
+  any un-scoped `blocks` count wrong; every query in this report scopes by
+  `files.current_run_id`. An `ok` run cannot be deleted by design, so retiring them is a
+  deliberate operation somebody has to choose.
 
 *Appended by Claude Opus 5, session https://claude.ai/code/session_015MUcyGTfX2koRdYAjW5kED.*

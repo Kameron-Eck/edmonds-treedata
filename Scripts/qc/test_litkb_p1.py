@@ -153,12 +153,28 @@ def test_migration_files_are_named_and_numbered():
 
 
 def test_an_undeclared_gap_in_the_migration_numbering_is_still_refused(tmp_path):
+    """The same hole, refused when nothing declares it and allowed when something does.
+
+    The gap is MANUFACTURED here. It used to be borrowed: the test copied the tree's own migrations
+    into tmp_path and leaned on 0018/0019 being absent from disk while `work/20260915-access-layer`
+    held them. The moment that branch merged (2026-09-16) the numbering went contiguous, nothing was
+    refused, and the `pytest.raises` had nothing to catch — the test had been asserting a property of
+    the repository's transient state, not of the rule. It now digs its own hole, in the MIDDLE:
+    deleting the LAST migration is not a gap at all, it is a shorter list, and `discover` cannot
+    distinguish that from a branch that has not written its next migration yet.
+    """
     from litkb.db import migrate
-    for _v, name, _s, sql_text in migrate.discover():
+    found = migrate.discover()
+    for _v, name, _s, sql_text in found:
         (tmp_path / name).write_text(sql_text, encoding="utf-8")
+    hole_v, hole_name = found[len(found) // 2][0], found[len(found) // 2][1]
+    assert hole_v < found[-1][0], "the hole must be in the middle, not the tail"
+    (tmp_path / hole_name).unlink()
+    declared = tmp_path / "_reserved.txt"
     with pytest.raises(migrate.MigrationError, match="without gaps"):
-        migrate.discover(tmp_path, reserved_path=tmp_path / "_reserved.txt")     # undeclared: refused
-    assert migrate.discover(tmp_path, reserved_path=migrate.RESERVED_FILE)       # declared: allowed
+        migrate.discover(tmp_path, reserved_path=declared)                       # undeclared: refused
+    declared.write_text(f"{hole_v:04d}  a branch that has not merged here yet\n", encoding="utf-8")
+    assert len(migrate.discover(tmp_path, reserved_path=declared)) == len(found) - 1   # declared: ok
 
 
 def test_connect_refuses_the_promoter_login(monkeypatch):

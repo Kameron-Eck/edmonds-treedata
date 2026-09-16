@@ -203,12 +203,16 @@ target document and its location inside it — a bare `§N` is no longer valid o
 | `decision <slug>` | a key in `Scripts/decisions.yaml` |
 | `report <FILE>#§<loc>` | any other tracked report; `loc` may be alphanumeric (a heading key, or `L<line>` when the citation sits outside any heading) |
 
-**All seven forms are enforced** by `litkb._feeds_token_ok` (migration `0020_first_use_friction.sql`
-— that regex is the one home for the SHAPE of a token, and this table is the one home for its
-meaning). Until 2026-09-15 the validator took only three of them, so a use that fed a report could
-carry no valid token at all and 15 uses were written with an empty `feeds` array
-(`Reports/LITKB_LINKAGE_REVIEW_2026-09-15.md` §8.6). `litkb use add` checks a token against the
-database before writing, so a mistyped one is refused at the command rather than held at prepare.
+**All seven forms are enforced** by `litkb._feeds_token_ok` (migration
+`0021_feeds_validator_final.sql` — that regex is the one home for the SHAPE of a token, and this
+table is the one home for its meaning). Until 2026-09-15 the validator took only three of them, so a
+use that fed a report could carry no valid token at all and 15 uses were written with an empty
+`feeds` array (`Reports/LITKB_LINKAGE_REVIEW_2026-09-15.md` §8.6). Two branches then widened it to
+all seven independently, with different bodies (0018 and 0020), and because `CREATE OR REPLACE` is
+decided by APPLY order rather than by number the same migration set produced two different schemas;
+0021 states the definition once and is applied last everywhere, which is why the pointer above is to
+0021 and not to either of them. `litkb use add` checks a token against the database before writing,
+so a mistyped one is refused at the command rather than held at prepare.
 
 A token is only valid if the section/gate/row/decision it names actually exists in the
 target document — checked mechanically (heading extraction, not restatement) by

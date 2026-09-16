@@ -82,6 +82,12 @@ MIG16 = f"{MIG}/0016_held_reason.sql"
 #: A1-A4 and R59 therefore point HERE. Whenever a migration replaces a function, every mutation row on
 #: the old body stops testing anything and reports DID NOT FIRE for a reason about migration order.
 MIG20 = f"{MIG}/0020_first_use_friction.sql"
+#: And a third time at the P8 merge, 2026-09-16, with the twist the class predicts once two branches are
+#: open at once: 0018 and 0020 BOTH CREATE OR REPLACE litkb._feeds_token_ok, so the live body depended on
+#: which was applied last and the mutation rows on BOTH of them (0018's X12, 0020's U1) were mutating text
+#: that some databases never ran. 0021 states the definition once and is applied last everywhere, so it is
+#: the live body on every database and the only one worth mutating. X12 and U1 both point HERE.
+MIG21 = f"{MIG}/0021_feeds_validator_final.sql"
 
 M = []
 
@@ -777,10 +783,17 @@ replace("X11", f"{MIG}/0018_access_layer.sql",
         "  SELECT true\n",
         "check_ws_token accepts ANY token: the read tools verify and are told yes, which is the "
         "referee's forged-token read with the check in place", tests=TESTS_P8)
-block("X12", f"{MIG}/0018_access_layer.sql",
-      "guard: feeds tokens are the convention's seven doc-qualified forms",
-      "the feeds validator falls back to 0005's three forms: four of the convention's seven are "
-      "refused at prepare (F-3)")
+# F-3's row, repointed from 0018 to 0021 at the P8 merge (see MIG21). 0018's copy of this function is
+# DEAD TEXT from 0021 on, so a row that deleted it would report DID NOT FIRE for a reason about
+# migration order rather than about the guard — the class MIG16 and MIG20 already name. Deleting the
+# guarded block in 0021 leaves a VALID migration (the function still exists, from 0020) whose body is
+# 0020's LOOSER one, which is the whole point: what fires is the DEPTH rule the convention states and
+# 0020 did not enforce. The coverage half of the same guard is U1.
+block("X12", MIG21,
+      "guard: the feeds vocabulary has one definition, independent of apply order",
+      "the one definition is gone, so the live validator is whichever earlier migration ran last — on a "
+      "database built from scratch that is 0020's, which takes `framework §13.1.1` where the convention "
+      "allows at most one sub-level (F-3, and the 0018/0020 apply-order split)")
 M[-1]["tests"] = TESTS_P8
 M.append(dict(id="X13", kind="multi", tests=TESTS_P8,
               what="norm_search_text becomes a whitespace collapser: it stops dropping the "
@@ -872,18 +885,26 @@ def fu(fn, *a, **kw):
     M[-1]["tests"] = TESTS_FU
 
 
-# §8.6 — the feeds vocabulary. The mutation is the validator as it stood until 0020: three of the seven
-# forms the convention documents, which is why 15 uses were written with an empty feeds array.
-fu(replace, "U1", MIG20,
-   "    'framework §[0-9]+(\\.[0-9]+)*' ||\n"
+# §8.6 — the feeds vocabulary, COVERAGE. The mutation is the validator as 0005 left it: the three forms
+# of §4.5, which is why the linkage review wrote 15 uses with an empty feeds array. Repointed from 0020
+# to 0021 at the P8 merge — see MIG21: 0018 and 0020 each replaced this function, so from 0021 on the
+# live body is 0021's on every database and a mutation in either earlier file tests nothing.
+# X12 is the other half of the same guard and is deliberately a separate row: it deletes the definition
+# instead of narrowing it, which falls back to 0020's LOOSER body and so tests the depth rule, where this
+# row tests the coverage. One guard, two ways to break it, two different suites that catch them.
+fu(replace, "U1", MIG21,
+   "    'framework §[0-9]+(\\.[0-9]+)?' ||\n"
    "    '|narrative §[0-9]+' ||\n"
    "    '|gated-plan gate [0-9]+' ||\n"
    "    '|review §[0-9]+(\\.[0-9]+)*' ||\n"
-   "    '|gap row [0-9]+' ||",
-   "    'framework §[0-9]+(\\.[0-9]+)*' ||\n"
-   "    '|gap row [0-9]+' ||",
-   "the feeds validator goes back to three of the seven documented forms: a use that feeds a report, "
-   "a narrative section or a gate carries no valid token at all")
+   "    '|gap row [0-9]+' ||\n"
+   "    '|decision [a-z0-9][a-z0-9-]*' ||\n"
+   "    '|report [A-Za-z0-9][A-Za-z0-9._-]*\\.md#§[A-Za-z0-9][A-Za-z0-9._§-]*' ||\n",
+   "    'framework §[0-9]+(\\.[0-9]+)?' ||\n"
+   "    '|gap row [0-9]+' ||\n"
+   "    '|decision [a-z0-9][a-z0-9-]*' ||\n",
+   "the feeds validator goes back to 0005's three forms: a use that feeds a report, a narrative "
+   "section, a gate or a review section carries no valid token at all")
 fu(block, "U2", f"{PKG}/commands.py", "guard: feeds tokens are checked before the use is written",
    "`use add` writes first and lets prepare find the bad token later — which is how the 15 uses of the "
    "linkage review ended up with no feeds at all")

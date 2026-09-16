@@ -7,17 +7,17 @@
 #
 # NNNN  why
 
-0018  work/20260915-access-layer: 0018_access_layer.sql
-0019  work/20260915-access-layer: 0019_prepare_requires_evidence.sql
-
-# COLLISION, for whoever lands 0018. It CREATE OR REPLACEs litkb._feeds_token_ok, and so does
-# 0020_first_use_friction.sql — both widening it from three of the convention's feeds forms to all
-# seven, written independently on the two branches. The bodies are NOT identical: 0018 allows
-# `framework §N[.N]` at most one sub-level (which is what the convention's own table says), 0020
-# allows any depth. And because a CREATE OR REPLACE is decided by the order migrations were APPLIED
-# rather than by their numbers, a database that already has 0020 (litkb does) ends up with 0018's
-# body, while one built from scratch runs 0018 then 0020 and ends up with 0020's — the same
-# migration set, two different schemas. 0020 is applied and checksum-locked, so it cannot be the one
-# that changes; either 0018 drops its section before it is applied anywhere, or a later migration
-# states the definition once. Kam decides. Reports/LITKB_P3_REPORT_2026-09-15.md, "First-use
-# friction closed" -> Coordination.
+# (nothing reserved)
+#
+# 0018 and 0019 landed 2026-09-16 with the merge of work/20260915-access-layer, so their lines are
+# gone: a number on disk must not also be reserved
+# (qc/test_litkb_p1.py::test_migration_files_are_named_and_numbered).
+#
+# The COLLISION recorded here for whoever landed 0018 is CLOSED, by the second of the two options it
+# offered. 0018 and 0020 both CREATE OR REPLACE litkb._feeds_token_ok with different seven-form
+# bodies, and a CREATE OR REPLACE is decided by APPLY order rather than by number, so the same
+# migration set produced two different schemas. 0018 could no longer drop its section (it is applied
+# and checksum-locked, as 0020 already was), so `0021_feeds_validator_final.sql` states the
+# definition ONCE and, being the highest number, is applied last on every database whatever order
+# the earlier two arrived in. Its header carries the reasoning and the live measurement of the
+# divergence. Reports/LITKB_P4_MERGE_2026-09-15.md, "P8 merged".

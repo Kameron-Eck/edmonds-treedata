@@ -606,8 +606,37 @@ adapter's page offset or y-flip is deliberately removed.
     `request_acquisition`, `record_use_version`, `verify_quote`. Each wraps a token-checked database
     function; the writer role has no direct INSERT on any table a workstream owns (§4.7), so a tool
     cannot write round the token;
-  - `approve`, `promote prepare` and `promote commit` are not exposed to agents, and neither is
-    `ingest`: the MCP server never holds the promoter or ingest credential (§4.7).
+  - `approve`, `promote commit` and `ingest` are not exposed to agents: the MCP server never holds
+    the promoter or ingest credential (§4.7).
+  - **`promote prepare` IS exposed, as `litkb_propose_promotion` — amended 2026-09-16 at the P8
+    merge**, on the recommendation of `Reports/LITKB_P8_REFEREE_2026-09-15.md` §5, which measured the
+    tool before recommending it. The credential clause above is kept exactly, and is why this is a
+    narrower change than it reads: the tool does not connect as the promoter. It runs
+    `py -3.12 -m litkb promote prepare` as a SUBPROCESS (`litkb/mcp/server.py::_propose_promotion`);
+    that process opens the promoter passfile and exits, and the server's own `_role()` resolves only
+    `litkb_reader` / `litkb_writer`. What the referee measured: prepare mutates no git — the only
+    `git fetch` in `promote.py` is inside `commit()` and the module has no `push`, and a test
+    worktree's `git log` was unchanged after a successful prepare through the tool; nothing enters
+    `main` — prepare moves the workstream's own proposed versions to `prepared`, and work, identifier
+    and file chains cannot be created by the writer at all (§3.4); and the `repo` parameter is
+    bounded — pointed at an unrelated git repository, prepare refused for want of a
+    `.litkb-workstream`. `commit` and `approve` stay absent for a reason written here rather than
+    inferred: `commit` records that **Kam merged**, which is a fact about `main`, and `approve` is a
+    *second session's* act — an agent holding either would be attesting to its own work. The
+    alternative, prepare at the CLI only, buys nothing: the same agent runs the same CLI through Bash,
+    with a worse record.
+  - **One condition of that amendment no longer holds as the referee measured it, and it is stated
+    here rather than inherited.** His condition (i) was that `report_path` is "a recorded string, not
+    a write primitive", because prepare recorded a path and wrote no file. His own finding F-5 then
+    made prepare WRITE the report (`commands.py::cmd_promote`, guard "prepare WRITES the promotion
+    report"), so an agent-supplied `report_path` now reaches `promote.write_report`, which does
+    `Path(path).parent.mkdir(parents=True, exist_ok=True)` and `write_text`. The path is used
+    verbatim when absolute and resolved against the worktree when relative, with no `..` check — so
+    the tool can create a markdown file at a path of the agent's choosing. **READ FROM SOURCE at this
+    merge, not exercised:** `mcp/server.py::_propose_promotion` (`report_path` → `--report`),
+    `commands.py::cmd_promote` prepare branch, `promote.py::write_report`. Scoping that path is a NEW
+    guard on an already-refereed branch, so it is not invented here; it is Kam's call alongside
+    condition (iii), the amendment's own line in `decisions.yaml`, which this merge does not stage.
 - **Credentials:** owner, reader, writer and test logins in the shared pgpass file; the promoter and
   ingest logins each in their own passfile under `D:\edmonds-pipeline\secrets\`, opened only by
   `litkb.promote.connect()` and `litkb.ingest.connect()`; the shared `litkb.db.connect.connect()`

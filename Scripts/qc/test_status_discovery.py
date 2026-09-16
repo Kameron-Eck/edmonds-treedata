@@ -604,6 +604,8 @@ _PATH_INSERT_LEDGER = {
     "qc/instruments/litkb_chunk_corpus.py": 1,   # same: litkb.index.{corpus,chunk}, the P7 chunk build
     "qc/instruments/litkb_p7_verify_gold.py": 1,  # same: litkb.index.{corpus,lexical}, the gold verifier
     "qc/instruments/litkb_embed_bakeoff.py": 1,  # same: litkb.index.*, and it runs in its own venv
+    "qc/instruments/litkb_p7_token_census.py": 1,  # same: litkb.index.{chunk,embed}, tokenizer-only census
+    "qc/instruments/litkb_p7_miss_anatomy.py": 1,  # same: litkb.index.{chunk,embed}, attributes the misses
     "qc/test_litkb_index.py": 2,              # same: litkb.index at module level, + the subprocess probe
     "qc/runtime_dashboard.py": 2,            # phase4_train_queue + watch_queue keeps
     "qc/runtime_health.py": 1,               # qc sibling keep

@@ -470,22 +470,32 @@ def test_the_queue_file_owns_its_destination_and_its_process_count(worker, tmp_p
     assert worker.load_queue(None) == ([], None, None)
 
 
-def test_canary2_is_prepared_and_does_not_overwrite_canary1():
-    """Canary 2 is PREPARED, not launched. What is checked here is the part that would be
-    discovered on the VM: a queue pointed at canary 1's out_dir returns nothing, because both
-    shards would be skipped as already present."""
+def test_no_queue_writes_into_another_queues_results():
+    """THE DEFECT THIS GUARDS is discovered only on the VM, and it is silent: the worker skips
+    a shard whose result archive is already present (kill 4), so a queue pointed at an earlier
+    queue's out_dir returns NOTHING and reports success. Canary 2 would have skipped both of
+    its shards; the full pass shares canary 1's `shard_canary200` crops by construction, so it
+    would have skipped those too. One out_dir per queue, asserted rather than remembered.
+
+    It also holds the OTHER half — which queue the launch payload actually runs. The payload
+    is the only place that names it, and pointing it at a queue whose results already exist is
+    how a launch burns a runtime and returns an empty log.
+    """
     import re
-    c1 = (SCRIPTS / "pipeline" / "queue_litkb_formula_l4.yaml").read_text(encoding="utf-8")
-    c2 = (SCRIPTS / "pipeline" / "queue_litkb_formula_l4_canary2.yaml").read_text(
-        encoding="utf-8")
-    out1 = re.search(r"^out_dir:\s*(\S+)", c1, re.M).group(1)
-    out2 = re.search(r"^out_dir:\s*(\S+)", c2, re.M).group(1)
-    assert out1 != out2, "canary 2 would write into canary 1's results and skip every shard"
-    assert re.search(r"^procs:\s*auto", c2, re.M), "canary 2 does not ask for N processes"
-    for s in ("shard_canary200.zip", "shard_ref5.zip"):
-        assert s in c2
-    assert "queue_litkb_formula_l4_canary2.yaml" in \
-        VM_START.read_text(encoding="utf-8"), "the launch payload still points at canary 1"
+    qs = {}
+    for name in ("queue_litkb_formula_l4.yaml", "queue_litkb_formula_l4_canary2.yaml",
+                 "queue_litkb_formula_l4_full.yaml"):
+        qs[name] = (SCRIPTS / "pipeline" / name).read_text(encoding="utf-8")
+    outs = {n: re.search(r"^out_dir:\s*(\S+)", t, re.M).group(1) for n, t in qs.items()}
+    assert len(set(outs.values())) == len(outs), \
+        f"two queues share an out_dir and the second would skip every shard: {outs}"
+    full = qs["queue_litkb_formula_l4_full.yaml"]
+    assert re.search(r"^procs:\s*auto", full, re.M), "the full pass does not ask for N processes"
+    shards = re.findall(r"shard_full(\d\d)\.zip", full)
+    assert shards == [f"{i:02d}" for i in range(36)], \
+        f"the full pass does not list the 36 census shards in order: {shards}"
+    assert "queue_litkb_formula_l4_full.yaml" in VM_START.read_text(encoding="utf-8"), \
+        "the launch payload does not point at the full-corpus queue"
 
 
 def test_every_mutation_row_still_has_a_target():

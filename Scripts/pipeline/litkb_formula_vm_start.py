@@ -30,11 +30,12 @@ was idle most of the run. Every process still belongs to the one queue, the batc
 computed once and shared by construction, and a slice that dies fails only its own crops. The
 one-queue-per-runtime rule is about who owns the runtime, and it is unchanged.
 
-WHICH QUEUE THIS PAYLOAD RUNS is the constant ``QUEUE`` below, and it is currently canary 2
-(``queue_litkb_formula_l4_canary2.yaml``). Canary 1 has run; its results are on the lake and
-its queue file is kept as the record of what ran. The out_dir and the process count now come
-from the queue file itself rather than from this payload, so switching queues is a one-line
-change here and nothing else.
+WHICH QUEUE THIS PAYLOAD RUNS is the constant ``QUEUE`` below, and it is currently the FULL
+CORPUS PASS (``queue_litkb_formula_l4_full.yaml``, 36 shards / 7,164 crops). Both canaries
+have run — ``queue_litkb_formula_l4.yaml`` and ``queue_litkb_formula_l4_canary2.yaml`` are
+kept as the record of what ran, and each writes to its own out_dir so neither is overwritten.
+The out_dir and the process count come from the queue file itself rather than from this
+payload, so switching queues is a one-line change here and nothing else.
 
 DEPENDENCIES. The Colab image carries torch; it does NOT carry docling. The bootstrap's
 editable install adds phase4seg and the shared modules and deliberately nothing else
@@ -57,7 +58,7 @@ import time
 REPO = "/content/repo"
 SCRIPTS = REPO + "/Scripts"
 MOUNT = "/content/drive/MyDrive/treedata"
-QUEUE = SCRIPTS + "/pipeline/queue_litkb_formula_l4_canary2.yaml"
+QUEUE = SCRIPTS + "/pipeline/queue_litkb_formula_l4_full.yaml"
 REQS = SCRIPTS + "/requirements-litkb-colab.txt"
 LOG = MOUNT + "/phase4/logs/litkb_formula_nohup_%s.log" % time.strftime(
     "%Y%m%dT%H%M%SZ", time.gmtime())

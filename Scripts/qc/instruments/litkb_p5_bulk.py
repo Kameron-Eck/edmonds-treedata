@@ -598,14 +598,31 @@ class ReconcileSkipped(RuntimeError):
     pass
 
 
-def ingest_one(conn, row, canonical, dis, stats, cov):
+def ingest_one(conn, row, canonical, dis, stats, cov, hold=0.0):
+    """``hold`` is the kill harness's window, and nothing else ever sets it.
+
+    ``ingest_file``'s ``_after_blocks`` hook fires with every block inserted and the
+    transaction still OPEN — the module's own docstring calls that "where the simulated
+    mid-file kill is raised". Sleeping there puts the child in exactly the state a killed
+    worker is in, for long enough that an outside process can kill it THERE rather than
+    somewhere the timing happened to land. It changes no row and no code path.
+    """
     from litkb.extract import ingest as ing
 
     pages = [{"page_no": p, "page_class": r["page_class"], "native_chars": r["chars"],
               "covered_chars": r["covered"], "coverage_share": r["share"]}
              for p, r in sorted(cov.items())]
+    if hold:
+        def _hold(conn_, run_id):
+            print(f"IN-TRANSACTION {run_id}", flush=True)
+            time.sleep(hold)
+        return ing.ingest_file(conn, row["file_id"], canonical, dis, stats, pages=pages,
+                               artifact_path=_doc_path(row["sha256"]), host="local",
+                               pipeline_version=P5_PIPELINE_VERSION, _after_blocks=_hold)
+    # `host` is a two-value CHECK in 0001 ('colab' | 'local'), not free text: the machine's own
+    # name lives in the metrics, not in a column the schema constrains.
     return ing.ingest_file(conn, row["file_id"], canonical, dis, stats, pages=pages,
-                           artifact_path=_doc_path(row["sha256"]), host="local-t2000",
+                           artifact_path=_doc_path(row["sha256"]), host="local",
                            pipeline_version=P5_PIPELINE_VERSION)
 
 
@@ -641,7 +658,10 @@ def cmd_ingest(a):
             print(f"{n}/{len(rows)} SKIP {row['name']}: {e}")
             continue
         ti = time.monotonic()
-        res = ingest_one(conn, row, canonical, dis, stats, cov)
+        # The marker the kill harness waits for: everything before it is reconciliation, and
+        # killing there proves nothing about the database.
+        print(f"INGEST-BEGIN {row['sha256']} blocks={stats['blocks']}", flush=True)
+        res = ingest_one(conn, row, canonical, dis, stats, cov, hold=a.hold_in_transaction)
         r.update(extra)
         r.update({
             "blocks": stats["blocks"], "matched": stats["matched"],
@@ -741,6 +761,136 @@ def cmd_gate(a):
     return 0
 
 
+# ── the kill, live ─────────────────────────────────────────────────────────────────────────
+
+def cmd_kill_test(a):
+    """§14 P5 kill (a), with a REAL process kill: taskkill /F on a worker mid-file.
+
+    The control is not another run — it is the reconciliation's own block count, which is
+    deterministic for a fixed artifact pair, so "the same block count as an uninterrupted
+    control run" is checkable without ingesting the file twice on purpose.
+
+    The subject must be a document with NO ``ok`` run yet: killing a worker that is about to
+    return "already ingested, wrote nothing" would prove nothing.
+    """
+    import psycopg
+
+    plan = load_plan()
+    ro = psycopg.connect(f"host=localhost port=5433 dbname={a.db} user=litkb_reader",
+                         autocommit=True)
+    done = {str(r[0]) for r in ro.execute(
+        "SELECT file_id FROM litkb.extraction_runs WHERE stage = '5-reconcile' "
+        "AND status = 'ok' AND pipeline_version = %s", (P5_PIPELINE_VERSION,)).fetchall()}
+    cands = [r for r in plan["files"] if r["file_id"] not in done and _doc_done(r["sha256"])]
+    if a.only:
+        cands = [r for r in plan["files"] if r["sha256"] == a.only or r["name"] == a.only]
+    if not cands:
+        raise SystemExit("no document without an ok run at this pipeline version; "
+                         "hold one out of the ingest stage and re-run")
+    row = max(cands, key=lambda r: r["pages"])
+    print(f"subject: {row['name']} ({row['pages']} pp, file_id {row['file_id']})")
+
+    cmd = [sys.executable, os.path.abspath(__file__), "--db", a.db, "ingest",
+           "--only", row["sha256"], "--csv", os.path.join(DERIVED, "_killtest.csv"),
+           "--hold-in-transaction", str(a.hold)]
+    env = dict(os.environ, PYTHONUNBUFFERED="1", PYTHONUTF8="1",
+               PYTHONPATH=os.path.join(os.path.dirname(os.path.dirname(
+                   os.path.dirname(os.path.abspath(__file__)))), "pipeline"))
+    t0 = time.monotonic()
+    proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                            text=True, env=env)
+    # readline(), never `for line in proc.stdout`: the iterator reads ahead in 8 KiB blocks,
+    # which is how the first two attempts learned about the transaction after it had committed.
+    control, run_id = None, None
+    while True:
+        line = proc.stdout.readline()
+        if not line:
+            break
+        if not a.quiet:
+            print("  child:", line.rstrip()[:120])
+        if line.startswith("INGEST-BEGIN"):
+            control = int(line.strip().split("blocks=")[1])
+        if line.startswith("IN-TRANSACTION"):
+            run_id = line.split()[1]
+            break
+    if control is None:
+        proc.wait()
+        raise SystemExit("the child never reached the ingest; nothing was killed")
+    print(f"  the child is INSIDE the open transaction (run {run_id}); "
+          f"control block count = {control}")
+    # WAIT FOR THE TRANSACTION, do not guess at it. The first attempt used a fixed 1.5 s delay
+    # and the child had already COMMITTED by then: the kill landed after the work, the resume
+    # found an `ok` run and returned "wrote nothing", and the run passed while proving nothing.
+    # A kill that has not been shown to land mid-transaction is not a kill (CLAUDE.md §3.4c).
+    # `pg_stat_activity.state` is NULL for another role's backend unless the reader is a
+    # superuser or holds pg_read_all_stats, so a `state <> 'idle'` probe run as litkb_reader
+    # counts ZERO however live the transaction is — measured here, and it is why the first
+    # in-flight check was thrown away rather than believed. What proves the kill landed
+    # mid-transaction is the child's own IN-TRANSACTION line (every block inserted, nothing
+    # committed) together with the two reads below, taken while it was held there.
+    backends = ro.execute("SELECT count(*) FROM pg_stat_activity WHERE datname = %s",
+                          (a.db,)).fetchone()[0]
+    uncommitted = ro.execute("SELECT count(*) FROM litkb.blocks WHERE file_id = %s",
+                             (row["file_id"],)).fetchone()[0]
+    runs_mid = ro.execute(
+        "SELECT count(*) FROM litkb.extraction_runs WHERE file_id = %s AND stage = '5-reconcile' "
+        "AND pipeline_version = %s", (row["file_id"], P5_PIPELINE_VERSION)).fetchone()[0]
+    inflight = 1 if run_id else 0
+    subprocess.run(["taskkill", "/F", "/PID", str(proc.pid)], capture_output=True, text=True)
+    rc = proc.wait(timeout=60)
+    print(f"  KILLED pid {proc.pid} (exit {rc}). While it was held inside the transaction, an "
+          f"independent reader saw: {uncommitted} blocks and {runs_mid} runs for this file "
+          f"({backends} backends on {a.db}).")
+    if not inflight:
+        print("  WARNING: the child never reported IN-TRANSACTION — this kill did NOT "
+              "interrupt a transaction and the result below proves nothing")
+
+    time.sleep(2)
+    after = ro.execute(
+        "SELECT r.id, r.status, (SELECT count(*) FROM litkb.blocks b WHERE b.run_id = r.id) "
+        "FROM litkb.extraction_runs r WHERE r.file_id = %s AND r.stage = '5-reconcile' "
+        "AND r.pipeline_version = %s", (row["file_id"], P5_PIPELINE_VERSION)).fetchall()
+    current = ro.execute("SELECT current_run_id FROM litkb.files WHERE id = %s",
+                         (row["file_id"],)).fetchone()[0]
+    print(f"  after the kill: runs {[(str(i)[:8], s, n) for i, s, n in after]}, "
+          f"current_run_id {current}")
+
+    print("  resuming …")
+    r2 = subprocess.run(cmd, capture_output=True, text=True, env=env, timeout=3600)
+    print("  " + "\n  ".join((r2.stdout or "").strip().splitlines()[-3:]))
+    runs = ro.execute(
+        "SELECT r.id, r.status, (SELECT count(*) FROM litkb.blocks b WHERE b.run_id = r.id) "
+        "FROM litkb.extraction_runs r WHERE r.file_id = %s AND r.stage = '5-reconcile' "
+        "AND r.pipeline_version = %s", (row["file_id"], P5_PIPELINE_VERSION)).fetchall()
+    total = ro.execute("SELECT count(*) FROM litkb.blocks WHERE file_id = %s",
+                       (row["file_id"],)).fetchone()[0]
+    dup = ro.execute(
+        "SELECT count(*) FROM (SELECT run_id, page_no, reading_order FROM litkb.blocks "
+        "WHERE file_id = %s AND canonical GROUP BY 1,2,3 HAVING count(*) > 1) t",
+        (row["file_id"],)).fetchone()[0]
+    ok_runs = [r for r in runs if r[1] == "ok"]
+    verdict = {
+        "runs_at_this_key": len(runs),
+        "ok_runs": len(ok_runs),
+        "blocks_on_the_ok_run": ok_runs[0][2] if ok_runs else None,
+        "control_blocks": control,
+        "blocks_for_the_file_in_total": total,
+        "duplicate_page_order_groups": dup,
+        "blocks_visible_to_a_reader_mid_transaction": uncommitted,
+        "runs_visible_to_a_reader_mid_transaction": runs_mid,
+        "seconds": round(time.monotonic() - t0, 1),
+    }
+    for k, v in verdict.items():
+        print(f"  {k:<32} {v}")
+    verdict["child_confirmed_in_transaction"] = bool(inflight)
+    passed = (bool(inflight) and uncommitted == 0 and len(ok_runs) == 1
+              and ok_runs[0][2] == control and total == control and dup == 0)
+    print(f"\nKILL (a): {'PASS — killed INSIDE the transaction, one ok run, no duplicate blocks' if passed else 'NOT PROVEN' if not inflight else 'FAILED'}")
+    _log("kill_test", subject=row["name"], passed=passed, **verdict)
+    ro.close()
+    return 0 if passed else 1
+
+
 # ── CLI ────────────────────────────────────────────────────────────────────────────────────
 
 def main(argv=None):
@@ -776,7 +926,18 @@ def main(argv=None):
     p.add_argument("--only", help="comma-separated sha256 or file names")
     p.add_argument("--limit", type=int)
     p.add_argument("--csv")
+    p.add_argument("--hold-in-transaction", type=float, default=0.0,
+                   help="THE KILL HARNESS ONLY: sit this long inside the open transaction, "
+                        "every block inserted and nothing committed, so a kill can land there")
     p.set_defaults(fn=cmd_ingest)
+
+    p = sub.add_parser("kill-test")
+    p.add_argument("--only", help="sha256 or name; default: the largest document with no ok run")
+    p.add_argument("--hold", type=float, default=20.0,
+                   help="how long the child sits inside the open transaction")
+    p.add_argument("--kill-delay", type=float, default=15.0,
+                   help="how long to wait for a backend in flight before killing anyway")
+    p.set_defaults(fn=cmd_kill_test)
 
     p = sub.add_parser("gate")
     p.add_argument("--csv")

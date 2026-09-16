@@ -88,6 +88,11 @@ MIG20 = f"{MIG}/0020_first_use_friction.sql"
 #: that some databases never ran. 0021 states the definition once and is applied last everywhere, so it is
 #: the live body on every database and the only one worth mutating. X12 and U1 both point HERE.
 MIG21 = f"{MIG}/0021_feeds_validator_final.sql"
+#: A FOURTH instance, and this one the P8 merge itself created: 0019 CREATE OR REPLACEs litkb._ws_chains
+#: to add the evidence clause, and carries 0013's "a fact chain enters main only through admission
+#: approval" guard along with it — so 0013's copy of that guard is dead text and A18, which deleted it,
+#: reported DID NOT FIRE on the first full run after the merge. It points HERE. X15 already did.
+MIG19 = f"{MIG}/0019_prepare_requires_evidence.sql"
 
 M = []
 
@@ -158,7 +163,7 @@ block("A15", MIG14, "guard: the candidate belongs to the admitting workstream",
       "admit takes another workstream's candidate")
 block("A16", f"{MIG}/0013_admission.sql", "guard: attach_file sha256 dedupe", "attach_file without the sha256 lookup")
 block("A17", f"{MIG}/0013_admission.sql", "guard: attach_file binding", "attach_file without the binding check")
-block("A18", f"{MIG}/0013_admission.sql", "guard: a fact chain enters main only through admission approval",
+block("A18", MIG19, "guard: a fact chain enters main only through admission approval",
       "promote_prepare may carry an unapproved work/identifier/file chain")
 block("A19", MIG14, "guard: approval moves main's pointer only from nothing",
       "approve_admission moves no pointer")
@@ -1436,8 +1441,27 @@ COPY_IGNORE = ("__pycache__", ".pytest_cache", "*.pyc", "_litkb_ws", ".litkb-wor
 # where phase4/ did not exist. Every corpus-backed inventory test errored and the E3inv row ran against a broken
 # baseline. A test's whole read domain must be inside the copy; when a tracked input moves OUT of COPY_DIRS,
 # it belongs on this list.
+#
+# And a THIRD time on 2026-09-16, at the P8 merge, found the same way — by a failing baseline, not by
+# reading. P8's access layer put the skill, the librarian and the staged hook at the REPOSITORY ROOT
+# (`.claude/`, design §9.1: Claude Code walks up from the session's cwd, so a root-level directory is
+# what reaches a session opened in Scripts/), and `qc/test_litkb_p8.py` reads all three by path off
+# SCRIPTS.parent. None of them is under COPY_DIRS, so inside a worker copy all three were missing and
+# the P8 baseline ran at 14 failed / 43 passed — while the same file passes 60/60 in the real tree.
+#
+# That is worse than a wrong number, and it is why this list matters: `run_one` calls a mutation FIRED
+# when the run has any failure at all, comparing nothing against the baseline. With a baseline already
+# red, all nineteen X rows report FIRED whatever the mutation does. The separate baseline check is the
+# only thing that caught it, and it did — "baselines FAILED", rc 1 from every worker.
+#
+# `.claude/settings.json` is deliberately NOT copied: it is git-ignored, it is the one file P8's
+# design says must not carry the hook registration, and the test that checks it skips when it is
+# absent. Copying a per-session, untracked file into a worker would make the verdict depend on
+# whichever session last edited it.
 COPY_FILES = (".gitignore", "Scripts/.gitignore",
-              "phase4/qc/litkb_inventory_census.sha256", "phase4/qc/litkb_inventory.csv")
+              "phase4/qc/litkb_inventory_census.sha256", "phase4/qc/litkb_inventory.csv",
+              ".claude/hooks/litkb_guard.py", ".claude/agents/librarian.md",
+              ".claude/skills/literature/SKILL.md")
 
 
 def default_workers():

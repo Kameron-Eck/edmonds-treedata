@@ -544,7 +544,38 @@ other worktree and no branch but this one was touched. The workstream token was 
 
 ## 9. `promote prepare`
 
-Run per the brief, after the commit that carries this report. Output in §9.1 below.
+Run per the brief, through `litkb.promote.prepare` (there is no CLI for it — §8.1), against the
+commit that carries this report. The workstream is left **open**; nothing is merged.
+
+```
+promotion_id       01a0a7ce-3e8b-74fb-8ccb-f02774603feb
+state              prepared
+branch_head_commit 35c053c9e5ba8e8c47ca9a901952b26e3e4be6b3
+report_path        Reports/LITKB_LINKAGE_REVIEW_2026-09-15.md
+version_set_hash   936139543d7ccbe86eb850c212170025073d8f767dc5239763a10d6b2452efac
+counts             {'chains': 17, 'prepared': 14, 'held': 3}
+```
+
+**17 chains: 15 uses, plus the IFLA work and its file.** The 24 registry-route works are not in the
+workstream's heads at all — they entered through admission, which is its own path.
+
+**14 prepared, 3 held, and the three are one case:**
+
+```
+work:01a0a7c4-9f1b… "admission: a work, identifier or file enters main only through
+                     litkb.approve_admission (a proposed manual admission), never through promotion"
+file:01a0a7c4-9f2f… (the same reason)
+use:01a0a7c8-cbfa…  "dependency held: work:01a0a7c4-9f1b…"
+```
+
+All three are the **manual** IFLA LRM admission and the use that points at it: a manual proposal
+needs `litkb approve <admission_id>` from a second session before it can reach main, and prepare
+correctly refuses to be that second session. The use was held by dependency, not on its own merits.
+**This is the gate working**, and it is the one place in the run where a refusal was exactly what
+the convention describes.
+
+**What prepare did NOT hold:** all 15 uses carry no `use_evidence` row and 14 of 15 prepared
+clean — which is §8.2 measured rather than argued.
 
 ## 10. What this review does not establish
 

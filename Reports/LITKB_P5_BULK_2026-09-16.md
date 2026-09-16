@@ -720,4 +720,26 @@ no `litkb_reader` had ever touched. Three read-only / refuse-only probes against
 * **A referee.** Every number above was produced by the author of the code (CLAUDE.md §3.4c).
 
 
+## L. The ladder, and the full harness
+
+`PYTHONUTF8=1 LITKB_TEST_DB=litkb_test_w6 py -3.12 qc/check.py --fast`:
+**1 failed, 3,070 passed, 25 skipped, 2 xfailed, 634.2 s**; litkb Postgres tests **374 passed,
+3 skipped**. The one failure is the known pre-existing
+`test_experiments.py::test_pointer_paths_resolve[crown_state_model]`. (3,059 passed before this
+session's work: the eleven new tests are §A's four-state ladder ×2, §B's read-back ×2, §C's four
+gate tests, §E's clamp ×6 parametrised + the population check, §F's three knob tests, §G's chunk
+cap, and the promotion-report gitignore test.)
+
+`py -3.12 qc/instruments/litkb_p2_mutations.py --workers 3 --worker-dbs 1,6,9`:
+**284 rows, 284 fired, every baseline passing, wall-clock 73.0 min over 3 workers**
+(w1/`litkb_test_w1` 95/95 in 69.0 min, w2/`litkb_test_w6` 95/95 in 73.0 min,
+w3/`litkb_test_w9` 94/94 in 69.1 min; `rc 0` each). **No row failed to fire.** Self-checks in the
+same run: **91 call sites, 88 covered by a row, 3 equivalent; 21 sinks, 2 redacted, 19 allowed.**
+
+It ran on this branch's final code — verified, not assumed: the worker copies of `server.py`,
+`inventory.py`, `docling.py`, `docling_worker.py`, `litkb_p2_mutations.py`, `litkb_p5_bulk.py`
+and the four test modules all hash identically to `git show HEAD:<path>` (LF-normalised, the way
+`litkb.db.migrate` compares migrations).
+
+
 *Appended by Claude Opus 5, session https://claude.ai/code/session_015MUcyGTfX2koRdYAjW5kED.*

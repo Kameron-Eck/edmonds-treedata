@@ -755,6 +755,14 @@ replace("P54", P5B,
         "            if False:\n                continue",
         "attach_latex stops claiming a block once: two L4 rows over one region overwrite each "
         "other instead of leaving the second unmatched", tests=TESTS_P5)
+# Guard 4 (2026-09-16): the VRAM cap that reaches the headroom rule. Same exception as the three
+# above — it is written in an instrument, outside the per-call-site rule's reach.
+replace("P55", P5B,
+        "    return min(chunk, ocr_chunk) if ocr else chunk\n",
+        "    return chunk\n",
+        "the OCR batch goes back into ONE long converter process: measured over this driver's "
+        "own batch B, 3,873 MiB / 94.6 % of a card that also drives the display, against "
+        "2,619 MiB / 63.9 % at 4 documents per process", tests=TESTS_P5)
 
 DEFERRED_HELPERS = {}
 
@@ -893,6 +901,21 @@ block("X23", f"{PKG}/mcp/server.py", "guard: every feeds token is in the convent
       "`promote prepare`: a use carrying `§16.2` or `nonsense token` records clean and its author "
       "finds out at promotion, if at all")
 M[-1]["tests"] = TESTS_P8
+# The cropbox clamp (P5 blocker #2). A `replace` and not a `block`, because deleting the guarded
+# lines would leave `dy` undefined — a NameError proves the FILE is load-bearing, not the RULE
+# (X11/X13/X14's lesson). This restores the raw arithmetic and leaves valid code that puts every
+# block on a cropped page back where the failing bulk pass had it.
+block("X26", f"{PKG}/extract/docling.py", "guard: the OCR pass runs under the measured VRAM knobs",
+      "the OCR pass stops applying the knobs the measurement kept: torch's cached pool is never "
+      "returned between documents, which is 398 MiB of the 3,873 MiB peak, at no cost in rate")
+M[-1]["tests"] = ["qc/test_litkb_docling.py"]
+replace("X25", f"{PKG}/extract/inventory.py",
+        "    dy = max(round(media[3] - crop[3], 4), 0.0)\n",
+        "    dy = round(media[3] - crop[3], 4)\n",
+        "the cropbox shift is negative again where a /CropBox extends past its /MediaBox: "
+        "Higham_2011's -111.6 moves every block on all 16 pages off its own text, and the "
+        "character share on 15 of them falls from 0.9898 to 0.3049",
+        tests=["qc/test_litkb_inventory.py"])
 
 # Call sites a mutation cannot change the behaviour of. The reason must be about the CODE, never about the tests.
 EQUIVALENT = {

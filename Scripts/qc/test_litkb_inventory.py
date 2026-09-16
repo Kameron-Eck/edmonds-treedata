@@ -564,6 +564,76 @@ def test_the_cropbox_shift_matches_the_value_referee_2_measured(corpus_records):
     assert p2["dy"] == pytest.approx(9.052, abs=1e-3)
 
 
+#: The corpus's negative-`dy` pages: a `/CropBox` that extends PAST the `/MediaBox`, so
+#: `media.y1 - crop.y1` is negative. (file stem, page, the RAW shift). Measured by
+#: qc/instruments/litkb_cropbox_census.py over the frozen census, 2026-09-16 — 5 files, 45 pages of
+#: 5,038, and NO page anywhere with a negative `dx`.
+NEGATIVE_DY_PAGES = [
+    ("Higham_2011_pth-roots-stochastic-matrices", 1, -111.6),
+    ("Efron_1986_how-biased-apparent-error-rate", 3, -3.3596),
+    ("Mesquita_1999_effect-surrounding-vegetation-edge", 1, -2.0),
+    ("Jackson_2002_hidden-markov-models-onset-progression", 1, -1.0),
+    ("Kalbfleisch_1985_analysis-panel-data-markov", 3, -0.2395),
+]
+
+
+@needs_corpus
+@pytest.mark.parametrize("stem,page,raw_dy", NEGATIVE_DY_PAGES,
+                         ids=[s.split("_")[0] for s, _, _ in NEGATIVE_DY_PAGES])
+def test_a_cropbox_taller_than_the_mediabox_shifts_by_zero_not_by_a_negative(stem, page, raw_dy):
+    """The clamp, on the pages it was measured against.
+
+    A viewer INTERSECTS cropbox and mediabox (PDF 32000-1 §14.11.2), so the page pypdfium2 measures
+    characters on — and the page Docling lays out — is the intersection: the effective shift is 0.
+    The raw negative moved every block off its own text, and
+    Reports/LITKB_P5_BULK_2026-09-16.md §6.2 traced all sixteen cropped-page coverage failures of
+    the 225-document bulk pass to this one line (Higham: 15 of 16 pages below the 0.80 character
+    floor at 0.3049; 0 below, at 0.9898, with the clamp).
+
+    Both halves are asserted from the SAME frame, which is the only way this test is about the
+    clamp rather than about the file: the boxes prove the raw arithmetic really is negative here,
+    and `dy` proves what was stored instead. A clamp asserted on `dy` alone would pass equally on a
+    page whose cropbox never crossed its mediabox.
+
+    The three files after Efron are the ones the P5 report did NOT name: their raw shift is small
+    enough that the character share stayed above the catastrophe floor — that report's own argument
+    about the floor, applied to itself. Above a floor is not evidence the shift is right.
+    """
+    pdf = CORPUS / "Validation" / f"{stem}.pdf"
+    if not pdf.exists():
+        pytest.skip(f"{pdf} not in this corpus")
+    f = inv.page_frames(str(pdf))[page]
+    media, crop = f["mediabox"], f["cropbox"]
+    assert round(media[3] - crop[3], 4) == pytest.approx(raw_dy, abs=1e-3), (
+        "this page's cropbox no longer extends past its mediabox; the fixture has moved")
+    assert f["dy"] == 0.0, f"a negative shift was stored: {f['dy']}"
+    assert f["dx"] >= 0.0, f"dx is not clamped, and no page in the census needed it: {f['dx']}"
+
+
+@needs_corpus
+def test_the_clamp_leaves_every_other_cropped_page_exactly_where_it_was(corpus_records):
+    """The other direction, and what makes this a clamp rather than an `abs()` or a rewrite: of the
+    251 cropped pages in the frozen census, 45 had a negative raw `dy` and every other one is
+    untouched. Alwan's 9.052 above is one of those; this asserts the whole population.
+
+    A re-derivation of the shift against the intersection box would pass the test above and fail
+    this one, which is the reason both exist."""
+    negative = 0
+    for rec in corpus_records:
+        for p in rec.get("page_detail") or []:
+            if p.get("dy") is None:
+                continue
+            assert p["dy"] >= 0.0, (rec["name"], p)
+            media, crop = p.get("mediabox"), p.get("cropbox")
+            if media and crop:
+                raw = round(media[3] - crop[3], 4)
+                if raw < 0:
+                    negative += 1
+                else:
+                    assert p["dy"] == pytest.approx(raw, abs=1e-3), (rec["name"], p)
+    assert negative, "no page with a negative raw shift was seen: the fixture population has moved"
+
+
 @needs_corpus
 def test_encrypted_is_not_unreadable(corpus_records):
     enc = [r for r in corpus_records if r.get("encrypted")]

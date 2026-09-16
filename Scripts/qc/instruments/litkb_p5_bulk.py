@@ -190,10 +190,33 @@ def cmd_plan(a):
     conn = psycopg.connect(f"host=localhost port=5433 dbname={a.db} user=litkb_reader",
                            autocommit=True)
     active = {r[0]: {"file_id": str(r[1]), "work_id": str(r[2]), "rel_path": r[3],
-                     "status": r[4], "pages_db": r[5]}
+                     "status": r[4], "pages_db": r[5], "in_main": True}
               for r in conn.execute(
                   "SELECT sha256, file_id, work_id, rel_path, status, pages "
                   "FROM litkb.main_files WHERE status = 'active'").fetchall()}
+    # BEGIN guard: a named workstream's own proposed files are planned too
+    # R-3's second hole: 14 acquired, bound PDFs sit in OPEN workstreams, which is OUTSIDE
+    # main's view and therefore outside this population — so the bulk pass never saw them, and
+    # through litkb_search they are indistinguishable from "not held". `ws_files` is the
+    # workstream's own view (its proposals on top of main), so the union is scoped to the ONE
+    # workstream the caller names; no other workstream's proposals are touched.
+    proposed = 0
+    if getattr(a, "workstream", None):
+        ws = conn.execute("SELECT id::text FROM litkb.workstreams WHERE slug = %s",
+                          (a.workstream,)).fetchone()
+        if not ws:
+            raise SystemExit(f"no workstream {a.workstream!r} in {a.db}")
+        for r in conn.execute(
+                "SELECT sha256, file_id, work_id, rel_path, status, pages "
+                "FROM litkb.ws_files WHERE view_workstream_id = %s AND status = 'active'",
+                (ws[0],)).fetchall():
+            if r[0] in active:
+                continue
+            active[r[0]] = {"file_id": str(r[1]), "work_id": str(r[2]), "rel_path": r[3],
+                            "status": r[4], "pages_db": r[5], "in_main": False}
+            proposed += 1
+        print(f"workstream {a.workstream}: {proposed} active files main does not hold yet")
+    # END guard: a named workstream's own proposed files are planned too
     conn.close()
 
     by_sha = collections.OrderedDict()
@@ -212,6 +235,9 @@ def cmd_plan(a):
             "file_id": b["file_id"] if b else None,
             "work_id": b["work_id"] if b else None,
             "rel_path": b["rel_path"] if b else None,
+            # False for a file only the named workstream proposes: its blocks are real and
+            # ingested, and they stay invisible to litkb_search until Kam merges the branch.
+            "in_main": bool(b and b.get("in_main")),
         }
         (rows if b else skipped).append(row)
 
@@ -242,7 +268,7 @@ def cmd_plan(a):
                      "route": rec["route"], "pages": rec["pages"],
                      "ocr_pages": rec.get("ocr_pages") or [], "in_census": False,
                      "file_id": b["file_id"], "work_id": b["work_id"],
-                     "rel_path": b["rel_path"]})
+                     "rel_path": b["rel_path"], "in_main": bool(b.get("in_main"))})
     if extra:
         _write_atomic(EXTRA_JSONL, "".join(json.dumps(r, ensure_ascii=False) + "\n"
                                            for r in extra))
@@ -440,6 +466,25 @@ def _docling_batch(rows, ocr, chunk, threads, device, timeout, quiet):
     return done, time.monotonic() - t0, len(pending)
 
 
+def docling_chunk(chunk, ocr_chunk, ocr):
+    """Documents per converter PROCESS for one batch — the VRAM cap that reaches the rule.
+
+    THE knob that gets the OCR pass inside the 20 % headroom rule, and it is not the knob
+    docling names for the job. Measured over P5's own batch B (see the VRAM block in
+    `litkb.extract.docling`): 15 documents in one process peaks at 3,873 MiB / 94.6 %, because
+    torch's caching allocator never returns a block and the reserved pool becomes a high-water
+    mark over every document that process converted; 4 documents per process peaks at 2,619 MiB
+    / 63.9 %, for 9.7 % of the rate in converter rebuilds. `settings.perf.page_batch_size` is
+    flat across 4 / 2 / 1.
+
+    Batch A keeps the caller's big chunk: `ocr=off` peaked at 2,317 MiB / 56.6 %, inside the
+    rule already, so capping it would buy nothing and cost rate. `min` and not a bare
+    `ocr_chunk`, so `--chunk 2` still means 2 on both batches."""
+    # BEGIN guard: the OCR batch runs in short converter processes
+    return min(chunk, ocr_chunk) if ocr else chunk
+    # END guard: the OCR batch runs in short converter processes
+
+
 def cmd_docling(a):
     """Stage 3 on the T2000. Two batches, never concurrent: `do_ocr` is converter-wide."""
     plan = load_plan()
@@ -473,15 +518,17 @@ def cmd_docling(a):
     for tag, batch, ocr in (("A", a_rows, False), ("B", b_rows, True)):
         if not batch:
             continue
-        print(f"\nbatch {tag}: ocr={ocr}, device={a.device}, formulas=off")
+        chunk = docling_chunk(a.chunk, a.ocr_chunk, ocr)
+        print(f"\nbatch {tag}: ocr={ocr}, device={a.device}, formulas=off, chunk={chunk}")
         with _GpuSampler() as gpu:
-            n, seconds, pending = _docling_batch(batch, ocr, a.chunk, a.threads, a.device,
+            n, seconds, pending = _docling_batch(batch, ocr, chunk, a.threads, a.device,
                                                  a.timeout, a.quiet)
         pages = sum(r["pages"] for r in batch)
         rate = (n and seconds) and round(pages / seconds, 3) or None
         out[tag] = {"documents": len(batch), "converted_now": n, "pending_at_start": pending,
                     "pages": pages, "seconds": round(seconds, 1), "pages_per_s_all_pages": rate,
-                    "peak_vram_mib": gpu.peak, "vram_total_mib": gpu.total, "ocr": ocr}
+                    "peak_vram_mib": gpu.peak, "vram_total_mib": gpu.total, "ocr": ocr,
+                    "chunk": chunk}
         print(f"batch {tag}: converted {n} of {pending} pending in {seconds:.1f}s; "
               f"peak VRAM {gpu.peak} / {gpu.total} MiB")
     missing = [r["name"] for r in rows if not _doc_done(r["sha256"])]
@@ -598,7 +645,7 @@ class ReconcileSkipped(RuntimeError):
     pass
 
 
-def ingest_one(conn, row, canonical, dis, stats, cov, hold=0.0):
+def ingest_one(conn, row, canonical, dis, stats, cov, hold=0.0, pipeline_version=None):
     """``hold`` is the kill harness's window, and nothing else ever sets it.
 
     ``ingest_file``'s ``_after_blocks`` hook fires with every block inserted and the
@@ -612,18 +659,19 @@ def ingest_one(conn, row, canonical, dis, stats, cov, hold=0.0):
     pages = [{"page_no": p, "page_class": r["page_class"], "native_chars": r["chars"],
               "covered_chars": r["covered"], "coverage_share": r["share"]}
              for p, r in sorted(cov.items())]
+    version = pipeline_version or P5_PIPELINE_VERSION
     if hold:
         def _hold(conn_, run_id):
             print(f"IN-TRANSACTION {run_id}", flush=True)
             time.sleep(hold)
         return ing.ingest_file(conn, row["file_id"], canonical, dis, stats, pages=pages,
                                artifact_path=_doc_path(row["sha256"]), host="local",
-                               pipeline_version=P5_PIPELINE_VERSION, _after_blocks=_hold)
+                               pipeline_version=version, _after_blocks=_hold)
     # `host` is a two-value CHECK in 0001 ('colab' | 'local'), not free text: the machine's own
     # name lives in the metrics, not in a column the schema constrains.
     return ing.ingest_file(conn, row["file_id"], canonical, dis, stats, pages=pages,
                            artifact_path=_doc_path(row["sha256"]), host="local",
-                           pipeline_version=P5_PIPELINE_VERSION)
+                           pipeline_version=version)
 
 
 def cmd_ingest(a):
@@ -661,7 +709,8 @@ def cmd_ingest(a):
         # The marker the kill harness waits for: everything before it is reconciliation, and
         # killing there proves nothing about the database.
         print(f"INGEST-BEGIN {row['sha256']} blocks={stats['blocks']}", flush=True)
-        res = ingest_one(conn, row, canonical, dis, stats, cov, hold=a.hold_in_transaction)
+        res = ingest_one(conn, row, canonical, dis, stats, cov, hold=a.hold_in_transaction,
+                         pipeline_version=getattr(a, "pipeline_version", None))
         r.update(extra)
         r.update({
             "blocks": stats["blocks"], "matched": stats["matched"],
@@ -903,6 +952,11 @@ def main(argv=None):
 
     p = sub.add_parser("plan")
     p.add_argument("--force", action="store_true", help="re-probe every census file")
+    p.add_argument("--workstream", default=None,
+                   help="ALSO plan the active files this workstream PROPOSES that main does not "
+                        "hold yet (give its slug). Without it the population is main's view, "
+                        "which is why 14 acquired PDFs stranded in open workstreams were "
+                        "invisible to the bulk pass (LITKB_OPERATIONAL_REFEREE_2026-09-16 R-3)")
     p.set_defaults(fn=cmd_plan)
 
     p = sub.add_parser("grobid")
@@ -916,6 +970,10 @@ def main(argv=None):
     p.add_argument("--device", default="cuda")
     p.add_argument("--threads", type=int, default=4)
     p.add_argument("--chunk", type=int, default=30, help="documents per converter build")
+    p.add_argument("--ocr-chunk", type=int, default=D.OCR_CHUNK,
+                   help="documents per converter build on the OCR batch — the measured VRAM cap "
+                        "(2,619 MiB / 63.9 %% at 4, against 3,873 / 94.6 %% at 15). "
+                        f"Default: {D.OCR_CHUNK}")
     p.add_argument("--timeout", type=int, default=14400)
     p.add_argument("--ocr-max-pages", type=int, default=200,
                    help="a document larger than this is never put in the OCR batch")
@@ -926,6 +984,11 @@ def main(argv=None):
     p.add_argument("--only", help="comma-separated sha256 or file names")
     p.add_argument("--limit", type=int)
     p.add_argument("--csv")
+    p.add_argument("--pipeline-version", default=P5_PIPELINE_VERSION,
+                   help="the run identity to ingest under. BUMP IT when reconciliation's own "
+                        "arithmetic has changed for these files and the run already on record "
+                        "was made by the old one — otherwise `already_ingested` skips the file "
+                        "and the stale blocks stand for ever. Default: " + P5_PIPELINE_VERSION)
     p.add_argument("--hold-in-transaction", type=float, default=0.0,
                    help="THE KILL HARNESS ONLY: sit this long inside the open transaction, "
                         "every block inserted and nothing committed, so a kill can land there")

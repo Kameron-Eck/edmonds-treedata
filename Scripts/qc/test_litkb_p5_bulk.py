@@ -198,6 +198,30 @@ def test_write_atomic_leaves_no_partial_behind(p5, tmp_path):
     assert p5._artifact_ok(str(art))
 
 
+def test_the_ocr_batch_runs_in_short_converter_processes(p5):
+    """Guard 4, added 2026-09-16: the VRAM cap that reaches the 20 % headroom rule.
+
+    Measured over this driver's own batch B (15 documents, 312 pages, `ocr=on`, CUDA, 1 Hz
+    nvidia-smi, idle 387 MiB): **3,873 MiB / 94.6 % at 15 documents in one converter process,
+    2,619 MiB / 63.9 % at 4** — because torch's caching allocator never returns a block, so the
+    reserved pool becomes a high-water mark over every document that process converted
+    (3,344 MiB reserved; 468 MiB after an `empty_cache`). `settings.perf.page_batch_size`, the
+    knob docling names for this job, is FLAT: 3,873 / 3,842 / 3,893 at 4 / 2 / 1.
+
+    The mutation this stands against is `chunk = a.chunk` — the OCR batch back in one long
+    process, at 94.6 % of a card that also drives the display. Batch A is asserted in the same
+    test because capping both would cost rate for nothing: `ocr=off` peaked at 2,317 MiB /
+    56.6 %, inside the rule already."""
+    from litkb.extract import docling as D
+
+    assert p5.docling_chunk(30, D.OCR_CHUNK, True) == D.OCR_CHUNK
+    assert p5.docling_chunk(30, D.OCR_CHUNK, False) == 30
+    # a caller asking for a SMALLER chunk than the cap still gets theirs, on both batches
+    assert p5.docling_chunk(2, D.OCR_CHUNK, True) == 2
+    assert p5.docling_chunk(2, D.OCR_CHUNK, False) == 2
+    assert D.OCR_CHUNK < 15, "the cap must sit below the batch size that measured 94.6 %"
+
+
 def test_the_canonical_block_is_replaced_not_mutated(p5):
     """`Canonical` is a frozen dataclass; `attach_latex` must return a new list and leave the
     caller's blocks alone, or a retry would re-attach onto already-attached blocks."""

@@ -555,6 +555,75 @@ def test_run_without_the_extraction_venv_raises_a_named_error(tmp_path, monkeypa
     assert "extraction venv" in str(e.value)
 
 
+def _argv_of(monkeypatch, tmp_path, **kw):
+    """The argv `run()` builds for the worker, without running one. -> [str]."""
+    import subprocess as sp
+
+    seen = {}
+
+    def fake_run(cmd, **k):
+        seen["cmd"] = list(cmd)
+        return sp.CompletedProcess(cmd, 0, "", "")
+
+    monkeypatch.setattr(D, "VENV_PYTHON", sys.executable)
+    monkeypatch.setattr(sp, "run", fake_run)
+    D.run([{"pdf": "x.pdf", "out": str(tmp_path / "x.json")}], str(tmp_path / "m.jsonl"), **kw)
+    return seen["cmd"]
+
+
+def test_the_ocr_pass_applies_the_measured_vram_knobs_and_the_layout_pass_does_not(tmp_path,
+                                                                                   monkeypatch):
+    """The VRAM knobs are applied by the PIPELINE, not by a caller remembering to ask.
+
+    P5's OCR batch peaked at 3,881 MiB of 4,096 — 94.8 %, against a 20 % headroom rule
+    (Reports/LITKB_P5_BULK_2026-09-16.md §7). Re-measured over that same batch, the constants
+    beside `run()` say which knob is worth applying: `free_cache` buys 398 MiB at no cost in
+    rate, and `page_batch_size` — the knob docling names for this — is flat across 4 / 2 / 1.
+    So `ocr=True` carries `--free-cache` and, on the current measurement, no `--page-batch`;
+    `ocr=False` carries neither, because batch A peaked at 56.6 % already.
+
+    Asserted against the CONSTANTS, not against literals: a later measurement that changes what
+    is worth applying should move the constant and leave this test true. What the test pins is
+    that the OCR pass applies whatever the measurement concluded, and the layout pass applies
+    nothing."""
+    ocr = _argv_of(monkeypatch, tmp_path, ocr=True)
+    assert ("--page-batch" in ocr) == bool(D.OCR_PAGE_BATCH), ocr
+    if D.OCR_PAGE_BATCH:
+        assert ocr[ocr.index("--page-batch") + 1] == str(D.OCR_PAGE_BATCH), ocr
+    assert ("--free-cache" in ocr) == bool(D.OCR_FREE_CACHE), ocr
+
+    layout = _argv_of(monkeypatch, tmp_path, ocr=False)
+    assert "--page-batch" not in layout and "--free-cache" not in layout, layout
+
+
+def test_either_vram_knob_can_be_asked_for_and_opted_out_of(tmp_path, monkeypatch):
+    """Both directions, because the MEASUREMENT that fixes the constants has to be able to run
+    at the tool's own defaults: a constant no run can be made without is a constant nobody can
+    re-derive. That is what `page_batch=0` / `free_cache=False` are for, and it is how the five
+    rows in `docling`'s VRAM block were produced."""
+    asked = _argv_of(monkeypatch, tmp_path, ocr=True, page_batch=3, free_cache=True)
+    assert asked[asked.index("--page-batch") + 1] == "3", asked
+    assert "--free-cache" in asked, asked
+
+    out = _argv_of(monkeypatch, tmp_path, ocr=True, page_batch=0, free_cache=False)
+    assert "--page-batch" not in out and "--free-cache" not in out, out
+
+    # …and the layout pass can ask for them too, even though it is not given them by default
+    layout = _argv_of(monkeypatch, tmp_path, ocr=False, page_batch=2, free_cache=True)
+    assert layout[layout.index("--page-batch") + 1] == "2" and "--free-cache" in layout, layout
+
+
+def test_the_worker_declares_both_vram_knobs():
+    """The worker's own parser must accept what `run()` sends it. The two halves live in
+    different files AND in different virtual environments, so nothing else checks that they
+    agree; read from the worker's SOURCE because docling is not installed here."""
+    src = (Path(D.__file__).parent / "docling_worker.py").read_text(encoding="utf-8")
+    assert '"--page-batch"' in src and '"--free-cache"' in src, "the worker lost a VRAM knob"
+    assert '"page_batch_size": _page_batch_size()' in src, (
+        "the metrics row stopped recording the page batch; a peak with no setting beside it "
+        "cannot be compared with another run's")
+
+
 def test_metrics_row_without_a_peak_rss_is_refused(tmp_path, monkeypatch):
     """Design §14: a run with no peak-RSS measurement is not a measured run."""
     monkeypatch.setattr(D, "run", lambda *a, **k: [{"status": "ok", "peak_rss_bytes": 0,

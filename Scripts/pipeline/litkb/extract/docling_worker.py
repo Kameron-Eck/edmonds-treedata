@@ -52,12 +52,27 @@ def _accelerator(num_threads, device):
 
 
 def build_converter(ocr=False, ocr_engine=None, tables=True, formula=False,
-                    num_threads=4, device="cpu", ocr_backend=None):
-    """One DocumentConverter, configured once and reused for every job in the batch."""
+                    num_threads=4, device="cpu", ocr_backend=None, page_batch=None):
+    """One DocumentConverter, configured once and reused for every job in the batch.
+
+    ``page_batch`` caps how many pages the pipeline holds in flight at once
+    (``docling.datamodel.settings.settings.perf.page_batch_size``, default 4). It is the VRAM
+    knob: the models are loaded once, but their activations are per page in the batch, so the
+    peak scales with it. See :data:`litkb.extract.docling.OCR_PAGE_BATCH` for the measurement
+    that fixes the value this pipeline passes when OCR is on.
+
+    It is a process-wide SETTING rather than a pipeline option in docling 2.127.0, which is why
+    it is set here — beside the converter it governs — and recorded in every metrics row: a
+    number the run did not record is a number the next reader has to guess at."""
     from docling.datamodel.base_models import InputFormat
     from docling.datamodel.pipeline_options import PdfPipelineOptions
+    from docling.datamodel.settings import settings
     from docling.document_converter import DocumentConverter, PdfFormatOption
 
+    # BEGIN guard: the page batch is capped before the converter is built
+    if page_batch:
+        settings.perf.page_batch_size = int(page_batch)
+    # END guard: the page batch is capped before the converter is built
     opts = PdfPipelineOptions()
     opts.do_ocr = bool(ocr)
     opts.do_table_structure = bool(tables)
@@ -206,6 +221,10 @@ def run_job(conv, job, opts, sample_rss=True):
         "formula": bool(opts.do_formula_enrichment),
         "num_threads": opts.accelerator_options.num_threads,
         "device": str(opts.accelerator_options.device),
+        # The VRAM knob, recorded on every row because the peak it produced is meaningless
+        # without it: 3,881 MiB at page_batch_size 4 and a smaller number at 2 are the same
+        # pipeline, and a reader comparing two runs has no other way to tell them apart.
+        "page_batch_size": _page_batch_size(),
         "out": job.get("out"),
         "started_at": time.strftime("%Y-%m-%dT%H:%M:%S", time.gmtime(t0)),
         "host": "local-windows",
@@ -218,6 +237,32 @@ def _docling_version():
         return version("docling")
     except Exception:  # noqa: BLE001
         return "unknown"
+
+
+def _page_batch_size():
+    try:
+        from docling.datamodel.settings import settings
+        return int(settings.perf.page_batch_size)
+    except Exception:  # noqa: BLE001 — a metrics field must never kill the run
+        return None
+
+
+def _free_cuda_cache():
+    """Return torch's cached-but-unused CUDA blocks to the driver. -> (reserved_before, after).
+
+    torch's caching allocator never gives a block back on its own, so in a batch process the
+    reserved pool is a HIGH-WATER MARK of every document the process has converted — which is
+    what `nvidia-smi` reports, and what the 20 % headroom rule is written against. Between
+    documents nothing in the pool is live, so this is free to call and changes no result."""
+    try:
+        import torch
+        if not torch.cuda.is_available():
+            return None, None
+        before = torch.cuda.memory_reserved()
+        torch.cuda.empty_cache()
+        return before, torch.cuda.memory_reserved()
+    except Exception:  # noqa: BLE001 — freeing a cache must never kill the run
+        return None, None
 
 
 def main(argv=None):
@@ -236,6 +281,12 @@ def main(argv=None):
     ap.add_argument("--formula", action="store_true")
     ap.add_argument("--threads", type=int, default=4)
     ap.add_argument("--device", default="cpu")
+    ap.add_argument("--page-batch", type=int, default=0,
+                    help="cap docling's settings.perf.page_batch_size (0 = leave its default of "
+                         "4). This is the VRAM knob; see docling.OCR_PAGE_BATCH")
+    ap.add_argument("--free-cache", action="store_true",
+                    help="return torch's cached CUDA blocks to the driver after each document; "
+                         "this is the VRAM knob that moved the peak (see docling.OCR_FREE_CACHE)")
     ap.add_argument("--no-rss", action="store_true")
     a = ap.parse_args(argv)
 
@@ -245,7 +296,7 @@ def main(argv=None):
     t_load = time.time()
     conv, opts = build_converter(ocr=a.ocr, ocr_engine=a.ocr_engine, tables=not a.no_tables,
                                  formula=a.formula, num_threads=a.threads, device=a.device,
-                                 ocr_backend=a.ocr_backend)
+                                 ocr_backend=a.ocr_backend, page_batch=a.page_batch or None)
     build_s = time.time() - t_load
 
     cold = None
@@ -259,6 +310,10 @@ def main(argv=None):
             m = run_job(conv, job, opts, sample_rss=not a.no_rss)
             m["converter_build_seconds"] = round(build_s, 3)
             m["warmup_seconds"] = cold
+            # BEGIN guard: the cached CUDA pool is returned between documents
+            if a.free_cache:
+                m["cuda_reserved_before_free"], m["cuda_reserved_after_free"] = _free_cuda_cache()
+            # END guard: the cached CUDA pool is returned between documents
             mh.write(json.dumps(m, sort_keys=True) + "\n")
             mh.flush()
             print(json.dumps({k: m[k] for k in

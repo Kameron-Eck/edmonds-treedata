@@ -286,10 +286,33 @@ def _frame(page, praw, name, number, error=None):
     if media is None:
         raise (error or InventoryError)(f"{name} page {number} has no mediabox; "
                                         "the §7.1 frame cannot be established")
+    # BEGIN guard: the cropbox shift is never negative
+    # A `/CropBox` may extend PAST the `/MediaBox`, and then `media.y1 - crop.y1` is NEGATIVE — but
+    # no renderer shows that region: PDF 32000-1 §14.11.2 says a viewer INTERSECTS the two boxes, so
+    # the page pypdfium2 measures characters on, and the page Docling lays out, is the intersection.
+    # The effective shift there is 0 and the raw negative moves every block off its own text.
+    #
+    # Measured before the clamp was made (Reports/LITKB_P5_BULK_2026-09-16.md §6.2): all sixteen
+    # cropped-page coverage failures of the 225-document bulk pass are this one cause.
+    #   Higham_2011_pth-roots-stochastic-matrices  dy = -111.6 on all 16 pages
+    #       min character share 0.3049, 15 pages below the 0.80 floor
+    #       -> clamped: 0.9898, 0 pages below
+    #   Efron_1986_how-biased-apparent-error-rate  dy = -0.48 … -3.36 on 4 pages
+    #       min 0.7457, 1 page below -> clamped: 0.9851, 0 below
+    # Nothing else in the corpus moves: 269 of the 285 cropped pages have dy >= 0 and are unchanged
+    # by max(), which is the point of a clamp rather than an abs() or a re-derivation.
+    #
+    # `dx` is NOT clamped, deliberately. The same argument would apply to a cropbox extending past
+    # the LEFT edge, but no such page has been measured — every dx in the corpus is >= 0
+    # (qc/instruments/litkb_cropbox_census.py, phase4/qc/litkb_cropbox_census.csv) — and a clamp
+    # with no failing input behind it is a gate that has never been shown to fire (CLAUDE.md §3.4c).
+    # When one appears, measure it and widen this.
+    dy = max(round(media[3] - crop[3], 4), 0.0)
+    # END guard: the cropbox shift is never negative
     return {
         "mediabox": list(media), "cropbox": list(crop),
         "rotation": int(praw.FPDFPage_GetRotation(page.raw)),
-        "dx": round(crop[0] - media[0], 4), "dy": round(media[3] - crop[3], 4),
+        "dx": round(crop[0] - media[0], 4), "dy": dy,
     }
 
 

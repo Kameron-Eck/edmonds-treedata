@@ -866,13 +866,69 @@ def worker_available(python=None):
     return os.path.exists(python or VENV_PYTHON) and os.path.exists(WORKER)
 
 
+# ── the VRAM knobs, and which of them the measurement kept ────────────────────────────────
+#
+# THE PROBLEM. The 20 % headroom rule (design §12) means <= 3,277 MiB of the T2000's 4,096. P5's
+# bulk pass measured **3,881 MiB, 94.8 %** on its OCR batch (Reports/LITKB_P5_BULK_2026-09-16.md
+# §7) — 215 MiB free on a card that also drives the display, within 40 MiB of the 178 MiB
+# LITKB_DOCLING_LOCAL §8.3 measured for the formula pass and called the finding. It did not fail;
+# it was one open application away from failing.
+#
+# Re-measured here over P5's own batch B (15 documents, 312 pages, `ocr=on`, CUDA), 1 Hz
+# `nvidia-smi`, idle 387 MiB. Every number below is a run, not an argument:
+#
+#   page_batch_size 4 (docling's default)  3,873 MiB  94.6 %   445.1 s   <- P5's 3,881 reproduces
+#   page_batch_size 2                      3,842 MiB  93.8 %   431.9 s
+#   page_batch_size 1                      3,893 MiB  95.0 %   440.6 s
+#   free_cache between documents           3,475 MiB  84.8 %   436.4 s
+#   4 documents per converter PROCESS      2,619 MiB  63.9 %   483.7 s   <- inside the rule
+#
+# **`page_batch_size` does not move the peak** — the knob named for this job, measured three
+# times, is flat inside noise. What dominates is not the per-page activations it governs: it is
+# the resident models plus torch's CACHED POOL, which the allocator never returns on its own, so
+# in a batch process the reserved pool is a high-water mark over every document that process has
+# converted (measured: 3,344 MiB reserved, 468 MiB after a free). That is why returning the pool
+# between documents buys 398 MiB, and why ending the PROCESS buys 1,254: a process exit returns
+# the models too.
+#
+# So the cap that lands under the rule is a cap on DOCUMENTS PER CONVERTER PROCESS, and it costs
+# 9.7 % of the rate in converter rebuilds. `page_batch` stays available and is recorded on every
+# metrics row, because a peak with no setting beside it cannot be compared with another run's —
+# but it is NOT applied by default, on the measurement above.
+#
+# One more thing the measurement changed: on a real SCAN (Anderson 1957, 22 image-only pages, the
+# input the fix was asked for) the OCR pass peaks at **1,806 MiB / 44.1 %** — inside the rule
+# without any knob at all. The breach is a property of a LONG BATCH, not of OCR on scans.
+
+#: Applied when `ocr=True` and nothing was asked for. 0 = leave docling's own default of 4, which
+#: is what the three rows above say makes no difference.
+OCR_PAGE_BATCH = 0
+
+#: Applied when `ocr=True`: return torch's cached pool between documents. 398 MiB, at no cost in
+#: rate (436.4 s vs 445.1 s, inside run-to-run noise), and nothing in the pool is live between
+#: documents so it changes no result.
+OCR_FREE_CACHE = True
+
+#: Documents per converter PROCESS on the OCR pass — the cap that actually reaches the headroom
+#: rule (2,619 MiB, 63.9 %). Read by the bulk driver's OCR batch; the layout batch keeps its own
+#: larger chunk, because batch A peaked at 2,317 MiB / 56.6 % and is inside the rule already.
+OCR_CHUNK = 4
+
+
 def run(jobs, metrics_path, python=None, warmup=None, warmup_pages=1, ocr=False,
         ocr_engine=None, ocr_backend=None, tables_on=True, formula=False, threads=4,
-        device="cpu", timeout=7200, cwd=None):
+        device="cpu", timeout=7200, cwd=None, page_batch=None, free_cache=None):
     """Run the worker over a job list in the extraction venv. -> [metrics dict].
 
     ``jobs`` is ``[{"pdf":…, "out":…, "pages":[lo,hi]}, …]``; the worker writes one
     DoclingDocument JSON per job and appends one metrics row per job to ``metrics_path``.
+
+    ``page_batch`` and ``free_cache`` are the two VRAM knobs; the block above them measures what
+    each is worth. Leaving either ``None`` with ``ocr=True`` applies :data:`OCR_PAGE_BATCH` and
+    :data:`OCR_FREE_CACHE` — the headroom breach is a property of the OCR pass, not of a caller
+    remembering to ask. Passing ``0``/``False`` opts out explicitly, which is what the
+    measurement that fixed the constants had to do: a constant no run can be made without is a
+    constant nobody can re-derive.
 
     ``cwd`` defaults to the directory holding the metrics file, NOT to the caller's — see
     the worker's docstring: a ``secrets`` directory on ``sys.path[0]`` breaks numpy's import
@@ -900,6 +956,18 @@ def run(jobs, metrics_path, python=None, warmup=None, warmup_pages=1, ocr=False,
             cmd += ["--ocr-engine", ocr_engine]
         if ocr_backend:
             cmd += ["--ocr-backend", ocr_backend]
+    # BEGIN guard: the OCR pass runs under the measured VRAM knobs
+    # `is None` and not falsy: 0 / False are the deliberate opt-outs that let the measurement run
+    # at the tool's own defaults, and `if not page_batch` would silently turn that into the cap.
+    if page_batch is None and ocr:
+        page_batch = OCR_PAGE_BATCH
+    if free_cache is None and ocr:
+        free_cache = OCR_FREE_CACHE
+    if page_batch:
+        cmd += ["--page-batch", str(int(page_batch))]
+    if free_cache:
+        cmd.append("--free-cache")
+    # END guard: the OCR pass runs under the measured VRAM knobs
     if not tables_on:
         cmd.append("--no-tables")
     if formula:

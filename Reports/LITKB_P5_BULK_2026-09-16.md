@@ -1226,15 +1226,30 @@ that shows.
 | kill | fired? | evidence |
 |---|---|---|
 | a URL that serves HTML is refused `not-a-pdf` and quarantined | **YES** | row **H1**, `test_a_url_that_serves_html_is_refused_and_the_bytes_are_quarantined`: the mutation removes the shape check and the test fails. The bytes and a `.reason.json` are kept; `filed/` stays empty |
-| a second hunt of the same URL is `already-extracted`, no new run | **YES** | row **H2** (2 tests fail). Also **live**, §B: 0.55 s, same run id. The injected fetch RAISES, so the test asserts more than "no new run" |
-| a hunt with no workstream token is refused | **YES** | row **H3** (7 tests fail); refused before the database, the network and the GPU |
+| a second hunt of the same URL is `already-extracted`, no new run | **YES** | row **H2** (3 tests fail). Also **live**, §B: 0.55 s, same run id. The injected fetch RAISES, so the test asserts more than "no new run" |
+| a hunt with no workstream token is refused | **YES** | row **H3** (8 tests fail); refused before the database, the network and the GPU |
 | a DOI hunt for a work already extracted returns `extracted` instantly | **YES** | row **H2**, second test — the same guard through the other identifier, normalised by `litkb.norm_identifier`, so `https://doi.org/10.9999/X` reaches a bare-DOI work |
+| a DOI hunt for a work already **held** stops at `held` and admits nothing again | **YES** | row **H2**, third test — see below; the rung that was WRONG in the first version of this code |
 | a hunt with invisible-character labels is refused | **YES** | row **H4** (3 tests fail) — added because the MCP wrapper's own `_labels` call would have been a SECOND copy of the rule |
 
 `py -3.12 qc/instruments/litkb_p2_mutations.py --only H1,H2,H3,H4`: **4/4 fired**, baselines passed
-before and after, `hunt.py` restored by sha256 `19ae4b0d9ffab982…`, `match: True` after every row.
+before and after, `hunt.py` restored by sha256 `7e65438cc51846d1…`, `match: True` after every row.
 Self-checks in the same run: **92 call sites, 89 covered by a row, 3 equivalent; 21 sinks, 2
 redacted, 19 allowed.**
+
+**Two defects the checks found in this code before it was pushed**, recorded because a gate that is
+never reported as firing is not known to work:
+
+* **The `held` rung fell through.** The first version short-circuited on `extracted` and on
+  `bound-unextracted` and not on `held` — so a second hunt of a DOI that is admitted with no bound
+  file would have re-admitted it, and check 2 would have refused it as a DUPLICATE. A session that
+  hunted the same DOI twice would have been told, on the second call, that its own work belonged to
+  somebody else. Fixed INSIDE the H2 block, so the row covers it, with a test of its own.
+* **`hunt.py` sat outside the no-delete scan.** `qc/test_litkb_p2.py` globs `litkb/acquire/` and
+  `litkb/admit/`, and its companion census — which exists precisely to catch a module that reaches
+  the store from anywhere else — failed on the first full ladder run. `hunt.py` lands, files and
+  quarantines through the Store, so it is now in `_SCANNED_FILES` and both halves read one file
+  list (`_scanned_sources()`). The census fired on real code the day it was written for.
 
 ## D. `CORPUS_PARAMS` moved, and why it had to
 
@@ -1243,8 +1258,15 @@ key — `reconcile.PIPELINE_VERSION` plus `ingest.params_hash(params)` — so a 
 would have made every hunted file a different extraction from the corpus around it while looking
 identical, and a later bulk pass would have re-ingested it. The constant is now
 `litkb.extract.ingest.CORPUS_PARAMS`, and the driver reads it from there
-(`P5_PARAMS = _ING.CORPUS_PARAMS`). Verified, not assumed: the hunted run carries
-`params_hash 48f12f0eff6a3e7e`, which is the corpus's own.
+(`P5_PARAMS = _ING.CORPUS_PARAMS`). Verified, not assumed — grouping every file's CURRENT run by
+key returns exactly one row:
+
+| `params_hash` | `pipeline_version` | files |
+|---|---|--:|
+| `48f12f0eff6a3e7e` | `stage5-3` | **230** |
+
+229 of those are the corpus; the 230th is this document. A hunted file is the same extraction as the
+corpus around it, and a bulk pass over it would find its run already `ok` and do nothing.
 
 ## E. Did NOT test
 
@@ -1252,9 +1274,12 @@ identical, and a later bulk pass would have re-ingested it. The constant is now
 * **`litkb_hunt` over a real MCP session.** The tool is in the surface and in `EXPECTED_TOOLS`, and
   its no-token refusal is in the P8 parametrised kill; no test CALLS it end to end, because that
   would start a subprocess that downloads and converts.
-* **A DOI hunt that admits and then stops at `held`.** The path is written and returns
-  `ok: true, state: held` with the `no-file` next move in `refusals`; no test and no live run
-  exercises it, because admitting a real DOI spends a registry call and a work.
+* **A DOI hunt that ADMITS and then stops at `held`.** The rung is tested where a work is ALREADY
+  held (§C, third row); the branch that admits a fresh DOI and then stops is written and not
+  exercised, because admitting a real DOI spends a registry call and a work.
+* **The `bound-unextracted` resume branch.** A hunt of a work whose PDF is bound and unextracted
+  goes straight to `_finish` and resolves the file under `LITERATURE_ROOT`. Neither the live run nor
+  any test took that path — the live document was bound and extracted in one call.
 * **The `truncated-pdf` half of H1's guard.** Only `not-a-pdf` was planted.
 * **Approval.** The admission is left `proposed`, per the brief, so the work is invisible to
   `litkb_search` and nothing in the promotion chain was exercised.
@@ -1264,6 +1289,15 @@ identical, and a later bulk pass would have re-ingested it. The constant is now
   in `fields.from` where each value came from, and refuses `incomplete-record` naming the flag
   rather than inventing an author.
 * **A referee.** Every number above was produced by the author of the code (CLAUDE.md §3.4c).
+
+## E.1 The ladder
+
+`PYTHONUTF8=1 LITKB_TEST_DB=litkb_test_w1 py -3.12 qc/check.py --fast` on the final tree:
+**1 failed, 3,107 passed, 25 skipped, 2 xfailed, 618.3 s**; litkb Postgres tests **385 passed, 3
+skipped**. The one failure is the known pre-existing
+`test_experiments.py::test_pointer_paths_resolve[crown_state_model]`. (3,104 on the run before this
+section's fixes: the three new tests are the `held` rung and the two halves of the label refusal
+that the parametrisation adds.) `secrets`, `ruff` and `compile` passed.
 
 ## F. Blockers for the next step
 
@@ -1287,8 +1321,9 @@ Logic Design Project aiming to implement a convolutional neural network on an FP
 **Network and dataset.** *"The Project is an implementation of the leNet-5 CNN architecture"* (p4):
 three 5×5 convolution layers (p5), two average-pooling layers (p8), tanh between layers (p6), a
 10-class SoftMax last (p7). **No dataset is named anywhere in the ingested text** — "MNIST",
-"dataset" and "training" return zero blocks. The geometry is MNIST-shaped (28×28, ten outputs,
-pp7, 21), and that is an inference, not something the document says.
+"dataset" and "training" return zero blocks. The geometry the document does give is a 32×32 input
+with a 28×28 first-conv output (p21) and ten classes (p7), which is MNIST-shaped; that last step is
+an inference, not something the document says.
 
 **Precision.** IEEE floating point, narrowed under pressure: the receptive-field array held *"196000
 (=28*28*25) values (each one represented by 32 bits)"* (p24), then *"Architecture 5: Sequential

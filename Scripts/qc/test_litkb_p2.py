@@ -208,16 +208,17 @@ def _delete_offenders(paths):
 
 
 def test_acquisition_and_admission_code_hold_no_delete_path():
-    """The 2026-09-12 loss of 149 PDFs: no acquisition or admission module may delete, move over, truncate or
-    overwrite a file. Seven lines carry an explicit `store-scan: allow`: the hash-index cache's write and replace
-    and the audit CSV (outside the literature store), and the four shutil.move calls of the ported aa_fetch filing
-    path in annas.py (each behind an exists-loop or an exists-refusal, and fetch_one refuses any destination outside
-    _litkb_staging)."""
-    files = sorted((PIPELINE / "litkb" / "acquire").glob("*.py")) + sorted((PIPELINE / "litkb" / "admit").glob("*.py"))
-    assert len(files) >= 8, files
+    """The 2026-09-12 loss of 149 PDFs: no module that can write in the literature store may delete, move over,
+    truncate or overwrite a file. Eight lines carry an explicit `store-scan: allow`: the hash-index cache's write
+    and replace and the audit CSV (outside the literature store), the four shutil.move calls of the ported aa_fetch
+    filing path in annas.py (each behind an exists-loop or an exists-refusal, and fetch_one refuses any destination
+    outside _litkb_staging), and hunt.py's page-1 snapshot, written into the DERIVED directory outside the
+    literature root and then landed under _litkb_staging/web/ by the store itself."""
+    files = _scanned_sources()
+    assert len(files) >= 9, files
     assert _delete_offenders(files) == []
     allowed = [ln for f in files for ln in f.read_text(encoding="utf-8").splitlines() if "store-scan: allow" in ln]
-    assert len(allowed) == 7, allowed
+    assert len(allowed) == 8, allowed
 
 
 _SCAN_PROBES = {
@@ -250,12 +251,25 @@ def test_the_no_delete_scan_fires_on_every_forbidden_form(tmp_path, form):
 # ── the store's own writers: the scan above is a gate only while its file list is complete ──
 
 _SCANNED_DIRS = ("acquire", "admit")          # the globs test_acquisition_and_admission_code_hold_no_delete_path reads
+#: Modules OUTSIDE those directories that can write in the store, and are therefore read by the same scan.
+#: `hunt.py` (2026-09-16) lands a download in `_litkb_staging/incoming`, moves it to `filed/` and quarantines
+#: bytes that are not a whole PDF — every one of those through the Store, and every one of them a place the
+#: next `rm -f` could go. A file here is scanned; a file that reaches the store and is in NEITHER list fails
+#: the census below, which is what makes this a gate rather than a habit.
+_SCANNED_FILES = ("hunt.py",)
 _STORE_READ_ONLY = {
     "migrate_legacy/sources.py":
         "imports LITERATURE_ROOT to BUILD READ paths under the topic folders (<topic>/manifest.csv, "
         "<topic>/<stem>.pdf) for the legacy loader. It opens nothing for writing and _delete_offenders reports no "
         "call in it at all, so no delete path can hide there.",
 }
+
+
+def _scanned_sources():
+    """The one file list both halves of the gate read: the scanned directories plus the named files."""
+    pkg = PIPELINE / "litkb"
+    return (sorted(p for d in _SCANNED_DIRS for p in (pkg / d).glob("*.py"))
+            + sorted(pkg / f for f in _SCANNED_FILES))
 
 
 def _store_strings_and_imports(path):
@@ -286,11 +300,12 @@ def test_the_no_delete_scan_reads_every_module_that_can_write_in_the_store():
     """The scan above reads litkb/acquire/*.py and litkb/admit/*.py, and that list is a gate only while it is
     COMPLETE: a module that landed, filed or quarantined a download from anywhere else in the package would sit
     outside it and could hold the next rm. Measured here, from the sources: the only modules reaching the store's
-    own paths in code are acquire/{store,run,annas}.py and admit/front.py — all scanned — plus
-    migrate_legacy/sources.py, which builds read paths and writes nothing. The _litkb_staging/incoming handlers in
-    particular (store.land / store.quarantine_new, run.land_and_attach / run.acquire) are all in acquire/."""
+    own paths in code are acquire/{store,run,annas}.py, admit/front.py and hunt.py — all scanned — plus
+    migrate_legacy/sources.py, which builds read paths and writes nothing. The _litkb_staging/incoming handlers
+    are store.land / store.quarantine_new and run.land_and_attach / run.acquire in acquire/, and hunt.land_download
+    / hunt.file_under_key, which is why hunt.py is in _SCANNED_FILES and not merely explained here."""
     pkg = PIPELINE / "litkb"
-    scanned = {p.resolve() for d in _SCANNED_DIRS for p in (pkg / d).glob("*.py")}
+    scanned = {p.resolve() for p in _scanned_sources()}
     outside = [p for p in sorted(pkg.rglob("*.py"))
                if p.resolve() not in scanned and _store_strings_and_imports(p)]
     rel = sorted(p.relative_to(pkg).as_posix() for p in outside)

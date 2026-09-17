@@ -62,6 +62,15 @@ STATES = ("absent", "held", "bound-unextracted", "extracted")
 #: Block types that read as a heading when the result shows what the document turned out to be.
 HEADING_KINDS = ("title", "heading")
 
+#: The next move for a work that is admitted with no file. ONE sentence, said at both places a hunt
+#: can reach that rung — the admission it just made, and the one it found already there — because a
+#: session that hunts the same DOI twice must be told the same thing twice.
+NO_FILE = ("the work is admitted and no PDF is bound to it, so there is nothing to extract. Run "
+           "`litkb acquire --key <key>` (open access, then the archive, then Sci-Hub) or "
+           "`--from-file <PDF>`, then hunt the reference again — the second hunt picks up at the "
+           "bound file. Choosing an acquisition route is a SPEND, and a hunt does not make one "
+           "unasked.")
+
 
 class HuntRefused(Exception):
     """A refusal is a RESULT (mcp/server.py's rule): the caller must be able to read what was
@@ -454,6 +463,14 @@ def _hunt(ref, out, timing, refusals, *, db, worktree, agent, session, title, au
                       "refusals": refusals, "seconds": timing,
                       "note": "held and extracted already; nothing was fetched, converted or "
                               "written."} | _report(db, ws_id, held, reader_role)
+    # `held` — admitted with no bound file — stops here for the same reason, and it is the rung
+    # that is easiest to get wrong: falling through would re-admit a work this knowledge base
+    # already holds, and check 2 would refuse it with a message about a DUPLICATE, so a second
+    # hunt of a DOI would report a collision instead of the state it is in.
+    if held and held["state"] == "held":
+        refusals.append({"code": "no-file", "message": NO_FILE})
+        return out | {"ok": True, "state": "held", "outcome": "held", "refusals": refusals,
+                      "seconds": timing} | _report(db, ws_id, held, reader_role)
     # END guard: hunt answers from the database before it fetches anything
 
     if held and held["state"] == "bound-unextracted" and extract:
@@ -489,15 +506,9 @@ def _hunt(ref, out, timing, refusals, *, db, worktree, agent, session, title, au
                                   admission=_thin(res))
             out["admission"] = _thin(res)
             # A DOI with no bound file stops HERE, and says so as a STATE rather than an error:
-            # the work is admitted, which is progress, and what is missing is a PDF. Choosing an
-            # acquisition route is a spend (the archive's rolling quota, Sci-Hub) and a hunt does
-            # not make one unasked — `litkb acquire` owns that decision and records every attempt.
-            refusals.append({
-                "code": "no-file",
-                "message": "the DOI is admitted and no PDF is bound to it, so there is nothing "
-                           "to extract. Run `litkb acquire --key <key>` (open access, then the "
-                           "archive, then Sci-Hub) or `--from-file <PDF>`, then hunt the DOI "
-                           "again — the second hunt picks up at the bound file."})
+            # the work is admitted, which is progress, and what is missing is a PDF. `litkb
+            # acquire` owns the route decision and records every attempt.
+            refusals.append({"code": "no-file", "message": NO_FILE})
             return out | {"ok": True, "state": "held", "outcome": "admitted",
                           "refusals": refusals, "seconds": timing} | _report(
                               db, ws_id, {"work_id": str(res["work_id"])}, reader_role)
@@ -530,7 +541,11 @@ def _hunt(ref, out, timing, refusals, *, db, worktree, agent, session, title, au
         out["downloaded"]["filed"] = store.rel(pdf)
         snap = Path(derived or DERIVED) / f"{stem}.page1.txt"
         snap.parent.mkdir(parents=True, exist_ok=True)
-        snap.write_text(text, encoding="utf-8", newline="\n")
+        # The DERIVED directory is outside the literature root: `admit_web` lands the durable copy
+        # under `_litkb_staging/web/` through the store's own guarded write, and this is only the
+        # scratch file handed to it. Nothing in the store is touched by this line.
+        snap.write_text(  # store-scan: allow (outside the literature root; see above)
+            text, encoding="utf-8", newline="\n")
 
         t0 = time.monotonic()
         res = front.admit_web(writer, ws_id, token, title=t, authors=a, year=y, url=ref,

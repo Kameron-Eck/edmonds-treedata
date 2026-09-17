@@ -77,8 +77,10 @@ def _hunt(env, ref, **kw):
                   **kw)
 
 
-def seed_extracted(conn, ws_id, scheme, value, *, text="A seeded block."):
-    """A work with an identifier, a bound file, an `ok` run and one block — the `extracted` rung.
+def seed_extracted(conn, ws_id, scheme, value, *, text="A seeded block.", state="extracted"):
+    """A work with an identifier, and — at `state="extracted"` — a bound file, an `ok` run and one
+    block. `state="held"` stops after the identifier, which is the rung a DOI reaches when it is
+    admitted and no PDF has been found for it.
 
     Written as FACTS through `_write_version`, the way `qc/test_litkb_p8.py::_seed_work_state`
     does: admission is one work per identifier across the whole knowledge base, and a test that
@@ -96,6 +98,8 @@ def seed_extracted(conn, ws_id, scheme, value, *, text="A seeded block."):
         (_jsonb({"scheme": scheme}),
          _jsonb({"work_id": str(work_id), "value": value, "verified_by": "manual",
                  "evidence": {}, "status": "active"}), ws_id))
+    if state == "held":
+        return {"key": key, "work_id": str(work_id), "file_id": None, "run_id": None}
     file_id, _fv = conn.execute(
         "SELECT entity_id, version_id FROM litkb._write_version('fact', 'file', NULL, %s, NULL, %s, "
         "NULL, %s, 'hunt-seed', 'hunt-seed')",
@@ -127,6 +131,10 @@ def test_a_url_that_serves_html_is_refused_and_the_bytes_are_quarantined(env):
     of an error page were written as `IFLA_2017_library-reference-model.pdf` and then `rm -f`'d to
     free the name. Nothing is deleted here: the refusal names where the bytes went and why."""
     url = f"https://example.org/{uuid.uuid4().hex}.pdf"
+    # BEFORE/after, never an absolute count: `litkb_test` is reset once per pytest SESSION and every
+    # module in it shares the database, so `extraction_runs` is not empty when this test starts and
+    # asserting it is measures the module order, not the guard.
+    before = _runs(env["conn"])
     res = _hunt(env, url, fetch=lambda u, timeout=180: (200, HTML), key="Html_2026_not-a-paper")
     assert res["ok"] is False and res["refused"] == "not-a-pdf", res
     q = env["root"] / "_quarantine"
@@ -137,7 +145,7 @@ def test_a_url_that_serves_html_is_refused_and_the_bytes_are_quarantined(env):
     assert "they look like HTML" in why["reason"], why
     # nothing landed under a name a later pass would read as a paper
     assert not list((env["root"] / "_litkb_staging" / "filed").glob("*")), "an HTML body was filed"
-    assert _runs(env["conn"]) == 0
+    assert _runs(env["conn"]) == before
 
 
 # ── kill 2 and 4: the database answers before anything is fetched ─────────────────────────
@@ -185,6 +193,25 @@ def test_a_doi_hunt_for_an_extracted_work_returns_extracted_with_no_new_run(env)
     assert res["ok"] is True and res["state"] == "extracted", res
     assert res["outcome"] == "already-extracted" and res["work_key"] == seeded["key"], res
     assert _runs(env["conn"]) == before
+
+
+@pg_only
+def test_a_doi_hunt_for_a_work_already_held_stops_at_held_and_admits_nothing_again(env):
+    """The same guard's third rung, and the one that bites hardest if it is missing: a DOI that is
+    ADMITTED with no bound file. Falling through re-admits a work the knowledge base already holds,
+    and check 2 refuses it as a DUPLICATE — so a session that hunts the same DOI twice would be
+    told, on the second call, that its own work belongs to somebody else. The right answer is the
+    state it is in, with the next move (`litkb acquire`) in `refusals`."""
+    doi = f"10.9999/held.{uuid.uuid4().hex[:10]}"
+    seeded = seed_extracted(env["conn"], env["ws_id"], "doi", doi, state="held")
+    n = lambda: env["conn"].execute("SELECT count(*) FROM litkb.admissions").fetchone()[0]  # noqa: E731
+    before = n()
+    res = _hunt(env, doi, fetch=_explode, registry_client=_NoNet())
+    assert res["ok"] is True and res["state"] == "held" and res["outcome"] == "held", res
+    assert res["work_key"] == seeded["key"] and res["files"] == [], res
+    assert [r["code"] for r in res["refusals"]] == ["no-file"], res
+    assert "litkb acquire" in res["refusals"][0]["message"], res
+    assert n() == before, "a hunt of an already-held DOI admitted it a second time"
 
 
 # ── kill 3: no workstream token ───────────────────────────────────────────────────────────

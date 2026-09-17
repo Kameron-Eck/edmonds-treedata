@@ -49,7 +49,7 @@ apart.** Its `state` is one of:
 |---|---|---|
 | `absent` | no such work is admitted in main's view | step 2 — admit it |
 | `held` | admitted, **no file bound** — the PDF may well be on disk already | step 3 — `litkb_acquire(key=…, from_file=…)` binds a PDF you have; don't re-fetch |
-| `bound-unextracted` | a PDF is bound but never extracted, so search cannot see one word of it | **do not fetch it again.** Extraction is the P5 bulk path, not an MCP tool — say so and move on |
+| `bound-unextracted` | a PDF is bound but never extracted, so search cannot see one word of it | **do not fetch it again.** `litkb_hunt(ref=…)` extracts and ingests that file; the P5 bulk path does the corpus |
 | `extracted` | N blocks are searchable | quote from a `block_id` `litkb_search` returns |
 
 Two of those four used to be indistinguishable from "not held" — a session either re-fetched a
@@ -93,6 +93,30 @@ committed. You do not handle it; the server reads it from the file.
 `litkb_ws_status()` at any point: what has been admitted, what was attempted, what is proposed.
 
 Nothing you write reaches other sessions until Kam merges the branch. That is deliberate.
+
+---
+
+## 1a. Or do steps 2, 3 and the extraction in one call — `litkb_hunt`
+
+`litkb_hunt(ref="10.…" | "https://…/doc.pdf", title="…", author="…", year=…)` runs resolve → admit →
+bind → extract → ingest without an operator between them, and returns the state it reached, the
+blocks by kind, the coverage, the first headings, the seconds per stage and every refusal with its
+reason. It answers from the database FIRST: a reference already extracted comes back with its run
+having fetched, converted and written nothing, so calling it twice is safe and costs a round trip.
+
+Where it stops, and why that is not a failure:
+
+- **a DOI** is admitted and then stops at `held`, because choosing an acquisition route is a SPEND.
+  The next move is in `refusals`: `litkb_acquire(key=…)`, or `from_file=…` for a PDF you have. Hunt
+  the DOI again afterwards and it picks up at the bound file.
+- **a URL** is a web source with no registry to ask, so **pass `title` and `author`** — a PDF's own
+  `/Title` usually names the file, not the work. It is admitted as a manual PROPOSAL with the URL,
+  the retrieval date and the document's own first-page text, and its blocks are real and ingested
+  but **invisible to `litkb_search` until a SECOND session approves the admission**. The result says
+  so every time; quote it through the `block_id`, which `litkb_record_use` accepts.
+
+Steps 2-4 below are still the way to drive each stage on its own, and what step 4 does is not part
+of a hunt: a hunt gets the text in, and recording what the work SUPPLIES is yours.
 
 ---
 

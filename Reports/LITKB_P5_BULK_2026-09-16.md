@@ -1139,3 +1139,183 @@ the pre-existing canopy-side pointer the delta names as the only permitted failu
   deliberate operation somebody has to choose.
 
 *Appended by Claude Opus 5, session https://claude.ai/code/session_015MUcyGTfX2koRdYAjW5kED.*
+
+---
+
+# hunt one-shot — `litkb hunt`, and one real document through it — 2026-09-16
+
+Branch `work/20260913-literature-kb`, worktree `D:\edmonds-pipeline\treedata-litkb`, workstream
+**`hunt-test-1`** (`01a0ad54-4a7a-7291-bb8c-02afc132f0c8`). Commit `bea983f`.
+Code: `Scripts/pipeline/litkb/hunt.py`, `commands.py::cmd_hunt`, `mcp/server.py::_hunt`
+(tool `litkb_hunt`), `admit/front.py::web_pdf_evidence` / `admit_web(pdf_path=…)`,
+`extract/ingest.py::CORPUS_PARAMS`. Tests: `qc/test_litkb_hunt.py`. Harness rows **H1-H4**.
+
+**ECONOMY, STATED UP FRONT.** Kam asked for a tight build, so this is deliberately NOT the P5/P8
+treatment: **targeted tests only, and only rows H1-H4 of the harness were run**, not the whole
+table. `--sites` and the sink self-check DID run in full (they are one command and they gate the
+whole package). There is no referee, no gate section and no canary. Everything below is a command
+that ran here.
+
+## A. The thing the plan for this could not have worked
+
+The brief's sequence was: admit the URL as a web-source manual proposal, then **bind the PDF via
+`acquire --from-file`**. That cannot complete, and the reason is one statement of migration 0013
+(`litkb.attach_file`):
+
+> `litkb: work % is not admitted in main; a file attaches only to an admitted work`
+
+A manual admission is written in PROPOSAL mode (0013, `v_mode := CASE p_route WHEN 'registry' THEN
+'fact' ELSE 'proposal' END`), so `works.current_version_id` stays NULL until a SECOND session
+approves it. `main_works` therefore has no row, `acquire.run.work_record` — which reads that view —
+returns None, and `litkb_acquire` answers `not-admitted` for a work this very session just admitted.
+Reaching `attach_file` directly raises. **For a web source the file has to arrive WITH the admission
+or not at all**, and the admission is the one path that writes a file version for a work in proposal
+mode.
+
+So it does. `admit_web(pdf_path=…)` binds the DOCUMENT's own first page through the ordinary binder
+(`front.file_evidence` → `binding.bind_any_with_ocr`, the same call `land_and_attach` makes), and
+the page text is still landed under `_litkb_staging/web/` and recorded on the admission's checks.
+**Nothing was weakened to make this work:** check 3 reads a real text layer on a PDF, which is
+stronger evidence than the saved page text `web_snapshot_evidence` binds, not weaker. The work stays
+a PROPOSAL, and every hunt result says in those words that `litkb_search` cannot see it.
+
+*One deviation from the brief, stated rather than made silently.* The brief says never rename the
+download to `.pdf` — the known `acquire --from-file` dedupe defect. Hunt lands the bytes at
+`_litkb_staging/incoming/<stem>.download` exactly as asked, shape-checks them and reads page 1 from
+that path; it then moves the file to `_litkb_staging/filed/<work key>.pdf`, which is where
+`land_and_attach` files a download that bound. The defect the rule protects against is `acquire`'s
+disk index — it hashes every `*.pdf` under the literature root, found a hand-fetched file's own hash
+and answered `duplicate-held` before binding ran — and **hunt calls no part of that path and builds
+no such index**, so the reason is gone, while three tools are each handed a path and only pypdfium2
+is documented to ignore the extension.
+
+## B. The live run — measured
+
+`py -3.12 -m litkb --dir …\_litkb_ws\hunt-test-1--litkb hunt <raw URL> --title … --author … --year
+2020 --device cuda --docling-python …\venv-docling-cuda\Scripts\python.exe`
+
+| | measured |
+|---|---|
+| work | `Abdulkader_2020_cnn-fpga-implementation-hardware`, `01a0ad55-eb8d-…` |
+| admission | `01a0ad55-ebc2-…`, route **manual**, state **proposed** (no approval; per the brief) |
+| identifier | `url` = the raw GitHub blob, `verified_by: manual`; retrieved 2026-09-17 |
+| file | `_litkb_staging/filed/Abdulkader_2020_….pdf`, sha256 `7bdd142ad01fddd0…`, 9,433,711 B, **62 pages** |
+| binding | ratio **0.8916**, `author_found` / `author_near_title` true, `title_region` true → **bound** |
+| snapshot | `_litkb_staging/web/Abdulkader_2020_….txt`, its own binding **bound** |
+| run | `01a0ad5b-16aa-…`, `5-reconcile` / `litkb-reconcile` / `stage5-3`, `params_hash 48f12f0e…`, **ok** |
+| blocks | **18,064**; native 15,800 / OCR 1,422 / tool 842; docling 17,845, both 113, grobid 106 |
+| by kind | paragraph 17,906, heading 82, figure 56, page_header 8, table 7, equation 2, reference 2, caption 1 |
+| coverage | character share **1.0000 on all 62 pages**; 115,635 native chars, 115,635 covered |
+| page classes | text 49, partial 8, **image-only 5** |
+| disagreements | 33,005; merged regions 1,581; over-merges dropped 27; rotated pages 0 |
+| **wall clock** | resolve 0.25 s · download 1.3 s · admit 0.25 s · **GROBID 48.6 s** · **Docling 112.3 s** · **reconcile 177.1 s** · ingest 29.4 s · **total 371.0 s** |
+
+**The second hunt, live, on the same URL: `already-extracted` in 0.55 s** — same `run_id`, nothing
+fetched, converted or written. That is the idempotence clause on real data rather than on a fixture.
+
+Two numbers worth reading rather than recording. **GROBID contributed 220 regions against Docling's
+19,435, and only 49 matched**: GROBID reads a document as a paper, and this is a 62-page student
+project report whose second half is Vivado screenshots. The reconciliation ran, correctly, on
+Docling's segmentation almost alone. And **four pages hold 72 % of the blocks** — p26 4,061,
+p27 4,056, p62 2,593, p25 2,226 — because a synthesis SCHEMATIC is hundreds of one- or two-word
+labels and each is a region. A block count is not a measure of content, and this document is where
+that shows.
+
+## C. Kills
+
+| kill | fired? | evidence |
+|---|---|---|
+| a URL that serves HTML is refused `not-a-pdf` and quarantined | **YES** | row **H1**, `test_a_url_that_serves_html_is_refused_and_the_bytes_are_quarantined`: the mutation removes the shape check and the test fails. The bytes and a `.reason.json` are kept; `filed/` stays empty |
+| a second hunt of the same URL is `already-extracted`, no new run | **YES** | row **H2** (2 tests fail). Also **live**, §B: 0.55 s, same run id. The injected fetch RAISES, so the test asserts more than "no new run" |
+| a hunt with no workstream token is refused | **YES** | row **H3** (7 tests fail); refused before the database, the network and the GPU |
+| a DOI hunt for a work already extracted returns `extracted` instantly | **YES** | row **H2**, second test — the same guard through the other identifier, normalised by `litkb.norm_identifier`, so `https://doi.org/10.9999/X` reaches a bare-DOI work |
+| a hunt with invisible-character labels is refused | **YES** | row **H4** (3 tests fail) — added because the MCP wrapper's own `_labels` call would have been a SECOND copy of the rule |
+
+`py -3.12 qc/instruments/litkb_p2_mutations.py --only H1,H2,H3,H4`: **4/4 fired**, baselines passed
+before and after, `hunt.py` restored by sha256 `19ae4b0d9ffab982…`, `match: True` after every row.
+Self-checks in the same run: **92 call sites, 89 covered by a row, 3 equivalent; 21 sinks, 2
+redacted, 19 allowed.**
+
+## D. `CORPUS_PARAMS` moved, and why it had to
+
+`P5_PARAMS` lived in `qc/instruments/litkb_p5_bulk.py`. Hunt ingests ONE file through the same run
+key — `reconcile.PIPELINE_VERSION` plus `ingest.params_hash(params)` — so a second copy of that dict
+would have made every hunted file a different extraction from the corpus around it while looking
+identical, and a later bulk pass would have re-ingested it. The constant is now
+`litkb.extract.ingest.CORPUS_PARAMS`, and the driver reads it from there
+(`P5_PARAMS = _ING.CORPUS_PARAMS`). Verified, not assumed: the hunted run carries
+`params_hash 48f12f0eff6a3e7e`, which is the corpus's own.
+
+## E. Did NOT test
+
+* **The full mutation table.** Only H1-H4 ran. `--sites` and the sink check ran whole.
+* **`litkb_hunt` over a real MCP session.** The tool is in the surface and in `EXPECTED_TOOLS`, and
+  its no-token refusal is in the P8 parametrised kill; no test CALLS it end to end, because that
+  would start a subprocess that downloads and converts.
+* **A DOI hunt that admits and then stops at `held`.** The path is written and returns
+  `ok: true, state: held` with the `no-file` next move in `refusals`; no test and no live run
+  exercises it, because admitting a real DOI spends a registry call and a work.
+* **The `truncated-pdf` half of H1's guard.** Only `not-a-pdf` was planted.
+* **Approval.** The admission is left `proposed`, per the brief, so the work is invisible to
+  `litkb_search` and nothing in the promotion chain was exercised.
+* **The title/author heuristic.** `--title` and `--author` were passed for the live run. The PDF's
+  `/Title` is "Hardware Documentation", which names the FILE and not the work, and the cover page
+  interleaves five authors with five student ID numbers; `guess_fields` is deliberately weak, says
+  in `fields.from` where each value came from, and refuses `incomplete-record` naming the flag
+  rather than inventing an author.
+* **A referee.** Every number above was produced by the author of the code (CLAUDE.md §3.4c).
+
+## F. Blockers for the next step
+
+1. **A web source cannot be approved by the session that hunts it, by design** — so a hunted
+   document stays out of `litkb_search` until a second session runs `litkb approve <admission-id>`.
+   For `hunt-test-1` that is `01a0ad55-ebc2-79c1-892b-6485eb34c776`.
+2. **A DOI hunt ends at `held`.** Choosing an acquisition route is a spend, and hunt does not make
+   one unasked; joining `acquire` into the one call needs Kam's rule for when it may spend.
+3. **A ligature defect that is a SEARCH defect, not hunt's.** 13 blocks of this document store
+   `di<1F>erent`, `<1E>rst`, `<1D>oating`, because the PDF's font maps ff / fi / fl to the C0 codes
+   0x1F / 0x1E / 0x1D with no ToUnicode correction and pypdfium2 passes them through. A search for
+   "floating point" finds 4 blocks in this run; for "oating point", 6. It is a corpus-wide question,
+   not a one-file one.
+
+## G. The reading Kam asked for — from the INGESTED TEXT, not the images
+
+**What it is.** A student hardware write-up, not a paper: *"This is a Hardware Documentation for the
+Logic Design Project aiming to implement a convolutional neural network on an FPGA using Verilog"*
+(p2). Five authors, one network part each.
+
+**Network and dataset.** *"The Project is an implementation of the leNet-5 CNN architecture"* (p4):
+three 5×5 convolution layers (p5), two average-pooling layers (p8), tanh between layers (p6), a
+10-class SoftMax last (p7). **No dataset is named anywhere in the ingested text** — "MNIST",
+"dataset" and "training" return zero blocks. The geometry is MNIST-shaped (28×28, ten outputs,
+pp7, 21), and that is an inference, not something the document says.
+
+**Precision.** IEEE floating point, narrowed under pressure: the receptive-field array held *"196000
+(=28*28*25) values (each one represented by 32 bits)"* (p24), then *"Architecture 5: Sequential
+Convolution with 14 conv units with half precision floating point (16 bits)"* (p28) and *"I actually
+reduced the input bits from 32-bits to 16-bits and Part 5 now uses them"* (p36). The cost is stated:
+*"the limiting range of 16 bit half precision floating point numbers … make this a bottleneck of
+accuracy"* (p6).
+
+**Convolution → hardware.** A four-level hierarchy (p15 headings): **Processing Element →
+Convolution Unit → Single Filter Layer → Multi Filter Layer**. A processing element is one
+floating-point multiplier and one adder (p23); a conv unit takes `(Depth*FilterW*FilterH)+1` clock
+cycles (p21); a single-filter layer instantiates half a row of conv units — *"14 conv units for one
+filter for the first convolution layer of LeNet"* (p23).
+
+**Throughput and resources.** *"For a layer of size 32x32 and 6 filters of 5x5, it would take
+3*[28*28/(28/2)]*[26] = 4368 CC"* (p21). *"The number of LUTs generated is 654 for the conv unit,
+48422 for the conv layer single filter and 455605 for the conv layer multiple filters"* (p23) —
+455,605 LUTs does not fit the board, which is why five architectures exist. SoftMax: 31 → 11 clock
+cycles across three designs, *"25141/53200 47.26% utlization"* (p42, sic). Integration: 725 clock
+cycles (p60). Post-synthesis timing for whole layers was abandoned — *"Our attempts reached up to 20
+hours, all while stalling the progress bar"* (p60).
+
+**Text quality.** Native, not a scan: 49 of 62 pages `text`, 8 `partial`, **5 image-only**; character
+coverage **1.0000 on every page** (115,635 of 115,635). OCR supplied 1,422 blocks of 18,064 — the
+Vivado screenshots, and it shows (*"CN E B- (ChruteOkiop/ON 16 BT/OW 1 Snt"*, p21). The prose pages
+are clean apart from the 13 ligature blocks of §F.3.
+
+---
+
+*Builder: Claude Opus 5, session https://claude.ai/code/session_015MUcyGTfX2koRdYAjW5kED.*

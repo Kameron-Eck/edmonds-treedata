@@ -117,13 +117,14 @@ def tool_names():
 
 EXPECTED_TOOLS = {"litkb_search", "litkb_work", "litkb_candidates", "litkb_ws_open",
                   "litkb_ws_status", "litkb_my_uses", "litkb_admit", "litkb_acquire",
-                  "litkb_record_use", "litkb_propose_promotion"}
+                  "litkb_record_use", "litkb_propose_promotion", "litkb_hunt"}
 
 
-def test_the_server_offers_exactly_the_ten_tools():
-    """Ten since 2026-09-16: `litkb_my_uses` closed friction item 2 of the operational test — a
-    session could not read back one thing it had written. Asserted as a SET, so adding a tool is a
-    deliberate edit here and never a silent widening of the surface."""
+def test_the_server_offers_exactly_the_expected_tools():
+    """Eleven since 2026-09-16: `litkb_my_uses` closed friction item 2 of the operational test — a
+    session could not read back one thing it had written — and `litkb_hunt` drives the five steps
+    of the hunt protocol from one reference. Asserted as a SET, so adding a tool is a deliberate
+    edit here and never a silent widening of the surface."""
     assert set(tool_names()) == EXPECTED_TOOLS
 
 
@@ -165,6 +166,9 @@ WRITE_TOOLS = [
     ("litkb_record_use", {"statement": "s", "kind": "context", "quote": "q",
                           "block_id": str(uuid.uuid4()), "gap": "g"}),
     ("litkb_propose_promotion", {}),
+    # a hunt spends a download and a GPU conversion, so its token check is made BEFORE the
+    # subprocess runs, in _hunt(), rather than by the CLI it shells out to
+    ("litkb_hunt", {"ref": "https://example.org/nothing.pdf"}),
 ]
 
 

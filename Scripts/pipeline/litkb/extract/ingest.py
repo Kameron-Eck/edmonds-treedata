@@ -26,6 +26,35 @@ import json
 STAGE = "5-reconcile"
 TOOL = "litkb-reconcile"
 
+#: The reconciliation parameters THE CORPUS was ingested under — the ``params`` half of the run
+#: key, and therefore what decides whether a second pass over a file is the same extraction or a
+#: different one. It lives here, beside :func:`params_hash`, rather than in the bulk driver,
+#: because ``litkb hunt`` ingests one file through the same key and a second copy of this dict
+#: would silently make every hunted file a different extraction from the corpus around it
+#: (CLAUDE.md §3.3). ``qc/instruments/litkb_p5_bulk.py`` reads it from here as ``P5_PARAMS``.
+#:
+#: ``latex_source`` / ``latex_status``: what makes the corpus pass a different EXTRACTION of a file
+#: from a bare stage-5 reconcile — the L4 formula LaTeX, and the word migration 0022 puts on every
+#: equation for how far it can be trusted.
+#:
+#: ``merge_rule`` is the third, and it is here because of something that happened on 2026-09-16
+#: rather than because it was designed in. The first stage5-3 ingest ran with a canonical merge
+#: that grouped a page's readings into CONNECTED COMPONENTS; containment is not transitive, so on
+#: a page where a large block nests several small ones the whole page chained into one group and
+#: merged nothing. 213 documents were written that way before migration 0022's trigger stopped
+#: the run on Angelopoulos_2022 p7, where 21 exact-duplicate rectangles survived. The rule is now
+#: pairwise and greedy. An ``ok`` run's rows cannot be deleted by anyone — that is the design, and
+#: it is what protects evidence that cites them — so the repaired ingest has to be a DIFFERENT
+#: run, and ``params_hash`` is the field that says which reconciliation a run is.
+#: ``merge_rule`` moved once more, in the same campaign and for the same reason: the first
+#: pairwise corpus kept the SMALLER of two boxes, and coverage — which asks which of a page's
+#: characters lie inside some canonical block — fell on 52 of 229 documents, Guo_2018 from 0.9913
+#: to 0.4098. The merged block's box is now the UNION of the two, and an over-merge is dropped
+#: only when the characters inside it are held by blocks that are staying. Third value, third set
+#: of runs; the two earlier ones are superseded and their rows stand.
+CORPUS_PARAMS = {"latex_source": "codeformula-l4", "latex_status": "0022",
+                 "merge_rule": "pairwise-union-charcover"}
+
 
 def _tool_version():
     from litkb.extract import reconcile

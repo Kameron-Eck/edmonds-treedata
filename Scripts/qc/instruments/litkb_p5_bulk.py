@@ -42,6 +42,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(  # noqa: E402
 
 from litkb.extract import docling as D  # noqa: E402
 from litkb.extract import grobid as G  # noqa: E402
+from litkb.extract import ingest as _ING  # noqa: E402
 from litkb.extract import inventory as I  # noqa: E402
 from litkb.extract import reconcile as R  # noqa: E402
 
@@ -88,29 +89,12 @@ CUDA_PY = os.environ.get("LITKB_P5_DOCLING_PY",
 #: one corpus, one label, and a run key that still tells the two extractions apart.
 P5_PIPELINE_VERSION = reconcile_version()
 
-#: What makes this pass a different EXTRACTION of a file from a bare stage-5 reconcile: the L4
-#: formula LaTeX, and the word this pass puts on every equation for how far it can be trusted.
-#:
-#: ``merge_rule`` is the third, and it is here because of something that happened on 2026-09-16
-#: rather than because it was designed in. The first stage5-3 ingest ran with a canonical merge
-#: that grouped a page's readings into CONNECTED COMPONENTS; containment is not transitive, so on
-#: a page where a large block nests several small ones the whole page chained into one group and
-#: merged nothing. 213 documents were written that way before migration 0022's trigger stopped
-#: the run on Angelopoulos_2022 p7, where 21 exact-duplicate rectangles survived. The rule is now
-#: pairwise and greedy. An ``ok`` run's rows cannot be deleted by anyone — that is the design, and
-#: it is what protects evidence that cites them — so the repaired ingest has to be a DIFFERENT
-#: run, and ``params_hash`` is the field that says which reconciliation a run is: exactly the
-#: distinction its docstring names ("a run made at IOU_MATCH 0.5 and one made at 0.6 are
-#: different extractions of the same file"). The 213 are superseded, not lost; the corpus label
-#: stays `stage5-3` for both.
-#: ``merge_rule`` moved once more, in the same campaign and for the same reason: the first
-#: pairwise corpus kept the SMALLER of two boxes, and coverage — which asks which of a page's
-#: characters lie inside some canonical block — fell on 52 of 229 documents, Guo_2018 from 0.9913
-#: to 0.4098. The merged block's box is now the UNION of the two, and an over-merge is dropped
-#: only when the characters inside it are held by blocks that are staying. Third value, third set
-#: of runs; the two earlier ones are superseded and their rows stand.
-P5_PARAMS = {"latex_source": "codeformula-l4", "latex_status": "0022",
-             "merge_rule": "pairwise-union-charcover"}
+#: What makes this pass a different EXTRACTION of a file from a bare stage-5 reconcile. Its home
+#: moved into the package on 2026-09-16, with `litkb hunt`: hunt ingests ONE file through this
+#: same run key, and a second copy of the dict here would have made every hunted file a different
+#: extraction from the corpus around it while looking identical. The reasons each key is in it —
+#: including what the `merge_rule` value cost twice — are in `litkb.extract.ingest.CORPUS_PARAMS`.
+P5_PARAMS = _ING.CORPUS_PARAMS
 
 #: Routes GROBID is offered. A scan has no text layer, so GROBID refuses it outright; posting
 #: one costs a minute of pdfalto and returns HTTP 500 (stage 5 report §5).

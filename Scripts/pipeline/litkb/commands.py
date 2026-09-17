@@ -15,6 +15,7 @@ editable install is re-run from a tree that contains litkb:
     py -3.12 -m litkb inventory --new [--root R] [--census C] [--json]
     py -3.12 -m litkb acquire (--key K | --doi D) [--routes open_access,annas,scihub]
                               [--max-archive-downloads N] [--quota-margin M] [--retry-dead] [--from-file PDF]
+    py -3.12 -m litkb hunt <doi-or-url> [--title T] [--author A] [--year Y] [--no-extract]
 
 Every write names the workstream in <worktree>/.litkb-workstream and presents its token, bound as a query
 parameter. The token is never printed: `ws open` prints the workstream id only.
@@ -457,6 +458,27 @@ def cmd_use(args, conn):
     return 0
 
 
+def cmd_hunt(args, conn):
+    """The whole hunt protocol in one call (litkb/hunt.py).
+
+    The connection `main()` opened is deliberately unused, like `promote`'s: hunt needs a READER
+    for the ladder, a WRITER for the admission and the INGEST login for the run, and it opens each
+    where it is used. Handing it a fourth would be a credential held for the length of a
+    conversion that takes minutes.
+
+    Exit status is the refusal, not the state: a hunt that ends at `held` because a DOI has no PDF
+    did everything it could and exits 0, with the next move in `refusals`."""
+    from litkb import hunt as _hunt
+
+    res = _hunt.hunt(args.ref, db=args.db, worktree=_worktree(args), agent=args.agent,
+                     session=args.session, title=args.title, author=args.author, year=args.year,
+                     key=args.key, source_note=args.source_note, retrieved=args.retrieved,
+                     extract=not args.no_extract, device=args.device,
+                     docling_python=args.docling_python, derived=args.derived)
+    _print(res)
+    return 0 if res.get("ok") else 1
+
+
 def build_parser():
     ap = argparse.ArgumentParser(prog="litkb", description="the literature knowledge base")
     ap.add_argument("--db", default=os.environ.get("LITKB_DB", "litkb"))
@@ -567,32 +589,56 @@ def build_parser():
     i.add_argument("--root", help="literature root (default LITKB_LITERATURE_ROOT)")
     i.add_argument("--census", help="default: <repo>/phase4/qc/litkb_inventory_census.sha256")
     i.add_argument("--json", action="store_true")
+
+    # ── the one-shot entry point, 2026-09-16 (litkb/hunt.py) ────────────────────────────────
+    h = sub.add_parser("hunt", help="one call: resolve a DOI or URL, admit it, bind the PDF, "
+                                    "extract it and ingest it")
+    h.add_argument("ref", help="a DOI (10.…, or a doi.org URL) or the URL of a document")
+    h.add_argument("--title", help="the work's title; a URL source has no registry to ask")
+    h.add_argument("--author", help="the first author, as the document's first page prints it")
+    h.add_argument("--year", type=int)
+    h.add_argument("--key", help="the work key (default: Surname_Year_slug)")
+    h.add_argument("--source-note", dest="source_note")
+    h.add_argument("--retrieved", help="the retrieval date recorded for a URL source (default: today, UTC)")
+    h.add_argument("--no-extract", action="store_true",
+                   help="admit and bind only; leave the extraction to a later hunt or the bulk pass")
+    h.add_argument("--device", default="cuda", help="the docling device (cuda | cpu)")
+    h.add_argument("--docling-python", dest="docling_python",
+                   help="the extraction venv's python (default: litkb.extract.docling.VENV_PYTHON)")
+    h.add_argument("--derived", help="where the tool artifacts go (default LITKB_HUNT_DERIVED)")
     return ap
 
 
 class _NoConn:
-    """The connection `promote` is handed: it has none. Anything that tried to query through it
-    would fail loudly here rather than quietly opening a second credential."""
+    """The connection a command that opens its OWN logins is handed: it has none. Anything that
+    tried to query through it would fail loudly here rather than quietly opening a second
+    credential."""
 
     def execute(self, *a, **kw):
-        raise RuntimeError("litkb promote acts as the promoter, through litkb.promote.connect()")
+        raise RuntimeError("this command opens its own logins (litkb.promote.connect for the "
+                           "promoter, litkb.ingest.connect for the ingest login); the shared "
+                           "writer connection is deliberately not used")
 
     def close(self):
         pass
 
 
+#: Commands that open every login they need for themselves, and must NOT be handed a writer.
+#: `promote`: promote_prepare and promote_commit may be executed only by litkb_promoter
+#: (design §4.7), and cmd_promote opens that login itself. `hunt`: it uses a reader, a writer AND
+#: the ingest login, each for the part that needs it, so the one opened here would be a fourth
+#: connection nothing reads. Against a throwaway database, where only the test login has a
+#: password, it is also a connection that cannot even be made.
+_OWN_LOGINS = ("promote", "hunt")
+
+
 def main(argv=None, connect=None):
     args = build_parser().parse_args(sys.argv[1:] if argv is None else argv)
-    # `promote` is the one command that does NOT act as the writer: promote_prepare and
-    # promote_commit may be executed only by litkb_promoter (design §4.7), and cmd_promote opens
-    # that login itself. Opening a writer connection here as well would be a second credential the
-    # command never uses — and against a throwaway database, where only the test login has a
-    # password, it is a connection that cannot even be made.
-    conn = _NoConn() if args.cmd == "promote" and connect is None else (connect or _default_connect)(args.db)
+    conn = _NoConn() if args.cmd in _OWN_LOGINS and connect is None else (connect or _default_connect)(args.db)
     try:
         return {"ws": cmd_ws, "discover": cmd_discover, "admit": cmd_admit, "approve": cmd_approve,
                 "acquire": cmd_acquire, "migrate": cmd_migrate, "export": cmd_export,
-                "use": cmd_use, "inventory": cmd_inventory,
+                "use": cmd_use, "inventory": cmd_inventory, "hunt": cmd_hunt,
                 "promote": cmd_promote}[args.cmd](args, conn)
     finally:
         conn.close()

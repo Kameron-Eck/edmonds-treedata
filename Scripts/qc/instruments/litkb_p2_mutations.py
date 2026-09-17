@@ -1184,6 +1184,36 @@ fu(site, "U16", "litkb/commands.py::cmd_use::_labels", "(args.agent, args.sessio
         "session look like two")
 
 
+# ── `litkb hunt`, the one-shot entry point (litkb/hunt.py, 2026-09-16) ──────────────────────
+# Its own suite, and `tests` REPLACES the default rather than extending it: the P2 suite knows
+# nothing about hunt, so a row that forgot this would run P2 against a hunt mutation and report
+# DID NOT FIRE.
+TESTS_HUNT = ["qc/test_litkb_hunt.py"]
+
+
+def hu(fn, *a, **kw):
+    fn(*a, **kw)
+    M[-1]["tests"] = TESTS_HUNT
+
+
+hu(block, "H1", f"{PKG}/hunt.py",
+   "guard: a hunted download that is not a whole PDF is quarantined, never admitted",
+   "an HTML sign-in page served under a .pdf URL is filed as the document and handed to the "
+   "binder: the 2026-09-15 incident, one URL later")
+hu(block, "H2", f"{PKG}/hunt.py",
+   "guard: hunt answers from the database before it fetches anything",
+   "a second hunt of a reference already extracted downloads it again and admits it again — "
+   "which check 2 then refuses as somebody else's work")
+hu(block, "H3", f"{PKG}/hunt.py",
+   "guard: hunt refuses outside a worktree that holds a workstream",
+   "a hunt runs with no workstream at all: it spends a download and a GPU conversion before the "
+   "database refuses the write it was for")
+hu(site, "H4", "litkb/hunt.py::_hunt::norm_label", "{a0}",
+   what="a hunt writes with unnormalised agent/session labels: a label of invisible characters is "
+        "truthy, so the refusal never fires and the admission is signed by a session the "
+        "second-session approval rule cannot tell from any other")
+
+
 def call_sites(root=None):
     """Every call of a HELPERS name under Scripts/pipeline/litkb -> {site_id: {"file", "lines", "calls"}}.
 

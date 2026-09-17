@@ -2,12 +2,17 @@
 
     py -3.12 -m litkb.mcp.server            # stdio, one MCP session per process
 
-Ten tools. Everything an agent may do to literature goes through them; everything an agent may
+Eleven tools. Everything an agent may do to literature goes through them; everything an agent may
 NOT do is absent, not merely discouraged:
 
     read    litkb_search  litkb_work  litkb_candidates  litkb_ws_status  litkb_my_uses
-    write   litkb_ws_open  litkb_admit  litkb_acquire  litkb_record_use
+    write   litkb_ws_open  litkb_admit  litkb_acquire  litkb_record_use  litkb_hunt
     offer   litkb_propose_promotion        (prepare ONLY; commit is not a tool)
+
+`litkb_hunt` is the eleventh, added 2026-09-16: the five steps of the hunt protocol driven end to
+end from one reference, so a session stops driving seven tools in order and diagnosing the gap
+when one is skipped. Like `litkb_propose_promotion` it runs the CLI as a subprocess, because it
+INGESTS and the ingest login must not be held by a long-lived server (§4.7).
 
 `litkb_my_uses` is the tenth, added 2026-09-16: the operational test found that recording a use and
 reading it back were different systems — `litkb_ws_status` answered `{"gap": 6, "use": 6}` and
@@ -912,6 +917,53 @@ def _propose_promotion(report_path=None, repo=None):
                  "stderr": r.stderr[-4000:]} | payload)
 
 
+def _hunt(ref, title=None, author=None, year=None, key=None, source_note=None, extract=True,
+          agent=None, session=None):
+    """`litkb hunt`, run as a SUBPROCESS of the CLI — for the reason `_propose_promotion` runs one.
+
+    A hunt INGESTS, and ingesting is the `litkb_ingest` login (design §4.7, §9): the writer holds
+    no INSERT on any extraction table, which is what stops an agent installing a run of its own
+    and forging a block whose text matches a quote it wants to cite. Importing `litkb.hunt` here
+    would put that credential inside a long-lived server for the length of every conversation;
+    running the CLI keeps it in a process that exits when the document is in.
+
+    The refusal for a missing token is made HERE, before the subprocess: `_session()` is also what
+    arms the redactor, and a hunt that ran and then failed to find a workstream would have spent a
+    download and a GPU conversion to say so.
+
+    The LABEL check is deliberately NOT repeated here. `litkb.hunt` normalises and refuses them
+    itself, before it opens a store or touches the network, and it has to — the CLI is an entry
+    point of its own. A second copy in this wrapper would be a second place the rule is written,
+    and the harness would have to test the copy rather than the guard (`_labels` is on the
+    per-call-site rule for exactly that reason)."""
+    ws_id, _token = _session()
+    wt = _worktree()
+    cmd = [sys.executable, "-m", "litkb", "--db", _db(), "--dir", str(wt)]
+    if agent:
+        cmd += ["--agent", agent]
+    if session:
+        cmd += ["--session", session]
+    cmd += ["hunt", ref]
+    for flag, value in (("--title", title), ("--author", author), ("--key", key),
+                        ("--source-note", source_note)):
+        if value:
+            cmd += [flag, str(value)]
+    if year:
+        cmd += ["--year", str(int(year))]
+    if not extract:
+        cmd.append("--no-extract")
+    env = dict(os.environ, PYTHONPATH=os.pathsep.join(
+        [str(SCRIPTS / "pipeline"), os.environ.get("PYTHONPATH", "")]).rstrip(os.pathsep),
+        LITKB_WORKTREE=str(wt))
+    r = subprocess.run(cmd, capture_output=True, text=True, cwd=str(wt), env=env)
+    try:
+        payload = json.loads(r.stdout)
+    except ValueError:
+        payload = {"stdout": r.stdout[-4000:]}
+    return _out({"ok": r.returncode == 0, "workstream_id": str(ws_id),
+                 "returncode": r.returncode, "stderr": r.stderr[-4000:]} | payload)
+
+
 # ── the MCP surface ───────────────────────────────────────────────────────────────────────
 
 def _guarded(fn):
@@ -937,7 +989,7 @@ def _guarded(fn):
 
 
 def build_server():
-    """The MCPServer with the ten tools bound. `mcp` is imported HERE, never at module top."""
+    """The MCPServer with the eleven tools bound. `mcp` is imported HERE, never at module top."""
     from mcp.server.mcpserver import MCPServer
 
     srv = MCPServer(name=SERVER_NAME, version=VERSION, instructions=(
@@ -1039,6 +1091,22 @@ def build_server():
         "committing the promotion happens after Kam merges, and is not a tool."))
     def litkb_propose_promotion(report_path: str = "", repo: str = "") -> str:
         return _guarded(_propose_promotion)(report_path=report_path or None, repo=repo or None)
+
+    @srv.tool(name="litkb_hunt", description=(
+        "ONE call from a reference to searchable text: resolve a DOI or a document URL, admit it, "
+        "bind the PDF, extract it (GROBID + Docling, reconciled) and ingest it. Answers from the "
+        "database first — a reference already extracted comes back with its run and nothing is "
+        "fetched or written. Returns the work's state (absent / held / bound-unextracted / "
+        "extracted), blocks by kind, coverage, the first headings, per-stage seconds and every "
+        "refusal with its reason. A URL source is a manual PROPOSAL: its blocks are real but "
+        "litkb_search cannot see them until a SECOND session approves the admission. Pass title "
+        "and author for a URL — there is no registry to ask, and a PDF's own metadata usually "
+        "names the file rather than the work."))
+    def litkb_hunt(ref: str, title: str = "", author: str = "", year: int = 0, key: str = "",
+                   source_note: str = "", extract: bool = True) -> str:
+        return _guarded(_hunt)(ref=ref, title=title or None, author=author or None,
+                               year=year or None, key=key or None,
+                               source_note=source_note or None, extract=bool(extract))
 
     return srv
 

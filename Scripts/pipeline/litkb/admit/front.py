@@ -309,12 +309,44 @@ def web_snapshot_evidence(snapshot_path, title, first_author, *, url, retrieved,
             "txt_extract_path": rel, "pages": None}
 
 
+def web_pdf_evidence(pdf_path, title, first_author, *, url, retrieved, root=None, title_forms=()):
+    """The p_file JSON for a web source whose document IS a PDF — the file bound with the admission.
+
+    Why this exists rather than `acquire --from-file` after the admission, which is the sequence
+    the hunt protocol reads as though it worked: a web source is a MANUAL admission, so its work
+    is a proposal and `works.current_version_id` stays NULL until a second session approves it —
+    and `litkb.attach_file` (migration 0013) opens with "a file attaches only to an admitted work"
+    and RAISES on exactly that. The file therefore has to arrive WITH the admission or not at all,
+    and the admission is the one path that writes a file version for a work in proposal mode.
+
+    The binding is the ordinary one, against the PDF's own first page: check 3 reads a real text
+    layer here, which is stronger evidence than :func:`web_snapshot_evidence`'s saved page text,
+    not weaker. What the URL contributes is provenance — `source_route`, `source_url` and the
+    retrieval date as `obtained_at` — because a page changes under a citation.
+
+    `copy_kind` is deliberately left unset. 0020's vocabulary is publisher / author manuscript /
+    preprint / scan / web snapshot, and a PDF served from a project's own repository is none of
+    them; inventing a sixth value would need a migration, and claiming one of the five would be a
+    claim nothing measured.
+    """
+    out = file_evidence(pdf_path, title, first_author, root=root, source_route="web",
+                        source_url=str(url), title_forms=title_forms)
+    out["obtained_at"] = str(retrieved)
+    return out
+
+
 def admit_web(conn, ws, token, *, title, authors, year, url, retrieved, snapshot_path, source_note,
               work_type="report", key=None, identifiers=(), root=None, store=None, agent, session,
-              candidate_id=None):
+              candidate_id=None, pdf_path=None):
     """A documentation page, blog post or standard with no DOI: a manual PROPOSAL bound to its saved
     text snapshot. Second-session approval still applies — this is `admit --manual` with a different
-    kind of evidence, not a different kind of admission."""
+    kind of evidence, not a different kind of admission.
+
+    `pdf_path` (added 2026-09-16 with `litkb hunt`): the source is a DOCUMENT at that URL, not a
+    page. The PDF is then the bound evidence (`web_pdf_evidence`) and the snapshot — the document's
+    own first-page text — is still landed under `_litkb_staging/web/` and recorded on the
+    admission's checks, so the convention's "URL, retrieval date and a saved snapshot" is satisfied
+    by a record that also carries the file itself."""
     if not url or not str(url).lower().startswith(("http://", "https://")):
         raise AdmissionError("a web source needs its URL (http:// or https://)")
     if not retrieved:
@@ -329,14 +361,21 @@ def admit_web(conn, ws, token, *, title, authors, year, url, retrieved, snapshot
     ids.append({"scheme": "url", "value": str(url), "verified_by": "manual",
                 "evidence": {"source": source_note, "retrieved": str(retrieved)}})
     k = key or make_key(first, year or 0, title)
-    file_json = web_snapshot_evidence(snapshot_path, title, first, url=url, retrieved=retrieved, root=root,
-                                      store=store, stem=k)
+    snap = web_snapshot_evidence(snapshot_path, title, first, url=url, retrieved=retrieved, root=root,
+                                 store=store, stem=k)
+    # the PDF is the evidence when there is one; the snapshot is landed either way, and the checks
+    # record where it went so the page's own words stay findable beside the file
+    file_json = (web_pdf_evidence(pdf_path, title, first, url=url, retrieved=retrieved, root=root)
+                 if pdf_path else snap)
+    web = {"url": str(url), "retrieved": str(retrieved), "snapshot": snap["rel_path"],
+           "snapshot_binding": snap["binding"]["verdict"]}
+    if pdf_path:
+        web["document"] = file_json["rel_path"]
     if candidate_id is None:
         candidate_id = add_candidate(conn, ws, token, source="manual", source_detail=source_note, title=title,
                                      authors=fam_list, year=year, ids={"url": str(url)})
     return _call_admit(conn, ws, token, candidate_id, "manual", k, work, ids, file_json,
-                       {"manual_source": source_note, "web": {"url": str(url), "retrieved": str(retrieved)}},
-                       agent, session)
+                       {"manual_source": source_note, "web": web}, agent, session)
 
 
 def approve(conn, ws, token, admission_id, agent, session):

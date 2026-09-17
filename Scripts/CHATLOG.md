@@ -1640,3 +1640,9 @@ killed:  ref-matcher (0/100 as shipped; scoring cannot express the year rule); S
 files:   Reports/LITKB_P5_BULK_2026-09-16.md, Reports/LITKB_P5_FINAL_REFEREE_2026-09-16.md,
          Reports/LITKB_OPERATIONAL_*_2026-09-16.md (access branch), Scripts/docs/LITKB_AGENT_BASE_BRIEF.md.
 next:    verify the caveat fix cheaply (psql), declare, stop the loop; Kam: balance read, promotions, book, MCP registration, merge to main.
+
+## 2026-09-16  litkb: hunt one-shot proven; end-goal loop designed; stopped for budget
+did:     `litkb hunt` built (bea983f..75bb3fa): FPGA hardware doc (no DOI) fetched, bound, extracted, ingested unattended (62 pp, 18,064 blocks, 371 s; repeat call 0.55 s). Kam's question answered from ingested text, no vision tokens.
+decided: no more builds tonight (12% weekly usage); the Sonnet-review -> drop-off -> hunt -> circle-back -> vet -> brief loop is the next phase (WORKPLAN litkb table).
+killed:  admit-then-attach for web sources (a proposal has no current version) -> file arrives with the admission.
+next:    ligature normaliser; approve the FPGA proposal from a second session; Kam's decision stack; merge to main.

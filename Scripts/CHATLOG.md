@@ -1646,3 +1646,8 @@ did:     `litkb hunt` built (bea983f..75bb3fa): FPGA hardware doc (no DOI) fetch
 decided: no more builds tonight (12% weekly usage); the Sonnet-review -> drop-off -> hunt -> circle-back -> vet -> brief loop is the next phase (WORKPLAN litkb table).
 killed:  admit-then-attach for web sources (a proposal has no current version) -> file arrives with the admission.
 next:    ligature normaliser; approve the FPGA proposal from a second session; Kam's decision stack; merge to main.
+
+## 2026-09-16  litkb: two Sonnet improvement reviews through the closed loop (24 drop-offs, 4 full texts landed)
+did:     reviews A (extraction/retrieval) and B (identity/linkage/agentic) committed with drop-offs and hunt outcomes; synthesis to Kam; priorities recorded in WORKPLAN's litkb table.
+decided: (Kam pending) hunt spend rule for review workstreams. Nougat rejected as decoder #2 (weights CC-BY-NC).
+next:    Kam's decision stack; builds when budget allows, in the recorded order.

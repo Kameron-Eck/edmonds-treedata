@@ -326,6 +326,16 @@ decisions:
       Kam's own calls the same day: an L4 Colab GPU is granted (~200 CU) for the GPU-bound
       passes; no Semantic Scholar API key — batch the public endpoints instead; the merge
       of the P4 adapter branches applied migration 0016 to litkb.
+      Later calls by Kam (2026-09-15/16): Anna's Archive use is a standing grant ("feel free to
+      access it whenever you want"), counter guard and DOI-first rules unchanged; finish the pipeline
+      before improvements (SCORE-Bench/OmniDocBench, Splink referee, mutmut, ref-matcher adoption
+      deferred; ref-matcher then evaluated and rejected); model roles reoriented for cost — Opus for
+      merges, bulk runs and referees, Sonnet for search and mechanical steps, one full harness after
+      merges, at most three concurrent agents; the system was declared OPERATIONAL 2026-09-16 with
+      caveats recorded in Reports/LITKB_P5_FINAL_REFEREE_2026-09-16.md; a one-shot entry point
+      (litkb hunt / litkb_hunt) proven the same day. SPEND RULE (Kam, 2026-09-16 night): "default
+      should always allow hunt" — a DOI hunt proceeds to acquisition (open access, then the archive
+      by DOI) by default; refusing to spend is the explicit exception (--no-spend). Not yet built.
     why: >-
       P1 builds the version pointers, promotion functions and roles that §15.7 and §15.13
       constrain; P2's admission check needs the §15.15 year rule; §15.12 decides whether

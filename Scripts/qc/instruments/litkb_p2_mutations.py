@@ -1060,6 +1060,21 @@ site("HR1", "litkb/commands.py::cmd_hunt_request::_labels", "(args.agent, args.s
 site("HR2", "litkb/mcp/server.py::_hunt_request_add::_labels", '("a", "s")', tests=TESTS_HR_P8,
      what="litkb_hunt_request_add proceeds with hardcoded labels instead of refusing when none "
          "are given")
+# gate 1's own two mutation targets, named in the migration's comment above the view: drop
+# `promotable` (an unverified quote, or one anchored in a superseded run, would then confirm) and
+# drop the `hunt_request_id` join filter (a use linked to ANOTHER request would confirm this one).
+M.append(dict(id="HQ7", kind="multi", tests=TESTS_HR,
+              what="hunt_request_status: an unverified or superseded-run quote confirms/contradicts "
+                  "a hunt_request (the `promotable` term dropped from both FILTER clauses)",
+              edits=[
+    dict(file=MIG23, old="count(*) FILTER (WHERE ues.promotable AND ues.stance = 'supports') AS n_confirming,",
+         new="count(*) FILTER (WHERE ues.stance = 'supports') AS n_confirming,"),
+    dict(file=MIG23, old="count(*) FILTER (WHERE ues.promotable AND ues.stance = 'refutes')  AS n_contradicting",
+         new="count(*) FILTER (WHERE ues.stance = 'refutes')  AS n_contradicting")]))
+replace("HQ8", MIG23, "WHERE u.hunt_request_id = hr.id\n    ) agg ON true;",
+        "WHERE true\n    ) agg ON true;",
+        "hunt_request_status: a use linked to ANOTHER hunt_request confirms/contradicts this one "
+        "(the `u.hunt_request_id = hr.id` join filter dropped)", tests=TESTS_HR)
 
 # Call sites a mutation cannot change the behaviour of. The reason must be about the CODE, never about the tests.
 EQUIVALENT = {

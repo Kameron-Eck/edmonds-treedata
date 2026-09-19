@@ -2,13 +2,21 @@
 
     py -3.12 -m litkb.mcp.server            # stdio, one MCP session per process
 
-Twelve tools. Everything an agent may do to literature goes through them; everything an agent may
+Thirteen tools. Everything an agent may do to literature goes through them; everything an agent may
 NOT do is absent, not merely discouraged:
 
     read    litkb_search  litkb_work  litkb_candidates  litkb_ws_status  litkb_my_uses
+            litkb_brief
     write   litkb_ws_open  litkb_admit  litkb_acquire  litkb_record_use  litkb_hunt
             litkb_hunt_request_add
     offer   litkb_propose_promotion        (prepare ONLY; commit is not a tool)
+
+`litkb_brief` is the thirteenth, added 2026-09-18 (Task B, the same delta as
+`litkb_hunt_request_add`): the per-workstream export a managing agent reads instead of the raw
+tables — every hunt_request marked EXPECTED (an unverified prior) and every promotable quote
+marked VERIFIED (work key, page, block id), never dropping an unconfirmed or contradicted
+expectation. `litkb/brief.py` is the whole mechanism; this tool is a thin read wrapper, like
+`litkb_my_uses`.
 
 `litkb_hunt_request_add` is the twelfth, added 2026-09-18 (migration 0023): a review agent's
 drop-off — the claim it expects a paper to support, why, and the unverified abstract passage it
@@ -35,7 +43,7 @@ Four rules this module keeps, each because something else cannot:
    tool called from a directory with no token file is REFUSED with `no-workstream`, and names the
    tool that opens one. `_session()` also registers the token with `netutil.add_secret()`, so if it
    ever reached a string this server returns, `_out()` would replace it with `<KEY>`. The READ tools
-   that answer about a workstream — `litkb_candidates`, `litkb_ws_status`, `litkb_my_uses` — present
+   that answer about a workstream — `litkb_candidates`, `litkb_ws_status`, `litkb_my_uses`, `litkb_brief` — present
    that token to the database too (`_require_token`, migration 0018): the token file is the only place a token can
    come from, and a file naming a real workstream with a WRONG token gets `bad-token` and nothing
    else (P8 referee F-1; before that fix a forged token read a workstream's whole status).
@@ -1026,6 +1034,22 @@ def _hunt_request_add(ref, ref_scheme, expected_claim, why_relevant, abstract_pa
                              "can ever move this past 'open'/'unconfirmed'."})
 
 
+def _brief(limit=200):
+    """This workstream's per-study BRIEF (Task B, delta 2026-09-18; `litkb/brief.py`): every
+    hunt_request it holds, marked EXPECTED, and every promotable quote it can see, marked
+    VERIFIED — never a filtered view of either (litkb/brief.py's own two gates). Read-only; this
+    tool writes no file — `litkb brief` (the CLI) writes the same content as markdown under
+    `_derived/briefs/` for a session that wants it on disk."""
+    from litkb import brief as _br
+
+    ws_id, token = _session()
+    with _conn("reader") as conn:
+        _require_token(conn, ws_id, token)
+        expected, verified = _br.build(conn, ws_id)
+    return _ok(workstream_id=str(ws_id), expected=expected[:limit], verified=verified[:limit],
+               n_expected=len(expected), n_verified=len(verified))
+
+
 # ── the MCP surface ───────────────────────────────────────────────────────────────────────
 
 def _guarded(fn):
@@ -1174,6 +1198,17 @@ def build_server():
             why_relevant=why_relevant, abstract_passage=abstract_passage or None,
             claimed_title=claimed_title or None, claimed_authors=claimed_authors or None,
             claimed_year=claimed_year or None, gap=gap or None)
+
+    @srv.tool(name="litkb_brief", description=(
+        "This workstream's per-study BRIEF: every hunt_request it holds, marked EXPECTED (an "
+        "agent's unverified prior — expected claim, why it's relevant, the abstract passage it "
+        "came from, and its resolution state open/unconfirmed/confirmed/contradicted, never "
+        "dropped even when nothing has confirmed it yet), and every promotable quote it can see, "
+        "marked VERIFIED (work key, page, block id, the claim it supports, its kind and "
+        "stance). The CLI (`litkb brief`) writes the same content as markdown under "
+        "_derived/briefs/ (untracked); this tool returns it structured and writes nothing."))
+    def litkb_brief(limit: int = 200) -> str:
+        return _guarded(_brief)(limit=min(max(int(limit), 1), 1000))
 
     @srv.tool(name="litkb_hunt", description=(
         "ONE call from a reference to searchable text: resolve a DOI or a document URL, admit it, "

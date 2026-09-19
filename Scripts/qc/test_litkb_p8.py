@@ -118,15 +118,16 @@ def tool_names():
 EXPECTED_TOOLS = {"litkb_search", "litkb_work", "litkb_candidates", "litkb_ws_open",
                   "litkb_ws_status", "litkb_my_uses", "litkb_admit", "litkb_acquire",
                   "litkb_record_use", "litkb_propose_promotion", "litkb_hunt",
-                  "litkb_hunt_request_add"}
+                  "litkb_hunt_request_add", "litkb_brief"}
 
 
 def test_the_server_offers_exactly_the_expected_tools():
     """Eleven since 2026-09-16 (`litkb_my_uses` closed friction item 2 of the operational test — a
     session could not read back one thing it had written — and `litkb_hunt` drives the five steps
-    of the hunt protocol from one reference), twelve since 2026-09-18: `litkb_hunt_request_add` is
-    the drop-off record (migration 0023). Asserted as a SET, so adding a tool is a deliberate edit
-    here and never a silent widening of the surface."""
+    of the hunt protocol from one reference), thirteen since 2026-09-18: `litkb_hunt_request_add`
+    is the drop-off record (migration 0023) and `litkb_brief` is the per-workstream BRIEF export
+    (Task B, same delta) — a thin read wrapper around `litkb/brief.py`. Asserted as a SET, so
+    adding a tool is a deliberate edit here and never a silent widening of the surface."""
     assert set(tool_names()) == EXPECTED_TOOLS
 
 
@@ -376,12 +377,15 @@ def test_a_forged_token_reads_nothing_and_a_real_one_reads_its_own_workstream(hu
     mine = one("litkb_my_uses", {})
     assert mine["ok"] and mine["workstream_id"] == opened["workstream_id"], mine
 
+    brief = one("litkb_brief", {})
+    assert brief["ok"] and brief["workstream_id"] == opened["workstream_id"], brief
+
     (wt / ".litkb-workstream").write_text(
         json.dumps({"workstream_id": opened["workstream_id"], "token": "0" * 64}), encoding="utf-8")
-    for tool in ("litkb_ws_status", "litkb_candidates", "litkb_my_uses"):
+    for tool in ("litkb_ws_status", "litkb_candidates", "litkb_my_uses", "litkb_brief"):
         res = one(tool, {})
         assert res["refused"] == "bad-token", (tool, res)
-        for leaked in ("slug", "state", "candidates", "promotions", "admissions", "uses"):
+        for leaked in ("slug", "state", "candidates", "promotions", "admissions", "uses", "expected", "verified"):
             assert leaked not in res, f"{tool} told a wrong token about {leaked}: {res}"
     (wt / ".litkb-workstream").write_text(real, encoding="utf-8")
 

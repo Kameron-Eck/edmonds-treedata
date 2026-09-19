@@ -22,6 +22,7 @@ editable install is re-run from a tree that contains litkb:
                               [--max-archive-downloads N] [--quota-margin M] [--retry-dead] [--from-file PDF]
     py -3.12 -m litkb hunt <doi-or-url> [--title T] [--author A] [--year Y] [--no-extract] [--no-spend]
                           [--hunt-request ID]
+    py -3.12 -m litkb brief [workstream-id-or-slug] [--out PATH]
 
 Every write names the workstream in <worktree>/.litkb-workstream and presents its token, bound as a query
 parameter. The token is never printed: `ws open` prints the workstream id only.
@@ -498,6 +499,41 @@ def cmd_hunt_request(args, conn):
     return 0
 
 
+def cmd_brief(args, conn):
+    """The per-workstream BRIEF export (Task B, delta 2026-09-18; litkb/brief.py): every
+    hunt_request this workstream holds, marked EXPECTED, and every promotable quote it can see,
+    marked VERIFIED -- read-only, no new stored state. Accepts a workstream id or slug; with
+    neither given, the worktree's own (like `export`).
+
+    Written to `_derived/briefs/<slug>.md` by default -- untracked (.gitignore's `/_derived/*`
+    rule), same reasoning as `promote prepare`'s report: this is a generated view for the session
+    reading it, not a checked-in artifact.
+    """
+    from litkb import brief as _brief
+
+    if args.workstream:
+        row = conn.execute(
+            "SELECT id, slug, state, purpose FROM litkb.workstreams WHERE id::text = %s OR slug = %s",
+            (args.workstream, args.workstream)).fetchone()
+        if not row:
+            raise SystemExit(f"litkb brief: no workstream {args.workstream!r} (id or slug)")
+    else:
+        ws_id, _token = _ws(args)
+        row = conn.execute("SELECT id, slug, state, purpose FROM litkb.workstreams WHERE id = %s",
+                           (ws_id,)).fetchone()
+        if not row:
+            raise SystemExit(f"litkb brief: workstream {ws_id} is not in database {args.db}")
+    ws_row = {"id": row[0], "slug": row[1], "state": row[2], "purpose": row[3]}
+    expected, verified = _brief.build(conn, ws_row["id"])
+    out = Path(args.out) if args.out else Path("_derived") / "briefs" / f"{ws_row['slug']}.md"
+    if not out.is_absolute():
+        out = _worktree(args) / out
+    written = _brief.write(out, ws_row, expected, verified)
+    _print({"workstream_id": str(ws_row["id"]), "slug": ws_row["slug"], "n_expected": len(expected),
+           "n_verified": len(verified), "written": str(written)})
+    return 0
+
+
 def cmd_hunt(args, conn):
     """The whole hunt protocol in one call (litkb/hunt.py).
 
@@ -686,6 +722,12 @@ def build_parser():
     hrl = hrsub.add_parser("list")
     hrl.add_argument("--state", choices=["open", "unconfirmed", "confirmed", "contradicted"])
     hrl.add_argument("--limit", type=int, default=50)
+
+    # ── the per-workstream BRIEF export, 2026-09-18 (litkb/brief.py) ────────────────────────
+    br = sub.add_parser("brief", help="every hunt_request (EXPECTED) and every promotable quote "
+                                      "(VERIFIED) this workstream holds, as markdown")
+    br.add_argument("workstream", nargs="?", help="workstream id or slug (default: this worktree's)")
+    br.add_argument("--out", help="output path (default: _derived/briefs/<slug>.md, untracked)")
     return ap
 
 
@@ -719,7 +761,7 @@ def main(argv=None, connect=None):
         return {"ws": cmd_ws, "discover": cmd_discover, "admit": cmd_admit, "approve": cmd_approve,
                 "acquire": cmd_acquire, "migrate": cmd_migrate, "export": cmd_export,
                 "use": cmd_use, "inventory": cmd_inventory, "hunt": cmd_hunt,
-                "hunt-request": cmd_hunt_request,
+                "hunt-request": cmd_hunt_request, "brief": cmd_brief,
                 "promote": cmd_promote}[args.cmd](args, conn)
     finally:
         conn.close()

@@ -1076,6 +1076,35 @@ replace("HQ8", MIG23, "WHERE u.hunt_request_id = hr.id\n    ) agg ON true;",
         "hunt_request_status: a use linked to ANOTHER hunt_request confirms/contradicts this one "
         "(the `u.hunt_request_id = hr.id` join filter dropped)", tests=TESTS_HR)
 
+# ── the per-workstream BRIEF export (litkb/brief.py, delta 2026-09-18, Task B) ──────────────
+# The managing agent's one artifact per workstream: every hunt_request marked EXPECTED, every
+# promotable quote marked VERIFIED, neither filtered and never confusable with the other.
+# qc/test_litkb_brief.py is the whole test set every row below runs.
+TESTS_BRIEF = [*TESTS, "qc/test_litkb_brief.py"]
+block("HB1", f"{PKG}/brief.py",
+      "guard: a VERIFIED line always carries work key, page and block id",
+      "a VERIFIED line prints with no work key/page/block id -- a quote with no location, which "
+      "is not evidence anyone could go re-check", tests=TESTS_BRIEF)
+block("HB2", f"{PKG}/brief.py",
+      "guard: every hunt_request the workstream holds appears in the brief",
+      "the brief silently prints fewer EXPECTED lines than the workstream holds hunt_requests -- "
+      "an unconfirmed or contradicted expectation dropped instead of surfaced", tests=TESTS_BRIEF)
+site("HB4", "litkb/mcp/server.py::_brief::_require_token", "None", tests=TESTS_P8,
+     what="litkb_brief stops presenting the workstream token: a forged .litkb-workstream naming "
+         "a real workstream id reads back every EXPECTED claim and VERIFIED quote that "
+         "workstream holds (test_a_forged_token_reads_nothing_and_a_real_one_reads_its_own_"
+         "workstream, extended for litkb_brief)")
+replace("HB3", f"{PKG}/brief.py",
+        "  JOIN litkb.blocks b ON b.id = ev.block_id\n"
+        " WHERE wu.view_workstream_id = %(ws)s AND wu.status <> 'withdrawn'",
+        "  JOIN litkb.blocks b ON b.id = ev.block_id\n"
+        "  LEFT JOIN litkb.hunt_requests hr ON hr.workstream_id = wu.view_workstream_id "
+        "AND hr.expected_claim <> ''  -- spliced, not a comment\n"
+        " WHERE wu.view_workstream_id = %(ws)s AND wu.status <> 'withdrawn'",
+        "the VERIFIED query splices in a live reference to hunt_requests.expected_claim -- the "
+        "same spliced-reference shape as gate 2's kill in qc/test_litkb_hunt_request.py, at the "
+        "brief's own call site", tests=TESTS_BRIEF)
+
 # Call sites a mutation cannot change the behaviour of. The reason must be about the CODE, never about the tests.
 EQUIVALENT = {
     "litkb/admit/binding.py::author_on_page::tokens_contain":

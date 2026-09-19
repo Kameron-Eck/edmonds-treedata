@@ -4,9 +4,13 @@
 both-wrong equation (0/6 agreements in the 20-equation gold set). But its coverage is
 low — the two decoders agree on only 30% of the gold set and 12% of a 200-crop sample
 drawn from the ingest-**accepted** 6,841 of the 7,164 real-corpus crops (§5; likely an
-optimistic subset) — because pix2tex's own accuracy on these archive crops (40%, 8/20)
-is meaningfully below CodeFormula's (55%, 11/20) and its failure mode is usually
-catastrophic garbling rather than a near-miss. **Agreement looks trustworthy when it
+optimistic subset). pix2tex's own accuracy on these archive crops in a single run was
+8/20 (40%) against CodeFormula's TRACKED 11/20 (55%) — **but pix2tex is nondeterministic
+here: an independent referee's two fresh runs differed from each other on 8/20 crops and
+from this run on 10/20 (Reports/LITKB_ITEMS123_REFEREE_2026-09-19.md, Item 3), so 8/20 is
+one sample, NOT reproducible, and not citable until a seeded or multi-run protocol
+exists** (§4, §6). Its failure mode when wrong is usually short-token repetition (§4, §5)
+rather than a near-miss. **Agreement looks trustworthy when it
 fires, but on this population it fires too rarely to carry most of the `stable` load
 alone.** No case of "agree and both wrong" was observed, but n=6 agreements is small: a
 95% Wilson interval on 0/6 reaches up to ~39%, so this evaluation does not rule out the
@@ -114,23 +118,33 @@ exactly (verified by hand before trusting it on the 200-crop sample).
 | **Both wrong** | **0** | 7 | 7 |
 | col | 6 | 14 | 20 |
 
-n=20, agree=6 (30%), CodeFormula correct=11 (55%, matches the relayed state), **pix2tex
-correct=8 (40%)**.
+n=20, agree=6 (30%, REPRODUCED across three independent runs including the referee's),
+CodeFormula correct=11 (55%, matches the relayed state). **pix2tex correct=8/20 (40%) in
+this single run — NOT reproducible; run-to-run disagreement 8/20 measured by the
+referee (two of their own runs differed from each other on 8/20 crops, and from this
+run on 10/20); not citable until a seeded/multi-run protocol exists.** The matrix below
+and `score_gold.py`'s `PIX2TEX_CORRECT` table are therefore a frozen record of ONE run's
+correctness grades, not a re-scorable instrument: a changed decode would not be
+detected. Only the agree/disagree column (6/20, 24/199) is reproducible as stated.
 
 Per-equation table (id, agree, CodeFormula-correct, pix2tex-correct, note) is in
 `Scripts/scratch/pix2tex_eval/gold_scored.json` and reproduced by `score_gold.py`'s
-stdout. Two findings worth flagging on their own:
+stdout — read the correctness columns with the nondeterminism caveat above. Two findings
+worth flagging on their own — both spot-checked against the crops and confirmed by the
+independent referee above, so these two survive the nondeterminism even though the
+8/20 total does not:
 - **E05**: pix2tex got `S^{d-1}` right where CodeFormula's stored output has `S^{d}`
   (one of CodeFormula's 5 documented math errors) — pix2tex corrected a real
   CodeFormula error here.
 - **E08**: the reverse — CodeFormula's 4×4 transition matrix was exactly right;
   pix2tex dropped a `1-e_{32}` term to `0` and dropped the last matrix entry outright.
   Confirmed on the crop both times.
-- Catastrophic garbling (a 1–6-char token repeated 15+ times — the same regex used on
-  the bulk sample in §5) hit 4/20 pix2tex outputs (**E03, E06, E07, E19** — measured by
-  running the regex, not eyeballed; E03's own garbling is a long run of `\:` spacing
-  tokens, E06's a long run of `~`) — a failure mode CodeFormula's 20-sample errors never
-  showed; CodeFormula's failures are near-misses or contamination, not collapse.
+- **Short-token repetition** (a 1–6-char token repeated 15+ times — the same regex used
+  on the bulk sample in §5; this counts token repetition, not garbage — see §5 caveat)
+  fires on 4/20 pix2tex outputs (**E03, E06, E07, E19** — measured by running the regex,
+  not eyeballed; E03's own hit is a long run of `\:` spacing tokens, E06's a long run of
+  `~`) — a pattern CodeFormula's 20-sample errors never showed; CodeFormula's failures
+  are near-misses or contamination.
 
 ## 5. Bounded sample of the real corpus (agreement rate only — no gold there)
 
@@ -146,31 +160,37 @@ over that accepted population, no further filtering. 1/200 crops failed to load
 not a pix2tex defect); scored 199.
 
 **Agreement rate: 24/199 = 12.1%** — noticeably lower than the gold set's 30%, despite
-being drawn from the easier subset. A catastrophic-garbling check (a 1–6-char token
-repeated 15+ times, run identically on both sets) fires on **27/199 (13.6%)** of
-pix2tex's bulk outputs and on **4/20 (20%)** of the gold set — so gold's catastrophic
-rate is if anything the HIGHER of the two by this measure, not "consistent" in the sense
-of matching; both say roughly one pix2tex output in five to seven is outright garbage,
-not a near-miss. No gold exists for the bulk sample, so correctness (and thus the
-both-wrong-and-agree cell) cannot be measured here — only that agreement is rare and
-pix2tex's collapse-to-garbage mode is common across the real corpus, not a gold-sample
-artifact.
+being drawn from the easier subset. A **short-token repetition** check (a 1–6-char token
+repeated 15+ times, run identically on both sets — this metric counts repeated short
+tokens, not garbage in general: an independent referee read 10 named hits and found 2
+are clean decodes followed by a harmless `\qquad` run, and separately found several
+NON-hits that are visibly garbled — long tokens repeated, or symbol salad like
+`S^{\operatorname{rececosor}9}` — that this regex misses entirely; "one output in five to
+seven is outright garbage" in an earlier draft overstated what it measures) fires on
+**27/199 (13.6%)** of pix2tex's bulk outputs and on **4/20 (20%)** of the gold set — so
+gold's rate on this metric is if anything the HIGHER of the two, not "consistent" in the
+sense of matching. No gold exists for the bulk sample, so correctness (and thus the
+both-wrong-and-agree cell) cannot be measured here — only the agreement rate and the
+repetition-rate are established for that sample.
 
 ## 6. Verdict on the design question
 
-**Precision of the "agree" signal is good in this sample (0/6 both-wrong); its coverage
-is not** — at a 30% (gold) to 12% (bulk) agreement rate, the AGREE bucket would carry
-only a minority of equations, pushing most of the corpus to Claude-vision fallback
-under Kam's design. That may still be an acceptable cost (agreement-as-`stable` never
-misfired here), but it is not evidence agreement lets pix2tex do much load-bearing work
-as a cheap first pass on this archive — pix2tex's own accuracy (40%) trails CodeFormula
-(55%), and roughly one in seven to one in five of its outputs are outright garbage
-rather than near-misses, which is exactly the failure mode agreement-checking is
-supposed to catch (and did, here — every garbled pix2tex output disagreed with
-CodeFormula). **The honest open question the task asked for:** with only 6 agreements
-observed, the "0 both-wrong" result has a wide-enough interval (up to ~39% at 95%
-confidence) that a larger gold set is needed before trusting the AGREE bucket
-unsupervised at scale.
+**Precision of the "agree" signal is good in this sample (0/6 both-wrong, REPRODUCED
+across three independent runs); its coverage is not** — at a 30% (gold) to 12% (bulk)
+agreement rate (both reproducible), the AGREE bucket would carry only a minority of
+equations, pushing most of the corpus to Claude-vision fallback under Kam's design. That
+may still be an acceptable cost (agreement-as-`stable` never misfired here), but it is
+not evidence agreement lets pix2tex do much load-bearing work as a cheap first pass on
+this archive — pix2tex's own accuracy in a single run trailed CodeFormula (8/20 vs
+11/20), **though the 8/20 figure itself is NOT reproducible (pix2tex is nondeterministic
+here — an independent referee's own two runs differed from each other on 8/20 crops —
+and is not citable until a seeded/multi-run protocol exists)**, and the short-token
+repetition rate (4/20 to 27/199, §4–§5 — a narrower signal than "outright garbage") shows
+pix2tex fails this way often enough that agreement-checking is worth having: every
+short-token-repetition output in the gold set disagreed with CodeFormula. **The honest
+open question the task asked for:** with only 6 agreements observed, the "0 both-wrong"
+result has a wide-enough interval (up to ~39% at 95% confidence) that a larger gold set
+is needed before trusting the AGREE bucket unsupervised at scale.
 
 ## 7. Gate: `qc/check.py --fast` against `litkb_test_w13`
 
@@ -200,6 +220,13 @@ other reasons, 1 xfailed, the one known-tolerated fail) — zero litkb tests ran
   agreement rate only.
 - The 323 verify-queue crops (ingest-rejected; outside both the gold set and the
   ingest-accepted population §5 samples from).
+
+**Process caveat (referee, §5 of `LITKB_ITEMS123_REFEREE_2026-09-19.md`):**
+`render_gold_crops.py`, `run_pix2tex_gold.py` and `score_gold.py` hardcode the
+`D:\edmonds-pipeline\treedata-pix2tex\...` absolute worktree path rather than deriving it,
+so they only run correctly from this exact worktree. The 220 crop PNGs (2.35 MB) are
+committed into the code repo (`Scripts/scratch/pix2tex_eval/`) rather than the data lake
+(CLAUDE.md §2.3); left as-is pending Kam's call on whether to move them.
 
 ---
 *Files: `Scripts/scratch/pix2tex_eval/{render_gold_crops,run_pix2tex_gold,

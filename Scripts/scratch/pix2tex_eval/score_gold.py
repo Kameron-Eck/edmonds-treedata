@@ -49,9 +49,10 @@ PIX2TEX_CORRECT = {
     "E09": (True, "matches gold"),
     "E10": (False, "\\mathcal{P}_lambda(D) -- confuses the calligraphic G for P on the LHS "
                     "functional name; confirmed on the crop (page clearly shows G)"),
-    "E11": (True, "core integral matches gold exactly (my crop did not carry the neighbouring "
-                    "\\intertext contamination CodeFormula's real crop apparently did -- see "
-                    "report caveat on crop-boundary fidelity)"),
+    "E11": (True, "core integral matches gold exactly; the crop DOES carry the same "
+                    "neighbouring line CodeFormula garbles as \\intertext{ i n t s e q u a l s } "
+                    "(visible as \"...parts, equals\" at the crop's bottom edge) -- pix2tex simply "
+                    "did not transcribe it, a real decoder-behaviour difference on identical input"),
     "E12": (False, "different garbling from CodeFormula's (wrong subscripts/symbols throughout)"),
     "E13": (True, "matches gold"),
     "E14": (True, "matches gold"),

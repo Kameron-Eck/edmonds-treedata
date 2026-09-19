@@ -3,7 +3,8 @@
 **Verdict up front:** decoder agreement, as measured here, never once fired on a
 both-wrong equation (0/6 agreements in the 20-equation gold set). But its coverage is
 low — the two decoders agree on only 30% of the gold set and 12% of a 200-crop sample
-of the real corpus — because pix2tex's own accuracy on these archive crops (40%, 8/20)
+drawn from the ingest-**accepted** 6,841 of the 7,164 real-corpus crops (§5; likely an
+optimistic subset) — because pix2tex's own accuracy on these archive crops (40%, 8/20)
 is meaningfully below CodeFormula's (55%, 11/20) and its failure mode is usually
 catastrophic garbling rather than a near-miss. **Agreement looks trustworthy when it
 fires, but on this population it fires too rarely to carry most of the `stable` load
@@ -53,10 +54,14 @@ per-process high-water mark regardless of the fact the 20 images were run one at
 - Source PDFs: `D:\edmonds-pipeline\Literture\Validation\*.pdf` (all 20 present).
 - L4 full-pass population for step 4: `D:\edmonds-pipeline\litkb_derived\formula\
   latex_formula_colab_full.jsonl` — **measured 6,841 rows**, not the 7,164 relayed in
-  the task brief (`wc -l` equivalent via the loader in `sample_bulk_crops.py`; flagging
-  the discrepancy rather than silently using the relayed number). Crop PNGs for that
-  pass live in `litkb_derived\formula\shards_full\shard_{shard_id}.zip` under
-  `crops/{crop_id}.png` (NOT in `results_full/*.zip`, which hold only decode-result
+  the task brief. **Not a discrepancy**: `latex_formula_colab_full_verify_queue.jsonl`
+  (beside it) holds **323** rows (`wc -l`), and 6,841 + 323 = 7,164 exactly.
+  `formula_ingest.py`'s docstring says a row not scored `ok` goes to the verify queue
+  "beside" the corpus, never into it — so `latex_formula_colab_full.jsonl` is the
+  **ingest-accepted subset** of the 7,164 crops, not the full population. §5's sample is
+  drawn from this accepted subset, which matters for reading its agreement rate (see §5).
+  Crop PNGs for that pass live in `litkb_derived\formula\shards_full\shard_{shard_id}.zip`
+  under `crops/{crop_id}.png` (NOT in `results_full/*.zip`, which hold only decode-result
   JSONL + worker metadata, no images).
 
 Crops for the 20 gold equations do not pre-exist as files — only bbox + page are gold.
@@ -65,13 +70,18 @@ rect = canonical bbox shifted by the page's `(dx, dy)` cropbox offset (reused
 `litkb.extract.inventory.page_frames`, the one frame reader in the repo — not
 reinvented), expanded 18% of box width/height per side (the same
 `expansion_factor` `formula_crop_worker.py` documents for the real CodeFormula crop).
-Verified visually on 4/20 crops (E02, E05, E08, E10, E11, E17) against the gold
+Verified visually on 7/20 crops (E02, E03, E05, E08, E10, E11, E17) against the gold
 `reading` and the referee report's own descriptions — all landed correctly on the
 equation, including the one page with a nonzero cropbox shift (Conley_1999,
 `dx=40.0, dy=37.0`, matching the referee's own finding). **Caveat:** this is a
-functionally-equivalent reproduction of the CodeFormula crop, not a byte-identical one
-(E11's rendering did not carry the neighbouring `\intertext` line that CodeFormula's
-real crop apparently did — see the E11 row).
+functionally-equivalent reproduction of the CodeFormula crop, not a byte-identical one.
+On E11 specifically, my own rendered crop DOES carry the neighbouring line — its bottom
+edge shows "...parts, equals" — the same fragment CodeFormula's stored output garbles as
+`\intertext{ i n t s e q u a l s }`. So both decoders saw the same contaminating text;
+CodeFormula transcribed it (and was graded wrong for it) and pix2tex did not (and was
+graded correct) — a real difference in decoder behaviour on identical input, not a
+crop-fidelity artifact. Corrected from an earlier draft of this report, which had this
+backwards.
 
 Commands:
 ```
@@ -116,22 +126,32 @@ stdout. Two findings worth flagging on their own:
 - **E08**: the reverse — CodeFormula's 4×4 transition matrix was exactly right;
   pix2tex dropped a `1-e_{32}` term to `0` and dropped the last matrix entry outright.
   Confirmed on the crop both times.
-- Catastrophic garbling (long repeated tokens, no recoverable math) hit 3/20 pix2tex
-  outputs (E01, E07, E19) — a failure mode CodeFormula's 20-sample errors never showed;
-  CodeFormula's failures are near-misses or contamination, not collapse.
+- Catastrophic garbling (a 1–6-char token repeated 15+ times — the same regex used on
+  the bulk sample in §5) hit 4/20 pix2tex outputs (E01, E03, E07, E19; E03's own
+  garbling is a long run of `\:` spacing tokens) — a failure mode CodeFormula's 20-sample
+  errors never showed; CodeFormula's failures are near-misses or contamination, not
+  collapse.
 
 ## 5. Bounded sample of the real corpus (agreement rate only — no gold there)
 
-Population: 6,841-row `latex_formula_colab_full.jsonl` (measured, see §2).
+Population: 6,841-row `latex_formula_colab_full.jsonl` — **not** the full 7,164 crops
+unfiltered: per §2, this file is the ingest-**accepted** subset (the 323 rows the L4 pass
+itself did not stand behind are held in the separate verify queue, never merged in). So
+the sample below is drawn from the CLEANER half of the corpus, if anything biased toward
+crops CodeFormula itself found more decodable — the true population-wide agreement rate
+is likely lower than what follows, not higher.
 Sample: N=200, `random.Random("litkb-item3-pix2tex-bulk-2026-09-19").sample(rows, 200)`
-— unfiltered by `latex_status` (the point is the rate pix2tex would actually see, not a
-pre-cleaned population). 1/200 crops failed to load (`ValueError: height and width must
-be > 0` — a zero-size crop already in the corpus, not a pix2tex defect); scored 199.
+over that accepted population, no further filtering. 1/200 crops failed to load
+(`ValueError: height and width must be > 0` — a zero-size crop already in the corpus,
+not a pix2tex defect); scored 199.
 
-**Agreement rate: 24/199 = 12.1%** — noticeably lower than the gold set's 30%. A crude
-catastrophic-garbling check (a 1–6-char token repeated 15+ times) fires on **27/199
-(13.6%)** of pix2tex's bulk outputs, consistent with the gold set's own 15% (3/20)
-catastrophic-failure rate. No gold exists for this sample, so correctness (and thus the
+**Agreement rate: 24/199 = 12.1%** — noticeably lower than the gold set's 30%, despite
+being drawn from the easier subset. A catastrophic-garbling check (a 1–6-char token
+repeated 15+ times, run identically on both sets) fires on **27/199 (13.6%)** of
+pix2tex's bulk outputs and on **4/20 (20%)** of the gold set — so gold's catastrophic
+rate is if anything the HIGHER of the two by this measure, not "consistent" in the sense
+of matching; both say roughly one pix2tex output in five to seven is outright garbage,
+not a near-miss. No gold exists for the bulk sample, so correctness (and thus the
 both-wrong-and-agree cell) cannot be measured here — only that agreement is rare and
 pix2tex's collapse-to-garbage mode is common across the real corpus, not a gold-sample
 artifact.
@@ -144,7 +164,7 @@ only a minority of equations, pushing most of the corpus to Claude-vision fallba
 under Kam's design. That may still be an acceptable cost (agreement-as-`stable` never
 misfired here), but it is not evidence agreement lets pix2tex do much load-bearing work
 as a cheap first pass on this archive — pix2tex's own accuracy (40%) trails CodeFormula
-(55%), and roughly one in eight to one in seven of its outputs are outright garbage
+(55%), and roughly one in seven to one in five of its outputs are outright garbage
 rather than near-misses, which is exactly the failure mode agreement-checking is
 supposed to catch (and did, here — every garbled pix2tex output disagreed with
 CodeFormula). **The honest open question the task asked for:** with only 6 agreements
@@ -152,10 +172,40 @@ observed, the "0 both-wrong" result has a wide-enough interval (up to ~39% at 95
 confidence) that a larger gold set is needed before trusting the AGREE bucket
 unsupervised at scale.
 
+## 7. Gate: `qc/check.py --fast` against `litkb_test_w13`
+
+```
+cd Scripts && LITKB_TEST_DB=litkb_test_w13 PYTHONUTF8=1 py -3.12 qc/check.py --fast
+```
+`secrets`/`ruff`/`compile` PASS. `pytest`: **1 failed, 2,756 passed, 437 skipped,
+1 xfailed** in 598.3s. The one failure is the known-tolerated
+`test_pointer_paths_resolve[crown_state_model]` — nothing else broke.
+
+**All 414 litkb Postgres tests were among the 437 skipped, not run against `litkb_test_w13`,
+because that database does not exist on the server** — confirmed directly
+(`psycopg.connect(dbname="litkb_test_w13", ...)` → `FATAL: database "litkb_test_w13" does
+not exist`). Creating it requires `litkb.db.provision.provision_workers`, which connects
+as `_c.SUPERUSER` — genuine server-admin access this evaluation-only item has no reason to
+hold and should not exercise. This is a blocker for the orchestrator, not something worked
+around here: the 23 non-litkb skips and the 2,756 passes are the only litkb-adjacent
+signal this run actually produced.
+
+## 8. Did NOT test
+
+- The 414 litkb Postgres tests (worker DB `litkb_test_w13` absent — §7).
+- Byte-identical crop fidelity against the real L4/Colab pipeline's own crop (my
+  rendering is functionally equivalent, confirmed on 7/20 by eye, not byte-compared).
+- Correctness of pix2tex (or CodeFormula) on the 200-crop bulk sample — no gold there,
+  agreement rate only.
+- The 323 verify-queue crops (ingest-rejected; outside both the gold set and the
+  ingest-accepted population §5 samples from).
+
 ---
 *Files: `Scripts/scratch/pix2tex_eval/{render_gold_crops,run_pix2tex_gold,
 sample_bulk_crops,run_pix2tex_bulk,normalize_and_score,score_gold}.py`,
 `{gold_equations_joined,pix2tex_gold_predictions,gold_scored,bulk_sample_joined,
 pix2tex_bulk_predictions}.json`, `crops_gold/E01..E20.png`, `crops_bulk/*.png` (200,
 one failed to load). No litkb write attempted — this item is evaluation-only, verified
-by `git status --short` showing nothing under `Scripts/pipeline/litkb/` touched.*
+by `git status --short` showing nothing under `Scripts/pipeline/litkb/` touched.
+Built by Claude Sonnet 5 (this session's actual model; the base brief's default
+attribution line names Opus 5, per the launch prompt's routing).*

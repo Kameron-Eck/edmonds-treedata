@@ -99,12 +99,17 @@ def locate_quote(conn, work_id, quote, page=None):
 
 
 def write_use(conn, ws, token, *, work_id, statement, kind, agent, session, gap_id=None, status="proposed",
-              feeds=(), confidence=None, rationale=None, change_reason=None, based_on=None, use_id=None):
+              feeds=(), confidence=None, rationale=None, change_reason=None, based_on=None, use_id=None,
+              hunt_request_id=None):
     """litkb.write_proposal('use', …) -> (use_id, version_id). The token is bound as a parameter.
 
     `front._jsonb` is the project's one JSON adapter and it runs `textnorm.jsonb_safe` on the way in
     — a NUL in a statement or a rationale is what it exists to strip. A local wrapper here would be a
     second copy of that guard, which is exactly the shape the mutation harness caught in E3f.
+
+    `hunt_request_id` (migration 0023): which drop-off, if any, this use circles back to. Identity,
+    like work_id/gap_id — set only when the use is CREATED (`use_id` is None); `_create_identity`
+    refuses one from another workstream.
     """
     from litkb.admit.front import _jsonb
 
@@ -112,7 +117,8 @@ def write_use(conn, ws, token, *, work_id, statement, kind, agent, session, gap_
               "confidence": confidence, "rationale": rationale}
     row = conn.execute(
         "SELECT * FROM litkb.write_proposal(%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)",
-        ("use", use_id, _jsonb({"work_id": str(work_id), "gap_id": str(gap_id) if gap_id else None}),
+        ("use", use_id, _jsonb({"work_id": str(work_id), "gap_id": str(gap_id) if gap_id else None,
+                                "hunt_request_id": str(hunt_request_id) if hunt_request_id else None}),
          based_on, _jsonb(fields), change_reason, ws, token, agent, session)).fetchone()
     return row[0], row[1]
 

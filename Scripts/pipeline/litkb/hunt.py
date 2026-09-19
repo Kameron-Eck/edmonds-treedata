@@ -412,7 +412,7 @@ def hunt(ref, *, db=None, worktree=None, agent=None, session=None, title=None, a
          year=None, source_note=None, key=None, work_type="report", retrieved=None,
          fetch=None, store=None, reader_role=None, writer_role=None, extract=True,
          device="cuda", docling_python=None, derived=None, registry_client=None,
-         spend=True, acquirer=None):
+         spend=True, acquirer=None, hunt_request_id=None):
     """Resolve → admit → bind → extract → ingest, for one reference. -> the result dict.
 
     ``spend`` (default True, SPEND RULE 2026-09-16, decisions.yaml litkb-p0-foundation): a
@@ -422,6 +422,12 @@ def hunt(ref, *, db=None, worktree=None, agent=None, session=None, title=None, a
     records that stop as a distinct, deliberate outcome (``held-no-spend``), never the silent
     stall six DOI hunts died at on 2026-09-16. ``acquirer`` overrides the acquisition call for
     tests: ``acquirer(conn, ws_id, token, work, *, store, agent, session) -> {"outcome", ...}``.
+
+    ``hunt_request_id`` (migration 0023, litkb/hunt_request.py): a review agent's drop-off this
+    hunt is following up. As soon as this reference resolves to a work — whatever rung of the
+    ladder it reaches, cached or fresh — the request is linked to it (``litkb.link_hunt_request``,
+    idempotent). Naming a request requires ``agent``/``session`` even for an otherwise label-less
+    cached lookup, because linking is a write.
 
     Never raises for a refusal: a caller reads ``ok``, ``refused`` and ``refusals``.
     """
@@ -435,7 +441,7 @@ def hunt(ref, *, db=None, worktree=None, agent=None, session=None, title=None, a
                      fetch=fetch, store=store, reader_role=reader_role, writer_role=writer_role,
                      extract=extract, device=device, docling_python=docling_python,
                      derived=derived, registry_client=registry_client, spend=spend,
-                     acquirer=acquirer)
+                     acquirer=acquirer, hunt_request_id=hunt_request_id)
     except HuntRefused as e:
         refusals.append({"code": e.code, "message": e.message} | e.extra)
         return out | {"ok": False, "refused": e.code, "message": e.message,
@@ -450,7 +456,8 @@ def hunt(ref, *, db=None, worktree=None, agent=None, session=None, title=None, a
 
 def _hunt(ref, out, timing, refusals, *, db, worktree, agent, session, title, author, year,
           source_note, key, work_type, retrieved, fetch, store, reader_role, writer_role,
-          extract, device, docling_python, derived, registry_client, spend, acquirer):
+          extract, device, docling_python, derived, registry_client, spend, acquirer,
+          hunt_request_id=None):
     from litkb.acquire.store import Store
     from litkb.admit import front
     from litkb.db import connect as c
@@ -469,6 +476,17 @@ def _hunt(ref, out, timing, refusals, *, db, worktree, agent, session, title, au
     ws_id, token = load_workstream(worktree)
     # END guard: hunt refuses outside a worktree that holds a workstream
 
+    # BEGIN guard: naming a hunt_request always requires labels, even on an otherwise cached hunt
+    # look_up's cache hits (extracted/held/bound-unextracted, below) normally need no agent/session
+    # at all — a repeated lookup writes nothing. Linking a drop-off is a write regardless of which
+    # rung the ladder answers at, so it cannot ride on that label-less path.
+    if hunt_request_id and (not agent or not session):
+        raise HuntRefused("no-labels",
+                          "linking a hunt_request (migration 0023) is a write: every write records "
+                          "which agent and which session made it. Set LITKB_AGENT and "
+                          "LITKB_SESSION, or pass --agent/--session.")
+    # END guard: naming a hunt_request always requires labels, even on an otherwise cached hunt
+
     t0 = time.monotonic()
     reader = _reader(db, reader_role)
     try:
@@ -476,6 +494,11 @@ def _hunt(ref, out, timing, refusals, *, db, worktree, agent, session, title, au
     finally:
         reader.close()
     timing["resolve"] = round(time.monotonic() - t0, 2)
+    # BEGIN call site: hunt_request linked from the cache (look_up already resolved a work_id)
+    if held and hunt_request_id:
+        _link_hunt_request(db, ws_id, token, hunt_request_id, held["work_id"], agent, session,
+                           writer_role, out)
+    # END call site: hunt_request linked from the cache (look_up already resolved a work_id)
     # BEGIN guard: hunt answers from the database before it fetches anything
     # A hunt is one call an agent may make twice — after a crash, in a retry, or simply because
     # it forgot. The second call must cost a round trip and write nothing: fetching the bytes
@@ -531,6 +554,11 @@ def _hunt(ref, out, timing, refusals, *, db, worktree, agent, session, title, au
                                   "the DOI was not admitted; the checks say why.",
                                   admission=_thin(res))
             out["admission"] = _thin(res)
+            # BEGIN call site: hunt_request linked from a fresh DOI admission
+            if hunt_request_id:
+                _link_hunt_request(db, ws_id, token, hunt_request_id, res["work_id"], agent,
+                                   session, writer_role, out, conn=writer)
+            # END call site: hunt_request linked from a fresh DOI admission
             # A DOI with no bound file reaches the SPEND decision HERE, and a refusal says so as a
             # STATE rather than an error: the work is admitted, which is progress. `litkb acquire`
             # (or `_spend_on_held`'s own call into the same acquisition code) owns the route
@@ -588,6 +616,11 @@ def _hunt(ref, out, timing, refusals, *, db, worktree, agent, session, title, au
                               "the web source was not admitted; the checks say why.",
                               admission=_thin(res), landed=store.rel(pdf))
         out["admission"] = _thin(res)
+        # BEGIN call site: hunt_request linked from a fresh web-source admission
+        if hunt_request_id:
+            _link_hunt_request(db, ws_id, token, hunt_request_id, res["work_id"], agent, session,
+                               writer_role, out, conn=writer)
+        # END call site: hunt_request linked from a fresh web-source admission
     finally:
         writer.close()
 
@@ -719,6 +752,36 @@ def _finish(db, ws_id, held, f, out, timing, refusals, *, reader_role, device, d
                          "effect": "the reconciliation ran on Docling alone"})
     return out | {"ok": True, "state": "extracted", "outcome": "extracted",
                   "refusals": refusals, "seconds": timing} | _report(db, ws_id, held, reader_role)
+
+
+def _link_hunt_request(db, ws_id, token, hunt_request_id, work_id, agent, session, writer_role,
+                       out, conn=None):
+    """litkb.link_hunt_request, called at every point in `_hunt` where a work_id becomes known
+    (the cache hit, a fresh DOI admission, a fresh web admission — three call sites, migration
+    0023). Idempotent: re-linking the same work is a no-op success. Opens its own writer
+    connection when the caller has none open already (the cache-hit call site); reuses the
+    admission's own connection otherwise, so a hunt that already opened a writer does not open a
+    second one for this alone.
+
+    Never raises: a link that fails (the request belongs to another workstream, or is already
+    linked to a DIFFERENT work) is recorded in ``out['hunt_request']`` as a refusal, the same way
+    every other rung of this ladder reports a problem without stopping the hunt that reached a
+    real state."""
+    from litkb import hunt_request
+    from litkb.db import connect as c
+
+    own = conn is None
+    conn = conn or c.connect(db, writer_role or _role("writer"), autocommit=True)
+    try:
+        hunt_request.link(conn, ws_id, token, hunt_request_id, work_id=work_id, agent=agent,
+                          session=session)
+        out["hunt_request"] = {"id": hunt_request_id, "linked_to": work_id, "ok": True}
+    except Exception as e:                    # noqa: BLE001 — a link failure never fails the hunt
+        out["hunt_request"] = {"id": hunt_request_id, "ok": False,
+                               "error": f"{type(e).__name__}: {e}"}
+    finally:
+        if own:
+            conn.close()
 
 
 def _thin(res):

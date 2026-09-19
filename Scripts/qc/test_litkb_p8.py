@@ -117,14 +117,16 @@ def tool_names():
 
 EXPECTED_TOOLS = {"litkb_search", "litkb_work", "litkb_candidates", "litkb_ws_open",
                   "litkb_ws_status", "litkb_my_uses", "litkb_admit", "litkb_acquire",
-                  "litkb_record_use", "litkb_propose_promotion", "litkb_hunt"}
+                  "litkb_record_use", "litkb_propose_promotion", "litkb_hunt",
+                  "litkb_hunt_request_add"}
 
 
 def test_the_server_offers_exactly_the_expected_tools():
-    """Eleven since 2026-09-16: `litkb_my_uses` closed friction item 2 of the operational test — a
+    """Eleven since 2026-09-16 (`litkb_my_uses` closed friction item 2 of the operational test — a
     session could not read back one thing it had written — and `litkb_hunt` drives the five steps
-    of the hunt protocol from one reference. Asserted as a SET, so adding a tool is a deliberate
-    edit here and never a silent widening of the surface."""
+    of the hunt protocol from one reference), twelve since 2026-09-18: `litkb_hunt_request_add` is
+    the drop-off record (migration 0023). Asserted as a SET, so adding a tool is a deliberate edit
+    here and never a silent widening of the surface."""
     assert set(tool_names()) == EXPECTED_TOOLS
 
 
@@ -231,6 +233,20 @@ def test_a_manual_admission_is_refused_and_named_to_the_cli(tmp_path, monkeypatc
     res = one("litkb_admit", {"title": "A report no registry has"})
     assert res["refused"] == "no-identifier", res
     assert "--manual" in res["message"] and "second session" in res["message"]
+
+
+def test_litkb_hunt_request_add_refuses_without_labels(tmp_path, monkeypatch):
+    """Row HR2 (qc/instruments/litkb_p2_mutations.py): `_hunt_request_add` reaches `_labels()`
+    like every other write tool, and a drop-off written with no agent/session recorded is exactly
+    the kind of unattributed write CLAUDE.md 3.1/3.4b forbids. No workstream token or database
+    round trip is needed to reach the refusal — `_labels()` runs before either."""
+    _plant_token(tmp_path)
+    monkeypatch.setenv("LITKB_WORKTREE", str(tmp_path))
+    monkeypatch.delenv("LITKB_AGENT", raising=False)
+    monkeypatch.delenv("LITKB_SESSION", raising=False)
+    res = one("litkb_hunt_request_add", {"ref": "10.1/x", "ref_scheme": "doi",
+                                         "expected_claim": "c", "why_relevant": "w"})
+    assert res["refused"] == "no-labels", res
 
 
 def _plant_token(directory, token=None):

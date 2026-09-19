@@ -1028,6 +1028,39 @@ replace("X25", f"{PKG}/extract/inventory.py",
         "character share on 15 of them falls from 0.9898 to 0.3049",
         tests=["qc/test_litkb_inventory.py"])
 
+# ── hunt_request, the drop-off record (migration 0023, delta 2026-09-18) ──────────────────
+# WORKPLAN.md "Next phase" missing piece 1: a review agent's unverified prior, recorded before the
+# paper is even hunted, so a later verified use can be checked against the expectation that
+# motivated the hunt. qc/test_litkb_hunt_request.py is the whole test set every row below runs.
+TESTS_HR = [*TESTS, "qc/test_litkb_hunt_request.py"]
+TESTS_HR_P8 = [*TESTS_P8, "qc/test_litkb_hunt_request.py"]
+MIG23 = f"{MIG}/0023_hunt_request.sql"
+# HQ, not H: "H" is already the hunt.py protocol's own prefix (H1-H7 below, hunt.py::_hunt).
+block("HQ1", MIG23, "guard: record_hunt_request presents the workstream token",
+      "a drop-off is recorded for any workstream, its own token not required", tests=TESTS_HR)
+block("HQ2", MIG23, "guard: record_hunt_request writes only into an open workstream",
+      "a drop-off is recorded into an ABANDONED workstream", tests=TESTS_HR)
+block("HQ3", MIG23, "guard: link_hunt_request presents the workstream token",
+      "a hunt_request is linked to a work for any workstream, its own token not required",
+      tests=TESTS_HR)
+block("HQ4", MIG23, "guard: link_hunt_request names a work this workstream can see",
+      "link_hunt_request links a work another workstream cannot see at all", tests=TESTS_HR)
+block("HQ5", MIG23,
+      "guard: link_hunt_request touches only this workstream's request, and sets work_id once",
+      "link_hunt_request reports success without ever writing work_id (GET DIAGNOSTICS reads the "
+      "row count of the guard above it instead)", tests=TESTS_HR)
+block("HQ6", MIG23, "guard: a use naming a hunt_request may only name one of its own workstream's",
+      "a use may name ANY workstream's hunt_request as its identity", tests=TESTS_HR)
+# the per-call-site rows: HR1/HR2, `_labels` at the two new write entry points (the harness's own
+# rule, qc/test_litkb_harness_sites.py — a guard tested at one call site of several is not tested
+# at the others, V2b/E3f's class)
+site("HR1", "litkb/commands.py::cmd_hunt_request::_labels", "(args.agent, args.session)",
+     tests=TESTS_HR, what="hunt-request add sends the raw agent/session labels, unnormalised, "
+                         "skipping the empty-label refusal")
+site("HR2", "litkb/mcp/server.py::_hunt_request_add::_labels", '("a", "s")', tests=TESTS_HR_P8,
+     what="litkb_hunt_request_add proceeds with hardcoded labels instead of refusing when none "
+         "are given")
+
 # Call sites a mutation cannot change the behaviour of. The reason must be about the CODE, never about the tests.
 EQUIVALENT = {
     "litkb/admit/binding.py::author_on_page::tokens_contain":

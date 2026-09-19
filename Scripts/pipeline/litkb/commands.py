@@ -11,11 +11,17 @@ editable install is re-run from a tree that contains litkb:
     py -3.12 -m litkb approve <admission-id>
     py -3.12 -m litkb use add (--key K | --doi D) --statement S --kind K [--feeds "tok;tok"]
                               [--quote Q --page N --stance supports] [--rationale R]
+                              [--hunt-request ID]
     py -3.12 -m litkb use list
+    py -3.12 -m litkb hunt-request add --ref REF --ref-scheme doi --expected-claim C
+                                       --why-relevant W [--abstract-passage P] [--claimed-title T]
+                                       [--claimed-authors A] [--claimed-year Y] [--gap SLUG]
+    py -3.12 -m litkb hunt-request list [--state open|unconfirmed|confirmed|contradicted]
     py -3.12 -m litkb inventory --new [--root R] [--census C] [--json]
     py -3.12 -m litkb acquire (--key K | --doi D) [--routes open_access,annas,scihub]
                               [--max-archive-downloads N] [--quota-margin M] [--retry-dead] [--from-file PDF]
     py -3.12 -m litkb hunt <doi-or-url> [--title T] [--author A] [--year Y] [--no-extract] [--no-spend]
+                          [--hunt-request ID]
 
 Every write names the workstream in <worktree>/.litkb-workstream and presents its token, bound as a query
 parameter. The token is never printed: `ws open` prints the workstream id only.
@@ -444,7 +450,7 @@ def cmd_use(args, conn):
     use_id, version_id = _use.write_use(
         conn, ws_id, token, work_id=work["work_id"], statement=args.statement, kind=args.kind,
         status=args.status, feeds=feeds, confidence=args.confidence, rationale=args.rationale,
-        agent=agent, session=session)
+        agent=agent, session=session, hunt_request_id=args.hunt_request)
     out = {"use_id": use_id, "version_id": version_id, "work": work["key"], "kind": args.kind, "feeds": feeds}
     if anchor:
         ev = _use.attach_quote(conn, ws_id, token, version_id, anchor, args.quote, stance=args.stance)
@@ -455,6 +461,40 @@ def cmd_use(args, conn):
         out["evidence"] = ("none: this use carries no quote the database can verify "
                            "(pass --quote to anchor one)")
     _print(out)
+    return 0
+
+
+def cmd_hunt_request(args, conn):
+    """The review agent's drop-off (migration 0023, litkb/hunt_request.py): a claim, why it
+    matters, and the abstract passage it came from, recorded BEFORE the paper is even hunted so a
+    later verified use can be checked against the expectation that motivated the hunt.
+
+    `resolution_state` is never typed here or anywhere else — `add` always reports `open`, because
+    the database computes it fresh from `litkb.hunt_request_status` on every read, never from a
+    column an agent could set."""
+    from litkb import hunt_request as _hr
+
+    ws_id, token = _ws(args)
+    if args.hunt_request_cmd == "list":
+        rows = _hr.list_for_workstream(conn, ws_id, state=args.state, limit=args.limit)
+        _print(rows)
+        return 0
+    agent, session = _labels(args)
+    gap_id = None
+    if args.gap:
+        row = conn.execute("SELECT id::text FROM litkb.gaps WHERE slug = %s", (args.gap,)).fetchone()
+        if not row:
+            raise SystemExit(f"litkb hunt-request add: no gap {args.gap!r}. Open one first "
+                             "(litkb use add --gap-question opens one on demand; this command does not).")
+        gap_id = row[0]
+    hr_id = _hr.record(conn, ws_id, token, ref=args.ref, ref_scheme=args.ref_scheme,
+                       expected_claim=args.expected_claim, why_relevant=args.why_relevant,
+                       abstract_passage=args.abstract_passage, claimed_title=args.claimed_title,
+                       claimed_authors=args.claimed_authors, claimed_year=args.claimed_year,
+                       gap_id=gap_id, agent=agent, session=session)
+    _print({"hunt_request_id": str(hr_id), "ref": args.ref, "resolution_state": "open",
+           "what_next": "litkb hunt <ref> --hunt-request <id> links the resolved work; "
+                        "litkb use add --hunt-request <id> is what can confirm or contradict it."})
     return 0
 
 
@@ -481,7 +521,8 @@ def cmd_hunt(args, conn):
                      session=args.session, title=args.title, author=args.author, year=args.year,
                      key=args.key, source_note=args.source_note, retrieved=args.retrieved,
                      extract=not args.no_extract, device=args.device,
-                     docling_python=args.docling_python, derived=args.derived, spend=spend)
+                     docling_python=args.docling_python, derived=args.derived, spend=spend,
+                     hunt_request_id=args.hunt_request)
     _print(res)
     return 0 if res.get("ok") else 1
 
@@ -589,6 +630,8 @@ def build_parser():
     ua.add_argument("--stance", default="supports", help="supports | refutes | context")
     ua.add_argument("--confidence")
     ua.add_argument("--rationale", help="why this use reads the work this way — NOT a place for the quote")
+    ua.add_argument("--hunt-request", dest="hunt_request",
+                    help="a hunt_request id (migration 0023): this use circles back to that drop-off")
     usub.add_parser("list")
 
     i = sub.add_parser("inventory", help="stage 0: report PDFs the frozen census does not pin")
@@ -617,6 +660,32 @@ def build_parser():
     h.add_argument("--docling-python", dest="docling_python",
                    help="the extraction venv's python (default: litkb.extract.docling.VENV_PYTHON)")
     h.add_argument("--derived", help="where the tool artifacts go (default LITKB_HUNT_DERIVED)")
+    h.add_argument("--hunt-request", dest="hunt_request",
+                   help="a hunt_request id (migration 0023): link this drop-off to whatever work "
+                        "this reference resolves to, cached or fresh")
+
+    # ── the drop-off record, 2026-09-18 (migration 0023, litkb/hunt_request.py) ─────────────
+    hr = sub.add_parser("hunt-request", help="the review agent's drop-off: a claim, why it "
+                                             "matters, and the abstract passage it came from, "
+                                             "written before the paper is even hunted")
+    hrsub = hr.add_subparsers(dest="hunt_request_cmd", required=True)
+    hra = hrsub.add_parser("add")
+    hra.add_argument("--ref", required=True, help="the identifier/URL/citation as given")
+    hra.add_argument("--ref-scheme", dest="ref_scheme", required=True,
+                     help="doi | arxiv | jstor | isbn | pmid | pmcid | openalex | s2 | handle | "
+                          "url | tracker | legacy_stem | other")
+    hra.add_argument("--expected-claim", dest="expected_claim", required=True,
+                     help="the claim you expect this paper to support")
+    hra.add_argument("--why-relevant", dest="why_relevant", required=True)
+    hra.add_argument("--abstract-passage", dest="abstract_passage",
+                     help="the abstract/snippet you reasoned from — UNVERIFIED, never a quote source")
+    hra.add_argument("--claimed-title", dest="claimed_title")
+    hra.add_argument("--claimed-authors", dest="claimed_authors")
+    hra.add_argument("--claimed-year", dest="claimed_year", type=int)
+    hra.add_argument("--gap", help="an existing gap's slug this drop-off is meant to help answer")
+    hrl = hrsub.add_parser("list")
+    hrl.add_argument("--state", choices=["open", "unconfirmed", "confirmed", "contradicted"])
+    hrl.add_argument("--limit", type=int, default=50)
     return ap
 
 
@@ -650,6 +719,7 @@ def main(argv=None, connect=None):
         return {"ws": cmd_ws, "discover": cmd_discover, "admit": cmd_admit, "approve": cmd_approve,
                 "acquire": cmd_acquire, "migrate": cmd_migrate, "export": cmd_export,
                 "use": cmd_use, "inventory": cmd_inventory, "hunt": cmd_hunt,
+                "hunt-request": cmd_hunt_request,
                 "promote": cmd_promote}[args.cmd](args, conn)
     finally:
         conn.close()

@@ -21,3 +21,8 @@
 # definition ONCE and, being the highest number, is applied last on every database whatever order
 # the earlier two arrived in. Its header carries the reasoning and the live measurement of the
 # divergence. Reports/LITKB_P4_MERGE_2026-09-15.md, "P8 merged".
+#
+# 0023 (hunt_request) was taken here 2026-09-18 with nothing to reserve: `git branch -a` plus
+# `git ls-tree` on every open work/* and fix/* ref showed none held 0022 or above (the highest any
+# other branch carries is 0019, work/20260915-access-layer, already landed above). No line is
+# needed for it — this note only spares the next session re-running the same check.

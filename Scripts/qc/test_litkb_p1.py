@@ -2066,6 +2066,10 @@ _EXPECTED_EXECUTE = {
                      # carries workstream_id and is guarded, and admission never reaches a held row, so the
                      # reason needs its own token-checked writer
                      "hold_candidate",
+                     # record_hunt_request, link_hunt_request: the drop-off record (migration
+                     # 0023, qc/test_litkb_hunt_request.py). hunt_requests carries workstream_id
+                     # and is guarded the same way discrepancies and candidates are.
+                     "record_hunt_request", "link_hunt_request",
                      "add_evidence", "add_candidate", "record_acquisition_attempt", "add_use_embedding",
                      # _feeds_token_ok: `litkb use add` checks a feeds token against the DATABASE's
                      # regex before it writes (migration 0020, definition settled in 0021), so the

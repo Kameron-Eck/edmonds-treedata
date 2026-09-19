@@ -2,12 +2,18 @@
 
     py -3.12 -m litkb.mcp.server            # stdio, one MCP session per process
 
-Eleven tools. Everything an agent may do to literature goes through them; everything an agent may
+Twelve tools. Everything an agent may do to literature goes through them; everything an agent may
 NOT do is absent, not merely discouraged:
 
     read    litkb_search  litkb_work  litkb_candidates  litkb_ws_status  litkb_my_uses
     write   litkb_ws_open  litkb_admit  litkb_acquire  litkb_record_use  litkb_hunt
+            litkb_hunt_request_add
     offer   litkb_propose_promotion        (prepare ONLY; commit is not a tool)
+
+`litkb_hunt_request_add` is the twelfth, added 2026-09-18 (migration 0023): a review agent's
+drop-off — the claim it expects a paper to support, why, and the unverified abstract passage it
+reasoned from — written before the paper is even hunted, so a later verified use can be checked
+against the expectation that motivated the hunt.
 
 `litkb_hunt` is the eleventh, added 2026-09-16: the five steps of the hunt protocol driven end to
 end from one reference, so a session stops driving seven tools in order and diagnosing the gap
@@ -743,7 +749,7 @@ def _acquire(key=None, doi=None, routes="open_access", from_file=None, max_archi
 
 def _record_use(statement, kind, quote, block_id, gap, work_key=None, doi=None, gap_question=None,
                 feeds=None, stance="supports", page=None, rationale=None,
-                char_start=None, char_end=None, agent=None, session=None):
+                char_start=None, char_end=None, agent=None, session=None, hunt_request_id=None):
     """A use and its evidence, in one call. The QUOTE is located in the block's own text here, so
     the offsets the database checks are the ones the quote actually occupies — and a quote that is
     not in that block is refused BEFORE anything is written (`quote-not-in-block`).
@@ -753,7 +759,12 @@ def _record_use(statement, kind, quote, block_id, gap, work_key=None, doi=None, 
     P1 kill M3). What comes back below is what the database stored.
 
     char_start/char_end are accepted only to let a test record a DELIBERATELY unverifiable quote —
-    the P8 kill needs one to reach `promote prepare` and be refused there."""
+    the P8 kill needs one to reach `promote prepare` and be refused there.
+
+    `hunt_request_id` (migration 0023): the drop-off this use circles back to, if any — the
+    "closed loop" step (WORKPLAN.md "Next phase"). Set once, at creation; `_create_identity`
+    refuses one belonging to another workstream, and it is never accepted on an EXISTING use
+    (identity is immutable)."""
     from psycopg.types.json import Jsonb
 
     from litkb.textnorm import norm_label
@@ -860,7 +871,7 @@ def _record_use(statement, kind, quote, block_id, gap, work_key=None, doi=None, 
             gap_id = (str(g[0]),)
         use = conn.execute(
             "SELECT * FROM litkb.write_proposal('use', NULL, %s, NULL, %s, %s, %s, %s, %s, %s)",
-            (Jsonb({"work_id": work_id, "gap_id": gap_id[0]}),
+            (Jsonb({"work_id": work_id, "gap_id": gap_id[0], "hunt_request_id": hunt_request_id}),
              Jsonb({"statement": statement, "kind": kind, "status": "proposed",
                     "feeds": list(feeds or []), "rationale": rationale}),
              None, ws_id, token, a, s)).fetchone()
@@ -918,7 +929,7 @@ def _propose_promotion(report_path=None, repo=None):
 
 
 def _hunt(ref, title=None, author=None, year=None, key=None, source_note=None, extract=True,
-          agent=None, session=None, spend=True):
+          agent=None, session=None, spend=True, hunt_request_id=None):
     """`litkb hunt`, run as a SUBPROCESS of the CLI — for the reason `_propose_promotion` runs one.
 
     A hunt INGESTS, and ingesting is the `litkb_ingest` login (design §4.7, §9): the writer holds
@@ -940,7 +951,11 @@ def _hunt(ref, title=None, author=None, year=None, key=None, source_note=None, e
     SPEND is likewise threaded, not re-decided: `spend=True` (the default, SPEND RULE 2026-09-16,
     decisions.yaml litkb-p0-foundation) is the CLI's own default and needs no flag; `spend=False`
     becomes `--no-spend`, so an MCP caller gets the same distinct `held-no-spend` outcome the CLI
-    does rather than a second copy of the stop."""
+    does rather than a second copy of the stop.
+
+    `hunt_request_id` (migration 0023) becomes `--hunt-request <id>`: the CLI does the actual
+    linking (litkb.hunt._link_hunt_request), inside the same subprocess that already holds the
+    writer connection for the admission."""
     ws_id, _token = _session()
     wt = _worktree()
     cmd = [sys.executable, "-m", "litkb", "--db", _db(), "--dir", str(wt)]
@@ -950,7 +965,7 @@ def _hunt(ref, title=None, author=None, year=None, key=None, source_note=None, e
         cmd += ["--session", session]
     cmd += ["hunt", ref]
     for flag, value in (("--title", title), ("--author", author), ("--key", key),
-                        ("--source-note", source_note)):
+                        ("--source-note", source_note), ("--hunt-request", hunt_request_id)):
         if value:
             cmd += [flag, str(value)]
     if year:
@@ -971,6 +986,44 @@ def _hunt(ref, title=None, author=None, year=None, key=None, source_note=None, e
         payload = {"stdout": r.stdout[-4000:]}
     return _out({"ok": r.returncode == 0, "workstream_id": str(ws_id),
                  "returncode": r.returncode, "stderr": r.stderr[-4000:]} | payload)
+
+
+def _hunt_request_add(ref, ref_scheme, expected_claim, why_relevant, abstract_passage=None,
+                      claimed_title=None, claimed_authors=None, claimed_year=None, gap=None,
+                      agent=None, session=None):
+    """The review agent's drop-off (migration 0023): identifiers, the claim it expects the paper
+    to support, why it is relevant, and the abstract passage it reasoned from — written BEFORE the
+    full text exists, so a later verified use can be checked against the expectation that
+    motivated the hunt. `ref_scheme` is the database's own vocabulary; an unrecognised one is
+    refused by the table's CHECK, surfaced here as the ordinary `error` refusal shape.
+
+    `gap`, if given, is the gap SLUG this drop-off is meant to help answer; it is stored as
+    `gap_id` and must already exist (litkb_record_use opens one on demand — this tool does not,
+    because a drop-off is not itself a claim about a gap being answered)."""
+    from litkb import hunt_request
+
+    ws_id, token = _session()
+    a, s = _labels(agent, session)
+    gap_id = None
+    if gap:
+        with _conn("reader") as conn:
+            row = conn.execute("SELECT id::text FROM litkb.gaps WHERE slug = %s", (gap,)).fetchone()
+        if not row:
+            return _refuse("unknown-gap", f"no gap {gap!r}. Open one first (litkb_record_use with "
+                                          "gap_question does this on demand; this tool does not).")
+        gap_id = row[0]
+    with _conn("writer") as conn:
+        hr_id = hunt_request.record(conn, ws_id, token, ref=ref, ref_scheme=ref_scheme,
+                                    expected_claim=expected_claim, why_relevant=why_relevant,
+                                    abstract_passage=abstract_passage or None,
+                                    claimed_title=claimed_title or None,
+                                    claimed_authors=claimed_authors or None,
+                                    claimed_year=claimed_year or None, gap_id=gap_id,
+                                    agent=a, session=s)
+    return _out({"ok": True, "hunt_request_id": str(hr_id), "ref": ref, "resolution_state": "open",
+                 "what_next": "litkb_hunt(ref=..., hunt_request=hunt_request_id) links the work "
+                             "this resolves to; a later litkb_record_use(hunt_request=...) is what "
+                             "can ever move this past 'open'/'unconfirmed'."})
 
 
 # ── the MCP surface ───────────────────────────────────────────────────────────────────────
@@ -998,7 +1051,7 @@ def _guarded(fn):
 
 
 def build_server():
-    """The MCPServer with the eleven tools bound. `mcp` is imported HERE, never at module top."""
+    """The MCPServer with the twelve tools bound. `mcp` is imported HERE, never at module top."""
     from mcp.server.mcpserver import MCPServer
 
     srv = MCPServer(name=SERVER_NAME, version=VERSION, instructions=(
@@ -1079,18 +1132,22 @@ def build_server():
     @srv.tool(name="litkb_record_use", description=(
         "Record what a work supplies to a question (a gap), with a verbatim quote from a block of "
         "the file's current extraction run. The quote's offsets are located here and VERIFIED by the "
-        "database; an unverified quote is stored but its chain is refused at promote prepare."))
+        "database; an unverified quote is stored but its chain is refused at promote prepare. Pass "
+        "hunt_request to link this use back to a drop-off litkb_hunt_request_add recorded — that is "
+        "how a hunt_request's resolution_state can ever become confirmed or contradicted."))
     def litkb_record_use(statement: str, kind: str, quote: str, block_id: str, gap: str,
                          gap_question: str = "", work_key: str = "", doi: str = "",
                          feeds: str = "", stance: str = "supports", page: int = 0,
-                         rationale: str = "", char_start: int = -1, char_end: int = -1) -> str:
+                         rationale: str = "", char_start: int = -1, char_end: int = -1,
+                         hunt_request: str = "") -> str:
         return _guarded(_record_use)(
             statement=statement, kind=kind, quote=quote, block_id=block_id, gap=gap,
             gap_question=gap_question or None, work_key=work_key or None, doi=doi or None,
             feeds=[f.strip() for f in feeds.split(";") if f.strip()], stance=stance,
             page=page or None, rationale=rationale or None,
             char_start=None if char_start < 0 else char_start,
-            char_end=None if char_end < 0 else char_end)
+            char_end=None if char_end < 0 else char_end,
+            hunt_request_id=hunt_request or None)
 
     @srv.tool(name="litkb_propose_promotion", description=(
         "Offer this workstream's proposed versions to main: group them into chains, re-run the "
@@ -1100,6 +1157,23 @@ def build_server():
         "committing the promotion happens after Kam merges, and is not a tool."))
     def litkb_propose_promotion(report_path: str = "", repo: str = "") -> str:
         return _guarded(_propose_promotion)(report_path=report_path or None, repo=repo or None)
+
+    @srv.tool(name="litkb_hunt_request_add", description=(
+        "Drop off a paper worth hunting, BEFORE the full text exists: the reference as given, the "
+        "CLAIM you expect it to support, WHY it is relevant, and the abstract passage you reasoned "
+        "from. This is your unverified prior, recorded so a later verified use can be checked "
+        "against it — it is never itself evidence and never searched by litkb_search. Returns a "
+        "hunt_request_id: pass it to litkb_hunt to link the work this resolves to, and to a later "
+        "litkb_record_use to let this request's resolution move past open/unconfirmed."))
+    def litkb_hunt_request_add(ref: str, ref_scheme: str, expected_claim: str, why_relevant: str,
+                               abstract_passage: str = "", claimed_title: str = "",
+                               claimed_authors: str = "", claimed_year: int = 0,
+                               gap: str = "") -> str:
+        return _guarded(_hunt_request_add)(
+            ref=ref, ref_scheme=ref_scheme, expected_claim=expected_claim,
+            why_relevant=why_relevant, abstract_passage=abstract_passage or None,
+            claimed_title=claimed_title or None, claimed_authors=claimed_authors or None,
+            claimed_year=claimed_year or None, gap=gap or None)
 
     @srv.tool(name="litkb_hunt", description=(
         "ONE call from a reference to searchable text: resolve a DOI or a document URL, admit it, "
@@ -1112,13 +1186,16 @@ def build_server():
         "and author for a URL — there is no registry to ask, and a PDF's own metadata usually "
         "names the file rather than the work. A reference that resolves to `held` (admitted, no "
         "PDF) SPENDS by default: open access, then the archive, then Sci-Hub. Pass spend=False "
-        "to stop at `held` instead — a distinct, deliberate outcome, not an error."))
+        "to stop at `held` instead — a distinct, deliberate outcome, not an error. Pass "
+        "hunt_request (an id from litkb_hunt_request_add) to link the drop-off to whatever work "
+        "this reference resolves to — cached or fresh, any rung of the ladder."))
     def litkb_hunt(ref: str, title: str = "", author: str = "", year: int = 0, key: str = "",
-                   source_note: str = "", extract: bool = True, spend: bool = True) -> str:
+                   source_note: str = "", extract: bool = True, spend: bool = True,
+                   hunt_request: str = "") -> str:
         return _guarded(_hunt)(ref=ref, title=title or None, author=author or None,
                                year=year or None, key=key or None,
                                source_note=source_note or None, extract=bool(extract),
-                               spend=bool(spend))
+                               spend=bool(spend), hunt_request_id=hunt_request or None)
 
     return srv
 

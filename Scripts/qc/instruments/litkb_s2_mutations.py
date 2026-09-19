@@ -39,6 +39,14 @@ WHAT EACH ROW IS FOR:
     are the two halves of the arXiv refusal at the acquisition door: gate 0 returning no DOI for the
     `10.48550` form, and `fetch_one` refusing it whatever it is handed. They are separate rows on
     purpose — one test through `run_jobs` would let either half mask the other.
+  * **P7-C7/P7-C8 are the task-3 rows** (missing-vs-contradicted author asymmetry, 2026-09-18). C7
+    reverts the fix wholesale: a Crossref record with no author is refused `crossref_no_author`
+    again, and the two lost-genuine cases (Swain 1978, Chrisman 1989) go back to being lost. C8
+    narrows to the hazard the referee flagged rather than the fix itself: it removes only the
+    requirement that an authorless record's YEAR still independently clear, so an authorless
+    candidate confirms on title alone — caught by `test_an_authorless_wrong_year_candidate_is_still_refused`
+    in `qc/test_litkb_confirm_asymmetry.py`, never by the corpus fixture (both its real authorless
+    cases happen to carry an exact year).
   * **P7-S1/S2** are the per-call-site rows for `normalize_doi` inside `s2.py`: at each site the
     canonicalisation simply does not happen, so `DOI:10.1/A` and `DOI:10.1/a` become two identifiers
     and a candidate's DOI no longer matches the corpus index.
@@ -53,6 +61,11 @@ TESTS_S2 = ["qc/test_litkb_s2.py"]
 #: The confirmation rows reach two doors: stage 6 (`test_litkb_s2.py`) and gate 0, the acquisition
 #: path (`test_litkb_annas.py`), so both suites run for them.
 TESTS_CONFIRM = ["qc/test_litkb_s2.py", "qc/test_litkb_annas.py"]
+#: P7-C7/P7-C8 (referee task 3, 2026-09-18): the missing-vs-contradicted author asymmetry. Its
+#: dedicated pin -- the 12-case fixture plus the synthetic authorless kills -- lives in its own
+#: file, so `tests=` here EXTENDS TESTS_CONFIRM rather than replacing it (the module docstring's
+#: own hazard: `tests` replaces the default, it does not add to it).
+TESTS_ASYMMETRY = [*TESTS_CONFIRM, "qc/test_litkb_confirm_asymmetry.py"]
 S2 = "pipeline/litkb/admit/s2.py"
 RESOLVER = "pipeline/litkb/admit/resolver.py"
 REFS = "pipeline/litkb/extract/references.py"
@@ -60,7 +73,7 @@ ANNAS = "pipeline/litkb/acquire/annas.py"
 PASSTHROUGH = "({a0})"
 
 IDS = ["P7-G1", "P7-G2", "P7-G3", "P7-G4", "P7-G5", "P7-G6", "P7-G7", "P7-S1", "P7-S2",
-       "P7-S3", "P7-C1", "P7-C2", "P7-C3", "P7-C4", "P7-C5", "P7-C6"]
+       "P7-S3", "P7-C1", "P7-C2", "P7-C3", "P7-C4", "P7-C5", "P7-C6", "P7-C7", "P7-C8"]
 
 
 def register(block, replace, site):
@@ -131,6 +144,38 @@ def register(block, replace, site):
     block("P7-C6", ANNAS, "guard: gate 0 an arxiv DOI is record-only and is never fetched",
           "the fetcher's own refusal is removed, so the property holds only as far as gate 0's "
           "caller does — the belt behind the brace, mutated on its own", tests=TESTS_CONFIRM)
+    # ---- the task-3 rows: missing-vs-contradicted author asymmetry (2026-09-18) ----
+    replace("P7-C7", RESOLVER,
+            '    if rec.get("first_author") or "":\n'
+            '        if not family_matches(rec["first_author"], ref.get("first_author") or ""):\n'
+            '            return "refused", (f"crossref_author_mismatch ({doi}; crossref first author "\n'
+            '                               f"{rec[\'first_author\']!r} != reference {ref.get(\'first_author\')!r})"), rec\n'
+            '    if cy is None or wy is None:',
+            '    if not (rec.get("first_author") or ""):\n'
+            '        return "refused", f"crossref_no_author ({doi}; crossref carries no author for this record)", rec\n'
+            '    if not family_matches(rec["first_author"], ref.get("first_author") or ""):\n'
+            '        return "refused", (f"crossref_author_mismatch ({doi}; crossref first author "\n'
+            '                           f"{rec[\'first_author\']!r} != reference {ref.get(\'first_author\')!r})"), rec\n'
+            '    if cy is None or wy is None:',
+            "the missing-vs-contradicted asymmetry reverted whole: an authorless record refuses "
+            "crossref_no_author again, and the two lost-genuine cases (Swain 1978, Chrisman 1989) "
+            "are lost", tests=TESTS_ASYMMETRY)
+    replace("P7-C8", RESOLVER,
+            '    if rec.get("first_author") or "":\n'
+            '        if not family_matches(rec["first_author"], ref.get("first_author") or ""):\n'
+            '            return "refused", (f"crossref_author_mismatch ({doi}; crossref first author "\n'
+            '                               f"{rec[\'first_author\']!r} != reference {ref.get(\'first_author\')!r})"), rec\n'
+            '    if cy is None or wy is None:',
+            '    if not (rec.get("first_author") or ""):\n'
+            '        return "confirmed", f"crossref_confirmed_no_author_unchecked ({doi})", rec\n'
+            '    if not family_matches(rec["first_author"], ref.get("first_author") or ""):\n'
+            '        return "refused", (f"crossref_author_mismatch ({doi}; crossref first author "\n'
+            '                           f"{rec[\'first_author\']!r} != reference {ref.get(\'first_author\')!r})"), rec\n'
+            '    if cy is None or wy is None:',
+            "an authorless record confirms the instant its author check is skipped, before the "
+            "year gate runs at all: the year-independence half of the fix is gone, and a "
+            "wrong-year authorless candidate is confirmed instead of crossref_year_mismatch",
+            tests=TESTS_ASYMMETRY)
 
 
 def _p2():

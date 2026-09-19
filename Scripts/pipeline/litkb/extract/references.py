@@ -46,10 +46,13 @@ THE RESOLUTION RULE, and why it is not `resolver.resolve_doi`.
     as a book is ``type_mismatch``; the same title and shared authorship at a year more than one out
     is a sibling edition, ``edition_mismatch``, which is **ambiguous, not resolved**. Every other
     refusal keeps its own name — ``crossref_not_registered``, ``crossref_title_ratio``,
-    ``crossref_no_author``, ``crossref_author_mismatch``, ``crossref_year_mismatch``. Nothing is
-    dropped silently. WHY: measured on this corpus, 3 of 33 new S2 resolutions were a review of the
-    cited book and one was a sibling edition — the three rules all agreed because the registry had
-    merged a book with its review (`Reports/LITKB_S2_BATCHING_2026-09-15.md` §4).
+    ``crossref_author_mismatch``, ``crossref_year_mismatch``. Nothing is dropped silently. A record
+    with NO author at all is **not** one of these refusals (referee task 3, 2026-09-18): it is
+    uninformative on authorship rather than contradicting it, so it is admitted on the title ratio
+    and year alone, both still independently required — see `resolver.confirm_s2_candidate`, the
+    "MISSING vs CONTRADICTED" comment. WHY: measured on this corpus, 3 of 33 new S2 resolutions were
+    a review of the cited book and one was a sibling edition — the three rules all agreed because
+    the registry had merged a book with its review (`Reports/LITKB_S2_BATCHING_2026-09-15.md` §4).
   * **`ambiguous` is a state this module has and `resolve_doi` does not.** `resolve_doi` returns
     the FIRST accepted candidate, so it can never report that two different works both passed. Here
     every candidate of a stage is judged, and two or more DISTINCT normalised DOIs among the

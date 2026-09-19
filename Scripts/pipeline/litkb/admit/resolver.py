@@ -478,15 +478,30 @@ def confirm_s2_candidate(cand, ref, client, pacer=None):
     if cy is not None and wy is not None and abs(cy - wy) > 1 and _shares_authorship(rec, ref):
         return "ambiguous", (f"edition_mismatch ({doi}; same title, shared authorship, crossref "
                              f"{cy} vs reference {wy} — a sibling edition, not this one)"), rec
-    if not (rec.get("first_author") or ""):
-        return "refused", f"crossref_no_author ({doi}; crossref carries no author for this record)", rec
-    if not family_matches(rec["first_author"], ref.get("first_author") or ""):
-        return "refused", (f"crossref_author_mismatch ({doi}; crossref first author "
-                           f"{rec['first_author']!r} != reference {ref.get('first_author')!r})"), rec
+    # MISSING vs CONTRADICTED (referee task 3, 2026-09-18). A Crossref record with NO author at
+    # all says nothing about authorship either way -- it is uninformative, not evidence against
+    # the reference -- so it is no longer refused on that alone. Before this, `crossref_no_author`
+    # fired here for every authorless record, real matches included: Swain 1978 (Abercrombie b16)
+    # and Chrisman 1989 (Burnicki b12) both have Crossref records with no `author` array and were
+    # lost to it. A PRESENT author that disagrees remains evidence and still refuses, unchanged.
+    #
+    # Dropping that refusal also removes the ONLY thing standing between an authorless record and
+    # `family_matches`, which would otherwise compare against `""`. So an authorless record is
+    # admitted ONLY where the two checks that do not depend on authorship both independently
+    # clear: the title ratio, already enforced above for every candidate, and the year, enforced
+    # below exactly as it always was for an authored record. Neither is relaxed for this branch.
+    if rec.get("first_author") or "":
+        if not family_matches(rec["first_author"], ref.get("first_author") or ""):
+            return "refused", (f"crossref_author_mismatch ({doi}; crossref first author "
+                               f"{rec['first_author']!r} != reference {ref.get('first_author')!r})"), rec
     if cy is None or wy is None:
         return "refused", f"crossref_year_unknown ({doi}; crossref {cy}, reference {wy})", rec
     if abs(cy - wy) > 1:
         return "refused", f"crossref_year_mismatch ({doi}; crossref {cy} != reference {wy})", rec
+    if not (rec.get("first_author") or ""):
+        return "confirmed", (f"crossref_confirmed ({doi}; ratio {ratio:.2f}; year {cy}; crossref "
+                             f"carries no author for this record -- admitted on title ratio and "
+                             f"year alone)"), rec
     return "confirmed", f"crossref_confirmed ({doi}; ratio {ratio:.2f}; year {cy})", rec
 
 

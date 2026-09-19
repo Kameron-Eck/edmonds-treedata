@@ -201,17 +201,156 @@ def test_a_doi_hunt_for_a_work_already_held_stops_at_held_and_admits_nothing_aga
     ADMITTED with no bound file. Falling through re-admits a work the knowledge base already holds,
     and check 2 refuses it as a DUPLICATE — so a session that hunts the same DOI twice would be
     told, on the second call, that its own work belongs to somebody else. The right answer is the
-    state it is in, with the next move (`litkb acquire`) in `refusals`."""
+    state it is in, with the next move (`litkb acquire`) in `refusals`.
+
+    Passes spend=False: this row is about the DUPLICATE-ADMISSION guard, not the spend gate (rows
+    below cover that), and a default-spending hunt with no acquirer stub would open a socket."""
     doi = f"10.9999/held.{uuid.uuid4().hex[:10]}"
     seeded = seed_extracted(env["conn"], env["ws_id"], "doi", doi, state="held")
     n = lambda: env["conn"].execute("SELECT count(*) FROM litkb.admissions").fetchone()[0]  # noqa: E731
     before = n()
-    res = _hunt(env, doi, fetch=_explode, registry_client=_NoNet())
-    assert res["ok"] is True and res["state"] == "held" and res["outcome"] == "held", res
+    res = _hunt(env, doi, fetch=_explode, registry_client=_NoNet(), spend=False)
+    assert res["ok"] is True and res["state"] == "held", res
+    assert res["outcome"] == "held-no-spend", res
     assert res["work_key"] == seeded["key"] and res["files"] == [], res
-    assert [r["code"] for r in res["refusals"]] == ["no-file"], res
-    assert "litkb acquire" in res["refusals"][0]["message"], res
+    assert [r["code"] for r in res["refusals"]] == ["no-spend"], res
+    assert "--no-spend" in res["refusals"][0]["message"], res
     assert n() == before, "a hunt of an already-held DOI admitted it a second time"
+
+
+# ── the spend rule (Kam, 2026-09-16 night; decisions.yaml litkb-p0-foundation): a hunt that ─────
+# reaches `held` proceeds to acquisition BY DEFAULT; --no-spend / spend=False is the explicit
+# exception. Row H5 (qc/instruments/litkb_p2_mutations.py): six DOI hunts died stuck at `held` on
+# 2026-09-16 for lack of this rule, and it must fire both ways — a hunt told not to spend must
+# never call acquisition, and a hunt that says nothing about it must.
+
+def _acquire_explodes(conn, ws_id, token, work, *, store, agent, session):
+    raise AssertionError("acquisition was attempted although spend=False")
+
+
+def _acquire_recording(calls, outcome="not-acquired", attempts=None):
+    def _acquire(conn, ws_id, token, work, *, store, agent, session):
+        calls.append({"work_id": work["work_id"], "doi": work.get("doi"), "agent": agent,
+                      "session": session})
+        return {"outcome": outcome,
+                "attempts": attempts or [("open_access", "no-oa-copy"),
+                                         ("annas", "not-in-archive"),
+                                         ("scihub", "not-in-archive")]}
+    return _acquire
+
+
+@pg_only
+def test_no_spend_stops_at_held_and_never_calls_acquisition(env):
+    """spend=False is a DELIBERATE, distinct stop: `held-no-spend`, code `no-spend` — never the
+    same `held`/`no-file` symptom the six stuck 2026-09-16 hunts left behind, and the acquirer is
+    never invoked (it would raise if it were)."""
+    doi = f"10.9999/nospend.{uuid.uuid4().hex[:10]}"
+    seed_extracted(env["conn"], env["ws_id"], "doi", doi, state="held")
+    res = _hunt(env, doi, fetch=_explode, registry_client=_NoNet(), spend=False,
+               acquirer=_acquire_explodes)
+    assert res["ok"] is True and res["state"] == "held", res
+    assert res["outcome"] == "held-no-spend", res
+    assert [r["code"] for r in res["refusals"]] == ["no-spend"], res
+    assert "acquisition" not in res, res
+
+
+@pg_only
+def test_default_hunt_spends_by_calling_acquisition(env):
+    """The DEFAULT (no `spend` kwarg at all — the CLI's own default): a `held` DOI proceeds to
+    acquisition without being asked. The stub records that it was called and reports
+    `not-acquired`, so the ladder's next rung (`held-spend-exhausted`) is also asserted."""
+    doi = f"10.9999/spend.{uuid.uuid4().hex[:10]}"
+    seed_extracted(env["conn"], env["ws_id"], "doi", doi, state="held")
+    calls = []
+    res = _hunt(env, doi, fetch=_explode, registry_client=_NoNet(),
+               acquirer=_acquire_recording(calls))
+    assert len(calls) == 1, "the default hunt did not spend: acquisition was never called"
+    assert calls[0]["doi"] == doi, calls
+    assert res["ok"] is True and res["state"] == "held", res
+    assert res["outcome"] == "held-spend-exhausted", res
+    assert [r["code"] for r in res["refusals"]] == ["not-acquired"], res
+    assert res["acquisition"]["outcome"] == "not-acquired", res
+    assert res["acquisition"]["attempts"], res
+
+
+def _p2_module():
+    """qc/test_litkb_p2.py, loaded by path (it is not a package): `RegistryStub` and `_synthetic`
+    build a Crossref-shaped record with no network, exactly as the existing web-source test above
+    already does for `front`."""
+    import importlib.util
+
+    spec = importlib.util.spec_from_file_location("_p2", Path(__file__).with_name("test_litkb_p2.py"))
+    p2 = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(p2)
+    return p2
+
+
+@pg_only
+def test_a_fresh_doi_admission_with_no_file_also_spends_by_default(env):
+    """The OTHER place a hunt reaches `held` with no file: a DOI admitted for the FIRST time by
+    this very call (not found already-held in the database). Same guard, the other call site."""
+    p2 = _p2_module()
+    doi, _title, rec = p2._synthetic()
+    stub = p2.RegistryStub({doi: rec})
+    calls = []
+    res = _hunt(env, doi, fetch=_explode, registry_client=stub,
+               acquirer=_acquire_recording(calls))
+    assert res.get("admission", {}).get("outcome") == "admitted", res
+    assert len(calls) == 1, "a freshly-admitted DOI with no file did not spend"
+    assert calls[0]["doi"] == doi, calls
+    assert res["ok"] is True and res["state"] == "held", res
+    assert res["outcome"] == "held-spend-exhausted", res
+
+
+def test_the_cli_default_spends_and_no_spend_threads_through(monkeypatch):
+    """Row H6: the CLI's own default. No Postgres, no network — `commands.cmd_hunt` is exercised
+    directly with `litkb.hunt.hunt` monkeypatched to capture the `spend` kwarg it was called
+    with, so this is a fast unit test rather than a duplicate of the rows above."""
+    from litkb import commands as C
+    from litkb import hunt as H
+
+    captured = []
+
+    def fake_hunt(ref, **kw):
+        captured.append(kw.get("spend"))
+        return {"ok": True, "state": "held", "outcome": "held-spend-exhausted", "refusals": []}
+
+    monkeypatch.setattr(H, "hunt", fake_hunt)
+    rc1 = C.main(["hunt", "10.1/x"], connect=lambda db: C._NoConn())
+    rc2 = C.main(["hunt", "10.1/x", "--no-spend"], connect=lambda db: C._NoConn())
+    assert rc1 == 0 and rc2 == 0, (rc1, rc2)
+    assert captured == [True, False], captured
+
+
+def test_the_mcp_wrapper_threads_spend_to_no_spend_and_omits_it_by_default(tmp_path, monkeypatch):
+    """Row H7: the MCP tool never re-decides spend, it threads it to the CLI subprocess it shells
+    out to. No Postgres — `.litkb-workstream` is a plain JSON file `_session()` reads off disk,
+    and `subprocess.run` is monkeypatched so nothing is ever actually launched."""
+    from litkb.mcp import server as S
+
+    # the token is armed process-wide by `_session()` -> `add_secret()` (netutil._SECRETS is a
+    # module-level list nothing ever clears): a short, common token like "t" redacts every "t" in
+    # EVERY later test's output for the rest of the pytest session, not just this test's. A
+    # UUID-length token never collides with ordinary text.
+    (tmp_path / ".litkb-workstream").write_text(
+        json.dumps({"workstream_id": str(uuid.uuid4()), "token": uuid.uuid4().hex}),
+        encoding="utf-8")
+    monkeypatch.setenv("LITKB_WORKTREE", str(tmp_path))
+    calls = []
+
+    def fake_run(cmd, **kw):
+        calls.append(cmd)
+        class R:
+            returncode = 0
+            stdout = "{}"
+            stderr = ""
+        return R()
+
+    monkeypatch.setattr(S.subprocess, "run", fake_run)
+    S._hunt(ref="10.1/x")
+    S._hunt(ref="10.1/x", spend=False)
+    assert "--no-spend" not in calls[0], calls[0]
+    assert "--no-spend" in calls[1], calls[1]
 
 
 # ── kill 3: no workstream token ───────────────────────────────────────────────────────────

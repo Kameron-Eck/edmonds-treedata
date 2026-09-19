@@ -918,7 +918,7 @@ def _propose_promotion(report_path=None, repo=None):
 
 
 def _hunt(ref, title=None, author=None, year=None, key=None, source_note=None, extract=True,
-          agent=None, session=None):
+          agent=None, session=None, spend=True):
     """`litkb hunt`, run as a SUBPROCESS of the CLI — for the reason `_propose_promotion` runs one.
 
     A hunt INGESTS, and ingesting is the `litkb_ingest` login (design §4.7, §9): the writer holds
@@ -935,7 +935,12 @@ def _hunt(ref, title=None, author=None, year=None, key=None, source_note=None, e
     itself, before it opens a store or touches the network, and it has to — the CLI is an entry
     point of its own. A second copy in this wrapper would be a second place the rule is written,
     and the harness would have to test the copy rather than the guard (`_labels` is on the
-    per-call-site rule for exactly that reason)."""
+    per-call-site rule for exactly that reason).
+
+    SPEND is likewise threaded, not re-decided: `spend=True` (the default, SPEND RULE 2026-09-16,
+    decisions.yaml litkb-p0-foundation) is the CLI's own default and needs no flag; `spend=False`
+    becomes `--no-spend`, so an MCP caller gets the same distinct `held-no-spend` outcome the CLI
+    does rather than a second copy of the stop."""
     ws_id, _token = _session()
     wt = _worktree()
     cmd = [sys.executable, "-m", "litkb", "--db", _db(), "--dir", str(wt)]
@@ -952,6 +957,10 @@ def _hunt(ref, title=None, author=None, year=None, key=None, source_note=None, e
         cmd += ["--year", str(int(year))]
     if not extract:
         cmd.append("--no-extract")
+    # BEGIN guard: the MCP tool's spend=False threads through as --no-spend; the default spends
+    if not spend:
+        cmd.append("--no-spend")
+    # END guard: the MCP tool's spend=False threads through as --no-spend; the default spends
     env = dict(os.environ, PYTHONPATH=os.pathsep.join(
         [str(SCRIPTS / "pipeline"), os.environ.get("PYTHONPATH", "")]).rstrip(os.pathsep),
         LITKB_WORKTREE=str(wt))
@@ -1101,12 +1110,15 @@ def build_server():
         "refusal with its reason. A URL source is a manual PROPOSAL: its blocks are real but "
         "litkb_search cannot see them until a SECOND session approves the admission. Pass title "
         "and author for a URL — there is no registry to ask, and a PDF's own metadata usually "
-        "names the file rather than the work."))
+        "names the file rather than the work. A reference that resolves to `held` (admitted, no "
+        "PDF) SPENDS by default: open access, then the archive, then Sci-Hub. Pass spend=False "
+        "to stop at `held` instead — a distinct, deliberate outcome, not an error."))
     def litkb_hunt(ref: str, title: str = "", author: str = "", year: int = 0, key: str = "",
-                   source_note: str = "", extract: bool = True) -> str:
+                   source_note: str = "", extract: bool = True, spend: bool = True) -> str:
         return _guarded(_hunt)(ref=ref, title=title or None, author=author or None,
                                year=year or None, key=key or None,
-                               source_note=source_note or None, extract=bool(extract))
+                               source_note=source_note or None, extract=bool(extract),
+                               spend=bool(spend))
 
     return srv
 

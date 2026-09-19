@@ -62,14 +62,28 @@ STATES = ("absent", "held", "bound-unextracted", "extracted")
 #: Block types that read as a heading when the result shows what the document turned out to be.
 HEADING_KINDS = ("title", "heading")
 
-#: The next move for a work that is admitted with no file. ONE sentence, said at both places a hunt
-#: can reach that rung — the admission it just made, and the one it found already there — because a
-#: session that hunts the same DOI twice must be told the same thing twice.
-NO_FILE = ("the work is admitted and no PDF is bound to it, so there is nothing to extract. Run "
+#: The work is admitted, no PDF is bound, and acquisition could not even be ATTEMPTED for it (it is
+#: not yet in main, or the work record could not be read back) — a structural gap, not a choice.
+NO_FILE = ("the work is admitted and no PDF is bound to it, and this hunt could not attempt "
+           "acquisition for it (the work is not yet visible in main). Run "
            "`litkb acquire --key <key>` (open access, then the archive, then Sci-Hub) or "
            "`--from-file <PDF>`, then hunt the reference again — the second hunt picks up at the "
-           "bound file. Choosing an acquisition route is a SPEND, and a hunt does not make one "
-           "unasked.")
+           "bound file.")
+
+#: SPEND RULE (Kam, 2026-09-16 night; decisions.yaml litkb-p0-foundation): a hunt proceeds to
+#: acquisition — open access, then the archive by DOI — BY DEFAULT. `--no-spend` / `spend=False`
+#: is the explicit exception, and it is recorded as a distinct, DELIBERATE stop — never the same
+#: symptom as the six DOI hunts that died stuck at `held` on 2026-09-16 for lack of this rule.
+NO_SPEND = ("the work is admitted and no PDF is bound to it. This hunt was told not to spend "
+            "(--no-spend / spend=False): no open-access fetch and no archive call were attempted. "
+            "Run `litkb acquire --key <key>` or hunt again without --no-spend — the default hunt "
+            "spends.")
+
+#: Every automated route was tried (open access, then the archive, then Sci-Hub) and none of them
+#: landed a file. `acquisition.attempts` names what each route answered.
+SPEND_EXHAUSTED = ("hunt spent by default (open access, then the archive, then Sci-Hub) and none "
+                   "of them landed a file; see `acquisition.attempts`. "
+                   "`litkb acquire --key <key> --from-file <PDF>` is the manual route.")
 
 
 class HuntRefused(Exception):
@@ -397,8 +411,17 @@ def _coverage_summary(cov):
 def hunt(ref, *, db=None, worktree=None, agent=None, session=None, title=None, author=None,
          year=None, source_note=None, key=None, work_type="report", retrieved=None,
          fetch=None, store=None, reader_role=None, writer_role=None, extract=True,
-         device="cuda", docling_python=None, derived=None, registry_client=None):
+         device="cuda", docling_python=None, derived=None, registry_client=None,
+         spend=True, acquirer=None):
     """Resolve → admit → bind → extract → ingest, for one reference. -> the result dict.
+
+    ``spend`` (default True, SPEND RULE 2026-09-16, decisions.yaml litkb-p0-foundation): a
+    reference that resolves to `held` (admitted, no PDF) proceeds to acquisition — open access,
+    then the archive by DOI, then Sci-Hub — unless the caller passes ``spend=False``
+    (``--no-spend`` at the CLI, ``spend=False`` from an MCP tool), which stops at `held` and
+    records that stop as a distinct, deliberate outcome (``held-no-spend``), never the silent
+    stall six DOI hunts died at on 2026-09-16. ``acquirer`` overrides the acquisition call for
+    tests: ``acquirer(conn, ws_id, token, work, *, store, agent, session) -> {"outcome", ...}``.
 
     Never raises for a refusal: a caller reads ``ok``, ``refused`` and ``refusals``.
     """
@@ -411,7 +434,8 @@ def hunt(ref, *, db=None, worktree=None, agent=None, session=None, title=None, a
                      source_note=source_note, key=key, work_type=work_type, retrieved=retrieved,
                      fetch=fetch, store=store, reader_role=reader_role, writer_role=writer_role,
                      extract=extract, device=device, docling_python=docling_python,
-                     derived=derived, registry_client=registry_client)
+                     derived=derived, registry_client=registry_client, spend=spend,
+                     acquirer=acquirer)
     except HuntRefused as e:
         refusals.append({"code": e.code, "message": e.message} | e.extra)
         return out | {"ok": False, "refused": e.code, "message": e.message,
@@ -426,7 +450,7 @@ def hunt(ref, *, db=None, worktree=None, agent=None, session=None, title=None, a
 
 def _hunt(ref, out, timing, refusals, *, db, worktree, agent, session, title, author, year,
           source_note, key, work_type, retrieved, fetch, store, reader_role, writer_role,
-          extract, device, docling_python, derived, registry_client):
+          extract, device, docling_python, derived, registry_client, spend, acquirer):
     from litkb.acquire.store import Store
     from litkb.admit import front
     from litkb.db import connect as c
@@ -468,9 +492,11 @@ def _hunt(ref, out, timing, refusals, *, db, worktree, agent, session, title, au
     # already holds, and check 2 would refuse it with a message about a DUPLICATE, so a second
     # hunt of a DOI would report a collision instead of the state it is in.
     if held and held["state"] == "held":
-        refusals.append({"code": "no-file", "message": NO_FILE})
-        return out | {"ok": True, "state": "held", "outcome": "held", "refusals": refusals,
-                      "seconds": timing} | _report(db, ws_id, held, reader_role)
+        return _spend_on_held(db, ws_id, token, ref, kind, held, out, timing, refusals,
+                              spend=spend, agent=agent, session=session, store=store,
+                              reader_role=reader_role, writer_role=writer_role, extract=extract,
+                              device=device, docling_python=docling_python, derived=derived,
+                              acquirer=acquirer, in_main=held.get("in_main"))
     # END guard: hunt answers from the database before it fetches anything
 
     if held and held["state"] == "bound-unextracted" and extract:
@@ -505,13 +531,16 @@ def _hunt(ref, out, timing, refusals, *, db, worktree, agent, session, title, au
                                   "the DOI was not admitted; the checks say why.",
                                   admission=_thin(res))
             out["admission"] = _thin(res)
-            # A DOI with no bound file stops HERE, and says so as a STATE rather than an error:
-            # the work is admitted, which is progress, and what is missing is a PDF. `litkb
-            # acquire` owns the route decision and records every attempt.
-            refusals.append({"code": "no-file", "message": NO_FILE})
-            return out | {"ok": True, "state": "held", "outcome": "admitted",
-                          "refusals": refusals, "seconds": timing} | _report(
-                              db, ws_id, {"work_id": str(res["work_id"])}, reader_role)
+            # A DOI with no bound file reaches the SPEND decision HERE, and a refusal says so as a
+            # STATE rather than an error: the work is admitted, which is progress. `litkb acquire`
+            # (or `_spend_on_held`'s own call into the same acquisition code) owns the route
+            # decision and records every attempt.
+            return _spend_on_held(db, ws_id, token, ref, kind, {"work_id": str(res["work_id"])},
+                                  out, timing, refusals, spend=spend, agent=agent,
+                                  session=session, store=store, reader_role=reader_role,
+                                  writer_role=writer_role, extract=extract, device=device,
+                                  docling_python=docling_python, derived=derived, writer=writer,
+                                  acquirer=acquirer, in_main=True)
 
         # ── a web source ───────────────────────────────────────────────────────────────────
         t0 = time.monotonic()
@@ -572,6 +601,98 @@ def _hunt(ref, out, timing, refusals, *, db, worktree, agent, session, title, au
                    out, timing, refusals, reader_role=reader_role, device=device,
                    docling_python=docling_python, derived=derived, root=store.root,
                    pdf_path=str(pdf))
+
+
+def _default_acquire(conn, ws_id, token, work, *, store, agent, session):
+    """The acquisition `_spend_on_held` calls by default: the same `litkb acquire` route logic
+    (open access, then Anna's Archive by DOI, then Sci-Hub by DOI), at its own defaults. A test
+    passes `acquirer=` to stub this without opening a socket."""
+    from litkb.acquire.run import acquire
+
+    return acquire(conn, ws_id, token, work, store=store, agent=agent, session=session)
+
+
+def _spend_on_held(db, ws_id, token, ref, kind, held, out, timing, refusals, *, spend, agent,
+                   session, store, reader_role, writer_role, extract, device, docling_python,
+                   derived, writer=None, acquirer=None, in_main=None):
+    """The rung a hunt reaches when a work is admitted with no PDF bound — read through the DB
+    lookup (``held`` from :func:`look_up`, carrying ``in_main``) or straight off a fresh DOI
+    admission (``held={"work_id": ...}``, always in main: ``admit_registry`` lands there directly).
+
+    SPEND RULE (Kam, 2026-09-16 night; decisions.yaml litkb-p0-foundation): a hunt proceeds to
+    acquisition BY DEFAULT (``spend=True``). ``spend=False`` is the explicit exception and stops
+    here as a DELIBERATE, distinct outcome (``held-no-spend``) — never the silent stall six DOI
+    hunts died at on 2026-09-16 for lack of this rule. A spend that lands nothing is ALSO distinct
+    (``held-spend-exhausted``) from both: every automated route was tried and none of it is
+    ``held``'s fault.
+    """
+    work_id = held["work_id"]
+    if not spend:
+        # BEGIN guard: spend=False stops a hunt at held before any acquisition is attempted
+        refusals.append({"code": "no-spend", "message": NO_SPEND})
+        return out | {"ok": True, "state": "held", "outcome": "held-no-spend",
+                      "refusals": refusals, "seconds": timing} | _report(db, ws_id, held,
+                                                                         reader_role)
+        # END guard: spend=False stops a hunt at held before any acquisition is attempted
+    if in_main is False:
+        # a proposal not yet in main has no litkb.main_works row: acquire()'s work_record() reads
+        # exactly that table, so spending here would be reading a work that is not there yet
+        refusals.append({"code": "no-file", "message": NO_FILE})
+        return out | {"ok": True, "state": "held", "outcome": "held",
+                      "refusals": refusals, "seconds": timing} | _report(db, ws_id, held,
+                                                                         reader_role)
+    if not agent or not session:
+        raise HuntRefused("no-labels",
+                          "every write records which agent and which session made it: set "
+                          "LITKB_AGENT and LITKB_SESSION, or pass --agent/--session.")
+    from litkb.acquire.run import work_record
+    from litkb.acquire.store import Store
+    from litkb.db import connect as c
+
+    store = store or Store()
+    acquire_fn = acquirer or _default_acquire
+    own_writer = writer is None
+    conn = writer or c.connect(db, writer_role or _role("writer"), autocommit=True)
+    try:
+        t0 = time.monotonic()
+        work = work_record(conn, work_id=work_id)
+        if work is None:
+            timing["acquire"] = round(time.monotonic() - t0, 2)
+            refusals.append({"code": "no-file", "message": NO_FILE})
+            return out | {"ok": True, "state": "held", "outcome": "held",
+                          "refusals": refusals, "seconds": timing} | _report(
+                              db, ws_id, held, reader_role)
+        acq = acquire_fn(conn, ws_id, token, work, store=store, agent=agent, session=session)
+        timing["acquire"] = round(time.monotonic() - t0, 2)
+    finally:
+        if own_writer:
+            conn.close()
+    out["acquisition"] = {"outcome": acq.get("outcome"), "attempts": acq.get("attempts", [])}
+
+    reader = _reader(db, reader_role)
+    try:
+        fresh = look_up(reader, ws_id, ref, kind)
+    finally:
+        reader.close()
+
+    if fresh and fresh["state"] == "extracted":
+        return out | {"ok": True, "state": "extracted", "outcome": "already-extracted",
+                      "refusals": refusals, "seconds": timing,
+                      "note": "the acquisition landed a file already extracted under another "
+                              "work's copy (sha256 dedupe)."} | _report(db, ws_id, fresh,
+                                                                        reader_role)
+    if fresh and fresh["state"] == "bound-unextracted":
+        if not extract:
+            return out | {"ok": True, "state": "bound-unextracted", "outcome": "bound",
+                          "refusals": refusals, "seconds": timing} | _report(db, ws_id, fresh,
+                                                                             reader_role)
+        return _finish(db, ws_id, fresh, fresh["files"][0], out, timing, refusals,
+                       reader_role=reader_role, device=device, docling_python=docling_python,
+                       derived=derived, root=(store.root if store else None))
+
+    refusals.append({"code": "not-acquired", "message": SPEND_EXHAUSTED})
+    return out | {"ok": True, "state": "held", "outcome": "held-spend-exhausted",
+                  "refusals": refusals, "seconds": timing} | _report(db, ws_id, held, reader_role)
 
 
 def _finish(db, ws_id, held, f, out, timing, refusals, *, reader_role, device, docling_python,

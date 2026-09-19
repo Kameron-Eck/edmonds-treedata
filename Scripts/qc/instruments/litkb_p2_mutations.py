@@ -1213,6 +1213,25 @@ hu(site, "H4", "litkb/hunt.py::_hunt::norm_label", "{a0}",
         "truthy, so the refusal never fires and the admission is signed by a session the "
         "second-session approval rule cannot tell from any other")
 
+# ── the SPEND RULE (Kam, 2026-09-16 night; decisions.yaml litkb-p0-foundation) ──────────────
+# A hunt that reaches `held` (admitted, no PDF) proceeds to acquisition BY DEFAULT; `--no-spend` /
+# `spend=False` is the explicit exception. Six DOI hunts died stuck at `held` on 2026-09-16 for
+# lack of this rule. One row per call site (base brief): the core guard in hunt.py, and the two
+# entry points that decide the `spend` value before it ever reaches hunt.py — the CLI's argparse
+# default and the MCP tool's subprocess flag.
+hu(block, "H5", f"{PKG}/hunt.py",
+   "guard: spend=False stops a hunt at held before any acquisition is attempted",
+   "a hunt started with --no-spend acquires anyway: it spends a download and an archive call the "
+   "caller explicitly refused, and `held-no-spend` never appears")
+hu(block, "H6", f"{PKG}/commands.py",
+   "guard: the CLI's --no-spend threads through as spend=False; the default spends",
+   "the CLI's `spend` local is never assigned: every `litkb hunt` invocation raises before "
+   "calling hunt.hunt() at all, --no-spend included")
+hu(block, "H7", f"{PKG}/mcp/server.py",
+   "guard: the MCP tool's spend=False threads through as --no-spend; the default spends",
+   "litkb_hunt's spend=False is silently dropped: the CLI subprocess never sees --no-spend, so "
+   "an MCP caller who asked not to spend gets the default spend anyway")
+
 
 def call_sites(root=None):
     """Every call of a HELPERS name under Scripts/pipeline/litkb -> {site_id: {"file", "lines", "calls"}}.

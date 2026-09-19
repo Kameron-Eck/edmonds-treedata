@@ -15,7 +15,7 @@ editable install is re-run from a tree that contains litkb:
     py -3.12 -m litkb inventory --new [--root R] [--census C] [--json]
     py -3.12 -m litkb acquire (--key K | --doi D) [--routes open_access,annas,scihub]
                               [--max-archive-downloads N] [--quota-margin M] [--retry-dead] [--from-file PDF]
-    py -3.12 -m litkb hunt <doi-or-url> [--title T] [--author A] [--year Y] [--no-extract]
+    py -3.12 -m litkb hunt <doi-or-url> [--title T] [--author A] [--year Y] [--no-extract] [--no-spend]
 
 Every write names the workstream in <worktree>/.litkb-workstream and presents its token, bound as a query
 parameter. The token is never printed: `ws open` prints the workstream id only.
@@ -467,14 +467,21 @@ def cmd_hunt(args, conn):
     conversion that takes minutes.
 
     Exit status is the refusal, not the state: a hunt that ends at `held` because a DOI has no PDF
-    did everything it could and exits 0, with the next move in `refusals`."""
+    did everything it could and exits 0, with the next move in `refusals`.
+
+    SPEND RULE (Kam, 2026-09-16 night; decisions.yaml litkb-p0-foundation): a hunt that reaches
+    `held` proceeds to acquisition (open access, then the archive, then Sci-Hub) BY DEFAULT.
+    `--no-spend` is the explicit exception."""
     from litkb import hunt as _hunt
 
+    # BEGIN guard: the CLI's --no-spend threads through as spend=False; the default spends
+    spend = not args.no_spend
+    # END guard: the CLI's --no-spend threads through as spend=False; the default spends
     res = _hunt.hunt(args.ref, db=args.db, worktree=_worktree(args), agent=args.agent,
                      session=args.session, title=args.title, author=args.author, year=args.year,
                      key=args.key, source_note=args.source_note, retrieved=args.retrieved,
                      extract=not args.no_extract, device=args.device,
-                     docling_python=args.docling_python, derived=args.derived)
+                     docling_python=args.docling_python, derived=args.derived, spend=spend)
     _print(res)
     return 0 if res.get("ok") else 1
 
@@ -602,6 +609,10 @@ def build_parser():
     h.add_argument("--retrieved", help="the retrieval date recorded for a URL source (default: today, UTC)")
     h.add_argument("--no-extract", action="store_true",
                    help="admit and bind only; leave the extraction to a later hunt or the bulk pass")
+    h.add_argument("--no-spend", action="store_true",
+                   help="stop at `held` (admitted, no PDF) without attempting acquisition; the "
+                        "default SPENDS: open access, then the archive, then Sci-Hub "
+                        "(decisions.yaml litkb-p0-foundation, SPEND RULE 2026-09-16)")
     h.add_argument("--device", default="cuda", help="the docling device (cuda | cpu)")
     h.add_argument("--docling-python", dest="docling_python",
                    help="the extraction venv's python (default: litkb.extract.docling.VENV_PYTHON)")
